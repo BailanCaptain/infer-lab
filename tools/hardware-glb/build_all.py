@@ -1252,7 +1252,7 @@ def build_dgx_h100() -> Dict:
 
 
 def build_dgx_b200() -> Dict:
-    """Builds NEW 10U NVIDIA DGX B200 with 8x B200 dual-reticle SXM, 2x 5th-Gen NVSwitch, 8x OSFP, 2x Xeon 8570, 15 fans, 6 PSUs."""
+    """Builds NEW 10U NVIDIA DGX B200 with 8x B200 dual-reticle SXM, 2x NVSwitch (NVLink 5), 8x OSFP, 2x Xeon 8570, 15 fans, 6 PSUs."""
     src = "https://docs.nvidia.com/dgx/dgxb200-user-guide/introduction-to-dgxb200.html"
     root = NodeBuilder(
         "DGX_B200",
@@ -1303,16 +1303,16 @@ def build_dgx_b200() -> Dict:
             idx_1based=i + 1,
         )
 
-    # 2x NVLink 5 Switch Modules (NVSwitch) delivering 14.4 TB/s aggregate NVLink 5 bandwidth
+    # 2x NVSwitch (NVLink 5) Modules delivering 14.4 TB/s aggregate NVLink 5 bandwidth
     nvs = root.child(
         "DGX_B200_nvswitch",
         translation=[0.0, 0.28, -1.55],
         extras={
             "kind": "nvswitch",
-            "label": "NVLink 5 交换芯片模组（NVSwitch）×2",
+            "label": "2 颗 NVLink 5 交换芯片（NVSwitch）",
             "explodeZ": 1.35,
             "explodeY": 0.55,
-            "description": "2 颗 NVLink 5 交换芯片（NVSwitch）模组，支撑整机 8 颗 B200 达成 14.4 TB/s 全互连聚合带宽。",
+            "description": "2 颗 NVLink 5 交换芯片（NVSwitch / 2 × NVSwitch (NVLink 5)），支撑整机 8 颗 B200 达成 14.4 TB/s 全互连聚合带宽。",
             "source": src,
         },
     )
@@ -1324,7 +1324,7 @@ def build_dgx_b200() -> Dict:
         fins = np.array([[nx + x, 0.232, 0.0] for x in np.linspace(-0.45, 0.45, 20)], dtype=np.float32)
         nvs.add_boxes_grid(M_SILVER, fins, 0.012, 0.21, 0.64)
         nvs.add_chamfer_box(M_CHAMPAGNE, nx, 0.348, 0.0, 0.86, 0.022, 0.28, bevel=0.005)
-        nvs.add_text(M_CHARCOAL, f"NVLINK5 SW {ni + 1}", nx, 0.359, 0.0, height=0.046, thickness=0.008, plane="xz")
+        nvs.add_text(M_CHARCOAL, f"NVSWITCH {ni + 1}", nx, 0.359, 0.0, height=0.046, thickness=0.008, plane="xz")
 
     bus = root.child(
         "DGX_B200_busbar",
@@ -1421,7 +1421,7 @@ def build_gb200_nvl72() -> Dict:
             "label": "4×B200 液冷加速载板",
             "explodeZ": 1.75,
             "explodeY": 0.15,
-            "description": "单台 1U 托盘集成 2 组 GB200 Superchip 共 4 颗 Blackwell B200 GPU（整柜 18 台计算托盘共 72 颗 B200），由直接芯片液冷冷板直冷。",
+            "description": "单台 1U 托盘集成 2 组 GB200 Superchip 共 4 颗 Blackwell B200 GPU（整柜 18 台计算托盘共 72 颗 B200）；Grace + B200 冷板直冷（外围网卡/存储辅以风冷）。",
             "source": src,
         },
     )
@@ -1438,7 +1438,7 @@ def build_gb200_nvl72() -> Dict:
             0.052,
             0.04,
             variant="b200_coldplate",
-            desc="GB200 NVL72 液冷 B200 GPU 模组：单颗配备 8 堆栈 HBM3e（8 TB/s），由微通道紫铜冷板直接带走热量，经背部盲插连接器汇入机柜 9 台 NVLink Switch 托盘。",
+            desc="GB200 NVL72 液冷 B200 GPU 模组：单颗配备 8 堆栈 HBM3e（8 TB/s），由微通道紫铜冷板直接带走热量（外围网卡与存储模组由托盘风扇辅以风冷），经背部盲插连接器汇入机柜 9 台 NVLink Switch 托盘。",
             source=src,
             idx_1based=i + 1,
         )
@@ -1452,7 +1452,7 @@ def build_gb200_nvl72() -> Dict:
             "label": "DLC 液冷分液管路与免滴漏快换头",
             "explodeZ": 2.65,
             "explodeY": -0.45,
-            "description": "直接芯片液冷（DLC）管网：前部红/蓝免滴漏快换接头（QDC）接入机柜竖装液冷歧管，并联直冷高功耗的 2 颗 Grace CPU 与 4 颗 B200 GPU。",
+            "description": "直接芯片液冷（DLC）管网：前部红/蓝免滴漏快换接头（QDC）接入机柜竖装液冷歧管，并联实现 Grace + B200 冷板直冷（外围网卡/存储辅以风冷）。",
             "source": src,
         },
     )
@@ -1464,7 +1464,7 @@ def build_gb200_nvl72() -> Dict:
         cool.add_cylinder(M_SILVER, qx, 0.10, 3.54, 0.048, 0.048, 0.12, axis="z", segs=12)
         cool.add_cylinder(qmat, qx, 0.10, 3.63, 0.054, 0.054, 0.04, axis="z", segs=12)
 
-    # 1U Auxiliary Fan Row behind front NICs & E1.S NVMe drives (per DGX GB Rack Scale User Guide: NICs & storage are air-cooled!)
+    # 1U Auxiliary Fan Row behind front NICs & E1.S NVMe drives (per DGX GB200 User Guide: NICs & storage are air-cooled!)
     build_open_fan_wall(
         root,
         "GB200_NVL72_fans",
@@ -1479,7 +1479,7 @@ def build_gb200_nvl72() -> Dict:
         rotor_size=0.22,
         rotor_depth=0.28,
         source=src,
-        desc="依据 NVIDIA DGX GB 机柜用户指南，高热流密度的 Grace CPU 与 B200 GPU 由液冷冷板直冷，前仓 ConnectX-7/BlueField-3 网卡与 E1.S NVMe 存储仍由托盘内置风扇推动风道散热。",
+        desc="依据 NVIDIA DGX GB200 用户指南，高热流密度的 Grace CPU 与 B200 GPU 由液冷冷板直冷，前仓外围 ConnectX-7/BlueField-3 网卡与 E1.S NVMe 存储仍由托盘内置风扇推动风道散热。",
         top_latch_mat=M_CHAMPAGNE,
         explode_z=1.65,
         explode_y=-1.05,
@@ -1592,6 +1592,10 @@ def build_h100_nvl_pcie() -> Dict:
     for ci, (cx, cy, cz) in enumerate(card_slots):
         c_node = build_pcie_h100_nvl_card(riser, f"H100_NVL_card{ci}", ci + 1, cx, cy, cz, source=src)
         c_node.extras["explodeZ"] = 0.35 if cy < 0.40 else 0.95
+        c_node.extras["description"] = (
+            "双槽全高全长 H100 NVL PCIe 5.0×16 推理卡（尾部 16-pin 12V-2x6 / 12VHPWR 供电）："
+            "单卡启用全部 6 颗 HBM3 堆栈提供 94 GB 显存与 3.9 TB/s 带宽，顶部经 3 路 NVLink 4 桥接器组成每对 2×94 GB（共 188 GB，按单卡与并行策略预算，600 GB/s 双向互联）。"
+        )
 
     # Paired 3-Slot NVLink 4 Bridge Clamps spanning each pair of H100 NVL PCIe cards (600 GB/s bidirectional per pair!)
     br = root.child(
@@ -1602,7 +1606,7 @@ def build_h100_nvl_pcie() -> Dict:
             "label": "三路 NVLink 4 桥接器 ×2组",
             "explodeZ": 3.55,
             "explodeY": 0.55,
-            "description": "每对 H100 NVL 顶部跨接 3 组 NVLink 4 桥接夹具，在标准 PCIe 服务器内拼出 600 GB/s 双向带宽（约为 PCIe 5.0 的近 5 倍）与 188 GB 合并显存池。",
+            "description": "每对 H100 NVL 顶部跨接 3 组 NVLink 4 桥接夹具，在标准 PCIe 服务器内提供 600 GB/s 双向带宽（约为 PCIe 5.0 的近 5 倍）；每对 2×94 GB（共 188 GB，按单卡与并行策略预算，非单一统一 GPU HBM 地址空间）。",
             "source": src,
         },
     )

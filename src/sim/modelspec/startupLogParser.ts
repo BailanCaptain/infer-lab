@@ -160,7 +160,7 @@ export const SAMPLE_ASCEND_STARTUP_LOGS: readonly SampleStartupLogTemplate[] = [
 function toGiB(value: number, unit: string | undefined, treatGbAsGiB = false): number {
   const u = (unit ?? "gib").trim().toLowerCase();
   if (u === "mib") return value / 1024;
-  if (u === "mb") return treatGbAsGiB ? value / 1024 : (value * 1e6) / GIB;
+  if (u === "mb") return (value * 1e6) / GIB;
   if (u === "gb") return treatGbAsGiB ? value : (value * 1e9) / GIB;
   if (u === "kib") return value / (1024 * 1024);
   if (u === "b" || u === "bytes") return value / GIB;
@@ -213,48 +213,53 @@ export function parseAscendStartupLog(logText: string): ParsedStartupLog {
         line,
       );
     if (mLoadVllm?.[1]) {
-      weightsGiB = toGiB(Number.parseFloat(mLoadVllm[1]), mLoadVllm[2], true);
+      // Upstream vLLM divides bytes by 2**30 even though unit says "GB" (strictly GB quirk, not MB)
+      weightsGiB = toGiB(Number.parseFloat(mLoadVllm[1]), mLoadVllm[2], mLoadVllm[2]?.toLowerCase() === "gb");
       if (mLoadVllm[3]) weightLoadSeconds = Number.parseFloat(mLoadVllm[3]);
       record(i, "weights", line);
     }
     const mLoadAscend = /Loading model weights took\s+([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
     if (mLoadAscend?.[1]) {
-      // model_runner_v1.py#L4476 divides by 2**30 even though unit says "GB"
-      weightsGiB = toGiB(Number.parseFloat(mLoadAscend[1]), mLoadAscend[2], true);
+      // model_runner_v1.py#L4476 divides by 2**30 even though unit says "GB" (strictly GB quirk, not MB)
+      weightsGiB = toGiB(
+        Number.parseFloat(mLoadAscend[1]),
+        mLoadAscend[2],
+        mLoadAscend[2]?.toLowerCase() === "gb",
+      );
       record(i, "weights", line);
     }
     const mCkpt = /Checkpoint size\s*[:=]?\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
     if (mCkpt?.[1] && weightsGiB === null) {
-      weightsGiB = toGiB(Number.parseFloat(mCkpt[1]), mCkpt[2], true);
+      weightsGiB = toGiB(Number.parseFloat(mCkpt[1]), mCkpt[2], false);
       record(i, "weights", line);
     }
 
     // 2. Memory profiling repr (mem_utils.py#L217-L225) & key-value variants
     if (/Memory profiling takes/i.test(line) || /Total non KV cache memory/i.test(line)) {
       const mNonKv = /Total non KV cache memory:\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
-      if (mNonKv?.[1]) nonKvCacheMemoryGiB = toGiB(Number.parseFloat(mNonKv[1]), mNonKv[2], true);
+      if (mNonKv?.[1]) nonKvCacheMemoryGiB = toGiB(Number.parseFloat(mNonKv[1]), mNonKv[2], false);
       const mPeak = /torch peak memory increase:\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
-      if (mPeak?.[1]) torchPeakIncreaseGiB = toGiB(Number.parseFloat(mPeak[1]), mPeak[2], true);
+      if (mPeak?.[1]) torchPeakIncreaseGiB = toGiB(Number.parseFloat(mPeak[1]), mPeak[2], false);
       const mConsumed = /total consumed[^:]*:\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
-      if (mConsumed?.[1]) totalConsumedGiB = toGiB(Number.parseFloat(mConsumed[1]), mConsumed[2], true);
+      if (mConsumed?.[1]) totalConsumedGiB = toGiB(Number.parseFloat(mConsumed[1]), mConsumed[2], false);
       const mW = /weights memory:\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
-      if (mW?.[1] && weightsGiB === null) weightsGiB = toGiB(Number.parseFloat(mW[1]), mW[2], true);
+      if (mW?.[1] && weightsGiB === null) weightsGiB = toGiB(Number.parseFloat(mW[1]), mW[2], false);
       record(i, "memoryProfiling", line);
     }
 
     const mKvNonKv = /\bnon_kv_cache_memory\s*[:=]\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
     if (mKvNonKv?.[1]) {
-      nonKvCacheMemoryGiB = toGiB(Number.parseFloat(mKvNonKv[1]), mKvNonKv[2], true);
+      nonKvCacheMemoryGiB = toGiB(Number.parseFloat(mKvNonKv[1]), mKvNonKv[2], false);
       record(i, "nonKvCacheMemory", line);
     }
     const mKvPeak = /\btorch_peak(?:_increase)?\s*[:=]\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
     if (mKvPeak?.[1]) {
-      torchPeakIncreaseGiB = toGiB(Number.parseFloat(mKvPeak[1]), mKvPeak[2], true);
+      torchPeakIncreaseGiB = toGiB(Number.parseFloat(mKvPeak[1]), mKvPeak[2], false);
       record(i, "torchPeak", line);
     }
     const mKvNonTorch = /\bnon_torch(?:_increase|_memory)?\s*[:=]\s*([\d.]+)\s*(GiB|GB|MiB|MB)/i.exec(line);
     if (mKvNonTorch?.[1]) {
-      nonTorchIncreaseGiB = toGiB(Number.parseFloat(mKvNonTorch[1]), mKvNonTorch[2], true);
+      nonTorchIncreaseGiB = toGiB(Number.parseFloat(mKvNonTorch[1]), mKvNonTorch[2], false);
       record(i, "nonTorchIncrease", line);
     }
 
@@ -262,8 +267,8 @@ export function parseAscendStartupLog(logText: string): ParsedStartupLog {
     const mFreeDev =
       /Free memory on device\s*\(\s*([\d.]+)\s*\/\s*([\d.]+)\s*(GiB|GB)\s*\)\s*on startup/i.exec(line);
     if (mFreeDev?.[1] && mFreeDev[2]) {
-      initialFreeGiB = toGiB(Number.parseFloat(mFreeDev[1]), mFreeDev[3], true);
-      totalDeviceGiB = toGiB(Number.parseFloat(mFreeDev[2]), mFreeDev[3], true);
+      initialFreeGiB = toGiB(Number.parseFloat(mFreeDev[1]), mFreeDev[3], false);
+      totalDeviceGiB = toGiB(Number.parseFloat(mFreeDev[2]), mFreeDev[3], false);
       record(i, "startupFreeMemory", line);
     }
     const mDesired = /Desired GPU memory utilization is\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*(GiB|GB)\s*\)/i.exec(
@@ -271,43 +276,43 @@ export function parseAscendStartupLog(logText: string): ParsedStartupLog {
     );
     if (mDesired?.[1] && mDesired[2]) {
       gpuMemoryUtilization = Number.parseFloat(mDesired[1]);
-      requestedMemoryGiB = toGiB(Number.parseFloat(mDesired[2]), mDesired[3], true);
+      requestedMemoryGiB = toGiB(Number.parseFloat(mDesired[2]), mDesired[3], false);
     }
     const mActual =
       /Actual usage:\s*([\d.]+)\s*(GiB|GB|MiB)\s*for weights,\s*([\d.]+)\s*(GiB|GB|MiB)\s*for peak activation,\s*([\d.]+)\s*(GiB|GB|MiB)\s*for non-torch memory,\s*([\d.]+)\s*(GiB|GB|MiB)\s*for NPU graph memory/i.exec(
         line,
       );
     if (mActual?.[1] && mActual[3] && mActual[5] && mActual[7]) {
-      if (weightsGiB === null) weightsGiB = toGiB(Number.parseFloat(mActual[1]), mActual[2], true);
-      torchPeakIncreaseGiB = toGiB(Number.parseFloat(mActual[3]), mActual[4], true);
-      nonTorchIncreaseGiB = toGiB(Number.parseFloat(mActual[5]), mActual[6], true);
-      aclGraphGiB = toGiB(Number.parseFloat(mActual[7]), mActual[8], true);
+      if (weightsGiB === null) weightsGiB = toGiB(Number.parseFloat(mActual[1]), mActual[2], false);
+      torchPeakIncreaseGiB = toGiB(Number.parseFloat(mActual[3]), mActual[4], false);
+      nonTorchIncreaseGiB = toGiB(Number.parseFloat(mActual[5]), mActual[6], false);
+      aclGraphGiB = toGiB(Number.parseFloat(mActual[7]), mActual[8], false);
       record(i, "actualUsageSummary", line);
     }
     const mSuggest =
       /--kv-cache-memory=(\d+)`?\s*\(\s*([\d.]+)\s*(GiB|GB)\s*\)\s*to fit into requested/i.exec(line);
     if (mSuggest?.[1] && mSuggest[2]) {
       suggestedKvMemoryBytes = Number.parseInt(mSuggest[1], 10);
-      suggestedKvMemoryGiB = toGiB(Number.parseFloat(mSuggest[2]), mSuggest[3], true);
+      suggestedKvMemoryGiB = toGiB(Number.parseFloat(mSuggest[2]), mSuggest[3], false);
     }
     const mCurKv = /Current KV cache memory:\s*([\d.]+)\s*(GiB|GB|MiB)/i.exec(line);
     if (mCurKv?.[1] && availableKvGiB === null) {
-      availableKvGiB = toGiB(Number.parseFloat(mCurKv[1]), mCurKv[2], true);
+      availableKvGiB = toGiB(Number.parseFloat(mCurKv[1]), mCurKv[2], false);
     }
     const mAfterWarmup =
       /torch reserved memory\s+([\d.]+)\s*(GiB|GB|MiB),\s*torch allocated memory\s+([\d.]+)\s*(GiB|GB|MiB)/i.exec(
         line,
       );
     if (mAfterWarmup?.[1] && mAfterWarmup[3]) {
-      torchReservedAfterWarmupGiB = toGiB(Number.parseFloat(mAfterWarmup[1]), mAfterWarmup[2], true);
-      torchAllocatedAfterWarmupGiB = toGiB(Number.parseFloat(mAfterWarmup[3]), mAfterWarmup[4], true);
+      torchReservedAfterWarmupGiB = toGiB(Number.parseFloat(mAfterWarmup[1]), mAfterWarmup[2], false);
+      torchAllocatedAfterWarmupGiB = toGiB(Number.parseFloat(mAfterWarmup[3]), mAfterWarmup[4], false);
     }
 
     // 4. Available KV cache memory (worker.py#L661 / worker_310p.py#L150)
     const mAvailKv =
       /Available KV cache memory:\s*(-?[\d.]+)\s*(GiB|GB|MiB|MB)(\s*\(halved for workspace\))?/i.exec(line);
     if (mAvailKv?.[1]) {
-      availableKvGiB = toGiB(Number.parseFloat(mAvailKv[1]), mAvailKv[2], true);
+      availableKvGiB = toGiB(Number.parseFloat(mAvailKv[1]), mAvailKv[2], false);
       if (mAvailKv[3]) kvHalvedFor310pWorkspace = true;
       record(i, "availableKv", line);
     }
@@ -333,7 +338,7 @@ export function parseAscendStartupLog(logText: string): ParsedStartupLog {
       );
     if (mGraph?.[1] && mGraph[2]) {
       aclGraphSeconds = Number.parseFloat(mGraph[1]);
-      aclGraphGiB = toGiB(Number.parseFloat(mGraph[2]), mGraph[3], true);
+      aclGraphGiB = toGiB(Number.parseFloat(mGraph[2]), mGraph[3], false);
       record(i, "aclGraph", line);
     }
 
@@ -564,7 +569,14 @@ export function reconcileStartupLog(
   const kvLow = q2.kvPoolLowBytes / GIB;
   const kvPoint = q2.kvPoolPointBytes / GIB;
   const kvHigh = q2.kvPoolHighBytes / GIB;
-  const minOneSeqGiB = ((q2.blocksPerMaxSeq + 1) * q2.kvBytesPerBlock) / GIB;
+  const fixedLinearStateBytes = Math.max(q2.totalFixedLinearStateBytes, q2.perSeqFixedLinearStateBytes);
+  const pagedMinSingleSeqBytes = q2.blocksPerMaxSeq > 0 ? (q2.blocksPerMaxSeq + 1) * q2.kvBytesPerBlock : 0;
+  const minOneSeqGiB = (pagedMinSingleSeqBytes + fixedLinearStateBytes) / GIB;
+  const planReportsInsufficient =
+    q2.oomStatus === "insufficient_for_single_max_len_seq" ||
+    q2.oomStatus === "non_kv_exceeds_budget" ||
+    q2.oomStatus === "weights_exceed_budget" ||
+    q2.oomStatus === "weights_plus_activation_exceed_budget";
   let availableKv: ReconciliationItem;
   if (parsed.availableKvGiB === null) {
     availableKv = {
@@ -584,11 +596,26 @@ export function reconcileStartupLog(
   } else {
     const m = parsed.availableKvGiB;
     const delta = round2(m - kvPoint);
+    const rangeStatus = classifyRange(m, kvLow, kvHigh, GIB_TOLERANCE);
+    const belowHardFloor = m <= 0 || m < minOneSeqGiB;
     const status: ReconciliationItemStatus =
-      m <= 0 || m < minOneSeqGiB ? "oom-risk" : classifyRange(m, kvLow, kvHigh, GIB_TOLERANCE);
+      belowHardFloor || (planReportsInsufficient && rangeStatus === "within-interval")
+        ? "oom-risk"
+        : rangeStatus;
     const causes: string[] = [];
     if (parsed.kvHalvedFor310pWorkspace && !plan.card.halvesKvForWorkspace) {
       causes.push("日志含 (halved for workspace)，说明实机是 310P (worker_310p.py // 2)，请核对卡型选择。");
+    }
+    if (belowHardFloor) {
+      causes.push(
+        fixedLinearStateBytes > 0
+          ? `实测可用 KV（${m.toFixed(2)} GiB）低于 Stage 6 最低启动门槛 ${minOneSeqGiB.toFixed(2)} GiB（固定线性态 ${(fixedLinearStateBytes / GIB).toFixed(2)} GiB + 单条满长请求分页块与 null block），不足以承接单条满长序列。`
+          : `实测可用 KV（${m.toFixed(2)} GiB）低于 Stage 6 单条满长请求 + null block 最低启动门槛 ${minOneSeqGiB.toFixed(2)} GiB。`,
+      );
+    } else if (planReportsInsufficient && status === "oom-risk") {
+      causes.push(
+        `静态部署计算器已判定当前配置容量不足（${q2.oomStatus}），实测可用 KV（${m.toFixed(2)} GiB）落在该不足区间内，不能按可行状态放行。`,
+      );
     }
     if (status === "below-interval" || status === "oom-risk") {
       causes.push(
@@ -613,10 +640,25 @@ export function reconcileStartupLog(
     };
   }
 
-  // 4. KV cache token slots
-  const tokLow = q2.totalKvTokenSlotsRange[0];
-  const tokPoint = q2.totalKvTokenSlotsPoint;
-  const tokHigh = q2.totalKvTokenSlotsRange[1];
+  // 4. KV cache token slots — aligned with upstream vllm@ced6857a:kv_cache_utils.py#L2373-L2383
+  // get_kv_cache_capacity: floor((usableBlocks / ceil(maxModelLen / virtualBlockTokens)) * maxModelLen)
+  const virtualBlockTokens = q2.effectiveBlockSize * Math.max(1, plan.inputSummary.dcpSize);
+  const pagedBlocksPerMaxSeq =
+    virtualBlockTokens > 0 ? Math.ceil(plan.inputSummary.maxModelLen / virtualBlockTokens) : 0;
+  const toEffectiveKvTokens = (rawSlots: number): number => {
+    if (rawSlots <= 0 || virtualBlockTokens <= 0 || pagedBlocksPerMaxSeq <= 0) return 0;
+    const usablePagedBlocks = rawSlots / virtualBlockTokens;
+    return Math.floor((usablePagedBlocks / pagedBlocksPerMaxSeq) * plan.inputSummary.maxModelLen);
+  };
+  const tokLow = toEffectiveKvTokens(q2.totalKvTokenSlotsRange[0]);
+  const tokPoint = toEffectiveKvTokens(q2.totalKvTokenSlotsPoint);
+  const tokHigh = toEffectiveKvTokens(q2.totalKvTokenSlotsRange[1]);
+  const packingRatio =
+    pagedBlocksPerMaxSeq > 0 && virtualBlockTokens > 0
+      ? plan.inputSummary.maxModelLen / (pagedBlocksPerMaxSeq * virtualBlockTokens)
+      : 1;
+  const expectedKvBytesPerEffectiveToken =
+    packingRatio > 0 ? q2.kvBytesPerTokenPerRank / packingRatio : q2.kvBytesPerTokenPerRank;
   const impliedKvBytesPerToken =
     parsed.availableKvGiB !== null && parsed.kvCacheTokens !== null && parsed.kvCacheTokens > 0
       ? Math.round((parsed.availableKvGiB * GIB) / parsed.kvCacheTokens)
@@ -647,11 +689,12 @@ export function reconcileStartupLog(
     const causes: string[] = [];
     if (
       impliedKvBytesPerToken !== null &&
-      Math.abs(impliedKvBytesPerToken - q2.kvBytesPerTokenPerRank) / Math.max(1, q2.kvBytesPerTokenPerRank) >
+      expectedKvBytesPerEffectiveToken > 0 &&
+      Math.abs(impliedKvBytesPerToken - expectedKvBytesPerEffectiveToken) / expectedKvBytesPerEffectiveToken >
         0.15
     ) {
       causes.push(
-        `日志推算单 token KV 约 ${(impliedKvBytesPerToken / 1024).toFixed(1)} KiB，与当前配置理论值 ${(q2.kvBytesPerTokenPerRank / 1024).toFixed(1)} KiB 偏差超 15%：检查 TP、PP、--kv-cache-dtype 或多 DP 汇总口径。`,
+        `日志推算单 token KV 约 ${(impliedKvBytesPerToken / 1024).toFixed(1)} KiB，与当前配置理论值 ${(expectedKvBytesPerEffectiveToken / 1024).toFixed(1)} KiB 偏差超 15%：检查 TP、PP、--kv-cache-dtype 或多 DP 汇总口径。`,
       );
     }
     if (status === "below-interval" || status === "oom-risk") {

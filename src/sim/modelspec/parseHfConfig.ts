@@ -73,6 +73,24 @@ function unwrapTextConfig(raw: Json): { cfg: Json; nested: boolean } {
   return { cfg: raw, nested: false };
 }
 
+export const HF_CONFIG_LIMITS = {
+  num_hidden_layers: [1, 512] as const,
+  vocab_size: [1, 2_000_000] as const,
+  hidden_size: [1, 65_536] as const,
+  intermediate_size: [1, 262_144] as const,
+  moe_intermediate_size: [1, 262_144] as const,
+  num_experts: [1, 4_096] as const,
+  num_attention_heads: [1, 512] as const,
+  num_key_value_heads: [1, 512] as const,
+} as const;
+
+export function assertBoundedInt(value: number, key: string, min: number, max: number): number {
+  if (!Number.isSafeInteger(value) || value < min || value > max) {
+    throw new Error(`config 字段 ${key} 超出安全整数范围 [${min}, ${max}]（收到 ${String(value)}）`);
+  }
+  return value;
+}
+
 function num(cfg: Json, key: string, used: Set<string>, fallback?: number): number {
   used.add(key);
   const v = cfg[key];
@@ -150,11 +168,27 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     throw new UnsupportedModelError(modelType, architectures);
   }
 
-  const hidden = num(cfg, "hidden_size", used);
-  const numLayers = num(cfg, "num_hidden_layers", used);
-  const numHeads = num(cfg, "num_attention_heads", used);
-  const numKvHeadsRaw = num(cfg, "num_key_value_heads", used, numHeads);
-  const vocab = num(cfg, "vocab_size", used);
+  const hidden = assertBoundedInt(
+    num(cfg, "hidden_size", used),
+    "hidden_size",
+    ...HF_CONFIG_LIMITS.hidden_size,
+  );
+  const numLayers = assertBoundedInt(
+    num(cfg, "num_hidden_layers", used),
+    "num_hidden_layers",
+    ...HF_CONFIG_LIMITS.num_hidden_layers,
+  );
+  const numHeads = assertBoundedInt(
+    num(cfg, "num_attention_heads", used),
+    "num_attention_heads",
+    ...HF_CONFIG_LIMITS.num_attention_heads,
+  );
+  const numKvHeadsRaw = assertBoundedInt(
+    num(cfg, "num_key_value_heads", used, numHeads),
+    "num_key_value_heads",
+    ...HF_CONFIG_LIMITS.num_key_value_heads,
+  );
+  const vocab = assertBoundedInt(num(cfg, "vocab_size", used), "vocab_size", ...HF_CONFIG_LIMITS.vocab_size);
   const dtypeStr = str(cfg, "torch_dtype", used, str(cfg, "dtype", used, "bfloat16"));
   const dtype = parseDtype(dtypeStr);
   const dtypeBytes = DTYPE_BYTES[dtype];
@@ -172,7 +206,11 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
       : isWave4Arch
         ? Math.round(hidden * 4)
         : undefined;
-  const intermediate = num(cfg, "intermediate_size", used, intermediateFallback);
+  const intermediate = assertBoundedInt(
+    num(cfg, "intermediate_size", used, intermediateFallback),
+    "intermediate_size",
+    ...HF_CONFIG_LIMITS.intermediate_size,
+  );
 
   const ropeTheta = num(cfg, "rope_theta", used, 10000);
   const attentionBias = bool(cfg, "attention_bias", used, modelTypeLower === "qwen2");
@@ -205,7 +243,39 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     used.add("index_n_heads");
     used.add("index_num_heads");
     used.add("indexer_kv_dtype");
-    const indexerKvElemBytes = hasCsa2Flag ? parseElemBytes(cfg.indexer_kv_dtype, 1) : undefined;
+    used.add("indexer_cache_dtype");
+    used.add("indexer_quant");
+    used.add("use_indexer_quant");
+    used.add("lightning_indexer_quant");
+    used.add("enable_indexer_quant");
+    const rawIndexerDtype = cfg.indexer_kv_dtype ?? cfg.indexer_cache_dtype;
+    const indexerKvDtype =
+      hasCsa2Flag && typeof rawIndexerDtype === "string" && rawIndexerDtype.trim().length > 0
+        ? rawIndexerDtype.trim().toLowerCase()
+        : undefined;
+    const rawIndexerQuant =
+      cfg.lightning_indexer_quant ?? cfg.indexer_quant ?? cfg.use_indexer_quant ?? cfg.enable_indexer_quant;
+    const parsedIndexerQuant =
+      typeof rawIndexerQuant === "boolean"
+        ? rawIndexerQuant
+        : typeof rawIndexerQuant === "number"
+          ? rawIndexerQuant !== 0
+          : typeof rawIndexerQuant === "string"
+            ? rawIndexerQuant.trim().toLowerCase() === "true" || rawIndexerQuant.trim() === "1"
+            : undefined;
+    const defaultIndexerFloatBytes = dtypeBytes >= 2 ? dtypeBytes : 2;
+    const indexerKvElemBytes = hasCsa2Flag
+      ? indexerKvDtype !== undefined
+        ? parseElemBytes(indexerKvDtype, defaultIndexerFloatBytes)
+        : parsedIndexerQuant === true
+          ? 1
+          : defaultIndexerFloatBytes
+      : undefined;
+    const indexerQuantEnabled = hasCsa2Flag
+      ? parsedIndexerQuant !== undefined
+        ? parsedIndexerQuant
+        : (indexerKvElemBytes ?? defaultIndexerFloatBytes) <= 1
+      : undefined;
 
     const headDim = hasMlaFlag ? (qkNopeHeadDim ?? 128) + (qkRopeHeadDim ?? 64) : rawHeadDim;
     const effectiveKvHeads = hasMlaFlag ? 1 : numKvHeadsRaw;
@@ -226,7 +296,9 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
       ...(sparseTopK !== undefined ? { sparseTopK } : {}),
       ...(indexHeadDim !== undefined ? { indexHeadDim } : {}),
       ...(indexNumHeads !== undefined ? { indexNumHeads } : {}),
+      ...(indexerKvDtype !== undefined ? { indexerKvDtype } : {}),
       ...(indexerKvElemBytes !== undefined ? { indexerKvElemBytes } : {}),
+      ...(indexerQuantEnabled !== undefined ? { indexerQuantEnabled } : {}),
     };
   } else {
     fullAttention = {
@@ -323,21 +395,25 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
   // MLP：支持 qwen3_moe / qwen2_moe / mixtral / deepseek_v2/v3/v4 MoE（含 first_k_dense_replace / n_routed_experts / n_shared_experts）
   let layers: LayerSpec[];
   if (isMoeType) {
-    const numExperts =
+    const expertKey =
       typeof cfg.n_routed_experts === "number"
-        ? num(cfg, "n_routed_experts", used)
+        ? "n_routed_experts"
         : typeof cfg.num_experts === "number"
-          ? num(cfg, "num_experts", used)
-          : num(cfg, "num_local_experts", used);
+          ? "num_experts"
+          : "num_local_experts";
+    const numExperts = assertBoundedInt(
+      num(cfg, expertKey, used),
+      expertKey,
+      ...HF_CONFIG_LIMITS.num_experts,
+    );
     used.add("n_routed_experts");
     used.add("num_experts");
     used.add("num_local_experts");
     const topK = num(cfg, "num_experts_per_tok", used, 8);
-    const moeIntermediate = num(
-      cfg,
+    const moeIntermediate = assertBoundedInt(
+      num(cfg, "moe_intermediate_size", used, modelTypeLower === "mixtral" ? intermediate : undefined),
       "moe_intermediate_size",
-      used,
-      modelTypeLower === "mixtral" ? intermediate : undefined,
+      ...HF_CONFIG_LIMITS.moe_intermediate_size,
     );
     const sharedIntermediateRaw = num(cfg, "shared_expert_intermediate_size", used, 0);
     const numSharedRaw =
@@ -397,7 +473,9 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     const ec =
       cfg.engram_config && typeof cfg.engram_config === "object" && !Array.isArray(cfg.engram_config)
         ? (cfg.engram_config as Json)
-        : {};
+        : cfg.engram && typeof cfg.engram === "object" && !Array.isArray(cfg.engram)
+          ? (cfg.engram as Json)
+          : {};
     used.add("engram");
     used.add("use_engram");
     used.add("engram_config");
@@ -405,9 +483,22 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     used.add("engram_hidden_size");
     used.add("engram_layers");
     used.add("engram_layer_ids");
+    used.add("engram_cpu_offload");
+    used.add("cpu_offload");
     used.add("engram_dp_shared_memory");
     used.add("etp_size");
     used.add("engram_tp_size");
+
+    const parseOptionalBool = (v: unknown): boolean | undefined => {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v !== 0;
+      if (typeof v === "string") {
+        const s = v.trim().toLowerCase();
+        if (s === "true" || s === "1") return true;
+        if (s === "false" || s === "0") return false;
+      }
+      return undefined;
+    };
 
     const rawLayers = cfg.engram_layers ?? cfg.engram_layer_ids ?? ec.engram_layers ?? ec.layer_ids;
     const layerIds = Array.isArray(rawLayers)
@@ -427,7 +518,11 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
         : typeof ec.hidden_size === "number"
           ? ec.hidden_size
           : Math.min(hidden, 1280);
-    const dpSharedMemory = Boolean(cfg.engram_dp_shared_memory ?? ec.dp_shared_memory ?? false);
+    const dpSharedMemory = parseOptionalBool(cfg.engram_dp_shared_memory ?? ec.dp_shared_memory) ?? false;
+    const rawCpuOffload =
+      cfg.engram_cpu_offload ?? cfg.cpu_offload ?? ec.cpu_offload ?? ec.engram_cpu_offload;
+    // Upstream vllm/config/engram.py defaults cpu_offload=True
+    const cpuOffload = parseOptionalBool(rawCpuOffload) ?? true;
     const rawEtp = cfg.etp_size ?? cfg.engram_tp_size ?? ec.etp_size;
     const etpSize = typeof rawEtp === "number" && rawEtp >= 1 ? Math.round(rawEtp) : undefined;
     engram = {
@@ -435,6 +530,7 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
       vocabSize: engramVocabSize,
       hiddenSize: engramHiddenSize,
       layerIds: layerIds.length > 0 ? layerIds : [1],
+      cpuOffload,
       dpSharedMemory,
       ...(etpSize !== undefined ? { etpSize } : {}),
       dtypeBytes,

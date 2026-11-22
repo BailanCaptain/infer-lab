@@ -187,8 +187,12 @@ export const domain4Rules: readonly CouplingRule[] = [
       const dcp = Math.max(1, input.dcpSize ?? 1);
       const errors: string[] = [];
 
-      if (pcp === 1 && dcp > 1 && tp % dcp !== 0) {
-        errors.push(`pcp=1 时 tp (${tp}) 必须能被 dcp (${dcp}) 整除`);
+      if (pcp === 1 && dcp > 1) {
+        if (dcp > tp) {
+          errors.push(`pcp=1 时 dcp (${dcp}) 不能大于 tp (${tp}) 且 tp (${tp}) 必须能被 dcp (${dcp}) 整除`);
+        } else if (tp % dcp !== 0) {
+          errors.push(`pcp=1 时 tp (${tp}) 必须能被 dcp (${dcp}) 整除`);
+        }
       }
       if (pcp > 1 && dcp !== 1 && dcp !== pcp && dcp !== tp * pcp) {
         errors.push(`pcp=${pcp} > 1 时 dcp (${dcp}) 必须属于 {1, ${pcp}, ${tp * pcp}}`);
@@ -203,12 +207,13 @@ export const domain4Rules: readonly CouplingRule[] = [
           if (input.numKvHeads <= 0) {
             errors.push(`GQA/MQA 要求 total_num_kv_heads > 0（当前 ${input.numKvHeads}）`);
           } else {
+            const kvReplication = Math.floor(tp / input.numKvHeads);
             if (tp <= input.numKvHeads) {
               errors.push(`GQA/MQA 开启 dcp>1 时要求 tp (${tp}) > total_num_kv_heads (${input.numKvHeads})`);
-            } else if (dcp > Math.floor(tp / input.numKvHeads)) {
-              errors.push(
-                `GQA/MQA 要求 dcp (${dcp}) <= tp // total_num_kv_heads (${Math.floor(tp / input.numKvHeads)})`,
-              );
+            } else if (dcp > kvReplication) {
+              errors.push(`GQA/MQA 要求 dcp (${dcp}) <= tp // total_num_kv_heads (${kvReplication})`);
+            } else if (kvReplication % dcp !== 0) {
+              errors.push(`GQA/MQA 要求 (tp // total_num_kv_heads = ${kvReplication}) % dcp (${dcp}) == 0`);
             }
             if (input.numAttentionHeads !== undefined) {
               const groupSize = Math.floor(input.numAttentionHeads / input.numKvHeads);
@@ -243,7 +248,55 @@ export const domain4Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message: `ValueError / AssertionError: PCP/DCP 分组尺寸非法：${errors.join("；")}。`,
+        remediation:
+          "满足 pcp=1 时 tp % dcp == 0；GQA/MQA 下确保 tp > num_kv_heads 且 (tp // num_kv_heads) % dcp == 0、(num_heads / num_kv_heads) % dcp == 0；SFA 副本索引器下确保 dcp ∈ {pcp, tp * pcp}。",
       };
+    },
+  },
+  {
+    id: "d4-kv-connector-missing-kv-role",
+    domain: "cp-pd",
+    title: "配置 kv_connector 时缺少或传入非法 kv_role",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/kv_transfer.py#L130-L140`],
+    description:
+      'vLLM KVTransferConfig 使用严格区分大小写的 Literal["kv_producer", "kv_consumer", "kv_both"]（L130-L134 非法值校验），且在设置 kv_connector 而 kv_role 为 None 时抛 ValueError（L136-L140）。',
+    rationale:
+      "KV 传输连接器依赖显式且精确小写的实例角色初始化发送或接收缓冲区，框架不会自动猜测角色或忽略大小写。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (!input.kvConnector) return null;
+      if (input.kvRole === undefined) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: this.judgment,
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message: `ValueError: 已配置 kv_connector='${input.kvConnector}' 但未指定 kv_role（kv_role=None 时 KVTransferConfig 直接报错）。`,
+          remediation:
+            '在 --kv-transfer-config 中显式补充 kv_role：Prefill 实例设为 "kv_producer"，Decode 实例设为 "kv_consumer"，混部实例设为 "kv_both"。',
+        };
+      }
+      if (input.kvRole !== "kv_producer" && input.kvRole !== "kv_consumer" && input.kvRole !== "kv_both") {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: this.judgment,
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message: `ValueError: kv_role='${String(input.kvRole)}' 非法（vLLM KVTransferConfig 严格区分大小写，仅接受 "kv_producer"、"kv_consumer" 或 "kv_both"）。`,
+          remediation:
+            '将 --kv-transfer-config 中的 kv_role 改为严格小写的 "kv_producer"、"kv_consumer" 或 "kv_both"。',
+        };
+      }
+      return null;
     },
   },
   {
@@ -579,6 +632,28 @@ export function evaluateDomain4Rules(
 ): readonly RuleMatch[] {
   const matches: RuleMatch[] = [];
   for (const rule of domain4Rules) {
+    const match = rule.evaluate(input, version);
+    if (match) matches.push(match);
+  }
+  return matches;
+}
+
+const CP_TOPOLOGY_RULE_IDS = new Set<string>([
+  "d4-pcp-requires-mrv2",
+  "d4-pcp-dcp-sizing",
+  "d4-pcp-full-cudagraph-unsupported",
+]);
+
+/**
+ * Shared CP / DCP / PCP topology legality evaluator reused across ConfigDoctor and Deploy Calculator.
+ */
+export function evaluateCpTopologyRules(
+  input: CouplingCheckInput,
+  version: RuleVersion = DEFAULT_RULE_VERSION,
+): readonly RuleMatch[] {
+  const matches: RuleMatch[] = [];
+  for (const rule of domain4Rules) {
+    if (!CP_TOPOLOGY_RULE_IDS.has(rule.id)) continue;
     const match = rule.evaluate(input, version);
     if (match) matches.push(match);
   }

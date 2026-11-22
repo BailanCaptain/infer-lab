@@ -18,6 +18,8 @@ test("目录按标题、别名和参数名筛选，展开参数并能清除无�
   await expect(toc.getByRole("status")).toContainText("没有匹配的页面");
   await toc.getByRole("button", { name: "清除搜索" }).click();
   await expect(search).toHaveValue("");
-  await expect(toc.getByRole("link", { name: /^Sleep Mode：/ })).toBeVisible();
+  await expect(mlp).toBeVisible();
   await expect(parameter).toBeVisible();
+  await toc.getByTestId("toc-performance").locator("summary").click();
+  await expect(toc.getByRole("link", { name: /^Sleep Mode：/ })).toBeVisible();
 });

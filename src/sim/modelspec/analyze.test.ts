@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { analyzeKvPerToken, analyzeParams } from "./analyze";
+import {
+  analyzeKvPerToken,
+  analyzeParams,
+  indexerBytesPerTokenLayer,
+  linearStateBytesPerSeqLayer,
+} from "./analyze";
 import { parseHfConfig, UnsupportedModelError } from "./parseHfConfig";
 import { getPresetSpec, MODEL_PRESETS } from "./presets";
 
@@ -77,5 +82,116 @@ describe("analyzeKvPerToken", () => {
   it("Qwen3-30B-A3B：4 个 KV 头，每层 2048 B，48 层", () => {
     const r = analyzeKvPerToken(getPresetSpec("qwen3-30b-a3b"));
     expect(r.bytesPerToken).toBe(2 * 4 * 128 * 2 * 48);
+  });
+  it("KDA 投机解码（numSpecTokens > 0）：mamba_cache_mode=none 每请求预留 1 + numSpecTokens 个完整状态块", () => {
+    const kdaSpec = parseHfConfig({
+      model_type: "kimi_linear",
+      hidden_size: 4096,
+      num_hidden_layers: 4,
+      num_attention_heads: 64,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      intermediate_size: 14336,
+      linear_kda: true,
+      linear_num_key_heads: 64,
+      linear_num_value_heads: 64,
+      linear_key_head_dim: 128,
+      linear_value_head_dim: 128,
+      linear_conv_kernel_dim: 4,
+      layer_types: ["linear_kda", "linear_kda", "linear_kda", "full_attention"],
+      vocab_size: 151936,
+      torch_dtype: "bfloat16",
+    });
+    const kdaAttn = kdaSpec.layers[0]!.attention;
+    const baseTp8 = linearStateBytesPerSeqLayer(kdaAttn, 8);
+    const spec3Tp8 = linearStateBytesPerSeqLayer(kdaAttn, 8, 3);
+
+    expect(baseTp8.convBytes).toBe(18_432);
+    // vllm@ced6857a:mamba_utils.py#L318: conv window expands to (convKernel - 1 + numSpecTokens) = 6
+    expect(spec3Tp8.convBytes).toBe(36_864);
+    expect(spec3Tp8.recurrentBytes).toBe(baseTp8.recurrentBytes);
+    expect(spec3Tp8.stateBlocksPerSeq).toBe(4);
+    expect(spec3Tp8.singleBlockBytes).toBe(524_288 + 36_864);
+    expect(spec3Tp8.totalBytes).toBe(2_244_608);
+
+    const kvNoSpec = analyzeKvPerToken(kdaSpec, 2, 0);
+    const kvWithSpec = analyzeKvPerToken(kdaSpec, 2, 3);
+    const expectedTp1Spec3Layer = (64 * 128 * 128 * 4 + 3 * 64 * 128 * (4 - 1 + 3) * 2) * 4;
+    expect(kvWithSpec.fixedStateBytesPerSeq).toBe(3 * expectedTp1Spec3Layer);
+    expect(kvWithSpec.fixedStateBytesPerSeq).toBeGreaterThan(kvNoSpec.fixedStateBytesPerSeq * 4);
+  });
+
+  it("P1-6 / P2-4 SFA 索引缓存（Lightning Indexer）：BF16=256 B、INT8=128+2(FP16 scale)=130 B、FP8=128+4(FP32 scale)=132 B", () => {
+    const baseDsaCfg = {
+      model_type: "deepseek_v4",
+      hidden_size: 7168,
+      num_hidden_layers: 1,
+      num_attention_heads: 128,
+      kv_lora_rank: 512,
+      qk_nope_head_dim: 128,
+      qk_rope_head_dim: 64,
+      v_head_dim: 128,
+      uses_sfa_sparse: true,
+      index_topk: 2048,
+      index_head_dim: 128,
+      index_n_heads: 64,
+      intermediate_size: 18432,
+      vocab_size: 129280,
+      torch_dtype: "bfloat16",
+    };
+    const bf16Spec = parseHfConfig(baseDsaCfg);
+    expect(indexerBytesPerTokenLayer(bf16Spec.layers[0]!.attention)).toBe(256);
+
+    const int8Spec = parseHfConfig({ ...baseDsaCfg, indexer_kv_dtype: "int8" });
+    expect(indexerBytesPerTokenLayer(int8Spec.layers[0]!.attention)).toBe(130);
+
+    const fp8Spec = parseHfConfig({ ...baseDsaCfg, indexer_kv_dtype: "fp8" });
+    expect(indexerBytesPerTokenLayer(fp8Spec.layers[0]!.attention)).toBe(132);
+
+    const fp8E4m3Spec = parseHfConfig({ ...baseDsaCfg, indexer_kv_dtype: "float8_e4m3fn" });
+    expect(indexerBytesPerTokenLayer(fp8E4m3Spec.layers[0]!.attention)).toBe(132);
+
+    // P2-4: scale_dim=1 regardless of index_head_dim (256 -> 256+2=258 B INT8, 256+4=260 B FP8)
+    const int8Dim256 = parseHfConfig({ ...baseDsaCfg, index_head_dim: 256, indexer_kv_dtype: "int8" });
+    expect(indexerBytesPerTokenLayer(int8Dim256.layers[0]!.attention)).toBe(258);
+    const fp8Dim256 = parseHfConfig({ ...baseDsaCfg, index_head_dim: 256, indexer_kv_dtype: "fp8" });
+    expect(indexerBytesPerTokenLayer(fp8Dim256.layers[0]!.attention)).toBe(260);
+
+    // Explicit indexerKvDtype="int8" recognized even when indexerKvElemBytes / indexerQuantEnabled are omitted
+    expect(
+      indexerBytesPerTokenLayer({
+        kind: "dsa",
+        numHeads: 128,
+        numKvHeads: 1,
+        headDim: 192,
+        qkNorm: false,
+        bias: false,
+        ropeTheta: 10000,
+        indexHeadDim: 128,
+        indexerKvDtype: "int8",
+      }),
+    ).toBe(130);
+  });
+
+  it("P2-6 Engram 缺省 cpu_offload 默认为 true（Host DRAM 卸载）", () => {
+    const engramSpec = parseHfConfig({
+      model_type: "qwen3",
+      hidden_size: 4096,
+      num_hidden_layers: 4,
+      num_attention_heads: 32,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      intermediate_size: 12288,
+      vocab_size: 32000,
+      use_engram: true,
+      engram_vocab_size: 100000,
+      engram_hidden_size: 512,
+      engram_layers: [1],
+      torch_dtype: "bfloat16",
+    });
+    expect(engramSpec.engram?.cpuOffload).toBe(true);
+    const params = analyzeParams(engramSpec);
+    const engramItem = params.items.find((it) => it.id === "engram_tables");
+    expect(engramItem?.label).toContain("Host DRAM 卸载");
   });
 });

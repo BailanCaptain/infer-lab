@@ -18,11 +18,11 @@
 5. **NVIDIA DGX H100（8U 训练/推理基准）**
    - 8 个 H100 SXM5 模组（GH100 8-GPC 计算晶粒 + 5 启用/1 冗余共 6 个 HBM3 堆栈位）、4 颗第三代 NVSwitch、54V 层叠紫铜供电母排、Cedar-7 8×400G OSFP 网络模组、2 路 Xeon CPU、32 槽 DDR5、12 个风扇、6 个 3.3 kW 电源与 8 个 U.2 NVMe 盘位。
 6. **NVIDIA DGX B200（10U 风冷双光罩 Blackwell 节点）**
-   - 8 个 B200 SXM 模组（单卡 180 GB HBM3e、8 TB/s，CoWoS-L 双光罩计算晶粒 + 10 TB/s NV-HBI 桥接 + 8 颗 HBM3e）、2 颗 NVLink 5 交换芯片（NVSwitch，整机聚合 14.4 TB/s）、8 口 ConnectX-7 OSFP + 双 BlueField-3、2 路 Xeon Platinum 8570、15 个热插拔风扇与 6 个 3.3 kW 电源。
-7. **NVIDIA GB200 NVL72 计算托盘（1U 液冷冷板直冷 + 外围辅助风冷超节点单元）**
-   - 机柜层编排 18 台 1U 计算托盘（下 10 + 上 8）与中置 9 台 1U NVLink Switch 交换托盘及背部双竖装液冷歧管；单台 1U 托盘集成 2 颗 72 核 Grace CPU（焊装 LPDDR5X + 900 GB/s NVLink-C2C）与 4 颗液冷冷板直冷 B200 GPU、前置免滴漏快换接头（QDC）、ConnectX-7/BlueField-3 前置光口、E1.S 存储（网卡与存储由托盘内置风扇辅助风冷）及背部 NVLink 5 盲插背板卡匣。
+   - 8 个 B200 SXM 模组（单卡 180 GB HBM3e、8 TB/s，CoWoS-L 双光罩计算晶粒 + 10 TB/s NV-HBI 桥接 + 8 颗 HBM3e）、2 颗 NVLink 5 交换芯片（NVSwitch / 2 × NVSwitch (NVLink 5)，整机聚合 14.4 TB/s）、8 口 ConnectX-7 OSFP + 双 BlueField-3、2 路 Xeon Platinum 8570、15 个热插拔风扇与 6 个 3.3 kW 电源。
+7. **NVIDIA GB200 NVL72 计算托盘（1U Grace + B200 冷板直冷、外围网卡/存储辅以风冷超节点单元）**
+   - 机柜层编排 18 台 1U 计算托盘（下 10 + 上 8）与中置 9 台 1U NVLink Switch 交换托盘及背部双竖装液冷歧管；依据 *NVIDIA DGX GB200 User Guide*，单台 1U 托盘集成的 2 颗 72 核 Grace CPU（焊装 LPDDR5X + 900 GB/s NVLink-C2C）与 4 颗 B200 GPU 采用冷板直冷（前置免滴漏快换接头 QDC），外围前置 ConnectX-7/BlueField-3 网卡与 E1.S 存储仍由托盘内置系统风扇辅以风冷，背部经 NVLink 5 盲插背板卡匣互连。
 8. **NVIDIA H100 NVL PCIe 推理节点（4U 双槽 PCIe 5.0 桥接服务器）**
-   - 4 张双槽全高全长 H100 NVL PCIe 5.0×16 推理卡（单卡启用全部 6 颗 HBM3 达 94 GB、3.9 TB/s，尾部 16-pin 供电口），每对顶部跨接 3 组 NVLink 4 桥接器（600 GB/s 双向带宽、双卡合池 188 GB），配双路 PCIe 5.0 CPU、32 槽 DDR5、8 风扇与 4 冗余电源。
+   - 4 张双槽全高全长 H100 NVL PCIe 5.0×16 推理卡（单卡启用全部 6 颗 HBM3 达 94 GB、3.9 TB/s，尾部 16-pin 12V-2x6 / 12VHPWR 供电口），每对顶部跨接 3 组 NVLink 4 桥接器（600 GB/s 双向带宽；每对 2×94 GB 共 188 GB，按单卡与并行策略预算，非单一统一 GPU HBM 地址空间），配双路 PCIe 5.0 CPU、32 槽 DDR5、8 风扇与 4 冗余电源。
 
 ## 重要边界
 

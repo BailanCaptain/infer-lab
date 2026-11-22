@@ -12,7 +12,7 @@
  * 不能伪装成知识库结论。教学场景里这比检索本身更要紧。
  */
 
-import { type CorpusDocument, retrieveCorpus } from "./corpus-retrieve";
+import { type CorpusDocument, errorFragments, retrieveCorpus } from "./corpus-retrieve";
 import { pageDisplayTitle } from "./param-display";
 import { buildAdjacency } from "./relations";
 import { type ReaderSearchIndex, type Relation, readerSearchIndexSchema } from "./schema";
@@ -361,6 +361,33 @@ function weightedTf(index: Index, pageId: string, tf: FieldTf, fields?: Set<numb
 
 const saturate = (wtf: number) => wtf / (BM25_K1 + wtf);
 
+/**
+ * 口语化症状展开表：仅当查询不含原始异常堆栈且明确命中症状短语时，为至多 2 个标准排查页补充候选分，
+ * 权重低于精确标题/参数标识符命中与社区精确报错命中，零误伤正常术语与参数查询。
+ */
+const SYMPTOM_RULES: readonly { pattern: RegExp; targets: readonly [string, string] }[] = [
+  {
+    pattern:
+      /(?:一卡一卡|一顿一顿|断断续续|流式[^\n，。；？?!！]{0,6}(?:卡|顿|慢|停顿)|(?:回答|输出|生成|吐字|出字)[^\n，。；？?!！]{0,6}(?:一卡|一顿|卡顿|很卡|老卡|变慢|很慢|停顿)|吐字(?:慢|卡))/,
+    targets: ["inference-performance-walkthrough", "inference-performance-troubleshooting"],
+  },
+  {
+    pattern:
+      /(?:显存(?:莫名|突然|一下|总是|老是|直接)?(?:满了|占满|打满|爆了|撑爆|不够|不足|溢出)|爆显存|\boom\b|out of memory)/i,
+    targets: ["kv-cache-memory-profiling", "device-memory"],
+  },
+  {
+    pattern:
+      /(?:batch(?:\s*size)?\s*(?:变小|上不去|很小|掉下来|缩水|跑不满)|批(?:处理)?大小(?:变小|上不去|很小)|并发(?:数|量)?(?:上不去|跑不满|提不上来|变小|很低))/,
+    targets: ["continuous-batching", "vllm-scheduler"],
+  },
+  {
+    pattern:
+      /(?:(?:长|大|超长)\s*(?:prompt|输入|请求|上下文|文本)[^\n]{0,20}(?:抖|卡|慢|堵|阻塞|影响|拖慢|停顿)|(?:抖|卡|慢|阻塞|拖慢)[^\n]{0,12}(?:别的请求|其他请求|别人))/,
+    targets: ["chunked-prefill", "inference-performance-walkthrough"],
+  },
+];
+
 export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}): Hit[] {
   const limit = opts.limit ?? 5;
   const q = norm(query);
@@ -443,6 +470,29 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
       if (wtf > 0) add(index.byId.get(pageId)!, termIdf * saturate(wtf), "keyword");
     }
   }
+
+  if (errorFragments(query).length === 0) {
+    const symptomBase = idf(index.pages.length, Math.min(2, Math.max(1, index.pages.length)));
+    let symptomAdded = 0;
+    const seenTargets = new Set<string>();
+    for (const rule of SYMPTOM_RULES) {
+      if (!rule.pattern.test(q)) continue;
+      for (const [rank, targetId] of rule.targets.entries()) {
+        if (symptomAdded >= 2) break;
+        if (seenTargets.has(targetId)) continue;
+        const page = index.byId.get(targetId);
+        if (!page) continue;
+        seenTargets.add(targetId);
+        symptomAdded++;
+        const floor = (rank === 0 ? 2.1 : 1.9) * symptomBase;
+        const prev = scored.get(page.id);
+        if (prev) prev.score = Math.max(prev.score, floor);
+        else scored.set(page.id, { page, score: floor, how: "keyword" });
+      }
+      if (symptomAdded >= 2) break;
+    }
+  }
+
   for (const entry of scored.values())
     if (entry.how !== "exact") entry.score = Math.round(entry.score * 1000) / 1000;
 

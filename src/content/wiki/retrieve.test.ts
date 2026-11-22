@@ -579,3 +579,159 @@ describe("terms 与技术词检索（Task 751：缩写、数字精度名、驼�
     }
   });
 });
+
+describe("retrieve · 口语化症状查询召回与参数/报错无回退", () => {
+  const symptomIndex = buildIndex([
+    {
+      id: "inference-performance-walkthrough",
+      title: "推理性能分析：为什么回答到一半会停顿",
+      aliases: ["TTFT", "TPOT"],
+      summary: "从请求时间线定位首字延迟与生成阶段停顿。",
+      chapters: ["15"],
+      evidence: "C",
+      text: "## 一句话\n拆解 prefill 与 decode 阶段耗时。",
+    },
+    {
+      id: "inference-performance-troubleshooting",
+      title: "性能排障：找到等待以后，怎样选优化办法",
+      aliases: ["性能排障"],
+      summary: "定位计算、显存带宽或通信瓶颈。",
+      chapters: ["15"],
+      evidence: "C",
+      text: "## 一句话\n按瓶颈选择优化。",
+    },
+    {
+      id: "kv-cache-memory-profiling",
+      title: "KV cache 显存预算：启动时怎样一项项扣出来",
+      aliases: ["KV Cache Memory Profiling", "gpu_memory_utilization"],
+      summary: "启动阶段 profile_run 计算可用 cache blocks。",
+      chapters: ["11"],
+      evidence: "C",
+      text: "## 一句话\n当可用显存不足时抛 No available memory for the cache blocks。",
+    },
+    {
+      id: "device-memory",
+      title: "主机内存与显存：数据现在放在哪",
+      aliases: ["HBM", "设备内存"],
+      summary: "权重、激活值、KV 块与运行时工作区的显存分布。",
+      chapters: ["11"],
+      evidence: "C",
+      text: "## 一句话\n区分 NPU HBM 与主机内存占用。",
+    },
+    {
+      id: "continuous-batching",
+      title: "Continuous Batching（连续批处理）",
+      aliases: ["连续批处理"],
+      summary: "iteration 级动态合并请求，受显存块与 max_num_seqs 约束。",
+      chapters: ["12"],
+      evidence: "C",
+      text: "## 一句话\n每步迭代动态进出。",
+    },
+    {
+      id: "vllm-scheduler",
+      title: "Scheduler：每一步给哪些请求算几个 token",
+      aliases: ["调度器"],
+      summary: "按 token 预算与 KV 块余量决定本步运行队列。",
+      chapters: ["12"],
+      evidence: "C",
+      text: "## 一句话\n统一按 token 预算调度。",
+    },
+    {
+      id: "chunked-prefill",
+      title: "Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住",
+      aliases: ["分块预填充"],
+      summary: "切分长请求预填充，降低在途请求尾延迟抖动。",
+      chapters: ["12"],
+      evidence: "C",
+      text: "## 一句话\n避免单条大请求独占引擎步。",
+    },
+    {
+      id: "hccl-buffer",
+      title: "HCCL 通信缓冲区怎么定",
+      aliases: ["HCCL_BUFFSIZE", "hccl_buffer_size"],
+      summary: "每个通信组建组时决定通信缓冲区显存大小。",
+      chapters: ["13"],
+      evidence: "C",
+      text: "## 一句话\nHCCL_BUFFSIZE 控制单通信组缓冲区。",
+    },
+    {
+      id: "inference-troubleshooting",
+      title: "推理排障入口：先找到问题发生在哪一步",
+      aliases: ["OOM", "EI0006"],
+      summary: "报错分类与首错定位入口。",
+      chapters: ["15"],
+      evidence: "C",
+      text: "## 一句话\nEI0006 Notify wait execute timeout 常见于某张卡提前退出。",
+    },
+    {
+      id: "api-server-entry",
+      title: "API server 入口",
+      aliases: ["prompt", "messages"],
+      summary: "HTTP 请求与聊天模板入口。",
+      chapters: ["01"],
+      evidence: "C",
+      text: "## 一句话\n回答客户端请求，输出流式响应。",
+    },
+    ...Array.from({ length: 8 }, (_, i) => ({
+      id: `noise-page-${i}`,
+      title: `通用模块说明 ${i}`,
+      aliases: [],
+      summary: "回答一般架构模型问题，说明输入输出与显存基础。",
+      chapters: ["00"],
+      evidence: "C",
+      text: "## 一句话\n模型回答、流式输出、请求并发与显存占用的背景介绍。",
+    })),
+  ]);
+
+  const corpus = [
+    {
+      id: "github-issue-42",
+      title: "issue #42: ValueError on startup",
+      url: "https://github.com/vllm-project/vllm-ascend/issues/42",
+      text: "ValueError: No available memory for the cache blocks.",
+    },
+  ];
+
+  it("10 条真实口语症状、参数与报错查询均保持 top-2 命中且零误伤", () => {
+    const symptomCases: [string, string[]][] = [
+      [
+        "为什么模型回答一卡一卡的？",
+        ["inference-performance-walkthrough", "inference-performance-troubleshooting"],
+      ],
+      ["流式卡顿怎么排查", ["inference-performance-walkthrough", "inference-performance-troubleshooting"]],
+      [
+        "输出一顿一顿是什么原因",
+        ["inference-performance-walkthrough", "inference-performance-troubleshooting"],
+      ],
+      ["服务吐字慢还老卡", ["inference-performance-walkthrough", "inference-performance-troubleshooting"]],
+      ["显存莫名满了怎么回事", ["kv-cache-memory-profiling", "device-memory"]],
+      ["启动就显存爆了 OOM 怎么看", ["kv-cache-memory-profiling", "device-memory"]],
+      ["为什么一直报显存不够", ["kv-cache-memory-profiling", "device-memory"]],
+      ["为啥实际跑起来 batch 变小了，并发上不去", ["continuous-batching", "vllm-scheduler"]],
+      ["线上批大小变小怎么回事", ["continuous-batching", "vllm-scheduler"]],
+      ["来一条长 prompt 就把别的请求卡住抖动", ["chunked-prefill", "inference-performance-walkthrough"]],
+      ["长输入卡住别人是什么原因", ["chunked-prefill", "inference-performance-walkthrough"]],
+    ];
+
+    for (const [q, expectedIds] of symptomCases) {
+      const top2 = retrieve(q, symptomIndex, { corpus })
+        .slice(0, 2)
+        .map((h) => h.id);
+      expect(
+        expectedIds.some((id) => top2.includes(id)),
+        `${q} -> top2=${JSON.stringify(top2)}`,
+      ).toBe(true);
+    }
+
+    // Parameter & error non-regression queries:
+    expect(retrieve("HCCL_BUFFSIZE 到底占多少显存", symptomIndex, { corpus })[0]?.id).toBe("hccl-buffer");
+    expect(retrieve("EI0006 Notify wait execute timeout", symptomIndex, { corpus })[0]?.id).toBe(
+      "inference-troubleshooting",
+    );
+    const cacheErrHits = retrieve("ValueError: No available memory for the cache blocks.", symptomIndex, {
+      corpus,
+    });
+    expect(cacheErrHits[0]?.id).toBe("github-issue-42");
+    expect(cacheErrHits.slice(0, 2).map((h) => h.id)).toContain("kv-cache-memory-profiling");
+  });
+});

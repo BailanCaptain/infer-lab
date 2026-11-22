@@ -4,6 +4,7 @@
  */
 
 import { evaluateDomain3Rules } from "../rules/domain3Quantization";
+import { evaluateCpTopologyRules } from "../rules/domain4CpPd";
 import {
   estimateHcclDomainMemory,
   HCCL_PROFILE_RUN_UNDERESTIMATION_BUFFER_MIB,
@@ -102,6 +103,7 @@ export interface Wave4ArchitectureSummary {
     vocabSize: number;
     hiddenSize: number;
     layerCount: number;
+    cpuOffload: boolean;
     dpSharedMemory: boolean;
     etpSize: number;
     npuWeightBytesPerRank: number;
@@ -297,6 +299,9 @@ export interface DeployPlanInput {
   enableEp?: boolean;
   enableEplb?: boolean;
   dynamicEplb?: boolean;
+  engramCpuOffload?: boolean;
+  useV2ModelRunner?: boolean;
+  numSpecTokens?: number;
   gpuMemoryUtilization?: number;
   maxModelLen?: number;
   maxNumBatchedTokens?: number;
@@ -395,8 +400,10 @@ export interface FourQuestionsReport {
     summary: string;
   };
   q2Capacity: {
-    minCardsRecommended: number;
-    minPhysicalCardsRecommended: number;
+    feasible: boolean;
+    unsolvable: boolean;
+    minCardsRecommended: number | null;
+    minPhysicalCardsRecommended: number | null;
     currentTotalCards: number;
     currentPhysicalCards: number;
     oomStatus: KvOomStatus;
@@ -425,9 +432,13 @@ export interface FourQuestionsReport {
     summary: string;
   };
   q4Recommendation: {
-    recommendedTp: number;
-    recommendedPp: number;
-    recommendedDp: number;
+    feasible: boolean;
+    unsolvable: boolean;
+    recommendedTp: number | null;
+    recommendedPp: number | null;
+    recommendedDp: number | null;
+    recommendedPcp?: number | null;
+    recommendedDcp?: number | null;
     recommendedEnableEp: boolean;
     recommendedPrecision: WeightPrecision;
     recommendedGpuMemoryUtilization: number;
@@ -459,6 +470,7 @@ export interface DeployPlanReport {
     epWorldSize: number;
     localKvHeadsPerRank: number;
     localLayersPerRank: number;
+    numSpecTokens: number;
     gpuMemoryUtilization: number;
     maxModelLen: number;
     maxNumBatchedTokens: number;
@@ -800,6 +812,9 @@ interface PerRankKvAndStateResult {
   perTokenPagedKvBytes: number;
   perTokenMainKvBytes: number;
   perTokenIndexerKvBytes: number;
+  localMainKvBytesPerSlot: number;
+  singleBlockFixedLinearStateBytes: number;
+  linearStateBlocksPerSeq: number;
   perSeqFixedLinearStateBytes: number;
   totalFixedLinearStateBytes: number;
   localFullAttnLayerCount: number;
@@ -815,23 +830,38 @@ interface PerRankKvAndStateResult {
   indexerBytesPerTokenPerLayer: number;
 }
 
-function getBottleneckPpStageLayers(spec: ModelSpec, ppSize: number): readonly LayerSpec[] {
-  if (ppSize <= 1) return spec.layers;
-  const stageSize = Math.ceil(spec.layers.length / ppSize);
-  let best: readonly LayerSpec[] = spec.layers.slice(0, stageSize);
-  let bestScore = -1;
-  for (let p = 0; p < ppSize; p += 1) {
-    const slice = spec.layers.slice(p * stageSize, (p + 1) * stageSize);
-    if (slice.length === 0) continue;
-    // Prefer stage with more full-attention layers, then more total layers
-    const fullCount = slice.filter((l) => l.attention.kind !== "linear_kda").length;
-    const score = fullCount * 1000 + slice.length;
-    if (score > bestScore) {
-      bestScore = score;
-      best = slice;
-    }
+interface ContiguousPpStage {
+  stageIndex: number;
+  stageCount: number;
+  layers: readonly LayerSpec[];
+}
+
+function getContiguousPpStages(spec: ModelSpec, ppSize: number): readonly ContiguousPpStage[] {
+  const safePp = Math.max(1, ppSize);
+  if (safePp <= 1 || spec.layers.length <= 1) {
+    return [{ stageIndex: 0, stageCount: 1, layers: spec.layers }];
   }
-  return best;
+  const effectiveStages = Math.min(safePp, spec.layers.length);
+  const base = Math.floor(spec.layers.length / effectiveStages);
+  const rem = spec.layers.length % effectiveStages;
+  // Match upstream vLLM get_pp_indices (vllm/distributed/utils.py):
+  // distribute remainder layers from the penultimate stage backwards (excluding the last stage)
+  const partitions = Array.from({ length: effectiveStages }, () => base);
+  for (let i = 2; i < rem + 2; i += 1) {
+    partitions[effectiveStages - i]! += 1;
+  }
+  const stages: ContiguousPpStage[] = [];
+  let offset = 0;
+  for (let s = 0; s < effectiveStages; s += 1) {
+    const count = partitions[s]!;
+    stages.push({
+      stageIndex: s,
+      stageCount: effectiveStages,
+      layers: spec.layers.slice(offset, offset + count),
+    });
+    offset += count;
+  }
+  return stages;
 }
 
 function computePerRankKvAndState(params: {
@@ -841,14 +871,19 @@ function computePerRankKvAndState(params: {
   dcpSize: number;
   kvElemBytes: number;
   maxNumSeqs: number;
+  numSpecTokens?: number;
+  stageLayers?: readonly LayerSpec[];
 }): PerRankKvAndStateResult {
-  const { spec, tpSize, ppSize, dcpSize, kvElemBytes, maxNumSeqs } = params;
+  const { spec, tpSize, ppSize, dcpSize, kvElemBytes, maxNumSeqs, numSpecTokens = 0, stageLayers } = params;
   const safeDcp = Math.max(1, dcpSize);
-  const rankLayers = getBottleneckPpStageLayers(spec, ppSize);
+  const rankLayers = stageLayers ?? getContiguousPpStages(spec, ppSize)[0]!.layers;
 
   let perTokenMainKv = 0;
+  let localMainKvSlot = 0;
   let perTokenIndexerKv = 0;
+  let perSeqSingleBlockLinear = 0;
   let perSeqLinear = 0;
+  const linearStateBlocksPerSeq = 1 + Math.max(0, Math.round(numSpecTokens));
   let localFullAttnLayerCount = 0;
   let localLinearLayerCount = 0;
   let localMlaLayerCount = 0;
@@ -865,11 +900,12 @@ function computePerRankKvAndState(params: {
     if (a.kind === "linear_kda") {
       localLinearLayerCount += 1;
       if (!firstLinearAttn) firstLinearAttn = a;
-      const st = linearStateBytesPerSeqLayer(a, tpSize);
+      const st = linearStateBytesPerSeqLayer(a, tpSize, numSpecTokens);
       if (recurrentStateBytesPerLayerPerSeq === 0) {
         recurrentStateBytesPerLayerPerSeq = st.recurrentBytes;
         convStateBytesPerLayerPerSeq = st.convBytes;
       }
+      perSeqSingleBlockLinear += st.singleBlockBytes;
       perSeqLinear += st.totalBytes;
     } else if (a.kind === "mla") {
       localFullAttnLayerCount += 1;
@@ -878,6 +914,7 @@ function computePerRankKvAndState(params: {
       const latentFull = ((a.kvLoraRank ?? 512) + (a.qkRopeHeadDim ?? 64)) * kvElemBytes;
       if (latentBytesPerTokenPerLayer === 0) latentBytesPerTokenPerLayer = latentFull;
       // MLA has 1 shared latent head: TP replicates it; only DCP > 1 shards along sequence axis
+      localMainKvSlot += latentFull;
       perTokenMainKv += latentFull / safeDcp;
     } else if (a.kind === "dsa") {
       localFullAttnLayerCount += 1;
@@ -887,23 +924,32 @@ function computePerRankKvAndState(params: {
         localMlaLayerCount += 1;
         const latentFull = (a.kvLoraRank + (a.qkRopeHeadDim ?? 64)) * kvElemBytes;
         if (latentBytesPerTokenPerLayer === 0) latentBytesPerTokenPerLayer = latentFull;
+        localMainKvSlot += latentFull;
         perTokenMainKv += latentFull / safeDcp;
       } else {
         const localKv = a.numKvHeads >= tpSize ? Math.ceil(a.numKvHeads / tpSize) : 1;
-        perTokenMainKv += (2 * localKv * a.headDim * kvElemBytes) / safeDcp;
+        const mainSlot = 2 * localKv * a.headDim * kvElemBytes;
+        localMainKvSlot += mainSlot;
+        perTokenMainKv += mainSlot / safeDcp;
       }
+      // sfa_cp.py: lightning indexer k_cache is replicated per rank (NOT divided by safeDcp)
       const idxBytes = indexerBytesPerTokenLayer(a);
       if (indexerBytesPerTokenPerLayer === 0) indexerBytesPerTokenPerLayer = idxBytes;
-      perTokenIndexerKv += idxBytes / safeDcp;
+      perTokenIndexerKv += idxBytes;
     } else {
       localFullAttnLayerCount += 1;
       if (!primaryFullAttn) primaryFullAttn = a;
       const localKv = a.numKvHeads >= tpSize ? Math.ceil(a.numKvHeads / tpSize) : 1;
-      perTokenMainKv += (2 * localKv * a.headDim * kvElemBytes) / safeDcp;
+      const mainSlot = 2 * localKv * a.headDim * kvElemBytes;
+      localMainKvSlot += mainSlot;
+      perTokenMainKv += mainSlot / safeDcp;
     }
   }
 
-  const refAttn = primaryFullAttn ?? spec.layers[0]!.attention;
+  const refAttn =
+    primaryFullAttn ??
+    spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ??
+    spec.layers[0]!.attention;
   const localKvHeadsPerRank =
     refAttn.kind === "mla" || (refAttn.kind === "dsa" && refAttn.kvLoraRank !== undefined)
       ? 1
@@ -914,6 +960,8 @@ function computePerRankKvAndState(params: {
   const perTokenMainKvBytes = Math.round(perTokenMainKv);
   const perTokenIndexerKvBytes = Math.round(perTokenIndexerKv);
   const perTokenPagedKvBytes = Math.round(perTokenMainKv + perTokenIndexerKv);
+  const localMainKvBytesPerSlot = Math.round(localMainKvSlot);
+  const singleBlockFixedLinearStateBytes = Math.round(perSeqSingleBlockLinear);
   const perSeqFixedLinearStateBytes = Math.round(perSeqLinear);
   const totalFixedLinearStateBytes = perSeqFixedLinearStateBytes * maxNumSeqs;
 
@@ -921,6 +969,9 @@ function computePerRankKvAndState(params: {
     perTokenPagedKvBytes,
     perTokenMainKvBytes,
     perTokenIndexerKvBytes,
+    localMainKvBytesPerSlot,
+    singleBlockFixedLinearStateBytes,
+    linearStateBlocksPerSeq: localLinearLayerCount > 0 ? linearStateBlocksPerSeq : 0,
     perSeqFixedLinearStateBytes,
     totalFixedLinearStateBytes,
     localFullAttnLayerCount,
@@ -960,11 +1011,32 @@ function computeWeightsPerRank(params: {
   weightNzMode: 0 | 1 | 2;
   tpSize: number;
   ppSize: number;
+  dpSize?: number;
+  pcpSize?: number;
   epWorldSize: number;
   enableEp: boolean;
+  engramCpuOffload?: boolean;
+  engramDpSharedMemory?: boolean;
+  stage?: ContiguousPpStage;
 }): WeightBreakdownResult {
-  const { spec, card, version, weightPrecision, weightNzMode, tpSize, ppSize, epWorldSize, enableEp } =
-    params;
+  const {
+    spec,
+    card,
+    version,
+    weightPrecision,
+    weightNzMode,
+    tpSize,
+    ppSize,
+    dpSize = 1,
+    pcpSize = 1,
+    epWorldSize,
+    enableEp,
+    engramCpuOffload,
+    engramDpSharedMemory,
+    stage,
+  } = params;
+  const safeDp = Math.max(1, dpSize);
+  const safePcp = Math.max(1, pcpSize);
 
   const isFp8SilentBf16 =
     weightPrecision === "fp8_block" &&
@@ -1003,8 +1075,8 @@ function computeWeightsPerRank(params: {
   const nzApplied =
     card.forceWeightNz || weightNzMode === 2 || (weightNzMode === 1 && (isInt8Quant || isW4a8));
 
-  // Layer selection for bottleneck PP stage
-  const localLayerCount = Math.ceil(spec.numLayers / ppSize);
+  // Layer cost for contiguous PP stage
+  const activeStage = stage ?? getContiguousPpStages(spec, ppSize)[0]!;
   const perLayerCost = (
     layer: LayerSpec,
   ): {
@@ -1116,7 +1188,8 @@ function computeWeightsPerRank(params: {
       nonQuantParams += H * m.numExperts;
       activeNonQuantParams += H * m.numExperts;
       const localExperts = enableEp ? Math.ceil(m.numExperts / epWorldSize) : m.numExperts;
-      const expertSliceDiv = enableEp ? 1 : tpSize;
+      // Upstream FusedMoE flattens TP × DP × PCP when enable_expert_parallel is false
+      const expertSliceDiv = enableEp ? 1 : tpSize * safeDp * safePcp;
       const localMoeI = m.moeIntermediate / expertSliceDiv;
       const perExpertParams = 3 * H * localMoeI;
       const routedParams = localExperts * perExpertParams;
@@ -1167,16 +1240,7 @@ function computeWeightsPerRank(params: {
     };
   };
 
-  const layerCosts = spec.layers.map(perLayerCost);
-  // Pick heaviest localLayerCount layers for bottleneck PP rank
-  const sortedCosts = [...layerCosts].sort(
-    (a, b) =>
-      b.nonQuantBytes +
-      b.quantWeightBytes +
-      b.scaleBytes -
-      (a.nonQuantBytes + a.quantWeightBytes + a.scaleBytes),
-  );
-  const rankLayers = sortedCosts.slice(0, localLayerCount);
+  const rankLayers = activeStage.layers.map(perLayerCost);
 
   let nonQuantBytes = 0;
   let activeNonQuantBytes = 0;
@@ -1197,28 +1261,47 @@ function computeWeightsPerRank(params: {
   const embedPerRankBytes = ((spec.vocab * spec.hidden) / tpSize) * floatElemBytes;
   const lmHeadPerRankBytes = spec.tieWordEmbeddings ? 0 : embedPerRankBytes;
   const finalNormBytes = spec.hidden * floatElemBytes;
-  const vocabAndNormBytes =
-    ppSize === 1
-      ? embedPerRankBytes + lmHeadPerRankBytes + finalNormBytes
-      : Math.max(embedPerRankBytes, lmHeadPerRankBytes + finalNormBytes);
+  let vocabAndNormBytes: number;
+  if (activeStage.stageCount <= 1) {
+    vocabAndNormBytes = embedPerRankBytes + lmHeadPerRankBytes + finalNormBytes;
+  } else {
+    const isFirstStage = activeStage.stageIndex === 0;
+    const isLastStage = activeStage.stageIndex === activeStage.stageCount - 1;
+    const lastStageLmHead = spec.tieWordEmbeddings ? embedPerRankBytes : lmHeadPerRankBytes;
+    vocabAndNormBytes =
+      (isFirstStage ? embedPerRankBytes : 0) + (isLastStage ? lastStageLmHead + finalNormBytes : 0);
+  }
   nonQuantBytes += vocabAndNormBytes;
   activeNonQuantBytes += vocabAndNormBytes;
 
-  // Engram conditional memory tables: NPU HBM (sharded by ETP) vs Host DRAM offload (dp_shared_memory=true -> 0 B NPU HBM)
+  // Engram conditional memory tables: cpu_offload=true (default) -> Host DRAM (dp_shared_memory or Ascend MRV2 derivation shares 1 node table); cpu_offload=false -> NPU HBM
   let engramNpuWeightBytesPerRank = 0;
   let engramHostDramBytesPerNode = 0;
   const engramEtpSize = spec.engram?.enabled ? Math.max(1, spec.engram.etpSize ?? tpSize) : tpSize;
+  const resolvedEngramCpuOffload = spec.engram?.enabled
+    ? (engramCpuOffload ?? spec.engram.cpuOffload ?? true)
+    : false;
+  const resolvedEngramDpSharedMemory = spec.engram?.enabled
+    ? (engramDpSharedMemory ?? spec.engram.dpSharedMemory)
+    : false;
   if (spec.engram?.enabled) {
     const totalEngramBytes =
       spec.engram.layerIds.length * spec.engram.vocabSize * spec.engram.hiddenSize * spec.engram.dtypeBytes;
-    if (spec.engram.dpSharedMemory) {
+    if (resolvedEngramCpuOffload) {
       engramNpuWeightBytesPerRank = 0;
-      engramHostDramBytesPerNode = totalEngramBytes;
+      const localEtpReplicaCount = Math.max(1, (tpSize * safeDp * safePcp) / engramEtpSize);
+      engramHostDramBytesPerNode = resolvedEngramDpSharedMemory
+        ? totalEngramBytes
+        : Math.round(totalEngramBytes * localEtpReplicaCount);
     } else {
+      const stageIdxSet = new Set(activeStage.layers.map((l) => l.index));
+      const matchedEngramLayers = spec.engram.layerIds.filter((id) => stageIdxSet.has(id)).length;
       const localEngramLayers =
-        ppSize === 1
+        activeStage.stageCount <= 1
           ? spec.engram.layerIds.length
-          : Math.max(1, Math.ceil(spec.engram.layerIds.length / ppSize));
+          : matchedEngramLayers > 0 || spec.engram.layerIds.every((id) => id >= 0 && id < spec.numLayers)
+            ? matchedEngramLayers
+            : Math.max(1, Math.ceil(spec.engram.layerIds.length / ppSize));
       engramNpuWeightBytesPerRank = Math.round(
         (localEngramLayers * spec.engram.vocabSize * spec.engram.hiddenSize * spec.engram.dtypeBytes) /
           engramEtpSize,
@@ -1261,13 +1344,15 @@ function computeWeightsPerRank(params: {
     );
   }
   if (spec.engram?.enabled) {
-    if (spec.engram.dpSharedMemory) {
+    if (resolvedEngramCpuOffload) {
       notes.push(
-        `Engram 条件记忆（${spec.engram.layerIds.length} 层，engram_dp_shared_memory=true）：词表卸载至 Host DRAM / /dev/shm 共享，单卡 NPU 权重 HBM 占用 0 B，单节点需预留 ${(engramHostDramBytesPerNode / GIB).toFixed(2)} GiB 主机内存。`,
+        spec.engram.dpSharedMemory
+          ? `Engram 条件记忆（${spec.engram.layerIds.length} 层，cpu_offload=true, dp_shared_memory=true）：词表卸载至 Host DRAM / /dev/shm 节点共享，单卡 NPU 权重 HBM 占用 0 B，单节点需预留 ${(engramHostDramBytesPerNode / GIB).toFixed(2)} GiB 主机内存。`
+          : `Engram 条件记忆（${spec.engram.layerIds.length} 层，cpu_offload=true, dp_shared_memory=false）：词表按进程私有卸载至 Host DRAM（按 ETP=${engramEtpSize} 切分），单卡 NPU 权重 HBM 占用 0 B，单节点需预留 ${(engramHostDramBytesPerNode / GIB).toFixed(2)} GiB 主机内存。`,
       );
     } else {
       notes.push(
-        `Engram 条件记忆（${spec.engram.layerIds.length} 层，engram_dp_shared_memory=false）：词表常驻 NPU HBM 并按 ETP=${engramEtpSize} 切分，单卡常驻权重增加 ${(engramNpuWeightBytesPerRank / GIB).toFixed(2)} GiB。`,
+        `Engram 条件记忆（${spec.engram.layerIds.length} 层，cpu_offload=false）：词表常驻 NPU HBM 并按 ETP=${engramEtpSize} 切分，单卡常驻权重增加 ${(engramNpuWeightBytesPerRank / GIB).toFixed(2)} GiB。`,
       );
     }
   }
@@ -1279,7 +1364,7 @@ function computeWeightsPerRank(params: {
 
   const totalParams = analyzeParams(spec).total;
   const formula =
-    `总参 ${(totalParams / 1e9).toFixed(2)}B → 单卡分片 (TP=${tpSize}, PP=${ppSize}${enableEp ? `, EP=${epWorldSize}` : ""}${spec.engram?.enabled ? (spec.engram.dpSharedMemory ? ", Engram=Host DRAM" : `, ETP=${engramEtpSize}`) : ""}), ` +
+    `总参 ${(totalParams / 1e9).toFixed(2)}B → 单卡分片 (TP=${tpSize}, PP=${ppSize}${safeDp > 1 && !enableEp && moeInfo.isMoe ? `, DP=${safeDp}(MoE展平)` : ""}${enableEp ? `, EP=${epWorldSize}` : ""}${spec.engram?.enabled ? (resolvedEngramCpuOffload ? ", Engram=Host DRAM" : `, ETP=${engramEtpSize}`) : ""}), ` +
     `有效精度 ${effectiveWeightPrecision}${nzApplied ? ", FRACTAL_NZ [1.00×, 1.03×]" : ", ND"}`;
 
   return {
@@ -1295,6 +1380,113 @@ function computeWeightsPerRank(params: {
     engramEtpSize,
     formula,
     notes,
+  };
+}
+
+function selectBottleneckPpStage(params: {
+  spec: ModelSpec;
+  card: AscendCalcCardSpec;
+  version: RuleVersion;
+  weightPrecision: WeightPrecision;
+  weightNzMode: 0 | 1 | 2;
+  tpSize: number;
+  ppSize: number;
+  dpSize: number;
+  pcpSize: number;
+  dcpSize: number;
+  epWorldSize: number;
+  enableEp: boolean;
+  engramCpuOffload: boolean;
+  engramDpSharedMemory?: boolean;
+  kvElemBytes: number;
+  effectiveBlockSize: number;
+  maxModelLen: number;
+  maxNumSeqs: number;
+  numSpecTokens: number;
+}): {
+  stage: ContiguousPpStage;
+  w: WeightBreakdownResult;
+  kvState: PerRankKvAndStateResult;
+  allStages: ReadonlyArray<{
+    stage: ContiguousPpStage;
+    w: WeightBreakdownResult;
+    kvState: PerRankKvAndStateResult;
+  }>;
+} {
+  const {
+    spec,
+    card,
+    version,
+    weightPrecision,
+    weightNzMode,
+    tpSize,
+    ppSize,
+    dpSize,
+    pcpSize,
+    dcpSize,
+    epWorldSize,
+    enableEp,
+    engramCpuOffload,
+    engramDpSharedMemory,
+    kvElemBytes,
+    effectiveBlockSize,
+    maxModelLen,
+    maxNumSeqs,
+    numSpecTokens,
+  } = params;
+  const safeDcp = Math.max(1, dcpSize);
+  const virtualBlockTokens = effectiveBlockSize * safeDcp;
+  const kvFactor = card.halvesKvForWorkspace ? 2 : 1;
+  const stages = getContiguousPpStages(spec, ppSize);
+
+  const evaluated = stages.map((stage) => {
+    const w = computeWeightsPerRank({
+      spec,
+      card,
+      version,
+      weightPrecision,
+      weightNzMode,
+      tpSize,
+      ppSize,
+      dpSize,
+      pcpSize,
+      epWorldSize,
+      enableEp,
+      engramCpuOffload,
+      ...(engramDpSharedMemory !== undefined ? { engramDpSharedMemory } : {}),
+      stage,
+    });
+    const kvState = computePerRankKvAndState({
+      spec,
+      tpSize,
+      ppSize,
+      dcpSize,
+      kvElemBytes,
+      maxNumSeqs,
+      numSpecTokens,
+      stageLayers: stage.layers,
+    });
+    const kvBytesPerBlock = Math.round(
+      kvState.localMainKvBytesPerSlot * effectiveBlockSize +
+        kvState.perTokenIndexerKvBytes * virtualBlockTokens,
+    );
+    const blocksPerMaxSeq = kvBytesPerBlock > 0 ? Math.ceil(maxModelLen / virtualBlockTokens) : 0;
+    const minPagedKvBytes = blocksPerMaxSeq > 0 ? (blocksPerMaxSeq + 1) * kvBytesPerBlock : 0;
+    const demandBytes = w.pointBytes + kvFactor * (kvState.totalFixedLinearStateBytes + minPagedKvBytes);
+    return { stage, w, kvState, demandBytes };
+  });
+
+  let best = evaluated[0]!;
+  for (const cand of evaluated) {
+    if (cand.demandBytes > best.demandBytes) {
+      best = cand;
+    }
+  }
+  return {
+    stage: best.stage,
+    w: best.w,
+    kvState: best.kvState,
+    allStages: evaluated,
   };
 }
 
@@ -1347,7 +1539,10 @@ function computeProfileRunTorchPeak(params: {
     const epWorld = enableEp ? dpSize * tpSize * pcpSize : 1;
     const routedTokens = T * moe.topK;
     const perRankRouted = enableEp ? Math.max(T, Math.ceil((routedTokens * 1.4) / epWorld)) : routedTokens;
-    ffnPeakBytes = perRankRouted * (2 * moe.moeIntermediate + H) * 2;
+    const localMoeInter = enableEp
+      ? moe.moeIntermediate
+      : Math.max(1, Math.ceil(moe.moeIntermediate / (tpSize * dpSize * pcpSize)));
+    ffnPeakBytes = perRankRouted * (2 * localMoeInter + H) * 2;
 
     const moeComm = selectMoeCommMethod(
       {
@@ -1538,6 +1733,7 @@ function computeRoofline(params: {
   kvState: PerRankKvAndStateResult;
   tpSize: number;
   dpSize: number;
+  pcpSize: number;
   dcpSize: number;
   epWorldSize: number;
   enableEp: boolean;
@@ -1554,6 +1750,7 @@ function computeRoofline(params: {
     kvState,
     tpSize,
     dpSize,
+    pcpSize,
     dcpSize,
     epWorldSize,
     enableEp,
@@ -1591,8 +1788,9 @@ function computeRoofline(params: {
 
   // Representative linear GEMM shape (q_proj / expert proj)
   const K = spec.hidden;
+  const expertSliceDiv = enableEp ? 1 : tpSize * Math.max(1, dpSize) * Math.max(1, pcpSize);
   const N = moe.isMoe
-    ? moe.moeIntermediate
+    ? Math.max(1, Math.round(moe.moeIntermediate / expertSliceDiv))
     : Math.max(Math.round(attnQDim(a) / tpSize), Math.round(K / tpSize));
   const prefillN = Math.max(Math.round(attnQDim(a) / tpSize), K);
 
@@ -1630,8 +1828,12 @@ function computeRoofline(params: {
   const decodeLinearRegime =
     decodeLinearIntensityFlopsPerByte >= ridgePointFlopsPerByte ? "compute-bound" : "memory-bound";
 
+  const safeDcp = Math.max(1, dcpSize);
   const localNumHeads = Math.max(1, a.numHeads / tpSize);
-  const gqaGroupSize = hasMla ? localNumHeads : a.numHeads / Math.max(1, a.numKvHeads);
+  // Under DCP > 1, decode attention all_gathers Q heads across the DCP group before attending to local sequence-sharded KV
+  const effectiveAttnQHeads = Math.min(a.numHeads, localNumHeads * safeDcp);
+  const localKvHeads = a.numKvHeads >= tpSize ? Math.max(1, Math.ceil(a.numKvHeads / tpSize)) : 1;
+  const gqaGroupSize = hasMla ? effectiveAttnQHeads : effectiveAttnQHeads / localKvHeads;
   const sparseTopK = hasCsa2 ? (a.sparseTopK ?? 2048) : null;
   const effectiveDecodeContextLen =
     sparseTopK !== null ? Math.min(decodeContextLen, sparseTopK) : decodeContextLen;
@@ -1639,14 +1841,14 @@ function computeRoofline(params: {
   let decodeKvAttnIntensityFlopsPerByte: number;
   let attentionModeLabel: string;
   if (hasMla) {
-    // MLA Decode matrix absorption (mlapo): W_UK absorbed into Q, W_UV into O; all local Q heads share 1 latent vector (kv_lora_rank + qk_rope_head_dim)
+    // MLA Decode matrix absorption (mlapo): W_UK absorbed into Q, W_UV into O; all effective Q heads share 1 latent vector (kv_lora_rank + qk_rope_head_dim)
     const kvLora = a.kvLoraRank ?? 512;
     const qkRope = a.qkRopeHeadDim ?? 64;
     decodeKvAttnIntensityFlopsPerByte =
-      (2 * localNumHeads * (2 * kvLora + qkRope)) / ((kvLora + qkRope) * kvElemBytes);
+      (2 * effectiveAttnQHeads * (2 * kvLora + qkRope)) / ((kvLora + qkRope) * kvElemBytes);
     attentionModeLabel = hasCsa2
       ? `CSA2 稀疏 MLA 吸收 (top-${sparseTopK})`
-      : `MLA 矩阵吸收 mlapo (${localNumHeads} Q头共享单潜向量)`;
+      : `MLA 矩阵吸收 mlapo (${effectiveAttnQHeads} Q头共享单潜向量)`;
   } else if (hasKda && kvState.localFullAttnLayerCount === 0) {
     // Pure linear/KDA recurrent state update S_t = alpha * S_{t-1} + k_t v_t^T (read + write S in FP32)
     const lin = kvState.firstLinearAttn ?? a;
@@ -1680,11 +1882,11 @@ function computeRoofline(params: {
     const kvLora = a.kvLoraRank ?? 512;
     const qkRope = a.qkRopeHeadDim ?? 64;
     notes.push(
-      `MLA Decode 矩阵吸收（mlapo）：单卡 ${localNumHeads} 个 Q 头共用 1 份潜向量 (${kvLora}+${qkRope})×${kvElemBytes}B，注意力算术强度跃升至 ${decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B（远高于 GQA 的 4–8 FLOP/B）；${dcpSize > 1 ? `已启用 DCP=${dcpSize} 沿序列轴切分潜向量 KV。` : `注意 TP=${tpSize} 无法切分单潜向量头，每卡均持完整潜向量副本，开启 DCP>1 可减半读取。`}`,
+      `MLA Decode 矩阵吸收（mlapo）：${safeDcp > 1 ? `DCP=${safeDcp} 沿头维 all_gather Q 后单卡以 ${effectiveAttnQHeads} 个 Q 头` : `单卡 ${localNumHeads} 个 Q 头`}共用 1 份潜向量 (${kvLora}+${qkRope})×${kvElemBytes}B，注意力算术强度跃升至 ${decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B（远高于 GQA 的 4–8 FLOP/B）；${safeDcp > 1 ? `已启用 DCP=${safeDcp} 沿序列轴切分潜向量 KV。` : `注意 TP=${tpSize} 无法切分单潜向量头，每卡均持完整潜向量副本，开启 DCP>1 可减半读取。`}`,
     );
   } else {
     notes.push(
-      `GQA Decode KV 读取强度锁定在 2 × (${a.numHeads}/${a.numKvHeads}) / ${kvElemBytes}B = ${decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B，不随并发数 B 增长。`,
+      `GQA Decode KV 读取强度锁定在 2 × (${effectiveAttnQHeads}/${localKvHeads}) / ${kvElemBytes}B = ${decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B${safeDcp > 1 ? `（DCP=${safeDcp} 沿头维 all_gather Q 将单卡历史注意力 Q 头从 ${localNumHeads} 扩至 ${effectiveAttnQHeads}）` : tpSize > a.numKvHeads ? `（TP=${tpSize} > KV头=${a.numKvHeads} 触发 KV 头复制，单卡有效分组从 ${a.numHeads / Math.max(1, a.numKvHeads)} 降至 ${gqaGroupSize}）` : ""}，不随并发数 B 增长。`,
     );
   }
   if (hasCsa2 && sparseTopK !== null) {
@@ -1747,6 +1949,7 @@ function buildRelatedWikiIds(params: {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  pcpSize: number;
   dcpSize: number;
   worldSize: number;
   enforceEager: boolean;
@@ -1782,7 +1985,7 @@ function buildRelatedWikiIds(params: {
   if (params.tpSize > 1) ids.add("tensor-parallel");
   if (params.ppSize > 1) ids.add("pipeline-parallel");
   if (params.dpSize > 1) ids.add("data-parallel");
-  if (params.dcpSize > 1) ids.add("context-parallel");
+  if (params.dcpSize > 1 || params.pcpSize > 1) ids.add("context-parallel");
   if (params.weightPrecision !== "bf16" && params.weightPrecision !== "fp16") {
     ids.add("quantization");
     ids.add("low-precision-formats");
@@ -1796,11 +1999,26 @@ function buildRelatedWikiIds(params: {
   return Array.from(ids);
 }
 
+interface MinCardsRecommendation {
+  minCards: number | null;
+  recommendedTp: number | null;
+  recommendedPp: number | null;
+  recommendedDp: number | null;
+  recommendedPcp: number | null;
+  recommendedDcp: number | null;
+  recommendedEnableEp: boolean;
+  feasible: boolean;
+  unsolvable: boolean;
+}
+
 function recommendMinCards(params: {
   spec: ModelSpec;
   card: AscendCalcCardSpec;
   version: RuleVersion;
   weightPrecision: WeightPrecision;
+  kvCacheDtype: KvCacheDtype;
+  requestedBlockSize: number;
+  userSpecifiedBlockSize: boolean;
   weightNzMode: 0 | 1 | 2;
   kvElemBytes: number;
   effectiveBlockSize: number;
@@ -1808,13 +2026,34 @@ function recommendMinCards(params: {
   maxModelLen: number;
   maxNumBatchedTokens: number;
   maxNumSeqs: number;
+  numSpecTokens: number;
+  engramCpuOffload: boolean;
+  useV2ModelRunner: boolean;
+  cudagraphMode: CudaGraphMode;
+  enforceEager: boolean;
+  headroomStatus: HeadroomStatus;
+  hasMla: boolean;
+  hasCsa2: boolean;
+  hasKda: boolean;
   isMoe: boolean;
-}): { minCards: number; recommendedTp: number; recommendedPp: number; recommendedEnableEp: boolean } {
+  currentFeasibleTopology?: {
+    tpSize: number;
+    ppSize: number;
+    dpSize: number;
+    pcpSize: number;
+    dcpSize: number;
+    enableEp: boolean;
+    worldSize: number;
+  };
+}): MinCardsRecommendation {
   const {
     spec,
     card,
     version,
     weightPrecision,
+    kvCacheDtype,
+    requestedBlockSize,
+    userSpecifiedBlockSize,
     weightNzMode,
     kvElemBytes,
     effectiveBlockSize,
@@ -1822,19 +2061,95 @@ function recommendMinCards(params: {
     maxModelLen,
     maxNumBatchedTokens,
     maxNumSeqs,
+    numSpecTokens,
+    engramCpuOffload,
+    useV2ModelRunner,
+    cudagraphMode,
+    enforceEager,
+    headroomStatus,
+    hasMla,
+    hasCsa2,
+    hasKda,
     isMoe,
+    currentFeasibleTopology,
   } = params;
   const firstAttn = spec.layers[0]!.attention;
+  const fullAttn = spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ?? firstAttn;
+  const moeInfo = getMoeInfo(spec);
+  const moeIntermediates = spec.layers
+    .filter((l): l is LayerSpec & { mlp: Extract<MlpSpec, { kind: "moe" }> } => l.mlp.kind === "moe")
+    .map((l) => l.mlp.moeIntermediate);
   const requestedBytes = Math.floor(card.hbmGiB * GIB * gpuMemoryUtilization);
-  const candidates = [1, 2, 4, 8, 16, 32, 64];
+  const maxLayers = Math.max(1, spec.numLayers);
+  const searchUpper = currentFeasibleTopology ? Math.min(64, currentFeasibleTopology.worldSize - 1) : 64;
 
-  for (const n of candidates) {
-    const tp = n <= 8 && firstAttn.numHeads % n === 0 ? n : firstAttn.numHeads % 8 === 0 ? 8 : 4;
-    const pp = Math.max(1, Math.ceil(n / tp));
-    if (tp * pp !== n && n <= 8) continue;
-    const enableEp = isMoe && n > 1;
-    const epWorld = enableEp ? tp : 1;
-    const w = computeWeightsPerRank({
+  const isValidTp = (tpCand: number): boolean => {
+    if (firstAttn.numHeads % tpCand !== 0) return false;
+    if (!hasMla && fullAttn.kind !== "linear_kda") {
+      return fullAttn.numKvHeads >= tpCand
+        ? fullAttn.numKvHeads % tpCand === 0
+        : tpCand % fullAttn.numKvHeads === 0;
+    }
+    return true;
+  };
+
+  const requiresDpSharedGroup = Boolean(spec.engram?.enabled && spec.engram.dpSharedMemory);
+  const supportsDcp = (tpCand: number): boolean =>
+    tpCand > 1 && (hasMla || (fullAttn.kind !== "linear_kda" && tpCand > fullAttn.numKvHeads));
+
+  const tryCandidate = (
+    n: number,
+    tp: number,
+    pp: number,
+    dp: number,
+    dcp: number,
+    enableEp: boolean,
+  ): boolean => {
+    const pcp = 1;
+    const epWorld = enableEp ? dp * tp * pcp : 1;
+    const candUseV2 = Boolean(useV2ModelRunner);
+    const candEngramDpSharedDerived = Boolean(
+      spec.engram?.enabled &&
+        engramCpuOffload &&
+        !spec.engram.dpSharedMemory &&
+        candUseV2 &&
+        (dp > 1 || pcp > 1),
+    );
+    const candEngramDpShared = spec.engram?.enabled
+      ? spec.engram.dpSharedMemory || candEngramDpSharedDerived
+      : false;
+    const candQ1 = collectQ1Findings({
+      spec,
+      card,
+      version,
+      weightPrecision,
+      kvCacheDtype,
+      requestedBlockSize,
+      effectiveBlockSize,
+      userSpecifiedBlockSize,
+      weightNzMode,
+      tpSize: tp,
+      ppSize: pp,
+      dpSize: dp,
+      pcpSize: pcp,
+      dcpSize: dcp,
+      epWorldSize: epWorld,
+      enableEp,
+      engramCpuOffload,
+      engramDpSharedMemoryDerived: candEngramDpSharedDerived,
+      useV2ModelRunner: candUseV2,
+      gpuMemoryUtilization,
+      cudagraphMode,
+      enforceEager,
+      oomStatus: "fits",
+      headroomStatus,
+      hasMla,
+      hasCsa2,
+      hasKda,
+    });
+    if (candQ1.blockers.length > 0) return false;
+
+    const stageEval = selectBottleneckPpStage({
       spec,
       card,
       version,
@@ -1842,8 +2157,18 @@ function recommendMinCards(params: {
       weightNzMode,
       tpSize: tp,
       ppSize: pp,
+      dpSize: dp,
+      pcpSize: pcp,
+      dcpSize: dcp,
       epWorldSize: epWorld,
       enableEp,
+      engramCpuOffload,
+      engramDpSharedMemory: candEngramDpShared,
+      kvElemBytes,
+      effectiveBlockSize,
+      maxModelLen,
+      maxNumSeqs,
+      numSpecTokens,
     });
     const act = computeProfileRunTorchPeak({
       spec,
@@ -1852,8 +2177,8 @@ function recommendMinCards(params: {
       weightPrecision,
       tpSize: tp,
       ppSize: pp,
-      dpSize: 1,
-      pcpSize: 1,
+      dpSize: dp,
+      pcpSize: pcp,
       enableEp,
       maxNumBatchedTokens,
       maxNumSeqs,
@@ -1863,52 +2188,144 @@ function recommendMinCards(params: {
         hardwareFamily: card.family,
         tpSize: tp,
         ppSize: pp,
-        dpSize: 1,
-        pcpSize: 1,
-        dcpSize: 1,
+        dpSize: dp,
+        pcpSize: pcp,
+        dcpSize: dcp,
         isMoe,
         enableExpertParallel: enableEp,
         ...(spec.engram?.enabled
           ? {
               engramEnabled: true,
-              engramDpSharedMemory: spec.engram.dpSharedMemory,
-              etpSize: w.engramEtpSize,
+              engramDpSharedMemory: candEngramDpShared,
+              etpSize: stageEval.w.engramEtpSize,
             }
           : {}),
       },
       version,
     );
-    const nonTorch = computeNonTorchIncrease({
-      card,
-      hccl,
-      isMoe,
-      enableEp,
-      worldSize: tp * pp,
+    const nonTorch = computeNonTorchIncrease({ card, hccl, isMoe, enableEp, worldSize: n });
+    const virtualBlockTokens = effectiveBlockSize * dcp;
+    return stageEval.allStages.every(({ w, kvState }) => {
+      if (w.lowBytes >= requestedBytes) return false;
+      if (w.pointBytes + act.pointBytes >= requestedBytes) return false;
+      const rawKvLow = requestedBytes - (w.highBytes + act.highBytes + nonTorch.highBytes);
+      const rawKvPoint = requestedBytes - (w.pointBytes + act.pointBytes + nonTorch.pointBytes);
+      if (rawKvLow <= 0 || rawKvPoint <= 0) return false;
+      const kvPoolLow = card.halvesKvForWorkspace ? Math.floor(rawKvLow / 2) : Math.floor(rawKvLow);
+      const kvPoolPoint = card.halvesKvForWorkspace ? Math.floor(rawKvPoint / 2) : Math.floor(rawKvPoint);
+      const kvPerBlock = Math.round(
+        kvState.localMainKvBytesPerSlot * effectiveBlockSize +
+          kvState.perTokenIndexerKvBytes * virtualBlockTokens,
+      );
+      const blocksPerMaxSeq = kvPerBlock > 0 ? Math.ceil(maxModelLen / virtualBlockTokens) : 0;
+      const minSingleSeq =
+        (blocksPerMaxSeq > 0 ? (blocksPerMaxSeq + 1) * kvPerBlock : 0) +
+        Math.max(kvState.totalFixedLinearStateBytes, kvState.perSeqFixedLinearStateBytes);
+      if (kvPoolLow < minSingleSeq || kvPoolPoint < minSingleSeq) return false;
+      if (blocksPerMaxSeq > 0) {
+        const usableLow = Math.max(
+          0,
+          Math.floor((kvPoolLow - kvState.totalFixedLinearStateBytes) / kvPerBlock) - 1,
+        );
+        const usablePoint = Math.max(
+          0,
+          Math.floor((kvPoolPoint - kvState.totalFixedLinearStateBytes) / kvPerBlock) - 1,
+        );
+        return usableLow >= blocksPerMaxSeq && usablePoint >= blocksPerMaxSeq;
+      }
+      return true;
     });
-    let availKv = requestedBytes - (w.pointBytes + act.pointBytes + nonTorch.pointBytes);
-    if (card.halvesKvForWorkspace && availKv > 0) availKv = Math.floor(availKv / 2);
+  };
 
-    const kvState = computePerRankKvAndState({
-      spec,
-      tpSize: tp,
-      ppSize: pp,
-      dcpSize: 1,
-      kvElemBytes,
-      maxNumSeqs,
-    });
-    const kvPerBlock = kvState.perTokenPagedKvBytes * effectiveBlockSize;
-    const neededBlocks = kvPerBlock > 0 ? Math.ceil(maxModelLen / effectiveBlockSize) + 1 : 0; // +1 null block
-    const minSeqNeed = neededBlocks * kvPerBlock + kvState.perSeqFixedLinearStateBytes;
-    if (availKv >= minSeqNeed) {
-      return {
-        minCards: tp * pp,
-        recommendedTp: tp,
-        recommendedPp: pp,
-        recommendedEnableEp: enableEp,
-      };
+  for (let n = 1; n <= searchUpper; n += 1) {
+    const dpOptions: number[] = [];
+    if (requiresDpSharedGroup) {
+      for (let dpCand = 2; dpCand <= n; dpCand += 1) {
+        if (n % dpCand === 0) dpOptions.push(dpCand);
+      }
+    } else {
+      dpOptions.push(1);
+    }
+
+    for (const useDcp of [false, true] as const) {
+      for (const dp of dpOptions) {
+        const modelWorld = n / dp;
+        const validTps: number[] = [];
+        for (let tpCand = 1; tpCand <= modelWorld; tpCand += 1) {
+          if (modelWorld % tpCand === 0 && isValidTp(tpCand) && modelWorld / tpCand <= maxLayers) {
+            validTps.push(tpCand);
+          }
+        }
+        // Prefer intra-node TP <= 8 descending (e.g. 8, 4, 2, 1), then cross-node TP > 8 ascending
+        validTps.sort((a, b) => {
+          const aIntra = a <= 8 ? 0 : 1;
+          const bIntra = b <= 8 ? 0 : 1;
+          if (aIntra !== bIntra) return aIntra - bIntra;
+          return aIntra === 0 ? b - a : a - b;
+        });
+
+        for (const tp of validTps) {
+          const pp = modelWorld / tp;
+          const epDiv = dp * tp;
+          const canEp = isMoe && epDiv > 1 && epDiv <= moeInfo.numExperts;
+          const canNoEp = !isMoe || moeIntermediates.every((inter) => inter % epDiv === 0);
+          const epOptions: boolean[] = isMoe
+            ? [...(canEp ? [true] : []), ...(canNoEp ? [false] : [])]
+            : [false];
+          const dcpOptions: number[] = [];
+          if (!useDcp) {
+            dcpOptions.push(1);
+          } else if (supportsDcp(tp)) {
+            for (let d = 2; d <= tp; d += 1) {
+              if (tp % d === 0) dcpOptions.push(d);
+            }
+          }
+
+          for (const dcp of dcpOptions) {
+            for (const enableEp of epOptions) {
+              if (tryCandidate(n, tp, pp, dp, dcp, enableEp)) {
+                return {
+                  minCards: n,
+                  recommendedTp: tp,
+                  recommendedPp: pp,
+                  recommendedDp: dp,
+                  recommendedPcp: 1,
+                  recommendedDcp: dcp,
+                  recommendedEnableEp: enableEp,
+                  feasible: true,
+                  unsolvable: false,
+                };
+              }
+            }
+          }
+        }
+      }
     }
   }
-  return { minCards: 64, recommendedTp: 8, recommendedPp: 8, recommendedEnableEp: isMoe };
+  if (currentFeasibleTopology) {
+    return {
+      minCards: currentFeasibleTopology.worldSize,
+      recommendedTp: currentFeasibleTopology.tpSize,
+      recommendedPp: currentFeasibleTopology.ppSize,
+      recommendedDp: currentFeasibleTopology.dpSize,
+      recommendedPcp: currentFeasibleTopology.pcpSize,
+      recommendedDcp: currentFeasibleTopology.dcpSize,
+      recommendedEnableEp: currentFeasibleTopology.enableEp,
+      feasible: true,
+      unsolvable: false,
+    };
+  }
+  return {
+    minCards: null,
+    recommendedTp: null,
+    recommendedPp: null,
+    recommendedDp: null,
+    recommendedPcp: null,
+    recommendedDcp: null,
+    recommendedEnableEp: false,
+    feasible: false,
+    unsolvable: true,
+  };
 }
 
 function collectQ1Findings(params: {
@@ -1924,9 +2341,13 @@ function collectQ1Findings(params: {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  pcpSize: number;
   dcpSize: number;
   epWorldSize: number;
   enableEp: boolean;
+  engramCpuOffload: boolean;
+  engramDpSharedMemoryDerived: boolean;
+  useV2ModelRunner: boolean;
   gpuMemoryUtilization: number;
   cudagraphMode: CudaGraphMode;
   enforceEager: boolean;
@@ -1953,9 +2374,13 @@ function collectQ1Findings(params: {
     tpSize,
     ppSize,
     dpSize,
+    pcpSize,
     dcpSize,
     epWorldSize,
     enableEp,
+    engramCpuOffload,
+    engramDpSharedMemoryDerived,
+    useV2ModelRunner,
     gpuMemoryUtilization,
     cudagraphMode,
     enforceEager,
@@ -1963,13 +2388,14 @@ function collectQ1Findings(params: {
     headroomStatus,
     hasMla,
     hasCsa2,
-    hasKda,
+    hasKda: _hasKda,
   } = params;
 
   const blockers: DeployPlanFinding[] = [];
   const silentRewrites: SilentRewriteItem[] = [];
   const warnings: DeployPlanFinding[] = [];
   const firstAttn = spec.layers[0]!.attention;
+  const fullAttn = spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ?? firstAttn;
   const moe = getMoeInfo(spec);
 
   // 1. 310P BF16 blocker
@@ -2117,7 +2543,7 @@ function collectQ1Findings(params: {
     }
   }
 
-  // 5. TP head divisibility checks & Wave 4 MLA/CSA2/KDA/Engram architecture advisories
+  // 5. TP / CP (PCP+DCP) topology legality & Wave 4 MLA/CSA2/KDA/Engram architecture checks
   if (firstAttn.numHeads % tpSize !== 0) {
     blockers.push({
       id: "calc-tp-q-heads-indivisible",
@@ -2128,22 +2554,63 @@ function collectQ1Findings(params: {
       sources: ["wiki:tensor-parallel"],
     });
   }
-  if (!hasMla && !hasKda) {
+  if (!hasMla && fullAttn.kind !== "linear_kda") {
     const kvHeadValid =
-      firstAttn.numKvHeads >= tpSize
-        ? firstAttn.numKvHeads % tpSize === 0
-        : tpSize % firstAttn.numKvHeads === 0;
+      fullAttn.numKvHeads >= tpSize ? fullAttn.numKvHeads % tpSize === 0 : tpSize % fullAttn.numKvHeads === 0;
     if (!kvHeadValid) {
       blockers.push({
         id: "calc-tp-kv-heads-indivisible",
         severity: "error",
         title: "KV 头数与 TP 无法对齐",
-        message: `num_key_value_heads=${firstAttn.numKvHeads} 与 TP=${tpSize} 既不整除也不能按整数倍复制。`,
+        message: `num_key_value_heads=${fullAttn.numKvHeads} 与 TP=${tpSize} 既不整除也不能按整数倍复制。`,
         remediation: "调整 TP 使其整除 KV 头数或为 KV 头数的整数倍。",
         sources: ["wiki:tensor-parallel"],
       });
     }
   }
+
+  // Shared Domain 4 CP / DCP / PCP topology legality rules (d4-pcp-requires-mrv2, d4-pcp-dcp-sizing & d4-pcp-full-cudagraph-unsupported)
+  const cpMatches = evaluateCpTopologyRules(
+    {
+      hardwareFamily: card.family,
+      tpSize,
+      pcpSize,
+      dcpSize,
+      useV2ModelRunner,
+      cudagraphMode,
+      useMla: hasMla,
+      sfaDcpReplicatedIndexer: hasCsa2 && hasMla && dcpSize > 1,
+      ...(fullAttn.kind !== "linear_kda"
+        ? {
+            numAttentionHeads: fullAttn.numHeads,
+            numKvHeads: fullAttn.numKvHeads,
+          }
+        : {}),
+    },
+    version,
+  );
+  for (const m of cpMatches) {
+    if (m.judgment === "error") {
+      const finding: DeployPlanFinding = {
+        id: m.ruleId,
+        severity: "error",
+        title: m.title,
+        message: m.message,
+        sources: m.sources,
+      };
+      if (m.remediation !== undefined) finding.remediation = m.remediation;
+      blockers.push(finding);
+    } else if (m.judgment === "warn") {
+      warnings.push({
+        id: m.ruleId,
+        severity: "warn",
+        title: m.title,
+        message: m.message,
+        sources: m.sources,
+      });
+    }
+  }
+
   if (hasMla && tpSize > 1 && dcpSize === 1) {
     const mlaLayer = spec.layers.find((l) => l.attention.kvLoraRank !== undefined)?.attention ?? firstAttn;
     const kvLora = mlaLayer.kvLoraRank ?? 512;
@@ -2172,22 +2639,64 @@ function collectQ1Findings(params: {
       sources: ["wiki:sparse-attention"],
     });
   }
-  if (spec.engram?.enabled && spec.engram.dpSharedMemory && dpSize <= 1) {
-    warnings.push({
-      id: "calc-engram-dp-shared-mem-dp1",
-      severity: "warn",
-      title: "engram_dp_shared_memory=true 要求 DP > 1",
+  if (spec.engram?.enabled && spec.engram.dpSharedMemory && !engramCpuOffload) {
+    blockers.push({
+      id: "calc-engram-dp-shared-requires-cpu-offload",
+      severity: "error",
+      title: "engram_dp_shared_memory=true 必须同时开启 engram_cpu_offload=true",
       message:
-        "vllm/config/engram.py 校验：dp_shared_memory 仅用于同机多 DP 副本通过 /dev/shm 共享 Host DRAM 词表，DP=1 时需开启 DP≥2 或改用单副本 CPU offload。",
-      remediation: "将 DP 调整为 2 或更大，或关闭 engram_dp_shared_memory。",
+        "vllm/config/engram.py 与 embedding.py 校验：dp_shared_memory 通过 /dev/shm 在同节点共享 Host DRAM 词表，禁止在 cpu_offload=false（NPU HBM 常驻）时启用。",
+      remediation: "开启 engram_cpu_offload=true，或关闭 engram_dp_shared_memory。",
       sources: [
         `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/engram.py#L51-L86`,
-        "wiki:ascend-model-onboarding",
+        "wiki:engram-conditional-memory",
+      ],
+    });
+  } else if (spec.engram?.enabled && spec.engram.dpSharedMemory && dpSize * pcpSize <= 1) {
+    blockers.push({
+      id: "calc-engram-dp-shared-mem-dp1",
+      severity: "error",
+      title: "engram_dp_shared_memory=true 禁止单成员共享组（DP×PCP=1）",
+      message:
+        "vllm/config/engram.py 与 embedding.py 校验：显式启用 dp_shared_memory 时要求共享组大小 DP×PCP > 1，单成员共享组启动期直接报错阻断。",
+      remediation: "将 DP 或 PCP 调整为 2 或更大，或关闭 engram_dp_shared_memory。",
+      sources: [
+        `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/engram.py#L51-L86`,
+        "wiki:engram-conditional-memory",
+      ],
+    });
+  } else if (engramDpSharedMemoryDerived) {
+    silentRewrites.push({
+      id: "calc-engram-mrv2-auto-dp-shared",
+      title: "昇腾 MRV2 自动启用 Engram 节点内共享（dp_shared_memory=true）",
+      param: "engram_config.dp_shared_memory",
+      fromValue: "false",
+      toValue: "true",
+      message: `AscendConfig.derive_and_validate 在 MRV2 + cpu_offload=true 且 DP×PCP=${dpSize * pcpSize} > 1 时自动置 dp_shared_memory=True，同机共享 1 份 Host DRAM 表。`,
+      sources: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L690-L698`,
+        "wiki:engram-conditional-memory",
       ],
     });
   }
 
   // 6. MoE / 310P / OOM / Headroom checks
+  if (moe.isMoe && !enableEp) {
+    const expertSliceDiv = tpSize * dpSize * pcpSize;
+    const badMoeLayer = spec.layers.find(
+      (l) => l.mlp.kind === "moe" && l.mlp.moeIntermediate % expertSliceDiv !== 0,
+    );
+    if (badMoeLayer && badMoeLayer.mlp.kind === "moe") {
+      blockers.push({
+        id: "calc-moe-no-ep-intermediate-indivisible",
+        severity: "error",
+        title: "MoE 关闭 EP 时 moe_intermediate_size 无法被 TP×DP×PCP 整除",
+        message: `EP=off 时 FusedMoEConfig 将专家按 TP×DP×PCP = ${tpSize}×${dpSize}×${pcpSize} = ${expertSliceDiv} 展平切分，层 ${badMoeLayer.index} 的 moe_intermediate_size=${badMoeLayer.mlp.moeIntermediate} 无法整除（${(badMoeLayer.mlp.moeIntermediate / expertSliceDiv).toFixed(2)}），启动期断言报错。`,
+        remediation: `调整 TP/DP/PCP 使乘积整除 ${badMoeLayer.mlp.moeIntermediate}，或开启 --enable-expert-parallel。`,
+        sources: ["wiki:expert-parallel", "wiki:moe"],
+      });
+    }
+  }
   if (moe.isMoe && enableEp && epWorldSize > moe.numExperts) {
     blockers.push({
       id: "calc-ep-exceeds-experts",
@@ -2342,14 +2851,17 @@ function buildRecommendation(params: {
   hasCsa2: boolean;
   hasKda: boolean;
   hasEngram: boolean;
-  minCards: { minCards: number; recommendedTp: number; recommendedPp: number; recommendedEnableEp: boolean };
+  minCards: MinCardsRecommendation;
   weightPrecision: WeightPrecision;
   kvCacheDtype: KvCacheDtype;
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  pcpSize: number;
   dcpSize: number;
   worldSize: number;
+  gpuMemoryUtilization: number;
+  canUseRecommendedUtil: (util: number, precision: WeightPrecision) => boolean;
   enforceEager: boolean;
   cudagraphMode: CudaGraphMode;
 }): FourQuestionsReport["q4Recommendation"] {
@@ -2367,9 +2879,17 @@ function buildRecommendation(params: {
     tpSize,
     ppSize,
     dpSize,
+    pcpSize,
     dcpSize,
     worldSize,
+    gpuMemoryUtilization,
+    canUseRecommendedUtil,
   } = params;
+  const isUnsolvable =
+    minCards.unsolvable ||
+    minCards.minCards === null ||
+    minCards.recommendedTp === null ||
+    minCards.recommendedPp === null;
   const recPrec: WeightPrecision =
     card.family === "310P"
       ? weightPrecision === "fp16" || weightPrecision === "w8a8sc_310p"
@@ -2377,36 +2897,72 @@ function buildRecommendation(params: {
         : "w8a8sc_310p"
       : card.family === "A5" && weightPrecision === "fp8_block"
         ? "fp8_block"
-        : isMoe && (weightPrecision === "bf16" || weightPrecision === "fp8_block") && minCards.minCards >= 4
+        : isMoe &&
+            (weightPrecision === "bf16" || weightPrecision === "fp8_block") &&
+            (isUnsolvable || minCards.minCards! >= 4)
           ? "w8a8_dynamic"
           : weightPrecision === "fp8_block"
             ? "bf16"
             : weightPrecision;
 
-  const recUtil = card.family === "310P" ? 0.85 : isMoe ? 0.9 : 0.92;
-  const flags = [
-    `vllm serve ${spec.name}`,
-    `-tp ${minCards.recommendedTp}`,
-    minCards.recommendedPp > 1 ? `-pp ${minCards.recommendedPp}` : "",
-    dcpSize > 1 ? `--decode-context-parallel-size ${dcpSize}` : "",
-    minCards.recommendedEnableEp ? "--enable-expert-parallel" : "",
-    card.family === "310P" ? "--dtype float16" : "",
-    recPrec === "w8a8_dynamic" || recPrec === "w8a8" || recPrec === "w4a8" || recPrec === "w8a8sc_310p"
-      ? "--quantization ascend"
-      : "",
-    `--gpu-memory-utilization ${recUtil.toFixed(2)}`,
-  ].filter(Boolean);
+  const defaultRecUtil = card.family === "310P" ? 0.85 : isMoe ? 0.9 : 0.92;
+  const formatUtilValue = (u: number): string => {
+    const fixed2 = Number(u.toFixed(2));
+    return Math.abs(u - fixed2) < 1e-9 ? u.toFixed(2) : String(Number(u.toFixed(4)));
+  };
+  let recUtil = defaultRecUtil;
+  if (!isUnsolvable && !canUseRecommendedUtil(defaultRecUtil, recPrec)) {
+    const candidates = [
+      Number(gpuMemoryUtilization.toFixed(2)),
+      Number(gpuMemoryUtilization.toFixed(3)),
+      Number(gpuMemoryUtilization.toFixed(4)),
+      Math.min(0.99, Math.ceil(gpuMemoryUtilization * 10000) / 10000),
+    ];
+    recUtil =
+      candidates.find((c) => canUseRecommendedUtil(c, recPrec)) ?? Number(gpuMemoryUtilization.toFixed(4));
+  }
+  const recUtilStr = formatUtilValue(recUtil);
+  const recTp = minCards.recommendedTp;
+  const recPp = minCards.recommendedPp;
+  const recDp = minCards.recommendedDp;
+  const recPcp = minCards.recommendedPcp;
+  const recDcp = minCards.recommendedDcp;
+  const flags = isUnsolvable
+    ? []
+    : [
+        recPcp !== null && recPcp > 1 ? "VLLM_USE_V2_MODEL_RUNNER=1" : "",
+        `vllm serve ${spec.name}`,
+        `-tp ${recTp}`,
+        recPp! > 1 ? `-pp ${recPp}` : "",
+        recDp !== null && recDp > 1 ? `-dp ${recDp}` : "",
+        recPcp !== null && recPcp > 1 ? `--prefill-context-parallel-size ${recPcp}` : "",
+        recDcp !== null && recDcp > 1 ? `--decode-context-parallel-size ${recDcp}` : "",
+        minCards.recommendedEnableEp ? "--enable-expert-parallel" : "",
+        card.family === "310P" ? "--dtype float16" : "",
+        recPrec === "w8a8_dynamic" || recPrec === "w8a8" || recPrec === "w4a8" || recPrec === "w8a8sc_310p"
+          ? "--quantization ascend"
+          : "",
+        `--gpu-memory-utilization ${recUtilStr}`,
+      ].filter(Boolean);
 
-  const physCards = Math.ceil(minCards.minCards / card.diesPerPhysicalCard);
-  const rationale =
-    `在 ${card.shortName} 上建议起步 ${minCards.minCards} 逻辑设备（${physCards} 张物理卡，TP=${minCards.recommendedTp}` +
-    `${minCards.recommendedPp > 1 ? `, PP=${minCards.recommendedPp}` : ""}` +
-    `${minCards.recommendedEnableEp ? ", 开启 EP" : ""}），精度优先 ${recPrec}，预算比例 ${recUtil.toFixed(2)}。`;
+  const physCards = isUnsolvable ? null : Math.ceil(minCards.minCards! / card.diesPerPhysicalCard);
+  const rationale = isUnsolvable
+    ? `在 ${card.shortName} 上遍历 1–64 逻辑设备内的全部合法并行组合均无法同时满足当前 max_model_len 与 max_num_seqs 固定状态/分页预算，故停止输出推荐卡数与启动命令；请降低 max_num_seqs / max_model_len、启用权重量化或更换大显存卡型。`
+    : `在 ${card.shortName} 上建议起步 ${minCards.minCards} 逻辑设备（${physCards} 张物理卡，TP=${recTp}` +
+      `${recPp! > 1 ? `, PP=${recPp}` : ""}` +
+      `${recDp !== null && recDp > 1 ? `, DP=${recDp}` : ""}` +
+      `${recPcp !== null && recPcp > 1 ? `, PCP=${recPcp}` : ""}` +
+      `${recDcp !== null && recDcp > 1 ? `, DCP=${recDcp}` : ""}` +
+      `${minCards.recommendedEnableEp ? ", 开启 EP" : ""}），精度优先 ${recPrec}，预算比例 ${recUtilStr}。`;
 
   return {
-    recommendedTp: minCards.recommendedTp,
-    recommendedPp: minCards.recommendedPp,
-    recommendedDp: 1,
+    feasible: minCards.feasible,
+    unsolvable: isUnsolvable,
+    recommendedTp: recTp,
+    recommendedPp: recPp,
+    recommendedDp: recDp,
+    recommendedPcp: recPcp,
+    recommendedDcp: recDcp,
     recommendedEnableEp: minCards.recommendedEnableEp,
     recommendedPrecision: recPrec,
     recommendedGpuMemoryUtilization: recUtil,
@@ -2424,6 +2980,7 @@ function buildRecommendation(params: {
       tpSize,
       ppSize,
       dpSize,
+      pcpSize,
       dcpSize,
       worldSize,
       enforceEager: params.enforceEager,
@@ -2478,6 +3035,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     Math.round(input.maxNumBatchedTokens ?? DEFAULT_MAX_NUM_BATCHED_TOKENS),
   );
   const maxNumSeqs = Math.max(1, Math.round(input.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS));
+  const numSpecTokens = Math.max(0, Math.round(input.numSpecTokens ?? 0));
   const enforceEager = Boolean(input.enforceEager ?? false);
   const cudagraphMode: CudaGraphMode = enforceEager
     ? "NONE"
@@ -2502,27 +3060,33 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const hasCsa2 = activeWave4Features.includes("CSA2");
   const hasKda = activeWave4Features.includes("KDA");
   const hasEngram = activeWave4Features.includes("Engram");
+  const engramCpuOffload = spec.engram?.enabled
+    ? (input.engramCpuOffload ?? spec.engram.cpuOffload ?? true)
+    : false;
+  // AscendConfig.derive_and_validate: under explicit MRV2, cpu_offload=true & (DP>1 || PCP>1) derives dp_shared_memory=True
+  // Note: platform.py#L1650-L1657 does NOT implicitly enable MRV2 for PCP>1; PCP>1 without useV2ModelRunner triggers d4-pcp-requires-mrv2.
+  const useV2ModelRunner = Boolean(input.useV2ModelRunner);
+  const engramDpSharedMemoryDerived = Boolean(
+    spec.engram?.enabled &&
+      engramCpuOffload &&
+      !spec.engram.dpSharedMemory &&
+      useV2ModelRunner &&
+      (dpSize > 1 || pcpSize > 1),
+  );
+  const effectiveEngramDpSharedMemory = spec.engram?.enabled
+    ? spec.engram.dpSharedMemory || engramDpSharedMemoryDerived
+    : false;
 
-  const localLayersPerRank = Math.ceil(spec.numLayers / ppSize);
   // C8-MXFP (33/32 B/elem) is restricted to non-MLA FullAttentionSpec; MLA falls back to model dtype (2 B/elem)
   const kvElemBytes = kvCacheDtype === "auto" ? 2 : kvCacheDtype === "int8" ? 1 : hasMla ? 2 : 33 / 32;
-  const kvState = computePerRankKvAndState({
-    spec,
-    tpSize,
-    ppSize,
-    dcpSize,
-    kvElemBytes,
-    maxNumSeqs,
-  });
-  const localKvHeadsPerRank = kvState.localKvHeadsPerRank;
 
   // Stage 1 & 2
   const totalHbmBytes = card.hbmGiB * GIB;
   const requestedBytes = Math.floor(totalHbmBytes * gpuMemoryUtilization);
   const unbudgetedHeadroomBytes = totalHbmBytes - requestedBytes;
 
-  // Stage 3: Weights per rank
-  const w = computeWeightsPerRank({
+  // Stage 3 & Stage 6 bottleneck contiguous PP stage evaluation (ensures weights & KV come from the same PP stage)
+  const bottleneckPp = selectBottleneckPpStage({
     spec,
     card,
     version,
@@ -2530,9 +3094,23 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     weightNzMode,
     tpSize,
     ppSize,
+    dpSize,
+    pcpSize,
+    dcpSize,
     epWorldSize,
     enableEp,
+    engramCpuOffload,
+    engramDpSharedMemory: effectiveEngramDpSharedMemory,
+    kvElemBytes,
+    effectiveBlockSize,
+    maxModelLen,
+    maxNumSeqs,
+    numSpecTokens,
   });
+  const w = bottleneckPp.w;
+  const kvState = bottleneckPp.kvState;
+  const localLayersPerRank = bottleneckPp.stage.layers.length;
+  const localKvHeadsPerRank = kvState.localKvHeadsPerRank;
 
   // Stage 4: profile_run torch peak
   const act = computeProfileRunTorchPeak({
@@ -2563,7 +3141,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       ...(spec.engram?.enabled
         ? {
             engramEnabled: true,
-            engramDpSharedMemory: spec.engram.dpSharedMemory,
+            engramDpSharedMemory: effectiveEngramDpSharedMemory,
             etpSize: w.engramEtpSize,
           }
         : {}),
@@ -2581,84 +3159,149 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   });
   if (spec.engram?.enabled) {
     nonTorch.notes.push(
-      spec.engram.dpSharedMemory
-        ? `Engram 通信域（engram_dp_shared_memory=true）：etp 建 HCCL 域（ETP=${w.engramEtpSize}），edp 走 Gloo + /dev/shm 共享内存，不额外消耗 HCCL edp 缓冲。`
+      effectiveEngramDpSharedMemory
+        ? `Engram 通信域（engram_dp_shared_memory=true${engramDpSharedMemoryDerived ? "，MRV2 自动推导" : ""}）：etp 建 HCCL 域（ETP=${w.engramEtpSize}），edp 走 Gloo + /dev/shm 共享内存，不额外消耗 HCCL edp 缓冲。`
         : `Engram 通信域（engram_dp_shared_memory=false）：已将 etp (ETP=${w.engramEtpSize}) 与 edp 纳入 hcclAccounting 去重核算。`,
     );
   }
 
   // Stage 6: KV cache pool (+ KDA fixed recurrent state reservation)
-  const rawKvLow = requestedBytes - (w.highBytes + act.highBytes + nonTorch.highBytes);
-  const rawKvPoint = requestedBytes - (w.pointBytes + act.pointBytes + nonTorch.pointBytes);
-  const rawKvHigh = requestedBytes - (w.lowBytes + act.lowBytes + nonTorch.lowBytes);
-
+  // Evaluate every PP stage independently so heterogeneous PP takes min concurrency & worst OOM status across all stages
   const scaleKv = (v: number): number =>
     v <= 0 ? 0 : card.halvesKvForWorkspace ? Math.floor(v / 2) : Math.floor(v);
-  const kvPoolLowBytes = scaleKv(rawKvLow);
-  const kvPoolPointBytes = scaleKv(rawKvPoint);
-  const kvPoolHighBytes = scaleKv(rawKvHigh);
+  // Under DCP > 1, each physical block on a rank holds effectiveBlockSize local main-KV slots,
+  // while 1 virtual block spans effectiveBlockSize * dcpSize global tokens (block_table.py#L251-L275).
+  const virtualBlockTokens = effectiveBlockSize * dcpSize;
+  const oomSeverityRank: Record<KvOomStatus, number> = {
+    fits: 0,
+    tight_budget_oom_risk: 1,
+    insufficient_for_single_max_len_seq: 2,
+    non_kv_exceeds_budget: 3,
+    weights_plus_activation_exceed_budget: 4,
+    weights_exceed_budget: 5,
+  };
 
+  const evaluateStageCapacity = (stageW: WeightBreakdownResult, stageKv: PerRankKvAndStateResult) => {
+    const sRawKvLow = requestedBytes - (stageW.highBytes + act.highBytes + nonTorch.highBytes);
+    const sRawKvPoint = requestedBytes - (stageW.pointBytes + act.pointBytes + nonTorch.pointBytes);
+    const sRawKvHigh = requestedBytes - (stageW.lowBytes + act.lowBytes + nonTorch.lowBytes);
+    const sKvPoolLow = scaleKv(sRawKvLow);
+    const sKvPoolPoint = scaleKv(sRawKvPoint);
+    const sKvPoolHigh = scaleKv(sRawKvHigh);
+    const sKvBytesPerBlock = Math.round(
+      stageKv.localMainKvBytesPerSlot * effectiveBlockSize +
+        stageKv.perTokenIndexerKvBytes * virtualBlockTokens,
+    );
+    const sPagedLow = Math.max(0, sKvPoolLow - stageKv.totalFixedLinearStateBytes);
+    const sPagedPoint = Math.max(0, sKvPoolPoint - stageKv.totalFixedLinearStateBytes);
+    const sPagedHigh = Math.max(0, sKvPoolHigh - stageKv.totalFixedLinearStateBytes);
+    const sRawBlocksLow = sKvBytesPerBlock > 0 ? Math.floor(sPagedLow / sKvBytesPerBlock) : 0;
+    const sRawBlocksPoint = sKvBytesPerBlock > 0 ? Math.floor(sPagedPoint / sKvBytesPerBlock) : 0;
+    const sRawBlocksHigh = sKvBytesPerBlock > 0 ? Math.floor(sPagedHigh / sKvBytesPerBlock) : 0;
+    const sUsableLow = sKvBytesPerBlock > 0 ? Math.max(0, sRawBlocksLow - 1) : 0;
+    const sUsablePoint = sKvBytesPerBlock > 0 ? Math.max(0, sRawBlocksPoint - 1) : 0;
+    const sUsableHigh = sKvBytesPerBlock > 0 ? Math.max(0, sRawBlocksHigh - 1) : 0;
+    const sBlocksPerMaxSeq = sKvBytesPerBlock > 0 ? Math.ceil(maxModelLen / virtualBlockTokens) : 0;
+
+    const stageConc = (usableBlocks: number, poolBytes: number): number => {
+      const pagedCap = sBlocksPerMaxSeq > 0 ? usableBlocks / sBlocksPerMaxSeq : Number.POSITIVE_INFINITY;
+      const linearCap =
+        stageKv.perSeqFixedLinearStateBytes > 0
+          ? poolBytes / stageKv.perSeqFixedLinearStateBytes
+          : Number.POSITIVE_INFINITY;
+      const cap = Math.min(pagedCap, linearCap);
+      return Number.isFinite(cap) ? cap : 0;
+    };
+    const sMaxConcLow = stageConc(sUsableLow, sKvPoolLow);
+    const sMaxConcPoint = stageConc(sUsablePoint, sKvPoolPoint);
+    const sMaxConcHigh = stageConc(sUsableHigh, sKvPoolHigh);
+
+    const sMinSingleSeq =
+      (sBlocksPerMaxSeq > 0 ? (sBlocksPerMaxSeq + 1) * sKvBytesPerBlock : 0) +
+      Math.max(stageKv.totalFixedLinearStateBytes, stageKv.perSeqFixedLinearStateBytes);
+    let sOom: KvOomStatus = "fits";
+    if (stageW.lowBytes >= requestedBytes) {
+      sOom = "weights_exceed_budget";
+    } else if (stageW.pointBytes + act.pointBytes >= requestedBytes) {
+      sOom = "weights_plus_activation_exceed_budget";
+    } else if (sRawKvPoint <= 0) {
+      sOom = "non_kv_exceeds_budget";
+    } else if ((sBlocksPerMaxSeq > 0 && sUsablePoint < sBlocksPerMaxSeq) || sKvPoolPoint < sMinSingleSeq) {
+      sOom = "insufficient_for_single_max_len_seq";
+    } else if (
+      sRawKvLow <= 0 ||
+      (sBlocksPerMaxSeq > 0 && sUsableLow < sBlocksPerMaxSeq) ||
+      sKvPoolLow < sMinSingleSeq
+    ) {
+      sOom = "tight_budget_oom_risk";
+    }
+    return {
+      sKvPoolLow,
+      sKvPoolPoint,
+      sKvPoolHigh,
+      sKvBytesPerBlock,
+      sRawBlocksLow,
+      sRawBlocksPoint,
+      sRawBlocksHigh,
+      sUsableLow,
+      sUsablePoint,
+      sUsableHigh,
+      sBlocksPerMaxSeq,
+      sMaxConcLow,
+      sMaxConcPoint,
+      sMaxConcHigh,
+      sOom,
+    };
+  };
+
+  const allStageCaps = bottleneckPp.allStages.map((st) => ({
+    stage: st.stage,
+    cap: evaluateStageCapacity(st.w, st.kvState),
+  }));
+  const primaryCap =
+    allStageCaps.find((entry) => entry.stage.stageIndex === bottleneckPp.stage.stageIndex)?.cap ??
+    allStageCaps[0]!.cap;
+
+  const kvPoolLowBytes = primaryCap.sKvPoolLow;
+  const kvPoolPointBytes = primaryCap.sKvPoolPoint;
+  const kvPoolHighBytes = primaryCap.sKvPoolHigh;
   const kvBytesPerTokenPerRank = kvState.perTokenPagedKvBytes;
   const perSeqFixedLinearStateBytes = kvState.perSeqFixedLinearStateBytes;
   const totalFixedLinearStateBytes = kvState.totalFixedLinearStateBytes;
-  const kvBytesPerBlock = kvBytesPerTokenPerRank * effectiveBlockSize;
+  const kvBytesPerBlock = primaryCap.sKvBytesPerBlock;
+  const rawBlocksLow = primaryCap.sRawBlocksLow;
+  const rawBlocksHigh = primaryCap.sRawBlocksHigh;
+  const usableBlocksLow = primaryCap.sUsableLow;
+  const usableBlocksPoint = primaryCap.sUsablePoint;
+  const usableBlocksHigh = primaryCap.sUsableHigh;
+  // Heterogeneous PP: global paged KV token slots take the minimum across PP stages that actually hold paged attention
+  // (ignoring pure linear-state stages whose sKvBytesPerBlock === 0).
+  const pagedStageCaps = allStageCaps.filter((e) => e.cap.sKvBytesPerBlock > 0);
+  const totalKvTokenSlotsLow =
+    pagedStageCaps.length > 0
+      ? Math.min(...pagedStageCaps.map((e) => e.cap.sUsableLow)) * virtualBlockTokens
+      : 0;
+  const totalKvTokenSlotsPoint =
+    pagedStageCaps.length > 0
+      ? Math.min(...pagedStageCaps.map((e) => e.cap.sUsablePoint)) * virtualBlockTokens
+      : 0;
+  const totalKvTokenSlotsHigh =
+    pagedStageCaps.length > 0
+      ? Math.min(...pagedStageCaps.map((e) => e.cap.sUsableHigh)) * virtualBlockTokens
+      : 0;
+  const blocksPerMaxSeq = primaryCap.sBlocksPerMaxSeq;
 
-  // For hybrid KDA + Full Attention, reserve fixed recurrent/conv state pool first, then page remaining pool
-  const pagedPoolLow = Math.max(0, kvPoolLowBytes - totalFixedLinearStateBytes);
-  const pagedPoolPoint = Math.max(0, kvPoolPointBytes - totalFixedLinearStateBytes);
-  const pagedPoolHigh = Math.max(0, kvPoolHighBytes - totalFixedLinearStateBytes);
-
-  const rawBlocksLow = kvBytesPerBlock > 0 ? Math.floor(pagedPoolLow / kvBytesPerBlock) : 0;
-  const rawBlocksPoint = kvBytesPerBlock > 0 ? Math.floor(pagedPoolPoint / kvBytesPerBlock) : 0;
-  const rawBlocksHigh = kvBytesPerBlock > 0 ? Math.floor(pagedPoolHigh / kvBytesPerBlock) : 0;
-  const usableBlocksLow = kvBytesPerBlock > 0 ? Math.max(0, rawBlocksLow - 1) : 0;
-  const usableBlocksPoint = kvBytesPerBlock > 0 ? Math.max(0, rawBlocksPoint - 1) : 0;
-  const usableBlocksHigh = kvBytesPerBlock > 0 ? Math.max(0, rawBlocksHigh - 1) : 0;
-
-  const totalKvTokenSlotsLow = usableBlocksLow * effectiveBlockSize;
-  const totalKvTokenSlotsPoint = usableBlocksPoint * effectiveBlockSize;
-  const totalKvTokenSlotsHigh = usableBlocksHigh * effectiveBlockSize;
-  const blocksPerMaxSeq = kvBytesPerBlock > 0 ? Math.ceil(maxModelLen / effectiveBlockSize) : 0;
-  const maxConcLow =
-    blocksPerMaxSeq > 0
-      ? usableBlocksLow / blocksPerMaxSeq
-      : perSeqFixedLinearStateBytes > 0
-        ? kvPoolLowBytes / perSeqFixedLinearStateBytes
-        : 0;
-  const maxConcPoint =
-    blocksPerMaxSeq > 0
-      ? usableBlocksPoint / blocksPerMaxSeq
-      : perSeqFixedLinearStateBytes > 0
-        ? kvPoolPointBytes / perSeqFixedLinearStateBytes
-        : 0;
-  const maxConcHigh =
-    blocksPerMaxSeq > 0
-      ? usableBlocksHigh / blocksPerMaxSeq
-      : perSeqFixedLinearStateBytes > 0
-        ? kvPoolHighBytes / perSeqFixedLinearStateBytes
-        : 0;
-
-  const minSingleSeqBytes =
-    (blocksPerMaxSeq > 0 ? (blocksPerMaxSeq + 1) * kvBytesPerBlock : 0) + perSeqFixedLinearStateBytes;
-  let oomStatus: KvOomStatus = "fits";
-  if (w.lowBytes >= requestedBytes) {
-    oomStatus = "weights_exceed_budget";
-  } else if (w.pointBytes + act.pointBytes >= requestedBytes) {
-    oomStatus = "weights_plus_activation_exceed_budget";
-  } else if (rawKvPoint <= 0) {
-    oomStatus = "non_kv_exceeds_budget";
-  } else if (
-    (blocksPerMaxSeq > 0 && usableBlocksPoint < blocksPerMaxSeq) ||
-    kvPoolPointBytes < minSingleSeqBytes
-  ) {
-    oomStatus = "insufficient_for_single_max_len_seq";
-  } else if (
-    rawKvLow <= 0 ||
-    (blocksPerMaxSeq > 0 && usableBlocksLow < blocksPerMaxSeq) ||
-    kvPoolLowBytes < minSingleSeqBytes
-  ) {
-    oomStatus = "tight_budget_oom_risk";
-  }
+  // Whole-system full-length concurrency is capped by the tightest PP stage
+  const maxConcLow = Math.min(...allStageCaps.map((e) => e.cap.sMaxConcLow));
+  const maxConcPoint = Math.min(...allStageCaps.map((e) => e.cap.sMaxConcPoint));
+  const maxConcHigh = Math.min(...allStageCaps.map((e) => e.cap.sMaxConcHigh));
+  const concurrencyLimitingStage = allStageCaps.reduce((minEntry, cur) =>
+    cur.cap.sMaxConcPoint < minEntry.cap.sMaxConcPoint ? cur : minEntry,
+  );
+  const oomStatus: KvOomStatus = allStageCaps.reduce<KvOomStatus>(
+    (worst, cur) => (oomSeverityRank[cur.cap.sOom] > oomSeverityRank[worst] ? cur.cap.sOom : worst),
+    "fits",
+  );
 
   // Stage 7: Post-KV ACLGraph & 150 MiB safety redundancy paid from 1 - u headroom
   const acl = computeAclGraphRange({
@@ -2702,26 +3345,32 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   }
   if (hasKda) {
     stage6Notes.push(
-      `KDA 混合状态拆账：每卡 ${kvState.localLinearLayerCount} 层线性注意力分配固定递推态 S + 卷积态 = ${(perSeqFixedLinearStateBytes / MIB).toFixed(2)} MiB/seq（按 max_num_seqs=${maxNumSeqs} 预留 ${(totalFixedLinearStateBytes / GIB).toFixed(2)} GiB，与 max_model_len 无关）；仅 ${kvState.localFullAttnLayerCount} 层全注意力消耗按 token 分页 KV = ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok。`,
+      `KDA 混合状态拆账：每卡 ${kvState.localLinearLayerCount} 层线性注意力单状态块 ${(kvState.singleBlockFixedLinearStateBytes / MIB).toFixed(2)} MiB × ${kvState.linearStateBlocksPerSeq} 块/seq${numSpecTokens > 0 ? `（含 1 + num_spec_tokens=${numSpecTokens} 完整状态块）` : ""} = ${(perSeqFixedLinearStateBytes / MIB).toFixed(2)} MiB/seq（按 max_num_seqs=${maxNumSeqs} 预留 ${(totalFixedLinearStateBytes / GIB).toFixed(2)} GiB，与 max_model_len 无关）；仅 ${kvState.localFullAttnLayerCount} 层全注意力消耗按 token 分页 KV = ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok。`,
     );
   }
   if (!hasMla && !hasKda) {
     stage6Notes.push(
-      `每卡 ${localLayersPerRank} 层 × ${localKvHeadsPerRank} 本地 KV 头 × head_dim=${kvState.primaryFullAttn.headDim} × ${kvElemBytes} B = ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok；${effectiveBlockSize}-tok 块 = ${(kvBytesPerBlock / MIB).toFixed(3)} MiB。`,
+      dcpSize > 1
+        ? `每卡 2 × ${localLayersPerRank} 层 × ${localKvHeadsPerRank} 本地 KV 头 × head_dim=${kvState.primaryFullAttn.headDim} × ${kvElemBytes} B ÷ DCP(${dcpSize}) = ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/全局tok；单卡物理槽 ${(kvState.localMainKvBytesPerSlot / KIB).toFixed(1)} KiB × ${effectiveBlockSize} 槽 = ${(kvBytesPerBlock / MIB).toFixed(3)} MiB/块（跨 ${virtualBlockTokens} 全局tok）。`
+        : `每卡 2 × ${localLayersPerRank} 层 × ${localKvHeadsPerRank} 本地 KV 头 × head_dim=${kvState.primaryFullAttn.headDim} × ${kvElemBytes} B = ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok；${effectiveBlockSize}-tok 块 = ${(kvBytesPerBlock / MIB).toFixed(3)} MiB。`,
     );
   }
   stage6Notes.push(
     kvBytesPerBlock > 0
-      ? `可用块数区间 [${usableBlocksLow}, ${usableBlocksHigh}]（点估 ${usableBlocksPoint} 块，已扣 1 个 BlockPool null block），对应 ${maxModelLen} 上下文并发 [${maxConcLow.toFixed(2)}x, ${maxConcHigh.toFixed(2)}x]。`
-      : `纯线性注意力无按 token 分页 KV 块，固定递推状态池支持 O(1) 并发 [${maxConcLow.toFixed(1)}x, ${maxConcHigh.toFixed(1)}x]（与上下文长度无关）。`,
+      ? `可用块数区间 [${usableBlocksLow}, ${usableBlocksHigh}]（点估 ${usableBlocksPoint} 块，已扣 1 个 BlockPool null block），整机 ${maxModelLen} 上下文并发 [${maxConcLow.toFixed(2)}x, ${maxConcHigh.toFixed(2)}x]${allStageCaps.length > 1 && concurrencyLimitingStage.stage.stageIndex !== bottleneckPp.stage.stageIndex ? `（由 PP Stage ${concurrencyLimitingStage.stage.stageIndex} 封顶）` : ""}。`
+      : `当前最重段无按 token 分页 KV 块，整机满长并发受全 PP 阶段取最小约束 [${maxConcLow.toFixed(2)}x, ${maxConcHigh.toFixed(2)}x]${allStageCaps.length > 1 && concurrencyLimitingStage.stage.stageIndex !== bottleneckPp.stage.stageIndex ? `（由 PP Stage ${concurrencyLimitingStage.stage.stageIndex} 分页/状态上限封顶）` : "（与上下文长度无关）"}。`,
   );
   if (card.halvesKvForWorkspace) {
     stage6Notes.push("Atlas 300I DUO (310P) 源码 worker_310p.py 将剩余预算 // 2 留作算子工作区。");
   }
 
+  const blockBytesBreakdown =
+    dcpSize > 1
+      ? `全局 ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok × ${virtualBlockTokens} 全局tok/块 = 物理 ${(kvBytesPerBlock / effectiveBlockSize / KIB).toFixed(1)} KiB/槽 × ${effectiveBlockSize} 本地槽/块，扣 1 null block`
+      : `${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok × ${effectiveBlockSize} tok/块，扣 1 null block`;
   const stage6Formula =
     kvBytesPerBlock > 0
-      ? `[预算 − (第3+4+5级)]${card.halvesKvForWorkspace ? " ÷ 2 (310P)" : ""}${totalFixedLinearStateBytes > 0 ? ` − 线性固定态 ${(totalFixedLinearStateBytes / GIB).toFixed(2)} GiB` : ""} ÷ ${(kvBytesPerBlock / MIB).toFixed(3)} MiB/块（${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok × ${effectiveBlockSize} tok/块，扣 1 null block）`
+      ? `[预算 − (第3+4+5级)]${card.halvesKvForWorkspace ? " ÷ 2 (310P)" : ""}${totalFixedLinearStateBytes > 0 ? ` − 线性固定态 ${(totalFixedLinearStateBytes / GIB).toFixed(2)} GiB` : ""} ÷ ${(kvBytesPerBlock / MIB).toFixed(3)} MiB/块（${blockBytesBreakdown}）`
       : `[预算 − (第3+4+5级)] ÷ ${(perSeqFixedLinearStateBytes / MIB).toFixed(2)} MiB/seq（纯线性递推状态，0 B/tok 分页 KV）`;
 
   const stages: DeployPlanReport["stages"] = [
@@ -2850,6 +3499,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     kvState,
     tpSize,
     dpSize,
+    pcpSize,
     dcpSize,
     epWorldSize,
     enableEp,
@@ -2871,9 +3521,13 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     tpSize,
     ppSize,
     dpSize,
+    pcpSize,
     dcpSize,
     epWorldSize,
     enableEp,
+    engramCpuOffload,
+    engramDpSharedMemoryDerived,
+    useV2ModelRunner,
     gpuMemoryUtilization,
     cudagraphMode,
     enforceEager,
@@ -2896,6 +3550,9 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     card,
     version,
     weightPrecision: card.family === "310P" && weightPrecision === "bf16" ? "fp16" : weightPrecision,
+    kvCacheDtype,
+    requestedBlockSize,
+    userSpecifiedBlockSize,
     weightNzMode,
     kvElemBytes,
     effectiveBlockSize,
@@ -2903,8 +3560,168 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     maxModelLen,
     maxNumBatchedTokens,
     maxNumSeqs,
+    numSpecTokens,
+    engramCpuOffload,
+    useV2ModelRunner: Boolean(input.useV2ModelRunner),
+    cudagraphMode,
+    enforceEager,
+    headroomStatus,
+    hasMla,
+    hasCsa2,
+    hasKda,
     isMoe: moe.isMoe,
+    ...(oomStatus === "fits" && q1.blockers.length === 0
+      ? {
+          currentFeasibleTopology: {
+            tpSize,
+            ppSize,
+            dpSize,
+            pcpSize,
+            dcpSize,
+            enableEp,
+            worldSize,
+          },
+        }
+      : {}),
   });
+
+  const canUseRecommendedUtil = (candUtil: number, candPrec: WeightPrecision): boolean => {
+    if (minCards.unsolvable || minCards.recommendedTp === null || minCards.recommendedPp === null)
+      return false;
+    const recTp = minCards.recommendedTp;
+    const recPp = minCards.recommendedPp;
+    const recDp = minCards.recommendedDp ?? 1;
+    const recPcp = minCards.recommendedPcp ?? 1;
+    const recDcp = minCards.recommendedDcp ?? 1;
+    const recEnableEp = minCards.recommendedEnableEp;
+    const recEpWorld = recEnableEp ? recDp * recTp * recPcp : 1;
+    const recWorld = recTp * recPp * recDp * recPcp;
+    const candRequested = Math.floor(totalHbmBytes * candUtil);
+    const candHeadroom = totalHbmBytes - candRequested;
+    const candHeadroomStatus: HeadroomStatus =
+      stage7Low > candHeadroom ? "overflow" : stage7High > candHeadroom ? "risk" : "safe";
+    const candUseV2 = useV2ModelRunner;
+    const candEngramDerived = Boolean(
+      spec.engram?.enabled &&
+        engramCpuOffload &&
+        !spec.engram.dpSharedMemory &&
+        candUseV2 &&
+        (recDp > 1 || recPcp > 1),
+    );
+    const candEngramShared = spec.engram?.enabled ? spec.engram.dpSharedMemory || candEngramDerived : false;
+    const candQ1 = collectQ1Findings({
+      spec,
+      card,
+      version,
+      weightPrecision: candPrec,
+      kvCacheDtype,
+      requestedBlockSize,
+      effectiveBlockSize,
+      userSpecifiedBlockSize,
+      weightNzMode,
+      tpSize: recTp,
+      ppSize: recPp,
+      dpSize: recDp,
+      pcpSize: recPcp,
+      dcpSize: recDcp,
+      epWorldSize: recEpWorld,
+      enableEp: recEnableEp,
+      engramCpuOffload,
+      engramDpSharedMemoryDerived: candEngramDerived,
+      useV2ModelRunner: candUseV2,
+      gpuMemoryUtilization: candUtil,
+      cudagraphMode,
+      enforceEager,
+      oomStatus: "fits",
+      headroomStatus: candHeadroomStatus,
+      hasMla,
+      hasCsa2,
+      hasKda,
+    });
+    if (candQ1.blockers.length > 0) return false;
+    const recStages = selectBottleneckPpStage({
+      spec,
+      card,
+      version,
+      weightPrecision: candPrec,
+      weightNzMode,
+      tpSize: recTp,
+      ppSize: recPp,
+      dpSize: recDp,
+      pcpSize: recPcp,
+      dcpSize: recDcp,
+      epWorldSize: recEpWorld,
+      enableEp: recEnableEp,
+      engramCpuOffload,
+      engramDpSharedMemory: candEngramShared,
+      kvElemBytes,
+      effectiveBlockSize,
+      maxModelLen,
+      maxNumSeqs,
+      numSpecTokens,
+    });
+    const recAct = computeProfileRunTorchPeak({
+      spec,
+      card,
+      version,
+      weightPrecision: candPrec,
+      tpSize: recTp,
+      ppSize: recPp,
+      dpSize: recDp,
+      pcpSize: recPcp,
+      enableEp: recEnableEp,
+      maxNumBatchedTokens,
+      maxNumSeqs,
+    });
+    const recHccl = estimateHcclDomainMemory(
+      {
+        hardwareFamily: card.family,
+        tpSize: recTp,
+        ppSize: recPp,
+        dpSize: recDp,
+        pcpSize: recPcp,
+        dcpSize: recDcp,
+        isMoe: moe.isMoe,
+        enableExpertParallel: recEnableEp,
+        ...(spec.engram?.enabled
+          ? {
+              engramEnabled: true,
+              engramDpSharedMemory: candEngramShared,
+              etpSize: recStages.w.engramEtpSize,
+            }
+          : {}),
+      },
+      version,
+    );
+    const recNonTorch = computeNonTorchIncrease({
+      card,
+      hccl: recHccl,
+      isMoe: moe.isMoe,
+      enableEp: recEnableEp,
+      worldSize: recWorld,
+    });
+    const recVirtTokens = effectiveBlockSize * recDcp;
+    return recStages.allStages.every(({ w: sw, kvState: sk }) => {
+      if (sw.lowBytes >= candRequested || sw.pointBytes + recAct.pointBytes >= candRequested) return false;
+      const rawLow = candRequested - (sw.highBytes + recAct.highBytes + recNonTorch.highBytes);
+      const rawPt = candRequested - (sw.pointBytes + recAct.pointBytes + recNonTorch.pointBytes);
+      if (rawLow <= 0 || rawPt <= 0) return false;
+      const poolLow = scaleKv(rawLow);
+      const poolPt = scaleKv(rawPt);
+      const bBytes = Math.round(
+        sk.localMainKvBytesPerSlot * effectiveBlockSize + sk.perTokenIndexerKvBytes * recVirtTokens,
+      );
+      const bMax = bBytes > 0 ? Math.ceil(maxModelLen / recVirtTokens) : 0;
+      const minOne =
+        (bMax > 0 ? (bMax + 1) * bBytes : 0) +
+        Math.max(sk.totalFixedLinearStateBytes, sk.perSeqFixedLinearStateBytes);
+      if (poolLow < minOne || poolPt < minOne) return false;
+      if (bMax > 0) {
+        return Math.max(0, Math.floor((poolLow - sk.totalFixedLinearStateBytes) / bBytes) - 1) >= bMax;
+      }
+      return true;
+    });
+  };
 
   const primaryBottleneck: "memory-bound" | "compute-bound" | "kv-bandwidth-bound" =
     roofline.decodeKvTrafficBytesPerStep > roofline.activeWeightBytesPerRank
@@ -2927,8 +3744,11 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     tpSize,
     ppSize,
     dpSize,
+    pcpSize,
     dcpSize,
     worldSize,
+    gpuMemoryUtilization,
+    canUseRecommendedUtil,
     enforceEager,
     cudagraphMode,
   });
@@ -2968,7 +3788,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
           indexTopk: topk,
           indexHeadDim: a.indexHeadDim ?? 128,
           indexNumHeads: a.indexNumHeads ?? 64,
-          indexerKvElemBytes: a.indexerKvElemBytes ?? 1,
+          indexerKvElemBytes: a.indexerKvElemBytes ?? (a.indexerQuantEnabled ? 1 : 2),
           indexerBytesPerTokenPerLayer: kvState.indexerBytesPerTokenPerLayer,
           effectiveDecodeContextLen: roofline.effectiveDecodeContextLen,
           decodeBandwidthSavingsRatio: savingsRatio,
@@ -2995,7 +3815,8 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
         vocabSize: spec.engram.vocabSize,
         hiddenSize: spec.engram.hiddenSize,
         layerCount: spec.engram.layerIds.length,
-        dpSharedMemory: spec.engram.dpSharedMemory,
+        cpuOffload: engramCpuOffload,
+        dpSharedMemory: effectiveEngramDpSharedMemory,
         etpSize: w.engramEtpSize,
         npuWeightBytesPerRank: w.engramNpuWeightBytesPerRank,
         hostDramBytesPerNode: w.engramHostDramBytesPerNode,
@@ -3014,12 +3835,16 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     ...(engramSummary ? { engram: engramSummary } : {}),
   };
 
+  const minPhysicalCardsRecommended =
+    minCards.minCards !== null ? Math.ceil(minCards.minCards / card.diesPerPhysicalCard) : null;
   const q2Summary =
     oomStatus === "fits"
       ? hasKda
         ? `单卡可用池 [${(kvPoolLowBytes / GIB).toFixed(2)}, ${(kvPoolHighBytes / GIB).toFixed(2)}] GiB：KDA 固定状态 ${(perSeqFixedLinearStateBytes / MIB).toFixed(2)} MiB/seq（预留 ${(totalFixedLinearStateBytes / GIB).toFixed(2)} GiB）+ 全注意分页 KV ${(kvBytesPerTokenPerRank / KIB).toFixed(1)} KiB/tok，约 [${usableBlocksLow}, ${usableBlocksHigh}] 可用块，${maxModelLen} 上下文并发 [${maxConcLow.toFixed(1)}x, ${maxConcHigh.toFixed(1)}x]。`
         : `单卡可用 KV 池 [${(kvPoolLowBytes / GIB).toFixed(2)}, ${(kvPoolHighBytes / GIB).toFixed(2)}] GiB（点估 ${(kvPoolPointBytes / GIB).toFixed(2)} GiB），约 [${usableBlocksLow}, ${usableBlocksHigh}] 可用块，${maxModelLen} 上下文并发 [${maxConcLow.toFixed(1)}x, ${maxConcHigh.toFixed(1)}x]。`
-      : `当前拓扑（${worldSize} 逻辑卡）容量状态：${oomStatus}；建议至少 ${minCards.minCards} 逻辑设备（${Math.ceil(minCards.minCards / card.diesPerPhysicalCard)} 物理卡）。`;
+      : minCards.unsolvable || minCards.minCards === null
+        ? `当前拓扑（${worldSize} 逻辑卡）容量状态：${oomStatus}；在 ${card.shortName} 上即使扩展至 64 逻辑设备仍无解（请降低 max_num_seqs / max_model_len 或改换卡型/量化）。`
+        : `当前拓扑（${worldSize} 逻辑卡）容量状态：${oomStatus}；建议至少 ${minCards.minCards} 逻辑设备（${minPhysicalCardsRecommended} 物理卡）。`;
 
   const fourQuestions: FourQuestionsReport = {
     q1Fit: {
@@ -3035,8 +3860,10 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
             : `${spec.name} 与 ${card.shortName}（${w.effectiveWeightPrecision} / KV ${kvCacheDtype}）兼容通过，无阻塞项。`,
     },
     q2Capacity: {
+      feasible: minCards.feasible,
+      unsolvable: minCards.unsolvable,
       minCardsRecommended: minCards.minCards,
-      minPhysicalCardsRecommended: Math.ceil(minCards.minCards / card.diesPerPhysicalCard),
+      minPhysicalCardsRecommended,
       currentTotalCards: worldSize,
       currentPhysicalCards: Math.ceil(worldSize / card.diesPerPhysicalCard),
       oomStatus,
@@ -3091,6 +3918,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       epWorldSize,
       localKvHeadsPerRank,
       localLayersPerRank,
+      numSpecTokens,
       gpuMemoryUtilization,
       maxModelLen,
       maxNumBatchedTokens,

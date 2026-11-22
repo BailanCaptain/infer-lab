@@ -1,7 +1,7 @@
 import { domain1Rules, evaluateDomain1Rules } from "./domain1Parallelism";
 import { domain2Rules, evaluateDomain2Rules, resolveDefaultBatchTokens } from "./domain2BatchTokens";
 import { domain3Rules, evaluateDomain3Rules } from "./domain3Quantization";
-import { domain4Rules, evaluateDomain4Rules } from "./domain4CpPd";
+import { domain4Rules, evaluateCpTopologyRules, evaluateDomain4Rules } from "./domain4CpPd";
 import {
   classifyEnvVar,
   DEPRECATED_FALLBACK_ENV_SPECS,
@@ -113,6 +113,7 @@ export {
   domain4Rules,
   domain5Rules,
   estimateHcclDomainMemory,
+  evaluateCpTopologyRules,
   evaluateDomain1Rules,
   evaluateDomain2Rules,
   evaluateDomain3Rules,

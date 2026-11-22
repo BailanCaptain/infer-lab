@@ -263,6 +263,75 @@ describe("P/D Dual-Instance Joint Mode (runPdConfigDoctor)", () => {
     expect(report.prefill.errors.some((f) => f.id === "d4-mooncake-gqa-c8-forbidden")).toBe(true);
     expect(report.prefill.errors.some((f) => f.id === "d4-sparse-kv-offload-constraints")).toBe(true);
   });
+
+  it("P1 regression: blocks P/D and single commands when kv_connector is set without mandatory kv_role", () => {
+    const pMissingRole = `vllm serve /models/Qwen3-8B --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1"}'`;
+    const dMissingRole = `vllm serve /models/Qwen3-8B --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1"}'`;
+
+    const pdReport = runPdConfigDoctor(pMissingRole, dMissingRole, {
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+    });
+    expect(pdReport.hasBlockers).toBe(true);
+    expect(pdReport.errors.length).toBeGreaterThan(0);
+    expect(pdReport.prefill.hasBlockers).toBe(true);
+    expect(pdReport.decode.hasBlockers).toBe(true);
+    expect(
+      pdReport.errors.some(
+        (f) => (f.remediation ?? "").includes("kv_producer") && (f.remediation ?? "").includes("kv_consumer"),
+      ),
+    ).toBe(true);
+
+    const singleReport = runSingleConfigDoctor(pMissingRole, {
+      mode: "full",
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+    });
+    expect(singleReport.hasBlockers).toBe(true);
+    expect(singleReport.errors.some((f) => f.id === "d4-kv-connector-missing-kv-role")).toBe(true);
+  });
+
+  it("P2-3 regression: raw kv_transfer_config missing kv_role cannot be masked by override, enforces case-sensitive kv_role literal, and cites L130-L140", () => {
+    const expectedSource = "vllm@ced6857a:vllm/config/kv_transfer.py#L130-L140";
+    const pMissingRole = `vllm serve /models/Qwen3-8B --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1"}'`;
+    const dValid = `vllm serve /models/Qwen3-8B --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_consumer"}'`;
+
+    // 1. prefillTraitOverride.kvRole must NOT mask missing kv_role in raw --kv-transfer-config JSON
+    const pdMaskedAttempt = runPdConfigDoctor(pMissingRole, dValid, {
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+      prefillTraitOverride: { kvRole: "kv_producer" },
+    });
+    expect(pdMaskedAttempt.hasBlockers).toBe(true);
+    expect(pdMaskedAttempt.prefill.hasBlockers).toBe(true);
+    const missingCross = pdMaskedAttempt.crossInstanceFindings.find((f) => f.id === "pd-missing-kv-role");
+    expect(missingCross?.judgment).toBe("error");
+    expect(missingCross?.sources).toContain(expectedSource);
+    const missingSingle = pdMaskedAttempt.prefill.errors.find(
+      (f) => f.id === "d4-kv-connector-missing-kv-role",
+    );
+    expect(missingSingle?.sources).toContain(expectedSource);
+
+    // 2. Uppercase "KV_PRODUCER" must be rejected (upstream Literal is strictly case-sensitive)
+    const pUpperRole = `vllm serve /models/Qwen3-8B --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"KV_PRODUCER"}'`;
+    const singleUpper = runSingleConfigDoctor(pUpperRole, {
+      mode: "full",
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+    });
+    expect(singleUpper.hasBlockers).toBe(true);
+    const upperErr = singleUpper.errors.find((f) => f.id === "d4-kv-role-invalid-literal");
+    expect(upperErr).toBeDefined();
+    expect(upperErr?.sources).toContain(expectedSource);
+
+    const pdUpper = runPdConfigDoctor(pUpperRole, dValid, {
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+    });
+    expect(pdUpper.hasBlockers).toBe(true);
+    expect(pdUpper.prefill.hasBlockers).toBe(true);
+    expect(pdUpper.prefill.errors.some((f) => f.id === "d4-kv-role-invalid-literal")).toBe(true);
+  });
 });
 
 describe("Curated Doctor Presets (minimal & full)", () => {

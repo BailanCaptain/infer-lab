@@ -48,24 +48,24 @@ export function hardwareDiagram(host,{level,model,spec,selected},onPick){
   }else if(model==='dgx-b200'){
    add('die:b200','双光罩计算晶粒 ×2',150,28,'gold','10 TB/s NV-HBI 桥接为单一逻辑 GPU','matrix',248,42);
    add('die:hbm3e','CoWoS-L + HBM3e ×8',150,96,'violet','单卡 180 GB HBM3e · 8 TB/s','matrix',242,42);
-   add('die:nvl5','NVLink 5 高速引出',150,164,'sage','1.8 TB/s 双向 → 2×NVLink 5 NVSwitch','matrix',246,40);
+   add('die:nvl5','NVLink 5 高速引出',150,164,'sage','1.8 TB/s → 2 × NVSwitch (NVLink 5)','matrix',248,40);
    add('level:3','返回模组整体观察',150,228,'paper','','operator',184,34);
    edges=[['die:hbm3e','die:b200'],['die:b200','die:nvl5'],['die:nvl5','level:3']];
    note='依据 Blackwell 架构白皮书展示双光罩晶粒、中央 NV-HBI 桥接缝与两侧 8 颗 HBM3e 堆栈。';
   }else if(model==='gb200-nvl72'){
    add('die:c2c','Grace CPU ⇄ NVLink-C2C',150,28,'sage','900 GB/s 芯片间一致性直连 LPDDR5X','matrix',248,40);
-   add('die:b200dlc','B200 双光罩晶粒 + 8×HBM3e',150,96,'gold','微通道冷板直冷 · 8 TB/s HBM3e','matrix',248,42);
+   add('die:b200dlc','B200 双光罩晶粒 + 8×HBM3e',150,96,'gold','Grace+B200 冷板直冷（外围风冷）','matrix',248,42);
    add('die:blind','背部 NVLink 5 盲插背板',150,164,'violet','72 卡全互连超节点域（130 TB/s）','matrix',244,40);
    add('level:3','返回液冷模组层',150,228,'paper','','operator',182,34);
    edges=[['die:c2c','die:b200dlc'],['die:b200dlc','die:blind'],['die:blind','level:3']];
-   note='单台 1U 托盘含 2×Grace + 4×B200，整柜 18 台计算托盘经中置 9 台交换托盘组成 NVL72。';
+   note='单台 1U 托盘含 2×Grace + 4×B200（冷板直冷，外围网卡/存储辅以风冷），整柜 18 台计算托盘经中置 9 台交换托盘组成 NVL72。';
   }else if(model==='h100-nvl-pcie'){
-   add('die:nvlbr','顶部 3 槽 NVLink 4 桥接器',150,28,'gold','双卡 600 GB/s 双向 · 188 GB 显存池','matrix',248,40);
+   add('die:nvlbr','顶部 3 槽 NVLink 4 桥接器',150,28,'gold','600 GB/s · 每对 2×94 GB（共 188 GB，按单卡与并行策略预算）','matrix',248,40);
    add('die:hbm6','GH100 + 全启用 HBM3 ×6',150,96,'violet','单卡 94 GB HBM3 · 3.9 TB/s','matrix',242,42);
-   add('die:pcie5','PCIe 5.0 ×16 + 12VHPWR',150,164,'sage','双槽全高全长被动导流 · 350–400 W','operator',246,40);
+   add('die:pcie5','PCIe 5.0 ×16 + 16-pin 供电',150,164,'sage','16-pin 12V-2x6 / 12VHPWR · 350–400 W','operator',246,40);
    add('level:2','返回整机 Riser 仓',150,228,'paper','','operator',176,34);
    edges=[['die:nvlbr','die:hbm6'],['die:hbm6','die:pcie5'],['die:pcie5','level:2']];
-   note='H100 NVL 启用全部 6 颗 HBM3 提供 94 GB，成对桥接兼顾标准 PCIe 机架兼容性与大模型容量。';
+   note='H100 NVL 单卡启用全部 6 颗 HBM3 达 94 GB；成对桥接为每对 2×94 GB（共 188 GB，按单卡与并行策略预算，非单一统一 GPU HBM 地址空间）。';
   }else{
    add('die:soc','昇腾计算晶粒 (SoC)',150,32,'gold','AIC (Cube) + AIV (Vector) + L2','matrix',238,42);
    add('die:hbm4','HBM 高带宽显存 ×4',150,100,'violet','单模组 64 GB · 存放权重与 KV','matrix',236,42);

@@ -24,7 +24,9 @@ export interface AttentionSpec {
   sparseTopK?: number;
   indexHeadDim?: number;
   indexNumHeads?: number;
+  indexerKvDtype?: string;
   indexerKvElemBytes?: number;
+  indexerQuantEnabled?: boolean;
   /** KDA / 线性注意力递推状态专用（Wave 4 解锁） */
   linearNumKeyHeads?: number;
   linearNumValueHeads?: number;
@@ -40,6 +42,7 @@ export interface EngramSpec {
   vocabSize: number;
   hiddenSize: number;
   layerIds: number[];
+  cpuOffload?: boolean;
   dpSharedMemory: boolean;
   etpSize?: number;
   dtypeBytes: number;

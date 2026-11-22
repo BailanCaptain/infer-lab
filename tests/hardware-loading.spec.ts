@@ -101,8 +101,23 @@ test("NVIDIA 四机型谱系按需加载并支持五层封装晶粒透视与平�
   await expect(hardware.locator("#title")).toHaveText("NVIDIA DGX B200");
   await expect(hardware.locator('#wikilinks a[href="/#/wiki/tensor-parallel"]')).toBeVisible();
   await hardware.locator('[data-level="1"]').click();
-  await expect(hardware.locator("#facts")).toContainText("2 × NVLink 5 NVSwitch");
+  await expect(hardware.locator("#facts")).toContainText("2 × NVSwitch (NVLink 5)");
   expect(models).toContain("dgx-b200.glb");
+
+  // Flip NVIDIA -> Ascend -> NVIDIA and assert dgx-b200 platform memory is preserved without re-fetching
+  const glbRequestsBeforeFlip = models.length;
+  await hardware.getByRole("button", { name: "华为 ASCEND", exact: true }).click();
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-platform", "ascend");
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "atlas-800t-a2");
+  expect(models).toContain("atlas-800t-a2.glb");
+
+  await hardware.getByRole("button", { name: "NVIDIA", exact: true }).click();
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-platform", "nvidia");
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "dgx-b200");
+  await expect(hardware.locator("#title")).toHaveText("NVIDIA DGX B200");
+  expect(models.length).toBe(glbRequestsBeforeFlip + 1); // only atlas-800t-a2.glb loaded once; dgx-b200 reused from cache
 
   await hardware.locator('[data-model-key="gb200-nvl72"]').click();
   await expect(hardware.locator("#loading")).toBeHidden();
@@ -113,17 +128,22 @@ test("NVIDIA 四机型谱系按需加载并支持五层封装晶粒透视与平�
   await expect(hardware.locator("#facts")).toContainText("CPU/GPU 液冷 · 网卡/存储风冷");
   await expect(hardware.locator("#components")).toContainText("1U 外围辅助风冷风扇排");
   await hardware.locator("#spread").fill("1");
-  await page.screenshot({
-    path: "tools/wiki-runtime/perf-and-visual-audit-20261122/spread100-gb200-nvl72.png",
-  });
   expect(models).toContain("gb200-nvl72.glb");
 
   await hardware.locator('[data-model-key="h100-nvl-pcie"]').click();
   await expect(hardware.locator("#loading")).toBeHidden();
   await expect(hardware.locator("body")).toHaveAttribute("data-model", "h100-nvl-pcie");
   await expect(hardware.locator("#status")).toContainText("H100 NVL PCIe");
+  await expect(hardware.locator("#facts")).toContainText("每对 2×94 GB");
+  await expect(hardware.locator("#facts")).toContainText("16-pin 12V-2x6 / 12VHPWR");
   await expect(hardware.locator('#wikilinks a[href="/#/wiki/pipeline-parallel"]')).toBeVisible();
   expect(models).toContain("h100-nvl-pcie.glb");
+
+  // Verify all Wiki chip hrefs on the active NVIDIA model use canonical /#/wiki/<slug> format
+  const wikiHrefs = await hardware
+    .locator("#wikilinks a")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
+  expect(wikiHrefs).toEqual(["/#/wiki/hardware-devices", "/#/wiki/pipeline-parallel"]);
 
   // Enter Level 4 (封装晶粒) on H100 NVL PCIe and verify 4 callout tags + real Wiki jump
   await hardware.locator('[data-level="4"]').click();

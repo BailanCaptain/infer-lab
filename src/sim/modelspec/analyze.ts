@@ -259,9 +259,10 @@ export function analyzeParams(spec: ModelSpec): ParamBreakdown {
   let engramTotal = 0;
   if (spec.engram?.enabled) {
     engramTotal = spec.engram.layerIds.length * spec.engram.vocabSize * spec.engram.hiddenSize;
+    const isOffloaded = spec.engram.cpuOffload ?? true;
     items.push({
       id: "engram_tables",
-      label: `engram_tables（${spec.engram.layerIds.length} 层，${spec.engram.dpSharedMemory ? "Host DRAM 卸载" : "NPU HBM 常驻"}）`,
+      label: `engram_tables（${spec.engram.layerIds.length} 层，${isOffloaded ? "Host DRAM 卸载" : "NPU HBM 常驻"}）`,
       formula: `${spec.engram.layerIds.length} × V_engram × H_engram`,
       count: engramTotal,
       active: false,
@@ -281,13 +282,29 @@ export function analyzeParams(spec: ModelSpec): ParamBreakdown {
   return { total, active, nonEmbedding: layerTotal + engramTotal + spec.hidden, items, perLayer };
 }
 
-/** 稀疏索引器单层每 token 字节（DeepseekV32IndexerCache: head_dim * elemBytes + scale） */
+/**
+ * 稀疏索引器单层每 token 字节（对齐 vllm_ascend@c09d3e20:vllm_ascend/worker/v2/attn_utils.py#L215-L224, #L322）：
+ * - 未开启 LI 量化（默认 BF16/FP16，2 B/elem）：index_head_dim × elemBytes（128 × 2 = 256 B）
+ * - C8 量化固定 scale_dim = 1（每 token 仅 1 个 scale，与 index_head_dim 无关）：
+ *   - INT8：index_head_dim × 1 B + 2 B (FP16 scale) -> 128 维 130 B、256 维 258 B
+ *   - FP8：index_head_dim × 1 B + 4 B (FP32 scale) -> 128 维 132 B、256 维 260 B
+ */
 export function indexerBytesPerTokenLayer(a: AttentionSpec): number {
   if (a.kind !== "dsa") return 0;
   const idxDim = a.indexHeadDim ?? 128;
-  const idxElem = a.indexerKvElemBytes ?? 1;
-  const scaleBytes = idxElem <= 1 ? Math.max(1, Math.floor(idxDim / 128)) * 4 : 0;
-  return idxDim * idxElem + scaleBytes;
+  const isFp8 = typeof a.indexerKvDtype === "string" && /(?:fp8|float8|e4m3)/i.test(a.indexerKvDtype);
+  const isInt8 = typeof a.indexerKvDtype === "string" && /(?:int8|uint8|c8)/i.test(a.indexerKvDtype);
+  const isQuant =
+    Boolean(a.indexerQuantEnabled) ||
+    isFp8 ||
+    isInt8 ||
+    (a.indexerKvElemBytes !== undefined && a.indexerKvElemBytes <= 1);
+  if (isQuant) {
+    const scaleBytes = isFp8 ? 4 : 2;
+    return idxDim + scaleBytes;
+  }
+  const idxElem = a.indexerKvElemBytes ?? 2;
+  return idxDim * idxElem;
 }
 
 /** 单层每 token 的分页 KV 字节：
@@ -311,17 +328,28 @@ export function kvBytesPerTokenLayer(a: AttentionSpec, kvDtypeBytes: number): nu
   return 2 * a.numKvHeads * a.headDim * kvDtypeBytes;
 }
 
-/** KDA / 线性注意力单层每条并发序列固定状态字节（S 递推矩阵 + short conv，与上下文长度无关） */
+/**
+ * KDA / 线性注意力单层每条并发序列固定状态字节（S 递推矩阵 + short conv，与上下文长度无关）。
+ * 对齐上游 vllm@ced6857a:vllm/model_executor/layers/mamba/mamba_utils.py#L318 与 abstract.py：
+ * 开启投机解码（numSpecTokens > 0）时，单状态块短卷积窗口扩为 convKernel - 1 + numSpecTokens，
+ * 且每请求预留 1 + numSpecTokens 个完整状态块。
+ */
 export function linearStateBytesPerSeqLayer(
   a: AttentionSpec,
   tpSize = 1,
+  numSpecTokens = 0,
 ): {
   recurrentBytes: number;
   convBytes: number;
+  singleBlockBytes: number;
+  stateBlocksPerSeq: number;
   totalBytes: number;
 } {
-  if (a.kind !== "linear_kda") return { recurrentBytes: 0, convBytes: 0, totalBytes: 0 };
+  if (a.kind !== "linear_kda") {
+    return { recurrentBytes: 0, convBytes: 0, singleBlockBytes: 0, stateBlocksPerSeq: 0, totalBytes: 0 };
+  }
   const safeTp = Math.max(1, tpSize);
+  const safeSpecTokens = Math.max(0, Math.round(numSpecTokens));
   const localVHeads = Math.max(1, Math.ceil((a.linearNumValueHeads ?? a.numHeads) / safeTp));
   const localKHeads = Math.max(1, Math.ceil((a.linearNumKeyHeads ?? a.numHeads) / safeTp));
   const dK = a.linearKeyHeadDim ?? a.headDim;
@@ -331,8 +359,16 @@ export function linearStateBytesPerSeqLayer(
   const convElemBytes = a.linearConvDtypeBytes ?? 2;
   const recurrentBytes = localVHeads * dK * dV * stateElemBytes;
   const convDim = localVHeads * dV + 2 * localKHeads * dK;
-  const convBytes = convDim * (convK - 1) * convElemBytes;
-  return { recurrentBytes, convBytes, totalBytes: recurrentBytes + convBytes };
+  const convBytes = convDim * (convK - 1 + safeSpecTokens) * convElemBytes;
+  const singleBlockBytes = recurrentBytes + convBytes;
+  const stateBlocksPerSeq = 1 + safeSpecTokens;
+  return {
+    recurrentBytes,
+    convBytes,
+    singleBlockBytes,
+    stateBlocksPerSeq,
+    totalBytes: singleBlockBytes * stateBlocksPerSeq,
+  };
 }
 
 export interface KvBreakdown {
@@ -349,7 +385,11 @@ export interface KvBreakdown {
 /**
  * KV Cache 每 token 字节（Wave 4 支持 MHA/GQA/MQA + MLA + DSA/CSA2 + KDA 混合栈）。
  */
-export function analyzeKvPerToken(spec: ModelSpec, kvDtypeBytes = spec.bytesPerParam): KvBreakdown {
+export function analyzeKvPerToken(
+  spec: ModelSpec,
+  kvDtypeBytes = spec.bytesPerParam,
+  numSpecTokens = 0,
+): KvBreakdown {
   const perLayer: KvBreakdown["perLayer"] = [];
   const notes: string[] = [];
   let sum = 0;
@@ -393,7 +433,7 @@ export function analyzeKvPerToken(spec: ModelSpec, kvDtypeBytes = spec.bytesPerP
       });
     } else if (a.kind === "linear_kda") {
       linearCount += 1;
-      const st = linearStateBytesPerSeqLayer(a, 1);
+      const st = linearStateBytesPerSeqLayer(a, 1, numSpecTokens);
       fixedStatePerSeq += st.totalBytes;
       perLayer.push({
         index: l.index,

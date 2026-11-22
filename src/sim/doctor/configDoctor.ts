@@ -10,6 +10,7 @@ import {
   evaluateCouplingRules,
   getCouplingRuleById,
   type HcclMemoryEstimate,
+  type KvRole,
   type MoeCommSelectionResult,
   type MutationValue,
   type RuleDomain,
@@ -251,6 +252,8 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   "d4-dsa-cp-pcp-mutex": [{ pageId: "context-parallel" }],
   "d4-dsa-cp-mrv2-v030": [{ pageId: "context-parallel" }],
   "d4-pcp-dcp-sizing": [{ pageId: "context-parallel" }, { pageId: "gqa" }],
+  "d4-kv-connector-missing-kv-role": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
+  "d4-kv-role-invalid-literal": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "d4-mooncake-decode-pp-eq-1": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "d4-mooncake-decode-pcp-eq-1": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "d4-mooncake-pp-pcp-mutex": [{ pageId: "mooncake-connector" }, { pageId: "context-parallel" }],
@@ -317,6 +320,7 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
 
   // Cross-instance P/D consistency diagnostics
   "pd-missing-kv-transfer-config": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
+  "pd-missing-kv-role": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "pd-role-mismatch": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "pd-connector-mismatch": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
   "pd-block-size-mismatch": [{ pageId: "mooncake-connector" }, { pageId: "paged-attention" }],
@@ -656,16 +660,55 @@ function collectRelatedWikiIds(findings: readonly DoctorFinding[]): string[] {
   return [...seen];
 }
 
+const STRICT_VALID_KV_ROLES: ReadonlySet<string> = new Set(["kv_producer", "kv_consumer", "kv_both"]);
+
+const KV_TRANSFER_ROLE_SOURCE = `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/kv_transfer.py#L130-L140`;
+
+interface RawKvTransferRoleAudit {
+  connector?: string | undefined;
+  missingRole: boolean;
+  invalidRoleValue?: unknown;
+  strictRole?: KvRole | undefined;
+}
+
+function auditRawKvTransferRole(
+  kvTransferConfig: Readonly<Record<string, unknown>> | null,
+): RawKvTransferRoleAudit {
+  if (!kvTransferConfig) {
+    return { missingRole: false };
+  }
+  const rawConn = kvTransferConfig.kv_connector;
+  const connector = typeof rawConn === "string" && rawConn.trim().length > 0 ? rawConn.trim() : undefined;
+  const hasRawRole =
+    Object.hasOwn(kvTransferConfig, "kv_role") &&
+    kvTransferConfig.kv_role !== undefined &&
+    kvTransferConfig.kv_role !== null;
+  if (!hasRawRole) {
+    return { connector, missingRole: connector !== undefined };
+  }
+  const rawRole = kvTransferConfig.kv_role;
+  if (typeof rawRole === "string" && STRICT_VALID_KV_ROLES.has(rawRole)) {
+    return { connector, missingRole: false, strictRole: rawRole as KvRole };
+  }
+  return { connector, missingRole: false, invalidRoleValue: rawRole };
+}
+
 export function runSingleConfigDoctor(
   commandText: string,
   opts: SingleDoctorOptions,
 ): SingleConfigDoctorReport {
   const version = opts.version ?? DEFAULT_RULE_VERSION;
   const parsed = parseVllmServeCommand(commandText);
+  const rawKvAudit = auditRawKvTransferRole(parsed.kvTransferConfig);
+
+  // Preserve strict case-sensitive kv_role literal from raw JSON before merging overrides
+  const { kvRole: parsedKvRole, ...restParsedInput } = parsed.couplingInput;
+  const safeParsedKvRole = parsed.kvTransferConfig !== null ? rawKvAudit.strictRole : parsedKvRole;
 
   // Merge parsed input + hardwareFamily + crossNodeRoce + explicit modelTraitOverride
   const effectiveInput: CouplingCheckInput = {
-    ...parsed.couplingInput,
+    ...restParsedInput,
+    ...(safeParsedKvRole !== undefined ? { kvRole: safeParsedKvRole } : {}),
     hardwareFamily: opts.hardwareFamily,
     ...(opts.crossNodeRoce !== undefined ? { crossNodeRoce: opts.crossNodeRoce } : {}),
     ...(opts.modelTraitOverride ?? {}),
@@ -724,7 +767,48 @@ export function runSingleConfigDoctor(
     // Full mode: evaluate all 5 rule domains + MoE comm strategy + HCCL domain memory
     const fullEval = evaluateCouplingRules(effectiveInput, version);
     for (const m of fullEval.matches) {
+      if (rawKvAudit.invalidRoleValue !== undefined && m.ruleId === "d4-kv-connector-missing-kv-role") {
+        continue;
+      }
       findings.push(ruleMatchToFinding(m, "single", opts.resolveDeepLink));
+    }
+    if (rawKvAudit.invalidRoleValue !== undefined) {
+      const { wikiRefs, deepLinks } = resolveWikiRefs("d4-kv-role-invalid-literal", opts.resolveDeepLink);
+      findings.push({
+        id: "d4-kv-role-invalid-literal",
+        scope: "single",
+        category: "pd",
+        domain: "cp-pd",
+        title: "--kv-transfer-config 中的 kv_role 字面量非法（严格区分大小写）",
+        judgment: "error",
+        evidenceLevel: "C",
+        sources: [KV_TRANSFER_ROLE_SOURCE],
+        message: `ValueError: 原始 --kv-transfer-config 中 kv_role=${JSON.stringify(rawKvAudit.invalidRoleValue)} 非法；上游 vLLM KVTransferConfig 使用严格区分大小写的 Literal["kv_producer", "kv_consumer", "kv_both"]，不能忽略大小写放行。`,
+        remediation:
+          '将 --kv-transfer-config 中的 kv_role 改为严格小写的 "kv_producer"、"kv_consumer" 或 "kv_both"。',
+        wikiRefs,
+        deepLinks,
+      });
+    } else if (rawKvAudit.missingRole && !findings.some((f) => f.id === "d4-kv-connector-missing-kv-role")) {
+      const { wikiRefs, deepLinks } = resolveWikiRefs(
+        "d4-kv-connector-missing-kv-role",
+        opts.resolveDeepLink,
+      );
+      findings.push({
+        id: "d4-kv-connector-missing-kv-role",
+        scope: "single",
+        category: "pd",
+        domain: "cp-pd",
+        title: "配置 kv_connector 时缺少或传入非法 kv_role",
+        judgment: "error",
+        evidenceLevel: "C",
+        sources: [KV_TRANSFER_ROLE_SOURCE],
+        message: `ValueError: 原始 --kv-transfer-config 已配置 kv_connector='${rawKvAudit.connector}' 但缺少必填的 kv_role（kv_role=None 时 KVTransferConfig 直接报错）。`,
+        remediation:
+          '在 --kv-transfer-config 中显式补充 kv_role：Prefill 实例设为 "kv_producer"，Decode 实例设为 "kv_consumer"，混部实例设为 "kv_both"。',
+        wikiRefs,
+        deepLinks,
+      });
     }
     if (effectiveInput.isMoe) {
       moeCommSelection = selectMoeCommMethod(effectiveInput, version);
@@ -795,9 +879,13 @@ export function runPdConfigDoctor(
 
   const parsedP = parseVllmServeCommand(prefillCommandText);
   const parsedD = parseVllmServeCommand(decodeCommandText);
+  const pRawKvAudit = auditRawKvTransferRole(parsedP.kvTransferConfig);
+  const dRawKvAudit = auditRawKvTransferRole(parsedD.kvTransferConfig);
 
-  const prefillDefaultRole = parsedP.couplingInput.kvRole ?? "kv_producer";
-  const decodeDefaultRole = parsedD.couplingInput.kvRole ?? "kv_consumer";
+  const prefillExplicitRole =
+    opts.prefillTraitOverride?.kvRole ?? opts.modelTraitOverride?.kvRole ?? pRawKvAudit.strictRole;
+  const decodeExplicitRole =
+    opts.decodeTraitOverride?.kvRole ?? opts.modelTraitOverride?.kvRole ?? dRawKvAudit.strictRole;
 
   const prefillRaw = runSingleConfigDoctor(prefillCommandText, {
     mode: "full",
@@ -807,7 +895,7 @@ export function runPdConfigDoctor(
     modelTraitOverride: {
       ...(opts.modelTraitOverride ?? {}),
       ...(opts.prefillTraitOverride ?? {}),
-      kvRole: opts.prefillTraitOverride?.kvRole ?? prefillDefaultRole,
+      ...(prefillExplicitRole !== undefined ? { kvRole: prefillExplicitRole } : {}),
     },
     resolveDeepLink: opts.resolveDeepLink,
   });
@@ -820,32 +908,52 @@ export function runPdConfigDoctor(
     modelTraitOverride: {
       ...(opts.modelTraitOverride ?? {}),
       ...(opts.decodeTraitOverride ?? {}),
-      kvRole: opts.decodeTraitOverride?.kvRole ?? decodeDefaultRole,
+      ...(decodeExplicitRole !== undefined ? { kvRole: decodeExplicitRole } : {}),
     },
     resolveDeepLink: opts.resolveDeepLink,
   });
 
-  const prefillFindings = retagScope(prefillRaw.findings, "prefill").filter(
-    (f) => f.id !== "d4-mooncake-tp-p-divisible-tp-d",
-  );
-  const decodeFindings = retagScope(decodeRaw.findings, "decode").filter(
-    (f) => f.id !== "d4-mooncake-tp-p-divisible-tp-d",
-  );
+  const prefillFindings = retagScope(prefillRaw.findings, "prefill")
+    .filter((f) => f.id !== "d4-mooncake-tp-p-divisible-tp-d")
+    .map((f) =>
+      f.id === "d4-kv-connector-missing-kv-role"
+        ? {
+            ...f,
+            remediation:
+              '在 Prefill 实例 --kv-transfer-config 中显式设置 "kv_role":"kv_producer"（Decode 实例设为 "kv_consumer"）。',
+          }
+        : f,
+    );
+  const decodeFindings = retagScope(decodeRaw.findings, "decode")
+    .filter((f) => f.id !== "d4-mooncake-tp-p-divisible-tp-d")
+    .map((f) =>
+      f.id === "d4-kv-connector-missing-kv-role"
+        ? {
+            ...f,
+            remediation:
+              '在 Decode 实例 --kv-transfer-config 中显式设置 "kv_role":"kv_consumer"（Prefill 实例设为 "kv_producer"）。',
+          }
+        : f,
+    );
+  const prefillErrors = prefillFindings.filter((f) => f.judgment === "error");
   const prefill: SingleConfigDoctorReport = {
     ...prefillRaw,
     findings: prefillFindings,
-    errors: prefillFindings.filter((f) => f.judgment === "error"),
+    errors: prefillErrors,
     silentRewrites: prefillFindings.filter((f) => f.judgment === "silent-rewrite"),
     warnings: prefillFindings.filter((f) => f.judgment === "warn"),
     unknowns: prefillFindings.filter((f) => f.judgment === "unknown"),
+    hasBlockers: prefillErrors.length > 0,
   };
+  const decodeErrors = decodeFindings.filter((f) => f.judgment === "error");
   const decode: SingleConfigDoctorReport = {
     ...decodeRaw,
     findings: decodeFindings,
-    errors: decodeFindings.filter((f) => f.judgment === "error"),
+    errors: decodeErrors,
     silentRewrites: decodeFindings.filter((f) => f.judgment === "silent-rewrite"),
     warnings: decodeFindings.filter((f) => f.judgment === "warn"),
     unknowns: decodeFindings.filter((f) => f.judgment === "unknown"),
+    hasBlockers: decodeErrors.length > 0,
   };
 
   const crossInstanceFindings: DoctorFinding[] = [];
@@ -879,8 +987,38 @@ export function runPdConfigDoctor(
     });
   }
 
+  // 1b. Missing mandatory kv_role when kv_connector is configured on Prefill / Decode
+  // Check raw --kv-transfer-config JSON before overrides so caller trait overrides cannot mask missing kv_role
+  const pMissingRole =
+    pRawKvAudit.missingRole ||
+    (Boolean(pConn) && !pInput.kvRole && pRawKvAudit.invalidRoleValue === undefined);
+  const dMissingRole =
+    dRawKvAudit.missingRole ||
+    (Boolean(dConn) && !dInput.kvRole && dRawKvAudit.invalidRoleValue === undefined);
+  if (pMissingRole || dMissingRole) {
+    const missingRoles: string[] = [];
+    if (pMissingRole) missingRoles.push("Prefill 端");
+    if (dMissingRole) missingRoles.push("Decode 端");
+    const { wikiRefs, deepLinks } = resolveWikiRefs("pd-missing-kv-role", opts.resolveDeepLink);
+    crossInstanceFindings.push({
+      id: "pd-missing-kv-role",
+      scope: "cross-instance",
+      category: "pd",
+      domain: "cp-pd",
+      title: "P/D 实例配置了 kv_connector 但未显式指定 kv_role",
+      judgment: "error",
+      evidenceLevel: "C",
+      sources: [KV_TRANSFER_ROLE_SOURCE],
+      message: `ValueError: ${missingRoles.join("与")}已设置 kv_connector 但缺少必填的 kv_role（kv_role=None 时 KVTransferConfig 直接报错退出）。`,
+      remediation:
+        '在 Prefill 实例 --kv-transfer-config 中显式补充 "kv_role":"kv_producer"，在 Decode 实例 --kv-transfer-config 中显式补充 "kv_role":"kv_consumer"。',
+      wikiRefs,
+      deepLinks,
+    });
+  }
+
   // 2. Explicit kv_role inversion
-  if (parsedP.couplingInput.kvRole === "kv_consumer" || parsedD.couplingInput.kvRole === "kv_producer") {
+  if (pRawKvAudit.strictRole === "kv_consumer" || dRawKvAudit.strictRole === "kv_producer") {
     const { wikiRefs, deepLinks } = resolveWikiRefs("pd-role-mismatch", opts.resolveDeepLink);
     crossInstanceFindings.push({
       id: "pd-role-mismatch",

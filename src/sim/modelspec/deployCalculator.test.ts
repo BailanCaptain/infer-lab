@@ -394,7 +394,8 @@ describe("evaluateDeployPlan（硬件/量化/OOM/余量边界校验）", () => {
       tpSize: 1,
     });
     expect(oomW.fourQuestions.q2Capacity.oomStatus).toBe("weights_exceed_budget");
-    expect(oomW.fourQuestions.q2Capacity.minCardsRecommended).toBeGreaterThanOrEqual(4);
+    // Qwen3-30B-A3B (~57 GiB BF16) on A2-32G: 2 cards fail, while TP1/PP3 (3 cards, ~19 GiB/card) fits
+    expect(oomW.fourQuestions.q2Capacity.minCardsRecommended).toBe(3);
 
     const overflowStage7 = evaluateDeployPlan({
       model: "qwen3-8b",
@@ -560,9 +561,9 @@ describe("Wave 4 异构注意力与条件记忆账本（MLA / CSA2 / KDA / Engra
 
     expect(csa2.wave4Arch.hasCsa2).toBe(true);
     expect(csa2.wave4Arch.hasMla).toBe(true);
-    // Indexer cache: 128 * 1 B + 4 B scale = 132 B/tok/layer; total = 1152 + 132 = 1284 B/tok/layer
-    expect(csa2.wave4Arch.csa2?.indexerBytesPerTokenPerLayer).toBe(132);
-    expect(csa2.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(61 * (1152 + 132));
+    // Indexer cache (Ascend LI INT8): 128 * 1 B + 2 B (FP16 scale) = 130 B/tok/layer; total = 1152 + 130 = 1282 B/tok/layer
+    expect(csa2.wave4Arch.csa2?.indexerBytesPerTokenPerLayer).toBe(130);
+    expect(csa2.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(61 * (1152 + 130));
     // Decode attention effective context drops from 32768 to 2048 -> traffic drops dramatically (> 5x)
     expect(csa2.roofline.effectiveDecodeContextLen).toBe(2048);
     expect(csa2.roofline.decodeKvTrafficBytesPerStep).toBeLessThan(
@@ -631,6 +632,7 @@ describe("Wave 4 异构注意力与条件记忆账本（MLA / CSA2 / KDA / Engra
     const npuResident = evaluateDeployPlan({
       model: {
         ...engramPreset.config,
+        engram_cpu_offload: false,
         engram_dp_shared_memory: false,
       },
       cardId: "a2-64g",
@@ -776,5 +778,855 @@ describe("Wiki Deep-Link Canonical ID 契约校验", () => {
         expect(REGISTERED_CANONICAL_IDS.has(id)).toBe(true);
       }
     }
+  });
+});
+
+describe("P1 & P2 Source-Verified Regression Suite (vllm-ascend@c09d3e20 / vllm@ced6857a)", () => {
+  const mlaPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "deepseek-v3-mla")!;
+  const kdaPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "hybrid-kda-gqa")!;
+  const csa2Preset = WAVE4_DEMO_PRESETS.find((p) => p.id === "csa2-sparse-mla")!;
+  const engramPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "engram-conditional")!;
+
+  it("P1-1: MoE enableEp=false flattens TP × DP × PCP for routed expert sharding, active params, and GEMM shape", () => {
+    const tp2Dp1NoEp = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "950dt-128g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      dpSize: 1,
+      enableEp: false,
+    });
+    const tp2Dp2NoEp = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "950dt-128g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      dpSize: 2,
+      enableEp: false,
+    });
+    const tp2Dp2Ep = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "950dt-128g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      dpSize: 2,
+      enableEp: true,
+    });
+    const tp2Dp2Pcp2NoEp = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "950dt-128g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      dpSize: 2,
+      pcpSize: 2,
+      enableEp: false,
+    });
+
+    // Qwen3-30B-A3B routed experts: 48 * 128 * 3 * 2048 * 768 * 2B = 57,982,058,496 B = 54.0 GiB total.
+    // TP=2, DP=1 -> 27.0 GiB/rank routed experts; TP=2, DP=2 (enableEp=false) -> 13.5 GiB/rank (saves exact 13.5 GiB!).
+    expect(tp2Dp1NoEp.stages[2].pointEstimateBytes - tp2Dp2NoEp.stages[2].pointEstimateBytes).toBe(
+      13.5 * GIB,
+    );
+    expect(tp2Dp2NoEp.stages[2].pointEstimateBytes).toBe(tp2Dp2Ep.stages[2].pointEstimateBytes);
+    // Adding PCP=2 further halves routed experts from 13.5 GiB to 6.75 GiB (-6.75 GiB)
+    expect(tp2Dp2NoEp.stages[2].pointEstimateBytes - tp2Dp2Pcp2NoEp.stages[2].pointEstimateBytes).toBe(
+      6.75 * GIB,
+    );
+    expect(tp2Dp2NoEp.roofline.activeWeightBytesPerRank).toBeLessThan(
+      tp2Dp1NoEp.roofline.activeWeightBytesPerRank,
+    );
+    // Expert GEMM output width N shrinks when sliced across TP*DP vs full width under EP
+    expect(tp2Dp2NoEp.roofline.decodeLinearIntensityFlopsPerByte).not.toBe(
+      tp2Dp2Ep.roofline.decodeLinearIntensityFlopsPerByte,
+    );
+  });
+
+  it("P1-2: Deploy Calculator blocks illegal CP/DCP topologies via shared domain4 rules instead of returning pass", () => {
+    // Qwen3-8B (32 Q heads, 8 KV heads) with TP=1, DCP=8 -> MUST be blocked
+    const qwenBadDcp = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 1,
+      dcpSize: 8,
+    });
+    expect(qwenBadDcp.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(qwenBadDcp.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(true);
+
+    // Qwen3-8B at TP=8, DCP=2 -> TP (8) <= numKvHeads (8), no KV replication to split -> blocked
+    const qwenTp8Dcp2 = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 8,
+      dcpSize: 2,
+    });
+    expect(qwenTp8Dcp2.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(qwenTp8Dcp2.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(true);
+
+    // Qwen3-8B at TP=16, DCP=2 -> 16 // 8 = 2 KV replicas % 2 == 0, groupSize=4 % 2 == 0 -> legal
+    const qwenTp16Dcp2 = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 16,
+      dcpSize: 2,
+    });
+    expect(qwenTp16Dcp2.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(false);
+
+    // CSA2/SFA sparse MLA at TP=8, PCP=1, DCP=2 -> SFA replicated indexer requires DCP in {1, 8} -> blocked
+    const csa2BadDcp2 = evaluateDeployPlan({
+      model: csa2Preset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 2,
+      enableEp: true,
+    });
+    expect(csa2BadDcp2.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(csa2BadDcp2.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(true);
+
+    // CSA2/SFA sparse MLA at TP=8, PCP=1, DCP=8 -> legal
+    const csa2OkDcp8 = evaluateDeployPlan({
+      model: csa2Preset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 8,
+      enableEp: true,
+    });
+    expect(csa2OkDcp8.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(false);
+  });
+
+  it("P1-3 / P1-6: SFA ('dsa') replicated lightning indexer cache is NOT divided by safeDcp (INT8=274 B, BF16=400 B)", () => {
+    const oneLayerDsaInt8 = evaluateDeployPlan({
+      model: {
+        ...csa2Preset.config,
+        num_hidden_layers: 1,
+        first_k_dense_replace: 1,
+      },
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 8,
+    });
+    // Main MLA latent = 1152 B -> 1152 / 8 = 144 B/tok;
+    // Ascend LI INT8 = 128 * 1B + 2B (FP16 scale) = 130 B/tok replicated -> 144 + 130 = 274 B/tok
+    expect(oneLayerDsaInt8.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(274);
+
+    // Unquantized LI (BF16/FP16, omitting indexer_kv_dtype): 128 * 2B = 256 B/tok -> 144 + 256 = 400 B/tok
+    const { indexer_kv_dtype: _ignored, ...csa2NoLiQuant } = csa2Preset.config as Record<string, unknown>;
+    const oneLayerDsaBf16 = evaluateDeployPlan({
+      model: {
+        ...csa2NoLiQuant,
+        num_hidden_layers: 1,
+        first_k_dense_replace: 1,
+      },
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 8,
+    });
+    expect(oneLayerDsaBf16.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(400);
+
+    const fullCsa2Dcp8 = evaluateDeployPlan({
+      model: csa2Preset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 8,
+      enableEp: true,
+    });
+    expect(fullCsa2Dcp8.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(61 * 274);
+  });
+
+  it("P1-4: Engram cpuOffload=true, dpSharedMemory=false puts table in Host DRAM (0 B NPU HBM), while cpuOffload=false bills NPU HBM", () => {
+    const expectedTotalTable = 2 * 1_292_800 * 1280 * 2; // 6,619,136,000 B
+
+    const sharedHost = evaluateDeployPlan({
+      model: {
+        ...engramPreset.config,
+        engram_cpu_offload: true,
+        engram_dp_shared_memory: true,
+      },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+    });
+
+    const privateHost = evaluateDeployPlan({
+      model: {
+        ...engramPreset.config,
+        engram_cpu_offload: true,
+        engram_dp_shared_memory: false,
+      },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+    });
+
+    const npuHbm = evaluateDeployPlan({
+      model: {
+        ...engramPreset.config,
+        engram_cpu_offload: false,
+        engram_dp_shared_memory: false,
+      },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+    });
+
+    // cpuOffload=true, dpSharedMemory=false -> 0 B NPU HBM, private Host DRAM per DP replica (2 * E on TP=2, DP=2, ETP=2)
+    expect(privateHost.wave4Arch.engram?.npuWeightBytesPerRank).toBe(0);
+    expect(privateHost.stages[2].pointEstimateBytes).toBe(sharedHost.stages[2].pointEstimateBytes);
+    expect(privateHost.wave4Arch.engram?.hostDramBytesPerNode).toBe(2 * expectedTotalTable);
+
+    // cpuOffload=false, dpSharedMemory=false -> E / ETP(2) in NPU HBM, 0 B Host DRAM
+    expect(npuHbm.wave4Arch.engram?.npuWeightBytesPerRank).toBe(expectedTotalTable / 2);
+    expect(npuHbm.wave4Arch.engram?.hostDramBytesPerNode).toBe(0);
+    expect(npuHbm.stages[2].pointEstimateBytes - privateHost.stages[2].pointEstimateBytes).toBe(
+      expectedTotalTable / 2,
+    );
+
+    // Invalid combination: dp_shared_memory=true with cpu_offload=false -> blocker
+    const invalidSharedNoOffload = evaluateDeployPlan({
+      model: {
+        ...engramPreset.config,
+        engram_cpu_offload: false,
+        engram_dp_shared_memory: true,
+      },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+    });
+    expect(invalidSharedNoOffload.fourQuestions.q1Fit.verdict).toBe("blocked");
+  });
+
+  it("P1-5: KDA recommendMinCards uses totalFixedLinearStateBytes (maxNumSeqs) and flags unsolvable configs", () => {
+    const kdaA2_32g = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "a2-32g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 32768,
+      maxNumSeqs: 256,
+    });
+    expect(kdaA2_32g.fourQuestions.q2Capacity.oomStatus).toBe("insufficient_for_single_max_len_seq");
+    // Must NOT recommend 1 card when 1 card fails capacity due to 256 * perSeqFixedLinearStateBytes!
+    expect(kdaA2_32g.fourQuestions.q2Capacity.minCardsRecommended).toBeGreaterThanOrEqual(2);
+    expect(kdaA2_32g.fourQuestions.q2Capacity.feasible).toBe(true);
+    expect(kdaA2_32g.fourQuestions.q2Capacity.unsolvable).toBe(false);
+
+    // Extreme maxNumSeqs where even 64 cards cannot hold fixed KDA state -> unsolvable: true, feasible: false
+    const unsolvableKda = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "310p-24g",
+      weightPrecision: "fp16",
+      tpSize: 1,
+      maxModelLen: 131072,
+      maxNumSeqs: 16384,
+    });
+    expect(unsolvableKda.fourQuestions.q2Capacity.feasible).toBe(false);
+    expect(unsolvableKda.fourQuestions.q2Capacity.unsolvable).toBe(true);
+  });
+
+  it("P2-1 & P2-2: DCP physical block bytes vs virtual block global token span, plus KDA numSpecTokens threading", () => {
+    // DeepSeek-V3 MLA (61 layers * 1152 B = 70,272 B local slot) at TP=8, DCP=2, blockSize=128, maxModelLen=300
+    const dcpPlan = evaluateDeployPlan({
+      model: mlaPreset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      dcpSize: 2,
+      enableEp: true,
+      blockSize: 128,
+      maxModelLen: 300,
+    });
+    const q2 = dcpPlan.fourQuestions.q2Capacity;
+    // Physical block holds 128 local slots -> 70,272 * 128 = 8,994,816 B (NOT halved!)
+    expect(q2.kvBytesPerBlock).toBe(61 * 1152 * 128);
+    // Virtual block spans 128 * 2 = 256 global tokens -> ceil(300 / 256) = 2 blocks (NOT ceil(300 / 128) = 3!)
+    expect(q2.blocksPerMaxSeq).toBe(2);
+    expect(q2.usableBlocksPoint).toBe(
+      q2.rawBlocksRange[0] > 0 ? Math.floor(q2.kvPoolPointBytes / q2.kvBytesPerBlock) - 1 : 0,
+    );
+    expect(q2.totalKvTokenSlotsPoint).toBe(q2.usableBlocksPoint * 128 * 2);
+
+    // KDA numSpecTokens=3 in evaluateDeployPlan: mamba_utils.py#L318 expands conv window to (convK-1+3)=6
+    // and allocates 1 + numSpecTokens = 4 full state blocks per seq
+    const kdaNoSpec = evaluateDeployPlan({
+      model: kdaPreset.config,
+      cardId: "a2-64g",
+      tpSize: 2,
+      maxNumSeqs: 16,
+    });
+    const kdaSpec3 = evaluateDeployPlan({
+      model: kdaPreset.config,
+      cardId: "a2-64g",
+      tpSize: 2,
+      maxNumSeqs: 16,
+      numSpecTokens: 3,
+    });
+    const expectedSpec3LayerBytes = (16 * 128 * 128 * 4 + 3 * 16 * 128 * (4 - 1 + 3) * 2) * 4;
+    expect(kdaSpec3.fourQuestions.q2Capacity.perSeqFixedLinearStateBytes).toBe(24 * expectedSpec3LayerBytes);
+    expect(kdaSpec3.fourQuestions.q2Capacity.perSeqFixedLinearStateBytes).toBeGreaterThan(
+      kdaNoSpec.fourQuestions.q2Capacity.perSeqFixedLinearStateBytes * 4,
+    );
+  });
+
+  it("P2-3: GQA Roofline KV head replication at TP > numKvHeads & contiguous PP stage bottleneck", () => {
+    const qwenTp16 = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 16,
+      dcpSize: 1,
+    });
+    // 32 Q heads / TP=16 = 2 local Q heads; 8 KV heads replicated to 1 local KV head -> groupSize = 2 -> 2*2/2B = 2.0 FLOP/B
+    expect(qwenTp16.roofline.gqaGroupSize).toBe(2);
+    expect(qwenTp16.roofline.decodeKvAttnIntensityFlopsPerByte).toBeCloseTo(2.0, 2);
+
+    // Hybrid PP=2 model: Stage 0 (layers 0..3) = heavy MoE + KDA; Stage 1 (layers 4..7) = light Dense + GQA
+    const hybridPpModel = {
+      model_type: "kimi_linear",
+      hidden_size: 4096,
+      num_hidden_layers: 8,
+      num_attention_heads: 32,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      intermediate_size: 8192,
+      moe_intermediate_size: 2048,
+      n_routed_experts: 64,
+      num_experts_per_tok: 8,
+      mlp_only_layers: [4, 5, 6, 7], // layers 0..3 are MoE, layers 4..7 are Dense!
+      linear_kda: true,
+      layer_types: [
+        "linear_kda",
+        "linear_kda",
+        "linear_kda",
+        "linear_kda",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+      ],
+      vocab_size: 32000,
+      tie_word_embeddings: true,
+      torch_dtype: "bfloat16",
+    };
+    const pp2Plan = evaluateDeployPlan({
+      model: hybridPpModel,
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      ppSize: 2,
+      enableEp: false,
+      maxModelLen: 4096,
+      maxNumSeqs: 16,
+    });
+    // Stage 0 has 4 MoE (64 experts * 3 * 4096 * 2048 * 2B = 3 GiB/layer -> ~12 GiB) + 4 KDA layers (0 B/tok paged KV).
+    // Stage 1 has 4 Dense (~0.19 GiB/layer -> ~0.75 GiB) + 4 GQA layers (16 KiB/tok, 4096 tok = 64 MiB).
+    // Bottleneck contiguous stage is Stage 0: weights must reflect Stage 0 (~12+ GiB) and paged KV must be Stage 0's 0 B/tok (NOT Stage 1's 16 KiB/tok mixed with Stage 0's MoE weights!).
+    expect(pp2Plan.stages[2].pointEstimateBytes).toBeGreaterThan(10 * GIB);
+    expect(pp2Plan.fourQuestions.q2Capacity.perTokenPagedKvBytes).toBe(0);
+  });
+
+  it("P2-4: Startup log parser keeps binary GiB quirk ONLY for Model loading / Loading model weights lines, converting SI GB accurately elsewhere", () => {
+    const vllmQuirk = parseAscendStartupLog("INFO Model loading took 10.00 GB memory and 5.0 seconds");
+    expect(vllmQuirk.weightsGiB).toBeCloseTo(10.0, 5);
+
+    const ascendQuirk = parseAscendStartupLog("INFO Loading model weights took 10.00 GB");
+    expect(ascendQuirk.weightsGiB).toBeCloseTo(10.0, 5);
+
+    const siLog = [
+      "Checkpoint size: 10.00 GB",
+      "non_kv_cache_memory=20.00 GB",
+      "torch_peak_increase=2.00 GB",
+      "non_torch_increase=1.00 GB",
+      "Available KV cache memory: 30.00 GB",
+    ].join("\n");
+    const parsedSi = parseAscendStartupLog(siLog);
+    const siFactor = 1e9 / GIB; // ~0.9313225746
+    expect(parsedSi.weightsGiB).toBeCloseTo(10 * siFactor, 5);
+    expect(parsedSi.nonKvCacheMemoryGiB).toBeCloseTo(20 * siFactor, 5);
+    expect(parsedSi.torchPeakIncreaseGiB).toBeCloseTo(2 * siFactor, 5);
+    expect(parsedSi.nonTorchIncreaseGiB).toBeCloseTo(1 * siFactor, 5);
+    expect(parsedSi.availableKvGiB).toBeCloseTo(30 * siFactor, 5);
+
+    const binaryLog = "non_kv_cache_memory=20.00 GiB\nAvailable KV cache memory: 30.00 GiB";
+    const parsedBin = parseAscendStartupLog(binaryLog);
+    expect(parsedBin.nonKvCacheMemoryGiB).toBeCloseTo(20.0, 5);
+    expect(parsedBin.availableKvGiB).toBeCloseTo(30.0, 5);
+  });
+});
+
+describe("Astra Final Math Audit Regressions (P1-3..P1-7 & P2-6..P2-10)", () => {
+  const csa2Preset = WAVE4_DEMO_PRESETS.find((p) => p.id === "csa2-sparse-mla")!;
+  const engramPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "engram-conditional")!;
+
+  it("P1-3: hybrid-kda-gqa on A2-32G BF16 TP2 256 seqs 32768 numSpecTokens=3 MUST fail capacity instead of fits", () => {
+    const plan = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "a2-32g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      maxNumSeqs: 256,
+      maxModelLen: 32768,
+      numSpecTokens: 3,
+    });
+    expect(plan.fourQuestions.q2Capacity.oomStatus).not.toBe("fits");
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended).not.toBeNull();
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended!).toBeGreaterThan(2);
+  });
+
+  it("P1-4: heterogeneous PP (4 KDA + 4 GQA at TP1/PP2) takes min concurrency across all PP stages", () => {
+    const hetero8 = {
+      model_type: "kimi_linear",
+      hidden_size: 4096,
+      num_hidden_layers: 8,
+      num_attention_heads: 32,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      intermediate_size: 14336,
+      linear_kda: true,
+      layer_types: [
+        "linear_kda",
+        "linear_kda",
+        "linear_kda",
+        "linear_kda",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+      ],
+      vocab_size: 151936,
+      tie_word_embeddings: true,
+      torch_dtype: "bfloat16",
+    };
+    const plan = evaluateDeployPlan({
+      model: hetero8,
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      ppSize: 2,
+      maxModelLen: 32768,
+      maxNumSeqs: 16,
+    });
+    // Stage 1 (4 GQA layers) caps full-len concurrency near ~117.76x, NOT Stage 0 KDA's ~5335x!
+    expect(plan.fourQuestions.q2Capacity.maxConcurrencyPoint).toBeLessThan(200);
+    expect(plan.fourQuestions.q2Capacity.maxConcurrencyPoint).toBeGreaterThan(50);
+  });
+
+  it("P1-5: min-card search finds non-power-of-two TP*PP (e.g., 3 cards TP1/PP3), never contradicts fits with unsolvable, and emits null/empty CLI when truly unsolvable", () => {
+    // Qwen3-30B-A3B (~57 GiB BF16) on A2-32G: 2 cards fail, while TP1/PP3 (3 cards) fits
+    const threeCardPlan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-32g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      ppSize: 1,
+      maxModelLen: 4096,
+    });
+    expect(threeCardPlan.fourQuestions.q2Capacity.minCardsRecommended).toBe(3);
+    expect(threeCardPlan.fourQuestions.q4Recommendation.recommendedTp).toBe(1);
+    expect(threeCardPlan.fourQuestions.q4Recommendation.recommendedPp).toBe(3);
+
+    // Explicit feasible topology (TP32/PP2 = 64 cards on A2-32G for hybrid-kda-gqa with 512 seqs & numSpecTokens=3)
+    // must NEVER return fits + unsolvable=true
+    const explicitFeasible = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "a2-32g",
+      weightPrecision: "bf16",
+      tpSize: 32,
+      ppSize: 2,
+      maxModelLen: 32768,
+      maxNumSeqs: 512,
+      numSpecTokens: 3,
+    });
+    expect(explicitFeasible.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+    expect(explicitFeasible.fourQuestions.q2Capacity.unsolvable).toBe(false);
+    expect(explicitFeasible.fourQuestions.q2Capacity.feasible).toBe(true);
+    expect(explicitFeasible.fourQuestions.q2Capacity.minCardsRecommended).not.toBeNull();
+    expect(explicitFeasible.fourQuestions.q2Capacity.minCardsRecommended!).toBeLessThanOrEqual(64);
+
+    // Truly unsolvable config must stop emitting misleading recommended cards & CLI
+    const unsolvable = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "310p-24g",
+      weightPrecision: "fp16",
+      tpSize: 1,
+      maxModelLen: 131072,
+      maxNumSeqs: 16384,
+    });
+    expect(unsolvable.fourQuestions.q2Capacity.unsolvable).toBe(true);
+    expect(unsolvable.fourQuestions.q2Capacity.minCardsRecommended).toBeNull();
+    expect(unsolvable.fourQuestions.q2Capacity.minPhysicalCardsRecommended).toBeNull();
+    expect(unsolvable.fourQuestions.q4Recommendation.recommendedTp).toBeNull();
+    expect(unsolvable.fourQuestions.q4Recommendation.recommendedPp).toBeNull();
+    expect(unsolvable.fourQuestions.q4Recommendation.cliHint).toBe("");
+  });
+
+  it("P1-7: MoE EP=off blocks when moe_intermediate_size % (tp * dp * pcp) !== 0", () => {
+    // Qwen3-30B-A3B has moe_intermediate_size = 768; tp=2, dp=5, pcp=1 -> 768 % 10 !== 0
+    const badNoEp = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "950dt-128g",
+      weightPrecision: "bf16",
+      tpSize: 2,
+      dpSize: 5,
+      pcpSize: 1,
+      enableEp: false,
+    });
+    expect(badNoEp.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(
+      badNoEp.fourQuestions.q1Fit.blockers.some((b) => b.id === "calc-moe-no-ep-intermediate-indivisible"),
+    ).toBe(true);
+  });
+
+  it("P2-6: Engram defaults to cpu_offload=true, blocks dp_shared_memory on DP*PCP=1, and derives MRV2 node-shared DRAM", () => {
+    const expectedTotalTable = 2 * 1_292_800 * 1280 * 2;
+    // Omitting engram_cpu_offload and engram_dp_shared_memory -> defaults to cpu_offload=true (0 B HBM)
+    const { engram_dp_shared_memory: _s, ...engramDefaultCfg } = engramPreset.config as Record<
+      string,
+      unknown
+    >;
+    const defaultOffload = evaluateDeployPlan({
+      model: engramDefaultCfg,
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 1,
+    });
+    expect(defaultOffload.wave4Arch.engram?.cpuOffload).toBe(true);
+    expect(defaultOffload.wave4Arch.engram?.npuWeightBytesPerRank).toBe(0);
+
+    // Explicit dp_shared_memory=true with DP=1, PCP=1 -> blocker (not just warning)
+    const singleMemberShared = evaluateDeployPlan({
+      model: { ...engramPreset.config, engram_cpu_offload: true, engram_dp_shared_memory: true },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 1,
+      pcpSize: 1,
+    });
+    expect(singleMemberShared.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(
+      singleMemberShared.fourQuestions.q1Fit.blockers.some((b) => b.id === "calc-engram-dp-shared-mem-dp1"),
+    ).toBe(true);
+
+    // Ascend MRV2 derivation: cpu_offload=true, dp_shared_memory=false, useV2ModelRunner=true, DP=2 -> node-shared 1x DRAM
+    const mrv2Shared = evaluateDeployPlan({
+      model: { ...engramPreset.config, engram_cpu_offload: true, engram_dp_shared_memory: false },
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+    });
+    expect(mrv2Shared.wave4Arch.engram?.dpSharedMemory).toBe(true);
+    expect(mrv2Shared.wave4Arch.engram?.hostDramBytesPerNode).toBe(expectedTotalTable);
+  });
+
+  it("P2-7: PCP-only (dcpSize=1) on CSA2/SFA sparse MLA does NOT falsely trigger SFA DCP {2, 16} blocker", () => {
+    const pcpOnlyCsa2 = evaluateDeployPlan({
+      model: csa2Preset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 8,
+      pcpSize: 2,
+      dcpSize: 1,
+      enableEp: true,
+    });
+    expect(pcpOnlyCsa2.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-dcp-sizing")).toBe(false);
+  });
+
+  it("P2-8: default PP layer partitioning matches upstream get_pp_indices (45 layers PP=2 -> [23, 22])", () => {
+    const model45 = {
+      model_type: "kimi_linear",
+      hidden_size: 4096,
+      num_hidden_layers: 45,
+      num_attention_heads: 32,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      intermediate_size: 12288,
+      linear_kda: true,
+      layer_types: [
+        ...Array.from({ length: 23 }, () => "linear_kda"),
+        ...Array.from({ length: 22 }, () => "full_attention"),
+      ],
+      vocab_size: 32000,
+      tie_word_embeddings: true,
+      torch_dtype: "bfloat16",
+    };
+    const plan = evaluateDeployPlan({
+      model: model45,
+      cardId: "a2-64g",
+      tpSize: 1,
+      ppSize: 2,
+      maxNumSeqs: 64,
+      maxModelLen: 4096,
+    });
+    // Under upstream get_pp_indices [23, 22]: Stage 0 holds all 23 linear_kda layers and 0 GQA layers.
+    // Under the old buggy [22, 23]: Stage 0 had only 22 KDA layers and Stage 1 mixed 1 KDA + 22 GQA!
+    expect(plan.inputSummary.localLayersPerRank).toBe(23);
+    expect(plan.wave4Arch.kda?.localLinearLayerCount).toBe(23);
+    expect(plan.wave4Arch.kda?.localFullAttnLayerCount).toBe(0);
+  });
+
+  it("P2-9: recommended CLI uses validated recommended topology without leaking stale input --decode-context-parallel-size", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 16,
+      dcpSize: 2,
+    });
+    expect(plan.fourQuestions.q4Recommendation.recommendedTp).toBe(1);
+    expect(plan.fourQuestions.q4Recommendation.cliHint).not.toContain("--decode-context-parallel-size");
+  });
+
+  it("P2-10: DCP physical block product formula matches LHS/RHS and Roofline uses all_gather Q heads (4 Q : 1 KV -> 4 FLOP/B)", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 16,
+      dcpSize: 2,
+      blockSize: 128,
+    });
+    // 32 Q heads / TP=16 = 2 local Q heads -> DCP=2 all_gather Q across DCP group -> 4 Q heads : 1 KV head -> 2 * 4 / 2B = 4.0 FLOP/B
+    expect(plan.roofline.gqaGroupSize).toBe(4);
+    expect(plan.roofline.decodeKvAttnIntensityFlopsPerByte).toBeCloseTo(4.0, 2);
+    // Stage 6 formula must match 2.250 MiB/块 = 9.0 KiB × 256 = 18.0 KiB × 128 (NOT 9.0 KiB × 128!)
+    expect(plan.stages[5].formula).toContain("2.250 MiB/块");
+    expect(plan.stages[5].formula).not.toContain("9.0 KiB/tok × 128 tok/块");
+    expect(plan.stages[5].formula).toMatch(/256|18\.0 KiB/);
+  });
+});
+
+describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
+  it("P1-1: hybrid-kda-gqa on a2-32g TP=8 maxNumSeqs=1000 maxModelLen=4096 numSpecTokens=3 exceeds budget instead of fits", () => {
+    const plan = evaluateDeployPlan({
+      model: "hybrid-kda-gqa",
+      cardId: "a2-32g",
+      weightPrecision: "bf16",
+      tpSize: 8,
+      maxNumSeqs: 1000,
+      maxModelLen: 4096,
+      numSpecTokens: 3,
+    });
+    expect(plan.fourQuestions.q2Capacity.oomStatus).not.toBe("fits");
+    expect(plan.fourQuestions.q1Fit.blockers.length).toBeGreaterThan(0);
+  });
+
+  it("P1-2: Engram min-card search validates Q1 with real shared-memory state and never recommends illegal 1-card TP=1/DP=1", () => {
+    const plan = evaluateDeployPlan({
+      model: "engram-conditional",
+      cardId: "a2-64g",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+    });
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended).not.toBeNull();
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended!).toBeGreaterThanOrEqual(2);
+    expect(q4.unsolvable).toBe(false);
+    expect((q4.recommendedDp ?? 1) * (q4.recommendedPcp ?? 1)).toBeGreaterThan(1);
+
+    const replay = evaluateDeployPlan({
+      model: "engram-conditional",
+      cardId: "a2-64g",
+      tpSize: q4.recommendedTp!,
+      ppSize: q4.recommendedPp!,
+      dpSize: q4.recommendedDp ?? 1,
+      pcpSize: q4.recommendedPcp ?? 1,
+      dcpSize: q4.recommendedDcp ?? 1,
+      useV2ModelRunner: true,
+    });
+    expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
+    expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+  });
+
+  it("P2-1: min-card search enumerates legal DCP candidates when dcp=1 is unsolvable (1M-context MLA on a2-32g u=0.15)", () => {
+    const mla1m = {
+      model_type: "deepseek_v3",
+      hidden_size: 4096,
+      num_hidden_layers: 1,
+      num_attention_heads: 32,
+      num_key_value_heads: 32,
+      kv_lora_rank: 1536,
+      qk_nope_head_dim: 128,
+      qk_rope_head_dim: 64,
+      v_head_dim: 128,
+      intermediate_size: 8192,
+      vocab_size: 32000,
+      max_position_embeddings: 1_048_576,
+      torch_dtype: "bfloat16",
+    };
+    const plan = evaluateDeployPlan({
+      model: mla1m,
+      cardId: "a2-32g",
+      gpuMemoryUtilization: 0.15,
+      tpSize: 1,
+      maxModelLen: 1_048_576,
+      maxNumSeqs: 1,
+    });
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(plan.fourQuestions.q2Capacity.unsolvable).toBe(false);
+    expect(plan.fourQuestions.q2Capacity.feasible).toBe(true);
+    expect(q4.recommendedDcp).not.toBeNull();
+    expect(q4.recommendedDcp!).toBeGreaterThan(1);
+    expect(q4.cliHint).toContain("--decode-context-parallel-size");
+
+    const replay = evaluateDeployPlan({
+      model: mla1m,
+      cardId: "a2-32g",
+      gpuMemoryUtilization: q4.recommendedGpuMemoryUtilization,
+      tpSize: q4.recommendedTp!,
+      ppSize: q4.recommendedPp!,
+      dpSize: q4.recommendedDp ?? 1,
+      dcpSize: q4.recommendedDcp ?? 1,
+      maxModelLen: 1_048_576,
+      maxNumSeqs: 1,
+    });
+    expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
+    expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+  });
+
+  it("P2-2: buildRecommendation keeps feasible user gpuMemoryUtilization (0.95) when default 0.90 fails capacity", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 4096,
+      gpuMemoryUtilization: 0.95,
+    });
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended).toBe(1);
+    expect(q4.recommendedGpuMemoryUtilization).toBeCloseTo(0.95, 2);
+    expect(q4.cliHint).toContain("--gpu-memory-utilization 0.95");
+
+    const replay = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: q4.recommendedPrecision,
+      tpSize: q4.recommendedTp!,
+      ppSize: q4.recommendedPp!,
+      dpSize: q4.recommendedDp ?? 1,
+      maxModelLen: 4096,
+      gpuMemoryUtilization: q4.recommendedGpuMemoryUtilization,
+    });
+    expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
+    expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+  });
+
+  it("P1-2 (final): PCP > 1 without explicit useV2ModelRunner triggers d4-pcp-requires-mrv2 blocker and Q4 replay has zero blockers", () => {
+    const plan = evaluateDeployPlan({
+      model: "engram-conditional",
+      cardId: "a2-64g",
+      tpSize: 1,
+      dpSize: 1,
+      pcpSize: 2,
+      useV2ModelRunner: false,
+    });
+    expect(plan.fourQuestions.q1Fit.verdict).toBe("blocked");
+    expect(plan.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-requires-mrv2")).toBe(true);
+
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(q4.unsolvable).toBe(false);
+    expect(q4.recommendedPcp ?? 1).toBe(1);
+    const replay = evaluateDeployPlan({
+      model: "engram-conditional",
+      cardId: "a2-64g",
+      tpSize: q4.recommendedTp!,
+      ppSize: q4.recommendedPp!,
+      dpSize: q4.recommendedDp ?? 1,
+      pcpSize: q4.recommendedPcp ?? 1,
+      dcpSize: q4.recommendedDcp ?? 1,
+      useV2ModelRunner: false,
+    });
+    expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
+    expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+  });
+
+  it("P2-1 (final): DCP min-card search enumerates all valid divisors of tp (e.g. TP=3, DCP=3 for 24-head MLA)", () => {
+    const mla24 = {
+      model_type: "deepseek_v3",
+      hidden_size: 3072,
+      num_hidden_layers: 1,
+      num_attention_heads: 24,
+      num_key_value_heads: 24,
+      kv_lora_rank: 1536,
+      qk_nope_head_dim: 128,
+      qk_rope_head_dim: 64,
+      v_head_dim: 128,
+      intermediate_size: 6144,
+      vocab_size: 32000,
+      max_position_embeddings: 2_000_000,
+      torch_dtype: "bfloat16",
+    };
+    const plan = evaluateDeployPlan({
+      model: mla24,
+      cardId: "a2-32g",
+      gpuMemoryUtilization: 0.15,
+      tpSize: 1,
+      maxModelLen: 1_500_000,
+      maxNumSeqs: 1,
+    });
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended).toBe(3);
+    expect(q4.recommendedTp).toBe(3);
+    expect(q4.recommendedDcp).toBe(3);
+  });
+
+  it("P2-2 (final): CLI --gpu-memory-utilization keeps >2 decimal precision when 2-decimal rounding would break fits", () => {
+    // Find exact 3-decimal borderline u on Qwen3-30B-A3B BF16 a2-64g where u fits, while u rounded down to 2 decimals fails
+    let borderlineU: number | null = null;
+    for (let m = 931; m <= 969; m += 1) {
+      if (m % 10 === 0 || m % 10 >= 5) continue; // rounds down at 2 decimals
+      const u = m / 1000;
+      const uDown = Number(u.toFixed(2));
+      const pCur = evaluateDeployPlan({
+        model: "Qwen3-30B-A3B",
+        cardId: "a2-64g",
+        weightPrecision: "bf16",
+        tpSize: 1,
+        maxModelLen: 4096,
+        gpuMemoryUtilization: u,
+      });
+      const pDown = evaluateDeployPlan({
+        model: "Qwen3-30B-A3B",
+        cardId: "a2-64g",
+        weightPrecision: "bf16",
+        tpSize: 1,
+        maxModelLen: 4096,
+        gpuMemoryUtilization: uDown,
+      });
+      if (
+        pCur.fourQuestions.q2Capacity.oomStatus === "fits" &&
+        pDown.fourQuestions.q2Capacity.oomStatus !== "fits"
+      ) {
+        borderlineU = u;
+        break;
+      }
+    }
+    expect(borderlineU).not.toBeNull();
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 4096,
+      gpuMemoryUtilization: borderlineU!,
+    });
+    const q4 = plan.fourQuestions.q4Recommendation;
+    const match = q4.cliHint.match(/--gpu-memory-utilization\s+([0-9.]+)/);
+    expect(match).not.toBeNull();
+    const cliUtil = Number(match![1]);
+    expect(cliUtil).toBeCloseTo(borderlineU!, 4);
+    const replay = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: q4.recommendedPrecision,
+      tpSize: q4.recommendedTp!,
+      ppSize: q4.recommendedPp!,
+      dpSize: q4.recommendedDp ?? 1,
+      maxModelLen: 4096,
+      gpuMemoryUtilization: cliUtil,
+    });
+    expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
+    expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
   });
 });

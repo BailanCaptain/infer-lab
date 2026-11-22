@@ -197,7 +197,7 @@ const MODELS={
   u:10,height:4.42,slots:3,cpu:2,dimm:32,fan:15,psu:6,drive:8,
   accelSummary:'每台 8 颗 B200 SXM + 2 颗 NVLink 5 交换芯片（NVSwitch）',
   accelNodeLabel:'B200 SXM 模组 ×8',
-  interconnectShort:'2×NVLink 5 交换芯片 · 聚合 14.4 TB/s',
+  interconnectShort:'2 × NVSwitch (NVLink 5) · 聚合 14.4 TB/s',
   netShort:'CX-7 + BF-3',
   netSub:'8×400G OSFP + 双 DPU',
   psuSub:'6×3.3kW 钛金电源',
@@ -206,7 +206,7 @@ const MODELS={
   rackFacts:[['机柜规格','42U'],['展示整机','3 台 (10U)'],['每机 GPU','8 × B200']],
   serverFacts:[
    ['加速模组','8 × B200 SXM'],['单卡显存','180 GB HBM3e'],['整机显存','1,440 GB HBM3e'],
-   ['机内互联','14.4 TB/s NVLink 5'],['交换芯片','2 × NVLink 5 NVSwitch'],['主机处理器','2 × Xeon 8570']
+   ['机内互联','14.4 TB/s NVLink 5'],['交换芯片','2 × NVSwitch (NVLink 5)'],['主机处理器','2 × Xeon 8570']
   ],
   dieTitle:'NVIDIA Blackwell B200 双光罩 CoWoS-L 封装示意',
   dieDesc:'掀开 1000W 级加高 6 热管散热塔与均热顶盖，可见 CoWoS-L 中介层上并排拼接的 2 颗光罩极限计算晶粒、中央 10 TB/s NV-HBI 高密桥接缝及左右两侧共 8 颗 HBM3e 堆栈（单卡 180 GB、8 TB/s）。',
@@ -214,7 +214,7 @@ const MODELS={
    {title:'双光罩计算晶粒 (2×Die)',sub:'共享统一缓存一致性，软件呈单一 GPU',pos:[-.04,.13,-.12],side:[-1,-1]},
    {title:'10 TB/s NV-HBI 片间桥接',sub:'高带宽超低开销跨晶粒直连缝',pos:[.04,.13,-.02],side:[1,-1]},
    {title:'8×HBM3e 显存堆栈',sub:'单模组 180 GB 容量 · 8 TB/s 带宽',pos:[-.17,.12,.14],side:[-1,1]},
-   {title:'NVLink 5 板间高速引出',sub:'单卡 1.8 TB/s 直通 2 颗 NVLink 5 交换芯片',pos:[.25,.11,.79],side:[1,1]}
+   {title:'NVLink 5 板间高速引出',sub:'单卡 1.8 TB/s 直通 2 颗 NVLink 5 交换芯片（NVSwitch）',pos:[.25,.11,.79],side:[1,1]}
   ],
   boundary:'10U 机箱规格、8×B200（1,440 GB HBM3e）、2 颗 NVLink 5 交换芯片（NVSwitch）、8×OSFP 与 6×3.3kW 电源依据 NVIDIA DGX B200 用户指南；散热塔与晶粒网格为教学示意。',
   wiki:[['hardware-devices','设备层级与互联对照'],['low-precision-formats','FP4 / FP8 低精度格式'],['tensor-parallel','张量并行基础']],
@@ -224,13 +224,13 @@ const MODELS={
   vendor:'nvidia',
   file:'gb200-nvl72',
   short:'GB200 NVL72',
-  tag:'1U 液冷直冷 · 2×Grace+4×B200',
-  badge:'1U 液冷超节点计算托盘',
+  tag:'1U 冷板直冷+辅风 · 2×Grace+4×B200',
+  badge:'1U 冷板直冷 + 外围风冷计算托盘',
   name:'NVIDIA GB200 NVL72 计算托盘',
   chip:'GPU',
   moduleNav:'液冷 B200',
   u:1,height:0.52,slots:18,cpu:2,dimm:0,fan:4,psu:2,drive:8,
-  accelSummary:'单托盘 2×Grace CPU + 4×B200 液冷冷板直冷',
+  accelSummary:'Grace + B200 冷板直冷（外围网卡/存储辅以风冷）',
   accelNodeLabel:'液冷 B200 模组 ×4',
   interconnectShort:'NVLink-C2C + 机柜 72 卡 NVLink 5 域',
   netShort:'前置 CX-7/BF-3',
@@ -241,18 +241,18 @@ const MODELS={
   coolingLabel:'DLC 冷板 + 辅助风冷',
   rackFacts:[['超节点编排','18 计算 + 9 交换'],['整柜 GPU','72 × B200'],['互联域带宽','130 TB/s NVLink']],
   serverFacts:[
-   ['托盘规格','1U 液冷冷板 + 辅助风冷'],['计算配置','2×Grace + 4×B200'],['C2C 带宽','900 GB/s NVLink-C2C'],
+   ['托盘规格','1U 冷板直冷 + 辅助风冷'],['计算配置','2×Grace + 4×B200'],['C2C 带宽','900 GB/s NVLink-C2C'],
    ['单托盘盲插','7.2 TB/s NVLink 5'],['主机内存','焊装 LPDDR5X'],['散热分工','CPU/GPU 液冷 · 网卡/存储风冷']
   ],
   dieTitle:'GB200 液冷模组与双光罩 B200 封装示意',
-  dieDesc:'抬起 1U 超薄微通道紫铜液冷板与金属均热盖，可见内部双光罩 B200 计算晶粒、中央 10 TB/s NV-HBI 桥接缝与两侧 8 颗 HBM3e 堆栈；Grace CPU 与 B200 GPU 由直接芯片液冷冷板（DLC）吸热，前置网卡与 E1.S 存储仍由托盘内部风扇辅助风冷。',
+  dieDesc:'抬起 1U 超薄微通道紫铜液冷板与金属均热盖，可见内部双光罩 B200 计算晶粒、中央 10 TB/s NV-HBI 桥接缝与两侧 8 颗 HBM3e 堆栈；Grace + B200 冷板直冷（外围网卡/存储辅以风冷）。',
   dieCallouts:[
    {title:'双光罩 B200 计算晶粒',sub:'与前仓 Grace CPU 经 900 GB/s C2C 互联',pos:[-.04,.13,-.12],side:[-1,-1]},
    {title:'NV-HBI 跨晶粒高速缝',sub:'10 TB/s 裸片间一致性互连',pos:[.04,.13,-.02],side:[1,-1]},
    {title:'8×HBM3e 显存堆栈',sub:'由 1U 微通道铜冷板统一覆盖导热',pos:[-.17,.12,.14],side:[-1,1]},
    {title:'盲插 NVLink 5 引出端',sub:'汇入机柜中置 9 台 NVLink Switch 托盘',pos:[.20,.10,-.58],side:[1,1]}
   ],
-  boundary:'18 台 1U 计算托盘（每台 2×Grace + 4×B200 液冷冷板直冷，网卡与 NVMe 存储由托盘风扇风冷）、中置 9 台 NVLink Switch 托盘、前置免滴漏快换头及背部盲插依据 NVIDIA DGX GB 机柜用户指南示意，非机房施工图。',
+  boundary:'18 台 1U 计算托盘（每台 2×Grace + 4×B200 冷板直冷，外围网卡与 NVMe 存储辅以托盘风扇风冷）、中置 9 台 NVLink Switch 托盘、前置免滴漏快换头及背部盲插依据 NVIDIA DGX GB200 用户指南示意，非机房施工图。',
   wiki:[['hardware-devices','超节点与单机边界对照'],['expert-parallel','大规模专家并行 EP'],['collective-communication','机柜级集合通信']],
   url:'https://www.nvidia.com/en-us/data-center/gb200-nvl72/'
  },
@@ -266,7 +266,7 @@ const MODELS={
   chip:'GPU',
   moduleNav:'PCIe 推理卡',
   u:4,height:1.75,slots:8,cpu:2,dimm:32,fan:8,psu:4,drive:10,
-  accelSummary:'4 张双槽 94GB PCIe 卡（两对三路 NVLink 桥接）',
+  accelSummary:'4 张双槽 94GB 卡 · 每对 2×94 GB（共 188 GB，按单卡与并行策略预算）',
   accelNodeLabel:'H100 NVL 双槽卡 ×4',
   interconnectShort:'成对 3 槽 NVLink 4 桥接 · 600 GB/s/对',
   netShort:'ConnectX-7 ×4',
@@ -277,17 +277,17 @@ const MODELS={
   rackFacts:[['机柜规格','42U'],['展示整机','8 台 (4U)'],['每机推理卡','4 张 (2 对桥接)']],
   serverFacts:[
    ['板卡形态','双槽全高全长 PCIe 5.0'],['单卡显存','94 GB HBM3 (6 栈全开)'],['单卡带宽','3.9 TB/s HBM3'],
-   ['双卡合池','188 GB / 对'],['桥接带宽','600 GB/s (3×NVLink 桥)'],['单卡功耗','350–400 W (12VHPWR)']
+   ['成对显存','每对 2×94 GB (共 188 GB)'],['桥接带宽','600 GB/s (3×NVLink 桥)'],['单卡供电','16-pin 12V-2x6 / 12VHPWR']
   ],
   dieTitle:'NVIDIA H100 NVL PCIe (94 GB 全栈 HBM3) 板卡示意',
-  dieDesc:'拆下双槽被动导流铝合金散热罩与均热盖，可见 PCIe 5.0×16 金手指、尾部 16-pin 供电座、顶部 3 组 NVLink 4 桥接金手指，以及启用全部 6 颗 HBM3 堆栈（94 GB、3.9 TB/s）的 GH100 CoWoS 封装。',
+  dieDesc:'拆下双槽被动导流铝合金散热罩与均热盖，可见 PCIe 5.0×16 金手指、尾部 16-pin 12V-2x6 / 12VHPWR 供电座、顶部 3 组 NVLink 4 桥接金手指，以及启用全部 6 颗 HBM3 堆栈（单卡 94 GB、3.9 TB/s；每对 2×94 GB 共 188 GB，按单卡与并行策略预算，非单一统一 GPU HBM 地址空间）的 GH100 CoWoS 封装。',
   dieCallouts:[
    {title:'GH100 计算晶粒 (8×GPC)',sub:'双槽 350–400W 推理调优频率与张量核',pos:[0,.12,-.10],side:[-1,-1]},
-   {title:'6×全启用 HBM3 堆栈',sub:'单卡满配 94 GB · 3.9 TB/s（双卡 188 GB）',pos:[.16,.11,-.21],side:[1,-1]},
+   {title:'6×全启用 HBM3 堆栈',sub:'每对 2×94 GB（共 188 GB，按单卡与并行策略预算）',pos:[.16,.11,-.21],side:[1,-1]},
    {title:'顶部 3 组 NVLink 4 金手指',sub:'跨接三槽桥接器提供 600 GB/s 双向带宽',pos:[.48,.05,-.10],side:[1,1]},
-   {title:'PCIe 5.0 ×16 + 12VHPWR',sub:'兼容标准企业风冷 Riser 仓与 16-pin 供电',pos:[-.48,.05,.20],side:[-1,1]}
+   {title:'PCIe 5.0 ×16 + 16-pin 供电',sub:'16-pin 12V-2x6 / 12VHPWR 与企业风冷 Riser 仓',pos:[-.48,.05,.20],side:[-1,1]}
   ],
-  boundary:'双槽 PCIe 5.0 形态、94 GB（6 栈 HBM3 全启用）、3.9 TB/s 显存带宽及每对 3 个 NVLink 桥接器（600 GB/s）依据 NVIDIA H100 NVL 官方规格；4U 整机为通用企业服务器承载示意。',
+  boundary:'双槽 PCIe 5.0 形态、单卡 94 GB（6 栈 HBM3 全启用，每对 2×94 GB 共 188 GB，按单卡与并行策略预算）、16-pin 12V-2x6 / 12VHPWR 供电及每对 3 个 NVLink 桥接器（600 GB/s）依据 NVIDIA H100 NVL 官方规格；4U 整机为通用企业服务器承载示意。',
   wiki:[['hardware-devices','PCIe 标卡与模组形态对照'],['pipeline-parallel','流水线并行与跨对通信']],
   url:'https://www.nvidia.com/en-us/data-center/h100/'
  }

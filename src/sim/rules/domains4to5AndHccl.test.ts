@@ -46,6 +46,34 @@ describe("Domain 4: CP Three Routes & PD Disaggregation Constraints", () => {
       "v0.30.0",
     );
     expect(validMla.some((m) => m.ruleId === "d4-pcp-dcp-sizing")).toBe(false);
+
+    // GQA (tp // numKvHeads) % dcp !== 0: 48Q / 4KV at TP=24 (kvReplicas=6) with DCP=4 -> 6 % 4 !== 0 -> error
+    const nonDivisibleKvReplica = evaluateDomain4Rules(
+      { tpSize: 24, pcpSize: 1, dcpSize: 4, useMla: false, numAttentionHeads: 48, numKvHeads: 4 },
+      "v0.30.0",
+    );
+    expect(
+      nonDivisibleKvReplica.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error"),
+    ).toBe(true);
+
+    // Missing mandatory kv_role when kv_connector is set -> error citing L130-L140
+    const missingRole = evaluateDomain4Rules({ kvConnector: "MooncakeConnectorV1" }, "v0.30.0");
+    const missingRoleMatch = missingRole.find(
+      (m) => m.ruleId === "d4-kv-connector-missing-kv-role" && m.judgment === "error",
+    );
+    expect(missingRoleMatch).toBeDefined();
+    expect(missingRoleMatch?.sources).toContain("vllm@ced6857a:vllm/config/kv_transfer.py#L130-L140");
+
+    // Case-sensitive kv_role literal check: uppercase "KV_PRODUCER" must also error citing L130-L140
+    const upperRole = evaluateDomain4Rules(
+      { kvConnector: "MooncakeConnectorV1", kvRole: "KV_PRODUCER" as unknown as "kv_producer" },
+      "v0.30.0",
+    );
+    const upperRoleMatch = upperRole.find(
+      (m) => m.ruleId === "d4-kv-connector-missing-kv-role" && m.judgment === "error",
+    );
+    expect(upperRoleMatch).toBeDefined();
+    expect(upperRoleMatch?.sources).toContain("vllm@ced6857a:vllm/config/kv_transfer.py#L130-L140");
   });
 
   it("enforces MooncakeConnectorV1 D-node PP=1, PCP=1, TP_P%TP_D==0, and GQA+C8 rules", () => {

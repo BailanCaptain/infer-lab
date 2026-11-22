@@ -77,9 +77,9 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-在昇腾（Ascend）上把一个模型跑通并提供服务，不是直接装一个最新包再敲 `vllm serve` 就完事。因为推理框架、插件层、底层计算栈和芯片卡型彼此咬合，上线新模型必须先按顺序走通四道关：锁死五维环境配套、辨别活跃模型食谱与停服桩、确认模型类由谁提供，最后按代际芯片挑对权重（模型训练后保存的数值参数）格式与最小启动开关。
+在昇腾（Ascend）上把一个模型跑通并提供服务，不是装好最新包再敲 `vllm serve` 就完事。由于推理框架、插件层、底层计算栈和芯片卡型彼此咬合，上线新模型须按顺序走通四道关：锁死五维环境配套、辨别活跃模型食谱与停服桩、确认模型类由谁提供，最后按代际芯片挑对权重（模型训练后保存的数值参数）格式与最小启动开关。
 
-本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 作为标准主基线，用两个常见教学标尺贯穿说明：`Qwen3-8B`（Dense GQA，即多个查询头共享一个键值头的标准密集模型）和 `Qwen3-30B-A3B`（MoE，即每个输入 token 仅激活部分前馈专家的混合专家模型）。
+本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，贯穿两个教学标尺：`Qwen3-8B`（Dense GQA，多个查询头共享一个键值头的密集模型）和 `Qwen3-30B-A3B`（MoE，每个输入 token 仅激活部分前馈专家的混合专家模型）。
 
 ## 上线一个新模型之前，先走通哪四道关？
 
@@ -94,7 +94,7 @@ file: onboarding-four-gates
 | 关卡 | 要回答的核心问题 | 不对齐的典型后果 |
 |---|---|---|
 | 第一关：五维版本锁死 | 我的 `vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与硬件卡型是否严丝合缝？ | 导入缺符号、`pip` 装错卡型包，或 Worker 启动检查直接抛 `RuntimeError` |
-| 第二关：支持矩阵与食谱 | 目标模型在 `v0.30.0` 是 25 篇活跃食谱之一还是 27 篇停服桩？先读食谱安装节核对是否注明专属镜像标签、`not yet been merged` 或 `nightly-main`，以确认能否直接用 `v0.30.0` 正式标准镜像 | 照着已停服页面或 `GLM5.md` 里停服型号调参踩中废弃分支；或拿 `v0.30.0` 正式包去跑需要专属镜像/未合入代码的模型而失败 |
+| 第二关：支持矩阵与食谱 | 目标模型是活跃食谱还是停服桩？能否直接跑 `v0.30.0` 正式标准镜像？ | 误照停服文档或已停服型号调参，或拿正式标准镜像去跑专属镜像模型而失败 |
 | 第三关：模型代码从哪来 | `vllm serve` 会命中上游内置类、`vllm-ascend` 专有/覆写类，还是回退 `transformers`？ | 报不支持该架构（`ValueError`），或漏开远程代码信任与配置覆盖开关 |
 | 第四关：权重选型与转换 | 选浮点、`ModelSlim`、`LLM-Compressor` 还是原生分块 `FP8`？加载期会怎样改写？ | `310P` 用 `BF16` 或原生 `FP8` 失败，或原生 `FP8` 在 A2/A3 上静默反量化成 `BF16` 导致显存翻倍 |
 
@@ -102,7 +102,12 @@ file: onboarding-four-gates
 
 `vllm-ascend` 不是一份独立的推理引擎，而是挂在 `vllm` 之外的平台插件（详见 [vLLM-Ascend 概览](vllm-ascend-overview.md)）。它一头调用 `vllm` 的调度与引擎接口，另一头通过编译好的 C++/AscendC 算子和 PyTorch 昇腾扩展（`torch_npu`）去驱动 **CANN**（昇腾底层软件栈，提供运行时、算子、图编排和集合通信能力）与具体 **NPU**（昇腾计算处理器）。
 
-这五条线——`vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与 **硬件卡型**——必须同时锁死在同一发布基线上。原因有两个：第一，Python 接口与算子二进制接口（ABI）跨版本极易不兼容；第二，安装包装好以后，编译器会把目标卡型写死进 `vllm_ascend/_build_info.py` 的 `__device_type__`，等负责初始化设备和执行计算的 **Worker**（工作进程，`NPUWorker`）启动时，`NPUWorker.__init__` 会立刻调用 `check_ascend_device_type()`，读取运行时 `torch_npu.npu.get_soc_version()` 并与安装时的卡型比对——只要两者对不上，进程在加载模型权重之前就会直接抛出 `RuntimeError` 退出（Worker 完整六步启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）。下图以立体拆解剖面配合中文引线直标，把四层软件栈、启动期 SoC 校验门禁与右侧四大硬件族的对应关系对应到同一张视图上：
+这五条线——`vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与 **硬件卡型**——必须同时锁死在同一发布基线上，原因有二：
+
+- **接口与 ABI 强绑定**：Python 接口与算子二进制接口（ABI）跨版本极易不兼容。
+- **启动期卡型硬校验**：安装包构建时会把目标卡型写死进 `vllm_ascend/_build_info.py` 的 `__device_type__`。负责执行计算的 **Worker**（`NPUWorker`）启动时，`NPUWorker.__init__` 会立刻调用 `check_ascend_device_type()`，读取 `torch_npu.npu.get_soc_version()` 与安装卡型比对；两者不符时在加载权重前直接抛出 `RuntimeError` 退出（Worker 六步启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）。
+
+下图以立体拆解剖面配合中文引线直标，把四层软件栈、启动期 SoC 校验门禁与右侧四大硬件族的对应关系对应到同一张视图上：
 
 ```wiki-diagram
 file: onboarding-plate-five-dims
@@ -149,21 +154,21 @@ file: onboarding-fig-recipes-funnel
 
 ### 先看支持矩阵图例，再识破「52 篇食谱」陷阱
 
-`supported_models.md` 用五种状态标记模型和特性成熟度：`✅ Supported`（正式支持）、`🔵 Experimental`（实验支持，部分特性或卡型可能受限）、`🟡 Unverified`（未完整验证）、`🔴 Unmaintained`（不再维护）以及 `❌ Unsupported`（明确不支持，例如 `Atlas 300I DUO` 表中的 `BF16` 列）。
+`supported_models.md` 用五种状态标记模型成熟度：`✅ Supported`（正式支持）、`🔵 Experimental`（实验支持，部分特性或卡型受限）、`🟡 Unverified`（未完整验证）、`🔴 Unmaintained`（不再维护）和 `❌ Unsupported`（明确不支持，如 `Atlas 300I DUO` 表中的 `BF16` 列）。
 
-新手最容易踩的坑出现在教程目录里：`v0.30.0` 仓库的 `docs/source/tutorials/models/` 下共有 `52` 篇模型文档（另加目录索引 `index.md`），但其中**只有 `25` 篇是活跃食谱**，其余 **`27` 篇全都是只有 3 行的停服桩（Discontinued stub）**！每篇停服桩点进去只有三行内容：一行 `# 模型名` 标题、一行空行，加上一句提示：
+新手最容易踩的坑在教程目录里：`v0.30.0` 的 `docs/source/tutorials/models/` 下共有 `52` 篇模型文档（另加 `index.md`），但其中**只有 `25` 篇是活跃食谱**，其余 **`27` 篇全是只有 3 行的停服桩（Discontinued stub）**。每篇停服桩点进去只有三行内容：一行 `# 模型名` 标题、一行空行，以及一句停服提示：
 
 > `This model has been discontinued since vLLM Ascend v0.30.0 and will no longer receive support or fixes in subsequent versions.`
 
-并附带跳回 `v0.23.0` 历史文档的链接。如果在 `supported_models.md` 里看到 `🔴 Unmaintained`，或者点进教程看到上述三行停服声明，就说明该模型已退出 `v0.30.0` 主基线维护，不应把旧文档的命令拿来当成当前基线的支持依据。
+停服桩末尾只附带跳回 `v0.23.0` 历史文档的链接。只要在 `supported_models.md` 看到 `🔴 Unmaintained` 或点进教程看到上述三行声明，就说明该模型已退出 `v0.30.0` 维护，不能把旧命令当成当前基线的支持依据。
 
 ### 特别提醒：`GLM5.md` 的「同文件分叉」陷阱
 
-还要格外注意 `GLM5.md`（标题 `# GLM-5 & GLM-5.1`）这份文件：它虽然属于 25 篇活跃食谱之一，但文件第 11 行明确声明 **`GLM-5` 自 `vLLM Ascend v0.30.0` 起已停服**（对应支持矩阵中的 `🔴`），而紧接着从第 13 行起介绍的 **`GLM-5.1`** 才是 `v0.30.0` 正式支持的活跃模型（对应支持矩阵中的 `✅`）。换句话说，看到 `GLM5.md` 还在仓库里，并不代表 `GLM-5` 仍然受支持。至于同样在 `v0.30.0` 保持活跃的 `GLM5.3-Flash.md`，本站另有一条双机 16 卡历史绑定算例在 [GLM-5.3-Flash 模型结构](glm-5-3-flash.md) 中展开，阅读时注意区分所属基线版本。
+还要格外注意 `GLM5.md`（标题 `# GLM-5 & GLM-5.1`）：它虽属于 25 篇活跃食谱，但第 11 行明确声明 **`GLM-5` 自 `vLLM Ascend v0.30.0` 起已停服**（支持矩阵标 `🔴`）。从第 13 行起介绍的 **`GLM-5.1`** 才是 `v0.30.0` 正式支持的活跃模型（标 `✅`）。看到 `GLM5.md` 仍在仓库里，并不代表 `GLM-5` 受支持；至于同属活跃食谱的 `GLM5.3-Flash.md`，本站另有一条双机 16 卡历史绑定算例在 [GLM-5.3-Flash 模型结构](glm-5-3-flash.md) 中展开，阅读时须区分基线版本。
 
 ### `v0.30.0` 全部 25 篇活跃模型食谱分类清单
 
-下面列出 `vllm-ascend v0.30.0` 中经核对仍处于活跃状态的全部 **25 篇模型食谱**。其中 **20 篇**可直接使用 `v0.30.0` 正式标准镜像，另有 **5 篇**在食谱安装节明确依赖模型专属镜像、`nightly-main` 或尚未合入主仓的代码（下表「镜像与合入状态」列已逐一标出，拉取镜像前务必先核对食谱安装节；具体多机并行命令仍以各自食谱正文为准）：
+下面列出 `vllm-ascend v0.30.0` 中全部 **25 篇活跃模型食谱**。其中 **20 篇**可直接使用 `v0.30.0` 正式标准镜像；另有 **5 篇**在食谱安装节注明专属镜像标签、`not yet been merged` 或 `nightly-main` 依赖。拉取镜像前务必先读食谱安装节核对这两点，再确认能否直接跑 `v0.30.0` 正式标准镜像（下表「镜像与合入状态」列已逐一标出，多机并行命令以各自食谱正文为准）：
 
 #### 1. 文本密集（Dense）与混合专家（MoE）主干模型（16 篇）
 
@@ -202,7 +207,7 @@ file: onboarding-fig-recipes-funnel
 
 ## 第三关：`vllm serve` 怎么找到模型实现？三条支持路径分清楚
 
-当你把模型目录或仓库 ID 交给 `vllm serve` 后，vLLM 不会直接猜模型结构，而是先读取模型目录下的 `config.json`（如果命令行传入了 `--hf-overrides`，会先在内存中覆盖 `architectures`、`model_type` 等字段，而不改动磁盘文件），拿到 `architectures` 列表后交给 `ModelRegistry` 按以下三条路径依次解析出要实例化的模型类：
+把模型目录或仓库 ID 交给 `vllm serve` 后，vLLM 不会猜模型结构，而是先读目录下的 `config.json`。若命令行传入了 `--hf-overrides`，会先在内存中覆盖 `architectures`、`model_type` 等字段而不改磁盘文件；随后把 `architectures` 列表交给 `ModelRegistry`，按以下三条路径依次解析模型类：
 
 ```wiki-diagram
 file: onboarding-model-registry-routing
@@ -210,13 +215,13 @@ file: onboarding-model-registry-routing
 
 把这三条路径分清，就能解释为什么“有的新模型一发布就能直接跑，有的却必须等 `vllm-ascend` 发新版本”：
 
-- **路径 A（上游 `vllm` 原生内置）**：像 `Qwen3-8B` 对应的 `Qwen3ForCausalLM`、`Qwen3-30B-A3B` 对应的 `Qwen3MoeForCausalLM`，模型定义已经写在上游 `vllm` 的 `_TEXT_GENERATION_MODELS` 里，`vllm_ascend/models/` 下不需要再写一份同名模型。它们能直接在昇腾运行，靠的是 `NPUPlatform` 在插件发现阶段（见 [插件发现与模型注册](platform-plugin-registration.md) 与 [NPUPlatform](npu-platform.md)）接入的注意力后端、自定义算子和平台适配契约（见 [vLLM 平台接口](vllm-platform-interface.md)）。
-- **路径 B（`vllm-ascend` 专有注册或覆写）**：`vllm-ascend` 通过 `setup.py` 的通用插件入口 `ascend_model = vllm_ascend:register_model`，在 Worker 和引擎进程中把 `29` 个架构名注册进 `ModelRegistry`。它干两件事：一是把上游尚未内置或高度定制的昇腾实现挂上去（例如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 以及对应的 MTP/DSpark/EAGLE3 草稿模型）；二是**故意覆写上游同名条目**——例如 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration`，虽然上游已有注册，但昇腾为了把图像 resize/patchify 与归一化搬到 NPU 上执行，会通过后注册直接替换掉上游映射。
-- **路径 C（`transformers` 回退与配置微调）**：当架构名既不在 `vllm-ascend` 也不在 `vllm` 注册表中、且模型处于常规生成路径时，默认的 `--model-impl auto` 会尝试走 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可以传 `--model-impl transformers` 强制指定）。如果仓库里自带自定义 Python 建模文件（通过 `config.json` 里的 `auto_map` 指定），还必须显式传入 `--trust-remote-code`，否则配置或模型代码加载会被安全策略拦下；若新发布的兼容变体只是把 `architectures` 换了个名字，可以用 `--hf-overrides '{"architectures":["..."]}'` 做运行时改名验证。
+- **路径 A（上游 `vllm` 原生内置）**：像 `Qwen3-8B` 对应的 `Qwen3ForCausalLM`、`Qwen3-30B-A3B` 对应的 `Qwen3MoeForCausalLM`，模型定义已在上游 `vllm` 的 `_TEXT_GENERATION_MODELS` 里，`vllm_ascend/models/` 下无需重写同名模型。它们能在昇腾直接跑，靠的是 `NPUPlatform` 在插件发现阶段（见 [插件发现与模型注册](platform-plugin-registration.md) 与 [NPUPlatform](npu-platform.md)）接入的注意力后端、自定义算子和平台契约（见 [vLLM 平台接口](vllm-platform-interface.md)）。
+- **路径 B（`vllm-ascend` 专有注册或覆写）**：`vllm-ascend` 通过 `setup.py` 的插件入口 `ascend_model = vllm_ascend:register_model`，在 Worker 和引擎进程中把 `29` 个架构名注册进 `ModelRegistry`。一是挂上上游尚未内置或高度定制的昇腾实现（如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 及对应草稿模型）。二是**故意覆写上游同名条目**——例如 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration`，昇腾为了把图像 resize/patchify 与归一化搬到 NPU 执行，会通过后注册替换上游映射。
+- **路径 C（`transformers` 回退与配置微调）**：若架构名不在两仓注册表中且处于常规生成路径，默认 `--model-impl auto` 会尝试走 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可传 `--model-impl transformers` 强制指定）。仓库自带自定义建模文件（`config.json` 里的 `auto_map`）时，必须传 `--trust-remote-code`，否则会被安全策略拦下。若兼容变体只是换了架构名，可用 `--hf-overrides '{"architectures":["..."]}'` 运行时改名验证。
 
 ## 第四关：权重格式怎么选？不同卡型在加载期会做什么转换
 
-确认模型代码能解析之后，下一步是挑一份和目标硬件匹配的权重（checkpoint）。在 `vllm-ascend v0.30.0` 中，`NPUPlatform.check_and_update_config` 会在读盘前自动调用 `maybe_auto_detect_quantization()`：如果你没有显式传 `--quantization`，它会按固定优先级检查模型目录，决定按哪条 **quantization**（量化，即用低比特数值与缩放系数表示权重或激活以节省显存和带宽的方法，原理见 [量化](quantization.md)）或浮点路径加载。下图以立体拆解剖面配合引线直标，展示左侧四级探测门禁与右侧三类硬件代际在加载期的转换分叉：
+确认模型代码能解析后，下一步是挑一份和目标硬件匹配的权重（checkpoint）。在 `vllm-ascend v0.30.0` 中，`NPUPlatform.check_and_update_config` 会在读盘前自动调用 `maybe_auto_detect_quantization()`。若未显式传 `--quantization`，它会按固定优先级检查模型目录，自动决定 **quantization**（量化，用低比特数值与缩放系数表示权重或激活以省显存和带宽的方法，见 [量化](quantization.md)）或浮点加载路径。下图以立体拆解剖面配合引线直标，展示左侧四级探测门禁与右侧三类硬件代际的加载期转换分叉：
 
 ```wiki-diagram
 file: onboarding-plate-weight-fork
@@ -235,17 +240,17 @@ file: onboarding-plate-weight-fork
 
 ### 重点避坑：原生分块 `FP8` 在 `A2/A3` 与 `950DT` 的行为分叉
 
-现在开源社区越来越多模型直接以原生分块 `FP8`（每块权重存成 1 字节的 `float8_e4m3fn` 配一个 `float32` 块缩放系数）发布。很多初学者看到磁盘文件只有 `BF16` 一半大，就以为放到 **Atlas A2 / A3** 上也能省一半 **显存（HBM）**。在 `v0.30.0` 里这是非常危险的误判，源码按硬件代际分成三条截然不同的路：
+越来越多开源模型直接以原生分块 `FP8`（每块权重存成 1 字节 `float8_e4m3fn` 配一个 `float32` 块缩放系数）发布。初学者常误以为磁盘文件只有 `BF16` 一半大，放到 **Atlas A2 / A3** 上也能省一半 **显存（HBM）**。在 `v0.30.0` 里这是危险误判，源码按硬件代际分成了三条路：
 
-- **在 `Ascend 950（is_950() 为真）` 上**：`fp8_block.py` 在加载后处理阶段（`process_weights_after_loading`）会先解出分块权重再在线重分组量化为 **MXFP8**（每元素仍占 `1` 字节，配套 `E8M0` 微缩放系数，调用原生 `FP8` 矩阵乘）。只有两个局部例外会回退成 `model_dtype`（通常为 `BF16`）：一是被注意力后端吸收合并的 MLA `kv_b_proj` 层，二是归约维度（输入特征数 `in_features`）不能被 `MXFP8` 组大小 `32` 整除的线性层。
-- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：`fp8_block.py` 会直接调用 `resolve_block_scales()`，在加载期把所有分块 `FP8` 权重**静默反量化回 `model_dtype`（通常就是 `BF16`）**，然后用 `BF16` 矩阵乘执行！计算结果和原模型等价，但驻留显存的权重大小会直接翻倍到约 **2 字节/参数**。
-- **在 `Atlas 300I DUO（310P）` 上**：硬件能力档案将 `quantization_backend_family` 设为 `COMPATIBILITY`，`NPUPlatform` 只导入 `AscendModelSlimConfig310` 而**不注册 `AscendFp8Config`**，因此不支持直接加载原生 `FP8` 权重；在 `310P` 上应选浮点权重配 `--dtype float16` 或专用 `W8A8-310P` 量化权重。
+- **在 `Ascend 950（is_950() 为真）` 上**：`fp8_block.py` 在加载后处理（`process_weights_after_loading`）会先解出分块权重，再在线重分组量化为 **MXFP8**（每元素仍占 `1` 字节，配 `E8M0` 微缩放系数，走原生 `FP8` 矩阵乘）。只有两处局部回退 `model_dtype`（通常 `BF16`）：一是被注意力后端吸收的 MLA `kv_b_proj` 层，二是输入维 `in_features` 不能被 `32` 整除的线性层。
+- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：`fp8_block.py` 调用 `resolve_block_scales()`，在加载期把分块 `FP8` 权重**静默反量化回 `model_dtype`（通常 `BF16`）**，再走 `BF16` 矩阵乘。计算结果等价，但驻留显存权重直接翻倍到约 **2 字节/参数**。
+- **在 `Atlas 300I DUO（310P）` 上**：硬件能力档案将 `quantization_backend_family` 设为 `COMPATIBILITY`，`NPUPlatform` 只导入 `AscendModelSlimConfig310` 而**不注册 `AscendFp8Config`**，不支持加载原生 `FP8`。在 `310P` 上应选浮点权重配 `--dtype float16`，或专用 `W8A8-310P` 量化权重。
 
-举个最小示意账（仅作容量估算示意，不含 KV cache（保存历史位置中间表示的缓存）、图模式工作区与分段冗余）：一份磁盘体积约 30 GB 的 30B 级原生分块 `FP8` 权重，放到 `950DT` 上重排成 `MXFP8` 后驻留权重依然接近 30 GB（1 字节/参数加少量缩放系数）；但放到 `Atlas A2 / A3` 上加载完之后，权重会膨胀到约 60 GB（2 字节/参数），如果单卡或四卡总可用显存没按 `BF16` 翻倍预留，显存探测阶段就会直接溢出失败。
+举个最小示意账（仅作容量估算示意，不含 KV cache（保存历史位置中间表示的缓存）、图模式工作区与分段冗余）：一份磁盘约 30 GB 的 30B 级原生分块 `FP8` 权重，放到 `950DT` 上重排成 `MXFP8` 后驻留权重仍接近 30 GB（1 字节/参数加少量缩放系数）。放到 `Atlas A2 / A3` 加载后则会膨胀到约 60 GB（2 字节/参数）；若总可用显存未按 `BF16` 翻倍预留，显存探测阶段就会直接溢出失败。
 
 ## 拿 `Qwen3-8B` / `Qwen3-30B-A3B` 走一遍最小上线检查单
 
-按前四关核对无误后，可以用下面这套三步最小流水线在真实环境里验证“装得对、找得到模型、服务能吐字”。如果机器无法访问 HuggingFace，启动前导出 `export VLLM_USE_MODELSCOPE=True` 即可切换 ModelScope 拉取模型；若需覆盖底层昇腾高级选项，可用 `--additional-config` 传入 JSON（三路配置优先级见 [Ascend 配置体系](ascend-config-system.md)）：
+按前四关核对无误后，可用下面三步最小流水线验证“装得对、找得到模型、服务能吐字”。若机器无法直连 HuggingFace，启动前导出 `export VLLM_USE_MODELSCOPE=True` 即可改从 ModelScope 拉取；需要覆盖昇腾高级选项时，可用 `--additional-config` 传入 JSON（三路配置优先级见 [Ascend 配置体系](ascend-config-system.md)）：
 
 ```wiki-diagram
 file: onboarding-fig-smoke-checklist
@@ -260,7 +265,7 @@ file: onboarding-fig-smoke-checklist
 
 ### 2. 最小化 `vllm serve` 启动示例
 
-以下以 **Atlas A2/A3** 运行标准 `Qwen3-8B`（Dense）与 `Qwen3-30B-A3B`（MoE）为例（均采用 `FULL_DECODE_ONLY` 图捕获模式，即仅对 decode 阶段启用完整图模式）；若换到 **Atlas 300I DUO（`310P`）**，必须在命令行补上 `--dtype float16`、限定 `cudagraph_capture_sizes` 并显式关闭 `npugraph_ex`：
+以下以 **Atlas A2/A3** 运行标准 `Qwen3-8B`（Dense）与 `Qwen3-30B-A3B`（MoE）为例，均采用 `FULL_DECODE_ONLY`（仅对 decode 阶段启用完整图捕获）。若换到 **Atlas 300I DUO（`310P`）**，必须在命令行补上 `--dtype float16`、限定 `cudagraph_capture_sizes` 并显式关闭 `npugraph_ex`：
 
 ```bash
 # 示例 A：Atlas A2/A3 单卡启动 Qwen3-8B（未量化 BF16 基线；内置架构无需 --trust-remote-code，仅第三关含 auto_map 时才加）
@@ -314,7 +319,7 @@ file: onboarding-fig-five-myths
 - **「装最新版 `vllm` 配最新版 `vllm-ascend` 就行，不用管 `CANN` 和 `torch_npu`」**：错。`vllm-ascend` 强绑定特定 `CANN`、`torch_npu` 和 `triton-ascend` 版本，混装常见结果是导入缺符号、算子找不到或容器与宿主机驱动不匹配。
 - **「`tutorials/models/` 下有 52 个文件，说明 `v0.30.0` 支持这 52 个模型」**：错。其中 `27` 篇是只有 3 行的停服桩，只有 `25` 篇是活跃食谱；而且 `GLM5.md` 内部也是混合写法——`GLM-5` 已在文件开头标为停服，只有 `GLM-5.1` 在 `v0.30.0` 仍活跃。
 - **「直接 `pip install vllm-ascend` 就能跑在所有昇腾卡上」**：错。默认预编译 wheel 仅锁定 `Atlas A2`；跑在 `A3`、`310P` 或 `950DT` 上时，`NPUWorker.__init__` 的 `check_ascend_device_type()` 会在启动时直接报 `RuntimeError`。
-- **「原生 `FP8` 模型在 `A2/A3` 上也能按 1 字节/参数省显存」**：错。`v0.30.0` 只在 `Ascend 950` 上将分块 `FP8` 重组为 `MXFP8`（排除被吸收的 `kv_b_proj` 和归约维非 32 倍数的层）；在 `A2/A3` 上会在加载期静默反量化回 `BF16`，驻留权重显存按约 2 字节/参数计算，而 `310P` 走 `COMPATIBILITY` 后端不注册 `AscendFp8Config`，不支持原生 `FP8`。
+- **「原生 `FP8` 模型在 `A2/A3` 上也能按 1 字节/参数省显存」**：错。`v0.30.0` 只在 `Ascend 950` 上把分块 `FP8` 重组为 `MXFP8`（排除被吸收的 `kv_b_proj` 和归约维非 32 倍数的层）。在 `A2/A3` 上加载期会静默反量化回 `BF16`（约 2 字节/参数），而 `310P` 走 `COMPATIBILITY` 后端不注册 `AscendFp8Config`，不支持原生 `FP8`。
 - **「报架构不支持一定是硬件不行，重装驱动就能好」**：错。报错先分清卡在第三关的 `ModelRegistry` 解析（`--model-impl`、`--trust-remote-code`、`--hf-overrides` 或插件版本），还是第四关的量化/数据类型限制（例如 `310P` 拒收 `BF16` 或非分块 `FP8` 缺少执行路径）。
 
 ## 对照源码

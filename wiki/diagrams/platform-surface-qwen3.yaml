@@ -1,0 +1,35 @@
+layout: figure
+id: platform-surface-qwen3
+caption: v0.30.0（c09d3e20）中 NPUPlatform 在标准 Qwen3 启动时做的三件事：先结合 HardwareProfile（A2 / A3 / 310P）校验配置组合；再就地写回默认 Worker / Runner（V1 或可选 MRV2）、同构 block_size = 128 与图捕获预算；最后在构建全部 Qwen3 层时统一答复 AscendAttentionBackend（无需异构层私有后端绕行）。
+size: [900, 510]
+items:
+  - { at: [24, 66], size: [264, 60], text: '汇总 CLI 与 Qwen3 配置', sub: 'VllmConfig 进入 NPUPlatform', tone: control }
+  - { at: [24, 152], size: [264, 60], text: '一、硬件画像与组合校验', sub: 'HardwareProfile 识别芯片能力', tone: danger }
+  - { at: [24, 250], size: [264, 64], text: '二、平台默认值就地写回', sub: 'check_and_update_config 改写配置', tone: control }
+  - { at: [24, 366], size: [264, 60], text: '三、建层时统一答复后端', sub: 'get_attn_backend_cls 查表返回', tone: token }
+  - { at: [396, 146], size: [248, 54], text: '不兼容参数组合：直接报错', sub: '在建通信组与载权重前拦截', tone: danger }
+  - { at: [396, 218], size: [248, 54], text: '选定 Worker 与 Runner', sub: '默认 NPUWorker（可选 MRV2）', tone: weight }
+  - { at: [396, 286], size: [248, 54], text: '写回默认 block_size = 128', sub: '单一同构块长，无 640 大页改写', tone: kv }
+  - { at: [668, 252], size: [208, 54], text: '定图档位与捕获上限', sub: '默认封顶 512，配融合器', tone: control, style: plain }
+  - { at: [396, 369], size: [480, 54], text: '全 36 / 48 层统一绑定 AscendAttentionBackend', sub: '标准 GQA 全层走平台标准表，无异构层自带私有后端', tone: token }
+links:
+  - { from: [156, 126], to: [156, 152], tone: control }
+  - { from: [156, 212], to: [156, 250], tone: control }
+  - { from: [156, 314], to: [156, 366], tone: token }
+  - { from: [288, 182], to: [396, 173], via: [[340, 182], [340, 173]], tone: danger }
+  - { from: [288, 270], to: [396, 245], via: [[340, 270], [340, 245]], tone: weight }
+  - { from: [288, 292], to: [396, 313], via: [[340, 292], [340, 313]], tone: kv }
+  - { from: [644, 245], to: [668, 279], via: [[656, 245], [656, 279]] }
+  - { from: [288, 396], to: [396, 396], tone: token }
+texts:
+  - { at: [24, 34], text: 'NPUPlatform 启动期三步接管（v0.30.0 标准 Qwen3 路径）', strong: true }
+  - { at: [450, 474], text: '命令行未显式指定时由平台补齐默认值；校验与就地改写在同一入口依序完成', anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L285
+    symbols: [get_attn_backend_cls, AscendAttentionBackend]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L520
+    symbols: [check_and_update_config]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1363-L1375
+    symbols: [worker_cls, refresh_block_size]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L218-L240
+    symbols: [HardwareProfile, default_worker_cls]

@@ -1,0 +1,35 @@
+layout: figure
+id: attention-backend-choice-qwen3
+caption: 同构标准模型（Qwen3-8B 全 36 层 GQA）与异构混合模型的注意力后端分派对比：Qwen3-8B 全模型统一走 AscendAttentionBackend、每步只建 1 份 AscendMetadata，再按批次形态调用 FIA 或 PA 算子；异构混合模型才需按层拆分多类后端与额外状态缓存。
+size: [900, 460]
+frames:
+  - { at: [18, 52], size: [864, 198], label: '1. 同构标准路径（Qwen3-8B：全 36 层 32Q:8KV GQA，d_h = 128）' }
+  - { at: [18, 284], size: [864, 146], label: '2. 对比：异构混合模型（如线性注意力 + 稀疏 MLA 交替层）' }
+items:
+  - { at: [36, 98], size: [176, 72], text: 全部 36 层 GQA, sub: 层间头数与块长全同, tone: weight, depth: 3 }
+  - { at: [242, 98], size: [204, 72], text: 统一选定同一后端, sub: AscendAttentionBackend, tone: control }
+  - { at: [476, 98], size: [176, 72], text: 共用 1 份元数据, sub: AscendMetadata 单块表, tone: kv }
+  - { at: [682, 74], size: [182, 54], text: Prefill / 混合批：FIA, sub: 变长因果注意力核函数, tone: token }
+  - { at: [682, 144], size: [182, 54], text: 纯 Decode 批：PA / FIA, sub: 按块表直读历史键值, tone: token }
+  - { at: [36, 326], size: [220, 68], text: 不同层挂不同注意力类, sub: 线性递推层 vs 稀疏 MLA 层, tone: control, style: faded }
+  - { at: [306, 326], size: [250, 68], text: 每步分别构建多份元数据, sub: 递推状态索引 + 分页块表 + 选块索引, tone: kv, style: faded }
+  - { at: [606, 326], size: [258, 68], text: 逐层切到各自专用设备算子, sub: 额外维护索引器缓存或卷积状态池, tone: comm, style: faded }
+links:
+  - { from: [212, 134], to: [242, 134], tone: weight }
+  - { from: [446, 134], to: [476, 134], tone: control }
+  - { from: [652, 120], to: [682, 101], via: [[667, 120], [667, 101]], tone: kv }
+  - { from: [652, 148], to: [682, 171], via: [[667, 148], [667, 171]], tone: kv }
+  - { from: [256, 360], to: [306, 360], dashed: true }
+  - { from: [556, 360], to: [606, 360], dashed: true }
+texts:
+  - { at: [450, 22], text: '注意力后端选择：Qwen3-8B 全层统一后端 vs 异构模型逐层分流', anchor: middle, strong: true }
+  - { at: [36, 226], text: '同构模型 36 层共享同一套 slot_mapping 与 block_table，0 份额外状态池', size: 13.5, note: true }
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L285
+    symbols: [get_attn_backend_cls, AscendAttentionBackend]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L163-L195
+    symbols: [AscendMetadata]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L527-L545
+    symbols: [AscendAttentionBackendImpl]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1255-L1275
+    symbols: [forward_paged_attention, forward_fused_infer_attention]

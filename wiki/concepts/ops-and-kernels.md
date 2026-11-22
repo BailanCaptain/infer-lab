@@ -3,9 +3,9 @@ id: ops-and-kernels
 title: 算子与 kernel：从数学语义到设备实现
 type: feature
 summary: >-
-  模型里的一次运算怎样经框架替换表、量化方法或模型自己的调用，落到 torch_npu 已有算子或仓库自编译扩展，再经 CANN 下发成设备
-  kernel；并沿 GLM 双机的一层列出各站的实际算子。
-  另解释 IR 怎样按参数选择实现，以及它与 Ascend 类替换和原地复用的关系。
+  模型里的一次运算怎样经框架替换表、量化方法或注意力后端落到 torch_npu 与自编译扩展，再经 CANN 下发成设备 kernel。本页先以
+  v0.30.0 标准 Qwen3 走通 CustomOp、ACLGraph 与 npugraph_ex 执行路径选择，再解释上游 IR
+  优先级与原地复用，最后沿历史 GLM 双机列出逐站算子。
 aliases:
   - ops
   - register_ascend_customop
@@ -182,19 +182,27 @@ rawSources:
 file: ops-layers
 ```
 
-图里第二层的三条路，是 vllm-ascend 换实现的三种办法，它们最终都落到第三层的两类算子上：一类是随 torch_npu（把 PyTorch 接到昇腾软件栈的那层）发布的成熟算子，另一类是这个仓库自己用 AscendC 写、随镜像编译出来的扩展算子。
+图里第二层的三条路，是 `vllm-ascend` 换实现的三种办法，它们最终汇入第三层的两类算子：一类是随 `torch_npu`（把 PyTorch 接到昇腾软件栈的那层）发布的成熟设备算子，另一类是仓库自己用 AscendC / Triton 编译出来的扩展与融合算子。
 
 | 层 | 它是什么 | 谁负责 | 在哪能看到 |
 |---|---|---|---|
 | 模型模块 | PyTorch 的一个 Module，只写数学意图 | vLLM 本体的层定义，或模型文件 | 模型文件里 `self.mlp(...)` 这样的调用 |
 | 换实现 | 把模块换成昇腾版，或按量化配置挑算法 | vllm-ascend 的替换表、量化方法 | 进程启动时注册一次，之后不再变 |
 | 算子接口 | 一次带名字、带形状约定的调用 | torch_npu 已有算子，或仓库自编译扩展 | Python 里 `torch_npu.xxx` 或 `torch.ops` 下的调用 |
-| 运行库 | 挑分块与实现、排任务、下发到卡 | CANN 的 aclnn（CANN 提供的单算子 C 调用接口，一个函数对应一个算子）与运行时 | C++ 适配层，Python 侧看不到 |
+| 运行库 | 挑分块与实现、排任务、下发到卡 | CANN 的 aclnn（单算子 C 调用接口）与运行时 | C++ 适配层，Python 侧看不到 |
 | kernel | 设备上执行的程序 | 算子包，或仓库自己编译的 AscendC 代码 | 开放实现可读设备源码；实际选用与启动次数看 profiling |
 
-这一页讲的是前四层：每一层各是什么、由谁决定、在哪能查到。追踪任何一次运算都按同一个顺序：先确定它的数学输入输出，再找到模型里的调用点，接着确认这个模块最终是哪个类、哪个方法在执行，最后才进到算子接口或扩展。第五层里一个 kernel 具体怎么搬数据、怎么切块，见[一次归一化落到 AI Core](op-to-ai-core.md)。
+在 `v0.30.0` 标准主基线下，**Qwen3-8B / Qwen3-30B-A3B** 的层内运算（RMSNorm / QKV / Attention / SwiGLU / 可选 MoE）先通过 `CustomOp` 注册表绑定到昇腾 `forward_oot` 实现，再按启动期锁定的图档位分三路进入 NPU 流：
 
-确认执行方法时，还要区分实现选择与编译选择。固定上游在自定义操作未启用时，仍将原生实现交给编译选择方法，并传入编译开关。因此，关闭自定义操作不意味着必然以 eager 方式逐个执行，还需检查原生方法是否经过编译。
+```wiki-diagram
+file: ops-ir-selection-qwen3
+```
+
+- **`enforce_eager = True`**：Python 逐算子即时下发 `torch_npu`，0 图捕获开销，常用于排障或启动期 `profile_run`。
+- **`PIECEWISE` / `FULL_AND_PIECEWISE`**：`AscendCompiler` 在注意力处切分子图，捕获分段 `ACLGraph`，兼容混合批（默认关闭 `npugraph_ex`）。
+- **`FULL_DECODE_ONLY`**：清空 `splitting_ops` 保持纯 decode 整图完整，可叠加 `npugraph_ex` FX 图融合，显著压低主机侧下发延迟（prefill 仍走 eager）。
+
+本页前四层讲清「每一层各是什么、由谁决定、在哪查到」；第五层里一个 kernel 具体怎样搬数据与切块，见[一次归一化落到 AI Core](op-to-ai-core.md)。确认执行方法时还需区分**实现选择**与**编译选择**：固定上游在 `CustomOp` 未启用时仍将原生方法交给编译选择器处理，因此禁用 `CustomOp` 不等于必然以 eager 方式逐算子执行。
 
 ## 为什么要分这么多层，代价是什么？
 
@@ -213,7 +221,7 @@ file: ops-layers
 
 ## 换了 Python 类，就一定经过同一种前向分派吗？
 
-**整层替换（换类）、算子方法分派（绑前向）与二进制扩展加载（`enable_custom_op`）是三道彼此独立的关卡；有的层只过第一关。** 例如固定上游的 `RMSNorm` 属于 `CustomOp`：创建对象时在 `__new__` 查 OOT 替换表换成平台提供的类，构造期 `__init__` 再决定绑定原生方法还是平台方法。`v0.30.0` 与 `main` 中的 `MoERunner`、`RoutedExperts`、`GateLinear` 与 `Linear`（早期 GLM 快照里对应 `FusedMoE`）等较大模块则使用 `PluggableLayer`（可替换层）：它允许插件把整个类连同权重、子模块和初始化一起替换，但这个基类本身不提供 `CustomOp` 的按平台前向分派——层内部仍可再调用自己的 `CustomOp`、量化方法或自编译扩展。
+**整层替换（换类）、算子方法分派（绑前向）与二进制扩展加载（`enable_custom_op`）是三道彼此独立的关卡；有的层只过第一关。** 例如固定上游的 `RMSNorm` 属于 `CustomOp`：创建对象时在 `__new__` 查 OOT 替换表换成平台提供的类，构造期 `__init__` 再决定绑定原生方法还是平台方法。`v0.30.0` 与 `main` 中的 `MoERunner`、`RoutedExperts`、`GateLinear` 与 `Linear`（早期 GLM 快照里对应 `FusedMoE`）等较大模块则使用 `PluggableLayer`（可替换层）。它允许插件把整个类连同权重、子模块和初始化一起替换，但本身不提供 `CustomOp` 的按平台前向分派；层内部仍可再调用自己的 `CustomOp`、量化方法或自编译扩展。
 
 下面这张门控图把三道关卡和 A5（Ascend 950）/ 310P 的硬件能力分支放在同一视图里：
 

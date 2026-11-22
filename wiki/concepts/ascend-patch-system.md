@@ -2,10 +2,11 @@
 id: ascend-patch-system
 title: Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类
 type: feature
+legacyAnchors:
+  落到-glm-双机哪些-patch-真的起作用: 复杂异构实战对照：GLM 双机上哪些 patch 真的起作用
 summary: >-
-  patch 是 vllm-ascend 在进程里把上游模块中的名字改指向昇腾实现的做法。global patch 由平台准备钩子和通用插件
-  入口加载，worker patch 在 Worker 构造时加载；正常成功导入由标记和缓存去重。本页按固定 GLM 条件区分导入与
-  实际调用，并对照 v0.23.0 / v0.26.0rc / v0.30.0 / main 的入口与清单。
+  patch 是 vllm-ascend 在进程内把上游模块中的名字改指向昇腾实现的机制。本页先按 v0.30.0 主基线讲清
+  platform/worker 两类补丁的注入时机、去重与边界条件，再以 GLM 双机案例对照导入与实际调用，并汇总四版本入口与清单演进。
 aliases:
   - patch
   - adapt_patch
@@ -187,129 +188,132 @@ rawSources:
 
 ## 昇腾怎样把 vLLM 里的函数换成自己的？
 
-先看 Python 怎样找到一个函数。一个模块（一个 .py 文件导入后的对象）里有一张「名字 → 对象」的表；代码写 `模块.名字` 时，每次都现去这张表里查。把表里某个名字改成指向另一个函数或类，此后再按这个名字去查的代码，拿到的就是新的那个。这种在程序运行起来以后改名字指向的做法，通常叫 **monkey patch**；它改的是当前进程内存里的表，磁盘上的上游源文件一个字都没动。
+先看 Python 怎样找到一个函数。一个模块（`.py` 文件导入后的对象）内部维护一张「名字 → 对象」的表；代码执行 `模块.名字` 时，每次都会现场查表。在程序启动后把表里某个名字改指向另一个函数或类，就叫 **monkey patch**——它只改当前进程内存里的表，磁盘上的上游源码一字未动。
 
-**patch（补丁）就是 vllm-ascend 在进程里把上游 vLLM 模块中的某个名字改指向昇腾自己的函数或类；之后凡是按这个名字去取实现的代码，执行的都是昇腾版本。**
+**patch（补丁）就是 `vllm-ascend` 在进程内把上游 vLLM 模块中的某个名字改指向昇腾实现；此后凡按这个名字查表的代码，都会执行昇腾版本。**
 
 ```wiki-diagram
 file: patch-binding
 ```
 
-常见入口分成两组，主要在初始化期间替换各自负责的名字：
+在 `v0.30.0` 主基线下，补丁按注入时机与进程落点分为两组：
 
-- **① 平台准备钩子或通用插件入口加载 global patch。** 它们导入 patch/platform，把前端和 EngineCore（负责调度、指挥 Worker 的引擎核心进程）较早就要用到的配置校验、KV 分组、调度器类、引擎入口等名字换掉。平台入口 `register()` 本身只返回类路径；实际替换发生在后续钩子或通用插件调用中。图左边的 Scheduler 被改指向 BalanceScheduler；在固定旧 GLM 的均衡开关关闭条件下，它的 `schedule` 立即转调父类，具体调度主体沿用上游（见[下文](#落到-glm-双机哪些-patch-真的起作用)）。
-- **② Worker 启动时，打 worker patch。** 每个 Worker（守着一张 NPU、执行模型的进程）被构造时，第一件实质工作就是导入 patch/worker 目录，换掉只在 Worker 里用到的名字：通信组的类、权重加载后的处理、图尺寸的判断、采样用的函数等。图右边的例子是通信组：上游的 GroupCoordinator 被改指向补上了 all_to_all（每张卡给其余每张卡各发一份不同数据的集合通信，见 [All-to-All](collective-communication.md#all-to-all)）的 GroupCoordinatorPatch。
+- **① 平台准备钩子与通用插件入口加载 global patch（`patch/platform`）。** 这批补丁在前端和 EngineCore（负责调度与指挥 Worker 的引擎核心进程）较早阶段生效，替换配置校验、KV 分组、调度器类与引擎入口。注意平台插件 `register()` 本身只返回类路径，真正改名发生在后续准备钩子或通用插件调用里。图左边的 `Scheduler` 会被改指向 `BalanceScheduler`；当均衡调度开关关闭时，它的 `schedule` 直接转调父类，调度主体仍沿用上游。
+- **② Worker 构造时加载 worker patch（`patch/worker`）。** 每个 Worker（绑定一张 NPU、执行模型前向的进程）实例化时，首件实质工作就是导入 `patch/worker`，替换通信组类、权重后处理、图尺寸判断与采样相关函数。图右边的 `GroupCoordinator` 会被换成补上 `all_to_all`（每张卡向其余各卡发送各自独立分片的集合通信，见 [All-to-All](collective-communication.md#all-to-all)）的 `GroupCoordinatorPatch`。
 
-表按进程隔离，前端后续的改动不会自动同步到 EngineCore 或 Worker。spawn 的新解释器要加载自己的补丁，fork 可以继承当时的绑定与导入缓存；因此要逐进程确认状态，不能一概把进程数当成重新执行次数。入口传播见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
+模块符号表按进程隔离，前端后续改名不会自动同步到 EngineCore 或 Worker。`spawn` 启动的新解释器会重新加载补丁，`fork` 则继承分叉时刻的绑定与导入缓存；因此排查时必须逐进程核对，入口传播见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
 
 ## 为什么非打 patch 不可，代价在哪
 
-vLLM 给硬件厂商留了几处正式的扩展点：装上一个平台插件，vLLM 就把「在什么设备上跑、用哪个 Worker、用哪套注意力后端」这些问题交给它回答；标成 CustomOp 的层允许插件登记自己的实现；模型注册表允许插件把一个架构名映射到自己的模型类。插件怎样被 vLLM 发现、过滤、激活，见[平台注册](platform-plugin-registration.md#发现过滤激活)。
+vLLM 给硬件厂商留了三类正式扩展点：平台插件接管设备探测、Worker 选择与注意力后端；`CustomOp` 允许插件按同名算子登记昇腾实现；模型注册表则将模型架构名映射到昇腾模型类。插件的发现、过滤与激活流程见[平台注册](platform-plugin-registration.md#发现过滤激活)。
 
-现有实现有些适配通过直接改绑定完成。GLM 双机的主要注意力缓存按 **640 个 token** 的逻辑块组织；这个值由被替换的混合模型配置校验函数推导，其他缓存组有自己的块长，详细见[双机部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。同样，固定旧上游的默认模型解析不能直接识别 GLM-5.3-Flash 的配置类型及其 [MLA](mla.md) 语义，昇腾 patch 注册配置类型，并向架构转换器表写入自己的转换器。这说明本版本怎样接入，不能据此断言任何版本都只有 patch 一种扩展办法。
+当上游尚未开放正式扩展点，或某个标准流程需要拦截内部工厂函数与配置校验时，`vllm-ascend` 只能借助 patch 直接替换符号或向内部登记表追加条目。以 `v0.30.0` 上运行常见模型（如 `Qwen3-8B` / `Qwen3-30B-A3B`）为例，四类接入机制分工如下：
 
-| 机制 | 上游留没留口子 | GLM 双机上的例子 |
+| 机制 | 上游是否留口子 | 典型用途 |
 |---|---|---|
-| 平台插件 | 留了：安装元数据里的平台入口 | vLLM 选中 NPUPlatform |
-| CustomOp 登记 | 留了：插件登记同名实现 | KDA 层换成 AscendKimiGatedDeltaNetAttention |
-| 模型注册 | 留了：模型注册表 | Glm5NextForCausalLM 等架构名映射到昇腾模型类 |
-| patch | 没留：直接改上游模块里的名字，或往上游的登记表里塞条目 | 逻辑块大小、KV 分组、调度器类、GLM 配置类型 |
+| 平台插件 | 留了（安装元数据平台入口） | vLLM 选中 `NPUPlatform` |
+| `CustomOp` 登记 | 留了（插件登记同名算子） | 将标准/线性注意力或融合算子切到昇腾实现 |
+| 模型注册 | 留了（模型注册表） | 将模型架构名映射到昇腾模型类 |
+| patch | 没留（改上游模块符号或向内部表塞条目） | KV 分组与协调器、调度器入口、通信组类、特定模型配置转换 |
 
-表里最后一行有两种动作。多数 patch 是「改指向」：把上游的函数、类或方法换掉。少数是「塞条目」：GLM 的配置 patch 往 transformers 的配置类型表和 vLLM 的架构转换器表里各加几条，让解析器认得 glm5_next，并凭 kv_lora_rank 是否存在判定按 MLA 解析。两种动作都写在 patch 目录的文件里，都在导入那个文件时执行。CustomOp 登记和模型注册则分别发生在 Worker 构造和通用插件入口里，不属于 patch；GLM 的层型与计算连接见[模型介绍](glm-5-3-flash.md)，KDA 的数学机制见[线性注意力](linear-attention.md)。
+patch 的动作主要有两种：多数是**改指向**（替换函数、类或方法），少数是**塞条目**（向 `transformers` 配置类型表或 vLLM 架构转换器表追加新条目），都在模块导入时执行。`CustomOp` 登记与模型注册分别发生在 Worker 构造和通用插件入口，属于正式扩展而非 patch。
 
-代价有四条，都来自「只改一个进程里的一个名字」这个做法本身：
+「只改一个进程里的一个名字」会带来四项工程代价：
 
-1. **后续修改只在当前进程生效。** 前端、EngineCore 和 Worker 的绑定要分别确认；fork 可以继承已有状态，spawn 重新加载，前端打过不能代替 Worker 的核对。
-2. **只改模块表里那一个名字，已经复制走的引用不变。** 上游的 EngineCore 在导入时用 from-import 把「算调度器块大小」的函数绑定到自己模块，所以 KV 分组 patch 在末尾也替换这一份；权重后处理 patch 同样改了两个模块的引用。子类若在换名之前已定义，父类也不会自动改变。异步调度的对应条件见下文，实际继承关系可在目标进程查看 MRO。
-3. **和上游版本咬死。** patch 依赖上游的函数名、参数和对象结构；上游改名或重构后，旧 patch 要么换了一个没人再调的名字，要么在导入时就报错。所以两个目录的入口文件按 vLLM 版本号挑选要导入的文件。
-4. **调用栈通常不显示早先的替换动作。** 赋值已完成后，traceback 显示当前执行函数的代码位置；它可以在 patch 目录，也可以在被补丁引用的其他模块。搜不到某个函数的 patch 也不能证明行为就是上游原样，派生类、模型注册、后端选择和 CustomOp 都要合看，定位路线见[怎么读这个仓库](reading-vllm-ascend.md)。
+1. **进程隔离**：前端、EngineCore 与 Worker 各自的绑定须分别确认；`fork` 仅继承分叉前状态，`spawn` 从头加载，前端生效不等于 Worker 生效。
+2. **`from-import` 副本滞留**：只改原模块表里的名字，不会更新早先通过 `from ... import ...` 复制走的引用，也不会改变已定义子类的父类。例如上游 EngineCore 提前导入了块大小计算函数，因此 `patch_kv_cache_utils` 必须在末尾同步覆写 EngineCore 模块里的那份副本；权重后处理补丁也同样双处改名。
+3. **强绑定上游版本**：patch 依赖上游的函数名、签名与对象结构；一旦上游重构，旧 patch 要么改了没人调的名字，要么导入即报错。为此入口文件会按硬件能力表与版本条件筛选导入项。
+4. **调用栈隐藏赋值现场**：`traceback` 只展示当前执行的函数位置（可能在 `patch/` 下，也可能在被引用的昇腾模块里），不会记录此前何时改过名。搜不到某函数的 patch 也不代表跑的是上游原版，必须连同派生类、模型注册、后端选择与 `CustomOp` 一起查，定位路线见[怎么读这个仓库](reading-vllm-ascend.md)。
 
-vllm-ascend 的官方设计文档对 patch 的态度很直白：patch 不是让昇腾兼容 vLLM 的好办法，只是临时方案，最好的做法是把改动贡献回 vLLM；原则三条——能不打就不打（Less is more）、加了 patch 就必须写清将来怎么移除、任何时候清理 patch 都欢迎。为此 patch 目录的说明文件要求每加一个 patch 都登记四项：为什么改（Why）、怎么改（How）、上游有没有对应改动（Related PR，没有要说明原因）、何时移除（Future Plan）。所以 patch 的数量本身说明不了什么，要连着每条的 Related PR 和 Future Plan 一起看。
+`vllm-ascend` 官方设计文档对 patch 的态度很明确：它只是临时方案，长期目标是把改动合入上游。文档定下三条原则——能不打就不打（Less is more）、新增必写移除计划、随时欢迎清理；并要求每条补丁登记 **Why / How / Related PR / Future Plan** 四项。因此评估补丁健康度，不能只数文件个数，要连着上游关联与移除计划一起看。
 
 ## 两类 patch 各在什么时候、哪个进程里生效
 
-patch 没有统一的总开关或逐条启停接口，主要靠模块导入时执行赋值或调用安装函数生效。两个目录入口按条件导入文件；补丁内部还可能有自己的判断，其他代码也能直接调用补丁函数。因此要同时看导入顺序、内部安装条件和后来是否又被覆盖。分流函数 `adapt_patch` 很短：`is_global_patch` 为真导入 `patch/platform`，否则导入 `patch/worker`。两阶段导入时机、进程落点、`from-import` 副本陷阱以及 `v0.30.0` 到 `main` 的补丁收敛对照见下方全景图。
-
-**global patch 有两个入口。** 一个是平台准备钩子：vLLM 在解析命令行参数、建配置时调用 NPUPlatform 的这个钩子，钩子第一行就调 adapt_patch 打 global patch。本例的命令行路径在 node0 的 API server 和 node1 带 headless 参数的启动进程中触发；离线调用创建引擎配置时也会经过这个钩子。另一个是通用插件入口：vLLM 在前端解析参数时、EngineCore 初始化时、Worker 初始化时各加载一次通用插件；vllm-ascend 注册的四个通用入口里，连接器、加载器、采集三个的第一件事都是确认本进程打过 global patch，没打过就打，模型入口不打，见[平台注册页](platform-plugin-registration.md#三个通用入口先补一次全局补丁)。
-
-第二个入口让不经过 CLI 解析钩子的 EngineCore 初始化也能加载 global patch，而调度器恰好就在这里。按本页完整插件启用、成功初始化和 spawn 的教学条件，API server、两个 EngineCore、16 个 Worker 都有对应加载入口。这是 19 个核心功能角色的入口账，另有 headless 启动入口；不包括短命探测、辅助进程，也不是现场执行次数记录。
-
-**worker 目录的常规加载入口是 NPUWorker 构造函数。** 编译告警检查之后先调 `adapt_patch`，再登记 CustomOp、初始化 Ascend 配置和上游 Worker 基类；模块本身的顶层导入和赋值则更早发生。这样，后续使用模块级 `GroupCoordinator` 建通信域时能拿到替换类。本例按 16 个新 Worker 进程各构造一次计算，有 16 次目录加载调用；成功导入后的缓存决定是否重跑模块语句。单卡若选择把 Worker 放在 EngineCore 内的执行器，补丁也落在该进程；进程布局仍取决于执行器配置。
-
-| | global patch | worker patch |
-|---|---|---|
-| 谁触发 | 平台准备钩子；三个通用插件入口 | NPUWorker 构造函数开头 |
-| 本部署在哪些进程 | API server、2 个 EngineCore、16 个 Worker | 16 个 Worker |
-| 换哪类名字 | Worker 出生前就要用的：配置校验、KV 分组、调度器、引擎入口 | 只在 Worker 里用的：通信组、权重后处理、图尺寸、采样 |
-
-两类的区别在**时机和进程**，不在改的对象种类：两个目录里都有叫 `patch_distributed` 的文件，`platform` 下那个在 310P 芯片上改 PyTorch 的集合通信函数，`worker` 下那个换 vLLM 的通信组类。把两阶段导入入口、`from-import` 副本陷阱，以及从旧基线到 `v0.30.0`（`32 / 19 / 14 = 65` 个 `patch_*.py`，按 `HardwareProfile` 能力表门控）再到 `main`（`29 / 30 / 0 = 59` 个，退役 `patch_v2/` 并通过 `mrv2_utils` 锁定 MRV2）的演进收在一张图里对照：
+patch 没有统一的总开关或逐条启停接口，主要在模块导入时执行赋值或调用安装函数。分流函数 `adapt_patch(is_global_patch=...)` 逻辑非常直接：参数为真时导入 `patch/platform`，为假时导入 `patch/worker`。两阶段入口、`from-import` 副本陷阱以及 `v0.30.0` 到 `main` 的补丁收敛对照见下方全景图：
 
 ```wiki-diagram
 file: ascend-patch-system-fig-lifecycle
 ```
 
-两个目录也不是全部入口。还有少数 patch 由别处按配置导入：检查配置时，只有打开 profiling 分块功能才导入对应的 patch；model runner 加载 EAGLE-3 草稿模型且流水线并行大于 1 时，才调另一个 patch 函数。判断某个 patch 在不在，要从调用入口一路核到条件分支，文件在目录里并不够。每个进程从哪个入口拿到补丁、fork 和 spawn 两种启动方法下子进程是否带着父进程已换好的名字，归[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)讲；动态 EPLB 为什么要靠环境变量在 global patch 里换掉多进程执行器，见[同页后文](engine-processes.md#进程怎么摆直接决定要打哪些补丁)。
+两类入口各司其职，核心区别在**注入时机与所在进程**，而不是修改的对象类型（例如两个目录里都有同名 `patch_distributed.py`，分别改芯片集合通信钩子与通信组类）：
+
+| 维度 | global patch（`patch/platform`） | worker patch（`patch/worker`） |
+|---|---|---|
+| 触发入口 | 平台准备钩子 `pre_register_and_update`；三个通用插件入口 | `NPUWorker.__init__` 构造开头 |
+| 生效进程 | API server（或离线主进程）、每个 EngineCore、每个 Worker | 每个 Worker 所在进程（`uni` 时与 EngineCore 同进程） |
+| 替换范围 | Worker 出生前需用到的配置校验、KV 分组、调度器与引擎入口 | 仅在 Worker 内使用的通信组、权重后处理、图尺寸与采样 |
+| `v0.30.0` 目录分布 | 32 个 `patch_*.py`（按 `HardwareProfile` 能力表门控） | 19 个 + `patch_v2/` 14 个（`main` 退役 `patch_v2/` 并合并为 30 个） |
+
+具体注入时机如下：
+
+- **global patch 双入口**：一是平台准备钩子，vLLM 在解析命令行参数与建配置时调用 `NPUPlatform.pre_register_and_update`，钩子首行即调用 `adapt_patch(is_global_patch=True)`（覆盖在线前端、`--headless` 启动进程与离线脚本）；二是通用插件入口，vLLM 在前端、EngineCore 与 Worker 初始化时都会加载通用插件，`vllm-ascend` 的连接器、加载器与采集三个入口都会先调用 `_ensure_global_patch()`，模型入口不调（见[平台注册页](platform-plugin-registration.md#三个通用入口先补一次全局补丁)）。正因有第二入口，不经过 CLI 解析的 EngineCore 子进程才能在创建调度器前完成补丁注入。
+- **worker patch 入口**：`NPUWorker.__init__` 在检查编译告警后立即调用 `adapt_patch()`，随后再登记 `CustomOp`、初始化 `AscendConfig` 与调用上游 Worker 基类。这样后续使用模块级 `GroupCoordinator` 建通信域时，就能直接拿到替换后的补丁类。
+
+**边界与例外**：
+
+- **按需延迟注入**：少数 patch 不在两个目录入口无条件加载。例如 `profiling_chunk` 补丁只在配置检查确认开关启用时导入；`EAGLE-3` 搭配 `PP > 1` 的补丁则由 `model_runner` 在加载草稿模型时调用。判断某条补丁是否生效，必须从入口一路核到分支条件，不能只看文件存在。
+- **进程传播与动态 EPLB**：`fork` / `spawn` 下补丁如何跨进程生效见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)；动态 EPLB 为何必须靠环境变量在 global patch 阶段替换多进程执行器，见[同页后文](engine-processes.md#进程怎么摆直接决定要打哪些补丁)。
 
 ## 同一个进程里，global patch 为什么只打一遍
 
-在一个全新 API server 解释器中，若三个通用入口都启用且成功执行，正常解析路径会三次调用 `_ensure_global_patch`，再由平台准备钩子直接调用 `adapt_patch`。这些入口通过三层机制减少重复执行：
+在一个全新 API server 解释器中，若三个通用插件入口全部启用且成功执行，启动路径会连续三次调用 `_ensure_global_patch`，随后平台准备钩子再直接调用 `adapt_patch`。为避免重复注入，链路设有三层去重保护：
 
-1. **vLLM 插件加载函数带进程级标记。** 它先把标记设为真，再加载和调用入口；后续调用直接返回。因此中途失败也不能把第二次调用当作自动重试。插件过滤、加载与执行的边界见[平台注册](platform-plugin-registration.md#发现过滤激活)。
-2. **`_ensure_global_patch` 带模块级标记。** 它在 `adapt_patch` 成功返回后才设标记；成功后其他通用入口直接返回。若补丁导入中途异常，标记未置，但先前完成的其他模块导入或绑定修改可能已经留下。
-3. **Python 导入缓存。** 正常成功导入且未显式重载、删除缓存时，后续 import 复用已有模块。平台准备钩子绕过上一个标记，仍受这层缓存影响；导入失败、显式 reload 或直接调用安装函数须另看。
+1. **vLLM 插件加载器的进程级标记**：先将标记置真，再加载并执行插件入口，后续调用直接返回。注意若中途抛错，第二次调用也不会自动重试（边界见[平台注册](platform-plugin-registration.md#发现过滤激活)）。
+2. **`_ensure_global_patch` 的模块级标记**：只在 `adapt_patch` 成功返回后置真，拦截其余通用入口。若导入中途异常，标记保持为假，但此前已执行的部分模块赋值可能已经留在内存中。
+3. **Python 模块导入缓存（`sys.modules`）**：正常导入成功后，后续 `import` 直接复用缓存对象。平台准备钩子虽绕过上一层标记，仍受这层缓存保护；`worker patch` 同样依赖导入缓存去重（显式 `reload` 或直接调用安装函数另算）。
 
-所以正常启用通用插件的启动路径中，替换通常先由通用入口触发，后到的平台钩子复用导入结果；若插件被过滤，平台钩子仍可能成为首次触发点。Worker 的目录导入同样受缓存保护。
+正常启用通用插件时，首次替换通常由通用入口完成，后到的平台钩子直接命中导入缓存；若插件被过滤，平台钩子则成为首次触发点。
 
-入口去重和替换逻辑的幂等性是两件事。幂等性要求重复执行仍与执行一次效果相同；入口标记和导入缓存避免再次执行，并不能证明替换逻辑本身满足这个要求。
+**入口去重不等于补丁本身幂等。** 幂等要求重复执行与执行一次结果完全一致，而入口标记只是尽量不跑第二遍。许多补丁采用「先保存原函数 → 再改写符号 → 非目标场景回落原函数」的模式（例如 KV 协调器工厂补丁）：若同一进程强行重跑第二遍，存下的「原函数」就变成了昇腾版本自己，兜底回落会陷入自调用。为此部分补丁还加了自检防重入：PP+MTP 补丁使用模块级标记，Worker 通信补丁给包装函数打记号，投机解码配置补丁先确认 `glm5_next_mtp` 不在类型表中再追加。
 
-幂等要紧，是因为很多 patch 的写法是「先存下原函数，再换成自己的，遇到不归自己管的情况转回原函数」。KV 协调器的 patch 就是这样：先把上游的工厂函数存成一个私有名字，再把上游的名字改指向昇腾的工厂，某些缓存布局之外的情况回落到存下的原函数。这段代码若在同一进程里跑第二遍，存下的「原函数」已经是昇腾版本，兜底时转回的就不再是上游，而是昇腾自己。有些 patch 文件还自带一道保险：流水线并行与 MTP 的 patch 用模块级标记挡住重复执行，Worker 侧通信 patch 给包装过的函数打记号，投机解码配置的 patch 先检查 glm5_next_mtp 是否已在类型表里再追加。
+上述标记均为**进程内变量**。`spawn` 启动的新解释器从初始状态重新加载；`fork` 则继承父进程分叉瞬间的标记、符号绑定与 `sys.modules`。若 `fork` 前插件标记已置真，子进程再调加载器会直接返回；若尚未置真，则仍会正常执行加载。
 
-这些标记都是**进程里的变量**。spawn 的新解释器从初始状态加载；fork 继承父进程当时的标记、绑定和模块缓存。如果 fork 时插件标记已经为真，子进程再次调用通用加载函数会直接返回；若尚未置位，不能据 fork 本身推断它会跳过加载。
+## 复杂异构实战对照：GLM 双机上哪些 patch 真的起作用
 
-## 落到 GLM 双机：哪些 patch 真的起作用
+下面切到例外 B 的历史绑定算例（GLM-5.3-Flash 双机，Atlas 800 A2、vLLM `0.23.0` + `vllm-ascend@db701c1f`，部署前提见[双机部署页](glm-5-3-flash-two-node.md#部署前提)），观察「目录文件 → 条件导入 → 符号替换 → 实际调用」的四层筛选。
 
-**固定条件决定入口文件走哪条分支。** 官方双机是两台 Atlas 800 A2（不是 310P），配 vLLM 0.23.0；命令没有设置动态 EPLB 的两个环境变量和 V2 model runner 环境变量。本节另以这些环境变量未被镜像注入、Triton 可用、通用插件完整启用并成功导入为条件，逐行计算入口中的直接导入数；它们不是目标镜像已实际执行的日志。部署前提见[双机部署页](glm-5-3-flash-two-node.md#部署前提)。
+在该基线下，官方命令未设置动态 EPLB 与 V2 model runner 环境变量；若镜像未额外注入这些变量、Triton 可用且通用插件全部启用，在 `spawn` 模式下有 **19 个核心角色入口**会加载 global patch（1 个 API server、2 个 EngineCore、16 个 Worker，另含 node1 `headless` 启动入口；不含辅助进程），16 个 Worker 构造时各触发一次 `patch/worker` 加载。按入口条件逐行静态核对，直接导入数如下：
 
-- **patch/platform 目录 28 个文件，导入 23 个。** 没导入的 5 个：310P 专用的块大小 patch；只在两个 EPLB 环境变量打开时才导入的多进程执行器 patch；只在 vLLM 不是 0.23.0 时才导入的两个（FusedMoE 与 DP 设备号）；以及不经入口文件、由配置检查按需导入的 profiling 分块 patch。
-- **patch/worker 目录 24 个文件，直接导入 19 个**；`patch_npugraph_ex_triton` 的导入成功时再多 1 个，这次导入中的 `ImportError` 会被捕获。另四个未由该条件下的入口加载：310P 专用、非 v0.23 才导入的 FusedMoE、V2 补丁兼容标记控制的专家捕获，以及由 runner 按需调用的 EAGLE-3 流水线辅助。
-- **patch/worker/patch_v2 子目录 7 个文件，直接导入 1 个。** v0.23 的入口将 V2 补丁兼容标记置为假，跳过受它控制的那一组；唯一保留的模块再导入 global patch 的同名文件。这是补丁导入规则，不代表显式开启 V2 后所有兼容性检查都会通过。
+- **`patch/platform`（28 个文件，导入 23 个）**：跳过 310P 块大小、两个 EPLB 环境变量门控的多进程执行器、非 `0.23.0` 的 FusedMoE 与 DP 设备号，以及按配置延迟导入的 `profiling_chunk` 共 5 项。
+- **`patch/worker`（24 个文件，直接导入 19 个）**：可选的 `patch_npugraph_ex_triton` 成功时再多 1 个（捕获 `ImportError`）；跳过 310P 专用、非 `0.23.0` FusedMoE、V2 兼容门控专家捕获及按需调用的 EAGLE-3 流水线辅助。
+- **`patch/worker/patch_v2`（7 个文件，直接导入 1 个）**：`0.23.0` 入口将 V2 补丁兼容标记置假，仅保留复用 global patch 同名模块的 1 个文件。
 
-**导入、替换、调用是三件事。** 导入后的内部条件决定是否执行替换；即便替换发生，还要看调用绑定和新函数的分支。下表列出与 GLM 启动及[第 2 站调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)有关的九项，按上述静态条件解释：
+该部署中，模型架构（`Glm5NextForCausalLM` 等）走模型注册表，KDA 线性注意力层（`AscendKimiGatedDeltaNetAttention`，数学机制见[线性注意力](linear-attention.md)）走 `CustomOp` 登记，其余需深入上游内部的位置才走 patch（GLM 层型见[模型介绍](glm-5-3-flash.md)）。
 
-| patch 文件 | 换掉或登记了什么 | 在哪一步用到 | 本部署的效果 |
+**导入、替换与实际调用是三件事。** 与 GLM 启动及[第 2 站调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)直接相关的 9 项 `global patch` 如下：
+
+| patch 文件 | 替换或登记对象 | 用在哪一步 | GLM 双机上的实际效果 |
 |---|---|---|---|
-| glm5_next_config | 往配置类型表和架构转换器表登记 glm5_next 等 | 启动时解析模型配置 | vLLM 0.23.0 由此认得 GLM，并按 MLA 解析 |
-| speculative_config | 草稿配置的改写函数；MTP 类型表加 glm5_next_mtp | 建 MTP 草稿配置 | GLM 的草稿配置被改成 glm5_next_mtp 类型，才能找到昇腾的 MTP 类 |
-| mamba_config | 混合模型的配置校验函数 | 建配置 | 逻辑块 640 token，KDA 组的块 133120 token |
-| use_v2_model_runner | 配置里「用不用 v2 model runner」的判断 | 选 model runner | 只看环境变量，没设就用 v1 的 NPUModelRunner |
-| kv_cache_utils | KV 分组、块大小解析等一组函数，连 EngineCore 模块里 from-import 的那一份 | EngineCore 初始化、切 KV 块 | 按 GLM 的布局分组；调度器的块取各组的最小公倍数 133120 |
-| kv_cache_coordinator | KV 协调器的工厂函数，也补改已缓存的 from-import 引用 | 建 KV 管理器 | DSV4 规格优先走昇腾类；其他布局若只有一组或前缀缓存关闭，回落原函数。按本页非 DSV4、前缀缓存关闭的 GLM 基线，继续得到上游无前缀缓存协调器 |
-| mamba_manager | KDA 状态组的管理器类 | 第 2 站分配 KV 块 | 换成 AscendMambaManager，改的是前缀命中与外部 KV 的分支 |
-| glm5_next_mamba_scheduler | 调度器按状态存档点对齐切 token 的方法 | 第 2 站 | 替换发生，但只在 align 缓存模式下才调用；本部署是 none，不执行 |
-| balance_schedule | 调度器类这个名字；EngineCore 进程的入口函数 | 起 EngineCore、第 2 站 | 替换发生；均衡调度开关关着，两者都直接转给原来的实现 |
+| `glm5_next_config` | `transformers` 配置表与架构转换器表 | 启动解析配置 | 识别 `glm5_next`，并凭 `kv_lora_rank` 按 [MLA](mla.md) 解析 |
+| `speculative_config` | 草稿配置改写函数；MTP 类型表追加 `glm5_next_mtp` | 建 MTP 配置 | 将草稿类型转为 `glm5_next_mtp`，定位昇腾 MTP 类 |
+| `mamba_config` | 混合模型配置校验函数 | 建配置 | 推导出主逻辑块 640 token、KDA 状态组块 133120 token |
+| `use_v2_model_runner` | V2 runner 选用判定 | 选 runner | 仅查环境变量，未设则用 V1 的 `NPUModelRunner` |
+| `kv_cache_utils` | KV 分组与块长函数（含 EngineCore 副本） | 建 KV 块 | 按 GLM 布局分组，调度器块长取最小公倍数 133120 |
+| `kv_cache_coordinator` | KV 协调器工厂（含缓存副本） | 建 KV 管理器 | 非 DSV4 且关闭前缀缓存时回落上游无前缀缓存协调器 |
+| `mamba_manager` | KDA 状态组管理器类 | 第 2 站分块 | 换为 `AscendMambaManager`，改前缀命中与外部 KV 分支 |
+| `glm5_next_mamba_scheduler` | 状态存档点对齐切分方法 | 第 2 站 | 已替换但仅 `align` 模式调用；本部署为 `none`，不执行 |
+| `balance_schedule` | 调度器类与 EngineCore 入口 | 启动与第 2 站 | 均衡开关关闭，二者均直接转回原实现 |
 
-后五行就是[调用链页](request-call-chain.md#源码位置)统计的「第 2 站被换过的五处」：KV 分组、KV 协调器、KDA 状态管理器、对齐切分、调度器类与引擎入口。缓存模式为 none 时不调用 align 切分；固定旧 GLM 的均衡开关关闭时，BalanceScheduler.schedule 和引擎入口直接转给原实现（v0.23 维护分支另有 producer 条件，见[版本差异](#版本差异)）。开关打开后的机制见 [Balance Scheduling](balance-scheduling.md)。异步调度类的父类由首次定义时的绑定决定：若在 Scheduler 替换之后才导入 AsyncScheduler，它继承 BalanceScheduler；若先前已导入，不会因后来换名自动改变。源码给出这一条件关系，目标进程实际导入历史仍应结合 MRO 核对。640 和 133120 的推导统一见[双机部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。
+上表后五行即[调用链页](request-call-chain.md#源码位置)统计的「第 2 站五处替换」（640 与 133120 推导见[双机部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)，均衡开启机制见 [Balance Scheduling](balance-scheduling.md)，维护分支 `kv_producer` 例外见[版本差异](#版本差异)）。注意 `AsyncScheduler` 的父类取决于首次定义时机：若在 `Scheduler` 被替换后导入则继承 `BalanceScheduler`，提前导入则保持原父类，实机需结合 MRO 核对。
 
-worker patch 里落在 GLM 请求路径上的有五项，在每个 Worker 进程里生效：
+落在 GLM 请求路径上的 5 项 `worker patch`（在每个 Worker 进程生效）：
 
-| patch 文件 | 换掉了什么 | 在哪一步用到 | 本部署的效果 |
+| patch 文件 | 替换对象 | 用在哪一步 | GLM 双机上的实际效果 |
 |---|---|---|---|
-| process_weights_after_loading | 权重加载后的处理函数，两个模块里的同名引用都换 | 启动时加载权重的最后一步 | 比上游多认 GLM 的 MLA 层，把权重转成昇腾要的排布 |
-| distributed | 通信组类 GroupCoordinator；销毁分布式环境的函数 | 建通信域 | 替换后经上游 `init_world_group` / `init_model_parallel_group` 新建的对象使用补丁类；已有对象不会追溯改变。它还管理 HCCL 组资源并提供 `all_to_all` 转发，world_size=1 时直接返回输入 |
-| qwen3_next_mtp | 把 KV 张量绑到各注意力层的函数 bind_kv_cache | 启动时建 KV 张量 | 上游版本在 NPU 上遇到同一层号挂着多个注意力层名会直接抛错，换成不抛的版本；文件名带 Qwen3-Next，GLM 一样经过它 |
-| cudagraph | 图调度器里「按 token 数算图尺寸描述」的方法 | 每一步选图尺寸 | 改了图模式为 FULL 时对均匀 decode 批的判断 |
-| rejection_sampler | 上游拒绝采样模块里的三个函数 | 第 5 站 MTP 验证 | 替换发生，但 GLM 用的 AscendRejectionSampler 重写了 forward，直接调昇腾自己的函数，不经过被换的名字 |
+| `process_weights_after_loading` | 权重后处理函数（双模块引用） | 权重加载末步 | 额外识别 GLM 的 MLA 层，转为昇腾排布 |
+| `distributed` | `GroupCoordinator` 与销毁函数 | 建通信域 | 仅对新建组生效，管理 HCCL 并提供 `all_to_all`（单卡直通） |
+| `qwen3_next_mtp` | `bind_kv_cache` | 建 KV 张量 | 解除同层号多注意力层名报错；虽带 Qwen 名，GLM 同样经过 |
+| `cudagraph` | 图尺寸描述计算方法 | 每步选图 | 修正 `FULL` 图模式下均匀 decode 批的判定 |
+| `rejection_sampler` | 上游拒绝采样三个函数 | 第 5 站验证 | 已替换，但 `AscendRejectionSampler.forward` 直调自有函数不经过它 |
 
-最后一行是另一种情况：patch 和派生类并存时，还要检查派生类的覆盖方法。昇腾的拒绝采样器是上游类的子类，它的 forward 调的是自己模块里的函数，所以上游模块里那三个名字换没换，都不影响这条路径。
+最后一行说明：**patch 与派生类并存时，必须核对子类是否重写了调用路径**。API server 侧另有三项按内容触发的 `global patch`：响应对象 `model_dump` / `model_dump_json` 会剔除空列表 `tool_calls`；流式包装器仅在单 choice、`finish_reason=tool_calls` 且带非空参数时拆块，其余透传；结构化输出校验先调上游，再检查同引擎是否混用后端。
 
-API server 一侧还有三项按内容工作的 global patch。正常 chat 响应对象调用被替换的 `model_dump` / `model_dump_json` 时，会删除 message 或 delta 中为空列表的 `tool_calls`。流式生成器的包装函数检查每个数据块：只有单个 choice、`finish_reason=tool_calls` 且带非空参数时，才拆成参数块和结束块，其余原样透传。结构化输出校验先调用上游，再在能识别请求后端时检查同一引擎是否混用了后端；没有相关配置或后端就返回上游结果。请求若更早失败，不会因此经过所有响应路径。
+其余已导入的 patch 按与 GLM 路径的关系分为四类：
 
-其余导入了的 patch，按和 GLM 请求路径的关系分四种：
-
-- **按模型与实际绑定区分。** 入口还会导入 MiniMax、Qwen、Kimi-K2.5、DeepSeek、EAGLE-3、DFlash 等适配模块；文件名说明查找方向，不能单凭模型名排除其共享函数，`patch_qwen3_next_mtp` 对 GLM 也有影响就是反例。GLM 的模型入口由独立注册项选择，KDA 前向调用昇腾的 `kda_attention` 路径，不能直接把上游 GDN/卷积函数的替换当成 KDA 的执行证据。Triton patch 还把 `next_power_of_2` 指向 vLLM 工具函数；这是兼容赋值，不足以证明每个安装环境原先都缺这个函数。
-- **跟随功能选择的。** 官方双机命令没有选择工具调用解析器，FAQ 才给出 `glm47`、`glm45` 与自动工具选择的配置；新增这些配置就需要重核解析器路径。睡眠模式、[强化学习的权重同步](vllm-ascend-for-rl.md#训练端和推理端怎样交接显存与权重)和 KDA 状态拷贝也要分别追到实际消费者。例如本页所引 runner 的 `preprocess_mamba` 调用明确要求 align 模式，不能把导入状态拷贝模块当成每步都复制状态。
-- **安装路径明确、调用还取决于消费者。** 可选图补丁先尝试导入 npugraph_ex，遇到 `ImportError` 再试 torchair，修改 ValuePack 与解包方法并重载相关模块；外层入口会捕获最终的 `ImportError`。global patch 则把 torch.accelerator 四个显存 API 转到 torch.npu，并把上游 MLA prefill 选择函数替换成返回 Ascend 占位后端的函数；占位后端的两个实际计算方法会抛不支持，不能当成可执行的 prefill 内核。这些名字在目标 GLM 路径是否被调用，仍需实际调用记录。
-- **条件在 patch 内部。** platform 下的 patch_distributed 被导入了，但只有检测到 310P 芯片才替换，在 A2 上什么也不换。流水线并行与 MTP 的校验 patch 确实换掉了模型配置的并行校验方法，建草稿配置时也会被调用，但只在流水线并行大于 1 时改动校验，本部署流水线并行为 1，直接转回原方法。
+- **跨模型共享与独立路径**：入口还导入 MiniMax、Qwen、Kimi-K2.5、DeepSeek、EAGLE-3 等适配；文件名不能用来排除共享函数（如 `patch_qwen3_next_mtp`）。反之，GLM 的 KDA 前向直走 `kda_attention`，不能把上游 GDN/卷积补丁当作 KDA 执行证据；`patch_triton` 的 `next_power_of_2` 赋值仅作兼容兜底。
+- **随功能开关激活**：官方命令未配工具调用解析器（FAQ 才给 `glm47` / `glm45` 与自动工具选择）；睡眠模式、[强化学习权重同步](vllm-ascend-for-rl.md#训练端和推理端怎样交接显存与权重)与 `preprocess_mamba` 状态拷贝（要求 `align` 模式）均须追到实际消费者。
+- **消费者未确认的路径**：可选图补丁依次尝试 `npugraph_ex` 与 `torchair` 并修改 `ValuePack`；global patch 将 `torch.accelerator` 四个显存 API 转至 `torch.npu`，并把 MLA prefill 选择函数换成返回 Ascend 占位后端（其计算方法会抛不支持）。这些符号在 GLM 路径是否被触发仍需运行日志核对。
+- **内部条件早退**：`patch/platform` 下的 `patch_distributed` 仅 310P 替换，A2 上无操作；PP+MTP 校验补丁仅在 `PP > 1` 时改写校验，本部署 `PP=1` 直接转回原方法。
 
 ## 排查时，怎样确认跑的是哪一份代码
 

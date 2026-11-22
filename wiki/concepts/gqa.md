@@ -113,14 +113,16 @@ Ainslie 等人 2023 年在 GQA 论文中把分成 $G$ 组的做法记作 `GQA-G`
 
 ## 为什么要省 K、V，代价在哪？
 
-**省 K、V 同时解决两道瓶颈：第一是显存容量墙，第二是解码（decode）阶段的显存带宽墙。** KV cache 为每条在跑请求、每一层、每个历史位置各存一份 K 和 V；拿 [KV cache 页](kv-cache.md#存一份要多少从一个位置一层往上乘)的 32 层示意尺寸（`32` 个 Q 头、每头 `128` 维、`BF16` 每元素 `2 B`）算，单条 `4,096` token 请求在 MHA 下就要占 `2 GiB` 显存，换成 `8` 个 KV 头（`4:1` GQA）立刻降到 `512 MiB`，腾出的显存可以直接换成更高的并发批大小。而在逐个生成新 token 的 decode 阶段，每步只算 1 个新位置，却要把所有历史位置的 K、V 从设备显存 HBM 读进芯片一遍；GQA 论文指出，反复搬运 K、V 的访存带宽正是自回归解码变慢的主要根源之一（编码器 encoder 的自注意力因全序列并行计算、带宽通常不是主瓶颈，所以原论文没有在 encoder 层改用 GQA）。
+**省 K、V 同时解决两道瓶颈：第一是显存容量墙，第二是解码（decode）阶段的显存带宽墙。** KV cache 为每条在跑请求、每一层、每个历史位置各存一份 K 和 V。拿 [KV cache 页](kv-cache.md#存一份要多少从一个位置一层往上乘)的 32 层示意尺寸（`32` 个 Q 头、每头 `128` 维、`BF16` 每元素 `2 B`）算，单条 `4,096` token 请求在 MHA 下占 `2 GiB` 显存；换成 `8` 个 KV 头（`4:1` GQA）立刻降到 `512 MiB`，腾出的显存能直接换成更高并发。
+
+在逐词生成的 decode 阶段，每步只算 1 个新位置，却要把全部历史位置的 K、V 从设备显存 HBM 读进芯片一遍。GQA 论文指出，反复搬运 K、V 的访存带宽正是自回归解码变慢的主因。编码器（encoder）自注意力因全序列并行计算、带宽通常不是主瓶颈，因此原论文未在 encoder 层改用 GQA。
 
 MQA 把 K、V 直接砍到只剩 `1` 组，缓存和每步读取量都缩到 MHA 的 $1 / n_q$，但论文观察到这样硬砍会导致模型质量下滑甚至训练不稳定；而且模型越大、查询头越多，MQA 砍得就越狠。GQA 取了中间平衡点：论文在 T5-XXL 上改用 `8` 组（`GQA-8`）后，生成质量紧贴 MHA，解码推理速度却接近 MQA；当模型规模继续放大时，按组共享还能同步增加组数，保持稳定的压缩比例。
 
 用 GQA 省下 K、V 要付出三笔明确代价与约束：
 
 1. **表达多样性换显存容量**：组数越少，同一段上下文能被投影成多少套不同的键和值就越少，本质是在生成质量与显存/带宽开销之间做折中。
-2. **分组比必须在预训练或继续训练（uptraining）时定死**：`num_key_value_heads` 直接决定 $W_K, W_V$ 权重矩阵的列宽，属于模型固化结构。论文把已有 MHA 检查点转成 GQA 时，需要先把同组各头的 $W_K, W_V$ 权重取均值池化（mean pooling）合成一个头，再投入约原预训练 `5%` 的计算量做继续训练（uptraining）恢复精度——推理时绝不能靠手改 `config.json` 里的 `num_key_value_heads` 来“无损开启 GQA”。
+2. **分组比必须在预训练或继续训练（uptraining）时定死**：`num_key_value_heads` 直接决定 $W_K, W_V$ 权重矩阵的列宽，属于模型固化结构。把已有 MHA 检查点转成 GQA 时，论文先对同组各头的 $W_K, W_V$ 权重取均值池化（mean pooling）合成一个头，再投入约原预训练 `5%` 的计算量做继续训练恢复精度。推理时绝不能靠手改 `config.json` 里的 `num_key_value_heads` 来“无损开启 GQA”。
 3. **逐头打分、加权汇合与输出投影一点没省**：GQA 只合并了 K、V 的源头，没有合并查询头。固定隐藏维度 $H$、查询头数 $n_q$ 与单头维度 $d_k, d_v$，只把 KV 头数从 $n_q$ 减到 $n_{\text{kv}}$ 时，一层注意力四步的开销变化必须拆开算账：
 
 | 计算与存储环节 | 代数规模（单位置读 $S$ 个可见历史，忽略偏置） | 只减少 $n_{\text{kv}}$ 时省没省？ |
@@ -138,7 +140,7 @@ MQA 把 K、V 直接砍到只剩 `1` 组，缓存和每步读取量都缩到 MHA
 
 $$o_h = \text{softmax}\!\left(\frac{Q_h K_{g(h)}^\top}{\sqrt{d_k}}\right) V_{g(h)}$$
 
-拿首图中间 GQA 那一栏做最小手算（示意设定）：`4` 个查询头 $Q_0\text{–}Q_3$ 等分成 `2` 组，$Q_0, Q_1$ 共读第 0 组 K、V，$Q_2, Q_3$ 共读第 1 组；每头宽度 $d_k = d_v = 2$，当前可见历史有 `3` 个位置（0、1、2）。第 0 组的 K、V 直接沿用 [attention 页多头一节](attention-qkv.md#多头同一个位置同时按几套方式去读)里头 0 的数值：
+拿首图中间 GQA 那一栏做最小手算（示意设定）：`4` 个查询头 $Q_0\text{–}Q_3$ 等分成 `2` 组，$Q_0, Q_1$ 共读第 0 组 K、V，$Q_2, Q_3$ 共读第 1 组。每头宽度 $d_k = d_v = 2$，当前可见历史有 `3` 个位置（0、1、2）；第 0 组的 K、V 直接沿用 [attention 页多头一节](attention-qkv.md#多头同一个位置同时按几套方式去读)里头 0 的数值：
 
 | 第 0 组共享历史（示意） | 位置 0 | 位置 1 | 位置 2 |
 |---|---|---|---|
@@ -153,7 +155,7 @@ $$o_h = \text{softmax}\!\left(\frac{Q_h K_{g(h)}^\top}{\sqrt{d_k}}\right) V_{g(h
 | ② 除以 $\sqrt{2}$ 并做 Softmax 得权重 | $\text{softmax}([2.83, 1.41, 0.71]) \approx [0.73, 0.18, 0.09]$ | $\text{softmax}([0.71, 0.71, 0]) \approx [0.40, 0.40, 0.20]$ |
 | ③ 按各自权重汇合同一组 `[v₀, v₁, v₂]` | $0.73[1,0] + 0.18[0,1] + 0.09[1,1] = \mathbf{[0.82, 0.27]}$ | $0.40[1,0] + 0.40[0,1] + 0.20[1,1] = \mathbf{[0.60, 0.60]}$ |
 
-可以看到，虽然读的是同一张 3 行 K/V 表，$Q_0$ 把 `0.73` 的比重投给了位置 0，$Q_1$ 则在位置 0、1 之间平分，两份输出完全不同。和 MHA 相比，唯一差别在于 $Q_1$ 没有专属的 $K_1, V_1$：若在 [attention 页多头算例](attention-qkv.md#多头同一个位置同时按几套方式去读)的 MHA 下让 $Q_1$ 读专属头 1 的值向量，虽然它的权重碰巧也是 `[0.40, 0.40, 0.20]`，汇合输出却是 `[1.20, 0.80]`；改成共读第 0 组后变成了 `[0.60, 0.60]`——组越少，可提供的独立 $V$ 子空间就越少，这就是上一节说的「质量换容量」。
+可以看到，虽然读的是同一张 3 行 K/V 表，$Q_0$ 把 `0.73` 的比重投给了位置 0，$Q_1$ 则在位置 0、1 之间平分，两份输出完全不同。和 MHA 相比，唯一差别在于 $Q_1$ 没有专属的 $K_1, V_1$。在 [attention 页多头算例](attention-qkv.md#多头同一个位置同时按几套方式去读)的 MHA 下，$Q_1$ 权重碰巧也是 `[0.40, 0.40, 0.20]`，但读专属头 1 的值向量会算出 `[1.20, 0.80]`；改成共读第 0 组后变成了 `[0.60, 0.60]`。组越少，可提供的独立 $V$ 子空间就越少，这就是上一节说的「质量换容量」。
 
 顺着同一个小例子（设隐藏宽度 $H = 4 \times 2 = 8$，忽略偏置），把三种结构在一层里的乘法次数和投影参数个数摆在一起，就能直观验证上一节的算账结论：
 
@@ -167,7 +169,7 @@ $$o_h = \text{softmax}\!\left(\frac{Q_h K_{g(h)}^\top}{\sqrt{d_k}}\right) V_{g(h
 
 ## 缓存容量按 KV 头数计算
 
-在标准（未压成潜向量或递推状态）的 KV cache 中，单个 token 在单层要存多少字节，只由 KV 头数 $n_{\text{kv}}$、单头 K/V 宽度和元素字节数决定，**查询头数 $n_q$ 根本不出现在公式里**（当 $d_k = d_v = d_h$ 时即为 $2 \times n_{\text{kv}} \times d_h \times \text{bytes}$）：
+在标准（未压成潜向量或递推状态）的 KV cache 中，单 token 单层字节数只由 KV 头数 $n_{\text{kv}}$、单头宽度和元素字节数决定。**查询头数 $n_q$ 根本不出现在公式里**（$d_k = d_v = d_h$ 时即为 $2 \times n_{\text{kv}} \times d_h \times \text{bytes}$）：
 
 $$\text{KV}_{\text{token,layer}} = n_{\text{kv}} \times (d_k + d_v) \times \text{bytes}, \qquad \frac{\text{KV}_{\text{GQA}}}{\text{KV}_{\text{MHA}}} = \frac{n_{\text{kv}}}{n_q}$$
 
@@ -177,7 +179,7 @@ $$\text{KV}_{\text{token,layer}} = n_{\text{kv}} \times (d_k + d_v) \times \text
 file: gqa-cache
 ```
 
-把上图的小算例格子数，连同 [KV cache 页](kv-cache.md#存一份要多少从一个位置一层往上乘)的 32 层基准算例，以及本站 `v0.30.0` 主基线的两个标准模型 **`Qwen3-8B`**（`4:1` GQA）与 **`Qwen3-30B-A3B`**（`8:1` GQA）放在同一张表里对账（均按 `BF16` 每元素 `2 B` 静态推导）：
+下面按 `BF16`（每元素 `2 B`）静态推导，把小算例、[KV cache 页](kv-cache.md#存一份要多少从一个位置一层往上乘)的 32 层基准，以及 `v0.30.0` 主基线的 **`Qwen3-8B`**（`4:1` GQA）与 **`Qwen3-30B-A3B`**（`8:1` GQA）放在同一张表里对账：
 
 | 算例与模型标尺 | 头配置（$n_q : n_{\text{kv}}$，单头 $d_h$） | 单层投影形状 $W_Q$ vs $W_K, W_V$ | 单 token 单层 KV | 单 token 全层 KV（及 `4,096` token 请求总计） |
 |---|---|---|---|---|
@@ -186,9 +188,13 @@ file: gqa-cache
 | **`Qwen3-8B`**（36 层稠密，$H=4096$） | **`32Q : 8KV`（`4:1` GQA）**，$d_h = 128$ | $W_Q$ `[4096, 4096]` vs $W_K, W_V$ **`[4096, 1024]`** | `4,096 B`（`4 KiB`） | 36 层 **`144.0 KiB/tok`**（比同尺寸 MHA 省 `4×`）；4K 请求 `576 MiB` |
 | **`Qwen3-30B-A3B`**（48 层 MoE，$H=2048$） | **`32Q : 4KV`（`8:1` GQA）**，显式 $d_h = 128$ | $W_Q$ `[2048, 4096]` vs $W_K, W_V$ **`[2048, 512]`** | `2,048 B`（`2 KiB`） | 48 层 **`96.0 KiB/tok`**（比同头宽 MHA 省 `8×`）；4K 请求 `384 MiB` |
 
-核对 `Qwen3-30B-A3B` 那一行时要特别留心 [config.json 解剖页](hf-model-anatomy.md#核心尺寸与-gqahead_dim-不一定等于-hidden_size--num_attention_heads)强调过的陷阱：它的 `hidden_size` 虽然只有 `2048`，但配置显式指定了 `"head_dim": 128`，所以 $W_Q$ 输出宽度是 $32 \times 128 = 4096$，$W_K, W_V$ 输出宽度按 `8:1` 缩成 $4 \times 128 = 512$；正因为 KV 头压到了 `4` 个，哪怕它有 `48` 层，每 token 的全层缓存（`96.0 KiB`）反而比 36 层的 `Qwen3-8B`（`144.0 KiB`）还省三分之一。
+核对 `Qwen3-30B-A3B` 这一行时，先留意 [config.json 解剖页](hf-model-anatomy.md#核心尺寸与-gqahead_dim-不一定等于-hidden_size--num_attention_heads)强调过的显式头宽规则：它的 `hidden_size` 虽然只有 `2048`，但配置显式指定了 `"head_dim": 128`。因此 $W_Q$ 输出宽度仍是 $32 \times 128 = 4096$，而 $W_K, W_V$ 按 `8:1` 缩成 $4 \times 128 = 512$。
 
-在 vLLM 的分页管理（见 [PagedAttention](paged-attention.md)）中，缓存按固定 `block_size`（每块容纳的 token 数）分配物理页，单层每块字节数为 $2 \times \text{block\_size} \times n_{\text{kv,local}} \times d_h \times \text{bytes}$（其中 $n_{\text{kv,local}}$ 是张量并行切分后的本卡 KV 头数）。拿单卡 `8` 个 KV 头、`d_h = 128`、`BF16` 算：若一块装 `16` 个 token（示意），单层每块就是 $2 \times 16 \times 8 \times 128 \times 2\text{ B} = 65,536\text{ B} = 64\text{ KiB}$；若按昇腾常见的 `block_size = 128` 分配，单层每块则是 `512 KiB`。注意以上均为纯逻辑载荷，设备真实占用还包含未填满尾块空位、量化缩放系数、块表元数据、算子临时工作区及跨卡复制；单卡最终能切出多少物理块由启动时的显存试跑决定（见 [KV 显存划定](kv-cache-memory-profiling.md)；历史 GLM 双机预算只在[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)推导一次）。
+再看全层缓存对比：正因为 `Qwen3-30B-A3B` 把 KV 头压到了 `4` 个，哪怕它有 `48` 层，每 token 全层缓存（`96.0 KiB`）反而比 `36` 层的 `Qwen3-8B`（`144.0 KiB`）还省三分之一。
+
+在 vLLM 的分页管理（见 [PagedAttention](paged-attention.md)）中，缓存按固定 `block_size`（每块容纳的 token 数）分配物理页，单层每块字节数为 $2 \times \text{block\_size} \times n_{\text{kv,local}} \times d_h \times \text{bytes}$（$n_{\text{kv,local}}$ 为本卡 KV 头数）。拿单卡 `8` 个 KV 头、`d_h = 128`、`BF16` 代入：一块装 `16` 个 token（示意）时单层每块为 `65,536 B`（`64 KiB`）；按昇腾常见 `block_size = 128` 分配时，单层每块为 `512 KiB`。
+
+> **边界与口径**：以上均为纯逻辑载荷。设备真实占用还包含未填满尾块空位、量化缩放系数、块表元数据、算子临时工作区及跨卡复制；单卡最终能切出多少物理块由启动试跑决定（见 [KV 显存划定](kv-cache-memory-profiling.md)；历史 GLM 双机预算只在[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)推导一次）。
 
 ## 张量并行时，KV 头不够分就要复制
 
@@ -197,7 +203,7 @@ file: gqa-cache
 $$n_{\text{kv,local}} = \max\!\bigl(1,\; n_{\text{kv}} / \text{TP}\bigr), \qquad \text{replicas} = \max\!\bigl(1,\; \text{TP} / n_{\text{kv}}\bigr), \qquad \text{shard\_rank} = \lfloor r / \text{replicas} \rfloor$$
 
 - **够分就切（$n_{\text{kv}} \ge \text{TP}$）**：要求 $n_{\text{kv}}$ 被 `TP` 整除（`replicas = 1`）。每张卡分走 $n_{\text{kv}} / \text{TP}$ 个不重叠的 KV 头，本卡 KV cache 也只存这几个头。
-- **不够分就复制（$n_{\text{kv}} < \text{TP}$）**：要求 `TP` 被 $n_{\text{kv}}$ 整除。每张卡保底放 `1` 个 KV 头，同一个 KV 头跨 `num_kv_head_replicas = TP // n_kv` 张卡各驻留一份副本；加载权重时，第 $r$ 号 TP 卡按 `r // num_kv_head_replicas` 挑出自己要加载的那一个 KV 头。
+- **不够分就复制（$n_{\text{kv}} < \text{TP}$）**：要求 `TP` 被 $n_{\text{kv}}$ 整除。每张卡保底放 `1` 个 KV 头，同一个 KV 头跨 `num_kv_head_replicas = TP // n_kv` 张卡各留一份副本。加载权重时，第 $r$ 号 TP 卡按 `r // num_kv_head_replicas` 挑出自己负责的那一个 KV 头。
 
 下图把 `Qwen3-8B`（`8` 个 KV 头）与 `Qwen3-30B-A3B`（`4` 个 KV 头）同时放进 `TP = 8` 环境对比，并在底部标出昇腾融合算子 `FIA` 如何直接消费本卡分组头：
 
@@ -214,7 +220,10 @@ file: gqa-fig-qwen3-shapes
 | **`Qwen3-8B`**（`32Q : 8KV`，$d_h=128$） | `TP = 8` | `4Q : 1KV` | `1` | `512 B`（全层 `18 KiB`） | 8 卡合计 `4,096 B`（`8` 头刚好切完，零复制） |
 | **`Qwen3-30B-A3B`**（`32Q : 4KV`，$d_h=128$） | `TP = 4` → **`TP = 8`** | `8Q:1KV` → **`4Q:1KV`** | `1` → **`2`** | 两档均为 **`512 B`**（全层 `24 KiB`） | `TP=4` 合计 `2,048 B`；**`TP=8` 涨到 `4,096 B`**（每头跨 2 卡复制） |
 
-跨过 `TP > n_kv` 这条线会带来两个直接后果：第一，像 `Qwen3-30B-A3B` 从 `TP=4` 扩到 `TP=8` 时，单卡每 token 的 KV cache（单层恒为 `512 B`）和单卡 $W_K, W_V$ 权重（单层各 `[2048, 128]`）都触到了「至少 1 个 KV 头」的地板，继续加 TP 卡不再缩小单卡 KV 缓存；第二，像小例子在 `TP=4` 下单卡表面呈现 `1Q : 1KV`，那只是两张卡共持同一份 KV 副本，全模型依然只有 `2` 组独立 K、V，绝不代表模型退化回了 MHA。
+跨过 `TP > n_kv` 这条线会带来两个直接后果：
+
+- **单卡 KV 缓存触底不再缩小**：以 `Qwen3-30B-A3B` 为例，从 `TP=4` 扩到 `TP=8` 时，单卡每 token 的 KV cache（单层恒为 `512 B`）与单卡 $W_K, W_V$ 权重（单层各 `[2048, 128]`）均已触到「至少 1 个 KV 头」的地板，继续加 TP 卡不再省显存。
+- **单卡呈 `1Q : 1KV` 不等于退回 MHA**：小例子在 `TP=4` 下单卡表面是 `1Q : 1KV`，那只是两张卡共持同一份 KV 副本，全模型依然只有 `2` 组独立 K、V。
 
 ## 昇腾算子执行与变体边界：FIA、Mooncake+C8 与 MLA / KDA
 
@@ -222,13 +231,13 @@ file: gqa-fig-qwen3-shapes
 
 在早期朴素 PyTorch 实现里，为了做分组点积，常要在调用注意力前先调 `repeat_kv` 把 K、V 张量沿头维度复制展开成 $n_q$ 份，白白吃掉成倍的 HBM 显存与带宽。在 `vllm` 与昇腾 `vllm-ascend`（`v0.30.0` 主基线）中，**调用算子前绝不在 HBM 里复制展开 K、V**：
 
-- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录每组查询头数 `num_queries_per_kv = num_heads // num_kv_heads`，前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，算子族选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接把本卡 `num_heads` 与 `num_key_value_heads` 连同紧凑变长布局 `input_layout="TND"`、分页 `block_table` 一并传入，同组映射在算子内部完成（通用 PyTorch `scaled_dot_product_attention` 路径则通过 `enable_gqa = (num_heads > num_kv_heads)` 打开内部按组广播）。至于 `FIA` 核内在片上缓存层是否对同组查询头合并为单次物理读取，则取决于底层 CANN 算子实现。
-- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：在昇腾上对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端（producer）保留 `BF16` 缓存，而 Decode 消费端（consumer）分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把传过来的 `BF16` 字节错当成 `INT8` 解释，因此 `vllm-ascend` 启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛出 `ValueError` 拦截——此时必须改用发送前逐层执行 `INT8` 量化的 **`MooncakeLayerwiseConnector`**，或者关闭 `C8` 缓存量化。
-- **GQA 叠加 [上下文并行（PCP / DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `prefill_context_parallel_size == decode_context_parallel_size`（`PCP == DCP`）；若在投机解码下为 GQA/MQA 草稿模型单独开启 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且每组查询头数 `Q // KV` 能被 `DCP` 整除。
+- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录 `num_queries_per_kv = num_heads // num_kv_heads`。前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接传入本卡 `num_heads`、`num_key_value_heads`、紧凑布局 `input_layout="TND"` 与分页 `block_table`，同组映射在算子内部完成。通用 PyTorch `scaled_dot_product_attention` 路径则通过 `enable_gqa = (num_heads > num_kv_heads)` 开启内部广播；至于 `FIA` 核内片上缓存是否对同组查询头合并为单次物理读取，取决于底层 CANN 算子实现。
+- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：在昇腾上对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`。因此启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，此时必须换用发送前逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
+- **GQA 叠加 [上下文并行（PCP / DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `prefill_context_parallel_size == decode_context_parallel_size`（`PCP == DCP`）。若在投机解码下为 GQA/MQA 草稿模型单独开启 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
 
 ### 变体边界：GLM 双机的稀疏 MLA 与 KDA 为什么不是 GQA
 
-并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`，示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层，交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）为例，它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**，不能套用本页的 GQA 公式估算它的缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
+并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`）为例：示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层（交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）。它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**，绝不能套用本页 GQA 公式估算缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
 
 ```wiki-diagram
 file: gqa-flow

@@ -1,0 +1,11 @@
+mode: native-svg
+id: embedding-fig-vocab-parallel-qwen3
+caption: Qwen3-8B 词表并行 Embedding（[151936, 4096] 切于 TP=2，每卡 75,968 行）从输入编号广播、区间掩码置零、All-Reduce 求和到输出 [T, 4096] 的完整流转，以及四组高频误区对照。
+size: [900, 512]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L176-L220'
+    symbols: ['get_masked_input_and_mask', 'VocabParallelEmbedding']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L540-L556'
+    symbols: ['masked_fill_', 'tensor_model_parallel_all_reduce']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L301-L345'
+    symbols: ['_forward_standard', '_forward_with_token_exchange', 'token_exchange_group']

@@ -108,7 +108,7 @@ rawSources:
 
 **Prefill（预填充）是处理请求提示词中尚未计算的位置、为后续生成建立历史状态的阶段：可以一轮并行算完，也可以按预算跨多轮分块处理；提示词全部算完的那一步，直接取最后一个位置的输出选出第 1 个生成 token。随后请求进入 Decode（解码）阶段：在普通自回归路径下，每轮只把上一步刚选出的 1 个新 token 送进模型，读取已有历史状态并选出下一个输出 token。**
 
-先把贯穿本页的两个基础词立住。一段提示词经分词器切分后变成一串离散编号（[token](token.md)），每个 token 占据序列里的一个**位置**；**历史**则是模型为每个已算过的位置留在设备显存里的中间状态，供后面的位置反复查阅。在 `Qwen3-8B` 这类标准 Transformer 模型中，每一层都通过 [attention](attention-qkv.md)（注意力：当前位置拿查询向量 `Q` 去和自己及前文各位置的键 `K` 打分，再按权重汇总各位置的值 `V`）融合上下文，因此每个算过的位置都会在各层存下一对 `K`、`V` 向量，合称 [KV cache](kv-cache.md)（若遇到混合线性注意力模型，还会有一类按请求槽位原地更新的固定大小状态，后文变体小节再单独对照）。
+先把贯穿本页的两个基础词立住。一段提示词经分词器切分后变成一串离散编号（[token](token.md)），每个 token 占据序列里的一个**位置**；**历史**则是模型为每个已算过的位置留在设备显存里的中间状态，供后面的位置反复查阅。在 `Qwen3-8B` 这类标准 Transformer 模型中，每一层都通过 [attention](attention-qkv.md)（当前位置拿查询向量 `Q` 与自己及前文的键 `K` 打分，再按权重汇总值 `V`）融合上下文。因此，每个算过的位置都会在各层存下一对 `K`、`V` 向量，合称 [KV cache](kv-cache.md)。若遇到混合线性注意力模型，还会多出一类按请求槽位原地更新的固定大小状态，后文变体小节再单独对照。
 
 在 [一次请求全景鸟瞰](request-overview.md) 的主线基础上，下图按时间从左到右展开最干净的普通生成路径（不分块、不命中前缀缓存、不开投机候选，也不额外索取提示词概率）：
 
@@ -119,18 +119,23 @@ file: prefill
 顺着图中的三步推进，能一次看清两阶段的交接边界：
 
 - **第 1 步（Prefill）：已知位置并排进门，因果掩码守住顺序。** 提示词 `x₀..x₃` 共 4 个 token 在请求到达时就已经全部确定，不必拆成 4 次串行调用，而是拼成一个 4 行张量在同一次前向里走完所有层。并排计算绝不等于偷看后文：注意力层里的 **causal mask**（因果掩码，见 [因果掩码限定历史范围](attention-qkv.md#因果掩码限定每个位置能访问的历史)）把右上角未来位置遮住，令位置 `i` 只能读取 `0..i`——`x₀` 只看自己，只有末尾 `x₃` 读齐了整句 `x₀..x₃`。
-- **只有最后一行送去选词，当场产出首词 `y₀`。** 走完最后一层得到 4 行隐藏向量 `h₀..h₃` 后，执行器通过 `logits_indices` **只切出最后一行 `h₃`** 送进输出头 `lm_head`（词表投影，把隐藏向量变成词表每个词的分数 `logits`）并采样，直接选出回答的第 1 个 token `y₀`。前 3 行 `h₀..h₂` 这一步的真正使命是把位置 `0..2` 的 `K`、`V` 写进历史缓存，本身不参与选词。
+- **只有最后一行送去选词，当场产出首词 `y₀`。** 走完最后一层得到 4 行隐藏向量 `h₀..h₃` 后，执行器通过 `logits_indices` **只切出最后一行 `h₃`** 送进输出头 `lm_head`（词表投影，把隐藏向量映射为词表分数 `logits`）并采样，直接选出回答的第 1 个 token `y₀`。前 3 行 `h₀..h₂` 这一步的真正使命是把位置 `0..2` 的 `K`、`V` 写进历史缓存，本身不参与选词。
 - **第 2 步起（Decode）：每轮只进 1 个新词，通读前文历史。** 第 2 个输出词必须等 `y₀` 选出来才知道接在谁后面，无法提前并排算；而旧位置 `0..3` 的 `K`、`V` 因看不见后文永远不会变，无需重算。于是第 2 步只送入 `y₀` 1 个位置，读取缓存中 `0..3` 的历史并为自己写下第 `4` 格，选出 `y₁`；第 3 步再送入 `y₁` 选出 `y₂`。
 
-由此可以直接推出两个常被数错的工程事实：第一，在不分块、不复用前缀、不猜候选的普通自回归路径上，**生成 200 个输出 token 经历的是 `1` 次 Prefill 加 `199` 次 Decode**（共 200 步请求前向，而非 1 次 Prefill 加 200 次 Decode；注意这里数的是单条请求经历的前向步数，引擎总循环次数还受并发排队与空转影响）。第二，**“选出一个 token”和“把它送进模型”隔着轮次边界**：`y₀` 在第 1 步末尾选出，到第 2 步才进模型写缓存；当最后一个输出 token 刚被选出就撞上 `eos_token_id` 或 `max_tokens` 停止条件时，它不再进入下一轮前向，也不会在 `KV cache` 里留下自己的历史槽位（详见 [KV cache 末词少一格](kv-cache.md#已生成的-token为何还可能没有自己的缓存)）。
+由此可以直接推出两个常被数错的工程事实：
+
+- **生成 `200` 个输出词 = `1` 步 Prefill + `199` 步 Decode。** 在不分块、不复用前缀、不猜候选的普通自回归路径上，单条请求共经历 `200` 步前向，而非 `1 + 200` 步（注意这里数的是单条请求经历的前向步数；引擎总循环次数还受并发排队与空转影响）。
+- **“选出一个词”和“把它送进模型”隔着轮次边界。** `y₀` 在第 1 步末尾选出，到第 2 步才进模型写缓存。当最后一个输出 token 刚被选出就撞上 `eos_token_id` 或 `max_tokens` 停止条件时，它不再进入下一轮前向，也不会在 `KV cache` 里留下自己的历史槽位（详见 [KV cache 末词少一格](kv-cache.md#已生成的-token为何还可能没有自己的缓存)）。
 
 ## 为什么把已知的位置合成一步，代价在哪？
 
 **把已知的提示词位置合成同一步并行前向，是为了让每步固定的“搬整套层权重、下发算子与跨卡通信”只付一次，把线性层变成高复用大矩阵乘；代价是这一步很宽，既拉长本请求的首字等待（TTFT），也会拖住同批陪跑的 Decode 请求。**
 
-一步模型前向的开销分成两笔账：一笔**随输入位置数成正比**（进来多少行，就要做多少份乘加）；另一笔**每走一步都要固定付一遍**（从 NPU 的 HBM 显存把所有层的权重搬进计算单元、由 CPU 调度下发算子链，多卡切分时每层还要发起集合通信）。先拿一条提示词 `6000` 个 token、要生成 `200` 个 token 的请求看直觉：若傻乎乎地像 Decode 那样逐个位置串行喂进去，走到第 1 个输出词就要跑 `6000` 步前向、理想模型下把整套权重反复读取 `6000` 轮；而在不分块的前提下合成 `1` 步 Prefill，虽然每个提示词位置该做的数学乘加一次不少（`1 步 × 6000 行 = 6000 份`），却能在批内把同一片权重复用 `6000` 次，随后再走 $N_{\text{decode}} = 200 - 1 = 199$ 步单位置 Decode（一步位置宽度相差 `6000 : 1`；以上轮数是调度与理想权重复用对照，真实 HBM 读取次数还取决于片上分块、缓存与融合实现）。
+一步模型前向的开销分成两笔账：一笔**随输入位置数成正比**（进来多少行，就要做多少份乘加）；另一笔**每走一步都要固定付一遍**（从 NPU 的 HBM 显存把所有层的权重搬进计算单元、由 CPU 调度下发算子链，多卡切分时每层还要发起集合通信）。
 
-把这笔账落到全站 `v0.30.0` 主基线的标准稠密模型 **`Qwen3-8B`**（`36` 层，`hidden_size = 4096`，`32` 个查询头共享 `8` 个 KV 头、`head_dim = 128`，词表 `vocab_size = 151,936`，BF16 纯权重静态体积 `8.19B × 2 B ≈ 16.38 GB`，按二进制换算为 `15.26 GiB`，全层每 token BF16 `KV cache` 占 `144.0 KiB`，唯一静态推导见 [HF 模型目录解剖](hf-model-anatomy.md#完整算账对照qwen3-8b-vs-qwen3-30b-a3b)）上，两阶段的硬件瓶颈与 `logits_indices` 末行切片收益一目了然：
+拿一条提示词 `6000` 个 token、生成 `200` 个 token 的请求看直觉：若像 Decode 那样逐个位置串行喂进去，走到第 1 个输出词就要跑 `6000` 步前向，理想模型下需把整套权重反复读取 `6000` 轮。若在不分块的前提下合成 `1` 步 Prefill，每个提示词位置该做的数学乘加一次不少（`1 步 × 6000 行 = 6000 份`），却能在批内把同一片权重复用 `6000` 次。随后请求再走 $N_{\text{decode}} = 200 - 1 = 199$ 步单位置 Decode，两阶段单步位置宽度相差 `6000 : 1`。以上轮数是调度与理想权重复用对照，真实 HBM 读取次数还取决于片上分块、缓存与融合实现。
+
+下面把这笔账落到全站 `v0.30.0` 主基线的标准稠密模型 **`Qwen3-8B`** 上。它的核心规格为 `36` 层、`hidden_size = 4096`、`32` 个查询头共享 `8` 个 KV 头、`head_dim = 128`、词表 `vocab_size = 151,936`；BF16 纯权重静态体积为 `8.19B × 2 B ≈ 16.38 GB`（按二进制换算为 `15.26 GiB`），全层每 token BF16 `KV cache` 占 `144.0 KiB`（唯一静态推导见 [HF 模型目录解剖](hf-model-anatomy.md#完整算账对照qwen3-8b-vs-qwen3-30b-a3b)）。在它上面，两阶段的硬件瓶颈与 `logits_indices` 末行切片收益一目了然：
 
 ```wiki-diagram
 file: prefill-fig-compute-vs-bw
@@ -150,7 +155,7 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 
 从上表和剖面图能读出两头截然相反的工程处境：
 
-- **Prefill 怕“一步太宽”卡住全场，所以要设每步预算并分块。** 假设实例上已有 `12` 条请求正在 Decode（每步合占 `12` 个位置），此时突然闯进前面那条 `6000` token 的新提示词。如果不设单步位置上限，这一步就要硬算 `6000 + 12 = 6012` 个位置，耗时比前后两步（`12` 和 `13` 个位置）暴涨上百倍：一方面新请求自己的 **TTFT**（Time To First Token，从请求到达到首词返回的端到端时间，含排队、调度、Prefill 前向、采样与返回）随提示词拉长；另一方面那 `12` 条同批 Decode 请求也被迫陪等这一大步算完才能拿到下一个词。为此，vLLM 用 `--max-num-batched-tokens` 设定每步 token 预算，超出剩余预算的长提示词自动切到后续轮次接力——这就是 [chunked prefill](chunked-prefill.md)（分块预填充）。以每步预算 `2048` 个位置（示意）为例，在 `12` 条普通 Decode 持续在跑时，`6000` 个提示词位置的三步切分账如下：
+- **Prefill 怕“一步太宽”卡住全场，所以要设每步预算并分块。** 假设实例上已有 `12` 条请求正在 Decode（每步合占 `12` 个位置），此时闯进前面那条 `6000` token 的新提示词。如果不设单步位置上限，这一步就要硬算 `6000 + 12 = 6012` 个位置，耗时比前后两步（`12` 和 `13` 个位置）暴涨上百倍。一方面，新请求自己的 **TTFT**（Time To First Token，从请求到达到首词返回的端到端时间，含排队、调度、Prefill 前向、采样与返回）随提示词拉长；另一方面，那 `12` 条同批 Decode 请求也被迫陪等这一大步算完才能拿到下一个词。为此，vLLM 用 `--max-num-batched-tokens` 设定每步 token 预算，超出剩余预算的长提示词自动切到后续轮次接力——这就是 [chunked prefill](chunked-prefill.md)（分块预填充）。以每步预算 `2048` 个位置（示意）为例，在 `12` 条普通 Decode 持续在跑时，`6000` 个提示词位置的三步切分账如下：
 
 | 引擎步序号 | 12 条在跑 Decode 先占 | 留给新请求 Prefill 的位置数 | 新请求累计已算进度 | 本步末尾是否产出新请求首词 |
 | --- | --- | --- | --- | --- |
@@ -158,9 +163,9 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 | 第 2 步 | `12 × 1 = 12` | $2048 - 12 = \mathbf{2036}$ | `4072 / 6000` | 否（中间分块采样结果丢弃） |
 | 第 3 步 | `12 × 1 = 12` | $6000 - 4072 = \mathbf{1928}$（总宽 `1940 ≤ 2048`） | `6000 / 6000` | **是：末段位置 `5999` 选出首词 `y₀`** |
 
-- **Decode 怕“一步太窄”喂不饱硬件，所以靠拼批与投机解码破局。** Decode 每条请求每步只推进 1 个位置，算力利用率极低。工程上要么用 [continuous batching](continuous-batching.md)（连续批处理）把几十条请求攒进同一步分摊权重读取，要么开启 [speculative decoding](speculative-decoding.md)（投机解码：先由轻量草稿机制猜出几个候选词，下一步由主模型一次并行验证，猜中几个就前进几格）。观测输出流式推进时，务必分清相邻两次流式输出包之间的间隔 **ITL** 与首词之后按生成词数均摊的 **TPOT**（统一计时口径见 [推理测量](inference-benchmarking.md#先把一个请求的几种等待分开) 与 [Roofline 指标对账](roofline-and-metrics.md#推理性能三角ttfttpot--itl-与系统吞吐为什么互相拉扯)）。
+- **Decode 怕“一步太窄”喂不饱硬件，所以靠拼批与投机解码破局。** Decode 每条请求每步只推进 1 个位置，算力利用率极低。工程上有两条破局路径：用 [continuous batching](continuous-batching.md)（连续批处理）把几十条请求攒进同一步分摊权重读取，或开启 [speculative decoding](speculative-decoding.md)（投机解码，先由轻量草稿机制猜出几个候选词，下一步由主模型并行验证，猜中几个就前进几格）。观测流式输出推进时，务必分清相邻两次流式包之间的间隔 **ITL** 与首词后按生成词数均摊的 **TPOT**（统一计时口径见 [推理测量](inference-benchmarking.md#先把一个请求的几种等待分开) 与 [Roofline 指标对账](roofline-and-metrics.md#推理性能三角ttfttpot--itl-与系统吞吐为什么互相拉扯)）。
 
-若模型换成带 [MoE](moe.md)（混合专家：把单块稠密 MLP 拆成多份并排的专家权重，每个 token 只由路由器挑中其中几个专家计算）的架构，如 `Qwen3-30B-A3B`（`128` 个路由专家每词选 `8` 个，总权重 `56.87 GiB`、单词激活 `3.35B`），算账时还要多加一道路由稀释边界：Decode 小批时只读取本步被抽中的那部分专家，但并发批一大几乎会把全部专家点亮一遍，不能笼统断言 Decode 永远只读少量权重或永远读全量权重；Prefill 也不能把总行数直接套到单个专家头上——例如 `64` 个专家每词挑 `2` 个的示意设定下，`6000` 个提示词位置分摊到每个专家平均只有 $6000 \times 2 \div 64 \approx 188$ 行，虽远少于整步 `6000` 行，仍显著宽于单步 Decode 的寥寥数行。
+> **边界与例外（MoE 架构下的路由稀释）**：若换成带 [MoE](moe.md)（混合专家）的架构，如 `Qwen3-30B-A3B`（`128` 个路由专家每词选 `8` 个，总权重 `56.87 GiB`、单词激活 `3.35B`），算账要多看一道路由稀释边界。Decode 小批时只读取本步被抽中的专家，但并发批一大几乎会把全部专家点亮一遍，不能笼统断言 Decode 永远只读少量或永远读全量权重。Prefill 也不能把总行数直接套到单个专家头上：例如 `64` 个专家每词挑 `2` 个的示意设定下，`6000` 个提示词位置均摊到单个专家只有 $6000 \times 2 \div 64 \approx 188$ 行，虽远少于整步 `6000` 行，仍显著宽于单步 Decode 的寥寥数行。
 
 把围绕两阶段的四个高频相邻机制放在一起辨析：
 
@@ -171,7 +176,7 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 | **Prefix Caching** | 开头与历史请求兼容的前缀块直接复用既有 `KV cache`，Prefill 只算剩余未命中位置，见 [prefix caching](prefix-caching.md) |
 | **PD 分离** | 把 Prefill 与 Decode 拆到两组独立实例（各占一组卡）并通过网络传 `KV cache`，消除长 Prefill 对 Decode 的同批干扰，见 [PD 分离](pd-disaggregation.md) |
 
-注意前缀缓存命中以**完整块哈希身份兼容**为前提（哈希同时纳入前块指纹、本块 token 编号以及 LoRA、多模态特征、缓存盐值 `cache_salt` 与直接输入嵌入标识），光有字面相同的开头文本并不保证可复用；且复用后的剩余后缀位置依然走提示词处理逻辑，不会提前变成生成输出。
+注意前缀缓存命中以**完整块哈希身份兼容**为前提：哈希同时纳入前块指纹、本块 token 编号，以及 LoRA、多模态特征、缓存盐值 `cache_salt` 与直接输入嵌入标识。光有字面相同的开头文本并不保证可复用，且复用后的剩余后缀位置依然走提示词处理逻辑，不会提前变成生成输出。
 
 ## 提示词已经给定，为什么还要算它的概率？
 
@@ -185,31 +190,41 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 | `x₁` | `h₀` 投影出的词表分布 | 取已知 `x₁` 的编号得分（如 6 词示意中 `x₁` 是「你」，即便「猫」分更高仍取「你」的 $p \approx 0.233, \ln p \approx -1.457$） |
 | `x₂` / `x₃` | `h₁` / `h₂` 投影出的词表分布 | 分别取已知 `x₂` / `x₃` 的编号得分；若请求前 `k` 名（`k > 0`），同位置至多附带 `k + 1` 项候选，传 `0` 则只保留实际词评分 |
 
-这项功能并不重跑 36 层主干，新增开销全压在**词表投影、全词表归一化与跨设备拷回**：在 `Qwen3-8B` 上对 `N = 2048` 提示词开启记录（哪怕传 `prompt_logprobs = 0`），也要把前 `2047` 行送进 `lm_head` 算出 `[2047, 151936]` 分数矩阵（FP32 下约 `1.16 GiB`），分块 Prefill 时则在 `in_progress_prompt_logprobs_cpu` 中逐块收集、等整段提示词算完一次交出。此外，既有 `KV cache` 只存 `K`、`V` 而不保存词表分布，因此 `SamplingParams` 默认令 `skip_reading_prefix_cache = (prompt_logprobs is not None)`，开启提示词概率（含 `0`）时自动跳过读取已有前缀缓存（不等于全局关闭缓存或禁止写入缓存，共享条件见 [prefix caching](prefix-caching.md#哪些块能被共享)）。
+这项功能并不重跑 36 层主干，新增开销全压在**词表投影、全词表归一化与跨设备拷回**。在 `Qwen3-8B` 上对 `N = 2048` 提示词开启记录（哪怕传 `prompt_logprobs = 0`），也要把前 `2047` 行送进 `lm_head`，算出 `[2047, 151936]` 分数矩阵（FP32 下约 `1.16 GiB`）。分块 Prefill 时，这些分数在 `in_progress_prompt_logprobs_cpu` 中逐块收集，等整段提示词算完一次交出。
+
+> **边界与例外（自动跳过读取前缀缓存）**：既有 `KV cache` 只存 `K`、`V`，不保存词表分布。因此 `SamplingParams` 默认令 `skip_reading_prefix_cache = (prompt_logprobs is not None)`，只要开启提示词概率（含 `0`）就会自动跳过读取已有前缀缓存。这并不等于全局关闭缓存或禁止写入缓存，具体共享条件见 [prefix caching](prefix-caching.md#哪些块能被共享)。
 
 ## 一步之内引擎怎样统一调度又分路执行
 
 **vLLM V1 调度器内部根本不设独立的 Prefill 队列或 Decode 队列，只用同一条“未算位置进度差”公式分配每步 token 预算；真正的两阶段分路发生在 NPU 执行器侧——由 `AscendAttentionState`、整图回放判定 `uniform_decode` 与末行切片 `logits_indices` 分别接管。**
 
-1. **统一调度（无阶段队列）**：`Scheduler.schedule` 在函数头注释里明确声明无阶段之分，对每条请求统一计算本步新增位置数 $\text{num\_new\_tokens} = \text{num\_tokens\_with\_spec} - \text{num\_computed\_tokens}$，再依次受单条长提示词上限 `long_prefill_token_threshold`、整步剩余 `token_budget`（`max_num_batched_tokens`）与上下文上限 `max_model_len` 夹断，并按缓存组申请块号（见 [KV cache 规格](kv-cache-spec.md)、[KV cache 分块](kv-cache.md#缓存按块存放一个位置的-kv-写进哪一格) 与 [调度器](vllm-scheduler.md)）。以 4 token 短提示词为例，同一条减法同时覆盖普通 `Qwen3-8B` 与带 MTP（每步草拟 3 个候选）的请求：
+1. **统一调度（无阶段队列）**：`Scheduler.schedule` 在函数头注释里明确声明无阶段之分，对每条请求统一计算本步新增位置数 $\text{num\_new\_tokens} = \text{num\_tokens\_with\_spec} - \text{num\_computed\_tokens}$。该数值再依次受单条长提示词上限 `long_prefill_token_threshold`、整步剩余 `token_budget`（`max_num_batched_tokens`）与上下文上限 `max_model_len` 夹断，并按缓存组申请块号（见 [KV cache 规格](kv-cache-spec.md)、[KV cache 分块](kv-cache.md#缓存按块存放一个位置的-kv-写进哪一格) 与 [调度器](vllm-scheduler.md)）。以 4 token 短提示词为例，同一条减法同时覆盖普通 `Qwen3-8B` 与带 MTP（每步草拟 3 个候选）的请求：
 
 | 步序 | `Qwen3-8B` 普通自回归 | 开启 MTP（草拟 3 个候选） | 语义归属 |
 | --- | --- | --- | --- |
 | 第 1 步 | $\text{应算 } 4 - \text{已算 } 0 = \mathbf{4}$ | $\text{应算 } 4 - \text{已算 } 0 = \mathbf{4}$ | 4 个未算提示词并行进门（Prefill） |
 | 第 2 步 | $\text{应算 } 5 - \text{已算 } 4 = \mathbf{1}$（仅送 `y₀`） | $\text{应算 } (5 + 3) - \text{已算 } 4 = \mathbf{4}$（`y₀` + 3 候选） | 复用前 4 格历史续写或验稿（Decode） |
 
-2. **执行侧状态标签与图模式派发**：`vllm-ascend` 的 runner 在准备输入时按批内各请求进度贴上 `AscendAttentionState` 标签——整批从零起算贴 `PrefillNoCache`；全批每请求仅排 1 个位置贴 `DecodeOnly`（开启 MTP 时改贴 `SpecDecoding`；注意未开 MTP 时，恰剩最后 1 个提示词尾块的请求也会落入 `DecodeOnly` 单步执行分支，但请求语义上仍属提示词收尾）；混合批、分块续算或非 MTP 投机验证贴 `ChunkedPrefill`；关闭分块时的前缀命中贴 `PrefillCacheHit`；只要不是 `DecodeOnly` / `SpecDecoding` 就标记 `with_prefill = True`。随后 `CUDAGraphDispatcher.dispatch` 决定能否回放预录制的 `ACLGraph`（详见 [图模式](graph-mode-layer.md)）：在 **`FULL_DECODE_ONLY`** 模式（仅录制纯解码整图，`mixed_mode = NONE`）下，只有满足 `uniform_decode == True`（所有请求已有初始历史、混合模型已完成全部提示词，且每请求长度整齐等于 `uniform_decode_query_len`）的纯 Decode 批才能回放 `FULL` 整图，**任何含 Prefill 的步或混合批都会退回 `NONE`（Eager 逐算子下发）**；而在默认 **`FULL_AND_PIECEWISE`** 模式下，不超过 `max_cudagraph_capture_size` 的短 Prefill 或混合批可命中绕开注意力算子的 `PIECEWISE` 分段图，超长宽 Prefill 批同样退回 Eager。
-3. **末行切片与分块中间段丢弃**：普通生成时 `logits_indices = query_start_loc[1:num_reqs+1] - 1` 只挑每条请求的末尾行算 `compute_logits`。对尚未算完提示词的中间分块，runner 为保持流水简单照常采样一次，但由 `discard_requests_mask` 标记并在 `_bookkeeping_sync` 中清空输出，若请求自带随机种子还会调用 `gen.set_offset(gen.get_offset() - 4)` 把随机数发生器往回拨，防止白采样污染正式生成。
+2. **执行侧状态标签与图模式派发**：`vllm-ascend` 的 runner 在准备输入时，按批内各请求进度贴上 `AscendAttentionState` 标签：
+   - 整批从零起算贴 `PrefillNoCache`；全批每请求仅排 1 个位置贴 `DecodeOnly`（开启 MTP 时改贴 `SpecDecoding`）。
+   - 混合批、分块续算或非 MTP 投机验证贴 `ChunkedPrefill`；关闭分块时的前缀命中贴 `PrefillCacheHit`。只要不是 `DecodeOnly` / `SpecDecoding`，就标记 `with_prefill = True`。
+   - 随后 `CUDAGraphDispatcher.dispatch` 决定能否回放预录制的 `ACLGraph`（详见 [图模式](graph-mode-layer.md)）。在 **`FULL_DECODE_ONLY`** 模式（仅录制纯解码整图，`mixed_mode = NONE`）下，只有满足 `uniform_decode == True` 的纯 Decode 批才能回放 `FULL` 整图，**任何含 Prefill 的步或混合批都会退回 `NONE`（Eager 逐算子下发）**。在默认 **`FULL_AND_PIECEWISE`** 模式下，不超过 `max_cudagraph_capture_size` 的短 Prefill 或混合批可命中绕开注意力算子的 `PIECEWISE` 分段图，超长宽 Prefill 批同样退回 Eager。
+3. **末行切片与分块中间段丢弃**：普通生成时，`logits_indices = query_start_loc[1:num_reqs+1] - 1` 只挑每条请求的末尾行算 `compute_logits`。对尚未算完提示词的中间分块，runner 为保持流水简单照常采样一次，但由 `discard_requests_mask` 标记并在 `_bookkeeping_sync` 中清空输出。若请求自带随机种子，还会调用 `gen.set_offset(gen.get_offset() - 4)` 把随机数发生器往回拨，防止白采样污染正式生成。
+
+> **边界与例外（末 1 词尾块与 `uniform_decode` 判定）**：未开 MTP 时，恰剩最后 1 个提示词尾块的请求也会落入 `DecodeOnly` 单步执行分支，但请求语义上仍属提示词收尾。整图放行条件 `uniform_decode == True` 要求所有请求已有初始历史、混合模型已完成全部提示词，且每请求长度整齐等于 `uniform_decode_query_len`。
 
 ### 异构混合层与双机 MTP 对照（KDA / 稀疏 MLA / GLM 全案）
 
-在例外 B 历史绑定算例（双机 16 卡 TP8/DP2/EP16 W8A8 + MTP 3 候选的 `GLM-5.3-Flash`：`45` 层含 `34` 层原地更新固定大小状态的 KDA [线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进) 与 `11` 层带打分器 indexer 的 [稀疏 MLA](sparse-attention.md)，词表 `154880`，每步 `218` 次集合通信，唯一推导见 [双机部署](glm-5-3-flash-two-node.md#部署前提) 与 [一条请求](one-request.md)）中，上述统一调度与执行分路按七站顺序串成下图：
+下面把这套统一调度与执行分路放进例外 B 历史绑定算例——双机 16 卡（TP8/DP2/EP16 W8A8 + MTP 3 候选）的 `GLM-5.3-Flash`。其主干 `45` 层含 `34` 层原地更新定长状态的 KDA [线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进) 与 `11` 层带打分器 indexer 的 [稀疏 MLA](sparse-attention.md)，词表 `154880`，每步 `218` 次集合通信（唯一推导见 [双机部署](glm-5-3-flash-two-node.md#部署前提) 与 [一条请求](one-request.md)）。七站执行流如下：
 
 ```wiki-diagram
 file: prefill-flow
 ```
 
-在短示例请求 `R1`（4 枚提示词）上，由于开启了 MTP，第 1 步 Prefill（`p₀..p₃`）与第 2 步 Decode（`y₀` 加 3 个候选 `d₁..d₃`）每卡张量宽度恰好都是 `4`，这正印证了区分两阶段的不是表面宽度，而是**提示词是否算完、读写历史的方式与图派发分支**：Prefill 贴 `PrefillNoCache`、因提示词未完不能回放 4-token 解码整图而退回 Eager（DP 组对齐时空闲组陪跑空批也一并退回 Eager，见 [并发宽度补齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)），KDA 从零状态按最多 64 位置一段并行推进，词表投影只出 `1` 行选出 `y₀` 再由 MTP 草拟 3 个候选；Decode 贴 `SpecDecoding`、回放 4-token 图、KDA 逐位置递推并为候选留槽、词表投影出 `4` 行一次产出 `1..4` 个词（若后续还需 `199` 个词，Decode 步数按接受率落在 `50..199` 步之间，验稿回退见 [一条请求第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)）。
+在短示例请求 `R1`（4 枚提示词）上，开启 MTP 后第 1 步 Prefill（`p₀..p₃`）与第 2 步 Decode（`y₀` 加 3 个候选 `d₁..d₃`）每卡张量宽度恰好都是 `4`。这正印证了区分两阶段的不是表面宽度，而是**提示词是否算完、读写历史的方式与图派发分支**：
+
+- **第 1 步（Prefill）**：贴 `PrefillNoCache`，因提示词未完不能回放 4-token 解码整图而退回 Eager（DP 组对齐时空闲组陪跑空批也一并退回 Eager，见 [并发宽度补齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)）。KDA 从零状态按最多 64 位置一段并行推进，词表投影只出 `1` 行选出 `y₀`，再由 MTP 草拟 3 个候选。
+- **第 2 步（Decode）**：贴 `SpecDecoding` 并回放 4-token 图。KDA 逐位置递推并为候选留槽，词表投影出 `4` 行、一次产出 `1..4` 个词。若后续还需 `199` 个词，Decode 步数按接受率落在 `50..199` 步之间（验稿回退见 [一条请求第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)）。
 
 ### 长提示词和多条请求：prefill 混进 decode 批以后
 
@@ -220,9 +235,11 @@ file: prefill-flow
 | 场景设定 | 同批 Decode 占位数 | 混入的新提示词位数 | 本步总宽与执行变化 |
 | --- | --- | --- | --- |
 | **`Qwen3-8B` 普通混合步**（预算 `2048`） | `12 × 1 = 12` | 首块分得 `2036` | 总宽 `2048`，贴 `ChunkedPrefill`；`FULL_DECODE_ONLY` 下退回 Eager |
-| **双机 GLM 场景 M 第 2 步**（预算 `8192`） | `12 × (1 + 3) = 48` | 整段 `6000` 一次排入 | 总宽 **`6048 ≤ 8192`**，贴 `ChunkedPrefill` 走 Eager；KDA 拆成 12 条递推与 6000 行分段并行两路再拼回；MoE 超出 `128` 门槛，两机从 MC2 改走 AllGather（见 [并发 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)） |
+| **双机 GLM 场景 M 第 2 步**（预算 `8192`） | `12 × (1 + 3) = 48` | 整段 `6000` 一次排入 | 总宽 **`6048 ≤ 8192`**，贴 `ChunkedPrefill` 走 Eager；KDA 拆成 12 条递推 + 6000 行分段并行再拼回；MoE 跨 `128` 门槛改 AllGather（见 [并发 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)） |
 
-若提示词再长（如 `20,000` token 跨多轮切分，见 [并发分块推导](concurrent-requests.md#提示词超过剩余预算时分几步算)），跨段时后一块必须无缝接续前一块留下的 `KV cache` 与 KDA 状态（见 [历史状态跨段延续](chunked-prefill.md#历史状态必须跨段延续)）；分块能力只允许跨轮计算，不会放宽模型 `max_model_len` 上限。此外还有三类可选调度变体：显式关掉 `--no-enable-chunked-prefill`（预算小于 `max_model_len` 时启动即报错）、设置 `--long-prefill-token-threshold` 单独压低单条长提示词每步配额（默认 `0` 不限），或启用昇腾可选剖析分块与 [短请求优先](short-request-first.md) 调度器。
+若提示词再长（如 `20,000` token 跨多轮切分，见 [并发分块推导](concurrent-requests.md#提示词超过剩余预算时分几步算)），跨段时后一块必须无缝接续前一块留下的 `KV cache` 与 KDA 状态（见 [历史状态跨段延续](chunked-prefill.md#历史状态必须跨段延续)）。分块能力只允许跨轮计算，不会放宽模型 `max_model_len` 上限。
+
+此外还有三类可选调度变体：显式关掉 `--no-enable-chunked-prefill`（预算小于 `max_model_len` 时启动即报错）；设置 `--long-prefill-token-threshold` 单独压低单条长提示词每步配额（默认 `0` 不限）；或启用昇腾可选剖析分块与 [短请求优先](short-request-first.md) 调度器。
 
 ## 常见误解
 

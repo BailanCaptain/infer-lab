@@ -112,11 +112,13 @@ rawSources:
 
 一个请求进来时：卡 0 先把 token 查成隐藏向量（hidden state：每个 token 在层与层之间传递的那一串数，详见[层与隐藏表示](layers-and-hidden.md)），算完第 0、1 层，把得到的隐藏向量交给卡 1；卡 1 接着算第 2、3 层，再交给卡 2；卡 3 算完最后两层，打分并采样出下一个 token。
 
-在这个示意里，每张卡只存储和计算分给它的那几层，入口与出口阶段还承担表中列出的额外模块。段与段之间交接的是**下一阶段继续计算所需的中间状态**，不是已经生成的文字。上面的例子用单一隐藏向量表示这些状态；实际模型还要逐项确认是否同时交接残差状态（`residual`，即残差连接中保留、供后续层叠加使用的中间表示），具体交接哪些张量取决于模型结构，不能统一按一份隐藏向量估算。这里的「段」在代码和文档里叫 `stage`（阶段），本页说「阶段 k」就是负责第 k 段的那组卡。一段不一定只有一张卡：段内还可以再把每一层切开、分给几张卡一起算（即 TP，下一节紧接着对比），后文「交接在 vLLM 里怎么走？」会讲段内叠加 TP 时怎样交接。
+在这个示意里，每张卡只存、只算分给它的那几层，入口与出口阶段还承担表中列出的额外模块。段与段之间交接的是**下一阶段继续计算所需的中间状态**，不是已经生成的文字。上例用单一隐藏向量表示状态；实际模型还要确认是否同时交接残差状态（`residual`，供后续层叠加使用的中间表示），具体张量取决于模型结构。
+
+这里的「段」在代码和文档里叫 `stage`（阶段），本页说「阶段 k」就是负责第 k 段的那组卡。一段不一定只有一张卡：段内还可以叠加 TP 切分每层，具体切片交接见后文「交接在 vLLM 里怎么走？」。
 
 ## 为什么需要 PP？
 
-一个模型的权重一张卡放不下时，可以把计算分到多张卡上，最基本的两种分法区别在「从哪里下刀」。下面继续用 8 层稠密模型作示意：假设所画权重矩阵都能均分，每层的 attention 与 MLP 都按先列切、后行切配对，各在行切后归约一次；实际模型需分别核对分片矩阵与复制矩阵，MoE 模型的路由专家还可按 EP 分布。
+一个模型的权重一张卡放不下时，最基本的两种多卡分法区别在「从哪里下刀」。下面继续用 8 层稠密模型作示意：假设权重矩阵都能均分，每层 attention 与 MLP 先列切、后行切，各在行切后归约一次（实际模型需分别核对分片矩阵与复制矩阵，MoE 路由专家还可按 EP 分布）：
 
 - **Tensor Parallel（TP，张量并行）在每一层内部下刀**：本例所画的权重矩阵切成 4 片，每张卡拿每层这些矩阵的 $1/4$。算每一层时 4 张卡一起算、各算一部分，算完要把各卡的部分结果合起来——本例每层合两次（attention 与 MLP 各一次），切分与归约过程见 [TP 页](tensor-parallel.md)。
 - **PP 在层与层之间下刀**：每张卡拿完整的几层。对同一批 token 来说，任一时刻只有一段在算，算完把中间状态交给下一段。
@@ -168,14 +170,16 @@ parallel-mechanism:0
 
 ### 层数除不尽时怎么分？
 
-上面 `8 ÷ 4` 正好每段 2 层。遇到层数除不尽时，vLLM 的 `get_pp_indices` 默认先整除均分，再把余下的层**从倒数第二段起往前每段加 1 层**；最后一段默认不加，因为它还要承担出口的 `norm`、`lm_head` 词表打分与采样（当段数 `PP > 2` 且余数不超过 `PP - 2` 时，余数刚好全落在中间段，连承担 `embed_tokens` 的第一段也一并避开，从而压低首尾段的峰值显存）。拿 **45 层**演算（后文的 GLM-5.3-Flash 正好是 45 层）：
+在 `v0.30.0` 主基线的标准模型上，层数往往能被常见 `PP` 整除：例如 `Qwen3-8B`（`36` 层）切 `PP = 2` 时每段正好 `18` 层（`[0, 18)` 与 `[18, 36)`），`Qwen3-30B-A3B`（`48` 层）切 `PP = 4` 时每段正好 `12` 层。
 
-- **分 2 段**：`45 ÷ 2 = 22` 余 `1` → 余下的 1 层加给倒数第二段（即阶段 0）→ 两段各 `[23, 22]` 层。每段起始层号等于前面各段层数之和，因此阶段 0 负责半开区间 `[0, 23)`（第 0–22 层），阶段 1 负责 `[23, 45)`（第 23–44 层）。
-- **分 4 段**：`45 ÷ 4 = 11` 余 `1` → 余下的 1 层加给倒数第二段（即阶段 2）→ 四段为 `[11, 11, 12, 11]`；阶段 2 从 `11 + 11 = 22` 开始、到 `22 + 12 = 34` 为止，负责 `[22, 34)`，首段与末段都保持 11 层。
+遇到层数除不尽时，vLLM 的 `get_pp_indices` 先整除均分，再把余层**从倒数第二段起往前每段加 1 层**。最后一段默认不加，用来缓冲出口 `norm`、`lm_head` 与采样的显存开销（当 `PP > 2` 且余数 $\le \text{PP} - 2$ 时，余数全落中间段，首尾两段都能避开）。以 `45` 层模型（例如后文历史 GLM 案例）为例：
 
-想手工指定每段几层，可以设置环境变量 `VLLM_PP_LAYER_PARTITION`，写成按 PP rank 顺序排列、逗号分隔的整数串（例如 `"12,11,11,11"`）；条目数必须等于 `pipeline_parallel_size`、总和必须等于目标模型隐藏层总数（不含入口词表、出口 `norm` / `lm_head` 或投机草稿层），否则启动直接抛 `ValueError`。
+- **分 2 段**：`45 ÷ 2 = 22` 余 `1` → 余下的 1 层加给倒数第二段（即阶段 0）→ 两段各 `[23, 22]` 层。阶段 0 负责 `[0, 23)`（第 0–22 层），阶段 1 负责 `[23, 45)`（第 23–44 层）。
+- **分 4 段**：`45 ÷ 4 = 11` 余 `1` → 余下的 1 层加给倒数第二段（即阶段 2）→ 四段为 `[11, 11, 12, 11]`。阶段 2 负责 `[22, 34)`，首段与末段均保持 11 层。
 
-在代码里，`make_layers` 让每张卡上的模型对象依旧保留全部层的下标槽位，只是不归本段的下标统一放一个什么都不做的空占位类 `PPMissingLayer`（继承自 `torch.nn.Identity`，零参数、零显存）；真正实例化权重与 KV 缓存的只有本段 `[start_layer, end_layer)` 那几层。首段另外建 `embed_tokens`，末段另外建最后的 `norm` 和 `lm_head`（若模型启用词表权重共享 `tie_word_embeddings` 或特定投机解码方法需要目标词嵌入，末段也会按需建出一份 `embed_tokens`）。
+想手工指定每段几层，可设置环境变量 `VLLM_PP_LAYER_PARTITION`，写成逗号分隔的整数串（如 `"12,11,11,11"`）。条目数必须等于 `pipeline_parallel_size`，总和必须等于目标隐藏层总数（不含词表、`norm` / `lm_head` 或投机草稿层），否则启动直接抛 `ValueError`。
+
+在代码里，`make_layers` 保留全部层的下标槽位，但非本段层统一放空占位类 `PPMissingLayer`（继承 `torch.nn.Identity`，零参数、零显存），只为本段 `[start_layer, end_layer)` 实例化权重与 KV cache。首段另建 `embed_tokens`，末段另建 `norm` 和 `lm_head`（启用词表权重共享 `tie_word_embeddings` 或特定投机方法时，末段也会按需建 `embed_tokens`）。
 
 注意，**层数分得匀不等于活分得匀**：首段多做词嵌入，末段多做 `norm`、词表打分、采样乃至本地草稿模型；遇到各层注意力/专家类型不均的模型，层数相同的两段在耗时与显存上仍可能相差悬殊。
 
@@ -219,9 +223,9 @@ file: pp-fig-memory-and-budget
 
 对照上图的三栏结构与两项工程耦合：
 
-- **非末段（`0 .. PP−2`）用 `PPMissingLayer` 消除 `[T_sample, vocab_size]` 尖峰**：当 `PP = 1` 时，同一组卡既要装全量隐藏层权重与 100% 层的 KV cache，还要在出口执行 `norm`、`ParallelLMHead` 词表投影、词表维 All-Gather 与采样器，瞬间撑起 `[采样行数, 词表大小]` 的大张量峰值。切分 `PP > 1` 后，各段仅建本段 `[start_layer, end_layer)` 约 $1/\text{PP}$ 的隐藏层与对应 KV cache；更重要的是，所有非末段（`not is_last_rank`）直接把 `norm` 与 `lm_head` 替换成零开销的 `PPMissingLayer`，无论在开机显存探测 `profile_run`（直接跳过 `_dummy_sampler_run`）还是正常前向里都不算 `logits`、不跑采样器。与此同时，末段（`PP−1`）虽然保留了 `norm` 与 `ParallelLMHead`，但 `get_pp_indices` 默认不给末段分摊余数层，用来对冲出口模块与潜在本地草稿模型的显存开销。单卡常驻与峰值双双下降后，就能安全调高 `--max-num-batched-tokens`，并在 `v0.30.0` 下直接交棒[动态分块 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config` 以 `max_num_batched_tokens` 作为二次耗时曲线首块基准，官方调优建议设为固定分块的 `2~4` 倍；注：`main` 分支已移除 CPP）。
-- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm` 与昇腾 SP 分支差异**：在 `v0.30.0` 中，若同时开启上游编译期序列并行 `compilation_config.pass_config.enable_sp` 与 `PP > 1`，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错，因此 `VllmConfig` 会静默向 `compilation_config.custom_ops` 追加 `"+rms_norm"`（若用户显式传了 `"-rms_norm"` 则打印告警提示极可能报错；上游 `main` 已移除 `PassConfig.enable_sp`）。昇腾侧开启 `FlashComm1` 时须区分两条 SP 路径：MoE 序列并行（`use_sequence_parallel_moe`，即 MoE + EP + `TP > 1`）支持 `PP > 1` + SP（段间交接见下文自动跳过 `all_gather_group`）；只有稠密 SP（`enable_dense_sp`）限制 `PP = 1`，在 `PP > 1` 时会打印告警并自动关闭。
-- **跨机 RoCE `PP × DP` 禁区与 P/D `PP_D == 1` 约束**：在跨节点 RoCE 网络跑 MoE 模型时，由于 `MoeDistributeDispatch` 通信路径暂不支持该组合拓扑，**`PP > 1` 与 `DP > 1` 不能同时开启**——且 Python 启动阶段**没有断言拦截**，误配后会在运行期报错或通信挂死，必须保持 `PP = 1` 或 `DP = 1`。而在 [PD 分离](pd-disaggregation.md)采用 `MooncakeConnectorV1` 时，P 侧可开 `PP > 1`，但 **D 侧必须保持 `PP_D == 1`**（`decode.pp_size = 1`）。
+- **非末段（`0 .. PP−2`）用 `PPMissingLayer` 消除 `[T_sample, vocab_size]` 尖峰**：当 `PP = 1` 时，同一组卡既要装全量隐藏层权重和 KV cache，还要在出口执行 `norm`、`ParallelLMHead`、词表维 All-Gather 与采样器，撑起 `[采样行数, 词表大小]` 峰值。切分 `PP > 1` 后，各段只建本段约 $1/\text{PP}$ 的隐藏层与 KV cache；所有非末段（`not is_last_rank`）直接把 `norm` 与 `lm_head` 换成零开销的 `PPMissingLayer`，开机显存探测 `profile_run` 直接跳过 `_dummy_sampler_run`，正常前向也不算 `logits`。末段（`PP−1`）虽保留出口模块，但 `get_pp_indices` 默认不给末段摊余数层来对冲显存。单卡常驻与峰值双降后，就能安全拉高 `--max-num-batched-tokens`，并在 `v0.30.0` 下对接[动态分块 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config` 建议设为固定分块的 `2~4` 倍；注：`main` 已移除 CPP）。
+- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm` 与昇腾 SP 分支差异**：`v0.30.0` 同开上游 `compilation_config.pass_config.enable_sp` 与 `PP > 1` 时，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错。因此 `VllmConfig` 会静默向 `custom_ops` 追加 `"+rms_norm"`（显式传 `"-rms_norm"` 则打印告警；上游 `main` 已移除 `PassConfig.enable_sp`）。昇腾 `FlashComm1` 须区分两条路：MoE 序列并行（`use_sequence_parallel_moe`，即 MoE + EP + `TP > 1`）支持 `PP > 1` + SP；只有稠密 SP（`enable_dense_sp`）限制 `PP = 1`，在 `PP > 1` 时告警并自动关闭。
+- **跨机 RoCE `PP × DP` 禁区与 P/D `PP_D == 1` 约束**：跨节点 RoCE 跑 MoE 时，`MoeDistributeDispatch` 不支持 **`PP > 1` 与 `DP > 1` 同开**。且 Python 启动期**无断言拦截**，误配会在运行期报错或挂死，必须保持 `PP = 1` 或 `DP = 1`。在 [PD 分离](pd-disaggregation.md)采用 `MooncakeConnectorV1` 时，P 侧可开 `PP > 1`，但 **D 侧必须固定 `PP_D == 1`**（`decode.pp_size = 1`）。
 
 ## 推理和训练用 PP 有什么不同？
 
@@ -237,9 +241,9 @@ PP 最早普及于大模型分布式训练，阅读外部资料时要注意训�
 
 把段间那根交接箭头拆开，落到上游 `vllm` 与昇腾 `NPUWorker.execute_model` 里，每一步按以下顺序运转：
 
-- **先等上轮发送，再异步收、异步发。** 每步开头若存在上一轮挂起的发送句柄 `_pp_send_work`，先 `wait()` 等它收尾；除首段外，先调 `irecv_tensor_dict` 发起异步接收并封装成 `AsyncIntermediateTensors`；本段算完后，除末段外拿到 `IntermediateTensors`，再调 `isend_tensor_dict` 异步发给下一段（在 V2 model runner 下非末段随即返回 `None`；在 V1 model runner 下若挂有 KV 传输连接器，还会继续透传 `kv_connector_output`）。
-- **发的是「元数据 + 张量字典」。** 首次通信先传键值结构元数据（键名、张量形状与 `dtype`；像 `None` 这类非张量字段直接随元数据走，不发空张量），随后对字典内的真实张量逐个点对点收发。
-- **段内叠加 TP 时默认「切片点对点发 + 段内 All-Gather 拼回」。** 同一段内的多张 TP 卡在层末尾持有内容相同的完整隐藏状态。只要某张量元素总数能被 `tp_size` 整除，发送侧每张卡只把属于自己那 `1/TP` 的切片发给下一段同号 TP rank，接收侧收到后再在本段 `tp_group` 内做一次 All-Gather 还原完整张量（见[集合通信](collective-communication.md)）。例如沿用 `[3, 2]` 且段内 `TP = 2`：上一段卡 `a` 只发 `[3]` 给 `a′`、卡 `b` 只发 `[2]` 给 `b′`，跨段链路总共只传 2 个数而非 4 个，`a′` 与 `b′` 在段内 All-Gather 后各自恢复 `[3, 2]`。若启用了让层间激活本身保持按 token 切分的[序列并行](sequence-parallel.md)路径（`v0.30.0` 判定 `enable_sp()`，`main` 收窄为 `use_v2_model_runner and enable_sp(vllm_config)`），卡上本来就不是完整副本，Worker 会把 `all_gather_group` 置为 `None` 关掉这步拼接。
+- **先等上轮发送，再异步收、异步发。** 每步开头若有上一轮挂起的发送句柄 `_pp_send_work`，先 `wait()` 等它收尾。除首段外，先调 `irecv_tensor_dict` 发起异步接收并封装为 `AsyncIntermediateTensors`。本段算完后，除末段外拿到 `IntermediateTensors`，再调 `isend_tensor_dict` 异步发给下一段（V2 runner 随即返回 `None`；V1 runner 若挂有 KV 传输连接器，还会继续透传 `kv_connector_output`）。
+- **发的是「元数据 + 张量字典」。** 首次通信先传键值结构元数据（键名、形状与 `dtype`；`None` 这类非张量字段只随元数据走，不发空张量），再对字典里的真实张量逐个点对点收发。
+- **段内叠加 TP 时默认「切片点对点发 + 段内 All-Gather 拼回」。** 同一段内的多张 TP 卡在层末尾持有内容相同的完整隐藏状态。只要张量元素总数能被 `tp_size` 整除，发送侧每卡只发属于自己的 `1/TP` 切片给下一段同号 TP rank，接收侧收到后再在本段 `tp_group` 内做 All-Gather 还原（见[集合通信](collective-communication.md)）。例如 `[3, 2]` 在 `TP = 2` 下：卡 `a` 发 `[3]`、卡 `b` 发 `[2]`，跨段只传 2 个数而非 4 个，接收侧拼回 `[3, 2]`。若启用了保持激活按 token 切分的[序列并行](sequence-parallel.md)（`v0.30.0` 判 `enable_sp()`，`main` 收窄为 `use_v2_model_runner and enable_sp(vllm_config)`），卡上本就不是完整副本，Worker 会将 `all_gather_group` 置 `None` 关掉这步拼接。
 
 ## 两台机器怎样加入同一条流水线？
 
@@ -258,11 +262,11 @@ PP 最早普及于大模型分布式训练，阅读外部资料时要注意训�
 
 用户请求发往第 1 台的 API server，后端把同一微批依次送过两台机器上的两个阶段，最终采样结果经引擎送回 API。**`--headless` 只代表不暴露前端 HTTP 接口，绝不代表不加载权重、不参与计算，也不代表它固定对应 PP 末段。** 反过来，看到“用了 2 台机器”也不能反推出 `PP = 2`——两台机器同样可以跑跨机 TP，或各自跑独立的 DP 组。
 
-多机拉起有 `mp` 与 `ray` 两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的启动命令，靠同一组 `--master-addr` / `--master-port` 会合；`ray` 则先组建集群并确认全部 NPU 入池，再在 head 节点只提交一次 `vllm serve` 命令（切忌把 `mp` 的两份启动命令原样提交两次给 Ray）。到了 [PD 分离](pd-disaggregation.md)场景，P 实例本身可以由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例保持 `PP = 1`，完整实例与主机内存账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)。
+多机拉起有 `mp` 与 `ray` 两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的命令，靠同一组 `--master-addr` / `--master-port` 会合。`ray` 则先组建集群并确认 NPU 入池，再在 head 节点只提交一次 `vllm serve`（切忌把 `mp` 两份命令原样提交两次给 Ray）。在 [PD 分离](pd-disaggregation.md)场景中，P 实例可由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例必须保持 `PP = 1`（完整设备账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)）。
 
 ## GLM 双机为什么没用 PP？
 
-先给结论：本站 `09 旗舰异构模型全案` 历史绑定的 GLM-5.3-Flash 双机方案（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）**没有开 PP**，采用的是机内 TP8 + 双机 DP2，MoE 路由专家另走跨机 EP16（[DP](data-parallel.md) 把不同请求分给两个执行组，[EP](expert-parallel.md) 把 288 个路由专家分摊到 16 张卡，因此单个 DP 组并不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP，固定源码会怎样分层、分界上交什么」，未经真实双机 PP 部署实测，主线的吞吐/时延数字也不能套到 PP 上。
+上面讲完通用 `v0.30.0` 多段 PP 机制后，这里单独隔离本站 `09 旗舰异构模型全案` 的历史绑定案例（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。结论很直接：**该双机方案没有开 PP（`PP = 1`）**，而是机内 TP8 + 双机 DP2，MoE 路由专家走跨机 EP16（[DP](data-parallel.md) 分请求，[EP](expert-parallel.md) 把 288 个专家分到 16 卡，单个 DP 组不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP 会怎样分层、分界交什么」，未经真实双机 PP 实测，主线吞吐/时延也不能直接套用。
 
 ### 变体：GLM 的 45 层分成 2 段
 

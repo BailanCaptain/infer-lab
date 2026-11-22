@@ -374,7 +374,7 @@ file: context-parallel-fig-matrix
 在固定版本上真要开 CP，会先撞上三道门：
 
 - **PCP 这条路对 GLM 是关着的。** 34 层 KDA 的 prefill 在 PCP 大于 1 时直接抛 NotImplementedError。别的模型能用 PCP，不等于这个混合模型能用。
-- **DCP 这条路，平台层放行不等于模型接上了实现。** 平台校验按配置认出这是稀疏模型（有 index_topk、没有 compress_ratios），在 PCP = 1、DCP > 1 时要求 DCP 等于 TP、轮换粒度等于块大小（粒度配错会被就地改成块大小，只留一条 warning）。普通 SFA 后端会据此选择「主 KV 分片、索引复制」的 DCP builder 和实现；GLM 用的 KPool 后端却固定选择自己的普通 builder 和实现，绕过这次选择。它继承的 DCP 查询／KV 收集钩子是空操作，稀疏 attention 调用也设 `return_lse=False`，没有接上前文所述的局部输出与 LSE 合并路径。这里的 KPool 把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)。main 上则直接抛 NotImplementedError，明确拒绝 KPool 的 PCP 或 DCP；不能只满足平台参数就把旧路径当作可用的 DCP。
+- **DCP 这条路，平台层放行不等于模型接上了实现。** 平台校验按配置认出这是稀疏模型（有 index_topk、没有 compress_ratios），在 PCP = 1、DCP > 1 时要求 DCP 等于 TP、轮换粒度等于块大小（粒度配错会被就地改成块大小，只留一条 warning）。普通 SFA 后端会据此选择「主 KV 分片、索引复制」的 DCP builder 和实现；GLM 用的 KPool 后端却固定选择自己的普通 builder 和实现，绕过这次选择。它继承的 DCP 查询／KV 收集钩子是空操作，稀疏 attention 调用也设 `return_lse=False`，没有接上前文所述的局部输出与 LSE 合并路径。这里的 KPool 把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)。`v0.30.0` 上 KPool 索引器直接抛 NotImplementedError，明确拒绝 PCP > 1 或 DCP > 1；`main`（`8d6180e2`）虽已为 KPool 新增 PCP 支持，仍抛 NotImplementedError 明确拒绝 DCP > 1——不能只满足平台参数就把旧路径当作可用的 DCP。
 - **开着[前缀缓存](prefix-caching.md)时，上游还有一道。** KV cache 分成多组（GLM 正是稀疏 MLA 与 KDA 两类）时用的那个协调器，要求 DCP、PCP 都是 1。
 
 所以 GLM 的双机主线继续用[官方的 TP/DP 配置](../sources/glm-5-3-flash-baseline.md)，本库不把没验证过的 CP 组合写进部署命令；真要开，上面三条得逐条核过。
@@ -402,11 +402,11 @@ DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 
 ### 会报什么错
 
 - **PCP 与 DP 同开**：固定版本在 dp > 1 且 pcp > 1 时抛错，信息写明 PCP 和 DP 不能一起用 [C14]。
-- **GLM 的 KDA prefill 遇上 PCP**：抛 NotImplementedError，信息是 `Kimi KDA prefill does not yet support PCP.`。
+- **GLM 的 KDA prefill 遇上 PCP**：固定版本抛 NotImplementedError，信息是 `Kimi KDA prefill does not yet support PCP.`。
 - **稀疏路径的 DCP 不等于 TP**：抛 AssertionError，信息写明只支持 dcp_size 等于 tp_size [C10]。
 - **轮换粒度和块大小不一致**：稀疏路径下不报错，只打一条 warning，随后把粒度就地改成块大小；日志可用来核对最终生效的配置。
 - **开着前缀缓存的混合模型**：上游协调器里有 `assert dcp_world_size == 1, "DCP not support hybrid attn now."`，PCP 同样一条；这个协调器只在开前缀缓存、且 KV cache 分成多组时才用 [C11][C12]。
-- **main 上给 GLM 开 CP**：KPool 索引直接抛 `NotImplementedError("GLM-Next KPool indexing does not support PCP or DCP.")` [C25]。
+- **给 GLM KPool 开 CP**：`v0.30.0` 主基线直接抛 `NotImplementedError("GLM-Next KPool indexing does not support PCP or DCP.")` [C57]；`main`（`8d6180e2`）已为 KPool 新增 PCP 支持，仅在 `DCP > 1` 时抛 `NotImplementedError("GLM-Next KPool indexing does not support DCP.")` [C60]。
 - **投机解码的草稿模型加 DCP**：另有一组按草稿模型的 TP 和 KV 头数算出的上限，见 [Ascend 平台校验](npu-platform.md)。
 
 ### 开销和什么时候别开
@@ -459,7 +459,7 @@ DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 
 | 参数默认值与总卡数公式 | 上游 `vllm/config/parallel.py` |
 | GLM 稀疏路径的 DCP 判定与平台校验 | `vllm_ascend/utils.py`、`vllm_ascend/platform.py` |
 | KDA prefill 拒绝 PCP | `vllm_ascend/ops/kimi_kda.py` |
-| GLM KPool 索引器与 CP | 固定版本 `indexer_kpool_mla_v1.py` 的后端选择和稀疏调用，对照 `sfa_v1.py` 的 CP 分派及空收集钩子；main 的 `indexer_kpool.py` 明确拒绝 |
+| GLM KPool 索引器与 CP | 固定版本 `indexer_kpool_mla_v1.py` 的后端选择和稀疏调用，对照 `sfa_v1.py` 的 CP 分派及空收集钩子；`v0.30.0` 的 `indexer_kpool.py` 明确拒绝 PCP 与 DCP，`main` 的 `indexer_kpool.py` 已支持 PCP 且仅拒绝 `DCP > 1` |
 | 混合 KV cache 协调器的限制 | 上游 `vllm/v1/core/kv_cache_coordinator.py` |
 | 三个版本的开关函数 | `vllm_ascend/attention/utils.py` |
 | 通用 CP 与 Megatron SP 的边界、组合方式 | Megatron Core 的 Context Parallel 说明 |

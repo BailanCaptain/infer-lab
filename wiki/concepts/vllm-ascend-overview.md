@@ -123,7 +123,7 @@ rawSources:
 
 vllm-ascend 是让 vLLM 跑在昇腾 NPU（华为的 AI 加速芯片）上的一个单独安装的包：请求接入和引擎循环沿用 vLLM 的框架，Worker、模型、算子和通信则通过平台与扩展机制选择适用的实现。它还会调整部分调度配置与资源管理行为，因此两边的分工需要沿实际调用链看。本知识库也叫它「昇腾适配层」。
 
-**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 是守着一张卡、真正执行模型的进程。请求到来前，插件先通过平台钩子、补丁与算子注册把昇腾实现接进主干；请求到来后，每一步主线顺次走过 Scheduler（定下本步算哪些请求、用哪些 KV cache 块）、Executor（把计划发给每张卡的 `NPUWorker`）、`NPUModelRunner`（把计划变成 NPU 上的张量），最终由模型和昇腾算子算完交回引擎（两仓完整边界与五个扩展点见下节架构图）。
+**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 是守着一张卡、真正执行模型的进程。请求到来前，插件先通过平台钩子、补丁与算子注册把昇腾实现接进主干。请求到来后，每一步顺次走过 Scheduler（定本步请求与 KV 块）、Executor（把计划发给每卡 `NPUWorker`）、`NPUModelRunner`（把计划变成 NPU 张量），最终由模型和昇腾算子算完交回引擎（完整边界见下节架构图）。
 
 ## 为什么做成插件，不直接改一份 vLLM？代价在哪
 
@@ -134,34 +134,36 @@ fork 是从上游代码派生一份独立维护的版本，后续需要处理与
 代价有三笔：
 
 - **没留接口的地方只能打 patch**，即在进程内把上游的函数或类改指向昇腾的实现。旧 GLM 基线有 59 个 `patch_*.py` 文件，`v0.30.0` 主基线为 65 个（`platform` 32 + `worker` 19 + `worker/patch_v2` 14），`main` 退役 MRV1 后收敛至 59 个（`platform` 29 + `worker` 30）。因此读上游代码看到的未必是实际运行的那一份。
-- **多进程重复初始化**：补丁的防重标志保存在当前 Python 进程内存中，一个进程打过补丁无法替另一个进程记录状态。按命令行默认 `spawn` 的假设，前端、EngineCore 和每个 Worker 都要在各自解释器里读清单、打 patch（其他启动方式需另核）；特别是 EngineCore 子进程不会跑测试框架的初始化钩子，必须借通用插件入口再补一次全局 patch。
+- **多进程重复初始化**：补丁的防重标志保存在当前 Python 进程内存中，一个进程打过补丁无法替另一个进程记录状态。按命令行默认 `spawn` 假设，前端、EngineCore 和每个 Worker 都要在各自解释器里读清单、打 patch。特别是 EngineCore 子进程不会跑测试框架的初始化钩子，必须借通用插件入口再补一次全局 patch。
 - **和上游版本绑得紧**：上游改动函数名或签名时，patch 必须同步调整。旧 GLM 基线的平台补丁里有两项、Worker 补丁里有一项直接挂在「不是 vLLM 0.23.0」的版本判断下，V2 相关补丁还有独立门控。
 
 ## 两边各管什么：五个扩展点
 
-**vLLM 提供请求与引擎框架**（接请求、分词、调度、下发计划、收回结果推进状态），**vllm-ascend 提供 NPU 执行与配套适配**，从五个入口切入（其中配置与 patch 也能反过来影响调度）。进入 `v0.30.0` 后，vllm-ascend 还引入了 `HardwareProfile` 四家族抽象（`A2` / `A3` / `_310P` / `A5`）把原本散落的芯片判断统一收敛为能力查询，并保留 MRV1 与 `worker/v2/`（MRV2）并存；到 `main` 则彻底移除 MRV1 并退役 `patch_v2/` 子目录：
+**vLLM 提供请求与引擎框架**（接请求、分词、调度、下发计划、收回结果），**vllm-ascend 提供 NPU 执行与配套适配**，从五个入口切入（配置与 patch 也能反过来影响调度）。在 `v0.30.0` 主基线中，vllm-ascend 引入 `HardwareProfile` 四家族抽象（`A2` / `A3` / `_310P` / `A5`）统一硬件能力查询，并保留 MRV1 与 `worker/v2/`（MRV2）并存；到 `main` 则彻底移除 MRV1 并退役 `patch_v2/` 子目录：
 
 ```wiki-diagram
 file: vllm-ascend-overview-fig-two-repo-map
 ```
 
-- **平台**：NPUPlatform 启动时校验并改写配置，回答 Worker、注意力后端、通信类各用哪个。见[插件发现与模型注册](platform-plugin-registration.md)与 [NPUPlatform](npu-platform.md)。
-- **patch**：上游没留接口处替换函数或类，分平台侧和 Worker 侧两类。见 [Patch 机制](ascend-patch-system.md)。
-- **模型**：在模型注册表里把 GLM 的架构名指向昇腾包里的实现。见[模型入口](platform-plugin-registration.md#模型入口从架构名找到昇腾的-glm-实现)。
-- **算子**：注意力、MoE、量化矩阵乘和卡间通信在 NPU 上的实现。总入口见[算子与 kernel](ops-and-kernels.md)，注意力挑哪个后端见[注意力后端](attention-backend-family.md)，卡间通信见 [CANN 与 HCCL](cann-hccl.md)，量化见 [W8A8 量化](quantization.md)。
-- **配置**：命令行、附带的 JSON、环境变量三路开关汇成每个进程的 Ascend 配置。见 [Ascend 配置](ascend-config-system.md)。
+先沿一条标准 **`Qwen3-8B`（`v0.30.0` 主基线）** 请求，看懂这五个扩展点各自接管什么：
+
+- **平台（`NPUPlatform`）**：启动时读取 `HardwareProfile` 校验卡型、把默认 `block_size` 对齐为 `128`，并回答 Worker（`NPUWorker` / `NPUWorker310`）、注意力后端与通信类（`NPUCommunicator`）各用哪个。见[插件发现与模型注册](platform-plugin-registration.md)与 [NPUPlatform](npu-platform.md)。
+- **patch**：在上游未留接口处替换函数或类，分平台侧和 Worker 侧两类（如默认模型运行器开关、特定调度/缓存对齐）。见 [Patch 机制](ascend-patch-system.md)。
+- **模型**：像 `Qwen3-8B`（`Qwen3ForCausalLM`）直接复用上游内置模型类；而上游未内置或需昇腾定制的架构（`v0.30.0` 共 29 项，含 GLM、DeepSeek、Kimi 与 `Qwen3_5*` 覆写），则由插件在 `ModelRegistry` 指向昇腾实现。见[模型入口](platform-plugin-registration.md#模型入口从架构名找到昇腾的-glm-实现)。
+- **算子**：提供注意力（标准 GQA 走 `AscendAttentionBackend` / FIA）、MoE、量化矩阵乘和卡间通信的 NPU 实现。总入口见[算子与 kernel](ops-and-kernels.md)，注意力后端见[注意力后端](attention-backend-family.md)，卡间通信见 [CANN 与 HCCL](cann-hccl.md)，量化见 [W8A8 量化](quantization.md)。
+- **配置**：把命令行、`--additional-config` JSON 与环境变量三路开关汇成各进程的 `AscendConfig`。见 [Ascend 配置](ascend-config-system.md)。
 
 状态也按这条线分：请求进度和 KV cache 块分配归上游，本步的请求映射、注意力元数据和各卡的缓存张量归执行侧。请求没被调度，查队列、token 预算和块分配；读错了历史，查位置、[block table](block-table.md) 和状态索引。
 
 ## 一条请求走到这里：A0–A4 每站换了什么
 
-主线部署是官方教程的双机配置：2 台 Atlas 800 A2、每台 8 张卡（2×A2×8），TP8 / DP2 / EP16，W8A8，模型 GLM-5.3-Flash，见[部署前提](glm-5-3-flash-two-node.md#部署前提)。沿[一条请求](one-request.md)逐站看：
+看清标准 `Qwen3-8B` 路径后，下面把五个扩展点映射到本站 `09 旗舰异构模型全案` 的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，模型 `GLM-5.3-Flash`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），沿[一条请求](one-request.md)逐站核对：
 
-- **A0 启动**：按核心功能角色计 20 个进程，其中 16 个 Worker 各守一张卡；这份示意账不含启动器和运行时辅助进程。在 CLI 默认 spawn、插件正常加载的假设下，本组角色中有 19 个分别完成通用插件登记；平台选中 NPUWorker，补上 W8A8 用的昇腾量化选项；分配 KV cache 后，非强制 eager 的执行路径进入预热和图捕获。见[引擎进程](engine-processes.md)。
-- **A1 入口**：HTTP、聊天模板、分词、选 DP 组都是上游代码；昇腾只是事先打好 global patch，其中一个让 vLLM 0.23.0 认得 GLM 配置。
-- **A2 调度**：Scheduler 是上游的，但块长和分组由启动时被昇腾 patch 换掉的函数算出：逻辑块 640 个位置，四类状态对齐成两档页、编成 5 个缓存组。见 [KV cache 规格](kv-cache-spec.md)。
-- **A3 准备输入**：计划在这里越过平台边界。NPUModelRunner 把调度输出变成 NPU 上的张量，为 5 个缓存组各维护一张 block table，full 组的 640 块号再展开成 5 个 128 的 kernel 块号。见 [Block Table](block-table.md)。
-- **A4 逐层前向**：45 层都由昇腾包里的 GLM 模型组织，[Attention](attention-qkv.md) 分 34 层 [KDA](linear-attention.md) 和 11 层[稀疏注意力](sparse-attention.md)。KDA 通过 custom op 登记选中昇腾实现，稀疏 MLA 层直接绑定专用后端；45 层里有 42 层的前馈是 [MoE](moe.md)，路由专家按 [EP16](expert-parallel.md) 摊到 16 张卡。
+- **A0 启动**：按核心功能角色计 20 个进程，其中 16 个 Worker 各守一张卡（不含启动器与运行时辅助进程）。默认 spawn 下，其中 19 个角色分别完成通用插件登记；平台选中 `NPUWorker` 并补上 W8A8 量化选项，分配 KV cache 后，非 eager 路径进入预热与图捕获。见[引擎进程](engine-processes.md)。
+- **A1 入口**：HTTP、聊天模板、分词、选 DP 组都是上游代码；昇腾事先打好 global patch，让 `vLLM 0.23.0` 认得 GLM 配置。
+- **A2 调度**：Scheduler 归上游，但块长与分组由昇腾 patch 替换的函数算出：逻辑块 `640` 个位置，四类状态对齐成两档页、编成 `5` 个缓存组。见 [KV cache 规格](kv-cache-spec.md)。
+- **A3 准备输入**：计划在这里越过平台边界。`NPUModelRunner` 把调度输出转成 NPU 张量，为 5 个缓存组各维护一张 block table，并把 full 组的 `640` 块号展开成 5 个 `128` kernel 块号。见 [Block Table](block-table.md)。
+- **A4 逐层前向**：45 层由昇腾包里的 GLM 模型组织，注意力分 34 层 [KDA](linear-attention.md)（借 custom op 选中昇腾实现）和 11 层[稀疏 MLA](sparse-attention.md)（直绑专用后端）。其中 42 层前馈为 [MoE](moe.md)，路由专家按 [EP16](expert-parallel.md) 摊到 16 张卡。
 
 ## 常见误解
 

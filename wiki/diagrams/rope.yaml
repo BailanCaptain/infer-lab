@@ -1,14 +1,14 @@
 layout: figure
 id: rope
-caption: 示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0
+caption: 示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。标准 Qwen3-8B（d_h = 128）每层先做逐头 q_norm / k_norm（RMSNorm），再对全部 64 对分量按各自频率施加 RoPE 旋转（个别异构稀疏注意力变体可设 RoPE 维数为 0）。
 size: [900, 390]
 
 texts:
   - { at: [150, 34], text: 旋转前：由内容算出, strong: true, anchor: middle }
   - { at: [460, 34], text: k 在位置 3，q 在位置 5, strong: true, anchor: middle }
   - { at: [770, 34], text: k 在位置 103，q 在位置 105, strong: true, anchor: middle }
-  - { at: [295, 180], text: 按位置转, size: 12, anchor: middle }
-  - { at: [605, 180], text: 都 +100, size: 12, anchor: middle }
+  - { at: [295, 176], text: 按位置转, size: 13.5, anchor: middle }
+  - { at: [605, 176], text: 都 +100, size: 13.5, anchor: middle }
   - { at: [150, 358], text: 夹角 30°，由内容决定, anchor: middle }
   - { at: [460, 358], text: k 转 60°，q 转 100°，夹角 70°, anchor: middle }
   - { at: [770, 358], text: 各多转 2000°，夹角仍是 70°, anchor: middle }
@@ -60,3 +60,6 @@ sketches:
       - { kind: text, at: [154, 252], text: k, strong: true, tone: kv }
       - { kind: text, at: [232, 164], text: q, strong: true, tone: token }
       - { kind: text, at: [168, 190], text: 70°, size: small, anchor: middle }
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L150-L168
+    symbols: [q_norm, k_norm, rotary_emb]

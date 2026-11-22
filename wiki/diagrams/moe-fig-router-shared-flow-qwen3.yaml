@@ -1,0 +1,11 @@
+mode: native-svg
+id: moe-fig-router-shared-flow-qwen3
+caption: Qwen3-30B-A3B 纯路由稀疏 MoE（128 选 8、Softmax 重归一化、0 共享专家）与带共享专家及偏置选人 MoE 变体的架构对照，以及昇腾 EP 通信与算子交接的三笔容量账区分。
+size: [900, 468]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L130-L215'
+    symbols: ['Qwen3MoeSparseMoeBlock', 'FusedMoEFactory', 'renormalize']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/router/fused_topk_router.py#L80-L95'
+    symbols: ['AscendFusedTopKRouter', 'scoring_func', 'renormalize']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L64-L130'
+    symbols: ['AscendSharedExperts', 'PreparedSharedExpertExecution']

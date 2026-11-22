@@ -3,8 +3,9 @@ id: attention-backend-family
 title: 注意力后端：模型机制、状态布局与设备实现的连接
 type: concept
 summary: >-
-  注意力后端是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定用哪份状态、按什么形状组织这批 token、最后调哪个算子。GLM
-  的一次前向同时走 KDA 和稀疏 MLA 两条分支，不存在"这个模型的后端"。
+  注意力后端是模型层和设备算子之间的那层代码：层声明注意力类型，后端决定用哪份状态、怎样组织元数据、最终调用哪个设备算子。标准 Qwen3-8B 全 36
+  层 GQA 统一绑定 AscendAttentionBackend 并共用一份 AscendMetadata；历史 GLM
+  双机一次前向则同时走 KDA 与稀疏 MLA 两条分支。
 aliases:
   - attention backend
   - 注意力后端
@@ -149,35 +150,44 @@ rawSources:
 
 ## 这一层的注意力，最后是谁在算？
 
-**注意力后端（attention backend）是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定它用哪份状态、按什么形状组织这一批 token、最后调哪个算子。**
+**注意力后端（attention backend）是模型层和设备算子之间的那层代码：层声明自己是哪种注意力，后端决定它用哪份状态、按什么形状组织这批 token、最后调哪个设备算子。**
+
+先看最常见的同构标准模型（`v0.30.0` 主基线下的 **Qwen3-8B**，全 36 层均为 `32Q:8KV`、头维 `128` 的 GQA），再对比异构混合模型怎样按层分流：
 
 ```wiki-diagram
-file: attention-backend-choice
+file: attention-backend-choice-qwen3
 ```
 
-后端是**按层**挂的：每一层报出自己的后端类，同一次前向里不同的层可以报出不同的类。GLM 的一次前向就同时走两条分支——**KDA**（Kimi Delta Attention，一种线性注意力：把历史汇入固定形状的递推状态，不逐位置保留全部 K/V）的层走一条，**稀疏 MLA**（Multi-head Latent Attention 的稀疏版：历史压成潜向量按位置存，每个查询只挑其中一部分读）的层走另一条，谁也不经过对方的算子。
+在 `Qwen3-8B` 这条标准路径里，全部 36 层结构完全一致：平台 `get_attn_backend_cls` 统一将它们绑定到同一个 **`AscendAttentionBackend`**。每一步前向，Runner 只需构建 **1 份 `AscendMetadata`** 和 1 套 `slot_mapping` / `block_table`，36 层全程共用、零额外状态池；到了算子层，再按批次形态在 **FIA**（变长因果 prefill / 混合批）与 **PA / FIA**（纯 decode 按块表直读历史）之间分流。
+
+后端在架构上是**按层**挂载的：每层独立报出自己的后端类。同构模型 36 层报出同一个名字，因此合并成 1 个注意力组；一旦换到混合架构（如后文历史 GLM 双机），不同层就会在同一次前向里走上各自独立的后端与元数据分支。
 
 ## 为什么要专门分出这一层，代价是什么
 
 分出这一层，是因为它要同时吃下两种差异。
 
-**一是硬件的差异。**同一个数学机制，在不同设备上是不同的算子。设备实现必须原样保留计算语义、因果关系和请求之间的隔离，只换执行方式——所以后端不是一个"速度选项"，它决定结果对不对，不只是快不快。
+**一是硬件的差异。** 同一个数学机制，在不同设备上是不同的算子。设备实现必须原样保留计算语义、因果关系和请求之间的隔离，只换执行方式——所以后端不是一个"速度选项"，它决定结果对不对，不只是快不快。
 
-**二是层与层之间的差异。**[密集注意力](attention-qkv.md)描述打分、归一化与 V 汇合，[稀疏注意力](sparse-attention.md)在此之上限定能访问哪些位置，[KDA](linear-attention.md)改用递推状态。三者连历史怎样保存都不一样，状态布局自然也对不上：稀疏 MLA 按位置存压缩历史和索引，KDA 每份递推状态的矩阵和卷积状态大小固定；运行器还可按缓存策略与投机验证需求保留多份状态，不能把单份状态大小直接当成总分配量。
+**二是层与层之间的差异。** [密集注意力](attention-qkv.md)按位置读写 K/V，[稀疏注意力](sparse-attention.md)在此之上限定访问位置，[KDA](linear-attention.md) 改用固定形状的递推状态。三者保存历史的方式完全不同，状态布局自然对不上。例如稀疏 MLA 按位置存压缩历史和索引，KDA 存固定大小的矩阵与卷积状态；运行器还可能按缓存策略或投机验证需求保留多份状态，单份状态大小不等于总分配量。
 
-代价有两条。
+代价有两条：
 
-**后端不能当插件随便换。**一个候选后端要同时对上五件事：这一层的机制、状态布局、dtype、head 形状、并行约束。满足某一个模型或某一种设备的条件，不等于 GLM 全部层都能用；性能比较也只有在语义和功能一致的前提下才有意义。
-
-**每多一种后端，调度侧就多一份元数据。**后端需要的不只是 Q/K/V 张量，还有缓存布局、请求边界、有效长度和位置索引。模型每引入一种新机制，Runner 就要为它多建一套元数据构建器，多维护一种形状约定。
+- **后端不能当插件随便换。** 一个候选后端要同时对上五件事：这一层的机制、状态布局、dtype、head 形状、并行约束。满足某一个模型或设备的条件，不等于异构模型全部层都能用；性能比较也只在语义与功能一致的前提下才有意义。
+- **每多一种后端，调度侧就多一份元数据。** 后端需要的不只是 Q/K/V 张量，还有缓存布局、请求边界、有效长度和位置索引。模型每引入一种新机制，Runner 就要多建一套元数据构建器，多维护一种形状约定。
 
 ## 放到 GLM 双机：一个 token 走过 45 层，要问 45 次
 
-部署前提见 [GLM 5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)。本页沿用[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)：第一步是 1 条请求、4 个 token（教学设定）；R1 所在 DP 组的那 8 张卡拿到同样的 4 个 token，差别只在权重分片，每卡 KDA 8 个头、稀疏 MLA 8 个头，这些数都在那一页推导。
+与上面 `Qwen3-8B` 全 36 层共用单一 `AscendAttentionBackend` 形成鲜明对比的，是例外 B 历史 GLM-5.3-Flash 双机部署：同一次前向里，**KDA**（把历史汇入固定形状递推状态的线性注意力）与 **稀疏 MLA**（历史压成潜向量按位置存、每个查询只读选定子集）交替出现，谁也不经过对方的算子：
 
-主干是第 0–44 层，共 45 层：34 层是 KDA，11 层是稀疏 MLA（第 3、7、11 … 43 层）；编号 45 的 **MTP**（Multi-Token Prediction，多 token 预测用的草稿层）也是稀疏 MLA。层类型在装配时就定死了：装配代码按配置里的层类型表挑分支，挑中哪条，这一层构造的对象和它报出的后端就跟着定了。
+```wiki-diagram
+file: attention-backend-choice
+```
 
-固定 GLM 实现的层类型判断有优先顺序：配置对象提供专用判断方法时先用它的结果；否则，KDA 层编号列表非空时检查当前层是否在列表中；再否则才检查逐层类型表。因此，空的 KDA 层列表会继续后续判断，不能单独据此认定模型没有 KDA 层。
+部署前提见 [GLM 5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)。本节沿用[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)：第一步 1 条请求、4 个 token（教学设定）；R1 所在 DP 组的 8 张卡拿到相同 4 个 token，仅权重分片不同，每卡 KDA 8 头、稀疏 MLA 8 头。
+
+主干第 0–44 层共 45 层：34 层是 KDA，11 层是稀疏 MLA（第 3、7、11 … 43 层）；编号 45 的 **MTP**（多 token 预测草稿层）也是稀疏 MLA。层类型在装配时定死：装配代码按层类型表挑分支，这一层构造的对象与它报出的后端随即确定。
+
+固定 GLM 实现的层类型判断有三条优先级：配置对象提供专用判断方法时先用它；否则 KDA 层编号列表非空时检查当前层是否在列表中；再否则才查逐层类型表。因此空的 KDA 列表会继续走后续判断，不能据此认定模型没有 KDA 层。
 
 | 这一层是 | 层里构造的对象 | 报出的后端 | 最后落到的算子 |
 |---|---|---|---|
@@ -238,9 +248,9 @@ FlashAttention 把 Q、K、V 分块装进更靠近计算单元的存储，在处
 file: attention-backend-family-fig-selector-tree
 ```
 
-- **标准密集注意力与 MLA / SFA / DSA（通用四元组查表）**：`(use_mla, use_sparse, use_compress)` 为 `(False, False, False)` 默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）等算子之间分流；**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`；310P 由 `COMPATIBILITY` 硬件族落到 `AscendAttentionBackend310`，开启上下文并行 `use_pcp` 则查独立 MRV2 PCP 映射表。
+- **标准密集注意力与 MLA / SFA / DSA（通用四元组查表）**：`(use_mla, use_sparse, use_compress)` 为 `(False, False, False)` 时默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）间分流。**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`。310P 由 `COMPATIBILITY` 硬件族落到 `AscendAttentionBackend310`，开启上下文并行 `use_pcp` 则查独立 MRV2 PCP 映射表。
 - **Linear（线性注意力 / KDA / GDN）**：不经过通用注意力后端表，由模型层直接报出 `AscendGDNAttentionBackend` 等线性后端。
-- **FA3（`AscendFABackend` / `AscendFAImpl`）与 `main` 新增前置分支**：在 `v0.23.0` / `v0.26.0rc` 须显式选 `FLASH_ATTN` 且开批不变，在 `v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled` 与 `rl_config.enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）；`main` 还为特定草稿/模型增加了 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支。各算子族的片上 Tiling、Online Softmax 与 FA/FIA/PA/FA3 详细分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)；具体拒绝条件见下面的[会报什么错](#会报什么错)。
+- **FA3（`AscendFABackend` / `AscendFAImpl`）与 `main` 新增前置分支**：在 `v0.23.0` / `v0.26.0rc` 中，FA3 须显式选 `FLASH_ATTN` 且开批不变；`v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled`、`enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）。`main` 还为特定草稿/模型新增 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支（算子族分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)，拒绝条件见[会报什么错](#会报什么错)）。
 
 ## 常见误解
 

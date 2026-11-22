@@ -1,0 +1,43 @@
+layout: figure
+id: kv-cache-spec-flow-qwen3
+caption: v0.30.0 标准 Qwen3-8B 启动与运行期的 KVCacheSpec 流水线：启动时 NPUPlatform 设定默认 block_size=128，全模型 36 层上报完全相同的 FullAttentionSpec（8KV 头、d_h=128），直接归并为单一缓存组（18 MiB/块），逻辑块与物理块 1:1 对齐（无异构模型 640 → 5×128 跨档折算）；运行期第 2、3、4 站全层共用同一份块表与槽位映射。
+size: [900, 420]
+dividers:
+  - { from: [24, 304], to: [876, 304], sides: [启动时走一次：单一同构规格与建池, 每条请求运行期直读：1:1 块号直通] }
+items:
+  - { at: [24, 44], size: [192, 62], text: 平台定默认块长, sub: 默认 block_size = 128, tone: control, style: plain }
+  - { at: [242, 44], size: [192, 62], text: 全 36 层报同一规格, sub: FullAttention 8KV×128, tone: kv, style: plain }
+  - { at: [460, 44], size: [192, 62], text: Worker 试跑量显存, sub: 报可用 KV 字节预算, tone: control, style: plain }
+  - { at: [678, 44], size: [198, 62], text: 归并为单一缓存组, sub: 1 个同构组，18 MiB/块, tone: kv }
+  - { at: [678, 168], size: [198, 62], text: 按预算整除算块数, sub: 同组各卡取 min_num_blocks, tone: control, style: plain }
+  - { at: [460, 168], size: [192, 62], text: 分配 36 层物理张量, sub: 每层每块 512 KiB（BF16）, tone: kv, style: plain }
+  - { at: [242, 168], size: [192, 62], text: 逻辑块 = 物理块 = 128, sub: 1:1 直映，无多组拆块, tone: kv, style: plain }
+  - { at: [24, 168], size: [192, 62], text: 建 Scheduler 与块池, sub: 前缀哈希同样按 128 tok 计, tone: control, style: plain }
+  - { at: [24, 332], size: [256, 62], text: 第 2 站 调度器发块号, sub: 单组 BlockPool 按 128 tok 借块, tone: token, style: plain }
+  - { at: [316, 332], size: [264, 62], text: 第 3 站 计算 slot_mapping, sub: slot = block_id × 128 + offset, tone: token, style: plain }
+  - { at: [616, 332], size: [260, 62], text: 第 4 站 36 层共用块表, sub: 全层直读同一份 AscendMetadata, tone: token, style: plain }
+links:
+  - { from: [216, 75], to: [242, 75] }
+  - { from: [434, 75], to: [460, 75] }
+  - { from: [652, 75], to: [678, 75], tone: kv }
+  - { from: [777, 106], to: [777, 168] }
+  - { from: [678, 199], to: [652, 199] }
+  - { from: [460, 199], to: [434, 199] }
+  - { from: [242, 199], to: [216, 199] }
+  - { from: [120, 230], to: [120, 332], tone: kv, dashed: true }
+  - { from: [280, 363], to: [316, 363], tone: token }
+  - { from: [580, 363], to: [616, 363], tone: token }
+texts:
+  - { at: [450, 20], text: 'Qwen3-8B 单一同构 KVCacheSpec 流水线（128 tok/块 · 18 MiB/块）', anchor: middle, strong: true }
+  - { at: [450, 272], text: '对比：仅含线性注意力或稀疏 MLA 的异构混合模型，才需多档块长最小公倍数对齐与多组拆分', anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L405-L425
+    symbols: [update_block_size_for_backend, block_size]
+  - source: vllm@ced6857a:vllm/v1/kv_cache_interface.py#L539-L560
+    symbols: [FullAttentionSpec]
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L254-L325
+    symbols: [_initialize_kv_caches, get_kv_cache_specs, get_kv_cache_configs]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4583-L4610
+    symbols: [initialize_kv_cache]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L6314-L6335
+    symbols: [get_kv_cache_spec]

@@ -195,7 +195,7 @@ file: async-scheduling
 4. 把计划从 [EngineCore](vllm-engine-core.md)（引擎主循环所在的进程）发给各个 Worker 进程（每张卡一个、真正驱动 NPU 干活的进程）；
 5. Worker 按计划在主机侧备好输入表，再交给卡。
 
-这些活的耗时受请求条数、输入表大小、采样约束和所用后端等影响。模型前向的长短也有差别：prefill（处理提示词、可分多轮完成的阶段）的一轮可能算成百上千个位置，CPU 准备时间的相对占比会较小；decode（在已有历史上往后生成）一步里每条请求只算 1 个或几个位置，前向较短时 CPU 那一段的占比就大了。一条回答可能有几百步 decode，同步等待会反复出现，实际占比仍须按批次和模型测量。
+这些活的耗时受请求条数、输入表大小、采样约束和所用后端等影响。模型前向的长短也有差别：prefill（处理提示词、可分多轮完成的阶段）的一轮常算成百上千个位置，CPU 准备占比相对较小；decode（在已有历史上往后生成）一步里每条请求只算 `1` 个或几个位置，前向变短后 CPU 这段开销就显眼了。一条回答可能有几百步 decode，同步等待会反复出现，实际占比仍须按批次和模型测量。
 
 按图里的示意格数（CPU 一段 1 格，NPU 一步 3 格），把步数拉长来看 NPU 有多少时间在干活：
 
@@ -316,7 +316,7 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 - [Recompute Scheduler](recompute-scheduler.md)：各版本都有同步、异步两版。
 - [ShortRequestFirst](short-request-first.md)、[BatchJobAwareScheduler](batch-job-aware-scheduler.md)：本页 v0.26 rc 快照带异步版；main 上的 [DyntraLB](dyntra-lb.md) 也带异步版。
-- `SchedulerDynamicBatch`（按服务的时延目标动态调每步预算）在旧版快照中，以及 `ProfilingChunkScheduler`（先测 prefill 耗时，再定长提示词每段切多长）在 `db`、`v0.23`、`v0.26 rc` 与旧 `main` 快照中，平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`（要求同时开启 MRV2，`VLLM_USE_V2_MODEL_RUNNER=1`），当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制，见[版本差异](#版本差异)。固定旧 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
+- `SchedulerDynamicBatch`（按服务时延目标动态调预算）在旧版快照中仅提供同步类；`ProfilingChunkScheduler`（先测 prefill 耗时再动态定块长）在早期快照中也由平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`，要求同时开启 MRV2（`VLLM_USE_V2_MODEL_RUNNER=1`）。当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制（见[版本差异](#版本差异)）。早期 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
 
 若调度还依赖草稿的置信预测，异步也会影响“这次决定用了哪一轮信息”。[DSpark 的 CPU/设备分工](dspark.md#cpu-已经排下一步新的置信度还没回来怎么办)把总预算与逐请求长度分开讲，示范怎样记录步号和请求映射；它不是 GLM 占位机制的另一个名称。
 
@@ -344,15 +344,17 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 代价包括主机线程协调、额外的切片与元数据、为保持组间一致而补齐输入；较小矩阵的计算效率也要按尺寸重新衡量。要比较藏住的通信时间与这些新增开销：前者不足以抵消后者时，总耗时反而增加。通信本来很短、输入过少或两组负载差得很大时，应重点比较这两笔耗时。它与提前排下一步的 async scheduling、把模型按层分段的 PP 分工不同；是否能组合，要看各自的版本和后端条件。
 
+## 复杂异构实战对照：GLM 双机 R1 占位账与 DBO 边界
+
+以上是通用引擎的异步调度与 DBO 机制（在 `Qwen3-8B` / `Qwen3-30B-A3B` 等 `v0.30.0` 标准单卡或多卡部署中直接生效，无投机时每步输出占位恒为 `1`）。下面对照历史 **GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)），核对 DBO 边界与带 MTP 3 草稿的 R1 占位账。
+
 ### 固定 GLM 双机能直接照官方 DBO 命令开吗？
 
 这里的官方 DBO 设计描述的是上游 GPU 的 DP+EP 路径。所核 Ascend 平台会把这个上游开关重置为关闭，并记录警告，所以不能把加上 DBO 参数当成固定 GLM 获得通信重叠的办法。固定 GLM 的异步调度仍按本页原来的占位协议工作；昇腾的专家通信优化另见 [MC2](expert-parallel.md#mc2-还是-allgather)，它有自己的算子、设备与规模条件。
 
-## 落到 GLM 双机：R1 每一步的占位账
+### 落到 GLM 双机：R1 每一步的占位账
 
-部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)。落到 async scheduling 上是这几件事。
-
-**开着，靠自动判定。** 官方双机命令没写 async scheduling 的开关，走自动判定：模型不是 pooling 类；投机方法是 MTP（GLM 自带的多 token 预测层，每步草拟 3 个候选），在允许的名单里；没有关掉候选批次的补齐；多进程执行器支持异步。四条都过，所以是开的。启动日志里有一行写明开没开，本部署还缺这份日志。
+**开着，靠自动判定。** 官方双机命令没写 async scheduling 的开关，因此走自动判定：模型不是 pooling 类，投机方法 MTP（每步草拟 `3` 个候选）在允许名单里，未关掉候选批次补齐，且多进程执行器支持异步。四条全部通过，所以处于开启状态（启动日志里有一行写明开关结果，本部署还缺这份日志）。
 
 **两个 EngineCore 各记各的账。** 在这组 DP2、TP8、PP1 部署条件下，每台机器的一组请求由自己的 EngineCore 调度，使用异步占位协议和最多 2 批的队列。上面列出的专用调度配置没有出现在命令中；若 AsyncScheduler 首次定义在 Scheduler 被替换之后，它继承 BalanceScheduler，均衡关闭时回父类调度；若已经提前导入，后来换名不会改变父类。实际类型要结合目标进程的 MRO 核对，见[补丁系统](ascend-patch-system.md#落到-glm-双机哪些-patch-真的起作用)。一圈里各发什么、收什么，见[两个 EngineCore 各转各的圈](vllm-engine-core.md#落到-glm-双机两个-enginecore-各转各的圈)。
 

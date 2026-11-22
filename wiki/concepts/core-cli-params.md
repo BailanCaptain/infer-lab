@@ -88,19 +88,25 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-在昇腾（Ascend）上跑通最小 `vllm serve` 命令只是起点；一旦进入压测与上线调优，最常踩的坑是**把命令行开关当成彼此独立的旋钮**：单独调大 `--max-num-batched-tokens` 想降首字时延，结果挤爆试跑激活峰值导致 **KV cache**（保存前文键值表示以避免重复计算的显存池）缩水；把 `--gpu-memory-utilization` 拉到 `0.98` 想多切块，却在切完 KV 之后的 **ACL Graph**（昇腾图模式，预先捕获算子序列再按固定尺寸回放以省去逐算子下发开销）录图阶段直接显存溢出；或者同时填了 `PIECEWISE` 图模式与 `enable_super_kernel`，进程不报错却把融合开关静默刷回了 `False`。
+在昇腾（Ascend）上跑通最小 `vllm serve` 命令只是起点。进入压测与上线调优时，容量、首字时延与解码吞吐由四个彼此咬合的核心旋钮共同决定：`--gpu-memory-utilization`、`--max-model-len`、`--max-num-seqs` 与 `--max-num-batched-tokens`。
 
-本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，以 `Qwen3-8B`（Dense GQA，多个查询头共享一组键值头的密集模型）和 `Qwen3-30B-A3B`（MoE，每个输入 token 仅路由激活部分专家的混合专家模型）为标尺，把容量与吞吐四旋钮、`--max-num-batched-tokens` 的 6 分支求值树，以及跨子系统的静默改写与硬互斥红线一次串通。
+如果把它们当成互不相干的开关单点拧动，最容易触发三类典型失配：
+
+- **批预算反噬显存池**：单独调大 `--max-num-batched-tokens` 想降首字时延，会推高启动试跑的激活峰值，导致 **KV cache**（保存前文键值表示以避免重复计算的显存池）缩水。
+- **水位拉满导致录图 OOM**：把 `--gpu-memory-utilization` 拉到 `0.98` 想多切块，却会在切完 KV 之后的 **ACL Graph**（昇腾图模式，预先捕获算子序列再按固定尺寸回放以省去逐算子下发开销）录图阶段直接显存溢出。
+- **跨子系统组合被静默改写**：同时开启 `PIECEWISE` 图模式与 `enable_super_kernel` 时，进程不会报错，却会把融合开关静默刷回 `False`。
+
+本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，以 `Qwen3-8B`（Dense GQA，多个查询头共享一组键值头的密集模型）和 `Qwen3-30B-A3B`（MoE，每个输入 token 仅路由激活部分专家的混合专家模型）为标尺。下文依次串通四大旋钮的显存联动、`--max-num-batched-tokens` 的 6 分支求值树，以及跨子系统的静默改写与硬互斥红线。
 
 ## 四个核心旋钮怎样共同切分显存与单步预算？
 
-容量、首字时延（TTFT，从收到请求到吐出第一个生成 token 的耗时）与解码吞吐由四个参数共同咬合控制：`--gpu-memory-utilization`、`--max-model-len`、`--max-num-seqs` 与 `--max-num-batched-tokens`。它们之所以牵一发而动全身，是因为前两者卡住单卡 **显存（HBM）** 的分配上下界，后两者卡住每一轮 **step**（调度、前向与采样的单次迭代）的计算形状，而计算形状又会通过启动试跑直接反噬显存池：
+容量、首字时延（TTFT，从收到请求到吐出第一个生成 token 的耗时）与解码吞吐，都绕不开这四个参数的联动。前两者卡住单卡 **显存（HBM）** 的分配上下界；后两者决定每一轮 **step**（调度、前向与采样的单次迭代）的计算形状，而计算形状又会通过启动试跑反噬显存池：
 
 ```wiki-diagram
 file: core-cli-four-knobs
 ```
 
-顺着上图的显存比例条，负责设备执行的工作进程 **Worker**（`NPUWorker`，完整冷启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）在分配 KV 块之前先按整卡总显存 $M_{\text{total}}$ 乘显存比例 $u$ 定出预算池 `requested_memory`，再跑一次假输入前向 `profile_run()` 扣掉三笔刚性开销（逐项记账细节见 [KV cache 显存预算](kv-cache-memory-profiling.md)）：
+顺着上图的显存比例条，设备执行进程 **Worker**（`NPUWorker`，完整冷启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）会先按整卡总显存 $M_{\text{total}}$ 乘显存比例 $u$ 定出预算池 `requested_memory`。接着它跑一次假输入前向 `profile_run()`，扣掉三笔刚性开销后才切出 KV 块（逐项记账细节见 [KV cache 显存预算](kv-cache-memory-profiling.md)）：
 
 $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\text{act}}(B_{\text{tokens}}) + M_{\text{non-torch}}\bigr)$$
 
@@ -113,7 +119,11 @@ $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\tex
 | `--max-num-seqs` | 昇腾 `vllm serve` 默认落入 **`256`**（按每个 **DP** 数据并行副本独立计数；API 进程级总排队阀门另用 `--max-num-queued-reqs`） | 单步最多并发拼入多少条序列，同时决定采样张量上界与默认图捕获档位 | 在 **chunked prefill**（分块预填充，把长提示词拆成多轮与解码混跑，见 [Chunked Prefill](chunked-prefill.md)）中，每条在跑 **decode**（逐词生成）请求每步先扣 `1` 个 token（开启投机解码草拟 $K$ 词则扣 $1 + K$ 个），高并发会压缩留给新请求 **prefill**（预填充）的剩余额度 |
 | `--max-num-batched-tokens` | 昇腾 `vllm serve` 默认回落 **`2048`**（离线 `LLM` 类默认 `8192`） | 单步所有请求合计调度的 token 总上限 $B_{\text{tokens}}$，并直接决定 `profile_run()` 假输入总 token 数 | 调大能让长提示词少切几刀、显著降低 TTFT 并提高矩阵乘算术强度；但会直接推高试跑激活与算子工作区峰值 $M_{\text{act}}(B_{\text{tokens}})$，等量扣减可用 KV 池 $M_{\text{KV}}$ |
 
-看一组单卡 **64 GiB** 运行 `Qwen3-8B`（`BF16`）的容量联动示意（以下数字仅作算账关系示意，真实读数随版本与图模式变化，以启动日志 `Actual usage` 为准）：假设驻留权重 $M_{\text{weights}} = 16.5\text{ GiB}$，**HCCL**（昇腾集合通信库，其通信域缓冲按共享域去重且已包含在试跑前后的非 Torch 增量里，启动建议值另留 `150 MiB` 安全裕度）等非 Torch 增量 $M_{\text{non-torch}} = 1.5\text{ GiB}$。当默认 $u = 0.92$（预算池 $58.88\text{ GiB}$，预算外留 $5.12\text{ GiB}$ 给录图）且 $B_{\text{tokens}} = 2048$ 时，若试跑激活峰值 $M_{\text{act}} = 1.88\text{ GiB}$，则可用 KV 池为 $58.88 - 16.5 - 1.88 - 1.5 = 39.0\text{ GiB}$；如果你把 `--max-num-batched-tokens` 猛拉到 `16384` 使试跑峰值涨到 $6.38\text{ GiB}$，哪怕一条请求还没接，可用 KV 池也会立刻缩水到 $34.5\text{ GiB}$。
+看一组单卡 **64 GiB** 运行 `Qwen3-8B`（`BF16`）的容量联动示意（仅作算账关系示意，真实读数随版本与图模式变化，以启动日志 `Actual usage` 为准）：
+
+- **固定底座**：设驻留权重 $M_{\text{weights}} = 16.5\text{ GiB}$，非 Torch 增量 $M_{\text{non-torch}} = 1.5\text{ GiB}$。该增量已包含 **HCCL**（昇腾集合通信库）按共享域去重后的通信缓冲，启动建议值另留 `150 MiB` 安全裕度。
+- **默认批预算（$u = 0.92, B_{\text{tokens}} = 2048$）**：预算池为 `58.88 GiB`（预算外留 `5.12 GiB` 给录图）。若试跑激活峰值 $M_{\text{act}} = 1.88\text{ GiB}$，可用 KV 池为 $58.88 - 16.5 - 1.88 - 1.5 = \mathbf{39.0\text{ GiB}}$。
+- **猛拉批预算（$B_{\text{tokens}} = 16384$）**：若试跑激活峰值涨到 $6.38\text{ GiB}$，哪怕一条请求还没接，可用 KV 池也会立刻缩水到 **`34.5 GiB`**。
 
 ## 为什么昇腾在线服务默认批预算是 2048？拆解 6 分支求值与 SP+PCP 静默取整
 
@@ -127,7 +137,9 @@ file: core-cli-batch-tokens-tree
 
 上游 `EngineArgs.get_batch_defaults()` 在解析命令行参数时，会先调用 `current_platform.get_device_total_memory()` 读取单卡总显存：若 `>= 160 GiB` 则在线与离线默认都给 `16384`；若 `>= 70 GiB`（且非 A100）则在线给 `8192`、离线给 `16384`；否则进入兜底分支。
 
-然而在昇腾上，**命令行参数解析发生在主进程启动早期，此时 Worker 尚未拉起、`torch_npu` 尚未完成初始化**。如果过早调用底层接口读取显存，会提前触发 `torch_npu` 全局单次初始化并干扰后续多进程派生。因此 `v0.30.0` 的 `NPUPlatform.get_device_total_memory()` 显式检查 `not hasattr(torch, "npu") or not torch.npu.is_initialized()`，在未初始化时直接抛出 `NotImplementedError`；上游 `arg_utils.py` 的 `try ... except Exception` 捕获该异常后静默将 `device_memory = 0`（若外层自定义 Python 启动脚本在构造 `EngineArgs` 前已提前初始化 `torch.npu`，实际命中档位应以真机开启 `VLLM_LOGGING_LEVEL=DEBUG` 后的日志 `Defaulting max_num_batched_tokens to ...` 复核为准）。
+然而在昇腾上，**命令行参数解析发生在主进程启动早期，此时 Worker 尚未拉起、`torch_npu` 尚未完成初始化**。过早调用底层接口读取显存，会提前触发 `torch_npu` 全局单次初始化并干扰多进程派生。因此 `v0.30.0` 的 `NPUPlatform.get_device_total_memory()` 检查 `not hasattr(torch, "npu") or not torch.npu.is_initialized()`，未初始化时直接抛出 `NotImplementedError`，由上游 `arg_utils.py` 捕获后静默将 `device_memory = 0`。
+
+> **边界提示（自定义 Python 启动脚本）**：若外层脚本在构造 `EngineArgs` 前已提前初始化 `torch.npu`，实际命中档位应以真机开启 `VLLM_LOGGING_LEVEL=DEBUG` 后的日志 `Defaulting max_num_batched_tokens to ...` 复核为准。
 
 ### 2. 未手传参数时的 6 条顺序分支
 
@@ -144,20 +156,20 @@ file: core-cli-batch-tokens-tree
 
 ### 3. 后置静默取整与 `PP > 1` 抬升批预算的空间从哪来
 
-走完上游 6 分支还不是终点。进入昇腾插件层构造 `AscendConfig` 时，只要同时开启了 **prefill context parallel**（`PCP`，`--prefill-context-parallel-size > 1`，沿上下文切分预填充计算，详见 [Context Parallel](context-parallel.md)）与 **sequence parallel**（`SP`，序列并行，将 **TP** 张量并行的 `All-Reduce` 拆为 `Reduce-Scatter + All-Gather`，详见 [Sequence Parallel](sequence-parallel.md)），无论你的 `max_num_batched_tokens` 是默认推出还是**命令行亲手指定**，都会被静默向上取整到 $\text{TP} \times \text{PCP}$ 的整数倍：
+走完上游 6 分支还不是终点。进入昇腾插件层构造 `AscendConfig` 时，如果同时开启了 **prefill context parallel**（`PCP`，`--prefill-context-parallel-size > 1`，沿上下文切分预填充计算，见 [Context Parallel](context-parallel.md)）与 **sequence parallel**（`SP`，把 **TP** 的 `All-Reduce` 拆为 `Reduce-Scatter + All-Gather`，见 [Sequence Parallel](sequence-parallel.md)），就会触发强制对齐。无论 `max_num_batched_tokens` 是默认推出还是**命令行手传**，都会被静默向上取整到 $\text{TP} \times \text{PCP}$ 的整数倍：
 
 $$B'_{\text{tokens}} = \left\lceil \frac{B_{\text{tokens}}}{\text{TP} \times \text{PCP}} \right\rceil \times (\text{TP} \times \text{PCP})$$
 
-你可以自己换任意一组数验算：例如设 `TP = 8, PCP = 2`，整除粒度为 $8 \times 2 = 16$；若命令行传入 `--max-num-batched-tokens 2050`，由于 $\lceil 2050 / 16 \rceil = 129$，`AscendConfig` 会打印一次告警并静默改写为 $129 \times 16 = 2064$，确保每张卡分到的序列分片严格等长。
+你可以换任意一组数验算：设 `TP = 8, PCP = 2`，整除粒度为 $8 \times 2 = 16$。若命令行传入 `--max-num-batched-tokens 2050`，因 $\lceil 2050 / 16 \rceil = 129$，`AscendConfig` 会打印告警并静默改写为 `2064`，确保各卡分片等长。
 
-反过来，什么时候应该**主动把 `--max-num-batched-tokens` 调大**？除了单机长文压测从默认 `2048` 调到 `4096 ~ 16384` 以吃满矩阵核，开启 **pipeline parallel**（`PP > 1`，流水线并行，按层段纵切模型并通过异步 `Send/Recv` 传递激活，见 [Pipeline Parallel](pipeline-parallel.md)）后会释放三大块单卡显存空间，使调大批预算格外划算：
+反过来，什么时候应该**主动把 `--max-num-batched-tokens` 调大**？单机长文压测常从默认 `2048` 调到 `4096 ~ 16384` 以吃满矩阵核。而开启 **pipeline parallel**（`PP > 1`，流水线并行，按层段纵切模型并通过异步 `Send/Recv` 传递激活，见 [Pipeline Parallel](pipeline-parallel.md)）后，单卡还会释放三大块显存空间，使调大批预算格外划算：
 1. **层权重与 KV 减负**：`N` 层 Transformer 均摊到 `PP` 个阶段，每张卡仅常驻约 $1/\text{PP}$ 的隐藏层权重和每 token KV 缓存。
-2. **前 `PP - 1` 段彻底免除词表 Logits 峰值**：在阶段 `0 .. PP - 2` 上，模型把词表投影层 `lm_head` 替换为占位层 `PPMissingLayer`，且 `profile_run()` 直接跳过 `_dummy_sampler_run`（`output = None`），完全消除了全词表（如 Qwen3 词表 `151936`）打分张量与采样工作区的峰值占用；当层数不能被 `PP` 整除时，vLLM 也会优先把余数层往前段放（或由用户通过 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
-3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：在 `v0.30.0` 开启 `profiling_chunk_config`（要求 `PP > 1`，与 `enable_balance_scheduling` 互斥，且若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens` 会被静默截断到该上限）时，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块，官方调优指南明确建议将其设为固定分块时的 **2～4 倍**（如 64K 上下文配 `20480`、128K 配 `32768`；机制见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。
+2. **前 `PP - 1` 段免除词表 Logits 峰值**：阶段 `0 .. PP - 2` 把 `lm_head` 替换为占位层 `PPMissingLayer`，且 `profile_run()` 跳过 `_dummy_sampler_run`（`output = None`），消除了全词表（如 Qwen3 `151936`）打分与采样工作区峰值。层数不能被 `PP` 整除时，vLLM 优先把余数层往前段放（或用 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
+3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：`v0.30.0` 开启 `profiling_chunk_config` 后，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块，官方调优指南建议将其设为固定分块时的 **2～4 倍**（如 64K 配 `20480`、128K 配 `32768`；机制见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。注意该特性要求 `PP > 1`、与 `enable_balance_scheduling` 互斥，且若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens`，会被静默截断到该上限。
 
 ## 跨子系统联动：哪些组合会静默失效，哪些会直接报错？
 
-把容量和批预算定稳之后，真正的深水区在于 `--compilation-config`（上游编译与图捕获配置）与 `--additional-config`（昇腾扩展字典，解析机制见 [Ascend 配置体系](ascend-config-system.md)）之间的跨模块校验。在 `v0.30.0` 中，不兼容的参数组合有两类完全不同的结局：**硬性互斥**会在启动期直接抛 `ValueError` / `AssertionError` 拦停进程；更隐蔽的**静默改写**则只打一行告警甚至不报错，悄悄把你配好的加速开关刷回 `False` 或替换掉你的调度器：
+把容量和批预算定稳后，真正的深水区在 `--compilation-config`（上游编译与图捕获配置）与 `--additional-config`（昇腾扩展字典，解析机制见 [Ascend 配置体系](ascend-config-system.md)）之间的跨模块校验。在 `v0.30.0` 中，不兼容组合有两类截然不同的结局：**硬性互斥**在启动期直接抛 `ValueError` / `AssertionError` 拦停进程；更隐蔽的**静默改写**只打一行告警甚至不报错，悄悄把加速开关刷回 `False` 或换掉你的调度器：
 
 ```wiki-diagram
 file: core-cli-graph-sched-matrix
@@ -167,16 +179,19 @@ file: core-cli-graph-sched-matrix
 
 昇腾上的图执行分为外层捕获策略 `cudagraph_mode`（机制见 [ACL Graph](acl-graph.md)）与内层三级整图下沉优化 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`（状态机见 [npugraph_ex](npugraph-ex.md)），二者耦合极紧：
 
-- **三级依赖链与单开报错**：内层融合遵循严格单向依赖 `enable_npugraph_ex → enable_static_kernel → enable_super_kernel`。若你在 `ascend_compilation_config` 中传了 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默将 `enable_super_kernel` 默认补为 `true`**；但若在 Atlas A2 / A3 / 950 上**单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`**（或开了 `static_kernel` 却关了 `npugraph_ex`），启动会直接抛 `AssertionError`！唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件不具备 `NPUGRAPH_EX` 能力，`310P` 会打告警并将这三项开关**全部静默重置为 `False`**。
-- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL` 两条路径会保留上述三项开关；一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力算子处切开分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`，代码会**静默将 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel` 全部刷回 `False`**。此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
-- **`FA3` 注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 训练一致性路径）时，因其主机侧分块逻辑不支持 `FULL_DECODE_ONLY` 完整图捕获，配 `FULL_DECODE_ONLY` 会直接抛 `ValueError`，必须改配 `PIECEWISE`（或 `--enforce-eager`）。同时注意三处静默行为：`v0.30.0` 在 `Ascend 950` 上因暂缺 `RUNTIME_CUSTOM_OPS` 会静默禁用 `vllm_ascend_C` 自定义算子库；上游 `PassConfig.enable_sp` 与 `PP > 1` 同开且未禁用 `-rms_norm` 时会静默向 `custom_ops` 追加 `+rms_norm`；开启强化学习 `rl_config.enabled=True`（见 [vLLM-Ascend 用于 RL](vllm-ascend-for-rl.md)）会强制把权重分形 `weight_nz_mode` 置 `0`，并在配合睡眠模式（`enable_sleep_mode`）时从 `PYTORCH_NPU_ALLOC_CONF` 中剥离 `expandable_segments`（未开启睡眠模式时后续平台初始化会重新追加）。
+- **三级依赖链与单开报错**：内层融合遵循严格单向依赖 `enable_npugraph_ex → enable_static_kernel → enable_super_kernel`。若只传 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默把 `enable_super_kernel` 补为 `true`**；但若在 Atlas A2 / A3 / 950 上**单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`**（或开了 `static_kernel` 却关了 `npugraph_ex`），启动直接抛 `AssertionError`。唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件无 `NPUGRAPH_EX` 能力，会打告警并将三项开关**全部静默重置为 `False`**。
+- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL` 会保留上述三项开关。一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力算子处分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`，代码会**静默将三项融合开关全部刷回 `False`**；此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
+- **`FA3` 注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 训练一致性路径）时，因其主机侧分块逻辑不支持 `FULL_DECODE_ONLY`，配该模式会直接抛 `ValueError`，必须改配 `PIECEWISE`（或 `--enforce-eager`）。另须留意三处静默行为：
+  - `v0.30.0` 在 `Ascend 950` 上因暂缺 `RUNTIME_CUSTOM_OPS`，会静默禁用 `vllm_ascend_C` 自定义算子库。
+  - `PassConfig.enable_sp` 与 `PP > 1` 同开且未禁用 `-rms_norm` 时，会静默向 `custom_ops` 追加 `+rms_norm`。
+  - 开启强化学习 `rl_config.enabled=True`（见 [vLLM-Ascend 用于 RL](vllm-ascend-for-rl.md)）会强制把权重分形 `weight_nz_mode` 置 `0`，并在配合睡眠模式（`enable_sleep_mode`）时从 `PYTORCH_NPU_ALLOC_CONF` 剥离 `expandable_segments`（未开睡眠模式时后续初始化会重新追加）。
 
 ### 2. 多调度器并存时的「后写胜出」静默覆盖链
 
 在 `additional_config.scheduler_config` 下配置扩展调度器时，系统先做前置互斥拦截，再按固定代码顺序赋值给同一个 `vllm_config.scheduler_config.scheduler_cls`：
 
-- **前置硬拦截与角色门禁**：`recompute_scheduler_enable: true`（见 [Recompute Scheduler](recompute-scheduler.md)）仅服务于 **PD disaggregation**（PD 分离，把预填充与持续解码拆到不同实例池，见 [PD 分离](pd-disaggregation.md)）的 D 节点（`kv_role="kv_consumer"`）——在单机混部或 `kv_role="kv_both"` 上开启会抛 `ValueError`，而在 P 节点（`kv_role="kv_producer"`）上开启则会**打告警并静默置回 `False`**（且细粒度张量并行 `finegrained_tp_config` 强依赖 `recompute_scheduler_enable=True`，否则抛 `AssertionError`）。同时，`short_request_first_config`（见 [Short Request First](short-request-first.md)）禁止与 `batch_job_sched_config` 同开或用于 D 节点；`dyntra_lb_config`（见 [Dyntra LB](dyntra-lb.md)）仅限单节点 `DP > 1` 的 D 节点，且与 `enable_balance_scheduling`、`profiling_chunk_config` 同开均直接抛 `ValueError`。
-- **顺序无条件覆盖（Last Writer Wins）**：只要没触发上述前置异常，`_setup_worker_and_scheduler` 在 `v0.30.0` 中按 `dyntra_lb（未开 recompute 时）→ profiling_chunk_config → batch_job_sched_config` 依次直接覆盖 `scheduler_cls`！这意味着在 D 节点同时开 `recompute_scheduler_enable` 与 `profiling_chunk_config` 时，生效的是 `ProfilingChunkScheduler`（其初始化内部仍保留 `short_request_first` 等待队列兼容）；若再勾上 `batch_job_sched_config`（见 [Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)），它会作为最后写入者**无声覆盖前序所有调度器**，最终只跑 `BatchJobAwareScheduler`。
+- **前置硬拦截与角色门禁**：`recompute_scheduler_enable: true`（见 [Recompute Scheduler](recompute-scheduler.md)）仅服务于 **PD disaggregation**（PD 分离，把预填充与持续解码拆到不同实例池，见 [PD 分离](pd-disaggregation.md)）的 D 节点（`kv_role="kv_consumer"`）。单机混部或 `kv_role="kv_both"` 开启会抛 `ValueError`，P 节点（`kv_role="kv_producer"`）开启会**打告警并静默置回 `False`**；细粒度张量并行 `finegrained_tp_config` 强依赖 `recompute_scheduler_enable=True`，否则抛 `AssertionError`。此外，`short_request_first_config`（见 [Short Request First](short-request-first.md)）禁止与 `batch_job_sched_config` 同开或用于 D 节点；`dyntra_lb_config`（见 [Dyntra LB](dyntra-lb.md)）仅限单节点 `DP > 1` 的 D 节点，与 `enable_balance_scheduling`、`profiling_chunk_config` 同开均抛 `ValueError`。
+- **顺序无条件覆盖（Last Writer Wins）**：未触发上述异常时，`_setup_worker_and_scheduler` 在 `v0.30.0` 按 `dyntra_lb（未开 recompute 时）→ profiling_chunk_config → batch_job_sched_config` 依次覆盖 `scheduler_cls`。在 D 节点同开 `recompute_scheduler_enable` 与 `profiling_chunk_config` 时，生效的是 `ProfilingChunkScheduler`（内部仍兼容 `short_request_first` 等待队列）。若再开 `batch_job_sched_config`（见 [Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)），它会作为最后写入者**无声覆盖前序所有调度器**，最终只跑 `BatchJobAwareScheduler`。
 
 ### 3. P/D 分离 `MooncakeConnector`、并行拓扑与量化红线
 
@@ -206,10 +221,10 @@ summary: 对照 v0.30.0 源码规则核验单实例或 P/D 双实例启动参数
 file: core-cli-myths-vs-truth
 ```
 
-- **「64 GiB / 128 GiB 的昇腾卡跟 H100 一样，`vllm serve` 默认 `max_num_batched_tokens` 是 `8192`」**：错。参数解析早于 `torch_npu` 初始化，`NPUPlatform.get_device_total_memory()` 抛 `NotImplementedError` 使 `device_memory` 归零，因此 `vllm serve` 在全系昇腾卡上默认回落 `2048`（离线 `LLM` 类才是 `8192`）。长文或高算力卡压测时应显式传入 `--max-num-batched-tokens`。
-- **「`--gpu-memory-utilization` 默认是 `0.9`，而且只要不超过它录图就不会 OOM」**：两半都错。第一，`v0.30.0` 源码 `CacheConfig` 默认值是 **`0.92`**（`0.9` 是部分旧 FAQ 未同步的历史写法或食谱的保守手传值）；第二，ACL Graph 录图发生在切完 KV 块之后，吃的是剩余 $1 - u$ 的预算外显存，把比例盲目拉到 `0.96+` 极易在录图阶段爆显存。
-- **「开了 `PIECEWISE` 再把 `enable_static_kernel` 和 `enable_super_kernel` 都设成 `true` 能叠加提速」**：错。`_setup_compile_backend` 在 `NONE`、`PIECEWISE` 和 `FULL_AND_PIECEWISE` 下会把 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel` 全部静默置为 `False`；只有 `FULL_DECODE_ONLY` 和 `FULL` 才保留三级图融合，而在 A2/A3/950 上漏开 `static_kernel` 单开 `super_kernel` 则会直接抛 `AssertionError`。
-- **「脚本里的 `HCCL_BUFFSIZE_EP` 等环境变量在 `vllm_ascend/envs.py` 搜不到，说明是写错的废参数」**：错。仓内 Python/C++ 代码只显式读取 `HCCL_SO_PATH`、`HCCL_BUFFSIZE`、`ASCEND_HOME_PATH`、`ASCEND_RT_VISIBLE_DEVICES` 等十余个变量；其余四十余个文档出现的 `HCCL_*` / `ASCEND_*` 变量可能由底层 `libhccl.so` 或 CANN 运行时直接读取，在没有对应版本 CANN 手册证伪前只能归为待核 `unknown`，绝不能武断当成拼写错误删掉。
+- **「64 GiB / 128 GiB 的昇腾卡跟 H100 一样，`vllm serve` 默认 `max_num_batched_tokens` 是 `8192`」**：错。参数解析早于 `torch_npu` 初始化，`NPUPlatform.get_device_total_memory()` 抛 `NotImplementedError` 使 `device_memory` 归零。因此 `vllm serve` 在全系昇腾卡上默认回落 `2048`（离线 `LLM` 类才是 `8192`），长文压测应显式传 `--max-num-batched-tokens`。
+- **「`--gpu-memory-utilization` 默认是 `0.9`，而且只要不超过它录图就不会 OOM」**：两半都错。首先，`v0.30.0` 源码 `CacheConfig` 默认值是 **`0.92`**（`0.9` 是旧 FAQ 历史写法或食谱保守手传值）。其次，ACL Graph 录图发生在切完 KV 块之后，吃的是剩余 $1 - u$ 的预算外显存，盲目拉到 `0.96+` 极易在录图阶段爆显存。
+- **「开了 `PIECEWISE` 再把 `enable_static_kernel` 和 `enable_super_kernel` 都设成 `true` 能叠加提速」**：错。`_setup_compile_backend` 在 `NONE`、`PIECEWISE` 和 `FULL_AND_PIECEWISE` 下会把三项融合开关全部静默置为 `False`。只有 `FULL_DECODE_ONLY` 和 `FULL` 才保留三级图融合，在 A2/A3/950 上漏开 `static_kernel` 单开 `super_kernel` 会直接抛 `AssertionError`。
+- **「脚本里的 `HCCL_BUFFSIZE_EP` 等环境变量在 `vllm_ascend/envs.py` 搜不到，说明是写错的废参数」**：错。仓内 Python/C++ 代码只显式读取 `HCCL_SO_PATH`、`HCCL_BUFFSIZE`、`ASCEND_HOME_PATH`、`ASCEND_RT_VISIBLE_DEVICES` 等十余个变量。其余四十余个文档出现的 `HCCL_*` / `ASCEND_*` 变量可能由底层 `libhccl.so` 或 CANN 运行时直接读取，在没有对应版本 CANN 手册证伪前应归为待核 `unknown`，不能武断当成拼写错误删除。
 
 ## 对照源码
 

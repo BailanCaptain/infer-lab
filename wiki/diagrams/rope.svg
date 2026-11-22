@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0">
-  <title>示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。标准 Qwen3-8B（d_h = 128）每层先做逐头 q_norm / k_norm（RMSNorm），再对全部 64 对分量按各自频率施加 RoPE 旋转（个别异构稀疏注意力变体可设 RoPE 维数为 0）。">
+  <title>示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。标准 Qwen3-8B（d_h = 128）每层先做逐头 q_norm / k_norm（RMSNorm），再对全部 64 对分量按各自频率施加 RoPE 旋转（个别异构稀疏注意力变体可设 RoPE 维数为 0）。</title>
   <desc>旋转前，k 指向 20 度，q 指向 50 度，夹角 30 度；k 在位置 3 转 60 度到 80 度，q 在位置 5 转 100 度到 150 度，夹角 70 度；两个位置都加 100，k 指向 280 度，q 指向 350 度，夹角仍为 70 度</desc>
   <defs><marker id="rope-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="rope-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="rope-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
   <path d="M268 190 L322 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#rope-ah-ink)"/>
@@ -34,8 +34,8 @@
   <text x="150" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旋转前：由内容算出</text>
   <text x="460" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 3，q 在位置 5</text>
   <text x="770" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 103，q 在位置 105</text>
-  <text x="295" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按位置转</text>
-  <text x="605" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">都 +100</text>
+  <text x="295" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按位置转</text>
+  <text x="605" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">都 +100</text>
   <text x="150" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">夹角 30°，由内容决定</text>
   <text x="460" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">k 转 60°，q 转 100°，夹角 70°</text>
   <text x="770" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各多转 2000°，夹角仍是 70°</text>

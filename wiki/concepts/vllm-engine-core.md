@@ -239,7 +239,9 @@ file: vllm-engine-core-fig-queue-loop
 
 走哪条分支由配置自动判定，实际以启动日志为准，判定条件和日志写法见页末[怎么开](#怎么开)与[会报什么错](#会报什么错)。
 
-## 落到 GLM 双机：两个 EngineCore 各转各的圈
+## 复杂异构实战对照：GLM 双机中的双 EngineCore 与异步批次队列
+
+### 落到 GLM 双机：两个 EngineCore 各转各的圈
 
 部署沿用[部署前提](glm-5-3-flash-two-node.md#部署前提)：两台机器各 8 张卡，每台机器是一个 DP 组，组内 8 张卡做 TP8，16 张卡一起做 EP16。落到 EngineCore 上是三件事：
 
@@ -270,7 +272,7 @@ $$N_{\text{out,min}} = 32 \times 1 = 32, \qquad N_{\text{out,max}} = 32 \times (
 
 所以在 GLM 双机上，「引擎转了几圈」和「交回了多少 token」差得更远：同样转一圈，交回的 token 数能差 4 倍。
 
-昇腾上跑的就是上游这条循环。vllm-ascend 在 EngineCore 进程的入口挂了补丁，但只在打开均衡调度（balance scheduling，vllm-ascend 自己的一种调度选项）或按剖析结果动态分块（要求 PP 大于 1）时，才换掉 DP 用的引擎类或包一层初始化；本部署两样都没开，每一圈走的都是上游代码。调度器类被换成了什么、为什么对本部署没有影响，见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)。
+**边界与例外（昇腾补丁范围）**：昇腾上跑的就是上游这条循环。`vllm-ascend` 在 EngineCore 进程入口挂了补丁，但只在打开均衡调度（`balance scheduling`）或按剖析结果动态分块（要求 `PP > 1`）时，才替换 DP 引擎类或包一层初始化。本部署两样都没开，每一圈走的都是上游代码。调度器类被换成了什么、为什么对本部署没有影响，见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)。
 
 ## 常见误解
 

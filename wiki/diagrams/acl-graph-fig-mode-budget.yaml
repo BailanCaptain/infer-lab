@@ -1,9 +1,13 @@
 mode: native-svg
 id: acl-graph-fig-mode-budget
 caption: >-
-  ACL Graph 三档模式捕获回放对照、侧流参数更新与显存/流资源预算：上半对比 FULL、FULL_DECODE_ONLY 与 FULL_AND_PIECEWISE 在 decode 与混合批的落点；左下拆解侧流 update_graph_params 的 Event 等待/释放顺序；右下呈现 HBM u 预算与 (1-u) 录图余量及 207008 流资源告警边界。
+  ACL Graph 三档模式捕获回放对照、侧流参数更新与显存/流资源预算：上半对比 FULL、FULL_DECODE_ONLY 与 PIECEWISE / FULL_AND_PIECEWISE 在 decode 与混合批的落点及默认捕获上限 min(max_num_seqs × decode_query_len, 512)；左下拆解固定缓冲与侧流 update_graph_params 的 Event 等待/释放顺序；右下呈现 HBM u 预算与 (1-u) 录图余量及 207008 流资源告警边界。
 size: [900, 470]
 pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1318-L1346
+    symbols: [requires_piecewise_compilation, splitting_ops, enable_npugraph_ex]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1530-L1546
+    symbols: [max_cudagraph_capture_size, decode_query_len]
   - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L26-L54
     symbols: [_STREAM_RESOURCE_ERROR_CODE, use_updatable_graph]
   - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L290-L320

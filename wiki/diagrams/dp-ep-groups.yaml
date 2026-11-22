@@ -1,25 +1,29 @@
 layout: figure
 id: dp-ep-groups
-caption: 用 4 张卡示意 DP2 × TP2 并开启 EP。同一框里的两张卡是一个 DP 执行组，也是一个 TP 组，负责本组请求的 attention 和稠密层；两组里 TP 位置相同的卡配成一个 DP 通信组，每步在这里对齐宽度；EP 组覆盖全部 4 张卡，专家分在这 4 张卡上。分组表示逻辑成员，不表示物理布线；不是 4 份完整模型。
-size: [900, 470]
+caption: 稠密模型 DP 与 MoE 开启 EP 时的逻辑分组对比。上方标准稠密 DP（如 Qwen3-8B DP2）：各 DP 组自持独立模型副本与 KV 池，前向无跨组通信、互不等待。下方 4 卡示意 MoE DP2 × TP2 并开启 EP（如 Qwen3-30B-A3B 多组扩展）：组内两张卡按 TP 跑注意力和门控；全部 4 张卡合成 EP 专家组平分专家，两组同位卡配成 DP 通信组每步对齐宽度。
+size: [900, 590]
 frames:
-  - { at: [40, 50], size: [380, 206], label: 'DP 执行组 0 · TP 组 {0,1}' }
-  - { at: [480, 50], size: [380, 206], label: 'DP 执行组 1 · TP 组 {2,3}' }
+  - { at: [40, 52], size: [820, 96], label: '1. 标准稠密 DP（如 Qwen3-8B）：各 DP 组自持独立副本、互不等待' }
+  - { at: [40, 206], size: [380, 198], label: 'DP 执行组 0 · TP 组 {0,1}' }
+  - { at: [480, 206], size: [380, 198], label: 'DP 执行组 1 · TP 组 {2,3}' }
 items:
-  - { at: [60, 84], size: [340, 50], text: 组 0 请求的 attention、稠密层, sub: 两张卡用 TP 合作, style: plain }
-  - { at: [60, 162], size: [160, 64], text: rank 0, sub: 持有 1/4 的专家, tone: weight }
-  - { at: [240, 162], size: [160, 64], text: rank 1, sub: 持有 1/4 的专家, tone: weight }
-  - { at: [500, 84], size: [340, 50], text: 组 1 请求的 attention、稠密层, sub: 两张卡用 TP 合作, style: plain }
-  - { at: [500, 162], size: [160, 64], text: rank 2, sub: 持有 1/4 的专家, tone: weight }
-  - { at: [680, 162], size: [160, 64], text: rank 3, sub: 持有 1/4 的专家, tone: weight }
-  - { at: [40, 296], size: [390, 52], text: 'DP 通信组 {0,2}', sub: 每步对齐 token 数与图模式, tone: comm }
-  - { at: [470, 296], size: [390, 52], text: 'DP 通信组 {1,3}', sub: 每步对齐 token 数与图模式, tone: comm }
-  - { at: [40, 378], size: [820, 56], text: 'EP 组 {0,1,2,3}', sub: 两个执行组的 token 一起 dispatch 到专家所在的卡，再 combine 回来, tone: comm }
+  - { at: [60, 74], size: [360, 56], text: 'DP 组 0 · 完整模型副本', sub: 独立队列与 KV 池，0 次跨组同步, tone: token }
+  - { at: [480, 74], size: [360, 56], text: 'DP 组 1 · 完整模型副本', sub: 独立队列与 KV 池，空闲时无需陪跑, tone: token }
+  - { at: [60, 236], size: [340, 50], text: 组 0 请求的 attention 与门控, sub: 两张卡用 TP 合作, style: plain }
+  - { at: [60, 312], size: [160, 64], text: rank 0, sub: 持有 1/4 路由专家, tone: weight }
+  - { at: [240, 312], size: [160, 64], text: rank 1, sub: 持有 1/4 路由专家, tone: weight }
+  - { at: [500, 236], size: [340, 50], text: 组 1 请求的 attention 与门控, sub: 两张卡用 TP 合作, style: plain }
+  - { at: [500, 312], size: [160, 64], text: rank 2, sub: 持有 1/4 路由专家, tone: weight }
+  - { at: [680, 312], size: [160, 64], text: rank 3, sub: 持有 1/4 路由专家, tone: weight }
+  - { at: [40, 428], size: [390, 52], text: 'DP 通信组 {0,2}', sub: 跨组 EP 时每步对齐 token 数与图模式, tone: comm }
+  - { at: [470, 428], size: [390, 52], text: 'DP 通信组 {1,3}', sub: 跨组 EP 时每步对齐 token 数与图模式, tone: comm }
+  - { at: [40, 498], size: [820, 56], text: 'EP 组 {0,1,2,3}', sub: 两个执行组的 token 一起 dispatch 到专家所在的卡，再 combine 回来, tone: comm }
 texts:
-  - { at: [450, 18], text: '4 张卡 · DP2 × TP2 · 开 EP', anchor: middle, strong: true }
-  - { at: [450, 456], text: 'GLM：8 个 DP 通信组、1 个 16 卡 EP 组', anchor: middle, note: true }
+  - { at: [450, 22], text: '数据并行（DP）的两种运行形态：独立副本 vs 跨组共享 EP 专家池', anchor: middle, strong: true }
+  - { at: [450, 176], text: '2. MoE 开启跨组 EP（4 卡示意 DP2 × TP2 + EP4）：专家切在全组卡上，步间需对齐', anchor: middle, strong: true }
+  - { at: [450, 574], text: '分组表示逻辑通信成员，不表示物理布线；开启跨组 EP 时单组不是完整模型副本', anchor: middle, note: true }
 pins:
-  - source: vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
+  - source: vllm@ced6857a:vllm/distributed/parallel_state.py#L2188-L2265
     symbols: [_DP, _EP, data_parallel_size, tensor_model_parallel_size]
-  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1155-L1168
+  - source: vllm@ced6857a:vllm/model_executor/layers/fused_moe/config.py#L1210-L1260
     symbols: [use_ep, dp_size_, tp_size_]

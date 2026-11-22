@@ -1,16 +1,16 @@
 layout: figure
 id: ops-layers
-caption: 模型里的一次运算逐层下沉：先决定交给谁，再决定谁去算，最后在设备上启动核函数
+caption: 模型里的一次运算逐层下沉（以 Qwen3 的 RMSNorm / QKV / FlashAttention / SwiGLU 及可选 MoE 为例）：先在框架层替换为昇腾实现，再路由到 torch_npu 或自定义扩展算子，最终由 CANN 在设备上启动 Cube / Vector 核函数
 size: [900, 480]
 items:
-  - { at: [340, 18], size: [300, 56], text: 模型里的一次运算, sub: 一次归一化、一次矩阵乘, tone: weight, depth: 2 }
-  - { at: [110, 110], size: [240, 62], text: 框架的替换表, sub: 按类名换成昇腾实现, tone: control }
-  - { at: [370, 110], size: [240, 62], text: 量化方法, sub: 按量化配置选算法, tone: control }
-  - { at: [630, 110], size: [240, 62], text: 模型里写死的调用, sub: 例如 GLM 的残差混合, tone: control }
-  - { at: [110, 206], size: [370, 62], text: 随框架发布的设备算子, sub: 成熟实现, tone: token }
-  - { at: [500, 206], size: [370, 62], text: 仓库自己编译的扩展, sub: 自己写的昇腾算子, tone: kv }
-  - { at: [230, 302], size: [520, 56], text: CANN 算子, sub: 选分块、排任务、下发, tone: comm }
-  - { at: [370, 372], size: [240, 62], text: 设备上的核函数, sub: 一次运算可能启动多个, tone: ink, depth: 2 }
+  - { at: [300, 18], size: [380, 56], text: 模型层里的一次运算, sub: RMSNorm / QKV / Attention / SwiGLU（可选 MoE）, tone: weight, depth: 2 }
+  - { at: [110, 110], size: [240, 62], text: 框架自定义算子替换表, sub: AscendRMSNorm / SiluAndMul, tone: control }
+  - { at: [370, 110], size: [240, 62], text: 线性与 MoE 量化方法, sub: QKV / SwiGLU / 可选稀疏专家, tone: control }
+  - { at: [630, 110], size: [240, 62], text: 注意力后端与位置编码, sub: FlashAttention / PA / RoPE, tone: control }
+  - { at: [110, 206], size: [370, 62], text: 随框架发布的设备算子（torch_npu）, sub: npu_rms_norm / npu_rotary_mul / FIA, tone: token }
+  - { at: [500, 206], size: [370, 62], text: 仓库编译扩展与融合算子, sub: 自定义 C++ / Triton / MoE 通信融合, tone: kv }
+  - { at: [230, 302], size: [520, 56], text: CANN 算子库（ACLNN / ATB）, sub: 选分块 Tiling、排流任务、下发硬件, tone: comm }
+  - { at: [350, 372], size: [280, 62], text: 昇腾设备上的核函数, sub: AI Core（Cube 矩阵 / Vector 向量）, tone: ink, depth: 2 }
 links:
   - { from: [490, 74], to: [230, 110], via: [[490, 92], [230, 92]], tone: control }
   - { from: [490, 74], to: [490, 110], tone: control }
@@ -18,6 +18,7 @@ links:
   - { from: [230, 172], to: [295, 206], via: [[230, 190], [295, 190]], tone: token }
   - { from: [490, 172], to: [295, 206], via: [[490, 190], [295, 190]], tone: token }
   - { from: [490, 172], to: [685, 206], via: [[490, 190], [685, 190]], tone: kv }
+  - { from: [750, 172], to: [295, 206], via: [[750, 190], [295, 190]], tone: token }
   - { from: [750, 172], to: [685, 206], via: [[750, 190], [685, 190]], tone: kv }
   - { from: [295, 268], to: [420, 302], via: [[295, 285], [420, 285]], tone: comm }
   - { from: [685, 268], to: [560, 302], via: [[685, 285], [560, 285]], tone: comm }
@@ -28,8 +29,9 @@ texts:
   - { at: [0, 242], text: 算子 }
   - { at: [0, 336], text: 运行库 }
   - { at: [0, 408], text: 硬件 }
-  - { at: [110, 466], text: 上面三条路都要落到下面两类算子, note: true }
-  - { at: [600, 466], text: 算子的个数不等于核函数的个数, note: true }
+  - { at: [110, 466], text: 上面三条分派路径统一汇入两类设备算子入口, note: true }
+  - { at: [580, 466], text: Python 算子调用数不等于底层硬件核函数个数, note: true }
 pins:
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88', symbols: [AscendRMSNorm] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169', symbols: [hc_pre, hc_post] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L47-L95', symbols: [AscendRMSNorm] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/activation.py#L35-L55', symbols: [AscendSiluAndMul] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L257-L290', symbols: [AscendRotaryEmbedding] }

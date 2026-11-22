@@ -1,0 +1,52 @@
+layout: figure
+id: prepare-inputs-code-flow-qwen3
+caption: v0.30.0 中 NPUModelRunner 在标准 Qwen3-8B 上拍平批次输入的顺序：Scheduler 计划送达 Worker 后，先同步持久批次 input_batch；随后在 _prepare_inputs 中异步提交单组 128-tok 块表，把多条在途请求拍平成连续一维的 input_ids [T]、positions [T]、前缀和边界 query_start_loc [B+1]，并在 NPU 上算出单一 slot_mapping [T] 与采样行索引 logits_indices，最后构建全 36 层共用的 1 份 AscendMetadata 送入第 4 站。
+size: [900, 566]
+frames:
+  - { at: [16, 132], size: [868, 322], label: '第 3 站 _prepare_inputs：把多请求拍平为一维连续张量（NPUModelRunner）', inside: true }
+items:
+  - { at: [24, 40], size: [296, 60], text: 'Scheduler 本步调度计划', sub: '请求列表、token 数、新 128-tok 块号', tone: control, style: plain }
+  - { at: [352, 40], size: [280, 60], text: '发给本组 Worker 执行器', sub: 'TP=1 单卡直收；TP>1 同组收同份', tone: control, style: plain }
+  - { at: [444, 170], size: [420, 60], text: '_update_states 同步持久批次 input_batch', sub: '增删请求、在单一 BlockTable 追加新块号', tone: token, style: plain }
+  - { at: [164, 170], size: [240, 60], text: '本步 0 个 token：提前返回', sub: '不进入常规输入拼装', tone: control, style: faded }
+  - { at: [32, 270], size: [192, 60], text: 'commit_block_table', sub: '异步拷单组块表上 NPU', tone: kv, style: plain }
+  - { at: [244, 270], size: [192, 60], text: '判别 attn_state', sub: 'Prefill / Decode / 混合批', tone: control, style: plain }
+  - { at: [456, 270], size: [192, 60], text: '拍平 input_ids 与位置', sub: '拼接为一维连续 [T] 张量', tone: token, style: plain }
+  - { at: [668, 270], size: [196, 60], text: '计算 query_start_loc', sub: '前缀和 [0, n₀, n₀+n₁, …]', tone: token, style: plain }
+  - { at: [32, 370], size: [268, 60], text: '算单一 slot_mapping [T]', sub: 'NPU 上按 block_id×128+offset 算', tone: kv, style: plain }
+  - { at: [336, 370], size: [220, 60], text: '算 logits_indices 选行', sub: '决定哪些位置进 lm_head', tone: control, style: plain }
+  - { at: [604, 362], size: [260, 36], text: '标准路径：每请求取最后 1 行', tone: token }
+  - { at: [604, 406], size: [260, 36], text: '开启投机时：取最后 1 + k 行', tone: control, style: faded }
+  - { at: [24, 482], size: [256, 60], text: '按图档位补齐 batch 宽度', sub: '命中 ACLGraph 捕获尺寸', tone: control, style: plain }
+  - { at: [314, 482], size: [300, 60], text: '构建 1 份 AscendMetadata', sub: '全 36 层同构 GQA 共享同一块表与槽位', tone: kv }
+  - { at: [648, 482], size: [228, 60], text: '第 4 站 Qwen3 逐层前向', sub: '单流 [T, 4096] 贯通 36 层', tone: weight }
+links:
+  - { from: [320, 70], to: [352, 70] }
+  - { from: [492, 100], to: [654, 170], via: [[492, 118], [654, 118]] }
+  - { from: [444, 200], to: [404, 200], dashed: true }
+  - { from: [654, 230], to: [128, 270], via: [[654, 250], [128, 250]] }
+  - { from: [224, 300], to: [244, 300] }
+  - { from: [436, 300], to: [456, 300] }
+  - { from: [648, 300], to: [668, 300] }
+  - { from: [766, 330], to: [166, 370], via: [[766, 350], [166, 350]] }
+  - { from: [300, 400], to: [336, 400] }
+  - { from: [446, 430], to: [152, 482], via: [[446, 466], [152, 466]] }
+  - { from: [280, 512], to: [314, 512] }
+  - { from: [614, 512], to: [648, 512] }
+fans:
+  - { from: [556, 400], to: [[604, 380], [604, 424]], tone: control }
+texts:
+  - { at: [24, 24], text: '第 2 站 调度器发计划 → 第 3 站 拍平一维设备张量（Qwen3-8B 单缓存组）', strong: true }
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L959-L995
+    symbols: [_update_states]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1335
+    symbols: [_prepare_inputs, commit_block_table, _build_attn_state]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1433-L1465
+    symbols: [query_start_loc, _prepare_input_ids]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1620-L1640
+    symbols: [compute_slot_mapping]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L22-L40
+    symbols: [BlockTable]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L151-L185
+    symbols: [compute_slot_mapping]

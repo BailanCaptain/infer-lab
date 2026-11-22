@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 566" width="900" height="566" role="img" aria-label="v0.30.0 中 NPUModelRunner 在标准 Qwen3-8B 上拍平批次输入的顺序：Scheduler 计划送达 Worker 后，先同步持久批次 input_batch；随后在 _prepare_inputs 中异步提交单组 128-tok 块表，把多条在途请求拍平成连续一维的 input_ids [T]、positions [T]、前缀和边界 query_start_loc [B+1]，并在 NPU 上算出单一 slot_mapping [T] 与采样行索引 logits_indices，最后构建全 36 层共用的 1 份 AscendMetadata 送入第 4 站。">
+  <title>v0.30.0 中 NPUModelRunner 在标准 Qwen3-8B 上拍平批次输入的顺序：Scheduler 计划送达 Worker 后，先同步持久批次 input_batch；随后在 _prepare_inputs 中异步提交单组 128-tok 块表，把多条在途请求拍平成连续一维的 input_ids [T]、positions [T]、前缀和边界 query_start_loc [B+1]，并在 NPU 上算出单一 slot_mapping [T] 与采样行索引 logits_indices，最后构建全 36 层共用的 1 份 AscendMetadata 送入第 4 站。</title>
+  <defs><marker id="prepare-inputs-code-flow-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="prepare-inputs-code-flow-qwen3-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="16" y="132" width="868" height="322" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 3 站 _prepare_inputs：把多请求拍平为一维连续张量（NPUModelRunner）</text>
+  <path d="M320 70 L352 70" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M492 100 L492 118 L654 118 L654 170" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M444 200 L404 200" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M654 230 L654 250 L128 250 L128 270" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M224 300 L244 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M436 300 L456 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M648 300 L668 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M766 330 L766 350 L166 350 L166 370" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M300 400 L336 400" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M446 430 L446 466 L152 466 L152 482" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M280 512 L314 512" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M614 512 L648 512" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-ink)"/>
+  <path d="M556 400 L604 380" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-control)"/>
+  <path d="M556 400 L604 424" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#prepare-inputs-code-flow-qwen3-ah-control)"/>
+  <rect x="24" y="40" width="296" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="172" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Scheduler 本步调度计划</text>
+  <text x="172" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">请求列表、token 数、新 128-tok 块号</text>
+  <rect x="352" y="40" width="280" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="492" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发给本组 Worker 执行器</text>
+  <text x="492" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">TP=1 单卡直收；TP&gt;1 同组收同份</text>
+  <rect x="444" y="170" width="420" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="654" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">_update_states 同步持久批次 input_batch</text>
+  <text x="654" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">增删请求、在单一 BlockTable 追加新块号</text>
+  <rect x="164" y="170" width="240" height="60" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="284" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">本步 0 个 token：提前返回</text>
+  <text x="284" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">不进入常规输入拼装</text>
+  <rect x="32" y="270" width="192" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="128" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">commit_block_table</text>
+  <text x="128" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">异步拷单组块表上 NPU</text>
+  <rect x="244" y="270" width="192" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="340" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">判别 attn_state</text>
+  <text x="340" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">Prefill / Decode / 混合批</text>
+  <rect x="456" y="270" width="192" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="552" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">拍平 input_ids 与位置</text>
+  <text x="552" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">拼接为一维连续 [T] 张量</text>
+  <rect x="668" y="270" width="196" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="766" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">计算 query_start_loc</text>
+  <text x="766" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">前缀和 [0, n₀, n₀+n₁, …]</text>
+  <rect x="32" y="370" width="268" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="166" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算单一 slot_mapping [T]</text>
+  <text x="166" y="415" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">NPU 上按 block_id×128+offset 算</text>
+  <rect x="336" y="370" width="220" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="446" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算 logits_indices 选行</text>
+  <text x="446" y="415" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">决定哪些位置进 lm_head</text>
+  <rect x="604" y="362" width="260" height="36" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="734" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">标准路径：每请求取最后 1 行</text>
+  <rect x="604" y="406" width="260" height="36" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="734" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">开启投机时：取最后 1 + k 行</text>
+  <rect x="24" y="482" width="256" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="152" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按图档位补齐 batch 宽度</text>
+  <text x="152" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">命中 ACLGraph 捕获尺寸</text>
+  <rect x="314" y="482" width="300" height="60" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="464" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">构建 1 份 AscendMetadata</text>
+  <text x="464" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">全 36 层同构 GQA 共享同一块表与槽位</text>
+  <rect x="648" y="482" width="228" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="762" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 4 站 Qwen3 逐层前向</text>
+  <text x="762" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">单流 [T, 4096] 贯通 36 层</text>
+  <text x="24" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">第 2 站 调度器发计划 → 第 3 站 拍平一维设备张量（Qwen3-8B 单缓存组）</text>
+</svg>

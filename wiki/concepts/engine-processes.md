@@ -2,10 +2,11 @@
 id: engine-processes
 title: 引擎有哪几个进程：API server、EngineCore 与 Worker
 type: concept
+legacyAnchors:
+  双机部署里一共有哪些进程: 复杂异构实战对照：GLM 双机 20 个进程账
 summary: >-
   vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker
-  执行设备上的模型；客户端模式与执行器决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存按进程管理；GLM 双机按角色计 20
-  个进程，executor（执行器）决定 Worker 是否独立成进程。
+  执行设备上的模型；客户端模式与 executor（执行器）决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存均按进程隔离管理。
 aliases:
   - EngineCore
   - Main 进程
@@ -268,9 +269,16 @@ rawSources:
 
 ## 一个推理服务为什么是好几个进程
 
-**vLLM 的推理服务把工作分成三类职责：API server 接住用户请求、负责分词与流式吐字；EngineCore 每一步排出调度计划并记账；Worker 驻守设备、真正执行模型前向与采样。** 这三类职责最后落到几个操作系统进程里，由**客户端模式**（决定前端是否与 EngineCore 分进程）和 **executor（执行器）**（决定 Worker 是否独立成进程）两个开关分别控制，不能直接把「三类角色」等同于「三类独立进程」——比如单进程执行器会让 Worker 住在 EngineCore 进程内，但单凭这一点也无法推出 API server 和 EngineCore 在同一个进程里。
+**vLLM 把推理服务分成三类职责：API server 接住用户请求、负责分词与流式吐字；EngineCore 每一步排出调度计划并记账；Worker 驻守设备、真正执行模型前向与采样。**
 
-**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间：一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到。进程之间交换数据必须走显式通道，例如 ZMQ 网络/IPC 消息，或者划出一块多个进程共同读写的共享内存队列。
+这三类职责最终落到几个操作系统进程里，由两个开关分别控制：
+
+- **客户端模式**决定 API server 前端是否与 EngineCore 分成独立进程。
+- **executor（执行器）**决定 Worker 是否独立成进程。
+
+因此不能把「三类角色」直接等同于「三类独立进程」。例如单进程执行器会让 Worker 住在 EngineCore 进程内，但单凭这一点也推不出 API server 与 EngineCore 在同一个进程里。以常见的单机 `Qwen3-8B` 部署为例：单卡 `vllm serve` 是 2 个进程（1 个 API server + 1 个内置 Worker 的 EngineCore）；单机 TP4 则是 6 个进程（1 个 API server + 1 个 EngineCore + 4 个独立 Worker）。
+
+**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到；进程间交换数据必须走显式通道，例如 ZMQ 网络/IPC 消息，或划出一块多进程共同读写的共享内存队列。
 
 ```wiki-diagram
 file: engine-processes
@@ -279,64 +287,38 @@ file: engine-processes
 用户的 HTTP 请求从 API server 进来，结果也从它回去。图里的箭头是一组卡每一步都在走的几路消息：
 
 - **请求消息，每条请求发一次。** API server 把文字切成 token id，连同采样参数打包，发给 EngineCore。这条请求之后每一步怎么算，都不再由 API server 决定。
-- **清单，每一步发一次。** EngineCore 里有两个部件经手这份清单。scheduler（调度器）定下这一步算哪些请求、各算几个 token、这些 token 的 K、V 写进 [KV cache](kv-cache.md) 的哪些块（KV cache 按固定大小的块分配，每块有一个块号）。executor（执行器）是 EngineCore 里专管和 Worker 打交道的对象：把清单交给所有 Worker，再收回结果，[后文](#executor-决定-worker-是不是独立进程)单独讲它。每个 Worker 收到的是同一份清单，各算自己那张卡上的一份。「清单」是本页的叫法，在 vLLM 里它叫 SchedulerOutput；严格说，executor 每一步要对 Worker 发两次调用，一次算到词表分数，一次采样出新 token，见[一步之内](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
-- **本步结果，通常只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同，PCP 是 prefill 上下文并行，把提示词计算分给多卡；本部署未启用，即 PCP=1。因此在本页没配 KV connector、也没开 PP 的部署里，executor 只读本组 TP 编号为 0 的那个 Worker 的回信（TP 即[张量并行](tensor-parallel.md)，一组卡合算同一份模型，每层各算一部分；node1 那组的 0 号就是全局 8 号），不收 N 份。有两种例外：配了 KV connector（在实例之间搬 KV cache 的组件，比如 [PD 分离](pd-disaggregation.md)要用它）时，每个 Worker 都回传，由 executor 汇总；开了 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 与 PCP 编号均为 0 的 Worker。这条回程走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
+- **清单，每一步发一次。** EngineCore 里的 scheduler（调度器）定下这一步算哪些请求、各算几个 token、新产生的 K/V 写进 [KV cache](kv-cache.md) 的哪些块号。executor（执行器）把这份清单（`SchedulerOutput`）交给所有 Worker，再收回结果，详见[后文](#executor-决定-worker-是不是独立进程)。每个 Worker 收到同一份清单，各算自己那张卡上的一份；严格来说，executor 每步对 Worker 发两次调用，一次算到词表分数，一次采样出新 token，见[一步之内](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
+- **本步结果，默认只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同。常规单组部署未配 KV connector 且未开流水线并行（PP）与 prefill 上下文并行（PCP=1）时，executor 只读本组 TP（[张量并行](tensor-parallel.md)）编号为 0 的那个 Worker 的回信，不重复收 N 份。回程通道见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
 - **新 token，每一步发一次。** EngineCore 记完账，把新 token 发回 API server，由它还原成文字，一段一段推给用户。
-- **卡间通信（虚线）。** Worker 在计算中途互相交换张量，比如把各卡的部分结果加起来，见[集合通信](collective-communication.md)。这条路只连着 Worker，不经过 EngineCore。
+- **卡间通信（虚线）。** Worker 在计算中途互相交换张量，例如把各卡的部分结果加起来，见[集合通信](collective-communication.md)。这条路只连着 Worker，不经过 EngineCore。
 
-图上没画的还有几路，都出在开了[数据并行](data-parallel.md)的部署里（DP：把卡分成几组，每组叫一个 DP 组，各自接一部分请求、各自调度）。这时在线服务通常还多一个 DP coordinator（DP 协调器）进程，和 API server、各 EngineCore 互发消息，汇总各组忙闲。模型又是 MoE 时（GLM 就是），几个 DP 组还得步调一致：coordinator 通知各组一起开工；两个 EngineCore 之间每 32 步对一次「还有没有请求」，两边都没有了才一起停下；不同 DP 组的 Worker 每一步开算前也要对齐一次这一步算多宽。coordinator 为什么单独占一个进程，见[下文](#双机部署里一共有哪些进程)；这些消息各走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
+**边界与例外**：
 
-左下角是另一种摆法：**使用单进程执行器时，Worker 不另起进程**，执行器在当前进程内创建 Worker 的包装对象，并直接调用 Worker 方法。这里的判断条件是执行器的种类，不能只按整个服务使用几张卡来判断。所以「Worker」首先是一个角色，它是不是独立的进程，由 [executor 的种类](#executor-决定-worker-是不是独立进程)决定。
+- **结果回传的两种例外**：配置了 KV connector（如 [PD 分离](pd-disaggregation.md)用来跨实例搬运 KV cache）时，每个 Worker 都回传并由 executor 汇总；开启 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 与 PCP 编号均为 0 的 Worker。
+- **数据并行（DP）与 MoE 的协调消息**：开启 [DP](data-parallel.md)（把卡分成多个各自调度的执行组）时，在线服务通常多出一个 DP coordinator 进程，与 API server 和各 EngineCore 互通忙闲计数。模型为 MoE 时，各 DP 组还需步调一致：coordinator 通知各组一起开工，EngineCore 间每 32 步核对一次「还有没有请求」以决定共同停步，不同 DP 组的 Worker 每步开算前也要对齐宽度。详见[下文](#双机部署里一共有哪些进程)与[四条通道](request-call-chain.md#进程之间的四条通道)。
+- **单进程执行器（图左下角）**：使用 `uni` 执行器时，Worker 不另起进程，而是由执行器在 EngineCore 进程内直接创建并调用方法。是否独立成进程由 [executor 的种类](#executor-决定-worker-是不是独立进程)决定，不能只按卡数猜测。
 
 ## 拆成几个进程，换来什么、付出什么
 
-拆开换来两样东西。第一，**CPU 上的杂活不挡住调度。** 接 HTTP 连接、套聊天模板、分词、反分词都是 CPU 上的 Python 工作，放在 API server 进程里做，EngineCore 的循环就只管调度和下发。EngineCore 进程里还另开了两个线程专门收发消息，让消息的打包、拆包和模型计算同时进行，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。第二，**每张卡一个进程，一个进程就是通信域里的一个成员。** 通信域是一起做集合通信（几张卡同时交换、合并张量）的一组成员，比如同一组 TP 的 8 个 Worker；域里的成员编号叫 rank；每个 Worker 只绑定一张卡，本卡的权重和 KV cache 都在它自己的内存里，多个 Worker 同时计算、互相交换张量。
+拆开进程换来两样收益：
 
-代价有三样。
+1. **CPU 上的杂活不挡住调度。** 接 HTTP 连接、套聊天模板、分词与反分词都是 CPU 上的 Python 工作，放在 API server 里做，EngineCore 的循环就能专心调度和下发。EngineCore 里还另开两个线程专门收发消息，让编解码与模型计算并行，见[四条通道](request-call-chain.md#进程之间的四条通道)。
+2. **每张卡一个进程，直接对应通信域成员。** 通信域是一起做集合通信的一组成员（如同一组 TP 的多个 Worker），成员编号叫 rank。每个 Worker 绑定一张卡，独立持有本卡权重与 KV cache，多卡同时计算并互相交换张量。
 
-**交接必须打包成消息。** 跨进程递不了对象，只能把内容编码后发过去，所以清单里几乎全是整数，而且只发差量。一条请求第一次被调度时，整份 prompt 随清单发给 Worker，Worker 把这条请求的资料缓存在自己的进程里；之后每一步只发新增的部分：这一步算几个 token、新分到哪些块号、候选位置（同步时传实际编号，异步时可传占位，实际候选留在 Worker）。拿示例请求 R1（prompt 为 4 个 token 的那条请求，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）来说，第一步正是它第一次被调度，所以清单里带着它的 4 个 prompt token id 和采样参数，外加「R1 算 4 个 token」和新分到的 15 个块号；块数怎么来的见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。从第二步起，清单里只剩这一步算几个 token（带 3 个候选时是 4 个）、有没有新分到的块号，以及候选位置；本部署异步调度时实际候选由 Worker 留存，见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+代价有三样：
 
-**同一条请求的状态分几处存。** EngineCore 记着账本，Worker 存着资料的缓存，API server 存着输出队列。请求结束时，EngineCore 要在下一份清单里带上结束名单，Worker 才删掉自己那份缓存。
+- **交接必须打包成消息，因此清单只发差量。** 跨进程无法直接传递 Python 对象，只能编码发送整数清单。请求第一次被调度时，整份 prompt 和采样参数随清单发给 Worker，由 Worker 缓存在本进程内；之后每一步只发增量——本步算几个 token、新借到哪些块号、以及候选位置（同步时传实际编号，异步时可传占位、实际候选留在 Worker）。
+- **同一条请求的状态分三处存放。** EngineCore 记账本，Worker 存资料缓存，API server 存输出队列。请求结束时，EngineCore 必须在下一份清单里带上结束名单，Worker 才会删掉本进程缓存。
+- **补丁和配置要逐进程到位。** Ascend 补丁只替换当前进程里的符号指向，配置缓存也是每个进程各存一份，详见[补丁一节](#补丁和配置为什么要每个进程各做一遍)。
 
-**补丁和配置要一个进程一个进程地到位。** Ascend 把上游函数换成自己的版本，只换掉当前进程里的名字；Ascend 的配置对象也是每个进程各存一份。详见[补丁一节](#补丁和配置为什么要每个进程各做一遍)。
+读这一页要分清四个词（先以单机 TP4 标准部署如 `Qwen3-8B` 对照，双机多 DP 账目见后文）：
 
-读这一页要分清四个词：
-
-| 词 | 指什么 | 官方双机部署里有多少 |
+| 词 | 指什么 | 单机 TP4 标准部署 |
 |---|---|---|
 | 角色 | 做什么事：收发请求、调度、执行模型 | 3 类 |
-| 进程 | 操作系统里一份独立的程序，内存各归各 | 按角色计 20 个 |
-| rank | 通信域里的成员编号，一个 Worker 一个 | 16 个 |
-| 节点 | 一台机器 | 2 台 |
-
-## 双机部署里一共有哪些进程
-
-**按角色计，官方双机部署跑起来是 20 个进程：node0 上 11 个，node1 上 9 个；占卡的只有 16 个 Worker。** 部署参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，这些进程按什么先后被拉起来见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
-
-| 机器 | 进程 | 个数 | 做什么 | 进程名 |
-|---|---|---|---|---|
-| node0 | API server | 1 | 启动时选定硬件平台，拉起 DP coordinator 和本机的 EngineCore；之后接 HTTP、套模板、分词、反分词，决定请求发给哪个 DP 组 | 就是执行 vllm serve 的那个进程 |
-| node0 | DP coordinator | 1 | 汇总两个 DP 组各有多少请求；协调两组一起开工、一起停下 | VLLM::DPCoordinator |
-| node0 | EngineCore（DP 组 0） | 1 | 调度 DP 组 0 的请求，管这一组的块号 | VLLM::EngineCore_DP0 |
-| node0 | Worker（卡 0–7） | 8 | 各守一张卡，执行模型 | VLLM::Worker_DP0_TP0_EP0 等 |
-| node1 | EngineCore（DP 组 1） | 1 | 调度 DP 组 1 的请求，管这一组的块号 | VLLM::EngineCore_DP1 |
-| node1 | Worker（卡 8–15） | 8 | 各守一张卡，执行模型 | VLLM::Worker_DP1_TP0_EP8 等 |
-
-表里的名字是进程在系统进程列表里显示的标题，装了 setproctitle 这个 Python 包时才会改成这样。API server 不改标题，列表里看到的就是那行启动命令。
-
-**为什么 node1 上没有 API server 和 DP coordinator。** node1 用 headless 模式启动：不建 HTTP 前端，不建 coordinator，只起本机那一组的 EngineCore，再向 node0 的握手端口报到。所有用户请求都从 node0 的 API server 进来，由它按两组的忙闲挑一组发过去；挑法见[数据并行](data-parallel.md)。
-
-**DP coordinator 为什么单独占一个进程。** 它不经手请求本身，只做两件事：每隔一小段时间汇总两组的等待数和运行数，推给 API server 做负载均衡；GLM 是 [MoE](moe.md) 模型，两组的 Worker 在 MoE 层要一起交换 token，所以一组有活时另一组也得陪着跑，coordinator 负责通知两组「开工」和「可以停了」。
-
-**为什么每个 EngineCore 带 8 个 Worker。** 一个 EngineCore 管一个 DP 组，一组内是 [TP8](tensor-parallel.md)，所以一组 8 张卡、8 个 Worker；每个 Worker 在全局的编号是「DP 组号 × 8 + 本机卡号」，node1 的第 0 张卡就是全局第 8 号。16 张卡怎样分成 TP 组和 EP 组，见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)。
-
-**「20 个」有它的统计口径。** 主线底稿的进程账按角色计：API server、DP coordinator、EngineCore、Worker 各算一个，node0 的 API server 就是执行 vllm serve 的那个进程。这样数出来的数，和在系统进程列表里数出来的总数不是一回事：
-
-- **node1 的启动进程不在账内。** 在 node1 上执行 vllm serve 的那个进程，拉起 EngineCore 之后并不退出，而是留下来监视引擎进程是否还活着。node0 上的启动进程就是 API server，已经算了一次；node1 上的这一个不承担任何角色，所以没记。按进程列表数，node1 上 vLLM 自己的进程是 10 个，两台合计 21 个。
-- **辅助进程不在账内。** Python 标准库、编译工具等按需另起的辅助进程，个数随环境变化，不计。
-- **特性另起的进程不在账内。** 例如打开动态 EPLB 后，每个 Worker 还要再起两个子进程，见[后文](#进程怎么摆直接决定要打哪些补丁)。
-
-所以在进程列表里数到比 20 多，并不说明部署出了问题。要判断缺没缺，按角色对：1 个 API server、1 个 DP coordinator、2 个 EngineCore、16 个 Worker。
+| 进程 | 操作系统里一份独立的程序，内存各归各 | 6 个（1 前端 + 1 EngineCore + 4 Worker） |
+| rank | 通信域里的成员编号，一个 Worker 一个 | 4 个 |
+| 节点 | 一台机器 | 1 台 |
 
 ## 每个进程里存着什么
 
@@ -352,7 +334,7 @@ file: engine-processes
 
 **EngineCore 存的是账本，不是数据。** scheduler 里的请求记录从进来到结束一直在，调度器按预算决定它本步是否上场；它占了 KV cache 的哪几个块，也记在这里。块里真正的 K、V 数值不在 EngineCore，而在各张卡的显存里，归各个 Worker。
 
-**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上一个跨步复用的「持久批次」，就是 Worker 里除权重和 KV cache 之外，跨步留下来的东西。输入缓冲也会跨步复用：每步重新填入本轮内容，并产生本轮中间激活和结果。不能把内容换了理解成底层缓冲也销毁了。
+**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上跨步复用的「持久批次」，是 Worker 里除权重和 KV cache 外跨步留存的主要状态。输入缓冲也会跨步复用：每步重新填入本轮内容并产出中间激活与结果，不能把内容更新误解成底层缓冲已销毁。
 
 ## executor 决定 Worker 是不是独立进程
 
@@ -434,6 +416,26 @@ file: engine-processes-startup
 - **必须由环境变量触发，而非配置文件触发。** 全局补丁在参数解析阶段即导入，早于 `AscendConfig` 构建，因此只能读环境变量：只有 `DYNAMIC_EPLB`（转小写后为 `"true"` 或 `"1"`）或 `EXPERT_MAP_RECORD`（精确匹配小写 `"true"`）满足认可真值时才导入补丁，并非任意非空字符串都生效。只在配置里打开动态 EPLB 而不设环境变量，配置校验会直接报错。
 
 在 `v0.30.0` 与 `main` 中，EngineCore 进程入口的包装进一步收束到独立的 `patch_engine_core.py`，进入引擎前就先执行 `init_ascend_config` 建立本进程配置缓存，而动态 EPLB 对 Worker 创建路径的补丁导入条件依然沿用。官方 GLM 双机部署没有开启 EPLB，Worker 保持上游默认启动方式，也没有上述额外子进程。
+
+## 复杂异构实战对照：GLM 双机 20 个进程账
+
+**按角色计，官方 GLM-5.3-Flash 双机部署（例外 B 绑定算例，2×A2×8、TP8/DP2/EP16）跑起来共 20 个进程：node0 上 11 个，node1 上 9 个，占卡的只有 16 个 Worker。** 部署参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，拉起先后顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
+
+| 机器 | 进程 | 个数 | 做什么 | 进程名 |
+|---|---|---|---|---|
+| node0 | API server | 1 | 选定硬件平台、拉起 DP coordinator 与本机 EngineCore；接 HTTP、分词与路由到对应 DP 组 | 执行 `vllm serve` 的启动进程 |
+| node0 | DP coordinator | 1 | 汇总两个 DP 组忙闲计数；协调两组 MoE 一起开工、一起停下 | `VLLM::DPCoordinator` |
+| node0 | EngineCore（DP 组 0） | 1 | 调度 DP 组 0 的请求，管理本组 KV 块号 | `VLLM::EngineCore_DP0` |
+| node0 | Worker（卡 0–7） | 8 | 各守一张卡，执行模型前向与采样 | `VLLM::Worker_DP0_TP0_EP0` 等 |
+| node1 | EngineCore（DP 组 1） | 1 | 调度 DP 组 1 的请求，管理本组 KV 块号 | `VLLM::EngineCore_DP1` |
+| node1 | Worker（卡 8–15） | 8 | 各守一张卡，执行模型前向与采样 | `VLLM::Worker_DP1_TP0_EP8` 等 |
+
+进程标题需安装 `setproctitle` 才会改写；API server 不改标题，系统列表里直接显示启动命令。
+
+- **为什么 node1 没有 API server 与 DP coordinator**：node1 以 `--headless` 启动，不建 HTTP 前端也不建 coordinator，只拉起本机 EngineCore 并向 node0 握手端口报到；全部请求经 node0 前端按忙闲分配（见[数据并行](data-parallel.md)）。
+- **为什么 DP coordinator 独立占一个进程**：它不经手请求正文，只定时汇总两组等待/运行数推给前端；由于 GLM 是 [MoE](moe.md) 模型，两组 Worker 须在专家层交换 token，coordinator 负责通知两组同步开工与停步。
+- **为什么每个 EngineCore 带 8 个 Worker**：每组内是 [TP8](tensor-parallel.md)，全局 Worker 编号为「DP 组号 × 8 + 本机卡号」（node1 卡 0 即全局 8 号，16 卡分组见[双机部署页](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。
+- **「20 个」的统计口径**：仅按角色计 1 前端 + 1 coordinator + 2 EngineCore + 16 Worker。node1 上执行 `vllm serve` 的守护启动进程（拉起 EngineCore 后留驻监视存活，按进程列表两机合计 21 个 vLLM 进程）、Python/编译辅助进程，以及动态 EPLB 等特性另起的子进程均不在该角色账内。
 
 ## 排查时先认是哪个进程
 

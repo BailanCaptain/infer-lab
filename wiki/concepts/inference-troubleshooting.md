@@ -156,9 +156,9 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 - **最先在哪一步失败：** 保留第一处异常、前后上下文及出错 rank，多卡时一起收集其他 rank 的同期日志。
 - **实际运行的是哪份环境：** 保留启动命令、实际生效配置、安装包版本和实际加载路径，以及驱动、运行时版本。版本号相同，也可能加载了另一处安装的包。
 
-插件未选中、依赖不兼容、芯片档位与权重或模型实现不匹配，发生在不同位置。例如在 `v0.30.0` 下，Atlas 300I DUO (`310P`) 走兼容性硬件档位，不支持 `bfloat16` 与原生 FP8，需要显式传 `--dtype float16` 或 ModelSlim 量化；标准 GQA 模型开启 `--kv-cache-dtype int8` 时依赖离线静态校准权重，缺少 C8 scale 会在 `attention_v1.py` 直接抛出 `ValueError`。先有了成功与失败的边界，才知道该检查哪一段。
+插件未选中、依赖不兼容、芯片档位与权重或模型实现不匹配，发生在不同位置。例如在 `v0.30.0` 下，Atlas 300I DUO (`310P`) 走兼容性硬件档位，不支持 `bfloat16` 与原生 FP8，需要显式传 `--dtype float16` 或 ModelSlim 量化。标准 GQA 模型开启 `--kv-cache-dtype int8` 时依赖离线静态校准权重，缺少 C8 scale 会在 `attention_v1.py` 直接抛出 `ValueError`。先有了成功与失败的边界，才知道该检查哪一段。
 
-若日志突然中断、进程直接退出，先保留同一次运行的容器 ID、PID、退出时刻和平台终止记录。**退出码 `137`（`SIGKILL` / `exitcode: -9`）本身不能证明 NPU HBM 显存不足**；沿[进程退出的三步检查](device-memory.md#进程突然退出先查哪三件事)先查 `dmesg` / cgroup `memory.events` 与容器 `OOMKilled` 标志，区分主动终止、宿主机或容器 DRAM OOM，再决定是否进入设备预算排查。
+若日志突然中断、进程直接退出，先保留同一次运行的容器 ID、PID、退出时刻和平台终止记录。**退出码 `137`（`SIGKILL` / `exitcode: -9`）本身不能证明 NPU HBM 显存不足**。应沿[进程退出的三步检查](device-memory.md#进程突然退出先查哪三件事)先查 `dmesg` / cgroup `memory.events` 与容器 `OOMKilled` 标志，区分主动终止、宿主机或容器 DRAM OOM，再决定是否进入设备预算排查。
 
 在隔离复现环境使用该版本支持的最小启动配置，保持模型与安装产物一致，再复现失败阶段。若平台发现就失败，沿[插件注册](platform-plugin-registration.md)查；若已经加载权重，继续查加载后处理、预算或预热。精简配置后成功只能说明被移除路径参与了问题，要逐项加回定位；加载完成不等于服务已就绪。
 
@@ -166,7 +166,10 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 
 适用于首字慢、回答停顿、吞吐低、负载增加后恶化。先留下逐请求发送/输出时间、输入输出长度、到达方式、失败数和服务阶段记录，再分排队、执行、返回三段。测量口径先查[推理测量](inference-benchmarking.md)，候选包括工作量增加、主机供给不足和资源竞争。
 
-在 `v0.30.0` 下，一份简单的 `/metrics` 快照就能快速分流两类高频慢问题：当 `vllm:kv_cache_usage_perc` 持续超过 `0.95` 且伴随 `vllm:num_preemptions` 递增与 `vllm:num_requests_waiting > 0` 时，瓶颈在 KV 物理块枯竭引发的抢占重算风暴；相反，若 KV 使用率偏低且排队为 `0`，却出现明显偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`，则排除排队与容量，高 TTFT 优先查长输入与 [Chunked Prefill](chunked-prefill.md) 单步预算，高 ITL 优先查是否误开 `--enforce-eager` 引起 Host 下发空泡或 HBM 带宽瓶颈。
+在 `v0.30.0` 下，一份简单的 `/metrics` 快照就能快速分流两类高频慢问题：
+
+- **KV 块枯竭型（抢占重算风暴）**：`vllm:kv_cache_usage_perc` 持续超过 `0.95`，并伴随 `vllm:num_preemptions` 递增与 `vllm:num_requests_waiting > 0`。
+- **低 KV 高延迟型（排除排队与容量）**：KV 使用率偏低且排队为 `0`，却出现偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`。高 TTFT 优先查长输入与 [Chunked Prefill](chunked-prefill.md) 单步预算；高 ITL 优先查是否误开 `--enforce-eager` 引起 Host 下发空泡，或受限于 HBM 带宽瓶颈。
 
 在相同负载下，只控制已定位阶段的一个变量；比较该段等待与端到端指标是否一起变化。阶段没变而汇总指标变了，先查负载与统计差异。分支实验、代价和验收条件见[性能排障](inference-performance-troubleshooting.md)。
 
@@ -193,7 +196,10 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 
 适用于捕获失败、频繁重新编译、图回退或形状/类型不支持。**graph mode** 把支持的执行过程先捕获后重放；**eager** 按当前步骤组织执行。收集报错前的输入形状、数据类型、编译/捕获日志、实际图模式及首次触发条件，沿[图模式分层](graph-mode-layer.md)找失败边界。
 
-在 `v0.30.0` 下有两个高频硬边界值得首查：其一是 FA3 注意力后端（`AscendFAImpl`）不支持与 `FULL_DECODE_ONLY` 图模式叠加，会直接抛出 `ValueError`；其二是硬件档案不包含 `NPUGRAPH_EX` 能力时（如 `310P`），配置校验会打告警并静默降级关闭 `enable_npugraph_ex`、`enable_static_kernel` 与 `enable_super_kernel`。
+在 `v0.30.0` 下有两个高频硬边界值得首查：
+
+- **FA3 与全图模式互斥**：FA3 注意力后端（`AscendFAImpl`）不支持与 `FULL_DECODE_ONLY` 图模式叠加，会直接抛出 `ValueError`。
+- **硬件能力静默降级**：硬件档案不包含 `NPUGRAPH_EX` 能力时（如 `310P`），配置校验会打告警并静默关闭 `enable_npugraph_ex`、`enable_static_kernel` 与 `enable_super_kernel`。
 
 在同版本支持的配置内，固定触发输入，比较正常图路径与 eager。只在图路径失败，会把调查范围缩到捕获、回放及其路径差异；仍不能直接断言“图本身错误”，因为算子选择、内存布局和时序也会变化。随后分别查 [ACLGraph](acl-graph.md)、[NPUGraph-ex](npugraph-ex.md) 及涉及算子的限制；关闭图后的速度不作原配置收益结论。
 
@@ -201,13 +207,17 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 
 首次多机部署或网络配置发生变化时，先走 [HCCL 页的设备网络预检](cann-hccl.md#启动多机前先检查哪一层网络)：核本机链路和地址，再探测实际使用的 NPU 对。主机 IP、API 端口、NPU 网络各自取得连通性证据，之后再定位推理程序在哪一步等待。
 
-适用于通信超时、多卡等待或某张卡耗时突出。收集同一次集合通信的组、参与 rank、设备侧到达/完成、张量规模和各 rank 前序错误。**集合通信**要求一组参与者按匹配的顺序交换数据，只要任意一张卡在前序算子或显存分配时先出错退出，其余卡就会停在 `Notify wait` 直到触发 `EI0006` / `HCCL_E_WAIT_TIMEOUT`。
+适用于通信超时、多卡等待或某张卡耗时突出。收集同一次集合通信的组、参与 rank、设备侧到达/完成、张量规模和各 rank 前序错误。**集合通信**要求一组参与者按匹配顺序交换数据：只要任意一张卡在前序算子或显存分配时先出错退出，其余卡就会停在 `Notify wait` 直到触发 `EI0006` / `HCCL_E_WAIT_TIMEOUT`。
 
 ```wiki-diagram
 file: troubleshooting-fig-first-fault
 ```
 
-保持通信规模，先按时间戳合并全部参与 rank 的日志与 CANN `plog`，锁定最早的**首错 Rank**；若只观测到 `EI0006` 却没有任一卡的前序主错误，不能默认归罪给 Rank 0，而应先补齐其余卡的同期日志再查网络。若确认为慢卡拖尾，先控制迟到卡前面的工作量，观察迟到减少后其他卡等待是否同步下降；若参与条件已齐、前序均干净而交换仍慢，再用匹配拓扑和规模的通信测试核对链路。独立通信测试正常也不能排除模型负载下的竞争。机制见[集合通信](collective-communication.md)与 [HCCL](cann-hccl.md)，时钟及依赖判别见[性能分析](inference-performance-analysis.md)。
+排查多卡超时时，保持通信规模并按三步收敛：
+
+1. **先锁定最早的首错 Rank**：按时间戳合并全部参与 rank 的日志与 CANN `plog`。若只看到 `EI0006` 却没有任一卡的前序主错误，不能默认归罪给 Rank 0，应先补齐其余卡的同期日志再查网络。
+2. **区分慢卡拖尾与链路瓶颈**：若确认为慢卡拖尾，先控制迟到卡前面的工作量，观察迟到减少后其他卡等待是否同步下降。若参与条件已齐、前序均干净而交换仍慢，再用匹配拓扑和规模的通信测试核对链路。
+3. **核对真实负载竞争**：独立通信测试正常也不能排除模型负载下的竞争。机制见[集合通信](collective-communication.md)与 [HCCL](cann-hccl.md)，时钟及依赖判别见[性能分析](inference-performance-analysis.md)。
 
 ### 缓存和分离部署：命中、可用、传到，是三件事
 

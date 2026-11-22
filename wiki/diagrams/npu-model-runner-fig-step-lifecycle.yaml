@@ -1,15 +1,15 @@
 mode: native-svg
 id: npu-model-runner-fig-step-lifecycle
 caption: >-
-  NPUModelRunner 单步状态机、早退/DP 陪跑分流与三层对象寿命：左侧展示 execute_model 与 sample_tokens 如何凭唯一槽位 ExecuteModelState 严格交替，右侧列出零 token 早退、PP 非末段、pooling 及 DP 空闲组 _dummy_run 四条分岔，底部标出对象寿命分层与主线 MRV2 演进。
+  NPUModelRunner 单步状态机、早退/DP 陪跑分流与三层对象寿命：左侧展示 execute_model 与 sample_tokens 如何凭唯一槽位 ExecuteModelState 严格交替（开启投机解码时在 RPC 2 追加草稿步），右侧列出零 token 早退、PP 非末段、pooling 及跨组 EP 下的 DP 空闲组 _dummy_run 四条分岔，底部标出对象寿命分层与主线 MRV2 演进。
 size: [900, 470]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L353-L375
     symbols: [ExecuteModelState]
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2227-L2245
     symbols: [execute_model]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2763-L2785
-    symbols: [sample_tokens]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2763-L2845
+    symbols: [sample_tokens, propose_draft_token_ids]
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L3924-L3955
     symbols: [_dummy_run]
   - source: vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L691-L715

@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="一步里 model runner 的先后顺序和岔路。左列是第一次调用，对应主线第 3、4 站：先确认上一份执行状态已被取走，再对账、准备输入、定执行方式、建注意力元数据、前向，最后只把选中的行变成词表分数，存进执行状态，返回空。右列是第二次调用，对应第 5 站：取出并清空执行状态，有结构化输出时先套允许词表，再采样、整理结果、草拟下一步候选、打包交回。淡色框是提前离开主路的出口；虚线表示两次调用之间由引擎转手。">
-  <title>一步里 model runner 的先后顺序和岔路。左列是第一次调用，对应主线第 3、4 站：先确认上一份执行状态已被取走，再对账、准备输入、定执行方式、建注意力元数据、前向，最后只把选中的行变成词表分数，存进执行状态，返回空。右列是第二次调用，对应第 5 站：取出并清空执行状态，有结构化输出时先套允许词表，再采样、整理结果、草拟下一步候选、打包交回。淡色框是提前离开主路的出口；虚线表示两次调用之间由引擎转手。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="一步里 NPUModelRunner 的先后顺序和岔路。左列是第一次调用（主线第 3、4 站）：先确认上一份执行状态已被取走，再对账持久批次、准备输入、定执行方式、建注意力元数据、前向，最后只把选中的行变成词表分数，存进执行状态并返回空。右列是第二次调用（第 5 站）：取出并清空执行状态，有结构化输出时先套允许词表，再采样、整理结果（仅在开启 MTP/投机解码时追加草拟下一步候选与接受数记录）、打包交回。淡色框是提前离开主路的出口；虚线表示两次调用之间由引擎转手。">
+  <title>一步里 NPUModelRunner 的先后顺序和岔路。左列是第一次调用（主线第 3、4 站）：先确认上一份执行状态已被取走，再对账持久批次、准备输入、定执行方式、建注意力元数据、前向，最后只把选中的行变成词表分数，存进执行状态并返回空。右列是第二次调用（第 5 站）：取出并清空执行状态，有结构化输出时先套允许词表，再采样、整理结果（仅在开启 MTP/投机解码时追加草拟下一步候选与接受数记录）、打包交回。淡色框是提前离开主路的出口；虚线表示两次调用之间由引擎转手。</title>
   <defs><marker id="npu-model-runner-code-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="npu-model-runner-code-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <rect x="16" y="36" width="428" height="588" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="32" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第一次调用：准备并前向（第 3、4 站）</text>
   <rect x="458" y="36" width="426" height="588" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="474" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第二次调用：采样与草拟（第 5 站）</text>
+  <text x="474" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第二次调用：采样与可选草拟（第 5 站）</text>
   <path d="M143 108 L143 124" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npu-model-runner-code-flow-ah-ink)"/>
   <path d="M143 176 L143 192" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npu-model-runner-code-flow-ah-ink)"/>
   <path d="M143 244 L143 260" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npu-model-runner-code-flow-ah-ink)"/>
@@ -42,7 +42,7 @@
   <text x="143" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">token id、位置、槽位、选行</text>
   <rect x="28" y="260" width="230" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <text x="143" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">定执行方式</text>
-  <text x="143" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">图还是 eager、补多宽、两组对齐</text>
+  <text x="143" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">图还是 eager、补齐与对齐</text>
   <rect x="28" y="328" width="230" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
   <text x="143" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建注意力元数据</text>
   <text x="143" y="369" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">每个缓存组、每类后端一份</text>
@@ -69,23 +69,23 @@
   <text x="588" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">只在有结构化输出时</text>
   <rect x="470" y="192" width="236" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="588" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样</text>
-  <text x="588" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">无草稿普通采样，有草稿逐位验证</text>
+  <text x="588" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">无草稿直接采，有草稿逐位验</text>
   <rect x="470" y="260" width="236" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="588" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">整理结果</text>
   <text x="588" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">按请求拆行，丢掉提示词没算完的</text>
-  <rect x="470" y="328" width="236" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="470" y="328" width="236" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="588" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">草拟下一步候选</text>
-  <text x="588" y="369" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">开了投机解码时（GLM 用 MTP）</text>
+  <text x="588" y="369" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">开启 MTP/投机时才执行</text>
   <rect x="470" y="396" width="236" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="588" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">打包输出</text>
   <text x="588" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每条请求这一步的新 token</text>
   <rect x="470" y="464" width="236" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="588" y="486" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">记下每条请求接受几个</text>
-  <text x="588" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">混合模型开投机时，给线性注意力用</text>
+  <text x="588" y="486" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">记下接受数与状态收尾</text>
+  <text x="588" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">开启投机或混合状态层时更新</text>
   <rect x="470" y="532" width="236" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <text x="588" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">交回引擎</text>
   <text x="588" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">异步调度时结果稍后拷回 CPU</text>
   <rect x="720" y="532" width="156" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="798" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">GLM：8 卡都执行</text>
-  <text x="798" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">仅 0 号卡发回这份结果</text>
+  <text x="798" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">多卡 TP 同跑</text>
+  <text x="798" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">仅主回复卡发回结果</text>
 </svg>

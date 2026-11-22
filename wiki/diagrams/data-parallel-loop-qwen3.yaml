@@ -1,0 +1,36 @@
+layout: figure
+id: data-parallel-loop-qwen3
+caption: 标准 Qwen3-8B 稠密模型 DP=2 部署的主循环：两个 DP 副本各自拥有完整的权重、独立输入队列、独立 Scheduler 与独立 18 MiB/块 KV 池。前向与采样全程无跨 DP 组集合通信；当副本 0 在跑请求而副本 1 队列为空时，副本 1 直接阻塞休眠等待新请求，0 次 dummy batch 陪跑、0 次跨组宽度对齐。
+size: [900, 520]
+frames:
+  - { at: [24, 132], size: [404, 326], label: 'DP 副本 0（独立 EngineCore 0 + Worker 0）' }
+  - { at: [472, 132], size: [404, 326], label: 'DP 副本 1（独立 EngineCore 1 + Worker 1）' }
+items:
+  - { at: [260, 44], size: [380, 54], text: 前端 API Server / DP 路由, sub: 按各副本负载把新请求塞进对应队列, tone: token }
+  - { at: [48, 168], size: [356, 54], text: 独立队列 0 + Scheduler 0, sub: 只排本副本的在途请求, tone: control }
+  - { at: [48, 246], size: [356, 54], text: 独立 BlockPool 0（18 MiB/块）, sub: 本副本独自借还与前缀复用, tone: kv }
+  - { at: [48, 324], size: [356, 54], text: 本副本独立前向与采样, sub: 36 层 Qwen3-8B 完整权重，无需对齐他组, tone: weight }
+  - { at: [48, 392], size: [356, 48], text: 新 token 直接回传前端, tone: token, style: plain }
+  - { at: [496, 168], size: [356, 54], text: 独立队列 1 + Scheduler 1, sub: 各自节奏运行，不与副本 0 锁步, tone: control }
+  - { at: [496, 246], size: [356, 54], text: 独立 BlockPool 1（18 MiB/块）, sub: 显存池与块表互不共享, tone: kv }
+  - { at: [496, 324], size: [356, 54], text: 有请求独立算 / 无请求阻塞等, sub: 空闲时停在输入队列上，0 次 dummy batch, tone: control, style: plain }
+  - { at: [496, 392], size: [356, 48], text: 0 次跨 DP 组 All-Reduce 或波次同步, tone: comm, style: faded }
+links:
+  - { from: [360, 98], to: [226, 168], via: [[360, 116], [226, 116]], tone: token }
+  - { from: [540, 98], to: [674, 168], via: [[540, 116], [674, 116]], tone: token }
+  - { from: [226, 222], to: [226, 246] }
+  - { from: [226, 300], to: [226, 324] }
+  - { from: [226, 378], to: [226, 392], tone: token }
+  - { from: [674, 222], to: [674, 246] }
+  - { from: [674, 300], to: [674, 324] }
+  - { from: [674, 378], to: [674, 392], dashed: true }
+dividers:
+  - { from: [450, 132], to: [450, 458] }
+texts:
+  - { at: [450, 18], text: 'Qwen3-8B 稠密数据并行（DP=2）：双独立副本吞吐翻倍，零陪跑开销', anchor: middle, strong: true }
+  - { at: [450, 494], text: '对比：仅当 MoE 模型开启跨 DP 组的 EP 共享专家池时，空闲 DP 组才需跑 execute_dummy_batch 陪跑通信', anchor: middle, note: true }
+pins:
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1475
+    symbols: [run_busy_loop, _process_input_queue, _process_engine_step]
+  - source: vllm@ced6857a:vllm/distributed/parallel_state.py#L2188-L2265
+    symbols: [_DP, _EP, data_parallel_size]

@@ -12,9 +12,9 @@ legacyAnchors:
   内置规则不够时怎样接入自己的改分规则: 高阶采样、Beam、Logprobs 与生成式评分延伸导览
   返回的概率记录怎样对应这次选词: 高阶采样、Beam、Logprobs 与生成式评分延伸导览
 summary: >-
-  模型给词表里每个词打完分，sampling（采样）按请求的设置从中定下一个 token。本页用 6 个词的小例子手算
-  temperature、softmax、top-k、top-p 和按概率抽取，对照 greedy，再讲参数优先级与停止条件；最后落到 GLM 双机：8
-  张卡各采一遍、只交回一份，MTP 候选怎样验证。
+  模型给词表里每个词打完分，sampling（采样）按请求设置从中定下一个 token。本页先用 6 词小例手算
+  temperature、softmax、top-k、top-p 与指数噪声抽取，走通标准 Qwen3-8B（[B, 151936]）单 token
+  采样与参数优先级，再落到历史 GLM 双机 8 卡同步采样与 MTP 候选验证。
 aliases:
   - sampling
   - 采样
@@ -243,7 +243,7 @@ T 越接近 0，最高分的词越接近独占全部概率，极限就是 greedy
 
 **每条请求带着一组采样参数进来（`SamplingParams`）。普通 Chat、Completions 的温度和三种截断，先用请求显式给的数值；省略或传 `null` 时继承服务默认，服务没给才退到中性默认。服务默认又来自模型生成配置与启动覆盖。参数在[入口](api-server-entry.md#怎么做从-json-到一串编号①-到-④)收到请求时就定下来，采样这一步只负责照着用。**
 
-vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`min_p = 0`、各种罚分关闭。启动参数 `--generation-config` 默认取 `auto`，会读取模型目录的 `generation_config.json`，仅对其中的六项名单（`temperature`、`top_p`、`top_k`、`min_p`、`repetition_penalty`、`max_new_tokens`）替换服务默认，并在启动日志打印警告；想回到中性默认需启动时设成 `vllm`。`presence_penalty`、`frequency_penalty` 与 `seed` 都不在这六项读取名单里。
+vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`min_p = 0`、各种罚分关闭。启动参数 `--generation-config` 默认取 `auto`，会读取模型目录的 `generation_config.json`，但只用其中六项（`temperature`、`top_p`、`top_k`、`min_p`、`repetition_penalty`、`max_new_tokens`）替换服务默认，并在启动日志打印警告。想回到中性默认需在启动时设成 `vllm`；`presence_penalty`、`frequency_penalty` 与 `seed` 都不在这六项读取名单里。
 
 用一组示意配置沿覆盖顺序走一遍：
 
@@ -262,7 +262,7 @@ vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`mi
 
 ## 什么时候停下来？
 
-**每出一个 token，引擎都检查一遍要不要停：在本页固定 GLM 基线中，输出还没到 `min_tokens` 时跳过判停；到了，就看这个 token 是不是结束 token（EOS）或请求指定的停止 token（`stop_token_ids`），是就正常结束（`finish_reason = "stop"`）；再看长度，输出数到了 `max_tokens` 或总长到达模型上限，就截断结束（`finish_reason = "length"`）。**
+**每出一个 token，引擎都检查一遍要不要停。** 在本页固定 GLM 基线中，输出还没到 `min_tokens` 时先跳过判停。达到 `min_tokens` 后，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`，命中即正常结束（`finish_reason = "stop"`）。若未命中，再检查长度：输出数达到 `max_tokens` 或总长到达模型上限，即截断结束（`finish_reason = "length"`）。
 
 结束 token（EOS）和普通词一样参与打分与采样；模型生成配置里列出的其他结束编号也并进停止 token 集合。请求设 `ignore_eos = true` 只关闭自动 EOS 判停，手工指定的 `stop_token_ids`、`stop` 字符串与长度上限仍有效（详见[请求收尾](request-teardown.md#停止文字停止编号和忽略-eos-怎样配合)）。举例：提示词「我 喜欢」，`max_tokens = 3`，输出「猫」「。」「我」，第 3 枚一追加即以 `length` 截断，接口返回输出「猫。我」。
 
@@ -282,21 +282,38 @@ vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`mi
 
 计数看的是输出编号（不含提示词，也不等于字符数）；前端对停止字符串同样保护最少长度，在门槛内已完整出现的停止串不触发，跨门槛才补齐的仍会命中。`ignore_eos` 也不关闭这层最少长度屏蔽。注意不要把白名单缩成只剩 EOS 同时设 `min_tokens > 0`，否则交集为空；取消或异常仍会随时中止请求。
 
+## 标准主干走读：Qwen3-8B 的 `[B, 151936]` 单 token 采样
+
+在 `v0.30.0` 标准主基线下，**Qwen3-8B**（词表 `151,936`，默认不启投机解码）每步只为批次里每条请求定下 **1 个** `next_token_id`，整条链路干净直接：
+
+```wiki-diagram
+file: sampling-flow-qwen3
+```
+
+按图中顺序从 NPU Worker 走到 EngineCore：
+
+1. **拿到完整词表分数**：`lm_head` 输出形状 `[B, 151936]` 的 logits。单卡 `TP=1` 本地直接就绪；多卡 `TP>1` 时经一次 All-Gather 拼齐，各卡分数完全一致。
+2. **可选语法掩码与惩罚缩放**：若请求带 JSON/正则结构化约束，先由 `apply_grammar_bitmask` 把非法词位置为 $-\infty$；随后 `AscendSampler` 施加重复/频率惩罚，随机采样路径把分数除以 `temperature`。
+3. **双路选词**：`temperature = 0` 直接 `argmax` 取最高分；随机路径经 Top-k / Top-p 截断、Softmax 与指数噪声除法后 `argmax`，每条在途请求产出 1 个编号 `[B, 1]`。多卡 TP 共享同一起点的全局随机流，各卡得出相同结果。
+4. **单卡回传与 CPU 判停**：多卡部署时仅 `output_rank` Worker 将采样结果交回 `EngineCore`（省去重复 IPC）。`EngineCore` 逐条追加新 token 并执行 `check_stop`：命中 `Qwen3-8B` 的 `eos_token_id = 151645`、用户 `stop_token_ids` 或 `max_tokens` 即触发收尾退块。
+
+开启投机解码（如 MTP）后，解码步不再是「每条请求 1 行分数」，而是扩展为「多行验证 + 额外采样」——下面以历史 GLM 双机配方展示这条多卡验证路径。
+
 ## 放到 GLM 双机：采样在哪一步、谁来做？
 
-**GLM 双机是 2 台机器、每台 8 张卡；每台机器是一个 DP 请求组，组内按 TP8 协同计算，MoE 专家按 EP16 跨两台机器路由（部署前提见 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)）。前向结束后，每台机器的 8 张卡都拿到完整的 `154880` 个分数，各自执行同一套采样，只有 0 号卡把结果交回引擎。第一步只采 1 行；之后每一步还要验证 3 个来自 MTP 的候选 token。**
+本节为例外 B 历史绑定算例：2 台 Atlas 800 A2、每台 8 卡，机内 TP8、跨机 DP2 / EP16（部署前提见 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)）。前向结束后，每台机器的 8 张卡都拿到完整的 `154880` 个分数，各自执行同一套采样，仅 0 号卡交回引擎；首步只采 1 行，后续 decode 步还需验证 3 个 MTP 候选。
 
 下面沿用主线示例请求 R1（提示词 4 个 token，教学设定，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）。
 
 ### 分数怎样到每张卡上
 
-**词表投影按词表切给 8 张卡，每张卡只算 `19360` 个词（`154880 ÷ 8`）的分数，再做一次 All-Gather 拼成完整的一份；采样前 8 张卡手里的分数一模一样。**
+**词表投影按词表切给 8 张卡，每张卡只算 `19360` 个词（`154880 ÷ 8`）的分数，再经一次 All-Gather 拼齐；采样前 8 张卡手里的分数完全一致。**
 
-R1 第一步 prefill 无候选，只取最后一个位置，每卡 `[1, 154880]`；此后每个 decode 步送进 1 个确定 token 与 3 个候选，4 个位置都要分数，是 `[4, 154880]`。一台机器满载 32 条 decode 请求时每卡为 `[128, 154880]`，BF16 约 `37.8 MiB`（`128 × 154880 × 2 B`；R1 每步字节数唯一出处见[最终归一化与词表投影](one-request.md#最终归一化与词表投影)）。分数进采样前先转 FP32，R1 一个 decode 步里 3 个验证行转出的 FP32 副本约 `1.77 MiB`（`3 × 154880 × 4 B`）。
+R1 第一步 prefill 无候选，只取最后一个位置，每卡形状 `[1, 154880]`。此后每个 decode 步送进 1 个确定 token 与 3 个候选，4 个位置都要打分，形状为 `[4, 154880]`。单机满载 32 条 decode 请求时每卡为 `[128, 154880]`，BF16 占约 `37.8 MiB`（`128 × 154880 × 2 B`；R1 每步字节数唯一出处见[最终归一化与词表投影](one-request.md#最终归一化与词表投影)）。分数进采样前先转 FP32，R1 单个 decode 步里 3 个验证行转出的 FP32 副本约 `1.77 MiB`（`3 × 154880 × 4 B`）。
 
 ### 8 张卡各采一遍，只交回一份
 
-**每张卡由一个 worker 进程驱动。采样和前向是引擎发给 8 个 worker 的两次调用：各卡用相同实现处理相同分数，并保持同一随机流与取数顺序时得到同一个结果；8 张卡都留着结果紧接着做 MTP 草拟（省掉一次广播），只有 0 号卡（`8 - 8 × 1 = 0`）把结果交回引擎。**
+**每张卡由一个 worker 进程驱动，采样与前向是引擎下发给 8 个 worker 的两次调用。** 各卡用相同实现处理相同分数，在随机流与取数顺序一致的前提下得到相同结果。8 张卡都在本地保留结果、紧接着执行 MTP 草拟（省去一次广播），最终只由 0 号卡（`8 - 8 × 1 = 0`）交回引擎。
 
 ```wiki-diagram
 file: sampling-flow

@@ -142,7 +142,7 @@ rawSources:
 
 **大规模 EP（large-scale EP，也叫 wide-EP）是把 MoE 模型的专家并行铺到很多台机器上：几十到上百张卡合起来只放一套专家，每张卡只分到很少几个；token 每层都要在这整组卡之间来回交换，其中很大一部分要跨机器。**
 
-先用两句话回顾 [EP（专家并行）](expert-parallel.md)。MoE 模型每层有一池路由专家，router 给每个 token 选出分数最高的 k 个；EP 把这池专家整份分到几张卡上，token 选中哪个专家，就把它的 hidden（这个位置在层与层之间传递的一排数）**dispatch（派发）**到放着那个专家的卡上，算完再 **combine（收回并组合）**到原来的卡，按权重相加。一起分这一套专家、每层互相交换 token 的那组卡，叫一个 **EP 组**。
+先用两句话回顾 [EP（专家并行）](expert-parallel.md)。MoE 模型每层有一池路由专家，router 给每个 token 选出分数最高的 $k$ 个。EP 把这池专家整份分到几张卡上：token 选中哪个专家，就把它的 hidden（层间传递的向量）**dispatch（派发）**到持有该专家的卡上，算完再 **combine（收回并组合）**回原卡按权重相加。一起分这一套专家、每层互相交换 token 的那组卡，叫一个 **EP 组**。
 
 EP 组从一台机器的几张卡变成几十台机器的上百张卡，专家怎么摆、token 往哪发、每张卡忙不忙都跟着变。沿用 EP 页的 4 个 token 标签「我、吃、了、苹果」：每层 8 个路由专家 E0–E7，每个 token 选 k = 2 个；我选 E3、E4，吃选 E2、E1，了选 E3、E7，苹果选 E3、E5。这里的标签可以来自四条不同请求，不表示 DP 把同一句话拆开。上半是一台机器 4 张卡（EP4），每卡放 2 个专家；下半把同样 8 个专家摊到两台机器的 8 张卡上（EP8），每卡 1 个。图从 MoE 层入口开始观察：4 个 token 已在各自源卡，下半每台机器各有 2 个。[数据并行（DP）](data-parallel.md)把完整请求分给执行组，到了 MoE 层，token 才按选中的专家交换；这两次分派依据不同。
 
@@ -201,7 +201,7 @@ $$M_{\text{all}} = 40 \times 128 \times 12\text{ MiB} = 61{,}440\text{ MiB} = 60
 
 **默认的内置分派。** 一个 vLLM 服务由几类进程组成：API server 接 HTTP 请求、分词，再交给引擎；EngineCore 负责调度、驱动各卡计算；每张卡还有一个 Worker 进程守着它执行（分工见[引擎的进程](engine-processes.md)）。内置方式下，主节点上的 API server 按各 rank 排队的情况打分，挑分最低的 rank（规则见[请求怎样派进某一组](data-parallel.md#请求怎样派进某一组)）。vLLM 的部署文档提醒，DP 规模很大时，这个集中在主节点上的前端可能成为瓶颈；多开几个 API server 能缓解，但它们仍挤在主节点上。
 
-**外置负载均衡。** 另一条路是把每个 DP rank 当成一个独立部署。启动时告诉进程「你是第几号 DP rank」，它就只管自己这一个 rank：本机只起这个 rank 的引擎，默认起一个 API server，也只和本机这一个 EngineCore 打交道；显式增加 API server 数量时，多个前端仍服务这个 rank。一个 rank 仍是一整套进程，前端、EngineCore、每卡一个 Worker 都有，所以外面能访问的端口数不等于进程数。rank 之间要约好 DP 总数，以及 DP 主节点的地址和端口：各 rank 启动后到那里握手，组成一起做 MoE 通信的组。vLLM 还有一种折中的 hybrid 方式：每台机器一个入口，只分给本机的 rank，机器之间再由外部路由分。
+**外置负载均衡。** 另一条路是把每个 DP rank 当成一个独立部署。启动时告诉进程「你是第几号 DP rank」，它就只管自己这一个 rank：本机只起这个 rank 的引擎，默认起一个 API server，且只和本机这个 EngineCore 打交道。显式增加 API server 数量时，多个前端仍只服务这一个 rank。一个 rank 仍是一整套进程，前端、EngineCore、每卡一个 Worker 都有，所以外面能访问的端口数不等于进程数。rank 之间要约好 DP 总数，以及 DP 主节点的地址和端口：各 rank 启动后到那里握手，组成一起做 MoE 通信的组。vLLM 还有一种折中的 hybrid 方式：每台机器一个入口，只分给本机的 rank，机器之间再由外部路由分。
 
 这里讨论的跨 rank 协作面向 MoE 模型。稠密模型的各个副本之间不用一起走，想从外面分派，可以直接起几个互不相干的 vLLM。固定版本的外置 DP 分派本身要求 DP 大于 1；在此前提下，非 MoE 模型还会被另一道校验拒绝。不能把后一道校验简化成“稠密模型只要给了 rank 就报错”，也不能反推 MoE 的 DP1 可以启用外置模式。
 
@@ -218,7 +218,7 @@ $$\text{Score}_{\text{prefill}}(L) = \frac{L}{4} \times 0.0345 + 120.0745$$
 | 短请求 | $4{,}000$ B | $4{,}000 \div 4 \times 0.0345 + 120.0745$ | **约 154.6** |
 | 长请求 | $40{,}000$ B | $40{,}000 \div 4 \times 0.0345 + 120.0745$ | **约 465.1** |
 
-这本账是 proxy 自己在派出和结束时加减的估算，不是从设备上实时读出的利用率；换一个外部路由，规则也可以完全不同。一条请求的走法见上图右半：proxy 先把请求发给挑中的 prefill 端，并限定它只生成 1 个 token；prefill 端返回 KV 传输参数，proxy 把参数交给挑中的 decode 端，decode 端再通过连接器直接从 prefill 端取 KV cache，proxy 本身不搬 KV。
+这本账是 proxy 自己在派出和结束时加减的估算，不是从设备上实时读出的利用率；换一个外部路由，规则也可以完全不同。一条请求的走法见上图右半：proxy 先把请求发给挑中的 prefill 端，并限定它只生成 `1` 个 token。prefill 端返回 KV 传输参数后，proxy 把参数交给挑中的 decode 端；随后 decode 端通过连接器直接从 prefill 端取 KV cache，proxy 本身不搬 KV。
 
 ## 为什么常和 PD 分离一起用？
 
@@ -226,7 +226,7 @@ $$\text{Score}_{\text{prefill}}(L) = \frac{L}{4} \times 0.0345 + 120.0745$$
 
 PD 分离把一条请求的 prefill 和 decode 交给两组不同的机器：prefill 一侧算完提示词，把 KV cache 交给 decode 一侧接着生成（见 [PD 分离](pd-disaggregation.md)）。
 
-为什么和大规模 EP 特别搭，要看 MoE 层怎么选通信方式。先看本页固定旧版、A2 规模条件已满足且 A3 融合模式按默认关闭的情形：每一步取 DP 组里各 rank 的 token 数**最大值**，不超过容量门槛就走 MC2（通算融合：把跨卡收发和计算协同执行的一类昇腾实现，只把被选中的 token 副本发到专家所在的卡），超过了就换成先收齐整批 token 的 All-Gather 路径（A2）或按目的地整批交换的 All-to-All 路径（A3）。按最大值选，意味着**全组用同一种方式**：只要有一个 rank 这一步塞进了一段长 prefill，其余只做 decode 的 rank 也一起换路，还要把各自的输入补齐到同样的行数（见[并发请求的第 4 站](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)）。A3 开融合模式后有例外：模式 1 且 EP 不超过 32 时，超容量仍可选融合 MC2，具体分支见后面的源码说明。
+为什么和大规模 EP 特别搭，要看 MoE 层怎么选通信方式。先看 A2 规模条件已满足且 A3 融合模式关闭时的常规选路：每一步取 DP 组里各 rank token 数的**最大值**，未超容量门槛就走 MC2（通算融合，仅发选中专家的 token 副本）。一旦超过容量门槛，A2 就改走先收齐整批的 All-Gather 路径，A3 则改走按目的地整批交换的 All-to-All 路径。按最大值选，意味着**全组用同一种方式**：只要有一个 rank 这一步塞进了一段长 prefill，其余只做 decode 的 rank 也一起换路，还要把各自的输入补齐到同样的行数（见[并发请求的第 4 站](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)）。A3 开融合模式后有例外：模式 1 且 EP 不超过 32 时，超容量仍可选融合 MC2，具体分支见后面的源码说明。
 
 组越大，这种被一个 rank 拖走的步就越多（四族硬件如何依据 token 数、EP 规模与硬件档位选择 `MC2 / FUSED_MC2 / ALLTOALL / ALLGATHER`，详查 [MoE 通信派发](moe-comm-dispatch.md#四族硬件调度状态机hardware_profilepy--ascend_forward_contextpy)）。示意：假设每个 rank 每一步有 $p = 5\%$ 的机会带着长 prefill，各 rank 互不相干（组越大，几乎每一步都有 rank 在做 prefill）：
 
@@ -246,7 +246,7 @@ $$P(\text{至少 1 个 rank 带长 prefill}) = 1 - (1 - p)^R$$
 
 ## 官方示例：8 台 A3 怎样分成 P、D 两个专家域
 
-**vllm-ascend 的官方文档用 8 台 Atlas 800T A3 服务器部署 DeepSeek-R1 演示这套做法：前 4 台做 prefill，每台自成一个 EP16 组；后 4 台做 decode，合起来是一个 EP64 组；一共 72 个 DP rank，每个都是一个独立的服务。** 这是另一个模型、另一代硬件上的配置，下面的数只用来看组织方式，不代入 GLM。
+**`vllm-ascend` 官方文档用 8 台 Atlas 800T A3 服务器部署 DeepSeek-R1 演示这套做法。** 前 4 台做 prefill，每台自成一个 EP16 组；后 4 台做 decode，合起来是一个 EP64 组；一共 72 个 DP rank，每个都是独立服务。这是另一个模型、另一代硬件上的配置，下面的数只用来看组织方式，不代入 GLM。
 
 DeepSeek-R1 的 MoE 层有 256 个路由专家，每个 token 选 8 个；本示例按每台 A3 的 16 个可见逻辑设备计数，物理卡与逻辑设备的区别见[硬件与设备](hardware-devices.md)。文档里的推荐配置：
 
@@ -255,7 +255,8 @@ DeepSeek-R1 的 MoE 层有 256 个路由专家，每个 token 选 8 个；本示
 | 机器 | 4 台，每台 16 个逻辑设备 | 4 台，每台 16 个逻辑设备 |
 | 每台怎么切 | 2 个 DP rank，每个 TP8 | 16 个 DP rank，每个 TP1 |
 | EP 组 | 每台自成一个 EP16，DP 主节点各用自己 | 4 台合成一个 EP64，DP 主节点都用第 5 台 |
-| 一步最多 token / 同时请求 | 16384 / 4，关掉 graph mode | 256 / 28，保留 graph mode |
+| 单步 token 上限 | `16384`（关掉 graph mode） | `256`（保留 graph mode） |
+| 单 rank 同时请求上限 | `4` 条 | `28` 条 |
 
 文档注明这组参数不针对优化，要按实际场景调。P 一侧的 4 个 EP16 互不相干，一条请求的 prefill 只在其中一台里做；D 一侧的 64 个 rank 每层一起交换 token。两侧合计 128 个逻辑设备，分属这些不同的 EP 组。
 
@@ -303,9 +304,13 @@ $$N_{\text{services}} = (4 \times 2)_{P} + (4 \times 16)_{D} = 8 + 64 = 72$$
 file: large-scale-ep-fig-hierarchy-comm
 ```
 
-**落到 `v0.30.0` 主基线与 `main`，跨机选路与跳过同步还有三点必须核对：** 第一，MoE 通信选路已统一收敛至硬件画像驱动的 `select_moe_comm_method`，开启 LoRA + EP 时强制走 `ALLTOALL`，不再沿用旧 GLM 的静态分支；第二，decode 侧跳过每步 DP 同步除了要求 `kv_consumer`、关闭分层通信且 decode 走 MC2/FUSED_MC2 之外，`v0.30.0` 明确排除了 `MegaMoe` 路径并要求 prefill 侧图模式不区分 P/D，`main` 进一步排除细粒度 `qkv_iproj_tensor_parallel_size > 1`；第三，`v0.30.0` 起 `additional_config` 默认启用严格字段校验，照抄早期文档中的废弃键会直接触发启动报错（详细四版对照见文末[版本差异](#版本差异)）。
+**落到 `v0.30.0` 主基线与 `main`，跨机选路与跳过同步有三点必须核对：**
 
-## 放到 GLM 双机：EP16 是跨机的第一档
+- **硬件画像驱动选路**：MoE 通信选路已统一收敛至 `select_moe_comm_method`，开启 `LoRA + EP` 时强制走 `ALLTOALL`，不再沿用旧静态分支。
+- **decode 跳过 DP 同步的额外排除项**：先满足 `kv_consumer`、关闭分层通信且 decode 走 `MC2/FUSED_MC2`。在此之上，`v0.30.0` 明确排除了 `MegaMoe` 路径并要求 prefill 侧图模式不区分 P/D；`main` 进一步排除细粒度 `qkv_iproj_tensor_parallel_size > 1`。
+- **严格配置校验**：`v0.30.0` 起 `additional_config` 默认启用严格字段校验，照抄早期文档中的废弃键会直接触发启动报错（四版对照见文末[版本差异](#版本差异)）。
+
+## 复杂异构实战对照：GLM 双机 EP16 跨机第一档
 
 **GLM 双机的 EP16 已经是跨机 EP：16 张卡分在两台 A2 上，每卡 18 个路由专家，每层的 dispatch 和 combine 有一部分要跨机器。但它的部署形态不是大规模 EP：只有一个 API server，第二台机器以 headless 方式加入，没有外部 proxy，也没有 PD 分离。本站没有超出 EP16 的部署和实测，下面把 EP16 当作基线。**
 

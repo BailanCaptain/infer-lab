@@ -1,0 +1,117 @@
+layout: figure
+id: moe-router-calc-qwen3
+caption: 标准 Softmax Top-k 路由逐步演算（以 6 选 2 示意 Qwen3-30B-A3B 的 128 选 8 机制，数为示意）：① 门控线性层算出原始 logits z；② 对全池做一次 Softmax 得到概率 p（无路由校正偏置 b）；③ 直接挑出概率最大的 k=2 个专家（专家 2 与专家 3）；④ 将入选的 2 个概率除以它们的和 0.75 重归一化（norm_topk_prob=true），使组合权重严格相加等于 1.00；⑤ 将被选中专家的输出按 0.73 与 0.27 加权求和得到本层输出。
+size: [900, 490]
+grids:
+  - at: [220, 74]
+    rows: 1
+    cols: 6
+    cell: [74, 34]
+    tone: ink
+    style: plain
+    colLabels: ['专家 1', '专家 2', '专家 3', '专家 4', '专家 5', '专家 6']
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '0' }
+      - { at: [0, 4], text: '−1' }
+      - { at: [0, 5], text: '0' }
+  - at: [220, 128]
+    rows: 1
+    cols: 6
+    cell: [74, 34]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '0.07' }
+      - { at: [0, 1], text: '0.55', style: solid }
+      - { at: [0, 2], text: '0.20', style: solid }
+      - { at: [0, 3], text: '0.07' }
+      - { at: [0, 4], text: '0.03' }
+      - { at: [0, 5], text: '0.07' }
+  - at: [220, 294]
+    rows: 1
+    cols: 2
+    cell: [78, 34]
+    tone: token
+    style: solid
+    label: '入选的 top-2 概率'
+    cells:
+      - { at: [0, 0], text: '0.55' }
+      - { at: [0, 1], text: '0.20' }
+  - at: [530, 294]
+    rows: 1
+    cols: 2
+    cell: [78, 34]
+    tone: token
+    style: solid
+    rowLabels: ['÷ 0.75 =']
+    label: '重归一化（和 = 1.00）'
+    cells:
+      - { at: [0, 0], text: '0.73' }
+      - { at: [0, 1], text: '0.27' }
+  - at: [128, 396]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    tone: token
+    style: faded
+    rowLabels: ['0.73 ×']
+    label: '专家 2 输出 E₂(x)'
+    cells:
+      - { at: [0, 0], text: '2', style: solid }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '−1' }
+  - at: [428, 396]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    tone: token
+    style: faded
+    rowLabels: ['+ 0.27 ×']
+    label: '专家 3 输出 E₃(x)'
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '2', style: solid }
+      - { at: [0, 3], text: '1' }
+  - at: [664, 396]
+    rows: 1
+    cols: 4
+    cell: [54, 34]
+    tone: token
+    style: solid
+    rowLabels: ['=']
+    label: 'MoE 层输出（0 共享专家）'
+    cells:
+      - { at: [0, 0], text: '1.46' }
+      - { at: [0, 1], text: '0.27' }
+      - { at: [0, 2], text: '1.27' }
+      - { at: [0, 3], text: '−0.46' }
+items:
+  - { at: [290, 196], size: [260, 36], text: '直接选最大 k=2：专家 2、专家 3', tone: control }
+links:
+  - { from: [331, 162], to: [331, 196], tone: control }
+  - { from: [405, 162], to: [405, 196], tone: control }
+  - { from: [310, 232], to: [310, 294], tone: token }
+  - { from: [376, 311], to: [446, 311], tone: token }
+badges:
+  - { at: [32, 91], n: 1 }
+  - { at: [32, 145], n: 2 }
+  - { at: [266, 214], n: 3 }
+  - { at: [504, 276], n: 4 }
+  - { at: [32, 413], n: 5 }
+texts:
+  - { at: [24, 28], text: 'Qwen3-30B-A3B 路由算例 · Softmax Top-k 重归一化（6 选 2 示意）', strong: true }
+  - { at: [52, 96], text: '门控 logits z' }
+  - { at: [52, 150], text: 'Softmax 概率 p', tone: token, strong: true }
+  - { at: [684, 150], text: '全池和 = 1.00，无偏置 b', size: 13.5, note: true }
+  - { at: [704, 316], text: '无额外缩放因子', size: 13.5, note: true }
+  - { at: [450, 470], text: '对比：DeepSeek / GLM 变体改用 Sigmoid + 偏置 b 选人，再回原分数归一并乘缩放因子', anchor: middle, note: true }
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L130-L215
+    symbols: [Qwen3MoeSparseMoeBlock, renormalize]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/router/fused_topk_router.py#L80-L95
+    symbols: [AscendFusedTopKRouter, scoring_func, renormalize]

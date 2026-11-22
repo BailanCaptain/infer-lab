@@ -213,14 +213,14 @@ file: npugraph-plate-three-tier
 file: npugraph-ex
 ```
 
-上半是不融合的走法：中间结果整块进设备显存，下一个算子再整块读回来。下半是融合后的走法，这块中间结果不出算子（示意数，不是 GLM 实测访存；融合后这 128 B 有机会省掉，$x$、$y$ 和最终结果该读该写的仍要读写）：
+上半是不融合的走法：中间结果整块进设备显存，下一个算子再整块读回来。下半是融合后的走法，这块中间结果不出算子。下面按教学示意数估算（非设备实测）：融合后这 128 B 有机会省掉，$x$、$y$ 和最终结果该读该写的仍要读写：
 
 $$\text{中间张量} = 4 \times 8 \times 2\text{ B} = 64\text{ B}, \qquad \text{写出再读回} = 2 \times 64\text{ B} = 128\text{ B}$$
 
-| 访存分项（4 行 × 8 列，BF16 每数 2 B·示意） | 计算式 | 字节数 |
-| --- | --- | --- |
-| 中间张量大小 | $4 \times 8 \times 2\text{ B}$ | **64 B** |
-| 不融合时的额外一写一读 | $2 \times 64\text{ B}$ | **128 B**（融合后有机会省掉） |
+| 访存分项（4 行 × 8 列，BF16 每数 2 B·示意） | 计算式 | 字节数 | 说明 |
+| --- | --- | --- | --- |
+| 中间张量大小 | $4 \times 8 \times 2\text{ B}$ | **64 B** | 单份中间张量体积 |
+| 不融合时的额外一写一读 | $2 \times 64\text{ B}$ | **128 B** | 融合后有机会省掉 |
 
 能省到什么程度，要看融合实现自己怎么用近端存储、怎么组织内部流水，所以**少两个图节点不等于少两次任务下发，也推不出一个固定加速比**。代价在另一侧：编译器得先认出这一段、准备好实现，还要验证数值——融合通常会改变浮点运算的先后次序，误差是否仍在允许范围内要单独确认。
 
@@ -228,7 +228,9 @@ $$\text{中间张量} = 4 \times 8 \times 2\text{ B} = 64\text{ B}, \qquad \text
 
 一条融合规则由三部分组成：要找的计算结构（pattern）、找到之后换上的实现（replacement）、以及适用条件。**匹配看的是图里的算子和依赖关系，不是源码里两行挨着写。** 如果中间结果还有别的消费者，替换必须把它们要的数据照样留下。
 
-最容易在量化模型里出现的是「归一化接量化」这一类。先取其中静态量化的候选：图里先是一个支持偏置输入的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。拿一个位置上的两个数走一遍（偏置不加，设 RMSNorm 的权重全是 1、量化系数 $s = 0.1$，$s$ 怎么来见[量化](quantization.md#一个数怎样压下去再还原回来)；融合省掉的是第 3 步那个 BF16 中间结果的写出读回，`[4, 6]` 残差与 `[8, 12]` 整数张量仍须写出）：
+最容易在量化模型里出现的是「归一化接量化」这一类。先取其中静态量化的候选：图里先是一个支持偏置输入的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。
+
+下面拿一个位置上的两个数走一遍，暂不加偏置，设 RMSNorm 权重全为 1、量化系数 $s = 0.1$（$s$ 的求法见[量化](quantization.md#一个数怎样压下去再还原回来)）。融合省掉的是第 3 步那个 BF16 中间结果的写出与读回，而 `[4, 6]` 残差与 `[8, 12]` 整数张量仍须写出：
 
 $$\text{RMS} = \sqrt{\frac{4^2 + 6^2}{2}} = \sqrt{26} \approx 5.10, \qquad q = \text{round}\!\left(\frac{[4, 6] / 5.10}{0.1}\right) = [8, 12]$$
 
@@ -256,7 +258,7 @@ $$\text{RMS} = \sqrt{\frac{4^2 + 6^2}{2}} = \sqrt{26} \approx 5.10, \qquad q = \
 
 规则注册时做了两件事：既登记进 PyTorch 的 pattern matcher（按计算结构查找并替换的机制），也登记进外部后端自己的替换接口。所以**后面走哪条路，用的都是同一批规则**（双路消费与三级融合门控的完整路线统一见下节架构图）。
 
-默认开着外部后端时，编译交给 npugraph_ex，由它按登记的替换改图；把这个开关关掉，则由本地 `fusion_pass_compile` 通过 AOTAutograd 取得 FX 计算图，交给昇腾自己的 pass manager（按顺序组织改写规则的管理器）改写并返回。它借用了 Inductor 的匹配工具，实际选择的编译器仍是平台提供的 AscendCompiler。**所以关掉这个开关不是关掉融合，而是切换到本地改图路径。** 后端选择与本地实现的证据在页末源码索引。
+默认开着外部后端时，编译交给 `npugraph_ex`，由它按登记的替换改图。把这个开关关掉，则由本地 `fusion_pass_compile` 通过 AOTAutograd 取得 FX 计算图，交给昇腾自己的 pass manager（按顺序组织改写规则的管理器）改写并返回。它借用了 Inductor 的匹配工具，实际选择的编译器仍是平台提供的 `AscendCompiler`。**所以关掉这个开关不是关掉融合，而是切换到本地改图路径。** 后端选择与本地实现的证据在页末源码索引。
 
 两条路径共享候选定义，应用条件却不能完全等同：本地管理器调用每条规则的编译区间检查，外部注册接口收到的是另一项流作用域检查。比如 512 token 门槛写在本地区间检查里，不能直接拿来判定外部后端的结果。外部后端还有本库看不到的实现和版本条件，本地列出四条规则，不等于一共只有四项优化。
 
@@ -272,10 +274,11 @@ $$\text{RMS} = \sqrt{\frac{4^2 + 6^2}{2}} = \sqrt{26} \approx 5.10, \qquad q = \
 
 ## static kernel：为选定形状提前编译
 
-**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，而且必须满足 `enable_super_kernel -> enable_static_kernel -> enable_npugraph_ex` 的三级依赖链：
-- **A2 / A3 / A5 等支持 `npugraph_ex` 的硬件**：单开 `enable_static_kernel=True`（而 `enable_npugraph_ex=False`），或单开 `enable_super_kernel=True`（而 `enable_static_kernel=False`），都会在配置校验阶段直接抛出 `AssertionError`。
-- **310P 等不支持 `npugraph_ex` 的硬件**：硬件能力检查会先于断言执行，对原本开启的项打印 warning 后将三者**静默刷成 `False`**，不会触发断言失败。
-- **非纯整图模式静默刷回 `False`**：即使在 A2/A3/A5 上合法地双开或三开了 `npugraph_ex` + `static_kernel`（+ `super_kernel`），只要最终 `cudagraph_mode` 是 `NONE`、不受支持的档位，或任何需要分段编译的模式（如 `PIECEWISE`、`FULL_AND_PIECEWISE`，即非 `FULL_DECODE_ONLY` / `FULL`），平台 `_setup_compile_backend` 仍会把 `additional_config["ascend_compilation_config"]` 里的这三项全部**静默刷回 `False`**。
+**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，且受 `enable_super_kernel -> enable_static_kernel -> enable_npugraph_ex` 的三级依赖链和两道门控约束：
+
+- **支持 `npugraph_ex` 的硬件（A2 / A3 / A5 等）**：配置校验阶段强制检查依赖。若开启 `enable_static_kernel=True` 却关闭 `enable_npugraph_ex`，直接抛出 `AssertionError`。同理，单开 `enable_super_kernel=True` 而关闭 `enable_static_kernel` 也会触发断言失败。
+- **不支持 `npugraph_ex` 的硬件（310P 等）**：硬件能力检查先于断言执行。对原本开启的项打印 warning 后，直接将三者**静默刷成 `False`**，不触发断言失败。
+- **非纯整图模式静默刷回 `False`**：即使硬件支持且合法开启了上述开关，只要最终 `cudagraph_mode` 不是 `FULL_DECODE_ONLY` 或 `FULL`，三项均失效。包括 `NONE`、`PIECEWISE`、`FULL_AND_PIECEWISE` 及不受支持档位，平台 `_setup_compile_backend` 都会把 `ascend_compilation_config` 里的三项全部**静默刷回 `False`**。
 
 下面这张架构图把「`npugraph_ex` → `static_kernel` → `super_kernel` 三级依赖与两道门控」以及「规则一次注册、双路消费（外部后端 vs 本地 FX pass）」整合到同一视图里：
 
@@ -285,7 +288,9 @@ file: npugraph-ex-fig-three-tier-fusion
 
 打开并保留生效后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（$1 + \text{草稿数}$），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
 
-**Super Kernel 合并的是已经编译好的算子二进制。** 2026-11-02 官方指南描述：在 ACL 图捕获期间识别可融合子图，把子 kernel 合成较大的 kernel，并按依赖插入同步，以减少任务下发与调度等待。它依赖 static kernel，后者又依赖 npugraph_ex；不兼容的算子会截断融合范围。在 `v0.30.0` 与 `main` 中，若显式给出 `enable_static_kernel` 而省略 `enable_super_kernel`，前置校验会让 `enable_super_kernel` 跟随 `enable_static_kernel`；这个依赖在固定 v0.26 维护分支、`v0.30.0` 与 `main` 配置中均有检查（最初的 v0.26.0rc1 tag 和旧 GLM 镜像没有该字段，详见 [Super Kernel 版本区别](../params/enable-super-kernel-ce990e186bfa.md)）。
+**Super Kernel 合并的是已经编译好的算子二进制。** 2026-11-02 官方指南描述：在 ACL 图捕获期间识别可融合子图，把子 kernel 合成较大的 kernel，并按依赖插入同步，以减少任务下发与调度等待。它依赖 static kernel，后者又依赖 `npugraph_ex`；不兼容的算子会截断融合范围。
+
+**边界与例外（Super Kernel 版本演进）**：在 `v0.30.0` 与 `main` 中，若显式给出 `enable_static_kernel` 而省略 `enable_super_kernel`，前置校验会让后者跟随前者。该依赖在固定 v0.26 维护分支、`v0.30.0` 与 `main` 中均有检查；最初的 `v0.26.0rc1` tag 和旧 GLM 镜像没有该字段（详见 [Super Kernel 版本区别](../params/enable-super-kernel-ce990e186bfa.md)）。
 
 用一组独立的示意配置走一遍：捕获宽度表是 `2, 4, 8, 16, 32`，最大并发 4 条请求，草稿数 1（示意配置，不是本部署取值）：
 
@@ -332,18 +337,18 @@ $$\text{原区间 } [1, 4],\;[5, 8] \;\longrightarrow\; \text{视觉编译区间
 
 若只有一个从 1 开始的区间，结果才是从 1 到这个上界。这里的“可选择编译区间”仍要经过模型形状、设备内存和具体后端约束；捕获图的 token 预算与视频帧容量按前面的视觉图页面单独判断。
 
-## 放到 GLM 双机：MTP 验证那一步用上了哪些
+## 复杂异构实战对照：GLM 双机 MTP 验证中的融合与边界
 
 固定[部署前提](glm-5-3-flash-two-node.md#部署前提)是 GLM-5.3-Flash、两台 A2 各 8 卡、TP8/DP2/EP16、W8A8。这一档的档位是只给整齐 decode 录整趟图，外部编译后端按默认开着，static kernel 默认关、官方命令也没打开它——**图已经录好不等于 static kernel 生效**。
 
 四条规则在这一档各自的处境不一样：
 
-- **归一化接量化**可以登记候选，但不能从 W8A8 推出主干命中。固定 mHC 主干先调用 `hc_pre`，再对一个输入做普通 RMSNorm；这里没有把 residual 传给 RMSNorm，因此不直接形成上面的「残差加 + RMSNorm → 量化」结构。旧实现中不带残差加的纯 RMSNorm 候选属于 MX 量化，不能套给这组 A2 W8A8。其他模块与外部后端的改写要分别核对（来源 17、27、49）。
+- **归一化接量化**可以登记候选，但不能从 W8A8 推出主干命中。固定 mHC 主干先调用 `hc_pre`，再对一个输入做普通 RMSNorm；这里没有把 residual 传给 RMSNorm，因此不直接形成上面的「残差加 + RMSNorm → 量化」结构。旧实现中不带残差加的纯 RMSNorm 候选属于 MX 量化，不能套给这组 A2 W8A8。其他模块与外部后端的改写须分别核对。
 - **Q/K 归一化接 RoPE**先从注册上下文寻找上游定义的 Attention 层，再读取首层头长；没有这种层时直接不登记候选。GLM 主干构造 MLA 和线性注意力分支，并不能凭“模型有归一化和 RoPE”就认定符合这个检查。要判断整个服务是否登记了候选，还须检查最终注册上下文，不能把语言主干的类名推断扩大到视觉塔、草稿和其他模块。
 - **All-Reduce 接归一化**在本地管理器路径要求编译区间起点超过 512。宽度至多 128 的 decode 区间不满足该本地条件；宽度较大的区间也仍要匹配未量化矩阵乘、All-Reduce 和残差加 RMSNorm 的连接。固定部署默认使用外部后端，不能仅凭 128 < 512 就断言这一后端绝不融合，主干的 mHC 与量化边界也仍需检查。
 - **乘系数接相加**的精度条件满足，还须图中的常数等于模型路由缩放系数，命中次数同样只能看日志。
 
-如果把 static kernel 打开：这一档每条请求一步占 4 个位置（1 个已确定的加 3 个草稿），最大并发 32 条，范围就是 4 到 128，而捕获的 7 个宽度正好都落在里面——7 个宽度和 4 的来历见[官方双机上录了哪 7 张图](graph-mode-layer.md#官方双机上录了哪-7-张图)。这里的 4 是一次验证送进去的长度，不代表 4 个 token 都会被接受，更不等于给用户 4 个字：接受几个由[投机解码](speculative-decoding.md)判定，再由[流式输出](streaming-output.md)变成文本增量。
+如果把 static kernel 打开：每条请求一步占 4 个位置（1 个已确定 token 加 3 个草稿），最大并发 32 条，筛选区间就是 4 到 128。部署捕获的 7 个宽度正好全部落在里面，7 个宽度和 4 的来历见[官方双机上录了哪 7 张图](graph-mode-layer.md#官方双机上录了哪-7-张图)。这里的 4 是一次验证送进去的长度，不代表 4 个 token 都会被接受，更不等于给用户 4 个字：接受几个由[投机解码](speculative-decoding.md)判定，再由[流式输出](streaming-output.md)变成文本增量。
 
 走到 B4，本轮能不能回放还要另外过一遍条件：提示词都算完了、这一步每条请求都按 4 个位置、宽度没超过最大档、两个 DP 组对齐后的模式一致。[五条判据](graph-mode-layer.md#这一轮回放哪一张图五条判据)、[补齐到哪一档](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)和[空闲组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)都在那两页算过，本页不重算。要记住的是：这些条件决定本轮用不用图，和融合有没有命中是两套判断。
 

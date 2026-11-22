@@ -115,9 +115,9 @@ file: sequence-parallel
 
 图中的 All-Reduce 表示“各卡的贡献相加，每卡得到整份”；Reduce-Scatter 表示“贡献相加后，每卡只拿结果的一部分”；All-Gather 表示“把各卡不同的部分收齐”。下半幅把中间的本地计算放在后两种通信之间。
 
-同名的 **DeepSpeed Ulysses** 也叫 sequence parallelism，它解决长序列 attention 的分布式计算，机制不同，见[与 CP、Ulysses 的关系](#spcpulysses-是什么关系)。本站讲 SP 时采用 Megatron 的含义；在固定版本的 vllm-ascend（vLLM 的昇腾执行插件）中，相关实现是 FlashComm1。
+同名的 **DeepSpeed Ulysses** 也叫 sequence parallelism，它解决长序列 attention 的分布式计算，机制不同，见[与 CP、Ulysses 的关系](#spcpulysses-是什么关系)。本站讲 SP 时采用 Megatron 含义；在 `vllm-ascend` 中，相关实现路径是 FlashComm1。
 
-在[一条请求的逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)中，这种布局变化发生在每层 attention、前馈网络与残差连接之间，不发生在客户端拆词或调度请求的阶段。
+沿着[请求全景](request-overview.md)进入逐层前向，以主基线标准模型 `Qwen3-8B`（`H = 4096`，BF16 每行 `8 KiB`）为例：在 `TP = 2` 或 `TP = 4` 下，SP 发生在每层 attention、MLP 与 RMSNorm/残差之间，把 `[T, 4096]` 按行切成每卡 `[T/TP, 4096]`，不发生在客户端拆词或调度阶段。
 
 ## 为什么需要它：TP 之后每张卡都在重复同一份活？
 
@@ -237,15 +237,15 @@ $$\text{Send}_{\text{RS}} + \text{Send}_{\text{AG}} = \frac{N - 1}{N} M + \frac{
 
 All-Gather 传的是归一化后的结果而不是原始的和，但形状一样、数据类型一样，所以字节数也一样。
 
-**省下的是分片区域的激活和重复计算。** 以 H = 4096、BF16（每个数 2 字节）为示意，一行是 4096 × 2 B = 8,192 B，即 8 KiB；4 行占 32 KiB，分到两卡后每卡 2 行、16 KiB。这是一个激活张量的账，实际峰值还取决于同时活跃的张量和缓冲。
+**省下的是分片区域的激活和重复计算。** 代入主基线标准模型 `Qwen3-8B`（`H = 4096`，BF16 每元素 2 字节）：单行隐藏向量为 `4096 × 2 B = 8 KiB`。面对一段 $T = 2048$ 个 token 的批输入，完整激活 `[2048, 4096]` 占 **`16 MiB`**；按 `TP = 4` + SP 切成每卡 `[512, 4096]` 后，每卡这段归一化与残差激活降为 **`4 MiB`**（同比例省去 3/4 重复计算；小批 4 行同理从 32 KiB 降到两卡各 16 KiB）。这是单个激活张量的账，实际峰值还取决于同时活跃的张量和缓冲。
 
-标准 Megatron SP 保留 TP 的权重分片和内部通道分工；[KV cache](kv-cache.md)保存供后续计算复用的历史结果或状态，普通 attention 保存 K/V，GLM 还涉及压缩表示和递推状态。这些状态不因这里的归一化行分片而自动缩小。整个模型显存也不会统一除以卡数。训练要为反向传播保存激活，论文主要研究这部分收益；推理只做前向，收益需要按实际请求和实现测量。Ascend 的共享专家等变体还会改变权重复制方式，不能直接套用标准区域的显存账。
+标准 Megatron SP 保留 TP 的权重分片和内部通道分工；[KV cache](kv-cache.md) 保存历史 K/V 或状态，不会因归一化行分片而自动缩小，整个模型显存也不会统一除以卡数。训练要为反向传播保存激活，论文主要研究这部分收益；推理只做前向，收益需按实际请求与实现测量（Ascend 共享专家等变体还会改变权重复制方式）。
 
 **要付出的代价有三样。**
 
-- **调用次数变多，耗时不一定相同。** 语义上 All-Reduce 等于 Reduce-Scatter 加 All-Gather，但拆开后是两次调用，各有启动和同步开销，通信库对两者的实现也不同，不能保证任何后端上两种做法的线上字节和执行耗时完全一样。批很小时，这点固定开销可能比省下的计算还多：本页固定 Ascend 镜像的稠密主模型 FlashComm1 路径要求一步 token 数超过 1000，源码注释说这是经验值，低于它时切换通信方式可能反而变慢。
-- **行数不整除要补齐。** Reduce-Scatter 要把 T 行平分给 N 张卡，T 不能被 N 整除时，先在末尾补几行空行（padding）再通信，All-Gather 之后再把补的行去掉。比如 T = 5、N = 2：补 1 行到 6 行，每卡 3 行，卡 1 的第 3 行是空行。Ascend 的自定义算子正是在 Reduce-Scatter 前补齐、All-Gather 后去掉补齐；有多个 DP（data parallel，数据并行：几组卡各自处理不同的请求，见[数据并行](data-parallel.md)）组时，还要把各组的行数对齐：取各组 token 数的最大值，向上补到 N 的倍数。补的空行、临时缓冲、图模式（把一步的算子预先录成图、之后直接重放）只按几档固定尺寸录制带来的额外补齐，都会吃掉一部分收益。
-- **评估要分开量。** 比较开不开 SP 时，局部激活占用、通信输入的精度和形状、线上实际流量、端到端耗时这四样要分别报，任何一样都代替不了其余几样。
+- **调用次数变多，耗时不一定相同。** All-Reduce 拆成 Reduce-Scatter 与 All-Gather 后变成两次调用，各有启动与同步开销，后端实现也不同，载荷相等不代表耗时相同。批很小时，固定开销可能高于省下的计算（历史 `db701c1f` 镜像的稠密 FlashComm1 路径就曾为此设过 1000 token 经验门槛）。
+- **行数不整除要补齐。** Reduce-Scatter 要把 $T$ 行平分给 $N$ 张卡。当 $T$ 不能被 $N$ 整除时，先在末尾补齐空行（padding）再通信，All-Gather 后再去掉（如 $T = 5, N = 2$ 补 1 行到 6 行，每卡 3 行）。多 [DP](data-parallel.md) 组时还要先把各组行数对齐到最大值向上取 $N$ 的倍数。补齐行、临时缓冲和图模式固定尺寸补齐都会吃掉部分收益。
+- **评估要分开量。** 比较开不开 SP 时，局部激活占用、通信输入精度和形状、线上实际流量、端到端耗时这四样要分别报，任何一样都代替不了其余几样。
 
 ## SP、CP、Ulysses 是什么关系？
 
@@ -257,30 +257,35 @@ DeepSpeed Ulysses 的命名也属于 sequence parallelism。一个 attention 头
 
 ## vllm-ascend 里的 SP 是怎样接进去的？
 
-以下先按本页固定镜像 `db701c1f` 解释 FlashComm1，再补充 `v0.30.0` 与 `main` 的路径收口。FlashComm1 是 Ascend 的一条 SP 路径，开关是 `enable_flashcomm1`，也可以用环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`，该开关默认关闭；在旧版中共享专家配置还可能间接开启它，见[怎么开](#怎么开)。每一步前向开始时先判断这一步走不走 SP，再为选中的投影路径改动三处；细粒度 TP、FlashComm2、视觉编码器和模型专用路径另有分支，不能把下面的入口出口替换套到所有线性层。
-
-1. **这一步走不走。** MoE 模型（前馈层由多个专家网络组成的模型，见 [MoE](moe.md)）要求开关打开且本次 `num_tokens` 不是 `None`，没有 1000 token 门槛；进入这条 MoE 上下文分支时会同步关闭单独的「矩阵乘 + Reduce-Scatter」融合标志（这是 MoE 分支的组合条件，不能只凭全局开关推断所有层的融合状态）。稠密模型（没有专家、每层就是普通 MLP 的模型）还要求这一步 token 数超过 1000；稠密的草稿模型（投机解码里负责先猜几个 token 的小模型）不走这条路径。决定走 SP 时，同时算好要补几行：补齐行数 = (N − T mod N) mod N。
-2. **行切投影的出口换成 Reduce-Scatter。** 进入 `SequenceRowParallelOp` 且需要 TP 归约的 attention 输出、MLP 降维等投影，不再做 All-Reduce，而是补齐后 Reduce-Scatter。非 MoE 模型且 TP 不超过 8 时，未量化或所支持的静态 W8A8 方法还能把矩阵乘与归约融合；动态 W8A8 等其他方法仍分开执行。静态 W8A8 融合输出显式设成 BF16（量化精度见[量化页](quantization.md)）。本次 FlashComm1 未生效时，这个归约分支仍执行 All-Reduce。
-3. **列切投影的入口先 All-Gather。** 选入 `SequenceColumnParallelOp` 的投影在矩阵乘之前收集输入、去掉补齐行，拿到该 TP 组的全部行再算；视觉语言模型首层 attention 已持有完整嵌入输入时会跳过这次收集。
+FlashComm1 是 Ascend 侧的 SP 执行路径，开关是 `enable_flashcomm1`（或环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`），默认关闭。先看 **`v0.30.0` 主基线（及 `main`）的标准接线**，再对照后文的历史 `db701c1f` 镜像与 GLM 分支：
 
 ```wiki-diagram
 file: sequence-parallel-fig-rs-ag-pcp
 ```
 
-**落到 `v0.30.0` 主基线与 `main`，这套接线有四处显式变化：** 第一，`v0.30.0` 已移除 `SequenceRowParallelOp` 和前向上下文中的稠密 1000 token 门槛，将 `enable_sp()` 统一收敛为「MoE 序列并行或 Qwen3.5 稠密族 SP」，并强校验 `tp_size > 1` 且 MoE 须开 EP；第二，开启 `SP + PCP > 1` 时，若 `max_num_batched_tokens` 不能整除 `tp_size × pcp_size`，配置阶段会自动向上取整并打出 warning（这是容量对齐，不是额外真实 token）；第三，在 `v0.30.0` 中若通过上游图编译改写同时启用 `SP + PP > 1` 且未显式禁用 `-rms_norm`，上游会自动向 `custom_ops` 追加 `+rms_norm` 以避开追踪报错，而 `main` 配套上游已整体移除 `PassConfig.enable_sp`；第四，`main` 不再由 `enable_dsa_cp` 联动开启 FlashComm1，并在 `FlashComm1` 与 `use_sequence_parallel_moe` 同时启用时自动关闭量化归约以免冲突（完整四版对照见文末[版本差异](#版本差异)）。
+在 `v0.30.0` 主基线与 `main` 中，SP 接线收口为四条清晰规则（完整四版对照见文末[版本差异](#版本差异)）：
 
-共享专家（MoE 里每个 token 都会经过的那个专家）另有安排：固定版本的 `shared_expert_dp_enabled()` 在共享专家 DP、FlashComm1 或图改写 SP 任一开启时为真；匹配共享专家前缀的线性层便**不再按 TP 切**。在本页正常 FlashComm1 前向中，每张卡存一整份共享专家权重，只算本卡那几行 token，输出也不再为共享权重切片做 TP All-Reduce。这是这种实现里「权重反而变多」的地方；共享专家直接在本卡已有的 token 行上算，不用先 All-Gather。其他模型的共享分支和新版实现仍需分别核对。
+1. **统一入口 `enable_sp()`**：`v0.30.0` 已移除旧版 `SequenceRowParallelOp` 和前向上下文中的稠密 1000 token 门槛，将 `enable_sp()` 统一收敛为「MoE 序列并行（`use_sequence_parallel_moe`）或 Qwen3.5 稠密族 SP（`enable_dense_sp`）」，并强校验 `tp_size > 1` 且 MoE 须开 EP。
+2. **`SP + PCP > 1` 批长自动对齐**：若 `max_num_batched_tokens` 不能整除 `tp_size × pcp_size`，配置阶段会自动向上取整并打印告警（属于容量对齐，不是额外真实 token）。
+3. **`SP + PP > 1` 的 `+rms_norm` 注入**：`v0.30.0` 若通过上游 `PassConfig.enable_sp` 同开 `SP + PP > 1` 且未禁用 `-rms_norm`，上游会自动向 `custom_ops` 追加 `+rms_norm` 以避开追踪报错（上游 `main` 已移除 `PassConfig.enable_sp`）。
+4. **`main` 取消 `DSA-CP` 联动与量化归约冲突保护**：`main` 不再由 `enable_dsa_cp` 自动打开 FlashComm1；同时启用 `FlashComm1` 与 `use_sequence_parallel_moe` 时自动关闭量化归约以免冲突。
 
-残差也跟着切：attention 输出只剩本卡几行时，残差先补到同样的总行数，再按卡号取出自己那一段，两者 token 对齐后才相加。
+**名字相近的另外两条路**：除 FlashComm1 外，上游 vLLM 还有两样同名机制——决定 MoE 层是否按序列并行处理的属性 `use_sequence_parallel_moe`，以及编译配置里的图改写开关（`PassConfig.enable_sp`，`main` 已移除）。三者触发条件不同，核对入口见[对照源码](#怎么开)。
 
-**MoE 层怎么接。** 这要看 MoE 层用哪种方式在卡之间搬 token。EP（expert parallel，专家并行）把 MoE 的专家分到不同卡上，每个 token 要被送到持有它所选专家的卡（见[专家并行](expert-parallel.md)）。本页普通 A2 路径主要比较 MC2（按目的专家派发并汇合结果）与 AllGather（先收齐输入，再只算本卡专家）；MC2 的派发、汇合算子不等于把专家矩阵乘也全部融合成一个算子。A2 上怎么选见 [EP 页](expert-parallel.md#mc2-还是-allgather)。
+### 历史镜像 `db701c1f` 路径与共享专家、MoE 接法
 
-- **走 AllGather 时**（比如 token 数超过 MC2 的容量）：在本页 DP2、FlashComm1 生效且门控多流关闭的分支，MoE 入口在 EP 组收集 token 行和路由分数（决定每个 token 去哪几个专家的打分）；走 W8A8 时先把激活动态量化成 INT8，再连同逐 token 的量化尺度一起收集。没有 DP metadata 时辅助函数使用 TP 组；门控多流开启时则另有收集激活与路由结果的顺序。
-- **走 MC2 时**：在共享专家 DP 和替代归约均关闭的普通路径，入口把完整 token 行按 TP 卡数分给各卡，每卡只派发自己那份。本次 FlashComm1 生效后，调用者将 `replace_allreduce` 置真：各卡已经持有各自的行，跳过这次补齐和切分，也不在入口额外做 EP All-Gather。
+在历史 GLM 绑定镜像 `db701c1f` 中，FlashComm1 在每步前向开头判断走不走 SP，并改动三处（细粒度 TP、FlashComm2、视觉编码器另有独立分支）：
 
-同样多的元素，INT8 载荷只有 BF16 的一半，但这只是这一次收集的激活载荷变小，推不出整个 MoE 层、整层或整个网络的通信量减半。
+1. **这一步走不走**：MoE 模型（见 [MoE](moe.md)）只要开关打开且 `num_tokens` 非 `None` 就走，无 1000 token 门槛，同时关闭单独的「矩阵乘 + Reduce-Scatter」融合标志。稠密模型要求单步超过 1000 token，稠密草稿模型不走；补齐行数为 $(N - T \bmod N) \bmod N$。
+2. **行切投影出口换 Reduce-Scatter**：进入 `SequenceRowParallelOp` 的 attention 输出、MLP 降维等投影改做补齐后 Reduce-Scatter。非 MoE 且 TP ≤ 8 时，未量化或受支持静态 W8A8 可做矩阵乘与归约融合（静态 W8A8 融合输出显式设成 BF16，见[量化页](quantization.md)）；动态 W8A8 仍分开执行；未生效时回退 All-Reduce。
+3. **列切投影入口先 All-Gather**：选入 `SequenceColumnParallelOp` 的投影在矩阵乘前收集输入并去掉补齐行；视觉语言模型首层 attention 已持有完整嵌入时会跳过这次收集。
 
-**名字相近的另外两条路。** 上面讲的都是 FlashComm1，由 vllm-ascend 自己的开关决定。上游 vLLM 还有两样东西也叫「序列并行」：一个是判断 MoE 层要不要按序列并行处理的属性，一个是编译配置里的图改写开关。三者不是同一个开关，触发条件要分别核对，见[对照源码](#怎么开)。
+**共享专家与残差**：固定版本的 `shared_expert_dp_enabled()` 在共享专家 DP、FlashComm1 或图改写 SP 任一开启时为真，匹配前缀的共享专家线性层**不再按 TP 切**。每卡存整份共享专家权重、只算本卡 token 行，省去入口 All-Gather 与出口 TP All-Reduce（这是「权重反而变多」之处）。残差也同步切分：先补到同样总行数，再按卡号取本段与 attention 输出对齐相加。
+
+**MoE 层怎么接（普通 A2 的 MC2 vs AllGather）**：EP 把专家分到不同卡上（见[专家并行](expert-parallel.md#mc2-还是-allgather)）。
+
+- **走 AllGather 时**（如 token 数超 MC2 容量）：在 DP2、FlashComm1 生效且门控多流关闭的分支，MoE 入口在 EP 组收集 token 行与路由分数；走 W8A8 时先动态量化为 INT8 连同逐 token 尺度一起收集（无 DP metadata 时走 TP 组；开多流另有收集顺序）。INT8 仅减小此次激活载荷，推不出整层通信量减半。
+- **走 MC2 时**：普通路径由入口按 TP 切分完整 token 行再派发；FlashComm1 生效后调用者将 `replace_allreduce` 置真，各卡已持有各自的行，跳过补齐切分与 EP All-Gather。
 
 ## 放到 GLM 双机：这套部署开了 SP 吗？
 

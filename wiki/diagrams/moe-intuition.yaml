@@ -1,12 +1,12 @@
 layout: figure
 id: moe-intuition
-caption: 「苹果」这个 token 过一层 MoE（示意）：router 给各专家打分（虚线表示未选中的），按选择规则挑出 k=2 个，专家结果按组合权重相加。后文会把原始分数、加偏置的选择分数和组合权重分开计算。未被这个 token 选中的专家仍可能处理同批其他 token；图里只画 6 个专家，GLM 数量见正文。
+caption: 「苹果」这个 token 过一层稀疏 MoE（N 选 k 示意，图里画 6 选 2）：router 给各候选专家打分（虚线表示未选中），挑出得分最高的 k=2 个专家计算并按归一化组合权重相加（如 Qwen3-30B-A3B 每层 128 选 8、Softmax 重归一化且无共享专家；部分变体另设路由偏置或共享专家）。未被当前 token 选中的专家仍可能处理同批其他 token，权重常驻原地。
 size: [860, 404]
 frames:
-  - { label: 专家池 · 图里画 6 个, at: [380, 40], size: [200, 320] }
+  - { label: 专家池 · 示意 6 选 2, at: [380, 40], size: [200, 320] }
 items:
   - { at: [24, 160], size: [140, 54], text: 「苹果」, sub: 的隐藏向量, tone: token }
-  - { at: [196, 160], size: [150, 54], text: router 打分, sub: 每个专家一个分数, tone: control }
+  - { at: [196, 160], size: [150, 54], text: router 打分, sub: 候选池 N 选 k, tone: control }
   - { at: [394, 56], size: [172, 38], text: 专家 1, tone: weight, style: faded }
   - { at: [394, 104], size: [172, 38], text: 专家 2 · 选中, tone: weight }
   - { at: [394, 152], size: [172, 38], text: 专家 3, tone: weight, style: faded }
@@ -27,8 +27,8 @@ links:
 fans:
   - { from: [346, 187], to: [[394, 123], [394, 219]], tone: token }
 texts:
-  - { at: [24, 24], text: 「苹果」· 6 个专家 · 选 2 个（k = 2）, strong: true }
+  - { at: [24, 24], text: 「苹果」· 6 个候选专家 · 挑出 k = 2 个激活, strong: true }
   - { at: [24, 240], text: 只有选中的专家收到这个 token, width: 140 }
-  - { at: [618, 112], text: × 专家 2 的权重, size: 12.5, tone: weight }
-  - { at: [618, 246], text: × 专家 4 的权重, size: 12.5, tone: weight }
-  - { at: [24, 378], text: 灰色的 4 个专家不处理这个 token，权重仍留在原地, width: 500 }
+  - { at: [618, 108], text: × 专家 2 权重, size: 13.5, tone: weight }
+  - { at: [618, 248], text: × 专家 4 权重, size: 13.5, tone: weight }
+  - { at: [24, 378], text: 虚线的 4 个专家不处理当前 token，权重仍常驻原地, width: 520 }

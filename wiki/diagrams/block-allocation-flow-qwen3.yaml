@@ -1,0 +1,40 @@
+layout: figure
+id: block-allocation-flow-qwen3
+caption: 标准 Qwen3-8B 单一 FullAttentionSpec（block_size=128，18 MiB/块）的 BlockPool 借还与前缀复用生命周期。第 2 站调度时：waiting 新请求先查前缀哈希，命中满块直接 touch 增加引用计数实现零重算共享；随后仅对单一缓存组计算新增块缺口（无需 5 组跨档求和），够则从空闲队头借出（ref_cnt 0→1），不够则 running 请求触发队尾抢占、waiting 请求留待下步。第 7 站结束或被抢占时：单组块表倒序归还，ref_cnt 归零才回空闲队尾，HBM 内键值与前缀哈希留在原地供后续请求命中复用。
+size: [900, 356]
+items:
+  - { at: [24, 42], size: [204, 58], text: waiting 首次查前缀哈希, sub: 命中满块直接 touch 复用, tone: kv, style: plain }
+  - { at: [252, 42], size: [204, 58], text: 单一缓存组算新增块数, sub: 128 tok/块（18 MiB/块）, tone: control, style: plain }
+  - { at: [480, 42], size: [184, 58], text: 对比空闲池剩余块数, sub: 单组一笔账，无 5 组折算, tone: control, style: plain }
+  - { at: [688, 42], size: [188, 58], text: 够：从队头借出新块, sub: get_new_blocks 计数 0→1, tone: kv }
+  - { at: [480, 148], size: [184, 56], text: 不够：一块都不借, sub: allocate_slots 返回空, tone: danger, style: plain }
+  - { at: [204, 148], size: [244, 56], text: running 请求：抢占队尾, sub: 释放队尾请求块并重排本步, tone: control, style: plain }
+  - { at: [688, 148], size: [188, 56], text: waiting 请求：下步再试, sub: 不抢占在途请求, tone: control, style: plain }
+  - { at: [24, 274], size: [256, 58], text: 单组块表倒序归还（free）, sub: 请求正常结束或被抢占时触发, tone: token, style: plain }
+  - { at: [312, 274], size: [272, 58], text: 每块 ref_cnt 减 1, sub: 归 0 且非 null_block 才回空闲队尾, tone: kv, style: plain }
+  - { at: [616, 274], size: [260, 58], text: 物理 KV 与块哈希留在原地, sub: 被新请求覆写前仍可前缀命中, tone: kv, style: plain }
+links:
+  - { from: [228, 71], to: [252, 71] }
+  - { from: [456, 71], to: [480, 71] }
+  - { from: [664, 71], to: [688, 71], tone: kv }
+  - { from: [572, 100], to: [572, 148], tone: danger }
+  - { from: [480, 176], to: [448, 176] }
+  - { from: [664, 176], to: [688, 176] }
+  - { from: [326, 148], to: [520, 100], via: [[326, 122], [520, 122]] }
+  - { from: [260, 204], to: [260, 274], dashed: true }
+  - { from: [280, 303], to: [312, 303] }
+  - { from: [584, 303], to: [616, 303] }
+texts:
+  - { at: [24, 24], text: '第 2 站 调度借块（allocate_slots）：前缀共享 + 单一 FullAttention 组分配', size: 13.5, strong: true }
+  - { at: [24, 256], text: '第 7 站 请求收尾或抢占退块（free → free_blocks）', size: 13.5, strong: true }
+  - { at: [584, 128], text: 不够, size: 13.5, tone: danger }
+  - { at: [340, 138], text: 释放后重试, size: 13.5 }
+pins:
+  - source: vllm@ced6857a:vllm/v1/kv_cache_interface.py#L539-L560
+    symbols: [FullAttentionSpec]
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L265-L385
+    symbols: [get_computed_blocks, allocate_slots]
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L603-L620
+    symbols: [free]
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L785
+    symbols: [get_new_blocks, touch, free_blocks]

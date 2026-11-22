@@ -1,9 +1,9 @@
 layout: figure
 id: pd-disaggregation-intuition
-caption: 未分块、未开投机解码的示意。上面是混部：生成中的 A、B 每步各算 1 个位置，来了一条 4 个 token 的提示词后，这一步变成 6 个位置，A、B 要等它一起算完。下面是 PD 分离：P 把提示词算成历史状态，交给 D 继续生成，D 的这一步不再插进别人的 prefill。长提示词可分块，多候选 decode 可一次处理多个位置；框只示意分工，不代表卡数。
+caption: 未分块、未开投机解码的直观对照。上面是默认混部：生成中的请求 A、B 每步各算 1 个位置，新来一条 4 个 token 的提示词后，这一步变成 1 + 1 + 4 = 6 个位置，A、B 要等它一起算完。下面是 PD 分离：P 实例把提示词算成历史 KV cache 传给 D 实例继续逐步生成，D 的 decode 步不再被长提示词插入打断。长提示词可分块，开启投机时可一次处理多个候选；框只示意角色分工，不代表固定卡数。
 size: [900, 470]
 frames:
-  - { at: [20, 50], size: [860, 150], label: 混部：一个执行组两种活都干（官方双机的两个 DP 执行组都这样） }
+  - { at: [20, 50], size: [860, 150], label: 混部（默认）：同一实例同时处理 prefill 与 decode }
   - { at: [20, 250], size: [370, 180], label: P 实例：只做 prefill }
   - { at: [510, 250], size: [370, 180], label: D 实例：只做 decode }
 items:
@@ -14,8 +14,8 @@ items:
   - { at: [710, 98], size: [150, 54], text: 各自的下一个 token, tone: token }
   - { at: [40, 280], size: [150, 52], text: 新请求的提示词, sub: 示意 4 个 token, tone: token }
   - { at: [220, 280], size: [150, 52], text: prefill, sub: 一次把整段算完, tone: weight }
-  - { at: [130, 360], size: [200, 52], text: 历史状态, sub: KV cache 与递推状态, tone: kv }
-  - { at: [530, 360], size: [170, 52], text: 放进 D 自己的块, tone: kv }
+  - { at: [130, 360], size: [200, 52], text: 历史 KV cache, sub: 算完的键值块准备跨实例传输, tone: kv }
+  - { at: [530, 360], size: [170, 52], text: 写入 D 自己的 KV 块池, tone: kv }
   - { at: [530, 280], size: [170, 52], text: decode, sub: 一步一个 token, tone: weight }
   - { at: [730, 286], size: [130, 40], text: y₀ y₁ y₂ …, tone: token }
 links:
@@ -29,6 +29,6 @@ links:
   - { from: [615, 360], to: [615, 332] }
   - { from: [700, 306], to: [730, 306] }
 texts:
-  - { at: [450, 18], text: 同一条请求的两个阶段：放在一组里混着跑，还是拆给两组, anchor: middle, strong: true }
-  - { at: [450, 376], text: 交接历史状态, anchor: middle, tone: comm }
-  - { at: [450, 458], text: 拆开以后多出一次交接：D 拿到状态之前，这条请求只能等, anchor: middle, note: true }
+  - { at: [450, 18], text: 同一条请求的两个阶段：放在同一实例混着跑，还是拆给 P / D 两类实例, anchor: middle, strong: true }
+  - { at: [450, 376], text: 跨实例传输 KV, anchor: middle, tone: comm }
+  - { at: [450, 458], text: 拆开以后多出一次 KV 传输交接：D 拿到键值块之前，这条请求需等待传输完成, anchor: middle, note: true }

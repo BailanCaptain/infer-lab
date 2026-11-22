@@ -1,0 +1,34 @@
+layout: figure
+id: expert-parallel-assign-qwen3
+caption: Qwen3-30B-A3B 的 128 个路由专家切分在 EP=4 四张卡上（每卡常驻 32 个完整专家，无共享专家）：每个 token 经 Softmax 选出 top-8 专家并重归一化权重（和为 1.0），经 dispatch 发往命中的持有卡执行 SwiGLU（2048 → 768 → 2048），再经 combine 送回源卡按权重加权求和。
+size: [900, 440]
+frames:
+  - { at: [20, 56], size: [216, 332], label: '源卡路由（如 rank 0）' }
+  - { at: [316, 56], size: [308, 332], label: 'EP=4 专家持有卡（每卡 32 专家）' }
+  - { at: [704, 56], size: [176, 332], label: '源卡加权归并' }
+items:
+  - { at: [36, 98], size: [184, 68], text: '输入 token [T, 2048]', sub: 本卡负责的隐藏向量, tone: token }
+  - { at: [36, 206], size: [184, 84], text: 门控 128 选 8, sub: Softmax 重归一化, tone: control }
+  - { at: [36, 316], size: [184, 52], text: 0 个共享专家, sub: 纯路由专家架构, style: plain }
+  - { at: [334, 88], size: [272, 58], text: 'rank 0：E0–E31（32 个）', sub: '专家 SwiGLU 2048→768→2048', tone: weight }
+  - { at: [334, 162], size: [272, 58], text: 'rank 1：E32–E63（32 个）', sub: '专家 SwiGLU 2048→768→2048', tone: weight }
+  - { at: [334, 236], size: [272, 58], text: 'rank 2：E64–E95（32 个）', sub: '专家 SwiGLU 2048→768→2048', tone: weight }
+  - { at: [334, 310], size: [272, 58], text: 'rank 3：E96–E127（32 个）', sub: '专家 SwiGLU 2048→768→2048', tone: weight }
+  - { at: [720, 146], size: [144, 78], text: 按 top-8 权重相加, sub: 权重和 = 1.0, tone: token }
+  - { at: [720, 266], size: [144, 64], text: 本层 MoE 输出, sub: '[T, 2048]', tone: token }
+links:
+  - { from: [128, 166], to: [128, 206], tone: token }
+  - { from: [792, 224], to: [792, 266], tone: token }
+fans:
+  - { from: [220, 248], to: [[334, 117], [334, 191], [334, 265], [334, 339]], tone: comm }
+  - { from: [[606, 117], [606, 191], [606, 265], [606, 339]], to: [720, 185], tone: comm }
+texts:
+  - { at: [450, 22], text: 'Qwen3-30B-A3B · EP=4 专家并行分工（128 选 8，每卡 32 专家，0 共享专家）', anchor: middle, strong: true }
+  - { at: [276, 76], text: dispatch, anchor: middle, tone: comm, strong: true }
+  - { at: [664, 76], text: combine, anchor: middle, tone: comm, strong: true }
+  - { at: [450, 418], text: '每张卡同时扮演源卡（收发本卡 token）与目的卡（计算命中本卡 E_start..E_end 的 token）', anchor: middle, note: true }
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L130-L215
+    symbols: [Qwen3MoeSparseMoeBlock, FusedMoEFactory, renormalize]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L227-L335
+    symbols: [token_dispatch, token_combine]

@@ -1,0 +1,46 @@
+layout: figure
+id: ascend-vs-upstream-qwen3
+caption: 标准 Qwen3-8B 请求在 vLLM（ced6857a）与 vllm-ascend（c09d3e20）之间的插件分工：上半由上游 vLLM 负责 API 分词、单组 KV 调度、Executor 编排及 Qwen3ForCausalLM 模型骨架；下半由 vllm-ascend 插件接管 NPUPlatform、NPUWorker、NPUModelRunner 与昇腾算子后端。
+size: [900, 510]
+items:
+  - { at: [32, 32], size: [188, 58], text: 请求接入（vLLM）, sub: HTTP、分词、ZMQ 入队, tone: control }
+  - { at: [268, 32], size: [188, 58], text: Scheduler（vLLM）, sub: 128-tok 块池借还与排批, tone: control }
+  - { at: [504, 32], size: [188, 58], text: Executor（vLLM）, sub: 发前向与采样两次调用, tone: control }
+  - { at: [32, 176], size: [188, 58], text: 插件注册入口, sub: 装包登记、启动自动发现, style: plain }
+  - { at: [268, 176], size: [188, 58], text: CustomOp 与 patch, sub: 替换归一化、激活与通信, style: plain }
+  - { at: [504, 176], size: [188, 58], text: NPUWorker, sub: 管本卡显存预算与通信域, tone: weight }
+  - { at: [32, 282], size: [188, 58], text: NPUPlatform, sub: 默认 128 块长、选后端, style: plain }
+  - { at: [268, 282], size: [188, 58], text: 上游 Qwen3 模型定义, sub: 直接复用上游模型骨架, tone: token, style: plain }
+  - { at: [504, 282], size: [188, 58], text: NPUModelRunner, sub: 拼输入、块表与图回放, tone: weight }
+  - { at: [32, 388], size: [188, 58], text: Ascend 编译与配置, sub: 图档位、量化与环境变量, style: plain }
+  - { at: [504, 388], size: [188, 58], text: 昇腾注意力与算子后端, sub: FIA / PA / RoPE / SwiGLU, tone: weight }
+links:
+  - { from: [220, 61], to: [268, 61], tone: control }
+  - { from: [456, 61], to: [504, 61], tone: control }
+  - { from: [598, 90], to: [598, 176], tone: weight }
+  - { from: [598, 234], to: [598, 282], tone: weight }
+  - { from: [598, 340], to: [598, 388], tone: weight }
+  - { from: [692, 417], to: [692, 61], via: [[738, 417], [738, 61]], tone: weight }
+  - { from: [126, 234], to: [126, 282], dashed: true }
+  - { from: [126, 388], to: [126, 340], dashed: true }
+  - { from: [220, 311], to: [268, 311], dashed: true }
+  - { from: [456, 311], to: [504, 311], dashed: true }
+  - { from: [362, 234], to: [362, 282], dashed: true }
+  - { from: [362, 340], to: [504, 417], via: [[362, 417]], dashed: true }
+dividers:
+  - { from: [16, 132], to: [884, 132], sides: ['上游 vLLM (ced6857a)：引擎编排与标准模型骨架', '平台边界以下：vllm-ascend (c09d3e20) 插件接管层'] }
+texts:
+  - { at: [752, 248], text: 采样新 token, note: true }
+  - { at: [752, 270], text: 交回引擎, note: true }
+  - { at: [24, 486], text: 实线：每一步在线推理调用链；虚线：启动期插件注册、模型复用与算子绑定, note: true }
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L72-L85
+    symbols: [register, NPUPlatform]
+  - source: vllm@ced6857a:vllm/v1/executor/abstract.py#L38-L92
+    symbols: [Executor]
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L271-L315
+    symbols: [Qwen3ForCausalLM]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L140
+    symbols: [NPUWorker]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L371-L395
+    symbols: [NPUModelRunner]

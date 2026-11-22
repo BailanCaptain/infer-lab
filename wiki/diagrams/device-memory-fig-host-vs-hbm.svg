@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="主机内存与 NPU HBM 双账隔离及启动显存预算拆分图" font-family="var(--font-sans)">
-<title>主机内存（Host DRAM）与 NPU HBM 双账及启动显存预算</title>
-<desc>determine_available_memory, _set_pytorch_npu_alloc_env, is_uva_available</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="主机内存与 NPU HBM 双账隔离及 Qwen3-8B 启动显存预算拆分图" font-family="var(--font-sans)">
+<title>主机内存（Host DRAM）与 NPU HBM 双账及 Qwen3-8B 启动显存预算</title>
+<desc>determine_available_memory, gpu_memory_utilization, _set_pytorch_npu_alloc_env, is_uva_available</desc>
 <defs>
 <marker id="dm-a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
 <marker id="dm-a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
@@ -25,11 +25,11 @@
 <text x="40" y="206" fill="#936300">锁页内存 / UVA（aclrtHostRegister）</text>
 <text x="548" y="112" fill="#936300">本卡权重分片 + 量化后处理布局</text>
 <text x="548" y="162" fill="#7a3a6a">试跑激活峰值 + 临时工作区 + HCCL 缓冲</text>
-<text x="548" y="206" fill="#065f56">KV / 状态池 + 录图资源（先切 KV 后录图）</text>
+<text x="548" y="206" fill="#065f56">物理 KV 缓存池 + 录图资源（先切 KV 后录图）</text>
 </g>
 <g font-size="13.5" fill="#66716d">
 <text x="40" y="225">物理仍留主机，不计入本卡 HBM 容量</text>
-<text x="548" y="225">请求归还块入池复用，已用显存不即降</text>
+<text x="548" y="225">请求归还块入池复用，已保留显存不即降</text>
 </g>
 <path d="M380 107H516" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#dm-a1)"/>
 <path d="M380 208H516" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#dm-a2)"/>
@@ -40,24 +40,24 @@
 <text x="450" y="196" font-size="14" font-weight="700" fill="#7a3a6a">UVA / 卸载</text>
 <text x="450" y="229" font-size="13.5" fill="#66716d">跨链路有代价</text>
 </g>
-<text x="16" y="282" font-size="16" font-weight="700" fill="#17211f">2. 单卡 HBM 启动预算拆分（默认 0.92，GLM 双机教程 0.85；64 GiB 教学示意）</text>
+<text x="16" y="282" font-size="16" font-weight="700" fill="#17211f">2. 单卡 64 GiB NPU 启动预算拆分（Qwen3-8B BF16 标准路径，默认 u = 0.92）</text>
 <g stroke-width="1.5">
-<rect x="14" y="298" width="284" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
-<rect x="302" y="298" width="112" height="52" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="418" y="298" width="320" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="742" y="298" width="144" height="52" rx="6" fill="#fff0e9" stroke="#b54237"/>
+<rect x="14" y="298" width="212" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="230" y="298" width="144" height="52" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="378" y="298" width="356" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="738" y="298" width="148" height="52" rx="6" fill="#fff0e9" stroke="#b54237"/>
 </g>
 <g text-anchor="middle" font-size="14" font-weight="700">
-<text x="156" y="321" fill="#936300">常驻权重（~21 GiB）</text>
-<text x="358" y="321" fill="#7a3a6a">试跑 3.4 GiB</text>
-<text x="578" y="321" fill="#065f56">自动预算余量 → KV 池（~30 GiB）</text>
-<text x="814" y="321" fill="#8f3229">预留余量</text>
+<text x="120" y="321" fill="#936300">常驻权重 ~15.25 GiB</text>
+<text x="302" y="321" fill="#7a3a6a">试跑 ~2.74 GiB</text>
+<text x="556" y="321" fill="#065f56">自动预算余量 → KV 池（~40.88 GiB）</text>
+<text x="812" y="321" fill="#8f3229">1 − u 余量</text>
 </g>
 <g text-anchor="middle" font-size="13.5" fill="#66716d">
-<text x="156" y="341">子账 20.58 + 表外项</text>
-<text x="358" y="341">激活+非PyTorch</text>
-<text x="578" y="341">3,855 / 3,908 块（教学预算）</text>
-<text x="814" y="341">9.6 GiB（15%）</text>
+<text x="120" y="341">BF16 8.19B 参数</text>
+<text x="302" y="341">激活 + HCCL 增量</text>
+<text x="556" y="341">18 MiB/块（128 tok）→ 2,324 块</text>
+<text x="812" y="341">5.12 GiB（8%）</text>
 </g>
 <g stroke-width="1.4">
 <rect x="14" y="368" width="276" height="122" rx="8" fill="#ddf4ef" stroke="#087f73"/>
@@ -76,8 +76,8 @@
 <text x="326" y="420">• 仍执行 profile_run 准备模型</text>
 <text x="326" y="444">• 跳过自动公式，直接取指定字节</text>
 <text x="326" y="468">• v0.30 再叠 offload / KVPP 修正</text>
-<text x="624" y="420">• 图捕获在切完 KV 之后才发生</text>
-<text x="624" y="444">• 索引器首跑建 54 MiB/卡 FP32</text>
-<text x="624" y="468">• 权重装得下 ≠ 启动一定不 OOM</text>
+<text x="624" y="420">• ACLGraph 捕获在切完 KV 之后发生</text>
+<text x="624" y="444">• 标准 GQA 零索引器开销（0 MiB）</text>
+<text x="624" y="468">• 建议值另留 150 MiB 安全裕度</text>
 </g>
 </svg>

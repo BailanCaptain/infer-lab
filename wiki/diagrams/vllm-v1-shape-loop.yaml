@@ -1,18 +1,18 @@
 layout: figure
 id: vllm-v1-shape-loop
-caption: 图示本部署正常生成路径（未开流水线并行 PP 或 prefill 上下文并行 PCP，无 KV connector），展示 EngineCore 的主循环每转一圈做的事，圈里的编号是主线七站。没有请求要算时循环停在输入队列上等；DP 部署里本组没有请求、另一组还在跑时，改让本组的 Worker 跑一个空批次陪着通信。有请求时排一份计划，经 Executor 让每个 Worker 先做前向、再做采样，拿回结果更新进度，新 token 编号送回前端。
+caption: 标准 vLLM V1 请求主循环（未开 PP / PCP、无 KV connector），展示 API Server、EngineCore 与 Worker 每转一圈的协作，圈里的编号是主线七站。无请求时循环停在输入队列上等待（仅在 MoE 开启跨 DP 组 EP 且本组空闲、他组在跑时，才触发空批次陪跑）；有请求时由 Scheduler 排定本步计划，经 Executor 驱动 Worker 先做前向、再做采样（开启投机时含草稿步），更新进度后把新 token 流式送回前端。
 size: [900, 700]
 items:
-  - { at: [240, 36], size: [420, 50], text: ① 前端：分词，包成请求消息, sub: 经进程间消息送进所选 DP 组的 EngineCore, tone: token }
+  - { at: [240, 36], size: [420, 50], text: ① 前端 API Server：分词，包成请求消息, sub: 经 ZMQ 进程间消息送进 EngineCore 输入队列, tone: token }
   - { at: [240, 116], size: [420, 50], text: EngineCore 收下请求，放进等待队列, style: plain }
   - { at: [240, 196], size: [420, 44], text: 有请求要算吗？, style: plain }
-  - { at: [700, 190], size: [180, 56], text: 停下，等新请求, sub: 另一组在跑时改跑空批次, style: plain }
+  - { at: [700, 190], size: [180, 56], text: 停下，等新请求, sub: 跨组 EP 时按需跑空批次, style: plain }
   - { at: [240, 280], size: [420, 50], text: ② Scheduler 排出这一步的计划, sub: 哪些请求、各算几个 token、新借哪些块号, tone: control }
-  - { at: [240, 364], size: [420, 56], text: Executor 发出第一次调用：前向, sub: 每个 Worker：③ 准备输入 → ④ 逐层前向；logits 先留在 Worker, tone: weight }
-  - { at: [240, 454], size: [420, 56], text: Executor 发出第二次调用：采样, sub: 每个 Worker：⑤ 采样与草拟；只有 0 号 Worker 回话, tone: weight }
-  - { at: [240, 544], size: [420, 50], text: ⑥ Scheduler 按结果更新进度, sub: 追加新 token、判断停止, tone: control }
+  - { at: [240, 364], size: [420, 56], text: Executor 发出第一次调用：前向, sub: 每个 Worker：③ 准备输入 → ④ 逐层前向；logits 暂留设备, tone: weight }
+  - { at: [240, 454], size: [420, 56], text: Executor 发出第二次调用：采样, sub: ⑤ 采样新 token（开投机时含草稿）；仅 output_rank 回传, tone: weight }
+  - { at: [240, 544], size: [420, 50], text: ⑥ Scheduler 按结果更新进度, sub: 追加新 token、判断停止条件, tone: control }
   - { at: [700, 544], size: [180, 50], text: ⑦ 前端：反分词、流式返回, tone: token }
-  - { at: [240, 628], size: [420, 50], text: 结束的请求：块号还回池子, sub: 请求编号随下一份计划通知 Worker 清掉缓存, tone: kv }
+  - { at: [240, 628], size: [420, 50], text: 结束的请求：块号还回池子, sub: 请求编号随下一份计划通知 Worker 清理状态, tone: kv }
 links:
   - { from: [450, 86], to: [450, 116] }
   - { from: [450, 166], to: [450, 196] }
@@ -26,16 +26,16 @@ links:
   - { from: [450, 594], to: [450, 628] }
   - { from: [240, 653], to: [240, 218], via: [[16, 653], [16, 218]] }
 texts:
-  - { at: [450, 18], text: EngineCore 主循环 · 每转一圈, anchor: middle, strong: true }
+  - { at: [450, 18], text: EngineCore 主循环 · 每转一圈（API Server ↔ EngineCore ↔ Worker）, anchor: middle, strong: true }
   - { at: [462, 264], text: 是 }
   - { at: [668, 210], text: 否 }
-  - { at: [24, 440], text: 下一圈, size: 12.5 }
+  - { at: [24, 440], text: 下一圈, size: 13.5 }
 pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L589-L620
     symbols: [step, schedule, execute_model, sample_tokens, update_from_output]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
-    symbols: [execute_dummy_batch, engines_running]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1275
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1475
     symbols: [run_busy_loop, _process_input_queue, _process_engine_step]
-  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L328
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L2181-L2230
+    symbols: [execute_dummy_batch, engines_running]
+  - source: vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L340-L365
     symbols: [execute_model, sample_tokens, output_rank]

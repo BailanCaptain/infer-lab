@@ -3,6 +3,8 @@ id: learning-guide
 title: "阅读指南：这个知识库讲什么，按什么顺序读"
 type: concept
 origin: direct
+legacyAnchors:
+  按顺序读的五页主线: 异构旗舰双机实战全案（历史 GLM-5.3-Flash 专题）
 summary: 知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与四大交互工程实验室。
 aliases: [学习路线, 阅读顺序, 入门指南, 无设备学习]
 chapters: ["00"]
@@ -40,7 +42,14 @@ updated: "2026-11-19"
 | **路线 A · 概念初学者**<br>（从零建立推理直觉） | 本页 → [请求全景](request-overview.md) → **直接进入 02 组** [token](token.md) → [embedding](embedding.md) → [attention](attention-qkv.md) → **03 组** [Prefill 与 Decode](prefill.md) → [KV cache](kv-cache.md) → [PagedAttention](paged-attention.md) | 先用 6 个词的迷你例子看懂整条链路，再一层层拆开单个积木、显存分页、昇腾硬件和多卡并行，全程零前置概念倒挂 |
 | **路线 B · 新模型上线速查**<br>（要把模型尽快跑在昇腾上） | 在 **01 组** 内按 [读懂 HF 模型目录](hf-model-anatomy.md) → [昇腾新模型上线总览](ascend-model-onboarding.md) → [环境准备与服务启动](ascend-env-and-serve.md) 走完，随后转到 **08 组** [核心 CLI 参数](core-cli-params.md)与[通用排障](inference-troubleshooting.md) | 先学会看 `config.json` 算权重和显存，再确认模型是否受支持、怎么选容器镜像并拉起服务，遇到报错再按需回查原理页 |
 
-全站日常概念页与 `v0.30.0` 标准算例以常见开源模型 `Qwen3-8B`（稠密架构）和 `Qwen3-30B-A3B`（稀疏专家架构）为统一标尺；当你想看真实多机大规模生产部署时，可以进入 **09 组《旗舰异构模型端到端全案解剖》** 走完完整双机全案。
+全站采用**双层标尺设计**，把主流通用原理与异构旗舰全案明确分开，避免初学者一上来就被前沿特例绊住：
+
+- **主流入门标尺（覆盖约 `80%` 生产模型）**：全站日常概念页与 `v0.30.0` 标准算例统一采用 **`Qwen3-8B`**（Dense GQA，稠密分组查询架构）与 **`Qwen3-30B-A3B`**（MoE，稀疏混合专家架构）。先沿路线 A 走通 01–03 组，就能建立绝大多数线上大模型的通用推理直觉。
+- **异构旗舰双机全案（进阶实战，非入门前置）**：**09 组**的 GLM-5.3-Flash 双机 16 卡专题包含四路残差（mHC）、5 个混合缓存组（KDA + 稀疏 MLA）等前沿异构特性。它是学完主流基础后的综合实战演练，**不是阅读基础页的前置条件**。
+
+> **入门轨道 2 题通关自测**（沿路线 A 读完 01–03 组后，先自检这两问再进 09 组进阶全案）
+> 1. **首 token 在哪一步产出？**（是在 Prefill 处理完最后一个提示词位置后的词表采样阶段，还是等第一轮 Decode 才生成？）
+> 2. **标准 GQA 每个位置留什么缓存？**（按 KV 头数存该位置的 K、V 向量，不按查询头数翻倍，也不涉及 GLM 的四路残差或 5 组混合缓存。）
 
 ```wiki-diagram
 file: learning-guide-route
@@ -65,9 +74,9 @@ file: learning-guide-route
 | **11 RFork 权重快载专题** | 独立演进的权重快载机制：新实例直接从已加载权重的进程拉取权重，跳过重复读盘，其余前向与调度不变 | [RFork 总览](rfork.md) | 关注秒级扩容与权重快载架构时单独查阅 |
 | **12 additional_config 参数字典** | `additional_config` 下具体参数键的定义、默认值、生效条件与版本差异字典 | 侧栏 **12** 组按分类检索 | 在正文或日志中遇到某个具体配置键名时随手查一条 |
 
-### 按顺序读的五页主线
+### 异构旗舰双机实战全案（历史 GLM-5.3-Flash 专题）
 
-如果你想直接沿 **09 组 GLM-5.3-Flash 双机 16 卡全案**串一遍（模型 → 16 卡部署 → 单条请求七站 → 多条并发请求 → 代码调用链），按 [认识 GLM-5.3-Flash](glm-5-3-flash.md) → [双机部署](glm-5-3-flash-two-node.md) → [一条请求](one-request.md) → [多个请求](concurrent-requests.md) → [代码路径](request-call-chain.md) 五页顺序读即可；前四页只需要矩阵乘法基础，第 5 页开始需要看懂 Python 调用栈。
+完成上方 `Qwen3-8B` / `Qwen3-30B-A3B` 入门轨道与 2 题自测后，可以再进入 **09 组 GLM-5.3-Flash 双机 16 卡历史全案**。全案依次串通模型、16 卡部署、单条请求七站、多条并发与代码调用链，按 [认识 GLM-5.3-Flash](glm-5-3-flash.md) → [双机部署](glm-5-3-flash-two-node.md) → [一条请求](one-request.md) → [多个请求](concurrent-requests.md) → [代码路径](request-call-chain.md) 五页顺序读即可。该专题涉及四路残差（mHC）与 5 个混合缓存组等异构特性，属于进阶多机实战而非入门前置；前四页只需矩阵乘法基础，第 5 页起需要看懂 Python 调用栈。
 
 先记住多卡部署里最常碰到的三个分工名词：
 

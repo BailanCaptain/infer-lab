@@ -3,8 +3,8 @@ id: expert-parallel
 title: Expert parallel：16 张卡怎样分专家、发 token、收结果
 type: feature
 summary: >-
-  EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先看这个过程，再沿 GLM 双机部署跟一个 token 走过
-  MoE，最后核对通信、陪跑与多请求负载。
+  EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先用 4 卡示意与标准 Qwen3-30B-A3B EP=4（128 选 8、0
+  共享专家）讲清主干流程，再对照 GLM 双机 EP16、共享专家、MC2/AllGather 切换与多请求负载。
 aliases:
   - 专家并行
   - Expert Parallel
@@ -308,13 +308,34 @@ $$y_{\text{MoE}} = \bigl(0.75 \times E_3(4) + 0.25 \times E_5(4)\bigr) + S(4) = 
 
 GLM 的放法见后文[第 4 步](#4-combine拼回-token加共享输出)。
 
-## 放到 GLM 双机：一个 token 走过一层 MoE
+## 落到标准部署：Qwen3-30B-A3B 的 EP=4 专家分工
+
+把前面 4 卡 8 专家的示意放大到 `v0.30.0` 标准 MoE 标尺——单机四卡运行的 **`Qwen3-30B-A3B`**（`48` 层全 MoE、`hidden_size = 2048`、`128` 个路由专家、`top-8`、`moe_intermediate_size = 768`、**`0` 个共享专家**，采用 `TP=4 + EP=4, DP=1`）。这里没有共享专家分支，也没有跨机 DP 陪跑，能最干净地看清 EP 主干：
+
+```wiki-diagram
+file: expert-parallel-assign-qwen3
+```
+
+| 阶段（`Qwen3-30B-A3B`，`EP=4` 每卡视角） | 张量形状与路由规则 | 通信与本地动作 |
+| --- | --- | --- |
+| **1. Router 选专家** | `[T, 2048] → [T, 128]`，Softmax 选 `top-8` 并重归一化（权重和严格为 **`1.0`**） | 卡内完成，无通信 |
+| **2. Dispatch（派发）** | 按专家号 `e ÷ 32` 确定目的卡：`rank 0` 持 `E0–E31`，`rank 1` 持 `E32–E63`，`rank 2` 持 `E64–E95`，`rank 3` 持 `E96–E127` | 跨 `EP=4` 将命中 token 发往持有卡 |
+| **3. 本地专家计算** | 每卡常驻 **`32` 个完整专家**，执行 SwiGLU `2048 → 768 → 2048`（单个专家 `BF16` 占 `9 MiB`，`W8A8` INT8 占 `4.5 MiB`） | 卡内分组矩阵乘，无共享专家分支 |
+| **4. Combine（收回并归并）** | 专家输出送回源卡，按 `top-8` 归一化权重加权求和，恢复本层输出 `[T, 2048]` | 跨 `EP=4` 收回结果并本地加权相加 |
+
+**容量直觉：** `Qwen3-30B-A3B` 全模型 `48` 层 × `128` 专家仅路由专家权重在 `BF16` 下就达 `54.0 GiB`（整模型 `56.87 GiB`），单张 32 GiB 卡装不下。经 `EP=4` 均分后，每卡每层只驻留 `32` 个完整专家：路由专家权重降为 `BF16` `13.5 GiB/卡`，在 `W8A8` 动态量化下仅 `6.75 GiB/卡`（整卡权重约 `7.40 GiB`，单卡对账见[显存预算](kv-cache-memory-profiling.md#放到-v0300-标准部署qwen3-8b-单卡与-qwen3-30b-a3b-四卡怎么算)）。
+
+## 异构旗舰与三维算例对照：GLM 双机 EP16 与共享专家
+
+以上是无共享专家、单机四卡的 `Qwen3-30B-A3B EP=4` 标准主干。下面转入例外 B 历史绑定算例——**GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，完整前提见[官方双机配置](glm-5-3-flash-two-node.md)）。它在跨机 `EP16`（`288 选 8`）之上叠加了三项新变量：**1 个由机内 TP8 合切的共享专家**、跨两台机器的 `DP2` 陪跑，以及按执行宽度在 `MC2` 与 `AllGather` 之间的路径切换。
+
+### 放到 GLM 双机：一个 token 走过一层 MoE
 
 **EP16 下每卡持有 18 个完整路由专家，一个 token 选中的 8 个专家按持有卡分头计算，跨机命中的工作也会发到另一台机器。** 请求在[一条请求的第 4 站](one-request.md#42-层-moe每卡-18-个专家)，做完本层 attention（汇集历史信息的计算）后进入这里。
 
 [GLM-5.3-Flash](glm-5-3-flash.md) 每个 MoE 层有 **288 个路由专家**，每个 token 只选其中 8 个来算（top-8，前面的示意是 k=2）；每层另有 **1 个共享专家**，不经过 router，每个 token 都会用到，它不参与 EP。288 个路由专家都得常驻，供下一个 token 随时选用：只选少数专家省的是本次计算，全部层的专家权重仍要装进显存。主干的路由专家权重按 8 位整数存储，合计约 **283.5 GiB**，而一张 A2 卡标称显存是 **64 GB**，单卡装不下；分摊后的实际容量账见[双机部署](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
-本页固定使用[官方双机配置](glm-5-3-flash-two-node.md)（审定历史绑定算例钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`）：两台 Atlas 800 A2、每台 8 卡。**TP8** 把一个矩阵切给机内 8 卡协作，**DP2** 让两台机器各有一个独立调度请求的执行组；**EP16 横跨这两个执行组**，每卡持有 18 个完整路由专家。以下形状和通信账限定未额外覆盖配置、FlashComm1 与 sequence parallel 关闭、共享专家 DP 关闭、无共享专家混合放置。只关闭 FlashComm1 还不充分：初始化或刷新时，共享专家 DP 能把 sequence parallel 打开。
+本节沿用官方双机配置：两台 Atlas 800 A2、每台 8 卡，**TP8** 把矩阵切给机内 8 卡，**DP2** 让两台机器各自独立调度请求，**EP16 横跨这两个执行组**（每卡 18 个完整路由专家）。以下形状与通信账的前提是：未额外覆盖配置、FlashComm1 与 sequence parallel 关闭、共享专家 DP 关闭、无共享专家混合放置（注意仅关 FlashComm1 不够，开启共享专家 DP 仍会顺带打开 sequence parallel）。
 
 ### 16 张卡怎样分专家
 
@@ -427,7 +448,14 @@ $$y_{\text{MoE}} = \sum_{i=1}^{8} w_i E_{e_i}(x) + E_{\text{shared}}(x) \in \mat
 
 **为什么单机 EP8 只能走 AllGather。** 对同一个 GLM 模型，EP8 每卡要放 36 个路由专家：EP 规模不足 16，同时每卡专家数超过 24，两个条件都不满足。即使 token 很少，也无法进入此 A2 MC2 分支。EP8 的权重与容量对照见[部署页的单双机比较](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。
 
-**从 GLM 固定门槛 `128` 到 `v0.30.0` 四族硬件动态选路。** 不要把 `128` 当成所有版本或所有昇腾芯片写死的通用常数。在 `vllm-ascend` `v0.30.0` 主基线（`c09d3e20`）中，`select_moe_comm_method` 先过两道全局前置门——未开启 EP 或 `ep_world == 1` 直接返回 `ALLGATHER`；开启 `LoRA + EP` 强制走 `ALLTOALL`（因融合算子不支持挂载 LoRA）。通过前置门后，按 `HardwareProfile.moe_comm_policy` 分派到四族芯片各自的选路器，并与启动时 `set_mc2_tokens_capacity` 按 `enable_prefill_mc2` / MegaMoe、最大图捕获档或 `max_num_reqs × uniform_decode_query_len` 经 `TP` 向上取整限幅算出的动态门槛 `mc2_tokens_capacity` 比较（`A2` 走专家密度与容量判据回退 `ALLGATHER`；`A3` 优先 `FUSED_MC2`、其次容内 `MC2`、超容回退 `ALLTOALL`；`310P` 恒走 `ALLGATHER`；昇腾 `950 / A5` 依次在 `FUSED_MC2`、容内 `MC2`、`world ≤ top_k` 的 `ALLGATHER` 与 `ALLTOALL` 之间切换）：
+**从 GLM 固定门槛 `128` 到 `v0.30.0` 四族硬件动态选路。** 不要把 `128` 当成所有版本或所有昇腾芯片写死的通用常数。在 `vllm-ascend` `v0.30.0` 主基线（`c09d3e20`）中，`select_moe_comm_method` 按两步选路：
+
+1. **两道全局前置门**：未开启 EP 或 `ep_world == 1` 直接返回 `ALLGATHER`；开启 `LoRA + EP` 强制走 `ALLTOALL`（融合算子不支持挂载 LoRA）。
+2. **四族硬件策略与动态容量 `mc2_tokens_capacity`**：通过前置门后，按 `HardwareProfile.moe_comm_policy` 分派到四族芯片各自的选路器，并与启动时 `set_mc2_tokens_capacity` 算出的动态门槛比较。该门槛按 `enable_prefill_mc2` / MegaMoe、最大图捕获档或 `max_num_reqs × uniform_decode_query_len` 经 `TP` 向上取整限幅得出。
+   - **A2**：走专家密度与容量判据，超限回退 `ALLGATHER`。
+   - **A3**：优先 `FUSED_MC2`，其次容内 `MC2`，超容回退 `ALLTOALL`。
+   - **310P**：恒走 `ALLGATHER`。
+   - **昇腾 950 / A5**：依次在 `FUSED_MC2`、容内 `MC2`、`world ≤ top_k` 的 `ALLGATHER` 与 `ALLTOALL` 之间切换。
 
 ```wiki-diagram
 file: ep-fig-four-hw-dispatch

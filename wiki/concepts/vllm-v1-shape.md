@@ -3,9 +3,8 @@ id: vllm-v1-shape
 title: vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环
 type: concept
 summary: >-
-  vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字，EngineCore
-  每一步排一份调度计划、拿回结果更新进度，Executor 把计划交给每张卡上的 Worker 执行。本页讲这个循环里各组件的分工、两道边界上交接什么，以及
-  R1 在双机部署上绕一圈的样子。
+  vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字与分词，EngineCore 每步排定调度计划并更新进度，Executor
+  驱动各卡 Worker 执行前向与采样。本页先走通标准 Qwen3-8B 的三角色主循环，再对照历史 GLM 双机 20 进程跨机协同。
 aliases:
   - vLLM 的形状
   - vLLM V1 架构
@@ -151,13 +150,14 @@ file: vllm-v1-plate-cutaway
 - **EngineCore** 要尽快把下一步排出来，最怕被别的事卡住；
 - **Worker** 大部分时间在等卡算完。
 
-分开以后，前端收新请求的时候，EngineCore 可以在排下一步，Worker 可以在算这一步。更重要的是，重的东西不用动：在[双机部署的权重算例](glm-5-3-flash-two-node.md#每张卡上放了什么)中，3121f187 配方所列主要语言权重每卡约 20.58 GiB，视觉塔、MTP 旋转矩阵和量化辅助张量等还要另计；而 EngineCore 交给 Worker 的第一步计划，主要包括请求标识、提示词编号、采样参数、「R1 算 4 个 token」的计数和新借的块号。计划很轻，权重和 KV cache 一直留在卡上。
+分开以后，前端收新请求的同时，EngineCore 可以排下一步，Worker 可以算这一步。更重要的是，**重张量留在卡上不动，跨边界只传轻账本**：以 `v0.30.0` 标准主基线下的 **Qwen3-8B**（BF16 权重约 `15.2 GiB`）为例，单卡 `TP=1` 启动后权重与 KV 池常驻 NPU HBM，EngineCore 交给 Worker 的每步调度计划只包含请求 ID、token 编号、采样参数、本步 token 计数与新借块号，消息体积微乎其微。
 
 代价有三笔：
 
-1. **跨边界的东西都要打包。** 前端和 EngineCore 之间走进程间消息，EngineCore 和 Worker 之间走共享内存里的广播队列，通道细节见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。消息按约定组织字段，不是直接共用另一进程里的请求对象。本页纯文本路径主要传编号、计数和参数，新 token 用列表返回；嵌入输入、池化输出等路径也能传张量，消息开销要按实际字段计算。
-2. **同一份请求资料存两处，后续只发差量。** 一条请求第一次被调度时，计划里带上它的全部资料：提示词的 token 编号、采样参数和初始块号；Worker 把这些缓存在自己的进程里，之后每一步只发变化的部分——新借的块号和已算到哪里。两边必须始终对得上：请求结束时，EngineCore 把它的编号放进下一份计划的「结束名单」（`finished_req_ids`），Worker 看到后才删掉自己那份缓存。正因 Worker 本地保留了历史资料，后续任何一份 `SchedulerOutput` 都不能单独当作完整请求状态来读；其中 `CachedRequestData.new_token_ids` 字段仅在启用流水线并行（PP，把模型按层切到多个阶段接力执行）时才用来传递新增 token 编号，非 PP 场景下该字段为空，还原当轮完整输入必须把差量计划与 Worker 缓存合起来看。
-3. **每一步都要跨两次边界。** 计划往下走一次，结果往上走一次。异步调度打开时，相邻两步会叠在一起，把这段等待藏到前向后面，见[异步调度](async-scheduling.md)。
+1. **跨边界的东西都要打包。** 前端与 EngineCore 之间走进程间 ZMQ 消息，EngineCore 与多卡 Worker 之间走共享内存广播队列（通道细节见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)）。消息按约定组织字段，不共享对方进程内的请求对象；纯文本路径主要传编号、计数与参数，嵌入输入或池化输出路径则另计张量消息开销。
+2. **同一份请求资料存两处，后续只发差量。** 请求首次被调度时，计划携带全部资料（提示词 token 编号、采样参数、初始块号），Worker 缓存在本地持久批次里；之后每步只发变化量（新借块号与已算进度）。请求结束时，EngineCore 把编号放进下一份计划的 `finished_req_ids`，Worker 据此清理本地缓存。
+   - **边界提醒**：`CachedRequestData.new_token_ids` 仅在流水线并行（PP）下传递新增 token 编号，非 PP 场景下为空，还原当轮完整输入须把差量计划与 Worker 本地缓存合起来看。
+3. **每一步都要跨两次边界。** 计划往下走一次，结果往上走一次。开启异步调度后，相邻两步重叠执行，把跨边界等待藏到前向后面（见[异步调度](async-scheduling.md)）。
 
 本页只讲组件分工和这个循环。相邻的几个问题各有专页：
 
@@ -244,9 +244,18 @@ Worker 在这几步里各做什么、哪一步失败会怎样，见 [NPUWorker �
 
 因此**进程边界不等于两个仓库的分界**：EngineCore 进程里也跑着昇腾的代码（全局 patch 换掉的调度相关函数、决定块怎么切的函数），Worker 里也大量复用上游的代码。五个扩展点各管什么，见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md)；补丁为什么要在每个进程各打一遍，见[补丁和配置为什么要每个进程各做一遍](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
 
+## 标准主干走读：Qwen3-8B 的三角色极简主循环
+
+在 `v0.30.0` 标准主基线下，用单卡（`TP=1`）或机内多卡（如 `TP=2/4`）部署 **Qwen3-8B** 时，V1 引擎循环最干净：
+
+- **角色与进程形态**：单卡 `TP=1` 时默认用 `UniprocExecutor`（API Server 进程 + EngineCore 进程内直调 `NPUWorker`，共 2 个进程）。多卡 `TP=N` 时切到 `MultiprocExecutor`（1 个 API Server + 1 个 EngineCore + $N$ 个独立 Worker 进程），**没有跨机 DP 协调器，也不存在跨 DP 组的空批次陪跑**。
+- **一步闭环**：API Server 分词入队后，EngineCore 的 Scheduler 从单一 `128-tok` `BlockPool` 借块并排定计划。Executor 依次下发 `execute_model`（全 36 层 GQA 共用 1 份 `AscendMetadata`）与 `sample_tokens`（每条请求产出 1 个 `next_token_id`，默认无 MTP 草拟），最终仅 `output_rank` 回传结果。Scheduler 更新进度与判停，API Server 流式推给客户端；无请求时，EngineCore 直接阻塞在输入队列上等待。
+
+只有扩大到跨机 DP + EP 的 MoE 旗舰部署时，才会叠出多 EngineCore、DP 协调器、空批次陪跑与 MTP 候选验证——下面用历史 GLM 双机 20 进程全案作对照。
+
 ## 放到 GLM 双机：R1 的一个 token 绕一圈
 
-部署沿用[部署前提](glm-5-3-flash-two-node.md#部署前提)：两台机器各 8 张卡，每台机器是一个 DP 组，组内 8 张卡做 TP8，16 张卡一起做 EP16。落到本页的角色上：node0 有 1 个前端（API server）；每台机器各有 1 个 EngineCore，它的 Executor 管本机 8 个 Worker；16 张卡各有 1 个 Worker。再加上 node0 的 1 个 DP 协调器，一共 20 个进程，账见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)。
+从这里转入例外 B 历史绑定算例（[部署前提](glm-5-3-flash-two-node.md#部署前提)）：两台机器各 8 张卡，每台机器是一个 DP 组，组内 TP8、16 卡 EP16；在[双机部署的权重算例](glm-5-3-flash-two-node.md#每张卡上放了什么)中，所列主要语言权重每卡约 `20.58 GiB`（视觉塔、MTP 旋转矩阵与量化辅助张量另计），常驻卡上不动。落到进程角色上：node0 有 1 个前端（API server）与 1 个 DP 协调器，每台机器各有 1 个 EngineCore（管理本机 8 个 Worker），16 张卡各有 1 个 Worker，共 **20 个进程**（完整清单见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。
 
 R1 是主线的示例请求，提示词送进引擎时是 4 个 token。这是为演示取的设定，真实请求套上聊天模板要长得多，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)。沿着循环走一圈：
 

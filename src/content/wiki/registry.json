@@ -95,7 +95,7 @@
       "title": "ACL Graph：捕获、批形状与重复执行",
       "type": "feature",
       "origin": "gap",
-      "summary": "昇腾上把一步前向的设备任务连同地址录成一张图、之后整串一次提交的那套实现。讲清 decode 为什么等的是 Host、一张图里存了什么、什么进不了图，以及 GLM 双机上录的 7 张图，以及视觉编码器按输出容量另行捕获的条件。",
+      "summary": "昇腾上把一步前向的设备任务连同地址录成一张图、之后整串一次提交的实现。本页讲清小批 decode 为何等在 Host、图内录了什么与什么进不了图，先以 v0.30.0 标准 Qwen3-8B 默认捕获预算（封顶 512）走通，再对照历史 GLM 双机 7 档 FULL_DECODE_ONLY 与视觉编码器图条件。",
       "aliases": [
         "ACLGraph",
         "ACL 图",
@@ -1114,10 +1114,13 @@
     },
     {
       "id": "ascend-config-system",
+      "legacyAnchors": {
+        "落到-glm-双机一个-json-键都没传": "复杂异构实战对照：GLM 双机为何一个 JSON 键都没传"
+      },
       "title": "Ascend 配置：三个地方能写，哪个值真的生效",
       "type": "feature",
       "origin": "gap",
-      "summary": "昇腾开关有三个入口——命令行通用参数、启动命令附带的那段 JSON、环境变量。本页讲它们怎样汇进每个进程各自的 AscendConfig，谁覆盖谁，构造与平台两道检查会怎样改写，以及官方 GLM 双机为什么一个 JSON 键都没传。",
+      "summary": "昇腾开关分散在三个入口——命令行通用参数、--additional-config JSON 与环境变量。本页先以 v0.30.0 主基线的 Pydantic 严格解析链路和 Qwen3 常用配置讲清合并、校验与改写机制，再对照 GLM 双机案例与四版本差异。",
       "aliases": [
         "AscendConfig",
         "additional_config",
@@ -1790,10 +1793,13 @@
     },
     {
       "id": "ascend-patch-system",
+      "legacyAnchors": {
+        "落到-glm-双机哪些-patch-真的起作用": "复杂异构实战对照：GLM 双机上哪些 patch 真的起作用"
+      },
       "title": "Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类",
       "type": "feature",
       "origin": "gap",
-      "summary": "patch 是 vllm-ascend 在进程里把上游模块中的名字改指向昇腾实现的做法。global patch 由平台准备钩子和通用插件 入口加载，worker patch 在 Worker 构造时加载；正常成功导入由标记和缓存去重。本页按固定 GLM 条件区分导入与 实际调用，并对照 v0.23.0 / v0.26.0rc / v0.30.0 / main 的入口与清单。",
+      "summary": "patch 是 vllm-ascend 在进程内把上游模块中的名字改指向昇腾实现的机制。本页先按 v0.30.0 主基线讲清 platform/worker 两类补丁的注入时机、去重与边界条件，再以 GLM 双机案例对照导入与实际调用，并汇总四版本入口与清单演进。",
       "aliases": [
         "patch",
         "adapt_patch",
@@ -2226,7 +2232,7 @@
       "title": "注意力后端：模型机制、状态布局与设备实现的连接",
       "type": "concept",
       "origin": "gap",
-      "summary": "注意力后端是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定用哪份状态、按什么形状组织这批 token、最后调哪个算子。GLM 的一次前向同时走 KDA 和稀疏 MLA 两条分支，不存在\"这个模型的后端\"。",
+      "summary": "注意力后端是模型层和设备算子之间的那层代码：层声明注意力类型，后端决定用哪份状态、怎样组织元数据、最终调用哪个设备算子。标准 Qwen3-8B 全 36 层 GQA 统一绑定 AscendAttentionBackend 并共用一份 AscendMetadata；历史 GLM 双机一次前向则同时走 KDA 与稀疏 MLA 两条分支。",
       "aliases": [
         "attention backend",
         "注意力后端",
@@ -2559,10 +2565,13 @@
     },
     {
       "id": "attention-qkv",
+      "legacyAnchors": {
+        "落到-glm-双机两类-attention-各改了哪一步": "复杂异构实战对照：GLM 稀疏 MLA 与 KDA 各改了哪一步"
+      },
       "title": "Attention 与 Q/K/V：当前位置怎样从历史里取信息",
       "type": "concept",
       "origin": "gap",
-      "summary": "attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3 个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。",
+      "summary": "attention 让每个位置按相关程度从自己和前面的位置取信息。本页先用 3 位置小例手算 Q/K/V 打分、1/√d 缩放、softmax、因果掩码与多头， 再落到标准 Qwen3-8B 的 32Q:8KV GQA 与逐头 QK-Norm，最后在复杂异构对照节展开历史 GLM 稀疏 MLA 与 KDA。",
       "aliases": [
         "注意力",
         "attention",
@@ -3147,7 +3156,7 @@
       "title": "Block Table：请求里的第几个位置，落在缓存池的哪一格",
       "type": "concept",
       "origin": "gap",
-      "summary": "block table（块表）是一张整数表：一行对应批次里的一条请求，第 i 格记着它的第 i 个块在缓存池里的块号；worker 每步按它把位置换算成槽位，注意力算子也按它逐块读历史。GLM 的 5 个缓存组各有一张表，full 组的 640 块号还要展开成 5 个 128 的 kernel 块号。",
+      "summary": "block table（块表）是一张整数表：一行对应批次里的一条请求，第 i 格记着它的第 i 个块在缓存池里的块号；worker 每步按它把位置换算成槽位，注意力算子也按它逐块读历史。标准单组模型（如 Qwen3-8B）全层共用一张表；异构混合模型（如 GLM-5.3-Flash）则按 5 个缓存组分表，并把 full 组的 640 块号展开为 5 个 128 kernel 块号。",
       "aliases": [
         "Block Table",
         "BlockTable",
@@ -3507,7 +3516,7 @@
       "title": "CANN 与 HCCL：计算、通信和物理链路",
       "type": "concept",
       "origin": "gap",
-      "summary": "CANN 提供昇腾计算软件能力，HCCL 负责组内通信；沿框架请求、通信库和物理链路看数据怎样到另一张卡，再解释 GLM 双机通信域与 AI QoS 的适用边界。",
+      "summary": "CANN 提供昇腾计算软件能力，HCCL 负责组内集合通信；先沿单机 Qwen3-8B TP=2 的 All-Reduce 走通框架请求、通信库与物理链路四层，再对照 GLM 双机跨节点通信域、218 次调用边界与 AI QoS 适用范围。",
       "aliases": [
         "CANN",
         "昇腾软件栈",
@@ -5161,7 +5170,7 @@
       "title": "Data parallel：请求怎样分进两组，空闲的组为什么陪跑",
       "type": "feature",
       "origin": "gap",
-      "summary": "DP 把请求分给不同执行组独立排队调度。稠密模型各组自持权重、互不等待；MoE 路由专家跨全部组只放一份，触发空闲组 dummy batch 陪跑（与是否开 EP 无关）。本页结合 v0.30.0 跨机 RoCE PP×DP 禁配与 DP 缓冲规则，落到 GLM 双机 DP2。",
+      "summary": "DP 把请求分给不同执行组独立排队调度。标准稠密模型（如 Qwen3-8B DP=2）各组自持完整权重、零跨组通信且无需陪跑；MoE 模型（如 Qwen3-30B-A3B 多组扩展与 GLM 双机）的路由专家跨全部组只放一份，才触发宽度对齐与空闲组 dummy batch 陪跑。",
       "aliases": [
         "Data Parallel",
         "数据并行",
@@ -7217,10 +7226,13 @@
     },
     {
       "id": "engine-processes",
+      "legacyAnchors": {
+        "双机部署里一共有哪些进程": "复杂异构实战对照：GLM 双机 20 个进程账"
+      },
       "title": "引擎有哪几个进程：API server、EngineCore 与 Worker",
       "type": "concept",
       "origin": "gap",
-      "summary": "vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker 执行设备上的模型；客户端模式与执行器决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存按进程管理；GLM 双机按角色计 20 个进程，executor（执行器）决定 Worker 是否独立成进程。",
+      "summary": "vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker 执行设备上的模型；客户端模式与 executor（执行器）决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存均按进程隔离管理。",
       "aliases": [
         "EngineCore",
         "Main 进程",
@@ -7878,7 +7890,7 @@
       "title": "Expert parallel：16 张卡怎样分专家、发 token、收结果",
       "type": "feature",
       "origin": "gap",
-      "summary": "EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先看这个过程，再沿 GLM 双机部署跟一个 token 走过 MoE，最后核对通信、陪跑与多请求负载。",
+      "summary": "EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先用 4 卡示意与标准 Qwen3-30B-A3B EP=4（128 选 8、0 共享专家）讲清主干流程，再对照 GLM 双机 EP16、共享专家、MC2/AllGather 切换与多请求负载。",
       "aliases": [
         "专家并行",
         "Expert Parallel",
@@ -12536,10 +12548,13 @@
     },
     {
       "id": "layers-and-hidden",
-      "title": "层与隐藏表示：GLM 的 45 层如何连接",
+      "legacyAnchors": {
+        "放到-glm-双机hidden-怎样穿过-45-层": "复杂异构实战对照：GLM 双机 45 层异构与 mHC 四流残差"
+      },
+      "title": "层与隐藏表示：hidden 如何沿残差流穿过每一层",
       "type": "concept",
       "origin": "gap",
-      "summary": "hidden 是模型为每个输入位置维护、逐层改写的向量。GLM-5.3-Flash 的 45 层之间用 mHC 传四条残差流：每个子层把四条加权合成一条去算，再把输出写回，旧流经 Sinkhorn 约束的 4×4 矩阵混合；每层两次，一次前向 90 次、1,800 轮 Sinkhorn，末层求平均回到一条。",
+      "summary": "hidden 是模型为每个输入位置维护、逐层改写的向量。本文先以 Qwen3-8B 的 36 层同构 Transformer（单条 [T, 4096] 残差流、每层 2 次 Pre-RMSNorm + 2 次残差相加）讲清主干，再对照历史 GLM-5.3-Flash 的 45 层 KDA/MLA 交替与 mHC 四流残差。",
       "aliases": [
         "层",
         "layer",
@@ -12662,6 +12677,9 @@
     },
     {
       "id": "learning-guide",
+      "legacyAnchors": {
+        "按顺序读的五页主线": "异构旗舰双机实战全案（历史 GLM-5.3-Flash 专题）"
+      },
       "title": "阅读指南：这个知识库讲什么，按什么顺序读",
       "type": "concept",
       "origin": "direct",
@@ -12885,10 +12903,13 @@
     },
     {
       "id": "lm-head",
+      "legacyAnchors": {
+        "放到-glm-双机154880-个词的分数怎样算出来": "复杂异构实战对照"
+      },
       "title": "lm_head：把最后的隐藏向量变成每个 token 的分数",
       "type": "concept",
       "origin": "gap",
-      "summary": "lm_head 是模型最后一步的输出投影：把最后一层交出的隐藏向量乘一张每个词一列的权重，给词表里每个 token 打一个分数（logits），再交给采样挑下一个 token。本页先用 4 维、6 个词的小例子演示一个分数怎么算，再看 GLM 双机上它按词表切成 8 段、各卡算一段、All-Gather 拼回 154880 个分数。",
+      "summary": "lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照 GLM 双机 TP8 与 MTP 共享输出头。",
       "aliases": [
         "lm_head",
         "lm head",
@@ -13970,10 +13991,13 @@
     },
     {
       "id": "mlp-residual-norm",
+      "legacyAnchors": {
+        "到-glm-双机r1-的一个-token-怎样走过这三件东西": "复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU"
+      },
       "title": "MLP、residual 与 RMSNorm：一个子层怎样更新 hidden",
       "type": "concept",
       "origin": "gap",
-      "summary": "以单条 residual、pre-norm 和 RMSNorm 为例，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。区分 LayerNorm 与 RMSNorm、pre-norm 与 post-norm；再讲 SwiGLU 的 gate、up、限幅和 down，以及 GLM 前 3 层稠密 MLP 与四条流。",
+      "summary": "以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准 Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与历史 GLM 四流 mHC。",
       "aliases": [
         "MLP",
         "FFN",
@@ -14241,10 +14265,13 @@
     },
     {
       "id": "moe",
+      "legacyAnchors": {
+        "落到-glm-双机45-层里-42-层是-moe": "复杂异构实战对照"
+      },
       "title": "MoE：一层里放很多专家，每个 token 只用几个",
       "type": "concept",
       "origin": "gap",
-      "summary": "MoE 把一层的前馈网络换成一池专家，router 给每个 token 打分，只交给其中 k 个去算，输出按组合权重相加：参数随专家数涨，每个 token 的计算只随 k 涨。本页先讲它是什么、为什么需要，再用 6 选 2 的示意数演一遍打分、偏置选人、归一化与加权相加，讲清分组选择、共享专家和负载不均，最后落到 GLM 的 288 选 8。",
+      "summary": "MoE 把前馈层换成一池专家，router 选 k 个加权求和，总参随专家数涨而每 token 计算只随 k 涨。本页以 Qwen3-30B-A3B（128 选 8、Softmax 重归一、零共享专家）为主线讲清机制、负载不均与算子交接，最后对照 DeepSeek-V3 / GLM 的 288 选 8、偏置路由与共享专家。",
       "aliases": [
         "MoE",
         "混合专家",
@@ -16335,7 +16362,7 @@
       "title": "算子与 kernel：从数学语义到设备实现",
       "type": "feature",
       "origin": "gap",
-      "summary": "模型里的一次运算怎样经框架替换表、量化方法或模型自己的调用，落到 torch_npu 已有算子或仓库自编译扩展，再经 CANN 下发成设备 kernel；并沿 GLM 双机的一层列出各站的实际算子。 另解释 IR 怎样按参数选择实现，以及它与 Ascend 类替换和原地复用的关系。",
+      "summary": "模型里的一次运算怎样经框架替换表、量化方法或注意力后端落到 torch_npu 与自编译扩展，再经 CANN 下发成设备 kernel。本页先以 v0.30.0 标准 Qwen3 走通 CustomOp、ACLGraph 与 npugraph_ex 执行路径选择，再解释上游 IR 优先级与原地复用，最后沿历史 GLM 双机列出逐站算子。",
       "aliases": [
         "ops",
         "register_ascend_customop",
@@ -16634,7 +16661,7 @@
       "title": "PD 分离：prefill 与 decode 分给两组实例时怎样交接历史",
       "type": "feature",
       "origin": "direct",
-      "summary": "把一条请求的 prefill 与 decode 交给 P、D 两套实例，中间由连接器交接历史状态。沿 Mooncake V1 看交棒、D 拉取、完成信号与押块，讲清 GLM 这类混合模型为何让 P 少算最后一个位置；本站双机主线没有开 PD，只作变体对照。",
+      "summary": "把一条请求的 prefill 与 decode 交给 P、D 两套独立实例，中间由连接器跨实例交接历史状态。本页先走通标准单组 KV（如 Qwen3-8B）的 P→D 拉取、完成信号、押块与 NIXL 租约，再解释混合模型（如历史 GLM 5 组状态）为何把最后一个 token 留给 D 计算。",
       "aliases": [
         "PD 分离",
         "PD Disaggregation",
@@ -19021,7 +19048,7 @@
       "title": "RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算",
       "type": "feature",
       "origin": "gap",
-      "summary": "PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；v0.30.0 与 main 细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。",
+      "summary": "PD 分离的 D 节点续块失败时，优先把被抢占请求的状态保存到主机内存，稍后恢复；无法保存时发 recomputed 结束帧，由代理重投 P 节点重做 prefill。客户端结束、引擎收尾与状态保存是不同步骤；v0.30.0 与 main 启用细粒度 TP 时保存失败直接中止。",
       "aliases": [
         "RecomputeScheduler",
         "AsyncRecomputeScheduler",
@@ -19941,10 +19968,13 @@
     },
     {
       "id": "request-teardown",
+      "legacyAnchors": {
+        "落到-glm-双机r1-结束时三处各还了什么": "复杂异构实战对照：GLM 双机 DP / 多缓存组释放与 P-D 延迟还块"
+      },
       "title": "请求收尾：一条请求结束或被中止后，它占的东西怎样一件件还回去",
       "type": "concept",
       "origin": "direct",
-      "summary": "请求收尾是一条请求停下后，前端、引擎和 worker 各自删掉为它存的记录、还回它对 KV 块的引用。先分清引擎判停、停止字符串、客户端断开、出错四条路谁先动手，再分清还块（引用计数减 1）和清空前缀缓存（抹掉全部登记），最后看 GLM 双机上 R1 结束时还了什么。",
+      "summary": "请求收尾是一条请求停下后，前端、引擎与 worker 各自删掉记录并归还 KV 块引用的过程。前半先讲标准请求正常判停与客户端断连 abort 的块释放链路，分清还块（引用计数减 1）、抢占与清空前缀缓存，后半对照 GLM 双机 DP、多缓存组释放与 P-D 延迟还块实战。",
       "aliases": [
         "请求收尾",
         "请求结束",
@@ -21211,10 +21241,13 @@
     },
     {
       "id": "rope",
+      "legacyAnchors": {
+        "放到-glm-双机哪里本该转为什么没转": "复杂异构实战对照：MLA 解耦段与 GLM 双机 NoPE"
+      },
       "title": "RoPE：把位置变成旋转，让注意力分数只看相隔多远",
       "type": "concept",
       "origin": "gap",
-      "summary": "RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的 GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。",
+      "summary": "RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数与 YaRN 等缩放决定可覆盖的长度范围。本文先以 Qwen3-8B（128 维拆 64 对、rope_theta = 1,000,000）讲清标准旋转与写缓存边界，再在文末对照历史 GLM-5.3-Flash 的零维 NoPE 特例。",
       "aliases": [
         "旋转位置编码",
         "旋转位置嵌入",
@@ -21364,7 +21397,7 @@
       "title": "Sampling：从词表分数里定下一个 token",
       "type": "concept",
       "origin": "gap",
-      "summary": "模型给词表里每个词打完分，sampling（采样）按请求的设置从中定下一个 token。本页用 6 个词的小例子手算 temperature、softmax、top-k、top-p 和按概率抽取，对照 greedy，再讲参数优先级与停止条件；最后落到 GLM 双机：8 张卡各采一遍、只交回一份，MTP 候选怎样验证。",
+      "summary": "模型给词表里每个词打完分，sampling（采样）按请求设置从中定下一个 token。本页先用 6 词小例手算 temperature、softmax、top-k、top-p 与指数噪声抽取，走通标准 Qwen3-8B（[B, 151936]）单 token 采样与参数优先级，再落到历史 GLM 双机 8 卡同步采样与 MTP 候选验证。",
       "aliases": [
         "sampling",
         "采样",
@@ -22829,10 +22862,13 @@
     },
     {
       "id": "streaming-output",
+      "legacyAnchors": {
+        "落到-glm-双机r1-的编号怎样变成片段": "复杂异构实战对照：GLM 双机思考标签与 MTP 多词流式"
+      },
       "title": "流式输出：token 编号怎样变成一段段推给客户端的文字",
       "type": "concept",
       "origin": "direct",
-      "summary": "流式输出让客户端边生成边看到文字：引擎每步交回新的 token 编号，前端的增量反分词把它们接上已有字节、还原出新增文字，查过停止字符串后包成一个 SSE 片段推出。先分清 token 与文本增量，再沿 GLM 双机看一步 1–4 个 token 怎样变成片段、在哪里判停和收尾。",
+      "summary": "流式输出让客户端边生成边看到文字：引擎每步交回新 token 编号，前端增量反分词补齐字节、还原新增文字并查过停止字符串，再包成 SSE 片段推出。前半先讲标准单流反分词、扣字与 SSE 帧推送主干及边界，后半对照 GLM 双机思考标签与 MTP 多词流式实战。",
       "aliases": [
         "流式输出",
         "流式返回",
@@ -23573,7 +23609,7 @@
       "title": "Tensor Parallel：一台机器的 8 张卡怎样合算一层",
       "type": "feature",
       "origin": "gap",
-      "summary": "把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。沿 GLM 双机的一次前向，核对通信和显存代价。",
+      "summary": "把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。先用标准 Qwen3-8B TP=2 与 Qwen3-30B-A3B KV 复制拐点讲清通用规律，再对照 GLM 双机 TP8 通信与显存账。",
       "aliases": [
         "张量并行",
         "Tensor Parallel",
@@ -25071,7 +25107,7 @@
       "title": "KV 块分配：块从池里借出、共享、归还",
       "type": "concept",
       "origin": "gap",
-      "summary": "启动时切好的 KV 块由 BlockPool 记账：请求要写新历史时从空闲队列队头借块号、计数 0 → 1，前缀相同的请求共用同一块，请求结束或被抢占时计数减回 0、块排回队列，数据不擦。GLM 双机上每个 DP 组一个池子，5 个缓存组共用；R1 首步借 15 块；按完整投机步示意，尾状态组持有 3–4 块，R1 结束时还回 16–17 块。截短步、长度封顶和异步在途计数另按实际块表核算。",
+      "summary": "启动时切好的 KV 块由 BlockPool 记账：请求写新历史时从空闲队头借块（ref_cnt 0 → 1），前缀相同的请求通过 touch 共用满块，结束或被抢占时倒序归还且数据留在原地。标准 Qwen3-8B 单池单组（128 tok/块、18 MiB/块）一笔账算清；历史 GLM 双机 5 个缓存组共用同池，R1 首步借 15 块，完整投机步示意结束还回 16–17 块。",
       "aliases": [
         "BlockPool",
         "KVCacheManager",
@@ -25394,10 +25430,14 @@
     },
     {
       "id": "vllm-scheduler",
+      "legacyAnchors": {
+        "放到-glm-双机一个-dp-组里的-r1": "复杂异构实战对照：GLM 双机 5 缓存组与 MTP 1+3 占位",
+        "多条请求时已有请求都在-decode余量怎样给新提示词": "复杂异构实战对照：GLM 双机 5 缓存组与 MTP 1+3 占位"
+      },
       "title": "Scheduler：每一步给哪些请求算几个 token",
       "type": "concept",
       "origin": "gap",
-      "summary": "Scheduler 在 EngineCore 每步开头只看每条请求还差几个位置，在 token 预算、请求数上限和KV 块之内先续 running、再用余量接 waiting，借不到块就抢占或停止接纳，在调度器里不分 prefill 和 decode（worker 侧仍有分路）；GLM 双机上每个 DP 组一步最多 8192 个 token、32 条请求，纯 decode 步只用 128 个。",
+      "summary": "Scheduler 在 EngineCore 每步开头按位置差额统一安排请求，在 token 预算、请求数上限与空闲 KV 块之内先续 running 再用余量接 waiting，块不足时触发抢占或暂缓接纳，调度器自身不按 prefill/decode 分阶段；前半以 v0.30.0 标准单缓存组请求走读扣减与抢占主干，后半对照 GLM 双机 5 缓存组与 MTP 占位实战。",
       "aliases": [
         "调度器",
         "Scheduler",
@@ -25649,7 +25689,7 @@
       "title": "vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环",
       "type": "concept",
       "origin": "gap",
-      "summary": "vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字，EngineCore 每一步排一份调度计划、拿回结果更新进度，Executor 把计划交给每张卡上的 Worker 执行。本页讲这个循环里各组件的分工、两道边界上交接什么，以及 R1 在双机部署上绕一圈的样子。",
+      "summary": "vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字与分词，EngineCore 每步排定调度计划并更新进度，Executor 驱动各卡 Worker 执行前向与采样。本页先走通标准 Qwen3-8B 的三角色主循环，再对照历史 GLM 双机 20 进程跨机协同。",
       "aliases": [
         "vLLM 的形状",
         "vLLM V1 架构",

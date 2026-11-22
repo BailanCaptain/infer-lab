@@ -1,0 +1,39 @@
+layout: figure
+id: tensor-parallel-forward-qwen3
+caption: 标准 Qwen3-8B 在 TP=2 下单个 Decoder 层的前向与通信边界：自注意力块按列切头（每卡 16Q + 4KV）、本地完成逐头 Q/K Norm + RoPE + 注意力后经 RowParallelLinear o_proj 做第 1 次 All-Reduce；SwiGLU 前馈块按列合并切分 gate_up、本地完成 SiluAndMul 激活后经 RowParallelLinear down_proj 做第 2 次 All-Reduce。全层结构规整对称，每层固定恰好 2 次 All-Reduce（36 层共 72 次）。
+size: [900, 770]
+frames:
+  - { at: [32, 96], size: [836, 290], label: '子层一 · GQA 自注意力块（列切分头 → 本地注意力 → 行切归约 #1）' }
+  - { at: [32, 418], size: [836, 266], label: '子层二 · SwiGLU 稠密前馈块（列切合并激活 → 行切归约 #2）' }
+items:
+  - { at: [230, 18], size: [440, 48], text: '层入口：单流 hidden [T, 4096]（两卡一致）', tone: token }
+  - { at: [230, 124], size: [440, 44], text: 'input_layernorm（RMSNorm [T, 4096]，本地无通信）', style: plain }
+  - { at: [44, 190], size: [396, 56], text: 'Rank 0 · QKV 列切（16Q + 4KV 头）', sub: '本地 q/k_norm + RoPE + FlashAttn → o_proj 部分和', tone: weight }
+  - { at: [460, 190], size: [396, 56], text: 'Rank 1 · QKV 列切（16Q + 4KV 头）', sub: '本地 q/k_norm + RoPE + FlashAttn → o_proj 部分和', tone: weight }
+  - { at: [190, 270], size: [520, 52], text: 'TP=2 All-Reduce #1（o_proj 部分和相加 → 完整 [T, 4096]）', sub: '两卡同步注意力输出，随后与入口残差相加', tone: comm }
+  - { at: [230, 446], size: [440, 44], text: 'post_attention_layernorm（融合残差相加 + RMSNorm）', style: plain }
+  - { at: [44, 512], size: [396, 56], text: 'Rank 0 · gate_up 合并列切 [T, 12288]', sub: '本地 SiluAndMul [T, 6144] → down_proj 部分和', tone: weight }
+  - { at: [460, 512], size: [396, 56], text: 'Rank 1 · gate_up 合并列切 [T, 12288]', sub: '本地 SiluAndMul [T, 6144] → down_proj 部分和', tone: weight }
+  - { at: [190, 592], size: [520, 52], text: 'TP=2 All-Reduce #2（down_proj 部分和相加 → 完整 [T, 4096]）', sub: '先列切后行切使非线性 SiluAndMul 免掉中间通信', tone: comm }
+  - { at: [210, 704], size: [480, 48], text: '与注意力后残差相加 → 输出单流 [T, 4096] 进下一层', tone: token }
+links:
+  - { from: [450, 66], to: [450, 124], tone: token }
+  - { from: [340, 168], to: [242, 190], via: [[340, 179], [242, 179]] }
+  - { from: [560, 168], to: [658, 190], via: [[560, 179], [658, 179]] }
+  - { from: [242, 246], to: [340, 270], via: [[242, 258], [340, 258]], tone: comm }
+  - { from: [658, 246], to: [560, 270], via: [[658, 258], [560, 258]], tone: comm }
+  - { from: [450, 322], to: [450, 446], tone: token }
+  - { from: [340, 490], to: [242, 512], via: [[340, 501], [242, 501]] }
+  - { from: [560, 490], to: [658, 512], via: [[560, 501], [658, 501]] }
+  - { from: [242, 568], to: [340, 592], via: [[242, 580], [340, 580]], tone: comm }
+  - { from: [658, 568], to: [560, 592], via: [[658, 580], [560, 580]], tone: comm }
+  - { from: [450, 644], to: [450, 704], tone: token }
+texts:
+  - { at: [64, 358], text: '每层固定恰 2 次 TP All-Reduce（36 层主干共 72 次；词表与 lm_head 在层外另计）', size: 13.5, note: true }
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L170
+    symbols: [QKVParallelLinear, RowParallelLinear, q_norm, k_norm, rotary_emb, o_proj]
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen2.py#L81-L115
+    symbols: [Qwen2MLP, MergedColumnParallelLinear, SiluAndMul, down_proj]
+  - source: vllm@ced6857a:vllm/model_executor/layers/linear.py#L1623-L1780
+    symbols: [RowParallelLinear, reduce_results, tensor_model_parallel_all_reduce]

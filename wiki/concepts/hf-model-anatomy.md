@@ -82,11 +82,11 @@ updated: '2026-11-18'
 1. **架构是否受支持**：确认 `architectures` 和 `model_type` 是否命中当前版本 `vllm` 与 `vllm-ascend` 已适配的模型类，避免权重下载完才报模型未注册。
 2. **显存和卡数是否够用**：用层数、隐藏维度、注意力头数、词表大小与精度算出纯权重静态占用和每 token 的 KV cache（保存历史键和值向量的缓存）增量，先判断单卡能否放下、是否必须切多卡并行。
 3. **分词与上下文长度是否异常**：核对对话模板 `chat_template` 是否齐备，并检查 `tokenizer_config.json` 里的 `model_max_length` 有没有悄悄把模型原本支持的上下文长度截短。
-4. **量化格式与昇腾路径是否匹配**：分辨目录里走的是 `config.json` 内嵌的 `quantization_config`（如 `compressed-tensors` 或原生 `fp8`），还是昇腾 ModelSlim 导出的 `quant_model_description.json`，防止因格式不兼容在启动阶段直接拒绝加载。
+4. **量化格式与昇腾路径是否匹配**：分辨目录走的是 `config.json` 内嵌的 `quantization_config`（如 `compressed-tensors` 或原生 `fp8`），还是昇腾 ModelSlim 导出的 `quant_model_description.json`。提前核对可防止启动阶段因格式不兼容直接拒载。
 
 ## 模型目录文件地图：启动时谁读哪份文件
 
-走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类：最外层是几份不到几 MB、用文本编辑器就能直接读懂的 JSON 与 Jinja「建筑蓝图」，深处则是装满几十 GiB 浮点或量化张量的 `.safetensors`「权重金库」与分片索引。先通过立体拆解剖面建立五类文件的物理空间直觉：
+走进标准 HuggingFace 模型目录，决定推理行为的文件可归为五类。最外层是几份不到几 MB、文本编辑器就能读懂的 JSON 与 Jinja「建筑蓝图」；深处则是装满几十 GiB 张量的 `.safetensors`「权重金库」与分片索引。先通过立体拆解剖面建立五类文件的空间直觉：
 
 ```wiki-diagram
 file: hf-plate-folder-cutaway
@@ -138,9 +138,9 @@ file: hf-fig-identity-unpack
 - `head_dim`（记为 $d_h$）：单个注意力头里每个 Q、K、V 向量的维度长度。
 - `intermediate_size`（记为 $I$）：稠密 MLP（前馈网络）中间层扩展后的宽度。在 Qwen3 系列的 SwiGLU 门控结构里，每层稠密 MLP 包含 `gate_proj`、`up_proj` 和 `down_proj` 三个线性矩阵。
 
-读这一组字段时，最容易踩中一个 **2 倍算账陷阱**：很多人习惯套用旧经验公式 $d_h = H / n_q$ 去反推单头维度，但在 `Qwen3-30B-A3B` 上这会直接算错一倍。`Qwen3-30B-A3B` 的 `hidden_size` 是 `2048`，`num_attention_heads` 是 `32`，按旧经验算出来的商是 `64`；然而它的 `config.json` 里显式写了 `"head_dim": 128`，因此 $n_q \times d_h = 32 \times 128 = 4096$，并不等于 `hidden_size`（`2048`）。
+读这一组字段时，最容易踩中一个 **2 倍算账陷阱**：很多人习惯套用旧公式 $d_h = H / n_q$ 反推单头维度，在 `Qwen3-30B-A3B` 上会直接算错一倍。它的 `hidden_size` 是 `2048`、`num_attention_heads` 是 `32`，按旧公式算出的商是 `64`；但 `config.json` 显式写了 `"head_dim": 128`，因此 $n_q \times d_h = 32 \times 128 = 4096$，并不等于 `hidden_size`（`2048`）。
 
-在 `vllm` 的 `ModelArchConfigConvertorBase.get_head_size` 与 `Qwen3Attention` 实现里，引擎会优先读取显式且大于 0 的 `head_dim`（也会用它构造 `q_norm` 和 `k_norm`），只有当 `head_dim` 缺失或为 0 时才回落到 `hidden_size // num_attention_heads`。如果自己做部署前显存预估时错用 `64` 代替 `128`，算出的 `q_proj`、`k_proj`、`v_proj`、`o_proj` 参数量以及每 token 的 KV cache 字节数都会整整少算一半。
+在 `vllm` 的 `ModelArchConfigConvertorBase.get_head_size` 与 `Qwen3Attention` 中，引擎优先读取显式且大于 0 的 `head_dim`（同时用来构造 `q_norm` 和 `k_norm`）；仅当它缺失或为 0 时才回落到 `hidden_size // num_attention_heads`。若部署前估算时错用 `64` 代替 `128`，算出的 `q/k/v/o_proj` 参数量与每 token KV cache 字节数都会整整少算一半。
 
 ```wiki-diagram
 file: hf-fig-headdim-trap
@@ -157,7 +157,7 @@ file: hf-fig-headdim-trap
 
 $$i \notin \text{mlp\_only\_layers}, \quad \text{num\_experts} > 0, \quad (i + 1) \bmod \text{decoder\_sparse\_step} = 0$$
 
-对照 `Qwen3-30B-A3B` 的配置，`mlp_only_layers` 为空列表且 `decoder_sparse_step = 1`，意味着全部 48 层都是 MoE 层。理解 MoE 模型配置时必须把**总参数量**与**激活参数量**分开算账：推理过程中每个 token 虽然只经过 8 个被选中的专家（激活参数仅 `3.35B`），决定一次前向的算力消耗；但在加载模型时，因为你无法提前预知后续请求会路由到哪几个专家，128 个专家的权重（总参数 `30.53B`，BF16 下 `56.87 GiB`）必须全部常驻在 NPU 显存中，32 GiB 单卡根本装不下。反过来，由于 `Qwen3-30B-A3B` 的 `num_key_value_heads` 只有 `4`，即使层数达到 `48` 层，它每 token 的 BF16 KV cache 却只有 `96.0 KiB`，比只有 `8.19B` 总参数但配了 `8` 个 KV 头的 `Qwen3-8B`（`144.0 KiB/token`）更省缓存。
+对照 `Qwen3-30B-A3B` 的配置，`mlp_only_layers` 为空且 `decoder_sparse_step = 1`，全部 48 层都是 MoE 层。理解 MoE 时必须把**总参数量**与**激活参数量**分开算账：单步推理虽只经过 8 个选中专家（激活参数 `3.35B`），决定单步算力；但加载时无法预知路由，128 个专家权重（总参数 `30.53B`，BF16 下 `56.87 GiB`）必须全部常驻显存，32 GiB 单卡根本装不下。反过来，因它的 `num_key_value_heads` 只有 `4`，即便有 `48` 层，每 token BF16 KV cache 也只有 `96.0 KiB`，比 `Qwen3-8B`（`144.0 KiB/token`）更省缓存。
 
 ```wiki-diagram
 file: hf-fig-moe-gate-and-bars
@@ -167,9 +167,9 @@ file: hf-fig-moe-gate-and-bars
 
 模型的首尾两头由 `vocab_size`（记为 $V$）和 `tie_word_embeddings` 控制。`vocab_size` 是词表总行数，决定最前端把 token 编号查成向量的 `embed_tokens` 矩阵和最末端把隐藏向量投影回词表分数的 `lm_head` 矩阵各自有多大（两者的原理分别见 [embedding](embedding.md) 与 [lm_head](lm-head.md)）。当 `tie_word_embeddings` 为 `true` 时，首尾两处共享同一份 $V \times H$ 权重矩阵，省掉整整一张输出头表的参数量；为 `false` 时，首尾各自独立保存一份矩阵。
 
-在 Qwen3 家族的三个预设里，大尺寸模型 `Qwen3-8B` 和 `Qwen3-30B-A3B` 的 `tie_word_embeddings` 都是 `false`，仅首尾两张表就在 `Qwen3-8B` 里合占了 $2 \times 151,936 \times 4,096 = 1,244,659,712$ 个参数（约 `1.24B`，BF16 下 `2.32 GiB`）；而在轻量模型 `Qwen3-0.6B`（`hidden_size = 1024`）里，`tie_word_embeddings` 设为 `true`，直接省去 $151,936 \times 1,024 = 155,582,464$（约 `0.16B`）个参数，使总参数收敛到 `0.60B`（不含嵌入层为 `0.44B`）。
+在 Qwen3 三个预设里，`Qwen3-8B` 和 `Qwen3-30B-A3B` 的 `tie_word_embeddings` 均为 `false`。仅首尾两张表就在 `Qwen3-8B` 里合占 $2 \times 151,936 \times 4,096 = 1,244,659,712$ 个参数（约 `1.24B`，BF16 下 `2.32 GiB`）。轻量模型 `Qwen3-0.6B`（`hidden_size = 1024`）则设为 `true`，省去约 `0.16B` 参数，使总参数收敛到 `0.60B`（不含嵌入层 `0.44B`）。
 
-在 `vllm@ced6857a`（`v0.30.0` 基线）中，还新增了一道名为 `maybe_untie_word_embeddings` 的保护逻辑：有些开源微调模型在 `config.json` 里沿用了 `tie_word_embeddings: true`，实际导出的 `.safetensors` 检查点里却额外附带了独立的 `lm_head` 权重张量。若强行按配置文件共享权重，就会把检查点里的 `lm_head` 静默丢掉。`v0.30.0` 及以上版本会在加载前先探测权重文件里是否存在 `lm_head`：一旦发现确实存在，就会暂时把 `tie_word_embeddings` 改为 `false` 把两份张量都载入，等加载完再比对数值是否真的相等、决定是否重新合并（`v0.23.0` 与 `v0.26.0rc` 没有这道保护）。
+`vllm@ced6857a`（`v0.30.0` 基线）新增了 `maybe_untie_word_embeddings` 保护：有些微调模型在 `config.json` 沿用 `tie_word_embeddings: true`，检查点里却带了独立 `lm_head` 张量，强行共享会将其静默丢弃。`v0.30.0+` 会在加载前探测权重文件：若发现独立 `lm_head`，先临时改 `false` 把两份张量都载入，加载完再比对数值是否相等并决定是否重新合并（`v0.23.0` 与 `v0.26.0rc` 无此保护）。
 
 ```wiki-diagram
 file: hf-fig-tie-and-untie
@@ -177,10 +177,10 @@ file: hf-fig-tie-and-untie
 
 ### 上下文长度与位置编码：max_position_embeddings、rope_theta 与 rope_scaling
 
-`max_position_embeddings` 给出模型位置编码的基准上限（三个 Qwen3 预设均为 `40960`），`rope_theta` 设定旋转位置编码（RoPE）的基础底频（Qwen3 为 `1000000`）。当长上下文扩展模型配置了 `rope_scaling`（在较新 Transformers 配置里也可能归一化为 `rope_parameters`）时，`vllm` 的 `_get_and_verify_max_len` 并非一律拿 `max_position_embeddings` 去乘以 `factor`：
+`max_position_embeddings` 给出位置编码基准上限（三个 Qwen3 预设均为 `40960`），`rope_theta` 设定 RoPE 基础底频（`1000000`）。当长上下文模型配置了 `rope_scaling`（较新 Transformers 中也可能归一化为 `rope_parameters`）时，`vllm` 的 `_get_and_verify_max_len` 并非一律乘以 `factor`：
 
-- 对于 `linear`、`dynamic` 等传统缩放类型，`vllm` 会把推导出的最大长度乘以缩放字段里的 `factor`（如果配置文件错把 `factor` 写成 `null`，会打印警告并回落到 `1.0`）。
-- 对于 `yarn`、`su`、`longrope`、`llama3`、`deepseek_yarn`、`deepseek_llama_scaling` 这类类型（以及 `gemma3` 系列），`vllm` 认为 `config.json` 里的 `max_position_embeddings` 已经是扩展后的最终长度，因此**不会再二次乘以 `factor`**；此外对于 `longrope`，如果用户没有显式指定 `--max-model-len`（或传了 `-1`），引擎会默认回退到 `original_max_position_embeddings`，避免短上下文场景出现精度下降。
+- **`linear`、`dynamic` 等传统缩放**：把推导出的最大长度乘以 `factor`（若配置误把 `factor` 写成 `null`，打印警告并回落为 `1.0`）。
+- **`yarn`、`su`、`longrope`、`llama3`、`deepseek_yarn`、`deepseek_llama_scaling` 及 `gemma3`**：`vllm` 认为 `max_position_embeddings` 已是扩展后长度，**不再二次乘 `factor`**。此外对于 `longrope`，若未显式指定 `--max-model-len`（或传 `-1`），引擎默认回退到 `original_max_position_embeddings`，避免短上下文精度下降。
 
 ```wiki-diagram
 file: hf-fig-rope-scaling
@@ -192,10 +192,10 @@ file: hf-fig-rope-scaling
 
 当模型经过量化（quantization，把权重或激活压到更低位宽以减少显存和提升算力利用，原理见 [quantization](quantization.md)）时，目录里会出现两条截然不同的识别路径：
 
-- **通用 HF / vLLM 量化路径**：`config.json` 里带有 `quantization_config` 字典（极早期 ModelOpt 0.29 及以前版本则是同目录下的独立 `hf_quant_config.json`），其中 `quant_method` 指明量化方案（如 `compressed-tensors` 或 `fp8`）。
-- **昇腾 ModelSlim 路径**：模型由昇腾 ModelSlim 工具导出时，目录下会多出一个 `quant_model_description.json` 文件。在 `vllm-ascend@c09d3e20` 中，只要目录里检测到了 `quant_model_description.json`，`detect_quantization_method` 就会自动将量化方式识别为 `"ascend"`（等效于自动补上 `--quantization ascend`）；若没有该文件，才继续检查 `config.json` 中的 `quantization_config.quant_method` 是否为 `"compressed-tensors"` 或 `"fp8"`。
+- **通用 HF / vLLM 量化路径**：`config.json` 里带有 `quantization_config` 字典（ModelOpt 0.29 及以前则是同目录的 `hf_quant_config.json`），由 `quant_method` 指明方案（如 `compressed-tensors` 或 `fp8`）。
+- **昇腾 ModelSlim 路径**：模型由昇腾 ModelSlim 导出时，目录下会多出 `quant_model_description.json`。`vllm-ascend@c09d3e20` 检测到该文件就会把量化方式自动识别为 `"ascend"`（等效于 `--quantization ascend`）；未检测到时才继续检查 `quantization_config.quant_method` 是否为 `"compressed-tensors"` 或 `"fp8"`。
 
-需要特别警惕原生 `fp8` 权重在昇腾上的格式限制：`vllm-ascend@c09d3e20` 的 `AscendFp8Config` 只支持**按权重块（block-wise）缩放且激活为动态量化**的原生 FP8 检查点——也就是 `quantization_config` 里必须存在 `weight_block_size`，且 `activation_scheme` 必须等于 `"dynamic"`。如果拿到的是 per-tensor 或 per-channel 缩放的原生 FP8 目录，启动校验会直接抛出 `NotImplementedError` 退出，提示改用 ModelSlim 或 `llm-compressor` 重新量化。
+需要特别警惕原生 `fp8` 权重在昇腾上的格式限制：`vllm-ascend@c09d3e20` 的 `AscendFp8Config` 只支持**按权重块（block-wise）缩放且动态激活**的原生 FP8（必须含 `weight_block_size` 且 `activation_scheme == "dynamic"`）。拿到 per-tensor 或 per-channel 原生 FP8 时，启动校验直接抛 `NotImplementedError`，提示改用 ModelSlim 或 `llm-compressor` 重新量化。
 
 ```wiki-diagram
 file: hf-fig-dtype-and-quant
@@ -203,13 +203,13 @@ file: hf-fig-dtype-and-quant
 
 ### 完整算账对照：Qwen3-8B vs Qwen3-30B-A3B
 
-在把全部字段拼成总账之前，先把 `Qwen3-30B-A3B` 的整座前向通道剖开，和 `Qwen3-8B` 做一次空间对照——一个 token 从首端 `EMBED` 进入，穿过显式 `head_dim = 128` 的 `32Q:4KV` 分组注意力抽屉后，由 `ROUTER` 在 `128` 间常驻显存的专家机房里单步仅点亮 `8` 间活跃机房，最后送入独立 `LM_HEAD`：
+把全部字段拼成总账前，先把 `Qwen3-30B-A3B` 的整座前向通道剖开，和 `Qwen3-8B` 做一次空间对照。一个 token 从首端 `EMBED` 进入，穿过显式 `head_dim = 128` 的 `32Q:4KV` 注意力后，由 `ROUTER` 在 `128` 间常驻专家机房里单步仅点亮 `8` 间，最后送入独立 `LM_HEAD`：
 
 ```wiki-diagram
 file: hf-plate-moe-cutaway
 ```
 
-把上面所有字段拼回整张表，对照本站单真源模型解析规格（按 `config.json` 形状静态推导，假设全部权重和 KV cache 均按 BF16 的每参数 2 字节存储，尚未计入前向激活、算子工作区与 CANN 运行时额外占用的显存），三个预设模型的账目如下：
+把上面所有字段拼回整张表，对照本站单真源模型解析规格（按 `config.json` 静态推导，按 BF16 每参数 2 字节计，不含前向激活、工作区与 CANN 运行时额外占用），三个预设模型的账目如下：
 
 | 配置与派生指标 | `Qwen3-8B` | `Qwen3-30B-A3B` | `Qwen3-0.6B`（对照） |
 | --- | --- | --- | --- |
@@ -223,34 +223,37 @@ file: hf-plate-moe-cutaway
 | BF16 纯权重占用 | `15.26 GiB` | `56.87 GiB` | `1.11 GiB` |
 | 每 token BF16 KV cache（全层） | `144.0 KiB` | `96.0 KiB` | `112.0 KiB` |
 
-把 `Qwen3-8B` 与 `Qwen3-30B-A3B` 并排画开，可以一眼看清两组关键反差——在注意力层，`30B-A3B` 的 `32` 个 Q 头乘上显式 `head_dim = 128` 得到 `4096`（不等于 `H = 2048`），而 KV 头从 `8` 个减半到 `4` 个；在前馈层与显存条上，128 个专家把权重静态显存推高到 `56.87 GiB`，但单步仅点亮 8 个专家，每 token 的全层 KV cache 反而比 `8B` 短三分之一：
+把 `Qwen3-8B` 与 `Qwen3-30B-A3B` 并排画开，两组反差一目了然。在注意力层，`30B-A3B` 用 `32` 个 Q 头乘显式 `head_dim = 128` 得到 `4096`（不等于 `H = 2048`），KV 头却减半到了 `4` 个。在前馈层与显存条上，128 个专家把静态权重推高到 `56.87 GiB`，单步却只点亮 8 个专家，每 token 全层 KV cache 反而比 `8B` 短三分之一：
 
 ```wiki-diagram
 file: hf-qwen3-dense-vs-moe-anatomy
 ```
 
-从代数关系上看，任意标准因果语言模型的整模型参数量都由首端词嵌入、$L$ 层注意力与前馈网络、末层归一化 `model.norm` 以及可选独立输出头 `lm_head` 五块相加而成（当 `tie_word_embeddings` 为 `false` 时 $P_{\text{lm\_head}} = H \times V$，为 `true` 时 $P_{\text{lm\_head}} = 0$）：
+从代数上看，标准因果语言模型的总参数由词嵌入、$L$ 层注意力与前馈、末层 `model.norm` 以及独立 `lm_head` 五块相加（`tie_word_embeddings=false` 时 $P_{\text{lm\_head}} = H \times V$，否则为 `0`）：
 
 $$P_{\text{total}} = V \times H + L \times \bigl(P_{\text{attn}} + P_{\text{ffn}}\bigr) + H + P_{\text{lm\_head}}$$
 
-而每个 token 在整座模型全部 $L$ 层里新增的 KV cache 字节数，只取决于 K 与 V 两份张量、层数 $L$、KV 头数 $n_{\text{kv}}$、单头维度 $d_h$ 以及单个元素字节数 $\text{bytes}$（BF16 下为 `2` 字节），与专家总数或词表大小无关：
+每个 token 在全部 $L$ 层新增的 KV cache 字节数只由 K/V 两份张量、层数 $L$、KV 头数 $n_{\text{kv}}$、单头维度 $d_h$ 和元素字节数 $\text{bytes}$（BF16 为 `2`）决定，与专家数或词表大小无关：
 
 $$\text{KV}_{\text{token}} = 2 \times L \times n_{\text{kv}} \times d_h \times \text{bytes}$$
 
-把 `Qwen3-8B` 与 `Qwen3-30B-A3B` 的字段逐项代入上面两条公式（注意 `Qwen3-30B-A3B` 的 `q_proj` / `o_proj` 维度由 `32 × 128 = 4,096` 主导，加载显存按全量 `128` 专家算、单步算力按激活 `8` 专家算），完整分项对账如下：
+把两款模型的字段代入上面两条公式（`Qwen3-30B-A3B` 的 `q/o_proj` 由 `32 × 128 = 4,096` 主导，加载按 `128` 专家算、单步算力按 `8` 专家算），分项对账如下：
 
 | 拆解模块与静态指标 | `Qwen3-8B`（稠密 36 层，`H = 4,096`） | `Qwen3-30B-A3B`（稀疏 MoE 48 层，`H = 2,048`） |
 | --- | --- | --- |
 | 首端 `embed_tokens`（$V \times H$） | `151,936 × 4,096 = 622,329,856` | `151,936 × 2,048 = 311,164,928` |
-| 单层 Attention（$P_{\text{attn}}$，含 `input_layernorm`、Q/K/V/O 投影与 `q_norm`/`k_norm`） | `4,096 + 4,096×4,096 + 2×4,096×1,024 + 4,096×4,096 + 2×128 = 41,947,392`（`q_dim = 4,096`，`kv_dim = 1,024`） | `2,048 + 2,048×4,096 + 2×2,048×512 + 4,096×2,048 + 2×128 = 18,876,672`（`q_dim = 4,096`，`kv_dim = 512`；错套 `head_dim=64` 会少算一半） |
-| 单层前馈：全量驻留（含 `post_attention_layernorm` 与 `gate`/`up`/`down_proj`） | 稠密 MLP：`4,096 + 3×4,096×12,288 = 150,999,040` | MoE 全量 128 专家：`2,048 + 2,048×128 + 128×(3×2,048×768) = 604,243,968` |
-| 单层前馈：单步激活 | 同上（全参数参与）：`150,999,040` | MoE 激活 8 专家：`2,048 + 2,048×128 + 8×(3×2,048×768) = 38,012,928` |
-| $L$ 层主体 + 末层 `model.norm` + 独立 `lm_head` | `36 × (41,947,392 + 150,999,040) + 4,096 + 622,329,856 = 7,568,405,504` | 驻留：`48 × (18,876,672 + 604,243,968) + 2,048 + 311,164,928 = 30,220,957,696`；激活：`48 × (18,876,672 + 38,012,928) + 2,048 + 311,164,928 = 3,041,867,776` |
-| 整模型总参数 vs 单 token 激活参数 | 总参数 = 激活参数 = `8,190,735,360`（`≈ 8.19B`） | 总参数 `30,532,122,624`（`≈ 30.53B`） / 激活参数 `3,353,032,704`（`≈ 3.35B`） |
-| BF16 纯权重静态显存（每参数 `2 B`） | `8,190,735,360 × 2 B = 16,381,470,720 B ≈ 15.26 GiB` | `30,532,122,624 × 2 B = 61,064,245,248 B ≈ 56.87 GiB` |
-| 每层 / 全模型每 token BF16 KV cache | 每层 `2 × 8 × 128 × 2 B = 4,096 B`；36 层共 `147,456 B = 144.0 KiB` | 每层 `2 × 4 × 128 × 2 B = 2,048 B`；48 层共 `98,304 B = 96.0 KiB` |
+| 单层 Attention（$P_{\text{attn}}$，含 `q_norm`/`k_norm`） | `41,947,392`（`q_dim = 4,096`，`kv_dim = 1,024`） | `18,876,672`（`q_dim = 4,096`，`kv_dim = 512`） |
+| 单层前馈：全量驻留 | 稠密 MLP：`150,999,040` | 128 专家：`604,243,968` |
+| 单层前馈：单步激活 | 同上：`150,999,040` | 8 专家：`38,012,928` |
+| $L$ 层主体 + `model.norm` + 独立 `lm_head`（驻留） | `7,568,405,504` | `30,220,957,696` |
+| $L$ 层主体 + `model.norm` + 独立 `lm_head`（单步激活） | `7,568,405,504` | `3,041,867,776` |
+| 整模型总参数 | `8,190,735,360`（`≈ 8.19B`） | `30,532,122,624`（`≈ 30.53B`） |
+| 单 token 激活参数 | `8,190,735,360`（`≈ 8.19B`） | `3,353,032,704`（`≈ 3.35B`） |
+| BF16 纯权重静态显存（每参数 `2 B`） | `15.26 GiB`（`16,381,470,720 B`） | `56.87 GiB`（`61,064,245,248 B`） |
+| 单层每 token BF16 KV cache | `4,096 B`（`2 × 8 × 128 × 2 B`） | `2,048 B`（`2 × 4 × 128 × 2 B`） |
+| 全模型每 token BF16 KV cache | **`144.0 KiB`**（`36` 层） | **`96.0 KiB`**（`48` 层） |
 
-有了这两组数字，启动服务前就能先心里有底：哪怕不考虑运行时激活与框架缓冲（详细显存划定与两次试跑扣减机制见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡想跑 BF16 的 `Qwen3-30B-A3B` 也会在加载阶段直接 OOM；而单张 32 GiB 卡跑 BF16 `Qwen3-8B` 时，扣除 `15.26 GiB` 权重后仍能腾出可观的显存留给 KV cache。下面可以通过快速初筛工具容器把这组静态账直接对应到卡数门槛上：
+有了这两组数字，启动前就能心里有底：哪怕不计激活与框架缓冲（详细试跑扣减见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡跑 BF16 `Qwen3-30B-A3B` 加载期就会直接 OOM；而跑 BF16 `Qwen3-8B` 扣完 `15.26 GiB` 权重后仍能腾出可观显存给 KV cache。下面可用快速初筛台直接对照卡数门槛：
 
 ```wiki-tool
 tool: deploy-calculator
@@ -264,10 +267,10 @@ model: Qwen3-8B
 
 很多启动异常或输出跑偏并不是 `config.json` 引起的，而是躲在同目录另外几份配置文件里。排查目录时至少要顺手核对下面四个隐形坑：
 
-1. **`chat_template` 的四级回落链**：发送对话请求时，`vllm` 渲染器 `resolve_chat_template` 按固定四级顺序寻找模板——先看命令行显式传入的 `--chat-template`；未传且未开启工具调用时尝试从 `AutoProcessor` 读取；接着再走 `AutoTokenizer` 读取 `tokenizer_config.json` 或独立的 `chat_template.jinja`；最后尝试使用 `vllm` 内置的模型名回落模板。如果四级全为空（常见于只有底座分词配置的裸预训练目录），模型虽然能正常启动，但一收到对话补全请求就会立刻触发模板解析失败。
-2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里的 `max_position_embeddings` 写着 `40960`，`vllm` 在 `_get_and_verify_max_len` 里仍会把推导出的最大长度和 `tokenizer_config.json` 中的 `model_max_length` 取一次较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。如果打包目录时有人误把 `tokenizer_config.json` 里的 `model_max_length` 填成 `4096` 或 `8192`，服务可接收的最大上下文就会被悄悄压低，只能通过显式传入 `--max-model-len` 或修正该字段绕开。
-3. **`model.safetensors.index.json` 缺片与混合文件陷阱**：对于切分成多个分片的目录，权重加载器会读取 `model.safetensors.index.json` 中的 `weight_map` 字典，统计全部被引用的分片文件名并与磁盘上扫描到的 `.safetensors` 文件集合做差集——只要索引里提到的分片少了一片（比如断点续传中断），会立即抛出 `FileNotFoundError`。反过来，某些上游仓库同时放了 `consolidated*.safetensors` 合并文件与分片文件，vLLM 正是靠 `model.safetensors.index.json` 剔除未入索引的重复文件来避免双倍加载，因此切勿随意删除目录里的 `index.json`。
-4. **`generation_config.json` 静音改写采样默认参数**：引擎启动时调用 `try_get_generation_config` 读取 `generation_config.json`（文件不存在时还会回落到 `config.json` 里提取生成字段）。里面记录的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 与额外 `eos_token_id` 会在 API 请求没有显式传入对应参数时自动生效。如果你发现同一批请求在某个模型上默认开了随机采样或提前停在某个特定词上，却找不到服务端代码在哪里改了它，多半是 `generation_config.json` 在起作用——想恢复框架统一默认值可传 `--generation-config vllm` 或在请求体显式指定参数（采样链路见 [sampling](sampling.md)）。
+1. **`chat_template` 的四级回落链**：发送对话请求时，`vllm` 渲染器 `resolve_chat_template` 按固定四级顺序寻找模板：先看命令行显式传入的 `--chat-template`；未传且未开工具调用时尝试从 `AutoProcessor` 读取；接着走 `AutoTokenizer` 读 `tokenizer_config.json` 或独立 `chat_template.jinja`；最后尝试使用 `vllm` 内置的模型名回落模板。如果四级全为空（常见于只有底座分词配置的裸预训练目录），模型能正常启动，但一收到对话补全请求就会触发模板解析失败。
+2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里的 `max_position_embeddings` 写着 `40960`，`vllm` 在 `_get_and_verify_max_len` 里仍会把推导长度与 `tokenizer_config.json` 中的 `model_max_length` 取一次较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。如果打包目录时误把 `model_max_length` 填成 `4096` 或 `8192`，服务可接收的最大上下文就会被悄悄压低，只能通过显式传 `--max-model-len` 或修正该字段绕开。
+3. **`model.safetensors.index.json` 缺片与混合文件陷阱**：对于多片切分的目录，权重加载器会读取 `model.safetensors.index.json` 中的 `weight_map` 字典，并与磁盘扫描到的 `.safetensors` 文件集合做差集。只要索引里提到的分片少了一片（如断点续传中断），会立即抛出 `FileNotFoundError`。反过来，某些上游仓库同时放了 `consolidated*.safetensors` 合并文件与分片文件，vLLM 正是靠 `index.json` 剔除未入索引的重复文件来避免双倍加载，切勿随意删除 `index.json`。
+4. **`generation_config.json` 静音改写采样默认参数**：引擎启动时调用 `try_get_generation_config` 读取 `generation_config.json`（缺失时回落到 `config.json` 提取生成字段）。里面记录的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 与额外 `eos_token_id` 会在 API 请求未显式传参时自动生效。若同一批请求在某个模型上默认开了随机采样或提前停在某个特定词上，多半是它在起作用；想恢复框架统一默认值可传 `--generation-config vllm` 或在请求体显式指定参数（采样链路见 [sampling](sampling.md)）。
 
 ## 对照源码
 

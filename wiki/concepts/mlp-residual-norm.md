@@ -2,10 +2,12 @@
 id: mlp-residual-norm
 title: MLP、residual 与 RMSNorm：一个子层怎样更新 hidden
 type: concept
+legacyAnchors:
+  到-glm-双机r1-的一个-token-怎样走过这三件东西: 复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU
 summary: >-
-  以单条 residual、pre-norm 和 RMSNorm 为例，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。区分 LayerNorm 与
-  RMSNorm、pre-norm 与 post-norm；再讲 SwiGLU 的 gate、up、限幅和 down，以及 GLM 前 3 层稠密 MLP
-  与四条流。
+  以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准
+  Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与历史
+  GLM 四流 mHC。
 aliases:
   - MLP
   - FFN
@@ -124,7 +126,7 @@ rawSources:
 
 ## 一个子层怎样更新 hidden，又不丢掉原来的输入？
 
-**本页先用「单条 residual（残差连接）、先归一化再计算」的子层作例子：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm、再做 MLP 或注意力，最后把支路算出的改变量加回输入。** 这是本页选用的结构；归一化还可以选 LayerNorm，也可以放在两路相加之后。下文分别解释这些选择，GLM 的四条残差流在部署一节展开。
+**主流大模型（如 `v0.30.0` 标准主基线下的 `Qwen3-8B`）采用「单条 residual（残差连接）+ Pre-RMSNorm + SwiGLU」的子层结构：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm 再做计算，最后把支路算出的改变量加回输入。** 归一化也可以改用 LayerNorm 或放到相加之后（post-norm）；下文先讲清标准单残差流机制与 `Qwen3-8B` 形状，再在后半「复杂异构实战对照」展开多流残差混合。
 
 这里的 hidden 是模型给每个输入位置维护的一条中间向量，宽度记作 H（见[层与 hidden](layers-and-hidden.md)）。RMSNorm（均方根归一化）把这条向量除以它自身的均方根、再逐维乘一组学到的系数，让送进支路的数值大小保持稳定。MLP（前馈网络，也叫 FFN）是对每个位置单独做「升宽 → 非线性 → 降回原宽」的一个小网络。下图以 MLP 子层为例：
 
@@ -273,9 +275,9 @@ model-compute:2
 
 ### 限幅：gate 只限上界，up 两边都限
 
-GLM 的配置里有一项 `swiglu_limit = 10`，实现会在 SiLU 之前先把两路输入夹住：**gate 只限上界（不超过 10），up 限在 −10 到 10 之间**，然后才算 SiLU(gate) ⊙ up。夹的是门控的输入，不是乘完之后的输出。
+标准 `Qwen3-8B` 直接计算无截断的 $\text{SiLU}(\text{gate}) \odot \text{up}$。部分异构模型（例如后文历史 GLM 配方中 `swiglu_limit = 10`）则会在 SiLU 之前先把两路输入夹住：**`gate` 只限上界（不超过 10），`up` 限在 −10 到 10 之间**，再相乘。夹的是门控的输入，不是乘完之后的输出。
 
-gate 只需要限上界，是因为 SiLU 在负半轴本来就有界：输入很负时输出趋于 0，最小值约为 −0.28；正半轴则随输入线性增长。上界夹在 10 之后，SiLU(gate) 最大约为 10，再乘上绝对值不超过 10 的 up，中间向量每个元素的绝对值都不超过约 100。为什么要限：中间值是两路相乘，gate 和 up 都大时，乘积会比任何一路都大得多，不截断就会出现远超常规的值（下面的例子里是 −156）；截断给这个乘积设了上界。配置没有说明为什么取 10，这里只说明它的效果：中间值被限制在有限范围内。
+`gate` 只需限上界，是因为 SiLU 在负半轴天然有界：输入很负时输出趋于 0（最小值约 −0.28），正半轴则随输入线性增长。上界夹在 10 后，$\text{SiLU}(\text{gate})$ 最大约 10；再乘绝对值不超过 10 的 `up`，中间向量每维绝对值被压在约 100 以内，避免两路同时偏大导致乘积失控（下例不截断为 −156）。配置未解释为何选 10，这里只记录它把中间值限在有限范围内的效果。
 
 换一组大一些的示意数看限幅怎样起作用：某一维 gate = 13、up = −12，另一维 gate = −15。
 
@@ -294,13 +296,30 @@ file: gated-ffn
 
 ### 中间宽度 F
 
-**中间宽度 F 是 MLP 升宽后的那一维，它决定 MLP 的参数量和计算量。** 原始 Transformer 取 F = 4H（H = 512 时 F = 2048）。SwiGLU 有三个投影，比普通 MLP 多一个；SwiGLU 的论文为了和普通 MLP 保持相同的参数量与计算量，把 F 缩到原来的 2/3，也就是约 8H/3。
+**中间宽度 F 是 MLP 升宽后的那一维，它决定 MLP 的参数量和计算量。** 原始 Transformer 取 $F = 4H$（$H = 512$ 时 $F = 2048$）。SwiGLU 有三个投影，比普通 MLP 多一个；SwiGLU 原论文为与普通 MLP 保持等量参数与计算，把 $F$ 缩到原来的 $2/3$，即约 $8H/3$。
 
-模型可以自己选 F：GLM 的稠密 MLP 取 F = 12288，是 H = 4096 的 3 倍，比「与 4H 普通 MLP 等参数」的 8H/3 略宽；每个专家取 F = 2048，只有 H 的一半，窄得多，靠多个专家一起分担。数字对照见下一节的宽度表；三组权重各有多少参数、一次前向算多少，推导见[矩阵乘和权重](matmul-and-weights.md#到-glm-双机一个-token-怎样走过前馈投影)。
+实际模型按算力与对齐需求选定 $F$。以 `v0.30.0` 标准主基线下的 **Qwen3-8B** 为例：隐藏宽度 $H = 4096$，稠密 SwiGLU 中间宽度 $F = 12288 = 3H$（比 $8H/3$ 略宽，且是 128 的整数倍，便于硬件分块与 TP 切分）。若是 MoE 模型（如后文 GLM 专家），单个专家则用更窄的 $F$，靠多个专家并联分担。
 
-## 到 GLM 双机：R1 的一个 token 怎样走过这三件东西？
+## 标准主干走读：Qwen3-8B 的单残差流 Pre-RMSNorm 与 SwiGLU
 
-固定部署是两台 A2、每台 8 张卡，TP8/DP2/EP16，权重 W8A8（详见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。下面跟着 R1 走：R1 是主线用的示例请求，prompt 有 4 个 token（见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），prefill 这一步一次前向处理 T = 4 个位置。三件东西都在主线第 4 站「逐层前向」里，下图是一层的走法：
+在 `v0.30.0` 标准主基线下，**Qwen3-8B** 全 36 层结构完全同构，是最标准的「单残差流 Pre-RMSNorm + 无偏置 SwiGLU」样板：
+
+- **单条残差与 Pre-RMSNorm**：每层包含 Attention 与 MLP 两个子层，全部遵循 $y = x + F(\text{RMSNorm}(x))$，其中 $\varepsilon = 10^{-6}$（`rms_norm_eps = 1e-6`）。上一子层输出与残差相加时，昇腾 NPU 直接走融合算子 `npu_add_rms_norm`，把「残差加回 + 下一子层入口归一化」合并执行，省去一次中间 HBM 读写。
+- **SwiGLU 形状流转（`4096 → 12288 → 4096`）**：三个投影均无偏置（`bias = false`）。实现将 `gate_proj` 与 `up_proj` 合并为一次 `gate_up_proj` 输出 `[T, 24576]`，再由 `AscendSiluAndMul` 拆半计算 $\text{SiLU}(\text{gate}) \odot \text{up}$ 得到 `[T, 12288]`（无 `swiglu_limit` 限幅）。最后经 `down_proj` 压回 `[T, 4096]` 加回单残差流。
+
+| Qwen3-8B MLP 子层步骤（单卡 TP=1，T 个 token） | 输入形状 | 权重或运算 | 输出形状 |
+| --- | --- | --- | --- |
+| 入口 Pre-RMSNorm（`eps = 1e-6`） | `[T, 4096]` | 增益 $\gamma\;[4096]$（可与上步残差融合） | `[T, 4096]` |
+| 合并门控投影 `gate_up_proj` | `[T, 4096]` | `[4096, 24576]`（无偏置） | `[T, 24576]` |
+| 门控融合激活 `AscendSiluAndMul` | `[T, 24576]` | 拆半计算 $\text{SiLU}(\text{gate}) \odot \text{up}$ | `[T, 12288]` |
+| 降维投影 `down_proj` | `[T, 12288]` | `[12288, 4096]`（无偏置） | `[T, 4096]` |
+| 单流残差加回 | `[T, 4096] + [T, 4096]` | 逐元素相加（合并进下一子层 `npu_add_rms_norm`） | `[T, 4096]` |
+
+全部 36 层都重复这张表，最后一层结束后再补一次最终 RMSNorm，才送入 `lm_head`。只有遇到多流残差混合或带限幅激活的异构架构时，才会跳出这条简洁主线——下面转入历史 GLM 双机对照。
+
+## 复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU
+
+本节为例外 B 历史绑定算例：两台 Atlas 800 A2、每台 8 卡，TP8 / DP2 / EP16、权重 W8A8（详见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。沿用主线示例请求 R1（prompt 4 个 token，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），prefill 一次处理 $T = 4$ 个位置。三件东西位于主线第 4 站「逐层前向」，下图对照主干四流与 MTP 单流：
 
 ```wiki-diagram
 file: mlp-residual-norm-flow

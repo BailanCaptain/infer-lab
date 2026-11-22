@@ -121,13 +121,18 @@ rawSources:
     raw/sha256-ce73fe4f9a70a8b33634bccdddc0b84b99c25b5c54958d90f8c18d317dea45da.md
 ---
 
-在配好容器并敲下 `vllm serve`（详见[容器镜像、核心环境变量与 vllm serve](ascend-env-and-serve.md)）之后，平台类 [NPUPlatform](npu-platform.md) 会为每张软件可见的昇腾 NPU 指定一个专属执行角色 **`NPUWorker`**（`Atlas 300I DUO / 200I Pro` 则切换为子类 `NPUWorker310`）。在终端刷出 `Application startup complete.` 正式接纳请求之前，每张卡上的 Worker 都必须按严格先后顺序走完冷启动六步；本文将以 `vLLM Ascend v0.30.0`（配套上游 `vLLM v0.30.0`）及标准标尺 `Qwen3-8B`、`Qwen3-30B-A3B` 为主线，拆清这条单向依赖链、模型与权重加载后处理以及全部 7 类预热机制。
+配好容器并敲下 `vllm serve`（详见[容器镜像、核心环境变量与 vllm serve](ascend-env-and-serve.md)）后，平台类 [NPUPlatform](npu-platform.md) 会为每张软件可见的昇腾 NPU 指定专属执行角色 **`NPUWorker`**（`Atlas 300I DUO / 200I Pro` 切换为子类 `NPUWorker310`）。在终端刷出 `Application startup complete.` 正式接纳请求之前，每张卡上的 Worker 都必须按严格顺序走完冷启动六步。本文以 `vLLM Ascend v0.30.0`（配套上游 `vLLM v0.30.0`）及标准标尺 `Qwen3-8B`、`Qwen3-30B-A3B` 为主线，拆清这条单向依赖链、模型与权重加载后处理以及全部 7 类预热机制。
 
 ## 一张卡上的 Worker，启动时按什么顺序做准备？
 
-先把贯穿冷启动的四个基础角色说清楚：**KV cache** 是保存请求历史键值状态以免逐词重算的显存空间（见 [KV cache](kv-cache.md)）；**通信组**约定哪几张卡通过昇腾集合通信库 **HCCL** 协同收发张量（见[通信基础](collective-communication.md)与 [CANN 与 HCCL](cann-hccl.md)）；**录图（ACL Graph）** 是把单步前向的设备算子序列预先捕获下来、运行期按固定档位直接回放以省去逐算子下发开销的机制（见[图执行](graph-mode-layer.md)与 [ACL Graph](acl-graph.md)）；**EngineCore** 则是负责统一调度请求、裁定并管理 KV 块编号的引擎核心进程。
+先把贯穿冷启动的四个基础角色说清楚：
 
-每张 NPU 上的 `NPUWorker` 都沿着同一条六步流水线就位：先换补丁注算子、选卡拍快照并建通信组、装入本卡权重并做分形转换、试跑量出可用 KV 预算；等 `EngineCore` 收齐各卡数字统一块数并发回配置后，每张卡再一次切出物理缓存池，最后完成算子预热与 decode 图捕获：
+- **KV cache**：保存请求历史键值状态以免逐词重算的显存空间（见 [KV cache](kv-cache.md)）。
+- **通信组**：约定哪几张卡通过昇腾集合通信库 **HCCL** 协同收发张量（见[通信基础](collective-communication.md)与 [CANN 与 HCCL](cann-hccl.md)）。
+- **录图（ACL Graph）**：把单步前向的设备算子序列预先捕获下来，运行期按固定档位直接回放，省去逐算子下发开销（见[图执行](graph-mode-layer.md)与 [ACL Graph](acl-graph.md)）。
+- **EngineCore**：负责统一调度请求、裁定并管理 KV 块编号的引擎核心进程。
+
+每张 NPU 上的 `NPUWorker` 都沿着同一条六步流水线就位：先换补丁注算子、选卡拍快照并建通信组、装入本卡权重并做分形转换，再试跑量出可用 KV 预算。等 `EngineCore` 收齐各卡数字、统一块数并发回配置后，每张卡再一次切出物理缓存池，最后完成算子预热与 decode 图捕获：
 
 ```wiki-diagram
 file: worker-lifecycle
@@ -136,13 +141,13 @@ file: worker-lifecycle
 图里画了三列 Worker 代表「每张卡一个」，横跨各列的淡蓝框是管辖这组卡的同一个 `EngineCore`。冷启动期间所有卡在两道跨卡栅栏处必须步调一致（试跑与录图内部的集合通信同样需要同组成员配合）：
 
 - **第②步的通信组报到栅栏**：HCCL 通信域必须等组内全部成员到齐才能握手建组；只要有一张卡挂死或慢起，同组其余卡就会停在这一步等待。
-- **第④步与第⑤步之间的 `EngineCore` 汇总栅栏**：单个 Worker 只负责算出「我这张卡还剩多少字节能给 KV cache」；`EngineCore` 收齐全部 Worker 的上报值，折算块数并按最紧的那张卡取全局最小值 `min(num_blocks)` 后把配置发回，各卡才进入第⑤步分配张量。同一 **tensor parallel（TP，多卡切分同一层矩阵协同计算）** 组内布局一致；而在 **pipeline parallel（PP，按层段纵切模型分阶段接力）** 下，不同阶段持有的层数或结构不同时，各卡收到的缓存配置允许不同。
+- **第④步与第⑤步之间的 `EngineCore` 汇总栅栏**：单个 Worker 只负责算出「我这张卡还剩多少字节能给 KV cache」。`EngineCore` 收齐全部 Worker 的上报值，折算块数并按最紧的那张卡取全局最小值 `min(num_blocks)` 后把配置发回，各卡才进入第⑤步分配张量。同一 **tensor parallel（TP，多卡切分同一层矩阵协同计算）** 组内布局一致；在 **pipeline parallel（PP，按层段纵切模型分阶段接力）** 下，不同阶段持有的层数或结构不同时，各卡收到的缓存配置允许不同。
 
 Worker 本身是一个逻辑执行角色，它是否独占一个操作系统进程由执行器决定；多进程执行器（`mp`）下每个 Worker 对应一个独立子进程（见 [executor 决定 Worker 是不是独立进程](engine-processes.md#executor-决定-worker-是不是独立进程)）。六步全部走完后，线上每一步调度指令如何从 `EngineCore` 广播到各个 Worker 再转交 [ModelRunner](npu-model-runner.md)，详见[请求调用链](request-call-chain.md)。
 
 ## 为什么顺序一步都不能换？冷启动耗时花在哪？
 
-vLLM V1 的物理 KV 缓存池容量在启动期一次定死，运行期不会动态扩容；因此必须先装好驻留权重、跑完最大批试跑扣清峰值，才能切准池子，最后再用剩余的预算外空间录图。下图把左侧「前一步交付什么刚性产物」与右侧「冷启动墙钟时间消耗在哪五处」放在同一张画布上对照：
+vLLM V1 的物理 KV 缓存池容量在启动期一次定死，运行期不会动态扩容。因此必须先装好驻留权重、跑完最大批试跑扣清峰值，才能切准池子，最后再用剩余的预算外空间录图。下图把左侧「前一步交付什么刚性产物」与右侧「冷启动墙钟时间消耗在哪五处」放在同一张画布上对照：
 
 ```wiki-diagram
 file: worker-life-fig-dependency-chain
@@ -157,7 +162,9 @@ file: worker-life-fig-dependency-chain
 | **先建物理缓存池，再跑 `determine_available_memory`** | 缓存池切多少块，直接取决于第③步权重实测占用与第④步 `profile_run()` 峰值扣减后的剩余字节数 |
 | **先调 `capture_model` 录图，再装权重或建缓存池** | 录图必须真实跑通 decode 前向——没权重无法计算，没物理缓存池无处读写 KV；且图池显存落在第④步预算之外，只能等第⑤步切完 KV 块再录 |
 
-冷启动之所以要等几十秒到数分钟，是因为它把运行期原本会拖慢首字或首步的重活全部前置了：第③步既要从磁盘或网络存储读取 `safetensors` 权重文件，又要在加载后把矩阵重排成昇腾矩阵核偏好的分块存储布局 **`FRACTAL_NZ`**（单进程首次触发 `npu_format_cast` 约有 15～19 秒惰性初始化）；第④步要用假数据真跑一次最大批前向兼做首次编译；第⑥步还要依次跑完预热并按分桶逐档捕获执行图。只要单步批量上限、图模式、并行切分或量化方案改动了任意一项，这套预算和执行图就必须重新走一遍。本页聚焦这条先后链本身：第④步逐项扣减公式见 [KV cache 显存预算](kv-cache-memory-profiling.md)，运行期从池中借块还块见 [KV 块分配](vllm-kv-block-allocation.md)，插件整体分层见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md)。
+冷启动之所以要等几十秒到数分钟，是因为它把运行期原本会拖慢首字或首步的重活全部前置了：第③步既要读盘加载 `safetensors` 权重，又要在加载后把矩阵重排成昇腾矩阵核偏好的分块存储布局 **`FRACTAL_NZ`**（单进程首次触发 `npu_format_cast` 约有 15～19 秒惰性初始化）；第④步要用假数据真跑一次最大批前向兼做首次编译；第⑥步还要跑完预热并按分桶逐档捕获执行图。
+
+只要单步批量上限、图模式、并行切分或量化方案改动了任意一项，这套预算和执行图就必须重新走一遍。本页聚焦这条先后链本身：第④步逐项扣减公式见 [KV cache 显存预算](kv-cache-memory-profiling.md)，运行期从池中借块还块见 [KV 块分配](vllm-kv-block-allocation.md)，插件整体分层见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md)。
 
 ## 装权重之前，怎样知道要构造哪一种模型？
 
@@ -188,15 +195,24 @@ file: model-resolution-flow
 
 ### ① 构造函数 `__init__`：进程内打补丁、注算子与卡型门禁
 
-每个 Worker 子进程实例化 `NPUWorker` 时，必须在调用基类 `super().__init__()` 之前先改造当前进程的运行环境：检查 `COMPILE_CUSTOM_KERNELS`（为假时打告警），调用 `adapt_patch()` 注入 worker 层补丁（见 [Patch 机制](ascend-patch-system.md#两类-patch-各在什么时候哪个进程里生效)），注册 `register_dummy_fusion_op()`、在支持 `ATB_EXTENSIONS` 的卡型（A2/A3，不含 310P 与 950/A5）上注册 ATB 扩展、调用 `register_ascend_customop(vllm_config)` 与 `init_ascend_config(vllm_config)`，紧接着用 `check_ascend_device_type()` 比对编译期目标卡型与运行期 `get_soc_version()`——一旦拿 A2 安装包去跑 A3 或 310P，这一步就会当场抛 `RuntimeError` 拦停进程。
+每个 Worker 子进程实例化 `NPUWorker` 时，必须在调用基类 `super().__init__()` 之前先改造当前进程的运行环境。流程先检查 `COMPILE_CUSTOM_KERNELS`（为假时打告警），调用 `adapt_patch()` 注入 worker 层补丁（见 [Patch 机制](ascend-patch-system.md#两类-patch-各在什么时候哪个进程里生效)），再注册 `register_dummy_fusion_op()` 与卡型相关的 ATB 扩展（仅支持 `ATB_EXTENSIONS` 的 A2/A3，不含 310P 与 950/A5），并调用 `register_ascend_customop(vllm_config)` 与 `init_ascend_config(vllm_config)`。紧接着，`check_ascend_device_type()` 会比对编译期目标卡型与运行期 `get_soc_version()`——一旦拿 A2 安装包去跑 A3 或 310P，这一步会当场抛 `RuntimeError` 拦停进程。
 
 ### ② `init_device`：逻辑卡号偏移、建组前快照与 `NPUModelRunner`
 
-`_init_device()` 先按本机数据并行（**DP**）序号把 `local_rank` 偏移到独立物理卡，执行 `torch.npu.set_device(device)` 与 `empty_cache()`，然后在**尚未建立通信组之前**拍下初始显存快照 `MemorySnapshot`，校验启动空闲显存是否不低于整卡预算上限 $M_{\text{total}} \times u$（`v0.30.0` 源码默认 $u = 0.92$），不足即抛 `ValueError`。快照拍在建组前，意味着随后 `_init_worker_distributed_environment()` 用 `"hccl"` 建立 TP、PP、DP、**EP（专家并行，把 MoE 路由专家分散到多张卡，见 [Expert Parallel](expert-parallel.md)）** 及 MC2 通信域所预留的底层缓冲，都会如实计入第④步的「非 Torch 增量」（`EngineCore` 之间同步剩余请求状态的 CPU 控制组由引擎侧单建，不在这一步创建，见 [Data Parallel](data-parallel.md)）。建好通信域后，Worker 注册 `register_ascend_fla_customop()`、初始化临时工作区管理器 `init_workspace_manager`，最后按 `use_v2_model_runner` 实例化 `NPUModelRunner` 或 `NPUModelRunnerV2`。
+`_init_device()` 先按本机数据并行（**DP**）序号把 `local_rank` 偏移到独立物理卡，执行 `torch.npu.set_device(device)` 与 `empty_cache()`。接着在**尚未建立通信组之前**拍下初始显存快照 `MemorySnapshot`，校验启动空闲显存是否不低于整卡预算上限 $M_{\text{total}} \times u$（`v0.30.0` 源码默认 $u = 0.92$），不足即抛 `ValueError`。
+
+随后 `_init_worker_distributed_environment()` 用 `"hccl"` 建立 TP、PP、DP、**EP（专家并行，把 MoE 路由专家分散到多张卡，见 [Expert Parallel](expert-parallel.md)）** 及 MC2 通信域。建好通信域后，Worker 注册 `register_ascend_fla_customop()`、初始化临时工作区管理器 `init_workspace_manager`，最后按 `use_v2_model_runner` 实例化 `NPUModelRunner` 或 `NPUModelRunnerV2`。
+
+> **边界与例外（快照拍在建组前与 CPU 控制组）**：快照拍在建组之前，意味着上述通信域预留的底层缓冲都会如实计入第④步的「非 Torch 增量」。`EngineCore` 之间同步剩余请求状态的 CPU 控制组由引擎侧单建，不在这一步创建（见 [Data Parallel](data-parallel.md)）。
 
 ### ③ `load_model`：分片读盘、`ND → NZ` 分形后处理与读取量算账
 
-进入 `load_model()` 后，若开启了睡眠模式（`enable_sleep_mode`，一个进程仅限单实例，见 [Sleep Mode](sleep-mode.md)），权重分配会包进 `CaMemAllocator(tag="weights")` 专用池；若配置了强化学习在线更新，加载后还会构建 `WeightTransferEngine`。主模型（及投机解码草稿模型 `drafter`）全程在 `DeviceMemoryProfiler` 区间内完成四段动作：先按本卡分片形状开出空参数 → 扫描 `safetensors` 文件截出本卡 TP 切片与本卡负责的路由专家（读盘前打印 `Checkpoint size: ... GiB. Available RAM: ... GiB.`） → 调用 `process_weights_after_loading` 完成布局后处理与延迟注意力层初始化 → 退出统计区间记录实测 `model_memory_usage`（MRV1 打印 `Loading model weights took ... GB` 与 `Model runner load_model total time: ... seconds`；MRV2 及上游基类打印 `Model loading took ... GiB memory and ... seconds`）。
+进入 `load_model()` 后，若开启睡眠模式（`enable_sleep_mode`，单进程仅限单实例，见 [Sleep Mode](sleep-mode.md)），权重分配会包进 `CaMemAllocator(tag="weights")` 专用池；若配置强化学习在线更新，加载后还会构建 `WeightTransferEngine`。主模型（及投机解码草稿模型 `drafter`）全程在 `DeviceMemoryProfiler` 区间内完成四段动作：
+
+1. **开空参数**：按本卡分片形状分配空参数张量。
+2. **分片读盘**：扫描 `safetensors` 文件，截出本卡 TP 切片与本卡负责的路由专家（读盘前打印 `Checkpoint size: ... GiB. Available RAM: ... GiB.`）。
+3. **布局后处理**：调用 `process_weights_after_loading` 完成布局重排与延迟注意力层初始化。
+4. **记录实测驻留**：退出统计区间记录 `model_memory_usage`（MRV1 打印 `Loading model weights took ... GB` 与 `Model runner load_model total time: ... seconds`；MRV2 及上游基类打印 `Model loading took ... GiB memory and ... seconds`）。
 
 后处理阶段最关键的动作是通过 `maybe_trans_nz`（底层调用 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)`）把通用多维 `ND` 权重转换为贴合矩阵核块访存的 **`FRACTAL_NZ`** 布局（见[张量存储布局](tensor-layout.md)）。在 `v0.30.0` 中，转换范围由 `--additional-config` 的 `weight_nz_mode` 控制：默认 `1` 仅转换 `INT8` 等量化权重；设为 `0` 关闭转换（开启 `rl_config` 时也会强制置 `0`）；设为 `2` 则连 `BF16/FP16` 浮点权重也一并转成 `NZ`（如 `Qwen3-30B-A3B` 官方食谱显式传 `{"weight_nz_mode": 2}`）。
 
@@ -204,7 +220,7 @@ file: model-resolution-flow
 
 $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
 
-对照两套 `v0.30.0` 标准标尺（参数规模取自官方模型卡，以下字节数为按精度与切分关系的静态估算示意，实机驻留值以日志 `Loading model weights took` 为准；若改用热启动方案 [RFork](rfork.md) / [RFork 启动](rfork-startup.md)，则直接跨实例借用已驻留显存而省去读盘重排）：
+下面对照两套 `v0.30.0` 标准标尺（参数规模取自官方模型卡，字节数为按精度与切分关系的静态估算示意，真机以日志 `Loading model weights took` 为准；若改用热启动方案 [RFork](rfork.md) / [RFork 启动](rfork-startup.md)，则直接借用已驻留显存而省去读盘重排）：
 
 | 标准标尺部署 | 模型参数与切分方式 | 整包文件量 $S_{\text{ckpt}}$（示意） | 单卡驻留 $M_{\text{weights}}$（示意） | 读盘与后处理关键特征 |
 | --- | --- | --- | --- | --- |
@@ -213,7 +229,7 @@ $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
 
 ### ④ `determine_available_memory` 与 `EngineCore` 全局最小块对齐
 
-`EngineCore` 先广播 `get_kv_cache_spec` 收集各层缓存规格（区分标准逐 token K/V、MLA 潜向量与线性注意力定长状态，见 [KV cache 规格](kv-cache-spec.md)），再调用 `determine_available_memory()`。注意即使命令行手传了 `--kv-cache-memory` 走快路径，Worker **照样会跑一遍 `profile_run()`** 以完成模型首次图外编译；自动路径则在 `memory_profiling` 区间内执行 `profile_run()`，特意在图捕获前截取 Torch 激活峰值，扣去权重、激活峰值与非 Torch 增量后打出 `Available KV cache memory: ... GiB`（逐项扣减推导见 [KV cache 显存预算](kv-cache-memory-profiling.md)）。
+`EngineCore` 先广播 `get_kv_cache_spec` 收集各层缓存规格（区分标准逐 token K/V、MLA 潜向量与线性注意力定长状态，见 [KV cache 规格](kv-cache-spec.md)），再调用 `determine_available_memory()`。自动路径在 `memory_profiling` 区间内执行 `profile_run()`，特意在图捕获前截取 Torch 激活峰值，扣去权重、激活峰值与非 Torch 增量后打出 `Available KV cache memory: ... GiB`（逐项扣减推导见 [KV cache 显存预算](kv-cache-memory-profiling.md)）。即使命令行手传 `--kv-cache-memory` 走快路径，Worker **照样会跑一遍 `profile_run()`** 以完成模型首次图外编译。
 
 随后 `EngineCore` 在 `get_kv_cache_configs()` 中先预留 1 个永久空块校验单条 `max_model_len` 容量（若自动适配改写了 `max_model_len`，立刻通过 `update_max_model_len` 同步给全体 Worker），再按每页字节数 $B_{\text{page}}$ 取所有卡的最小可分块数对齐：
 
@@ -223,7 +239,7 @@ $$N_{\text{blocks}} = \min_{r}\,\bigl\lfloor M_{\text{KV}}^{(r)} / B_{\text{page
 
 ### ⑤ `initialize_from_config`：一次切出物理缓存池，清零元数据置池外
 
-各卡收到对齐后的 `KVCacheConfig` 后，若启用了 DSpark 投机且搭配相应 KV 传输或逐层复用，先登记 `dspark_draft_layer_names`，再调用 `ensure_kv_transfer_initialized` 建立跨实例连接器（单机常规服务无外部连接），随后调用 `model_runner.initialize_kv_cache` 一次性切出物理 KV 张量池。在 `v0.30.0` 中，睡眠模式的 `tag="kv_cache"` 可丢弃内存池**只包裹底层缓存张量本体**；而供块回收清零使用的持久元数据（`_init_kv_zero_meta`，在 MRV2 或 `MRV1 + Mamba + Eagle3 多步草稿` 下启用）专门留在睡眠池外，防止睡眠唤醒丢失元数据。此时池中块尚未绑定任何请求，真正请求到来时才按需借还（见 [KV 块分配](vllm-kv-block-allocation.md)）。
+各卡收到对齐后的 `KVCacheConfig` 后，若启用 DSpark 投机且搭配相应 KV 传输或逐层复用，先登记 `dspark_draft_layer_names`，再调用 `ensure_kv_transfer_initialized` 建立跨实例连接器（单机常规服务无外部连接），随后调用 `model_runner.initialize_kv_cache` 一次性切出物理 KV 张量池。在 `v0.30.0` 中，睡眠模式的 `tag="kv_cache"` 可丢弃内存池**只包裹底层缓存张量本体**；而供块回收清零使用的持久元数据（`_init_kv_zero_meta`，在 MRV2 或 `MRV1 + Mamba + Eagle3 多步草稿` 下启用）专门留在睡眠池外，防止睡眠唤醒丢失元数据。此时池中块尚未绑定任何请求，真正请求到来时才按需借还（见 [KV 块分配](vllm-kv-block-allocation.md)）。
 
 ### ⑥ `compile_or_warm_up_model`：7 类预热机制与 `ACLGraph` 录图收尾
 
@@ -232,21 +248,35 @@ $$N_{\text{blocks}} = \min_{r}\,\bigl\lfloor M_{\text{KV}}^{(r)} / B_{\text{page
 | 预热类别 | 触发位置与控制开关 | 预热内容与硬件门禁 |
 | --- | --- | --- |
 | **1. 早期 NZ 分形转换预热** | 第③步 `load_model` 开头；`enable_early_nz_warmup`（默认 `False`） | 后台线程对 `256×256` `int8` 临时张量调一次 `maybe_trans_nz`，让首次 `npu_format_cast` 约 15～19 秒惰性初始化与读盘重叠，加载返回前 `join` |
-| **2. 编译区间尺寸假前向** | 第⑥步开头；读取 `compile_sizes` 与 `compile_ranges` | 非 `enforce_eager` 下剔除已列入 `cudagraph_capture_sizes` 的尺寸并补齐未覆盖编译区间右端点，按从大到小逐个执行 `_dummy_run(size)`（`enforce_eager` 下仅跑显式 `compile_sizes`，为空则一次不跑） |
+| **2. 编译区间尺寸假前向** | 第⑥步开头；读取 `compile_sizes` 与 `compile_ranges` | 非 `enforce_eager` 下剔除 `cudagraph_capture_sizes` 已覆盖尺寸、补齐编译区间右端点，从大到小执行 `_dummy_run(size)`；`enforce_eager` 下仅跑显式 `compile_sizes`（空则跳过） |
 | **3. Triton 拒绝采样预热** | 第⑥步 `kernel_warmup`（开 `enable_early_kernel_warmup` 时提前至第③步后台线程） | `HAS_TRITON` 为真时预编译 `rejection_sampler_triton_warmup`（`310P` 无 Triton 直接跳过整组 4 项） |
 | **4. Triton 采样惩罚项预热** | 第⑥步 `kernel_warmup`（支持第③步早期线程重叠） | `HAS_TRITON` 为真时预编译 `penalties_triton_warmup`，避免带词频惩罚的首条请求卡顿 |
 | **5. Triton RMSNorm 预热** | 第⑥步 `kernel_warmup`（支持第③步早期线程重叠） | `HAS_TRITON` 为真时预编译 `triton_rms_warmup` 归一化算子 |
 | **6. Triton Indexer 预热** | 第⑥步 `kernel_warmup`（紧接前 3 项之后） | `HAS_TRITON` 为真时预编译稀疏注意力索引器 `indexer_triton_warmup` |
 | **7. ATB 矩阵乘收尾预热** | 第⑥步录图之后；硬件具备 `ATB_WARMUP` 能力时自动执行 | 跑一次极小尺寸 `torch_npu._npu_matmul_add_fp32`，防止首条真实请求写缓存（`ReshapeAndCache`）出现时延退化；`950 (A5)` 与 `NPUWorker310` 跳过 |
 
-跑完前 6 类预热后，只要未开启 `enforce_eager`，Worker 就调用 `model_runner.capture_model()` 逐分桶捕获执行图，打印 `Graph capturing finished in ... secs, took ... GiB`（录图显存不在第④步三项扣减内，全部从 $1 - u$ 的预算外余量支付）。紧接着完成四项收尾：未手传 `--kv-cache-memory` 时打印权重、激活峰值、非 Torch 增量与图显存四项 `Actual usage:` 实测账单，并预留 `150 MiB` 安全裕度给出下次重启可用的 `--kv-cache-memory` 建议值；执行第 7 类 `_warm_up_atb()`；在 `enable_cpu_binding`（默认 `True`）开启时调用 `bind_cpus` 将 Worker 绑到亲和 CPU 核（若开启了 `engram_config.cpu_offload` 则关闭跨 NUMA 内存页迁移以保护主机固定表，见 [CPU 绑核](cpu-binding.md)）；最后重置随机种子，由 `EngineCore` 打印 `init engine (profile, create kv cache, warmup model) took ... s` 进入就绪态。
+跑完前 6 类预热后，只要未开启 `enforce_eager`，Worker 就调用 `model_runner.capture_model()` 逐分桶捕获执行图，打印 `Graph capturing finished in ... secs, took ... GiB`（录图显存不在第④步三项扣减内，全部从 $1 - u$ 的预算外余量支付）。紧接着完成四项收尾：
+
+- **实测账单与建议预算**：未手传 `--kv-cache-memory` 时，打印权重、激活峰值、非 Torch 增量与图显存四项 `Actual usage:` 实测账单，并预留 `150 MiB` 安全裕度给出下次重启可用的 `--kv-cache-memory` 建议值。
+- **ATB 收尾预热**：执行第 7 类 `_warm_up_atb()`。
+- **CPU 亲和绑核**：`enable_cpu_binding`（默认 `True`）开启时调用 `bind_cpus` 将 Worker 绑到亲和 CPU 核（若开启 `engram_config.cpu_offload`，则关闭跨 NUMA 内存页迁移以保护主机固定表，见 [CPU 绑核](cpu-binding.md)）。
+- **就绪收敛**：重置随机种子，由 `EngineCore` 打印 `init engine (profile, create kv cache, warmup model) took ... s` 进入就绪态。
 
 ## 硬件变体与跨架构边界：`NPUWorker310` 与双机全案对照
 
 不同昇腾硬件族与多机异构模型不会推翻六步顺序，但会在特定阶段改写内部行为：
 
-- **`NPUWorker310`（`Atlas 300I DUO / 200I Pro`）的五处专属定制**：① 第②步 `_init_device` 在主从共享内存的 Root Complex（RC）模式下改用 `psutil.virtual_memory().available` 读取系统可用内存，且 `init_device` 显式设 `torch_npu.npu.set_compile_mode(jit_compile=False)` 并创建专属 `NPUModelRunner310`（或 `NPUModelRunner310V2`）；② 第③步硬件档案设为 `FORCE_NZ`，强制将支持的二维及以上矩阵权重转为 `FRACTAL_NZ`（同时该卡不支持 `BF16`，浮点须传 `--dtype float16`）；③ 第④步 `determine_available_memory` 把扣减后的可用 KV 显存**直接整除 `2`（`// 2`）**，打出 `Available KV cache memory: ... GiB (halved for workspace)` 为运行期算子工作区留出一半安全余量，并对可复用的同构 Mamba 缓存槽位免除额外预算缩放；④ 第⑥步因环境不含 Triton 且不支持 `npugraph_ex`，`kernel_warmup` 直接返回并须关闭 `enable_npugraph_ex`；⑤ `_warm_up_atb` 覆写为空操作并打印跳过提示。
-- **双机 16 卡异构全案对照（回链「09 旗舰异构模型全案」[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)）**：在本站双机 `2×A2×8`（`TP8 / DP2 / EP16`、`W8A8`、共 `20` 个进程与 `16` 个 Worker，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）历史绑定算例中，六步呈现出鲜明的异构特征：历史专属镜像在构造函数中用 worker 补丁把自定义稀疏 [MLA](mla.md) 类加进后处理名单（`v0.30.0` 已改为上游通用遍历子模块，另见[稀疏注意力](sparse-attention.md)与[线性注意力](linear-attention.md)）；加载阶段开启 `--safetensors-load-strategy prefetch` 后台预读页缓存，主模型与 MTP 草稿层各扫一遍权重文件（按语言权重子账 `20.58 GiB`/卡重建整份语言部分约 `304.8 GiB`，两次遍历表达的是 `2 × 304.8 ≈ 609.6 GiB` 逻辑过手倍数而非磁盘实测流量，分片口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）；试跑阶段先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 上限（预算算例切出 `3,855` 块、每块号占 `7.969 MiB` 的唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）；录图阶段 `--speculative-config` 里的 `"enforce_eager": true` 仅作用于草稿模型，主模型仍按 `FULL_DECODE_ONLY` 捕获 `4、8、16、32、64、96、128` 共 7 个 decode 档位（MTP 每请求一步算 `4` 个 token，对应 `1～32` 并发请求；请求运行期借块还块见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)）。
+- **`NPUWorker310`（`Atlas 300I DUO / 200I Pro`）的五处专属定制**：
+  1. **第②步选卡与运行器**：在主从共享内存的 Root Complex（RC）模式下改用 `psutil.virtual_memory().available` 读取系统可用内存；显式设 `torch_npu.npu.set_compile_mode(jit_compile=False)`，并创建专属 `NPUModelRunner310`（或 `NPUModelRunner310V2`）。
+  2. **第③步权重与精度**：硬件档案设为 `FORCE_NZ`，强制将支持的二维及以上矩阵权重转为 `FRACTAL_NZ`；该卡不支持 `BF16`，浮点须传 `--dtype float16`。
+  3. **第④步显存折半**：`determine_available_memory` 把扣减后的可用 KV 显存**直接整除 `2`（`// 2`）**，打印 `Available KV cache memory: ... GiB (halved for workspace)` 为运行期算子工作区留出一半余量；对可复用的同构 Mamba 缓存槽位免除额外预算缩放。
+  4. **第⑥步预热与图限制**：环境不含 Triton 且不支持 `npugraph_ex`，`kernel_warmup` 直接返回，并须关闭 `enable_npugraph_ex`。
+  5. **ATB 预热空实现**：`_warm_up_atb` 覆写为空操作并打印跳过提示。
+- **双机 16 卡异构全案对照（回链「09 旗舰异构模型全案」[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)）**：在双机 `2×A2×8`（`TP8 / DP2 / EP16`、`W8A8`、共 `20` 个进程与 `16` 个 Worker，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）历史绑定算例中，六步呈现出四处异构特征：
+  1. **补丁与后处理**：历史专属镜像在构造函数中用 worker 补丁把自定义稀疏 [MLA](mla.md) 类加进后处理名单（`v0.30.0` 已改为上游通用遍历子模块，另见[稀疏注意力](sparse-attention.md)与[线性注意力](linear-attention.md)）。
+  2. **预读与两遍扫盘**：加载期开启 `--safetensors-load-strategy prefetch` 后台预读页缓存，主模型与 MTP 草稿层各扫一遍权重文件。按语言权重子账 `20.58 GiB`/卡重建整份语言部分约 `304.8 GiB`，两次遍历表达的是 `2 × 304.8 ≈ 609.6 GiB` 逻辑过手倍数而非磁盘实测流量（分片口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+  3. **双次试跑**：试跑阶段先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 上限（预算算例切出 `3,855` 块、每块号占 `7.969 MiB` 的唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
+  4. **录图与 `enforce_eager` 作用范围**：`--speculative-config` 里的 `"enforce_eager": true` 仅作用于草稿模型；主模型仍按 `FULL_DECODE_ONLY` 捕获 `4、8、16、32、64、96、128` 共 7 个 decode 档位（MTP 每请求一步算 `4` 个 token，对应 `1～32` 并发请求；借块还块见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)）。
 
 ## 常见误解
 

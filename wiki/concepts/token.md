@@ -166,15 +166,15 @@ file: token-intro
 
 **第一步看底层原子：UTF-8 字节。** 计算机用 UTF-8 存储文本时，ASCII 英文、数字和半角标点各占 `1` 个字节，绝大多数常用汉字占 `3` 个字节。每个字节是 8 位二进制整数，共 $2^8 = 256$ 种取值，通常记作两位十六进制数——例如「推」的 UTF-8 字节是 `E6 8E A8`，「理」是 `E7 90 86`。字节级 BPE 把全部 `256` 个单字节都放进基础词表，因此**任何合法的 UTF-8 文本哪怕包含训练时从未见过的生僻字或 emoji，最差也能退回一个个单字节表示，不需要依赖未知词标记（`<unk>`）**。
 
-**第二步看合并围栏：正则预切分（pre-tokenization）。** 合并并非在整篇文章上无边界地乱并，而是先按字符类别把文本切成若干独立小段，后续 BPE 合并严禁跨越段边界，防止把标点和前一个词硬粘成怪异词元。以典型的预切分正则为例：连续的汉字与字母归为一段，数字按固定位数切开（例如 `Qwen3` 按单数字切分，`GLM-5.3-Flash` 按最多 `3` 位数字切分），标点和空白单独成段，英文 `'s`、`'ll` 这类缩写独立分段，而紧挨在文字前的一个空格或标点（换行符除外）常并入后续文字段。比如按最多 3 位数字一组的规则，「工作了2048秒。」会先被预切分成 `工作了`、`204`、`8`、`秒`、`。` 共 5 段；英文 `"hello world"` 分成 `"hello"` 与带前导空格的 `" world"`；而「推理引擎怎么工作」8 个汉字连续相连，整句落在同一段内。
+**第二步看合并围栏：正则预切分（pre-tokenization）。** 合并并非在整篇文章上无边界地乱并，而是先按字符类别把文本切成独立小段，禁止跨越段边界合并。典型正则规则是：连续汉字与字母归为一段，数字按固定位数切开（`Qwen3` 按单数字切，`GLM-5.3-Flash` 按最多 `3` 位切），标点和空白单独成段，英文 `'s`/`'ll` 缩写单列，文字前紧邻的一个非换行空格或标点常并入后续段。按最多 3 位数字规则，「工作了2048秒。」预切成 `工作了`、`204`、`8`、`秒`、`。` 共 5 段；英文 `"hello world"` 分成 `"hello"` 与 `" world"`；「推理引擎怎么工作」8 个汉字落在同一段内。
 
-**第三步看核心循环：按合并表优先级逐对归并。** 训练分词器时，算法在海量语料里反复统计哪两个相邻片段最常并排出现，把它们注册成一条合并规则并把合成的新块加入词表；规则在合并表里的行号越靠前，优先级越高（推理仓库发布的 `tokenizer.json` 只保存最终词表与合并表顺序，不包含原始训练语料）。推理分词时，每轮都在当前相邻块里挑出合并表中排名最靠前的一对合并，每合并 1 次总块数就减 1。下图用教学示意规则放大「推理」两个字的合并全过程：
+**第三步看核心循环：按合并表优先级逐对归并。** 训练分词器时，算法在语料里统计最常并排出现的相邻片段，注册为合并规则并把新块加入词表；规则行号越靠前，优先级越高（`tokenizer.json` 只保存最终词表与合并表，不含原始语料）。推理分词时，每轮都在当前相邻块里挑出合并表排名最靠前的一对合并，每合并 1 次总块数减 1。下图用示意规则放大「推理」两个字的合并全过程：
 
 ```wiki-diagram
 file: token-bpe
 ```
 
-顺着上图逐行核对：起点是 `E6 8E A8 E7 90 86` 共 `6` 个单字节块。第 1 轮里 `E6 + 8E` 命中优先级最高的规则 1，并成 `E6 8E`（剩 `5` 块）；此时虽然 `E6 8E + A8` 也能匹配规则 3，但 `E7 + 90` 对应的规则 2 排在更前面，因此第 2 轮先并出 `E7 90`（剩 `4` 块）；第 3、4 轮分别按规则 3、4 合成完整的「推」与「理」（剩 `2` 块）；第 5 轮按规则 5 合成「推理」（剩 `1` 块），再无可用规则后查出示意编号 `9123`。把同一套归并算式推广到整句 `8` 个汉字，总剩余词元数满足单步守恒：
+顺着上图逐行核对：起点是 `E6 8E A8 E7 90 86` 共 `6` 个单字节块。第 1 轮 `E6 + 8E` 命中优先级最高的规则 1，并成 `E6 8E`（剩 `5` 块）；第 2 轮 `E7 + 90`（规则 2）优先级高于 `E6 8E + A8`（规则 3），先并出 `E7 90`（剩 `4` 块）。第 3、4 轮分别合成「推」「理」（剩 `2` 块），第 5 轮合成「推理」（剩 `1` 块）后查出示意编号 `9123`。把同一算式推广到整句 `8` 个汉字，总剩余词元数满足单步守恒：
 
 $$N_{\text{tok}} = N_{\text{byte}} - M_{\text{char}} - M_{\text{word}} = 24 - 16 - 4 = 4$$
 
@@ -193,7 +193,7 @@ $$N_{\text{tok}} = N_{\text{byte}} - M_{\text{char}} - M_{\text{word}} = 24 - 16
 
 **调用 `/v1/chat/completions` 发送的多轮聊天消息不会原样交给分词器：服务端先通过 `chat_template`（一段与模型配套发布的 Jinja 对话模板）把系统提示、角色边界、对话历史和助手起始引导符拼成训练时约定的格式，再把整段序列编码成 token 编号。**
 
-模型在后训练（SFT / RL）阶段见到的所有对话都严格遵守各自的模板标记协议：靠这些控制标记，模型才分得清哪一段是 `system` 指令、哪一段是 `user` 提问、从哪个位置开始轮到 `assistant` 作答。在全站 `v0.30.0` 主基线的标准模型 `Qwen3-8B`（`vocab_size = 151936`，`bos_token_id = 151643`，`eos_token_id = 151645`）上，模板遵循 ChatML 风格的角色包裹格式——每条消息以 `<|im_start|>角色名\n` 开头、以 `<|im_end|>\n`（对应结束编号 `151645`）收尾；当开启 `add_generation_prompt=True` 时，末尾会自动拼上 `<|im_start|>assistant\n`（并按 `enable_thinking` 等模板变量控制 `<think>...</think>` 思考块前缀），引导模型紧接着往后生成。
+模型在后训练（SFT / RL）阶段见到的对话都严格遵守各自的模板标记协议，靠控制标记区分 `system`、`user` 与 `assistant`。以 `v0.30.0` 主基线标准模型 `Qwen3-8B`（`vocab_size = 151936`，`bos_token_id = 151643`，`eos_token_id = 151645`）为例，其模板遵循 ChatML 风格：每条消息以 `<|im_start|>角色名\n` 开头、`<|im_end|>\n`（`151645`）收尾。开启 `add_generation_prompt=True` 时，末尾还会自动拼上 `<|im_start|>assistant\n`，并按 `enable_thinking` 等变量控制 `<think>...</think>` 前缀。
 
 不同模型家族的模板语法与标记属性各有差异，切勿跨模型混套。下图并排展示了另一套典型真实仓库——`GLM-5.3-Flash` 自带的 Jinja 模板——怎样把同一句「推理引擎怎么工作」包裹成完整序列：
 
@@ -201,7 +201,7 @@ $$N_{\text{tok}} = N_{\text{byte}} - M_{\text{char}} - M_{\text{word}} = 24 - 16
 file: token-split
 ```
 
-观察上图有一个极易忽略的工程细节：模板插入的 `[gMASK]`、`<sop>`、`<|system|>`、`<|user|>`、`<|assistant|>` 与 `<think>` 这 6 个控制标记在词表里都各自占一个独立编号，但**“整块占一个编号”并不等于在分词器里被标为 `special=true`**——在 `GLM-5.3-Flash` 的 `tokenizer.json` 中，前 5 个角色与起始符标为 `special=true`，而 `<think>` 虽属新增词元（added token）却标为 `special=false`。这一属性直接决定后续反分词设置 `skip_special_tokens=true` 时，哪些控制符会被自动隐去、哪些会原样保留给上层解析器处理。
+观察上图有一个易忽略的细节：模板插入的 `[gMASK]`、`<sop>`、`<|system|>`、`<|user|>`、`<|assistant|>` 与 `<think>` 共 6 个标记在词表里各占独立编号，但**“占独立编号”不等于标为 `special=true`**。在 `GLM-5.3-Flash` 的 `tokenizer.json` 中，前 5 个标为 `special=true`，`<think>` 虽属新增词元（added token）却标为 `special=false`。这直接决定反分词设 `skip_special_tokens=true` 时，哪些控制符被隐去、哪些保留给上层解析器。
 
 落到 `vllm@ced6857a`（`v0.30.0` 主基线）的主机 CPU 渲染管线中，`vllm/renderers/hf.py`、`vllm/v1/engine/input_processor.py` 与出口的 `vllm/v1/engine/detokenizer.py` 按下面三站闭环协作：
 
@@ -211,15 +211,15 @@ file: token-fig-chat-pipeline
 
 围绕这一主机侧闭环，日常排查长度不符与输出异常时必须守住三条铁律：
 
-1. **真实输入长度（`prompt_len`）统计的是套完模板后的整条编号序列**：多轮对话中的系统说明、历史提问、历史回答、所有 `<|im_start|>` / `<|im_end|>` 边界符以及末尾的助手起始提示全都会进入 `prompt_token_ids` 占用位置。仅对用户最后一句裸文本分词，永远算不出服务端实际校验的 `prompt_len`。模板渲染与编码全部在主机 CPU 上完成，此时尚未占用 NPU 计算资源。
-2. **一步直出编号，避免二次编码重复塞入 BOS**：`vllm` 的 `safe_apply_chat_template` 默认以 `tokenize=True` 直接让模板产出扁平整数列表（同时显式设 `return_dict=False` 兼容 Transformers v5，防止返回 `BatchEncoding` 容器）。如果你在线下用 Python 手动复现时先以 `tokenize=False` 拿到带控制标记的字符串、再调 `tokenizer.encode(...)` 单独编码，务必传入 `add_special_tokens=False`，否则配置了自动补起始符的编码器会再额外塞一遍起始标记，导致 token 数和缓存哈希全都对不上。比对两次编码结果时，还要同时锁死消息正文、`tokenizer` 文件版本、模板文本与模板变量（如 `enable_thinking` 或 `reasoning_effort`）并保持关闭随机切分。
-3. **无模板目录调用对话接口会当场报错**：Transformers 从 v4.44 起移除了库内硬编码的默认聊天模板；当 `resolve_chat_template` 走完四级回落仍找不到可用模板时（常见于裸预训练基座目录），`vllm` 会直接抛出 `ChatTemplateResolutionError` 拒绝对话请求（已有配套模板的对话模型不受影响，无须额外替换）。
+1. **真实输入长度（`prompt_len`）统计的是套完模板后的整条编号序列**：多轮对话的系统说明、历史问答、所有 `<|im_start|>` / `<|im_end|>` 边界符及末尾助手引导符都会进入 `prompt_token_ids`。仅对用户最后一句裸文本分词，永远算不出服务端校验的 `prompt_len`；模板渲染与编码均在主机 CPU 完成，尚未占用 NPU。
+2. **一步直出编号，避免二次编码重复塞入 BOS**：`safe_apply_chat_template` 默认以 `tokenize=True` 直接输出扁平整数列表（并设 `return_dict=False` 兼容 Transformers v5）。若线下先用 `tokenize=False` 拿到字符串再单独调 `tokenizer.encode(...)`，务必传 `add_special_tokens=False`，否则自动补 BOS 会多塞一遍起始符导致长度与哈希错位。比对两次编码结果时，还要锁死消息正文、`tokenizer` 版本、模板文本与变量（如 `enable_thinking` / `reasoning_effort`）并关闭随机切分。
+3. **无模板目录调用对话接口会当场报错**：Transformers v4.44 起移除了硬编码默认模板。当 `resolve_chat_template` 走完四级回落仍找不到可用模板（常见于裸基座目录），`vllm` 直接抛 `ChatTemplateResolutionError` 拒绝请求（已有配套模板的模型不受影响）。
 
 ## 生成的编号怎样变回文字？
 
 **NPU 每轮前向算完后，由输出头 `lm_head` 给词表全部条目打分、采样器选出 1 个新编号，主机端的增量反分词器（`IncrementalDetokenizer`）再把累积编号按 UTF-8 字节流实时拼回可读文字。**
 
-打分与采样（机制详见 [lm_head](lm-head.md) 与 [sampling](sampling.md)）产出的只是一个整数 token ID；引擎把这个编号追加到当前序列末尾充当下一轮 Decode 的上下文，同时由前端 `OutputProcessor` 里的 `IncrementalDetokenizer.update`（快速分词器路径走 `FastIncrementalDetokenizer.decode_next`）增量解码。由于字节级 BPE 里单个 token 既可以是两三个汉字的整块组合，也可以只是生僻字的半截 UTF-8 字节，反分词器必须维护字节缓冲。沿用前文的「推理」与生僻字「犇」（UTF-8 为 `E7 8A 87`）走一遍流式输出：
+打分与采样（详见 [lm_head](lm-head.md) 与 [sampling](sampling.md)）产出的只是整数 token ID；引擎将其追加进上下文充当下一轮 Decode 输入，同时由前端 `OutputProcessor` 里的 `IncrementalDetokenizer.update`（快速路径走 `FastIncrementalDetokenizer.decode_next`）增量解码。由于字节级 BPE 里单个 token 既可以是多个汉字，也可以只是生僻字的半截 UTF-8 字节，反分词器必须维护字节缓冲。沿用「推理」与生僻字「犇」（`E7 8A 87`）走一遍流式输出：
 
 | 第几个输出 token（示意） | 查词表还原出的字节 | 缓冲区暂存未吐出的字节 | 客户端屏幕新增的可见文字 |
 | --- | --- | --- | --- |
@@ -229,7 +229,7 @@ file: token-fig-chat-pipeline
 
 可以看到，模型一共生成了 `3` 个输出 token，客户端流式界面上的可见文字却只更新了 `2` 次。
 
-除了多字节拼字缓冲，停止条件也会让**流式文本增量**与**内部输出编号序列**脱钩：一方面，为了匹配请求里配置的停止字符串（`stop`，遇到指定子串即截停），反分词器需要按配置暂扣末尾待确认字符（流式推送与缓冲细节见[流式输出](streaming-output.md)）；另一方面，当生成因命中 `eos_token_id`（如 `Qwen3-8B` 的 `151645`）或 `stop_token_ids` 触发 `stop_terminated` 结束、且 `include_stop_str_in_output` 保持默认的 `False` 时，`IncrementalDetokenizer.update` 会把最后一个停止编号记作 `skipped_stop_token_id`——**跳过它的文字解码以免把 `<|im_end|>` 打印到屏幕上，但仍把该编号追加进内部的 `self.token_ids` 列表**。因此，单凭前端收到的可见字符串反推，无法还原完整的输出编号序列。
+除了多字节拼字缓冲，停止条件也会让**流式文本增量**与**内部输出编号序列**脱钩。一方面，为了匹配停止字符串（`stop`），反分词器需按配置暂扣末尾待确认字符（见[流式输出](streaming-output.md)）。另一方面，命中 `eos_token_id`（如 `Qwen3-8B` 的 `151645`）或 `stop_token_ids` 且 `include_stop_str_in_output` 为默认 `False` 时，`IncrementalDetokenizer.update` 会记下 `skipped_stop_token_id`——**跳过该停止符的文字解码（不把 `<|im_end|>` 打在屏幕上），但仍把该编号追加进内部 `self.token_ids`**。因此单凭前端可见文字，无法反推完整输出编号序列。
 
 最后把三个常混在一起的长度口径分清：**输入长度（`prompt_len`）**是提示词套完模板后的已有 token 数；**输出上限（`max_tokens`）**约束本次最多新生成多少个 token；**上下文容量（`max_model_len`）**约束单条请求「输入 + 输出」允许占据的整条序列总长，且请求随时会在采样到结束符或匹配停止串时提前终止。
 
@@ -239,13 +239,13 @@ file: token-fig-chat-pipeline
 
 ### Qwen3-8B 标准主基线：151936 词表与入口交接
 
-在本站单真源预设 `Qwen3-8B` 的 `config.json` 中，与分词和词表直接绑定的核心字段是 `"vocab_size": 151936`、`"bos_token_id": 151643`、`"eos_token_id": 151645`（即对话结束标记 `<|im_end|>`）以及 `"tie_word_embeddings": false`。因为首尾词表不共享，输入侧的 `embed_tokens` 与输出侧的 `lm_head` 在 NPU 显存中各自是一张 $151,936 \times 4,096$ 的 BF16 矩阵（单表约 `1.16 GiB`，首尾合计约 `2.32 GiB`；完整参数账见 [HuggingFace 模型目录解剖](hf-model-anatomy.md#词表与首尾共享vocab_sizetie_word_embeddings-与权重核对)，共享词表模型 `Qwen3-0.6B` 则靠 `tie_word_embeddings: true` 省去其中一张表）。
+在本站单真源预设 `Qwen3-8B` 的 `config.json` 中，与分词和词表直接绑定的核心字段是 `"vocab_size": 151936`、`"bos_token_id": 151643`、`"eos_token_id": 151645`（即对话结束标记 `<|im_end|>`）以及 `"tie_word_embeddings": false`。因为首尾词表不共享，输入侧 `embed_tokens` 与输出侧 `lm_head` 在 NPU 显存中各是一张 $151,936 \times 4,096$ 的 BF16 矩阵（单表约 `1.16 GiB`，合计 `2.32 GiB`；完整账见 [HuggingFace 模型目录解剖](hf-model-anatomy.md#词表与首尾共享vocab_sizetie_word_embeddings-与权重核对)，`Qwen3-0.6B` 则靠 `tie_word_embeddings: true` 省去一张表）。
 
 `Qwen3` 系列也是上游 `vLLM` 源码注释中专门点名的“模型词表大于分词器词表”代表：语言模型权重矩阵的 `151,936` 行里预留了分词器日常文本切分不会产出的额外行，供扩展特殊控制符或多模态占位使用。因此在 `vllm@ced6857a` 的 `InputProcessor._validate_model_input` 中，引擎在 `tokenizer` 存在时同时守住上下两道边界——既拦截负数编号（`min_input_id < 0`），又取分词器最大编号与模型词表上界二者的较大值：
 
 $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab\_size} - 1)$$
 
-任何越出该区间的编号都会在主机 CPU 入口直接抛出 `Token id … is out of vocabulary`，绝不会放进 NPU 去触发静默的零向量查表或算子越界。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记好该请求的增量反分词状态与输出队列，再通过进程间消息队列（ZMQ）把携带 `prompt_token_ids` 和采样设置的请求对象发往 `EngineCore` 等待调度；直到调度器分配好本步预算后，才由昇腾 Worker 进程里的 `NPUModelRunner._prepare_inputs` 在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备好本步的 `input_ids` 与 `positions` 张量，并按[平台契约](vllm-platform-interface.md)交给昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、整数列表、输出队列与设备 HBM 里的权重、激活、KV cache 分属两本完全独立的账，切勿把“几个 token 整数”直接等同于设备显存字节数。**
+任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记增量反分词状态与输出队列，再经 ZMQ 发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 里的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备好 `input_ids` 与 `positions` 张量，并按[平台契约](vllm-platform-interface.md)交给昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”直接等同于设备显存字节数。**
 
 ### DeepSeek Recipe：控制标记与用户文字怎样分开
 
@@ -257,7 +257,7 @@ $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab
 
 在 `09 旗舰异构模型全案` 的 [GLM-5.3-Flash 双机案例](glm-5-3-flash-two-node.md#部署前提)与[单请求主线 R1](one-request.md#第-1-站-入口从-http-到-node0-的引擎)（例外 B 历史绑定算例，固定模型快照 `690b7052`、控制流 `vllm@0fc695fc`、执行侧 `vllm-ascend@db701c1f`）中，同一套分词与词表机制呈现出三处具体的模型级特征：
 
-1. **带 `ignore_merges` 直查优化的字节级 BPE**：`GLM-5.3-Flash` 的 `tokenizer.json` 先执行字符级正则预切分（连续汉字/字母成段、数字最多 `3` 位一段、标点与空白分段、文字前紧邻的单个非换行空格或标点并入该段、`'`s/`'`ll 缩写单列），再交 `ByteLevel` 转为字节并在段内合并；其 `BPE dropout` 为空（切分确定），覆盖全部 `256` 个基础字节故无未知标记，且开启了 `ignore_merges`——若预切分后的整段字节本身已在词表中，直接取出对应编号而不再逐对归并。
+1. **带 `ignore_merges` 直查优化的字节级 BPE**：`GLM-5.3-Flash` 的 `tokenizer.json` 先执行字符级正则预切分（连续汉字/字母成段、数字最多 `3` 位一段、标点与空白分段、文字前紧邻的单个非换行空格或标点并入该段、`'`s/`'`ll 缩写单列），再交 `ByteLevel` 转为字节并在段内合并。其 `BPE dropout` 为空（切分确定），覆盖全部 `256` 个基础字节故无未知标记，且开启了 `ignore_merges`——若预切分后的整段字节本身已在词表中，直接取出对应编号而不再逐对归并。
 2. **`154880` 行词表的三段构成与 `special` 差异**：模型文本词表维度（`embed_tokens` 与 `lm_head` 行数，见[模型的形状总表](glm-5-3-flash.md#全模型形状总表)）为 `154,880`，比分词器总条目数多出 $154,880 - 154,820 - 36 = 24$ 行（配置文件未写明这 24 行用于对齐切分还是预留扩展）：
 
 | 编号区间 | 条目行数 | 词表分段角色与解码/判停边界 |
@@ -266,8 +266,8 @@ $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab
 | `154820 – 154855` | `36` 行 | 新增词元（模板控制符、结束符、图像/视频占位等）：仅 `18` 个标为 `special=true`（与 `tokenizer_config.json` 的 `extra_special_tokens` 一致）；其余 `18` 个含 `<think>`、`</think>` 等（`special=false`，故 `skip_special_tokens=true` 会跳过 `<|assistant|>` 却保留 `<think>`） |
 | `154856 – 154879` | `24` 行 | 模型权重存在但分词器从不产出的行；因入口上界取 `154879`，直接传 `prompt_token_ids` 落入此段仍可通过上界检查 |
 
-   同时，`config.json` 与 `generation_config.json` 列出了三个结束编号 `154820`（`<|endoftext|>`）、`154827`（`<|user|>`，既标示下一轮用户发言也兼作生成结束符）与 `154829`（`<|observation|>`）：默认未忽略 EOS 时，主 EOS 单独记录、其余并入 `stop_token_ids`，满足 `min_tokens` 后命中任一即停止。
-3. **示例请求 R1 的 4 token 教学设定与真实 16 token 对照**：主线为便于逐行写出每卡矩阵，将[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署) 约定为套完模板后共 `4` 个输入编号 `p₀, p₁, p₂, p₃`（排在位置 `0–3`；`p₀` 只是第 1 个输入编号的符号名，不代表编号 `0`）。若用真实 `690b7052` 文件与 `tokenizers 0.22.1` 在 CPU 上实测编码：裸正文「推理引擎怎么工作」为 `[107934, 106244, 99311, 98538]`（4 个 token）；单条 `user` 消息不传 `tools`、开启 `add_generation_prompt=True` 并取默认推理强度时，渲染文本为 `[gMASK]<sop><|system|>Reasoning Effort: Max<|user|>推理引擎怎么工作<|assistant|><think>`，实得 **16 个 token = 6 个模板独立标记 + 6 个推理强度说明 token + 4 个正文 token**。生成阶段该部署还开启了 MTP 多词草拟验证（见[主线第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)）。
+   同时，`config.json` 与 `generation_config.json` 列出了三个结束编号：`154820`（`<|endoftext|>`）、`154827`（`<|user|>`，既标示下一轮用户发言也兼作生成结束符）与 `154829`（`<|observation|>`）。默认未忽略 EOS 时，主 EOS 单独记录、其余并入 `stop_token_ids`，满足 `min_tokens` 后命中任一即停止。
+3. **示例请求 R1 的 4 token 教学设定与真实 16 token 对照**：主线为便于逐行写出每卡矩阵，将[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署) 约定为套完模板后共 `4` 个输入编号 `p₀, p₁, p₂, p₃`（排在位置 `0–3`；`p₀` 只是第 1 个输入编号的符号名，不代表编号 `0`）。若用真实 `690b7052` 文件与 `tokenizers 0.22.1` 在 CPU 上实测编码，裸正文「推理引擎怎么工作」为 `[107934, 106244, 99311, 98538]`（4 个 token）。单条 `user` 消息不传 `tools`、开启 `add_generation_prompt=True` 并取默认推理强度时，渲染文本为 `[gMASK]<sop><|system|>Reasoning Effort: Max<|user|>推理引擎怎么工作<|assistant|><think>`，实得 **16 个 token = 6 个模板独立标记 + 6 个推理强度说明 token + 4 个正文 token**。生成阶段该部署还开启了 MTP 多词草拟验证（见[主线第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)）。
 
 在双机 DP2 部署下，A1 主机入口完成模板、分词、输出登记与按负载选组（两组初始同为 0 分时选入 `DP0`）后，再经 ZMQ 交 `EngineCore` 进入 A2 调度、A3 准备张量与 A4 逐层计算：
 

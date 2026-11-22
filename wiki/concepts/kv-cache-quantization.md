@@ -175,7 +175,7 @@ $$q = \text{clamp}\!\left(\text{round}\!\left(\frac{x}{s}\right),\, -128,\, 127\
 
 ### 一块省多少：有效数据减半，按页分配也减半
 
-设本卡上的一层有 2 个 KV 头、每头 64 维，一条请求的历史有 100 个位置，每页装 32 个位置（示意数）；所需页数为 $\lceil 100 \div 32 \rceil = 4$ 页（共 $4 \times 32 = 128$ 个位置，前导系数 `2` 代表 $k, v$ 两张缓存）：
+设本卡上的一层有 2 个 KV 头、每头 64 维，一条请求的历史有 100 个位置，每页装 32 个位置（示意数）。所需页数为 $\lceil 100 \div 32 \rceil = 4$ 页（共 $4 \times 32 = 128$ 个位置），下式前导系数 `2` 代表 $k, v$ 两张缓存：
 
 $$B_{\text{valid}}(\text{dtype}) = 2 \times 100 \times 2 \times 64 \times b, \qquad B_{\text{alloc}}(\text{dtype}) = 2 \times 128 \times 2 \times 64 \times b$$
 
@@ -194,16 +194,16 @@ $$B_{\text{valid}}(\text{dtype}) = 2 \times 100 \times 2 \times 64 \times b, \qq
 file: kv-cache-quantization
 ```
 
-在普通 attention 模型上开 C8 时，这一段对应主线[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)里 attention 的位置；写入要用的块表和槽位，由[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)准备。GLM 的 attention 是 KDA 和稀疏 MLA，不走这条路，见[后文](#放到-glm-双机这套部署没有开-kv-cache-量化)。按图里的编号走一遍：
+在普通 attention 模型上开 C8 时，这一段对应主线[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)里 attention 的位置；写入要用的块表和槽位，由[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)准备。混合架构（如 KDA 与稀疏 MLA）不走这条普通 C8 路径，见[后文复杂异构对照](#放到-glm-双机这套部署没有开-kv-cache-量化)。按图里的编号走一遍：
 
 1. 这一层给新位置算出 k、v，此时还是 BF16。
 2. 乘系数的倒数、加偏移、舍入、截断，得到 INT8。
 3. 按这个位置的槽位写进块里；槽位怎样由块表和位置算出，见[位置怎样找到缓存写入处](prepare-inputs-flow.md#位置怎样找到缓存写入处)。prefill 时，第 1 步的浮点那份也留着，本步接着用。
 4. prefill 没有历史（整段提示词都是这一步新算的）：直接用第 1 步的浮点 k、v。
-5. prefill 要接历史（[prefix caching](prefix-caching.md) 命中了前面的块，或 [chunked prefill](chunked-prefill.md#历史状态必须跨段延续) 的后面几段）：先按块表把这条请求用到的块收拢（gather）成一张连续的临时张量，掩掉块尾空着的位置，再乘回系数得到 BF16，然后才算 attention。这张临时张量要额外的显存，还多一次格式转换。
+5. prefill 要接历史（[prefix caching](prefix-caching.md) 命中旧块，或 [chunked prefill](chunked-prefill.md#历史状态必须跨段延续) 后续分块）：先按块表把用到的块收拢（gather）成连续临时张量，掩掉块尾空位，再乘回系数得到 BF16 才算 attention。这张临时张量要额外的显存，还多一次格式转换。
 6. decode：attention 算子拿到块表和 k、v 的系数，直接按块读 8 位数，边读边乘回系数。它不用先把整段历史展开成一份 BF16 副本，从显存读的就是 8 位的字节。
 
-所以反量化的开销取决于执行阶段和算子接口，不只看有没有命中前缀缓存：分块 prefill 的后面几段，本来就要读前面几段留下的历史。decode 和 prefill 混在同一批时，decode 那部分仍按第 6 步直接读。第 4、5 步的分路按整批判断：chunked prefill 的一批里只要有一条 prefill 要接历史，或浮点 k、v 不可用，这一批所有 prefill 都走第 5 步；收拢的内容也包括这一步刚写进去的新位置，它们读回来同样是 8 位的近似值。
+所以反量化的开销取决于执行阶段和算子接口，不只看有没有命中前缀缓存：分块 prefill 的后面几段，本来就要读前面几段留下的历史。decode 和 prefill 混在同一批时，decode 那部分仍按第 6 步直接读。第 4、5 步按整批分路：chunked prefill 一批里只要有一条 prefill 接历史或浮点 k、v 不可用，整批 prefill 都走第 5 步。收拢的内容也包括本步刚写入的新位置，它们读回来同样是 8 位近似值。
 
 **按块读回只传或乘系数，不减偏移。** 写入时加了偏移，但 decode 的融合调用没有传偏移，prefill 展开也只乘系数，注释按对称量化处理；不分页的旁路才先减偏移再乘。要让每个缓存数值按同一量化公式还原，分页路径需要零偏移配方；这几处代码没有主动拒绝非零偏移，应检查实际权重包。
 
@@ -228,26 +228,28 @@ file: kv-cache-quantization
 | FA 量化 | MLA | 只压潜向量那一份，RoPE 段保持原精度。A5（另一代昇腾设备）上压成 FP8，所有实例都生效；A2、A3 上压成 INT8，只在 PD 分离的 decode 端生效 | 每层一组，随权重加载 |
 | 稀疏 C8 | 带索引器的稀疏 MLA | 主缓存连同系数打包成一份 8 位缓存；索引器的缓存由另一个开关单独压 | 和数据一起存进缓存块 |
 
-在固定版本里，三条路的开关都不在上游 vLLM 的 `kv-cache-dtype` 选项上：C8 和 FA 量化写在权重包的量化描述文件里（FA 量化这个名字就取自打开它的键 `fa_quant_type`），稀疏 C8 写在启动时的附加配置里，具体键名见[怎么开](#怎么开)。到 `v0.30.0` 与 `main` 主基线，KV 量化体系进一步扩展出三条重要规则：
-- **GQA `INT8 C8`** 仍依赖 ModelSlim 量化权重包（`quant_model_description.json` 含 `kv_cache_type: C8` 与每层 scale）和 `block_size % 32 == 0` 约束；
-- **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）** 面向标准 full Attention（K 动态量化、V 静态 E8M0 scale），其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗；
-- **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）** 仅支持 A2/A3，按模型家族分为 SFA 打包主缓存与 DeepSeek V4 压缩缓存两路（后者要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`）；同时上游提供 **`--kv-cache-dtype-skip-layers`** 按层号或注意力类型跳过 KV 量化（例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层写入该跳过列表以保持 BF16）。
+在旧版固定实现中，三条路的开关都不在上游 `--kv-cache-dtype` 上：C8 和 FA 量化写在权重包描述文件里（FA 量化键名为 `fa_quant_type`），稀疏 C8 写在启动附加配置里，键名见[怎么开](#怎么开)。到 `v0.30.0` 与 `main` 主基线，KV 量化体系进一步扩展出三条重要规则：
 
-下图把 `v0.30.0` 昇腾上四条 KV cache 量化路径（`INT8 C8`、`MXFP8 C8`、FA 量化、`TurboQuant 4-bit`）的入口、页大小对齐与 `--kv-cache-dtype-skip-layers` / PD 边界并排对照：
+- **GQA `INT8 C8`**：仍依赖 ModelSlim 量化权重包（`quant_model_description.json` 含 `kv_cache_type: C8` 与每层 scale）和 `block_size % 32 == 0` 约束。
+- **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）**：面向标准 full Attention（K 动态量化、V 静态 E8M0 scale）。其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗。
+- **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）**：仅支持 A2/A3，按模型家族分为 SFA 打包主缓存与 DeepSeek V4 压缩缓存两路。其中后者还要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`。
+- **按层跳过选项 `--kv-cache-dtype-skip-layers`**：上游支持按层号或注意力类型跳过 KV 量化；例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层加入跳过列表以保持 BF16。
+
+下图将 `v0.30.0` 昇腾上四条 KV cache 量化路径（`INT8 C8`、`MXFP8 C8`、FA 量化、`TurboQuant 4-bit`）的入口、页大小对齐和跳过/PD 边界并排对照：
 
 ```wiki-diagram
 file: kv-cache-quantization-fig-c8-mxfp8-turboquant
 ```
 
-FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的那一端（KV consumer），普通部署在描述文件里写了它也不会压缓存；`v0.30.0` / `main` 上 FA 量化另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
+FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的一端（KV consumer），普通部署写了它也不会压缓存。在 `v0.30.0` 与 `main` 上，FA 量化还另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
 
 ### PD 分离时，两端的缓存格式不一样
 
 C8 只让「不是 KV producer」的实例把缓存类型改为 INT8。producer 不做这次类型覆盖，但同样换上 C8 实现；它的 prefill 分支直接写原类型缓存，不经过前面图中的 INT8 写入。以本页 BF16 为基线，P 端保留 BF16、D 端分配 INT8，两端字节格式不同，不能直接原样整块搬运。判断条件是 producer 标志，也要识别同时标为 producer 和 consumer 的角色组合。
 
-固定版本在启动时专门拦这一种组合：普通 GQA 模型开了 C8、又用 [MooncakeConnector](mooncake-connector.md) 整块传输，直接报错，提示关掉 C8，或者改用逐层传输的 MooncakeLayerwiseConnector，它在发送前先把缓存压成 8 位。这条检查说明的是接口约束，不是 GLM 或某种 PD 组合的实测结论。
+启动检查专门拦截一种禁配组合：普通 GQA 模型开了 C8，又用 [MooncakeConnector](mooncake-connector.md) 整块传输时会直接报错。报错会提示关掉 C8，或改用发送前先量化成 8 位的逐层 `MooncakeLayerwiseConnector`。这条检查说明的是接口约束，不是具体部署的实测结论。
 
-对照其他模型时，还要核对不同状态是否使用不同精度。[DeepSeek 的主 KV、索引 K 与窗口格式](low-precision-formats.md#deepseek-为什么几种缓存不用同一种-fp4)放在格式页统一说明；本页继续维护 Ascend 三条路径及 GLM 的实际启用条件。
+对照其他模型时，还要核对不同状态是否使用不同精度。[DeepSeek 的主 KV、索引 K 与窗口格式](low-precision-formats.md#deepseek-为什么几种缓存不用同一种-fp4)放在格式页统一说明；本页继续维护 Ascend 路径及后文复杂异构实战对照。
 
 ## C8、FP8 与更低位缓存，区别不只是位数
 
@@ -263,11 +265,13 @@ C8 只让「不是 KV producer」的实例把缓存类型改为 INT8。producer 
 
 缓存改成 [NZ 布局](tensor-layout.md)只表示重排与对齐；它本身没有把 BF16 压成 INT8。权重 W8A8、缓存 C8、缓存 ND/NZ 是分别选择和验证的事项。
 
-## 放到 GLM 双机：这套部署没有开 KV cache 量化
+## 复杂异构实战对照：GLM 双机为何未启用与定块边界
+
+### 放到 GLM 双机：这套部署没有开 KV cache 量化
 
 **按[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的固定源码与配置，稀疏 MLA 主缓存和索引器的压缩缓存为 BF16，索引器尾状态为 FP32，没有启用上面三条 KV 量化路径。** 本节据此解释旧部署的缓存格式和容量。公开权重包的两个固定快照也未登记 C8 / FA 缓存量化条目；现场下载的是哪一版，仍要由部署记录确定。
 
-### 三处代码把缓存精度定死
+#### 三处代码把缓存精度定死
 
 - GLM 的稀疏 MLA 缓存层建主缓存时，直接把精度写成 BF16，代码注释说所有设备上都保持 BF16。
 - GLM 用的 attention 后端继承自稀疏 MLA 的通用后端，但在构造时把稀疏 C8 的两个开关（主缓存、索引器缓存）强制关掉；如果启动时打开了索引器 C8 的重排优化，会直接报错。
@@ -277,11 +281,11 @@ FA 量化还多一条走不到的理由：它在 A2 上只对 PD 分离的 decod
 
 W8A8 只管权重和激活（见[哪些矩阵是 8 位](quantization.md#哪些矩阵是-8-位哪些保持-bf16)），和缓存精度是两件事：这套部署开着 W8A8，缓存仍是 BF16。
 
-### 缓存里的字节主要是潜向量
+#### 缓存里的字节主要是潜向量
 
-每张卡上，每个 token 在 12 个存 KV 的层（主干 11 层稀疏 MLA 加 MTP 第 45 层；[MTP](speculative-decoding.md) 是模型自带、用来生成投机草稿的预测层）里合计占 13,056 B，其中潜向量 12,288 B、索引器压缩缓存 768 B，都是 BF16；推导见[占住一个块号，要用多少显存](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。要压的话，对象主要是潜向量这一份，也就是 [MLA 页](mla.md#每个位置缓存多少字节)讲的那条 512 维潜向量。
+每张卡上，12 个存 KV 的层（主干 11 层稀疏 MLA 加 [MTP](speculative-decoding.md) 第 45 层）合计每 token 占 13,056 B，其中潜向量 12,288 B、索引器压缩缓存 768 B，均为 BF16。推导见[占住一个块号，要用多少显存](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。要压的话，对象主要是潜向量这一份，也就是 [MLA 页](mla.md#每个位置缓存多少字节)讲的那条 512 维潜向量。
 
-### 假如只把潜向量压成 1 字节，块数会翻倍吗
+#### 假如只把潜向量压成 1 字节，块数会翻倍吗
 
 **不会简单翻倍，因为 GLM 的块大小是按缓存精度凑出来的。** 一个逻辑块取 640 个 token，是为了让一块的 MLA 页装得下一层 [KDA](linear-attention.md)（GLM 用的线性 attention）在一条请求上的递推状态（561,152 B），推导见[为什么一个逻辑块是 640 个 token](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。这条规则按缓存精度的字节数算每个 token 的页大小；若没有显式指定更大的块，把同一条规则代入 1 字节（假设推算，不是部署状态）：
 
@@ -293,7 +297,7 @@ $$n_{\text{kblk}} = \left\lceil \frac{561{,}152}{128 \times 512} \right\rceil = 
 | 所需 128-token kernel 块数 | $\lceil 561{,}152 \div (128 \times 512) \rceil = \lceil 8.5625 \rceil$ | **9 块** |
 | 重算后的逻辑块大小 | $128 \times 9$ | **1,152 个 token** |
 
-逻辑块从 640 个 token 变成 1,152 个，每个块号占多少字节、预算能切出多少块，都要整个重算；KDA 递推状态本身（每层每条请求 561,152 B，一条请求固定占 12 个块号，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)）不属于潜向量缓存，压潜向量不会让它变小。所以「潜向量字节减半」推不出「块数翻倍」或「能多装一倍请求」。这里只是把规则代进去看方向：固定版本里 GLM 的缓存精度不会变成 1 字节。
+逻辑块从 640 个 token 变成 1,152 个，每个块号占多少字节、预算能切出多少块，都要整个重算。KDA 递推状态本身（每层每条请求 561,152 B，固定占 12 个块号，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)）不属于潜向量缓存，压潜向量不会让它变小。所以「潜向量字节减半」推不出「块数翻倍」或「能多装一倍请求」；这里只是代入规则看方向，固定版本里 GLM 缓存精度不会变成 1 字节。
 
 ## 常见误解
 

@@ -72,15 +72,15 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**FlashAttention 是一类在不改变标准注意力数学结果的前提下，把 $Q, K, V$ 切成小块装进芯片片上高速缓冲（SRAM / UB）、边流式打分边用 Online Softmax 原地汇合输出的融合注意力算法；昇腾 `vllm-ascend` 在此思想上演化出以 `FusedInferAttentionScore`（`FIA`）为主力、配合 `_npu_paged_attention`（`PA`）与训推一致后端 `FA3` 的注意力算子族。**
+**FlashAttention 是一类不改变标准注意力数学结果的融合算法：它把 $Q, K, V$ 切成小块装进芯片片上高速缓冲（SRAM / UB），边流式打分边用 Online Softmax 原地汇合输出。昇腾 `vllm-ascend` 在此思想上演化出以 `FusedInferAttentionScore`（`FIA`）为主力、配合 `_npu_paged_attention`（`PA`）与训推一致后端 `FA3` 的注意力算子族。**
 
 沿[请求全景](request-overview.md)进入逐层前向时，每一层算完 $Q, K, V$ 投影和位置编码，紧接着就要做[注意力计算](attention-qkv.md)：$\text{Softmax}(QK^\top / \sqrt{d})\,V$。公式只有短短一行，但如果照着字面顺序拆成三个独立算子逐步落盘执行，长上下文请求连第一层都跑不过去。
 
 ## 朴素注意力为什么会把显存与 HBM 带宽同时撑爆？
 
-按教科书的三步写法，设备要先算完整张打分表 $S = QK^\top / \sqrt{d}$ 写回设备内存 **HBM**（高带宽显存，昇腾文档中也称全局内存 GM，见 [AI Core](ai-core.md)），第二步把 $S$ 重新读出来按行做 Softmax 得到权重表 $P$ 再写回 HBM，第三步再把 $P$ 读出来乘 $V$ 写出最终输出 $O$。
+按教科书的三步写法，设备要先算完整张打分表 $S = QK^\top / \sqrt{d}$ 写回设备内存 **HBM**（高带宽显存，昇腾文档中也称全局内存 GM，见 [AI Core](ai-core.md)）。第二步把 $S$ 重新读出来按行做 Softmax 得到权重表 $P$ 再写回 HBM，第三步再把 $P$ 读出来乘 $V$ 写出最终输出 $O$。
 
-拿本站标准教学标尺 **`Qwen3-8B`** 算一笔实账就能看清灾难出在哪里：`Qwen3-8B` 每层有 `32` 个查询头（`num_attention_heads = 32`）、`8` 个键值头（`num_key_value_heads = 8`），头维度 $d = 128$，采用 `BF16`（每个元素占 `2 B`）。当单条长上下文请求的序列长度来到 $N = 32768$（`32K` token）时，输入 $Q$ 本身只有 $32768 \times 32 \times 128 \times 2\text{ B} = 256\text{ MiB}$，本层 $K$ 或 $V$ 更是只有 `64 MiB`；可一旦把 `[32, 32768, 32768]` 的注意力分数矩阵 $S$ 实体化写进 HBM，仅**单层**一张 `BF16` 分数表的体积就高达：
+拿本站标准教学标尺 **`Qwen3-8B`** 算一笔实账就能看清灾难出在哪里。`Qwen3-8B` 每层有 `32` 个查询头（`num_attention_heads = 32`）、`8` 个键值头（`num_key_value_heads = 8`），头维度 $d = 128$，采用 `BF16`（每元素 `2 B`）。当单条长上下文请求的序列长度来到 $N = 32768$（`32K` token）时，输入 $Q$ 本身只有 $32768 \times 32 \times 128 \times 2\text{ B} = 256\text{ MiB}$，本层 $K$ 或 $V$ 更是只有 `64 MiB`。可一旦把 `[32, 32768, 32768]` 的注意力分数矩阵 $S$ 实体化写进 HBM，仅**单层**一张 `BF16` 分数表的体积就高达：
 
 $$32 \times 32768 \times 32768 \times 2\text{ B} = 32 \times 1024\text{ Mi} \times 2\text{ B} = 64\text{ GiB}$$
 
@@ -138,11 +138,11 @@ file: ascend-fa-online-softmax-flow
 | **流式收尾归一**：单次除 $l_2$ | $m_2 = 4$ | — | $l_2 \approx 1.2349$ | $\tilde{O}_2 \approx 35.1961$ | $O = \tilde{O}_2 / l_2 \approx \mathbf{28.5009}$ |
 | **全量 Softmax 对照**：一次读齐 `[1, 2, 4, 1]` | 全局最大 $m = 4$ | 全行减 $4$ 得 `[-3, -2, 0, -3]` | $e^{-3} + e^{-2} + 1 + e^{-3} \approx 1.2349$ | $10e^{-3} + 20e^{-2} + 30 + 40e^{-3} \approx 35.1961$ | 权重 `[0.0403, 0.1096, 0.8098, 0.0403]`，加权和 $\mathbf{28.5009}$（**代数严格相等**） |
 
-这里顺便埋下一条贯穿分布式章节的伏笔：**在单张 NPU 上让 $K/V$ 分块沿时间顺序流过片上缓冲，叫 FlashAttention；把同一条超长序列的 $K/V$ 分块拆到多张 NPU 卡上各自算出局部输出与对数分母和（$\text{LSE} = m + \ln l$），最后跨卡按同一公式重标定合并，就是后文将要展开的[上下文并行（PCP / DCP）](context-parallel.md)。** 在 `vllm-ascend` 中，`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 把多段 `(out_list, lse_list)` 合成精确全局输出，底层执行的正是同一套代数重标定。
+这里顺便埋下一条贯穿分布式章节的伏笔：**在单张 NPU 上让 $K/V$ 分块沿时间流过片上缓冲，叫 FlashAttention；把同一条超长序列的 $K/V$ 分块拆到多张 NPU 卡上各算局部输出与对数分母和（$\text{LSE} = m + \ln l$），再跨卡按同一公式重标定合并，就是[上下文并行（PCP / DCP）](context-parallel.md)。** 在 `vllm-ascend` 中，`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 合并多段 `(out_list, lse_list)`，底层执行的正是同一套代数重标定。
 
 ## 昇腾注意力算子族与 v0.30.0 选路：FIA / PA / 早期拆算子与 FA3 各管哪一段？
 
-读昇腾推理文档与源码时，初学者最容易被一长串名字带 `flash_attention` 或 `paged_attention` 的算子绕晕。放到 `vllm-ascend v0.30.0` 的真实主干（后端抽象分工详见[注意力后端](attention-backend-family.md)）里，密集 MHA / GQA 模型的选路其实非常清晰：由 `NPUPlatform.get_attn_backend_cls` 先分出训推一致分支 `FA3` 与默认推理主干 `AscendAttentionBackend`，后者再在 `forward_impl` 内按批状态在统一算子 **`FIA`** 与分页解码算子 **`PA`** 之间做二选一：
+读昇腾推理文档与源码时，初学者常被一串带 `flash_attention` 或 `paged_attention` 的算子名绕晕。落到 `vllm-ascend v0.30.0` 主干（后端抽象分工见[注意力后端](attention-backend-family.md)），密集 MHA / GQA 的选路其实很清晰：`NPUPlatform.get_attn_backend_cls` 先分出训推一致分支 `FA3` 与默认推理主干 `AscendAttentionBackend`，后者再在 `forward_impl` 内按批状态在 **`FIA`** 与 **`PA`** 之间二选一：
 
 ```wiki-diagram
 file: ascend-fa-operator-routing
@@ -158,17 +158,19 @@ file: ascend-fa-operator-routing
 | **`310P` 兼容算子组**（`_npu_flash_attention(_v3)` + `_npu_paged_attention(_splitfuse)`） | `Atlas 300I DUO (310P)` 专用 `AscendAttentionBackend310` 执行栈 | Prefill 走 `_npu_flash_attention(_v3)`，Decode 走 `_npu_paged_attention`，分块混合批走 `_splitfuse(_v2)` | 硬件档案属于 `COMPATIBILITY` 族（`310P`，仅 `FP16` / `W8A8-310P`）时自动接管 |
 | **早期拆算子 `PFA / IFA`**（`npu_prompt_flash_attention` / `npu_incre_flash_attention`） | 早年未统一分页前的“Prefill 一套、单步 Decode 一套”旧接口 | 仅吃连续稠密张量（如 `BNSD`），不带分页 `block_table` | `npu_incre_flash_attention` 在 `v0.30.0` 主仓已**零生产调用**；`npu_prompt_flash_attention` 仅残留于多模态视觉相对位置编码器（`rel_pos_attention.py`）；另大头 `head_size == 512` 的 Prefill 回退走 `npu_fusion_attention` |
 
-这里最值得纠正一个过时印象：**不要再把昇腾推理记成“Prefill 调 `PromptFlashAttention`、Decode 调 `IncreFlashAttention` 或一律调 `_npu_paged_attention`”。** 在 `v0.30.0` 的 `A2 / A3 / 950DT` 默认配置下（`pa_shape_list` 默认为空列表 `[]`），从首轮 Prefill、Chunked Prefill 一直到每步常规 Decode，主力路径全部由 `FIA` 一套算子跑通；在 `950DT` 混合批或开启批不变（`VLLM_BATCH_INVARIANT`）时，`AscendAttentionBackendImpl` 也只是把混合批拆成两次独立的 `FIA` 调用，而不会退回旧拆算子。
+这里最值得纠正一个过时印象：**不要再把昇腾推理记成“Prefill 调 `PromptFlashAttention`、Decode 调 `IncreFlashAttention` 或一律调 `_npu_paged_attention`”。** 在 `v0.30.0` 的 `A2 / A3 / 950DT` 默认配置下（`pa_shape_list` 默认为空列表 `[]`），从首轮 Prefill、Chunked Prefill 一直到每步常规 Decode，主力路径全部由 `FIA` 一套算子跑通。即便在 `950DT` 混合批或开启批不变（`VLLM_BATCH_INVARIANT`）时，`AscendAttentionBackendImpl` 也只是把混合批拆成两次独立的 `FIA` 调用，而不会退回旧拆算子。
 
 ### 关键耦合红线：为什么开启 FA3 必须配 PIECEWISE 图模式？
 
-首先把名字对齐：开源论文里的 FlashAttention-3 主打 NVIDIA Hopper 架构上的异步流水与 `FP8` 低比特吞吐；而昇腾 `vllm-ascend v0.30.0` 文档所说的 **`FA3`**（处于 `beta` 阶段），核心定位是在强化学习场景（详见 [vLLM-Ascend for RL](vllm-ascend-for-rl.md)）下让推理侧注意力计算与训练框架（如 `veRL`）使用的 FlashAttention 保持一致，避免默认 `FIA` 与训练侧浮点累加顺序不同引发策略训练偏差，官方亦明确提示开启后相比默认 `FIA` 可能出现性能回落。
+首先把名字对齐：开源论文里的 FlashAttention-3 主打 NVIDIA Hopper 架构的异步流水与 `FP8` 低比特吞吐；昇腾 `vllm-ascend v0.30.0` 文档所说的 **`FA3`**（处于 `beta` 阶段）则是另一回事。它的核心定位是在强化学习场景（详见 [vLLM-Ascend for RL](vllm-ascend-for-rl.md)）下，让推理侧注意力与训练框架（如 `veRL`）使用的 FlashAttention 保持一致，避免默认 `FIA` 与训练侧浮点累加顺序不同引发策略训练偏差；官方亦明确提示开启后相比默认 `FIA` 可能出现性能回落。
 
 在 `v0.30.0` 中启用 `FA3` 有三条刚性约束必须同时对齐：
 
-1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把用户手工传入的 `attention_config.backend` 重置为 `None`；真正触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP` 且 `--additional-config` 中同时设 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
-2. **模型与精度边界严格**：仅支持 `Atlas A2 / A3` 上的密集 MHA / GQA（`FP16` / `BF16`，固定分页块大小 `128`，已在 `Qwen3-8B` 与 `Qwen3-30B-A3B` 验证）；遇到 MLA / SFA、滑动窗口（`sliding_window`）、ALiBi、Softcapping 或 `FP8` 量化注意力均不支持（其中 MLA/SFA 与滑窗直接抛 `ValueError`，核内不支持 RoPE 则由框架自动回退到核外 PyTorch 原生 RoPE）。
-3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数（tiling）在 **Host CPU 侧**计算，`AscendFAImpl` 前向还会对序列长度做 `.npu()` 搬运与宿主侧求最大值，没有接入全图捕获任务注册（`register_task`），因此**无法被录进 [ACL Graph](acl-graph.md) 整图回放**。更隐蔽的是，`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会自动替你把全图模式降级：若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 会当场抛出 `ValueError`；若保留包含全图路径的模式，运行期捕获也会因 Host 侧 tiling 失败。唯有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力节点列入分段切点（`splitting_ops`）留在图外逐次调用，而把注意力前后的线性投影与归一化子图照常录进 ACL Graph 加速。
+1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把用户手工传入的 `attention_config.backend` 重置为 `None`。真正触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP`，且 `--additional-config` 中同时设 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
+2. **模型与精度边界严格**：仅支持 `Atlas A2 / A3` 上的密集 MHA / GQA（`FP16` / `BF16`，固定分页块大小 `128`，已在 `Qwen3-8B` 与 `Qwen3-30B-A3B` 验证）。MLA / SFA、滑动窗口（`sliding_window`）、ALiBi、Softcapping 与 `FP8` 量化注意力均不支持——其中 MLA/SFA 与滑窗直接抛 `ValueError`，核内不支持 RoPE 则自动回退到核外 PyTorch 原生 RoPE。
+3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数（tiling）在 **Host CPU 侧**计算，`AscendFAImpl` 前向还会对序列长度做 `.npu()` 搬运与宿主侧求最大值，没有接入全图捕获任务注册（`register_task`），因此**无法被录进 [ACL Graph](acl-graph.md) 整图回放**。唯有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力节点列入分段切点（`splitting_ops`）留在图外逐次调用，而把注意力前后的线性投影与归一化子图照常录进 ACL Graph 加速。
+
+> **边界与例外（`FA3` 不会自动降级全图模式）**：`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会替你自动降级全图模式。若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 会当场抛出 `ValueError`；若保留包含全图路径的模式，运行期捕获也会因 Host 侧 tiling 失败。
 
 ## 常见误解
 

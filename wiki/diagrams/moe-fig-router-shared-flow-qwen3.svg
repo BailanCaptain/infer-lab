@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 468" width="900" height="468" role="img" aria-label="Qwen3-30B-A3B 纯路由 MoE 与共享专家 MoE 变体对照及交接布局图" font-family="var(--font-sans)">
+  <title>Qwen3-30B-A3B 纯路由 MoE（128 选 8，0 共享专家）与带共享专家变体对照及三笔账</title>
+  <desc>上半区对比 Qwen3-30B-A3B 单支纯路由 MoE（Softmax 128 选 8 重归一化、无共享专家）与带共享专家及偏置选人的双支 MoE 变体；下半区拆解昇腾 EP 通信与算子交接布局及三笔容量账。</desc>
+  <defs>
+    <marker id="moeq-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="moeq-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="moeq-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、架构对照：Qwen3-30B-A3B 纯路由单支主干 vs 带共享专家双支变体</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="54" width="132" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="78" y="84" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">输入隐藏态</text>
+  <text x="78" y="110" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">x [T, 2048]</text>
+  <text x="78" y="134" text-anchor="middle" font-size="13.5" fill="#4d5652">单支直入路由</text>
+
+  <path d="M 144 102 L 172 102" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#moeq-arr-a)"/>
+
+  <rect x="178" y="54" width="246" height="96" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="192" y="78" font-size="14.5" font-weight="700" fill="#936300">1. Softmax Router（128 选 8）</text>
+  <text x="192" y="102" font-size="13.5" fill="#17211f">全池 Softmax → 直接取 Top-8</text>
+  <text x="192" y="124" font-size="13.5" fill="#17211f">开启 <tspan font-family="var(--font-mono)" fill="#936300">norm_topk_prob</tspan> 归一到 <tspan font-family="var(--font-mono)" fill="#065f56">1.0</tspan></text>
+  <text x="192" y="143" font-size="13.5" fill="#66716d">无校正偏置 bias、无额外缩放因子</text>
+
+  <path d="M 424 102 L 452 102" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#moeq-arr-p)"/>
+
+  <rect x="458" y="54" width="250" height="96" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="472" y="78" font-size="14.5" font-weight="700" fill="#7a3a6a">2. 纯路由专家池（EP=4 驻留）</text>
+  <text x="472" y="102" font-size="13.5" fill="#17211f">每卡 32 专家 · SwiGLU <tspan font-family="var(--font-mono)" fill="#7a3a6a">2048→768</tspan></text>
+  <text x="472" y="124" font-size="13.5" fill="#17211f">Dispatch 分发 → Combine 加权和</text>
+  <text x="472" y="143" font-size="13.5" fill="#66716d">0 个共享专家，省去旁路归约协调</text>
+
+  <path d="M 708 102 L 734 102" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#moeq-arr-t)"/>
+
+  <rect x="740" y="54" width="148" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="814" y="82" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">本层输出</text>
+  <text x="814" y="108" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">y = y_routed</text>
+  <text x="814" y="132" text-anchor="middle" font-size="13.5" fill="#4d5652">形状 [T, 2048]</text>
+
+  <rect x="12" y="168" width="876" height="82" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="26" y="194" font-size="14.5" font-weight="700" fill="#3a4f93">对比变体：共享专家 + 偏置选人架构（如 DeepSeek-V3 / GLM-5）</text>
+  <text x="26" y="218" font-size="13.5" fill="#17211f">• 路由支路：用 <tspan font-family="var(--font-mono)" fill="#3a4f93">Sigmoid + e_score_correction_bias</tspan> 决定入选集合，再回原始分数归一化并乘 <tspan font-family="var(--font-mono)" fill="#3a4f93">routed_scaling_factor</tspan></text>
+  <text x="26" y="239" font-size="13.5" fill="#4d5652">• 共享支路：另设不经 Router 的 <tspan font-family="var(--font-mono)" fill="#3a4f93">AscendSharedExperts</tspan> 全 token 必过，出口叠加 <tspan font-family="var(--font-mono)" fill="#3a4f93">y_routed + y_shared</tspan>（需额外管理 TP 归约点）</text>
+
+  <text x="14" y="286" font-size="16" font-weight="700" fill="#17211f">二、昇腾 EP 通信与算子交接布局：静态容量、激活专家与配对行三笔账</text>
+  <line x1="12" y1="298" x2="888" y2="298" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="314" width="276" height="138" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="340" font-size="14.5" font-weight="700" fill="#3a4f93">Standard 布局：[M, K]</text>
+  <text x="26" y="366" font-size="13.5" fill="#17211f">• 按紧凑二维 token 配对行交接</text>
+  <text x="26" y="390" font-size="13.5" fill="#17211f">• 附带 <tspan font-family="var(--font-mono)" fill="#3a4f93">topk_ids</tspan> 与专家偏移表</text>
+  <text x="26" y="414" font-size="13.5" fill="#4d5652">• 大批 prefill 走高吞吐分发</text>
+  <text x="26" y="438" font-size="13.5" fill="#4d5652">• 支持在分发侧融合动态量化</text>
+
+  <rect x="306" y="314" width="286" height="138" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="320" y="340" font-size="14.5" font-weight="700" fill="#936300">Batched / MC2 低时延路径</text>
+  <text x="320" y="366" font-size="13.5" fill="#17211f">• 小批量 decode 命中 MC2 融合通信</text>
+  <text x="320" y="390" font-size="13.5" fill="#17211f">• 按本地 32 专家预留槽位上限</text>
+  <text x="320" y="414" font-size="13.5" fill="#4d5652">• 有效命中行数由元数据单独标明</text>
+  <text x="320" y="438" font-size="13.5" fill="#4d5652">• 空槽位不计入真实浮点有效负载</text>
+
+  <rect x="610" y="314" width="278" height="138" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="624" y="340" font-size="14.5" font-weight="700" fill="#8f3229">Qwen3-30B-A3B 三笔账切勿混算</text>
+  <text x="624" y="366" font-size="13.5" fill="#17211f">1. 驻留显存：128 专家全量常驻</text>
+  <text x="624" y="390" font-size="13.5" fill="#17211f">2. 单词激活：每词仅算 8 个专家</text>
+  <text x="624" y="414" font-size="13.5" fill="#17211f">3. 批次负载：总配对行数为 T × 8</text>
+  <text x="624" y="438" font-size="13.5" fill="#8f3229">（30.5B 总参 vs 3.3B 单词激活）</text>
+</svg>

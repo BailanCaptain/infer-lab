@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" width="900" height="512" role="img" aria-label="Qwen3-8B 词表并行 Embedding 掩码查表求和流转与四组高频误区对照" font-family="var(--font-sans)">
+  <title>Qwen3-8B 词表并行 Embedding（[151936, 4096] 切于 TP=2）从输入编号广播、区间掩码置零、All-Reduce 求和到输出 [T, 4096] 的流转及误区对照。</title>
+  <desc>上半部分展示 Qwen3-8B 在 TP=2 下每卡持有 75,968 行词向量、越界位置整行置零、再经 All-Reduce 还原完整 [T, 4096] 向量的四步流程；下半部分对比四组常见误解与源码真相。</desc>
+  <defs>
+    <marker id="embq-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="embq-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、Qwen3-8B 词表并行（[151936, 4096]，TP=2）：区间查表、越界置零、All-Reduce 求和</text>
+
+  <rect x="14" y="46" width="180" height="156" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="104" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">1. 编号广播</text>
+  <text x="104" y="98" text-anchor="middle" font-size="13.5" fill="#17211f">切词表不切输入编号</text>
+  <rect x="24" y="112" width="160" height="36" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="104" y="135" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">[151644, 872, 198, 151645]</text>
+  <text x="104" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">TP=2 两卡拿同一份</text>
+  <text x="104" y="190" text-anchor="middle" font-size="13.5" fill="#4d5652">形状 [T]（示意 T=4）</text>
+
+  <path d="M 194 124 L 214 124" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#embq-arr)"/>
+
+  <rect x="220" y="46" width="244" height="156" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="342" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">2. 区间掩码 + 本地查表</text>
+  <text x="342" y="96" text-anchor="middle" font-size="13.5" fill="#17211f">每卡各存 75,968 行（TP=2）</text>
+  <rect x="232" y="108" width="220" height="36" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="342" y="131" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">落在本卡半区 → 抄出 [4096] 行</text>
+  <rect x="232" y="152" width="220" height="36" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="342" y="175" text-anchor="middle" font-size="13.5" fill="#4d5652">越界位置 → <tspan font-family="var(--font-mono)" font-weight="700">masked_fill_</tspan> 置 0</text>
+
+  <path d="M 464 124 L 484 124" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#embq-arr-p)"/>
+
+  <rect x="490" y="46" width="186" height="156" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="583" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#7a3a6a">3. All-Reduce 求和</text>
+  <text x="583" y="98" text-anchor="middle" font-size="13.5" fill="#17211f">Rank 0: [0, 75968)</text>
+  <text x="583" y="122" text-anchor="middle" font-size="13.5" fill="#17211f">Rank 1: [75968, 151936)</text>
+  <rect x="502" y="136" width="162" height="52" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.1"/>
+  <text x="583" y="158" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">有效行 + 全 0 行 = 真值</text>
+  <text x="583" y="179" text-anchor="middle" font-size="13.5" fill="#4d5652">T=4 载荷 32 KiB</text>
+
+  <path d="M 676 124 L 700 124" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#embq-arr)"/>
+
+  <rect x="706" y="46" width="180" height="156" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="796" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">4. 完整初始向量</text>
+  <text x="796" y="100" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">[T, 4096] BF16</text>
+  <text x="796" y="126" text-anchor="middle" font-size="13.5" fill="#17211f">T=4 时为 [4, 4096]</text>
+  <text x="796" y="152" text-anchor="middle" font-size="13.5" fill="#4d5652">两卡结果完全一致</text>
+  <text x="796" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">单流直入第 0 层</text>
+
+  <rect x="14" y="214" width="872" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="28" y="241" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 分支边界：</tspan>TP=1 直接索引免通信；标准 TP&gt;1 走 <tspan font-family="var(--font-mono)" font-weight="700">_forward_standard</tspan>（All-Reduce）；<tspan font-family="var(--font-mono)" font-weight="700">PCP&gt;1</tspan> 改走交换归约</text>
+
+  <line x1="14" y1="274" x2="886" y2="274" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="302" font-size="16" font-weight="700" fill="#17211f">二、四组高频误区排雷（✗ 错误直觉 vs ✓ Qwen3-8B 实现真相）</text>
+
+  <rect x="14" y="316" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="342" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：token ID 越近语义越像，查表是做矩阵乘</text>
+  <text x="28" y="368" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：编号只是行索引；实现按行号直接拷贝</text>
+  <text x="28" y="390" font-size="13.5" fill="#4d5652">数学等价 one-hot 乘表，工程实现 0 次浮点乘加</text>
+
+  <rect x="462" y="316" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="476" y="342" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：[151936, 4096] 整表 1.16 GiB 每卡都存</text>
+  <text x="476" y="368" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：TP=2 沿词表行对半切，每卡仅存 593.5 MiB</text>
+  <text x="476" y="390" font-size="13.5" fill="#4d5652">151,936 恰被 2 整除为 75,968 行/卡，保持 BF16 精度</text>
+
+  <rect x="14" y="414" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="440" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：同词两次出现向量相同，decode 不用查表</text>
+  <text x="28" y="466" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：入口查表相同，进层后经 RoPE 与上下文分离</text>
+  <text x="28" y="488" font-size="13.5" fill="#4d5652">标准 decode 每步为每条在途请求新采样的 1 个词查 1 行</text>
+
+  <rect x="462" y="414" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="476" y="440" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：embed_tokens 与 lm_head 一定共享权重</text>
+  <text x="476" y="466" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：是否绑表取决于 tie_word_embeddings 配置</text>
+  <text x="476" y="488" font-size="13.5" fill="#4d5652">Qwen3-8B 为 false（独立双表）；Qwen3-0.6B 为 true</text>
+</svg>

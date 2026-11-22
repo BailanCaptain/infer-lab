@@ -104,9 +104,9 @@ rawSources:
 
 先用两句话回顾两个前置概念。[TP](tensor-parallel.md)（tensor parallel，张量并行）让几张卡合作计算一层，可切分的矩阵各存、各算一片，再按算子的需要拼接或求和；部分分量仍可复制。[DP](data-parallel.md)（data parallel，数据并行）让不同执行组各自调度一批请求；没有跨组专家切分时，每组可以持有完整模型，开启跨 DP 的 EP 后则不能这样计数。
 
-普通 TP 提供一套合作计算的卡组，**具体模块怎样切仍由实现决定**。TP4 可以让词表嵌入（把 token 编号换成向量的表，见 [embedding](embedding.md)）、attention、MLP、lm_head（把最后的隐藏向量变成词分数的层，见 [lm_head](lm-head.md)）使用这组 4 张卡；但不能据此断言所有权重都除以 4。例如 GLM 的部分低秩输入矩阵仍在每卡复制。
+普通 TP 提供一套合作计算的卡组，**具体模块怎样切仍由实现决定**。TP4 可以让词表嵌入（把 token 编号换成向量的表，见 [embedding](embedding.md)）、attention、MLP 和 `lm_head`（把隐藏向量变成词分数的层，见 [lm_head](lm-head.md)）共用这 4 张卡。但这不等于所有权重都除以 4——部分低秩投影或共享分量仍可能按实现保留每卡复制。
 
-**Fine-grained TP（细粒度张量并行）让每个模块单独选自己的分组大小：有的模块几张卡合存一份、每卡存一片，有的模块照旧每卡一整份。** 这是 vllm-ascend（让 vLLM 推理框架跑在昇腾 NPU 上的插件）提供的特性，可以单独设置的模块是词表嵌入、lm_head、attention 的输出投影（attention 最后那个把各头结果合回隐藏维度的矩阵）和稠密 MLP；另有第五项只对特定模型的低秩式输出投影生效，放在后文讲。
+**Fine-grained TP（细粒度张量并行）让每个模块单独选自己的分组大小：有的模块几张卡合存一份、每卡存一片，有的模块照旧每卡一整份。** 这是 vllm-ascend（把 vLLM 推理框架接到昇腾 NPU 上的插件）提供的特性。可单独设组的模块包括词表嵌入、`lm_head`、attention 输出投影（把各头结果合回隐藏维度的矩阵）和稠密 MLP；旧版另有一项只对特定低秩输出投影生效的字段，放在后文交代。
 
 它的分组方向和普通 TP 不一样：**不是在普通 TP 组里再切一刀，而是沿 DP 方向组队**。几张原本各跑各的请求、各存一整份权重的卡，只在选中的那个模块上合成一组，合存一份。
 
@@ -176,7 +176,7 @@ file: fine-grained-tp
 
 上例两张卡各处理一个 token，已满足等量输入的条件；如果 A 本轮处理两个、B 只处理一个，就要先按前节的对齐规则处理，不能把未对齐的两批输入直接套进这个示意。
 
-这和[普通 TP 下的词表嵌入](embedding.md#多张卡分着存一张表每张卡查一段再加起来)是同一个道理，差别在两头。普通 TP 组的卡手里是同一批 token，各查一段以后做一次 All-Reduce，每张卡都拿到全部 token 的向量；这里两张卡手里是不同请求的 token，所以入口多一次 All-Gather，出口的 All-Reduce 换成只把各自那一行送回的 Reduce-Scatter。
+这和[普通 TP 下的词表嵌入](embedding.md#多张卡分着存一张表每张卡查一段再加起来)原理相同，差别只在两头。普通 TP 组里的卡拿的是同一批 token，各查一段后做一次 All-Reduce，每张卡都拿到全部向量。细粒度组里的卡拿的是不同请求的 token，所以入口多一次 All-Gather，出口的 All-Reduce 则换成只把各自那一行送回的 Reduce-Scatter。
 
 两次通信传的东西也不同：All-Gather 收集的是整数编号，一个 token 只占一个整数；Reduce-Scatter 归约的是向量，一个 token 占隐藏维度那么多个数（示意里是 2 个，真实模型几千个）。形状和数据类型都不一样。组里各卡这一步的 token 数不一定相同，实际实现先把编号补到一个固定长度，补出来的行照样查、照样传，送回以后再切掉，每张卡只留本卡真实的那几行。
 
@@ -210,7 +210,7 @@ $$\text{score}(A,\, \text{词 } 6) = h_A \cdot w_6 = [1,\, 2] \cdot [1,\, -1] = 
 | 卡 1 上词 6 的权重行 | $[1,\, -1]$ | 本地词段权重 |
 | A 对词 6 的最终分数 | $1 \times 1 + 2 \times (-1) =$ **$-1$** | 经 All-to-All 送回卡 0 |
 
-旧版（`v0.23.0` / `v0.26.0rc` / GLM 快照）`vllm-ascend` 曾提供「按段采样」（`enable_reduce_sample`）实验开关，打开后不做这次 All-to-All、各卡留着自己那段分数按分段完成采样；`v0.30.0` 主基线与当前 `main` 已移除该开关，详见 [lm_head 版本差异](lm-head.md#版本差异)。
+旧版（`v0.23.0` / `v0.26.0rc` / 历史 GLM 快照）`vllm-ascend` 曾提供「按段采样」（`enable_reduce_sample`）实验开关：打开后省去这次 All-to-All，各卡保留本段分数按分段采样。`v0.30.0` 主基线与当前 `main` 已移除该开关，详见 [lm_head 版本差异](lm-head.md#版本差异)。
 
 ### 稠密 MLP：切法和 TP 一样，只是两头换了通信
 
@@ -241,9 +241,12 @@ attention 的最后一步是输出投影：每个 token 的各头结果拼成一
 file: fine-grained-tp-fig-dp-group-guard
 ```
 
-这张表是 vllm-ascend 里这几条代码路径的做法，不等于每个模型都会走到。源码按层的名字决定换不换：MLP 只换非 MoE 层；输出投影这一项碰到 DeepSeek-V4 压缩式 attention 的两段式投影（先投到较小的维度、再投回隐藏维度）时另有一套写法，交换放在 attention 实现内部；旧版第五项「低秩输出投影」也只在这一类实现里生效。
+**边界与例外：层名匹配、六道硬前提与图尺寸守卫。**
 
-**在 `v0.30.0` 主基线与 `main` 上，开启 `oproj` 或 `mlp` 分片前还要跨过六道硬前提与一道静默退回守卫：** 除了模型必须是 MoE 且分组大小整除 DP 数之外，这两项还同时要求全局 `TP == 1`、`PCP == 1`、启用非 `NONE` 图模式、位于 PD 分离的 D 节点（`kv_consumer`），并同时开启 `recompute_scheduler_enable=true` 与 `PreemptOffloadConnector`（`embedding` 则不再绑定重算调度器）。更重要的是图捕获尺寸守卫：系统会计算单步最大可能宽度 `max_step = min(max_num_batched_tokens, max_num_seqs × decode_query_len)`，若最大图捕获尺寸小于该宽度，超宽步落入 eager 会令跨 DP 集合通信失去对齐甚至死锁，因此启动阶段会直接告警并静默关闭这两项（`v0.30.0` 清零为 `0`，`main` 重置为 `1`；`main` 同时将全部字段默认值改为 `1` 并新增面向 KDA 的 `qkv_iproj_tensor_parallel_size`）。某个模型到底走没走，要看启动日志和各层的替换日志，见页末[对照源码](#对照源码)。
+- **按层名匹配替换**：源码只按层名决定是否替换，不保证所有模型都走同一条路。稠密 MLP 只换非 MoE 层；DeepSeek-V4 压缩式 attention 的两段式输出投影另有一套写在 attention 内部的实现；旧版第五项「低秩输出投影」也只在这类实现里生效。
+- **`oproj` / `mlp` 的六道硬前提（`v0.30.0` 与 `main`）**：这两项要求模型为 MoE 且分组大小整除 DP 数。此外还须满足全局 `TP == 1`、`PCP == 1`、非 `NONE` 图模式与 PD 分离 D 节点（`kv_consumer`）。同时必须开启 `recompute_scheduler_enable=true` 与 `PreemptOffloadConnector`（`embedding` 不再绑定重算调度器）。
+- **图捕获尺寸静默退回守卫**：系统估算单步最大宽度 `max_step = min(max_num_batched_tokens, max_num_seqs × decode_query_len)`。若最大图捕获尺寸小于该宽度，超宽步落入 eager 会导致跨 DP 集合通信失配甚至死锁，因此启动时会告警并静默关闭 `oproj` / `mlp`（`v0.30.0` 清零为 `0`，`main` 重置为 `1`）。
+- **`main` 字段变化**：`main` 将全部字段默认值改为 `1`，并新增面向 KDA 的 `qkv_iproj_tensor_parallel_size`。实际是否替换以启动日志和各层替换日志为准，见页末[对照源码](#对照源码)。
 
 ## 省下的和多付的：怎样比？
 
@@ -253,10 +256,11 @@ $$\text{Traffic}_{\text{AG+RS}} = 2 \times (k - 1) \times b \times H \times 2\te
 
 | 核算项（$k = 4,\; b = 8,\; H = 4096$，BF16，示意） | 算式 | 每卡结果 |
 | --- | --- | --- |
-| 每卡常驻权重 | $1\text{ GiB} \div 4$ | **0.25 GiB**（比整份少 **0.75 GiB**） |
-| 入口 All-Gather 每卡收到 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **196,608 B**（192 KiB） |
-| 出口 Reduce-Scatter 每卡发出 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **196,608 B**（192 KiB） |
-| 每卡每轮 AG + RS 单向合计 | $196{,}608\text{ B} + 196{,}608\text{ B}$ | **$393{,}216\text{ B} =$ 384 KiB** |
+| 每卡常驻权重 | $1\text{ GiB} \div 4$ | **0.25 GiB** |
+| 每卡节省常驻权重 | $1 - 0.25$ | **0.75 GiB** |
+| 入口 All-Gather 每卡收到 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **192 KiB** |
+| 出口 Reduce-Scatter 每卡发出 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **192 KiB** |
+| 每卡每轮 AG + RS 单向合计 | $196{,}608\text{ B} + 196{,}608\text{ B}$ | **384 KiB** |
 
 这份示意里，常驻矩阵每卡少 0.75 GiB；若再假设相同工作量下每份矩阵理想读取一次，权重读取预算也少 0.75 GiB。384 KiB 是所列 ring 通信的单方向字节账，不能和容量差直接比较出收益，更不保证实际 HBM 少读这么多。加上第二节讲过的补齐（空行照样算、照样传），还要看三件事：
 
@@ -264,7 +268,7 @@ $$\text{Traffic}_{\text{AG+RS}} = 2 \times (k - 1) \times b \times H \times 2\te
 - **每轮的固定开销**：每次集合通信都有启动开销，组里所有卡还要互相等齐才能继续。批量小的时候，这部分往往比传那几百 KiB 更花时间。
 - **跨不跨机**：组里的卡不在同一台机器上时，这些通信就包含机间链路；等待取决于实际拓扑、有效带宽、传输大小和拥塞，不能只凭“跨机”给出固定快慢结论。
 
-vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和激活都量化成 8 位整数），32 张 Atlas A2（每卡 64 GB），PD 分离（prefill 和 decode 交给两组机器，见 [PD 分离](pd-disaggregation.md)）里的 decode 实例，DP32 + EP32，四个模块的组大小都是 8，batch 为 24。
+vllm-ascend 特性文档给出过一组参考实测：模型为 DeepSeek-R1 W8A8（权重与激活均量化为 8 位整数），硬件是 32 张 Atlas A2（每卡 64 GB）。测试运行在 [PD 分离](pd-disaggregation.md)（prefill 与 decode 分组部署）的 decode 实例上，采用 DP32 + EP32，四个模块的细粒度组大小均为 8，batch 为 24：
 
 | 模块 | 每卡省下的显存 | 每个输出 token 的时延（TPOT） |
 |---|---|---|
@@ -277,9 +281,9 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 
 文档没有报告四项配置同时启用后的总 TPOT；不能把表中的单项时延变化直接相加，作为组合配置的实测收益。组合后的整体时延仍需另行测量。
 
-## 放到 GLM 双机：这套部署开了细粒度 TP 吗？
+## 复杂异构实战对照：GLM 双机为何未启用细粒度 TP
 
-**没有。** 固定部署的启动命令没有传任何 Ascend 专属配置（见 [Ascend 配置一页](ascend-config-system.md#落到-glm-双机一个-json-键都没传)），五个分组大小都是默认值 0，也就是不分组，跟着整体的 TP8 走。所以词表嵌入按 TP8 切成 8 段、查完做一次机内 All-Reduce（见 [embedding 的 GLM 一节](embedding.md#放到-glm-双机8-张卡怎么查同一张表)）；lm_head 同样切成 8 段，打完分做一次机内 All-Gather（见 [lm_head 的 GLM 一节](lm-head.md#all-gather-把-8-段拼回-154880-个分数)）。
+**没有启用。** 固定部署的启动命令没有传任何 Ascend 专属配置（见 [Ascend 配置一页](ascend-config-system.md#落到-glm-双机一个-json-键都没传)），五个分组大小都是默认值 0，也就是不分组，跟着整体的 TP8 走。所以词表嵌入按 TP8 切成 8 段、查完做一次机内 All-Reduce（见 [embedding 的 GLM 一节](embedding.md#放到-glm-双机8-张卡怎么查同一张表)）；lm_head 同样切成 8 段，打完分做一次机内 All-Gather（见 [lm_head 的 GLM 一节](lm-head.md#all-gather-把-8-段拼回-154880-个分数)）。
 
 **「不同模块不同切法」在主线里其实已经有。** 稀疏 MLA（把历史压成低维、再只挑一部分位置去读的 attention，见 [sparse attention](sparse-attention.md)）里，第一个低秩投影和索引器的几个投影每张卡存一整份，不切也不通信；其余投影按 TP8 切，见 [TP 页的稀疏 MLA 一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)。这是在 TP 组内部选「这个模块干脆不切」，拿多存、多算一点换掉一次通信，方向正好和细粒度 TP 相反，也不经过它的配置。
 
@@ -292,12 +296,12 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 | GLM 双机 `lm_head` 切分方案（BF16） | 每卡权重字节算式 | 每卡大小 |
 | --- | --- | --- |
 | 默认按 TP8 切 | $154880 \div 8 \times 4096 \times 2\text{ B} = 158{,}597{,}120\text{ B}$ | **151.25 MiB** |
-| 细粒度组大小为 2 | $154880 \div 2 \times 4096 \times 2\text{ B} = 634{,}388{,}480\text{ B}$ | **605 MiB**（$\approx 0.591\text{ GiB}$） |
-| 细粒度组大小为 1（每卡一整份） | $154880 \times 4096 \times 2\text{ B} = 1{,}268{,}776{,}960\text{ B}$ | **$\approx 1.182\text{ GiB}$** |
+| 细粒度组大小为 2 | $154880 \div 2 \times 4096 \times 2\text{ B} = 634{,}388{,}480\text{ B}$ | **605 MiB** |
+| 细粒度组大小为 1（每卡一整份） | $154880 \times 4096 \times 2\text{ B} = 1{,}268{,}776{,}960\text{ B}$ | **约 1.182 GiB** |
 
-这里只算一张 BF16 权重矩阵，不算补齐、量化元数据和运行时缓冲。默认的 151.25 MiB 出自 [lm_head 页](lm-head.md#每张卡存-19360-个词算出来的就是最终分数)，其余两行是同一个式子换了除数。稠密 MLP 也一样：前 3 层每层每卡的 int8 权重从 18.0 MiB 变成 72.0 MiB，三层从 54.0 MiB 变成 216.0 MiB（TP8 下的 18.0 MiB 见 [TP 页](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)）。而且同一台机器里的 8 张卡手里 token 相同、存的又是同一半权重，等于把同一份活在机内算 8 遍。
+这里只算一张 BF16 权重矩阵，不算补齐、量化元数据和运行时缓冲（组大小 2 对应约 0.591 GiB）。默认的 151.25 MiB 出自 [lm_head 页](lm-head.md#每张卡存-19360-个词算出来的就是最终分数)，其余两行是同一个式子换了除数。稠密 MLP 也一样：前 3 层每层每卡的 int8 权重从 18.0 MiB 变成 72.0 MiB，三层从 54.0 MiB 变成 216.0 MiB（TP8 下的 18.0 MiB 见 [TP 页](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)）。而且同一台机器里的 8 张卡手里 token 相同、存的又是同一半权重，等于把同一份活在机内算 8 遍。
 
-通信也从机内搬到了机间。默认路径下，R1（提示词为 4 个 token 的示例请求，见[一条请求](one-request.md)）decode 一步的 lm_head All-Gather 在机内拼出约 1.18 MiB 的整份分数，每张卡收到其中约 7/8。组大小为 2 时，每一步先跨机收集隐藏向量，打完分再跨机 All-to-All；实现为了让组内形状一致，把要打分的行数固定补到「每组最多请求数 × 每请求 decode token 数」，按固定部署的参数是 128 行（两个参数见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)），于是每张卡每步要把 128 行 × 77440 个词的分数（BF16，19,824,640 B，约 18.9 MiB）发给另一台机器上的搭档。MTP（multi-token prediction，主干之外先猜几个候选 token 的草拟层）用的也是这张 lm_head（见 [lm_head 页](lm-head.md#mtp-用的是同一张-lm_head)），草拟那几遍的打分同样走这条路，上面只算了主模型的一遍。
+通信也从机内搬到了机间。默认路径下，R1（提示词为 4 个 token 的示例请求，见[一条请求](one-request.md)）decode 一步的 `lm_head` All-Gather 在机内拼出约 1.18 MiB 的整份分数，每张卡收到其中约 7/8。改用组大小 2 后，每步要先跨机收集隐藏向量，打完分再跨机 All-to-All。为了让组内形状一致，实现把打分行数固定补到「每组最多请求数 × 每请求 decode token 数」，按固定部署参数即 128 行（两参数见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。于是每张卡每步都要把 $128 \times 77440$ 个 BF16 分数（19,824,640 B，约 18.9 MiB）发给另一台机器上的搭档。MTP（multi-token prediction，草拟候选 token 的配套层）共用这张 `lm_head`（见 [lm_head 页](lm-head.md#mtp-用的是同一张-lm_head)），草拟那几遍打分同样走这条路，上面只算了主模型的一遍。
 
 另外三项在这套部署上根本开不起来：
 

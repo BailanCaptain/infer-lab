@@ -79,7 +79,7 @@ updated: '2026-11-18'
 
 ## 第一步：容器怎么挂设备、驱动与缓存？
 
-官方预构建镜像 `quay.io/ascend/vllm-ascend`（`v0.30.0` 对应 Atlas A2，`-a3` 对应 Atlas A3，`-310p` 对应 Atlas 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体）已经打包好用户态的 **CANN**（昇腾底层计算软件栈，`9.2.1`）、加速库 NNAL（`9.2.0`）、`torch_npu` 与 `vllm`；但 Linux 容器不包含宿主机内核态驱动。因此 `docker run` 必须通过 `--device` 和 `-v` 把宿主机的 NPU（昇腾软件可见计算设备）节点、驱动动态库以及权重缓存接进容器，并用双层机制隔离空闲卡：
+官方预构建镜像 `quay.io/ascend/vllm-ascend`（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体）已内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
 
 ```wiki-diagram
 file: env-serve-container-mounts
@@ -89,7 +89,7 @@ file: env-serve-container-mounts
 
 | 参数组 | 必传挂载项与推荐值 | 它解决什么问题（漏掉会怎样） |
 | --- | --- | --- |
-| **1. 计算与管理设备（`--device`）** | `/dev/davinci0..N`、`/dev/davinci_manager`、`/dev/devmm_svm`、`/dev/hisi_hdc` | 把物理计算核、设备管理、共享虚拟内存与主从通信通道暴露给容器。注意 **Atlas A3 采用双裸片（dual-Die）设计**，单张物理卡对应成对的两个设备节点（如 `/dev/davinci0` 与 `/dev/davinci1`，整机 8 张物理卡为 `davinci[0-15]`，详见 [NPU、板卡、服务器与机柜](hardware-devices.md)），容器至少须成对挂载两个节点；`950DT` 官方命令省去 `devmm_svm` 并额外挂载 `hccn_tool` |
+| **1. 计算与管理设备（`--device`）** | `/dev/davinci0..N`、`/dev/davinci_manager`、`/dev/devmm_svm`、`/dev/hisi_hdc` | 暴露计算核、设备管理与共享虚拟内存。**Atlas A3 双裸片**单卡对应一对节点（如 `davinci0`+`1`，8 卡为 `0-15`，见 [硬件设备](hardware-devices.md)），须成对挂载；`950DT` 省去 `devmm_svm` 并加挂 `hccn_tool` |
 | **2. 宿主机驱动直通（`-v`）** | `/usr/local/Ascend/driver/lib64/`、`driver/version.info`、`/etc/ascend_install.info`、`/usr/local/dcmi`、`/usr/local/bin/npu-smi` | 让容器内用户态 CANN 加载与宿主机内核一致的 `libascend_hal.so` 驱动库并完成版本校验；漏挂会导致 `torch.npu.is_available()` 返回 `False` 或 `npu-smi` 无法执行 |
 | **3. 共享内存与端口（`--shm-size` / `-p`）** | 单卡最小 `--shm-size=1g`，多卡 TP 推荐 `--shm-size=16g`；单机桥接用 `-p 8000:8000`（或 `--net=host`） | Docker 默认 `/dev/shm` 仅有 `64 MiB`，多进程 **Worker**（负责设备初始化与模型执行的工作进程）交换队列或缓存张量时会直接报 `Bus error` 或共享内存耗尽 |
 | **4. 权重缓存与空闲卡隔离** | `-v "$MODEL_CACHE:/root/.cache"`（或挂载本地权重盘）；容器内设 `ASCEND_RT_VISIBLE_DEVICES` | 避免 `--rm` 退出容器后重复下载几十 GiB 权重；若容器挂入了整机全部 `/dev/davinci*`，启动前用 `export ASCEND_RT_VISIBLE_DEVICES=2,3` 切出空闲设备并将其重映射为进程内从 `0` 开始的逻辑卡号 |
@@ -147,16 +147,16 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 这一层在 `vllm` 与 `vllm-ascend` 的 Python 代码中有明确的读取逻辑，直接决定单机能否找到设备和模型：
 
 - **`ASCEND_RT_VISIBLE_DEVICES`**：昇腾平台唯一的设备可见性控制变量（`NPUPlatform.device_control_env_var` 与绑核模块 `cpu_binding.py` 均读取它）。例如设 `export ASCEND_RT_VISIBLE_DEVICES=2,3`，进程内看到的 `NPU 0, 1` 就对应宿主机的设备 `2, 3`。切记**不要写成 `CUDA_VISIBLE_DEVICES`，也不要漏掉中间的 `RT_` 写成 `ASCEND_VISIBLE_DEVICES`**。
-- **`PYTORCH_NPU_ALLOC_CONF`**：`torch_npu` 显存（NPU 侧供计算使用的设备内存，常见形态为 HBM）分配器配置。在 `v0.30.0` 中，只要未开启睡眠模式（`enable_sleep_mode`），`NPUPlatform` 的 `_set_pytorch_npu_alloc_env()` 会**自动默认追加 `expandable_segments:True`**（利用虚拟地址可扩展段缓解长短请求交替造成的显存碎片；注意它不能与 `max_split_size_mb` 或 `garbage_collection_threshold` 同时出现，而配合睡眠模式开启强化学习 `rl_config.enabled=true` 时代码又会自动剥离它）。
+- **`PYTORCH_NPU_ALLOC_CONF`**：`torch_npu` 显存（NPU 设备内存，常见为 HBM）分配器配置。`v0.30.0` 在未开睡眠模式（`enable_sleep_mode`）时，`_set_pytorch_npu_alloc_env()` 会**自动追加 `expandable_segments:True`**，用可扩展虚拟地址段缓解碎片。注意它不能与 `max_split_size_mb` 或 `garbage_collection_threshold` 同写；配合睡眠模式开启强化学习 `rl_config.enabled=true` 时代码又会自动剥离它。
 - **`VLLM_USE_MODELSCOPE=True`**：由上游 `vllm/envs.py` 解析；机器无法直连 HuggingFace 时改从 ModelScope 下载权重（官方镜像已预装 `modelscope<1.38`）。如果直接传入本地已下载好的目录路径，无需设置该项。
-- **`VLLM_WORKER_MULTIPROC_METHOD=spawn`**：决定多进程执行器（`MultiprocExecutor`，对应 `--distributed-executor-backend mp`）拉起子进程的方式——二者正交配合而非互相替代（`--distributed-executor-backend` 选执行器后端，`VLLM_WORKER_MULTIPROC_METHOD` 控制 `mp` 用 `spawn` 还是 `fork`）。在线 `vllm serve` 命令在环境未指定时已默认注入 `"spawn"`；而直接走 Python 离线入口（如 `LLM(...)`）默认使用 `"fork"`，若父进程提前触碰了 NPU 上下文则必须显式设为 `spawn` 防卡死。
+- **`VLLM_WORKER_MULTIPROC_METHOD=spawn`**：控制多进程执行器（`MultiprocExecutor`，对应 `--distributed-executor-backend mp`）用 `spawn` 还是 `fork` 拉起子进程（二者正交配合而非互相替代）。在线 `vllm serve` 未指定时默认注入 `"spawn"`；Python 离线 `LLM(...)` 默认 `"fork"`，若父进程提前触碰了 NPU 上下文，须显式设为 `spawn` 防卡死。
 - **`VLLM_HOST_IP` 与 `VLLM_PORT`**：多网卡环境下固定本机通信 IP 与内部起始端口；注意 `VLLM_PORT` 必须是纯整数，若在 Kubernetes 中被同名 Service 自动注入成 `tcp://...` 字符串，启动会直接抛出 `ValueError`。
 
 ### 3. 插件与通信仓内实读变量（及 `v0.30.0` 旧变量下线大坑）
 
-打开 `v0.30.0` 的 `vllm_ascend/envs.py`，里面总共只保留了 **14 项**变量（拆分为 **8 项编译期**与 **6 项运行期**变量；社区 `main` 进一步精简为 **12 项**）：除 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 以及由 `setup.py` 传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等 8 个源码构建期开关外，6 个运行期变量里最常碰到的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 由 `vllm_version_is()` 读取——只有当你自己从源码装了非标准开发版本号的 `vllm` 触发 `InvalidVersion` 报错时，才需手动设 `export VLLM_VERSION=0.30.0`（官方标准构建带有的 `+empty` 后缀会被自动剥离，不必手设）。此外，**HCCL**（昇腾集合通信库，详见 [CANN 与 HCCL](cann-hccl.md)）中真正在仓内 C++/Python 有明确读取点的常用项包括 `HCCL_BUFFSIZE`（由 MC2 C++ tiling 算子读取通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）和 `HCCL_OP_EXPANSION_MODE`（如设 `"AIV"` 让通信算子在 Vector 核展开以配合图捕获）。
+`v0.30.0` 的 `vllm_ascend/envs.py` 共保留 **14 项**变量（**8 项编译期** + **6 项运行期**；`main` 精简为 **12 项**）。8 项编译期开关含 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 及传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等；6 项运行期变量里最常见的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 仅在源码安装了非标准版本号触发 `InvalidVersion` 时才需手设 `0.30.0`（官方 `+empty` 后缀会自动剥离）。此外，**HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项包括 `HCCL_BUFFSIZE`（MC2 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）和 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
 
-这里藏着升级 `v0.30.0` 最大的配置陷阱：**`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 等旧环境变量已在 `v0.30.0` 从 `envs.py` 彻底删除且仓内 `0` 处读取，统一迁入 `--additional-config`**（三路配置优先级见 [Ascend 配置体系](ascend-config-system.md)；另有 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 虽同样移出 `envs.py`，但在 `v0.30.0` 与 `main` 中仍保留 `os.getenv` 兼容回退，推荐改配 `additional_config.enable_flashcomm1` 驱动序列并行 `enable_sp`）。例如想调整权重向 **NZ**（`FRACTAL_NZ` 分块存储布局，相对通用多维 **ND** 布局更贴合矩阵核访存，见 [张量存储布局](tensor-layout.md)）的转换策略，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不会报错但**完全无效**，必须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点权重尽量转 NZ）。
+> **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除且仓内 `0` 处读取，统一迁入 `--additional-config`（三路优先级见 [Ascend 配置体系](ascend-config-system.md)）。例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）的转换策略时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**，须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但同样建议改配 `additional_config.enable_flashcomm1`。
 
 ### 4. 无仓内读取点的底层变量与祖传脚本甄别（诚实标 `unknown`）
 

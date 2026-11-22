@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="NPUModelRunner execute_model 与 sample_tokens 状态机及对象寿命分层" font-family="var(--font-sans)">
 <title>execute_model 与 sample_tokens 严格交替状态机、早退分岔与对象寿命三层</title>
-<desc>State machine of execute_model and sample_tokens around ExecuteModelState, dummy run coordination, and object lifetimes</desc>
+<desc>State machine of execute_model and sample_tokens around ExecuteModelState, conditional draft step, dummy run coordination, and object lifetimes</desc>
 <g stroke-width="1.4">
 <rect x="16" y="64" width="276" height="106" rx="8" fill="#ddf4ef" stroke="#087f73"/>
 <rect x="328" y="64" width="244" height="106" rx="8" fill="#fff4cf" stroke="#c78300"/>
@@ -17,11 +17,11 @@
 <text x="450" y="90" text-anchor="middle" font-size="15" fill="#936300">ExecuteModelState 锁槽</text>
 <text x="624" y="90" font-size="15" fill="#3a4f93">RPC 2：sample_tokens()</text>
 <text x="30" y="232" font-size="14.5" fill="#8f3229">不写 ExecuteModelState 的早退出口</text>
-<text x="474" y="232" font-size="14.5" fill="#7a3a6a">DP 空闲组与启动期共享路径：_dummy_run</text>
+<text x="474" y="232" font-size="14.5" fill="#7a3a6a">跨组 EP 陪跑与启动期共享路径：_dummy_run</text>
 <text x="32" y="382" font-size="14.5" fill="#17211f">Runner 内部对象寿命三层（读源码与排障的定位坐标）</text>
 </g>
 <g fill="#4d5652">
-<text x="16" y="50" font-size="13.5">主模型全部层只在 RPC 1 跑一遍；RPC 2 消费暂存 logits 采样并运行 MTP 草稿层</text>
+<text x="16" y="50" font-size="13.5">主模型全部层只在 RPC 1 跑一遍；RPC 2 消费暂存 logits 采样（开启投机解码时追加草稿步）</text>
 <text x="32" y="114" font-size="13.5">• 闸口：state 非空抛 State error</text>
 <text x="32" y="136" font-size="13.5">• 对账 → 拼输入 → 定图 → 前向</text>
 <text x="32" y="158" font-size="13.5">• 仅选中行过 lm_head，返回 None</text>
@@ -29,16 +29,16 @@
 <text x="450" y="138" text-anchor="middle" font-size="13.5">logits / hidden / positions</text>
 <text x="450" y="160" text-anchor="middle" font-size="13.5">严禁被下轮回放原地覆盖</text>
 <text x="624" y="114" font-size="13.5">• 开头立刻取出并清空 state</text>
-<text x="624" y="136" font-size="13.5">• CPU 语法掩码 → 采样 / 拒绝采样</text>
-<text x="624" y="158" font-size="13.5">• 整理 → 草拟 → 计数接受 → 回传</text>
+<text x="624" y="136" font-size="13.5">• 语法掩码（可选）→ 采样 / 验证</text>
+<text x="624" y="158" font-size="13.5">• 整理回传（开投机时追加草拟）</text>
 <text x="30" y="258" font-size="13.5">• 零 token 计划：按配置走 DP 陪跑或 KV 协作</text>
 <text x="30" y="282" font-size="13.5">• PP 非末段（关广播）：发中间张量给下段即返回</text>
 <text x="30" y="306" font-size="13.5">• Pooling 模型：直接返回池化向量，不发 RPC 2</text>
-<text x="474" y="258" font-size="13.5">• DP 空闲组不走对账，由引擎发 execute_dummy_batch</text>
+<text x="474" y="258" font-size="13.5">• MoE 开跨组 EP 时，空闲组收 execute_dummy_batch</text>
 <text x="474" y="282" font-size="13.5">• _dummy_run 经 _sync_metadata_across_dp 对齐宽度</text>
 <text x="474" y="306" font-size="13.5">• 启动期量显存 profile_run 与录图 capture_model 复用</text>
 <text x="32" y="407" font-size="13.5">• 服务级（启动一次）：权重、KV 缓存池、录好的图、注意力后端分组</text>
-<text x="32" y="427" font-size="13.5">• 跨步级（增量更新）：持久批次 input_batch / 块表 / 接受数表（main 迁入 MRV2 常驻缓冲与固定状态行）</text>
+<text x="32" y="427" font-size="13.5">• 跨步级（增量更新）：持久批次 input_batch / 块表（开投机时含接受数表；main 迁入 MRV2 常驻缓冲）</text>
 <text x="32" y="446" font-size="13.5">• 单步级（用完覆盖）：输入缓冲、中间激活与 ExecuteModelState（仅活在 RPC 1 → RPC 2 之间）</text>
 </g>
 </svg>

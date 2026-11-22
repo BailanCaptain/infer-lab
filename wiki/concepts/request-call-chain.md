@@ -247,22 +247,23 @@ updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
-[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。如果说[一条请求](one-request.md)回答的是「4 个提示词 token 在每一站算了多少数、传了多少字节、借了几块 [KV block](kv-cache.md)（保存历史状态的显存块）」，本页则跟着同一条示例请求 R1 走一遍代码落点：每一站跑在哪个进程里、跨进程走哪条通道交接，以及服务报错或卡住时该打开哪份日志与源码文件。
+[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。如果说[一条请求](one-request.md)回答了「4 个提示词 token 在每一站算了多少数、传了多少字节、借了几块 [KV block](kv-cache.md)（保存历史状态的显存块）」，本页则跟着同一条请求落到代码：每一站跑在哪个进程里、跨进程走哪条通道交接，以及服务报错或卡住时该打开哪份日志与源码。
 
 Python 报错时打印的 traceback（调用栈回溯）只列出出错进程那一刻的函数链；跨进程交接的请求则需要把几份进程日志连起来读。提交侧会先在本地的 `OutputProcessor` 注册请求，再异步发给独立的 `EngineCore`，因此排查「请求到底停在哪一站」时，务必把本地注册与跨进程提交拆成两步核对。
 
-
 ## 七站分在三种进程里
 
-**进程**是操作系统里一份独立运行的程序，有自己的一块内存。两个进程不能直接读对方的变量，要交换数据就必须经过某种通道，比如网络连接或者一块专门划出来的共享内存。所以「一站做完交给下一站」有两种情况：同一个进程里是一次普通的函数调用，跨进程就要把数据编码、送过通道、在对面解码。
+**进程**是操作系统里一份独立运行的程序，有自己的一块内存。两个进程不能直接读对方的变量，交换数据必须经过网络或共享内存通道。因此「一站交给下一站」分两种情况：同进程内是普通函数调用，跨进程则要编码、传输再解码。
 
-本页沿用[部署前提](glm-5-3-flash-two-node.md#部署前提)，启动后的 20 个进程中，一条请求会经过以下三种：
+**先记一套标准单机心智模型（`1 前端 + 1 EngineCore + N 个 Worker`）：** 无论跑单卡 `Qwen3-8B` 还是四卡 `TP4`，vLLM V1 永远只有三类干活的进程——**1 个 API server**（管第 1 站收请求与第 7 站流式返回）、**1 个 EngineCore**（管第 2 站调度与第 6 站结果更新），以及每张卡 **1 个 Worker**（管第 3–5 站输入准备、前向与采样）。
+
+把这套三角色骨架放进本站 `09 旗舰异构模型全案` 的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），就展开成了启动后的 **20 个核心角色进程**——一条请求仍只经过同样的三种角色：
 
 - **API server**：node0 上唯一接收 HTTP 请求的前端进程。第 1 站和第 7 站在这里。
-- **EngineCore**：每个 DP 执行组一个引擎进程，分别记作 `EngineCore_DP0`、`EngineCore_DP1`，日志也用这两个前缀。内部的 EngineCore 对象持有 **scheduler**：每步决定算哪些请求、各算几个 token、分哪些 KV 块。第 2 站和第 6 站在这里。
-- **worker**：每张卡一个，共 16 个，负责把调度结果变成 NPU（昇腾的 AI 计算芯片）上的计算。每个 EngineCore 管本机 8 个 worker，第 3、4、5 站在这里；[TP](tensor-parallel.md) 与 [EP](expert-parallel.md) 分组见部署页。
+- **EngineCore**：每个 DP 执行组一个引擎进程，分别记作 `EngineCore_DP0`、`EngineCore_DP1`（日志也用这两个前缀）。内部持有 **scheduler**，管第 2 站和第 6 站。
+- **worker**：每张卡一个，共 16 个，负责把调度结果变成 NPU 上的计算。每个 EngineCore 管本机 8 个 worker，管第 3、4、5 站（[TP](tensor-parallel.md) 与 [EP](expert-parallel.md) 分组见部署页）。
 
-第四种是 node0 上的 **DP 协调器**，它不经手请求本身，只汇总两个 DP 组各有多少请求，并在两组之间传递「开始干活」「可以停了」的信号。
+第四种角色是双机 DP 特有的 **DP 协调器**（在 node0 上），它不经手请求本身，只汇总两个 DP 组的负载条数，并在两组之间传递「开始干活」「可以停了」的信号。
 
 前端怎样拿这些条数给新请求选组，见 [DP 请求路由](dp-request-routing.md)。
 
@@ -286,27 +287,26 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 图上的连线分四种。前两种按先后顺序把请求和结果从一个进程送到下一个进程；后两种是几个进程同时参与的集合通信，按固定的节奏发生，R1 的每一步都会用到其中一部分。
 
-**ZMQ：API server 和每个 EngineCore 之间。** ZMQ 是一个在进程之间收发消息的库，同一台机器上和跨机器都能用。API server 开两个口子，一个专门往外发请求，一个专门收结果，两个 EngineCore 都连进来。两组引擎分在两台机器上，所以地址是 node0 上的 TCP 端口，而不是本机的临时文件。消息用 msgpack（一种紧凑的二进制编码格式）打包。EngineCore 进程里另有两个后台**线程**（同一个进程里同时执行的几条执行流，共享这个进程的内存）专管收发：收线程把解码后的请求放进一个进程内队列，发线程从另一个队列取出结果发回去；主线程只跑一个不停转圈的**忙循环**：取新请求，跑一步，放结果。
+**ZMQ：API server 和每个 EngineCore 之间。** ZMQ 是在进程间收发消息的库，本机与跨机都能用。API server 开一发一收两个口子，两个 EngineCore 通过 node0 的 TCP 端口连入，消息用 msgpack 打包。EngineCore 另有两个后台**线程**专管收发：收线程把解码后的请求放进进程内队列，发线程从另一队列取出结果回传；主线程只跑不停转圈的**忙循环**——取新请求、跑一步、放结果。
 
-**共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同一台机器上几个进程都能读写的一块内存，传数据不经过网络。EngineCore 进程里有一个 `MultiprocExecutor` 对象，负责管理本机的 8 个 worker。它把「要执行的函数名和参数」写进一个广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条自己的响应队列；本页生成内部调用指定第 0 号 worker（TP 组里编号为 0 的那张卡）回复，所以执行器只读它的那一条。后文的公开 Python RPC 默认收各 Worker 的结果，收集范围由具体调用决定。
+**共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同机进程都能读写的内存，传数据不经过网络。EngineCore 里的 `MultiprocExecutor` 管理本机 8 个 worker：把「要执行的函数名和参数」写进广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条响应队列；本页生成内部调用指定第 0 号 worker（TP 组内编号 0）回复，执行器只读它的那一条（公开 Python RPC 默认收各 Worker 结果）。
 
 **HCCL：worker 和 worker 之间，搬张量。** HCCL（昇腾集合通信库）负责卡与卡之间的数据交换。机内 8 张卡在每层的张量并行里合并结果，16 张卡在 MoE 层里互相派发 token。这些通信各发生几次、每次多少字节，见[一条请求](one-request.md)第 4 站的「一次前向的通信账」。
 
-**gloo：进程之间对几个小数字。** gloo 是 PyTorch 自带的一种集合通信后端，用 CPU 和普通网络收发，适合传很小的数据。它用在两处：两个 EngineCore 每 32 步交换一次「我这边还有没有请求」，两边都没有了才一起停下；两台机器上对应的 worker 每一步开算之前对齐一次「这一步算多宽、用不用图」。后者在 vllm-ascend 的配置项 `dp_allreduce_on_npu` 打开时改走 HCCL，默认不开。
+**gloo：进程之间对几个小数字。** gloo 是 PyTorch 自带的 CPU 集合通信后端，适合传很小的数据。它用在两处：两个 EngineCore 每 32 步交换一次「我这边还有没有请求」，两边都空了才一起停下；两台机器对应 worker 每步开算前对齐「这一步算多宽、用不用图」（开启 `dp_allreduce_on_npu` 时后者改走 HCCL，默认关闭）。
 
-所以 R1 的一个新 token 走的是：ZMQ（API server → EngineCore_DP0）→ 共享内存（EngineCore_DP0 → 8 个 worker）→ worker 里的函数调用，途中穿插卡间的 gloo 对齐和 HCCL 通信 → 共享内存（第 0 号 worker → EngineCore_DP0）→ ZMQ（EngineCore_DP0 → API server）。
+所以 R1 走完一个新 token 的通道顺序是：ZMQ（API → `EngineCore_DP0`）→ 共享内存（`EngineCore_DP0` → 8 个 worker）→ worker 内函数调用（穿插 gloo 对齐与 HCCL 通信）→ 共享内存（第 0 号 worker → `EngineCore_DP0`）→ ZMQ（`EngineCore_DP0` → API）。
 
 ## 一步之内：EngineCore 给 worker 发两次调用
 
 让另一个进程执行某个函数、再把返回值送回来，叫**远程过程调用**（RPC）。生成循环每转一圈（一步），EngineCore 都要对本机 8 个 worker 发两次 RPC：
 
-1. `execute_model`：把调度结果 `SchedulerOutput`（调度器这一步交出的清单：哪些请求、各算几个 token、新分到哪些块）送过去，worker 做第 3 站和第 4 站，一直算到需要出 token 的那几行的词表分数（logits）。logits 先存在 worker 进程里的一个 `ExecuteModelState` 对象里，这次调用返回空值。
-2. `sample_tokens`：worker 取出 logits，做第 5 站：采样选出新 token，再让 MTP（多 token 预测）草稿层猜后面的候选。这次调用返回 `ModelRunnerOutput`，里面是每个请求这一步新得到的 token 编号。
+1. `execute_model`：把调度结果 `SchedulerOutput`（哪些请求、各算几个 token、新分哪些块）送过去，worker 做第 3 站和第 4 站，算到需要出 token 那几行的词表分数（logits）。logits 暂存在 worker 的 `ExecuteModelState` 中，这次调用返回空值。
+2. `sample_tokens`：worker 取出 logits 做第 5 站，采样选出新 token，再让 MTP 草稿层猜候选。这次调用返回 `ModelRunnerOutput`，装入每个请求本步新得的 token 编号。
 
 拆成两次以后，EngineCore 可以趁 worker 做前向的时候算一张结构化输出要用的表（结构化输出限定模型只能生成合法 JSON 这类格式，这张表写明下一个 token 允许是哪些），随第二次调用一起送过去，见[结构化输出](structured-output.md)。
 
-
-需要注意，进入 `execute_model` 入口只证明 worker 收到了本次调度调用，并不代表本请求一定跑了前向或设备完全空闲：若本请求未被排入 token，先看同批是否还有其他请求在算；若整批都没有 token，则还要按配置区分「直接返回空输出」与「走 KV connector（跨节点交接历史缓存的连接器）协作路径」；部分外部启动器配合 DP 的配置甚至会先执行一次 dummy run（为配合其他组对齐而跑的空批次，具体触发条件见页末源码）。因此，「本请求没有前向」和「设备没有任何工作」是两个独立结论。
+需要注意，进入 `execute_model` 只证明 worker 收到了调用，不代表本请求一定跑了前向或设备完全空闲。若本请求未被排入 token，先看同批是否还有其他请求在算；若整批无 token，则要区分「直接返回空输出」与「走 KV connector 协作路径」，部分外部启动器配 DP 时甚至会先跑一次 dummy run（具体触发条件见页末源码）。因此，「本请求没有前向」和「设备没有任何工作」是两个独立结论。
 
 ```wiki-diagram
 file: request-call-chain-step
@@ -326,7 +326,7 @@ vLLM 是主程序，vllm-ascend 是装在它上面的插件，不单独起自己
 
 1. **平台插件回答硬件问题。** vLLM 启动时发现插件，拿到 NPUPlatform，此后用它决定昇腾上怎么执行，见[平台注册](platform-plugin-registration.md)。
 2. **worker 类接管执行。** 平台选择 NPUWorker，它创建 NPUModelRunner；后者继承上游 GPUModelRunner，重写请求路径上的主要方法。
-3. **注意力后端选择实现。** 走通用路径的模型建层时按 attention 类型向平台查询，平台用一张按注意力类型查后端的表回答；GLM 的稀疏 MLA（压短每条历史、只挑部分读取）不查这张表，由层自己返回 AscendIndexerKPoolMLABackend，只有它的实现类继承自 SFA 的实现类（SFA 即昇腾这边稀疏注意力的那套实现，`sfa_v1.py` 里的类名、方法名和设备算子名都写作 sparse flash attention），见[后端家族](attention-backend-family.md)与[稀疏注意力](sparse-attention.md)。
+3. **注意力后端选择实现。** 通用路径按 attention 类型向平台查表选后端；GLM 稀疏 MLA 不查这张表，由层自身返回 `AscendIndexerKPoolMLABackend`。只有它的实现类继承自 SFA（`sfa_v1.py` 里的稀疏注意力实现），详见[后端家族](attention-backend-family.md)与[稀疏注意力](sparse-attention.md)。
 4. **custom op 替换整层。** 标为 custom op 的层允许硬件插件换实现；worker 初始化时把 MoE 与 KDA 换成昇腾版本。KDA 用固定大小状态保存历史，见[线性注意力](linear-attention.md)。
 5. **patch 改变已有入口的指向。** 每个进程加载 general plugin（通用插件）时，把部分上游函数或类换成昇腾实现；EngineCore 也会加载，所以第 2 站也受影响，见[Patch 机制](ascend-patch-system.md)。
 6. **模型注册选择 GLM 实现。** 将权重配置里的架构名映射到昇腾的模型类。具体注册名、路径和版本条件集中在页末。
@@ -369,7 +369,7 @@ file: request-call-chain-branches
 
 第 2 步的 3 个候选从哪来？异步调度开着时，候选 token 留在 worker 进程里，下一步直接取用，不经 EngineCore 转手；只有异步调度关掉时，EngineCore 才在每步末尾把它们取回来交给调度器。
 
-**node1 每一步在做什么。** R1 在 DP0 上，node1 的调度器一直是空的。`DPEngineCoreProc.run_busy_loop` 发现这一圈没有可跑的请求，但另一组还在忙，就改走 `execute_dummy_batch` → `MultiprocExecutor.execute_dummy_batch` → `NPUWorker.execute_dummy_batch` → `NPUModelRunner._dummy_run`，也就是执行一次空批次。空批次同样经过 `_sync_metadata_across_dp`，宽度和图模式跟 node0 对齐，然后完整跑一遍 45 层，连草稿层也陪跑一次，这样 node0 的 MoE 通信才凑得齐 16 张卡。所以排查时在 node1 worker 的报错栈或性能剖析里看到 `_dummy_run`，那是正常的陪跑，node1 并没有收到请求。
+**node1 每一步在做什么。** R1 在 DP0 上，node1 的调度器一直是空的。`DPEngineCoreProc.run_busy_loop` 发现本圈无可跑请求但另一组还在忙，就改走 `execute_dummy_batch` → `MultiprocExecutor.execute_dummy_batch` → `NPUWorker.execute_dummy_batch` → `NPUModelRunner._dummy_run` 执行空批次。空批次经 `_sync_metadata_across_dp` 与 node0 对齐宽度和图模式，再完整跑 45 层并陪跑草稿层，凑齐 node0 MoE 通信所需的 16 张卡。排查时在 node1 worker 栈里看到 `_dummy_run` 属于正常陪跑，不代表 node1 收到了请求。
 
 ## 离线脚本能先提交几组请求，再一起取结果吗？
 

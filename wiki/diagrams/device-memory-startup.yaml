@@ -1,15 +1,15 @@
 layout: figure
 id: device-memory-startup
-caption: A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后
+caption: Worker 启动的设备显存流水线：先检查本卡空闲空间并加载主模型权重（开启投机草稿时另载草稿权重），试跑后确定缓存预算，图捕获固定在 KV 缓存分配之后
 size: [860, 650]
 items:
-  - { at: [40, 55], size: [500, 62], text: A0 · Worker 选择并初始化设备, sub: 取得本卡总量与空闲量, tone: control }
-  - { at: [40, 159], size: [500, 62], text: 检查空闲量是否够请求份额, sub: 份额按本卡总量取比例, tone: control }
-  - { at: [615, 159], size: [205, 62], text: 空间不足：停止, sub: 检查同卡占用与配置, tone: danger }
-  - { at: [40, 270], size: [500, 62], text: load_model：加载主模型与草稿, sub: 主机权重 → 本卡分片 → 设备后处理, tone: weight }
+  - { at: [40, 55], size: [500, 62], text: Worker 选择并初始化设备, sub: 拍启动快照，取得本卡总量与空闲量, tone: control }
+  - { at: [40, 159], size: [500, 62], text: 检查空闲显存是否够实例预算, sub: 预算 = 总显存 × gpu_memory_utilization, tone: control }
+  - { at: [615, 159], size: [205, 62], text: 空间不足：报错停止, sub: 检查同卡占用与比例配置, tone: danger }
+  - { at: [40, 270], size: [500, 62], text: load_model：加载主模型权重, sub: 启用投机草稿时另载草稿权重, tone: weight }
   - { at: [40, 389], size: [355, 72], text: 自动预算：试跑并扣非缓存占用, sub: determine_available_memory, tone: kv }
   - { at: [465, 389], size: [355, 72], text: 显式预算：仍试跑以准备模型, sub: 返回指定的缓存字节数, tone: kv }
-  - { at: [160, 519], size: [540, 62], text: 分配 KV／状态池 → 预热 → 条件录图, sub: compile_or_warm_up_model, tone: control }
+  - { at: [160, 519], size: [540, 62], text: 分配物理 KV 池 → 预热 → 条件录图, sub: compile_or_warm_up_model, tone: control }
 links:
   - { from: [290, 117], to: [290, 159], tone: control }
   - { from: [540, 190], to: [615, 190], tone: danger }
@@ -20,11 +20,10 @@ links:
   - { from: [642, 461], to: [505, 519], via: [[642, 491], [505, 491]], tone: kv }
 texts:
   - { at: [575, 175], text: 不足, anchor: middle, tone: danger, size: 14 }
-  - { at: [307, 250], text: 足够 → 建立通信环境与执行器, tone: weight, size: 14 }
-  - { at: [430, 625], text: A1 接收请求 → A3 准备设备输入 → A4 用常驻权重计算, anchor: middle, note: true }
+  - { at: [307, 250], text: 足够 → 建立通信组与执行器, tone: weight, size: 14 }
+  - { at: [430, 625], text: 启动完成后：接收调度计划 → 准备设备输入 → 用常驻权重与 KV 池前向计算, anchor: middle, note: true }
 pins:
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L496-L525', symbols: [_init_worker_distributed_environment, NPUModelRunner] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L469-L480', symbols: [requested_memory] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3717-L3795', symbols: [load_model] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597', symbols: [determine_available_memory] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719', symbols: [compile_or_warm_up_model] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L520', symbols: [requested_memory, _init_worker_distributed_environment, NPUModelRunner] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4372-L4420', symbols: [load_model, drafter] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L635', symbols: [determine_available_memory] }
+  - { source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L879-L935', symbols: [compile_or_warm_up_model] }

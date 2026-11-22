@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="标准 Qwen3-8B 请求在 vLLM（ced6857a）与 vllm-ascend（c09d3e20）之间的插件分工：上半由上游 vLLM 负责 API 分词、单组 KV 调度、Executor 编排及 Qwen3ForCausalLM 模型骨架；下半由 vllm-ascend 插件接管 NPUPlatform、NPUWorker、NPUModelRunner 与昇腾算子后端。">
+  <title>标准 Qwen3-8B 请求在 vLLM（ced6857a）与 vllm-ascend（c09d3e20）之间的插件分工：上半由上游 vLLM 负责 API 分词、单组 KV 调度、Executor 编排及 Qwen3ForCausalLM 模型骨架；下半由 vllm-ascend 插件接管 NPUPlatform、NPUWorker、NPUModelRunner 与昇腾算子后端。</title>
+  <defs><marker id="ascend-vs-upstream-qwen3-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ascend-vs-upstream-qwen3-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="ascend-vs-upstream-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M16 132 L884 132" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="16" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">上游 vLLM (ced6857a)：引擎编排与标准模型骨架</text>
+  <text x="16" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">平台边界以下：vllm-ascend (c09d3e20) 插件接管层</text>
+  <path d="M220 61 L268 61" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-control)"/>
+  <path d="M456 61 L504 61" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-control)"/>
+  <path d="M598 90 L598 176" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-weight)"/>
+  <path d="M598 234 L598 282" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-weight)"/>
+  <path d="M598 340 L598 388" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-weight)"/>
+  <path d="M692 417 L738 417 L738 61 L692 61" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ascend-vs-upstream-qwen3-ah-weight)"/>
+  <path d="M126 234 L126 282" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <path d="M126 388 L126 340" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <path d="M220 311 L268 311" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <path d="M456 311 L504 311" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <path d="M362 234 L362 282" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <path d="M362 340 L362 417 L504 417" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-vs-upstream-qwen3-ah-ink)"/>
+  <rect x="32" y="32" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="126" y="57" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">请求接入（vLLM）</text>
+  <text x="126" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">HTTP、分词、ZMQ 入队</text>
+  <rect x="268" y="32" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="362" y="57" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Scheduler（vLLM）</text>
+  <text x="362" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">128-tok 块池借还与排批</text>
+  <rect x="504" y="32" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="598" y="57" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Executor（vLLM）</text>
+  <text x="598" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">发前向与采样两次调用</text>
+  <rect x="32" y="176" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="126" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">插件注册入口</text>
+  <text x="126" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">装包登记、启动自动发现</text>
+  <rect x="268" y="176" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="362" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CustomOp 与 patch</text>
+  <text x="362" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">替换归一化、激活与通信</text>
+  <rect x="504" y="176" width="188" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="598" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPUWorker</text>
+  <text x="598" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">管本卡显存预算与通信域</text>
+  <rect x="32" y="282" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="126" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPUPlatform</text>
+  <text x="126" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">默认 128 块长、选后端</text>
+  <rect x="268" y="282" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="362" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">上游 Qwen3 模型定义</text>
+  <text x="362" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">直接复用上游模型骨架</text>
+  <rect x="504" y="282" width="188" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="598" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPUModelRunner</text>
+  <text x="598" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">拼输入、块表与图回放</text>
+  <rect x="32" y="388" width="188" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
+  <text x="126" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Ascend 编译与配置</text>
+  <text x="126" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">图档位、量化与环境变量</text>
+  <rect x="504" y="388" width="188" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="598" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">昇腾注意力与算子后端</text>
+  <text x="598" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">FIA / PA / RoPE / SwiGLU</text>
+  <text x="752" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">采样新 token</text>
+  <text x="752" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">交回引擎</text>
+  <text x="24" y="486" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">实线：每一步在线推理调用链；虚线：启动期插件注册、模型复用与算子绑定</text>
+</svg>

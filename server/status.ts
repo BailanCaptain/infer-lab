@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { z } from "zod";
 import { readBudget } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
-import { inspectApiKey } from "../scripts/wiki/http-provider";
+import {
+  hasSecretHarnessArg,
+  inspectApiKey,
+  sanitizeHarnessArgs,
+  stripUrlCredentials,
+} from "../scripts/wiki/http-provider";
 import { collectStepTerms } from "../scripts/wiki/lint";
 import { answeredBy, MODEL_ID, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
 import { loadPages } from "../scripts/wiki/pages";
@@ -105,7 +110,7 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     workModel: config?.chatModel ?? defaultModelForProvider(chatProvider, WORK_MODEL),
     recorded: recorded.length,
     switched: switched.length,
-    ...(config?.apiBaseUrl ? { apiBaseUrl: config.apiBaseUrl } : {}),
+    ...(config?.apiBaseUrl ? { apiBaseUrl: stripUrlCredentials(config.apiBaseUrl) } : {}),
     ...(keyStatus?.apiKeyEnv ? { apiKeyEnv: keyStatus.apiKeyEnv } : {}),
     ...(keyStatus !== undefined ? { hasApiKey: keyStatus.hasApiKey } : {}),
     ...(config?.anthropicVersion ? { anthropicVersion: config.anthropicVersion } : {}),
@@ -114,7 +119,14 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
       ? { claudeSettingSources: config.claudeSettingSources }
       : {}),
     ...(config?.codexAllowUserConfig ? { codexAllowUserConfig: config.codexAllowUserConfig } : {}),
-    ...(config?.harnessCommand ? { harnessCommand: config.harnessCommand } : {}),
+    ...(config?.harnessCommand
+      ? {
+          harnessCommand: {
+            command: config.harnessCommand.command,
+            args: sanitizeHarnessArgs(config.harnessCommand.args ?? []),
+          },
+        }
+      : {}),
     ...(last && hop ? { last: { at: last.startedAt, purpose: last.purpose, ...hop } } : {}),
   };
   let lastRun = json(join(root, "wiki/_jobs/sync/last-run.json")) as
@@ -201,11 +213,18 @@ export type WikiStatus = ReturnType<typeof readStatus>;
 const optionalUrlField = z
   .string()
   .trim()
-  .refine(
-    (v) => v === "" || (/^https?:\/\//i.test(v) && URL.canParse(v)),
-    "apiBaseUrl 必须是 http/https 地址",
-  )
+  .refine((v) => {
+    if (v === "") return true;
+    if (!/^https?:\/\//i.test(v) || !URL.canParse(v)) return false;
+    const parsed = new URL(v);
+    return !parsed.username && !parsed.password && !parsed.search && !parsed.hash;
+  }, "apiBaseUrl 必须是无凭据、无查询参数的 http/https 地址")
   .optional();
+
+const safeHarnessCommandSchema = harnessCommandSchema.refine(
+  (cmd) => !hasSecretHarnessArg(cmd.args),
+  "harnessCommand.args 不得包含明文 API 密钥、令牌或含凭据 URL（请改用环境变量）",
+);
 
 const modelSelectionSchema = z
   .object({
@@ -229,7 +248,7 @@ const modelSelectionSchema = z
       .refine((v) => CLAUDE_SETTING_SOURCES_RE.test(v), "claudeSettingSources 格式不正确")
       .optional(),
     codexAllowUserConfig: z.boolean().optional(),
-    harnessCommand: harnessCommandSchema.nullable().optional(),
+    harnessCommand: safeHarnessCommandSchema.nullable().optional(),
   })
   .strict();
 

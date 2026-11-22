@@ -1,15 +1,25 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { join } from "node:path";
+import { join, posix, win32 } from "node:path";
 import { z } from "zod";
 import { withBudget } from "../scripts/wiki/budget";
 import { type ChatTrace, looksLikeError, publicTrace, traceChat } from "../scripts/wiki/chat-trace";
 import { attachCorpusProvenance, corpusDocuments } from "../scripts/wiki/corpus-trace";
 import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
+import {
+  resolveEffectiveEndpointUrl,
+  sanitizeHarnessArgs,
+  stripUrlCredentials,
+} from "../scripts/wiki/http-provider";
 import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
-import { readClaudeEnv, selectedModel as readSelectedModel } from "../scripts/wiki/sync-config";
+import {
+  type ModelSelectionConfig,
+  readClaudeEnv,
+  selectedModel as readSelectedModel,
+} from "../scripts/wiki/sync-config";
+import { digest } from "../scripts/wiki/workflow";
 import type { AnswerQuality } from "../src/content/wiki/answer-quality";
-import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
+import { type CorpusDocument, errorFragments } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
 import { judgeAnswer } from "./answer-quality";
@@ -35,13 +45,37 @@ import {
   readKnowledgeSnapshot,
   verifySnapshot,
 } from "./snapshot";
+import {
+  chatAnalysisInputSchema,
+  formatToolEvidenceForPrompt,
+  runDeterministicToolEvidence,
+  type ToolEvidenceV1,
+} from "./tool-evidence";
 
 const inputSchema = z
   .object({
     message: z.string().trim().min(1).max(100_000),
     sessionId: z.string().min(1).max(200).optional(),
+    analysis: chatAnalysisInputSchema.optional(),
   })
   .strict();
+
+function attachToolEvidenceToRequest(
+  request: ReturnType<typeof buildChatRequest>,
+  promptBlock: string,
+): ReturnType<typeof buildChatRequest> {
+  if (!promptBlock) return request;
+  const sysIdx = request.args.indexOf("--append-system-prompt");
+  if (sysIdx >= 0 && typeof request.args[sysIdx + 1] === "string") {
+    const args = [...request.args];
+    args[sysIdx + 1] = `${args[sysIdx + 1]}\n\n${promptBlock}`;
+    return { ...request, args };
+  }
+  if (typeof request.systemPrompt === "string") {
+    return { ...request, systemPrompt: `${request.systemPrompt}\n\n${promptBlock}` };
+  }
+  return { ...request, stdin: `${promptBlock}\n\n${request.stdin}` };
+}
 
 /** Production and controlled evaluation must inject the same retrieval context. */
 export function retrieveChatContext(
@@ -68,6 +102,71 @@ export function retrieveChatContext(
   return { hits, graph, citationGuide };
 }
 
+const normalizeCliPath = (raw?: string): string | undefined => {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  const isUnc = /^(?:\/\/|\\\\)[^/\\]/.test(trimmed);
+  const isWinDrive = /^[a-zA-Z]:[\\/]/.test(trimmed);
+  const hasBackslash = trimmed.includes("\\");
+  if (isUnc || isWinDrive || hasBackslash) {
+    const normalized = win32.normalize(trimmed).replaceAll("\\", "/");
+    return process.platform === "win32" || isUnc || isWinDrive ? normalized.toLowerCase() : normalized;
+  }
+  const normalized = posix.normalize(trimmed);
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+};
+
+/**
+ * Deterministic secret-free session model key: keeps clean "provider:model" when no custom
+ * endpoint/command is configured, and appends @<12-hex> when endpoint/command settings differ.
+ * Never hashes or persists raw API key values or secret claudeEnv values.
+ */
+export function chatSessionModelKey(
+  selection: ModelSelectionConfig,
+  claudeEnv?: Record<string, string>,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const base = `${selection.provider}:${selection.model ?? "default"}`;
+  const hasExplicitOrEnvEndpoint =
+    Boolean(selection.apiBaseUrl?.trim()) ||
+    (selection.provider === "openai-compatible" && Boolean(env.OPENAI_BASE_URL?.trim())) ||
+    (selection.provider === "anthropic-compatible" && Boolean(env.ANTHROPIC_BASE_URL?.trim()));
+  const endpointUrl = hasExplicitOrEnvEndpoint
+    ? resolveEffectiveEndpointUrl(selection.provider, selection.apiBaseUrl, env)
+    : undefined;
+  const rawClaudeBaseUrl =
+    selection.provider === "claude"
+      ? claudeEnv?.ANTHROPIC_BASE_URL?.trim() || env.ANTHROPIC_BASE_URL?.trim()
+      : undefined;
+  const claudeBaseUrl = rawClaudeBaseUrl ? stripUrlCredentials(rawClaudeBaseUrl) || "custom" : undefined;
+  const codexCliPath = normalizeCliPath(
+    selection.codexCli ?? (selection.provider === "codex" ? env.CODEX_CLI : undefined),
+  );
+  const claudeCliPath = normalizeCliPath(
+    selection.claudeCli ?? (selection.provider === "claude" ? env.CLAUDE_CLI : undefined),
+  );
+  const discriminators: Record<string, unknown> = {
+    ...(endpointUrl ? { endpointUrl } : {}),
+    ...(selection.apiKeyEnv?.trim() ? { apiKeyEnv: selection.apiKeyEnv.trim() } : {}),
+    ...(selection.anthropicVersion?.trim() ? { anthropicVersion: selection.anthropicVersion.trim() } : {}),
+    ...(selection.harnessCommand
+      ? {
+          harnessCommand: {
+            command: selection.harnessCommand.command.trim(),
+            args: sanitizeHarnessArgs(selection.harnessCommand.args ?? []),
+          },
+        }
+      : {}),
+    ...(codexCliPath ? { codexCli: digest(codexCliPath).slice(0, 16) } : {}),
+    ...(claudeCliPath ? { claudeCli: digest(claudeCliPath).slice(0, 16) } : {}),
+    ...(selection.claudeSettingSources ? { claudeSettingSources: selection.claudeSettingSources } : {}),
+    ...(claudeBaseUrl ? { claudeBaseUrl } : {}),
+    ...(selection.codexAllowUserConfig ? { codexAllowUserConfig: true } : {}),
+  };
+  if (Object.keys(discriminators).length === 0) return base;
+  return `${base}@${digest(JSON.stringify({ provider: selection.provider, model: selection.model ?? "default", ...discriminators })).slice(0, 12)}`;
+}
+
 /** Both production HTTP and fixture browsers use this exact orchestration. */
 export async function handleChat(
   req: IncomingMessage,
@@ -78,6 +177,7 @@ export async function handleChat(
     traceChat?: typeof traceChat;
     judgeGap?: typeof judgeGapIdentity;
     judgeAnswer?: typeof judgeAnswer;
+    corpusDocuments?: typeof corpusDocuments;
   } = {},
 ): Promise<boolean> {
   const url = parseWikiUrl(req, res);
@@ -88,7 +188,9 @@ export async function handleChat(
   let citeEmitted = false;
   let message = "";
   let answer = "";
+  let streamedAnswer = "";
   let answerId: string | undefined;
+  let toolEvidence: ToolEvidenceV1[] = [];
   const webTools: { name: string; target?: string }[] = [];
   let citations: CitationVerdict = { cited: false, selfDeclaredUncovered: false, reason: "回答尚未完整核对" };
   let outcome: Awaited<ReturnType<typeof runChat>> = { ok: false };
@@ -110,10 +212,18 @@ export async function handleChat(
     checkWriter(req);
     const input = inputSchema.parse(await readJson(req, 400_000));
     message = input.message;
+    if (input.analysis) {
+      try {
+        toolEvidence = [runDeterministicToolEvidence(input.analysis)];
+      } catch (error) {
+        throw new HttpError(400, error instanceof Error ? error.message : String(error));
+      }
+    }
     const snapshot = await readKnowledgeSnapshot(root);
     cancel.signal.throwIfAborted();
     const selectedModel = readSelectedModel(root);
     const claudeEnv = selectedModel.provider === "claude" ? readClaudeEnv(root) : undefined;
+    const turnEnv: NodeJS.ProcessEnv = { ...process.env };
     // Codex / HTTP API / custom harness receive immutable page text directly; only Claude reads snapshot files.
     const location =
       selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
@@ -121,14 +231,16 @@ export async function handleChat(
       root,
       snapshot.revision,
       input.sessionId,
-      `${selectedModel.provider}:${selectedModel.model ?? "default"}`,
+      chatSessionModelKey(selectedModel, claudeEnv, turnEnv),
     );
     cancel.signal.throwIfAborted();
     const retrievalQuery =
       selectedModel.provider !== "claude"
         ? [message, ...lease.contextQuestions.slice(-2)].join("\n")
         : message;
-    const context = retrieveChatContext(retrievalQuery, snapshot, corpusDocuments(root));
+    const loadCorpus = deps.corpusDocuments ?? corpusDocuments;
+    const corpus = errorFragments(retrievalQuery).length > 0 ? loadCorpus(root) : undefined;
+    const context = retrieveChatContext(retrievalQuery, snapshot, corpus);
     const hits = attachCorpusProvenance(root, context.hits);
     const graph = context.graph;
     const online = chatOnline({ provider: selectedModel.provider });
@@ -147,6 +259,7 @@ export async function handleChat(
       provider: selectedModel.provider,
     });
     emit("hits", { hits });
+    if (toolEvidence.length) emit("toolEvidence", toolEvidence[0]);
     // 贴的是报错才在线查 GitHub（F003 AC4 聊天层接入）；普通提问一个网络请求都不发
     let github: ChatTrace | undefined;
     if (looksLikeError(message)) {
@@ -159,27 +272,24 @@ export async function handleChat(
       emit("trace", publicTrace(github));
     }
     cancel.signal.throwIfAborted();
-    const evidencePages =
-      selectedModel.provider !== "claude"
-        ? codexEvidencePages(
-            [
-              ...new Set([
-                ...hits.map((h) => h.id),
-                ...graph.flatMap((g) =>
-                  [
-                    ...g.neighborhood.foundations,
-                    ...g.neighborhood.dependents,
-                    ...g.neighborhood.siblings,
-                  ].map((edge) => edge.id),
-                ),
-              ]),
-            ].flatMap((id) => {
-              const file = snapshot.registry.pages.find((p) => p.id === id)?.file;
-              return snapshot.pageTexts.filter((p) => p.file === file);
-            }),
-          )
-        : snapshot.pageTexts;
-    const request = buildChatRequest(
+    const retrievedCandidatePages = [
+      ...new Set([
+        ...hits.map((h) => h.id),
+        ...graph.flatMap((g) =>
+          [...g.neighborhood.foundations, ...g.neighborhood.dependents, ...g.neighborhood.siblings].map(
+            (edge) => edge.id,
+          ),
+        ),
+      ]),
+    ].flatMap((id) => {
+      const file = snapshot.registry.pages.find((p) => p.id === id)?.file;
+      return snapshot.pageTexts.filter((p) => p.file === file);
+    });
+    const injectedPages =
+      selectedModel.provider !== "claude" ? codexEvidencePages(retrievedCandidatePages) : undefined;
+    const citablePages = injectedPages ?? snapshot.pageTexts;
+    const readSnapshotFiles = new Set<string>();
+    const baseRequest = buildChatRequest(
       {
         message,
         ...(lease.agentSessionId ? { sessionId: lease.agentSessionId } : {}),
@@ -199,25 +309,38 @@ export async function handleChat(
         timeoutMs: CHAT_TIMEOUT_MS,
         ...selectedModel,
         ...(claudeEnv ? { claudeEnv } : {}),
-        pages: evidencePages,
+        pages: citablePages,
       },
     );
+    const request = toolEvidence.length
+      ? attachToolEvidenceToRequest(baseRequest, formatToolEvidenceForPrompt(toolEvidence))
+      : baseRequest;
     const execute: typeof runChat =
-      deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));
+      deps.runChat ??
+      ((req, on, opts) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on, opts)));
     outcome = await execute(
       { ...request, signal: cancel.signal },
       {
         text: (text) => {
+          streamedAnswer += text;
           answer += text;
           emit("text", { text });
         },
         tool: (name, target) => {
           if ((name === "WebFetch" || name === "WebSearch") && webTools.length < 20)
             webTools.push({ name, ...(target ? { target } : {}) });
+          if (name === "Read" && target) {
+            const normTarget = target.replaceAll("\\", "/");
+            for (const p of snapshot.pageTexts) {
+              if (normTarget === p.file || normTarget.endsWith(`/${p.file}`)) readSnapshotFiles.add(p.file);
+            }
+          }
           emit("tool", { name, target });
         },
       },
+      { env: turnEnv },
     );
+    if (outcome.ok && outcome.finalAnswer?.trim()) answer = outcome.finalAnswer;
     // 失败的轮次也发：拒答换手常常就出在这种时候
     if (outcome.models)
       emit("model", {
@@ -231,7 +354,7 @@ export async function handleChat(
     if (cancel.signal.aborted) outcome = { ...outcome, ok: false, reason: "已取消" };
     if (location) verifySnapshot(root, location, snapshot);
     if (outcome.ok && !answer.trim()) outcome = { ok: false, reason: "问答没有返回正文" };
-    if (outcome.ok) citations = checkAnswerCitations(answer, evidencePages);
+    if (outcome.ok) citations = checkAnswerCitations(answer, citablePages);
     if (outcome.ok && citations.cited) emit("related", { pages: relatedReading(answer, snapshot) });
     // 给了联网工具、一次没用、却说自己联不了网：读者得知道这条回答没有联网核对
     if (outcome.ok && online && webTools.length === 0 && claimsOffline(answer))
@@ -246,9 +369,17 @@ export async function handleChat(
       await settleLease(true);
       citeEmitted = true;
       emit("cite", citations);
-      emit("persisted", { sessionId: lease.id, revision: lease.revision });
+      emit("persisted", {
+        sessionId: lease.id,
+        revision: lease.revision,
+        ...(answer && answer !== streamedAnswer ? { finalText: answer } : {}),
+      });
     }
     if (outcome.ok && !res.destroyed && !cancel.signal.aborted) {
+      const retrievedFileSet = new Set(retrievedCandidatePages.map((p) => p.file));
+      const retrievedPages =
+        injectedPages ??
+        snapshot.pageTexts.filter((p) => retrievedFileSet.has(p.file) || readSnapshotFiles.has(p.file));
       let quality: AnswerQuality;
       emit("quality", { status: "checking" });
       try {
@@ -259,8 +390,12 @@ export async function handleChat(
           contextTurns: lease.contextTurns,
           answer,
           snapshot,
-          evidencePages,
+          evidencePages: retrievedPages,
+          retrievedPages,
           selection: selectedModel,
+          claudeEnv,
+          hasClaudeEnv: true,
+          env: turnEnv,
           signal: cancel.signal,
         });
       } catch (error) {
@@ -282,7 +417,14 @@ export async function handleChat(
         !(quality.status === "checked" && quality.decision.satisfied === false) &&
         !signals.some((signal) => signal.kind === "agent-uncovered")
       )
-        answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
+        answerId = await captureAnswer(
+          root,
+          message,
+          answer,
+          citablePages,
+          outcome.models,
+          toolEvidence.length ? toolEvidence : undefined,
+        );
       if (quality.status === "checked" && quality.decision.satisfied !== true) {
         signals.unshift({
           kind: "independent-review",
@@ -297,6 +439,10 @@ export async function handleChat(
           const question = { question: message, contextQuestions: lease.contextQuestions };
           const sameAs = await (deps.judgeGap ?? judgeGapIdentity)(root, {
             ...question,
+            selection: selectedModel,
+            claudeEnv,
+            hasClaudeEnv: true,
+            env: turnEnv,
             signal: cancel.signal,
           }).catch(() => undefined);
           cancel.signal.throwIfAborted();
@@ -337,7 +483,12 @@ export async function handleChat(
         }
       }
       if (!citeEmitted) emit("cite", citations);
-      emit("done", { sessionId: lease.id, answerId, revision: lease.revision });
+      emit("done", {
+        sessionId: lease.id,
+        answerId,
+        revision: lease.revision,
+        ...(outcome.ok && answer && answer !== streamedAnswer ? { finalText: answer } : {}),
+      });
     }
     if (!res.writableEnded) res.end();
   }

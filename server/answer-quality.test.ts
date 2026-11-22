@@ -36,7 +36,7 @@ async function setup() {
       answer: "默认值为 2 [A](sources/a.md)。",
       snapshot,
       evidencePages: snapshot.pageTexts,
-      selection: { provider: "codex" as const, model: "gpt-6.1-sol" },
+      selection: { provider: "codex" as const, model: "gpt-6.2-sol" },
     },
   };
 }
@@ -226,7 +226,7 @@ it.each([false, true])("normalizes only CRLF in verbatim quotes, changed content
   const f = await setup();
   f.write(
     "wiki/sources/a.md",
-    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + "\n第一行 1。\n第二行 2。\n",
+    `${readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")}\n第一行 1。\n第二行 2。\n`,
   );
   f.write(
     "wiki/sources/a.md",
@@ -257,7 +257,7 @@ it("uses a fresh tool-free pinned model, binds the revision, and reuses an intac
   const runAgent: RunAgent = async (req) => {
     calls++;
     expect(req.provider).toBe("codex");
-    expect(req.model).toBe("gpt-6.1-sol");
+    expect(req.model).toBe("gpt-6.2-sol");
     expect(req.allowedWrites).toEqual([]);
     expect(req.args).not.toContain("--resume");
     expect(JSON.parse(req.stdin).revision).toBe(f.input.snapshot.revision);
@@ -318,7 +318,8 @@ it("records excerpt truncation explicitly and never sends private operational fi
   const f = await setup();
   f.write(
     "wiki/sources/a.md",
-    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + "x".repeat(CODEX_EVIDENCE_LIMIT + 1),
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") +
+      `${"x".repeat(79)}\n`.repeat(Math.ceil((CODEX_EVIDENCE_LIMIT + 1) / 80)),
   );
   f.write("wiki/_gaps.json", "private question ledger");
   const snapshot = await readKnowledgeSnapshot(f.root);

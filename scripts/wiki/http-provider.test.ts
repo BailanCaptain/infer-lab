@@ -185,6 +185,85 @@ describe("openai-compatible provider", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.reason).toContain("MISSING_DS_KEY");
   });
+
+  it("rejects mid-stream EOF without [DONE] or finish_reason=stop and rejects finish_reason=length truncation", async () => {
+    const eofChunks: string[] = [];
+    const abruptEof = await runOpenAiCompatible(
+      {
+        id: "t-eof",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "explain",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: (c) => eofChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"回答到一半断网"},"finish_reason":null}]}\n\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(eofChunks.join("")).toBe("回答到一半断网");
+    expect(abruptEof.ok).toBe(false);
+    expect(abruptEof.reason).toMatch(/未正常结束|截断|连接中断/);
+
+    const lengthTruncated = await runOpenAiCompatible(
+      {
+        id: "t-length",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "explain",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"半截句子"},"finish_reason":"length"}]}\n\n',
+            "data: [DONE]\n\n",
+          ]),
+        env: {},
+      },
+    );
+    expect(lengthTruncated.ok).toBe(false);
+    expect(lengthTruncated.reason).toMatch(/长度上限|截断|length/);
+
+    const cleanStop = await runOpenAiCompatible(
+      {
+        id: "t-stop",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "explain",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"完整回答。"},"finish_reason":"stop"}]}\n\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(cleanStop.ok).toBe(true);
+  });
 });
 
 describe("anthropic-compatible provider (CCR / DeepSeek /anthropic)", () => {
@@ -200,7 +279,8 @@ describe("anthropic-compatible provider (CCR / DeepSeek /anthropic)", () => {
         'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat","usage":{"input_tokens":20,"output_tokens":0}}}\n\n',
         'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"第一段"}}\n\n',
         'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"第二段"}}\n\n',
-        'event: message_delta\ndata: {"type":"message_delta","usage":{"output_tokens":9}}\n\n',
+        'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":9}}\n\n',
+        'event: message_stop\ndata: {"type":"message_stop"}\n\n',
       ]);
     };
 
@@ -264,6 +344,62 @@ describe("anthropic-compatible provider (CCR / DeepSeek /anthropic)", () => {
     );
     expect(outcome.ok).toBe(true);
     expect(chunks.join("")).toBe('{"answer":"from-ccr"}');
+  });
+
+  it("rejects mid-stream EOF without message_stop and rejects stop_reason=max_tokens truncation", async () => {
+    const abruptEof = await runAnthropicCompatible(
+      {
+        id: "a-eof",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "explain",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat","usage":{"input_tokens":10,"output_tokens":0}}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"半句中断"}}\n\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(abruptEof.ok).toBe(false);
+    expect(abruptEof.reason).toMatch(/message_stop|未正常结束|截断/);
+
+    const maxTokensTruncated = await runAnthropicCompatible(
+      {
+        id: "a-max",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "explain",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat","usage":{"input_tokens":10,"output_tokens":0}}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"达到最大长度半截"}}\n\n',
+            'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"max_tokens"},"usage":{"output_tokens":8192}}\n\n',
+            'event: message_stop\ndata: {"type":"message_stop"}\n\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(maxTokensTruncated.ok).toBe(false);
+    expect(maxTokensTruncated.reason).toMatch(/max_tokens|长度上限|截断/);
   });
 });
 
@@ -402,5 +538,348 @@ describe("custom harness provider (shell: false, stdin -> stdout)", () => {
     const chatRes = await runChat(chatReq, { text: (chunk) => streamed.push(chunk) });
     expect(chatRes.ok).toBe(true);
     expect(streamed.join("")).toBe("来自自定义 Harness 的回答");
+  });
+});
+
+describe("P2-1 & P2-2 strict SSE framing and Anthropic stop_reason truncation", () => {
+  it("rejects OpenAI [DONE] or Anthropic message_stop missing closing blank line before EOF", async () => {
+    const openAiNoBlank = await runOpenAiCompatible(
+      {
+        id: "sse-oai-unclosed",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"hello"}}]}\n\n',
+            "data: [DONE]\n",
+          ]),
+        env: {},
+      },
+    );
+    expect(openAiNoBlank.ok).toBe(false);
+
+    const anthropicNoBlank = await runAnthropicCompatible(
+      {
+        id: "sse-ant-unclosed",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat"}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hi"}}\n\n',
+            'event: message_stop\ndata: {"type":"message_stop"}',
+          ]),
+        env: {},
+      },
+    );
+    expect(anthropicNoBlank.ok).toBe(false);
+  });
+
+  it("locks terminal state after closed [DONE] / message_stop and supports CRLF frames", async () => {
+    const oaiChunks: string[] = [];
+    const oai = await runOpenAiCompatible(
+      {
+        id: "sse-oai-terminal",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: (c) => oaiChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"ok"}}]}\r\n\r',
+            "\ndata: [DONE]\r\n\r\n",
+            'data: {"choices":[{"delta":{"content":"trailing"},"finish_reason":"length"}]}\r\n\r\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(oai.ok).toBe(true);
+    expect(oaiChunks.join("")).toBe("ok");
+
+    const antChunks: string[] = [];
+    const ant = await runAnthropicCompatible(
+      {
+        id: "sse-ant-terminal",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 5000,
+        allowedWrites: [],
+      },
+      { text: (c) => antChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'event: message_start\r\ndata: {"type":"message_start","message":{"model":"deepseek-chat"}}\r\n\r\n',
+            'event: content_block_delta\r\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"clean"}}\r\n\r\n',
+            'event: message_stop\r\ndata: {"type":"message_stop"}\r\n\r\n',
+            'event: message_delta\r\ndata: {"type":"message_delta","delta":{"stop_reason":"max_tokens"}}\r\n\r\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(ant.ok).toBe(true);
+    expect(antChunks.join("")).toBe("clean");
+  });
+
+  it("rejects Anthropic model_context_window_exceeded in both streaming and non-streaming modes", async () => {
+    const req = {
+      id: "ant-ctx-exceeded",
+      cwd: process.cwd(),
+      provider: "anthropic-compatible" as const,
+      model: "deepseek-chat",
+      apiBaseUrl: "http://127.0.0.1:3456",
+      args: [],
+      stdin: "hi",
+      timeoutMs: 5000,
+      allowedWrites: [],
+    };
+    const nonStream = await runAnthropicCompatible(
+      req,
+      { text: () => {} },
+      {
+        stream: false,
+        fetchImpl: async () =>
+          new Response(
+            JSON.stringify({
+              model: "deepseek-chat",
+              stop_reason: "model_context_window_exceeded",
+              content: [{ type: "text", text: "partial" }],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+        env: {},
+      },
+    );
+    expect(nonStream.ok).toBe(false);
+    expect(nonStream.reason).toContain("model_context_window_exceeded");
+
+    const streamed = await runAnthropicCompatible(
+      req,
+      { text: () => {} },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          sseResponse([
+            'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat"}}\n\n',
+            'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"partial"}}\n\n',
+            'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"model_context_window_exceeded"}}\n\n',
+            'event: message_stop\ndata: {"type":"message_stop"}\n\n',
+          ]),
+        env: {},
+      },
+    );
+    expect(streamed.ok).toBe(false);
+    expect(streamed.reason).toContain("model_context_window_exceeded");
+  });
+
+  it("P2-9: cancels reader and returns immediately after closed [DONE] or message_stop even if upstream keeps connection open", async () => {
+    const encoder = new TextEncoder();
+
+    let oaiCancelled = false;
+    const oaiChunks: string[] = [];
+    const oai = await runOpenAiCompatible(
+      {
+        id: "sse-oai-keepalive",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 75,
+        allowedWrites: [],
+      },
+      { text: (c) => oaiChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(
+                  encoder.encode(
+                    'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"即时完成"}}]}\n\n',
+                  ),
+                );
+                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                // Intentionally never close the stream to simulate keep-alive SSE proxy
+              },
+              cancel() {
+                oaiCancelled = true;
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          ),
+        env: {},
+      },
+    );
+    expect(oai.ok).toBe(true);
+    expect(oaiCancelled).toBe(true);
+    expect(oaiChunks.join("")).toBe("即时完成");
+
+    let antCancelled = false;
+    const antChunks: string[] = [];
+    const ant = await runAnthropicCompatible(
+      {
+        id: "sse-ant-keepalive",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 75,
+        allowedWrites: [],
+      },
+      { text: (c) => antChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(
+                  encoder.encode(
+                    'event: message_start\r\ndata: {"type":"message_start","message":{"model":"deepseek-chat"}}\r\n\r\n',
+                  ),
+                );
+                controller.enqueue(
+                  encoder.encode(
+                    'event: content_block_delta\r\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"不等待断开"}}\r\n\r\n',
+                  ),
+                );
+                controller.enqueue(
+                  encoder.encode('event: message_stop\r\ndata: {"type":"message_stop"}\r\n\r\n'),
+                );
+                // Intentionally never close the stream
+              },
+              cancel() {
+                antCancelled = true;
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          ),
+        env: {},
+      },
+    );
+    expect(ant.ok).toBe(true);
+    expect(antCancelled).toBe(true);
+    expect(antChunks.join("")).toBe("不等待断开");
+  });
+
+  it("P2-9: does not block on pending reader.cancel() (e.g. ReadableStream.tee() with unconsumed sibling branch)", {
+    timeout: 1500,
+  }, async () => {
+    const encoder = new TextEncoder();
+
+    const oaiSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"model":"deepseek-chat","choices":[{"delta":{"content":"tee即时完成"}}]}\n\n',
+          ),
+        );
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      },
+    });
+    const [oaiBranch, _oaiUnconsumed] = oaiSource.tee();
+    const oaiChunks: string[] = [];
+    const oai = await runOpenAiCompatible(
+      {
+        id: "sse-oai-tee",
+        cwd: process.cwd(),
+        provider: "openai-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:8000/v1",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 75,
+        allowedWrites: [],
+      },
+      { text: (c) => oaiChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          new Response(oaiBranch, { status: 200, headers: { "content-type": "text/event-stream" } }),
+        env: {},
+      },
+    );
+    expect(oai.ok).toBe(true);
+    expect(oaiChunks.join("")).toBe("tee即时完成");
+    void _oaiUnconsumed;
+
+    const antSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'event: message_start\ndata: {"type":"message_start","message":{"model":"deepseek-chat"}}\n\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"ant-tee"}}\n\n',
+          ),
+        );
+        controller.enqueue(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'));
+      },
+    });
+    const [antBranch, _antUnconsumed] = antSource.tee();
+    const antChunks: string[] = [];
+    const ant = await runAnthropicCompatible(
+      {
+        id: "sse-ant-tee",
+        cwd: process.cwd(),
+        provider: "anthropic-compatible",
+        model: "deepseek-chat",
+        apiBaseUrl: "http://127.0.0.1:3456",
+        args: [],
+        stdin: "hi",
+        timeoutMs: 75,
+        allowedWrites: [],
+      },
+      { text: (c) => antChunks.push(c) },
+      {
+        stream: true,
+        fetchImpl: async () =>
+          new Response(antBranch, { status: 200, headers: { "content-type": "text/event-stream" } }),
+        env: {},
+      },
+    );
+    expect(ant.ok).toBe(true);
+    expect(antChunks.join("")).toBe("ant-tee");
+    void _antUnconsumed;
   });
 });

@@ -261,3 +261,179 @@ it("状态读缓存：结构不变；热调用后再改审阅、队列和页面�
   await rejectReview(f.root, review.id, "test");
   expect(readStatus(f.root).todo.pendingReviews).toBe(first.todo.pendingReviews);
 });
+
+it("rejects credential-bearing apiBaseUrl and secret harness args on save, and sanitizes hand-edited local config on readStatus", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  await expect(
+    saveChatModel(f.root, {
+      chatProvider: "openai-compatible",
+      chatModel: "deepseek-chat",
+      apiBaseUrl: "https://alice:secretpass@api.example.com/v1",
+    }),
+  ).rejects.toThrow();
+  await expect(
+    saveChatModel(f.root, {
+      chatProvider: "openai-compatible",
+      chatModel: "deepseek-chat",
+      apiBaseUrl: "https://api.example.com/v1?api_key=sk-querysecret123456",
+    }),
+  ).rejects.toThrow();
+  await expect(
+    saveChatModel(f.root, {
+      chatProvider: "harness",
+      chatModel: "local-harness",
+      harnessCommand: { command: "node", args: ["run.mjs", "--api-key", "sk-secret1234567890"] },
+    }),
+  ).rejects.toThrow();
+
+  // Hand-edited config must never leak URL credentials/query or secret harness args via readStatus
+  f.write(
+    "wiki/sync.config.local.json",
+    JSON.stringify({
+      chatProvider: "openai-compatible",
+      chatModel: "deepseek-chat",
+      apiBaseUrl: "https://bob:pass999@proxy.example.com/v1?token=tok-secret",
+      harnessCommand: {
+        command: "node",
+        args: ["run.mjs", "--token=tok-secret-val", "--api-key", "sk-secret1234567890"],
+      },
+    }),
+  );
+  const status = readStatus(f.root);
+  const rawStatus = JSON.stringify(status);
+  expect(rawStatus).not.toContain("bob");
+  expect(rawStatus).not.toContain("pass999");
+  expect(rawStatus).not.toContain("tok-secret");
+  expect(rawStatus).not.toContain("sk-secret1234567890");
+  expect(status.models.apiBaseUrl).toBe("https://proxy.example.com/v1");
+  expect(status.models.harnessCommand?.args).toEqual([
+    "run.mjs",
+    "--token=[REDACTED]",
+    "--api-key",
+    "[REDACTED]",
+  ]);
+});
+
+it("P1-7: rejects and sanitizes generic sensitive harness long flags (--access-token/--auth-token/--bearer-token/--client-secret/--passwd/--credential)", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  const forbiddenArgSets: string[][] = [
+    ["run.mjs", "--access-token", "EXAMPLE_ONLY"],
+    ["run.mjs", "--auth-token", "EXAMPLE_AUTH"],
+    ["run.mjs", "--bearer-token", "EXAMPLE_BEARER"],
+    ["run.mjs", "--client-secret", "EXAMPLE_SECRET"],
+    ["run.mjs", "--user-passwd", "EXAMPLE_PASS"],
+    ["run.mjs", "--service-credential", "EXAMPLE_CRED"],
+    ["run.mjs", "--Access-Token=EXAMPLE_EQ"],
+    ["run.mjs", "--client-secret=EXAMPLE_SECRET_EQ"],
+    ["run.mjs", "--credential=EXAMPLE_CRED_EQ"],
+  ];
+  for (const args of forbiddenArgSets) {
+    await expect(
+      saveChatModel(f.root, {
+        chatProvider: "harness",
+        chatModel: "local-harness",
+        harnessCommand: { command: "node", args },
+      }),
+    ).rejects.toThrow();
+  }
+
+  f.write(
+    "wiki/sync.config.local.json",
+    JSON.stringify({
+      chatProvider: "harness",
+      chatModel: "local-harness",
+      harnessCommand: {
+        command: "node",
+        args: [
+          "run.mjs",
+          "--access-token",
+          "EXAMPLE_ONLY",
+          "--bearer-token",
+          "EXAMPLE_BEARER",
+          "--client-secret=EXAMPLE_SECRET",
+          "--Credential-Data=EXAMPLE_CRED",
+          "--model",
+          "deepseek-chat",
+        ],
+      },
+    }),
+  );
+  const status = readStatus(f.root);
+  const raw = JSON.stringify(status);
+  for (const leaked of ["EXAMPLE_ONLY", "EXAMPLE_BEARER", "EXAMPLE_SECRET", "EXAMPLE_CRED"]) {
+    expect(raw).not.toContain(leaked);
+  }
+  expect(status.models.harnessCommand?.args).toEqual([
+    "run.mjs",
+    "--access-token",
+    "[REDACTED]",
+    "--bearer-token",
+    "[REDACTED]",
+    "--client-secret=[REDACTED]",
+    "--Credential-Data=[REDACTED]",
+    "--model",
+    "deepseek-chat",
+  ]);
+
+  // Non-secret metric/tokenizer flags containing "token(s)" must NOT be rejected or redacted
+  const safeArgs = [
+    "run.mjs",
+    "--max-num-batched-tokens",
+    "4096",
+    "--max-tokens=2048",
+    "--min-tokens",
+    "16",
+    "--speculative-tokens",
+    "3",
+    "--num-spec-tokens",
+    "2",
+    "--prompt-tokens",
+    "512",
+    "--kv-cache-dtype",
+    "auto",
+    "--max-model-len",
+    "32768",
+  ];
+  await expect(
+    saveChatModel(f.root, {
+      chatProvider: "harness",
+      chatModel: "local-harness",
+      harnessCommand: { command: "node", args: safeArgs },
+    }),
+  ).resolves.toMatchObject({ harnessCommand: { command: "node", args: safeArgs } });
+  expect(readStatus(f.root).models.harnessCommand?.args).toEqual(safeArgs);
+
+  // Multi-value secret flag arguments must all be redacted until next option flag
+  f.write(
+    "wiki/sync.config.local.json",
+    JSON.stringify({
+      chatProvider: "harness",
+      chatModel: "local-harness",
+      harnessCommand: {
+        command: "node",
+        args: [
+          "run.mjs",
+          "--api-key",
+          "EXAMPLE_ONE",
+          "EXAMPLE_TWO",
+          "--port",
+          "8000",
+          "--max-num-batched-tokens",
+          "4096",
+        ],
+      },
+    }),
+  );
+  expect(readStatus(f.root).models.harnessCommand?.args).toEqual([
+    "run.mjs",
+    "--api-key",
+    "[REDACTED]",
+    "[REDACTED]",
+    "--port",
+    "8000",
+    "--max-num-batched-tokens",
+    "4096",
+  ]);
+});

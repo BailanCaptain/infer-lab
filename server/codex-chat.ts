@@ -14,18 +14,21 @@ export const codexUsageSchema = z.object({
   output_tokens: z.number().int().nonnegative(),
 });
 export type CodexUsage = z.infer<typeof codexUsageSchema>;
-export const CODEX_EVIDENCE_LIMIT = 160_000;
+export const CODEX_EVIDENCE_LIMIT = 240_000;
+export const CODEX_REASONING_EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+export type CodexReasoningEffort = (typeof CODEX_REASONING_EFFORTS)[number];
 
 /** Whole pages only, in retrieval order; the same window governs citation validation. */
 export function codexEvidencePages(candidates: NonNullable<ChatContext["pages"]>) {
   const pages: typeof candidates = [];
   let size = 0;
   for (const page of candidates) {
-    // The four directly named TP / collectives / SP / MLP pages exceed 128k.
-    // Retain whole pages (also used by immutable answer receipts), with a bounded window.
-    if (size + page.text.length > CODEX_EVIDENCE_LIMIT) continue;
+    // The four directly named TP / collectives / SP / MLP pages (~226 KB UTF-8) must fit together.
+    // Retain whole pages (also used by immutable answer receipts), with a bounded UTF-8 byte window.
+    const bytes = Buffer.byteLength(page.text, "utf8");
+    if (size + bytes > CODEX_EVIDENCE_LIMIT) continue;
     pages.push(page);
-    size += page.text.length;
+    size += bytes;
   }
   return pages;
 }
@@ -34,6 +37,7 @@ export function codexEvidencePages(candidates: NonNullable<ChatContext["pages"]>
 export function codexChatRequest(ctx: ChatContext, system: string, prompt: string): AgentRequest {
   const args = codexArgs(ctx.model ?? DEFAULT_CODEX_MODEL, true, {
     allowUserConfig: ctx.codexAllowUserConfig,
+    reasoningEffort: ctx.reasoningEffort,
   });
   const pages = codexEvidencePages(ctx.pages ?? []);
   return {
@@ -52,9 +56,10 @@ export function codexChatRequest(ctx: ChatContext, system: string, prompt: strin
 export function codexArgs(
   model: string,
   web: boolean,
-  options: { allowUserConfig?: boolean } = {},
+  options: { allowUserConfig?: boolean; reasoningEffort?: CodexReasoningEffort } = {},
 ): string[] {
   const allowUserConfig = options.allowUserConfig === true;
+  const effort = options.reasoningEffort ?? "low";
   const args = [
     "exec",
     "--json",
@@ -72,7 +77,7 @@ export function codexArgs(
     'approval_policy="never"',
     ...(allowUserConfig ? [] : ['forced_login_method="chatgpt"', 'model_provider="openai"']),
     `web_search="${web ? "live" : "disabled"}"`,
-    'model_reasoning_effort="low"',
+    `model_reasoning_effort="${effort}"`,
     "project_doc_max_bytes=0",
     "mcp_servers={}",
     "features.shell_tool=false",
@@ -177,9 +182,14 @@ export async function runCodexChat(req: AgentRequest, on: Callbacks, toolFree = 
   let completed = 0;
   let error: string | undefined;
   let usage: CodexUsage | undefined;
+  const agentMessages: string[] = [];
   try {
-    const finalFile = join(cwd, "final-message.txt");
-    const args = toolFree ? [...req.args, "--output-last-message", finalFile] : req.args;
+    const outArgIdx = req.args.indexOf("--output-last-message");
+    const finalFile =
+      outArgIdx >= 0 && typeof req.args[outArgIdx + 1] === "string"
+        ? req.args[outArgIdx + 1]!
+        : join(cwd, "final-message.txt");
+    const args = outArgIdx >= 0 ? req.args : [...req.args, "--output-last-message", finalFile];
     // Reuse the tested line pipe, timeout, process-tree cleanup and bounded stderr handling.
     const result = await spawnClaude(
       { ...req, cwd, args },
@@ -195,8 +205,17 @@ export async function runCodexChat(req: AgentRequest, on: Callbacks, toolFree = 
           }
         }
         // JSONL includes progress agent messages too. Compilation consumes the documented
-        // final-message file; the event stream still supplies failure and usage evidence.
-        const event = parseCodexLine(line, toolFree ? { ...on, text: () => {} } : on);
+        // final-message file; chat mode streams live messages and surfaces authoritative finalAnswer.
+        const event = parseCodexLine(line, {
+          ...on,
+          text: (text) => {
+            if (!toolFree) {
+              const prev = agentMessages.at(-1);
+              agentMessages.push(text);
+              on.text(prev !== undefined && !prev.endsWith("\n") ? `\n\n${text}` : text);
+            }
+          },
+        });
         if (event.completed) completed++;
         error ??= event.error;
         usage ??= event.usage;
@@ -204,17 +223,28 @@ export async function runCodexChat(req: AgentRequest, on: Callbacks, toolFree = 
       },
       { command, shell: false },
     );
-    if (toolFree && result.ok && completed === 1 && !error) {
-      if (!existsSync(finalFile)) error = "Codex 缺少最终答复文件";
-      else on.text(readFileSync(finalFile, "utf8"));
+    const okTurn = result.ok && completed === 1 && !error;
+    let finalAnswer: string | undefined;
+    if (okTurn) {
+      const fromFile = existsSync(finalFile) ? readFileSync(finalFile, "utf8") : undefined;
+      if (!fromFile || !fromFile.trim()) {
+        error = "Codex 缺少最终答复文件或终稿为空";
+      } else if (toolFree) {
+        on.text(fromFile);
+      } else {
+        finalAnswer = fromFile;
+        if (agentMessages.length === 0) on.text(finalAnswer);
+      }
     }
+    const ok = result.ok && completed === 1 && !error;
     const model = req.args[req.args.indexOf("--model") + 1]!;
     return {
-      ok: result.ok && completed === 1 && !error,
+      ok,
       ...(usage ? { usage } : {}),
+      ...(ok && finalAnswer !== undefined ? { finalAnswer } : {}),
       // exec JSON does not report the actual serving model: do not invent an answeredBy receipt.
       models: { requested: model, answered: [], switches: [] },
-      ...(!result.ok || error || completed !== 1
+      ...(!ok
         ? { reason: error ?? result.reason ?? (result.stderrTail || "Codex 没有唯一完整的结束记录") }
         : {}),
     };

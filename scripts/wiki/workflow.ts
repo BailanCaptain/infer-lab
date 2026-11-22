@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { CHAT_PROVIDERS } from "../../src/content/wiki/chat-models";
 import { ID_RE, PAGE_ORIGINS } from "../../src/content/wiki/schema";
+import { sanitizeHarnessArgs, stripUrlCredentials } from "./endpoint-sanitize";
 import { parsePage } from "./pages";
 import { type Screening, screeningSchema } from "./screening";
 import { isProduction, selectedModel } from "./sync-config";
@@ -37,7 +38,21 @@ const attemptSchema = z.object({
   reservedUsd: z.number().finite().nonnegative(),
   accountingOnly: z.boolean().optional(),
   billing: z.enum(["chatgpt", "external"]).optional(),
-  selection: z.object({ provider: z.enum(CHAT_PROVIDERS), model: z.string() }).optional(),
+  selection: z
+    .object({
+      provider: z.enum(CHAT_PROVIDERS),
+      model: z.string(),
+      codexCli: z.string().optional(),
+      codexAllowUserConfig: z.boolean().optional(),
+      claudeCli: z.string().optional(),
+      claudeSettingSources: z.string().optional(),
+      apiBaseUrl: z.string().optional(),
+      apiKeyEnv: z.string().optional(),
+      anthropicVersion: z.string().optional(),
+      harnessCommand: z.object({ command: z.string(), args: z.array(z.string()).default([]) }).optional(),
+    })
+    .strict()
+    .optional(),
   usage: z.record(z.number().int().nonnegative()).optional(),
   costUsd: z.number().finite().nonnegative().optional(),
   state: z.enum(["running", "draft", "failed"]),
@@ -320,13 +335,35 @@ export class WorkflowStore {
         charged + limits.reserveUsd > limits.maxCostUsd + 1e-9
       )
         throw new Error("剩余预算不足；未知费用仍保留预留额度");
+      const safeApiBaseUrl = selection.apiBaseUrl ? stripUrlCredentials(selection.apiBaseUrl) : undefined;
+      const claimedSelection = {
+        provider: selection.provider,
+        model: selection.model,
+        ...(selection.codexCli ? { codexCli: selection.codexCli } : {}),
+        ...(selection.codexAllowUserConfig ? { codexAllowUserConfig: selection.codexAllowUserConfig } : {}),
+        ...(selection.claudeCli ? { claudeCli: selection.claudeCli } : {}),
+        ...(selection.claudeSettingSources !== undefined
+          ? { claudeSettingSources: selection.claudeSettingSources }
+          : {}),
+        ...(safeApiBaseUrl ? { apiBaseUrl: safeApiBaseUrl } : {}),
+        ...(selection.apiKeyEnv ? { apiKeyEnv: selection.apiKeyEnv } : {}),
+        ...(selection.anthropicVersion ? { anthropicVersion: selection.anthropicVersion } : {}),
+        ...(selection.harnessCommand
+          ? {
+              harnessCommand: {
+                command: selection.harnessCommand.command,
+                args: sanitizeHarnessArgs(selection.harnessCommand.args ?? []),
+              },
+            }
+          : {}),
+      };
       const attempt = {
         token: randomUUID(),
         ownerPid: this.pid,
         startedAt: new Date().toISOString(),
         reservedUsd: accountingOnly || subscription ? 0 : limits!.reserveUsd,
         ...(accountingOnly ? { accountingOnly: true } : {}),
-        selection: { provider: selection.provider, model: selection.model },
+        selection: claimedSelection,
         ...(nonClaudeBilling ? { billing: nonClaudeBilling } : {}),
         state: "running" as const,
       };

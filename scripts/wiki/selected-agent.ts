@@ -9,8 +9,15 @@ import { runAnthropicCompatible, runHarnessCommand, runOpenAiCompatible } from "
 import { strayPaths } from "./ingest";
 import { restrictedArgs, runRestrictedClaude } from "./restricted-claude";
 import { localFile } from "./review-files";
-import { readClaudeEnv, selectedModel } from "./sync-config";
+import { type ModelSelectionConfig, readClaudeEnv, selectedModel } from "./sync-config";
 import { atomicText } from "./workflow";
+
+export interface PinnedAgentContext {
+  selection?: ModelSelectionConfig;
+  claudeEnv?: Record<string, string>;
+  hasClaudeEnv?: boolean;
+  env?: NodeJS.ProcessEnv;
+}
 
 const filesSchema = z
   .object({ files: z.array(z.object({ path: z.string(), text: z.string() }).strict()).min(1) })
@@ -60,12 +67,33 @@ function filePrompt(req: AgentRequest): string {
 
 /** Use the claimed task's selection, or resolve at invocation for work without a claim. */
 export const selectedAgent =
-  (root: string, purpose: string): RunAgent =>
+  (root: string, purpose: string, pinned?: PinnedAgentContext): RunAgent =>
   async (request, onEvent) => {
-    const selection = {
-      ...selectedModel(root),
-      ...(request.provider && request.model ? { provider: request.provider, model: request.model } : {}),
-    };
+    const selection: ModelSelectionConfig = pinned?.selection
+      ? { ...pinned.selection }
+      : request.provider && request.model
+        ? {
+            provider: request.provider,
+            model: request.model,
+            ...(request.codexCli ? { codexCli: request.codexCli } : {}),
+            ...(request.codexAllowUserConfig ? { codexAllowUserConfig: request.codexAllowUserConfig } : {}),
+            ...(request.claudeCli ? { claudeCli: request.claudeCli } : {}),
+            ...(request.claudeSettingSources !== undefined
+              ? { claudeSettingSources: request.claudeSettingSources }
+              : {}),
+            ...(request.apiBaseUrl ? { apiBaseUrl: request.apiBaseUrl } : {}),
+            ...(request.apiKeyEnv ? { apiKeyEnv: request.apiKeyEnv } : {}),
+            ...(request.anthropicVersion ? { anthropicVersion: request.anthropicVersion } : {}),
+            ...(request.harnessCommand
+              ? {
+                  harnessCommand: {
+                    command: request.harnessCommand.command,
+                    args: [...(request.harnessCommand.args ?? [])],
+                  },
+                }
+              : {}),
+          }
+        : selectedModel(root);
     const args = [...request.args];
     const modelIndex = args.indexOf("--model");
     if (modelIndex < 0) throw new Error("模型请求缺少显式模型参数");
@@ -82,7 +110,7 @@ export const selectedAgent =
       if (settingIdx >= 0 && selection.claudeSettingSources !== undefined) {
         args[settingIdx + 1] = selection.claudeSettingSources;
       }
-      const claudeEnv = request.claudeEnv ?? readClaudeEnv(root);
+      const claudeEnv = request.claudeEnv ?? (pinned?.hasClaudeEnv ? pinned.claudeEnv : readClaudeEnv(root));
       return withBudget(
         root,
         purpose,
@@ -164,12 +192,13 @@ export const selectedAgent =
           output += text;
         },
       };
+      const httpOpts = { stream: false, ...(pinned?.env ? { env: pinned.env } : {}) };
       const result =
         selection.provider === "openai-compatible"
-          ? await runOpenAiCompatible(bounded, callbacks, { stream: false })
+          ? await runOpenAiCompatible(bounded, callbacks, httpOpts)
           : selection.provider === "anthropic-compatible"
-            ? await runAnthropicCompatible(bounded, callbacks, { stream: false })
-            : await runHarnessCommand(bounded, callbacks);
+            ? await runAnthropicCompatible(bounded, callbacks, httpOpts)
+            : await runHarnessCommand(bounded, callbacks, pinned?.env ? { env: pinned.env } : {});
       const base: AgentResult = {
         ...result,
         id: request.id,

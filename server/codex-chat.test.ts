@@ -1,7 +1,15 @@
 import { writeFileSync } from "node:fs";
 import { expect, it, vi } from "vitest";
+import { CHAT_MODELS, DEFAULT_CODEX_MODEL } from "../src/content/wiki/chat-models";
 import { buildChatRequest } from "./chat";
-import { parseCodexLine, resolveCodexCommand, runCodexChat } from "./codex-chat";
+import {
+  CODEX_EVIDENCE_LIMIT,
+  codexArgs,
+  codexEvidencePages,
+  parseCodexLine,
+  resolveCodexCommand,
+  runCodexChat,
+} from "./codex-chat";
 
 it("uses the configured executable even when PATH selects another CLI, and never hides an invalid override", async () => {
   const req = buildChatRequest(
@@ -17,6 +25,8 @@ it("uses the configured executable even when PATH selects another CLI, and never
   expect(req.codexCli).toBe(process.execPath);
   vi.mocked(spawnClaude).mockImplementationOnce(async (request, onLine, cmd) => {
     expect(cmd?.command).toBe(process.execPath);
+    const outIdx = request.args.indexOf("--output-last-message");
+    if (outIdx >= 0) writeFileSync(request.args[outIdx + 1]!, "ok");
     onLine(JSON.stringify({ type: "turn.completed" }));
     return { id: request.id, ok: true, exitCode: 0, stderrTail: "" };
   });
@@ -60,7 +70,7 @@ it("Codex uses isolated, ephemeral, read-only execution and injected evidence, n
       wikiRoot: ".",
       timeoutMs: 1000,
       provider: "codex",
-      model: "gpt-6.1-sol",
+      model: "gpt-6.2-sol",
       pages: [{ file: "concepts/a.md", text: "本轮证据" }],
     },
   );
@@ -89,6 +99,8 @@ it.each([0, 1, 2])(
       vi.mocked(spawnClaude).mockImplementation(async (req, onLine, cmd) => {
         expect(cmd?.shell).toBe(false);
         expect(req.cwd).not.toBe("original-snapshot");
+        const outIdx = req.args.indexOf("--output-last-message");
+        if (outIdx >= 0) writeFileSync(req.args[outIdx + 1]!, "ok");
         for (let i = 0; i < count; i++) onLine(JSON.stringify({ type: "turn.completed" }));
         return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
       });
@@ -201,6 +213,131 @@ it("tool-free callers receive only the CLI final response, never progress concat
     const text = vi.fn();
     expect((await runCodexChat(req, { text }, true)).ok).toBe(true);
     expect(text.mock.calls).toEqual([['{"relations":[]}']]);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
+it("upgrades Codex model list to gpt-6.2-sol default while retaining 6.2-astra, 6.1-sol, 6-astra, 6-sol", () => {
+  expect(DEFAULT_CODEX_MODEL).toBe("gpt-6.2-sol");
+  expect(CHAT_MODELS.codex).toEqual([
+    "gpt-6.2-sol",
+    "gpt-6.2-astra",
+    "gpt-6.1-sol",
+    "gpt-6-astra",
+    "gpt-6-sol",
+  ]);
+});
+
+it("supports configurable reasoningEffort while defaulting to low when unset", () => {
+  expect(codexArgs("gpt-6.2-sol", true)).toContain('model_reasoning_effort="low"');
+  expect(codexArgs("gpt-6.2-astra", false, { reasoningEffort: "xhigh" })).toContain(
+    'model_reasoning_effort="xhigh"',
+  );
+  const req = buildChatRequest(
+    { message: "q" },
+    { reading: "", citable: "", query: "" },
+    { wikiRoot: ".", provider: "codex", model: "gpt-6.2-astra", reasoningEffort: "max", timeoutMs: 1000 },
+  );
+  expect(req.args).toContain('model_reasoning_effort="max"');
+});
+
+it("bounds codexEvidencePages by UTF-8 byte length rather than UTF-16 code units", () => {
+  const small = { file: "concepts/small.md", text: "ok" };
+  // Each CJK char is 1 UTF-16 code unit but 3 UTF-8 bytes: half of CODEX_EVIDENCE_LIMIT chars = 1.5x limit in UTF-8 bytes
+  const cjkCharCount = Math.floor(CODEX_EVIDENCE_LIMIT / 2);
+  const oversizedMultiByte = { file: "concepts/cjk.md", text: "汉".repeat(cjkCharCount) };
+  expect(oversizedMultiByte.text.length).toBeLessThan(CODEX_EVIDENCE_LIMIT);
+  expect(Buffer.byteLength(oversizedMultiByte.text, "utf8")).toBeGreaterThan(CODEX_EVIDENCE_LIMIT);
+  expect(codexEvidencePages([oversizedMultiByte, small])).toEqual([small]);
+});
+
+it("surfaces authoritative finalAnswer in chat mode when progress agent_message precedes web_search", async () => {
+  vi.stubEnv("CODEX_CLI", process.execPath);
+  try {
+    vi.mocked(spawnClaude).mockImplementation(async (req, onLine) => {
+      const outIdx = req.args.indexOf("--output-last-message");
+      expect(outIdx).toBeGreaterThanOrEqual(0);
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: "我先搜索官方文档核对版本细节。" },
+        }),
+      );
+      onLine(JSON.stringify({ type: "item.completed", item: { type: "web_search", query: "vllm ascend" } }));
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: "默认值为 1，见 [A](sources/a.md)。" },
+        }),
+      );
+      onLine(JSON.stringify({ type: "turn.completed" }));
+      writeFileSync(req.args[outIdx + 1]!, "默认值为 1，见 [A](sources/a.md)。");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+    });
+    const req = buildChatRequest(
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
+      { wikiRoot: ".", provider: "codex", timeoutMs: 1000 },
+    );
+    const streamed: string[] = [];
+    const res = await runCodexChat(req, { text: (t) => streamed.push(t) });
+    expect(res.ok).toBe(true);
+    expect((res as { finalAnswer?: string }).finalAnswer).toBe("默认值为 1，见 [A](sources/a.md)。");
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
+it("fails with ok:false when --output-last-message file is missing or empty instead of returning progress chatter", async () => {
+  vi.stubEnv("CODEX_CLI", process.execPath);
+  try {
+    // Missing final file despite progress agent_message
+    vi.mocked(spawnClaude).mockImplementationOnce(async (req, onLine) => {
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: "我先搜索官方文档核对一下。" },
+        }),
+      );
+      onLine(JSON.stringify({ type: "turn.completed" }));
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+    });
+    const req = buildChatRequest(
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
+      { wikiRoot: ".", provider: "codex", timeoutMs: 1000 },
+    );
+    const missingRes = await runCodexChat(req, { text: vi.fn() });
+    expect(missingRes.ok).toBe(false);
+    expect((missingRes as { finalAnswer?: string }).finalAnswer).toBeUndefined();
+
+    // Empty / whitespace-only final file
+    vi.mocked(spawnClaude).mockImplementationOnce(async (req, onLine) => {
+      const outIdx = req.args.indexOf("--output-last-message");
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: "仍在检索中..." },
+        }),
+      );
+      onLine(JSON.stringify({ type: "turn.completed" }));
+      if (outIdx >= 0) writeFileSync(req.args[outIdx + 1]!, "   \n  ");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+    });
+    const emptyRes = await runCodexChat(req, { text: vi.fn() });
+    expect(emptyRes.ok).toBe(false);
+    expect((emptyRes as { finalAnswer?: string }).finalAnswer).toBeUndefined();
+
+    // Tool-free mode with empty final file also returns ok:false
+    vi.mocked(spawnClaude).mockImplementationOnce(async (req, onLine) => {
+      const outIdx = req.args.indexOf("--output-last-message");
+      onLine(JSON.stringify({ type: "turn.completed" }));
+      if (outIdx >= 0) writeFileSync(req.args[outIdx + 1]!, "   ");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+    });
+    const emptyToolFree = await runCodexChat(req, { text: vi.fn() }, true);
+    expect(emptyToolFree.ok).toBe(false);
   } finally {
     vi.unstubAllEnvs();
   }

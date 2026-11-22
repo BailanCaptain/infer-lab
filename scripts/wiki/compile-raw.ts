@@ -14,6 +14,12 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { z } from "zod";
+import {
+  canonicalJson,
+  type ToolEvidenceV1,
+  toolEvidenceV1Schema,
+  verifyToolEvidence,
+} from "../../server/tool-evidence";
 import { CHAPTER_IDS, CHAPTER_TITLES } from "../../src/content/wiki/chapters";
 import {
   type HastNode,
@@ -23,6 +29,7 @@ import {
 } from "../../src/content/wiki/markdown";
 import { buildIndex, citedPageLinks } from "../../src/content/wiki/retrieve";
 import { ID_RE, parseRawRef } from "../../src/content/wiki/schema";
+import { sourceLines } from "./audit";
 import { type AgentRequest, type AgentResult, positiveInteger, type RunAgent, runBatch } from "./batch";
 import { assertInputFits, inputByteLimit, jsonBytes } from "./context-window";
 import { lintPages, splitProblems, wikiFileExists } from "./lint";
@@ -40,6 +47,13 @@ import type { WorkflowPolicy } from "./workflow-policy";
 /** 编译一份材料的超时：真实编译用过 99 秒与 144 秒（2026-09-16），补写与投喂共用这一个值 */
 export const COMPILE_TIMEOUT_MS = 180_000;
 
+export interface ExpectedAnswerRecord {
+  question: string;
+  answer: string;
+  citedPages: { file: string; text: string }[];
+  toolEvidence?: ToolEvidenceV1[];
+}
+
 export interface RawCompileInput {
   id: string;
   source: string;
@@ -48,6 +62,7 @@ export interface RawCompileInput {
   timeoutMs: number;
   purpose?: "answer-record";
   answerPages?: string[];
+  expectedAnswerRecord?: ExpectedAnswerRecord;
   supersedes?: { jobId: string; rejectedReviews?: string[] };
   context?: { why: string; sourceId: string };
 }
@@ -58,6 +73,7 @@ const answerRecordBundleSchema = z
     question: z.string().min(1),
     answer: z.string().min(1),
     citedPages: z.array(z.object({ file: z.string().min(1), text: z.string() })).min(1),
+    toolEvidence: z.array(toolEvidenceV1Schema).min(1).optional(),
   })
   .strict();
 
@@ -67,9 +83,82 @@ interface AnswerRecordMaterial {
   question: string;
   answer: string;
   citedPages: { file: string; text: string }[];
+  toolEvidence?: ToolEvidenceV1[];
 }
 
 export const ANSWER_RECORD_CORE_SLOT = "::answer-record-core::";
+
+function normalizePages(pages: readonly { file: string; text: string }[]): { file: string; text: string }[] {
+  return [...pages]
+    .map((p) => ({ file: p.file, text: p.text }))
+    .sort((a, b) => a.file.localeCompare(b.file) || a.text.localeCompare(b.text));
+}
+
+export function assertAnswerRecordMatchesExpected(
+  material: AnswerRecordMaterial,
+  expected: ExpectedAnswerRecord,
+): void {
+  if (material.question.trim() !== expected.question.trim()) {
+    throw new Error("问答记录原料快照与已校验回执不一致（question 不匹配），拒绝复用或编译");
+  }
+  if (material.answer.trim() !== expected.answer.trim()) {
+    throw new Error("问答记录原料快照与已校验回执不一致（answer 不匹配），拒绝复用或编译");
+  }
+  const actualPages = normalizePages(material.citedPages);
+  const expectedPages = normalizePages(expected.citedPages);
+  if (
+    actualPages.length !== expectedPages.length ||
+    actualPages.some((p, i) => p.file !== expectedPages[i]!.file || p.text !== expectedPages[i]!.text)
+  ) {
+    throw new Error("问答记录原料快照与已校验回执不一致（citedPages 引用不匹配），拒绝复用或编译");
+  }
+  const expectedEv = expected.toolEvidence ?? [];
+  const actualEv = material.toolEvidence ?? [];
+  if (expectedEv.length !== actualEv.length) {
+    throw new Error(
+      `问答记录原料快照与已校验回执不一致（toolEvidence 缺失或数量不匹配：预期 ${expectedEv.length}，实际 ${actualEv.length}），拒绝复用或编译`,
+    );
+  }
+  for (let i = 0; i < expectedEv.length; i++) {
+    const check = verifyToolEvidence(actualEv[i]);
+    if (!check.ok) {
+      throw new Error(`问答记录原料快照 toolEvidence 校验失败（${check.reason}），拒绝复用或编译`);
+    }
+    if (
+      actualEv[i]!.outputSha256 !== expectedEv[i]!.outputSha256 ||
+      actualEv[i]!.inputSha256 !== expectedEv[i]!.inputSha256 ||
+      canonicalJson(actualEv[i]) !== canonicalJson(expectedEv[i])
+    ) {
+      throw new Error("问答记录原料快照与已校验回执不一致（toolEvidence 摘要不匹配），拒绝复用或编译");
+    }
+  }
+}
+
+export function verifyAnswerRecordRaw(root: string, source: string, expected: ExpectedAnswerRecord): void {
+  const ref = parseRawRef(source);
+  if (!ref) throw new Error("非法本地来源引用");
+  const original = readRawSnapshot(join(root, "wiki"), ref.path);
+  const lines = sourceLines(original);
+  if (ref.lineEnd > lines.length) throw new Error("本地来源行号越界");
+  const slice = lines.slice(ref.lineStart - 1, ref.lineEnd).join("\n");
+  let parsed: z.infer<typeof answerRecordBundleSchema>;
+  try {
+    parsed = answerRecordBundleSchema.parse(JSON.parse(slice));
+  } catch (error) {
+    throw new Error(`问答记录原料快照格式无效，拒绝复用或编译：${String(error)}`);
+  }
+  assertAnswerRecordMatchesExpected(
+    {
+      source,
+      note: "",
+      question: parsed.question,
+      answer: parsed.answer,
+      citedPages: parsed.citedPages,
+      ...(parsed.toolEvidence?.length ? { toolEvidence: parsed.toolEvidence } : {}),
+    },
+    expected,
+  );
+}
 
 function parseAnswerRecordMaterial(
   source: string,
@@ -87,12 +176,21 @@ function parseAnswerRecordMaterial(
   const question = parsed.question.trim();
   const answer = parsed.answer.trim();
   if (!question || !answer) throw new Error("问答记录缺少原问题或原回答正文，拒绝编译");
+  if (parsed.toolEvidence?.length) {
+    for (const item of parsed.toolEvidence) {
+      const check = verifyToolEvidence(item);
+      if (!check.ok) {
+        throw new Error(`问答记录附带的工具证据校验失败（${check.reason}），拒绝编译`);
+      }
+    }
+  }
   return {
     source,
     note: `question 与 answer 由程序通过 ${ANSWER_RECORD_CORE_SLOT} 原样注入归档页正文（须完整保留，不可改写、删减或翻转）；你只需据此拟定准确的 frontmatter（title、summary、chapters、relations），并在补充小节结合 citedPages / citedContext 说明引用范围、版本/配置条件与 evidence: I 的非实测边界（不照抄引用页整段原文）。`,
     question,
     answer,
     citedPages: parsed.citedPages,
+    ...(parsed.toolEvidence?.length ? { toolEvidence: parsed.toolEvidence } : {}),
   };
 }
 
@@ -284,6 +382,9 @@ export function planRawCompile(root: string, input: RawCompileInput) {
     : null;
   const answerRecord =
     input.purpose === "answer-record" ? parseAnswerRecordMaterial(input.source, rawMaterial) : null;
+  if (input.purpose === "answer-record" && input.expectedAnswerRecord) {
+    verifyAnswerRecordRaw(root, input.source, input.expectedAnswerRecord);
+  }
   const material = input.purpose === "answer-record" ? answerRecord : rawMaterial;
   const inventory = loadPages(join(root, "wiki"));
   if (inventory.problems.length) throw new Error("现有页面无法解析，不能提供编译导航");
@@ -450,6 +551,7 @@ export async function compileRaw(
           note: ar.note,
           question: ar.question,
           answer: ar.answer,
+          ...(ar.toolEvidence?.length ? { toolEvidence: ar.toolEvidence } : {}),
         };
         const corePacketBytes = jsonBytes({ ...packet, material: coreMaterial });
         const remaining = budget - corePacketBytes - 1024;

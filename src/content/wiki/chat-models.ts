@@ -8,13 +8,13 @@ export const CHAT_PROVIDERS = [
 ] as const;
 export type ChatProvider = (typeof CHAT_PROVIDERS)[number];
 
-export const DEFAULT_CODEX_MODEL = "gpt-6.1-sol";
+export const DEFAULT_CODEX_MODEL = "gpt-6.2-sol";
 export const DEFAULT_OPENAI_COMPAT_MODEL = "deepseek-chat";
 export const DEFAULT_ANTHROPIC_COMPAT_MODEL = "deepseek-chat";
 export const DEFAULT_HARNESS_MODEL = "custom-harness";
 
 export const CHAT_MODELS: Record<ChatProvider, string[]> = {
-  codex: [DEFAULT_CODEX_MODEL, "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.5"],
+  codex: [DEFAULT_CODEX_MODEL, "gpt-6.2-astra", "gpt-6.1-sol", "gpt-6-astra", "gpt-6-sol"],
   claude: ["claude-opus-5-5", "claude-opus-5", "sonnet", "haiku", "deepseek-chat"],
   "openai-compatible": [
     DEFAULT_OPENAI_COMPAT_MODEL,

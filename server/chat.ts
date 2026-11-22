@@ -19,7 +19,13 @@ import type { ChatProvider } from "../src/content/wiki/chat-models";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
 import type { ChatTurn } from "./chat-session";
-import { type CodexUsage, codexChatRequest, codexEvidencePages, runCodexChat } from "./codex-chat";
+import {
+  type CodexReasoningEffort,
+  type CodexUsage,
+  codexChatRequest,
+  codexEvidencePages,
+  runCodexChat,
+} from "./codex-chat";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
 
 /** 问答只读页、不写页：只拿记号含义、可引来源与查询规则，不拿整片写页规则（见 handbook.ts HANDBOOK_H3） */
@@ -33,6 +39,7 @@ export interface ChatContext {
   model?: string;
   codexCli?: string;
   codexAllowUserConfig?: boolean;
+  reasoningEffort?: CodexReasoningEffort;
   claudeCli?: string;
   claudeSettingSources?: string;
   claudeEnv?: Record<string, string>;
@@ -405,6 +412,7 @@ export function sseFrame(event: string, data: unknown): string {
 export async function runChat(
   req: AgentRequest,
   on: { text: (t: string) => void; tool?: (name: string, target?: string) => void },
+  options: { env?: NodeJS.ProcessEnv } = {},
 ): Promise<{
   ok: boolean;
   sessionId?: string;
@@ -412,10 +420,13 @@ export async function runChat(
   reason?: string;
   models?: ModelUse;
   usage?: CodexUsage;
+  finalAnswer?: string;
 }> {
   if (req.provider === "codex") return runCodexChat(req, on);
-  if (req.provider === "openai-compatible") return runOpenAiCompatible(req, on, { stream: true });
-  if (req.provider === "anthropic-compatible") return runAnthropicCompatible(req, on, { stream: true });
+  if (req.provider === "openai-compatible")
+    return runOpenAiCompatible(req, on, { stream: true, ...(options.env ? { env: options.env } : {}) });
+  if (req.provider === "anthropic-compatible")
+    return runAnthropicCompatible(req, on, { stream: true, ...(options.env ? { env: options.env } : {}) });
   if (req.provider === "harness") return runHarnessCommand(req, on);
   const { spawnClaude, resolveClaudeCommand } = await import("../scripts/wiki/claude-cli");
   const cmd = req.claudeCli

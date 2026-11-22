@@ -3,7 +3,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { z } from "zod";
 import type { RunAgent } from "../scripts/wiki/batch";
-import { compileRaw, planRawCompile } from "../scripts/wiki/compile-raw";
+import {
+  compileRaw,
+  type ExpectedAnswerRecord,
+  planRawCompile,
+  verifyAnswerRecordRaw,
+} from "../scripts/wiki/compile-raw";
 import { loadHandbook } from "../scripts/wiki/handbook";
 import { localDate } from "../scripts/wiki/ingest";
 import { validateIntegration } from "../scripts/wiki/integration-check";
@@ -19,10 +24,12 @@ import { atomicText, digest, WorkflowStore, workIdentity } from "../scripts/wiki
 import { citedPageLinks, matchesCitedPage } from "../src/content/wiki/retrieve";
 import { checkAnswerCitations } from "./citations";
 import { checkWriter, HttpError, parseWikiUrl, readJson, send } from "./http";
+import { type ToolEvidenceV1, toolEvidenceV1Schema, verifyToolEvidence } from "./tool-evidence";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
-const receiptSchema = z
+export const answerReceiptV1Schema = z
   .object({
+    schemaVersion: z.literal(1).optional(),
     question: z.string().min(1),
     answer: z.string().min(1),
     pages: z.array(z.object({ file: z.string(), text: z.string() })).min(1),
@@ -30,6 +37,37 @@ const receiptSchema = z
     model: modelUseSchema.optional(),
   })
   .strict();
+export const answerReceiptV2Schema = z
+  .object({
+    schemaVersion: z.literal(2),
+    question: z.string().min(1),
+    answer: z.string().min(1),
+    pages: z.array(z.object({ file: z.string(), text: z.string() })).min(1),
+    /** 实际作答模型 */
+    model: modelUseSchema.optional(),
+    toolEvidence: z.array(toolEvidenceV1Schema).min(1),
+  })
+  .strict();
+export const receiptSchema = z.union([answerReceiptV2Schema, answerReceiptV1Schema]);
+export type AnswerReceiptV1 = z.infer<typeof answerReceiptV1Schema>;
+export type AnswerReceiptV2 = z.infer<typeof answerReceiptV2Schema>;
+export type AnswerReceipt = z.infer<typeof receiptSchema>;
+
+export function verifyAnswerReceipt(id: string, rawReceipt: unknown): AnswerReceipt {
+  const receipt = receiptSchema.parse(rawReceipt);
+  if (digest(JSON.stringify(receipt)) !== id) {
+    throw new Error("回答记录已改变（digest mismatch），不能保存");
+  }
+  if (receipt.schemaVersion === 2) {
+    for (const item of receipt.toolEvidence) {
+      const check = verifyToolEvidence(item);
+      if (!check.ok) {
+        throw new Error(`回答记录工具证据校验失败（${check.reason}），不能保存`);
+      }
+    }
+  }
+  return receipt;
+}
 const supersedesSchema = z
   .object({
     jobId: hash,
@@ -69,11 +107,21 @@ const recordPath = (id: string) => `wiki/_jobs/answers/${hash.parse(id)}.json`;
 const mappingPath = (id: string) => `wiki/_jobs/answer-saves/${hash.parse(id)}.json`;
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
-function buildAnswerCompileRules(root: string, receipt: z.infer<typeof receiptSchema>): string {
+function expectedAnswerRecord(receipt: AnswerReceipt): ExpectedAnswerRecord {
+  return {
+    question: receipt.question,
+    answer: receipt.answer,
+    citedPages: receipt.pages,
+    ...(receipt.schemaVersion === 2 ? { toolEvidence: receipt.toolEvidence } : {}),
+  };
+}
+
+function buildAnswerCompileRules(root: string, receipt: AnswerReceipt): string {
   const context = [
     receipt.question,
     receipt.answer,
     ...receipt.pages.map((p) => `${p.file}\n${p.text}`),
+    ...(receipt.schemaVersion === 2 ? receipt.toolEvidence.map((ev) => ev.summary) : []),
   ].join("\n");
   return loadHandbook(join(root, "wiki"), context, true).pageFormat;
 }
@@ -86,6 +134,8 @@ function evaluateExistingMapping(
   answerPages: string[],
   old: z.infer<typeof mappingSchema>,
 ) {
+  const expected = expectedAnswerRecord(receipt);
+  verifyAnswerRecordRaw(root, old.raw, expected);
   const oldReviews = listReviews(root).filter(
     (r) => r.payload.base[`wiki/_jobs/${old.jobId}.json`] !== undefined,
   );
@@ -114,6 +164,7 @@ function evaluateExistingMapping(
     timeoutMs: 10 * 60_000,
     purpose: "answer-record",
     answerPages,
+    expectedAnswerRecord: expected,
   });
   const { id: basePlannedJobId } = workIdentity(basePlanned.work);
   const limits = oldJob && "maxAttempts" in oldJob.policy ? oldJob.policy : undefined;
@@ -160,7 +211,7 @@ function inspectAnswerSaveRecovery(
     const recFile = localFile(root, recordPath(id));
     if (!existsSync(mapFile) || !existsSync(recFile)) return undefined;
     const old = mappingSchema.parse(JSON.parse(readFileSync(mapFile, "utf8")));
-    const receipt = receiptSchema.parse(JSON.parse(readFileSync(recFile, "utf8")));
+    const receipt = verifyAnswerReceipt(id, JSON.parse(readFileSync(recFile, "utf8")));
     const answerPages = receipt.pages.map((p) => p.file.split("/").at(-1)!.slice(0, -3)).sort();
     const state = evaluateExistingMapping(root, new WorkflowStore(root), id, receipt, answerPages, old);
     return {
@@ -180,17 +231,38 @@ export async function captureAnswer(
   answer: string,
   pages: { file: string; text: string }[],
   model?: ModelUse,
+  toolEvidence?: ToolEvidenceV1[],
 ): Promise<string | undefined> {
   if (!checkAnswerCitations(answer, pages).cited) return undefined;
   const links = citedPageLinks(answer);
   const selected = pages.filter((p) => links.some((href) => matchesCitedPage(href, p.file)));
   if (!selected.length || Buffer.byteLength(answer) > 128 * 1024) return undefined;
-  const record = receiptSchema.parse({
-    question,
-    answer,
-    pages: selected.sort((a, b) => a.file.localeCompare(b.file)),
-    ...(model ? { model } : {}),
-  });
+  const sortedPages = selected.sort((a, b) => a.file.localeCompare(b.file));
+  let record: AnswerReceipt;
+  if (toolEvidence && toolEvidence.length > 0) {
+    const verifiedEvidence: ToolEvidenceV1[] = [];
+    for (const item of toolEvidence) {
+      const check = verifyToolEvidence(item);
+      if (!check.ok) throw new Error(`回答工具证据校验失败（${check.reason}）`);
+      verifiedEvidence.push(check.evidence);
+    }
+    record = answerReceiptV2Schema.parse({
+      schemaVersion: 2,
+      question,
+      answer,
+      pages: sortedPages,
+      ...(model ? { model } : {}),
+      toolEvidence: verifiedEvidence,
+    });
+  } else {
+    record = answerReceiptV1Schema.parse({
+      schemaVersion: 1,
+      question,
+      answer,
+      pages: sortedPages,
+      ...(model ? { model } : {}),
+    });
+  }
   if (Buffer.byteLength(json(record)) > 900 * 1024) return undefined;
   const id = digest(JSON.stringify(record));
   return new WorkflowStore(root).locked(() => {
@@ -222,12 +294,12 @@ export async function saveAnswer(
     !existsSync(existingMappingFile)
   )
     throw new Error("Claude 编译需要本次美元预算");
-  const receipt = receiptSchema.parse(JSON.parse(readFileSync(localFile(root, recordPath(id)), "utf8")));
-  if (digest(JSON.stringify(receipt)) !== id) throw new Error("回答记录已改变，不能保存");
+  const receipt = verifyAnswerReceipt(id, JSON.parse(readFileSync(localFile(root, recordPath(id)), "utf8")));
   const citations = checkAnswerCitations(receipt.answer, receipt.pages);
   if (!citations.cited) throw new Error(`回答引用检查未通过：${citations.reason}`);
   const store = new WorkflowStore(root);
   const answerPages = receipt.pages.map((p) => p.file.split("/").at(-1)!.slice(0, -3)).sort();
+  const expected = expectedAnswerRecord(receipt);
   const mapping = await store.locked((): z.infer<typeof mappingSchema> => {
     const path = localFile(root, mappingPath(id));
     if (existsSync(path)) {
@@ -235,6 +307,7 @@ export async function saveAnswer(
       const old = mappingSchema.parse(JSON.parse(oldRaw));
       if (!production && checked.budgetUsd !== undefined && old.budgetUsd !== checked.budgetUsd)
         throw new Error("已有保存任务的预算不能更改或重置");
+      verifyAnswerRecordRaw(root, old.raw, expected);
       if (!checked.newAttempt) return old;
       const evaluated = evaluateExistingMapping(root, store, id, receipt, answerPages, old);
       if (evaluated.activeReview) throw new Error("已有待审或已处理保存结果，不能重建保存映射");
@@ -261,6 +334,7 @@ export async function saveAnswer(
             timeoutMs: 10 * 60_000,
             purpose: "answer-record",
             answerPages,
+            expectedAnswerRecord: expected,
             supersedes,
           })
         : basePlanned;
@@ -300,6 +374,7 @@ export async function saveAnswer(
       question: receipt.question,
       answer: receipt.answer,
       citedPages: receipt.pages,
+      ...(receipt.schemaVersion === 2 ? { toolEvidence: receipt.toolEvidence } : {}),
     });
     const raw = saveRawSnapshot(join(root, "wiki"), bundle);
     const rules = buildAnswerCompileRules(root, receipt);
@@ -311,6 +386,7 @@ export async function saveAnswer(
       timeoutMs: 10 * 60_000,
       purpose: "answer-record",
       answerPages,
+      expectedAnswerRecord: expected,
     });
     // Job identity follows the existing canonical input ordering, including the frozen recipe.
     const { id: jobId } = workIdentity(planned.work);
@@ -358,6 +434,7 @@ export async function saveAnswer(
             timeoutMs: 10 * 60_000,
             purpose: "answer-record",
             answerPages,
+            expectedAnswerRecord: expected,
             ...(mapping.supersedes ? { supersedes: mapping.supersedes } : {}),
           },
           policy,

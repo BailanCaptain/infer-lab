@@ -725,4 +725,49 @@ describe("restricted raw compilation", () => {
       }
     }
   });
+
+  it("rejects answer-record raw snapshot when question, answer, citedPages, or V2 toolEvidence diverges from expectedAnswerRecord", async () => {
+    const { runDeterministicToolEvidence } = await import("../../server/tool-evidence");
+    const f = wikiFixture();
+    fixtures.push(f);
+    const page = `---\nid: a\ntitle: A\ntype: source\nsummary: A\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: "2026-11-22"\n---\n## 节\n说明 A。\n`;
+    f.write("wiki/sources/a.md", page);
+    const ev = runDeterministicToolEvidence({
+      kind: "deploy",
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      tpSize: 1,
+    });
+    // Raw snapshot missing toolEvidence (stale V1-like bundle)
+    const staleBundle = `${JSON.stringify(
+      {
+        kind: "answer-record",
+        question: "单卡能装下吗？",
+        answer: "可以，见 [A](sources/a.md)。",
+        citedPages: [{ file: "sources/a.md", text: page }],
+      },
+      null,
+      2,
+    )}\n`;
+    const raw = saveRawSnapshot(join(f.root, "wiki"), staleBundle);
+    const source = `raw:${raw.slice(4)}#L1-L${staleBundle.trimEnd().split("\n").length}`;
+
+    expect(() =>
+      planRawCompile(f.root, {
+        id: "answer-v2-mismatch",
+        origin: "chat",
+        source,
+        rules: "规则",
+        timeoutMs: 5_000,
+        purpose: "answer-record",
+        answerPages: ["a"],
+        expectedAnswerRecord: {
+          question: "单卡能装下吗？",
+          answer: "可以，见 [A](sources/a.md)。",
+          citedPages: [{ file: "sources/a.md", text: page }],
+          toolEvidence: [ev],
+        },
+      }),
+    ).toThrow(/原料快照与已校验回执不一致|toolEvidence/);
+  });
 });

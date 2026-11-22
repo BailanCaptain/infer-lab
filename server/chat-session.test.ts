@@ -110,3 +110,53 @@ it("recovers a stuck same-PID active lease once its bounded TTL has expired", as
   expect(recovered.id).toBe(first.id);
   expect(recovered.token).not.toBe(first.token);
 });
+
+it("P2-11: clears contextTurns and marks model-changed when chatSessionModelKey switches custom codexCli path", async () => {
+  const { chatSessionModelKey } = await import("./chat-route");
+  const f = wikiFixture();
+  fixtures.push(f);
+  const revision = "a".repeat(64);
+  const keyAlpha = chatSessionModelKey(
+    { provider: "codex", model: "gpt-6.2-sol", codexCli: "C:/Tools/alpha/codex.exe" },
+    undefined,
+    {},
+  );
+  const keyBeta = chatSessionModelKey(
+    { provider: "codex", model: "gpt-6.2-sol", codexCli: "C:/Tools/beta/codex.exe" },
+    undefined,
+    {},
+  );
+  expect(keyAlpha).not.toBe(keyBeta);
+
+  const first = await beginChat(f.root, revision, undefined, keyAlpha);
+  await finishChat(f.root, first, "旧命令问题", { ok: true, answer: "旧命令回答" });
+
+  const sameCli = await beginChat(f.root, revision, first.id, keyAlpha);
+  expect(sameCli.resetReason).toBeUndefined();
+  expect(sameCli.contextTurns).toEqual([{ question: "旧命令问题", answer: "旧命令回答" }]);
+  await finishChat(f.root, sameCli, "同命令追问", { ok: true, answer: "同命令回答" });
+
+  const switchedCli = await beginChat(f.root, revision, first.id, keyBeta);
+  expect(switchedCli.resetReason).toBe("model-changed");
+  expect(switchedCli.contextTurns).toEqual([]);
+  expect(switchedCli.agentSessionId).toBeUndefined();
+
+  // UNC path (//box/share/app.exe) vs single-slash root (/box/share/app.exe) must also isolate sessions
+  const keyUnc = chatSessionModelKey(
+    { provider: "codex", model: "gpt-6.2-sol", codexCli: "//box/share/app.exe" },
+    undefined,
+    {},
+  );
+  const keyRoot = chatSessionModelKey(
+    { provider: "codex", model: "gpt-6.2-sol", codexCli: "/box/share/app.exe" },
+    undefined,
+    {},
+  );
+  expect(keyUnc).not.toBe(keyRoot);
+  await finishChat(f.root, switchedCli, "beta 问题", { ok: true, answer: "beta 回答" });
+  const uncTurn = await beginChat(f.root, revision, first.id, keyUnc);
+  await finishChat(f.root, uncTurn, "UNC 问题", { ok: true, answer: "UNC 回答" });
+  const rootTurn = await beginChat(f.root, revision, first.id, keyRoot);
+  expect(rootTurn.resetReason).toBe("model-changed");
+  expect(rootTurn.contextTurns).toEqual([]);
+});

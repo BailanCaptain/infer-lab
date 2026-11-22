@@ -6,7 +6,8 @@ import { loadHandbook } from "../scripts/wiki/handbook";
 import { readReview, rejectReview } from "../scripts/wiki/review";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { digest, WorkflowStore } from "../scripts/wiki/workflow";
-import { captureAnswer, handleAnswers, saveAnswer } from "./answers";
+import { captureAnswer, handleAnswers, saveAnswer, verifyAnswerReceipt } from "./answers";
+import { runDeterministicToolEvidence } from "./tool-evidence";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
@@ -196,7 +197,7 @@ it("compiles saveAnswer with real HANDBOOK.md, writing standard, and TERMS.md un
     "wiki/sync.config.local.json",
     JSON.stringify({
       chatProvider: "codex",
-      chatModel: "gpt-6.1-sol",
+      chatModel: "gpt-6.2-sol",
       contextWindowTokens: 128_000,
       outputReserveTokens: 16_384,
     }),
@@ -242,7 +243,7 @@ it("recovers a 0-call pre-start context-window failure only via explicit newAtte
     "wiki/sync.config.local.json",
     JSON.stringify({
       chatProvider: "codex",
-      chatModel: "gpt-6.1-sol",
+      chatModel: "gpt-6.2-sol",
       contextWindowTokens: 128_000,
       outputReserveTokens: 16_384,
     }),
@@ -592,4 +593,181 @@ it("recovers a rejected-Review or attempt-exhausted paid saveAnswer only via exp
   expect(readFileSync(join(f.root, `wiki/_jobs/${exhaustedOldJobId}.json`), "utf8")).toBe(
     exhaustedOldJobSnapshot,
   );
+});
+
+it("issues schemaVersion 1 by default and stays compatible with legacy v1 receipts lacking schemaVersion", async () => {
+  const f = await setup();
+  expect(f.id).toBeTruthy();
+  const saved = JSON.parse(readFileSync(join(f.root, `wiki/_jobs/answers/${f.id}.json`), "utf8"));
+  expect(saved.schemaVersion).toBe(1);
+  expect(saved.toolEvidence).toBeUndefined();
+
+  const legacy = {
+    question: saved.question,
+    answer: saved.answer,
+    pages: saved.pages,
+  };
+  const legacyId = digest(JSON.stringify(legacy));
+  f.write(`wiki/_jobs/answers/${legacyId}.json`, JSON.stringify(legacy));
+  const verified = verifyAnswerReceipt(legacyId, legacy);
+  expect(verified.schemaVersion).toBeUndefined();
+
+  const result = await saveAnswer(
+    f.root,
+    legacyId,
+    { budgetUsd: 1 },
+    {
+      runAgent: async (req) => {
+        const input = JSON.parse(req.stdin);
+        expect(input.material.toolEvidence).toBeUndefined();
+        return {
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0.1,
+          output: `---\nid: ${req.id}\ntitle: Legacy v1 回答归档\ntype: source\nsummary: 兼容旧版 v1 回执\nsources: [${input.material.source}]\nevidence: I\nupdated: '2026-11-22'\n---\n## 原始问答记录\n::answer-record-core::\n\n## 引用边界\n归档说明 [I]，见 [A](../sources/a.md)。\n`,
+        };
+      },
+    },
+  );
+  expect(readReview(f.root, result.reviewId).state).toBe("pending");
+});
+
+it("issues AnswerReceiptV2 with toolEvidence and rejects any tampered metric or outputSha256 with mismatch", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  f.write("wiki/HANDBOOK.md", handbookFixture());
+  f.write("wiki/sources/a.md", page);
+  const evidence = runDeterministicToolEvidence({
+    kind: "deploy",
+    model: "qwen3-8b",
+    cardId: "a2-64g",
+    tpSize: 1,
+    weightPrecision: "bf16",
+  });
+
+  const answer = "单卡部署显存结论以确定性工具为准，底层机制见 [A](sources/a.md)。";
+  const id = await captureAnswer(
+    f.root,
+    "Qwen3-8B 单卡能装下吗？",
+    answer,
+    [{ file: "sources/a.md", text: page }],
+    undefined,
+    [evidence],
+  );
+  expect(id).toMatch(/^[a-f0-9]{64}$/);
+  const receipt = JSON.parse(readFileSync(join(f.root, `wiki/_jobs/answers/${id}.json`), "utf8"));
+  expect(receipt.schemaVersion).toBe(2);
+  expect(receipt.toolEvidence).toHaveLength(1);
+  expect(receipt.toolEvidence[0].outputSha256).toBe(evidence.outputSha256);
+
+  let seenToolEvidenceCount = 0;
+  const saved = await saveAnswer(
+    f.root,
+    id!,
+    { budgetUsd: 1 },
+    {
+      runAgent: async (req) => {
+        const input = JSON.parse(req.stdin);
+        seenToolEvidenceCount = input.material.toolEvidence?.length ?? 0;
+        expect(input.material.toolEvidence[0].outputSha256).toBe(evidence.outputSha256);
+        return {
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0.1,
+          output: `---\nid: ${req.id}\ntitle: v2 含工具证据问答归档\ntype: source\nsummary: 附带确定性工具核算证据的问答归档\nsources: [${input.material.source}]\nevidence: I\nupdated: '2026-11-22'\n---\n## 原始问答记录\n::answer-record-core::\n\n## 引用边界\n机制与静态估算边界说明 [I]，见 [A](../sources/a.md)。\n`,
+        };
+      },
+    },
+  );
+  expect(seenToolEvidenceCount).toBe(1);
+  expect(readReview(f.root, saved.reviewId).state).toBe("pending");
+
+  // 1. Mutate a numeric metric in toolEvidence in-place (without changing receipt id)
+  const mutatedInPlace = structuredClone(receipt);
+  mutatedInPlace.toolEvidence[0].keyMetrics.weightsPerRankGiB = 999.99;
+  expect(() => verifyAnswerReceipt(id!, mutatedInPlace)).toThrow(/mismatch/i);
+
+  // 2. Mutate a numeric metric AND recompute outer receipt id -> outputSha256 mismatch still fails!
+  const rehashedId = digest(JSON.stringify(mutatedInPlace));
+  f.write(`wiki/_jobs/answers/${rehashedId}.json`, JSON.stringify(mutatedInPlace));
+  await expect(saveAnswer(f.root, rehashedId, { budgetUsd: 1 })).rejects.toThrow(/mismatch/i);
+
+  // 3. Mutate outputSha256 AND recompute outer receipt id -> outputSha256 mismatch fails!
+  const mutatedHash = structuredClone(receipt);
+  mutatedHash.toolEvidence[0].outputSha256 = "f".repeat(64);
+  const mutatedHashId = digest(JSON.stringify(mutatedHash));
+  f.write(`wiki/_jobs/answers/${mutatedHashId}.json`, JSON.stringify(mutatedHash));
+  await expect(saveAnswer(f.root, mutatedHashId, { budgetUsd: 1 })).rejects.toThrow(/mismatch/i);
+
+  // 4. Reject tampered evidence directly at captureAnswer
+  await expect(
+    captureAnswer(
+      f.root,
+      "Qwen3-8B 单卡能装下吗？",
+      answer,
+      [{ file: "sources/a.md", text: page }],
+      undefined,
+      [{ ...evidence, outputSha256: "a".repeat(64) }],
+    ),
+  ).rejects.toThrow(/mismatch/i);
+});
+
+it("blocks saveAnswer from reusing an existing mapping.raw that points to a stale snapshot missing V2 toolEvidence or mismatched content", async () => {
+  const { saveRawSnapshot } = await import("../scripts/wiki/raw");
+  const f = wikiFixture();
+  fixtures.push(f);
+  f.write("wiki/HANDBOOK.md", handbookFixture());
+  f.write("wiki/sources/a.md", page);
+  const evidence = runDeterministicToolEvidence({
+    kind: "deploy",
+    model: "qwen3-8b",
+    cardId: "a2-64g",
+    tpSize: 1,
+  });
+  const question = "Qwen3-8B 单卡能装下吗？";
+  const answer = "单卡显存结论见工具证据，原理见 [A](sources/a.md)。";
+  const id = await captureAnswer(
+    f.root,
+    question,
+    answer,
+    [{ file: "sources/a.md", text: page }],
+    undefined,
+    [evidence],
+  );
+  expect(id).toMatch(/^[a-f0-9]{64}$/);
+
+  // Create a stale raw snapshot WITHOUT toolEvidence and point mapping.raw to it
+  const staleBundle = `${JSON.stringify(
+    {
+      kind: "answer-record",
+      question,
+      answer,
+      citedPages: [{ file: "sources/a.md", text: page }],
+    },
+    null,
+    2,
+  )}\n`;
+  const staleRaw = saveRawSnapshot(join(f.root, "wiki"), staleBundle);
+  const staleRef = `raw:${staleRaw.slice(4)}#L1-L${staleBundle.trimEnd().split("\n").length}`;
+  f.write(
+    `wiki/_jobs/answer-saves/${id}.json`,
+    `${JSON.stringify({ jobId: "c".repeat(64), budgetUsd: 1, raw: staleRef, rules: "rules" }, null, 2)}\n`,
+  );
+
+  let agentCalls = 0;
+  const runAgent: import("../scripts/wiki/batch").RunAgent = async () => {
+    agentCalls++;
+    throw new Error("must not invoke model when mapping.raw misses V2 toolEvidence");
+  };
+  await expect(saveAnswer(f.root, id!, { budgetUsd: 1 }, { runAgent })).rejects.toThrow(
+    /原料快照与已校验回执不一致|toolEvidence/,
+  );
+  await expect(saveAnswer(f.root, id!, { budgetUsd: 1, newAttempt: true }, { runAgent })).rejects.toThrow(
+    /原料快照与已校验回执不一致|toolEvidence/,
+  );
+  expect(agentCalls).toBe(0);
 });

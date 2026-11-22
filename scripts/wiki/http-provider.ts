@@ -9,7 +9,10 @@ import { existsSync } from "node:fs";
 import type { ChatProvider } from "../../src/content/wiki/chat-models";
 import type { AgentRequest } from "./batch";
 import { killTree, resolveWindowsCmdShim } from "./claude-cli";
+import { hasSecretHarnessArg, sanitizeHarnessArgs, stripUrlCredentials } from "./endpoint-sanitize";
 import type { ModelUse } from "./model-use";
+
+export { hasSecretHarnessArg, sanitizeHarnessArgs, stripUrlCredentials };
 
 export interface ProviderCallbacks {
   text: (chunk: string) => void;
@@ -59,6 +62,34 @@ export function resolveAnthropicMessagesUrl(baseUrl?: string, env: NodeJS.Proces
   if (/\/messages$/i.test(raw)) return raw;
   if (/\/v\d+$/i.test(raw)) return `${raw}/messages`;
   return `${raw}/v1/messages`;
+}
+
+export function resolveEffectiveEndpointUrl(
+  provider: ChatProvider,
+  apiBaseUrl?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  if (provider === "openai-compatible") {
+    const rawBase = apiBaseUrl?.trim() || env.OPENAI_BASE_URL?.trim();
+    const cleanBase = rawBase ? stripUrlCredentials(rawBase) : undefined;
+    return stripUrlCredentials(resolveOpenAiCompletionsUrl(cleanBase, {}));
+  }
+  if (provider === "anthropic-compatible") {
+    const rawBase = apiBaseUrl?.trim() || env.ANTHROPIC_BASE_URL?.trim();
+    const cleanBase = rawBase ? stripUrlCredentials(rawBase) : undefined;
+    return stripUrlCredentials(resolveAnthropicMessagesUrl(cleanBase, {}));
+  }
+  return apiBaseUrl?.trim() ? stripUrlCredentials(apiBaseUrl) : undefined;
+}
+
+export function checkAnthropicStopReason(stopReason: unknown): string | undefined {
+  if (stopReason === "max_tokens") {
+    return "Anthropic 兼容接口响应达到长度上限被截断（stop_reason=max_tokens）";
+  }
+  if (stopReason === "model_context_window_exceeded") {
+    return "Anthropic 兼容接口响应超出模型上下文窗口被截断（stop_reason=model_context_window_exceeded）";
+  }
+  return undefined;
 }
 
 export function defaultApiKeyEnvCandidates(provider: ChatProvider, apiBaseUrl?: string): string[] {
@@ -168,27 +199,88 @@ function extractOpenAiContent(content: unknown): string {
   return "";
 }
 
-async function consumeSseLines(
+interface SseEventFrame {
+  event?: string;
+  data: string;
+}
+
+/**
+ * WHATWG Server-Sent Events parser: dispatches events strictly on blank-line boundaries
+ * (`\n\n` or `\r\n\r\n`). Never dispatches an unclosed trailing frame at EOF, and stops
+ * dispatching once the handler signals terminal state (returning true).
+ */
+async function consumeSseEvents(
   body: ReadableStream<Uint8Array>,
-  onLine: (line: string) => void,
-): Promise<void> {
+  onEvent: (frame: SseEventFrame) => boolean | undefined,
+): Promise<{ hadUnterminatedFrame: boolean }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let eventType: string | undefined;
+  let dataLines: string[] = [];
+  let terminal = false;
+
+  const processLine = (line: string) => {
+    if (terminal) return;
+    if (line === "") {
+      if (dataLines.length > 0) {
+        const frame: SseEventFrame = {
+          ...(eventType ? { event: eventType } : {}),
+          data: dataLines.join("\n"),
+        };
+        dataLines = [];
+        eventType = undefined;
+        if (onEvent(frame) === true) terminal = true;
+      } else {
+        eventType = undefined;
+      }
+      return;
+    }
+    if (line.startsWith(":")) return;
+    const colon = line.indexOf(":");
+    const field = colon >= 0 ? line.slice(0, colon) : line;
+    const rawVal = colon >= 0 ? line.slice(colon + 1) : "";
+    const value = rawVal.startsWith(" ") ? rawVal.slice(1) : rawVal;
+    if (field === "data") dataLines.push(value);
+    else if (field === "event") eventType = value;
+  };
+
   try {
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
+      // Normalize \r\n to \n; hold a trailing \r until next chunk in case \r\n splits across chunks.
+      let trailingCr = false;
+      if (buffer.endsWith("\r")) {
+        trailingCr = true;
+        buffer = buffer.slice(0, -1);
+      }
+      buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
       let newline = buffer.indexOf("\n");
-      while (newline >= 0) {
-        onLine(buffer.slice(0, newline).replace(/\r$/, ""));
+      while (newline >= 0 && !terminal) {
+        processLine(buffer.slice(0, newline));
         buffer = buffer.slice(newline + 1);
         newline = buffer.indexOf("\n");
       }
+      if (terminal) {
+        void reader.cancel().catch(() => {});
+        return { hadUnterminatedFrame: false };
+      }
+      if (trailingCr) buffer += "\r";
     }
     buffer += decoder.decode();
-    if (buffer.length > 0) onLine(buffer.replace(/\r$/, ""));
+    // Process any remaining newline-terminated lines, but NEVER auto-close an event missing its blank line.
+    buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    let newline = buffer.indexOf("\n");
+    while (newline >= 0) {
+      processLine(buffer.slice(0, newline));
+      buffer = buffer.slice(newline + 1);
+      newline = buffer.indexOf("\n");
+    }
+    const leftoverNonComment = buffer.length > 0 && !buffer.startsWith(":");
+    const hadUnterminatedFrame = !terminal && (dataLines.length > 0 || leftoverNonComment);
+    return { hadUnterminatedFrame };
   } finally {
     reader.releaseLock();
   }
@@ -242,7 +334,7 @@ export async function runOpenAiCompatible(
     if (!stream || contentType.includes("application/json")) {
       const data = (await response.json()) as {
         model?: unknown;
-        choices?: { message?: { content?: unknown }; text?: unknown }[];
+        choices?: { message?: { content?: unknown }; text?: unknown; finish_reason?: unknown }[];
         usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
         error?: { message?: unknown };
       };
@@ -254,6 +346,25 @@ export async function runOpenAiCompatible(
         };
       }
       const choice = data.choices?.[0];
+      const answered = typeof data.model === "string" && data.model ? [data.model] : [];
+      if (choice?.finish_reason === "length") {
+        return {
+          ok: false,
+          reason: "OpenAI 兼容接口响应达到长度上限被截断（finish_reason=length）",
+          models: { requested: model, answered, switches: [] },
+        };
+      }
+      if (
+        typeof choice?.finish_reason === "string" &&
+        choice.finish_reason &&
+        choice.finish_reason !== "stop"
+      ) {
+        return {
+          ok: false,
+          reason: `OpenAI 兼容接口非正常结束（finish_reason=${choice.finish_reason}）`,
+          models: { requested: model, answered, switches: [] },
+        };
+      }
       const text = extractOpenAiContent(choice?.message?.content ?? choice?.text);
       if (!text.trim()) {
         return {
@@ -263,7 +374,6 @@ export async function runOpenAiCompatible(
         };
       }
       on.text(text);
-      const answered = typeof data.model === "string" && data.model ? [data.model] : [];
       const inputTokens = toInt(data.usage?.prompt_tokens);
       const outputTokens = toInt(data.usage?.completion_tokens);
       return {
@@ -287,16 +397,24 @@ export async function runOpenAiCompatible(
     let inputTokens: number | undefined;
     let outputTokens: number | undefined;
     let emitted = false;
+    let sawDone = false;
+    let finishReason: string | undefined;
     let streamError: string | undefined;
 
-    await consumeSseLines(response.body, (line) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(":") || !trimmed.startsWith("data:")) return;
-      const payload = trimmed.slice(5).trim();
-      if (payload === "[DONE]") return;
+    const { hadUnterminatedFrame } = await consumeSseEvents(response.body, ({ data }) => {
+      const payload = data.trim();
+      if (!payload) return;
+      if (payload === "[DONE]") {
+        sawDone = true;
+        return true;
+      }
       let chunk: {
         model?: unknown;
-        choices?: { delta?: { content?: unknown }; message?: { content?: unknown } }[];
+        choices?: {
+          delta?: { content?: unknown };
+          message?: { content?: unknown };
+          finish_reason?: unknown;
+        }[];
         usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
         error?: { message?: unknown };
       };
@@ -314,6 +432,8 @@ export async function runOpenAiCompatible(
       const outTok = toInt(chunk.usage?.completion_tokens);
       if (inTok !== undefined) inputTokens = inTok;
       if (outTok !== undefined) outputTokens = outTok;
+      const fr = chunk.choices?.[0]?.finish_reason;
+      if (typeof fr === "string" && fr) finishReason = fr;
       const delta = extractOpenAiContent(
         chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content,
       );
@@ -327,6 +447,27 @@ export async function runOpenAiCompatible(
       return {
         ok: false,
         reason: `OpenAI 兼容接口流式错误：${streamError}`,
+        models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
+      };
+    }
+    if (finishReason === "length") {
+      return {
+        ok: false,
+        reason: "OpenAI 兼容接口流式响应达到长度上限被截断（finish_reason=length）",
+        models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
+      };
+    }
+    if (finishReason && finishReason !== "stop") {
+      return {
+        ok: false,
+        reason: `OpenAI 兼容接口流式响应非正常结束（finish_reason=${finishReason}）`,
+        models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
+      };
+    }
+    if (hadUnterminatedFrame || (!sawDone && finishReason !== "stop")) {
+      return {
+        ok: false,
+        reason: "OpenAI 兼容接口流式响应未正常结束（疑似截断或未闭合 SSE 帧）",
         models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
       };
     }
@@ -412,6 +553,7 @@ export async function runAnthropicCompatible(
     if (!stream || contentType.includes("application/json")) {
       const data = (await response.json()) as {
         model?: unknown;
+        stop_reason?: unknown;
         content?: { type?: unknown; text?: unknown }[];
         usage?: { input_tokens?: unknown; output_tokens?: unknown; cache_read_input_tokens?: unknown };
         error?: { message?: unknown };
@@ -421,6 +563,15 @@ export async function runAnthropicCompatible(
           ok: false,
           reason: `Anthropic 兼容接口错误：${String(data.error.message).slice(0, 1000)}`,
           models: { requested: model, answered: [], switches: [] },
+        };
+      }
+      const answered = typeof data.model === "string" && data.model ? [data.model] : [];
+      const stopReasonError = checkAnthropicStopReason(data.stop_reason);
+      if (stopReasonError) {
+        return {
+          ok: false,
+          reason: stopReasonError,
+          models: { requested: model, answered, switches: [] },
         };
       }
       const text = (Array.isArray(data.content) ? data.content : [])
@@ -435,7 +586,6 @@ export async function runAnthropicCompatible(
         };
       }
       on.text(text);
-      const answered = typeof data.model === "string" && data.model ? [data.model] : [];
       const inputTokens = toInt(data.usage?.input_tokens);
       const outputTokens = toInt(data.usage?.output_tokens);
       const cachedTokens = toInt(data.usage?.cache_read_input_tokens);
@@ -466,17 +616,18 @@ export async function runAnthropicCompatible(
     let inputTokens: number | undefined;
     let outputTokens: number | undefined;
     let emitted = false;
+    let sawMessageStop = false;
+    let stopReason: string | undefined;
     let streamError: string | undefined;
 
-    await consumeSseLines(response.body, (line) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(":") || !trimmed.startsWith("data:")) return;
-      const payload = trimmed.slice(5).trim();
-      if (payload === "[DONE]") return;
+    const { hadUnterminatedFrame } = await consumeSseEvents(response.body, ({ data }) => {
+      const payload = data.trim();
+      if (!payload || payload === "[DONE]") return;
       let ev: {
         type?: unknown;
+        stop_reason?: unknown;
         message?: { model?: unknown; usage?: { input_tokens?: unknown; output_tokens?: unknown } };
-        delta?: { type?: unknown; text?: unknown };
+        delta?: { type?: unknown; text?: unknown; stop_reason?: unknown };
         usage?: { output_tokens?: unknown };
         error?: { message?: unknown };
       };
@@ -506,6 +657,11 @@ export async function runAnthropicCompatible(
       } else if (ev.type === "message_delta") {
         const outTok = toInt(ev.usage?.output_tokens);
         if (outTok !== undefined) outputTokens = outTok;
+        const sr = ev.delta?.stop_reason ?? ev.stop_reason;
+        if (typeof sr === "string" && sr) stopReason = sr;
+      } else if (ev.type === "message_stop") {
+        sawMessageStop = true;
+        return true;
       }
     });
 
@@ -513,6 +669,21 @@ export async function runAnthropicCompatible(
       return {
         ok: false,
         reason: `Anthropic 兼容接口流式错误：${streamError}`,
+        models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
+      };
+    }
+    const streamStopReasonError = checkAnthropicStopReason(stopReason);
+    if (streamStopReasonError) {
+      return {
+        ok: false,
+        reason: streamStopReasonError,
+        models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
+      };
+    }
+    if (hadUnterminatedFrame || !sawMessageStop) {
+      return {
+        ok: false,
+        reason: "Anthropic 兼容接口流式响应未正常结束（缺少闭合的 message_stop，疑似截断或未闭合 SSE 帧）",
         models: { requested: model, answered: answeredModel ? [answeredModel] : [], switches: [] },
       };
     }
@@ -549,7 +720,11 @@ export async function runAnthropicCompatible(
  * 自定义命令行 Harness 适配器：严格 `shell: false`，将完整 prompt 经 stdin 写入子进程，
  * 实时读取 stdout 文本流并返回（支持 Windows npm `.cmd` 包装器安全解包）。
  */
-export function runHarnessCommand(req: AgentRequest, on: ProviderCallbacks): Promise<ProviderOutcome> {
+export function runHarnessCommand(
+  req: AgentRequest,
+  on: ProviderCallbacks,
+  options: { env?: NodeJS.ProcessEnv } = {},
+): Promise<ProviderOutcome> {
   const model = req.model?.trim() || "custom-harness";
   const spec = req.harnessCommand;
   if (!spec?.command?.trim()) {
@@ -590,7 +765,7 @@ export function runHarnessCommand(req: AgentRequest, on: ProviderCallbacks): Pro
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
         env: {
-          ...process.env,
+          ...(options.env ?? process.env),
           WIKI_PROVIDER: "harness",
           WIKI_MODEL: model,
         },

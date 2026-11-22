@@ -1,5 +1,6 @@
 import type { RunAgent } from "../scripts/wiki/batch";
 import { inputByteLimit, jsonBytes, textChunks } from "../scripts/wiki/context-window";
+import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { runStructured } from "../scripts/wiki/structured";
 import type { selectedModel } from "../scripts/wiki/sync-config";
 import { createSlugger, fragmentId } from "../src/content/wiki/anchors";
@@ -179,7 +180,12 @@ export async function judgeAnswer(
     observationId?: string;
     snapshot: KnowledgeSnapshot;
     evidencePages: { file: string; text: string }[];
+    /** Pages surfaced to the answering turn (pre-retrieval + 1-hop graph + opened files). */
+    retrievedPages?: { file: string; text: string }[];
     selection: ReturnType<typeof selectedModel>;
+    claudeEnv?: Record<string, string>;
+    hasClaudeEnv?: boolean;
+    env?: NodeJS.ProcessEnv;
     signal?: AbortSignal;
   },
   deps: { runAgent?: RunAgent } = {},
@@ -190,7 +196,8 @@ export async function judgeAnswer(
     expand: true,
     expansionLimit: 10,
   });
-  const originalFiles = new Set(input.evidencePages.map((p) => p.file));
+  const providedPages = input.retrievedPages ?? input.evidencePages;
+  const originalFiles = new Set(providedPages.map((p) => p.file));
   const rules = `${snapshot.handbook.reading}\n\n${RULES}`;
   const evidenceBudget =
     inputByteLimit(root, rules) -
@@ -245,7 +252,7 @@ export async function judgeAnswer(
     root,
     {
       kind: "answer-quality-v1",
-      maxInputChars: 160_000,
+      maxInputChars: Math.max(280_000, CODEX_EVIDENCE_LIMIT + 40_000),
       origin: "gap",
       data: {
         revision: snapshot.revision,
@@ -268,7 +275,17 @@ export async function judgeAnswer(
       timeoutMs: 120_000,
       signal: input.signal,
     },
-    deps,
+    {
+      ...deps,
+      runAgent:
+        deps.runAgent ??
+        selectedAgent(root, "answer-quality-v1", {
+          selection: input.selection,
+          claudeEnv: input.claudeEnv,
+          hasClaudeEnv: input.hasClaudeEnv,
+          env: input.env,
+        }),
+    },
   );
   return { status: "checked", jobId: result.jobId, revision: snapshot.revision, decision: result.value };
 }

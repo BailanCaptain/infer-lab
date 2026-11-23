@@ -558,6 +558,7 @@ function disposeGroup(g){
    if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());
    else o.material?.dispose();
   }
+  if(o.isInstancedMesh)o.dispose?.();
  });
  g.clear();
 }
@@ -1214,20 +1215,27 @@ camera.position.set(24.5,21.5,35.5);
 controls.target.set(0,9.2,0);
 
 const loader=new GLTFLoader(),pendingTemplates=new Map();
-let modelLoadSeq=0,hasLoadedOnce=false;
+let modelLoadSeq=0,hasLoadedOnce=false,viewerDisposed=false;
 const retryLoad=document.createElement('button');
 retryLoad.textContent='重试加载';
 retryLoad.hidden=true;
 $('#loading').append(retryLoad);
 
 function loadTemplate(keyName){
+ if(viewerDisposed)return Promise.resolve(null);
  if(templates[keyName])return Promise.resolve(templates[keyName]);
  if(!pendingTemplates.has(keyName)){
   const file=keyName==='cabinet'?'cabinet-42u':MODELS[keyName].file;
   pendingTemplates.set(
    keyName,
    loader.loadAsync('./assets/'+file+'.glb').then(gltf=>{
-    templates[keyName]=gltf.scene.children[0];
+    const mesh=gltf.scene.children[0];
+    if(viewerDisposed){
+     disposeGroup(mesh);
+     pendingTemplates.delete(keyName);
+     return null;
+    }
+    templates[keyName]=mesh;
     return templates[keyName];
    }).catch(error=>{
     pendingTemplates.delete(keyName);
@@ -1239,7 +1247,7 @@ function loadTemplate(keyName){
 }
 
 async function loadModel(nextKey){
- if(!MODELS[nextKey])return;
+ if(viewerDisposed||!MODELS[nextKey])return;
  if(ready&&nextKey===currentModel)return;
  const request=++modelLoadSeq;
  const loadingEl=$('#loading');
@@ -1254,7 +1262,7 @@ async function loadModel(nextKey){
  }
  try{
   if(!cached)await Promise.all([loadTemplate('cabinet'),loadTemplate(nextKey)]);
-  if(request!==modelLoadSeq)return;
+  if(viewerDisposed||request!==modelLoadSeq)return;
   currentModel=nextKey;
   if(MODELS[nextKey].vendor==='ascend')lastAscendModel=nextKey;
   else lastNvidiaModel=nextKey;
@@ -1264,8 +1272,10 @@ async function loadModel(nextKey){
   hasLoadedOnce=true;
   delete loadingEl.dataset.mode;
   loadingEl.hidden=true;
+  window.__wholeReady=true;
+  try{window.parent?.postMessage({source:'infer-lab-experience',type:'ready',viewId:'hardware'},'*');}catch{}
  }catch(error){
-  if(request!==modelLoadSeq)return;
+  if(viewerDisposed||request!==modelLoadSeq)return;
   loadingEl.dataset.mode='error';
   loadingEl.hidden=false;
   $('#loading b').textContent='模型载入失败';
@@ -1279,6 +1289,7 @@ loadModel(currentModel);
 
 function draw(now){
  renderRequest=0;
+ if(viewerDisposed)return;
  const targetAngle=doorOpen?-Math.PI*.42:0;
  if(doorMotion){
   const t=Math.min((now-doorMotion.start)/650,1);
@@ -1326,3 +1337,40 @@ function updateDiagram(){
   }
  );
 }
+
+function disposeViewer(){
+ if(viewerDisposed)return;
+ viewerDisposed=true;
+ ready=false;
+ window.__wholeReady=false;
+ modelLoadSeq+=1;
+ cancelAnimationFrame(renderRequest);
+ renderRequest=0;
+ controls.dispose();
+ disposeGroup(cabinetRoot);
+ disposeGroup(serverRoot);
+ disposeGroup(guideRoot);
+ disposeGroup(focusRoot);
+ for(const tpl of Object.values(templates))disposeGroup(tpl);
+ templates={};
+ UNIT_BOX.dispose();
+ GUIDE_DOT_GEO.dispose();
+ GUIDE_DOT_MAT.dispose();
+ GUIDE_LINE_MAT.dispose();
+ for(const mat of Object.values(RACK_MATS))mat.dispose();
+ ground.geometry?.dispose();
+ ground.material?.dispose();
+ plinth.geometry?.dispose();
+ plinth.material?.dispose();
+ scene.environment=null;
+ envRT.dispose();
+ renderer.forceContextLoss?.();
+ renderer.dispose();
+}
+addEventListener('pagehide',e=>{if(!e.persisted)disposeViewer();});
+addEventListener('unload',disposeViewer);
+addEventListener('message',e=>{
+ if(e.origin&&e.origin!==location.origin)return;
+ if(e.data?.type==='dispose')disposeViewer();
+});
+window.__viewer={dispose:disposeViewer,get envRT(){return envRT;}};

@@ -5,10 +5,9 @@ const evidence = process.env.WIKI_SCENE_EVIDENCE_DIR
   ? `${process.env.WIKI_SCENE_EVIDENCE_DIR}/optimization`
   : "tools/wiki-runtime/optimization-2026-11-10";
 const scenes = [
-  { page: "tensor-layout", phases: 7, result: "1,2,5,6,9,10,13,14,3,4,7,8,11,12,15,16" },
-  { page: "quantization", phases: 7, result: "10438;2.0876;error=0.0012" },
-  { page: "kv-cache-cpu-offload", phases: 8, result: "host=ready;gpu=9,10;next=4" },
-  { page: "chunked-prefill", phases: 6, result: "6,6,2,1;prefix=14;first=y0" },
+  { kind: 4, page: "tensor-layout", phases: 7, result: "1,2,5,6,9,10,13,14,3,4,7,8,11,12,15,16" },
+  { kind: 6, page: "kv-cache-cpu-offload", phases: 8, result: "host=ready;gpu=9,10;next=4" },
+  { kind: 7, page: "chunked-prefill", phases: 6, result: "6,6,2,1;prefix=14;first=y0" },
 ];
 async function seek(f: Locator, p: number) {
   await f.getByRole("slider").evaluate((node, progress) => {
@@ -45,7 +44,6 @@ async function legibility(canvas: Locator) {
           .slice(i + 1)
           .filter(
             (b) =>
-              (a.value || b.value) &&
               Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 3 &&
               Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 4,
           )
@@ -57,7 +55,8 @@ async function legibility(canvas: Locator) {
 test.beforeAll(() => {
   mkdirSync(evidence, { recursive: true });
 });
-for (const [kind, scene] of scenes.entries()) {
+for (const scene of scenes) {
+  const kind = scene.kind - 4;
   test(`${scene.page}: full playback, handoffs, replay, narrow view and rotation`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors: string[] = [];
@@ -66,8 +65,8 @@ for (const [kind, scene] of scenes.entries()) {
       if (m.type() === "error" || /buffer.*small|THREE.*warn/i.test(m.text())) errors.push(m.text());
     });
     await page.setViewportSize({ width: 1600, height: 1100 });
-    await page.goto(`/#/wiki/${scene.page}#scene-inference-mechanism-${kind + 4}`);
-    const f = page.getByTestId(`scene-inference-mechanism-${kind + 4}`),
+    await page.goto(`/#/wiki/${scene.page}#scene-inference-mechanism-${scene.kind}`);
+    const f = page.getByTestId(`scene-inference-mechanism-${scene.kind}`),
       canvas = f.locator(".wiki-scene-canvas");
     await f.scrollIntoViewIfNeeded();
     await expect(f).toHaveAttribute("data-ready", "true");
@@ -83,9 +82,10 @@ for (const [kind, scene] of scenes.entries()) {
     await expect(f.getByRole("button", { name: "重新播放", exact: true })).toBeVisible();
     await expect(canvas).toHaveAttribute("data-result", scene.result);
     await f.screenshot({ path: `${evidence}/${kind}-end.png` });
+    const is3D = kind !== 1 && kind !== 3;
     for (const width of [1600, 1100]) {
       await page.setViewportSize({ width, height: 1100 });
-      if (width === 1100 && kind < 3) {
+      if (width === 1100 && is3D) {
         await canvas.scrollIntoViewIfNeeded();
         const b = (await canvas.boundingBox())!;
         await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.45);
@@ -107,7 +107,7 @@ for (const [kind, scene] of scenes.entries()) {
       await seek(f, 1);
       await canvas.screenshot({ path: `${evidence}/${kind}-end-${width}.png` });
     }
-    if (kind < 3) await f.getByRole("button", { name: "复位图解视角" }).click();
+    if (is3D) await f.getByRole("button", { name: "复位图解视角" }).click();
     await f.getByRole("button", { name: "重新播放", exact: true }).click();
     await expect.poll(async () => Number(await canvas.getAttribute("data-progress"))).toBeGreaterThan(0.01);
     await f.getByRole("button", { name: "暂停", exact: true }).click();
@@ -165,19 +165,20 @@ test("offload and scheduling separate data arrival, completion and planned work"
 test("rendered final matrices preserve every element of the page examples", async ({ page }) => {
   const matrix = Array.from({ length: 16 }, (_, i) => i + 1);
   const kv = [0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6];
-  const values = [
-    [...matrix, ...matrix, 1, 2, 5, 6, 9, 10, 13, 14, 3, 4, 7, 8, 11, 12, 15, 16],
-    [0.523, -0.31, 1.27, 0.4, -2.54, 0.86, 52, -31, 127, 20, -127, 43, 1040, 3937, 5461, 10438, 2.0876],
-    [...kv, ...kv, 4, 5, 6, 7],
-  ];
-  for (const [kind, scene] of scenes.entries()) {
+  const values: Record<number, number[]> = {
+    4: [...matrix, ...matrix, 1, 2, 5, 6, 9, 10, 13, 14, 3, 4, 7, 8, 11, 12, 15, 16],
+    6: [...kv, ...kv, 4, 5, 6, 7],
+  };
+  for (const scene of scenes) {
     await page.goto(`/#/wiki/${scene.page}`);
-    const f = page.getByTestId(`scene-inference-mechanism-${kind + 4}`);
+    const f = page.getByTestId(`scene-inference-mechanism-${scene.kind}`);
     await f.scrollIntoViewIfNeeded();
     await expect(f).toHaveAttribute("data-ready", "true");
     await seek(f, 1);
-    if (kind < 3) {
-      await expect(f.locator(".wiki-inference-label.value:visible")).toHaveText(values[kind]!.map(String));
+    if (scene.kind in values) {
+      await expect(f.locator(".wiki-inference-label.value:visible")).toHaveText(
+        values[scene.kind]!.map(String),
+      );
     } else {
       await expect(f.locator(".schedule-value")).toHaveText(
         [1, 1, 6, 1, 1, 6, 1, 1, 2, 1, 1, 1].map((n) => `${n} 个位置`),

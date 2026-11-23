@@ -398,4 +398,80 @@ describe("ChatDrawer 会话早期持久化与卸载刷盘", () => {
     mod.handleChatFormSubmit!({ preventDefault }, false, send);
     expect(sendCalls).toBe(2);
   });
+
+  it("ChatPane 在 service-down 状态渲染本地启动指引并禁用发送，在 offline 状态保留静态浏览提示", () => {
+    const state = {
+      msgs: [],
+      input: "保留中的草稿",
+      setInput: () => {},
+      busy: false,
+      send: async () => {},
+      stop: () => {},
+      storageError: "",
+    };
+
+    const serviceDownHtml = renderToStaticMarkup(
+      createElement(ChatDrawerModule.ChatPane, {
+        id: "wiki-panel-chat",
+        chat: state,
+        backendAvailable: "service-down" as never,
+        hidden: false,
+        onReview: () => {},
+      }),
+    );
+    expect(serviceDownHtml).toContain(
+      "本地问答服务未启动：请在终端运行 pnpm dev:server（或 pnpm dev:all），再点上方「重新连接」",
+    );
+    expect(serviceDownHtml).not.toContain("当前为纯静态离线浏览模式");
+    expect(serviceDownHtml).toMatch(/data-testid="chat-send"[^>]*disabled=""/);
+  });
+
+  it("[R5-P2-5] ChatPane 在失败消息带 rawDraft 或 retryAttachment 时渲染「重试发送」按钮并在离线/繁忙态禁用", () => {
+    const retriedKeys: string[] = [];
+    const failedState = {
+      msgs: [
+        { key: "t1-u", role: "user" as const, text: "失败的原问题", rawDraft: "失败的原问题" },
+        {
+          key: "t1-a",
+          role: "agent" as const,
+          text: "服务返回 500：内部错误",
+          status: "failed" as const,
+          rawDraft: "失败的原问题",
+        },
+      ],
+      input: "",
+      setInput: () => {},
+      retryFailedMessage: async (key: string) => {
+        retriedKeys.push(key);
+      },
+      busy: false,
+      send: async () => {},
+      stop: () => {},
+      storageError: "",
+    };
+
+    const onlineHtml = renderToStaticMarkup(
+      createElement(ChatDrawerModule.ChatPane, {
+        id: "wiki-panel-chat",
+        chat: failedState,
+        backendAvailable: "online" as never,
+        hidden: false,
+        onReview: () => {},
+      }),
+    );
+    expect(onlineHtml).toContain('data-testid="chat-retry-failed"');
+    expect(onlineHtml).toContain("重试发送");
+    expect(onlineHtml).not.toMatch(/data-testid="chat-retry-failed"[^>]*disabled=""/);
+
+    const downHtml = renderToStaticMarkup(
+      createElement(ChatDrawerModule.ChatPane, {
+        id: "wiki-panel-chat",
+        chat: failedState,
+        backendAvailable: "service-down" as never,
+        hidden: false,
+        onReview: () => {},
+      }),
+    );
+    expect(downHtml).toMatch(/data-testid="chat-retry-failed"[^>]*disabled=""/);
+  });
 });

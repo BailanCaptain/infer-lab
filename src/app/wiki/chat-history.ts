@@ -4,6 +4,108 @@ import { CHAT_PROVIDERS } from "../../content/wiki/chat-models";
 
 export const CHAT_HISTORY_KEY = "wiki-chat-history-v1";
 const strings = z.array(z.string());
+
+const ruleVersionSchema = z.enum(["v0.30.0", "main", "rfork"]);
+const ascendFamilySchema = z.enum(["A2", "A3", "310P", "A5"]);
+const cardIdSchema = z.enum(["a2-64g", "a2-32g", "a3-die64g", "310p-24g", "950dt-128g"]);
+const weightPrecisionSchema = z.enum([
+  "bf16",
+  "fp16",
+  "w8a8",
+  "w8a8_dynamic",
+  "w4a8",
+  "fp8_block",
+  "w8a8sc_310p",
+]);
+const kvCacheDtypeSchema = z.enum(["auto", "int8", "mxfp8"]);
+const cudagraphModeSchema = z.enum(["NONE", "PIECEWISE", "FULL_DECODE_ONLY", "FULL", "FULL_AND_PIECEWISE"]);
+
+const deployAnalysisSchema = z.object({
+  kind: z.literal("deploy"),
+  model: z.union([z.string().min(1), z.record(z.string().min(1), z.unknown())]),
+  cardId: cardIdSchema,
+  version: ruleVersionSchema.optional(),
+  weightPrecision: weightPrecisionSchema.optional(),
+  kvCacheDtype: kvCacheDtypeSchema.optional(),
+  blockSize: z.number().finite().optional(),
+  userSpecifiedBlockSize: z.boolean().optional(),
+  weightNzMode: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
+  tpSize: z.number().finite().optional(),
+  ppSize: z.number().finite().optional(),
+  dpSize: z.number().finite().optional(),
+  pcpSize: z.number().finite().optional(),
+  dcpSize: z.number().finite().optional(),
+  enableEp: z.boolean().optional(),
+  enableEplb: z.boolean().optional(),
+  dynamicEplb: z.boolean().optional(),
+  engramCpuOffload: z.boolean().optional(),
+  numSpecTokens: z.number().finite().optional(),
+  gpuMemoryUtilization: z.number().finite().optional(),
+  maxModelLen: z.number().finite().optional(),
+  maxNumBatchedTokens: z.number().finite().optional(),
+  maxNumSeqs: z.number().finite().optional(),
+  cudagraphMode: cudagraphModeSchema.optional(),
+  cudagraphCaptureCount: z.number().finite().optional(),
+  enforceEager: z.boolean().optional(),
+  decodeBatchSize: z.number().finite().optional(),
+  prefillTokens: z.number().finite().optional(),
+  decodeContextLen: z.number().finite().optional(),
+});
+
+const doctorModelTraitOverrideSchema = z.object({
+  isMoe: z.boolean().optional(),
+  useMla: z.boolean().optional(),
+  sfaDcpReplicatedIndexer: z.boolean().optional(),
+  numExperts: z.number().finite().optional(),
+  numExpertsPerTok: z.number().finite().optional(),
+  numAttentionHeads: z.number().finite().optional(),
+  numKvHeads: z.number().finite().optional(),
+  headDim: z.number().finite().optional(),
+});
+
+const doctorAnalysisSchema = z.object({
+  kind: z.literal("doctor"),
+  command: z.string().min(1),
+  decodeCommand: z.string().min(1).optional(),
+  mode: z.enum(["minimal", "full"]).optional(),
+  hardwareFamily: ascendFamilySchema.optional(),
+  decodeHardwareFamily: ascendFamilySchema.optional(),
+  version: ruleVersionSchema.optional(),
+  crossNodeRoce: z.boolean().optional(),
+  modelId: z.string().min(1).optional(),
+  modelTraitOverride: doctorModelTraitOverrideSchema.optional(),
+});
+
+const troubleshootAnalysisSchema = z.object({
+  kind: z.literal("troubleshoot"),
+  rawInput: z.string().min(1),
+});
+
+export const chatAnalysisSchema = z.discriminatedUnion("kind", [
+  deployAnalysisSchema,
+  doctorAnalysisSchema,
+  troubleshootAnalysisSchema,
+]);
+
+function tolerantOptional<S extends z.ZodTypeAny>(schema: S) {
+  return z
+    .unknown()
+    .transform((val): z.infer<S> | undefined => {
+      if (val === undefined) return undefined;
+      const parsed = schema.safeParse(val);
+      return parsed.success ? parsed.data : undefined;
+    })
+    .optional();
+}
+
+export const retryAttachmentSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  sanitizedBlock: z.string(),
+  redactionCount: z.number().finite().nonnegative().optional(),
+  suggestedQuestion: z.string().optional(),
+  analysis: tolerantOptional(chatAnalysisSchema),
+});
 const versions = z.union([
   z.object({
     status: z.literal("found"),
@@ -103,6 +205,8 @@ const message = z.object({
       }),
     ])
     .optional(),
+  rawDraft: tolerantOptional(z.string()),
+  retryAttachment: tolerantOptional(retryAttachmentSchema),
 });
 const history = z.object({
   version: z.literal(1),
@@ -111,6 +215,8 @@ const history = z.object({
   sessionId: z.string().optional(),
 });
 export type Msg = z.infer<typeof message>;
+export type ChatAnalysisPayload = z.infer<typeof chatAnalysisSchema>;
+export type PendingChatAttachment = z.infer<typeof retryAttachmentSchema>;
 export type TraceView = z.infer<typeof trace>;
 export type TraceVersions = z.infer<typeof versions>;
 export type ChatHistory = z.infer<typeof history>;
@@ -160,8 +266,9 @@ export function settleFailedMessage(msg: Msg): Msg {
 }
 
 export function settleCompletedMessage(msg: Msg): Msg {
+  const { retryAttachment: _unusedRetry, rawDraft: _unusedDraft, ...rest } = msg;
   return {
-    ...msg,
+    ...rest,
     status: "complete",
     trace:
       msg.trace?.status === "searching"

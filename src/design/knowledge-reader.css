@@ -715,6 +715,10 @@
   }
 }
 
+.knowledge-reader .wiki-chat-fab {
+  z-index: 34;
+}
+
 .knowledge-reader .wiki-panel {
   position: fixed;
   right: 0;

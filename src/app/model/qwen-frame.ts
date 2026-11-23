@@ -233,12 +233,12 @@ export interface ExperienceFrameWindowLike {
   __chapter?: { state?: { ready?: boolean }; send?: (msg: { cmd: string }) => void };
   __truth?: { ready?: boolean };
   __arch?: { ready?: boolean };
+  __wholeReady?: boolean;
 }
 
 /**
  * 判断 3D 体验 iframe 是否真实就绪：
- * - 硬件页（whole/index.html）必含 `#loading` 节点；若缺失（如 SPA 回退页或错误 HTML）必须返回 false，
- *   仅当 `#loading` 已隐藏或渲染了可见重试按钮时返回 true；
+ * - 硬件页（whole/index.html）支持 `__wholeReady === true` 或必含 `#loading` 节点已隐藏/显示重试按钮；
  * - 模型页分别检查 `__chapter.state.ready` / `__arch.ready` / `__truth.ready`。
  */
 export function isExperienceFrameReady(
@@ -248,6 +248,7 @@ export function isExperienceFrameReady(
 ): boolean {
   if (!win) return false;
   if (kind === "hardware") {
+    if (win.__wholeReady === true) return true;
     const loading = win.document?.getElementById?.("loading");
     if (!loading) return false;
     if (loading.hidden) return true;
@@ -277,4 +278,270 @@ export function safeCheckExperienceFrameReady(
     return { ready: false };
   }
   return { ready: false };
+}
+
+export type ExperienceFrameMessage =
+  | { type: "variant-change"; variant: QwenVariant; viewId?: ModelViewId | undefined }
+  | { type: "ready"; viewId?: ModelViewId | "hardware" | undefined; variant?: QwenVariant | undefined };
+
+/** 解析同源体验子帧发来的 `postMessage`（严格白名单校验 `variant` 与 `viewId`） */
+export function parseExperienceFrameMessage(data: unknown): ExperienceFrameMessage | null {
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const rawType = rec.type;
+  const rawSource = rec.source;
+  const rawVariant = rec.variant;
+  const rawView = rec.viewId;
+  const validVariant: QwenVariant | undefined =
+    rawVariant === "8b" || rawVariant === "30b-a3b" ? rawVariant : undefined;
+  const validView: ModelViewId | undefined =
+    rawView === "play" || rawView === "model" || rawView === "layer" || rawView === "arch"
+      ? rawView
+      : undefined;
+
+  if (
+    rawType === "qwen-experience:variant-change" ||
+    (rawSource === "infer-lab-experience" && rawType === "variant-change")
+  ) {
+    if (!validVariant) return null;
+    return {
+      type: "variant-change",
+      variant: validVariant,
+      ...(validView ? { viewId: validView } : {}),
+    };
+  }
+
+  if (rawType === "qwen-experience:ready" || (rawSource === "infer-lab-experience" && rawType === "ready")) {
+    return {
+      type: "ready",
+      ...(validView ? { viewId: validView } : rawView === "hardware" ? { viewId: "hardware" } : {}),
+      ...(validVariant ? { variant: validVariant } : {}),
+    };
+  }
+
+  return null;
+}
+
+/** 将子帧内部切换的 Qwen3 变体写回父页查询参数（保留其余上下文参数） */
+export function syncQwenVariantSearchParams(params: URLSearchParams, variant: QwenVariant): URLSearchParams {
+  const next = new URLSearchParams(params);
+  if (variant === "8b" && !params.has("variant")) {
+    next.delete("variant");
+  } else {
+    next.set("variant", variant);
+  }
+  return next;
+}
+
+export interface InPlaceVariantSyncState {
+  baseIdentity: string;
+  variant: QwenVariant;
+  domKey: string;
+  initialSrc: string;
+  urlSynced: boolean;
+  originLocationKey?: string | undefined;
+}
+
+/**
+ * 解析同源子帧就地变体切换状态（如 `play` 内 `8b -> 30b-a3b`）：
+ * - 当同一子帧仍挂载且同一视图未变时，复用初始 `domKey` / `initialSrc` 避免重载 WebGL 舞台；
+ * - 一旦切换到其他视图（如 `play -> arch`）或子帧被卸载，立即失效，确保再次回到 `play` 时使用最新 `variant=30b-a3b` 构建 `src`，绝不回退到旧 `8b`；
+ * - 当用户通过顶部导航（如回到无 `?variant=` 的默认 `/#/model`）或前进/后退将 `qwenVariant` 改回 `8b` 时，清除绑定并返回 `syncChildVariant`，通知复用的子帧立即切回目标变体。
+ */
+export function resolveInPlaceVariantSync(params: {
+  state: InPlaceVariantSyncState | null;
+  kind: "model" | "hardware";
+  edition: ModelEdition;
+  baseIdentity: string;
+  qwenVariant: QwenVariant;
+  locationKey?: string | undefined;
+  mountedKeys: readonly string[];
+  computedSrc: string;
+  defaultFrameKey: string;
+}): {
+  nextState: InPlaceVariantSyncState | null;
+  src: string;
+  frameKey: string;
+  syncChildVariant?: QwenVariant | undefined;
+} {
+  const {
+    state,
+    kind,
+    edition,
+    baseIdentity,
+    qwenVariant,
+    locationKey,
+    mountedKeys,
+    computedSrc,
+    defaultFrameKey,
+  } = params;
+
+  if (!state || kind !== "model" || edition !== "qwen3-8b") {
+    return { nextState: null, src: computedSrc, frameKey: defaultFrameKey };
+  }
+
+  if (state.baseIdentity !== baseIdentity || !mountedKeys.includes(state.domKey)) {
+    return { nextState: null, src: computedSrc, frameKey: defaultFrameKey };
+  }
+
+  if (!state.urlSynced) {
+    if (
+      state.originLocationKey !== undefined &&
+      locationKey !== undefined &&
+      locationKey !== state.originLocationKey &&
+      state.variant !== qwenVariant
+    ) {
+      return {
+        nextState: null,
+        src: computedSrc,
+        frameKey: defaultFrameKey,
+        syncChildVariant: qwenVariant,
+      };
+    }
+    const nextState: InPlaceVariantSyncState =
+      state.variant === qwenVariant ? { ...state, urlSynced: true } : state;
+    return {
+      nextState,
+      src: state.initialSrc,
+      frameKey: state.domKey,
+    };
+  }
+
+  if (state.variant !== qwenVariant) {
+    return {
+      nextState: null,
+      src: computedSrc,
+      frameKey: defaultFrameKey,
+      syncChildVariant: qwenVariant,
+    };
+  }
+
+  return {
+    nextState: state,
+    src: state.initialSrc,
+    frameKey: state.domKey,
+  };
+}
+
+export interface ExperienceReadyProbeOptions {
+  expectedSeq: number;
+  getCurrentSeq: () => number;
+  isActiveTarget: () => boolean;
+  checkReady: () => boolean;
+  onReady: () => void;
+  onTimeout: () => void;
+  pollIntervalMs?: number | undefined;
+  slowPollIntervalMs?: number | undefined;
+  timeoutMs?: number | undefined;
+  setIntervalFn?: ((cb: () => void, ms: number) => number) | undefined;
+  clearIntervalFn?: ((id: number) => void) | undefined;
+  setTimeoutFn?: ((cb: () => void, ms: number) => number) | undefined;
+  clearTimeoutFn?: ((id: number) => void) | undefined;
+}
+
+export interface ExperienceReadyProbeHandle {
+  notifyMessageReady: (seq?: number) => void;
+  dispose: () => void;
+}
+
+/**
+ * 统一管理体验子帧的 32ms 就绪探测与超时上限：
+ * - 超时触发时立即清除高频 32ms 轮询定时器，杜绝后台高频空转；
+ * - 超时后若当前切换序号（`expectedSeq`）未变，仍接受迟到的 `postMessage` 就绪通知（及可选低频兜底探测）从 `timed-out` 自动恢复到 `ready`。
+ */
+export function createExperienceReadyProbe(opts: ExperienceReadyProbeOptions): ExperienceReadyProbeHandle {
+  const {
+    expectedSeq,
+    getCurrentSeq,
+    isActiveTarget,
+    checkReady,
+    onReady,
+    onTimeout,
+    pollIntervalMs = 32,
+    slowPollIntervalMs = 0,
+    timeoutMs = 4500,
+    setIntervalFn = (cb, ms) => window.setInterval(cb, ms),
+    clearIntervalFn = (id) => window.clearInterval(id),
+    setTimeoutFn = (cb, ms) => window.setTimeout(cb, ms),
+    clearTimeoutFn = (id) => window.clearTimeout(id),
+  } = opts;
+
+  let disposed = false;
+  let committed = false;
+  let intervalId = 0;
+  let slowIntervalId = 0;
+  let timeoutId = 0;
+
+  const stopFastInterval = () => {
+    if (intervalId) {
+      clearIntervalFn(intervalId);
+      intervalId = 0;
+    }
+  };
+
+  const stopSlowInterval = () => {
+    if (slowIntervalId) {
+      clearIntervalFn(slowIntervalId);
+      slowIntervalId = 0;
+    }
+  };
+
+  const stopTimeout = () => {
+    if (timeoutId) {
+      clearTimeoutFn(timeoutId);
+      timeoutId = 0;
+    }
+  };
+
+  const isStale = (seq?: number): boolean =>
+    disposed ||
+    committed ||
+    !isActiveTarget() ||
+    getCurrentSeq() !== expectedSeq ||
+    (seq !== undefined && seq !== expectedSeq);
+
+  const tryCommit = (seq?: number): boolean => {
+    if (isStale(seq)) return true;
+    if (!checkReady()) return false;
+    committed = true;
+    stopFastInterval();
+    stopSlowInterval();
+    stopTimeout();
+    onReady();
+    return true;
+  };
+
+  if (!tryCommit()) {
+    intervalId = setIntervalFn(() => {
+      if (tryCommit()) {
+        stopFastInterval();
+      }
+    }, pollIntervalMs);
+
+    timeoutId = setTimeoutFn(() => {
+      timeoutId = 0;
+      stopFastInterval();
+      if (isStale()) return;
+      onTimeout();
+      if (slowPollIntervalMs > 0 && !isStale()) {
+        slowIntervalId = setIntervalFn(() => {
+          if (tryCommit()) {
+            stopSlowInterval();
+          }
+        }, slowPollIntervalMs);
+      }
+    }, timeoutMs);
+  }
+
+  return {
+    notifyMessageReady(seq?: number) {
+      tryCommit(seq);
+    },
+    dispose() {
+      disposed = true;
+      stopFastInterval();
+      stopSlowInterval();
+      stopTimeout();
+    },
+  };
 }

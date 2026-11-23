@@ -5,6 +5,7 @@ import { AnswerSave } from "./AnswerSave";
 import {
   type BackendAvailability,
   getBackendAvailability,
+  SERVICE_DOWN_CHAT_HINT,
   STATIC_OFFLINE_HINT,
   subscribeBackendAvailability,
 } from "./api";
@@ -44,8 +45,6 @@ export function handleChatInputKeyDown(
     send();
   }
 }
-
-const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 const repoName = (repo: string) => repo.split("/").pop() ?? repo;
 const refName = (ref: string) => ref.replace(/^releases\//, "");
@@ -235,13 +234,25 @@ export function ChatPane({
   const storeBackendAvailable = useSyncExternalStore(
     subscribeBackendAvailability,
     getBackendAvailability,
-    getServerBackendAvailability,
+    getBackendAvailability,
   );
   const effectiveBackend = backendAvailableProp ?? storeBackendAvailable;
   const isOffline = effectiveBackend === "offline";
+  const isServiceDown = effectiveBackend === "service-down";
+  const isBackendUnavailable = isOffline || isServiceDown;
 
-  const { msgs, input, setInput, pendingAttachment, setPendingAttachment, busy, send, stop, storageError } =
-    chat;
+  const {
+    msgs,
+    input,
+    setInput,
+    pendingAttachment,
+    setPendingAttachment,
+    retryFailedMessage,
+    busy,
+    send,
+    stop,
+    storageError,
+  } = chat;
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   useEffect(() => {
@@ -259,6 +270,11 @@ export function ChatPane({
       {isOffline && (
         <p className="wiki-chat-offline-banner" role="status" data-testid="chat-static-offline-notice">
           {STATIC_OFFLINE_HINT}
+        </p>
+      )}
+      {isServiceDown && (
+        <p className="wiki-chat-offline-banner" role="status" data-testid="chat-service-down-notice">
+          {SERVICE_DOWN_CHAT_HINT}
         </p>
       )}
       <div
@@ -279,7 +295,7 @@ export function ChatPane({
               把报错查明白。
             </strong>
             <p className="wiki-chat-hint">查知识库、对照来源，也可以贴出异常，追踪 GitHub 上的相关讨论。</p>
-            {!isOffline && (
+            {!isBackendUnavailable && (
               <ul>
                 {STARTERS.map((q) => (
                   <li key={q}>
@@ -352,6 +368,22 @@ export function ChatPane({
             ) : (
               m.text
             )}
+            {m.role === "agent" &&
+              (m.status === "failed" || m.status === "interrupted") &&
+              (m.retryAttachment !== undefined || m.rawDraft !== undefined) &&
+              retryFailedMessage && (
+                <div className="wiki-chat-attachment-actions">
+                  <button
+                    type="button"
+                    className="wiki-chat-attachment-btn"
+                    data-testid="chat-retry-failed"
+                    disabled={busy || isBackendUnavailable}
+                    onClick={() => void retryFailedMessage(m.key)}
+                  >
+                    重试发送
+                  </button>
+                </div>
+              )}
             {m.status === "interrupted" && (
               <p className="wiki-chat-uncited" role="status">
                 回答已中断，已收到的内容保留在这里。可以重新提问。
@@ -391,7 +423,7 @@ export function ChatPane({
                     : `独立核对：${QUALITY_LABELS[m.quality.decision.classification]}。${m.quality.decision.reason}（模型判断，仅限所查材料）`}
               </p>
             )}
-            {!isOffline && m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}
+            {!isBackendUnavailable && m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}
             {!!m.related?.length && (
               <nav data-testid="chat-related" aria-label="接着可以看">
                 <strong>接着可以看</strong>
@@ -420,7 +452,7 @@ export function ChatPane({
 
       <form
         className="wiki-chat-input"
-        onSubmit={(e) => handleChatFormSubmit(e, isOffline, () => void send())}
+        onSubmit={(e) => handleChatFormSubmit(e, isBackendUnavailable, () => void send())}
       >
         <textarea
           value={input}
@@ -429,16 +461,24 @@ export function ChatPane({
           placeholder={
             isOffline
               ? "当前为静态离线模式，请按 Ctrl+K 检索或复制上方诊断摘要"
-              : busy
-                ? "回答中…"
-                : "问一个概念，或粘贴异常 / traceback"
+              : isServiceDown
+                ? SERVICE_DOWN_CHAT_HINT
+                : busy
+                  ? "回答中…"
+                  : "问一个概念，或粘贴异常 / traceback"
           }
           rows={2}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => handleChatInputKeyDown(e, isOffline, () => void send())}
+          onKeyDown={(e) => handleChatInputKeyDown(e, isBackendUnavailable, () => void send())}
         />
         <div className="wiki-chat-compose-foot">
-          <small>{isOffline ? "可使用 Ctrl+K 全站检索知识库" : "Enter 发送 · Shift + Enter 换行"}</small>
+          <small>
+            {isOffline
+              ? "可使用 Ctrl+K 全站检索知识库"
+              : isServiceDown
+                ? "启动服务后点上方「重新连接」，已敲草稿与诊断附件会自动保留"
+                : "Enter 发送 · Shift + Enter 换行"}
+          </small>
           {busy ? (
             <button type="button" aria-label="停止回答" onClick={stop}>
               <Square size={16} />
@@ -448,7 +488,7 @@ export function ChatPane({
               type="submit"
               data-testid="chat-send"
               aria-label="发送"
-              disabled={isOffline || (!input.trim() && !pendingAttachment)}
+              disabled={isBackendUnavailable || (!input.trim() && !pendingAttachment)}
             >
               <ArrowUp size={18} />
             </button>

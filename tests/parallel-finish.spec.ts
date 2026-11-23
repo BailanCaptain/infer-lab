@@ -67,7 +67,7 @@ test("EP, SP and Ring decimal columns remain separate at desktop widths", async 
       await page.goto(`/#/wiki/${pageId}#scene-parallel-mechanism-${kind}`);
       const f = page.getByTestId(`scene-parallel-mechanism-${kind}`);
       await expect(f).toHaveAttribute("data-ready", "true");
-      for (const fraction of kind === 7 ? [0.455, 0.535, 0.69, 0.72, 1] : [1]) {
+      for (const fraction of kind === 7 ? [0.535, 0.615, 0.74, 0.78, 1] : [1]) {
         await seek(f, fraction);
         await expect(f.locator(".wiki-mechanism-label.value:visible").first()).not.toHaveText("");
         const collisions = await f.locator(".wiki-mechanism-label.value:visible").evaluateAll((elements) => {

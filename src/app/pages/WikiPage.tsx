@@ -667,16 +667,21 @@ export const Article = memo(function Article({
   // hash 路由下 `#/wiki/<id>#锚点` 的锚点在 location.hash。跨页链接、页内链接、直接打开
   // 带锚点的地址都走这里；换页时新正文和标题 id 已在同一次提交里渲染好。
   const { hash } = useLocation();
+  const hasContent = Boolean(body || compiled);
   useEffect(() => {
-    if (!hash || !page.id) return;
-    scrollToWikiFragment(hash);
-    // 直接打开时中文字体的子集随后才下载完，重排会把标题挤出视口：字体就绪后再对一次
+    if (!hash || !page.id || !hasContent) return;
     let live = true;
-    void document.fonts?.ready.then(() => live && scrollToWikiFragment(hash));
+    const align = () => {
+      if (live) scrollToWikiFragment(hash);
+    };
+    const raf = requestAnimationFrame(align);
+    // 直接打开时中文字体的子集随后才下载完，重排会把目标挤出视口：字体就绪后再对一次
+    void document.fonts?.ready.then(align);
     return () => {
       live = false;
+      cancelAnimationFrame(raf);
     };
-  }, [hash, page.id]);
+  }, [hash, page.id, hasContent]);
   // 本页目录的条目从渲染好的正文里读（id 由 anchors.ts 生成），在绘制前拿到，不闪一下
   const bodyRef = useRef<HTMLDivElement>(null);
   const [headings, setHeadings] = useState<PageHeading[]>([]);

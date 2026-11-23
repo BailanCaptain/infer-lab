@@ -15,6 +15,7 @@ import {
   type BackendAvailability,
   getBackendAvailability,
   isStaticOfflineError,
+  probeBackendHealth,
   subscribeBackendAvailability,
   wikiRequest,
 } from "./api";
@@ -40,7 +41,6 @@ const TABS: { id: WikiPanelTab; label: string; backendOnly?: boolean }[] = [
 ];
 const tabIdOf = (tab: WikiPanelTab) => `wiki-panel-tab-${tab}`;
 const panelIdOf = (tab: WikiPanelTab) => `wiki-panel-${tab}`;
-const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
   return tab === "chat";
@@ -92,11 +92,13 @@ function WikiPanelView({
   const storeBackendAvailable = useSyncExternalStore(
     subscribeBackendAvailability,
     getBackendAvailability,
-    getServerBackendAvailability,
+    getBackendAvailability,
   );
   const effectiveBackend = backendAvailableProp ?? storeBackendAvailable;
   const isOffline = effectiveBackend === "offline";
-  const visibleTabs = isOffline ? TABS.filter((t) => !t.backendOnly) : TABS;
+  const isServiceDown = effectiveBackend === "service-down";
+  const isBackendUnavailable = isOffline || isServiceDown;
+  const visibleTabs = isBackendUnavailable ? TABS.filter((t) => !t.backendOnly) : TABS;
 
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [lastTab, setLastTab] = useState<WikiPanelTab>("chat");
@@ -104,7 +106,9 @@ function WikiPanelView({
   const open = controlled ? layout !== "closed" : uncontrolledOpen;
   const rawTab = controlled && layout !== "closed" ? layout : lastTab;
   const tab: WikiPanelTab =
-    isOffline && (rawTab === "drop" || rawTab === "review" || rawTab === "status") ? "chat" : rawTab;
+    isBackendUnavailable && (rawTab === "drop" || rawTab === "review" || rawTab === "status")
+      ? "chat"
+      : rawTab;
 
   const [openedTabs, setOpenedTabs] = useState<ReadonlySet<WikiPanelTab>>(() =>
     open ? new Set([tab]) : new Set(),
@@ -120,6 +124,8 @@ function WikiPanelView({
   const [listError, setListError] = useState("");
   const [selected, setSelected] = useState<string>();
   const [refreshing, setRefreshing] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const reconnectingRef = useRef(false);
   const [fallbackEvidence] = useState(() =>
     createEvidenceViewController({
       loadPageEvidence: () => Promise.reject(new Error("当前环境未接入证据读取入口。")),
@@ -132,32 +138,50 @@ function WikiPanelView({
   currentTab.current = tab;
   const wasOpen = useRef(open);
 
-  const loadReviews = useCallback(async () => {
-    if (isOffline) {
-      setReviews([]);
-      setListError("");
-      return;
-    }
-    try {
-      setReviews((await wikiRequest<{ reviews: ReviewSummary[] }>("reviews")).reviews);
-      setListError("");
-    } catch (e) {
-      if (isStaticOfflineError(e)) {
+  const loadReviews = useCallback(
+    async (force = false) => {
+      if (!force && isBackendUnavailable) {
         setReviews([]);
         setListError("");
         return;
       }
-      setListError((e as Error).message);
+      try {
+        setReviews((await wikiRequest<{ reviews: ReviewSummary[] }>("reviews")).reviews);
+        setListError("");
+      } catch (e) {
+        if (isStaticOfflineError(e) || getBackendAvailability() === "service-down") {
+          setReviews([]);
+          setListError("");
+          return;
+        }
+        setListError((e as Error).message);
+      }
+    },
+    [isBackendUnavailable],
+  );
+
+  const handleReconnect = useCallback(async () => {
+    if (reconnectingRef.current) return;
+    reconnectingRef.current = true;
+    setReconnecting(true);
+    try {
+      const status = await probeBackendHealth();
+      if (status === "online") {
+        await Promise.all([onRefresh().catch(() => false), loadReviews(true)]);
+      }
+    } finally {
+      reconnectingRef.current = false;
+      setReconnecting(false);
     }
-  }, [isOffline]);
+  }, [loadReviews, onRefresh]);
 
   // 待审数要挂在入口上，所以面板没打开也要先取一次
   useEffect(() => {
     void loadReviews();
   }, [loadReviews]);
   useEffect(() => {
-    if (open && tab === "review" && !isOffline) void loadReviews();
-  }, [open, tab, isOffline, loadReviews]);
+    if (open && tab === "review" && !isBackendUnavailable) void loadReviews();
+  }, [open, tab, isBackendUnavailable, loadReviews]);
   useEffect(() => {
     if (layout && layout !== "closed") setLastTab(layout);
   }, [layout]);
@@ -181,7 +205,7 @@ function WikiPanelView({
     }
   }, [open, lastTriggerRef]);
 
-  const pending = isOffline
+  const pending = isBackendUnavailable
     ? 0
     : reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
 
@@ -189,14 +213,14 @@ function WikiPanelView({
     (nextTab?: WikiPanelTab) => {
       const candidate = nextTab ?? currentTab.current;
       const target: WikiPanelTab =
-        isOffline && (candidate === "drop" || candidate === "review" || candidate === "status")
+        isBackendUnavailable && (candidate === "drop" || candidate === "review" || candidate === "status")
           ? "chat"
           : candidate;
       setLastTab(target);
       if (controlled) onLayout(target);
       else setUncontrolledOpen(true);
     },
-    [controlled, isOffline, onLayout],
+    [controlled, isBackendUnavailable, onLayout],
   );
 
   const closePanel = useCallback(() => {
@@ -206,12 +230,12 @@ function WikiPanelView({
 
   const openReview = useCallback(
     (id: string) => {
-      if (isOffline) return;
+      if (isBackendUnavailable) return;
       void loadReviews();
       setSelected(id);
       openPanel("review");
     },
-    [isOffline, loadReviews, openPanel],
+    [isBackendUnavailable, loadReviews, openPanel],
   );
 
   function onTabKey(e: KeyboardEvent) {
@@ -295,6 +319,21 @@ function WikiPanelView({
           <span className="wiki-static-mode-pill" data-testid="wiki-static-mode-pill">
             纯静态离线浏览
           </span>
+        ) : isServiceDown ? (
+          <span className="wiki-service-down-actions" data-testid="wiki-service-down-banner">
+            <span className="wiki-static-mode-pill" data-testid="wiki-service-down-pill">
+              问答服务未启动
+            </span>
+            <button
+              type="button"
+              data-testid="wiki-reconnect-btn"
+              disabled={reconnecting}
+              onClick={() => void handleReconnect()}
+            >
+              <RefreshCw size={12} className={reconnecting ? "is-spinning" : undefined} />
+              重新连接
+            </button>
+          </span>
         ) : (
           <button
             type="button"
@@ -304,7 +343,7 @@ function WikiPanelView({
               void onRefresh()
                 .catch(() => false)
                 .finally(() => setRefreshing(false));
-              void loadReviews();
+              void loadReviews(true);
             }}
           >
             <RefreshCw size={12} className={refreshing ? "is-spinning" : undefined} />
@@ -334,7 +373,7 @@ function WikiPanelView({
       ) : (
         <div id={panelIdOf("evidence")} role="tabpanel" hidden />
       )}
-      {!isOffline &&
+      {!isBackendUnavailable &&
         (openedTabs.has("drop") ? (
           <Suspense fallback={<div id={panelIdOf("drop")} role="tabpanel" hidden={tab !== "drop"} />}>
             <DropPane
@@ -347,7 +386,7 @@ function WikiPanelView({
         ) : (
           <div id={panelIdOf("drop")} role="tabpanel" hidden />
         ))}
-      {!isOffline &&
+      {!isBackendUnavailable &&
         (openedTabs.has("review") ? (
           <Suspense fallback={<div id={panelIdOf("review")} role="tabpanel" hidden={tab !== "review"} />}>
             <ReviewPane
@@ -361,14 +400,14 @@ function WikiPanelView({
               onPublished={async () => {
                 // false means a newer refresh superseded this one; actual read failures reject.
                 // Reload the list too: a batch publishes its parent receipt as well as its children.
-                await Promise.all([onRefresh(), loadReviews()]);
+                await Promise.all([onRefresh(), loadReviews(true)]);
               }}
             />
           </Suspense>
         ) : (
           <div id={panelIdOf("review")} role="tabpanel" hidden />
         ))}
-      {!isOffline &&
+      {!isBackendUnavailable &&
         (openedTabs.has("status") ? (
           <Suspense fallback={<div id={panelIdOf("status")} role="tabpanel" hidden={tab !== "status"} />}>
             <StatusPane

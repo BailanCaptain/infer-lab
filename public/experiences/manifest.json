@@ -387,9 +387,9 @@
     },
     {
       "path": "qwen-flow/master/index.html",
-      "bytes": 20859,
-      "sourceSha256": "d2be6097e9dfd8afe40b15d22e8173be111650701eac670dc26276e608589790",
-      "sha256": "d2be6097e9dfd8afe40b15d22e8173be111650701eac670dc26276e608589790"
+      "bytes": 22808,
+      "sourceSha256": "a6d814141bd1b2ea3caf2ea38c5cb47cd7734c47b810e89ca3ac59b17ed98e9e",
+      "sha256": "a6d814141bd1b2ea3caf2ea38c5cb47cd7734c47b810e89ca3ac59b17ed98e9e"
     },
     {
       "path": "qwen-flow/master/qwen-arch.js",
@@ -399,9 +399,9 @@
     },
     {
       "path": "qwen-flow/master/qwen-layout.js",
-      "bytes": 21978,
-      "sourceSha256": "bb42fd03dd7ddf220bd978718c801a324af89203d92b7ae91f08a8036de03d88",
-      "sha256": "bb42fd03dd7ddf220bd978718c801a324af89203d92b7ae91f08a8036de03d88"
+      "bytes": 23534,
+      "sourceSha256": "f0c7ea2790250c5a9c658d04addbffb990c28c2c85d2e604fe7a33e6063d069d",
+      "sha256": "f0c7ea2790250c5a9c658d04addbffb990c28c2c85d2e604fe7a33e6063d069d"
     },
     {
       "path": "qwen-flow/master/qwen-spec.js",
@@ -411,9 +411,9 @@
     },
     {
       "path": "qwen-flow/master/qwen-stage.js",
-      "bytes": 16428,
-      "sourceSha256": "9ae4d0a8c86d063b0336036a89decb0364fd4ef9d1a9d1d277e4fa933fc69ed1",
-      "sha256": "9ae4d0a8c86d063b0336036a89decb0364fd4ef9d1a9d1d277e4fa933fc69ed1"
+      "bytes": 17254,
+      "sourceSha256": "497643ed5c90da917c0fe1577563b31f46fefd2bb5487bfe7d37ced46435f144",
+      "sha256": "497643ed5c90da917c0fe1577563b31f46fefd2bb5487bfe7d37ced46435f144"
     },
     {
       "path": "vendor/build/three.core.js",
@@ -1785,9 +1785,9 @@
     },
     {
       "path": "whole/viewer.js",
-      "bytes": 53029,
+      "bytes": 54561,
       "sourceSha256": "0d42479a8c5585f7cc2b9032bd7305257f053e6ac70e293f77216a4c8e758fff",
-      "sha256": "060ebaa214c5ea2642bbbcb8612da6f70907c80f48c984167d7e182591ff9680"
+      "sha256": "1dbbc41afaa2f8b43f77a46771bcbc92f7fa68ceecd8921f50f3b24dace43a43"
     }
   ]
 }

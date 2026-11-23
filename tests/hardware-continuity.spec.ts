@@ -64,16 +64,14 @@ test("hardware contents change with each lesson and rewind to their original sta
   test.setTimeout(120000);
   await page.setViewportSize({ width: 1600, height: 1400 });
   const scenes = [
-    "attention-qkv",
-    "block-table",
-    "pd-disaggregation",
-    "ai-core",
-    "tensor-layout",
-    "quantization",
-    "kv-cache-cpu-offload",
-    "collective-communication",
-  ];
-  for (const [kind, slug] of scenes.entries()) {
+    [0, "attention-qkv"],
+    [1, "block-table"],
+    [2, "pd-disaggregation"],
+    [4, "tensor-layout"],
+    [6, "kv-cache-cpu-offload"],
+    [7, "collective-communication"],
+  ] as const;
+  for (const [kind, slug] of scenes) {
     await page.goto(`/#/wiki/${slug}`);
     const f = page.getByTestId(
       kind === 7 ? "scene-collective-communication" : `scene-inference-mechanism-${kind}`,
@@ -105,34 +103,11 @@ test("hardware contents change with each lesson and rewind to their original sta
   }
 });
 
-test("W8A8 hardware remains active until the last channel product arrives", async ({ page }) => {
-  await page.setViewportSize({ width: 1600, height: 1400 });
-  await page.goto("/#/wiki/quantization");
-  const f = page.getByTestId("scene-inference-mechanism-5");
-  await f.scrollIntoViewIfNeeded();
-  await expect(f).toHaveAttribute("data-ready", "true");
-  const canvas = f.locator(".wiki-scene-canvas");
-  await canvas.scrollIntoViewIfNeeded();
-  const b = (await canvas.boundingBox())!;
-  const hashes: string[] = [];
-  for (const [i, local] of [0.8, 0.95].entries()) {
-    await seek(f, (3 + local) / 7);
-    await expect(f.locator('[data-tensor="逐通道乘积"]')).toHaveText(["1040", "3937", i ? "5461" : ""]);
-    // Resident inputs are identical here; only the chip's activity should change.
-    const bytes = await page.screenshot({
-      clip: { x: b.x + b.width * 0.12, y: b.y + 140, width: b.width * 0.76, height: 115 },
-      path: `${evidence}/quantization-last-channel-${i}.png`,
-    });
-    hashes.push(createHash("sha256").update(bytes).digest("hex"));
-  }
-  expect(hashes[0], "the chip must stay active while the third product is pending").not.toBe(hashes[1]);
-});
-
 test("all moving labels stay readable during the original four lessons", async ({ page }) => {
   test.setTimeout(120000);
   for (const width of [1600, 1100]) {
     await page.setViewportSize({ width, height: 1300 });
-    for (const [kind, slug] of ["attention-qkv", "block-table", "pd-disaggregation", "ai-core"].entries()) {
+    for (const [kind, slug] of ["attention-qkv", "block-table", "pd-disaggregation"].entries()) {
       await page.goto(`/#/wiki/${slug}`);
       const f = page.getByTestId(`scene-inference-mechanism-${kind}`),
         canvas = f.locator(".wiki-scene-canvas");

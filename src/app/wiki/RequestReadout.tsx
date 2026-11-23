@@ -105,10 +105,18 @@ function RequestReadoutContent({ state: s, sizing = false }: { state: RequestSta
       </dl>
       {(s.section === 0 || stream) && (
         <details className="wiki-request-wire">
-          <summary>{stream ? "查看当前 SSE 片段" : "查看客户端请求"}</summary>
+          <summary>
+            {stream
+              ? stream.waitingFinish
+                ? "查看当前 SSE 状态（等待终止事件）"
+                : "查看当前 SSE 片段"
+              : "查看客户端请求"}
+          </summary>
           <p>
             {stream
-              ? "只展示 choices 字段；示例片段边界不代表真实 tokenizer 的边界。"
+              ? stream.waitingFinish
+                ? "客户端已保留前 3 批文字；当前尚无新增量片段，等待引擎结束事件（finish_reason / [DONE]）。"
+                : "只展示 choices 字段；示例片段边界不代表真实 tokenizer 的边界。"
               : "POST /v1/chat/completions；model 必须与部署的服务名一致。句子、输出为示例，不是模型实测。"}
           </p>
           <pre>{stream ? stream.sse : JSON.stringify(REQUEST_BODY, null, 2)}</pre>

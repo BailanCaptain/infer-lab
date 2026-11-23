@@ -1,5 +1,6 @@
 import * as T from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
@@ -48,30 +49,59 @@ import {
 import { mountStrategyContent, type StrategyContent } from "./wiki-parallel-strategy-renderer";
 
 const v = (x: number, y: number, z = 0) => new T.Vector3(x, y, z);
-const rowColors = ["#497e91", "#a1724b", "#82769c", "#43846e"];
+const MINERAL = { cobalt: "#85a9ec", coral: "#e0948b", jade: "#78c8b0", iris: "#9fa2dc" };
+const WIRE = { cobalt: "#4e69bd", coral: "#b5564d", jade: "#19826d", iris: "#6a6db0" };
+const rowColors = [MINERAL.cobalt, MINERAL.coral, MINERAL.iris, MINERAL.jade];
+const rowWires = [WIRE.cobalt, WIRE.coral, WIRE.iris, WIRE.jade];
+const SUB = "₀₁₂₃";
 type Tensor = {
   group: T.Group;
   cells: T.Mesh<T.BoxGeometry, T.MeshStandardMaterial>[];
   numbers: HTMLElement[];
   title: HTMLElement;
+  color: string;
 };
-type Caption = { el: HTMLElement; parent: T.Object3D; point: T.Vector3; visible: () => boolean };
+type Caption = {
+  el: HTMLElement;
+  parent: T.Object3D;
+  point: T.Vector3;
+  visible: () => boolean;
+  isValue: boolean;
+  textCache?: string;
+  halfWidth?: number | undefined;
+};
 
 /** Hardware ownership stays in view; the actual row objects expand, land and retain their result. */
-export async function mountParallelMechanism(host: HTMLDivElement, kind: number, signal: AbortSignal) {
+export async function mountParallelMechanism(
+  host: HTMLDivElement,
+  kind: number,
+  signal: AbortSignal,
+  onSeek?: (progress: number) => void,
+) {
   if (signal.aborted) return null;
   const hardware = await parallelHardware(kind, signal);
   if (!hardware) return null;
-  const palette = scenePalette(host),
+  const rawPalette = scenePalette(host),
+    palette = { ...rawPalette, data: MINERAL.cobalt, weight: MINERAL.coral, result: MINERAL.jade },
     scene = new T.Scene(),
     root = new T.Group();
   root.add(hardware.group);
-  scene.add(root, new T.HemisphereLight(0xffffff, 0xb7c5b2, 2.3));
-  const light = new T.DirectionalLight(0xffffff, 2.1);
-  light.position.set(-5, 8, 15);
-  scene.add(light);
+  scene.add(root, new T.HemisphereLight(0xfffdf8, 0xd4cfc2, 1.35));
+  const light = new T.DirectionalLight(0xfffcf5, 1.65);
+  light.position.set(-6, 11, 14);
+  const rim = new T.DirectionalLight(0xe6eef8, 0.55);
+  rim.position.set(9, 5, -8);
+  scene.add(light, rim);
   const renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio || 1, 1.5), 2));
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.06;
+  const pmrem = new T.PMREMGenerator(renderer);
+  const envScene = new RoomEnvironment();
+  const envRT = pmrem.fromScene(envScene, 0.04);
+  scene.environment = envRT.texture;
+  envScene.dispose();
+  pmrem.dispose();
   renderer.domElement.setAttribute("aria-hidden", "true");
   const overlay = document.createElement("div");
   overlay.className = "wiki-mechanism-labels";
@@ -84,7 +114,21 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
   controls.minAzimuthAngle = -0.05;
   controls.maxAzimuthAngle = 0.2;
   controls.rotateSpeed = 0.28;
-  const geometry = new T.BoxGeometry(1, 1, 1);
+  const epTileGeometry = new T.BoxGeometry(1, 1, 1);
+  {
+    const nrm = epTileGeometry.getAttribute("normal");
+    const colors = new Float32Array(nrm.count * 3);
+    for (let i = 0; i < nrm.count; i++) {
+      const nx = nrm.getX(i),
+        ny = nrm.getY(i),
+        nz = nrm.getZ(i);
+      const shade = nz > 0.5 ? 1.0 : ny > 0.5 ? 0.87 : Math.abs(nx) > 0.5 ? 0.78 : 0.72;
+      colors[i * 3] = shade;
+      colors[i * 3 + 1] = shade;
+      colors[i * 3 + 2] = shade;
+    }
+    epTileGeometry.setAttribute("color", new T.BufferAttribute(colors, 3));
+  }
   const socketGeometry = new T.BufferGeometry().setFromPoints([
     v(-0.38, 0.5, 0.5),
     v(-0.5, 0.5, 0.5),
@@ -99,14 +143,45 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     v(0.5, -0.5, 0.5),
     v(0.38, -0.5, 0.5),
   ]);
-  const resources: (T.BufferGeometry | T.Material)[] = [geometry, socketGeometry];
+  const resources: (T.BufferGeometry | T.Material | T.WebGLRenderTarget)[] = [
+    epTileGeometry,
+    socketGeometry,
+    envRT,
+  ];
   const captions: Caption[] = [];
+  const pickTargets: { object: T.Object3D; action: () => void }[] = [];
+  const pick = (object: T.Object3D, action: () => void) => {
+    pickTargets.push({ object, action });
+  };
+  const sphereGeometry = new T.SphereGeometry(1, 16, 12);
+  resources.push(sphereGeometry);
+  const orb = (color: string, radius = 0.16) => {
+    const m = new T.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.45,
+      roughness: 0.28,
+      metalness: 0.18,
+    });
+    resources.push(m);
+    const mesh = new T.Mesh(sphereGeometry, m);
+    mesh.scale.setScalar(radius);
+    mesh.visible = false;
+    root.add(mesh);
+    return mesh;
+  };
   let progress = 0,
     disposed = false,
     width = 1,
     height = 1;
   const material = (color: string, opacity = 1) => {
-    const m = new T.MeshStandardMaterial({ color, transparent: true, opacity, roughness: 0.7 });
+    const m = new T.MeshBasicMaterial({
+      color,
+      vertexColors: true,
+      transparent: true,
+      opacity,
+      toneMapped: false,
+    }) as unknown as T.MeshStandardMaterial;
     resources.push(m);
     return m;
   };
@@ -115,13 +190,14 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     el.className = `wiki-mechanism-label ${kind}`;
     el.textContent = text;
     overlay.append(el);
-    captions.push({ el, parent, point, visible });
+    captions.push({ el, parent, point, visible, isValue: kind.split(" ").includes("value") });
     return el;
   };
   const cube = (parent: T.Object3D, point: T.Vector3, size: T.Vector3, color: string, opacity = 1) => {
-    const mesh = new T.Mesh(geometry, material(color, opacity));
+    const mesh = new T.Mesh(epTileGeometry, material(color, opacity));
     mesh.position.copy(point);
     mesh.scale.copy(size);
+    mesh.userData.shadedColor = new T.Color(color);
     parent.add(mesh);
     return mesh;
   };
@@ -141,7 +217,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       const cell = cube(
         group,
         v((i - (values.length - 1) / 2) * (size + 0.045), 0),
-        v(size, size * 0.68, 0.36),
+        v(size * 0.93, size * 0.64, 0.18),
         color,
       );
       cells.push(cell);
@@ -162,17 +238,60 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       size < 0.5 ? "name small" : "name",
       () => group.visible,
     );
-    return { group, cells, numbers, title };
+    const out: Tensor = { group, cells, numbers, title, color };
+    set(out, values, color, 1);
+    return out;
   };
   const rowTitle = (t: Tensor) => {
     const c = captions.find((c) => c.el === t.title)!;
     c.point.set(-t.cells.length * 0.42 - 0.55, 0, 0.3);
   };
+  const paper = new T.Color("#fbfaf6");
+  const pulseAnchor = new T.Color(WIRE.jade);
+  const pulseCell = (
+    cell: T.Mesh<T.BoxGeometry, T.MeshStandardMaterial>,
+    active = false,
+    opacity?: number,
+  ) => {
+    if (opacity !== undefined) cell.material.opacity = opacity;
+    const shaded = cell.userData.shadedColor as T.Color | undefined;
+    if (shaded) {
+      cell.material.color.copy(shaded);
+      if (active) cell.material.color.lerp(pulseAnchor, 0.34);
+    }
+    cell.scale.z = active ? 0.28 : 0.18;
+  };
   const set = (t: Tensor, values: (number | string)[], color?: string, opacity = 1) => {
+    if (color) t.color = color;
+    let minPos = Infinity,
+      maxPos = 0,
+      maxNeg = 0;
+    for (const val of values) {
+      if (typeof val === "number") {
+        if (val > 0) {
+          minPos = Math.min(minPos, val);
+          maxPos = Math.max(maxPos, val);
+        } else if (val < 0) maxNeg = Math.max(maxNeg, -val);
+      }
+    }
     t.cells.forEach((cell, i) => {
+      const val = values[i] ?? "";
+      if (val === "") cell.material.color.set("#f0f1ec");
+      else if (val === "遮蔽") cell.material.color.set("#e9ece7");
+      else if (typeof val === "number" && val === 0) cell.material.color.set("#f4f5f0");
+      else if (typeof val === "number" && val < 0) {
+        const norm = Math.min(1, Math.abs(val) / Math.max(maxNeg, 0.5));
+        cell.material.color.set("#bcc4ca").lerp(paper, 0.48 - 0.4 * norm);
+      } else if (typeof val === "number") {
+        const norm =
+          maxPos > minPos + 1e-6 ? 0.25 * (val / maxPos) + 0.75 * ((val - minPos) / (maxPos - minPos)) : 0.74;
+        cell.material.color.set(t.color).lerp(paper, Math.max(0.06, 0.66 - 0.58 * norm));
+      } else cell.material.color.set(t.color).lerp(paper, val === "·" ? 0.48 : 0.34);
+      cell.userData.shadedColor = cell.material.color.clone();
       cell.material.opacity = opacity;
-      if (color) cell.material.color.set(color);
-      t.numbers[i]!.textContent = String(values[i] ?? "");
+      const numEl = t.numbers[i]!;
+      numEl.textContent = String(val);
+      numEl.dataset.zero = val === 0 || val === "遮蔽" ? "true" : "false";
     });
   };
   const line = (color: string, dashed = false, linewidth = dashed ? 1.8 : 1.35) => {
@@ -186,6 +305,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       dashSize: 0.16,
       gapSize: 0.12,
       depthWrite: false,
+      toneMapped: false,
     });
     const item = new Line2(g, m);
     resources.push(g, m);
@@ -203,7 +323,12 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       0.1,
     );
   const socket = (parent: T.Object3D, point: T.Vector3, count = 2, size = 0.78) => {
-    const m = new T.LineBasicMaterial({ color: palette.result, transparent: true, opacity: 0.5 });
+    const m = new T.LineBasicMaterial({
+      color: WIRE.jade,
+      transparent: true,
+      opacity: 0.55,
+      toneMapped: false,
+    });
     resources.push(m);
     const frame = new T.LineSegments(socketGeometry, m);
     frame.position.copy(point);
@@ -212,25 +337,28 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     return frame;
   };
   // A shallow open bracket preserves the matrix boundary without a backplate hiding cells.
-  const bracket = (x: number, top: number, bottom: number, halfWidth: number, color: string) => {
-    const left = line(color),
-      right = line(color);
+  const bracket = (x: number, top: number, bottom: number, halfWidth: number, _color: string) => {
+    const stroke = "#2c3836";
+    const width = 2.05;
+    const tick = 0.21;
+    const left = line(stroke, false, width),
+      right = line(stroke, false, width);
     connect(left, [
-      v(x - halfWidth + 0.15, top, 0.2),
-      v(x - halfWidth, top, 0.2),
-      v(x - halfWidth, bottom, 0.2),
-      v(x - halfWidth + 0.15, bottom, 0.2),
+      v(x - halfWidth + tick, top, 0.22),
+      v(x - halfWidth, top, 0.22),
+      v(x - halfWidth, bottom, 0.22),
+      v(x - halfWidth + tick, bottom, 0.22),
     ]);
     connect(right, [
-      v(x + halfWidth - 0.15, top, 0.2),
-      v(x + halfWidth, top, 0.2),
-      v(x + halfWidth, bottom, 0.2),
-      v(x + halfWidth - 0.15, bottom, 0.2),
+      v(x + halfWidth - tick, top, 0.22),
+      v(x + halfWidth, top, 0.22),
+      v(x + halfWidth, bottom, 0.22),
+      v(x + halfWidth - tick, bottom, 0.22),
     ]);
     return [left, right];
   };
   const cut = (x: number, y: number, halfWidth: number) => {
-    const l = line("#ae774d", true);
+    const l = line(WIRE.coral, true);
     connect(l, [
       v(x - halfWidth, y, -0.12),
       v(x + halfWidth, y, -0.12),
@@ -283,8 +411,10 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       focus = o.focusRow ?? 3,
       wide = o.wide ?? 1;
     const pitch = 0.385 * wide,
-      cellWidth = 0.34 * wide;
-    const half = ((cols - 1) / 2) * pitch + 0.2625 + (cellWidth - 0.34) / 2,
+      cellWidth = Math.max(0.24, 0.34 * wide - (wide > 1.2 ? 0.065 : 0.032)),
+      cellHeight = 0.35,
+      cellDepth = 0.18;
+    const half = ((cols - 1) / 2) * pitch + 0.2625 + (0.34 * wide - 0.34) / 2,
       top = ((rows - 1) / 2) * 0.5 + 0.27;
     const group = new T.Group();
     group.position.copy(point);
@@ -299,7 +429,12 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         label(names[r]!, group, v(x, y, 0.3), "name small", () => group.scale.x > 0.85);
       }
       for (let c = 0; c < cols; c++) {
-        const cell = cube(group, v((c - (cols - 1) / 2) * pitch, y), v(cellWidth, 0.4, 0.28), color);
+        const cell = cube(
+          group,
+          v((c - (cols - 1) / 2) * pitch, y),
+          v(cellWidth, cellHeight, cellDepth),
+          color,
+        );
         cells.push(cell);
         numbers.push(
           label(
@@ -319,9 +454,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const title = label(name, group, v(0, top + 0.28, 0.3), "name");
     const axis = o.axis === undefined ? "8 个隐藏通道 →" : o.axis;
     if (axis) label(axis, group, v(0, -top - 0.32, 0.3), "note", () => group.scale.x > 0.85);
-    return { group, cells, numbers, title, outlines, rows, cols, half, top, pitch, cellWidth };
+    return { group, cells, numbers, title, color, outlines, rows, cols, half, top, pitch, cellWidth };
   };
-  const paper = new T.Color("#e6ece3");
   const fmt = (x: number | string) => (typeof x === "number" ? String(+x.toFixed(2)) : x);
   const paintGrid = (
     t: Pick<Grid, "outlines" | "cells" | "numbers" | "cols" | "pitch" | "cellWidth">,
@@ -334,8 +468,36 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const tint = typeof color === "string" ? () => color : color;
     t.outlines.forEach((wire) => {
       wire.scale.x = 0.15 + 0.85 * unfold;
-      wire.material.color.set(tint(0, 0));
+      wire.material.color.set("#2c3836");
+      wire.visible = (wire.parent?.scale.x ?? 1) > 0.35;
     });
+    const colRange = Array.from({ length: t.cols }, (_, col) => {
+      let minPos = Infinity,
+        maxPos = 0,
+        maxNeg = 0;
+      for (const row of values) {
+        const vNum = row?.[col];
+        if (typeof vNum === "number") {
+          if (vNum > 0) {
+            minPos = Math.min(minPos, vNum);
+            maxPos = Math.max(maxPos, vNum);
+          } else if (vNum < 0) {
+            maxNeg = Math.max(maxNeg, -vNum);
+          }
+        }
+      }
+      return { minPos, maxPos, maxNeg };
+    });
+    let globalMinPos = Infinity,
+      globalMaxPos = 0,
+      globalMaxNeg = 0;
+    if (t.cols !== 2) {
+      for (const s of colRange) {
+        globalMinPos = Math.min(globalMinPos, s.minPos);
+        globalMaxPos = Math.max(globalMaxPos, s.maxPos);
+        globalMaxNeg = Math.max(globalMaxNeg, s.maxNeg);
+      }
+    }
     t.cells.forEach((cell, i) => {
       const r = Math.floor(i / t.cols),
         c = i % t.cols,
@@ -344,12 +506,30 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       cell.position.x = (c - (t.cols - 1) / 2) * t.pitch * (0.15 + 0.85 * unfold);
       cell.position.z = 0.2 * Math.sin(written * Math.PI);
       cell.scale.x = t.cellWidth * (0.15 + 0.85 * unfold);
-      cell.scale.z = 0.08 + 0.2 * written;
-      const shade = typeof value === "number" ? Math.abs(Math.round(value)) % 4 : 0;
-      cell.material.color.set(tint(r, c)).lerp(paper, r === focus ? 0 : 0.2 + shade * 0.1);
+      cell.scale.z = (r === focus ? 0.06 : 0.05) + (r === focus ? 0.16 : 0.13) * written;
+      if (value === "") {
+        cell.material.color.set("#f0f1ec");
+      } else if (typeof value === "number" && value === 0) {
+        cell.material.color.set("#f4f5f0");
+      } else if (typeof value === "number" && value < 0) {
+        const maxN = Math.max(t.cols === 2 ? colRange[c]!.maxNeg : globalMaxNeg, 0.5);
+        const norm = Math.min(1, Math.abs(value) / maxN);
+        cell.material.color.set("#bcc4ca").lerp(paper, 0.48 - 0.4 * norm);
+      } else if (typeof value === "number") {
+        const minP = t.cols === 2 ? colRange[c]!.minPos : globalMinPos;
+        const maxP = t.cols === 2 ? colRange[c]!.maxPos : globalMaxPos;
+        const norm =
+          maxP > minP + 1e-6 ? 0.22 * (value / maxP) + 0.78 * ((value - minP) / (maxP - minP)) : 0.76;
+        const focusBoost = r === focus ? 0.08 : 0;
+        cell.material.color.set(tint(r, c)).lerp(paper, Math.max(0, 0.68 - (0.68 * norm + focusBoost)));
+      } else {
+        cell.material.color.set(tint(r, c)).lerp(paper, 0.35);
+      }
+      if (written > 0 && written < 1) cell.material.color.lerp(pulseAnchor, 0.22);
       cell.material.opacity = 0.15 + 0.85 * written;
-      cell.material.emissive.set(written > 0 && written < 1 ? "#3c6752" : "#000");
-      t.numbers[i]!.textContent = written === 1 && unfold > 0.9 ? fmt(value) : "";
+      const numEl = t.numbers[i]!;
+      numEl.textContent = written === 1 && unfold > 0.9 ? fmt(value) : "";
+      numEl.dataset.zero = value === 0 ? "true" : "false";
     });
   };
   const matrixSlot = (point: T.Vector3, scale = 1, cols = 8, rows = 4) => {
@@ -369,7 +549,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     toScale: number,
     t: number,
     half = 1.61,
-    detour = 7.8,
+    detour = 6.35,
   ) => {
     const edge = (point: T.Vector3, scale: number) => point.clone().add(v(side * half * scale, 0));
     const start = edge(a, fromScale),
@@ -389,37 +569,46 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
   root.updateMatrixWorld(true);
   const ports = hardware.points.map((point) => hardware.group.localToWorld(point.clone()));
   const cardStates = hardware.points.map((point, i) => {
+    const slotTag = ports.length === 2 ? ` · 槽${i ? 3 : 0}` : ` · 槽${i}`;
     const names = isStrategyKind(kind)
       ? kind === TP_KIND
-        ? [`TP 卡${i}`, `输入通道 ${2 * i}、${2 * i + 1}`]
+        ? [`TP 卡${i}${slotTag}`, `输入通道 ${2 * i}、${2 * i + 1}`]
         : [`卡${i}`, ""]
       : kind === 0
-        ? [`卡${i}`, `第${2 * i}、${2 * i + 1}层`]
+        ? [`卡${i}${slotTag}`, `第${2 * i}、${2 * i + 1}层`]
         : kind === 1
-          ? [`TP 卡${i}`, `权重片 W${i}`]
+          ? [`SP 卡${i}${slotTag}`, `权重片 W${i}`]
           : kind === 2 || kind === 4
-            ? [`${kind === 4 ? "Ring" : "PCP"} 卡${i}`, `位置 ${PCP_QUERIES[i]!.join("、")}`]
-            : [`DCP 卡${i}`, i === 0 ? "KV 0、2、4、6" : "KV 1、3、5、7"];
+            ? [`${kind === 4 ? "Ring" : "PCP"} 卡${i}${slotTag}`, `位置 ${PCP_QUERIES[i]!.join("、")}`]
+            : [`DCP 卡${i}${slotTag}`, i === 0 ? "KV 0、2、4、6" : "KV 1、3、5、7"];
     if (hardware.boards === 2) {
-      label(names[0]!, hardware.group, point.clone().add(v(0, -0.7, 1.02)), "name small");
+      label(names[0]!, hardware.group, point.clone().add(v(0, -0.78, 1.04)), "card-chip");
       return label("", hardware.group, point, "note");
     }
-    label(names[0]!, hardware.group, point.clone().add(v(0, 0.5, -0.1)), "name");
-    return label(names[1]!, hardware.group, point.clone().add(v(0, 0.15, -0.1)), "note");
+    label(names[0]!, hardware.group, point.clone().add(v(0, 0.56, -0.1)), "name");
+    return label(names[1]!, hardware.group, point.clone().add(v(0, 0.14, -0.1)), "note");
   });
   const portFrames = ports.map((point) => socket(root, point, 1, 0.45));
   const extraction = ports.map((point, i) => {
-    const wire = line(i % 2 ? palette.data : palette.result, true);
+    const wire = line(rowWires[i] ?? WIRE.cobalt, true);
     wire.material.depthTest = false;
     wire.renderOrder = 10;
-    const expandedX = kind === 2 || kind === 4 ? 3.8 : kind === 3 ? 3.5 : 3.35;
-    const end = kind === 0 ? v(point.x, 0.2, 0.3) : v(i ? expandedX : -expandedX, -0.3, 0.4);
-    const side = (point.x < 0 ? -1 : 1) * (5.3 + (kind === 0 ? (i % 2) * 0.23 : 0));
-    connect(wire, [point, v(side, point.y, 1.2), v(side, end.y, 1.2), end]);
+    const expandedX = kind === 2 || kind === 4 ? 3.8 : kind === 3 ? 3.5 : 3.7;
+    const targetX = i ? expandedX : -expandedX;
+    const end =
+      kind === 0 ? v(point.x, 0.2, 0.3) : kind === 3 ? v(targetX, 0.05, 0.35) : v(targetX, -0.58, 0.4);
+    connect(
+      wire,
+      kind === 0
+        ? [point, v((point.x < 0 ? -1 : 1) * (5.3 + (i % 2) * 0.23), point.y, 1.2), end]
+        : [point, v(point.x, 0.48, 0.55), v(targetX, 0.12, 0.45), end],
+    );
     return wire;
   });
   label(
-    `高亮的 ${ports.length} 张 NPU 参与本例`,
+    ports.length === 2
+      ? "8 卡主板选槽 0、3 作 2 卡组（组内卡0、卡1）"
+      : `8 卡主板选前 ${ports.length} 槽（卡0–卡${ports.length - 1}）参与本例`,
     hardware.group,
     v(0, 0.3, 2.1),
     "note",
@@ -447,8 +636,12 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         header,
         footer,
         payloads: hardware.payloads,
+        chips: hardware.chips,
         hardwareGroup: hardware.group,
         boardCenters: hardware.boardCenters,
+        orb,
+        pick,
+        seek: (p: number) => onSeek?.(p),
       },
       kind,
     );
@@ -483,17 +676,17 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       return group;
     });
     const layerCuts = [1, 3, 5].map((i) => {
-      const l = line("#a1724b", true);
+      const l = line(WIRE.coral, true);
       connect(l, [v((i - 3) * 1.38, -0.9, 0), v((i - 3) * 1.38, -2.65, 0)]);
       return l;
     });
     const layerSlices = PARTITIONS[0]!.groups.map((rows, g) =>
-      slice(`第${rows[0]}–${rows[1]}层 → 卡${g}`, rowColors[g]!),
+      slice(`第${rows[0]}–${rows[1]}层 → 卡${g}`, rowWires[g]!),
     );
     const entryHome = v(0, -4.7, 0.5);
     const entryEnd = v(xs[0]!, 0.2, 0.3);
     const entry = grid("输入 X · 4 个 token × 8 个隐藏通道", entryHome, palette.data, { axis: false });
-    const entryRoute = line(palette.data, false, 2.8);
+    const entryRoute = line(WIRE.cobalt, false, 2.8);
     const entrySlot = matrixSlot(entryEnd, 0.4);
     const beforeFlow = new Set(root.children);
     const flowCaptionStart = captions.length;
@@ -503,14 +696,15 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const stageSlots = xs.map((x) => matrixSlot(v(x, 0.2, 0.3), 0.4));
     const sourceHome = v(-4.5, -2.2, 0.5);
     const source = grid("本段输入 · 4×8", sourceHome, palette.data);
+    const sourceTitleCaption = captions.find((c) => c.el === source.title)!;
     const middle = grid("第一层输出 · 4×8", v(0, -2.2, 0.5), palette.result);
     const result = grid("本段出口 · 4×8", v(4.5, -2.2, 0.5), palette.result);
     const slot = matrixSlot(sourceHome);
-    const extract = line(palette.result, true),
-      routeA = line(palette.data, false, 2.8),
-      routeB = line(palette.result, false, 2.8),
-      inputRoute = line(palette.data, false, 2.8),
-      outputRoute = line(palette.result, false, 2.8);
+    const extract = line(WIRE.jade, true),
+      routeA = line(WIRE.cobalt, false, 2.8),
+      routeB = line(WIRE.jade, false, 2.8),
+      inputRoute = line(WIRE.cobalt, false, 2.8),
+      outputRoute = line(WIRE.jade, false, 2.8);
     extract.material.opacity = 0.68;
     connect(routeA, [
       v(-2.89, -2.2, 0.5),
@@ -555,8 +749,11 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         layer.position.z += Math.sin(land * Math.PI) * 3.2;
         layer.scale.setScalar(1 - 0.45 * land);
         layer.children.forEach((child) => {
-          if (child instanceof T.Mesh)
-            child.material.color.set("#6e8d80").lerp(new T.Color(rowColors[Math.floor(i / 2)]!), open);
+          if (child instanceof T.Mesh) {
+            child.material.color
+              .set("#b6c0cc")
+              .lerp(new T.Color(rowColors[Math.floor(i / 2)]!).lerp(paper, 0.14), open);
+          }
         });
       });
       layerSlices.forEach((s, g) => {
@@ -589,7 +786,16 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         footer.textContent = "";
         return;
       }
-      header.textContent = `8 层完整结构 · 当前在卡${f.stage}计算第${f.stage * 2}、${f.stage * 2 + 1}层`;
+      header.textContent =
+        f.receive < 1
+          ? `8 层完整结构 · 卡${f.stage} 正在接收${f.stage === 0 ? "输入矩阵 X" : `卡${f.stage - 1}的输出`}`
+          : f.first < 1
+            ? `8 层完整结构 · 卡${f.stage} 正在计算第${f.stage * 2}层`
+            : f.second < 1
+              ? `8 层完整结构 · 卡${f.stage} 正在计算第${f.stage * 2 + 1}层`
+              : f.stage === 3
+                ? "8 层完整结构 · 四段全部算完，输出最终 4×8 隐藏状态"
+                : `8 层完整结构 · 卡${f.stage} 算完第${f.stage * 2}–${f.stage * 2 + 1}层，移交卡${f.stage + 1}`;
       footer.textContent =
         f.stage === 3 && f.second === 1
           ? "最终隐藏状态 4×8 → 出口归一化、词表打分与采样（未展开）"
@@ -601,6 +807,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       paint(source, f.stage * 2, f.stage === 0 ? palette.data : rowColors[f.stage - 1]!);
       source.title.textContent =
         f.receive < 1 ? (f.stage === 0 ? "输入 X · 4×8" : `卡${f.stage - 1}的输出 · 4×8`) : "本段输入 · 4×8";
+      sourceTitleCaption.point.x = (1 - f.receive) * 1.05;
       [source.title, ...source.numbers].forEach((el) => {
         el.style.opacity = String(f.stage === 0 ? 1 : span(f.receive, 0.25, 0.5));
       });
@@ -616,7 +823,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       slot.visible = f.receive < 1;
       slot.material.opacity = 0.8;
       inputRoute.visible = f.receive > 0 && f.receive < 1;
-      inputRoute.material.color.set(f.stage === 0 ? palette.data : rowColors[f.stage - 1]!);
+      inputRoute.material.color.set(f.stage === 0 ? WIRE.cobalt : rowWires[f.stage - 1]!);
       connect(inputRoute, receiveTransfer.curve.getPoints(40));
       const currentPort = ports[f.stage]!,
         side = currentPort.x < 0 ? -5.5 : 5.5;
@@ -628,8 +835,10 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         v(0, -0.75, 0.5),
       ]);
       outputRoute.visible = f.second === 1 && f.local >= 0.84 && f.local < 1;
+      outputRoute.material.color.set(rowWires[f.stage]!);
       stageResults.forEach((t, i) => {
         t.group.visible = i < f.stage || (i === f.stage && f.second === 1 && f.local >= 0.84);
+        t.title.style.visibility = i === f.stage - 1 && f.receive < 0.48 ? "hidden" : "";
         t.group.position.set(xs[i]!, 0.2, 0.3);
         t.group.scale.setScalar(0.4);
         if (t.group.visible) paint(t, i * 2 + 2, rowColors[i]!);
@@ -645,7 +854,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       });
     };
   } else if (kind === 1) {
-    const xs = [-3.35, 3.35];
+    const xs = [-3.7, 3.7];
     const rowStretch = 1.25;
     const projectionY = -5.55;
     const emptyRow = () => Array(PARTITIONS[1]!.columns).fill("");
@@ -672,8 +881,19 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       ),
     );
     const cuts = xs.map((x) => cut(x, -2.05, 2.2));
-    const frames = xs.map((x) => bracket(x, -0.65, -4, 2.2, "#69867a"));
-    const rowSlices = xs.map(() => [0, 1].map((g) => slice(`卡${g}负责`, rowColors[g]!)));
+    const frames = xs.map((x) => bracket(x, -0.65, -4, 2.2, "#2c3836"));
+    const rowSlices = xs.map(() => [0, 1].map((g) => slice(`卡${g}负责`, rowWires[g]!)));
+    const cardActivations = ports.map((port, g) => {
+      const mini = grid("", v(port.x, 0.44, 0.36), rowColors[g]!, {
+        rows: 4,
+        cols: 4,
+        rowNames: [],
+        axis: false,
+        focusRow: -1,
+      });
+      mini.group.scale.setScalar(0.38);
+      return mini;
+    });
     const pos = (g: number, r: number) => {
       const f = mechanismFrame(kind, progress);
       const compact = f.phase === 2 ? span(f.local, 0, 0.2) : f.phase === 3 ? 1 - span(f.local, 0, 0.15) : 0;
@@ -704,7 +924,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     slots.flat().forEach((slot) => {
       slot.scale.x *= rowStretch;
     });
-    const routes = Array.from({ length: 4 }, (_, r) => line(rowColors[Math.floor(r / 2)]!, false, 2.8));
+    const routes = Array.from({ length: 4 }, (_, r) => line(rowWires[Math.floor(r / 2)]!, false, 2.8));
     const arriving = SP_SUM.map((_, r) =>
       tensor(
         `t${r} · 接收`,
@@ -715,7 +935,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     );
     const norms = xs.map((x, g) => {
       const input = tensor("", emptyRow(), v(x, -3.2, 0.7), rowColors[g]!);
-      const result = tensor("", emptyRow(), v(x, -4.8, 0.7), rowColors[g]!);
+      const result = tensor("", emptyRow(), v(x, -4.8, 0.7), MINERAL.jade);
       [input, result].forEach((t) => {
         t.group.scale.x = rowStretch;
       });
@@ -724,9 +944,9 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         const n = spNormalization(progress);
         return n.enabled && n.landed === 1 && n.written[n.rows[g]!]! < 1;
       });
-      const take = line(rowColors[g]!, true),
-        write = line(rowColors[g]!, false, 2.8);
-      const channels = channelIndices.map(() => line(rowColors[g]!, false, 2.8));
+      const take = line(rowWires[g]!, true),
+        write = line(WIRE.jade, false, 2.8);
+      const channels = channelIndices.map(() => line(rowWires[g]!, false, 2.8));
       return { input, result, divisor, take, write, channels };
     });
     const sum = tensor("逐通道相加", emptyRow(), v(4.8, -5.15, 0.6), palette.result);
@@ -741,7 +961,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     };
     label("+", root, v(-2.4, -5.15, 0.6), "operator", operandsLanded);
     label("=", root, v(2.4, -5.15, 0.6), "operator", operandsLanded);
-    const sumRoute = line(palette.result, false, 2.8);
+    const sumRoute = line(WIRE.jade, false, 2.8);
     const projections = xs.map((x, g) => {
       const weight = tensor(
         `权重列 ${g}`,
@@ -772,8 +992,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         () => spProjection(progress).enabled,
       );
       const slots = output.map((t) => socket(root, t.group.position, 1, 0.8));
-      const inputRoute = line(rowColors[g]!, false, 2.8),
-        writeRoute = line(palette.result, false, 2.8);
+      const inputRoute = line(rowWires[g]!, false, 2.8),
+        writeRoute = line(WIRE.jade, false, 2.8);
       const result = tensor("", [""], v(x + 1.8, projectionY, 0.5), palette.result, 0.8);
       channelIndices.forEach((c) => {
         label(
@@ -797,8 +1017,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           spProjection(progress).multiplied === 1 &&
           spProjection(progress).written[spProjection(progress).row]! < 1,
       );
-      const sumLines = channelIndices.map(() => line(palette.result, false, 2.8));
-      const extraction = line(palette.weight, true);
+      const sumLines = channelIndices.map(() => line(WIRE.jade, false, 2.8));
+      const extraction = line(WIRE.coral, true);
       connect(extraction, [
         ports[g]!,
         v(g ? 6.8 : -6.8, ports[g]!.y, 1.4),
@@ -833,7 +1053,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         t.group.visible = introducing;
         t.cells.forEach((cell, c) => {
           const written = gridWriteProgress(intro, r, c, t.cells.length);
-          cell.material.opacity = 0.15 + 0.85 * written;
+          pulseCell(cell, false, 0.15 + 0.85 * written);
           cell.position.z = 0.2 * Math.sin(written * Math.PI);
         });
       });
@@ -841,9 +1061,49 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         c.visible = phase <= 1 && unfold === 1;
         c.material.opacity = phase === 0 ? 0.2 + f.split * 0.7 : 0.4;
       });
+      const allGathered = phase > 3 || (phase === 3 && f.local >= 0.18 && local * 4 >= 3.65);
+      const gatheredOnCard = (g: number) =>
+        2 +
+        [0, 1, 2, 3].filter((r) => Math.floor(r / 2) !== g && f.local >= 0.18 && local * 4 >= r + 0.65)
+          .length;
       matrixNames.forEach((name, g) => {
         name.style.visibility = introducing || unfold < 0.5 ? "hidden" : "";
-        name.textContent = `卡${g} · ${phase < 2 ? "同四行的不同贡献" : phase === 2 ? "本卡两行激活" : phase === 3 ? "收齐归一化后的四行" : "输入"}`;
+        const slotNum = g ? 3 : 0;
+        const held = gatheredOnCard(g);
+        name.textContent = `卡${g}（槽${slotNum}）· ${
+          phase < 2
+            ? "同四行的不同贡献 [4,4]"
+            : phase === 2
+              ? "本卡仅存 [2,4] 激活（省 1/2）"
+              : phase === 3
+                ? f.local < 0.18
+                  ? "本卡 [2,4] · 留出待收空槽"
+                  : held < 4
+                    ? `All-Gather 补齐中（${held}/4 行）`
+                    : "已收齐归一化激活 [4,4]"
+                : "输入 [4,4]"
+        }`;
+      });
+      cardActivations.forEach((mini, g) => {
+        mini.group.visible = !introducing && unfold > 0.5 && p < 0.963;
+        const cardRows = [0, 1, 2, 3].map((r) => {
+          const own = Math.floor(r / 2) === g;
+          if (phase === 0) return SP_PARTIALS[g]![r]!;
+          if (phase === 1) return local * 4 >= r + 1 ? (own ? SP_SUM[r]! : emptyRow()) : SP_PARTIALS[g]![r]!;
+          if (phase === 2) return own ? (norm.written[r] === 1 ? SP_NORMALIZED[r]! : SP_SUM[r]!) : emptyRow();
+          if (phase === 3)
+            return own || (f.local >= 0.18 && local * 4 >= r + 0.65) ? SP_NORMALIZED[r]! : emptyRow();
+          return SP_NORMALIZED[r]!;
+        });
+        paintGrid(mini, cardRows, (r) => rowColors[Math.floor(r / 2)]!, 1, 1, -1);
+        cardStates[g]!.textContent =
+          phase < 2
+            ? `权重 W${g} · 暂存部分和 4×4`
+            : phase === 2
+              ? `权重 W${g} · 本卡激活 2×4（省 1/2）`
+              : phase === 3
+                ? `权重 W${g} · 激活 ${gatheredOnCard(g)}/4 行`
+                : `权重 W${g} · 输入 4×4`;
       });
       rowSlices.forEach((slices, card) => {
         slices.forEach((s, g) => {
@@ -853,7 +1113,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           s.group.position.copy(a).lerp(b, 0.5);
           const half = (a.y - b.y) / 2 + 0.29;
           connect(s.wire, [v(2.08, half, 0.3), v(2.25, half, 0.3), v(2.25, -half, 0.3), v(2.08, -half, 0.3)]);
-          s.tagPoint.set(3, 0, 0.3);
+          if (phase === 2) s.tagPoint.set(0, -half - 0.32, 0.35);
+          else s.tagPoint.set(2.74, 0, 0.3);
         });
       });
       frames.forEach((pair, g) => {
@@ -867,28 +1128,37 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
                 : 1;
           l.position.y = -0.65 * (1 - l.scale.y);
           l.position.x = phase === 4 ? -0.85 * span(f.local, 0, 0.08) : 0;
-          l.material.color.set(phase === 2 ? rowColors[g]! : "#69867a");
+          l.material.color.set(phase === 2 ? rowWires[g]! : "#2c3836");
         });
       });
       shapeLabels.forEach((l) => {
-        l.textContent = phase === 2 ? "两行，每行四个通道" : "一行一个 token · 四列是四个通道 →";
+        l.textContent = phase === 2 ? "仅存本卡两行 × 四通道" : "一行一个 token · 四列是四个通道 →";
         captions.find((c) => c.el === l)!.point.y = -4.3;
         l.style.visibility = introducing || unfold < 1 || phase === 2 || phase === 3 ? "hidden" : "";
       });
       sum.group.visible = false;
       sumRoute.visible = false;
+      const gatherRowIdx = Math.min(3, Math.floor(local * 4));
       header.textContent = [
         introducing ? "完整序列：每个 token 对应一整行激活" : "TP 产生两份贡献 · SP 再按行相加并分工",
-        "Reduce-Scatter · 同位置相加，每卡只留自己的行",
-        "本地 RMSNorm · 每卡只算两行",
-        "All-Gather · 把另一卡的行收齐，不做相加",
+        "Reduce-Scatter · 同位置相加，每卡只留自己的两行",
+        "本地 RMSNorm · 每卡只保留并计算 2×4（省 1/2 激活）",
+        f.local < 0.18
+          ? "All-Gather 准备 · 亮出待接收空槽（当前每卡仍存 2×4）"
+          : allGathered
+            ? "All-Gather 完成 · 两卡均已收齐 4×4 归一化激活"
+            : `All-Gather 进行中 · 复制“${SP_TOKENS[gatherRowIdx]}”到另一卡，不做相加`,
         "同一份输入 × 本卡权重列 · 输出各占一列",
       ][phase]!;
       footer.textContent = [
         "示意分词：今天 / 天气 / 很 / 好 · 切在行间，每个 token 的四个通道一起保留",
-        "先接收另一份部分和，再相加；结果只留在负责它的卡",
-        "γ=1，忽略 ε 与残差；这一段没有跨卡通信",
-        "每卡重新持有 4 行 → 下一列并行投影",
+        "先接收另一份部分和，再相加；非本卡负责的临时位置随即释放",
+        "γ=1，忽略 ε 与残差；这一段零跨卡通信，每卡只占 1/2 激活显存",
+        f.local < 0.18
+          ? "准备跨卡复制：本卡保留自己的 2 行，等待接收对方 2 行"
+          : allGathered
+            ? "每卡重新持有完整 4 行 → 交给下一列并行投影"
+            : "逐行复制补齐缺行，尚未收齐全部 4 行",
         p >= 0.999
           ? "两列并排对照 · 仍分别存于卡0、卡1，未额外通信"
           : "输入行不改变；两卡的输出列一起组成下一份激活，不再相加",
@@ -930,7 +1200,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           if (phase === 0) t.group.position.x *= 0.86 + 0.14 * unfold;
           rowTitle(t);
           // During copying, keep card 1's row names outside the communication corridor.
-          captions.find((c) => c.el === t.title)!.point.x = phase === 3 && g === 1 ? 2.25 : -2.25;
+          captions.find((c) => c.el === t.title)!.point.x = phase === 3 && g === 1 ? 2.45 : -2.45;
           t.group.visible = !introducing;
           t.title.textContent =
             (phase === 0 && unfold < 0.5) || (phase === 2 && g !== owner) ? "" : rowName(r);
@@ -1065,7 +1335,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         });
         rows[g]!.forEach((t, r) => {
           t.cells.forEach((c) => {
-            c.material.emissive.set(enabled && r === row ? "#355b4c" : "#000");
+            pulseCell(c, enabled && r === row);
           });
         });
         const start = pos(g, row),
@@ -1093,7 +1363,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           ),
           rowColors[Math.floor(row / 2)]!,
         );
-        item.inputRoute.material.color.set(rowColors[Math.floor(row / 2)]!);
+        item.inputRoute.material.color.set(rowWires[Math.floor(row / 2)]!);
         item.products.title.textContent = landed === 1 ? (multiplied === 1 ? "乘积" : "输入") : "";
         item.sumLines.forEach((l, c) => {
           l.visible = enabled && multiplied === 1 && local < 0.7;
@@ -1155,8 +1425,18 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       portFrames[g]!.position.copy(point);
       portFrames[g]!.quaternion.copy(landedRotation);
       portFrames[g]!.scale.set(0.98, 0.9, 0.25);
-      const side = g ? 5.3 : -5.3;
-      connect(extraction[g]!, [point, v(side, point.y, 1.2), v(side, -0.3, 1.2), v(xs[g]!, -0.3, 0.4)]);
+      connect(extraction[g]!, [point, v(point.x, 0.32, 0.55), v(xs[g]!, -0.18, 0.45), v(xs[g]!, -0.68, 0.4)]);
+    });
+    const cardAnchors = ports.map((point, g) => {
+      const mini = grid("", v(point.x, 0.42, 0.4), rowColors[g]!, {
+        rows: 4,
+        cols: 4,
+        rowNames: [],
+        axis: false,
+        focusRow: -1,
+      });
+      mini.group.scale.setScalar(0.34);
+      return mini;
     });
     const payloadMaterials = hardware.payloads.flatMap((t) =>
       Array.isArray(t.material) ? t.material : [t.material],
@@ -1199,8 +1479,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         () => pcpMotion(progress).phase === 0 && pcpMotion(progress).local >= 0.25,
       ),
     );
-    const querySlices = Array.from({ length: 4 }, (_, g) => slice(`段${g}`, rowColors[ownerOf(g * 2)]!));
-    const frames = xs.map((x) => bracket(x, -0.7, -3.1, 1.28, "#69867a"));
+    const querySlices = Array.from({ length: 4 }, (_, g) => slice(`段${g}`, rowWires[ownerOf(g * 2)]!));
+    const frames = xs.map((x) => bracket(x, -0.7, -3.1, 1.28, "#2c3836"));
     const rows = Array.from({ length: 8 }, (_, q) =>
       tensor(`位置${q}`, PCP_EXAMPLE.queries[q]!, source(q), rowColors[ownerOf(q)]!, 0.52),
     );
@@ -1226,7 +1506,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     );
     const kv = [0, 1].map((g) =>
       Array.from({ length: 8 }, (_, p) => {
-        const t = tensor(`p${p}`, Array(8).fill(""), kvPoint(g, p), rowColors[ownerOf(p)]!, 0.17);
+        const t = tensor(`p${p}`, Array(8).fill(""), kvPoint(g, p), MINERAL.coral, 0.17);
         t.cells.forEach((cell, d) => {
           cell.position.x += d < 4 ? -0.07 : 0.07;
         });
@@ -1238,13 +1518,13 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const kvSlots = [0, 1].map((g) =>
       Array.from({ length: 8 }, (_, p) => socket(root, kvPoint(g, p), 8, 0.17)),
     );
-    const accesses = xs.map(() => line("#b78243", false, 2.8));
-    const valueReads = xs.map(() => line(palette.result, false, 2.8));
-    const valueSamples = xs.map((x, g) =>
-      tensor("当前 V · 4 通道", ["", "", "", ""], v(x, -4.85, 0.65), rowColors[g]!, 0.62),
+    const accesses = xs.map(() => line(WIRE.coral, false, 2.8));
+    const valueReads = xs.map(() => line(WIRE.jade, false, 2.8));
+    const valueSamples = xs.map((x) =>
+      tensor("当前 V · 4 通道", ["", "", "", ""], v(x, -4.85, 0.65), MINERAL.jade, 0.62),
     );
-    const sums = xs.map((x, g) =>
-      tensor("取回的内容总和 · 4通道", [0, 0, 0, 0], v(x, -6.3, 0.65), rowColors[g]!, 0.62),
+    const sums = xs.map((x) =>
+      tensor("取回的内容总和 · 4通道", [0, 0, 0, 0], v(x, -6.3, 0.65), MINERAL.jade, 0.62),
     );
     [...valueSamples, ...sums].forEach((t) => {
       t.numbers.forEach((el) => {
@@ -1253,7 +1533,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       t.title.className = "wiki-mechanism-label name";
     });
     const sumRoutes = xs.map((x) => {
-      const l = line(palette.result, false, 2.8);
+      const l = line(WIRE.jade, false, 2.8);
       connect(l, [
         v(x + 1.31, -4.85, 0.65),
         v(x + 1.8, -4.85, 0.65),
@@ -1288,12 +1568,12 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       });
       return group;
     });
-    const writeRoutes = xs.map(() => line(palette.result, false, 2.8));
+    const writeRoutes = xs.map(() => line(WIRE.jade, false, 2.8));
     animateContent = (p) => {
       const f = pcpMotion(p),
         { phase, local, split } = f;
       balance.forEach((l, g) => {
-        l.textContent = `卡${g}：${local < 0.65 ? (g ? 26 : 10) : 18} 次评分`;
+        l.textContent = `卡${g}（槽${g ? 3 : 0}）：${local < 0.65 ? (g ? 26 : 10) : 18} 次评分`;
       });
       header.textContent = [
         local < 0.25 ? "先看输入 · 一句话的 8 个位置" : "再看分工 · 连续分不均衡，头尾配对来平衡",
@@ -1334,7 +1614,26 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         l.material.opacity = 0.35 + f.assign * 0.25;
       });
       names.forEach((n, g) => {
-        n.textContent = `卡${g} · ${f.localKV === 0 ? "输入 X" : f.localKV < 1 ? "X → Q / K / V" : phase < 2 ? "查询 Q" : phase === 2 ? "查询 → 输出" : "输出"}`;
+        const slotNum = g ? 3 : 0;
+        n.textContent = `卡${g}（槽${slotNum}）· ${f.localKV === 0 ? "输入 X" : f.localKV < 1 ? "X → Q / K / V" : phase < 2 ? "查询 Q" : phase === 2 ? "查询 → 输出" : "输出"}`;
+      });
+      cardAnchors.forEach((mini, g) => {
+        mini.group.visible = f.assign > 0.2;
+        const cardRows = PCP_QUERIES[g]!.map((q) =>
+          f.written[q]! === 1
+            ? PCP_EXAMPLE.outputs[q]!
+            : f.localKV > 0
+              ? PCP_EXAMPLE.queries[q]!
+              : [1, 1, 1, 1],
+        );
+        paintGrid(
+          mini,
+          cardRows,
+          (r) => (f.written[PCP_QUERIES[g]![r]!]! === 1 ? MINERAL.jade : rowColors[g]!),
+          1,
+          1,
+          -1,
+        );
       });
       completion.forEach((n, g) => {
         n.textContent = `位置 ${PCP_QUERIES[g]!.join("、")} · 留在本卡`;
@@ -1375,15 +1674,15 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           .find((c) => c.el === row.title)!
           .point.set((f.assign === 0 ? -1 : g ? 1 : -1) * 1.85, 0, 0.3);
         row.cells.forEach((c) => {
-          c.material.emissive.set(phase === 2 && PCP_QUERIES[g]![f.active] === q ? "#355b4c" : "#000");
+          pulseCell(c, phase === 2 && PCP_QUERIES[g]![f.active] === q);
         });
         row.cells.forEach((c, d) => {
           c.position.x = (d - 1.5) * 0.565;
-          c.scale.x = 0.52;
+          c.scale.x = 0.49;
         });
         ghost.group.visible = phase === 1 && f.localKV < 1;
         ghost.cells.forEach((c) => {
-          c.material.opacity = 0.12 * (1 - f.localKV);
+          pulseCell(c, false, 0.12 * (1 - f.localKV));
         });
         out.group.visible = written > 0;
         out.group.position.copy(target(q));
@@ -1458,12 +1757,10 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           const opacity = phase === 3 ? 1 - f.handoff : phase === 2 && k > activeQ ? 0.12 : 1;
           t.title.textContent = ready === 1 && opacity > 0.5 ? `${k}` : "";
           t.cells.forEach((cell, d) => {
-            cell.material.opacity = opacity;
-            cell.material.color.set(rowColors[ownerOf(k)]!);
-            if (d >= 4) cell.material.color.lerp(new T.Color("#e6eadf"), 0.3);
-            cell.material.emissive.set(
-              phase === 2 && k === read.position && !read.complete ? "#325e42" : "#000",
-            );
+            const base = d < 4 ? MINERAL.coral : MINERAL.jade;
+            cell.material.color.set(base).lerp(paper, isLocal ? 0.18 : 0.3);
+            cell.userData.shadedColor = cell.material.color.clone();
+            pulseCell(cell, phase === 2 && k === read.position && !read.complete, opacity);
           });
           kvSlots[g]![k]!.visible = phase === 1 && f.assign === 1 && ready < 1;
           kvSlots[g]![k]!.material.opacity = 0.45;
@@ -1511,10 +1808,10 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         flightRows[g]!.forEach((t) => {
           // Original output rows retain their labels; flying copies only show the same colored grid.
           t.cells.forEach((cell) => {
-            cell.material.opacity = 0.25 + 0.75 * span(f.handoff, 0.25, 0.6);
+            pulseCell(cell, false, 0.25 + 0.75 * span(f.handoff, 0.25, 0.6));
           });
         });
-        hardware.payloads[g]!.visible = phase < 3;
+        hardware.payloads[g]!.visible = true;
       }
     };
   } else if (kind === 4) {
@@ -1530,11 +1827,17 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const queryPoint = (p: number, assign: number) =>
       sourceQ(p).lerp(v(xs[owner(p)]! - 2.15, rowY(slot(p)), 0.4), assign);
     const kvRow = (p: number, point: T.Vector3) => {
-      const t = tensor(`位置${p}`, vectorKV(p), point, rowColors[owner(p)]!, 0.32);
+      const vec = vectorKV(p);
+      const t = tensor(`位置${p}`, vec, point, MINERAL.coral, 0.32);
       t.cells.forEach((cell, d) => {
         cell.position.x += d < 4 ? -0.08 : 0.08;
-        cell.scale.y = 0.4;
-        if (d < 4) cell.material.color.lerp(new T.Color("#a8bdc2"), 0.25);
+        cell.scale.y = 0.38;
+        if (d >= 4) {
+          const val = vec[d];
+          const norm = typeof val === "number" ? Math.min(1, val / 36) : 0.6;
+          cell.material.color.set(MINERAL.jade).lerp(paper, Math.max(0.08, 0.58 - 0.5 * norm));
+          cell.userData.shadedColor = cell.material.color.clone();
+        }
       });
       captions.find((c) => c.el === t.title)!.point.set(2.05, 0, 0.4);
       return t;
@@ -1571,11 +1874,17 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       () => ringMotion(progress).assign < 1,
     );
     const cuts = [1, 3, 5].map((r) => cut(0, -0.8 - (r + 0.5) * 0.53, 1.15));
-    const globalOutline = bracket(0, -0.42, -4.85, 1.15, "#69867a");
-    const slices = Array.from({ length: 4 }, (_, r) => slice(`段${r}`, rowColors[owner(r * 2)]!));
-    const panels = xs.map((x) => bracket(x - 0.2, -0.75, -5.9, 3.35, "#69867a"));
+    const globalOutline = bracket(0, -0.42, -4.85, 1.15, "#2c3836");
+    const slices = Array.from({ length: 4 }, (_, r) => slice(`段${r}`, rowWires[owner(r * 2)]!));
+    const panels = xs.map((x) => bracket(x - 0.2, -0.75, -5.9, 3.35, "#2c3836"));
     const qHeads = xs.map((x, g) =>
-      label(`卡${g} · Q`, root, v(x - 2.15, -0.55), "name", () => ringMotion(progress).assign === 1),
+      label(
+        `卡${g}（槽${g ? 3 : 0}）· Q`,
+        root,
+        v(x - 2.15, -0.55),
+        "name",
+        () => ringMotion(progress).assign === 1,
+      ),
     );
     const kvHeads = xs.map((x, g) =>
       label(
@@ -1606,7 +1915,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       const name = label(`块 ${g ? "B" : "A"}`, group, v(0, 1.5, 0.4), "name");
       return { group, rows, name };
     });
-    const routes = xs.map((_, g) => line(rowColors[g]!, false, 2.8));
+    const routes = xs.map((_, g) => line(rowWires[g]!, false, 2.8));
     const receive = xs.map((_, g) =>
       PCP_QUERIES[1 - g]!.map((_, r) => {
         const frame = socket(root, v(xs[g]! + 0.8, rowY(r), 0.5), 8, 0.32);
@@ -1614,12 +1923,12 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         return frame;
       }),
     );
-    const terms = xs.map((x, g) =>
-      tensor("权重 × V · 当前四项贡献", ["", "", "", ""], v(x, -4.22, 0.8), rowColors[g]!, 0.7),
+    const terms = xs.map((x) =>
+      tensor("权重 × V · 当前四项贡献", ["", "", "", ""], v(x, -4.22, 0.8), MINERAL.jade, 0.7),
     );
-    const accumulator = xs.map((x, g) => {
-      const u = tensor("内容总和", [0], v(x - 0.8, -4.95, 0.5), rowColors[g]!, 0.86);
-      const z = tensor("权重总份额", [0], v(x + 0.8, -4.95, 0.5), rowColors[g]!, 0.86);
+    const accumulator = xs.map((x) => {
+      const u = tensor("内容总和", [0], v(x - 0.8, -4.95, 0.5), MINERAL.jade, 0.86);
+      const z = tensor("权重总份额", [0], v(x + 0.8, -4.95, 0.5), MINERAL.coral, 0.86);
       [u, z].forEach((t) => {
         captions.find((c) => c.el === t.title)!.point.set(0, -0.4, 0.4);
       });
@@ -1627,8 +1936,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       answer.style.whiteSpace = "pre-line";
       return { u, z, answer };
     });
-    const reads = xs.map(() => line(palette.result, false, 2.8));
-    const queryReads = xs.map(() => line("#b78243", false, 3));
+    const reads = xs.map(() => line(WIRE.jade, false, 2.8));
+    const queryReads = xs.map(() => line(WIRE.coral, false, 3));
     const queryFocus = xs.map((x) => {
       const frame = socket(root, v(x - 2.15, rowY(3), 0.4), 4, 0.6);
       frame.scale.set(2.56, 0.48, 0.5);
@@ -1654,7 +1963,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       });
       return group;
     });
-    const writes = xs.map(() => line(palette.result, false, 2.8));
+    const writes = xs.map(() => line(WIRE.jade, false, 2.8));
     animateContent = (p) => {
       const f = ringMotion(p),
         { phase, assign } = f;
@@ -1731,13 +2040,13 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         set(
           t,
           done ? ringVectorOutput(q).map((value) => +value.toFixed(1)) : RING_Q_VECTOR,
-          undefined,
+          done ? MINERAL.jade : MINERAL.cobalt,
           f.project * (phase > 0 && phase < 4 && q !== CP_FOCUS[g] ? 0.65 : 1),
         );
         t.title.textContent = `${done ? "O" : "Q"}${q}`;
         t.title.style.opacity = String(f.project);
         t.cells.forEach((cell) => {
-          cell.material.emissive.set(phase > 0 && q === CP_FOCUS[g] ? "#406d59" : "#000");
+          pulseCell(cell, phase > 0 && q === CP_FOCUS[g]);
         });
         const read = cpReadFrame(kind, p, g);
         k.group.visible = f.transfer < 1 && f.project > 0;
@@ -1745,11 +2054,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         // incoming row before arrival so a new block never lands on old IDs.
         k.title.textContent = phase === 0 ? "" : `位置${phase === 2 ? PCP_QUERIES[1 - g]![r] : q}`;
         k.cells.forEach((cell) => {
-          cell.material.opacity =
-            phase === 0 ? f.project : phase === 2 ? 0.18 : phase === 1 && q > read.query ? 0.18 : 1;
-          cell.material.emissive.set(
-            phase === 1 && read.position === q && !read.complete ? "#486e50" : "#000",
-          );
+          const op = phase === 0 ? f.project : phase === 2 ? 0.18 : phase === 1 && q > read.query ? 0.18 : 1;
+          pulseCell(cell, phase === 1 && read.position === q && !read.complete, op);
         });
       }
       for (let g = 0; g < 2; g++) {
@@ -1776,11 +2082,10 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           t.title.textContent = f.transfer === 1 ? `位置${position}` : "";
           const opacity = phase >= 3 && position > destinationRead.query ? 0.18 : 1;
           t.cells.forEach((cell) => {
-            cell.material.opacity = opacity;
-            cell.material.emissive.set(
-              phase === 3 && destinationRead.position === position && !destinationRead.complete
-                ? "#486e50"
-                : "#000",
+            pulseCell(
+              cell,
+              phase === 3 && destinationRead.position === position && !destinationRead.complete,
+              opacity,
             );
           });
           t.numbers.forEach((el) => {
@@ -1793,7 +2098,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           s.visible = phase === 2 && f.transfer < 1;
           s.material.opacity = 0.9;
         });
-        qHeads[g]!.textContent = `卡${g} · ${phase === 4 ? "O" : phase === 3 ? "Q → O" : "Q"} · 4×4`;
+        qHeads[g]!.textContent =
+          `卡${g}（槽${g ? 3 : 0}）· ${phase === 4 ? "O" : phase === 3 ? "Q → O" : "Q"} · 4×4`;
         kvHeads[g]!.textContent =
           phase === 2 && f.transfer > 0 && f.transfer < 1
             ? ""
@@ -1813,7 +2119,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           phase === 0
             ? ""
             : phase === 2
-              ? `保留内容 ${fmt(read.total.u)}、份额 ${fmt(read.total.z)}\n等待远端块，接着计算`
+              ? `保留内容 ${fmt(read.total.u)}、份额 ${fmt(read.total.z)}\n${f.transfer === 1 ? "远端块已落稳，下一轮接着计算" : "等待远端块，接着计算"}`
               : read.output === null
                 ? `Q${q} · 等待第一项累积`
                 : `${phase >= 3 ? `上轮 ${fmt(read.prior.u)} + 本块 ${fmt(read.added.u)} = ${fmt(read.total.u)}\n` : ""}内容 ${fmt(read.total.u)} ÷ 份额 ${fmt(read.total.z)} = ${fmt(read.output)}`;
@@ -1835,9 +2141,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           const position = currentBlock[j]!,
             added = read.read.includes(position),
             current = position === read.position && read.weighted;
-          cell.material.opacity = position > q ? 0.22 : added || current ? 1 : 0.15;
           cell.position.z = current && !read.complete ? 0.26 : 0;
-          cell.material.emissive.set(current && !read.complete ? "#486e50" : "#000");
+          pulseCell(cell, current && !read.complete, position > q ? 0.22 : added || current ? 1 : 0.15);
         });
         const activeRow = currentBlock.indexOf(read.position),
           x = xs[g]!;
@@ -1878,14 +2183,14 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         );
         writes[g]!.visible = phase === 4 && f.handoff > 0 && f.handoff < 1;
         connect(writes[g]!, writeCurve.getPoints(32));
-        hardware.payloads[g]!.visible = phase < 4;
+        hardware.payloads[g]!.visible = true;
       }
     };
   } else {
     const xs = [-3.5, 3.5];
     const cacheNames = xs.map((x, i) =>
       label(
-        `卡${i} · K、V 各 [4,4]`,
+        `卡${i}（槽${i ? 3 : 0}）· K、V 各 [4,4]`,
         root,
         v(x, 0.25),
         "name",
@@ -1900,13 +2205,13 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       () => mechanismFrame(kind, progress).phase === 0,
     );
     const sourceFrames = [
-      bracket(-1.6, -0.4, -4.55, 1.51, "#69867a"),
-      bracket(1.3, -0.4, -4.55, 1.25, "#69867a"),
+      bracket(-1.6, -0.4, -4.55, 1.51, "#2c3836"),
+      bracket(1.3, -0.4, -4.55, 1.25, "#2c3836"),
     ].flat();
     const cuts = Array.from({ length: 7 }, (_, r) => cut(0, -1 - r * 0.49, 2.8));
     const cache = xs.map((x, g) =>
       PARTITIONS[3]!.groups[g]!.map((position, r) => {
-        const pair = slice(`位置${position}`, rowColors[g]!);
+        const pair = slice(`位置${position}`, rowWires[g]!);
         pair.tagPoint.set(g ? 3.15 : -3.65, 0, 0.3);
         connect(pair.wire, [
           v(-3.05, 0.2, 0.25),
@@ -1919,7 +2224,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
             "",
             Array(PARTITIONS[3]!.columns).fill(""),
             v(x + offset, -0.75 - r * 0.56, 0.2),
-            part === 0 ? rowColors[g]! : g ? "#bb9471" : "#789eaa",
+            part === 0 ? MINERAL.coral : MINERAL.jade,
             0.56,
           );
           pair.group.add(t.group);
@@ -1964,71 +2269,75 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const queries = xs.map((x) => tensor("Q₇", DCP_QUERY, v(x, -3.15, 0.4), palette.data, 0.62));
     queries.forEach(rowTitle);
     const queryLines = xs.map((x, g) => {
-      const l = line("#b78243", false, 2.8);
+      const l = line(WIRE.coral, false, 2.8);
       const aisle = x + (g ? -2.2 : 2.2);
       connect(l, [v(aisle, -1.75, 0.4), v(aisle, -3.1, 0.6), v(x, -3.1, 0.6)]);
       return l;
     });
-    const readLines = xs.map(() => line(palette.result, false, 2.8));
+    const readLines = xs.map(() => line(WIRE.jade, false, 2.8));
     const localO = xs.map((x, g) =>
-      tensor(`O${g}`, dcpChannels(DCP_EXAMPLE.local[g]!), v(x - 0.3325, -4, 0.6), rowColors[g]!, 0.62),
+      tensor(`O${g}`, dcpChannels(DCP_EXAMPLE.local[g]!), v(x - 0.3325, -4.28, 0.6), rowColors[g]!, 0.62),
     );
     const localZ = xs.map((x, g) =>
-      tensor(`Z${g}`, [DCP_EXAMPLE.normalizers[g]!], v(x + 1.33, -4, 0.6), rowColors[g]!, 0.62),
+      tensor(`Z${g}`, [DCP_EXAMPLE.normalizers[g]!], v(x + 1.33, -4.28, 0.6), MINERAL.coral, 0.62),
     );
     xs.forEach((_x, g) => {
-      localO[g]!.title.textContent = "本块上下文";
-      localZ[g]!.title.textContent = "份额";
+      localO[g]!.title.textContent = `局部 O${SUB[g]}`;
+      localZ[g]!.title.textContent = `LSE${SUB[g]} (Z=${DCP_EXAMPLE.normalizers[g]})`;
     });
+    const lseText = (card: number) => `ln ${DCP_EXAMPLE.normalizers[card]}`;
     const receive = xs.map((x, g) =>
       tensor(
-        `卡${1 - g}的结果`,
-        [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), DCP_EXAMPLE.normalizers[1 - g]!],
-        v(x, -5.2, 0.6),
+        `收到 O${SUB[1 - g]} + LSE${SUB[1 - g]}`,
+        [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), lseText(1 - g)],
+        v(x, -5.32, 0.6),
         rowColors[1 - g]!,
         0.62,
       ),
     );
     const slots = receive.map((t) => socket(root, t.group.position, 5, 0.62));
     receive.forEach((t) => {
-      captions.find((c) => c.el === t.title)!.point.set(-2.4, 0, 0.3);
+      captions.find((c) => c.el === t.title)!.point.set(0, -0.58, 0.3);
+      t.cells[4]!.position.x += 0.14;
     });
-    const travel = receive.map((_, g) =>
-      tensor(
-        `输出 O${1 - g} 与权重和 Z${1 - g}`,
-        [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), DCP_EXAMPLE.normalizers[1 - g]!],
-        v(xs[1 - g]!, -4, 0.6),
+    const travel = receive.map((_, g) => {
+      const pkt = tensor(
+        `传 O${SUB[1 - g]} + LSE${SUB[1 - g]}`,
+        [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), lseText(1 - g)],
+        v(xs[1 - g]!, -4.28, 0.6),
         rowColors[1 - g]!,
         0.62,
-      ),
-    );
-    const routes = [line(rowColors[1]!, false, 2.8), line(rowColors[0]!, false, 2.8)];
+      );
+      pkt.cells[4]!.position.x += 0.14;
+      return pkt;
+    });
+    const routes = [line(rowWires[1]!, false, 2.8), line(rowWires[0]!, false, 2.8)];
     const contributions = xs.map((_, g) =>
       tensor(
         `卡${g}贡献 × ${g ? "¾" : "¼"}`,
         dcpChannels(DCP_EXAMPLE.local[g]!).map((n) => n * (g ? 0.75 : 0.25)),
-        v(g === 0 ? -5.1 : 0, -5.65, 0.7),
+        v(g === 0 ? -5.1 : 0, -5.78, 0.7),
         rowColors[g]!,
         0.78,
       ),
     );
-    const result = tensor("合并 O · 4 通道", dcpChannels(25), v(5.1, -5.65, 0.7), palette.result, 0.78);
+    const result = tensor("合并 O · 4 通道", dcpChannels(25), v(5.1, -5.78, 0.7), palette.result, 0.78);
     result.group.scale.x = 1.35;
-    captions.find((c) => c.el === footer)!.point.y = -6.7;
-    const mergeRoutes = xs.map((_, g) => line(rowColors[g]!, false, 2.8));
+    captions.find((c) => c.el === footer)!.point.y = -6.82;
+    const mergeRoutes = xs.map((_, g) => line(rowWires[g]!, false, 2.8));
     const mergeLanded = () => {
       const f = mechanismFrame(kind, progress);
       return f.phase === 3 && f.local >= 0.34;
     };
-    label("+", root, v(-2.55, -5.65, 0.7), "operator", mergeLanded);
-    label("=", root, v(2.55, -5.65, 0.7), "operator", mergeLanded);
+    label("+", root, v(-2.55, -5.78, 0.7), "operator", mergeLanded);
+    label("=", root, v(2.55, -5.78, 0.7), "operator", mergeLanded);
     animateContent = (p) => {
       const { phase, local, split } = mechanismFrame(kind, p);
       const merge = dcpMergeFrame(p);
       header.textContent = [
         "DCP · K、V 沿历史位置交错分存",
-        "各卡算局部输出 O，同时保留权重和 Z",
-        "接收同查询 / 同头的 O 与 LSE",
+        "各卡算局部输出 O 与对数统计 LSE（本卡 Z = exp(LSE)）",
+        "跨卡交换局部 O 与 LSE（ln 2、ln 6），本卡算 Z = exp(LSE)",
         merge.complete
           ? "合并完成 · O = [25, 15, 12.5, 7.5]"
           : merge.weighted
@@ -2039,7 +2348,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         phase === 0
           ? "K、V 每行四通道 · −0.69≈ln(0.5)，0.41≈ln(1.5)"
           : phase < 3
-            ? "前四格为 O 向量；末格 Z = exp(LSE)，不是输出通道"
+            ? "跨卡传局部 O 与 LSE（ln 2、ln 6）；接收卡本地算 Z = exp(LSE) = 2、6"
             : "同列相加：¼ O₀ + ¾ O₁ · 四通道共用分区权重";
       sourceName.textContent =
         split < 0.2 ? "历史缓存的全局位置（逻辑视图）" : "偶数位置归卡0 · 奇数位置归卡1";
@@ -2078,8 +2387,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
             );
             t.cells.forEach((c) => {
               const active = phase === 1 && read.index === r && !read.complete;
-              c.material.emissive.set(active ? "#234431" : "#000");
-              c.material.opacity = phase === 1 && !active ? 0.65 : 1;
+              pulseCell(c, active, phase === 1 && !active ? 0.65 : 1);
             });
           });
         });
@@ -2096,9 +2404,9 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         connect(readLines[g]!, [
           v(xs[g]! + 2.4875, y, 0.6),
           v(returnX, y, 0.6),
-          v(returnX, -3.65, 0.6),
-          v(xs[g]! - 0.3325, -3.65, 0.6),
-          v(xs[g]! - 0.3325, -3.7892, 0.6),
+          v(returnX, -3.92, 0.6),
+          v(xs[g]! - 0.3325, -3.92, 0.6),
+          v(xs[g]! - 0.3325, -4.06, 0.6),
         ]);
       });
       for (let g = 0; g < 2; g++) {
@@ -2110,19 +2418,27 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
           undefined,
           read.output === null ? 0.25 : 1,
         );
+        localZ[g]!.title.textContent =
+          read.total.z === DCP_EXAMPLE.normalizers[g]
+            ? `Z${SUB[g]}=${DCP_EXAMPLE.normalizers[g]} (LSE${SUB[g]})`
+            : `累计 Z${SUB[g]}`;
         set(localZ[g]!, [read.total.z], undefined, read.total.z === 0 ? 0.25 : 1);
         const transferTime = local * 2 - g;
         const u = span(transferTime, 0.1, 0.8);
-        const a = v(xs[1 - g]!, -4, 0.6),
+        const a = v(xs[1 - g]!, -4.28, 0.6),
           b = receive[g]!.group.position;
         travel[g]!.group.visible = phase === 2 && transferTime >= 0 && u < 1;
-        // Source/receiver labels stay beside their rows; a second flying title would cross them.
-        travel[g]!.title.textContent = "";
-        const curve = new T.CatmullRomCurve3([a, v(a.x, -5.2, 0.6), b], false, "centripetal");
+        const curve = new T.CatmullRomCurve3([a, v(a.x, -5.32, 0.6), b], false, "centripetal");
         travel[g]!.group.position.copy(curve.getPoint(u));
-        const departed = span(Math.abs(travel[g]!.group.position.y - a.y), 0.25, 0.85);
-        travel[g]!.cells.forEach((cell) => {
-          cell.material.opacity = departed;
+        const departed = span(Math.abs(travel[g]!.group.position.y - a.y), 0.2, 0.78);
+        travel[g]!.title.textContent =
+          departed === 1 && u < 0.88 ? `传 O${SUB[1 - g]} + LSE${SUB[1 - g]}` : "";
+        travel[g]!.cells.forEach((cell, idx) => {
+          if (idx === 4) {
+            cell.material.color.set(MINERAL.coral).lerp(paper, 0.22);
+            cell.userData.shadedColor = cell.material.color.clone();
+          }
+          pulseCell(cell, false, departed);
         });
         travel[g]!.numbers.forEach((n) => {
           // Reveal the copy only after it has cleared the retained source row.
@@ -2132,10 +2448,13 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         receive[g]!.group.visible = (phase === 2 && u === 1) || (phase === 3 && local < 0.1);
         set(
           receive[g]!,
-          [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), DCP_EXAMPLE.normalizers[1 - g]!],
+          [...dcpChannels(DCP_EXAMPLE.local[1 - g]!), lseText(1 - g)],
           undefined,
           phase === 3 ? 1 - span(local, 0, 0.1) : 1,
         );
+        receive[g]!.cells[4]!.material.color.set(MINERAL.coral).lerp(paper, 0.22);
+        receive[g]!.cells[4]!.userData.shadedColor = receive[g]!.cells[4]!.material.color.clone();
+        pulseCell(receive[g]!.cells[4]!, false, phase === 3 ? 1 - span(local, 0, 0.1) : 1);
         slots[g]!.visible = phase === 2 && transferTime >= 0 && u < 1;
         slots[g]!.material.opacity = phase === 2 ? 0.8 : 0.25;
         routes[g]!.visible = phase === 2 && transferTime >= 0 && u < 1;
@@ -2145,8 +2464,8 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         const land = merge.landed;
         const mergeCurve = new T.QuadraticBezierCurve3(
           localO[g]!.group.position,
-          v(xs[g]!, -4.4, 0.9),
-          v(g === 0 ? -5.1 : 0, -5.65, 0.7),
+          v(xs[g]!, -4.65, 0.9),
+          v(g === 0 ? -5.1 : 0, -5.78, 0.7),
         );
         contribution.group.position.copy(mergeCurve.getPoint(land));
         contribution.group.scale.setScalar(0.72 + 0.28 * land);
@@ -2178,11 +2497,23 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     scene.updateMatrixWorld(true);
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
+    const shown: Caption[] = [];
     for (const caption of captions) {
       let visible = caption.visible();
       for (let p: T.Object3D | null = caption.parent; p; p = p.parent) visible &&= p.visible;
-      caption.el.hidden = !visible;
-      if (!visible) continue;
+      if (caption.el.hidden !== !visible) caption.el.hidden = !visible;
+      if (visible) shown.push(caption);
+    }
+    for (const caption of shown) {
+      if (!caption.isValue && caption.el !== header && caption.el !== footer) {
+        const text = caption.el.textContent ?? "";
+        if (caption.halfWidth === undefined || caption.textCache !== text) {
+          caption.textCache = text;
+          caption.halfWidth = caption.el.offsetWidth / 2;
+        }
+      }
+    }
+    for (const caption of shown) {
       if (caption.el === header) {
         caption.el.style.left = "50%";
         caption.el.style.top = "32px";
@@ -2191,7 +2522,15 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
       projected.copy(caption.point);
       caption.parent.localToWorld(projected);
       projected.project(camera);
-      caption.el.style.left = `${(((projected.x + 1) * width) / 2).toFixed(2)}px`;
+      if (caption.el === footer) {
+        caption.el.style.left = "50%";
+        caption.el.style.top = `${Math.min(height - 34, ((1 - projected.y) * height) / 2).toFixed(2)}px`;
+        continue;
+      }
+      const rawLeft = ((projected.x + 1) * width) / 2;
+      const pad = caption.isValue ? 0 : Math.min(width / 2, (caption.halfWidth ?? 0) + 8);
+      const clampedLeft = caption.isValue ? rawLeft : Math.max(pad, Math.min(width - pad, rawLeft));
+      caption.el.style.left = `${clampedLeft.toFixed(2)}px`;
       caption.el.style.top = `${(((1 - projected.y) * height) / 2).toFixed(2)}px`;
     }
     host.dataset.drawCalls = String(renderer.info.render.calls);
@@ -2204,16 +2543,19 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     const frame = mechanismFrame(kind, p);
     hardware.chips.forEach((chip, i) => {
       const lit = strategy ? strategy.glow(i, p) : !(kind === 0 && frame.stage !== i);
-      chip.material.emissive.set(lit ? "#245b43" : "#000");
-      chip.material.emissiveIntensity = 0.35;
+      const accentColor = strategy?.glowColor?.(i, p) ?? "#246e5b";
+      chip.material.color.set(lit ? accentColor : "#286151");
+      chip.material.emissive.set(lit ? accentColor : "#000000");
+      chip.material.emissiveIntensity = lit ? 0.72 : 0;
+      chip.material.opacity = lit ? 0.34 : 0.04;
       portFrames[i]!.visible = !strategy && (kind !== 0 || (!frame.setup && frame.stage === i));
       portFrames[i]!.material.opacity = 0.5;
       extraction[i]!.visible =
         (kind === 1 && p < 0.963 && (frame.phase > 0 || frame.local >= 0.62)) ||
-        (kind === 2 && pcpMotion(p).assign === 1) ||
+        (kind === 2 && pcpMotion(p).assign > 0.2) ||
         (kind === 3 && frame.split === 1) ||
         (kind === 4 && ringMotion(p).assign === 1);
-      extraction[i]!.material.opacity = 0.68;
+      extraction[i]!.material.opacity = kind === 2 ? 0.28 + 0.42 * pcpMotion(p).assign : 0.68;
     });
     host.dataset.step = String(kind);
     host.dataset.phase = String(mechanismFrame(kind, p).phase);
@@ -2241,6 +2583,7 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
   const resize = () => {
     width = Math.max(1, host.clientWidth);
     height = Math.max(1, host.clientHeight);
+    for (const caption of captions) caption.halfWidth = undefined;
     const base = strategy ? strategy.camera.half : kind === 0 ? 6.1 : kind === 4 ? 6.4 : 7.6;
     const half = Math.max(base, (8 * height) / width);
     camera.top = half;
@@ -2254,6 +2597,64 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
   const observer = new ResizeObserver(resize);
   observer.observe(host);
   controls.addEventListener("change", render);
+  const raycaster = new T.Raycaster();
+  const pointer = new T.Vector2();
+  let downAt: { x: number; y: number } | null = null;
+  const hitTarget = (event: PointerEvent) => {
+    if (!pickTargets.length) return null;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const active = pickTargets.filter(({ object }) => {
+      for (let p: T.Object3D | null = object; p; p = p.parent) if (!p.visible) return false;
+      return true;
+    });
+    if (!active.length) return null;
+    const hits = raycaster.intersectObjects(
+      active.map((t) => t.object),
+      true,
+    );
+    if (!hits.length) return null;
+    const hit = hits[0]!.object;
+    return (
+      active.find(({ object }) => {
+        for (let p: T.Object3D | null = hit; p; p = p.parent) if (p === object) return true;
+        return false;
+      }) ?? null
+    );
+  };
+  const onPointerDown = (event: PointerEvent) => {
+    downAt = { x: event.clientX, y: event.clientY };
+  };
+  let hoverRaf = 0;
+  let pendingMove: PointerEvent | null = null;
+  const onPointerMove = (event: PointerEvent) => {
+    if (!pickTargets.length) return;
+    if (event.buttons !== 0) {
+      renderer.domElement.style.cursor = "grabbing";
+      return;
+    }
+    pendingMove = event;
+    if (hoverRaf) return;
+    hoverRaf = requestAnimationFrame(() => {
+      hoverRaf = 0;
+      if (disposed || !pendingMove) return;
+      renderer.domElement.style.cursor = hitTarget(pendingMove) ? "pointer" : "grab";
+      pendingMove = null;
+    });
+  };
+  const onPointerUp = (event: PointerEvent) => {
+    if (!downAt) return;
+    const moved = Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y);
+    downAt = null;
+    if (moved > 5) return;
+    hitTarget(event)?.action();
+  };
+  renderer.domElement.addEventListener("pointerdown", onPointerDown);
+  renderer.domElement.addEventListener("pointermove", onPointerMove);
+  renderer.domElement.addEventListener("pointerup", onPointerUp);
   host.dataset.mechanism = ["PP", "SP", "PCP", "DCP", "Ring", "TP", "DP", "EP"][kind]!;
   reset();
   resize();
@@ -2263,7 +2664,11 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
     reset,
     dispose() {
       disposed = true;
+      cancelAnimationFrame(hoverRaf);
       observer.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointerup", onPointerUp);
       controls.dispose();
       hardware.dispose();
       resources.forEach((r) => {

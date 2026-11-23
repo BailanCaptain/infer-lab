@@ -16,7 +16,6 @@ import {
   getBackendAvailability,
   isStaticOfflineError,
   requestReaderSnapshot,
-  setBackendAvailability,
   subscribeBackendAvailability,
 } from "./api";
 import { type ChatState, type PendingChatAttachment, useChat } from "./chat-controller";
@@ -134,6 +133,27 @@ export function createWikiAssistantController(deps: {
   };
 }
 
+export async function runAssistantSnapshotRefresh(
+  signal?: AbortSignal,
+  onSnapshotError: (message: string) => void = () => {},
+): Promise<boolean> {
+  try {
+    const updated = await refreshReaderSnapshot(
+      () => requestReaderSnapshot(getReaderState().revision),
+      signal,
+    );
+    if (updated) onSnapshotError("");
+    return updated;
+  } catch (error) {
+    if (isStaticOfflineError(error)) {
+      if (!signal?.aborted) onSnapshotError("");
+      return false;
+    }
+    if (!signal?.aborted) onSnapshotError(SNAPSHOT_ERROR_MSG);
+    throw error;
+  }
+}
+
 export function WikiAssistantProvider({
   active = true,
   children,
@@ -166,23 +186,7 @@ export function WikiAssistantProvider({
   }, [active, controller]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const updated = await refreshReaderSnapshot(
-        () => requestReaderSnapshot(getReaderState().revision),
-        signal,
-      );
-      setBackendAvailability("online");
-      if (updated) setSnapshotError("");
-      return updated;
-    } catch (error) {
-      if (isStaticOfflineError(error)) {
-        setBackendAvailability("offline");
-        if (!signal?.aborted) setSnapshotError("");
-        return false;
-      }
-      if (!signal?.aborted) setSnapshotError(SNAPSHOT_ERROR_MSG);
-      throw error;
-    }
+    return runAssistantSnapshotRefresh(signal, setSnapshotError);
   }, []);
 
   useEffect(() => {

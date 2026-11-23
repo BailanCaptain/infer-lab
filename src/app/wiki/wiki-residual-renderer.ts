@@ -16,22 +16,35 @@ type Vector = {
   numbers: HTMLElement[];
   title: HTMLElement;
   values: number[];
+  gap: number;
 };
 type Label = { el: HTMLElement; parent: T.Object3D; point: T.Vector3; visible: () => boolean };
 const v = (x: number, y: number, z = 0) => new T.Vector3(x, y, z);
-const routeColors = ["#447b8d", "#a1744d", "#7775a1", "#4c8a76"];
+// Mineral palette for the 4 residual streams: Cobalt, Cinnabar-Coral, Amethyst, Celadon-Jade.
+const routeColors = ["#85a9ec", "#e0948b", "#a698dc", "#78c8b0"];
 
 /** The depth axis is the residual-stream axis. Only equal channel coordinates are reduced. */
 export function mountResidualScene(host: HTMLDivElement, step: number, signal: AbortSignal) {
   if (signal.aborted) return null;
-  const palette = scenePalette(host),
+  const cssPalette = scenePalette(host),
+    palette = {
+      ...cssPalette,
+      paper: "#fbfaf6",
+      ink: cssPalette.ink || "#17211f",
+      data: "#85a9ec",
+      weight: "#e0948b",
+      result: "#78c8b0",
+      line: "#6f7a75",
+    },
     scene = new T.Scene(),
     root = new T.Group();
+  scene.background = new T.Color(palette.paper);
   scene.add(root, new T.HemisphereLight(0xffffff, 0xc6c9ba, 2.4));
   const light = new T.DirectionalLight(0xffffff, 2);
   light.position.set(-7, 9, 18);
   scene.add(light);
   const renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setClearColor(palette.paper, 1);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.domElement.setAttribute("aria-hidden", "true");
   const stage = document.createElement("div"),
@@ -81,7 +94,14 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
     labels.push({ el, parent, point, visible });
     return el;
   };
-  const vector = (values: number[], title: string, color: string, point: T.Vector3, size = 0.83): Vector => {
+  const vector = (
+    values: number[],
+    title: string,
+    color: string,
+    point: T.Vector3,
+    size = 0.83,
+    gap = size >= 0.85 ? 0.065 : 0.035,
+  ): Vector => {
     const group = new T.Group();
     group.position.copy(point);
     root.add(group);
@@ -90,10 +110,14 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
     values.forEach((n, c) => {
       const mesh = new T.Mesh(box, mat(color));
       mesh.scale.set(size, size * 0.69, size * 0.65);
-      mesh.position.x = (c - (values.length - 1) / 2) * (size + 0.035);
+      mesh.position.x = (c - (values.length - 1) / 2) * (size + gap);
       group.add(mesh);
       cells.push(mesh);
-      const outlineMat = new T.LineBasicMaterial({ color, transparent: true, opacity: 0.6 });
+      const outlineMat = new T.LineBasicMaterial({
+        color: new T.Color(color).multiplyScalar(0.62),
+        transparent: true,
+        opacity: 0.78,
+      });
       materials.push(outlineMat);
       const outline = new T.LineSegments(edge, outlineMat);
       outline.scale.setScalar(1.015);
@@ -115,14 +139,14 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
       size < 0.65 ? "title miniature" : "title",
       () => group.visible,
     );
-    return { group, cells, numbers, title: titleEl, values };
+    return { group, cells, numbers, title: titleEl, values, gap };
   };
   const show = (item: Vector, amount: number, values?: (number | string)[]) => {
     item.group.visible = amount > 0.015;
     item.cells.forEach((cell, i) => {
       const empty = values?.[i] === "?";
-      cell.material.opacity = Math.max(0, amount) * (empty ? 0.22 : 1);
-      item.numbers[i]!.style.color = empty || amount < 0.75 ? palette.ink : "#fff";
+      cell.material.opacity = Math.max(0, amount) * (empty ? 0.24 : 1);
+      item.numbers[i]!.style.color = palette.ink;
       if (values)
         item.numbers[i]!.textContent =
           typeof values[i] === "number" ? fmt(values[i] as number) : String(values[i]);
@@ -171,7 +195,7 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
   const port = (item: Vector, side: number) => {
     item.group.updateWorldMatrix(true, false);
     return item.group.localToWorld(
-      v((side * (item.values.length * (item.cells[0]!.scale.x + 0.035) - 0.035)) / 2, 0, 0),
+      v((side * (item.values.length * (item.cells[0]!.scale.x + item.gap) - item.gap)) / 2, 0, 0),
     );
   };
   const connect = (a: Vector, b: Vector, color: string, opacity = 0.4) => {
@@ -208,7 +232,8 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
       row.map((n) => n / 4),
       "",
       routeColors[i]!,
-      v(-0.2, sourcePositions[i]!.y, sourcePositions[i]!.z),
+      v(-0.05, sourcePositions[i]!.y, sourcePositions[i]!.z),
+      0.92,
     ),
   );
   const operandLinks = ex.input.map((_, i) => [link(routeColors[i]!), link(routeColors[i]!)]);
@@ -216,7 +241,7 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
   const receipt = link(palette.result, 0.8);
   const sourceFrame = new T.LineSegments(
     edge,
-    new T.LineBasicMaterial({ color: palette.weight, transparent: true, opacity: 0.25 }),
+    new T.LineBasicMaterial({ color: palette.line, transparent: true, opacity: 0.48 }),
   );
   materials.push(sourceFrame.material);
   sourceFrame.position.set(-5.65, 3.57, 0);
@@ -254,10 +279,10 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
       ex.merged.map(() => 0),
       "同通道累加",
       palette.result,
-      v(3.8, -4.25),
-      0.83,
+      v(3.95, -4.25),
+      0.94,
     );
-    const reductionLabel = label("四份贡献沿同一列相加", root, v(3.8, 0), "title");
+    const reductionLabel = label("四份贡献沿同一列相加", root, v(3.95, 0), "title");
     const reduceLink = link(palette.result, 0.5);
     const squared = ex.merged.map((n) => n * n);
     const square = vector(squared, "逐格平方", palette.data, v(-0.8, -1.55), 0.83);
@@ -296,9 +321,9 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
         coefficients[i]!.numbers[0]!.textContent = "¼";
         const local = Math.max(0, Math.min(1, ((p - 0.12) / 0.42) * 4 - i));
         const product = contributions[i]!,
-          home = v(-0.2, sourcePositions[i]!.y, sourcePositions[i]!.z);
+          home = v(-0.05, sourcePositions[i]!.y, sourcePositions[i]!.z);
         product.group.position.lerpVectors(item.group.position, home, ease(local, 0.06, 0.38));
-        product.group.position.lerp(v(3.8, -2.1 - i * 0.12, (i - 1.5) * 0.85), ease(local, 0.55, 0.95));
+        product.group.position.lerp(v(3.95, -2.1 - i * 0.12, (i - 1.5) * 0.85), ease(local, 0.55, 0.95));
         show(product, (local > 0.02 ? 1 : 0) * (1 - norm));
         product.title.textContent = local >= 0.38 && local < 0.8 ? `${route(i)} × ¼` : "";
         product.numbers.forEach((number) => {
@@ -316,8 +341,8 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
         );
       });
       reductionLabel.style.opacity = String(expand * (1 - norm));
-      reduceLink(v(3.8, -2.9, 0), v(3.8, -3.78, 0), expand * (1 - norm) * 0.5);
-      sum.group.position.lerpVectors(v(3.8, -4.25), v(-4.55, -1.55), norm);
+      reduceLink(v(3.95, -2.9, 0), v(3.95, -3.78, 0), expand * (1 - norm) * 0.5);
+      sum.group.position.lerpVectors(v(3.95, -4.25), v(-4.65, -1.55), norm);
       sum.title.textContent = norm > 0.5 ? "合成的一路" : `累计 ${m.contributions}/4 路`;
       show(
         sum,
@@ -421,7 +446,7 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
     const fullPost = vector(ex.post, "post · 按路分配", palette.weight, v(2.8, 5.2), 0.6);
     const combRows = ex.comb.map((row, i) => vector(row, "", palette.weight, v(-2.2, 4.03 - i * 0.48), 0.55));
     label("comb · 行为新流，列为旧流", root, v(-2.2, 4.55), "title miniature");
-    label("旧流混合", root, v(0.4, 4.98), "title miniature");
+    label("旧流混合", root, v(0.4, 5.2), "title miniature");
     connect(fullDelta, fullPost, palette.data, 0.4);
     const rowLinks = ex.input.map((_, i) => {
       connect(combRows[i]!, mixed[i]!, routeColors[i]!, 0.15);

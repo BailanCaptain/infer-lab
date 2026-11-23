@@ -12,7 +12,7 @@ const GAP_W = 8;
 const GAP_V = 9;
 const STAGE = 13;
 const PAD = 1.0;
-const P_GAP = 1.6;
+const P_GAP = 3.8;
 const X_OUT = 0;
 const CH = 18;
 const XS = X_OUT + CH;
@@ -138,7 +138,19 @@ export function layoutQwenLayer(rawVariant = '8b', { gap = HEAD_GAP, offsetX = 0
         x0: XR + Tw * 0.28, y0: y, w: Tw * 0.72, h: hHead, d: dH,
         div: [T, 1, nH], cut: [1, 0, 1], alt: 'z', headGap: gap * 0.55, deck: { kind: 'head', n: nH },
       });
-      across(Pb, nb, { w: 1.4 });
+      across(nb, qnb, { w: 1.4 });
+      arrow(
+        Pb.id,
+        qnb.id,
+        [
+          [Pb.x1 + PAD, cy(Pb)],
+          [Pb.x1 + 4.4, cy(Pb)],
+          [Pb.x1 + 4.4, qnb.y0 - 2.6],
+          [cx(qnb), qnb.y0 - 2.6],
+          [cx(qnb), qnb.y0 - PAD],
+        ],
+        { w: 1.6 },
+      );
       across(qnb, rb, { w: 1.6 });
     }
     y += hHead + ROW_GAP;
@@ -205,11 +217,12 @@ export function layoutQwenLayer(rawVariant = '8b', { gap = HEAD_GAP, offsetX = 0
     comp: 'norm', kind: 'data', orient: 'col', group: 'ffn',
     x0: XR, y0: y, w: Tw, h: hH, d: DEPTH, div: [T, cells(H), 1], cut: [1, 0, 0],
   });
-  add({
+  const gF = add({
     id: 'gamma_ffn', label: 'γ₂', shapeText: `[${H}]`,
     comp: 'norm', kind: 'weight', orient: 'rod', group: 'ffn',
     x0: XR - P_GAP - 1.6, y0: y, w: 1.6, h: hH, d: 1.6, div: [1, cells(H), 1], cut: [0, 0, 0],
   });
+  across(gF, xF, { w: 1.2 });
   arrow('residual_mid', 'x_ffn', [[rmid.x0 + 3, rmid.y1 + PAD], [rmid.x0 + 3, cy(xF)], [xF.x1 + PAD, cy(xF)]], { comp: 'resid', lane: 2 });
 
   let fout;
@@ -275,17 +288,22 @@ export function layoutQwenLayer(rawVariant = '8b', { gap = HEAD_GAP, offsetX = 0
     const rl = add({
       id: 'router_logits', label: 'FP32 Softmax 128', shapeText: `[6, 128]`,
       comp: 'router', kind: 'data', orient: 'row', group: 'ffn',
-      x0: Wr.x0, y0: rY, w: rW, h: Tw * 0.65, d: DEPTH, div: [8, T, 1], cut: [1, 1, 0],
+      x0: Wr.x0, y0: rY, w: rW, h: Tw * 0.58, d: DEPTH, div: [8, T, 1], cut: [1, 1, 0],
+    });
+    const ti = add({
+      id: 'topk_idx', label: 'Top-8 专家索引', shapeText: `[6, 8]`,
+      comp: 'router', kind: 'data', orient: 'row', group: 'ffn',
+      x0: Wr.x0, y0: rl.y1 + GAP_V * 0.72, w: rW, h: Tw * 0.58, d: DEPTH, div: [8, T, 1], cut: [1, 1, 0],
     });
     const tp = add({
       id: 'topk_prob', label: 'Top-8 重归一 (Σw=1 · 0 共享)', shapeText: `[6, 8]`,
       comp: 'router', kind: 'data', orient: 'row', group: 'ffn',
-      x0: Wr.x0, y0: rl.y1 + GAP_V, w: rW, h: Tw * 0.65, d: DEPTH, div: [8, T, 1], cut: [1, 1, 0],
+      x0: Wr.x0, y0: ti.y1 + GAP_V * 0.72, w: rW, h: Tw * 0.58, d: DEPTH, div: [8, T, 1], cut: [1, 1, 0],
     });
     const egu = add({
       id: 'moe_gu', label: 'Top-8 专家 gate|up', shapeText: `[6, 8, 1536]`,
       comp: 'expert', kind: 'data', orient: 'row', group: 'ffn',
-      x0: Wgu.x0, y0: rY, w: eW, h: Tw * 0.65, d: headStackDepth(8, gap),
+      x0: Wgu.x0, y0: ti.y0, w: eW, h: Tw * 0.65, d: headStackDepth(8, gap),
       div: [6, T, 8], cut: [0, 1, 1], alt: 'z', headGap: gap * 0.55, deck: { kind: 'head', n: 8 },
     });
     const eh = add({
@@ -306,10 +324,61 @@ export function layoutQwenLayer(rawVariant = '8b', { gap = HEAD_GAP, offsetX = 0
       x0: XR, y0: Wdn.y0, w: Tw, h: hH, d: DEPTH, div: [T, cells(H), 1], cut: [1, 0, 0],
     });
     arrow('x_ffn', 'router_logits', [[cx(xF), xF.y1 + PAD], [cx(xF), cy(rl)], [rl.x1 + PAD, cy(rl)]]);
-    down(Wr, rl); down(rl, tp); down(Wgu, egu); down(egu, eh);
-    arrow('topk_prob', 'moe_gu', [[tp.x0 - PAD, cy(tp)], [egu.x1 + 6, cy(tp)], [egu.x1 + 6, cy(egu)], [egu.x1 + PAD, cy(egu)]], { w: 1.4 });
-    arrow('moe_h', 'ffn_out', [[eh.x1 + PAD, cy(eh)], [cx(fout), cy(eh)], [cx(fout), fout.y0 - PAD]]);
+    arrow(
+      'x_ffn',
+      'moe_gu',
+      [
+        [cx(xF) - 2.2, xF.y1 + PAD],
+        [cx(xF) - 2.2, Wr.y1 + 4.5],
+        [egu.x1 + 5, Wr.y1 + 4.5],
+        [egu.x1 + 5, cy(egu) - 1.6],
+        [egu.x1 + PAD, cy(egu) - 1.6],
+      ],
+      { w: 1.6 },
+    );
+    down(Wr, rl);
+    down(rl, ti);
+    // Router Top-8 produces BOTH expert indices (topk_idx -> moe_gu) and renormalized scalar weights (topk_prob -> ffn_out)
+    arrow(
+      'router_logits',
+      'topk_prob',
+      [
+        [rl.x1 + PAD, cy(rl) + 1.4],
+        [rl.x1 + 4.2, cy(rl) + 1.4],
+        [rl.x1 + 4.2, cy(tp) - 1.2],
+        [tp.x1 + PAD, cy(tp) - 1.2],
+      ],
+      { w: 1.35 },
+    );
+    down(Wgu, egu);
+    down(egu, eh);
+    arrow(
+      'topk_idx',
+      'moe_gu',
+      [
+        [ti.x0 - PAD, cy(ti)],
+        [egu.x1 + PAD, cy(egu) + 1.2],
+      ],
+      { w: 1.45 },
+    );
+    arrow('moe_h', 'ffn_out', [
+      [eh.x1 + PAD, cy(eh)],
+      [eh.x1 + 5, cy(eh)],
+      [eh.x1 + 5, eh.y1 + 4.8],
+      [cx(fout) - 2.2, eh.y1 + 4.8],
+      [cx(fout) - 2.2, fout.y0 - PAD],
+    ]);
     across(Wdn, fout);
+    arrow(
+      'topk_prob',
+      'ffn_out',
+      [
+        [tp.x1 + PAD, cy(tp)],
+        [cx(fout) + 2.2, cy(tp)],
+        [cx(fout) + 2.2, fout.y0 - PAD],
+      ],
+      { w: 1.6 },
+    );
   }
 
   const rout = add({

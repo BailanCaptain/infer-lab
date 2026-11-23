@@ -4,14 +4,16 @@ import { OptimizationReadout } from "./OptimizationReadout";
 import {
   ATTENTION,
   ATTENTION_GROUPS,
+  ATTENTION_OUTPUT,
   ATTENTION_TOTAL,
   attentionSum,
   CORE_OUTPUT,
   CORE_PRODUCT,
   INFERENCE_LESSONS,
   inferenceFrame,
+  inferenceTeaching,
   numberText,
-  pdHandoff,
+  pdStageStatus,
 } from "./scene-inference";
 import { CP_TOKENS } from "./scene-parallel-mechanisms";
 
@@ -27,7 +29,8 @@ export function InferenceReadout({
   if (kind >= 4) return <OptimizationReadout kind={kind - 4} progress={progress} onSeek={onSeek} />;
   if (kind === 1) return <CacheReadout progress={progress} onSeek={onSeek} />;
   const lesson = INFERENCE_LESSONS[kind]!,
-    f = inferenceFrame(kind, progress);
+    f = inferenceFrame(kind, progress),
+    teaching = inferenceTeaching(kind, progress);
   const row = Math.min(7, Math.floor(f.local * 8));
   return (
     <aside className="wiki-inference-readout" aria-label={`${lesson.label} 当前讲解`}>
@@ -48,8 +51,8 @@ export function InferenceReadout({
         <span className="wiki-inference-eyebrow">
           {String(f.phase + 1).padStart(2, "0")} / {String(lesson.stages.length).padStart(2, "0")} · 正在发生
         </span>
-        <h4>{lesson.stages[f.phase]}</h4>
-        <p>{lesson.details[f.phase]}</p>
+        <h4>{teaching.title}</h4>
+        <p>{teaching.detail}</p>
       </div>
       {kind === 0 && (
         <>
@@ -105,39 +108,65 @@ export function InferenceReadout({
                     ).join(", ")}
                     ]
                   </p>
+                  {row === 7 && f.local * 8 - row >= 0.78 && (
+                    <p className="wiki-inference-vector">
+                      完整八行结果：[{ATTENTION_OUTPUT.map(numberText).join(", ")}]
+                    </p>
+                  )}
                   <p>每列只和同列相加，四个通道不会混在一起。</p>
                 </>
               )}
             </div>
           ) : (
             <div className="wiki-inference-ledger">
-              <strong>“内容和”与“总份数”是一对</strong>
+              <strong>在线合并：带局部总份数 Zᵢ 加权</strong>
               {ATTENTION_GROUPS.map((indices, i) => (
                 <div className="wiki-inference-part" key={indices.join(",")}>
                   <span>
                     卡 {i} · 位置 {indices.join("、")}
+                    {f.phase > 4 || f.settled ? `（Z${i ? "₁" : "₀"} = ${i ? 6 : 2}）` : ""}
                   </span>
-                  <b>
-                    {numberText(attentionSum(indices)[0]!)} ÷ {i ? 6 : 2} ={" "}
-                    {numberText(attentionSum(indices, true)[0]!)}
-                  </b>
-                  <small>已按份数加权的 V 之和 ÷ 原始份数之和</small>
+                  {f.phase > 4 || f.settled ? (
+                    <>
+                      <b>
+                        {numberText(attentionSum(indices)[0]!)} ÷ {i ? 6 : 2} ={" "}
+                        {numberText(attentionSum(indices, true)[0]!)}
+                      </b>
+                      <small>
+                        局部四通道 O{i ? "₁" : "₀"} = [
+                        {attentionSum(indices, true).map(numberText).join(", ")}]
+                      </small>
+                    </>
+                  ) : (
+                    <small>正在归属本卡历史位置，落稳后计算局部平均与总份数…</small>
+                  )}
                 </div>
               ))}
-              <div className="wiki-inference-share" role="img" aria-label="卡0占四分之一，卡1占四分之三">
-                <span style={{ flex: 2 }} data-tone="blue">
-                  2/8
-                </span>
-                <span style={{ flex: 6 }} data-tone="gold">
-                  6/8
-                </span>
-              </div>
-              {f.phase === 5 && f.settled && (
-                <p className="wiki-inference-number">
-                  2.5 + 22.5 = <b>25</b>
-                </p>
+              {(f.phase > 4 || f.settled) && (
+                <div className="wiki-inference-share" role="img" aria-label="卡0占四分之一，卡1占四分之三">
+                  <span style={{ flex: 2 }} data-tone="blue">
+                    2/8
+                  </span>
+                  <span style={{ flex: 6 }} data-tone="gold">
+                    6/8
+                  </span>
+                </div>
               )}
-              <p>直接把两个局部平均值再平分，会错算成 20。这里展开第 0 通道，其余三列遵循同一份额。</p>
+              {f.phase === 5 && f.settled && (
+                <>
+                  <p className="wiki-inference-number">
+                    (2×10 + 6×30) ÷ 8 = <b>25</b>
+                  </p>
+                  <p className="wiki-inference-vector">
+                    合并结果 = 整表结果 = [{ATTENTION_OUTPUT.map(numberText).join(", ")}]
+                  </p>
+                </>
+              )}
+              <p>
+                {f.phase > 4 || f.settled
+                  ? "若直接对 10 与 30 平分，会错算成 (10+30)÷2 = 20。其余三列按同一 2/8、6/8 份额合并。"
+                  : "两张卡先各自收下负责的历史位置，落稳后再算出各自的局部平均 Oᵢ 与总份数 Zᵢ。"}
+              </p>
             </div>
           )}
           <p className="wiki-inference-outcome">
@@ -153,34 +182,46 @@ export function InferenceReadout({
           </details>
         </>
       )}
-      {kind === 2 && (
-        <div className="wiki-inference-ledger">
-          <strong>这条请求的交接账</strong>
-          <dl>
-            <div>
-              <dt>D 目的块</dt>
-              <dd>{pdHandoff(progress).allocated ? "3、5 已分配" : "等待分配"}</dd>
+      {kind === 2 &&
+        (() => {
+          const pd = pdStageStatus(progress);
+          return (
+            <div className="wiki-inference-ledger">
+              <strong>这条请求的交接账</strong>
+              <dl>
+                <div>
+                  <dt>D 目的块</dt>
+                  <dd>{pd.allocated ? "3、5 已分配" : f.phase === 1 ? "正在申请 3、5…" : "等待分配"}</dd>
+                </div>
+                <div>
+                  <dt>已收到</dt>
+                  <dd>{pd.received.filter(Boolean).length} / 2 块</dd>
+                </div>
+                <div>
+                  <dt>P 源块</dt>
+                  <dd>{pd.released ? "已归还" : "仍持有"}</dd>
+                </div>
+                <div>
+                  <dt>D 本请求</dt>
+                  <dd>
+                    {pd.resumed
+                      ? "p3 重算完成 · 继续 decode"
+                      : pd.recomputing
+                        ? "正在重算末位 p3"
+                        : pd.queued
+                          ? "历史就绪 · 重新入队待调度"
+                          : "尚未恢复计算"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="wiki-inference-outcome">请求结束 ≠ 块已释放。目的块已分配 ≠ 历史已到达。</p>
+              <p>
+                每行对应一个位置，前两格是 K 的两个通道，后两格是 V
+                的两个通道。钴蓝传数据，青玉传完成信号；两边仍可执行其他请求。
+              </p>
             </div>
-            <div>
-              <dt>已收到</dt>
-              <dd>{pdHandoff(progress).received.filter(Boolean).length} / 2 块</dd>
-            </div>
-            <div>
-              <dt>P 源块</dt>
-              <dd>{pdHandoff(progress).released ? "已归还" : "仍持有"}</dd>
-            </div>
-            <div>
-              <dt>D 本请求</dt>
-              <dd>{pdHandoff(progress).resumed ? "可以继续计算" : "尚未恢复计算"}</dd>
-            </div>
-          </dl>
-          <p className="wiki-inference-outcome">请求结束 ≠ 块已释放。目的块已分配 ≠ 历史已到达。</p>
-          <p>
-            每行对应一个位置，前两格是 K 的两个通道，后两格是 V
-            的两个通道。蓝色传数据，绿色传完成信号；两边仍可执行其他请求。
-          </p>
-        </div>
-      )}
+          );
+        })()}
       {kind === 3 && (
         <div className="wiki-inference-ledger">
           <strong>跟踪同一行的两个通道</strong>

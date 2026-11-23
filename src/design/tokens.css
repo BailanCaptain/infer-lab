@@ -138,31 +138,31 @@
 
 :root {
   color-scheme: light;
-  /* Inline knowledge scenes: calm hardware, warm moving data, green completed results. */
-  --scene-paper: #eef1e9;
-  --scene-surface: #fafbf6;
-  --scene-ink: #314e40;
-  --scene-muted: #6b786b;
-  --scene-line: #d4d9cd;
-  --scene-data: #b97740;
-  --scene-result: #427b61;
-  --scene-board: #749886;
-  --scene-metal: #c7cec7;
-  --scene-chip: #344b46;
-  --scene-memory: #71829c;
-  --scene-weight: #577692;
-  --scene-weight-soft: #9ab0c3;
-  --scene-wire: #849a8b;
-  --scene-resid: #b9c4cd;
-  --scene-resid-soft: #d4dce1;
-  --scene-norm: #c4bda6;
-  --scene-norm-soft: #ded8c5;
-  --scene-kda: #78a796;
-  --scene-kda-soft: #bed1c5;
-  --scene-dense: #b6a273;
-  --scene-dense-soft: #d9cdb1;
-  --scene-embed: #8aa894;
-  --scene-embed-soft: #c9d5bf;
+  /* Inline knowledge scenes: exact #fbfaf6 warm-white card surface matching .wiki-diagram SVGs. */
+  --scene-paper: #fbfaf6;
+  --scene-surface: #ffffff;
+  --scene-ink: #17211f;
+  --scene-muted: #5b6763;
+  --scene-line: #d8d8cf;
+  --scene-data: #c78300;
+  --scene-result: #087f73;
+  --scene-board: #dfe3dd;
+  --scene-metal: #e9ebe6;
+  --scene-chip: #242d2a;
+  --scene-memory: #4c65b6;
+  --scene-weight: #b87a00;
+  --scene-weight-soft: #b6c4d9;
+  --scene-wire: #7f8983;
+  --scene-resid: #c3aecc;
+  --scene-resid-soft: #e4d8ea;
+  --scene-norm: #cec8b7;
+  --scene-norm-soft: #e5e1d6;
+  --scene-kda: #8cc2b1;
+  --scene-kda-soft: #cae3db;
+  --scene-dense: #a5c19c;
+  --scene-dense-soft: #d4e4cf;
+  --scene-embed: #99bcd1;
+  --scene-embed-soft: #cce0ec;
 }
 
 html,

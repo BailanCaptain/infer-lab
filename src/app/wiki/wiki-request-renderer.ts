@@ -49,8 +49,16 @@ const logits = [
 export async function mountRequestScene(host: HTMLDivElement, signal: AbortSignal) {
   if (signal.aborted) return null;
   const colors = scenePalette(host),
+    paperHex = colors.paper || "#fbfaf6",
+    borderColor = "#6d7873",
+    wireIdle = "#6d7873",
+    wireActive = colors.result || "#087f73",
+    weightMineral = "#e0948b",
+    weightSoftMineral = "#efc5bf",
     scene = new T.Scene();
+  scene.background = new T.Color(paperHex);
   const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(paperHex, 1);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.domElement.setAttribute("aria-hidden", "true");
   const overlay = document.createElement("div");
@@ -128,15 +136,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     labels.push({ element, anchor: parent, offset: at, focus: buildingFocus });
     return { strong, small, element };
   };
-  const dataColors = [
-    colors.embed[0],
-    colors.data,
-    colors.norm[0],
-    colors.result,
-    colors.dense[0],
-    colors.kda[0],
-    colors.resid[0],
-  ];
+  const dataColors = ["#85a9ec", "#78c8b0", "#9d90cc", "#e0948b", wireActive, "#d97c72", "#6b8ec9"];
   let focusEntry: Sheet | undefined;
   const sheet = (
     parent: T.Object3D,
@@ -147,7 +147,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     height: number,
     weight = false,
     z = 0,
-    resolution = 1024,
+    resolution = 384,
     receiver = false,
   ): Sheet => {
     const inFocus = buildingFocus;
@@ -156,19 +156,15 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     parent.add(group);
     const depth = weight ? 0.85 : 0.2;
     if (!receiver)
-      box(
-        group,
-        point(0, 0, -depth / 2),
-        point(width, height, depth),
-        weight ? colors.weight : colors.result,
-      );
+      box(group, point(0, 0, -depth / 2), point(width, height, depth), weight ? weightMineral : wireActive);
     const canvas = document.createElement("canvas");
     canvas.width = resolution;
-    canvas.height = Math.max(128, Math.round((resolution * height) / width));
+    canvas.height = Math.max(96, Math.round((resolution * height) / width));
     const ctx = canvas.getContext("2d")!;
     const texture = keep(new T.CanvasTexture(canvas));
     texture.colorSpace = T.SRGBColorSpace;
-    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    texture.generateMipmaps = false;
+    texture.minFilter = T.LinearFilter;
     const face = new T.Mesh(
       keep(new T.PlaneGeometry(width, height)),
       keep(new T.MeshBasicMaterial({ map: texture, transparent: false })),
@@ -216,25 +212,25 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
         );
         shape = `${rows.length}:${cols}`;
       }
-      ctx.fillStyle = colors.paper;
+      ctx.fillStyle = paperHex;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       rows.forEach((row, r) => {
         row.forEach((value, c) => {
           const selected = active.includes(r * cols + c);
           const meta = identities[r * cols + c]!;
-          const color = weight ? colors.weight : (dataColors[meta.tone] ?? colors.line);
+          const color = weight ? weightMineral : (dataColors[meta.tone] ?? borderColor);
           const tint = new T.Color(color).lerp(
-            new T.Color(colors.paper),
-            receiver ? 0.94 : selected ? 0.5 : 0.78,
+            new T.Color(paperHex),
+            receiver ? 0.9 : selected ? 0.42 : 0.72,
           );
           ctx.fillStyle = `#${tint.getHexString()}`;
           ctx.fillRect(c * cw + 2, r * rh + 2, cw - 4, rh - 4);
-          ctx.strokeStyle = receiver ? color : colors.line;
-          ctx.lineWidth = receiver ? 3 : 1;
+          ctx.strokeStyle = receiver ? color : "#7f8a84";
+          ctx.lineWidth = receiver ? 4 : 2.2;
           ctx.strokeRect(c * cw + 2, r * rh + 2, cw - 4, rh - 4);
           if (!weight && meta.identity) {
             ctx.fillStyle = color;
-            ctx.fillRect(c * cw + 2, r * rh + 2, Math.max(3, cw * 0.025), rh - 4);
+            ctx.fillRect(c * cw + 2, r * rh + 2, Math.max(4, cw * 0.03), rh - 4);
           }
           const cell = cellLabels[r * cols + c]!;
           cell.element.textContent = value;
@@ -245,6 +241,9 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
           cell.textWidth = ctx.measureText(value).width;
         });
       });
+      ctx.strokeStyle = receiver ? wireActive : borderColor;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
       texture.needsUpdate = true;
     };
     paint(values);
@@ -252,22 +251,35 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     if (buildingFocus && !focusEntry) focusEntry = result;
     return result;
   };
+  const baseEdge = keep(new T.EdgesGeometry(geometry));
   const modules = new Map<
     RequestNode,
-    { group: T.Group; base: T.Mesh<T.BoxGeometry, T.MeshStandardMaterial>; data: Sheet; text: HTMLElement }
+    {
+      group: T.Group;
+      base: T.Mesh<T.BoxGeometry, T.MeshStandardMaterial>;
+      border: T.LineSegments<T.EdgesGeometry, T.LineBasicMaterial>;
+      data: Sheet;
+      text: HTMLElement;
+    }
   >();
   for (const node of REQUEST_STRUCTURE) {
     const group = new T.Group();
     group.position.set(node.x, node.y, 0);
     scene.add(group);
-    const base = box(group, point(0, 0, -0.35), point(2.55, 1.25, 0.4), colors.board);
+    const base = box(group, point(0, 0, -0.35), point(2.55, 1.25, 0.4), colors.board || "#dfe3dd");
+    const border = new T.LineSegments(
+      baseEdge,
+      keep(new T.LineBasicMaterial({ color: borderColor, transparent: true, opacity: 0.78 })),
+    );
+    border.scale.setScalar(1.01);
+    base.add(border);
     if (node.id === "layers")
       for (let i = 0; i < 5; i++)
         box(
           group,
           point(-0.3 + i * 0.12, 0.1 + i * 0.07, 0.05 + i * 0.13),
           point(1.8, 0.85, 0.09),
-          colors.weightSoft,
+          weightSoftMineral,
         );
     if (node.id === "embed")
       for (let i = 0; i < 8; i++)
@@ -275,7 +287,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
           group,
           point(-1 + (i % 4) * 0.65, -0.65 - Math.floor(i / 4) * 0.16, 0.05),
           point(0.42, 0.12, 0.2),
-          colors.chip,
+          colors.chip || "#242d2a",
         );
     const data = sheet(
       group,
@@ -289,7 +301,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     );
     const text = label(group, node.title, "", point(0, 1, 0)).element;
     text.dataset.node = node.id;
-    modules.set(node.id, { group, base, data, text });
+    modules.set(node.id, { group, base, border, data, text });
   }
   // Separate ports and corridors keep requests, cache access and responses distinguishable.
   const routes: Record<string, number[][]> = {
@@ -394,17 +406,17 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
   const unfoldLabelPosition = labels.at(-1)!.offset;
   const ports: HTMLElement[] = [];
   for (const [role, text, x] of [
-    ["input", "A 入", -0.7],
-    ["output", "B 出", 0.7],
+    ["input", "A 入", -0.78],
+    ["output", "B 出", 0.78],
   ] as const) {
-    const port = label(portAnchor, text, "", point(x, -1.25, 0.8));
+    const port = label(portAnchor, text, "", point(x, -0.96, 0.9));
     port.element.classList.add("wiki-request-port");
     port.element.dataset.port = role;
     ports.push(port.element);
   }
   const outgoingAnchor = new T.Group();
   scene.add(outgoingAnchor);
-  const outgoingPort = label(outgoingAnchor, "B 出", "", point(0.7, -1.25, 0.8));
+  const outgoingPort = label(outgoingAnchor, "B 出", "", point(0.78, -0.96, 0.9));
   outgoingPort.element.classList.add("wiki-request-port");
   outgoingPort.element.dataset.port = "output";
   outgoingPort.element.dataset.outgoing = "true";
@@ -469,7 +481,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
     line(
       focus,
       [from, point((from.x + to.x) / 2, from.y, from.z), point((from.x + to.x) / 2, to.y, to.z), to],
-      colors.wire,
+      wireIdle,
     );
   const build = (s: RequestState) => {
     focus.clear();
@@ -700,7 +712,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
       entryStack = streams;
       outputPort = { sheet: streams[3]! };
       const layerMeshes = Array.from({ length: 9 }, (_, i) =>
-        box(focus, point(0.4, -1.1 + i * 0.27, i * 0.14), point(2.35, 0.16, 1.1), colors.weightSoft),
+        box(focus, point(0.4, -1.1 + i * 0.27, i * 0.14), point(2.35, 0.16, 1.1), weightSoftMineral),
       );
       const layerTitle = title("45 层主干", "每片概括 5 层", 0.5, 2.7);
       const mla = sheet(focus, [["0", "1", "2", "3"]], 4.6, 0.65, 3, 0.65);
@@ -715,7 +727,7 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
         2.3,
         1.2,
       );
-      title("逐层历史状态", "MLA 存位置 · KDA 更新固定状态", 4.5, 2.7);
+      const cacheTitle = title("逐层历史状态", "展开 4 路 · 尚未写缓存", 4.5, 2.7);
       animations.push((state) => {
         const t = requestEase(state.work * 5);
         streams.forEach((plane, i) => {
@@ -727,16 +739,19 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
           );
         });
         layerTitle.small.textContent = `已更新 ${state.layersDone} / 45 层 · attention / FFN`;
+        cacheTitle.small.textContent =
+          state.layersDone === 0
+            ? "展开 4 路 · 尚未写缓存"
+            : state.layersDone < 4
+              ? "L0–L2 为 KDA · 首个 MLA 在第 3 层"
+              : `MLA ${state.mlaLayersDone}/11 层（4 位同写）· KDA 更新 S`;
         layerMeshes.forEach((mesh, i) => {
-          mesh.material.color.set(state.layersDone >= (i + 1) * 5 ? colors.result : colors.weightSoft);
+          mesh.material.color.set(state.layersDone >= (i + 1) * 5 ? wireActive : weightSoftMineral);
         });
-        mla.paint(
-          [["0", "1", "2", "3"]],
-          Array.from({ length: state.cachedPositions }, (_, i) => i),
-        );
+        mla.paint([["0", "1", "2", "3"]], state.layersDone >= 4 ? [0, 1, 2, 3] : []);
         kda.paint(
-          Array.from({ length: 2 }, () => Array(2).fill(state.layersDone ? "S′" : "S")),
-          state.layersDone ? [0, 1, 2, 3] : [],
+          Array.from({ length: 2 }, () => Array(2).fill(state.layersDone >= 1 ? "S′" : "S")),
+          state.layersDone >= 1 ? [0, 1, 2, 3] : [],
         );
       });
       title("变的是隐藏表示与历史状态", "输入仍是 p₀ p₁ p₂ p₃；还没有生成新 token", 0, -2.8);
@@ -745,62 +760,90 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
         const plane = sheet(
           focus,
           ids.map((_, r) => requestVector("h", r)),
-          -4.5 + i * 0.2,
-          0.3 + i * 0.08,
-          3.5,
-          2.4,
+          -5.15 + i * 0.16,
+          0.15 + i * 0.06,
+          2.9,
+          2.3,
           false,
-          i * 0.35,
+          i * 0.3,
         );
         plane.paint(
           ids.map((_, r) => requestVector("h", r)),
-          [12, 13, 14, 15],
+          Array.from({ length: 16 }, (_, c) => c),
         );
         entryStack.unshift(plane);
       }
       focusEntry = entryStack[0];
-      title("主干输出", "只取位置 3；前 3 行留在原位", -4.3, 2.5);
-      const selected = Array.from({ length: 4 }, (_, i) =>
-        sheet(
+      title("主干 4 路输出", "[4,4,4096] 全 4 位", -4.95, 2.25);
+      const mergeSlabs = Array.from({ length: 4 }, (_, i) =>
+        box(
           focus,
-          [requestVector("h", 3)],
-          -4.5 + i * 0.2,
-          -0.6 + i * 0.08,
-          3.5,
-          0.6,
-          false,
-          i * 0.35 + 0.2,
+          point(-5.15 + i * 0.16, 0.15 + i * 0.06, i * 0.3 + 0.12),
+          point(2.85, 2.25, 0.08),
+          dataColors[i]!,
+          0.35,
         ),
       );
-      sheet(focus, [["¼ Σ"], ["RMSNorm"]], 2.5, 0.1, 1.65, 1.5);
-      title("四路合并", "同一位置的四路", 1.2, 2.5);
+      sheet(focus, [["¼ Σ"], ["RMSNorm"]], -2.0, 0.15, 1.45, 1.4);
+      title("全位置归约", "4 路均值 + RMSNorm", -2.0, -1.62);
+      const normed = sheet(
+        focus,
+        ids.map(() => ["—", "—", "—", "—"]),
+        1.15,
+        0.15,
+        3.0,
+        2.3,
+      );
+      title("整批归一化输出", "[4,4096] 保留给 MTP", 1.15, 2.25);
+      const sliceRow = sheet(focus, [requestVector("z", 3)], 1.15, -0.71, 3.0, 0.58, false, 0.25);
       const out = sheet(
         focus,
         requestVector("z", 3).map((v) => [v]),
-        4.7,
-        0.1,
-        1.5,
-        2.4,
+        4.95,
+        0.15,
+        1.45,
+        2.3,
       );
       exit = out;
-      title("最后位置向量", "[1, 4096]", 4.7, 2.5);
+      title("切片末位 → 输出头", "仅位置 3 · [1,4096]", 4.95, 2.25);
+      connector(point(-3.2, 0.15), point(-2.75, 0.15));
+      connector(point(-1.25, 0.15), point(-0.38, 0.15));
+      connector(point(2.7, -0.71), point(4.18, 0.15));
       animations.push((state) => {
-        selected.forEach((row, i) => {
-          row.group.visible = state.work > 0;
-          const t = requestEase(state.work * 1.8);
-          row.group.position.set(
-            T.MathUtils.lerp(-4.5 + i * 0.2, -0.4, t),
-            T.MathUtils.lerp(-0.6 + i * 0.08, 0.1, t),
-            T.MathUtils.lerp(i * 0.35 + 0.2, (3 - i) * 0.5, t),
+        const mergeT = requestEase(state.work / 0.48);
+        const normedReady = state.work >= 0.45;
+        const slicing = state.work >= 0.58;
+        const sliceT = requestEase((state.work - 0.58) / 0.24);
+        mergeSlabs.forEach((slab, i) => {
+          slab.visible = state.work > 0 && state.work < 0.5;
+          slab.position.set(
+            T.MathUtils.lerp(-5.15 + i * 0.16, 1.15, mergeT),
+            T.MathUtils.lerp(0.15 + i * 0.06, 0.15, mergeT),
+            T.MathUtils.lerp(i * 0.3 + 0.12, 0.1, mergeT),
           );
-          row.group.scale.setScalar(1 - 0.75 * requestEase((state.work - 0.58) * 3));
         });
+        normed.paint(
+          normedReady ? ids.map((_, r) => requestVector("z", r)) : ids.map(() => ["—", "—", "—", "—"]),
+          !normedReady ? [] : slicing ? [12, 13, 14, 15] : Array.from({ length: 16 }, (_, c) => c),
+        );
+        sliceRow.group.visible = slicing && state.work < 0.84;
+        sliceRow.group.position.set(
+          T.MathUtils.lerp(1.15, 4.95, sliceT),
+          T.MathUtils.lerp(-0.71, 0.15, sliceT),
+          0.25 + Math.sin(sliceT * Math.PI) * 0.5,
+        );
+        sliceRow.group.scale.setScalar(1 - 0.35 * sliceT);
         out.paint(
-          (state.work > 0.78 ? requestVector("z", 3) : ["—", "—", "—", "—"]).map((v) => [v]),
-          state.work > 0.78 ? [0, 1, 2, 3] : [],
+          (state.work >= 0.8 ? requestVector("z", 3) : ["—", "—", "—", "—"]).map((v) => [v]),
+          state.work >= 0.8 ? [0, 1, 2, 3] : [],
         );
       });
-      title("保留位置 3 的颜色：h₃ⱼ → z₃ⱼ", "四路归约、归一化得到 z；j 表示分量，不是 token 位置", 0, -2.5);
+      title(
+        "全位置四路求均值 + RMSNorm 得到 [4, 4096]",
+        "前 3 行保留供 MTP 首遍；仅切片位置 3 (z₃) 送入输出头生成 y₀",
+        0,
+        -2.5,
+      );
     } else if (key === "1:3") {
       const h = sheet(
         focus,
@@ -851,51 +894,143 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
       });
       title("在词表中选出一个 ID", "vₖ 仅表示被选中的候选；没有假造真实分数或输出词", 0, -2.5);
     } else if (key === "2:1") {
-      const hidden = sheet(focus, [["h₃", "…"]], -4.8, 0.8, 2.5, 0.7);
-      const embedding = sheet(focus, [["y₀"]], -4.8, -0.7, 2.5, 0.7);
-      focusEntry = embedding;
-      inputPort = { sheet: { ...hidden, height: 2.2 }, offset: point(0, -0.75) };
-      exit = sheet(focus, [["y₀"]], 3.7, -1.3, 1.7, 0.6);
+      const hidden = sheet(
+        focus,
+        [
+          ["h₀", "4096"],
+          ["h₁", "4096"],
+          ["h₂", "4096"],
+          ["h₃", "4096"],
+        ],
+        -4.95,
+        0.95,
+        2.6,
+        1.65,
+      );
+      const embedding = sheet(
+        focus,
+        [
+          ["p₁", "0"],
+          ["p₂", "1"],
+          ["p₃", "2"],
+          ["y₀", "3"],
+        ],
+        -4.95,
+        -0.9,
+        2.6,
+        1.65,
+      );
+      focusEntry = { ...embedding, width: 1.7, height: 0.65, values: () => [["y₀"]] };
+      entryOffset.set(-0.62, -0.62, 0);
+      inputPort = { sheet: { ...hidden, height: 3.5 }, offset: point(0, -0.925) };
+      exit = sheet(focus, [["y₀"]], 4.4, -1.25, 1.7, 0.6);
       label(exit.group, "已确认，可返回", "", point(0, -0.55, 0.1));
-      const source = title("草拟的两份输入", "末位隐藏向量 + y₀ 的嵌入", -4.6, 2.4);
+      const source = title("首遍 4 行输入", "主干 [h₀…h₃] + 左移 [p₁,p₂,p₃,y₀]", -4.95, 2.25);
       for (let i = 0; i < 3; i++)
-        box(focus, point(-0.7 + i * 0.15, i * 0.07, i * 0.25), point(2.6, 1.7, 0.25), colors.weightSoft);
-      title("复用 MTP 权重", "连续预测三次", -0.4, 2.4);
-      connector(point(-3.5, 0.8), point(-2, 0.6));
-      connector(point(-3.5, -0.7), point(-2, -0.6));
-      const drafts = sheet(focus, [["—", "—", "—"]], 3.7, 0, 4.1, 1.1);
+        box(
+          focus,
+          point(-0.55 + i * 0.12, i * 0.05, -0.45 + i * 0.14),
+          point(3.65, 2.0, 0.12),
+          weightSoftMineral,
+        );
+      const mtpPipe = sheet(
+        focus,
+        [["2×RMSNorm [4,4096]"], ["拼接 concat [4,8192]"], ["投影 proj [4,4096]"], ["MLA+MoE → 末行 d₁?"]],
+        -0.55,
+        0.05,
+        3.65,
+        2.0,
+        false,
+        0.1,
+      );
+      const mtpTitle = title("MTP 草稿层（第 45 层）", "首遍 4 行并行 · 后两遍单行接力", -0.55, 2.25);
+      connector(point(-3.6, 0.95), point(-2.4, 0.55));
+      connector(point(-3.6, -0.9), point(-2.4, -0.55));
+      connector(point(1.32, 0.05), point(2.35, 0.2));
+      const drafts = sheet(focus, [["—", "—", "—"]], 4.4, 0.2, 3.7, 1.1);
       outputPort = { sheet: drafts };
       line(
         focus,
         [
-          point(1.55, -0.65, 0.1),
-          point(5.85, -0.65, 0.1),
-          point(5.85, 0.65, 0.1),
-          point(1.55, 0.65, 0.1),
-          point(1.55, -0.65, 0.1),
+          point(2.45, -0.45, 0.1),
+          point(6.35, -0.45, 0.1),
+          point(6.35, 0.85, 0.1),
+          point(2.45, 0.85, 0.1),
+          point(2.45, -0.45, 0.1),
         ],
-        colors.data,
+        weightMineral,
         true,
       );
-      title("待验证候选", "只留在执行进程中", 3.7, 2.4);
+      title("留在 worker 的候选", "首遍末行出 d₁? · 仍待验证", 4.4, 2.25);
       animations.push((state) => {
-        hidden.paint([[state.draftHidden, "…"]]);
-        embedding.paint(state.work < 0.12 ? [["y₀"]] : [[`E[${state.draftInput}]`, "…"]]);
-        source.small.textContent = state.drafts.length
-          ? "上次隐藏向量 + 候选嵌入"
-          : state.work < 0.12
-            ? "先给 y₀ 查词嵌入"
-            : "y₀ 的嵌入送入草稿层";
+        const firstPass = state.drafts.length === 0;
+        if (firstPass) {
+          const stepIdx = Math.min(3, Math.floor((state.work / 0.34) * 4));
+          hidden.paint(
+            [
+              ["h₀", "4096"],
+              ["h₁", "4096"],
+              ["h₂", "4096"],
+              ["h₃", "4096"],
+            ],
+            stepIdx >= 3 ? [6, 7] : [0, 1, 2, 3, 4, 5, 6, 7],
+          );
+          embedding.paint(
+            state.work < 0.08
+              ? [
+                  ["p₁", "0"],
+                  ["p₂", "1"],
+                  ["p₃", "2"],
+                  ["y₀", "3"],
+                ]
+              : [
+                  ["0 (pos0)", "清零"],
+                  ["E[p₂]", "4096"],
+                  ["E[p₃]", "4096"],
+                  ["E[y₀]", "4096"],
+                ],
+            stepIdx >= 3 ? [6, 7] : [0, 1, 2, 3, 4, 5, 6, 7],
+          );
+          mtpPipe.paint(
+            [
+              ["2×RMSNorm [4,4096]"],
+              ["拼接 concat [4,8192]"],
+              ["投影 proj [4,4096]"],
+              ["MLA+MoE → 末行 d₁?"],
+            ],
+            state.work > 0 ? [stepIdx] : [],
+          );
+          source.strong.textContent = "首遍 4 行输入";
+          source.small.textContent =
+            state.work < 0.08 ? "左移 [p₁,p₂,p₃,y₀] · pos 0…3" : "pos=0 嵌入清零 · 各做 RMSNorm";
+          mtpTitle.small.textContent = "第 1 遍：4 行并行，仅取末行得 d₁?";
+        } else {
+          const passNum = Math.min(3, state.drafts.length + 1);
+          hidden.paint([[state.draftHidden, "1×4096"]], [0, 1]);
+          embedding.paint([[`E[${state.draftInput}]`, "1×4096"]], [0, 1]);
+          mtpPipe.paint(
+            [
+              ["2×RMSNorm · R1 末行"],
+              ["拼接 → 投影 8192→4096"],
+              [`复用 MTP 权重 · 第 ${passNum} 遍`],
+              [`词表投影 → d${passNum === 2 ? "₂" : "₃"}?`],
+            ],
+            [2, 3],
+          );
+          source.strong.textContent = `第 ${passNum} 遍单行接力`;
+          source.small.textContent = `上次隐藏 ${state.draftHidden} + ${state.draftInput} 嵌入`;
+          mtpTitle.small.textContent = `第 ${passNum} 遍：复用同一层权重`;
+        }
         drafts.paint(
           [[...state.drafts, ...Array(3 - state.drafts.length).fill("—")]],
           state.drafts.map((_, i) => i),
         );
       });
       title(
-        "上一份草拟结果，成为下一次输入",
-        "同一份 MTP 权重连续草拟 d₁? → d₂? → d₃?；都还不能返回",
+        "首遍 4 行 [h₀…h₃] + [p₁,p₂,p₃,y₀]（pos=0 嵌入清零）→ 末行 d₁?",
+        "后两遍复用同一 MTP 权重，单行接力草拟 d₂?、d₃?；候选都还不能返回",
         0,
-        -2.4,
+        -2.45,
       );
     } else if (key === "2:2") {
       const tokens = sheet(focus, [[...ids, "—"]], -1.7, 0.65, 8, 0.85);
@@ -1153,13 +1288,22 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
         [
           stream?.generation && !stream.generation.verified
             ? `${stream.generation.layers} / 45 层`
-            : `${s.layersDone || 45} 层 · 4 路`,
+            : s.section === 1 && s.phase === 1
+              ? `${s.layersDone} / 45 层`
+              : s.layersDone === 45
+                ? "45 / 45 层 · 4 路"
+                : "共 45 层 · 待算",
         ],
       ],
       cache: stream
         ? [[stream.cacheReleased ? "R1 已归还" : "R1 占用中"]]
-        : [[s.allocatedBlocks ? `${s.allocatedBlocks} 块` : "待分配", s.cachedPositions ? "已写" : "待算"]],
-      head: [[s.section >= 1 && (s.section > 1 || s.phase === 3) ? "154880 项" : "最后位置 h₃"]],
+        : [
+            [
+              s.allocatedBlocks ? `${s.allocatedBlocks} 块` : "待分配",
+              s.cachedPositions ? "已写" : s.layersDone > 0 ? "KDA 写" : "待算",
+            ],
+          ],
+      head: [[s.section >= 1 && (s.section > 1 || s.phase === 3) ? "154880 项" : "归一化 → z₃"]],
       sample: stream
         ? [[`${stream.confirmed.length} 个已确认`]]
         : [[s.sampled ? "y₀" : "待采样", s.drafts.length ? `${s.drafts.length} 候选` : "MTP"]],
@@ -1187,7 +1331,9 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
           s.handoff.phase !== "computing" &&
           id === (s.section === 3 && s.phase === 3 ? "client" : s.origin),
       );
-      module.base.material.color.set(active ? colors.result : colors.board);
+      module.base.material.color.set(active ? wireActive : colors.board || "#dfe3dd");
+      module.border.material.color.set(active ? wireActive : borderColor);
+      module.border.material.opacity = active ? 1 : 0.78;
       module.text.dataset.active = String(active);
       module.text.dataset.values =
         id === "engine" && !stream
@@ -1218,8 +1364,8 @@ export async function mountRequestScene(host: HTMLDivElement, signal: AbortSigna
                   : ["api:client"];
     for (const { key, path } of paths) {
       const active = s.handoff.phase === "computing" && activePaths.includes(key);
-      path.material.opacity = active ? 1 : 0.23;
-      path.material.color.set(active ? colors.result : colors.line);
+      path.material.opacity = active ? 1 : 0.58;
+      path.material.color.set(active ? wireActive : wireIdle);
     }
   };
   const raycaster = new T.Raycaster();

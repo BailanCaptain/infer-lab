@@ -208,14 +208,18 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
           return mountCollectiveScene(element, controller.signal);
         }
         if (inference) {
+          const seekProgress = (p: number) => {
+            setPlaying(false);
+            seek(p * latest.current.total);
+          };
           if ((section ?? 0) >= 4) {
             const { mountOptimizationScene } = await import("./wiki-optimization-renderer");
             imported = true;
-            return mountOptimizationScene(element, section! - 4, controller.signal);
+            return mountOptimizationScene(element, section! - 4, controller.signal, seekProgress);
           }
           const { mountInferenceScene } = await import("./wiki-inference-renderer");
           imported = true;
-          return mountInferenceScene(element, section ?? 0, controller.signal);
+          return mountInferenceScene(element, section ?? 0, controller.signal, seekProgress);
         }
         if (id === "parallel-strategy") {
           const { mountParallelScene } = await import("./wiki-hardware-renderer");
@@ -225,7 +229,10 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
         if (mechanism) {
           const { mountParallelMechanism } = await import("./wiki-parallel-mechanism-renderer");
           imported = true;
-          return mountParallelMechanism(element, section ?? 0, controller.signal);
+          return mountParallelMechanism(element, section ?? 0, controller.signal, (p) => {
+            setPlaying(false);
+            seek(p * latest.current.total);
+          });
         }
         if (id === "token-flow") {
           const { mountRequestScene } = await import("./wiki-request-renderer");
@@ -637,7 +644,11 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
                 className="wiki-scene-canvas"
                 role="group"
                 aria-label={
-                  inference && step === 7 ? "多请求调度时间轴" : `${lesson.title} 可拖动旋转的三维图`
+                  inference && step === 7
+                    ? "多请求调度时间轴"
+                    : inference && step === 5
+                      ? "W8A8 逐通道量化与双系数还原交互图"
+                      : `${lesson.title} 可拖动旋转的三维图`
                 }
               />
             </div>
@@ -666,24 +677,28 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
               <span>
                 {inference && step === 7
                   ? "按调度步观察 · 等宽格不表示等长耗时"
-                  : inference || collective
-                    ? inference && section === 1
-                      ? "拖动旋转 · 同一张 NPU，同一处缓存"
-                      : inference && section === 3
-                        ? "拖动旋转 · 底座同一张 NPU，上方展开 GM 与 AIC / AIV 片上通路"
-                        : "上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转"
-                    : hardware
-                      ? step === 2
-                        ? `源卡 ${rank} · 点卡号换源卡 · 全程自动播放`
-                        : `选中卡 ${rank} · 点卡号查看常驻权重`
-                      : id === "token-flow"
-                        ? "拖动轻转视角 · 当前步骤从所属模块展开"
-                        : spatial && (section === 1 || section === 2)
-                          ? "拖动旋转 · 点输出或选择通道，追踪计算关系"
-                          : "拖动旋转 · 观察数据形状与计算结果"}
+                  : inference && step === 5
+                    ? "点击图中阶段卡片或任意通道 · 逐步核对量化、宽累加与双系数还原"
+                    : inference || collective
+                      ? inference && section === 1
+                        ? "拖动旋转 · 同一张 NPU，同一处缓存"
+                        : inference && section === 3
+                          ? "拖动旋转 · 点击晶粒缓冲或 GM 槽位跳步 · 直接观察核外 GM 与片上 AIC / AIV 往返"
+                          : "上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转"
+                      : hardware
+                        ? step === 2
+                          ? `源卡 ${rank} · 点卡号换源卡 · 全程自动播放`
+                          : `选中卡 ${rank} · 点卡号查看常驻权重`
+                        : id === "token-flow"
+                          ? "拖动轻转视角 · 当前步骤从所属模块展开"
+                          : mechanism && section === 7
+                            ? "拖动旋转 · 点击 NPU 卡或下方矩阵跳步 · 梅紫弧为跨机 RDMA，靛蓝弧为机内 HCCS"
+                            : spatial && (section === 1 || section === 2)
+                              ? "拖动旋转 · 点输出或选择通道，追踪计算关系"
+                              : "拖动旋转 · 观察数据形状与计算结果"}
               </span>
               <button
-                hidden={inference && step === 7}
+                hidden={inference && (step === 5 || step === 7)}
                 type="button"
                 onClick={() => view.current?.reset()}
                 aria-label="复位图解视角"

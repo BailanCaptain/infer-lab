@@ -107,7 +107,6 @@ p.sub{color:var(--ink2);font-size:13.5px;line-height:1.65;margin:0 0 10px}
 import { ACCENTS, PALETTES, mix } from '../../glm-flow/master/flow-colors.js';
 import { renderQwenArch } from './qwen-arch.js';
 import { QWEN_MODELS, QWEN_PARTS, QWEN_SEGMENTS, TOTAL_DURATION, getQwenVariant, segDuration } from './qwen-spec.js';
-import { mountQwenStage } from './qwen-stage.js';
 
 const params = new URLSearchParams(location.search);
 const viewId = ['play', 'model', 'layer', 'arch'].includes(params.get('view')) ? params.get('view') : 'play';
@@ -121,37 +120,82 @@ const fmt = (sec) => {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 };
 
+let stageModPromise = null;
+function loadQwenStage() {
+  if (!stageModPromise) stageModPromise = import('./qwen-stage.js');
+  return stageModPromise;
+}
+
+function notifyParent(type, extra = {}) {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type, ...extra }, location.origin || '*');
+    } catch {}
+  }
+}
+
 let activeStage = null;
+let activeCleanup = null;
+let bootSeq = 0;
 function unmountStage() {
+  bootSeq += 1;
+  if (activeCleanup) { activeCleanup(); activeCleanup = null; }
   if (activeStage) { activeStage.dispose(); activeStage = null; }
 }
 
-function setVariant(next) {
+addEventListener('pagehide', (e) => { if (!e.persisted) unmountStage(); });
+addEventListener('unload', unmountStage);
+addEventListener('message', (ev) => {
+  if (ev.origin && ev.origin !== location.origin) return;
+  if (ev.data?.type === 'dispose' || ev.data?.type === 'qwen-experience:dispose') {
+    unmountStage();
+  } else if (ev.data?.type === 'set-variant' || ev.data?.type === 'qwen-experience:set-variant') {
+    setVariant(ev.data.variant, { notify: false });
+  }
+});
+
+function setVariant(next, opts = {}) {
   const nv = getQwenVariant(next);
   if (nv === variant) return;
   variant = nv;
+  window.__qwenVariant = variant;
   const u = new URL(location.href);
   u.searchParams.set('variant', variant);
   history.replaceState(null, '', u.toString());
+  if (opts.notify !== false) {
+    notifyParent('qwen-experience:variant-change', { variant, viewId });
+  }
   boot();
 }
+window.__qwenVariant = variant;
+window.__setQwenVariant = (next) => setVariant(next, { notify: false });
+window.__disposeQwenExperience = unmountStage;
 
 function bootArch() {
   unmountStage();
   root.innerHTML = '<div id="arch-root" style="width:100%;height:100%"></div>';
   renderQwenArch(document.getElementById('arch-root'), { variant, onVariantChange: setVariant });
+  window.__arch = { ready: true, variant };
+  notifyParent('qwen-experience:ready', { viewId, variant });
 }
 
 function bootSolo(mode) {
   unmountStage();
+  const seq = bootSeq;
   root.innerHTML = '<div id="app" class="solo"><div id="solo-stage"><div id="stage"></div></div></div>';
   window.__truth = { ready: false, variant, mode };
-  activeStage = mountQwenStage({
-    host: document.getElementById('stage'),
-    mode,
-    variant,
-    onVariantChange: setVariant,
-    onFirstFrame() { window.__truth = { ready: true, variant, mode }; },
+  loadQwenStage().then(({ mountQwenStage }) => {
+    if (seq !== bootSeq) return;
+    activeStage = mountQwenStage({
+      host: document.getElementById('stage'),
+      mode,
+      variant,
+      onVariantChange: setVariant,
+      onFirstFrame() {
+        window.__truth = { ready: true, variant, mode };
+        notifyParent('qwen-experience:ready', { viewId, variant });
+      },
+    });
   });
 }
 
@@ -222,10 +266,11 @@ function bootPlay() {
   const pause = () => {
     playing = false;
     state.playing = false;
-    cancelAnimationFrame(clockRaf);
+    if (clockRaf) { cancelAnimationFrame(clockRaf); clockRaf = 0; }
     const playBtn = document.getElementById('play');
     if (playBtn) playBtn.textContent = '播放';
   };
+  activeCleanup = pause;
   window.__chapter = { state, send(msg) { if (msg?.cmd === 'pause') pause(); } };
 
   function syncUI(beatFrac = 0.5) {
@@ -246,23 +291,24 @@ function bootPlay() {
     }
   }
 
+  const BEAT_EPS = 1e-9;
   function locateTime(t) {
     elapsed = Math.max(0, Math.min(TOTAL_DURATION, t));
     for (let i = 0; i < QWEN_SEGMENTS.length; i++) {
       const s = QWEN_SEGMENTS[i];
       const d = segDuration(s);
-      if (elapsed <= segStarts[i] + d || i === QWEN_SEGMENTS.length - 1) {
+      if (elapsed < segStarts[i] + d - BEAT_EPS || i === QWEN_SEGMENTS.length - 1) {
         curSeg = s.n;
-        let rem = elapsed - segStarts[i];
+        let rem = Math.max(0, elapsed - segStarts[i]);
         curBeat = 0;
         let bf = 0;
         for (let b = 0; b < s.beats.length; b++) {
-          if (rem <= s.beats[b].dur || b === s.beats.length - 1) {
+          if (rem < s.beats[b].dur - BEAT_EPS || b === s.beats.length - 1) {
             curBeat = b;
             bf = Math.min(1, Math.max(0, rem / s.beats[b].dur));
             break;
           }
-          rem -= s.beats[b].dur;
+          rem = Math.max(0, rem - s.beats[b].dur);
         }
         syncUI(bf);
         return;
@@ -280,6 +326,7 @@ function bootPlay() {
   }
 
   function startPlay(fromSeg = null) {
+    if (clockRaf) { cancelAnimationFrame(clockRaf); clockRaf = 0; }
     if (fromSeg !== null) {
       elapsed = segStarts[fromSeg - 1] ?? 0;
       locateTime(elapsed);
@@ -329,12 +376,20 @@ function bootPlay() {
     locateTime(frac * TOTAL_DURATION);
   });
 
-  activeStage = mountQwenStage({
-    host: document.getElementById('stage'),
-    mode: 'play',
-    variant,
-    onVariantChange: (v) => { pause(); setVariant(v); },
-    onFirstFrame() { state.ready = true; },
+  const seq = bootSeq;
+  loadQwenStage().then(({ mountQwenStage }) => {
+    if (seq !== bootSeq) return;
+    activeStage = mountQwenStage({
+      host: document.getElementById('stage'),
+      mode: 'play',
+      variant,
+      onVariantChange: (v) => { pause(); setVariant(v); },
+      onFirstFrame() {
+        state.ready = true;
+        notifyParent('qwen-experience:ready', { viewId, variant });
+      },
+    });
+    syncUI(0.5);
   });
 }
 

@@ -28,7 +28,7 @@ export const OPTIMIZATION_LESSONS = [
   {
     label: "W8A8",
     title: "整数怎样算，缩放系数怎样乘回来？",
-    seconds: 63,
+    seconds: 28,
     note: "沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。",
     stages: [
       "原数与缩放",
@@ -58,7 +58,7 @@ export const OPTIMIZATION_LESSONS = [
       "源数据已写好",
       "保存第一页",
       "保存第二页",
-      "回收显存原页",
+      "归还并被 C 覆盖",
       "B 命中并分新页",
       "搬回第一页",
       "搬回第二页",
@@ -68,8 +68,8 @@ export const OPTIMIZATION_LESSONS = [
       "请求 A 的位置 0–3 已经计算完成，存在 NPU 显存页 2、7。主机侧先准备空间；仅有保存计划，不代表副本已经可用。",
       "把页 2 的 K/V 复制到主机槽 0。源页留在显存，原来的计算仍可读取；正在复制的目标不能拿去恢复请求。",
       "页 7 复制到主机槽 1。收到整个段的保存完成通知后，这一段主机副本才登记为可用。",
-      "A 不再持有这两页，显存页归还池子。回收显存这一份不会删除主机副本；两侧分别管理容量。",
-      "B 的完整前缀身份与主机副本匹配。先给 B 分配显存页 9、10；B 等待加载，其他可运行请求仍能被调度。",
+      "A 归还页 2、7 后旧内容原本还在；因显存紧张，新请求 C 立即分走并覆盖这两页，本地前缀才真正淘汰，主机副本继续保留。",
+      "B 需要相同前缀：本地页 2、7 已被 C 覆盖，转而命中主机槽 0、1，先在显存另分空页 9、10 并挂起等待加载。",
       "主机槽 0 搬到新页 9。页号可以改变，位置 0、1 的 K/V 内容和顺序不变；B 仍等待剩余内容。",
       "主机槽 1 搬到新页 10。字节到达后仍要确认加载完成；不能看到一页有值，就把整个请求提前恢复。",
       "加载完成通知到达后，B 从接上的位置继续。本例下一位置为 4，写出新的 K/V；主机保存的原段仍然存在。",
@@ -160,18 +160,47 @@ export const OFFLOAD_DATA = [
   [2, 3, 4, 5],
   [3, 4, 5, 6],
 ];
+export const OFFLOAD_C_DATA = [
+  [9, 8, 9, 8],
+  [8, 7, 8, 7],
+  [7, 6, 7, 6],
+  [6, 5, 6, 5],
+];
 export function offloadState(progress: number) {
   const f = optimizationFrame(2, progress);
+  const released = f.phase > 3 || (f.phase === 3 && f.local >= 0.3);
+  const reclaimed = f.phase > 3 || (f.phase === 3 && f.landed);
   return {
     ...f,
     saved: [f.phase > 1 || (f.phase === 1 && f.landed), f.phase > 2 || (f.phase === 2 && f.landed)],
     hostReady: f.phase > 2 || (f.phase === 2 && f.settled),
-    reclaimed: f.phase > 3 || (f.phase === 3 && f.landed),
+    released,
+    overwriting: f.phase === 3 && released && !reclaimed,
+    reclaimed,
     allocated: f.phase > 4 || (f.phase === 4 && f.landed),
     loaded: [f.phase > 5 || (f.phase === 5 && f.landed), f.phase > 6 || (f.phase === 6 && f.landed)],
     ready: f.phase > 6 || (f.phase === 6 && f.settled),
     resumed: f.phase === 7 && f.landed,
   };
+}
+export function offloadStageDetail(progress: number) {
+  const s = offloadState(progress);
+  if (s.phase === 2 && !s.hostReady)
+    return s.saved[1]
+      ? "页 7 字节已写入主机槽 1，正在等待整段完成通知以登记为可用。"
+      : "正在将页 7 复制到主机槽 1；整段完成通知到达前，主机副本尚未登记可用。";
+  if (s.phase === 3 && !s.released)
+    return "请求 A 刚结束，正在归还显存页 2、7 的引用；归还完成前原页仍由 A 持有。";
+  if (s.phase === 3 && !s.reclaimed)
+    return "A 已归还页 2、7，此时旧前缀仍在原处；新请求 C 立即分走这两页并写入自己的 K/V。";
+  if (s.phase === 4 && !s.allocated)
+    return "B 需要相同前缀：查本地发现页 2、7 已被 C 覆盖，转而命中主机槽 0、1，正在申请新页 9、10。";
+  if (s.phase === 6 && !s.ready)
+    return s.loaded[1]
+      ? "主机槽 1 字节已写入页 10，正在汇总参与 worker 的加载完成通知。"
+      : "正在将主机槽 1 搬回新页 10；完成通知到达前不能提前恢复 B。";
+  if (s.phase === 7 && !s.resumed) return "加载完成通知已到达，B 恢复执行并正在计算接续的位置 4。";
+  return OPTIMIZATION_LESSONS[2]!.details[s.phase]!;
 }
 export const SCHEDULE_C = [6, 6, 2, 1];
 export const SCHEDULE_STARTS = [0, 6, 12, 14];

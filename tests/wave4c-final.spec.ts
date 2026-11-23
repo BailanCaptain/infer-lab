@@ -26,10 +26,10 @@ test("Wave 4C 收官验收：阅读指南、GLM-5.3-Flash 活跃食谱增量对�
   const errors = attachErrorCollector(page);
   await page.setViewportSize({ width: 1440, height: 900 });
 
-  // 1. learning-guide: 两条生命线、三层轨道、四族硬件与四大交互实验室
+  // 1. learning-guide: 两条生命线、主流入门标尺、四族硬件与四大交互实验室
   await page.goto("/#/wiki/learning-guide");
   await expect(page.locator("article h1, .wiki-article h1, main h1").first()).toBeVisible();
-  await expect(page.locator("body")).toContainText("Core-26");
+  await expect(page.locator("body")).toContainText("主流入门标尺");
   await expect(page.locator("body")).toContainText("部署算账台");
   await expect(page.locator("body")).toContainText("AI Core");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

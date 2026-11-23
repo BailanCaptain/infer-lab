@@ -79,9 +79,11 @@ function CPReadoutContent({ kind, progress }: { kind: number; progress: number }
     return (
       <aside className="wiki-cp-readout" aria-label="同一个查询的两份答案怎样合并">
         <strong>
-          {merge.enabled ? "同一个 Q7：两份局部上下文合成一份" : "只交换局部上下文和份额，K/V 留在原卡"}
+          {merge.enabled
+            ? "同一个 Q7：按本卡算出的 Z = exp(LSE) 合成一份"
+            : "跨卡交换局部 O 与 LSE（ln 2、ln 6），K/V 留在原卡"}
         </strong>
-        <p>两块历史各有4个位置，但匹配权重合计为2和6，所以不能各取一半。</p>
+        <p>两卡传 LSE = ln 2、ln 6，本卡算 Z = exp(LSE) = 2、6（总和 8），所以不能各取一半。</p>
         <div className="wiki-cp-share-bar" role="img" aria-label="卡0占2份，卡1占6份">
           {Array.from({ length: DCP_EXAMPLE.normalizers.reduce((a, b) => a + b, 0) }, (_, unit) => unit).map(
             (unit) => (
@@ -92,7 +94,9 @@ function CPReadoutContent({ kind, progress }: { kind: number; progress: number }
         {[0, 1].map((card) => (
           <section key={card} data-card={card}>
             <b>
-              卡{card} · {DCP_EXAMPLE.normalizers[card]} / 8 ＝ {card ? "¾" : "¼"}
+              卡{card}（槽{card ? 3 : 0}）· LSE{card ? "₁" : "₀"}=ln {DCP_EXAMPLE.normalizers[card]} → 本卡算
+              Z{card ? "₁" : "₀"}={DCP_EXAMPLE.normalizers[card]}（{DCP_EXAMPLE.normalizers[card]}/8 ＝{" "}
+              {card ? "¾" : "¼"}）
             </b>
             <span>局部上下文：[{dcpChannels(DCP_EXAMPLE.local[card]!).map(n).join(", ")}]</span>
             <strong>
@@ -188,7 +192,7 @@ function CPReadoutContent({ kind, progress }: { kind: number; progress: number }
         return (
           <section key={card} data-card={card}>
             <b>
-              卡{card} · Q{f.query}
+              卡{card}（槽{card ? 3 : 0}）· Q{f.query}
               {kind !== 3 ? `“${CP_TOKENS[f.query]}”` : ""} → {f.block}
             </b>
             {kind === 4 && f.phase >= 2 && (

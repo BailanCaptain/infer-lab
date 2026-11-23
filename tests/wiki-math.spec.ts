@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { compileMarkdown } from "../scripts/wiki/compile-markdown";
-import type { ReaderSnapshot } from "../src/content/wiki/schema";
+import { buildIndex, serializeSearchIndex } from "../src/content/wiki/retrieve";
+import type { ReaderSnapshot, RegistryEntry } from "../src/content/wiki/schema";
 
 const MATH_BODY = [
   "## 单步延迟公式核验",
@@ -42,32 +43,33 @@ function buildMathSnapshot(mode: "compiled" | "live", revisionChar: string): Rea
     "",
   ].join("\n");
 
+  const revision = revisionChar.repeat(64);
+  const entry: RegistryEntry = {
+    id: "math-layout-check",
+    title: "公式上下标与分式排版验收",
+    type: "concept",
+    origin: "direct",
+    summary: "验证编译快照与实时渲染双路的 KaTeX 下标字号与分式排版。",
+    aliases: [],
+    chapters: ["02"],
+    order: 10,
+    prerequisites: [],
+    sources: ["vllm@0fc695fc:vllm/v1/engine/core.py#L1-L10"],
+    verified: [],
+    evidence: "C",
+    relations: [],
+    related: [],
+    contradicts: [],
+    updated: "2026-11-15",
+    file: "concepts/math-layout-check.md",
+    backlinks: [],
+  };
+
   return {
-    revision: revisionChar.repeat(64),
+    revision,
     registry: {
       version: 1,
-      pages: [
-        {
-          id: "math-layout-check",
-          title: "公式上下标与分式排版验收",
-          type: "concept",
-          origin: "direct",
-          summary: "验证编译快照与实时渲染双路的 KaTeX 下标字号与分式排版。",
-          aliases: [],
-          chapters: ["02"],
-          order: 10,
-          prerequisites: [],
-          sources: ["vllm@0fc695fc:vllm/v1/engine/core.py#L1-L10"],
-          verified: [],
-          evidence: "C",
-          relations: [],
-          related: [],
-          contradicts: [],
-          updated: "2026-11-15",
-          file: "concepts/math-layout-check.md",
-          backlinks: [],
-        },
-      ],
+      pages: [entry],
     },
     pageTexts: [
       {
@@ -78,6 +80,7 @@ function buildMathSnapshot(mode: "compiled" | "live", revisionChar: string): Rea
     ],
     diagrams: [],
     skipped: [],
+    searchIndex: serializeSearchIndex(buildIndex([{ ...entry, text: body }]), revision),
   };
 }
 
@@ -169,10 +172,15 @@ test("KaTeX 公式在编译快照与实时渲染双路均正确缩放下标字�
   let currentMode: "compiled" | "live" = "compiled";
 
   await page.route("**/api/**", async (route) => {
-    if (route.request().url().includes("/api/wiki/pages")) {
+    const url = route.request().url();
+    if (url.includes("/api/wiki/pages")) {
       await route.fulfill({
         json: currentMode === "compiled" ? compiledSnapshot : liveSnapshot,
       });
+      return;
+    }
+    if (url.includes("/api/wiki/reviews")) {
+      await route.fulfill({ json: { reviews: [] } });
       return;
     }
     await route.abort();

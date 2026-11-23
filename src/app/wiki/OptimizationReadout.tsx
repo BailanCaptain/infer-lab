@@ -1,6 +1,7 @@
 import {
   layoutState,
   OPTIMIZATION_LESSONS,
+  offloadStageDetail,
   offloadState,
   optimizationFrame,
   QUANT,
@@ -49,7 +50,7 @@ export function OptimizationReadout({
           {lesson.label} · {f.phase + 1} / {lesson.stages.length}
         </span>
         <h4>{lesson.stages[f.phase]}</h4>
-        <p>{lesson.details[f.phase]}</p>
+        <p>{kind === 2 ? offloadStageDetail(progress) : lesson.details[f.phase]}</p>
       </div>
       <div className="wiki-inference-ledger">
         {kind === 0 && (
@@ -65,12 +66,20 @@ export function OptimizationReadout({
                 <dd>2 行 × 2 列</dd>
               </div>
               <div>
+                <dt>本拍 ND 取数地址</dt>
+                <dd>
+                  {f.phase >= 2 && f.phase <= 5
+                    ? ["0,1 + 4,5", "8,9 + 12,13", "2,3 + 6,7", "10,11 + 14,15"][layout.active]
+                    : "跨行步长 4"}
+                </dd>
+              </div>
+              <div>
                 <dt>NZ 已写入</dt>
                 <dd>{layout.written} / 4 块</dd>
               </div>
               <div>
                 <dt>数值 5 的逻辑位置</dt>
-                <dd>第 2 行，第 1 列</dd>
+                <dd>第 2 行，第 1 列（不变）</dd>
               </div>
               <div>
                 <dt>ND 地址 → NZ 地址</dt>
@@ -129,8 +138,16 @@ export function OptimizationReadout({
             <strong>“有数”与“可以恢复”分开看</strong>
             <dl>
               <div>
-                <dt>A 的显存原页</dt>
-                <dd>{offload.reclaimed ? "已归还" : "仍保留"}</dd>
+                <dt>原显存页 2、7</dt>
+                <dd>
+                  {offload.reclaimed
+                    ? "已归还并被 C 覆盖"
+                    : offload.released
+                      ? "A 已归还 · C 正在覆盖"
+                      : f.phase === 3
+                        ? "A 正在归还引用"
+                        : "A 仍持有"}
+                </dd>
               </div>
               <div>
                 <dt>主机副本</dt>
@@ -140,7 +157,9 @@ export function OptimizationReadout({
               </div>
               <div>
                 <dt>B 的新页</dt>
-                <dd>{offload.allocated ? "页 9、10" : "尚未分配"}</dd>
+                <dd>
+                  {offload.allocated ? "页 9、10 已分配" : f.phase === 4 ? "正在申请 9、10…" : "尚未分配"}
+                </dd>
               </div>
               <div>
                 <dt>B 收到的内容</dt>

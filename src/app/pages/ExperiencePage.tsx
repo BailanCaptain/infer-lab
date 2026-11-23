@@ -1,19 +1,26 @@
 import { ArrowLeft, Box, Layers, Network, Play, RotateCw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { findChapter } from "../../content/chapters";
 import { CourseDirectory } from "../CourseDirectory";
 import {
   buildExperienceIframeSrc,
   buildModelSwitchTo,
   buildModelTabTo,
+  createExperienceReadyProbe,
+  type ExperienceReadyProbeHandle,
+  type InPlaceVariantSyncState,
   type ModelViewId,
+  parseExperienceFrameMessage,
   parseHardwareLevel,
   parseLegacyGlmSegment,
+  type QwenVariant,
   resolveExperienceBackTarget,
+  resolveInPlaceVariantSync,
   resolveModelEdition,
   resolveQwenVariant,
   safeCheckExperienceFrameReady,
+  syncQwenVariantSearchParams,
 } from "../model/qwen-frame";
 
 const MODEL_VIEWS = [
@@ -35,6 +42,38 @@ interface ExperienceFrameWindow extends Window {
   __chapter?: { state?: { ready?: boolean }; send?: (msg: { cmd: string }) => void };
   __truth?: { ready?: boolean };
   __arch?: { ready?: boolean };
+  __wholeReady?: boolean;
+  __viewer?: { dispose?: () => void };
+  __qwenVariant?: QwenVariant;
+  __setQwenVariant?: (next: QwenVariant) => void;
+  __disposeQwenExperience?: () => void;
+}
+
+function notifyIframeDispose(el: HTMLIFrameElement | null | undefined): void {
+  if (!el) return;
+  try {
+    const win = el.contentWindow as ExperienceFrameWindow | null;
+    win?.postMessage({ source: "infer-lab-experience", type: "dispose" }, "*");
+    win?.__disposeQwenExperience?.();
+    win?.__viewer?.dispose?.();
+  } catch {
+    // Ignore cross-origin or detached iframe teardown errors.
+  }
+}
+
+function syncIframeQwenVariant(el: HTMLIFrameElement | null | undefined, variant: QwenVariant): void {
+  if (!el) return;
+  try {
+    const win = el.contentWindow as ExperienceFrameWindow | null;
+    if (!win) return;
+    if (typeof win.__setQwenVariant === "function") {
+      win.__setQwenVariant(variant);
+    } else {
+      win.postMessage({ source: "infer-lab-experience", type: "set-variant", variant }, "*");
+    }
+  } catch {
+    // Ignore cross-origin or uninitialized iframe errors.
+  }
 }
 
 function scheduleTwoFrames(
@@ -80,7 +119,8 @@ function scheduleTwoFrames(
 
 export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const { id } = useParams();
-  const [params] = useSearchParams();
+  const location = useLocation();
+  const [params, setSearchParams] = useSearchParams();
   const chapter = findChapter(id ?? params.get("chapter") ?? undefined);
   const view = MODEL_VIEWS.find((item) => item.id === params.get("view")) ?? MODEL_VIEWS[0];
   const viewId: ModelViewId | "hardware" = kind === "model" ? view.id : "hardware";
@@ -96,7 +136,7 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const modelParam = hardwareModel && /^[a-z0-9-]+$/.test(hardwareModel) ? `&model=${hardwareModel}` : "";
   const level = parseHardwareLevel(params, hardwareModule);
 
-  const src =
+  const computedSrc =
     kind === "model"
       ? buildExperienceIframeSrc({
           baseUrl: import.meta.env.BASE_URL,
@@ -119,14 +159,43 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const backTarget = resolveExperienceBackTarget(params, chapter);
 
   const [reloadNonce, setReloadNonce] = useState(0);
-  const frameKey = reloadNonce > 0 ? `${src}#reload=${reloadNonce}` : src;
-  const activeEntry: FrameEntry = { key: frameKey, src, title: frameTitle, kind, viewId };
+  const baseIdentity = `${kind}:${edition}:${viewId}:${reloadNonce}`;
+  const defaultFrameKey = reloadNonce > 0 ? `${computedSrc}#reload=${reloadNonce}` : computedSrc;
 
   // Keep a stable-order list of at most 2 frames ([outgoing, active] during handoff, [active] at rest)
   // keyed strictly by `entry.key`. Updating state during render guarantees the outgoing iframe DOM node
   // is never unmounted or moved (which would reload it), eliminating white flashes on tab switches.
+  const [rendered, setRendered] = useState<FrameEntry[]>(() => [
+    { key: defaultFrameKey, src: computedSrc, title: frameTitle, kind, viewId },
+  ]);
+  const [inPlaceSync, setInPlaceSync] = useState<InPlaceVariantSyncState | null>(null);
+  const pendingChildVariantRef = useRef<QwenVariant | null>(null);
+
+  const resolvedSync = resolveInPlaceVariantSync({
+    state: inPlaceSync,
+    kind,
+    edition,
+    baseIdentity,
+    qwenVariant,
+    locationKey: location.key,
+    mountedKeys: rendered.map((item) => item.key),
+    computedSrc,
+    defaultFrameKey,
+  });
+
+  if (resolvedSync.syncChildVariant !== undefined) {
+    pendingChildVariantRef.current = resolvedSync.syncChildVariant;
+  }
+
+  if (resolvedSync.nextState !== inPlaceSync) {
+    setInPlaceSync(resolvedSync.nextState);
+  }
+
+  const src = resolvedSync.src;
+  const frameKey = resolvedSync.frameKey;
+  const activeEntry: FrameEntry = { key: frameKey, src, title: frameTitle, kind, viewId };
+
   const [targetKey, setTargetKey] = useState<string>(frameKey);
-  const [rendered, setRendered] = useState<FrameEntry[]>([activeEntry]);
   const [readyKeys, setReadyKeys] = useState<string[]>([]);
   const [timedOutKey, setTimedOutKey] = useState<string | null>(null);
 
@@ -151,22 +220,80 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   }
 
   const frameRefs = useRef<Map<string, HTMLIFrameElement>>(new Map());
+  // Retain live iframe DOM references independently of React's `ref(null)` detachment so unmount cleanup always disposes WebGL!
+  const liveIframesRef = useRef<Set<HTMLIFrameElement>>(new Set());
   const activeKeyRef = useRef<string>(frameKey);
+  const activeSrcRef = useRef<string>(src);
+  const baseIdentityRef = useRef<string>(baseIdentity);
+  const locationKeyRef = useRef<string>(location.key);
   const switchSeqRef = useRef<number>(0);
-  const pollCleanupRef = useRef<(() => void) | null>(null);
+  const probeRef = useRef<ExperienceReadyProbeHandle | null>(null);
+  const cancelFramesRef = useRef<(() => void) | null>(null);
+
+  baseIdentityRef.current = baseIdentity;
+  activeSrcRef.current = src;
+  locationKeyRef.current = location.key;
 
   useLayoutEffect(() => {
     activeKeyRef.current = frameKey;
     switchSeqRef.current += 1;
     return () => {
-      pollCleanupRef.current?.();
-      pollCleanupRef.current = null;
+      probeRef.current?.dispose();
+      probeRef.current = null;
+      cancelFramesRef.current?.();
+      cancelFramesRef.current = null;
     };
   }, [frameKey]);
+
+  // Prune and dispose any unready iframe dropped early during rapid A -> B -> C tab switches while ExperiencePage stays mounted.
+  useLayoutEffect(() => {
+    const activeMountedEls = new Set<HTMLIFrameElement>();
+    for (const entry of rendered) {
+      const el = frameRefs.current.get(entry.key);
+      if (el) activeMountedEls.add(el);
+    }
+    for (const el of liveIframesRef.current) {
+      if (!activeMountedEls.has(el)) {
+        notifyIframeDispose(el);
+        liveIframesRef.current.delete(el);
+      }
+    }
+  }, [rendered]);
+
+  // Synchronously dispose all mounted child iframes in layout phase BEFORE React removes `<iframe>` from DOM.
+  useLayoutEffect(
+    () => () => {
+      for (const el of liveIframesRef.current) {
+        notifyIframeDispose(el);
+      }
+      liveIframesRef.current.clear();
+    },
+    [],
+  );
 
   const isReady = readyKeys.includes(frameKey);
   const isTimedOut = !isReady && timedOutKey === frameKey;
   const outgoing = rendered.find((item) => item.key !== frameKey) ?? null;
+
+  // Keep reused Qwen child iframe synchronized when navigating back to default `/#/model` (no `?variant=`) or Back/Forward.
+  useEffect(() => {
+    if (kind !== "model" || edition !== "qwen3-8b") return;
+    if (resolvedSync.nextState !== null && !resolvedSync.nextState.urlSynced) return;
+    const activeFrame = frameRefs.current.get(frameKey);
+    if (!activeFrame) return;
+    const forced = pendingChildVariantRef.current;
+    if (!isReady && forced === null && !location.key) return;
+    pendingChildVariantRef.current = null;
+    let childVariant: QwenVariant | undefined;
+    try {
+      childVariant = (activeFrame.contentWindow as ExperienceFrameWindow | null)?.__qwenVariant;
+    } catch {
+      childVariant = undefined;
+    }
+    if (forced !== null || (childVariant !== undefined && childVariant !== qwenVariant)) {
+      syncIframeQwenVariant(activeFrame, forced ?? qwenVariant);
+    }
+  }, [kind, edition, frameKey, qwenVariant, location.key, isReady, resolvedSync.nextState]);
 
   useEffect(() => {
     document.title = `${kind === "model" ? "模型探索" : "硬件探索"} · AI Infra`;
@@ -189,82 +316,118 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
     const seq = switchSeqRef.current;
     const timer = window.setTimeout(() => {
       if (switchSeqRef.current !== seq || activeKeyRef.current !== frameKey) return;
+      for (const [key, el] of frameRefs.current.entries()) {
+        if (key !== frameKey) {
+          notifyIframeDispose(el);
+          liveIframesRef.current.delete(el);
+        }
+      }
       setRendered((prev) => prev.filter((item) => item.key === frameKey));
       setReadyKeys((prev) => prev.filter((item) => item === frameKey));
     }, 240);
     return () => window.clearTimeout(timer);
   }, [isReady, rendered.length, frameKey]);
 
-  // Safety ceiling: if the incoming frame fails to become ready within 4.5s, surface a gentle retry
-  // control instead of falsely marking an unready iframe as `ready` (which would poison the next keeper).
+  const startReadyProbe = useCallback(
+    (entryKey: string, entryKind: "model" | "hardware", entryViewId: string) => {
+      probeRef.current?.dispose();
+      cancelFramesRef.current?.();
+      const expectedSeq = switchSeqRef.current;
+      let latestWin: ExperienceFrameWindow | null = null;
+
+      const isStale = () => activeKeyRef.current !== entryKey || switchSeqRef.current !== expectedSeq;
+
+      probeRef.current = createExperienceReadyProbe({
+        expectedSeq,
+        getCurrentSeq: () => switchSeqRef.current,
+        isActiveTarget: () => activeKeyRef.current === entryKey,
+        checkReady: () => {
+          const res = safeCheckExperienceFrameReady(
+            () => frameRefs.current.get(entryKey)?.contentWindow as ExperienceFrameWindow | null,
+            entryKind,
+            entryViewId,
+          );
+          if (res.ready) {
+            latestWin = res.win as ExperienceFrameWindow;
+            return true;
+          }
+          return false;
+        },
+        onReady: () => {
+          if (isStale()) return;
+          cancelFramesRef.current = scheduleTwoFrames(latestWin, entryViewId, () => {
+            if (isStale()) return;
+            setTimedOutKey((prev) => (prev === entryKey ? null : prev));
+            setReadyKeys((prev) => (prev.includes(entryKey) ? prev : [...prev, entryKey]));
+          });
+        },
+        onTimeout: () => {
+          if (isStale()) return;
+          setTimedOutKey(entryKey);
+        },
+        pollIntervalMs: 32,
+        slowPollIntervalMs: 500,
+        timeoutMs: 4500,
+      });
+    },
+    [],
+  );
+
+  // Start unified 32ms ready-poll + 4.5s timeout ceiling (polling stops immediately on timeout,
+  // while late `postMessage` ready notifications for the same switch sequence still commit).
   useEffect(() => {
     if (isReady) return;
-    const seq = switchSeqRef.current;
-    const ceiling = window.setTimeout(() => {
-      if (switchSeqRef.current !== seq || activeKeyRef.current !== frameKey) return;
-      setTimedOutKey(frameKey);
-    }, 4500);
-    return () => window.clearTimeout(ceiling);
-  }, [frameKey, isReady]);
-
-  const probeEntryReady = useCallback((entry: FrameEntry) => {
-    pollCleanupRef.current?.();
-    const expectedSeq = switchSeqRef.current;
-    let cancelled = false;
-    let timer = 0;
-    let cancelFrames: (() => void) | null = null;
-
-    const isStale = () =>
-      cancelled || activeKeyRef.current !== entry.key || switchSeqRef.current !== expectedSeq;
-
-    const commitReady = (win: ExperienceFrameWindow | null | undefined) => {
-      if (isStale()) return;
-      cancelFrames = scheduleTwoFrames(win, entry.viewId, () => {
-        if (isStale()) return;
-        setTimedOutKey((prev) => (prev === entry.key ? null : prev));
-        setReadyKeys((prev) => (prev.includes(entry.key) ? prev : [...prev, entry.key]));
-      });
+    startReadyProbe(frameKey, kind, viewId);
+    return () => {
+      probeRef.current?.dispose();
+      probeRef.current = null;
     };
+  }, [frameKey, isReady, kind, viewId, startReadyProbe]);
 
-    const check = () => {
-      if (isStale()) return true;
-      const probe = safeCheckExperienceFrameReady(
-        () => frameRefs.current.get(entry.key)?.contentWindow as ExperienceFrameWindow | null,
-        entry.kind,
-        entry.viewId,
-      );
-      if (probe.ready) {
-        commitReady(probe.win as ExperienceFrameWindow);
-        return true;
+  // Listen for child iframe `variant-change` (sync URL without remounting) and late `ready` messages.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin && event.origin !== window.location.origin) return;
+      const activeFrame = frameRefs.current.get(activeKeyRef.current);
+      if (!activeFrame || event.source !== activeFrame.contentWindow) return;
+      const parsed = parseExperienceFrameMessage(event.data);
+      if (!parsed) return;
+
+      if (parsed.type === "variant-change" && kind === "model") {
+        const domKey = activeKeyRef.current;
+        const initialSrc = activeSrcRef.current;
+        const currentIdentity = baseIdentityRef.current;
+        setInPlaceSync({
+          baseIdentity: currentIdentity,
+          variant: parsed.variant,
+          domKey,
+          initialSrc,
+          urlSynced: false,
+          originLocationKey: locationKeyRef.current,
+        });
+        setSearchParams((prev) => syncQwenVariantSearchParams(prev, parsed.variant), { replace: true });
+      } else if (parsed.type === "ready") {
+        probeRef.current?.notifyMessageReady(switchSeqRef.current);
       }
-      return false;
     };
-
-    if (!check()) {
-      timer = window.setInterval(() => {
-        if (check()) {
-          window.clearInterval(timer);
-          timer = 0;
-        }
-      }, 32);
-    }
-
-    pollCleanupRef.current = () => {
-      cancelled = true;
-      if (timer) window.clearInterval(timer);
-      cancelFrames?.();
-    };
-  }, []);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [kind, setSearchParams]);
 
   const handleActiveLoad = useCallback(
     (entry: FrameEntry) => {
       if (readyKeys.includes(entry.key)) return;
-      probeEntryReady(entry);
+      if (probeRef.current && activeKeyRef.current === entry.key) {
+        probeRef.current.notifyMessageReady(switchSeqRef.current);
+      } else {
+        startReadyProbe(entry.key, entry.kind, entry.viewId);
+      }
     },
-    [probeEntryReady, readyKeys],
+    [readyKeys, startReadyProbe],
   );
 
   const handleRetryActive = useCallback(() => {
+    setInPlaceSync(null);
     setTimedOutKey(null);
     setReloadNonce((n) => n + 1);
   }, []);
@@ -351,8 +514,12 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
               <iframe
                 key={entry.key}
                 ref={(el) => {
-                  if (el) frameRefs.current.set(entry.key, el);
-                  else frameRefs.current.delete(entry.key);
+                  if (el) {
+                    frameRefs.current.set(entry.key, el);
+                    liveIframesRef.current.add(el);
+                  } else {
+                    frameRefs.current.delete(entry.key);
+                  }
                 }}
                 className={isActive ? "experience-frame" : "experience-frame-outgoing"}
                 data-ready={isActive && isReady ? "true" : undefined}

@@ -95,16 +95,23 @@ export function residualFrame(step: number, progress: number) {
       "从合成向量求一个共同的缩放量",
       m.written ? "一路输入已写回，四路旁路仍保留" : "四个通道同除 RMS，再写入子层入口",
     ][m.phase]!;
+    const normEq = [
+      `2² + 4² + 4² + 8² = ${m.p >= 0.66 ? "100" : "…"}`,
+      `均方 = ${m.p >= 0.69 ? "100 / 4 = 25" : m.p >= 0.66 ? "100 / 4 = …" : "…"}`,
+      `RMS = ${m.p >= 0.73 ? "√25 = 5" : m.p >= 0.69 ? "√25 = ?" : "?"}`,
+    ].join("\n");
     equation = [
       input.map((row, i) => `${residualRoute(i)} ${vec(row)}`).join("\n"),
-      `${vec(input[r]!)} × ¼ = ${vec(input[r]!.map((n) => n / 4))}\n累计 ${m.contributions}/4 路 → [${values.merge.join(", ")}]`,
-      "2² + 4² + 4² + 8² = 100\n均方 = 100 / 4 = 25\nRMS = √25 = 5",
-      "[2, 4, 4, 8] ÷ 5 × γ\nγ = [1, 1, 1, 1]\n→ [0.4, 0.8, 0.8, 1.6]",
+      `${vec(input[r]!)} × ¼ = ${m.local >= 0.38 ? vec(input[r]!.map((n) => n / 4)) : "[?, ?, ?, ?]"}\n累计 ${m.contributions}/4 路 → [${values.merge.join(", ")}]`,
+      normEq,
+      `[2, 4, 4, 8] ÷ 5 × γ\nγ = [1, 1, 1, 1]\n→ ${m.p >= 0.84 ? "[0.4, 0.8, 0.8, 1.6]" : "[?, ?, ?, ?]"}`,
     ][m.phase]!;
     detail = [
       "r₀–r₃ 是同一个 token 的四条残差流，用来保留层间传递的信息。每条含四个通道 c0–c3，不是四个 token。pre 是合成系数，决定每路给子层输入贡献多少；问号表示尚未计算。",
       "pre 为每一路指定合成比例，本例四路各取¼；同一通道相加。取出的是计算副本，原始四路沿旁路保留，供出口混合。",
-      "四个通道全部参与平方、求平均和开根号。共同的 RMS=5 同时缩放四格，输入输出始终是 1×4。",
+      m.p >= 0.73
+        ? "四个通道全部参与平方、求平均和开根号。共同的 RMS=5 同时缩放四格，输入输出始终是 1×4。"
+        : "四个通道依次平方、求平均并开根号，算出共同缩放量 RMS 后再同时缩放四格，输入输出始终是 1×4。",
       "RMSNorm 把整行除以均方根 RMS，再乘逐通道增益 γ（本例全为1）。完整四格写回输出槽并交给子层，四条原始向量沿旁路保留。",
     ][m.phase]!;
   } else {
@@ -127,11 +134,12 @@ export function residualFrame(step: number, progress: number) {
             `${id}：post 分配子层输出 Δ`,
             `${id}：同通道相加，写回原位`,
           ][m.phase]!;
+    const pending = "[?, ?, ?, ?]";
     equation = [
       "r′ = comb × r + post × Δ\n每一路分别得到一条新向量",
-      `${sources}\n= ${vec(mixed[r]!)}`,
-      `${post[r]} × ${vec(delta)} = ${vec(distributed[r]!)}`,
-      `${vec(mixed[r]!)} + ${vec(distributed[r]!)}\n= ${vec(output[r]!)}`,
+      `${sources}\n= ${m.local >= 0.44 ? vec(mixed[r]!) : pending}`,
+      `${post[r]} × ${vec(delta)} = ${m.local >= 0.66 ? vec(distributed[r]!) : pending}`,
+      `${vec(mixed[r]!)} + ${vec(distributed[r]!)}\n= ${m.local >= 0.82 ? vec(output[r]!) : pending}`,
     ][m.phase]!;
     detail = [
       "r 是原来的四路，Δ 是子层算出的一条输出。comb 决定旧四路怎样混合，post 决定 Δ 向每路写入多少；r′ 是更新后的四路。系数在子层入口计算，本图给定示意值。",

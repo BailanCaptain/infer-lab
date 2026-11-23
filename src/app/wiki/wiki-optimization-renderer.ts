@@ -1,30 +1,27 @@
 import * as T from "three";
-import { INK, type InferenceKit, inferenceSceneKit, V, type Values } from "./inference-scene-kit";
+import { INK, type InferenceKit, inferenceSceneKit, V, type Values, wireTone } from "./inference-scene-kit";
 import { span } from "./scene-easing";
 import {
   LAYOUT_BLOCKS,
   LAYOUT_MATRIX,
   layoutState,
+  nzAddress,
+  OFFLOAD_C_DATA,
   OFFLOAD_DATA,
   offloadState,
   optimizationFrame,
-  QUANT,
-  quantState,
   SCHEDULE_C,
   SCHEDULE_STARTS,
   scheduleState,
 } from "./scene-optimization";
 import { setWidePolylinePoints } from "./scene-polyline";
+import { quantSvgScene } from "./wiki-quant-svg";
 
 const blank = (rows: number, cols: number): Values =>
   Array.from({ length: rows }, () => Array<string>(cols).fill(""));
 const tones = [INK.blue, INK.green, INK.gold, INK.violet];
 const curve = (a: T.Vector3, b: T.Vector3) =>
   new T.CubicBezierCurve3(a, V(a.x, (a.y + b.y) / 2, 0.7), V(b.x, (a.y + b.y) / 2, 0.7), b);
-function receiving(matrix: ReturnType<InferenceKit["matrix"]>, active: boolean, indices?: number[]) {
-  if (!active) return;
-  for (const i of indices ?? matrix.cells.map((_, i) => i)) matrix.cells[i]!.material.opacity = 0.38;
-}
 
 function courier(k: InferenceKit, values: Values, color: string, pitch = 0.7, widths?: number[]) {
   const packet = k.matrix("", values, V(0, 0), color, pitch, [], widths);
@@ -43,66 +40,83 @@ function courier(k: InferenceKit, values: Values, color: string, pitch = 0.7, wi
       number.style.visibility = packet.group.position.distanceTo(a) > clearance + 0.15 ? "visible" : "hidden";
   };
 }
-function pulse(k: InferenceKit, color: string) {
-  const line = k.wire([V(0, 0), V(0, 0)], color),
-    bead = k.box(V(0, 0), V(0.15, 0.15, 0.15), color);
-  return (a: T.Vector3, b: T.Vector3, t: number, active: boolean, via?: T.Vector3) => {
-    line.visible = active;
-    bead.visible = active && t > 0 && t < 1;
-    if (!active) return;
-    const path = via ? new T.QuadraticBezierCurve3(a, via, b) : curve(a, b);
-    setWidePolylinePoints(line, path.getPoints(40));
-    bead.position.copy(path.getPoint(t));
-  };
-}
+const ND_STRIDED = [
+  [0, 1, 4, 5],
+  [8, 9, 12, 13],
+  [2, 3, 6, 7],
+  [10, 11, 14, 15],
+] as const;
+const ND_STRIDED_LABELS = ["0,1 与 4,5", "8,9 与 12,13", "2,3 与 6,7", "10,11 与 14,15"] as const;
 
 function layoutScene(k: InferenceKit) {
-  const logical = k.matrix("逻辑矩阵 · 4 行 × 4 列", LAYOUT_MATRIX, V(-4.3, 1), INK.blue, 0.7, [
+  const logical = k.matrix("逻辑矩阵 · 4×4（坐标不变）", LAYOUT_MATRIX, V(-4.3, 1), INK.blue, 0.7, [
     "第 1 行",
     "第 2 行",
     "第 3 行",
     "第 4 行",
   ]);
-  const nd = k.matrix("ND · 原地址顺序", LAYOUT_MATRIX, V(3.1, 1), INK.blue, 0.7);
-  const nz = k.matrix("NZ · 新地址顺序", blank(4, 4), V(3.1, -3.3), INK.green, 0.7);
+  const nd = k.matrix("ND · 线性地址（按行）", LAYOUT_MATRIX, V(3.1, 1), INK.blue, 0.7);
+  const nz = k.matrix("NZ · 分块连续地址", blank(4, 4), V(3.1, -3.3), INK.green, 0.7);
   k.memory(0, [nd, nz]);
-  nz.titlePoint.y = -1.8;
+  nz.titlePoint.y = -1.98;
   for (let r = 0; r < 4; r++) {
     k.label(`地址 ${r * 4}–${r * 4 + 3}`, V(5.8, 2.05 - r * 0.7), "status");
     k.label(`地址 ${r * 4}–${r * 4 + 3}`, V(5.8, -2.25 - r * 0.7), "status");
   }
-  k.ownership(0, V(-4.3, 3), "NPU 模组 · ND 源区与 NZ 目标区");
+  k.ownership(0, V(-4.3, 3), "NPU 模组 · 逻辑视图与 ND/NZ 地址对照");
   k.ownership(0, V(3.1, 3), "");
-  const packet = k.matrix("", [[1, 2, 5, 6]], V(0, 0), INK.blue, 0.7);
+  const packet = k.matrix("", [[1, 2, 5, 6]], V(0, 0), INK.blue, 0.7, [], undefined, false);
+  packet.title.textContent = "";
   const line = k.wire([V(0, 0), V(0, 0)], INK.blue);
-  const message = k.label("数值保持不变 · 每块内部逐行读取", V(-2, -5.8), "equation");
-  return (p: number) => {
-    const f = layoutState(p);
-    k.compute(0, f.phase >= 2 && f.phase <= 5 && !f.landed, tones[f.active]!);
-    logical.write(LAYOUT_MATRIX);
-    nd.write(LAYOUT_MATRIX);
-    logical.cells.forEach((cell, i) => {
-      cell.material.color.set(
-        f.phase === 0 ? INK.blue : tones[Math.floor((i % 4) / 2) * 2 + Math.floor(i / 8)]!,
-      );
+  const message = k.label("数值保持不变 · 每块内部逐行读取", V(-0.6, -6.1), "equation");
+  const cellColors = Array.from(
+    { length: 16 },
+    (_, i) => tones[Math.floor((i % 4) / 2) * 2 + Math.floor(i / 8)]!,
+  );
+  let inspectCell = 4;
+  let lastP = 0;
+  [logical, nd].forEach((m) => {
+    m.cells.forEach((cell, idx) => {
+      k.pick(cell, () => {
+        inspectCell = idx;
+        step(lastP);
+        k.render();
+      });
     });
-    nz.write(
-      LAYOUT_BLOCKS.map((row, r) => (r < f.written ? row : ["", "", "", ""])),
-      { colors: tones },
-    );
+  });
+  const step = (p: number) => {
+    lastP = p;
+    const f = layoutState(p);
     const active = f.phase >= 2 && f.phase <= 5,
       t = f.travel,
       block = f.active;
-    receiving(
-      nz,
-      active && !f.landed,
-      [0, 1, 2, 3].map((c) => block * 4 + c),
+    k.compute(0, active && !f.landed, tones[block]!);
+    logical.write(LAYOUT_MATRIX, {
+      ...(f.phase === 0 ? {} : { cellColors }),
+      focusCell: f.phase === 6 ? inspectCell : undefined,
+    });
+    nd.write(LAYOUT_MATRIX, {
+      ...(f.phase === 0 ? {} : { cellColors }),
+      focusCells: active ? ND_STRIDED[block] : undefined,
+      focusCell: f.phase === 6 ? inspectCell : undefined,
+    });
+    const r0 = Math.floor(inspectCell / 4),
+      c0 = inspectCell % 4;
+    const nzIdx = nzAddress(r0, c0);
+    nz.write(
+      LAYOUT_BLOCKS.map((row, r) => (r < f.written ? row : ["", "", "", ""])),
+      {
+        colors: tones,
+        focusCell: f.phase === 6 ? nzIdx : undefined,
+        receivingCells: active && !f.landed ? [0, 1, 2, 3].map((c) => block * 4 + c) : [],
+      },
     );
     packet.group.visible = active && t > 0 && t < 1;
     line.visible = active && !f.landed;
     if (active) {
-      const source = V(-4.3 + (block < 2 ? -0.7 : 0.7), 1 + (block % 2 === 0 ? 0.7 : -0.7), 0.55);
-      const staging = V(-0.7, -0.9, 0.8),
+      // Gather directly from ND linear matrix at x = 3.1 (strided addresses), leaving logical at x = -4.3 intact.
+      const source = V(3.1 + (block < 2 ? -0.7 : 0.7), 1 + (block % 2 === 0 ? 0.7 : -0.7), 0.55);
+      const staging = V(-0.15, -1.1, 0.85),
         destination = V(3.1, -2.25 - block * 0.7, 0.55);
       const travelA = span(t, 0, 0.35),
         unfold = span(t, 0.35, 0.6),
@@ -110,8 +124,8 @@ function layoutScene(k: InferenceKit) {
       const firstPath = curve(source, staging),
         secondPath = new T.CubicBezierCurve3(
           staging,
-          V(staging.x, destination.y, 0.8),
-          V(destination.x - 1.5, destination.y, 0.8),
+          V(staging.x, destination.y, 0.85),
+          V(destination.x - 1.5, destination.y, 0.85),
           destination,
         );
       const position = t < 0.35 ? firstPath.getPoint(travelA) : secondPath.getPoint(travelB);
@@ -123,144 +137,20 @@ function layoutScene(k: InferenceKit) {
           T.MathUtils.lerp((0.5 - Math.floor(i / 2)) * 0.7, 0, unfold),
           0,
         );
-        packet.numbers[i]!.style.visibility = t < 0.24 ? "hidden" : "visible";
+        packet.numbers[i]!.style.visibility = t < 0.26 || t > 0.88 ? "hidden" : "visible";
       });
-      line.material.color.set(tones[block]!);
+      line.material.color.copy(wireTone(tones[block]!));
       setWidePolylinePoints(line, [...firstPath.getPoints(24), ...secondPath.getPoints(24).slice(1)]);
     }
-    if (f.phase === 6) {
-      logical.write(LAYOUT_MATRIX, { focusCell: 4 });
-      nd.write(LAYOUT_MATRIX, { focusCell: 4 });
-      nz.write(LAYOUT_BLOCKS, { focusCell: 2, colors: tones });
-    }
+    const val = LAYOUT_MATRIX[r0]![c0]!;
     message.textContent =
       f.phase === 6
-        ? "数值 5：逻辑坐标仍是第 2 行、第 1 列；地址 4 → 2"
-        : "先沿块列向下 · 块内逐行 · 颜色跟随完整小块";
+        ? `数值 ${val}：逻辑坐标仍是第 ${r0 + 1} 行、第 ${c0 + 1} 列（未转置）；ND 地址 ${inspectCell} → NZ 地址 ${nzIdx}`
+        : active
+          ? `从 ND 跨行取地址 ${ND_STRIDED_LABELS[block]}（步长 4）→ 展开写入 NZ 连续地址 ${block * 4}–${block * 4 + 3}`
+          : "逻辑矩阵坐标保持不变 · 从右上 ND 跨步采集 2×2 小块写入右下 NZ";
   };
-}
-
-function quantScene(k: InferenceKit) {
-  const x = k.matrix(
-    "激活 X · 1 token × 3 通道",
-    [QUANT.x.map(String)],
-    V(-3.4, 2.05),
-    INK.blue,
-    0.75,
-    [],
-    [1.65, 1.65, 1.65],
-  );
-  const w = k.matrix(
-    "权重 W · 3 通道 × 1 输出",
-    QUANT.w.map((v) => [String(v)]),
-    V(4.3, 1.5),
-    INK.gold,
-    0.75,
-    [],
-    [1.6],
-  );
-  const qx = k.matrix("X 的 INT8 编码", blank(1, 3), V(-3.4, 0.15), INK.blue, 0.75, [], [1.65, 1.65, 1.65]);
-  const qw = k.matrix("W 的 INT8 编码", blank(3, 1), V(4.3, -1.8), INK.gold, 0.75, [], [1.6]);
-  qx.title.textContent = "激活 INT8";
-  qx.titlePoint.set(-3.7, 0, 0.2);
-  qw.title.textContent = "权重 INT8";
-  qw.titlePoint.set(2, 0, 0.2);
-  const products = k.matrix(
-    "逐通道乘积",
-    blank(1, 3),
-    V(-3.4, -2.2),
-    INK.green,
-    0.75,
-    [],
-    [1.65, 1.65, 1.65],
-  );
-  products.titlePoint.set(-3.7, 0, 0.2);
-  const sum = k.matrix("宽整数累加", [[""]], V(-3.4, -4.6), INK.green, 0.75, [], [2.5]);
-  sum.titlePoint.set(-3.7, 0, 0.2);
-  const restored = k.matrix("乘回系数后的值", [[""]], V(3.2, -4.6), INK.green, 0.75, [], [2.5]);
-  k.memory(0, [qw, qx, restored]);
-  k.label("sₓ = 0.01", V(-7.1, 2.05), "status");
-  k.label("s𝑤 = 0.02", V(6.35, 1.5), "status");
-  k.ownership(0, V(-3.4, 3.25), "NPU 模组 · 显存中的 INT8 张量");
-  k.ownership(0, V(4.3, 3.25), "");
-  const moveX = courier(k, [QUANT.x.map(String)], INK.blue, 0.75, [1.65, 1.65, 1.65]);
-  const moveW = courier(
-    k,
-    QUANT.w.map((v) => [String(v)]),
-    INK.gold,
-    0.75,
-    [1.6],
-  );
-  const operands = [pulse(k, INK.blue), pulse(k, INK.gold)];
-  const sums = [pulse(k, INK.green), pulse(k, INK.green), pulse(k, INK.green)];
-  const scale = pulse(k, INK.green);
-  const formula = k.label("同通道相乘，三个通道相加", V(0, -6.15), "equation");
-  return (p: number) => {
-    const f = quantState(p);
-    k.compute(
-      0,
-      f.phase === 3 ? f.products < 3 : f.phase >= 2 && f.phase <= 5 && !f.landed,
-      f.phase === 2 ? INK.blue : INK.green,
-    );
-    k.root.updateMatrixWorld(true);
-    x.write([QUANT.x.map(String)]);
-    w.write(QUANT.w.map((v) => [String(v)]));
-    qx.write([f.activation ? QUANT.qx : ["", "", ""]]);
-    qw.write(f.weights ? QUANT.qw.map((v) => [v]) : blank(3, 1));
-    products.write([QUANT.products.map((v, i) => (i < f.products ? v : ""))]);
-    sum.write([[f.summed ? QUANT.sum : ""]]);
-    restored.write([[f.restored ? QUANT.restored.toFixed(4) : ""]]);
-    receiving(qx, f.phase === 2 && !f.activation);
-    receiving(qw, f.phase === 1 && !f.weights);
-    receiving(products, f.phase === 3 && f.products <= f.channel, [f.channel]);
-    receiving(sum, f.phase === 4 && !f.summed);
-    receiving(restored, f.phase === 5 && !f.restored);
-    moveX(x.group.position, qx.group.position, f.travel, f.phase === 2);
-    moveW(w.group.position, qw.group.position, f.travel, f.phase === 1);
-    const dest = products.cells[f.channel]!.getWorldPosition(V(0, 0)).add(V(0, 0, 0.5));
-    operands[0]!(
-      qx.cells[f.channel]!.getWorldPosition(V(0, 0)).add(V(0, 0, 0.5)),
-      dest,
-      f.productTravel,
-      f.phase === 3,
-    );
-    operands[1]!(
-      qw.cells[f.channel]!.getWorldPosition(V(0, 0)).add(V(0, 0, 0.5)),
-      dest,
-      f.productTravel,
-      f.phase === 3,
-      V(dest.x, -0.9, 0.6),
-    );
-    if (f.phase === 3) {
-      qx.write([QUANT.qx], { focusCell: f.channel });
-      qw.write(
-        QUANT.qw.map((v) => [v]),
-        { focus: f.channel },
-      );
-    }
-    sums.forEach((draw, i) => {
-      draw(
-        products.cells[i]!.getWorldPosition(V(0, 0)),
-        sum.group.position.clone().add(V(0, 0, 0.5)),
-        f.travel,
-        f.phase === 4,
-      );
-    });
-    scale(
-      sum.group.position.clone().add(V(1.3, 0, 0.5)),
-      restored.group.position.clone().add(V(-1.3, 0, 0.5)),
-      f.travel,
-      f.phase === 5,
-    );
-    formula.textContent =
-      f.phase === 3
-        ? `${QUANT.qx[f.channel]} × ${QUANT.qw[f.channel]}${f.products > f.channel ? ` = ${QUANT.products[f.channel]}` : ""}`
-        : f.phase === 4
-          ? `1040 + 3937 + 5461${f.summed ? " = 10438" : ""}`
-          : f.phase >= 5
-            ? `10438 × 0.01 × 0.02${f.restored ? " = 2.0876" : ""}`
-            : "整数保留缩放关系 · 激活与权重各有一份系数";
-  };
+  return step;
 }
 
 function offloadScene(k: InferenceKit) {
@@ -303,31 +193,76 @@ function offloadScene(k: InferenceKit) {
   k.memory(-1, cpu);
   const deviceLink = k.hardwareTransfer();
   const status = k.label("等待保存完成", V(3.6, -4.1), "status");
+  const gpuBanner = k.label("", V(-3.6, -3.55), "subhead");
   const links = [
     courier(k, OFFLOAD_DATA.slice(0, 2), INK.blue, 0.68),
     courier(k, OFFLOAD_DATA.slice(2, 4), INK.blue, 0.68),
   ];
+  const makeOverwriteCarrier = () => {
+    const group = new T.Group();
+    k.root.add(group);
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 4; c++) {
+        k.box(V((c - 1.5) * 0.68, (0.5 - r) * 0.68, 0), V(0.58, 0.54, 0.2), INK.gold, group);
+      }
+    }
+    const line = k.wire([V(0, 0), V(0, 0)], INK.gold);
+    return (a: T.Vector3, b: T.Vector3, t: number, active: boolean) => {
+      group.visible = active && t > 0 && t < 1;
+      line.visible = active;
+      if (!active) return;
+      const path = curve(a, b);
+      setWidePolylinePoints(line, path.getPoints(32));
+      line.material.opacity = t >= 1 ? 0.35 : 0.88;
+      group.position.copy(path.getPoint(t));
+    };
+  };
+  const overwriteLinks = [makeOverwriteCarrier(), makeOverwriteCarrier()];
   return (p: number) => {
     const f = offloadState(p);
     const saving = f.phase === 1 || f.phase === 2,
       loading = f.phase === 5 || f.phase === 6;
-    deviceLink(saving ? 0 : -1, saving ? -1 : 0, f.travel, saving || loading);
-    k.compute(0, f.phase === 7 && !f.resumed, INK.green);
+    deviceLink(saving ? 0 : -1, saving ? -1 : 0, f.travel, saving || loading, loading ? INK.green : INK.blue);
+    k.compute(0, (f.phase === 7 && !f.resumed) || f.overwriting, f.overwriting ? INK.gold : INK.green);
+    const cTravel = f.phase === 3 ? span(f.local, 0.32, 0.7) : 0;
+    const showC = f.reclaimed && !f.allocated;
+    gpuBanner.textContent =
+      f.phase === 7
+        ? ""
+        : f.allocated
+          ? "原页 2、7 已被 C 覆盖 → B 另分新页 9、10"
+          : showC
+            ? "请求 C 已复用覆盖页 2、7（本地前缀已淘汰）"
+            : f.overwriting
+              ? "A 已归还页 2、7 → 请求 C 正在占用覆写…"
+              : "";
     for (let i = 0; i < 2; i++) {
       const rows = OFFLOAD_DATA.slice(i * 2, i * 2 + 2);
-      gpu[i]!.write(!f.reclaimed || f.loaded[i] ? rows : blank(2, 4), {
-        color: f.loaded[i] ? INK.green : INK.blue,
-      });
-      gpu[i]!.title.textContent = f.allocated
-        ? `B · 显存页 ${[9, 10][i]}`
-        : f.reclaimed
-          ? `原页 ${[2, 7][i]} · 已归还`
-          : `A · 显存页 ${[2, 7][i]}`;
-      cpu[i]!.write(f.saved[i] ? rows : blank(2, 4), { color: INK.gold });
+      const cRows = OFFLOAD_C_DATA.slice(i * 2, i * 2 + 2);
       const save = f.phase === i + 1,
         load = f.phase === i + 5;
-      receiving(cpu[i]!, save && !f.saved[i]);
-      receiving(gpu[i]!, load && !f.loaded[i]);
+      const cellValues = f.allocated ? (f.loaded[i] ? rows : blank(2, 4)) : showC ? cRows : rows;
+      const cellColor = f.loaded[i] ? INK.green : showC ? INK.gold : INK.blue;
+      gpu[i]!.write(cellValues, {
+        color: cellColor,
+        receivingCells: (load && !f.loaded[i]) || f.overwriting ? [0, 1, 2, 3, 4, 5, 6, 7] : [],
+      });
+      gpu[i]!.names.forEach((lbl, r) => {
+        lbl.textContent = showC || f.overwriting ? `C 位置 ${i * 2 + r}` : `位置 ${i * 2 + r}`;
+      });
+      gpu[i]!.title.textContent = f.allocated
+        ? `B · 显存新页 ${[9, 10][i]}`
+        : showC
+          ? `C 占用 · 页 ${[2, 7][i]}（已覆盖）`
+          : f.overwriting
+            ? `页 ${[2, 7][i]} · C 占用覆写`
+            : f.phase === 3
+              ? `A · 显存页 ${[2, 7][i]}（归还中）`
+              : `A · 显存页 ${[2, 7][i]}`;
+      cpu[i]!.write(f.saved[i] ? rows : blank(2, 4), {
+        color: INK.violet,
+        receivingCells: save && !f.saved[i] ? [0, 1, 2, 3, 4, 5, 6, 7] : [],
+      });
       links[i]!(
         save ? gpu[i]!.group.position : cpu[i]!.group.position,
         save ? cpu[i]!.group.position : gpu[i]!.group.position,
@@ -335,10 +270,18 @@ function offloadScene(k: InferenceKit) {
         save || load,
         rows,
       );
+      overwriteLinks[i]!(
+        V(-5.85, gpu[i]!.group.position.y + 0.85, 0.35),
+        gpu[i]!.group.position,
+        cTravel,
+        f.overwriting,
+      );
     }
     next.group.visible = f.phase === 7;
-    next.write([f.resumed ? [4, 5, 6, 7] : ["", "", "", ""]]);
-    receiving(next, f.phase === 7 && !f.resumed);
+    next.write([f.resumed ? [4, 5, 6, 7] : ["", "", "", ""]], {
+      color: INK.green,
+      receivingCells: f.phase === 7 && !f.resumed ? [0, 1, 2, 3] : [],
+    });
     status.textContent = f.hostReady
       ? "完整段可复用 · 主机副本仍保留"
       : `${f.saved.filter(Boolean).length} / 2 页到达 · 等待保存完成`;
@@ -427,10 +370,11 @@ function scheduleScene(host: HTMLDivElement) {
         const scheduled = s < f.planned,
           done = s < f.completed,
           color = r === 2 ? INK.gold : INK.blue;
-        cell.rect.setAttribute("fill", done ? color : scheduled ? "#dce9dc" : "#edf1e8");
+        cell.rect.setAttribute("fill", done ? color : scheduled ? "#e5efe9" : "#f1efe8");
+        cell.rect.setAttribute("stroke", done ? (r === 2 ? "#bc6c63" : "#5d82c7") : "#d5d3c9");
         cell.rect.setAttribute("stroke-dasharray", scheduled && !done ? "4 3" : "none");
         cell.text.textContent = scheduled ? `${r === 2 ? SCHEDULE_C[s] : 1} 个位置` : "";
-        cell.text.setAttribute("style", `fill:${done ? "white" : "#315343"}`);
+        cell.text.setAttribute("style", `fill:${done ? "#17211f" : "#315343"}`);
         cell.sub.textContent = scheduled
           ? r === 2
             ? s < 3
@@ -440,7 +384,7 @@ function scheduleScene(host: HTMLDivElement) {
               ? "已推进"
               : "已排，待执行"
           : "";
-        cell.sub.setAttribute("style", `fill:${done ? "#fff" : "#6d8073"}`);
+        cell.sub.setAttribute("style", `fill:${done ? "#24332f" : "#626d68"}`);
       });
     });
     budgets.forEach((row, s) => {
@@ -456,9 +400,11 @@ function scheduleScene(host: HTMLDivElement) {
     });
     output.textContent = f.firstToken
       ? "C 的第一个回答 y₀ 已交付"
-      : f.completed
-        ? "C 提示词未结束：本步采样不交付"
-        : "C 等待提示词计算；A、B 已在生成";
+      : f.planned === 3
+        ? "最后 2 个提示词已排入：本步执行完即可交付 y₀"
+        : f.completed
+          ? "C 提示词未结束：本步采样不交付"
+          : "C 等待提示词计算；A、B 已在生成";
   };
   return {
     animate,
@@ -469,20 +415,25 @@ function scheduleScene(host: HTMLDivElement) {
   };
 }
 
-export async function mountOptimizationScene(host: HTMLDivElement, kind: number, signal: AbortSignal) {
+export async function mountOptimizationScene(
+  host: HTMLDivElement,
+  kind: number,
+  signal: AbortSignal,
+  onSeek?: (p: number) => void,
+) {
   let animate: (p: number) => void,
     reset: () => void,
     dispose: () => void,
     render = () => {};
-  if (kind === 3) {
-    const view = scheduleScene(host);
+  if (kind === 1 || kind === 3) {
+    const view = kind === 1 ? quantSvgScene(host, onSeek) : scheduleScene(host);
     animate = view.animate;
     reset = view.reset;
     dispose = view.dispose;
   } else {
     const kit = await inferenceSceneKit(host, 0, signal, kind === 2 ? 8 : 9);
     if (!kit) return null;
-    animate = [layoutScene, quantScene, offloadScene][kind]!(kit);
+    animate = (kind === 0 ? layoutScene : offloadScene)(kit);
     reset = kit.reset;
     dispose = kit.dispose;
     render = kit.render;

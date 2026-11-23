@@ -243,4 +243,316 @@ describe("qwen-frame 路由与状态解析", () => {
       win: readyWin,
     });
   });
+
+  it("D.3: 解析子帧 variant-change / ready 消息以同步顶栏 URL，并在超时后停止 32ms 轮询且仍接受同代迟到 ready 消息", async () => {
+    const mod = (await import("./qwen-frame")) as Record<string, unknown>;
+    const parseMsg = mod.parseExperienceFrameMessage as
+      | ((data: unknown) => { type: string; variant?: string } | null)
+      | undefined;
+    const syncParams = mod.syncQwenVariantSearchParams as
+      | ((params: URLSearchParams, variant: "8b" | "30b-a3b") => URLSearchParams)
+      | undefined;
+    const createProbe = mod.createExperienceReadyProbe as
+      | ((opts: {
+          expectedSeq: number;
+          getCurrentSeq: () => number;
+          isActiveTarget: () => boolean;
+          checkReady: () => boolean;
+          onReady: () => void;
+          onTimeout: () => void;
+          pollIntervalMs?: number;
+          timeoutMs?: number;
+          setIntervalFn: (cb: () => void, ms: number) => number;
+          clearIntervalFn: (id: number) => void;
+          setTimeoutFn: (cb: () => void, ms: number) => number;
+          clearTimeoutFn: (id: number) => void;
+        }) => { notifyMessageReady: (seq?: number) => void; dispose: () => void })
+      | undefined;
+
+    expect(typeof parseMsg).toBe("function");
+    expect(typeof syncParams).toBe("function");
+    expect(typeof createProbe).toBe("function");
+
+    expect(parseMsg!({ type: "qwen-experience:variant-change", variant: "30b-a3b" })).toEqual({
+      type: "variant-change",
+      variant: "30b-a3b",
+    });
+    expect(parseMsg!({ type: "qwen-experience:variant-change", variant: "evil" })).toBeNull();
+    expect(parseMsg!({ type: "qwen-experience:ready", viewId: "arch", variant: "30b-a3b" })).toMatchObject({
+      type: "ready",
+      variant: "30b-a3b",
+    });
+
+    const synced = syncParams!(new URLSearchParams("view=play&fromPage=moe"), "30b-a3b");
+    expect(synced.get("variant")).toBe("30b-a3b");
+    const layerTab = buildModelTabTo({
+      base: "/model",
+      viewId: "layer",
+      edition: "qwen3-8b",
+      params: synced,
+    });
+    expect(layerTab).toContain("view=layer");
+    expect(layerTab).toContain("variant=30b-a3b");
+
+    // Verify 32ms ready-poll stops at timeout while late ready message for active seq still succeeds
+    let pollCb: (() => void) | null = null;
+    let timeoutCb: (() => void) | null = null;
+    let clearedIntervals = 0;
+    let readyCount = 0;
+    let timeoutCount = 0;
+    let frameReady = false;
+    let currentSeq = 7;
+
+    const probe = createProbe!({
+      expectedSeq: 7,
+      getCurrentSeq: () => currentSeq,
+      isActiveTarget: () => true,
+      checkReady: () => frameReady,
+      onReady: () => {
+        readyCount += 1;
+      },
+      onTimeout: () => {
+        timeoutCount += 1;
+      },
+      setIntervalFn: (cb) => {
+        pollCb = cb;
+        return 101;
+      },
+      clearIntervalFn: (id) => {
+        if (id === 101) {
+          clearedIntervals += 1;
+          pollCb = null;
+        }
+      },
+      setTimeoutFn: (cb) => {
+        timeoutCb = cb;
+        return 202;
+      },
+      clearTimeoutFn: () => {
+        timeoutCb = null;
+      },
+    });
+
+    expect(pollCb).not.toBeNull();
+    // Fire timeout -> must clear the 32ms interval immediately!
+    timeoutCb!();
+    expect(timeoutCount).toBe(1);
+    expect(clearedIntervals).toBe(1);
+    expect(pollCb).toBeNull();
+
+    // Late message for active seq=7 when frame becomes ready -> still commits ready!
+    frameReady = true;
+    probe.notifyMessageReady();
+    expect(readyCount).toBe(1);
+
+    // Stale seq must never commit
+    currentSeq = 8;
+    probe.notifyMessageReady();
+    expect(readyCount).toBe(1);
+    probe.dispose();
+
+    // R2.6: infer-lab-experience ready message (whole/viewer.js), __wholeReady check, & slow background recovery after timeout
+    expect(parseMsg!({ source: "infer-lab-experience", type: "ready" })).toMatchObject({
+      type: "ready",
+    });
+    expect(isExperienceFrameReady({ __wholeReady: true } as never, "hardware", "hardware")).toBe(true);
+
+    let slowPollCb: (() => void) | null = null;
+    let slowReady = false;
+    let slowCommitted = 0;
+    const slowProbe = createProbe!({
+      expectedSeq: 11,
+      getCurrentSeq: () => 11,
+      isActiveTarget: () => true,
+      checkReady: () => slowReady,
+      onReady: () => {
+        slowCommitted += 1;
+      },
+      onTimeout: () => {},
+      ...({ slowPollIntervalMs: 500 } as Record<string, unknown>),
+      setIntervalFn: (cb, ms) => {
+        if (ms === 500) slowPollCb = cb;
+        return ms === 500 ? 303 : 301;
+      },
+      clearIntervalFn: () => {},
+      setTimeoutFn: (cb) => {
+        timeoutCb = cb;
+        return 302;
+      },
+      clearTimeoutFn: () => {},
+    });
+    timeoutCb!();
+    expect(slowPollCb).not.toBeNull();
+    slowReady = true;
+    slowPollCb!();
+    expect(slowCommitted).toBe(1);
+    slowProbe.dispose();
+  });
+
+  it("R2.6b: play 内 8b -> 30b-a3b 后执行 play -> arch -> play 往返时，重新挂载的 play 子帧必须构建 variant=30b-a3b 而绝不复用旧 8b src", async () => {
+    const { resolveInPlaceVariantSync, buildExperienceIframeSrc } = await import("./qwen-frame");
+
+    const playSrc8b = buildExperienceIframeSrc({
+      baseUrl: "/",
+      edition: "qwen3-8b",
+      variant: "8b",
+      viewId: "play",
+      segment: null,
+    });
+    const playSrc30b = buildExperienceIframeSrc({
+      baseUrl: "/",
+      edition: "qwen3-8b",
+      variant: "30b-a3b",
+      viewId: "play",
+      segment: null,
+    });
+    const archSrc30b = buildExperienceIframeSrc({
+      baseUrl: "/",
+      edition: "qwen3-8b",
+      variant: "30b-a3b",
+      viewId: "arch",
+      segment: null,
+    });
+
+    // 1. User clicks 30b-a3b inside play (mounted as playSrc8b): even if setSearchParams flushes one render later, keeps domKey=playSrc8b without reload
+    const initialState = {
+      baseIdentity: "model:qwen3-8b:play:0",
+      variant: "30b-a3b" as const,
+      domKey: playSrc8b,
+      initialSrc: playSrc8b,
+      urlSynced: false,
+    };
+    const preUrlFlush = resolveInPlaceVariantSync({
+      state: initialState,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:play:0",
+      qwenVariant: "8b",
+      mountedKeys: [playSrc8b],
+      computedSrc: playSrc8b,
+      defaultFrameKey: playSrc8b,
+    });
+    expect(preUrlFlush.frameKey).toBe(playSrc8b);
+    expect(preUrlFlush.src).toBe(playSrc8b);
+    expect(preUrlFlush.nextState?.urlSynced).toBe(false);
+
+    // 2. URL catches up to variant=30b-a3b while still in play: marks urlSynced=true and preserves mounted playSrc8b in place
+    const syncedPlay = resolveInPlaceVariantSync({
+      state: preUrlFlush.nextState,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:play:0",
+      qwenVariant: "30b-a3b",
+      mountedKeys: [playSrc8b],
+      computedSrc: playSrc30b,
+      defaultFrameKey: playSrc30b,
+    });
+    expect(syncedPlay.frameKey).toBe(playSrc8b);
+    expect(syncedPlay.src).toBe(playSrc8b);
+    expect(syncedPlay.nextState?.urlSynced).toBe(true);
+
+    // 3. Switch play -> arch: baseIdentity changes -> state immediately clears to null and loads archSrc30b
+    const onArch = resolveInPlaceVariantSync({
+      state: syncedPlay.nextState,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:arch:0",
+      qwenVariant: "30b-a3b",
+      mountedKeys: [playSrc8b, archSrc30b],
+      computedSrc: archSrc30b,
+      defaultFrameKey: archSrc30b,
+    });
+    expect(onArch.nextState).toBeNull();
+    expect(onArch.src).toBe(archSrc30b);
+
+    // 4. Switch arch -> play (play iframe was unmounted and remounts): MUST build playSrc30b (variant=30b-a3b), NEVER stale playSrc8b!
+    const backToPlay = resolveInPlaceVariantSync({
+      state: onArch.nextState,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:play:0",
+      qwenVariant: "30b-a3b",
+      mountedKeys: [archSrc30b],
+      computedSrc: playSrc30b,
+      defaultFrameKey: playSrc30b,
+    });
+    expect(backToPlay.nextState).toBeNull();
+    expect(backToPlay.src).toBe(playSrc30b);
+    expect(backToPlay.src).toContain("variant=30b-a3b");
+    expect(backToPlay.frameKey).toBe(playSrc30b);
+  });
+
+  it("R3.6: 从默认 /#/model 帧内切到 30b-a3b 后点击顶部导航回到无 query 的 /#/model 时，必须显式触发 syncChildVariant='8b' 使复用子帧复位回 8B", async () => {
+    const { resolveInPlaceVariantSync, buildExperienceIframeSrc } = await import("./qwen-frame");
+    const playSrc8b = buildExperienceIframeSrc({
+      baseUrl: "/",
+      edition: "qwen3-8b",
+      variant: "8b",
+      viewId: "play",
+      segment: null,
+    });
+    const playSrc30b = buildExperienceIframeSrc({
+      baseUrl: "/",
+      edition: "qwen3-8b",
+      variant: "30b-a3b",
+      viewId: "play",
+      segment: null,
+    });
+
+    // Subcase A: URL synced to variant=30b-a3b, then user clicks top-nav "模型" (/model -> qwenVariant="8b", locationKey="nav-reset")
+    const synced30b = {
+      baseIdentity: "model:qwen3-8b:play:0",
+      variant: "30b-a3b" as const,
+      domKey: playSrc8b,
+      initialSrc: playSrc8b,
+      urlSynced: true,
+      originLocationKey: "loc-1",
+    };
+    const resetRes = resolveInPlaceVariantSync({
+      state: synced30b,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:play:0",
+      qwenVariant: "8b",
+      locationKey: "nav-reset",
+      mountedKeys: [playSrc8b],
+      computedSrc: playSrc8b,
+      defaultFrameKey: playSrc8b,
+    } as never) as unknown as {
+      nextState: unknown;
+      src: string;
+      frameKey: string;
+      syncChildVariant?: string;
+    };
+    expect(resetRes.nextState).toBeNull();
+    expect(resetRes.frameKey).toBe(playSrc8b);
+    expect(resetRes.syncChildVariant).toBe("8b");
+
+    // Subcase B: Even if urlSynced was still false on originLocationKey="loc-1" and user navigated to a new locationKey="nav-reset" without ?variant=
+    const unsynced30b = {
+      baseIdentity: "model:qwen3-8b:play:0",
+      variant: "30b-a3b" as const,
+      domKey: playSrc8b,
+      initialSrc: playSrc8b,
+      urlSynced: false,
+      originLocationKey: "loc-1",
+    };
+    const resetUnsynced = resolveInPlaceVariantSync({
+      state: unsynced30b,
+      kind: "model",
+      edition: "qwen3-8b",
+      baseIdentity: "model:qwen3-8b:play:0",
+      qwenVariant: "8b",
+      locationKey: "nav-reset",
+      mountedKeys: [playSrc8b],
+      computedSrc: playSrc8b,
+      defaultFrameKey: playSrc8b,
+    } as never) as unknown as {
+      nextState: unknown;
+      syncChildVariant?: string;
+    };
+    expect(resetUnsynced.nextState).toBeNull();
+    expect(resetUnsynced.syncChildVariant).toBe("8b");
+    expect(playSrc30b).not.toBe(playSrc8b);
+  });
 });

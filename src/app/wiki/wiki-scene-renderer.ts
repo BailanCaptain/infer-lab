@@ -51,9 +51,23 @@ export async function mountWikiModel(
   seekProgress: (p: number) => void,
 ) {
   if (signal.aborted) return null;
-  const palette = scenePalette(host),
+  const cssPalette = scenePalette(host),
+    palette = {
+      ...cssPalette,
+      paper: "#fbfaf6",
+      ink: cssPalette.ink || "#17211f",
+      line: "#7c8782",
+      norm: ["#85a9ec", "#c8dbf8"] as [string, string],
+      weight: "#e0948b",
+      weightSoft: "#f1ccc7",
+      result: "#78c8b0",
+      data: "#9c8cc8",
+    },
+    accentWire = "#3d8f79",
     scene = new T.Scene();
+  scene.background = new T.Color(palette.paper);
   const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(palette.paper, 1);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.domElement.setAttribute("aria-hidden", "true");
   const stage = document.createElement("div"),
@@ -219,11 +233,14 @@ export async function mountWikiModel(
       active.append(description, formula, values);
       const current = { description, formula, values, column, downColumn };
       // Measure text-only alternatives once; no extra 3D scenes or per-frame layout reads.
-      for (const p of [0.19, 0.39, 0.54, 0.74, 0.99]) {
+      for (const p of [0.19, 0.39, 0.54, 0.74, 0.98, 1]) {
         for (const channel of FFN.gate.keys()) {
           const sample = document.createElement("div");
           description = current.description.cloneNode(false) as HTMLElement;
           formula = current.formula.cloneNode(false) as HTMLElement;
+          formula.className = "wiki-compute-subformula";
+          formula.style.cssText =
+            "display:block;font:600 var(--text-compact)/1.7 var(--font-mono);min-height:46px;overflow-wrap:anywhere;";
           values = current.values.cloneNode(false) as HTMLElement;
           column = channel;
           downColumn = channel % FFN.output.length;
@@ -278,8 +295,8 @@ export async function mountWikiModel(
     caption("输入 X", "token × 输入维", v(-4.6, -3, 0));
     caption("共享权重 W", "输入维 × 输出维", v(0, 4.6, 0));
     caption("输出 Y", "token × 输出维", v(0, -3, 4.1));
-    const selected = frame(v(0, 0, 0), v(1.34, 1.4, 0.7), palette.result);
-    const inputRowFrame = frame(v(-4.2, ypos(0), 0), v(0.3, 1.4, 4.95), palette.data);
+    const selected = frame(v(0, 0, 0), v(1.34, 1.4, 0.7), accentWire);
+    const inputRowFrame = frame(v(-4.2, ypos(0), 0), v(0.3, 1.4, 4.95), palette.norm[0]);
     const inputNumbers = inputs.map((rr) =>
       rr.map((c) => caption(String(c.value), "", c.point.clone().add(v(-0.13, 0, 0)), "operand")),
     );
@@ -389,6 +406,9 @@ export async function mountWikiModel(
     overlay.append(heading);
     const key = document.createElement("div");
     key.className = "wiki-swiglu-key";
+    key.style.setProperty("--scene-weight", palette.weight);
+    key.style.setProperty("--scene-result", palette.result);
+    key.style.setProperty("--scene-data", palette.data);
     for (const [kind, text] of [
       ["weight", "权重"],
       ["positive", "正值"],
@@ -485,7 +505,7 @@ export async function mountWikiModel(
             : id === "s"
               ? v(node.at[0]! - 2.8, node.at[1]!, 0)
               : ["g", "u", "h", "delta"].includes(id)
-                ? v(node.at[0]!, node.at[1]! - (id === "delta" ? 1.6 : 1.05), 0)
+                ? v(node.at[0]!, node.at[1]! - (id === "delta" ? 1.25 : 1.05), 0)
                 : v(node.at[0]!, node.at[1]! + (id === "n" ? 2 : rows * 0.31 + (rows > 1 ? 0.95 : 0.56)), 0),
           "ffn-structure-label",
         );
@@ -507,7 +527,7 @@ export async function mountWikiModel(
         [port("W_down", "bottom"), port("delta", "top")],
       ];
       routes.forEach((points) => {
-        line(points, palette.result);
+        line(points, accentWire);
         const end = points.at(-1)!,
           direction = end.clone().sub(points.at(-2)!).normalize();
         const side = v(-direction.y, direction.x, 0).multiplyScalar(0.13);
@@ -517,7 +537,7 @@ export async function mountWikiModel(
             end,
             end.clone().addScaledVector(direction, -0.24).sub(side),
           ],
-          palette.result,
+          accentWire,
         );
       });
     });
@@ -558,13 +578,15 @@ export async function mountWikiModel(
       const view = group(() => {
         const outlines: T.LineSegments[] = [];
         // Keep the tensor's rows and columns intact; numbers belong to its cell faces.
+        const rowPitch = down ? 1.12 : 1.28,
+          cellH = down ? 1.04 : 1.2;
         const matrix = (name: string, rows: number, cols: number, at: T.Vector3, color: string) => {
-          outlines.push(frame(at, v(cols * 1.8, rows * 1.28, 0.42), palette.line));
+          outlines.push(frame(at, v(cols * 1.8, rows * rowPitch, 0.42), palette.line));
           return Array.from({ length: rows * cols }, (_, i) => {
             const row = Math.floor(i / cols),
               col = i % cols,
-              point = at.clone().add(v((col - (cols - 1) / 2) * 1.8, ((rows - 1) / 2 - row) * 1.28, 0));
-            const c = slab(0, point, v(1.72, 1.2, 0.42), color);
+              point = at.clone().add(v((col - (cols - 1) / 2) * 1.8, ((rows - 1) / 2 - row) * rowPitch, 0));
+            const c = slab(0, point, v(1.72, cellH, 0.42), color);
             const label = caption("", "", point, "ffn-matrix-number");
             label.dataset.matrix = name;
             label.dataset.row = String(row);
@@ -573,14 +595,18 @@ export async function mountWikiModel(
             return { cell: c, label, row, col };
           });
         };
-        const inputs = matrix("input", 1, count, v(0, 11.8, 0), palette.norm[0]),
-          weights = matrix("weight", count, columns, v(0, 4.3, 0), palette.weight),
-          terms = matrix("product", 1, count, v(0, -3, 0.7), palette.result),
-          outputs = matrix("output", 1, columns, v(0, -6.7, 0.7), palette.result);
-        const inputTitle = caption("", "", v(0, 13.3, 0), "ffn-axis"),
-          weightTitle = caption("", "", v(0, 4.3 + count * 0.64 + 0.85, 0), "ffn-axis"),
-          productTitle = caption("", "", v(0, -0.9, 0.7), "ffn-axis"),
-          outputTitle = caption("", "", v(0, -8.5, 0.7), "ffn-axis");
+        const inputY = down ? 9.4 : 11.8,
+          weightY = down ? 2.6 : 4.3,
+          termY = down ? -3.2 : -3,
+          outputY = down ? -6.4 : -6.7;
+        const inputs = matrix("input", 1, count, v(0, inputY, 0), palette.norm[0]),
+          weights = matrix("weight", count, columns, v(0, weightY, 0), palette.weight),
+          terms = matrix("product", 1, count, v(0, termY, 0.7), palette.result),
+          outputs = matrix("output", 1, columns, v(0, outputY, 0.7), palette.result);
+        const inputTitle = caption("", "", v(0, down ? 10.65 : 13.3, 0), "ffn-axis"),
+          weightTitle = caption("", "", v(0, weightY + (count * rowPitch) / 2 + 0.78, 0), "ffn-axis"),
+          productTitle = caption("", "", v(0, down ? -1.6 : -0.9, 0.7), "ffn-axis"),
+          outputTitle = caption("", "", v(0, down ? -7.9 : -8.5, 0.7), "ffn-axis");
         const sum = line(
           Array.from({ length: 4 }, () => v(0, 0, 0)),
           palette.result,
@@ -628,7 +654,7 @@ export async function mountWikiModel(
           );
           setText(outputTitle, `${outputName} · 1 × ${columns}`, `只写入第 ${f.column + 1} 格`);
           inputs.forEach((item, k) => {
-            transfer(item.cell, t.inputs[k]!, item.cell.point, v(1.72, 1.2, 0.42), t.unfold, view.mesh);
+            transfer(item.cell, t.inputs[k]!, item.cell.point, v(1.72, cellH, 0.42), t.unfold, view.mesh);
             item.cell.mesh.visible = t.unfold > 0;
             paint(item.cell, f.input[k]! < 0 ? palette.data : palette.norm[0], multiplying && k === active);
             setText(item.label, fmt(f.input[k]!));
@@ -643,7 +669,7 @@ export async function mountWikiModel(
               item.cell,
               { node: weightNode, row: item.row, col: item.col },
               target,
-              v(1.72, 1.2, selected ? 0.7 : 0.42),
+              v(1.72, cellH, selected ? 0.7 : 0.42),
               t.unfold,
               view.mesh,
             );
@@ -676,14 +702,14 @@ export async function mountWikiModel(
                 item.cell,
                 t.outputs[0]!,
                 item.cell.point,
-                v(1.72, 1.2, 0.42),
+                v(1.72, cellH, 0.42),
                 1 - t.returning,
                 view.mesh,
               );
             else {
               item.cell.mesh.position.copy(item.cell.point);
               item.cell.mesh.rotation.set(0, 0, 0);
-              item.cell.mesh.scale.set(1.72, 1.2, 0.42);
+              item.cell.mesh.scale.set(1.72, cellH, 0.42);
             }
             paint(item.cell, f.sum < 0 ? palette.data : palette.result, selected && f.added > 0, selected);
             setText(item.label, selected && (adding || f.added > 0) ? fmt(f.sum) : "·");
@@ -776,7 +802,7 @@ export async function mountWikiModel(
         setText(
           explanation,
           `通道 ${column + 1} · ${selected.effect}${g.complete ? "" : "中"}`,
-          `${formatComputeProduct(selected.before, selected.factor, 3)} ${g.complete ? `≈ ${fmt(selected.result)}` : `→ 目标 ${fmt(selected.result)}`}`,
+          `${formatComputeProduct(selected.before, selected.factor, 3)} ${g.complete ? `≈ ${fmt(selected.result)}` : "= …"}`,
         );
         channels.forEach((lane, j) => {
           const c = g.channels[j]!,
@@ -854,8 +880,8 @@ export async function mountWikiModel(
         dot = t.phase === 0 || t.phase === 3;
       const stacked = width < 900;
       host.dataset.layout = stacked ? "stack" : "wide";
-      structure.mesh.position.set(stacked ? 0 : -7.6, stacked ? 9 : 0, 0);
-      structure.mesh.scale.setScalar(stacked ? 1 : 1.12);
+      structure.mesh.position.set(stacked ? 0 : -7.6, stacked ? 9 : 0.65, 0);
+      structure.mesh.scale.setScalar(stacked ? 1 : 1.04);
       structure.mesh.rotation.y = 0;
       views.forEach((g, i) => {
         g.mesh.position.set(stacked ? 0 : 5.4, stacked ? -15 : 0, 0);
@@ -947,7 +973,8 @@ export async function mountWikiModel(
       timeline = matmulTimeline(readProgress),
       swiglu = swigluTimeline(readProgress),
       focus = step === 2 ? swigluFocus(readProgress, column, downColumn) : null,
-      key = `${step}/${phase}/${row}/${column}/${downColumn}/${spread}/${step === 1 ? `${timeline.active}/${timeline.made}/${timeline.added}` : `${swiglu.operation}/${focus!.calculation}/${swiglu.active}/${swiglu.made}/${swiglu.added}/${swiglu.silu === 1}/${swiglu.pair === 1}`}`;
+      downReady = step === 2 ? swigluStructureState(readProgress, "delta") : false,
+      key = `${step}/${phase}/${row}/${column}/${downColumn}/${spread}/${step === 1 ? `${timeline.active}/${timeline.made}/${timeline.added}` : `${swiglu.operation}/${focus!.calculation}/${swiglu.active}/${swiglu.made}/${swiglu.added}/${swiglu.silu === 1}/${swiglu.pair === 1}/${downReady}`}`;
     if (key === lastReadout) return;
     lastReadout = key;
     colSelect.value = String(column);
@@ -962,7 +989,7 @@ export async function mountWikiModel(
           : phase === 2
             ? `已累加 ${added}/3 项：${terms.slice(0, added).join(" + ") || "0"} = ${sum}`
             : phase === 1
-              ? `第 ${active + 1} 项：${COMPUTE_INPUT[row]![active]} × ${COMPUTE_WEIGHT[active]![column]} = ${terms[active]}`
+              ? `第 ${active + 1} 项：${COMPUTE_INPUT[row]![active]} × ${COMPUTE_WEIGHT[active]![column]} = ${active < made ? terms[active] : "…"}`
               : `token ${row + 1} → 输出通道 ${column + 1}`;
       const descriptions = [
         `输入第 ${row + 1} 行 × 权重第 ${column + 1} 列，只得到输出第 ${row + 1} 行、第 ${column + 1} 列这一格。左侧框住这一行，上方亮起这一列。`,
@@ -988,7 +1015,7 @@ export async function mountWikiModel(
           item.dataset.active = String((phase === 1 && k === active) || (phase === 2 && k === added));
           item.dataset.done = String(phase === 3 || (phase === 2 ? k < added : k < made));
           name.textContent = `输入维 ${k + 1}`;
-          equation.textContent = `${COMPUTE_INPUT[row]![k]} × ${COMPUTE_WEIGHT[k]![column]} = ${phase === 0 || (phase === 1 && k > active) ? "·" : n}`;
+          equation.textContent = `${COMPUTE_INPUT[row]![k]} × ${COMPUTE_WEIGHT[k]![column]} = ${k < made ? n : "·"}`;
           item.append(name, equation);
           return item;
         }),
@@ -1019,7 +1046,11 @@ export async function mountWikiModel(
         const p = document.createElement("p");
         p.textContent =
           phase === 3
-            ? `down 的每一列都读取全部六个 h；四列得到 [${FFN.output.map(fmt).join(", ")}]。这里还没有加残差。`
+            ? downReady
+              ? `down 的每一列都读取全部六个 h；四列全部写回得到 [${FFN.output.map(fmt).join(", ")}]。这里还没有加残差。`
+              : f.calculation === "complete"
+                ? `down 的每一列都读取全部六个 h；当前第 ${f.column + 1} 列已算出 Δ[${f.column + 1}] = ${fmt(f.sum)}，正写回完整结构 Δ，其余列按同样规则补齐。这里还没有加残差。`
+                : `down 的每一列都读取全部六个 h；当前正计算第 ${f.column + 1} 列（Δ 其余格待写回）。这里还没有加残差。`
             : "两路使用同一份 n，但各自读取不同权重。完整 3D 结构始终保留，放大部分从高亮格取出，结果返回原格。";
         values.append(p);
       } else {
@@ -1030,7 +1061,7 @@ export async function mountWikiModel(
         description.textContent = silu
           ? "六个 g 各自生成 sigmoid(g)，逐格相乘得到 SiLU(g)。上排是 g，中排是乘数，下排是结果；同一列配对。sigmoid(g) 在 0 到 1 之间，压小幅度、保留正负号。"
           : "六个通道各自相乘，没有跨通道相加。通道 1 的乘数大于 1，会放大；通道 2 的负乘数接近 0，压小并翻转。其余通道也由各自乘数独立决定。";
-        formula.textContent = `${gate.complete ? "结果" : "目标"} ${silu ? "s" : "h"}[${j + 1}]：${formatComputeProduct(selected.before, selected.factor, 3)} ≈ ${fmt(selected.result)}`;
+        formula.textContent = `${gate.complete ? "结果" : "计算中"} ${silu ? "s" : "h"}[${j + 1}]：${formatComputeProduct(selected.before, selected.factor, 3)} ${gate.complete ? `≈ ${fmt(selected.result)}` : "= …"}`;
         const table = document.createElement("table");
         table.className = "wiki-swiglu-values";
         table.setAttribute("aria-label", "门控前后逐通道对照");
@@ -1043,13 +1074,13 @@ export async function mountWikiModel(
         gate.channels.forEach((channel, j) => {
           const rr = table.insertRow();
           rr.dataset.active = String(j === column);
-          [j + 1, channel.before, channel.factor, channel.result].forEach((n) => {
+          [j + 1, channel.before, channel.factor, gate.complete ? channel.result : "…"].forEach((n) => {
             rr.insertCell().textContent = String(n);
           });
         });
         const p = document.createElement("p");
         p.textContent =
-          "轮廓保留门控前的深度，实体显示门控后的大小。绿色为正、橙色为负；结果格在形变完成后显示数值。表中是目标值，示意数逐步取两位小数。";
+          "轮廓保留门控前的深度，实体显示门控后的大小。青绿为正、紫灰为负；结果格在形变完成后显示数值。示意数逐步取两位小数。";
         values.replaceChildren(table, p);
       }
     }

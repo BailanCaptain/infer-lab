@@ -3,11 +3,11 @@
 }
 .wiki-scene[data-kind="inference-mechanism"] .wiki-scene-canvas {
   height: 800px;
-  background: radial-gradient(ellipse at 45% 30%, #f8f8f0, #eaf0e8);
+  background: #fbfaf6;
 }
 .wiki-scene[data-kind="inference-mechanism"] .wiki-scene-explanation {
   padding: 24px 22px;
-  background: #fafbf7;
+  background: #fbfaf6;
 }
 .wiki-inference-labels {
   position: absolute;
@@ -18,10 +18,10 @@
   position: absolute;
   transform: translate(-50%, -50%);
   white-space: nowrap;
-  color: #294d40;
+  color: #1b2421;
   text-align: center;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 13.5px;
+  line-height: 1.3;
 }
 .wiki-inference-label[hidden],
 .wiki-inference-label:empty {
@@ -29,53 +29,116 @@
 }
 .wiki-inference-label.name {
   font-weight: 650;
-  background: #f3f6eddf;
-  padding: 1px 4px;
-  border-radius: 3px;
+  background: #fcfcfaeb;
+  border: 1px solid #dce0da;
+  padding: 2px 6px;
+  border-radius: 5px;
 }
 .wiki-inference-label.hardware {
   font-weight: 650;
-  font-size: 15px;
+  font-size: 13.5px;
+  color: #24302c;
+  background: #fcfcfaf2;
+  border: 1px solid #d5dbd3;
+  padding: 3px 11px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(23, 33, 31, 0.05);
 }
 .wiki-inference-label.region {
-  font-size: 14px;
-  letter-spacing: 0.04em;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #24302c;
+  background: #fcfcfaec;
+  border: 1px solid #d5dbd3;
+  padding: 2px 9px;
+  border-radius: 6px;
 }
 .wiki-inference-label.row {
   transform: translate(-100%, -50%);
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #25302c;
+  background: #fcfcfad9;
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 .wiki-inference-label.value {
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 2px #203c4870;
+  color: #17211f;
+  font-size: 13.5px;
+  line-height: 1;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.015em;
+  text-shadow: none;
 }
 .wiki-inference-label.value.muted {
-  color: #153f50;
+  color: #5b6763;
+  font-weight: 550;
   text-shadow: none;
+}
+.wiki-inference-label.value[data-zero="true"] {
+  color: #6b7672;
+  font-weight: 550;
 }
 .wiki-inference-label.unit {
   color: white;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(23, 33, 31, 0.68);
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 .wiki-inference-label.equation {
-  padding: 6px 12px;
-  background: #fafbf6ed;
-  border-radius: 4px;
-  font-size: 13px;
+  padding: 6px 13px;
+  background: #fbfaf6f2;
+  border: 1px solid #dcd8ce;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1b2421;
 }
 .wiki-inference-label.status {
   font-size: 13px;
   font-weight: 600;
+  color: #2b3834;
 }
 .wiki-inference-label.status[data-free="true"] {
-  color: #6c7e74;
+  color: #6c7571;
 }
 .wiki-inference-label.fraction {
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.wiki-inference-label.rank-pill {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #17211f;
+  background: #fbfaf6f5;
+  border: 1.5px solid #2c3836;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums lining-nums;
+  box-shadow: 0 2px 6px rgba(23, 33, 31, 0.06);
+}
+.wiki-inference-label.subhead {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #3b4945;
+  background: #fbfaf6e6;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.wiki-inference-label.operator {
+  font-size: 16px;
+  font-weight: 750;
+  color: #17211f;
+  background: #fbfaf6f2;
+  border: 1px solid #cfc9bc;
+  padding: 0 5px;
+  border-radius: 4px;
 }
 .wiki-inference-chapters {
   display: grid;
@@ -87,11 +150,12 @@
   display: flex;
   align-items: baseline;
   gap: 7px;
-  padding: 9px 6px;
+  padding: 9px 7px;
   border: 0;
-  border-bottom: 1px solid #dce3d7;
+  border-bottom: 1px solid #e2dfd5;
+  border-radius: 4px 4px 0 0;
   background: transparent;
-  color: #637569;
+  color: #626d68;
   font: inherit;
   font-size: 13px;
   text-align: left;
@@ -99,16 +163,16 @@
 }
 .wiki-inference-chapters :where(button) span {
   font: 11px var(--font-mono);
-  opacity: 0.7;
+  opacity: 0.72;
 }
 .wiki-inference-chapters button[aria-pressed="true"] {
-  color: #27674f;
-  border-color: #44866c;
-  background: #eaf2e9;
+  color: #1b5748;
+  border-color: #286151;
+  background: #eaf3ef;
   font-weight: 650;
 }
 .wiki-inference-eyebrow {
-  color: #6c8276;
+  color: #66716d;
   font-size: 11px;
   letter-spacing: 0.1em;
 }
@@ -117,21 +181,24 @@
   font-size: 22px;
   line-height: 1.4;
   letter-spacing: -0.025em;
+  color: #17211f;
 }
 .wiki-inference-readout p {
   margin: 10px 0;
   font-size: 14px;
   line-height: 1.85;
+  color: #35413d;
 }
 .wiki-inference-current {
   min-height: 225px;
 }
 .wiki-inference-ledger {
   padding-top: 18px;
-  border-top: 1px solid #d8e2d6;
+  border-top: 1px solid #e2dfd5;
 }
 .wiki-inference-ledger strong {
   font-size: 14px;
+  color: #17211f;
 }
 .wiki-inference-readout dl {
   margin: 14px 0;
@@ -141,27 +208,28 @@
   justify-content: space-between;
   gap: 10px;
   padding: 9px 0;
-  border-bottom: 1px solid #e7ebe1;
+  border-bottom: 1px solid #ece9df;
   font-size: 13px;
 }
 .wiki-inference-readout dt {
-  color: #6e8073;
+  color: #66716d;
 }
 .wiki-inference-readout dd {
   margin: 0;
   text-align: right;
-  color: #254d3b;
+  color: #1b2421;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .wiki-inference-readout .wiki-inference-number {
-  font-size: 25px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  font-variant-numeric: tabular-nums;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .wiki-inference-vector {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: #33765d;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 650;
+  color: #1f5f4e;
 }
 .wiki-inference-share {
   display: flex;
@@ -172,13 +240,18 @@
 .wiki-inference-share span {
   display: grid;
   place-items: center;
-  color: white;
+  color: #17211f;
   font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
   min-width: 0;
-  background: #287fb5;
+  background: #85a9ec;
+  border: 1px solid #5d82c7;
+  border-radius: 4px;
 }
 .wiki-inference-share [data-tone="gold"] {
-  background: #ad8245;
+  background: #e0948b;
+  border-color: #bc6c63;
 }
 .wiki-inference-part {
   display: grid;
@@ -187,7 +260,7 @@
 }
 .wiki-inference-part span {
   font-size: 12px;
-  color: #6e8073;
+  color: #66716d;
 }
 .wiki-inference-part b {
   font-size: 21px;
@@ -195,30 +268,30 @@
 }
 .wiki-inference-part small {
   font-size: 12px;
-  color: #6e8073;
+  color: #66716d;
 }
 .wiki-inference-readout .wiki-inference-outcome {
   padding-left: 12px;
-  border-left: 2px solid #88ac94;
+  border-left: 2px solid #286151;
   margin-top: 20px;
-  color: #3d6552;
+  color: #2a463d;
 }
 .wiki-inference-readout details {
-  border-top: 1px solid #d8e2d6;
+  border-top: 1px solid #e2dfd5;
   margin-top: 20px;
   padding-top: 14px;
   font-size: 13px;
 }
 .wiki-inference-readout summary {
   cursor: pointer;
-  color: #547563;
+  color: #4b5a55;
 }
 .wiki-inference-readout.wiki-cache-readout {
   display: block;
 }
 .wiki-cache-readout .wiki-cache-premise {
   margin: 0 0 24px;
-  color: #526b5b;
+  color: #4f5d58;
 }
 .wiki-cache-steps {
   list-style: none;
@@ -236,14 +309,14 @@
   border: 0;
   padding: 9px 0;
   background: transparent;
-  color: #708171;
+  color: #66716d;
   text-align: left;
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 .wiki-cache-steps button[aria-pressed="true"] {
-  color: #254d3b;
+  color: #1b2421;
   font-weight: 650;
 }
 .wiki-cache-steps span {
@@ -251,17 +324,17 @@
   place-items: center;
   width: 25px;
   height: 25px;
-  border: 1px solid #c9d8c7;
+  border: 1px solid #d8d5ca;
   border-radius: 50%;
   font-size: 12px;
 }
 .wiki-cache-steps :where([aria-pressed="true"]) span {
-  background: #44866c;
-  border-color: #44866c;
+  background: #286151;
+  border-color: #286151;
   color: white;
 }
 .wiki-cache-current {
-  border-top: 1px solid #d8e2d6;
+  border-top: 1px solid #e2dfd5;
   padding-top: 22px;
   min-height: 220px;
 }
@@ -281,28 +354,28 @@
   place-items: center;
   width: 38px;
   height: 34px;
-  border-bottom: 2px solid #d8e2d6;
-  color: #607461;
+  border-bottom: 2px solid #e2dfd5;
+  color: #626d68;
 }
 .wiki-cache-count [data-selected] {
-  background: #e1eddf;
-  border-color: #44866c;
-  color: #254d3b;
+  background: #eaf3ef;
+  border-color: #286151;
+  color: #1b2421;
   font-weight: 700;
 }
 .wiki-cache-count small {
   width: 100%;
-  color: #607461;
+  color: #626d68;
 }
 .wiki-cache-readout .wiki-cache-answer {
   padding-left: 12px;
-  border-left: 2px solid #88ac94;
+  border-left: 2px solid #286151;
   margin-top: 26px;
-  color: #3d6552;
+  color: #2a463d;
 }
 .wiki-cache-owners b {
   font-size: 32px;
-  color: #6f5d94;
+  color: #82547b;
 }
 .wiki-scene[data-kind="inference-mechanism"] .wiki-scene-workbench[data-expanded] .wiki-scene-canvas {
   height: calc(100vh - 155px);
@@ -313,7 +386,7 @@
   }
   .wiki-scene[data-kind="inference-mechanism"] .wiki-scene-explanation {
     border-left: 0;
-    border-top: 1px solid #d8e2d6;
+    border-top: 1px solid #e2dfd5;
   }
   .wiki-inference-readout {
     display: grid;

@@ -8,7 +8,6 @@ const scenes = [
   { page: "attention-qkv", seconds: 64, phases: 6, result: "25,15,12.5,7.5" },
   { page: "block-table", seconds: 18, phases: 6, result: "slot=10;refs=0,0,0" },
   { page: "pd-disaggregation", seconds: 52, phases: 6, result: "P=released;D=ready" },
-  { page: "ai-core", seconds: 32, phases: 8, result: "5,0" },
 ];
 async function seek(figure: Locator, progress: number) {
   await figure.getByRole("slider").evaluate((node, p) => {
@@ -131,15 +130,6 @@ test("PD delivery and Core activation stay behind their visible handoffs", async
   await expect(readout).toContainText("仍持有");
   await seek(f, 4.66 / 6);
   await expect(readout).toContainText("已归还");
-  await page.goto("/#/wiki/ai-core#scene-inference-mechanism-3");
-  const core = page.getByTestId("scene-inference-mechanism-3");
-  await core.scrollIntoViewIfNeeded();
-  await expect(core).toHaveAttribute("data-ready", "true");
-  await seek(core, 6.64 / 8);
-  await expect(core.locator(".wiki-inference-readout")).toContainText("等待激活完成");
-  await seek(core, 6.66 / 8);
-  await expect(core.locator(".wiki-inference-readout")).toContainText("[5, 0]");
-  await expect(core.locator(".wiki-inference-readout")).toContainText("等待写回");
 });
 
 test("reused model demonstrations open at the requested segment", async ({ page }) => {
@@ -317,65 +307,13 @@ test("narrow viewport keeps final labels inside the canvas", async ({ page }) =>
   }
 });
 
-test("AI Core uses a rotatable 3D spatial stage with continuous motion in every phase", async ({ page }) => {
+test("AI Core presents the static 2D four-step GM handoff walkthrough cleanly", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1100 });
-  await page.goto("/#/wiki/ai-core#scene-inference-mechanism-3");
-  const f = page.getByTestId("scene-inference-mechanism-3");
-  await f.scrollIntoViewIfNeeded();
-  await expect(f).toHaveAttribute("data-ready", "true");
-  await expect(f.getByRole("slider")).toHaveAttribute("max", "32");
-
-  // Verify genuine 3D depth parallax between elevated GM terrace and front AIC L0C buffer upon camera drag.
-  await seek(f, 1);
-  const gmMidBefore = (await f.locator('[data-tensor="GM 中间区"]').first().boundingBox())!;
-  const l0cBefore = (await f.locator('[data-tensor="L0C"]').first().boundingBox())!;
-  const canvasBox = (await f.locator(".wiki-scene-canvas").boundingBox())!;
-  await page.mouse.move(canvasBox.x + canvasBox.width * 0.5, canvasBox.y + canvasBox.height * 0.48);
-  await page.mouse.down();
-  await page.mouse.move(canvasBox.x + canvasBox.width * 0.68, canvasBox.y + canvasBox.height * 0.5, {
-    steps: 12,
-  });
-  await page.mouse.up();
-  const gmMidAfter = (await f.locator('[data-tensor="GM 中间区"]').first().boundingBox())!;
-  const l0cAfter = (await f.locator('[data-tensor="L0C"]').first().boundingBox())!;
-  const parallaxDx = Math.abs(gmMidAfter.x - l0cAfter.x - (gmMidBefore.x - l0cBefore.x));
-  expect(parallaxDx).toBeGreaterThan(15);
-  await f.getByRole("button", { name: "复位图解视角" }).click();
-
-  // Verify active 3D WebGL motion within every one of the 8 stages.
-  const canvas = f.locator(".wiki-scene-canvas canvas");
-  for (let phase = 0; phase < 8; phase++) {
-    await seek(f, (phase + 0.12) / 8);
-    const before = (await canvas.screenshot()).toString("base64");
-    await seek(f, (phase + 0.62) / 8);
-    const after = (await canvas.screenshot()).toString("base64");
-    const changed = await page.evaluate(
-      async (frames) => {
-        const bitmaps = await Promise.all(
-          frames.map(async (frame) =>
-            createImageBitmap(await (await fetch(`data:image/png;base64,${frame}`)).blob()),
-          ),
-        );
-        const surface = new OffscreenCanvas(bitmaps[0]!.width, bitmaps[0]!.height);
-        const context = surface.getContext("2d")!;
-        const pixels = bitmaps.map((bitmap) => {
-          context.clearRect(0, 0, surface.width, surface.height);
-          context.drawImage(bitmap, 0, 0);
-          bitmap.close();
-          return context.getImageData(0, 0, surface.width, surface.height).data;
-        });
-        let count = 0;
-        for (let i = 0; i < pixels[0]!.length; i += 4) {
-          const difference = [0, 1, 2].reduce(
-            (sum, c) => sum + Math.abs(pixels[0]![i + c]! - pixels[1]![i + c]!),
-            0,
-          );
-          if (difference > 50) count++;
-        }
-        return count;
-      },
-      [before, after],
-    );
-    expect(changed, `AI Core phase ${phase} has visible 3D motion`).toBeGreaterThan(40);
-  }
+  await page.goto("/#/wiki/ai-core");
+  await expect(page.getByTestId("scene-inference-mechanism-3")).toHaveCount(0);
+  const walkthrough = page.locator("svg[aria-label*='910B 分离架构四步走读']");
+  await walkthrough.scrollIntoViewIfNeeded();
+  await expect(walkthrough).toBeVisible();
+  await expect(walkthrough).toContainText("[5, -5]（跨核中转）");
+  await expect(walkthrough).toContainText("[5, 0]（最终写回）");
 });

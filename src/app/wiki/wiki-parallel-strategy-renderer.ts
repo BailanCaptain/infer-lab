@@ -9,6 +9,7 @@ import {
   EP_EXPERT_OUTPUTS,
   EP_EXPERTS,
   EP_HIDDEN,
+  EP_LOGITS_PREVIEW,
   EP_OUTPUT,
   EP_ROUTED,
   EP_ROUTED_ROWS,
@@ -96,6 +97,21 @@ const v = (x: number, y: number, z = 0) => new T.Vector3(x, y, z);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const SUB = "₀₁₂₃";
+/** Shared mineral palette across TP, DP and EP (Cobalt input, Cinnabar-Coral weights, Celadon-Jade outputs). */
+const MINERAL = {
+  data: "#85a9ec",
+  weight: "#e0948b",
+  result: "#78c8b0",
+  shared: "#a8cfc3",
+  pad: "#d2d7da",
+  lineData: "#4e69bd",
+  lineWeight: "#b5564d",
+  lineResult: "#12826c",
+  lineCross: "#a44a84",
+  linePad: "#8a96a3",
+  tpCards: ["#85a9ec", "#e0948b", "#a985c6", "#6bb6c9"],
+  tpLines: ["#4e69bd", "#b5564d", "#7b5399", "#377f94"],
+} as const;
 
 /** Same-direction S route between two matrix centres, drawn behind the matrices it joins. */
 const sRoute = (a: T.Vector3, b: T.Vector3, bend = 0.5) => {
@@ -192,30 +208,46 @@ const payloadFlight = (kit: StrategyKit) => {
   // Facing the reader while laid out; tilted with the board once seated.
   const upright = new T.Quaternion().setFromEuler(new T.Euler(-g.rotation.x, 0, 0));
   const seated = new T.Quaternion();
-  return (card: number, i: number, from: T.Vector3, t: number, size = 1, lift = 2.4) => {
-    const payload = kit.payloads[card]!,
-      home = homes[card]![i]!;
-    if (t >= 1) m.makeTranslation(home.x, home.y, home.z);
-    else {
-      w.copy(from).lerp(g.localToWorld(home.clone()), t);
-      w.z += Math.sin(t * Math.PI) * lift;
-      g.worldToLocal(w);
-      q.copy(upright).slerp(seated, t);
-      m.compose(w, q, s.setScalar(size));
-    }
-    payload.setMatrixAt(i, m);
-    payload.instanceMatrix.needsUpdate = true;
+  const settled = kit.payloads.map(() => false);
+  const moved = kit.payloads.map(() => false);
+  return {
+    fly(card: number, i: number, from: T.Vector3, t: number, size = 1, lift = 2.4) {
+      if (t >= 1 && settled[card]) return;
+      const payload = kit.payloads[card]!,
+        home = homes[card]![i]!;
+      if (t >= 1) m.makeTranslation(home.x, home.y, home.z);
+      else {
+        w.copy(from).lerp(g.localToWorld(home.clone()), t);
+        w.z += Math.sin(t * Math.PI) * lift;
+        g.worldToLocal(w);
+        q.copy(upright).slerp(seated, t);
+        m.compose(w, q, s.setScalar(size));
+      }
+      payload.setMatrixAt(i, m);
+      moved[card] = true;
+    },
+    sync(card: number, allLanded: boolean) {
+      if (!moved[card]) return;
+      const payload = kit.payloads[card]!;
+      payload.instanceMatrix.needsUpdate = true;
+      payload.computeBoundingSphere();
+      moved[card] = false;
+      settled[card] = allLanded;
+    },
   };
 };
 
 function tensorParallel(kit: StrategyKit): StrategyContent {
-  const { ports, palette, grid, paintGrid, matrixSlot, header, footer } = kit;
+  const { ports, grid, paintGrid, matrixSlot, header, footer } = kit;
+  const palette = { data: MINERAL.data, result: MINERAL.result };
   const label = flagged(kit);
   const { show, move, solid, dashed, operator, travel } = shared(kit);
-  const colors = kit.cardColors;
+  const colors = MINERAL.tpCards;
+  const lines = MINERAL.tpLines;
   const xs = ports.map((p) => p.x);
   const miniY = -0.12;
   const mini = (g: number) => v(xs[g]!, miniY, 0.3);
+  const wLanded = (g: number) => ports[g]!.clone().add(v(0, -0.28, 0));
   kit.payloads.forEach((p) => {
     p.visible = false;
   });
@@ -244,8 +276,8 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
     "name",
   );
   const xAxis = label("8 个输入通道 →", kit.root, v(X0.x, X0.y - 1.4, 0.4), "note");
-  const xCuts = [0, 1, 2].map(() => dashed("#ae774d"));
-  const wCuts = [0, 1, 2].map(() => dashed("#ae774d"));
+  const xCuts = [0, 1, 2].map(() => dashed(MINERAL.lineWeight));
+  const wCuts = [0, 1, 2].map(() => dashed(MINERAL.lineWeight));
   const tagPoints = Array.from({ length: TP_CARDS }, () => v(0, 0, 0.4));
   const tags = tagPoints.map((point, g) => label(`卡${g}`, kit.root, point, "name small"));
   const minis = {
@@ -273,8 +305,8 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
   });
   const bigP = grid("部分和 P₀ · 4×4", bigHome[2]!, colors[0]!, { cols: 4, axis: "每格只加了 2 个通道" });
   const ops1 = [operator("×", v(-3.55, -2.45, 0.5)), operator("=", v(0.85, -2.45, 0.5))];
-  const extract = dashed(palette.result);
-  const expandRoutes = [solid(colors[0]!), solid(colors[0]!)];
+  const extract = dashed(MINERAL.lineResult);
+  const expandRoutes = [solid(lines[0]!), solid(MINERAL.lineWeight)];
   // Phase 2: the four partial sums line up and add cell by cell.
   const sumXs = [-5.45, -3.15, -0.85, 1.45];
   const sumY = -2.45,
@@ -293,12 +325,13 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
   });
   const plus = [0, 1, 2].map((g) => operator("+", v((sumXs[g]! + sumXs[g + 1]!) / 2, sumY, 0.5)));
   const equals = operator("=", v(3.2, sumY, 0.5));
-  const gatherRoutes = colors.slice(0, TP_CARDS).map((c) => solid(c));
+  const gatherRoutes = lines.slice(0, TP_CARDS).map((c) => solid(c));
   const sumSlot = matrixSlot(totalHome, 1, 4);
-  const broadcastRoutes = Array.from({ length: TP_CARDS }, () => solid(palette.result));
+  const broadcastRoutes = Array.from({ length: TP_CARDS }, () => solid(MINERAL.lineResult));
   const miniSlots = xs.map((x) => matrixSlot(v(x, miniY, 0.3), 0.4, 4));
   return {
     glow: (i, p) => i < TP_CARDS && tpMotion(p).phase >= 1,
+    glowColor: (i, p) => (tpMotion(p).phase === 3 ? MINERAL.lineResult : (lines[i] ?? MINERAL.lineData)),
     result: TP_SUM.map((r) => r.join(",")).join(";"),
     camera: { half: 6.7, targetY: -0.55, footerY: -6.1 },
     animate(p) {
@@ -308,7 +341,11 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
         land === 0 ? "TP · 一次 down 投影切给 4 张卡" : "TP · 权重片落卡，常驻显存",
         "四卡同时算部分和 · 展开卡0",
         "All-Reduce · 同位置逐格相加",
-        "All-Reduce 完成 · 每卡都有完整 Y",
+        m.broadcast === 0
+          ? "All-Reduce 相加完成 · 准备分发 Y 回各卡"
+          : m.broadcast < 1
+            ? "All-Reduce 分发 · 完整 Y 写回每张卡"
+            : "All-Reduce 完成 · 每卡都有完整 Y",
       ][m.phase]!;
       footer.textContent = [
         "逻辑全貌：X 的同号列与 W 的同号行属于同一张卡",
@@ -324,21 +361,20 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
         t.group.position.copy(from).lerp(mini(g), land);
         t.group.position.z += Math.sin(land * Math.PI) * 2.4;
         t.group.scale.setScalar(lerp(1, 0.4, land));
+        paintGrid(t, tpInputSlice(g), colors[g]!, 1, m.reveal);
         t.outlines.forEach((o) => {
           o.visible = open > 0.5;
         });
-        paintGrid(t, tpInputSlice(g), colors[g]!, 1, m.reveal);
       });
       wSlices.forEach((t, g) => {
         const from = v(W0.x, wCenter(g, open), 0.5);
-        const to = ports[g]!.clone().add(v(0, -0.28, 0));
-        t.group.position.copy(from).lerp(to, land);
+        t.group.position.copy(from).lerp(wLanded(g), land);
         t.group.position.z += Math.sin(land * Math.PI) * 2.4;
         t.group.scale.setScalar(lerp(1, 0.3, land));
+        paintGrid(t, tpWeightSlice(g), colors[g]!, 1, m.reveal, -1);
         t.outlines.forEach((o) => {
           o.visible = open > 0.5;
         });
-        paintGrid(t, tpWeightSlice(g), colors[g]!, 1, m.reveal, -1);
       });
       [xTitle, wTitle, xAxis].forEach((el) => {
         setOn(el, !(!setup || land > 0));
@@ -374,9 +410,9 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
       });
       miniTags.forEach((el, g) => {
         el.textContent =
-          setup && land === 1
+          (setup && land === 1) || (m.phase === 1 && m.partial === 0)
             ? `X${SUB[g]}`
-            : m.phase === 1
+            : (m.phase === 1 && m.partial > 0) || (m.phase === 2 && m.gather === 0)
               ? `P${SUB[g]}`
               : m.phase === 3 && m.broadcast === 1
                 ? "Y"
@@ -385,7 +421,7 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
       miniSlots.forEach((s) => {
         s.visible = m.phase === 3 && m.broadcast > 0.4 && m.broadcast < 1;
       });
-      // Phase 1: card 0's slices travel from the card into the work area.
+      // Phase 1: card 0's slices travel from their actual landed positions into the work area.
       const p1 = m.phase === 1;
       [bigX, bigW, bigP].forEach((t) => {
         show(t, p1);
@@ -395,9 +431,8 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
       });
       extract.visible = p1;
       kit.connect(extract, [ports[0]!, v(-6.25, ports[0]!.y, 1.2), v(-6.25, -0.7, 1.2), v(-4.0, -0.7, 0.6)]);
-      [bigX, bigW].forEach((t, i) => {
-        travel(t, expandRoutes[i]!, sRoute(mini(0), bigHome[i]!, 0.5), p1 ? m.expand : 0, 0.4, 1);
-      });
+      travel(bigX, expandRoutes[0]!, sRoute(mini(0), bigHome[0]!, 0.5), p1 ? m.expand : 0, 0.4, 1);
+      travel(bigW, expandRoutes[1]!, sRoute(wLanded(0), bigHome[1]!, 0.5), p1 ? m.expand : 0, 0.3, 1);
       paintGrid(bigX, tpInputSlice(0), colors[0]!);
       paintGrid(bigW, tpWeightSlice(0), colors[0]!, 1, 1, -1);
       paintGrid(bigP, TP_PARTIALS[0]!, colors[0]!, m.partial);
@@ -427,18 +462,33 @@ function tensorParallel(kit: StrategyKit): StrategyContent {
 }
 
 function dataParallel(kit: StrategyKit): StrategyContent {
-  const { ports, palette, grid, paintGrid, matrixSlot, header, footer } = kit;
+  const { ports, grid, paintGrid, matrixSlot, header, footer } = kit;
+  const palette = { data: MINERAL.data, result: MINERAL.result };
   const label = flagged(kit);
   const { show, solid, dashed, travel } = shared(kit);
   const centers = kit.boardCenters.map((x) => kit.hardwareGroup.localToWorld(v(x, 0, 0)).x);
   const miniY = Math.min(...ports.map((p) => p.y)) - 1.5;
   const groupMini = (g: number) => v(centers[g]!, miniY, 0.3);
+  // Harmonize DP payload cubes with the mineral palette: TP8-sharded dense (Cobalt),
+  // 727.5 MiB per-card replicated modules (Deep Cobalt), and 18/card experts (Coral / Plum).
+  const cubeColor = new T.Color();
+  kit.payloads.forEach((payload, card) => {
+    for (let i = 0; i < payload.count; i++) {
+      cubeColor.set(
+        i < 12 ? MINERAL.data : i < 16 ? MINERAL.lineData : card < 8 ? MINERAL.weight : "#b07cb0",
+      );
+      payload.setColorAt(i, cubeColor);
+    }
+    if (payload.instanceColor) payload.instanceColor.needsUpdate = true;
+  });
   kit.boardCenters.forEach((x, b) => {
     label(`DP${b} · 服务器${b} · 卡${b * 8}–${b * 8 + 7}`, kit.hardwareGroup, v(x, 0.5, -2.65), "name");
   });
   const residency = kit.boardCenters.map((x, b) =>
     label(
-      b ? "稠密权重一份 + 专家 E144–E287" : "稠密权重一份 + 专家 E0–E143",
+      b
+        ? "TP8 可切稠密 + 727.5 MiB 逐卡复制 + 144 专家 (E144–E287)"
+        : "TP8 可切稠密 + 727.5 MiB 逐卡复制 + 144 专家 (E0–E143)",
       kit.hardwareGroup,
       v(x, -0.35, 2.75),
       "note",
@@ -458,24 +508,24 @@ function dataParallel(kit: StrategyKit): StrategyContent {
   const results = DP_REQUESTS.map((r, g) =>
     grid("", workHome[g]!, palette.result, { rowNames: r.tokens, focusRow: -1 }),
   );
-  const routes = [0, 1].map(() => solid(palette.data));
-  const expandRoutes = [0, 1].map(() => solid(palette.data));
+  const routes = [0, 1].map(() => solid(MINERAL.lineData));
+  const expandRoutes = [0, 1].map(() => solid(MINERAL.lineData));
   const slots = [0, 1].map((g) => matrixSlot(groupMini(g), 0.4));
-  const extracts = [0, 1].map(() => dashed(palette.result));
+  const extracts = [0, 1].map(() => dashed(MINERAL.lineResult));
   const replies = DP_REQUESTS.map(() =>
     grid("", v(0, 0, 0.6), palette.result, { rows: 1, cols: 1, rowNames: [], axis: false, focusRow: 0 }),
   );
-  const replyRoutes = [0, 1].map(() => solid(palette.result));
-  const moeLink = dashed("#8a7aa8");
+  const replyRoutes = [0, 1].map(() => solid(MINERAL.lineResult));
+  const moeLink = dashed(MINERAL.lineCross);
   const moeNote = label(
-    "MoE 层：两组的 token 仍会用到对方机器上的专家（见 EP）",
+    "MoE 层：请求与 KV 留原组，但 token 会临时跨机访问对侧 144 位专家（见 EP）",
     kit.root,
     v(0, miniY - 0.45, 0.4),
     "note",
   );
   const replyFrom = (g: number) => v(workHome[g]!.x + (g ? -2.25 : 2.25), workHome[g]!.y - 0.75, 0.6);
   // Phase 0: one dense copy and one expert set below the boards → copy → cut → land.
-  const fly = payloadFlight(kit);
+  const { fly, sync: syncPayloadBounds } = payloadFlight(kit);
   const pitch = 0.18,
     denseY = -1.95,
     expertY = -4.35;
@@ -505,13 +555,18 @@ function dataParallel(kit: StrategyKit): StrategyContent {
   const denseTitles = denseTitlePoints.map((point) => label("", kit.root, point, "name"));
   const expertTitlePoints = [0, 1, 2].map(() => v(0, expertY + 0.82, 0.4));
   const expertTitles = expertTitlePoints.map((point) => label("", kit.root, point, "name"));
-  const denseCuts = Array.from({ length: 14 }, () => dashed("#ae774d"));
-  const expertCut = dashed("#ae774d");
+  const denseCuts = Array.from({ length: 14 }, () => dashed(MINERAL.lineWeight));
+  const expertCut = dashed(MINERAL.lineCross);
   return {
     glow: (i, p) => {
       const m = dpMotion(p);
       const g = i < 8 ? 0 : 1;
       return m.phase === 3 || (m.phase >= g + 1 && m.phase < 3 && m.route[g]! === 1);
+    },
+    glowColor: (i, p) => {
+      const m = dpMotion(p);
+      if (m.phase === 4) return MINERAL.lineResult;
+      return i < 8 ? MINERAL.lineData : MINERAL.lineCross;
     },
     result: DP_REQUESTS.map((r) => `${r.name}:${r.reply}`).join(","),
     camera: { half: 7.4, targetY: -0.6, footerY: -6.75 },
@@ -519,33 +574,38 @@ function dataParallel(kit: StrategyKit): StrategyContent {
       const m = dpMotion(p);
       header.textContent = [
         m.copy === 0
-          ? "DP · 先看全貌：一份稠密权重，一套路由专家"
+          ? "DP · 先看全貌：非专家权重，一套路由专家"
           : m.land === 0
-            ? "部署模型 · 稠密权重每组一份，专家分成 16 份"
-            : "权重落卡 · 两台机器各是一个执行组",
+            ? "部署模型 · 可切稠密 TP8 + 复制项 727.5 MiB/卡，专家分 16 份"
+            : m.land < 0.96
+              ? "权重正分落两台机器 16 张卡…"
+              : "权重落卡 · 两台机器各是一个执行组",
         "请求 A 到达 · 前端选组",
         "请求 B 到达 · 前端选组",
-        "两组同时计算各自的请求",
+        "两组算各自请求 · MoE 层 token 临时跨机访专家",
         "回复送回各自的用户",
       ][m.phase]!;
       footer.textContent =
         m.phase === 0
-          ? m.land < 0.8
-            ? "蓝格：稠密层权重 · 紫格、青格：一个 MoE 层的 288 位路由专家，一格一位"
-            : "每卡下层：本组稠密权重的 1/8（TP8）· 上层：自己的 18 位专家"
+          ? m.land < 0.96
+            ? "钴蓝格：TP8 可切稠密与 727.5 MiB 逐卡复制项 · 珊瑚/梅紫格：288 位专家（每机 144、每卡 18）"
+            : "每卡：TP8 可切稠密 1/8 + 727.5 MiB 逐卡复制（router/mHC 等）+ 18 位专家（每机 144）"
           : m.phase < 3
-            ? "分数 = 等待请求数 × 4 + 运行请求数，选分数小的组"
-            : "一条请求的行不跨组；请求状态与 KV cache 留在原组";
+            ? "分数 = 等待请求数 × 4 + 运行请求数 · 先比较选组，再预记 +4 并派发"
+            : "请求队列与 KV cache 留在原组；到 MoE 层时 token 仍跨机访问另一台 144 位专家";
       residency.forEach((el) => {
-        setOn(el, m.phase === 0 && m.land > 0.8);
+        setOn(el, m.phase === 0 && m.land >= 0.96);
       });
       // Phase 0: the cubes on the cards are the very cubes laid out below, so the split is literal.
       kit.payloads.forEach((payload, card) => {
+        let allLanded = true;
         for (let i = 0; i < payload.count; i++) {
           const stagger = (card % 8) * 0.025 + (i < 16 ? 0 : 0.06);
-          const t = m.phase > 0 ? 1 : clamp01((m.land - stagger) / (1 - 0.25));
+          const t = m.phase > 0 ? 1 : clamp01((m.land - stagger) / 0.72);
+          if (t < 1) allLanded = false;
           fly(card, i, source(card, i, m), t, m.reveal);
         }
+        syncPayloadBounds(card, allLanded);
       });
       const laying = m.phase === 0 && m.land === 0;
       denseTitles.forEach((el, g) => {
@@ -553,10 +613,10 @@ function dataParallel(kit: StrategyKit): StrategyContent {
         denseTitlePoints[g]!.set(lerp(0, centers[g]!, m.copy), denseY + 0.62, 0.4);
         el.textContent =
           m.copy < 0.5
-            ? "稠密层权重 · 一份"
+            ? "非专家权重（可切稠密 + 逐卡复制项）"
             : m.cut === 0
-              ? `DP${g} 的一份`
-              : `DP${g} 的一份 · 机内 TP8 切 8 片`;
+              ? `DP${g} 的非专家权重`
+              : `DP${g} · 可切项 TP8 切 1/8 + 727.5 MiB 逐卡复制`;
       });
       expertTitles.forEach((el, k) => {
         const halves = m.cut > 0;
@@ -567,9 +627,9 @@ function dataParallel(kit: StrategyKit): StrategyContent {
           0.4,
         );
         el.textContent = [
-          "E0–E143 → 服务器0 · 每卡 18 位",
-          "E144–E287 → 服务器1 · 每卡 18 位",
-          "路由专家 E0–E287 · 一个 MoE 层 288 位，只有一套",
+          "E0–E143 → 服务器0 · 144 位（每卡 18 位）",
+          "E144–E287 → 服务器1 · 144 位（每卡 18 位）",
+          "路由专家 E0–E287 · 全集群一套（每机 144、每卡 18）",
         ][k]!;
       });
       denseCuts.forEach((c, k) => {
@@ -589,7 +649,8 @@ function dataParallel(kit: StrategyKit): StrategyContent {
         const own = m.phase - 1;
         const decided = m.score[own]! === 1;
         const waiting = m.scores[g]! / 4;
-        el.textContent = `DP${g}：等待${waiting}×4 + 运行0 = ${waiting * 4}${decided && g === own ? " ← 选中" : ""}`;
+        const suffix = decided && g === own ? (waiting === 0 ? " ← 选中（待预记）" : " ← 已预记 +4") : "";
+        el.textContent = `DP${g}：等待${waiting}×4 + 运行0 = ${waiting * 4}${suffix}`;
         el.style.fontWeight = decided && g === own ? "700" : "400";
       });
       users.forEach((el) => {
@@ -636,33 +697,54 @@ function dataParallel(kit: StrategyKit): StrategyContent {
 
 function expertParallel(kit: StrategyKit): StrategyContent {
   const { ports, grid, paintGrid, header, footer } = kit;
-  const palette = { data: "#3e629c", result: kit.palette.result };
-  const weightColor = "#b8761e";
-  const sharedColor = "#7b587d";
-  const intraArcColor = "#3e629c";
-  const crossArcColor = "#c4492f";
+  const palette = { data: "#85a9ec", result: "#78c8b0" };
+  const weightColor = "#e0948b";
+  const sharedColor = "#a8cfc3";
+  const lineData = "#4e69bd";
+  const lineWeight = "#b5564d";
+  const lineResult = "#12826c";
+  const intraArcColor = "#4e69bd";
+  const crossArcColor = "#a44a84";
+  const slateTones = ["#586470", "#74818e", "#4b5661", "#8a96a3"];
+  const winnerIndexByExpert = new Map(EP_EXPERTS.map((e, idx) => [e.expert, idx]));
+  const dieColor = new T.Color();
   const label = flagged(kit);
   const { show, move, solid, dashed, operator, travel } = shared(kit);
   kit.boardCenters.forEach((x, b) => {
-    label(`服务器${b} · 卡${b * 8}–${b * 8 + 7}`, kit.root, v(x * 0.86, 5.24, 0.25), "name");
+    label(`服务器${b} · 卡${b * 8}–${b * 8 + 7}`, kit.root, v(x * 0.86, 5.56, 0.25), "name");
   });
   const above = (card: number, dx = 0) => ports[card]!.clone().add(v(dx, 0.42, 0.2));
   const slotX = (expert: number) => (expert % 18 === 1 ? 0.3 : expert % 18 === 0 && expert > 0 ? -0.3 : -0.3);
-  const H0 = v(-4.35, -2.75, 0.5);
-  const hidden = grid("DP0 每张卡都有这份 hidden · 4×4", H0, palette.data, {
+  const H0 = v(-4.55, -2.75, 0.5);
+  const hidden = grid("DP0 每卡同持 hidden · [4,4]", H0, palette.data, {
     cols: 4,
     axis: "4 个通道（实际 4096）→",
     focusRow: 0,
   });
-  const rowCuts = [0, 1, 2].map(() => dashed(weightColor));
+  const L0 = v(1.45, -2.75, 0.5);
+  const routerProjOp = operator("→ router →", v(-1.6, -2.75, 0.5));
+  const logitsGrid = grid("每卡先算 router logits · [4,288] FP32", L0, weightColor, {
+    rows: 4,
+    cols: 3,
+    wide: 1.5,
+    rowNames: [],
+    axis: "288 位专家打分（示意前 3 项）→",
+    focusRow: 0,
+  });
+  const rowCuts = [0, 1, 2].map(() => dashed(lineWeight));
+  const logitsCuts = [0, 1, 2].map(() => dashed(lineWeight));
   const rowsOut = SAMPLE_TOKENS.map((name) =>
     grid("", H0, palette.data, { rows: 1, cols: 4, rowNames: [name], axis: false, focusRow: 0 }),
   );
-  const rowRoutes = SAMPLE_TOKENS.map(() => solid(palette.data));
-  const padTags = [4, 5, 6, 7].map((i) => label("补位", kit.root, v(ports[i]!.x, 1.62, 0.35), "note"));
+  const rowRoutes = SAMPLE_TOKENS.map(() => solid(lineData));
+  const logitsOut = SAMPLE_TOKENS.map(() =>
+    grid("", L0, weightColor, { rows: 1, cols: 3, wide: 1.5, rowNames: [], axis: false, focusRow: 0 }),
+  );
+  const logitRoutes = SAMPLE_TOKENS.map(() => solid(lineWeight));
+  const padTags = [4, 5, 6, 7].map((i) => label("补位 (pad)", kit.root, v(ports[i]!.x, 1.62, 0.35), "note"));
   // The focused source row, then the router's score / weight per selected expert.
-  const focusHome = v(-5.45, -0.2, 0.5);
-  const focus = grid("卡0 · 今天", focusHome, palette.data, {
+  const focusHome = v(-5.45, 0.02, 0.5);
+  const focus = grid("卡0 · 今天 ([1,4] & [1,288])", focusHome, palette.data, {
     rows: 1,
     cols: 4,
     rowNames: [],
@@ -671,12 +753,12 @@ function expertParallel(kit: StrategyKit): StrategyContent {
     wide: 1.3,
   });
   const routerHome = v(-2.55, -3.1, 0.5);
-  const router = grid("router 选中 8 位 · 分数 → 组合权重", routerHome, palette.data, {
+  const router = grid("本卡 [1,288] 切片 · 准备 top-8", routerHome, palette.data, {
     rows: 8,
     cols: 2,
     wide: 1.85,
     rowNames: EP_EXPERTS.map((e) => `E${e.expert} · 卡${e.rank}`),
-    axis: "分数 · 分数÷5×2.5",
+    axis: "原 sigmoid 分 · 原分÷5×2.5（偏置选 ID）",
     focusRow: -1,
   });
   const marks = EP_EXPERTS.map((e, i) => {
@@ -685,7 +767,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
     const isRemote = e.rank >= 8;
     const point = above(e.rank, slotX(e.expert)).add(v(0, -0.62, 0));
     const mark = kit.socket(kit.root, point, 1, 0.32);
-    const tagPoint = isLower ? v(ports[e.rank]!.x, 1.62, 0.35) : v(ports[e.rank]!.x, 4.54, 0.35);
+    const tagPoint = isLower ? v(ports[e.rank]!.x, 1.56, 0.35) : v(ports[e.rank]!.x, 4.78, 0.35);
     const tag = label(
       EP_EXPERTS.filter((other) => other.rank === e.rank)
         .map((other) => `E${other.expert}`)
@@ -699,8 +781,8 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       stem.visible = false;
       const cardEdge = isLower
         ? v(ports[e.rank]!.x, 2.34, 0.25)
-        : ports[e.rank]!.clone().add(v(0, -0.08, 0.2));
-      const pillEdge = isLower ? v(ports[e.rank]!.x, 1.88, 0.35) : v(ports[e.rank]!.x, 4.3, 0.35);
+        : ports[e.rank]!.clone().add(v(0, 0.04, 0.2));
+      const pillEdge = isLower ? v(ports[e.rank]!.x, 1.82, 0.35) : v(ports[e.rank]!.x, 4.54, 0.35);
       kit.connect(stem, [pillEdge, cardEdge]);
     }
     return { mark, tag, stem, firstOnCard, rank: e.rank };
@@ -710,13 +792,16 @@ function expertParallel(kit: StrategyKit): StrategyContent {
   const hwArcs = new Map(
     remoteRanks.map((rank) => {
       const isCross = rank >= 8;
-      const from = ports[EP_SOURCE]!.clone().add(v(0, -0.26, 0.35));
-      const to = ports[rank]!.clone().add(v(0, -0.26, 0.35));
+      const from = ports[EP_SOURCE]!.clone().add(v(0, -0.46, 0.35));
+      const to = ports[rank]!.clone().add(v(0, -0.46, 0.35));
       const mid = from.clone().lerp(to, 0.5);
-      mid.y =
-        Math.max(from.y, to.y) +
-        (isCross ? (rank === 8 ? 0.72 : rank === 11 ? 0.94 : 0.56) : rank === 5 ? 0.32 : 0.48);
-      mid.z = isCross ? 1.45 : 0.95;
+      const avgY = (from.y + to.y) * 0.5;
+      mid.y = isCross
+        ? avgY + (rank === 8 ? 1.55 : rank === 11 ? 1.88 : 1.32)
+        : rank === 5
+          ? avgY - 0.55
+          : avgY + 1.05;
+      mid.z = isCross ? 1.6 : 1.05;
       const curve = new T.QuadraticBezierCurve3(from, mid, to);
       const wire = kit.line(isCross ? crossArcColor : intraArcColor, false, isCross ? 2.4 : 2.1);
       wire.visible = false;
@@ -740,7 +825,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
   const bankTags = EP_EXPERTS.map((e, i) =>
     label(`E${e.expert} · 卡${e.rank}`, kit.root, bankRow(i).add(v(2.05, 0, 0)), "note"),
   );
-  const bankOwner = dashed(palette.result);
+  const bankOwner = dashed(lineResult);
   const copies = EP_EXPERTS.map(() =>
     grid("", focusHome, palette.data, {
       rows: 1,
@@ -751,8 +836,8 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       focusRow: 0,
     }),
   );
-  const copyRoutes = EP_EXPERTS.map(() => solid(palette.data));
-  const dispatchPaths = EP_EXPERTS.map((_, i) => epTransferPath(focusHome, bankRow(i), 0.3));
+  const copyRoutes = EP_EXPERTS.map(() => solid(lineData));
+  const dispatchPaths = EP_EXPERTS.map((_, i) => epTransferPath(focusHome, bankRow(i), 1.15));
   // Phase 3 expands one remote expert, as PP and TP expand the working card.
   const FOCUS = 2;
   const focusExpert = EP_EXPERTS[FOCUS]!;
@@ -776,7 +861,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
   });
   const expertOp = operator(`↓ E${focusExpert.expert} ↓`, v(-3.6, -2.65, 0.5));
   const expertNote = label("gate / up → 门控相乘 → down", kit.root, v(-3.6, -3.3, 0.4), "note");
-  const expertRoutes = [solid(palette.data), solid(palette.result)];
+  const expertRoutes = [solid(lineData), solid(lineResult)];
   const expertPaths = [
     epTransferPath(bankRow(FOCUS), expertInHome, 0.3),
     epTransferPath(expertOutHome, bankRow(FOCUS), 0.3),
@@ -808,7 +893,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       focusRow: 0,
     }),
   );
-  const backRoutes = EP_EXPERTS.map(() => solid(palette.result));
+  const backRoutes = EP_EXPERTS.map(() => solid(lineResult));
   const backPaths = EP_EXPERTS.map((_, i) =>
     epTransferPath(bankRow(i), v(outputsHome.x, bankRow(i).y, 0.5), 0.3),
   );
@@ -824,32 +909,58 @@ function expertParallel(kit: StrategyKit): StrategyContent {
   const weighOp = operator("Σ →", v(2.1, -3.1, 0.5));
   const times = EP_EXPERTS.map((_, i) => label("×", kit.root, v(-2.3, -3.1 + (3.5 - i) * 0.5, 0.5), "note"));
   const weightedNote = label("", kit.root, v(3.5, -4.25, 0.5), "equation");
-  const extract = dashed(palette.result);
-  const combineExtract = dashed(palette.result);
-  const routedRoute = solid(palette.result);
-  // Finalize: All-Gather the routed rows, then add the shared expert.
-  const finalY = -2.95;
-  const gathered = grid("All-Gather 后的路由部分", v(-4.6, finalY, 0.5), palette.result, {
+  const extract = dashed(lineResult);
+  const combineExtract = dashed(lineResult);
+  const routedRoute = solid(lineResult);
+  // Finalize: TP8 All-Gather 8 slots ([8,4] -> crop 4 pad -> [4,4]), shared TP8 All-Reduce, add, retain on Cards 0–7.
+  const finalY = -2.25;
+  const padY = -4.45;
+  const gatheredX = -5.4;
+  const sharedX = 0.1;
+  const outputX = 5.4;
+  const gathered = grid("TP8 All-Gather · 8 槽 [8,4]", v(gatheredX, finalY, 0.5), palette.result, {
     cols: 4,
     wide: 2.2,
     axis: false,
     focusRow: 0,
   });
-  const sharedOut = grid("共享专家输出（TP8 合算）", v(0, finalY, 0.5), sharedColor, {
+  const gatheredPad = grid("", v(gatheredX, padY, 0.5), MINERAL.pad, {
+    cols: 4,
+    wide: 2.2,
+    rowNames: ["补4", "补5", "补6", "补7"],
+    axis: false,
+    focusRow: -1,
+  });
+  const padTailNote = label(
+    "尾部 4 行补位（卡4–7）· 裁剪丢弃",
+    kit.root,
+    v(gatheredX, padY - 1.32, 0.5),
+    "note",
+  );
+  const cropLine = dashed(lineWeight);
+  const sharedOut = grid("共享专家 [4,4] · TP8 All-Reduce", v(sharedX, finalY, 0.5), sharedColor, {
     cols: 4,
     wide: 2.2,
     rowNames: [],
     axis: false,
     focusRow: -1,
   });
-  const output = grid("本层 MoE 输出", v(4.6, finalY, 0.5), palette.result, {
+  const sharedReduceBus = solid(lineResult);
+  const sharedReduceDrop = solid(lineResult);
+  const sharedReduceNote = label(
+    "TP8 All-Reduce · 合齐 8 卡共享部分和",
+    kit.root,
+    v(sharedX, -0.55, 0.5),
+    "note",
+  );
+  const output = grid("本层 MoE 输出 [4,4]", v(outputX, finalY, 0.5), palette.result, {
     cols: 4,
     wide: 2.2,
     rowNames: [],
     axis: false,
     focusRow: 0,
   });
-  const finalOps = [operator("+", v(-2.3, finalY, 0.5)), operator("=", v(2.3, finalY, 0.5))];
+  const finalOps = [operator("+", v(-2.65, finalY, 0.5)), operator("=", v(2.75, finalY, 0.5))];
   const gatherRows = [1, 2, 3].map(() =>
     grid("", above(1), palette.result, {
       rows: 1,
@@ -860,71 +971,111 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       wide: 2.2,
     }),
   );
-  const gatherRoutes = [1, 2, 3].map(() => solid(palette.result));
+  const gatherRoutes = [1, 2, 3].map(() => solid(lineResult));
   const gatherPaths = [1, 2, 3].map((r) =>
-    epTransferPath(above(r).setZ(0.5), v(-4.6, finalY + (1.5 - r) * 0.5, 0.5), 0.3),
+    epTransferPath(above(r).setZ(0.5), v(gatheredX, finalY + (1.5 - r) * 0.5, 0.5), 0.3),
   );
-  const routedGatherPath = epTransferPath(routedHome, v(-4.6, finalY + 0.75, 0.5), 0.3);
-  const returned = grid("", v(4.6, finalY, 0.5), palette.result, {
-    cols: 4,
-    wide: 2.2,
-    rowNames: [],
-    axis: false,
-    focusRow: 0,
-  });
-  const returnRoute = solid(palette.result);
-  const retained = label("TP8 · 每卡保留整批输出", kit.root, v(-3.5, 0.15, 0.5), "name");
+  const padGatherRows = [4, 5, 6, 7].map(() =>
+    grid("", above(4), MINERAL.pad, {
+      rows: 1,
+      cols: 4,
+      rowNames: [],
+      axis: false,
+      focusRow: -1,
+      wide: 2.2,
+    }),
+  );
+  const padGatherRoutes = [4, 5, 6, 7].map(() => dashed(MINERAL.linePad));
+  const padGatherPaths = [4, 5, 6, 7].map((r, idx) =>
+    epTransferPath(above(r).setZ(0.5), v(gatheredX, padY + (1.5 - idx) * 0.5, 0.5), 0.75),
+  );
+  const routedGatherPath = epTransferPath(routedHome, v(gatheredX, finalY + 0.75, 0.5), 0.3);
+  const returnedCards = Array.from({ length: 8 }, () =>
+    grid("", v(outputX, finalY, 0.5), palette.result, {
+      cols: 4,
+      wide: 2.2,
+      rowNames: [],
+      axis: false,
+      focusRow: 0,
+    }),
+  );
+  const returnRoutes = Array.from({ length: 8 }, () => solid(lineResult));
+  const retained = label("DP0 · 卡0–7 每卡均保留完整 [4,4] 输出", kit.root, v(-3.5, 0.15, 0.5), "name");
   const blankRow = ["", "", "", ""];
+  const padRow = ["—", "—", "—", "—"];
+  const { fly, sync: syncPayloadBounds } = payloadFlight(kit);
+  const brickPitchX = 0.2,
+    brickPitchY = 0.27;
+  const deployGroupCenter = (card: number, cut: number) => {
+    const row = card < 8 ? 0 : 1,
+      col = card % 8;
+    const gy = lerp(-2.72 + (0.5 - row) * 0.88, row === 0 ? -1.62 : -3.82, cut);
+    return v((col - 3.5) * lerp(1.24, 1.66, cut), gy, 0.42);
+  };
+  const deployBrickSource = (card: number, j: number, cut: number) => {
+    const c = deployGroupCenter(card, cut);
+    return v(c.x + ((j % 6) - 2.5) * brickPitchX, c.y + (1 - Math.floor(j / 6)) * brickPitchY, c.z);
+  };
+  const deployBanner = label("", kit.root, v(0, -0.82, 0.45), "name");
+  const deployServerSplit = dashed(crossArcColor);
+  const deployColCuts = Array.from({ length: 7 }, () => dashed(lineWeight));
+  const deployTagPoints = Array.from({ length: 16 }, (_, card) =>
+    deployGroupCenter(card, 1).add(v(0, card % 2 === 0 ? -0.52 : -0.9, 0)),
+  );
+  const deployTags = deployTagPoints.map((pt, card) =>
+    label(`卡${card} · E${card * 18}–${card * 18 + 17}`, kit.root, pt, "note"),
+  );
   if (kit.pick && kit.seek) {
+    const dispatchMid = (i: number) => 0.4 + ((i + 0.5) / 8) * 0.14;
     const seekCard: Record<number, number> = {
-      0: 0.24,
-      1: 0.1,
-      2: 0.52,
-      3: 0.1,
-      5: 0.37,
-      8: 0.39,
-      11: 0.43,
-      14: 0.45,
+      0: 0.34,
+      1: 0.22,
+      2: 0.6,
+      3: 0.22,
+      5: dispatchMid(3), // 0.46125 -> E90 on Card 5
+      8: dispatchMid(4), // 0.47875 -> E144 on Card 8
+      11: dispatchMid(6), // 0.51375 -> E198 on Card 11
+      14: dispatchMid(7), // 0.53125 -> E252 on Card 14
     };
     kit.chips?.forEach((chip, rank) => {
-      kit.pick!(chip, () => kit.seek!(seekCard[rank] ?? (rank < 8 ? 0.1 : 0.39)));
+      kit.pick!(chip, () => kit.seek!(seekCard[rank] ?? 0.08));
     });
     kit.payloads.forEach((payload, rank) => {
-      kit.pick!(payload, () => kit.seek!(seekCard[rank] ?? (rank < 8 ? 0.1 : 0.39)));
+      kit.pick!(payload, () => kit.seek!(seekCard[rank] ?? 0.08));
     });
-    kit.pick(hidden.group, () => kit.seek!(0.1));
-    kit.pick(focus.group, () => kit.seek!(0.24));
-    kit.pick(router.group, () => kit.seek!(0.27));
-    kit.pick(bank.group, () => kit.seek!(0.39));
-    kit.pick(expertIn.group, () => kit.seek!(0.52));
-    kit.pick(expertOut.group, () => kit.seek!(0.52));
-    kit.pick(weights.group, () => kit.seek!(0.74));
-    kit.pick(outputs.group, () => kit.seek!(0.74));
-    kit.pick(routed.group, () => kit.seek!(0.76));
-    kit.pick(gathered.group, () => kit.seek!(0.92));
+    kit.pick(hidden.group, () => kit.seek!(0.2));
+    kit.pick(logitsGrid.group, () => kit.seek!(0.2));
+    kit.pick(focus.group, () => kit.seek!(0.32));
+    kit.pick(router.group, () => kit.seek!(0.36));
+    kit.pick(bank.group, () => kit.seek!(0.48));
+    kit.pick(expertIn.group, () => kit.seek!(0.6));
+    kit.pick(expertOut.group, () => kit.seek!(0.6));
+    kit.pick(weights.group, () => kit.seek!(0.78));
+    kit.pick(outputs.group, () => kit.seek!(0.78));
+    kit.pick(routed.group, () => kit.seek!(0.81));
+    kit.pick(gathered.group, () => kit.seek!(0.88));
     kit.pick(sharedOut.group, () => kit.seek!(0.92));
     kit.pick(output.group, () => kit.seek!(0.96));
   }
   return {
     glow: (i, p) => {
       const m = epMotion(p);
-      if (m.phase === 0 || m.phase === 5) return i < 8;
-      if (m.phase === 1) return i === EP_SOURCE;
+      if (m.phase === 0) return m.land > 0.35 + i * 0.025;
+      if (m.phase === 1 || m.phase === 6) return i < 8;
+      if (m.phase === 2) return i === EP_SOURCE;
+      if (m.phase === 4) return EP_EXPERTS.some((e) => e.rank === i);
       const active =
-        m.phase === 2
-          ? Math.min(7, Math.floor(m.local * 8))
-          : m.phase === 3
-            ? FOCUS
-            : Math.min(7, Math.floor((m.local / 0.42) * 8));
+        m.phase === 3 ? Math.min(7, Math.floor(m.local * 8)) : Math.min(7, Math.floor((m.local / 0.42) * 8));
       if (m.weigh === 0) return i === EP_SOURCE || i === EP_EXPERTS[active]!.rank;
       return i === EP_SOURCE || EP_EXPERTS.some((e) => e.rank === i);
     },
     glowColor: (i, p) => {
       const m = epMotion(p);
-      if (m.phase === 0) return intraArcColor;
-      if (m.phase === 1) return weightColor;
-      if (m.phase === 5) return palette.result;
-      if (i === EP_SOURCE) return m.phase >= 4 ? palette.result : intraArcColor;
+      if (m.phase === 0) return i >= 8 ? crossArcColor : intraArcColor;
+      if (m.phase === 1) return intraArcColor;
+      if (m.phase === 2) return lineWeight;
+      if (m.phase === 6) return lineResult;
+      if (i === EP_SOURCE) return m.phase >= 5 ? lineResult : intraArcColor;
       return i >= 8 ? crossArcColor : intraArcColor;
     },
     result: `routed=${EP_ROUTED.join(",")};out=${EP_OUTPUT[0]!.join(",")}`,
@@ -933,92 +1084,215 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       const m = epMotion(p);
       const accumulation = epAccumulation(m.weigh);
       const gather = [0, 1, 2, 3].map((r) => clamp01(m.gather * 4 - r));
+      const padGather = [0, 1, 2, 3].map((r) => clamp01(m.gather * 4 - r));
+      const pickedCount =
+        m.phase > 2 ? 8 : m.phase === 2 ? EP_EXPERTS.filter((_, i) => m.pick > (i + 0.5) / 8).length : 0;
+      const ch6Stage = m.crop < 1 ? 0 : m.add === 0 ? 1 : m.writeback === 0 ? 2 : 3;
       header.textContent = [
-        "EP · 先按行分给源卡",
-        "源卡0 的 router 打分、选专家",
+        m.cut === 0
+          ? "EP · 先看本层 288 位路由专家权重全貌"
+          : m.land === 0
+            ? "按 ⌊E ÷ 18⌋ 切成 16 份 · 每卡分得 18 位完整专家"
+            : m.land < 0.96
+              ? "288 位专家正分落 16 张卡显存…"
+              : "288 位专家已落卡常驻 · 后续推理不再搬动",
+        m.project === 0
+          ? "DP0 每卡同持 [4,4] hidden"
+          : m.split === 0
+            ? "每卡先算 [4,288] FP32 router logits"
+            : "MC2 prepare · 把 hidden 与 logits 一起补齐切给 8 卡",
+        pickedCount === 0
+          ? "源卡0 对本地 [1,288] 切片做 sigmoid + 偏置排序"
+          : pickedCount < 8
+            ? `源卡0 本地 top-8 · 已选出 ${pickedCount}/8 位专家`
+            : "源卡0 本地 top-8 完成 · 选中 8 位专家（权和 2.5）",
         "dispatch · 这一行去找 8 位专家",
-        "专家在各自的卡上计算",
+        "专家在各自的卡上原位计算",
         m.weigh === 0 ? "combine · 8 份结果回到源卡" : "combine · 乘组合权重再相加",
-        m.shared === 0 ? "All-Gather · 四行拼回整批" : "加上共享专家，得到本层输出",
+        ch6Stage === 0
+          ? m.gather < 1
+            ? "TP8 All-Gather · 8 槽 [1,4] 拼成 [8,4]"
+            : "裁去卡4–7 的 4 行补位 · 恢复 [4,4]"
+          : ch6Stage === 1
+            ? "共享专家 · TP8 All-Reduce 合齐完整 [4,4]"
+            : ch6Stage === 2
+              ? "加上共享专家，得到本层输出"
+              : m.writeback < 1
+                ? "完整 [4,4] 同步保留到 DP0 全部 8 卡"
+                : "本层完成 · DP0 卡0–7 均持有完整 [4,4]",
       ][m.phase]!;
       footer.textContent =
         m.phase === 0
-          ? "每卡顶部的 18 个小格是常驻路由专家（机0 靛蓝 · 机1 梅紫）；权重从不搬动"
-          : m.phase === 2
-            ? "下方展开各卡接收行 · 蓝弧为机内 HCCS，红弧为跨机 RDMA · 虚线连向当前持有卡"
-            : m.phase <= 4
-              ? "卡1–3 同时为自己的行做同样的事；专家 E 在卡 ⌊E ÷ 18⌋"
-              : "8 个组合权重之和为 2.5；共享专家不经过 router、不参与 EP";
-      // Phase 0: the whole hidden, then rows split to the four source cards.
-      show(hidden, m.phase === 0);
+          ? m.land < 0.96
+            ? "深钛灰晶粒为本层 288 位路由专家权重（每块一位完整专家）；上排归服务器0，下排归服务器1"
+            : "每卡 18 位专家权重已落入显存常驻；后续推理权重一步不动，仅被唤醒的 8 位点亮"
+          : m.phase === 1
+            ? m.split === 0
+              ? "固定路径中，每张 TP 卡先算出全部 4 行的 [4,288] FP32 router logits，再进入 MC2 prepare"
+              : "MC2 prepare 本地补齐 8 槽（卡0–3 有效，卡4–7 补位）并切分 [hidden, logits]，零集合通信"
+            : m.phase === 2
+              ? pickedCount < 8
+                ? `偏置校正分决定选哪 8 位，原始 sigmoid 分归一化×2.5 作权重（已点亮 ${pickedCount}/8 颗）`
+                : "卡1–3 同时为自己的行做同样的事；288 颗常驻专家中本行已点亮选中的 8 颗"
+              : m.phase === 3
+                ? "下方展开各卡接收行 · 靛蓝弧为机内 HCCS，梅紫弧为跨机 RDMA · 虚线连向当前持有卡"
+                : m.phase <= 5
+                  ? "卡1–3 同时为自己的行做同样的事；288 颗常驻专家中本行仅点亮选中的 8 颗"
+                  : "TP8 All-Gather 裁剪 4 行补位 + 共享专家 TP8 All-Reduce，最终 DP0 全部 8 卡均留完整输出";
+      const isRouting = m.phase >= 2 && m.phase <= 5;
+      const activeWinner =
+        m.phase === 3
+          ? Math.min(7, Math.floor(m.local * 8))
+          : m.phase === 4
+            ? FOCUS
+            : m.phase === 5
+              ? m.weigh > 0
+                ? accumulation.completed < 8
+                  ? accumulation.active
+                  : -1
+                : Math.min(7, Math.floor((m.local / 0.42) * 8))
+              : -1;
+      kit.payloads.forEach((payload, card) => {
+        let allLanded = true;
+        for (let j = 0; j < payload.count; j++) {
+          const stagger = card * 0.022 + Math.floor(j / 6) * 0.015;
+          const t = m.phase > 0 ? 1 : clamp01((m.land - stagger) / 0.6);
+          if (t < 1) allLanded = false;
+          fly(card, j, deployBrickSource(card, j, m.cut), t, m.reveal, 2.05);
+          const wIdx = winnerIndexByExpert.get(card * 18 + j);
+          const picked = wIdx !== undefined && isRouting && (m.phase > 2 || m.pick > (wIdx + 0.5) / 8);
+          const step = ((j % 6) + Math.floor(j / 6) + card) % 4;
+          dieColor.set(picked ? (wIdx === activeWinner ? "#d95b4f" : "#e6887e") : slateTones[step]!);
+          payload.setColorAt(j, dieColor);
+        }
+        syncPayloadBounds(card, allLanded);
+        if (payload.instanceColor) payload.instanceColor.needsUpdate = true;
+      });
+      const laying = m.phase === 0 && m.land < 0.12;
+      setOn(deployBanner, laying && m.reveal > 0.35);
+      deployBanner.textContent =
+        m.cut < 0.25
+          ? "本层 288 位路由专家权重（E0–E287 · 全集群只存一套，不复制）"
+          : "按编号连续切成 16 份 · 上排归服务器0（卡0–7），下排归服务器1（卡8–15）";
+      deployServerSplit.visible = laying && m.cut > 0.12;
+      kit.connect(deployServerSplit, [v(-6.6, -2.86, 0.55), v(6.6, -2.86, 0.55)]);
+      deployColCuts.forEach((wire, k) => {
+        wire.visible = laying && m.cut > 0.12;
+        const x = (k - 3) * lerp(1.24, 1.66, m.cut);
+        kit.connect(wire, [v(x, -1.2, 0.55), v(x, -4.22, 0.55)]);
+      });
+      deployTags.forEach((el, card) => {
+        setOn(el, laying && m.cut > 0.55);
+        const c = deployGroupCenter(card, m.cut);
+        deployTagPoints[card]!.set(c.x, c.y + (card % 2 === 0 ? -0.52 : -0.9), 0.45);
+      });
+      // Phase 1: every TP card first projects [4,288] FP32 router logits, then MC2 prepare pads (8 slots)
+      // and slices [hidden, logits] together to [1,H] & [1,288] per card (Cards 0–3 valid, Cards 4–7 pad).
+      show(hidden, m.phase === 1);
       paintGrid(hidden, EP_HIDDEN, palette.data, 1, m.show, 0);
       if (m.split > 0)
         hidden.cells.forEach((c) => {
           c.material.opacity = 0.15;
         });
-      hidden.title.textContent = m.split < 0.3 ? "DP0 每张卡都有这份 hidden · 4×4" : "";
+      hidden.title.textContent = m.split <= 0.05 ? "DP0 每卡同持 hidden · [4,4]" : "";
+      setOn(routerProjOp, m.phase === 1 && m.project > 0 && m.split <= 0.05);
+      show(logitsGrid, m.phase === 1 && m.project > 0);
+      paintGrid(logitsGrid, EP_LOGITS_PREVIEW, weightColor, m.project, m.project, 0);
+      if (m.split > 0)
+        logitsGrid.cells.forEach((c) => {
+          c.material.opacity = 0.15;
+        });
+      logitsGrid.title.textContent = m.split <= 0.05 ? "每卡先算 router logits · [4,288] FP32" : "";
       rowCuts.forEach((c, i) => {
-        c.visible = m.phase === 0 && m.split > 0 && m.split < 0.4;
-        const y = H0.y + (0.5 - i) * 0.5;
+        c.visible = m.phase === 1 && m.split > 0 && m.split < 0.4;
+        const y = H0.y + (1 - i) * 0.5;
         kit.connect(c, [v(H0.x - 1.25, y, 0.8), v(H0.x + 1.0, y, 0.8)]);
       });
+      logitsCuts.forEach((c, i) => {
+        c.visible = m.phase === 1 && m.split > 0 && m.split < 0.4;
+        const y = L0.y + (1 - i) * 0.5;
+        kit.connect(c, [v(L0.x - 1.2, y, 0.8), v(L0.x + 1.2, y, 0.8)]);
+      });
       rowsOut.forEach((t, r) => {
-        show(t, (m.phase === 0 && m.split > 0) || (m.phase >= 1 && m.phase <= 4));
+        show(t, (m.phase === 1 && m.split > 0) || (m.phase >= 2 && m.phase <= 5));
         const from = v(H0.x, H0.y + (1.5 - r) * 0.5, 0.5);
-        travel(t, rowRoutes[r]!, sRoute(from, above(r), 0.45), m.phase === 0 ? m.split : 1, 1, 0.3);
+        travel(t, rowRoutes[r]!, sRoute(from, above(r), 0.45), m.phase === 1 ? m.split : 1, 1, 0.3);
         paintGrid(t, [EP_HIDDEN[r]!], palette.data, 1, 1, 0);
       });
-      padTags.forEach((el) => {
-        setOn(el, !!((m.phase === 0 && m.split === 1) || (m.phase === 1 && m.pick === 0)));
+      logitsOut.forEach((t, r) => {
+        show(t, m.phase === 1 && m.split > 0 && m.split < 1);
+        const from = v(L0.x, L0.y + (1.5 - r) * 0.5, 0.5);
+        travel(t, logitRoutes[r]!, sRoute(from, above(r).add(v(0, -0.26, 0)), 0.45), m.split, 1, 0.28);
+        paintGrid(t, [EP_LOGITS_PREVIEW[r]!], weightColor, 1, 1, 0);
       });
-      // Phase 1: the source row expands; the router scores and keeps eight experts.
-      const routing = m.phase >= 1 && m.phase <= 4;
-      show(focus, m.phase === 1 || m.phase === 2);
-      paintGrid(focus, [EP_HIDDEN[0]!], palette.data, 1, m.phase === 1 ? clamp01(m.local / 0.12) : 1, 0);
-      extract.visible = m.phase >= 1 && m.phase <= 2;
+      padTags.forEach((el) => {
+        setOn(el, !!((m.phase === 1 && m.split >= 0.7) || (m.phase === 2 && m.pick === 0)));
+      });
+      // Phase 2: local top-8 on Card 0's [1,288] slice (bias-adjusted scores pick IDs; raw sigmoid ×2.5 = weights).
+      const routing = m.phase >= 2 && m.phase <= 5;
+      show(focus, m.phase === 2 || m.phase === 3);
+      paintGrid(focus, [EP_HIDDEN[0]!], palette.data, 1, m.phase === 2 ? clamp01(m.local / 0.12) : 1, 0);
+      extract.visible = m.phase >= 2 && m.phase <= 3;
       kit.connect(extract, [
         ports[0]!,
         v(-7.2, ports[0]!.y, 0.5),
         v(-7.2, focusHome.y, 0.5),
         v(-6.68, focusHome.y, 0.5),
       ]);
-      show(router, m.phase === 1 || m.phase === 2);
+      show(router, m.phase === 2 || m.phase === 3);
+      router.title.textContent =
+        pickedCount === 0
+          ? m.score === 0
+            ? "本卡 [1,288] 切片 · 准备 top-8 打分"
+            : "sigmoid + 偏置排序 · 筛选候选专家"
+          : pickedCount < 8
+            ? `已选出 ${pickedCount}/8 位 · 原分归一化×2.5`
+            : "已选出 8 位专家 · 原分 ÷ 5 × 2.5";
       paintGrid(
         router,
-        EP_EXPERTS.map((_, i) => [EP_SCORES[i]!, m.pick > 0.5 || m.phase > 1 ? EP_WEIGHTS[i]! : ""]),
+        EP_EXPERTS.map((_, i) => [
+          EP_SCORES[i]!,
+          m.phase > 2 || m.pick > (i + 0.5) / 8 ? EP_WEIGHTS[i]! : "",
+        ]),
         weightColor,
-        m.phase === 1 ? m.score : 1,
+        m.phase === 2 ? m.score : 1,
         1,
         -1,
       );
-      marks.forEach(({ mark, tag, stem, firstOnCard }, i) => {
-        const on = routing && (m.phase > 1 || m.pick > (i + 0.5) / 8);
-        mark.visible = on;
-        setOn(tag, !!on && firstOnCard);
-        if (stem) stem.visible = !!on && firstOnCard;
+      marks.forEach(({ mark, tag, stem, firstOnCard, rank }) => {
+        const pickedOnCard = EP_EXPERTS.filter(
+          (other, idx) => other.rank === rank && (m.phase > 2 || m.pick > (idx + 0.5) / 8),
+        );
+        const on = routing && firstOnCard && pickedOnCard.length > 0;
+        mark.visible = false;
+        if (firstOnCard) {
+          tag.textContent = pickedOnCard.map((other) => `E${other.expert}`).join(" · ");
+        }
+        setOn(tag, on);
+        if (stem) stem.visible = on;
       });
       // The same eight slots receive, compute and hand back their rows; only one route is active.
-      const p3 = m.phase === 3;
+      const p3 = m.phase === 4;
       const k = p3 ? m.local : 0;
       const expand = clamp01(k / 0.2),
         written = clamp01((k - 0.3) / 0.38),
         back = clamp01((k - 0.76) / 0.22);
-      const bankVisible = m.phase === 2 || p3 || (m.phase === 4 && m.weigh === 0);
+      const bankVisible = m.phase === 3 || p3 || (m.phase === 5 && m.weigh === 0);
       const activeExpert =
-        m.phase === 2
+        m.phase === 3
           ? Math.min(7, Math.floor(m.local * 8))
           : p3
             ? FOCUS
             : Math.min(7, Math.floor((m.local / 0.42) * 8));
       const bankValues = EP_EXPERTS.map((_, i) => {
-        if (m.phase === 2) return m.dispatch[i] === 1 ? EP_HIDDEN[0]! : blankRow;
+        if (m.phase === 3) return m.dispatch[i] === 1 ? EP_HIDDEN[0]! : blankRow;
         if (p3 && i === FOCUS) return k === 0 ? EP_HIDDEN[0]! : back === 1 ? EP_EXPERT_OUTPUTS[i]! : blankRow;
         if (p3) return m.compute > (i + 0.5) / 9 ? EP_EXPERT_OUTPUTS[i]! : EP_HIDDEN[0]!;
         return m.combine[i] === 0 ? EP_EXPERT_OUTPUTS[i]! : blankRow;
       });
       show(bank, bankVisible);
       bank.title.textContent =
-        m.phase === 2
+        m.phase === 3
           ? "专家接收区 · 同一行的 8 份副本"
           : p3
             ? "各卡上的专家 · 原位计算"
@@ -1043,20 +1317,22 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       const activeRank = EP_EXPERTS[activeExpert]!.rank;
       bankOwner.visible = bankVisible;
       const ownerPort = ports[activeRank]!;
-      const ownerStart = activeRank % 8 >= 4 ? v(ownerPort.x, 1.32, 0.25) : ownerPort;
+      const isLowerOwner = activeRank % 8 >= 4;
+      const ownerStart = isLowerOwner ? v(ownerPort.x, 1.34, 0.25) : v(ownerPort.x, 4.82, 0.25);
+      const corridorY = isLowerOwner ? 1.04 : 5.02;
       kit.connect(bankOwner, [
         ownerStart,
-        v(ownerStart.x, 0.92, 0.2),
-        v(7.08, 0.92, 0.2),
-        v(7.08, bankRow(activeExpert).y, 0.2),
+        v(ownerStart.x, corridorY, 0.2),
+        v(7.12, corridorY, 0.2),
+        v(7.12, bankRow(activeExpert).y, 0.2),
         v(6.58, bankRow(activeExpert).y, 0.2),
       ]);
       // Animate 3D HCCS / RDMA hardware arcs, luminous token orb, and inter-server bridge summary.
-      const showBridge = m.phase >= 2 && m.phase <= 4;
+      const showBridge = m.phase >= 3 && m.phase <= 5;
       setOn(bridgeBadge, showBridge);
       if (showBridge) {
         bridgeBadge.textContent =
-          m.phase === 2
+          m.phase === 3
             ? "本卡直取 2 份 · 机内 HCCS 2 份 · 跨机 RDMA 4 份"
             : p3
               ? "6 张命中卡并行跑 SwiGLU · 专家权重常驻不搬动"
@@ -1066,37 +1342,41 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       }
       hwArcs.forEach(({ rank, isCross, wire }) => {
         const dispatched = EP_EXPERTS.some((e, i) => e.rank === rank && m.dispatch[i]! > 0);
-        const visible = (m.phase === 2 && dispatched) || p3 || (m.phase === 4 && m.weigh === 0);
+        const visible = (m.phase === 3 && dispatched) || p3 || (m.phase === 5 && m.weigh === 0);
         wire.visible = visible;
         if (!visible) return;
-        const isCurrent = rank === activeRank && (m.phase === 2 || p3 || (m.phase === 4 && m.weigh === 0));
+        const isCurrent = rank === activeRank && (m.phase === 3 || p3 || (m.phase === 5 && m.weigh === 0));
         wire.material.color.set(isCross ? crossArcColor : intraArcColor);
         wire.material.opacity = isCurrent ? 0.95 : p3 ? 0.36 : 0.42;
         wire.material.linewidth = isCurrent ? 3.1 : isCross ? 2.1 : 1.9;
       });
       if (packetOrb) {
         const flight =
-          m.phase === 2
+          m.phase === 3
             ? m.dispatch[activeExpert]!
-            : m.phase === 4 && m.weigh === 0
+            : m.phase === 5 && m.weigh === 0
               ? m.combine[activeExpert]!
               : 0;
         const activeArc = hwArcs.get(activeRank);
         const moving = !!activeArc && flight > 0 && flight < 1;
         packetOrb.visible = moving;
         if (moving && activeArc) {
-          const t = m.phase === 2 ? flight : 1 - flight;
+          const t = m.phase === 3 ? flight : 1 - flight;
           packetOrb.position.copy(activeArc.curve.getPoint(t));
-          const orbColor = m.phase === 4 ? palette.result : activeArc.isCross ? crossArcColor : intraArcColor;
+          const orbColor = m.phase === 5 ? lineResult : activeArc.isCross ? crossArcColor : intraArcColor;
           packetOrb.material.color.set(orbColor);
           packetOrb.material.emissive.set(orbColor);
         }
       }
       copies.forEach((t, i) => {
         const d = m.dispatch[i]!;
-        show(t, m.phase === 2 && d > 0 && d < 1);
+        show(t, m.phase === 3 && d > 0 && d < 1);
         travel(t, copyRoutes[i]!, dispatchPaths[i]!, d, 1, 1);
         paintGrid(t, [EP_HIDDEN[0]!], palette.data, 1, 1, 0);
+        if (d < 0.16 || d > 0.9)
+          t.numbers.forEach((el) => {
+            el.textContent = "";
+          });
       });
       // Expand one expert's calculation, then land its output back in the same slot.
       show(expertIn, p3 && back === 0);
@@ -1109,15 +1389,15 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       expertOut.title.textContent = back === 0 ? `E${focusExpert.expert} · 输出` : "";
       setOn(expertOp, p3 && expand === 1 && back === 0);
       setOn(expertNote, p3 && expand === 1 && back === 0);
-      // Phase 4: results come back to the source card, stack, then weigh and add.
-      combineExtract.visible = m.phase === 4;
+      // Phase 5: results come back to the source card, stack, then weigh and add.
+      combineExtract.visible = m.phase === 5;
       kit.connect(combineExtract, [
         ports[0]!,
         v(-6.6, ports[0]!.y, 0.2),
         v(-6.6, -0.42, 0.2),
         v(-0.6, -0.42, 0.2),
       ]);
-      show(weights, m.phase === 4);
+      show(weights, m.phase === 5);
       paintGrid(
         weights,
         EP_WEIGHTS.map((w) => [w]),
@@ -1127,10 +1407,10 @@ function expertParallel(kit: StrategyKit): StrategyContent {
         accumulation.active,
       );
       times.forEach((el, i) => {
-        setOn(el, m.phase === 4 && m.weigh > 0);
+        setOn(el, m.phase === 5 && m.weigh > 0);
         el.style.opacity = i === accumulation.active ? "1" : "0.25";
       });
-      show(outputs, m.phase === 4);
+      show(outputs, m.phase === 5);
       paintGrid(
         outputs,
         EP_EXPERT_OUTPUTS.map((row, i) => (m.combine[i]! === 1 ? row : blankRow)),
@@ -1144,25 +1424,35 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       });
       backRows.forEach((t, i) => {
         const c = m.combine[i]!;
-        show(t, m.phase === 4 && c > 0 && c < 1);
+        show(t, m.phase === 5 && c > 0 && c < 1);
         travel(t, backRoutes[i]!, backPaths[i]!, c, 1, 1);
         paintGrid(t, [EP_EXPERT_OUTPUTS[i]!], palette.result, 1, 1, 0);
+        if (c < 0.14 || c > 0.9)
+          t.numbers.forEach((el) => {
+            el.textContent = "";
+          });
       });
-      show(routed, (m.phase === 4 && m.weigh > 0) || (m.phase === 5 && gather[0]! < 1));
+      show(routed, (m.phase === 5 && m.weigh > 0) || (m.phase === 6 && gather[0]! < 1));
       move(routed, routedHome);
       paintGrid(routed, [accumulation.total], palette.result, 1, 1, 0);
-      routed.title.textContent = m.phase === 4 ? `已累加 ${accumulation.completed}/8 份贡献` : "";
-      travel(routed, routedRoute, routedGatherPath, m.phase === 5 ? gather[0]! : 0, 1, 1);
-      setOn(weighOp, !!(m.phase === 4 && m.weigh > 0));
-      setOn(weightedNote, m.phase === 4 && m.weigh > 0);
+      routed.title.textContent = m.phase === 5 ? `已累加 ${accumulation.completed}/8 份贡献` : "";
+      travel(routed, routedRoute, routedGatherPath, m.phase === 6 ? gather[0]! : 0, 1, 1);
+      setOn(weighOp, !!(m.phase === 5 && m.weigh > 0));
+      setOn(weightedNote, m.phase === 5 && m.weigh > 0);
       const active = accumulation.active;
       weightedNote.textContent =
         accumulation.completed === 8
           ? "8 份贡献已合齐 · 四个通道分别相加"
           : `第 0 通道：${EP_WEIGHTS[active]} × ${EP_EXPERT_OUTPUTS[active]![0]} = ${+(EP_WEIGHTS[active]! * EP_EXPERT_OUTPUTS[active]![0]!).toFixed(3)}`;
-      // Phase 5: All-Gather the four routed rows, then add the shared expert.
-      const p5 = m.phase === 5;
+      // Phase 6: TP8 All-Gather 8 slots ([8,4]) -> crop 4 pad rows ([4,4]) -> shared TP8 All-Reduce -> add -> retain on Cards 0–7.
+      const p5 = m.phase === 6;
       show(gathered, p5);
+      gathered.title.textContent =
+        m.crop === 0
+          ? "TP8 All-Gather · 8 槽 [8,4]"
+          : m.crop < 1
+            ? "裁去 4 行补位 → [4,4]"
+            : "路由合并 [4,4] · 已裁补位";
       paintGrid(
         gathered,
         EP_ROUTED_ROWS.map((row, r) => (gather[r] === 1 ? row : blankRow)),
@@ -1174,21 +1464,64 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       gathered.cells.forEach((c, i) => {
         if (gather[Math.floor(i / 4)]! < 1) c.material.opacity = 0.16;
       });
+      show(gatheredPad, p5 && m.crop < 1);
+      move(gatheredPad, v(gatheredX, padY - 0.45 * m.crop, 0.5));
+      paintGrid(
+        gatheredPad,
+        [0, 1, 2, 3].map((r) => (padGather[r] === 1 ? padRow : blankRow)),
+        MINERAL.pad,
+        1,
+        1,
+        -1,
+      );
+      gatheredPad.cells.forEach((c, i) => {
+        const arrived = padGather[Math.floor(i / 4)]! === 1;
+        c.material.opacity = (arrived ? 0.65 : 0.14) * (1 - m.crop);
+      });
+      setOn(padTailNote, p5 && m.gather > 0.25 && m.crop < 0.9);
+      cropLine.visible = p5 && m.crop > 0 && m.crop < 1;
+      kit.connect(cropLine, [v(gatheredX - 1.8, -3.35, 0.8), v(gatheredX + 1.8, -3.35, 0.8)]);
       gatherRows.forEach((t, k) => {
         const r = k + 1;
         show(t, p5 && gather[r]! < 1);
         travel(t, gatherRoutes[k]!, gatherPaths[k]!, gather[r]!, 0.3, 1);
         paintGrid(t, [EP_ROUTED_ROWS[r]!], palette.result, 1, 1, 0);
       });
-      show(sharedOut, p5 && m.shared > 0);
+      padGatherRows.forEach((t, k) => {
+        show(t, p5 && padGather[k]! > 0 && padGather[k]! < 1);
+        travel(t, padGatherRoutes[k]!, padGatherPaths[k]!, padGather[k]!, 0.26, 1);
+        paintGrid(t, [padRow], MINERAL.pad, 1, 1, -1);
+      });
+      const sharedActive = p5 && m.shared > 0;
+      sharedReduceBus.visible = sharedActive && m.add === 0;
+      sharedReduceDrop.visible = sharedActive && m.add === 0;
+      kit.connect(sharedReduceBus, [v(ports[0]!.x, -0.18, 0.35), v(ports[3]!.x, -0.18, 0.35)]);
+      kit.connect(sharedReduceDrop, [
+        v((ports[0]!.x + ports[3]!.x) / 2, -0.18, 0.35),
+        v(sharedX, -0.18, 0.35),
+        v(sharedX, finalY + 1.15, 0.5),
+      ]);
+      setOn(sharedReduceNote, sharedActive && m.add === 0);
+      show(sharedOut, sharedActive);
+      sharedOut.title.textContent =
+        m.shared < 1 ? "共享专家 · TP8 All-Reduce…" : "共享专家 [4,4] · TP8 All-Reduce";
       paintGrid(sharedOut, EP_SHARED, sharedColor, m.shared, 1, -1);
       show(output, p5 && m.add > 0);
       paintGrid(output, EP_OUTPUT, palette.result, m.add, 1, 0);
-      setOn(finalOps[0]!, !!(p5 && m.shared > 0));
+      setOn(finalOps[0]!, !!(p5 && m.shared === 1));
       setOn(finalOps[1]!, !!(p5 && m.add > 0));
-      show(returned, p5 && m.writeback > 0);
-      paintGrid(returned, EP_OUTPUT, palette.result, 1, 1, 0);
-      travel(returned, returnRoute, sRoute(v(4.6, finalY, 0.5), above(0), 0.4), m.writeback, 1, 0.3);
+      returnedCards.forEach((t, card) => {
+        show(t, p5 && m.writeback > 0);
+        paintGrid(t, EP_OUTPUT, palette.result, 1, 1, 0);
+        travel(
+          t,
+          returnRoutes[card]!,
+          sRoute(v(outputX, finalY, 0.5), above(card), 0.38),
+          m.writeback,
+          1,
+          0.22,
+        );
+      });
       setOn(retained, p5 && m.writeback === 1);
     },
   };

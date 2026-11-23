@@ -1,5 +1,5 @@
 import { span } from "./scene-easing";
-import { OPTIMIZATION_LESSONS, optimizationFrame } from "./scene-optimization";
+import { OPTIMIZATION_LESSONS, offloadStageDetail, optimizationFrame } from "./scene-optimization";
 import { DCP_QUERY, dcpKeyVector, dcpValueVector } from "./scene-parallel-mechanisms";
 
 export const numberText = (x: number | string) => (typeof x === "number" ? String(+x.toFixed(2)) : x);
@@ -100,9 +100,31 @@ export function inferenceFrame(kind: number, progress: number) {
 }
 
 export function inferenceTeaching(kind: number, progress: number) {
-  const { phase } = inferenceFrame(kind, progress),
+  const f = inferenceFrame(kind, progress),
     lesson = INFERENCE_LESSONS[kind]!;
-  return { title: lesson.stages[phase]!, detail: lesson.details[phase]!, equation: "", tensors: [] };
+  let detail: string = lesson.details[f.phase]!;
+  if (kind === 1) {
+    const own = kvOwnership(progress);
+    if (f.phase === 3 && !own.r2)
+      detail =
+        "请求 B 需要相同的前 4 个位置，正在建立指向块 7 的引用；连接落稳前块 7 仍只有 A 这 1 条使用关系。";
+    else if (f.phase === 4 && !f.landed)
+      detail = "A 结束，正在归还它占用的块。撤完后块 2、9 可以再分配；块 7 还要留给 B。";
+    else if (f.phase === 5 && !f.landed) detail = "正在撤掉 B 的最后一条使用关系。撤完后，块 7 才能再分配。";
+  } else if (kind === 2) {
+    const pd = pdStageStatus(progress);
+    if (f.phase === 1 && !pd.allocated)
+      detail = "D 正在自己的缓存池中申请目的块 3、5；分配完成前目标槽位尚未就绪，请求等待分配。";
+    else if (pd.queued) detail = "两块历史与确认均已完成，D 将该请求重新放入可调度队列，等待上核恢复前向。";
+    else if (pd.recomputing)
+      detail = "D 已调度该请求上核，读取本地块 3、5 的历史并重算末位 p3，准备采样首 token。";
+    else if (pd.resumed)
+      detail =
+        "D 已完成末位 p3 重算并采样首 token，随后按正常 decode 步继续生成；混合模型的 N−1 交接见下文。";
+  } else if (kind === 6) {
+    detail = offloadStageDetail(progress);
+  }
+  return { title: lesson.stages[f.phase]!, detail, equation: "", tensors: [] };
 }
 
 export const ATTENTION = {
@@ -151,6 +173,15 @@ export function pdHandoff(progress: number) {
     received: [f.phase > 2 || (f.phase === 2 && f.landed), f.phase > 3 || (f.phase === 3 && f.landed)],
     released: f.phase > 4 || (f.phase === 4 && f.landed),
     resumed: f.phase === 5 && f.landed,
+  };
+}
+export function pdStageStatus(progress: number) {
+  const f = inferenceFrame(2, progress);
+  const handoff = pdHandoff(progress);
+  return {
+    ...handoff,
+    queued: f.phase === 5 && f.local < 0.25,
+    recomputing: f.phase === 5 && f.local >= 0.25 && !handoff.resumed,
   };
 }
 export const CORE_X = [[1, 2]];

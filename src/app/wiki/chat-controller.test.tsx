@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import * as ApiModule from "./api";
 import { setBackendAvailability } from "./api";
 import { createWikiAssistantController } from "./assistant-context";
 import { ChatPane, createChatController } from "./ChatDrawer";
@@ -508,6 +509,7 @@ describe("chat-controller P2 稳定性加固与静态离线优雅降级", () => 
     await c1.send("测试 persisted 后置 error");
     expect(c1.getState().msgs[1]?.text).toBe("权威定稿正文。");
     expect(c1.getState().msgs[1]?.status).toBe("complete");
+    expect(c1.getState().msgs[1]?.toolNotice).toContain("质检阶段偶发异常");
     expect(readChatHistory(storage1).msgs[1]?.text).toBe("权威定稿正文。");
 
     // 2. Stream exception after persisted
@@ -539,5 +541,949 @@ describe("chat-controller P2 稳定性加固与静态离线优雅降级", () => 
     expect(c2.getState().msgs[1]?.text).toBe("权威定稿正文2。");
     expect(c2.getState().msgs[1]?.status).toBe("complete");
     expect(readChatHistory(storage2).msgs[1]?.text).toBe("权威定稿正文2。");
+  });
+
+  it("[A1 & A2] distinguishes local service-down (x-wiki-backend-offline / ECONNREFUSED) from pure static build, renders 重新连接, deduplicates health probes, and preserves draft & pendingAttachment", async () => {
+    const storage = createMemoryStorage();
+    const origFetch = globalThis.fetch;
+    try {
+      // 1. Local Vite proxy header `x-wiki-backend-offline: 1` -> sets "service-down" (NOT "offline" / StaticBackendOfflineError)
+      globalThis.fetch = async () =>
+        new Response("offline", {
+          status: 200,
+          headers: { "content-type": "text/plain; charset=utf-8", "x-wiki-backend-offline": "1" },
+        });
+      await expect(ApiModule.wikiRequest("pages")).rejects.toThrow();
+      expect(ApiModule.getBackendAvailability() as string).toBe("service-down");
+
+      // 2. Pure static SPA HTML fallback WITHOUT `x-wiki-backend-offline: 1` -> sets "offline" (StaticBackendOfflineError)
+      globalThis.fetch = async () =>
+        new Response("<!doctype html><html></html>", {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      await expect(ApiModule.wikiRequest("pages")).rejects.toSatisfy((e) =>
+        ApiModule.isStaticOfflineError(e),
+      );
+      expect(ApiModule.getBackendAvailability()).toBe("offline");
+
+      // 3. Switch back to service-down and verify WikiPanel & ChatPane UI + draft/pendingAttachment preservation across reconnect
+      setBackendAvailability("service-down" as never);
+      const sentPayloads: Array<{ message: string }> = [];
+      const controller = createChatController({
+        storage,
+        fetchImpl: async (_input, init) => {
+          sentPayloads.push(JSON.parse(String(init?.body ?? "{}")) as { message: string });
+          const stream = new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "重连成功后正常回答。" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-reconnected" }));
+              c.close();
+            },
+          });
+          return new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } });
+        },
+      });
+
+      const attachment = {
+        title: "配置体检脱敏摘要",
+        summary: "2 项告警",
+        sanitizedBlock: "vllm serve Qwen/Qwen3-8B",
+      };
+      controller.setInput("我敲到一半的本地排障问题");
+      controller.setPendingAttachment(attachment);
+
+      // Sending while service-down must be blocked without losing draft or attachment
+      await controller.send();
+      expect(sentPayloads).toHaveLength(0);
+      expect(controller.getState().input).toBe("我敲到一半的本地排障问题");
+      expect(controller.getState().pendingAttachment).toEqual(attachment);
+
+      const serviceDownPanelHtml = renderToStaticMarkup(
+        createElement(
+          MemoryRouter,
+          null,
+          createElement(WikiPanel, {
+            revision: "deadbeef12345678",
+            mode: "local",
+            chat: controller.getState(),
+            layout: "chat",
+            onLayout: () => {},
+            onRefresh: async () => false,
+          }),
+        ),
+      );
+      expect(serviceDownPanelHtml).toContain("问答服务未启动");
+      expect(serviceDownPanelHtml).toContain("重新连接");
+      expect(serviceDownPanelHtml).not.toContain("纯静态离线浏览");
+
+      const serviceDownChatHtml = renderToStaticMarkup(
+        createElement(
+          MemoryRouter,
+          null,
+          createElement(ChatPane, {
+            id: "wiki-panel-chat",
+            chat: controller.getState(),
+            hidden: false,
+            onReview: () => {},
+          }),
+        ),
+      );
+      expect(serviceDownChatHtml).toContain(
+        "本地问答服务未启动：请在终端运行 pnpm dev:server（或 pnpm dev:all），再点上方「重新连接」",
+      );
+
+      // 4. Probe health deduplicating concurrent clicks -> flips to "online" while preserving draft & pendingAttachment
+      const probeFn = (
+        ApiModule as unknown as {
+          probeBackendHealth?: (fetchImpl?: typeof fetch) => Promise<string>;
+        }
+      ).probeBackendHealth;
+      expect(probeFn).toBeTypeOf("function");
+
+      let healthCalls = 0;
+      const healthFetch: typeof fetch = async () => {
+        healthCalls += 1;
+        await new Promise((r) => setTimeout(r, 15));
+        return new Response(JSON.stringify({ ok: true, pages: 42, revision: "a".repeat(64) }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      };
+      const [r1, r2, r3] = await Promise.all([
+        probeFn!(healthFetch),
+        probeFn!(healthFetch),
+        probeFn!(healthFetch),
+      ]);
+      expect(healthCalls).toBe(1);
+      expect([r1, r2, r3]).toEqual(["online", "online", "online"]);
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+      expect(controller.getState().input).toBe("我敲到一半的本地排障问题");
+      expect(controller.getState().pendingAttachment).toEqual(attachment);
+
+      // Now user clicks Send -> draft + attachment go out cleanly!
+      await controller.send();
+      expect(sentPayloads).toHaveLength(1);
+      expect(sentPayloads[0]?.message).toContain("我敲到一半的本地排障问题");
+      expect(sentPayloads[0]?.message).toContain("vllm serve Qwen/Qwen3-8B");
+      expect(controller.getState().msgs[1]?.status).toBe("complete");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("[A3 & B3] parses CRLF SSE frames split mid-CRLF across chunks without marking interrupted, and surfaces post-persisted error/notice as toolNotice", async () => {
+    const storage = createMemoryStorage();
+    const enc = new TextEncoder();
+    const controller = createChatController({
+      storage,
+      fetchImpl: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              const rev = "a".repeat(64);
+              // Split `\r` and `\n` right across chunk boundaries!
+              c.enqueue(
+                enc.encode(`event: knowledge\r\ndata: {"revision":"${rev}","sessionId":"sid-crlf"}\r`),
+              );
+              c.enqueue(enc.encode("\n\r"));
+              c.enqueue(enc.encode("\nevent: text\r"));
+              c.enqueue(enc.encode('\ndata: {"text":"CRLF 代理完整正文。"}\r\n\r'));
+              c.enqueue(
+                enc.encode(
+                  `\nevent: persisted\r\ndata: {"sessionId":"sid-crlf","revision":"${rev}"}\r\n\r\n`,
+                ),
+              );
+              c.enqueue(
+                enc.encode(
+                  'event: notice\r\ndata: {"kind":"receipt-save-failed","message":"回答回执未能保存，暂无法存入 Wiki"}\r\n\r\n',
+                ),
+              );
+              c.enqueue(enc.encode('event: done\r\ndata: {"sessionId":"sid-crlf"}\r\n\r'));
+              c.enqueue(enc.encode("\n"));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        ),
+    });
+
+    await controller.send("测试 CRLF 分片");
+    const msg = controller.getState().msgs[1]!;
+    expect(msg.status).toBe("complete");
+    expect(msg.text).toBe("CRLF 代理完整正文。");
+    expect(msg.toolNotice).toContain("回答回执未能保存");
+    expect(readChatHistory(storage).sessionId).toBe("sid-crlf");
+  });
+
+  it("[R2-P2-5] restores draft & structured attachment on first-send disconnect, prevents stale failures from clobbering online, and times out hung health probes", async () => {
+    const storage = createMemoryStorage();
+    setBackendAvailability("online");
+
+    let backendUp = false;
+    const sentPayloads: Array<{ message: string; analysis?: unknown }> = [];
+    const controller = createChatController({
+      storage,
+      fetchImpl: async (_input, init) => {
+        if (!backendUp) {
+          return new Response("service-down", {
+            status: 200,
+            headers: { "content-type": "text/plain", "x-wiki-backend-offline": "1" },
+          });
+        }
+        sentPayloads.push(JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown });
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "重连后完整携带结构化分析载荷。" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r2" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+
+    const structuredAttachment = {
+      title: "部署算账快照",
+      summary: "Qwen3-8B · A2 64G",
+      sanitizedBlock: "TP=2",
+      analysis: { kind: "deploy" as const, model: "qwen3-8b", cardId: "a2-64g" as const, tpSize: 2 },
+    };
+    controller.setInput("首次发送即断连的草稿");
+    controller.setPendingAttachment(structuredAttachment);
+
+    // 1. First send hits service-down before stream starts -> draft & structured attachment restored, no dead summary bubble!
+    await controller.send();
+    expect(ApiModule.getBackendAvailability()).toBe("service-down");
+    expect(controller.getState().input).toBe("首次发送即断连的草稿");
+    expect(controller.getState().pendingAttachment).toEqual(structuredAttachment);
+    expect(controller.getState().msgs).toHaveLength(0);
+
+    // 2. Hung `/health` probe times out cleanly without wedging future reconnect attempts!
+    const probeWithTimeout = ApiModule.probeBackendHealth as (
+      f?: typeof fetch,
+      timeoutMs?: number,
+    ) => Promise<string>;
+    const hungResult = await probeWithTimeout(() => new Promise<Response>(() => {}), 25);
+    expect(hungResult).toBe("service-down");
+
+    // 3. Stale in-flight wikiRequest started BEFORE probeBackendHealth succeeds cannot clobber "online" back to "service-down"
+    const origFetch = globalThis.fetch;
+    try {
+      let rejectStale!: (err: Error) => void;
+      globalThis.fetch = () =>
+        new Promise<Response>((_resolve, reject) => {
+          rejectStale = reject;
+        });
+      const staleReq = ApiModule.wikiRequest("reviews");
+
+      // Meanwhile health probe succeeds -> sets "online"
+      const recovered = await probeWithTimeout(
+        async () =>
+          new Response(JSON.stringify({ ok: true, pages: 10, revision: "a".repeat(64) }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        500,
+      );
+      expect(recovered).toBe("online");
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+
+      // Stale request rejects AFTER online recovery -> must NOT clobber "online"!
+      rejectStale(new TypeError("stale network failure"));
+      await expect(staleReq).rejects.toThrow();
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+
+    // 4. Re-sending now sends BOTH restored draft AND structured `analysis` payload!
+    backendUp = true;
+    await controller.send();
+    expect(sentPayloads).toHaveLength(1);
+    expect(sentPayloads[0]?.message).toContain("首次发送即断连的草稿");
+    expect(sentPayloads[0]?.analysis).toEqual(structuredAttachment.analysis);
+  });
+
+  it("[R3-P2-9-10-11] preserves draft & attachment on 200 SSE pre-frame EOF/reset, losslessly merges concurrent typing B with sent draft A, and guards refresh() static offline against stale epochs", async () => {
+    const storage = createMemoryStorage();
+    setBackendAvailability("online");
+
+    const attachmentD1 = {
+      title: "排障快照 D1",
+      summary: "EI0006 诊断",
+      sanitizedBlock: "HCCL timeout",
+      analysis: { kind: "troubleshoot" as const, rawInput: "HCCL timeout" },
+    };
+
+    // 1. P2-9: 200 text/event-stream returns empty EOF (0 SSE frames) -> draft & structured attachment restored!
+    let scenario: "empty-eof" | "stream-reset" | "typing-while-offline" = "empty-eof";
+    let releaseOfflineResp!: () => void;
+    const controller = createChatController({
+      storage,
+      fetchImpl: async () => {
+        if (scenario === "empty-eof") {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(c) {
+                c.close();
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (scenario === "stream-reset") {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              pull() {
+                return Promise.reject(new TypeError("TCP connection reset before first SSE frame"));
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        await new Promise<void>((r) => {
+          releaseOfflineResp = r;
+        });
+        return new Response("offline", {
+          status: 200,
+          headers: { "content-type": "text/plain", "x-wiki-backend-offline": "1" },
+        });
+      },
+    });
+
+    controller.setInput("长问题草稿 P2-9");
+    controller.setPendingAttachment(attachmentD1);
+    await controller.send();
+    expect(controller.getState().input).toBe("长问题草稿 P2-9");
+    expect(controller.getState().pendingAttachment).toEqual(attachmentD1);
+    expect(controller.getState().msgs).toHaveLength(0);
+
+    // Stream TCP reset before first SSE frame also preserves draft & attachment!
+    setBackendAvailability("online");
+    scenario = "stream-reset";
+    await controller.send();
+    expect(controller.getState().input).toBe("长问题草稿 P2-9");
+    expect(controller.getState().pendingAttachment).toEqual(attachmentD1);
+    expect(controller.getState().msgs).toHaveLength(0);
+
+    // 2. P2-10: Send draft A + attachment D1, type B while waiting, then offline -> A is preserved alongside B (never lost)!
+    setBackendAvailability("online");
+    scenario = "typing-while-offline";
+    controller.setInput("原草稿 A");
+    controller.setPendingAttachment(attachmentD1);
+    const sendPromise = controller.send();
+    await new Promise((r) => setTimeout(r, 10));
+    controller.setInput("等待期间新打的 B");
+    releaseOfflineResp();
+    await sendPromise;
+    expect(controller.getState().input).toContain("原草稿 A");
+    expect(controller.getState().input).toContain("等待期间新打的 B");
+    expect(controller.getState().pendingAttachment).toEqual(attachmentD1);
+
+    // 3. P2-11: Stale `/pages` returning static HTML (triggering StaticBackendOfflineError) + stale `/reviews` rejecting AFTER `/health` reconnect MUST NOT clobber "online" or reset lastOnlineEpoch!
+    const origFetch = globalThis.fetch;
+    try {
+      let resolveStalePages!: (r: Response) => void;
+      let rejectStaleReviews!: (e: Error) => void;
+      globalThis.fetch = (input) => {
+        const url = String(input);
+        if (url.includes("/pages")) {
+          return new Promise<Response>((r) => {
+            resolveStalePages = r;
+          });
+        }
+        return new Promise<Response>((_r, rej) => {
+          rejectStaleReviews = rej;
+        });
+      };
+
+      const { runAssistantSnapshotRefresh } = await import("./assistant-context");
+      const staleRefreshPromise = runAssistantSnapshotRefresh();
+      const staleReviewsReq = ApiModule.wikiRequest("reviews");
+
+      // Reconnect probe succeeds -> online!
+      const probeRes = await ApiModule.probeBackendHealth(
+        async () =>
+          new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      );
+      expect(probeRes).toBe("online");
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+
+      // Stale `/pages` resolves with static SPA HTML -> runs REAL assistant-context refresh catch!
+      resolveStalePages(
+        new Response("<!doctype html><html></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        }),
+      );
+      await expect(staleRefreshPromise).resolves.toBe(false);
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+
+      // Stale `/reviews` rejects right after -> must STILL stay "online"!
+      rejectStaleReviews(new TypeError("stale reviews failed"));
+      await expect(staleReviewsReq).rejects.toThrow();
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("[R4-Inv4 & R4-Inv5] handles upstream DOMException AbortError when !signal.aborted, preserves leading 4-space indent, keeps retryAttachment on D2 collision, and commits monotonic startSeq watermarks", async () => {
+    const storage = createMemoryStorage();
+    setBackendAvailability("online");
+
+    const d1 = {
+      title: "部署快照 D1",
+      summary: "Qwen3-8B",
+      sanitizedBlock: "TP=2",
+      analysis: { kind: "deploy" as const, model: "qwen3-8b", cardId: "a2-64g" as const, tpSize: 2 },
+    };
+    const d2 = {
+      title: "排障快照 D2",
+      summary: "EI0006",
+      sanitizedBlock: "ERROR EI0006",
+      analysis: { kind: "troubleshoot" as const, rawInput: "ERROR EI0006" },
+    };
+
+    let mode: "upstream-abort" | "indent-merge" | "d2-collision" | "live-ok" = "upstream-abort";
+    let releaseTurn!: () => void;
+    const sentBodies: Array<{ message: string; analysis?: unknown }> = [];
+
+    const controller = createChatController({
+      storage,
+      fetchImpl: async (_input, init) => {
+        if (mode === "upstream-abort") {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(c) {
+                c.error(new DOMException("upstream cancelled", "AbortError"));
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (mode === "indent-merge" || mode === "d2-collision") {
+          await new Promise<void>((r) => {
+            releaseTurn = r;
+          });
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(c) {
+                c.close();
+              },
+            }),
+            { status: 200, headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        sentBodies.push(JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown });
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "重试成功恢复 D1.analysis" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r4" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+
+    // 1. P2-9: Upstream throws DOMException("upstream cancelled", "AbortError") while client signal.aborted === false
+    controller.setInput("上游 AbortError 草稿");
+    controller.setPendingAttachment(d1);
+    await controller.send();
+    expect(controller.getState().input).toBe("上游 AbortError 草稿");
+    expect(controller.getState().pendingAttachment).toEqual(d1);
+    expect(controller.getState().msgs).toHaveLength(0);
+
+    // 2. P2-10a: Leading 4-space code indentation on line 1 is preserved verbatim when merging with concurrent input B
+    setBackendAvailability("online");
+    mode = "indent-merge";
+    controller.setPendingAttachment(null);
+    controller.setInput("    vllm serve Qwen/Qwen3-8B --tp 2");
+    const indentPromise = controller.send();
+    await new Promise((r) => setTimeout(r, 10));
+    controller.setInput("补充说明 B");
+    releaseTurn();
+    await indentPromise;
+    expect(controller.getState().input).toBe("    vllm serve Qwen/Qwen3-8B --tp 2\n补充说明 B");
+
+    // 3. P2-10b: User sends A + D1, then types B AND attaches D2 while waiting -> failed message retains `retryAttachment` with full `D1.analysis`, and retryFailedMessage resends A + D1.analysis!
+    setBackendAvailability("online");
+    mode = "d2-collision";
+    controller.setInput("原问题 A");
+    controller.setPendingAttachment(d1);
+    const d2Promise = controller.send();
+    await new Promise((r) => setTimeout(r, 10));
+    controller.setInput("新问题 B");
+    controller.setPendingAttachment(d2);
+    releaseTurn();
+    await d2Promise;
+
+    expect(controller.getState().input).toBe("新问题 B");
+    expect(controller.getState().pendingAttachment).toEqual(d2);
+    const failedAgentMsg = controller.getState().msgs.find((m) => m.role === "agent");
+    expect(failedAgentMsg?.status).toBe("failed");
+    expect(failedAgentMsg?.retryAttachment?.analysis).toEqual(d1.analysis);
+
+    setBackendAvailability("online");
+    mode = "live-ok";
+    const retryFn = (controller as unknown as { retryFailedMessage?: (key: string) => Promise<void> })
+      .retryFailedMessage;
+    expect(typeof retryFn).toBe("function");
+    await retryFn!(failedAgentMsg!.key);
+    expect(sentBodies).toHaveLength(1);
+    expect(sentBodies[0]?.message).toContain("原问题 A");
+    expect(sentBodies[0]?.analysis).toEqual(d1.analysis);
+    expect(controller.getState().input).toBe("新问题 B");
+    expect(controller.getState().pendingAttachment).toEqual(d2);
+
+    // 4. P2-11 (Invariant 5): Old `/reviews` (seq=1) fails FIRST, then newer `refresh()` `/pages` (seq=2) returns 304 -> state MUST become "online"!
+    const origFetch = globalThis.fetch;
+    try {
+      let rejectOldReviews!: (e: Error) => void;
+      let resolveNewPages304!: (r: Response) => void;
+      globalThis.fetch = (input) => {
+        const url = String(input);
+        if (url.includes("/reviews")) {
+          return new Promise<Response>((_r, rej) => {
+            rejectOldReviews = rej;
+          });
+        }
+        return new Promise<Response>((r) => {
+          resolveNewPages304 = r;
+        });
+      };
+
+      const oldReviewsPromise = ApiModule.wikiRequest("reviews");
+      const { runAssistantSnapshotRefresh } = await import("./assistant-context");
+      const newRefreshPromise = runAssistantSnapshotRefresh();
+
+      // Old seq=1 fails FIRST -> "service-down"
+      rejectOldReviews(new TypeError("old reviews ECONNREFUSED"));
+      await expect(oldReviewsPromise).rejects.toThrow();
+      expect(ApiModule.getBackendAvailability()).toBe("service-down");
+
+      // Newer seq=2 returns 304 Not Modified -> startSeq >= newestVerdictStartSeq -> MUST flip to "online"!
+      resolveNewPages304(new Response(null, { status: 304 }));
+      await newRefreshPromise;
+      expect(ApiModule.getBackendAvailability()).toBe("online");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("[R5-P2-5 & R5-P2-6] persists failed message retryAttachment across reload into ChatDrawer retry button, and binds deduplicated snapshot refresh to actual underlying HTTP startSeq", async () => {
+    const storage = createMemoryStorage();
+    const d1 = {
+      title: "D1 部署算账快照",
+      summary: "Qwen3-8B · A2 64G",
+      sanitizedBlock: "vllm serve Qwen/Qwen3-8B --tp 2",
+      analysis: {
+        kind: "deploy" as const,
+        model: "qwen3-8b",
+        cardId: "a2-64g" as const,
+        tpSize: 2,
+      },
+    };
+    const d2 = {
+      title: "D2 排障摘要",
+      summary: "HCCL timeout",
+      sanitizedBlock: "ERROR EI0006",
+      analysis: { kind: "troubleshoot" as const, rawInput: "ERROR EI0006" },
+    };
+
+    // 1. P2-5: Fail A + D1 while D2 occupies pendingAttachment, flush to storage, reload a brand-new controller from storage, verify retryFailedMessage still sends full D1.analysis!
+    let releaseFailTurn!: () => void;
+    const c1 = createChatController({
+      storage,
+      fetchImpl: async () => {
+        await new Promise<void>((r) => {
+          releaseFailTurn = r;
+        });
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+    setBackendAvailability("online");
+    c1.setInput("原问题 A（跨刷新保留）");
+    c1.setPendingAttachment(d1);
+    const p1 = c1.send();
+    await new Promise((r) => setTimeout(r, 10));
+    c1.setInput("新草稿 B");
+    c1.setPendingAttachment(d2);
+    releaseFailTurn();
+    await p1;
+    c1.flush();
+
+    // Reload from localStorage into a brand-new controller instance
+    const reloadedPayloads: Array<{ message: string; analysis?: unknown }> = [];
+    setBackendAvailability("online");
+    const c2 = createChatController({
+      storage,
+      fetchImpl: async (_input, init) => {
+        reloadedPayloads.push(
+          JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown },
+        );
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "刷新后重试成功" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r5" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+    const reloadedFailedMsg = c2.getState().msgs.find((m) => m.role === "agent" && m.status === "failed");
+    expect(reloadedFailedMsg).toBeDefined();
+    expect(reloadedFailedMsg?.retryAttachment?.analysis).toEqual(d1.analysis);
+
+    const drawerHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(ChatPane, {
+          id: "wiki-panel-chat",
+          chat: c2.getState(),
+          backendAvailable: "online",
+          hidden: false,
+          onReview: () => {},
+        }),
+      ),
+    );
+    expect(drawerHtml).toContain('data-testid="chat-retry-failed"');
+    expect(drawerHtml).toContain("重试发送");
+
+    await c2.retryFailedMessage!(reloadedFailedMsg!.key);
+    expect(reloadedPayloads).toHaveLength(1);
+    expect(reloadedPayloads[0]?.message).toContain("原问题 A（跨刷新保留）");
+    expect(reloadedPayloads[0]?.analysis).toEqual(d1.analysis);
+
+    // 2. P2-6: R1 starts /pages (seq=1), then /reviews starts (seq=2), then R2 deduplicates onto R1's /pages (MUST reuse seq=1, NOT mint seq=3!).
+    // When /reviews (seq=2) fails first -> "service-down", and old /pages (seq=1) resolves 304 afterwards, state MUST stay "service-down"!
+    const origFetch = globalThis.fetch;
+    try {
+      let resolveSharedPages304!: (r: Response) => void;
+      let rejectNewerReviews!: (e: Error) => void;
+      let pagesFetchCalls = 0;
+      globalThis.fetch = (input) => {
+        const url = String(input);
+        if (url.includes("/pages")) {
+          pagesFetchCalls += 1;
+          return new Promise<Response>((r) => {
+            resolveSharedPages304 = r;
+          });
+        }
+        return new Promise<Response>((_r, rej) => {
+          rejectNewerReviews = rej;
+        });
+      };
+
+      const { runAssistantSnapshotRefresh } = await import("./assistant-context");
+      const r1 = runAssistantSnapshotRefresh();
+      const reviewsReq = ApiModule.wikiRequest("reviews");
+      const r2 = runAssistantSnapshotRefresh();
+      expect(pagesFetchCalls).toBe(1);
+
+      // Newer /reviews (seq=2) fails FIRST -> "service-down"
+      rejectNewerReviews(new TypeError("reviews ECONNREFUSED"));
+      await expect(reviewsReq).rejects.toThrow();
+      expect(ApiModule.getBackendAvailability()).toBe("service-down");
+
+      // Older deduplicated /pages (seq=1) finishes 304 afterwards -> MUST NOT clobber "service-down" back to "online"!
+      resolveSharedPages304(new Response(null, { status: 304 }));
+      await Promise.all([r1, r2]);
+      expect(ApiModule.getBackendAvailability()).toBe("service-down");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("[R6-5 & R6-6] tolerates out-of-range/corrupted retryAttachment fields without wiping chat history, re-persists failed retry across repeated disconnects, and keeps service-down when deduplicated snapshot refresh rejects", async () => {
+    const storage = createMemoryStorage();
+
+    // 1. R6-5a: Out-of-range `maxNumSeqs: 65537` and malformed `retryAttachment` on a single message MUST NOT wipe out chat history!
+    storage.setItem(
+      CHAT_HISTORY_KEY,
+      JSON.stringify({
+        version: 1,
+        input: "保留草稿",
+        msgs: [
+          { key: "m1-u", role: "user", text: "历史第一问" },
+          {
+            key: "m1-a",
+            role: "agent",
+            text: "失败一",
+            status: "failed",
+            rawDraft: "历史第一问",
+            retryAttachment: {
+              title: "算账超范围参数",
+              summary: "65537 seqs",
+              sanitizedBlock: "vllm serve Qwen",
+              analysis: { kind: "deploy", model: "qwen3-8b", cardId: "a2-64g", maxNumSeqs: 65537 },
+            },
+          },
+          {
+            key: "m2-a",
+            role: "agent",
+            text: "损坏附件消息仍保留正文",
+            status: "failed",
+            retryAttachment: { broken: 123 },
+          },
+        ],
+      }),
+    );
+    const parsedHistory = readChatHistory(storage);
+    expect(parsedHistory.msgs).toHaveLength(3);
+    expect(parsedHistory.msgs[1]?.retryAttachment?.title).toBe("算账超范围参数");
+    expect(parsedHistory.msgs[2]?.text).toBe("损坏附件消息仍保留正文");
+    expect(parsedHistory.msgs[2]?.retryAttachment).toBeUndefined();
+
+    // 2. R6-5b: Reload controller -> click `retryFailedMessage` while STILL offline (throws TypeError) -> reload AGAIN -> retryAttachment + analysis MUST survive in storage!
+    const retryStore = createMemoryStorage();
+    const d1 = {
+      title: "跨连续断网保留快照",
+      summary: "Qwen3-8B",
+      sanitizedBlock: "vllm serve Qwen/Qwen3-8B --tp 4",
+      analysis: { kind: "deploy" as const, model: "qwen3-8b", cardId: "a2-64g" as const, tpSize: 4 },
+    };
+    retryStore.setItem(
+      CHAT_HISTORY_KEY,
+      JSON.stringify({
+        version: 1,
+        input: "输入框里正在写的另一段话",
+        msgs: [
+          { key: "r-u", role: "user", text: "原问题", rawDraft: "原问题", retryAttachment: d1 },
+          {
+            key: "r-a",
+            role: "agent",
+            text: "上次失败",
+            status: "failed",
+            rawDraft: "原问题",
+            retryAttachment: d1,
+          },
+        ],
+      }),
+    );
+
+    setBackendAvailability("online");
+    const cOfflineRetry = createChatController({
+      storage: retryStore,
+      fetchImpl: async () => {
+        throw new TypeError("still ECONNREFUSED on retry");
+      },
+    });
+    await cOfflineRetry.retryFailedMessage!("r-a");
+    cOfflineRetry.flush();
+
+    // Reload a third controller after the failed retry: failed message & D1.analysis MUST still be persisted!
+    const sentAfterReconnect: Array<{ message: string; analysis?: unknown }> = [];
+    setBackendAvailability("online");
+    const cAfterSecondReload = createChatController({
+      storage: retryStore,
+      fetchImpl: async (_input, init) => {
+        sentAfterReconnect.push(
+          JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown },
+        );
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "恢复连接后重试成功" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r6" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+    const survivingFailed = cAfterSecondReload
+      .getState()
+      .msgs.find((m) => m.role === "agent" && m.status === "failed");
+    expect(survivingFailed).toBeDefined();
+    expect(survivingFailed?.retryAttachment?.analysis).toEqual(d1.analysis);
+    expect(cAfterSecondReload.getState().input).toBe("输入框里正在写的另一段话");
+
+    await cAfterSecondReload.retryFailedMessage!(survivingFailed!.key);
+    expect(sentAfterReconnect).toHaveLength(1);
+    expect(sentAfterReconnect[0]?.analysis).toEqual(d1.analysis);
+
+    // 3. R6-6: Concurrent `r1` and `r2` share one `/pages` fetch which rejects with `ECONNREFUSED`:
+    // superseded `r1` swallowed in `reader-store` MUST NOT report `"online"` over `"service-down"`!
+    const origFetch = globalThis.fetch;
+    try {
+      let rejectSharedPages!: (e: Error) => void;
+      globalThis.fetch = () =>
+        new Promise<Response>((_r, rej) => {
+          rejectSharedPages = rej;
+        });
+
+      setBackendAvailability("online");
+      const { runAssistantSnapshotRefresh } = await import("./assistant-context");
+      const r1 = runAssistantSnapshotRefresh();
+      const r2 = runAssistantSnapshotRefresh();
+
+      rejectSharedPages(new TypeError("pages ECONNREFUSED"));
+      const settled = await Promise.allSettled([r1, r2]);
+      expect(settled.some((s) => s.status === "rejected")).toBe(true);
+      expect(ApiModule.getBackendAvailability()).toBe("service-down");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("[R7-3 & R7-4] preserves retryAttachment & ChatDrawer retry button when retry is interrupted on pagehide, and never leaks failed isolated retryAttachment into compose pendingAttachment", async () => {
+    const storage = createMemoryStorage();
+    const d1 = {
+      title: "D1 独立重试附件",
+      summary: "Qwen3-8B",
+      sanitizedBlock: "vllm serve Qwen/Qwen3-8B --tp 2",
+      analysis: { kind: "deploy" as const, model: "qwen3-8b", cardId: "a2-64g" as const, tpSize: 2 },
+    };
+
+    storage.setItem(
+      CHAT_HISTORY_KEY,
+      JSON.stringify({
+        version: 1,
+        input: "另一份正在敲的新草稿（无附件）",
+        msgs: [
+          { key: "old-u", role: "user", text: "旧问题", rawDraft: "旧问题", retryAttachment: d1 },
+          {
+            key: "old-a",
+            role: "agent",
+            text: "旧失败",
+            status: "failed",
+            rawDraft: "旧问题",
+            retryAttachment: d1,
+          },
+        ],
+      }),
+    );
+
+    // 1. R7-4: Isolated retry fails with TypeError while compose box has `"另一份正在敲的新草稿（无附件）"` and `pendingAttachment === null`:
+    // MUST NOT copy `d1` into `pendingAttachment` or leak `d1` into subsequent send of the new draft!
+    let mode: "fail-retry" | "send-new-draft" | "hang-for-pagehide" | "retry-ok" = "fail-retry";
+    const sentBodies: Array<{ message: string; analysis?: unknown }> = [];
+    let releaseHung!: () => void;
+
+    setBackendAvailability("online");
+    const c1 = createChatController({
+      storage,
+      fetchImpl: async (_input, init) => {
+        if (mode === "fail-retry") {
+          throw new TypeError("isolated retry ECONNREFUSED");
+        }
+        if (mode === "hang-for-pagehide") {
+          await new Promise<void>((r) => {
+            releaseHung = r;
+          });
+          return new Response(
+            new ReadableStream({
+              start(c) {
+                c.close();
+              },
+            }),
+            {
+              status: 200,
+              headers: { "content-type": "text/event-stream" },
+            },
+          );
+        }
+        sentBodies.push(JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown });
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "ok" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r7" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+
+    await c1.retryFailedMessage!("old-a");
+    expect(c1.getState().input).toBe("另一份正在敲的新草稿（无附件）");
+    expect(c1.getState().pendingAttachment).toBeNull();
+
+    setBackendAvailability("online");
+    mode = "send-new-draft";
+    await c1.send();
+    expect(sentBodies).toHaveLength(1);
+    expect(sentBodies[0]?.message).toBe("另一份正在敲的新草稿（无附件）");
+    expect(sentBodies[0]?.analysis).toBeUndefined();
+
+    // 2. R7-3: Start retry on the surviving failed bubble, fire `flush()` (simulating `pagehide`) while `pending`, reload a new controller:
+    // `interrupted` message MUST retain `retryAttachment.analysis`, `ChatPane` MUST render `chat-retry-failed`, and retrying sends `d1.analysis`!
+    const failedStillThere = c1.getState().msgs.find((m) => m.role === "agent" && m.status === "failed");
+    expect(failedStillThere).toBeDefined();
+
+    mode = "hang-for-pagehide";
+    const hungRetry = c1.retryFailedMessage!(failedStillThere!.key);
+    await new Promise((r) => setTimeout(r, 10));
+    c1.flush(); // simulates pagehide flushing pending turn to storage
+
+    // Reload brand-new controller while previous retry was pending -> becomes `interrupted`
+    const reloadedSent: Array<{ message: string; analysis?: unknown }> = [];
+    setBackendAvailability("online");
+    const c2 = createChatController({
+      storage,
+      fetchImpl: async (_input, init) => {
+        reloadedSent.push(JSON.parse(String(init?.body ?? "{}")) as { message: string; analysis?: unknown });
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              c.enqueue(sseChunk("text", { text: "interrupted retry ok" }));
+              c.enqueue(sseChunk("done", { sessionId: "sid-r7-2" }));
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      },
+    });
+
+    releaseHung();
+    await hungRetry.catch(() => {});
+
+    const interruptedMsg = c2.getState().msgs.find((m) => m.role === "agent" && m.status === "interrupted");
+    expect(interruptedMsg).toBeDefined();
+    expect(interruptedMsg?.retryAttachment?.analysis).toEqual(d1.analysis);
+
+    const interruptedHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(ChatPane, {
+          id: "wiki-panel-chat",
+          chat: c2.getState(),
+          backendAvailable: "online",
+          hidden: false,
+          onReview: () => {},
+        }),
+      ),
+    );
+    expect(interruptedHtml).toContain('data-testid="chat-retry-failed"');
+
+    await c2.retryFailedMessage!(interruptedMsg!.key);
+    expect(reloadedSent).toHaveLength(1);
+    expect(reloadedSent[0]?.analysis).toEqual(d1.analysis);
   });
 });

@@ -655,3 +655,74 @@ it("Qwen3-8B 与 Qwen3-30B-A3B 四视图母版满足规格、无重叠几何与�
     }
   }
 });
+
+it("D.1–D.4: Qwen3 时间轴边界定位、QK-Norm/MoE 数学连线、二维懒加载 Three.js 与 WebGL 资源释放契约", async () => {
+  const root = "public/experiences";
+  const html = readFileSync(join(root, "qwen-flow/master/index.html"), "utf8");
+  const stageJs = readFileSync(join(root, "qwen-flow/master/qwen-stage.js"), "utf8");
+  const viewerJs = readFileSync(join(root, "whole/viewer.js"), "utf8");
+
+  // D.1: locateTime uses strict < on segment & beat boundaries (no <= off-by-one on segStarts[n-1])
+  expect(html).not.toMatch(/elapsed\s*<=\s*segStarts\[i\]\s*\+\s*d/);
+  expect(html).not.toMatch(/rem\s*<=\s*s\.beats\[b\]\.dur/);
+
+  // D.3: index.html does NOT statically import qwen-stage.js (2D arch view stays Three.js-free), and syncs variant via postMessage
+  expect(html).not.toMatch(/import\s*\{\s*mountQwenStage\s*\}\s*from\s*['"]\.\/qwen-stage\.js['"]/);
+  expect(html).toMatch(/import\(\s*['"]\.\/qwen-stage\.js['"]\s*\)/);
+  expect(html).toContain("qwen-experience:variant-change");
+
+  // D.2: Exact mathematical dataflow edges in layoutQwenLayer
+  const { layoutQwenLayer } = await import(
+    pathToFileURL(resolve(root, "qwen-flow/master/qwen-layout.js")).href
+  );
+  const dense = layoutQwenLayer("8b");
+  const moe = layoutQwenLayer("30b-a3b");
+
+  for (const lay of [dense, moe]) {
+    const incomingTo = (id: string) =>
+      lay.arrows.filter((a: { to: string }) => a.to === id).map((a: { from: string }) => a.from);
+    expect(incomingTo("Q_norm").sort()).toEqual(["Q", "q_norm"]);
+    expect(incomingTo("K_norm").sort()).toEqual(["K", "k_norm"]);
+    // Weight blocks q_norm / k_norm must NOT receive data arrows from Q / K
+    expect(incomingTo("q_norm")).toEqual([]);
+    expect(incomingTo("k_norm")).toEqual([]);
+  }
+
+  const moeBlockIds = moe.blocks.map((b: { id: string }) => b.id);
+  const moeEdges = moe.arrows.map((a: { from: string; to: string }) => `${a.from}->${a.to}`);
+  expect(moeBlockIds).toContain("topk_idx");
+  expect(moeEdges).toContain("x_ffn->moe_gu");
+  expect(moeEdges).toContain("router_logits->topk_idx");
+  expect(moeEdges).toContain("topk_idx->moe_gu");
+  expect(moeEdges).toContain("router_logits->topk_prob");
+  expect(moeEdges).toContain("topk_prob->ffn_out");
+  expect(moeEdges).not.toContain("topk_prob->moe_gu");
+
+  // R3.6 & R3.8: parent->child set-variant command in index.html & post-await viewerDisposed guard in whole/viewer.js
+  expect(html).toContain("set-variant");
+  expect(viewerJs).toMatch(/await Promise\.all[\s\S]{0,120}viewerDisposed/);
+
+  // R2.6 & P3: arch ready order, 1e-9 beat tolerance, clockRaf cancel, dispose message, & whole/viewer.js ready postMessage
+  const archReadyIdx = html.indexOf("window.__arch = { ready: true");
+  const archNotifyIdx = html.indexOf(
+    "notifyParent('qwen-experience:ready'",
+    archReadyIdx > 0 ? archReadyIdx : 0,
+  );
+  expect(archReadyIdx).toBeGreaterThan(0);
+  expect(archNotifyIdx).toBeGreaterThan(archReadyIdx);
+  expect(html).toContain("1e-9");
+  expect(html).toContain("pagehide");
+  expect(viewerJs).toContain("__wholeReady");
+  expect(viewerJs).toContain("infer-lab-experience");
+
+  // D.4: WebGL disposal in qwen-stage.js & whole/viewer.js
+  expect(stageJs).toMatch(/\.dispose\?\.\(\)/);
+  expect(stageJs).toMatch(/forceContextLoss\?\.\(\)/);
+  const removeIdx = stageJs.indexOf("removeEventListener('webglcontextlost'");
+  const forceLossIdx = stageJs.indexOf("forceContextLoss");
+  expect(removeIdx).toBeGreaterThan(0);
+  expect(forceLossIdx).toBeGreaterThan(removeIdx);
+
+  expect(viewerJs).toMatch(/isInstancedMesh[\s\S]{0,60}\.dispose\?\.\(\)/);
+  expect(viewerJs).toMatch(/envRT[\s\S]*dispose\(\)/);
+});

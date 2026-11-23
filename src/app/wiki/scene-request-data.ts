@@ -33,7 +33,7 @@ export const REQUEST_STRUCTURE = [
   { id: "layers", title: "45 层主干", x: 5.7, y: 5.3 },
   { id: "client", title: "客户端", x: -5.7, y: 2.3 },
   { id: "cache", title: "历史状态 / 缓存", x: -1.9, y: 2.3 },
-  { id: "sample", title: "采样 / 多词预测", x: 1.9, y: 2.3 },
+  { id: "sample", title: "采样 / MTP", x: 1.9, y: 2.3 },
   { id: "head", title: "归一化 / 输出头", x: 5.7, y: 2.3 },
 ] as const;
 export type RequestNode = (typeof REQUEST_STRUCTURE)[number]["id"];
@@ -58,7 +58,12 @@ const origins: RequestNode[][] = [
 ];
 const locations = [
   ["API · 模板与 tokenizer", "EngineCore · DP0 请求队列", "EngineCore · 缓存分配", "DP0 · TP8 worker 输入"],
-  ["模型入口 · Embedding 查表", "主干 · 45 层与历史状态", "主干出口 · 最后位置归约", "输出头 · 投影到词表"],
+  [
+    "模型入口 · Embedding 查表",
+    "主干 · 45 层与历史状态",
+    "主干出口 · 全位置归一化与切片",
+    "输出头 · 投影到词表",
+  ],
   ["worker · 采样", "worker · MTP 候选", "Engine → API → 客户端", "Engine · 下一轮输入计划"],
   ["API · 第 1 批输出", "API · 第 2 批输出", "API · 第 3 批输出", "Engine 结束 → API 收尾"],
 ];
@@ -108,15 +113,20 @@ export function requestStreamState(progress: number) {
   const cacheReleased = phase === 3 && work >= 0.25;
   const finished = phase === 3 && work >= 0.65;
   const done = phase === 3 && work >= 0.9;
+  const waitingFinish = phase === 3 && !finished;
   const sse = done
     ? "data: [DONE]\n\n"
     : finished
       ? 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
-      : delivered
-        ? `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: batch.text } }] })}\n\n`
-        : phase === 0 && decoded
-          ? 'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":""}}]}\n\n'
-          : "等待下一段增量文字";
+      : phase === 3
+        ? cacheReleased
+          ? "引擎已判停并归还缓存，等待发送 finish_reason: stop"
+          : "上一批文字已送达，等待引擎结束事件（finish_reason / [DONE]）"
+        : delivered
+          ? `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: batch.text } }] })}\n\n`
+          : phase === 0 && decoded
+            ? 'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":""}}]}\n\n'
+            : "等待下一段增量文字";
   return {
     phase,
     work,
@@ -126,6 +136,7 @@ export function requestStreamState(progress: number) {
     currentIds: verified ? batch.ids : [],
     decoded,
     delivered,
+    waitingFinish,
     deltaText: decoded ? batch.text : "",
     clientText,
     sse,
@@ -155,6 +166,8 @@ export function requestState(section: number, progress: number) {
       : reached(1, 1)
         ? 45
         : 0;
+  // 11 MLA layers sit at indices 3, 7, ..., 43; L0–L2 are KDA.
+  const mlaLayersDone = layersDone >= 4 ? Math.min(11, Math.floor((layersDone - 4) / 4) + 1) : 0;
   return {
     section,
     phase,
@@ -181,8 +194,10 @@ export function requestState(section: number, progress: number) {
     allocatedBlocks: reached(0, 2) ? 15 : section === 0 && phase === 2 ? Math.floor(work * 15) : 0,
     streams: reached(1, 1, 0.15) ? 4 : 1,
     layersDone,
-    cachedPositions: reached(1, 1) ? 4 : section === 1 && phase === 1 ? Math.min(4, Math.floor(work * 5)) : 0,
-    selectedPosition: reached(1, 2, 0.1) ? 3 : null,
+    mlaLayersDone,
+    // Layers 0–2 are KDA; layer 3 (layersDone >= 4) is the first MLA layer, writing all 4 prefill positions at once.
+    cachedPositions: reached(1, 1) || (section === 1 && phase === 1 && layersDone >= 4) ? 4 : 0,
+    selectedPosition: reached(1, 2, 0.58) ? 3 : null,
     sampled,
     drafts: ["d₁?", "d₂?", "d₃?"].slice(0, draftCount),
     draftInput: draftCount === 0 ? "y₀" : draftCount === 1 ? "d₁?" : "d₂?",
@@ -235,10 +250,16 @@ const transfers = [
   ["输入计划 → 8 个 worker", "缓存已经预留，同一份 ID 与位置交给 TP8。"],
   ["worker 输入 → Embedding", "上一阶段的 p₀…p₃，直接作为查表的行索引。"],
   ["Embedding 输出 → 主干输入", "刚查出的 H 保持四个位置的对应关系，再展开四路残差。"],
-  ["主干输出 → 最后位置归约", "沿用四路隐藏表示；取最后位置，合并残差并归一化。"],
+  [
+    "主干输出 → 全位置归一化",
+    "先对全部 4 个位置沿 4 路求均值并做最终 RMSNorm，保留完整 [4, 4096] 供 MTP；仅切末位 z₃ 送入输出头。",
+  ],
   ["归一化结果 → 输出头", "同一个最后位置向量，参与下一步的权重投影。"],
   ["logits → 采样", "传递的是候选分数；采样之后才得到新的 token ID。"],
-  ["y₀ → 多词预测 MTP", "MTP 先猜后续 token：确认的 y₀ 先查嵌入，与最后隐藏表示一起参与草拟。"],
+  [
+    "y₀ → 多词预测 MTP",
+    "首遍用主干 [h₀…h₃] 与左移后的 [p₁,p₂,p₃,y₀] 各自归一化并拼接投影，仅取末行出 d₁?；后两遍单行接力出 d₂?、d₃?。",
+  ],
   ["确认 y₀ → Engine", "只有 y₀ 进入确认列表；d₁…d₃ 仍是 worker 中的候选。"],
   ["y₀ + 候选 → 下一轮输入", "y₀ 自身尚未前向；它与三个候选一起送回主模型。"],
   ["确认 ID → 增量文字", "沿用同一请求的反分词状态。"],

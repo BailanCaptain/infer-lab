@@ -1,52 +1,103 @@
 import "../../design/tools.css";
-import type { ComponentType } from "react";
+import { type ComponentType, type LazyExoticComponent, lazy, Suspense } from "react";
 import {
   KNOWN_WIKI_TOOLS,
   parseWikiToolFence,
   type WikiToolId,
   type WikiToolSpec,
 } from "../../content/wiki/toolFence";
-import { WikiAiCoreLabBlock } from "../tools/AiCoreLabView";
-import { ConfigDoctorView } from "../tools/ConfigDoctorView";
-import { DeployCalculatorView } from "../tools/DeployCalculatorView";
-import { WikiTroubleshootWorkbenchBlock } from "../tools/TroubleshootWorkbenchView";
 
 export interface WikiToolRenderProps {
   spec: WikiToolSpec;
 }
 
-function EmbeddedDeployCalculator({ spec }: WikiToolRenderProps) {
-  const mode =
-    spec.mode === "quick-screen" || spec.mode === "minimal" || spec.mode === "full" ? spec.mode : undefined;
-  return (
-    <DeployCalculatorView
-      mode={mode}
-      title={spec.title}
-      summary={spec.summary}
-      initialModel={spec.model}
-      embedded
-    />
-  );
+const pendingTestPreloads: Array<Promise<void>> = [];
+
+function createLazyTool(
+  loader: () => Promise<{ default: ComponentType<WikiToolRenderProps> }>,
+): LazyExoticComponent<ComponentType<WikiToolRenderProps>> {
+  let preloaded: { default: ComponentType<WikiToolRenderProps> } | undefined;
+  if (import.meta.env.MODE === "test") {
+    pendingTestPreloads.push(
+      loader().then((mod) => {
+        preloaded = mod;
+      }),
+    );
+  }
+  return lazy(() => {
+    if (preloaded) {
+      const resolved = preloaded;
+      return {
+        // biome-ignore lint/suspicious/noThenProperty: React 19 lazy() requires a synchronous Thenable during Vitest SSR renderToStaticMarkup
+        then(onfulfilled) {
+          return Promise.resolve(onfulfilled ? onfulfilled(resolved) : (resolved as never));
+        },
+      } as PromiseLike<{ default: ComponentType<WikiToolRenderProps> }> as Promise<{
+        default: ComponentType<WikiToolRenderProps>;
+      }>;
+    }
+    return loader();
+  });
 }
 
-function EmbeddedConfigDoctor({ spec }: WikiToolRenderProps) {
-  const mode = spec.mode === "minimal" || spec.mode === "full" ? spec.mode : undefined;
-  return (
-    <ConfigDoctorView
-      mode={mode}
-      title={spec.title}
-      summary={spec.summary}
-      initialPresetId={spec.preset}
-      embedded
-    />
-  );
+const LazyDeployCalculator = createLazyTool(async () => {
+  const { DeployCalculatorView } = await import("../tools/DeployCalculatorView");
+  return {
+    default: function EmbeddedDeployCalculator({ spec }: WikiToolRenderProps) {
+      const mode =
+        spec.mode === "quick-screen" || spec.mode === "minimal" || spec.mode === "full"
+          ? spec.mode
+          : undefined;
+      return (
+        <DeployCalculatorView
+          mode={mode}
+          title={spec.title}
+          summary={spec.summary}
+          initialModel={spec.model}
+          embedded
+        />
+      );
+    },
+  };
+});
+
+const LazyConfigDoctor = createLazyTool(async () => {
+  const { ConfigDoctorView } = await import("../tools/ConfigDoctorView");
+  return {
+    default: function EmbeddedConfigDoctor({ spec }: WikiToolRenderProps) {
+      const mode = spec.mode === "minimal" || spec.mode === "full" ? spec.mode : undefined;
+      return (
+        <ConfigDoctorView
+          mode={mode}
+          title={spec.title}
+          summary={spec.summary}
+          initialPresetId={spec.preset}
+          embedded
+        />
+      );
+    },
+  };
+});
+
+const LazyTroubleshootWorkbench = createLazyTool(async () => {
+  const { WikiTroubleshootWorkbenchBlock } = await import("../tools/TroubleshootWorkbenchView");
+  return { default: WikiTroubleshootWorkbenchBlock };
+});
+
+const LazyAiCoreLab = createLazyTool(async () => {
+  const { WikiAiCoreLabBlock } = await import("../tools/AiCoreLabView");
+  return { default: WikiAiCoreLabBlock };
+});
+
+if (import.meta.env.MODE === "test") {
+  await Promise.all(pendingTestPreloads);
 }
 
-const TOOL_REGISTRY = new Map<WikiToolId, ComponentType<WikiToolRenderProps>>([
-  ["deploy-calculator", EmbeddedDeployCalculator],
-  ["config-doctor", EmbeddedConfigDoctor],
-  ["troubleshoot-workbench", WikiTroubleshootWorkbenchBlock],
-  ["aicore-lab", WikiAiCoreLabBlock],
+const TOOL_REGISTRY = new Map<WikiToolId, LazyExoticComponent<ComponentType<WikiToolRenderProps>>>([
+  ["deploy-calculator", LazyDeployCalculator],
+  ["config-doctor", LazyConfigDoctor],
+  ["troubleshoot-workbench", LazyTroubleshootWorkbench],
+  ["aicore-lab", LazyAiCoreLab],
 ]);
 
 const TOOL_MODE_LABELS: Readonly<Record<string, string>> = {
@@ -95,7 +146,20 @@ export function WikiToolBlock({ source }: { source: string }) {
         data-mode={modeLabel}
         aria-label={displayTitle}
       >
-        <Registered spec={spec} />
+        <Suspense
+          fallback={
+            <div className="wiki-tool-loading" role="status" data-testid={`wiki-tool-loading-${spec.tool}`}>
+              <header className="wiki-tool-head">
+                <strong className="wiki-tool-title">{displayTitle}</strong>
+                <span className="wiki-tool-badge">{formatWikiToolModeBadge(spec.mode, meta.title)}</span>
+              </header>
+              {spec.summary && <p className="wiki-tool-summary">{spec.summary}</p>}
+              <p className="wiki-tool-note">正在按需加载交互工具面板…</p>
+            </div>
+          }
+        >
+          <Registered spec={spec} />
+        </Suspense>
       </section>
     );
   }

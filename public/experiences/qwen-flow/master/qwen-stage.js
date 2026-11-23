@@ -212,6 +212,8 @@ export function mountQwenStage({ host, mode = 'model', variant: rawVariant = '8b
 
     const keep = new Set(seg.focusIds);
     const writes = new Set(seg.writeIds || []);
+    if (keep.has('topk_prob')) keep.add('topk_idx');
+    if (writes.has('topk_prob')) writes.add('topk_idx');
     if (keep.has('layer_stack')) for (const sid of data.stackIds) keep.add(sid);
     syncLabelVisibility(keep);
     for (const b of data.blocks) {
@@ -378,14 +380,35 @@ export function mountQwenStage({ host, mode = 'model', variant: rawVariant = '8b
     showWhole,
     setCamPreset,
     dispose() {
+      if (disposed) return;
       disposed = true;
       cancelAnimationFrame(rafId);
       ro.disconnect();
-      renderer.domElement.removeEventListener('webglcontextlost', onLost);
       controls.dispose();
-      for (const m of batchMeshes) { m.geometry?.dispose(); m.material?.dispose(); }
-      arrowBatch.mesh?.geometry?.dispose();
-      arrowBatch.mesh?.material?.dispose();
+      const textures = new Set();
+      const collectMaterial = (mat) => {
+        if (!mat) return;
+        if (mat.map?.isTexture) textures.add(mat.map);
+        if (mat.emissiveMap?.isTexture) textures.add(mat.emissiveMap);
+        if (mat.uniforms) {
+          for (const u of Object.values(mat.uniforms)) {
+            if (u?.value?.isTexture) textures.add(u.value);
+          }
+        }
+        mat.dispose?.();
+      };
+      const disposeMeshObj = (m) => {
+        if (!m) return;
+        m.geometry?.dispose?.();
+        if (Array.isArray(m.material)) m.material.forEach(collectMaterial);
+        else collectMaterial(m.material);
+        m.dispose?.();
+      };
+      for (const m of batchMeshes) disposeMeshObj(m);
+      disposeMeshObj(arrowBatch.mesh);
+      for (const tex of textures) tex.dispose?.();
+      renderer.domElement.removeEventListener('webglcontextlost', onLost, false);
+      renderer.forceContextLoss?.();
       renderer.dispose();
     },
   };

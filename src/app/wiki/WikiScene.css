@@ -25,12 +25,12 @@
 }
 :where(.wiki-sp-token-rows > span) {
   padding: 4px 7px;
-  border-left: 3px solid #48899f;
-  background: #48899f16;
+  border-left: 3px solid #587cc4;
+  background: #85a9ec1f;
 }
 :where(.wiki-sp-token-rows > span[data-owner="1"]) {
-  border-color: #b18456;
-  background: #b1845616;
+  border-color: #c96e63;
+  background: #e0948b1f;
 }
 :where(.wiki-sp-token-rows small) {
   display: block;
@@ -55,10 +55,10 @@
 :where(.wiki-cp-share-bar span) {
   height: 16px;
   border-radius: 2px;
-  background: #48899f;
+  background: #85a9ec;
 }
 :where(.wiki-cp-share-bar span[data-card="1"]) {
-  background: #b18456;
+  background: #e0948b;
 }
 .wiki-cp-readout {
   display: grid;
@@ -76,15 +76,15 @@
   display: grid;
   gap: 4px;
   padding: 10px 12px;
-  border-left: 3px solid #497e91;
-  background: rgba(73, 126, 145, 0.055);
+  border-left: 3px solid #587cc4;
+  background: rgba(133, 169, 236, 0.08);
   border-radius: 3px;
   font-size: 15px;
   line-height: 1.5;
 }
 .wiki-cp-readout section[data-card="1"] {
-  border-color: #a1724b;
-  background: rgba(161, 114, 75, 0.055);
+  border-color: #c96e63;
+  background: rgba(224, 148, 139, 0.085);
 }
 .wiki-cp-readout dl {
   margin: 3px 0 0;
@@ -237,9 +237,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 10px 14px 11px;
+  border-top: 1px solid color-mix(in srgb, var(--scene-line) 50%, transparent);
   font-size: var(--text-caption);
+  line-height: 1.45;
   color: var(--scene-muted);
 }
 .wiki-scene-tools button {
@@ -1753,7 +1755,7 @@
 .wiki-mechanism-label.channel {
   font-size: 12px;
   font-weight: 600;
-  color: #5e7266;
+  color: #5c6662;
 }
 .wiki-mechanism-labels {
   position: absolute;
@@ -1764,9 +1766,12 @@
 .wiki-mechanism-label {
   position: absolute;
   transform: translate(-50%, -50%);
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  white-space: normal;
+  overflow-wrap: break-word;
   text-align: center;
-  color: #354f43;
+  color: #1f2825;
   line-height: 1.4;
 }
 .wiki-mechanism-label[hidden],
@@ -1774,39 +1779,84 @@
   display: none;
 }
 .wiki-mechanism-label.name {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  padding: 1px 3px;
-  background: #edf1e7e8;
+  padding: 1px 6px;
+  background: #ffffffeb;
+  border: 1px solid #d8d8cf;
+  border-radius: 5px;
+}
+.wiki-mechanism-label.card-chip {
+  font: 600 10.5px / 1.25 var(--font-mono);
+  padding: 1px 4px;
+  color: #17211f;
+  background: #fffffff0;
+  border: 1px solid #c8ccc4;
   border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(23, 33, 31, 0.08);
+}
+.wiki-mechanism-label.expert-pill {
+  font: 700 11.5px / 1.25 var(--font-mono);
+  padding: 2px 7px;
+  color: #3a4f93;
+  background: #e8edff;
+  border: 1px solid #8ea2df;
+  border-radius: 999px;
+}
+.wiki-mechanism-label.expert-pill.remote {
+  color: #7a3a6a;
+  background: #f7e7f2;
+  border-color: #cca0be;
+}
+.wiki-mechanism-label.bridge-pill {
+  font: 600 11.5px / 1.3 var(--font-sans);
+  padding: 2px 10px;
+  color: #2f3b37;
+  background: #fffffff5;
+  border: 1px solid #d8d8cf;
+  border-radius: 999px;
 }
 .wiki-mechanism-label.heading {
   font-size: 16px;
   font-weight: 650;
+  color: #1b2421;
 }
 .wiki-mechanism-label.note {
-  font-size: 13px;
+  font-size: 12.5px;
+  color: #4f5955;
 }
 .wiki-mechanism-label.value {
-  color: white;
-  font: 600 18px / 1.3 var(--font-sans);
-  text-shadow: 0 1px 2px #253a4d66;
+  width: auto;
+  max-width: none;
+  white-space: nowrap;
+  color: #17211f;
+  font: 650 14px / 1.25 var(--font-sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.015em;
+  text-shadow: none;
 }
 .wiki-mechanism-label.value.small {
   font-size: 12px;
 }
 .wiki-mechanism-label.value.pp-number {
-  font-size: 14px;
+  font-size: 13.5px;
 }
 .wiki-mechanism-label.value.pp-context-value {
-  color: #183a30;
-  text-shadow: none;
+  color: #263330;
+  font-weight: 600;
+}
+.wiki-mechanism-label.value[data-zero="true"] {
+  color: #74807b;
+  font-weight: 500;
+}
+.wiki-scene-canvas[data-mechanism="EP"] .wiki-mechanism-label.value {
+  font-size: 13px;
 }
 .wiki-scene-canvas[data-mechanism="Ring"] .wiki-mechanism-label.value {
-  font-size: 16px;
+  font-size: 14.5px;
 }
 .wiki-scene-canvas[data-mechanism="Ring"] .wiki-mechanism-label.value.small {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 .wiki-mechanism-label.name.small {
   font-size: 12px;
@@ -1815,10 +1865,13 @@
   font-size: 13px;
   padding: 4px 10px;
   border-radius: 5px;
-  background: #f5f7f1ed;
+  color: #2c3733;
+  background: #fbfaf6f2;
+  border: 1px solid #e4e0d5;
 }
 .wiki-mechanism-label.operator {
   font-size: 25px;
+  color: #2f3b37;
 }
 /* Ring retains two Q/K/V panels; give their decimal results room before the side copy crowds them. */
 @container (max-width: 1100px) {

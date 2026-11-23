@@ -1,12 +1,19 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { AnswerQuality } from "../../content/wiki/answer-quality";
-import type { AscendCalcCardId, KvCacheDtype, WeightPrecision } from "../../sim/modelspec/deployCalculator";
-import type { AscendFamily, CudaGraphMode, RuleVersion } from "../../sim/rules/types";
-import { type BackendAvailability, getBackendAvailability, setBackendAvailability } from "./api";
 import {
+  type BackendAvailability,
+  beginBackendRequestEpoch,
+  getBackendAvailability,
+  reportBackendFailureForEpoch,
+  reportBackendOnlineForEpoch,
+  SERVICE_DOWN_CHAT_HINT,
+} from "./api";
+import {
+  type ChatAnalysisPayload,
   chatHttpError,
   interruptMessage,
   type Msg,
+  type PendingChatAttachment,
   readChatHistory,
   settleCompletedMessage,
   settleFailedMessage,
@@ -19,61 +26,7 @@ type ModelView = NonNullable<Msg["model"]>;
 
 export const STATIC_CHAT_UNAVAILABLE = "当前静态环境未连接本地问答服务，请使用顶部搜索（Ctrl+K）查阅知识库。";
 
-export type ChatAnalysisPayload =
-  | {
-      kind: "deploy";
-      model: string | Record<string, unknown>;
-      cardId: AscendCalcCardId;
-      version?: RuleVersion | undefined;
-      weightPrecision?: WeightPrecision | undefined;
-      kvCacheDtype?: KvCacheDtype | undefined;
-      blockSize?: number | undefined;
-      userSpecifiedBlockSize?: boolean | undefined;
-      weightNzMode?: 0 | 1 | 2 | undefined;
-      tpSize?: number | undefined;
-      ppSize?: number | undefined;
-      dpSize?: number | undefined;
-      pcpSize?: number | undefined;
-      dcpSize?: number | undefined;
-      enableEp?: boolean | undefined;
-      enableEplb?: boolean | undefined;
-      dynamicEplb?: boolean | undefined;
-      engramCpuOffload?: boolean | undefined;
-      numSpecTokens?: number | undefined;
-      gpuMemoryUtilization?: number | undefined;
-      maxModelLen?: number | undefined;
-      maxNumBatchedTokens?: number | undefined;
-      maxNumSeqs?: number | undefined;
-      cudagraphMode?: CudaGraphMode | undefined;
-      cudagraphCaptureCount?: number | undefined;
-      enforceEager?: boolean | undefined;
-      decodeBatchSize?: number | undefined;
-      prefillTokens?: number | undefined;
-      decodeContextLen?: number | undefined;
-    }
-  | {
-      kind: "doctor";
-      command: string;
-      decodeCommand?: string | undefined;
-      mode?: "minimal" | "full" | undefined;
-      hardwareFamily?: AscendFamily | undefined;
-      decodeHardwareFamily?: AscendFamily | undefined;
-      version?: RuleVersion | undefined;
-      crossNodeRoce?: boolean | undefined;
-    }
-  | {
-      kind: "troubleshoot";
-      rawInput: string;
-    };
-
-export interface PendingChatAttachment {
-  title: string;
-  summary: string;
-  sanitizedBlock: string;
-  redactionCount?: number | undefined;
-  suggestedQuestion?: string | undefined;
-  analysis?: ChatAnalysisPayload | undefined;
-}
+export type { ChatAnalysisPayload, PendingChatAttachment };
 
 /** 一次 SSE 请求。把帧回调出去，UI 只管渲染。 */
 async function streamChat(
@@ -103,53 +56,86 @@ async function streamChat(
       count?: number;
       threshold?: number;
     }) => void;
+    backendUnavailable?: () => void;
   },
   signal: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-  const res = await fetchImpl("/api/wiki/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-wiki-review": "1" },
-    body: JSON.stringify(body),
-    signal,
-  });
+  const reqEpoch = beginBackendRequestEpoch();
+  let res: Response;
+  try {
+    res = await fetchImpl("/api/wiki/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-wiki-review": "1" },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (err) {
+    if (!signal.aborted) {
+      reportBackendFailureForEpoch(reqEpoch, "service-down");
+      on.backendUnavailable?.();
+    }
+    throw err;
+  }
   const contentType = res.headers?.get?.("content-type")?.trim() ?? "";
+  const proxyOffline = res.headers?.get?.("x-wiki-backend-offline") === "1";
+  if (proxyOffline) {
+    reportBackendFailureForEpoch(reqEpoch, "service-down");
+    on.backendUnavailable?.();
+    on.error(SERVICE_DOWN_CHAT_HINT);
+    return;
+  }
   if (!res.ok || !res.body) {
     const rawBody = await res.text().catch(() => "");
     if (res.status === 404 && !contentType.toLowerCase().includes("application/json")) {
-      setBackendAvailability("offline");
+      reportBackendFailureForEpoch(reqEpoch, "offline");
+      on.backendUnavailable?.();
       on.error(STATIC_CHAT_UNAVAILABLE);
+      return;
+    }
+    if (
+      (res.status === 502 || res.status === 503 || res.status === 504) &&
+      !contentType.toLowerCase().includes("application/json")
+    ) {
+      reportBackendFailureForEpoch(reqEpoch, "service-down");
+      on.backendUnavailable?.();
+      on.error(SERVICE_DOWN_CHAT_HINT);
       return;
     }
     on.error(chatHttpError(res.status, rawBody));
     return;
   }
   if (contentType && !contentType.toLowerCase().includes("text/event-stream")) {
-    setBackendAvailability("offline");
+    reportBackendFailureForEpoch(reqEpoch, "offline");
+    on.backendUnavailable?.();
     on.error(STATIC_CHAT_UNAVAILABLE);
     return;
   }
-  if (contentType.toLowerCase().includes("text/event-stream")) {
-    setBackendAvailability("online");
-  }
+  const isSseContentType = contentType.toLowerCase().includes("text/event-stream");
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
+  let pendingCr = false;
+  let receivedAnyEvent = false;
+
+  const dispatchBufferedFrames = () => {
     const frames = buf.split("\n\n");
     buf = frames.pop() ?? "";
     for (const frame of frames) {
-      const ev = /^event: (.+)$/m.exec(frame)?.[1];
-      const raw = /^data: (.*)$/m.exec(frame)?.[1];
+      const ev = /^event:\s*(.+)$/m.exec(frame)?.[1]?.trim();
+      const raw = /^data:\s*(.*)$/m.exec(frame)?.[1];
       if (!ev || !raw) continue;
       let data: Record<string, unknown>;
       try {
         data = JSON.parse(raw) as Record<string, unknown>;
       } catch {
         continue;
+      }
+      if (!receivedAnyEvent) {
+        receivedAnyEvent = true;
+        if (isSseContentType) {
+          reportBackendOnlineForEpoch(reqEpoch);
+        }
       }
       if (ev === "text") on.text(String(data.text ?? ""));
       else if (ev === "tool") on.tool(data.target as string | undefined);
@@ -177,17 +163,60 @@ async function streamChat(
           typeof data.finalText === "string" ? data.finalText : undefined,
         );
     }
+  };
+
+  const appendNormalizedChunk = (decoded: string, final = false) => {
+    let chunk = decoded;
+    if (pendingCr) {
+      chunk = `\r${chunk}`;
+      pendingCr = false;
+    }
+    if (!final && chunk.endsWith("\r")) {
+      pendingCr = true;
+      chunk = chunk.slice(0, -1);
+    }
+    buf += chunk.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    dispatchBufferedFrames();
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        appendNormalizedChunk(decoder.decode(), true);
+        break;
+      }
+      appendNormalizedChunk(decoder.decode(value, { stream: true }), false);
+    }
+  } catch (streamErr) {
+    if (!signal.aborted && !receivedAnyEvent) {
+      reportBackendFailureForEpoch(reqEpoch, "service-down");
+      on.backendUnavailable?.();
+    }
+    throw streamErr;
+  }
+
+  if (!receivedAnyEvent && !signal.aborted) {
+    reportBackendFailureForEpoch(reqEpoch, "service-down");
+    on.backendUnavailable?.();
+    on.error(SERVICE_DOWN_CHAT_HINT);
   }
 }
 
 const SAVE_ERROR = "本机保存失败，刷新可能丢失记录；请先复制需要的回答。";
 
+export type ChatMessage = Msg & {
+  retryAttachment?: PendingChatAttachment | undefined;
+  rawDraft?: string | undefined;
+};
+
 export interface ChatState {
-  msgs: Msg[];
+  msgs: ChatMessage[];
   input: string;
   setInput: (value: string) => void;
   pendingAttachment?: PendingChatAttachment | null | undefined;
   setPendingAttachment?: ((attachment: PendingChatAttachment | null) => void) | undefined;
+  retryFailedMessage?: ((key: string) => Promise<void>) | undefined;
   busy: boolean;
   send: (preset?: string) => Promise<void>;
   stop: () => void;
@@ -214,7 +243,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const readBackendAvailability = deps.getBackendAvailability ?? getBackendAvailability;
 
-  let msgs: Msg[] = [];
+  let msgs: ChatMessage[] = [];
   let input = "";
   let ephemeralQuestion = "";
   let pendingAttachment: PendingChatAttachment | null = null;
@@ -250,6 +279,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     setInput,
     pendingAttachment,
     setPendingAttachment,
+    retryFailedMessage,
     busy,
     send,
     stop,
@@ -263,6 +293,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
       setInput,
       pendingAttachment,
       setPendingAttachment,
+      retryFailedMessage,
       busy,
       send,
       stop,
@@ -337,28 +368,85 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     turn.abort.abort();
   }
 
+  async function retryFailedMessage(key: string): Promise<void> {
+    if (busy || activeTurn) return;
+    const availability = readBackendAvailability();
+    if (availability === "offline" || availability === "service-down") return;
+    const baseKey = key.replace(/-[ua]$/, "");
+    const userKeyMatch = `${baseKey}-u`;
+    const agentKeyMatch = `${baseKey}-a`;
+    const failedTarget = msgs.find((m) => m.key === key || m.key === agentKeyMatch || m.key === userKeyMatch);
+    if (!failedTarget) return;
+    const retryAtt =
+      failedTarget.retryAttachment ??
+      msgs.find((m) => m.key === agentKeyMatch || m.key === userKeyMatch)?.retryAttachment;
+    const rawDraftFromMsg =
+      failedTarget.rawDraft ??
+      msgs.find((m) => m.key === userKeyMatch)?.rawDraft ??
+      msgs.find((m) => m.key === userKeyMatch)?.text ??
+      "";
+    msgs = msgs.filter((m) => m.key !== userKeyMatch && m.key !== agentKeyMatch);
+    syncSnapshot();
+    scheduleSave();
+    notify();
+    await sendInternal({
+      explicitDraft: rawDraftFromMsg,
+      explicitAttachment: retryAtt ?? null,
+      isPreset: false,
+      isIsolatedRetry: true,
+    });
+  }
+
   async function send(preset?: string): Promise<void> {
-    if (readBackendAvailability() === "offline") return;
-    const isPreset = preset !== undefined;
-    const attachment = isPreset ? null : pendingAttachment;
-    const rawDraft = (preset ?? effectiveInput()).trim();
-    if (!rawDraft && !attachment) return;
+    await sendInternal({
+      explicitDraft: preset,
+      explicitAttachment: preset !== undefined ? null : pendingAttachment,
+      isPreset: preset !== undefined,
+      isIsolatedRetry: false,
+    });
+  }
+
+  async function sendInternal(opts: {
+    explicitDraft?: string | undefined;
+    explicitAttachment: PendingChatAttachment | null;
+    isPreset: boolean;
+    isIsolatedRetry: boolean;
+  }): Promise<void> {
+    const availability = readBackendAvailability();
+    if (availability === "offline" || availability === "service-down") return;
+    const { isPreset, isIsolatedRetry } = opts;
+    const attachment = opts.explicitAttachment;
+    const rawSource = opts.explicitDraft !== undefined ? opts.explicitDraft : effectiveInput();
+    const trimmedDraft = rawSource.trim();
+    if (!trimmedDraft && !attachment) return;
     if (busy || activeTurn) {
-      if (isPreset && !input.trim()) setInput(preset);
+      if (isPreset && opts.explicitDraft && !input.trim()) setInput(opts.explicitDraft);
       return;
     }
 
+    const consumedInput = isPreset || isIsolatedRetry ? undefined : input;
+    const consumedEphemeral = isPreset || isIsolatedRetry ? undefined : ephemeralQuestion;
+    const sentRawInput = isIsolatedRetry
+      ? rawSource
+      : isPreset
+        ? undefined
+        : input.trim().length > 0
+          ? input
+          : ephemeralQuestion;
+    const consumedAttachment = attachment;
     const analysis = attachment?.analysis;
-    let message = rawDraft;
+    let message = trimmedDraft ? (isPreset ? trimmedDraft : rawSource.replace(/\s+$/, "")) : "";
     if (attachment) {
       if (!message) {
         message = `${attachment.title}\n\n${attachment.sanitizedBlock}`;
       } else if (!message.includes(attachment.sanitizedBlock)) {
         message = `${message}\n\n${attachment.sanitizedBlock}`;
       }
-      pendingAttachment = null;
+      if (!isPreset && !isIsolatedRetry) {
+        pendingAttachment = null;
+      }
     }
-    if (!isPreset) {
+    if (!isPreset && !isIsolatedRetry) {
       ephemeralQuestion = "";
       input = "";
     }
@@ -367,17 +455,32 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     const turnId = ++latestTurnId;
     const priorSessionId = sessionId;
     const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const userKey = `${turn}-u`;
     const agentKey = `${turn}-a`;
     msgs = [
       ...msgs,
-      { key: `${turn}-u`, role: "user", text: message },
-      { key: agentKey, role: "agent", text: "", reading: [], status: "pending" },
+      {
+        key: userKey,
+        role: "user",
+        text: message,
+        ...(sentRawInput !== undefined ? { rawDraft: sentRawInput } : {}),
+        ...(consumedAttachment ? { retryAttachment: consumedAttachment } : {}),
+      },
+      {
+        key: agentKey,
+        role: "agent",
+        text: "",
+        reading: [],
+        status: "pending",
+        ...(sentRawInput !== undefined ? { rawDraft: sentRawInput } : {}),
+        ...(consumedAttachment ? { retryAttachment: consumedAttachment } : {}),
+      },
     ];
     syncSnapshot();
     scheduleSave();
     notify();
 
-    const patch = (fn: (last: Msg) => Msg) => {
+    const patch = (fn: (last: ChatMessage) => ChatMessage) => {
       msgs = msgs.map((item) => (item.key === agentKey ? fn(item) : item));
       syncSnapshot();
       scheduleSave();
@@ -390,6 +493,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     const abortController = new AbortController();
     let doneReceived = false;
     let errored = false;
+    let backendUnavailableBeforeStream = false;
 
     const turnState: ActiveTurn = {
       turnId,
@@ -403,13 +507,69 @@ export function createChatController(deps: ChatControllerDeps = {}) {
         if (turnState.settled) return;
         turnState.settled = true;
         text.flush();
-        if (turnState.persisted || (doneReceived && !errored)) {
-          msgs = msgs.map((item) => (item.key === agentKey ? settleCompletedMessage(item) : item));
+        if (backendUnavailableBeforeStream && !turnState.persisted) {
+          if (latestTurnId === turnId) {
+            sessionId = priorSessionId;
+          }
+          let keepFailedBubbleInHistory = isIsolatedRetry || (isPreset && !consumedAttachment);
+          if (!isPreset && !isIsolatedRetry) {
+            const hasSentDraft = Boolean(sentRawInput && sentRawInput.trim().length > 0);
+            if (!input.trim() && pendingAttachment === null) {
+              if (consumedInput !== undefined) input = consumedInput;
+              else if (sentRawInput !== undefined) input = sentRawInput;
+              ephemeralQuestion = consumedEphemeral ?? "";
+              if (consumedAttachment) pendingAttachment = consumedAttachment;
+            } else if (pendingAttachment === null) {
+              if (hasSentDraft && input !== sentRawInput && !input.includes(sentRawInput!)) {
+                input = `${sentRawInput}\n${input}`;
+              } else if (!hasSentDraft && consumedAttachment) {
+                input = `${consumedAttachment.title}\n${input}`;
+              }
+              if (consumedAttachment) pendingAttachment = consumedAttachment;
+            } else if (consumedAttachment) {
+              // pendingAttachment is occupied by a newer D2: preserve A + D1 (with full D1.analysis) on the failed message
+              keepFailedBubbleInHistory = true;
+            } else if (hasSentDraft && input !== sentRawInput && !input.includes(sentRawInput!)) {
+              input = `${sentRawInput}\n${input}`;
+            }
+          } else if (!isIsolatedRetry && consumedAttachment && pendingAttachment === null) {
+            pendingAttachment = consumedAttachment;
+          }
+          if (!keepFailedBubbleInHistory) {
+            msgs = msgs.filter((item) => item.key !== userKey && item.key !== agentKey);
+          } else {
+            msgs = msgs.map((item) =>
+              item.key === agentKey
+                ? {
+                    ...settleFailedMessage(item),
+                    ...(consumedAttachment ? { retryAttachment: consumedAttachment } : {}),
+                    ...(sentRawInput !== undefined ? { rawDraft: sentRawInput } : {}),
+                  }
+                : item,
+            );
+          }
+        } else if (turnState.persisted || (doneReceived && !errored)) {
+          msgs = msgs.map((item) => {
+            if (item.key === agentKey) return settleCompletedMessage(item);
+            if (item.key === userKey) {
+              const { retryAttachment: _r, rawDraft: _d, ...cleanUser } = item;
+              return cleanUser;
+            }
+            return item;
+          });
         } else if (errored) {
           if (latestTurnId === turnId) {
             sessionId = priorSessionId;
           }
-          msgs = msgs.map((item) => (item.key === agentKey ? settleFailedMessage(item) : item));
+          msgs = msgs.map((item) =>
+            item.key === agentKey
+              ? {
+                  ...settleFailedMessage(item),
+                  ...(consumedAttachment ? { retryAttachment: consumedAttachment } : {}),
+                  ...(sentRawInput !== undefined ? { rawDraft: sentRawInput } : {}),
+                }
+              : item,
+          );
         } else {
           if (latestTurnId === turnId) {
             sessionId = undefined;
@@ -469,16 +629,22 @@ export function createChatController(deps: ChatControllerDeps = {}) {
             text.flush();
             turnState.persisted = true;
             if (v.sessionId) sessionId = v.sessionId;
-            msgs = msgs.map((item) =>
-              item.key === agentKey
-                ? {
-                    ...item,
-                    ...(typeof v.finalText === "string" ? { text: v.finalText } : {}),
-                    status: "complete",
-                    ...(v.revision ? { revision: v.revision } : {}),
-                  }
-                : item,
-            );
+            msgs = msgs.map((item) => {
+              if (item.key === agentKey) {
+                const { retryAttachment: _r, rawDraft: _d, ...cleanAgent } = item;
+                return {
+                  ...cleanAgent,
+                  ...(typeof v.finalText === "string" ? { text: v.finalText } : {}),
+                  status: "complete",
+                  ...(v.revision ? { revision: v.revision } : {}),
+                };
+              }
+              if (item.key === userKey) {
+                const { retryAttachment: _r, rawDraft: _d, ...cleanUser } = item;
+                return cleanUser;
+              }
+              return item;
+            });
             dirty = true;
             syncSnapshot();
             flushSave();
@@ -498,9 +664,16 @@ export function createChatController(deps: ChatControllerDeps = {}) {
                       : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
             }));
           },
+          backendUnavailable: () => {
+            if (!isCurrentTurn()) return;
+            backendUnavailableBeforeStream = true;
+          },
           notice: (v) => {
             if (!isCurrentTurn()) return;
-            patch((l) => ({ ...l, toolNotice: v.message }));
+            patch((l) => ({
+              ...l,
+              toolNotice: l.toolNotice ? `${l.toolNotice}\n${v.message}` : v.message,
+            }));
           },
           quality: (v) => {
             if (!isCurrentTurn()) return;
@@ -532,7 +705,16 @@ export function createChatController(deps: ChatControllerDeps = {}) {
             }));
           },
           error: (m) => {
-            if (!isCurrentTurn() || turnState.persisted) return;
+            if (!isCurrentTurn()) return;
+            if (turnState.persisted) {
+              patch((l) => ({
+                ...l,
+                toolNotice: l.toolNotice
+                  ? `${l.toolNotice}\n后置处理异常（回答已完整保存）：${m}`
+                  : `后置处理异常（回答已完整保存）：${m}`,
+              }));
+              return;
+            }
             text.flush();
             errored = true;
             patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` }));
@@ -559,7 +741,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     } catch (err) {
       if (isCurrentTurn() && !turnState.persisted) {
         text.flush();
-        if ((err as Error).name !== "AbortError") {
+        if (!abortController.signal.aborted) {
           errored = true;
           patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
         }
@@ -602,6 +784,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     },
     setInput,
     setPendingAttachment,
+    retryFailedMessage,
     send,
     stop,
     flush,

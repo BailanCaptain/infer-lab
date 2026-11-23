@@ -767,7 +767,10 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   }
 }
 
-.wiki-body .katex-display {
+.wiki-body .katex-display,
+.wiki-body p:has(> .katex:only-child),
+.wiki-body blockquote p:has(> .katex:only-child) {
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   padding-block: 4px;

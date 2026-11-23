@@ -184,11 +184,11 @@ $$M_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad N_{\text{pad}
 | 1（默认） | 调用 NZ 转换 | 原样返回 | 原样返回 |
 | 2 | 调用 NZ 转换 | 调用 NZ 转换 | 原样返回 |
 
-这张表回答“是否发起转换”，转换接口能否接受具体张量还取决于算子支持。`meta` 张量只携带形状和类型，没有实体数据。在 `v0.30.0` 与 `main` 主基线中，统一由 `additional_config.weight_nz_mode`（`0` / `1` / `2`，默认 `1`）控制普通策略，旧环境变量 `VLLM_ASCEND_ENABLE_NZ` 已退役不再读取；`_should_trans_nz` 先排除 FP32、`meta` 以及至少二维且末两维含 `1` 的张量，再检查硬件档案的强制策略——**310P 通过 `WeightLayoutPolicy.FORCE_NZ` 强制转换 `FRACTAL_NZ`**，先于 `weight_nz_mode` 生效，因此不能拿 A2 上模式 0 的结果直接套给 310P。
+这张表回答“是否发起转换”，具体张量能否通过转换仍取决于算子支持；`meta` 张量只携带形状和类型，没有实体数据。在 `v0.30.0` 与 `main` 主基线中，普通策略统一由 `additional_config.weight_nz_mode`（`0` / `1` / `2`，默认 `1`）控制，旧环境变量 `VLLM_ASCEND_ENABLE_NZ` 已退役不再读取。判定入口 `_should_trans_nz` 先排除 FP32、`meta` 以及至少二维且末两维含 `1` 的张量，再检查硬件档案的强制策略——**310P 通过 `WeightLayoutPolicy.FORCE_NZ` 强制转换 `FRACTAL_NZ`**，且优先级高于 `weight_nz_mode`，因此不能拿 A2 上模式 `0` 的结果直接套给 310P。
 
 模式 1 和 2 的差别在于是否将半精度权重也送去转换，不会把 INT8 权重变成 BF16，也不会把所有激活与缓存一并改格式。开关的覆盖范围必须沿具体层的后处理入口确认，下面的专家层就是例外。
 
-把前面的分形块对齐尺寸、加载期 `_should_trans_nz` 决策闸门以及四个正交概念边界放在同一张图里对照：
+把前面的大 N / 小 z 分形遍历、$17 \times 17 \to 32 \times 32$ 真实补齐面积、`_should_trans_nz` 决策闸门以及四个正交概念边界放在同一张图里对照：
 
 ```wiki-diagram
 file: tensor-layout-fig-nd-nz-cube
@@ -196,7 +196,7 @@ file: tensor-layout-fig-nd-nz-cube
 
 ## 放到 GLM 双机，权重和 KV cache 分别怎样处理？
 
-按[固定双机部署](glm-5-3-flash-two-node.md#部署前提)，模型使用 W8A8 权重包；W、A 分别指权重与激活。**对于实际选中动态 W8A8 方法的线性层**，固定源码先在加载后将权重转到算子方向，再按策略转换成 NZ；前向对输入激活量化，执行矩阵乘，并按输入类型输出，本部署对应 BF16。两个固定量化描述中，MLP 都使用 W8A8_DYNAMIC；12 个 MLA 层的 q_a、kv_a、q_b、o 四组权重则从旧 `9e55cbc8` 的 FLOAT 改为新 `3121f187` 的 W8A8_DYNAMIC，KDA 等保留浮点的层不能套用整条量化路径。逐层配方与执行类选择应一起核对；版本明细见[双机量化账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，计算方法见 [W8A8 页](quantization.md)。
+下面转入例外 B 历史绑定算例——[GLM-5.3-Flash 官方双机部署](glm-5-3-flash-two-node.md#部署前提)（`2 × Atlas 800 A2`，采用 W8A8 权重包，W、A 分别指权重与激活）。**对于实际选中动态 W8A8 方法的线性层**，固定源码在加载后先将权重转到算子方向，再按策略转成 NZ；前向对输入激活量化、执行矩阵乘，并按输入类型（本部署为 BF16）输出。两份固定量化描述中，MLP 都采用 `W8A8_DYNAMIC`；12 个 MLA 层的 `q_a`、`kv_a`、`q_b`、`o` 四组权重从旧 `9e55cbc8` 的 `FLOAT` 改为新 `3121f187` 的 `W8A8_DYNAMIC`，而 KDA 等保留浮点的层不走整条量化路径。逐层配方与执行类选择应一起核对（版本明细见[双机量化账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，计算方法见 [W8A8 页](quantization.md)）。
 
 专家层还存在更直接的分支：固定实现的 W8A8 专家权重转置后直接调用 NZ 格式转换，注释指向分组矩阵乘与 SwiGLU 量化融合接口的要求。这里的 SwiGLU 是专家中间的门控激活。因此，普通线性层的权重 NZ 策略不能代表所有专家分支。
 

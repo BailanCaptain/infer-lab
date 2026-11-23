@@ -1,0 +1,10 @@
+mode: native-svg
+id: matmul-fig-tp-row-vs-col-cut
+caption: >-
+  同一张 3×4 权重矩阵 W 在张量并行（TP）下的按行切（Row Parallel）与按列切（Column Parallel）直观对比：按行横切产出各卡部分和（如 2 与 6），必须经 All-Reduce 相加才得真值 8；按列竖切在各卡直接算出完整真值列（[8, 6] 与 [5, 7]），无需归约即可直接做本地逐元素激活，标准 MLP 据此采用「先列后行」配对省去中间通信。
+size: [900, 492]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L669-L695'
+    symbols: ['MergedColumnParallelLinear']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1623-L1780'
+    symbols: ['RowParallelLinear', 'reduce_results']

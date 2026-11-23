@@ -1,0 +1,16 @@
+id: gqa-fig-shared-kv-cost-split
+mode: native-svg
+size: [900, 382]
+caption: "GQA 同组查询头共读 K0/V0 算出不同输出，以及 4:1 GQA 四项计算与缓存开销对比"
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L85-L125
+    symbols:
+      - total_num_heads
+      - total_num_kv_heads
+      - head_dim
+      - qkv_proj
+  - source: vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L225-L258
+    symbols:
+      - Attention
+      - head_size
+      - scale

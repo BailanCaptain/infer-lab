@@ -1,0 +1,12 @@
+mode: native-svg
+id: acl-graph-fig-event-timeline
+caption: >-
+  可更新图侧流 Event 变参更新三轨时序：上半展示默认非 ENPU 路径中 Host Python 先调 replay 再调 update_graph_params，计算流在注意力算子前被 Wait Event 拦住、待侧流改参并 Record Event 后放行；下半对照 ENPU 先 update 后 replay 顺序及语言跨步异步/视觉多子批的固定缓冲覆写红线。
+size: [900, 540]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L290-L320
+    symbols: [_updatable_graph_replay]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L604-L625
+    symbols: [update_graph_params]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250
+    symbols: [ACLGraphWrapper]

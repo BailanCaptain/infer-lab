@@ -1,49 +1,14 @@
-{
-  "layout": "figure",
-  "id": "rfork-config-ports",
-  "size": [900, 420],
-  "caption": "借一次权重涉及的四类端口：1 业务方连 API 端口；2 A、B 各自 Worker 里的 RFork 会话都去连 Planner；3 B 向 A 的 seed 元数据服务取清单；4 B 经两边的传输引擎端点读 A 显存里的权重字节",
-  "hardware": [
-    { "kind": "server", "at": [20, 140], "size": [370, 260], "label": "实例 A：已在服务，当 seed" },
-    { "kind": "server", "at": [510, 140], "size": [370, 260], "label": "实例 B：新起，来借权重" },
-    { "kind": "chip", "at": [45, 305], "size": [110, 64], "label": "NPU：权重" },
-    { "kind": "chip", "at": [745, 305], "size": [110, 64], "label": "NPU：空位" }
-  ],
-  "items": [
-    { "at": [40, 22], "size": [150, 52], "text": "业务方", "sub": "发推理请求", "tone": "token", "style": "plain" },
-    { "at": [365, 22], "size": [170, 56], "text": "Planner", "sub": "独立服务，自己定端口", "tone": "control", "style": "plain" },
-    { "at": [40, 175], "size": [150, 54], "text": "API 前端", "sub": "端口：启动命令定", "tone": "token", "style": "plain" },
-    { "at": [215, 175], "size": [155, 54], "text": "seed 元数据服务", "sub": "随机端口或基数+rank", "tone": "control", "style": "plain" },
-    { "at": [215, 310], "size": [155, 54], "text": "传输引擎端点", "sub": "本机 IP + 空闲端口", "tone": "comm", "style": "plain" },
-    { "at": [530, 175], "size": [155, 54], "text": "RFork 加载器", "sub": "启动时借一次", "tone": "control", "style": "plain" },
-    { "at": [705, 175], "size": [150, 54], "text": "API 前端", "sub": "加载完才开放", "tone": "token", "style": "faded" },
-    { "at": [530, 310], "size": [155, 54], "text": "传输引擎端点", "sub": "本机 IP + 空闲端口", "tone": "comm", "style": "plain" }
-  ],
-  "links": [
-    { "from": [115, 74], "to": [115, 175], "tone": "token" },
-    { "from": [292, 140], "via": [[292, 50]], "to": [365, 50], "tone": "control", "dashed": true },
-    { "from": [607, 175], "via": [[607, 50]], "to": [535, 50], "tone": "control", "dashed": true },
-    { "from": [530, 202], "to": [370, 202], "tone": "control" },
-    { "from": [370, 337], "to": [530, 337], "tone": "comm" },
-    { "from": [155, 337], "to": [215, 337], "tone": "ink", "ends": "none" },
-    { "from": [685, 337], "to": [745, 337], "tone": "ink", "ends": "none" }
-  ],
-  "badges": [
-    { "at": [115, 104], "n": 1, "tone": "token" },
-    { "at": [292, 102], "n": 2, "tone": "control" },
-    { "at": [607, 102], "n": 2, "tone": "control" },
-    { "at": [450, 202], "n": 3, "tone": "control" },
-    { "at": [450, 337], "n": 4, "tone": "comm" }
-  ],
-  "texts": [
-    { "at": [131, 109], "text": "推理请求" },
-    { "at": [308, 107], "text": "A 的 RFork 会话：登记、心跳" },
-    { "at": [591, 107], "text": "借、还租约", "anchor": "end" },
-    { "at": [450, 186], "text": "取清单（HTTP）", "anchor": "middle" },
-    { "at": [450, 321], "text": "读权重字节", "anchor": "middle", "tone": "comm" }
-  ],
-  "pins": [
-    { "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L588-L625", "symbols": ["seed_port_base", "start_rfork_server", "report_seed_once"] },
-    { "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L239-L268", "symbols": ["initialize", "get_rpc_port"] }
-  ]
-}
+mode: native-svg
+id: rfork-config-ports
+caption: >-
+  RFork 四类端口拓扑与独立时间预算轴：上栏分离业务 API 端口、Planner 协调地址、seed 元数据 HTTP 端口与传输引擎数据端点，其中 seed 固定端口严格按双槽公式 base + 2 × global_rank + slot（主模型槽 0、草稿槽 1，如 base=35000、rank=3 对应 35006 / 35007）分配，base=0、超出 65535 或遇 EADDRINUSE 时自动退回系统随机端口，且 advertise_host 不覆盖 TransferEngine 端点；下栏对齐区分 seed 健康检查预算（5s）、单次 HTTP 超时（10s）、后台归还快慢重试（3 次快试后转 ≥60s 慢试）与 Planner 租约 TTL（默认 60s，支持 LEASE_TTL_SEC 时按 clamp(TTL/3, 0.1, 30s) 周期续租——如 TTL=60s 时每 20s 续一次，心跳不续租）。
+size: [900, 660]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L48-L53
+    symbols: [_resolve_seed_server_port, RFORK_SEED_PORT_SLOTS_PER_RANK]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L588-L659
+    symbols: [seed_port_base, start_rfork_server, report_seed_once]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L273
+    symbols: [initialize, get_rpc_port]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/config.py#L11-L16
+    symbols: [DEFAULT_RFORK_SEED_TIMEOUT_SEC, DEFAULT_RFORK_REQUEST_TIMEOUT_SEC, DEFAULT_RFORK_HEARTBEAT_INTERVAL_SEC]

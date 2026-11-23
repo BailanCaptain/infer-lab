@@ -107,9 +107,14 @@ rawSources:
 ---
 ## 它管什么，十个旋钮如何配合？
 
-在 MoE（混合专家）分布式推理里，不同专家被选中的热度并不均匀——热门专家所在的卡排长队，冷门卡却在空等。[EPLB（专家并行负载均衡）](../concepts/eplb.md#怎么算数配对比峰均换位置)会定期统计各专家负载、给热点专家多放冗余副本并在卡间重排位置。**STAIR（`StairEplbPolicy`）** 是 `v0.30.0` 与 `main` 在 Model Runner V2（MRv2）上默认启用的新一代 EPLB 规划算法，在常规重排之上增加了三层保护：**用“均值 + z × 标准差（含同卡专家协方差）”给波动留余量、用滞回门槛避免轻微抖动就反复搬权重、并约束单轮每卡与跨节点的搬运上限**。`stair_config` 就是 `additional_config["eplb_config"]` 下专门调节这套规划器的 10 项参数字典（对应不可变配置类 `StairConfig`，`frozen=True`）。
+在 MoE（混合专家）分布式推理里，热门专家所在的卡容易排长队，冷门卡却在空等。[EPLB（专家并行负载均衡）](../concepts/eplb.md#怎么算数配对比峰均换位置)定期统计各专家负载，给热点专家增加冗余副本并在卡间重排位置。
 
-不传 `stair_config` 时十个键全部取默认值，只传部分子键时其余自动取默认；所有数值字段均拒绝布尔值（传入 `true`/`false` 抛出 `STAIR numeric fields must not be booleans`），越界值在构造配置时即抛 `ValueError`：
+**STAIR（`StairEplbPolicy`）** 是 `v0.30.0` 与 `main` 在 Model Runner V2（MRv2）上默认启用的新一代 EPLB 规划算法，在常规重排之上叠加了三层保护：
+1. **波动留余量**：用「均值 + $z \times$ 标准差（含同卡专家协方差）」给专家与单卡打风险分；
+2. **双门滞回防抖**：避免轻微负载抖动就反复搬运权重；
+3. **搬运限流与有界回溯**：约束单轮每卡与跨节点的搬运上限。
+
+`stair_config` 就是 `additional_config["eplb_config"]` 下专门调节这套规划器的 10 项参数字典（对应不可变配置类 `StairConfig`，`frozen=True`）。不传 `stair_config` 时十个键全部取默认值，只传部分子键时其余自动取默认；所有数值字段均拒绝布尔值（传入 `true`/`false` 抛出 `STAIR numeric fields must not be booleans`），越界值在构造配置时即抛 `ValueError`：
 
 | 子键 | 所属步骤 | 声明默认（v0.30.0 / main） | 合法范围 | 一句话作用 |
 | --- | --- | --- | --- | --- |
@@ -126,12 +131,16 @@ rawSources:
 
 ## 一轮规划怎么走，与 MRV1 / MRV2 边界
 
-在 `v0.30.0` 与 `main` 上，只要开启 `--enable-eplb` 且运行在 MRv2 下，`patch_eplb.py` 已把上游 EPLB 默认策略改为 `stair`（显式设 `policy="default"` 则走默认策略、不消费 `stair_config`），由 `AscendEPLBController` 经工厂函数把 `stair_config` 传给 `StairEplbPolicy`。每轮规划对每个 MoE 层依次走四步：
+在 `v0.30.0` 与 `main` 上，只要开启 `--enable-eplb` 且运行在 MRv2 下，`patch_eplb.py` 已把上游 EPLB 默认策略改为 `stair`（显式设 `policy="default"` 则走默认策略、不消费 `stair_config`）。运行时由 `AscendEPLBController` 经工厂函数把 `stair_config` 传给 `StairEplbPolicy`，每轮对每个 MoE 层依次执行四步：
+
+```wiki-diagram
+file: param-stair-config-pipeline
+```
 
 1. **压缩负载窗口**：按时间顺序将上游累积的逐步负载并成至多 `load_window_bins` 个箱，每箱保留均值与样本数，后续统计均在箱上完成。
-2. **迟滞筛选重排层**：平衡度定义为 `1 ÷ 平均峰均比`（1 最佳）。先跳过全零负载层；其余层中，从未提交过新摆法的层直接进入规划，已提交过的层须当前平衡度跌至上次提交预测值的 `relative_balance_threshold` 倍及以下，或跌破 `absolute_balance_threshold` 才进入规划，并按当前峰均比降序排队。
+2. **迟滞筛选重排层**：平衡度定义为 `1 ÷ 平均峰均比`（1 最佳）。先跳过全零负载层；从未提交过新摆法的非零层直接进入规划；已提交过的层须当前平衡度跌至上次提交预测值的 `relative_balance_threshold` 倍及以下，或跌破 `absolute_balance_threshold` 才放行，并按当前峰均比降序排队。
 3. **风险估计与分阶段副本数搜索**：按 `均值 + z × 标准差` 计算每个专家风险，将按风险降序排列的专家分成 `min(replica_search_num_stages, 专家数)` 组（配置段数多于专家数时不会建空组），逐段在贪心预算 ± 半径内展开并按束宽截断，得到副本数候选。
-4. **带约束 LPT 摆放与最终筛优**：按风险从高到低采用 LPT（最长任务优先：先排最重、每次放进放后风险最低的合法卡，含同卡协方差），同时遵守每卡与每节点的搬运上限并在死路时做有界回溯。四步结束后还有一道把关：候选的预测平均峰均比与加权 p95 峰均比均不得差于现状；过关者取平均峰均比最低，在内部容差打平时依次按跨节点迁移数、同节点远端迁移数、目标专家编号、来源 rank、来源槽位确定排序；若胜出方案与现状相同则本层本轮不搬运。
+4. **带约束 LPT 摆放与最终裁决**：按风险从高到低采用 LPT（最长任务优先：先排最重、每次放进放后风险最低的合法卡，含同卡协方差），同时遵守每卡与每节点的搬运上限并在死路时做有界回溯。最终裁决要求候选的预测平均峰均比与加权 p95 峰均比均不得差于现状；过关者取平均峰均比最低，在内部容差打平时依次按**跨节点迁移数、同节点远端迁移数、目标专家编号、来源 rank、来源槽位**确定排序；若胜出方案与现状相同，本层本轮不搬运。
 
 拿一个缩小的 **2 节点 × 2 卡（共 4 卡）、每卡 2 槽（共 8 槽）、6 个逻辑专家 `E0..E5`（额外副本槽位 $8 - 6 = 2$）** 的单层 MoE 走一遍四步数值串联（**示意**，按 `stair.py` 公式校验，假设采用默认门槛且有效搬运限额均收紧为 `1`）：
 
@@ -142,15 +151,23 @@ rawSources:
 | ③ 风险与副本搜索 | `load_risk_quantile = 0.75`（$z \approx 0.674$），`rank_transfer_limit = 1` | 按 $\mu + 0.674\,\sigma$ 排序搜索副本数；增量挪动步数截断为 $\min(8 - 6,\ 4 \times 1) = 2$ 步 |
 | ④ 约束 LPT 与裁决 | 每卡限 `1` 进/`1` 出、每节点限 `1` 跨机进/出，回溯上限 `32` | 逐份放完 8 份副本；仅当预测平均与加权 p95 峰均比均不差于现状且更优时才提交搬运 |
 
-“含协方差的风险估计”与“滞回门槛”是 STAIR 的强制行为，没有关闭开关。版本与运行路径边界需严格区分：
-- **旧版不存在且启动即报错**：`v0.23.0`、GLM 固定镜像 `db701c1f` 与 `v0.26.0rc` 均无此键，写入会触发 `ValueError: Config has no attribute 'stair_config'`；早期 `main`（如 `baa023ad`）也没有此键，会被 pydantic `extra="forbid"` 拒收；2026-09-26 随 PR #17511/#17512 刚入库时（如 `4d1412d1`）只存在配置校验与单测、尚未接入服务，次日 PR #17514 才接入 MRv2 工厂。
-- **MRV1 vs MRV2 不可混用**：`eplb_policy_type`（`0–3`）只属于 MRv1 的旧规划器，没有给 STAIR 编号；在 `v0.30.0` 上，MRv1 下写 `stair_config` 或 `load_collection_phase` 会直接抛 `ValueError`，MRv2 的 `additional_config.eplb_config` 也只接受这两项并拒绝其余旧键（未知子键由 `StairConfig` 的 `extra="forbid"` 报错）。到了 `main`，MRv1 已被移除，`_validate_eplb_config` 对 MRv2 中不支持的 `eplb_config` 键与未知 `stair_config` 子键改为**打印警告并过滤丢弃**后再交给配置类解析（已知子键的布尔/越界值仍会启动报错）。此外，开启 EPLB 与权重 offload/prefetch（`cpu_offload_gb > 0` 或 `offload_group_size > 0`）或 elastic EP 互斥，且同步 EPLB 会被强制改为异步。
+**固定行为与版本 / 运行路径边界**：「含协方差的风险估计」与「双门滞回」是 STAIR 的强制行为，没有关闭开关。不同版本与运行路径下的配置校验与互斥规则如下：
+
+| 版本 / 运行路径 | 实际行为与校验结果 |
+| --- | --- |
+| `v0.23.0` / GLM 固定镜像 `db701c1f` / `v0.26.0rc` | 无此键；写入触发 `ValueError: Config has no attribute 'stair_config'` |
+| 早期 `main`（如 `baa023ad`） | 无此键；被 pydantic `extra="forbid"` 拒收 |
+| 2026-09-26 PR #17511/#17512（如 `4d1412d1`） | 仅存在配置校验与单测、尚未接入服务；次日 PR #17514 才接入 MRv2 工厂 |
+| `v0.30.0` + MRV1 | `eplb_policy_type`（`0–3`）只属于 MRv1 旧规划器且无 STAIR 编号；MRv1 下写 `stair_config` 或 `load_collection_phase` 直接抛 `ValueError` |
+| `v0.30.0` + MRV2 | `additional_config.eplb_config` 只接受 `stair_config` 与 `load_collection_phase`，拒绝其余旧键；未知子键由 `StairConfig` 的 `extra="forbid"` 报错 |
+| `main`（已移除 MRV1） | `_validate_eplb_config` 对 MRv2 中不支持的 `eplb_config` 键与未知 `stair_config` 子键**打印警告并过滤丢弃**后再解析；已知子键的布尔/越界值仍会启动报错 |
+| 通用功能互斥与异步改写 | 开启 EPLB 与权重 offload/prefetch（`cpu_offload_gb > 0` 或 `offload_group_size > 0`）或 elastic EP 互斥；同步 EPLB 会被强制改为异步 |
 
 ## 代价、通信器回退陷阱与放到 GLM 双机
 
-- **CPU 规划搜索规模由三个 `replica_search_*` 共同决定**：副本数搜索把按风险降序排列的专家分成阶段数对应的组，前面每组的每个候选状态都要在“贪心给的副本数 ± 半径”内展开，每阶段仅保留束宽个最佳状态。第一阶段从 1 个状态起步，因此在默认值（阶段 4、半径 8、束宽 64）下三个展开阶段的状态数上限为 `1`、`17`、`64`，展开次数上限依次为 `17`、`289`、`1,088`，合计 `1,394` 次，每次展开做两遍贪心分配；搜完再从现状朝目标逐份挪动，留下至多 `64` 个候选，每个候选各跑一次带约束 LPT 摆放。以上均为每层、每轮规划的次数上限，不直接等于实际耗时；三个键各自的影响见 [replica_search_num_stages](replica-search-num-stages-e4b10925ff97.md)、[replica_search_radius](replica-search-radius-cd3118b5aae5.md)、[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md)。
-- **搬运限额的声明默认与自动回退收紧不同**：早期快照 `4d1412d1` 中 `rank_transfer_limit` 与 `cross_node_transfer_limit` 默认均为 `1`；到了 `v0.30.0` 与 `main`，两项声明默认都改为 `-1`（不以该限额封顶），但当用户**未显式指定 `eplb_config.communicator`** 时，worker 启动会做全组 HIXL 可用性与绑定类型一致性共识——若任一 rank 不可用或绑定类型不一致而自动回退 `torch_gloo`，仅把**用户未显式配置**的搬运限额收紧为 `1`，用户显式写出的值（如 `0` 或 `-1`）会被保留；显式指定 `communicator` 则跳过这条自动选择与收紧路径。细节见 [每卡限制](rank-transfer-limit-99529b37d91d.md) 与 [跨机限制](cross-node-transfer-limit-06ee92260b7a.md)。
-- **写错键与跨版本迁移注意**：布尔值、越界值在构造 `StairConfig` 时直接抛 `ValueError`；`v0.30.0` 在 MRv2 中遇到未知 `eplb_config`/`stair_config` 键也会启动失败，而 `main` 改为告警并过滤未知键（不再静默生效，但也不会立刻因拼错子键中断启动）。能解析配置不等于已选中 STAIR，必须同时满足 MRv2、开启 `--enable-eplb` 且最终 `policy == "stair"`。
+- **CPU 规划搜索规模由三个 `replica_search_*` 共同决定**：副本数搜索把按风险降序排列的专家分成阶段数对应的组，前面每组的每个候选状态都要在「贪心给的副本数 ± 半径」内展开，每阶段仅保留束宽个最佳状态。第一阶段从 1 个状态起步，在默认值（阶段 4、半径 8、束宽 64）下，三个展开阶段的状态数上限依次为 `1`、`17`、`64`，展开次数上限依次为 `17`、`289`、`1,088`，合计 `1,394` 次（每次展开做两遍贪心分配）。搜完再从现状朝目标逐份挪动，留下至多 `64` 个候选，每个候选各跑一次带约束 LPT 摆放。以上均为每层、每轮规划的次数上限，不直接等于实际耗时；三个键的各自影响见 [replica_search_num_stages](replica-search-num-stages-e4b10925ff97.md)、[replica_search_radius](replica-search-radius-cd3118b5aae5.md)、[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md)。
+- **搬运限额的声明默认与自动回退收紧不同**：早期快照 `4d1412d1` 中 `rank_transfer_limit` 与 `cross_node_transfer_limit` 默认均为 `1`。到了 `v0.30.0` 与 `main`，两项声明默认都改为 `-1`（不以该限额封顶）；但当用户**未显式指定 `eplb_config.communicator`** 时，worker 启动会做全组 HIXL 可用性与绑定类型一致性共识——若任一 rank 不可用或绑定类型不一致而自动回退 `torch_gloo`，系统仅把**用户未显式配置**的搬运限额收紧为 `1`，用户显式写出的值（如 `0` 或 `-1`）原样保留。若显式指定 `communicator`，则跳过整条自动选择与收紧路径（见上图 B 区，细节见 [每卡限制](rank-transfer-limit-99529b37d91d.md) 与 [跨机限制](cross-node-transfer-limit-06ee92260b7a.md)）。
+- **写错键与激活条件注意**：布尔值、越界值在构造 `StairConfig` 时直接抛 `ValueError`。`v0.30.0` 在 MRv2 中遇到未知 `eplb_config`/`stair_config` 键也会启动失败；`main` 改为告警并过滤未知键（不再静默生效，但也不会立刻因拼错子键中断启动）。能解析配置不等于已选中 STAIR，必须同时满足 MRv2、开启 `--enable-eplb` 且最终 `policy == "stair"`。
 - **放到 GLM 双机部署**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、EP16、W8A8）：
   - 当前 GLM 双机固定镜像 `db701c1f` 未开 EPLB（见 [EPLB 页的 GLM 段](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)），也不认 `stair_config`，写入直接抛 `ValueError: Config has no attribute 'stair_config'`；而且配套 vLLM 0.23.0 无法选上 MRv2（见 [npu-model-runner「会报什么错」](../concepts/npu-model-runner.md#会报什么错)）。
   - 若换到已接入 STAIR 的 `v0.30.0`/`main` 并走 MRv2，但仍沿用零冗余摆法（每卡 18 个专家、无副本位，见 [EP 页](../concepts/expert-parallel.md#16-张卡怎样分专家)），总槽位等于逻辑专家数，副本数无搜索余地、只能换位置。若显式把两项搬运限额设为 `1`（或自动回退 Gloo 收紧为 `1`），则每卡每层至多换进和发出各 1 份、两机每层跨机发收各至多 1 次；这属于给定限额的静态推演，不是所有通信器下的默认行为，也无 GLM 实测。

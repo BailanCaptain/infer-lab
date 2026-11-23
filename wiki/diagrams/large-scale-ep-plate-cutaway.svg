@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 676" width="860" height="676" role="img" aria-label="大规模专家并行（Large-Scale EP）多机立体拆解剖面图：顶层外置 DP PROXY 向独立服务端点 DP 0 至 DP 3 分发请求，底层多机 NPU 卡通过跨机 WIDE EP 互联平面合组同一套稀疏路由专家域并按选路策略执行跨机通信" font-family="var(--font-sans)">
+  <title>大规模专家并行（Wide-EP）双层物理拓扑拆解：上层由外部路由代理 DP PROXY 将独立用户请求分发至各自独立的 DP 0–DP 3 服务端点；下层在进入 MoE 层时，所有节点上的 NPU 卡通过跨机 WIDE EP 高速网络合组唯一专家池，按硬件与本步负载选路完成专家数据交换。</title>
+  <desc>关联源码符号：_select_a2_moe_comm_method, _select_a3_moe_comm_method</desc>
+
+  <image href="./wiki-illustrations/large-scale-ep-cutaway.webp" x="86" y="128" width="688" height="422" preserveAspectRatio="xMidYMid meet"/>
+
+  <line x1="200" y1="114" x2="200" y2="328" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="200" cy="328" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="200" cy="328" r="2.5" fill="#087f73"/>
+
+  <line x1="430" y1="114" x2="430" y2="184" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="430" cy="184" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="430" cy="184" r="2.5" fill="#087f73"/>
+
+  <line x1="628" y1="114" x2="628" y2="362" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="628" cy="362" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="628" cy="362" r="2.5" fill="#c78300"/>
+
+  <line x1="364" y1="568" x2="364" y2="472" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="364" cy="472" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="364" cy="472" r="2.5" fill="#9a4b86"/>
+
+  <line x1="578" y1="568" x2="578" y2="430" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="578" cy="430" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="578" cy="430" r="2.5" fill="#4c65b6"/>
+
+  <g id="callout-dp-rank">
+    <circle cx="20" cy="26" r="11" fill="#087f73"/>
+    <text x="20" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
+    <text x="38" y="31" font-size="14" font-weight="700" fill="#17211f">独立 DP 端点 (DP 0 … DP 3)</text>
+    <text x="38" y="55" font-size="12.5" fill="#4d5652">各组独立维护请求队列与注意力 KV</text>
+    <text x="38" y="77" font-size="12.5" fill="#4d5652">支持 <tspan font-family="var(--font-mono)" font-weight="700">external_online_dp</tspan> 独立拉起</text>
+    <text x="38" y="99" font-size="12.5" fill="#065f56">注意：单机并非一套完整独立模型</text>
+  </g>
+
+  <g id="callout-proxy">
+    <circle cx="300" cy="26" r="11" fill="#087f73"/>
+    <text x="300" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
+    <text x="318" y="31" font-size="14" font-weight="700" fill="#17211f">外置请求路由 (DP PROXY)</text>
+    <text x="318" y="55" font-size="12.5" fill="#4d5652">按负载与前缀把请求派给某 DP 入口</text>
+    <text x="318" y="77" font-size="12.5" fill="#4d5652">只管请求入口，不替代层内专家路由</text>
+    <text x="318" y="99" font-size="12.5" fill="#065f56">常与 P/D 分离代理合一调度两池</text>
+  </g>
+
+  <g id="callout-experts">
+    <circle cx="580" cy="26" r="11" fill="#c78300"/>
+    <text x="580" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
+    <text x="598" y="31" font-size="14" font-weight="700" fill="#17211f">专家极度摊薄 (EXPERTS)</text>
+    <text x="598" y="55" font-size="12.5" fill="#4d5652">几十上百卡合存专家，每卡仅驻少数</text>
+    <text x="598" y="77" font-size="12.5" fill="#4d5652">腾出每卡 HBM 留给长文高并发 KV</text>
+    <text x="598" y="99" font-size="12.5" fill="#936300">热门专家偏斜需配 <tspan font-family="var(--font-mono)" font-weight="700">EPLB</tspan> 冗余副本</text>
+  </g>
+
+  <g id="callout-wide-ep">
+    <circle cx="20" cy="592" r="11" fill="#9a4b86"/>
+    <text x="20" y="596.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
+    <text x="38" y="597" font-size="14" font-weight="700" fill="#17211f">跨机专家通信平面 (WIDE EP · 动态选路)</text>
+    <text x="38" y="621" font-size="12.5" fill="#4d5652">按芯片与本步容量选 <tspan font-family="var(--font-mono)" font-weight="700">MC2 / AllToAll / AllGather</tspan></text>
+    <text x="38" y="644" font-size="12.5" fill="#7a3a6a">均匀路由假设下机器数越多，跨机交换比例越大</text>
+  </g>
+
+  <g id="callout-sync">
+    <circle cx="436" cy="592" r="11" fill="#4c65b6"/>
+    <text x="436" y="596.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
+    <text x="454" y="597" font-size="14" font-weight="700" fill="#17211f">全组木桶同步与 P/D 解耦动机</text>
+    <text x="454" y="621" font-size="12.5" fill="#4d5652">常规选路下本步最大 token 超 <tspan font-family="var(--font-mono)" font-weight="700">MC2</tspan> 门槛时全组换路同点等待</text>
+    <text x="454" y="644" font-size="12.5" fill="#3a4f93">因此大规模 EP 生产部署常与 P/D 分离成对开启</text>
+  </g>
+</svg>

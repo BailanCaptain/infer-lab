@@ -1,7 +1,8 @@
 mode: native-svg
 id: prefix-caching-fig-hash-hybrid
-caption: Prefix Caching（APC）的链式块指纹构造（前块哈希 + 额外身份键 + 本块 token）、共享池引用计数与倒序淘汰机制，以及混合模型在多缓存组间取公共恢复边界的“只砍不涨”循环。
-size: [900, 456]
+caption: >-
+  Prefix Caching（APC）链式块指纹、倒序空闲队列淘汰与混合模型「只砍不涨」多组对齐标尺：上半区展示额外身份键按域注入（仅 cache_salt 限于首块 B0，LoRA 标识每块均注入，多模态与输入 embedding 按重叠的 token 跨度逐块注入）构成链式哈希 H0→H1，以及释放块倒序入空闲队列使开头块留得最久；下半区在同一 [0..2,000] token 位置标尺上对齐 Full 组（按 640 整块砍到 1,920）、KDA 组（仅 1,280 有 align 档砍到 1,280）与尾状态组（窗口覆盖通过），直观揭示为何哈希粒度 4 不等于公共恢复边界 640。
+size: [900, 500]
 pins:
   - source: 'vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L590'
     symbols: ['generate_block_hash_extra_keys', 'hash_block_tokens']

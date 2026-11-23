@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-cache-quant-fig-glm-block-realign
+caption: >-
+  为什么把 GLM 潜向量压成 1 字节不会让块数简单翻倍（同比例字节对比）：单层 KDA 固定递推状态 561,152 B 不随潜向量压缩变小；BF16（1 KiB/tok）用 5 个 128-tok 核块（640 tok = 655,360 B）即可装下 KDA，若潜向量压为 1 B（512 B/tok），5 个核块仅 327,680 B 装不下，逻辑块被迫放大到 9 个核块（1,152 tok = 589,824 B）。
+size: [900, 356]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L112-L139'
+    symbols:
+      - min_attn_block_size
+      - kernel_block_size
+      - mamba_raw_size
+      - attn_token_page_size

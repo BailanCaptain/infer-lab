@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="RFork 主线路径、四种成功解耦、双门回退安全门与主草稿双会话全景图" font-family="var(--font-sans)">
+  <title>RFork 单 Worker 执行路径、四种成功解耦与严格双门回退：从绕过守卫、搭空位、先登记绑 seed_key、借租约、五门校验、分批直读，到模型交回与后台还租约/发布 seed 两条并行线，以及回退前 service_stopped 与 memory_reset 双门和主草双会话对照。</title>
+  <desc>关联源码符号：mutable_weights_bypass_reason, register_destination, acquire_seed, transfer_from_seed, start_seed_service, prepare_for_fallback, RForkConfigurationError, service_stopped, memory_reset, can_schedule_seed</desc>
+  <defs>
+    <marker id="rf-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="rf-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="rf-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="rf-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="rf-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- 区域 1：主干流程与双线解耦 -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 主干加载与双线解耦：模型交回不等后台还租约，四种「成功」分步成立</text>
+
+  <!-- 上排 5 步 -->
+  <rect x="16" y="40" width="160" height="72" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="96" y="61" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">1. 绕过与建会话</text>
+  <text x="96" y="81" text-anchor="middle" font-size="13.5" fill="#4d5652">sleep / EPLB /</text>
+  <text x="96" y="101" text-anchor="middle" font-size="13.5" fill="#4d5652">weight_transfer</text>
+
+  <line x1="176" y1="76" x2="194" y2="76" stroke="#4d5652" stroke-width="1.6" marker-end="url(#rf-arr-ink)"/>
+
+  <rect x="196" y="40" width="150" height="72" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="271" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2. 搭空位与布局</text>
+  <text x="271" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">建空模型 + 宿主表</text>
+  <text x="271" y="102" text-anchor="middle" font-size="13.5" fill="#4d5652">按需后处理并同步</text>
+
+  <line x1="346" y1="76" x2="366" y2="76" stroke="#c78300" stroke-width="1.6" marker-end="url(#rf-arr-amber)"/>
+
+  <rect x="368" y="40" width="160" height="72" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="448" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">3. 预登记并绑键</text>
+  <text x="448" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">登记 HBM + 算结构摘要</text>
+  <text x="448" y="102" text-anchor="middle" font-size="13.5" fill="#3a4f93">绑定 seed_key（租约外）</text>
+
+  <line x1="528" y1="76" x2="550" y2="76" stroke="#4d5652" stroke-width="1.6" marker-end="url(#rf-arr-ink)"/>
+
+  <rect x="552" y="40" width="146" height="72" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="625" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">4. 向 Planner 借</text>
+  <text x="625" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">拿到 seed 与租约</text>
+  <text x="625" y="102" text-anchor="middle" font-size="13.5" fill="#065f56">有 TTL 时起续租</text>
+
+  <line x1="698" y1="76" x2="720" y2="76" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#rf-arr-plum)"/>
+
+  <rect x="722" y="40" width="162" height="72" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="803" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">5. 核清单与分批读</text>
+  <text x="803" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">5 门全过 · ≤1GiB/512段</text>
+  <text x="803" y="102" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">成功① 权重传完</text>
+
+  <!-- 两处早退短标 -->
+  <text x="16" y="129" font-size="13.5" fill="#66716d">命中守卫 → 默认加载</text>
+  <text x="271" y="129" text-anchor="middle" font-size="13.5" fill="#936300">全共享草稿 → shared_target</text>
+
+  <!-- 分叉：从第 5 步拆成两条并行结果线 -->
+  <path d="M 803 112 L 803 138 L 80 138 L 80 156" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#rf-arr-teal)"/>
+  <path d="M 80 138 L 80 236 L 106 236" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#rf-arr-plum)"/>
+
+  <!-- 并行线 A：主线程模型交回 -->
+  <rect x="16" y="158" width="128" height="48" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="80" y="179" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">启动线程主线</text>
+  <text x="80" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">不等网络归还</text>
+
+  <line x1="144" y1="182" x2="176" y2="182" stroke="#087f73" stroke-width="1.6" marker-end="url(#rf-arr-teal)"/>
+
+  <rect x="178" y="158" width="214" height="48" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="285" y="179" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">读后收尾与 eval()</text>
+  <text x="285" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">FlatQuant 刷新或适用后处理</text>
+
+  <line x1="392" y1="182" x2="424" y2="182" stroke="#087f73" stroke-width="1.6" marker-end="url(#rf-arr-teal)"/>
+
+  <rect x="426" y="158" width="206" height="48" rx="5" fill="#087f73" stroke="#065f56" stroke-width="1.4"/>
+  <text x="529" y="179" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">成功② 加载器交回模型</text>
+  <text x="529" y="198" text-anchor="middle" font-size="13.5" fill="#ddf4ef">先触发发布尝试再返回</text>
+
+  <line x1="632" y1="182" x2="664" y2="182" stroke="#087f73" stroke-width="1.6" marker-end="url(#rf-arr-teal)"/>
+
+  <rect x="666" y="158" width="218" height="48" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="775" y="179" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">后续启动 → 对外服务</text>
+  <text x="775" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">全卡量显存 · 建 KV · 录图</text>
+
+  <!-- 并行线 B：后台还租约与发布 seed -->
+  <rect x="108" y="218" width="216" height="68" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="216" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">后台线程：归还租约</text>
+  <text x="216" y="260" text-anchor="middle" font-size="13.5" fill="#4d5652">先停续租 · POST /put_seed</text>
+  <text x="216" y="279" text-anchor="middle" font-size="13.5" fill="#7a3a6a">未确认前发布先记 DEFERRED</text>
+
+  <line x1="324" y1="234" x2="366" y2="234" stroke="#087f73" stroke-width="1.6" marker-end="url(#rf-arr-teal)"/>
+  <line x1="324" y1="270" x2="366" y2="270" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#rf-arr-red)"/>
+
+  <rect x="368" y="216" width="224" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="480" y="239" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">成功③ 200/404 确认归还</text>
+
+  <line x1="592" y1="234" x2="626" y2="234" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#rf-arr-plum)"/>
+
+  <rect x="628" y="216" width="256" height="36" rx="5" fill="#9a4b86" stroke="#7a3a6a" stroke-width="1.4"/>
+  <text x="756" y="239" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">成功④ 起 seed 服务与心跳</text>
+
+  <rect x="368" y="258" width="256" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="496" y="281" text-anchor="middle" font-size="13.5" fill="#936300">暂态错：3次快(30s) → ≥60s慢试</text>
+
+  <rect x="634" y="258" width="250" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="759" y="281" text-anchor="middle" font-size="13.5" fill="#8f3229">400 被拒：放弃 seed，照常推理</text>
+
+  <!-- 中间分隔线 -->
+  <line x1="16" y1="312" x2="884" y2="312" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 区域 2 左半：严格双门回退安全门 -->
+  <text x="16" y="340" font-size="16" font-weight="700" fill="#17211f">② 回退严格双门（防两份权重同时占卡）</text>
+
+  <!-- 配置错直接中止 -->
+  <rect x="16" y="354" width="510" height="44" rx="5" fill="#b54237" stroke="#8f3229" stroke-width="1.3"/>
+  <text x="271" y="381" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">缺三项必填或严格项非法 → 抛 RForkConfigurationError 直接中止（不回退）</text>
+
+  <!-- 可恢复失败 -> 两轮清理 -->
+  <rect x="16" y="410" width="218" height="62" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="125" y="434" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">没借到 / 可恢复失败</text>
+  <text x="125" y="456" text-anchor="middle" font-size="13.5" fill="#4d5652">停服务 · 还租约 · 注销显存</text>
+
+  <line x1="234" y1="441" x2="262" y2="441" stroke="#b54237" stroke-width="1.6" marker-end="url(#rf-arr-red)"/>
+
+  <!-- 严格双门检查框 -->
+  <rect x="264" y="408" width="262" height="66" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="395" y="432" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">双门检查（最多试 2 轮）</text>
+  <text x="395" y="454" text-anchor="middle" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#17211f">service_stopped &amp;&amp; memory_reset</text>
+
+  <!-- 双门出口：左通过 / 右拦截 -->
+  <line x1="330" y1="474" x2="330" y2="514" stroke="#087f73" stroke-width="1.7" marker-end="url(#rf-arr-teal)"/>
+  <line x1="460" y1="474" x2="460" y2="514" stroke="#b54237" stroke-width="1.7" marker-end="url(#rf-arr-red)"/>
+
+  <text x="318" y="499" text-anchor="end" font-size="13.5" font-weight="700" fill="#065f56">✓ 双门均真</text>
+  <text x="470" y="499" font-size="13.5" font-weight="700" fill="#8f3229">✗ 任一失败</text>
+
+  <rect x="16" y="518" width="332" height="82" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="182" y="542" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">允许回退默认加载</text>
+  <text x="182" y="564" text-anchor="middle" font-size="13.5" fill="#4d5652">恢复全局登记表 + GC + 清缓存 → 从磁盘读</text>
+  <text x="182" y="586" text-anchor="middle" font-size="13.5" fill="#065f56">租约未还完不挡回退，后台继续重试</text>
+
+  <rect x="360" y="518" width="166" height="82" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="443" y="542" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">拒绝回退并报错</text>
+  <text x="443" y="564" text-anchor="middle" font-size="13.5" fill="#4d5652">保活旧存储 owners</text>
+  <text x="443" y="586" text-anchor="middle" font-size="13.5" fill="#8f3229">禁止再建第二份模型</text>
+
+  <text x="16" y="624" font-size="13" fill="#66716d">注：默认加载完成后仍会尝试发布为 seed；</text>
+  <text x="16" y="644" font-size="13" fill="#66716d">404 仅说明 Planner 无此租约，不证按时归还。</text>
+
+  <!-- 区域 2 右半：主 / 草稿双会话与 GLM 账目边界 -->
+  <line x1="542" y1="324" x2="542" y2="668" stroke="#d8d8cf" stroke-width="1.2"/>
+
+  <text x="558" y="340" font-size="16" font-weight="700" fill="#17211f">③ 单卡双会话轨（GLM 双机静态子账）</text>
+
+  <rect x="558" y="354" width="326" height="72" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="572" y="378" font-size="14" font-weight="700" fill="#936300">主模型会话（slot 0 · 先执行）</text>
+  <text x="572" y="400" font-size="13.5" fill="#4d5652">所列语言子账 ≈ 20,572 MiB（≥ 21 批）</text>
+  <text x="572" y="418" font-size="13.5" fill="#66716d">独立 seed_key · 独立租约 · 独立 seed 端口</text>
+
+  <rect x="558" y="438" width="326" height="72" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="572" y="462" font-size="14" font-weight="700" fill="#3a4f93">MTP 草稿会话（slot 1 · 主返回后起）</text>
+  <text x="572" y="484" font-size="13.5" fill="#4d5652">所列语言子账 ≈ 844 MiB（含自建双词表）</text>
+  <text x="572" y="502" font-size="13.5" fill="#3a4f93">16 卡 × 2 套 = 32 套独立会话与 32 张租约</text>
+
+  <!-- 读取账 vs 常驻账 视觉对比条 -->
+  <text x="558" y="536" font-size="14" font-weight="700" fill="#17211f">两本账对比（3121f187 语言子账，非完整清单）</text>
+
+  <rect x="558" y="546" width="276" height="24" rx="4" fill="#c78300"/>
+  <text x="568" y="563" font-size="13.5" font-weight="700" fill="#ffffff">常驻子账 ≈ 20.58 GiB</text>
+
+  <rect x="558" y="578" width="276" height="24" rx="4" fill="#4c65b6"/>
+  <rect x="834" y="578" width="50" height="24" rx="4" fill="#b54237"/>
+  <text x="568" y="595" font-size="13.5" font-weight="700" fill="#ffffff">读取子账 ≈ 20.91 GiB</text>
+  <text x="859" y="595" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">+差</text>
+
+  <text x="558" y="624" font-size="12.5" fill="#8f3229">草稿双词表登记保活 ≈ 302.5 MiB</text>
+  <text x="558" y="643" font-size="12.5" fill="#8f3229">（推演少 ≈ 38 KV 块）</text>
+  <text x="558" y="663" font-size="12.5" fill="#66716d">注：未计视觉塔、MTP 旋转矩阵与其余量化辅助项</text>
+</svg>

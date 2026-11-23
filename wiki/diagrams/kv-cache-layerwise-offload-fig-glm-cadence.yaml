@@ -1,0 +1,10 @@
+mode: native-svg
+id: kv-cache-layerwise-offload-fig-glm-cadence
+caption: >-
+  GLM 不均匀层节拍（每 3 层 KDA 后接 1 层稀疏 MLA，105 块全取约 69.7 MiB/层）与旧快照/新版两处落地卡点：旧快照 34 层 KDA 未调用逐层入口致层号错位，新版共享槽则明确拒绝非 attention 递推状态。
+size: [900, 326]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210
+    symbols: [validate_runtime]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192
+    symbols: [build_layerwise_cache_layout]

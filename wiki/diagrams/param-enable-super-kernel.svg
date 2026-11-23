@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="enable_super_kernel 三级开关依赖、四道生效门槛与编译期和 ACL Graph 捕获期双注入流程" font-family="var(--font-sans)">
+  <title>enable_super_kernel：三级开关依赖、四道准入门槛与双阶段注入流</title>
+  <desc>Three-tier dependency cascade (enable_npugraph_ex to enable_static_kernel to enable_super_kernel), four runtime/config gates, and two execution hook points in compiler_interface.py and acl_graph.py.</desc>
+  <defs>
+    <marker id="sk-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="sk-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="sk-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="sk-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: 3-tier nested cascade -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 三级开关硬依赖链（开后级必开前级；省略第三级自动跟随第二级）</text>
+
+  <rect x="16" y="42" width="256" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="144" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">第 1 级 · 图编译底座</text>
+  <text x="144" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">enable_npugraph_ex</text>
+  <text x="144" y="112" text-anchor="middle" font-size="13.5" fill="#4d5652">默认 true · 接管图级优化</text>
+
+  <path d="M 272 84 L 314 84" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#sk-arr-b)"/>
+  <text x="293" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">前提</text>
+
+  <rect x="320" y="42" width="256" height="84" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="448" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">第 2 级 · 静态算子二进制</text>
+  <text x="448" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">enable_static_kernel</text>
+  <text x="448" y="112" text-anchor="middle" font-size="13.5" fill="#4d5652">默认 false · 启动耗时主账</text>
+
+  <path d="M 576 84 L 618 84" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#sk-arr-a)"/>
+  <text x="597" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">跟随</text>
+
+  <rect x="624" y="42" width="260" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="754" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">第 3 级 · 本页开关</text>
+  <text x="754" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">enable_super_kernel</text>
+  <text x="754" y="112" text-anchor="middle" font-size="13.5" fill="#065f56">省略→跟第 2 级 · 显式 false 才关</text>
+
+  <line x1="16" y1="146" x2="884" y2="146" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: 4-Gate Funnel -->
+  <text x="16" y="172" font-size="16" font-weight="700" fill="#17211f">② 四道准入门槛：任一闸门未过即降级关停或报错</text>
+
+  <!-- Gate 1 -->
+  <rect x="16" y="188" width="202" height="72" rx="8" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="117" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">闸门 1 · 键解析</text>
+  <text x="117" y="233" text-anchor="middle" font-size="13.5" fill="#17211f">v0.30+/main: extra=forbid</text>
+  <text x="117" y="251" text-anchor="middle" font-size="13.5" fill="#66716d">省略跟随 / null 拒收</text>
+  <path d="M 218 224 L 238 224" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sk-arr-t)"/>
+
+  <!-- Gate 2 -->
+  <rect x="242" y="188" width="202" height="72" rx="8" fill="#fbfaf6" stroke="#c78300" stroke-width="1.4"/>
+  <text x="343" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">闸门 2 · 硬件能力</text>
+  <text x="343" y="233" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">NPUGRAPH_EX</text>
+  <text x="343" y="251" text-anchor="middle" font-size="13.5" fill="#66716d">310P 等不支持硬件</text>
+  <path d="M 444 224 L 464 224" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sk-arr-t)"/>
+
+  <!-- Gate 3 -->
+  <rect x="468" y="188" width="202" height="72" rx="8" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="569" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">闸门 3 · 依赖断言</text>
+  <text x="569" y="233" text-anchor="middle" font-size="13.5" fill="#17211f">super ⇒ static ⇒ ex</text>
+  <text x="569" y="251" text-anchor="middle" font-size="13.5" fill="#66716d">降级之后再做 assert</text>
+  <path d="M 670 224 L 690 224" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sk-arr-t)"/>
+
+  <!-- Gate 4 -->
+  <rect x="692" y="188" width="194" height="72" rx="8" fill="#fbfaf6" stroke="#087f73" stroke-width="1.4"/>
+  <text x="789" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">闸门 4 · 图模式</text>
+  <text x="789" y="233" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">has_full_cudagraphs</text>
+  <text x="789" y="251" text-anchor="middle" font-size="13.5" fill="#065f56">FULL / FULL_DECODE_ONLY</text>
+
+  <!-- Reject drops under Gates 1-4 -->
+  <path d="M 117 260 L 117 290" fill="none" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#sk-arr-r)"/>
+  <rect x="16" y="294" width="202" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="117" y="315" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">未知键 / null 直接报错</text>
+  <text x="117" y="335" text-anchor="middle" font-size="13.5" fill="#4d5652">v0.23 与 GLM 镜像静默吞</text>
+
+  <path d="M 343 260 L 343 290" fill="none" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#sk-arr-r)"/>
+  <rect x="242" y="294" width="202" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="343" y="315" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">逐条告警并全置 False</text>
+  <text x="343" y="335" text-anchor="middle" font-size="13.5" fill="#4d5652">v0.30+ 写 hardware profile</text>
+
+  <path d="M 569 260 L 569 290" fill="none" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#sk-arr-r)"/>
+  <rect x="468" y="294" width="202" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="569" y="315" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">AssertionError 退出</text>
+  <text x="569" y="335" text-anchor="middle" font-size="13.5" fill="#4d5652">单独开 super 无 static</text>
+
+  <path d="M 789 260 L 789 290" fill="none" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#sk-arr-r)"/>
+  <rect x="694" y="294" width="190" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="789" y="315" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">NONE / piecewise 全关</text>
+  <text x="789" y="335" text-anchor="middle" font-size="13.5" fill="#4d5652">含默认 FULL_AND_PIECEWISE</text>
+
+  <line x1="16" y1="364" x2="884" y2="364" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: Two Execution Hooks & Kernel Merge Visual -->
+  <text x="16" y="390" font-size="16" font-weight="700" fill="#17211f">③ 通过全部闸门后：编译期与 ACL Graph 捕获期双点生效</text>
+
+  <!-- Hook A: Compile Time -->
+  <rect x="16" y="406" width="388" height="176" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="32" y="432" font-size="14.5" font-weight="700" fill="#3a4f93">生效点 A · 图编译期（compiler_interface.py）</text>
+  <rect x="32" y="452" width="356" height="46" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="44" y="472" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">options["super_kernel_optimize"] = True</text>
+  <text x="44" y="491" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">dcci_after_kernel_end: [".*"]</text>
+  <rect x="32" y="512" width="356" height="48" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="210" y="541" text-anchor="middle" font-size="13.5" fill="#17211f">写入 compute_hash（SHA-256 前 10 位）改变缓存键</text>
+
+  <path d="M 404 494 L 444 494" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#sk-arr-t)"/>
+
+  <!-- Hook B: ACL Graph Capture -->
+  <rect x="450" y="406" width="434" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="466" y="432" font-size="14.5" font-weight="700" fill="#065f56">生效点 B · ACL Graph 捕获期（acl_graph.py）</text>
+
+  <!-- Scope bracket showing sub-kernels merged -->
+  <rect x="466" y="444" width="246" height="46" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <rect x="476" y="454" width="50" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="501" y="472" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">K1</text>
+  <rect x="532" y="454" width="50" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="557" y="472" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">K2</text>
+  <rect x="588" y="454" width="50" height="26" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="613" y="472" text-anchor="middle" font-size="13.5" fill="#4d5652">隔断</text>
+  <rect x="644" y="454" width="58" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="673" y="472" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">K3+K4</text>
+
+  <path d="M 712 467 L 736 467" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sk-arr-t)"/>
+
+  <rect x="742" y="444" width="128" height="46" rx="6" fill="#087f73" stroke="#065f56" stroke-width="1.3"/>
+  <text x="806" y="464" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">Super Kernel</text>
+  <text x="806" y="483" text-anchor="middle" font-size="13.5" fill="#ddf4ef">自动插同步</text>
+
+  <text x="466" y="511" font-size="13" font-family="var(--font-mono)" fill="#065f56">super_kernel_scope("full_model")</text>
+  <text x="466" y="530" font-size="13" font-family="var(--font-mono)" fill="#065f56">→ aclgraph.super_kernel_optimize()</text>
+  <text x="466" y="552" font-size="13" fill="#4d5652">仅包当前 runnable，不兼容算子会截段；</text>
+  <text x="466" y="571" font-size="13" fill="#4d5652">实际融合看 kernel_details.csv</text>
+</svg>

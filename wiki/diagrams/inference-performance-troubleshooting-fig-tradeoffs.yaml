@@ -1,0 +1,17 @@
+mode: native-svg
+id: inference-performance-troubleshooting-fig-tradeoffs
+caption: >-
+  性能优化的两个核心判断依据：（一）对排队占 800 ms 的请求仅把计算从 50 ms 减半到 25 ms，直接端到端仅从 860 ms 降至 835 ms，而治排队/路由偏斜可压至 160 ms；（二）单改批预算或并发会沿「批形状/补齐 → 图模式/eager → MC2/AllGather」产生连锁涟漪，四类无故障优化均须同步验收伴随代价。
+size: [900, 444]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L555-L625'
+    symbols:
+      - schedule
+      - token_budget
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
+    symbols:
+      - _determine_batch_execution_and_padding
+      - is_all_decode
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518'
+    symbols:
+      - use_v2_model_runner

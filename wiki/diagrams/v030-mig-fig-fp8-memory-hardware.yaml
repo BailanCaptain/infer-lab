@@ -1,0 +1,24 @@
+mode: native-svg
+id: v030-mig-fig-fp8-memory-hardware
+caption: >-
+  v0.30.0 生产升级三大底层要点可视化：（一）原生分块 FP8 权重在昇腾 950（A5）对符合条件的量化线性/MoE 层转原生 MXFP8 保持约 1 B/参数（注意力吸收层与归约维不整除层留浮点），在 A2/A3 上静默反量化回 BF16 导致显存翻倍（main 改为直接抛 NotImplementedError）；（二）64 GiB 卡上 CacheConfig 源码默认 0.92 比显式手传食谱 0.90 缩窄 1.28 GiB 录图余量；（三）HardwareProfile 四家族（A2 / A3 / _310P / A5）能力档案矩阵。
+size: [900, 478]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L17-L34'
+    symbols:
+      - float8_e4m3fn
+      - weight_scale_inv
+      - MXFP8
+      - npu_quant_matmul
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L130'
+    symbols:
+      - _require_fp8_weight_matmul
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L382'
+    symbols:
+      - HardwareProfile
+      - HardwareCapability
+      - RUNTIME_CUSTOM_OPS
+      - FP8_OPTIMIZED
+  - source: 'vllm@ced6857a:vllm/config/cache.py#L103-L115'
+    symbols:
+      - gpu_memory_utilization

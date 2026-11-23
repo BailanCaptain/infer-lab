@@ -79,7 +79,7 @@ updated: '2026-11-18'
 
 在昇腾（Ascend）上把一个模型跑通并提供服务，不是装好最新包再敲 `vllm serve` 就完事。由于推理框架、插件层、底层计算栈和芯片卡型彼此咬合，上线新模型须按顺序走通四道关：锁死五维环境配套、辨别活跃模型食谱与停服桩、确认模型类由谁提供，最后按代际芯片挑对权重（模型训练后保存的数值参数）格式与最小启动开关。
 
-本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，贯穿两个教学标尺：`Qwen3-8B`（Dense GQA，多个查询头共享一个键值头的密集模型）和 `Qwen3-30B-A3B`（MoE，每个输入 token 仅激活部分前馈专家的混合专家模型）。
+本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，贯穿两个教学标尺：`Qwen3-8B`（Dense GQA，多个查询头共享一个键值头的密集模型）与 `Qwen3-30B-A3B`（MoE，每个输入 token 仅激活部分专家的混合专家模型）。
 
 ## 上线一个新模型之前，先走通哪四道关？
 
@@ -154,9 +154,9 @@ file: onboarding-fig-recipes-funnel
 
 ### 先看支持矩阵图例，再识破「52 篇食谱」陷阱
 
-`supported_models.md` 用五种状态标记模型成熟度：`✅ Supported`（正式支持）、`🔵 Experimental`（实验支持，部分特性或卡型受限）、`🟡 Unverified`（未完整验证）、`🔴 Unmaintained`（不再维护）和 `❌ Unsupported`（明确不支持，如 `Atlas 300I DUO` 表中的 `BF16` 列）。
+`supported_models.md` 用五种状态标记模型成熟度：`✅ Supported`（正式支持）、`🔵 Experimental`（实验支持，部分特性或卡型受限）、`🟡 Unverified`（未完整验证）、`🔴 Unmaintained`（不再维护）和 `❌ Unsupported`（明确不支持，如 `Atlas 300I DUO` 的 `BF16` 列）。
 
-新手最容易踩的坑在教程目录里：`v0.30.0` 的 `docs/source/tutorials/models/` 下共有 `52` 篇模型文档（另加 `index.md`），但其中**只有 `25` 篇是活跃食谱**，其余 **`27` 篇全是只有 3 行的停服桩（Discontinued stub）**。每篇停服桩点进去只有三行内容：一行 `# 模型名` 标题、一行空行，以及一句停服提示：
+新手最容易踩的坑在教程目录里：`v0.30.0` 的 `docs/source/tutorials/models/` 下共有 `52` 篇模型文档（另加 `index.md`），但其中**只有 `25` 篇是活跃食谱**。其余 **`27` 篇全是只有 3 行的停服桩（Discontinued stub）**，点进去只有 `# 模型名` 标题、一行空行，以及一句停服提示：
 
 > `This model has been discontinued since vLLM Ascend v0.30.0 and will no longer receive support or fixes in subsequent versions.`
 
@@ -215,9 +215,9 @@ file: onboarding-model-registry-routing
 
 把这三条路径分清，就能解释为什么“有的新模型一发布就能直接跑，有的却必须等 `vllm-ascend` 发新版本”：
 
-- **路径 A（上游 `vllm` 原生内置）**：像 `Qwen3-8B` 对应的 `Qwen3ForCausalLM`、`Qwen3-30B-A3B` 对应的 `Qwen3MoeForCausalLM`，模型定义已在上游 `vllm` 的 `_TEXT_GENERATION_MODELS` 里，`vllm_ascend/models/` 下无需重写同名模型。它们能在昇腾直接跑，靠的是 `NPUPlatform` 在插件发现阶段（见 [插件发现与模型注册](platform-plugin-registration.md) 与 [NPUPlatform](npu-platform.md)）接入的注意力后端、自定义算子和平台契约（见 [vLLM 平台接口](vllm-platform-interface.md)）。
-- **路径 B（`vllm-ascend` 专有注册或覆写）**：`vllm-ascend` 通过 `setup.py` 的插件入口 `ascend_model = vllm_ascend:register_model`，在 Worker 和引擎进程中把 `29` 个架构名注册进 `ModelRegistry`。一是挂上上游尚未内置或高度定制的昇腾实现（如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 及对应草稿模型）。二是**故意覆写上游同名条目**——例如 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration`，昇腾为了把图像 resize/patchify 与归一化搬到 NPU 执行，会通过后注册替换上游映射。
-- **路径 C（`transformers` 回退与配置微调）**：若架构名不在两仓注册表中且处于常规生成路径，默认 `--model-impl auto` 会尝试走 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可传 `--model-impl transformers` 强制指定）。仓库自带自定义建模文件（`config.json` 里的 `auto_map`）时，必须传 `--trust-remote-code`，否则会被安全策略拦下。若兼容变体只是换了架构名，可用 `--hf-overrides '{"architectures":["..."]}'` 运行时改名验证。
+- **路径 A（上游 `vllm` 原生内置）**：`Qwen3-8B`（`Qwen3ForCausalLM`）与 `Qwen3-30B-A3B`（`Qwen3MoeForCausalLM`）的模型定义已在上游 `_TEXT_GENERATION_MODELS` 中，`vllm_ascend/models/` 无需重写同名类。它们能在昇腾直接跑，靠的是 `NPUPlatform` 在插件发现阶段接入注意力后端、自定义算子与平台契约（见 [插件发现与模型注册](platform-plugin-registration.md)、[NPUPlatform](npu-platform.md) 与 [vLLM 平台接口](vllm-platform-interface.md)）。
+- **路径 B（`vllm-ascend` 专有注册或覆写）**：`setup.py` 通过 `ascend_model = vllm_ascend:register_model` 向 `ModelRegistry` 注册了 `29` 个架构名。一方面接入上游尚未内置或高度定制的昇腾实现（如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 及草稿模型）；另一方面**故意覆写上游同名条目**，例如把 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration` 替换为 NPU 执行图像 resize/patchify 与归一化的实现。
+- **路径 C（`transformers` 回退与配置微调）**：若架构名不在两仓注册表中且处于常规生成路径，默认 `--model-impl auto` 会经 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可传 `--model-impl transformers` 强制指定）。仓库带 `auto_map` 自定义建模文件时须加 `--trust-remote-code`；若兼容变体只是换了架构名，可用 `--hf-overrides '{"architectures":["..."]}'` 运行时改名验证。
 
 ## 第四关：权重格式怎么选？不同卡型在加载期会做什么转换
 

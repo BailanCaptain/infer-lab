@@ -2,6 +2,10 @@
 id: device-memory
 title: 主机内存与显存：数据现在放在哪
 type: concept
+legacyAnchors:
+  启动时主机读文件每卡留下自己的权重: 放到 GLM 双机：先装权重，再接住一个 token
+  请求到来权重复用激活和历史各有去处: 放到 GLM 双机：先装权重，再接住一个 token
+  启动预算显存里还要容纳权重之外的东西: 放到 GLM 双机：先装权重，再接住一个 token
 summary: CPU 一侧的主机内存和 NPU 一侧的设备内存要分别计算。模型能放进主机，不代表设备有足够空间直接执行。
 aliases:
   - 显存
@@ -94,6 +98,14 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L684-L707'
   - 'vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L3-L258
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L1077
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L950'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L882-L902'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -123,13 +135,17 @@ relations:
     kind: builds-on
     note: 内存启动流程以请求调用链页的完整进程调用链为背景，本页聚焦各步骤中的内存分配与测量。
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: direct
 ---
 
 ## 权重在主机里，为什么还要搬进显存？
 
 **主机内存供 CPU 使用；显存是计算设备本地的内存，本页的设备是负责模型计算的 NPU。** 权重是训练好的数值，常排成按行、列组织的[矩阵](matmul-and-weights.md)。
+
+```wiki-diagram
+file: device-memory-plate-cutaway
+```
 
 默认的本地计算路径要求 NPU 从本卡设备内存读取输入和权重，不能把普通 CPU 张量的主机地址直接交给算子使用。设备上的 HBM（高带宽内存）读取带宽远高于主机到设备链路；计算会反复读取所需权重，因此默认部署让权重常驻设备，只在加载时搬入，避免每轮计算都经过较慢的链路。支持主机注册、映射的路径另见下文：能远端访问，也仍要支付链路代价。
 
@@ -181,6 +197,23 @@ file: device-memory-fig-host-vs-hbm
 
 完整的七级冷启动显存台阶、HCCL 通信域去重规则与四卡 MoE 预算推导，统一见 [KV cache 显存预算](kv-cache-memory-profiling.md)与 [NPU Worker 生命周期](npu-worker-lifecycle.md)。
 
+### Ascend 910B3 真机显存对账：60.96 GiB 可见基数、`non_torch` 跳变与 DEBUG 热路径税
+
+把上面的标称 `64 GiB` 示意算例落到 `Ascend 910B3` 真机（`v0.30.0`，完整档案见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）时，有三项实测口径直接决定预算对账与线上延迟测量是否准确：
+
+| 模型与并行拓扑（`INFO` 干净态） | OS 可见总显存 / 启动空闲 | `u`（请求预算） | 权重 / 卡 | 激活峰值 | `non_torch` | 可用 KV / 卡 | 图显存 |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `Qwen3-8B` · `TP=1` | `60.96` / `60.57 GiB` | `0.85`（`51.81 GiB`） | `15.29 GiB` | `0.20 GiB` | **`0.03 GiB`** | `36.29 GiB` | `2.59 GiB` |
+| `Qwen3-8B` · `TP=2` | `60.96` / `60.58 GiB` | `0.85`（`51.81 GiB`） | `7.66 GiB` | `0.20 GiB` | **`0.43 GiB`** | `43.52 GiB` | `2.92 GiB` |
+| `Qwen3-8B` · `TP=4` | `60.96` / `60.58 GiB` | `0.85`（`51.81 GiB`） | `3.84 GiB` | `0.18 GiB` | **`0.43 GiB`** | `47.36 GiB` | `3.10 GiB` |
+| `Qwen3-8B` · `TP=8` | `60.96` / `60.58 GiB` | `0.85`（`51.81 GiB`） | `1.94 GiB` | `0.17 GiB` | **`0.44 GiB`** | `49.27 GiB` | `3.21 GiB` |
+| `Qwen3-30B-A3B` · `TP=4+EP=4` | `60.96` / `60.58 GiB` | `0.88`（`53.64 GiB`） | `14.27 GiB` | `0.19 GiB` | **`0.45 GiB`** | `38.73 GiB` | `2.30 GiB` |
+| `Qwen3-30B-A3B` · `DP=2+TP=4+EP=8` | `60.96` / `60.58 GiB` | `0.88`（`53.64 GiB`） | `7.52 GiB` | `0.36 GiB` | **`0.55 GiB`** | `45.21 GiB` | `2.64 GiB` |
+
+1. **`60.96 GiB` OS 可见基数 vs 标称 `64.00 GiB`**：`npu-smi` 标称单卡 `65,536 MB`（`64.00 GiB`）、空载板级占用 `3,426 ~ 3,453 MB`，而 `acl.rt.get_mem_info` 暴露给操作系统的总显存固定为 **`60.96 GiB`**。自动预算 `requested_memory = total_memory × u` 乘的是 **`60.96 GiB`**（`u = 0.85` 即 `51.81 GiB`），相差的 **`3.04 GiB`** 已在底层预留中扣在 `total_memory` 之外，手工核算时绝不能再从 `60.96 GiB` 里二次扣减（驱动、固件与页表在 `3.04 GiB` 内的细分占比无运行时单独读数）。
+2. **`non_torch` 从 `TP=1` 的 `0.03 GiB` 跳变到 `TP≥2` 的 `0.43 ~ 0.55 GiB`，且不可二次扣减**：启动快照 `init_snapshot` 拍在分布式通信建组之前。单卡 `TP=1` 无跨卡集合通信，实测 `non_torch` 仅 **`0.03 GiB`**；扩至 `TP≥2` 或叠加 `EP/DP` 后，已在 `profile_run()` 试跑窗口内具象化的通信域资源与运行时缓冲全部落入 `non_torch_increase`（稠密 `TP=2/4/8` 为 **`0.43 ~ 0.44 GiB`**，`TP=4+EP=4` 为 **`0.45 GiB`**，`DP=2+TP=4+EP=8` 为 **`0.55 GiB`**）。这部分已在自动 KV 预算中扣过，容量规划时不应重复扣减；同时 `non_torch` 代表试跑窗口内全部非 PyTorch 显存净增量，不能全部贴上单一 HCCL 标签。
+3. **`VLLM_LOGGING_LEVEL=DEBUG` 热路径分配器读数税**：`NPUWorker.execute_model()` 每步都会调用 `log_memory_stats()`。在默认 `INFO` 下该函数立即返回；一旦开启 `VLLM_LOGGING_LEVEL=DEBUG`，每步都会读取缓存分配器计数器 `torch.npu.memory_reserved()` 与 `torch.npu.memory_allocated()` 并格式化输出（并非每步调用设备级 `mem_get_info` 同步；`Qwen3-8B` `TP=1/2/4/8` 压测中分别打印 `979 / 830 / 1,660 / 3,312` 行），配合 `ACLGraph` 的输入地址检查，在 `Qwen3-8B` `TP=8` `c=1` 单样本对照下将首 token 延迟 `TTFT` 从 `139.07 ms` 推高至 **`193.98 ms`（`+54.91 ms` / `+39.48%`）**。
+
 ## 主机还有空闲，为什么容器里的进程先被终止？
 
 **主机有多少内存，与一个容器获准用多少内存，要分开看。** Linux 可以用 **cgroup（控制组）**把一组进程放在一起记账和限额。容器运行时利用这套机制约束主机内存；它没有替 NPU 增加显存。
@@ -223,11 +256,15 @@ file: device-memory-fig-oom-triage
 
 默认加载器先按本卡形状在 NPU 上分配参数，再逐个读取权重文件里的 CPU 张量。负责该参数的加载函数选出本卡分片，复制到已经分配的设备参数里，随后按算子要求转置或转换存储布局。主机里的文件页缓存、CPU 张量与设备里的处理后布局，不能按文件大小一比一替代。
 
-每卡约 **20.58 GiB** 的子账包含主干和 **MTP**（模型自带、用于猜后续 token 的草稿层）的主要语言权重；MTP 的输出头复用主模型，不重复计。这个数对应部署页固定的 `3121f187` 量化配方；旧 `9e55cbc8` 把四组 MLA 投影保留浮点，同一子账约 **20.81 GiB**。两者都未计视觉塔、MTP 旋转矩阵与量化辅助张量，20.81 不是完整占用的上界；版本与表外项统一见[权重账及其精度条件](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，实际加载占用以日志测量为准。
+每卡约 **20.58 GiB** 的语言权重子账包含主干和 **MTP**（模型自带、用于猜后续 token 的草稿层）的主要语言层权重；MTP 输出头复用主模型，不重复计。这个数对应固定量化配方 `3121f187`；旧配方 `9e55cbc8` 将四组 MLA 投影保留浮点，同一子账约 **20.81 GiB**。两者均不含 MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量（scale/offset 等），20.81 不是完整占用的上界；版本明细见[权重账及其精度条件](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，实机占用以日志为准。
 
-**请求到来时，权重复用，激活和历史各有去处。** 以 [R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 含 4 个 token）为例：CPU 先记录它的 token 编号与调度状态，准备输入时把编号和位置送往设备；NPU 将编号查成向量并与常驻权重计算，产生的中间激活随本轮计算复用。主干加 MTP 有 **12 层**稀疏 MLA cache，TP 各卡保留其副本；KDA 的固定状态则按各卡负责的头划分。因此不能把「权重分成八份」套成「所有缓存也除以八」，具体分组和每块字节见[缓存预算的唯一推导](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，R1 块号账沿用[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。
+**请求到来时，权重复用，激活和历史各有去处。** 以 [R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 含 4 个 token）为例：CPU 先记下 token 编号与调度状态，准备输入时把编号和位置送往设备；NPU 查表转成向量并与常驻权重计算，中间激活随本轮复用。缓存则按结构分流：主干加 MTP 有 **12 层**稀疏 MLA cache，TP 各卡保留完整副本；KDA 的固定状态按各卡负责的头划分，不能把「权重分成八份」套成「所有缓存也除以八」。具体每块字节见[缓存预算的唯一推导](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，R1 块号账沿用[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。
 
-**双机预算余量与晚于测量的索引器副本。** 双机页的[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)均假设每卡 **64 GiB**、激活峰值加非 PyTorch 占用 **3.4 GiB**，并采用教程的 **`0.85`** 预算比例（预留 **9.6 GiB** 给后续开销）。假设权重为 `21 GiB` 时，余下 **30.00 GiB、3,855 块**；仅代入所列语言权重子账时，余下约 **30.42 GiB、3,908 块**（尚未扣视觉塔等表外项）。固定实现先切 KV 再录图，且索引器在首次实际执行时才建立 **54 MiB/卡** FP32 副本，两者都晚于预算测量、从预算外余量支付。注意 64 GB 是十进制容量、64 GiB 是二进制容量，实机总字节必须看运行时上报。
+**双机预算余量与晚于测量的索引器副本。** 双机页的[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)均假设每卡 **64 GiB**、激活峰值加非 PyTorch 占用 **3.4 GiB**，并采用教程的 **`0.85`** 预算比例（预留 **9.6 GiB** 预算外余量）。按 `21 GiB` 假设权重计，余下 **30.00 GiB、3,855 块**；仅代入所列语言权重子账计，余下约 **30.42 GiB、3,908 块**（尚未扣 MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量等表外项）。固定实现先切 KV 再录图，且索引器在首次实际执行时才建 **54 MiB/卡** FP32 副本，两者均从预算外余量支付。注意 `64 GB`（十进制）与 `64 GiB`（二进制）口径不同，实机总字节以运行时上报为准。
+
+```wiki-diagram
+file: device-memory-fig-glm-twin-accounts
+```
 
 想把这些内存账对应到昇腾 950，继续看[片上缓冲与搬运路径](ascend-950-architecture.md)和[远端访问与互联](ascend-950-execution-interconnect.md)。新硬件规格集中在前一页；本页继续解释本地分配、远端访问与复制的区别。
 
@@ -286,7 +323,7 @@ file: device-memory-startup
 
 可扩展段需要管理虚拟地址与物理页映射，首次分配可能更慢；收益取决于实际分配形状和碎片情况。先保留 GLM 教程取值，再比较同一负载下的峰值与时延。若切到 sleep 场景，按 [sleep mode 的分配器约束](sleep-mode.md#怎么开)处理，不能直接沿用这条 export；当前双机部署没有启用 sleep。
 
-将数据常驻设备减少后续传输，但占用设备容量；卸载释放常驻空间，用到数据时要支付传输与同步成本。评估时分别测主机峰值、每卡峰值和传输时间。加载日志 `Loading model weights took ... GB` 在固定实现里用字节数除以 2³⁰，数值实际按 GiB 表示；不能拿日志标签的 GB 与十进制硬件规格直接相减。
+将数据常驻设备减少后续传输，但占用设备容量；卸载释放常驻空间，用到数据时要支付传输与同步成本。评估时分别测主机峰值、每卡峰值和传输时间。加载日志 `Loading model weights took ... GB` 在固定实现里用字节数除以 2³⁰，数值实际按 GiB 表示；不能拿日志标签的 GB 与十进制硬件规格直接相减。线上压测与稳态服务应保持默认 `INFO` 日志级别：开启 `VLLM_LOGGING_LEVEL=DEBUG` 会让 `worker.py` 在每步 `execute_model()` 中读取 `memory_reserved()` / `memory_allocated()` 并写日志（`c09d3e20#L762-L778`、`8d6180e2#L882-L902`）[C64]，造成额外的热路径 Host 开销。
 
 ### 版本差异
 
@@ -307,8 +344,9 @@ file: device-memory-startup
 
 - `aclrtGetMemInfo` 返回设备空闲与总字节（不支持 HBM 时转查 DDR）[S1]；`aclrtHostRegister` 映射主机地址给设备访问（非权重复制）[S2]；MemFabric 跨机内存映射实践见 [S3]。
 - Linux cgroup v2 接口与层级计数规则、Docker 资源约束/退出码 137/`docker kill` 信号以及 Kubernetes request/limit 与终止取证见 [S29][S30][S31][S32][S33][S34]。
-- `BaseModelLoader.load_model`、权重切片与 W8A8 后处理布局支撑首图主机→设备复制方向 [C4][C5][C7]；`NPUModelRunner.load_model` 与 Worker 空闲检查、试跑、显式预算和条件录图见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474`、`#L558-L598` 及 `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565`、`#L684-L707` [C8][C10][C51][C52]。
+- `BaseModelLoader.load_model`、权重切片与 W8A8 后处理布局支撑首图主机→设备复制方向 [C4][C5][C7]；`NPUModelRunner.load_model` 与 Worker 空闲检查、试跑、非 Torch 净增量扣减（`non_torch_increase`）、显式预算、录图后 `150 MiB` 建议值及 `DEBUG` 热路径分配器读数见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474`、`#L558-L635`、`#L762-L778`、`#L905-L950` 及 `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565`、`#L684-L707`、`#L882-L902` [C8][C10][C51][C52][C63][C65]。
+- `Ascend 910B3` 真机 `60.96 GiB` OS 可见总显存基数（与标称 `64.00 GiB` 相差 `3.04 GiB` 底层预留）、`TP=1` 至 `TP=8` / MoE 的 `non_torch` 跳变（`0.03 → 0.43 ~ 0.55 GiB`）及 `DEBUG` 热路径 `TTFT` 对照见来源 61–62 [M61][M62]。
 - `CacheConfig.gpu_memory_utilization` 与 `kv_cache_memory_bytes` 四版入口见来源 16–18 及 46–48（`ced6857a` / `ba15685a`）[C46][C48]；平台总显存查询与 `PYTORCH_NPU_ALLOC_CONF` 条件注入及 RL 清理见来源 12–15、35–38、49–50、55–57 [C49][C50]；UVA 判定见 `vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55` 与 `vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58` [C54][C60]；`torch_npu` 分配器解析与互斥检查固定在来源 39–41。
 - 数字引用[双机部署](glm-5-3-flash-two-node.md)的权重与 KV 账：20.58／20.81 GiB 是两个固定量化版本的主要语言权重子账；64 GiB、3.4 GiB 和 21 GiB 权重预算是教学假设，3,855／3,908 是假设下的块数，不是启动实测。[D][A]
 
-**待核：** 两份固定量化描述已取得，版本差异见部署页；运行时总字节、主机峰值、每卡加载与试跑峰值、图捕获峰值及 H2D 耗时仍需现场日志与测量，静态字节账不能直接换算时延。本部署的确切机型及配套 HBM、主机到设备链路带宽尚未确认，具体规格应与[硬件页](hardware-devices.md#官方带宽规格能说明什么)的型号对应；Atlas 800T A2 白皮书中的数字不能直接套到未确认机型。两份官方接口文档分别适用 CANN 9.0.0-beta.1 和 9.1.0，不构成一个已经验证的软件组合；MemFabric 现行支持仍需按部署版本核对。
+**待核：** `Ascend 910B3`（`v0.30.0`）单卡与八卡的 OS 可见容量、`non_torch` 与录图对账已由实测快照固化，其中 `3.04 GiB` 底层预留在驱动、固件与页表间的子项占比无独立运行时计数器。对历史 GLM 双机绑定算例，两份固定量化描述已取得（版本差异见部署页），其运行时总字节、主机峰值、每卡加载与试跑峰值、图捕获峰值及 H2D 耗时仍需该部署现场日志与测量，静态字节账不能直接换算时延；双机部署的确切机型及配套 HBM、主机到设备链路带宽尚未确认，具体规格应与[硬件页](hardware-devices.md#官方带宽规格能说明什么)的型号对应，Atlas 800T A2 白皮书中的数字不能直接套到未确认机型。两份官方接口文档分别适用 CANN 9.0.0-beta.1 和 9.1.0，不构成一个已经验证的软件组合；MemFabric 现行支持仍需按部署版本核对。

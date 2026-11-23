@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 436" width="900" height="436" role="img" aria-label="模型目录里 config.json 之外的四个隐形坑点图解：chat_template 四级回落、model_max_length 静音截断、index.json 缺片与去重、generation_config 静音覆盖默认采样参数" font-family="var(--font-sans)">
+  <title>模型目录四个隐形坑：chat_template 四级回落链、tokenizer model_max_length 静音截断 max_model_len、safetensors index.json 缺片检测与重复剔除，以及 generation_config.json 静音改写采样默认参数。</title>
+  <desc>关联源码符号：resolve_chat_template, _get_and_verify_max_len, model_max_length, filter_duplicate_safetensors_files, weight_map, try_get_generation_config</desc>
+  <defs>
+    <marker id="ht-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="ht-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="ht-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- 中央十字虚线分隔（无外大框） -->
+  <line x1="450" y1="12" x2="450" y2="424" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <line x1="12" y1="218" x2="888" y2="218" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 象限 1：chat_template 四级回落漏斗 -->
+  <text x="14" y="30" font-size="15.5" font-weight="700" fill="#17211f">1. <tspan font-family="var(--font-mono)" fill="#4c65b6">chat_template</tspan> 四级回落链</text>
+  <text x="14" y="52" font-size="13.5" fill="#66716d">启动不拦截，收到 <tspan font-family="var(--font-mono)">/v1/chat/completions</tspan> 才报错</text>
+
+  <rect x="14" y="66" width="186" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="107" y="87" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① --chat-template</text>
+  <path d="M 200 82 L 222 82" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ht-arr-i)"/>
+
+  <rect x="226" y="66" width="206" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="329" y="87" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">② AutoProcessor (无 tools)</text>
+
+  <path d="M 329 98 L 329 110 L 107 110 L 107 120" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#ht-arr-i)"/>
+
+  <rect x="14" y="122" width="186" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="107" y="143" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">③ AutoTokenizer/.jinja</text>
+  <path d="M 200 138 L 222 138" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ht-arr-i)"/>
+
+  <rect x="226" y="122" width="206" height="32" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
+  <text x="329" y="143" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">④ vLLM 内置模型回落</text>
+
+  <path d="M 329 154 L 329 168" fill="none" stroke="#b54237" stroke-width="1.7" marker-end="url(#ht-arr-r)"/>
+  <rect x="14" y="170" width="418" height="32" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="223" y="191" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">四级全空（裸预训练目录）→ 对话接口触发模板解析失败</text>
+
+  <!-- 象限 2：model_max_length 静音截断条 -->
+  <text x="470" y="30" font-size="15.5" font-weight="700" fill="#17211f">2. <tspan font-family="var(--font-mono)" fill="#b54237">model_max_length</tspan> 静音截断</text>
+  <text x="470" y="52" font-size="13.5" fill="#66716d">取 <tspan font-family="var(--font-mono)">min(derived_max_len, model_max_length)</tspan></text>
+
+  <text x="470" y="80" font-size="13.5" font-weight="700" fill="#065f56">config.json 推导上限（40960）</text>
+  <rect x="470" y="88" width="416" height="24" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="678" y="105" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">max_position_embeddings = 40960</text>
+
+  <text x="470" y="134" font-size="13.5" font-weight="700" fill="#8f3229">tokenizer_config.json 误填 4096（真实 1:10 比例）</text>
+  <rect x="470" y="142" width="42" height="24" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="491" y="159" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">4K</text>
+  <rect x="512" y="142" width="374" height="24" rx="4" fill="none" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="699" y="159" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">← 36,864（90%）被静默砍掉</text>
+
+  <line x1="512" y1="84" x2="512" y2="170" stroke="#b54237" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="470" y="189" font-size="13" fill="#17211f">破局：改该字段或传 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">--max-model-len</tspan>（须 config 有余量）</text>
+  <text x="470" y="208" font-size="13" fill="#4d5652">超上限需配 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">VLLM_ALLOW_LONG_MAX_MODEL_LEN=1</tspan></text>
+
+  <!-- 象限 3：index.json 缺片与混合去重 -->
+  <text x="14" y="248" font-size="15.5" font-weight="700" fill="#17211f">3. <tspan font-family="var(--font-mono)" fill="#936300">safetensors.index.json</tspan> 校验与去重</text>
+  <text x="14" y="270" font-size="13.5" fill="#66716d">比对 <tspan font-family="var(--font-mono)">weight_map</tspan> 清单与磁盘文件集合</text>
+
+  <rect x="14" y="284" width="86" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="57" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">00001</text>
+  <text x="57" y="322" text-anchor="middle" font-size="13" fill="#087f73">✓ 存在</text>
+
+  <rect x="108" y="284" width="86" height="44" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="151" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">00002</text>
+  <text x="151" y="322" text-anchor="middle" font-size="13" font-weight="700" fill="#b54237">✗ 缺片</text>
+
+  <rect x="202" y="284" width="86" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="245" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">00003</text>
+  <text x="245" y="322" text-anchor="middle" font-size="13" fill="#087f73">✓ 存在</text>
+
+  <rect x="302" y="284" width="130" height="44" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="367" y="304" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#4d5652">consolidated</text>
+  <text x="367" y="322" text-anchor="middle" font-size="13" font-weight="700" fill="#66716d">未入表→剔除</text>
+
+  <rect x="14" y="344" width="418" height="72" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="26" y="368" font-size="13.5" font-weight="700" fill="#8f3229">✗ 索引缺任一分片 → 立即抛 FileNotFoundError</text>
+  <text x="26" y="392" font-size="13.5" fill="#17211f">✓ 混放合并文件时靠 <tspan font-family="var(--font-mono)" font-weight="700">index.json</tspan> 去重，勿删索引</text>
+
+  <!-- 象限 4：generation_config.json 静音改写采样默认 -->
+  <text x="470" y="248" font-size="15.5" font-weight="700" fill="#17211f">4. <tspan font-family="var(--font-mono)" fill="#7a3a6a">generation_config.json</tspan> 静音覆写</text>
+  <text x="470" y="270" font-size="13.5" fill="#66716d">请求未传采样参数时，优先继承模型出厂默认</text>
+
+  <rect x="470" y="284" width="174" height="52" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="557" y="306" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">generation_config</text>
+  <text x="557" y="326" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#17211f">temp/top_p/eos</text>
+
+  <path d="M 644 310 L 680 310" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#ht-arr-t)"/>
+
+  <rect x="684" y="284" width="202" height="52" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="785" y="306" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">静音生效（默认行为）</text>
+  <text x="785" y="326" text-anchor="middle" font-size="13" fill="#4d5652">而非框架内置默认值</text>
+
+  <rect x="470" y="348" width="416" height="68" rx="7" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="482" y="374" font-size="13" fill="#17211f">采样默认可由请求覆写；额外 eos 与 stop_token_ids 取并集</text>
+  <text x="482" y="399" font-size="13" font-weight="700" fill="#065f56">禁用：<tspan font-family="var(--font-mono)">--generation-config vllm</tspan> / <tspan font-family="var(--font-mono)">ignore_eos=True</tspan></text>
+</svg>

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="INT8 C8 写入舍入与截断数轴及 4 页 BF16 与 INT8 同比例占用条图" font-family="var(--font-sans)">
+  <title>INT8 C8 写入误差数轴（s=0.0125）与四页分页占用同比例对比</title>
+  <desc>基于 block_size、key_cache、value_cache、_forward_c8_chunked_prefill：上半部数轴可视化 1.0→80、1.006→80（舍入差 0.006）与 1.7→127 截断（1.5875，差 0.1125）；下半部同比例条展示 100 位置（4 页×32 槽含 28 空槽）在 BF16 64 KiB 与 INT8 32 KiB 下的减半关系。</desc>
+  <defs>
+    <marker id="kcp-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <pattern id="kcp-empty-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#b8bcb5" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <!-- Zone 1: INT8 [-128..127] Clipping & Rounding Ruler -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 写入 INT8 缓存的两种误差：格内舍入 vs 撞上 127 上限截断（示意 s = 0.0125）</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Axis from x=80 (x=0.8 / q=64) to x=820 (x=1.8 / q=144): 740 px / 1.0 = 740 px/unit -->
+  <!-- 1.000 (q=80) -> x=228; 1.006 -> x=232; 1.5875 (q=127) -> x=663; 1.700 (q=136) -> x=746 -->
+  <rect x="663" y="64" width="180" height="84" rx="4" fill="#fff0e9" fill-opacity="0.7"/>
+  <line x1="80" y1="112" x2="844" y2="112" stroke="#4d5652" stroke-width="2"/>
+
+  <!-- Hard clamp wall at q=127 (x=663) -->
+  <line x1="663" y1="58" x2="663" y2="154" stroke="#b54237" stroke-width="2.6"/>
+  <text x="663" y="54" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">INT8 硬上限 q=127 (1.5875)</text>
+
+  <!-- Point 1: 1.0 -> q=80 -->
+  <circle cx="228" cy="112" r="6" fill="#087f73"/>
+  <text x="210" y="92" text-anchor="end" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">位置 0：1.0 → 80</text>
+  <text x="210" y="138" text-anchor="end" font-size="13.5" fill="#065f56">原样还原（差 0）</text>
+
+  <!-- Point 2: 1.006 -> q=80 (zoomed callout) -->
+  <circle cx="240" cy="112" r="5.5" fill="#c78300"/>
+  <line x1="240" y1="106" x2="296" y2="78" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="298" y="56" width="234" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="310" y="75" font-size="13.5" font-weight="700" fill="#936300">位置 1：1.006 → 舍入至 80 (1.0)</text>
+  <text x="310" y="94" font-size="13.5" fill="#4d5652">舍入误差 0.006（≤ 半格 0.00625）</text>
+
+  <!-- Point 3: 1.7 -> 136 clamped back to 127 -->
+  <circle cx="758" cy="112" r="6" fill="#b54237"/>
+  <path d="M 750 102 Q 710 76 670 102" fill="none" stroke="#b54237" stroke-width="2.2" marker-end="url(#kcp-arr-r)"/>
+  <text x="758" y="138" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">位置 2：1.7 (136)</text>
+  <text x="758" y="160" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">截断至 127 → 差 0.1125！</text>
+  <text x="80" y="166" font-size="13.5" fill="#66716d">调大 s 可消截断，但全格变粗会抬高舍入误差；每维独立 scale 让各维各取合适量程。</text>
+
+  <!-- Divider -->
+  <line x1="14" y1="186" x2="886" y2="186" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Same-Scale 4-Page Memory Strip (BF16 64 KiB = 512 px vs INT8 32 KiB = 256 px, 8 px/KiB) -->
+  <text x="16" y="214" font-size="16" font-weight="700" fill="#17211f">② 同比例四页分配账（2 KV 头 × 64 维，100 位置，32 位置/页 → 4 页含 28 空槽）</text>
+
+  <!-- BF16 Bar: 4 pages of 128 px each = 512 px (x=118..630) -->
+  <text x="16" y="256" font-size="14.5" font-weight="700" fill="#3a4f93">BF16 (2 B)</text>
+  <text x="16" y="276" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">64 KiB/4页</text>
+
+  <g font-family="var(--font-mono)" font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="118" y="236" width="128" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/><text x="182" y="263" fill="#3a4f93">页 0 (32)</text>
+    <rect x="246" y="236" width="128" height="44" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/><text x="310" y="263" fill="#3a4f93">页 1 (32)</text>
+    <rect x="374" y="236" width="128" height="44" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/><text x="438" y="263" fill="#3a4f93">页 2 (32)</text>
+    <!-- Page 3: 4 valid (16 px) + 28 empty (112 px) -->
+    <rect x="502" y="236" width="16" height="44" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+    <rect x="518" y="236" width="112" height="44" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.4"/>
+    <rect x="518" y="236" width="112" height="44" rx="4" fill="url(#kcp-empty-hatch)"/>
+    <text x="574" y="263" fill="#4d5652">28 空槽</text>
+  </g>
+  <text x="644" y="255" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">有效 50 KiB</text>
+  <text x="644" y="276" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">按页分配 64 KiB</text>
+
+  <!-- INT8 Bar: 4 pages of 64 px each = 256 px (x=118..374) -->
+  <text x="16" y="324" font-size="14.5" font-weight="700" fill="#065f56">INT8 (1 B)</text>
+  <text x="16" y="344" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">32 KiB/4页</text>
+
+  <g font-family="var(--font-mono)" font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="118" y="304" width="64" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/><text x="150" y="331" fill="#065f56">页 0</text>
+    <rect x="182" y="304" width="64" height="44" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/><text x="214" y="331" fill="#065f56">页 1</text>
+    <rect x="246" y="304" width="64" height="44" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/><text x="278" y="331" fill="#065f56">页 2</text>
+    <!-- Page 3: 4 valid (8 px) + 28 empty (56 px) -->
+    <rect x="310" y="304" width="8" height="44" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <rect x="318" y="304" width="56" height="44" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.4"/>
+    <rect x="318" y="304" width="56" height="44" rx="4" fill="url(#kcp-empty-hatch)"/>
+    <text x="346" y="331" fill="#4d5652">空28</text>
+  </g>
+  <text x="392" y="323" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">有效 25 KiB / 按页分配 32 KiB（精准减半！）</text>
+  <text x="392" y="344" font-size="13.5" fill="#4d5652">前提：每页保持 32 槽不变；每层 512 个系数与历史长度无关</text>
+
+  <text x="16" y="392" font-size="13.5" fill="#66716d">提示：只要每页槽数因对齐要求或混合状态（如后文 GLM 640→1,152 块）发生变动，按页分配就不再简单减半。</text>
+</svg>

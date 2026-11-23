@@ -1,0 +1,10 @@
+mode: native-svg
+id: prepare-inputs-flow-fig-ac-step3
+caption: >-
+  A/C 第三轮拼接与槽位推导图解：持久批次中请求 A（已算 5、块表 [7,2]）与请求 C（已算 0、块表 [9]）按本步计划 [+1, +3] 展平成 4 行紧排张量（req_row、positions、input_ids），按块长 4 查表得 slot_mapping=[9, 36, 37, 38]，右侧列出按请求边界 query_start_loc=[0,1,4]、seq_lens=[6,3] 与仅取各段末行的 logits_indices=[0,3]。
+size: [900, 416]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1340
+    symbols: [_prepare_inputs]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L151-L185
+    symbols: [compute_slot_mapping]

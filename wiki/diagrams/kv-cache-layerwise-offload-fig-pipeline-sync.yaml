@@ -1,8 +1,8 @@
 mode: native-svg
 id: kv-cache-layerwise-offload-fig-pipeline-sync
 caption: >-
-  Layerwise KV offload 的多流异步流水线与共享槽双完成栅栏（v0.30.0 / main）：计算流在每层 attention 前等本层 H2D、开算时放行后层预取门、写完记事件再交后台 D2H 线程；配共享槽且联合 RD2H/P2P 推送时，槽位复用前须同时跨过 AscendStore 存出完成与远端 D 读完两道栅栏。
-size: [900, 446]
+  Layerwise KV offload 三流并跑、搬慢于算反例与物理槽 S0 复用双栅栏（v0.30.0 / main）：顶栏明确 prefetch ≥ 2 仅为重叠前提（4 ms 搬入对 3 ms 计算仍每层暴露 1 ms 等待）并限定末层空 PUT 队列会直接置位事件；底栏以 S0（L1→L3 共用）物理槽位条直接连线 AscendStore 存出与 RD2H/P2P 远端读取两道完成事件栅栏。
+size: [900, 594]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L158-L192
     symbols: [_parse_int_config, build_layerwise_cache_layout]

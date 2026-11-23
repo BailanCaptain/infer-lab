@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 426" width="900" height="426" role="img" aria-label="RMSNorm 与 LayerNorm 几何对比、Pre-Norm 与 Post-Norm 残差轨位置对比、以及 Qwen3 逐头 Q/K Norm 与共享增益顺序图">
+  <title>RMSNorm 几何缩放、Pre-Norm 畅通残差轨与 Q/K Norm 逐头归一化</title>
+  <desc>三栏几何对照图：左栏在二维坐标系展示 [3,4] 经 RMSNorm 保持 3:4 方向落到 [0.85,1.13]，经 LayerNorm 减均值移至 [-1,1]；中栏对比 Pre-Norm 畅通恒等旁路与 Post-Norm 逐层截断；右栏展示 Qwen3 逐头独立求均方根、同层共享 γ 增益并排在 RoPE 之前，V 旁路直通。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
+    </marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
+    </marker>
+    <marker id="arr-m" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#66716d" />
+    </marker>
+  </defs>
+
+  <!-- Panel Dividers -->
+  <line x1="298" y1="14" x2="298" y2="412" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="5 4" />
+  <line x1="594" y1="14" x2="594" y2="412" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="5 4" />
+
+  <!-- ================= PANEL 1: 2D Geometry of RMSNorm vs LayerNorm ================= -->
+  <text x="18" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. RMSNorm vs LayerNorm</text>
+  <text x="18" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">输入 x = [3, 4]（γ = 1, ε = 0）</text>
+
+  <!-- 2D Plot Plane (origin at x=122, y=266; scale 36px per unit) -->
+  <rect x="20" y="68" width="262" height="236" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <!-- Axes -->
+  <line x1="34" y1="266" x2="268" y2="266" stroke="#b8bcb5" stroke-width="1.4" marker-end="url(#arr-m)" />
+  <line x1="122" y1="294" x2="122" y2="82" stroke="#b8bcb5" stroke-width="1.4" marker-end="url(#arr-m)" />
+  <text x="262" y="284" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">x₀</text>
+  <text x="108" y="92" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">x₁</text>
+  <text x="114" y="282" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">0</text>
+
+  <!-- RMS=1 circle radius sqrt(2)*36 ≈ 50.9 -->
+  <circle cx="122" cy="266" r="51" fill="none" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 3" />
+
+  <!-- Original vector x = [3, 4] -> (122 + 108, 266 - 144) = (230, 122) -->
+  <line x1="122" y1="266" x2="226" y2="127" stroke="#c78300" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arr-a)" />
+  <circle cx="230" cy="122" r="5" fill="#c78300" />
+  <text x="230" y="109" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">x = [3, 4]</text>
+
+  <!-- RMSNorm output [0.85, 1.13] -> (122 + 30.6, 266 - 40.7) = (153, 225) ON SAME RAY -->
+  <line x1="122" y1="266" x2="150" y2="229" stroke="#087f73" stroke-width="2.6" marker-end="url(#arr-t)" />
+  <circle cx="153" cy="225" r="5" fill="#087f73" />
+  <text x="163" y="220" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">RMSNorm</text>
+  <text x="163" y="238" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">[0.85, 1.13]</text>
+
+  <!-- LayerNorm output [-1, 1] -> (122 - 36, 266 - 36) = (86, 230) SHIFTED QUADRANT -->
+  <line x1="122" y1="266" x2="89" y2="233" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#arr-p)" />
+  <circle cx="86" cy="230" r="5" fill="#9a4b86" />
+  <text x="72" y="182" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">LayerNorm</text>
+  <text x="72" y="200" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#7a3a6a">[-1, 1]</text>
+  <line x1="76" y1="206" x2="84" y2="223" stroke="#9a4b86" stroke-width="1.2" />
+
+  <!-- Panel 1 Key Takeaway -->
+  <rect x="20" y="318" width="262" height="90" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3" />
+  <text x="32" y="341" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">• RMSNorm 沿原射线缩放</text>
+  <text x="44" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">保 3:4 比例，省去减均值归约</text>
+  <text x="32" y="383" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a">• LayerNorm 先减均值 μ=3.5</text>
+  <text x="44" y="401" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">向量被中心化平移到 [-1, 1]</text>
+
+  <!-- ================= PANEL 2: Pre-Norm vs Post-Norm ================= -->
+  <text x="314" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. 放支路入口还是相加后？</text>
+  <text x="314" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">Pre-Norm 保持恒等旁路畅通无阻</text>
+
+  <!-- Pre-Norm Box (Top) -->
+  <rect x="314" y="68" width="264" height="164" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="326" y="88" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">Pre-Norm（Qwen3 / 主流）</text>
+  <text x="326" y="106" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" fill="#065f56">y=x+F(N(x))</text>
+
+  <!-- Unobstructed Highway -->
+  <line x1="328" y1="136" x2="526" y2="136" stroke="#087f73" stroke-width="3" marker-end="url(#arr-t)" />
+  <text x="424" y="128" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#065f56">畅通恒等旁路（不经 Norm）</text>
+
+  <!-- Branch down -> Norm -> F -> Add -->
+  <path d="M 350 136 L 350 182 L 368 182" fill="none" stroke="#065f56" stroke-width="1.8" marker-end="url(#arr-t)" />
+  <rect x="372" y="165" width="66" height="34" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.5" />
+  <text x="405" y="187" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">Norm</text>
+  <line x1="438" y1="182" x2="458" y2="182" stroke="#065f56" stroke-width="1.8" marker-end="url(#arr-t)" />
+  <rect x="462" y="165" width="52" height="34" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.5" />
+  <text x="488" y="187" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">F(·)</text>
+  <path d="M 514 182 L 542 182 L 542 152" fill="none" stroke="#065f56" stroke-width="1.8" marker-end="url(#arr-t)" />
+
+  <!-- Sum circle -->
+  <circle cx="542" cy="136" r="13" fill="#ffffff" stroke="#087f73" stroke-width="2" />
+  <text x="542" y="141" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#065f56">+</text>
+  <text x="446" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">全叠层末尾另补 1 次最终 Norm</text>
+
+  <!-- Post-Norm Box (Bottom) -->
+  <rect x="314" y="246" width="264" height="162" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
+  <text x="326" y="266" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#936300">Post-Norm（原始 Transformer）</text>
+  <text x="326" y="284" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" fill="#936300">N(x+F(x))</text>
+
+  <!-- Interrupted Highway -->
+  <line x1="328" y1="312" x2="462" y2="312" stroke="#c78300" stroke-width="2.4" marker-end="url(#arr-a)" />
+  <path d="M 350 312 L 350 358 L 384 358" fill="none" stroke="#936300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <rect x="388" y="341" width="56" height="34" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.5" />
+  <text x="416" y="363" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">F(·)</text>
+  <path d="M 444 358 L 478 358 L 478 328" fill="none" stroke="#936300" stroke-width="1.8" marker-end="url(#arr-a)" />
+
+  <circle cx="478" cy="312" r="13" fill="#ffffff" stroke="#c78300" stroke-width="2" />
+  <text x="478" y="317" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#936300">+</text>
+  <line x1="491" y1="312" x2="508" y2="312" stroke="#c78300" stroke-width="2" marker-end="url(#arr-a)" />
+
+  <!-- Norm blocking main highway -->
+  <rect x="512" y="294" width="58" height="36" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.8" />
+  <text x="541" y="317" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#8f3229">Norm</text>
+  <text x="446" y="397" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#8f3229">主轨每层都被 Norm 截断一次</text>
+
+  <!-- ================= PANEL 3: Per-Head Q/K Norm (Qwen3) ================= -->
+  <text x="610" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">3. Q/K Norm：逐头归一，共享 γ</text>
+  <text x="610" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">投影之后、RoPE 之前；仅作用于 Q 和 K</text>
+
+  <!-- Separate Q and K gain pills on top -->
+  <rect x="612" y="68" width="130" height="40" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="677" y="93" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#065f56">Q 共享 γ_Q [d_h]</text>
+  <rect x="750" y="68" width="130" height="40" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5" />
+  <text x="815" y="93" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#3a4f93">K 共享 γ_K [d_h]</text>
+
+  <!-- Separate gamma dashed feed lines (gamma_Q -> Q, gamma_K -> K) -->
+  <path d="M 677 108 L 677 120 L 732 120 L 732 132" fill="none" stroke="#087f73" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-t)" />
+  <path d="M 815 108 L 815 224 L 762 224 L 762 234" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-i)" />
+
+  <!-- Q Track -->
+  <rect x="612" y="130" width="60" height="84" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="642" y="160" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">Q</text>
+  <text x="642" y="182" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">n_q头</text>
+  <text x="642" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">各d_h</text>
+
+  <!-- Head 0 & Head 1 separate RMS boxes -->
+  <line x1="672" y1="152" x2="688" y2="152" stroke="#087f73" stroke-width="1.6" marker-end="url(#arr-t)" />
+  <line x1="672" y1="194" x2="688" y2="194" stroke="#087f73" stroke-width="1.6" marker-end="url(#arr-t)" />
+
+  <rect x="692" y="134" width="102" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="743" y="156" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">头0 独立 r₀</text>
+  <rect x="692" y="176" width="102" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="743" y="198" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">头1 独立 r₁</text>
+
+  <line x1="794" y1="172" x2="814" y2="172" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+  <rect x="818" y="144" width="62" height="56" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" />
+  <text x="849" y="177" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#7a3a6a">RoPE</text>
+
+  <!-- K Track -->
+  <rect x="612" y="230" width="60" height="72" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5" />
+  <text x="642" y="260" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#3a4f93">K</text>
+  <text x="642" y="284" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">n_kv头</text>
+
+  <line x1="672" y1="266" x2="688" y2="266" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#arr-i)" />
+  <rect x="692" y="236" width="102" height="60" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4" />
+  <text x="743" y="262" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">逐头 k_norm</text>
+  <text x="743" y="284" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">按 d_h 独立</text>
+
+  <line x1="794" y1="266" x2="814" y2="266" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+  <rect x="818" y="238" width="62" height="56" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" />
+  <text x="849" y="271" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#7a3a6a">RoPE</text>
+
+  <!-- V Bypass Track -->
+  <rect x="612" y="318" width="60" height="36" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" />
+  <text x="642" y="341" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#4d5652">V</text>
+  <line x1="672" y1="336" x2="874" y2="336" stroke="#66716d" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arr-m)" />
+  <text x="778" y="328" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">不做 Norm 也不做 RoPE（直通）</text>
+
+  <!-- Bottom Note -->
+  <rect x="612" y="366" width="268" height="42" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="746" y="392" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#17211f">[3,4] 与 [6,8] 均归一得 [0.85,1.13]</text>
+</svg>

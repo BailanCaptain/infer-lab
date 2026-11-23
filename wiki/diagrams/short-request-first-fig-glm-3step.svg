@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="GLM 双机 20000 token 长提示词与 4 token 短请求同时到达的三步预算对比图" font-family="var(--font-sans)">
+  <title>场景 M 变体三步预算推演：FCFS（短请求第 3 步出字）vs SRF（短请求第 1 步出字）</title>
+  <desc>对比 DP0 每步 8,192 token 预算下，12 条在跑 decode（占 48）外加 20,000 token 长请求与 4 token 短请求同时在等的三步推进：FCFS 使短请求等到第 3 步末才首字出字；SRF 让短请求在第 1 步即出字（提前 2 步），长请求每步仅让出 4 位置，照样在第 3 步算完且一步未晚。</desc>
+
+  <circle cx="26" cy="24" r="12" fill="#4c65b6"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">三步预算推演（DP0 预算 8,192/步 · 12 条 decode 占 48 · 新到 20,000 长 + 4 短）</text>
+
+  <!-- Column headers for Step 1, Step 2, Step 3 -->
+  <g font-size="14" font-weight="700" fill="#17211f" text-anchor="middle">
+    <text x="234" y="60">第 1 步（预算上限 8,192）</text>
+    <text x="502" y="60">第 2 步（预算上限 8,192）</text>
+    <text x="762" y="60">第 3 步（收尾步）</text>
+  </g>
+
+  <!-- Row 1: FCFS (y = 74..168) -->
+  <text x="16" y="106" font-size="14.5" font-weight="700" fill="#8f3229">FCFS</text>
+  <text x="16" y="128" font-size="13" fill="#8f3229">先到先服务</text>
+
+  <!-- FCFS Step 1: 48 decode + 8144 Long = 8192 (box w=240) -->
+  <rect x="114" y="76" width="26" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="127" y="107" text-anchor="middle" font-size="13" fill="#4d5652">48</text>
+  <rect x="142" y="76" width="212" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="248" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">长提示词第 1 段</text>
+  <text x="248" y="119" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">8,144（满 8,192）</text>
+  <text x="234" y="148" text-anchor="middle" font-size="13" fill="#8f3229">短请求被挡在 waiting</text>
+
+  <!-- FCFS Step 2: 48 decode + 8144 Long = 8192 -->
+  <rect x="382" y="76" width="26" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="395" y="107" text-anchor="middle" font-size="13" fill="#4d5652">48</text>
+  <rect x="410" y="76" width="212" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="516" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">长提示词第 2 段</text>
+  <text x="516" y="119" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">8,144（已在 running）</text>
+  <text x="502" y="148" text-anchor="middle" font-size="13" fill="#8f3229">长已在跑先拿，短继续干等</text>
+
+  <!-- FCFS Step 3: 48 decode + 3712 Long + 4 Short = 3764 -->
+  <rect x="650" y="76" width="26" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="663" y="107" text-anchor="middle" font-size="13" fill="#4d5652">48</text>
+  <rect x="678" y="76" width="112" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="734" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">长尾 3,712</text>
+  <text x="734" y="119" text-anchor="middle" font-size="13" fill="#936300">第 3 步完</text>
+  <rect x="794" y="76" width="88" height="52" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="838" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">短请求 4</text>
+  <text x="838" y="119" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">此时才出字</text>
+  <text x="766" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">总计 3,764 · 短请求等了 3 步</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="166" x2="884" y2="166" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Row 2: SRF (y = 182..276) -->
+  <text x="16" y="214" font-size="14.5" font-weight="700" fill="#065f56">SRF</text>
+  <text x="16" y="236" font-size="13" fill="#065f56">短请求优先</text>
+
+  <!-- SRF Step 1: 48 decode + 4 Short + 8140 Long = 8192 -->
+  <rect x="114" y="184" width="26" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="127" y="215" text-anchor="middle" font-size="13" fill="#4d5652">48</text>
+  <rect x="142" y="184" width="66" height="52" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.7"/>
+  <text x="175" y="207" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">短 4 ★</text>
+  <text x="175" y="227" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">先出字!</text>
+  <rect x="210" y="184" width="144" height="52" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="282" y="207" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">长第 1 段</text>
+  <text x="282" y="227" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">8,140</text>
+  <text x="234" y="256" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">短请求提前 2 步首字出字!</text>
+
+  <!-- SRF Step 2: 52 decode (13x4) + 8140 Long = 8192 -->
+  <rect x="382" y="184" width="32" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="398" y="215" text-anchor="middle" font-size="13" fill="#4d5652">52</text>
+  <rect x="416" y="184" width="206" height="52" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="519" y="207" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">长提示词第 2 段</text>
+  <text x="519" y="227" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">8,140（13 条 decode 占 52）</text>
+  <text x="502" y="256" text-anchor="middle" font-size="13" fill="#4d5652">短请求已转入 decode 正常生成</text>
+
+  <!-- SRF Step 3: 52 decode + 3720 Long = 3772 -->
+  <rect x="650" y="184" width="32" height="52" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="666" y="215" text-anchor="middle" font-size="13" fill="#4d5652">52</text>
+  <rect x="684" y="184" width="198" height="52" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="783" y="207" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">长尾 3,720（照样第 3 步完）</text>
+  <text x="783" y="227" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">长提示词一步未晚！</text>
+  <text x="766" y="256" text-anchor="middle" font-size="13" fill="#065f56">总计 3,772（余量轻松装下）</text>
+
+  <!-- Bottom caveat banner -->
+  <rect x="16" y="282" width="868" height="64" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="307" font-size="14" font-weight="700" fill="#936300">步数不等于毫秒：第 1 步是 8,192 位置大混合步，短请求与长提示词第 1 段同批算完</text>
+  <text x="30" y="331" font-size="13.5" fill="#4d5652">因此短请求的 TTFT 仍是整步 8,192 的计算耗时，而非只算 4 token 的耗时；本推演按调度规则静态核算，无 GLM 实跑数据</text>
+</svg>

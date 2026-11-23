@@ -225,9 +225,9 @@ decode（每轮往后续写的阶段）的形状高度重复，录一次能用�
 这里需要区分**捕获范围**与**编译结构**。FX 图是 `torch.compile` 用来表示计算操作及依赖的程序结构。上游有一条使用默认切分清单的编译路径，内部保留分段的 FX 图，再在它外层捕获整图——因此「整图回放」本身不意味着所有实现都把内部程序表示展平。昇腾平台按档位走两条路线：
 
 - **分段分支（`PIECEWISE` / `FULL_AND_PIECEWISE`）**：按 `unified_attention_with_output`、`mla_forward` 与 `dsa_forward` 切开 FX 图（均为 `vllm::` 命名空间）。同时关闭 `npugraph_ex`，改走本地 `fusion_pass_compile`。
-- **纯整图分支（`FULL` / `FULL_DECODE_ONLY`）**：主动清空 `splitting_ops = []`，让整段计算进入 `npugraph_ex_compile` 与 `ACLGraphWrapper` 整趟捕获。
+- **纯整图分支（`FULL` / `FULL_DECODE_ONLY`）**：主动清空 `splitting_ops = []`，交由 `AscendCompiler` 再查 `enable_npugraph_ex`——默认 `True` 进入 `npugraph_ex_compile`，显式设为 `False` 时仍把整段 FX 图交给本地 `fusion_pass_compile`，随后统一由 `ACLGraphWrapper` 整趟捕获。
 
-下面这张对比图把三层分工和两条 FX 切分路径放在一起看：
+下面这张对照图把编译期 FX 切分（`splitting_ops`）与运行期五档分派拆开放在一起——特别区分 `FULL`（后端支持时混合批也整图回放）与 `FULL_DECODE_ONLY`（仅此档在混入 prefill 时退回 eager）：
 
 ```wiki-diagram
 file: graph-mode-layer-fig-fx-split
@@ -278,33 +278,39 @@ Runner 里有一条「在侧流上刷新整图注意力参数」的通用路径�
 - **torchair** 是 `npugraph_ex` 编译路径的兼容退路：包导入、选项适配、后端构建或编译调用所在的 `try` 块抛出 `ImportError` 时进入它；其他异常不会因这条 `except` 自动回退。
 - **xlite** 才是默认关着的那条：要在额外配置里单独打开；它的执行进程和模型运行器只是在昇腾原有的两个上薄薄包一层。打开后平台会把主模型的档位降到 `FULL_DECODE_ONLY`，或者干脆关掉图。
 
+下面这张架构与标尺图把原生三层分工与旁路 Xlite 的预算判断放在一起：
+
+```wiki-diagram
+file: graph-mode-layer-fig-xlite-stack
+```
+
 ### Xlite 的名字叫 decode-only，为什么也可能执行小 prefill
 
-**以下按 2026-11-02 官方快照解释，指南明确从 v0.28 起改为按 token 数分派。** Xlite 是需要另装 `xlite` 包的执行路径，按所有 DP rank 中最大的本步 token 数与预分配预算比较。预算以内交给 Xlite runtime，超出则回到原生 runnable；原生路径是否回放 ACL 图仍由其图配置决定。
+**按 2026-11-02 官方快照，从 v0.28 起 Xlite 改为按本步 token 数分派。** 需另装 `xlite` 包：取各 DP rank 中最大的本步 token 数与预分配预算比较；预算内交 Xlite runtime，超出则退回原生 runnable（是否回放 ACL 图由原生图配置决定）。
 
 | Xlite 模式 | 对齐前的预算 | 哪些批可进入 |
 | --- | --- | --- |
-| decode-only，`full_mode=false` | `max_num_batched_tokens` 与 `max_num_seqs × (1 + num_speculative_tokens)` 取小（无投机时括号为 1） | 最终预算内的 decode，以及装得下的小 prefill / 混合批 |
+| decode-only，`full_mode=false` | `max_num_batched_tokens` 与 `max_num_seqs × (1 + num_speculative_tokens)` 取小（无投机时括号为 1） | 预算内的 decode，以及装得下的小 prefill / 混合批 |
 | full，`full_mode=true` | `max_num_batched_tokens` | 预算内的 prefill、decode 和混合批 |
 
-两种模式都把上表结果**向上补齐到 TP 的整数倍**，得到实际用于分派的预分配预算。例如名额 32、每条请求 3 个候选、`max_num_batched_tokens` 至少为 128 且 TP=8 时，decode-only 的最终预算是 128 个位置。若两个 DP rank 本步分别有 80、120 个位置，按 120 判断；其中有 prefill 也不因名称而被排除。某个 rank 达到 160 就超过这档预算。另一个示意：名额 9、无投机、`max_num_batched_tokens=64`、TP=8，先取 9，再补齐为 16，因而本步 12 个位置仍在预算内。它限制的是**本步位置数**，不是历史上下文长度，也不是跨 DP 相加后的总数。
+两种模式都把上表结果**向上补齐到 TP 整数倍**作为实际预算。例如名额 32、3 个候选、`max_num_batched_tokens ≥ 128` 且 TP=8 时，decode-only 预算为 128：两 DP rank 分别有 80、120 时按 120 判定并进入（含 prefill 也不排除）；某 rank 达 160 则超预算。又如名额 9、无投机、上限 64、TP=8，先取 9 再补齐为 16，12 位置仍在预算内。它限制的是**本步位置数**，不是上下文总长，也不是跨 DP 总和。
 
 **边界与例外**：
-- `v0.28` 之前 decode-only 按 attention state 排除含 prefill 的批，不能把新规则套回旧镜像。
-- Full 模式预留更大工作区；指南建议无投机的 full 示例关闭 ACL 图捕获以减少额外内存。
-- 模型支持按 `architectures` 注册，不按商品名猜测。指南列出 Llama/Qwen dense、Qwen MoE/VL、Glm4Moe、DeepseekV3/V32、GlmMoeDsa 和 MiniMaxM2 等架构，未给出 GLM-5.3-Flash 混合 KDA 的支持保证。
+- `v0.28` 前 decode-only 按 attention state 排除含 prefill 的批，旧镜像不适用新规则。
+- Full 模式工作区更大；无投机 full 示例建议关 ACL 图捕获以省显存。
+- 支持按 `architectures` 注册（Llama/Qwen dense、Qwen MoE/VL、Glm4Moe、DeepseekV3/V32、GlmMoeDsa、MiniMaxM2 等），未保证 GLM-5.3-Flash 混合 KDA。
 
 ## 复杂异构实战对照：GLM 双机的 7 张图、五条判据与边界
 
-下面把图模式机制落到 [GLM-5.3-Flash 官方双机部署](glm-5-3-flash-two-node.md#部署前提)（两台 A2、每台 8 卡、TP8/DP2/EP16、MTP-3）。官方命令未关闭编译期优化，档位走 `FULL_DECODE_ONLY` 清空分段，模型也带编译装饰器进入，三层叠加工作；`xlite` 未启用，本节数字不代表其效果。本库没有 NPU 实测，不把 GLM 的 decode 轮数直接等同于成功回放次数，也不给收益数字。
+以下落到 [GLM-5.3-Flash 官方双机部署](glm-5-3-flash-two-node.md#部署前提)（两台 A2、每台 8 卡、TP8/DP2/EP16、MTP-3）：默认编译优化开启、档位 `FULL_DECODE_ONLY` 清空分段、模型带编译装饰器，三层叠加工作；`xlite` 未启用。本库无实机日志，不把 decode 轮数等同于实测回放次数，也不给收益数字。
 
 ### 官方双机上录了哪 7 张图
 
-本部署把档位配成 `FULL_DECODE_ONLY`，并显式给出 7 个捕获尺寸——这 7 个数是这套命令写死的，不配的话程序会按并发上限自己算一份，所以别把它当成所有部署通用的尺寸表。这里列的是配置与源码决定的捕获计划，实际捕获成功仍要看启动日志。选这一档的后果是：只为「整齐的 decode 轮」建索引，混合轮一张图都没有，一旦混进 prefill 就整轮 eager。图显存不从 KV cache 预算里扣，而是由预算外留出的 9.6 GiB 余量支付（见[部署页的显存账](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
+该配方把档位配成 `FULL_DECODE_ONLY` 并显式写死 7 档尺寸（不配时按并发上限自动推导，实际捕获以启动日志为准）。结果是只为整齐 decode 建索引，混进 prefill 即整轮 eager。图显存由 KV cache 预算外留出的 9.6 GiB 余量支付（见[部署显存账](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
 
-以主线示例请求 R1（提示词为 4 个 token）为例，它的连续 decode 一轮验证 4 个位置，每张卡仍经过 45 层和 218 次集合通信调用。主线按不同通信的张量载荷口径合计为几 MiB，不能当作网卡实际流量；完整口径见[一次前向的通信账](one-request.md#一次前向的通信账)。这些小张量上的多次提交说明了回放的动机，实际瓶颈仍需测量。
+以示例请求 R1（4 token 提示词）为例，连续 decode 每轮验证 4 位置，每卡仍经 45 层、218 次集合通信（张量载荷口径合计数 MiB，见[一次前向的通信账](one-request.md#一次前向的通信账)），这说明了回放动机，真实瓶颈须实测。
 
-尺寸为什么最大到 128，由这套部署的两个上限决定：
+最大捕获尺寸 128 由并发上限与单请求位置数共同定出：
 
 $$T_{\max} = N_{\text{seq}} \times (1 + k_{\text{draft}}) = 32 \times (1 + 3) = 128\text{ 个 token 位}$$
 
@@ -314,29 +320,32 @@ $$T_{\max} = N_{\text{seq}} \times (1 + k_{\text{draft}}) = 32 \times (1 + 3) = 
 | 单组最大并发请求数 | — | **32 条** | 每组同时在跑的 decode 请求上限 |
 | 最大捕获尺寸 | $32 \times 4$ | **128** | 7 档尺寸中的最大一档 |
 
-这里的 3 个草稿来自 MTP（模型自带的多 token 预测层，每轮先猜 3 个再一起验证），32 是同时在跑的请求数上限；这两个数和同一笔账在[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)里也出现过，本页不另立一套。于是 7 个尺寸对应的不是 7 个请求数区间，而是整齐的 7 档并发：
+7 档对应整齐的 7 档并发（完整账见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）：
 
 | 捕获尺寸（token 位） | 4 | 8 | 16 | 32 | 64 | 96 | 128 |
 |---|---|---|---|---|---|---|---|
 | 对应的 decode 请求数 | 1 | 2 | 4 | 8 | 16 | 24 | 32 |
 
-一条请求带 4 个位置，也正是它需要一路录到 128 的原因：不开 MTP 时 32 条请求只要 32 这一档。草稿层自己**不进图**——vLLM Ascend 对「GLM 系列 + 投机解码」这个组合把草稿模型固定切回 eager，三遍草拟每轮都按实际宽度逐个提交。这两条落到具体一轮是什么样，见[那条请求的第二圈和第三圈](one-request.md)。
+不开 MTP 时 32 条请求只需录到 32；草稿层**不进图**——vLLM Ascend 对「GLM + 投机解码」固定将草稿模型切回 eager，三遍草拟按实宽逐个提交（见[第二圈和第三圈](one-request.md)）。
 
 ### 这一轮回放哪一张图：五条判据
 
-每一轮开始前，模型运行器（Runner，负责准备本轮张量、再调用模型的那一层）先判断这一轮能不能用图、用哪一张，把结论（运行模式 + 一个描述符）放进本轮的执行上下文。判据按顺序有五条，全过才回放：
+每轮前，Runner 判断能否用图及用哪一档，把运行模式与描述符放进本轮执行上下文。五条判据按序全过才回放：
 
-1. 所有请求的提示词都算完了吗（没有谁还在 prefill）？
+```wiki-diagram
+file: graph-mode-layer-fig-five-gates
+```
 
+1. **所有请求的提示词都算完了吗（没有谁还在 prefill）？**
    这一条检查的是请求的计算进度，不能仅凭本轮输入形状整齐就认定它属于 decode。在本部署所用快照的投机解码路径中，提示词尚未全部算完却被归为全 decode 的批次，可能读到没有正确填充的补齐缓冲区，把其他请求遗留的数据带入当前状态。
-2. 这一轮里排得最多的那条请求，也只有 4 个 token 位吗？
-3. 总 token 数正好等于 4 × 请求数吗？（第 2、3 条合起来才等于「每条都是 4」）
-4. 总 token 数没超过最大捕获尺寸 128 吗？
-5. 另一个 [DP 组](data-parallel.md)（各自调度、各有 KV 池的一台机器）这一轮也过了前四条吗？
+2. **这一轮里排得最多的那条请求，也只有 4 个 token 位吗？**
+3. **总 token 数正好等于 4 × 请求数吗？**（第 2、3 条合起来才等于「每条都是 4」。）
+4. **总 token 数没超过最大捕获尺寸 128 吗？**
+5. **另一个 [DP 组](data-parallel.md)（各自调度、各有 KV 池的一台机器）这一轮也过了前四条吗？**
 
-第五条来自跨 DP 的协调；本部署恰有两组：两组每轮要先交换「我这边多宽、能不能用图」，模式取两边较低值——三档在枚举里就是按 `NONE < PIECEWISE < FULL` 排的数值，取小自然就退到最保守的那一档。一组混进 prefill，两组这一轮都退回 eager，本来能用图的那组也用不上。补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
+第五条来自跨 DP 的协调；本部署恰有两组。两组每轮先交换「我这边多宽、能不能用图」，再按枚举序 `NONE < PIECEWISE < FULL` 取较小值——只要有一组混进 prefill，两组这一轮都一起退回 eager，本来能用图的那组也用不上。补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
 
-描述符里不止有 token 数，还有补齐后的请求数、「是不是整齐的 decode」，以及有没有用 LoRA（本部署不用）。因此**两轮 token 总数相同，不足以说明它们回放的是同一张图**。例如两轮同样是 64 个 token：16 条整齐 decode 回放的是 64 那张图，而混进 prefill 的一轮在这一档配置下根本没有图，直接走 eager 且不按图尺寸补齐。分派时还会核对 LoRA 状态和是否强制 eager。
+描述符里不止有 token 数，还有补齐后的请求数、「是不是整齐的 decode」，以及有没有用 LoRA（本部署不用）。因此**两轮 token 总数相同，不足以说明它们回放的是同一张图**：如图中同宽 64 的两批，16 条整齐 decode 命中 64 那张图，而混进 prefill 的一轮在 `FULL_DECODE_ONLY` 下根本没有图，直接走 eager 且不按图尺寸补齐。分派时还会核对 LoRA 状态和是否强制 eager。
 
 ### 稀疏 MLA 与 KDA 的持久缓冲刷新
 

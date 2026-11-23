@@ -1,57 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="A3 D 节点 Sparse KV offload 缺失补搬与三路木桶规划" font-family="var(--font-sans)">
-<title>A3 D 节点 Sparse KV offload 缺失补搬与三路木桶规划</title>
-<desc>A3 D-node sparse KV offload top-k indexer selection, hot buffer lookup and missing-row H2D copy, plus 3-way capacity bucket min(NPU, DRAM, Workload) in v0.30.0 and main</desc>
-<line x1="16" y1="242" x2="884" y2="242" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="272" height="166" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="314" y="54" width="272" height="166" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="612" y="54" width="272" height="166" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="290" width="272" height="140" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="314" y="290" width="272" height="140" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="612" y="290" width="272" height="140" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M288 137h24m-5-4l5 4-5 4M586 137h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
-<circle cx="28" cy="266" r="13" fill="#b54237"/>
-<g font-weight="700">
-<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">Atlas A3 D 节点稀疏补搬路径（完整主 KV 放主机，设备只留 indexer + 热槽）</text>
-<text x="30" y="80" font-size="15" fill="#3a4f93">① NPU 常驻 Indexer 选行</text>
-<text x="328" y="80" font-size="15" fill="#936300">② CPU 查热槽 + 仅搬缺失行</text>
-<text x="626" y="80" font-size="15" fill="#065f56">③ 默认融合 Copy-SFA 执行</text>
-<text x="28" y="271" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="48" y="272" font-size="16" fill="#17211f">三路木桶容量上限（plan_sparse_kv_offload_memory 取 min）与硬约束</text>
-<text x="30" y="316" font-size="15" fill="#17211f">木桶 1：NPU 显存上限</text>
-<text x="328" y="316" font-size="15" fill="#7a3a6a">木桶 2：DRAM 主机上限</text>
-<text x="626" y="316" font-size="15" fill="#8f3229">木桶 3：工作负载 + 硬门槛</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="30" y="108">• 全量 indexer cache 留显存</text>
-<text x="30" y="133">• 可用 LI C8（int8，拒 fp8）</text>
-<text x="30" y="158">• 每查询从全历史挑 top-k 行</text>
-<text x="30" y="183">• 新算 K/V 经临时张量写主机</text>
-<text x="30" y="208" fill="#3a4f93">• 同 DP 组内 TP 各卡共享主机池</text>
-<text x="328" y="108">• 查热槽命中与缺失清单（CPU）</text>
-<text x="328" y="133">• 命中直接复用，缺行按 LRU 换出</text>
-<text x="328" y="158">• 作废超稳定前缀的 MTP 草稿槽</text>
-<text x="328" y="183">• TP&gt;1 等 rank 0 写完再各自搬</text>
-<text x="328" y="208" fill="#936300">• MemFabric H2D 只搬缺失行</text>
-<text x="626" y="108">• 默认 use_fused_copy_sfa 路径</text>
-<text x="626" y="133">• topk_buffer_size 默认 -1</text>
-<text x="626" y="158">  → (1+spec)×2048 + 2 尾块</text>
-<text x="626" y="183">• 主 KV 须 BF16（拒 SFA C8）</text>
-<text x="626" y="208" font-weight="600" fill="#065f56">• main 增 store_port_base=8500</text>
-<text x="30" y="342">• 可用显存 ÷ 设备页字节</text>
-<text x="30" y="367">• 不含主 KV（仅 indexer 等）</text>
-<text x="30" y="392">• 热缓冲另占定额显存</text>
-<text x="30" y="416" fill="#66716d">• keep_device_kv 仅作调试</text>
-<text x="328" y="342">• 每 DP 默认 dram=110 GiB</text>
-<text x="328" y="367">• 先扣每层 6 MiB（3×2MiB）预留</text>
-<text x="328" y="392">• 再除以主机页字节得块上限</text>
-<text x="328" y="416" font-weight="600" fill="#7a3a6a">• 比 NPU 紧时日志打印告警</text>
-<text x="626" y="342">• max_blocks×max_seqs + 1</text>
-<text x="626" y="367">• 仅放行 A3（拦截 A2 与 950）</text>
-<text x="626" y="392">• 仅 D 节点（拒 CP/D 侧 PP）</text>
-<text x="626" y="416" font-weight="600" fill="#8f3229">• 与 PreemptOffload 互斥</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="Atlas A3 Sparse KV offload 三路木桶水位容量规划与默认 Copy-SFA 热槽结构" font-family="var(--font-sans)">
+  <title>Atlas A3 Sparse KV offload 三路木桶取 min 容量规划与 Copy-SFA 热槽布局</title>
+  <desc>SparseKVOffloadConfig, topk_buffer_size, dram_size_per_dp_GB, use_fused_copy_sfa, plan_sparse_kv_offload_memory, limiting_factor, store_port_base</desc>
+
+  <!-- Section 1: 3-Bucket Water-Level Geometry -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">三路木桶容量上限（plan_sparse_kv_offload_memory 取 min 并记录 limiting_factor）</text>
+
+  <!-- Bucket 1: NPU (tallest: y=72..254, h=182) -->
+  <rect x="44" y="72" width="234" height="182" rx="6" fill="none" stroke="#4c65b6" stroke-width="1.6"/>
+  <rect x="48" y="138" width="226" height="112" rx="4" fill="#e8edff"/>
+  <text x="161" y="64" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">木桶 1 · NPU 上限</text>
+  <text x="161" y="102" text-anchor="middle" font-size="13.5" fill="#4d5652">可用显存 ÷ 设备页字节</text>
+  <text x="161" y="124" text-anchor="middle" font-size="13.5" fill="#66716d">（仅含 indexer，不含主 KV）</text>
+  <text x="161" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">显存可容纳块数较高</text>
+  <text x="161" y="220" text-anchor="middle" font-size="13.5" fill="#4d5652">热缓冲另占定额显存</text>
+
+  <!-- Bucket 2: DRAM (shortest bottleneck: y=134..254, h=120, plus 6 MiB/layer alignment top strip) -->
+  <rect x="332" y="134" width="236" height="120" rx="6" fill="none" stroke="#9a4b86" stroke-width="1.8"/>
+  <!-- Alignment deduction slice -->
+  <rect x="336" y="138" width="228" height="28" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="450" y="157" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">先扣每层 6 MiB（3×2MiB 对齐）</text>
+  <rect x="336" y="168" width="228" height="82" rx="4" fill="#f7e7f2"/>
+  <text x="450" y="96" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">木桶 2 · DRAM 上限（瓶颈示意）</text>
+  <text x="450" y="118" text-anchor="middle" font-size="13.5" fill="#8f3229">默认 dram_size_per_dp_GB = 110</text>
+  <text x="450" y="204" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">limiting_factor = dram</text>
+  <text x="450" y="228" text-anchor="middle" font-size="13.5" fill="#8f3229">DRAM &lt; NPU 时日志打印告警！</text>
+
+  <!-- Bucket 3: Workload (medium: y=102..254, h=152) -->
+  <rect x="622" y="102" width="234" height="152" rx="6" fill="none" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="626" y="138" width="226" height="112" rx="4" fill="#ddf4ef"/>
+  <text x="739" y="92" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">木桶 3 · 工作负载上限</text>
+  <text x="739" y="125" text-anchor="middle" font-size="13.5" fill="#4d5652">满长块数 × 最大并发 + 1 空块</text>
+  <text x="739" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">避免超额预分配</text>
+  <text x="739" y="220" text-anchor="middle" font-size="13.5" fill="#4d5652">同 DP 组 TP 卡共用 DRAM</text>
+
+  <!-- Horizontal min water level line across all 3 buckets at y=134 -->
+  <line x1="16" y1="134" x2="884" y2="134" stroke="#b54237" stroke-width="2" stroke-dasharray="6 4"/>
+  <rect x="16" y="266" width="868" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="450" y="287" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">最终可用块数 = min(NPU, DRAM, Workload)：卸载是把容量瓶颈从显存搬到主机内存，不是消除容量约束</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="312" x2="884" y2="312" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Default Copy-SFA Hot Buffer & Hard Guards -->
+  <circle cx="24" cy="336" r="12" fill="#087f73"/>
+  <text x="24" y="340.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="342" font-size="16" font-weight="700" fill="#17211f">默认融合 LIM + Copy-SFA 热槽构成与硬性运行约束（v0.30.0 / main）</text>
+
+  <!-- Hot Buffer Anatomy Bar -->
+  <rect x="16" y="362" width="584" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="308" y="389" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">topk_buffer_size = -1 自动解析：(1 + 投机草稿数) × 2,048 槽（256 对齐，≤ 32,512）</text>
+
+  <rect x="608" y="362" width="276" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="746" y="389" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">+ 2 个尾块（运行时自动附加）</text>
+
+  <!-- 3 Compact Guard Pills -->
+  <rect x="16" y="420" width="280" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="444" font-size="14" font-weight="700" fill="#17211f">精度与量化分工</text>
+  <text x="30" y="466" font-size="13.5" fill="#4d5652">主 KV 必 BF16；Indexer 可用 int8</text>
+
+  <rect x="310" y="420" width="280" height="58" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="324" y="444" font-size="14" font-weight="700" fill="#8f3229">硬件与拓扑硬拦截</text>
+  <text x="324" y="466" font-size="13.5" fill="#4d5652">仅 A3（拦 A2/950）· 仅 D 端无 CP/PP</text>
+
+  <rect x="604" y="420" width="280" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="618" y="444" font-size="14" font-weight="700" fill="#3a4f93">互斥与多服务端口</text>
+  <text x="618" y="466" font-size="13.5" fill="#4d5652">拒 PreemptOffload · main 端口基址 8500</text>
 </svg>

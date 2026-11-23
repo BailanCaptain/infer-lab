@@ -1,0 +1,10 @@
+mode: native-svg
+id: dynamic-chunked-pp-fig-calibration-and-budget
+caption: >-
+  动态分块流水线（CPP）双阶段校准与单步时间账：上半展示开机 1 热身加 64 试跑（有效点不足 8 则退回固定块）→ 在线 3 次 H=0 定 τ → 第 5..30 点在线拟合带历史曲线 → 第 31 点关同步计时；下半展示单步时间预算 τ 如何按剩余时间给多条 prefill 逐条截块与扣账（decode 不扣时间账），以及预测失败时的三分支处理。
+size: [900, 474]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205'
+    symbols: ['fit_chunk', 'nnls', 'quadratic_chunk_a']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1407'
+    symbols: ['ProfilingChunkAsyncScheduler', 'ProfilingChunkScheduler']

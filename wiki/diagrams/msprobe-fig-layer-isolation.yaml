@@ -1,8 +1,8 @@
 mode: native-svg
 id: msprobe-fig-layer-isolation
 caption: >-
-  昇腾精度排障的三层工具分工与 msprobe 逐层二分定位路径：顶部区分 Runtime Guard（线上检测与 dump_kv）、batch_invariant（消除批形状漂移）与 msprobe（离线逐层张量比对）；底部展示从 Eager PrecisionDebugger 或图模式 AclGraphDumper 采集 L0/L1/mix 到逐算子定位 RoPE / QuantMatmul / MoE / FA 首次分歧的漏斗。
-size: [900, 435]
+  msprobe 逐层二分定位与三工具协同图：（一）沿 Emb → L0 → … → Lk → Logits 绘出余弦相似度断崖曲线，第 1 轮用 statistics 定位首错层 Lk，第 2 轮仅对 Lk 的单步切 tensor 锁定「输入 cos≈1.0 → 输出骤降」的根因算子；（二）展示 Runtime Guard → batch_invariant → msprobe 三级收敛及 Eager（PrecisionDebugger）与图模式（AclGraphDumper）接入边界。
+size: [900, 486]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1163-L1190
     symbols: [_materialize_dump_config_to_file, _resolve_dump_config_path]

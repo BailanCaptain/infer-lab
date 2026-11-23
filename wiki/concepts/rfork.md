@@ -87,10 +87,16 @@ rawSources:
 - **Planner**：集群外的一个小服务，记着现在有哪些 seed。B 拿自己的「身份」来问，Planner 挑一个身份相同的 seed，再发一张**租约**（lease），记下「这个 seed 正被人借着」；B 读完要把租约还回去。
 
 ```wiki-diagram
-file: rfork-two-paths
+file: rfork-plate-seed-borrow
 ```
 
 借到的只是**数据**，不是进程，也不是两边共用一块内存。B 有自己的一份模型、自己的显存、自己的请求和 KV Cache，和 A 互不相干。B 读完、还了租约以后，自己也能当 seed，借给下一个实例。
+
+把「从 seed 直读」和「借不到时从磁盘默认加载」两条来路拆开对照，细节如下：
+
+```wiki-diagram
+file: rfork-two-paths
+```
 
 ## 为什么要借，代价又在哪
 
@@ -111,18 +117,24 @@ file: rfork-two-paths
 
 ## 借一次权重，B 的每个 Worker 走哪几步
 
-以 B 上的一个 Worker 为例，顺序如下；每一步的细节在箭头后的子页里。
+先把 B 上单个 Worker 的主干路径、双线解耦与回退双门放到一张全景图里，再按顺序核对每一步的触发条件：
 
-1. **建会话、算配置指纹。** 先检查绕过条件（sleep mode、在线权重传输或 EPLB），再准备会话对象，把协议版本、模型标识、模型版本、量化配置摘要、架构、RoPE、有效 `kv_role` 与 `mix_placement` 做成兼容性指纹；分片编号（TP / PP / EP、需要时的 DP 分片编号 `sharded_dp_rank`）和主/草稿角色也记进身份，但 `seed_key` 等结构摘要算完才绑定。→ [身份匹配](rfork-identity.md)
-2. **搭空模型与准备布局。** 在卡上把模型建好，恢复 MTP/DSpark 所需的 checkpoint 归属状态并加载 Engram 宿主表（如启用）。全部可传权重已与主模型共享的草稿可在这里提前返回（`source=shared_target`）。要转布局的模型先对空参数跑后处理，并等卡上异步的格式转换全部做完。→ [启动路径](rfork-startup.md)、[张量布局](rfork-layout.md)
-3. **登记本地内存并绑定 `seed_key`。** 先把空位所在的显存登记给传输引擎，并从登记扫描得到的张量清单（稳定 ID、形状、dtype 与 NPU 存储格式）算出结构摘要，结合兼容性指纹和分片角色绑定最终 `seed_key`。这样登记耗时移到了租约有效期之外。→ [传输](rfork-transfer.md)
-4. **向 Planner 借。** 拿已绑定的 `seed_key` 去问；借到就拿回 seed 的 IP、端口、租约编号（及可选的 `LEASE_TTL_SEC`，有 TTL 时启动后台续租线程），借不到就直接回退。
-5. **要清单。** 向 seed 上的 HTTP 服务要协议版本、传输端点、权重五元组与每个张量的 NPU 存储格式清单。
-6. **核清单。** 两边的张量名字（扣除已验证的共享跳过项）要对得上；逐个核形状、元素个数、每个元素几字节、dtype 与 NPU 存储格式；张量条数和总字节数两边也要相等。
-7. **按批读。** 每个张量读「元素个数 × 每元素字节」，装成一批批同步读取，一批读完再读下一批。
-8. **后台还租约，尝试发布，再交回模型。** 数据读完即停止续租并安排后台归还；启动线程继续完成适用的后处理（或 processed 路径的 FlatQuant 宿主标量刷新）和 `eval()`，先尝试让 B 成为 seed，再返回模型。租约已经归还时可启动 seed 服务、登记并定时心跳；还没归还时则延期发布，模型仍可交回，后续由后台补办。→ [租约与生命周期](rfork-lifecycle.md)
+```wiki-diagram
+file: rfork-fig-route-and-fallback
+```
 
-前述 RFork 加载尝试借不到来源或抛错时，先尝试停止 seed 服务、注销登记内存并恢复模型状态。已有会话返回的清理结果只有满足 `service_stopped && memory_reset`，才允许继续分配默认加载的模型；停服务或内存清理不成功时保留存储持有者并报错，避免旧资源仍被使用时再分配第二份模型。租约尚未归还本身不挡回退，归还仍可由后台重试。默认加载能否成功、加载后能否发布为 seed，还要分别看后续结果。
+按图中顺序，单次加载走八步（每步细则见箭头后的专页）：
+
+1. **绕过检查与配置指纹。** 先查可变权重守卫（sleep mode、在线权重传输或 EPLB）；未命中则建会话，把协议版本、模型标识、版本、量化摘要、架构、RoPE、有效 `kv_role` 与 `mix_placement` 算成兼容性指纹，并记下 TP / PP / EP / `sharded_dp_rank` 与主/草稿角色。最终 `seed_key` 等第 3 步算完结构摘要再绑定。→ [身份匹配](rfork-identity.md)
+2. **搭空模型与准备布局。** 在卡上建出空模型，恢复 MTP/DSpark checkpoint 归属并按需加载 Engram 宿主表。草稿若全部可传权重均与主模型共享，此时提前交回（`source=shared_target`）。要转布局的模型先对空参数跑后处理，并等 NPU 异步格式转换完成。→ [启动路径](rfork-startup.md)、[张量布局](rfork-layout.md)
+3. **预登记显存并绑定 `seed_key`。** 先把空位显存登记给传输引擎，由登记清单（稳定 ID、形状、dtype、NPU 存储格式）算出结构摘要，再结合兼容性指纹与分片角色绑定 `seed_key`。登记耗时因此移出租约有效期。→ [传输](rfork-transfer.md)
+4. **向 Planner 借租约。** 凭 `seed_key` 申请 seed 的 IP、端口与租约编号；若 Planner 返回 `LEASE_TTL_SEC` 则启动后台续租线程，借不到直接进回退。
+5. **取清单。** 向 seed 的 HTTP 服务拉取协议版本、传输端点、权重五元组与逐张量 NPU 存储格式清单。
+6. **五门核清单。** 扣除已验证的共享跳过项后，两边名字集合必须一致；逐项核对形状、`numel`、`element_size`、dtype 与 NPU 存储格式，以及总条数和总字节数，全部通过才读第一个字节。
+7. **分批同步直读。** 每个张量读 `numel × element_size` 字节，按批同步拉取，一批完成后再读下一批。
+8. **双线解耦：交回模型 + 后台还租约与发布。** 读完即停续租并安排后台归还。启动线程不等网络归还，直接完成读后收尾（或 processed 路径的 FlatQuant 宿主标量刷新）、`eval()`，尝试发布 seed 后交回模型。租约已确认时立刻启动 seed 服务、登记并心跳；未确认则记为延期（`DEFERRED`），后台确认后补办。→ [租约与生命周期](rfork-lifecycle.md)
+
+**回退的严格双门。** 借不到或遇可恢复异常时，加载器先停 seed 服务、注销登记显存并恢复进程全局状态。已有会话返回的清理结果必须同时满足 `service_stopped && memory_reset`，才允许分配默认加载的新模型；任一清理失败则保活旧存储持有者并直接报错，防止旧资源未释放时在卡上分配第二份模型。租约暂未还完本身不挡回退，由后台继续重试；默认加载及事后能否成为 seed 各自单独判断。
 
 第 7 步的装批规则是：先把超过 $1\text{ GiB}$ 的张量切成不超过 $1\text{ GiB}$ 的段；再按清单顺序往一批里装，下一段装进来会让这批超过 $1\text{ GiB}$，或者这批已经有 $512$ 段，就封批另起一批。用四个示意张量（`1.5`、`0.3`、`0.6`、`0.2 GiB`）演一遍，先拆段得到 $1.5 = 1 + 0.5\text{ GiB}$，共 $5$ 段：
 
@@ -165,13 +177,17 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 | 日志说租约归还被确认 | Planner 对归还请求回了 200（找到并收回），或回了 404（那里已经没有这张租约） | 整段传输期间租约一直有效；回 404 时，连「是按时还上的」都说明不了 |
 | 日志说 seed 服务已启动 | B 上的 seed 服务起来了，并完成第一次登记 | 之后一直健康、下一个实例一定能匹配到它 |
 
-传输成功后，归还租约的 HTTP 请求由后台线程发送，启动线程不等待这次网络归还完成。归还还没被确认时，「B 成为新 seed」这件事先记成延期，模型照常交回；后台默认先进行 3 次快速尝试（每次隔 30 秒），遇到暂态错误（408、429、5xx 或网络异常）在 3 次后转入至少 60 秒间隔的慢速重试，确认后再补上 seed 服务和登记。Planner 明确拒绝（比如回 400）则立即停止并放弃延期登记：B 照常推理，只是不当 seed。seed 服务没起来，也不会把已经加载好的模型扔掉——模型照样交回，只是 B 暂时不当别人的来源。
+传输成功后，归还租约的 HTTP 请求由后台线程发送，启动线程不等这次网络往返。归还未确认时，「B 成为新 seed」先记成延期，模型照常交回。
+
+后台默认先做 3 次快速尝试（间隔 30 秒）；遇暂态错误（408、429、5xx 或网络异常）超 3 次后转入至少 60 秒间隔的慢速重试，确认还上后再补办 seed 服务与登记。只有 Planner 明确拒绝（如回 400）或后台线程无法启动时才立即停止并放弃延期登记：B 照常推理，只是不当 seed。seed 服务起不来也不会扔掉已加载模型——模型照样交回，只是暂时不对外借出。
 
 ## 同一个词分属不同层：软件栈、角色与编号
 
 读 RFork 最容易混的是**同一个词分属不同层**：一个 seed 不是整个模型集群，一个地址不是一个张量的身份，一个 lease 不是内存锁。
 
-先把软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈。**YuanRong 数据系统**（Python 包名 `yr.datasystem`）提供 RFork 用的数据传输能力，不参与逐 token 推理。RFork 用到的传输引擎、内存登记、错误码三样都从这个包导入，导入不到就直接抛导入错误（`ImportError`），原文见[会报什么错](#会报什么错)——传输本身不是 RFork 自己实现的。所以排错时要分别报上各层的版本，RFork 的 Python 代码决定不了底层设备调用怎么表现。
+先把软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈。
+
+**YuanRong 数据系统**（Python 包名 `yr.datasystem`）提供 RFork 用的数据传输能力，不参与逐 token 推理。传输引擎、内存登记与错误码三样都从这个包导入，导入不到就直接抛 `ImportError`（原文见[会报什么错](#会报什么错)）——传输本身不是 RFork 自己实现的。排错时须分别报出各层版本，RFork 的 Python 代码决定不了底层设备调用的表现。
 
 **native** 指 Python 往下调用本地库或设备接口的那部分；**同步**指这次调用要等对应操作做完才返回，**异步**指把工作交给后台继续做。它们要带着对象理解：同一条加载流程里，权重读取是同步的，返回就说明这批字节已经到位；归还租约是异步的，只是把请求交给后台线程。两件事的「完成」不在同一个时刻。
 
@@ -259,9 +275,9 @@ A 跑完后处理以后，显存里只剩处理后的那一份：int8 的专家�
 
 ### 这套部署现在能不能受益
 
-- **只有一个实例。** DP2 是这个实例内部的两组，不是两个实例。没有同身份来源的第一次冷启动要回退，还多做一次搭模型和后处理。扩副本或重启时已有同构 seed，才有机会省下读取时间；seed 的 TP8、DP2、EP 开关、W8A8、模型版本描述与 NZ 设定要匹配，同时由部署方确认确实是同一份权重内容。指纹不读取 checkpoint 的每个字节，不能靠它发现同路径文件被替换。EP16 本身不单独写进指纹，由 TP8、DP2 和「开了 EP」隐含（见[部署指纹里写了什么](rfork-identity.md#部署指纹里写了什么)）。
-- **开了 EPLB、sleep mode 或在线权重传输就不走 RFork。** 在 `main` 主基线中，只要启用了 `enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`（`safety.py:mutable_weights_bypass_reason`），加载器会直接改走默认加载并打印一条 warning；早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已随 Model Runner V1 一并移除，不再触发绕过。
-- **可能少掉约 38 个 KV 块（按源码推断，未实测）。** 内存登记会让被登记张量的存储一直活着。草稿那两份词表张量登记以后，即使加载结束时草稿换用了主模型的同名张量，这两段显存也释放不了。按源码推，B 作为 seed 期间每卡多占约 302.5 MiB；在其余预算条件不变时，折成块是 302.5 MiB ÷ 每块 8,355,840 B ≈ 38 块。若用假设权重 21 GiB 的教学预算 3,855 块作起点，示意变成约 3,817 块；3,855 不是该权重包的实际容量，真实起点需加载与 profile 日志确认，见[两种块数各在什么时候用](glm-5-3-flash-two-node.md#两种块数各在什么时候用)。
+- **只有一个实例。** DP2 是这个实例内部的两组，不是两个实例。没有同身份来源的第一次冷启动必然回退，还会多做一次搭模型与后处理。只有在扩副本或重启且已有同构 seed 时，才有机会省下读取时间。seed 的 TP8、DP2、EP 开关、W8A8、模型版本描述与 NZ 设定须全部匹配，同时由部署方确认确实是同一份权重内容——指纹不读取 checkpoint 的每个字节，发现不了同路径文件被替换。EP16 本身不单独写进指纹，由 TP8、DP2 和「开了 EP」隐含（见[部署指纹里写了什么](rfork-identity.md#部署指纹里写了什么)）。
+- **开了 EPLB、sleep mode 或在线权重传输就不走 RFork。** 在 `main` 主基线中，只要启用了 `enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`（`safety.py:mutable_weights_bypass_reason`），加载器就直接改走默认加载并打一条 warning。早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已随 V1 一并移除，不再触发绕过。
+- **可能少掉约 38 个 KV 块（按源码推断，未实测）。** 内存登记会让被登记张量的存储一直活着。草稿那两份词表张量登记以后，即使加载结束时草稿换用了主模型的同名张量，这两段显存也释放不了。按源码推，B 作为 seed 期间每卡多占约 `302.5 MiB`；在其余预算条件不变时，折成块是 `302.5 MiB ÷ 每块 8,355,840 B ≈ 38` 块。若用假设权重 `21 GiB` 的教学预算 `3,855` 块作起点，示意变成约 `3,817` 块；`3,855` 不是该权重包的实际容量，真实起点须以加载与 profile 日志为准，见[两种块数各在什么时候用](glm-5-3-flash-two-node.md#两种块数各在什么时候用)。
 
 ## 常见误解
 
@@ -290,7 +306,7 @@ B 启动时加 `--load-format rfork`；配置写进 `--model-loader-extra-config
 | `RFork lease release acknowledged: lease=… status=…` | Planner 对归还回了 200 或 404 | 第三种成功；status=404 时日志自带注明「不存在，不代表按时归还」 |
 | `RFork seed service started for global_rank=…, port=…` | seed 服务起来 | 第四种成功 |
 | `RFork planner lease release rejected: … status=…` | 归还收到 200、404 以外的码 | 408、429、5xx 记成可重试；其他码（包括 400）直接算被拒 |
-| `RFork lease release stopped: … worker will not advertise a seed …` | 被拒，或重试次数用完 | B 照常推理，只是不当 seed |
+| `RFork lease release stopped: … worker will not advertise a seed …` | 归还被永久拒绝（`REJECTED`），不再重试 | B 照常推理，只是不当 seed |
 | `RFork planner seed acquisition failed: …` | 借的时候 Planner 回了 200、404 以外的码，或请求出错 | 记成借不到，走回退 |
 | `RFork %s seed acquisition was unsuccessful; loading locally.` | 借不到（只在汇总的那个 rank 打 info，其余 rank 是 debug） | 转默认加载；可能是正常冷启动，也可能是申请来源失败，要查前面的警告 |
 | `RFork transfer failed: …, clean up and fall back to default loader` | RFork 尝试中建会话、搭模型、传输或后处理出错 | 先清理，满足安全门才回退；汇总不证明已经借到租约 |

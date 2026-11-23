@@ -2,6 +2,8 @@
 id: ucm
 title: UCM：把算过的前缀分三层存到显存之外
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署没有开-ucm: 复杂异构实战对照：GLM 双机为何未启用与接入边界
 summary: >-
   UCM（Unified Cache Manager）是经 KV connector 接进 vLLM 的外部缓存软件包：把算过的前缀 KV
   从显存存到本机内存、再落到共享存储，按官方文档换实例或重启后也能取回，省掉重复的 prefill。讲清它和 KV Pool、LMCache 的分工，PD
@@ -286,7 +288,13 @@ UCM 回的是「本地命中之后还能多供几个」，不是它一共存了�
 
 ### 换后端时，哪些前提跟着变
 
-上面的三层是文件存储配置，不是所有 UCM 部署的固定结构。选择后端，先确定数据要留在哪里、是否要跨机器共享，以及哪些服务必须先启动。
+上面的三层是文件存储配置，不是所有 UCM 部署的固定结构。先把上文的 64 GiB 主机预算拆分陷阱，与四种主流后端的介质栈和硬前置条件放在同一张图里对照：
+
+```wiki-diagram
+file: ucm-fig-budget-and-backends
+```
+
+选择后端时，先确定数据要留在哪里、是否要跨机器共享，以及哪些服务必须先启动：
 
 | 后端 | 数据与服务 | 先确认什么 |
 |---|---|---|
@@ -404,7 +412,13 @@ $$B_{\text{pad}} = (3 \times 2 - 5) \times 2 \times 2\text{ B} = 24\text{ B} - 2
 
 ## 复杂异构实战对照：GLM 双机为何未启用与接入边界
 
-**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的官方启动参数里没有 KV 传输配置，prefix caching 也关着（GLM 是混合模型，vLLM 默认判它不支持，见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），所以 UCM 没开。** 本节照钉住的源码推演「假如接上」会碰到什么：没有实跑，没有吞吐、时延、命中率的实测数；上文官方那组数出自另一个模型、另一套 8 台机器的部署，不能当成这里的效果。
+前面以通用单组模型和 Qwen3 2P2D 模板讲清了 UCM 的三层读写、预算拆分与多模态 EC 分块。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：它的官方启动参数里没有 KV 传输配置，prefix caching 也关着（GLM 是混合模型，vLLM 默认判它不支持，见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），因此 UCM 未启用。先用一张图把前文的 K8s 2P2D 八 Pod 拓扑，与本节 GLM 双机接入 UCM 的三档能力对照放在同一视图里：
+
+```wiki-diagram
+file: ucm-fig-k8s-and-glm-hla
+```
+
+本节其余推演均照钉住源码展开：无实跑，无吞吐、时延或命中率实测；上文官方那组对比数出自另一个模型与 8 机部署，不能当成这里的效果。
 
 ### 接在哪两处：新请求，和被抢占退回的请求
 
@@ -417,7 +431,9 @@ $$B_{\text{pad}} = (3 \times 2 - 5) \times 2 \times 2\text{ B} = 24\text{ B} - 2
 
 GLM 每一层要保留的历史不止一种（见[混合模型到底要保留哪几类状态](kv-cache.md#混合模型到底要保留哪几类状态)）：稀疏 MLA 的潜向量和 indexer 缓存随位置增长，[KDA](linear-attention.md)（GLM 用的线性 attention）每层只存一份固定大小的递推状态。前缀要能「从第 N 个位置接着算」，KDA 那一侧就必须在第 N 个位置留过一份状态。
 
-钉住的镜像里有一段补丁，会在接上 KV connector 时把 KDA 的缓存方式从「不留中间档」自动改成「按块留档」（align）；可它只认 AscendStore（KV Pool）这一个名字，接 UCM 时不改。照这段源码推演：只加 UCM、不开 prefix caching，KDA 仍不留中间档，它的块长盖住整条最长长度 133,120，中间位置没有 KDA 状态可存，也就没有能接着算的前缀。要让中间位置接得上，还得显式打开 prefix caching：vLLM 这时走按块留档，KDA 的块长落到 640，只在对齐到 640 的调度步终点留状态，和 [KV Pool 在 GLM 上的推演](kv-pool.md#只加-kv-pool不开-prefix-caching短于最长长度的-prompt-不会查询)是同一个前提。即便如此，共享的开头不到 640 个位置时，KDA 在那里没有存档，照样接不上。
+钉住的镜像里有一段补丁，会在接上 KV connector 时把 KDA 的缓存方式从「不留中间档」自动改成「按块留档」（`align`），但它只认 `AscendStore` 这一个名字，接 UCM 时不会改写。
+
+照这段源码推演：只加 UCM、不开 prefix caching 时，KDA 仍不留中间档，块长盖住整条最长长度 133,120，中间位置没有 KDA 存档也就接不上前缀。要让中间位置接得上，必须显式打开 prefix caching：vLLM 这时走按块留档，KDA 块长落到 640，只在对齐到 640 的调度步终点留状态（与 [KV Pool 在 GLM 上的推演](kv-pool.md#只加-kv-pool不开-prefix-caching短于最长长度的-prompt-不会查询)同源）。即便如此，共享开头不足 640 个位置时，KDA 在那里没有存档，照样接不上。
 
 ### 8 张卡上要存些什么
 

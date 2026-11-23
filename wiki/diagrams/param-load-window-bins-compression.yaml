@@ -1,0 +1,12 @@
+mode: native-svg
+id: param-load-window-bins-compression
+caption: >-
+  load_window_bins 顺序分箱压缩的两个关键代数现象：上方展示 5 步压成 2 段后全局均值精确守恒但方差与协方差全部归零；下方展示 4 步压成 2 段时「先平均再求峰均比」反而让均衡度从 0.800 跌至 0.667。
+size: [900, 460]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L279-L330
+    symbols: [_load_bin_boundaries, compress_load_window, weighted_moments]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L348-L377
+    symbols: [placement_imbalance]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L216-L242
+    symbols: [load_window_bins]

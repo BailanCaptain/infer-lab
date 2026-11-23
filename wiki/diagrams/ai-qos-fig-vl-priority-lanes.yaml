@@ -1,8 +1,8 @@
 mode: native-svg
 id: ai-qos-fig-vl-priority-lanes
 caption: >-
-  AI QoS 端点打标、UB 交换机重映射与严格优先级（SP）队列仲裁对比：上半部对比 v0.23/v0.26 五键方向映射（共享 SDMA 源标签 2 + 初始 VL 0/1 分进目标 VL 2/3）与 v0.30.0/main 三键（AIV/PCIEDMA/SDMA 各自独立标签 4/5/6，两路 cacheable/noncacheable 初始 VL 汇入同类目标 VL 2/3/4）；下半部提示 AIV 驱动限制、A3 硬件前提与 unset 仅覆盖末次交换机清单的运维边界。
-size: [900, 470]
+  AI QoS 四时隙排队对比与虚拟通道映射连线图：上半部按真实比例对比共享 FIFO（关键通信第 4 隙完成）与严格优先级 SP（关键通信提前至第 1 隙省 3 隙、末份 KV 预取顺延 1 隙、总时长仍 4 隙）；下半部画出 v0.30.0/main 三键通道（AIV 标签 4→VL2、PCIEDMA 标签 5→VL3、SDMA 标签 6→VL4，cacheable/noncacheable 初始 VL 汇入同目标）与旧版 v0.23/v0.26 五键共享标签 2 靠初始 VL 0/1 拆分的连线对照，以及三条运维红线。
+size: [900, 528]
 pins:
   - source: 'vllm-ascend@c09d3e20:tools/ai_qos.py#L322-L337'
     symbols:

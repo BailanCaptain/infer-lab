@@ -1,0 +1,10 @@
+mode: native-svg
+id: pp-fig-handover-tp-slice
+caption: >-
+  PP 段内叠加 TP 时的交接机制（以 TP=2 传 [3, 2] 为示意）：先等待上一轮发送句柄 _pp_send_work，非首段每步先经 recv_object 同步接收元数据字典再异步点对点收发张量；关闭 SP 时各 TP 卡仅跨段发送 1/TP 切片（总流量减半），接收段再经机内 tp_group All-Gather 还原；开启 SP 时各卡已持不同 token 片，关闭段内拼接（all_gather_group=None）。
+size: [900, 450]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L775-L843
+    symbols: [execute_model, irecv_tensor_dict, isend_tensor_dict, all_gather_group]
+  - source: vllm@ced6857a:vllm/distributed/parallel_state.py#L1095-L1324
+    symbols: [isend_tensor_dict, irecv_tensor_dict, all_gather_group]

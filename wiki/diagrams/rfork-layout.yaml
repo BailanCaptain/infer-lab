@@ -1,28 +1,14 @@
-layout: figure
+mode: native-svg
 id: rfork-layout
-caption: 两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。
-size: [900, 240]
-
-items:
-  - { at: [190, 40], size: [190, 60], text: 转布局 + 同步, tone: weight }
-  - { at: [430, 40], size: [190, 60], text: 从 A 读, tone: comm }
-  - { at: [670, 40], size: [190, 60], text: 发布判断, tone: control, style: plain }
-  - { at: [190, 150], size: [190, 60], text: 只搭骨架, tone: weight, style: plain }
-  - { at: [430, 150], size: [190, 60], text: 从 A 读, tone: comm }
-  - { at: [670, 150], size: [190, 60], text: 适用后处理 · 刷新登记, tone: weight }
-
-links:
-  - { from: [380, 70], to: [430, 70], tone: control }
-  - { from: [620, 70], to: [670, 70], tone: control }
-  - { from: [380, 180], to: [430, 180], tone: control }
-  - { from: [620, 180], to: [670, 180], tone: control }
-
-texts:
-  - { at: [40, 75], text: 要转布局, size: 15 }
-  - { at: [40, 185], text: 先读后处理, size: 15 }
-
+caption: >-
+  RFork 张量布局双路径与采集范围对照：上栏按量化、weight_nz_mode == 2 或硬件 FORCE_NZ 三条件分流「转好布局再搬」（先空壳后处理并 NPU 同步再直读，沿用登记）与「先读后处理」（先核清单调视图直读，再跳过未量化 MoE 重复转置做适用后处理并重登显存）；下栏对照分层 BFS 采集覆盖的参数、buffer、impl 与公开属性派生权重（W_UV / W_UK_T、FP32 scale 副本）及 _RUNTIME_ONLY_TENSOR_NAMES 三项运行期排除名单。
+size: [900, 570]
 pins:
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L816-L875
-    symbols: [process_weights_after_loading, synchronize]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L729-L746
     symbols: [_requires_processed_layout_transfer]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L816-L875
+    symbols: [process_weights_after_loading, synchronize]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L34-L42
+    symbols: [_RUNTIME_ONLY_TENSOR_NAMES]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L260-L458
+    symbols: [collect_transferable_tensors]

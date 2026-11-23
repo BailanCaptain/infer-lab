@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="变体 M 撇空闲 DP1 陪跑 32 步结束共识与混合批 6048 行挑 49 行进 lm_head 图" font-family="var(--font-sans)">
+  <title>空闲 DP1 陪跑与 32 步结束共识 + 混合批 6,048 行中提取 49 行词表分数</title>
+  <desc>Top: Variant M' idle DP1 dummy batch padded from 4 to 6048 alongside DP0 and 32-step global idle-consensus check (up to 31 trailing dummy steps). Bottom: Step 2 mixed batch [6048, 4096] extracting 48 decode rows + 1 last prefill row = 49 rows for lm_head [49, 154880]</desc>
+  <defs>
+    <marker id="cr-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="cr-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="cr-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- UPPER BAND: Variant M' Dummy Batch & 32-Step Consensus -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 变体 M′：空闲 DP1 为何不能歇着？陪跑宽度被对端拉满，结束后最多再空跑 31 步</text>
+
+  <!-- Left: DP0 vs DP1 in Step 2 -->
+  <rect x="14" y="42" width="444" height="106" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="66" font-size="14" font-weight="700" fill="#17211f">第 2 步对齐（DP0 混合批 6048 vs DP1 无请求）</text>
+  <!-- DP0 bar -->
+  <rect x="28" y="76" width="312" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="184" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">DP0 真实宽度：6,048 行（eager + AllGather）</text>
+  <text x="348" y="94" font-size="12.5" font-weight="700" fill="#065f56">13 条请求</text>
+  <!-- DP1 bar -->
+  <rect x="28" y="110" width="20" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <rect x="48" y="110" width="292" height="26" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="194" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">DP1 本地 4 假行 → 拉宽至 6,048 陪跑</text>
+  <text x="348" y="128" font-size="12.5" fill="#7a3a6a">替 DP0 算真专家</text>
+
+  <!-- Right: 32-step idle check ruler -->
+  <rect x="472" y="42" width="414" height="106" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="486" y="66" font-size="14" font-weight="700" fill="#7a3a6a">每 32 步做一次全局空闲 All-Reduce</text>
+  <!-- Ruler line -->
+  <line x1="490" y1="106" x2="866" y2="106" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="510" cy="106" r="5" fill="#9a4b86"/><text x="510" y="92" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">步 32</text>
+  <circle cx="556" cy="106" r="5" fill="#b54237"/><text x="564" y="132" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">末条于步 33 结束</text>
+  <rect x="562" y="96" width="226" height="20" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="675" y="111" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">最多继续空跑 31 步</text>
+  <circle cx="794" cy="106" r="6" fill="#087f73"/><text x="820" y="92" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#065f56">步 64 一起停</text>
+
+  <line x1="14" y1="168" x2="886" y2="168" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- LOWER BAND: Step 2 Mixed Batch 6,048 rows -> 49 rows into lm_head -->
+  <text x="14" y="196" font-size="16" font-weight="700" fill="#17211f">② 第 5–7 站：主干输出 6,048 行，只精准抽出 49 行送入 lm_head（其余 5,999 行只建 KV）</text>
+
+  <!-- Left: Full [6048, 4096] Hidden Output Bar -->
+  <text x="14" y="224" font-size="14" font-weight="700" fill="#17211f">DP0 第 2 步主干隐藏状态输出 [6048, 4096]</text>
+  <!-- Segment 1: Rows 0-47 (D1..D12, 48 rows) -->
+  <rect x="14" y="234" width="200" height="54" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="114" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">行 0–47（48 行）</text>
+  <text x="114" y="278" text-anchor="middle" font-size="13.5" fill="#065f56">D₁…D₁₂（12 条 × 4）</text>
+
+  <!-- Segment 2: Rows 48-6046 (N first 5999 rows, skipped for lm_head) -->
+  <rect x="218" y="234" width="468" height="54" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="452" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#4d5652">行 48–6046（N 的前 5,999 个提示词）</text>
+  <text x="452" y="278" text-anchor="middle" font-size="13.5" fill="#66716d">仅把历史写入 KV cache 与 KDA 状态，不送词表投影</text>
+
+  <!-- Segment 3: Row 6047 (N last 1 row) -->
+  <rect x="690" y="234" width="194" height="54" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="787" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">行 6047（仅 1 行）</text>
+  <text x="787" y="278" text-anchor="middle" font-size="13.5" fill="#936300">N 末位 → 采首 token</text>
+
+  <!-- Funnel arrows down to lm_head [49, 154880] -->
+  <path d="M 114 288 C 114 318, 224 316, 260 330" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cr-arr-t)"/>
+  <path d="M 787 288 C 787 318, 668 316, 628 330" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#cr-arr-a)"/>
+
+  <!-- Extracted 49-row lm_head box -->
+  <rect x="266" y="318" width="356" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="444" y="345" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">lm_head 投影 → logits [49, 154880]</text>
+
+  <!-- Bottom 2 independent outcomes -->
+  <rect x="14" y="376" width="424" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="226" y="402" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">D₁…D₁₂：各自按 4 行拒绝采样、各自回退计数、结束即还块</text>
+
+  <rect x="460" y="376" width="424" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="672" y="402" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">N：从第 6047 行采出首 token + MTP 猜 3 草稿 → 下步变 4 行</text>
+</svg>

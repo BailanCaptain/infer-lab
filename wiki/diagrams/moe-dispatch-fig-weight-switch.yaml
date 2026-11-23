@@ -1,8 +1,8 @@
 mode: native-svg
 id: moe-dispatch-fig-weight-switch
 caption: >-
-  WeightSwitchMixin 运行期权重动态重切分（本地分片 ↔ 全量权重）机制：各卡平时仅常驻 1/N 切分权重以节省静态 HBM；需要全量权重前向时，先异步 all_gather_weight 拼入跨层复用的 full_pools 缓冲，等待完成后以 tensor.set_() 零拷贝切换视图，退出上下文立即切回本地分片。
-size: [900, 390]
+  WeightSwitchMixin 运行期权重动态重切分几何机理：各卡平时仅在 HBM 常驻 1/4 本地分片（W₀..W₃）；计算前异步 all_gather_async 把四片拼进跨层共享的单一 full_pools 缓冲；进入上下文通过 attr.set_() 零拷贝改指全量缓冲，退出 finally 立即切回本地分片。
+size: [900, 460]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/weight_switch/linear.py#L146-L285
     symbols: [WeightSwitchMixin, weight_switch_gather_specs, weight_switch_repeat_specs, supports_weight_switch, split_tensor_for_parallel]

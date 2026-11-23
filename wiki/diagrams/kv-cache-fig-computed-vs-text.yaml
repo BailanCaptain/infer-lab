@@ -1,0 +1,10 @@
+mode: native-svg
+id: kv-cache-fig-computed-vs-text
+caption: >-
+  完整文本长度（all_token_ids）与有效 KV 缓存进度（num_computed_tokens）的双行对照：普通逐词生成结束时（如 P=3, G=4），末词 y₃ 刚采样尚未作为输入进入前向，因此文本有 7 枚 token 而 KV 仅 6 格；下方对照分块预填充未完（差值远大于 1）、前缀缓存全命中（上限 N-1）与投机拒稿/抢占重算三大错位场景。
+size: [900, 424]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1613-L1670
+    symbols: [num_computed_tokens, all_token_ids]
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L250-L385
+    symbols: [get_computed_blocks, max_cache_hit_length, allocate_slots]

@@ -2,7 +2,7 @@ mode: native-svg
 id: enable-matmul-allreduce
 caption: >-
   v0.23.0 行并行派发函数 _get_row_parallel_op 的八分支优先级：enable_matmul_allreduce 排在第五且不过滤 prefix，会截断后面的 FlashComm2、SP 与默认路径；v0.25.1rc1（PR #12119）已移除，v0.30.0 与 main 仅保留三条细粒度 TP 分支。
-size: [900, 624]
+size: [900, 668]
 pins:
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739'
     symbols:

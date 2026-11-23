@@ -1,53 +1,152 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="上游 Platform 契约四类核心钩子与 current_platform 惰性仲裁树" font-family="var(--font-sans)">
-  <title>vLLM Platform 抽象契约四类钩子与 OOT 仲裁规则</title>
-  <desc>Lazy current_platform arbitration decision tree and 4 categories of Platform contract hooks across v0.23 to main</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="vLLM Platform current_platform 惰性仲裁决策树、CUDA 与 NPU 契约对照及接口扩张图" font-family="var(--font-sans)">
+  <title>Platform 惰性仲裁决策树、CUDA/NPU 契约对照与四版方法扩张</title>
+  <desc>Left is a true branching decision tree for resolve_current_platform_cls_qualname() including v0.30.0 explicit CPU bypass; right compares CUDA vs NPU contract answers and shows proportional Platform method growth from 78 to 92.</desc>
+  <defs>
+    <marker id="pi-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+    <marker id="pi-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="pi-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">Platform 契约：惰性仲裁选出当前平台，再用四类钩子解耦硬件差异</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">上游只写「提问」不写具体硬件答案；首次访问 current_platform 时按优先级惰性解析并缓存</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">Platform 契约：惰性仲裁选定硬件平台，再用统一接口隔开设备差异</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">首次访问 current_platform 才解析并缓存；选中后仅代表拿到实现类路径，不证明设备已就绪</text>
 
-  <!-- Left panel: Arbitration decision tree -->
-  <rect x="16" y="64" width="406" height="364" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="32" y="92" font-size="15" font-weight="700" fill="#17211f">左侧：current_platform 惰性仲裁树</text>
+  <line x1="454" y1="62" x2="454" y2="488" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
-  <rect x="32" y="108" width="374" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="46" y="131" font-size="14" font-weight="700" fill="#936300">① 逐一探测外部插件 + 5 个内置候选</text>
-  <text x="46" y="152" font-size="13.5" fill="#4d5652">tpu/cuda/rocm/xpu/cpu；返回非 None 即激活</text>
+  <!-- LEFT: True Branching Decision Flowchart (x=16..440) -->
+  <text x="16" y="78" font-size="15" font-weight="700" fill="#17211f">左：resolve_current_platform_cls_qualname() 仲裁树</text>
 
-  <path d="M219 162v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Node 1: CPU explicit check -->
+  <rect x="16" y="92" width="234" height="46" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="133" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">v0.30+ 显式指定 CPU 目标？</text>
+  <text x="133" y="131" text-anchor="middle" font-size="13.5" fill="#4d5652">先检直通例外</text>
+  <!-- Yes branch right -->
+  <line x1="250" y1="115" x2="294" y2="115" stroke="#087f73" stroke-width="1.7" marker-end="url(#pi-arr-t)"/>
+  <text x="272" y="108" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">是</text>
+  <rect x="300" y="95" width="138" height="40" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="369" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">直选 CpuPlatform</text>
 
-  <rect x="32" y="182" width="374" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="46" y="205" font-size="14" font-weight="700" fill="#065f56">② 恰好 1 个外部 OOT 激活 → 直接胜出</text>
-  <text x="46" y="226" font-size="13.5" fill="#4d5652">压过内置候选（v0.30.0 起显式 CPU 可直通）</text>
+  <!-- Down to dual probe -->
+  <line x1="133" y1="138" x2="133" y2="154" stroke="#66716d" stroke-width="1.7" marker-end="url(#pi-arr-g)"/>
+  <text x="148" y="151" font-size="13.5" fill="#66716d">否</text>
 
-  <path d="M219 236v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Node 2: Probe BOTH Builtin + External OOT first -->
+  <rect x="16" y="158" width="422" height="50" rx="7" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="227" y="180" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">同轮探测：内置 5 候选（tpu/cuda/rocm/xpu/cpu）+ 外部 OOT</text>
+  <text x="227" y="200" text-anchor="middle" font-size="13.5" fill="#4d5652">两边均先探测并各自收集激活列表，随后按「外部优先于内置」仲裁</text>
 
-  <rect x="32" y="256" width="374" height="54" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="46" y="279" font-size="14" font-weight="700" fill="#8f3229">③ 同级 ≥2 个候选激活 → RuntimeError</text>
-  <text x="46" y="300" font-size="13.5" fill="#4d5652">多外部插件立即冲突；无外部才查内置冲突</text>
+  <!-- Down to Arbitration 1 (OOT priority) -->
+  <line x1="133" y1="208" x2="133" y2="226" stroke="#c78300" stroke-width="1.7" marker-end="url(#pi-arr-g)"/>
 
-  <path d="M219 310v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Node 3: Arbitration 1 (OOT count) -->
+  <rect x="16" y="230" width="234" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="133" y="253" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">仲裁①：外部 OOT 激活数</text>
+  <text x="133" y="275" text-anchor="middle" font-size="13.5" fill="#4d5652">只要有激活，优先级高于内置</text>
 
-  <rect x="32" y="330" width="374" height="82" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="46" y="354" font-size="14" font-weight="700" fill="#7a3a6a">④ 1 内置胜出；0 激活 → Unspecified</text>
-  <text x="46" y="378" font-size="13.5" fill="#4d5652">选定后再调入口取类路径并实例化缓存</text>
-  <text x="46" y="400" font-size="13.5" fill="#7a3a6a" font-weight="600">注意：选中平台仅代表类加载，非硬件就绪</text>
+  <!-- OOT == 1 (Ascend path) -->
+  <path d="M250 245 H294" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#pi-arr-t)"/>
+  <text x="272" y="238" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">=1</text>
+  <rect x="300" y="218" width="138" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="369" y="237" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">OOT 胜出 ✓</text>
+  <text x="369" y="255" text-anchor="middle" font-size="13.5" fill="#065f56">昇腾压过内置</text>
 
-  <!-- Right panel: 4 Hook Categories -->
-  <rect x="442" y="64" width="442" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="458" y="90" font-size="14.5" font-weight="700" fill="#065f56">契约 1 · 设备身份与环境变量属性</text>
-  <text x="458" y="116" font-size="13.5" fill="#4d5652">npu · PrivateUse1 · ASCEND_RT_VISIBLE_DEVICES</text>
+  <!-- OOT >= 2 (Error) -->
+  <path d="M250 272 H294" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#pi-arr-r)"/>
+  <text x="272" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">≥2</text>
+  <rect x="300" y="266" width="138" height="34" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="369" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">RuntimeError</text>
 
-  <rect x="442" y="148" width="442" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="458" y="174" font-size="14.5" font-weight="700" fill="#936300">契约 2 · 启动准备与就地配置改写钩子</text>
-  <text x="458" y="200" font-size="13.5" fill="#4d5652">pre_register_and_update → check_and_update_config</text>
+  <!-- Down to Arbitration 2 (Builtin count) -->
+  <line x1="133" y1="284" x2="133" y2="306" stroke="#66716d" stroke-width="1.7" marker-end="url(#pi-arr-g)"/>
+  <text x="150" y="301" font-size="13.5" fill="#66716d">0 个外部</text>
 
-  <rect x="442" y="232" width="442" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="458" y="258" font-size="14.5" font-weight="700" fill="#3a4f93">契约 3 · 执行组件与后端类路径回答</text>
-  <text x="458" y="284" font-size="13.5" fill="#4d5652">worker_cls · 注意力后端 · 设备通信器类路径</text>
+  <!-- Node 4: Arbitration 2 (Builtin count) -->
+  <rect x="16" y="310" width="234" height="52" rx="7" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="133" y="333" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">仲裁②：内置激活数</text>
+  <text x="133" y="354" text-anchor="middle" font-size="13.5" fill="#4d5652">读已探测的内置激活列表</text>
 
-  <rect x="442" y="316" width="442" height="112" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="458" y="342" font-size="14.5" font-weight="700" fill="#7a3a6a">契约 4 · 容量查询与接口持续扩张规模</text>
-  <text x="458" y="366" font-size="13.5" fill="#4d5652">• 设备总显存查询 ≠ Worker 实测显存与预算</text>
-  <text x="458" y="390" font-size="13.5" fill="#4d5652">• 方法数：v0.23(78) → v0.30(84) → main(92)</text>
-  <text x="458" y="414" font-size="13.5" fill="#7a3a6a" font-weight="600">• current_platform 引用：873 → 1,498 → 1,902 行</text>
+  <!-- Builtin == 1 -->
+  <path d="M250 324 H294" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#pi-arr-t)"/>
+  <text x="272" y="318" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">=1</text>
+  <rect x="300" y="306" width="138" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="369" y="328" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">选中唯一内置</text>
+
+  <!-- Builtin >= 2 -->
+  <path d="M250 348 H294" fill="none" stroke="#b54237" stroke-width="1.7" marker-end="url(#pi-arr-r)"/>
+  <text x="272" y="366" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">≥2</text>
+  <rect x="300" y="344" width="138" height="34" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="369" y="366" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">RuntimeError</text>
+
+  <!-- Builtin == 0 -> UnspecifiedPlatform -->
+  <line x1="133" y1="362" x2="133" y2="386" stroke="#66716d" stroke-width="1.7" marker-end="url(#pi-arr-g)"/>
+  <text x="150" y="381" font-size="13.5" fill="#66716d">0 个激活</text>
+
+  <rect x="16" y="390" width="422" height="96" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="30" y="415" font-size="14" font-weight="700" fill="#7a3a6a">0 激活 → 返回 UnspecifiedPlatform（此处不报错）</text>
+  <text x="30" y="441" font-size="13.5" fill="#4d5652">选定后再调入口取类路径、实例化并存入 _current_platform</text>
+  <text x="30" y="468" font-size="13.5" fill="#7a3a6a" font-weight="600">懒加载原因：外置插件须先 import Platform 才能继承</text>
+
+  <!-- RIGHT: Contract Q&A Grid + Method Expansion Bar (x=472..884) -->
+  <text x="472" y="78" font-size="15" font-weight="700" fill="#17211f">右：同一组契约问题，CUDA vs NPU 各自作答</text>
+
+  <!-- Table Header -->
+  <rect x="472" y="92" width="144" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5"/>
+  <text x="544" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">上游提问</text>
+  <rect x="618" y="92" width="124" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5"/>
+  <text x="680" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">CUDA 回答</text>
+  <rect x="744" y="92" width="140" height="32" rx="4" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="814" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">NPU 回答</text>
+
+  <!-- Row 1 -->
+  <rect x="472" y="128" width="144" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="544" y="155" text-anchor="middle" font-size="13.5" fill="#17211f">设备名 / 分派键</text>
+  <rect x="618" y="128" width="124" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="680" y="155" text-anchor="middle" font-size="13.5" fill="#4d5652">cuda / CUDA</text>
+  <rect x="744" y="128" width="140" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="814" y="155" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">npu / PrivateUse1</text>
+
+  <!-- Row 2 -->
+  <rect x="472" y="176" width="144" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="544" y="203" text-anchor="middle" font-size="13.5" fill="#17211f">可见设备变量</text>
+  <rect x="618" y="176" width="124" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="680" y="203" text-anchor="middle" font-size="13.5" fill="#4d5652">CUDA_VISIBLE</text>
+  <rect x="744" y="176" width="140" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="814" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">ASCEND_RT_VIS</text>
+
+  <!-- Row 3 -->
+  <rect x="472" y="224" width="144" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="544" y="251" text-anchor="middle" font-size="13.5" fill="#17211f">Worker / 通信器</text>
+  <rect x="618" y="224" width="124" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="680" y="251" text-anchor="middle" font-size="13.5" fill="#4d5652">GPU / CudaComm</text>
+  <rect x="744" y="224" width="140" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="814" y="251" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">NPU / NPUComm</text>
+
+  <!-- Row 4 -->
+  <rect x="472" y="272" width="144" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="544" y="299" text-anchor="middle" font-size="13.5" fill="#17211f">通信后端名</text>
+  <rect x="618" y="272" width="124" height="44" rx="4" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="680" y="299" text-anchor="middle" font-size="13.5" fill="#4d5652">平台填 nccl</text>
+  <rect x="744" y="272" width="140" height="44" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="814" y="299" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Worker 给 hccl</text>
+
+  <!-- Proportional Method Growth Chart (y=336..484) -->
+  <line x1="472" y1="330" x2="884" y2="330" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="472" y="356" font-size="15" font-weight="700" fill="#3a4f93">Platform 契约持续扩张（方法数 / 调用行数）</text>
+
+  <!-- Bars: max 92 -> 250px -->
+  <text x="472" y="390" font-size="13.5" fill="#4d5652">v0.23.0</text>
+  <rect x="546" y="373" width="212" height="22" rx="4" fill="#ece9df" stroke="#66716d"/>
+  <text x="652" y="389" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">78 方法</text>
+  <text x="768" y="389" font-size="13.5" fill="#66716d">873 行引用</text>
+
+  <text x="472" y="424" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0</text>
+  <rect x="546" y="407" width="228" height="22" rx="4" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="660" y="423" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">84 方法</text>
+  <text x="784" y="423" font-size="13.5" fill="#065f56">1,498 行</text>
+
+  <text x="472" y="458" font-size="13.5" font-weight="700" fill="#7a3a6a">main</text>
+  <rect x="546" y="441" width="250" height="22" rx="4" fill="#f7e7f2" stroke="#9a4b86"/>
+  <text x="671" y="457" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">92 方法</text>
+  <text x="806" y="457" font-size="13.5" font-weight="700" fill="#7a3a6a">1,902 行</text>
+
+  <text x="472" y="486" font-size="13.5" fill="#66716d">上游接口每版扩张，外置插件须同步对齐签名与返回值</text>
 </svg>

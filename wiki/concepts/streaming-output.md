@@ -4,6 +4,9 @@ title: 流式输出：token 编号怎样变成一段段推给客户端的文字
 type: concept
 legacyAnchors:
   落到-glm-双机r1-的编号怎样变成片段: 复杂异构实战对照：GLM 双机思考标签与 MTP 多词流式
+  一个前端进程接两个-dp-组的结果: 单前端接双 DP 组与异步交错
+  r1-前三圈每个片段由几个-token-还原: R1 前三圈：MTP 1–4 词怎样变成 SSE 片段
+  glm-的分词器和思考标记: GLM 的思考标记、结束编号与专用补丁
 summary: >-
   流式输出让客户端边生成边看到文字：引擎每步交回新 token 编号，前端增量反分词补齐字节、还原新增文字并查过停止字符串，再包成 SSE
   片段推出。前半先讲标准单流反分词、扣字与 SSE 帧推送主干及边界，后半对照 GLM 双机思考标签与 MTP 多词流式实战。
@@ -226,7 +229,7 @@ origin: direct
 
 流式通常能让用户更早看到开头。代价是前端需要反复序列化 JSON、写连接并维护长连接；若 UTF-8 字节尚未凑齐或字符被停止字符串缓冲区扣住，已有 token 仍暂时不显示——因此「生成了一枚」不等于「立刻看见一个字」。
 
-以一个标准单流小例建立直觉：请求依次生成「推理」、少见字「犇」，然后结束（沿用 [token 页的例子](token.md#生成的编号怎样变回文字)：「推理」占 1 个 token；「犇」的 UTF-8 字节 `E7 8A 87` 被切成 2 个 token，前一个含 `E7 8A`，后一个含 `87`）。
+以一个标准单流小例建立直觉：请求依次生成「推理」、少见字「犇」，然后结束。沿用 [token 页](token.md#生成的编号怎样变回文字)设定：「推理」占 1 个 token；「犇」的 UTF-8 字节 `E7 8A 87` 被切成 2 个 token（前一个含 `E7 8A`，后一个含 `87`）。
 
 ```wiki-diagram
 file: streaming-output-intuition
@@ -269,7 +272,7 @@ file: streaming-output-intuition
 
 **一步的结果先在引擎进程里追加、判停，再经 ZMQ 送到前端进程；前端后台任务统一完成反分词、停止字符串检查与增量计算，每条请求各自的 HTTP 任务再把增量拼成 SSE 片段写进连接。**
 
-vLLM 服务由两类进程协同完成这条链路（见[调用链](request-call-chain.md#七站分在三种进程里)）：接 HTTP 请求的前端进程 `API server`，与负责调度推理的引擎进程 `EngineCore`。普通文本生成在前端完成分词和反分词，两进程间通过 ZMQ（跨进程消息库）收发 token 编号等控制与结果数据（预计算 embedding 等特殊输入见 [vLLM V1 的请求流](vllm-v1-shape.md#vllm-怎样把一条请求变成一步一步的计算)）。请求进门时的分词与反分词器登记见 [API server 入口](api-server-entry.md)；本节沿结果回程从上往下走一遍。
+vLLM 服务由两类进程协同完成这条链路（见[调用链](request-call-chain.md#七站分在三种进程里)）：接 HTTP 请求的前端进程 `API server` 与调度推理的引擎进程 `EngineCore`。普通文本生成在前端做分词与反分词，两进程经 ZMQ 收发 token 编号和控制结果（预计算 embedding 等输入见 [vLLM V1 请求流](vllm-v1-shape.md#vllm-怎样把一条请求变成一步一步的计算)）。请求进门时的登记见 [API server 入口](api-server-entry.md)，本节沿结果回程往下走。
 
 ```wiki-diagram
 file: streaming-output-flow
@@ -365,7 +368,11 @@ file: streaming-output-fig-holdback-buffer
 
 ## 隐藏思考、少思考和不思考，是同一个开关吗？
 
-**隐藏已生成的思考文字只改变返回内容；要求模型少思考或不思考，必须改动输入模板或采样执行链。** 三类开关位置不同，不能互替：
+**隐藏已生成的思考文字只改变返回内容；要求模型少思考或不思考，必须改动输入模板或采样执行链。** 三类开关位置不同，不能互替——下图同时把这三道开关与后文 GLM 双机单前端扇入及 MTP 确认推送节奏收在一处对照：
+
+```wiki-diagram
+file: streaming-output-fig-mtp-reasoning
+```
 
 | 控制目标 | 生效阶段 | 核验重点 |
 |---|---|---|
@@ -378,7 +385,7 @@ file: streaming-output-fig-holdback-buffer
 还需留意两项联动副作用：
 
 - **答案元数据同步被清空**：较新普通 Chat 解析分支在关闭思考返回时，会连带停止返回逐 token 的 `logprobs` 与 `token_ids`，**答案段同样受影响**（旧基线普通流式分支行为不同，见页末版本表）。
-- **与结构化输出联动改计算起点**：请求同时使用结构化输出时，四版普通非 beam Chat 入口在关闭思考返回后会向引擎传入 `reasoning_ended = True`，文法约束随即从第 1 个输出 token 生效，不再等真实思考结束标记（见[结构化输出](structured-output.md#思考阶段官方命令从第一个输出-token-起就约束)，真正预算控制见[采样页](sampling.md#思考预算怎样让模型转去回答)）。
+- **与结构化输出联动改计算起点**：请求同时带结构化输出时，四版普通非 beam Chat 入口在关闭思考返回后会向引擎传入 `reasoning_ended = True`。文法约束随即从第 1 个输出 token 生效，不再等真实思考结束标记（见[结构化输出](structured-output.md#思考阶段官方命令从第一个输出-token-起就约束)，预算控制见[采样页](sampling.md#思考预算怎样让模型转去回答)）。
 
 ## DeepSeek Recipe：编号流与文本流的边界不同
 
@@ -414,7 +421,8 @@ MTP（multi-token prediction）每步草拟 3 个候选 token，下一轮由主�
 ### GLM 的思考标记、结束编号与专用补丁
 
 - **快速解码流**：GLM 分词器为字节级 BPE（见 [token](token.md#glm-的分词器是字节级-bpe)），配置声明 `tokenizers` 后端，镜像内 `tokenizers >= 0.22` 时走快速解码流。
-- **思考标记归属**：聊天模板把 `&lt;think&gt;` 放在提示词末尾，模型从第 1 枚输出就开始写思考。`&lt;think&gt;` 与 `&lt;/think&gt;` 编号为 `154841`、`154842`，落在 36 个特殊标记编号段内，但分词器文件中 `special` 标志为 `false`，默认 `skip_special_tokens=true` 去不掉它们。官方双机原配方未配置 reasoning parser（不能只给请求传 `include_reasoning=false` 就剥离思考），因此思考文字、`&lt;/think&gt;` 与答案全部顺序落在 `content` 里，客户端须自行按 `&lt;/think&gt;` 切分。函数调用教程另配 `--tool-call-parser glm47` 与 `--reasoning-parser glm45`，配齐后思考文字才分入 `reasoning` 字段（见[结构化输出](structured-output.md)）。
+- **思考标记归属**：聊天模板把 `&lt;think&gt;` 放在提示词末尾，模型从第 1 枚输出就开始写思考。`&lt;think&gt;` 与 `&lt;/think&gt;` 编号为 `154841`、`154842`，落在 36 个特殊标记编号段内，但分词器文件中 `special` 标志为 `false`，默认 `skip_special_tokens=true` 去不掉它们。
+  官方双机原配方未配 reasoning parser（仅传 `include_reasoning=false` 不能剥离思考），因此思考文字、`&lt;/think&gt;` 与答案全落在 `content` 里，客户端须自行按 `&lt;/think&gt;` 切分。函数调用教程另配 `--tool-call-parser glm47` 与 `--reasoning-parser glm45`，配齐后思考文字才分入 `reasoning` 字段（见[结构化输出](structured-output.md)）。
 - **三个结束编号**：`154820`、`154827`、`154829` 均标为特殊 token（见 [token](token.md#编号要落在-154880-行之内)）；抽中后引擎判正常结束，默认不解码，结束原因记 `stop`。
 - **专用补丁**：昇腾快照 `db701c1f` 为 GLM 聊天流增加一层专用补丁（仅工具调用时生效），把原本挤在同一帧里的末段工具参数与 `finish_reason: "tool_calls"` 拆成两帧，先发参数再发只带结束原因的空帧。
 

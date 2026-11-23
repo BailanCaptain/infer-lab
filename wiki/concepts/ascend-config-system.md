@@ -4,6 +4,7 @@ title: Ascend 配置：三个地方能写，哪个值真的生效
 type: feature
 legacyAnchors:
   落到-glm-双机一个-json-键都没传: 复杂异构实战对照：GLM 双机为何一个 JSON 键都没传
+  v0300-与-main-的严格校验与环境变量收口: 解析完还会被改写：生效值不是你写的值
 summary: >-
   昇腾开关分散在三个入口——命令行通用参数、--additional-config JSON 与环境变量。本页先以 v0.30.0
   主基线的 Pydantic 严格解析链路和 Qwen3 常用配置讲清合并、校验与改写机制，再对照 GLM 双机案例与四版本差异。
@@ -179,13 +180,19 @@ file: config-inputs
 
 ## 三路撞在一起时，谁说话
 
-在 `v0.30.0` 主基线下，用户输入按以下顺序收敛：
+同一开关同时出现在 JSON 与环境变量里时，旧版 `v0.23.0` 与新版 `v0.30.0 / main` 会给出**截然相反的结果**。把同一组合法冲突输入 `JSON=false` 与 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1` 分别送入两代解析流水线，再一路追到原子发布、角色改写与消费者读取，全链路如下：
 
-1. **绝大多数开关只认 `--additional-config` JSON**：写则取值、缺省用默认值，拼错或类型错在 Pydantic 构造期即报错；旧版 `VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 等环境变量已从 `envs.py` 退役。
-2. **唯一保留的环境变量兜底（`VLLM_ASCEND_ENABLE_FLASHCOMM1`）**：`derive_and_validate` 直接读取该环境变量（去空白转小写后仅 `1` / `true` 为真），与 JSON 的 `enable_flashcomm1` 做**逻辑或（`or`）**合并。因此若环境已设为开启，JSON 里显式写 `false` 无法将其关掉。
+```wiki-diagram
+file: ascend-config-fig-two-gen-precedence
+```
+
+在 `v0.30.0` 主基线下，用户输入按三条规则收敛：
+
+1. **绝大多数开关只认 `--additional-config` JSON**：写则取值、缺省用默认值，拼错或类型错在 Pydantic 构造期直接报错。旧版 `VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 等均已从 `envs.py` 退役。
+2. **唯一保留的环境变量兜底（`VLLM_ASCEND_ENABLE_FLASHCOMM1`）**：`derive_and_validate` 读取该环境变量（去空白转小写后仅 `1` / `true` 为真），与 JSON 的 `enable_flashcomm1` 做**逻辑或（`or`）**合并。环境已开启时，JSON 显式写 `false` 盖不掉它。
 3. **无 JSON 对应键的环境变量**：直接由消费者读取（如构建期变量或全局 patch 阶段的 EPLB 变量）。
 
-**边界与历史兼容（`v0.23.0` / GLM 镜像 9 对兼容映射）**：旧版有 9 个字段同时支持 JSON 键与环境变量（完整对照表见[怎么开](#怎么开)，命名不能靠猜，如 `weight_nz_mode` 对应 `VLLM_ASCEND_ENABLE_NZ`，监控守护变量甚至不带昇腾前缀）。旧版以「键是否在 JSON 字典里」定胜负——**JSON 出现即优先**（显式 `false` 可盖掉环境 `true`）；但调用方会先对环境变量求值，若环境字符串非法，即使 JSON 已写该键也会提前报错：
+**边界与历史兼容（`v0.23.0` / GLM 镜像 9 对兼容映射）**：旧版有 9 个字段同时支持 JSON 与环境变量（完整对照表见[怎么开](#怎么开)，命名不能靠猜，如 `weight_nz_mode` 对应 `VLLM_ASCEND_ENABLE_NZ`，监控守护变量不带昇腾前缀）。旧版按「键是否在 JSON 字典里」定胜负——**JSON 出现即优先**（显式 `false` 盖掉环境 `true`）。但调用方会先对环境变量求值：一旦环境字符串非法，即使 JSON 已写该键也会提前报错退出：
 
 | JSON 写法（旧版 9 对映射） | 环境变量读值 | 旧版解析结果 |
 |---|---|---|
@@ -194,11 +201,11 @@ file: config-inputs
 | 省略该键 | `true` | `true` |
 | 省略该键 | 未设（用读取器默认） | 读取器默认值 |
 
-**缓存与懒读的时机边界**：写入 `_ASCEND_CONFIG` 的字段在构造完成那一刻即定型；而 `envs.py` 每次属性访问都会现读当前进程的 `os.environ`。在启动终端里重新 `export` 不会改变已运行服务或其他 Worker 的进程环境，配置变更必须通过重启并核对日志生效，不能把懒读当成服务热更新。
+**缓存与懒读的时机边界**：写入 `_ASCEND_CONFIG` 的字段在构造完成那一刻即定型；`envs.py` 则在每次属性访问时现读当前进程的 `os.environ`。在终端重新 `export` 不会改变已运行服务或其他 Worker 的环境，配置变更必须重启服务并核对日志。
 
 ## 解析完还会被改写：生效值不是你写的值
 
-拿到解析后的字段值，还不等于运行时真正生效的值。配置落地必须再过两道关卡，整体严格校验与原子发布流水线如下：
+拿到解析后的字段值，还不等于运行时真正生效的值。配置从环境变量持续收口到强类型子配置，落地前还须穿过两道关卡：
 
 ```wiki-diagram
 file: ascend-config-system-fig-pydantic-flow
@@ -206,17 +213,17 @@ file: ascend-config-system-fig-pydantic-flow
 
 **第一道：构造与派生校验（`init_ascend_config`）**
 
-在 `v0.30.0` 与 `main` 中，Pydantic 解析完成后会顺序执行 `derive_and_validate` 以及 RL、细粒度 TP、Xlite 前置校验；全部通过后才原子发布 `_ASCEND_CONFIG` 并清理派生的序列并行缓存（`clear_enable_sp()`），失败时保留旧单例。典型跨字段约束包括：
+在 `v0.30.0` 与 `main` 中，Pydantic 解析完成后顺序执行 `derive_and_validate` 以及 RL、细粒度 TP、Xlite 前置校验。全部通过后才原子发布 `_ASCEND_CONFIG` 并清理派生的序列并行缓存（`clear_enable_sp()`）；任一环节失败时保留旧单例。典型跨字段约束如下：
 
-- **profiling 分块**：开启要求 `PP > 1`（多层阶段接力），且与均衡调度互斥；最小块大于每步 token 预算时会被裁至预算值并打日志；即便未开启，传入的 `min_chunk`、`smooth_factor`、`max_fit_chunk` 仍须通过范围检查。
-- **细粒度 TP 约束（历史边界）**：在旧 GLM 实现中，若注意力输出投影（`oproj_tensor_parallel_size`）或词嵌入（`embedding_tensor_parallel_size`）大于 0，会强制要求 `recompute_scheduler_enable=true`；LM head（`lmhead_tensor_parallel_size`）不受此约束。
+- **profiling 分块**：开启要求 `PP > 1`，且与均衡调度互斥；最小块大于每步 token 预算时会被裁至预算值并打日志；即便未开启，传入的 `min_chunk`、`smooth_factor`、`max_fit_chunk` 仍须通过范围检查。
+- **细粒度 TP 约束（历史边界）**：旧 GLM 实现中，若注意力输出投影（`oproj_tensor_parallel_size`）或词嵌入（`embedding_tensor_parallel_size`）大于 0，会强制要求 `recompute_scheduler_enable=true`；LM head（`lmhead_tensor_parallel_size`）不受此约束。
 
 **第二道：平台准备与角色改写（`NPUPlatform.check_and_update_config`）**
 
 平台先运行前置校验，再构造配置，随后按部署角色改写部分开关（完整校验族见 [NPU 平台](npu-platform.md#校验与改写怎样影响执行)）：
 
 - **PD 分离角色改写**：在 PD 分离的 `producer`（prefill）侧，重算调度开关会被忽略并重置为关闭（仅打警告）；若既不是 `producer` 也不是 `consumer` 却开启该开关，则直接报错。
-- **进程内缓存守卫**：在旧版逐键路径中，平台与 Worker 共用同一建配置函数，仅在「已有缓存 + 绑定同一 `VllmConfig` + `refresh` 为假 + 具备 `ascend_compilation_config` 与 `eplb_config` 两项属性」四条全满足时复用；不满足守卫的新实例只打警告不覆盖旧缓存。直接改动已绑定字典而不触发重建，不会自动重解析；取配置时若缓存为空或缺失必要属性，将直接抛出「配置未初始化」。
+- **进程内缓存守卫**：旧版逐键路径中，平台与 Worker 共用同一建配置函数，仅在「已有缓存 + 绑定同一 `VllmConfig` + `refresh` 为假 + 具备 `ascend_compilation_config` 与 `eplb_config` 两项属性」四条全满足时复用；不满足守卫的新实例只打警告不覆盖旧缓存。直接改动字典不触发重解析；取配置时缓存为空或缺必要属性会直接抛「配置未初始化」。
 
 ## 复杂异构实战对照：GLM 双机为何一个 JSON 键都没传
 

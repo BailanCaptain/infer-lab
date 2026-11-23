@@ -124,23 +124,23 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 | ec_manager/、observability/（`v0.30.0` 起） | 编码器缓存管理（`score_ec_manager.py`）与指标/运行时守护（`main` 扩出 `runtime_guard/` 与 `ms_metrics/`） | 多模态 EC 与运行期观测钩子 |
 | 根目录 csrc/ | 自定义设备扩展如何构建与计算（`main` 移除旧 `sparse_attention_score/` / `msa_index_score/` 并新增 `engram_hixl/`） | `torch.ops` 等扩展调用 |
 
-同一目录可包含互斥的实现，需沿当前配置实际选择的分支继续读；在 `main` 分支中，`worker/model_runner_v1.py` 已物理删除并由 `mrv2_utils.py` 全面收敛至 `worker/v2/model_runner.py`，详见[版本差异](#版本差异)。
+同一目录常含互斥实现，须按当前配置分支继续追。`main` 分支已物理删除 `worker/model_runner_v1.py`，并由 `mrv2_utils.py` 收敛至 `worker/v2/model_runner.py`，详见[版本差异](#版本差异)。
 
 ## 沿 GLM 执行路径读一组文件
 
-把地图落到一次实际请求上，按「执行入口 → 模型与层 → 算子与并行 → 启动注册」四段串读最省力：
+按「执行入口 → 模型与层 → 算子与并行 → 启动注册」四段串读一次实际请求最省力：
 
-- **执行入口与输入准备**：先从 `worker/worker.py` 的执行入口看 Worker 接收什么，再进入 `worker/model_runner_v1.py` 的输入准备、模型前向和采样交接。对照[准备输入页](prepare-inputs-flow.md)，记录 token（文本切成的小片段）的输入行、位置与块表（历史缓存所在块的编号表）如何对应。
-- **区分 Runner 交给 Worker 与 Worker 交回引擎的结果**：模型执行输出、异步输出或空值可以直接交回；异步输出还需等待结果就绪后再取得实际输出。Runner 也可以交出供后续模型层继续计算的中间张量——在流水并行（模型分成前后多段、由不同 Worker 接力）中，由内部执行器负责接力且当前不是最后一段时，Worker 将中间张量发给下一段，随后按缓存传输信息返回空值或结果对象，不会把它当成最终 token 交回引擎。若执行返回空值，普通 `step` 才另外调用 `sample_tokens` 选出输出 token；是否进入这个采样入口取决于执行返回值。
-- **模型前向与注意力后端**：模型前向进入已注册的 GLM 类；`models/glm5_next.py` 负责选择混合层，并连接 mHC、注意力与前馈计算（mHC 管理并混合多路跨层残差向量，注意力从历史中取信息，前馈再变换当前向量，结构见[模型总览](glm-5-3-flash.md)）。进入具体层后再追 `attention/` 或 `ops/`：例如 GLM 的稀疏注意力沿用 **DSA**（DeepSeek Sparse Attention），用 **lightning indexer** 这个轻量打分网络先挑出要读取的历史再做注意力计算（候选历史组织见[稀疏注意力](sparse-attention.md#候选位置从哪里来)）；它在 `ops/` 中包装注意力层并绑定后端，后端类则定义在 `attention/` 中，阅读时沿对象构造与调用继续追踪。
-- **分布式、CustomOp 与启动配置**：张量在设备间分片时，接着读并行层与 `distributed/`（Worker 初始化为这些计算建立通信组）；要解释某个算子为何走 Ascend 实现，回查 `utils.py` 的 `CustomOp` 登记与启用条件（`CustomOp` 是允许插件登记并替换计算实现的扩展点）。启动时的插件与平台准备则沿 `__init__.py` → `platform.py` 另行展开；读到平台配置更新时还要留意早退条件——已有设备配置且类型不匹配，或模型配置缺失时，Ascend 的配置更新函数会提前返回，这不是整个启动流程必然终止的判断。
+- **执行入口与输入准备**：先看 `worker/worker.py` 接什么，再进 `worker/model_runner_v1.py` 看输入准备、前向与采样交接。对照[准备输入页](prepare-inputs-flow.md)，记清 token 输入行、位置与块表（历史缓存块编号表）的对应关系。
+- **区分 Runner→Worker 与 Worker→引擎的返回值**：普通输出、异步输出或空值可直接交回；异步输出须等待就绪才能取真实结果。Runner 也可产出中间张量——流水并行下，由内部执行器接力且非末段时，Worker 把中间张量发给下一段，再按缓存传输信息返回空值或结果对象，绝不当成最终 token 交回。只有执行返回空值时，普通 `step` 才另调 `sample_tokens` 采样。
+- **模型前向与注意力后端**：前向进入已注册 GLM 类。`models/glm5_next.py` 选择混合层，并串起 mHC、注意力与前馈（mHC 混合多路跨层残差，结构见[模型总览](glm-5-3-flash.md)）。进层后再追 `attention/` 或 `ops/`：GLM 稀疏注意力沿用 **DSA**（DeepSeek Sparse Attention），先用轻量 **lightning indexer** 挑历史再算注意力（见[稀疏注意力](sparse-attention.md#候选位置从哪里来)）。它在 `ops/` 中包装层并绑定后端，后端定义在 `attention/` 内，沿构造关系追即可。
+- **分布式、CustomOp 与启动配置**：张量跨卡分片时追并行层与 `distributed/`（Worker 初始化建通信组）。要解释某算子为何走 Ascend 实现，回查 `utils.py` 的 `CustomOp` 登记与启用条件。启动期注册沿 `__init__.py` → `platform.py` 另追。读平台配置更新时留意早退条件——已有设备配置且类型不匹配，或缺少模型配置时，Ascend 配置更新函数会提前返回，并非必然终止启动。
 
 ## 常见误解
 
-- **目录越大、文件越长就越重要？** 组件在请求路径中的职责取决于它接收什么、改变什么、把结果交给谁；目录大小和文件行数不能判断重要程度。
-- **目录表列出了整个仓库？** 这是按职责选出的阅读入口；具体路径涉及表外目录时，仍要沿调用继续追踪，某段功能也可以跨多个目录。
-- **目录名就是完整调用链？** 目录给出代码位置，实际先后由对象构造和调用关系决定；同名的 core 在上游与 Ascend 中也有不同职责。
-- **注册是每轮模型计算的一站？** 插件与平台的注册在启动准备阶段完成，运行时使用选好的实现；应分开追踪这两条路径。
+- **目录越大、文件越长就越重要？** 组件职责看它接什么、改什么、交什么，不看目录或行数大小。
+- **目录表列出了整个仓库？** 它只是按职责挑的入口；路径跨目录或涉及表外文件时仍要沿调用追。
+- **目录名就是完整调用链？** 目录只标代码位置，先后顺序由构造和调用决定；同名 `core` 在双仓职责不同。
+- **注册是每轮计算的一站？** 插件与平台注册在启动期完成，在线推理只用选好的实现，两段应分开追。
 
 ## 对照源码
 
@@ -163,7 +163,7 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 | 目录与演进维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 | --- | --- | --- | --- | --- |
 | 顶层目录概览 | 36 项：含 `_310p/`、`device/`、`kv_offload/`、`simple_kv_offload/`、`flash_common3_context.py` | 36 项：新增 `transformers_utils/`，删 `flash_common3_context.py` | 36 项：**新增 `ec_manager/`、`observability/`、`weight_switch/`、`config_utils.py`**；移出 `kv_offload/`、`simple_kv_offload/`、`memcache_comm_fence.py` | 39 项：**新增 `observability/runtime_guard/`（及 `ms_metrics/`、`runtime_config/`）、`mrv2_utils.py`、`hisparse/`、`kv_trace/`、`shared_engram*.py`** |
-| `worker/` 与 Model Runner | `worker/model_runner_v1.py`（MRV1） | 同 `v0.23.0` | **新增 `worker/v2/`**（与 `model_runner_v1.py` 并存，未设 `VLLM_USE_V2_MODEL_RUNNER` 默认走 MRV1） | **物理删除 `worker/model_runner_v1.py`**，由 `mrv2_utils.py` 全面收敛至 `worker/v2/model_runner.py` |
+| `worker/` 与 Model Runner | 默认 `worker/model_runner_v1.py`（MRV1）；已有早期 `worker/v2/`（带回退门槛） | 默认 MRV1；已建 `worker/v2/` 目录并支持按门禁导入 | **`worker/v2/` 扩展完善**（与 `model_runner_v1.py` 并存，未设 `VLLM_USE_V2_MODEL_RUNNER` 默认走 MRV1，按开关启用） | **物理删除 `worker/model_runner_v1.py`**，由 `mrv2_utils.py` 升格 `worker/v2/model_runner.py` 为默认唯一执行器 |
 | `device/`、`ec_manager/` 与 `core/` | `device/device_op.py`；无 `ec_manager/`；`core/` 含 `scheduler_dynamic_batch.py` / `scheduler_profiling_chunk.py` | `core/` 删 `scheduler_dynamic_batch.py`，增 `batch_job_aware_scheduler.py` / `short_request_first_scheduler.py` | `device/hardware_profile.py` 硬件能力档案；`ec_manager/score_ec_manager.py`；`core/` 含 `dyntra_lb_scheduler.py` 与 `scheduler_profiling_chunk.py` | `core/` **删除 `scheduler_profiling_chunk.py` 与 `profiling_chunk_predictor.py`**，新增 `kv_cache_config_builder.py`、`kv_cache_dtype_handlers.py` |
 | `models/`、`quantization/` 与 `ops/` | 维护分支无 GLM（镜像 `db701c1f` 为 `models/glm5_next.py`）；W8A8 在 `quantization/methods/w8a8_dynamic.py` | 无 GLM（有 Kimi K3） | 目录化拆出 `models/glm5next/`、`quantization/methods/w8a8/`、`ops/fused_moe/router/` | 延续目录化拆分与 `models/glm5next/`、`quantization/methods/w8a8/` 结构 |
 | 根目录 `csrc/` 扩展 | 含 `batch_matmul_transpose/`、`moe/`、`attention/` 等 | 删 `batch_matmul_transpose/`，增 `attention/sparse_attention_score/` CPP | 含 `attention/sparse_attention_score/` 与 `attention/msa_index_score/` CPP | **删除 `csrc/attention/sparse_attention_score/` 与 `msa_index_score/` 等 score CPP 目录**，新增 `csrc/engram_hixl/` |

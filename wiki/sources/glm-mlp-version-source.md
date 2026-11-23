@@ -68,7 +68,7 @@ rawSources:
 
 这是路径材料的覆盖表，不是功能支持表。[!] `missing` 只证明指定快照的指定路径不存在；没有其他入口、注册信息与替代实现材料，不能据此判断整个功能不存在，也不能确定首次支持版本。两个发布分支不加入 `verified`，缺失路径不作为带行号的来源。
 
-这里的两个旧发布分支分别固定在 2c59ff10、2ed6cbba；rc2 为 7d825229，main 为 baa023ad。后两者在该模型文件中的激活选择、稠密/MoE 分支和 SP 调用顺序一致，所以以下对应摘录也适用于 rc2；外围配置、后端和设备支持仍需分别核对。
+这里的两个旧发布分支分别固定在 `2c59ff10`、`2ed6cbba`；`rc2` 为 `7d825229`，`main` 为 `baa023ad`。后两者在该模型文件中的激活选择、稠密/MoE 分支和 SP 调用顺序一致，所以以下对应摘录也适用于 `rc2`；外围配置、后端和设备支持仍需分别核对。
 
 ## main 的激活与投影能确认到哪一步？
 
@@ -79,7 +79,7 @@ rawSources:
 
 两个投影接收同一个量化配置。这里的维度是线性层的逻辑构造维度；每卡实际保存的权重布局，还取决于是否启用 TP 及量化层的存储实现。
 
-固定 main 快照的稠密路径选择也已核对：当前层索引在 `config.mlp_layer_types` 范围内时取对应项，超出范围时沿用最后一项，列表为空时回退为 `"sparse"`。只有 `self.is_moe` 为真、`self.num_experts` 非 `None` 且所选类型为 `"sparse"` 时，才构造 `Glm5NextMoE`；其他情况构造 `Glm5NextMLP`。具体模型的层分布还要代入配置，不能仅从这段通用分支判断。
+固定 `main` 快照的稠密路径选择也已核对：当前层索引在 `config.mlp_layer_types` 范围内时取对应项，越界则沿用最后一项，列表为空时回退为 `"sparse"`。只有 `self.is_moe` 为真、`self.num_experts` 非 `None` 且所选类型为 `"sparse"` 时才构造 `Glm5NextMoE`，其余情况构造 `Glm5NextMLP`。具体模型的层分布仍须代入配置，不能仅凭这段通用分支推断。
 
 ## 序列并行设置说明了什么通信边界？
 
@@ -89,13 +89,17 @@ rawSources:
 
 解码层的稠密分支实际传入 `is_sequence_parallel=self.is_sequence_parallel` 和 `reduce_results=not self.is_sequence_parallel`：SP 时关闭投影的 TP 与输出归约，非 SP 时保留 TP 并请求输出归约。[C2] 底层线性层定义没有提供，本页不进一步认证权重加载、量化布局或通信实现。
 
-固定 main 快照的外层 mHC 路径中，SP 开启时先调用 `sp_all_gather(x)`，再按 `positions.shape[0]` 截取结果送入 attention；attention 输出经过 `sp_reduce_scatter`，再进入 attention 后混合、前馈前混合及输入 RMSNorm，最后进入相应的前馈模块。[C3] mHC 是约束多路残差连接混合与写回的机制。这段已核执行顺序说明，稠密 MLP 的局部通信声明不能扩展为整层没有通信；通信函数内部实现、实际张量布局与传输字节数不由这段调用代码证明。
+固定 `main` 快照的外层 mHC（约束多路残差连接混合与写回）路径中，SP 开启时先调 `sp_all_gather(x)` 再按 `positions.shape[0]` 截取送入 attention；attention 输出经 `sp_reduce_scatter` 后，再依次过 attention 后混合、前馈前混合、输入 RMSNorm 与前馈模块。[C3]
+
+这段已核执行顺序说明，稠密 MLP 的局部通信声明不能扩展为「整层没有通信」；通信函数内部实现、实际张量布局与传输字节数也不由这段调用代码证明。
 
 ## 后续修订还缺什么材料？
 
 两个发布分支的完整功能范围仍需分别核模型注册、其他入口与替代实现；线性层底层布局及通信函数内部行为也不在原三个摘录区间内。相关教学解释统一见[前馈计算](../concepts/mlp-residual-norm.md)、[序列并行](../concepts/sequence-parallel.md)和[层与隐藏向量](../concepts/layers-and-hidden.md)，不能把本页材料范围误作整个知识库的证据缺口。
 
-GLM-5.3-Flash 的固定配置 `690b7052` 与执行侧 `db701c1f` 则对应旧部署：45 个主干层的类型表为前 3 层 dense、后 42 层 sparse，`swiglu_limit=10`；执行侧模型按层型选择稠密模块或 MoE，其稠密激活由上述限幅参数选择。限幅组件中，gate 只限制上界，up 限制上下界，随后计算 SiLU(gate) × up。完整条件及组件注册、分发边界见[前馈计算教学页](../concepts/mlp-residual-norm.md)。main、rc2 摘录不能替代旧部署快照，也不证明最终安装环境采用了哪个算子实现或获得了性能收益。
+GLM-5.3-Flash 的固定配置 `690b7052` 与执行侧 `db701c1f` 对应旧部署：45 个主干层为前 3 层 dense、后 42 层 sparse，`swiglu_limit=10`。执行侧按层型选择稠密模块或 MoE，稠密激活由该限幅参数选出：限幅组件中 gate 只限上界、up 限上下界，随后算 $\text{SiLU}(\text{gate}) \times \text{up}$。
+
+完整条件及组件注册、分发边界见[前馈计算教学页](../concepts/mlp-residual-norm.md)。`main` 与 `rc2` 摘录不能替代旧部署快照，也不证明最终安装环境采用了哪个算子实现或获得了性能收益。
 
 逐字摘录见[源码摘录](../raw/sha256-5a90f64fa82c9472ef5de2ac2b63ff137b4b161bcbc09c14514c090c5a9c09bc.md)。
 

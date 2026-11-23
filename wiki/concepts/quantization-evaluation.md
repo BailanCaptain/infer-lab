@@ -3,6 +3,8 @@ id: quantization-evaluation
 title: 量化验收：怎样判断省了内存、保住质量、真正提速
 type: concept
 origin: direct
+legacyAnchors:
+  放到-glm-双机一次对照实验怎样进行: 复杂异构实战对照：GLM 双机上的五步对照验收流程
 summary: >-
   把量化验收拆成产物一致性、中间数值、任务质量、实际内存和服务性能；用误差与耗时小例子解释为什么文件变小不等于推理变快，并给出固定 GLM
   双机可复核的对照流程。
@@ -156,6 +158,10 @@ $$S = \frac{T_{\text{orig}}}{T_{\text{new}}} = \frac{100}{80} = 1.25, \qquad \De
 | 新总时间（含 10 ms 量化/反量化） | $30\text{ ms} + 10\text{ ms} + 40\text{ ms}$ | **80 ms** |
 | 加速比 | $100 \div 80$ | **1.25×** |
 | 总时间下降比例 | $(100 - 80) \div 100$ | **20%** |
+
+```wiki-diagram
+file: quantization-evaluation-fig-amdahl-bar
+```
 
 真实执行还会重叠搬运与计算，需要用时间线确认关键路径。小批 decode、较大批 prefill、长上下文 attention 的瓶颈不同：weight-only 重点检查权重流量，W8A8 还要检查是否实际选中低精度矩阵计算，KV 量化重点检查历史状态容量与读取。三类收益要分别测。
 

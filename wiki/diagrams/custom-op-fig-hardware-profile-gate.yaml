@@ -1,0 +1,14 @@
+mode: native-svg
+id: custom-op-fig-hardware-profile-gate
+caption: >-
+  HardwareProfile 硬件能力门控矩阵与运行时双分支回退：对比 A2/A3、950（A5）与 310P 在 RUNTIME_CUSTOM_OPS（A5 于 v0.30.0 尚未包含、main 已补回）、COMPATIBILITY_OP_IMPLEMENTATIONS（310P 覆写 _310p/ 子类）、WeightLayoutPolicy.FORCE_NZ 及片上 UB（192 KB 对 128 KB）与 HAS_TRITON 的差异，并标出 VLLM_BATCH_INVARIANT=1 与 if enable_custom_op() 强制回退范式。
+size: [900, 436]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L382
+    symbols: [HardwareProfile, AscendDeviceType, COMPATIBILITY_OP_IMPLEMENTATIONS, RUNTIME_CUSTOM_OPS, FORCE_NZ]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L500
+    symbols: [RUNTIME_CUSTOM_OPS]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L540-L585
+    symbols: [enable_custom_op, RUNTIME_CUSTOM_OPS, VLLM_BATCH_INVARIANT]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/triton/triton_utils.py#L13-L65
+    symbols: [DEFAULT_UB_SIZE_BYTES, HAS_TRITON, _resolve_triton_ascend_op]

@@ -1,79 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="NPU-PCIe-NUMA 亲和拓扑、A2 跨节点补池平分角色切片及 A3 和 Ascend 950 差异图" font-family="var(--font-sans)">
-  <title>CPU 绑核：NPU-PCIe-NUMA 亲和补池平分、角色切片与 A2 / A3 / A5（950）分派差异</title>
-  <desc>关联源码符号：average_distribute, extend_numa, build_ascend_950_cpu_pools, _allocate_default_roles, bind_cpus, migrate_memory, cpu_binding_mode</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="昇腾 NPU-PCIe-NUMA 跨节点补池平分核带图与 A2/A3/Ascend 950 绑核模式对照" font-family="var(--font-sans)">
+  <title>CPU 绑核：NUMA 跨节点补池与角色切分核带（A2 算法实例）及 A2 / A3 / A5（950）对照</title>
+  <desc>Visual NUMA core-strip layout for A2 2-NPU shared pool (cores 144-167 extended to 168-191, split 24 each into 2 IRQ + 20 Main + 1 ACL + 1 Release, showing NPU2 page migration lands on NUMA k+1), plus A2/310P vs A3 vs Ascend 950 cluster comparison and migrate_memory=False</desc>
   <defs>
-    <marker id="cb-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    <marker id="cb-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
     </marker>
-    <marker id="cb-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="cb-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="cb-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
   </defs>
 
-  <!-- Zone 1: A2 TOPO_AFFINITY example -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① A2 / 310P 拓扑亲和路径（上游 2 卡共享池算法示意：亲和 144-167 ∩ cpuset 144-191）</text>
+  <!-- UPPER BAND: A2 NUMA Core-Strip & PCIe Affinity Visual -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① A2 拓扑亲和示例：交集全在单节点 → extend_numa 补下一节点 → 按卡序平分并切角色</text>
 
-  <rect x="16" y="44" width="256" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#936300">1. 取交集并跨节点补池</text>
-  <text x="30" y="94" font-size="13.5" fill="#4d5652">亲和 144-167 全在同 NUMA</text>
-  <text x="30" y="116" font-size="13.5" fill="#4d5652">extend_numa() 补下一节点</text>
-  <text x="30" y="138" font-size="13.5" fill="#936300" font-weight="600">168-191 → 共 48 核共享池</text>
-  <text x="30" y="158" font-size="13.5" fill="#66716d">本来跨 ≥2 节点则不扩展</text>
+  <!-- Two NUMA Node Containers -->
+  <rect x="14" y="42" width="424" height="174" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="24" y="66" font-size="13.5" font-weight="700" fill="#17211f">NUMA 节点 k（核 144–167 · 24 核）</text>
+  <text x="428" y="66" text-anchor="end" font-size="12.5" fill="#065f56" font-weight="700">NPU0 / NPU2 亲和起点</text>
 
-  <line x1="274" y1="105" x2="302" y2="105" stroke="#c78300" stroke-width="1.8" marker-end="url(#cb-arr-a)"/>
+  <rect x="462" y="42" width="424" height="174" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="472" y="66" font-size="13.5" font-weight="700" fill="#17211f">NUMA 节点 k+1（核 168–191 · 24 核）</text>
+  <text x="876" y="66" text-anchor="end" font-size="12.5" fill="#936300" font-weight="700">extend_numa() 补入</text>
 
-  <rect x="306" y="44" width="276" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="320" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">2. 多卡共用池按卡序平分</text>
-  <text x="320" y="94" font-size="13.5" fill="#4d5652">NPU0 拿前段：144-167（24 核）</text>
-  <text x="320" y="116" font-size="13.5" fill="#4d5652">NPU2 拿后段：168-191（24 核）</text>
-  <text x="320" y="138" font-size="13.5" fill="#3a4f93" font-weight="600">迁页目标 = 池内最小核所在节点</text>
-  <text x="320" y="158" font-size="13.5" fill="#8f3229">NPU2 整段与页落入下一 NUMA</text>
+  <!-- Extend arrow across NUMA boundary -->
+  <path d="M 438 112 L 458 112" fill="none" stroke="#b54237" stroke-width="2" marker-end="url(#cb-arr-r)"/>
 
-  <line x1="584" y1="105" x2="612" y2="105" stroke="#087f73" stroke-width="1.8" marker-end="url(#cb-arr-t)"/>
+  <!-- NPU0 Proportional 24-core segmented strip (w=396px => 16.5px/core: 2=33, 20=330, 1=16.5, 1=16.5) -->
+  <text x="28" y="92" font-size="13.5" font-weight="700" fill="#065f56">NPU0 分得前段 24 核（144–167）：按池位置切 4 角色</text>
+  <g stroke-width="1.3" font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="28" y="100" width="54" height="36" rx="4" fill="#fff0e9" stroke="#b54237"/><text x="55" y="123" fill="#8f3229">2 IRQ</text>
+    <rect x="84" y="100" width="232" height="36" rx="4" fill="#ddf4ef" stroke="#087f73"/><text x="200" y="123" font-size="12.5" fill="#065f56">中间 20 核 · 主线程（assign_main）</text>
+    <rect x="318" y="100" width="52" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86"/><text x="344" y="123" fill="#7a3a6a">ACL</text>
+    <rect x="372" y="100" width="52" height="36" rx="4" fill="#e8edff" stroke="#4c65b6"/><text x="398" y="123" fill="#3a4f93">Rel</text>
+  </g>
+  <!-- Page Migration target for NPU0 -->
+  <path d="M 55 138 L 55 162" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#cb-arr-t)"/>
+  <rect x="28" y="166" width="396" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="226" y="189" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">NPU0 迁页 → 最小核 144 所在 NUMA k（本地）</text>
 
-  <rect x="616" y="44" width="268" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="630" y="70" font-size="14.5" font-weight="700" fill="#065f56">3. 按池位置切角色（≥5 核）</text>
-  <text x="630" y="94" font-size="13.5" fill="#8f3229">前 2 核：中断（停 irqbalance）</text>
-  <text x="630" y="116" font-size="13.5" fill="#065f56" font-weight="600">中间 20 核：主线程 + 子线程</text>
-  <text x="630" y="138" font-size="13.5" fill="#7a3a6a">最后 2 核：ACL 1 + release 1</text>
-  <text x="630" y="158" font-size="13.5" fill="#4d5652">角色只看位置，不看核属哪节点</text>
+  <!-- NPU2 Proportional 24-core segmented strip in NUMA k+1 -->
+  <text x="476" y="92" font-size="13.5" font-weight="700" fill="#8f3229">NPU2 分得后段 24 核（168–191）：整段落入下一节点！</text>
+  <g stroke-width="1.3" font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="476" y="100" width="54" height="36" rx="4" fill="#fff0e9" stroke="#b54237"/><text x="503" y="123" fill="#8f3229">2 IRQ</text>
+    <rect x="532" y="100" width="232" height="36" rx="4" fill="#fff4cf" stroke="#c78300"/><text x="648" y="123" font-size="12.5" fill="#936300">中间 20 核 · 主线程（assign_main）</text>
+    <rect x="766" y="100" width="52" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86"/><text x="792" y="123" fill="#7a3a6a">ACL</text>
+    <rect x="820" y="100" width="52" height="36" rx="4" fill="#e8edff" stroke="#4c65b6"/><text x="846" y="123" fill="#3a4f93">Rel</text>
+  </g>
+  <!-- Page Migration target for NPU2 -->
+  <path d="M 503 138 L 503 162" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#cb-arr-r)"/>
+  <rect x="476" y="166" width="396" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="674" y="189" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">NPU2 迁页 → 最小核 168 所在 NUMA k+1（非原亲和节点）</text>
 
-  <line x1="16" y1="184" x2="884" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <line x1="14" y1="234" x2="886" y2="234" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- Zone 2: Model differences across HardwareProfile -->
-  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② HardwareProfile.cpu_binding_mode 跨卡型分派（ARM 默认开启，x86 跳过）</text>
+  <!-- LOWER BAND: 3 Visual HardwareProfile Core-Allocation Tracks -->
+  <text x="14" y="262" font-size="16" font-weight="700" fill="#17211f">② HardwareProfile.cpu_binding_mode 三类硬件核布局对照（ARM 默认开，x86 跳过）</text>
 
-  <rect x="16" y="228" width="276" height="124" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="30" y="254" font-size="14.5" font-weight="700" fill="#3a4f93">Atlas A2 / 310P</text>
-  <text x="30" y="278" font-size="13.5" fill="#4d5652">• 模式：TOPO_AFFINITY</text>
-  <text x="30" y="300" font-size="13.5" fill="#4d5652">• 每卡至少 5 核（含 2 IRQ）</text>
-  <text x="30" y="322" font-size="13.5" fill="#4d5652">• 拿不到拓扑时退回 global_slice</text>
-  <text x="30" y="344" font-size="13.5" fill="#3a4f93">• 绑核异常仅告警，不拦启动</text>
+  <!-- Track 1: Atlas A2 / 310P -->
+  <rect x="14" y="278" width="170" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="99" y="298" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">Atlas A2 / 310P</text>
+  <text x="99" y="316" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">TOPO_AFFINITY</text>
 
-  <rect x="312" y="228" width="276" height="124" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="326" y="254" font-size="14.5" font-weight="700" fill="#936300">Atlas A3</text>
-  <text x="326" y="278" font-size="13.5" fill="#4d5652">• 默认模式：GLOBAL_SLICE</text>
-  <text x="326" y="300" font-size="13.5" fill="#4d5652">• 按全局逻辑设备编号均分核</text>
-  <text x="326" y="322" font-size="13.5" fill="#4d5652">• 需同 cpuset 与同设备总数</text>
-  <text x="326" y="344" font-size="13.5" fill="#936300">• 避免多进程各从 0 号核重切</text>
+  <rect x="196" y="278" width="440" height="44" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <rect x="204" y="286" width="70" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/><text x="239" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">2 IRQ</text>
+  <rect x="278" y="286" width="234" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/><text x="395" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Main（≥1 核）</text>
+  <rect x="516" y="286" width="54" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/><text x="543" y="305" text-anchor="middle" font-size="13.5" fill="#7a3a6a">ACL</text>
+  <rect x="574" y="286" width="54" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/><text x="601" y="305" text-anchor="middle" font-size="13.5" fill="#3a4f93">Rel</text>
 
-  <rect x="608" y="228" width="276" height="124" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="622" y="254" font-size="14.5" font-weight="700" fill="#7a3a6a">Ascend 950（A5 独立分支）</text>
-  <text x="622" y="278" font-size="13.5" fill="#4d5652">• 选完整 CPU cluster（8/16 核）</text>
-  <text x="622" y="300" font-size="13.5" fill="#4d5652">• 不切 ACL/release，不绑 IRQ</text>
-  <text x="622" y="322" font-size="13.5" fill="#4d5652">• 另绑主机 UVB 线程到 NUMA0</text>
-  <text x="622" y="344" font-size="13.5" fill="#7a3a6a">• 容器须加 --pid=host；无退路</text>
+  <text x="648" y="298" font-size="13.5" font-weight="700" fill="#3a4f93">每卡 ≥ 5 核</text>
+  <text x="648" y="317" font-size="13.5" fill="#4d5652">无拓扑退回 global_slice</text>
 
-  <line x1="16" y1="370" x2="884" y2="370" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Track 2: Atlas A3 -->
+  <rect x="14" y="330" width="170" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="99" y="350" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">Atlas A3</text>
+  <text x="99" y="368" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">GLOBAL_SLICE</text>
 
-  <!-- Zone 3: v0.30.0 migrate_memory & operational boundary -->
-  <text x="16" y="396" font-size="16" font-weight="700" fill="#17211f">③ v0.30.0 / main 页迁移开关与运行期边界</text>
+  <rect x="196" y="330" width="440" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <rect x="204" y="338" width="102" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/><text x="255" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">设备 0 均分</text>
+  <rect x="312" y="338" width="102" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/><text x="363" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">设备 1 均分</text>
+  <rect x="420" y="338" width="102" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/><text x="471" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">设备 2 均分</text>
+  <rect x="528" y="338" width="100" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/><text x="578" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">… 等宽切分</text>
 
-  <rect x="16" y="410" width="424" height="58" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="30" y="434" font-size="14" font-weight="700" fill="#065f56">v0.30.0 新增 migrate_memory 参数（默认 True）</text>
-  <text x="30" y="456" font-size="13.5" fill="#4d5652">Engram CPU offload 传 False，保 HOST_UVA</text>
+  <text x="648" y="350" font-size="13.5" font-weight="700" fill="#936300">按全局设备号切</text>
+  <text x="648" y="369" font-size="13.5" fill="#4d5652">要求同 cpuset 防重叠</text>
 
-  <rect x="460" y="410" width="424" height="58" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="474" y="434" font-size="14" font-weight="700" fill="#8f3229">亲和性 ≠ 独占核；迁页仅搬启动热分配的已有页</text>
-  <text x="474" y="456" font-size="13.5" fill="#4d5652">执行时机在预热/图捕获之后；不保证后续新分配页全落本节点</text>
+  <!-- Track 3: Ascend 950 (A5) -->
+  <rect x="14" y="382" width="170" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="99" y="402" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">Ascend 950 (A5)</text>
+  <text x="99" y="420" text-anchor="middle" font-size="13.5" fill="#7a3a6a">独立 Cluster 分支</text>
+
+  <rect x="196" y="382" width="440" height="44" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <rect x="204" y="390" width="268" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/><text x="338" y="409" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">完整 Cluster（8/16 核全归 Main）</text>
+  <rect x="478" y="390" width="150" height="28" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/><text x="553" y="409" text-anchor="middle" font-size="13.5" fill="#17211f">UVB → NUMA0</text>
+
+  <text x="648" y="402" font-size="13.5" font-weight="700" fill="#7a3a6a">不切 IRQ/ACL/Rel</text>
+  <text x="648" y="421" font-size="13.5" fill="#4d5652">容器须 --pid=host</text>
+
+  <!-- Bottom Guardrails Strip -->
+  <rect x="14" y="436" width="870" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="449" y="458" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0+ 新增 migrate_memory=False（Engram CPU offload 跳过迁页保 HOST_UVA）；异常仅告警不拦启动</text>
 </svg>

@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 608" width="900" height="608" role="img" aria-label="GLM 双机 5 缓存组块表快照、c=200 与 c=202 尾状态 4 格跨块对照及 6000 token 预填充脉冲" font-family="var(--font-sans)">
+  <title>GLM 异构 5 组块表快照：首步 15 块、KDA 准入 +3 区别、c=200/202 网格与 6,000 token 脉冲</title>
+  <desc>Zone 1 shows 5 heterogeneous cache groups sharing one BlockPool (1 full + 12 KDA + 2 tail = 15 blocks, KDA +1/grp admission vs 0 borrow, null_block swap); Zone 2 shows 4-cell grids proving c=200 spans 3 blocks vs c=202 spans 4 blocks; Zone 3 shows 6,000-token prefill spike 1501 -> free 1499 -> borrow 1 -> hold 3.</desc>
+  <defs>
+    <marker id="kvg-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+    <marker id="kvg-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="kvg-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+  </defs>
+
+  <!-- ZONE 1: 5-Track Block Table Snapshot -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 五组共用单池（3,855 块，#0=null）：R1 首步 1 + 12 + 2 = 15 块及演进轨迹</text>
+
+  <!-- Track 1: full group -->
+  <rect x="16" y="42" width="166" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="66" font-size="14" font-weight="700" fill="#3a4f93">1. full 组（12 层）</text>
+  <text x="28" y="88" font-size="13.5" fill="#4d5652">640 tok / 块</text>
+
+  <rect x="196" y="46" width="114" height="50" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="253" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">首步：1 块</text>
+  <text x="253" y="88" text-anchor="middle" font-size="13.5" fill="#4d5652">#1（用 7/640）</text>
+
+  <line x1="310" y1="71" x2="364" y2="71" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#kvg-arr-g)"/>
+  <text x="337" y="63" text-anchor="middle" font-size="13.5" fill="#3a4f93">&gt;640</text>
+
+  <rect x="370" y="46" width="218" height="50" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="479" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">跨 640 才补借第 2 块</text>
+  <text x="479" y="88" text-anchor="middle" font-size="13.5" fill="#4d5652">[#1, #16] · 结束前不早还</text>
+
+  <!-- Track 2-4: 3x KDA groups -->
+  <rect x="16" y="112" width="166" height="68" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="28" y="138" font-size="14" font-weight="700" fill="#936300">2–4. 3 个 KDA 组</text>
+  <text x="28" y="162" font-size="13.5" fill="#4d5652">133,120 tok / 块</text>
+
+  <!-- 3 rows of 4 cells representing 12 fixed blocks -->
+  <rect x="196" y="112" width="392" height="68" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="210" y="137" font-size="14" font-weight="700" fill="#936300">首步借齐 12 块（每组 1 当前 + 3 MTP = 4 块）</text>
+  <rect x="210" y="148" width="26" height="22" rx="3" fill="#c78300"/><rect x="240" y="148" width="26" height="22" rx="3" fill="#c78300"/>
+  <rect x="270" y="148" width="26" height="22" rx="3" fill="#c78300"/><rect x="300" y="148" width="26" height="22" rx="3" fill="#c78300"/>
+  <text x="336" y="164" font-size="13.5" font-weight="700" fill="#936300">× 3 组 = 12 块（后续不增借）</text>
+
+  <!-- Callout on right: KDA admission +3 vs borrow 0 -->
+  <rect x="604" y="42" width="280" height="138" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="618" y="68" font-size="14.5" font-weight="700" fill="#8f3229">区分：KDA 准入 +3 ≠ 真借</text>
+  <text x="618" y="94" font-size="13.5" fill="#4d5652">AscendMambaManager 缺口求和</text>
+  <text x="618" y="118" font-size="13.5" fill="#8f3229" font-weight="700">每组多报 +1（三组 +3 进比较）</text>
+  <text x="618" y="142" font-size="13.5" fill="#065f56" font-weight="700">实际 allocate_new_blocks = 0</text>
+  <text x="618" y="166" font-size="13.5" fill="#66716d">结果：常驻不变，抢占提前约 3 块</text>
+
+  <!-- Track 5: indexer tail state -->
+  <rect x="16" y="192" width="166" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="28" y="218" font-size="14" font-weight="700" fill="#065f56">5. 尾状态组（滑窗）</text>
+  <text x="28" y="241" font-size="13.5" fill="#4d5652">窗=4 · 块=4 tok</text>
+
+  <rect x="196" y="194" width="114" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="253" y="218" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">首步：2 块</text>
+  <text x="253" y="240" text-anchor="middle" font-size="13.5" fill="#4d5652">[#14, #15]</text>
+
+  <line x1="310" y1="223" x2="342" y2="223" stroke="#087f73" stroke-width="1.7" marker-end="url(#kvg-arr-t)"/>
+
+  <!-- Swapped to null_block visual -->
+  <rect x="348" y="194" width="536" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="362" y="217" font-size="14" font-weight="700" fill="#065f56">运行中边还边借：窗外整块先归还，块表旧槽位换成 0（null_block）占位</text>
+  <rect x="362" y="226" width="44" height="20" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+  <text x="384" y="241" text-anchor="middle" font-size="13.5" fill="#66716d">0</text>
+  <rect x="412" y="226" width="44" height="20" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+  <text x="434" y="241" text-anchor="middle" font-size="13.5" fill="#66716d">0</text>
+  <text x="472" y="241" text-anchor="middle" font-size="13.5" fill="#66716d">⋯</text>
+  <rect x="488" y="226" width="44" height="20" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+  <text x="510" y="241" text-anchor="middle" font-size="13.5" fill="#66716d">0</text>
+  <rect x="542" y="226" width="54" height="20" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="569" y="241" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">#64</text>
+  <rect x="602" y="226" width="54" height="20" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="629" y="241" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">#65</text>
+  <rect x="662" y="226" width="54" height="20" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="689" y="241" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">#66</text>
+  <text x="728" y="241" font-size="13.5" fill="#4d5652">（稳定持 3 或 4 块）</text>
+
+  <!-- Divider 1 -->
+  <line x1="16" y1="272" x2="884" y2="272" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- ZONE 2: c=200 vs c=202 4-Cell Grid -->
+  <text x="16" y="298" font-size="16" font-weight="700" fill="#17211f">② 尾状态为什么有时 3 块、有时 4 块？看 10 个连续位置落进 4 格块网</text>
+  <!-- Legend -->
+  <rect x="16" y="310" width="18" height="16" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+  <text x="40" y="323" font-size="13.5" fill="#66716d">窗外旧格（整块全出窗前仍持有）</text>
+  <rect x="268" y="310" width="18" height="16" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <text x="292" y="323" font-size="13.5" fill="#3a4f93">窗口保留 3 位</text>
+  <rect x="408" y="310" width="18" height="16" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="432" y="323" font-size="13.5" fill="#065f56">本步新算 4 位</text>
+  <rect x="548" y="310" width="18" height="16" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <text x="572" y="323" font-size="13.5" fill="#936300">MTP 预留 3 位</text>
+
+  <!-- Row A: c=200 (mod 4 = 0) -> 3 blocks -->
+  <text x="16" y="366" font-size="14" font-weight="700" fill="#065f56">c=200 (余 0)</text>
+  <text x="16" y="387" font-size="13.5" fill="#4d5652">起于块内第 2 格</text>
+
+  <!-- Block 49 (pos 196..199) -->
+  <rect x="148" y="346" width="144" height="48" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="152" y="350" width="32" height="24" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+  <rect x="186" y="350" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <rect x="220" y="350" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <rect x="254" y="350" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <text x="220" y="389" text-anchor="middle" font-size="13.5" fill="#4d5652">块 49（196–199）</text>
+
+  <!-- Block 50 (pos 200..203) -->
+  <rect x="304" y="346" width="144" height="48" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="308" y="350" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="342" y="350" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="376" y="350" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="410" y="350" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="376" y="389" text-anchor="middle" font-size="13.5" fill="#4d5652">块 50（200–203）</text>
+
+  <!-- Block 51 (pos 204..207) -->
+  <rect x="460" y="346" width="144" height="48" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="464" y="350" width="32" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="498" y="350" width="32" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="532" y="350" width="32" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="566" y="350" width="32" height="24" rx="3" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="532" y="389" text-anchor="middle" font-size="13.5" fill="#4d5652">块 51（204–207）</text>
+
+  <!-- Result badge A -->
+  <rect x="768" y="350" width="116" height="40" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="826" y="375" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">跨 3 块</text>
+
+  <!-- Row B: c=202 (mod 4 = 2) -> 4 blocks -->
+  <text x="16" y="430" font-size="14" font-weight="700" fill="#8f3229">c=202 (余 2)</text>
+  <text x="16" y="451" font-size="13.5" fill="#4d5652">起于块内第 4 格</text>
+
+  <!-- Block 49 (pos 196..199) -->
+  <rect x="148" y="410" width="144" height="48" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <rect x="152" y="414" width="32" height="24" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+  <rect x="186" y="414" width="32" height="24" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+  <rect x="220" y="414" width="32" height="24" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+  <rect x="254" y="414" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <text x="220" y="453" text-anchor="middle" font-size="13.5" fill="#4d5652">块 49（留 199）</text>
+
+  <!-- Block 50 (pos 200..203) -->
+  <rect x="304" y="410" width="144" height="48" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <rect x="308" y="414" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <rect x="342" y="414" width="32" height="24" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  <rect x="376" y="414" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="410" y="414" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <text x="376" y="453" text-anchor="middle" font-size="13.5" fill="#4d5652">块 50（200–203）</text>
+
+  <!-- Block 51 (pos 204..207) -->
+  <rect x="460" y="410" width="144" height="48" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <rect x="464" y="414" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="498" y="414" width="32" height="24" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="532" y="414" width="32" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="566" y="414" width="32" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <text x="532" y="453" text-anchor="middle" font-size="13.5" fill="#4d5652">块 51（204–207）</text>
+
+  <!-- Block 52 (pos 208..211) -->
+  <rect x="616" y="410" width="140" height="48" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <rect x="620" y="414" width="31" height="24" rx="3" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="653" y="414" width="31" height="24" rx="3" fill="#ffffff" stroke="#d8d8cf"/>
+  <rect x="686" y="414" width="31" height="24" rx="3" fill="#ffffff" stroke="#d8d8cf"/>
+  <rect x="719" y="414" width="31" height="24" rx="3" fill="#ffffff" stroke="#d8d8cf"/>
+  <text x="686" y="453" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">块 52（挤出 208）</text>
+
+  <!-- Result badge B -->
+  <rect x="768" y="414" width="116" height="40" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="826" y="439" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">跨 4 块</text>
+
+  <!-- Divider 2 -->
+  <line x1="16" y1="478" x2="884" y2="478" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- ZONE 3: 6,000-Token Prefill Spike -->
+  <text x="16" y="504" font-size="16" font-weight="700" fill="#17211f">③ 长提示词预填充脉冲（6,000 token 一步算完）：瞬时借 1,501 块，下一步骤降回 3 块</text>
+
+  <rect x="16" y="520" width="218" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="125" y="546" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">Prefill 借 1,501 块</text>
+  <text x="125" y="572" text-anchor="middle" font-size="13.5" fill="#4d5652">占 3,855 块池近四成</text>
+
+  <line x1="234" y1="556" x2="264" y2="556" stroke="#b54237" stroke-width="1.8" marker-end="url(#kvg-arr-r)"/>
+
+  <rect x="270" y="520" width="214" height="72" rx="7" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="377" y="546" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">下步先还 1,499 块</text>
+  <text x="377" y="572" text-anchor="middle" font-size="13.5" fill="#4d5652">窗外整块全换 null_block</text>
+
+  <line x1="484" y1="556" x2="514" y2="556" stroke="#66716d" stroke-width="1.8" marker-end="url(#kvg-arr-g)"/>
+
+  <rect x="520" y="520" width="154" height="72" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="597" y="546" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">再新借 1 块</text>
+  <text x="597" y="572" text-anchor="middle" font-size="13.5" fill="#4d5652">列表扩至 1,502</text>
+
+  <line x1="674" y1="556" x2="704" y2="556" stroke="#087f73" stroke-width="1.8" marker-end="url(#kvg-arr-t)"/>
+
+  <rect x="710" y="520" width="174" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="797" y="546" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">稳态仅持 3 块</text>
+  <text x="797" y="572" text-anchor="middle" font-size="13.5" fill="#065f56">净释放 1,498 块</text>
+</svg>

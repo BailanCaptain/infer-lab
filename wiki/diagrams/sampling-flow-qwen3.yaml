@@ -1,27 +1,7 @@
-layout: figure
 id: sampling-flow-qwen3
-caption: 标准 Qwen3-8B（词表 151,936）在 vLLM V1 中的单步采样流水线：lm_head 产出 [B, 151936] 完整词表分数后，按需施加结构化语法掩码、重复惩罚与温度缩放，再走贪心 argmax 或 Top-k / Top-p 随机抽取，每条请求选出 1 个 next_token_id（无需强制执行 MTP 3 候选验证），由 output_rank 回传 EngineCore 执行 check_stop。
-size: [880, 680]
-dividers:
-  - { from: [20, 566], to: [860, 566], sides: ['NPU Worker 进程（设备侧张量采样）', 'EngineCore 进程（CPU 侧追加与停止判定）'] }
-items:
-  - { at: [180, 22], size: [520, 56], text: 'lm_head 输出完整词表分数 [B, 151936]', sub: 'TP=1 直接就绪；TP>1 经 All-Gather 拼齐且各卡一致', tone: weight }
-  - { at: [180, 108], size: [520, 52], text: '可选结构化语法掩码（apply_grammar_bitmask）', sub: '指定 JSON / 正则约束时将非法词位置为 −∞', style: plain }
-  - { at: [180, 190], size: [520, 56], text: '惩罚项与温度缩放（AscendSampler）', sub: '施加重复 / 频率惩罚；随机采样时 logits ÷ temperature', tone: control }
-  - { at: [36, 286], size: [384, 68], text: '贪心采样（temperature = 0）', sub: '直接 argmax 取最高分词编号', tone: token }
-  - { at: [460, 286], size: [384, 68], text: '随机采样（Top-k / Top-p 截断）', sub: 'Softmax 过滤后除以指数噪声取 argmax', tone: token }
-  - { at: [180, 394], size: [520, 56], text: '每条在途请求产出 1 个 next_token_id [B, 1]', sub: 'TP 多卡随机种子同步故结果一致（开投机时另走候选验证）', tone: token }
-  - { at: [180, 480], size: [520, 56], text: '仅 output_rank Worker 将采样结果交回引擎', sub: '其余 TP 卡不重复回传，节省进程间通信', tone: comm }
-  - { at: [180, 598], size: [520, 60], text: '追加新 token 并执行 check_stop 停止判定', sub: '命中 eos_token_id=151645、stop 词或 max_tokens 即收尾退块', tone: control }
-links:
-  - { from: [440, 78], to: [440, 108] }
-  - { from: [440, 160], to: [440, 190] }
-  - { from: [320, 246], to: [228, 286], via: [[320, 266], [228, 266]] }
-  - { from: [560, 246], to: [652, 286], via: [[560, 266], [652, 266]] }
-  - { from: [228, 354], to: [320, 394], via: [[228, 374], [320, 374]], tone: token }
-  - { from: [652, 354], to: [560, 394], via: [[652, 374], [560, 374]], tone: token }
-  - { from: [440, 450], to: [440, 480], tone: comm }
-  - { from: [440, 536], to: [440, 598] }
+mode: native-svg
+size: [900, 356]
+caption: 标准 Qwen3-8B（词表 151,936）在 vLLM V1 中的单步采样流水线：lm_head 产出 [B, 151936] 完整词表分数后，按需施加结构化语法掩码、重复惩罚与温度缩放，再走贪心 argmax 或 Top-k / Top-p 随机抽取，每条请求选出 1 个 next_token_id，由 output_rank 回传 EngineCore 执行 check_stop。
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2802-L2820
     symbols: [apply_grammar_bitmask, _sample]

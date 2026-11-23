@@ -1,0 +1,10 @@
+mode: native-svg
+id: sampling-adv-fig-penalties-shift
+caption: >-
+  三类重复惩罚数轴位移（α_rep=2, β_freq=0.5, β_pres=0.5）与自定义 LogitsProcessor 批次行重排：上半区在 [-4, +4] 统一 logit 数轴上展示严格按 repetition → frequency → presence 依次施加后，「猫」从 +3 跌至 0.0 让「你」(+2.0) 胜出打破复读，负分「我」(-1) 因乘 α 跌向 -3.0，仅在提示词出现的「看」只受 repetition 折半；下半区演示连续批处理中 BatchUpdate 删/增/移/换导致的行号重排。
+size: [900, 470]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/sample/ops/penalties.py#L10-L56'
+    symbols: ['apply_all_penalties']
+  - source: 'vllm@ced6857a:vllm/v1/sample/logits_processor/__init__.py#L159-L237'
+    symbols: ['build_logitsprocs', 'validate_logits_processors_parameters']

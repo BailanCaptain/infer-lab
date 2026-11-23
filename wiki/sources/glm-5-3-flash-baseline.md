@@ -116,13 +116,15 @@ rawSources:
 
 attention 的其余固定形状沿用[模型形状总表](../concepts/glm-5-3-flash.md#全模型形状总表)：KDA 为 64 头 × 128、短卷积核 4；MLA 为 64 头，Q/KV 低秩维度为 1536/512，非旋转 QK 维度及 V 维度均为 256，旋转维度为 0；索引器为 32 头 × 128，top-k 为 2048、压池比为 4。索引器的 2048 是选择上限，不是 KV 逻辑块大小。
 
-旧版来源页固定到 `eb9eb208eb0d988989d07a6a12d0fdeb5f52574a`。[S13] 2026-09-25 曾将这两份 revision 的配置与 glm-flow 母版 `official-config.json` 比较，三者一致；2026-09-28 重新下载两份官方配置，解析后的完整 JSON 仍一致。比较忽略空白排版，保留键和值；旧页的 `eb9eb208` 配置引用仍有效，新引用统一使用 `690b7052`。这只证明配置一致，不证明所有图形连接或运行时代码均已审计。
+旧版来源页固定到 `eb9eb208eb0d988989d07a6a12d0fdeb5f52574a`。[S13] 2026-09-25 曾将这两份 revision 的配置与 glm-flow 母版 `official-config.json` 比较，三者一致；2026-09-28 重新下载两份官方配置，解析后的完整 JSON 仍一致（比较忽略空白排版，保留键和值）。旧页的 `eb9eb208` 配置引用仍有效，新引用统一使用 `690b7052`；这只证明配置一致，不证明所有图形连接或运行时代码均已审计。
 
-官方教程链接的量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8`，2026-09-25 查询时 master 指向 `9e55cbc8e2b19e20c63b08b916d2582f25a22504`。该树中 config 文件的最后变更 revision 是 `5865345c25abfbe36addb0b2478e1bb1c2d2f582`；其完整 `text_config` 与上述原模型一致。**文件最后变更提交不等于整个量化仓库提交**，下载与复现须固定整个仓库。[S4][S5]
+官方教程链接的量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8`，2026-09-25 查询时 master 指向 `9e55cbc8e2b19e20c63b08b916d2582f25a22504`。该树中 config 文件的最后变更 revision 是 `5865345c25abfbe36addb0b2478e1bb1c2d2f582`，其完整 `text_config` 与上述原模型一致。**文件最后变更提交不等于整个量化仓库提交**，下载与复现须固定整个仓库。[S4][S5]
 
 配置比较和下述逐层精度描述核对都不包含权重字节校验；模型原权重与 W8A8 产物不能因配置相同就视为相同数值精度。
 
-**W8A8 不是全模型所有张量都用 8 位。** 执行侧读取模型目录的 `quant_model_description.json`，按层选择量化方法，权重标成 `FLOAT` 的层使用不量化实现。[C19] 已取得并核对量化仓库 `9e55cbc8` 与 `3121f187` 两个固定 revision 的逐层精度描述：MLP 两版均为 W8A8_DYNAMIC，12 个 MLA 层（含 MTP）的 q_a、kv_a、q_b、o 四组权重则从旧版 FLOAT 改为新版 W8A8_DYNAMIC；KDA、KV 展开、索引器、router、视觉塔等仍有 FLOAT 项。FLOAT 只表示不走该量化方法，最终 BF16 或 FP32 等 dtype 还须看配置与加载实现。这份精度描述不等于完整的离线量化校准配方，也不证明两版数值质量相同。固定原文、加载精度和容量范围统一见[权重精度](../concepts/glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)与[量化版本和视觉塔](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)；更换 revision 时应按同一口径更新字节账。
+**W8A8 不是全模型所有张量都用 8 位。** 执行侧读取模型目录的 `quant_model_description.json`，按层选择量化方法，权重标成 `FLOAT` 的层走不量化实现。[C19]
+
+已取得并核对量化仓库 `9e55cbc8` 与 `3121f187` 两个固定 revision 的逐层精度描述：MLP 两版均为 `W8A8_DYNAMIC`；12 个 MLA 层（含 MTP）的 `q_a`、`kv_a`、`q_b`、`o` 四组权重从旧版 `FLOAT` 改为新版 `W8A8_DYNAMIC`；KDA、KV 展开、索引器、router、视觉塔等仍有 `FLOAT` 项。`FLOAT` 只表示不走该量化方法，最终 BF16 或 FP32 等 dtype 仍须看配置与加载实现。这份精度描述不等于完整的离线量化校准配方，也不证明两版数值质量相同。固定原文、加载精度和容量范围统一见[权重精度](../concepts/glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)与[量化版本和视觉塔](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)；更换 revision 时应按同一口径更新字节账。
 
 量化描述的加载入口见来源 29–30：已有描述时直接复用，否则定位并解析 `quant_model_description.json`。这些代码说明配置如何进入执行侧，不证明任意同名权重目录都和教程镜像配套。
 
@@ -154,13 +156,17 @@ file: glm-two-node-topology
 | 前缀缓存 | 命令未显式设置；固定控制流对 hybrid 模型默认关闭 | 相同前缀仍重算；这是源码基线结论，最终镜像行为仍待安装产物核对 |
 | chunked prefill | 命令未显式设置；固定控制流默认开启 | 长提示词按每步 token 预算分段处理 |
 
-以上显式参数来自教程；未显式设置的两个默认值已核对固定控制流，decode 查询长度已核对 runner。[C14][C15][C16][C20] 教程的 `deepseek_mtp` 在该版本会归一化为 `mtp`，不是另一个草拟方案。[C26] R1 是提示词经模板和分词后为 4 token 的示例请求，prefill 的 4 行与 MTP decode 的 4 行含义不同；七站形状、15 个块号和通信账统一引用[单请求主线](../concepts/one-request.md#示例请求-r1-与官方双机部署)。普通自回归“一步一个 token”只作为对比，不再用来替代本部署主线。
+以上显式参数来自教程；未显式设置的两个默认值已核对固定控制流，decode 查询长度已核对 runner。[C14][C15][C16][C20] 教程的 `deepseek_mtp` 在该版本会归一化为 `mtp`，不是另一个草拟方案。[C26]
 
-教程未传 `--additional-config`；在未额外设置相关环境变量时，主线按以下默认分支阅读：`enable_reduce_sample=False`、`lmhead_tensor_parallel_size=0`（不启用独立的词表投影 TP 配置）、`enable_flashcomm1=0`，以及 `rejection_sampler_config` 下 `enable_block_verify=False`、`enable_entropy_verify=False`。其中 SP 关闭的算例还要求调用方没有通过共享专家条件将其开启；具体覆盖规则见下一段。FlashComm1 也可从环境变量开启，因此这组默认配置不覆盖用户另加的开关。[C21][C22][C23][C24][C25]
+R1 是提示词经模板和分词后为 4 token 的示例请求，prefill 的 4 行与 MTP decode 的 4 行含义不同；七站形状、15 个块号和通信账统一引用[单请求主线](../concepts/one-request.md#示例请求-r1-与官方双机部署)。普通自回归「一步一个 token」只作对比，不替代本部署主线。
 
-固定 `db701c1f` 的 `enable_sp()` 在初始化或刷新时，若 `_ENABLE_SP` 原为假而传入的 `enable_shared_expert_dp` 为真，会将 `_ENABLE_SP` 设为真（同上来源 25）。构造器的 `enable_shared_expert_dp` 默认是 False；只有配置显式开启、EP 开启且 TP > 1，才调用这条强制开启分支。因此，按教程原样、没有额外配置和环境开关时，该构造路径不会因共享专家而开启 SP；用户另开共享专家 DP 时则不能只凭 `enable_flashcomm1=0` 判断 SP。这里描述固定源码的条件，不是对容器实际运行状态的观测。[C28]
+教程未传 `--additional-config`。在未额外设置相关环境变量时，主线按以下默认分支阅读：`enable_reduce_sample=False`、`lmhead_tensor_parallel_size=0`（不启用独立词表投影 TP）、`enable_flashcomm1=0`，以及 `rejection_sampler_config` 下的 `enable_block_verify=False`、`enable_entropy_verify=False`。其中 SP 关闭的算例还要求调用方未通过共享专家条件开启 SP（覆盖规则见下段）；FlashComm1 也可由环境变量开启，因此这组默认值不覆盖用户另加的开关。[C21][C22][C23][C24][C25]
 
-缓存数字统一引用[部署页的 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)：逻辑块 640 token，每个 block id 每卡占 8,355,840 B（约 7.969 MiB），5 个缓存组；带 KV 的 MLA 层共 12 层，含主干 11 层和 MTP 1 层。SFA kernel 块 128、indexer-state 块 4、KDA 组及调度对齐块 133120 各有用途，不可互换。引用预算时区分假设完整权重占 21 GiB 的 3,855 块算例，与仅代入所列主要语言权重子账的 3,908 块算例；后者尚未扣除视觉塔、MTP 旋转矩阵和量化辅助张量等。两者都不是实测容量，推导留在链接处。
+固定 `db701c1f` 的 `enable_sp()` 在初始化或刷新时，若 `_ENABLE_SP` 原为假而 `enable_shared_expert_dp` 为真，会将 `_ENABLE_SP` 置真（同上来源 25）。构造器的 `enable_shared_expert_dp` 默认为 `False`，只有配置显式开启、EP 开启且 TP > 1 才进该分支。因此按教程原样、无额外配置和环境开关时，不会因共享专家开启 SP；用户另开共享专家 DP 时，则不能只凭 `enable_flashcomm1=0` 判断 SP。这里描述固定源码条件，不是对容器实际运行状态的观测。[C28]
+
+缓存数字统一引用[部署页的 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)：逻辑块 640 token，每个 block id 每卡占 8,355,840 B（约 7.969 MiB），共 5 个缓存组；带 KV 的 MLA 层共 12 层（主干 11 层 + MTP 1 层）。SFA kernel 块 128、indexer-state 块 4、KDA 组及调度对齐块 133120 各有用途，不可互换。
+
+引用预算时需区分两套算例：假设完整权重占 21 GiB 的 3,855 块算例，与仅代入所列主要语言权重子账的 3,908 块算例（后者未扣视觉塔、MTP 旋转矩阵和量化辅助张量）。两者均非实测容量，推导留在链接处。
 
 ## 镜像固定与源码对应
 
@@ -179,7 +185,9 @@ arm64 元数据记录 `VLLM_TAG=v0.23.0`，Transformers 基础提交为 `b830f5a
 
 源码复制层共 116,342,438 B（约 111 MiB），层内 `.git/HEAD` 指向 `glm-5.3-flash-0902-1`，对应公开提交 `db701c1fd31de40ab028628ee2580ae68c7fd3c0`。其 Git tree 是 `264ac7c54ee6bd366ae74ffa1f3cf9bd76a40c88`。[S9][S10]
 
-静态校验方法：先计算下载层的 SHA-256，再读取层内 Git 元数据，用 `git ls-tree -r` 列出该提交的文件，对 tar 中相应文件按 Git blob 规则计算哈希。结果为 **3063 个受跟踪 blob 全部存在且哈希一致，缺失或不同均为 0**。另有一个 `csrc/third_party/catlass` 子模块记录，不作为普通文件计算 blob 哈希；排除 `.git` 元数据后，层内还有 889 个不属于这份主仓库 blob 清单的普通文件。这次校验不覆盖子模块内部的一致性、所有第三方文件或后续安装层。[D]
+静态校验方法：先计算下载层的 SHA-256，再读层内 Git 元数据，用 `git ls-tree -r` 列出该提交的文件，并按 Git blob 规则逐个校验 tar 中对应文件的哈希。
+
+校验结果为：**3063 个受跟踪 blob 全部存在且哈希一致，缺失或不同均为 0**。另有一个 `csrc/third_party/catlass` 子模块记录不作为普通文件计算 blob 哈希；排除 `.git` 元数据后，层内还有 889 个不属于主仓库 blob 清单的普通文件。这次校验不覆盖子模块内部一致性、第三方文件或后续安装层。[D]
 
 | 对象 | 固定标识或核查结果 |
 |---|---|

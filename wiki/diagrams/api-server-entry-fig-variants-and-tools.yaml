@@ -1,0 +1,16 @@
+mode: native-svg
+id: api-server-entry-fig-variants-and-tools
+caption: >-
+  API server 兼容协议路由与工具调用双端闭环：上方对比 /v1/chat/completions、/v1/completions、
+  /v1/responses 与 /v1/messages 在模板/分词跳过、默认 max_tokens=16 与内存会话保存上的差异，
+  并标出 v0.30.0+ --enable-prompt-embeds 的 2 GiB 解码护栏；下方展示工具调用从输入模板、
+  模型生成、--tool-parser-plugin 输出解析到应用执行回填 tool_call_id 的四站闭环，
+  强调插件只作用于输出端解析，不能改写模型输入格式。
+size: [900, 500]
+pins:
+  - source: vllm@0fc695fc:vllm/tool_parsers/abstract_tool_parser.py#L211-L366
+    symbols: [ToolParserManager, register_module]
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/responses/serving.py#L153-L248
+    symbols: [OpenAIServingResponses]
+  - source: vllm@0fc695fc:vllm/entrypoints/anthropic/serving.py#L59-L498
+    symbols: [AnthropicServingMessages]

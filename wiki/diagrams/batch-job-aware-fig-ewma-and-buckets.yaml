@@ -1,0 +1,10 @@
+mode: native-svg
+id: batch-job-aware-fig-ewma-and-buckets
+caption: >-
+  Batch-Job-Aware Scheduler 作业分桶、EWMA 输出长度估计轨迹与 4,096 阈值翻转：上半区展示请求 ID 正则解析（#job_name[...]#，无标签归 __default__）与 EWMA 估计曲线（冷启动 128 → 首样本 20 → 第 2 样本 22，满 10 样本冻结，仅计 FINISHED_STOPPED；int(ewma) > 32 判长作业，32.9 向下取整仍为短作业）；下半区展示 4,096 准入预算翻转规则与 F=6→4→3 三轮 Best-Fit 挑请求轨迹（分类桶取 5、3 后预算归零，摘要桶本步无缘出队）。
+size: [900, 440]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L175'
+    symbols: ['JobNameParser', 'JobDecodeEstimator', 'predict', 'observe']
+  - source: 'vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333'
+    symbols: ['peek_best_fit_request']

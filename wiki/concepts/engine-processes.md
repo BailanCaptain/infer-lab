@@ -406,20 +406,20 @@ file: engine-processes-startup
 
 ## 进程怎么摆，直接决定要打哪些补丁
 
-进程模型不只是背景知识，它直接决定昇腾要改哪里。一个具体的例子是动态 EPLB。[EPLB](eplb.md) 按各个专家的实际负载重新摆放专家；打开动态模式后，每个 Worker 都要在自己的进程里再起两个子进程：一个保管共享字典的管理进程，一个计算新摆法的进程。
+进程模型不只是背景知识，它直接决定昇腾要改哪里。以动态 [EPLB](eplb.md)（按专家热度在线重排专家分布）为例：开启后，每个 Worker 都要再派生两个子进程——一个管共享字典的管理进程，一个计算新摆法的进程。
 
-问题出在上游起 Worker 的方式：上游把 Worker 设为 `daemon=True`（父进程退出时自动终止的守护子进程），而 Python 禁止 daemon 进程再派生子进程。因此 vllm-ascend 用补丁替换多进程执行器里创建 Worker 的代码，把 Worker 改为非 daemon（注意这一改动只覆盖 Worker 本身的创建路径，EPLB 自己启动的子进程在固定快照里仍采用 `daemon=True`）。
+上游创建 Worker 时默认设为 `daemon=True`（父进程退出时自动终止的守护子进程），而 Python 禁止 daemon 进程再派生子进程。因此 `vllm-ascend` 用补丁改写多进程执行器的 Worker 创建代码，把 Worker 改为非 daemon（EPLB 自己派生出的子进程仍保留 `daemon=True`）。这条补丁的两项硬约束都由进程模型决定：
 
-这条补丁的两个特征直接由进程模型决定：
+| 补丁特征 | 为什么必须这样设计 | 触发条件与误配后果 |
+|---|---|---|
+| **放在全局补丁，而非 Worker 补丁** | 创建 Worker 的逻辑跑在 `EngineCore` 进程里、早于任何 Worker 出生；等 Worker 补丁运行时子进程早已按上游方式起好（官方补丁设计文档也以运行进程划目录） | 归属 `patch/platform` |
+| **靠环境变量触发，而非配置文件** | 全局补丁在参数解析期导入，早于 `AscendConfig` 构建 | 须设 `DYNAMIC_EPLB`（转小写为 `"true"` 或 `"1"`）或 `EXPERT_MAP_RECORD`（精确小写 `"true"`）；只配 JSON 不设变量会直接报错 |
 
-- **必须放在全局补丁，而非 Worker 补丁。** 创建 Worker 的逻辑跑在 EngineCore 进程里、且早于任何 Worker 出生；等 Worker 补丁运行时，Worker 早已按上游方式起好了。官方补丁设计文档同样以「代码在哪个进程运行」作为划目录的依据。
-- **必须由环境变量触发，而非配置文件触发。** 全局补丁在参数解析阶段即导入，早于 `AscendConfig` 构建，因此只能读环境变量：只有 `DYNAMIC_EPLB`（转小写后为 `"true"` 或 `"1"`）或 `EXPERT_MAP_RECORD`（精确匹配小写 `"true"`）满足认可真值时才导入补丁，并非任意非空字符串都生效。只在配置里打开动态 EPLB 而不设环境变量，配置校验会直接报错。
-
-在 `v0.30.0` 与 `main` 中，EngineCore 进程入口的包装进一步收束到独立的 `patch_engine_core.py`，进入引擎前就先执行 `init_ascend_config` 建立本进程配置缓存，而动态 EPLB 对 Worker 创建路径的补丁导入条件依然沿用。官方 GLM 双机部署没有开启 EPLB，Worker 保持上游默认启动方式，也没有上述额外子进程。
+`v0.30.0` 与 `main` 将 EngineCore 入口包装收束到 `patch_engine_core.py`，进入引擎前就先调 `init_ascend_config` 建立本进程配置缓存；动态 EPLB 对 Worker 创建路径的补丁条件保持不变。官方 GLM 双机部署未开 EPLB，Worker 沿用上游默认启动方式。
 
 ## 复杂异构实战对照：GLM 双机 20 个进程账
 
-**按角色计，官方 GLM-5.3-Flash 双机部署（例外 B 绑定算例，2×A2×8、TP8/DP2/EP16）跑起来共 20 个进程：node0 上 11 个，node1 上 9 个，占卡的只有 16 个 Worker。** 部署参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，拉起先后顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
+**按核心角色计，官方 GLM-5.3-Flash 双机部署（例外 B 绑定算例，2×A2×8、TP8/DP2/EP16）跑起来共 20 个进程：node0 上 11 个，node1 上 9 个，占卡的只有 16 个 Worker。** 部署参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，拉起顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
 
 | 机器 | 进程 | 个数 | 做什么 | 进程名 |
 |---|---|---|---|---|
@@ -430,22 +430,24 @@ file: engine-processes-startup
 | node1 | EngineCore（DP 组 1） | 1 | 调度 DP 组 1 的请求，管理本组 KV 块号 | `VLLM::EngineCore_DP1` |
 | node1 | Worker（卡 8–15） | 8 | 各守一张卡，执行模型前向与采样 | `VLLM::Worker_DP1_TP0_EP8` 等 |
 
-进程标题需安装 `setproctitle` 才会改写；API server 不改标题，系统列表里直接显示启动命令。
+进程标题需安装 `setproctitle` 才会改写；API server 不改标题，列表里直接显示启动命令。四点口径边界：
 
-- **为什么 node1 没有 API server 与 DP coordinator**：node1 以 `--headless` 启动，不建 HTTP 前端也不建 coordinator，只拉起本机 EngineCore 并向 node0 握手端口报到；全部请求经 node0 前端按忙闲分配（见[数据并行](data-parallel.md)）。
-- **为什么 DP coordinator 独立占一个进程**：它不经手请求正文，只定时汇总两组等待/运行数推给前端；由于 GLM 是 [MoE](moe.md) 模型，两组 Worker 须在专家层交换 token，coordinator 负责通知两组同步开工与停步。
-- **为什么每个 EngineCore 带 8 个 Worker**：每组内是 [TP8](tensor-parallel.md)，全局 Worker 编号为「DP 组号 × 8 + 本机卡号」（node1 卡 0 即全局 8 号，16 卡分组见[双机部署页](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。
-- **「20 个」的统计口径**：仅按角色计 1 前端 + 1 coordinator + 2 EngineCore + 16 Worker。node1 上执行 `vllm serve` 的守护启动进程（拉起 EngineCore 后留驻监视存活，按进程列表两机合计 21 个 vLLM 进程）、Python/编译辅助进程，以及动态 EPLB 等特性另起的子进程均不在该角色账内。
+- **node1 为何没有前端与 coordinator**：node1 带 `--headless` 启动，只拉起本机 EngineCore 并向 node0 握手报到；全部请求经 node0 前端按忙闲派发（见[数据并行](data-parallel.md)）。
+- **DP coordinator 为何独立成进程**：它不碰请求正文，只定时汇总两组忙闲数推给前端；对 [MoE](moe.md) 模型，它还协调两组同步开工与停步。
+- **每个 EngineCore 为何带 8 个 Worker**：每组内为 [TP8](tensor-parallel.md)，全局 Worker 编号为「DP 组号 × 8 + 本机卡号」（node1 卡 0 即全局 8 号，16 卡分组见[双机部署页](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。
+- **「20 个」的统计范围**：仅计 1 前端 + 1 coordinator + 2 EngineCore + 16 Worker。node1 留驻监视存活的 `vllm serve` 守护启动进程（按系统列表两机共 21 个 vLLM 进程）、Python/编译辅助进程与 EPLB 子进程均不计入角色账。
 
 ## 排查时先认是哪个进程
 
-看到一条报错，先判断它出在哪个进程，能省掉大半查找范围：
+看到报错先认出它落在哪个进程，就能缩掉大半排查面：
 
-- **参数检查阶段报错**（比如某种并行组合不合法）：出在 API server 或 node1 的启动进程，看昇腾平台的那组检查，见 [NPU 平台](npu-platform.md)。
-- **调用栈里有 scheduler、KV 块管理、清单的构造**：出在 EngineCore 进程。这部分主体是上游代码，昇腾只通过全局补丁插手。
-- **调用栈里有模型前向、注意力、昇腾算子**：出在 Worker。使用多进程执行器时，Worker 有独立进程；使用单进程执行器时，Worker 方法在执行器所在进程内直接运行，不能只根据卡数判断进程归属。这部分大多是昇腾自己的代码。
+| 调用栈特征 | 所在进程 | 代码归属与排查方向 |
+|---|---|---|
+| 参数校验报错（如并行组合不合法） | API server 或 node1 启动进程 | 查 [NPU 平台](npu-platform.md) 前置校验组 |
+| `Scheduler`、KV 块管理、清单构造 | EngineCore 进程 | 主体是上游代码，昇腾仅经全局补丁介入 |
+| 模型前向、注意力、昇腾算子 | Worker（`mp` 独立子进程；`uni` 在执行器同进程） | 大多是 `vllm-ascend` 代码，不可只凭卡数猜进程归属 |
 
-日志前缀和进程名告诉你代码**在哪里执行**；出错那一帧的文件路径告诉你代码**是谁写的**。「日志来自 Worker」和「代码属于 vllm-ascend」是两件事，两样都要记下。再加上进程号、全局 rank、卡号和 executor 种类，才能把 API server、EngineCore、Worker 三处的日志对上。按日志前缀认出请求停在哪一站，见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)；具体的报错字符串见下半「会报什么错」。
+日志前缀与进程名告诉你代码**在哪里跑**，堆栈文件路径告诉你代码**是谁写的**；把 PID、全局 rank、卡号和 executor 类型合起来对照，就能串起三类进程日志。按日志前缀认站见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)，报错原文见下半[会报什么错](#会报什么错)。
 
 ## 常见误解
 

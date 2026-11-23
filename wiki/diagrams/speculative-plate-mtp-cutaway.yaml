@@ -1,7 +1,7 @@
 mode: native-svg
 id: speculative-plate-mtp-cutaway
 caption: >-
-  Speculative Decoding（MTP 投机解码）立体拆解直觉：左侧轻量 MTP 草稿头连续猜出 K=3 个候选 token（D1, D2, D3），送入中央主模型与已确认的 T0 拼成 1+K=4 格一次并行前向验证；右侧从左往右错格核验，留下连续命中的前缀（ACCEPTED），在首个错位处用主模型分布当场重采样（RESAMPLED）并截断后续作废位置。
+  Speculative Decoding（MTP 投机解码）立体拆解直觉：左侧轻量 MTP 草稿头猜出 K=3 个候选 token（D1, D2, D3）；中央主模型把已确认的 T0 与 D1..D3 拼成 1+K=4 格一次并行前向验证；右侧输出盘只放本轮新产出——留下 2 枚蓝色 ACCEPTED 候选（D1, D2）加 1 枚陶红 RESAMPLED 重采样词，共 3 个新输出 token，T0 仅留在中央验证器输入位；在标准逐位拒绝采样且采样参数一致下，输出分布与主模型严格等价。
 size: [900, 610]
 pins:
   - source: vllm@ced6857a:vllm/config/speculative.py#L375-L405

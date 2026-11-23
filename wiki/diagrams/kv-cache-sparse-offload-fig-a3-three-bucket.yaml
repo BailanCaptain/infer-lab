@@ -2,7 +2,7 @@ mode: native-svg
 id: kv-cache-sparse-offload-fig-a3-three-bucket
 caption: >-
   Atlas A3 D 节点 Sparse KV offload 的热槽缺失补搬链路与三路木桶容量规划（v0.30.0 / main）：NPU 常驻 indexer cache 与定额热槽，每步选出 top-k 后仅从主机 DRAM 补搬缺失行（默认融合 LIM + Copy-SFA 路径）；总块数由 NPU、扣 2 MiB 对齐后的 DRAM 与工作负载三路上限取最小值。
-size: [900, 446]
+size: [900, 492]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1772
     symbols: [SparseKVOffloadConfig, topk_buffer_size, dram_size_per_dp_GB, use_fused_copy_sfa]

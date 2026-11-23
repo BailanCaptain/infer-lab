@@ -1,7 +1,7 @@
 mode: native-svg
 id: balance-scheduling-fig-gate-vs-width
 caption: Balance Scheduling 的双环节协同（引擎主循环末尾在 _has_global_unfinished_reqs 处每步经 Gloo All-Gather 互报 running 条数以涵盖陪跑组，下一步接纳 waiting 时按 max == max_num_seqs 共同落闸），以及只数条数能管与管不到的边界（对照场景 M 宽度对齐与 DyntraLB）。
-size: [900, 518]
+size: [900, 532]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L392-L407'
     symbols: ['balance_queue', 'max_num_running_reqs', '_select_waiting_queue_for_scheduling']

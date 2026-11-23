@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="load_risk_quantile 分位数换算标尺、同均值方差拉分与候选生成裁决边界" font-family="var(--font-sans)">
+  <title>load_risk_quantile 风险标尺与生效/不生效边界</title>
+  <desc>Left: Normal quantile to z-score scale (0.50 to 0.99) and risk score bar chart comparing steady expert (mean 10, std 0 -> 10) vs spiky expert (mean 10, std 4 -> 12.696 at default 0.75). Right: Strict separation between candidate generation (uses z) and hysteresis/final verdict (real window load only).</desc>
+  <defs>
+    <marker id="rq-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="rq-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <line x1="454" y1="14" x2="454" y2="426" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- LEFT: Quantile-to-z Ruler & Bar Comparison -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. 分位数 → z 标尺与同均值拉分（示意）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">risk = μ + z·σ，z = Φ⁻¹(q)；q ∈ (0.5, 1) 保证 z &gt; 0</text>
+
+  <!-- Quantile horizontal ruler -->
+  <line x1="30" y1="104" x2="424" y2="104" stroke="#b8bcb5" stroke-width="2.5"/>
+  <!-- 0.50 forbidden open endpoint -->
+  <circle cx="30" cy="104" r="5" fill="#fff0e9" stroke="#b54237" stroke-width="2"/>
+  <text x="30" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">0.50 (禁)</text>
+  <text x="30" y="128" text-anchor="middle" font-size="13.5" fill="#8f3229">z=0</text>
+
+  <!-- 0.75 default -->
+  <circle cx="144" cy="104" r="6" fill="#087f73"/>
+  <text x="144" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">0.75 (默认)</text>
+  <text x="144" y="128" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">z≈0.674</text>
+
+  <!-- 0.90 -->
+  <circle cx="248" cy="104" r="5" fill="#c78300"/>
+  <text x="248" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">0.90</text>
+  <text x="248" y="128" text-anchor="middle" font-size="13.5" fill="#4d5652">1.282</text>
+
+  <!-- 0.95 -->
+  <circle cx="332" cy="104" r="5" fill="#c78300"/>
+  <text x="332" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">0.95</text>
+  <text x="332" y="128" text-anchor="middle" font-size="13.5" fill="#4d5652">1.645</text>
+
+  <!-- 0.99 -->
+  <circle cx="414" cy="104" r="5" fill="#9a4b86"/>
+  <text x="414" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">0.99</text>
+  <text x="414" y="128" text-anchor="middle" font-size="13.5" fill="#7a3a6a">2.326</text>
+
+  <!-- Bar chart: mean=10 steady vs spiky -->
+  <text x="16" y="168" font-size="14.5" font-weight="700" fill="#17211f">同均值 μ=10，默认 q=0.75 (z≈0.674) 下的风险分：</text>
+
+  <!-- Steady expert -->
+  <text x="16" y="200" font-size="13.5" font-weight="700" fill="#17211f">稳态专家 (σ=0)</text>
+  <rect x="148" y="182" width="180" height="26" rx="4" fill="#4c65b6"/>
+  <text x="238" y="200" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">μ = 10</text>
+  <text x="338" y="200" font-size="14" font-weight="700" fill="#3a4f93">= 10.00</text>
+
+  <!-- Spiky expert -->
+  <text x="16" y="242" font-size="13.5" font-weight="700" fill="#936300">波动专家 (σ=4)</text>
+  <rect x="148" y="224" width="180" height="26" rx="4" fill="#4c65b6"/>
+  <text x="238" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">μ = 10</text>
+  <rect x="328" y="224" width="54" height="26" rx="4" fill="#c78300"/>
+  <text x="355" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">+2.70</text>
+  <text x="388" y="242" font-size="14" font-weight="700" fill="#936300">12.70</text>
+
+  <!-- Co-hot covariance visual -->
+  <line x1="16" y1="274" x2="438" y2="274" stroke="#d8d8cf" stroke-width="1.2"/>
+  <text x="16" y="300" font-size="14.5" font-weight="700" fill="#7a3a6a">卡级风险含同卡协方差：拆开「一起变热」的专家</text>
+
+  <rect x="16" y="314" width="202" height="106" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="117" y="338" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">共热专家放同卡 (Cov &gt; 0)</text>
+  <text x="117" y="362" text-anchor="middle" font-size="13.5" fill="#4d5652">Var = σ₁² + σ₂² + 2·Cov</text>
+  <text x="117" y="384" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">卡方差叠加放大</text>
+  <text x="117" y="406" text-anchor="middle" font-size="13.5" fill="#66716d">z 越大越被 LPT 规避</text>
+
+  <rect x="232" y="314" width="206" height="106" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="335" y="338" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">拆到不同卡 (无正协方差)</text>
+  <text x="335" y="362" text-anchor="middle" font-size="13.5" fill="#4d5652">同批高峰错峰分摊</text>
+  <text x="335" y="384" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">卡级风险显著降低</text>
+  <text x="335" y="406" text-anchor="middle" font-size="13.5" fill="#66716d">固定行为，不可关闭</text>
+
+  <!-- RIGHT: Scope Boundary (Where z acts vs does NOT act) -->
+  <text x="474" y="28" font-size="16" font-weight="700" fill="#17211f">B. 生效分工：只提候选，不改裁决口径</text>
+  <text x="474" y="49" font-size="13.5" fill="#66716d">z 调太高会令提出的候选按实际均值评判反而过不了关</text>
+
+  <!-- Acts here -->
+  <rect x="474" y="68" width="410" height="162" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="488" y="94" font-size="15" font-weight="700" fill="#936300">✓ z 生效区：候选生成（Proposal）</text>
+
+  <rect x="488" y="108" width="382" height="48" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="500" y="129" font-size="14" font-weight="700" fill="#17211f">① 副本份数搜索（risk ÷ 已有份数）</text>
+  <text x="500" y="148" font-size="13.5" fill="#4d5652">z 越大，波动大的专家越优先多拿冗余副本</text>
+
+  <rect x="488" y="166" width="382" height="50" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="500" y="187" font-size="14" font-weight="700" fill="#17211f">② 带约束 LPT 摆放（放后卡风险最低）</text>
+  <text x="500" y="206" font-size="13.5" fill="#4d5652">计入同卡协方差，推动共热专家拆卡</text>
+
+  <!-- Flow arrow to Verdict -->
+  <line x1="679" y1="232" x2="679" y2="256" stroke="#087f73" stroke-width="1.8" marker-end="url(#rq-arr-teal)"/>
+
+  <!-- Does NOT act here -->
+  <rect x="474" y="260" width="410" height="160" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="488" y="286" font-size="15" font-weight="700" fill="#3a4f93">✗ z 不生效区：门槛与最终裁决（实窗负载）</text>
+
+  <rect x="488" y="300" width="382" height="48" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="500" y="321" font-size="14" font-weight="700" fill="#17211f">① 双门滞回门槛（relative / absolute）</text>
+  <text x="500" y="340" font-size="13.5" fill="#4d5652">按压缩窗口实际均衡度判别，与 z 无关</text>
+
+  <rect x="488" y="358" width="382" height="50" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="500" y="379" font-size="14" font-weight="700" fill="#17211f">② 最终筛优（mean &amp; 加权 p95 均不得差于现状）</text>
+  <text x="500" y="398" font-size="13.5" fill="#8f3229">z 过高 → 候选均值失衡 → 裁决全淘汰 → 保持不动</text>
+</svg>

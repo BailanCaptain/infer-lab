@@ -192,7 +192,7 @@ file: api-server-entry
 
 **在未启用 LoRA 的常规部署中，前四步只在前端改写请求：先查能不能收，再把消息拼成文本、切成编号，最后按长度上限定下最多能生成多少个 token。任何一步不过关，都直接回一个带错误信息的 JSON，请求不会到引擎。**
 
-**① 检查。** 网页框架先按接口约定检查 JSON 的字段和类型，格式不对回 400。接着核对请求里的模型名：未启用 LoRA 且开启模型名校验时，请求可省略名称或使用基座对外名，其余名字回 404。启用 LoRA 的服务还接受已登记的适配器名；允许动态更新时，未知名字可进入[适配器查找与加载](lora.md#请求只写适配器名服务怎样找到权重)，不能一律拒收。此外，请求自带聊天模板须声明 `--trust-request-chat-template`。让模型自行决定是否调工具（`tool_choice = "auto"`）须开启 `--enable-auto-tool-choice` 并指定 `--tool-call-parser`。最后，引擎若已停止，前端直接报错，不再往下做。
+**① 检查。** 网页框架先按接口约定核对 JSON 字段与类型，格式不对直接回 `400`。接着核对模型名：未启用 LoRA 且开启模型名校验时，仅允许省略或使用基座对外名，其余回 `404`；启用 LoRA 后同时接受已登记适配器名，允许动态更新时未知名字进入[适配器查找与加载](lora.md#请求只写适配器名服务怎样找到权重)，不能一律拒收。此外还有三道前置守卫：请求自带聊天模板须声明 `--trust-request-chat-template`；让模型自行决定调工具（`tool_choice = "auto"`）须同时开启 `--enable-auto-tool-choice` 与 `--tool-call-parser`；若引擎已停止，前端直接报错退出。
 
 **② 套聊天模板。** 聊天接口收到的是一串带角色的消息。前端用模型自带的 Jinja 模板把消息拼成训练时约定的对话文本，并附上「轮到助手回答」的标记（详见 [token 页的聊天模板一节](token.md#聊天消息先套模板再分词)）。
 
@@ -200,7 +200,7 @@ file: api-server-entry
 - **不再补一遍特殊标记。** 模板已经写好起始与角色标记，聊天接口默认不让分词器再加起始标记，避免开头重复。
 - **在线程池里做。** 为避免阻塞事件循环，套模板和分词交给专用线程池（默认 1 线程；`v0.23` 会把 `2 ms` 内到达的最多 `32` 条分词请求攒批一起切，`v0.26+` 改逐条交线程池）。
 
-**④ 定输出上限和采样参数。** 输入和输出共用总长度上限 `max_model_len`。聊天请求写了 `max_tokens` 或 `max_completion_tokens`（后者非空时优先），输入就只能占剩余部分；两项都没写且无生成配置限制时，前端用总上限减去输入长度作为输出上限。注意入口还要区分普通采样与 [Beam Search](sampling-advanced.md#v1-外置-beam-search多路径扩展与含提示词长度惩罚)（各自构造参数并分派），生成模型亦另设独立的[生成式评分入口](pooling-and-non-ar.md#生成式评分generative_scoring与-pooling-score-的边界及概率比较)。
+**④ 定输出上限和采样参数。** 输入与输出共用总长度上限 `max_model_len`。聊天请求若写了 `max_tokens` 或 `max_completion_tokens`（后者非空优先），输入就只能占剩余部分；两项都没写且无生成配置限制时，前端拿总上限减输入长度作为输出上限。入口在此还会把普通采样与 [Beam Search](sampling-advanced.md#v1-外置-beam-search多路径扩展与含提示词长度惩罚) 分开构造并分派，生成模型亦另设独立的[生成式评分入口](pooling-and-non-ar.md#生成式评分generative_scoring与-pooling-score-的边界及概率比较)。
 
 设总长度上限 $L_{\max} = 100$，按上述减法做长度预算核验（示意数）：
 
@@ -267,8 +267,8 @@ file: api-server-entry-flow
 - **老式补全接口（`/v1/completions`）**：直接收提示词文本或 token 编号，跳过第 ② 步（文本默认补起始标记）。省略输出上限时默认最多生成 `16` 个 token（聊天接口无此默认值），且不认 `max_completion_tokens`（仅记入 DEBUG 日志忽略）。直接给编号时跳过第 ③ 步，仅靠第 ⑤ 步词表上界检查拦住越界编号。
 - **一次要 `n` 个回答**：第 ⑤ 步拆成 `n` 条子请求（带随机种子时各自错开），分别选 DP 组发送，回程汇总进同一个输出槽按序号拼回 `n` 个 choice。
 - **开多个前端与优雅停机**：`--api-server-count > 1`（internal LB 默认等于 DP 组数）起多前端共用同一端口，分摊模板、分词与反分词 CPU。各前端本地 DP 记账按前端个数补齐（见 [DP 请求路由](dp-request-routing.md)）。离线分批提交见[离线请求队列](request-call-chain.md#离线脚本能先提交几组请求再一起取结果吗)；滚动发布或缩容时的 `--shutdown-timeout` 优雅停机护栏见[集群部署与优雅停机](cluster-serving.md#滚动发布与缩容别被默认---shutdown-timeout-0-直接掐断请求)。
-- **Responses（`/v1/responses`）与 Anthropic Messages（`/v1/messages`）**：接口协议决定输入/输出封装，模型任务决定能算什么。Responses 接收 `input`、返回 `output` 项列表（不可按 Chat `choices` 读取），支持用 `previous_response_id` 衔接历史会话。**注意边界**：会话状态保存在单 API 进程内存字典中，与复用模型 KV 的 [prefix caching](prefix-caching.md) 不同。默认 `VLLM_ENABLE_RESPONSES_API_STORE=0` 下即使 `store=true` 也不保存，开启后无自动清理。`background=true` 须双开，且 `previous_response_id` 与 `previous_input_messages` 互斥。Anthropic Messages 要求 `model`、`messages` 与正数 `max_tokens`，入口先转为 Chat 执行再转回 `content`/`tool_use` 块，协议转换不凭空增加工具能力。
-- **SageMaker 与 Ray Serve 包装层**：外层包装只管接入与副本调度，不改变引擎内部 TP/PP/DP 并行。SageMaker `/invocations` 仅分派 Chat、Completions 与相应 pooling 处理器（不含 Responses、Messages 与 multipart 语音），`/ping` 接健康检查。Ray Serve 在引擎外管理服务副本，不同于引擎内部的 [Ray 执行器](engine-processes.md)。例如官方 DeepSeek 示例外层 `autoscaling_config` 上下界均为 `1`、引擎内部 `TP8 / PP2`（H100 配置示例），外层加副本与内层加 PP 不是一回事。
+- **Responses（`/v1/responses`）与 Anthropic Messages（`/v1/messages`）**：接口协议只管输入/输出封装，模型任务才决定能算什么。Responses 接收 `input`、返回 `output` 项列表（不可按 Chat `choices` 读取），支持用 `previous_response_id` 衔接历史会话；但会话状态仅存于单 API 进程内存字典（与复用 KV 的 [prefix caching](prefix-caching.md) 无关）。默认 `VLLM_ENABLE_RESPONSES_API_STORE=0` 下即使传 `store=true` 也不保存，开启后亦无自动清理；`background=true` 须双开，`previous_response_id` 与 `previous_input_messages` 互斥。Anthropic Messages 要求 `model`、`messages` 与正数 `max_tokens`，入口先转 Chat 执行再转回 `content`/`tool_use` 块，协议转换不会凭空增加工具能力。
+- **SageMaker 与 Ray Serve 包装层**：外层包装只管接入与副本调度，不改变引擎内部 TP/PP/DP 并行。SageMaker `/invocations` 仅分派 Chat、Completions 与对应 pooling 处理器（不含 Responses、Messages 与 multipart 语音），`/ping` 接健康检查。Ray Serve 在引擎外管理副本，不同于引擎内部的 [Ray 执行器](engine-processes.md)——官方 DeepSeek 示例外层 `autoscaling_config` 上下界为 `1`、引擎内部 `TP8 / PP2`（H100 配置示例），外层加副本与内层加 PP 不是一回事。
 
 ## 已经算好的文本向量怎样进门，谁负责套模板？
 
@@ -290,11 +290,11 @@ file: api-server-entry-flow
 file: api-renderer-services
 ```
 
-以纯文本聊天为例，三段调用串联如下。先调 `POST /v1/chat/completions/render` 取回示意编号 `7、31、1052、9` 与生成参数。再提交到生成服务的 `POST /inference/v1/generate` 取得输出编号。支持 derender 的版本再把输出编号交回 `POST /v1/chat/completions/derender`，还原成文字、思考段或工具调用（derender 只做输出整理，不重跑模型）。
+以纯文本聊天为例，三段调用串联如下：先调 `POST /v1/chat/completions/render` 取回示意编号 `7、31、1052、9` 与生成参数；再提交到生成服务的 `POST /inference/v1/generate` 取得输出编号；支持 derender 的版本再把输出编号交回 `POST /v1/chat/completions/derender`，还原成文字、思考段或工具调用（derender 只整理输出，不重跑模型）。
 
-调用方必须保留原始请求（含工具定义）与输入计数。设输入 `4` 枚、输出 `2` 枚，后处理时连同输入计数交回，汇总总用量为 $N_{\text{total}} = 4 + 2 = 6$ 个 token（旧协议缺失输入计数时记为 `0`）。多模态场景下 Chat render 会跳过本地缓存命中直返下游所需的完整媒体特征与占位范围（特征可能仍是设备编码器的输入，不是已在 CPU 编完），调用方不能只转发文字编号。
+调用方必须保留原始请求（含工具定义）与输入计数。设输入 `4` 枚、输出 `2` 枚，后处理时连同输入计数交回，汇总总用量为 $N_{\text{total}} = 4 + 2 = 6$ 个 token（旧协议缺失输入计数时记为 `0`）。多模态场景下，Chat render 会跳过本地缓存命中、直接返回下游所需的完整媒体特征与占位范围（特征可能仍是设备编码器输入，未必在 CPU 编完），因此调用方不能只转发文字编号。
 
-**边界与例外（流式 derender）**：在 `v0.30.0` 与 `main` 中，同一 `/derender` 地址另支持 `stream=true` 做逐片段后处理。调用方每次提交 `generate_chunk` 与上一轮 `stream_state`，响应回传 `chunk` 与更新后的 `stream_state`。注意**每次调用回一份 JSON，自身不是 SSE 推送连接**；且 `v0.30.0 / main` 的逐片段 Chat 分支若已配置思考/工具解析器，或单片段含多个 choice，都会直接拒绝，须改走完整结果后处理。
+**边界与例外（流式 derender）**：在 `v0.30.0` 与 `main` 中，同一 `/derender` 地址支持 `stream=true` 做逐片段后处理：调用方每次提交 `generate_chunk` 与上一轮 `stream_state`，响应回传 `chunk` 与更新后的 `stream_state`。注意两点限制：每次调用返回一份普通 JSON，**本身不是 SSE 推送连接**；且 `v0.30.0 / main` 的逐片段 Chat 分支一旦配置了思考/工具解析器、或单片段含多个 choice，均直接拒绝，须改走完整结果后处理。
 
 ## 换成 DeepSeek Recipe，入口负责到哪里
 
@@ -307,7 +307,11 @@ DeepSeek Recipe 先将 Messages、Chat Completions、Responses 等接口格式�
 
 ## 工具模板、解析器和插件，分别接在哪一侧？
 
-工具调用必须把输入与输出两端配对：**输入端模板告诉模型有哪些工具、按何格式写调用；输出端解析器把模型写出的文本拆回函数名与参数。** 模型按方括号格式写、解析器只认 JSON 时，单换解析器改不了模型输入。
+工具调用必须把输入与输出两端配对：**输入端模板告诉模型有哪些工具、按何格式写调用；输出端解析器把模型写出的文本拆回函数名与参数。** 模型按方括号格式写、解析器只认 JSON 时，单换解析器改不了模型输入。下图把上文的四类兼容协议路由、`prompt_embeds` 守卫，以及工具调用的四站闭环汇总在同一视野里：
+
+```wiki-diagram
+file: api-server-entry-fig-variants-and-tools
+```
 
 | 请求走到哪里 | 这一层负责什么 | 使用时要配合什么 |
 |---|---|---|
@@ -329,9 +333,9 @@ DeepSeek Recipe 先将 Messages、Chat Completions、Responses 等接口格式�
 
 **主线把 GLM-5.3-Flash 部署在两台昇腾服务器上，每台 8 张 NPU 卡，两台各是一个 DP 组（部署前提见[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)）。入口只在 node0 上：一个 API server 接下两台机器的全部请求，上面七步都在 node0 的 CPU 上做；`vllm-ascend` 没有改这一段。** 本页对应主线[第 1 站 入口](one-request.md#第-1-站-入口从-http-到-node0-的引擎)。
 
-**谁在接请求。** node0 把 `--api-server-count` 设成 `1`，由 `vllm serve` 进程自己监听 `8000` 端口；node1 以 `--headless` 启动，只起本机 EngineCore（见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。教程未改 `--renderer-num-workers`，因此两组请求的模板、分词都排在 node0 的 `1` 个工作线程上。
+**谁在接请求。** node0 把 `--api-server-count` 设成 `1`，由 `vllm serve` 进程监听 `8000` 端口；node1 以 `--headless` 启动，只起本机 EngineCore（见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。教程未改 `--renderer-num-workers`，因此两组请求的模板与分词都排在 node0 的 `1` 个工作线程上。
 
-**请求怎么写。** 服务对外名设成 `glm`，请求里模型名要么写 `glm`、要么省略，写目录名会在第 ① 步回 404。聊天接口用模型自带模板（一条消息多出 6 个特殊标记和一行系统说明，见 [token 页的 GLM 一节](token.md#r1-在入口拿到了什么)）。教程验证示例走老式 `/v1/completions` 且误写了 `max_completion_tokens: 50`，该字段被忽略，实际仅按默认最多生成 `16` 个 token。采样默认来自模型生成配置（见[请求不写采样参数时用的是什么](sampling.md#请求不写采样参数时用的是什么)）。
+**请求怎么写。** 服务对外名设成 `glm`，请求里模型名要么写 `glm`、要么省略，写目录名会在第 ① 步回 `404`。聊天接口走模型自带模板（单条消息会多出 `6` 个特殊标记和一行系统说明，见 [token 页的 GLM 一节](token.md#r1-在入口拿到了什么)）。教程验证示例走老式 `/v1/completions` 且误写了 `max_completion_tokens: 50`：该字段被忽略，实际仅按默认最多生成 `16` 个 token。采样默认来自模型生成配置（见[请求不写采样参数时用的是什么](sampling.md#请求不写采样参数时用的是什么)）。
 
 **长度上限。** 总长度上限设成 `133120`。沿用 R1（4 个提示词 token，教学设定，走普通文本编号而非 `prompt_embeds`）与 `max_tokens = 200`：
 
@@ -343,7 +347,7 @@ $$L_{\text{in,allow}} = 133{,}120 - 200 = 132{,}920, \qquad L_{\text{out}} = \mi
 | R1 有效输出上限 | $\min(133{,}120 - 4,\; 200)$ | **`200` 个** |
 | 若聊天请求两项输出上限都不写 | $133{,}120 - 4$ | **`133,116` 个**（按剩余上下文补齐） |
 
-**工具调用与解析器。** 主线启动命令未配工具与推理解析器，故 `tool_choice="auto"` 会在第 ① 步被拒。普通 HF tokenizer 路径下，`required` 或指定函数名同样要求 `--tool-call-parser`（仅 `auto` 另需 `--enable-auto-tool-choice`）。教程 FAQ 给出 `glm47` 工具解析器与 `glm45` 推理解析器，并说明该模型不支持 `enable_thinking=false`。`tool_choice="none"` 默认仍把 `tools` 定义交给模板（除非开启 `exclude_tools_when_tool_choice_none`）。
+**工具调用与解析器。** 主线启动命令未配工具与推理解析器，故 `tool_choice="auto"` 会在第 ① 步被拒；普通 HF tokenizer 路径下，`required` 或指定函数名同样要求 `--tool-call-parser`（仅 `auto` 另需 `--enable-auto-tool-choice`）。教程 FAQ 推荐搭配 `glm47` 工具解析器与 `glm45` 推理解析器，并说明该模型不支持 `enable_thinking=false`。此外，`tool_choice="none"` 默认仍把 `tools` 定义交给模板，除非显式开启 `exclude_tools_when_tool_choice_none`。
 
 **R1 怎样离开入口与昇腾边界。** 登记输出槽后两组皆空，R1 落到 node0 上的 DP0（经 node0 TCP ZMQ 发送，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)）。钉住版本中 `vllm-ascend` 仅在输出侧修正流式工具调用分段，不改动请求入口。
 

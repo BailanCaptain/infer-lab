@@ -1,0 +1,10 @@
+mode: native-svg
+id: ops-and-kernels-fig-glm-layer-ops
+caption: >-
+  GLM 双机第 3–44 层四套算子选路机制并存流：mHC 入口/出口硬编码调用 C++ 扩展 npu_hc_pre_v2 / npu_hc_post，RMSNorm 走 OOT 替换表，34 层 KDA 与 11 层稀疏 MLA 走独立注意力后端，MoE 子层由量化方法与 MC2/AllGather 通信选路共同决定。
+size: [900, 400]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169
+    symbols: [npu_hc_pre_v2, npu_hc_post]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2213-L2240
+    symbols: [hc_pre, hc_post, input_layernorm, self_attn, mlp]

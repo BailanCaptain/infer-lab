@@ -1,0 +1,20 @@
+mode: native-svg
+id: param-pcp-embed-lmhead-sharding
+caption: >-
+  enable_pcp_embedding_lmhead_weight_sharding（默认 True）：PCP>1 且未设 disable_tp、模块名含 embed_tokens 或 head 时，按 TP×PCP（PCP 为内维）切分词表权重至 1/(TP×PCP)；示意 8 行词表在 TP=2×PCP=2 上的分片查找，以及 embedding（PCP AG→RS→TP AR）与 LM Head（PCP AG→TP AG）两侧通信链路和互斥门禁。
+size: [900, 520]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L582'
+    symbols:
+      - enable_pcp_embedding_lmhead_weight_sharding
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133'
+    symbols:
+      - _resolve_vocab_parallel_plan
+      - disable_tp
+      - enable_pcp_embedding_lmhead_weight_sharding
+      - VocabParallelMode
+      - PCP_X_TP
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1037-L1053'
+    symbols:
+      - enable_batch_sharded_sampling
+      - enable_pcp_embedding_lmhead_weight_sharding

@@ -1,7 +1,7 @@
 mode: native-svg
 id: custom-op-fig-three-paths
 caption: >-
-  昇腾三条自定义算子实现路径与硬件能力门控对照：第一优先调用 torch_npu 内置 ACLNN/ATB 算子；其次针对融合或非标算子选用 Triton-Ascend（需顾及 UB 容量与 CANN 扩展）或 AscendC 编译进 vllm_ascend_C（需补齐 Meta 推导）；底部标出 v0.30.0 下 950 禁用 vllm_ascend_C 与 310P 走兼容算子的硬件门控。
+  昇腾三条自定义算子实现路径的阶梯选型：第一优先调用 torch_npu 内置 ACLNN/ATB 算子（零编译、原生图支持）；其次针对访存或索引类非标融合选用 triton-ascend（需配 fake_impl 与 HAS_TRITON/UB 守卫）；仅经 profiling 证实核心热点且需直控 Cube/Vector 流水或融合通信时，才下沉 csrc/ 编写 AscendC（须补 torch_binding_meta.cpp 并受 enable_custom_op() 门控）。
 size: [900, 440]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L540-L585

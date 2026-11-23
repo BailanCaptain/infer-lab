@@ -1,8 +1,8 @@
 mode: native-svg
 id: quantization-evaluation-fig-three-gate
 caption: >-
-  量化验收三道闸门（精度 × 显存四笔账 × 吞吐与 Goodput）：闸门 1 先核对产物/scale/NZ 排布再测 MSE/SQNR 与独立任务集质量；闸门 2 把文件、加载驻留、转换峰值与可用 KV 池四笔显存账拆开核对（防范 v0.30.0 A2/A3 原生 FP8 反量化回 BF16 的假省显存陷阱）；闸门 3 按 Amdahl 耗时拆账（100 ms → 80 ms = 1.25×）并用 AISBench / EvalScope 与 vllm bench serve 对齐 TTFT/TPOT/ITL/Goodput。
-size: [900, 470]
+  量化上线三道顺序闸门与失败回溯图：闸门 1 串联产物抽查→张量误差→独立集质量评测；闸门 2 用四柱显存直方区分磁盘文件、加载驻留、转换峰值与可用 KV 块净增（防 A2 FP8 反量化陷阱）；闸门 3 以 Goodput SLO 达标框区分真收益与超时吞吐；未过闸时沿下方单变量路径回溯定位。
+size: [900, 496]
 pins:
   - source: 'vllm@ced6857a:vllm/benchmarks/serve.py#L568-L600'
     symbols:

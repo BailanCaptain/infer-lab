@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 676" width="900" height="676" role="img" aria-label="RFork 跨实例显存直读立体拆解图：Seed A 的 HBM 权重经 Direct RDMA 管道按地址写入 Instance B 的 HBM 空位，绕过灰色磁盘，顶部 Planner 虚线负责身份配对与租约协调" font-family="var(--font-sans)">
+  <title>RFork 跨实例权重直读立体拆解：Seed A 显存中已处理好的权重经 Direct RDMA 通道直接按地址写入 Instance B 的 HBM 空位，绕过本地磁盘；顶部 Planner 只经手身份配对、租约借还与心跳，不中转权重字节。</title>
+  <desc>关联源码符号：RForkModelLoader, register_destination, acquire_seed, transfer_from_seed, batch_transfer_sync_read, prepare_for_fallback, can_schedule_seed</desc>
+
+  <!-- 紧裁透明底等距立体剖面插画（无外框、无网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/rfork-seed-borrow-cutaway.webp" x="50" y="122" width="780" height="429" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉引线与双环靶点 -->
+  <!-- 1 -> SEED A HBM 琥珀色权重块 -->
+  <line x1="242" y1="108" x2="242" y2="266" stroke="#c78300" stroke-width="1.7"/>
+  <circle cx="242" cy="266" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="242" cy="266" r="2.5" fill="#c78300"/>
+
+  <!-- 2 -> PLANNER 青色协调控制盒 -->
+  <line x1="514" y1="108" x2="514" y2="176" stroke="#087f73" stroke-width="1.7"/>
+  <circle cx="514" cy="176" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="514" cy="176" r="2.5" fill="#087f73"/>
+
+  <!-- 3 -> DIRECT RDMA 梅紫色数据通道与传输中的权重块 -->
+  <path d="M 156 558 L 156 518 L 424 518 L 424 342" fill="none" stroke="#9a4b86" stroke-width="1.7"/>
+  <circle cx="424" cy="342" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="424" cy="342" r="2.5" fill="#9a4b86"/>
+
+  <!-- 4 -> INSTANCE B HBM 槽位（已填 + 待填） -->
+  <path d="M 456 558 L 456 536 L 636 536 L 636 408" fill="none" stroke="#4c65b6" stroke-width="1.7"/>
+  <circle cx="636" cy="408" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="636" cy="408" r="2.5" fill="#4c65b6"/>
+
+  <!-- 5 -> 右下角被绕过的灰色磁盘 -->
+  <line x1="794" y1="558" x2="794" y2="484" stroke="#b54237" stroke-width="1.7"/>
+  <circle cx="794" cy="484" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="794" cy="484" r="2.5" fill="#b54237"/>
+
+  <!-- 顶部开放式无边框矢量编号直标 -->
+  <g id="callout-seed-a">
+    <circle cx="24" cy="28" r="13" fill="#c78300"/>
+    <text x="24" y="33" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="15" font-weight="700" fill="#17211f">Seed A · 常驻 HBM 已处理权重</text>
+    <text x="44" y="57" font-size="14" fill="#4d5652">已在服务的同分片 Worker，显存已登记给传输引擎</text>
+    <text x="44" y="80" font-size="14" fill="#4d5652">只读不搬走：借出期间 A 照常推理、继续当 seed</text>
+    <text x="44" y="102" font-size="13.5" fill="#936300">HTTP 元数据服务只回报张量地址、形状、dtype 与 NPU 格式</text>
+  </g>
+
+  <g id="callout-planner">
+    <circle cx="468" cy="28" r="13" fill="#087f73"/>
+    <text x="468" y="33" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="488" y="33" font-size="15" font-weight="700" fill="#17211f">Planner · 控制面身份配对与租约</text>
+    <text x="488" y="57" font-size="14" fill="#4d5652">顶部虚线只走控制面：登记、心跳、借租约、还租约</text>
+    <text x="488" y="80" font-size="14" fill="#4d5652">按 <tspan font-family="var(--font-mono)" font-weight="700">seed_key</tspan> 逐字精确配对，从不经手权重字节</text>
+    <text x="488" y="102" font-size="13.5" fill="#065f56">发租约记并发名额；返回 <tspan font-family="var(--font-mono)">LEASE_TTL_SEC</tspan> 时可周期续租</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标（三列等宽零拥挤） -->
+  <g id="callout-rdma">
+    <circle cx="24" cy="576" r="13" fill="#9a4b86"/>
+    <text x="24" y="581" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="44" y="581" font-size="15" font-weight="700" fill="#17211f">Direct RDMA · 分批直读</text>
+    <text x="44" y="606" font-size="13.5" fill="#4d5652">由 B 主动发起卡对卡同步读取</text>
+    <text x="44" y="629" font-size="13.5" fill="#4d5652">每批 ≤ 1 GiB 且 ≤ 512 段</text>
+    <text x="44" y="652" font-size="13.5" fill="#7a3a6a">借的是字节，不是进程或共享内存</text>
+  </g>
+
+  <g id="callout-instance-b">
+    <circle cx="322" cy="576" r="13" fill="#4c65b6"/>
+    <text x="322" y="581" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="342" y="581" font-size="15" font-weight="700" fill="#17211f">Instance B · 先开空位预登记</text>
+    <text x="342" y="606" font-size="13.5" fill="#4d5652">先搭空模型、按需转布局并同步</text>
+    <text x="342" y="629" font-size="13.5" fill="#4d5652">登记空位并绑结构摘要后再借租约</text>
+    <text x="342" y="652" font-size="13.5" fill="#3a4f93">读完还租约后 B 也可发布为新 seed</text>
+  </g>
+
+  <g id="callout-disk">
+    <circle cx="624" cy="576" r="13" fill="#b54237"/>
+    <text x="624" y="581" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="644" y="581" font-size="15" font-weight="700" fill="#17211f">绕过磁盘 · 失败才回退</text>
+    <text x="644" y="606" font-size="13.5" fill="#4d5652">成功路径跳过读盘、切片与 H2D</text>
+    <text x="644" y="629" font-size="13.5" fill="#4d5652">借不到或读失败：清理后退回读盘</text>
+    <text x="644" y="652" font-size="13.5" fill="#8f3229">须过服务停止且内存注销双门才回退</text>
+  </g>
+</svg>

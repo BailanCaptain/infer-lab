@@ -1,12 +1,12 @@
 mode: native-svg
 id: pd-plate-mooncake-cutaway
 caption: >-
-  PD 分离与 Mooncake RDMA 跨实例交接立体拆解：左侧 Prefill 实例（kv_producer）集中算力并行消化长提示词，经中央 Mooncake RDMA 连接器把 KV blocks 搬运到右侧 Decode 实例（kv_consumer）的本地块池；D 实例接住历史后专注纯净 Decode 逐词吐出，避免长提示词打断在线生成，代价是跨实例传输等待与 P 侧押块窗口。
+  PD 分离与 Mooncake RDMA 跨实例交接立体拆解：左侧 Prefill 实例（kv_producer）集中算力并行消化长提示词，经中央 Mooncake RDMA 连接器把 KV blocks 交接到右侧 Decode 实例（kv_consumer）的本地块池；D 实例接住历史后专注纯净 Decode 逐词吐出，避免长提示词打断在线生成，代价是跨实例传输等待（V1 整批拉时 P 须押块等 D 释放，Layerwise 逐层推则由 D 先分块、P 边算边推且不走请求级押块）。
 size: [900, 590]
 pins:
   - source: vllm@ced6857a:vllm/config/kv_transfer.py#L57-L155
     symbols: [KVTransferConfig, kv_connector, kv_role, is_kv_producer, is_kv_consumer]
   - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L95
     symbols: [register_connector, MooncakeConnectorV1, MooncakeLayerwiseConnector]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L190-L215
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L579-L671
     symbols: [get_num_new_matched_tokens, update_state_after_alloc, build_connector_meta]

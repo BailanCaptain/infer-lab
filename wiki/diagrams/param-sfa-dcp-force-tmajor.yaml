@@ -1,0 +1,22 @@
+mode: native-svg
+id: param-sfa-dcp-force-tmajor
+caption: >-
+  sfa_dcp_force_tmajor_restore（默认 False）控制 SFA-DCP 纯 decode 路径中 query gather 收回后转 t-major 时是否追加 .contiguous() 拷贝：默认 keep_view=True 仅 permute 零拷贝切分，设 True 仅在视图非连续（如 T=2 步长 [3,6,1]）时触发复制（T=1 已连续不拷贝）；含 prefill 批次、开启 DSA-CP 或 kpool 模型均会直接绕过。
+size: [900, 488]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L575-L583'
+    symbols:
+      - sfa_dcp_force_tmajor_restore
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1676-L1683'
+    symbols:
+      - enable_sfa_dcp_force_tmajor_restore
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/context_parallel/sfa_cp.py#L1943-L1954'
+    symbols:
+      - _finish_dcp_gather
+      - keep_view
+      - enable_sfa_dcp_force_tmajor_restore
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/attention/context_parallel/sfa_cp.py#L959-L979'
+    symbols:
+      - _finish_dcp_packed_gather
+      - _finish_dcp_gather
+      - keep_view

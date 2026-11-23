@@ -1,0 +1,27 @@
+mode: native-svg
+id: param-fused-op-type
+caption: >-
+  Sparse KV Offload decode 路径对比与 v0.30.0/main 演变：原始四步被 LIM（打分+热缓冲管理）与 Copy-SFA（边拷缺失行边算 SFA）两步取代；v0.30.0/main 删除 fused_op_type 用户键，改为未开 use_fused_overlap 时经只读属性 use_fused_copy_sfa 默认走融合，启动期校验 TopK=2048、Q_max∈[1,14] 与 256 对齐热区 [Q_max×2048, 32512]（LIM 配置校验上界 32640；物理步幅在热区后外挂 2×128=256 循环尾区，最大至 32768）。
+size: [900, 524]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1730'
+    symbols:
+      - SparseKVOffloadConfig
+      - topk_buffer_size
+      - use_fused_overlap
+      - use_fused_copy_sfa
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_kv_offload.py#L63-L94'
+    symbols:
+      - LIM_TOPK
+      - LIM_MAX_QUERY_ROWS
+      - LIM_MAX_HOT_TOKENS
+      - COPY_SFA_TAIL_TOKENS
+      - _validate_fused_copy_sfa_config
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_kv_offload.py#L228-L230'
+    symbols:
+      - copy_sfa_hot_tokens
+      - copy_sfa_stride_blocks
+  - source: 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1693-L1716'
+    symbols:
+      - fused_op_type
+      - use_fused_overlap

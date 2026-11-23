@@ -1,0 +1,14 @@
+mode: native-svg
+id: param-weight-prefetch-hooks
+caption: >-
+  v0.23.0 weight_prefetch_config 独立预取流与四类比例钩子/MLA 独立预取触发门槛全景，以及 v0.24.0rc（PR #11949）彻底移除后的三类近名混淆陷阱与 GLM-5.3-Flash 五路推演结论。
+size: [900, 520]
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720
+    symbols: [WeightPrefetchConfig, prefetch_ratio]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L238
+    symbols: [maybe_prefetch_attn_weight_preprocess, maybe_prefetch_moe_weight_preprocess, maybe_prefetch_mlp_weight_preprocess, maybe_prefetch_mla_or_sla_weight_in_current_stream, maybe_npu_prefetch]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907
+    symbols: [unknown_keys]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030
+    symbols: [unknown_keys]

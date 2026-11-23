@@ -1,0 +1,16 @@
+mode: native-svg
+id: ep-fig-910b3-moe-vs-dense-and-ep8
+caption: >-
+  Ascend 910B3（v0.30.0，统一 262-token 输入与 128-token 输出）MoE 对比与八卡扩展剖析：左半展示 30.5B 总参的 Qwen3-30B-A3B（128 选 8 激活 3.3B，TP4+EP4）在 c=16 跑出 179.70 tok/s、c=1 TPOT 77.90 ms，反超同四卡稠密 Qwen3-8B TP4（167.30 tok/s / 90.57 ms）；右半剖析扩至八卡 DP2+TP4+EP8 后虽把路由专家权重精确减半（54.000÷8=6.750 GiB，叠加恒定非专家 0.7652 GiB 后单卡总权重由 14.2652 降至 7.5152 GiB，实降 47.32%）并解锁 3.95M KV 容量，但因 A2 无 LoRA 且 ep_world_size=8 < 16 走 ALLGATHER（且 dp_size>1 触发跨 DP gather + reduce-scatter，非 AllToAll）、c=1 空闲 DP 跑 dummy batch、c=16 每 DP 仅 8 请求且双池隔离使前缀命中从 25.49% 降至 16.99%，c≤16 总吞吐反跌至 149.45 tok/s（单卡效率 44.93→18.68 tok/s）、c=1 TPOT 升至 96.36 ms（+18.46 ms 各项子份额待逐步轨迹拆分）。
+size: [860, 604]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L292
+    symbols: [HardwareProfile, CAPACITY_AND_EXPERT_DENSITY]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L315
+    symbols: [_select_capacity_and_expert_density_moe_comm_method, ALLGATHER, MC2]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464
+    symbols: [all_gather]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569
+    symbols: [_finalize_with_dp_group, reduce_scatter]
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2226
+    symbols: [execute_dummy_batch, engines_running]

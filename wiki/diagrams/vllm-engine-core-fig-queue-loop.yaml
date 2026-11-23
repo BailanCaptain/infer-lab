@@ -1,8 +1,11 @@
 mode: native-svg
 id: vllm-engine-core-fig-queue-loop
 caption: >-
-  EngineCoreProc 双队列解耦与步函数并发对比：后台线程收发 input_queue 与 output_queue，取消消息同时入主队列与独立取消队列并在更新前清空；主循环在空闲时阻塞等待（外部 KV 等待时休眠 1 ms），有活时按 max_concurrent_batches 选择同步 step() 或带批次队列的 step_with_batch_queue() 将第 k+1 步调度与第 k 步 NPU 计算重叠。
-size: [900, 472]
+  EngineCoreProc 双队列解耦与同步/异步时间轴对比：顶部展示前端经 input_queue 与独立取消队列进入主循环
+  run_busy_loop() 的三态等待闸门；中部按同一时间轴并排绘制同步 step()（batch_queue_size=1，跨步出现
+  NPU 空档）与异步批次队列 step_with_batch_queue()（batch_queue_size=2，趁第 k 步 NPU 计算提前排第
+  k+1 步并记占位，消除跨步空档）；底部标出 DP+EP 空闲陪跑与 v0.30.0 到 main 的昇腾入口补丁收口。
+size: [900, 536]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L584-L710'
     symbols:

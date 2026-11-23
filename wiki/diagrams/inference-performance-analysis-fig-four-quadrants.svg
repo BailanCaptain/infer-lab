@@ -1,47 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="推理性能四象限归因图：Host-bound、Compute-bound、HBM-bound 与 Comm/Straggler-bound 的证据与动作对照" font-family="var(--font-sans)">
-  <title>设备到底在算还是在等：四象限瓶颈归因与首取证据地图</title>
-  <desc>Four-quadrant inference bottleneck attribution: Host-bound vs Compute-bound vs HBM-bound vs Comm/Straggler-bound with first-grab evidence and actions</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="推理性能四象限几何特征归因图：Host-bound 气泡轨迹、Compute-bound Roofline 平顶、HBM-bound 带宽斜坡与 Comm/Straggler-bound 迟到卡等待" font-family="var(--font-sans)">
+  <title>设备到底在算还是在等：四象限几何特征与首取证据地图</title>
+  <desc>Four geometric bottleneck signatures: Host-bound NPU bubble gaps, Compute-bound Roofline plateau (T=2048), HBM-bound Roofline bandwidth ramp (T=1), and Comm/Straggler rank 0 waiting 150ms for rank 1</desc>
+  <defs>
+    <marker id="fq-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">性能归因四象限：先凭时间线与算术强度判象限，再选可证伪实验</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">切忌仅凭单卡利用率盲目加卡或调参</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">性能归因四象限：对照四类几何指纹定瓶颈，再做可证伪实验</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">切忌仅凭单卡利用率盲目加卡或调参</text>
 
-  <!-- Quadrant 1: Host-bound -->
-  <rect x="16" y="46" width="424" height="196" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="32" y="74" font-size="15" font-weight="700" fill="#8f3229">① Host-bound（主机供给不足 / 调度空隙）</text>
-  <text x="32" y="100" font-size="13.5" fill="#4d5652">• 时间线特征：设备算子间频繁出现空白，单算子不长</text>
-  <text x="32" y="124" font-size="13.5" fill="#4d5652">• 典型原因：Python 准备输入、逐算子下发、CPU 争抢</text>
-  <text x="32" y="148" font-size="13.5" fill="#8f3229">• 关键核对：主机提交时刻 vs 设备开始时刻（防误判）</text>
-  <rect x="32" y="168" width="392" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="44" y="191" font-size="13.5" font-weight="700" fill="#17211f">首取证据：trace_view 主机/设备双轨 + _prepare_inputs</text>
-  <text x="44" y="213" font-size="13.5" fill="#4d5652">优先杠杆：ACLGraph 回放 · CPU 绑定 · 异步调度</text>
+  <!-- ================= Q1: HOST-BOUND (Top-Left) ================= -->
+  <rect x="16" y="44" width="424" height="212" rx="8" fill="#ffffff" stroke="#b54237" stroke-width="1.5"/>
+  <text x="30" y="70" font-size="15" font-weight="700" fill="#8f3229">① Host-bound（主机供给不足 / 下发气泡）</text>
 
-  <!-- Quadrant 2: Compute-bound -->
-  <rect x="460" y="46" width="424" height="196" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="476" y="74" font-size="15" font-weight="700" fill="#936300">② Compute-bound（算力受限 · AI 高于脊点）</text>
-  <text x="476" y="100" font-size="13.5" fill="#4d5652">• 时间线特征：各卡持续满算至步尾，大矩阵乘占主导</text>
-  <text x="476" y="124" font-size="13.5" fill="#4d5652">• 典型场景：长提示词 Prefill（如 T=2048，权重充分复用）</text>
-  <text x="476" y="148" font-size="13.5" fill="#936300">• 关键核对：单步实际有效 token 数 vs 图补齐填充行数</text>
-  <rect x="476" y="168" width="392" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="488" y="191" font-size="13.5" font-weight="700" fill="#17211f">首取证据：kernel_details.csv Cube/GEMM 占比与步长</text>
-  <text x="488" y="213" font-size="13.5" fill="#4d5652">优先杠杆：分块控预算 · 低精度量化 · P/D 分离</text>
+  <!-- Mini Host vs NPU gap trace -->
+  <text x="30" y="104" font-size="13.5" font-weight="700" fill="#4d5652">Host</text>
+  <rect x="78" y="88" width="114" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="135" y="104" text-anchor="middle" font-size="13.5" fill="#8f3229">准备/下发</text>
+  <rect x="208" y="88" width="114" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="265" y="104" text-anchor="middle" font-size="13.5" fill="#8f3229">准备/下发</text>
+  <rect x="338" y="88" width="84" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
 
-  <!-- Quadrant 3: HBM-bound -->
-  <rect x="16" y="260" width="424" height="202" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="32" y="288" font-size="15" font-weight="700" fill="#3a4f93">③ HBM-bound（访存带宽受限 · AI 低于脊点）</text>
-  <text x="32" y="314" font-size="13.5" fill="#4d5652">• 时间线特征：算力远未打满，耗时由搬权重或 KV 决定</text>
-  <text x="32" y="338" font-size="13.5" fill="#4d5652">• 典型场景：小批 Decode（如 T=1）、长上下文读历史</text>
-  <text x="32" y="362" font-size="13.5" fill="#3a4f93">• 关键核对：显存没满 ≠ 非内存瓶颈（容量与带宽分账）</text>
-  <rect x="32" y="382" width="392" height="64" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="44" y="406" font-size="13.5" font-weight="700" fill="#17211f">首取证据：batch 有效宽度 + 历史长度 + 量化位宽</text>
-  <text x="44" y="429" font-size="13.5" fill="#4d5652">优先杠杆：合批摊薄权重读 · W8A8/KV 压缩 · MTP/投机</text>
+  <text x="30" y="142" font-size="13.5" font-weight="700" fill="#065f56">NPU</text>
+  <rect x="176" y="126" width="42" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="220" y="126" width="84" height="22" rx="4" fill="#ece9df" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="262" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">气泡空等</text>
+  <rect x="306" y="126" width="42" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="350" y="126" width="72" height="22" rx="4" fill="#ece9df" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="386" y="142" text-anchor="middle" font-size="13.5" fill="#8f3229">空等</text>
 
-  <!-- Quadrant 4: Comm / Straggler-bound -->
-  <rect x="460" y="260" width="424" height="202" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="476" y="288" font-size="15" font-weight="700" fill="#7a3a6a">④ Comm / Straggler-bound（通信与偏斜等待）</text>
-  <text x="476" y="314" font-size="13.5" fill="#4d5652">• 时间线特征：HCCL/MC2 区间异常拉长且卡在关键路径</text>
-  <text x="476" y="338" font-size="13.5" fill="#4d5652">• 必须先拆：某 rank 迟到（如 rank 0 等 rank 1 150 ms）</text>
-  <text x="476" y="362" font-size="13.5" fill="#7a3a6a">　vs 全卡已齐备但实际交换慢（切 AllGather / 链路拥塞）</text>
-  <rect x="476" y="382" width="392" height="64" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="488" y="406" font-size="13.5" font-weight="700" fill="#17211f">首取证据：全 rank 对齐的通信开始/结束 + 专家 token 分布</text>
-  <text x="488" y="429" font-size="13.5" fill="#4d5652">优先杠杆：DP 均衡路由 · EPLB · 控制 MC2/通信重叠</text>
+  <!-- Launch dependency arrows -->
+  <line x1="184" y1="110" x2="184" y2="124" stroke="#4d5652" stroke-width="1.2" marker-end="url(#fq-arr)"/>
+  <line x1="314" y1="110" x2="314" y2="124" stroke="#4d5652" stroke-width="1.2" marker-end="url(#fq-arr)"/>
+
+  <rect x="30" y="164" width="396" height="78" rx="6" fill="#fff0e9"/>
+  <text x="42" y="187" font-size="13.5" font-weight="700" fill="#8f3229">核对：区分「CPU 迟交」vs「已提交等设备前序」</text>
+  <text x="42" y="210" font-size="13.5" fill="#17211f">首取：trace_view 主机/设备双轨 + _prepare_inputs</text>
+  <text x="42" y="232" font-size="13.5" fill="#4d5652">杠杆：ACLGraph 回放 · CPU 绑核 · 异步调度</text>
+
+  <!-- ================= Q2: COMPUTE-BOUND (Top-Right) ================= -->
+  <rect x="460" y="44" width="424" height="212" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
+  <text x="474" y="70" font-size="15" font-weight="700" fill="#936300">② Compute-bound（算力受限 · AI 高于脊点）</text>
+
+  <!-- Mini Roofline Curve highlighting Compute Ceiling -->
+  <line x1="484" y1="150" x2="646" y2="150" stroke="#66716d" stroke-width="1.3"/>
+  <line x1="484" y1="150" x2="484" y2="84" stroke="#66716d" stroke-width="1.3"/>
+  <polyline points="484,148 548,96 640,96" fill="none" stroke="#b8bcb5" stroke-width="2.2"/>
+  <line x1="548" y1="96" x2="640" y2="96" stroke="#c78300" stroke-width="3.2"/>
+  <circle cx="604" cy="96" r="5.5" fill="#c78300"/>
+  <text x="604" y="87" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">T=2048 顶墙</text>
+  <text x="550" y="138" text-anchor="middle" font-size="13.5" fill="#66716d">算术强度 AI →</text>
+
+  <!-- Right side: packed compute bar vs tiny read -->
+  <rect x="664" y="90" width="204" height="24" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="766" y="107" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">计算下界 0.687 ms（主导）</text>
+  <rect x="664" y="122" width="26" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="698" y="138" font-size="13.5" fill="#3a4f93">读权重 0.034 ms</text>
+
+  <rect x="474" y="164" width="396" height="78" rx="6" fill="#fff4cf"/>
+  <text x="486" y="187" font-size="13.5" font-weight="700" fill="#936300">核对：区分「有效 token」vs「图补齐空行」</text>
+  <text x="486" y="210" font-size="13.5" fill="#17211f">首取：kernel_details.csv Cube/GEMM 占比与步长</text>
+  <text x="486" y="232" font-size="13.5" fill="#4d5652">杠杆：分块控预算 · 低精度量化 · P/D 分离</text>
+
+  <!-- ================= Q3: HBM-BOUND (Bottom-Left) ================= -->
+  <rect x="16" y="272" width="424" height="214" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="298" font-size="15" font-weight="700" fill="#3a4f93">③ HBM-bound（访存带宽受限 · AI 低于脊点）</text>
+
+  <!-- Mini Roofline Curve highlighting Bandwidth Ramp -->
+  <line x1="40" y1="378" x2="202" y2="378" stroke="#66716d" stroke-width="1.3"/>
+  <line x1="40" y1="378" x2="40" y2="312" stroke="#66716d" stroke-width="1.3"/>
+  <polyline points="40,376 104,324 196,324" fill="none" stroke="#b8bcb5" stroke-width="2.2"/>
+  <line x1="40" y1="376" x2="104" y2="324" stroke="#4c65b6" stroke-width="3.2"/>
+  <circle cx="62" cy="358" r="5.5" fill="#4c65b6"/>
+  <text x="114" y="362" font-size="13.5" font-weight="700" fill="#3a4f93">T=1 带宽斜坡</text>
+
+  <!-- Right side: huge HBM read vs tiny compute -->
+  <rect x="220" y="318" width="204" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="322" y="335" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">读权重 0.0336 ms（主导）</text>
+  <rect x="220" y="350" width="12" height="22" rx="2" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="240" y="366" font-size="13.5" fill="#936300">计算 0.00034 ms</text>
+
+  <rect x="30" y="392" width="396" height="80" rx="6" fill="#e8edff"/>
+  <text x="42" y="415" font-size="13.5" font-weight="700" fill="#3a4f93">核对：显存没满 ≠ 非内存瓶颈（容量与带宽分账）</text>
+  <text x="42" y="438" font-size="13.5" fill="#17211f">首取：有效 batch 宽度 + 历史 KV 长度 + 量化位宽</text>
+  <text x="42" y="460" font-size="13.5" fill="#4d5652">杠杆：合批摊薄读权重 · W8A8/KV 压缩 · MTP</text>
+
+  <!-- ================= Q4: COMM / STRAGGLER-BOUND (Bottom-Right) ================= -->
+  <rect x="460" y="272" width="424" height="214" rx="8" fill="#ffffff" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="474" y="298" font-size="15" font-weight="700" fill="#7a3a6a">④ Comm / Straggler（多卡通信与迟到者等待）</text>
+
+  <!-- Mini 2-Rank Timeline matching prose (450 / 600 / 620 ms) -->
+  <text x="474" y="332" font-size="13.5" font-weight="700" fill="#17211f">Rank 0</text>
+  <rect x="534" y="316" width="76" height="22" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="572" y="332" text-anchor="middle" font-size="13.5" fill="#936300">450</text>
+  <rect x="612" y="316" width="184" height="22" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="704" y="332" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">等 Rank 1（150 ms）</text>
+  <rect x="798" y="316" width="70" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="833" y="332" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">换 20</text>
+
+  <text x="474" y="368" font-size="13.5" font-weight="700" fill="#8f3229">Rank 1</text>
+  <rect x="534" y="352" width="262" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="665" y="368" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">本地计算迟至 600 ms 才就绪</text>
+  <rect x="798" y="352" width="70" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="833" y="368" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">换 20</text>
+
+  <rect x="474" y="392" width="396" height="80" rx="6" fill="#f7e7f2"/>
+  <text x="486" y="415" font-size="13.5" font-weight="700" fill="#7a3a6a">核对：先拆「单卡迟到」vs「全卡到齐交换慢」</text>
+  <text x="486" y="438" font-size="13.5" fill="#17211f">首取：全 rank 通信到达时刻 + 专家 token 分布</text>
+  <text x="486" y="460" font-size="13.5" fill="#4d5652">杠杆：DP 均衡路由 · EPLB · 控 MC2/重叠路径</text>
 </svg>

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="量化生命周期三阶段时序与算法、工具、格式、加载器四层解耦图" font-family="var(--font-sans)">
+  <title>量化三段时机（离线制包 → 加载期 → 前向期）与四层解耦对照</title>
+  <desc>结合 QuantSpec、QuantKey、QuantizationConfigArgs 与 resolve_block_scales、maybe_trans_nz，区分部署前离线校准制包、加载期 online 权重转换/NZ 排布、以及每次前向动态激活量化三个独立阶段，并解耦算法、工具链、产物格式与加载器。</desc>
+  <defs>
+    <marker id="qmt-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="qmt-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: 3 Timings -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 三段独立时机：不要把「加载时 online 量化」与「每步动态激活」混为一谈</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Stage 1 -->
+  <rect x="16" y="54" width="268" height="148" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="30" y="80" font-size="15" font-weight="700" fill="#936300">1. 部署前：离线制包</text>
+  <text x="30" y="106" font-size="13.5" fill="#4d5652">工具读浮点权重 + 校准样本</text>
+  <text x="30" y="129" font-size="13.5" fill="#4d5652">执行 RTN / Smooth / GPTQ</text>
+  <text x="30" y="152" font-size="13.5" fill="#4d5652">导出低位权重 + 逐层描述文件</text>
+  <text x="30" y="182" font-size="13.5" font-weight="700" fill="#936300">如 ModelSlim Qwen3 混合配方</text>
+
+  <line x1="286" y1="128" x2="312" y2="128" stroke="#4d5652" stroke-width="2" marker-end="url(#qmt-arr)"/>
+
+  <!-- Stage 2 -->
+  <rect x="316" y="54" width="268" height="148" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="330" y="80" font-size="15" font-weight="700" fill="#3a4f93">2. 引擎启动：加载与布局</text>
+  <text x="330" y="106" font-size="13.5" fill="#4d5652">读量化包，或走 online 现场转权</text>
+  <text x="330" y="129" font-size="13.5" fill="#4d5652">同步执行转置、打包与 NZ 排布</text>
+  <text x="330" y="152" font-size="13.5" fill="#8f3229">注意：加载峰值含原权重临时副本</text>
+  <text x="330" y="182" font-size="13.5" font-weight="700" fill="#3a4f93">离线引擎同样走 online 路径</text>
+
+  <line x1="586" y1="128" x2="612" y2="128" stroke="#087f73" stroke-width="2" marker-end="url(#qmt-arr-t)"/>
+
+  <!-- Stage 3 -->
+  <rect x="616" y="54" width="268" height="148" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="630" y="80" font-size="15" font-weight="700" fill="#065f56">3. 每次前向：激活量化</text>
+  <text x="630" y="106" font-size="13.5" fill="#4d5652">静态方案：套用离线固定 scale</text>
+  <text x="630" y="129" font-size="13.5" fill="#4d5652">动态方案：按本步 token 现算 scale</text>
+  <text x="630" y="152" font-size="13.5" fill="#4d5652">调用融合量化矩阵乘输出下一层</text>
+  <text x="630" y="182" font-size="13.5" font-weight="700" fill="#065f56">Dynamic 不代表离线无需校准</text>
+
+  <!-- Divider -->
+  <line x1="14" y1="220" x2="886" y2="220" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: 4-Layer Decoupling -->
+  <text x="16" y="248" font-size="16" font-weight="700" fill="#17211f">② 四层解耦：辨认开源量化模型包时，逐层核对不要跨层混称</text>
+
+  <rect x="16" y="264" width="194" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="113" y="287" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">① 算法方法</text>
+  <text x="113" y="308" text-anchor="middle" font-size="13.5" fill="#4d5652">RTN / AWQ / GPTQ</text>
+
+  <line x1="212" y1="291" x2="236" y2="291" stroke="#4d5652" stroke-width="1.8" marker-end="url(#qmt-arr)"/>
+
+  <rect x="240" y="264" width="196" height="54" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="338" y="287" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">② 量化工具链</text>
+  <text x="338" y="308" text-anchor="middle" font-size="13.5" fill="#4d5652">ModelSlim / LC / Quark</text>
+
+  <line x1="438" y1="291" x2="462" y2="291" stroke="#4d5652" stroke-width="1.8" marker-end="url(#qmt-arr)"/>
+
+  <rect x="466" y="264" width="196" height="54" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="564" y="287" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">③ 导出产物格式</text>
+  <text x="564" y="308" text-anchor="middle" font-size="13.5" fill="#4d5652">ascendV1 / CT / GGUF</text>
+
+  <line x1="664" y1="291" x2="688" y2="291" stroke="#087f73" stroke-width="1.8" marker-end="url(#qmt-arr-t)"/>
+
+  <rect x="692" y="264" width="192" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="788" y="287" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">④ 运行时加载器</text>
+  <text x="788" y="308" text-anchor="middle" font-size="13.5" fill="#4d5652">ascend / online / 插件</text>
+
+  <!-- 3 Concrete pitfall strip -->
+  <rect x="16" y="334" width="868" height="66" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="360" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#8f3229">高频辨认例：</tspan>① <tspan font-family="var(--font-mono)" font-weight="700">FP8_DYNAMIC</tspan> 离线 RTN 无需校准，而 SmoothQuant+GPTQ 仍产出 <tspan font-family="var(--font-mono)">compressed-tensors</tspan>；</text>
+  <text x="30" y="386" font-size="13.5" fill="#4d5652">② <tspan font-family="var(--font-mono)" font-weight="700">AutoRound</tspan> 选 AutoAWQ 格式 ≠ 执行 AWQ；③ <tspan font-family="var(--font-mono)" font-weight="700">GGUF</tspan> 自 v0.26 起迁入独立插件（限 CUDA/ROCm）。</text>
+</svg>

@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="批作业感知调度器 EWMA 输出长度估计曲线、32 阈值分类与 4096 预算翻转 Best-Fit 轨迹图" font-family="var(--font-sans)">
+  <title>作业分桶、EWMA 输出估计曲线与 4,096 阈值翻转</title>
+  <desc>上半区左图展示 #job_name[...]# 正则解析至多 max_jobs=20 个作业桶，右图绘制 EWMA 从 128 跳变至 20 再收敛至 22 的曲线及 int(ewma)=32 分类门槛；下半区对比 Budget > 4,096 长作业优先与 Budget ≤ 4,096 短作业优先，并追踪 F=6→4→3 预算从 12→4→0 的三轮挑选过程。</desc>
+  <defs>
+    <marker id="bjeb-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="bjeb-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1 Left: Job Tag Parsing & Buckets -->
+  <circle cx="26" cy="24" r="12" fill="#4c65b6"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">作业标签分桶（#job_name[...]#）与 EWMA 输出长度估计（最多 10 样本）</text>
+
+  <rect x="16" y="48" width="210" height="42" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="28" y="67" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#936300">#job_name[summary]#</text>
+  <text x="28" y="84" font-size="13" fill="#4d5652">估计 200（长）→ 桶 [9, 15]</text>
+
+  <rect x="16" y="98" width="210" height="42" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="117" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">#job_name[classify]#</text>
+  <text x="28" y="134" font-size="13" fill="#4d5652">估计 8（短）→ 桶 [3, 5]</text>
+
+  <rect x="16" y="148" width="210" height="42" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="28" y="167" font-size="13" font-family="var(--font-mono)" fill="#4d5652">无标签 / 空标签</text>
+  <text x="28" y="184" font-size="13" fill="#66716d">统一归入 __default__</text>
+
+  <text x="16" y="212" font-size="13" fill="#8f3229">max_jobs=20 超限抛异常（0 非不限）</text>
+
+  <!-- Vertical divider -->
+  <line x1="244" y1="48" x2="244" y2="218" stroke="#d8d8cf" stroke-width="1.3"/>
+
+  <!-- Zone 1 Right: EWMA Trajectory Chart (y=58..194; 0..140 tokens -> y = 190 - v*0.92) -->
+  <text x="262" y="56" font-size="14" font-weight="700" fill="#17211f">EWMA 估计更新轨迹（仅计 FINISHED_STOPPED；截断/取消不计）</text>
+
+  <!-- Axes -->
+  <line x1="308" y1="190" x2="866" y2="190" stroke="#b8bcb5" stroke-width="1.3"/>
+  <line x1="308" y1="74" x2="308" y2="190" stroke="#b8bcb5" stroke-width="1.3"/>
+  <g font-size="13" font-family="var(--font-mono)" fill="#66716d" text-anchor="end">
+    <text x="302" y="82">128</text>
+    <text x="302" y="164" font-weight="700" fill="#936300">32</text>
+    <text x="302" y="194">0</text>
+  </g>
+
+  <!-- Threshold dashed line at y = 160 -->
+  <line x1="308" y1="160" x2="866" y2="160" stroke="#c78300" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="866" y="108" text-anchor="end" font-size="13" font-weight="700" fill="#936300">门槛 32：int(ewma) &gt; 32 长作业 ｜ ≤ 32 短作业（32.9→32 短）</text>
+  <line x1="852" y1="114" x2="852" y2="158" stroke="#c78300" stroke-width="1.1" stroke-dasharray="3 3"/>
+
+  <!-- Data points:
+       Cold start: (346, 78) value 128
+       Sample 1 (L=20): (506, 172) value 20
+       Sample 2 (L=40): (666, 170) value 22
+       Sample 10 frozen: (816, 168) -->
+  <polyline points="346,78 506,172 666,170 816,168" fill="none" stroke="#4c65b6" stroke-width="2.2"/>
+  <circle cx="346" cy="78" r="5.5" fill="#c78300"/>
+  <text x="358" y="84" font-size="13" font-weight="700" fill="#936300">冷启动 128（初判长）</text>
+
+  <circle cx="506" cy="172" r="5.5" fill="#087f73"/>
+  <text x="506" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">样本1 (20)→20</text>
+
+  <circle cx="666" cy="170" r="5.5" fill="#087f73"/>
+  <text x="666" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">样本2 (40)→22</text>
+
+  <circle cx="816" cy="168" r="5.5" fill="#4c65b6"/>
+  <text x="816" y="185" text-anchor="middle" font-size="13" fill="#3a4f93">满 10 样本冻结</text>
+
+  <text x="346" y="210" text-anchor="middle" font-size="13" fill="#66716d">0 样本</text>
+  <text x="506" y="210" text-anchor="middle" font-size="13" fill="#66716d">第 1 条结束</text>
+  <text x="666" y="210" text-anchor="middle" font-size="13" fill="#66716d">0.1×40+0.9×20</text>
+  <text x="816" y="210" text-anchor="middle" font-size="13" fill="#66716d">不再更新</text>
+
+  <!-- Horizontal Divider -->
+  <line x1="16" y1="230" x2="884" y2="230" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: 4,096 Threshold Flip + F=6->4->3 Best-Fit Trace -->
+  <circle cx="26" cy="256" r="12" fill="#087f73"/>
+  <text x="26" y="260.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="262" font-size="16" font-weight="700" fill="#17211f">准入预算 4,096 翻转策略与三轮 Best-Fit 挑选（示意：F=6, P=3, B=4）</text>
+
+  <!-- Two policy pills -->
+  <rect x="16" y="278" width="424" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="228" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Budget &gt; 4,096（宽裕）：长作业在前（LPT 长任务先开工）</text>
+
+  <rect x="460" y="278" width="424" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="672" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Budget ≤ 4,096（紧张）：短作业在前（速战速决还块）</text>
+
+  <!-- 3-step trace cards -->
+  <rect x="16" y="336" width="268" height="84" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="26" y="360" font-size="14" font-weight="700" fill="#065f56">第 1 次问：F=6, P=3 → 预算 12</text>
+  <text x="26" y="384" font-size="12.5" fill="#17211f">12 ≤ 4096 → 选短作业（分类桶）</text>
+  <text x="26" y="406" font-size="12.5" font-weight="700" fill="#065f56">Best-Fit ≤ 12 最长：挑 5 位置（借 2 块）</text>
+
+  <line x1="286" y1="378" x2="312" y2="378" stroke="#087f73" stroke-width="1.8" marker-end="url(#bjeb-arr-t)"/>
+
+  <rect x="316" y="336" width="268" height="84" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="326" y="360" font-size="14" font-weight="700" fill="#065f56">第 2 次问：F=4, P=3 → 预算 4</text>
+  <text x="326" y="384" font-size="12.5" fill="#17211f">分类桶未空 → 仍选分类桶</text>
+  <text x="326" y="406" font-size="12.5" font-weight="700" fill="#065f56">Best-Fit ≤ 4 最长：挑 3 位置（借 1 块）</text>
+
+  <line x1="586" y1="378" x2="612" y2="378" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#bjeb-arr-b)"/>
+
+  <rect x="616" y="336" width="268" height="84" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="626" y="360" font-size="14" font-weight="700" fill="#8f3229">第 3 次问：F=3, P=3 → 预算 0</text>
+  <text x="626" y="384" font-size="12.5" fill="#8f3229">答「没有」本步停接！</text>
+  <text x="626" y="406" font-size="12.5" fill="#4d5652">摘要桶本轮未被看到（无防饿死）</text>
+</svg>

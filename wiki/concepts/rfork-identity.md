@@ -152,7 +152,11 @@ $$\text{seed\_key} = \text{SHA256}(\text{canonical\_json}(\text{compatibility\_f
 
 ## 部署指纹里写了什么
 
-在 `main` 主基线中，**配置指纹（compatibility fingerprint）**专门覆盖“会改变权重数值内容、却不一定会改变张量形状”的配置，按意思分七项；其余会改变张量形状、dtype 或 NPU 存储格式的配置（如权重 dtype、TP/PP/EP 切分尺寸、NZ 与融合 MC2 开关、量化后处理结果、草稿拓扑）则由**结构摘要（structural digest）**直接对模型已登记的可传张量清单取哈希来自动捕获。任何一项两边不一样，`seed_key` 就会不同，A 和 B 落进两个池子。
+在 `main` 主基线中，**配置指纹（compatibility fingerprint）**覆盖「会改权重数值语义、却未必改张量形状」的七项配置；其余会改变形状、dtype 或 NPU 存储格式的配置（如权重 dtype、TP/PP/EP 切分尺寸、NZ 与融合 MC2 开关、量化后处理结果、草稿拓扑），则由**结构摘要（structural digest）**在预登记显存时对全部可传张量清单取哈希来自动捕获。任何一项两边不同，`seed_key` 就会不同，A 和 B 自动分池：
+
+```wiki-diagram
+file: rfork-fig-two-layer-hash
+```
 
 | 组别 | 放进去的内容 | 排错时要注意 |
 |---|---|---|
@@ -209,7 +213,14 @@ $$\text{seed\_key} = \text{SHA256}(\text{canonical\_json}(\text{compatibility\_f
 file: rfork-identity-flow
 ```
 
-B 的一个 Worker 在当前上游 `main`（`8d6180e2`）里按四步前进：先**建会话并算配置指纹**（`_ensure_rfork_session`），再**搭空模型并按需准备布局**（`initialize_model` 等），然后**登记本地目的显存、绑定结构摘要并算出最终 `seed_key`**（`session.register_destination()` → `bind_structural_digest` → `self.planner.seed_key`），**最后**才带着这把 `seed_key` 调用 `session.acquire_seed()` 去问 Planner。整个过程中没有借到权重的情况要分成四类看（图里第二排从左往右）：
+B 的一个 Worker 在当前上游 `main`（`8d6180e2`）里按四步前进：
+
+1. 先**建会话并算配置指纹**（`_ensure_rfork_session`）；
+2. 再**搭空模型并按需准备布局**（`initialize_model` 等）；
+3. 然后**登记本地目的显存、绑定结构摘要并算出最终 `seed_key`**（`session.register_destination()` → `bind_structural_digest` → `self.planner.seed_key`）；
+4. **最后**才带着这把 `seed_key` 调用 `session.acquire_seed()` 去问 Planner。
+
+整个过程中没有借到权重的情况要分成四类看（图里第二排从左往右）：
 
 - **缺必填或非法配置（直接中止，不回退）**：`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url` 三项必填配置缺任一项，或严格配置项非法，会在初始化或建会话时抛出 `RForkConfigurationError`。加载器明确 `except RForkConfigurationError: raise` 直接中止启动，**不会**静默回退到默认加载。
 - **会话或登记阶段的可恢复报错**：PP/EP 并行组未初始化、指纹描述自引用或歧义键（建会话阶段），或者目的显存登记失败（`RuntimeError("destination registration failed.")`）。这类异常属于 `RFORK_FALLBACK_EXCEPTIONS`，加载器接住后打一条「传输失败、清理后回退到默认加载」的警告并走清理与默认加载；若是建会话阶段失败（会话还没建起来），这张卡回退后不会登记成 seed。
@@ -232,9 +243,11 @@ B 的一个 Worker 在当前上游 `main`（`8d6180e2`）里按四步前进：�
 
 ## 放到 GLM 双机：一次热启动要配 32 把钥匙
 
-这一节是推演，不是实测。社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未给出专用的 GLM-5.3-Flash RFork 配方或已测列表（且官方指南明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须实机单独验收）；同时，本站的 GLM-5.3-Flash 双机 W8A8 历史算例钉在固定镜像 `db701c1f`（显式例外 B）。下面是把上游 `main@8d6180e2` 的 RFork 加载器规则与固定镜像的 GLM 双机拓扑放在一起推出来的，前提见[总览的 GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。我们的部署是一个实例、两台机器、16 张卡，TP8 / DP2 / EP16 / W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。
+这一节是推演，不是实测。社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但尚未给出专用的 GLM-5.3-Flash RFork 配方或已测列表（且官方指南提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须实机单独验收）。
 
-**部署指纹里写了什么。** 切分那一组是：TP 大小 8，PP 大小 1，DP 大小 2，开了 EP，是 MoE 模型；EP 组大小那一栏照样是空的，16 这个数由 DP 2 × TP 8 隐含（prefill context parallel 我们的启动命令没设，取默认 1）。数值那一组里，量化方式记的是启动参数给的 ascend。所以要借给 B 的 seed 实例，必须同样是 TP8 / DP2 / EP16 / W8A8，用同一份 checkpoint，NZ 模式也相同（我们的启动命令没设，取默认值 1，即只有量化权重转成 NZ），否则指纹不同，Planner 配不上。
+同时，本站的 GLM-5.3-Flash 双机 W8A8 历史算例钉在固定镜像 `db701c1f`（显式例外 B）。下面把上游 `main@8d6180e2` 的 RFork 加载器规则与该双机拓扑放在一起推演（前提见[总览的 GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)）：部署是一个实例、两台机器、16 张卡，TP8 / DP2 / EP16 / W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。
+
+**部署指纹里写了什么。** 切分一组为 TP=8、PP=1、DP=2、开启 EP、MoE 模型；EP 组大小一栏为空，`16` 由 `DP 2 × TP 8` 隐含（prefill context parallel 未设，取默认 1）。数值一组中量化方式记为 `ascend`。因此可互借的 seed 必须同为 TP8 / DP2 / EP16 / W8A8，使用同一份 checkpoint，且 NZ 模式相同（命令未设，取默认值 `1`，即仅量化权重转 NZ），否则指纹不同，Planner 不会配对。
 
 **每张卡的钥匙里写什么编号。** EP 组正好是全部 16 张卡、按全局编号排，所以组内编号就等于全局编号（分组见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。PP 只有一段，PP 编号记为空。对全局第 $r$ 号卡（$r \in \{0, 1, \dots, 15\}$）：
 

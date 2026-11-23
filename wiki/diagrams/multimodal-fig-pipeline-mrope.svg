@@ -1,55 +1,200 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="多模态视觉编码展开、ViT 数据并行与 M-RoPE 三维位置编码流程" font-family="var(--font-sans)">
-<title>多模态视觉 Patch 展开、ViT TP 模式对比与 M-RoPE 注入</title>
-<desc>Patch expansion, mm_encoder_tp_mode weights vs data, _merge_multimodal_embeddings, and 3D M-RoPE</desc>
-<line x1="16" y1="248" x2="884" y2="248" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="184" height="106" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="226" y="54" width="218" height="106" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="470" y="54" width="204" height="106" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="700" y="54" width="184" height="106" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="176" width="868" height="54" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="16" y="294" width="420" height="160" rx="8" fill="#fff0e9" stroke="#b54237"/>
-<rect x="464" y="294" width="420" height="160" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-</g>
-<path d="M200 107h24m-5-4l5 4-5 4M444 107h24m-5-4l5 4-5 4M674 107h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="12.5" fill="#087f73"/>
-<circle cx="28" cy="274" r="12.5" fill="#4c65b6"/>
-<g font-weight="700">
-<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">视觉 Patch 展开、占位覆写与 M-RoPE 三维位置编码</text>
-<text x="108" y="79" text-anchor="middle" font-size="14.5" fill="#17211f">预处理与占位展开</text>
-<text x="335" y="79" text-anchor="middle" font-size="14.5" fill="#936300">ViT 视觉编码器</text>
-<text x="572" y="79" text-anchor="middle" font-size="14.5" fill="#065f56">多模态嵌入原地融合</text>
-<text x="792" y="79" text-anchor="middle" font-size="14.5" fill="#3a4f93">LLM 主干 + M-RoPE</text>
-<text x="28" y="200" font-size="14.5" fill="#7a3a6a">三维位置坐标 positions [3, N] 与 mrope_section（如 [16, 24, 24]）：</text>
-<text x="28" y="278.5" text-anchor="middle" font-size="13" fill="#ffffff">2</text>
-<text x="48" y="280" font-size="16" fill="#17211f">ViT 跨卡模式对比：weights（张量切分） vs data（样本分卡）</text>
-<text x="30" y="320" font-size="15" fill="#8f3229">weights 模式（默认）：按头切分 ViT 权重</text>
-<text x="478" y="320" font-size="15" fill="#065f56">data 模式（--mm-encoder-tp-mode data）</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="108" y="104" text-anchor="middle">图像切块 + 2×2 合并</text>
-<text x="108" y="126" text-anchor="middle">448×448, p=14 →</text>
-<text x="108" y="146" text-anchor="middle" font-weight="600" fill="#17211f">256 个占位 token</text>
-<text x="335" y="104" text-anchor="middle">embed_multimodal()</text>
-<text x="335" y="126" text-anchor="middle">命中 Encoder Cache 则跳过</text>
-<text x="335" y="146" text-anchor="middle" font-weight="600" fill="#936300">输出 [N_mm, D_llm]</text>
-<text x="572" y="104" text-anchor="middle">_merge_multimodal_</text>
-<text x="572" y="126" text-anchor="middle">embeddings 原地覆写</text>
-<text x="572" y="146" text-anchor="middle" font-weight="600" fill="#065f56">inputs[is_mm] = mm</text>
-<text x="792" y="104" text-anchor="middle">AscendMRotaryEmbedding</text>
-<text x="792" y="126" text-anchor="middle">npu_mrope / triton_mrope</text>
-<text x="792" y="146" text-anchor="middle" font-weight="600" fill="#3a4f93">进入标准 Prefill/KV</text>
-<text x="28" y="221" fill="#4d5652">纯文本位置 T=H=W 退化为 1D RoPE；视觉 Patch 写入真实 (帧 t, 行 y, 列 x)，切分 head_dim/2 分别旋转</text>
-<text x="30" y="348">• 每层 ViT 注意力与 MLP 均触发 TP All-Reduce</text>
-<text x="30" y="373">• ViT 隐维小但层数多（如 27~32 层），小包同步放大时延</text>
-<text x="30" y="398">• 若视觉头数不能被 TP 整除（如 16 头配 TP=6）</text>
-<text x="30" y="423" font-weight="600" fill="#b54237">  → vision.py 自动告警并静默回退到 data 模式</text>
-<text x="30" y="444" fill="#66716d">适用：单图分辨率极大、并发图数极少且头数可整除</text>
-<text x="478" y="348">• 每卡保完整 ViT 权重，run_dp_sharded_vision_model 按图切分</text>
-<text x="478" y="373">• ViT 全部 27~32 层零跨卡通信，仅结尾 1 次 TP All-Gather</text>
-<text x="478" y="398">• 多图/视频帧按样本总 Patch 数贪心均衡分配到各卡</text>
-<text x="478" y="423" font-weight="600" fill="#087f73">  → 省去 54~64 次小包同步，显著压低多图首字时延 TTFT</text>
-<text x="478" y="444" fill="#66716d">代价：每卡多存一份小体量 ViT 权重（通常仅数百 MB~1 GiB）</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 516" width="900" height="516" role="img" aria-label="多模态切块占位原地覆写、M-RoPE 三维频段分配以及 ViT 跨卡 weights 模式与 data 模式通信对比图">
+  <title>多模态占位覆写、M-RoPE 频段与 ViT 并行模式对照</title>
+  <desc>上半部分展示 448×448 图像切为 16×16=256 个视觉 token、通过 _merge_multimodal_embeddings 原地覆写 [T0,A0,A1,T1,B0,B1,B2] 占位槽，以及 M-RoPE 将 64 对频率按 [16,24,24] 分配给 (T,H,W) 或交错排布；下半部分对比 ViT 在 weights 模式下每层 2 次同步、27–32 层整次 ViT 前向合计 54–64 次 All-Reduce 与 data 模式下 0 次内部同步加出口单次 All-Gather。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
+    </marker>
+    <marker id="arr-m" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#66716d" />
+    </marker>
+  </defs>
+
+  <!-- ================= TOP BAND: Patch -> Placeholder Overwrite -> M-RoPE ================= -->
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. 图像切块、占位原地覆写与 M-RoPE 三维频段</text>
+
+  <!-- Left: 4x4 mini visual patch grid -->
+  <text x="20" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#936300">① 视觉切块与 2×2 合并</text>
+  <rect x="20" y="66" width="144" height="104" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
+  <!-- 4x4 grid cells inside (representing 16x16) -->
+  <rect x="36" y="76" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="64" y="76" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="92" y="76" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="120" y="76" width="24" height="18" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" />
+
+  <rect x="36" y="98" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="64" y="98" width="24" height="18" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" />
+  <rect x="92" y="98" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="120" y="98" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+
+  <rect x="36" y="120" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="64" y="120" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="92" y="120" width="24" height="18" rx="2" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" />
+  <rect x="120" y="120" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+
+  <rect x="36" y="142" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="64" y="142" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="92" y="142" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+  <rect x="120" y="142" width="24" height="18" rx="2" fill="#ffffff" stroke="#c78300" stroke-width="1" />
+
+  <text x="92" y="190" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">448×448 → 16×16</text>
+  <text x="92" y="210" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">256 tok · [256,4096]</text>
+  <text x="92" y="230" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#936300">BF16 仅占 2 MiB</text>
+
+  <!-- Arrow Patch -> Overwrite -->
+  <line x1="164" y1="118" x2="196" y2="118" stroke="#c78300" stroke-width="2" marker-end="url(#arr-a)" />
+
+  <!-- Center: 7-slot In-Place Overwrite Sequence [T0, A0, A1, T1, B0, B1, B2] -->
+  <text x="200" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#065f56">② 原地覆写占位槽（_merge_multimodal_embeddings）</text>
+
+  <!-- ViT Embeddings pill above -->
+  <rect x="248" y="66" width="270" height="36" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
+  <text x="383" y="89" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">ViT 视觉嵌入：A₀, A₁  |  B₀, B₁, B₂</text>
+
+  <!-- Downward overwrite arrows onto slots A0,A1 and B0,B1,B2 -->
+  <line x1="278" y1="102" x2="278" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <line x1="328" y1="102" x2="328" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <line x1="428" y1="102" x2="428" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <line x1="478" y1="102" x2="478" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <line x1="528" y1="102" x2="528" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+
+  <!-- 7 Sequence Slots -->
+  <rect x="204" y="132" width="48" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="228" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">T₀</text>
+
+  <rect x="254" y="132" width="48" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8" />
+  <text x="278" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#936300">A₀</text>
+
+  <rect x="304" y="132" width="48" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8" />
+  <text x="328" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#936300">A₁</text>
+
+  <rect x="354" y="132" width="48" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="378" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">T₁</text>
+
+  <rect x="404" y="132" width="48" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8" />
+  <text x="428" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#936300">B₀</text>
+
+  <rect x="454" y="132" width="48" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8" />
+  <text x="478" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#936300">B₁</text>
+
+  <rect x="504" y="132" width="48" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8" />
+  <text x="528" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#936300">B₂</text>
+
+  <text x="378" y="196" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">inputs_embeds[is_multimodal] = mm_embeds_flat</text>
+  <text x="378" y="218" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">图 A 偏移 1 占 2 槽，图 B 偏移 4 占 3 槽；行数错位立即抛 ValueError</text>
+
+  <!-- Arrow Overwrite -> M-RoPE -->
+  <line x1="552" y1="154" x2="584" y2="154" stroke="#087f73" stroke-width="2" marker-end="url(#arr-t)" />
+
+  <!-- Right: M-RoPE 64-pair frequency bar [16, 24, 24] + interleaved strip -->
+  <text x="588" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#3a4f93">③ M-RoPE 旋转频段（半维 64 对）</text>
+
+  <!-- Standard contiguous [16, 24, 24] across 292px: 73 + 109 + 110 -->
+  <text x="588" y="80" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">分段 npu_mrope：[16, 24, 24]</text>
+  <rect x="588" y="88" width="73" height="34" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" />
+  <text x="624" y="110" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">T · 16</text>
+
+  <rect x="663" y="88" width="108" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="717" y="110" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">H · 24</text>
+
+  <rect x="773" y="88" width="107" height="34" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5" />
+  <text x="826" y="110" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">W · 24</text>
+
+  <!-- Interleaved strip (Qwen3-VL / 3.5 triton_mrope) -->
+  <text x="588" y="148" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">交错 triton_mrope（Qwen3-VL）：</text>
+  <rect x="588" y="156" width="32" height="28" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2" />
+  <text x="604" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#7a3a6a">T</text>
+  <rect x="622" y="156" width="32" height="28" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" />
+  <text x="638" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#065f56">H</text>
+  <rect x="656" y="156" width="32" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" />
+  <text x="672" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#3a4f93">W</text>
+  <rect x="690" y="156" width="32" height="28" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2" />
+  <text x="706" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#7a3a6a">T</text>
+  <rect x="724" y="156" width="32" height="28" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" />
+  <text x="740" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#065f56">H</text>
+  <rect x="758" y="156" width="32" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" />
+  <text x="774" y="175" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#3a4f93">W</text>
+  <rect x="792" y="156" width="88" height="28" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" />
+  <text x="836" y="175" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">高中低频均摊</text>
+
+  <rect x="588" y="196" width="292" height="38" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="734" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">纯文本 T=H=W=p → 严格退化 1D RoPE</text>
+
+  <!-- Section Divider -->
+  <line x1="20" y1="252" x2="880" y2="252" stroke="#d8d8cf" stroke-width="1.5" />
+
+  <!-- ================= BOTTOM BAND: ViT TP=4 weights vs data mode ================= -->
+  <text x="20" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. ViT 跨卡切分几何对照（TP = 4 示例）：为什么多图推荐 --mm-encoder-tp-mode data</text>
+
+  <!-- Left Half: weights mode (54-64 dashed vertical sync walls) -->
+  <rect x="20" y="294" width="420" height="208" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" />
+  <text x="34" y="318" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#8f3229">weights 模式（默认 · 权重切 4 份，每层 2 次同步）</text>
+
+  <!-- 4 Card Tracks (weights) -->
+  <text x="34" y="348" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">卡0</text>
+  <rect x="66" y="332" width="356" height="22" rx="4" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="34" y="378" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">卡1</text>
+  <rect x="66" y="362" width="356" height="22" rx="4" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="34" y="408" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">卡2</text>
+  <rect x="66" y="392" width="356" height="22" rx="4" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="34" y="438" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">卡3</text>
+  <rect x="66" y="422" width="356" height="22" rx="4" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2" />
+
+  <!-- Dense vertical purple All-Reduce sync walls across all 4 cards -->
+  <line x1="112" y1="330" x2="112" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="154" y1="330" x2="154" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="196" y1="330" x2="196" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="238" y1="330" x2="238" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="280" y1="330" x2="280" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="322" y1="330" x2="322" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="364" y1="330" x2="364" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="406" y1="330" x2="406" y2="446" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 2" />
+
+  <!-- Sync count callout pill over middle -->
+  <rect x="134" y="372" width="222" height="32" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" />
+  <text x="245" y="393" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a">54–64 次小包 All-Reduce</text>
+
+  <text x="34" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#8f3229">ViT 仅数百 MB 省不下显存，却被密集同步卡死</text>
+  <text x="34" y="490" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">且头数不能被 TP 整除时（如 16 头配 TP6）自动回退 data</text>
+
+  <!-- Right Half: data mode (0 internal syncs + 1 exit All-Gather) -->
+  <rect x="460" y="294" width="420" height="208" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" />
+  <text x="474" y="318" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">data 模式（推荐 · 每卡完整 ViT，按图片分摊）</text>
+
+  <!-- 4 Card Tracks (data) running independently into 1 exit All-Gather -->
+  <text x="474" y="348" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">卡0</text>
+  <rect x="506" y="332" width="234" height="22" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="623" y="348" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">独立编完 图 0（0 次同步）</text>
+
+  <text x="474" y="378" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">卡1</text>
+  <rect x="506" y="362" width="234" height="22" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="623" y="378" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">独立编完 图 1（0 次同步）</text>
+
+  <text x="474" y="408" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">卡2</text>
+  <rect x="506" y="392" width="234" height="22" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="623" y="408" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">独立编完 图 2（0 次同步）</text>
+
+  <text x="474" y="438" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">卡3</text>
+  <rect x="506" y="422" width="234" height="22" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="623" y="438" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">独立编完 图 3（0 次同步）</text>
+
+  <!-- Single Exit All-Gather Box -->
+  <line x1="740" y1="343" x2="764" y2="343" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#arr-p)" />
+  <line x1="740" y1="373" x2="764" y2="373" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#arr-p)" />
+  <line x1="740" y1="403" x2="764" y2="403" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#arr-p)" />
+  <line x1="740" y1="433" x2="764" y2="433" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#arr-p)" />
+
+  <rect x="768" y="332" width="98" height="112" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.8" />
+  <text x="817" y="368" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#7a3a6a">唯一 1 次</text>
+  <text x="817" y="392" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">All-Gather</text>
+  <text x="817" y="416" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">拼齐去补齐</text>
+
+  <text x="474" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">run_dp_sharded_vision_model：内部 0 同步，显著压低 TTFT</text>
+  <text x="474" y="490" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">代价仅每卡多存 1 份完整 ViT 权重（数百 MB ~ 1 GiB）</text>
 </svg>

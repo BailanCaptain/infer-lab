@@ -52,6 +52,17 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L870'
   - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L324-L374'
   - 'vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L15-L145'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L294-L703
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L751
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L118'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L586'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5054-L5076'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L304-L317'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L856-L888'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -69,7 +80,7 @@ relations:
     kind: builds-on
     note: 分清设备侧 HBM（GM）与片上高速缓冲（L1/L0 与 UB）及 Cube/Vector 分工，才能理解片上分块为何省带宽
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 ---
 
 **FlashAttention 是一类不改变标准注意力数学结果的融合算法：它把 $Q, K, V$ 切成小块装进芯片片上高速缓冲（SRAM / UB），边流式打分边用 Online Softmax 原地汇合输出。昇腾 `vllm-ascend` 在此思想上演化出以 `FusedInferAttentionScore`（`FIA`）为主力、配合 `_npu_paged_attention`（`PA`）与训推一致后端 `FA3` 的注意力算子族。**
@@ -80,7 +91,7 @@ updated: '2026-11-19'
 
 按教科书的三步写法，设备要先算完整张打分表 $S = QK^\top / \sqrt{d}$ 写回设备内存 **HBM**（高带宽显存，昇腾文档中也称全局内存 GM，见 [AI Core](ai-core.md)）。第二步把 $S$ 重新读出来按行做 Softmax 得到权重表 $P$ 再写回 HBM，第三步再把 $P$ 读出来乘 $V$ 写出最终输出 $O$。
 
-拿本站标准教学标尺 **`Qwen3-8B`** 算一笔实账就能看清灾难出在哪里。`Qwen3-8B` 每层有 `32` 个查询头（`num_attention_heads = 32`）、`8` 个键值头（`num_key_value_heads = 8`），头维度 $d = 128$，采用 `BF16`（每元素 `2 B`）。当单条长上下文请求的序列长度来到 $N = 32768$（`32K` token）时，输入 $Q$ 本身只有 $32768 \times 32 \times 128 \times 2\text{ B} = 256\text{ MiB}$，本层 $K$ 或 $V$ 更是只有 `64 MiB`。可一旦把 `[32, 32768, 32768]` 的注意力分数矩阵 $S$ 实体化写进 HBM，仅**单层**一张 `BF16` 分数表的体积就高达：
+拿本站标准标尺 **`Qwen3-8B`** 算一笔实账就能看清灾难出在哪里。`Qwen3-8B` 每层有 `32` 个查询头（`num_attention_heads = 32`）、`8` 个键值头（`num_key_value_heads = 8`），头维度 $d = 128$，采用 `BF16`（每元素 `2 B`）。当单条长上下文来到 $N = 32768$（`32K` token）时，输入 $Q$ 本身只有 $32768 \times 32 \times 128 \times 2\text{ B} = 256\text{ MiB}$，本层 $K$ 或 $V$ 更是只有 `64 MiB`。可一旦把 `[32, 32768, 32768]` 的打分矩阵 $S$ 实体化写进 HBM，仅**单层**一张 `BF16` 分数表的体积就高达：
 
 $$32 \times 32768 \times 32768 \times 2\text{ B} = 32 \times 1024\text{ Mi} \times 2\text{ B} = 64\text{ GiB}$$
 
@@ -158,22 +169,57 @@ file: ascend-fa-operator-routing
 | **`310P` 兼容算子组**（`_npu_flash_attention(_v3)` + `_npu_paged_attention(_splitfuse)`） | `Atlas 300I DUO (310P)` 专用 `AscendAttentionBackend310` 执行栈 | Prefill 走 `_npu_flash_attention(_v3)`，Decode 走 `_npu_paged_attention`，分块混合批走 `_splitfuse(_v2)` | 硬件档案属于 `COMPATIBILITY` 族（`310P`，仅 `FP16` / `W8A8-310P`）时自动接管 |
 | **早期拆算子 `PFA / IFA`**（`npu_prompt_flash_attention` / `npu_incre_flash_attention`） | 早年未统一分页前的“Prefill 一套、单步 Decode 一套”旧接口 | 仅吃连续稠密张量（如 `BNSD`），不带分页 `block_table` | `npu_incre_flash_attention` 在 `v0.30.0` 主仓已**零生产调用**；`npu_prompt_flash_attention` 仅残留于多模态视觉相对位置编码器（`rel_pos_attention.py`）；另大头 `head_size == 512` 的 Prefill 回退走 `npu_fusion_attention` |
 
-这里最值得纠正一个过时印象：**不要再把昇腾推理记成“Prefill 调 `PromptFlashAttention`、Decode 调 `IncreFlashAttention` 或一律调 `_npu_paged_attention`”。** 在 `v0.30.0` 的 `A2 / A3 / 950DT` 默认配置下（`pa_shape_list` 默认为空列表 `[]`），从首轮 Prefill、Chunked Prefill 一直到每步常规 Decode，主力路径全部由 `FIA` 一套算子跑通。即便在 `950DT` 混合批或开启批不变（`VLLM_BATCH_INVARIANT`）时，`AscendAttentionBackendImpl` 也只是把混合批拆成两次独立的 `FIA` 调用，而不会退回旧拆算子。
+这里最值得纠正一个过时印象：**不要再把昇腾推理记成“Prefill 调 `PromptFlashAttention`、Decode 调 `IncreFlashAttention` 或一律调 `_npu_paged_attention`”。** 在 `v0.30.0` 的 `A2 / A3 / 950DT` 默认配置下（`pa_shape_list` 默认为空列表 `[]`），从首轮 Prefill、Chunked Prefill 到每步常规 Decode，主力路径全部由 `FIA` 一套算子跑通。即便在 `950DT` 混合批或开启批不变（`VLLM_BATCH_INVARIANT`）时，`AscendAttentionBackendImpl` 也只把混合批拆成两次独立的 `FIA` 调用，而不会退回旧拆算子。
 
 ### 关键耦合红线：为什么开启 FA3 必须配 PIECEWISE 图模式？
 
-首先把名字对齐：开源论文里的 FlashAttention-3 主打 NVIDIA Hopper 架构的异步流水与 `FP8` 低比特吞吐；昇腾 `vllm-ascend v0.30.0` 文档所说的 **`FA3`**（处于 `beta` 阶段）则是另一回事。它的核心定位是在强化学习场景（详见 [vLLM-Ascend for RL](vllm-ascend-for-rl.md)）下，让推理侧注意力与训练框架（如 `veRL`）使用的 FlashAttention 保持一致，避免默认 `FIA` 与训练侧浮点累加顺序不同引发策略训练偏差；官方亦明确提示开启后相比默认 `FIA` 可能出现性能回落。
+先把名字对齐：开源论文里的 FlashAttention-3 主打 NVIDIA Hopper 架构的异步流水与 `FP8` 低比特吞吐；昇腾 `vllm-ascend v0.30.0` 文档所说的 **`FA3`**（处于 `beta` 阶段）则是另一回事。它面向强化学习场景（详见 [vLLM-Ascend for RL](vllm-ascend-for-rl.md)），让推理侧注意力与训练框架（如 `veRL`）使用的 FlashAttention 保持一致，避免默认 `FIA` 与训练侧浮点累加顺序不同引发策略训练偏差。官方亦明确提示，开启 `FA3` 后相比默认 `FIA` 可能出现性能回落。
 
-在 `v0.30.0` 中启用 `FA3` 有三条刚性约束必须同时对齐：
+```wiki-diagram
+file: ascend-fa-fig-piecewise-vs-fullgraph
+```
 
-1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把用户手工传入的 `attention_config.backend` 重置为 `None`。真正触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP`，且 `--additional-config` 中同时设 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
+在 `v0.30.0` 中启用 `FA3`，有三条刚性约束必须同时对齐：
+
+1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把用户手工传入的 `attention_config.backend` 重置为 `None`。触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP`，且 `--additional-config` 同时设置 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
 2. **模型与精度边界严格**：仅支持 `Atlas A2 / A3` 上的密集 MHA / GQA（`FP16` / `BF16`，固定分页块大小 `128`，已在 `Qwen3-8B` 与 `Qwen3-30B-A3B` 验证）。MLA / SFA、滑动窗口（`sliding_window`）、ALiBi、Softcapping 与 `FP8` 量化注意力均不支持——其中 MLA/SFA 与滑窗直接抛 `ValueError`，核内不支持 RoPE 则自动回退到核外 PyTorch 原生 RoPE。
-3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数（tiling）在 **Host CPU 侧**计算，`AscendFAImpl` 前向还会对序列长度做 `.npu()` 搬运与宿主侧求最大值，没有接入全图捕获任务注册（`register_task`），因此**无法被录进 [ACL Graph](acl-graph.md) 整图回放**。唯有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力节点列入分段切点（`splitting_ops`）留在图外逐次调用，而把注意力前后的线性投影与归一化子图照常录进 ACL Graph 加速。
+3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数（tiling）在 **Host CPU 侧**计算，`AscendFAImpl` 前向还会对序列长度做 `.npu()` 搬运并在宿主侧求最大值。由于没有接入全图捕获任务注册（`register_task`），它**无法被录进 [ACL Graph](acl-graph.md) 整图回放**。只有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力列入分段切点（`splitting_ops`）留在图外逐次调用，而把前后的线性投影与归一化子图照常录进 ACL Graph 加速。
 
-> **边界与例外（`FA3` 不会自动降级全图模式）**：`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会替你自动降级全图模式。若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 会当场抛出 `ValueError`；若保留包含全图路径的模式，运行期捕获也会因 Host 侧 tiling 失败。
+> **边界与例外（`FA3` 不会自动降级全图模式）**：`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会替你自动降级。若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 当场抛出 `ValueError`；若保留含全图路径的模式，运行期捕获也会因 Host 侧 tiling 失败。
+
+## 实测劣化剖析：页交错 KV 布局为何在 FIA 内部触发整池连续化？
+
+前面讲清了片上分块怎样免去 $N \times N$ 分数表落盘，但在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，完整档案见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）的真机采集里，普通 GQA 模型在 Eager Decode 下却暴露出一笔远超注意力计算本身的隐性 HBM 搬运税——根源正是 **KV 池按页交错排布的非连续视图** 与 **`FIA` 算子内部前置连续化** 撞在了一起：
+
+```wiki-diagram
+file: afa-fig-kv-interleaved-contiguous-tax
+```
+
+顺着上图从分配器到设备 kernel 逐环对账，可以看到完整因果链：
+
+1. **分配端：页交错步长 `(H, 2H)` 让 `K / V` 独立视图跨页非连续。** `AscendAttentionBackend.get_kv_cache_shape` 声明的逻辑形状是 `[2, num_blocks, block_size, kv_heads, head_dim]`。满足条件的普通 GQA 层在 `NPUModelRunner` 中分配单块共享显存，再用 `torch.as_strided` 将前两维步长设为 `(H, 2H)`（单页跨度 $H = \text{block\_size} \times \text{kv\_heads} \times \text{head\_dim}$），物理上每一页 $K$ 紧跟同页 $V$。单独取出 `kv_cache[0]`（$K$）或 `kv_cache[1]`（$V$）后，每跳下一页都要跨过对侧的 $H$ 个元素，跨页不连续。线上 `Qwen3-8B` DEBUG 日志直接印证：`shape=(2, 2064, 128, 8, 128)`、`stride=(131072, 262144, 1024, 128, 1)`、`k_contiguous=False`、`v_contiguous=False`。
+2. **执行端：Decode 阶段 `FIA` 内部按整池形状触发 2× 大 `Slice`。** 写入端先用 `ScatterPaKvCache` 按 `slot_mapping` 写入新 token；读取端 `DecodeOnly` 通过 `_get_kv_cache_view` 将整池视图压成 `[num_blocks, block_size, kv_heads * head_dim]`，连同 `block_table` 交给 `FIA`。虽然 `DeviceOperator` 的 Python 封装只在 `block_table is None` 时显式调用 `.contiguous()`，但两份 Eager Profiler 轨迹（逐条关联 `connection_id` 与 Host `Node@launch`）坐实：**有块表的 Decode 在 `aclnnInnerFusedInferAttentionScore` 内部调用了 `aclnnContiguous`（设备核 `aclnnContiguous_SliceAiCore_Slice`）**，设备顺序为 `ScatterPaKvCache → 大 Slice → 大 Slice → FusedInferAttentionScore`。块表只限制了后续注意力计算要读的有效历史，前置连续化仍无视命中块数、按整池形状把全部已分配物理块完整复制一遍（`aiv_mte2_ratio` 达 `0.985 ~ 0.993`、`aiv_vec_ratio = 0`，纯 HBM 搬运）；首个无块表 Prefill 步则未触发。
+
+两份 Eager 三步轨迹（1 步 Prefill + 2 步单 token Decode）将这笔搬运税精确钉死在设备级恒等式上：
+
+| 910B3 Eager 实测对照（3 步采样） | `Qwen3-8B`（36 层，`u=0.75`，`1,678` 块） | 2 层裁剪 MoE（`u=0.60`，dummy 权重，`66,139` 块） |
+|---|---|---|
+| 整池大 `Slice` 触发次数与单次耗时 | `144 / 144` 次（每 Decode 步 `36×2 = 72` 次），`593.60 ~ 691.48 µs` | `8 / 8` 次（每 Decode 步 `2×2 = 4` 次），**`13.45 ~ 13.67 ms`** |
+| 每 Decode 步大 `Slice` 合计耗时与最低读写量 | **`46.16 ms / 步`**（`46.1552 / 46.1554 ms`），最低读写 **`58.992 GiB`**（`1.372 TB/s`） | **`54.23 / 54.28 ms / 步`**，最低读写 **`64.589 GiB`**（`1.278 TB/s`） |
+| `FIA` 真实计算核（3 步合计） vs 整池 `Slice` 归属 | `108` 次 `FIA` 核仅 **`2.356 ms`**（占父算子 `94.666 ms` 的 `2.5%`）；大 `Slice` 占 `97.5%` | `6` 次 `FIA` 核仅 **`0.145 ms`**（父算子 `108.648 ms` 中大 `Slice` 占 `108.503 ms`） |
+| 整池大 `Slice` 占 `op_statistic` 全部设备算子时间（全部 `Slice` 含小 `Slice`） | **`62.220%`**（`92,310.60 / 148,361.38 µs`；全部 290 次 `Slice` 含 146 次小 `Slice` 占 `62.463%`） | **`95.990%`**（`108,502.88 / 113,035.98 µs`；全部 18 次 `Slice` 占 `96.012%`；单视图 `8.074 GiB` 为 `8B` `0.410 GiB` 的 `19.71×`） |
+
+2 层裁剪 MoE 之所以单次 `Slice` 高达 `13.67 ms`、大 `Slice` 占到设备算子总时间的 `95.990%`（全部 `Slice` 含小 `Slice` 为 `96.012%`），是因为空闲显存全部分给仅 2 层后每层物理池暴涨至 `66,139` 块——这直接证明**整池连续化的搬运字节数与已分配总物理块数呈线性正比**（因此该 96% 级占比不能误当作 48 层真权重 MoE 的路由开销）。
+
+这一机制与线上观测相互印证，同时也必须严格区分**已实测事实**与**待验证条件假设**：
+
+- **固定 `TP=1` 提升并发时的批内摊销现象与条件解释：** 线上 `Qwen3-8B` `TP=1`（`u=0.85`，运行期实测 KV 使用率仅 `0.8%`）从 `c=1` 提到 `c=16` 时，单请求 `TPOT` 仅从 `78.54 ms` 微增至 `80.77 ms`（**`+2.23 ms / +2.84%`**），整批吞吐却从 `12.73` 跃升至 **`195.28 tok/s`（`15.3×`）**。批内各并发请求会共享权重读取及步级固定开销；**若**线上 `FULL` 图确实重放了与 Eager 相同的整池 KV 连续化（待线上设备时间线验证的条件假设），该整池复制同样按步按层执行一次并在批内摊销，这与上述近乎平坦的 `TPOT` 平台期相吻合。
+- **线上 `FULL` 图的强条件假设边界：** 线上服务日志确认单请求 Decode 实际运行的是 `FULL` 图（`npu_fused_infer_attention_score.out` 在 `graph_task_group` 内捕获并重放），排除了“每层注意力因分段图退回 Host”的旧猜测。**若**图内重放同等整池连续化且保持 Eager 有效带宽（`1.372 TB/s`），按线上 `2,064` 块（`36.28 GiB`）条件外推每步约 **`56.77 ms`**（相当于实测 `78.54 ms` TPOT 的 `72.3%`）；在固定 `u=0.85` 扩 `TP=1→8` 时，权重腾出的显存自动回填 KV 池，使每卡本地池反从 `36.28` 涨至 `49.27 GiB`、条件外推复制耗时从 `56.77` 增至 `77.09 ms`，与负 TP 扩展趋势相吻合（详见 [Tensor Parallel 负扩展剖析](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)）。必须强调：因当前采集包缺少同配置 `FULL` 回放的设备 kernel 时间线，线上 `FULL` 是否触发整池拷贝、批内整池拷贝是否实际发生以及 `56.77 → 77.09 ms` 的时延份额均属于**待线上设备时间线验证的条件假设**，不能写成已测得的线上定论。
+- **版本边界与连续布局对照：** 固定 `main`（`8d6180e2`）对普通非 PA 注意力层依然保留单块共享显存与页步长 `as_strided` 视图，不能推定升级到该提交即可自动消除拷贝税。源码中存在连续 K/V 分配分支（`requires_contiguous_pa_kv_cache`），但对 128 维头的普通层须同时满足 `A2/A3` 硬件、无投机解码、`FULL_DECODE_ONLY` 与匹配批长的 `pa_shape_list`（默认为空），单改图模式不会自动切到连续 `PA` 布局。
 
 ## 常见误解
 
+- **「`FIA` 传入了 `block_table`，就只会搬运当前请求实际命中的少量历史块？」**：在普通 GQA 页交错非连续布局的 Eager Decode 实测中并非如此。`block_table` 只限定了注意力算子读取的有效历史，但 `aclnnInnerFusedInferAttentionScore` 在进入核心计算前会先按整池非连续视图执行 `aclnnContiguous_SliceAiCore_Slice`，把整卡已分配的物理 KV 池全部搬运一遍；拷贝字节数随总物理块数线性增长，而非仅随当前序列长度增长。
 - **「FlashAttention 靠丢弃低权重位置省显存，是一种稀疏近似？」**：错。Online Softmax 的递推式与看齐全行再做 Softmax 在实数代数上逐项严格相等，没有任何稀疏裁剪或低秩近似；有限精度下的微小差别仅来自浮点加法的先后结合顺序。
 - **「昇腾 `FA3` 就是照搬 Hopper GPU 的异步 `FP8` FlashAttention-3，开了比默认更快？」**：错。昇腾 `v0.30.0` 的 `FA3`（`beta`）不支持 `FP8` 注意力，核心用途是在 RL 训练框架（如 `veRL`）中对齐训练与推理的注意力实现；日常纯推理服务继续用默认 `FIA` 即可，强开 `FA3` 反而可能降低吞吐并失去全图捕获。
 - **「在 `v0.30.0` 传 `--attention-backend FLASH_ATTN` 就能切到 `FA3`？」**：错。`v0.30.0` 的 `NPUPlatform` 会把手工指定的 `attention_config.backend` 重置为 `None`，必须通过 `--additional-config` 打开 `rl_config.enabled` 与 `rl_config.enable_training_consistency`，并显式搭配 `PIECEWISE` 图模式。
@@ -205,12 +251,14 @@ vllm serve Qwen/Qwen3-8B \
 | `AscendFAImpl.__init__` | 模型配置含滑动窗口（`sliding_window is not None`） | `ValueError: AscendFAImpl does not support sliding window attention...` |
 | `AscendFAImpl.__init__` | 未开 `enforce_eager` 且 `cudagraph_mode == FULL_DECODE_ONLY` | `ValueError: AscendFAImpl does not support ACL graph capture with FULL_DECODE_ONLY mode...` |
 | `NPUPlatform` 配置检查 | 用户手工传入 `--attention-backend`（如 `FLASH_ATTN`） | 打印日志说明由昇腾注册插件接管，并将 `att_config.backend` 重置为 `None` |
+| `AscendAttentionBackendImpl.__init__` | 未量化 GQA 模型传入 `--kv-cache-dtype int8`（无配方 `enable_c8_quant` 且非 MXFP） | 抛出 `ValueError: The current GQA-related models adopt static quantization...`（910B3 真机标本已复现，见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)） |
 
 ### 版本差异
 
 | 核验维度 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
 | 默认密集后端与 `FIA / PA` 分流 | `AscendAttentionBackend`；`PA` 排除 `A5` 且看 `FULL_DECODE_ONLY` + `pa_shape_list`，其余走 `FIA` | 与 `v0.23.0` 一致 | 改由 `HardwareProfile` 判断 `PAGED_ATTENTION` 能力（`A2/A3` 支持，`950DT` 不开启）；新增 `950DT` 混合批与批不变拆两段 `FIA` | 延续 `FIA` 主力与 `PA` 条件分流；分设仅限 `950DT (A5)` 特定投机草稿层的 `fa_v1` 分支，以及仅限 `A2 / A3`（`FLASH_ATTN_NPU_3`）的 `MiniMax` 投机路径 `flash_attention_v3` 分支 |
+| 普通 GQA KV 物理布局与连续性 | 早期独立或连续块分配 | 过渡期布局演进 | 对非 PA 普通 GQA 层默认分配单块共享显存，经 `torch.as_strided` 设为 `(H, 2H)` 页交错步长（`k/v_contiguous=False`）；仅命中 `requires_contiguous_pa_kv_cache` 时走连续布局 | `worker/v2/attn_utils.py`（`_reshape_combined_attention_kv_cache`）延续单块共享显存与页步长 `as_strided` 视图，不能仅靠升至该提交推定拷贝税消失 |
 | `FA3` 启用开关 | 须显式传 `FLASH_ATTN` 且开启批不变（`VLLM_BATCH_INVARIANT=1`） | 与 `v0.23.0` 一致 | 与批不变解耦，改为 `not use_pcp` 且 `rl_config.enabled` 与 `enable_training_consistency` 同为 `true`；手工 `backend` 被重置为 `None` | 启用门禁与 `v0.30.0` 一致；`AscendFABackend` 新增 `supports_batch_invariance() -> True` |
 | `FA3` 混合批 Decode 因果开关与图限制 | Decode 段固定传 `causal=False`；因 Host 侧 tiling 须配 `PIECEWISE`（或 eager） | 与 `v0.23.0` 一致 | Decode 段仍固定传 `causal=False`；`FULL_DECODE_ONLY` 抛 `ValueError`，官方指南强制配 `PIECEWISE` | Decode 段改为 `num_decode_tokens > num_decodes` 动态决定因果掩码，并修正混合批 `block_tables` 与 `query_start_loc` 切片偏移 |
 
@@ -222,3 +270,4 @@ vllm serve Qwen/Qwen3-8B \
 - **平台后端选择与 `FA3` 校验门禁**：`NPUPlatform.get_attn_backend_cls` 对 `FA3`、标准 `backend_map`、`310P` 兼容表与 `PCP` 表的路由见 `platform.py:247-289` [C6]；重置手工 `att_config.backend = None` 见 `platform.py:854-864` [C7]；`PIECEWISE` 模式下配置 `splitting_ops` 将注意力切出捕获子图见 `platform.py:1327-1345` [C8]；`_validate_fa3_backend` 检查 `rl_config` 双开关、拦截 MLA/SFA 及校验 `flash_attn_npu_v3.flash_attn_with_kvcache` 见 `platform.py:1484-1509` [C9]。
 - **`FIA`、`PA` 与跨块重标定实现**：`full_graph_fia`、`_v2` 与 `full_graph_pa` 的全图捕获任务注册见 `attention_v1.py:664-821` [C10]；`_get_fia_params` 与 `forward_fused_infer_attention` 按运行态组装 `TND` + `block_table`、带 `sinks` 切 `_v2` 及混合批两段切分见 `attention_v1.py:832-1019` [C11]；`forward_paged_attention` 调用 `torch_npu._npu_paged_attention` 与编码器调用 `npu_fusion_attention` 见 `attention_v1.py:1102-1146` [C12]；`forward_impl` 在 `PA` 与 `FIA` 间的分流见 `attention_v1.py:1248-1270` [C13]；`using_paged_attention` 的硬件能力、`head_size == 512`、`FULL_DECODE_ONLY` 与 `pa_shape_list` 判据见 `attention/utils.py:284-303` [C14]；`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 归约多块 `(out, lse)` 见 `attention/utils.py:715-735` [C15]。
 - **`FA3` 适配层、兼容硬件与四版本演进**：`AscendFABackend` 块大小 `[128]` 及 `AscendFAImpl.__init__` 拒绝滑窗和 `FULL_DECODE_ONLY` 见 `fa3_v1.py:11-60` [C16]；混合批拆两段调用 `_flash_attn_with_kvcache` 见 `fa3_v1.py:61-144` [C17]；`310P` 兼容后端调用 `_npu_flash_attention(_v3)` 与 `_npu_paged_attention(_splitfuse)` 见 `_310p/attention/attention_v1.py:120-324` [C18]；`head_size == 512` 大头 Prefill 收集分页缓存回退 `npu_fusion_attention` 见 `device/utils.py:23-76` [C19]；多模态编码器残留 `npu_prompt_flash_attention` 调用见 `rel_pos_attention.py:27-45` [C20]；`v0.23.0` 与 `v0.26.0rc` 旧版 `FA3` 依赖 `FLASH_ATTN` + `use_batch_invariant` 见两分支 `platform.py` [C21][C22]；`main` 新增草稿/MiniMax 分支及修正 `FA3` 多 token Decode 因果条件与切片见 `8d6180e2` 对应文件 [C23][C24]。
+- **910B3 非连续页交错 KV 实测与源码锚点**：线上 `shape=(2, 2064, 128, 8, 128)` / `stride=(131072, 262144, ...)`、`k/v_contiguous=False`、线上 `FULL` 日志，以及 `Qwen3-8B`（`144` 次整池大 `Slice` = `46.16 ms/步`，占总算子 `62.220%`，全部 `Slice` 占 `62.463%` vs `FIA` 核 `2.356 ms`）与 2 层裁剪 MoE（`8` 次大 `Slice` 单次 `13.67 ms`，占总算子 `95.990%`，全部 `Slice` 占 `96.012%`）原始摘录见 `sources` 第 25 项 [M25]；`Qwen3-8B` `TP=1` `c=1→c=16` `TPOT` `78.54→80.77 ms` 与吞吐 `12.73→195.28 tok/s` 线上 `INFO` 实测见第 26 项 [M26]；对应源码锚点为 `attention_v1.py:109-118`（`get_kv_cache_shape`，第 27 项）、`attention_v1.py:571-586`（GQA 静态 C8 校验，第 28 项）、`model_runner_v1.py:5054-5076` 与 `:5884-5931`（`strided_attention_cache_layers` 与 `torch.as_strided` `(H, 2H)` 视图，第 29–30 项）、`device_op.py:212-224`（仅 `block_table is None` 显式 `.contiguous()`，第 31 项）、`attention/utils.py:304-317`（`requires_contiguous_pa_kv_cache`，第 32 项）与 `main` `v2/attn_utils.py:856-888`（`_reshape_combined_attention_kv_cache`，第 33 项），完整实测档案见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。线上 `FULL` 图是否重放整池复制、批内整池拷贝摊销及按 Eager 速率外推的 `56.77 ms` 均属待线上设备时间线验证的条件假设 [I]。

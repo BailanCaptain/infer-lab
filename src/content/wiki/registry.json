@@ -247,7 +247,15 @@
         "vllm-ascend@8d6180e2:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90",
         "vllm-ascend@8d6180e2:vllm_ascend/xlite/xlite_worker.py#L27-L49",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/aclgraph_utils.py#L83-L235",
-        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1085"
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1085",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1466-L1505",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L715",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/updatable_graph.py#L101-L137",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932",
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L283-L325"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -258,7 +266,8 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-56cb0ca4a4c911b962f03499423230ad3fa94bad9672e8915edc8bf0fed3f3a7.md",
-        "raw/sha256-d338b1d1b52f842832501f0d81aa4cf44e91850e104d95c6cea753a6ad052335.md"
+        "raw/sha256-d338b1d1b52f842832501f0d81aa4cf44e91850e104d95c6cea753a6ad052335.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -294,7 +303,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-23",
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
@@ -311,6 +320,11 @@
           "from": "pooling-and-non-ar",
           "kind": "conflicts-with",
           "note": "Encoder-Decoder 模型受限于交叉注意力与动态编码长度，与全图捕获冲突并自动降级为 PIECEWISE 或 Eager"
+        },
+        {
+          "from": "ascend-910b3-measured-baseline",
+          "kind": "enables",
+          "note": "提供 FULL_AND_PIECEWISE 录图显存随 TP 增长、u=0.90 捕获期 OOM 与 Eager 劣化实测"
         },
         {
           "from": "dev-new-model-and-custom-op",
@@ -474,6 +488,9 @@
     },
     {
       "id": "ai-qos",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-会遇到什么": "复杂异构实战对照：GLM 双机部署下的表现与边界"
+      },
       "title": "AI QoS：共享链路拥塞时，哪类流量先走",
       "type": "feature",
       "origin": "direct",
@@ -935,6 +952,101 @@
       ]
     },
     {
+      "id": "ascend-910b3-measured-baseline",
+      "title": "Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）",
+      "type": "source",
+      "origin": "drop",
+      "summary": "归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0）不可变实测快照、算子与 HCCL 剖析、显存对账，以及整池 KV 非连续拷贝、负 TP 扩展、Eager/PD/EP8 负收益等六类实测劣化根因与计量边界。",
+      "aliases": [
+        "Ascend 910B3 实测基线",
+        "910B3 真机实测",
+        "910B3 性能劣化根因",
+        "KV 整池连续化实测"
+      ],
+      "chapters": [
+        "10",
+        "15"
+      ],
+      "order": 5,
+      "prerequisites": [],
+      "sources": [
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L3-L258",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L294-L703",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1392-L1462",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1464-L2441",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L118",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L586",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L660-L715",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L823-L873",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5054-L5076",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L279-L286",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L928",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L373-L386",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L282-L291",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L315",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L156-L184",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L453-L465",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_executor/warmup/nz_warmup.py#L30-L81",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/safety.py#L9-L18",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L322-L353",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L856-L888",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2225"
+      ],
+      "verified": [
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "M",
+      "rawSources": [
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
+      ],
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "提供 Qwen3-8B 单卡至八卡 TP 扩展与 HCCS AllReduce 微基准实测数据"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "提供 FULL_AND_PIECEWISE 录图显存随 TP 增长、u=0.90 捕获期 OOM 与 Eager 劣化实测"
+        },
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "提供 Qwen3-30B-A3B 四卡 TP4+EP4 与八卡 DP2+TP4+EP8 的真权重分片和吞吐对照"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "提供 MooncakeConnectorV1 ADXL 同机 1P1D/2P2D/4P4D 闭环与短输入劣化实测"
+        },
+        {
+          "to": "sleep-mode",
+          "kind": "builds-on",
+          "note": "提供 level 1/2 休眠唤醒耗时、显存净残留与 weight_nz_mode 唤醒守卫报错标本"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-23",
+      "file": "sources/ascend-910b3-measured-baseline.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-950-architecture",
       "title": "昇腾 950：一块数据怎样少绕路、少等候",
       "type": "concept",
@@ -975,7 +1087,8 @@
         "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240",
         "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_mxfp8.py#L54-L60",
         "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L441-L499",
-        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128"
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L35-L215"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -1115,7 +1228,8 @@
     {
       "id": "ascend-config-system",
       "legacyAnchors": {
-        "落到-glm-双机一个-json-键都没传": "复杂异构实战对照：GLM 双机为何一个 JSON 键都没传"
+        "落到-glm-双机一个-json-键都没传": "复杂异构实战对照：GLM 双机为何一个 JSON 键都没传",
+        "v0300-与-main-的严格校验与环境变量收口": "解析完还会被改写：生效值不是你写的值"
       },
       "title": "Ascend 配置：三个地方能写，哪个值真的生效",
       "type": "feature",
@@ -1641,7 +1755,16 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L869",
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L870",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L324-L374",
-        "vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L15-L145"
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L15-L145",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L294-L703",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L751",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L118",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L586",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5054-L5076",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L304-L317",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L856-L888"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -1669,7 +1792,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/ascend-flash-attention.md",
       "backlinks": [
         {
@@ -2438,6 +2561,9 @@
     },
     {
       "id": "attention-cost",
+      "legacyAnchors": {
+        "三类注意力在-glm-里各有什么特殊之处": "密集注意力：没有单独的层，短历史时稀疏 MLA 就是它"
+      },
       "title": "注意力代价：容量、计算与访存",
       "type": "concept",
       "origin": "gap",
@@ -3028,6 +3154,9 @@
     },
     {
       "id": "batch-job-aware-scheduler",
+      "legacyAnchors": {
+        "放到-glm-双机本部署没有它场景-m-里它会多问什么": "复杂异构实战对照：GLM 双机场景 M 准入与多缓存组偏差"
+      },
       "title": "Batch-Job-Aware Scheduler：先给正在生成的请求留块，再按作业接新请求",
       "type": "feature",
       "origin": "gap",
@@ -3513,6 +3642,9 @@
     },
     {
       "id": "cann-hccl",
+      "legacyAnchors": {
+        "放到-glm-双机先建组再沿一个-token-看交接": "异构旗舰对照：GLM 双机跨节点通信域与调用统计"
+      },
       "title": "CANN 与 HCCL：计算、通信和物理链路",
       "type": "concept",
       "origin": "gap",
@@ -4055,7 +4187,12 @@
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719",
         "vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L157-L167",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931",
-        "raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301"
+        "raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L935-L950",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L933",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L453-L465",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -4066,7 +4203,8 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-0cf9c30845c054dfd27aba2a44b05dac82bc0225367eb1ff61d8f59c959eec1e.md",
-        "raw/sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md"
+        "raw/sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -4082,7 +4220,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-23",
       "file": "concepts/collective-communication.md",
       "backlinks": [
         {
@@ -4968,6 +5106,9 @@
     },
     {
       "id": "cpu-binding",
+      "legacyAnchors": {
+        "放到-glm-双机8-个-worker-各绑在哪里": "复杂异构实战对照：GLM 双机 8 卡 Worker 的绑核映射与边界"
+      },
       "title": "CPU 绑核：线程亲和性与 NUMA 局部性",
       "type": "feature",
       "origin": "gap",
@@ -5031,12 +5172,12 @@
         "vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L334",
         "vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L338-L361",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L452-L463",
-        "vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L515-L550",
+        "vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L515-L593",
         "vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L784-L802",
         "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L280-L340",
         "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L960-L974",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L563-L568",
-        "vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L515-L550",
+        "vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L515-L593",
         "vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L784-L802",
         "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L380-L450",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1089-L1104",
@@ -5167,6 +5308,11 @@
     },
     {
       "id": "data-parallel",
+      "legacyAnchors": {
+        "为什么非跑不可": "空闲的组由谁叫起来陪跑，陪跑时算什么？",
+        "谁来决定跑": "1. 谁来决定跑，怎样构造假输入",
+        "陪跑时算什么": "1. 谁来决定跑，怎样构造假输入"
+      },
       "title": "Data parallel：请求怎样分进两组，空闲的组为什么陪跑",
       "type": "feature",
       "origin": "gap",
@@ -5268,7 +5414,12 @@
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1707-L1758",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L318",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1303",
-        "raw:sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md#L1-L1142"
+        "raw:sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md#L1-L1142",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L292",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L315",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -5310,7 +5461,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/data-parallel.md",
       "backlinks": [
         {
@@ -5625,6 +5776,11 @@
     },
     {
       "id": "device-memory",
+      "legacyAnchors": {
+        "启动时主机读文件每卡留下自己的权重": "放到 GLM 双机：先装权重，再接住一个 token",
+        "请求到来权重复用激活和历史各有去处": "放到 GLM 双机：先装权重，再接住一个 token",
+        "启动预算显存里还要容纳权重之外的东西": "放到 GLM 双机：先装权重，再接住一个 token"
+      },
       "title": "主机内存与显存：数据现在放在哪",
       "type": "concept",
       "origin": "direct",
@@ -5713,7 +5869,13 @@
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1743-L1752",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L684-L707",
-        "vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58"
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L3-L258",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L1077",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L950",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L882-L902"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -5761,7 +5923,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/device-memory.md",
       "backlinks": [
         {
@@ -5823,6 +5985,9 @@
     },
     {
       "id": "dp-request-routing",
+      "legacyAnchors": {
+        "放到-glm-双机node0-上一个前端给两台机器派活": "复杂异构实战对照：GLM 双机上的 DP2 路由与场景 M 对照"
+      },
       "title": "DP 请求路由：新请求派给哪一个 DP 组",
       "type": "concept",
       "origin": "gap",
@@ -6036,6 +6201,9 @@
     },
     {
       "id": "dynamic-chunked-pp",
+      "legacyAnchors": {
+        "放到-glm-双机本部署没开开了会怎样": "复杂异构实战对照：GLM 双机 PP=1 限制与 PP=2 推演"
+      },
       "title": "动态分块流水线：按预计耗时切 prefill 块",
       "type": "feature",
       "origin": "gap",
@@ -6155,6 +6323,9 @@
     },
     {
       "id": "dyntra-lb",
+      "legacyAnchors": {
+        "放到-glm-双机本部署没开也开不了": "复杂异构实战对照：GLM 双机为何未启用与块尺偏差"
+      },
       "title": "DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组",
       "type": "feature",
       "origin": "gap",
@@ -7655,7 +7826,8 @@
         "vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L436",
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L1-L40",
         "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/epd_disaggregation.md#L1-L40",
-        "vllm-ascend@8d6180e2:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/connector.py#L1-L48"
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/connector.py#L1-L48",
+        "vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_epd_proxy.py#L312-L321"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -7986,7 +8158,11 @@
         "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L52-L59",
         "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L1-L80",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L1-L80",
-        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L120"
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2226",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -8023,9 +8199,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-23",
       "file": "concepts/expert-parallel.md",
       "backlinks": [
+        {
+          "from": "ascend-910b3-measured-baseline",
+          "kind": "enables",
+          "note": "提供 Qwen3-30B-A3B 四卡 TP4+EP4 与八卡 DP2+TP4+EP8 的真权重分片和吞吐对照"
+        },
         {
           "from": "combine-quant-mode-2a3f7cd47997",
           "kind": "enables",
@@ -8100,6 +8281,9 @@
     },
     {
       "id": "fine-grained-tp",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署开了细粒度-tp-吗": "复杂异构实战对照：GLM 双机为何未启用细粒度 TP"
+      },
       "title": "细粒度 TP：为特定模块选择分片组",
       "type": "feature",
       "origin": "gap",
@@ -9471,6 +9655,9 @@
       "legacyIds": [
         "gap-a5164fe10fa9184412f8"
       ],
+      "legacyAnchors": {
+        "放到-glm-双机本部署建了哪些组各留多大": "复杂异构实战对照：GLM 双机建了哪些组、如何折算容量"
+      },
       "title": "HCCL buffer：通信缓冲怎样配置与占用显存",
       "type": "concept",
       "origin": "gap",
@@ -10471,10 +10658,13 @@
     },
     {
       "id": "inference-troubleshooting",
+      "legacyAnchors": {
+        "现场实操双模交互式排障工作台": "现场实操：交互式排障工作台"
+      },
       "title": "推理排障入口：先找到问题发生在哪一步",
       "type": "concept",
       "origin": "direct",
-      "summary": "面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌双模交互式排障工作台，支持真实日志与 /metrics 规则诊断及六类阻塞示意沙箱。",
+      "summary": "面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌交互式排障工作台，支持粘贴真实日志或 /metrics 定位首错，以及查看六类典型阻塞的时序对照。",
       "aliases": [
         "推理故障排查",
         "推理排障",
@@ -10522,7 +10712,15 @@
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1106-L1115",
         "vllm@ba15685a:vllm/v1/engine/utils.py#L365-L385",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L447-L597",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1825-L1910"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1825-L1910",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1464-L2441",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L279-L286",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L283",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -10565,7 +10763,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/inference-troubleshooting.md",
       "backlinks": [
         {
@@ -11182,7 +11380,15 @@
         "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L459-L548",
         "https://github.com/vllm-project/vllm/issues/56830",
-        "raw:sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md#L1-L1457"
+        "raw:sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md#L1-L1457",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L3-L258",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L1077",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1466-L1505",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L686",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L281",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -11194,7 +11400,8 @@
       "rawSources": [
         "raw/sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md",
         "raw/sha256-56af680207818f343bdc2d4b2dd36d4c1663bd196134b8a93711cb7d6ec2217f.md",
-        "raw/sha256-a1026f7df3575e077953d95909c1d1d1639fcad49299256f5fcb3069614b9e26.md"
+        "raw/sha256-a1026f7df3575e077953d95909c1d1d1639fcad49299256f5fcb3069614b9e26.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -11215,7 +11422,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-23",
       "file": "concepts/kv-cache-memory-profiling.md",
       "backlinks": [
         {
@@ -11344,7 +11551,12 @@
         "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1647-L1700",
         "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_c8_mxfp.py#L393-L408",
         "vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/modelslim_config.py#L925-L960",
-        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L865-L880"
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L865-L880",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L2132-L2441",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L587",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1030-L1043",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L615-L631",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1138-L1161"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -11377,7 +11589,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/kv-cache-quantization.md",
       "backlinks": [
         {
@@ -12271,6 +12483,9 @@
     },
     {
       "id": "large-scale-ep",
+      "legacyAnchors": {
+        "放到-glm-双机ep16-是跨机的第一档": "复杂异构实战对照：GLM 双机 EP16 跨机第一档"
+      },
       "title": "大规模 EP：请求路由、专家域与跨机通信",
       "type": "feature",
       "origin": "gap",
@@ -13052,6 +13267,9 @@
     },
     {
       "id": "lmcache",
+      "legacyAnchors": {
+        "放到-glm-双机没开而且照钉住的源码推演开不起来": "复杂异构实战对照：GLM 双机为何未启用且源码路径受阻"
+      },
       "title": "LMCache：接在引擎外面的一层 KV 缓存",
       "type": "feature",
       "origin": "direct",
@@ -14266,7 +14484,8 @@
     {
       "id": "moe",
       "legacyAnchors": {
-        "落到-glm-双机45-层里-42-层是-moe": "复杂异构实战对照"
+        "落到-glm-双机45-层里-42-层是-moe": "复杂异构实战对照：同样选 8 个专家，谁决定最后的权重？",
+        "复杂异构实战对照": "复杂异构实战对照：同样选 8 个专家，谁决定最后的权重？"
       },
       "title": "MoE：一层里放很多专家，每个 token 只用几个",
       "type": "concept",
@@ -14755,12 +14974,20 @@
         "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250",
-        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L899",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1020-L1044",
         "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1410-L1436",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L237-L270",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L730-L746",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L789-L835",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058",
+        "vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835",
+        "vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1059-L1072",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L156-L185",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1788-L2130",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L241-L312",
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L945-L968",
@@ -14812,7 +15039,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/mooncake-connector.md",
       "backlinks": [
         {
@@ -15544,6 +15771,14 @@
     },
     {
       "id": "npu-worker-lifecycle",
+      "legacyAnchors": {
+        "①-构造函数-__init__进程内打补丁注算子与卡型门禁": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
+        "②-init_device逻辑卡号偏移建组前快照与-npumodelrunner": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
+        "③-load_model分片读盘nd--nz-分形后处理与读取量算账": "③ 权重分形后处理与读取量算账",
+        "④-determine_available_memory-与-enginecore-全局最小块对齐": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
+        "⑤-initialize_from_config一次切出物理缓存池清零元数据置池外": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
+        "⑥-compile_or_warm_up_model7-类预热机制与-aclgraph-录图收尾": "⑥ 7 类预热机制与 ACLGraph 录图收尾"
+      },
       "title": "NPUWorker 启动：一张卡按什么顺序准备好接请求",
       "type": "feature",
       "origin": "gap",
@@ -15627,7 +15862,10 @@
         "vllm@0fc695fc:vllm/config/parallel.py#L156-L162",
         "vllm@ba15685a:vllm/model_executor/model_loader/__init__.py#L33-L66",
         "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L64",
-        "raw:sha256-2591dc384678a937fe68a029644482014f40962be3f0c3e3f16bc30685fc3704.md#L1-L1135"
+        "raw:sha256-2591dc384678a937fe68a029644482014f40962be3f0c3e3f16bc30685fc3704.md#L1-L1135",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L873",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1452-L1462",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L322-L353"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -15638,7 +15876,8 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-2591dc384678a937fe68a029644482014f40962be3f0c3e3f16bc30685fc3704.md",
-        "raw/sha256-ce73fe4f9a70a8b33634bccdddc0b84b99c25b5c54958d90f8c18d317dea45da.md"
+        "raw/sha256-ce73fe4f9a70a8b33634bccdddc0b84b99c25b5c54958d90f8c18d317dea45da.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -15674,7 +15913,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-23",
       "file": "concepts/npu-worker-lifecycle.md",
       "backlinks": [
         {
@@ -15761,6 +16000,9 @@
     },
     {
       "id": "npugraph-ex",
+      "legacyAnchors": {
+        "放到-glm-双机mtp-验证那一步用上了哪些": "复杂异构实战对照：GLM 双机 MTP 验证中的融合与边界"
+      },
       "title": "编译图融合：把相邻两步合成一个算子，再分档复用执行",
       "type": "feature",
       "origin": "gap",
@@ -16814,7 +17056,16 @@
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L364-L385",
-        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L943-L949"
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L943-L949",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L789-L835",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058",
+        "vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835",
+        "vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1059-L1072",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L156-L185",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1788-L2130"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -16857,7 +17108,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/pd-disaggregation.md",
       "backlinks": [
         {
@@ -16869,6 +17120,11 @@
           "from": "ai-qos",
           "kind": "enables",
           "note": "先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表"
+        },
+        {
+          "from": "ascend-910b3-measured-baseline",
+          "kind": "enables",
+          "note": "提供 MooncakeConnectorV1 ADXL 同机 1P1D/2P2D/4P4D 闭环与短输入劣化实测"
         },
         {
           "from": "cluster-serving",
@@ -17140,6 +17396,9 @@
     },
     {
       "id": "platform-plugin-registration",
+      "legacyAnchors": {
+        "放到-glm-双机请求到来前五个入口做了什么": "复杂异构实战对照：GLM 双机启动前的五个入口与 19 次登记"
+      },
       "title": "插件发现与模型注册",
       "type": "feature",
       "origin": "gap",
@@ -18435,6 +18694,9 @@
     },
     {
       "id": "quantization-evaluation",
+      "legacyAnchors": {
+        "放到-glm-双机一次对照实验怎样进行": "复杂异构实战对照：GLM 双机上的五步对照验收流程"
+      },
       "title": "量化验收：怎样判断省了内存、保住质量、真正提速",
       "type": "concept",
       "origin": "direct",
@@ -18534,6 +18796,9 @@
     },
     {
       "id": "quantization-methods",
+      "legacyAnchors": {
+        "从方法到-glm-双机中间还差哪些环节": "从方法到算子执行，中间还差哪些环节？"
+      },
       "title": "量化方法与校准：PTQ、QAT、AWQ、GPTQ 怎样选择",
       "type": "concept",
       "origin": "direct",
@@ -21930,6 +22195,9 @@
     },
     {
       "id": "short-request-first",
+      "legacyAnchors": {
+        "放到-glm-双机钉住的代码里没有它": "复杂异构实战对照：GLM 双机场景推演与版本边界"
+      },
       "title": "短请求优先：等待顺序与长请求公平性",
       "type": "feature",
       "origin": "gap",
@@ -22207,7 +22475,14 @@
         "vllm-ascend@8d6180e2:vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298",
         "vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290",
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L387-L392",
-        "vllm@ba15685a:vllm/config/model.py#L375-L380"
+        "vllm@ba15685a:vllm/config/model.py#L375-L380",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1392-L1451",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1507-L1786",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L373-L386",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/safety.py#L9-L18",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L605-L620",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L392-L405",
+        "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -22218,7 +22493,8 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-420d0319585f07ff323b58f0ac201d0cb6155ea95bb8a8cba30c59e952ae6bf7.md",
-        "raw/sha256-ad479d365f8bbdc1a194ac58ffc4d8d965236880240b6dbf2e6124e3ec82d201.md"
+        "raw/sha256-ad479d365f8bbdc1a194ac58ffc4d8d965236880240b6dbf2e6124e3ec82d201.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -22244,9 +22520,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-23",
       "file": "concepts/sleep-mode.md",
       "backlinks": [
+        {
+          "from": "ascend-910b3-measured-baseline",
+          "kind": "enables",
+          "note": "提供 level 1/2 休眠唤醒耗时、显存净残留与 weight_nz_mode 唤醒守卫报错标本"
+        },
         {
           "from": "vllm-ascend-for-rl",
           "kind": "enables",
@@ -22863,7 +23144,10 @@
     {
       "id": "streaming-output",
       "legacyAnchors": {
-        "落到-glm-双机r1-的编号怎样变成片段": "复杂异构实战对照：GLM 双机思考标签与 MTP 多词流式"
+        "落到-glm-双机r1-的编号怎样变成片段": "复杂异构实战对照：GLM 双机思考标签与 MTP 多词流式",
+        "一个前端进程接两个-dp-组的结果": "单前端接双 DP 组与异步交错",
+        "r1-前三圈每个片段由几个-token-还原": "R1 前三圈：MTP 1–4 词怎样变成 SSE 片段",
+        "glm-的分词器和思考标记": "GLM 的思考标记、结束编号与专用补丁"
       },
       "title": "流式输出：token 编号怎样变成一段段推给客户端的文字",
       "type": "concept",
@@ -23119,6 +23403,9 @@
     },
     {
       "id": "structured-output",
+      "legacyAnchors": {
+        "放到-glm-双机一个带-json-schema-的请求走一步": "复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界"
+      },
       "title": "结构化输出：文法怎样在采样前屏蔽不合法的 token",
       "type": "feature",
       "origin": "direct",
@@ -23606,6 +23893,9 @@
     },
     {
       "id": "tensor-parallel",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-走过一层": "异构旗舰对照：GLM 双机 TP8 分工"
+      },
       "title": "Tensor Parallel：一台机器的 8 张卡怎样合算一层",
       "type": "feature",
       "origin": "gap",
@@ -23687,7 +23977,14 @@
         "vllm@ced6857a:vllm/config/model.py#L1530-L1551",
         "vllm-ascend@c09d3e20:vllm_ascend/ops/linear.py#L107-L125",
         "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1437-L1443",
-        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L856-L884"
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L856-L884",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L294-L703",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L125",
+        "vllm@ced6857a:vllm/model_executor/models/qwen2.py#L90-L110",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1782",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -23698,7 +23995,8 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-196c004bd490c7f7e4c9c4e9d53b98c099e30b563845639542017f81ec8ad131.md",
-        "raw/sha256-d152d676c26ebc16ca54680c89192812c8f7b302108fa408d8ae747b866d5309.md"
+        "raw/sha256-d152d676c26ebc16ca54680c89192812c8f7b302108fa408d8ae747b866d5309.md",
+        "raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md"
       ],
       "relations": [
         {
@@ -23729,9 +24027,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-23",
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
+        {
+          "from": "ascend-910b3-measured-baseline",
+          "kind": "enables",
+          "note": "提供 Qwen3-8B 单卡至八卡 TP 扩展与 HCCS AllReduce 微基准实测数据"
+        },
         {
           "from": "cann-hccl",
           "kind": "enables",
@@ -23992,6 +24295,9 @@
     },
     {
       "id": "ucm",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署没有开-ucm": "复杂异构实战对照：GLM 双机为何未启用与接入边界"
+      },
       "title": "UCM：把算过的前缀分三层存到显存之外",
       "type": "feature",
       "origin": "direct",
@@ -25293,6 +25599,9 @@
     },
     {
       "id": "vllm-platform-interface",
+      "legacyAnchors": {
+        "放到-glm-双机请求到来前平台先做什么": "复杂异构实战对照：GLM 双机启动时的平台问答"
+      },
       "title": "Platform：硬件适配的接口契约",
       "type": "concept",
       "origin": "gap",

@@ -1,101 +1,127 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 408" width="900" height="408" role="img" aria-label="多卡交错日志首错 Rank 与次生 EI0006 超时分流示意图" font-family="var(--font-sans)">
-  <title>多卡交错日志：如何从 EI0006 刷屏中锁定首错 Rank</title>
-  <desc>init_snapshot, requested_memory, gpu_memory_utilization, capture_model, non_kv_memory, available_kv_cache_memory_bytes, VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS, exitcode, finished_procs</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 564" width="900" height="564" role="img" aria-label="分布式通信超时三分支对照图：区分某 Rank 根本没到（首错崩溃）、某 Rank 迟到（负载或 GC 拖慢）与全员已到但交换本身慢（链路带宽）" font-family="var(--font-sans)">
+  <title>分布式集合通信超时三分支：根本没到 vs 有人迟到 vs 交换本身慢</title>
+  <desc>Three multi-rank collective communication failure patterns: Rank crashed before barrier (first-fault EI0006), straggler rank late due to workload/GC skew, and all ranks arrived simultaneously with slow fabric/link exchange</desc>
   <defs>
-    <marker id="ts-ff-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    <marker id="ts-ff-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
     </marker>
     <marker id="ts-ff-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">多卡交错日志时间轴示意：主故障先发 vs 次生集合通信超时</text>
-  <text x="886" y="28" text-anchor="end" font-size="13.5" fill="#66716d">相对阶段 t₀ → t₃（教学示意，非实测时长）</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">集合通信慢或报 EI0006：三种截然不同的多卡时间线，先分型再查网络</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">相对阶段示意（非实测时长）</text>
 
-  <!-- Vertical phase grid -->
+  <!-- Shared vertical barrier guide lines for timelines (x=112..620) -->
   <g stroke="#d8d8cf" stroke-width="1" stroke-dasharray="4 4">
-    <line x1="150" y1="50" x2="150" y2="278"/>
-    <line x1="390" y1="50" x2="390" y2="278"/>
-    <line x1="640" y1="50" x2="640" y2="278"/>
-    <line x1="874" y1="50" x2="874" y2="278"/>
-  </g>
-  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="middle">
-    <text x="150" y="64">t₀ 启动/进入本层</text>
-    <text x="390" y="64">t₁ 首错爆发点</text>
-    <text x="640" y="64">t₂ 屏障苦等期</text>
-    <text x="850" y="64">t₃ 刷屏超时</text>
+    <line x1="112" y1="44" x2="112" y2="484"/>
+    <line x1="258" y1="44" x2="258" y2="484"/>
+    <line x1="608" y1="44" x2="608" y2="484"/>
   </g>
 
-  <!-- Swimlanes -->
-  <g fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1">
-    <rect x="12" y="76" width="876" height="44" rx="8"/>
-    <rect x="12" y="128" width="876" height="44" rx="8"/>
-    <rect x="12" y="180" width="876" height="44" rx="8"/>
-  </g>
-  <rect x="12" y="232" width="876" height="48" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <!-- ================= CASE A: Rank Never Arrived (First Fault Crash) ================= -->
+  <text x="16" y="54" font-size="15" font-weight="700" fill="#8f3229">分支 A · 某 Rank 根本没到（首错崩溃 → 其余卡苦等刷屏 EI0006）</text>
 
-  <g font-size="14.5" font-weight="700" fill="#17211f">
-    <text x="26" y="103">Rank 0</text>
-    <text x="26" y="155">Rank 1</text>
-    <text x="26" y="207">Rank 2</text>
-    <text x="26" y="261" fill="#8f3229">Rank 3 ★首错</text>
-  </g>
+  <!-- Ranks 0..2 bars -->
+  <text x="16" y="84" font-size="13.5" font-weight="700" fill="#17211f">Rank 0–2</text>
+  <rect x="112" y="66" width="146" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="185" y="84" text-anchor="middle" font-size="13.5" fill="#936300">前向计算完成</text>
+  <rect x="262" y="66" width="346" height="26" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="435" y="84" text-anchor="middle" font-size="13.5" fill="#7a3a6a">卡死在 Notify wait → 刷屏 EI0006（次生）</text>
 
-  <!-- Compute blocks for Ranks 0..2 -->
-  <g fill="#fff4cf" stroke="#c78300" stroke-width="1.3">
-    <rect x="150" y="84" width="180" height="28" rx="6"/>
-    <rect x="150" y="136" width="188" height="28" rx="6"/>
-    <rect x="150" y="188" width="176" height="28" rx="6"/>
-  </g>
-  <g font-size="13.5" font-weight="600" fill="#936300">
-    <text x="164" y="103">前向计算完成</text>
-    <text x="164" y="155">前向计算完成</text>
-    <text x="164" y="207">前向计算完成</text>
-  </g>
+  <!-- Rank 3 bar -->
+  <text x="16" y="120" font-size="13.5" font-weight="700" fill="#8f3229">Rank 3 ★</text>
+  <rect x="112" y="102" width="110" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="167" y="120" text-anchor="middle" font-size="13.5" fill="#936300">算子 / 录图</text>
+  <rect x="226" y="102" width="212" height="26" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.7"/>
+  <text x="332" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">★ 首错：OOM / EZ9999 退出</text>
+  <line x1="438" y1="115" x2="474" y2="115" stroke="#b54237" stroke-width="1.6" marker-end="url(#ts-ff-red)"/>
+  <text x="480" y="120" font-size="13.5" font-weight="700" fill="#8f3229">从未入屏障</text>
 
-  <!-- Waiting cascade blocks for Ranks 0..2 -->
-  <g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="5 3">
-    <rect x="336" y="84" width="538" height="28" rx="6"/>
-    <rect x="344" y="136" width="530" height="28" rx="6"/>
-    <rect x="332" y="188" width="542" height="28" rx="6"/>
-  </g>
-  <g font-size="13.5" fill="#7a3a6a">
-    <text x="352" y="103">卡在 AllReduce Notify wait … 最终刷屏报 EI0006（次生症状）</text>
-    <text x="360" y="155">卡在 AllReduce Notify wait … 最终刷屏报 EI0006（次生症状）</text>
-    <text x="348" y="207">卡在 AllReduce Notify wait … 最终刷屏报 EI0006（次生症状）</text>
-  </g>
+  <!-- Right Triage Box A -->
+  <rect x="624" y="64" width="260" height="68" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="636" y="88" font-size="14" font-weight="700" fill="#8f3229">动作：捞最早主错，勿罪 Rank 0</text>
+  <text x="636" y="110" font-size="13.5" fill="#17211f">按时间戳合并全组 worker + plog</text>
+  <text x="636" y="127" font-size="13.5" fill="#66716d">过滤 EI0006，先治 OOM/EZ9999</text>
 
-  <!-- Rank 3 primary fault -->
-  <rect x="150" y="241" width="140" height="30" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="164" y="261" font-size="13.5" font-weight="600" fill="#936300">前向/录图阶段</text>
+  <line x1="16" y1="150" x2="884" y2="150" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="6 4"/>
 
-  <rect x="298" y="241" width="268" height="30" rx="6" fill="#ffffff" stroke="#b54237" stroke-width="1.8"/>
-  <text x="312" y="261" font-size="14" font-weight="700" fill="#8f3229">★ 首错：NPU OOM / EZ9999 退出</text>
+  <!-- ================= CASE B: Rank Late (Straggler / Load / GC Skew) ================= -->
+  <text x="16" y="178" font-size="15" font-weight="700" fill="#936300">分支 B · 某 Rank 迟到（无报错，但负载不均 / MoE 热点 / Host 或 GC 拖慢）</text>
 
-  <path d="M 566 256 L 614 256" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#ts-ff-red)"/>
-  <text x="622" y="261" font-size="13.5" font-weight="600" fill="#8f3229">从未进入 AllReduce，导致全组死等</text>
+  <!-- Ranks 0..2 bars -->
+  <text x="16" y="210" font-size="13.5" font-weight="700" fill="#17211f">Rank 0–2</text>
+  <rect x="112" y="192" width="146" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="185" y="210" text-anchor="middle" font-size="13.5" fill="#936300">早已算完</text>
+  <rect x="262" y="192" width="260" height="26" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="392" y="210" text-anchor="middle" font-size="13.5" fill="#7a3a6a">被算进通信耗时的「空等迟到者」</text>
+  <rect x="526" y="192" width="82" height="26" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="567" y="210" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">短交换</text>
 
-  <!-- Bottom 3-step decision bar -->
-  <line x1="12" y1="296" x2="888" y2="296" stroke="#d8d8cf" stroke-width="1.2"/>
+  <!-- Rank 3 bar -->
+  <text x="16" y="246" font-size="13.5" font-weight="700" fill="#936300">Rank 3 ⏳</text>
+  <rect x="112" y="228" width="410" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.7"/>
+  <text x="317" y="246" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">前序计算拉长（DP 偏斜 / 专家热点 / GC 暂停）</text>
+  <rect x="526" y="228" width="82" height="26" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="567" y="246" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">短交换</text>
+  <!-- Barrier arrival marker at x=524 -->
+  <line x1="524" y1="188" x2="524" y2="260" stroke="#087f73" stroke-width="1.5" stroke-dasharray="3 2"/>
 
-  <rect x="12" y="310" width="276" height="86" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="26" y="335" font-size="14.5" font-weight="700" fill="#065f56">① 主故障优先于次生超时</text>
-  <text x="26" y="359" font-size="13.5" fill="#17211f">先捞 OOM / EZ9999 / ValueError</text>
-  <text x="26" y="381" font-size="13.5" fill="#66716d">把 EI0006 与死进程归为连带症状</text>
+  <!-- Right Triage Box B -->
+  <rect x="624" y="190" width="260" height="68" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="636" y="214" font-size="14" font-weight="700" fill="#936300">动作：比各卡设备到达时刻</text>
+  <text x="636" y="236" font-size="13.5" fill="#17211f">控制迟到卡负载看等待是否下降</text>
+  <text x="636" y="253" font-size="13.5" fill="#66716d">查 DP 路由 / EPLB / CPU 绑核</text>
 
-  <path d="M 288 353 L 310 353" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ts-ff-arrow)"/>
+  <line x1="16" y1="276" x2="884" y2="276" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="6 4"/>
 
-  <rect x="316" y="310" width="276" height="86" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="330" y="335" font-size="14.5" font-weight="700" fill="#3a4f93">② 按时间戳反查全组首错</text>
-  <text x="330" y="359" font-size="13.5" fill="#17211f">合并各卡 worker 日志与 CANN plog</text>
-  <text x="330" y="381" font-size="13.5" fill="#66716d">不以文件最后一行定罪，防误判 Rank 0</text>
+  <!-- ================= CASE C: All Arrived, Exchange Itself Slow ================= -->
+  <text x="16" y="304" font-size="15" font-weight="700" fill="#3a4f93">分支 C · 全员同时到齐，但交换本身很慢（真实链路 / 拓扑 / 带宽瓶颈）</text>
 
-  <path d="M 592 353 L 614 353" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ts-ff-arrow)"/>
+  <!-- Ranks 0..2 bars -->
+  <text x="16" y="336" font-size="13.5" font-weight="700" fill="#17211f">Rank 0–2</text>
+  <rect x="112" y="318" width="146" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="185" y="336" text-anchor="middle" font-size="13.5" fill="#936300">同步抵达</text>
+  <rect x="262" y="318" width="346" height="26" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="435" y="336" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">全员同时在跑 HCCL 集合交换，吞吐未达预期</text>
 
-  <rect x="620" y="310" width="268" height="86" rx="10" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="634" y="335" font-size="14.5" font-weight="700" fill="#17211f">③ 全组皆无主错再查链路</text>
-  <text x="634" y="359" font-size="13.5" fill="#17211f">确认每张卡同期前序均干净后</text>
-  <text x="634" y="381" font-size="13.5" fill="#66716d">再转 hccn_tool / hccl_test 查网</text>
+  <!-- Rank 3 bar -->
+  <text x="16" y="372" font-size="13.5" font-weight="700" fill="#17211f">Rank 3</text>
+  <rect x="112" y="354" width="146" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="185" y="372" text-anchor="middle" font-size="13.5" fill="#936300">同步抵达</text>
+  <rect x="262" y="354" width="346" height="26" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="435" y="372" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">全员同时在跑 HCCL 集合交换，吞吐未达预期</text>
+
+  <!-- Right Triage Box C -->
+  <rect x="624" y="316" width="260" height="68" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="636" y="340" font-size="14" font-weight="700" fill="#3a4f93">动作：全组前序干净再查网</text>
+  <text x="636" y="362" font-size="13.5" fill="#17211f">hccn_tool + 匹配规模 hccl_test</text>
+  <text x="636" y="379" font-size="13.5" fill="#66716d">核对数据量、拓扑与真实负载竞争</text>
+
+  <!-- Bottom 3-step convergence bar -->
+  <line x1="16" y1="408" x2="884" y2="408" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="16" y="434" font-size="15" font-weight="700" fill="#17211f">现场三步收敛顺序（避免一见通信慢就换网线或只盯 Rank 0）</text>
+
+  <rect x="16" y="448" width="274" height="102" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="474" font-size="14.5" font-weight="700" fill="#065f56">① 排分支 A（先清假超时）</text>
+  <text x="30" y="499" font-size="13.5" fill="#17211f">合并全组日志与 CANN plog</text>
+  <text x="30" y="521" font-size="13.5" fill="#17211f">按时间戳反查最早报错 Rank</text>
+  <text x="30" y="542" font-size="13.5" fill="#66716d">RPC 保护窗已抬至 3000s</text>
+
+  <line x1="290" y1="499" x2="312" y2="499" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ts-ff-arr)"/>
+
+  <rect x="314" y="448" width="274" height="102" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="328" y="474" font-size="14.5" font-weight="700" fill="#936300">② 排分支 B（区分谁迟到）</text>
+  <text x="328" y="499" font-size="13.5" fill="#17211f">读设备侧到达与完成时间线</text>
+  <text x="328" y="521" font-size="13.5" fill="#17211f">CPU 同提交 ≠ 设备同进度</text>
+  <text x="328" y="542" font-size="13.5" fill="#66716d">控迟到卡工作量验证等待降幅</text>
+
+  <line x1="588" y1="499" x2="610" y2="499" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ts-ff-arr)"/>
+
+  <rect x="612" y="448" width="272" height="102" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="626" y="474" font-size="14.5" font-weight="700" fill="#3a4f93">③ 落分支 C（查链路与竞争）</text>
+  <text x="626" y="499" font-size="13.5" fill="#17211f">确认全组前序均干净且同到齐</text>
+  <text x="626" y="521" font-size="13.5" fill="#17211f">用匹配拓扑/规模的通信测试</text>
+  <text x="626" y="542" font-size="13.5" fill="#66716d">并核对真实推理下的带宽竞争</text>
 </svg>

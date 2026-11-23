@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="STAIR 四步规划流水线、束搜索展开上限与 Gloo 自动收紧路径" font-family="var(--font-sans)">
+  <title>STAIR 单层四步规划流水与通信器回退自动收紧</title>
+  <desc>Top: 4-step STAIR pipeline mapping all 10 stair_config keys, highlighting default beam expansion 1 to 17 to 64 totaling 1,394 expansions and 64 constrained LPT placements. Bottom: Auto communicator consensus falling back to torch_gloo and clamping only unset transfer limits from -1 to 1.</desc>
+  <defs>
+    <marker id="st-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="st-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="st-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="st-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. STAIR 单层四步规划流水线与 10 个子键落点（MRv2 默认策略）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">协方差风险估计与双门滞回为强制机制，无关闭开关；默认规模：1→17→64 状态（1,394 次展开 + 至多 64 次摆放）</text>
+
+  <!-- Step 1 -->
+  <rect x="16" y="66" width="186" height="142" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="90" font-size="14.5" font-weight="700" fill="#3a4f93">① 压缩负载窗口</text>
+  <text x="28" y="114" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">load_window_bins</text>
+  <text x="28" y="134" font-size="13.5" fill="#4d5652">默认 64（2..256）</text>
+  <line x1="28" y1="146" x2="190" y2="146" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="28" y="168" font-size="13.5" fill="#4d5652">按时间顺序并箱</text>
+  <text x="28" y="190" font-size="13.5" fill="#3a4f93">保留均值 + 步数权</text>
+
+  <line x1="204" y1="137" x2="224" y2="137" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#st-arr-indigo)"/>
+
+  <!-- Step 2 -->
+  <rect x="228" y="66" width="204" height="142" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="240" y="90" font-size="14.5" font-weight="700" fill="#065f56">② 双门滞回筛选（或）</text>
+  <text x="240" y="114" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">relative (0.95)</text>
+  <text x="240" y="135" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">absolute (0.90)</text>
+  <line x1="240" y1="146" x2="420" y2="146" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="240" y="168" font-size="13.5" fill="#4d5652">跳过全零 / 无锚点直放</text>
+  <text x="240" y="190" font-size="13.5" fill="#065f56">按当前峰均比降序排队</text>
+
+  <line x1="434" y1="137" x2="454" y2="137" stroke="#087f73" stroke-width="1.8" marker-end="url(#st-arr-teal)"/>
+
+  <!-- Step 3 -->
+  <rect x="458" y="66" width="204" height="142" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="470" y="90" font-size="14.5" font-weight="700" fill="#936300">③ 风险 + 副本束搜索</text>
+  <text x="470" y="113" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">quantile (0.75→z≈0.67)</text>
+  <text x="470" y="133" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">stages=4 radius=8</text>
+  <text x="470" y="153" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">beam_size=64</text>
+  <line x1="470" y1="164" x2="650" y2="164" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="470" y="186" font-size="13.5" font-weight="700" fill="#936300">前 3 段展开，末段补齐</text>
+
+  <line x1="664" y1="137" x2="684" y2="137" stroke="#c78300" stroke-width="1.8" marker-end="url(#st-arr-amber)"/>
+
+  <!-- Step 4 -->
+  <rect x="688" y="66" width="196" height="142" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="700" y="90" font-size="14.5" font-weight="700" fill="#7a3a6a">④ 约束 LPT + 裁决</text>
+  <text x="700" y="113" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">rank_limit (-1)</text>
+  <text x="700" y="133" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">cross_node (-1)</text>
+  <text x="700" y="153" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">backtrack (32)</text>
+  <line x1="700" y1="164" x2="872" y2="164" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="700" y="186" font-size="13.5" font-weight="700" fill="#7a3a6a">mean &amp; p95 均不退化</text>
+
+  <!-- Beam expansion math ribbon -->
+  <rect x="16" y="222" width="868" height="66" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="248" font-size="14.5" font-weight="700" fill="#17211f">默认值 CPU 展开上限（每层每轮，每态至多 2×8+1 = 17 预算）：</text>
+  <text x="30" y="274" font-size="14" font-weight="700" fill="#936300">段 1：1×17 = 17</text>
+  <text x="176" y="274" font-size="14" fill="#66716d">→ 截留 ≤17 态 →</text>
+  <text x="310" y="274" font-size="14" font-weight="700" fill="#936300">段 2：17×17 = 289</text>
+  <text x="466" y="274" font-size="14" fill="#66716d">→ 截留 ≤64 态 →</text>
+  <text x="600" y="274" font-size="14" font-weight="700" fill="#936300">段 3：64×17 = 1,088</text>
+  <text x="774" y="274" font-size="14" font-weight="700" fill="#8f3229">合计 1,394 次</text>
+
+  <!-- Horizontal divider -->
+  <line x1="16" y1="306" x2="884" y2="306" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- Bottom Half: Communicator fallback -1 -> 1 -->
+  <text x="16" y="334" font-size="16" font-weight="700" fill="#17211f">B. 搬运限额陷阱：声明默认 -1 vs 回退 torch_gloo 自动收紧为 1</text>
+  <text x="16" y="355" font-size="13.5" fill="#66716d">resolve_ascend_eplb_communicator 在 worker 启动全组共识阶段执行，仅收紧「用户未显式写出」的限额</text>
+
+  <!-- Decision Node 1 -->
+  <rect x="16" y="374" width="206" height="84" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="119" y="400" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">是否显式配置</text>
+  <text x="119" y="422" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">eplb_config.communicator</text>
+  <text x="119" y="444" text-anchor="middle" font-size="13.5" fill="#4d5652">（hixl 或 torch_gloo）</text>
+
+  <!-- Branch Yes -> Top Right -->
+  <path d="M 224 396 L 280 396" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#st-arr-teal)"/>
+  <text x="252" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">是</text>
+  <rect x="284" y="370" width="276" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="422" y="393" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">跳过自动共识与收紧路径</text>
+  <text x="422" y="414" text-anchor="middle" font-size="13.5" fill="#4d5652">保持声明默认 -1 或用户显式值</text>
+
+  <!-- Branch No -> Consensus -->
+  <path d="M 224 438 L 280 456" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#st-arr-amber)"/>
+  <text x="252" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">未指定</text>
+
+  <rect x="284" y="434" width="276" height="72" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="422" y="458" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">全组 HIXL 可用性与绑定类型共识</text>
+  <text x="422" y="479" text-anchor="middle" font-size="13.5" fill="#4d5652">全组一致 → 走 hixl（保持 -1）</text>
+  <text x="422" y="498" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">任一 rank 缺失/不一致 → 回退 torch_gloo</text>
+
+  <!-- Arrow from Gloo fallback to clamping box -->
+  <path d="M 562 470 L 604 470" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#st-arr-red)"/>
+
+  <!-- Clamping outcome box -->
+  <rect x="608" y="370" width="276" height="136" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="622" y="396" font-size="14.5" font-weight="700" fill="#8f3229">回退 torch_gloo 后的差异处理</text>
+  <text x="622" y="422" font-size="13.5" font-weight="700" fill="#8f3229">• 未显式填写的限额：-1 → 1</text>
+  <text x="622" y="444" font-size="13.5" fill="#4d5652">  防 CPU 中转搬运风暴</text>
+  <text x="622" y="470" font-size="13.5" font-weight="700" fill="#065f56">• 已显式填写的限额：原样保留</text>
+  <text x="622" y="492" font-size="13.5" fill="#4d5652">  如显式写 0 或 -1 均不被覆盖</text>
+</svg>

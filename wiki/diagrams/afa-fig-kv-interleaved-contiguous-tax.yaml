@@ -1,0 +1,17 @@
+mode: native-svg
+id: afa-fig-kv-interleaved-contiguous-tax
+caption: Ascend 910B3 普通 GQA 页交错 KV 非连续拷贝税与批内摊销剖析：上半部展示单块共享显存 [2, num_blocks, block_size, kv_heads, head_dim] 采用 (H, 2H) 页交错步长导致 kv_cache[0]/kv_cache[1] 跨页非连续；中部对照 Eager Decode 实测中 FIA 内部每层触发 2 次整池 aclnnContiguous_SliceAiCore_Slice 的开销（Qwen3-8B 每步 72 次 = 46.16 ms / 58.99 GiB 读写，大 Slice 占设备算子总时 62.22%［全部 Slice 含小 Slice 为 62.46%］vs FIA 核 2.36 ms/3 步；2 层裁剪 MoE 单次 13.67 ms，大 Slice 占设备算子总时 95.99%［全部 Slice 为 96.01%］）；底部展示固定 TP=1 下 c=1→c=16 的 TPOT 仅增 +2.84% 而吞吐跃升 15.3 倍，并明确线上 FULL 图重放整池复制与批内整池拷贝均摊均属待线上设备时间线验证的条件假设。
+size: [860, 640]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L118'
+    symbols: ['get_kv_cache_shape']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5054-L5076'
+    symbols: ['strided_attention_cache_layers', 'requires_contiguous_pa_kv_cache']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931'
+    symbols: ['as_strided', 'is_contiguous']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L823-L873'
+    symbols: ['_get_kv_cache_view', '_get_fia_params', 'DecodeOnly']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
+    symbols: ['npu_fused_infer_attention_score', 'contiguous']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L660-L715'
+    symbols: ['register_task', '_npu_fused_infer_attention_score_get_max_workspace']

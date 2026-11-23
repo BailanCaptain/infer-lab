@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 426" width="900" height="426" role="img" aria-label="固定 16 卡 EP16 下 TP4、TP8、TP16 三档单卡语言权重构成同比例堆叠条形图：EP16 路由专家 18.14 GiB 与逐卡复制项 0.71 GiB 固定不变，仅 TP 可切分权重从 3.47 缩至 1.73 再缩至 0.87 GiB，解释为何 TP8 扩到 TP16 每卡仅省约 0.87 GiB" font-family="var(--font-sans)">
+  <title>固定 16 卡与 EP16 比较 TP4 / TP8 / TP16 的每卡语言权重子账（同比例刻度）：路由专家（18,576 MiB ≈ 18.14 GiB）与逐卡复制项（727.5 MiB ≈ 0.71 GiB）三档完全固定；只有 TP 可切分部分按 8/TP 缩放（3.47 / 1.73 / 0.87 GiB），因此总子账依次为 22.32、20.58、19.72 GiB——TP8 扩到 TP16 每卡仅省约 0.87 GiB，却把每层归约拖跨机。</title>
+  <desc>关联源码符号：AscendGlm5NextMLP, MergedColumnParallelLinear, RowParallelLinear, tensor_model_parallel_all_reduce</desc>
+
+  <!-- Title -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">固定 16 卡（EP16）比较 TP4 / TP8 / TP16：为何 TP8 → TP16 每卡仅省约 0.87 GiB？（同比例）</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Legend Strip (y=48..74) -->
+  <rect x="16" y="48" width="16" height="16" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="38" y="61" font-size="13.5" font-weight="700" fill="#936300">EP16 路由专家（固定 18.14 GiB）</text>
+
+  <rect x="278" y="48" width="16" height="16" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="300" y="61" font-size="13.5" font-weight="700" fill="#3a4f93">逐卡复制项（固定 0.71 GiB）</text>
+
+  <rect x="524" y="48" width="16" height="16" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="546" y="61" font-size="13.5" font-weight="700" fill="#065f56">TP 可切分部分（仅此段随 TP 缩放）</text>
+
+  <!-- Shared Scale Gridlines: x0=176, scale=21 px/GiB, 0..24 GiB -> x=176..680 -->
+  <g stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="176" y1="84" x2="176" y2="314"/>
+    <line x1="260" y1="84" x2="260" y2="314"/>
+    <line x1="344" y1="84" x2="344" y2="314"/>
+    <line x1="428" y1="84" x2="428" y2="314"/>
+    <line x1="512" y1="84" x2="512" y2="314"/>
+    <line x1="596" y1="84" x2="596" y2="314"/>
+    <line x1="680" y1="84" x2="680" y2="314"/>
+  </g>
+  <!-- Axis tick labels -->
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="middle">
+    <text x="176" y="334">0</text>
+    <text x="260" y="334">4</text>
+    <text x="344" y="334">8</text>
+    <text x="428" y="334">12</text>
+    <text x="512" y="334">16</text>
+    <text x="596" y="334">20</text>
+    <text x="680" y="334">24 GiB</text>
+  </g>
+
+  <!-- Fixed-floor reference line at 18.851 GiB = 176 + 18.851*21 = 571.9 -->
+  <line x1="572" y1="80" x2="572" y2="318" stroke="#4c65b6" stroke-width="1.6" stroke-dasharray="5 3"/>
+  <text x="572" y="77" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">不可缩放底座 18.85 GiB</text>
+
+  <!-- Exact pixel math at 21 px/GiB:
+       EP16 = 18.1406 GiB * 21 = 381.0 px -> x=176..557
+       Replicated = 0.7104 GiB * 21 = 14.9 px -> x=557..572
+       TP4 sharded = 3.4658 GiB * 21 = 72.8 px -> x=572..645 (Total 22.32 GiB)
+       TP8 sharded = 1.7329 GiB * 21 = 36.4 px -> x=572..608 (Total 20.58 GiB)
+       TP16 sharded = 0.8665 GiB * 21 = 18.2 px -> x=572..590 (Total 19.72 GiB)
+  -->
+
+  <!-- ROW 1: TP4 / DP4 / EP16 -->
+  <text x="16" y="114" font-size="14.5" font-weight="700" fill="#17211f">TP4 / DP4 / EP16</text>
+  <text x="16" y="136" font-size="13.5" fill="#66716d">4 组机内 · 每卡 16 头</text>
+  <rect x="176" y="94" width="381" height="50" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="557" y="94" width="15" height="50" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="572" y="94" width="73" height="50" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="366" y="124" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">EP16 路由专家：18.14 GiB</text>
+  <text x="608" y="124" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">3.47</text>
+  <text x="656" y="114" font-size="15" font-weight="700" fill="#17211f">22.32 GiB</text>
+  <text x="656" y="136" font-size="13.5" fill="#4d5652">比 TP8 多 +1.73 GiB</text>
+
+  <!-- ROW 2: TP8 / DP2 / EP16 (Baseline) -->
+  <text x="16" y="192" font-size="14.5" font-weight="700" fill="#065f56">TP8 / DP2 / EP16</text>
+  <text x="16" y="214" font-size="13.5" font-weight="700" fill="#065f56">官方基线 · 机内 HCCS</text>
+  <rect x="176" y="172" width="381" height="50" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="557" y="172" width="15" height="50" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="572" y="172" width="36" height="50" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="366" y="202" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">EP16 路由专家：18.14 GiB</text>
+  <text x="618" y="192" font-size="15" font-weight="700" fill="#065f56">20.58 GiB（TP 可切 1.73）</text>
+  <text x="618" y="214" font-size="13.5" fill="#065f56">91 次归约全留机内 HCCS</text>
+
+  <!-- ROW 3: TP16 / DP1 / EP16 -->
+  <text x="16" y="270" font-size="14.5" font-weight="700" fill="#8f3229">TP16 / DP1 / EP16</text>
+  <text x="16" y="292" font-size="13.5" fill="#8f3229">跨机 RoCE · 每卡 4 头</text>
+  <rect x="176" y="250" width="381" height="50" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="557" y="250" width="15" height="50" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="572" y="250" width="18" height="50" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="366" y="280" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">EP16 路由专家：18.14 GiB</text>
+  <text x="602" y="270" font-size="15" font-weight="700" fill="#8f3229">19.72 GiB（TP 可切 0.87）</text>
+  <text x="602" y="292" font-size="13.5" font-weight="700" fill="#8f3229">仅省 ~0.87 GiB，却跨机 RoCE！</text>
+
+  <!-- Bottom Explanation Strip -->
+  <rect x="16" y="348" width="870" height="66" rx="8" fill="#ece9df" fill-opacity="0.65" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="374" font-size="14" font-weight="700" fill="#17211f">算账结论（GLM `3121f187` 所列语言权重子账）：84.5%–95.6% 为不可随 TP 缩小的固定底座</text>
+  <text x="30" y="399" font-size="13.5" fill="#4d5652">另加首次前向创建的 54 MiB 索引器 FP32 运行时副本后，三档依次为 22.37 / 20.64 / 19.77 GiB（差值仍为 +1.73 / -0.87 GiB）</text>
+</svg>

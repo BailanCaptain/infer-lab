@@ -1,8 +1,8 @@
 mode: native-svg
 id: recompute-cpu-offload-fig-preempt-swap
 caption: >-
-  PreemptOffloadConnector（v0.30.0 / main）的同步换出换回协同与三档预算优先级：调度侧通过 AscendMultiConnector 记账并等齐全部 world_size 卡的保存完成事件，Worker 侧在覆写显存块前同步 D2H、排回前向前同步 H2D；右侧列出三档预算口径与 main 解除 DCP/PCP 断言的演进。
-size: [900, 446]
+  PreemptOffloadConnector（v0.30.0 / main）四泳道同步换出换回与主机容量比例条：上半幅用 Scheduler、TP Rank 0/1 与 Host Pool 四泳道标出主机不足整条拒存、D2H 完成后 C 才能覆写、双卡集齐 world_size=2 屏障后才可同步 H2D 恢复；下半幅按比例画出 16,384-1=16,383 主机块为何在请求 1 占 8,192 块后装不下第 2 条 8,192 块请求。
+size: [900, 594]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L41-L115
     symbols: [PreemptOffloadConnectorV1, _resolve_offload_capacity, offload_host_memory_ratio, cpu_bytes_to_use_per_rank]

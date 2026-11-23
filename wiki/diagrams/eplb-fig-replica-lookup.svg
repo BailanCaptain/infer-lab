@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="EPLB 两张翻译表与 2 卡 6 槽物理定位图：卡 1 上两个 token 查 log2phy，选中 E2 跨卡发往卡 0 物理 2，选中热门 E0 直接命中卡 1 本地副本物理 3" font-family="var(--font-sans)">
+  <title>EPLB 物理槽位与两张翻译表（expert_map / log2phy）走读（2 卡 × 3 物理槽，4 专家 + 2 副本，对应纯 EP 即 tp_size=1 就近选本地副本分支）：卡 1 上 Token A 选中 E2，查卡 1 log2phy 得物理 2（2 // 3 = 0, 2 % 3 = 2）跨卡发往卡 0 第 2 格；Token B 选中热门 E0，查卡 1 log2phy 得物理 3（3 // 3 = 1, 3 % 3 = 0）直接命中卡 1 本卡第 0 格副本，零跨卡通信。</title>
+  <desc>关联源码符号：generate_log2phy_map, generate_global_placement, expert_map, log2phy</desc>
+  <defs>
+    <marker id="eprl-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="eprl-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">EPLB 逻辑号 → 物理槽位翻译（2 卡 × 3 槽，纯 EP tp_size=1 就近选本地副本）</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- TOP: 2 Tokens originating on Card 1 (y=48..112) -->
+  <rect x="16" y="48" width="416" height="64" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="30" y="74" font-size="14.5" font-weight="700" fill="#7a3a6a">Token A（在卡 1）选中逻辑专家 E2</text>
+  <text x="30" y="99" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">log2phy[E2]=物理 2</tspan> → <tspan font-family="var(--font-mono)">2//3=0, 2%3=2</tspan>（卡 0 格 2）</text>
+
+  <rect x="468" y="48" width="416" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="482" y="74" font-size="14.5" font-weight="700" fill="#065f56">Token B（在卡 1）选中热门专家 E0</text>
+  <text x="482" y="99" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">log2phy[E0]=物理 3</tspan> → <tspan font-family="var(--font-mono)">3//3=1, 3%3=0</tspan>（卡 1 格 0）</text>
+
+  <!-- MIDDLE: Two Translation Tables (y=130..314) -->
+  <!-- Left table: expert_map (Table 1) -->
+  <text x="16" y="148" font-size="14.5" font-weight="700" fill="#3a4f93">表一 · expert_map（本卡有没有、在第几格？）</text>
+  <rect x="16" y="158" width="416" height="150" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <!-- Table 1 Header -->
+  <rect x="16" y="158" width="416" height="30" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <g font-size="13.5" font-weight="700" fill="#3a4f93" text-anchor="middle">
+    <text x="72" y="178">逻辑专家</text><text x="196" y="178">卡 0 本卡格</text><text x="348" y="178">卡 1 本卡格</text>
+  </g>
+  <g stroke="#d8d8cf" stroke-width="1">
+    <line x1="16" y1="218" x2="432" y2="218"/><line x1="16" y1="248" x2="432" y2="248"/><line x1="16" y1="278" x2="432" y2="278"/>
+    <line x1="128" y1="158" x2="128" y2="308"/><line x1="264" y1="158" x2="264" y2="308"/>
+  </g>
+  <g font-size="13.5" text-anchor="middle" fill="#17211f">
+    <text x="72" y="208" font-family="var(--font-mono)" font-weight="700">E0</text><text x="196" y="208">第 0 格</text><text x="348" y="208" font-weight="700" fill="#065f56">第 0 格（有副本）</text>
+    <text x="72" y="238" font-family="var(--font-mono)" font-weight="700">E1</text><text x="196" y="238">第 1 格</text><text x="348" y="238">第 1 格（有副本）</text>
+    <text x="72" y="268" font-family="var(--font-mono)" font-weight="700">E2</text><text x="196" y="268" font-weight="700" fill="#7a3a6a">第 2 格</text><text x="348" y="268" fill="#8f3229">-1（不在本卡）</text>
+    <text x="72" y="298" font-family="var(--font-mono)" font-weight="700">E3</text><text x="196" y="298" fill="#8f3229">-1（不在本卡）</text><text x="348" y="298">第 2 格</text>
+  </g>
+
+  <!-- Right table: log2phy (Table 2) -->
+  <text x="468" y="148" font-size="14.5" font-weight="700" fill="#936300">表二 · log2phy（从本卡出发去哪个物理槽？）</text>
+  <rect x="468" y="158" width="416" height="150" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="468" y="158" width="416" height="30" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <g font-size="13.5" font-weight="700" fill="#936300" text-anchor="middle">
+    <text x="524" y="178">逻辑专家</text><text x="648" y="178">卡 0 发往</text><text x="800" y="178">卡 1 发往</text>
+  </g>
+  <!-- Highlight Token B (E0 -> 物理 3) & Token A (E2 -> 物理 2) cells -->
+  <rect x="716" y="188" width="168" height="30" fill="#ddf4ef"/>
+  <rect x="716" y="248" width="168" height="30" fill="#f7e7f2"/>
+  <g stroke="#d8d8cf" stroke-width="1">
+    <line x1="468" y1="218" x2="884" y2="218"/><line x1="468" y1="248" x2="884" y2="248"/><line x1="468" y1="278" x2="884" y2="278"/>
+    <line x1="580" y1="158" x2="580" y2="308"/><line x1="716" y1="158" x2="716" y2="308"/>
+  </g>
+  <g font-size="13.5" text-anchor="middle" fill="#17211f">
+    <text x="524" y="208" font-family="var(--font-mono)" font-weight="700">E0</text><text x="648" y="208">物理 0</text><text x="800" y="208" font-weight="700" fill="#065f56">物理 3 ← Token B</text>
+    <text x="524" y="238" font-family="var(--font-mono)" font-weight="700">E1</text><text x="648" y="238">物理 1</text><text x="800" y="238">物理 4</text>
+    <text x="524" y="268" font-family="var(--font-mono)" font-weight="700">E2</text><text x="648" y="268">物理 2</text><text x="800" y="268" font-weight="700" fill="#7a3a6a">物理 2 ← Token A</text>
+    <text x="524" y="298" font-family="var(--font-mono)" font-weight="700">E3</text><text x="648" y="298">物理 5</text><text x="800" y="298">物理 5</text>
+  </g>
+
+  <!-- Routing arrows from Table 2 down to Physical Slots -->
+  <!-- Token A: Card 1 E2 -> Card 0 slot 2 (物理 2) -->
+  <path d="M 756 308 L 756 328 L 360 328 L 360 368" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#eprl-plum)"/>
+  <text x="560" y="323" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">Token A：跨卡 dispatch → 卡 0 物理 2</text>
+
+  <!-- Token B: Card 1 E0 -> Card 1 slot 0 (物理 3) -->
+  <path d="M 836 308 L 836 344 L 540 344 L 540 368" fill="none" stroke="#087f73" stroke-width="2.4" marker-end="url(#eprl-teal)"/>
+  <text x="698" y="362" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Token B：命中本卡副本 → 物理 3（零跨卡）</text>
+
+  <!-- BOTTOM: 2 Cards x 3 Physical Slots (y=372..466) -->
+  <!-- Card 0 Bay -->
+  <rect x="16" y="372" width="416" height="92" rx="10" fill="#ece9df" fill-opacity="0.45" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="30" y="394" font-size="14" font-weight="700" fill="#17211f">卡 0 · 物理槽 0–2（物理号 = 格 + 0×3）</text>
+
+  <rect x="30" y="404" width="122" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="91" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">物理 0（格 0）</text>
+  <text x="91" y="445" text-anchor="middle" font-size="13.5" fill="#17211f">E0（副本一）</text>
+
+  <rect x="163" y="404" width="122" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="224" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">物理 1（格 1）</text>
+  <text x="224" y="445" text-anchor="middle" font-size="13.5" fill="#17211f">E1（副本一）</text>
+
+  <rect x="296" y="404" width="122" height="50" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="2"/>
+  <text x="357" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">物理 2（格 2）</text>
+  <text x="357" y="445" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">E2 ★ Token A</text>
+
+  <!-- Card 1 Bay -->
+  <rect x="468" y="372" width="416" height="92" rx="10" fill="#ece9df" fill-opacity="0.45" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="482" y="394" font-size="14" font-weight="700" fill="#17211f">卡 1 · 物理槽 3–5（物理号 = 格 + 1×3）</text>
+
+  <rect x="482" y="404" width="122" height="50" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="2"/>
+  <text x="543" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">物理 3（格 0）</text>
+  <text x="543" y="445" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">E0 ★ Token B</text>
+
+  <rect x="615" y="404" width="122" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="676" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">物理 4（格 1）</text>
+  <text x="676" y="445" text-anchor="middle" font-size="13.5" fill="#17211f">E1（副本二）</text>
+
+  <rect x="748" y="404" width="122" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="809" y="425" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">物理 5（格 2）</text>
+  <text x="809" y="445" text-anchor="middle" font-size="13.5" fill="#17211f">E3（唯一份）</text>
+
+  <!-- Footer atomic swap constraint -->
+  <rect x="16" y="476" width="868" height="34" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="450" y="498" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">步末原子生效：新权重写入槽位 与 expert_map / log2phy 换表必须同步完成，防止指向旧专家权重</text>
+</svg>

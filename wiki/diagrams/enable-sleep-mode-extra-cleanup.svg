@@ -1,84 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 668" width="900" height="668" role="img" aria-label="v0.30.0 和 main 中 sleep_mode_extra_cleanup 休眠清理与唤醒恢复对称次序，包含 HCCL 生命周期锚点创建与释放" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 668" width="900" height="668" role="img" aria-label="v0.30.0 和 main 中 sleep_mode_extra_cleanup 休眠清理与唤醒恢复对称次序，包含跨周期 HCCL 生命周期锚点保活区间与两代入口迁移" font-family="var(--font-sans)">
   <title>v0.30.0 (c09d3e20) 与 main (8d6180e2) 中 rl_config.sleep_mode_extra_cleanup 完整休眠/唤醒次序：sleep 时先清 ACL 图、再建 HCCL lifecycle anchor 保活并销毁业务设备组、最后 CaMemAllocator 换出；wake_up 时先还原显存、再重建业务组、按 tags 重捕获图，最后释放 anchor。</title>
-  <desc>Two-column mirrored sleep() and wake_up() order in v0.30.0 (c09d3e20) and main (8d6180e2), highlighting _ensure_lifecycle_anchor and release_lifecycle_anchor in sleep_mem_optimized.py.</desc>
+  <desc>Mirrored sleep() and wake_up() order in v0.30.0 (c09d3e20) and main (8d6180e2), highlighting the cross-sleep HCCL lifecycle anchor span from _ensure_lifecycle_anchor to release_lifecycle_anchor and two-generation config migration.</desc>
+  <defs>
+    <marker id="es-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+    <marker id="es-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 / main 额外清理次序与 HCCL 生命周期锚点（anchor）</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">生效守卫：rl_config.enabled and rl_config.sleep_mode_extra_cleanup（两键缺一均跳过所有彩色步骤）</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">v0.30.0 / main 额外清理对称次序与跨休眠 HCCL 生命周期锚点（anchor）</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">生效守卫：rl_config.enabled AND rl_config.sleep_mode_extra_cleanup（两键缺一即跳过全部彩色步骤）</text>
 
-  <!-- Center vertical divider between Sleep and Wake_up columns -->
-  <line x1="450" y1="68" x2="450" y2="528" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <!-- Center vertical divider -->
+  <line x1="450" y1="64" x2="450" y2="508" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
 
   <!-- Column Headers -->
-  <text x="16" y="80" font-size="14.5" font-weight="700" fill="#17211f">休眠 · NPUWorker.sleep(level)</text>
-  <text x="436" y="80" font-size="13" fill="#936300" text-anchor="end">彩色 ①–③ = 额外清理</text>
+  <text x="16" y="78" font-size="14.5" font-weight="700" fill="#17211f">休眠 · NPUWorker.sleep(level ≥ 1)</text>
+  <text x="434" y="78" font-size="13.5" font-weight="700" fill="#936300" text-anchor="end">①–③ = 额外清理</text>
 
-  <text x="464" y="80" font-size="14.5" font-weight="700" fill="#17211f">唤醒 · NPUWorker.wake_up(tags)</text>
-  <text x="884" y="80" font-size="13" fill="#065f56" text-anchor="end">彩色 ②–④ = 额外恢复</text>
+  <text x="466" y="78" font-size="14.5" font-weight="700" fill="#17211f">唤醒 · NPUWorker.wake_up(tags)</text>
+  <text x="884" y="78" font-size="13.5" font-weight="700" fill="#065f56" text-anchor="end">②–④ = 额外恢复</text>
 
   <!-- LEFT COLUMN: sleep() -->
-  <rect x="16" y="94" width="420" height="86" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="118" font-size="14.5" font-weight="700" fill="#936300">① 作废 ACL 图（仅 use_aclgraph 为真）</text>
-  <text x="30" y="141" font-size="13" fill="#4d5652" font-family="var(--font-mono)">acl_graph.sleep() → reset_all_graph_params()</text>
-  <text x="30" y="164" font-size="13.5" fill="#4d5652">清空 workspace 与图条目，置 _graphs_captured=False</text>
+  <rect x="16" y="90" width="418" height="82" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="114" font-size="14.5" font-weight="700" fill="#936300">① 作废 ACL 图（仅 use_aclgraph 为真）</text>
+  <text x="30" y="137" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">acl_graph.sleep() → reset_all_graph_params()</text>
+  <text x="30" y="159" font-size="13.5" fill="#4d5652">清空 workspace 与图条目，置 _graphs_captured=False</text>
 
-  <path d="M226 180 V198 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 225 172 L 225 190" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="16" y="202" width="420" height="86" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="30" y="226" font-size="14.5" font-weight="700" fill="#7a3a6a">② 创建并初始化 HCCL 周期锚点</text>
-  <text x="30" y="249" font-size="13" fill="#4d5652" font-family="var(--font-mono)">self.hccl._ensure_lifecycle_anchor()</text>
-  <text x="30" y="272" font-size="13.5" fill="#4d5652">多 rank 建临时组并 barrier 保活控制面；单卡或失败记 skip</text>
+  <rect x="16" y="196" width="418" height="82" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="30" y="220" font-size="14.5" font-weight="700" fill="#7a3a6a">② 创建并初始化 HCCL 周期锚点（保活控制面）</text>
+  <text x="30" y="243" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">self.hccl._ensure_lifecycle_anchor()</text>
+  <text x="30" y="265" font-size="13.5" fill="#4d5652">多 rank 建临时组并 barrier；单卡或失败记 skip</text>
 
-  <path d="M226 288 V306 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 225 278 L 225 296" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="16" y="310" width="420" height="86" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="30" y="334" font-size="14.5" font-weight="700" fill="#8f3229">③ 销毁业务 HCCL 设备通信组</text>
-  <text x="30" y="357" font-size="13" fill="#4d5652" font-family="var(--font-mono)">prepare_moe_hccl_teardown() → destroy_hccl()</text>
-  <text x="30" y="380" font-size="13.5" fill="#4d5652">逐组拆设备组、保留 cpu_group，跳过锚点组不销毁</text>
+  <rect x="16" y="302" width="418" height="82" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="326" font-size="14.5" font-weight="700" fill="#8f3229">③ 销毁业务 HCCL 设备通信组</text>
+  <text x="30" y="349" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">prepare_moe_hccl_teardown() → destroy_hccl()</text>
+  <text x="30" y="371" font-size="13.5" fill="#4d5652">逐组拆设备组、保留 cpu_group，跳过锚点组不销毁</text>
 
-  <path d="M226 396 V414 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 225 384 L 225 402" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="16" y="418" width="420" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="30" y="442" font-size="14.5" font-weight="700" fill="#17211f">④ 基础分配器换出显存（固有步骤）</text>
-  <text x="30" y="465" font-size="13" fill="#4d5652" font-family="var(--font-mono)">CaMemAllocator.sleep(offload_tags=...)</text>
-  <text x="30" y="488" font-size="13.5" fill="#4d5652">设备同步后解映射；L1 备份权重至 CPU，L2 直接丢权重池</text>
+  <rect x="16" y="408" width="418" height="82" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="432" font-size="14.5" font-weight="700" fill="#17211f">④ 基础分配器换出显存（固有步骤）</text>
+  <text x="30" y="455" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">CaMemAllocator.sleep(offload_tags=...)</text>
+  <text x="30" y="477" font-size="13.5" fill="#4d5652">同步后解映射；L1 备权重至 CPU，L2 直接丢权重池</text>
 
   <!-- RIGHT COLUMN: wake_up() -->
-  <rect x="464" y="94" width="420" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="478" y="118" font-size="14.5" font-weight="700" fill="#17211f">① 基础分配器还原映射（固有步骤）</text>
-  <text x="478" y="141" font-size="13" fill="#4d5652" font-family="var(--font-mono)">CaMemAllocator.wake_up(tags=tags)</text>
-  <text x="478" y="164" font-size="13.5" fill="#4d5652">按 tags 重建显存并拷回 CPU 备份；旧 KV 内容不恢复</text>
+  <rect x="466" y="90" width="418" height="82" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="480" y="114" font-size="14.5" font-weight="700" fill="#17211f">① 基础分配器还原映射（固有步骤）</text>
+  <text x="480" y="137" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">CaMemAllocator.wake_up(tags=tags)</text>
+  <text x="480" y="159" font-size="13.5" fill="#4d5652">按 tags 重建显存并拷回 CPU 备份；旧 KV 不恢复</text>
 
-  <path d="M674 180 V198 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 675 172 L 675 190" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="464" y="202" width="420" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="478" y="226" font-size="14.5" font-weight="700" fill="#065f56">② 重建业务 HCCL 设备通信组</text>
-  <text x="478" y="249" font-size="13" fill="#4d5652" font-family="var(--font-mono)">HcclSleepWakeupManager.restore_hccl()</text>
-  <text x="478" y="272" font-size="13.5" fill="#4d5652">就地重建设备组并刷新 MoE dispatcher 句柄，跳过锚点组</text>
+  <rect x="466" y="196" width="418" height="82" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="480" y="220" font-size="14.5" font-weight="700" fill="#065f56">② 重建业务 HCCL 设备通信组</text>
+  <text x="480" y="243" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">HcclSleepWakeupManager.restore_hccl()</text>
+  <text x="480" y="265" font-size="13.5" fill="#4d5652">就地重建设备组并刷新 MoE dispatcher，跳过锚点组</text>
 
-  <path d="M674 288 V306 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 675 278 L 675 296" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="464" y="310" width="420" height="86" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="478" y="334" font-size="14.5" font-weight="700" fill="#3a4f93">③ 按唤醒标签重捕获 ACL 图</text>
-  <text x="478" y="357" font-size="13" fill="#4d5652" font-family="var(--font-mono)">self.acl_graph.wakeup(tags) → capture_model()</text>
-  <text x="478" y="380" font-size="13.5" fill="#4d5652">仅 use_aclgraph 且 tags 为 None 或含 "kv_cache" 触发</text>
+  <rect x="466" y="302" width="418" height="82" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="480" y="326" font-size="14.5" font-weight="700" fill="#3a4f93">③ 重捕获 ACL 图（仅 use_aclgraph 为真）</text>
+  <text x="480" y="349" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">self.acl_graph.wakeup(tags) → capture_model()</text>
+  <text x="480" y="371" font-size="13.5" fill="#4d5652">且 tags 为 None 或含 "kv_cache" 触发（[] 跳过）</text>
 
-  <path d="M674 396 V414 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 675 384 L 675 402" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#es-arr-g)"/>
 
-  <rect x="464" y="418" width="420" height="86" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="478" y="442" font-size="14.5" font-weight="700" fill="#7a3a6a">④ 收尾释放 HCCL 周期锚点</text>
-  <text x="478" y="465" font-size="13" fill="#4d5652" font-family="var(--font-mono)">self.hccl.release_lifecycle_anchor()</text>
-  <text x="478" y="488" font-size="13.5" fill="#4d5652">先 barrier 等重捕获收齐再销毁；仅醒 weights 时暂留</text>
+  <rect x="466" y="408" width="418" height="82" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="480" y="432" font-size="14.5" font-weight="700" fill="#7a3a6a">④ 收尾释放 HCCL 周期锚点</text>
+  <text x="480" y="455" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">self.hccl.release_lifecycle_anchor()</text>
+  <text x="480" y="477" font-size="13.5" fill="#4d5652">先 barrier 等重捕获收齐再销毁；仅醒 weights 暂留</text>
 
-  <!-- Bottom version comparison -->
-  <rect x="16" y="538" width="420" height="112" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="30" y="562" font-size="14.5" font-weight="700" fill="#065f56">v0.30.0 (c09d3e20) / main (8d6180e2)</text>
-  <text x="30" y="586" font-size="13.5" fill="#4d5652">• 入口迁至 rl_config.sleep_mode_extra_cleanup</text>
-  <text x="30" y="608" font-size="13.5" fill="#4d5652">• rl_config.enabled 自动设 weight_nz_mode=0 与</text>
-  <text x="30" y="630" font-size="13.5" fill="#4d5652">  VLLM_SERVER_DEV_MODE=1（限同卡 RL 场景）</text>
+  <!-- Cross-sleep Anchor Lifespan Banner linking Left ② to Right ④ -->
+  <rect x="16" y="504" width="868" height="36" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="450" y="527" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">锚点跨休眠全程存活：sleep ② 创建保活 ──▶ 历经整个训练期与 weights 唤醒 ──▶ wake_up ④ 完成重捕获后释放</text>
 
-  <rect x="464" y="538" width="420" height="112" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="478" y="562" font-size="14.5" font-weight="700" fill="#17211f">v0.23.0 / v0.26.0rc 旧顶层键差异</text>
-  <text x="478" y="586" font-size="13.5" fill="#4d5652">• 旧顶层 enable_sleep_mode_extra_cleanup，无锚点</text>
-  <text x="478" y="608" font-size="13.5" fill="#4d5652">• 升级 v0.30.0 / main 须迁入 rl_config；保留旧</text>
-  <text x="478" y="630" font-size="13.5" fill="#4d5652">  顶层键按 extra="forbid" 拒收（Omni 告警过滤）</text>
+  <!-- Bottom 2-column Config Migration Strip (no bullets) -->
+  <rect x="16" y="554" width="424" height="100" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="578" font-size="14.5" font-weight="700" fill="#065f56">v0.30.0 (c09d3e20) / main (8d6180e2)</text>
+  <text x="30" y="604" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">rl_config.sleep_mode_extra_cleanup</text>
+  <text x="30" y="630" font-size="13.5" fill="#4d5652">enabled=true 自动设 NZ=0 / DEV_MODE=1 / 禁 expandable</text>
+
+  <rect x="460" y="554" width="424" height="100" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="474" y="578" font-size="14.5" font-weight="700" fill="#17211f">v0.23.0 / v0.26.0rc 旧顶层键差异</text>
+  <text x="474" y="604" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">enable_sleep_mode_extra_cleanup（无锚点）</text>
+  <text x="474" y="630" font-size="13.5" fill="#8f3229">升级须迁入 rl_config；旧键按 extra=forbid 拒收</text>
 </svg>

@@ -1,0 +1,19 @@
+mode: native-svg
+id: inference-capacity-fig-readiness-timeline
+caption: >-
+  扩容冷启动与 P/D 对端重启恢复边界：（一）120 秒冷启动就绪比例轴展示从 30 s 拿到机器到 120 s 真正接单的五个里程碑，说明为何不能在 30 s 就计回可用容量；（二）P 端原地重启后地址相同但引擎标识与内存登记已换代，旧 D 须识别换代，先等在途旧状态读取/握手/回调结束或安全取消后再清旧态重连，并通过真实路由验收。
+size: [900, 420]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2498-L2535'
+    symbols:
+      - finish_requests
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/observability/provider.py#L1-L21'
+    symbols:
+      - MetricProvider
+  - source: 'vllm@ced6857a:vllm/entrypoints/serve/instrumentator/metrics.py#L56-L82'
+    symbols:
+      - attach_router
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1466-L1492'
+    symbols:
+      - _get_remote_metadata
+      - remote_metadata_lock

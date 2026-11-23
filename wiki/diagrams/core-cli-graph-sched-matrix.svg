@@ -1,66 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 566" width="900" height="566" role="img" aria-label="图编译三级融合、调度器覆盖链与P/D互斥全景图">
-  <title>图编译三级融合门禁、多调度器静默覆盖链与 Mooncake P/D 联检硬边界</title>
-  <desc>依次展示图融合开关静默刷回与单开报错、scheduler_cls 后写覆盖链、Mooncake P/D 拓扑与 GQA+C8 约束。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 584" width="900" height="584" role="img" aria-label="图编译三级融合二维矩阵、多调度器后写覆盖链与 Mooncake P/D 双实例拓扑联检图" font-family="var(--font-sans)">
+  <title>图编译三级融合矩阵、多调度器静默覆盖链与 Mooncake P/D 联检红线</title>
+  <desc>2D compatibility matrix for cudagraph_mode vs 3-level graph fusion, Last-Writer-Wins scheduler override pipeline, and P-to-D Mooncake topology/C8 guardrail</desc>
   <defs>
-    <marker id="arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <marker id="gsm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
     </marker>
+    <marker id="gsm-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
   </defs>
-  <g font-family="var(--font-sans)">
-    <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、图模式与三级图融合（<tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">npugraph_ex → static_kernel → super_kernel</tspan>）</text>
 
-    <rect x="12" y="40" width="444" height="158" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-    <text x="24" y="67" font-size="14.5" font-weight="700" fill="#065f56">✓ 保留三级融合：<tspan font-family="var(--font-mono)">FULL_DECODE_ONLY / FULL</tspan></text>
-    <text x="24" y="95" font-size="13.5" fill="#17211f">• 省略 <tspan font-family="var(--font-mono)">super_kernel</tspan> 时默认跟随 <tspan font-family="var(--font-mono)">static_kernel</tspan></text>
-    <text x="24" y="121" font-size="13.5" fill="#8f3229">• ✗ A2/A3/950 单开 <tspan font-family="var(--font-mono)">super_kernel</tspan> 抛 <tspan font-family="var(--font-mono)" font-weight="700">AssertionError</tspan></text>
-    <text x="24" y="147" font-size="13.5" fill="#936300">• ⚠ <tspan font-family="var(--font-mono)">310P</tspan> 无 <tspan font-family="var(--font-mono)">NPUGRAPH_EX</tspan>，三项静默置 <tspan font-family="var(--font-mono)">False</tspan></text>
-    <text x="24" y="175" font-size="13.5" font-weight="700" fill="#b54237">• ✗ <tspan font-family="var(--font-mono)">FA3</tspan> + <tspan font-family="var(--font-mono)">FULL_DECODE_ONLY</tspan> 抛 <tspan font-family="var(--font-mono)">ValueError</tspan></text>
+  <!-- Section 1: True 2D Guardrail Matrix (y=12..216) -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">一、图模式 × 三级融合护栏矩阵（哪些保留、哪些静默置 False、哪些直接报错）</text>
 
-    <rect x="468" y="40" width="420" height="158" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-    <text x="480" y="67" font-size="14.5" font-weight="700" fill="#936300">⚠ 静默刷回：<tspan font-family="var(--font-mono)">NONE / PIECEWISE / FULL_AND_PW</tspan></text>
-    <text x="480" y="95" font-size="13.5" fill="#17211f">• 命中 <tspan font-family="var(--font-mono)">NONE</tspan> 或分段编译（含 <tspan font-family="var(--font-mono)">FULL_AND_PIECEWISE</tspan>）：</text>
-    <text x="480" y="121" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_npugraph_ex = False</text>
-    <text x="480" y="145" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_static_kernel = False</text>
-    <text x="480" y="169" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_super_kernel = False</text>
-
-    <text x="14" y="232" font-size="16" font-weight="700" fill="#17211f">二、扩展调度器 <tspan font-family="var(--font-mono)" font-size="15" fill="#936300">scheduler_cls</tspan> 顺序覆盖链（<tspan font-family="var(--font-mono)" font-size="14.5">v0.30.0</tspan> 后写者静默胜出）</text>
-
-    <rect x="14" y="246" width="268" height="106" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
-    <text x="28" y="273" font-size="14.5" font-weight="700" fill="#3a4f93">前序候选调度器</text>
-    <text x="28" y="299" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">• recompute_scheduler (仅D端)</text>
-    <text x="28" y="321" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">• dyntra_lb / short_req_first</text>
-    <text x="28" y="341" font-size="13.5" fill="#66716d">（P 端开 recompute 静默置 False）</text>
-
-    <line x1="284" y1="299" x2="314" y2="299" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)"/>
-
-    <rect x="318" y="246" width="264" height="106" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-    <text x="332" y="273" font-size="14.5" font-weight="700" fill="#936300">中段静默覆盖（v0.30.0）</text>
-    <text x="332" y="299" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">profiling_chunk_config</text>
-    <text x="332" y="322" font-size="13.5" fill="#17211f">覆盖 <tspan font-family="var(--font-mono)">recompute</tspan>（兼容 <tspan font-family="var(--font-mono)">SRF</tspan> 队列）</text>
-    <text x="332" y="342" font-size="13.5" fill="#8f3229">（与 <tspan font-family="var(--font-mono)">dyntra_lb</tspan> 同开抛异常）</text>
-
-    <line x1="584" y1="299" x2="614" y2="299" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)"/>
-
-    <rect x="618" y="246" width="268" height="106" rx="10" fill="#faeab8" stroke="#c78300" stroke-width="1.6"/>
-    <text x="632" y="273" font-size="14.5" font-weight="700" fill="#936300">末位胜出（最终生效）</text>
-    <text x="632" y="299" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">batch_job_sched_config</text>
-    <text x="632" y="322" font-size="13.5" fill="#17211f">无条件覆盖前序全部调度器</text>
-    <text x="632" y="342" font-size="13.5" fill="#8f3229">（与 <tspan font-family="var(--font-mono)">SRF</tspan> 同开前置抛异常）</text>
-
-    <text x="14" y="388" font-size="16" font-weight="700" fill="#17211f">三、P/D 分离 <tspan font-family="var(--font-mono)" font-size="15" fill="#9a4b86">MooncakeConnectorV1</tspan> 跨实例拓扑与量化硬红线</text>
-
-    <rect x="14" y="402" width="424" height="150" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
-    <text x="28" y="429" font-size="14.5" font-weight="700" fill="#7a3a6a">并行配比与阶段约束</text>
-    <text x="28" y="457" font-size="13.5" fill="#17211f">• D 节点（<tspan font-family="var(--font-mono)">kv_consumer</tspan>）强制 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">PP_D == 1</tspan> 且 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">PCP_D == 1</tspan></text>
-    <text x="28" y="485" font-size="13.5" fill="#17211f">• 任一实例禁止同时开启 <tspan font-family="var(--font-mono)" font-weight="600">PP &gt; 1</tspan> 与 <tspan font-family="var(--font-mono)" font-weight="600">PCP &gt; 1</tspan></text>
-    <text x="28" y="513" font-size="13.5" fill="#17211f">• 跨实例头分片拉取要求 <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">TP_P % TP_D == 0</tspan></text>
-    <text x="28" y="538" font-size="13.5" fill="#4d5652">• <tspan font-family="var(--font-mono)">PCP &gt; 1</tspan> 必须显式开 <tspan font-family="var(--font-mono)">VLLM_USE_V2_MODEL_RUNNER=1</tspan></text>
-
-    <rect x="462" y="402" width="424" height="150" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-    <text x="476" y="429" font-size="14.5" font-weight="700" fill="#8f3229">✗ GQA + C8 KV 量化互斥红线</text>
-    <text x="476" y="457" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)">MooncakeConnectorV1</tspan> 遇 <tspan font-family="var(--font-mono)">GQA + enable_c8_quant</tspan>：</text>
-    <text x="476" y="483" font-size="13.5" fill="#8f3229">  P 端存 <tspan font-family="var(--font-mono)">bf16</tspan>、D 端分 <tspan font-family="var(--font-mono)">int8</tspan>，裸传字节错位抛 <tspan font-family="var(--font-mono)" font-weight="700">ValueError</tspan></text>
-    <rect x="476" y="498" width="396" height="40" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-    <text x="488" y="523" font-size="13.5" font-weight="700" fill="#065f56">✓ 解法：改用 <tspan font-family="var(--font-mono)">MooncakeLayerwiseConnector</tspan> 或关闭 C8</text>
+  <!-- Matrix Header -->
+  <rect x="16" y="38" width="868" height="32" rx="5" fill="#ece9df"/>
+  <g font-size="13.5" font-weight="700" fill="#17211f">
+    <text x="28" y="59">配置组合 / 硬件前提</text>
+    <text x="340" y="59" text-anchor="middle">npugraph_ex</text>
+    <text x="448" y="59" text-anchor="middle">static_kernel</text>
+    <text x="556" y="59" text-anchor="middle">super_kernel</text>
+    <text x="632" y="59">v0.30.0 实际结局</text>
   </g>
+
+  <!-- Row 1 -->
+  <rect x="16" y="74" width="868" height="32" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1"/>
+  <text x="28" y="95" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">FULL_DECODE_ONLY / FULL (A2/A3/950)</text>
+  <text x="340" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ 保留</text>
+  <text x="448" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ 保留</text>
+  <text x="556" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">默认随 static</text>
+  <text x="632" y="95" font-size="13" fill="#065f56">三级生效（漏前置单开抛 Assert）</text>
+
+  <!-- Row 2 -->
+  <rect x="16" y="110" width="868" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
+  <text x="28" y="131" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#936300">NONE / PIECEWISE / FULL_AND_PW</text>
+  <text x="340" y="131" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="448" y="131" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="556" y="131" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="632" y="131" font-size="13" font-weight="700" fill="#936300">⚠ 不报错，静默全部清空</text>
+
+  <!-- Row 3 -->
+  <rect x="16" y="146" width="868" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
+  <text x="28" y="167" font-size="12.5" font-weight="700" fill="#936300">Atlas 300I DUO (310P 无 NPUGRAPH_EX)</text>
+  <text x="340" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="448" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="556" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">→ False</text>
+  <text x="632" y="167" font-size="13" fill="#936300">⚠ 告警降级（950 另静默关自定义库）</text>
+
+  <!-- Row 4 -->
+  <rect x="16" y="182" width="868" height="32" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="28" y="203" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#8f3229">FA3 (AscendFAImpl) + FULL_DECODE_ONLY</text>
+  <text x="472" y="203" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">✗ 禁止组合（须改 PIECEWISE 或 eager）</text>
+  <text x="632" y="203" font-size="13" font-weight="700" fill="#8f3229">✗ 启动直接抛 ValueError</text>
+
+  <!-- Section 2: Scheduler Override Chain (y=232..374) -->
+  <text x="16" y="246" font-size="16" font-weight="700" fill="#17211f">二、扩展调度器 scheduler_cls 顺序覆盖链（Last Writer Wins）</text>
+
+  <rect x="16" y="260" width="268" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="286" font-size="14.5" font-weight="700" fill="#3a4f93">前序候选（先过角色门禁）</text>
+  <text x="30" y="311" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">recompute_scheduler (仅D端)</text>
+  <text x="30" y="333" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">dyntra_lb / short_req_first</text>
+  <text x="30" y="355" font-size="13.5" fill="#66716d">P 端开 recompute 静默置 False</text>
+
+  <line x1="284" y1="313" x2="314" y2="313" stroke="#c78300" stroke-width="1.8" marker-end="url(#gsm-arr)"/>
+
+  <rect x="318" y="260" width="264" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="332" y="286" font-size="14.5" font-weight="700" fill="#936300">中段覆写（v0.30.0）</text>
+  <text x="332" y="311" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">profiling_chunk_config</text>
+  <text x="332" y="333" font-size="13.5" fill="#17211f">覆盖 recompute（兼容 SRF）</text>
+  <text x="332" y="355" font-size="13.5" fill="#8f3229">与 dyntra_lb 同开抛 ValueError</text>
+
+  <line x1="582" y1="313" x2="612" y2="313" stroke="#c78300" stroke-width="1.8" marker-end="url(#gsm-arr)"/>
+
+  <rect x="616" y="260" width="268" height="106" rx="8" fill="#faeab8" stroke="#c78300" stroke-width="1.6"/>
+  <text x="630" y="286" font-size="14.5" font-weight="700" fill="#936300">末位胜出（最终生效）</text>
+  <text x="630" y="311" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">batch_job_sched_config</text>
+  <text x="630" y="333" font-size="13.5" fill="#17211f">无条件覆盖前序全部调度器</text>
+  <text x="630" y="355" font-size="13.5" fill="#8f3229">与 SRF 同开在前置门禁抛异常</text>
+
+  <!-- Section 3: P -> Mooncake -> D Topology Visual (y=392..570) -->
+  <text x="16" y="406" font-size="16" font-weight="700" fill="#17211f">三、P/D 分离 MooncakeConnector 双实例拓扑与量化硬红线</text>
+
+  <!-- P Node -->
+  <rect x="16" y="422" width="248" height="146" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="448" font-size="14.5" font-weight="700" fill="#3a4f93">P 节点（kv_producer）</text>
+  <text x="30" y="474" font-size="13.5" fill="#17211f">可按需开 <tspan font-family="var(--font-mono)">PP &gt; 1</tspan> 或 <tspan font-family="var(--font-mono)">PCP &gt; 1</tspan></text>
+  <text x="30" y="497" font-size="13.5" font-weight="700" fill="#8f3229">✗ 严禁同开 PP&gt;1 与 PCP&gt;1</text>
+  <text x="30" y="520" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">PCP&gt;1</tspan> 须显式设 <tspan font-family="var(--font-mono)">MRV2=1</tspan></text>
+  <text x="30" y="544" font-size="13.5" fill="#4d5652">GQA 裸存 BF16 KV 块</text>
+
+  <!-- Bridge: Mooncake Connector -->
+  <line x1="264" y1="472" x2="296" y2="472" stroke="#9a4b86" stroke-width="2" marker-end="url(#gsm-plum)"/>
+  <rect x="300" y="422" width="300" height="146" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="450" y="448" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">Mooncake 跨实例 KV 传输校验</text>
+  <text x="314" y="474" font-size="13.5" font-weight="700" fill="#7a3a6a">头分片对齐：TP_P % TP_D == 0</text>
+  <rect x="312" y="486" width="276" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="450" y="507" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">✗ GQA + C8 裸传 → ValueError</text>
+  <rect x="312" y="524" width="276" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="450" y="545" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ 改 MooncakeLayerwise 或关 C8</text>
+  <line x1="600" y1="472" x2="632" y2="472" stroke="#9a4b86" stroke-width="2" marker-end="url(#gsm-plum)"/>
+
+  <!-- D Node -->
+  <rect x="636" y="422" width="248" height="146" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="650" y="448" font-size="14.5" font-weight="700" fill="#065f56">D 节点（kv_consumer）</text>
+  <text x="650" y="474" font-size="13.5" font-weight="700" fill="#8f3229">强制 PP_D == 1 且 PCP_D == 1</text>
+  <text x="650" y="497" font-size="13.5" fill="#17211f">靠大 <tspan font-family="var(--font-mono)">DP + EP</tspan> 扩展解码吞吐</text>
+  <text x="650" y="520" font-size="13.5" fill="#8f3229">RoCE MoE 禁同开 PP&gt;1 + DP&gt;1</text>
+  <text x="650" y="544" font-size="13.5" fill="#4d5652">（无 Python 启动断言拦截）</text>
 </svg>

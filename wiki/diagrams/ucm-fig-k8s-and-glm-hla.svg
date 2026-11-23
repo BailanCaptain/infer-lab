@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 472" width="900" height="472" role="img" aria-label="UCM Kubernetes 2P2D 八 Pod 拓扑与 GLM 双机三条接入路径对照图" font-family="var(--font-sans)">
+  <title>UCM K8s 2P2D 模板 8 引擎 Pod 解剖与 GLM 双机三条接入路径对比</title>
+  <desc>UCMConnectorV1, SupportsHMA, Kubernetes 2P2D Helm chart topology yielding 8 engine pods (4 P + 4 D), and GLM-5.3-Flash three-stage progression from unaligned KDA to prefix-caching align to new UCM HLA</desc>
+
+  <!-- Zone 1: Kubernetes 2P2D = 8 Engine Pods -->
+  <circle cx="24" cy="24" r="12" fill="#087f73"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">K8s 模板里的「2P2D」为何是 8 个引擎 Pod（8 张 NPU），而不是 4 个</text>
+
+  <!-- P Side (2 logical instances x 2 pods = 4 pods) -->
+  <rect x="16" y="48" width="420" height="128" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="30" y="72" font-size="14.5" font-weight="700" fill="#936300">P 侧（2 个逻辑实例 × 每实例 2 Pod = 4 Pod）</text>
+
+  <rect x="30" y="84" width="190" height="78" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="125" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">P 实例 1（DP2）</text>
+  <rect x="40" y="116" width="80" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="80" y="139" text-anchor="middle" font-size="13.5" fill="#17211f">入口·1卡</text>
+  <rect x="128" y="116" width="82" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="169" y="139" text-anchor="middle" font-size="13.5" fill="#4d5652">Worker·1卡</text>
+
+  <rect x="232" y="84" width="190" height="78" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="327" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">P 实例 2（DP2）</text>
+  <rect x="242" y="116" width="80" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="282" y="139" text-anchor="middle" font-size="13.5" fill="#17211f">入口·1卡</text>
+  <rect x="330" y="116" width="82" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="371" y="139" text-anchor="middle" font-size="13.5" fill="#4d5652">Worker·1卡</text>
+
+  <!-- D Side (2 logical instances x 2 pods = 4 pods) -->
+  <rect x="464" y="48" width="420" height="128" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="478" y="72" font-size="14.5" font-weight="700" fill="#065f56">D 侧（2 个逻辑实例 × 每实例 2 Pod = 4 Pod）</text>
+
+  <rect x="478" y="84" width="190" height="78" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="573" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">D 实例 1（DP2）</text>
+  <rect x="488" y="116" width="80" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="528" y="139" text-anchor="middle" font-size="13.5" fill="#17211f">入口·1卡</text>
+  <rect x="576" y="116" width="82" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="617" y="139" text-anchor="middle" font-size="13.5" fill="#4d5652">Worker·1卡</text>
+
+  <rect x="680" y="84" width="190" height="78" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="775" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">D 实例 2（DP2）</text>
+  <rect x="690" y="116" width="80" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="730" y="139" text-anchor="middle" font-size="13.5" fill="#17211f">入口·1卡</text>
+  <rect x="778" y="116" width="82" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="819" y="139" text-anchor="middle" font-size="13.5" fill="#4d5652">Worker·1卡</text>
+
+  <rect x="16" y="186" width="868" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="450" y="207" text-anchor="middle" font-size="13.5" fill="#4d5652">合计 8 引擎 Pod = 8 NPU（每 Pod 本地 DP1/TP1/PP1；带 worker ≠ 开 PP；kthena-router / Mooncake master 另计）</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="234" x2="884" y2="234" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: GLM Dual-Node 3-Stage Progression -->
+  <circle cx="24" cy="258" r="12" fill="#4c65b6"/>
+  <text x="24" y="262.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="264" font-size="16" font-weight="700" fill="#17211f">GLM 双机接入 UCM 的三档能力对照（接 UCM 不会自动把 KDA 改为 align）</text>
+
+  <rect x="16" y="282" width="276" height="176" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="30" y="308" font-size="14.5" font-weight="700" fill="#8f3229">① 旧镜像仅加 UCM（关 PC）</text>
+  <text x="30" y="336" font-size="13.5" fill="#17211f">自动改 align 补丁只认 AscendStore</text>
+  <text x="30" y="362" font-size="13.5" fill="#4d5652">KDA 不留中间档 → 块长 133,120</text>
+  <text x="30" y="388" font-size="13.5" fill="#4d5652">中间位置无 KDA 存档可接续</text>
+  <rect x="30" y="408" width="248" height="36" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="154" y="431" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">✗ 无法在中间位置复用前缀</text>
+
+  <rect x="312" y="282" width="276" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="326" y="308" font-size="14.5" font-weight="700" fill="#936300">② 旧镜像 UCM + 开 PC</text>
+  <text x="326" y="336" font-size="13.5" fill="#17211f">显式开 prefix caching 触发 align</text>
+  <text x="326" y="362" font-size="13.5" fill="#4d5652">KDA 块长落到 640 位置边界</text>
+  <text x="326" y="388" font-size="13.5" fill="#4d5652">外壳声明 SupportsHMA 不断开 HMA</text>
+  <rect x="326" y="408" width="248" height="36" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="450" y="431" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">△ 共享 ≥ 640 可查（5 组未实跑）</text>
+
+  <rect x="608" y="282" width="276" height="176" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="622" y="308" font-size="14.5" font-weight="700" fill="#3a4f93">③ 新外部 UCM（HLA 路径）</text>
+  <text x="622" y="336" font-size="13.5" fill="#17211f">MLA 共享键 TP 分担写；KDA 按卡存</text>
+  <text x="622" y="362" font-size="13.5" fill="#4d5652">补丁给 KDA / indexer 加逐层挂点</text>
+  <text x="622" y="388" font-size="13.5" fill="#4d5652">逐层须关模型编译且非全 FULL</text>
+  <rect x="622" y="408" width="248" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="746" y="431" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">✓ 不满足逐层条件时自动退整块</text>
+</svg>

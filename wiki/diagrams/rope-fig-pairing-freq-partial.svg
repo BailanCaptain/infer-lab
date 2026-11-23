@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 476" width="900" height="476" role="img" aria-label="RoPE 分量配对布局、多频快慢旋转与 Partial-Rotary 灰槽直通旁路示意图" font-family="var(--font-sans)">
+  <title>RoPE 内部机制三图合一：上半区对比 4 槽位向量的相邻配对（GPT-J：(0,1)/(2,3)）与前后半区配对（GPT-NeoX：(0,2)/(1,3)）；下半区以 8 维单头展示从快到慢的四对频率转速表盘，以及 partial_rotary_factor 保留未旋转维度直通拼接的旁路。</title>
+  <desc>关联源码符号：get_rope, rope_theta, partial_rotary_factor, is_neox_style, cos_sin_cache, AscendRotaryEmbedding</desc>
+  <defs>
+    <marker id="rp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="rp-arr-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、同为 4 维向量，两种二维配对布局（训练定死，推理绝不能互换）</text>
+  <line x1="12" y1="38" x2="888" y2="38" stroke="#b8bcb5" stroke-width="1.3"/>
+  <line x1="450" y1="48" x2="450" y2="206" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <text x="14" y="64" font-size="15" font-weight="700" fill="#065f56">相邻配对 · GPT-J 风格（<tspan font-family="var(--font-mono)" font-size="13.5">is_neox_style = False</tspan>）</text>
+  <path d="M 68 112 C 68 82, 164 82, 164 112" fill="none" stroke="#087f73" stroke-width="2.2"/>
+  <text x="116" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">第 0 对 (x₀, x₁)</text>
+  <path d="M 272 112 C 272 82, 368 82, 368 112" fill="none" stroke="#c78300" stroke-width="2.2"/>
+  <text x="320" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">第 1 对 (x₂, x₃)</text>
+
+  <rect x="26" y="114" width="84" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="68" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₀</text>
+  <rect x="122" y="114" width="84" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="164" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₁</text>
+  <rect x="230" y="114" width="84" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="272" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₂</text>
+  <rect x="326" y="114" width="84" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="368" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₃</text>
+
+  <text x="26" y="184" font-size="13.5" fill="#4d5652">RoFormer 原论文写法：相邻两维组成旋转平面</text>
+  <text x="26" y="205" font-size="13.5" fill="#66716d">昇腾按 <tspan font-family="var(--font-mono)">FUSED_ROTARY_MUL_INTERLEAVE</tspan> 分派</text>
+
+  <text x="470" y="64" font-size="15" font-weight="700" fill="#3a4f93">前后半区 · GPT-NeoX（<tspan font-family="var(--font-mono)" font-size="13.5">is_neox_style = True</tspan>）</text>
+  <path d="M 524 112 C 524 72, 728 72, 728 112" fill="none" stroke="#087f73" stroke-width="2.2"/>
+  <text x="614" y="82" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">第 0 对 (x₀, x₂)</text>
+  <path d="M 620 112 C 620 90, 824 90, 824 112" fill="none" stroke="#c78300" stroke-width="2.2"/>
+  <text x="772" y="102" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">第 1 对 (x₁, x₃)</text>
+
+  <rect x="482" y="114" width="84" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="524" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₀</text>
+  <rect x="578" y="114" width="84" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="620" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₁</text>
+  <rect x="686" y="114" width="84" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="728" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₂</text>
+  <rect x="782" y="114" width="84" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="824" y="141" text-anchor="middle" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₃</text>
+
+  <text x="482" y="184" font-size="13.5" fill="#17211f">逐元素直算：<tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">[x₁, x₂]⊙cos + [-x₂, x₁]⊙sin</tspan></text>
+  <text x="482" y="205" font-size="13.5" fill="#66716d">不做矩阵乘；Qwen3-8B 采用此半维布局（64 对）</text>
+
+  <text x="14" y="244" font-size="16" font-weight="700" fill="#17211f">二、8 维单头的多频快慢旋转（θ = 10000）与 Partial-Rotary 灰槽旁路</text>
+  <line x1="12" y1="256" x2="888" y2="256" stroke="#b8bcb5" stroke-width="1.3"/>
+  <line x1="486" y1="266" x2="486" y2="466" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <text x="14" y="284" font-size="14.5" font-weight="700" fill="#17211f">全维旋转（d_r = 8，4 对不同转速：秒针 → 时针）</text>
+
+  <rect x="14" y="298" width="104" height="162" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="66" y="320" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">第 0 对 (快)</text>
+  <circle cx="66" cy="360" r="24" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+  <line x1="66" y1="360" x2="88" y2="360" stroke="#b8bcb5" stroke-width="1.2"/>
+  <path d="M 86 360 A 20 20 0 0 0 77 343" fill="none" stroke="#087f73" stroke-width="2.5"/>
+  <line x1="66" y1="360" x2="78" y2="340" stroke="#087f73" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="66" y="405" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">ω₀ = 1</text>
+  <text x="66" y="427" text-anchor="middle" font-size="13.5" fill="#4d5652">≈6.3 格/圈</text>
+  <text x="66" y="449" text-anchor="middle" font-size="13" fill="#087f73">辨邻近词序</text>
+
+  <rect x="128" y="298" width="104" height="162" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="180" y="320" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">第 1 对</text>
+  <circle cx="180" cy="360" r="24" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
+  <line x1="180" y1="360" x2="202" y2="360" stroke="#b8bcb5" stroke-width="1.2"/>
+  <line x1="180" y1="360" x2="198" y2="348" stroke="#c78300" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="180" y="405" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">ω₁ = 0.1</text>
+  <text x="180" y="427" text-anchor="middle" font-size="13.5" fill="#4d5652">≈63 格/圈</text>
+  <text x="180" y="449" text-anchor="middle" font-size="13" fill="#936300">中短句距离</text>
+
+  <rect x="242" y="298" width="104" height="162" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="294" y="320" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">第 2 对</text>
+  <circle cx="294" cy="360" r="24" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <line x1="294" y1="360" x2="316" y2="360" stroke="#b8bcb5" stroke-width="1.2"/>
+  <line x1="294" y1="360" x2="315" y2="354" stroke="#4c65b6" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="294" y="405" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">ω₂ = 0.01</text>
+  <text x="294" y="427" text-anchor="middle" font-size="13.5" fill="#4d5652">≈628 格/圈</text>
+  <text x="294" y="449" text-anchor="middle" font-size="13" fill="#3a4f93">跨段落距离</text>
+
+  <rect x="356" y="298" width="114" height="162" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="413" y="320" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">第 3 对 (慢)</text>
+  <circle cx="413" cy="360" r="24" fill="#ffffff" stroke="#9a4b86" stroke-width="1.5"/>
+  <line x1="413" y1="360" x2="435" y2="360" stroke="#b8bcb5" stroke-width="1.2"/>
+  <line x1="413" y1="360" x2="435" y2="358" stroke="#9a4b86" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="413" y="405" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">ω₃ = 0.001</text>
+  <text x="413" y="427" text-anchor="middle" font-size="13.5" fill="#4d5652">≈6,283 格/圈</text>
+  <text x="413" y="449" text-anchor="middle" font-size="13" fill="#7a3a6a">长程相对位</text>
+
+  <text x="504" y="284" font-size="14.5" font-weight="700" fill="#17211f">部分旋转（<tspan font-family="var(--font-mono)" font-size="13.5" fill="#4c65b6">partial_rotary_factor = 0.5</tspan>）</text>
+  <text x="504" y="308" font-size="13.5" fill="#4d5652">输入 8 维头（前 4 维进旋转，后 4 维灰槽旁路）</text>
+  <rect x="504" y="316" width="44" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="526" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0</text>
+  <rect x="550" y="316" width="44" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="572" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1</text>
+  <rect x="596" y="316" width="44" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="618" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">2</text>
+  <rect x="642" y="316" width="44" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="664" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">3</text>
+
+  <rect x="698" y="316" width="44" height="30" rx="4" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="720" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">4</text>
+  <rect x="744" y="316" width="44" height="30" rx="4" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="766" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">5</text>
+  <rect x="790" y="316" width="44" height="30" rx="4" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="812" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">6</text>
+  <rect x="836" y="316" width="44" height="30" rx="4" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="858" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">7</text>
+
+  <path d="M 595 346 L 595 364" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rp-arr-t)"/>
+  <rect x="504" y="366" width="182" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="595" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">cos / sin 旋转（d_r = 4）</text>
+  <path d="M 595 400 L 595 418" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rp-arr-t)"/>
+
+  <path d="M 789 346 L 789 418" fill="none" stroke="#66716d" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#rp-arr-m)"/>
+  <rect x="706" y="368" width="166" height="30" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="789" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">原样直通（不旋转）</text>
+
+  <rect x="504" y="422" width="182" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="595" y="444" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">已旋转 [0' .. 3']</text>
+  <rect x="698" y="422" width="182" height="34" rx="5" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="789" y="444" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">未动 [4 .. 7] 拼回 [8]</text>
+</svg>

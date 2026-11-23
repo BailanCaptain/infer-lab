@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="整座模型两道 Roofline 边界：长上下文非共享 KV 带宽反超与稀疏 MoE 路由行数稀释" font-family="var(--font-sans)">
+  <title>整座模型两道 Roofline 边界：长文 KV 带宽反超 vs MoE 专家路由稀释</title>
+  <desc>基于 Qwen3Attention（qkv_proj）与 Qwen3 MoE（n_routed_experts、num_experts_per_tok），左侧用同比例条形图展示 Qwen3-8B B=16 32K 独立上下文下 KV 读量 72.0 GiB 反超权重 15.26 GiB 并受 4:1 GQA 锁死在约 4 FLOP/B；右侧画出 Qwen3-30B-A3B B=32 在近似均匀打散路由下，256 次指派点亮约 112/128 个专家，被激活专家平均仅分到约 2.3 行（极端集中退化情形除外）。</desc>
+  <defs>
+    <marker id="rfk-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="rfk-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <!-- Titles & Vertical Divider -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#3a4f93">边界一：长上下文 KV 无法跨请求摊薄</text>
+  <text x="466" y="28" font-size="16" font-weight="700" fill="#7a3a6a">边界二：MoE 路由把并发批稀释到各专家</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="450" y1="48" x2="450" y2="444" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- LEFT PANEL: Qwen3-8B B=16 32K KV vs Weights -->
+  <text x="16" y="64" font-size="14" font-weight="700" fill="#17211f">Qwen3-8B（B=16，独立 32K 上下文单步读取，同比例）</text>
+
+  <!-- True-scale bars: 1 GiB = 4.2 px starting at x=96 -->
+  <text x="16" y="102" font-size="13.5" font-weight="700" fill="#936300">共享权重</text>
+  <rect x="96" y="84" width="64" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="170" y="103" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">15.26 GiB（16 路共享读 1 次）</text>
+
+  <text x="16" y="144" font-size="13.5" font-weight="700" fill="#3a4f93">独立 KV</text>
+  <rect x="96" y="126" width="302" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="247" y="145" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">72.0 GiB（接近权重 5 倍！）</text>
+
+  <text x="96" y="175" font-family="var(--font-mono)" font-size="13.5" fill="#66716d">16 × 32,768 tok × 144 KiB = 72.0 GiB / 步</text>
+
+  <!-- 4:1 GQA fan-out diagram -->
+  <rect x="16" y="194" width="416" height="154" rx="9" fill="#ece9df" fill-opacity="0.5" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="219" font-size="14" font-weight="700" fill="#17211f">4:1 GQA 注意力强度锁死（不随并发 B 增长）</text>
+
+  <!-- 1 KV pair box -->
+  <rect x="34" y="246" width="114" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="91" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">1 对 BF16 K/V</text>
+  <text x="91" y="293" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">2 + 2 = 4 B</text>
+
+  <!-- 4 arrows to 4 Q heads -->
+  <g fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rfk-arr-i)">
+    <path d="M 148 262 L 194 244"/>
+    <path d="M 148 270 L 194 266"/>
+    <path d="M 148 280 L 194 288"/>
+    <path d="M 148 288 L 194 310"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="200" y="232" width="54" height="20" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+    <text x="227" y="247" fill="#065f56">Q0</text>
+    <rect x="200" y="256" width="54" height="20" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+    <text x="227" y="271" fill="#065f56">Q1</text>
+    <rect x="200" y="280" width="54" height="20" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+    <text x="227" y="295" fill="#065f56">Q2</text>
+    <rect x="200" y="304" width="54" height="20" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+    <text x="227" y="319" fill="#065f56">Q3</text>
+  </g>
+
+  <rect x="270" y="242" width="148" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="344" y="268" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#8f3229">I_attn ≈ 4</text>
+  <text x="344" y="290" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">FLOP/B</text>
+  <text x="344" y="309" text-anchor="middle" font-size="13.5" fill="#4d5652">仅服务单条请求</text>
+
+  <!-- Left Bottom remedy -->
+  <rect x="16" y="366" width="416" height="74" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="392" font-size="14" font-weight="700" fill="#065f56">破墙思路：压缩 KV 载荷或提高共享度</text>
+  <text x="30" y="420" font-size="13.5" fill="#4d5652">KV cache C8 量化 · 前缀缓存复用 · MLA 潜向量压缩</text>
+
+  <!-- RIGHT PANEL: Qwen3-30B-A3B B=32 MoE dilution -->
+  <text x="466" y="64" font-size="14" font-weight="700" fill="#17211f">Qwen3-30B-A3B（30.53B 总参 · 128 选 8 · B=32）</text>
+
+  <!-- Input batch B=32 -->
+  <rect x="466" y="84" width="112" height="106" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="522" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">并发 B=32</text>
+  <text x="522" y="138" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">× top-8</text>
+  <text x="522" y="164" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">= 256 槽</text>
+
+  <!-- Scatter fan arrows -->
+  <g fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#rfk-arr-p)">
+    <path d="M 578 108 L 634 96"/>
+    <path d="M 578 126 L 634 126"/>
+    <path d="M 578 144 L 634 156"/>
+    <path d="M 578 164 L 634 184"/>
+  </g>
+  <text x="606" y="198" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">均匀打散</text>
+
+  <!-- 128 Experts grid (14/16 lit = 87.5% ≈ 112/128 experts) -->
+  <rect x="640" y="84" width="244" height="106" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="762" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">均匀打散点亮 ~112/128 专家</text>
+  <!-- Mini grid of 14 lit + 2 unlit expert groups -->
+  <g fill="#fff4cf" stroke="#c78300" stroke-width="1.1">
+    <rect x="652" y="116" width="24" height="16" rx="2"/><rect x="680" y="116" width="24" height="16" rx="2"/><rect x="708" y="116" width="24" height="16" rx="2"/><rect x="736" y="116" width="24" height="16" rx="2"/>
+    <rect x="764" y="116" width="24" height="16" rx="2"/><rect x="792" y="116" width="24" height="16" rx="2"/><rect x="820" y="116" width="24" height="16" rx="2"/>
+    <rect x="652" y="138" width="24" height="16" rx="2"/><rect x="680" y="138" width="24" height="16" rx="2"/><rect x="708" y="138" width="24" height="16" rx="2"/><rect x="736" y="138" width="24" height="16" rx="2"/>
+    <rect x="764" y="138" width="24" height="16" rx="2"/><rect x="792" y="138" width="24" height="16" rx="2"/><rect x="820" y="138" width="24" height="16" rx="2"/>
+  </g>
+  <g fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1">
+    <rect x="848" y="116" width="24" height="16" rx="2"/>
+    <rect x="848" y="138" width="24" height="16" rx="2"/>
+  </g>
+  <text x="762" y="177" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">读 56.87 GiB 中绝大部分！</text>
+
+  <!-- Dilution result card -->
+  <rect x="466" y="212" width="418" height="136" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="480" y="238" font-size="14.5" font-weight="700" fill="#8f3229">典型打散路由下，被激活专家行数严重稀释：</text>
+  <text x="675" y="272" text-anchor="middle" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#8f3229">M_eff ≈ 256 ÷ 112 ≈ 2.3 行 (均摊 2 行)</text>
+  <text x="480" y="304" font-size="13.5" fill="#4d5652">独立均匀近似 128×(1−(120/128)^32)≈112；单专家强度</text>
+  <text x="480" y="328" font-size="13.5" fill="#4d5652">跌至 ~2 FLOP/B（极端集中命中同组 8 专家的退化除外）</text>
+
+  <!-- Right Bottom remedy -->
+  <rect x="466" y="366" width="418" height="74" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="480" y="392" font-size="14" font-weight="700" fill="#065f56">破墙思路：PD 分离 + 大 DP/EP 聚批</text>
+  <text x="480" y="420" font-size="13.5" fill="#4d5652">Decode 侧汇聚数百路并发，把每专家有效行数推回高强度区</text>
+</svg>

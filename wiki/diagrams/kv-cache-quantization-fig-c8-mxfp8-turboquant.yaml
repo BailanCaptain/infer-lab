@@ -1,8 +1,8 @@
 mode: native-svg
 id: kv-cache-quantization-fig-c8-mxfp8-turboquant
 caption: >-
-  v0.30.0 昇腾 KV cache 量化四路全景（INT8 C8 / MXFP8 C8 / FA 量化 / TurboQuant 4-bit）与按层跳过机制：对比四条路径的触发入口、硬件限制、页大小对齐（INT8 C8 须 32 倍数、MXFP8 C8 强制 512 倍数、TurboQuant 限 A2/A3 且校验 kv_lora_rank=512 / qk_rope_head_dim=64），以及 --kv-cache-dtype-skip-layers（A5 自动跳过 MiniMax-M3 GQA 层保持 BF16）和 PD 两端格式差异护栏。
-size: [900, 480]
+  v0.30.0 昇腾四条 KV cache 量化路径的页对齐与压缩几何（INT8 C8 32 倍数页、MXFP8 C8 强制 512 核块页、FA 量化仅压 MLA 潜向量保 RoPE、TurboQuant 4-bit 打包双路），以及下方 PD 分离两端格式不一致时的连接器拦截与按层跳过机制。
+size: [900, 524]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L380-L410'
     symbols:

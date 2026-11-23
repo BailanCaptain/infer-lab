@@ -2,6 +2,8 @@
 id: tensor-parallel
 title: Tensor Parallel：一台机器的 8 张卡怎样合算一层
 type: feature
+legacyAnchors:
+  放到-glm-双机一个-token-走过一层: 异构旗舰对照：GLM 双机 TP8 分工
 summary: 把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。先用标准 Qwen3-8B TP=2 与 Qwen3-30B-A3B KV 复制拐点讲清通用规律，再对照 GLM 双机 TP8 通信与显存账。
 aliases:
   - 张量并行
@@ -81,6 +83,15 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/ops/linear.py#L107-L125'
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1437-L1443'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L856-L884'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L294-L703
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L125'
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen2.py#L90-L110'
+  - 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1782'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -104,13 +115,15 @@ relations:
     kind: builds-on
     note: All-Reduce 求和与 All-Gather 拼接决定分片怎样合并
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
     raw/sha256-196c004bd490c7f7e4c9c4e9d53b98c099e30b563845639542017f81ec8ad131.md
   - >-
     raw/sha256-d152d676c26ebc16ca54680c89192812c8f7b302108fa408d8ae747b866d5309.md
+  - >-
+    raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md
 ---
 
 ## 一张卡算不动一层时怎么办
@@ -260,6 +273,30 @@ file: tensor-parallel-forward-qwen3
 **KV 头触底复制拐点：`Qwen3-30B-A3B` 从 `TP=4` 扩到 `TP=8`。** `Qwen3-30B-A3B` 有 `32` 个 Q 头，但只有 **`n_kv = 4`** 个 KV 头（`head_dim = 128`）。
 - 在 **`TP=4`** 时，每张卡分到 `8` 个 Q 头和 **`1` 个 KV 头**（`4 ÷ 4 = 1`，零复制），每卡每块（`128` token）BF16 KV cache 为 `3 MiB`。
 - 扩到 **`TP=8`** 时，`TP > n_kv`（`8 > 4`）：Q 头继续减半为每卡 `4` 个，但每张卡必须保底驻留 **`1` 个完整 KV 头**（每 `2` 张卡复制同一份 KV 头，`num_kv_head_replicas = 8 ÷ 4 = 2`）。单卡 KV cache 仍停在 `3 MiB/块`，不再随 TP 翻倍继续减半（完整推导见 [GQA 的 KV 头复制一节](gqa.md#张量并行时kv-头不够分就要复制)）。
+
+### Ascend 910B3 实测：Qwen3-8B 从 TP=1 扩到 TP=8 为何出现负扩展？
+
+纸面推演容易让人误以为“只要还留在单机 HCCS 内、也没触到 KV 复制拐点，加卡做 TP 就会越跑越快”。但在单卡与八卡 `Ascend 910B3`（`vllm-ascend v0.30.0`、`CANN 9.1.0`，完整真机数据与采集边界见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）上，固定 `u = 0.85`、`max_model_len = 32768` 将 `Qwen3-8B` 从 `TP=1` 一路扩到 `TP=8` 时，虽然总 KV 容量放大了 **`10.9×`**（`264k → 2.87M tokens`），服务态的 **`c=16` 吞吐与 `c=1` `TPOT` 却双双单调劣化**：
+
+```wiki-diagram
+file: tp-fig-910b3-negative-scaling
+```
+
+下表给出 `INFO` 干净态下的四档实测对账（每卡可见显存 `60.96 GiB`，`u=0.85` 预算 `51.81 GiB`；末列带 `*` 为基于 Eager 实测搬运率 `1.372 TB/s` 的条件外推，非 `FULL` 图已抓 kernel 实测）：
+
+| `Qwen3-8B` 档位（`u=0.85`） | 权重 / 卡 | 每卡可用 KV | 总 KV 容量 (`tokens`) | 图显存 (`INFO` 耗时) | `c=1` TPOT (`ms`) | `c=16` TPOT (`ms`) | `c=16` 总吞吐 (`tok/s`) | 条件推断整池复制 (`ms`)* |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| **`TP=1`** | `15.29 GiB` | `36.29 GiB`（池 `36.28 GiB`） | `264,192` | `2.59 GiB` (`22s`) | **`78.54`** | `80.77` | **`195.28`** | `56.77*` |
+| **`TP=2`** | `7.66 GiB` | `43.52 GiB` | `633,728` | `2.92 GiB` (`32s`) | **`87.12`** | `89.94` | `171.13` | `68.09*` |
+| **`TP=4`** | `3.84 GiB` | `47.36 GiB` | `1,379,200` | `3.10 GiB` (`35s`) | **`90.57`** | `92.34` | `167.30` | `74.09*` |
+| **`TP=8`** | `1.94 GiB` | `49.27 GiB` | `2,869,888` | `3.21 GiB` (`36s`) | **`94.42`** | `95.73` | **`160.38`** | `77.09*` |
+
+对照独立微基准与源码路径，目前有两项核心**候选机制**与上述单调劣化吻合（线上服务态的通信重叠度、整池复制是否重放以及各项时延精确分摊，均仍待同配置线上设备时间线实测闭环）：
+
+1. **多卡 TP 同步与通信开销（独立 `TP=4` 微基准已测得未重叠归约税，线上重叠与占比待实测）。** 在独立 `TP=4` HCCL 微基准中（`M=2048, K=4096→1024, N=4096`，`BF16` 输出 `[2048, 4096] = 16 MiB`），单个 `MatMulV3` 相比单卡仅从 `256.61 µs` 降至 `70.57 µs`（省约 **`186 µs`**），紧随其后的 `hcom_allReduce_` 耗时 **`522.66 ~ 525.10 µs`**，通信重叠在该微基准中测得为 **`0.0 µs`**（确认走机内 `HCCS`，聚合带宽 `17.71 ~ 17.74 GB/s`，通信矩阵 `0→1/2/3` 边样本 `17.63 ~ 17.93 GB/s`，单次 transit `25.17 MB`，详细微基准拆解见[集合通信页](collective-communication.md#ascend-910b3-真机标尺tp4-hccs-all-reduce-微基准与理论峰值落差)）。回到 `Qwen3-8B` 36 层主干源码，启用多卡 TP 时每批固定存在 **`36 × 2 = 72` 个**行并行归约位置（每层 `o_proj` 与 `down_proj` 各 1 处）。需要严守两项口径：第一，`0.0 µs` 重叠仅在独立 `16 MiB` 微基准中测得，线上服务态的通信重叠与实际归约占比尚待设备轨迹核实；第二，单 token Decode（`c=1`）单次归约载荷仅 `8 KiB`（`c=16` 为 `128 KiB`），既不能把 `16 MiB` 微基准的 `525.1 µs` 直接乘 `72` 算进单 token 账本，也不能给批内每个请求各算一遍 `72` 次。
+2. **固定 `u=0.85` 下每卡本地 KV 池反增与整池连续化嫌疑（强条件假设）。** 单卡权重从 `15.29 GiB` 压到 `1.94 GiB` 后，自动显存预算把释放的空间全数回填进 KV 池：尽管每卡本地 KV 头从 `8` 减到 `1`，每卡物理块数却从 `2,064` 激增至 `22,421`，实测令**每卡本地 K+V 池容量反从 `36.28 GiB` 涨至 `49.27 GiB`**（`+35.8%`，同时图显存也随单层视图扩大从 `2.59` 涨至 `3.21 GiB`，见[显存预算页](kv-cache-memory-profiling.md#ascend-910b3-真机启动对账6096-gib-实测基数图显存逆向增长与-u090-捕获期-oom)）。普通 GQA 层默认采用页交错非连续布局（见[FlashAttention 页](ascend-flash-attention.md#实测劣化剖析页交错-kv-布局为何在-fia-内部触发整池连续化)）；线上日志确认单请求 Decode 走 `FULL` 图（`npu_fused_infer_attention_score.out`）。**若** `FULL` 图内重放同等整池连续化且保持 Eager 实测搬运率（`1.372 TB/s`），条件外推复制耗时将从 **`56.77 ms` 爬升至 `77.09 ms`**，与实测 `TPOT` 曲线的爬升斜率吻合。但必须明确：**线上 `FULL` 图是否发生整池复制、以及它在 `78.54 → 94.42 ms` 中占多大份额，目前均属待线上设备时间线验证的条件假设，而非已抓 `FULL` kernel 实测。**
+
+阅读跨机实测时还需严守两条边界：第一，**单卡与八卡的 `TTFT` 口径不同，不可当成单变量 A/B**——单卡 `TP=1` 跑 `/v1/chat/completions`（`24 ~ 40` prompt tokens，取中位数，`c=1` `73.24 ms`），八卡 `TP=2/4/8` 跑 `/v1/completions`（平均 `262` prompt tokens，取均值，`c=1` `125.84 / 124.14 / 139.07 ms`，且八卡内部也不单调）；跨机对比应锚定稳态 128 步 `TPOT` 与 `c=16` 吞吐，八卡内部 `TP=2 → 4 → 8` 则严格同脚本同输入。第二，**TP 正收益边界取决于“节省的计算与权重访问时间 > 新增未重叠通信、同步与布局税”**：本次在 `c ≤ 16` 均未测出正收益交叉点，但“单卡装得下”本身不能推出所有超高并发或大上下文（必须靠 `2.87M` token 池避免抢占重算）负载也必然劣化。
 
 ## 异构旗舰对照：GLM 双机 TP8 分工
 
@@ -449,11 +486,17 @@ KDA 有效状态和物理占用的差额来自两步：先把每层的 **561,152
 
 ### 固定卡数比较 TP4、TP8、TP16：只缩小可切部分
 
-**头数允许三者，物理布局和容量账才构成取舍。** KDA 与 MLA 都有 64 个头；三档每卡分别是 16、8、4 个。稠密中间维、共享专家中间维及词表也都可整除。
+**头数允许三者，物理布局和容量账才构成取舍。** KDA 与 MLA 都有 64 个头，三档每卡分别是 16、8、4 个；稠密中间维、共享专家中间维及词表也都可整除。固定 16 卡与 EP16 时，路由专家（`18,576 MiB ≈ 18.14 GiB`）与逐卡复制项（`727.5 MiB ≈ 0.71 GiB`）纹丝不动，只有 TP 可切分权重随 TP 缩放：
+
+```wiki-diagram
+file: tp-fig-memory-scale-16card
+```
 
 **TP8 把逐层同步留在机内。** 机内走 HCCS（昇腾卡间高速互连），跨机走 RoCE（以太网上的远程直接内存访问网络），HCCL 使用这些链路组织通信。TP8 正好占满一台机器，R1 的 91 次 hidden 归约与其余 TP 汇总留在本机；TP16 必须跨两台，让每层等待路径包含跨机网络，收益要能覆盖增加的同步成本。
 
-从 TP8 改为 TP4，每卡只有 TP 切分部分的权重加倍。固定 16 卡、保持 EP16 时，需把执行组改成 DP4；路由专家和 replicated 权重的每卡用量保持原有数额。**所列语言模块的三档子账分别约 22.32、20.58、19.72 GiB；其中可被 TP 缩放的部分为 1,774.5 MiB。** 按部署页 `3121f187` 量化配方拆开看：TP8 下路由专家为 $43 \times 432\text{ MiB} = 18{,}576\text{ MiB}$，其余语言权重 $21{,}078 - 18{,}576 = 2{,}502\text{ MiB}$；其中逐卡复制部分为 $193.5 + 135 + 267 + 68 + 64 = 727.5\text{ MiB}$（依次为 router、mHC、MLA 低秩与索引器、KDA 低秩门、MTP 输入投影，不含视觉塔、旋转矩阵、量化辅助张量和运行时 FP32 副本，忽略 KiB 级小项），故 TP8 可切部分为 $2{,}502 - 727.5 = 1{,}774.5\text{ MiB}$：
+按部署页 `3121f187` 量化配方拆开三档容量账（固定 16 卡、保持 EP16，改变 TP 同步改变 DP 组数）：
+- **固定底座（两项共 `19,303.5 MiB ≈ 18.85 GiB`）**：EP16 路由专家为 $43 \times 432\text{ MiB} = 18{,}576\text{ MiB}$；逐卡复制项为 $193.5 + 135 + 267 + 68 + 64 = 727.5\text{ MiB}$（依次为 router、mHC、MLA 低秩与索引器、KDA 低秩门、MTP 输入投影；不含视觉塔、旋转矩阵、量化辅助张量和运行时 FP32 副本，忽略 KiB 级小项）。
+- **TP 可切分部分（TP8 下 `1,774.5 MiB ≈ 1.73 GiB`）**：由 TP8 总子账 $21{,}078 - 18{,}576 - 727.5$ 得来。由此三档语言模块子账分别约 **22.32、20.58、19.72 GiB**：
 
 $$M_{\text{lang}}(\text{TP}) = 18{,}576\text{ MiB} + 727.5\text{ MiB} + 1{,}774.5\text{ MiB} \times \frac{8}{\text{TP}}$$
 
@@ -498,7 +541,7 @@ file: tp-fig-myths
 - **“218 次都是 TP。”** R1 中 TP 是 134 次，其余属于 EP；场景 M 中 TP 是 92 次，其余属于 DP。MoE 路径改变，通信组别也改变。
 - **“TP 的通信量跟模型大小成正比。”** 一次 hidden All-Reduce 搬的是本步 token 的隐藏向量，载荷由行数、hidden 宽度与精度决定，整步还要乘归约次数。同一模型、同一份约 20.58 GiB/卡的语言权重子账，R1 一次只归约 32 KiB，场景 M 却是 47.25 MiB；通信字节应按本步激活形状和集合操作计算，参数总量描述的是权重规模。
 - **“细粒度 TP 就是给某一层单独加大普通 TP。”** 它沿 DP 维建组；固定镜像的 OProj（attention 输出投影）模块要求普通 TP=1，所有细粒度模块都要求 MoE 模型。模块各有限制，具体条件见 [fine-grained TP](fine-grained-tp.md)。
-- **“TP 越大越快，开图就没有通信了。”** 更多卡分摊部分计算，也增加通信参与者，跨 RoCE 节点更会放大逐层阻塞等待。graph mode（图模式）预先录下满足条件的设备算子序列再回放，节省逐次下发开销，仍执行归约；小批次还有卡只处理补齐行。
+- **“TP 越大越快，开图就没有通信了。”** 更多卡分摊部分计算，也增加通信参与者，跨 RoCE 节点更会放大逐层阻塞等待；即使全在机内 HCCS 上，910B3 上 `Qwen3-8B`（`u=0.85`、`c ≤ 16`）从 `TP=1` 扩到 `TP=8` 时，实测 `c=16` 吞吐反而单调跌落 `17.9%`（`195.28 → 160.38 tok/s`，候选原因涉及多卡同步开销与固定 `u` 下逆增的每卡本地 KV 池布局嫌疑，线上各分项时延贡献仍待设备轨迹实测拆分）。graph mode（图模式）预先录下满足条件的设备算子序列再回放，节省逐次下发开销，仍照常执行归约；小批次还有卡只处理补齐行。
 
 沿请求继续看[采样与 MTP](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)；跨机部分读 [expert parallel](expert-parallel.md)；卡住时按[调用链](request-call-chain.md)定位执行进程和通信入口。
 
@@ -637,10 +680,13 @@ $$M_{\text{routed}} = 288 \times (42 + 1) \times 3 \times 4096 \times 2048 \time
 | 四版默认 TP 与 CLI 入口 | `vllm@0fc695fc:vllm/config/parallel.py#L110-L117`；`vllm@568afb3a:vllm/config/parallel.py#L118-L125`；`vllm@ced6857a:vllm/config/parallel.py#L120-L130`；`vllm@ba15685a:vllm/config/parallel.py#L146-L155` |
 | 四版 `linear_op` 分派与 Kimi 融合入口 | `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739`；`vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521`；`vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L406-L460`（Kimi 见 `#L156-L261` 及 `models/kimi_k3.py#L687-L712`）；`vllm-ascend@8d6180e2:vllm_ascend/ops/linear_op.py#L403-L455`（Kimi 见 `models/kimi_k3/kimi_k3.py#L795-L815`） |
 | `v0.30.0` 与 `main` 的 `glm5next` 投影 | `vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L168-L195`；`vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L182-L230`；`vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L300-L335`；`vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/attention.py#L193-L238` |
+| `Qwen3-8B` 72 归约点、非连续 KV 视图与 `FULL` 图回放 | `vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L125`（`o_proj`）；`vllm@ced6857a:vllm/model_executor/models/qwen2.py#L90-L110`（`down_proj`）；`vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1782`；`vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931`；`vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319` |
 
 **来源对应。** 部署布局见官方教程；稠密 MLP、本地 SwiGLU 与幅度限制见模型实现；embedding 的非本卡词表行置零见词表算子。[S1][C8]
 
 前两节的 $x=[1,2]$、40 层与 4 个 KV 头数字为教学示意设定。[A] R1 的 MC2 补齐、切行、finalize 拼回输入布局见 `prepare_finalize.py`（来源 18）；矩阵、状态、词表、R1 与场景 M 的字节和次数，均由所列形状与精度推导，表内统计集合操作的逻辑输入，不是 HCCL 链路实测。[D]
+
+`Qwen3-8B` 在 `Ascend 910B3` 上的非连续页交错日志、线上 `FULL` 日志、Eager 整池拷贝实测及 `TP=1→2→4→8` 显存/延迟/吞吐、`TP=4` HCCS 独立微基准摘录见 `sources` 第 61–62 项（归档总览见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）[M61][M62]；其中按 Eager `1.372 TB/s` 外推线上 `FULL` 图 `56.77 → 77.09 ms` 整池复制耗时，以及线上服务态通信重叠度与各项时延份额，均属待线上设备时间线验证的条件假设 [I]。
 
 TP4/8/16 权重比较是固定 16 卡、EP16 和现有量化口径的静态估算；“TP16 节省有限、TP4 仍可评估”是在这些条件下的容量推断。[I] 索引器的运行时 FP32 副本创建位置见来源 37，`FRACTAL_NZ` 权重格式转换见来源 58；profile run 与 KV 预算时序见[部署页](glm-5-3-flash-two-node.md#启动时发生了什么)。[C37]
 
@@ -648,7 +694,8 @@ KDA 的有效状态、补页及投机状态副本采用不同统计口径；MLA 
 
 **待核与实测边界（从正文集中到此）。**
 
-- 缺本机 HCCL 算法选择、链路计数与耗时测量，用于把逻辑载荷换算为机内链路实际流量、耗时及整个集群的网络总量。
-- 缺这两台机器的 HCCS / RoCE 端口速率、单向/双向口径、拓扑聚合带宽及同口径 All-Reduce 测量，因此带宽倍数与 TP16 减速百分比待核。
-- 缺三档 TP 同负载的每 token 延迟、吞吐、激活峰值与 KV 分配日志。TP 改变后 KDA 页对齐可能变化，缓存容量与块数应按新配置重算；每卡工作量缩小多少与实际快多少要用同批次 NPU 实测区分。
+- `Qwen3-8B`（`v0.30.0` / 910B3）线上 `FULL` 图 replay 期间的设备级 kernel 时间线（用于闭合 `56.77 → 77.09 ms` 整池连续化强推断），以及 `c > 16` 高并发下 TP 的正收益交叉点，仍待后续实测。
+- GLM 双机固定镜像（例外 B）缺本机 HCCL 算法选择、链路计数与耗时测量，用于把逻辑载荷换算为机内链路实际流量、耗时及整个集群的网络总量。
+- GLM 双机缺这两台机器的 HCCS / RoCE 端口速率、单向/双向口径、拓扑聚合带宽及同口径 All-Reduce 测量，因此带宽倍数与 TP16 减速百分比待核。
+- GLM 双机缺三档 TP 同负载的每 token 延迟、吞吐、激活峰值与 KV 分配日志。TP 改变后 KDA 页对齐可能变化，缓存容量与块数应按新配置重算；每卡工作量缩小多少与实际快多少要用同批次 NPU 实测区分。
 - DP1 在场景 M 混合步里进入每个非 MoE 子层的实际宽度仍需 runner trace（逐步记录输入尺寸的运行轨迹）核定；本文精确总账只针对 DP0。

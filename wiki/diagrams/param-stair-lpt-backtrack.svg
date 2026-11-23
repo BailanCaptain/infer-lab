@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="STAIR 带约束 LPT 有界回溯树与预算扣减规则示意" font-family="var(--font-sans)">
+  <title>带约束 LPT 有界回溯决策树与预算扣减边界</title>
+  <desc>3-replica placement trace A -> B -> C with placement_search_backtrack_limit=1 showing 0 budget cost for infeasible source skip and first feasible choices, 0->1 cost when accepting alternative feasible choice at B->R3 (path continues), and 3-condition budget_exhausted abandoning only the current candidate when backtracking to A->R2.</desc>
+  <defs>
+    <marker id="bt-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="bt-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="bt-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">什么才扣回溯预算？3 份副本 A → B → C 走读（设 limit = 1 示意）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">每候选独立从 backtracks_used = 0 起计；扣减对象是「改选替代可行分支」，不是「试放卡次数」</text>
+
+  <!-- Level 1: Replica A -->
+  <text x="16" y="96" font-size="14.5" font-weight="700" fill="#17211f">放副本 A</text>
+
+  <!-- Step 1: A -> R0 (infeasible, 0 cost) -->
+  <rect x="104" y="68" width="218" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="116" y="92" font-size="14" font-weight="700" fill="#4d5652">① 首选 R0：来源不可行</text>
+  <text x="116" y="114" font-size="13.5" fill="#065f56">撤销跳过 · 预算 0（不扣）</text>
+
+  <line x1="324" y1="97" x2="352" y2="97" stroke="#087f73" stroke-width="1.7" marker-end="url(#bt-arr-teal)"/>
+
+  <!-- Step 2: A -> R1 (first feasible, 0 cost) -->
+  <rect x="356" y="68" width="226" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="368" y="92" font-size="14" font-weight="700" fill="#065f56">② 次选 R1：首个可行 ✓</text>
+  <text x="368" y="114" font-size="13.5" fill="#4d5652">接受并前进 · 预算 0（不扣）</text>
+
+  <!-- Step 6: A -> R2 (alternative feasible, exhausted!) -->
+  <path d="M 584 97 L 622 97" fill="none" stroke="#b54237" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#bt-arr-red)"/>
+  <rect x="626" y="68" width="258" height="58" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="638" y="92" font-size="14" font-weight="700" fill="#8f3229">⑥ 退回 A 试 R2：预算已满 ✗</text>
+  <text x="638" y="114" font-size="13.5" font-weight="700" fill="#8f3229">used=1 == limit → 放弃本候选</text>
+
+  <!-- Down arrow from A->R1 to B->R2 -->
+  <line x1="469" y1="128" x2="469" y2="162" stroke="#087f73" stroke-width="1.8" marker-end="url(#bt-arr-teal)"/>
+
+  <!-- Level 2: Replica B -->
+  <text x="16" y="196" font-size="14.5" font-weight="700" fill="#17211f">放副本 B</text>
+
+  <!-- Step 3: B -> R2 (first feasible, 0 cost) -->
+  <rect x="356" y="166" width="226" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="368" y="190" font-size="14" font-weight="700" fill="#065f56">③ 选 R2：首个可行 ✓</text>
+  <text x="368" y="212" font-size="13.5" fill="#4d5652">接受并前进 · 预算 0（不扣）</text>
+
+  <!-- Arrow from B->R2 to B->R3 on backtrack -->
+  <path d="M 584 195 L 622 195" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#bt-arr-amber)"/>
+
+  <!-- Step 5: B -> R3 (alternative feasible, 0->1, continues!) -->
+  <rect x="626" y="166" width="258" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="638" y="190" font-size="14" font-weight="700" fill="#936300">⑤ 回退改选 R3：替代可行</text>
+  <text x="638" y="212" font-size="13.5" font-weight="700" fill="#936300">预算 0 → 1（扣 1）· 路径继续！</text>
+
+  <!-- Down arrow from B->R2 to C dead end -->
+  <line x1="469" y1="226" x2="469" y2="260" stroke="#b54237" stroke-width="1.8" marker-end="url(#bt-arr-red)"/>
+  <!-- Down arrow from B->R3 to C dead end 2 -->
+  <line x1="755" y1="226" x2="755" y2="260" stroke="#b54237" stroke-width="1.8" marker-end="url(#bt-arr-red)"/>
+
+  <!-- Level 3: Replica C -->
+  <text x="16" y="294" font-size="14.5" font-weight="700" fill="#17211f">放副本 C</text>
+
+  <!-- Step 4: C dead end under B->R2 -->
+  <rect x="356" y="264" width="226" height="56" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="368" y="288" font-size="14" font-weight="700" fill="#8f3229">④ 剩余卡全撞墙 → 退回 B</text>
+  <text x="368" y="309" font-size="13.5" fill="#4d5652">撤销 B 在 R2 的摆放（undo）</text>
+
+  <!-- Curved return hint from Step 4 to Step 5 -->
+  <path d="M 584 292 L 604 292 L 604 210 L 622 210" fill="none" stroke="#c78300" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bt-arr-amber)"/>
+
+  <!-- Step 5b: C dead end again under B->R3 -->
+  <rect x="626" y="264" width="258" height="56" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="638" y="288" font-size="14" font-weight="700" fill="#8f3229">若放 C 仍撞墙 → 退回 A</text>
+  <text x="638" y="309" font-size="13.5" fill="#4d5652">再次要求替代可行分支触发 ⑥</text>
+
+  <!-- Bottom takeaway strip -->
+  <line x1="16" y1="338" x2="884" y2="338" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <rect x="16" y="354" width="424" height="90" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="378" font-size="14.5" font-weight="700" fill="#8f3229">放弃当前候选的 3 个「同时成立」条件</text>
+  <text x="30" y="402" font-size="13.5" fill="#4d5652">① 目标卡来源可行 ∧ ② 本步已有过可行选择 ∧ ③ used == limit</text>
+  <text x="30" y="426" font-size="13.5" font-weight="700" fill="#065f56">仅放弃当前候选，下一候选预算归 0 重试；不终止整层</text>
+
+  <rect x="460" y="354" width="424" height="90" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="474" y="378" font-size="14.5" font-weight="700" fill="#3a4f93">设为 0 的真相：不是「关闭搜索」</text>
+  <text x="474" y="402" font-size="13.5" fill="#4d5652">• 步骤 ①–③ 照常跑：跳过不可行卡，接受每步首个可行卡</text>
+  <text x="474" y="426" font-size="13.5" fill="#4d5652">• 只在步骤 ⑤ 试图改选第 2 张可行卡时因 0==0 当场放弃</text>
+</svg>

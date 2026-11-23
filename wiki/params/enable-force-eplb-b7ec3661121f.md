@@ -159,9 +159,26 @@ rawSources:
 ---
 ## 它改变什么，为什么只是压测夹具？
 
-`enable_force_eplb` 是 `additional_config` 顶层的布尔开关，默认 `false`。名字虽带 EPLB，改变的对象却和 [EPLB](../concepts/eplb.md) 截然不同：EPLB 调整的是**专家权重摆放在哪张卡上**，模型路由逻辑不变；`enable_force_eplb` 改写的是**路由结果本身**——在每次 MoE 前向返回前，直接丢弃真实 router 算出的 `topk_ids`，替换成一张按 `ep_size` 和 `ep_rank` 纯算术生成的轮转专家编号表，同时保留原始 `topk_weights` 原封不动。
+`enable_force_eplb` 是 `additional_config` 顶层的布尔开关，默认 `false`。它与 [EPLB](../concepts/eplb.md) 改变的对象完全不同：
 
-**这不是生产优化开关，而是压测与性能上限分析夹具。** 拿真实门控权重去加权一组强行指定的专家输出，模型输出与精度完全失效；它只适用于在均匀、可重复的专家负载下测 MC2 通信带宽或评估 EPLB 路径的性能天花板。在 `v0.23.0`、`v0.26.0rc` 以及 GLM 双机固定镜像 `db701c1f` 上均无此键和 `force_eplb.py` 文件，旧版 `AscendConfig` 逐键 `.get()` 会将其静默忽略；`v0.30.0` 与 `main` 均已提供该键并启用严格顶层配置校验（拼错键名通常启动失败，检测到 `vllm_omni` 时会告警并过滤未知顶层键），其中 `main` 还在启动派生阶段主动打印精度失效警告。
+- **真实 EPLB** 调整专家权重摆放在哪张卡上，路由器逻辑不变，模型精度保持等价。
+- **`enable_force_eplb`** 改写的是路由结果本身——在每次 MoE 前向返回前，丢弃真实 router 算出的 `topk_ids`，替换成按 `ep_size` 与 `ep_rank` 纯算术生成的轮转专家编号表，同时原封不动保留原始 `topk_weights`。
+
+**这不是生产优化开关，而是压测与性能上限分析夹具。** 拿真实门控权重去加权一组强行指定的专家输出，模型输出与精度会彻底失效。它只适合在均匀、可重复的专家负载下测 MC2 通信带宽，或评估 EPLB 路径的性能天花板。
+
+```wiki-diagram
+file: param-enable-force-eplb-round-robin
+```
+
+各版本支持与启动校验差异如下：
+
+| 版本 / 镜像 | 字段与实现状态 | 写入后的启动行为 |
+| --- | --- | --- |
+| `v0.23.0` / `v0.26.0rc` / GLM 固定镜像 `db701c1f` | 无此键，也无 `force_eplb.py` | 旧版 `AscendConfig` 逐键 `.get()` 会静默忽略 |
+| `v0.30.0`（`c09d3e20`） | 已提供该键并启用严格顶层校验 | 拼错键名通常启动失败（检测到 `vllm_omni` 时告警并过滤未知顶层键）；路由替换处不打精度警告 |
+| `main`（`8d6180e2`） | 已提供该键并启用严格顶层校验 | 拼错规则同 `v0.30.0`；在启动派生阶段主动打印精度失效与禁止生产警告 |
+
+下面按核心维度汇总本开关的配置入口、生效优先级与硬约束：
 
 | 维度 | 行为与约束 | 工程含义 |
 | --- | --- | --- |
@@ -173,7 +190,7 @@ rawSources:
 
 ## 轮转表怎么算，何时建表与缓存？
 
-不同模型与 prompt 会产生差异很大的专家热度分布，最忙的卡会拖慢一次 MoE 通信与计算。`enable_force_eplb` 通过 `_build_round_robin_topk` 用纯算术生成只与形状和 rank 相关的确定性路由表，把先前分散的环境变量、逐层缓存和预建逻辑统一收口到配置生命周期与通信方法缓存中：
+不同模型与 prompt 会产生悬殊的专家热度分布，最忙的卡会拖慢整次 MoE 通信与计算。`enable_force_eplb` 通过 `_build_round_robin_topk` 生成只与形状和 rank 相关的确定性路由表，把过去分散的环境变量、逐层缓存与预建逻辑收口到配置生命周期和通信方法缓存中：
 
 ```python
 experts_per_rank = num_logical_experts // ep_size
@@ -184,18 +201,34 @@ row = (cursor // ep_size) % experts_per_rank            # 卡内第几个专家
 expert_ids = row + col * experts_per_rank
 ```
 
-`col` 逐槽位轮换 EP rank，`row` 在卡内轮换专家：任意连续 `ep_size` 个槽位正好每张卡各一个，任意连续 `num_logical_experts` 个槽位正好每个专家各一个。在每卡连续存放一段逻辑专家编号的前提下，单张表内只要槽位总数（`num_tokens × top_k`）是 `ep_size` 的倍数，各目标卡槽位严格相等；各专家之间最多差 1，且当槽位总数是专家数的倍数时各专家恰好相等。例如 8 专家、`ep_size=2`、`ep_rank=1`、2 token、`top_k=2` 时，4 个槽位排成 `[[6, 3], [7, 0]]`——同一 token 的两个槽位落在不同 rank，rank 0 收到专家 3、0，rank 1 收到专家 6、7，每卡各 2 个，其余 4 个专家为 0。
+`col` 逐槽位轮换 EP rank，`row` 在卡内轮换专家，单张表内具备两条确定性质：
 
-**偏移量不保证不同 rank 的表互异，也不保证跨 rank 合计均匀。** 示意 8 专家、EP4，每个发出 rank 均有 1 token、`top_k=3`：四个起点分别为 0、4、8、12，按专家数取模后 rank 0 与 2 均为 `[0, 2, 4]`，rank 1 与 3 均为 `[1, 3, 5]`；在每卡连续放 2 个专家的布局下，四个目标卡合计收到 `[4, 4, 4, 0]` 个槽位——单张表各卡最多差 1 仍成立，但多张表累加后偏差会叠加。
+- **单表均匀边界**：任意连续 `ep_size` 个槽位正好每张卡各 1 个，任意连续 `num_logical_experts` 个槽位正好每个专家各 1 个。在每卡连续存放一段逻辑专家编号的前提下，只要 `num_tokens × top_k` 是 `ep_size` 的倍数，各目标卡槽位严格相等；各专家之间最多差 1，且当槽位总数是专家数的倍数时各专家恰好相等。
+- **单表手算例（示意）**：8 专家、`ep_size=2`、`ep_rank=1`、2 token、`top_k=2` 时，4 个槽位排成 `[[6, 3], [7, 0]]`。同一 token 的两个槽位落在不同 rank，rank 0 收到专家 3、0，rank 1 收到专家 6、7，每卡各 2 个，其余 4 个专家为 0。
 
-逻辑专家数优先读取配置字段，缺失时才由总数扣除冗余和共享专家推得；`_select_experts` 做完 `log2phy` 物理映射（以及 `mix_placement` 追加共享专家列）后直接整表覆盖，前提是本次前向存在 `moe_comm_method`，否则策略函数返回 `None`。轮转表按完整键 `(num_tokens, top_k, num_logical_experts, ep_size, ep_rank, dtype, device)` 缓存在通信方法对象上：形状固定时只算一次，eager 模式下每种新的 `num_tokens` 都会多存一张表。版本差异在于预热路径：`v0.30.0` 仍保留 Model Runner V1，在其非捕获 `_dummy_run` 中对 MoE 模型调用 `build_force_eplb_topk` 按全部 `cudagraph_capture_sizes`（空时用 `max_num_tokens`）× `{int32, int64}` 预建表，以减少图捕获期缓存未命中（未命中其他完整缓存键时仍现场建表，不是“捕获期绝无分配”的保证）；`main` 已移除 `model_runner_v1.py` 并删去 `build_force_eplb_topk`，改为仅按需建表并缓存。
+**偏移量不保证不同 rank 的表互异，也不保证跨 rank 合计均匀。** 示意 8 专家、EP4，每个发出 rank 各有 1 token、`top_k=3`：四个起点分别为 0、4、8、12，按专家数取模后 rank 0 与 2 均为 `[0, 2, 4]`，rank 1 与 3 均为 `[1, 3, 5]`。在每卡连续放 2 个专家的布局下，四个目标卡合计收到 `[4, 4, 4, 0]` 个槽位——单张表各卡最多差 1 仍成立，但多张表累加后偏差会叠加（见上图右栏）。
+
+**逻辑专家数读取、覆盖时机与缓存键**：
+
+- **逻辑专家数与覆盖点**：优先读取配置字段，缺失时再由总数扣除冗余和共享专家推得。`_select_experts` 做完 `log2phy` 物理映射（以及 `mix_placement` 追加共享专家列）后直接整表覆盖；若本次前向不存在 `moe_comm_method`，策略函数返回 `None`。
+- **缓存粒度**：轮转表按完整键 `(num_tokens, top_k, num_logical_experts, ep_size, ep_rank, dtype, device)` 缓存在通信方法对象上。形状固定时只算一次；eager 模式下每种新的 `num_tokens` 都会多存一张表。
+
+| 版本 | 预热与建表路径 | 捕获期与按需行为 |
+| --- | --- | --- |
+| `v0.30.0`（保留 MRV1） | 在非捕获 `_dummy_run` 中对 MoE 模型调用 `build_force_eplb_topk`，按全部 `cudagraph_capture_sizes`（空时用 `max_num_tokens`）× `{int32, int64}` 预建表 | 减少图捕获期缓存未命中；未命中其他完整缓存键时仍现场建表，不是“捕获期绝无分配”的保证 |
+| `main` | 已移除 `model_runner_v1.py` 并删去 `build_force_eplb_topk` | 仅在首次遇到对应缓存键时按需建表并缓存 |
 
 ## 代价、互斥边界与放到 GLM 双机
 
-- **模型精度完全失效，压测后必须关闭**：保留原门控权重却替换专家编号，即使个别编号或最终 token 偶合一致，也不能视为原模型推理。`v0.30.0` 在替换路由处不打印警告；`main` 已在配置派生期打印明确的精度失效与禁止生产警告。
-- **与 `dynamic_eplb` 四条件硬互斥**：配置派生时，本键、`eplb_config.dynamic_eplb`、`model_config is not None` 与 `model_config.is_moe` 四条件同时成立即抛 `ValueError("enable_force_eplb cannot be mixed with dynamic_eplb.")`。强制路由覆盖 `log2phy` 映射且抹除真实热度，不能拿它评估动态 EPLB 效果；但静态摆放与冗余专家不被这条校验拦住，只是轮转编号仅覆盖逻辑专家范围，无法保证匹配实际物理摆放或均匀覆盖冗余位。非 MoE 模型不触发互斥报错与预热，路由替换也无 MoE 消费点（不排除其他配置报错）。
-- **建表形状约束可能早于请求触发**：`num_tokens > 0`、`top_k > 0`、`ep_size > 0` 以及 `num_logical_experts % ep_size == 0` 在建表时校验；在 `v0.30.0` 的 MRV1 路径上，启动期非捕获预热就会立即建表，而未预热的新缓存键或 `main` 按需建表路径会在首次遇到对应形状时触发。
-- **放到 GLM 双机部署**：固定双机镜像 `db701c1f` 没有此键，旧配置路径会将其静默忽略。若迁移到包含此键的版本并用同样 288 个路由专家与 EP16，只满足 `288 ÷ 16 = 18` 的整除检查（不开 `dynamic_eplb` 亦避开互斥），不构成完整启动兼容证明；一旦进入强制路由分支，top-8 编号即被替换，不可用于精度验证。另外 [EPLB 负载不均估算](../concepts/eplb.md#负载有多不均只有理想均分没有实测) 中的每卡 6,048 行与纯 decode 每卡 38 行属于特定场景的理想均分估算，使用轮转表仍须核对每个发出 rank 的槽位合计，不能假定自动复现。
+- **模型精度完全失效，压测后必须关闭**：保留原门控权重却替换专家编号，即使个别编号或最终 token 偶合一致，也不能视为原模型推理。`v0.30.0` 在替换路由处不打印警告；`main` 在配置派生期打印明确的精度失效与禁止生产警告。
+- **与 `dynamic_eplb` 四条件硬互斥**：配置派生时，若以下四条件同时成立，直接抛 `ValueError("enable_force_eplb cannot be mixed with dynamic_eplb.")`：
+  1. 开启 `enable_force_eplb`；
+  2. 开启 `eplb_config.dynamic_eplb`；
+  3. `model_config is not None`；
+  4. `model_config.is_moe` 为真。
+  强制路由覆盖 `log2phy` 映射并抹除真实热度，不能拿它评估动态 EPLB 效果。静态摆放与冗余专家不被这条校验拦住，只是轮转编号仅覆盖逻辑专家范围，无法保证匹配实际物理摆放或均匀覆盖冗余位。非 MoE 模型不触发互斥报错与预热，路由替换也无 MoE 消费点（不排除其他配置报错）。
+- **建表形状约束可能早于请求触发**：`num_tokens > 0`、`top_k > 0`、`ep_size > 0` 与 `num_logical_experts % ep_size == 0` 在建表时校验。`v0.30.0` 的 MRV1 路径在启动期非捕获预热就会立即建表；未预热的新缓存键或 `main` 按需建表路径则在首次遇到对应形状时触发。
+- **放到 GLM 双机部署**：固定双机镜像 `db701c1f` 没有此键，旧配置路径会将其静默忽略。若迁移到包含此键的版本并沿用 288 个路由专家与 EP16，仅说明满足 `288 ÷ 16 = 18` 整除检查（不开 `dynamic_eplb` 亦避开互斥），不构成完整启动兼容证明；一旦进入强制路由分支，top-8 编号即被替换，不可用于精度验证。此外，[EPLB 负载不均估算](../concepts/eplb.md#负载有多不均只有理想均分没有实测) 中的每卡 6,048 行与纯 decode 每卡 38 行属于特定场景的理想均分估算，使用轮转表仍须核对每个发出 rank 的槽位合计，不能假定自动复现。
 
 ## 对照源码
 

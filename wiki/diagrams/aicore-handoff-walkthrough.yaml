@@ -1,0 +1,12 @@
+mode: native-svg
+id: aicore-handoff-walkthrough
+caption: >-
+  依据 CANN 8.0.RC2「基本架构」绘制的单颗 910B 分离架构 y = ReLU(xW) 四步数据落点走读：输入 x = [1, 2] 与权重 W 经 MTE2/MTE1 备入 AIC 的 L0A/L0B，Cube 乘加在 L0C 算出 [5, -5] 后经 FixPipe 写回核外 GM 中间缓冲（是否命中核外 L2 或触发外部 HBM 事务由下层缓存决定）；AIV 再经 MTE2 将 [5, -5] 搬入 UB，由 Vector 逐项执行 ReLU 得到 [5, 0] 并经 MTE3 写回 GM 输出。
+size: [900, 426]
+# 硬件通路出处（非代码仓文档）：
+# https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L381
+    symbols: [AscendDeviceType, HardwareProfile, RUNTIME_CUSTOM_OPS]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L144
+    symbols: [npu_dynamic_quant, npu_quant_matmul, PreparedLinearInput]

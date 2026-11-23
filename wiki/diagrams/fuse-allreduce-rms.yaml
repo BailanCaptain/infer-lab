@@ -2,7 +2,7 @@ mode: native-svg
 id: fuse-allreduce-rms
 caption: >-
   v0.23.0 中 GraphFusionPassManager 的子图冲突：融合 pass 排在 SP pass 之前，命中 compile_range.start > 512 的四步子图后替换为单算子，后续 SP 不再匹配已替换处；v0.25.1rc1（PR #12119）整体删除，v0.30.0 与 main 严检报错。
-size: [900, 560]
+size: [900, 546]
 pins:
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L56-L84'
     symbols:
@@ -15,9 +15,9 @@ pins:
     symbols: [MatmulAllReduceAddRMSNormPass, is_applicable_for_range]
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L56-L99'
     symbols: [MiddleAllReduceRMSNormPattern]
-  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79'
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L25-L79'
     symbols: [GraphFusionPassManager, fuse_allreduce_rms, SequenceParallelismPass]
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L130'
     symbols: [AscendCompilationConfig]
-  - source: 'vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79'
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L28-L79'
     symbols: [GraphFusionPassManager]

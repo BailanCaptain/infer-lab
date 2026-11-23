@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 384" width="900" height="384" role="img" aria-label="GLM 双机 64 GiB 显存预算条（u=0.85）与 TP8 切分/复制边界对照图" font-family="var(--font-sans)">
+  <title>GLM 双机例外 B：单卡 64 GiB 同比例预算条与 TP8 缓存切分 vs 复制</title>
+  <desc>基于 determine_available_memory、kv_cache_memory_bytes、non_kv_cache_memory，按真实比例画出单卡 64 GiB（u=0.85）在 20.58/21 GiB 权重与 3.4 GiB 试跑后留给 KV 池的 30.00/30.42 GiB（3,855/3,908 块）及预算外 9.6 GiB 支付 ACLGraph 与 54 MiB/卡延迟索引器副本，并区分 KDA 按头切分与 12 层 MLA 全卡复制。</desc>
+
+  <!-- Zone 1: True-scale 64 GiB GLM Budget Bar (1 GiB = 13.5 px, x=18..882) -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① GLM 双机单卡 64 GiB 教学预算条（u = 0.85 → 54.4 GiB 预算 / 9.6 GiB 预算外余量）</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Callout above thin 3.4 GiB segment -->
+  <text x="325" y="62" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">试跑峰值+非Torch 3.4 GiB</text>
+  <line x1="325" y1="67" x2="325" y2="83" stroke="#9a4b86" stroke-width="1.4"/>
+
+  <!-- Segments: 21*13.5=284, 3.4*13.5=46, 30.0*13.5=405, 9.6*13.5=129 (sum=864) -->
+  <rect x="18" y="84" width="284" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <!-- Marker at 20.58 GiB = 278 px -> x=296 -->
+  <line x1="296" y1="84" x2="296" y2="136" stroke="#936300" stroke-width="1.4" stroke-dasharray="3 2"/>
+
+  <rect x="302" y="84" width="46" height="52" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <rect x="348" y="84" width="405" height="52" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="753" y="84" width="129" height="52" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+
+  <!-- u=0.85 line -->
+  <line x1="753" y1="74" x2="753" y2="154" stroke="#b54237" stroke-width="2" stroke-dasharray="4 3"/>
+
+  <g text-anchor="middle">
+    <text x="158" y="107" font-size="14" font-weight="700" fill="#936300">权重 21 GiB 假设</text>
+    <text x="158" y="127" font-size="13.5" fill="#936300">语言子账 20.58（旧 20.81）</text>
+
+    <text x="550" y="107" font-size="14.5" font-weight="700" fill="#065f56">KV 池 30.00 / 30.42 GiB</text>
+    <text x="550" y="127" font-size="13.5" fill="#065f56">→ 3,855 块 / 3,908 块（后者未扣表外项）</text>
+
+    <text x="817" y="107" font-size="14" font-weight="700" fill="#8f3229">9.6 GiB (15%)</text>
+    <text x="817" y="127" font-size="13.5" fill="#8f3229">录图 + 54 MiB 索引</text>
+  </g>
+
+  <!-- Ruler -->
+  <line x1="18" y1="146" x2="882" y2="146" stroke="#8a928f" stroke-width="1.1"/>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d">
+    <text x="18" y="165">0 GiB</text>
+    <text x="302" y="165" text-anchor="middle">21</text>
+    <text x="753" y="165" text-anchor="middle" fill="#8f3229" font-weight="700">54.4 (u=0.85)</text>
+    <text x="882" y="165" text-anchor="end">64 GiB</text>
+  </g>
+
+  <text x="16" y="191" font-size="13.5" fill="#4d5652">注：ACLGraph 与首次实际执行才建立的 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">54 MiB/卡</tspan> FP32 索引器副本均晚于预算测量，从右侧 9.6 GiB 预算外余量支付。</text>
+
+  <!-- Divider -->
+  <line x1="14" y1="208" x2="886" y2="208" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: TP8 Sharded vs Replicated Cache Visual -->
+  <text x="16" y="236" font-size="16" font-weight="700" fill="#17211f">② 机内 TP8 下不能把所有缓存统一除以 8：按头切分 vs 逐卡完整复制</text>
+
+  <!-- Left: KDA sharded 1/8 -->
+  <rect x="16" y="252" width="420" height="118" rx="8" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="278" font-size="14.5" font-weight="700" fill="#065f56">KDA 固定状态（34 层）：随 64 个头均分 1/8</text>
+  <!-- 8 slices representing 8 cards -->
+  <g stroke="#087f73" stroke-width="1.3">
+    <rect x="30" y="290" width="45" height="32" rx="4" fill="#ddf4ef"/>
+    <rect x="79" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="128" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="177" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="226" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="275" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="324" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+    <rect x="373" y="290" width="45" height="32" rx="4" fill="#ffffff"/>
+  </g>
+  <text x="52" y="311" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">8 头</text>
+  <text x="248" y="311" text-anchor="middle" font-size="13.5" fill="#66716d">其余 7 张卡各持 8 个不重叠头</text>
+  <text x="30" y="352" font-size="13.5" fill="#4d5652">与 TP 权重一样按 8 卡切分，每卡只管本卡 8 个头</text>
+
+  <!-- Right: 12L MLA replicated 1x -->
+  <rect x="464" y="252" width="420" height="118" rx="8" fill="#e8edff" fill-opacity="0.55" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="478" y="278" font-size="14.5" font-weight="700" fill="#3a4f93">稀疏 MLA 缓存（主干 11 + MTP 1 = 12 层）：全卡复制 1×</text>
+  <!-- 4 representative cards each holding full copy -->
+  <g stroke="#4c65b6" stroke-width="1.4" fill="#e8edff">
+    <rect x="478" y="290" width="88" height="32" rx="4"/>
+    <rect x="574" y="290" width="88" height="32" rx="4"/>
+    <rect x="670" y="290" width="88" height="32" rx="4"/>
+    <rect x="766" y="290" width="102" height="32" rx="4"/>
+  </g>
+  <g text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">
+    <text x="522" y="311">卡 0：完整</text>
+    <text x="618" y="311">卡 1：完整</text>
+    <text x="714" y="311">卡 2：完整</text>
+    <text x="817" y="311">… 卡 7：完整</text>
+  </g>
+  <text x="478" y="352" font-size="13.5" fill="#8f3229">潜向量不按 TP 切分，每张卡各自保留完整副本！</text>
+</svg>

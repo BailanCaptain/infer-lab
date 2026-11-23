@@ -1,8 +1,8 @@
 mode: native-svg
 id: inference-benchmarking-fig-arrival-warmup
 caption: >-
-  压测可比性两道防线：上半对比闭环固定并发（掩盖协调遗漏与真实排队）与开环到达率（暴露突发积压，须同时保存计划发送、实际发送与服务到达三时刻）；下半对照冷启动预热未剔除与自动前缀缓存复用导致的吞吐虚高陷阱。
-size: [900, 470]
+  压测可比性三大防线：（一）同一水平时间轴对比闭环固定并发（卡顿时自动停发造成协调遗漏）与开环到达率（照常发单暴露队列堆高与真实 P95/P99）；（二）按 2 px/ms 比例绘出生成器迟发 200 ms + 实发起 TTFT 100 ms 的漏记陷阱；（三）预热剔除、交错无采集正式测与独立短窗 Profiler 三段隔离流水。
+size: [900, 492]
 pins:
   - source: 'vllm@ced6857a:vllm/benchmarks/serve.py#L403-L640'
     symbols:

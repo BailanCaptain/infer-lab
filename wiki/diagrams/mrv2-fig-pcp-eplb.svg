@@ -1,44 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="Model Runner V2 的 PCP 与 EPLB 协同边界" font-family="var(--font-sans)">
-<title>MRV2 的 PCP 局部/全局批映射与 EPLB 上游控制面复用</title>
-<desc>AscendPCPManager and AscendEPLBController in vllm_ascend/worker/v2/</desc>
-<line x1="450" y1="14" x2="450" y2="378" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="64" width="404" height="58" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="146" width="404" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="16" y="238" width="404" height="58" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="316" width="404" height="58" rx="7" fill="#fff0e9" stroke="#b54237"/>
-<rect x="480" y="64" width="404" height="58" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="480" y="146" width="194" height="68" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="690" y="146" width="194" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="480" y="238" width="404" height="58" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="480" y="316" width="404" height="58" rx="7" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M218 122v22m-4-5l4 5 4-5M218 214v22m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M577 122v22m-4-5l4 5 4-5M787 122v22m-4-5l4 5 4-5M682 214v22m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<g font-weight="700">
-<text x="16" y="32" font-size="16" fill="#17211f">A. PCP 集成（AscendPCPManager）</text>
-<text x="218" y="87" text-anchor="middle" font-size="14.5" fill="#3a4f93">全局批规划：get_global_graph_num_reqs</text>
-<text x="218" y="172" text-anchor="middle" font-size="14.5" fill="#7a3a6a">AscendPCPAttentionContext 双向映射</text>
-<text x="218" y="261" text-anchor="middle" font-size="14.5" fill="#065f56">采样前还原：global_batch 对齐</text>
-<text x="28" y="339" font-size="14.5" fill="#8f3229">门禁：PCP &gt; 1 须设 VLLM_USE_V2_MODEL_RUNNER=1</text>
-<text x="480" y="32" font-size="16" fill="#17211f">B. EPLB 集成（AscendEPLBController）</text>
-<text x="682" y="87" text-anchor="middle" font-size="14.5" fill="#936300">批级采样过滤：load_collection_phase</text>
-<text x="577" y="172" text-anchor="middle" font-size="14.5" fill="#065f56">数据面：物理专家查表</text>
-<text x="787" y="172" text-anchor="middle" font-size="14.5" fill="#7a3a6a">搬迁面：HIXL / Gloo</text>
-<text x="682" y="261" text-anchor="middle" font-size="14.5" fill="#3a4f93">主线程步间提交 AscendEplbState</text>
-<text x="492" y="339" font-size="14.5" fill="#8f3229">互斥红线：严禁混用 V1 环境变量与 V2 控面</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="52" font-size="13.5">按上下文并行切分 Prefill 序列，同时保留全局块表视图</text>
-<text x="218" y="110" text-anchor="middle" font-size="13.5">先算出跨 PCP 秩一致的图档位与补齐 token 数</text>
-<text x="218" y="198" text-anchor="middle" font-size="13.5">持有 global_slot_mappings 与 hidden_restore_idx</text>
-<text x="218" y="284" text-anchor="middle" font-size="13.5">非末段 PP 也在 sample_tokens 切回 global_batch</text>
-<text x="28" y="362" font-size="13.5">V1 路径在 _validate_parallel_config 直接抛 ValueError</text>
-<text x="480" y="52" font-size="13.5">复用上游 EPLBController，仅在边界做昇腾适配</text>
-<text x="682" y="110" text-anchor="middle" font-size="13.5">每批判一次 all / prefill / decode（供 STAIR 策略）</text>
-<text x="577" y="198" text-anchor="middle" font-size="13.5">逻辑 ID 映为本地物理 ID</text>
-<text x="787" y="198" text-anchor="middle" font-size="13.5">默认 HIXL，回退 torch_gloo</text>
-<text x="682" y="284" text-anchor="middle" font-size="13.5">后台搬完后原地刷新设备查找表，不打断前向</text>
-<text x="492" y="362" font-size="13.5">MRV2 仅接 load_collection_phase 与 stair_config</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 474" width="900" height="474" role="img" aria-label="MRV2 内 PCP 序列切分还原几何与 EPLB 三平面协同边界" font-family="var(--font-sans)">
+  <title>MRV2 模块化集成边界：PCP 全局/局部批双向映射 vs EPLB 控制/搬迁/数据三平面</title>
+  <desc>Left: AscendPCPManager splitting global batch across PCP ranks and restoring global_batch before sample_tokens even on non-last PP ranks. Right: AscendEPLBController 3-plane design with load_collection_phase filter, HIXL/Gloo transfer, and in-place AscendEplbState swap</desc>
+  <defs>
+    <marker id="pe-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="pe-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="pe-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <line x1="450" y1="14" x2="450" y2="460" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- LEFT: PCP Sequence Split & Global Restore -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. PCP 上下文并行（AscendPCPManager）</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">长提示词按 PCP 秩切分前向，采样前必还回全局批</text>
+
+  <!-- Global Batch Bar -->
+  <rect x="16" y="64" width="412" height="54" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="222" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">全局批 global_batch + global_slot_mappings</text>
+  <text x="222" y="108" text-anchor="middle" font-size="13.5" fill="#4d5652">先经 get_global_graph_num_reqs 定跨秩一致图档位</text>
+
+  <!-- Split into 2 PCP ranks -->
+  <path d="M 140 120 L 116 146" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#pe-arr-indigo)"/>
+  <path d="M 304 120 L 328 146" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#pe-arr-indigo)"/>
+
+  <rect x="16" y="150" width="196" height="62" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="114" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">PCP Rank 0 局部段</text>
+  <text x="114" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">切分 Prefill 序列前段</text>
+
+  <rect x="232" y="150" width="196" height="62" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="330" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">PCP Rank 1 局部段</text>
+  <text x="330" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">切分 Prefill 序列后段</text>
+
+  <!-- Context badge holding restore index -->
+  <path d="M 114 214 L 180 242" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#pe-arr-teal)"/>
+  <path d="M 330 214 L 264 242" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#pe-arr-teal)"/>
+
+  <rect x="16" y="246" width="412" height="84" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="222" y="272" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">AscendPCPAttentionContext → 采样前还原</text>
+  <text x="222" y="296" text-anchor="middle" font-size="13.5" fill="#4d5652">靠 hidden_restore_idx 拼回全局隐藏序</text>
+  <text x="222" y="318" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">即便非末段 PP，sample_tokens 前也先切回 global_batch</text>
+
+  <!-- Hard Guard Bottom Left -->
+  <rect x="16" y="348" width="412" height="108" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="374" font-size="14" font-weight="700" fill="#8f3229">v0.30.0 准入门禁</text>
+  <text x="30" y="398" font-size="12.5" fill="#4d5652">MRV1 完全不支持 PCP；未设</text>
+  <text x="30" y="419" font-size="12.5" fill="#4d5652">VLLM_USE_V2_MODEL_RUNNER=1</text>
+  <text x="30" y="440" font-size="12.5" font-weight="700" fill="#8f3229">且 prefill_context_parallel_size &gt; 1 → 启动抛 ValueError</text>
+
+  <!-- RIGHT: EPLB 3-Plane Architecture -->
+  <text x="472" y="28" font-size="16" font-weight="700" fill="#17211f">B. EPLB 专家均衡（AscendEPLBController）</text>
+  <text x="472" y="48" font-size="13.5" fill="#66716d">直接继承上游控制面，昇腾仅接三个清晰边界</text>
+
+  <!-- Plane 1: Control Plane -->
+  <rect x="472" y="64" width="412" height="72" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="486" y="90" font-size="14.5" font-weight="700" fill="#936300">① 控制面（复用上游 + 批首相位过滤）</text>
+  <text x="486" y="116" font-size="12.5" fill="#4d5652">按 load_collection_phase (all/prefill/decode) 决定本批记账</text>
+
+  <line x1="576" y1="138" x2="576" y2="162" stroke="#087f73" stroke-width="1.7" marker-end="url(#pe-arr-teal)"/>
+  <line x1="780" y1="138" x2="780" y2="162" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#pe-arr-plum)"/>
+
+  <!-- Plane 2 & 3 side by side -->
+  <rect x="472" y="166" width="198" height="84" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="571" y="192" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">② 数据面（每层 MoE）</text>
+  <text x="571" y="216" text-anchor="middle" font-size="13.5" fill="#4d5652">逻辑专家 ID 查表</text>
+  <text x="571" y="236" text-anchor="middle" font-size="13.5" fill="#065f56">→ 本地物理专家 ID</text>
+
+  <rect x="686" y="166" width="198" height="84" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="785" y="192" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">③ 异步搬迁面</text>
+  <text x="785" y="216" text-anchor="middle" font-size="13.5" fill="#4d5652">默认 HIXL 单边零拷贝</text>
+  <text x="785" y="236" text-anchor="middle" font-size="13.5" fill="#7a3a6a">缺失回退 torch_gloo</text>
+
+  <!-- Commit swap bar -->
+  <path d="M 785 252 L 785 272 L 678 272" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#pe-arr-indigo)"/>
+  <path d="M 571 252 L 571 272" fill="none" stroke="#4c65b6" stroke-width="1.6"/>
+  <rect x="472" y="274" width="412" height="56" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="678" y="298" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">后台搬完 → 主线程步间原地刷新 AscendEplbState</text>
+  <text x="678" y="319" text-anchor="middle" font-size="13.5" fill="#4d5652">不打断正在进行的前向计算</text>
+
+  <!-- Hard Guard Bottom Right -->
+  <rect x="472" y="348" width="412" height="108" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="486" y="374" font-size="14" font-weight="700" fill="#8f3229">新旧控面互斥红线（_validate_eplb_config）</text>
+  <text x="486" y="398" font-size="12.5" fill="#4d5652">严禁混入 V1 的 DYNAMIC_EPLB / EXPERT_MAP_RECORD</text>
+  <text x="486" y="419" font-size="12.5" fill="#4d5652">环境变量；MRV2 仅接受 --enable-eplb +</text>
+  <text x="486" y="440" font-size="12.5" font-weight="700" fill="#8f3229">load_collection_phase / stair_config</text>
 </svg>

@@ -1,8 +1,8 @@
 mode: native-svg
 id: inference-performance-walkthrough-fig-msprof-map
 caption: >-
-  msprof / Ascend PyTorch Profiler 与服务记录的三层时间线拼接图：用 request_id、step 与 rank 将客户端 SSE、EngineCore 调度/批次队列（注意异步调度下 CPU 准备第 N+1 步与 NPU 执行第 N 步交错）和设备 trace_view.json 严密对齐，一眼区分没轮到计算、混合步变长与设备算完后返回阻塞三类等待。
-size: [900, 470]
+  msprof / Ascend PyTorch Profiler 与服务记录的统一时间轴拼接图（教学示意，2.5 px/ms 共享横轴）：用 request_id、step=42 与 rank 垂直对齐客户端 SSE（410→650 ms）、调度与异步交错区、设备执行（430→620 ms），并将 620–650 ms 如实标为待细分区间（服务发送 / 代理转发 / 客户端读取），一眼区分没轮到计算、混合步变长与返回阻塞三类等待。
+size: [900, 510]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L555-L625'
     symbols:

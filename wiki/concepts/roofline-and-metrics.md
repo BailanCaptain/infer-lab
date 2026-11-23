@@ -108,28 +108,28 @@ file: roofline-triangle-and-timeline
 
 $$\text{Throughput}_{\text{gen}}(B) \approx \frac{B}{T_{\text{step}}(B)}$$
 
-- **当并发批大小 $B$ 很小时**：把 $B$ 从 `1` 调大到 `8` 或 `16`，同一份模型权重从显存读入一次就能同时服务 $B$ 条请求。单步耗时 $T_{\text{step}}(B)$ 只微弱上涨（对应小幅牺牲 `TPOT`），分子 $B$ 却翻了十几倍，系统生成吞吐近乎线性飙升。
-- **当并发批大小 $B$ 跨过硬件拐点继续堆高时**：计算单元已被填满，$T_{\text{step}}(B)$ 开始随 $B$ 同步拉长，吞吐曲线触顶拉平。此时再塞入更多并发请求或超大 Prefill 分块，不仅换不来额外吞吐，还会拉爆 `TTFT` 与 `TPOT`。
-- **`--performance-mode` 的两端预设**：`interactivity` 在 `1..32` 小批量区间加密录制细粒度计算图，优先压低单步延迟；`throughput` 默认将 `max_num_batched_tokens` 与 `max_num_seqs` 双双翻倍，优先喂饱高并发吞吐。
+- **当并发批大小 $B$ 很小时**：把 $B$ 从 `1` 调大到 `8` 或 `16`，同一份权重从显存读入一次就能同时服务 $B$ 条请求。单步耗时 $T_{\text{step}}(B)$ 只微弱上涨（小幅牺牲 `TPOT`），分子 $B$ 却翻了十几倍，生成吞吐近乎线性飙升。
+- **当并发批大小 $B$ 跨过硬件拐点继续堆高时**：计算单元已被填满，$T_{\text{step}}(B)$ 随 $B$ 同步拉长，吞吐曲线触顶拉平。再塞入更多并发或超大 Prefill 分块，不仅换不来吞吐，还会拉爆 `TTFT` 与 `TPOT`。
+- **`--performance-mode` 的两端预设**：`interactivity` 在 `1..32` 小批量区间加密录制计算图，优先压低单步延迟；`throughput` 默认将 `max_num_batched_tokens` 与 `max_num_seqs` 双双翻倍，优先喂饱高并发吞吐。
 
 ## 算术强度与 Roofline 屋顶：一条折线分清带宽墙与算力墙
 
-为什么小批量时增加 $B$ 几乎不增加单步耗时，大批量时却会撞墙？答案藏在昇腾 NPU 两项物理能力的比值里：计算核心（矩阵乘由 [AI Core](ai-core.md) 内的 **Cube** 单元承担）每秒最多做 $\pi_{\text{peak}}$ 次乘加运算，而高带宽显存（**HBM**，芯片外全局存储）每秒最多向片上搬运 $\beta_{\text{HBM}}$ 字节数据。
+为什么小批量加批几乎不涨单步耗时，大批量却会撞墙？答案藏在昇腾 NPU 两项物理能力的比值里：矩阵计算核心（[AI Core](ai-core.md) 内的 **Cube** 单元）每秒最多做 $\pi_{\text{peak}}$ 次乘加运算，而高带宽显存（**HBM**）每秒最多向片上搬运 $\beta_{\text{HBM}}$ 字节数据。
 
-定义一段计算的**算术强度**（Arithmetic Intensity，亦称计算强度）$I$ 为总浮点运算次数与显存读写字节数之比。**Roofline 模型**据此给出目标硬件上的理论最高有效算力 $P_{\max}(I)$ 与**脊点**（Ridge Point，即算术强度拐点）$I_{\text{ridge}}$：
+定义一段计算的**算术强度**（Arithmetic Intensity，亦称计算强度）$I$ 为总浮点运算次数与显存读写字节数之比。**Roofline 模型**据此给出目标硬件的理论最高有效算力 $P_{\max}(I)$ 与**脊点**（Ridge Point，即算术强度拐点）$I_{\text{ridge}}$：
 
 $$I = \frac{\text{FLOPs}}{\text{Bytes}}, \qquad P_{\max}(I) = \min\!\bigl(\pi_{\text{peak}},\; I \times \beta_{\text{HBM}}\bigr), \qquad I_{\text{ridge}} = \frac{\pi_{\text{peak}}}{\beta_{\text{HBM}}}$$
 
-- **左侧斜坡（$I < I_{\text{ridge}}$，带宽墙 / Memory-Bound）**：每搬来 1 字节数据能做的运算太少，$I \times \beta_{\text{HBM}} < \pi_{\text{peak}}$。Cube 刚算完手头这批数就得停下来等搬运引擎从 HBM 取下一批权重，耗时下界由 $\text{Bytes} / \beta_{\text{HBM}}$ 决定，单纯堆高算力峰值不会缩短耗时。
-- **右侧平顶（$I > I_{\text{ridge}}$，算力墙 / Compute-Bound）**：每搬来 1 字节数据能在片上反复参与大量乘加，$I \times \beta_{\text{HBM}} > \pi_{\text{peak}}$。显存搬运能够被计算时间掩盖，耗时下界转为 $\text{FLOPs} / \pi_{\text{peak}}$，继续加宽显存带宽收益有限。
+- **左侧斜坡（$I < I_{\text{ridge}}$，带宽墙 / Memory-Bound）**：每搬 1 字节数据能做的运算太少，$I \times \beta_{\text{HBM}} < \pi_{\text{peak}}$。Cube 算完手头这批数就得空等 HBM 送下一批权重，耗时下界由 $\text{Bytes} / \beta_{\text{HBM}}$ 决定，单堆算力峰值无效。
+- **右侧平顶（$I > I_{\text{ridge}}$，算力墙 / Compute-Bound）**：每搬 1 字节能在片上反复参与大量乘加，$I \times \beta_{\text{HBM}} > \pi_{\text{peak}}$。显存搬运被计算时间掩盖，耗时下界转为 $\text{FLOPs} / \pi_{\text{peak}}$，单加带宽收益有限。
 
-用全站标准标尺模型 `Qwen3-8B`（[目录与配置拆解](hf-model-anatomy.md)）里最典型的一块线性投影 `q_proj` 算一笔明账：输入激活 $X$ 形状为 $[M, K]$，权重 $W$ 为 $[K, N]$，输出 $Y = XW$ 为 $[M, N]$。其中 $M$ 是本步一起计算的词元行数，$K = 4096$，$N = 32 \times 128 = 4096$。
+用标准标尺模型 `Qwen3-8B`（[目录与配置拆解](hf-model-anatomy.md)）里一块典型线性投影 `q_proj` 算一笔明账：输入激活 $X$ 形状为 $[M, K]$，权重 $W$ 为 $[K, N]$，输出 $Y = XW$ 为 $[M, N]$，其中 $M$ 为本步一起计算的词元行数，$K = 4096$，$N = 32 \times 128 = 4096$。
 
-按一次乘加记 `2` 次浮点运算，总运算量为 $\text{FLOPs} = 2MNK$。在理想缓存复用假设下（从 HBM 读一次 $X$、读一次 $W$、写回一次 $Y$，BF16 每元素 `2` 字节），总显存流量为 $\text{Bytes}_{\text{BF16}} = 2(MK + KN + MN)$，算术强度化简为：
+按一次乘加记 `2` 次浮点运算，总运算量为 $\text{FLOPs} = 2MNK$。在理想缓存复用假设下（从 HBM 各读写一次 $X, W, Y$，BF16 每元素 `2` 字节），总显存流量为 $\text{Bytes}_{\text{BF16}} = 2(MK + KN + MN)$，算术强度化简为：
 
 $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \frac{1}{N} + \frac{1}{K}}$$
 
-当隐藏维度 $K, N = 4096$ 远大于小批量行数 $M$ 时，$\frac{1}{K}$ 与 $\frac{1}{N}$ 都只有 $\frac{1}{4096}$，分母完全由 $\frac{1}{M}$ 主导。因此，**小批量线性层的算术强度近似就等于本步打包处理的词元行数 $M$**。把单请求 Decode、小批 Decode、`W8A8` 量化与 Prefill 四种场景并排对比如下：
+当隐藏维 $K, N = 4096$ 远大于小批量行数 $M$ 时，$\frac{1}{K}$ 与 $\frac{1}{N}$ 都只有 $\frac{1}{4096}$，分母由 $\frac{1}{M}$ 主导。因此，**小批量线性层的算术强度近似等于本步打包的词元行数 $M$**。把四种场景并排对比如下：
 
 ```wiki-diagram
 file: roofline-matmul-intensity
@@ -152,16 +152,20 @@ file: roofline-ceiling-and-shift
 
 对照上图中的四个落点与官方硬件规格，可以得出三条直接指导调优的硬结论：
 
-1. **为什么单请求 Decode 极度“饥饿”，而 Prefill 天然吃满算力**：当 $M = 1$（BF16）时，$I \approx 1.00\text{ FLOP/B}$，远低于 `120–270 FLOP/B` 量级的硬件脊点。在 `1.6 TB/s` 示意带宽下最高只能跑出 `1.6 TFLOP/s` 有效算力，不足 `320 TFLOP/s` 屋顶的 **`0.5%`**。反过来，一条 `512` 词提示词做 Prefill 时，搬一次 `32 MiB` 权重一口气算完 `512` 行，强度跃升至 `409.6 FLOP/B`，稳稳停在水平算力屋顶上。
-2. **`W8A8` 量化的双重增益与卡型陷阱**：对小批量 Decode 启用昇腾 ModelSlim `W8A8` 量化（[量化选路](quantization.md)），先把权重字节从 `2 B` 砍到 `1 B`，让相同行数 $M$ 下的算术强度**右移约 2 倍**，省掉一半 HBM 搬运时间。同时低比特 INT8 / FP8 Cube 指令还将屋顶抬高约一倍（图中紫色虚线屋顶），兼顾大批 Prefill 上限。但要注意硬件前提：原生分块 FP8 权重只在昇腾 `950` 上转为 `1 B` 的 `MXFP8`（[低精度格式](low-precision-formats.md)），在 `Atlas A2 / A3` 上加载后会被反量化回 `2 B` 的 BF16，此时没有右移省带宽效果。
-3. **高带宽新硬件如何左移脊点拯救 Decode**：查核已公开的[昇腾 950 架构白皮书](ascend-950-architecture.md#pr-与-dt-的规格怎样读才不串成一款产品)（以高配档仅 Cube BF16 峰值对照，不可跨档混配），`950PR`（`432 TFLOPS` ÷ `1.6 TB/s`）的矩阵乘脊点为 **`270 FLOP/B`**。面向推理强化的 `950DT`（`486 TFLOPS` ÷ `4.0 TB/s`）依靠 `4 TB/s` 超高内存带宽把脊点**左移至 `121.5 FLOP/B`**——只需一百多行有效批规模就能喂饱 Cube 屋顶，小批量 Decode 斜坡也整体抬高了 `2.5` 倍。
+1. **单请求 Decode 极度“饥饿”，Prefill 天然吃满算力**：当 $M = 1$（BF16）时，$I \approx 1.00\text{ FLOP/B}$，远低于 `120–270 FLOP/B` 量级的硬件脊点。在 `1.6 TB/s` 示意带宽下，最高只能跑出 `1.6 TFLOP/s` 有效算力，不足 `320 TFLOP/s` 屋顶的 **`0.5%`**。反过来，处理一条 `512` 词提示词的 Prefill 时，搬一次 `32 MiB` 权重即可一口气算完 `512` 行，强度跃升至 `409.6 FLOP/B`，稳稳停在水平算力屋顶上。
+2. **`W8A8` 量化带来双重增益，但要守住卡型前提**：对小批量 Decode 启用昇腾 ModelSlim `W8A8` 量化（[量化选路](quantization.md)），先把权重字节从 `2 B` 砍到 `1 B`，让同批行数 $M$ 下的算术强度**右移约 2 倍**、省掉一半 HBM 搬运时间；同时低比特 INT8 / FP8 Cube 指令把屋顶抬高约一倍（图中紫色虚线屋顶），兼顾大批 Prefill 上限。但须注意卡型边界：原生分块 FP8 权重只在昇腾 `950` 上转为 `1 B` 的 `MXFP8`（[低精度格式](low-precision-formats.md)），在 `Atlas A2 / A3` 上加载后会被反量化回 `2 B` 的 BF16，此时没有右移省带宽效果。
+3. **高带宽硬件左移脊点，直接抬高 Decode 斜坡**：查核已公开的[昇腾 950 架构白皮书](ascend-950-architecture.md#pr-与-dt-的规格怎样读才不串成一款产品)（以高配档仅 Cube BF16 峰值对照，不可跨档混配），`950PR`（`432 TFLOPS` ÷ `1.6 TB/s`）的矩阵乘脊点为 **`270 FLOP/B`**。推理强化型的 `950DT`（`486 TFLOPS` ÷ `4.0 TB/s`）凭借 `4 TB/s` 超高内存带宽，把脊点**左移至 `121.5 FLOP/B`**——只需一百多行有效批规模就能喂饱 Cube 屋顶，小批量 Decode 斜坡也整体抬高了 `2.5` 倍。
 
 ## 从单算子放到整座模型：长上下文 KV Cache、稀疏 MoE 与立项初筛
 
-真实模型的一步前向不仅有线性层矩阵乘，还包含逐位置读取历史上下文的注意力计算、跨卡通信以及稀疏专家分发（详细硬件映射见 [硬件体系](hardware-devices.md) 与 [性能分析](inference-performance-analysis.md)）。把单算子结论外推到整座 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（稀疏 MoE）时，必须额外算清两道边界：
+真实模型的一步前向不仅有线性层矩阵乘，还包含逐位置读取历史上下文的注意力计算、跨卡通信以及稀疏专家分发（详细硬件映射见 [硬件体系](hardware-devices.md) 与 [性能分析](inference-performance-analysis.md)）。把单算子结论外推到整座 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（稀疏 MoE）时，必须额外算清下图中的两道边界：
 
-- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，16 条请求共享一份 `15.26 GiB` 权重。若各自带着互不重合的 `32,768` 词历史，单步 Decode 光读 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**。更关键的是，独立 KV 只服务所属那 1 条请求：在 `4:1` GQA 下，每读一对 BF16 K/V 元素（`4 B`）仅供 4 个查询头各做一次乘加，注意力强度锁死在 $I_{\text{attn}} \approx \frac{4 \times (2 + 2)\text{ FLOP}}{(2 + 2)\text{ B}} = \mathbf{4\text{ FLOP/B}}$ 左右，不随 $B$ 增长。长文 Decode 想破带宽墙，只能靠 KV cache `C8` 量化、前缀缓存复用或 MLA 潜向量压缩。
-- **边界二：稀疏 MoE 的单步有效行数被专家路由稀释**。`Qwen3-30B-A3B` 总参数 `30.53B`（BF16 常驻 `56.87 GiB`），单 token 仅激活 `128` 个路由专家中的 `8` 个（激活参数 `3.35B`）。单请求 $B = 1$ 时只读 8 个选中专家；并发升到 $B = 32$ 后，`32 × 8 = 256` 次抽样几乎点亮全部 128 个专家，整批被迫搬运近 `56.87 GiB` 权重。但摊到每个专家头上的有效行数平均只有 $M_{\text{eff}} = \frac{32 \times 8}{128} = \mathbf{2}$ 行（局部算术强度仅约 `2 FLOP/B`）。因此大型 MoE 线上常采用 [PD 分离](pd-disaggregation.md)，在 Decode 侧用大 `DP + EP` 汇聚数百路并发，把单专家有效行数推回高强度区间。
+```wiki-diagram
+file: roofline-fig-kv-and-moe-dilution
+```
+
+- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，16 条请求共享一份 `15.26 GiB` 权重；若各自带着互不重合的 `32,768` 词历史，单步 Decode 光读 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**。更关键的是，独立 KV 只服务所属那 1 条请求：在 `4:1` GQA 下，每读一对 BF16 K/V 元素（`4 B`）仅供 4 个查询头各做一次乘加，注意力强度锁死在 $I_{\text{attn}} \approx \frac{4 \times (2 + 2)\text{ FLOP}}{(2 + 2)\text{ B}} = \mathbf{4\text{ FLOP/B}}$ 左右，不随 $B$ 增长。长文 Decode 想破带宽墙，只能靠 KV cache `C8` 量化、前缀缓存复用或 MLA 潜向量压缩。
+- **边界二：稀疏 MoE 的单步有效行数被专家路由稀释**。`Qwen3-30B-A3B` 总参数 `30.53B`（BF16 常驻 `56.87 GiB`），单 token 仅激活 `128` 个路由专家中的 `8` 个（激活参数 `3.35B`）。单请求 $B = 1$ 时只读 8 个选中专家；在**路由近似均匀打散的典型解码批**下（排除全部请求集中命中同一组 8 个专家的极端退化情形），并发升到 $B = 32$ 产生 `32 × 8 = 256` 次指派：按独立均匀近似会点亮约 $128 \times (1 - (120/128)^{32}) \approx \mathbf{112}$ 个专家（近九成专家权重，迫使搬运 `56.87 GiB` 中的绝大部分），摊到每个被激活专家的有效行数平均仅约 $256 / 112 \approx \mathbf{2.3}$ 行（按全部 128 个专家均摊为 `2` 行，局部算术强度仅约 **`2 FLOP/B`**）。因此大型 MoE 线上常采用 [PD 分离](pd-disaggregation.md)，在 Decode 侧用大 `DP + EP` 汇聚数百路并发，把单专家有效行数推回高强度区间。
 
 结合权重静态显存、运行时预留（完整 7 级扣减见 [KV 显存划定](kv-cache-memory-profiling.md)）与上述算术强度规律，可在下方初筛台切换预设模型与昇腾拓扑对照容量与瓶颈落点：
 
@@ -182,7 +186,7 @@ file: roofline-five-myths
 
 - **“监控显示 NPU 忙碌度 90%，说明算力已经跑满。”** 算子执行期间计算核心停在片上等待 HBM 送数，同样会被计入设备任务忙碌时长。要分辨是真正在做乘加还是卡在搬运，应开启 `--enable-mfu-metrics` 对照每秒有效算力（`TF/s/device`）与估算带宽（`GB/s/device`）。
 - **“只要显存够，无脑调大并发 Batch 总能继续提吞吐。”** 线性层越过脊点 $I_{\text{ridge}}$ 后已撞上算力屋顶，且非共享长上下文 KV cache 的注意力读取强度恒定在低位（`4:1` GQA 约 `4 FLOP/B`），盲目堆批只会让 `TTFT` 和 `TPOT` 急剧恶化。
-- **“MoE 模型单词只激活 3.35B 参数，跑 32 并发就像稠密 3B 模型一样轻。”** 专家路由会把批次词元打散到全部 `128` 个专家上，平均每专家仅分到约 `2` 行，整批却几乎要把 `56.87 GiB` 权重通读一遍。
+- **“MoE 模型单词只激活 3.35B 参数，跑 32 并发就像稠密 3B 模型一样轻。”** 在路由近似均匀打散的典型批次下，32 路并发会覆盖绝大部分专家（独立均匀近似约 `112/128` 个），被激活专家平均仅分到约 `2.3` 行，整批却被迫搬运 `56.87 GiB` 中的绝大部分权重。
 - **“面板里的 ITL 和 TPOT 是一回事，随便挑一个设告警就行。”** 投机解码单步返回多个词时，`ITL` 量的是两次流式包间隔，而 `TPOT` 按总生成词数摊薄；且只生成 1 个词的请求在服务端 `vllm:request_time_per_output_token_seconds` 会记 `0.0`，与客户端排除口径不同。
 - **“引擎日志打印的 Prompt 吞吐应该和 `/metrics` 里的提示词计数速率相等。”** 周期日志只统计本地实际计算的 `computed` 提示词（扣除前缀缓存命中与外部 KV 传入），而 Prometheus 的 `vllm:prompt_tokens` 累加包含缓存在内的全部提示词 `total`。
 

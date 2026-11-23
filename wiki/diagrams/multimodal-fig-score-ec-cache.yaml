@@ -1,8 +1,8 @@
 mode: native-svg
 id: multimodal-fig-score-ec-cache
 caption: >-
-  vllm-ascend v0.30.0 引入的 ScoreEncoderCacheManager 两级编码器缓存状态流：新算出的视觉嵌入先异步拷贝至大容量的 pinned CPU 缓存，高频高重算代价条目按 score = (freq + clock) × cal_cost 与 promote_percentile 分位门槛晋升入 NPU 常驻缓存；NPU 空间不足时按低分淘汰并补足 watermark 水位。
-size: [900, 410]
+  vllm-ascend v0.30.0 引入的 ScoreEncoderCacheManager 两级编码器缓存状态流与 NPU 评分水位标尺：新算出的视觉嵌入写入 pinned CPU 大池与请求存续期暂存的 tmp_encoder_cache（无活跃请求引用该 mm_hash 即删），二次命中在空槽充足或不含 clock 得分 >= promote_percentile=20% 门槛时于当前 NPU 流经 non_blocking H2D（torch.npu.Event 追踪完成与源缓冲寿命）晋升至 NPU 常驻池，空间不足时批量淘汰低分项并补足 watermark=20% 余量。
+size: [900, 490]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L83-L240
     symbols: [ScoreEncoderCacheManager, should_promote, evict_from_npu, score, promote_percentile, watermark]

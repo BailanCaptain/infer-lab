@@ -103,23 +103,34 @@ rawSources:
 ---
 ## size 是什么，由谁算出、为什么不能手写？
 
-本页说明的是 **`kvpp_config.size`**（`ascend_config.py` 中 `KVPPConfig` 类的唯一字段，与其他类的同名 `size` 无关）。用一句话建立直觉：多卡跑 MLA 模型时，同组卡原本各存一份相同的历史 KV cache；开启 [KVPP](../concepts/kvpp.md) 后，各层历史 KV 会被平分到组内多张卡上各自常驻，**`kvpp_config.size` 就是单个 PP stage 上参与平分层缓存的卡数**。它是整数类型、默认 `1`（表示每卡存全层、KVPP 关闭），只有 `size > 1` 时才进入 KVPP 建组、校验和分配路径；所在类 `KVPPConfig` 声明为 `frozen=True`，运行时不可修改。
+本页说明的是 **`kvpp_config.size`**（`ascend_config.py` 中 `KVPPConfig` 类的唯一字段，与其他类的同名 `size` 无关）。多卡跑 MLA 模型时，同组卡原本各存一份相同的历史 KV cache；开启 [KVPP](../concepts/kvpp.md) 后，各层历史 KV 会平分到组内多张卡各自常驻，**`kvpp_config.size` 就是单个 PP stage 上参与平分层缓存的卡数**。
 
-用户**不能也不需要手写 `size`**：启动时只需通过 `additional_config` 里的 `enable_kvpp` 开关启用 KVPP（推荐使用 JSON 布尔值 `true` / `false`，避免布尔解析歧义），`KVPPConfig.from_vllm_config()` 会在 `enable_kvpp` 为真时自动按 `tensor_parallel_size × prefill_context_parallel_size`（即 `TP × PCP`）派生 `size`。如果直接往 `additional_config` 塞 `{"kvpp_config": {"size": 4}}`，工厂函数在构造配置时会把它剔除，无法覆盖真实拓扑（入口规则见 [`kvpp_config`](kvpp-config-0445bd352140.md)）。它划分的是单个 DP 副本、单个 PP stage 内的 `TP × PCP` 复制域，表示的不是 DP 数，也不是 PP stage 数。
+它是整数类型、默认 `1`（表示每卡存全层、KVPP 关闭）。只有 `size > 1` 时才进入 KVPP 建组、校验和分配路径；所在类 `KVPPConfig` 声明为 `frozen=True`，运行时不可修改。
 
-**版本存在范围**：`v0.23.0` 与 `v0.26.0rc`（以及 `v0.27.1rc` 和 GLM 固定镜像 `db701c1f`）均没有 `KVPPConfig` 与 KVPP 实现，传入 `enable_kvpp` 会被静默忽略；`v0.28.0rc` / `v0.29.0rc`、`v0.30.0` 及 `main` 均保留了 `KVPPConfig.size` 与 `TP × PCP` 派生规则，但 `v0.30.0` 与 `main` 修正了 `PCP > 1` 时的 owner 编号算法，并将执行模式限制从早期 `main`（`baa023ad`）的仅 `enforce-eager` 放宽为 `enforce-eager` 或 `PIECEWISE`（仍要求 `DCP = 1`、模型为非 hybrid MLA，完整连接器与 MTP 约束见 [KVPP 配置页](kvpp-config-0445bd352140.md)）。
+用户**不能也不需要手写 `size`**：
+
+- 启动时只需通过 `additional_config` 里的 `enable_kvpp` 开关启用 KVPP（推荐用 JSON 布尔值 `true` / `false`，避免布尔解析歧义），`KVPPConfig.from_vllm_config()` 会在 `enable_kvpp` 为真时自动按 `tensor_parallel_size × prefill_context_parallel_size`（即 `TP × PCP`）派生 `size`。
+- 如果直接往 `additional_config` 塞 `{"kvpp_config": {"size": 4}}`，工厂函数在构造配置时会把它剔除，无法覆盖真实拓扑（入口规则见 [`kvpp_config`](kvpp-config-0445bd352140.md)）。它划分的是单个 DP 副本、单个 PP stage 内的 `TP × PCP` 复制域，不是 DP 数，也不是 PP stage 数。
+
+**版本存在范围**：`v0.23.0`、`v0.26.0rc`（以及 `v0.27.1rc` 与 GLM 固定镜像 `db701c1f`）均无 `KVPPConfig` 与 KVPP 实现，传入 `enable_kvpp` 会被静默忽略。`v0.28.0rc` / `v0.29.0rc`、`v0.30.0` 及 `main` 均保留 `KVPPConfig.size` 与 `TP × PCP` 派生规则，其中 `v0.30.0` 与 `main` 修正了 `PCP > 1` 时的 owner 编号算法，并将执行模式限制从早期 `main`（`baa023ad`）的仅 `enforce-eager` 放宽为 `enforce-eager` 或 `PIECEWISE`（仍要求 `DCP = 1`、模型为非 hybrid MLA，完整连接器与 MTP 约束见 [KVPP 配置页](kvpp-config-0445bd352140.md)）。
 
 ## 建组、分层归属和显存放大上限怎么算？
 
-`size` 的核心作用只有一句除法：`map_kvpp_layers_to_owners()` 先将本 PP stage 上参与分配的层按层索引和缓存名称排序、排除 MTP 草拟层（同一层索引下的多个缓存名称归属同一个 owner，因此参与均分的是**层索引数**而非缓存名称总数），再用 `base, remainder = divmod(len(layer_indices), kvpp_size)` 将层索引连续切成 `size` 段，第 `owner_rank` 段拿到 `base + int(owner_rank < remainder)` 层——前 `remainder` 个 rank 各多拿一层。MTP 缓存不参与划分，每张卡各留一份。
+`size` 的核心作用是一句分层除法：`map_kvpp_layers_to_owners()` 先将本 PP stage 上参与分配的层按层索引和缓存名称排序、排除 MTP 草拟层（同一层索引下的多个缓存名称归属同一个 owner，因此参与均分的是**层索引数**而非缓存名称总数），再用 `base, remainder = divmod(len(layer_indices), kvpp_size)` 将层索引连续切成 `size` 段。第 `owner_rank` 段拿到 `base + int(owner_rank < remainder)` 层——前 `remainder` 个 rank 各多拿一层；MTP 缓存不参与划分，每张卡各留一份。
+
+```wiki-diagram
+file: param-kvpp-size
+```
 
 围绕这句分层除法，另外三处运行时逻辑也会检查 `size > 1`：
 
-- **建通信组**：`parallel_state.py` 仅在 `size > 1` 时创建名为 `kvpp` 的通信组，并断言 `kvpp_size == global_pcp_size * global_tp_size`（用于守住复制域边界、防止绕过工厂篡改 `size`）。
-- **触发专属校验**：`platform.py` 在 `size > 1` 时调用 `kvpp_config.validate(vllm_config)`；当 `TP = 1` 且 `PCP = 1` 时，即使 `enable_kvpp` 为真，派生出的 `size` 仍为 `1`，KVPP 建组、专属校验和分配路径都不会启用（但不关闭服务其他参数检查）。
-- **切换缓存分配路径与计算 owner 编号**：`worker.py` 在 `size > 1` 时构建 `KVPPPhysicalCachePlan`，执行侧经 `allocate_kvpp_cache()` 分配常驻层与暂存缓冲。注意 `owner_rank` 的演进：早期 `main`（`baa023ad`）按 `TP rank % size` 建计划，在 `PCP > 1` 时会撞号；`v0.30.0` 与 `main` 改为在 worker 规划阶段计算 `kvpp_rank = pcp_rank × TP + tp_rank`，在 `allocate_kvpp_cache()` 分配阶段直接取 `get_kvpp_group().rank_in_group`——例如 `TP = 2, PCP = 2`（`size = 4`）时，两个 PCP 组的 TP0 分别是 `owner 0` 与 `owner 2`，不再错误地分到同一段。
+| 检查位置 | `size > 1` 时的行为 | 关键边界与版本修正 |
+| --- | --- | --- |
+| `parallel_state.py` 建通信组 | 创建名为 `kvpp` 的通信组 | 断言 `kvpp_size == global_pcp_size * global_tp_size`，防止绕过工厂篡改 `size` |
+| `platform.py` 专属校验 | 调用 `kvpp_config.validate(vllm_config)` | 当 `TP = 1` 且 `PCP = 1` 时，即使 `enable_kvpp` 为真，派生 `size` 仍为 `1`，建组、专属校验和分配路径都不启用（不关闭服务其他参数检查） |
+| `worker.py` + `allocate_kvpp_cache()` | 构建 `KVPPPhysicalCachePlan` 并分配常驻层与暂存缓冲 | 早期 `main`（`baa023ad`）按 `TP rank % size` 建计划在 `PCP > 1` 时会撞号；`v0.30.0` / `main` 改为规划期用 `kvpp_rank = pcp_rank × TP + tp_rank`，分配期直接取 `get_kvpp_group().rank_in_group`（例如 `TP = 2, PCP = 2` 时两个 PCP 组的 TP0 分别是 `owner 0` 与 `owner 2`） |
 
-拿一个 **10 层非混合 MLA 模型、无 MTP、`TP = 2, PCP = 2`** 的小例子把分层除法和 `owner_rank` 算一遍（**示意**）：派生 $\text{size} = 2 \times 2 = 4$，`divmod(10, 4) = (2, 2)`，即前 2 个 rank 各拿 $2 + 1 = 3$ 层、后 2 个 rank 各拿 2 层：
+拿一个 **10 层非混合 MLA 模型、无 MTP、`TP = 2, PCP = 2`** 的小例子核对分层除法与 `owner_rank`（**示意**）：派生 $\text{size} = 2 \times 2 = 4$，`divmod(10, 4) = (2, 2)`，前 2 个 rank 各拿 $2 + 1 = 3$ 层、后 2 个 rank 各拿 2 层：
 
 | `(pcp_rank, tp_rank)` | `kvpp_rank = pcp × 2 + tp` | 本卡常驻层索引 | 常驻层数 | 含 2 层 scratch 的物理层数 |
 | --- | --- | --- | --- | --- |
@@ -130,21 +141,21 @@ rawSources:
 
 全组可分配的逻辑块数受最重卡（`rank 0` 与 `rank 1`，各占 5 层）限制，因此该示意例子的块数容量放大比为 $10 / (3 + 2) = 2\times$，而不是按卡数直觉以为的 $4\times$。
 
-**一般规律下，`size` 是除法的分母，不等于显存容量放大倍数。** 每卡每个物理块的字节数为「本卡常驻层 bundle 字节 + `KVPP_SCRATCH_BUFFER_COUNT × 最大单层字节`」，其中 `KVPP_SCRATCH_BUFFER_COUNT` 是写死的常数 `2`（一个给当前层计算、一个给下一层预取）。在**各参与分配层每块均占 `b` 字节、无 MTP 等额外常驻缓存、可用显存预算相同且忽略块数向下取整**的简化算例下，设总层数为 $L$，拿层最多的卡持有 $\lceil L / \text{size} \rceil$ 层：
+**一般规律下，`size` 是除法的分母，不等于显存容量放大倍数。** 每卡每个物理块的字节数为「本卡常驻层 bundle 字节 + `KVPP_SCRATCH_BUFFER_COUNT × 最大单层字节`」，其中 `KVPP_SCRATCH_BUFFER_COUNT` 写死为 `2`（一个给当前层计算、一个给下一层预取）。在**各参与分配层每块均占 `b` 字节、无 MTP 等额外常驻缓存、可用显存预算相同且忽略块数向下取整**的简化算例下，设总层数为 $L$，拿层最多的卡持有 $\lceil L / \text{size} \rceil$ 层：
 
 | 模式 | 每卡每块物理字节（简化算例） | 相对不开 KVPP 的块数容量比 |
 | --- | --- | --- |
 | 不开 KVPP（`size = 1`） | $L \cdot b$ | $1\times$ |
 | 开启 KVPP（`size > 1`） | $(\lceil L / \text{size} \rceil + 2) \cdot b$ | $\dfrac{L}{\lceil L / \text{size} \rceil + 2}$ |
 
-当 $\text{size} \ge L$ 时 $\lceil L / \text{size} \rceil = 1$，该简化算例下的放大倍数封顶在 $L / 3$：例如 60 层模型，`TP` 从 8 增到 16（`PCP = 1`），倍数仅从 $60 / (8 + 2) = 6$ 升到 $60 / (4 + 2) = 10$，卡数再多也跨不过 20——**这道天花板来自写死的 2 块 scratch buffer，而非卡数不够**。若层布局不等大或开启 MTP 保留额外常驻缓存，实际收益比例会更小，必须重新按实际规格计算。
+当 $\text{size} \ge L$ 时 $\lceil L / \text{size} \rceil = 1$，放大倍数封顶在 $L / 3$。例如 60 层模型，`TP` 从 8 增到 16（`PCP = 1`），倍数仅从 $60 / (8 + 2) = 6$ 升到 $60 / (4 + 2) = 10$，卡数再多也跨不过 20——**这道天花板来自写死的 2 块 scratch buffer，而非卡数不够**。若层布局不等大或开启 MTP 保留额外常驻缓存，实际收益比例会更小，须按实际规格重算。
 
 ## 调 TP/PCP 时的通信与余数代价，以及 GLM 双机边界
 
-- **调大或调小 TP 会同时联动常驻布局与广播载荷**：在 `PCP = 1`、层数可整除且各层等大的例子里，从 TP8 降到 TP4 会让每卡常驻层数从 $L/8$ 增至 $L/4$；在相同可用 KV 字节预算下，可容纳的逻辑块数随之减少。反过来增大 TP 虽能减少每卡常驻层数，但 KVPP 广播发送的是整层已分配的逻辑块缓冲区（按已分配 `num_blocks` 构造）——只有固定逻辑块数、层布局与执行路径时，每次广播载荷才不会因 owner 增多而摊薄；若把省出的显存用于增加块数，整层广播字节也会跟着上升，广播次数还取决于实际执行层与是否需要历史，不能只凭 `size` 推断延迟不变。
-- **层数除不尽时，全局容量由拿得最多的卡决定**：`divmod` 让前 `remainder` 个 rank 多拿一层，而各卡分别调用 `get_num_blocks` 按本卡物理字节计算块数，最终全局块数取各卡最小值——等于让多拿一层的卡拉低全组容量。层数恰好是 `size` 整数倍时没有这笔余数损失（每层规格如何映射成缓存页见[KV cache 规格](../concepts/kv-cache-spec.md#一层要存的状态怎样变成缓存池里的一页)）。
-- **`size == 1` 时跳过 KVPP 专属校验，但不等于跳过全部检查**：当 `TP = 1, PCP = 1` 时派生 `size = 1`，跳过 `KVPPConfig.validate()` 的专属校验，但仍会检查 `enable_kvpp` 的布尔合法性及服务其他参数；逐条报错与运行组合见[会报什么错](../concepts/kvpp.md#会报什么错)，确认是否真实启用应核对派生 `size` 与 `kvpp` 通信组。
-- **放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 没有 `KVPPConfig`，写入 `enable_kvpp` 会被静默忽略（不能把它说成 `size` 恒为 1）。即便换到支持 KVPP 的 `v0.30.0` / `main`（TP8、PCP1 推导 `size = 8`），`KVPPConfig.validate()` 仍硬性要求非 hybrid MLA（`not model_config.use_mla or model_config.is_hybrid` 报错），而 GLM-5.3-Flash 为 MLA + KDA 混合注意力架构，无法直接启用（详见[GLM 双机能开 KVPP 吗](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)）。
+- **调大或调小 TP 会同时联动常驻布局与广播载荷**：在 `PCP = 1`、层数可整除且各层等大的例子里，从 TP8 降到 TP4 会让每卡常驻层数从 $L/8$ 增至 $L/4$；相同可用 KV 字节预算下，可容纳的逻辑块数随之减少。增大 TP 虽能减少每卡常驻层数，但 KVPP 广播发送的是整层已分配的逻辑块缓冲区（按已分配 `num_blocks` 构造）——仅当逻辑块数、层布局与执行路径固定时，每次广播载荷才不会因 owner 增多而摊薄；若把省出的显存用于增加块数，整层广播字节也会跟着上升，且广播次数还取决于实际执行层与是否需要历史，不能只凭 `size` 推断延迟不变。
+- **层数除不尽时，全局容量由拿得最多的卡决定**：`divmod` 让前 `remainder` 个 rank 多拿一层，各卡分别调用 `get_num_blocks` 按本卡物理字节计算块数，最终全局块数取各卡最小值——多拿一层的卡会拉低全组容量。层数恰好是 `size` 整数倍时没有这笔余数损失（每层规格如何映射成缓存页见[KV cache 规格](../concepts/kv-cache-spec.md#一层要存的状态怎样变成缓存池里的一页)）。
+- **`size == 1` 时跳过 KVPP 专属校验，但不等于跳过全部检查**：当 `TP = 1, PCP = 1` 时派生 `size = 1`，跳过 `KVPPConfig.validate()` 的专属校验，但仍会检查 `enable_kvpp` 的布尔合法性及服务其他参数。逐条报错与运行组合见[会报什么错](../concepts/kvpp.md#会报什么错)，确认是否真实启用应核对派生 `size` 与 `kvpp` 通信组。
+- **放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 没有 `KVPPConfig`，写入 `enable_kvpp` 会被静默忽略（不能说成 `size` 恒为 1）。即便换到支持 KVPP 的 `v0.30.0` / `main`（TP8、PCP1 推导 `size = 8`），`KVPPConfig.validate()` 仍硬性要求非 hybrid MLA（`not model_config.use_mla or model_config.is_hybrid` 报错），而 GLM-5.3-Flash 为 MLA + KDA 混合注意力架构，无法直接启用（详见[GLM 双机能开 KVPP 吗](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)）。
 
 ## 对照源码
 

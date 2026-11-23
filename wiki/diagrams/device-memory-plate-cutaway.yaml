@@ -1,0 +1,8 @@
+mode: native-svg
+id: device-memory-plate-cutaway
+caption: >-
+  主机内存与 NPU 显存物理隔离及跨总线搬运拆解：主机侧 CPU 与 HOST DRAM 负责读取磁盘权重文件并受容器 cgroup 内存上限约束；张量经 PCIe DMA 搬入设备侧后，常驻 NPU HBM（划分为权重、KV 缓存池与临时工作区）并就近喂给 AI CORE 片上缓冲，两本内存账独立核算、互不替代。
+size: [860, 594]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L625
+    symbols: [init_device, determine_available_memory]

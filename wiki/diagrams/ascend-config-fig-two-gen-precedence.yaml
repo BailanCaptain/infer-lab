@@ -1,0 +1,16 @@
+mode: native-svg
+id: ascend-config-fig-two-gen-precedence
+caption: >-
+  两代 AscendConfig 配置优先级全链路对照（同一合法输入 JSON=false + VLLM_ASCEND_ENABLE_FLASHCOMM1=1）：上轨为旧版 v0.23.0 / GLM 九对兼容映射——先对环境变量按 bool(int(...)) 求值（传入 =true 或 "abc" 等非法字符串则提前抛 ValueError 退出），再按「键是否在 JSON 中」覆盖，结果取 false；下轨为新版 v0.30.0 / main——经工厂剥离与 Pydantic extra="forbid" 严格解析，在 derive_and_validate 与 VLLM_ASCEND_ENABLE_FLASHCOMM1 做逻辑或（OR）得 true，随后原子发布进程内单例、经 NPUPlatform 按 kv_producer 角色改写并交由消费者最终判定。
+size: [900, 540]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L333-L346'
+    symbols: [_get_config_value]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L625'
+    symbols: [model_config, ConfigDict]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L745-L756'
+    symbols: [VLLM_ASCEND_ENABLE_FLASHCOMM1]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1795-L1951'
+    symbols: [init_ascend_config, _ASCEND_CONFIG, clear_enable_sp]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1116-L1137'
+    symbols: [recompute_scheduler_enable, kv_producer]

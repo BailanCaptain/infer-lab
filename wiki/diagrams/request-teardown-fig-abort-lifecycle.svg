@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="请求跨进程中止生命周期、倒序还块与收尾抢占清缓存边界对照图" font-family="var(--font-sans)">
-  <title>请求跨进程中止与收尾时序（ZMQ 双队列 ABORT、调度器倒序还块与异步调度下的 Worker 延迟删行），以及收尾、抢占与重置前缀缓存三者边界对照。</title>
-  <desc>上半部分以三进程泳道展示前端断开或命中停止串后经 ZMQ 双队列（aborts_queue 与 input_queue）通知 EngineCore 倒序还块，以及异步调度下 NPU Worker 晚一到两步删批次行的时序；下半部分展示倒序还块队列规则与收尾、抢占、清空前缀缓存三者区别。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 536" width="900" height="536" role="img" aria-label="请求跨进程中止生命周期、异步 k/k+1/k+2 延步删行与收尾抢占清缓存边界对照图" font-family="var(--font-sans)">
+  <title>请求跨进程中止与收尾时序（ZMQ 双队列 ABORT、调度器倒序还块与异步调度下 k / k+1 / k+2 步的 Worker 延迟删行），以及收尾、抢占与重置前缀缓存三者边界对照。</title>
+  <desc>上半部分以三进程泳道展示前端断开或命中停止串后经 ZMQ 双队列（aborts_queue 与 input_queue）通知 EngineCore 统一汇入 _free_request，并细化 NPU Worker 在异步调度下步 k 判停、步 k+1 已发清单结果被丢弃、步 k+2 随清单删行的三级时间轴；下半部分对照收尾、抢占与清空前缀缓存三者区别。</desc>
   <defs>
     <marker id="rt-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
@@ -13,74 +13,92 @@
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、跨进程中止与异步收尾时序：ZMQ 双队列抢清 → 倒序还块 → Worker 延步删行</text>
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、跨进程中止与异步收尾时序：ZMQ 双队列 → 统一释放 → Worker 步 k+2 删行</text>
 
   <!-- Lane 1: API Server -->
-  <rect x="14" y="44" width="130" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="79" y="74" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">API Server</text>
-  <text x="79" y="98" text-anchor="middle" font-size="13.5" fill="#4d5652">前端进程</text>
+  <rect x="14" y="42" width="126" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="77" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">API Server</text>
+  <text x="77" y="95" text-anchor="middle" font-size="13.5" fill="#4d5652">前端进程</text>
 
-  <rect x="160" y="44" width="234" height="72" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="174" y="72" font-size="14" font-weight="700" fill="#3a4f93">1. 客户端断开 / 命中 stop 串</text>
-  <text x="174" y="98" font-size="13.5" fill="#17211f">删前端记录，写入 abort/stop 末果</text>
+  <rect x="154" y="42" width="320" height="72" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="168" y="68" font-size="14" font-weight="700" fill="#3a4f93">1. 客户端断开 / 命中 stop 串</text>
+  <text x="168" y="94" font-size="13.5" fill="#17211f">删前端记录，写入 abort / stop 末果</text>
 
-  <path d="M 394 80 L 420 80" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#rt-arr-i)"/>
+  <path d="M 474 78 L 502 78" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#rt-arr-i)"/>
 
-  <rect x="426" y="44" width="236" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="440" y="72" font-size="14" font-weight="700" fill="#3a4f93">2. 查 DP 路由表发 ZMQ ABORT</text>
-  <text x="440" y="98" font-size="13.5" fill="#17211f">只发给所在 DP 组；引擎已死不发</text>
+  <rect x="508" y="42" width="378" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="522" y="68" font-size="14" font-weight="700" fill="#3a4f93">2. 查 DP 路由表发 ZMQ ABORT</text>
+  <text x="522" y="94" font-size="13.5" fill="#17211f">定向发给所在 DP 组（n&gt;1 全中止；引擎死不发）</text>
 
-  <!-- Connector down from Lane 1 box 2 to Lane 2 -->
-  <path d="M 544 116 L 544 132 L 278 132 L 278 142" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#rt-arr-i)"/>
+  <!-- Connector down -->
+  <path d="M 697 114 L 697 128 L 284 128 L 284 138" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#rt-arr-i)"/>
 
   <!-- Lane 2: EngineCore -->
-  <rect x="14" y="148" width="130" height="82" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-  <text x="79" y="182" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">EngineCore</text>
-  <text x="79" y="206" text-anchor="middle" font-size="13.5" fill="#4d5652">调度器 &amp; 块池</text>
+  <rect x="14" y="142" width="126" height="82" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="77" y="176" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">EngineCore</text>
+  <text x="77" y="199" text-anchor="middle" font-size="13.5" fill="#4d5652">调度器 &amp; 块池</text>
 
-  <rect x="160" y="148" width="234" height="82" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
-  <text x="174" y="174" font-size="14" font-weight="700" fill="#936300">3. ABORT 同时进双队列</text>
-  <text x="174" y="198" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700">aborts_queue</tspan>：步尾优先清</text>
-  <text x="174" y="220" font-size="13.5" fill="#4d5652">• <tspan font-family="var(--font-mono)">input_queue</tspan>：保序防漏（幂等）</text>
+  <rect x="154" y="142" width="260" height="82" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="168" y="167" font-size="14" font-weight="700" fill="#936300">3. ABORT 同时进双队列</text>
+  <text x="168" y="191" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700">aborts_queue</tspan> 步尾先清</text>
+  <text x="168" y="213" font-size="13.5" fill="#4d5652">• <tspan font-family="var(--font-mono)">input_queue</tspan> 保序幂等</text>
 
-  <path d="M 394 189 L 420 189" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#rt-arr-a)"/>
+  <path d="M 414 183 L 436 183" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#rt-arr-a)"/>
 
-  <rect x="426" y="148" width="460" height="82" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="440" y="174" font-size="14" font-weight="700" fill="#936300">4. _free_request 统一汇合点（引擎判停也直接走此步）</text>
-  <text x="440" y="198" font-size="13.5" fill="#17211f">移出 running/waiting → 记入 <tspan font-family="var(--font-mono)" font-weight="700">finished_req_ids</tspan> → 倒序还块 → 删表项</text>
-  <text x="440" y="220" font-size="13.5" fill="#4d5652">（有 KV connector 传输或在途写保护时经 <tspan font-family="var(--font-mono)">deferred_frees</tspan> 延后还块）</text>
+  <rect x="440" y="142" width="446" height="82" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="454" y="167" font-size="14" font-weight="700" fill="#936300">4. _free_request 统一汇合（引擎判停也直接走此步）</text>
+  <text x="454" y="191" font-size="13.5" fill="#17211f">移出队列 → 记 <tspan font-family="var(--font-mono)" font-weight="700">finished_req_ids</tspan> → 倒序还块 → 删表项</text>
+  <text x="454" y="213" font-size="13.5" fill="#4d5652">（PD 传 KV 或在途写保护时经 <tspan font-family="var(--font-mono)">deferred_frees</tspan> 延后还块）</text>
 
   <!-- Connector down to Lane 3 -->
-  <path d="M 656 230 L 656 244" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rt-arr-t)"/>
+  <path d="M 663 224 L 663 240" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rt-arr-t)"/>
 
-  <!-- Lane 3: NPU Worker -->
-  <rect x="14" y="250" width="130" height="62" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="79" y="276" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">NPU Worker</text>
-  <text x="79" y="298" text-anchor="middle" font-size="13.5" fill="#4d5652">每卡持久批次表</text>
+  <!-- Lane 3: NPU Worker k / k+1 / k+2 timeline -->
+  <rect x="14" y="244" width="126" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="77" y="276" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">NPU Worker</text>
+  <text x="77" y="298" text-anchor="middle" font-size="13.5" fill="#4d5652">异步延步时间轴</text>
 
-  <rect x="160" y="250" width="316" height="62" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="174" y="275" font-size="14" font-weight="700" fill="#8f3229">异步调度多排一步（步 k+1）</text>
-  <text x="174" y="298" font-size="13.5" fill="#17211f">判停前已发清单；该步结果回来直接跳过</text>
+  <!-- Step k -->
+  <rect x="154" y="244" width="218" height="84" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="168" y="268" font-size="14" font-weight="700" fill="#17211f">步 k（命中 EOS 判停）</text>
+  <text x="168" y="292" font-size="13.5" fill="#4d5652">卡上刚算完、引擎判停还块</text>
+  <text x="168" y="314" font-size="13" fill="#4d5652">（此时步 k+1 已提前发出）</text>
 
-  <path d="M 476 281 L 502 281" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rt-arr-t)"/>
+  <path d="M 372 286 L 392 286" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#rt-arr-a)"/>
 
-  <rect x="508" y="250" width="378" height="62" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="522" y="275" font-size="14" font-weight="700" fill="#065f56">5. 随下一份清单删批次行（步 k+2）</text>
-  <text x="522" y="298" font-size="13.5" fill="#17211f">收 <tspan font-family="var(--font-mono)" font-weight="700">finished_req_ids</tspan> → 各卡清块表行与采样状态</text>
+  <!-- Step k+1 -->
+  <rect x="396" y="244" width="230" height="84" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="410" y="268" font-size="14" font-weight="700" fill="#8f3229">步 k+1（在途多排 1 步）</text>
+  <text x="410" y="292" font-size="13.5" fill="#17211f">预借块已在步 k 一并收回</text>
+  <text x="410" y="314" font-size="13" fill="#8f3229">结果回引擎查无此 ID 直接丢</text>
 
-  <line x1="14" y1="328" x2="886" y2="328" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <path d="M 626 286 L 646 286" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rt-arr-t)"/>
 
-  <text x="14" y="356" font-size="16" font-weight="700" fill="#17211f">二、倒序还块（ref_cnt = 0 才回池）与三类「回收动作」边界对照</text>
+  <!-- Step k+2 -->
+  <rect x="650" y="244" width="236" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="664" y="268" font-size="14" font-weight="700" fill="#065f56">步 k+2（真正删批次行）</text>
+  <text x="664" y="292" font-size="13.5" fill="#17211f">随清单收 <tspan font-family="var(--font-mono)" font-weight="700">finished_req_ids</tspan></text>
+  <text x="664" y="314" font-size="13" fill="#065f56">各卡清块表行与采样状态</text>
 
-  <rect x="14" y="372" width="424" height="134" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="28" y="398" font-size="15" font-weight="700" fill="#065f56">倒序还块：块 5 → 块 2 → 块 9（保护开头复用）</text>
-  <text x="28" y="426" font-size="13.5" fill="#17211f">• 块 5、块 2：<tspan font-family="var(--font-mono)" font-weight="700">ref_cnt 1→0</tspan> 排空闲队尾（留指纹、不擦显存）</text>
-  <text x="28" y="454" font-size="13.5" fill="#17211f">• 共享块 9：<tspan font-family="var(--font-mono)" font-weight="700">ref_cnt 2→1</tspan> 留在请求 B 手里，不回池</text>
-  <text x="28" y="482" font-size="13.5" fill="#4d5652">• 滑窗尾状态组无指纹则插队头优先复用；GLM 关前缀缓存无指纹</text>
+  <line x1="14" y1="344" x2="886" y2="344" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
-  <rect x="462" y="372" width="424" height="134" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="476" y="398" font-size="15" font-weight="700" fill="#7a3a6a">别把三个动作混为一谈</text>
-  <text x="476" y="426" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#065f56">收尾：</tspan>全还块 + 删请求表项 + 前端结束，不再调度</text>
-  <text x="476" y="454" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#936300">抢占：</tspan>全还块但留表项与已生成编号，清进度退回等待队头</text>
-  <text x="476" y="482" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">清前缀缓存：</tspan>不还块，只抹指纹（除 null 外须全空闲否则失败）</text>
+  <text x="14" y="372" font-size="16" font-weight="700" fill="#17211f">二、三类易混「回收动作」边界速查（收尾 vs 抢占 vs 清空前缀缓存）</text>
+
+  <rect x="14" y="388" width="280" height="134" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="414" font-size="15" font-weight="700" fill="#065f56">收尾（结束 / 中止）</text>
+  <text x="28" y="442" font-size="13.5" fill="#17211f">• KV 块：全部引用减 1</text>
+  <text x="28" y="468" font-size="13.5" fill="#17211f">• 请求表：彻底删除</text>
+  <text x="28" y="494" font-size="13.5" fill="#4d5652">• 前端结束，不再调度</text>
+
+  <rect x="310" y="388" width="280" height="134" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="324" y="414" font-size="15" font-weight="700" fill="#936300">抢占（Preemption）</text>
+  <text x="324" y="442" font-size="13.5" fill="#17211f">• KV 块：全部引用减 1</text>
+  <text x="324" y="468" font-size="13.5" fill="#17211f">• 请求表：保留 + 进度归零</text>
+  <text x="324" y="494" font-size="13.5" fill="#4d5652">• 退回 waiting 队首重算，不断流</text>
+
+  <rect x="606" y="388" width="280" height="134" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="620" y="414" font-size="15" font-weight="700" fill="#8f3229">清空前缀缓存</text>
+  <text x="620" y="442" font-size="13.5" fill="#17211f">• KV 块与请求表：均不动</text>
+  <text x="620" y="468" font-size="13.5" fill="#17211f">• 只抹掉前缀哈希指纹</text>
+  <text x="620" y="494" font-size="13.5" fill="#8f3229">• 仍有块被持有时默认失败</text>
 </svg>

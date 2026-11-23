@@ -1,0 +1,10 @@
+mode: native-svg
+id: param-stair-lpt-backtrack
+caption: >-
+  STAIR 带约束 LPT 有界回溯预算扣减走读（3 份副本 A→B→C，placement_search_backtrack_limit = 1 示意）：展示为何跳过不可行卡与首次可行选择均不扣预算，仅接受替代可行分支才扣 1 次，以及三条件齐备触发 budget_exhausted 仅放弃当前候选。
+size: [900, 460]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L876-L1127
+    symbols: [lpt_placement, undo_placement]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L225-L260
+    symbols: [placement_search_backtrack_limit]

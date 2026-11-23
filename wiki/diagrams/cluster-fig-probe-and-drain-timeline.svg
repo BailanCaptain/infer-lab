@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="昇腾冷启动探针护栏与四步优雅摘流时间线：对比默认 shutdown-timeout=0 直接 abort 与显式 drain 排空" font-family="var(--font-sans)">
+  <title>冷启动 /health 探针护栏与四步优雅摘流（--shutdown-timeout 0 abort vs &gt; 0 drain）</title>
+  <desc>Horizontal pod lifecycle timeline from 2-10m cold start (startupProbe protecting build_async_engine_client) through serving (/health 200) to preStop and SIGTERM fork (abort vs drain) bounded by terminationGracePeriodSeconds</desc>
+  <defs>
+    <marker id="cpd-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="cpd-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="cpd-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">昇腾 Pod 全生命周期时间线：长冷启动探针防误杀 → 滚动发版四步优雅摘流</text>
+
+  <!-- Phase 1: Cold Start (2-10 min) -->
+  <rect x="14" y="48" width="234" height="96" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="131" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">① 冷启动与录图（2–10 min）</text>
+  <text x="131" y="96" text-anchor="middle" font-size="13.5" fill="#17211f">加载权重 → 转 NZ → profile</text>
+  <text x="131" y="116" text-anchor="middle" font-size="13.5" fill="#17211f">→ 捕获 ACL Graph 静态图</text>
+  <text x="131" y="136" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">端口拒连 / DPSupervisor 503</text>
+
+  <!-- startupProbe bracket under Phase 1 -->
+  <path d="M 18 152 L 18 168 L 244 168 L 244 152" fill="none" stroke="#c78300" stroke-width="1.8"/>
+  <rect x="30" y="156" width="202" height="24" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="131" y="173" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">startupProbe 抑制其他探针</text>
+
+  <path d="M 248 96 L 274 96" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cpd-arr-t)"/>
+
+  <!-- Phase 2: Ready & Serving -->
+  <rect x="278" y="48" width="174" height="96" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="365" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">② 在线服务期</text>
+  <text x="365" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">serve_http() 开启</text>
+  <text x="365" y="116" text-anchor="middle" font-size="13.5" fill="#17211f">/health 返回 200</text>
+  <text x="365" y="136" text-anchor="middle" font-size="13.5" fill="#4d5652">崩核抛死返 503 摘流</text>
+
+  <rect x="288" y="156" width="154" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="365" y="173" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">readiness + liveness</text>
+
+  <path d="M 452 96 L 478 96" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#cpd-arr-a)"/>
+
+  <!-- Phase 3A: preStop -->
+  <rect x="482" y="48" width="126" height="96" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="545" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">③ preStop</text>
+  <text x="545" y="96" text-anchor="middle" font-size="13.5" fill="#17211f">先从 LB 摘除</text>
+  <text x="545" y="116" text-anchor="middle" font-size="13.5" fill="#17211f">sleep 10–15 s</text>
+  <text x="545" y="136" text-anchor="middle" font-size="13.5" fill="#3a4f93">停导新流量</text>
+
+  <!-- SIGTERM Fork into Wrong (abort) vs Right (drain) -->
+  <path d="M 608 76 C 632 76, 634 72, 656 72" fill="none" stroke="#b54237" stroke-width="2" marker-end="url(#cpd-arr-r)"/>
+  <path d="M 608 118 C 632 118, 634 148, 656 148" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cpd-arr-t)"/>
+  <text x="632" y="102" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">SIGTERM</text>
+
+  <!-- Wrong branch: default shutdown-timeout=0 -> abort -->
+  <rect x="662" y="46" width="224" height="58" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="670" y="70" font-size="13.5" font-weight="700" fill="#8f3229">✗ 默认 --shutdown-timeout 0</text>
+  <text x="670" y="92" font-size="12.5" fill="#8f3229">走 abort：立即掐断所有在途请求！</text>
+
+  <!-- Right branch: shutdown-timeout=120 -> drain -->
+  <rect x="662" y="116" width="224" height="72" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="670" y="140" font-size="13.5" font-weight="700" fill="#065f56">✓ 显式 --shutdown-timeout T</text>
+  <text x="670" y="162" font-size="12.5" fill="#17211f">走 drain（如 T = 120 s &gt; P99）</text>
+  <text x="670" y="182" font-size="12.5" fill="#065f56">等在途流式请求自然吐完再退</text>
+
+  <!-- Grace Period Total Bracket under Phase 3 -->
+  <path d="M 484 202 L 484 222 L 882 222 L 882 202" fill="none" stroke="#4c65b6" stroke-width="2"/>
+  <rect x="492" y="210" width="382" height="28" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="683" y="229" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">terminationGracePeriodSeconds &gt; preStop + T + 收尾</text>
+
+  <line x1="14" y1="256" x2="886" y2="256" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Bottom: 3 K8s / Hot-Maintenance Operational Guardrails -->
+  <text x="14" y="282" font-size="15.5" font-weight="700" fill="#17211f">生产编排三条铁律与原地热维护入口</text>
+
+  <rect x="14" y="296" width="278" height="80" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="26" y="320" font-size="14" font-weight="700" fill="#936300">1. startupProbe 独立配长窗</text>
+  <text x="26" y="344" font-size="13.5" fill="#4d5652">如 period 10s × failure 60 = 10 分钟</text>
+  <text x="26" y="366" font-size="13.5" fill="#4d5652">勿靠固定 initialDelaySeconds 死等</text>
+
+  <rect x="311" y="296" width="278" height="80" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="323" y="320" font-size="14" font-weight="700" fill="#3a4f93">2. 对齐 K8s 宽限防 SIGKILL</text>
+  <text x="323" y="344" font-size="13.5" fill="#4d5652">未给足宽限期时，kubelet 会</text>
+  <text x="323" y="366" font-size="13.5" fill="#4d5652">在 drain 完成前直接发 SIGKILL 强杀</text>
+
+  <rect x="608" y="296" width="278" height="80" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="620" y="320" font-size="14" font-weight="700" fill="#7a3a6a">3. 原地换权重（不下线进程）</text>
+  <text x="620" y="344" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">POST /pause?mode=wait</text>
+  <text x="620" y="366" font-size="13.5" fill="#4d5652">等在途排空再换权（区别 abort/keep）</text>
+</svg>

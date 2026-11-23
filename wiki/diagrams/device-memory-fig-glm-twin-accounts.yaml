@@ -1,0 +1,11 @@
+mode: native-svg
+id: device-memory-fig-glm-twin-accounts
+caption: >-
+  例外 B 历史 GLM-5.3-Flash 双机（64 GiB 教学假设，u=0.85）同比例显存预算条与 TP8 分片/复制差异：预算内 54.4 GiB 扣除语言权重子账 20.58 GiB（或 21 GiB 假设）与试跑 3.4 GiB 后余下 30.00/30.42 GiB（3,855/3,908 块），预算外 9.6 GiB 余量支付 ACLGraph 与首次执行才创建的 54 MiB/卡 FP32 索引器副本；下方对照 KDA 按头 1/8 切分与 12 层 MLA 潜向量全卡复制。
+size: [900, 384]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597'
+    symbols:
+      - determine_available_memory
+      - kv_cache_memory_bytes
+      - non_kv_cache_memory

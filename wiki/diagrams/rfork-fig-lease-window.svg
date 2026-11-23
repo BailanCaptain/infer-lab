@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="RFork 晚申请租约与旧版先借后搭窗口对比图：展示 main 如何把搭空模型、转布局与预登记移出 60 秒租约有效期，并标出未命中冷启动的重建代价" font-family="var(--font-sans)">
+  <title>RFork 晚申请租约窗口对比：旧版 v0.23/v0.26 一上来先借租约，搭模型、转布局与登记显存全部耗在 60 秒租约期内；上游 main（8d6180e2）把本地准备与预登记全部移到借租约之前，大幅压缩租约占用，代价是首次未命中冷启动需清理重建一次。</title>
+  <desc>关联源码符号：register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, _reset_process_global_model_state</desc>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">为什么要把「借租约」推迟到第 7 步：把本地准备耗时移出有限租约窗口</text>
+
+  <!-- 轨道 1：旧版 v0.23 / v0.26（先借后搭） -->
+  <text x="16" y="64" font-size="14" font-weight="700" fill="#8f3229">旧版（v0.23 / v0.26）</text>
+  <text x="16" y="84" font-size="13.5" fill="#66716d">一上来先问 Planner</text>
+
+  <!-- 整个租约覆盖括号背景 -->
+  <rect x="184" y="46" width="698" height="66" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="196" y="65" font-size="13.5" font-weight="700" fill="#8f3229">← 租约名额与 60s TTL 从一开始就被占满（期间其他实例借不到 A）→</text>
+
+  <rect x="196" y="72" width="150" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="271" y="93" text-anchor="middle" font-size="13.5" fill="#936300">搭空模型</text>
+
+  <rect x="352" y="72" width="150" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="427" y="93" text-anchor="middle" font-size="13.5" fill="#936300">布局后处理</text>
+
+  <rect x="508" y="72" width="128" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="572" y="93" text-anchor="middle" font-size="13.5" fill="#3a4f93">登记显存</text>
+
+  <rect x="642" y="72" width="228" height="32" rx="4" fill="#9a4b86"/>
+  <text x="756" y="93" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">取清单 + 分批读 + 同步还</text>
+
+  <!-- 轨道 2：上游 main (8d6180e2，晚申请) -->
+  <text x="16" y="160" font-size="14" font-weight="700" fill="#065f56">当前 main（8d6180e2）</text>
+  <text x="16" y="180" font-size="13.5" fill="#66716d">先准备并登记，再借</text>
+
+  <!-- 本地无租约区间 -->
+  <rect x="184" y="136" width="444" height="68" rx="6" fill="#ece9df" fill-opacity="0.7" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="196" y="155" font-size="13.5" font-weight="700" fill="#4d5652">本地完成（不占租约名额，也不耗 TTL）</text>
+
+  <rect x="196" y="163" width="134" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="263" y="184" text-anchor="middle" font-size="13.5" fill="#936300">搭模型+宿主表</text>
+
+  <rect x="336" y="163" width="136" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="404" y="184" text-anchor="middle" font-size="13.5" fill="#936300">布局+NPU同步</text>
+
+  <rect x="478" y="163" width="142" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="549" y="184" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">登记+绑seed_key</text>
+
+  <!-- 租约核心区间（大幅缩短） -->
+  <rect x="636" y="136" width="246" height="68" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="648" y="155" font-size="13.5" font-weight="700" fill="#065f56">租约窗口（显著缩短）</text>
+
+  <rect x="648" y="163" width="148" height="32" rx="4" fill="#9a4b86"/>
+  <text x="722" y="184" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">取清单 + 分批读</text>
+
+  <rect x="802" y="163" width="72" height="32" rx="4" fill="#087f73"/>
+  <text x="838" y="184" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">后台还</text>
+
+  <!-- 分隔线 -->
+  <line x1="16" y1="226" x2="884" y2="226" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 下半区：收益与代价双栏对照 -->
+  <rect x="16" y="244" width="424" height="148" rx="7" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="270" font-size="14.5" font-weight="700" fill="#065f56">✓ 晚申请换来的两项收益</text>
+  <text x="32" y="298" font-size="13.5" fill="#17211f">1. seed_key 携带真实张量结构摘要，精准防错配</text>
+  <text x="32" y="324" font-size="13.5" fill="#17211f">2. 构图、NZ 转换与显存登记均移出租约有效期，</text>
+  <text x="32" y="346" font-size="13.5" fill="#4d5652">   减少 1 名额 seed 阻塞其他扩容实例的时间</text>
+  <text x="32" y="374" font-size="13.5" font-weight="700" fill="#065f56">3. 归还改异步后台，不拖住模型交回主线程</text>
+
+  <rect x="460" y="244" width="424" height="148" rx="7" fill="#fff4cf" fill-opacity="0.7" stroke="#c78300" stroke-width="1.4"/>
+  <text x="476" y="270" font-size="14.5" font-weight="700" fill="#936300">△ 晚申请的固定代价（未命中冷启动）</text>
+  <text x="476" y="298" font-size="13.5" fill="#17211f">1. 首次冷启动（无可用 seed）仍会先跑完 1–7 步，</text>
+  <text x="476" y="320" font-size="13.5" fill="#4d5652">   搭模型与布局后处理在回退后要再做一遍</text>
+  <text x="476" y="348" font-size="13.5" fill="#17211f">2. 重建前须过双门清理并恢复 6 类进程全局表</text>
+  <text x="476" y="374" font-size="13.5" font-weight="700" fill="#8f3229">3. 必须实测冷/热启动分段耗时，不凭直觉拍板</text>
+</svg>

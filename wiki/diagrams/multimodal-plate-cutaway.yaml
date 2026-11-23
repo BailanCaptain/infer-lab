@@ -1,0 +1,12 @@
+mode: native-svg
+id: multimodal-plate-cutaway
+caption: >-
+  多模态视觉编码到语言主干的三级物理流水拆解：前端 CPU 先将媒体切为 PATCH GRID 并在序列中预留等长占位槽；NPU 侧对未命中可选 EC CACHE 的媒体跑完 ViT ENCODER 产出视觉嵌入（启用 ScoreEncoderCacheManager 时按空槽充足直升或热度评分在 CPU/NPU 两级池间晋升）；最终按占位掩码原地覆写进 LLM TOKENS（Qwen3-VL 等另含 DeepStack 层间特征注入）并由 M-RoPE（分段或交错频段）注入 (T, H, W) 三维坐标。
+size: [860, 598]
+pins:
+  - source: vllm@ced6857a:vllm/multimodal/processing/processor.py#L1167-L1307
+    symbols: [_apply_hf_processor_main]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L83-L240
+    symbols: [ScoreEncoderCacheManager, should_promote]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L601-L684
+    symbols: [AscendMRotaryEmbedding]

@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 462" width="900" height="462" role="img" aria-label="乱码、重复、空输出与 NaN 四类症状进入流水线的切入点图及 Runtime Guard 递增水位示意图" font-family="var(--font-sans)">
+  <title>四类输出症状切入点地图与 Runtime Guard 在线取证边界</title>
+  <desc>Output pipeline rail mapping where NaN, repetition, garbled text, and empty output enter (Logits -> Sampler -> Incremental Detokenizer &amp; Stop Buffer -> Tool/Reasoning Parser -> Client SSE), plus Runtime Guard monotonic manual_dump watermark</desc>
+  <defs>
+    <marker id="sr-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="sr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 乱码、重复、空输出、NaN 分别在哪一站混入？按输出流水线反推切入点</text>
+
+  <!-- 5-Station Output Pipeline Rail (y=44..94) -->
+  <rect x="16" y="44" width="154" height="48" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="93" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">① 模型 Logits</text>
+  <text x="93" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">数值 / 有限性</text>
+  <line x1="170" y1="68" x2="188" y2="68" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="190" y="44" width="154" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="267" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">② 采样选 ID</text>
+  <text x="267" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">惩罚 / EOS / 种子</text>
+  <line x1="344" y1="68" x2="362" y2="68" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="364" y="44" width="164" height="48" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="446" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">③ 增量反分词</text>
+  <text x="446" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">停止串尾部缓冲</text>
+  <line x1="528" y1="68" x2="546" y2="68" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="548" y="44" width="164" height="48" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="630" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">④ 解析器拆字段</text>
+  <text x="630" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">tool / reasoning</text>
+  <line x1="712" y1="68" x2="730" y2="68" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="732" y="44" width="152" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="808" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">⑤ 客户端拼接</text>
+  <text x="808" y="83" text-anchor="middle" font-size="13.5" fill="#4d5652">SSE 展示/编码</text>
+
+  <!-- Vertical drop lines to 4 symptom diagnosis cards (y=124..310) -->
+  <line x1="93" y1="92" x2="93" y2="120" stroke="#b54237" stroke-width="1.5" marker-end="url(#sr-red)"/>
+  <line x1="267" y1="92" x2="338" y2="120" stroke="#c78300" stroke-width="1.4" marker-end="url(#sr-arr)"/>
+  <line x1="446" y1="92" x2="559" y2="120" stroke="#4c65b6" stroke-width="1.4" marker-end="url(#sr-arr)"/>
+  <line x1="630" y1="92" x2="778" y2="120" stroke="#9a4b86" stroke-width="1.4" marker-end="url(#sr-arr)"/>
+  <line x1="808" y1="92" x2="380" y2="120" stroke="#087f73" stroke-width="1.3" stroke-dasharray="4 3"/>
+
+  <!-- Card 1: NaN / Inf -->
+  <rect x="16" y="124" width="206" height="190" rx="8" fill="#ffffff" stroke="#b54237" stroke-width="1.5"/>
+  <rect x="17" y="125" width="204" height="32" rx="7" fill="#fff0e9"/>
+  <text x="28" y="146" font-size="14" font-weight="700" fill="#8f3229">NaN / Inf（落 ①）</text>
+  <text x="28" y="178" font-size="13.5" fill="#17211f">记首现层、输入范围与</text>
+  <text x="28" y="200" font-size="13.5" fill="#17211f">dtype/形状</text>
+  <text x="28" y="228" font-size="13.5" font-weight="700" fill="#8f3229">上一层已 NaN → 前追</text>
+  <text x="28" y="252" font-size="13.5" fill="#4d5652">输入正常本步变 NaN →</text>
+  <text x="28" y="274" font-size="13.5" fill="#4d5652">单算子受控参考对照</text>
+  <text x="28" y="300" font-size="13.5" fill="#66716d">异步报错点 ≠ 首错点</text>
+
+  <!-- Card 2: Repetition -->
+  <rect x="236" y="124" width="206" height="190" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="237" y="125" width="204" height="32" rx="7" fill="#fff4cf"/>
+  <text x="248" y="146" font-size="14" font-weight="700" fill="#936300">重复输出（落 ② 或 ⑤）</text>
+  <text x="248" y="178" font-size="13.5" font-weight="700" fill="#065f56">原始 SSE 只发：</text>
+  <text x="248" y="200" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">["今天", "下雨"]</text>
+  <text x="248" y="226" font-size="13.5" fill="#8f3229">客户端误拼→今天今天下雨</text>
+  <text x="248" y="252" font-size="13.5" fill="#4d5652">若原始流本身已重复 →</text>
+  <text x="248" y="274" font-size="13.5" fill="#4d5652">锁重复前前缀查模板、</text>
+  <text x="248" y="296" font-size="13.5" fill="#4d5652">惩罚设置与计算状态</text>
+
+  <!-- Card 3: Garbled Text -->
+  <rect x="456" y="124" width="206" height="190" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <rect x="457" y="125" width="204" height="32" rx="7" fill="#e8edff"/>
+  <text x="468" y="146" font-size="14" font-weight="700" fill="#3a4f93">乱码 / 怪标（落 ③）</text>
+  <text x="468" y="178" font-size="13.5" fill="#17211f">先比引擎输出 token ID</text>
+  <text x="468" y="204" font-size="13.5" font-weight="700" fill="#3a4f93">ID 同文本错 → 查解码</text>
+  <text x="468" y="228" font-size="13.5" fill="#4d5652">多字节字符须增量解码</text>
+  <text x="468" y="252" font-size="13.5" fill="#4d5652">不可逐 token 单解再拼</text>
+  <text x="468" y="278" font-size="13.5" fill="#8f3229">ID 已错 → 回第 1/2 关</text>
+  <text x="468" y="300" font-size="13.5" fill="#66716d">勿直接跳到量化损坏</text>
+
+  <!-- Card 4: Empty Output -->
+  <rect x="676" y="124" width="208" height="190" rx="8" fill="#ffffff" stroke="#9a4b86" stroke-width="1.5"/>
+  <rect x="677" y="125" width="206" height="32" rx="7" fill="#f7e7f2"/>
+  <text x="688" y="146" font-size="14" font-weight="700" fill="#7a3a6a">空输出（落 ② / ③ / ④）</text>
+  <text x="688" y="178" font-size="13.5" fill="#17211f">看结束原因与原始全字段</text>
+  <text x="688" y="202" font-size="13.5" font-weight="700" fill="#7a3a6a">设 stop 且不回显时缓冲：</text>
+  <text x="688" y="223" font-family="var(--font-mono)" font-size="13.5" fill="#7a3a6a">len(max_stop) − 1</text>
+  <text x="688" y="246" font-size="13.5" fill="#4d5652">（未配或回显 stop 无此扣）</text>
+  <text x="688" y="272" font-size="13.5" fill="#4d5652">或被 reasoning/tool 拆走</text>
+  <text x="688" y="298" font-size="13.5" fill="#66716d">须 &gt; min_tokens 才判停</text>
+
+  <line x1="16" y1="332" x2="884" y2="332" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Runtime Guard Manual Dump Monotonic Watermark Ladder (y=346..450) -->
+  <text x="16" y="360" font-size="15.5" font-weight="700" fill="#17211f">② Runtime Guard（main MRV2）热更新手动转储：递增水位规则（不是剩余次数）</text>
+
+  <!-- Ladder blocks: 0 -> 1 -> 2 -> 3 -->
+  <rect x="16" y="376" width="136" height="44" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="84" y="403" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">已触发 = 0</text>
+  <line x1="152" y1="398" x2="178" y2="398" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="180" y="376" width="156" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="258" y="403" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">设为 1 → 触发第 1 波</text>
+  <line x1="336" y1="398" x2="362" y2="398" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="364" y="376" width="156" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="442" y="403" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">仍写 1 → 不再触发</text>
+  <line x1="520" y1="398" x2="546" y2="398" stroke="#4d5652" stroke-width="1.5" marker-end="url(#sr-arr)"/>
+
+  <rect x="548" y="376" width="156" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="626" y="403" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">升为 2 → 触发第 2 波</text>
+
+  <rect x="720" y="376" width="164" height="44" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="802" y="403" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">✗ 勿一次写 100</text>
+
+  <text x="16" y="446" font-size="13.5" fill="#4d5652">▸ 多 DP 引擎各自独立计数；<tspan font-family="var(--font-mono)">dump_attempted</tspan> ≠ 落盘成功，须核实际产物且注意仅覆盖末 PP 阶段所有 TP rank</text>
+</svg>

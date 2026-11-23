@@ -1,8 +1,8 @@
 mode: native-svg
 id: attention-backend-family-fig-selector-tree
 caption: >-
-  昇腾注意力后端选择决策树（v0.30.0 与 main）：区分模型层直报的 Linear（KDA / GDN）分支与平台 get_attn_backend_cls 通用选择树——依次检查前置特判（FA3 训推一致与 main 新增 FA / flash_attn_npu_3）、310P 兼容族、MRV2 PCP 分支，最后按 (use_mla, use_sparse, use_compress) 查四元组映射表。
-size: [900, 470]
+  昇腾注意力后端选择决策树（v0.30.0 与 main）：左侧为模型层直报的 Linear（KDA / GDN）旁路（拒绝 PCP > 1）；右侧为平台 get_attn_backend_cls 依次穿越前置特判（FA3 / main 新增 FA）、310P 兼容族、MRV2 PCP，最终落入 (use_mla, use_sparse, use_compress) 四元组表。
+size: [900, 540]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L290
     symbols: [get_attn_backend_cls, AscendFABackend, AscendAttentionBackend, AscendMLABackend, AscendSFABackend, AscendDSABackend, AscendAttentionBackend310]

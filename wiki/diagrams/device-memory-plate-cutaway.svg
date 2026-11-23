@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 594" width="860" height="594" role="img" aria-label="主机内存与 NPU 设备显存双账本立体拆解剖面图：左侧主机 CPU 与 HOST DRAM 承载文件缓冲与 Python 进程内存，中间经 PCIe DMA 总线搬运分片，右侧 NPU 卡内 AI CORE 片上高速缓冲与 HBM 显存按权重、KV 池与运行工作区分层常驻" font-family="var(--font-sans)">
+  <title>主机内存与 NPU 显存物理隔离及跨总线搬运拆解：主机侧 CPU 与 HOST DRAM 负责读取磁盘权重文件并受容器 cgroup 内存上限约束；张量经 PCIe DMA 搬入设备侧后，常驻 NPU HBM（划分为权重、KV 缓存池与临时工作区）并就近喂给 AI CORE 片上缓冲，两本内存账独立核算、互不替代。</title>
+  <desc>关联源码符号：init_device, determine_available_memory</desc>
+
+  <image href="./wiki-illustrations/device-memory-cutaway.webp" x="40" y="132" width="780" height="316" preserveAspectRatio="xMidYMid meet"/>
+
+  <line x1="224" y1="114" x2="224" y2="245" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="224" cy="245" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="224" cy="245" r="2.5" fill="#4c65b6"/>
+
+  <line x1="430" y1="114" x2="430" y2="308" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="430" cy="308" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="430" cy="308" r="2.5" fill="#087f73"/>
+
+  <line x1="698" y1="114" x2="698" y2="230" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="698" cy="230" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="698" cy="230" r="2.5" fill="#c78300"/>
+
+  <line x1="172" y1="480" x2="172" y2="330" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="172" cy="330" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="172" cy="330" r="2.5" fill="#b54237"/>
+
+  <line x1="574" y1="480" x2="574" y2="298" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="574" cy="298" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="574" cy="298" r="2.5" fill="#087f73"/>
+
+  <g id="callout-host-dram">
+    <circle cx="20" cy="26" r="11" fill="#4c65b6"/>
+    <text x="20" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
+    <text x="38" y="31" font-size="14" font-weight="700" fill="#17211f">主机内存账本 (HOST DRAM)</text>
+    <text x="38" y="55" font-size="12.5" fill="#4d5652">承接权重解包、分词缓冲与进程对象</text>
+    <text x="38" y="77" font-size="12.5" fill="#4d5652">默认算子不能直读普通主机虚拟地址</text>
+    <text x="38" y="99" font-size="12.5" fill="#3a4f93">主机内存够用 ≠ 设备显存装得下</text>
+  </g>
+
+  <g id="callout-pcie-dma">
+    <circle cx="300" cy="26" r="11" fill="#087f73"/>
+    <text x="300" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
+    <text x="318" y="31" font-size="14" font-weight="700" fill="#17211f">跨端链路搬运 (PCIe DMA)</text>
+    <text x="318" y="55" font-size="12.5" fill="#4d5652">带宽远低于 HBM，冷启动搬入权重</text>
+    <text x="318" y="77" font-size="12.5" fill="#4d5652">KV 卸载与 <tspan font-family="var(--font-mono)" font-weight="700">UVA</tspan> 直读仍受此链路制约</text>
+    <text x="318" y="99" font-size="12.5" fill="#065f56">钉页（Pinned）省去主机侧二次拷贝</text>
+  </g>
+
+  <g id="callout-npu-hbm">
+    <circle cx="580" cy="26" r="11" fill="#c78300"/>
+    <text x="580" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
+    <text x="598" y="31" font-size="14" font-weight="700" fill="#17211f">设备显存分层 (NPU HBM)</text>
+    <text x="598" y="55" font-size="12.5" fill="#4d5652">共担权重、<tspan font-family="var(--font-mono)" font-weight="700">KV Pool</tspan> 与激活工作区</text>
+    <text x="598" y="77" font-size="12.5" fill="#4d5652">含 HCCL 通信、CANN 与图捕获缓冲</text>
+    <text x="598" y="99" font-size="12.5" fill="#936300">未设字节上限时自动测算可用 KV 池</text>
+  </g>
+
+  <g id="callout-cgroup">
+    <circle cx="20" cy="506" r="11" fill="#b54237"/>
+    <text x="20" y="510.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
+    <text x="38" y="511" font-size="14" font-weight="700" fill="#17211f">容器内存红线 (SERVER CPU · cgroup)</text>
+    <text x="38" y="535" font-size="12.5" fill="#4d5652">多卡并发读盘峰值计入容器 <tspan font-family="var(--font-mono)" font-weight="700">memory.max</tspan></text>
+    <text x="38" y="558" font-size="12.5" fill="#8f3229">超限且回收失败触发 cgroup OOM 杀进程（常致容器 <tspan font-family="var(--font-mono)" font-weight="700">137</tspan>）</text>
+  </g>
+
+  <g id="callout-aicore">
+    <circle cx="446" cy="506" r="11" fill="#087f73"/>
+    <text x="446" y="510.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
+    <text x="464" y="511" font-size="14" font-weight="700" fill="#17211f">卡内高带宽闭环 (AI CORE ↔ HBM)</text>
+    <text x="464" y="535" font-size="12.5" fill="#4d5652">每步前向直接从本卡 HBM 高速分块搬入片上 SRAM</text>
+    <text x="464" y="558" font-size="12.5" fill="#4d5652">分配器碎片可用 <tspan font-family="var(--font-mono)" font-weight="700">expandable_segments:True</tspan> 缓解</text>
+  </g>
+</svg>

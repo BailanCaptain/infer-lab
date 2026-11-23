@@ -1,53 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="新模型接入 vLLM 与 vLLM Ascend 的四段扩展链路" font-family="var(--font-sans)">
-<title>新 HuggingFace 模型适配四段链路：架构注册、权重映射、量化注册与 OOT 算子分发</title>
-<desc>ModelRegistry, WeightsMapper, register_scheme, and register_ascend_customop</desc>
-<g stroke-width="1.4">
-<rect x="16" y="64" width="200" height="122" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="238" y="64" width="200" height="122" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="460" y="64" width="200" height="122" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="682" y="64" width="202" height="122" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="16" y="232" width="422" height="136" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="460" y="232" width="424" height="136" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M216 125h20m-5-4l5 4-5 4M438 125h20m-5-4l5 4-5 4M660 125h20m-5-4l5 4-5 4M783 186v22H227v22m-4-5l4 5 4-5M783 208H672v22m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="34" cy="84" r="11" fill="#087f73"/>
-<circle cx="256" cy="84" r="11" fill="#c78300"/>
-<circle cx="478" cy="84" r="11" fill="#4c65b6"/>
-<circle cx="700" cy="84" r="11" fill="#9a4b86"/>
-<g font-weight="700">
-<text x="16" y="30" font-size="16" fill="#17211f">新 HuggingFace 模型接入昇腾推理栈的四道注册关口</text>
-<text x="34" y="88.5" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="52" y="89" font-size="14.5" fill="#065f56">架构名登记</text>
-<text x="256" y="88.5" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="274" y="89" font-size="14.5" fill="#936300">权重键名映射</text>
-<text x="478" y="88.5" text-anchor="middle" font-size="13.5" fill="#ffffff">3</text>
-<text x="496" y="89" font-size="14.5" fill="#3a4f93">量化方案注册</text>
-<text x="700" y="88.5" text-anchor="middle" font-size="13.5" fill="#ffffff">4</text>
-<text x="718" y="89" font-size="14.5" fill="#7a3a6a">OOT 算子拦截</text>
-<text x="30" y="259" font-size="15" fill="#065f56">✓ 优先走上游共用路径（零/极小侵入）</text>
-<text x="474" y="259" font-size="15" fill="#8f3229">何时必须在 vllm_ascend/models/ 覆写？</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="50" font-size="13.5">标准模型可直接复用上游 vLLM 模型类，仅在架构特殊或需 NPU 专属优化时在 vllm-ascend 覆写</text>
-<text x="28" y="116" font-size="13.5">ModelRegistry</text>
-<text x="28" y="138" font-size="13.5">register_model()</text>
-<text x="28" y="164" font-size="13.5">绑定 HF 架构名</text>
-<text x="250" y="116" font-size="13.5">WeightsMapper</text>
-<text x="250" y="138" font-size="13.5">AutoWeightsLoader</text>
-<text x="250" y="164" font-size="13.5">前缀改名与丢弃</text>
-<text x="472" y="116" font-size="13.5">@register_scheme</text>
-<text x="472" y="138" font-size="13.5">(quant_type, layer)</text>
-<text x="472" y="164" font-size="13.5">自动挂载 linear/moe</text>
-<text x="694" y="116" font-size="13.5">CustomOp</text>
-<text x="694" y="138" font-size="13.5">register_oot()</text>
-<text x="694" y="164" font-size="13.5">按卡型替为 NPU 实现</text>
-<text x="30" y="286" font-size="13.5">• 模型已在 vLLM 上游实现（如 Qwen3 / Llama 标准层）</text>
-<text x="30" y="310" font-size="13.5">• RMSNorm / RoPE / Linear / MoE 自动路由到 Ascend OOT</text>
-<text x="30" y="334" font-size="13.5">• ModelSlim 量化只需匹配 quant_description 与已有 scheme</text>
-<text x="30" y="356" font-size="13.5">• 310P 自动由 COMPATIBILITY_OP_IMPLEMENTATIONS 换实现</text>
-<text x="474" y="286" font-size="13.5">• 上游尚未合入的新架构或自定义别名（如 KimiK3 / DSV4.1）</text>
-<text x="474" y="310" font-size="13.5">• 昇腾专属多模态预处理或草拟头（如 Qwen3.5-VL / DSpark）</text>
-<text x="474" y="334" font-size="13.5">• 特殊权重要求前缀重写或忽略（WeightsMapper orig_to_new）</text>
-<text x="474" y="356" font-size="13.5">• 需引入专用注意力/融合算子并配齐 Meta 推导进 ACL Graph</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="新模型接入昇腾四道注册关口与复用上游 vs 覆写分岔决策" font-family="var(--font-sans)">
+  <title>新 HuggingFace 模型接入四道关口：标准架构零侵入复用上游 vs 特殊架构在 vllm_ascend/models/ 覆写</title>
+  <desc>Four registration checkpoints (ModelRegistry, WeightsMapper, register_scheme, register_ascend_customop) leading into a clear decision fork between upstream reuse (Qwen3) and plugin model override (DSV4.1/KimiK3)</desc>
+  <defs>
+    <marker id="mo-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="mo-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="mo-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">新 HuggingFace 模型从 safetensors 到 NPU 前向的四道注册关口</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">切忌一上来就整文件复制进 vllm_ascend/models/</text>
+
+  <!-- 4 Registration Gates Row -->
+  <rect x="16" y="48" width="198" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <circle cx="36" cy="70" r="11" fill="#087f73"/>
+  <text x="36" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="54" y="75" font-size="14.5" font-weight="700" fill="#065f56">架构名登记</text>
+  <text x="28" y="102" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">ModelRegistry</text>
+  <text x="28" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">register_model()</text>
+  <text x="28" y="150" font-size="13.5" fill="#4d5652">匹配 config architectures</text>
+
+  <line x1="216" y1="109" x2="236" y2="109" stroke="#4d5652" stroke-width="1.7" marker-end="url(#mo-arr-ink)"/>
+
+  <rect x="240" y="48" width="198" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <circle cx="260" cy="70" r="11" fill="#c78300"/>
+  <text x="260" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="278" y="75" font-size="14.5" font-weight="700" fill="#936300">权重键名映射</text>
+  <text x="252" y="102" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">WeightsMapper</text>
+  <text x="252" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#936300">AutoWeightsLoader</text>
+  <text x="252" y="150" font-size="13.5" fill="#4d5652">前缀改名 / None 丢弃</text>
+
+  <line x1="440" y1="109" x2="460" y2="109" stroke="#4d5652" stroke-width="1.7" marker-end="url(#mo-arr-ink)"/>
+
+  <rect x="464" y="48" width="198" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <circle cx="484" cy="70" r="11" fill="#4c65b6"/>
+  <text x="484" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+  <text x="502" y="75" font-size="14.5" font-weight="700" fill="#3a4f93">量化方案注册</text>
+  <text x="476" y="102" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">@register_scheme</text>
+  <text x="476" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">(quant, layer)</text>
+  <text x="476" y="150" font-size="13.5" fill="#4d5652">按表查 linear / moe</text>
+
+  <line x1="664" y1="109" x2="684" y2="109" stroke="#4d5652" stroke-width="1.7" marker-end="url(#mo-arr-ink)"/>
+
+  <rect x="688" y="48" width="196" height="122" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <circle cx="708" cy="70" r="11" fill="#9a4b86"/>
+  <text x="708" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">4</text>
+  <text x="726" y="75" font-size="14.5" font-weight="700" fill="#7a3a6a">OOT 算子拦截</text>
+  <text x="700" y="102" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">CustomOp</text>
+  <text x="700" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">register_oot()</text>
+  <text x="700" y="150" font-size="13.5" fill="#4d5652">自动换 NPU / 310P</text>
+
+  <!-- Decision Fork from Gate 1 -->
+  <path d="M 115 172 L 115 198 L 450 198" fill="none" stroke="#4d5652" stroke-width="1.6"/>
+  <rect x="312" y="182" width="276" height="32" rx="16" fill="#ece9df" stroke="#17211f" stroke-width="1.3"/>
+  <text x="450" y="203" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">上游 vLLM 已有该模型架构？</text>
+
+  <path d="M 312 198 L 228 198 L 228 232" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#mo-arr-teal)"/>
+  <path d="M 588 198 L 672 198 L 672 232" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#mo-arr-red)"/>
+  <text x="270" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">是（首选）</text>
+  <text x="630" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">否 / 须定制</text>
+
+  <!-- Left Fork: Upstream Reuse -->
+  <rect x="16" y="236" width="422" height="158" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="264" font-size="15" font-weight="700" fill="#065f56">✓ 零侵入复用上游类（如 Qwen3-8B / 30B-A3B）</text>
+  <rect x="30" y="278" width="394" height="32" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="42" y="299" font-size="13.5" fill="#17211f">Norm / RoPE / Linear / MoE 自动走第 4 关 OOT 拦截</text>
+  <rect x="30" y="316" width="394" height="32" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="42" y="337" font-size="13.5" fill="#17211f">ModelSlim 量化直接匹配第 3 关已有 scheme</text>
+  <text x="30" y="376" font-size="13.5" font-weight="700" fill="#065f56">310P 自动由 COMPATIBILITY 能力覆写为 _310p 子类</text>
+
+  <!-- Right Fork: Override in vllm_ascend/models/ -->
+  <rect x="462" y="236" width="422" height="158" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="476" y="264" font-size="15" font-weight="700" fill="#8f3229">仅三类情况在 vllm_ascend/models/ 覆写登记</text>
+  <rect x="476" y="278" width="394" height="32" rx="5" fill="#ffffff" stroke="#d88c82" stroke-width="1.1"/>
+  <text x="488" y="299" font-size="13.5" fill="#17211f">① 上游未合入的新架构或旧别名（DSV4.1 / KimiK3）</text>
+  <rect x="476" y="316" width="394" height="32" rx="5" fill="#ffffff" stroke="#d88c82" stroke-width="1.1"/>
+  <text x="488" y="337" font-size="13.5" fill="#17211f">② 昇腾专属多模态预处理或草拟头（Qwen3.5 / DSpark）</text>
+  <text x="476" y="376" font-size="13.5" font-weight="700" fill="#8f3229">③ 需接 WeightsMapper 重写前缀或专用融合核（补 Meta）</text>
 </svg>

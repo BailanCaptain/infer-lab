@@ -1,0 +1,27 @@
+mode: native-svg
+id: param-c8-enable-reshape-optim
+caption: >-
+  c8_enable_reshape_optim 历史 StoreKVBlock 按块内连续段分组扫描示意（block_size=4，slot_mapping=[2,3,4,7,-1,8,9]：不排序、不跨块、跳过 -1）与 v0.30.0/main 移除后统一走 DeviceOperator.scatter_cache 的版本对照。
+size: [900, 536]
+pins:
+  - source: 'vllm-ascend@baa023ad:csrc/attention/store_kv_block_metadata/op_kernel_aicpu/store_kv_block_metadata_aicpu.cpp#L57-L125'
+    symbols:
+      - StoreKvBlockMetadataCpuKernel
+      - GenMetaData
+      - slotMapping_
+      - groupLen_
+      - groupKeyIdx_
+      - groupKeyCacheIdx_
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/indexer.py#L267-L301'
+    symbols:
+      - scatter_cache
+      - enable_sparse_li_quant
+      - indexer_k_cache
+      - indexer_scale_cache
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1895-L1910'
+    symbols:
+      - unknown_keys
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/attention/indexer.py#L403-L436'
+    symbols:
+      - scatter_cache
+      - indexer_k_cache

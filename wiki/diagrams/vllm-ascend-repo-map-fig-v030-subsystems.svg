@@ -1,52 +1,131 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 476" width="900" height="476" role="img" aria-label="vllm_ascend v0.30.0 到 main 子系统目录架构图" font-family="var(--font-sans)">
-  <title>vllm_ascend 子系统目录地图：v0.30.0（36 项）到 main（39 项）职责分层</title>
-  <desc>关联源码符号：HardwareProfile, get_current_hardware_profile, ScoreEncoderCacheConfig, NPUModelRunner, Glm5NextForCausalLM</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="上游 vllm 与 vllm_ascend 五层子系统目录架构及 v0.30.0 到 main 演进地图">
+  <defs>
+    <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#087f73"/>
+    </marker>
+    <marker id="arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">vllm_ascend/ 子系统目录架构（v0.30.0 顶层 36 项 → main 39 项）</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">按职责找入口，不按字母表盲读</text>
+  <text x="20" y="28" font-family="sans-serif" font-size="16" font-weight="700" fill="#17211f">跨仓库目录地图：上游 vllm 控制底座 与 vllm_ascend（v0.30.0 36 项 → main 39 项）</text>
 
-  <!-- Row 1: Boot & Execution Core -->
-  <rect x="16" y="44" width="424" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#936300">① 启动注册、配置与硬件能力档案</text>
-  <text x="30" y="94" font-size="13.5" fill="#4d5652">• __init__.py / platform.py：插件发现与 NPUPlatform</text>
-  <text x="30" y="116" font-size="13.5" fill="#4d5652">• ascend_config.py / envs.py：Pydantic 校验与单例</text>
-  <text x="30" y="138" font-size="13.5" fill="#936300" font-weight="600">• device/hardware_profile.py：统一 A2/A3/A5/310P</text>
-  <text x="30" y="158" font-size="13.5" fill="#4d5652">• _310p/、device_allocator/、patch/（按条件导入）</text>
+  <rect x="20" y="46" width="194" height="352" rx="10" fill="#f7f5ef" stroke="#b8bcb5" stroke-width="1.5"/>
+  <rect x="20" y="46" width="194" height="34" rx="10" fill="#4d5652"/>
+  <rect x="20" y="68" width="194" height="12" fill="#4d5652"/>
+  <text x="117" y="69" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff">上游 vllm/ 底座</text>
 
-  <rect x="460" y="44" width="424" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="474" y="70" font-size="14.5" font-weight="700" fill="#065f56">② Worker、Runner 与调度/缓存中枢</text>
-  <text x="474" y="94" font-size="13.5" fill="#4d5652">• worker/worker.py：接 Executor 任务与 PP 中间张量</text>
-  <text x="474" y="116" font-size="13.5" fill="#4d5652">• v0.30.0：model_runner_v1.py 与 worker/v2/ 并存</text>
-  <text x="474" y="138" font-size="13.5" fill="#065f56" font-weight="600">• main：删除 MRV1，由 mrv2_utils.py 收敛至 v2/</text>
-  <text x="474" y="158" font-size="13.5" fill="#4d5652">• core/：调度变体与 KV 规格（非整个 EngineCore）</text>
+  <rect x="32" y="94" width="170" height="72" rx="7" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="116" font-family="monospace" font-size="13.5" font-weight="700" fill="#17211f">v1/engine/</text>
+  <text x="44" y="136" font-family="sans-serif" font-size="13.5" fill="#4d5652">EngineCore 主循环</text>
+  <text x="44" y="155" font-family="sans-serif" font-size="13.5" fill="#66716d">非阻塞提交 + 取结果</text>
 
-  <!-- Row 2: Model / Ops / Serving -->
-  <rect x="16" y="184" width="424" height="124" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="30" y="210" font-size="14.5" font-weight="700" fill="#3a4f93">③ 模型、量化、注意力后端与算子实现</text>
-  <text x="30" y="234" font-size="13.5" fill="#4d5652">• models/glm5next/：目录化拆分（旧镜像为单文件）</text>
-  <text x="30" y="256" font-size="13.5" fill="#4d5652">• quantization/methods/w8a8/ 与 model_loader/</text>
-  <text x="30" y="278" font-size="13.5" fill="#4d5652">• attention/ 与 ops/fused_moe/router/：算子分派</text>
-  <text x="30" y="300" font-size="13.5" fill="#3a4f93">• spec_decode/（草拟）与 sample/（采样/拒绝验证）</text>
+  <rect x="32" y="182" width="170" height="72" rx="7" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="204" font-family="monospace" font-size="13.5" font-weight="700" fill="#17211f">v1/core/</text>
+  <text x="44" y="224" font-family="sans-serif" font-size="13.5" fill="#4d5652">调度器与 KV 块池</text>
+  <text x="44" y="243" font-family="sans-serif" font-size="13.5" fill="#66716d">≠ Ascend core/ 适配</text>
 
-  <rect x="460" y="184" width="424" height="124" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="474" y="210" font-size="14.5" font-weight="700" fill="#7a3a6a">④ 通信、图编译、多模态缓存与可观测性</text>
-  <text x="474" y="234" font-size="13.5" fill="#4d5652">• distributed/：通信组、并行层、KV 与权重连接器</text>
-  <text x="474" y="256" font-size="13.5" fill="#4d5652">• compilation/ 与 xlite/：ACL Graph 捕获与复用</text>
-  <text x="474" y="278" font-size="13.5" fill="#7a3a6a" font-weight="600">• v0.30.0：ec_manager/、observability/ 等</text>
-  <text x="474" y="300" font-size="13.5" fill="#4d5652">• main 新增：runtime_guard/、hisparse/、kv_trace/</text>
+  <rect x="32" y="270" width="170" height="72" rx="7" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="292" font-family="monospace" font-size="13.5" font-weight="700" fill="#17211f">v1/executor/</text>
+  <text x="44" y="312" font-family="sans-serif" font-size="13.5" fill="#4d5652">多进程 Worker 分发</text>
+  <text x="44" y="331" font-family="sans-serif" font-size="13.5" fill="#66716d">execute / sample</text>
 
-  <line x1="16" y1="326" x2="884" y2="326" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="117" y="376" text-anchor="middle" font-family="sans-serif" font-size="13.5" font-weight="600" fill="#4d5652">双仓协作 · 同开同读</text>
 
-  <!-- Row 3: csrc & Upstream split -->
-  <text x="16" y="354" font-size="16" font-weight="700" fill="#17211f">⑤ 仓库根目录 csrc/ 与上游 vLLM 仓库的职责边界</text>
+  <line x1="234" y1="50" x2="234" y2="396" stroke="#087f73" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <line x1="214" y1="128" x2="254" y2="128" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
+  <line x1="214" y1="216" x2="254" y2="216" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
+  <line x1="214" y1="306" x2="254" y2="306" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
 
-  <rect x="16" y="370" width="424" height="92" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="30" y="396" font-size="14.5" font-weight="700" fill="#17211f">根目录 csrc/（C++ / AscendC 自定义扩展）</text>
-  <text x="30" y="420" font-size="13.5" fill="#4d5652">• 通过 torch.ops._C_ascend 暴露给 Python 算子层</text>
-  <text x="30" y="444" font-size="13.5" fill="#4d5652">• main 删除旧 score CPP，新增 csrc/engram_hixl/</text>
+  <rect x="260" y="46" width="620" height="78" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="260" y="46" width="144" height="78" rx="9" fill="#c78300"/>
+  <rect x="392" y="46" width="12" height="78" fill="#c78300"/>
+  <text x="332" y="79" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff">① 启动与硬件</text>
+  <text x="332" y="101" text-anchor="middle" font-family="sans-serif" font-size="13.5" fill="#fff4cf">入口 · 档案 · 补丁</text>
 
-  <rect x="460" y="370" width="424" height="92" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="474" y="396" font-size="14.5" font-weight="700" fill="#8f3229">查完整请求链必须同时打开 vllm/ 上游仓库</text>
-  <text x="474" y="420" font-size="13.5" fill="#4d5652">• v1/engine/（EngineCore）、v1/core/（调度/KV 池）</text>
-  <text x="474" y="444" font-size="13.5" fill="#8f3229">• 目录名 ≠ 调用先后，须沿配置与对象构造追踪</text>
+  <rect x="416" y="55" width="110" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="471" y="73" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">__init__.py</text>
+  <rect x="534" y="55" width="114" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="591" y="73" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">platform.py</text>
+  <rect x="656" y="55" width="148" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="730" y="73" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">ascend_config.py</text>
+  <rect x="812" y="55" width="58" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="841" y="73" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">patch/</text>
+
+  <rect x="416" y="88" width="234" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="533" y="106" text-anchor="middle" font-family="monospace" font-size="13.5" font-weight="700" fill="#936300">device/hardware_profile.py</text>
+  <rect x="658" y="88" width="74" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="695" y="106" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">_310p/</text>
+  <rect x="740" y="88" width="130" height="26" rx="13" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="805" y="106" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">config_utils.py</text>
+
+  <rect x="260" y="136" width="620" height="80" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <rect x="260" y="136" width="144" height="80" rx="9" fill="#087f73"/>
+  <rect x="392" y="136" width="12" height="80" fill="#087f73"/>
+  <text x="332" y="170" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff">② 执行中枢</text>
+  <text x="332" y="192" text-anchor="middle" font-family="sans-serif" font-size="13.5" fill="#ddf4ef">Worker · Runner</text>
+
+  <rect x="416" y="145" width="142" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="487" y="163" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">worker/worker.py</text>
+  <rect x="566" y="145" width="100" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="616" y="163" text-anchor="middle" font-family="monospace" font-size="13.5" font-weight="700" fill="#065f56">worker/v2/</text>
+  <rect x="674" y="145" width="196" height="26" rx="13" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="772" y="163" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="600" fill="#8f3229">main 删 MRV1 → mrv2_utils</text>
+
+  <rect x="416" y="180" width="148" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="490" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">core/ (kv_builder)</text>
+  <rect x="572" y="180" width="124" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="634" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">spec_decode/</text>
+  <rect x="704" y="180" width="84" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="746" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">sample/</text>
+  <rect x="796" y="180" width="74" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="833" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">kv_trace</text>
+
+  <rect x="260" y="228" width="620" height="78" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <rect x="260" y="228" width="144" height="78" rx="9" fill="#4c65b6"/>
+  <rect x="392" y="228" width="12" height="78" fill="#4c65b6"/>
+  <text x="332" y="261" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff">③ 模型与算子</text>
+  <text x="332" y="283" text-anchor="middle" font-family="sans-serif" font-size="13.5" fill="#e8edff">层 · 量化 · 后端</text>
+
+  <rect x="416" y="237" width="184" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="508" y="255" text-anchor="middle" font-family="monospace" font-size="13.5" font-weight="700" fill="#3a4f93">models/ (glm5next/)</text>
+  <rect x="608" y="237" width="166" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="691" y="255" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">quantization/ w8a8/</text>
+  <rect x="782" y="237" width="88" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="826" y="255" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">ops/</text>
+
+  <rect x="416" y="270" width="114" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="473" y="288" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">attention/</text>
+  <rect x="538" y="270" width="136" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="606" y="288" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">model_loader/</text>
+  <rect x="682" y="270" width="188" height="26" rx="13" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="776" y="288" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">transformers_utils/</text>
+
+  <rect x="260" y="318" width="620" height="80" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <rect x="260" y="318" width="144" height="80" rx="9" fill="#9a4b86"/>
+  <rect x="392" y="318" width="12" height="80" fill="#9a4b86"/>
+  <text x="332" y="352" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#ffffff">④ 通信与演进</text>
+  <text x="332" y="374" text-anchor="middle" font-family="sans-serif" font-size="13.5" fill="#f7e7f2">图 · EC · 观测</text>
+
+  <rect x="416" y="327" width="120" height="26" rx="13" fill="#ffffff" stroke="#9a4b86" stroke-width="1"/>
+  <text x="476" y="345" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">distributed/</text>
+  <rect x="544" y="327" width="174" height="26" rx="13" fill="#ffffff" stroke="#9a4b86" stroke-width="1"/>
+  <text x="631" y="345" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">compilation/ xlite/</text>
+  <rect x="726" y="327" width="144" height="26" rx="13" fill="#ffffff" stroke="#9a4b86" stroke-width="1"/>
+  <text x="798" y="345" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">device_allocator/</text>
+
+  <rect x="416" y="361" width="194" height="26" rx="13" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="513" y="379" text-anchor="middle" font-family="monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">ec_manager/ (v0.30.0+)</text>
+  <rect x="618" y="361" width="252" height="26" rx="13" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="744" y="379" text-anchor="middle" font-family="monospace" font-size="12.5" font-weight="700" fill="#7a3a6a">observability/ (+runtime_guard)</text>
+
+  <line x1="570" y1="398" x2="570" y2="414" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-indigo)"/>
+  <rect x="20" y="418" width="860" height="58" rx="9" fill="#ece9df" stroke="#4d5652" stroke-width="1.5"/>
+  <rect x="20" y="418" width="144" height="58" rx="9" fill="#17211f"/>
+  <rect x="152" y="418" width="12" height="58" fill="#17211f"/>
+  <text x="92" y="444" text-anchor="middle" font-family="monospace" font-size="13.5" font-weight="700" fill="#ffffff">⑤ 根目录 csrc/</text>
+  <text x="92" y="465" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#ece9df">AscendC 扩展底座</text>
+
+  <text x="178" y="443" font-family="sans-serif" font-size="12.5" font-weight="700" fill="#17211f">构建与绑定：op_host / op_kernel / torch_binding.cpp + torch_binding_meta.cpp → torch.ops._C_ascend</text>
+  <text x="178" y="465" font-family="sans-serif" font-size="12.5" fill="#4d5652">版本变迁：v0.30.0 含 sparse_attention_score / msa_index_score → main 删旧 score CPP 并新增 engram_hixl/</text>
 </svg>

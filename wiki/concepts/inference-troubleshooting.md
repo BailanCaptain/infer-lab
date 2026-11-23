@@ -3,8 +3,10 @@ id: inference-troubleshooting
 title: 推理排障入口：先找到问题发生在哪一步
 type: concept
 origin: direct
+legacyAnchors:
+  现场实操双模交互式排障工作台: 现场实操：交互式排障工作台
 summary: >-
-  面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌双模交互式排障工作台，支持真实日志与 /metrics 规则诊断及六类阻塞示意沙箱。
+  面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌交互式排障工作台，支持粘贴真实日志或 /metrics 定位首错，以及查看六类典型阻塞的时序对照。
 aliases:
   - 推理故障排查
   - 推理排障
@@ -51,6 +53,16 @@ sources:
   - 'vllm@ba15685a:vllm/v1/engine/utils.py#L365-L385'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L447-L597'
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1825-L1910'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L950
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1464-L2441
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L279-L286'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L283'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
 relations:
   - to: request-call-chain
     kind: builds-on
@@ -77,7 +89,7 @@ verified:
   - main
 evidence: C
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 ---
 
 **推理排障先回答一个问题：这条请求或这次启动，最后在哪一步还正常？** 找到这个边界，才能决定下一份证据该从哪里取。
@@ -120,15 +132,15 @@ file: inference-troubleshooting-experiment
 
 现场通常用 **request ID** 认出请求，用 **step ID** 认出一轮执行，用 **rank** 认出分布式进程。图中的“片段 1”是本例额外标注的观察对象，不是假定所有接口都有这个字段。默认日志不一定包含请求、步骤和 rank 的完整映射；缺哪项，就在复现环境补哪项。时间、进程和函数的对应见[请求调用链](request-call-chain.md)，现场采集表见[贯穿样例](inference-performance-walkthrough.md#现场怎样拿到这些记录)。
 
-## 现场实操：双模交互式排障工作台
+## 现场实操：交互式排障工作台
 
-手头已经有报错日志、多卡交错刷屏的 `EI0006`、退出码 `137` 或一份 `curl /metrics` 文本时，可以直接粘贴进下面的双模排障工作台。面板 A 只解析真实输入的日志与指标，自动区分主故障与次生集合通信超时并给出下一条取证命令；面板 B 与面板 A 物理隔离，专门用无量纲示意相对时序演示六类高频阻塞机理与对策对比，帮助你建立读图直觉，不替代真机 Trace。
+手头已经有报错日志、多卡交错刷屏的 `EI0006`、退出码 `137` 或一份 `curl /metrics` 文本时，可以直接放进下面的交互式排障工作台。它提供两项独立视图：一是**粘贴报错日志或 `/metrics` 快照**，自动区分主故障与次生集合通信超时、定位最早异常卡并给出下一条取证命令；二是**查看 6 类典型阻塞的时序对照**，用无量纲示意相对时序快速建立读图直觉（仅用于理解阻塞机理，不替代真机 Trace）。
 
 ```wiki-tool
 tool: troubleshoot-workbench
 mode: full
-title: 双模交互式排障工作台
-summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快照并定位首错 Rank；面板 B 用相对时序沙盒复现 6 类典型阻塞机理。
+title: 交互式排障工作台
+summary: 粘贴报错日志或 /metrics 定位最早异常卡与下一条取证命令，或查看 6 类典型阻塞的时序对照。
 ```
 
 ## 按已经确认的阶段继续查
@@ -169,18 +181,25 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 在 `v0.30.0` 下，一份简单的 `/metrics` 快照就能快速分流两类高频慢问题：
 
 - **KV 块枯竭型（抢占重算风暴）**：`vllm:kv_cache_usage_perc` 持续超过 `0.95`，并伴随 `vllm:num_preemptions` 递增与 `vllm:num_requests_waiting > 0`。
-- **低 KV 高延迟型（排除排队与容量）**：KV 使用率偏低且排队为 `0`，却出现偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`。高 TTFT 优先查长输入与 [Chunked Prefill](chunked-prefill.md) 单步预算；高 ITL 优先查是否误开 `--enforce-eager` 引起 Host 下发空泡，或受限于 HBM 带宽瓶颈。
+- **低 KV 高延迟型（排除排队与容量）**：KV 使用率偏低且排队为 `0`，却出现偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`。高 TTFT 优先查长输入、[Chunked Prefill](chunked-prefill.md) 单步预算，以及是否误留 `VLLM_LOGGING_LEVEL=DEBUG` 触发每步分配器读数日志与图回放 `data_ptr()` 遍历校验（`Ascend 910B3` 上 `Qwen3-8B` `TP=8 c=1` 单样本对照下 `TTFT` 由 `139.07 ms` 升至 `193.98 ms`，`+39.48%`）；高 ITL / TPOT 优先查是否误开 `--enforce-eager` 放大 Host 发射与同步开销（如 `Qwen3-30B-A3B` `4P4D` Eager 组合配置相对四卡混部 Graph `c=1` `TPOT` 从 `77.90 ms` 升至 `307.83 ms`），或核查 GQA 非连续共享 KV 池的整池连续化复制（Eager 轨迹已实测，线上 `FULL` 图待设备时间线闭合）与固定 `u` 扩 TP 下的负扩展（完整对账与边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。
 
 在相同负载下，只控制已定位阶段的一个变量；比较该段等待与端到端指标是否一起变化。阶段没变而汇总指标变了，先查负载与统计差异。分支实验、代价和验收条件见[性能排障](inference-performance-troubleshooting.md)。
 
 ### 内存与容量：先分清在哪个时点装不下
 
-适用于内存不足（OOM）、运行中缓存紧张或已用内存持续增加。**先分清主机／容器限制，还是某张设备的空间不足。** 进程被终止，或没有 OOM 却伴随主机回收等待时，先用[主机与容器内存的判断方法](device-memory.md#主机还有空闲为什么容器里的进程先被终止)找限制所在层；不要仅凭退出码就减设备 KV 缓存。
+适用于内存不足（OOM）、运行中缓存紧张或已用内存持续增加。**先分清主机／容器限制，还是某张设备的空间不足。** 进程被终止，或没有 OOM 却伴随主机回收等待时，先用[主机与容器内存的判断方法](device-memory.md#主机还有空闲为什么容器里的进程先被终止)找限制所在层；不要仅凭退出码 `137` 就直接缩减设备 KV 缓存。
 
-确认是设备一侧后，再按阶段采集：启动时记录加载前（`init_snapshot`）、加载后、试跑后、缓存池建立后、图捕获后的逐卡占用；运行时同时记录活跃请求、长度、空闲缓存块和抢占次数。**抢占**是先暂停请求、让出缓存，之后再恢复或重算。在 `v0.30.0` 下尤其要区分三类设备 OOM 时点：
-- **试跑前 `init_snapshot` 预检失败**：设备初始空闲显存低于 `gpu_memory_utilization × total_memory` 直接抛 `ValueError`，通常由同卡残留进程或并发混布引起；
-- **冷启动权重加载 / 试跑期 OOM**：尚未分配 KV 池即耗尽 HBM，需要调大 TP、切换量化或收紧批处理与序列上限；
-- **KV 池建立后的图捕获期 OOM**：权重与 KV 池已分配完毕，但在 `compile_or_warm_up_model()` 调 `capture_model()` 时爆显存，典型原因是 `--gpu-memory-utilization`（$u$）过高把留给 ACLGraph 图池与 CANN 运行时工作区的 $1 - u$ 余量吃空。
+确认落在设备 NPU HBM 一侧后，沿启动到运行的四个连续时点逐段定位，并为每个出口先取对应的最小证据：
+
+```wiki-diagram
+file: troubleshooting-fig-memory-triage
+```
+
+按图中的四个出口依次核对：
+- **`init_snapshot` 预检失败**：设备初始空闲显存低于 `gpu_memory_utilization × total_memory` 时直接抛 `ValueError`，多由同卡残留进程或并发混布引起；先查 `npu-smi info`。
+- **权重加载 / `profile_run` 试跑期 OOM**：`profile_run()` 按 `max_num_batched_tokens` 批预算探测激活峰值，因此此阶段 OOM 意味着**权重 + 当前批预算激活峰值超限**，并不等同于“单条满长请求装不下”。应先核对加载日志并收紧 `max_num_batched_tokens` / `max_num_seqs` 复测；只有权重本身超限，或收紧批预算后分配出的 KV 池仍装不下 `max_model_len` 时，才是单条满长装不下，需要扩 TP、换量化或下调序列上限。
+- **KV 池建立后的图捕获期 OOM**：发生在 `compile_or_warm_up_model()` 调用 `capture_model()` 时。通常是 `--gpu-memory-utilization`（$u$）过高，吃空了留给 ACLGraph 图池与 CANN 运行时工作区的 $1 - u$ 余量，需适度下调 $u$ 或改传日志建议的 `--kv-cache-memory`。
+- **运行期 KV 枯竭与抢占**：同时记录活跃请求、长度、空闲缓存块和**抢占**（先暂停请求、让出缓存，之后再恢复或重算）次数，先区分正常池复用与持续未释块增长。
 
 容量账见[显存探测](kv-cache-memory-profiling.md)与[设备内存](device-memory.md)。改了量化配方、模型长度或缓存格式后，还要重新记录每块的字节数、各层缓存布局及权重和临时工作区等非缓存开销。块数相同不代表可用容量相同，旧部署的块数也不能直接沿用；标准 `v0.30.0` 主基线以 `Qwen3-8B` / `Qwen3-30B-A3B` 算账口径核对，历史 GLM 双机预算见[固定部署的预算方法](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)。
 
@@ -207,16 +226,16 @@ summary: 面板 A 解析真实报错日志、CANN/HCCL 错误码与 /metrics 快
 
 首次多机部署或网络配置发生变化时，先走 [HCCL 页的设备网络预检](cann-hccl.md#启动多机前先检查哪一层网络)：核本机链路和地址，再探测实际使用的 NPU 对。主机 IP、API 端口、NPU 网络各自取得连通性证据，之后再定位推理程序在哪一步等待。
 
-适用于通信超时、多卡等待或某张卡耗时突出。收集同一次集合通信的组、参与 rank、设备侧到达/完成、张量规模和各 rank 前序错误。**集合通信**要求一组参与者按匹配顺序交换数据：只要任意一张卡在前序算子或显存分配时先出错退出，其余卡就会停在 `Notify wait` 直到触发 `EI0006` / `HCCL_E_WAIT_TIMEOUT`。
+适用于通信超时、多卡等待或某张卡耗时突出。收集同一次集合通信的组、参与 rank、设备侧到达/完成、张量规模和各 rank 前序错误。**集合通信**要求一组参与者按匹配顺序交换数据。因此“通信慢或超时”背后存在三种不同时间线：**某卡根本没到**（首错崩溃触发次生 `EI0006` / `HCCL_E_WAIT_TIMEOUT`）、**某卡迟到**（负载/专家/Host 或 GC 拖慢），以及**全员到齐但交换本身慢**（真实链路与带宽瓶颈）：
 
 ```wiki-diagram
 file: troubleshooting-fig-first-fault
 ```
 
-排查多卡超时时，保持通信规模并按三步收敛：
+排查多卡超时或通信变慢时，保持通信规模并按图中的三步收敛：
 
-1. **先锁定最早的首错 Rank**：按时间戳合并全部参与 rank 的日志与 CANN `plog`。若只看到 `EI0006` 却没有任一卡的前序主错误，不能默认归罪给 Rank 0，应先补齐其余卡的同期日志再查网络。
-2. **区分慢卡拖尾与链路瓶颈**：若确认为慢卡拖尾，先控制迟到卡前面的工作量，观察迟到减少后其他卡等待是否同步下降。若参与条件已齐、前序均干净而交换仍慢，再用匹配拓扑和规模的通信测试核对链路。
+1. **先排除分支 A（锁定最早的首错 Rank）**：按时间戳合并全部参与 rank 的日志与 CANN `plog`。若只看到 `EI0006` 却没有任一卡的前序主错误，不能默认归罪给 Rank 0，应先补齐其余卡的同期日志再查网络。
+2. **再区分分支 B 与 C（慢卡拖尾 vs 链路瓶颈）**：对比各卡设备侧到达屏障的时刻。若某张卡前序计算明显拖长，先控制迟到卡前面的工作量，观察其他卡等待是否同步下降；若参与条件已齐、前序均干净而交换仍慢，再用匹配拓扑和规模的通信测试核对链路。
 3. **核对真实负载竞争**：独立通信测试正常也不能排除模型负载下的竞争。机制见[集合通信](collective-communication.md)与 [HCCL](cann-hccl.md)，时钟及依赖判别见[性能分析](inference-performance-analysis.md)。
 
 ### 缓存和分离部署：命中、可用、传到，是三件事
@@ -246,6 +265,19 @@ file: troubleshooting-fig-first-fault
 适用于升级后变慢、结果改变、开关被忽略或默认行为变化。保存升级前后精确 commit、安装路径、镜像、模型文件、启动日志与每个进程的最终配置。在 `v0.30.0` 下，`AscendConfig` 对 `--additional-config` 采用严格未知键校验（`extra="forbid"`），拼写错误会直接失败，但硬件能力降级仍可能把不支持的开关自动关掉，因此“未报错”仍不等于目标路径已生效。先查[配置系统](ascend-config-system.md)的覆盖与校验，再查[补丁系统](ascend-patch-system.md)是否替换了相关实现。
 
 固定输入和负载，分别运行两套完整且兼容的环境；若能定位到单项配置变化，再在各版本支持范围内显式对齐。版本标签相同而安装文件不同，先解决产物不一致。只有在输入、有效配置与依赖可比较后，差异才进入版本回归调查；不能把新版本参数粘回旧版本当作已验证修复。
+
+### Ascend 910B3 真机五类高频报错与 DEBUG 延迟陷阱速查
+
+把单卡与八卡 `Ascend 910B3`（`v0.30.0`）上实机复现的五份故障栈标本与热路径观测税汇总成一线速查表（原件快照见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
+
+| 实机故障标本 / 现象 | 首错栈位置与关键报错特征 | 易混淆陷阱与一步排障动作 |
+| --- | --- | --- |
+| **1. `u=0.90` 捕获期 FIA OOM** | 通过 `profile_run()`（如 `Qwen3-0.6B` 划出 `53.47 GiB` KV）及 35 档 `PIECEWISE` 后，在 `FULL` `1/35` 的 `device_op.py`（FIA）内申请 `1.98 GiB` > 剩余 `1.71 GiB` 抛 `NPU out of memory` | 并非 `profile_run()` 失败；将 `--gpu-memory-utilization` 下调（如 `0.82`）或改传录图建议的 `--kv-cache-memory`（见 [ACL Graph](acl-graph.md)） |
+| **2. Sleep 唤醒 `FRACTAL_NZ` 拦截** | `wake_up()` 在 `worker.py` 抛 `ValueError: FRACTAL_NZ mode is enabled...` | 普通 BF16 权重在默认 `weight_nz_mode=1` 下本不转 `NZ`，但唤醒守卫只要非零即拒；显式传 `'{"weight_nz_mode":0}'`（见 [Sleep Mode](sleep-mode.md)） |
+| **3. PD 分离 `TP_P % TP_D != 0`** | 如 `2 % 4 != 0`，`ascend_config.py` 普通 PD 校验抛 Pydantic `AssertionError: Prefill TP size must be divisible by Decode TP size.` | 对齐 `kv_transfer_config` 中两端 `tp_size` 使 `prefill_tp_size % decode_tp_size == 0`（Prefill TP 必须能被 Decode TP 整除，见 [PD 分离](pd-disaggregation.md)） |
+| **4. `MooncakeConnectorV2` 配 `kv_both`** | 解析为 `MooncakePullConnector`，在 `mooncake/base_worker.py` 抛 `ValueError: Mooncake worker requires exactly one KV transfer role, got 'kv_both'` | 拆分为独立 `kv_producer` 与 `kv_consumer`；注意健康日志仅打印配置名 `MooncakeConnectorV1` 或 `HCCL operator is 1836s` 绝非报错（见 [Mooncake](mooncake-connector.md)） |
+| **5. 未量化 GQA 传 `--kv-cache-dtype int8`** | 在 `attention_v1.py` 抛 `ValueError: The current GQA‑related models adopt static quantization...`（含 `U+2011` `‑` 不换行连字符） | 这是缺少离线 C8 校准权重报错，区别于 `ascend_config.py` 针对已带 C8 权重配普通 `MooncakeConnector` 的传输拦截（见 [KV cache 量化](kv-cache-quantization.md)） |
+| **6. 误留 `VLLM_LOGGING_LEVEL=DEBUG`** | 无异常退出，但 `worker.py` 每步读分配器打印日志（`TP=8` 达 `3,312` 行）+ `acl_graph.py` 逐 Tensor 核对 `data_ptr()`，`TP=8 c=1` 单样本 `TTFT` `+39.48%` | 压测与线上服务恢复 `VLLM_LOGGING_LEVEL=INFO`；勿把该开销误写成每步 `mem_get_info` 设备同步（见 [设备内存](device-memory.md)） |
 
 ## 证据不足时，下一步应该有多具体
 
@@ -300,12 +332,16 @@ curl -s http://127.0.0.1:8000/metrics | grep -E "vllm:(kv_cache_usage_perc|num_r
 | 报错或指标特征 | 对应代码边界 | 下一步优先核对 |
 | --- | --- | --- |
 | `Free memory on device (...) on startup is less than desired` | `worker.py` `init_snapshot` 预检失败 [C1] | `npu-smi info` 查残余进程或调低 `--gpu-memory-utilization` |
-| `NPU out of memory` 落在 `capture_model()` 之后 | KV 池建立后图捕获吃空 $1 - u$ 余量 [C3] | 适度下调 `u` 或改用日志建议的 `--kv-cache-memory` |
-| 多卡刷屏 `EI0006` / `HCCL_E_WAIT_TIMEOUT` | 集合通信屏障超时（RPC 超时抬高至 `3000s`）[C4] | 合并全组日志/plog 锁定最早出错的**首错 Rank**，全组干净再查网络 |
+| `NPU out of memory` 落在 `capture_model()` 之后 | KV 池建立后图捕获（如 `FULL` `1/35` `device_op.py:216` FIA）吃空 $1 - u$ 余量 [C3][M27] | 适度下调 `u`（如 `0.82`）或改用日志建议的 `--kv-cache-memory` |
+| `FRACTAL_NZ mode is enabled.`（`wake_up` 失败） | `worker.py:279-286` 唤醒守卫拦截非零 `weight_nz_mode` [C28][M27] | 传 `--additional-config '{"weight_nz_mode":0}'` 或开启 `rl_config.enabled` |
+| `Prefill TP size must be divisible by Decode TP size.` | `ascend_config.py:879-884` 普通 PD 分离整除断言 [C31][M27] | 对齐两端 `tp_size` 使 `prefill_tp_size % decode_tp_size == 0`（Prefill TP 能被 Decode TP 整除） |
+| `Mooncake worker requires exactly one KV transfer role` | `mooncake/base_worker.py:116` 拒绝 `kv_both` 双角色 [C32][M27] | 将 P/D 实例分别设为 `kv_producer` 或 `kv_consumer` |
+| 多卡刷屏 `EI0006` / `HCCL_E_WAIT_TIMEOUT` | 集合通信屏障超时（RPC 超时抬高至 `3000s`）[C4] | 合并全组日志/plog 锁定最早出错的**首错 Rank**，全组干净再查网络（勿将启动自检打印 `1836s` 误当报错） |
 | `EngineCoreProc` 退出码 `-9` / `137` (`SIGKILL`) | `utils.py` 回收子进程 `exitcode` [C12] | 先查宿主机 `dmesg` 与容器 `OOMKilled`，勿直接认定 NPU HBM OOM |
 | `AscendFAImpl does not support ACL graph capture` | `fa3_v1.py` 禁止 FA3 + `FULL_DECODE_ONLY` [C9] | 改用默认 FIA 后端，或为 FA3 改用 `PIECEWISE` / `--enforce-eager` |
-| `The current GQA-related models adopt static quantization` | `attention_v1.py` GQA + C8 缺少静态校准 scale [C8] | 换带 C8 校准的 ModelSlim 权重，或移除 `--kv-cache-dtype int8` |
+| `The current GQA‑related models adopt static quantization` | `attention_v1.py:583` 未量化 GQA 传 `int8` 缺少静态校准 scale（含 `U+2011` `‑`）[C8][M27] | 换带 C8 校准的 ModelSlim 权重，或移除 `--kv-cache-dtype int8`（区分 `ascend_config.py:1030-1042` 独立传输保护） |
 | `kv_cache_usage_perc > 0.95` + `num_preemptions` 递增 | `loggers.py` KV 块枯竭触发调度抢占 [C15] | 收紧 `--max-num-seqs` 或扩容 KV 池 [D] |
+| 留着 `VLLM_LOGGING_LEVEL=DEBUG` 出现首字延迟退化 | `worker.py:762-778` 每步分配器统计日志 + `acl_graph.py:275-281` `data_ptr()` 核对 [C29][M26] | 线上与基准测试恢复 `VLLM_LOGGING_LEVEL=INFO` |
 
 只有“超时”“OOM”等摘要时，还缺阶段、对象与现场版本，先补齐再查已知修复。
 
@@ -328,8 +364,8 @@ curl -s http://127.0.0.1:8000/metrics | grep -E "vllm:(kv_cache_usage_perc|num_r
 
 ### 源码位置
 
-- **启动预检、显存探测与图捕获 OOM**：`vllm_ascend/worker/worker.py`（来源 1–3）涵盖 `init_snapshot` 校验、`determine_available_memory()` 试跑量测与 `compile_or_warm_up_model()` 录图后显存账建议；`vllm_ascend/device/hardware_profile.py`（来源 10）划分 `310P` 兼容硬件档位。
-- **配置、图捕获与量化兼容硬报错**：`vllm_ascend/ascend_config.py`（来源 5–7）包含 `NPUGRAPH_EX` 硬件降级、`extra="forbid"` 未知键校验与 `MooncakeConnector` 禁配 GQA C8；`attention_v1.py`（来源 8）与 `fa3_v1.py`（来源 9）分别负责 GQA+C8 校准校验与 FA3 `FULL_DECODE_ONLY` 拦截。
+- **启动预检、显存探测、Sleep 守卫与图捕获 OOM**：`vllm_ascend/worker/worker.py`（来源 1–3、28–29）涵盖 `init_snapshot` 校验、`determine_available_memory()` 试跑量测、`compile_or_warm_up_model()` 录图后显存账建议、`wake_up()` 对非零 `weight_nz_mode` 的拦截与 `execute_model()` 中 `DEBUG` 分配器读数日志；`device/device_op.py`（来源 33）与 `compilation/acl_graph.py`（来源 30）分别对应 `FULL` 图捕获 FIA 调用栈与回放 `data_ptr()` 校验；`device/hardware_profile.py`（来源 10）划分 `310P` 兼容硬件档位。
+- **配置、PD 分离、图捕获与量化兼容硬报错**：`vllm_ascend/ascend_config.py`（来源 5–7、31）包含 `NPUGRAPH_EX` 硬件降级、`extra="forbid"` 未知键校验、普通 PD `TP_P % TP_D == 0` 整除断言与 `MooncakeConnector` 禁配 GQA C8；`mooncake/base_worker.py`（来源 32）校验单一 KV 传输角色；`attention_v1.py`（来源 8）与 `fa3_v1.py`（来源 9）分别负责 GQA+C8 校准校验与 FA3 `FULL_DECODE_ONLY` 拦截。
 - **分布式超时、进程退出、收尾与 `/metrics`**：`vllm_ascend/platform.py`（来源 4）与 `utils.py`（来源 11）维护 HCCL 超时与通信组缓冲配置；`vllm/v1/engine/utils.py`（来源 12）、`scheduler.py`（来源 13）、`async_llm.py`（来源 14）与 `metrics/loggers.py`（来源 15–16）覆盖子进程退出码、取消释放与 Prometheus 指标定义。
-- **官方文档与历史快照**：官方 Profiling 指南 [S17] 与 FAQ [S18] 提供采集与高频问题索引；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25。
-- **方法论与示意边界**：十域分流和判别实验是基于既有机制组织的诊断方法 [I]；请求 R 的时间与步骤号、多卡交错时间轴图及工作台面板 B 相对时序均为教学示意 [A]，不代表目标硬件实测耗时。
+- **官方文档、历史快照与 `Ascend 910B3` 真机标本**：官方 Profiling 指南 [S17] 与 FAQ [S18] 提供采集与高频问题索引；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25；`Ascend 910B3` 八卡扩展、`DEBUG` 延迟对照与五份真机故障标本归档于来源 26–27 [M26][M27]。
+- **方法论与示意边界**：十域分流和判别实验是基于既有机制组织的诊断方法 [I]；请求 R 的时间与步骤号、多卡交错时间轴图及工作台 6 类阻塞时序对照视图均为教学示意 [A]，不代表目标硬件实测耗时。

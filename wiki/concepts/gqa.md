@@ -132,15 +132,21 @@ MQA 把 K、V 直接砍到只剩 `1` 组，缓存和每步读取量都缩到 MHA
 | **逐位置打分 $QK^\top$ 与汇合 $PV$** | 乘加数约 $n_q \cdot S \cdot d_k + n_q \cdot S \cdot d_v$ | **完全不省**（每个 Q 头照样对 $S$ 个位置打分汇合） |
 | **KV cache 容量与逻辑读取量** | 每位置每层 $n_{\text{kv}} (d_k + d_v) \times \text{bytes}$ | **按 $n_{\text{kv}} / n_q$ 同比例缩小**（物理访存视算子而定） |
 
-因此，「GQA 只省显存、不省计算」这句流行口诀其实不够准确：**$W_K, W_V$ 投影的矩阵乘确实省了，真正没省的是 $QK^\top$、$PV$ 与 $W_O$**。反过来，也不能因为缓存缩了 $4$ 倍就断言端到端吞吐一定快 $4$ 倍：prefill（首轮提示词并行处理，常受算力限制）与 decode（常受带宽限制）、批大小、序列长度以及底层注意力算子实现都会改变实际瓶颈，真实提速幅度必须按负载实测。
+因此，「GQA 只省显存、不省计算」这句口诀不够准确：**$W_K, W_V$ 投影的矩阵乘确实省了，真正没省的是 $QK^\top$、$PV$ 与 $W_O$**。反过来，也不能因为缓存缩了 `4` 倍就断言端到端吞吐一定快 `4` 倍：prefill（常受算力限制）与 decode（常受带宽限制）、批大小、序列长度及底层算子都会改变实际瓶颈，真实提速必须实测。
 
 ## 同组的查询头怎样共读一组 K、V？算一遍
 
-**同一组里的查询头拿到的是同一张 K 表和 V 表，但各自拿不同的 Q 去打分，算出的注意力权重不同，加权汇合出的结果也各不相同。** 把第 $h$ 个查询头映射到所属 KV 组号 $g(h) = \lfloor h / (n_q / n_{\text{kv}}) \rfloor$，单头输出写成一行标准公式就是：
+**同一组里的查询头拿到同一张 K 表和 V 表，但各自拿不同的 Q 去打分，算出的权重和输出依然各不相同。** 下图左侧演示两个同组头如何共读第 0 组 K/V 算出不同权重与输出，右侧直观对比 `4:1` GQA 的四项开销真账：
+
+```wiki-diagram
+file: gqa-fig-shared-kv-cost-split
+```
+
+把第 $h$ 个查询头映射到所属 KV 组号 $g(h) = \lfloor h / (n_q / n_{\text{kv}}) \rfloor$，单头输出写成标准公式就是：
 
 $$o_h = \text{softmax}\!\left(\frac{Q_h K_{g(h)}^\top}{\sqrt{d_k}}\right) V_{g(h)}$$
 
-拿首图中间 GQA 那一栏做最小手算（示意设定）：`4` 个查询头 $Q_0\text{–}Q_3$ 等分成 `2` 组，$Q_0, Q_1$ 共读第 0 组 K、V，$Q_2, Q_3$ 共读第 1 组。每头宽度 $d_k = d_v = 2$，当前可见历史有 `3` 个位置（0、1、2）；第 0 组的 K、V 直接沿用 [attention 页多头一节](attention-qkv.md#多头同一个位置同时按几套方式去读)里头 0 的数值：
+拿首图中间 GQA 那一栏做最小手算（示意设定）：`4` 个查询头 $Q_0\text{–}Q_3$ 等分成 `2` 组，$Q_0, Q_1$ 共读第 0 组 K、V，$Q_2, Q_3$ 共读第 1 组。每头宽度 $d_k = d_v = 2$，当前可见历史有 `3` 个位置（0、1、2）；第 0 组 K、V 直接沿用 [attention 页多头一节](attention-qkv.md#多头同一个位置同时按几套方式去读)里头 0 的数值：
 
 | 第 0 组共享历史（示意） | 位置 0 | 位置 1 | 位置 2 |
 |---|---|---|---|
@@ -231,13 +237,15 @@ file: gqa-fig-qwen3-shapes
 
 在早期朴素 PyTorch 实现里，为了做分组点积，常要在调用注意力前先调 `repeat_kv` 把 K、V 张量沿头维度复制展开成 $n_q$ 份，白白吃掉成倍的 HBM 显存与带宽。在 `vllm` 与昇腾 `vllm-ascend`（`v0.30.0` 主基线）中，**调用算子前绝不在 HBM 里复制展开 K、V**：
 
-- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录 `num_queries_per_kv = num_heads // num_kv_heads`。前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接传入本卡 `num_heads`、`num_key_value_heads`、紧凑布局 `input_layout="TND"` 与分页 `block_table`，同组映射在算子内部完成。通用 PyTorch `scaled_dot_product_attention` 路径则通过 `enable_gqa = (num_heads > num_kv_heads)` 开启内部广播；至于 `FIA` 核内片上缓存是否对同组查询头合并为单次物理读取，取决于底层 CANN 算子实现。
-- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：在昇腾上对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`。因此启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，此时必须换用发送前逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
-- **GQA 叠加 [上下文并行（PCP / DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `prefill_context_parallel_size == decode_context_parallel_size`（`PCP == DCP`）。若在投机解码下为 GQA/MQA 草稿模型单独开启 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
+- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录 `num_queries_per_kv = num_heads // num_kv_heads`。前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接传入本卡 `num_heads`、`num_key_value_heads`、紧凑布局 `input_layout="TND"` 与分页 `block_table`，同组映射在算子内部完成。通用 PyTorch `scaled_dot_product_attention` 路径则靠 `enable_gqa = (num_heads > num_kv_heads)` 开启内部广播；至于 `FIA` 核内片上缓存是否对同组查询头合并为单次物理读取，取决于底层 CANN 算子实现。
+- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`。因此启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，必须换用发送前逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
+- **GQA 叠加 [上下文并行（PCP / DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `prefill_context_parallel_size == decode_context_parallel_size`（`PCP == DCP`）。若在投机解码下为 GQA/MQA 草稿模型单独开 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
 
 ### 变体边界：GLM 双机的稀疏 MLA 与 KDA 为什么不是 GQA
 
-并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`）为例：示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层（交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）。它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**，绝不能套用本页 GQA 公式估算缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
+并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`）为例：示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层（交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）。
+
+它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**。因此绝不能套用本页 GQA 公式估算缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
 
 ```wiki-diagram
 file: gqa-flow

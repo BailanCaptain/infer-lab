@@ -1,7 +1,7 @@
 mode: native-svg
 id: block-table-fig-size-alignment
 caption: 昇腾 v0.30.0 平台 refresh_block_size 四路对齐漏斗、GLM 640 分配块到 5×128 内核块的零搬运展开，以及块表占位 0 与槽位填充 -1 的区分对照。
-size: [900, 520]
+size: [900, 546]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1554'
     symbols: ['refresh_block_size', 'is_c8_mxfp_kv_quant', 'A5_C8_MXFP_KV_CACHE_BLOCK_SIZE', 'xlite_graph_config']

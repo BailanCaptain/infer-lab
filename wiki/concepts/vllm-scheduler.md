@@ -257,14 +257,11 @@ file: vllm-scheduler-fig-dual-budget
 
 ### 边界与例外
 
-`waiting` 与 `running` 两条队列的退路并不对称，几类改变执行路径的边界条件如下：
+`waiting` 与 `running` 两条队列的退路并不对称，几类改变执行路径的关键边界如下：
 
-- **waiting 准入三门槛**：只有同时满足「本步未发生抢占」「引擎未暂停」「`running` 未达条数上限」时，才尝试接纳 `waiting`。关闭 [chunked prefill](chunked-prefill.md)（分块预填充）且单条上限保持默认 `0` 时，队头新请求若超出剩余预算，调度器直接停止本轮接纳，排在后面的请求一并等待；若额外设了正的单条上限，先截阈值再查分块开关，因此仍可能排入首段（两项联动见页末）。
+- **waiting 准入三门槛**：只有同时满足「本步未发生抢占」「引擎未暂停」「`running` 未达条数上限」时，才尝试接纳 `waiting`。关闭 [chunked prefill](chunked-prefill.md) 且单条上限为默认 `0` 时，队头新请求只要超出剩余预算，调度器就直接 `break` 停止本轮接纳，排在后面的请求一并等待；若额外设了正的单条上限，由于先截阈值再查分块开关，仍可能排入首段（两项联动见页末）。
 - **完整输入容量预检（`scheduler_reserve_full_isl`）**：默认对 `waiting` 开启。第 3 关先检验「整条完整输入折算后的块数」能否装下，防止刚接进来就在后续分块缺块触发抢占。**预检容量与当场借块是两件事**：预检通过后仍只借本步所需与候选预留块，不会提前为未知输出预留全部空间。
-- **running 缺块抢占（`fcfs` vs `priority`）**：`running` 借不到块时，按策略挑选一条请求抢占：
-  - `fcfs`（先来先服务）固定取 `running` 队尾；
-  - `priority`（优先级策略）取「优先级数值、到达时间」二元组最大者（数值同才比到达时间），不能只看入队顺序。
-  - 被抢占请求归还全部 KV 块、已算位置清零、清空候选并退回 `waiting` 队首，随后当前请求重试借块。若被抢占的正是当前条，`running` 扫描随即终止。**只要本步发生过抢占，就不再接纳任何 `waiting`**。`v0.30.0` 起若失败原因指向延迟释放块（connector 尚未放回），会及时止损停止无意义的连续抢占。
+- **running 缺块抢占（`fcfs` vs `priority`）**：`running` 借不到块时，按策略挑选一条请求抢占——`fcfs` 固定取 `running` 队尾，`priority` 取「优先级数值、到达时间」二元组最大者（数值相同才比到达时间）。被抢占请求归还全部 KV 块、已算位置清零、清空候选并退回 `waiting` 队首，随后当前请求重试借块。若被抢占的正是当前条，`running` 扫描随即终止；**只要本步发生过抢占，就不再接纳任何 `waiting`**。`v0.30.0` 起若失败原因指向延迟释放块（connector 尚未放回），会及时止损，避免无意义的连续抢占。
 - **排入位置数 ≠ 产出 token 数**：截断会使安排量小于差额；分块 prefill 前几步只消化输入、无新输出；投机解码按实际接受数一次确认多个 token。余下预算无需强行填满，无符合条件请求时单步可远低于上限。
 
 ## 多个 DP 组怎样对齐 prefill 的节奏？
@@ -286,17 +283,17 @@ file: vllm-scheduler-fig-dual-budget
 | 1、2 | 暂缓条件成立：仅续 decode，延后本地 prefill | A 继续生成；P 下一段与 N 首段暂停等待 |
 | 3 | 再次放行 prefill，按正常队列与预算排程 | P、N 重新参与分配（不保证一步算完） |
 
-纯 prefill 负载没有 decode 可续时不会强行空转；上次放行仍有积压 `waiting` 也会豁免暂缓；引擎从闲置恢复时步计数归 0 并立即放行。普通单组（非 DP）引擎不触发节流，自定义调度器是否响应取决于具体实现。该机制的代价是部分提示词首字变晚，收益需在同一负载下实测首字时延与 decode 时延权衡。
+这项节流自带四条护栏，避免错误空转：纯 prefill 负载无 decode 可续时不空转；上次放行仍有积压 `waiting` 时豁免暂缓；引擎从闲置恢复时步计数归 `0` 并立即放行；普通单组（非 DP）引擎不触发节流（自定义调度器是否响应视具体实现）。代价是部分提示词首字变晚，收益须在同一负载下实测首字与 decode 时延权衡。
 
 ## 复杂异构实战对照：GLM 双机 5 缓存组与 MTP 1+3 占位
 
-当模型从单缓存组稠密结构切换为异构双机配置时，调度四关的核心公式不变，但「每步位置数、缓存组核算与预算余量」都会放大。以下按例外 B 审定基线（[GLM 双机部署前提](glm-5-3-flash-two-node.md#部署前提)）核对完整账目；固定 GLM 旧控制流不含上节的 `prefill_schedule_interval` 开关，R1 与场景 M 均沿用原配方。
+看清标准单缓存组 `Qwen3` 的四关漏斗后，再切到例外 B 审定基线——**GLM-5.3-Flash 双机异构部署**（[部署前提](glm-5-3-flash-two-node.md#部署前提)）。调度四关的核心公式保持不变，但每步位置数、缓存组核算与预算余量都会放大；注意固定 GLM 旧控制流不含上节的 `prefill_schedule_interval`，R1 与场景 M 均沿用原配方。
 
 ### 双机 DP 组上限与异构并批动机
 
-两台机器各是一个 DP 执行组，各跑一个 `EngineCore`、**各有一个调度器**，并各自独享 `8192` token 预算、`32` 条请求上限与一份 KV 块池（请求入口分派见[第 1 站 入口](one-request.md#第-1-站-入口从-http-到-node0-的引擎)，参数含义见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。
+两台机器各是一个 DP 执行组，各跑一个 `EngineCore`、**各有一个调度器**，并各自独享 `8192` token 预算、`32` 条请求上限与一份 KV 块池（入口分派见[第 1 站 入口](one-request.md#第-1-站-入口从-http-到-node0-的引擎)，参数含义见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。
 
-并批在异构 MoE 上同样用于摊薄固定开销：按 `3121f187` 配方，[每卡主要语言权重子账](glm-5-3-flash-two-node.md#每张卡上放了什么)约 `20.58 GiB`，其中路由专家占 `17.72 GiB`（约 `86%`），视觉塔、MTP 旋转矩阵与量化辅助张量另计（这是驻留容量估算，并非每步 HBM 实读量；attention、稠密层和共享专家参与每轮，路由专家按实际选中参与）。同时 45 层需依次执行并发起集合通信（次数见[一次前向的通信账](one-request.md#一次前向的通信账)）。
+并批在异构 MoE 上同样为了摊薄固定开销。按 `3121f187` 配方，[每卡主要语言权重子账](glm-5-3-flash-two-node.md#每张卡上放了什么)约 `20.58 GiB`，其中路由专家占 `17.72 GiB`（约 `86%`），视觉塔、MTP 旋转矩阵与量化辅助张量另计。这是静态驻留容量估算，并非每步 HBM 实读量——注意力、稠密层与共享专家每轮必算，路由专家按实际选中参与；同时 45 层需依次执行并发起集合通信（次数见[一次前向的通信账](one-request.md#一次前向的通信账)）。
 
 | 单 DP 组静态约束 | GLM 双机显式配置 | 对应作用 |
 |---|---|---|
@@ -308,14 +305,14 @@ file: vllm-scheduler-fig-dual-budget
 
 [R1](one-request.md#示例请求-r1-与官方双机部署) 是教学设定的 4 token 提示词请求，prefix caching 在本部署默认关闭（原因见 [prefix caching](prefix-caching.md#glm-双机上它开着吗)）：
 
-- **第 1 步（waiting → running）**：应算 4、已算 0，差 4 个位置。借块时需叠加下一步 MTP 的 `3` 个 lookahead 预留，一共按 7 个位置向 **5 个缓存组**（见 [KV cache 规格](kv-cache-spec.md)）分别折算，一次借出 15 个块号（逐组算式见[第 2 站 调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)）。
+- **第 1 步（waiting → running）**：应算 4、已算 0，差 4 个位置。借块时叠加下一步 MTP 的 `3` 个 lookahead 预留，一共按 7 个位置向 **5 个缓存组**（见 [KV cache 规格](kv-cache-spec.md)）分别折算，一次借出 15 个块号（逐组算式见[第 2 站 调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)）。
 - **后续每步（decode）**：R1 应算位置包含上步确定的 `1` 个 token 与 `3` 个 MTP 候选，差额恒为 `4`（被拒候选让已算回退，下一步差额仍为 `4`，逐圈账见[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)）。
 
-调度器只向本组 8 个 worker 下发「本步 token 数、按缓存组分开的新借块号、待验证候选（首步为空）」，新请求附带提示词与采样参数。它不决定算子分路或是否走图模式：worker 侧按实际形态自行判断——KDA 线性注意力层仍区分 prefill 分段与 decode 逐位置递推（见[线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进)），只有纯 decode 步回放图模式（规则见[图尺寸补齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)，张量组装见[输入准备](prepare-inputs-flow.md)）。本部署未显式配置 async scheduling，按 MTP 与多进程执行器条件推断默认开启（缺启动日志实证），前后步交错但每步排给 R1 的仍是 `4` 个位置（见 [async scheduling](async-scheduling.md)）。
+调度器只向本组 8 个 worker 下发「本步 token 数、按缓存组分开的新借块号、待验证候选（首步为空）」，新请求另附提示词与采样参数。**算子分路与图模式完全由 worker 侧自决**：KDA 层自行区分分段 prefill 与逐位置递推（见[线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进)），且仅纯 decode 步回放图模式（见[图尺寸补齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)、[输入准备](prepare-inputs-flow.md)）。此外，本部署未显式配置 async scheduling，按 MTP 与多进程执行器条件推断默认开启（缺启动日志实证），前后步交错但每步排给 R1 的仍是 `4` 个位置（见 [async scheduling](async-scheduling.md)）。
 
 ### 多请求满载余量、切分门槛与高成本抢占
 
-单 DP 组跑满 32 条纯 decode 请求时，每条占 4 个位置，仅消耗总预算的极小比例：
+对照前图第 3 栏的真实比例条：单 DP 组跑满 32 条纯 decode 请求时，每条占 4 个位置，仅消耗总预算的极小比例：
 
 $$\text{ratio}_{\text{decode}} = \frac{32 \times 4}{8192} = \frac{128}{8192} \approx 1.6\%$$
 
@@ -325,22 +322,24 @@ $$\text{ratio}_{\text{decode}} = \frac{32 \times 4}{8192} = \frac{128}{8192} \ap
 | 预算占用比例 | $128 \div 8192$ | **约 1.6%** | 先撞上 32 条上限而非预算 |
 | 剩余预算（若未满 32 条） | $8192 - 4 \times N_{\text{decode}}$ | 最低 **8,068**（31 条时） | 超过此长度的新提示词须分步 |
 
-以下只针对已有 `running` 全在 decode 的场景（若 `running` 含未完 prefill 须按实际差额扣除）：
+以下结论仅适用于已有 `running` 全在 decode 的场景（若 `running` 含未完 prefill 须按实际差额扣除）：
 
-- **一步装下与分步切分**：[场景 M](concurrent-requests.md#示例场景-m-与变体-m) 中 DP0 有 12 条 decode（占 48），新来 6,000 token 提示词一步装下，合计 `6,048` token、13 条请求（账见[场景 M 第 2 站](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)）。若换成 20,000 token，须分三步算完，第 3 步才出首 token（见[分几步算](concurrent-requests.md#提示词超过剩余预算时分几步算)）。本部署未设单条上限（保持 `0`）；若另设正阈值，门槛需重算。
-- **切块不对齐 KV 逻辑块**：预算 8,192 并非逻辑块长 640 的整数倍，两者各管各的。prefix caching 关闭时，KDA 缓存模式为 `none`（不按块留档），昇腾为 `align` 模式准备的块对齐切分补丁不生效。
-- **无缓存复用下的昂贵抢占**：因 prefix caching 关闭，被抢占请求无法复用前缀，提示词和已生成编号都要重新作为输入以重建包括 KDA 在内的计算状态（抢占临界与还块见[池子不够时](vllm-kv-block-allocation.md#池子不够时宁可抢占也不借一半)与[多条请求的 KV 块](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)）。
+- **一步装下 vs 分步切分**：[场景 M](concurrent-requests.md#示例场景-m-与变体-m) 中 DP0 有 12 条 decode（占 `48`），新来 `6,000` token 提示词一步装下，合计 `6,048` token、13 条请求（见[场景 M 第 2 站](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)）。换成 `20,000` token 则须分三步算完，第 3 步才出首 token（见[分几步算](concurrent-requests.md#提示词超过剩余预算时分几步算)）。本部署单条上限保持 `0`；若另设正阈值，切分门槛须重算。
+- **切块不对齐 KV 逻辑块**：预算 `8,192` 并非逻辑块长 `640` 的整数倍，两者各管各的。prefix caching 关闭时 KDA 缓存模式为 `none`（不按块留档），昇腾为 `align` 模式准备的块对齐切分补丁不生效。
+- **无缓存复用下的昂贵抢占**：因 prefix caching 关闭，被抢占请求无法复用前缀，提示词和已生成编号都要重算以重建包括 KDA 在内的状态（见[池子不够时](vllm-kv-block-allocation.md#池子不够时宁可抢占也不借一半)与[多条请求的 KV 块](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)）。
 
 ## 昇腾上跑的是哪个调度器
 
-`vllm-ascend` 的平台补丁在启动时把上游 `Scheduler` 替换为 `BalanceScheduler`。它增加一道跨 DP 组准入闸门（默认关闭），关着时每步直接回调上游调度逻辑，因此正文所述规则即实际生效路径。开启 async scheduling 时，引擎懒导入上游 `AsyncScheduler`；因其在平台补丁之后加载，按导入顺序推断它继承的是替换后的 `BalanceScheduler`，最终仍落回同一套上游逻辑（缺实跑日志确认）。开启均衡闸门后的行为见 [Balance Scheduling](balance-scheduling.md)。
+`vllm-ascend` 的平台补丁在启动时把上游 `Scheduler` 替换为 `BalanceScheduler`。它增加一道跨 DP 组准入闸门（默认关闭）：关着时每步直接调用 `super().schedule()` 透传回上游逻辑，因此正文所述规则即实际生效路径。开启 async scheduling 后引擎懒导入上游 `AsyncScheduler`，因其在平台补丁之后加载，按导入顺序推断其继承的是替换后的 `BalanceScheduler`，最终仍落回同一套上游逻辑（缺实跑日志确认）；开启均衡闸门后的行为见 [Balance Scheduling](balance-scheduling.md)。
 
-昇腾各版本另提供若干可选调度器变体，默认均不开启：
+昇腾各版本另提供若干可选调度器变体（默认均不开启）：
 
-- [Recompute Scheduler](recompute-scheduler.md)：仅限 PD 分离的 decode 节点启用，混合部署开启直接报错。
-- `SchedulerDynamicBatch`：按 SLO 动态调整 token 预算（旧基线镜像存在，后续版本已移除）。
-- `ProfilingChunkScheduler`：启动时剖析 prefill 耗时并决定分块大小（`main` 已移除）。
-- [Batch Job Aware Scheduler](batch-job-aware-scheduler.md)：新分支提供，按批任务与长度层级排程（适用版本见页末版本表）。
+| 调度器变体 | 适用场景与约束 | 版本状态 |
+|---|---|---|
+| [Recompute Scheduler](recompute-scheduler.md) | 仅限 PD 分离的 decode 节点启用，混合部署直接报错 | 全四版保留 |
+| `SchedulerDynamicBatch` | 按 SLO 动态调整 token 预算 | 仅旧基线镜像存在，后续版本已移除 |
+| `ProfilingChunkScheduler` | 启动时剖析 prefill 耗时并决定分块大小 | `main` 已移除 |
+| [Batch Job Aware Scheduler](batch-job-aware-scheduler.md) | 按批任务与长度层级排程（与 `short-request-first` 互斥） | `v0.30.0` / `main` 提供 |
 
 ## 常见误解
 

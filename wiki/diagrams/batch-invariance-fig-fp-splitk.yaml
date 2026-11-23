@@ -1,8 +1,8 @@
 mode: native-svg
 id: batch-invariance-fig-fp-splitk
 caption: >-
-  批不变性的数学根源与昇腾锁定机制：上半用 FP32 加法结合律失效（(16,777,216+1)-16,777,216=0 vs 16,777,216+(1-16,777,216)=1）展示为何混批/动态 split-K 改变 K 维归约分组并翻转 top-2 候选排序；下半给出 VLLM_BATCH_INVARIANT=1 在昇腾上的确定性锁定链、v0.30.0 与 main 演进及 GLM 混合模型缺口。
-size: [900, 480]
+  批不变性的数学根源与固定归约解法：（一）两棵 FP32 二叉加法树直观对比 (2²⁴+1)−2²⁴=0 与 2²⁴+(1−2²⁴)=1；（二）默认实现随批行数 M 在并行 Split-K 树形归约与顺序 K 累加间切换导致 logits 末位漂移；（三）写死 K 方向固定 8×64 顺序累加链后，M=1（1 块）与 M=300（3 块）保持完全相同的归约顺序。
+size: [900, 486]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189'
     symbols:

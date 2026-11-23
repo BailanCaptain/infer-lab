@@ -1,7 +1,8 @@
 mode: native-svg
 id: worker-life-fig-dependency-chain
-caption: NPUWorker 冷启动六步硬依赖链与墙钟耗时五大重头去向：前一步的设备句柄、分片权重、试跑峰值与统一块数是后一步的刚性输入，耗时集中在读盘、首次 NZ 分形转换、假前向试跑、7 类预热与分桶录图
-size: [900, 560]
+caption: >-
+  NPUWorker 六步刚性产物依赖链与三条冷启动墙钟耗时比例对照（示意）：左侧标出每步交付给下一步的刚性输入（对调即失败），右侧以比例甘特条对照默认串行、开启加载期早预热重叠（early_nz_warmup 与 early_kernel_warmup 并行掩盖 15–19 秒首次 NZ 初始化）及 RFork 热启动跳过读盘重排后的墙钟压缩效果。
+size: [900, 584]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L166"
     symbols:

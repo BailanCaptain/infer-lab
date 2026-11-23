@@ -1,0 +1,12 @@
+mode: native-svg
+id: async-scheduling-fig-inflight-ledger
+caption: >-
+  异步调度 + 投机解码（R1，K=3）两步在途记账与设备纠正时间线：共享横轴对齐 EngineCore（上轨）与 Worker NPU（下轨）。排第 3 步时第 2 步尚未回传，调度器按全接受记已算 8→12、占位 4→8 并下发乐观位置 8–11；Worker 备第 3 步输入时先读卡上第 2 步有效数 2（拒 2），原地将位置从 8–11 回退至 6–9（覆盖被拒 KV 槽 6、7）；随后第 2 步结果回到 EngineCore，执行两次减账将已算从 12→10、输出占位从 8→4，精确对齐同步进度 10−4=6。
+size: [900, 500]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L67'
+    symbols: ['_update_after_schedule', '_update_request_with_output', 'num_output_placeholders']
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1432'
+    symbols: ['num_rejected', 'num_output_placeholders']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1130-L1153'
+    symbols: ['update_num_computed_tokens_for_batch_change', 'valid_sampled_token_count_gpu']

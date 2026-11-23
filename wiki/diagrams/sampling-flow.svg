@@ -1,42 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 760" width="880" height="760" role="img" aria-label="一台机器在一步里怎样完成采样（另一台机器同样如此，各管各的请求）。分数先在 8 张卡之间拼完整；相同采样实现、随机流和取数顺序使各卡选择一致，只有 0 号卡交回引擎。停止判断在引擎进程的 CPU 上做。R1 的提示词为 4 个 token（示意）">
-  <title>一台机器在一步里怎样完成采样（另一台机器同样如此，各管各的请求）。分数先在 8 张卡之间拼完整；相同采样实现、随机流和取数顺序使各卡选择一致，只有 0 号卡交回引擎。停止判断在引擎进程的 CPU 上做。R1 的提示词为 4 个 token（示意）</title>
-  <defs><marker id="sampling-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M20 636 L860 636" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="20" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">8 张卡（NPU）</text>
-  <text x="20" y="658" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">引擎进程（CPU）</text>
-  <path d="M440 78 L440 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M440 176 L440 216" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M320 274 L320 296 L220 296 L220 318" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M560 274 L560 296 L660 296 L660 318" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M220 388 L220 412 L320 412 L320 436" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M660 388 L660 412 L560 412 L560 436" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M320 498 L320 522 L220 522 L220 546" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M560 498 L560 522 L660 522 L660 546" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <path d="M220 608 L220 656 L320 656 L320 676" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-ah-ink)"/>
-  <rect x="200" y="20" width="480" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="440" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">前向结束：每张卡算 19360 个词的分数</text>
-  <text x="440" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">词表投影按词表切成 8 份</text>
-  <rect x="200" y="118" width="480" height="58" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="440" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP8 All-Gather：拼出完整的 154880 个分数</text>
-  <text x="440" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">8 张卡手里的分数完全相同</text>
-  <rect x="200" y="216" width="480" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这条请求这一步带着 MTP 候选吗？</text>
-  <rect x="20" y="318" width="400" height="70" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="220" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">没有：普通采样</text>
-  <text x="220" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每条请求取 1 行 · R1 第 1 步</text>
-  <rect x="460" y="318" width="400" height="70" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="660" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">有：验证候选</text>
-  <text x="660" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每条请求取 1 + 3 行 · R1 第 2 步起</text>
-  <rect x="200" y="436" width="480" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="463" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">8 张卡保持相同随机流与取数顺序</text>
-  <text x="440" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">改分数 → greedy，或 ÷T、截断、指数噪声抽取</text>
-  <rect x="20" y="546" width="400" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="220" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0 号卡把结果交回引擎</text>
-  <text x="220" y="592" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">其余 7 张卡不回传</text>
-  <rect x="460" y="546" width="400" height="62" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="660" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每张卡留着结果，接着做 MTP 草拟</text>
-  <text x="660" y="592" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">草拟每遍都取最高分</text>
-  <rect x="200" y="676" width="480" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="703" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">逐个追加 token，检查停止条件</text>
-  <text x="440" y="722" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">结束 token、停止 token、长度上限</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 426" width="900" height="426" role="img" aria-label="GLM 双机单台 8 卡采样与 MTP 验证路径图" font-family="var(--font-sans)">
+  <title>GLM-5.3-Flash 单台 8 张 NPU 卡在一步中完成词表 All-Gather、普通采样或 MTP 3 候选验证，以及 0 号卡回传 EngineCore 判停的完整路径。</title>
+  <desc>上半部分展示 8 张 NPU 卡并行执行 lm_head 切分（每卡 19,360 词）后经 TP8 All-Gather 拼出完整的 154,880 词表分数，再按是否携带 MTP 候选分流：R1 第 1 步仅取末行 [1, 154880] 做普通采样，第 2 步起取 1+3 行 [4, 154880] 做 3 候选验证加 1 枚额外采样，8 卡在 --seed 1024 下得出一致结果；下半部分展示 8 卡全部保留本地结果紧接执行 MTP argmax 草拟，同时仅 0 号卡交回 EngineCore CPU 逐个追加并按 154820/154827/154829 或长度上限判停。</desc>
+  <defs>
+    <marker id="sg-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="sg-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="sg-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">单台 8 卡（NPU）：TP8 拼齐 154,880 分数 → 普通采样 / MTP 4 行验证</text>
+
+  <!-- Row 1: 8-card shard + All-Gather -->
+  <rect x="14" y="40" width="388" height="72" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="28" y="64" font-size="14.5" font-weight="700" fill="#936300">1. 前向末层词表投影按词表切 8 份</text>
+  <rect x="28" y="74" width="40" height="26" rx="4" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="48" y="92" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">卡0</text>
+  <rect x="74" y="74" width="40" height="26" rx="4" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="94" y="92" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">卡1</text>
+  <text x="132" y="92" text-anchor="middle" font-size="14" fill="#936300">…</text>
+  <rect x="148" y="74" width="40" height="26" rx="4" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="168" y="92" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">卡7</text>
+  <text x="200" y="92" font-size="13.5" fill="#17211f">每卡仅算 <tspan font-family="var(--font-mono)" font-weight="700">19,360</tspan> 词</text>
+
+  <line x1="402" y1="76" x2="438" y2="76" stroke="#9a4b86" stroke-width="2" marker-end="url(#sg-arr-p)"/>
+
+  <rect x="444" y="40" width="442" height="72" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="458" y="64" font-size="14.5" font-weight="700" fill="#7a3a6a">2. TP8 All-Gather 拼齐完整词表 logits</text>
+  <text x="458" y="88" font-size="13.5" fill="#17211f">8 张卡均拿到完全一致的 <tspan font-family="var(--font-mono)" font-weight="700">154,880</tspan> 维分数（采样前转 FP32）</text>
+  <text x="458" y="106" font-size="13" fill="#4d5652">全局 --seed 1024 同步随机流起点 → 8 卡本地采样结果完全相同</text>
+
+  <!-- Split arrows down to Step 1 vs Step 2+ -->
+  <path d="M 300 112 L 300 128 L 222 128 L 222 140" fill="none" stroke="#4d5652" stroke-width="1.6" marker-end="url(#sg-arr)"/>
+  <path d="M 665 112 L 665 140" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sg-arr-t)"/>
+
+  <!-- Left branch: R1 Step 1 (no MTP candidates) -->
+  <rect x="14" y="144" width="416" height="122" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="168" font-size="14.5" font-weight="700" fill="#3a4f93">3A. 无 MTP 候选（R1 第 1 步 Prefill）</text>
+  <rect x="28" y="180" width="388" height="36" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="222" y="203" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">logits [1, 154880]  →  普通采样产出 1 枚 y₀</text>
+  <text x="28" y="236" font-size="13.5" fill="#4d5652">4 词 prompt 仅末位置打分；走 greedy 或 ÷T/截断/指数噪声</text>
+  <text x="28" y="256" font-size="13" fill="#4d5652">默认继承 generation_config：T=1.0, top_p=0.95</text>
+
+  <!-- Right branch: R1 Step 2+ (MTP verify) -->
+  <rect x="446" y="144" width="440" height="122" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="460" y="168" font-size="14.5" font-weight="700" fill="#065f56">3B. 携带 3 个 MTP 候选（R1 第 2 步起 Decode）</text>
+  <!-- 4 mini rows visualizing 3 verify + 1 bonus -->
+  <rect x="460" y="180" width="92" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="506" y="203" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">行0 验D1</text>
+  <rect x="558" y="180" width="92" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="604" y="203" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">行1 验D2</text>
+  <rect x="656" y="180" width="92" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="702" y="203" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">行2 验D3</text>
+  <rect x="754" y="180" width="118" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="813" y="203" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#936300">行3 全过+1</text>
+  <text x="460" y="236" font-size="13.5" fill="#17211f">形状 <tspan font-family="var(--font-mono)" font-weight="700">[4, 154880]</tspan>：按目标分布接受/重抽，产出 <tspan font-weight="700" fill="#065f56">1–4 枚</tspan></text>
+  <text x="460" y="256" font-size="13" fill="#4d5652">3 行验证 FP32 副本约 1.77 MiB；满载 32 并发 BF16 约 37.8 MiB</text>
+
+  <!-- Boundary line between NPU and CPU -->
+  <line x1="14" y1="286" x2="886" y2="286" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="14" y="308" font-size="14" font-weight="700" fill="#4d5652">步末分叉：8 卡留在设备侧接续草拟 vs 仅 0 号卡交回引擎 CPU 判停</text>
+
+  <!-- Arrows down -->
+  <path d="M 222 266 L 222 322" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#sg-arr-p)"/>
+  <path d="M 666 266 L 666 322" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sg-arr-t)"/>
+
+  <!-- Bottom left: Rank 0 -> EngineCore CPU -->
+  <rect x="14" y="326" width="490" height="86" rx="9" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5"/>
+  <text x="28" y="351" font-size="14.5" font-weight="700" fill="#17211f">仅 0 号卡交回 EngineCore（CPU）→ 逐枚追加并判停</text>
+  <text x="28" y="375" font-size="13.5" fill="#17211f">命中任一结束符（<tspan font-family="var(--font-mono)" font-weight="700">154820 / 154827 / 154829</tspan>）立即截断丢弃后续词</text>
+  <text x="28" y="397" font-size="13.5" fill="#4d5652">同步检查 <tspan font-family="var(--font-mono)" font-weight="700">max_tokens</tspan> 与总长上限 <tspan font-family="var(--font-mono)" font-weight="700">133,120</tspan>（其余 7 卡不回传）</text>
+
+  <!-- Bottom right: All 8 cards keep local tokens for MTP -->
+  <rect x="520" y="326" width="366" height="86" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="534" y="351" font-size="14.5" font-weight="700" fill="#065f56">8 张卡均保留本地结果 → 紧接 MTP 草拟</text>
+  <text x="534" y="375" font-size="13.5" fill="#17211f">省去额外广播，每卡直接驱动第 45 层</text>
+  <text x="534" y="397" font-size="13.5" fill="#4d5652">草拟每遍固定取 <tspan font-family="var(--font-mono)" font-weight="700">argmax</tspan>，猜出下步 3 个候选</text>
 </svg>

@@ -1,74 +1,104 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="NPUPlatform 配置改写级联与 get_device_total_memory 预算回退链" font-family="var(--font-sans)">
-  <title>NPUPlatform.check_and_update_config 改写级联与默认预算回退链</title>
-  <desc>6-stage check_and_update_config override cascade in v0.30.0/main and get_device_total_memory fallback to 2048 batched tokens</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 528" width="900" height="528" role="img" aria-label="NPUPlatform 两条启动时间线：默认预算回落 2048 因果链与 check_and_update_config 就地改写前后对比" font-family="var(--font-sans)">
+  <title>NPUPlatform 两条启动时间线：T1 拒答显存回落 2048，T2 就地改写级联</title>
+  <desc>Timeline T1 shows EngineArgs calling get_device_total_memory before torch_npu init -> NotImplementedError -> 0 B -> 2048 fallback tier -> 2 independent user gates; Timeline T2 shows check_and_update_config validation gates and 5 in-place mutation before/after diffs.</desc>
+  <defs>
+    <marker id="np-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+    <marker id="np-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+    <marker id="np-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="np-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">NPUPlatform 配置改写级联与「拒答显存 → 2048 默认预算」链路</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">命令写入值 ≠ 最终生效值：平台校验与就地改写穿插进行，后续仍有后端与消费者二次改写</text>
+  <!-- TIMELINE T1: EngineArgs budget fallback -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① T1 早于 torch_npu 初始化（EngineArgs）：拒答总显存 → 默认预算落 2048</text>
 
-  <!-- Top Band: 3x2 Cascade -->
-  <rect x="16" y="64" width="276" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="30" y="88" font-size="14.5" font-weight="700" fill="#17211f">1. 入口锁版与早退</text>
-  <text x="30" y="112" font-size="13.5" fill="#4d5652">• 非 npu / 无 model_config 退出</text>
-  <text x="30" y="134" font-size="13.5" fill="#4d5652">• main 首行锁死 MRV2 补丁</text>
+  <!-- Step T1.1 -->
+  <rect x="16" y="42" width="218" height="114" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="28" y="68" font-size="14" font-weight="700" fill="#8f3229">问设备总显存被拒</text>
+  <text x="28" y="92" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">get_device_total_memory</text>
+  <text x="28" y="116" font-size="13.5" fill="#8f3229" font-weight="600">抛 NotImplementedError</text>
+  <text x="28" y="140" font-size="13.5" fill="#66716d">防过早初始化运行时库</text>
 
-  <path d="M294 107h16m-5-4l5 4-5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="234" y1="99" x2="262" y2="99" stroke="#b54237" stroke-width="1.8" marker-end="url(#np-arr-r)"/>
 
-  <rect x="312" y="64" width="276" height="86" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="326" y="88" font-size="14.5" font-weight="700" fill="#8f3229">2. 前置组合校验与量化</text>
-  <text x="326" y="112" font-size="13.5" fill="#4d5652">• v0.30.0 跑 7 项前置校验</text>
-  <text x="326" y="134" font-size="13.5" fill="#4d5652">• 自动识别量化与 FP8 能力断言</text>
+  <!-- Step T1.2 -->
+  <rect x="268" y="42" width="246" height="114" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="280" y="68" font-size="14" font-weight="700" fill="#936300">arg_utils 吞错按 0 B 选小档</text>
+  <rect x="280" y="80" width="110" height="32" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="335" y="101" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">API：2048</text>
+  <rect x="396" y="80" width="106" height="32" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="449" y="101" text-anchor="middle" font-size="13.5" fill="#4d5652">库：8192</text>
+  <text x="280" y="138" font-size="13.5" fill="#66716d">互斥支路：批式 DP MoE 取 256</text>
 
-  <path d="M590 107h16m-5-4l5 4-5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Fork to 2 Independent User Gates -->
+  <path d="M514 78 H558" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#np-arr-t)"/>
+  <path d="M514 126 H558" fill="none" stroke="#c78300" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#np-arr-a)"/>
 
-  <rect x="608" y="64" width="276" height="86" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="622" y="88" font-size="14.5" font-weight="700" fill="#936300">3. 修正与建 AscendConfig</text>
-  <text x="622" y="112" font-size="13.5" fill="#4d5652">• 先修正已知不兼容组合</text>
-  <text x="622" y="134" font-size="13.5" fill="#4d5652">• init_ascend_config 发布单例</text>
+  <!-- Gate A: Explicit -->
+  <rect x="564" y="42" width="320" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="578" y="65" font-size="14" font-weight="700" fill="#065f56">闸门 A · 用户显式传参 → 原值直通</text>
+  <text x="578" y="86" font-size="13.5" fill="#4d5652">如 GLM 传 8192 / 32，回退档不覆盖</text>
 
-  <path d="M746 150v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Gate B: Omitted -->
+  <rect x="564" y="104" width="320" height="52" rx="7" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
+  <text x="578" y="127" font-size="14" font-weight="700" fill="#17211f">闸门 B · 未传项 → 填起点并加减收窄</text>
+  <text x="578" y="148" font-size="13.5" fill="#4d5652">吞吐翻倍 / 关分块抬升 / max_seqs×L 收窄</text>
 
-  <rect x="608" y="170" width="276" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="622" y="194" font-size="14.5" font-weight="700" fill="#065f56">4. 编译 / 图模式与缓存精度</text>
-  <text x="622" y="218" font-size="13.5" fill="#4d5652">• 关 Inductor，独立控 ACLGraph</text>
-  <text x="622" y="240" font-size="13.5" fill="#4d5652">• 含 indexer top-k 改写缓存精度</text>
+  <!-- Note bar under T1 -->
+  <text x="16" y="182" font-size="13.5" fill="#66716d">注：v0.30.0 / main 改为守卫式查询（初始化后可读 mem_get_info），但 T1 仍早于初始化，未传预算的在线服务照旧落 2048</text>
 
-  <path d="M606 213h-16m5-4l-5 4 5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Divider -->
+  <line x1="16" y1="200" x2="884" y2="200" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
-  <rect x="312" y="170" width="276" height="86" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="326" y="194" font-size="14.5" font-weight="700" fill="#3a4f93">5. Worker 类与块大小改写</text>
-  <text x="326" y="218" font-size="13.5" fill="#4d5652">• auto 取硬件档案默认 Worker</text>
-  <text x="326" y="240" font-size="13.5" fill="#4d5652">• 常规归 128；混合模型保 640</text>
+  <!-- TIMELINE T2: check_and_update_config -->
+  <text x="16" y="228" font-size="16" font-weight="700" fill="#17211f">② T2 汇总配置后段（VllmConfig.__post_init__）：校验拦截 + 五处就地改写</text>
 
-  <path d="M310 213h-16m5-4l-5 4 5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Rail Top: 3 Pre-check Steps -->
+  <rect x="16" y="244" width="248" height="60" rx="7" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
+  <text x="28" y="268" font-size="14" font-weight="700" fill="#17211f">1. 早退与入口锁版</text>
+  <text x="28" y="292" font-size="13.5" fill="#4d5652">非 npu 退；main 首行锁 MRV2</text>
 
-  <rect x="16" y="170" width="276" height="86" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="30" y="194" font-size="14.5" font-weight="700" fill="#7a3a6a">6. PD 角色收口校验</text>
-  <text x="30" y="218" font-size="13.5" fill="#4d5652">• 均衡调度仅许 PD 混合或无 KV</text>
-  <text x="30" y="240" font-size="13.5" fill="#4d5652">• 重算调度在 producer 静默置关</text>
+  <line x1="264" y1="274" x2="294" y2="274" stroke="#66716d" stroke-width="1.7" marker-end="url(#np-arr-g)"/>
 
-  <!-- Bottom Band -->
-  <line x1="16" y1="274" x2="884" y2="274" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="16" y="298" font-size="15" font-weight="700" fill="#17211f">更早一步的隐藏链条：EngineArgs 问总显存被拒 → 默认预算回落 2048</text>
+  <rect x="300" y="244" width="286" height="60" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="312" y="268" font-size="14" font-weight="700" fill="#8f3229">2. 前置组合校验与量化识别</text>
+  <text x="312" y="292" font-size="13.5" fill="#4d5652">v0.30 跑 7 项校验（如禁 DP&gt;1 ∧ PCP&gt;1）</text>
 
-  <rect x="16" y="312" width="268" height="118" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="336" font-size="14.5" font-weight="700" fill="#8f3229">A. get_device_total_memory</text>
-  <text x="30" y="360" font-size="13.5" fill="#4d5652">• 旧版一律抛不支持异常</text>
-  <text x="30" y="384" font-size="13.5" fill="#4d5652">• v0.30.0/main 未初始化仍抛错</text>
-  <text x="30" y="408" font-size="13.5" fill="#8f3229">防过早拉起 torch_npu 运行库</text>
+  <line x1="586" y1="274" x2="616" y2="274" stroke="#66716d" stroke-width="1.7" marker-end="url(#np-arr-g)"/>
 
-  <path d="M286 371h26m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="622" y="244" width="262" height="60" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="634" y="268" font-size="14" font-weight="700" fill="#936300">3. 修正并建 AscendConfig</text>
+  <text x="634" y="292" font-size="13.5" fill="#4d5652">_fix_incompatible → 发布单例</text>
 
-  <rect x="316" y="312" width="268" height="118" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="330" y="336" font-size="14.5" font-weight="700" fill="#936300">B. arg_utils 吞错选小档</text>
-  <text x="330" y="360" font-size="13.5" fill="#4d5652">• 捕获异常置容量 0 → 落小档</text>
-  <text x="330" y="384" font-size="13.5" fill="#4d5652">• API 服务起点 2048（库 8192）</text>
-  <text x="330" y="408" font-size="13.5" fill="#936300">批式 DP MoE 另走 256 常量</text>
+  <!-- 5 In-Place Mutation Before -> After Cards (2 rows: 3 + 2) -->
+  <text x="16" y="332" font-size="14.5" font-weight="700" fill="#065f56">随后同次调用内执行五处「就地改写」（输入值 ≠ 最终生效值）：</text>
 
-  <path d="M586 371h26m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Mutation 1: block_size -->
+  <rect x="16" y="346" width="276" height="78" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="370" font-size="14" font-weight="700" fill="#3a4f93">块长 refresh_block_size</text>
+  <text x="28" y="394" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">16 → 128</text>
+  <text x="108" y="394" font-size="13.5" fill="#4d5652">（标准 GQA 强归 128）</text>
+  <text x="28" y="415" font-size="13.5" font-weight="700" fill="#3a4f93">混合模型豁免 → 保留 640</text>
 
-  <rect x="616" y="312" width="268" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="630" y="336" font-size="14.5" font-weight="700" fill="#065f56">C. 两道独立参数闸门</text>
-  <text x="630" y="360" font-size="13.5" fill="#4d5652">• 显式参数保留原值（如 8192）</text>
-  <text x="630" y="384" font-size="13.5" fill="#4d5652">• 未显式项经翻倍/抬升/收窄</text>
-  <text x="630" y="408" font-size="13.5" fill="#065f56">真实显存由 Worker 起卡后实测</text>
+  <!-- Mutation 2: worker_cls -->
+  <rect x="312" y="346" width="276" height="78" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="324" y="370" font-size="14" font-weight="700" fill="#065f56">Worker 选类（仅 auto）</text>
+  <text x="324" y="394" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">auto → NPUWorker</text>
+  <text x="324" y="415" font-size="13.5" fill="#4d5652">v0.30 取硬件档案（310P / Xlite）</text>
+
+  <!-- Mutation 3: compile & graph -->
+  <rect x="608" y="346" width="276" height="78" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="620" y="370" font-size="14" font-weight="700" fill="#936300">编译与图模式独立控</text>
+  <text x="620" y="394" font-size="13.5" fill="#17211f" font-family="var(--font-mono)">use_inductor → False</text>
+  <text x="620" y="415" font-size="13.5" fill="#4d5652">不等于关 ACLGraph（另控档位）</text>
+
+  <!-- Mutation 4: cache_dtype -->
+  <rect x="16" y="438" width="424" height="76" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="30" y="460" font-size="14" font-weight="700" fill="#7a3a6a">KV 缓存精度校验与历史模型改写</text>
+  <text x="30" y="483" font-size="13.5" fill="#4d5652">v0.30.0 / main：校验配置的 KV cache dtype</text>
+  <text x="30" y="503" font-size="13.5" fill="#7a3a6a">历史快照 db701c1f：遇 index_topk（GLM）改写为模型 dtype</text>
+
+  <!-- Mutation 5: PD role checks -->
+  <rect x="460" y="438" width="424" height="76" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="474" y="463" font-size="14" font-weight="700" fill="#8f3229">PD 角色收口（改写与拒绝并存）</text>
+  <text x="474" y="489" font-size="13.5" fill="#4d5652">重算调度在 producer 静默置 False；均衡调度禁显式 P/D 角色</text>
 </svg>

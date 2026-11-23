@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 536" width="900" height="536" role="img" aria-label="LightningIndexer C8 缓存写入：历史 StoreKVBlock 顺序扫描按块内连续段分组示意与 v0.30.0/main 统一 scatter_cache 对比" font-family="var(--font-sans)">
+  <title>c8_enable_reshape_optim：历史 StoreKVBlock 分组切分示意与 v0.30.0/main 统一 scatter</title>
+  <desc>Visual walkthrough of historical store_kv_block_metadata scanning slot_mapping=[2,3,4,7,-1,8,9] with block_size=4 into 4 contiguous intra-block groups, contrasted with v0.30.0/main unified DeviceOperator.scatter_cache after PR #18128 removal.</desc>
+  <defs>
+    <marker id="c8-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="c8-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: Historical StoreKVBlock scan diagram -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 历史 StoreKVBlock 分组扫描示意（block_size = 4，仅顺序扫描、不排序、不跨块合并）</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">输入 7 个 token 的 slot_mapping = [2, 3, 4, 7, -1, 8, 9]；块号 = floor(slot / 4)</text>
+
+  <!-- Input 7 token cells: x = 16 + i*124, w = 114 -->
+  <!-- idx 0: slot 2 (blk 0) -->
+  <rect x="16" y="64" width="114" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="73" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">slot = 2</text>
+  <text x="73" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 0 · 块 0</text>
+
+  <!-- idx 1: slot 3 (blk 0) -->
+  <rect x="140" y="64" width="114" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="197" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">slot = 3</text>
+  <text x="197" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 1 · 块 0</text>
+
+  <!-- Block boundary wall between idx 1 and idx 2 -->
+  <line x1="260" y1="58" x2="260" y2="128" stroke="#b54237" stroke-width="2.2" stroke-dasharray="4 3"/>
+
+  <!-- idx 2: slot 4 (blk 1) -->
+  <rect x="266" y="64" width="114" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="323" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">slot = 4</text>
+  <text x="323" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 2 · 块 1</text>
+
+  <!-- Discontinuity slash between idx 2 and idx 3 -->
+  <line x1="386" y1="58" x2="386" y2="128" stroke="#c78300" stroke-width="2" stroke-dasharray="4 3"/>
+
+  <!-- idx 3: slot 7 (blk 1) -->
+  <rect x="392" y="64" width="114" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="449" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">slot = 7</text>
+  <text x="449" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 3 · 块 1</text>
+
+  <!-- idx 4: slot -1 (skipped) -->
+  <rect x="518" y="64" width="114" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="575" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#66716d">slot = -1</text>
+  <text x="575" y="109" text-anchor="middle" font-size="13.5" fill="#8f3229">idx 4 · 跳过</text>
+
+  <!-- idx 5: slot 8 (blk 2) -->
+  <rect x="644" y="64" width="114" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="701" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">slot = 8</text>
+  <text x="701" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 5 · 块 2</text>
+
+  <!-- idx 6: slot 9 (blk 2) -->
+  <rect x="768" y="64" width="114" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="825" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">slot = 9</text>
+  <text x="825" y="109" text-anchor="middle" font-size="13.5" fill="#4d5652">idx 6 · 块 2</text>
+
+  <!-- Group brackets under cells -->
+  <path d="M 20 130 v 8 H 250 v -8" fill="none" stroke="#087f73" stroke-width="1.8"/>
+  <rect x="16" y="144" width="238" height="60" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="135" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">组 0：idx=0, dst=2, len=2</text>
+  <text x="135" y="191" text-anchor="middle" font-size="13.5" fill="#4d5652">同块 0 且连续 → 合并成段</text>
+
+  <rect x="266" y="144" width="114" height="60" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="323" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">组 1：len=1</text>
+  <text x="323" y="191" text-anchor="middle" font-size="13.5" fill="#8f3229">3→4 跨块断开</text>
+
+  <rect x="392" y="144" width="114" height="60" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="449" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">组 2：len=1</text>
+  <text x="449" y="191" text-anchor="middle" font-size="13.5" fill="#936300">4→7 不连续</text>
+
+  <text x="575" y="178" text-anchor="middle" font-size="13.5" fill="#66716d">负 slot 丢弃</text>
+
+  <path d="M 648 130 v 8 H 878 v -8" fill="none" stroke="#9a4b86" stroke-width="1.8"/>
+  <rect x="644" y="144" width="238" height="60" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="763" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">组 3：idx=5, dst=8, len=2</text>
+  <text x="763" y="191" text-anchor="middle" font-size="13.5" fill="#4d5652">同块 2 连续 → K 与 scale 共用</text>
+
+  <line x1="16" y1="224" x2="884" y2="224" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: Four-stage version timeline showing default flip and PR #18128 removal -->
+  <text x="16" y="250" font-size="16" font-weight="700" fill="#17211f">② 四阶段版本演化：默认翻转 → PD 硬闸 → PR #18128 彻底移除</text>
+
+  <rect x="16" y="266" width="198" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="115" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">v0.23 / v0.26</text>
+  <text x="115" y="314" text-anchor="middle" font-size="13.5" fill="#17211f">默认 False</text>
+  <text x="115" y="336" text-anchor="middle" font-size="13.5" fill="#4d5652">仅文档建议 P 节点</text>
+  <text x="115" y="358" text-anchor="middle" font-size="13.5" fill="#66716d">混部也可开</text>
+  <path d="M 214 319 L 234 319" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#c8-arr-g)"/>
+
+  <rect x="240" y="266" width="198" height="106" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="339" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">v0.28.0.rc1 空窗</text>
+  <text x="339" y="314" text-anchor="middle" font-size="13.5" fill="#8f3229">PR #15752 暂删</text>
+  <text x="339" y="336" text-anchor="middle" font-size="13.5" fill="#4d5652">改为自动判定</text>
+  <text x="339" y="358" text-anchor="middle" font-size="13.5" fill="#66716d">写此键报错</text>
+  <path d="M 438 319 L 458 319" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#c8-arr-g)"/>
+
+  <rect x="464" y="266" width="198" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="563" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">v0.30.0rc2 过渡</text>
+  <text x="563" y="314" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">PR #16952 翻默认 True</text>
+  <text x="563" y="336" text-anchor="middle" font-size="13.5" fill="#17211f">硬加 is_prefill_node</text>
+  <text x="563" y="358" text-anchor="middle" font-size="13.5" fill="#66716d">混部无日志恒关</text>
+  <path d="M 662 319 L 682 319" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#c8-arr-t)"/>
+
+  <rect x="688" y="266" width="196" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="786" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">v0.30.0 / main</text>
+  <text x="786" y="314" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">PR #18128 彻底删除</text>
+  <text x="786" y="336" text-anchor="middle" font-size="13.5" fill="#17211f">传旧键 extra=forbid</text>
+  <text x="786" y="358" text-anchor="middle" font-size="13.5" fill="#065f56">统一 scatter_cache</text>
+
+  <!-- Band 3: Unified v0.30.0/main write_cache bar -->
+  <rect x="16" y="394" width="868" height="126" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="420" font-size="14.5" font-weight="700" fill="#065f56">当前基线（v0.30.0 c09d3e20 / main 8d6180e2）LightningIndexer.write_cache 统一路径</text>
+  <text x="32" y="444" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">DeviceOperator.scatter_cache(k_cache, slot_mapping, k_li)</text>
+  <text x="32" y="465" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">+ DeviceOperator.scatter_cache(scale_cache, slot_mapping, k_li_scale)</text>
+  <text x="32" y="489" font-size="13.5" fill="#4d5652">升级须删旧键（含旧 GLM5.2 教程里的 false）；</text>
+  <text x="32" y="510" font-size="13.5" fill="#4d5652">GLM kpool 架构由 model_uses_sfa_sparse 排除，不影响 SFA 主 KV C8 路径</text>
+</svg>

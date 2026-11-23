@@ -1,0 +1,10 @@
+mode: native-svg
+id: op-to-aicore-plate-cutaway
+caption: >-
+  从主机算子调用落到 AI Core 执行的四级立体剖面：Host 侧 op_host 先按片上可用缓冲（如扣除 1024 B 预留常数 UB_USED 后的 UB 空间）完成分块规划与 tilingKey 选择，将任务描述符推入异步 TASK STREAM；设备侧按分块从 GM TILES 分流搬入 L1/L0 → CUBE（经 L0C → FixPipe → GM 写出）或 UB → VECTOR（经 UB → MTE3 → GM 写出，图中以 MTE OUT 统一概括 CopyOut 阶段）。
+size: [860, 588]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L81-L102
+    symbols: [forward_oot]
+  - source: vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
+    symbols: [UB_USED]

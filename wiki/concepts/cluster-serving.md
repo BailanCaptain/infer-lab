@@ -67,7 +67,11 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-当单台昇腾服务器的 8 张或 16 张 NPU 已经跑满，或者线上需要多副本高可用与无损滚动发布时，工程重心会从“调优单条 `vllm serve` 命令”转向**多实例集群编排**。很多团队在把单机服务搬上 Kubernetes 或多机网关时，连续踩过三个典型生产事故：**一是不分 Dense 与 MoE 盲目选错 DP 协同模式导致单卡故障拖垮整组；二是用普通随机/轮询负载均衡打散了系统提示词，让前缀缓存命中率归零；三是没适配昇腾数分钟的冷启动录图与默认 `abort` 退出行为，结果探针反复把正在录图的 Pod 杀掉，发版摘流又把在途长请求直接掐断**。
+当单台昇腾服务器的 8 张或 16 张 NPU 已经跑满，或者线上需要多副本高可用与无损滚动发布时，工程重心会从“调优单条 `vllm serve` 命令”转向**多实例集群编排**。很多团队在把单机服务搬上 Kubernetes 或多机网关时，常踩三类典型生产事故：
+
+- **选错 DP 协同模式**：不分 Dense 与 MoE 盲目耦合，导致单卡故障拖垮整组；
+- **盲目轮询打散缓存**：用普通随机/轮询负载均衡分散系统提示词，让前缀缓存命中率骤降；
+- **探针与摘流未适配**：未覆盖昇腾数分钟的冷启动录图期，探针反复误杀 Pod；又忽视默认 `abort` 退出行为，发版摘流直接掐断在途长请求。
 
 本页围绕多实例集群的四大工程支柱——**外部 DP 协同 vs 独立多实例代理、KV 与前缀感知路由、长冷启动探针、优雅摘流**——给出与 `vLLM Ascend v0.30.0`（配套 `vLLM v0.30.0`）源码逐一对齐的生产蓝图。
 
@@ -88,32 +92,38 @@ file: cluster-fig-routing-and-probes
 
 ## KV 缓存与前缀感知路由：别让轮询毁掉前缀命中率
 
-在纯轮询（Round-Robin）或按连接数路由的普通七层代理下，同一个多轮对话或共享 4K 系统提示词的 Agent 请求会被随机散射到 `N` 个副本上——单副本上本来高达 80% 的 [自动前缀缓存（Prefix Caching）](prefix-caching.md) 命中率会瞬间除以 `N`，引发大量重复 Prefill 计算并推高 TTFT。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
+如果只是一段全流量共用的热系统提示词、且已在全部 `N` 个副本上常驻，普通轮询照样能命中。但面对**会话级多轮对话前缀、冷启动尚未铺满的前缀，或显存紧张频繁驱逐下的差异化前缀**时，纯轮询（Round-Robin）或按连接数路由的七层代理会把同一会话的后续轮次随机散射到 `N` 个副本上，单副本上的 [自动前缀缓存（Prefix Caching）](prefix-caching.md) 有效命中率近似除以 `N`，引发大量重复 Prefill 计算并推高 TTFT。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
 
-1. **实时负载探测（`GET /load`）**：vLLM API Server 内置 `/load` 端点，返回 `{"server_load": ...}`，汇总 `/v1/chat/completions`、`/v1/completions`、`/v1/responses` 等全部推理路由上当前占用 NPU 的在途请求指标。网关在前缀命中打平或冷请求到来时，优先挑选 `server_load` 最低的副本。
-2. **基于 `KVEventsConfig` 的精确块事件广播**：前缀哈希路由最怕“路由器以为某副本还留着 KV 块，其实早被 LRU 驱逐了”。vLLM 提供 `KVEventsConfig`（开启 `enable_kv_cache_events=True` 时默认启用 `publisher="zmq"`，默认发布端点 `tcp://*:5557`，支持 `replay_endpoint` 与 `buffer_steps=10_000` 断线重放），把引擎内部 KV 块的写入与驱逐事件实时推送给集群路由器（如推理网关或全局 KV 索引器），实现**真正感知实时 KV 驻留位置的路由**。
-3. **动态长度分桶路由（`dynamic_bucket_load_balancer`）**：在 `vllm-ascend` 的 `examples/dynamic_bucket_load_balancer/` 示例中，代理可以把后端池按序拆成**短请求组**（如较小的 `max-model-len`、低时延目标）与**长请求组**（大容量 KV 池、避免短请求被长 Prefill 阻塞），按请求长度先映射标准桶，再按邻居桶负载差与长度亲和因子动态重定向，在异构长度混合流量下兼顾吞吐与尾时延。
+1. **实时负载探测（`GET /load`）**：vLLM API Server 内置 `/load` 端点，返回 `{"server_load": ...}`。**注意配套开关 `--enable-server-load-tracking`（`enable_server_load_tracking`）默认是 `False`，不显式开启时 `server_load` 恒为 `0`**；开启后它会统计 `/v1/chat/completions`、`/v1/completions`、`/v1/responses` 等被装饰推理接口上当前所有在途请求数，直到流式输出完整结束才归还（涵盖排队与吐字全阶段）。网关在前缀命中打平或冷请求到来时，优先挑选 `server_load` 最低的副本。
+2. **基于 `KVEventsConfig` 的精确块事件广播**：前缀哈希路由最怕“路由器以为某副本还留着 KV 块，其实早被 LRU 驱逐了”。vLLM 在 `enable_kv_cache_events=True` 时，默认通过 ZMQ 发布块事件（端点 `tcp://*:5557`，支持 `replay_endpoint` 与 `buffer_steps=10_000` 断线重放）。引擎将内部 KV 块的写入与驱逐事件实时推送给集群路由器或全局 KV 索引器，实现**真正感知实时 KV 驻留位置的路由**。
+3. **动态长度分桶路由（`dynamic_bucket_load_balancer`）**：在 `vllm-ascend` 的 `examples/dynamic_bucket_load_balancer/` 示例中，代理把后端池拆成短请求组与长请求组。短组配较小的 `max-model-len` 保低时延，长组配大容量 KV 池隔离长 Prefill 阻塞。请求先按长度映射标准桶，再按邻居桶负载差与长度亲和因子动态重定向，在异构长度混合流量下兼顾吞吐与尾时延。
 
 ## 长冷启动录图期的 `/health` 探针护栏
 
-昇腾大模型的冷启动往往比传统 Web 服务长得多：加载几十到数百 GiB 权重、执行权重转 `FRACTAL_NZ`、跑 `profile_run()` 测显存、以及为几十个档位逐一捕获 **ACL Graph** / `npugraph_ex` 静态图（完整拆解见 [NPUWorker 启动](npu-worker-lifecycle.md)），整段过程可能耗时 **2~10 分钟**。
+昇腾大模型的冷启动往往比传统 Web 服务长得多。启动需依次完成权重加载、权重转 `FRACTAL_NZ`、`profile_run()` 测显存与多档 **ACL Graph** / `npugraph_ex` 静态图捕获（拆解见 [NPUWorker 启动](npu-worker-lifecycle.md)），整段过程可能耗时 **2~10 分钟**。
 
-对照 `vLLM` 服务端启动源码 `api_server/entry.py`，必须看清一个关键时序：**`build_async_engine_client()`（包含全部权重加载与图捕获）必须完全成功返回之后，进程才会进入 `build_and_serve() → serve_http()` 打开 HTTP 监听端口并暴露 `/health`**。在单实例模式下，整个冷启动期端口都是拒绝连接的；而在多端口外部 DP 模式下，`DPSupervisor` 会先起聚合探针端口，但在所有下属 DP Server 全部就绪之前，其 `/health`、`/ready` 与 `/readyz` 都会持续返回 **`503 Service Unavailable`**。一旦引擎就绪，单实例 `GET /health` 会调用 `await client.check_health()`：引擎健康返回 `200`，一旦引擎核心崩溃抛出 `EngineDeadError` 则返回 `503`。
+对照 `vLLM` 启动源码 `api_server/entry.py`，必须看清一个关键时序：**`build_async_engine_client()` 完成权重加载与图捕获后，进程才调用 `build_and_serve() → serve_http()` 监听端口并暴露 `/health`**。单实例冷启动期间端口持续拒绝连接。多端口外部 DP 模式下，`DPSupervisor` 会先开聚合探针端口，但在全部下属 DP Server 就绪前，`/health`、`/ready` 与 `/readyz` 均返回 **`503 Service Unavailable`**。引擎就绪后，单实例 `GET /health` 调用 `await client.check_health()`：健康返回 `200`，一旦引擎核心崩溃抛出 `EngineDeadError` 则返回 `503`。
 
 因此，在 Kubernetes 或容器编排中必须遵守三条探针铁律：
 
-- **必须独立配置长窗口 `startupProbe`**：将 `failureThreshold × periodSeconds` 设为大于最坏冷启动加录图耗时（例如 `periodSeconds: 10, failureThreshold: 60`，给足 10 分钟），在 `startupProbe` 通过前完全抑制 `livenessProbe` 与 `readinessProbe`。
+- **必须独立配置长窗口 `startupProbe`**：将 `failureThreshold × periodSeconds` 设为大于最坏冷启动加录图耗时（例如 `periodSeconds: 10, failureThreshold: 60`，给足 10 分钟）。在 `startupProbe` 通过前，Kubernetes 会完全抑制 `livenessProbe` 与 `readinessProbe`。
 - **`readinessProbe` 指向 `/health`**：一旦返回非 `200` 立刻把 Pod 从 Service / 网关后端摘除，停止导流。
 - **`livenessProbe` 留出合理容错超时**：防止极端长 Prefill 造成事件循环短暂抖动时被误杀重启，触发新一轮漫长冷启动。
 
 ## 滚动发布与缩容：别被默认 `--shutdown-timeout 0` 直接掐断请求
 
-线上发版或缩容最隐蔽的坑藏在 `vLLM` 的默认退出策略里。查看 `VllmConfig.shutdown_timeout`（命令行 `--shutdown-timeout`）：**它的源码默认值是 `0`**。在 `launcher.py` 的 `handle_shutdown()` 信号处理器中，收到 `SIGINT` 或 `SIGTERM` 后按 `mode = "abort" if timeout == 0 else "drain"` 分支——也就是说，**如果你不显式传 `--shutdown-timeout`，发版下发 `SIGTERM` 会立即走 `abort` 模式把所有正在吐字的流式长请求强行中断！**
+线上发版或缩容最隐蔽的坑藏在 `vLLM` 的默认退出策略里。查看 `VllmConfig.shutdown_timeout`（命令行 `--shutdown-timeout`）：**它的源码默认值是 `0`**。`launcher.py` 的 `handle_shutdown()` 收到 `SIGINT` 或 `SIGTERM` 后，按 `mode = "abort" if timeout == 0 else "drain"` 分支。**不显式传 `--shutdown-timeout` 时，发版下发 `SIGTERM` 会立即走 `abort` 模式，强行中断所有正在吐字的流式长请求。**
 
-规范的四步优雅摘流（Graceful Drain）时序应当这样编排：
+下面这张全生命周期时间线把长冷启动探针与四步优雅摘流（Graceful Drain）一次对齐：
+
+```wiki-diagram
+file: cluster-fig-probe-and-drain-timeline
+```
+
+规范的四步优雅摘流时序应当这样编排：
 
 1. **配置足够长的引擎排空窗口**：启动 `vllm serve` 时显式设置 `--shutdown-timeout <T>`（如 `120` 秒，需大于业务 P99 请求生成时长），使进程进入 `drain` 模式。
-2. **先摘流量、再停引擎（`preStop` 钩子）**：在 K8s Pod 的 `lifecycle.preStop` 中先通知网关/等待 Endpoints 摘除传播（例如 `sleep 10`~`15` 秒），确保不再有新请求进入该副本，随后容器才收到 `SIGTERM` 执行 `engine_client.shutdown(timeout=T)` 等待在途请求自然吐完。
+2. **先摘流量、再停引擎（`preStop` 钩子）**：在 K8s Pod 的 `lifecycle.preStop` 中先通知网关并等待 Endpoints 摘除传播（例如 `sleep 10`~`15` 秒），确保不再有新请求进入。随后容器收到 `SIGTERM`，执行 `engine_client.shutdown(timeout=T)` 等待在途请求自然吐完。
 3. **对齐编排层宽限期**：确保 K8s 的 `terminationGracePeriodSeconds` 严格大于 `preStop` 耗时 + `--shutdown-timeout` + 进程收尾余量，否则 kubelet 会在排空完成前直接发 `SIGKILL` 强杀。
 4. **在线热维护/权重更新场景**：若不是下线进程而是原地停流换权重（例如 RL 或热更新），可利用开发/控制面端点 `POST /pause?mode=wait` 等待在途请求排空后再执行变更（与 `mode="abort"` 立即中止、`mode="keep"` 冻结队列区分）。
 
@@ -122,7 +132,7 @@ file: cluster-fig-routing-and-probes
 - **误解一：“Dense 模型 8 卡机器想跑 8 个单卡副本，开 `--data-parallel-size 8` 比起 8 个独立 `vllm serve` 更好。”**
   未必。对于不需要跨卡共享 MoE 专家的 Dense 模型，8 个独立 `vllm serve` 实例配合前缀感知代理可实现单卡故障完全隔离与按卡独立弹性扩缩；而内部耦合的 DP 组会放大单卡故障的影响面。
 - **误解二：“K8s 里只配一个 `livenessProbe: /health` 加大 `initialDelaySeconds` 就够了。”**
-  不够安全。固定 `initialDelaySeconds` 设短了会在首次编译缓存或长录图时陷入 CrashLoopBackOff 死循环，设太长又会拖慢正常启动后的异常发现；标准做法是用 `startupProbe` 承接可变冷启动时长，通过后再交棒给 `readinessProbe` 与 `livenessProbe`。
+  不够安全。固定 `initialDelaySeconds` 设短了会在首次编译缓存或长录图时陷入 CrashLoopBackOff 死循环，设太长又会拖慢正常启动后的异常发现。标准做法是用 `startupProbe` 承接可变冷启动时长，通过后再交棒给 `readinessProbe` 与 `livenessProbe`。
 - **误解三：“给 `vllm serve` 发 `SIGTERM` 本来就会等正在生成的请求说完再退出。”**
   错。`vLLM` 源码中 `--shutdown-timeout` 默认就是 `0`，收到 `SIGTERM` 默认直接进入 `abort` 模式中断所有在途请求；必须显式配置大于 0 的 `--shutdown-timeout` 才会进入 `drain` 优雅排空模式。
 

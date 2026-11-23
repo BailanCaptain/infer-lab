@@ -1,0 +1,10 @@
+mode: native-svg
+id: rope-fig-pairing-freq-partial
+caption: >-
+  RoPE 内部机制三图合一：上半区以 4 维向量对比相邻配对（GPT-J：(x₀,x₁)/(x₂,x₃)）与前后半区配对（GPT-NeoX：(x₀,x₂)/(x₁,x₃)，Qwen3 采用）及逐元素直算公式；下半区以 8 维单头（θ=10000）展示从秒针到时针的四对转速表盘，以及 partial_rotary_factor=0.5 时未旋转灰槽原样直通拼接的旁路。
+size: [900, 476]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/__init__.py#L32-L71'
+    symbols: ['get_rope', 'rope_theta', 'partial_rotary_factor']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L257-L310'
+    symbols: ['AscendRotaryEmbedding', 'cos_sin_cache', 'is_neox_style']

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 364" width="900" height="364" role="img" aria-label="One-Hot 等价矩阵乘与真实行号直查对比，以及 embed_tokens 与 lm_head 反向对照">
+  <title>One-Hot 矩阵乘与 O(1) 行号直查对比</title>
+  <desc>左半部分展示编号 2 的 One-Hot 向量乘 6×4 嵌入表产生 24 次乘法且 20 次为乘 0；右半部分展示真实实现按行号 O(1) 直取第 2 行，并对照入口 embed_tokens 与出口 lm_head 的相反流向。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
+    </marker>
+  </defs>
+
+  <!-- Vertical Split Divider -->
+  <line x1="452" y1="16" x2="452" y2="348" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="5 4" />
+
+  <!-- LEFT PANEL: One-Hot Matrix Multiply -->
+  <text x="20" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">数学等价：One-Hot 乘整张表</text>
+  <text x="20" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">「喜欢」编号 = 2 → 向量仅第 2 位为 1，其余全为 0</text>
+
+  <!-- One-Hot vector [0, 0, 1, 0, 0, 0] -->
+  <rect x="20" y="68" width="38" height="30" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="39" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" fill="#66716d">0</text>
+  <rect x="62" y="68" width="38" height="30" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="81" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" fill="#66716d">0</text>
+  <rect x="104" y="68" width="38" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
+  <text x="123" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">1</text>
+  <rect x="146" y="68" width="38" height="30" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="165" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" fill="#66716d">0</text>
+  <rect x="188" y="68" width="38" height="30" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="207" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" fill="#66716d">0</text>
+  <rect x="230" y="68" width="38" height="30" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="249" y="88" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" fill="#66716d">0</text>
+  <text x="284" y="88" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#4d5652">×  表 E [6, 4]</text>
+
+  <!-- 6x4 Matrix E with row 2 highlighted and other 5 rows dimmed -->
+  <!-- Row 0 -->
+  <text x="22" y="132" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">E[0]</text>
+  <rect x="64" y="114" width="244" height="24" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1" />
+  <text x="186" y="131" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d"> 0.2   -0.1    0.5    0.3</text>
+  <text x="320" y="131" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#b54237">×0（白算）</text>
+
+  <!-- Row 1 -->
+  <text x="22" y="160" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">E[1]</text>
+  <rect x="64" y="142" width="244" height="24" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1" />
+  <text x="186" y="159" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d"> 0.1    0.4   -0.2    0.6</text>
+  <text x="320" y="159" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#b54237">×0（白算）</text>
+
+  <!-- Row 2 (ACTIVE) -->
+  <text x="22" y="189" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">E[2]</text>
+  <rect x="64" y="170" width="244" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
+  <text x="186" y="188" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">-0.3    0.8    0.1    0.0</text>
+  <text x="320" y="188" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">×1（唯一留）</text>
+
+  <!-- Row 3 -->
+  <text x="22" y="218" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">E[3]</text>
+  <rect x="64" y="200" width="244" height="24" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1" />
+  <text x="186" y="217" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d"> 0.7    0.2   -0.4    0.9</text>
+  <text x="320" y="217" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#b54237">×0（白算）</text>
+
+  <!-- Row 4 -->
+  <text x="22" y="246" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">E[4]</text>
+  <rect x="64" y="228" width="244" height="24" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1" />
+  <text x="186" y="245" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d"> 0.5   -0.3    0.2   -0.1</text>
+  <text x="320" y="245" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#b54237">×0（白算）</text>
+
+  <!-- Row 5 -->
+  <text x="22" y="274" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">E[5]</text>
+  <rect x="64" y="256" width="244" height="24" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1" />
+  <text x="186" y="273" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d"> 0.0    0.1    0.3   -0.5</text>
+  <text x="320" y="273" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#b54237">×0（白算）</text>
+
+  <!-- Waste Summary Pill -->
+  <rect x="20" y="294" width="414" height="50" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" />
+  <text x="227" y="316" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#8f3229">总计 6 × 4 = 24 次乘法（20 次乘 0，仅 4 次有效）</text>
+  <text x="227" y="336" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">真实词表 15 万行若做乘法，99.999% 算力浪费在乘 0 上</text>
+
+  <!-- RIGHT PANEL: O(1) Direct Row Jump + Input/Output Symmetry -->
+  <text x="476" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">真实实现：O(1) 行号直查，零乘法</text>
+  <text x="476" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">F.embedding 按整数下标直接计算行首地址并搬运该行</text>
+
+  <!-- Direct Jump Visual -->
+  <rect x="476" y="76" width="112" height="54" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="532" y="99" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">id = 2</text>
+  <text x="532" y="120" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">整数行号</text>
+
+  <path d="M 588 103 L 642 103" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#arr-t)" />
+  <text x="615" y="94" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">直查</text>
+
+  <rect x="646" y="70" width="234" height="66" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.8" />
+  <text x="763" y="94" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">E[2] = [-0.3, 0.8, 0.1, 0.0]</text>
+  <text x="763" y="119" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">只读 1 行 · 0 次乘法 · 与矩阵乘等值</text>
+
+  <!-- Divider between top & bottom right -->
+  <line x1="476" y1="158" x2="880" y2="158" stroke="#d8d8cf" stroke-width="1.2" />
+
+  <!-- Bottom Right: embed_tokens vs lm_head direction -->
+  <text x="476" y="182" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#17211f">入口 embed_tokens vs 出口 lm_head（方向相反）</text>
+
+  <!-- Track 1: embed_tokens -->
+  <rect x="476" y="198" width="96" height="38" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+  <text x="524" y="222" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">ID [S]</text>
+  <line x1="572" y1="217" x2="684" y2="217" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+  <text x="628" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">按行查表</text>
+  <rect x="688" y="198" width="192" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4" />
+  <text x="784" y="222" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">隐向量 [S, H]（0 乘法）</text>
+
+  <!-- Track 2: lm_head -->
+  <rect x="476" y="248" width="96" height="38" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4" />
+  <text x="524" y="272" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">隐向量 [S,H]</text>
+  <line x1="572" y1="267" x2="684" y2="267" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+  <text x="628" y="260" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">真实矩阵乘</text>
+  <rect x="688" y="248" width="192" height="38" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4" />
+  <text x="784" y="272" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">词表分 [S, V]（打全表）</text>
+
+  <!-- tie_word_embeddings callout -->
+  <rect x="476" y="298" width="404" height="46" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4" />
+  <text x="678" y="318" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">tie_word_embeddings 决定存两份还是共用一份</text>
+  <text x="678" y="337" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">Qwen3-8B: false (2.32 GiB) | 0.6B: true (共用)</text>
+</svg>

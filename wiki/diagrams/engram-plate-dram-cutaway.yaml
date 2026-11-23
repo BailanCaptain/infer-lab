@@ -1,0 +1,12 @@
+mode: native-svg
+id: engram-plate-dram-cutaway
+caption: >-
+  Engram 条件记忆开启卸载（cpu_offload=True；未开时驻留 NPU HBM）与跨实例共享（main 分支 shared_engram）的两级物理存储拆解：上层大容量 HOST DRAM 承载数百 GiB 只读量化 ENGRAM 参数表；每步仅按短语 N-gram 哈希稀疏读取命中行（本地 Host UVA 与 A3 MemFabric GVA 由查找核直读映射地址并即时反量化写入 BF16 输出，A2/A5 HIXL RDMA 先拉取紧凑量化行入接收缓冲再反量化），经 GATE ADD 门控加回残差流。
+size: [860, 718]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L51-L120
+    symbols: [AscendParallelEngramEmbedding]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L57
+    symbols: [AscendEngram, forward]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L156-L215
+    symbols: [HostUvaBuffer]

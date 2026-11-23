@@ -1,61 +1,34 @@
-layout: figure
+mode: native-svg
 id: worker-lifecycle
-caption: 每张卡一个 Worker，各自按同一顺序准备：换补丁、选卡并建通信组、装本卡那份权重、试跑量出预算。各卡把预算报给 EngineCore，它按最紧的那张卡定块数，把各卡对应的缓存配置发回；每张卡再建缓存池，最后预热并录 decode 图，之后才接请求。
-size: [900, 630]
-items:
-  - { at: [30, 72], size: [240, 52], text: 换补丁, sub: 替换上游代码，注册昇腾算子, tone: control }
-  - { at: [300, 72], size: [240, 52], text: 换补丁, sub: 替换上游代码，注册昇腾算子, tone: control }
-  - { at: [630, 72], size: [240, 52], text: 换补丁, sub: 替换上游代码，注册昇腾算子, tone: control }
-  - { at: [30, 150], size: [240, 52], text: 选卡，建通信组, sub: 同组的 Worker 到齐才建成, tone: comm }
-  - { at: [300, 150], size: [240, 52], text: 选卡，建通信组, sub: 同组的 Worker 到齐才建成, tone: comm }
-  - { at: [630, 150], size: [240, 52], text: 选卡，建通信组, sub: 同组的 Worker 到齐才建成, tone: comm }
-  - { at: [30, 228], size: [240, 52], text: 装权重, sub: 只装本卡分到的那一份, tone: weight }
-  - { at: [300, 228], size: [240, 52], text: 装权重, sub: 只装本卡分到的那一份, tone: weight }
-  - { at: [630, 228], size: [240, 52], text: 装权重, sub: 只装本卡分到的那一份, tone: weight }
-  - { at: [30, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
-  - { at: [300, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
-  - { at: [630, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
-  - { at: [30, 390], size: [840, 56], text: EngineCore 汇总, sub: 统一可调度块数，各卡收到对应缓存配置, tone: kv, style: faded }
-  - { at: [30, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }
-  - { at: [300, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }
-  - { at: [630, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }
-  - { at: [30, 558], size: [240, 52], text: 预热，录 decode 图, sub: 录图要真跑前向，排在最后, tone: control }
-  - { at: [300, 558], size: [240, 52], text: 预热，录 decode 图, sub: 录图要真跑前向，排在最后, tone: control }
-  - { at: [630, 558], size: [240, 52], text: 预热，录 decode 图, sub: 录图要真跑前向，排在最后, tone: control }
-badges:
-  - { at: [30, 72], n: 1, tone: control }
-  - { at: [30, 150], n: 2, tone: comm }
-  - { at: [30, 228], n: 3, tone: weight }
-  - { at: [30, 306], n: 4, tone: kv }
-  - { at: [30, 480], n: 5, tone: kv }
-  - { at: [30, 558], n: 6, tone: control }
-links:
-  - { from: [150, 124], to: [150, 150], tone: control }
-  - { from: [420, 124], to: [420, 150], tone: control }
-  - { from: [750, 124], to: [750, 150], tone: control }
-  - { from: [270, 176], to: [300, 176], ends: both, tone: comm }
-  - { from: [540, 176], to: [630, 176], ends: both, tone: comm }
-  - { from: [150, 202], to: [150, 228], tone: comm }
-  - { from: [420, 202], to: [420, 228], tone: comm }
-  - { from: [750, 202], to: [750, 228], tone: comm }
-  - { from: [150, 280], to: [150, 306], tone: weight }
-  - { from: [420, 280], to: [420, 306], tone: weight }
-  - { from: [750, 280], to: [750, 306], tone: weight }
-  - { from: [150, 358], to: [150, 390], tone: kv }
-  - { from: [420, 358], to: [420, 390], tone: kv }
-  - { from: [750, 358], to: [750, 390], tone: kv }
-  - { from: [150, 446], to: [150, 480], tone: kv }
-  - { from: [420, 446], to: [420, 480], tone: kv }
-  - { from: [750, 446], to: [750, 480], tone: kv }
-  - { from: [150, 532], to: [150, 558], tone: control }
-  - { from: [420, 532], to: [420, 558], tone: control }
-  - { from: [750, 532], to: [750, 558], tone: control }
-texts:
-  - { at: [150, 58], text: Worker（卡 0）, anchor: middle, note: true }
-  - { at: [420, 58], text: Worker（卡 1）, anchor: middle, note: true }
-  - { at: [750, 58], text: Worker（最后一张卡）, anchor: middle, note: true }
-  - { at: [585, 104], text: ⋯, anchor: middle, size: 20 }
-  - { at: [585, 260], text: ⋯, anchor: middle, size: 20 }
-  - { at: [585, 338], text: ⋯, anchor: middle, size: 20 }
-  - { at: [585, 512], text: ⋯, anchor: middle, size: 20 }
-  - { at: [585, 590], text: ⋯, anchor: middle, size: 20 }
+caption: >-
+  NPUWorker 六步冷启动双驱动时序与跨卡栅栏：WorkerProc 本地顺次驱动 ① 构造换补丁验卡型、② 绑卡拍快照与 HCCL 建组（栅栏 1）、③ 分片读盘与 ND→NZ 后处理（可选后台线程重叠首次 NZ 与 Triton 预热并在返回前 join）；EngineCore 广播驱动 ④ 多卡预算汇总取全局 min_num_blocks 并收缩富余卡（栅栏 2）、⑤ 切出物理 KV 池（清零元数据置睡眠池外）、⑥ 7 类预热后用 1−u 余量捕获 ACLGraph 并以 ATB 预热收尾；底部标注 NPUWorker310 五处硬件定制差异。
+size: [900, 636]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L200"
+    symbols:
+      - NPUWorker
+      - adapt_patch
+      - register_ascend_customop
+      - check_ascend_device_type
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L391-L521"
+    symbols:
+      - _init_device
+      - init_device
+      - _init_worker_distributed_environment
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L854-L992"
+    symbols:
+      - load_model
+      - compile_or_warm_up_model
+      - capture_model
+      - _warm_up_atb
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1185-L1229"
+    symbols:
+      - initialize_from_config
+      - _init_kv_zero_meta
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/_310p/worker_310p.py#L34-L208"
+    symbols:
+      - NPUWorker310
+  - source: "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2617-L2774"
+    symbols:
+      - min_num_blocks
+      - get_kv_cache_configs

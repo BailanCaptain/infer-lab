@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="Prometheus Gauge Counter Histogram 三类指标几何读法与 KV 块抽样保留时间 0-2-5-9 秒生命周期时间轴" font-family="var(--font-sans)">
+  <title>Prometheus 三类指标正确读法与 KV 块抽样生命周期轴（0 → 2 → 5 → 9 秒）</title>
+  <desc>Top: visual curves for Gauge (instant level), Counter (monotonic step 100->140 requiring rate), and Histogram (nested cumulative le buckets 6 inside 10). Bottom: proportional 0-9s KV block residency timeline showing Lifetime=9s, Interval=3s, Idle=4s</desc>
+  <defs>
+    <marker id="ml-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: 3 Prometheus Metric Shapes (y = 12 .. 216) -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 读 Prometheus / 离线快照先认清三种曲线（防止把总和增长率当请求均值）</text>
+
+  <!-- Card 1: Gauge -->
+  <rect x="16" y="42" width="276" height="168" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="68" font-size="14.5" font-weight="700" fill="#065f56">Gauge · 瞬时状态</text>
+  <!-- Mini line plot -->
+  <line x1="34" y1="146" x2="274" y2="146" stroke="#b8bcb5" stroke-width="1.2"/>
+  <polyline points="38,132 82,98 130,118 184,84 234,110 268,94" fill="none" stroke="#087f73" stroke-width="2.4"/>
+  <circle cx="184" cy="84" r="4" fill="#087f73"/>
+  <circle cx="268" cy="94" r="4" fill="#087f73"/>
+  <text x="30" y="172" font-size="13.5" fill="#17211f">如 waiting / kv_cache_usage</text>
+  <text x="30" y="196" font-size="13.5" fill="#065f56">按 engine 标签分看，不先平均</text>
+
+  <!-- Card 2: Counter -->
+  <rect x="312" y="42" width="276" height="168" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="326" y="68" font-size="14.5" font-weight="700" fill="#936300">Counter · 累计单调增</text>
+  <!-- Mini monotonic staircase 100 -> 140 -->
+  <line x1="330" y1="146" x2="570" y2="146" stroke="#b8bcb5" stroke-width="1.2"/>
+  <polyline points="338,128 418,128 418,92 560,92" fill="none" stroke="#c78300" stroke-width="2.4"/>
+  <text x="378" y="121" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">100</text>
+  <text x="492" y="86" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">140 (+40)</text>
+  <text x="326" y="172" font-size="13.5" fill="#17211f">须算 Δ÷Δt（rate）得每秒吞吐</text>
+  <text x="326" y="196" font-size="13.5" fill="#936300">进程重启归零，不能直接当本轮量</text>
+
+  <!-- Card 3: Histogram -->
+  <rect x="608" y="42" width="276" height="168" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="622" y="68" font-size="14.5" font-weight="700" fill="#3a4f93">Histogram · 嵌套累积桶</text>
+  <!-- Nested cumulative bars: le=0.5 (10) wraps le=0.1 (6) -->
+  <rect x="624" y="84" width="240" height="44" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="626" y="86" width="144" height="40" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="698" y="111" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">≤0.1s (6条)</text>
+  <text x="818" y="111" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">≤0.5s (10)</text>
+  <text x="622" y="152" font-size="13.5" font-weight="700" fill="#8f3229">后者已含前 6 条，切忌相加成 16</text>
+  <text x="622" y="176" font-size="13.5" fill="#17211f">均值 = rate(sum) ÷ rate(count)</text>
+  <text x="622" y="198" font-size="13.5" fill="#3a4f93">跨实例聚 P95 须先合桶再插值</text>
+
+  <line x1="16" y1="228" x2="884" y2="228" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Proportional KV Block Residency Lifecycle (0 -> 2 -> 5 -> 9 s, x=76..796, 80 px/s) -->
+  <text x="16" y="256" font-size="16" font-weight="700" fill="#17211f">② 被抽中 KV 块的生命周期时间轴（--kv-cache-metrics · 默认 1% 分配抽样）</text>
+
+  <!-- Main horizontal axis: 0s(76), 2s(236), 5s(476), 9s(796) -->
+  <line x1="64" y1="344" x2="862" y2="344" stroke="#4d5652" stroke-width="2" marker-end="url(#ml-arr)"/>
+
+  <!-- Highlighted interval fills along axis -->
+  <rect x="76" y="336" width="160" height="16" rx="3" fill="#e8edff"/>
+  <rect x="236" y="336" width="240" height="16" rx="3" fill="#ddf4ef"/>
+  <rect x="476" y="336" width="320" height="16" rx="3" fill="#fff0e9"/>
+
+  <!-- Event Dots -->
+  <circle cx="76" cy="344" r="7" fill="#4c65b6"/>
+  <circle cx="236" cy="344" r="7" fill="#087f73"/>
+  <circle cx="476" cy="344" r="7" fill="#087f73"/>
+  <circle cx="796" cy="344" r="7" fill="#b54237"/>
+
+  <!-- Event Labels below axis -->
+  <g text-anchor="middle">
+    <text x="76" y="372" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">t₀ = 0 s</text>
+    <text x="76" y="392" font-size="13.5" fill="#4d5652">分配抽中</text>
+
+    <text x="236" y="372" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">t₁ = 2 s</text>
+    <text x="236" y="392" font-size="13.5" fill="#4d5652">Touch 1 复用</text>
+
+    <text x="476" y="372" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">t₂ = 5 s</text>
+    <text x="476" y="392" font-size="13.5" fill="#4d5652">Touch 2 复用</text>
+
+    <text x="796" y="372" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">t_evict = 9 s</text>
+    <text x="796" y="392" font-size="13.5" font-weight="700" fill="#8f3229">淘汰时才发布事件</text>
+  </g>
+
+  <!-- Dimension Brackets Above Axis -->
+  <!-- Lifetime: 0 -> 9 s (y=282) -->
+  <path d="M 76 296 L 76 284 L 796 284 L 796 296" fill="none" stroke="#3a4f93" stroke-width="1.6"/>
+  <text x="436" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">Lifetime（保留时间）= 9 − 0 = 9 秒</text>
+
+  <!-- Interval: 2 -> 5 s (y=316) -->
+  <path d="M 236 328 L 236 318 L 476 318 L 476 328" fill="none" stroke="#087f73" stroke-width="1.6"/>
+  <text x="356" y="312" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Interval（访问间隔）= 3 秒</text>
+
+  <!-- Idle: 5 -> 9 s (y=316) -->
+  <path d="M 476 328 L 476 318 L 796 318 L 796 328" fill="none" stroke="#b54237" stroke-width="1.6"/>
+  <text x="636" y="312" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">Idle（淘汰前空闲）= 4 秒</text>
+
+  <text x="16" y="428" font-size="13.5" fill="#4d5652">▸ 边界：尚未淘汰的块暂无观测（不等于保留时间为 0）；每样本最多保留最近 4 次 touch 访问（至多 3 个间隔）</text>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: param-stair-config-pipeline
+caption: >-
+  STAIR 单层四步规划流水线（窗口压缩 → 双门滞回 → 风险与分阶段束搜索 1→17→64 共 1,394 次展开 → 约束 LPT 与双指标裁决）及未显式指定通信器回退 torch_gloo 时的 -1→1 自动收紧规则。
+size: [900, 520]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L216-L260
+    symbols: [load_window_bins, load_risk_quantile, relative_balance_threshold, absolute_balance_threshold, rank_transfer_limit, cross_node_transfer_limit, replica_search_num_stages, replica_search_radius, replica_search_beam_size, placement_search_backtrack_limit]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1129-L1255
+    symbols: [plan_layer]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_eplb.py#L152-L240
+    symbols: [resolve_ascend_eplb_communicator, unset_keys, preserved_keys]

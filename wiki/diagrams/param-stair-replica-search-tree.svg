@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="STAIR 副本数束搜索三键协同：stages 分组、radius 区间裁剪、beam_size 三处截断与写 1 陷阱" font-family="var(--font-sans)">
+  <title>STAIR 副本数束搜索三键协同与关键边界</title>
+  <desc>Top: 6-expert, 2-extra-slot FlashTree staged search example with 2 stages and radius 1 producing [2,2,1,1,1,1] (score 5) and [2,1,1,2,1,1] (score 8). Bottom left: radius feasible interval clipping for 6 remaining slots (center 4, r=2 vs r=8). Bottom right: 3 truncation gates of beam_size and the beam_size=1 trap where forced retention of current counts disables replica adjustment.</desc>
+  <defs>
+    <marker id="rs-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="rs-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="rs-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. 分阶段副本数束搜索走读（6 专家、2 个额外槽位、stages=2、radius=1 示意）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">先按风险降序（同分按编号升序）切组；前组按贪心中心 ± 半径展开并临时补齐打粗分，末组贪心补齐</text>
+
+  <!-- Risk-sorted groups strip -->
+  <rect x="16" y="66" width="212" height="96" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="90" font-size="14" font-weight="700" fill="#3a4f93">① 风险降序切 2 组</text>
+  <text x="28" y="114" font-size="13.5" font-weight="700" fill="#17211f">前组：E0(10), E1(8), E2(4)</text>
+  <text x="28" y="135" font-size="13.5" fill="#4d5652">后组：E3(3), E4(2), E5(1)</text>
+  <text x="28" y="154" font-size="13.5" fill="#66716d">每专家先占 1 份，余 2 槽</text>
+
+  <!-- Arrow to Stage 1 expansion -->
+  <line x1="230" y1="114" x2="256" y2="114" stroke="#c78300" stroke-width="1.8" marker-end="url(#rs-arr-amber)"/>
+
+  <!-- Stage 1 Center + Radius -->
+  <rect x="260" y="66" width="204" height="96" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="272" y="90" font-size="14" font-weight="700" fill="#936300">② 前组预算试探</text>
+  <text x="272" y="114" font-size="13.5" fill="#17211f">贪心中心预算 = 2 槽</text>
+  <text x="272" y="135" font-size="13.5" fill="#4d5652">radius=1 本试 {1, 2, 3}</text>
+  <text x="272" y="154" font-size="13.5" font-weight="700" fill="#8f3229">总余 2 槽 → 裁掉 3，试 1、2</text>
+
+  <!-- Two branches out -->
+  <path d="M 466 96 L 502 88" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#rs-arr-teal)"/>
+  <path d="M 466 132 L 502 146" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#rs-arr-amber)"/>
+
+  <!-- Branch A: budget=2 -->
+  <rect x="506" y="62" width="378" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="518" y="84" font-size="14" font-weight="700" fill="#065f56">预算 2：前组给 E0,E1 → [2,2,1,1,1,1]（纯贪心）</text>
+  <text x="518" y="105" font-size="13.5" fill="#4d5652">粗分 max(risk/份) = 10÷2 = 5.0（第 1 候选）</text>
+
+  <!-- Branch B: budget=1 -->
+  <rect x="506" y="122" width="378" height="52" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="518" y="144" font-size="14" font-weight="700" fill="#936300">预算 1：前组给 E0，后组补 E3 → [2,1,1,2,1,1]</text>
+  <text x="518" y="165" font-size="13.5" fill="#4d5652">粗分 = 8÷1 = 8.0（仍保留，送 LPT 应对协方差/限额）</text>
+
+  <!-- Flow to incremental + LPT note -->
+  <rect x="16" y="184" width="868" height="42" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="450" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">末组补齐 → 从现状朝各目标逐份增量挪动（受 rank_transfer_limit 截断）→ 去重截断后逐个送入带约束 LPT</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="242" x2="884" y2="242" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- BOTTOM LEFT: Radius feasible interval clipping -->
+  <text x="16" y="270" font-size="15.5" font-weight="700" fill="#17211f">B. replica_search_radius 区间裁剪示意</text>
+  <text x="16" y="291" font-size="13.5" fill="#66716d">余 6 槽、贪心中心 = 4、合法区间 [0, 6]</text>
+
+  <!-- Number line 0..6 -->
+  <line x1="36" y1="336" x2="404" y2="336" stroke="#b8bcb5" stroke-width="2.5"/>
+  <!-- Highlight r=2 [2..6] -->
+  <line x1="158" y1="336" x2="404" y2="336" stroke="#087f73" stroke-width="5"/>
+  <!-- Circles for 0..6 (spacing 61px: 36, 97, 158, 219, 280, 341, 402) -->
+  <circle cx="36" cy="336" r="5" fill="#ece9df" stroke="#4d5652" stroke-width="1.5"/>
+  <text x="36" y="360" text-anchor="middle" font-size="13.5" fill="#4d5652">0</text>
+  <circle cx="97" cy="336" r="5" fill="#ece9df" stroke="#4d5652" stroke-width="1.5"/>
+  <text x="97" y="360" text-anchor="middle" font-size="13.5" fill="#4d5652">1</text>
+  <circle cx="158" cy="336" r="6" fill="#087f73"/>
+  <text x="158" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">2</text>
+  <circle cx="219" cy="336" r="6" fill="#087f73"/>
+  <text x="219" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">3</text>
+  <circle cx="280" cy="336" r="8" fill="#c78300"/>
+  <text x="280" y="318" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">中心 4</text>
+  <text x="280" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">4</text>
+  <circle cx="341" cy="336" r="6" fill="#087f73"/>
+  <text x="341" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">5</text>
+  <circle cx="402" cy="336" r="6" fill="#087f73"/>
+  <text x="402" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">6</text>
+
+  <rect x="16" y="378" width="414" height="96" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="28" y="402" font-size="13.5" font-weight="700" fill="#065f56">• r=2：由近到远试 4, 3, 5, 2, 6（5 个取值）</text>
+  <text x="28" y="425" font-size="13.5" fill="#4d5652">• r=8：合法区间早已到头，有效预算仍仅 0–6（7 个）</text>
+  <text x="28" y="448" font-size="13.5" fill="#936300">• 设 0：仅试中心值，退化为纯贪心目标（不关 EPLB）</text>
+  <text x="28" y="466" font-size="13.5" fill="#66716d">  注：循环仍遍历 0..radius 再过滤，不提前退出</text>
+
+  <!-- Vertical split bottom -->
+  <line x1="448" y1="256" x2="448" y2="478" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- BOTTOM RIGHT: beam_size 3 gates + beam_size=1 trap -->
+  <text x="466" y="270" font-size="15.5" font-weight="700" fill="#17211f">C. replica_search_beam_size 三处闸门与写 1 陷阱</text>
+  <text x="466" y="291" font-size="13.5" fill="#66716d">默认 64（1..128），按粗分升序留前 N 个（同分字典序）</text>
+
+  <!-- 3 gates pills -->
+  <rect x="466" y="304" width="132" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="532" y="328" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">① 每段展开后</text>
+  <text x="532" y="350" text-anchor="middle" font-size="13.5" fill="#4d5652">去重截留 ≤ N 态</text>
+
+  <line x1="600" y1="333" x2="612" y2="333" stroke="#4c65b6" stroke-width="1.6"/>
+
+  <rect x="614" y="304" width="128" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="678" y="328" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">② 全部段结束</text>
+  <text x="678" y="350" text-anchor="middle" font-size="13.5" fill="#4d5652">目标上限 ≤ N</text>
+
+  <line x1="744" y1="333" x2="756" y2="333" stroke="#4c65b6" stroke-width="1.6"/>
+
+  <rect x="758" y="304" width="126" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="821" y="328" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">③ 进 LPT 摆放</text>
+  <text x="821" y="350" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">至多 N 次摆放</text>
+
+  <!-- beam_size=1 trap -->
+  <rect x="466" y="378" width="418" height="96" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="480" y="403" font-size="14.5" font-weight="700" fill="#8f3229">✗ 写 1 陷阱：selected[-1] = current 强制兜底</text>
+  <text x="480" y="427" font-size="13.5" fill="#4d5652">最终截断若不含「当前副本份数」，会覆写最后一个位置；</text>
+  <text x="480" y="448" font-size="13.5" font-weight="700" fill="#8f3229">当 beam_size = 1 → 唯一席位被「份数不变」占满（关闭改份数）</text>
+  <text x="480" y="466" font-size="13.5" fill="#065f56">✓ 保留副本数调整的最小合法束宽为 2（至多 N-1 个新份数）</text>
+</svg>

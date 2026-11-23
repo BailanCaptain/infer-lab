@@ -1,8 +1,8 @@
 mode: native-svg
 id: pooling-fig-mask-and-heads
 caption: >-
-  昇腾 Pooling 模型的注意力掩码硬件分岔与序列池化头机制：A2/A3/950DT 双向模型在 attention_mask.py 必须返回 None 并走 npu_fusion_attention（避免 FIA defaultMask 误遮上三角），而 310P 须显式构造 FRACTAL_NZ 全零非屏蔽掩码；右侧对照 CLS、LAST、MEAN 三类池化头对 chunked partial prefill 的约束边界。
-size: [900, 420]
+  昇腾 Pooling 掩码矩阵、序列池化行选取与 Whisper 交叉注意力写入对比：顶区用三张真实 4×4 可见性矩阵对照因果掩码（上三角 -∞）与双向编码器在 A2/A3/950DT（mask=None 走 npu_fusion_attention）及 310P（全零 FRACTAL_NZ 加性掩码）的硬件分岔；中区展示 [N_total, H] 紧凑隐藏状态矩阵上 CLS / LAST / MEAN 的行切片与分块限制；底区对比常规自注意力按解码步截断写入与 Whisper ENCODER_DECODER 整段 1500 帧编码器 K/V 完整写入。
+size: [900, 632]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_mask.py#L57-L70
     symbols: [get_attention_mask, causal, runner_type, get_attn_mask, get_splitfuse_attn_mask]
@@ -10,3 +10,5 @@ pins:
     symbols: [runner_type, _get_causal_mask, _get_non_causal_mask, ACL_FORMAT_FRACTAL_NZ]
   - source: vllm@ced6857a:vllm/model_executor/layers/pooler/seqwise/methods.py#L37-L119
     symbols: [CLSPool, LastPool, MeanPool, is_partial_prefill, get_seq_pooling_method]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1189-L1196
+    symbols: [ENCODER_DECODER, num_actual_tokens, slots_to_cache]

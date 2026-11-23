@@ -1,0 +1,10 @@
+mode: native-svg
+id: lmcache-fig-chunk-and-hma
+caption: >-
+  LMCache 按 chunk 整块取整失配与 GLM 双机互斥死锁：上半幅按比例演示 chunk=256 时共享 500 个位置为何因第 500–511 位不同导致第二块整块失配、仅命中 256 位；下半幅展示 LMCacheConnectorV1 未继承 SupportsHMA 如何在 GLM 双机上把关/开两条启动路全部堵死。
+size: [900, 456]
+pins:
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225
+    symbols: [get_num_new_matched_tokens]
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/factory.py#L54-L140
+    symbols: [SupportsHMA]

@@ -1,0 +1,13 @@
+id: embedding-fig-onehot-vs-lookup
+mode: native-svg
+size: [900, 364]
+caption: "One-Hot 等价矩阵乘（大量乘 0）与 O(1) 行号直查对比，以及 embed_tokens 与 lm_head 的反向分工"
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L176-L220
+    symbols:
+      - VocabParallelEmbedding
+      - get_masked_input_and_mask
+  - source: vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L540-L556
+    symbols:
+      - masked_fill_
+      - tensor_model_parallel_all_reduce

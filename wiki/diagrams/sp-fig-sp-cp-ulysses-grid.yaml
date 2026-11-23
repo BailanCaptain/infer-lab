@@ -1,0 +1,10 @@
+mode: native-svg
+id: sp-fig-sp-cp-ulysses-grid
+caption: >-
+  Megatron SP、CP 与 DeepSpeed Ulysses 几何对照：左侧以 4 卡（TP2 × CP2、8 token）演示 SP 沿水平 TP 组（{0,1}、{2,3}）在归一化区按行分片、投影前收齐本组 4 行，而 CP 沿垂直通信组（{0,2}、{1,3}）在 attention 中交换远端 K/V；右侧演示 Ulysses 通过 All-to-All 在「部分位置×全部头」与「全部位置×部分头」之间做矩阵转置式布局切换。
+size: [900, 448]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L816-L828'
+    symbols: ['prefill_context_parallel_size', 'enable_sp', 'max_num_batched_tokens']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L747-L780'
+    symbols: ['enable_flashcomm1', 'use_sequence_parallel_moe']

@@ -8,13 +8,13 @@ pins:
     symbols: [MAX_PREFETCH_WEIGHT_SIZE, prefetch_ratio]
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238'
     symbols: [maybe_npu_prefetch, npu_prefetch]
-  - source: 'vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89'
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L34-L89'
     symbols: [AscendW8A8LinearMethod]
-  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74'
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L74'
     symbols: [select_experts]
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43'
     symbols: [AscendSiluAndMul]
-  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L153-L158'
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L140-L158'
     symbols: [CustomRowParallelOp]
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907'
     symbols: [unknown_keys]

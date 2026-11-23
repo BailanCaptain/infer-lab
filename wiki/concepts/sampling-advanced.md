@@ -97,13 +97,13 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**高阶采样（Advanced Sampling）是指模型在 `lm_head` 产出全词表原始打分 `logits` 之后、正式抽取下一个 token 之前，按严格先后顺序施加的规则改分、重复惩罚、动态概率截断、束搜索（Beam Search）以及对数概率（Logprobs）采集机制。**
+**高阶采样（Advanced Sampling）是指模型在 `lm_head` 产出全词表打分 `logits` 之后、正式抽取下一个 token 之前，按严格顺序施加的改分、惩罚、截断、束搜索（Beam Search）与对数概率（Logprobs）采集机制。**
 
 基础的[采样入门](sampling.md)已经讲清了单个温度参数和贪心解码怎样工作。但在真实线上推理中，只调温度往往管不住模型：低温度容易陷入复读机死循环，高温度又会在低概率词上胡言乱语；评测和生成式打分任务需要拿回精确的候选概率；而机器翻译或结构化摘要有时需要同时维护多条高概率候选路径。更重要的是，在昇腾 NPU 上，每多开一项采样特性都可能决定请求走 **~1 ms 异步快路径**还是掉进 **CPU-NPU 同步慢路径**。
 
 ## `Sampler.forward` 为什么严格区分「不可保序」与「可保序」？
 
-vLLM V1 的 `Sampler.forward` 不是把各种开关随便堆在一起，而是先把输入转成 `FP32` 精度（避免 `BF16` / `FP16` 下指数与累加精度塌缩），再按**是否可能改变最大分项（`argmax`）**把所有处理器拆成两道闸门：
+vLLM V1 的 `Sampler.forward` 先把输入转成 `FP32` 精度（避免 `BF16` / `FP16` 下指数与累加精度塌缩），再按**是否可能改变最高分项（`argmax`）**把所有处理器拆成两道闸门：
 
 ```wiki-diagram
 file: sampling-adv-fig-pipeline
@@ -111,9 +111,9 @@ file: sampling-adv-fig-pipeline
 
 这个先后次序直接决定了贪心请求（`temperature < 1e-5`）的命运：
 
-1. **不可保序阶段（贪心也会受影响）**：依次施加 `allowed_token_ids` 白名单、`bad_words` 禁词、`min_tokens`（未达最短长度前屏蔽 EOS）、`logit_bias` 分数偏置、声明 `is_argmax_invariant() == False` 的自定义处理器，以及三类重复惩罚；它们都会改变谁是最高分，因此必须在 `greedy_sample`（`argmax`）之前完成；
-2. **整批贪心快退**：如果这一批所有请求都是贪心（`sampling_metadata.all_greedy`），算完 `argmax` 即可立刻返回，完全跳过温度除法、`min_p` 过滤、全词表排序与随机数生成；**反之，只要同一批里混进 1 条随机请求，整批就必须跑完随机采样管线**，最后仅用 `torch.where(temperature < 1e-5, greedy, random)` 挑回贪心结果；
-3. **可保序阶段（仅影响随机采样）**：温度缩放（`logits /= temperature`）、声明 `is_argmax_invariant() == True` 的自定义处理器（含 `min_p`）、Top-k 与 Top-p 截断都不会改变最高分 token 的冠军地位，因此统一放在贪心分支之后执行。已接通思考预算（`thinking_token_budget`）的版本会在筛选与罚分之后按预算强制抬高思考结束串的分数。另外，[结构化输出](structured-output.md#4-每张卡把-bitmask-作用到-logits)在进入 `Sampler` 之前就先把非法词压成 $-\infty$，所以默认的原始 `logprobs` 不会撤销已施加的文法掩码。
+1. **不可保序阶段（贪心也会受影响）**：依次施加 `allowed_token_ids` 白名单、`bad_words` 禁词、`min_tokens`（未达最短长度前屏蔽 EOS）、`logit_bias` 分数偏置、`is_argmax_invariant() == False` 的自定义处理器，以及三类重复惩罚。这些步骤都会改变谁是最高分，因此必须在 `greedy_sample`（`argmax`）之前完成。
+2. **整批贪心快退**：若整批请求都是贪心（`sampling_metadata.all_greedy`），算完 `argmax` 就直接返回，跳过温度除法、`min_p`、全词表排序与随机数生成。**只要同一批里混进 1 条随机请求，整批就必须跑完随机采样管线**，最后再用 `torch.where(temperature < 1e-5, greedy, random)` 挑回贪心结果。
+3. **可保序阶段（仅影响随机采样）**：温度缩放（`logits /= temperature`）、`is_argmax_invariant() == True` 的自定义处理器（含 `min_p`）与 Top-k / Top-p 截断都不改变最高分冠军，因此统一排在贪心分支之后。已接通思考预算（`thinking_token_budget`）的版本会在筛选与罚分之后按预算抬高思考结束串分数。另外，[结构化输出](structured-output.md#4-每张卡把-bitmask-作用到-logits)在进入 `Sampler` 之前就先把非法词压成 $-\infty$，所以默认的原始 `logprobs` 不会撤销已施加的文法掩码。
 
 ## 白名单、禁词与分数偏置：改偏好 vs 删候选
 
@@ -133,7 +133,7 @@ file: sampling-adv-fig-pipeline
 
 ## 三类重复惩罚：公式差别与小算例
 
-为了防止模型反复吐出同一个词，vLLM 严格按 **`repetition_penalty` → `frequency_penalty` → `presence_penalty`** 顺序施加三种惩罚（统计单位均为 token 编号，不判断语义重复，也不修改权重）。设某词的原始分数为 $z_v$，它在提示词中出现掩码为 $m^{\text{prompt}}_v \in \{0, 1\}$，在已生成输出中出现次数为 $c^{\text{out}}_v \ge 0$、出现掩码为 $m^{\text{out}}_v = \mathbb{I}(c^{\text{out}}_v > 0)$：
+为了防止模型反复吐出同一个词，vLLM 严格按 **`repetition_penalty` → `frequency_penalty` → `presence_penalty`** 顺序施加三种惩罚（按 token 编号统计，不判语义重复，也不修改权重）。设某词原始打分为 $z_v$，提示词出现掩码为 $m^{\text{prompt}}_v \in \{0, 1\}$；在已生成输出中出现次数为 $c^{\text{out}}_v \ge 0$，出现掩码为 $m^{\text{out}}_v = \mathbb{I}(c^{\text{out}}_v > 0)$：
 
 $$z'_v = \begin{cases} z_v / \alpha_{\text{rep}}, & z_v > 0,\text{已出现} \\ z_v \cdot \alpha_{\text{rep}}, & z_v \le 0,\text{已出现} \\ z_v, & \text{未出现} \end{cases}$$
 
@@ -149,23 +149,35 @@ $$z''_v = z'_v - \beta_{\text{freq}} \cdot c^{\text{out}}_v - \beta_{\text{pres}
 | 看（$z=+1$，仅在提示词） | $1 \div 2 = +0.5$ | $0$ | $0$ | **$+0.5$** | 仅 `repetition` 计入提示词（含多轮对话中的历史 assistant 轮） |
 | 你（$z=+2$，两处均未出现） | $+2.0$ | $0$ | $0$ | **$+2.0$** | 相对胜出，打破贪心复读循环 |
 
-工程边界：`presence_penalty` 与 `frequency_penalty` 取负值（$[-2, 0)$）、`repetition_penalty` 取 $(0, 1)$ 时反过来**鼓励重复**；**不能用 `0` 关闭 `repetition_penalty`**（关闭值为 `1.0`）。在 MTP / 投机解码验证中，验证第 1、2、3 个候选时须把前序候选暂接到输出历史（例如已有 `[猫]`、候选为 `[猫, 你, 看]`，三行历史依次按 `[猫]`、`[猫, 猫]`、`[猫, 猫, 你]` 计数，但尚未接受的候选不会提前成为正式输出）；且固定上游验证路径先做罚分，再处理白名单、禁词与 `min_tokens`。
+下图把五词在 `[-3, +3]` 数轴上的位移，以及下文自定义处理器面临的连续批次行重排画在一起：
+
+```wiki-diagram
+file: sampling-adv-fig-penalties-shift
+```
+
+工程边界：`presence_penalty` 与 `frequency_penalty` 取负值（$[-2, 0)$）、`repetition_penalty` 取 $(0, 1)$ 时反过来**鼓励重复**；**不能用 `0` 关闭 `repetition_penalty`**（关闭值为 `1.0`）。在 MTP / 投机解码验证中，验证第 1、2、3 个候选时须把前序候选暂接到输出历史（例如已有 `[猫]`、候选 `[猫, 你, 看]`，三行依次按 `[猫]`、`[猫, 猫]`、`[猫, 猫, 你]` 计数，未接受候选不会提前成为正式输出）。固定上游验证路径会先做罚分，再处理白名单、禁词与 `min_tokens`。
 
 ## 自定义 `LogitsProcessor`：批次状态同步与两阶段接入
 
-当内置规则不够用时，可在服务启动时加载继承自 `vllm.v1.sample.logits_processor.LogitsProcessor` 的批级处理器，实现 `__init__`、`apply`、`update_state`、`is_argmax_invariant` 与 `validate_params`。请求侧通过 HTTP `vllm_xargs`（兼容 SDK 放 `extra_body.vllm_xargs`）或离线 `SamplingParams(extra_args=...)` 传入参数；已装入的处理器集合在引擎初始化后固定，HTTP 不能动态上传代码。
+当内置规则不够用时，可在服务启动时加载继承自 `vllm.v1.sample.logits_processor.LogitsProcessor` 的批级处理器，实现 `__init__`、`apply`、`update_state`、`is_argmax_invariant` 与 `validate_params`。请求侧通过 HTTP `vllm_xargs`（兼容 SDK 放 `extra_body.vllm_xargs`）或离线 `SamplingParams(extra_args=...)` 传入参数；处理器集合在引擎初始化后固定，HTTP 不能动态上传代码。
 
-- **为什么必须维护批次状态（`BatchUpdate`）**：连续批处理中请求的行号会随增删交换变化。例如某步四行 `[A, B, C, D]` 中 A、C 结束、E 新到，批次可令 E 替换第 0 行、删第 2 行、把 D 从第 3 行移至第 2 行，再交换第 0/1 行成 `[B, E, D]`。处理器必须严格按 `BatchUpdate` 的删/增/移/换顺序同步状态（详见[持久批次同步](prepare-inputs-flow.md#先同步持久批次每步只改变了的那几行)）；即便本步 `BatchUpdate` 为 `None`（成员未变），引擎仍调用 `update_state`，因为已保存的输出 token 列表引用会继续增长。
-- **两阶段调度与适配器**：`is_argmax_invariant()` 为 `False`（会改最高分，如单步只留某 token）的处理器在白名单/禁词之后、罚分与 greedy 之前执行；为 `True` 的在温度缩放之后、Top-k/Top-p 之前执行，全 greedy 批直接跳过。历史逐请求 callable 需经 `AdapterLogitsProcessor` 包装（默认逐行调用，开销高于批级张量运算）。
-- **明确限制**：显式 `--logits-processors` 与投机解码（含 MTP）互斥，Pooling 模型不支持；若仅通过 Python entry point `vllm.logits_processors` 安装了插件且同时开启投机解码，Worker 侧会提前返回仅保留 `MinTokensLogitsProcessor`（但入口 `validate_params` 仍可能触发，不能把校验通过误判为 `apply` 已执行）；昇腾 A2/A3 选 Model Runner V2 时也会拒绝显式或插件自定义处理器。
+- **为什么必须维护批次状态（`BatchUpdate`）**：连续批处理中请求行号每步都可能增删交换（见上图下半区 `[A, B, C, D] → [B, E, D]`）。处理器必须严格按 `BatchUpdate` 的删/增/移/换顺序同步状态（详见[持久批次同步](prepare-inputs-flow.md#先同步持久批次每步只改变了的那几行)）。即便本步 `BatchUpdate` 为 `None`（成员未变），引擎仍调用 `update_state`，因为已保存的输出 token 列表引用会继续增长。
+- **两阶段调度与适配器**：`is_argmax_invariant() == False`（会改最高分，如单步只留某 token）的处理器排在白名单/禁词之后、罚分与 greedy 之前；为 `True` 的排在温度缩放之后、Top-k/Top-p 之前，全 greedy 批直接跳过。历史逐请求 callable 需经 `AdapterLogitsProcessor` 包装，默认逐行调用，开销高于批级张量运算。
+- **明确限制**：显式 `--logits-processors` 与投机解码（含 MTP）互斥，Pooling 模型也不支持。若仅通过 Python entry point `vllm.logits_processors` 安装了插件且同时开启投机解码，Worker 侧会提前返回仅保留 `MinTokensLogitsProcessor`（入口 `validate_params` 仍可能触发，不能把校验通过误判为 `apply` 已执行）。昇腾 A2/A3 选 Model Runner V2 时也会拒绝显式或插件自定义处理器。
 
 ## Top-k、Top-p 与 `min_p`：静态门槛、动态门槛与并列/重归一差异
 
-温度缩放后，为了砍掉长尾噪声词，采样器按顺序施加 **`min_p` → `top_k` → `top_p`**，把落选位置的 logits 原地置为 $-\infty$（关闭值分别为 `min_p=0`、`top_k=0` 或 `-1`、`top_p=1`；当 `top_k > vocab_size` 时在输入批次路径按词表大小截断）：
+温度缩放后，为砍掉长尾噪声词，采样器严格按 **`min_p` → `top_k` → `top_p`** 顺序过滤，把落选位置的 logits 原地置为 $-\infty$。三项关闭值分别为 `min_p=0`、`top_k=0` 或 `-1`、`top_p=1`；当 `top_k > vocab_size` 时，输入批次路径按词表大小截断。
 
-- **`min_p`（相对峰值门槛）**：先做一次 Softmax 找出本步最高概率 $p_{\max} = \max_v p_v$，凡满足 $p_v < \text{min\_p} \cdot p_{\max}$ 的候选一律剔除。当模型高度确信（如 $p_{\max} = 0.90$、$\text{min\_p} = 0.1$）时，门槛自动拉高到 `0.09` 迅速收紧；当分布平坦（如 $p_{\max} = 0.20$）时，门槛放宽到 `0.02` 保留多样性。因 $p_{\max} \ge \text{min\_p} \cdot p_{\max}$，`MinPLogitsProcessor.is_argmax_invariant()` 恒为 `True`。**投机解码限制**：初始化后 `min_p > 1e-5` 与 `speculative_config` 冲突被拒；但 `temperature=0` 会先将合法的 `min_p` 重置为 `0` 再进投机检查，所以贪心请求传 `min_p=0.1` 不会被拒，而非法 `min_p=1.1` 在归零前就会报校验错。
-- **`top_k`（固定名次门槛与同分并列）**：只保留最高的前 $k$ 档。注意上游 PyTorch 排序掩码路径以第 $k$ 大分数为门槛、仅屏蔽**严格低于**门槛的词，因此若示意分数为 `[5, 4, 4, 1]` 且 `k=2`，并列的两项 `4` 会一并保留（共留 `3` 项）。
-- **`top_p`（核采样，Nucleus Sampling）与重归一差异**：将概率排序并累加，丢弃落在累计阈值之外的长尾，并强制保留最大概率词防止全空。**上游 PyTorch 与昇腾普通排序路径在 `top_k + top_p` 联合截断上存在关键数值分岔**：上游先按 `top_k` 屏蔽后**在保留集上重算 Softmax** 再做 `top_p`；而 `vllm-ascend` `v0.26 / v0.30.0 / main` 的 `_apply_top_k_top_p_pytorch` 只在过滤前算一次 Softmax，随后直接沿用过滤前概率做 `top_p`（开启 `VLLM_BATCH_INVARIANT=1` 才回退上游路径）。用 6 词分数（猫 `3`、你 `2`、看 `1`、`0`、`-1`、`-2`）取 `T=1, k=2, p=0.7` 即可看到结果分叉：
+- **`min_p`（相对峰值门槛）**：先做一次 Softmax 找出本步最高概率 $p_{\max} = \max_v p_v$，凡 $p_v < \text{min\_p} \cdot p_{\max}$ 的候选一律剔除。分布尖峰时（如 $p_{\max} = 0.90$、$\text{min\_p} = 0.1$）门槛拉高到 `0.09` 迅速收紧；分布平坦时（$p_{\max} = 0.20$）门槛放宽到 `0.02` 保留多样性。因 $p_{\max} \ge \text{min\_p} \cdot p_{\max}$，`MinPLogitsProcessor.is_argmax_invariant()` 恒为 `True`。**投机解码限制**：非贪心且归一化后的有效 `min_p > 1e-5` 时与 `speculative_config` 互斥被拒；贪心请求（`temperature=0`）会先将合法 `min_p` 归零再进检查，因此 `temperature=0, min_p=0.1` 放行，而非法 `min_p=1.1` 在归零前就会报错。
+- **`top_k`（固定名次门槛与同分并列）**：只保留最高的前 $k$ 档。上游 PyTorch 排序掩码路径以第 $k$ 大分数为门槛，仅屏蔽**严格低于**门槛的词。若示意分数为 `[5, 4, 4, 1]` 且 `k=2`，并列的两项 `4` 会一并保留（共留 `3` 项）。
+- **`top_p`（核采样，Nucleus Sampling）与重归一差异**：将概率排序并累加，丢弃落在累计阈值之外的长尾，并强制保留最大概率词防止全空。**上游 PyTorch 与昇腾普通排序路径在 `top_k + top_p` 联合截断上存在数值分岔**：上游先按 `top_k` 屏蔽后**在保留集上重算 Softmax** 再做 `top_p`；`vllm-ascend` `v0.26 / v0.30.0 / main` 的 `_apply_top_k_top_p_pytorch` 只在过滤前算一次 Softmax，随后沿用过滤前概率做 `top_p`（仅开启 `VLLM_BATCH_INVARIANT=1` 才回退上游路径）。
+
+用 6 词分数（猫 `3`、你 `2`、看 `1`、「。」`0`、我 `-1`、喜欢 `-2`）取 `T=1, k=2, p=0.7`，双轨对齐到同一条 `0.70` 门槛线，分叉一目了然：
+
+```wiki-diagram
+file: sampling-adv-fig-topk-topp-renorm
+```
 
 | 排序实现路径 | 判断 `top_p=0.7` 时「猫」的概率 | 过门槛保留的候选 | 最终抽取分布 |
 |---|---:|---|---|
@@ -174,11 +186,11 @@ $$z''_v = z'_v - \beta_{\text{freq}} \cdot c^{\text{out}}_v - \beta_{\text{pres}
 
 ## 思考预算（`thinking_token_budget`）：怎样推动模型从思考转向回答？
 
-`thinking_token_budget` 是面向推理模型的逐请求顶层字段（Chat / Completions / `SamplingParams` 均支持，默认 `None`，HTTP 省略/`null`/`-1` 表示不限制，非负整数有效含 `0`），用于限制**思考段最多继续生成多少 token**；它与 `max_tokens`（到达直接截断整条请求）、模板 `reasoning_effort`（提示模型少思考）以及流式隐藏思考字段（仅改返回格式，详见[流式输出](streaming-output.md#隐藏思考少思考和不思考是同一个开关吗)）是不同层次的控制。
+`thinking_token_budget` 是面向推理模型的逐请求顶层字段（Chat / Completions / `SamplingParams` 均支持），默认 `None`。HTTP 省略、`null` 或 `-1` 表示不限制，非负整数有效（含 `0`），用于限制**思考段最多继续生成多少 token**。它与 `max_tokens`（到达直接截断整条请求）、模板 `reasoning_effort`（提示模型少思考）以及流式隐藏思考字段（仅改返回格式，见[流式输出](streaming-output.md#隐藏思考少思考和不思考是同一个开关吗)）分属不同层次。
 
-- **机制与预算账**：服务需通过 `--reasoning-parser` 或 `--reasoning-config`（指定 `reasoning_start_str` / `reasoning_end_str` 字符串，由服务分词）建立起止边界。若提示词里已带一个尚未闭合的思考段，开始标记后的已有位置也会计入预算。一旦模型未提前结束思考且用满预算，采样器在常规筛选与罚分**之后**，按结束串的 token 序列逐枚抬高对应位置分数（结束串可含过渡文字，不是发 EOS 或前端截断），迫使模型闭合思考并进入正文回答。
-- **总长度预留与约束边界**：设预算为 `4` 枚、结束标记占 `2` 枚；若把 `max_tokens` 也设成 `4`，请求会先因长度截断，连结束标记都写不完，更没有答案空间，因此总输出上限必须覆盖「预算 + 结束标记 + 答案」。强制改分不能与白名单或结构化输出禁止结束编号相冲突；且 `thinking_token_budget=0` 不等价于各模型模板的 `enable_thinking=false`。投机解码路径还会把草稿候选与额外 token 位置纳入预算状态推进。
-- **版本生效门槛**：在 `v0.23.0` 与 `v0.26.0rc` 的 `vllm-ascend` 中，`npu_input_batch` 未接通预算状态（恒为 `None`，请求字段虽能解析但 NPU 侧不生效）；自 `v0.30.0` 与 `main` 起，昇腾普通采样与 MTP 验证、以及上游 GPU V2 均已完整接通预算状态创建、刷新与消费。
+- **机制与预算账**：服务需通过 `--reasoning-parser` 或 `--reasoning-config`（指定 `reasoning_start_str` / `reasoning_end_str`，由服务分词）建立起止边界。若提示词已带未闭合的思考段，开始标记后的已有位置也计入预算。一旦模型未提前结束且用满预算，采样器会在常规筛选与罚分**之后**，按结束串的 token 序列逐枚抬高对应分数（结束串可含过渡文字，不是发 EOS 或前端截断），迫使模型闭合思考并进入正文回答。
+- **总长度预留与约束边界**：设预算为 `4` 枚、结束标记占 `2` 枚；若把 `max_tokens` 也设成 `4`，请求会先因长度截断，连结束标记都写不完，更无答案空间。总输出上限必须覆盖「预算 + 结束标记 + 答案」。强制改分不能与白名单或结构化输出禁止结束编号相冲突；`thinking_token_budget=0` 也不等价于模型模板的 `enable_thinking=false`。投机解码路径会把草稿候选与额外 token 位置纳入预算状态推进。
+- **版本生效门槛**：在 `v0.23.0` 与 `v0.26.0rc` 的 `vllm-ascend` 中，`npu_input_batch` 未接通预算状态（恒为 `None`，字段虽能解析但 NPU 侧不生效）。自 `v0.30.0` 与 `main` 起，昇腾普通采样与 MTP 验证，以及上游 GPU V2，均已完整接通预算状态创建、刷新与消费。
 
 ## Logprobs 四模式、扁平容器与指定编号查询
 
@@ -186,31 +198,31 @@ $$z''_v = z'_v - \beta_{\text{freq}} \cdot c^{\text{out}}_v - \beta_{\text{pres}
 file: sampling-adv-fig-beam-logprobs
 ```
 
-对数概率是条件概率 $p$ 的自然对数 $\ln(p) \le 0$，越接近 `0` 概率越高，取 $\exp(\text{logprob})$ 可还原概率。沿用 6 词示意，同一枚「猫」在不同抓取口径下的数值完全不同：原始分布 $p \approx 0.634$ 对应 $\ln(0.634) \approx -0.456$；经 $T=1, k=3, p=0.8$ 截断后的分布 $p \approx 0.731$ 对应 $\ln(0.731) \approx -0.313$。只返回前 $k$ 名时它们之和通常小于 `1`，不可直接再归一冒充全词表概率；整句累计对数概率等价于各步条件概率连乘，既不是事实正确率，也不能直接作为不同长度回答的公平评分。
+对数概率是条件概率 $p$ 的自然对数 $\ln(p) \le 0$，越接近 `0` 概率越高，取 $\exp(\text{logprob})$ 可还原概率。沿用 6 词示意，同一枚「猫」在不同抓取口径下的数值完全不同：原始分布 $p \approx 0.634$ 对应 $\ln(0.634) \approx -0.456$；经 $T=1, k=3, p=0.8$ 截断后的分布 $p \approx 0.731$ 对应 $\ln(0.731) \approx -0.313$。只返回前 $k$ 名时它们之和通常小于 `1`，不可直接再归一冒充全词表概率。整句累计对数概率等价于各步条件概率连乘，既不是事实正确率，也不能直接作为不同长度回答的公平评分。
 
-- **四种服务级模式（`--logprobs-mode`）**：`raw_logprobs`（默认，采样器入口、在罚分/温度/截断之前的原始分布）、`processed_logprobs`（处理后分布；注意纯 greedy 路径不做随机温度与截断，不会把所选词强变成概率 `1`）、`raw_logits` 与 `processed_logits`（未归一化打分，可为正数，不可直接取 $\exp$ 当概率，但内部字段名仍叫 `logprob` 且累计字段仍直接相加）。HTTP 普通返回会把低于 `-9999` 的值（含 $-\infty$）夹到 `-9999`。提示词已有 token 的 `prompt_logprobs` 见 [prefill](prefill.md#提示词已经给定为什么还要算它的概率)。
+- **四种服务级模式（`--logprobs-mode`）**：`raw_logprobs`（默认）在采样器入口抓取，早于罚分、温度与截断；`processed_logprobs` 抓取处理后分布（纯 greedy 路径不做随机温度与截断，不会把所选词强变成概率 `1`）。`raw_logits` 与 `processed_logits` 返回未归一化打分，可为正数，不可取 $\exp$ 当概率，但内部字段名仍叫 `logprob` 且累计字段仍直接相加。HTTP 普通返回会把低于 `-9999` 的值（含 $-\infty$）夹到 `-9999`。提示词的 `prompt_logprobs` 见 [prefill](prefill.md#提示词已经给定为什么还要算它的概率)。
 - **前 $k$ 名 vs 指定编号（`logprob_token_ids`）**：请求前 $k$ 名时，若实际抽中的词不在前 $k$ 名里也会一并附上，因此至多返回 $k+1$ 个不同编号；设 `0` 仍记录所选词，仅 `None`/`false` 关闭。传入 `logprob_token_ids`（最多 `128` 项，`0 <= id < vocab_size`）走 `gather_specific_token_logprobs` 定向采集，只观察这些编号而不限制生成；其 `rank` 按列表枚举填入（若与所选词重合还可能覆盖名次），不能当真实词表排名。
-- **容器与 HTTP 格式**：Python 开启 `flat_logprobs=True`（HTTP 未暴露）时，改用 `FlatLogprobs` 把 `token_ids`、`logprobs`、`ranks`、`decoded_tokens` 存在四条连续数组里，按半开区间 `[start_indices[i], end_indices[i])` 定位每步以降低 Python 小对象 GC 开销（底层数组在所选词命中前 $k$ 时会存两份，按索引取出字典时合并）。HTTP Chat 在 `choices[i].logprobs.content` 逐 token 返回 `token / logprob / bytes / top_logprobs`（`bytes` 为 UTF-8）；Completion 返回 `tokens / token_logprobs / top_logprobs / text_offset` 四条并行列表；带 `return_tokens_as_token_ids=true` 可用 `token_id:<id>` 避免同名文本键合并。
-- **MTP / 投机解码边界**：MTP 仅保留最终被接受的输出 token 记录、滤掉被拒候选（勿与草稿接受概率混淆）；固定快照中 `logprob_token_ids` 未贯通候选验证与额外 token 拼接，且 `processed` 模式下额外 token 的 `logprobs_mode_override` 传递存在边界，定向查标签或生成式评分应在非投机实例核验。
+- **容器与 HTTP 格式**：Python 开启 `flat_logprobs=True`（HTTP 未暴露）时，改用 `FlatLogprobs` 把 `token_ids`、`logprobs`、`ranks`、`decoded_tokens` 存在四条连续数组里，按半开区间 `[start_indices[i], end_indices[i])` 定位每步以降低小对象 GC 开销（所选词命中前 $k$ 时底层数组存两份，按索引取字典时合并）。HTTP Chat 在 `choices[i].logprobs.content` 逐 token 返回 `token / logprob / bytes / top_logprobs`（`bytes` 为 UTF-8）；Completion 返回 `tokens / token_logprobs / top_logprobs / text_offset` 四条并行列表。带 `return_tokens_as_token_ids=true` 可用 `token_id:<id>` 避免同名文本键合并。
+- **MTP / 投机解码边界**：MTP 仅保留最终被接受的输出 token 记录，滤掉被拒候选（勿与草稿接受概率混淆）。固定快照中 `logprob_token_ids` 未贯通候选验证与额外 token 拼接，且 `processed` 模式下额外 token 的 `logprobs_mode_override` 传递存在边界；定向查标签或生成式评分应在非投机实例核验。
 
 ## V1 外置 Beam Search：多路径扩展与含提示词长度惩罚
 
-为不让束搜索状态污染连续批处理引擎，vLLM V1 把 Beam Search 移至入口层（`BeamSearchOfflineMixin` / 在线 `beam_search`）：每步把活跃的 $W$ 条候选束当成普通请求，下发 `SamplingParams(max_tokens=1, logprobs=2 * beam_width)`，拿回每条束概率最高的 $2W$ 个后续词后在 Host 侧展开、累加对数概率并剪枝，只留前 $W$ 条进入下一轮（已结束候选另存，最终一起比对）。
+为不让束搜索状态污染连续批处理引擎，vLLM V1 把 Beam Search 移至入口层（`BeamSearchOfflineMixin` / 在线 `beam_search`）。每步把活跃的 $W$ 条候选束当成普通请求，下发 `SamplingParams(max_tokens=1, logprobs=2 * beam_width)`；拿回每条束概率最高的 $2W$ 个后续词后在 Host 侧展开、累加对数概率并剪枝，只留前 $W$ 条进入下一轮（已结束候选另存，最终一起比对）。
 
 ```wiki-diagram
 file: sampling-beam-search
 ```
 
-用宽度 $W=2$ 的两步示意说明为何它不同于随机多样本：第 1 步保留 A（`0.6`）与 B（`0.4`）；第 2 步 A 后接 C/D 的条件概率为 `0.4 / 0.35`，B 后接 C/D 为 `0.9 / 0.05`。按联合概率筛选：B→C（`0.4×0.9=0.36`）与 A→C（`0.6×0.4=0.24`）留存，A→D（`0.21`）与 B→D（`0.02`）剪枝——首步落后的 B 可以在次步反超，且保留的两条束也可以来自同一个父束，但被剪枝的路径永不回头，故不保证全局最优。
+用宽度 $W=2$ 的两步示意说明为何它不同于随机多样本：第 1 步保留 A（`0.6`）与 B（`0.4`）；第 2 步 A 后接 C/D 的条件概率为 `0.4 / 0.35`，B 后接 C/D 为 `0.9 / 0.05`。按联合概率筛选：B→C（`0.4×0.9=0.36`）与 A→C（`0.6×0.4=0.24`）留存，A→D（`0.21`）与 B→D（`0.02`）剪枝。首步落后的 B 可以在次步反超，保留的两条束也可来自同一父束；但被剪枝的路径永不回头，故不保证全局最优。
 
 **长度惩罚分母包含提示词长度**：对比不同长度候选时，vLLM 按如下公式打分（与前文修改 logits 的三类重复惩罚完全无关）：
 
 $$\text{score}(y) = \frac{\sum_{t} \log p(y_t \mid x, y_{<t})}{\max(L_{\text{eff}}, 1)^{\,\gamma}}, \qquad L_{\text{eff}} = \begin{cases} |x| + |y| - 1, & y_{\text{last}} = \text{EOS} \\ |x| + |y|, & \text{否则} \end{cases}$$
 
-其中 $\gamma$ 为 `length_penalty`，**分子只累加已生成部分的对数概率，分母却使用包含提示词 $|x|$ 在内的完整编号长度**（`v0.30.0` `ced6857a` 额外补了 $\max(\cdot, 1)$ 防除零）。设提示词长 `4`、$\gamma=1$：候选 A 新增 `2` 枚（扣末 EOS 后）累计 `-2`，得分为 $-2 \div (4+2) \approx \mathbf{-0.3333}$；候选 B 新增 `4` 枚累计 `-3`，得分为 $-3 \div (4+4) = -0.375$，A 排前；若误用仅新增长度当分母，会错算成 A `-1` vs B `-0.75` 导致排序翻转。
+其中 $\gamma$ 为 `length_penalty`：**分子只累加已生成部分的对数概率，分母却使用包含提示词 $|x|$ 在内的完整编号长度**（`v0.30.0` `ced6857a` 额外补了 $\max(\cdot, 1)$ 防除零）。设提示词长 `4`、$\gamma=1$：候选 A 新增 `2` 枚（扣末 EOS 后）累计 `-2`，得分为 $-2 \div (4+2) \approx \mathbf{-0.3333}$；候选 B 新增 `4` 枚累计 `-3`，得分为 $-3 \div (4+4) = -0.375$，A 排前。若误用仅新增长度当分母，会错算成 A `-1` vs B `-0.75` 导致排序翻转。
 
 **在线 HTTP 与离线 Python 的关键差异**：
-- **参数与解码**：离线用 `BeamSearchParams(beam_width, max_tokens)`，默认 `temperature=0`、`length_penalty=1.0`、`ignore_eos=False`，返回 `text` 包含提示词全文；HTTP 在 Chat/Completions 传 `use_beam_search=true`，由 **`n` 充当 `beam_width`**（默认 `1`），温度继承请求或模型默认（不套 Python 的 `0`），只传递 beam 相关字段（`top_k`/`top_p`/罚分/`structured_outputs` 不进入搜索），返回文本仅解码新增部分。
+- **参数与解码**：离线用 `BeamSearchParams(beam_width, max_tokens)`，默认 `temperature=0`、`length_penalty=1.0`、`ignore_eos=False`，返回 `text` 包含提示词全文。HTTP 在 Chat/Completions 传 `use_beam_search=true`，由 **`n` 充当 `beam_width`**（默认 `1`），温度继承请求或模型默认（不套 Python 的 `0`），只传递 beam 相关字段（`top_k`/`top_p`/罚分/`structured_outputs` 不进入搜索），返回文本仅解码新增部分。
 - **流式、文法与缓存**：HTTP Completion 拒绝 `use_beam_search=true` + `stream=true`；Chat SSE 正常到搜索完全结束才交出结果；独立 Chat render 也拒绝 beam。`v0.26+` 离线 beam 支持逐束重建文法状态并过滤候选（合法集合过大时仅过滤已返回候选，带 CPU 开销），但不扩展至 HTTP。因 $W$ 条束共享完整提示词与长前缀，必须配合 [前缀缓存（APC）](prefix-caching.md) 避免每步重算 Prefill。
 
 ## 昇腾 NPU 采样快慢路径剖析（`v0.30.0`）

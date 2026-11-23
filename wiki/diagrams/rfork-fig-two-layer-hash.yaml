@@ -1,0 +1,10 @@
+mode: native-svg
+id: rfork-fig-two-layer-hash
+caption: >-
+  RFork 两层 SHA256 身份匹配与边界对照：左栏拆解进入 seed_key 的三层输入——建会话时算出的 7 项配置指纹、预登记显存后绑定的张量结构摘要，以及 tp_rank / pp_rank / ep_rank / sharded_dp_rank 与主草角色；右栏列出明确不进钥匙的五类边界（global_rank 与 IP、权重字节内容、RFork 代码提交号、ModelSlim 外部文件、并发上限），说明升级隔离须换策略名且同路径换权重不能只靠钥匙防住。
+size: [900, 490]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/identity.py#L229-L349
+    symbols: [build_compatibility_fingerprint, _resolve_sharded_dp_rank, build_seed_key]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L43-L69
+    symbols: [build_structural_digest]

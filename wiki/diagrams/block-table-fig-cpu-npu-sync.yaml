@@ -1,0 +1,9 @@
+id: block-table-fig-cpu-npu-sync
+mode: native-svg
+size: [900, 390]
+caption: 块表（block table）与槽位映射（slot mapping）的双端协同与读写分工：CPU 侧按行低频维护持久批次块表，步首通过 commit_block_table 异步拷往 NPU，再由 NPU 每步并行算完 slot_mapping（尾槽填 -1），前者用于注意力算子读历史，后者用于写入本步新 K/V。
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L103-L185
+    symbols: [add_row, append_row, clear_row, move_row, swap_row]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L329-L462
+    symbols: [compute_slot_mapping, commit_block_table]

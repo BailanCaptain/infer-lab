@@ -1,46 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="WeightSwitchMixin 运行期权重本地分片与全量视图动态切换流程" font-family="var(--font-sans)">
-<title>WeightSwitchMixin 运行期权重动态重切分与零拷贝视图切换</title>
-<desc>Runtime local shard to full weight all-gather, pool reuse, and tensor.set_ view switching lifecycle</desc>
-<g stroke-width="1.4">
-<rect x="16" y="56" width="196" height="128" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="242" y="56" width="204" height="128" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="476" y="56" width="196" height="128" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="702" y="56" width="182" height="128" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="16" y="218" width="420" height="156" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="464" y="218" width="420" height="156" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M212 120h28m-5-4l5 4-5 4M446 120h28m-5-4l5 4-5 4M672 120h28m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="12.5" fill="#4c65b6"/>
-<g font-weight="700">
-<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">WeightSwitchMixin 运行期权重二次重切分（以 OProjWeightSwitchMixin 为例）</text>
-<text x="114" y="82" text-anchor="middle" font-size="14.5" fill="#3a4f93">① 静态常驻分片</text>
-<text x="344" y="82" text-anchor="middle" font-size="14.5" fill="#7a3a6a">② 异步拉齐拼全</text>
-<text x="574" y="82" text-anchor="middle" font-size="14.5" fill="#065f56">③ 零拷贝切全量</text>
-<text x="793" y="82" text-anchor="middle" font-size="14.5" fill="#936300">④ 退出恢复分片</text>
-<text x="30" y="244" font-size="15" fill="#17211f">两类声明规约与复用内存池</text>
-<text x="478" y="244" font-size="15" fill="#8f3229">显存账单与硬性前置约束</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="114" y="108" text-anchor="middle">加载期按 world_size</text>
-<text x="114" y="132" text-anchor="middle">再切 1/N 本地分片</text>
-<text x="114" y="158" text-anchor="middle" font-weight="600" fill="#3a4f93">HBM 仅留 local_tensor</text>
-<text x="344" y="108" text-anchor="middle">all_gather_weight()</text>
-<text x="344" y="132" text-anchor="middle">调用 all_gather_async</text>
-<text x="344" y="158" text-anchor="middle" font-weight="600" fill="#7a3a6a">写入共享 full_pools</text>
-<text x="574" y="108" text-anchor="middle">wait_weight_all_gather</text>
-<text x="574" y="132" text-anchor="middle">switch_weight(True)</text>
-<text x="574" y="158" text-anchor="middle" font-weight="600" fill="#065f56">attr.set_(full_tensor)</text>
-<text x="793" y="108" text-anchor="middle">finally 分支自动触发</text>
-<text x="793" y="132" text-anchor="middle">switch_weight(False)</text>
-<text x="793" y="158" text-anchor="middle" font-weight="600" fill="#936300">attr.set_(local_tensor)</text>
-<text x="30" y="272">• weight_switch_gather_specs：须跨卡拼接的权重及量化 scale</text>
-<text x="30" y="297">• weight_switch_repeat_specs：各卡相同、仅本地 repeat 的参数</text>
-<text x="30" y="322">• 同规格多层共享一块 pool 缓冲（按 dtype/dim/shape 建键）</text>
-<text x="30" y="347">• 通信可与前置注意力计算异步重叠，掩盖 All-Gather 时延</text>
-<text x="478" y="272">• 仅允许线性层存在至多 1 条既有切分轴（input 或 output）</text>
-<text x="478" y="297">• 切分维必须被 config.world_size 整除，否则抛 RuntimeError</text>
-<text x="478" y="322">• 量化方法须完成校验并显式置 supports_weight_switch = True</text>
-<text x="478" y="347">• 上一轮异步 handle 未 wait 完前禁止重入第二次 All-Gather</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="WeightSwitchMixin 运行期权重分片、跨层共享内存池与 tensor.set_ 零拷贝指针切换几何图" font-family="var(--font-sans)">
+  <title>WeightSwitchMixin 运行期权重动态重切分几何机理：各卡平时仅在 HBM 常驻 1/4 本地分片（W₀..W₃）；计算前异步 all_gather_async 把四片拼进跨层共享的单一 full_pools 缓冲；进入上下文通过 attr.set_() 零拷贝改指全量缓冲，退出 finally 立即切回本地分片。</title>
+  <desc>关联源码符号：WeightSwitchMixin, weight_switch_gather_specs, weight_switch_repeat_specs, supports_weight_switch, split_tensor_for_parallel, all_gather_weight, wait_weight_all_gather, switch_weight, all_gather_async, OProjWeightSwitchMixin, _all_gather_o_proj_full_weight, _use_full_o_proj_weights</desc>
+  <defs>
+    <marker id="ws-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="ws-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="ws-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">WeightSwitchMixin 运行期权重重切分：1/N 静态常驻 ↔ 单份跨层共享池 ↔ 零拷贝视图切换</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- COLUMN 1: Static HBM (1/4 local shards on 4 cards) -->
+  <text x="16" y="60" font-size="14.5" font-weight="700" fill="#3a4f93">① 加载期二次切分（HBM 仅常驻 1/4）</text>
+  <rect x="16" y="70" width="234" height="218" rx="9" fill="#e8edff" fill-opacity="0.45" stroke="#4c65b6" stroke-width="1.4"/>
+
+  <!-- 4 rank shards stacked -->
+  <g stroke-width="1.3">
+    <rect x="30" y="84" width="206" height="36" rx="5" fill="#ffffff" stroke="#4c65b6"/>
+    <rect x="30" y="128" width="206" height="36" rx="5" fill="#ffffff" stroke="#4c65b6"/>
+    <rect x="30" y="172" width="206" height="36" rx="5" fill="#ffffff" stroke="#4c65b6"/>
+    <rect x="30" y="216" width="206" height="36" rx="5" fill="#ffffff" stroke="#4c65b6"/>
+  </g>
+  <!-- Colored 1/4 stripe inside each card showing which quarter it stores -->
+  <rect x="34" y="88" width="48" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <rect x="84" y="132" width="48" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <rect x="134" y="176" width="48" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <rect x="184" y="220" width="48" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <g font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300" text-anchor="middle">
+    <text x="58" y="107">W₀</text><text x="108" y="151">W₁</text><text x="158" y="195">W₂</text><text x="208" y="239">W₃</text>
+  </g>
+  <g font-size="13.5" fill="#3a4f93">
+    <text x="92" y="107">R0 local_tensor</text>
+    <text x="142" y="151">R1 local</text>
+    <text x="42" y="195">R2 local</text>
+    <text x="42" y="239">R3 local_tensor</text>
+  </g>
+  <text x="133" y="274" text-anchor="middle" font-size="13.5" fill="#3a4f93">含逐通道量化 scale（gather_specs）</text>
+
+  <!-- Arrow: all_gather_async overlapped with compute -->
+  <path d="M 250 178 L 328 178" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#ws-plum)"/>
+  <text x="289" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">异步拉齐</text>
+  <text x="289" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#7a3a6a">AG_async</text>
+  <text x="289" y="200" text-anchor="middle" font-size="13.5" fill="#66716d">与前置计算</text>
+  <text x="289" y="218" text-anchor="middle" font-size="13.5" fill="#66716d">并行重叠</text>
+
+  <!-- COLUMN 2: Shared full_pools buffer reused across layers -->
+  <text x="336" y="60" font-size="14.5" font-weight="700" fill="#7a3a6a">② 跨层共享全量缓冲池（full_pools）</text>
+  <rect x="336" y="70" width="268" height="218" rx="9" fill="#f7e7f2" fill-opacity="0.45" stroke="#9a4b86" stroke-width="1.5"/>
+
+  <text x="470" y="96" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">全模型同规格层共用 1 块全量缓冲</text>
+  <!-- Assembled 4-part full_tensor matrix -->
+  <g stroke="#c78300" stroke-width="1.3">
+    <rect x="352" y="108" width="59" height="44" rx="4" fill="#fff4cf"/>
+    <rect x="411" y="108" width="59" height="44" rx="4" fill="#fff4cf"/>
+    <rect x="470" y="108" width="59" height="44" rx="4" fill="#fff4cf"/>
+    <rect x="529" y="108" width="59" height="44" rx="4" fill="#fff4cf"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300" text-anchor="middle">
+    <text x="381" y="135">W₀</text><text x="440" y="135">W₁</text><text x="499" y="135">W₂</text><text x="558" y="135">W₃</text>
+  </g>
+  <text x="470" y="174" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">full_tensor（不逐层重 malloc）</text>
+
+  <!-- Layer reuse strip showing Layer 0 -> Layer 1 -> Layer L -->
+  <rect x="346" y="190" width="248" height="84" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <text x="470" y="212" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">按 (prefix, attr, dtype, shape) 复用：</text>
+  <text x="470" y="236" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">Layer 0 → Layer 1 → … → Layer L</text>
+  <text x="470" y="260" text-anchor="middle" font-size="13.5" fill="#4d5652">上一层未 wait 完前禁止重入拉齐</text>
+
+  <!-- Arrow: tensor.set_() zero-copy switch -->
+  <path d="M 604 156 L 638 156" fill="none" stroke="#087f73" stroke-width="2.4" marker-end="url(#ws-teal)"/>
+
+  <!-- COLUMN 3: Zero-copy pointer switching context -->
+  <text x="646" y="60" font-size="14.5" font-weight="700" fill="#065f56">③ 零拷贝指针切换 &amp; 归位</text>
+  <rect x="646" y="70" width="240" height="218" rx="9" fill="#ddf4ef" fill-opacity="0.45" stroke="#087f73" stroke-width="1.5"/>
+
+  <rect x="660" y="84" width="212" height="62" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="766" y="108" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">进入 _use_full_o_proj_weights</text>
+  <text x="766" y="132" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">attr.set_(full_tensor)</text>
+
+  <path d="M 766 146 L 766 172" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#ws-teal)"/>
+  <text x="778" y="164" font-size="13.5" font-weight="700" fill="#065f56">算全量矩阵</text>
+
+  <rect x="660" y="176" width="212" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="766" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">退出 finally 自动归位</text>
+  <text x="766" y="220" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">attr.set_(local_tensor)</text>
+
+  <text x="766" y="262" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">原地改指底层存储 · 0 拷贝</text>
+
+  <!-- BOTTOM HARD GUARDS STRIP -->
+  <line x1="14" y1="306" x2="886" y2="306" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <rect x="16" y="320" width="444" height="126" rx="9" fill="#ece9df" fill-opacity="0.65" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="26" y="346" font-size="13.5" font-weight="700" fill="#17211f">量化方法接入两张显式清单（supports_weight_switch = True）</text>
+  <text x="26" y="374" font-size="12.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">weight_switch_gather_specs</tspan>：权重本体与逐通道 scale（跨卡拼）</text>
+  <text x="26" y="400" font-size="12.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">weight_switch_repeat_specs</tspan>：各卡同值元数据（本地 repeat）</text>
+  <text x="26" y="426" font-size="13" fill="#4d5652">保持该线性层原有前向通信组不变，仅切分加载态显存</text>
+
+  <rect x="474" y="320" width="412" height="126" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="486" y="346" font-size="14" font-weight="700" fill="#8f3229">三条硬性前置约束（违背直接抛 RuntimeError）</text>
+  <text x="486" y="374" font-size="13" fill="#17211f">• 线性层至多存在 <tspan font-weight="700" fill="#8f3229">1 条既有切分轴</tspan>（input 或 output，不可双轴）</text>
+  <text x="486" y="400" font-size="13" fill="#17211f">• 目标切分维长度必须能被 <tspan font-family="var(--font-mono)" font-weight="700">world_size</tspan> 整除</text>
+  <text x="486" y="426" font-size="13" fill="#17211f">• 上一轮 <tspan font-family="var(--font-mono)" font-weight="700">state.handles</tspan> 未 wait 前禁止重入下一次拉齐</text>
 </svg>

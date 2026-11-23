@@ -70,25 +70,40 @@ rawSources:
 ---
 ## 它曾经控制什么，为什么只存在了一天？
 
-**这个键在所有四个核验版本（`v0.23.0`、`v0.26.0rc`、`v0.30.0`、`main`）以及 GLM 固定镜像 `db701c1f` 中均不存在。** 它是 2026-09-23 随 PR #17066（`39fef3f8` / `ad7a731b`）合入 `main` 的 MRv1 临时回退开关，次日（2026-09-24）PR #17470 就把整项块表优化连同这个键一起回退——官方参数表原本将其标为“MRv1 退役时删除的临时兼容项”，实际只存活了一天，切勿写进任何部署模板。
+**这个键在所有四个核验版本（`v0.23.0`、`v0.26.0rc`、`v0.30.0`、`main`）以及 GLM 固定镜像 `db701c1f` 中均不存在。** 它是 2026-09-23 随 PR #17066（`39fef3f8` / `ad7a731b`）合入 `main` 的 MRv1 临时回退开关，次日（2026-09-24）PR #17470 就将整项块表优化连同这个键一起回退。官方参数表原将其标为「MRv1 退役时删除的临时兼容项」，实际仅存活一日，切勿写入任何部署模板。
 
-块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；“提交”指把主机侧的块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现。在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭这项优化、退回旧实现**——**名字极易读反**：
+先明确三个前置词：块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；「提交」指把主机侧块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现。
 
-- 当时配置路径为顶层 `additional_config["block_table_no_commit_optimize"]`，类型 `Literal[0, 1]`，默认 `0`（启用脏区增量提交的 `OptimizedBlockTable`），填 `1` 才退回整行 H2D 拷贝的旧 `BlockTable`（字段注释明确 `MRv1 only`，MRv2 自带分段增量更新、无视此键）；
-- 当时也不支持环境变量 `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE`，只能通过 `additional_config` 传整数 `0` / `1`；选择函数 `_get_block_table_cls()` 仅在构造各 KV cache group 的块表时调用一次，已创建的块表不随配置改变重新选类，且回退时不打印提示日志。
+在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭该优化、退回旧实现**——**命名极易读反**：
+
+| 配置项（仅 2026-09-23 当日存在） | 取值与规则 |
+| --- | --- |
+| 配置路径与类型 | 顶层 `additional_config["block_table_no_commit_optimize"]`，`Literal[0, 1]`（不支持环境变量 `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE`） |
+| 设 `0`（当时默认） | 启用脏区增量提交的 `OptimizedBlockTable` |
+| 设 `1` | 退回整行 H2D 拷贝的旧 `BlockTable`（字段注释明确 `MRv1 only`，MRv2 自带分段增量更新、无视此键） |
+| 生效时机 | `_get_block_table_cls()` 仅在构造各 KV cache group 块表时调用一次，已创建块表不随配置变更重选，且回退时不打提示日志 |
 
 ## 脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状
 
-decode 阶段一条请求每步通常只新增 0 到 1 个物理块号，而 MRv1 的普通 `BlockTable.commit_block_table(num_reqs)` 每步都经 `copy_to_gpu(num_reqs)` 把前 `num_reqs` 行**整行**拷往 NPU（行宽由最大序列长度决定，无论这一步是否改写过大部分槽位）；`MultiGroupBlockTable` 则逐组遍历调用。PR #17066 为每行维护一对脏区边界 `_dirty_begin` / `_dirty_end`（提交后以哨兵值复位），每步只搬真正修改过的片段，一行未动则整步跳过。回退开关本意是刚上线遇到问题时不用回滚镜像即可切回整行拷贝，最终因整个优化次日即被回退而一并消失。
+decode 阶段一条请求每步通常只新增 0 到 1 个物理块号。MRv1 普通 `BlockTable.commit_block_table(num_reqs)` 每步都经 `copy_to_gpu(num_reqs)` 把前 `num_reqs` 行**整行**拷往 NPU（行宽由最大序列长度决定，无论该步是否改动大部分槽位）；`MultiGroupBlockTable` 则逐组遍历调用。
+
+```wiki-diagram
+file: param-block-table-no-commit
+```
+
+PR #17066 为每行维护一对脏区边界 `_dirty_begin` / `_dirty_end`（提交后以哨兵值复位），每步只搬真正修改过的片段，一行未动则整步跳过。回退开关本意是刚上线遇到问题时不用回滚镜像即可切回整行拷贝，最终随整个优化次日回退而消失。
 
 需注意：在它存在的那一天，设 `1` 退回整行拷贝会在只有少量槽位改动时复制更多表项，但实际耗时仍受脏区整理、提交调度与小块传输开销影响，不能仅凭拷贝字节数断言整行一定更慢。
 
-**放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 运行 MRv1 runner，每步准备输入时整行提交块表（见[准备输入页](../concepts/prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)与[块表显存和拷贝账](../concepts/block-table.md#表本身占多少每步花多少)），没有此键也没有脏区提交优化；PR #17066 在其他模型负载下给出的性能记录不能移作本部署收益，本站也未实机复现该历史开关的差异。
+**放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 运行 MRv1 runner，每步准备输入时整行提交块表（见[准备输入页](../concepts/prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)与[块表显存和拷贝账](../concepts/block-table.md#表本身占多少每步花多少)），没有此键也没有脏区提交优化。PR #17066 在其他模型负载下给出的性能记录不能移作本部署收益，本站也未实机复现该历史开关的差异。
 
 ## 在不同版本中残留这个键会发生什么？
 
-- **`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f`**：配置类逐键读取，多写的顶层键被静默忽略；块表均走普通整行拷贝。
-- **`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）**：均无此键；`v0.30.0` 的 MRv1 `BlockTable` 直接调 `copy_to_gpu(num_reqs)`（`main` 则已退役 MRv1 `worker/block_table.py`，转用 `worker/v2/block_table.py`；这不代表新版没有其他块表优化）。在这两版里残留 `block_table_no_commit_optimize` 通常会被 `@config(extra="forbid")` 直接拒收报错；仅当环境可发现 `vllm_omni` 时才告警并过滤未知顶层键，不会形成回退开关。历史脚本迁往新版时必须删掉此键。
+| 版本 | 残留 `block_table_no_commit_optimize` 的行为 | 块表提交现状 |
+| --- | --- | --- |
+| `v0.23.0`、`v0.26.0rc` 与 GLM 镜像 `db701c1f` | 配置类逐键读取，多写的顶层键被静默忽略 | 均走普通整行拷贝 |
+| `v0.30.0`（`c09d3e20`） | 无此键；通常被 `@config(extra="forbid")` 直接拒收报错（仅环境可发现 `vllm_omni` 时告警过滤，不构成回退开关） | MRv1 `BlockTable` 直接调 `copy_to_gpu(num_reqs)` |
+| `main`（`8d6180e2`） | 同 `v0.30.0`（历史脚本迁往新版须删掉此键） | 已退役 MRv1 `worker/block_table.py`，转用 `worker/v2/block_table.py`（不代表新版没有其他块表优化） |
 
 ## 对照源码
 

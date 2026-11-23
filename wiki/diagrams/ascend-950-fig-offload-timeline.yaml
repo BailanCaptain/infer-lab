@@ -1,0 +1,10 @@
+mode: native-svg
+id: ascend-950-fig-offload-timeline
+caption: >-
+  通信卸载关键路径同比例甘特图（教学示意时间线）：卡 0 在 2 ms 就绪、卡 1 在 5 ms 就绪时，协调工作卸载把剩余协调从 0.8 ms 压至 0.2 ms（下段提前 0.6 ms：6.4 ms → 5.8 ms），但无法消除卡 0 等待较晚参与者卡 1 的 3.0 ms 迟到空等。
+size: [900, 384]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L365-L372'
+    symbols:
+      - LOCAL_KV_COMM_RESOURCE
+      - MM_REDUCE_SCATTER_AI_CPU_INFERENCE

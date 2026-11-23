@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350" role="img" aria-label="Model Runner V2 固定状态行按索引收集、Pinned 快照与增量块表写入" font-family="var(--font-sans)">
+  <title>MRV2 状态组织三板斧：固定状态行 Gather [2,7]、Pinned 异步快照与 StagedWriteTensor 局部写入</title>
+  <desc>Three MRV2 state techniques: fixed request rows in UVA gathered by step order [2,7], pinned async snapshot isolating step 5 from step 6, and StagedWriteTensor patching only changed block IDs</desc>
+  <defs>
+    <marker id="v2g-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="v2g-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">MRV2 重组状态的三板斧：固定行解耦 + 异步快照 + 增量块表写入</text>
+
+  <!-- Card 1: Fixed Row Gather -->
+  <rect x="16" y="48" width="286" height="284" rx="8" fill="#ddf4ef" fill-opacity="0.45" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="76" font-size="14.5" font-weight="700" fill="#065f56">① 长期固定行 vs 本步收集序</text>
+  <text x="30" y="98" font-size="13.5" fill="#4d5652">请求活着时不搬动行，仅按索引收集</text>
+
+  <!-- Fixed table -->
+  <rect x="30" y="114" width="112" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5"/>
+  <text x="86" y="133" text-anchor="middle" font-size="13.5" fill="#66716d">row 0..1 空</text>
+  <rect x="30" y="148" width="112" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="86" y="169" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">row 2: C</text>
+  <rect x="30" y="186" width="112" height="26" rx="4" fill="#ece9df" stroke="#b8bcb5"/>
+  <text x="86" y="204" text-anchor="middle" font-size="13.5" fill="#66716d">row 3..6 ...</text>
+  <rect x="30" y="218" width="112" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="86" y="239" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">row 7: A</text>
+
+  <!-- Gather arrows to [C, A] -->
+  <path d="M 144 164 L 188 158" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#v2g-arr-teal)"/>
+  <path d="M 144 234 L 188 202" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#v2g-arr-teal)"/>
+
+  <rect x="192" y="138" width="96" height="86" rx="6" fill="#087f73"/>
+  <text x="240" y="162" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">Gather</text>
+  <text x="240" y="184" text-anchor="middle" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#ddf4ef">[2, 7]</text>
+  <text x="240" y="208" text-anchor="middle" font-size="13.5" fill="#ddf4ef">本步: C, A</text>
+
+  <text x="30" y="280" font-size="13.5" fill="#4d5652">省去 MRV1 为排序反复搬整行</text>
+  <text x="30" y="302" font-size="13.5" fill="#065f56">被抢占请求按结束处理，恢复重登记</text>
+
+  <!-- Card 2: Pinned Snapshot -->
+  <rect x="316" y="48" width="276" height="284" rx="8" fill="#e8edff" fill-opacity="0.45" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="330" y="76" font-size="14.5" font-weight="700" fill="#3a4f93">② 临时 Pinned 快照防串数据</text>
+  <text x="330" y="98" font-size="13.5" fill="#4d5652">避免 CPU 改写与设备异步读冲突</text>
+
+  <rect x="330" y="118" width="248" height="44" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="454" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">CPU 主状态：5 → 原地改 6</text>
+
+  <line x1="454" y1="164" x2="454" y2="188" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#v2g-arr-indigo)"/>
+
+  <rect x="330" y="192" width="248" height="46" rx="5" fill="#4c65b6"/>
+  <text x="454" y="213" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">本步 Pinned 快照（锁定值 5）</text>
+  <text x="454" y="231" text-anchor="middle" font-size="13.5" fill="#e8edff">设备安心读 5；新值 6 留给下一步</text>
+
+  <text x="330" y="272" font-size="13.5" fill="#4d5652">收益：减少保护共享缓冲的等待</text>
+  <text x="330" y="294" font-size="13.5" fill="#8f3229">代价：快照占用空间与一次复制</text>
+  <text x="330" y="316" font-size="13.5" fill="#66716d">（注：上游设计，NPU 能力逐项核）</text>
+
+  <!-- Card 3: StagedWriteTensor -->
+  <rect x="606" y="48" width="278" height="284" rx="8" fill="#fff4cf" fill-opacity="0.45" stroke="#c78300" stroke-width="1.3"/>
+  <text x="620" y="76" font-size="14.5" font-weight="700" fill="#936300">③ StagedWriteTensor 增量改表</text>
+  <text x="620" y="98" font-size="13.5" fill="#4d5652">大块表常驻设备，CPU 只打包变更</text>
+
+  <rect x="620" y="118" width="250" height="44" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="745" y="145" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">CPU 仅打包：行 2 新增 3 个块号</text>
+
+  <line x1="745" y1="164" x2="745" y2="188" stroke="#087f73" stroke-width="1.7" marker-end="url(#v2g-arr-teal)"/>
+
+  <rect x="620" y="192" width="250" height="58" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="745" y="216" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">设备基表（常驻 NPU/GPU）</text>
+  <text x="745" y="238" text-anchor="middle" font-size="13.5" fill="#4d5652">单次核函数就地写回这 3 格</text>
+
+  <text x="620" y="278" font-size="13.5" fill="#4d5652">免去大块表每步全量 H2D 搬运</text>
+  <text x="620" y="302" font-size="13.5" font-weight="700" fill="#936300">v0.30.0 仍默认 V1；main 收口 V2</text>
+</svg>

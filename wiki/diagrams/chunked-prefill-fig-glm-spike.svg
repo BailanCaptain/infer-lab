@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 376" width="900" height="376" role="img" aria-label="GLM 双机 20000 词提示词三步分块与索引器尾状态借块尖峰图" font-family="var(--font-sans)">
+  <title>GLM-5.3-Flash 双机 DP0 在 8192 预算下把 20,000 词提示词切成 8144+8144+3712 三段时，KDA、full 与索引器尾状态组的单步占块对比及 2,038 块临时尖峰。</title>
+  <desc>上方展示 DP0 预算 8192 扣除 12 条 MTP decode（12×4=48）后，新 20,000 词提示词被切成 8,144 + 8,144 + 3,712 三步并在第 3 步末产出 y0、第 4 步转入 4 tok/步的 decode；下方用水平比例柱状图对比四步中三个状态组的持块量：KDA 三组常驻 12 块、full 组平滑增长（13→26→32→32），而块长仅 4 的尾状态组在第 1、2 步飙升至 2,037 与 2,038 块（约 15.9 GiB，超 3,855 块池的一半），第 3 步回落至 930 块，第 4 步 decode 降至 3 块。</desc>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">GLM 双机 20,000 词分三步：预算拆法与尾状态组 2,038 块（≈15.9 GiB）单步尖峰</text>
+
+  <!-- Top strip: 20,000 prompt chunk split bar -->
+  <rect x="14" y="38" width="872" height="72" rx="9" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="60" font-size="14" font-weight="700" fill="#17211f">DP0 预算 8,192 − 12 条 MTP decode (12×4=48) = 每步剩 <tspan font-family="var(--font-mono)" fill="#3a4f93">8,144</tspan> 格给新提示词（不对齐 640 块边界）</text>
+  <!-- Proportional 3-chunk bar (total width 844 = 20000 tok: 8144 -> 344px, 8144 -> 344px, 3712 -> 156px) -->
+  <rect x="28" y="70" width="340" height="30" rx="5" fill="#4c65b6"/>
+  <text x="198" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">步 1：8,144 词（0–8143 · 丢采样）</text>
+  <rect x="372" y="70" width="340" height="30" rx="5" fill="#4c65b6"/>
+  <text x="542" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">步 2：8,144 词（8144–16287 · 丢采样）</text>
+  <rect x="716" y="70" width="156" height="30" rx="5" fill="#087f73"/>
+  <text x="794" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">步 3：3,712 → y₀</text>
+
+  <!-- Bottom panel: proportional block-pool usage chart (scale: 2,200 blocks = 500px, x=230..730) -->
+  <rect x="14" y="124" width="872" height="240" rx="10" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="28" y="148" font-size="14.5" font-weight="700" fill="#17211f">当步持有物理块数对比（每块 7.969 MiB · 整池 3,855 块 · 含 +3 MTP 预留）</text>
+
+  <!-- Legend -->
+  <rect x="570" y="135" width="14" height="14" rx="3" fill="#b54237"/>
+  <text x="589" y="147" font-size="13" fill="#17211f">尾状态 (4 tok/块)</text>
+  <rect x="712" y="135" width="14" height="14" rx="3" fill="#4c65b6"/>
+  <text x="731" y="147" font-size="13" fill="#17211f">full (640/块) · KDA=12</text>
+
+  <!-- Step 1 -->
+  <text x="28" y="186" font-size="14" font-weight="700" fill="#17211f">步 1（Chunk 8,144）</text>
+  <text x="28" y="204" font-size="13" fill="#4d5652">full=13 · KDA=12</text>
+  <rect x="206" y="170" width="463" height="26" rx="4" fill="#b54237"/>
+  <text x="437" y="188" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">尾状态 2,037 块（≈15.9 GiB）</text>
+  <rect x="673" y="170" width="8" height="26" rx="2" fill="#4c65b6"/>
+  <text x="690" y="188" font-size="13.5" font-weight="700" fill="#8f3229">占池 &gt; 52%</text>
+
+  <!-- Step 2 -->
+  <text x="28" y="234" font-size="14" font-weight="700" fill="#17211f">步 2（Chunk 8,144）</text>
+  <text x="28" y="252" font-size="13" fill="#4d5652">full=26 · KDA=12</text>
+  <rect x="206" y="218" width="463" height="26" rx="4" fill="#b54237"/>
+  <text x="437" y="236" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">尾状态 2,038 块（窗口外已还 + 本段新借）</text>
+  <rect x="673" y="218" width="12" height="26" rx="2" fill="#4c65b6"/>
+  <text x="694" y="236" font-size="13.5" font-weight="700" fill="#8f3229">尖峰延续</text>
+
+  <!-- Step 3 -->
+  <text x="28" y="282" font-size="14" font-weight="700" fill="#17211f">步 3（Chunk 3,712）</text>
+  <text x="28" y="300" font-size="13" fill="#4d5652">full=32 · KDA=12</text>
+  <rect x="206" y="266" width="211" height="26" rx="4" fill="#c78300"/>
+  <text x="311" y="284" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">尾状态 930 块</text>
+  <rect x="421" y="266" width="14" height="26" rx="2" fill="#4c65b6"/>
+  <text x="444" y="284" font-size="13.5" fill="#936300">上段旧块归还，尖峰回落过半</text>
+
+  <!-- Step 4 -->
+  <text x="28" y="330" font-size="14" font-weight="700" fill="#065f56">步 4（Decode 4 词）</text>
+  <text x="28" y="348" font-size="13" fill="#4d5652">full=32 · KDA=12</text>
+  <rect x="206" y="314" width="6" height="26" rx="2" fill="#087f73"/>
+  <rect x="216" y="314" width="14" height="26" rx="2" fill="#4c65b6"/>
+  <text x="240" y="332" font-size="13.5" font-weight="700" fill="#065f56">尾状态骤降至 3 块（此后在 3–4 块波动）</text>
+
+  <!-- Takeaway annotation -->
+  <rect x="598" y="306" width="274" height="44" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="735" y="325" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">结论：在混合模型上，单步分块宽度</text>
+  <text x="735" y="343" text-anchor="middle" font-size="13" fill="#17211f">直接决定当步临时借块峰值！</text>
+</svg>

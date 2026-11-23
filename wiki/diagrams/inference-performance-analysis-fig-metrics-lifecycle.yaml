@@ -1,0 +1,18 @@
+mode: native-svg
+id: inference-performance-analysis-fig-metrics-lifecycle
+caption: >-
+  监控读数与 KV 块抽样生命周期可视化：（一）对比 Gauge（瞬时水位）、Counter（单调累计 100→140 需算差分速率）与 Histogram（嵌套累积桶，≤0.5s 含 ≤0.1s 不可相加）；（二）按比例绘制被抽中 KV 块从 0s 分配、2s/5s 两次 touch 复用到 9s 淘汰发布的完整时间轴，标出 Lifetime=9s、Interval=3s、Idle=4s。
+size: [900, 444]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/core/kv_cache_metrics.py#L16-L96'
+    symbols:
+      - BlockMetricsState
+      - get_lifetime_seconds
+      - get_idle_time_seconds
+      - get_reuse_gaps_seconds
+      - KVCacheMetricsCollector
+  - source: 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L1017-L1179'
+    symbols:
+      - gauge_kv_cache_usage
+      - counter_prefix_cache_queries
+      - counter_prefix_cache_hits

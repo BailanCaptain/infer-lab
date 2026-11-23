@@ -141,7 +141,9 @@ rawSources:
 ---
 ## 它怎么按 TP×PCP 切分词表，生效门是什么？
 
-开启 PCP（`prefill_context_parallel_size > 1`，见 [Context Parallel](../concepts/context-parallel.md)）后，embedding 与 LM Head 通常是「词表 × hidden」的大矩阵。传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片；`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 `True`）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，改把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如相同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。若要恢复 PCP 组内各卡保留完整 TP 切片的旧行为，须显式配置 `false`。
+开启 PCP（`prefill_context_parallel_size > 1`，见 [Context Parallel](../concepts/context-parallel.md)）后，embedding 与 LM Head 通常是「词表 × hidden」的大矩阵；传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片。
+
+`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 `True`）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。若要恢复 PCP 组内各卡保留完整 TP 切片的旧行为，须显式配置 `false`。
 
 | 关键项 | 行为与约束 | 说明 |
 | --- | --- | --- |
@@ -152,11 +154,18 @@ rawSources:
 
 ## 网格切分示例与两侧新增通信
 
+```wiki-diagram
+file: param-pcp-embed-lmhead-sharding
+```
+
 用一个整数示意观察切分与通信：假设补齐后的词表共 8 行、`hidden = 2`、`TP = 2`、`PCP = 2`。只按 TP 切时每卡存 4 行（8 个数）；开启 PCP 分片后，四个逻辑分片分别保存词表行 `0–1`、`2–3`、`4–5`、`6–7`，每卡只存 2 行（4 个数）。查询 token 5 时，只有保存行 `4–5` 的分片给出有效向量、其余分片贡献 0，再通过后续归约把结果送回需要 token 5 的位置（此例只计权重元素，不含交换缓冲）。
 
 **权重省下来，两侧都会多出 PCP 组内通信**：
-- **embedding 一侧多两次 PCP 通信**：先在 PCP 组内 All-Gather 收齐各卡的 token ID，再查本卡那片词表，查完在 PCP 组内 Reduce-Scatter 把结果送回各自的 token 行，最后才在 TP 组内 All-Reduce 补齐词表维（这次 TP 归约仅携带本 PCP rank 的 token 行）。
-- **LM Head 一侧常规取 logits 多一次 PCP All-Gather**：常规路径改走先在 PCP 组、再在 TP 组 All-Gather 词表分片，拼回完整 logits（仅切 TP 时只在 TP 组 gather 一次）；而 spec-decode 等传 `skip_gather` 的调用方两条路径都不 gather，不受此影响。
+
+| 模块侧 | 开启 PCP 词表分片后的通信顺序 | 相对仅 TP 切分的增量 |
+| --- | --- | --- |
+| **`embed_tokens` 侧** | ① PCP 组内 All-Gather 收齐各卡 token ID → ② 本地查表 → ③ PCP 组内 Reduce-Scatter 送回各自 token 行 → ④ TP 组内 All-Reduce 补齐词表维（仅携本 PCP rank token 行） | **多 2 次 PCP 通信**（All-Gather + Reduce-Scatter） |
+| **`lm_head` 侧** | ① 本地词表分片投影 → ② 常规路径先在 PCP 组 All-Gather → ③ 再在 TP 组 All-Gather 拼回完整 logits | 常规路径 **多 1 次 PCP All-Gather**；spec-decode 等传 `skip_gather` 的调用方两条路径均不 gather，不受影响 |
 
 ## 互斥规则、静态缓冲容量与版本与 GLM 边界
 

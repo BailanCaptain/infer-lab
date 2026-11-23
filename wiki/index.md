@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 184 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 185 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘与逐项/归约运算出发，拆解昇腾 AI Core 内 Cube、Vector、Scalar 三类执行单元与各级片上缓冲（L1、L0A/L0B/L0C、UB）及搬运引擎（MTE、FixPipe）的分工；对照三级流水重叠与双缓冲条件，辨析 910B（A2/A3）AIC/AIV 经核外 GM 交接与昇腾 950（A5）L0C→UB 片上直通的架构差异。 `04`
@@ -40,7 +40,7 @@
 - [性能分析：设备到底在算，还是在等](concepts/inference-performance-analysis.md) — 接着 D/N 的分块实验，解释少算一些输入为什么能缩短一步、为什么切得更小也会有成本；通过矩阵流量与关键路径推演，区分算得慢、数据搬得慢和等其他卡。 `19`
 - [性能排障：找到等待以后，怎样选优化办法](concepts/inference-performance-troubleshooting.md) — 从排队、长执行步、主机空隙、缓存压力、通信偏斜和返回等待六条证据路径选择优化实验；同时解释无故障时怎样提高吞吐、压低长尾、节省内存与比较并行策略。 `19`
 - [推理性能分析：为什么回答到一半会停顿](concepts/inference-performance-walkthrough.md) — 跟踪 D 的一次输出停顿，读懂它与长请求 N 的计算记录，再完整比较分块前后的时间线：D 少等了多少、N 多等了多少、什么条件下值得采用，并练习证据改变后怎样换方向。 `19`
-- [推理排障入口：先找到问题发生在哪一步](concepts/inference-troubleshooting.md) — 面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌双模交互式排障工作台，支持真实日志与 /metrics 规则诊断及六类阻塞示意沙箱。 `19`
+- [推理排障入口：先找到问题发生在哪一步](concepts/inference-troubleshooting.md) — 面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌交互式排障工作台，支持粘贴真实日志或 /metrics 定位首错，以及查看六类典型阻塞的时序对照。 `19`
 - [KV cache：新 token 留下历史，下一步接着读](concepts/kv-cache.md) — KV cache 保存每一层为已处理位置算好的 K、V 等历史状态：新 token 只算自己这一份并按块追加，后续步骤直接读取，省去 O(t²) 的整段重算；代价是线性占用显存、每步读取历史带宽以及分页空间管理。除标准 GQA 逐位置存 K、V 外，MLA 存压缩潜向量、稀疏注意力只读挑中位置、线性注意力原地更新固定大小状态。 `03`
 - [KV cache 显存预算：启动时怎样一项项扣出来](concepts/kv-cache-memory-profiling.md) — 每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，加载权重后通过一次最大批量的 profile run 量出激活峰值与包含 HCCL 缓冲在内的非 Torch 增量，三项扣完后将剩余预算按每块字节数切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付，切出的块数也不等于固定并发请求数。 `05`
 - [KV cache 规格：每层的状态怎样换算成页、编进缓存组](concepts/kv-cache-spec.md) — KV cache 规格（KVCacheSpec）是每个要存状态的层交给缓存管理器的说明：一块覆盖多少个位置、每个位置或每份状态占多少字节。管理器据此算出一页多大，再把能共用块号清单、管理方式兼容的层编成缓存组。GLM 的四类状态被对齐成两档页、编成 5 个组；本页也是 block_size 五种含义的唯一出处。 `11`
@@ -187,6 +187,7 @@
 
 ## 来源（source）
 - [问答记录：Block Table 里的块什么时候分配、什么时候回收](sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md) — 一次问答的归档：块表里既不分配也不回收，分配与回收在上游 EngineCore 进程的 KVCacheManager / BlockPool 里，块表只事后记账。算例是当时的 Qwen3-0.6B 单卡旧例，不是 GLM 双机实测；机制说法已按钉住源码补核。 `11`
+- [Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）](sources/ascend-910b3-measured-baseline.md) — 归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0）不可变实测快照、算子与 HCCL 剖析、显存对账，以及整池 KV 非连续拷贝、负 TP 扩展、Eager/PD/EP8 负收益等六类实测劣化根因与计量边界。 `10 15`
 - [AscendConfig 四版本来源摘要](sources/ascend-config-version-source.md) — 四个固定快照展示共享专家开关、动态分块设置和配置缓存的取值变化；main 与 rc2 仍读取 FlashComm1 输入，环境值的解析和优先级需分版本核对。 `10`
 - [GLM-5.3-Flash：模型配置与官方双机来源基线](sources/glm-5-3-flash-baseline.md) — 固定 GLM 主线的模型配置、双机教程、控制流与执行侧提交，区分配置、源码推导、量化假设和镜像证据；最终安装产物与权重配套仍待核实，尚未实机部署。
 - [GLM 稠密 MLP 固定版本源码摘录](sources/glm-mlp-version-source.md) — 固定 main 与 rc2 的 GLM 稠密前馈实现相同，记录激活限制和序列并行设置；v0.23、v0.26 的指定路径缺失，不能据此判定整个功能不存在。 `10`
@@ -200,6 +201,7 @@
 
 ### 10 引擎架构与插件机制
 - [API server 入口：一个 HTTP 请求怎样变成引擎里的请求](concepts/api-server-entry.md)
+- [Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）](sources/ascend-910b3-measured-baseline.md)
 - [Ascend 配置：三个地方能写，哪个值真的生效](concepts/ascend-config-system.md)
 - [AscendConfig 四版本来源摘要](sources/ascend-config-version-source.md)
 - [Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类](concepts/ascend-patch-system.md)
@@ -270,6 +272,7 @@
 - [multistream_overlap_gate](params/multistream-overlap-gate.md)
 
 ### 15 并行 III：SP / CP / PCP / DCP
+- [Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）](sources/ascend-910b3-measured-baseline.md)
 - [上下文并行（CP）：怎样分位置，又怎样算完整 attention](concepts/context-parallel.md)
 - [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)
 - [序列并行（SP）：让局部激活按 token 分片](concepts/sequence-parallel.md)

@@ -1,45 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="ECConnector 双角色分工与三代昇腾编码器连接器演进" font-family="var(--font-sans)">
-<title>ECConnector 双角色分工与连接器三代演进</title>
-<desc>ECConnector SCHEDULER vs WORKER roles and progression from ECExampleConnector to ECMemcacheConnector and AscendECMooncakeConnector</desc>
-<line x1="16" y1="224" x2="884" y2="224" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="416" height="150" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="468" y="54" width="416" height="150" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="272" width="276" height="122" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="312" y="272" width="276" height="122" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="608" y="272" width="276" height="122" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-</g>
-<path d="M432 129h34m-5-4l5 4-5 4M292 333h18m-5-4l5 4-5 4M588 333h18m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="12.5" fill="#4c65b6"/>
-<circle cx="28" cy="248" r="12.5" fill="#9a4b86"/>
-<g font-weight="700">
-<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">ECConnectorBase 双角色协同（控制面元数据 vs 数据面张量读写）</text>
-<text x="30" y="80" font-size="15" fill="#3a4f93">ECConnectorRole.SCHEDULER（调度进程）</text>
-<text x="482" y="80" font-size="15" fill="#065f56">ECConnectorRole.WORKER（设备执行进程）</text>
-<text x="28" y="252.5" text-anchor="middle" font-size="13" fill="#ffffff">2</text>
-<text x="48" y="254" font-size="16" fill="#17211f">昇腾 ECConnector 三代演进路径（v0.23 → v0.30.0 → main）</text>
-<text x="30" y="298" font-size="14.5" fill="#17211f">① ECExampleConnector</text>
-<text x="326" y="298" font-size="14.5" fill="#936300">② ECMemcacheConnector</text>
-<text x="622" y="298" font-size="14.5" fill="#7a3a6a">③ AscendECMooncakeConnector</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="30" y="108">• 仅维护轻量元数据客户端（不分配 NPU 显存）</text>
-<text x="30" y="133">• check_caches_exist() 按 mm_hash 查远端是否命中</text>
-<text x="30" y="158">• update_state_after_alloc() 登记需 load/save 清单</text>
-<text x="30" y="183">• 下发 ECConnectorMetadata 给本步 Worker</text>
-<text x="482" y="108">• 持有数据面传输客户端与已注册 NPU 接收缓冲</text>
-<text x="482" y="133">• start_load_ec() 在 P/PD 端拉回嵌入写入 encoder_cache</text>
-<text x="482" y="158">• save / wait_for_save() 在 E 端写出 ViT 嵌入并确认</text>
-<text x="482" y="183">• 通过 get_finished() 回传异步收发完成状态</text>
-<text x="30" y="324">• 上游示例，safetensors 落共享盘</text>
-<text x="30" y="348">• 适合功能打通与单机/小集群验证</text>
-<text x="30" y="372" fill="#66716d">• v0.23.0 起可用（调试定位）</text>
-<text x="326" y="324">• v0.30.0 新增，MemcacheBackend</text>
-<text x="326" y="348">• 预注册 NPU recv_buffer（默认 8192）</text>
-<text x="326" y="372" font-weight="600" fill="#936300">• 支持 ec_both 共享缓存跳过 ViT</text>
-<text x="622" y="324">• main 新增，复用上游调度壳</text>
-<text x="622" y="348">• AscendECMooncakeWorker 管 NPU</text>
-<text x="622" y="372" font-weight="600" fill="#7a3a6a">• 与 Mooncake PD 共用统一传输底座</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 472" width="900" height="472" role="img" aria-label="ECConnector 控制面与数据面时序、recv_buffer 合法区间标尺与三代演进" font-family="var(--font-sans)">
+  <title>ECConnector 控制面/数据面协同、recv_buffer 合法标尺与昇腾三代演进</title>
+  <desc>ECConnectorRole, ECConnectorMetadata, ECConnectorBase, ECMemcacheConnector, MIN_RECV_BUFFER_TOKENS, DEFAULT_RECV_BUFFER_TOKENS, AscendECMooncakeConnector</desc>
+  <defs>
+    <marker id="epd2-arr-blue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#4c65b6"/>
+    </marker>
+    <marker id="epd2-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="epd2-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: Control Plane <-> Data Plane + recv_buffer ruler -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">ECConnectorBase 双进程协同（控制面按 mm_hash 记账，数据面 NPU 读写）</text>
+
+  <!-- Scheduler lane -->
+  <rect x="16" y="48" width="332" height="128" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="72" font-size="14.5" font-weight="700" fill="#3a4f93">ECConnectorRole.SCHEDULER（无显存）</text>
+  <rect x="30" y="84" width="304" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="182" y="107" text-anchor="middle" font-size="13.5" fill="#17211f">① check_caches_exist(mm_hash) 查命中</text>
+  <rect x="30" y="128" width="304" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="182" y="151" text-anchor="middle" font-size="13.5" fill="#17211f">② update_state_after_alloc() 编清单</text>
+
+  <!-- Middle bidirectional arrows -->
+  <line x1="348" y1="96" x2="516" y2="96" stroke="#4c65b6" stroke-width="2" marker-end="url(#epd2-arr-blue)"/>
+  <text x="432" y="86" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">ECConnectorMetadata</text>
+  <line x1="522" y1="142" x2="354" y2="142" stroke="#087f73" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#epd2-arr-teal)"/>
+  <text x="438" y="160" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">get_finished() 异步回报</text>
+
+  <!-- Worker lane -->
+  <rect x="524" y="48" width="360" height="128" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="538" y="72" font-size="14.5" font-weight="700" fill="#065f56">ECConnectorRole.WORKER（NPU 数据面）</text>
+  <rect x="538" y="84" width="332" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="704" y="107" text-anchor="middle" font-size="13.5" fill="#17211f">P/PD：start_load_ec() → encoder_cache</text>
+  <rect x="538" y="128" width="332" height="36" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="704" y="151" text-anchor="middle" font-size="13.5" fill="#936300">E：算完 ViT → save + wait_for_save()</text>
+
+  <!-- recv_buffer_tokens valid range ruler -->
+  <text x="16" y="206" font-size="14" font-weight="700" fill="#17211f">ECMemcacheConnector 的 NPU 预注册接收缓冲标尺（_get_recv_buffer_tokens 硬检）：</text>
+  <rect x="16" y="216" width="196" height="30" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="114" y="236" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">&lt; 2,048 → ValueError ✗</text>
+
+  <rect x="216" y="216" width="460" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="446" y="236" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">合法区间 [2,048 , max_num_batched_tokens] · 默认 8,192 ✓</text>
+
+  <rect x="680" y="216" width="204" height="30" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="782" y="236" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">&gt; 批上限 → ValueError ✗</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="264" x2="884" y2="264" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: 3-Generation Evolution Track -->
+  <circle cx="24" cy="288" r="12" fill="#9a4b86"/>
+  <text x="24" y="292.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="294" font-size="16" font-weight="700" fill="#17211f">昇腾 ECConnector 三代演进（共享磁盘 → 高速 Memcache → 统一 Mooncake 底座）</text>
+
+  <g stroke-width="1.5">
+    <rect x="16" y="314" width="268" height="142" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="316" y="314" width="268" height="142" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="616" y="314" width="268" height="142" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+  </g>
+  <path d="M284 385 H310 M584 385 H610" fill="none" stroke="#17211f" stroke-width="1.8" marker-end="url(#epd2-arr-ink)"/>
+
+  <!-- Gen 1 -->
+  <rect x="28" y="326" width="84" height="22" rx="4" fill="#66716d"/>
+  <text x="70" y="342" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">v0.23.0+</text>
+  <text x="28" y="372" font-size="14.5" font-weight="700" fill="#17211f">ECExampleConnector</text>
+  <text x="28" y="396" font-size="13.5" fill="#4d5652">介质：共享盘 safetensors</text>
+  <text x="28" y="420" font-size="13.5" fill="#4d5652">角色：producer / consumer</text>
+  <text x="28" y="444" font-size="13.5" fill="#66716d">定位：功能验证与小集群</text>
+
+  <!-- Gen 2 -->
+  <rect x="328" y="326" width="84" height="22" rx="4" fill="#c78300"/>
+  <text x="370" y="342" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">v0.30.0</text>
+  <text x="328" y="372" font-size="14.5" font-weight="700" fill="#936300">ECMemcacheConnector</text>
+  <text x="328" y="396" font-size="13.5" fill="#17211f">介质：MemcacheBackend</text>
+  <text x="328" y="420" font-size="13.5" fill="#4d5652">预注册 NPU _recv_buffer</text>
+  <text x="328" y="444" font-size="13.5" font-weight="700" fill="#936300">支持 ec_both 命中跳 ViT</text>
+
+  <!-- Gen 3 -->
+  <rect x="628" y="326" width="76" height="22" rx="4" fill="#9a4b86"/>
+  <text x="666" y="342" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">main</text>
+  <text x="628" y="372" font-size="14.5" font-weight="700" fill="#7a3a6a">AscendECMooncake</text>
+  <text x="628" y="396" font-size="13.5" fill="#17211f">介质：Mooncake 异步拉取</text>
+  <text x="628" y="420" font-size="13.5" fill="#4d5652">复用上游调度 + 昇腾 Worker</text>
+  <text x="628" y="444" font-size="13.5" font-weight="700" fill="#7a3a6a">与 PD 共底座 + CPU EC 互补</text>
 </svg>

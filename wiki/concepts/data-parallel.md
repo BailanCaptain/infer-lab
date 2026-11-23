@@ -2,6 +2,10 @@
 id: data-parallel
 title: Data parallel：请求怎样分进两组，空闲的组为什么陪跑
 type: feature
+legacyAnchors:
+  为什么非跑不可: 空闲的组由谁叫起来陪跑，陪跑时算什么？
+  谁来决定跑: 1. 谁来决定跑，怎样构造假输入
+  陪跑时算什么: 1. 谁来决定跑，怎样构造假输入
 summary: >-
   DP 把请求分给不同执行组独立排队调度。标准稠密模型（如 Qwen3-8B DP=2）各组自持完整权重、零跨组通信且无需陪跑；MoE 模型（如
   Qwen3-30B-A3B 多组扩展与 GLM 双机）的路由专家跨全部组只放一份，才触发宽度对齐与空闲组 dummy batch 陪跑。
@@ -100,6 +104,12 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L318'
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1303'
   - 'raw:sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md#L1-L1142'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L292'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L315'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -123,7 +133,7 @@ relations:
     kind: builds-on
     note: 路由专家跨全部 DP 组只放一份，正是 MoE 让各组无法独立运行并触发空闲陪跑的根源
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
@@ -176,7 +186,7 @@ file: data-parallel-basics
 
 ## MoE 模型里，两组为什么不能各跑各的？
 
-**一旦换成 MoE 模型（如 `Qwen3-30B-A3B` 按 `DP × TP` 扩展并开启 EP，或后文 GLM 双机），attention 和门控仍是每组一份、各算各的请求；路由专家却只放一份，摊在所有组的卡上。** 于是任何一组算 MoE 层，都要别的组同时到场参加 All-to-All / MC2 通信；某组暂时没有请求，也得用一份假输入陪另一组走一步。
+**一旦换成 MoE 模型（如 `Qwen3-30B-A3B` 按 `DP × TP` 扩展并开启 EP，或后文 GLM 双机），attention 和门控仍是每组一份、各算各的请求；路由专家却只放一份，摊在所有组的卡上。** 于是任何一组算 MoE 层，都要别的组同时到场参加跨组 MoE 集合通信（按硬件策略、是否带 LoRA 与 EP 规模在 `ALLGATHER / Reduce-Scatter`、`MC2` 或 `All-to-All` 间选路；例如 Atlas A2 无 LoRA 且 `EP < 16` 时走 `ALLGATHER`，由 `dp_size > 1` 触发跨 DP 收集与归约）；某组暂时没有请求，也得用一份假输入陪另一组走一步。
 
 先补两个前置概念。[MoE](moe.md)（mixture of experts，混合专家）把一层里的前馈网络换成许多个并排的小前馈网络，每个叫一个 expert（专家）；router（打分器）给每个 token 在各个专家上打分，每个 token 只交给分数最高的几个专家去算，再把结果按权重加起来。可供 router 挑选的这一整套专家集合叫**路由专家**（routed experts，不是某个 token 本次选中的子集）。[expert parallel（EP，专家并行）](expert-parallel.md)把路由专家以整个专家为单位分到不同的卡上：token 选中哪个专家，就把它的向量发到持有那个专家的卡上去算，算完再送回来。
 
@@ -264,49 +274,81 @@ $$\text{score} = \max(\text{client\_count} \times \text{inflight},\; \text{waiti
 
 ## 两组每一步怎样对齐宽度？
 
-**在 MoE 部署的常规同步路径中，每一步前向之前，同一 DP 通信组通过 CPU 上的 `gloo` 通道做一次两行整数表的 `All-Reduce`，交换各组 token 数和计算图模式；各组据此得知全局最大宽度并取最保守的图模式，再按通信与并行条件决定是否把本组输入补齐到最大宽度。**
+**在 MoE 的 `DP > 1` 路径里，「同步」实际包含四件不同颗粒度的事：前向前宽度/图模式对齐、MoE 层跨卡专家通信、周期性停机共识，以及停波唤醒与运维暂停。** 先用一张双轨时序与数据流图把前三种同步和空闲组陪跑的因果串起来：
 
-参加同一次集合通信的卡必须按兼容次序、对得上的形状进入。各组的 scheduler 独立排批，每步本地 token 数几乎总是不同，因此前向之前先对一张 `2 × dp_size` 的 `int32` 小表（列按 DP 编号排列，与全局卡号分开计）：
+```wiki-diagram
+file: dp-fig-width-and-escort
+```
 
-- **第一行是 token 数。** 每组只在自己那一列填本地经过图尺寸初选后的 token 数，其余列填 `0`。`All-Reduce` 按位置相加后，每张卡拿到完整向量并取最大值：例如两组本地为 `3` 和 `1`，分别填 `[3, 0]` 与 `[0, 1]`，相加得 `[3, 1]`，两边各自得出最大宽度 `3`。
-- **第二行是图模式。** **graph mode**（图模式）把启动时录好的一串算子整段回放，省掉逐个下发开销；**eager mode** 逐个下发算子。相加后本地取最小值：只要有一组这一步不能回放图（例如混入长 prefill），全组都退回 eager。
+| 同步环节 | 通信通道与时机 | 交换内容与结果 | 稠密 DP=2 是否发生 |
+|---|---|---|---|
+| **① 前向前宽度与图模式对齐** | DP 通信组 CPU `gloo` `All-Reduce`，每步前向前 | `2 × dp_size` `int32` 表 → 宽度取 `max`，图模式取 `min`（最保守） | **否**（直接跳过） |
+| **② MoE 专家派发与收回** | 全组 `EP`（或 `DP×TP`），每个 MoE 层 | `dispatch` 发 token 向量、`combine` 收专家结果；空闲组必须到场 | **否**（无跨组专家） |
+| **③ 周期停机共识** | `sync_dp_state` 两元素求和，按步距触发 | 各组「是否有未完成请求」的 `0/1` 标志求和（`>0` 即有活） + `暂停计数`；`v0.30.0` 第 1 步及每 `16` 步（GLM 每 `32` 步） | **否**（无波次循环） |
+| **④ 停波唤醒 / 运维暂停** | `DPCoordinator` 广播 `START_DP_WAVE` / 显式恢复 | 自然空闲停波由新请求唤醒；运维暂停置 `ignore_start_dp_wave=True`，须显式 `resume_scheduler` | **否**（阻塞输入队列） |
 
-拿到最大宽度后，是否把本组输入补齐过去要按版本与执行路径判定。在 **`v0.30.0` 的 `MRV1`（`model_runner_v1.py`）** 中，只要命中以下任一条件，就统一补齐到全组最大宽度：同步后仍回放计算图、处于草拟模型（MTP）、MoE 通信命中 `ALLGATHER` / `MC2`、CANN MegaMoE 命中 `FUSED_MC2`，或任一跨 DP 细粒度 TP 大于 `1`（`oproj` / `lmhead` / `embedding` / `mlp`）。其余分支保留各组真实宽度向量。
+### 1. 两行整数表怎样定宽度和图模式
 
-> **边界与例外（历史快照与 `main` 差异）**：在历史 GLM `db701c1f` 快照中，若本地初选允许补齐或启用序列并行/细粒度投影 TP，即使最终因对侧退回 eager 仍保留补齐宽度；在 `main` 的 `MRV2` 中，则改由上游 `GPUModelRunnerV2` 统一协调并补充 `requires_lmhead_dp_sync` 判断。注意 eager 不等于一定不补齐，草拟模型保留最大宽度也不推出它永不进图。
+参加同一次集合通信的卡必须按兼容次序和形状进入。各组 scheduler 独立排批，本地 token 数通常不等，因此前向前先对一张 `2 × dp_size` 的 `int32` 表做 `All-Reduce(SUM)`（每组只在自己那一列填本地值，其余列填 `0`）：
 
-专家通信选路同样看全组最大宽度。在昇腾 Atlas A2 上，**MC2** 按选中专家派发并融合通信，**AllGather** 先收集各组输入再各自算本地专家；以 GLM 双机为例，两组最宽处超过 `128` 行时整机一起切到 AllGather（各路径内部通信缓冲与模型输入宽度分开计，见[一条请求的 MoE 通信](one-request.md#moe-通信走-mc2-还是-allgather)）。
+- **第一行（token 数）取最大值。** 如上图所示，两组填 `[3, 0]` 与 `[0, 1]`，相加得 `[3, 1]`，两边各自得出最大宽度 `3`。专家通信选路也看这一最大值：例如 Atlas A2 上的 GLM 双机在最大宽度超过 `128` 行时，整机一起从 **MC2** 切到 **AllGather**（见[一条请求的 MoE 通信](one-request.md#moe-通信走-mc2-还是-allgather)）。
+- **第二行（图模式）取最小值。** **graph mode**（图模式）整段回放预先录好的算子序列，**eager mode** 逐算子下发。相加后本地取最小值：只要任一组本步退回 eager（如混入长 prefill），全组这一步都不回放图。
+
+### 2. 条件补齐与跳过门控
+
+拿到最大宽度后，是否把本组输入补齐到最大值，由版本与运行分支决定：
+
+- **`v0.30.0` `MRV1`（`model_runner_v1.py`）补齐条件**：只要命中以下任一条件，各组统一补齐到最大宽度——同步后仍回放计算图、处于草拟模型（MTP）、MoE 通信命中 `ALLGATHER` / `MC2`、CANN MegaMoE 命中 `FUSED_MC2`，或任一跨 DP 细粒度 TP 大于 `1`（`oproj` / `lmhead` / `embedding` / `mlp`）。未命中时保留各自真实宽度向量。
+- **历史快照与 `main` 边界**：历史 GLM `db701c1f` 快照里，本地初选允许补齐或开启序列并行/细粒度投影 TP 时，即使对侧退回 eager 仍保留补齐宽度；`main` 的 `MRV2` 改由上游 `GPUModelRunnerV2` 统一协调，并补充 `requires_lmhead_dp_sync` 判定。注意 eager 不等于一定不补齐，草拟模型保留最大宽度也不推出它永不进图。
 
 何时能省掉这次每步 `All-Reduce`？`should_skip_allreduce_across_dp_group` 按固定顺序把关：
-- **不跳过**：开启分层通信（`mc2_comm_alg == "hierarchy"`），或运行配置启用 MegaMoE（`is_mega_moe_supported()` / 运行期标志 `use_cann_megamoe`，属配置与运行模式判据而非静态硬件固有态）时，一律不跳过。
-- **直接跳过**：非 MoE 稠密模型直接跳过。
-- **条件跳过（仅 PD 分离 KV 接收端）**：MoE 模型只有在 PD 分离中充当 `is_kv_consumer`、未命中 `use_cann_megamoe`，且满足 `decode_can_skip and (chunked_prefill_can_skip or recompute_scheduler_enable)` 时才允许跳过。其中 `decode_can_skip` 要求 decode 潜在最大宽度走 `MC2`/`FUSED_MC2`。`chunked_prefill_can_skip` 要求 `max_num_batched_tokens` 走 `MC2`/`FUSED_MC2` 且前向图模式不拆独立例程（`uniform_cudagraph_mode`）。`recompute_scheduler_enable` 仅替代 prefill 侧检查，不能豁免 `decode_can_skip`。常规一体式 MoE 部署每步都做这次同步（整批补齐演算见[多条请求：再补到两组的最大值](concurrent-requests.md#再补到两组的最大值)）。
+
+- **一律不跳过**：开启分层通信（`mc2_comm_alg == "hierarchy"`），或配置/运行模式启用 MegaMoE（`is_mega_moe_supported()` / `use_cann_megamoe`）。
+- **直接跳过**：非 MoE 稠密模型（每组独立副本，零跨组同步）。
+- **条件跳过（仅 PD 分离 KV 接收端）**：MoE 模型仅在充当 `is_kv_consumer`、未命中 `use_cann_megamoe`，且满足 `decode_can_skip and (chunked_prefill_can_skip or recompute_scheduler_enable)` 时允许跳过。其中 `decode_can_skip` 要求 decode 潜在最大宽度走 `MC2`/`FUSED_MC2`；`chunked_prefill_can_skip` 要求 `max_num_batched_tokens` 走 `MC2`/`FUSED_MC2` 且前向图模式不拆独立例程（`uniform_cudagraph_mode`）；`recompute_scheduler_enable` 仅替代 prefill 侧检查，不能豁免 `decode_can_skip`。常规一体式 MoE 部署每步必同步（整批补齐演算见[多条请求：再补到两组的最大值](concurrent-requests.md#再补到两组的最大值)）。
 
 ## 空闲的组由谁叫起来陪跑，陪跑时算什么？
 
-**没有请求的那组由它自己的 `DPEngineCoreProc` 主循环决定陪跑：只要全局还有未完成请求，它每一步都驱动本组所有 worker 用一条整齐 decode 请求大小的假输入跑一次 `_dummy_run`，再按对侧宽度对齐并参与专家通信。** 本节讲控制与执行机制，整批被拉宽的数值算例统一见[多条请求：空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)。
+**空闲组由自身的 `DPEngineCoreProc` 主循环驱动陪跑：只要全局运行标志 `engines_running` 仍亮着，本步无真实请求就用一条整齐 decode 大小的假输入执行 `execute_dummy_batch()`，假输入自身输出丢弃，替忙组算出的真实专家贡献照常送回。** 整批被拉宽的数值算例统一见[多条请求：空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)。
 
-### 为什么非跑不可
+### 1. 谁来决定跑，怎样构造假输入
 
-集合通信要求通信组内每个成员都到场：每步前向前的宽度对齐 `All-Reduce` 需要各组同号卡配对参加，每个 MoE 层的专家通信也需要全组卡共同完成 dispatch 与 combine。空闲组一旦停步，忙的那组就会卡在这两处死等。而且空闲组到场绝非空凑人数：开了 EP 时它持有另一部分完整专家，不开 EP 时它持有每个专家的一部分矩阵分片；陪跑一步里，**假输入自己的输出直接丢弃，替对侧真实 token 算出的专家结果照常送回**。
+决定权不在忙组，也不在 `DPCoordinator` 每步下令，而在空闲组自己的 `DPEngineCoreProc` 主循环。每轮先处理输入队列再尝试调度：若本步未排入真实请求，且「本地仍有未完成请求」或「全局运行标志 `engines_running` 为真」（且未处于 sleep 休眠态），就调用 `execute_dummy_batch()`；两者皆否才空转不进前向。
 
-### 谁来决定跑
+Worker 执行 `execute_dummy_batch()` 时按以下口径准备输入（对应上图第二轨）：
 
-不是忙的那组跨机喊话，也不是 `DPCoordinator` 每步下令，而是空闲组自己的 `DPEngineCoreProc` 主循环。每转一圈，它先处理输入队列，再尝试调度执行一步。若本步本地一条请求都没跑，就检查两件事：本地是否还有未完成请求，以及**全局运行标志** `engines_running` 是否仍亮着。两者都为否就空转不进前向；只要有一项为真（且引擎未处于 sleep 休眠态），就调用 `execute_dummy_batch()` 陪跑一步。
-
-全局运行标志在三种时机变化：本组收到新请求正常开跑后亮起；收到 `DPCoordinator` 广播的 `START_DP_WAVE` 唤醒消息后亮起；到达周期性全局检查点、全组确认无活且无待达成暂停共识后熄灭。因此陪跑不是「每组每步固定塞一个假词」：本地有请求可算的那一步正常算请求，全局停波以后也完全停下（历史 GLM 双机主循环完整流程图见下节）。
-
-### 陪跑时算什么
-
-`EngineCore` 通过 executor 让本组每个 worker 执行 `execute_dummy_batch()`。在 `v0.26.0rc`、`v0.30.0` 与 `main` 中，worker 先记一次显存统计，再按 `uniform_decode_query_len = 1 + 草拟词数` 构造一条整齐 decode 请求的最小形状。同时传入 `skip_gdn_state_update=True`（`main` 的 `MRV2` 映射为 `skip_ring_state_update`），避免假输入污染线性注意力的递推状态。历史 GLM 双机镜像（`db701c1f`）开启 MTP 每步猜 `3` 个词，因此本地假输入起点是 `4` 个 token，且不记显存统计。
-
-这 `4` 个 token 只是本地起点，进入 `_dummy_run` 后照样走上一节的图选择与 DP 宽度对齐：对侧是纯 decode 时可补到相同图分桶回放，对侧混入长 prefill 时可补齐宽度再退回 eager（强制 eager 且未命中其他补齐条件时则保留本地宽度）。随后模型与草拟模型逐层跑完必要 TP 与专家通信，但**逐层调用不等于同宽真实请求的完整计算开销**：dummy 路径默认不强制构建 attention 元数据（仅命中 FULL 图等条件时构建），例如 GLM 的 KDA 层在无 attention 元数据的 eager 路径中做完输入投影即提前返回，跳过后续状态递推。
+- **本地起点与状态保护**：在 `v0.26.0rc`、`v0.30.0` 与 `main` 中，worker 先记一次显存统计，再按 `uniform_decode_query_len = 1 + 草拟词数` 构造最小整齐 decode 形状，并传 `skip_gdn_state_update=True`（`main` `MRV2` 映射为 `skip_ring_state_update`）防止假输入污染线性注意力递推状态。历史 GLM 镜像（`db701c1f`）开启 MTP 每步猜 `3` 词，本地起点为 `4` 个 token 且不记显存统计。
+- **对齐拉宽与简化执行**：假输入进入 `_dummy_run` 后照样参与宽度对齐（对侧纯 decode 时补齐回放图，混入长 prefill 时补齐并退回 eager；强制 eager 且未命中补齐条件时保留本地宽度）。逐层必走 TP 与专家通信，但**开销不等同于同宽真实请求**：dummy 路径默认不构建 attention 元数据（仅命中 FULL 图等条件时构建），例如 GLM 的 KDA 层在无元数据 eager 路径下做完输入投影即提前返回，跳过状态递推。
 
 ### 什么时候停，怎样再叫醒
 
-各组在指定步数通过 `ParallelConfig.sync_dp_state` 做一次两元素求和 `All-Reduce`，同时交换「本地是否还有未完成请求」与「本地是否挂起运维暂停请求」。只要任一组还有活，或只有部分组提出暂停、全组共识尚未达成，`engines_running` 就保持亮起；全组都无活且无未决暂停共识时，才结束当前波次，波次号 `current_wave` 加 `1`，由 `DP0` 向 `DPCoordinator` 报告 `wave_complete`。在 `v0.30.0` 与 `main` 中，该检查在 **`step_counter == 1` 以及每隔 `dp_sync_interval`（默认 `16`）步** 执行（刚被唤醒若无活只需陪跑 `1` 步即可停回，正常尾段最多多跑 `15` 步）；历史 GLM 快照（`0fc695fc`）固定在第 `32, 64, 96...` 步检查，尾段最多空跑 `31` 步。
+`engines_running` 在收到新请求或 `START_DP_WAVE` 广播时亮起，在周期性 `sync_dp_state` 两元素求和确认「全组无未完成请求」且「无待达成运维暂停共识」时熄灭——此时 `current_wave` 加 `1`，由 `DP0` 向 `DPCoordinator` 报告 `wave_complete`：
 
-自然空闲停波后，新请求到达前端时，前端把请求送进目标组并通知 `DPCoordinator` 广播 `START_DP_WAVE` 唤醒其余组（若引擎收到带旧波次号的请求且未被运维暂停，也会主动通知协调器开新波）。**运维主动暂停另有恢复规矩**：一旦达成暂停共识，引擎置位 `ignore_start_dp_wave = True` 丢弃普通唤醒消息，必须显式调用 `resume_scheduler` 清除暂停状态并完成全组协调，不能仅靠新请求唤醒。
+- **检查节拍**：`v0.30.0` 与 `main` 在 **`step_counter == 1` 以及每隔 `dp_sync_interval`（默认 `16`）步** 检查（刚唤醒无活只需 `1` 步即可停回，尾段最多空跑 `15` 步）；历史 GLM 快照（`0fc695fc`）固定在第 `32, 64, 96...` 步检查，尾段最多空跑 `31` 步。
+- **唤醒与运维暂停边界**：自然空闲停波后，新请求到达前端会触发 `DPCoordinator` 广播 `START_DP_WAVE` 唤醒其余组（收到旧波次请求且未暂停的引擎也会主动通知开新波）。一旦达成**运维主动暂停**共识，引擎置位 `ignore_start_dp_wave = True` 丢弃普通唤醒消息，必须显式调用 `resume_scheduler` 清除暂停态并完成全组协调，不能仅靠新请求唤醒。
+
+## 真机实测：Ascend 910B3 上 MoE 扩至 DP=2 的陪跑与双池代价
+
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`u=0.88`、`INFO` 干净态）上，使用统一脚本（平均 `262` prompt tokens、`128` 输出 tokens）对比了 `Qwen3-30B-A3B` 的四卡单组 `DP=1 (TP=4+EP=4)` 与八卡双组 `DP=2 (DP=2+TP=4+EP=8)`（完整对账日志、指标摘录与计量口径见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。这组实测直接把上文讲的「双池隔离」「空闲组陪跑」与「跨 DP 专家同步」变成了可量化的数字：
+
+```wiki-diagram
+file: ep-fig-910b3-moe-vs-dense-and-ep8
+```
+
+| 实测项（`Qwen3-30B-A3B` BF16，统一 `262`-tok 输入 / `128`-tok 输出） | `DP=1`（`TP4+EP4`，4 卡） | `DP=2`（`DP2+TP4+EP8`，8 卡） | 变化与归因 |
+| --- | ---: | ---: | --- |
+| 运行请求分发（`c=1 / c=4 / c=16`） | 全部在单组 | `1/0` · `2/2` · `8/8`（正式 `11/10`，零抢占） | 证实前端路由已均分至双 DP，非单组打满 |
+| 可用 KV 容量（单 DP / 总容量） | `1,692,032` tokens | `1,975,168 / DP`（双 DP 合计 **`3,950,336`**） | 路由专家权重精确减半（`13.500→6.750 GiB`），单卡总重 `14.2652→7.5152 GiB`（实降 `47.32%`，详账见[EP 页](expert-parallel.md#落到标准部署qwen3-30b-a3b-的-ep4-专家分工)） |
+| `c=1` TTFT / TPOT（`ms`） | `331.10` / **`77.90`** | `445.66` / `96.36` | TTFT `+34.60%`、TPOT `+18.46 ms (+23.70%)` |
+| `c=16` 总吞吐 / 单卡效率（`tok/s`） | **`179.70`** / **`44.93`** | `149.45` / `18.68` | 总吞吐 `-16.83%`，单卡效率 `-58.4%` |
+| 前缀缓存命中率（全轮累计） | **`25.49%`**（`1,536 / 6,026`） | `16.99%`（`1,024 / 6,026`） | 双 DP 各自维护独立 KV 池，前缀复用被分池稀释 |
+
+把四项 DP 运行代价对号入座：
+
+1. **单请求下 `DP1` 空闲陪跑。** `c=1` 运行快照记录 `DP0=1、DP1=0`；虽然 `DP1` 没有用户请求，但因 `Qwen3-30B-A3B` 的路由专家跨 8 卡仅放一份，`DP1` 仍须走 `execute_dummy_batch()` 同步进入每层跨组通信。本组对比观测到 `c=1` `TPOT` 净增 `+18.46 ms`（`TTFT` 增 `+114.56 ms`）；跨 DP 集合通信、空闲陪跑、HCCS/NUMA 与绑核回退均可列为候选因素，现有采集缺少逐步通信与 NUMA 轨迹，尚不能确认各项是否存在净贡献或拆分各自份额。
+2. **A2 无 LoRA 下 `ep_world_size = 8 < 16` 走 `ALLGATHER`，`dp_size > 1` 触发跨 DP 收集归约。** 源码在 A2 硬件画像下需要 `ep_world_size >= 16` 才切入 `MC2`；四卡 `DP=1, EP=4` 与八卡 `DP=2, EP=8` 均选中 `ALLGATHER`，且 `dp_size > 1` 仅在八卡双 DP 组触发每层沿 DP 通信组的 `all_gather`（收集两份激活与 router 分数）和收尾 `reduce_scatter`（而非 `AllToAll`），把两组的步频和通信绑定在一起。
+3. **低中并发下的批度稀释与双池隔离。** `c=16` 均分给双 DP 后每组仅 `8` 个并发请求，单组矩阵计算批度减半，同时原本在单池里能复用的共享前缀被拆散到两个互不共享的 KV 池中（命中率从 `25.49%` 跌至 `16.99%`），且 Host 绑核因缺少拓扑亲和映射回退到 `global-slice`；上述多项变化同时出现时，观测到 8 卡 `c=16` 总吞吐低于 4 卡（`149.45` vs `179.70 tok/s`）。
+4. **实测边界。** 双 DP 解锁的 `3,950,336 tokens` 是显存容量上限而非吞吐拐点；`c=32` 仅是均分下让每 DP 回到 `16` 个请求的第一个对照点。因本次最高测到 `c=16` 且未采集 `EP=8` 逐步通信或 NUMA 流量 trace，暂不能把 `+18.46 ms` 精确拆给陪跑、HCCS 或 NUMA，也不能未经实测宣称 `c=32` 必然反超。
 
 ## 异构旗舰与三维算例对照：GLM 双机 DP2 对齐与陪跑
 
@@ -353,7 +395,7 @@ file: dp-fig-myths
 - **「DP 把单条请求拆成几份并行算。」** DP 切分的是请求归属与调度队列；请求归原执行组，attention 等由组内 TP 合作，路由专家才经 EP 跨组协作。
 - **「空闲组恒跑 1 个假词、固定 32 步才停，或者空闲组完全不花算力。」** 仅本地本步未跑请求且全局仍在波次中才跑 `dummy batch`；本地起点为 `1 + 投机词数`（GLM 为 `4`），满足补齐条件时会被对侧长 prefill 拉到几千行（假词自身输出丢弃，替对侧算的专家结果是真的）；`v0.30.0` 默认第 `1` 步及每 `16` 步核对停机。
 - **「双机只传 `--data-parallel-size 2` 就会自动跨两台机器分两组，且分数变了请求会迁移。」** 普通 `mp` 缺省 `local = dp` 会在单机起两个组，双机必须显式传 `-dpl 1` 与副节点 `--headless`；请求派定后 KV cache 留在原组池中，绝不自动搬家。
-- **「加一组 DP，吞吐就严格翻倍。」** 吞吐受序列长度、并发度、批次满载率及跨组对齐与专家通信制约。
+- **「加一组 DP，吞吐就严格翻倍。」** 吞吐受序列长度、并发度、批次满载率、双池前缀复用稀释及跨组对齐与专家通信制约。在 `Ascend 910B3` 真机实测中，`Qwen3-30B-A3B` 在 `c=16` 并发下由 `DP=1` 扩到 `DP=2` 后，虽把双组请求精确均分为 `8/8`、解锁 `3.95M` KV 容量，总吞吐反而从 `179.70` 跌至 `149.45 tok/s`（前缀命中率亦从 `25.49%` 降至 `16.99%`）。
 
 ## 对照源码
 
@@ -379,7 +421,7 @@ file: dp-fig-myths
 ### 开销和什么时候别开
 
 - **四项运行期开销**：① 每步一次 `2 × DP` `int32` 的对齐 `All-Reduce`（eager 模式亦不省，仅非 MoE 或满足条件的 PD KV 接收端跳过 [C14][C16]）；② 空闲组 `dummy batch` 陪跑（受对侧长 prefill 与补齐规则拉宽，虽可跳过部分 attention / 递推状态，仍占设备与通信时间）；③ 周期性全局停机检查（`v0.30.0` 默认每 `16` 步且含第 `1` 步 [C7]，历史 `0fc695fc` 每 `32` 步最多尾跑 `31` 步 [D]）；④ 请求派定不迁移与约 `100 ms` 统计推送滞后带来的长尾不均。
-- **什么时候别开**：并发请求长期喂不满单组时，多开的 MoE DP 组大部分时间都在陪跑；跨节点 RoCE 已启用 `PP > 1` 的 MoE 部署严禁再开 `DP > 1`（而 GLM 双机因单机 `8` 卡装不下全部 `288` 个专家才采用 `TP8 + DP2 + EP16`，理由见[为什么是两台机器](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)）。
+- **什么时候别开**：并发请求长期喂不满单组时，多开的 MoE DP 组不仅大部分时间都在陪跑，还会把单组批度切薄并拆分前缀缓存池——在 `Ascend 910B3`（`v0.30.0`）真机实测中，`Qwen3-30B-A3B` 扩至 `DP=2+TP=4+EP=8` 后在 `c≤16` 下反呈负扩展（`c=1 TPOT` `77.90 → 96.36 ms`，`c=16` 总吞吐 `179.70 → 149.45 tok/s`，前缀命中 `25.49% → 16.99%`，见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）；跨节点 RoCE 已启用 `PP > 1` 的 MoE 部署严禁再开 `DP > 1`（而 GLM 双机因单机 `8` 卡装不下全部 `288` 个专家才采用 `TP8 + DP2 + EP16`，理由见[为什么是两台机器](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)）。
 
 ### 版本差异
 
@@ -398,6 +440,7 @@ file: dp-fig-myths
 
 - **上游 `vllm` 参数、协调与路由**：`data_parallel_size`、`data_parallel_size_local`、`dp_sync_interval`、`use_batched_dp_moe` 与 `sync_dp_state` 见 `ced6857a` `vllm/config/parallel.py#L128-L165, #L740-L805`（`256` 常量见 `vllm/config/scheduler.py#L43`，缺省批上限分支与本地组数派生见 `vllm/engine/arg_utils.py#L2215-L2310, #L2919-L2942`；`v0.23.0` / `v0.26.0` / `main` 对照见 `0fc695fc`、`568afb3a`、`ba15685a` 同名文件）；MoE `DPEngineCoreProc` 与稠密 `reconfigure_for_independent_dp_rank` 分流、波次循环、`execute_dummy_batch` 与 `START_DP_WAVE` 见 `ced6857a` `vllm/v1/engine/core.py#L1318-L1329, #L1996-L2281` 及 `coordinator.py#L23-L55`（`0fc695fc` 对照见 `core.py#L1152-L1162, #L1788-L1945` 与 `coordinator.py#L23-L278`）；前端选组打分、请求头解析与 `late_interaction` 见 `ced6857a` `core_client.py#L1546-L1597`、`ba15685a` `core_client.py#L1811-L1871` 及 `0fc695fc` `core_client.py#L1398-L1426`、`serving.py#L398-L411`、`input_processor.py#L258-L268`、`late_interaction.py#L15-L36`；DP/EP 建组与 `FusedMoE` 无 EP 展平切片见 `0fc695fc` `parallel_state.py#L1833-L1875` 与 `ced6857a` `fused_moe/config.py#L1212-L1250`。
 - **昇腾 `vllm-ascend` 执行侧、缓冲与跨机边界**：跨节点 RoCE 下 MoE `PP > 1 × DP > 1` 互斥限制见 `c09d3e20` `docs/source/user_guide/feature_guide/pipeline_parallel.md#L438-L440`（`main` `8d6180e2` `#L430-L432`）；`"dp"` 组 `50 MiB` HCCL 缓冲计算与每步对齐跳过谓词见 `c09d3e20` `vllm_ascend/utils.py#L73-L75, #L1266-L1289, #L1378-L1435`（`2c59ff10`、`2ed6cbba`、`8d6180e2` 同文件对照）；`execute_dummy_batch`、`_sync_metadata_across_dp` 与 `_dummy_run` 见 `c09d3e20` `worker/worker.py#L1278-L1282`、`worker/model_runner_v1.py#L823-L884`、`8d6180e2` `worker/worker.py#L1397-L1405`、`worker/v2/model_runner.py#L720-L756, #L1293-L1340`，以及历史 GLM 镜像 `db701c1f` `worker/model_runner_v1.py#L652-L740, #L2898-L3012, #L3332-L3652, #L5383-L5389` 与 `models/glm5_next.py#L1453-L1508, #L1707-L1758`。
+- **A2 `EP=8` 跨 DP 选路与 910B3 真机实测**：A2 策略 `CAPACITY_AND_EXPERT_DENSITY` 及 `ep_world_size >= 16` 门槛见 `c09d3e20` `device/hardware_profile.py#L281-L292`、`ascend_forward_context.py#L297-L315`；跨 DP `all_gather` 与 `reduce_scatter` 见 `ops/fused_moe/prepare_finalize.py#L452-L464, #L552-L569`；`Qwen3-30B-A3B` `DP=1` 与 `DP=2` 真机对账与压测摘录见 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077` 与 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)。
 - **推导、示意与推断说明**：DP 通信组个数与每组成员数、常规一体式 MoE 部署每步必对齐、双机单机显存不按 DP 线性乘除均由通信组构造与权重切分严格推出 [D]；`8` 条请求、`10 GB / 100 GB` 权重、`8` 专家与打分条数为教学示意设定 [A]；历史公式等待数乘 `4` 对应 prefill 预算开销属辅助理解推测 [I]。
 
 **待核：**

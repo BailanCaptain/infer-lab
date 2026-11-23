@@ -1,0 +1,8 @@
+mode: native-svg
+id: large-scale-ep-plate-cutaway
+caption: >-
+  大规模专家并行（Wide-EP）双层物理拓扑拆解：上层由外部路由代理 DP PROXY 将独立用户请求分发至各自独立的 DP 0–DP 3 服务端点；下层在进入 MoE 层时，所有节点上的 NPU 卡通过跨机 WIDE EP 高速网络合组唯一专家池，按硬件与本步负载选路完成专家数据交换。
+size: [860, 676]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L239-L282
+    symbols: [_select_a2_moe_comm_method, _select_a3_moe_comm_method]

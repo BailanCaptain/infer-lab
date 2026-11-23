@@ -1,8 +1,8 @@
 mode: native-svg
 id: vllm-ascend-overview-fig-two-repo-map
 caption: >-
-  vLLM 与 vllm-ascend 两仓解耦架构全景：上方展示上游请求/调度框架与昇腾五大扩展点（Platform、Patch、Model Registry、CustomOp/Backend、AscendConfig）的职责与状态边界；下方标注 v0.30.0 引入的 HardwareProfile 四家族抽象，以及 v0.30.0（65 补丁、MRV1+MRV2 并存）到 main（59 补丁、全量 MRV2）的收敛演进。
-size: [900, 454]
+  vLLM 与 vllm-ascend 两仓解耦插槽架构、状态归属边界与 HardwareProfile 四家族路由：上部展示上游五个标准/非标准接入槽位与昇腾对应扩展点（Platform、Patch、Model Registry、CustomOp/Backend、AscendConfig）的逐一咬合；中部划清「请求进度与块号归上游，HBM 权重与 KV 张量归执行侧」的状态归属线；下部展示 A2/A3/_310P/A5 四家族抽象与 v0.30.0（65 补丁、MRV1+MRV2 并存）至 main（59 补丁、全量 MRV2）的收敛。
+size: [900, 520]
 pins:
   - source: 'vllm-ascend@c09d3e20:setup.py#L506-L517'
     symbols: [vllm, platform_plugins, general_plugins, ms_service_metric]

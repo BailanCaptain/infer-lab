@@ -1,0 +1,27 @@
+mode: native-svg
+id: param-enable-super-kernel
+caption: >-
+  enable_super_kernel 的三级依赖与双生效点：省略键在 v0.30.0/main 由 before validator 跟随 enable_static_kernel（显式 null 被拒），须依次通过 cudagraph_mode 全图分支、HardwareCapability.NPUGRAPH_EX 能力检查与三级硬依赖断言，才会在编译 options 与 ACL Graph 捕获期注入优化并写入 compute_hash。
+size: [900, 600]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L170'
+    symbols:
+      - AscendCompilationConfig
+      - enable_npugraph_ex
+      - enable_static_kernel
+      - enable_super_kernel
+      - _default_super_kernel_to_static_kernel
+      - HardwareCapability
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L149-L160'
+    symbols:
+      - static_kernel_compile
+      - super_kernel_optimize
+      - super_kernel_optimize_options
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L210-L252'
+    symbols:
+      - super_kernel_scope
+      - super_kernel_optimize
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L218-L260'
+    symbols:
+      - super_kernel_scope
+      - super_kernel_optimize

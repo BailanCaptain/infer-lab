@@ -1,0 +1,8 @@
+mode: native-svg
+id: attention-backend-family-fig-layer-grouping
+caption: >-
+  Runner 注意力组归拢机制与单个稀疏 MLA 层三条目解剖：左侧展示每层稀疏 MLA（11 主干 + 第 45 层 MTP）同时注册主注意力、Indexer K 池与尾状态 3 个后端条目；右侧展示 Runner 在每个 kv_cache_group 内部按 (full_cls_name, kv_cache_spec) 去重归拢——GLM 的 34 层 KDA 跨 3 个 KDA 缓存组，故每组各建 1 个 GDN 元数据构建器实例（共 3 个实例）。
+size: [900, 370]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5039-L5083
+    symbols: [get_attn_backends_for_group, create_attn_groups, full_cls_name]

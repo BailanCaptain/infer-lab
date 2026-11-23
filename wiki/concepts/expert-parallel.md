@@ -107,6 +107,11 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L1-L80'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L1-L80'
   - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L120'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2226'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -127,7 +132,7 @@ relations:
     kind: builds-on
     note: EP 横跨多个 DP 执行组，决定两组对齐宽度与空闲组陪跑约束
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
@@ -310,7 +315,7 @@ GLM 的放法见后文[第 4 步](#4-combine拼回-token加共享输出)。
 
 ## 落到标准部署：Qwen3-30B-A3B 的 EP=4 专家分工
 
-把前面 4 卡 8 专家的示意放大到 `v0.30.0` 标准 MoE 标尺——单机四卡运行的 **`Qwen3-30B-A3B`**（`48` 层全 MoE、`hidden_size = 2048`、`128` 个路由专家、`top-8`、`moe_intermediate_size = 768`、**`0` 个共享专家**，采用 `TP=4 + EP=4, DP=1`）。这里没有共享专家分支，也没有跨机 DP 陪跑，能最干净地看清 EP 主干：
+把前面 4 卡 8 专家的示意放大到 `v0.30.0` 标准 MoE 标尺——单机四卡运行的 **`Qwen3-30B-A3B`**（`48` 层全 MoE、`hidden_size = 2048`、`128` 个路由专家、`top-8`、`moe_intermediate_size = 768`、**`0` 个共享专家**，采用 `TP=4 + EP=4, DP=1`）。这里没有共享专家分支，也没有跨机 DP 陪跑，能最干净地看清「逻辑目的卡」与「集合通信参与者」的区别：下图以 `rank 0` 上单个 token 命中 `rank 0` 本地 2 个与 `rank 1 / rank 3` 远端各 3 个为示意，`rank 2` 对该 token 承担 **0 份本地专家计算**（走点对点/MC2 dispatch 时收到 0 份跨卡载荷；而在 Atlas A2 `EP=4` 走 `AllGather` 路径时会先跨 4 卡汇聚再本地过滤），无论哪种路径 `rank 2` 仍作为 EP 成员参加同一轮集合通信：
 
 ```wiki-diagram
 file: expert-parallel-assign-qwen3
@@ -324,6 +329,31 @@ file: expert-parallel-assign-qwen3
 | **4. Combine（收回并归并）** | 专家输出送回源卡，按 `top-8` 归一化权重加权求和，恢复本层输出 `[T, 2048]` | 跨 `EP=4` 收回结果并本地加权相加 |
 
 **容量直觉：** `Qwen3-30B-A3B` 全模型 `48` 层 × `128` 专家仅路由专家权重在 `BF16` 下就达 `54.0 GiB`（整模型 `56.87 GiB`），单张 32 GiB 卡装不下。经 `EP=4` 均分后，每卡每层只驻留 `32` 个完整专家：路由专家权重降为 `BF16` `13.5 GiB/卡`，在 `W8A8` 动态量化下仅 `6.75 GiB/卡`（整卡权重约 `7.40 GiB`，单卡对账见[显存预算](kv-cache-memory-profiling.md#放到-v0300-标准部署qwen3-8b-单卡与-qwen3-30b-a3b-四卡怎么算)）。
+
+### 真机实测：Ascend 910B3 上 MoE 反超稠密与扩至 EP=8 的负扩展
+
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`INFO` 干净态）下，以统一脚本（平均 `262` prompt tokens、`128` 输出 tokens）实测 BF16 `Qwen3-30B-A3B` 的四卡 `TP4+EP4`、八卡 `DP2+TP4+EP8` 与四卡稠密 `Qwen3-8B TP4`（完整环境指纹、对账摘录与原始 JSON 见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。两组对比同时揭示了稀疏 MoE 的低激活收益与 `EP=8` 低中并发下的负扩展边界：
+
+```wiki-diagram
+file: ep-fig-910b3-moe-vs-dense-and-ep8
+```
+
+| 实测拓扑（`Ascend 910B3`，BF16，统一 `262`-tok 输入 / `128`-tok 输出） | 权重 / 卡 | 可用 KV / 卡（总容量） | `c=1` TTFT / TPOT (`ms`) | `c=16` 总吞吐 (`tok/s`) | 单卡效率 (`tok/s/卡`) |
+| --- | --- | --- | ---: | ---: | ---: |
+| `Qwen3-8B` 稠密 · `TP=4`（`u=0.85`） | `3.84 GiB` | `47.36 GiB`（`1,379,200` tokens） | `124.14` / `90.57` | `167.30` | `41.83` |
+| `Qwen3-30B-A3B` · `TP=4+EP=4`（`u=0.88`） | `14.2652 GiB` | `38.73 GiB`（`1,692,032` tokens） | `331.10` / **`77.90`** | **`179.70`** | **`44.93`** |
+| `Qwen3-30B-A3B` · `DP=2+TP=4+EP=8`（`u=0.88`） | **`7.5152 GiB`** | `45.21 GiB`（`3,950,336` tokens，双 DP） | `445.66` / `96.36` | `149.45`（`-16.83%`） | `18.68`（`-58.4%`） |
+
+1. **为什么 30.5B 总参的 MoE 在同四卡下反超 8B 稠密？** `Qwen3-30B-A3B` 每次前向仅激活 `128` 个路由专家中的 `8` 个（激活参数约 `3.3B`，远低于稠密 `8.2B`）；此外四卡加载 `14.27 GiB` 权重后每卡剩余本地 KV 池为 `38.73 GiB`（小于 `Qwen3-8B TP=4` 的 `47.36 GiB`），若线上 `FULL` 图重放与 Eager 相同的 GQA 非连续整池连续化（条件假设，待线上 `FULL` 设备时间线验证），更小的本地池也会带来更轻的拷贝压力。实测 `TP=4+EP=4` 的 `c=1 TPOT` 比 `8B TP=4` 快 `12.67 ms`，`c=16` 总吞吐高出 `+7.4%`（`179.70` vs `167.30 tok/s`）。
+2. **扩至八卡 `DP=2+TP=4+EP=8` 的显存收益精确兑现。** `Qwen3-30B-A3B` 全部 `48` 层 × `128` 个路由专家的 BF16 权重严格等于 `54.000 GiB`；从 `EP=4` 扩到 `EP=8` 后，每卡常驻专家由 `32` 个精确减半至 `16` 个，**路由专家权重**从 `13.500 GiB` 精确减半至 `6.750 GiB`，叠加恒定的非专家权重 `0.7652 GiB/卡` 后单卡总权重由 `14.2652` 降至 `7.5152 GiB`（实降 **`47.32%`**），与实测日志逐位闭合，双 DP 引擎合计将 KV 容量扩至 `3,950,336 tokens`（每 DP `1,975,168 tokens`）：
+
+$$W_{\text{EP8, card}} = \frac{48 \times 128 \times 3 \times 2048 \times 768 \times 2\text{ B}}{8} + 0.7652\text{ GiB} = 6.750\text{ GiB} + 0.7652\text{ GiB} = 7.5152\text{ GiB}$$
+
+3. **为何容量翻倍后，在 `c≤16` 下吞吐与延迟却双双劣化？** 运行采样首先排除了“请求全打进单组”的猜测（`c=1` 分布 `1/0`、`c=4` 为 `2/2`、`c=16` 为 `8/8`，全程正式请求 `11/10`、零抢占）。性能回落与四项源码及运行因素相关：
+   - **A2 选路未达 MC2 门槛，`dp_size > 1` 触发跨 DP `ALLGATHER + ReduceScatter`（非 `AllToAll`）**：在 `v0.30.0` 的 A2 硬件策略 `CAPACITY_AND_EXPERT_DENSITY`（无 LoRA）下，进入 `MC2` 要求 `ep_world_size >= 16`，因此 `EP=4` 与 `EP=8` 均选中 `ALLGATHER` 分支；而 `PrepareAndFinalizeWithAllGather` 中跨 DP 的 `all_gather` 与 `reduce_scatter` 以 `dp_size > 1` 为门槛——四卡 `DP=1, TP=4, EP=4` 不执行该段跨 DP 通信，扩至八卡 `DP=2, TP=4, EP=8` 后每层才须跨 DP 收集两份激活与 router 分数并在收尾 `reduce_scatter` 切回本组。
+   - **`c=1` 空闲 DP 同步陪跑与跨组同步**：单请求落在 `DP0` 时，空闲的 `DP1` 仍须执行 `execute_dummy_batch` 参与每层跨组专家通信；该机制与跨 DP 集合通信、HCCS/NUMA 及绑核回退均为候选因素，观测到 `c=1 TPOT` 从 `77.90 ms` 升至 `96.36 ms`（`+18.46 ms`，`+23.70%`）、`TTFT` 由 `331.10` 升至 `445.66 ms`（`+34.60%`），现有采集尚不能确认各项是否存在净贡献或拆分各自份额。
+   - **`c=16` 批度稀释与双池前缀隔离**：`16` 个并发请求分给双 DP 后每组仅分得 `8` 条，喂不满双倍算力；同时双引擎各自维护独立 KV 池，使同批压测的前缀缓存命中率从 `25.49%`（`1,536 / 6,026`）降至 `16.99%`（`1,024 / 6,026`），且 Host 绑核因缺少 NPU 拓扑亲和映射回退到 `global-slice`。
+   - **计量边界**：`3,950,336 tokens` 是容量指标而非吞吐饱和点；`c=32` 在均分下仅是恢复每 DP `16` 请求的第一个对照起点。因本轮最高压测至 `c=16` 且缺 `EP=8` 逐算子通信与 NUMA 流量 trace，尚未测出 8 卡反超 4 卡的高并发交叉点，也不把 `+18.46 ms` 强行拆分为陪跑、HCCS 与 NUMA 的各自占比。
 
 ## 异构旗舰与三维算例对照：GLM 双机 EP16 与共享专家
 
@@ -399,11 +429,15 @@ file: expert-parallel-assign
 
 ### 4. combine、拼回 token、加共享输出
 
-**combine 把各专家的结果送回原源卡，加权合成这个 token 的路由输出。** 各专家算出的 BF16 向量通过 EP16 按目的卡交换，回到源卡后得到 [1,4096] 的路由结果。
+**收尾分清三步不同职责：EP16 `combine` 合齐单个 token 的 8 个专家贡献，TP8 `All-Gather` 拼回被 prepare 切开的不同 token 行，共享专家再经 TP8 `All-Reduce` 与路由输出卡内相加。** 下图以 R1 的 4 个 token 为例展开这三步的形状与通信域变化：
 
-这一层还有 **1 个共享专家**，让所有 token 都经过同一个 MLP（先投影、做非线性，再投影回 hidden 的前馈网络）。它与选中的路由专家处理同一条 hidden，由每台机器的 **TP8 合切，每卡每层占 3 MiB**；分片形状和字节推导统一见 [tensor-parallel 的共享专家小节](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)。
+```wiki-diagram
+file: ep-fig-output-reassembly
+```
 
-接下来 **All-Gather** 在 TP8 内收集各卡的 token 切片，拼成 [8,4096]，去掉尾部补位后恢复 [4,4096]。**combine 合齐的是一个 token 的专家贡献，All-Gather 拼回的是 prepare 切开的不同 token 行。** 共享分支从始至终处理完整 [4,4096]，经 TP8 **All-Reduce**（将各卡部分和逐元素相加，让各卡得到完整结果）得到完整共享输出，再与路由输出逐元素相加。该部署没有开启共享专家多流重叠，实际顺序是路由分支完成后执行共享分支：
+- **① EP16 `combine`（合齐单个 token 的专家贡献）**：各目的卡把算出的 BF16 专家向量通过 EP16 送回源卡并按组合权重相加，每卡得到 `[1,4096]` 路由结果（rank 0–3 为真实 token，rank 4–7 为补位）。
+- **② TP8 `All-Gather`（`finalize` 拼回 token 行）**：在机内 TP8 收集 8 张卡各自的 `[1,4096]` 切片拼成 `[8,4096]`，再裁去尾部 4 行补位恢复 `[4,4096]`。
+- **③ 共享专家 TP8 `All-Reduce` 与逐元素相加**：共享专家（每卡每层占 **3 MiB**，切分推导见 [tensor-parallel 的共享专家小节](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)）始终处理完整 `[4,4096]`，经 TP8 `All-Reduce` 合齐后与路由输出卡内相加。本部署未开启共享专家多流重叠，按顺序在路由分支之后执行：
 
 | 构成项（单个 token 的 MoE 输出） | 组合规则 | 单 token 逻辑形状 |
 | --- | --- | --- |
@@ -413,7 +447,7 @@ file: expert-parallel-assign
 
 $$y_{\text{MoE}} = \sum_{i=1}^{8} w_i E_{e_i}(x) + E_{\text{shared}}(x) \in \mathbb{R}^{4096}$$
 
-沿途有两种不同的拆分：源卡只负责派发自己的 token 行，目的卡则集中处理命中本卡专家的所有行。combine 先把同一个 token 的专家贡献合齐，收尾阶段才把不同 token 行拼回整批；共享分支始终保留本组完整输入。下表按这条顺序核对每一步的形状与通信。
+按整层顺序核对 R1 每一步的形状与通信调用：
 
 | R1 每卡的阶段 | 源卡或目的卡形状 | 通信域与本层调用 |
 | --- | --- | --- |
@@ -575,6 +609,7 @@ AllGather 的 6048 行理想计算量同时包含真实请求与补位。热门�
 - **“每步 55.1 MiB 是每张网卡的实测流量？”** 它是上述纯 decode 场景、主干 42 层、按源 token 与集合通信载荷统计的上界。目的卡负载、机内与机间分布、协议开销需要另测。
 - **“EP 把专家切开算，结果会和一张卡上算的不一样？”** 本页 EP 保留完整路由专家，数学上仍是同一个加权求和；「苹果」分卡算和不分卡算都得 14。真实执行的量化和求和顺序可能带来数值差异，需要另验。
 - **“EP 要另外准备一批卡？”** 不用。EP 是同一批卡在 MoE 层里的分工；本部署的 EP16 由 TP8 与 DP2 推出来，没有单独的 EP 卡数参数，见[怎么开](#怎么开)。
+- **“A2 上扩到 EP=8 会改走 AllToAll 或 MC2，卡数翻倍吞吐必涨？”** 错。在 `v0.30.0` Atlas A2 策略（无 LoRA）下，`ep_world_size = 8 < 16` 仍走 `ALLGATHER`（且 `dp_size > 1` 触发跨 DP gather 与 reduce-scatter）；`Ascend 910B3` 实测 `Qwen3-30B-A3B` 从 4 卡 `TP4+EP4` 扩到 8 卡 `DP2+TP4+EP8` 后，虽把路由专家权重精确减半（单卡总权重降 `47.32%`）并解锁 `3.95M` KV 容量，但在 `c≤16` 下受跨 DP 同步、空闲陪跑与批度稀释影响，总吞吐反从 `179.70` 跌至 `149.45 tok/s`。
 
 ## 对照源码
 
@@ -668,7 +703,7 @@ $$W_{\text{TP16, card}} = 288 \times \frac{24\text{ MiB}}{16} = 432\text{ MiB} =
 
 两种分法的每卡路由权重一样大；**选 EP 的理由在计算与通信的组织方式**：每个专家保持 2048 维，token 按专家聚集成批，避免让全部卡都参与每个被选专家的窄分片计算。实际收益取决于批次、路由热度与链路。
 
-对于能在更小通信域内容纳权重、目标又是极小批次延迟的部署，应比较 TP 与 EP 的实测吞吐、首 token 延迟、后续 token 延迟和显存余量，再决定是否扩大 EP。单机 EP8 可少一层机间依赖，但失去本文 A2 的 MC2 资格；[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)给出容量取舍。**待核：缺同负载的单双机及 TP/EP 对照 trace**，需同时记录上述性能指标与通信耗时。
+对于能在更小通信域内容纳权重、目标又是极小批次延迟的部署，应比较 TP 与 EP 的实测吞吐、首 token 延迟、后续 token 延迟和显存余量，再决定是否扩大 EP。例如在单机八卡 `Ascend 910B3`（`v0.30.0`）真机实测中，四卡已装下的 `Qwen3-30B-A3B` 盲目扩到八卡 `DP=2+TP=4+EP=8` 后，因未达 A2 `MC2` 阈值（`ep_world_size = 8 < 16` 走 `ALLGATHER + ReduceScatter`）叠加低中并发批度稀释与空闲 DP 陪跑，`c=16` 总吞吐反由 `179.70` 跌至 `149.45 tok/s`、`c=1 TPOT` 由 `77.90` 升至 `96.36 ms`（详账与不可变日志见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）；在确认四卡 KV 容量已成瓶颈或稳定并发显著高于 `c=16` 之前，不应盲目扩卡。单机 EP8 对 GLM-5.3-Flash 同样会失去 A2 的 MC2 资格；[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)给出 GLM 容量取舍。**待核：缺 GLM 同负载的单双机及 TP/EP 对照 trace，以及 `Qwen3-30B-A3B` `EP=8` 在 `c≥32` 以上的吞吐交叉点与逐算子通信 trace**，需同时记录上述性能指标与通信耗时。
 
 ### 版本差异
 
@@ -711,6 +746,7 @@ $$W_{\text{TP16, card}} = 288 \times \frac{24\text{ MiB}}{16} = 432\text{ MiB} =
 | MC2 分 token 与拼回；AllGather 跨 DP 收集、筛选与归约 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314` 与 `#L440-L560`；`vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L438` |
 | W8A8 权重、选专家、分组矩阵乘与通信量化类型 | `vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L188-L351`；`experts_selector.py#L292-L309`；`moe_mlp.py#L133-L361`；`moe_stage_params.py#L92-L119` |
 | 上游 EP 默认开关与昇腾 `ascend_config` / EPLB 检查 | `vllm@ced6857a:vllm/config/parallel.py#L167-L207`；`vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L574-L625`；历史 EPLB 校验见 `db701c1f` `ascend_config.py#L817-L875` |
+| `v0.30.0` 跨 DP `ALLGATHER / ReduceScatter`、空闲陪跑与 910B3 实测 | `vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L452-L464, #L552-L569`；`vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2226`；真机日志摘录见 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L952-L1077` 与[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) |
 
 **正文证据索引。** 模型的 288 选 8、共享专家与层数见 [S1]；连续专家范围见 [C4]。R1 的补位、切片与 mask 见 [C8]；上游 EP 组见 [C33]，昇腾 MC2 组另见来源 64；派发、恢复元数据与回收见 [C10]；共享输出与归约顺序见 [C14]。GLM 快照 A2 的通信选择见 [C7]；AllGather 的收集、归约见 [C9]，本地筛选和还原见来源 11。来源 65 支持共享专家 DP 对 SP 初始化/刷新的影响；来源 66 区分融合、原生回退及共享混合放置，来源 67 支持本模型单组融合路由的稳定项。profile 随机编号覆盖见来源 5 的第 298–303 行。两份固定量化描述（来源 68、69）都把本页路由与共享专家矩阵列为 W8A8 动态量化；版本差额与表外参数统一见[双机部署权重账](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 

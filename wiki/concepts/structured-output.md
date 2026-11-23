@@ -2,6 +2,8 @@
 id: structured-output
 title: 结构化输出：文法怎样在采样前屏蔽不合法的 token
 type: feature
+legacyAnchors:
+  放到-glm-双机一个带-json-schema-的请求走一步: 复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界
 summary: >-
   结构化输出在打分和采样之间加一道关卡：文法状态算出下一步允许的 token，其余候选的 logits 改成 −∞ 再采样。先看这个过程，再沿 GLM 双机看
   bitmask 在哪个进程、哪一步算出，怎样作用到 logits，以及它和 MTP 草稿、思考阶段的配合。
@@ -357,13 +359,7 @@ file: structured-output
 
 ## 复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界
 
-**官方双机命令没有为结构化输出加任何参数，它按请求开启：请求里带了 JSON schema 这类约束，这个请求才走下面的路径。同一批里不带约束的请求不受屏蔽，照常从全部候选里采样；但本部署开着异步调度，它们的采样要跟着受约束的请求一起推迟，见[下文](#异步调度本部署开着整批采样要等上一步)。** 部署设定见[部署前提](glm-5-3-flash-two-node.md#部署前提)。下面设想主线的示例请求 R1（prompt 为 4 个 token 的那条请求，见[一次请求](one-request.md)）带上一个 JSON schema，看它多走了哪几步。这些步骤挂在主线[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)：前向算出 logits 之后、采样之前。
-
-在看 5 个分步细节前，先用下面这张架构图把三类进程分工和四段主链路一次串通。三个进程分别是 node0 上收 HTTP 的 API server、每机负责文法状态与 bitmask 的 **EngineCore**，以及每卡改写 logits 的 worker。四段链路则依次展示：单后端编译与 32 位打包 → MTP 临时推进回滚 → 昇腾 V1 CPU 往返 vs V2/main NPU Triton 原地路径 → 思考段与异步调度边界：
-
-```wiki-diagram
-file: structured-output-fig-bitmask-pipeline
-```
+**官方双机命令没有为结构化输出加任何参数，它按请求开启：请求里带了 JSON schema 这类约束，这个请求才走下面的路径。同一批里不带约束的请求不受屏蔽，照常从全部候选里采样；但本部署开着异步调度，它们的采样要跟着受约束的请求一起推迟，见[下文](#异步调度本部署开着整批采样要等上一步)。** 部署设定见[部署前提](glm-5-3-flash-two-node.md#部署前提)。下面设想主线的示例请求 R1（prompt 为 4 个 token 的那条请求，见[一次请求](one-request.md)）带上一个 JSON schema。请求沿三类进程的分工走完五步：node0 的 API server 定后端、每机 **EngineCore** 编译并填位图、每张卡的 worker 将 bitmask 作用到 logits。这些步骤挂在主线[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)：前向算出 logits 之后、采样之前。
 
 ### 1. 入口：API server 校验请求、定下后端
 
@@ -402,11 +398,15 @@ $$\text{Buffer}_{\text{bitmask}} = \underbrace{32 \times (1 + 3)}_{128\text{ 行
 
 开了 MTP 后，R1 这样的 decode 请求每步带 1 个已确定的位置和 3 个草稿位置，要填 4 行。第 1 行按当前状态填；然后临时接受第 1 个草稿，填第 2 行；依次接受第 2、3 个草稿，填第 3、4 行；填完把这 3 步临时推进全部回滚，等真实采样结果出来再正式推进。每个位置面对的前缀不同，不能共用一行。这次回滚撤销的是临时接受的草稿，最多 3 步，不撤销此前已确认的输出；这不等于库内部最多只能保存 3 步历史。
 
-有几种行直接填全 1，即不设限：文法已经走到终态的请求；还在思考阶段、不该受约束的请求，见下一节；以及 −1 占位草稿之后的行。异步调度下，不合法的草稿被截掉后会留下 −1 占位（见下一节），填到这个位置时仍按当前状态填一行，之后停止推进，剩下的行填全 1。填好的 bitmask 只含受约束请求的行，按调度顺序排好，转成 numpy 数组，随采样调用一起发出。
+有几种行直接填全 1，即不设限：文法已经走到终态的请求；还在思考阶段、不该受约束的请求，见下一节；以及 −1 占位草稿之后的行。异步调度下，不合法的草稿被截掉后会留下 −1 占位（见下一节），填到首次出现 −1 的那一行时仍按当前状态填表，随后停止推进，后续各行均填全 1（例如草稿截为 `[d₁, −1, −1]` 时，行 0 按 `S₀`、行 1 按 `S₁`，行 2 与行 3 均填全 1）。填好的 bitmask 只含受约束请求的行，按调度顺序排好，转成 numpy 数组，随采样调用一起发出。
+
+```wiki-diagram
+file: structured-output-fig-mtp-bitmask-grid
+```
 
 ### 4. 每张卡：把 bitmask 作用到 logits
 
-采样调用发给这台机器的全部 8 个 worker，只有 0 号卡回报结果。前向结束时，每张卡都已经通过 TP 组内的 [All-Gather](collective-communication.md#all-gather)（每张卡交出自己算的那一段，拼成完整的一份发给所有卡）拿到完整的 logits；R1 的一个 decode 步是 4 行 × 154880 列。worker 先按请求 ID 把 bitmask 重新排成本卡 logits 的行序，不受约束的请求那几行填全 1。请求进入、退出、重排，都不会让约束对错行。
+采样调用发给这台机器的全部 8 个 worker，只有 0 号卡回报结果。前向结束时，每张卡都已经通过 TP 组内的 [All-Gather](collective-communication.md#all-gather)（每张卡交出自己算的那一段，拼成完整的一份发给所有卡）拿到完整的 logits；R1 的一个 decode 步是 4 行 × 154880 列。worker 先按请求 ID 把 bitmask 重新排成本卡 logits 的行序（见上图第 ③ 部分），不受约束的请求那几行填全 1。请求进入、退出、重排，都不会让约束对错行。
 
 **vllm-ascend 默认的 V1 model runner 在这里和 GPU 版不同：它把整张 logits 拷到 CPU、转成 fp32，调用 xgrammar 的 CPU 函数把禁止的位置改成 −∞，再拷回 NPU、转回原来的精度。** 源码注释给的原因是：GPU 版用 torch.compile 优化这一步，昇腾当前不支持。但固定上游里的这个函数已经不用 torch.compile，GPU 路径直接调用 xgrammar 的原地改写函数，所以注释的理由和上游对不上；昇腾改走 CPU 的实际原因，源码里没有写，列入页末待核。搬的是这次调用的整张 logits，不是只有受约束请求那几行；满载时 32 个请求里哪怕只有 R1 带 schema，也要搬全部 128 行，而且 8 张卡各搬一遍。
 
@@ -420,7 +420,11 @@ $$V_{\text{roundtrip}} = \underbrace{128 \times 154880 \times 2\text{ B}}_{\appr
 | CPU → NPU（CPU 上转 FP32 改写后回传） | $128 \times 154880 \times 4\text{ B}$ | $79{,}298{,}560\text{ B} \approx$ **75.6 MiB** |
 | 单步双向张量搬运合计（每张卡） | $37.8 + 75.6\text{ MiB}$ | 约 **113.4 MiB/卡/步** |
 
-V2 model runner 带一个在 NPU 上直接改 logits 的 Triton kernel，把打包的位展开后写入 −∞。固定版本的补丁默认不选 V2，要显式设环境变量才会切换；打开它只改变选用哪个 runner，不能说明 GLM、MTP 和图模式的组合都兼容。
+V2 model runner 带一个在 NPU 上直接改 logits 的 Triton kernel，把打包的位展开后写入 −∞。固定版本的补丁默认不选 V2，要显式设环境变量才会切换；打开它只改变选用哪个 runner，不能说明 GLM、MTP 和图模式的组合都兼容。下图按真实 1 : 2 数据量比例对照昇腾 V1 整张往返与 V2 / `main` NPU 原地快路径：
+
+```wiki-diagram
+file: structured-output-fig-bitmask-pipeline
+```
 
 ### 5. 采样之后：推进文法，截断下一轮草稿
 
@@ -442,6 +446,13 @@ GLM 的聊天模板在 prompt 末尾放一个 `<think>` 标记，模型先写思
 
 另一个入口条件是普通非 beam Chat 的 include_reasoning=false：四版都会把 reasoning_ended=True 传给引擎，等于告诉文法管理器现在就可以约束答案。因此配上 reasoning parser 后，也不能假定一定等到真实的思考结束标记才约束；这个请求设置会改变判断的起点。字段的流式过滤和逐 token 元数据差异统一见[流式输出](streaming-output.md#隐藏思考少思考和不思考是同一个开关吗)。
 
+| 配置组合 | 思考段是否填 bitmask | 何时开始推进文法 |
+| --- | --- | --- |
+| 未配 reasoning parser（官方双机命令） | 从第 1 个输出 token 起就约束 | 从第 1 个输出 token 起推进，模型写不出自由思考段 |
+| 配 `glm45` 且 `enable_in_reasoning=false` | 思考未结束时填全 1（不设限） | 看到思考结束标记的下一步才推进（开投机解码配 structural tag 时当步推进） |
+| 配 `glm45` 且 `enable_in_reasoning=true` | 思考段全程受约束 | 全程推进 |
+| 配 `glm45` 且请求设 `include_reasoning=false` | 直接视作 `reasoning_ended=True` | 无需等到思考结束标记，提前开始约束答案 |
+
 ### 异步调度：本部署开着，整批采样要等上一步
 
 **异步调度**让主机提前准备下一步，不等上一步的结果全部处理完，见[异步调度](async-scheduling.md)。**本部署的异步调度是开着的：** 官方命令没写这个开关，vLLM 按自动判定打开，因为 MTP 属于支持异步调度的草拟方法、多进程执行器也支持，判定过程见[请求调用链](request-call-chain.md)，主线底稿 03 第 24 条是同一结论。
@@ -451,6 +462,10 @@ GLM 的聊天模板在 prompt 末尾放一个 `<think>` 标记，模型先写思
 **推迟的是整批的采样调用，不只是受约束的那几行。** 调度器在排本步时，只要批里有一个受约束的请求带着上一步的占位，就给整批打上"要等"的标记；EngineCore 按这个标记决定整批采样是立刻发还是推迟。所以同批不受约束的请求，采样也要跟着等。
 
 这个依赖只挡住了和采样相关的重叠：本步前向仍然提前派发，填 bitmask 时 NPU 照常在算本步前向；失去的是本步采样与上一步结果处理之间的重叠，不能概括成整条异步流水线失效。
+
+```wiki-diagram
+file: structured-output-fig-async-sampling
+```
 
 ### 收尾：文法结束编号与引擎停止条件要对齐
 

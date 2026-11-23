@@ -1,0 +1,12 @@
+mode: native-svg
+id: param-enable-force-eplb-round-robin
+caption: >-
+  enable_force_eplb 与真实 EPLB 的作用对象对照（保留 topk_weights 仅覆写 topk_ids 致精度失效），以及单表轮转映射 [[6,3],[7,0]] 与跨 rank 累加产生 [4,4,4,0] 偏斜的边界。
+size: [900, 480]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/force_eplb.py#L24-L144
+    symbols: [_build_or_get_topk, build_force_eplb_topk, get_force_eplb_topk, _build_round_robin_topk]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/routed_experts.py#L670-L691
+    symbols: [get_force_eplb_topk, enable_force_load_balance]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L690-L696
+    symbols: [enable_force_eplb, dynamic_eplb]

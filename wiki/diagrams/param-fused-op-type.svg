@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="Sparse KV Offload decode 四步原始路径与 LIM 加 Copy-SFA 两步融合路径对比、热缓冲容量标尺及单步回退触发条件" font-family="var(--font-sans)">
+  <title>fused_op_type 演进：四步原始路径 vs LIM + Copy-SFA 融合路径与容量标尺</title>
+  <desc>Comparison of 4-stage default Sparse KV Offload decode path vs 2-op LIM and Copy-SFA fused path, hot-buffer alignment scale [Q_max*2048, 32512] with 2x128 circular tail to 32640, and v0.30.0 removal of fused_op_type.</desc>
+  <defs>
+    <marker id="fot-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+    <marker id="fot-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: 4-step vs 2-op visual alignment -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① Decode 执行合并：历史四阶段 vs LIM + Copy-SFA 融合两步</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">v0.30.0 / main 已删除 fused_op_type 键：开启 Sparse KV Offload 且未开 use_fused_overlap 时默认走下排融合路径</text>
+
+  <!-- Top Row: 4 steps -->
+  <text x="16" y="96" font-size="14" font-weight="700" fill="#4d5652">原始四步</text>
+  <text x="16" y="114" font-size="13.5" fill="#66716d">(旧 none / 回退)</text>
+
+  <rect x="136" y="68" width="166" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="219" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">1. 索引器打分</text>
+  <text x="219" y="113" text-anchor="middle" font-size="13.5" fill="#4d5652">选 TopK=2048 位置</text>
+  <path d="M 302 97 L 322 97" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#fot-arr-g)"/>
+
+  <rect x="328" y="68" width="166" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="411" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">2. LRU 管热缓冲</text>
+  <text x="411" y="113" text-anchor="middle" font-size="13.5" fill="#4d5652">查槽位、淘汰旧行</text>
+  <path d="M 494 97 L 514 97" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#fot-arr-g)"/>
+
+  <rect x="520" y="68" width="166" height="58" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="603" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">3. 主机搬缺失行</text>
+  <text x="603" y="113" text-anchor="middle" font-size="13.5" fill="#4d5652">从 DRAM 拷入 HBM</text>
+  <path d="M 686 97 L 706 97" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#fot-arr-g)"/>
+
+  <rect x="712" y="68" width="172" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="798" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">4. 计算 SFA</text>
+  <text x="798" y="113" text-anchor="middle" font-size="13.5" fill="#4d5652">稀疏注意力输出</text>
+
+  <!-- Vertical merge brackets -->
+  <path d="M 140 132 v 8 H 490 v -8 M 315 140 v 12" fill="none" stroke="#087f73" stroke-width="1.8"/>
+  <path d="M 524 132 v 8 H 880 v -8 M 702 140 v 12" fill="none" stroke="#087f73" stroke-width="1.8"/>
+
+  <!-- Bottom Row: 2 Fused Ops -->
+  <text x="16" y="182" font-size="14" font-weight="700" fill="#065f56">融合两步</text>
+  <text x="16" y="200" font-size="13.5" fill="#065f56">(v0.30+ 默认)</text>
+
+  <rect x="136" y="156" width="358" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="315" y="180" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">LIM · 打分 + 热缓冲进出管理</text>
+  <text x="315" y="203" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">fused_lightning_indexer_manage</text>
+
+  <path d="M 494 188 L 514 188" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fot-arr-t)"/>
+
+  <rect x="520" y="156" width="364" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="702" y="180" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">Copy-SFA · 边拷缺失行边算 Attention</text>
+  <text x="702" y="203" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">fused_scatter_copy_sparse_flash_attention</text>
+
+  <line x1="16" y1="242" x2="884" y2="242" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: Hot-Buffer Capacity Scale Bar -->
+  <text x="16" y="268" font-size="16" font-weight="700" fill="#17211f">② 启动期热区校验标尺（topk_buffer_size 须 256 对齐）与外挂 2×128 物理循环尾区</text>
+
+  <!-- Scale track x=16..884 (0 .. Q_max*2048 .. 32512 [LIM check ceiling 32640] .. +256 physical tail -> 32768) -->
+  <rect x="16" y="294" width="212" height="44" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="122" y="313" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">&lt; Q_max × 2048</text>
+  <text x="122" y="331" text-anchor="middle" font-size="13.5" fill="#8f3229">启动报错（MTP3 需 ≥8192）</text>
+
+  <!-- Legal 256-aligned hot zone: Q_max*2048 .. 32512 -->
+  <rect x="228" y="294" width="494" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="475" y="313" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">合法热区（256 倍数，最大 32512；LIM 校验上界 32640）</text>
+  <text x="475" y="332" text-anchor="middle" font-size="13.5" fill="#4d5652">v0.30+ 默认 -1 自动算 Q_max×2048 · 早期 4ebb3090 上限 16128</text>
+
+  <!-- Appended physical circular tail 2*128 = 256 AFTER hot zone: 32512 -> 32768 -->
+  <rect x="722" y="294" width="162" height="44" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="803" y="313" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">+ 外挂尾区 2×128</text>
+  <text x="803" y="331" text-anchor="middle" font-size="13.5" fill="#936300">物理步幅至 32768</text>
+
+  <!-- Dashed tick for LIM_MAX_HOT_TOKENS = 32640 inside the +256 zone for clarity -->
+  <line x1="803" y1="286" x2="803" y2="294" stroke="#b54237" stroke-width="1.6"/>
+  <text x="803" y="283" text-anchor="middle" font-size="13.5" fill="#8f3229">校验上界 32640</text>
+
+  <!-- Scale ticks -->
+  <text x="16" y="357" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">0</text>
+  <text x="228" y="357" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">Q_max×2048</text>
+  <text x="722" y="357" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">32512</text>
+  <text x="884" y="357" text-anchor="end" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">32768</text>
+
+  <line x1="16" y1="376" x2="884" y2="376" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: Three-way path rule + Single-step runtime fallback -->
+  <text x="16" y="402" font-size="16" font-weight="700" fill="#17211f">③ 三选一路径互斥与单步运行时回退机制</text>
+
+  <rect x="16" y="418" width="424" height="92" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="32" y="443" font-size="14.5" font-weight="700" fill="#17211f">v0.30.0 / main 路径决定公式</text>
+  <text x="32" y="468" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">use_fused_copy_sfa = enabled and not use_fused_overlap</text>
+  <text x="32" y="493" font-size="13.5" fill="#8f3229">继续传旧键 fused_op_type → 严格校验直接报错</text>
+
+  <rect x="460" y="418" width="424" height="92" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="476" y="443" font-size="14.5" font-weight="700" fill="#936300">单步回退（退回四步，并非每次清全局）</text>
+  <text x="476" y="468" font-size="13.5" fill="#17211f">触发：最长 query 超上限 或 混入 prefill（无 offload_dummy）</text>
+  <text x="476" y="493" font-size="13.5" fill="#4d5652">动作：标本次 bank 驻留历史失效 + 清本层 TopK 复用计数</text>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: graph-mode-layer-fig-xlite-stack
+caption: >-
+  原生图栈三层分工与 Xlite 预算分派标尺：左侧展示 torch.compile 分段、AscendCompiler 融合与 ACLGraphWrapper 录放的职责分层；右侧以 128 token 预算线演示 Xlite v0.28+ 按跨 DP 最大单步位置数分派（80/120 含小 prefill 仍进 Xlite，160 回退原生 runnable）。
+size: [900, 454]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1354
+    symbols: [splitting_ops, enable_npugraph_ex]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L179-L265
+    symbols: [npugraph_ex_compile, AscendCompiler]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250
+    symbols: [ACLGraphWrapper]

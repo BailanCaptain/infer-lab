@@ -1,70 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 652" width="900" height="652" role="img" aria-label="v0.30.0 profiling_chunk_config（CPP）启动拟合与每步动态截断流程，以及 main PR #21310 移除说明" font-family="var(--font-sans)">
-  <title>v0.30.0 (c09d3e20) 动态切块（CPP）工作流：启动期实测拟合二次曲线并设目标时延，运行期按已算前缀反解正根、平滑、向上对齐并仅收窄 token 预算（在线校准完成后切至非负最小二乘历史模型）；main (8d6180e2) 已随 PR #21310（839f53831）整体移除。</title>
-  <desc>Startup quadratic latency profiling and per-step prefill chunk prediction pipeline in v0.30.0 (c09d3e20), including history-aware calibration model and PR #21310 removal on main (8d6180e2).</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 616" width="900" height="616" role="img" aria-label="v0.30.0 profiling_chunk_config（CPP）固定切块气泡 vs 动态缩块直观对比、五步求根流水与在线校准停止双条件，以及 main PR #21310 移除" font-family="var(--font-sans)">
+  <title>profiling_chunk_config（CPP）：等长块耗时膨胀 vs 动态缩块流水、五步反解与在线校准</title>
+  <desc>Geometric contrast between fixed chunked prefill latency growth (T1 &lt; T2 &lt; T3 causing PP bubbles) and CPP dynamic shrinking chunks targeting constant latency T, followed by the 5-step runtime formula pipeline with concrete numeric example (8192 to 5632), online calibration dual stop condition, and PR #21310 removal on main.</desc>
+  <defs>
+    <marker id="pcc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="pcc-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 (c09d3e20) 动态切块（CPP）：启动拟合与每步预算截断流</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">先量出本机延迟曲线，再按每条请求已有前缀长度反解本步 token 切块大小，缓解 PP 多阶段等待气泡</text>
+  <!-- Band 1: Geometric PP Bubble vs Equal-Time Dynamic Chunks -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 为什么需要动态切块（CPP）：等长块越往后越慢 vs 按前缀 L 反解缩块齐平耗时</text>
 
-  <!-- Phase 1: Startup profiling -->
-  <text x="16" y="76" font-size="14.5" font-weight="700" fill="#3a4f93">阶段一 · 启动期（只做一次，复用 dummy_run 实测延迟）</text>
+  <!-- Left: Fixed chunks -> growing time -> PP bubbles -->
+  <text x="16" y="54" font-size="14" font-weight="700" fill="#8f3229">✗ 普通固定块（每块 token 相等，但历史 L 越长越慢）</text>
+  <text x="16" y="84" font-size="13.5" fill="#4d5652">PP0</text>
+  <rect x="64" y="64" width="76" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="102" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">块1 (T1)</text>
+  <rect x="144" y="64" width="118" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="203" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">块2 (T2 &gt; T1)</text>
+  <rect x="266" y="64" width="166" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="349" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">块3 (T3 ≫ T1)</text>
 
-  <rect x="16" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="30" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">1. 预热 + 采点实测</text>
-  <text x="30" y="134" font-size="13.5" fill="#4d5652">1 次预热 + 尝试 64 个点</text>
-  <text x="30" y="153" font-size="13" fill="#66716d">跳过失败点，至少 8 个有效点</text>
+  <text x="16" y="120" font-size="13.5" fill="#4d5652">PP1</text>
+  <rect x="64" y="100" width="76" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="102" y="119" text-anchor="middle" font-size="13.5" fill="#66716d">启动</text>
+  <rect x="144" y="100" width="76" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="182" y="119" text-anchor="middle" font-size="13.5" fill="#3a4f93">块1</text>
+  <rect x="224" y="100" width="38" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <text x="243" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">等</text>
+  <rect x="266" y="100" width="118" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="325" y="119" text-anchor="middle" font-size="13.5" fill="#3a4f93">块2</text>
+  <rect x="388" y="100" width="44" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <text x="410" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">气泡</text>
 
-  <path d="M286 125 H310 m-5-5 l5 5 -5 5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Vertical separator -->
+  <line x1="450" y1="44" x2="450" y2="136" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
 
-  <rect x="315" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="329" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">2. 拟合启动延迟曲线</text>
-  <text x="329" y="134" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">f(l) = a*l^2 + b*l + c</text>
-  <text x="329" y="153" font-size="13" fill="#66716d">最小二乘拟合单块耗时关系</text>
+  <!-- Right: CPP dynamic shrinking chunks -> equal time -> smooth pipeline -->
+  <text x="468" y="54" font-size="14" font-weight="700" fill="#065f56">✓ CPP 动态缩块（前缀越长块越小，每块耗时逼近 T）</text>
+  <text x="468" y="84" font-size="13.5" fill="#4d5652">PP0</text>
+  <rect x="516" y="64" width="104" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="568" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">大块1 ≈ T</text>
+  <rect x="624" y="64" width="104" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="676" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">中块2 ≈ T</text>
+  <rect x="732" y="64" width="104" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="784" y="83" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">小块3 ≈ T</text>
 
-  <path d="M585 125 H609 m-5-5 l5 5 -5 5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="468" y="120" font-size="13.5" fill="#4d5652">PP1</text>
+  <rect x="516" y="100" width="104" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="568" y="119" text-anchor="middle" font-size="13.5" fill="#66716d">启动填充</text>
+  <rect x="624" y="100" width="104" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="676" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">大块1 ≈ T</text>
+  <rect x="732" y="100" width="104" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="784" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">中块2 ≈ T</text>
+  <rect x="840" y="100" width="44" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="862" y="119" text-anchor="middle" font-size="13.5" fill="#3a4f93">块3</text>
 
-  <rect x="614" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="628" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">3. 设定初始目标耗时</text>
-  <text x="628" y="134" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">f(base_chunk) - f(0)</text>
-  <text x="628" y="153" font-size="13" fill="#66716d">基准块来自 max_num_batched_tokens</text>
+  <line x1="16" y1="150" x2="884" y2="150" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
 
-  <!-- Phase 2: Per-step runtime calculation -->
-  <text x="16" y="192" font-size="14.5" font-weight="700" fill="#065f56">阶段二 · 每个 prefill 步（对满足条件的续算请求反解块长并截断预算）</text>
+  <!-- Band 2: Startup Profiling -> 4-step Runtime Calculation with concrete numeric trace -->
+  <text x="16" y="176" font-size="16" font-weight="700" fill="#17211f">② 启动拟合曲线与每步 4 级换算流水（含公式复核示意：8192 → 5632）</text>
 
-  <rect x="16" y="204" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="32" y="227" font-size="14" font-weight="700" fill="#065f56">① 取本批剩余时间预算 T（并按在线校准状态选方程）</text>
-  <text x="868" y="227" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">target_latency / predict_with_history</text>
-  <text x="32" y="248" font-size="13.5" fill="#4d5652">在线校准（need_timing 默认开）攒够 3 次零历史 + 超过 max_fit_chunk 个历史样本后，切至 v0.30.0 非负最小二乘历史模型</text>
+  <!-- Row 2A: Startup Profiling (3 boxes) -->
+  <rect x="16" y="192" width="270" height="68" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="151" y="216" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">启动 1 · 1 预热 + 64 采点</text>
+  <text x="151" y="238" text-anchor="middle" font-size="13.5" fill="#4d5652">复用 dummy_run，至少 8 有效点</text>
+  <path d="M 286 226 L 310 226" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#pcc-arr-b)"/>
 
-  <rect x="16" y="266" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="32" y="289" font-size="14" font-weight="700" fill="#065f56">② 按请求已有前缀长度 L（或 H）解二次方程正根 x</text>
-  <text x="868" y="289" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">discriminant = B*B - 4*A*C</text>
-  <text x="32" y="310" font-size="13.5" fill="#4d5652">启动模型解 a·x² + (2aL + b)·x − T = 0；v0.30.0 历史模型 f(C,H) = a·C(C+H) + b·C + c 解 a·x² + (aH + b)·x + (c − T) = 0</text>
+  <rect x="315" y="192" width="270" height="68" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="450" y="216" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">启动 2 · 拟合二次延迟曲线</text>
+  <text x="450" y="238" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">f(l) = a*l^2 + b*l + c</text>
+  <path d="M 585 226 L 609 226" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#pcc-arr-b)"/>
 
-  <rect x="16" y="328" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="32" y="351" font-size="14" font-weight="700" fill="#065f56">③ 按 smooth_factor 在基准块与预测值间线性平滑</text>
-  <text x="868" y="351" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">smooth_factor ∈ (0, 1]</text>
-  <text x="32" y="372" font-size="13.5" fill="#4d5652">smoothed = base_chunk_size + smooth_factor × (x − base_chunk_size)（源码拒绝 0；默认 1.0 直接用原始预测）</text>
+  <rect x="614" y="192" width="270" height="68" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="749" y="216" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">启动 3 · 设目标耗时 T</text>
+  <text x="749" y="238" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">f(base_chunk) - f(0)</text>
 
-  <rect x="16" y="390" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="32" y="413" font-size="14" font-weight="700" fill="#065f56">④ 下限钳制并向上对齐块粒度</text>
-  <text x="868" y="413" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">min_chunk / max(page_size, 64)</text>
-  <text x="32" y="434" font-size="13.5" fill="#4d5652">先取 max(int(smoothed), min_chunk)，再向上取整到 align = max(page_size, 64) 的倍数（设计文档误写向下取整）</text>
+  <!-- Row 2B: Runtime 4-step pipeline -->
+  <rect x="16" y="278" width="202" height="92" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="117" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">① 解二次正根 x</text>
+  <text x="117" y="324" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">disc&lt;0 或 x≤0 判空</text>
+  <text x="117" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">例：原预测 x = 3000</text>
+  <path d="M 218 324 L 238 324" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#pcc-arr-t)"/>
 
-  <rect x="16" y="452" width="868" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="32" y="475" font-size="14" font-weight="700" fill="#936300">⑤ 截断调度器原有 token 预算（只收窄、不放大）</text>
-  <text x="868" y="475" font-size="13" fill="#936300" font-family="var(--font-mono)" text-anchor="end">predict_chunk_size → min(predicted, budget)</text>
-  <text x="32" y="496" font-size="13.5" fill="#4d5652">num_new_tokens = min(predicted_chunk, num_new_tokens)；求根失败时按校准态与剩余时间预算回退或停止继续装入</text>
+  <rect x="242" y="278" width="202" height="92" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="343" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">② 与基准块插值</text>
+  <text x="343" y="324" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">smooth_factor∈(0,1]</text>
+  <text x="343" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">s=0.5 → 5596</text>
+  <path d="M 444 324 L 464 324" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#pcc-arr-t)"/>
 
-  <!-- Phase 3: Active v0.30.0 vs Removed main -->
-  <rect x="16" y="524" width="424" height="112" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="30" y="548" font-size="14.5" font-weight="700" fill="#17211f">v0.30.0 (c09d3e20) 有效入口与硬前提</text>
-  <text x="30" y="572" font-size="13.5" fill="#4d5652">• 推荐 scheduler_config.profiling_chunk_config</text>
-  <text x="30" y="594" font-size="13.5" fill="#4d5652">• 必开 PP &gt; 1；互斥 balance_scheduling / DyntraLB</text>
-  <text x="30" y="616" font-size="13.5" fill="#4d5652">• 支持 SRF；开 async_scheduling 须配 MRv2</text>
+  <rect x="468" y="278" width="202" height="92" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="569" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">③ 下限 + 向上对齐</text>
+  <text x="569" y="324" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">ceil(max, align)</text>
+  <text x="569" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">min 4096, 128→5632</text>
+  <path d="M 670 324 L 690 324" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#pcc-arr-t)"/>
 
-  <rect x="460" y="524" width="424" height="112" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="474" y="548" font-size="14.5" font-weight="700" fill="#8f3229">main (8d6180e2) 已整体移除（PR #21310）</text>
-  <text x="474" y="572" font-size="13.5" fill="#4d5652">• 提交 839f53831 删除整套 CPP 功能、配置与文档</text>
-  <text x="474" y="594" font-size="13.5" fill="#4d5652">• 升级 main 须删此键，否则按 extra="forbid" 拒收</text>
-  <text x="474" y="616" font-size="13.5" fill="#66716d">• 仅环境可发现 vllm_omni 时告警并过滤未知顶层键</text>
+  <rect x="694" y="278" width="190" height="92" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="789" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">④ 只收窄预算</text>
+  <text x="789" y="324" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">min(pred, budget)</text>
+  <text x="789" y="348" text-anchor="middle" font-size="13.5" fill="#936300">绝不放大原预算</text>
+
+  <line x1="16" y1="390" x2="884" y2="390" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: Online Calibration Switch + v0.30.0 vs main Removal -->
+  <text x="16" y="416" font-size="16" font-weight="700" fill="#17211f">③ 在线校准切换双条件与 v0.30.0 / main 存续边界</text>
+
+  <!-- Calibration dual-condition bar -->
+  <rect x="16" y="432" width="868" height="64" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="32" y="456" font-size="14" font-weight="700" fill="#7a3a6a">在线校准：首次成功拟合（最早第 5 点）即置 with_history_ready 切至 NNLS 历史模型 a·C(C+H)+b·C+c</text>
+  <text x="32" y="481" font-size="13.5" fill="#17211f">停止计时另须双条件：① 3 次零历史有效批  AND  ② 历史样本严格 &gt; max_fit_chunk（默认 30 即第 31 点后停）</text>
+
+  <!-- v0.30.0 vs main split -->
+  <rect x="16" y="510" width="424" height="90" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="534" font-size="14.5" font-weight="700" fill="#065f56">v0.30.0 (c09d3e20) 生效硬前提</text>
+  <text x="32" y="559" font-size="13.5" fill="#17211f">必开 PP &gt; 1（GLM 双机 PP=1 报错）+ chunked prefill</text>
+  <text x="32" y="584" font-size="13.5" fill="#4d5652">互斥 balance / DyntraLB；可开 SRF；异步须 MRv2</text>
+
+  <rect x="460" y="510" width="424" height="90" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="476" y="534" font-size="14.5" font-weight="700" fill="#8f3229">main (8d6180e2) 已整体移除（PR #21310）</text>
+  <text x="476" y="559" font-size="13.5" fill="#17211f">提交 839f53831 删除整套 CPP 功能、配置与文档</text>
+  <text x="476" y="584" font-size="13.5" fill="#8f3229">升级 main 须删此键，否则按 extra=forbid 拒收</text>
 </svg>

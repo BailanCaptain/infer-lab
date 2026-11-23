@@ -1,8 +1,8 @@
 mode: native-svg
 id: vllm-platform-interface-fig-contract
 caption: >-
-  上游 Platform 硬件适配契约的四阶段钩子与 OOT 优先仲裁树：左侧展示首次访问 current_platform 时的惰性仲裁规则（含 v0.30.0 显式 CPU 目标直通），右侧梳理 Platform 基类从身份属性、配置钩子到执行类路径的四类核心契约及四版接口扩张规模（78 → 84 → 92 方法）。
-size: [900, 444]
+  上游 Platform 惰性仲裁决策树与契约扩张规模：左侧画出首次访问 current_platform 时的多分支仲裁流（v0.30.0 显式 CPU 目标直通 → 同轮探测 5 个内置候选与外部 OOT 插件并分别收集激活列表 → 先按外部 OOT 数量 1 / ≥2 / 0 仲裁，无外部激活再看内置 1 / ≥2 / 0 → UnspecifiedPlatform 兜底与进程缓存）；右侧以问答对照表并排对比 CUDA 与 NPU 回答同一契约的差异，底部用比例条呈现 Platform 方法数（78 → 82 → 84 → 92）与 current_platform 引用规模的持续扩张。
+size: [900, 500]
 pins:
   - source: 'vllm@ced6857a:vllm/platforms/__init__.py#L233-L320'
     symbols: [resolve_current_platform_cls_qualname, _current_platform]

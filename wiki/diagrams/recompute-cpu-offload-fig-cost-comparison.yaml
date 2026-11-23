@@ -1,0 +1,10 @@
+mode: native-svg
+id: recompute-cpu-offload-fig-cost-comparison
+caption: >-
+  Recompute CPU Offload 两趟同步拷贝与重算耗时对比（示意：128 KiB/位、有效带宽 16 GiB/s、prefill 16,384 位/s）：三档长度下换出约为重算的 1/4，但 4K/32K 时 D 端每次同步停顿分别达约 31 ms 与 250 ms；底栏标出两趟持平带宽 4 GiB/s 及 GLM 旧默认预算仅够存 1 条被抢占请求的界限。
+size: [900, 330]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L200-L284
+    symbols: [_submit_transfer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L133-L156
+    symbols: [num_gpu_blocks]

@@ -53,9 +53,9 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-把模型部署到昇腾 NPU 上并跑通一条 `curl` 对话之后，团队通常马上要回答两个上线必考题：**「这组配置能扛多大并发、时延是否达标？」**和**「换了量化格式或升级 `v0.30.0` 后，答题准确率有没有掉点？」**。在昇腾生态里，除了 vLLM 自带的 `vllm bench serve`，最常用的两套评测与压测工具是 **AISBench**（面向昇腾 AI 系统的基准评测框架，覆盖服务性能压测与多类学术数据集精度评测）和 **EvalScope**（ModelScope 生态的一体化评测与压测工具，一条命令即可驱动 OpenAI 兼容接口做 `eval` 与 `perf`）。
+把模型部署到昇腾 NPU 并跑通一条 `curl` 对话后，团队紧接着要答两道上线必考题：**「这组配置能扛多大并发、时延是否达标？」**和**「换了量化格式或升级 `v0.30.0` 后，答题准确率有没有掉点？」**。在昇腾生态里，除了 vLLM 自带的 `vllm bench serve`，最常用的两套工具是 **AISBench**（昇腾官方基准评测套件，覆盖服务压测与学术数据集精度评测）和 **EvalScope**（ModelScope 一体化评测压测工具，单条命令即可驱动 OpenAI 兼容接口做 `eval` 与 `perf`）。
 
-然而实际项目里，两份看似测同一台机器的报告经常打架：客户端算出的首字时延比服务端 `/metrics` 高出一截、固定并发下 P99 漂亮得反常但线上刚上量就雪崩、或者同一份 `Qwen3` 权重换个工具跑 `GSM8K` 分数直接腰斩。本页围绕**工具选型、负载模式、预热剔除、双端指标口径对齐与精度基线防错**五件事，给出一套可复现的实操准则。
+然而实际项目里，两份测同一台机器的报告经常打架：客户端首字时延比服务端 `/metrics` 高出一截；固定并发下 P99 漂亮得反常，线上刚上量就雪崩；同一份 `Qwen3` 权重换个工具跑 `GSM8K` 分数直接腰斩。本页围绕**工具选型、负载模式、预热剔除、双端指标口径对齐与精度基线防错**五件事，给出可复现的实操准则。
 
 ## AISBench、EvalScope 与 `vllm bench serve` 怎么分工？
 
@@ -86,15 +86,19 @@ file: aisbench-fig-metrics-alignment
 
 | 指标 | 客户端口径（以 `vllm bench serve` 为例） | 服务端 Prometheus `/metrics` 口径 | 常见偏差原因 |
 |---|---|---|---|
-| **TTFT**（首字时延） | 收到首个非空 SSE chunk 时刻减去 HTTP 请求发出时刻 | `vllm:time_to_first_token_seconds`：引擎记录 `first_token_ts - arrival_time`（包含 `queued_time` + `prefill_time`） | 客户端多出客户端序列化、TCP/TLS、反代转发、API Server 分词与首个 SSE 包回传；若漏加 `--stream`（非流式），客户端只能把整段 E2E 记作 TTFT |
-| **TPOT**（单输出词均值） | 对输出词数 $N_{\text{out}} > 1$ 的请求：$\text{TPOT} = \frac{\text{E2E} - \text{TTFT}}{N_{\text{out}} - 1}$ | `vllm:request_time_per_output_token_seconds`：按完成请求记录 $\frac{\text{last\_token\_ts} - \text{first\_token\_ts}}{N_{\text{gen}} - 1}$ | 若客户端流式接口把多个 token 打包进同一个 SSE chunk，或按本地分词器对文本重算 $N_{\text{out}}$，会与引擎内部 `num_generation_tokens` 产生 1~数个 token 的分母偏移 |
+| **TTFT**（首字时延） | 收到首个非空 SSE chunk 时刻减去 HTTP 请求发出时刻 | `vllm:time_to_first_token_seconds`：API 前端统计 `iteration_timestamp - arrival_time`（从 API 前端收到请求时间戳到首输出批统计时间戳，已覆盖入队、Prefill 与引擎回传前端） | 客户端多出客户端序列化、TCP/TLS、反代转发与首个 SSE 包回传；若漏加 `--stream`（非流式），客户端只能把整段 E2E 记作 TTFT |
+| **TPOT**（单输出词均值） | 对输出词数 $N_{\text{out}} > 1$ 的请求：$\text{TPOT} = \frac{\text{E2E} - \text{TTFT}}{N_{\text{out}} - 1}$ | `vllm:request_time_per_output_token_seconds`：按完成请求记录 $\frac{\text{decode\_time}}{N_{\text{gen}} - 1} = \frac{\text{last\_token\_ts} - \text{first\_token\_ts}}{N_{\text{gen}} - 1}$（止于末次引擎出词事件，不含 SSE 回传） | 若客户端流式接口把多个 token 打包进同一个 SSE chunk，或按本地分词器对文本重算 $N_{\text{out}}$，会与引擎内部 `num_generation_tokens` 产生 1~数个 token 的分母偏移 |
 | **ITL**（相邻词间隔） | 流式返回相邻两个非空 SSE chunk 到达时刻的差值列表 | `vllm:inter_token_latency_seconds`：引擎每次迭代产生新 token 之间的实际间隔 | 网络抖动或代理缓冲（如 Nginx 未关闭 `proxy_buffering`）会把连续多个 token 攒在一起吐给客户端，造成客户端出现“先长停顿后 0 ms 连发”的假毛刺 |
 
-**预热与污染剔除铁律**：无论用哪套工具测性能，正式采样前都必须先打一轮小批量预热请求并丢弃其数据——昇腾服务即便在启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求仍可能触发 ATB 矩阵乘缓存写入、首轮动态形状分支或网络长连接建连。同时，若服务端开启了自动前缀缓存（[Prefix Caching](prefix-caching.md)），压测必须使用足够多样化的输入或显式加随机前缀，否则重复 prompt 命中 99% KV 复用会让 TTFT 与吞吐看起来“好得不真实”。
+**预热与污染剔除铁律**：无论用哪套工具测性能，正式采样前都须先打一轮小批量预热请求并丢弃其数据。即便启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求仍可能触发 ATB 矩阵乘缓存写入、首轮动态形状分支或网络长连接建连。同时，若服务端开启了自动前缀缓存（[Prefix Caching](prefix-caching.md)），压测须使用多样化输入或显式加随机前缀，避免重复 prompt 命中 99% KV 复用虚高 TTFT 与吞吐。
 
 ## 数据集精度基线与四类高频掉点陷阱
 
-用 AISBench 或 EvalScope 跑精度基线（对比 BF16 原版 vs 量化版，或 `v0.26` vs `v0.30.0`）时，绝大多数“掉点 10~30 分”并不是算子出错，而是以下四个评测配置陷阱：
+用 AISBench 或 EvalScope 跑精度基线（对比 BF16 原版 vs 量化版，或 `v0.26` vs `v0.30.0`）时，绝大多数“掉点 10~30 分”并不是算子出错，而是下面四个评测配置陷阱：
+
+```wiki-diagram
+file: aisbench-fig-accuracy-pitfalls
+```
 
 1. **上下文截断导致思维链未写完**：官方 AISBench 指南明确提示，评测服务端的 `--max-model-len` 建议大于 **`35000`**，且客户端配置的 `max_out_len`（通常 `32768`）加上输入长度必须小于 `--max-model-len`。对于 `MATH-500`、`AIME 2024`、`GPQA` 等长 CoT（思维链）推理题，一旦 `max_out_len` 给成 `1024` 或 `2048`，模型还在推导就被强行截断，永远提取不到最终答案框。
 2. **未剥离推理标签导致正则判错**：像 `Qwen3` 思考模式或 `DeepSeek` 推理模型会先输出 `<think>...</think>` 再给答案。AISBench 模板里专门配置了 `pred_postprocessor=dict(type=extract_non_reasoning_content)`，如果省略该后处理器，答题正则可能误抓思维链中间试错数字导致误判。
@@ -106,7 +110,7 @@ file: aisbench-fig-metrics-alignment
 - **误解一：“用 `evalscope perf --parallel 16` 测出 P99 TTFT 只有 400 ms，说明线上每秒来 16 个请求也一定稳在 400 ms 内。”**
   错。`--parallel 16` 是固定并发闭环压测（而非 16 req/s 的到达率），客户端会等旧请求返回才发新请求，掩盖了排队放大效应；上线容量评审必须补充固定到达率（open-loop）压测曲线。
 - **误解二：“客户端算出的 TTFT 比服务端 `/metrics` 高 30 ms，说明 vLLM 统计漏记了排队时间。”**
-  错。服务端 `vllm:time_to_first_token_seconds` 已经包含引擎内部 `queued_time` 和 `prefill_time`；多出的 30 ms 通常来自客户端到 API Server 之间的网络 RTT、反向代理、HTTP 解析与分词开销。
+  错。服务端 `vllm:time_to_first_token_seconds` 从 API 前端收到请求时间戳计到首输出批统计时间戳，已经覆盖排队、Prefill 与引擎回传前端；多出的 30 ms 通常来自客户端到 API Server 之间的网络 RTT、反向代理与首个 SSE 包回传。
 - **误解三：“`evalscope eval --datasets gsm8k --limit 10` 跑出 0.8 就能直接签发量化上线。”**
   `--limit 10` 只是 1~2 分钟的冒烟连通性验证，样本量太小不具备统计意义；正式上线基线应跑全量 `GSM8K` / `C-Eval` / `MMLU` / `MATH-500` 等覆盖对应业务能力的数据集，出现显著掉点后再进入 [msprobe 逐层精度对齐](msprobe-accuracy-debug.md) 定位根因。
 

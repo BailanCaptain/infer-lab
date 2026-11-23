@@ -1,0 +1,9 @@
+id: request-teardown-fig-reverse-free
+mode: native-svg
+size: [900, 374]
+caption: 请求 A 收尾按 5→2→9 倒序还块的引用计数变化与 free_block_queue 双向队列入队规则（序列尾部先挂队尾、前缀开头留最久，滑窗无指纹块插队头），以及共享块 9 仍被 B 持有时默认 reset_prefix_cache 返回失败的边界条件。
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L481
+    symbols: [free_blocks, reset_prefix_cache, ref_cnt, free_block_queue]
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L821-L859
+    symbols: [reset_prefix_cache]

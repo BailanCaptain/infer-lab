@@ -1,98 +1,131 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="短请求优先解队头阻塞、三车道加老化挑选顺序与运行护栏图" font-family="var(--font-sans)">
-  <title>短请求优先：解开队头阻塞、恢复/老化/短/长四级挑选顺序与三条运行护栏</title>
-  <desc>关联源码符号：_long_head_wait_ms, _select_schedulable_queue, _immediate_queue, _short_queue, _long_queue, long_max_wait_ms, short_request_first_config, batch_job_sched_config, profiling_chunk_config</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="短请求优先真实比例预算对照、四级车道挑选顺序与长请求老化毫秒时间轴图" font-family="var(--font-sans)">
+  <title>短请求优先：16 槽比例对照、四级挑选次序与老化毫秒时间轴</title>
+  <desc>顶区以严格 16 槽等比例尺对比 FCFS（平均 1.5 步）与 SRF（平均 1.25 步）；中区展示恢复→老化长队头→短→长四级车道；底区以毫秒时间轴展示 long_max_wait_ms=2,000ms 时 2,400ms 未触发与 3,100ms 触发插队，以及 peek 钉住车道和连续 3 次插队告警。</desc>
   <defs>
-    <marker id="srf-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="srf-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="srf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
     </marker>
   </defs>
 
-  <!-- Zone 1: FCFS HOL blocking vs SRF unblock -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 队头阻塞对比（示意：每步预算 16；A、B 各 8 token，C、D 各 2 token）</text>
+  <!-- Zone 1: True-Scale 16-slot budget comparison (16 slots = 256px -> 16px/slot) -->
+  <circle cx="26" cy="24" r="12" fill="#087f73"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">队头阻塞真比例对照（每步预算 16 槽：A、B 各 8 token，C、D 各 2 token）</text>
 
-  <!-- Left: FCFS -->
-  <rect x="16" y="44" width="424" height="122" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#8f3229">✗ FCFS 单队列：长请求占满第 1 步，短请求干等</text>
-  <text x="30" y="98" font-size="13.5" fill="#4d5652">第 1 步（16）：</text>
-  <rect x="136" y="79" width="136" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="204" y="97" text-anchor="middle" font-size="13.5" fill="#936300">A（8）</text>
-  <rect x="278" y="79" width="136" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="346" y="97" text-anchor="middle" font-size="13.5" fill="#936300">B（8）</text>
-  <text x="30" y="132" font-size="13.5" fill="#4d5652">第 2 步（6）：</text>
-  <rect x="136" y="113" width="60" height="26" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
-  <text x="166" y="131" text-anchor="middle" font-size="13.5" fill="#4d5652">A,B 各1</text>
-  <rect x="202" y="113" width="100" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="252" y="131" text-anchor="middle" font-size="13.5" fill="#065f56">C（2）D（2）</text>
-  <text x="310" y="131" font-size="13.5" font-weight="700" fill="#8f3229">平均 1.5 步</text>
-  <text x="30" y="156" font-size="13.5" fill="#8f3229">C、D 仅需 4 位置却被整整推迟到第 2 步首字出字</text>
+  <!-- Left: FCFS (x=114..370 = 256px = 16 slots) -->
+  <text x="16" y="60" font-size="14" font-weight="700" fill="#8f3229">✗ FCFS 单队列（平均首字 1.50 步）</text>
+  <text x="16" y="90" font-size="13.5" fill="#4d5652">第 1 步 (16)</text>
+  <rect x="114" y="70" width="128" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="178" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">A (8)</text>
+  <rect x="242" y="70" width="128" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="306" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">B (8)</text>
 
-  <!-- Right: SRF -->
-  <rect x="460" y="44" width="424" height="122" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="474" y="70" font-size="14.5" font-weight="700" fill="#065f56">✓ 短请求优先：短车道先跑，长请求由分块接续</text>
-  <text x="474" y="98" font-size="13.5" fill="#4d5652">第 1 步（16）：</text>
-  <rect x="580" y="79" width="84" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="622" y="97" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">C2 D2</text>
-  <rect x="670" y="79" width="118" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="729" y="97" text-anchor="middle" font-size="13.5" fill="#936300">A（8）</text>
-  <rect x="794" y="79" width="76" height="26" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="832" y="97" text-anchor="middle" font-size="13.5" fill="#3a4f93">B 前4</text>
-  <text x="474" y="132" font-size="13.5" fill="#4d5652">第 2 步（7）：</text>
-  <rect x="580" y="113" width="90" height="26" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
-  <text x="625" y="131" text-anchor="middle" font-size="13.5" fill="#4d5652">A,C,D 各1</text>
-  <rect x="676" y="113" width="84" height="26" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="718" y="131" text-anchor="middle" font-size="13.5" fill="#3a4f93">B 后4</text>
-  <text x="768" y="131" font-size="13.5" font-weight="700" fill="#065f56">平均 1.25 步</text>
-  <text x="474" y="156" font-size="13.5" fill="#065f56">B 晚 1 步换来 C、D 各早 1 步（未多造预算，只换顺序）</text>
+  <text x="16" y="128" font-size="13.5" fill="#4d5652">第 2 步 (6)</text>
+  <!-- 2 decode = 32px, C(2)=32px, D(2)=32px, unused 10=160px -->
+  <rect x="114" y="108" width="32" height="28" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="130" y="127" text-anchor="middle" font-size="13" fill="#4d5652">2</text>
+  <rect x="146" y="108" width="64" height="28" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="178" y="127" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">C2 D2</text>
+  <rect x="210" y="108" width="160" height="28" rx="3" fill="#ffffff" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="290" y="127" text-anchor="middle" font-size="13" fill="#8f3229">C、D 晚到第 2 步出字</text>
 
-  <line x1="16" y1="184" x2="884" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Vertical divider -->
+  <line x1="448" y1="46" x2="448" y2="144" stroke="#d8d8cf" stroke-width="1.3"/>
+
+  <!-- Right: SRF (x=564..820 = 256px = 16 slots) -->
+  <text x="466" y="60" font-size="14" font-weight="700" fill="#065f56">✓ 短请求优先（平均首字 1.25 步，未增预算）</text>
+  <text x="466" y="90" font-size="13.5" fill="#4d5652">第 1 步 (16)</text>
+  <!-- C(2)+D(2)=64px, A(8)=128px, B前4=64px -->
+  <rect x="564" y="70" width="64" height="28" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="596" y="89" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">C2 D2</text>
+  <rect x="628" y="70" width="128" height="28" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="692" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">A (8)</text>
+  <rect x="756" y="70" width="64" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="788" y="89" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">B 前4</text>
+
+  <text x="466" y="128" font-size="13.5" fill="#4d5652">第 2 步 (7)</text>
+  <!-- 3 decode = 48px, B后4 = 64px, unused 9 = 144px -->
+  <rect x="564" y="108" width="48" height="28" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="588" y="127" text-anchor="middle" font-size="13" fill="#4d5652">3</text>
+  <rect x="612" y="108" width="64" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="644" y="127" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">B 后4</text>
+  <rect x="676" y="108" width="144" height="28" rx="3" fill="#ffffff" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="748" y="127" text-anchor="middle" font-size="13" fill="#065f56">C、D 第 1 步即出字</text>
+
+  <line x1="16" y1="158" x2="884" y2="158" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
   <!-- Zone 2: 4-tier selection cascade -->
-  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② waiting 四级挑选次序（_select_schedulable_queue，位于 skipped_waiting 之后）</text>
+  <circle cx="26" cy="184" r="12" fill="#9a4b86"/>
+  <text x="26" y="188.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="190" font-size="16" font-weight="700" fill="#17211f">waiting 四级挑选次序（_select_schedulable_queue，位于挂起队列 skipped_waiting 之后）</text>
 
-  <rect x="16" y="230" width="200" height="100" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="116" y="255" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">1. 恢复车道（最高）</text>
-  <text x="116" y="281" text-anchor="middle" font-size="13.5" fill="#4d5652">被抢占 / 已算 &gt; 0</text>
-  <text x="116" y="303" text-anchor="middle" font-size="13.5" fill="#4d5652">或已出字 &gt; 0</text>
-  <text x="116" y="323" text-anchor="middle" font-size="13.5" fill="#7a3a6a">防长请求反复被压</text>
+  <rect x="16" y="206" width="200" height="92" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="116" y="230" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">1. 恢复车道（最高）</text>
+  <text x="116" y="254" text-anchor="middle" font-size="13.5" fill="#4d5652">被抢占 / 已算&gt;0 / 已出字</text>
+  <text x="116" y="278" text-anchor="middle" font-size="13" fill="#7a3a6a">防长请求反复被压回长队</text>
 
-  <line x1="218" y1="280" x2="238" y2="280" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
+  <line x1="218" y1="252" x2="238" y2="252" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
 
-  <rect x="242" y="230" width="204" height="100" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="344" y="255" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">2. 老化长队头（可选）</text>
-  <text x="344" y="281" text-anchor="middle" font-size="13.5" fill="#4d5652">仅看长车道队头</text>
-  <text x="344" y="303" text-anchor="middle" font-size="13.5" fill="#4d5652">等够 long_max_wait_ms</text>
-  <text x="344" y="323" text-anchor="middle" font-size="13.5" fill="#936300">默认 0 关闭（严格短先）</text>
+  <rect x="242" y="206" width="204" height="92" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="344" y="230" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">2. 老化长队头（可选）</text>
+  <text x="344" y="254" text-anchor="middle" font-size="13.5" fill="#4d5652">仅查队头 &amp; 短车道有人</text>
+  <text x="344" y="278" text-anchor="middle" font-size="13" fill="#936300">默认 0 关闭（严格短先）</text>
 
-  <line x1="448" y1="280" x2="468" y2="280" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
+  <line x1="448" y1="252" x2="468" y2="252" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
 
-  <rect x="472" y="230" width="194" height="100" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="569" y="255" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3. 短车道（默认优先）</text>
-  <text x="569" y="281" text-anchor="middle" font-size="13.5" fill="#4d5652">prompt ≤ threshold</text>
-  <text x="569" y="303" text-anchor="middle" font-size="13.5" fill="#4d5652">默认门槛 256 token</text>
-  <text x="569" y="323" text-anchor="middle" font-size="13.5" fill="#065f56">车道内部按 FCFS</text>
+  <rect x="472" y="206" width="194" height="92" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="569" y="230" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3. 短车道（默认优先）</text>
+  <text x="569" y="254" text-anchor="middle" font-size="13.5" fill="#4d5652">prompt ≤ threshold</text>
+  <text x="569" y="278" text-anchor="middle" font-size="13" fill="#065f56">默认 256 · 内部 FCFS</text>
 
-  <line x1="668" y1="280" x2="688" y2="280" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
+  <line x1="668" y1="252" x2="688" y2="252" stroke="#4d5652" stroke-width="1.7" marker-end="url(#srf-arr)"/>
 
-  <rect x="692" y="230" width="192" height="100" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="788" y="255" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">4. 长车道（兜底）</text>
-  <text x="788" y="281" text-anchor="middle" font-size="13.5" fill="#4d5652">prompt &gt; threshold</text>
-  <text x="788" y="303" text-anchor="middle" font-size="13.5" fill="#4d5652">短车道空时自然接班</text>
-  <text x="788" y="323" text-anchor="middle" font-size="13.5" fill="#3a4f93">车道内部按 FCFS</text>
+  <rect x="692" y="206" width="192" height="92" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="788" y="230" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">4. 长车道（兜底）</text>
+  <text x="788" y="254" text-anchor="middle" font-size="13.5" fill="#4d5652">prompt &gt; threshold</text>
+  <text x="788" y="278" text-anchor="middle" font-size="13" fill="#3a4f93">短车道空时自然接班</text>
 
-  <line x1="16" y1="348" x2="884" y2="348" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <line x1="16" y1="316" x2="884" y2="316" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- Zone 3: Operational guardrails -->
-  <text x="16" y="374" font-size="16" font-weight="700" fill="#17211f">③ 工程护栏与边界（不改预算、不动 running）</text>
+  <!-- Zone 3: Aging Promotion Millisecond Timeline (long_max_wait_ms = 2,000 ms) -->
+  <circle cx="26" cy="342" r="12" fill="#c78300"/>
+  <text x="26" y="346.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+  <text x="46" y="348" font-size="16" font-weight="700" fill="#17211f">老化插队毫秒轴（示意：long_max_wait_ms = 2,000 ms）与两条防误用护栏</text>
 
-  <rect x="16" y="388" width="278" height="60" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
-  <text x="30" y="413" font-size="14" font-weight="700" fill="#17211f">看队头即钉住车道</text>
-  <text x="30" y="437" font-size="13.5" fill="#4d5652">防 peek 与 pop 间老化翻转</text>
+  <!-- Timeline axis x=60..840 representing 1,000ms .. 3,400ms (2,400ms = 780px -> 0.325px/ms)
+       1,000ms -> 60
+       2,400ms -> 60 + 1400*0.325 = 515
+       3,000ms (threshold 1000+2000) -> 60 + 2000*0.325 = 710
+       3,100ms -> 60 + 2100*0.325 = 742 -->
+  <line x1="60" y1="398" x2="862" y2="398" stroke="#4d5652" stroke-width="2" marker-end="url(#srf-arr)"/>
+  <!-- Span 1000..3000 waiting -->
+  <rect x="60" y="391" width="650" height="14" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1"/>
+  <!-- Span 3000..840 eligible -->
+  <rect x="710" y="391" width="136" height="14" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
 
-  <rect x="311" y="388" width="278" height="60" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="325" y="413" font-size="14" font-weight="700" fill="#936300">连续 3 次插队打退化警告</text>
-  <text x="325" y="437" font-size="13.5" fill="#4d5652">仅提醒调大门限，不自动改参</text>
+  <!-- Event 1: 1,000 ms enqueue -->
+  <circle cx="60" cy="398" r="6" fill="#4c65b6"/>
+  <text x="60" y="382" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">1,000 ms</text>
+  <text x="60" y="424" font-size="13" fill="#4d5652">长请求 A 入长车道</text>
 
-  <rect x="606" y="388" width="278" height="60" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="620" y="413" font-size="14" font-weight="700" fill="#8f3229">与 BatchJob 互斥；不碰 running</text>
-  <text x="620" y="437" font-size="13.5" fill="#4d5652">长请求一旦入 running 即先拿预算</text>
+  <!-- Event 2: 2,400 ms check -> x = 60 + 1400*0.325 = 515 (exact linear scale) -->
+  <circle cx="515" cy="398" r="6" fill="#087f73"/>
+  <text x="458" y="380" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">2,400 ms（已等 1,400 ms &lt; 2,000）</text>
+  <text x="515" y="424" text-anchor="middle" font-size="13" fill="#065f56">未达门槛 → 照常先取短车道</text>
+
+  <!-- Threshold marker: 3,000 ms (x = 710) -->
+  <line x1="710" y1="364" x2="710" y2="434" stroke="#b54237" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <text x="702" y="378" text-anchor="end" font-size="13" font-weight="700" fill="#8f3229">3,000 ms 门槛线</text>
+
+  <!-- Event 3: 3,100 ms check -> x = 60 + 2100*0.325 = 742.5 (exact linear scale) -->
+  <circle cx="742.5" cy="398" r="6" fill="#c78300"/>
+  <text x="742.5" y="380" font-size="13.5" font-weight="700" fill="#936300">3,100 ms ✓</text>
+  <text x="742.5" y="424" font-size="13" font-weight="700" fill="#936300">等 2,100 ms → 插队!</text>
+
+  <!-- Bottom guardrails lines -->
+  <text x="16" y="458" font-size="13" fill="#4d5652">护栏：① peek 队头即钉住车道（防 peek→pop 间跨过门槛翻车）；② 连续 3 次插队打退化警告（不自动改参）；</text>
+  <text x="16" y="478" font-size="13" fill="#4d5652">③ 不碰 running，与 BatchJob 互斥</text>
 </svg>

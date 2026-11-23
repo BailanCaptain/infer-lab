@@ -1,0 +1,10 @@
+mode: native-svg
+id: continuous-batching-fig-ascend-padding
+caption: >-
+  昇腾部署连续批处理的两项关键边界：左栏展示 ACLGraph 仅在单步算子回放层将一维紧致批向上补齐到已捕获图档位，并用 slot_mapping=-1 屏蔽尾部写入，请求仍按步动态进出；右栏展示命令行解析期因 torch_npu 未初始化而触发 NotImplementedError，使在线 vllm serve 默认批预算落回 2048。
+size: [900, 364]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1058-L1106
+    symbols: [_pad_query_start_loc_for_fia, query_start_loc, num_tokens_padded, num_reqs_padded]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L245
+    symbols: [get_device_total_memory, NotImplementedError]

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="块表在 CPU 低频维护与 NPU 高频算槽位的双端协同及读写分离图" font-family="var(--font-sans)">
+  <title>块表（block table）在 CPU 侧按行低频维护、异步拷到 NPU 后每步并行计算 slot_mapping，并分别送往注意力读历史与缓存写新词的完整路径。</title>
+  <desc>左侧展示 CPU 侧持久批次按行维护的整数块表与游标（add_row、append_row、clear_row 填 0、move_row、swap_row），以 Qwen3-8B 单组跨 128/256 追加块为例；中间展示步首 commit_block_table(num_reqs) 异步非阻塞 H2D 拷贝；右侧展示 NPU 上每步运行的 compute_slot_mapping 并行核（num_reqs+1 路，尾槽位统一填 -1 以固定图模式形状）；底部拆明读写分工：block_table 供注意力算子读历史，slot_mapping 供写入算子散射本步新 K/V。</desc>
+  <defs>
+    <marker id="btc-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="btc-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="btc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">块表很少动、槽位每步算：CPU 低频改表 ↔ NPU 高频算槽位</text>
+
+  <!-- Left panel: CPU persistent block_table -->
+  <rect x="14" y="42" width="368" height="236" rx="10" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5"/>
+  <text x="28" y="66" font-size="15" font-weight="700" fill="#17211f">CPU 侧：持久批次按行改表（低频）</text>
+  <text x="28" y="86" font-size="13.5" fill="#4d5652">行号 = 批次座位（不含 req_id）· 每行带游标</text>
+
+  <!-- Mini visual block table matrix -->
+  <text x="28" y="110" font-size="13" font-family="var(--font-mono)" fill="#4d5652">row 0:</text>
+  <rect x="82" y="94" width="54" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="109" y="111" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">b₀</text>
+  <rect x="140" y="94" width="54" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="167" y="111" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">b₁</text>
+  <rect x="198" y="94" width="54" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="225" y="111" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">+b₂</text>
+  <rect x="256" y="94" width="44" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="278" y="111" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
+  <text x="308" y="111" font-size="13" fill="#3a4f93">← 游标=3</text>
+
+  <text x="28" y="140" font-size="13" font-family="var(--font-mono)" fill="#4d5652">row 1:</text>
+  <rect x="82" y="124" width="54" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="109" y="141" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
+  <rect x="140" y="124" width="54" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="167" y="141" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
+  <rect x="198" y="124" width="54" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="225" y="141" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
+  <text x="262" y="141" font-size="13" fill="#4d5652">结束 clear_row 填 0</text>
+
+  <!-- 5 row ops card -->
+  <rect x="28" y="158" width="340" height="108" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.1"/>
+  <text x="40" y="180" font-size="13.5" font-weight="700" fill="#17211f">仅 5 类事件触发写表（Qwen3-8B 单表 320 KiB）：</text>
+  <text x="40" y="202" font-size="13" fill="#4d5652">• 新入座 <tspan font-family="var(--font-mono)" fill="#17211f">add_row</tspan> · 跨 128/256 边界 <tspan font-family="var(--font-mono)" fill="#17211f">append_row</tspan></text>
+  <text x="40" y="224" font-size="13" fill="#4d5652">• 完结退场 <tspan font-family="var(--font-mono)" fill="#17211f">clear_row</tspan>（空位填 <tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">0 = null_block</tspan>）</text>
+  <text x="40" y="246" font-size="13" fill="#4d5652">• 压紧重排 <tspan font-family="var(--font-mono)" fill="#17211f">move_row / swap_row</tspan>（整行搬移）</text>
+
+  <!-- Center async H2D bridge -->
+  <rect x="394" y="102" width="124" height="116" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="456" y="128" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">步首异步拷表</text>
+  <text x="456" y="150" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#17211f">commit_</text>
+  <text x="456" y="168" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#17211f">block_table</text>
+  <text x="456" y="190" text-anchor="middle" font-size="13" fill="#4d5652">仅拷前 num_reqs</text>
+  <text x="456" y="208" text-anchor="middle" font-size="13" fill="#7a3a6a">与 CPU 准备重叠</text>
+
+  <line x1="382" y1="160" x2="391" y2="160" stroke="#9a4b86" stroke-width="2" marker-end="url(#btc-arr-p)"/>
+  <line x1="518" y1="160" x2="529" y2="160" stroke="#9a4b86" stroke-width="2" marker-end="url(#btc-arr-p)"/>
+
+  <!-- Right panel: NPU compute_slot_mapping -->
+  <rect x="534" y="42" width="352" height="236" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="548" y="66" font-size="15" font-weight="700" fill="#3a4f93">NPU 侧：每步并行算槽位（高频）</text>
+  <text x="548" y="86" font-size="13.5" fill="#4d5652">compute_slot_mapping（grid = num_reqs + 1）</text>
+
+  <!-- Active token lanes -->
+  <rect x="544" y="98" width="332" height="94" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="554" y="120" font-size="13.5" font-weight="700" fill="#17211f">前 num_reqs 路：每条请求逐 token 翻译</text>
+  <text x="554" y="142" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">blk = block_table[row, pos // 128]</text>
+  <text x="554" y="162" font-size="13" font-family="var(--font-mono)" fill="#065f56">slot = blk × 128 + (pos mod 128)</text>
+  <text x="554" y="182" font-size="12" fill="#4d5652">例：pos=300 → 逻辑块 2(b₂)、偏移 44 → b₂×128+44</text>
+
+  <!-- Extra padding lane -->
+  <rect x="544" y="198" width="332" height="72" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="554" y="218" font-size="13" font-weight="700" fill="#936300">末路 (+1)：图模式补齐尾槽填 <tspan font-family="var(--font-mono)" fill="#8f3229">PAD_SLOT_ID = −1</tspan></text>
+  <text x="554" y="239" font-size="12.5" font-family="var(--font-mono)" fill="#17211f">[num_tokens .. max_num_tokens) → −1</text>
+  <text x="554" y="259" font-size="12.5" fill="#4d5652">固定 ACLGraph 形状，写入算子遇 −1 跳过不污染缓存</text>
+
+  <!-- Bottom arrows splitting read vs write -->
+  <path d="M 456 218 L 456 290 L 228 290 L 228 304" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#btc-arr-i)"/>
+  <path d="M 710 278 L 710 304" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#btc-arr-t)"/>
+
+  <!-- Bottom left: Read path -->
+  <rect x="14" y="308" width="424" height="70" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="334" font-size="14.5" font-weight="700" fill="#3a4f93">读历史：NPU 侧 block_table[:num_reqs]</text>
+  <text x="28" y="358" font-size="13.5" fill="#17211f">直接交给注意力算子（FIA / SFA），按块号跳着读全段旧 K/V</text>
+
+  <!-- Bottom right: Write path -->
+  <rect x="462" y="308" width="424" height="70" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="476" y="334" font-size="14.5" font-weight="700" fill="#065f56">写新词：NPU 侧 slot_mapping（int32）</text>
+  <text x="476" y="358" font-size="13.5" fill="#17211f">交给 reshape_and_cache，把本步新 K/V 精确散射进目标格</text>
+</svg>

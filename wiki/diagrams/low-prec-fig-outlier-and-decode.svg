@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" width="900" height="512" role="img" aria-label="FP4 E2M1 离群值拉粗尺子塌缩示意与同字节 00111100 的 E4M3/E5M2 双解码图" font-family="var(--font-sans)">
+  <title>FP4 E2M1 离群值塌缩数轴与 00111100 双格式位域解码</title>
+  <desc>结合 AscendW4A4MXFP4DynamicLinearMethod（group_size、weight_scale）与 AscendW8A8MXFP8DynamicLinearMethod（float8_e4m3fn），上半部在数轴上对比 s=0.5 正常同组与混入离群值 24 迫使 s=4 时的刻度拉伸与小值塌缩；下半部将完全相同的 8 比特 00111100 按 E4M3 读作 1.5、按 E5M2 读作 1.0。</desc>
+
+  <!-- Zone 1 Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① FP4 E2M1 非均匀数轴：1 个离群值 24 如何把整把尺子拉粗 8 倍</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Track A: Normal group s=0.5 (x=136..616 covers 0..3.0 -> 160 px/unit) -->
+  <text x="16" y="72" font-size="14" font-weight="700" fill="#065f56">正常组 s=0.5</text>
+  <text x="16" y="94" font-size="13.5" fill="#4d5652">量程 [0, 3]</text>
+
+  <line x1="136" y1="90" x2="626" y2="90" stroke="#087f73" stroke-width="2"/>
+  <!-- E2M1 ticks scaled by 0.5: 0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0 -->
+  <g stroke="#087f73" stroke-width="1.6">
+    <line x1="136" y1="83" x2="136" y2="97"/>
+    <line x1="176" y1="83" x2="176" y2="97"/>
+    <line x1="216" y1="83" x2="216" y2="97"/>
+    <line x1="256" y1="83" x2="256" y2="97"/>
+    <line x1="296" y1="83" x2="296" y2="97"/>
+    <line x1="376" y1="83" x2="376" y2="97"/>
+    <line x1="456" y1="83" x2="456" y2="97"/>
+    <line x1="616" y1="83" x2="616" y2="97"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#065f56" text-anchor="middle">
+    <text x="136" y="114">0</text>
+    <text x="176" y="114">0.25</text>
+    <text x="216" y="114">0.5</text>
+    <text x="296" y="114">1.0</text>
+    <text x="376" y="114">1.5</text>
+    <text x="456" y="114">2.0</text>
+    <text x="616" y="114">3.0</text>
+  </g>
+  <!-- Original points (0.3 -> x=184, 1.2 -> x=328, 2.8 -> x=584) -->
+  <circle cx="184" cy="90" r="5.5" fill="#c78300"/>
+  <text x="184" y="72" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">0.3→0.25</text>
+  <circle cx="328" cy="90" r="5.5" fill="#c78300"/>
+  <text x="328" y="72" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">1.2→1.0</text>
+  <circle cx="584" cy="90" r="5.5" fill="#c78300"/>
+  <text x="584" y="72" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">2.8→3.0</text>
+
+  <!-- Right result box A -->
+  <rect x="646" y="54" width="238" height="68" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="660" y="79" font-size="14" font-weight="700" fill="#065f56">点积 4.7 → 5.25</text>
+  <text x="660" y="105" font-size="13.5" fill="#4d5652">读回 (0.25, 1, 3) 细节完整</text>
+
+  <!-- Track B: Outlier 24 forces s=4 (x=136..616 covers 0..24 -> 20 px/unit) -->
+  <text x="16" y="176" font-size="14" font-weight="700" fill="#8f3229">混入 24 → s=4</text>
+  <text x="16" y="198" font-size="13.5" fill="#8f3229">量程 [0, 24]</text>
+
+  <!-- Highlight collapsed zone [0..3] -->
+  <rect x="136" y="168" width="60" height="44" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="3 2"/>
+
+  <line x1="136" y1="190" x2="626" y2="190" stroke="#b54237" stroke-width="2"/>
+  <!-- E2M1 ticks scaled by 4: 0, 2, 4, 6, 8, 12, 16, 24 -->
+  <g stroke="#b54237" stroke-width="1.6">
+    <line x1="136" y1="183" x2="136" y2="197"/>
+    <line x1="176" y1="183" x2="176" y2="197"/>
+    <line x1="216" y1="183" x2="216" y2="197"/>
+    <line x1="256" y1="183" x2="256" y2="197"/>
+    <line x1="296" y1="183" x2="296" y2="197"/>
+    <line x1="376" y1="183" x2="376" y2="197"/>
+    <line x1="456" y1="183" x2="456" y2="197"/>
+    <line x1="616" y1="183" x2="616" y2="197"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#8f3229" text-anchor="middle">
+    <text x="136" y="216">0</text>
+    <text x="176" y="216">2</text>
+    <text x="216" y="216">4</text>
+    <text x="256" y="216">6</text>
+    <text x="296" y="216">8</text>
+    <text x="376" y="216">12</text>
+    <text x="456" y="216">16</text>
+    <text x="616" y="216" font-weight="700">24</text>
+  </g>
+  <!-- Crushed points inside [0..3] -->
+  <circle cx="142" cy="190" r="4.5" fill="#b54237"/>
+  <circle cx="160" cy="190" r="4.5" fill="#b54237"/>
+  <circle cx="192" cy="190" r="4.5" fill="#b54237"/>
+  <circle cx="616" cy="190" r="6" fill="#9a4b86"/>
+  <text x="260" y="160" font-size="13.5" font-weight="700" fill="#8f3229">◀ 三数全被挤进左角，塌成 (0, 2, 2)</text>
+  <text x="580" y="160" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">离群值 24</text>
+
+  <!-- Right result box B -->
+  <rect x="646" y="152" width="238" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="660" y="177" font-size="14" font-weight="700" fill="#8f3229">子点积暴跌至 2.0！</text>
+  <text x="660" y="203" font-size="13.5" fill="#4d5652">0.3 归零，1.2 与 2.8 撞同值</text>
+
+  <!-- MX block isolation takeaway strip -->
+  <rect x="16" y="238" width="868" height="44" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="265" font-size="13.5" fill="#3a4f93"><tspan font-weight="700">微缩放（MX）破局：</tspan>沿归约维每 32 项（NVFP4 为 16 项）独立配块级尺度，把离群值 24 关在本块笼子里，不拉粗邻块尺子。</text>
+
+  <!-- Horizontal divider -->
+  <line x1="14" y1="298" x2="886" y2="298" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Same 8 bits 00111100 decoded as E4M3 vs E5M2 -->
+  <text x="16" y="326" font-size="16" font-weight="700" fill="#17211f">② 同一串 8 比特 00111100（零位损坏）：换一种格式规则，数值从 1.5 变成 1.0</text>
+
+  <!-- Top E4M3 bracket -->
+  <text x="16" y="366" font-size="14.5" font-weight="700" fill="#065f56">按 E4M3 读</text>
+  <text x="16" y="388" font-size="13.5" fill="#4d5652">偏置 = 7</text>
+
+  <rect x="148" y="346" width="52" height="34" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <rect x="204" y="346" width="212" height="34" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <rect x="420" y="346" width="158" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <g text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700">
+    <text x="174" y="368" fill="#4d5652">S=0</text>
+    <text x="310" y="368" fill="#3a4f93">E = 0111 (7-7=0 → 2⁰)</text>
+    <text x="499" y="368" fill="#065f56">M = 100 (+0.5)</text>
+  </g>
+  <rect x="598" y="346" width="286" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="741" y="368" text-anchor="middle" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#065f56">= 1 × 1.5 = 1.5</text>
+
+  <!-- Center 8 raw bits (x=148..578, 8 boxes of 52px + 2px gap) -->
+  <g font-family="var(--font-mono)" font-size="15" font-weight="700" text-anchor="middle">
+    <rect x="148" y="394" width="52" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="174" y="418" fill="#17211f">0</text>
+    <rect x="204" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="229" y="418" fill="#17211f">0</text>
+    <rect x="258" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="283" y="418" fill="#17211f">1</text>
+    <rect x="312" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="337" y="418" fill="#17211f">1</text>
+    <rect x="366" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="391" y="418" fill="#17211f">1</text>
+    <rect x="420" y="394" width="50" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.8"/><text x="445" y="418" fill="#936300">1</text>
+    <rect x="474" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="499" y="418" fill="#17211f">0</text>
+    <rect x="528" y="394" width="50" height="36" rx="5" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/><text x="553" y="418" fill="#17211f">0</text>
+  </g>
+  <text x="741" y="417" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">◀ 左起第 6 位（bit 2）归属切换！</text>
+
+  <!-- Bottom E5M2 bracket -->
+  <text x="16" y="464" font-size="14.5" font-weight="700" fill="#7a3a6a">按 E5M2 读</text>
+  <text x="16" y="486" font-size="13.5" fill="#4d5652">偏置 = 15</text>
+
+  <rect x="148" y="444" width="52" height="34" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <rect x="204" y="444" width="266" height="34" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <rect x="474" y="444" width="104" height="34" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <g text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700">
+    <text x="174" y="466" fill="#4d5652">S=0</text>
+    <text x="337" y="466" fill="#7a3a6a">E = 01111 (15-15=0 → 2⁰)</text>
+    <text x="526" y="466" fill="#936300">M = 00 (+0)</text>
+  </g>
+  <rect x="598" y="444" width="286" height="34" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="741" y="466" text-anchor="middle" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#7a3a6a">= 1 × 1.0 = 1.0</text>
+</svg>

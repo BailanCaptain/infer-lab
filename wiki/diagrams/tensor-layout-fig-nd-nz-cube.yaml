@@ -1,8 +1,8 @@
 mode: native-svg
 id: tensor-layout-fig-nd-nz-cube
 caption: >-
-  ND 行优先与分形 FRACTAL_NZ（16×16 / 16×32 Cube 对齐块）及加载期 maybe_trans_nz 决策闸门：上半部展示 FP16/BF16 按 16×16、INT8 按 16×32 切块后「块间大 N 列优先、块内小 z 行优先」的物理重排与未对齐补齐开销（17×17 FP16 载荷从 578 B 增至 2,048 B）；下半部还原 v0.30.0 _should_trans_nz 决策链，310P 的 FORCE_NZ 先于 weight_nz_mode=0 生效，W8A8 专家层则另走直接转置+转 NZ 分支。
-size: [900, 470]
+  ND 行优先与 FRACTAL_NZ 分形重排几何对照、17×17 补齐至 32×32 的真实面积占比图及 v0.30.0 _should_trans_nz 加载期转换闸门：左侧在 4×4 矩阵上直标块间大 N 与块内小 z 遍历（元素 5 从偏移 4 移至偏移 2、逻辑坐标不变）并对照 FP16 16×16 与 INT8 16×32 块形；右侧按真实面积画出 17×17 有效区（578 B，28.2%）与补齐浪费区（+1,470 B，71.8%）；下半部展示硬件 FORCE_NZ 优先于 weight_nz_mode 的判定闸门。
+size: [900, 536]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L352-L412'
     symbols:
@@ -10,8 +10,10 @@ pins:
       - maybe_trans_nz
       - maybe_trans_nz_with_scale
       - ACL_FORMAT_FRACTAL_NZ
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L615-L657'
+    symbols:
       - weight_nz_mode
-  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L325'
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L320'
     symbols:
       - WeightLayoutPolicy
       - FORCE_NZ

@@ -142,7 +142,7 @@ file: glm-flash-overview
 
 **先看最基础的一层。** 普通 Transformer 的一层有两段子层：attention 段和 MLP 段。两段的套路相同：先用 RMSNorm 把输入缩放到稳定的数值范围，再算子层，最后把子层输出**加回**子层的输入。最后这一步叫 **residual**（残差连接）：输入沿一条不做任何变换的旁路直接送到出口，子层只需要算出「在输入上改多少」。这条旁路从第 0 层一直通到最后一层，所以常叫 residual 流。三个部件的基础讲法见[前馈、残差与 RMSNorm](mlp-residual-norm.md)。
 
-**GLM 把这条旁路扩成四条。** GLM 用 mHC（Manifold-Constrained Hyper-Connections）在层间同时传四条 residual 流，每条宽 4096：每段子层入口先把四条按权重合成一条去算（入口混合），出口再把输出写回四条、旧的四条经 Sinkhorn 约束的 4 × 4 矩阵互相混合（出口混合），一层做两次，第 44 层结束时四条求平均回到一条。为什么要四条、Sinkhorn 管什么，见[层与隐藏表示](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)；在 GLM 上代价多大，见[mHC 在 GLM 上多花了什么](layers-and-hidden.md#mhc-在-glm-上多花了什么)。
+**GLM 把这条旁路扩成四条。** GLM 用 mHC（Manifold-Constrained Hyper-Connections）在层间同时传四条 residual 流，每条宽 4096。每段子层入口先把四条按权重合成一条去算（入口混合）；出口再把输出写回四条，并让旧的四条经 Sinkhorn 约束的 4 × 4 矩阵互相混合（出口混合）。每层做两次，到第 44 层结束时四条求平均回到一条。为什么要四条、Sinkhorn 管什么，见[层与隐藏表示](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)；在 GLM 上代价多大，见[mHC 在 GLM 上多花了什么](layers-and-hidden.md#mhc-在-glm-上多花了什么)。
 
 ```wiki-diagram
 file: glm-flash-layer
@@ -297,7 +297,7 @@ file: glm-flash-attention
 
 ## MoE：288 个专家里每次挑 8 个
 
-**起点：稠密 MLP。** 前 3 层的 MLP 是带门控的结构：输入 4096 维，同时乘两个 4096 → 12288 的矩阵，得到 gate 和 up 两份；gate 经过 SiLU（`x · sigmoid(x)`，一种平滑的非线性函数）后和 up 逐元素相乘，GLM 还用 `swiglu_limit=10` 限制这一步的数值范围（路由专家和共享专家也有同样的上限）；最后乘一个 12288 → 4096 的矩阵降回隐藏宽度。所有 token 都用同一套权重。
+**起点：稠密 MLP。** 前 3 层的 MLP 是带门控的结构：输入 4096 维，同时乘两个 4096 → 12288 的矩阵，得到 gate 和 up 两份。gate 经过 SiLU（`x · sigmoid(x)`，一种平滑的非线性函数）后和 up 逐元素相乘，GLM 还用 `swiglu_limit=10` 限制这一步的数值范围（路由专家和共享专家也有同样的上限）。最后乘一个 12288 → 4096 的矩阵降回隐藏宽度；所有 token 都用同一套权重。
 
 **第一步：MoE 把一个大 MLP 换成很多小 MLP。** MoE 准备很多个结构相同、权重不同的小 MLP，每个叫一个专家（expert）。每层还有一个 **router**（路由器）：一个小线性层，给每个 token 对每个专家打分，只让分最高的几个专家处理这个 token，再把它们的输出按分数加权合起来。参数总量可以很大，每个 token 只用到其中一小部分。基础讲法见 [MoE](moe.md)。
 

@@ -1,0 +1,15 @@
+id: mlp-fig-norm-placement-and-qknorm
+mode: native-svg
+size: [900, 426]
+caption: "RMSNorm 与 LayerNorm 几何对比、Pre-Norm 与 Post-Norm 残差轨位置对比及 Qwen3 逐头 Q/K Norm 顺序"
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L88
+    symbols:
+      - AscendRMSNorm
+      - npu_add_rms_norm
+      - npu_rms_norm
+  - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L168
+    symbols:
+      - q_norm
+      - k_norm
+      - head_dim

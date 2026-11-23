@@ -1,94 +1,16 @@
-layout: figure
+mode: native-svg
 id: rfork-transfer
-caption: B 的第 r 号卡从 A 的第 r 号卡借权重，按编号走四步。1 B 先把放权重的三段空位登记给传输引擎（A 当 seed 时已经登记过自己那份）；2 通过 HTTP 向 A 要清单，拿到的只是描述，没有权重本身；3 把 A 的清单和自己的逐项对照，整份一致才往下走；4 由 B 发起，按批把 A 显存里的字节读进自己的空位，一批累计不超过 1 GiB，所以 W3 另起一批。两个框下面的小方块是读完以后：B 的三段填满，和 A 一模一样；A 的三块原样还在，这是读、不是搬走，A 继续当 seed。任何一步失败，都先尝试撤销登记和清理半成品；服务停止且登记内存清理通过才改走默认加载，否则保活旧存储并报错，拒绝分配第二份模型。仅租约尚未归还不阻止回退，可继续后台归还。三块权重的大小是示意数。
+caption: >-
+  RFork 五门清单校验与双上限分批读取：上栏展示 HTTP 拉取清单后、写入第一个字节前必须全部通过的五道门（键集与共享跳过、协议与严格五元组、dtype 与 torch_npu.get_npu_format、总条数/总字节/非重叠稠密复验、全过放行）；下栏按比例展示 2.5 GiB 大张量的地址递进拆段（1 + 1 + 0.5 GiB），以及 1 GiB 字节上限（W1+W2 | W3）与 512 段上限（600×1MiB → 512 + 88）两道硬封批规则。
 size: [900, 680]
-
-frames:
-  - { label: 实例 A · 第 r 号卡（seed · 已登记）, at: [30, 270], size: [210, 230] }
-  - { label: 实例 B · 第 r 号卡（新启动）, at: [660, 270], size: [210, 230] }
-
-items:
-  # 第 2 步：HTTP 两端
-  - { at: [40, 36], size: [190, 48], text: A 的 seed 服务, sub: HTTP · 只发描述, tone: control, style: plain }
-  - { at: [670, 36], size: [190, 48], text: B 的 seed 客户端, sub: HTTP · 要清单, tone: control, style: plain }
-  # A 显存里的三块权重（高度按示意大小）
-  - { at: [75, 300], size: [120, 60], text: W1, sub: 0.6 GiB, tone: weight }
-  - { at: [75, 366], size: [120, 30], text: W2 · 0.3 GiB, tone: weight }
-  - { at: [75, 402], size: [120, 80], text: W3, sub: 0.8 GiB, tone: weight }
-  # B 搭好的空位，形状、大小和 A 一样
-  - { at: [705, 300], size: [120, 60], text: W1 空位, sub: 已登记 · 0.6 GiB, tone: weight, style: faded }
-  - { at: [705, 366], size: [120, 30], text: W2 空位 · 已登记, tone: weight, style: faded }
-  - { at: [705, 402], size: [120, 80], text: W3 空位, sub: 已登记 · 0.8 GiB, tone: weight, style: faded }
-  # 读完以后：A 的三块原样还在，B 的三段填满
-  - { at: [63, 524], size: [44, 30], text: W1, tone: weight }
-  - { at: [113, 524], size: [44, 30], text: W2, tone: weight }
-  - { at: [163, 524], size: [44, 30], text: W3, tone: weight }
-  - { at: [693, 524], size: [44, 30], text: W1, tone: weight }
-  - { at: [743, 524], size: [44, 30], text: W2, tone: weight }
-  - { at: [793, 524], size: [44, 30], text: W3, tone: weight }
-  # 失败撤销
-  - { at: [110, 626], size: [200, 40], text: 任何一步失败, tone: danger }
-  - { at: [360, 626], size: [210, 40], text: 尝试注销登记并清理, tone: danger, style: faded }
-  - { at: [620, 626], size: [230, 40], text: 停服务且注销完成才回退, sub: 停服务或注销失败则报错, tone: control, style: plain }
-
-grids:
-  # 第 3 步：A 的清单逐项对 B 自己的清单
-  - at: [336, 140]
-    rows: 3
-    cols: 3
-    cell: [76, 26]
-    gap: 0
-    tone: control
-    style: faded
-    rowLabels: [W1, W2, W3]
-    colLabels: [元素个数, 每个几字节, 类型]
-    label: A 的清单逐项对 B 自己的清单
-    cells:
-      - { at: [0, 0], text: 一致 }
-      - { at: [0, 1], text: 一致 }
-      - { at: [0, 2], text: 一致 }
-      - { at: [1, 0], text: 一致 }
-      - { at: [1, 1], text: 一致 }
-      - { at: [1, 2], text: 一致 }
-      - { at: [2, 0], text: 一致 }
-      - { at: [2, 1], text: 一致 }
-      - { at: [2, 2], text: 一致 }
-
-links:
-  # HTTP：B 要，A 回
-  - { from: [666, 60], to: [234, 60], ends: both, tone: control, dashed: true }
-  # 第 4 步：B 发起读，字节从 A 的地址进 B 的地址
-  - { from: [199, 330], to: [701, 330], tone: comm }
-  - { from: [199, 381], to: [701, 381], tone: comm }
-  - { from: [199, 442], to: [701, 442], tone: comm }
-  # 失败撤销的顺序
-  - { from: [314, 646], to: [356, 646], tone: danger }
-  - { from: [574, 646], to: [616, 646], tone: control }
-
-badges:
-  - { at: [705, 300], n: 1 }
-  - { at: [300, 42], n: 2 }
-  - { at: [296, 136], n: 3 }
-  - { at: [300, 296], n: 4 }
-
-texts:
-  - { at: [318, 47], text: 要清单：每块的名字、地址、个数、类型 }
-  - { at: [580, 166], text: 整份一致，才读第一个字节, size: 13 }
-  - { at: [580, 190], text: 有一格不一致：一个字节都不读, size: 13, tone: danger }
-  - { at: [318, 301], text: B 发起，把 A 的字节读进自己的地址 }
-  - { at: [450, 360], text: 批 1 = W1 + W2 = 0.9 GiB, size: 13, anchor: middle, tone: comm }
-  - { at: [450, 472], text: 批 2 = W3 = 0.8 GiB, size: 13, anchor: middle, tone: comm }
-  - { at: [135, 578], text: 读完：三块原样还在，继续当 seed, anchor: middle, note: true }
-  - { at: [765, 578], text: 读完：三段填满，和 A 一模一样, anchor: middle, note: true }
-
 pins:
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276
-    symbols: [register_destination, register_memory_region, transfer_from_seed, fetch_seed_transfer_info, read_weights_from_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_client.py#L58-L110
+    symbols: [fetch_seed_transfer_info]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L87-L214
     symbols: [validate_weight_manifest]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L230-L259
+    symbols: [is_non_overlapping_dense_tensor]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L38-L165
     symbols: [iter_transfer_chunks, MAX_TRANSFER_CHUNK_BYTES, MAX_TRANSFER_CHUNK_SEGMENTS]
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L904-L936
-    symbols: [prepare_for_fallback, _reset_process_global_model_state, can_schedule_seed]
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
-    symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L839-L876
+    symbols: [batch_transfer_sync_read]

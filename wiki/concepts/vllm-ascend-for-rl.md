@@ -175,7 +175,7 @@ wait 的代价是等待尚未完成的请求，abort 的代价是丢掉这些未
 
 **先看两端是否共用同一张物理 NPU，再选传输方式。** 同一台机器上的两张不同卡仍属于跨卡；判断两个进程是否同卡，要看逻辑设备编号映射后的物理芯片，而非仅比较编号。
 
-下面这张图把同卡轮占（`sleep` + `npu_ipc`）与跨卡常驻（`pause` + `hccl` / `sparse_hccl`）两条交接路径，以及 `v0.30.0` / `main` 里 `RlConfig.apply()` 自动执行的三项强制护栏（关闭 `FRACTAL_NZ`、剥离 `expandable_segments`、开开发端点）一次对照清楚：
+下面这张图把同卡轮占（`sleep` + `npu_ipc`）与跨卡常驻（`pause` + `hccl` / `sparse_hccl`）两条交接路径放在同一视野中对照。下半区同时标出 `v0.30.0` / `main` 中 `RlConfig.apply()` 自动执行的三项强制护栏（关闭 `FRACTAL_NZ`、剥离 `expandable_segments`、开放开发端点）与三项默认关闭的子开关：
 
 ```wiki-diagram
 file: vllm-ascend-for-rl-fig-handover-guardrails
@@ -213,9 +213,18 @@ $$\text{world\_size} = 1_{\text{trainer}} + N_{\text{workers}} = 1 + 2 = 3$$
 
 **agentic RL 的工具交互由外部环境闭环。** 模型生成工具调用后，环境执行工具、把结果追加到对话，再提交下一轮请求。要选与模型匹配的工具解析器。若外部路由器需要指定 DP（Data Parallel，分配请求的执行组），可以传递目标 DP rank；rank 是组编号，取值必须存在于实际部署。请求路由和 MoE 的专家选择解决不同层面的问题。
 
+下表汇总 RL 训练端按算法向推理端索取的四类核心信号与关键前提：
+
+| 训练信号 / 能力 | 推理端返回或执行的内容 | 关键边界与前提 |
+| --- | --- | --- |
+| `logprobs` / `prompt_logprobs` | 生成或提示词 token 的对数概率 | `prompt_logprobs` 不支持流式 completions；不等同回答评分 |
+| Router Replay（R3） | `(num_tokens - 1, num_layers, num_experts_per_tok)` 专家选择数组 | 仅非流式返回 base64 NumPy；`v0.30.0` / `main` 须配 MRV2 |
+| `tokens-only` API | 直接收发 `token_ids` 与概率/路由字段 | 省去重复分词；实验端点，不可把 `VLLM_ENABLE_SCALE_OUT_ENDPOINTS` 置 0 |
+| Trace Replay（`921ccc52`+） | 按预定 `trace_decode_token_ids` 推进并记录真实分布 logprobs | 与 R3 的“捕获专家选择”不同；仅支持 Model Runner V2 |
+
 ## 为什么“训推一致”和“批不变”要分开选择？
 
-**两者解决不同来源的数值差异，统一 RL 开关不会自动把它们都打开。** 训推一致选项在未使用 prefill context parallel（将长输入分给多卡处理）时，让支持的模型使用 FA3 attention backend，以配合训练侧 attention 的计算方式；这里的 FA3 是特定注意力实现，适用范围见[attention backend](attention-backend-family.md)。它需要总开关与一致性子开关同时开启，还要有额外软件包；不能把不支持的 MLA 或稀疏 attention 也切过去。
+**两者解决不同来源的数值差异，统一 RL 开关不会自动把它们都打开。** 当未启用 prefill context parallel（将长输入分给多卡处理）时，训推一致选项会让支持的模型切到 FA3 attention backend，以对齐训练侧 attention 的计算方式。这里的 FA3 是特定注意力实现，适用范围见[attention backend](attention-backend-family.md)。它需要总开关与一致性子开关同时开启，还要有额外软件包；不能把不支持的 MLA 或稀疏 attention 也切过去。
 
 batch invariance（批不变）则减少同一请求因批大小、批内伙伴或顺序变化产生的数值差异；其算子、图模式和调度限制见[批不变页](batch-invariance.md)。开了 FA3 不等于开了批不变，反过来也一样。统一配置里的批不变字段关闭时，已有的批不变环境变量设置仍保留。
 

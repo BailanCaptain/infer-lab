@@ -157,13 +157,15 @@ file: vllm-ascend-overview-fig-two-repo-map
 
 ## 一条请求走到这里：A0–A4 每站换了什么
 
-看清标准 `Qwen3-8B` 路径后，下面把五个扩展点映射到本站 `09 旗舰异构模型全案` 的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，模型 `GLM-5.3-Flash`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），沿[一条请求](one-request.md)逐站核对：
+看清标准 `Qwen3-8B` 路径后，下面把五个扩展点映射到「09 旗舰异构模型全案」的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，模型 `GLM-5.3-Flash`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），沿[一条请求](one-request.md)逐站核对：
 
-- **A0 启动**：按核心功能角色计 20 个进程，其中 16 个 Worker 各守一张卡（不含启动器与运行时辅助进程）。默认 spawn 下，其中 19 个角色分别完成通用插件登记；平台选中 `NPUWorker` 并补上 W8A8 量化选项，分配 KV cache 后，非 eager 路径进入预热与图捕获。见[引擎进程](engine-processes.md)。
-- **A1 入口**：HTTP、聊天模板、分词、选 DP 组都是上游代码；昇腾事先打好 global patch，让 `vLLM 0.23.0` 认得 GLM 配置。
-- **A2 调度**：Scheduler 归上游，但块长与分组由昇腾 patch 替换的函数算出：逻辑块 `640` 个位置，四类状态对齐成两档页、编成 `5` 个缓存组。见 [KV cache 规格](kv-cache-spec.md)。
-- **A3 准备输入**：计划在这里越过平台边界。`NPUModelRunner` 把调度输出转成 NPU 张量，为 5 个缓存组各维护一张 block table，并把 full 组的 `640` 块号展开成 5 个 `128` kernel 块号。见 [Block Table](block-table.md)。
-- **A4 逐层前向**：45 层由昇腾包里的 GLM 模型组织，注意力分 34 层 [KDA](linear-attention.md)（借 custom op 选中昇腾实现）和 11 层[稀疏 MLA](sparse-attention.md)（直绑专用后端）。其中 42 层前馈为 [MoE](moe.md)，路由专家按 [EP16](expert-parallel.md) 摊到 16 张卡。
+| 主线站点 | 上游 vLLM 负责什么 | `vllm-ascend` 在这一站接管什么 |
+|---|---|---|
+| **A0 启动** | 按核心角色拉起 20 个进程（16 Worker 守卡，不含启动器与辅助进程）；默认 `spawn` 下 19 个角色读清单 | 平台选中 `NPUWorker`、补上 W8A8 量化选项；切出 KV 池后非 eager 路径进入预热与图捕获（见[引擎进程](engine-processes.md)） |
+| **A1 入口** | HTTP 接入、聊天模板、分词与 DP 选组全部走上游 | 事先打好 global patch，让 `vLLM 0.23.0` 认得 GLM 配置 |
+| **A2 调度** | `Scheduler` 排步与块池记账归上游 | 昇腾 patch 算定块长与分组：逻辑块 `640` 位置，四类状态对齐成两档页、编成 `5` 个缓存组（见 [KV cache 规格](kv-cache-spec.md)） |
+| **A3 准备输入** | 调度计划跨线交接 | `NPUModelRunner` 将计划转成 NPU 张量，维护 5 张 block table，并把 full 组 `640` 块号展开为 5 个 `128` kernel 块号（见 [Block Table](block-table.md)） |
+| **A4 逐层前向** | 驱动前向与采样接口 | 45 层由昇腾包 GLM 模型组织：34 层 [KDA](linear-attention.md) 走 CustomOp、11 层[稀疏 MLA](sparse-attention.md) 直绑专用后端；42 层 [MoE](moe.md) 按 [EP16](expert-parallel.md) 摊到 16 卡 |
 
 ## 常见误解
 

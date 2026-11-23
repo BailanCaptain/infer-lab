@@ -132,9 +132,11 @@ rawSources:
 ---
 ## 它优化什么，和前两级开关是什么关系？
 
-`enable_super_kernel` 是 `ascend_compilation_config` 中的第三级图编译优化开关（kernel 指一个算子在设备上运行的程序）。前两级先把计算图交给昇腾图编译器、再按固定形状把算子编译成静态二进制；开启 `enable_super_kernel` 后，底层会在已编译的静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为一个更大的 Super Kernel 并按依赖关系自动插入内部同步，目的是减少逐个算子下发和调度的等待开销。不兼容的算子可能把融合范围截成多段，它不保证整张网最终只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
+`enable_super_kernel` 是 `ascend_compilation_config` 中的第三级图编译优化开关（kernel 指一个算子在设备上运行的程序）。前两级先把计算图交给昇腾图编译器，再按固定批次形状把算子编译成静态二进制。
 
-它是**跟随式开关**：配置里只开 `enable_static_kernel` 而省略 `enable_super_kernel` 时，它会自动跟着变成 `true`；且开启它硬性要求同时开启 `enable_static_kernel`（后者又要求开启 `enable_npugraph_ex`）。三级开关的层次关系如下：
+开启 `enable_super_kernel` 后，底层会在已编译的静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为一个更大的 Super Kernel 并按依赖关系自动插入内部同步，目的是减少逐个算子下发和调度的等待开销。不兼容的算子会把融合范围截成多段，它不保证整张网最终只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
+
+它是**跟随式开关**：配置里只开 `enable_static_kernel` 而省略 `enable_super_kernel` 时，它会自动跟随变为 `true`。同时开启它硬性要求同时开启 `enable_static_kernel`（后者又要求开启 `enable_npugraph_ex`）。三级开关的层次关系如下：
 
 | 级别与配置键 | 做什么 | 默认行为与依赖 |
 | --- | --- | --- |
@@ -152,17 +154,26 @@ vllm serve Qwen/Qwen2-7B-Instruct \
 
 ## 在哪两步生效，为什么写了 true 却没开？
 
-这三级整体开关与编译期匹配局部子图并替换融合算子的 `fuse_*` 规则分属两层：固定 Ascend manager 的 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 只替换对应的几步局部子图（不代表整套编译器只有三种优化；旧 `fuse_allreduce_rms` 入口自 `v0.25.1rc1` 起已移除，详见 [fuse_allreduce_rms](fuse-allreduce-rms.md) 与 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)）。而有效开启 `enable_super_kernel` 后，它会先后参与**图编译期**和 **ACL Graph 捕获期**两个环节：
+这三级整体开关与编译期匹配局部子图并替换融合算子的 `fuse_*` 规则分属两层。固定 Ascend manager 的 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 只替换对应的几步局部子图（不代表整套编译器只有三种优化；旧 `fuse_allreduce_rms` 入口自 `v0.25.1rc1` 起已移除，详见 [fuse_allreduce_rms](fuse-allreduce-rms.md) 与 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)）。
 
-- **编译期追加优化选项**：`compiler_interface.py` 在 `enable_static_kernel` 为真的分支内部再检查 `enable_super_kernel`，为真时向 `npugraph_ex` 的 `options` 字典写入 `super_kernel_optimize=True` 与 `super_kernel_optimize_options={"dcci_after_kernel_end": [".*"]}`。因为这段逻辑嵌在静态内核分支里面，只要 `enable_static_kernel` 没开就根本走不到这里——这正是配置校验要求 `Super kernel generation requires static kernel to be enabled.` 的原因。
-- **捕获期框定 `scope` 并触发优化**：捕获 ACL Graph 时，代码用上下文管理器 `super_kernel_scope("full_model", self.enable_super_kernel)` 包住 `self.runnable(*args, **kwargs)`（关闭时直接执行内部代码，开启时调用 `torch.npu.super_kernel_scope_begin("full_model")` 与 `scope_end("full_model")`）；等整张图录制完成后，再调用 `aclgraph.super_kernel_optimize(optimize_options={"dcci_after_kernel_end": [".*"]})`。注意这里的范围名虽然叫 `full_model`，实际只覆盖该 wrapper 执行的 `runnable`，不能据此认为它覆盖了全部服务步骤；同时，启动日志（`Super kernel optimization is enabled for ACL graph capture.`）只能证明上述优化步骤被调用，要确认实际合并了多少子 kernel 与端到端时延收益，仍须采集性能剖析数据（如对比 `kernel_details.csv` 中的算子数量、耗时及 `Block Dim`）。
+```wiki-diagram
+file: param-enable-super-kernel
+```
 
-排查“明明配了却没生效或直接报错”时，按顺序核对以下四道门槛：
+有效开启 `enable_super_kernel` 后，它会先后参与**图编译期**和 **ACL Graph 捕获期**两个环节：
 
-1. **图模式（`cudagraph_mode`）门槛**：当图模式为 `NONE`、不支持的 NPU 图模式，或需要 piecewise 拆分编译的模式（包括默认的 `FULL_AND_PIECEWISE`）时，平台层都会把 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel` 全部写回 `False`。其中 piecewise 分支在关闭三级开关前还会先检查编译模式是否合法：`v0.26` 维护快照无条件执行 `assert compilation_config.mode == CompilationMode.VLLM_COMPILE`；`v0.30.0` 与 `main` 则只在**编译模式不是 `CompilationMode.VLLM_COMPILE` 且 `VLLM_USE_BREAKABLE_CUDAGRAPH` 开关为假**这两个条件同时成立时才抛出 `AssertionError`（编译模式本身已是 `VLLM_COMPILE` 时，即使该开关为假也不会触发这个异常）。只有进入 `has_full_cudagraphs()` 分支（如按模型支持配置 `FULL` 或 `FULL_DECODE_ONLY`）才会保留这三级开关并清空 `splitting_ops = []`，详见 [ACL Graph](../concepts/acl-graph.md)。
-2. **硬件能力降级与硬依赖门槛**：在 Ascend 310P 等不支持 `NPUGRAPH_EX` 的硬件上（`v0.26` 用 `is_310p()` 判断，`v0.30.0` 与 `main` 查硬件画像的 `HardwareCapability.NPUGRAPH_EX`），配置校验会对请求开启的项逐条打出告警，然后把三级开关全部置为 `False`；告警文本在 `v0.26` 中包含 `Ascend 310P`，而在 `v0.30.0` 与 `main` 中改成了 `current hardware profile`，查日志时不能只搜 `310P`。降级处理完成后，若仍开启 `enable_static_kernel` 则断言 `enable_npugraph_ex` 为真，若仍开启 `enable_super_kernel` 则断言 `enable_static_kernel` 为真。
-3. **省略键、显式 `None`（JSON `null`）与字符串 `"false"` 的差异**：「不写就跟随」在两代配置里的实现不同——`v0.26` 把参数默认设为 `bool | None = None` 当哨兵，进入 `__init__` 首步若为 `None` 就取 `enable_static_kernel`，因此显式传 `None`（JSON `null`）也会跟随静态内核；`v0.30.0` 与 `main` 迁到 pydantic 后字段类型为非可空 `bool`（静态默认 `False`），改由 `mode="before"` 校验器在输入里**省略本键**且传入 `enable_static_kernel` 时把后者的值抄过去，显式传 `None`（JSON `null`）不算省略，会被布尔类型校验直接拒绝（官方文档 Default 栏写 `Inherits enable_static_kernel` 描述的是省略时的外部行为，不能单看静态字段定义 `False`）。反之，把值写成字符串 `"false"` 时，`v0.26` 不做类型转换、非空字符串判为真（若未开 static 会直接触发依赖断言报错），而 `v0.30.0` 与 `main` 会由 pydantic 宽松转换为 `False`。
-4. **版本、早期发布标签与未知键门槛**：`v0.23` 与固定 GLM 双机镜像没有此键，传入时连同拼错的键名都会落入 `AscendCompilationConfig.__init__` 的 `**kwargs` 被静默忽略；`v0.26` 维护快照虽有此键，但早期发布标签 `v0.26.0rc1` 与 `v0.27.1rc1` 均无此键，主线实现自 `v0.28.0.rc1` 才可见，不能只按“版本号不小于 v0.26”或线上文档反推早期标签已支持。到了 `v0.30.0` 与 `main`，`@config` 默认开启 `extra="forbid"`，键名拼错或误传已移除的 `fuse_allreduce_rms` 都会直接报错。
+1. **图编译期追加优化选项**：`compiler_interface.py` 在 `enable_static_kernel` 为真的分支内部再检查 `enable_super_kernel`。为真时向 `npugraph_ex` 的 `options` 字典写入 `super_kernel_optimize=True` 与 `super_kernel_optimize_options={"dcci_after_kernel_end": [".*"]}`。因为这段逻辑嵌在静态内核分支里面，关闭 `enable_static_kernel` 就根本走不到这里——这正是校验要求 `Super kernel generation requires static kernel to be enabled.` 的原因。
+2. **ACL Graph 捕获期框定 `scope` 并触发优化**：捕获图时，代码用上下文管理器 `super_kernel_scope("full_model", self.enable_super_kernel)` 包住 `self.runnable(*args, **kwargs)`。关闭时直接执行内部代码；开启时调用 `torch.npu.super_kernel_scope_begin("full_model")` 与 `scope_end("full_model")`，整张图录制完成后再调用 `aclgraph.super_kernel_optimize(optimize_options={"dcci_after_kernel_end": [".*"]})`。
+3. **范围名与日志的核验边界**：范围名虽叫 `full_model`，实际只覆盖该 wrapper 执行的 `runnable`，不代表覆盖全部服务步骤。启动日志 `Super kernel optimization is enabled for ACL graph capture.` 只能证明上述优化步骤被调用；要确认实际合并了多少子 kernel 与端到端时延收益，仍须采集性能剖析数据（如对比 `kernel_details.csv` 中的算子数量、耗时及 `Block Dim`）。
+
+排查「明明配了却没生效或直接报错」时，按顺序核对以下四道门槛：
+
+| 排查门槛 | `v0.26` 维护快照行为 | `v0.30.0` / `main` 行为 |
+| --- | --- | --- |
+| **1. 图模式（`cudagraph_mode`）** | `NONE`、不支持的 NPU 图模式或 piecewise（含默认 `FULL_AND_PIECEWISE`）都会把三级开关写回 `False`；piecewise 分支在关闭前先无条件 `assert compilation_config.mode == CompilationMode.VLLM_COMPILE` | 同样仅 `has_full_cudagraphs()`（如按模型支持配 `FULL` 或 `FULL_DECODE_ONLY`）保留三级开关并清空 `splitting_ops = []`；piecewise 分支仅在 **`mode != CompilationMode.VLLM_COMPILE` 且 `VLLM_USE_BREAKABLE_CUDAGRAPH` 为假** 时才抛 `AssertionError`（编译模式本身已是 `VLLM_COMPILE` 时不会触发；详见 [ACL Graph](../concepts/acl-graph.md)） |
+| **2. 硬件能力降级与硬依赖** | 针对 Ascend 310P 等不支持 `NPUGRAPH_EX` 的硬件用 `is_310p()` 判断，逐条打出含 `Ascend 310P` 告警并把三级开关全置 `False` | 查硬件画像 `HardwareCapability.NPUGRAPH_EX`，告警文本改为 `current hardware profile`（查日志不能只搜 `310P`），全置 `False`。降级完成后，仍开启 `enable_static_kernel` 则断言 `enable_npugraph_ex` 为真，仍开启 `enable_super_kernel` 则断言 `enable_static_kernel` 为真 |
+| **3. 省略、`null` 与 `"false"`** | 参数默认 `bool \| None = None` 作哨兵，进入 `__init__` 首步若为 `None` 就取 `enable_static_kernel`（省略或显式传 `None`/JSON `null` 均跟随）；字符串 `"false"` 不做类型转换、非空判真（未开 static 即触发依赖断言报错） | 迁至 pydantic 非可空 `bool`（静态默认 `False`），由 `mode="before"` 校验器仅在**省略本键**且传入 `enable_static_kernel` 时复制其值（官方文档 Default 写 `Inherits enable_static_kernel` 即指此行为）；显式传 `None`（JSON `null`）不算省略、被布尔校验拒绝；字符串 `"false"` 宽松转为 `False` |
+| **4. 版本、早期标签与未知键** | 维护快照有此键，但早期发布标签 `v0.26.0rc1` 与 `v0.27.1rc1` 均无此键（主线自 `v0.28.0.rc1` 可见，不可按版本号或线上文档反推）；未知键落入 `**kwargs` 静默忽略 | `@config` 默认开启 `extra="forbid"`，拼错键名或误传已移除的 `fuse_allreduce_rms` 直接启动报错；`v0.23` 与固定 GLM 双机镜像无此键，连同拼错均被 `AscendCompilationConfig.__init__` 的 `**kwargs` 静默忽略 |
 
 ## 启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？
 

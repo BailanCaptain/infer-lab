@@ -1,0 +1,26 @@
+mode: native-svg
+id: batch-invariance-fig-dispatch-gaps
+caption: >-
+  昇腾批不变双供应链派发与 GLM-5.3-Flash 覆盖缺口：（一）VLLM_BATCH_INVARIANT=1 经 enable_custom_op() 禁用 vllm_ascend_C，main 在 AscendC 检查前无条件先拆分 npu_add_rms_norm，再按 AscendC 优先、Triton 叠加顺序替换算子（v0.30.0 拆 FIA 混批，main 切至 set_deterministic_level(3)）；（二）按 45 层比例绘出 GLM-5.3-Flash 的 34 层 KDA（75.6%，未被替换名单覆盖）与 11 层稀疏 MLA（走 DSA 专用后端，常规 FIA 替换钩子未覆盖），以及 mHC 绕过门禁和三层验收边界。
+size: [900, 470]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189'
+    symbols:
+      - enable_batch_invariant_mode
+      - override_envs_for_invariance
+      - init_batch_invariance
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L590'
+    symbols:
+      - enable_custom_op
+      - VLLM_BATCH_INVARIANT
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/batch_invariant.py#L68-L194'
+    symbols:
+      - set_deterministic_level
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L95-L100'
+    symbols:
+      - chunk_kda
+      - fused_recurrent_kda_fwd
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169'
+    symbols:
+      - hc_pre
+      - npu_hc_pre_v2

@@ -1,8 +1,8 @@
 mode: native-svg
 id: acl-graph-fig-mode-budget
 caption: >-
-  ACL Graph 三档模式捕获回放对照、侧流参数更新与显存/流资源预算：上半对比 FULL、FULL_DECODE_ONLY 与 PIECEWISE / FULL_AND_PIECEWISE 在 decode 与混合批的落点及默认捕获上限 min(max_num_seqs × decode_query_len, 512)；左下拆解固定缓冲与侧流 update_graph_params 的 Event 等待/释放顺序；右下呈现 HBM u 预算与 (1-u) 录图余量及 207008 流资源告警边界。
-size: [900, 470]
+  ACL Graph 四档模式矩阵、三大图实现与显存/流资源预算：上半按整齐 decode 与混合批对照四档模式与默认 512 上限（FULL 遇不支持整图的 NEVER 后端启动抛 ValueError，仅支持 UNIFORM 等部分级别则降级告警）；下半按 92%:8% 真实比例绘制 u × total_memory 与 (1-u) 录图余量（v0.30.0 默认 u=0.92，生产常传 0.90 对应 10%），附录图后扣 150 MiB 建议及 207008 流资源告警。
+size: [900, 540]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1318-L1346
     symbols: [requires_piecewise_compilation, splitting_ops, enable_npugraph_ex]
@@ -10,11 +10,7 @@ pins:
     symbols: [max_cudagraph_capture_size, decode_query_len]
   - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L26-L54
     symbols: [_STREAM_RESOURCE_ERROR_CODE, use_updatable_graph]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L290-L320
-    symbols: [_updatable_graph_replay]
   - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/breakable_aclgraph.py#L38-L55
     symbols: [BreakableACLGraphWrapper]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L604-L625
-    symbols: [update_graph_params]
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L945
     symbols: [npugraph_memory_bytes, non_kv_memory]

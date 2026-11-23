@@ -1,0 +1,8 @@
+mode: native-svg
+id: npu-model-runner-fig-logits-select
+caption: >-
+  选行过输出头（logits_indices）示意：A 与 C 共 4 行全部完成前向并写 KV，仅第 0、3 行送入 lm_head 算出 2×5 个词表分数供 RPC 2 贪心采样；底部标出 chunked prefill 采样后丢弃与投机解码取最后 1+k 行两类边界。
+size: [900, 370]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2306-L2371
+    symbols: [logits_indices, compute_logits]

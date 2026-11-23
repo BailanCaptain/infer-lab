@@ -1,0 +1,9 @@
+id: sampling-fig-temp-and-axis
+mode: native-svg
+size: [900, 540]
+caption: 同一组 6 词分数在 T=0.5、1、2 下的概率分布重塑（尾部随温度升高显著增厚，词序不变），以及 top_k=3、top_p=0.8 截断后的 [0,1] 区间抽签直觉与加速卡逐词指数噪声除法 argmax(p_i / q_i) 实现对照。
+pins:
+  - source: vllm@ced6857a:vllm/v1/sample/sampler.py#L250-L299
+    symbols: [temperature, all_greedy]
+  - source: vllm@0fc695fc:vllm/v1/sample/ops/topk_topp_sampler.py#L352-L457
+    symbols: [random_sample, exponential_, argmax]

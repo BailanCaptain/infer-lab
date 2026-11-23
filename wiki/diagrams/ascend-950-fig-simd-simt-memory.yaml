@@ -1,0 +1,11 @@
+mode: native-svg
+id: ascend-950-fig-simd-simt-memory
+caption: >-
+  昇腾 950 Vector 单元 SIMD（规则整组锁步执行）与 SIMT（不规则索引与分支线程）双模式 Vector Function 对照，以及 UMA 封装（2×AI Die + 2×IO Die）到 L2 512 B 缓存行（4×128 B 扇区）再到核内 KB 级 SRAM 的存储层次。
+size: [900, 444]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L333-L381'
+    symbols:
+      - HardwareProfile
+      - FP8_OPTIMIZED
+      - DYNAMIC_MX_QUANT_FUSION

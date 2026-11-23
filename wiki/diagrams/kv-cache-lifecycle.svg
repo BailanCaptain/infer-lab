@@ -1,42 +1,104 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 805" width="880" height="805" role="img" aria-label="A2 管分配，Worker 在 A4 读写设备状态，A6 按接受结果更新进度。MLA 与 KDA 是逐层选择；继续请求回到下一步调度">
-  <title>A2 管分配，Worker 在 A4 读写设备状态，A6 按接受结果更新进度。MLA 与 KDA 是逐层选择；继续请求回到下一步调度</title>
-  <defs><marker id="kv-cache-lifecycle-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="kv-cache-lifecycle-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <rect x="24" y="34" width="832" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore · CPU 上的请求与块引用</text>
-  <rect x="24" y="206" width="832" height="322" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker · 设备缓存张量与本步计算</text>
-  <rect x="24" y="573" width="832" height="208" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="561" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore · CPU 上的有效进度</text>
-  <path d="M440 128 L440 230" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kv-cache-lifecycle-ah-comm)"/>
-  <path d="M300 286 L237 307 L237 329" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <path d="M580 286 L642 307 L642 329" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <path d="M237 399 L237 422 L300 422 L300 447" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <path d="M642 399 L642 422 L580 422 L580 447" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <path d="M440 503 L440 599" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kv-cache-lifecycle-ah-comm)"/>
-  <path d="M300 661 L237 687 L237 712" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <path d="M580 661 L642 687 L642 712" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-lifecycle-ah-ink)"/>
-  <rect x="150" y="60" width="580" height="68" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="440" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A2 · 给本步和候选保留槽位</text>
-  <text x="440" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">块号随调度计划送给 Worker</text>
-  <rect x="150" y="230" width="580" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3 · 把块号换算成槽位与状态索引</text>
-  <text x="440" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1 个 640 格逻辑块交给算子时看成 5 个 128 格 kernel 块；缓存张量启动时已建好</text>
-  <rect x="70" y="329" width="335" height="70" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="237.5" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A4 · 走到 MLA 层</text>
-  <text x="237.5" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">追加主历史和索引，更新尾状态</text>
-  <rect x="475" y="329" width="335" height="70" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="642.5" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A4 · 走到 KDA 层</text>
-  <text x="642.5" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">读写递推矩阵与近期卷积状态</text>
-  <rect x="150" y="447" width="580" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">继续逐层前向 → A5 采样与候选处理</text>
-  <text x="440" y="490" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">把确定的输出与接受信息返回引擎</text>
-  <rect x="150" y="599" width="580" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A6 · 更新请求与已计算进度</text>
-  <text x="440" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">按拒绝数量回退计数</text>
-  <rect x="70" y="712" width="335" height="48" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="237.5" y="741" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">继续：返回 A2，用有效历史接着算</text>
-  <rect x="475" y="712" width="335" height="48" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="642.5" y="741" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结束：A7 归还请求的块引用</text>
-  <text x="456" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">调度计划，不搬整份历史</text>
-  <text x="456" y="552" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">本步结果，不回传整份缓存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="混合模型 KV 逻辑块与 KDA 状态页从 CPU 分配到 HBM 读写再回退释放的闭环流转图" font-family="var(--font-sans)">
+  <title>混合模型（GLM 双机）中一个逻辑块 #b 与四张 KDA 状态页（p₀..p₃）的全生命周期：A2 由 CPU 调度器 allocate_slots 分配整数块号；A3 在 Worker 将 #b 零搬运展开为 5 个 128 内核块；A4 逐层分流写入 MLA 潜向量或原地更新 KDA 候选页；A6 验稿后 MLA 回退 num_computed_tokens 原地覆写、KDA 选定对应接受页续算；A7 结束仅归还块号不清零 HBM。</title>
+  <desc>关联源码符号：allocate_slots, num_computed_tokens</desc>
+  <defs>
+    <marker id="kvl-comm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="kvl-kv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="kvl-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1: A2 CPU EngineCore -->
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">① EngineCore（CPU 账本）· A2 按需拨出整数块号，绝不搬运 HBM 数据</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="14" y="50" width="872" height="66" rx="8" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="76" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">allocate_slots()</text>
+  <text x="28" y="100" font-size="13.5" fill="#4d5652">为 R1 本步与 3 候选拨块</text>
+
+  <!-- Concrete block pills -->
+  <rect x="218" y="60" width="210" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="323" y="80" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">full 组逻辑块 #b</text>
+  <text x="323" y="98" text-anchor="middle" font-size="13" fill="#4d5652">1 块覆 640 格（MLA + 索引 K）</text>
+
+  <rect x="442" y="60" width="154" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="519" y="80" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">尾状态 s₀, s₁</text>
+  <text x="519" y="98" text-anchor="middle" font-size="13" fill="#4d5652">滑窗每块 4 格</text>
+
+  <rect x="610" y="60" width="262" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="741" y="80" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">KDA 页 [p₀ | p₁, p₂, p₃]</text>
+  <text x="741" y="98" text-anchor="middle" font-size="13" fill="#4d5652">3 组×4 页 = 12 块号（含 3 候选槽）</text>
+
+  <!-- Cross-process arrows down to Worker -->
+  <path d="M 323 116 L 323 146" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#kvl-comm)"/>
+  <path d="M 741 116 L 741 146" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#kvl-comm)"/>
+  <text x="450" y="137" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">仅传整数块号清单（调度计划）→ 8 卡 Worker 共享同一份映射</text>
+
+  <!-- Stage 2: A3 + A4 Worker HBM -->
+  <text x="14" y="168" font-size="16" font-weight="700" fill="#17211f">② NPU Worker（HBM 显存池）· A3 换算地址 → A4 按层分流读写</text>
+  <line x1="14" y1="180" x2="886" y2="180" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <!-- Left branch: 12 MLA layers -->
+  <rect x="14" y="192" width="424" height="148" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="216" font-size="14.5" font-weight="700" fill="#3a4f93">A3/A4 · 12 层稀疏 MLA（按位置追加历史）</text>
+  <!-- 5 kernel blocks strip -->
+  <text x="28" y="240" font-size="13.5" fill="#4d5652">逻辑块 <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">#b</tspan> 零搬运展开为 5 个 128-tok 内核块：</text>
+  <rect x="28" y="250" width="76" height="28" rx="4" fill="#4c65b6"/>
+  <text x="66" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#ffffff">5b</text>
+  <rect x="108" y="250" width="76" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="146" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">5b+1</text>
+  <rect x="188" y="250" width="76" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="226" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">5b+2</text>
+  <rect x="268" y="250" width="76" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="306" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">5b+3</text>
+  <rect x="348" y="250" width="76" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="386" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">5b+4</text>
+
+  <text x="28" y="302" font-size="13.5" fill="#17211f">• 写：512 维潜向量散射入槽位 + 满 4 词压 1 条池 K</text>
+  <text x="28" y="326" font-size="13.5" fill="#4d5652">• 读：indexer 挑 ≤ 2051 位，SFA 按块表原地跨块读</text>
+
+  <!-- Right branch: 34 KDA layers -->
+  <rect x="462" y="192" width="424" height="148" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+  <text x="476" y="216" font-size="14.5" font-weight="700" fill="#065f56">A3/A4 · 34 层 KDA（按请求原地更新定长状态）</text>
+  <text x="476" y="240" font-size="13.5" fill="#4d5652">不算槽位，块号直作状态页号（FP32 矩阵 + BF16 卷积）：</text>
+  <rect x="476" y="250" width="92" height="28" rx="4" fill="#087f73"/>
+  <text x="522" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#ffffff">p₀ 当前</text>
+  <rect x="576" y="250" width="92" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="622" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">p₁ 候选1</text>
+  <rect x="676" y="250" width="92" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="722" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">p₂ 候选2</text>
+  <rect x="776" y="250" width="96" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="824" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">p₃ 候选3</text>
+
+  <text x="476" y="302" font-size="13.5" fill="#17211f">• Prefill 仅写 p₀；MTP 验稿 1+3 时同步写 4 页状态</text>
+  <text x="476" y="326" font-size="13.5" fill="#4d5652">• 每卡仅维护本地 8 个头（与序列长无关，不跨卡换状态）</text>
+
+  <!-- Return arrow to Stage 3 -->
+  <path d="M 226 340 L 226 368" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#kvl-kv)"/>
+  <path d="M 674 340 L 674 368" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#kvl-teal)"/>
+  <text x="450" y="362" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">A5 采样验稿 → 仅回传确定 token 与接受数（不回传缓存）</text>
+
+  <!-- Stage 3: A6 Rollback & A7 Free -->
+  <text x="14" y="390" font-size="16" font-weight="700" fill="#17211f">③ EngineCore · A6 验稿回退进度与 A7 结束归还块号</text>
+  <line x1="14" y1="402" x2="886" y2="402" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="14" y="414" width="286" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="438" font-size="14" font-weight="700" fill="#3a4f93">MLA 拒稿：回退进度原地覆写</text>
+  <text x="28" y="460" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">num_computed_tokens</tspan> 扣回拒稿数</text>
+  <text x="28" y="480" font-size="13.5" fill="#4d5652">下步直接覆写 #b 内作废槽位</text>
+
+  <rect x="314" y="414" width="286" height="74" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="328" y="438" font-size="14" font-weight="700" fill="#065f56">KDA 拒稿：按接受数选页续算</text>
+  <text x="328" y="460" font-size="13.5" fill="#17211f">如接受 1 个候选 → 选中 p₁ 续算</text>
+  <text x="328" y="480" font-size="13.5" fill="#4d5652">直接弃用 p₂、p₃ 候选页，零重算</text>
+
+  <rect x="614" y="414" width="272" height="74" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="628" y="438" font-size="14" font-weight="700" fill="#936300">A7 请求结束：一次还清 16–17 块</text>
+  <text x="628" y="460" font-size="13.5" fill="#17211f">仅 CPU 减引用计数挂回空闲队列</text>
+  <text x="628" y="480" font-size="13.5" fill="#4d5652">HBM 显存数值原地保留不清零</text>
 </svg>

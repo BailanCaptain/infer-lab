@@ -1,0 +1,10 @@
+mode: native-svg
+id: kv-cache-cpu-offload-fig-glm-barriers
+caption: >-
+  GLM 双机快照开启 KV Cache CPU Offload 的容量口径区分与三道拦截墙：上半区区分被抢占请求释放的 8 卡显存池容量（120–121 块 × 8 ≈ 7.5 GiB）与实际恢复传输载荷（受默认 offload_prompt_only 过滤 decode、5 组页布局与留档边界影响，不可直接画等号）；下半区画出钉住 GLM 快照开启时的三层碰壁（旧上游模块已删 → len(gpu_block_size)==1 单组断言 → 每层 K/V 张量假定与 KDA 状态对齐），并对照 v0.30.0 / main 规范字节视图改写。
+size: [900, 380]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/npu.py#L16-L63'
+    symbols: ['NPUOffloadingSpec', 'num_cpu_blocks', 'gpu_block_size']
+  - source: 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806'
+    symbols: ['_build_store_jobs']

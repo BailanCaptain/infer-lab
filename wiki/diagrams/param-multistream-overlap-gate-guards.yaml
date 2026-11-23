@@ -1,0 +1,14 @@
+mode: native-svg
+id: param-multistream-overlap-gate-guards
+caption: >-
+  multistream_overlap_gate 在 v0.23.0 中的四类运行失败陷阱（无共享专家裸 assert、未量化无消费端、未开 SP / GLM MC2 导致 4 行路由对 1 行隐藏态失配、MoE LoRA v1 硬报错）及 v0.24 起移除后的跨版本清理对照。
+size: [900, 450]
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L75-L87
+    symbols: [multistream_overlap_gate, AssertionError]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658
+    symbols: [multistream_overlap_gate, gate_stream]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907
+    symbols: [unknown_keys]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030
+    symbols: [unknown_keys]

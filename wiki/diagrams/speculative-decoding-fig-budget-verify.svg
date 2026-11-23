@@ -1,65 +1,120 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="Speculative Decoding 1+K 验证、状态收场与昇腾约束图" font-family="var(--font-sans)">
-  <title>Speculative Decoding 1+K 前缀验证、状态收场与昇腾边界</title>
-  <desc>上半区以 K=3 示例展示 1 个已定 token 加 3 个候选一次前向错位验证、遇首个不符即停并写下主模型替代词，以及按位置 KV 原地覆盖与 KDA K+1 份状态的两种收场方式；下半区对比保分布拒绝采样与改变分布的 block/entropy verify，并汇总昇腾 1+K≤16 与 ACLGraph 倍数约束。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="被拒位置 KV 原地覆盖时间线、KDA 多状态槽选槽，以及昇腾 FIA 上限与 ACLGraph 补齐放大标尺图" font-family="var(--font-sans)">
+  <title>被拒位置的两种状态收场与昇腾 1+K 硬件标尺</title>
+  <desc>上半区左右对照按位置 KV Cache 不擦除而退回指针到槽 8、下一步从槽 8–11 原地覆盖，以及 KDA 递推层预留 1+K=4 份状态槽并按非占位有效数 a 选取第 a−1 份；下半区用标尺直观展示昇腾 FIA TND 单轮最多 16 格（K≤15）硬边界，以及 12 条 decode 请求在 K=0 补到 16（空跑 4）与 K=3 补到 64（空跑 16，放大 4 倍）的录图对齐代价。</desc>
   <defs>
-    <marker id="sdf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <marker id="sdbv-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
-    <marker id="sdf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    <marker id="sdbv-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="sdbv-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单轮 1+K 验证与两种状态收场：先验证，再按剩余有效位置草拟下一轮</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Zone 1: Two State Cleanup Mechanisms -->
+  <circle cx="26" cy="24" r="12" fill="#4c65b6"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">被拒位置的两种收场：按位置 KV 退回原地覆盖 vs 递推状态预留 K+1 份槽位</text>
 
-  <rect x="12" y="54" width="528" height="174" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="26" y="78" font-size="14.5" font-weight="700" fill="#065f56">A. 主模型一次算 1+3=4 格，错开一格从左到右比（遇拒绝即停）</text>
+  <!-- Left: Position-based KV Overwrite Grid -->
+  <text x="16" y="60" font-size="14.5" font-weight="700" fill="#3a4f93">A. 按位置 KV（MHA / GQA / MLA）：不擦除，下步覆写</text>
 
-  <rect x="26" y="92" width="116" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="84" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">槽 5：猫（已定）</text>
-  <text x="84" y="138" text-anchor="middle" font-size="13.5" fill="#17211f">主模型预测「坐」</text>
+  <!-- Step t row -->
+  <text x="16" y="96" font-size="13.5" font-weight="700" fill="#4d5652">本轮写入</text>
+  <rect x="86" y="72" width="76" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="124" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">槽 5:猫</text>
+  <rect x="166" y="72" width="76" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="204" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">槽 6:坐 ✓</text>
+  <rect x="246" y="72" width="76" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="284" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">槽 7:在 ✓</text>
+  <rect x="326" y="72" width="84" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="368" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">槽 8:床 ✗</text>
 
-  <rect x="152" y="92" width="116" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="210" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">槽 6：坐 ✓留</text>
-  <text x="210" y="138" text-anchor="middle" font-size="13.5" fill="#17211f">主模型预测「在」</text>
+  <!-- Rewind arrow from 9 back to 8 -->
+  <path d="M 410 116 L 410 132 L 330 132" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#sdbv-arr-r)"/>
+  <text x="208" y="136" font-size="13.5" font-weight="700" fill="#8f3229">已算 9 → 退回 8（被拒 1 个）</text>
 
-  <rect x="278" y="92" width="122" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="339" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">槽 7：在 ✓留</text>
-  <text x="339" y="138" text-anchor="middle" font-size="13.5" fill="#17211f">预测「垫子」≠床</text>
+  <!-- Step t+1 row -->
+  <text x="16" y="176" font-size="13.5" font-weight="700" fill="#4d5652">下步写入</text>
+  <rect x="86" y="152" width="236" height="38" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="204" y="175" text-anchor="middle" font-size="13.5" fill="#4d5652">槽 5–7 保留为有效历史（已登记）</text>
+  <rect x="326" y="152" width="144" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="398" y="175" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">槽 8:垫子 + 槽 9–11</text>
 
-  <rect x="410" y="92" width="118" height="58" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
-  <text x="469" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">槽 8：床 ✗拒</text>
-  <text x="469" y="138" text-anchor="middle" font-size="13.5" fill="#8f3229">后续预测全作废</text>
+  <!-- Vertical overwrite arrow -->
+  <line x1="368" y1="112" x2="368" y2="148" stroke="#087f73" stroke-width="1.8" marker-end="url(#sdbv-arr-t)"/>
+  <text x="16" y="214" font-size="13.5" fill="#4d5652">仅已验证 token 登记进 Prefix Cache；草稿另预留 K 格 lookahead</text>
 
-  <text x="26" y="176" font-size="13.5" fill="#17211f">本轮交回：<tspan font-weight="700" fill="#065f56">「坐、在、垫子」</tspan>（2 接受 + 1 替代 = 3 个；全对则多 1 个 bonus）</text>
-  <text x="26" y="202" font-size="13.5" fill="#4d5652">步内严格先后：主模型前向 → 拒绝采样验证 → 草稿从「垫子」往后猜下轮 K 个</text>
+  <!-- Vertical divider -->
+  <line x1="488" y1="48" x2="488" y2="222" stroke="#d8d8cf" stroke-width="1.3"/>
 
-  <rect x="556" y="54" width="332" height="174" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="570" y="78" font-size="14.5" font-weight="700" fill="#3a4f93">B. 被拒位置的状态怎样收场？</text>
-  <rect x="570" y="92" width="304" height="56" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="582" y="114" font-size="13.5" font-weight="700" fill="#3a4f93">按位置 KV（MHA / GQA / MLA）</text>
-  <text x="582" y="136" font-size="13.5" fill="#17211f">不擦除！进度退回 8，下步原地覆盖槽 8</text>
-  <rect x="570" y="158" width="304" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
-  <text x="582" y="180" font-size="13.5" font-weight="700" fill="#7a3a6a">递推状态（KDA / Mamba）</text>
-  <text x="582" y="202" font-size="13.5" fill="#17211f">预留 1+K 份状态槽，按有效数 a 取第 a−1 份</text>
+  <!-- Right: KDA / Mamba K+1 State Slots -->
+  <text x="506" y="60" font-size="14.5" font-weight="700" fill="#7a3a6a">B. 递推状态（KDA / Mamba）：多存 K+1 份按槽选</text>
+  <text x="506" y="84" font-size="13.5" fill="#4d5652">本轮有效输出 a = 3（2 接受 + 1 替代）→ 取索引 a − 1 = 2</text>
 
-  <text x="14" y="264" font-size="16" font-weight="700" fill="#17211f">二、采样分布等价性边界与昇腾 NPU 执行硬约束</text>
-  <line x1="12" y1="276" x2="888" y2="276" stroke="#b8bcb5" stroke-width="1.3"/>
+  <rect x="506" y="98" width="88" height="52" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="550" y="120" text-anchor="middle" font-size="13.5" fill="#4d5652">槽 0 (a=1)</text>
+  <text x="550" y="140" text-anchor="middle" font-size="13" fill="#66716d">读完槽 5</text>
 
-  <rect x="12" y="290" width="432" height="152" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="26" y="314" font-size="14.5" font-weight="700" fill="#065f56">采样规则：普通拒绝采样保分布，可选变体改分布</text>
-  <text x="26" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#065f56">标准拒绝采样</tspan>：按 <tspan font-family="var(--font-mono)">min(1, p/q)</tspan> 接受，</text>
-  <text x="26" y="362" font-size="13.5" fill="#17211f">  被拒从 <tspan font-family="var(--font-mono)">norm(max(0, p−q))</tspan> 补抽 → 严格保分布 p</text>
-  <text x="26" y="390" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">block / entropy verify（默认关）</tspan>：改变接受门槛，</text>
-  <text x="26" y="412" font-size="13.5" fill="#8f3229">  不再满足逐位保分布证明（属判法变化而非浮点误差）</text>
-  <text x="26" y="432" font-size="13.5" fill="#66716d">• 指标区分：接受率 A/D ≠ 平均接受长度 1 + A/R</text>
+  <rect x="602" y="98" width="88" height="52" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="646" y="120" text-anchor="middle" font-size="13.5" fill="#4d5652">槽 1 (a=2)</text>
+  <text x="646" y="140" text-anchor="middle" font-size="13" fill="#66716d">读完槽 6</text>
 
-  <rect x="460" y="290" width="428" height="152" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="474" y="314" font-size="14.5" font-weight="700" fill="#936300">昇腾调度、ACLGraph 与算子四条硬约束</text>
-  <text x="474" y="340" font-size="13.5" fill="#17211f">1. <tspan font-weight="700" fill="#8f3229">FIA TND 上限</tspan>：<tspan font-family="var(--font-mono)">decode_threshold = 1+K ≤ 16</tspan></text>
-  <text x="474" y="364" font-size="13.5" fill="#17211f">2. <tspan font-weight="700" fill="#936300">录图尺寸凑整</tspan>：须为 1+K 倍数，补齐空跑同倍放大</text>
-  <text x="474" y="388" font-size="13.5" fill="#17211f">3. <tspan font-weight="700" fill="#3a4f93">预算截短优先</tspan>：token 预算不足先砍候选，不推迟请求</text>
-  <text x="474" y="412" font-size="13.5" fill="#17211f">4. <tspan font-weight="700" fill="#7a3a6a">Runner 演进</tspan>：v0.30.0 MRV1/V2 并存；main 统一 MRV2</text>
-  <text x="474" y="432" font-size="13.5" fill="#4d5652">   开启投机后不再走昇腾 PagedAttention 算子路径</text>
+  <rect x="698" y="98" width="94" height="52" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="2"/>
+  <text x="745" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">槽 2 (a=3) ✓</text>
+  <text x="745" y="140" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">读完槽 7</text>
+
+  <rect x="800" y="98" width="84" height="52" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="842" y="120" text-anchor="middle" font-size="13.5" fill="#8f3229">槽 3 丢弃</text>
+  <text x="842" y="140" text-anchor="middle" font-size="13" fill="#8f3229">读过「床」</text>
+
+  <line x1="745" y1="152" x2="745" y2="178" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#sdbv-arr-p)"/>
+  <text x="506" y="196" font-size="13.5" font-weight="700" fill="#7a3a6a">下步从槽 2 状态接续（align 模式搬入新槽则重置取槽 0）</text>
+  <text x="506" y="216" font-size="13.5" fill="#4d5652">短卷积缓存同留 +K 格（GLM 核长 4 → 缓存 6 格）</text>
+
+  <!-- Horizontal Divider -->
+  <line x1="16" y1="240" x2="884" y2="240" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Ascend Hardware Rulers (FIA <= 16 & ACLGraph Padding 4x Amplification) -->
+  <circle cx="26" cy="266" r="12" fill="#c78300"/>
+  <text x="26" y="270.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="272" font-size="16" font-weight="700" fill="#17211f">昇腾执行标尺：FIA 单轮 1+K ≤ 16 硬上限与 ACLGraph 补齐空跑 4× 放大</text>
+
+  <!-- Ruler A: FIA 1+K <= 16 -->
+  <text x="16" y="304" font-size="14" font-weight="700" fill="#17211f">FIA TND 宽度上限</text>
+  <rect x="160" y="284" width="128" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="224" y="304" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">GLM 1+3 = 4</text>
+  <rect x="292" y="284" width="384" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="484" y="304" text-anchor="middle" font-size="13.5" fill="#936300">合法范围：decode_threshold = 1 + K ≤ 16（K ≤ 15）</text>
+  <rect x="682" y="284" width="202" height="30" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="783" y="304" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">≥ 17：启动 assert 失败</text>
+
+  <!-- Ruler B: ACLGraph Padding Amplification (12 decode reqs: K=0 vs K=3) -->
+  <!-- Scale: 64 tokens = 528px (8.25px/token), x = 160..688 -->
+  <text x="16" y="352" font-size="14" font-weight="700" fill="#4d5652">12 请求 · 无投机</text>
+  <rect x="160" y="332" width="99" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="209.5" y="352" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">实算 12</text>
+  <rect x="259" y="332" width="33" height="30" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <text x="304" y="352" font-size="13.5" fill="#8f3229">+ 空跑 4 → 补到图尺寸 16</text>
+
+  <text x="16" y="398" font-size="14" font-weight="700" fill="#936300">12 请求 · MTP K=3</text>
+  <rect x="160" y="378" width="396" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="358" y="398" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">实算 12 × (1 + 3) = 48 个位置</text>
+  <rect x="556" y="378" width="132" height="30" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="622" y="398" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">空跑 16（4×放大）</text>
+  <text x="700" y="398" font-size="13.5" font-weight="700" fill="#8f3229">→ 补到图尺寸 64</text>
+
+  <!-- Capture size ticks -->
+  <line x1="160" y1="422" x2="884" y2="422" stroke="#b8bcb5" stroke-width="1.2"/>
+  <g font-size="13" font-family="var(--font-mono)" fill="#66716d">
+    <text x="160" y="442">0</text>
+    <text x="292" y="442" text-anchor="middle">16</text>
+    <text x="424" y="442" text-anchor="middle">32</text>
+    <text x="556" y="442" text-anchor="middle">48</text>
+    <text x="688" y="442" text-anchor="middle">64</text>
+    <text x="884" y="442" text-anchor="end">… 96, 128 (32×4 满载)</text>
+  </g>
+  <text x="16" y="468" font-size="13" fill="#4d5652">录图尺寸自动向上凑成 1+K 的倍数；开启投机后不再走昇腾 PagedAttention 算子路径；v0.30.0 MRV1/V2 并存，main 收敛 MRV2</text>
 </svg>

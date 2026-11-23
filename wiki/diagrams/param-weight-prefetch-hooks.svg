@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="weight_prefetch_config 独立预取流重叠、五类钩子门槛对照与 v0.24 移除后近名混淆清理" font-family="var(--font-sans)">
+  <title>weight_prefetch_config HBM→L2 预取重叠与钩子门槛矩阵</title>
+  <desc>Top: Compute stream (vector ops overlapping with lazy prefetch stream HBM to L2 CMO via preprocess/postprocess wait pair). Middle: Four ratio hooks (attn, moe, mlp gate_up, mlp down) plus MLA/SFA bypass with opposite token thresholds. Bottom: PR #11949 removal, 3 lookalike features that are NOT replacements, and GLM-5.3-Flash 5-path verdict.</desc>
+  <defs>
+    <marker id="wp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="wp-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <!-- TOP: 2-Stream Overlap Timeline -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. v0.23.0 切流预取原理：趁 Vector 空档把下一层权重从 HBM 搬进 L2</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">成对预处理/后处理算子切流同步；注意 MLA 虽函数名带 in_current_stream，实际仍切独立预取流</text>
+
+  <!-- Compute Stream Lane -->
+  <text x="16" y="92" font-size="14" font-weight="700" fill="#17211f">计算流</text>
+  <text x="16" y="110" font-size="13.5" fill="#66716d">(主线程)</text>
+
+  <rect x="108" y="66" width="142" height="48" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="179" y="88" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">预处理钩子</text>
+  <text x="179" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">预取流等计算流</text>
+
+  <line x1="252" y1="90" x2="278" y2="90" stroke="#087f73" stroke-width="1.7" marker-end="url(#wp-arr-teal)"/>
+
+  <rect x="282" y="66" width="248" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="406" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">轻量 Vector 算子窗口</text>
+  <text x="406" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">Quant / top_k / RMSNorm / SwiGLU</text>
+
+  <line x1="532" y1="90" x2="558" y2="90" stroke="#087f73" stroke-width="1.7" marker-end="url(#wp-arr-teal)"/>
+
+  <rect x="562" y="66" width="142" height="48" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="633" y="88" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">后处理同步</text>
+  <text x="633" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">计算流等预取流</text>
+
+  <line x1="706" y1="90" x2="730" y2="90" stroke="#087f73" stroke-width="1.7" marker-end="url(#wp-arr-teal)"/>
+
+  <rect x="734" y="66" width="150" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="809" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">Cube Linear 计算</text>
+  <text x="809" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">尽量命中 L2 权重</text>
+
+  <!-- Prefetch Stream Lane -->
+  <text x="16" y="156" font-size="14" font-weight="700" fill="#7a3a6a">预取流</text>
+  <text x="16" y="174" font-size="13.5" fill="#66716d">(惰性独立)</text>
+
+  <path d="M 179 116 L 179 156 L 278 156" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#wp-arr-plum)"/>
+
+  <rect x="282" y="132" width="248" height="48" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="406" y="154" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">HBM → L2 预取（CMO）</text>
+  <text x="406" y="172" text-anchor="middle" font-size="13.5" fill="#4d5652">无权重副本，但会争 MTE / L2 带宽</text>
+
+  <path d="M 532 156 L 633 156 L 633 118" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#wp-arr-plum)"/>
+
+  <!-- MIDDLE: 4 Ratio Hooks + MLA Bypass -->
+  <line x1="16" y1="198" x2="884" y2="198" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="16" y="224" font-size="15.5" font-weight="700" fill="#17211f">B. 方向相反的触发门槛：四类比例钩子 + MLA/SFA 独立通道</text>
+
+  <!-- 4 Cards across -->
+  <rect x="16" y="238" width="208" height="106" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="262" font-size="14" font-weight="700" fill="#3a4f93">① attn (qkv / o)</text>
+  <text x="28" y="284" font-size="13.5" fill="#4d5652">无 token 门槛</text>
+  <text x="28" y="304" font-size="13.5" fill="#4d5652">仅静态 W8A8 且非 int8</text>
+  <text x="28" y="326" font-size="13.5" fill="#66716d">按类名匹配（可波及 down）</text>
+
+  <rect x="236" y="238" width="208" height="106" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="248" y="262" font-size="14" font-weight="700" fill="#936300">② mlp (gate_up / down)</text>
+  <text x="248" y="284" font-size="13.5" font-weight="700" fill="#936300">补齐行数 &lt; 500（非 MoE）</text>
+  <text x="248" y="304" font-size="13.5" fill="#4d5652">Python 截断 ≤ 18 MiB</text>
+  <text x="248" y="326" font-size="13.5" fill="#66716d">gate_up 须自定义行并行</text>
+
+  <rect x="456" y="238" width="208" height="106" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="468" y="262" font-size="14" font-weight="700" fill="#7a3a6a">③ moe (gate_up)</text>
+  <text x="468" y="284" font-size="13.5" font-weight="700" fill="#7a3a6a">选专家入口 ≥ 96（MoE）</text>
+  <text x="468" y="304" font-size="13.5" fill="#4d5652">须有模型实例 + 正层索引</text>
+  <text x="468" y="326" font-size="13.5" fill="#66716d">与 mlp 互斥；无 18M 截断</text>
+
+  <rect x="676" y="238" width="208" height="106" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="688" y="262" font-size="14" font-weight="700" fill="#065f56">④ MLA / SFA 独立预取</text>
+  <text x="688" y="284" font-size="13.5" font-weight="700" fill="#065f56">不读 ratio / 无 token 门槛</text>
+  <text x="688" y="304" font-size="13.5" fill="#4d5652">融合 QKV 整块；o ≤ 16 MiB</text>
+  <text x="688" y="326" font-size="13.5" fill="#66716d">静态 W8A8 跳过 o_proj</text>
+
+  <!-- BOTTOM: Removal + 3 Non-Replacements + GLM Verdict -->
+  <line x1="16" y1="360" x2="884" y2="360" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <rect x="16" y="376" width="424" height="128" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="30" y="401" font-size="14.5" font-weight="700" fill="#8f3229">✗ v0.24.0rc 起彻底删除（无等价替代参数）</text>
+  <text x="30" y="424" font-size="13.5" fill="#4d5652">v0.30.0 / main 残留此键按 extra="forbid" 拒收（Omni 过滤）</text>
+  <text x="30" y="448" font-size="13.5" font-weight="700" fill="#17211f">勿混淆三类近名特性（均非 HBM→L2 预取）：</text>
+  <text x="30" y="470" font-size="13.5" fill="#4d5652">1. offloader/prefetch.py（HBM↔CPU 卸载）</text>
+  <text x="30" y="492" font-size="13.5" fill="#4d5652">2. --safetensors-load-strategy prefetch · 3. KV/NZ warmup</text>
+
+  <rect x="460" y="376" width="424" height="128" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="474" y="401" font-size="14.5" font-weight="700" fill="#17211f">GLM 双机（db701c1f）手动强开五路推演结论</text>
+  <text x="474" y="424" font-size="13.5" fill="#8f3229">• MLP 两路关（MoE 互斥）· attn 不进（无静态 W8A8）</text>
+  <text x="474" y="446" font-size="13.5" fill="#8f3229">• MoE 取不到权重（层索引 None/0 过不了正索引门槛）</text>
+  <text x="474" y="468" font-size="13.5" font-weight="700" fill="#065f56">• 仅 SFA native 独立预取可触发（有 metadata 时）</text>
+  <text x="474" y="492" font-size="13.5" fill="#66716d">官方默认关闭；注意键名是 enabled（旧教程写 enable 会读关）</text>
+</svg>

@@ -1,51 +1,119 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 435" width="900" height="435" role="img" aria-label="msprobe 逐层精度定位漏斗与 Runtime Guard、batch_invariant 工具分工" font-family="var(--font-sans)">
-<title>三类精度排障工具分工与 msprobe 逐层定位首次分歧路径</title>
-<desc>Runtime Guard vs batch_invariant vs msprobe PrecisionDebugger and AclGraphDumper</desc>
-<g stroke-width="1.4">
-<rect x="16" y="58" width="276" height="106" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="312" y="58" width="276" height="106" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="608" y="58" width="276" height="106" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="210" width="200" height="84" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="238" y="210" width="200" height="84" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="460" y="210" width="200" height="84" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="682" y="210" width="202" height="84" rx="7" fill="#fff0e9" stroke="#b54237"/>
-<rect x="16" y="320" width="868" height="98" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-</g>
-<path d="M216 252h20m-5-4l5 4-5 4M438 252h20m-5-4l5 4-5 4M660 252h20m-5-4l5 4-5 4M746 164v9H6v79h10m-5-4l5 4-5 4M783 294v24m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-<g font-weight="700">
-<text x="16" y="28" font-size="16" fill="#17211f">第一层：按排障场景选工具（线上检测 vs 确定性收敛 vs 逐层对账）</text>
-<text x="30" y="84" font-size="14.5" fill="#3a4f93">Runtime Guard（main 线上）</text>
-<text x="326" y="84" font-size="14.5" fill="#936300">batch_invariant（确定性）</text>
-<text x="622" y="84" font-size="14.5" fill="#065f56">msprobe（离线逐层对齐）</text>
-<text x="16" y="196" font-size="16" fill="#17211f">第二层：msprobe 由粗到细四步锁定首个分歧算子</text>
-<text x="116" y="236" text-anchor="middle" font-size="14.5" fill="#065f56">1. 锁输入与 Eager/图</text>
-<text x="338" y="236" text-anchor="middle" font-size="14.5" fill="#936300">2. L0/L1 统计初筛</text>
-<text x="560" y="236" text-anchor="middle" font-size="14.5" fill="#7a3a6a">3. 缩小 scope / list</text>
-<text x="783" y="236" text-anchor="middle" font-size="14.5" fill="#8f3229">4. 真实张量定根因</text>
-<text x="32" y="347" font-size="14.5" fill="#17211f">四类高频首分歧算子特征指纹（对照标杆 GPU / BF16 基准）：</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="48" font-size="13.5">不要一上来就开全量 tensor dump；先用低开销工具缩小怀疑面，再进 msprobe</text>
-<text x="30" y="109" font-size="13.5">• 抓偶发复读、乱码与 NaN/Inf</text>
-<text x="30" y="131" font-size="13.5">• 触发时写报告并可选 dump_kv</text>
-<text x="30" y="153" font-size="13.5">• 默认关闭，支持热更新配置</text>
-<text x="326" y="109" font-size="13.5">• VLLM_BATCH_INVARIANT=1</text>
-<text x="326" y="131" font-size="13.5">• 排除动态批大小导致的浮点漂移</text>
-<text x="326" y="153" font-size="13.5">• 会关闭 vllm_ascend_C 自定义核</text>
-<text x="622" y="109" font-size="13.5">• additional_config.dump_config</text>
-<text x="622" y="131" font-size="13.5">• Eager: PrecisionDebugger</text>
-<text x="622" y="153" font-size="13.5">• Graph: AclGraphDumper</text>
-<text x="116" y="261" text-anchor="middle" font-size="13.5">temperature=0 单请求</text>
-<text x="116" y="282" text-anchor="middle" font-size="13.5">先排模板与分词差异</text>
-<text x="338" y="261" text-anchor="middle" font-size="13.5">task="statistics"</text>
-<text x="338" y="282" text-anchor="middle" font-size="13.5">看 max/min/mean/NaN</text>
-<text x="560" y="261" text-anchor="middle" font-size="13.5">定位首错层与首错步</text>
-<text x="560" y="282" text-anchor="middle" font-size="13.5">切 task="tensor"</text>
-<text x="783" y="261" text-anchor="middle" font-size="13.5">余弦相似度 / 最大绝对误差</text>
-<text x="783" y="282" text-anchor="middle" font-size="13.5">锁定单一算子或权重</text>
-<text x="32" y="374" font-size="13.5">• RoPE：首层 Q/K 旋转偏离（查 cos/sin 与交错布局）</text>
-<text x="460" y="374" font-size="13.5">• QuantMatmul：线性输出缩放偏斜（查 scale / NZ）</text>
-<text x="32" y="399" font-size="13.5">• MoE：top-k 索引分叉（查 gating / EP / 专家映射）</text>
-<text x="460" y="399" font-size="13.5">• FA/PagedAttn：Decode 步漂移（查 slot_mapping / C8）</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="msprobe 逐层余弦相似度二分定位曲线、首分歧算子放大图与 Eager / ACLGraph 双后端对比" font-family="var(--font-sans)">
+  <title>msprobe 逐层张量二分定位曲线与 Eager / 图模式双后端边界</title>
+  <desc>Layer-by-layer cosine similarity cliff-drop bisection curve (Pass 1 statistics locates Layer k, Pass 2 tensor zooms into input cos~1.0 to output drop), plus 3-tool handoff and PrecisionDebugger vs AclGraphDumper boundaries</desc>
+  <defs>
+    <marker id="mp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="mp-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① msprobe 两轮由粗到细逐层二分：先用统计量锁定断崖层，再只落单层真实张量</text>
+
+  <!-- Left Plot: Layer-by-Layer Cosine Similarity Curve (x=76..556, y=56..206) -->
+  <!-- Highlight band for Layer k (x=330..390) -->
+  <rect x="330" y="56" width="60" height="150" rx="4" fill="#fff0e9" opacity="0.78"/>
+  <line x1="76" y1="206" x2="564" y2="206" stroke="#4d5652" stroke-width="1.5" marker-end="url(#mp-arr)"/>
+  <line x1="76" y1="206" x2="76" y2="48" stroke="#4d5652" stroke-width="1.5" marker-end="url(#mp-arr)"/>
+
+  <!-- Y axis ticks -->
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="end">
+    <text x="68" y="70">1.0</text>
+    <text x="68" y="138">0.5</text>
+    <text x="68" y="206">0.0</text>
+  </g>
+  <text x="16" y="68" font-size="13.5" font-weight="700" fill="#17211f">余弦</text>
+  <text x="16" y="86" font-size="13.5" fill="#4d5652">相似度</text>
+
+  <!-- Horizontal dashed reference at 1.0 -->
+  <line x1="76" y1="68" x2="554" y2="68" stroke="#087f73" stroke-width="1.1" stroke-dasharray="4 3"/>
+
+  <!-- Cosine similarity curve: stays ~1.0 at Emb(110), L0(170), L1(230), L(k-1)(290), cliff drops at Lk(360), stays low L(k+1)(430), Logits(510) -->
+  <polyline points="110,70 170,71 230,71 290,72" fill="none" stroke="#087f73" stroke-width="2.8"/>
+  <polyline points="290,72 360,154 430,174 510,186" fill="none" stroke="#b54237" stroke-width="2.8"/>
+
+  <g fill="#087f73">
+    <circle cx="110" cy="70" r="4.5"/><circle cx="170" cy="71" r="4.5"/><circle cx="230" cy="71" r="4.5"/><circle cx="290" cy="72" r="5"/>
+  </g>
+  <circle cx="360" cy="154" r="6.5" fill="#b54237" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="430" cy="174" r="4.5" fill="#b54237"/>
+  <circle cx="510" cy="186" r="4.5" fill="#b54237"/>
+
+  <!-- X axis layer labels -->
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#4d5652" text-anchor="middle">
+    <text x="110" y="226">Emb</text>
+    <text x="170" y="226">L0</text>
+    <text x="230" y="226">L1</text>
+    <text x="290" y="226">L(k−1)</text>
+    <text x="360" y="226" font-weight="700" fill="#8f3229">★ Lk</text>
+    <text x="430" y="226">L(k+1)</text>
+    <text x="510" y="226">Logits</text>
+  </g>
+
+  <!-- Callouts on plot -->
+  <text x="196" y="59" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">第 1 轮 statistics (L0/L1)：前 k−1 层对齐</text>
+  <text x="454" y="132" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">首现断崖 / NaN →</text>
+  <text x="454" y="152" text-anchor="middle" font-size="13.5" fill="#8f3229">下游层受污染无须全抓</text>
+
+  <!-- Zoom connector from Lk to Right Box -->
+  <path d="M 390 100 L 594 100" fill="none" stroke="#b54237" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#mp-red)"/>
+
+  <!-- Right Zoom Box: Pass 2 Tensor Dump inside Layer k (x=598..884, y=50..226) -->
+  <rect x="598" y="50" width="286" height="176" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="612" y="76" font-size="14.5" font-weight="700" fill="#8f3229">第 2 轮：只对 Lk · step t 落张量</text>
+  <text x="612" y="100" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">scope=[start,end] / mix+list</text>
+
+  <!-- Mini operator zoom: Input cos~1.0 -> [Offending Op] -> Output cos<<1.0 -->
+  <rect x="612" y="116" width="84" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="654" y="136" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">算子输入</text>
+  <text x="654" y="154" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">cos≈1.0</text>
+
+  <line x1="696" y1="138" x2="714" y2="138" stroke="#4d5652" stroke-width="1.4" marker-end="url(#mp-arr)"/>
+
+  <rect x="716" y="116" width="60" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="746" y="143" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">某算子</text>
+
+  <line x1="776" y1="138" x2="794" y2="138" stroke="#b54237" stroke-width="1.5" marker-end="url(#mp-red)"/>
+
+  <rect x="796" y="116" width="76" height="44" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.6"/>
+  <text x="834" y="136" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">输出骤降</text>
+  <text x="834" y="154" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">★ 根因</text>
+
+  <text x="612" y="186" font-size="13.5" fill="#17211f">单卡务必设 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">rank: []</tspan>（勿写 [0]）</text>
+  <text x="612" y="210" font-size="13.5" fill="#4d5652">同时核最大绝对误差与 NaN/Inf</text>
+
+  <line x1="16" y1="246" x2="884" y2="246" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Section 2 Left: 3-Tool Escalation Rail (x=16..428, y=262..474) -->
+  <text x="16" y="274" font-size="15.5" font-weight="700" fill="#17211f">② 先用轻量工具收窄，最后才祭出 msprobe</text>
+
+  <rect x="16" y="290" width="412" height="52" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="313" font-size="14" font-weight="700" fill="#3a4f93">1. Runtime Guard（main 线上低开销）</text>
+  <text x="30" y="334" font-size="13.5" fill="#4d5652">拦下偶发复读 / NaN 样本与 KV 现场，不拆单层</text>
+
+  <line x1="222" y1="342" x2="222" y2="356" stroke="#4d5652" stroke-width="1.5" marker-end="url(#mp-arr)"/>
+
+  <rect x="16" y="360" width="412" height="52" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="383" font-size="14" font-weight="700" fill="#936300">2. batch_invariant 对照（关 vllm_ascend_C）</text>
+  <text x="30" y="404" font-size="13.5" fill="#4d5652">秒判是否因混批浮点漂移或自定义核引起（须拆开复核）</text>
+
+  <line x1="222" y1="412" x2="222" y2="426" stroke="#4d5652" stroke-width="1.5" marker-end="url(#mp-arr)"/>
+
+  <rect x="16" y="430" width="412" height="44" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="457" font-size="14" font-weight="700" fill="#065f56">3. msprobe（离线单请求 · temp=0 · 逐层打点）</text>
+
+  <!-- Section 2 Right: Eager vs Graph Backend Comparison (x=452..884, y=262..474) -->
+  <text x="452" y="274" font-size="15.5" font-weight="700" fill="#17211f">③ MRV1 / MRV2 内建双后端边界</text>
+
+  <rect x="452" y="290" width="432" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="466" y="315" font-size="14.5" font-weight="700" fill="#065f56">Eager（--enforce-eager）→ PrecisionDebugger</text>
+  <text x="466" y="340" font-size="13.5" fill="#17211f">安装：<tspan font-family="var(--font-mono)">pip install mindstudio-probe</tspan> 直接可用</text>
+  <text x="466" y="363" font-size="13.5" fill="#065f56">过滤：完整支持 <tspan font-family="var(--font-mono)">step / scope / list / dump_enable</tspan></text>
+
+  <rect x="452" y="388" width="432" height="86" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="466" y="413" font-size="14.5" font-weight="700" fill="#7a3a6a">图模式（ACL Graph）→ AclGraphDumper</text>
+  <text x="466" y="438" font-size="13.5" fill="#8f3229">安装：须带 <tspan font-family="var(--font-mono)">include-mod=aclgraph_dump</tspan> 源码编译</text>
+  <text x="466" y="461" font-size="13.5" fill="#4d5652">边界：捕图前自动启动；不支持 step/scope，仅靠 list 缩范围</text>
 </svg>

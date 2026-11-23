@@ -1,0 +1,14 @@
+mode: native-svg
+id: vllm-kv-block-fig-glm-hetero-snapshot
+caption: >-
+  GLM 双机 5 缓存组异构块表快照、c=200 与 c=202 四格对齐对照及 6,000 token 预填充尾状态脉冲：上区呈现 full 组（跨 640 补借）、3 个 KDA 组（首步固定 12 块，区隔昇腾准入多报 +3 与实际借块 0）与尾状态组（1+12+2=15 块，窗外旧槽位换为 null_block）共用单池；中区用 4 格/块网格直观展示 10 个连续位置在 c=200（占 3 块）与 c=202（占 4 块）的跨块差异；下区展示 6,000 token 预填充 1,501 → 还 1,499 → 借 1 → 持 3 块的脉冲回落。
+size: [900, 608]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L60-L119'
+    symbols: [KVCacheCoordinator, block_pool]
+  - source: 'vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L448-L600'
+    symbols: [SlidingWindowManager, remove_skipped_blocks]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L18-L84'
+    symbols: [AscendMambaManager, get_num_blocks_to_allocate]
+  - source: 'vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L177'
+    symbols: [BlockPool, null_block]

@@ -1,8 +1,8 @@
 mode: native-svg
 id: prepare-inputs-flow-fig-h2d-packing
 caption: >-
-  Host 持久批次到设备张量打包流：从 CPU Pinned Buffer 与持久批次增量更新出发，并行发起非阻塞块表 H2D 拷贝与行展平计算，经 NPU 槽位核写入 slot_mapping（补齐行填 -1），最后按 KV 缓存组复制 CommonAttentionMetadata 并区分 SFA 补假请求与 KDA 不含假请求两份边界。
-size: [900, 450]
+  准备输入双轨并行流水与补齐边界对照：上半呈现 CPU 展平与首行非阻塞 commit_block_table 并行推进后汇入 NPU compute_slot_mapping（满足 _can_fuse_slot_mapping 且无压缩位置与 req_indices 时单核融合算完，否则按 KV 缓存组分别计算并跳过 Mamba 组）；下半用张量格直观对比补齐行在 slot_mapping（填 -1）、常规/SFA 边界（末尾补假请求）与 KDA 专用边界（重复最后真实边界）的差异。
+size: [900, 540]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1340
     symbols: [_prepare_inputs]

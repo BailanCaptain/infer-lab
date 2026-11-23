@@ -194,6 +194,17 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310'
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L364-L385'
   - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L943-L949'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L789-L835'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058'
+  - 'vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835'
+  - 'vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1059-L1072'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L156-L185'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1788-L2130
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -220,7 +231,7 @@ relations:
     kind: variant-of
     note: 再把多模态编码器独立成 E 池、与 P/D 协同的完整三池架构与 ECConnector 见该页
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: direct
 ---
 
@@ -256,7 +267,10 @@ file: pd-disaggregation-intuition
 
 **拆的理由是让 decode 步不再被 prefill 打断，并让两个阶段各自挑并行方式和实例数；代价是多一次状态交接、两边的块池各押一段时间，以及更多出错的地方。**
 
-vllm-ascend 的设计文档给了两条动机。一是两边可以分别调整并行策略和实例数：[DP](data-parallel.md) 把请求分给几组各自调度的机器，[TP](tensor-parallel.md) 把同一层的矩阵切给几张卡合算，[EP](expert-parallel.md) 把 MoE 层的专家分到几张卡上；P、D 可以各选各的组合，按首 token 延迟（TTFT）和每个输出 token 的间隔（TPOT）分别调优。二是稳住 TPOT：混部时 prefill 会插进正在 decode 的批里，拖慢这些请求出下一个 token。混部常用 chunked prefill 缓解这一点：把太长的提示词切成几段，每步只拿一段和 decode 请求拼在一起算。分段大小同时影响提示词处理效率和 decode 等待时间，往往难以兼顾。拆开后，P 端仍需调整 chunk 和每步 token 预算，但不再靠这一个分段参数平衡同一步里的 prefill 与 decode 干扰。
+vllm-ascend 的设计文档给了两条动机：
+
+- **独立调优并行与实例配比。** [DP](data-parallel.md) 把请求分给多组各自调度的机器，[TP](tensor-parallel.md) 把同一层矩阵切给多张卡合算，[EP](expert-parallel.md) 把 MoE 专家摊到多张卡上。拆开后，P、D 可各自挑选并行组合与机器数量，分别面向首 token 延迟（TTFT）和每输出 token 间隔（TPOT）调优。
+- **稳住在线 TPOT。** 混部时新提示词会插进正在 decode 的批次，拉慢在跑请求出下一个 token。混部常用 chunked prefill 缓解：把长提示词切段、每步只混入一段。但分段大小同时牵动提示词效率与 decode 等待，难以两全；拆开后，P 端只需管好自己的 chunk 与每步预算，不再靠同一参数平衡同一步里的 prefill 与 decode 干扰。
 
 两侧分别调优仍受连接器与版本约束。所列 v0.23 文档对非对称 TP 要求 P 侧 TP 数大于 D，且为 D 的整数倍。例如 P8、D4 满足这两项数量条件，反向配置不满足；其他连接器须查看自己的支持范围。
 
@@ -328,7 +342,9 @@ file: pd-state-boundary
 
 **纯注意力模型：P 算满，D 退回 1 格。** 这类模型每层只存每个位置的 K、V，任何一格都能单独读写。P 把 4 个位置全算完，交出 4 格 K/V。D 收到后，提示词整段都已命中，但采样需要最后一个位置的输出，K/V 里没有这个输出；vLLM 的调度器遇到「整段命中」，就把已算位置退回 1 格，让 D 重算 p₃。P 当时采出的那个 token 会随交接信息带过去，但 vLLM 和 vllm-ascend 里都没有读它的地方。所以 p₃ 这一格实际算了两次，这条请求的前向次数比混部多一次。
 
-**混合模型：P 少算最后 1 个位置。** KDA 这类层存的是「处理完前面所有位置之后」的一份递推状态，它把历史压成固定大小，没法把最后一个 token 的影响再减掉。如果 P 算满 4 个位置，D 就拿不到「处理完 3 个位置」的状态，也就没法重算 p₃ 的输出。所以连接器发现模型带这类状态时，在 P 上把提示词的最后一个 token 去掉：P 只算 p₀–p₂，交出状态 S₃（下标表示处理过 3 个位置，不是第 3 层）；D 把远端命中记为 3 个位置，自己用 p₃ 在 S₃ 上算出 S₄ 并采样首 token。这样没有哪一格被算两次；P 仍会采样 1 个 token 以便按长度上限结束，这个 token 同样没人用。P 上的截断只做一次：请求在 P 上被抢占、重新排队时，不会再截第二次。
+**混合模型：P 少算最后 1 个位置。** KDA 这类层存的是「处理完前面所有位置之后」的定长递推状态，没法把最后一个 token 的影响再减掉。如果 P 算满 4 个位置，D 就拿不到「处理完 3 个位置」的状态，也就没法重算 p₃ 的输出。
+
+因此连接器发现模型带这类状态时，会在 P 上截去提示词最后一个 token：P 只算 p₀–p₂ 并交出状态 S₃（下标表示处理过 3 个位置，不是第 3 层）；D 把远端命中记为 3 个位置，自己用 p₃ 在 S₃ 上算出 S₄ 并采样首 token。这样没有哪一格被算两次；P 仍采样 1 个 token 以按长度上限结束，但这个 token 无人读取。P 上截断只做一次，在 P 被抢占重排时不会再截第二次。
 
 截断还受长度条件约束：只有提示词多于 1 个 token 才删除末位置，D 的远端命中计数也用同一道长度条件。单 token 提示词不走这里的 N−1 截断，不能由四 token 算例推断它已正确恢复递推状态；该边界需要单独的端到端验证。
 
@@ -347,7 +363,7 @@ file: pd-disaggregation-fig-asymmetric-and-lease
 - **V2 失败上报（完成通知 ≠ 状态可用）：** 换用 V2 要另核失败上报。早期社区主干的多缓存组失败只有告警，仍会报接收完成；`v0.30.0` 与当前 `main` 才提供按请求汇合的失败结果，再交给失败策略处理。**完成通知不能单独证明传来的状态可用**，执行链与版本区别见 [Mooncake V2 的失败与释放](mooncake-connector.md#v2-的接收完成是否代表读成功)。
 - **P 押块超时：** P 这边交接后押着的块一直占着 P 的块池，直到 D 报告收完；D 始终不报告时，P 在超时（默认 480 秒）后强制释放并打一条错误日志。押块期间 P 能接的新请求相应变少。
 
-一次交接也不等于一条消息或一次拷贝：D 的读取按 P 的各个 rank 和各个缓存组拆开，每组再列出各层的地址；P 的计算、源块等待、D 的目的分配和网络读取之间，既会重叠，也会互相等待。没有设备时，先拿一条请求跟一遍它的状态此刻在 P 上、在网络上还是在 D 上、哪边的块还押着。评估一套 PD 部署，要分别看首 token 延迟、生成间隔、吞吐、每次交接的字节数和源块押住的时间，本站没有这些实测数。
+一次交接也不等于一条消息或一次拷贝：D 的读取按 P 的各个 rank 和各个缓存组拆开，每组再列出各层的地址；P 的计算、源块等待、D 的目的分配和网络读取之间，既会重叠，也会互相等待。没有设备时，先拿一条请求跟一遍它的状态此刻在 P 上、在网络上还是在 D 上、哪边的块还押着。评估一套 PD 部署，要分别看首 token 延迟、生成间隔、吞吐、每次交接的字节数和源块押住的时间；下文「真机实测」一节给出 `Ascend 910B3` 上 `Qwen3-8B` 与 `Qwen3-30B-A3B` 的同机闭环数据（历史 GLM 双机仍无 PD 实测）。
 
 ## 带图像的请求：再把编码器分出去（EPD）
 
@@ -358,7 +374,7 @@ file: pd-disaggregation-fig-asymmetric-and-lease
 - **两种拆分形态：** **E+PD** 只把媒体编码分出去，prefill 与 decode 仍在同一个实例；**E+P+D** 在此基础上再分离 P、D，因此还要解决语言模型状态的交接。第一种不依赖 P→D 的 KV 传输，不能因为某个模型的 PD 组合没有实测，就判定所有编码器分离形态都不能用。示例代理先调用 E，再视配置决定是否调用独立的 P，最后进入生成；E、P、D 同样是职责名，不保证每类恰好一台机器或一个进程。
 - **如何省下重复编码：** Ascend 的 model runner 判断自己是 EC 生产者时，只执行多模态编码就返回，相应的 KV cache 规格为空；上游调度器遇到外部编码缓存命中时，不再扣减本地编码计算预算。省下的是重复编码工作，输入长度、目的表示占的显存和语言模型的计算都还在。GLM 的模型构造同时标记了视觉组件与语言模型组件；本站主线走纯文本路径，不需要先经过 E。
 - **「执行了什么」≠「加载了什么」：** E 不跑语言模型前向，不等于启动时没有分配语言模型权重。示例脚本没有显式打开只跑编码器的模式；上游的这个模式配合模型组件标记，可以跳过语言模型组件的初始化。因此「E 必须再加载一份完整语言模型」不是 EPD 的机制要求，实际占多少显存取决于模型是否接入相应标记、启动选项、加载器和运行版本。
-- **调试连接器与分离权衡：** `ECExampleConnector` 只是调试用的磁盘实现——它把编码张量存到共享位置，消费者再读到自己设备上，缓存文件按媒体内容 hash 组织而非以请求 ID 为唯一键；两台机器上目录同名不代表内容自动共享，复用同一份结果还需共享存储、兼容的编码器与预处理配置及正确缓存身份（其他连接器可用别的传输与存储方式）。独立 E 可按媒体负载扩缩并为编码结果复用提供入口，代价是编码排队、存储传输、消费者加载、故障恢复及跨服务身份管理；值不值得分离要看媒体请求比例、编码耗时、结果大小与复用率。
+- **调试连接器与分离权衡：** `ECExampleConnector` 只是调试用的磁盘实现。它把编码张量存到共享位置，消费者再读回设备，缓存文件按媒体内容 hash 组织而非以请求 ID 为唯一键。两台机器上目录同名不代表内容自动共享；真正复用还依赖共享存储、一致的编码器与预处理配置，以及正确的缓存身份（其他连接器可换用内存或高速网络后端）。独立 E 池能按媒体负载扩缩并跨实例复用编码，代价是编码排队、存储传输、故障恢复和跨服务身份管理；是否值得拆，要看媒体请求占比、编码耗时、结果大小与复用率。
 
 ### 重复图片也可以只在本机缓存编码结果
 
@@ -374,7 +390,11 @@ Ascend 的 **ECCPUConnector** 走这条本机路径。它把编码结果放进�
 
 前面的 Mooncake V1 用超时兜底释放源块。上游 **NixlConnector 的拉取路径**采用另一种办法：P 先给这条请求的 KV 一段较短的保留时间，D 只要仍需要它，就定期通知 P 延长时间。这段保留时间叫 **租约（lease）**。它解决一个两难：超时太长，D 故障后 P 的缓存迟迟不能回收；超时太短，健康的 D 可能仅因排队就丢失已经算好的状态。
 
-以本页固定上游基线的默认值为例，P 完成 prefill 后先保留 30 秒；D 收到带有完整远端定位信息的请求，**进入 waiting 队列时就开始跟踪续约**，不用等到请求真正获准前向。调度步约每隔 5 秒把需要续约的请求按 P 实例合并，worker 用 NIXL 通知发送心跳。收到心跳后，P 将到期时刻更新为下式（不是每收到一次就在旧到期时刻上累加 20 秒）：
+以本页固定上游基线的默认值为例，P 完成 prefill 后先保留 30 秒。D 收到带有完整远端定位信息的请求后，**进入 waiting 队列就开始跟踪续约**，不必等到获准前向。调度步约每隔 5 秒按 P 实例合并需要续约的请求，由 worker 经 NIXL 通知发心跳；P 收到后按如下 `max` 规则更新到期时刻，而不是在旧到期时刻上机械累加 20 秒：
+
+```wiki-diagram
+file: pd-fig-nixl-lease-and-reroute
+```
 
 $$t_{\text{expire}}' = \max(t_{\text{expire}},\; t_{\text{hb}} + 20)$$
 
@@ -418,9 +438,34 @@ $$t_{\text{expire}}' = \max(t_{\text{expire}},\; t_{\text{hb}} + 20)$$
 
 **这些是上游 NIXL 的机制与条件，不能直接替换本站 GLM 的 Ascend Mooncake 配方。** 固定使用指南把上述双向能力限定在 CUDA、设备缓存；模型、注意力后端、并行布局和安装的传输后端还须满足相应兼容条件。本页没有 NIXL 在昇腾上的部署实测。
 
+## 真机实测：Ascend 910B3 上短输入 PD 首词放大与 Eager 组合劣化
+
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + ADXL `AscendDirectTransport`）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通功能闭环，再用统一压测脚本（均匀 `262`-token 输入、`128`-token 输出）实测了稠密 `Qwen3-8B`（`2P+2D`）与稀疏 MoE `Qwen3-30B-A3B`（`4P+4D`），并与同机混部基线对照（完整日志摘录、环境指纹与口径边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
+
+```wiki-diagram
+file: pd-fig-910b3-short-prompt-and-eager-trap
+```
+
+| 配置（`Ascend 910B3`，均匀 `262`-tok 输入 / `128`-tok 输出） | `c=1` TTFT / TPOT（`ms`） | `c=16` TTFT / TPOT（`ms`） | `c=16` 总吞吐（`tok/s`） | 关键对照变化 |
+| --- | ---: | ---: | ---: | --- |
+| `Qwen3-8B` · `TP=2` 混部 Graph（`u=0.85`） | `125.84` / `87.12` | `467.10` / `89.94` | `171.13` | 混部基线（同 4 卡 `TP=4` 为 `167.30 tok/s`） |
+| `Qwen3-8B` · `2P+2D`（双端 `--enforce-eager`） | **`763.42`** / **`150.59`** | `2,343.86` / `160.15` | `88.53` | `c=1` TTFT **`6.07×`**、TPOT **`1.729×`**；吞吐较 4 卡 `TP=4` 降 `47.08%` |
+| `Qwen3-30B-A3B` · `TP=4+EP=4` 混部 Graph（`u=0.88`） | `331.10` / `77.90` | `591.19` / `84.40` | `179.70` | 四卡混部基线（同 8 卡 `DP2+TP4+EP8` 为 `149.45 tok/s`） |
+| `Qwen3-30B-A3B` · `4P+4D`（双端 `--enforce-eager`） | **`728.07`** / **`307.83`** | `3,064.87` / `325.09` | `45.59` | `c=1` TTFT **`2.20×`**、TPOT **`3.952×`**；吞吐较 8 卡 `EP8` 降 `69.50%` |
+
+这组真机对照按上下两层呈现「短输入无混部干扰」与「多参数组合变化」下的实际表现：
+
+1. **上层（均匀 262-token 输入下，8B `2P2D` 对 `TP=2` 首词达 `6.07×`，30B `4P4D` 对 `TP4+EP4` 达 `2.20×`）：**
+   - **P 池在漫长 Decode 期间大面积空转。** `Qwen3-0.6B` `1P1D` 仅提供 `18+40` tokens 功能闭环、无性能对照；八卡 `2P2D` / `4P4D` 的测试输入为均匀 `262` tokens，没有持续注入长短混合提示词来制造混部 ITL 尖刺；运行期统计快照中，P 池采样全部处于 `Running: 0`（8B `8/8`、30B `7/7`），而 D 端持续记录 `Running: 1 / 4 / 16`，半数 NPU 算力在漫长 Decode 期间无法分担解码。
+   - **两跳代理 + 离散块读 + endpoint 回退告警远超纯传输段耗时。** 示例代理须串行向 P 发 `do_remote_decode=True, max_tokens=1` 取回 `kv_transfer_params` 再开启 D 的 HTTP 流；D 端 `batch_transfer_sync_read` 计时实测显示：`8B c=1` 每请求拼装 `216` 段离散块地址（`3` 个 128-token 块 × `36` 层 × K/V，共 `27 MiB/rank`），两 rank 并行耗时 `207.49 / 346.74 ms`（`c=16` 最慢 rank 中位数 `115.04 ms`）；`30B c=1` 四 rank 并行传输仅 `11.38 / 16.64 / 15.42 / 16.45 ms`（`c=16` 中位数 `11.43 ms`），**最慢 rank 传输仅 `16.64 ms`，却净增了 `+396.97 ms` 首 token 延迟**。此外 D 端日志刷出大量 `Dest buffer device_id >= endpoint count ... falling back` 回退告警（8B `4,991` 行、30B `19,941` 行），与两跳代理、关闭前缀缓存、双端 Eager 及 8B 伴随 DEBUG 输出共同构成了端到端 TTFT 增量。
+2. **下层（`4P4D + Eager` 等组合对照下，48 层 MoE 后 127 步 Decode TPOT 达 `3.952×`）：**
+   - 以 `30B c=1` 为例，首 token 仅多出 `0.397 s`，其余 `127` 个生成步却累计多出 **`29.20 s`**（`TPOT` 由 `77.90` 升至 `307.83 ms`，每步净增 `+229.93 ms`；对比稠密 8B `2P2D` 对 `TP=2` 为 `87.12 → 150.59 ms`、`1.729×`）。跨实例 KV 移交每请求只发生一次，无法解释持续 127 步的逐词劣化，说明绝大部分增量落在 D 实例的逐 token 执行路径上。
+   - 48 层 MoE 每层在执行路径上拆分为 `MoeGatingTopK → MoeInitRoutingV3 → GroupedMatmul × 2 → SwiGlu → MoeTokenUnpermute` 及跨卡集合通信，比稠密 36 层包含更多细粒度算子与跨 rank 依赖；在 `2.4 GHz` 禁睿频 ARM Host 上失去 `ACLGraph` 后会暴露更多发射与同步环节，但现有采集没有在同配置下单独拆分纯 Eager 的毫秒份额。
+3. **组合对照边界（非单变量 A/B）：** 实测中 `2P2D` 与 `4P4D` 同时改变了拆池拓扑、双端 `--enforce-eager`、关闭 prefix caching、将 `max_model_len` 降至 `16,384`（`30B` 还将 `u` 从 `0.88` 调至 `0.85`，`8B PD` 伴随大量 DEBUG 日志），因此 `6.07× / 2.20×` 与 `3.952× / 1.729×` 均属于**多参数共同变化的组合端到端比值**，不可单因果地全部归给 PD 或全部归给 Eager。要精确分离纯 PD 与纯 Eager 各自损失，仍缺同拓扑、同 KV 容量及缓存条件下的「混部 Eager」与「PD Graph」两格单变量对照。
+
 ## 放到 GLM 双机：拆开会怎样？
 
-**先划清主线边界**：例外 B 历史[官方 GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)默认是**两台机器跑两个 DP 混部执行组**（各自接请求、各自既做 prefill 又做 decode），启动配置里没有 KV 传输项，也没有 P、D 之分。本节基于该混部主线的已核事实与配置换算，回答四件事：prefill 在混部里具体拖慢了什么；GLM 5 组混合状态要交接哪些内容；钉住版本连接器在 GLM 上的限制；把两台机器硬拆成一 P 一 D 会付出什么代价（本节均为配置与机制推算，不含 PD 实测加速比）。
+前面走通的是标准单组 KV 模型（如 `Qwen3-8B`）的通用机制。下面切换标尺，转入**例外 B 历史绑定算例**[官方 GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：两台机器默认跑**两个 DP 混部执行组**（各自接请求、各自既做 prefill 又做 decode），启动配置里既没有 KV 传输项，也没有 P、D 之分。本节基于该混部基线的已核事实与配置换算，拆解四件事：prefill 在混部里具体拖慢了什么、GLM 5 组混合状态要交接哪些内容、钉住版本连接器在 GLM 上的少传块限制，以及两机硬拆 1P1D 的代价（本节均为配置与机制推算，不含 PD 实测加速比）。
 
 ### 混部时，prefill 在这套部署里拖慢了什么
 
@@ -448,7 +493,11 @@ GLM 的 3 个 KDA 组在调度器里都是递推状态组，所以连接器对 G
 
 **按钉住版本的源码静态阅读（本站没有实测），GLM 的提示词超过 641 个 token 时，连接器给 full 组算出的块数就开始少于应传的块数：刚过这个长度时只传一半，提示词越长，越接近只传四分之一。** 这是读源码得出的结论，不是 PD 的实测现象；传少以后 D 端是先报错还是静默错位，见本节后文。
 
-原因在压缩比。GLM 把 MLA 主缓存和 indexer 缓存放进同一个 full 组、用同一套块号，一块都代表 640 个位置；indexer 只是在块内把每 4 个位置压成一条存，压缩比 4，MLA 主缓存的压缩比是 1。一块多少个位置见[部署页的逻辑块一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。连接器给每个组算「一块代表多少个位置」时，把组里各类缓存的压缩比依次读一遍，最后留下的是 indexer 的 4，于是把一块当成 $640 \times 4 = 2{,}560$ 个位置，再按这个数截取要传的块（以 2,000 个 token 的示意提示词为例）：
+原因在压缩比。GLM 把 MLA 主缓存和 indexer 缓存放进同一个 full 组、共用一套块号，一块代表 640 个位置；indexer 只是在块内把每 4 个位置压成 1 条（压缩比 4），MLA 主缓存压缩比仍为 1（块长推导见[部署页的逻辑块一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)）。钉住 V1 连接器计算组内单块位置数时，把组里各类缓存的压缩比顺次覆盖读取，最后留下 indexer 的 4，于是误把一块当成 $640 \times 4 = 2{,}560$ 个位置来截取块号。下面用 2,000 token 的示意提示词画出从 `4 块 → 1 块` 到 D 端校验分叉的全过程：
+
+```wiki-diagram
+file: pd-fig-glm-fullgroup-mismatch
+```
 
 $$N_{\text{P}} = 2{,}000 - 1 = 1{,}999\text{ 个位置}$$
 
@@ -457,7 +506,9 @@ $$N_{\text{P}} = 2{,}000 - 1 = 1{,}999\text{ 个位置}$$
 | 实际应传（每块 640 位置） | $\lceil 1{,}999 \div 640 \rceil$ | **4 块** |
 | V1 实现算出（误乘压缩比 4，每块 2,560 位置） | $\lceil 1{,}999 \div 2{,}560 \rceil$ | **1 块**（若走到截齐，D 只读回第 1 块，后 3 块目的块未写入） |
 
-D 端在同一个函数里先做一道检查：P 报来的块大小要能被 D 自己的算子块大小整除，然后才把两边的块号截成较短的一边。按钉住版本，P 报来的块大小是各缓存组里最小的那个（GLM 是 4）；这道检查会不会先报 AssertionError，取决于 D 的 worker 进程里块大小被改成了多少，只读源码定不下来，缺的是一次双机实际运行（见页末待核）。如果检查通过，D 就拿自己分到的 4 块和 P 报来的 1 块截齐，截齐这一步不报错；D 的调度器仍按「1,999 个位置已算好」往下走，后面那 3 块里的历史没有写进去，成了一种不报错的错误状态。提示词不超过 641 个 token 时，P 交出的位置不超过 640 个，两种算法都是 1 块，不受影响。
+D 端在同一个函数里先做一道整除检查：P 报来的块大小必须能被 D 的算子块大小整除，之后才把两边块号截成较短一边。按钉住版本，P 报来的块大小是各组最小值（GLM 取 4）；这道检查会不会先报 `AssertionError`，取决于 D worker 进程里算子块大小被改成了多少，静态读码定不下来，缺一次双机实跑（见页末待核）。
+
+一旦检查通过，D 会把自己的 4 块和 P 报来的 1 块截齐，这一步没有任何报错。调度器仍按「1,999 个位置已算好」继续往下走，后 3 块目的块里的历史根本没写进去，变成静默错误状态。只有提示词不超过 641 个 token 时，P 交出的位置不超过 640 个，两种算法同得 1 块，才不受影响。
 
 支持矩阵在 main 分支把 GLM-5.3-Flash 的 PD 分离一栏标为支持，但整个模型仍标为实验性支持；PD 设计文档的规格表里也只列了 MLA 和 GQA 两类注意力。结合上面这处实现，GLM 在钉住版本上走 PD 不能当成「能正常交接」。
 
@@ -485,7 +536,7 @@ D 端在同一个函数里先做一道检查：P 报来的块大小要能被 D �
 - **「P 唯一的那个 token 抽到结束符，交接就会悄悄失效。」** 示例代理同时把最少生成数设成 1，vLLM 在没生成够最少数之前会屏蔽包括结束符在内的所有停止 token，Ascend 的采样路径也经过这一步，所以这一步抽不到结束符。只有自定义代理漏设最少生成数、而那个 token 恰好是结束符时，P 的请求才会以「正常说完」结束：交接信息为空，代理照常转给 D，D 把整段提示词自己算一遍，结果仍然正确，P 白做一次 prefill。
 - **「角色写成『两边都当』最省事。」** Mooncake V1 只认「生产者」「消费者」两种写法；写成两边都当，启动不报错，请求却一直等不到「传完了」。main 分支的新连接器在初始化时就拒绝这种配置。
 - **「P 算 N 个位置，D 总要再多算 1 个。」** 那是这里的纯注意力路径。GLM 这类混合模型在提示词多于 1 个 token、走截断路径时，由 P 少算最后 1 个位置，没有哪一格算两次；单 token 的状态恢复另需验证。
-- **「拆开以后一定更快。」** 本站没有 PD 实测数；在这两台机器上直接拆成一 P 一 D，每个实例还会失去 MC2，块数不到原来的一半。
+- **「拆开以后一定更快。」** 错。在 `Ascend 910B3`（`v0.30.0`）同机实测中，均匀 `262`-token 短输入下 `Qwen3-8B` `2P2D` 与 `Qwen3-30B-A3B` `4P4D`（同时改变拆池拓扑、双端 `--enforce-eager`、关 prefix cache、`max_model_len=16384` 及 30B `u=0.88→0.85` 的组合对照）的 `c=1` 首 token 延迟分别达混部的 `6.07×` 与 `2.20×`，`c=16` 吞吐较同卡数混部下降 `47.08% ~ 69.50%`；而在历史 GLM 双机上直接拆成一 P 一 D，每个实例还会失去 MC2、块数不到原来的一半（GLM 双机仍无 PD 实测）。
 
 ## 对照源码
 
@@ -536,14 +587,14 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 ### 会报什么错
 
 - **缺 `prefill` / `decode` 里的 `tp_size` 或 `dp_size`**：worker 初始化逐个断言，启动即 `AssertionError`。
-- **P 的 TP 小于 D 的 TP**：`ValueError: prefill_tp_size: ... must be greater than or equal to the decode_tp_size: ...`。设计文档的限制更严：TP 不相等时只支持 P_tp > D_tp 且能整除；P、D 也不能是异构硬件，比如 P 在 A2、D 在 A3。
+- **P 的 TP 小于 D 的 TP，或不能被 D 的 TP 整除（`Ascend 910B3` 实机报错标本 `err1`）**：非 MLA 模型在 `vllm-ascend@c09d3e20` `ascend_config.py#L879-L884` 触发普通 PD 整除断言（要求 `prefill_tp_size % decode_tp_size == 0`）；八卡实机以 `prefill_tp_size=2, decode_tp_size=4`（`2 % 4 != 0`）直接抛出 Pydantic `ValidationError: Assertion failed, Prefill TP size must be divisible by Decode TP size.`（原始栈见不可变快照 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1788-L1868`）。此外旧版或独立校验也会报 `ValueError: prefill_tp_size: ... must be greater than or equal to the decode_tp_size: ...`；设计文档要求 TP 不相等时只支持 `P_tp > D_tp` 且 `P_tp` 能被 `D_tp` 整除（如 `P=4, D=2`），且 P、D 不能是异构硬件（如 P 在 A2、D 在 A3）。
 - **KDA 这类递推状态组的 TP 不匹配**：断言 `Mamba prefill TP size must be >= decode TP size.` 或 `Mamba prefill TP size must be divisible by decode TP size.`。
-- **`kv_both` 配 Mooncake V1** [!]：上游把 `kv_both` 同时算作生产者和消费者，但 V1 判断角色用字符串相等，`kv_both` 落进「只起接收线程」那一支，完成上报的两个集合都是空的。启动正常，请求永远等不到「传完了」，排查时只看得到请求卡住。`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）的 `MooncakeConnectorV2` 在初始化时就拦下：`ValueError: Mooncake scheduler requires exactly one KV transfer role, got 'kv_both'`。
+- **`kv_both` 配 Mooncake V1 / V2（`Ascend 910B3` 实机报错标本 `err2`）** [!]：上游把 `kv_both` 同时算作生产者和消费者，但 V1 判断角色用字符串相等，`kv_both` 落进「只起接收线程」那一支，完成上报的两个集合都是空的。启动正常，请求永远等不到「传完了」，排查时只看得到请求卡住。`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）的 `MooncakeConnectorV2`（解析为 `MooncakePullConnector`）在初始化时即拦下——调度侧校验抛 `ValueError: Mooncake scheduler requires exactly one KV transfer role, got 'kv_both'`，worker 侧在 `base_worker.py#L116` 抛 `ValueError: Mooncake worker requires exactly one KV transfer role, got 'kv_both'`；八卡实机实测传入 `MooncakeConnectorV2 + kv_both` 复现该双角色拒绝并报 `Engine core initialization failed`（原始栈见 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1870-L2130`）。
 - **GLM 长提示词少传块**：`_get_group_transfer_info` 对 full 组取到压缩比 4，`tokens_per_block` 成了 2,560。D 端 `_get_kernel_block_ids` 先断言 `remote_block_size % kernel_size == 0`（`#L2602-L2604`），再用 `min(len(kernel_remote), len(kernel_local))` 截齐；截齐这一步没有报错或日志提示，前面那道断言会不会先失败见下方待核。
 - **收发线程起不来**：线程已退出报 `RuntimeError: KV Cache sending/receiving thread failed to start.`，5 分钟内没就绪报 `RuntimeError: Timeout waiting for KV Cache thread to be ready.`。
 - **读取失败**：日志 `Mooncake transfer failed for request...`，随后按 `kv_load_failure_policy` 处理；默认策略下请求以 `FINISHED_ERROR` 结束。
 - **P 押块超时**：日志 `Force freed expired request: ...`，阈值是环境变量 `VLLM_MOONCAKE_ABORT_REQUEST_TIMEOUT`，默认 480 秒。
-- 以上都是源码里的检查点，没有在双机上实际触发过。
+- 以上条目中，非 MLA 整除断言（`ascend_config.py#L879-L884`）与 `MooncakeConnectorV2` 拒绝 `kv_both`（`base_worker.py#L116`）已在八卡 `Ascend 910B3` 上实机触发并留档；其余条目（如 GLM full 组断言、超时与线程启动失败）仍为源码检查点，尚未在双机上实际触发。
 
 ### 开销和什么时候别开
 
@@ -551,7 +602,7 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 - **重复工作。** 本页纯注意力路径多算最后一个位置一次；混合模型在提示词多于1个token、走截断路径时不重复算位置，但P仍采样一个没人用的token。D上抢占后的工作量取决于恢复路线与缓存命中；无其他保存或退回路线、也无可用缓存时，才在D重算全段。
 - **本站这两台机器别直接拆。** 拆成一 P 一 D 后每个实例退回 EP8：每卡 36 个路由专家、KV 块 1,577 个、MoE 走 AllGather，换算见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。这是配置换算，不是实测。
 - **钉住版本上 GLM 别拿长提示词走 PD。** full 组的交接块数会算少，见上一小节。
-- **负载本身适合混部时别开。** 提示词短、并发低时，prefill 插进来的代价小，多出来的交接、代理和押块反而占大头。
+- **负载本身适合混部或被迫关闭图模式时别开。** 提示词短、并发低且无长短混合 prefill 尖刺时，混部干扰小，多出来的交接、两跳代理和半数 NPU 锁定 P 池反而占大头；在 `Ascend 910B3` 实测中，均匀 `262`-token 输入下 `2P2D`（8B）与 `4P4D`（30B）在同时叠加 `--enforce-eager`、关 prefix cache 与降 `max_model_len=16384`（30B `u: 0.88→0.85`）的组合条件下，首 token 分别达混部的 `6.07×` 与 `2.20×`、48 层 MoE 持续 Decode TPOT 达 `307.83 ms`（`3.952×`，详账见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。规划生产 PD 时须在同图模式、同缓存条件下对比实测，避免把分离架构与无图 Eager 同时叠加。
 
 ### 版本差异
 
@@ -616,6 +667,7 @@ GLM 绑定镜像 `db701c1f` 是含模型代码的独立提交（不属于上表�
 | 连接器注册 | `vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87`；`v0.30.0 (c09d3e20)` 见 `#L21-L135`；`main (8d6180e2)` 见 `#L57-L162` |
 | `v0.30.0` / `main` V1 选块、V2 角色校验与 `partial_prefills` | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905`、`mooncake/base_scheduler.py#L40-L85`、`platform.py#L778-L785`；`vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310`、`mooncake/base_scheduler.py#L364-L385`、`platform.py#L943-L949` |
 | EPD：只编码就返回、编码缓存、只跑编码器的模式 | `vllm_ascend/worker/model_runner_v1.py#L2018-L2025`、`vllm/distributed/ec_transfer/ec_connector/example_connector.py`、`vllm/model_executor/models/interfaces.py#L216-L246`（三池完整架构见 [EPD 分离](epd-disaggregation.md)） |
+| `v0.30.0` 代理两跳、传输计时、MoE 拆分与实机报错标本 | `vllm-ascend@c09d3e20`: `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835, #L1059-L1072`、`mooncake_connector.py#L789-L835, #L1040-L1058`、`ops/fused_moe/moe_comm_method.py#L156-L185`、`ascend_config.py#L879-L884`（`err1`）、`mooncake/base_worker.py#L110-L120`（`err2`）；910B3 实测与报错栈摘录见 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390, #L1788-L2130` 与[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) |
 
 同一个连接器类在两个进程里各造一份：调度器进程里是 `MooncakeConnectorScheduler`，worker 进程里是 `MooncakeConnectorWorker`，上游的连接器接口本来就分成调度侧和 worker 侧两组方法。
 
@@ -639,5 +691,6 @@ NIXL 的输入边界：D 计算命中数见来源 111–114，交接字典见既
 - 待核：GLM-5.3-Flash 在 PD 下的端到端实测（首 token 延迟、生成间隔、吞吐、传输耗时），缺官方或本地测量。
 - 待核：`MooncakeHybridConnector` 与 V1 在 GLM 上该选哪个，缺官方说明。
 - 待核：P、D 各自开 DP、MTP 与图模式时的交接行为，缺双机实测日志。
-- 待核：上面「会报什么错」列出的报错都没有在双机上触发过，缺实际日志原文。
+- 待核：除 `err1`（`ascend_config.py#L879-L884` 整除断言）与 `err2`（`MooncakeConnectorV2` `base_worker.py#L116` 拒 `kv_both`）已在八卡 `Ascend 910B3` 实机复现外，其余报错条目仍未在双机上实际触发，缺对应日志原文。
+- 待核：同拓扑、同 KV 容量与缓存条件下的「混部 Eager」与「PD Graph」单变量对照格，用于把 910B3 上 `4P4D + Eager` 的 `3.952×` 组合劣化精确拆分为纯 PD 与纯 Eager 各自占比。
 

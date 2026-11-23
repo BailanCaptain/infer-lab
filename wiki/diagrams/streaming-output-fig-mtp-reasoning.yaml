@@ -1,0 +1,9 @@
+id: streaming-output-fig-mtp-reasoning
+mode: native-svg
+size: [900, 370]
+caption: 三类思考控制开关在输入模板、采样执行链与输出解析层的生效阶段对比，以及 GLM 双机 DP0/DP1 汇入单 API Server 与 MTP 仅交付已确认 token（1–4 枚/帧）的流式节奏。
+pins:
+  - source: vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L688-L734
+    symbols: [include_reasoning]
+  - source: vllm@ced6857a:vllm/v1/engine/output_processor.py#L51-L102
+    symbols: [RequestOutputCollector, aggregate, put]

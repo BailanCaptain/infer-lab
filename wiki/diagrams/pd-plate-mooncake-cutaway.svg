@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 590" width="900" height="590" role="img" aria-label="PD 分离与 Mooncake RDMA 跨实例 KV 交接立体拆解直觉图：展示左侧 PREFILL INSTANCE 算力阵列、中央 MOONCAKE RDMA 跨机传输桥与 KV BLOCKS、右侧 DECODE INSTANCE 的 KV MEMORY DRAWER BANK 与逐词生成流" font-family="var(--font-sans)">
-  <title>PD 分离与 Mooncake RDMA 跨实例交接立体拆解：P 实例（kv_producer）专注处理长提示词并行 Prefill，生成历史状态后经 Mooncake RDMA 连接器把 KV blocks 搬运到 D 实例（kv_consumer）的本地块池抽屉中；D 实例接住历史后专注纯净 Decode 逐词输出，彻底消除长 Prefill 对在线 Decode 时延的打断。</title>
+  <title>PD 分离与 Mooncake RDMA 跨实例交接立体拆解：P 实例（kv_producer）专注处理长提示词并行 Prefill，生成历史状态后经 Mooncake RDMA 连接器把 KV blocks 交接到右侧 D 实例（kv_consumer）的本地块池抽屉中（V1 整批拉时 P 押块等 D 拉完释放，Layerwise 逐层推由 D 先分块且 P 不走请求级押块）；D 实例接住历史后专注纯净 Decode 逐词输出，彻底消除长 Prefill 对在线 Decode 时延的打断。</title>
   <desc>关联源码符号：KVTransferConfig, kv_connector, kv_role, is_kv_producer, is_kv_consumer, register_connector, MooncakeConnectorV1, MooncakeLayerwiseConnector, get_num_new_matched_tokens, update_state_after_alloc, build_connector_meta</desc>
 
   <!-- 紧裁透明底等距拆解剖面主图（零外层底框、零网格笼，大尺寸直浮画布） -->
@@ -33,39 +33,39 @@
 
   <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
   <g id="callout-prefill">
-    <circle cx="24" cy="28" r="12" fill="#c78300"/>
-    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
-    <text x="44" y="33" font-size="15" font-weight="700" fill="#17211f">P 实例算力池 (<tspan font-family="var(--font-mono)">kv_producer</tspan>)</text>
-    <text x="44" y="58" font-size="13.5" fill="#4d5652">专跑长提示词并行 Prefill 算满算力</text>
-    <text x="44" y="81" font-size="13.5" fill="#4d5652">由 <tspan font-family="var(--font-mono)" font-weight="700">KVTransferConfig</tspan> 标定生产角色</text>
-    <text x="44" y="104" font-size="13.5" fill="#936300">算完产出历史状态并采样首词交棒</text>
+    <circle cx="16" cy="28" r="12" fill="#c78300"/>
+    <text x="16" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="34" y="33" font-size="15" font-weight="700" fill="#17211f">P 实例算力池 (<tspan font-family="var(--font-mono)">kv_producer</tspan>)</text>
+    <text x="34" y="58" font-size="13.5" fill="#4d5652">专跑长提示词并行 Prefill 算满算力</text>
+    <text x="34" y="81" font-size="13.5" fill="#4d5652">由 <tspan font-family="var(--font-mono)" font-weight="700">KVTransferConfig</tspan> 标定生产角色</text>
+    <text x="34" y="104" font-size="13.5" fill="#936300">P 采样 1 次触发交接；D 产生对外首 token</text>
   </g>
 
   <g id="callout-mooncake">
-    <circle cx="316" cy="28" r="12" fill="#9a4b86"/>
-    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">Mooncake RDMA 跨实例交棒</text>
-    <text x="336" y="58" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">MooncakeConnectorV1</tspan> / Layerwise</text>
-    <text x="336" y="81" font-size="13.5" fill="#4d5652">支持 D 侧主动拉取与逐层流水传输</text>
-    <text x="336" y="104" font-size="13.5" fill="#7a3a6a">代价：搬运完成前请求在 D 只能等待</text>
+    <circle cx="326" cy="28" r="12" fill="#9a4b86"/>
+    <text x="326" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="344" y="33" font-size="15" font-weight="700" fill="#17211f">Mooncake RDMA 跨实例交棒</text>
+    <text x="344" y="58" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">V1</tspan> 整批拉：P 算完押块等 D 拉取</text>
+    <text x="344" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">Layerwise</tspan> 逐层推：D 先分块 P 推层</text>
+    <text x="344" y="104" font-size="13.5" fill="#7a3a6a">代价：搬运完前请求在 D 只能等待</text>
   </g>
 
   <g id="callout-kvbank">
-    <circle cx="608" cy="28" r="12" fill="#4c65b6"/>
-    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
-    <text x="628" y="33" font-size="15" font-weight="700" fill="#17211f">D 侧本地块池 (<tspan font-family="var(--font-mono)">kv_consumer</tspan>)</text>
-    <text x="628" y="58" font-size="13.5" fill="#4d5652">独立维护块池，先借块再接远端写入</text>
-    <text x="628" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">update_state_after_alloc</tspan> 记映射</text>
-    <text x="628" y="104" font-size="13.5" fill="#3a4f93">源块号与目的块号各属两本独立账</text>
+    <circle cx="616" cy="28" r="12" fill="#4c65b6"/>
+    <text x="616" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="634" y="33" font-size="15" font-weight="700" fill="#17211f">D 侧本地块池 (<tspan font-family="var(--font-mono)">kv_consumer</tspan>)</text>
+    <text x="634" y="58" font-size="13.5" fill="#4d5652">独立维护块池，先借块再接远端写入</text>
+    <text x="634" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">update_state_after_alloc</tspan> 记映射</text>
+    <text x="634" y="104" font-size="13.5" fill="#3a4f93">源块号与目的块号各属两本独立账</text>
   </g>
 
   <!-- 底部开放式无边框矢量编号直标 -->
   <g id="callout-hold">
     <circle cx="28" cy="484" r="12" fill="#c78300"/>
     <text x="28" y="488.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
-    <text x="48" y="489" font-size="15" font-weight="700" fill="#17211f">解耦并行配比与 P 侧押块窗口</text>
+    <text x="48" y="489" font-size="15" font-weight="700" fill="#17211f">解耦并行配比与分协议押块边界</text>
     <text x="48" y="515" font-size="14" fill="#4d5652">P 与 D 各自独立选择 TP / DP 并行度与机器数量</text>
-    <text x="48" y="540" font-size="14" fill="#4d5652">P 算完须暂押 KV 块，等 D 拉取完成信号才释放</text>
+    <text x="48" y="540" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">V1</tspan> 押 P 块等 D 拉完；<tspan font-family="var(--font-mono)" font-weight="700">Layerwise</tspan> 逐层推不走请求级押块</text>
     <text x="48" y="565" font-size="13.5" fill="#936300">GLM 等含 KDA 混合模型须特殊对齐末位历史状态</text>
   </g>
 

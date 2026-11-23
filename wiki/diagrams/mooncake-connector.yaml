@@ -1,48 +1,8 @@
-layout: figure
+mode: native-svg
 id: mooncake-connector
-caption: 连接器做的三件事：先对表，再按层搬，完成通知后 D 才开始算、V1 的 P 也到这时才放源块；块号和层数都是示意。
-size: [900, 450]
-frames:
-  - { label: P 实例：算完提示词的一方, at: [20, 50], size: [300, 330] }
-  - { label: D 实例：接着生成的一方, at: [580, 50], size: [300, 330] }
-grids:
-  - at: [120, 150]
-    rows: 3
-    cols: 2
-    cell: [80, 50]
-    gap: 6
-    tone: kv
-    style: solid
-    rowLabels: [层 0, 层 1, 层 2]
-    colLabels: [7 号块, 12 号块]
-  - at: [647, 150]
-    rows: 3
-    cols: 2
-    cell: [80, 50]
-    gap: 6
-    tone: kv
-    style: solid
-    colLabels: [3 号块, 5 号块]
-    cells:
-      - { at: [2, 0], style: faded }
-      - { at: [2, 1], style: faded }
-items:
-  - { at: [345, 62], size: [210, 62], text: ① 两端对表, sub: 7→3，12→5，再换成地址, tone: control }
-  - { at: [345, 318], size: [210, 56], text: ③ 最后一层到齐, sub: 发完成通知，两端各自继续, tone: control }
-links:
-  - { from: [345, 93], to: [320, 93], tone: control }
-  - { from: [555, 93], to: [580, 93], tone: control }
-  - { from: [286, 175], to: [645, 175], tone: comm }
-  - { from: [286, 231], to: [645, 231], tone: comm }
-  - { from: [286, 287], to: [645, 287], tone: comm, dashed: true }
-  - { from: [345, 346], to: [320, 346], tone: control }
-  - { from: [555, 346], to: [580, 346], tone: control }
-texts:
-  - { at: [450, 26], text: 先对好块号，再按层把历史搬过去, anchor: middle, strong: true }
-  - { at: [466, 206], text: ② 同一层对同一层地搬, anchor: middle, tone: comm }
-  - { at: [170, 362], text: 源块：这条请求在 P 上的历史, anchor: middle, note: true }
-  - { at: [730, 362], text: 目的块先分好，再等数据, anchor: middle, note: true }
-  - { at: [450, 410], text: V1：P 全部层算完，D 一次读回；Layerwise：P 算完一层就写一层, anchor: middle, note: true, width: 820 }
+caption: >-
+  连接器做的三件事：先对表（7→3、12→5），再按层搬，最后按协议分两条完成通知路径——V1 由 D 结束读取尝试后无论成败都通知 P 放块并由 D 按成败判定能否开算；Layerwise 由 P 末层写完回调通知 D 放行且 P 不走请求级押块（块号和层数均为示意）。
+size: [900, 492]
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
     symbols: [batch_transfer_sync_read]

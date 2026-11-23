@@ -95,7 +95,7 @@ file: rfork-patch-history
 | 衔接差异 | 两路终点之间的差：租约、回退、清理、张量安全和测试 | 单独记录，不算进「第七份补丁的内容」 |
 | 第七份补丁本身 | 来源服务的 HTTP 端口可以按 rank 固定下来；采集时跳过本机的 top-k 下标缓冲区 | 不负责固定传输引擎的端口；跳过名单里只有这一个缓冲区，不是所有临时缓冲区 |
 
-第七份补丁的端口怎么配见[配置](rfork-config.md#四类端口谁监听谁来连由什么决定)，那个缓冲区为什么不从来源搬见[布局](rfork-layout.md#本机的工作区不从-a-搬)。当前代码里另外一些行为——晚一点才去申请租约（见[启动](rfork-startup.md)）、有次数上限的后台归还租约（见[生命周期](rfork-lifecycle.md)）、回退时清理全局编译与 MoE 引用——都要看最终的加载器和会话代码；第七份补丁本身能直接对上的，只有端口和 top-k 采集这两处变化。
+第七份补丁的端口怎么配见[配置](rfork-config.md#四类端口谁监听谁来连由什么决定)，那个缓冲区为什么不从来源搬见[布局](rfork-layout.md#本机的工作区不从-a-搬)。当前代码里另外一些行为——晚一点才去申请租约（见[启动](rfork-startup.md)）、先快后慢的后台归还租约（见[生命周期](rfork-lifecycle.md)）、回退时清理全局编译与 MoE 引用——都要看最终的加载器和会话代码；第七份补丁本身能直接对上的，只有端口和 top-k 采集这两处变化。
 
 维护后台归还租约的逻辑时，要先区分成功与停止重试：归还成功（`RELEASED`）会先清除租约，再推进延迟启动 seed 的安排。若遇暂态错误（`RETRYABLE`），前 3 次按配置间隔快速重试，之后转入至少 60 秒间隔的慢速重试；只有收到永久拒绝（`REJECTED`）或进入关停时，才取消延迟启动 seed 的安排（Worker 不再发布 seed，模型加载或推理照常继续）。维护时应分别检查租约是否解决、seed 是否发布以及推理是否继续，现场行为还需实际验证。
 
@@ -123,11 +123,15 @@ file: rfork-patch-history
 | 会话、租约、Planner 协议 | [启动](rfork-startup.md)、[生命周期](rfork-lifecycle.md)、[配置](rfork-config.md)、[排错](rfork-troubleshooting.md)里 400/404 的那部分 |
 | 回退、全局模型引用 | [启动](rfork-startup.md)、[传输](rfork-transfer.md)、[排错](rfork-troubleshooting.md)里 OOM 的那部分 |
 
-升级或引入新上游提交时，按顺序确认新钉点、核对行为差异、跑 `pnpm wiki:diagrams --check`、`pnpm wiki:lint` 与 `pnpm wiki:audit`，并同步更新 10 篇 RFork 文档与 12 份图 `pins`。
+升级或引入新上游提交时，按顺序确认新钉点、核对行为差异、跑 `pnpm wiki:diagrams --check`、`pnpm wiki:lint` 与 `pnpm wiki:audit`，并同步更新 10 篇 RFork 文档与全部 RFork 2D 图的 `pins`。
 
-改好的代码要上线时，还有一个容易踩的坑。新实例是拿一把 `seed_key` 去找能借权重的来源的，配置指纹里有部署策略名和模型权重的版本号，**却没有 RFork 代码本身的提交号**（指纹与结构摘要的全部内容见[身份](rfork-identity.md#部署指纹里写了什么)）。也就是说，代码升级了、模型和张量结构没变，`seed_key` 不会必然跟着变，不能指望靠钥匙变化把旧来源自动隔开。
+```wiki-diagram
+file: rfork-fig-upgrade-isolation
+```
 
-反过来，部署策略名在指纹里，换一个名字钥匙就变了。所以新旧版本应当用各自独立的部署策略名；切换前要核对 Planner 给的候选、旧的登记信息和还在进行的传输，再安排实例和 Planner 一起切。**不能用清空 Planner 账本来代替「等正在读的实例读完」或「确认底层内存已清理」。** 官方材料的核读与差异见[官网对照页](../sources/rfork-official-guide.md)。
+改好的代码要上线时，最容易踩的坑是**代码升级未必会改变 `seed_key`**。配置指纹里有部署策略名、协议版本和模型权重的版本号，**却没有 RFork 代码本身的提交号**（见[身份](rfork-identity.md#部署指纹里写了什么)）。只要模型配置、张量结构摘要与协议版本等指纹输入未变，新旧代码仍会算出同一把钥匙，可能跨版本混借。
+
+反过来，部署策略名在指纹里，换一个名字钥匙就会全变。新旧版本应使用各自独立的部署策略名；切换前先核对 Planner 候选、旧登记信息和活跃传输，再安排实例与 Planner 一起切。**绝不能拿清空 Planner 账本来代替「等正在读的实例排空」或「确认底层内存已清理」。** 官方材料的核读与差异见[官网对照页](../sources/rfork-official-guide.md)。
 
 ## 哪些已经核过，哪些要到现场
 
@@ -184,4 +188,4 @@ file: rfork-patch-history
 - Engram 宿主表本地加载与释放：`local_weights.py#L61-L97`。[C7]
 - `v0.30.0` 对照：`vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L600-L710`。[C8]
 
-维护回归时须分别覆盖：后台归还 `RELEASED`（清租约并推进延期发布）、`RETRYABLE`（3 次快试转 ≥60s 慢试）与 `REJECTED`（取消延期发布）；回退前清理 `can_schedule_seed` 为假时保留 owner 并拒绝分配第二个模型；以及升级上游版本时同步复核 `RFork` 全部 10 篇文档与 12 张图 `pins`。
+维护回归时须分别覆盖：后台归还 `RELEASED`（清租约并推进延期发布）、`RETRYABLE`（3 次快试转 ≥60s 慢试）与 `REJECTED`（取消延期发布）；回退前清理 `can_schedule_seed` 为假时保留 owner 并拒绝分配第二个模型；以及升级上游版本时同步复核 `RFork` 全部 10 篇文档与全部 RFork 2D 图的 `pins`。

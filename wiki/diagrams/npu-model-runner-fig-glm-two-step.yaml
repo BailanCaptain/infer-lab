@@ -1,0 +1,10 @@
+mode: native-svg
+id: npu-model-runner-fig-glm-two-step
+caption: >-
+  GLM 双机示例请求 R1 第 1 步（prefill）与第 2 步（decode + MTP-3）单卡增量对照：输入同为 4 行，第 1 步仅选第 3 行产出 [1,154880] logits 与 y₀、再 eager 草拟 3 候选；第 2 步回放 ACLGraph #4 且 4 行全选产出 [4,154880] logits，经拒绝采样并在侧流统计 KDA 接受数；底部标出 DP1 8 卡 _dummy_run(4) 陪跑对齐 EP16。
+size: [900, 470]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2306-L2371
+    symbols: [logits_indices, compute_logits, ExecuteModelState]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2517-L2560
+    symbols: [need_accepted_tokens]

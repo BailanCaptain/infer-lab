@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 426" width="900" height="426" role="img" aria-label="910B 分离架构四步走读：y = ReLU(xW) 在核外 GM 与 AIC、AIV 间的落点与交接" font-family="var(--font-sans)">
+<title>910B 分离架构四步走读：y = ReLU(xW) 数据落点与跨核 GM 交接</title>
+<desc>依据 CANN 8.0.RC2 基本架构：输入 [1, 2] 与权重 [[1, -1], [2, -2]] 在 AIC 算出 [5, -5] 写回 GM 中间缓冲，再入 AIV UB 经 ReLU 得 [5, 0]</desc>
+<g stroke-width="1.4">
+<rect x="16" y="60" width="868" height="98" rx="9" fill="#f3f2ea" stroke="#c5c6bc"/>
+<rect x="30" y="92" width="156" height="54" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="198" y="92" width="206" height="54" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="420" y="92" width="232" height="54" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="668" y="92" width="202" height="54" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="212" width="500" height="198" rx="9" fill="#fcfbf7" stroke="#c78300"/>
+<rect x="30" y="256" width="232" height="86" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="284" y="256" width="218" height="86" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="30" y="356" width="472" height="40" rx="6" fill="#fff0e9" stroke="#d88c82"/>
+<rect x="548" y="212" width="336" height="198" rx="9" fill="#fcfbf7" stroke="#087f73"/>
+<rect x="562" y="256" width="142" height="86" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="726" y="256" width="144" height="86" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="562" y="356" width="308" height="40" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<line x1="532" y1="212" x2="532" y2="410" stroke="#b54237" stroke-width="1.5" stroke-dasharray="6 4"/>
+<path d="M96 148v60m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M242 148v60m-4-5l4 5 4-5M262 299h20m-5-4l5 4-5 4" fill="none" stroke="#c78300" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M462 210v-60m-4 5l4-5 4 5M608 148v60m-4-5l4 5 4-5" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M704 299h20m-5-4l5 4-5 4M786 210v-60m-4 5l4-5 4 5" fill="none" stroke="#087f73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="36" cy="234" r="11" fill="#c78300"/>
+<circle cx="568" cy="234" r="11" fill="#087f73"/>
+<g font-weight="700">
+<text x="16" y="26" font-size="16" fill="#17211f">910B 分离架构四步走读：y = ReLU(xW) 的存储落点与跨核交接</text>
+<text x="30" y="81" font-size="13.5" fill="#17211f">核外 GM（全局内存地址空间 · AIC 与 AIV 跨核交接缓冲；L2 命中与 HBM 事务由下层决定）</text>
+<text x="108" y="114" text-anchor="middle" font-size="14" fill="#3a4f93">GM 输入 x</text>
+<text x="301" y="114" text-anchor="middle" font-size="14" fill="#936300">GM 权重 W</text>
+<text x="536" y="114" text-anchor="middle" font-size="14" fill="#7a3a6a">GM 中间缓冲 z（③ 写回）</text>
+<text x="769" y="114" text-anchor="middle" font-size="14" fill="#065f56">GM 输出 y（④ 写回）</text>
+<text x="36" y="238.5" text-anchor="middle" font-size="12.5" fill="#ffffff">1</text>
+<text x="54" y="239" font-size="14.5" fill="#17211f">AIC · 矩阵核（片上缓冲与 Cube）</text>
+<text x="146" y="279" text-anchor="middle" font-size="14" fill="#936300">① L1 → MTE1 → L0A / L0B</text>
+<text x="393" y="279" text-anchor="middle" font-size="14" fill="#7a3a6a">② Cube 乘加 → L0C</text>
+<text x="568" y="238.5" text-anchor="middle" font-size="12.5" fill="#ffffff">2</text>
+<text x="586" y="239" font-size="14.5" fill="#17211f">AIV · 向量核（片上 UB 与 Vector）</text>
+<text x="633" y="279" text-anchor="middle" font-size="14" fill="#3a4f93">③ AIV UB 装入</text>
+<text x="798" y="279" text-anchor="middle" font-size="14" fill="#065f56">④ Vector 逐项激活</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="108" y="136" text-anchor="middle">[1, 2]</text>
+<text x="301" y="136" text-anchor="middle">[[1, -1], [2, -2]]</text>
+<text x="536" y="136" text-anchor="middle">[5, -5]（跨核中转）</text>
+<text x="769" y="136" text-anchor="middle">[5, 0]（最终写回）</text>
+<text x="146" y="303" text-anchor="middle">L0A 装入 [1, 2]</text>
+<text x="393" y="303" text-anchor="middle">[1×1+2×2, 1×(-1)+2×(-2)]</text>
+<text x="633" y="303" text-anchor="middle">重读暂存 [5, -5]</text>
+<text x="798" y="303" text-anchor="middle">max([5, -5], 0)</text>
+</g>
+<g font-size="13" fill="#4d5652">
+<text x="16" y="47">二元示意算例沿 ① 矩阵备料 → ② Cube 乘加 → ③ FixPipe 写回 GM 转入 UB → ④ Vector ReLU 写回逐步推进</text>
+<text x="146" y="325" text-anchor="middle">L0B 装入 [[1, -1], [2, -2]]</text>
+<text x="633" y="325" text-anchor="middle">向量片上统一缓冲</text>
+</g>
+<g font-size="13" font-weight="600">
+<text x="104" y="185" fill="#3a4f93">① MTE2</text>
+<text x="250" y="185" fill="#936300">① MTE2</text>
+<text x="454" y="185" text-anchor="end" fill="#7a3a6a">③ FixPipe 写回</text>
+<text x="616" y="185" fill="#7a3a6a">③ MTE2 重读</text>
+<text x="794" y="185" fill="#065f56">④ MTE3 写回</text>
+<text x="393" y="325" text-anchor="middle" fill="#7a3a6a">L0C 累加得 [5, -5]</text>
+<text x="798" y="325" text-anchor="middle" fill="#065f56">UB 写出 [5, 0]</text>
+<text x="42" y="381" fill="#8f3229">✗ 片上隔离边界：FixPipe 虽可写回 AIC L1，但不能直接写入右侧 AIV 的 UB</text>
+<text x="716" y="381" text-anchor="middle" font-size="12.5" fill="#065f56">✓ 原位激活：UB 算完 ReLU，经 MTE3 写回 GM</text>
+</g>
+</svg>

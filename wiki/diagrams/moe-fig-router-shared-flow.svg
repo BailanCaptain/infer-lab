@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="MoE 路由分支、共享专家与模块化交接布局示意图" font-family="var(--font-sans)">
-  <title>MoE 路由专家与共享专家双支执行流及模块化交接三笔账</title>
-  <desc>上半区展示单 token 进入 MoE 层后分走路由专家（FP32 打分、偏置只选人、原分数归一化并缩放）与共享专家（不经路由直接相加）两条支路；下半区对比模块化 MoE 的 Standard 与 BatchedExperts 交接布局及容量、有效工作量、存活缓冲三笔账。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 432" width="900" height="432" role="img" aria-label="MoE 路由专家与共享专家双支执行流及苹果示例逐维直加示意图" font-family="var(--font-sans)">
+  <title>MoE 路由专家与共享专家双支执行流：上半区对比 FP32 Router（偏置选人、原分数乘 r）与不经路由的共享专家支路；下半区以「苹果」4 维示意向量展示路由分支输出与共享分支直接逐维相加，共享分支不乘路由组合权重。</title>
+  <desc>关联源码符号：_compute_routing, e_score_correction_bias, _native_grouped_topk, _renormalize_topk_weights, routed_scaling_factor, AscendSharedExperts, PreparedSharedExpertExecution, SubmittedSharedExpertGateUp</desc>
   <defs>
     <marker id="moef-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
@@ -13,7 +13,7 @@
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单层双支主干：路由专家（选 k 算加权和）与共享专家（全过直加）</text>
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、双支 MoE 结构（DeepSeek-V3 / GLM）：路由分支选 k 加权 + 共享分支全过直加</text>
   <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
 
   <rect x="12" y="96" width="126" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
@@ -28,7 +28,7 @@
   <text x="202" y="78" font-size="14.5" font-weight="700" fill="#936300">1. FP32 Router 分离两笔分数</text>
   <text x="202" y="102" font-size="13.5" fill="#17211f">选人：按 <tspan font-family="var(--font-mono)" fill="#936300">s + bias</tspan> 取 Top-k</text>
   <text x="202" y="124" font-size="13.5" fill="#17211f">算权：回原始 <tspan font-family="var(--font-mono)" fill="#065f56">s</tspan> 归一再乘 <tspan font-family="var(--font-mono)" fill="#936300">r</tspan></text>
-  <text x="202" y="144" font-size="13.5" fill="#66716d">偏置只改入选集合，不直接进权重</text>
+  <text x="202" y="144" font-size="13.5" fill="#66716d">偏置只改入选集合，不进权重</text>
 
   <path d="M 424 104 L 450 104" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#moef-arr-a)"/>
 
@@ -51,24 +51,43 @@
   <text x="813" y="168" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">+ y_shared</text>
   <text x="813" y="186" text-anchor="middle" font-size="13.5" fill="#4d5652">保持形状 [T, H]</text>
 
-  <text x="14" y="274" font-size="16" font-weight="700" fill="#17211f">二、通信与计算交接的两种布局：容量、有效工作量、存活缓冲是三笔账</text>
-  <line x1="12" y1="286" x2="888" y2="286" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="14" y="270" font-size="16" font-weight="700" fill="#17211f">二、「苹果」出口合并示意：共享专家不参加 Top-k 归一化，逐维直接叠加</text>
+  <line x1="12" y1="282" x2="888" y2="282" stroke="#b8bcb5" stroke-width="1.3"/>
 
-  <rect x="12" y="300" width="276" height="130" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="26" y="326" font-size="14.5" font-weight="700" fill="#3a4f93">Standard 布局：[M, K]</text>
-  <text x="26" y="352" font-size="13.5" fill="#17211f">• 按二维 token 行交接</text>
-  <text x="26" y="376" font-size="13.5" fill="#17211f">• 另带 topk_ids 与本地专家映射</text>
-  <text x="26" y="400" font-size="13.5" fill="#4d5652">• 常见于高吞吐路径，可支持延后量化</text>
+  <text x="14" y="308" font-size="14" font-weight="700" fill="#7a3a6a">y_routed（已乘组合权重 [1.09, 0.91]）</text>
+  <rect x="14" y="318" width="60" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="44" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">1.09</text>
+  <rect x="78" y="318" width="60" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="108" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">1.82</text>
+  <rect x="142" y="318" width="60" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="172" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">3.09</text>
+  <rect x="206" y="318" width="60" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="236" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">-0.18</text>
 
-  <rect x="306" y="300" width="286" height="130" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
-  <text x="320" y="326" font-size="14.5" font-weight="700" fill="#936300">BatchedExperts：[E, T, K]</text>
-  <text x="320" y="352" font-size="13.5" fill="#17211f">• 每专家预留最大容量 T 行</text>
-  <text x="320" y="376" font-size="13.5" fill="#17211f">• 有效行数单列元数据，空位不算负载</text>
-  <text x="320" y="400" font-size="13.5" fill="#4d5652">• 低延迟路径使用，明确拒绝延后量化</text>
+  <text x="286" y="343" text-anchor="middle" font-size="22" font-weight="700" fill="#17211f">+</text>
 
-  <rect x="610" y="300" width="278" height="130" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="624" y="326" font-size="14.5" font-weight="700" fill="#8f3229">核对三笔账，切勿混算</text>
-  <text x="624" y="352" font-size="13.5" fill="#17211f">1. 预留容量：E × T（按上限分配）</text>
-  <text x="624" y="376" font-size="13.5" fill="#17211f">2. 有效工作：实际命中的配对行数</text>
-  <text x="624" y="400" font-size="13.5" fill="#8f3229">3. 存活缓冲：临时区可按寿命复用</text>
+  <text x="306" y="308" font-size="14" font-weight="700" fill="#3a4f93">y_shared（无路由权重，直出）</text>
+  <rect x="306" y="318" width="60" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="336" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">0.20</text>
+  <rect x="370" y="318" width="60" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="400" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">-0.10</text>
+  <rect x="434" y="318" width="60" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="464" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">0.30</text>
+  <rect x="498" y="318" width="60" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="528" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">0.00</text>
+
+  <text x="578" y="343" text-anchor="middle" font-size="22" font-weight="700" fill="#17211f">=</text>
+
+  <text x="598" y="308" font-size="14" font-weight="700" fill="#065f56">本层最终输出 y_MoE（宽仍为 4）</text>
+  <rect x="598" y="318" width="68" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="632" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1.29</text>
+  <rect x="670" y="318" width="68" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="704" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1.72</text>
+  <rect x="742" y="318" width="68" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="776" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">3.39</text>
+  <rect x="814" y="318" width="72" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="850" y="341" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">-0.18</text>
+
+  <rect x="14" y="372" width="872" height="46" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="400" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#065f56">边界提醒：</tspan>无共享专家时（如 <tspan font-family="var(--font-mono)" font-weight="700">Qwen3-30B-A3B</tspan>）直接返回 <tspan font-family="var(--font-mono)">y_routed</tspan>；专家内部 <tspan font-family="var(--font-mono)">gate/up</tspan> 门控是逐通道开关，与选专家无关</text>
 </svg>

@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="一条请求跨越 Host CPU、HBM 显存与 AI Core 三块硬件地盘的立体拆解剖面图" font-family="var(--font-sans)">
+  <title>一次请求的三块硬件地盘立体拆解：左侧 Host CPU 负责分词切号、调度与停止判定；中部 NPU HBM 显存常驻模型权重并逐层追加 KV Cache；四通道搬运带把权重与历史 KV 送入右侧 AI Core 矩阵计算阵列，算完产出新 token（如 #3）。</title>
+  <desc>关联源码符号：step, schedule, execute_model, num_computed_tokens, kv_cache, attn_metadata, logits_indices, compute_logits, check_stop, update, decode_next</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（1200x338 -> 840x237，零外框直浮画布） -->
+  <image href="./wiki-illustrations/request-three-terrains-cutaway.webp" x="30" y="148" width="840" height="237" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 顶部三条零交叉垂直引线（避开原图顶部 HOST CPU / HBM / AI CORE 英文铭牌） -->
+  <!-- 1 -> Host CPU 门禁与调度平台 -->
+  <line x1="235" y1="118" x2="235" y2="238" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="235" cy="238" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="235" cy="238" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> HBM 琥珀色权重柜（位于 HBM 字样左侧） -->
+  <line x1="396" y1="118" x2="396" y2="222" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="396" cy="222" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="396" cy="222" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> AI Core 右侧计算阵列（位于 AI CORE 字样右侧） -->
+  <line x1="786" y1="118" x2="786" y2="222" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="786" cy="222" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="786" cy="222" r="2.5" fill="#087f73"/>
+
+  <!-- 底部三条零交叉垂直引线（避开原图底部 KV CACHE / NPU 英文铭牌） -->
+  <!-- 4 -> 入口编号砖块 0, 2, 2 -->
+  <line x1="88" y1="416" x2="88" y2="322" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="88" cy="322" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="88" cy="322" r="2.5" fill="#4c65b6"/>
+
+  <!-- 5 -> HBM 蓝色 KV CACHE 叠层托盘右侧 -->
+  <line x1="532" y1="416" x2="532" y2="306" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="532" cy="306" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="532" cy="306" r="2.5" fill="#4c65b6"/>
+
+  <!-- 6 -> HBM 到 AI Core 四通道数据搬运带 -->
+  <line x1="636" y1="416" x2="636" y2="312" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="636" cy="312" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="636" cy="312" r="2.5" fill="#9a4b86"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-host-cpu">
+    <circle cx="24" cy="26" r="12" fill="#087f73"/>
+    <text x="24" y="30.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="31" font-size="15" font-weight="700" fill="#17211f">Host CPU · 前台与调度员</text>
+    <text x="44" y="56" font-size="13.5" fill="#4d5652">执行模板渲染、分词切号与越界校验</text>
+    <text x="44" y="79" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">schedule</tspan> 安排每轮送算位置</text>
+    <text x="44" y="102" font-size="13.5" fill="#66716d">不碰大矩阵，忙时易让 NPU 空等</text>
+  </g>
+
+  <g id="callout-hbm-weights">
+    <circle cx="314" cy="26" r="12" fill="#c78300"/>
+    <text x="314" y="30.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="334" y="31" font-size="15" font-weight="700" fill="#17211f">HBM 权重区 · 常驻高速仓库</text>
+    <text x="334" y="56" font-size="13.5" fill="#4d5652">常驻嵌入表 <tspan font-family="var(--font-mono)" font-weight="700">E</tspan>、各层权重与 <tspan font-family="var(--font-mono)" font-weight="700">W_head</tspan></text>
+    <text x="334" y="79" font-size="13.5" fill="#4d5652">推理期全程只读，多行批内共用一份</text>
+    <text x="334" y="102" font-size="13.5" fill="#936300">每轮前向都须逐层搬入计算核心</text>
+  </g>
+
+  <g id="callout-ai-core">
+    <circle cx="606" cy="26" r="12" fill="#087f73"/>
+    <text x="606" y="30.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="626" y="31" font-size="15" font-weight="700" fill="#17211f">AI Core · 矩阵乘计算车间</text>
+    <text x="626" y="56" font-size="13.5" fill="#4d5652">算 Attention、MLP、<tspan font-family="var(--font-mono)" font-weight="700">lm_head</tspan> 与采样</text>
+    <text x="626" y="79" font-size="13.5" fill="#4d5652">Prefill 一次算整段，易吃满算力上限</text>
+    <text x="626" y="102" font-size="13.5" fill="#065f56">末行打分直出新词（如图右 <tspan font-family="var(--font-mono)" font-weight="700">#3</tspan>）</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-token-io">
+    <circle cx="24" cy="438" r="12" fill="#4c65b6"/>
+    <text x="24" y="442.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="443" font-size="15" font-weight="700" fill="#17211f">编号流与停止回传闭环</text>
+    <text x="44" y="469" font-size="13.5" fill="#4d5652">第 1 轮整段切号进门，第 2 轮只送 1 词</text>
+    <text x="44" y="494" font-size="13.5" fill="#4d5652">新词回 CPU 经 <tspan font-family="var(--font-mono)" font-weight="700">check_stop</tspan> 判定停机</text>
+    <text x="44" y="519" font-size="13.5" fill="#66716d">同时由增量反分词实时还原可读文字</text>
+  </g>
+
+  <g id="callout-kv-cache">
+    <circle cx="314" cy="438" r="12" fill="#4c65b6"/>
+    <text x="314" y="442.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="334" y="443" font-size="15" font-weight="700" fill="#17211f">HBM KV Cache · 历史键值栈</text>
+    <text x="334" y="469" font-size="13.5" fill="#4d5652">第 1 轮按层写下前文 <tspan font-family="var(--font-mono)" font-weight="700">k, v</tspan> 避免重算</text>
+    <text x="334" y="494" font-size="13.5" fill="#4d5652">第 2 轮直读旧缓存并追加新位置</text>
+    <text x="334" y="519" font-size="13.5" fill="#3a4f93">可用显存余量直接卡死最大并发数</text>
+  </g>
+
+  <g id="callout-bandwidth">
+    <circle cx="606" cy="438" r="12" fill="#9a4b86"/>
+    <text x="606" y="442.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">6</text>
+    <text x="626" y="443" font-size="15" font-weight="700" fill="#17211f">HBM → AI Core 搬运通道</text>
+    <text x="626" y="469" font-size="13.5" fill="#4d5652">权重与历史 KV 经片内高带宽总线送算</text>
+    <text x="626" y="494" font-size="13.5" fill="#4d5652">Decode 仅算 1 新词却搬整套权重 + KV</text>
+    <text x="626" y="519" font-size="13.5" fill="#7a3a6a">车间算得快、常在等原料：带宽受限</text>
+  </g>
+</svg>

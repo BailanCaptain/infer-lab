@@ -1,8 +1,8 @@
 mode: native-svg
 id: ascend-patch-system-fig-lifecycle
 caption: >-
-  vllm-ascend 两阶段补丁生命周期与演进全景：阶段一在平台准备钩子与三个通用插件入口（经 _ensure_global_patch）导入 patch/platform（v0.30.0 为 32 个文件），阶段二在 NPUWorker 构造开头导入 patch/worker 与 patch_v2（v0.30.0 为 19+14 个文件）；下方对照 from-import 副本陷阱与 v0.30.0（65 补丁、HardwareProfile 能力门控）至 main（59 补丁、退役 patch_v2/）的收敛。
-size: [900, 444]
+  vllm-ascend 四层补丁筛选漏斗与三层进程去重护栏：上半以渐收漏斗呈现「目录文件（v0.30.0 为 65 个，main 收敛至 59 个）→ 条件导入（能力表/Triton/EPLB）→ 源模块与 from-import 副本双改写 → 实际调用」四级过滤，右侧标出三类导入后仍空转或绕行的出口（none 模式不调对齐切分、BalanceScheduler 关时转调父类、昇腾子类绕过上游拒绝采样）；下半画出三层进程内去重标记与平台钩子绕过第二层由 sys.modules 兜底的路径。
+size: [900, 560]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L62'
     symbols: [patch_use_v2_model_runner, patch_engine_core, STANDARD_MAMBA_PATCH]

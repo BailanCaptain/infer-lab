@@ -1,8 +1,8 @@
 mode: native-svg
 id: request-call-chain-fig-log-landmarks
 caption: >-
-  跨进程日志地标、三层超时边界与异常回传地图：沿 API server → EngineCore_DP0 → Worker_DP0/DP1 四条泳道标出日志前缀、RPC/HCCL 超时作用域、原始异常向上冒泡顺序，以及 v0.30.0（MRV1 默认）与 main（MRV2 唯一）在第 3–5 站栈帧入口的差异。
-size: [900, 470]
+  跨进程日志地标、异常反向回传链与三层超时作用域：上半用四条进程泳道标出正向通道（ZMQ / SHM / EP16）与红线反向异常冒泡（WorkerProc → EngineCore → EngineDeadError）；中段按阶段区分 HCCL_CONNECT、VLLM_EXECUTE_MODEL 与 HCCL_EXEC 三层超时；底部标出 v0.30.0（MRV1）与 main（MRV2）在第 3–5 站的文件入口。
+size: [900, 540]
 pins:
   - source: vllm@ced6857a:vllm/v1/engine/core.py#L589-L640
     symbols: [step, step_with_batch_queue]

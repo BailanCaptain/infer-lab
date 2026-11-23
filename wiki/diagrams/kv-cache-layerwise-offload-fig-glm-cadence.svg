@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 326" width="900" height="326" role="img" aria-label="GLM 3 层 KDA 间隔 1 层 MLA 的逐层搬运节拍与两处快照卡点" font-family="var(--font-sans)">
+  <title>GLM 3 层 KDA + 1 层 MLA 逐层搬运节拍与快照卡点</title>
+  <desc>GLM 45-layer interleaved cadence (3 KDA layers followed by 1 sparse MLA layer requiring 69.7 MiB at 105 blocks) and two blockers: missing KDA hooks in old snapshot and shared-slot rejection of recurrent states</desc>
+  <defs>
+    <marker id="lwg-arr-blue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <circle cx="24" cy="24" r="12" fill="#c78300"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">GLM 不均匀层节拍（每 4 层 1 层稀疏 MLA，105 块全取约 69.7 MiB/层）</text>
+
+  <!-- 8 layers strip: L0..L7 -->
+  <g stroke-width="1.4">
+    <rect x="16" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="122" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="228" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="334" y="54" width="110" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="454" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="560" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="666" y="54" width="96" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="772" y="54" width="112" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+  <g text-anchor="middle" font-size="13.5">
+    <text x="64" y="75" font-weight="700" fill="#4d5652">L0 · KDA</text>
+    <text x="64" y="92" fill="#66716d">递推状态</text>
+    <text x="170" y="75" font-weight="700" fill="#4d5652">L1 · KDA</text>
+    <text x="170" y="92" fill="#66716d">递推状态</text>
+    <text x="276" y="75" font-weight="700" fill="#4d5652">L2 · KDA</text>
+    <text x="276" y="92" fill="#66716d">递推状态</text>
+    <text x="389" y="75" font-weight="700" fill="#3a4f93">L3 · MLA</text>
+    <text x="389" y="92" fill="#3a4f93">69.7 MiB</text>
+    <text x="502" y="75" font-weight="700" fill="#4d5652">L4 · KDA</text>
+    <text x="502" y="92" fill="#66716d">递推状态</text>
+    <text x="608" y="75" font-weight="700" fill="#4d5652">L5 · KDA</text>
+    <text x="608" y="92" fill="#66716d">递推状态</text>
+    <text x="714" y="75" font-weight="700" fill="#4d5652">L6 · KDA</text>
+    <text x="714" y="92" fill="#66716d">递推状态</text>
+    <text x="828" y="75" font-weight="700" fill="#3a4f93">L7 · MLA</text>
+    <text x="828" y="92" fill="#3a4f93">69.7 MiB</text>
+  </g>
+
+  <!-- Prefetch bridge across 3 KDA layers -->
+  <path d="M389 102 V124 H828 V106" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#lwg-arr-blue)"/>
+  <rect x="466" y="112" width="286" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="609" y="129" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">提前 4 层预取：用 3 层 KDA 计算遮 MLA 搬入</text>
+
+  <!-- Two blocker boxes -->
+  <rect x="16" y="156" width="424" height="156" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="30" y="182" font-size="15" font-weight="700" fill="#8f3229">卡点 1：旧 GLM 快照 KDA 缺逐层入口</text>
+  <text x="30" y="208" font-size="13.5" fill="#17211f">34 层 KDA 未调用 wait/save 入口</text>
+  <text x="30" y="232" font-size="13.5" fill="#4d5652">逐层层号只在 save 时加 1 → MLA 计数错位</text>
+  <text x="30" y="256" font-size="13.5" fill="#4d5652">固定 main 虽补代码但算子表已无旧 KDA 替换</text>
+  <text x="30" y="286" font-size="13.5" font-weight="700" fill="#8f3229">有文件代码 ≠ GLM 实际走通该路径</text>
+
+  <rect x="460" y="156" width="424" height="156" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="474" y="182" font-size="15" font-weight="700" fill="#936300">卡点 2：v0.30.0 / main 仍有组合约束</text>
+  <text x="474" y="208" font-size="13.5" fill="#17211f">memcache 共享槽遇非 attention 态 → 报错拒启</text>
+  <text x="474" y="232" font-size="13.5" fill="#4d5652">v0.30.0 Mooncake 放开 PP/混合态，仍拒 PCP/DCP</text>
+  <text x="474" y="256" font-size="13.5" fill="#4d5652">main 放开互斥 PCP/DCP；全版本要求 P/D 同 TP</text>
+  <text x="474" y="286" font-size="13.5" font-weight="700" fill="#936300">12 层 MLA 全取约 836.7 MiB（KDA 另按 align 核）</text>
+</svg>

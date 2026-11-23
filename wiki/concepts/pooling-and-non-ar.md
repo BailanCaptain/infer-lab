@@ -83,7 +83,7 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**Pooling 推理（`--runner pooling`）是指面向 Embedding（文本向量化）、Reranker（检索精排）与 Reward（奖励打分）等非生成任务的单轮前向路径——引擎算完输入序列的末层隐藏状态后，跳过词表投影与采样，直接用池化头归约成向量或标量；而 Encoder-Decoder（如 Whisper ASR 语音识别）则是先跑双向编码器生成源特征、再在解码器里做交叉注意力自回归的混合路径。**
+**Pooling 推理（`--runner pooling`）面向 Embedding（文本向量化）、Reranker（检索精排）与 Reward（奖励打分）等非生成任务：引擎算完输入序列的末层隐藏状态后，直接跳过词表投影与采样，由池化头归约成向量或标量。** **Encoder-Decoder**（如 Whisper ASR 语音识别）则是混合路径：先跑双向编码器产出源特征，再在解码器里借交叉注意力自回归生成。
 
 沿[请求全景](request-overview.md)与 [Prefill / Decode](prefill.md) 走常规对话生成时，每条请求都要经历“先读完整段提示词写 KV Cache，再循环逐字生成几十上百步”。但工业界大量业务（RAG 向量入库、检索重排、内容审核分类、RLHF 奖励打分、语音转写）根本不需要套用纯 Decoder 自回归模式。理解 `vllm` 与 `vllm-ascend` 如何为这两类模型改道，能避开大批掩码错配、分块报错和图模式崩溃陷阱。
 
@@ -142,7 +142,13 @@ $$h_{\text{pool}}^{(i)} = \frac{1}{L_i} \sum_{t=1}^{L_i} h_{i,t}, \qquad \hat{h}
 
 ## 生成式评分（`/generative_scoring`）：与 Pooling `/score` 的边界及概率比较
 
-如果没有专门的池化重排模型，也可以用生成模型的下一词概率分布做打分——vLLM 为此提供独立的 **`POST /generative_scoring`** 入口。它与池化 `/score`（分类头、双编码向量相似度或 token 匹配分）完全分开：后者走 `--runner pooling`，前者复用生成任务为每个候选构造子请求（`max_tokens=1, n=1`，同时将 `logprobs` 与 `logprob_token_ids` 设为调用方提供的标签列表）。
+如果没有专门的池化重排模型，也可以用生成模型的下一词概率分布做打分——vLLM 为此提供独立的 **`POST /generative_scoring`** 入口。它与池化 `/score`（分类头、双编码向量相似度或 token 匹配分）完全分开：后者走 `--runner pooling`，前者复用生成任务为每个候选构造子请求（`max_tokens=1, n=1`，将 `logprobs` 设为候选标签个数［如传 `[A, B]` 时为 `2`］，将 `logprob_token_ids` 设为调用方提供的标签 token ID 列表）。
+
+下图把生成式评分的三种重归一口径，以及后文实时语音转写（`/v1/realtime`）的 WebSocket 事件状态机合在同一视图里对照：
+
+```wiki-diagram
+file: pooling-fig-scoring-and-asr
+```
 
 设标签 A、B 在完整词表中的概率分别为 `0.1`、`0.3`，其余词合计 `0.6`。默认 `apply_softmax=true` 时，接口**只在指定标签之间重新归一化**并返回**标签列表第一项**的分数（示意）：
 

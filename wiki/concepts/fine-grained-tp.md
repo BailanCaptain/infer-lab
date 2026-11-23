@@ -2,6 +2,8 @@
 id: fine-grained-tp
 title: 细粒度 TP：为特定模块选择分片组
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署开了细粒度-tp-吗: 复杂异构实战对照：GLM 双机为何未启用细粒度 TP
 summary: >-
   细粒度 TP 让词表嵌入、lm_head、attention 输出投影、稠密 MLP 各自单独设分片组：沿 DP
   方向把服务不同请求的几张卡编成一组，合存一份权重；代价是进出这一层要收集输入、送回结果。GLM 双机没有开启。
@@ -224,9 +226,13 @@ MLP 用的就是 [TP 的成对切法](tensor-parallel.md#为什么总是先列�
 
 attention 的最后一步是输出投影：每个 token 的各头结果拼成一条长度为 D 的向量，再乘回隐藏维度。细粒度 TP 把这个矩阵按行切，也就是按输入的 D 个特征切成 k 段，卡 j 存第 j 段特征对应的那几行。
 
-卡 j 只用得上每个 token 的第 j 段特征，用不着整条向量。所以入口不做 All-Gather，而是 All-to-All：每张卡把自己 token 的第 j 段发给卡 j。交换以后，卡 j 手里是全组所有 token 的第 j 段特征，乘上自己那几行，得到全组 token 的部分和；出口再用 Reduce-Scatter 按位置相加，把每个 token 送回原卡。
+卡 j 只用得上每个 token 的第 j 段特征，用不着整条向量。所以入口不做 All-Gather，而是 **All-to-All**：每张卡把自己 token 的第 j 段发给卡 j。交换以后，卡 j 手里是全组所有 token 的第 j 段特征，乘上自己那几行，得到全组 token 的部分和；出口再用 **Reduce-Scatter** 按位置相加，把每个 token 送回原卡。下图上半幅用 2 卡、`D = 4` 演示这条特征交换路径，下半幅顺便按比例对照后文 GLM 双机硬开细粒度 TP 反而权重膨胀 4 倍的反例：
 
-示意：2 张卡，D = 4。卡 0 上 A 的结果是 [a1, a2, a3, a4]，卡 1 上 B 的是 [b1, b2, b3, b4]。All-to-All 以后，卡 0 拿到 [a1, a2] 和 [b1, b2]，卡 1 拿到 [a3, a4] 和 [b3, b4]。和 All-Gather 整条相比，每张卡只收到自己用得上的一半特征。
+```wiki-diagram
+file: fine-grained-tp-fig-oproj-and-glm
+```
+
+如上图所示，卡 0 上 A 的结果是 `[a1, a2, a3, a4]`，卡 1 上 B 的是 `[b1, b2, b3, b4]`。All-to-All 后卡 0 拿到 `[a1, a2]` 与 `[b1, b2]`，卡 1 拿到 `[a3, a4]` 与 `[b3, b4]`——与 All-Gather 整条相比，入口只收自己用得上的一半特征。
 
 ### 四个模块放在一起看
 

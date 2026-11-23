@@ -1,8 +1,8 @@
 mode: native-svg
 id: profiling-chunk-config
 caption: >-
-  v0.30.0 (c09d3e20) 动态切块（CPP）工作流：启动期实测拟合二次曲线并设目标时延，运行期按已算前缀反解正根、平滑、向上对齐并仅收窄 token 预算（在线校准完成后切至非负最小二乘历史模型）；main (8d6180e2) 已随 PR #21310（839f53831）整体移除。
-size: [900, 652]
+  v0.30.0 (c09d3e20) 动态切块（CPP）工作流：启动期实测拟合二次曲线并设目标时延，运行期按已算前缀反解正根、平滑、向上对齐并仅收窄 token 预算（在线校准首次成功拟合即置 with_history_ready 切至非负最小二乘历史模型，最早第 5 个样本；须累计 3 次零历史且历史样本严格超过 max_fit_chunk 才停表）；main (8d6180e2) 已随 PR #21310（839f53831）整体移除。
+size: [900, 616]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/profiling_chunk_predictor.py#L265-L382'
     symbols:

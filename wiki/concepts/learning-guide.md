@@ -42,18 +42,18 @@ updated: "2026-11-19"
 | **路线 A · 概念初学者**<br>（从零建立推理直觉） | 本页 → [请求全景](request-overview.md) → **直接进入 02 组** [token](token.md) → [embedding](embedding.md) → [attention](attention-qkv.md) → **03 组** [Prefill 与 Decode](prefill.md) → [KV cache](kv-cache.md) → [PagedAttention](paged-attention.md) | 先用 6 个词的迷你例子看懂整条链路，再一层层拆开单个积木、显存分页、昇腾硬件和多卡并行，全程零前置概念倒挂 |
 | **路线 B · 新模型上线速查**<br>（要把模型尽快跑在昇腾上） | 在 **01 组** 内按 [读懂 HF 模型目录](hf-model-anatomy.md) → [昇腾新模型上线总览](ascend-model-onboarding.md) → [环境准备与服务启动](ascend-env-and-serve.md) 走完，随后转到 **08 组** [核心 CLI 参数](core-cli-params.md)与[通用排障](inference-troubleshooting.md) | 先学会看 `config.json` 算权重和显存，再确认模型是否受支持、怎么选容器镜像并拉起服务，遇到报错再按需回查原理页 |
 
+```wiki-diagram
+file: learning-guide-route
+```
+
 全站采用**双层标尺设计**，把主流通用原理与异构旗舰全案明确分开，避免初学者一上来就被前沿特例绊住：
 
-- **主流入门标尺（覆盖约 `80%` 生产模型）**：全站日常概念页与 `v0.30.0` 标准算例统一采用 **`Qwen3-8B`**（Dense GQA，稠密分组查询架构）与 **`Qwen3-30B-A3B`**（MoE，稀疏混合专家架构）。先沿路线 A 走通 01–03 组，就能建立绝大多数线上大模型的通用推理直觉。
-- **异构旗舰双机全案（进阶实战，非入门前置）**：**09 组**的 GLM-5.3-Flash 双机 16 卡专题包含四路残差（mHC）、5 个混合缓存组（KDA + 稀疏 MLA）等前沿异构特性。它是学完主流基础后的综合实战演练，**不是阅读基础页的前置条件**。
+- **主流入门标尺（覆盖约 `80%` 生产模型）**：日常概念页与 `v0.30.0` 标准算例统一采用 **`Qwen3-8B`**（Dense GQA，稠密分组查询架构）与 **`Qwen3-30B-A3B`**（MoE，稀疏混合专家架构）。沿路线 A 走通 01–03 组，即可掌握绝大多数线上大模型的通用推理直觉。
+- **异构旗舰双机全案（进阶实战，非入门前置）**：**09 组**的 GLM-5.3-Flash 双机 16 卡专题包含四路残差（mHC）与 5 个混合缓存组（KDA + 稀疏 MLA）等前沿特性。它适合作为学完主流基础后的综合演练，**不是阅读基础页的前置条件**。
 
 > **入门轨道 2 题通关自测**（沿路线 A 读完 01–03 组后，先自检这两问再进 09 组进阶全案）
 > 1. **首 token 在哪一步产出？**（是在 Prefill 处理完最后一个提示词位置后的词表采样阶段，还是等第一轮 Decode 才生成？）
 > 2. **标准 GQA 每个位置留什么缓存？**（按 KV 头数存该位置的 K、V 向量，不按查询头数翻倍，也不涉及 GLM 的四路残差或 5 组混合缓存。）
-
-```wiki-diagram
-file: learning-guide-route
-```
 
 ## 侧栏 01–12 全部目录一览
 
@@ -76,7 +76,7 @@ file: learning-guide-route
 
 ### 异构旗舰双机实战全案（历史 GLM-5.3-Flash 专题）
 
-完成上方 `Qwen3-8B` / `Qwen3-30B-A3B` 入门轨道与 2 题自测后，可以再进入 **09 组 GLM-5.3-Flash 双机 16 卡历史全案**。全案依次串通模型、16 卡部署、单条请求七站、多条并发与代码调用链，按 [认识 GLM-5.3-Flash](glm-5-3-flash.md) → [双机部署](glm-5-3-flash-two-node.md) → [一条请求](one-request.md) → [多个请求](concurrent-requests.md) → [代码路径](request-call-chain.md) 五页顺序读即可。该专题涉及四路残差（mHC）与 5 个混合缓存组等异构特性，属于进阶多机实战而非入门前置；前四页只需矩阵乘法基础，第 5 页起需要看懂 Python 调用栈。
+完成上方 `Qwen3-8B` / `Qwen3-30B-A3B` 入门轨道与 2 题自测后，可以再进入 **09 组 GLM-5.3-Flash 双机 16 卡历史全案**。全案依次串通模型、16 卡部署、单条请求七站、多条并发与代码调用链，按五页顺序读即可：[认识 GLM-5.3-Flash](glm-5-3-flash.md) → [双机部署](glm-5-3-flash-two-node.md) → [一条请求](one-request.md) → [多个请求](concurrent-requests.md) → [代码路径](request-call-chain.md)。该专题含四路残差（mHC）与 5 个混合缓存组等异构特性，属于进阶演练而非入门前置；前四页只需矩阵乘法基础，第 5 页起需要看懂 Python 调用栈。
 
 先记住多卡部署里最常碰到的三个分工名词：
 
@@ -122,7 +122,7 @@ file: learning-guide-route
 | **昇腾 950** | 新一代计算/搬运融合、任务执行卸载、超节点互联与内存池架构 | [昇腾 950：计算与数据搬运](ascend-950-architecture.md)、[昇腾 950：任务执行与互联](ascend-950-execution-interconnect.md) |
 | **Atlas 300I Duo / 310P** | 轻量推理卡族，在算子、量化与采样/Runner 侧有独立适配边界 | [昇腾硬件设备](hardware-devices.md)、[昇腾 FlashAttention](ascend-flash-attention.md)、[NPU Model Runner](npu-model-runner.md) |
 
-读新硬件架构时，建议先跟着一块数据的搬运轨迹走，不急着死记核数与峰值：还不熟悉芯片内部计算单元时先看 [AI Core](ai-core.md)，还不熟悉跨卡通信时先看[集合通信](collective-communication.md)，再顺读[昇腾 950：计算与数据搬运](ascend-950-architecture.md)与[昇腾 950：任务执行与互联](ascend-950-execution-interconnect.md)。
+读新硬件架构时，建议先跟着一块数据的搬运轨迹走，不必死记核数与峰值。还不熟悉片内计算单元时先看 [AI Core](ai-core.md)，还不熟悉跨卡通信时先看[集合通信](collective-communication.md)；建立直觉后，再顺读[昇腾 950：计算与数据搬运](ascend-950-architecture.md)与[昇腾 950：任务执行与互联](ascend-950-execution-interconnect.md)。
 
 ## 回到三份参考资料，遇到陌生段落去哪查
 

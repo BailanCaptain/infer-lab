@@ -1,7 +1,7 @@
 mode: native-svg
 id: inference-correctness-troubleshooting-fig-triage-funnel
 caption: >-
-  输出异常四级分流漏斗：先对齐输入 token ID 与模板（含 Transformers v5 return_dict 兼容），再切 greedy（temp < 1e-5 快速路径）定位首个分歧前缀上的 logits 与后处理分数，接着隔离缓存/批不变/图模式/量化/PD 传输四类状态差异并核对 tool/reasoning 解析器与停止串缓冲，最后按离线复现与线上偶发分别接入 MSProbe（L1→tensor）与 main MRV2 Runtime Guard（token_repeat / logits_finite / spec_acceptance + dump_kv）。
+  输出异常四级收窄漏斗：第 1 关用 token 编号格对齐输入（如 [11,23,7] vs [11,23,9,7]）；第 2 关切贪心（temp < 1e-5）核对共同前缀的 raw logits 与后处理分数；第 3 关用四组单变量 A/B 开关隔离缓存、批不变、图模式与量化/PD 传输；第 4 关按稳定复现与线上偶发分流至 MSProbe 逐层二分与 main MRV2 Runtime Guard。
 size: [900, 500]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/sample/sampler.py#L225-L315'

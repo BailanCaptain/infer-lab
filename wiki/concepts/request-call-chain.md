@@ -247,7 +247,7 @@ updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
-[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。如果说[一条请求](one-request.md)回答了「4 个提示词 token 在每一站算了多少数、传了多少字节、借了几块 [KV block](kv-cache.md)（保存历史状态的显存块）」，本页则跟着同一条请求落到代码：每一站跑在哪个进程里、跨进程走哪条通道交接，以及服务报错或卡住时该打开哪份日志与源码。
+[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。[一条请求](one-request.md)回答了 4 个提示词 token 在每一站算了多少数、传了多少字节、借了几块 [KV block](kv-cache.md)（保存历史状态的显存块）。本页则跟着同一条请求落到代码：每一站跑在哪个进程里、跨进程走哪条通道交接，以及服务报错或卡住时该打开哪份日志与源码。
 
 Python 报错时打印的 traceback（调用栈回溯）只列出出错进程那一刻的函数链；跨进程交接的请求则需要把几份进程日志连起来读。提交侧会先在本地的 `OutputProcessor` 注册请求，再异步发给独立的 `EngineCore`，因此排查「请求到底停在哪一站」时，务必把本地注册与跨进程提交拆成两步核对。
 
@@ -255,9 +255,9 @@ Python 报错时打印的 traceback（调用栈回溯）只列出出错进程那
 
 **进程**是操作系统里一份独立运行的程序，有自己的一块内存。两个进程不能直接读对方的变量，交换数据必须经过网络或共享内存通道。因此「一站交给下一站」分两种情况：同进程内是普通函数调用，跨进程则要编码、传输再解码。
 
-**先记一套标准单机心智模型（`1 前端 + 1 EngineCore + N 个 Worker`）：** 无论跑单卡 `Qwen3-8B` 还是四卡 `TP4`，vLLM V1 永远只有三类干活的进程——**1 个 API server**（管第 1 站收请求与第 7 站流式返回）、**1 个 EngineCore**（管第 2 站调度与第 6 站结果更新），以及每张卡 **1 个 Worker**（管第 3–5 站输入准备、前向与采样）。
+**先记一套标准单机心智模型（`1 前端 + 1 EngineCore + N 个 Worker`）：** 无论跑单卡 `Qwen3-8B` 还是四卡 `TP4`，vLLM V1 永远只有三类干活的进程。API server 管第 1 站收请求与第 7 站流式返回；EngineCore 管第 2 站调度与第 6 站结果更新；每张卡的 Worker 管第 3–5 站输入准备、前向与采样。
 
-把这套三角色骨架放进本站 `09 旗舰异构模型全案` 的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），就展开成了启动后的 **20 个核心角色进程**——一条请求仍只经过同样的三种角色：
+把这套三角色骨架放进本站历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），便展开为启动后的 **20 个核心角色进程**。一条请求仍只经过同样的三种角色：
 
 - **API server**：node0 上唯一接收 HTTP 请求的前端进程。第 1 站和第 7 站在这里。
 - **EngineCore**：每个 DP 执行组一个引擎进程，分别记作 `EngineCore_DP0`、`EngineCore_DP1`（日志也用这两个前缀）。内部持有 **scheduler**，管第 2 站和第 6 站。
@@ -295,7 +295,7 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 **gloo：进程之间对几个小数字。** gloo 是 PyTorch 自带的 CPU 集合通信后端，适合传很小的数据。它用在两处：两个 EngineCore 每 32 步交换一次「我这边还有没有请求」，两边都空了才一起停下；两台机器对应 worker 每步开算前对齐「这一步算多宽、用不用图」（开启 `dp_allreduce_on_npu` 时后者改走 HCCL，默认关闭）。
 
-所以 R1 走完一个新 token 的通道顺序是：ZMQ（API → `EngineCore_DP0`）→ 共享内存（`EngineCore_DP0` → 8 个 worker）→ worker 内函数调用（穿插 gloo 对齐与 HCCL 通信）→ 共享内存（第 0 号 worker → `EngineCore_DP0`）→ ZMQ（`EngineCore_DP0` → API）。
+所以 R1 走完一个新 token 的通道顺序可以按往返记：去程走 ZMQ（API → `EngineCore_DP0`）→ 共享内存（`EngineCore_DP0` → 8 个 worker）；卡内执行穿插 gloo 对齐与 HCCL 通信；回程经共享内存（第 0 号 worker → `EngineCore_DP0`）→ ZMQ（`EngineCore_DP0` → API）。
 
 ## 一步之内：EngineCore 给 worker 发两次调用
 
@@ -347,7 +347,7 @@ file: request-call-chain-functions
 
 这里的 patch 涉及缓存分组、分配协调、KDA 状态管理，也涉及可选的负载平衡调度。本部署的 `mamba_cache_mode=none`，因此只在 align 模式调用的 `_mamba_block_aligned_split` 不执行；BalanceScheduler 的负载平衡开关也关着，直接转给原来的实现，五处补丁并非都在当前调用路径上生效。读 traceback 时，沿补丁函数继续向下找到实际执行的方法，就能判断卡在「排本步工作」还是「分配缓存」；五处替换清单与继承关系的验证方法见页末[源码位置](#源码位置)。
 
-**③ 是清单变成张量的边界。** 调度清单经广播队列交给每张卡的 [worker](npu-worker-lifecycle.md)；[model runner](npu-model-runner.md) 先同步**持久批次**（input_batch，跨步保存请求、块号和进度的表），本步有 token 才准备输入和 attention 元数据。位置与槽位的逐行算法见[准备输入](prepare-inputs-flow.md)，图模式的判断见下一张分支图。
+**③ 是清单变成张量的边界。** 调度清单经广播队列交给每张卡的 [worker](npu-worker-lifecycle.md)。[model runner](npu-model-runner.md) 先同步**持久批次**（`input_batch`，跨步保存请求、块号和进度的表），本步有 token 才准备输入与注意力元数据。位置与槽位的逐行算法见[准备输入](prepare-inputs-flow.md)，图模式的判断见下一张分支图。
 
 **④ 把结果暂存在 worker，⑤再消费它。** 前向上下文保存本步宽度和 MoE 通信方式，供模型各层读取。主干的 attention 按层型进入 KDA 或稀疏 MLA，随后前馈进入稠密 MLP 或 MoE；MoE 经 prepare / finalize 派发和收回 token。前向结束后，词表分数留在 ExecuteModelState，等第二次 RPC 取用；MoE 的版本文件差异见页末。
 
@@ -369,7 +369,7 @@ file: request-call-chain-branches
 
 第 2 步的 3 个候选从哪来？异步调度开着时，候选 token 留在 worker 进程里，下一步直接取用，不经 EngineCore 转手；只有异步调度关掉时，EngineCore 才在每步末尾把它们取回来交给调度器。
 
-**node1 每一步在做什么。** R1 在 DP0 上，node1 的调度器一直是空的。`DPEngineCoreProc.run_busy_loop` 发现本圈无可跑请求但另一组还在忙，就改走 `execute_dummy_batch` → `MultiprocExecutor.execute_dummy_batch` → `NPUWorker.execute_dummy_batch` → `NPUModelRunner._dummy_run` 执行空批次。空批次经 `_sync_metadata_across_dp` 与 node0 对齐宽度和图模式，再完整跑 45 层并陪跑草稿层，凑齐 node0 MoE 通信所需的 16 张卡。排查时在 node1 worker 栈里看到 `_dummy_run` 属于正常陪跑，不代表 node1 收到了请求。
+**node1 每一步在做什么。** R1 在 DP0 上，node1 的调度器一直是空的。`DPEngineCoreProc.run_busy_loop` 发现本圈无可跑请求、但另一组仍在忙时，便走空批次陪跑路径：`execute_dummy_batch` → `MultiprocExecutor.execute_dummy_batch` → `NPUWorker.execute_dummy_batch` → `NPUModelRunner._dummy_run`。空批次经 `_sync_metadata_across_dp` 与 node0 对齐宽度和图模式，再完整跑 45 层并陪跑草稿层，凑齐 node0 MoE 通信所需的 16 张卡。排查时在 node1 worker 栈里看到 `_dummy_run` 属于正常陪跑，不代表 node1 收到了请求。
 
 ## 离线脚本能先提交几组请求，再一起取结果吗？
 

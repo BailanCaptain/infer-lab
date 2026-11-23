@@ -1,22 +1,116 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。">
-  <title>两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。</title>
-  <defs><marker id="rfork-layout-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <path d="M380 70 L430 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
-  <path d="M620 70 L670 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
-  <path d="M380 180 L430 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
-  <path d="M620 180 L670 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
-  <rect x="190" y="40" width="190" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="285" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">转布局 + 同步</text>
-  <rect x="430" y="40" width="190" height="60" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="525" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">从 A 读</text>
-  <rect x="670" y="40" width="190" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发布判断</text>
-  <rect x="190" y="150" width="190" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="285" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">只搭骨架</text>
-  <rect x="430" y="150" width="190" height="60" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="525" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">从 A 读</text>
-  <rect x="670" y="150" width="190" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">适用后处理 · 刷新登记</text>
-  <text x="40" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">要转布局</text>
-  <text x="40" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">先读后处理</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 570" width="900" height="570" role="img" aria-label="RFork 张量布局双路径（Processed vs Checkpoint）与张量采集/运行期排除对照图" font-family="var(--font-sans)">
+  <title>RFork 张量布局双路径与采集范围对照：上栏根据量化、weight_nz_mode == 2 或硬件 FORCE_NZ 三条件分流 Processed（先转布局+同步再读）与 Checkpoint（先读后处理并跳过未量化 MoE 重复转置、发布前重登）两条路径；下栏对比 BFS 采集涵盖的派生属性与 _RUNTIME_ONLY_TENSOR_NAMES 三项运行期排除名单。</title>
+  <desc>关联源码符号：_requires_processed_layout_transfer, process_weights_after_loading, synchronize, _RUNTIME_ONLY_TENSOR_NAMES, collect_transferable_tensors</desc>
+  <defs>
+    <marker id="ly-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="ly-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="ly-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="ly-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- 区域 1：三条件判据分流两条布局路径 -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 三条件决定后处理放在「从 A 读」之前还是之后（两条路都从 A 的 NPU 读当前权重）</text>
+
+  <!-- 左侧三条件判据盒 -->
+  <rect x="16" y="54" width="212" height="198" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="80" font-size="14.5" font-weight="700" fill="#3a4f93">三条件任一成立？</text>
+  <text x="30" y="108" font-size="13.5" fill="#17211f">1. 开启量化</text>
+  <text x="42" y="128" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">quantization != None</text>
+  <text x="30" y="156" font-size="13.5" fill="#17211f">2. 权重 NZ 模式 = 2</text>
+  <text x="42" y="176" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">weight_nz_mode == 2</text>
+  <text x="30" y="204" font-size="13.5" fill="#17211f">3. 硬件强制 NZ</text>
+  <text x="42" y="224" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">FORCE_NZ 策略</text>
+  <text x="30" y="244" font-size="13.5" fill="#3a4f93">全进指纹/摘要，两端必同</text>
+
+  <!-- 上支路：Processed Layout (任一成立) -->
+  <path d="M 228 100 L 288 100" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#ly-arr-amber)"/>
+  <text x="258" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">是</text>
+
+  <rect x="290" y="50" width="594" height="96" rx="7" fill="#fff4cf" fill-opacity="0.55" stroke="#c78300" stroke-width="1.4"/>
+  <text x="304" y="72" font-size="14" font-weight="700" fill="#936300">转好布局再搬（Processed Layout · 量化模型 / GLM W8A8 均走此路）</text>
+
+  <rect x="304" y="82" width="184" height="54" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="396" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">空壳后处理 + NPU 同步</text>
+  <text x="396" y="124" text-anchor="middle" font-size="13.5" fill="#4d5652">先造最终形状/NZ/派生张量</text>
+
+  <line x1="488" y1="109" x2="510" y2="109" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#ly-arr-plum)"/>
+
+  <rect x="512" y="82" width="166" height="54" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="595" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">预登记 + 从 A 直读</text>
+  <text x="595" y="124" text-anchor="middle" font-size="13.5" fill="#4d5652">扫含普通公开属性全清单</text>
+
+  <line x1="678" y1="109" x2="700" y2="109" stroke="#087f73" stroke-width="1.6" marker-end="url(#ly-arr-teal)"/>
+
+  <rect x="702" y="82" width="170" height="54" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="787" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">直接沿用登记当 seed</text>
+  <text x="787" y="124" text-anchor="middle" font-size="13.5" fill="#4d5652">仅刷新 FlatQuant 标量</text>
+
+  <!-- 下支路：Checkpoint Layout (全不成立) -->
+  <path d="M 228 206 L 288 206" fill="none" stroke="#4d5652" stroke-width="1.8" marker-end="url(#ly-arr-ink)"/>
+  <text x="258" y="196" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">全否</text>
+
+  <rect x="290" y="160" width="594" height="96" rx="7" fill="#ece9df" fill-opacity="0.7" stroke="#66716d" stroke-width="1.4"/>
+  <text x="304" y="182" font-size="14" font-weight="700" fill="#17211f">先读后处理（Checkpoint Layout · 不保证 A 仍是原形状）</text>
+
+  <rect x="304" y="192" width="184" height="54" rx="5" fill="#f5f3ec" stroke="#66716d" stroke-width="1.3"/>
+  <text x="396" y="214" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">搭空骨架 → 预登记</text>
+  <text x="396" y="234" text-anchor="middle" font-size="13.5" fill="#4d5652">扫参数 / buffer / impl</text>
+
+  <line x1="488" y1="219" x2="510" y2="219" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#ly-arr-plum)"/>
+
+  <rect x="512" y="192" width="166" height="54" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="595" y="214" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">调视图 + 从 A 直读</text>
+  <text x="595" y="234" text-anchor="middle" font-size="13.5" fill="#4d5652">同 numel 改 view 接转置</text>
+
+  <line x1="678" y1="219" x2="700" y2="219" stroke="#c78300" stroke-width="1.6" marker-end="url(#ly-arr-amber)"/>
+
+  <rect x="702" y="192" width="170" height="54" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="787" y="214" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">适用后处理 · 重登显存</text>
+  <text x="787" y="234" text-anchor="middle" font-size="13.5" fill="#4d5652">跳过未量化 MoE 重复转置</text>
+
+  <!-- 分隔线 -->
+  <line x1="16" y1="278" x2="884" y2="278" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 区域 2：采集范围 vs 3 项运行期排除 -->
+  <text x="16" y="306" font-size="16" font-weight="700" fill="#17211f">② 要搬的张量不只在参数表里，而本机工作区绝不从 A 搬</text>
+
+  <!-- 左侧：进清单的四类张量 -->
+  <rect x="16" y="324" width="466" height="226" rx="7" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="350" font-size="14.5" font-weight="700" fill="#065f56">✓ 分层 BFS 采集进清单（去重且同名须全等）</text>
+
+  <rect x="32" y="366" width="206" height="68" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="44" y="390" font-size="14" font-weight="700" fill="#17211f">1. Parameters &amp; Buffers</text>
+  <text x="44" y="414" font-size="13.5" fill="#4d5652">两条布局路径必扫</text>
+
+  <rect x="252" y="366" width="214" height="68" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="264" y="390" font-size="14" font-weight="700" fill="#17211f">2. impl 实现对象属性</text>
+  <text x="264" y="414" font-size="13.5" fill="#065f56">如 MLA 拆分 W_UV / W_UK_T</text>
+
+  <rect x="32" y="446" width="434" height="88" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="44" y="470" font-size="14" font-weight="700" fill="#936300">3. 其他模块公开属性（仅 Processed 路径扫描）</text>
+  <text x="44" y="494" font-size="13.5" fill="#17211f">捕获 W8A8 MoE 后处理新建的 FP32 缩放副本等派生权重；</text>
+  <text x="44" y="518" font-size="13.5" fill="#4d5652">跳过 meta / 空张量 / 非 NPU 张量（Engram 本地宿主表例外）</text>
+
+  <!-- 右侧：3 项运行期排除名单 -->
+  <rect x="502" y="324" width="382" height="226" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="518" y="350" font-size="14.5" font-weight="700" fill="#8f3229">✗ 显式排除（_RUNTIME_ONLY_TENSOR_NAMES）</text>
+  <text x="518" y="374" font-size="13.5" fill="#4d5652">按名字末段拦截，无论挂在属性、buffer 或 impl 下：</text>
+
+  <rect x="518" y="388" width="350" height="44" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="530" y="415" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#8f3229">topk_indices_buffer</text>
+  <text x="716" y="415" font-size="13.5" fill="#4d5652">随批上限变化</text>
+
+  <rect x="518" y="440" width="350" height="44" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="530" y="467" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#8f3229">_rope_derived_cos_cache / sin_cache</text>
+
+  <text x="518" y="510" font-size="13.5" font-weight="700" fill="#8f3229">GLM 例（max_batched=8192）：拦下 64.09 + 68.0 ≈</text>
+  <text x="518" y="532" font-size="13.5" fill="#4d5652">132.1 MiB 索引工作区；写死 3 项，不自动识别新工作区</text>
 </svg>

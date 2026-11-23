@@ -1,0 +1,10 @@
+mode: native-svg
+id: msprobe-fig-four-fingerprints
+caption: >-
+  msprobe 定位到的四类高频首分歧算子特征指纹：（一）RoPE 在 Layer 0 Q/K 投影后即偏离，查 positions 与交错排布；（二）QuantMatmul 输出整体缩放漂移，查 scale / NZ / 量化描述；（三）MoE 门控 logits 一致但 top-k 或 EP 行变全零，可用 VLLM_BATCH_INVARIANT=1 关自定义核快筛；（四）FlashAttention 首步 Prefill 对齐而 step 1 Decode 读 KV 后发散，查 slot_mapping、C8 scale 与 FIA 填充。
+size: [900, 436]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L565
+    symbols: [enable_custom_op, VLLM_BATCH_INVARIANT]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L279-L312
+    symbols: [PrecisionDebugger, AclGraphDumper]

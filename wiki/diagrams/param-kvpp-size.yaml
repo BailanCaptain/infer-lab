@@ -1,0 +1,22 @@
+mode: native-svg
+id: param-kvpp-size
+caption: >-
+  KVPPConfig.size（自动派生 TP × PCP，用户不可手写）：以 10 层 MLA、TP=2 × PCP=2（size=4）为例展示 kvpp_rank = pcp×TP+tp 连续分段、余数不均（前 2 卡各 3 层+2 scratch 决定全组容量，放大比 2× 而非 4×），以及 60 层简化算例下写死 2 块 scratch 造成的 L/3（20×）容量天花板。
+size: [900, 520]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L82'
+    symbols:
+      - KVPPConfig
+      - from_vllm_config
+      - tensor_parallel_size
+      - prefill_context_parallel_size
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/kv_cache_placement.py#L19-L46'
+    symbols:
+      - KVPP_SCRATCH_BUFFER_COUNT
+      - KVPPPhysicalCachePlan
+      - get_num_blocks
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/kv_cache_placement.py#L159-L190'
+    symbols:
+      - map_kvpp_layers_to_owners
+      - divmod
+      - partition_size

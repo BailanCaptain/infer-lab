@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 640" width="860" height="640" role="img" aria-label="普通 GQA 页交错 KV 非连续布局触发 FIA 内部整池 Slice 拷贝与批内摊销剖析图" font-family="var(--font-sans)">
+  <title>Ascend 910B3 普通 GQA 页交错 KV 非连续拷贝税与批内摊销剖析。</title>
+  <desc>展示单块共享显存按 (H, 2H) 步长交错排布 K/V 页使独立视图跨页非连续，在 Eager Decode 的 FIA 内部触发每层 2 次整池 Slice 搬运，以及固定 TP 下批内摊销效应。</desc>
+  <defs>
+    <marker id="afa-arr-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+    <marker id="afa-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="afa-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">A. 普通 GQA 共享单块显存：页交错步长 (H, 2H) 使 K / V 视图跨页非连续</text>
+  <text x="14" y="47" font-size="13.5" fill="#66716d">逻辑形状 <tspan font-family="var(--font-mono)" fill="#17211f">[2, num_blocks, block_size, kv_heads, head_dim]</tspan>，单页跨度 <tspan font-family="var(--font-mono)" fill="#17211f">H = block_size × kv_heads × head_dim</tspan></text>
+
+  <g stroke-width="1.4">
+    <rect x="14" y="60" width="96" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="110" y="60" width="96" height="44" rx="5" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="216" y="60" width="96" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="312" y="60" width="96" height="44" rx="5" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="418" y="60" width="96" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="514" y="60" width="96" height="44" rx="5" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="650" y="60" width="98" height="44" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="748" y="60" width="98" height="44" rx="5" fill="#fff4cf" stroke="#c78300"/>
+  </g>
+
+  <g text-anchor="middle" font-size="14" font-weight="700">
+    <text x="62" y="87" fill="#3a4f93">Page 0 · K</text>
+    <text x="158" y="87" fill="#936300">Page 0 · V</text>
+    <text x="264" y="87" fill="#3a4f93">Page 1 · K</text>
+    <text x="360" y="87" fill="#936300">Page 1 · V</text>
+    <text x="466" y="87" fill="#3a4f93">Page 2 · K</text>
+    <text x="562" y="87" fill="#936300">Page 2 · V</text>
+    <text x="630" y="88" font-size="16" fill="#66716d">···</text>
+    <text x="699" y="87" fill="#3a4f93">Page B-1·K</text>
+    <text x="797" y="87" fill="#936300">Page B-1·V</text>
+  </g>
+
+  <g fill="none" stroke="#b54237" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#afa-arr-red)">
+    <path d="M 62 104 Q 163 130 258 106"/>
+    <path d="M 264 104 Q 365 130 460 106"/>
+  </g>
+  <text x="14" y="138" font-size="13.5" font-weight="700" fill="#8f3229">取出 kv_cache[0] (K) 或 kv_cache[1] (V)：页间步长 = 2H（跳过相邻 V / K 页），视图跨页非连续</text>
+
+  <rect x="14" y="150" width="832" height="32" rx="6" fill="#f7f5ef" stroke="#d8d8cf" stroke-width="1.2"/>
+  <text x="24" y="171" font-size="13" font-family="var(--font-mono)" fill="#17211f">线上实测: shape=(2,2064,128,8,128) stride=(131072,262144,1024,128,1) <tspan fill="#8f3229" font-weight="700">k/v_contiguous=False</tspan></text>
+
+  <line x1="14" y1="196" x2="846" y2="196" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <text x="14" y="220" font-size="16" font-weight="700" fill="#17211f">B. Eager Decode 实测调用链：FIA 内部触发 2× 整池大 Slice（无视 block_table 命中量）</text>
+
+  <rect x="14" y="236" width="174" height="66" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="101" y="263" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">ScatterPaKvCache</text>
+  <text x="101" y="286" text-anchor="middle" font-size="13" fill="#17211f">按槽位写入当前 K / V</text>
+
+  <path d="M 188 269 L 208 269" fill="none" stroke="#66716d" stroke-width="2" marker-end="url(#afa-arr-gray)"/>
+
+  <rect x="212" y="232" width="634" height="74" rx="9" fill="#fffaf7" stroke="#b54237" stroke-width="1.3" stroke-dasharray="6 4"/>
+  <rect x="222" y="240" width="356" height="58" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="400" y="264" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">2× aclnnContiguous_SliceAiCore_Slice</text>
+  <text x="400" y="286" text-anchor="middle" font-size="13" fill="#8f3229">每层 K/V 整池复制 · aiv_mte2 0.985~0.993, vec=0</text>
+
+  <path d="M 578 269 L 598 269" fill="none" stroke="#b54237" stroke-width="2" marker-end="url(#afa-arr-red)"/>
+
+  <rect x="602" y="240" width="234" height="58" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="719" y="264" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">FusedInferAttentionScore</text>
+  <text x="719" y="286" text-anchor="middle" font-size="13" fill="#065f56">按 block_table 算真实注意力</text>
+
+  <text x="14" y="326" font-size="13" fill="#66716d">算子归属：100% 大 Slice 落在 <tspan font-family="var(--font-mono)" fill="#17211f">aclnnInnerFusedInferAttentionScore → aclnnContiguous</tspan> 内（首步 Prefill 未触发）</text>
+
+  <rect x="14" y="338" width="408" height="114" rx="8" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="28" y="362" font-size="14.5" font-weight="700" fill="#17211f">Qwen3-8B 实测（36 层，u=0.75，1,678 块）</text>
+  <rect x="28" y="374" width="380" height="24" rx="4" fill="#b54237"/>
+  <text x="38" y="391" font-size="13" font-weight="700" fill="#ffffff">整池 Slice: 46.16 ms/步（72 次，58.99 GiB 读写）</text>
+  <rect x="28" y="405" width="12" height="20" rx="3" fill="#087f73"/>
+  <text x="48" y="420" font-size="13.5" font-weight="700" fill="#065f56">FIA 核仅 2.36 ms（3 步 108 次合计，2.5%）</text>
+  <text x="28" y="442" font-size="13" fill="#66716d">大 Slice 占总算子 62.22%（全部 Slice 62.46%）· 1.372 TB/s</text>
+
+  <rect x="438" y="338" width="408" height="114" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="452" y="362" font-size="14.5" font-weight="700" fill="#17211f">2 层裁剪 MoE 实测（u=0.60，66,139 块）</text>
+  <rect x="452" y="374" width="380" height="24" rx="4" fill="#b54237"/>
+  <text x="462" y="391" font-size="13" font-weight="700" fill="#ffffff">大 Slice 占总算子时 95.99%（单次达 13.67 ms）</text>
+  <rect x="452" y="405" width="16" height="20" rx="3" fill="#c78300"/>
+  <text x="476" y="420" font-size="13.5" font-weight="700" fill="#936300">其余算子 4.01%（含小 Slice；FIA 核 0.145 ms）</text>
+  <text x="452" y="442" font-size="13" fill="#66716d">全部 Slice 含小 Slice 占 96.01% → 拷贝随物理块数线性增</text>
+
+  <line x1="14" y1="466" x2="846" y2="466" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <text x="14" y="490" font-size="16" font-weight="700" fill="#17211f">C. 批内摊销效应：固定 TP=1 从 c=1 升至 c=16，TPOT 仅 +2.84% 而吞吐跃升 15.3×</text>
+
+  <rect x="14" y="504" width="334" height="86" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="28" y="528" font-size="14.5" font-weight="700" fill="#8f3229">c=1 单并发（Qwen3-8B TP=1 线上）</text>
+  <text x="28" y="553" font-size="13.5" fill="#17211f">单请求独扛整步权重读取与批级固定开销</text>
+  <text x="28" y="578" font-size="14" font-weight="700" fill="#8f3229">TPOT 78.54 ms · 吞吐 12.73 tok/s</text>
+
+  <path d="M 354 549 L 406 549" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#afa-arr-teal)"/>
+  <text x="380" y="537" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">16× 批</text>
+
+  <rect x="414" y="504" width="432" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="428" y="528" font-size="14.5" font-weight="700" fill="#065f56">c=16 并发（批内均摊读权重与候选整池准备*）</text>
+  <text x="428" y="553" font-size="13.5" fill="#17211f">同批共享步级开销（若 FULL 重放整池拷贝亦均摊*）</text>
+  <text x="428" y="578" font-size="14" font-weight="700" fill="#065f56">TPOT 80.77 ms (+2.84%) · 吞吐 195.28 tok/s (15.3×)</text>
+
+  <text x="14" y="616" font-size="13" fill="#66716d">证据边界：Eager Trace 已坐实整池拷贝；线上 FULL 具非连续视图，但整池复制与 56.77 ms 属待验证条件假设（*）。</text>
+</svg>

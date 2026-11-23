@@ -1,0 +1,14 @@
+mode: native-svg
+id: dp-fig-width-and-escort
+caption: >-
+  MoE 数据并行四重同步机制：上半幅展示前向前两行整数表（本地 token 数与图模式）经 CPU gloo All-Reduce 后统一取最大宽度与最保守图模式，并列出 MRV1 补齐与跳过条件；中半幅展示空闲组执行 execute_dummy_batch 陪跑 MoE 层的数据流（假输入自身输出丢弃，替忙组算出的真实专家贡献经 combine 送回）；底部对照 v0.30.0（第 1 步及每 16 步）与历史 GLM（每 32 步）的停波检查节拍。
+size: [900, 612]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L884'
+    symbols: ['_sync_metadata_across_dp', 'should_skip_allreduce_across_dp_group']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1278-L1282'
+    symbols: ['execute_dummy_batch', '_dummy_run', 'uniform_decode_query_len']
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L2204-L2275'
+    symbols: ['execute_dummy_batch', 'dp_sync_interval', 'sync_dp_state']
+  - source: 'vllm@ced6857a:vllm/v1/engine/coordinator.py#L23-L55'
+    symbols: ['DPCoordinator', 'START_DP_WAVE']

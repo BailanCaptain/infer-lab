@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 584" width="900" height="584" role="img" aria-label="量化缩放粒度坐标轴（权重按列分组与激活按行）及 256 个 INT4 权重同比例元数据字节账" font-family="var(--font-sans)">
+  <title>缩放粒度坐标轴（W 按列/分组 vs X 按行）与 INT4 分组元数据字节账</title>
+  <desc>结合 AscendW8A8DynamicLinearMethod 与 AscendW4A4MXFP4DynamicLinearMethod（get_weight、get_perchannel_param、get_pergroup_param、group_size、weight_scale），可视化数学权重 W[in, out] 的 per-tensor、per-output-channel、per-group 及 checkpoint [out, in] 转置对照，并排对比激活 X[token, hidden] 的 per-token（按行），底部以同比例条形图核算 256 个 INT4 权重在 g=128 与 g=32 下的 FP16 scale 字节增量。</desc>
+  <defs>
+    <marker id="qmg-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="qmg-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1 Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 缩放粒度与坐标轴：先分清权重 W[输入, 输出] 的列与激活 X[token, hidden] 的行</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Left panel: W[in, out] 8x6 grid -->
+  <text x="16" y="64" font-size="15" font-weight="700" fill="#936300">权重矩阵 W[输入维 in, 输出维 out]</text>
+  <text x="234" y="88" text-anchor="middle" font-size="13.5" font-weight="600" fill="#4d5652">输出维 out（数学列）→</text>
+
+  <!-- Y-axis label left of W -->
+  <text x="16" y="168" font-size="13.5" font-weight="600" fill="#4d5652">输入维 in</text>
+  <text x="16" y="190" font-size="13.5" fill="#66716d">(归约轴 ↓)</text>
+
+  <!-- per-tensor outer dashed outline -->
+  <rect x="98" y="96" width="272" height="184" rx="6" fill="#ece9df" fill-opacity="0.35" stroke="#4c65b6" stroke-width="1.8" stroke-dasharray="6 4"/>
+
+  <!-- W grid base cells (6 cols x 8 rows: x=102..366, y=100..276, cell 44x22) -->
+  <rect x="102" y="100" width="264" height="176" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+
+  <!-- Highlight Col 1 (per-output-channel / per-column): x=146..190 -->
+  <rect x="146" y="100" width="44" height="176" fill="#fff4cf" stroke="#c78300" stroke-width="2.2"/>
+
+  <!-- Highlight Col 4 (per-group along in axis): x=278..322, split into 2 groups of 4 rows -->
+  <rect x="278" y="100" width="44" height="88" fill="#ddf4ef" stroke="#087f73" stroke-width="2.2"/>
+  <rect x="278" y="188" width="44" height="88" fill="#e8edff" stroke="#4c65b6" stroke-width="2.2"/>
+
+  <!-- Grid internal lines -->
+  <g stroke="#d8d8cf" stroke-width="1">
+    <line x1="146" y1="100" x2="146" y2="276"/>
+    <line x1="190" y1="100" x2="190" y2="276"/>
+    <line x1="234" y1="100" x2="234" y2="276"/>
+    <line x1="278" y1="100" x2="278" y2="276"/>
+    <line x1="322" y1="100" x2="322" y2="276"/>
+    <line x1="102" y1="122" x2="366" y2="122"/>
+    <line x1="102" y1="144" x2="366" y2="144"/>
+    <line x1="102" y1="166" x2="366" y2="166"/>
+    <line x1="102" y1="188" x2="366" y2="188"/>
+    <line x1="102" y1="210" x2="366" y2="210"/>
+    <line x1="102" y1="232" x2="366" y2="232"/>
+    <line x1="102" y1="254" x2="366" y2="254"/>
+  </g>
+  <!-- Re-stroke highlighted borders cleanly above internal gridlines -->
+  <rect x="146" y="100" width="44" height="176" fill="none" stroke="#c78300" stroke-width="2.2"/>
+  <rect x="278" y="100" width="44" height="88" fill="none" stroke="#087f73" stroke-width="2.2"/>
+  <rect x="278" y="188" width="44" height="88" fill="none" stroke="#4c65b6" stroke-width="2.2"/>
+
+  <!-- Labels inside highlighted columns -->
+  <text x="168" y="193" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">1 列</text>
+  <text x="300" y="149" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">组 1</text>
+  <text x="300" y="237" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">组 2</text>
+
+  <!-- Legend callouts to the right of W (x=384..566) -->
+  <g font-size="13.5">
+    <rect x="384" y="98" width="12" height="12" rx="2" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-dasharray="3 2"/>
+    <text x="404" y="109" font-weight="700" fill="#3a4f93">per-tensor</text>
+    <text x="404" y="129" fill="#4d5652">整张 W 共用 1 个 scale</text>
+
+    <rect x="384" y="146" width="12" height="12" rx="2" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+    <text x="404" y="157" font-weight="700" fill="#936300">per-channel（按列）</text>
+    <text x="404" y="177" fill="#4d5652">每输出通道 1 套参数</text>
+
+    <rect x="384" y="194" width="12" height="12" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+    <text x="404" y="205" font-weight="700" fill="#065f56">per-group（组内）</text>
+    <text x="404" y="225" fill="#4d5652">沿 in 轴切短组，各 1 尺</text>
+  </g>
+
+  <!-- Storage transpose caveat card under W -->
+  <rect x="16" y="294" width="546" height="44" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="28" y="321" font-size="13.5" fill="#8f3229"><tspan font-weight="700">存储转置警示：</tspan>checkpoint 常按 <tspan font-family="var(--font-mono)" font-weight="700">[out, in]</tspan> 存盘，此时文件「每行」= 数学「每列」</text>
+
+  <!-- Vertical divider between W and X -->
+  <line x1="578" y1="50" x2="578" y2="342" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- Right panel: X[token, hidden] 5x6 grid -->
+  <text x="594" y="64" font-size="15" font-weight="700" fill="#065f56">激活矩阵 X[token, hidden]</text>
+  <text x="768" y="88" text-anchor="middle" font-size="13.5" font-weight="600" fill="#4d5652">隐藏维 hidden →</text>
+
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="end">
+    <text x="644" y="121">tok 0</text>
+    <text x="644" y="149">tok 1</text>
+    <text x="644" y="177" font-weight="700" fill="#065f56">tok 2</text>
+    <text x="644" y="205">tok 3</text>
+    <text x="644" y="233">tok 4</text>
+  </g>
+
+  <!-- X grid (6 cols x 5 rows: x=654..882, y=100..240, cell 38x28) -->
+  <rect x="654" y="100" width="228" height="140" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+  <rect x="654" y="156" width="228" height="28" fill="#ddf4ef" stroke="#087f73" stroke-width="2.2"/>
+  <g stroke="#d8d8cf" stroke-width="1">
+    <line x1="692" y1="100" x2="692" y2="240"/>
+    <line x1="730" y1="100" x2="730" y2="240"/>
+    <line x1="768" y1="100" x2="768" y2="240"/>
+    <line x1="806" y1="100" x2="806" y2="240"/>
+    <line x1="844" y1="100" x2="844" y2="240"/>
+    <line x1="654" y1="128" x2="882" y2="128"/>
+    <line x1="654" y1="156" x2="882" y2="156"/>
+    <line x1="654" y1="184" x2="882" y2="184"/>
+    <line x1="654" y1="212" x2="882" y2="212"/>
+  </g>
+  <rect x="654" y="156" width="228" height="28" fill="none" stroke="#087f73" stroke-width="2.2"/>
+  <text x="768" y="175" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">per-token（整行 1 个 scale）</text>
+
+  <rect x="594" y="256" width="290" height="82" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="608" y="281" font-size="14" font-weight="700" fill="#065f56">为什么激活常按行（per-token）？</text>
+  <text x="608" y="304" font-size="13.5" fill="#4d5652">不同 token 激活幅度差异大；动态</text>
+  <text x="608" y="326" font-size="13.5" fill="#4d5652">W8A8 在前向逐行现算 scale</text>
+
+  <!-- Horizontal divider -->
+  <line x1="14" y1="356" x2="886" y2="356" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Same-scale metadata byte bar (256 INT4 weights, 1 B = 3.2 px starting at x=196) -->
+  <text x="16" y="384" font-size="16" font-weight="700" fill="#17211f">② 同比例字节账：同列 256 个 INT4 权重，分组越细 FP16 scale 占比越高（示意）</text>
+
+  <!-- Row labels -->
+  <g font-size="14" font-weight="700" fill="#17211f">
+    <text x="16" y="423">纯 4 位载荷</text>
+    <text x="16" y="463">group_size = 128</text>
+    <text x="16" y="503">group_size = 32</text>
+  </g>
+
+  <!-- Scale: 1 B = 3.2 px, origin x=196. 128 B = 409.6 px -> x=605.6 -->
+  <!-- Row 1: 128 B pure body -->
+  <rect x="196" y="403" width="410" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="401" y="422" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">INT4 权重本体 128 B</text>
+  <text x="618" y="422" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#4d5652">128 B (4.000 bit/w)</text>
+
+  <!-- Row 2: 128 B + 4 B (12.8 px -> 13 px) = 132 B -->
+  <rect x="196" y="443" width="410" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="606" y="443" width="13" height="28" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="401" y="462" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#936300">128 B（2 组 × 128 项）</text>
+  <text x="630" y="462" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">+4 B = 132 B (4.125 bit)</text>
+
+  <!-- Row 3: 128 B + 16 B (51.2 px -> 51 px) = 144 B -->
+  <rect x="196" y="483" width="410" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="606" y="483" width="51" height="28" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="401" y="502" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#936300">128 B（8 组 × 32 项）</text>
+  <text x="631" y="502" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">16B</text>
+  <text x="668" y="502" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">144 B (4.500 bit/w)</text>
+
+  <!-- Scale axis ticks -->
+  <line x1="196" y1="522" x2="660" y2="522" stroke="#8a928f" stroke-width="1.2"/>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="middle">
+    <line x1="196" y1="518" x2="196" y2="526" stroke="#8a928f" stroke-width="1.2"/>
+    <text x="196" y="541">0 B</text>
+    <line x1="401" y1="518" x2="401" y2="526" stroke="#8a928f" stroke-width="1.2"/>
+    <text x="401" y="541">64 B</text>
+    <line x1="606" y1="518" x2="606" y2="526" stroke="#c78300" stroke-width="1.4"/>
+    <text x="606" y="541" text-anchor="end" fill="#936300">128 B</text>
+    <line x1="657" y1="518" x2="657" y2="526" stroke="#9a4b86" stroke-width="1.4"/>
+    <text x="657" y="541" text-anchor="start" fill="#7a3a6a">144 B</text>
+  </g>
+  <text x="884" y="566" text-anchor="end" font-size="13.5" fill="#66716d">FP16 2 B/scale；未含零点与 NZ 补齐</text>
+</svg>

@@ -1,49 +1,154 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="PreemptOffloadConnector 同步换出换回与预算优先级" font-family="var(--font-sans)">
-<title>PreemptOffloadConnector 同步换出换回与预算优先级</title>
-<desc>PreemptOffloadConnectorV1 synchronous D2H before block reuse, world_size ack aggregation, synchronous H2D on resume, budget resolution priority, and main DCP/PCP evolution</desc>
-<line x1="16" y1="252" x2="884" y2="252" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="272" height="176" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="314" y="54" width="272" height="176" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="612" y="54" width="272" height="176" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="300" width="420" height="130" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="464" y="300" width="420" height="130" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-</g>
-<path d="M288 142h24m-5-4l5 4-5 4M586 142h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
-<circle cx="28" cy="276" r="13" fill="#9a4b86"/>
-<g font-weight="700">
-<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">PreemptOffloadConnectorV1 换出与换回时序（全有或全无 + 两趟同步拷）</text>
-<text x="30" y="80" font-size="15" fill="#3a4f93">① 抢占记账（调度侧）</text>
-<text x="328" y="80" font-size="15" fill="#936300">② 同步 D2H + 集齐确认</text>
-<text x="626" y="80" font-size="15" fill="#065f56">③ 排回挂起 + 同步 H2D</text>
-<text x="28" y="281" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="48" y="282" font-size="16" fill="#17211f">主机预算三档优先级 &amp; 混合状态/并行演进（v0.30.0 → main）</text>
-<text x="30" y="326" font-size="15" fill="#17211f">_resolve_offload_capacity 预算规则</text>
-<text x="478" y="326" font-size="15" fill="#7a3a6a">状态对齐与并行解除（v0.30.0 / main）</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="30" y="108">• AscendMultiConnector 转问</text>
-<text x="30" y="133">• 查主机空闲块是否够整条请求</text>
-<text x="30" y="158">• 够：锁主机块，记 GPU→CPU 表</text>
-<text x="30" y="183">• 还显存块，原单排回 waiting 队首</text>
-<text x="30" y="208" fill="#8f3229">• 不够：拒存 → 退 P 或细粒度中止</text>
-<text x="328" y="108">• _update_states() 前先同步 D2H</text>
-<text x="328" y="133">• 防新单复用同块号覆盖旧 KV</text>
-<text x="328" y="158">• 逐块逐张量 copy_，整步阻塞等</text>
-<text x="328" y="183">• 须集齐 world_size 张卡回报</text>
-<text x="328" y="208" fill="#936300">• 未集齐返回 None，本步跳过</text>
-<text x="626" y="108">• ready 后答 (命中数, True)</text>
-<text x="626" y="133">• 分新显存块，挂 WAITING_REMOTE</text>
-<text x="626" y="158">• 前向前 start_load_kv 同步 H2D</text>
-<text x="626" y="183">• finished_recving 后下一步续算</text>
-<text x="626" y="208" font-weight="600" fill="#065f56">• 收齐后交还主机块（含生成段）</text>
-<text x="30" y="352">• ① 优先 cpu_bytes_to_use_per_rank（不易误算）</text>
-<text x="30" y="377">• ② 次选 cpu_bytes_to_use ÷ (TP×PP×PCP)（无 DP）</text>
-<text x="30" y="402">• ③ 都不写：按 host_memory_ratio（默认 1=同显存）</text>
-<text x="478" y="352">• 每 worker 独立锁页（本机总占 = 单卡 × worker 数）</text>
-<text x="478" y="377">• Mamba 存末 1+草稿块，校验环形私有与卷积偏移</text>
-<text x="478" y="402" font-weight="600" fill="#7a3a6a">• main 去 DCP/PCP=1 断言，按 resolve_dcp 算块长</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 594" width="900" height="594" role="img" aria-label="PreemptOffloadConnector 四泳道同步换出换回时序与 16383 主机块比例条" font-family="var(--font-sans)">
+  <title>PreemptOffloadConnector 四泳道同步换出换回（Scheduler + 2 TP Workers + Host Pool）与 16,384-1=16,383 主机块容量比例条</title>
+  <desc>PreemptOffloadConnectorV1, _resolve_offload_capacity, offload_host_memory_ratio, cpu_bytes_to_use_per_rank, resolve_dcp_kv_block_size</desc>
+  <defs>
+    <marker id="rco-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+    <marker id="rco-arr-amber" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#c78300"/>
+    </marker>
+    <marker id="rco-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="rco-arr-danger" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#b54237"/>
+    </marker>
+    <marker id="rco-arr-blue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1 Header -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">四泳道同步换出换回（TP=2）：D2H 完 C 才覆写，双卡集齐 A 才恢复</text>
+
+  <!-- Swimlane background guide lines -->
+  <g stroke="#ece9df" stroke-width="1.2">
+    <line x1="128" y1="80" x2="884" y2="80"/>
+    <line x1="128" y1="144" x2="884" y2="144"/>
+    <line x1="128" y1="204" x2="884" y2="204"/>
+    <line x1="128" y1="274" x2="884" y2="274"/>
+  </g>
+
+  <!-- Swimlane Labels -->
+  <rect x="16" y="54" width="108" height="52" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="70" y="77" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">Scheduler</text>
+  <text x="70" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">调度进程</text>
+
+  <rect x="16" y="120" width="108" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="70" y="149" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">TP Rank 0</text>
+
+  <rect x="16" y="180" width="108" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="70" y="209" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">TP Rank 1</text>
+
+  <rect x="16" y="246" width="108" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="70" y="270" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">Host Pool</text>
+  <text x="70" y="289" text-anchor="middle" font-size="13.5" fill="#4d5652">锁页内存</text>
+
+  <!-- Phase 1: Preempt query & Whole-request reject branch -->
+  <rect x="136" y="54" width="152" height="52" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="212" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 问：存 A (3 块)?</text>
+  <text x="212" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">还显存块、排队首</text>
+
+  <line x1="172" y1="106" x2="172" y2="242" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#rco-arr-blue)"/>
+  <rect x="136" y="248" width="152" height="50" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="212" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">够 3 块 → 锁主机块</text>
+  <text x="212" y="289" text-anchor="middle" font-size="13.5" fill="#4d5652">记 GPU→CPU 表</text>
+
+  <!-- Host-full reject branch -->
+  <line x1="212" y1="298" x2="212" y2="316" stroke="#b54237" stroke-width="1.6" marker-end="url(#rco-arr-danger)"/>
+  <rect x="136" y="318" width="388" height="42" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="330" y="335" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">✗ 若主机剩余 &lt; 3 块（全有或全无）→ 整条拒存</text>
+  <text x="330" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">→ 退 P 重算 / 细粒度 TP 中止</text>
+
+  <!-- Phase 2: Sync D2H before C overwrites -->
+  <rect x="304" y="122" width="134" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="371" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">② 同步 D2H</text>
+  <text x="371" y="160" text-anchor="middle" font-size="13.5" fill="#4d5652">整步阻塞拷 A</text>
+
+  <rect x="304" y="182" width="134" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="371" y="202" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">② 同步 D2H</text>
+  <text x="371" y="220" text-anchor="middle" font-size="13.5" fill="#4d5652">整步阻塞拷 A</text>
+
+  <!-- D2H -> Host Pool arrow -->
+  <line x1="371" y1="226" x2="371" y2="246" stroke="#c78300" stroke-width="1.6" marker-end="url(#rco-arr-amber)"/>
+  <rect x="304" y="250" width="144" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="376" y="271" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A 副本落锁页</text>
+  <text x="376" y="289" text-anchor="middle" font-size="13.5" fill="#4d5652">各卡独立张量</text>
+
+  <!-- Hard Sync Barrier: D2H Done -> C can overwrite -->
+  <line x1="448" y1="114" x2="448" y2="232" stroke="#b54237" stroke-width="2.2" stroke-dasharray="5 3"/>
+  <rect x="456" y="122" width="84" height="104" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="498" y="158" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">C 覆写</text>
+  <text x="498" y="180" text-anchor="middle" font-size="13.5" fill="#4d5652">D2H 完</text>
+  <text x="498" y="200" text-anchor="middle" font-size="13.5" fill="#4d5652">才清零写</text>
+
+  <!-- Phase 3: world_size=2 completion barrier -->
+  <path d="M438 144 H452 M438 204 H452" fill="none" stroke="#b54237" stroke-width="1.4"/>
+  <path d="M540 144 H576 V112" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rco-arr-blue)"/>
+  <path d="M540 204 H606 V112" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rco-arr-blue)"/>
+  <text x="582" y="160" font-size="13.5" fill="#3a4f93">报 1/2</text>
+  <text x="612" y="218" font-size="13.5" font-weight="700" fill="#3a4f93">报 2/2</text>
+
+  <rect x="546" y="54" width="150" height="52" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="621" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">③ 集齐 world_size=2</text>
+  <text x="621" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">未齐答 None 跳过</text>
+
+  <!-- Phase 4: Resume & Sync H2D -->
+  <line x1="696" y1="80" x2="718" y2="80" stroke="#087f73" stroke-width="1.8" marker-end="url(#rco-arr-teal)"/>
+  <rect x="724" y="54" width="160" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="804" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">④ ready → 分 3 新块</text>
+  <text x="804" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">挂 WAITING_REMOTE</text>
+
+  <!-- H2D from Host Pool up to both ranks -->
+  <path d="M448 274 H752 V232" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rco-arr-teal)"/>
+  <path d="M752 274 H838 V172" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rco-arr-teal)"/>
+
+  <rect x="724" y="122" width="160" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="804" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">⑤ 同步 H2D 搬回 A</text>
+  <text x="804" y="160" text-anchor="middle" font-size="13.5" fill="#4d5652">前向前等完</text>
+
+  <rect x="724" y="182" width="160" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="804" y="202" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">⑤ 同步 H2D 搬回 A</text>
+  <text x="804" y="220" text-anchor="middle" font-size="13.5" fill="#4d5652">报收齐 → 释主机块</text>
+
+  <rect x="546" y="322" width="338" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="715" y="343" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">收齐通知后下一步续算第 10 位，同时释放主机块</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="370" x2="884" y2="370" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Proportional Host Budget Bar (16,384 - 1 = 16,383 blocks) -->
+  <circle cx="24" cy="396" r="12" fill="#9a4b86"/>
+  <text x="24" y="400.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="402" font-size="16" font-weight="700" fill="#17211f">主机块比例条（示意 8 GiB ÷ 512 KiB = 16,384 块）：差 1 块为何装不下第 2 条</text>
+
+  <!-- Proportional bar container: total width = 856px (x=16..872), null_block = 8px, req1 = 424px (8192), remain = 422px (8191) -->
+  <!-- Null block sliver -->
+  <rect x="16" y="424" width="10" height="44" rx="2" fill="#b54237"/>
+  <!-- Req 1: 8,192 blocks -->
+  <rect x="28" y="424" width="420" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="238" y="451" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">请求 1（32,768 位）已占：8,192 块</text>
+
+  <!-- Remaining 8,191 blocks -->
+  <rect x="450" y="424" width="414" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="657" y="445" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">仅余 8,191 块（16,383 - 8,192）</text>
+  <text x="657" y="463" text-anchor="middle" font-size="13.5" fill="#8f3229">请求 2 需 8,192 块 → 缺 1 块，整条拒存！</text>
+
+  <!-- Crimson 1-block overhang box showing Req 2 exceeds pool by 1 block -->
+  <rect x="866" y="424" width="18" height="44" rx="2" fill="#fff0e9" stroke="#b54237" stroke-width="1.6" stroke-dasharray="3 2"/>
+  <text x="875" y="451" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">-1</text>
+
+  <!-- Null block callout below -->
+  <line x1="21" y1="468" x2="21" y2="492" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="497" font-size="13.5" font-weight="700" fill="#8f3229">1 块 null_block（BlockPool 永久扣除）→ 可借总量 = 16,384 - 1 = 16,383 块</text>
+  <text x="884" y="497" text-anchor="end" font-size="13.5" fill="#8f3229">超出 1 块 → 整条退回 P</text>
+
+  <!-- 3-Tier Budget Priority Footer -->
+  <rect x="16" y="514" width="868" height="68" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="26" y="534" font-size="13" font-weight="700" fill="#17211f">预算三档优先级（v0.30.0 / main）：① cpu_bytes_to_use_per_rank &gt; ② cpu_bytes_to_use ÷ (TP×PP×PCP，不含 DP)</text>
+  <text x="26" y="554" font-size="13" font-weight="700" fill="#17211f">&gt; ③ ratio=1（同显存块数）；每 worker 独立锁页（本机总占 = 单卡 × 本地 worker 数）</text>
+  <text x="26" y="573" font-size="13" fill="#4d5652">main 解除 DCP/PCP=1 断言，改按 resolve_dcp_kv_block_size 核算块跨度。</text>
 </svg>

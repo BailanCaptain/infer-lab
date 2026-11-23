@@ -1,45 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="昇腾注意力后端选择决策树" font-family="var(--font-sans)">
-<title>AscendAttentionBackend / MLA / SFA / DSA / Linear / FA3(PIECEWISE) 选择决策树</title>
-<desc>Attention backend selector tree in NPUPlatform.get_attn_backend_cls vs layer-direct Linear GDN/KDA path</desc>
-<g stroke-width="1.4">
-<rect x="16" y="64" width="236" height="104" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="276" y="64" width="608" height="104" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="196" width="276" height="134" rx="8" fill="#fff0e9" stroke="#b54237"/>
-<rect x="312" y="196" width="276" height="134" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="608" y="196" width="276" height="134" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="354" width="868" height="100" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-</g>
-<path d="M580 168v14H154v12m-4-5l4 5 4-5M580 182H450v12m-4-5l4 5 4-5M580 182h166v12m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M746 330v22m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-<g font-weight="700">
-<text x="16" y="30" font-size="16" fill="#17211f">昇腾注意力后端选择树：层直报（Linear）vs 平台 get_attn_backend_cls</text>
-<text x="30" y="92" font-size="15" fill="#7a3a6a">旁路：Linear（KDA / GDN）</text>
-<text x="292" y="92" font-size="15" fill="#065f56">通用入口：get_attn_backend_cls(use_mla, use_sparse, use_compress)</text>
-<text x="30" y="224" font-size="14.5" fill="#8f3229">1. 前置特判：FA3 / CANN FA</text>
-<text x="326" y="224" font-size="14.5" fill="#936300">2. 硬件与上下文并行分支</text>
-<text x="622" y="224" font-size="14.5" fill="#3a4f93">3. 通用四元组查表（默认主干）</text>
-<text x="30" y="380" font-size="14.5" fill="#17211f">Runner 按「后端完整类名 + KV 缓存规格」把层归拢成组（GLM 混合层示例）</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="50" font-size="13.5">后端按层挂载，不存在「整模型唯一后端」；同一前向可同时运行 KDA、稀疏 MLA 与只管缓存的后端</text>
-<text x="30" y="118" font-size="13.5">• 不查平台后端表</text>
-<text x="30" y="140" font-size="13.5">• 层直报 AscendGDNAttention</text>
-<text x="30" y="158" font-size="13.5">  Backend（拒 PCP &gt; 1）</text>
-<text x="292" y="118" font-size="13.5">• 门控顺序：前置特判（FA3 / main FA）→ 310P 兼容族 → MRV2 PCP → 四元组表</text>
-<text x="292" y="142" font-size="13.5">• v0.30.0 / main 下 GLM 稀疏层拆出 MLA 包装层，经通用表命中 AscendSFABackend</text>
-<text x="30" y="250" font-size="13.5">• FA3（AscendFABackend）：</text>
-<text x="30" y="272" font-size="13.5">  !use_pcp + rl 训推一致(0.30+)</text>
-<text x="30" y="294" font-size="13.5">  须 PIECEWISE，拒 FULL_DECODE</text>
-<text x="30" y="316" font-size="13.5">• main：fa_v1 / flash_attn_npu_3</text>
-<text x="326" y="250" font-size="13.5">• 310P（COMPATIBILITY 族）：</text>
-<text x="326" y="272" font-size="13.5">  → AscendAttentionBackend310</text>
-<text x="326" y="294" font-size="13.5">• use_pcp=True（MRV2 PCP）：</text>
-<text x="326" y="316" font-size="13.5">  → 查独立 PCP 表，缺项抛错</text>
-<text x="622" y="250" font-size="13.5">• (F,F,F) → AscendAttention</text>
-<text x="622" y="272" font-size="13.5">• (T,F,F) → AscendMLABackend</text>
-<text x="622" y="294" font-size="13.5">• (T,T,F) → AscendSFABackend</text>
-<text x="622" y="316" font-size="13.5">• (T,F,T) → AscendDSABackend</text>
-<text x="30" y="406" font-size="13.5">• 同次前向：34 层 KDA 进 GDN 组；11 层主干 + 1 层 MTP 稀疏 MLA 进 SFA 组（各附 2 个 cache-only 后端）</text>
-<text x="30" y="430" font-size="13.5">• 切换后端须同时对齐五项：机制语义 / 状态布局 / dtype / head 形状 / 并行与图等级，缺一即结果错</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="昇腾注意力后端选择决策树：层直报 Linear 旁路与平台三级门控加四元组查表" font-family="var(--font-sans)">
+  <title>昇腾注意力后端选择决策树：Linear 层直报旁路 vs 平台 get_attn_backend_cls 三级门控</title>
+  <desc>True branching decision tree separating the layer-direct Linear (KDA/GDN) bypass from NPUPlatform.get_attn_backend_cls sequential checks (FA3/main FA, 310P COMPATIBILITY, MRV2 PCP) and final 4-tuple table</desc>
+  <defs>
+    <marker id="ab-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="ab-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="ab-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">昇腾注意力后端选择决策树（v0.30.0 &amp; main）：后端按层挂载，不存在全模型单一路径</text>
+
+  <!-- LEFT LANE: Independent Layer-Direct Bypass (Linear / KDA) -->
+  <rect x="16" y="48" width="212" height="412" rx="8" fill="#f7e7f2" fill-opacity="0.45" stroke="#9a4b86" stroke-width="1.4" stroke-dasharray="6 3"/>
+  <rect x="28" y="60" width="188" height="34" rx="5" fill="#9a4b86"/>
+  <text x="122" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">旁路：模型层直报</text>
+
+  <rect x="28" y="114" width="188" height="72" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="122" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">Linear（KDA / GDN）</text>
+  <text x="122" y="164" text-anchor="middle" font-size="13.5" fill="#4d5652">不经过平台后端表</text>
+
+  <line x1="122" y1="188" x2="122" y2="220" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ab-arr-ink)"/>
+
+  <rect x="28" y="224" width="188" height="72" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="122" y="250" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#7a3a6a">AscendGDNAttention</text>
+  <text x="122" y="272" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#7a3a6a">Backend</text>
+
+  <rect x="28" y="314" width="188" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="122" y="340" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">硬限制：拒 PCP &gt; 1</text>
+  <text x="122" y="362" text-anchor="middle" font-size="13.5" fill="#4d5652">prefill 当场抛未实现</text>
+
+  <rect x="28" y="390" width="188" height="58" rx="6" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="122" y="414" text-anchor="middle" font-size="13.5" fill="#4d5652">注：旧 GLM 稀疏 MLA 也</text>
+  <text x="122" y="434" text-anchor="middle" font-size="13.5" fill="#4d5652">曾直报；0.30+ 改走右表</text>
+
+  <!-- RIGHT MAIN TREE: NPUPlatform.get_attn_backend_cls -->
+  <rect x="248" y="48" width="636" height="44" rx="6" fill="#087f73"/>
+  <text x="566" y="75" text-anchor="middle" font-size="14.5" font-weight="700" font-family="var(--font-mono)" fill="#ffffff">NPUPlatform.get_attn_backend_cls(use_mla, use_sparse, use_compress)</text>
+
+  <!-- Spine down left of main tree at x=362 -->
+  <line x1="362" y1="92" x2="362" y2="112" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ab-arr-ink)"/>
+
+  <!-- Check 1: FA3 / main FA -->
+  <rect x="248" y="116" width="228" height="66" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="362" y="142" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">关口 1 · 前置特判（FA3 / FA）</text>
+  <text x="362" y="165" text-anchor="middle" font-size="13.5" fill="#4d5652">0.30+: !PCP &amp; rl 训推一致</text>
+
+  <line x1="478" y1="149" x2="514" y2="149" stroke="#b54237" stroke-width="1.7" marker-end="url(#ab-arr-red)"/>
+  <text x="494" y="141" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">是</text>
+
+  <rect x="518" y="108" width="366" height="84" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
+  <text x="530" y="128" font-size="13" font-weight="700" fill="#8f3229">AscendFABackend（须 PIECEWISE/eager）</text>
+  <text x="530" y="147" font-size="12.5" fill="#4d5652">拒 FULL_DECODE / MLA / SFA / sliding_window；</text>
+  <text x="530" y="166" font-size="12.5" fill="#3a4f93">main 另增 fa_v1（A5 草稿）与</text>
+  <text x="530" y="184" font-size="12.5" fill="#3a4f93">flash_attention_v3（A2/A3）</text>
+
+  <!-- Spine Check 1 -> Check 2 -->
+  <line x1="362" y1="184" x2="362" y2="206" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ab-arr-ink)"/>
+  <text x="374" y="200" font-size="13.5" fill="#66716d">否</text>
+
+  <!-- Check 2: 310P Compatibility -->
+  <rect x="248" y="210" width="228" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="362" y="235" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">关口 2 · 硬件兼容族？</text>
+  <text x="362" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">310P COMPATIBILITY</text>
+
+  <line x1="478" y1="239" x2="514" y2="239" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ab-arr-ink)"/>
+  <text x="494" y="231" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">是</text>
+
+  <rect x="518" y="210" width="366" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="530" y="235" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#936300">AscendAttentionBackend310</text>
+  <text x="530" y="256" font-size="13.5" fill="#4d5652">走 310P 专用算子路径（不走 A2/A3 FIA）</text>
+
+  <!-- Spine Check 2 -> Check 3 -->
+  <line x1="362" y1="270" x2="362" y2="292" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ab-arr-ink)"/>
+  <text x="374" y="286" font-size="13.5" fill="#66716d">否</text>
+
+  <!-- Check 3: MRV2 PCP -->
+  <rect x="248" y="296" width="228" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="362" y="321" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">关口 3 · 上下文并行？</text>
+  <text x="362" y="342" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">use_pcp == True</text>
+
+  <line x1="478" y1="325" x2="514" y2="325" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ab-arr-ink)"/>
+  <text x="494" y="317" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">是</text>
+
+  <rect x="518" y="296" width="366" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="530" y="321" font-size="14" font-weight="700" fill="#3a4f93">独立 MRV2 PCP 映射表</text>
+  <text x="530" y="342" font-size="13.5" fill="#4d5652">按表取 PCP 后端（缺项启动即报错）</text>
+
+  <!-- Spine Check 3 -> Leaf 4-Tuple Grid -->
+  <line x1="362" y1="356" x2="362" y2="376" stroke="#087f73" stroke-width="1.8" marker-end="url(#ab-arr-teal)"/>
+  <text x="374" y="370" font-size="13.5" fill="#065f56">否（默认主干）</text>
+
+  <!-- Leaf 4-Tuple Matrix -->
+  <rect x="248" y="380" width="152" height="80" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="324" y="403" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#065f56">(F, F, F)</text>
+  <text x="324" y="426" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">AscendAttention</text>
+  <text x="324" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">Qwen3: FIA / PA</text>
+
+  <rect x="410" y="380" width="152" height="80" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="486" y="403" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#3a4f93">(T, F, F)</text>
+  <text x="486" y="426" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">AscendMLA</text>
+  <text x="486" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">标准压缩潜向量</text>
+
+  <rect x="572" y="380" width="152" height="80" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="648" y="403" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#936300">(T, T, F)</text>
+  <text x="648" y="426" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">AscendSFA</text>
+  <text x="648" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">0.30+ GLM 稀疏</text>
+
+  <rect x="734" y="380" width="150" height="80" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="809" y="403" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#7a3a6a">(T, F, T)</text>
+  <text x="809" y="426" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">AscendDSA</text>
+  <text x="809" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">稀疏压缩变体</text>
+
+  <!-- Bottom 5-Alignment Rule Strip -->
+  <rect x="16" y="478" width="868" height="48" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="507" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#8f3229">后端不是速度插件：</tspan>须同时对齐「机制语义 / 状态布局 / dtype / head 形状 / 并行与图等级」五项，错一项即结果出错。</text>
 </svg>

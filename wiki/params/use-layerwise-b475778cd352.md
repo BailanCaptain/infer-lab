@@ -167,23 +167,33 @@ rawSources:
 
 ## 开启后牵动的三类分叉与后端协议
 
-关闭 `use_layerwise` 时，连接器不在每层计算前后分别等待和提交单层 KV（但仍可能使用发送线程或可选异步接收线程，不能简单视为完全串行）。开启后，调度与后端出现三类核心分叉：
+```wiki-diagram
+file: param-use-layerwise
+```
 
-1. **外部命中查询起点与强制加载**：非逐层模式从 `num_computed_tokens // block_size` 开始查外部命中，逐层模式直接从块 0 起步。且逐层模式下即使本轮无需新增分配也可能仍须加载池中数据——`v0.23.0` 检查外部命中 token 数 `> 0`，`v0.26.0rc` 之后改为检查 `store_skip_tokens > 0`，升级排查时需核对对应字段。
+关闭 `use_layerwise` 时，连接器不在每层计算前后分别等待和提交单层 KV（仍可能使用发送线程或可选异步接收线程，不能简单视为完全串行）。开启后，调度与后端出现三类核心分叉：
+
+1. **外部命中查询起点与强制加载**：非逐层模式从 `num_computed_tokens // block_size` 开始查外部命中，逐层模式直接从块 0 起步。且逐层模式下即使本轮无需新增分配也可能仍须加载池中数据——`v0.23.0` 检查外部命中 token 数 `> 0`，`v0.26.0rc` 之后改为检查 `store_skip_tokens > 0`，升级排查需核对对应字段。
 2. **调度侧异步加载标志变为 `False`**：调度器返回 `need_to_allocate, self.load_async and not self.use_layerwise`（在 `main` 拆分出的 `LayerwiseKVPoolScheduler` 中更是直接置 `self.load_async = False`）。这表示调度侧不走整批异步加载标志（不会修改 `load_async` 配置值，也不能仅凭该标志判断底层后端是否使用后台线程）。
-3. **后端逐层协议与数据面演化**：传统 per-layer key 把层号写进 key；Mooncake 的 `block_key` 路径把各层放在同一 block/rank 对象的不同字节范围内逐层写入，使远端对象数从 `块数 × 层数 × 存储 rank 数` 降到 `块数 × 存储 rank 数`（不减少 KV 总有效载荷）。在 `v0.23` 与 `v0.26` 中，Memcache 特殊布局由 `use_layerwise and backend == "memcache"`（`use_gva_layerwise`）控制；`v0.30.0` 改为由协议注册表区分（Mooncake 为 `"block_key"`、Memcache 为 `"gva"` 并保留自身 opt-in 条件、Yuanrong 未登记两种协议，但仍可能进入通用按层 key 线程路径）；**到 `main`（`8d6180e2`），`AscendStoreConnector` 已将逐层逻辑拆入独立的 `LayerwiseKVPoolScheduler` 与 `LayerwiseKVPoolWorker`，并在调度器构造时硬性要求 `backend_class.layerwise_data_plane in ("block_key", "gva")`**（未实现这两种数据面的后端开启逐层会直接抛 `ValueError`）。注意通用参数表在部分版本仍只列 Memcache，不能据此排除 Mooncake 或反过来排除 Memcache，应以对应版本的实现代码和专门指南为准。
+3. **后端逐层协议与数据面演化**：传统 per-layer key 把层号写进 key；Mooncake 的 `block_key` 路径把各层放在同一 block/rank 对象的不同字节范围内逐层写入，使远端对象数从 `块数 × 层数 × 存储 rank 数` 降到 `块数 × 存储 rank 数`（不减少 KV 总有效载荷）。各版本的数据面分流如下：
+
+| 版本 | 逐层数据面判定与后端路由 | 注意事项 |
+| --- | --- | --- |
+| `v0.23` / `v0.26` | Memcache 特殊布局由 `use_layerwise and backend == "memcache"`（`use_gva_layerwise`）控制 | 通用参数表在部分版本仍只列 Memcache，不能据此排除 Mooncake 或反向排除 Memcache |
+| `v0.30.0` | 改为由协议注册表区分：Mooncake 为 `"block_key"`、Memcache 为 `"gva"`（保留自身 opt-in 条件）；Yuanrong 未登记两种协议，仍可能进入通用按层 key 线程路径 | 以对应版本实现代码与专门指南为准 |
+| `main`（`8d6180e2`） | `AscendStoreConnector` 将逐层逻辑拆入独立 `LayerwiseKVPoolScheduler` 与 `LayerwiseKVPoolWorker`，构造期**硬性要求 `backend_class.layerwise_data_plane in ("block_key", "gva")`** | 未实现这两种数据面的后端开启逐层会直接抛 `ValueError` |
 
 ## 图模式改写、拓扑与混合缓存约束及 GLM 双机说明
 
-- **会强制把整图模式改写成 `PIECEWISE`（四个版本一致）**：`AscendStoreConnector.requires_piecewise_for_cudagraph` 直接返回 `use_layerwise`。vLLM 启动检查到接了 KV 连接器且图模式含整图时，因为逐层异步等待与存出无法录进整图，会打一条 warning 并把 `cudagraph_mode` 覆写成 `PIECEWISE`：
+- **会强制把整图模式改写成 `PIECEWISE`（四个版本一致）**：`AscendStoreConnector.requires_piecewise_for_cudagraph` 直接返回 `use_layerwise`。vLLM 启动检查到接了 KV 连接器且图模式含整图时，因为逐层异步等待与存出无法录进整图，会打 warning 并把 `cudagraph_mode` 覆写成 `PIECEWISE`：
   > KV connector %s requires PIECEWISE CUDA graph mode due to layerwise async operations that cannot be captured in CUDA graphs. Overriding cudagraph_mode from %s to PIECEWISE.
   不过这不是最终图模式的全部判断：同一配置函数随后若检测到 `enforce_eager` 为真，会把图模式置为 `NONE` 并把最大捕获宽度归零，因此须核对最终配置，不能把连接器的 `PIECEWISE` 要求等同于一定启用图。
 - **拓扑、CP 与 `kv_consumer` 约束**：
-  - 在 `v0.30.0` 中，连接器构造时调用 `validate_layerwise_topology` 交由后端协议校验——Mooncake block-key 路径检查 `PP`、`PCP`、`DCP`，任一大于 1 即抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")`（因 block key 不含这几个维度的坐标，多机多维并行会撞 key），且拒绝 P/D TP 不一致。
+  - `v0.30.0` 连接器构造时调用 `validate_layerwise_topology` 交由后端协议校验——Mooncake block-key 路径检查 `PP`、`PCP`、`DCP`，任一大于 1 即抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")`（因 block key 不含这些维度坐标，多机多维并行会撞 key），且拒绝 P/D TP 不一致。
   - 官方 PCP 指南明确要求 KV 池化 + PCP 只支持 `use_layerwise=false`；旧 `v0.23` 指南亦记录 CP attention 未集成 wait/save。
-  - 在 `main`（`8d6180e2`）中，`AscendStoreConnector` 新增了对 `kv_consumer` 的显式限制：当 `kv_role == "kv_consumer"` 且开启 `save_decode_cache`、未开启 `consumer_is_to_put` 时，若开启 `use_layerwise` 会直接抛 `ValueError`（提示 decode-only saving 未在逐层传输路径实现，须设 `use_layerwise=False`）。
-- **混合 KV cache 与 Mamba 状态边界**：不能把多 KV 组一概判为支持或拒绝，需按版本与后端分别核对——`v0.23`/`v0.26` 调度器对 Mamba 检查 align 模式；`v0.26` 内存复用在存在复用关系时检查 `AttentionSpec` 并拒绝已共享或 packed 描述符；早期 `baa023ad` Mooncake 拒绝带 recurrent Mamba 状态的 hybrid 组合；`v0.30.0` 与 `main` 均通过 `requires_mamba_state_copy_after_layer_load = self.use_layerwise` 要求在逐层加载完成后复制 hybrid Mamba 状态。
-- **旧算例与放到 GLM 双机（`db701c1f` 固定基线）**：早先单卡 Qwen3-0.6B 与[GLM 双机官方部署](../concepts/glm-5-3-flash-two-node.md#部署前提)的启动命令均未传 `--kv-transfer-config`，连接器不构造、四处同名键一处都不会被读到。因此在[多条请求页](../concepts/concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里因 KV 块不足被抢占的约 67,000 位置请求排回来时是整段 prefill 重算而非外部池按层取回。若接上 AscendStore 并开启 `use_layerwise`：GLM 只有 12 层 MLA 存位置历史、34 层 KDA 存固定状态（每层搬运量及快照卡点见 [Layerwise KV offload GLM 一节](../concepts/kv-cache-layerwise-offload.md#放到-glm-双机主线没开开了一层要搬多少)），且原本的 `FULL_DECODE_ONLY` 会被改写成 `PIECEWISE`，昇腾平台在 `PIECEWISE` 分支会把 MLA 等 attention 切到图外并关掉 [npugraph_ex](../concepts/npugraph-ex.md)，decode 步不再是整图（GLM 在 `PIECEWISE` 下能否正常启动及 decode 慢多少均待实机核验；主线时延均为关闭态数字）。
+  - `main`（`8d6180e2`）中 `AscendStoreConnector` 新增对 `kv_consumer` 的显式限制：当 `kv_role == "kv_consumer"` 且开启 `save_decode_cache`、未开启 `consumer_is_to_put` 时，开 `use_layerwise` 直接抛 `ValueError`（提示 decode-only saving 未在逐层传输路径实现，须设 `use_layerwise=False`）。
+- **混合 KV cache 与 Mamba 状态边界**：多 KV 组须按版本与后端分别核对——`v0.23`/`v0.26` 调度器对 Mamba 检查 align 模式；`v0.26` 内存复用在存在复用关系时检查 `AttentionSpec` 并拒绝已共享或 packed 描述符；早期 `baa023ad` Mooncake 拒绝带 recurrent Mamba 状态的 hybrid 组合；`v0.30.0` 与 `main` 均通过 `requires_mamba_state_copy_after_layer_load = self.use_layerwise` 要求在逐层加载完成后复制 hybrid Mamba 状态。
+- **旧算例与放到 GLM 双机（`db701c1f` 固定基线）**：早先单卡 Qwen3-0.6B 与[GLM 双机官方部署](../concepts/glm-5-3-flash-two-node.md#部署前提)启动命令均未传 `--kv-transfer-config`，连接器不构造、四处同名键都不会被读到。因此在[多条请求页](../concepts/concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里因 KV 块不足被抢占的约 67,000 位置请求排回来时是整段 prefill 重算，而非外部池按层取回。若接上 AscendStore 并开启 `use_layerwise`：GLM 只有 12 层 MLA 存位置历史、34 层 KDA 存固定状态（每层搬运量及快照卡点见 [Layerwise KV offload GLM 一节](../concepts/kv-cache-layerwise-offload.md#放到-glm-双机主线没开开了一层要搬多少)），且原本的 `FULL_DECODE_ONLY` 会被改写成 `PIECEWISE`，昇腾平台在 `PIECEWISE` 分支会把 MLA 等 attention 切到图外并关掉 [npugraph_ex](../concepts/npugraph-ex.md)，decode 步不再是整图（GLM 在 `PIECEWISE` 下能否正常启动及 decode 慢多少均待实机核验；主线时延均为关闭态数字）。
 
 ## 对照源码
 

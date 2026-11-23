@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="GLM 双机场景 M 第 2 步同比例双 DP 载荷条：展示 DP0 6048 与 DP1 28 如何经跨组对齐拉宽、退回 eager 并跨过 128 门槛同步切至 AllGather" font-family="var(--font-sans)">
+  <title>GLM 场景 M（第 2 步）双 DP 同比例载荷条与图模式 / MoE 通信联锁</title>
+  <desc>Same-scale dual DP workload bars for GLM Scenario M step 2 (DP0 6048 vs DP1 28), showing effective tokens, cross-DP padding to 6048, eager fallback, and MC2-to-AllGather threshold 128 interlock</desc>
+  <defs>
+    <marker id="glm-dp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="glm-dp-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">GLM 场景 M（第 2 步）双 DP 载荷同比例对比：6,048 vs 28 如何触发跨组联锁</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">2×A2×8 · TP8/DP2/EP16 · MTP=3</text>
+
+  <!-- Shared Token-Width Scale Axis (0 .. 6048 -> x = 148 .. 868, width = 720 px, ~0.11905 px/token) -->
+  <line x1="148" y1="62" x2="876" y2="62" stroke="#4d5652" stroke-width="1.4" marker-end="url(#glm-dp-arr)"/>
+  <g stroke="#4d5652" stroke-width="1.2">
+    <line x1="148" y1="57" x2="148" y2="67"/>
+    <line x1="392" y1="57" x2="392" y2="67"/>
+    <line x1="636" y1="57" x2="636" y2="67"/>
+    <line x1="868" y1="57" x2="868" y2="67"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#4d5652" text-anchor="middle">
+    <text x="148" y="51">0</text>
+    <text x="392" y="51">2048</text>
+    <text x="636" y="51">4096</text>
+    <text x="860" y="51" font-weight="700" fill="#936300">6048 tok</text>
+  </g>
+
+  <!-- MC2 threshold = 128 vertical dashed marker at x = 148 + 15.2 = 163 -->
+  <line x1="163" y1="68" x2="163" y2="210" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+  <!-- DP0 Row (y = 82 .. 134) -->
+  <text x="16" y="104" font-size="14.5" font-weight="700" fill="#936300">DP0（13 请求）</text>
+  <text x="16" y="126" font-size="13.5" fill="#4d5652">有效 6,048</text>
+
+  <!-- DP0 decode sliver (48 tokens -> drawn 10px visible + N 6000 -> 710px) -->
+  <rect x="148" y="84" width="10" height="44" rx="2" fill="#087f73"/>
+  <rect x="158" y="84" width="710" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="513" y="103" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">D₁…D₁₂（48）+ N 提示词（6,000）= 6,048 有效位置</text>
+  <text x="513" y="122" text-anchor="middle" font-size="13.5" fill="#4d5652">装进 8192 预算未切块 · 混合步无法用图（eager）</text>
+
+  <!-- DP1 Row (y = 152 .. 204) -->
+  <text x="16" y="174" font-size="14.5" font-weight="700" fill="#7a3a6a">DP1（7 请求）</text>
+  <text x="16" y="196" font-size="13.5" fill="#4d5652">有效 28</text>
+
+  <!-- DP1 real 28 tokens sliver + forced 6020 padded width -->
+  <rect x="148" y="154" width="6" height="44" rx="2" fill="#087f73"/>
+  <rect x="154" y="154" width="714" height="44" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="511" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">跨 DP 同步补齐 +6,020 空行（新增 215× 空行，总宽 216×）→ 6,048</text>
+  <text x="511" y="192" text-anchor="middle" font-size="13.5" fill="#4d5652">真实仅 28（本地可回放 32 档图），被 DP0 联动压回 eager 并同切 AllGather</text>
+
+  <!-- Zoomed Inset for 0..140 tokens (showing 28, 32, 48, 128 clearly!) -->
+  <rect x="16" y="222" width="440" height="84" rx="8" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="244" font-size="14" font-weight="700" fill="#17211f">左端局部放大（0 → 140 token）：看清 28、32 与 128 门槛</text>
+  <!-- Zoom scale: x = 36 .. 340 (304 px for 140 tok -> 2.171 px/tok) -->
+  <!-- 28 tok = 61 px; 32 tok = 70 px; 48 tok = 104 px; 128 tok = 278 px -->
+  <rect x="36" y="256" width="61" height="20" rx="3" fill="#087f73"/>
+  <rect x="97" y="256" width="9" height="20" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="36" y="295" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">DP1: 28→32</text>
+
+  <line x1="140" y1="254" x2="140" y2="279" stroke="#c78300" stroke-width="1.4" stroke-dasharray="3 2"/>
+  <text x="146" y="272" font-family="var(--font-mono)" font-size="13.5" fill="#936300">48 (DP0 decode)</text>
+
+  <line x1="314" y1="250" x2="314" y2="298" stroke="#b54237" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="321" y="272" font-size="13.5" font-weight="700" fill="#8f3229">128 门槛</text>
+  <text x="321" y="294" font-size="12.5" fill="#8f3229">≤MC2 / &gt;AllGather</text>
+
+  <!-- Right summary note beside inset -->
+  <rect x="472" y="222" width="412" height="84" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="488" y="246" font-size="14" font-weight="700" fill="#8f3229">单参数涟漪：缩小预算不止改输入数量</text>
+  <text x="488" y="270" font-size="13.5" fill="#17211f">总宽 ≤ 128 恢复 MC2；混合步（含 prefill）仍走 eager</text>
+  <text x="488" y="292" font-size="13.5" fill="#8f3229">纯 Decode 且 ≤ 128 时，才同步恢复 ACLGraph 回放</text>
+
+  <!-- Bottom: 4-Stage Interlock Chain -->
+  <text x="16" y="336" font-size="15.5" font-weight="700" fill="#17211f">一条请求引发的四级跨组联锁（从调度位置到跨机通信）</text>
+
+  <rect x="16" y="352" width="198" height="104" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="378" font-size="14.5" font-weight="700" fill="#065f56">① 有效输入位置</text>
+  <text x="28" y="403" font-size="13.5" fill="#17211f">DP0：48 + 6000 = 6048</text>
+  <text x="28" y="425" font-size="13.5" fill="#17211f">DP1：7 × 4 = 28</text>
+  <text x="28" y="446" font-size="13.5" fill="#66716d">MTP 每条占 4 位置</text>
+
+  <line x1="214" y1="404" x2="236" y2="404" stroke="#4d5652" stroke-width="1.6" marker-end="url(#glm-dp-arr)"/>
+
+  <rect x="238" y="352" width="202" height="104" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="250" y="378" font-size="14.5" font-weight="700" fill="#936300">② 补齐执行宽度</text>
+  <text x="250" y="403" font-size="13.5" fill="#17211f">两组交换宽度取 max</text>
+  <text x="250" y="425" font-size="13.5" font-weight="700" fill="#936300">DP1：28 → 32 → 6048</text>
+  <text x="250" y="446" font-size="13.5" fill="#66716d">算子按实长裁剪非全算</text>
+
+  <line x1="440" y1="404" x2="462" y2="404" stroke="#4d5652" stroke-width="1.6" marker-end="url(#glm-dp-arr)"/>
+
+  <rect x="464" y="352" width="198" height="104" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="476" y="378" font-size="14.5" font-weight="700" fill="#3a4f93">③ 图模式资格</text>
+  <text x="476" y="403" font-size="13.5" fill="#17211f">DP0 含 prefill 走 eager</text>
+  <text x="476" y="425" font-size="13.5" font-weight="700" fill="#3a4f93">跨组同步后双双 eager</text>
+  <text x="476" y="446" font-size="13.5" fill="#66716d">DP1 失去 32 档图回放</text>
+
+  <line x1="662" y1="404" x2="684" y2="404" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#glm-dp-plum)"/>
+
+  <rect x="686" y="352" width="198" height="104" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="698" y="378" font-size="14.5" font-weight="700" fill="#7a3a6a">④ MoE 通信联锁</text>
+  <text x="698" y="403" font-size="13.5" fill="#17211f">max(6048, 32) &gt; 128</text>
+  <text x="698" y="425" font-size="13.5" font-weight="700" fill="#7a3a6a">MC2 → AllGather</text>
+  <text x="698" y="446" font-size="13.5" fill="#66716d">DP1 等待先查对端进度</text>
+</svg>

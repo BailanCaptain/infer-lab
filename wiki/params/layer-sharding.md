@@ -110,7 +110,10 @@ rawSources:
 
 在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。`layer_sharding` 的做法是**把几十层轮流分给一个独立通信组里的 `K` 张卡保管**：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时将完整权重替换为单元素占位张量，前向时再提前一层通过异步 Broadcast 把下一层权重广播取回。
 
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`layer_sharding` 及整套按层轮放广播实现在 `v0.30.0` 与 `main` 中均已彻底移除**——它早在 `v0.13` 系列出现，在 `v0.23.0` 发布说明中被与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 删除，`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径。升级迁移时必须删掉该键：`v0.30.0` 与 `main` 按 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片；`v0.26.0rc` 普通配置类静默忽略它）。同时注意新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`layer_sharding` 及整套按层轮放广播实现在 `v0.30.0` 与 `main` 中均已彻底移除**。它早在 `v0.13` 系列出现，在 `v0.23.0` 发布说明中被与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 删除，`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径。
+
+- **升级须删掉该键**：`v0.30.0` 与 `main` 按 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片）；`v0.26.0rc` 普通配置类静默忽略它。
+- **不要与新版 PCP 分片混为一谈**：新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
 
 在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，它是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`——注意旧官方表曾误写成 `dict / {}`），且面向旧版 PD 分离的 **P 节点**（`kv_role == "kv_producer"`；旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
 
@@ -139,7 +142,14 @@ file: layer-sharding
 
 ## 显存与通信账、冲突边界及向新权重切换机制的迁移
 
-**显存与通信示意账（DeepSeek-V3/R1 61 层 `o_proj`、W8A8、16 卡、TP16、PP1，非实测）**：按 `o_proj` 形状 `[7168, 128 × 128]` 计共 117,440,512 个 int8 元素，单层 112 MiB，61 层全量 6,832 MiB（约 6.67 GiB）。若 61 层连续进入同一 `K = 16` 组按层号取模，rank 0–12 各常驻 4 层、rank 13–15 各常驻 3 层；加上每卡两份整层窗口 224 MiB 后，最高卡（前 13 卡）为 `448 + 224 = 672 MiB`、后 3 卡为 `336 + 224 = 560 MiB`（全组平均 651 MiB 不能代替最高卡容量预算；相对全量最高卡约省 6.0 GiB，实际格式、scale 与额外分配须另计）。通信方面，持有 4 层的卡每次前向需接收其余 57 层（`57 × 112 = 6,384 MiB`），持有 3 层的卡接收 58 层（`6,496 MiB`，约 `6.23–6.34 GiB`，不能用 `15/16` 全组平均替代单卡接收量）；每次非本地层仍广播整份 112 MiB 权重，小批短序列很难摊平，源码在未配 FlashComm2 / DSA-CP 时启用也会告警性能显著退化。
+**显存与通信示意账（DeepSeek-V3/R1 61 层 `o_proj`、W8A8、16 卡、TP16、PP1，非实测）**：按 `o_proj` 形状 `[7168, 128 × 128]` 计共 `117,440,512` 个 int8 元素，单层 `112 MiB`，61 层全量 `6,832 MiB`（约 `6.67 GiB`）。若 61 层连续进入同一 `K = 16` 组按层号取模，各卡预算分化如下（全组平均 `651 MiB` 与 `15/16` 均值均不能替代单卡预算）：
+
+| 组内 rank 分组 | 常驻层数与显存 | + 两份整层窗口 | 单卡总预算（相对全量） | 单卡每次前向接收广播量 |
+| --- | --- | --- | --- | --- |
+| `rank 0–12`（前 13 张最高卡） | `4` 层（`448 MiB`） | `224 MiB` | **`672 MiB`**（约省 `6.0 GiB`，格式/scale/额外分配另计） | `57 × 112 = 6,384 MiB`（约 `6.23 GiB`） |
+| `rank 13–15`（后 3 张卡） | `3` 层（`336 MiB`） | `224 MiB` | `560 MiB` | `58 × 112 = 6,496 MiB`（约 `6.34 GiB`） |
+
+每次非本地层仍广播整份 `112 MiB` 权重，小批短序列很难摊平；源码在未配 FlashComm2 / DSA-CP 时启用也会告警性能显著退化。
 
 **冲突与模型边界**：
 - **与 row-parallel 分支的抢占**：进入 row-parallel 分派后，DSA-CP 的 P 侧 `o_proj` 会先被 `ShardedCPRowParallelOp` 认领，不再落到后面的细粒度 `o_proj` TP、[matmul-allreduce](enable-matmul-allreduce.md) 或 FlashComm2 分支——这一判据只检查 DSA-CP 与实例角色，不检查 `layer_sharding` 列表是否实际包含 `o_proj`（选择执行实现与登记权重分片是两回事）。

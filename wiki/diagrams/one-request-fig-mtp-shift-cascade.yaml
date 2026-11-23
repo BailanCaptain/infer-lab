@@ -1,0 +1,18 @@
+mode: native-svg
+id: one-request-fig-mtp-shift-cascade
+caption: >-
+  第 5 站 MTP 左移一格对齐矩阵与 3 遍草拟级联图（R1 首步 prefill 之后）：上半逐行对齐主干 hidden[0..3] 与左移后的 token 输入 [p₁, p₂, p₃, y₀]（positions=[0,1,2,3]，pos==0 嵌入清零），经归一化拼接 8192→4096 预测位置 2–5，仅取末行得到 d₁（此时只有主干采出的 y₀ 已确认）；下半展示同一第 45 层权重在强制 eager 模式下连跑 3 遍（保持 4 行宽但后两遍仅提取 R1 的 1 行、位置依次 +1）产出 d₁、d₂、d₃。
+size: [900, 500]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L94-L191'
+    symbols:
+      - hnorm
+      - enorm
+      - eh_proj
+      - mtp_block
+      - shared_head
+      - compute_logits
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454'
+    symbols:
+      - _run_merged_draft
+      - argmax

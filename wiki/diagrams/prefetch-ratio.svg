@@ -1,68 +1,103 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="v0.23.0 prefetch_ratio 三组四入口到预取字节换算、18 MiB 截断与零值回填整块规则" font-family="var(--font-sans)">
-  <title>v0.23.0 维护分支中 prefetch_ratio 换算为预取字节数的流程：四处入口共享乘法公式，MLP 正值在 Python 侧截断到 18 MiB，启用组内缺项或写 0 会在 maybe_npu_prefetch 中转为整块请求；v0.24.0rc（PR #11949）起随父配置删除，v0.30.0 与 main 无等价替代键。</title>
-  <desc>Four hook entry points for attn, moe, and mlp prefetch ratios in v0.23.0, byte calculation and 18 MiB MLP cap, zero-to-full-tensor trap, and v0.30.0/main removal notice.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="v0.23.0 prefetch_ratio 三组四入口到预取字节换算、18 MiB 截断与零值回填整块陷阱及 v0.30.0/main 移除" font-family="var(--font-sans)">
+  <title>v0.23.0 prefetch_ratio：三组四入口、18 MiB 截断与零值反弹整块陷阱</title>
+  <desc>Entry-point routing for attn, moe, and mlp prefetch ratios in v0.23.0, geometric byte-conversion gauge with 18 MiB MLP cap and zero/missing bounce-back to full weight tensor, plus v0.30.0/main removal strip.</desc>
+  <defs>
+    <marker id="pr-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+    <marker id="pr-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="pr-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.23.0 prefetch_ratio：三组四入口与预取字节换算流</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">mlp 与 moe 按模型类型互斥；attn 要求静态 W8A8 且输入非 int8（MLA / SFA 独立预取不读本比例）</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① v0.23.0 三组四入口（mlp 与 moe 按模型互斥；MLA / SFA 独立预取不读本比例）</text>
 
-  <!-- 2x2 Entry Point Cards -->
-  <rect x="16" y="66" width="424" height="82" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="30" y="90" font-size="14.5" font-weight="700" fill="#3a4f93">attn.qkv / attn.o（默认 1.0 / 1.0）</text>
-  <text x="30" y="113" font-size="13" fill="#4d5652" font-family="var(--font-mono)">AscendW8A8LinearMethod</text>
-  <text x="30" y="135" font-size="13.5" fill="#4d5652">静态 W8A8 apply 内按类名精确匹配，无 token 门槛</text>
+  <!-- 2x2 Entry Point Boxes -->
+  <rect x="16" y="42" width="424" height="76" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="65" font-size="14.5" font-weight="700" fill="#3a4f93">attn.qkv / attn.o（默认 1.0 / 1.0）</text>
+  <text x="30" y="87" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">AscendW8A8LinearMethod</text>
+  <text x="30" y="107" font-size="13.5" fill="#4d5652">静态 W8A8 且输入非 int8，按类名精确匹配（无 token 门槛）</text>
 
-  <rect x="460" y="66" width="424" height="82" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="474" y="90" font-size="14.5" font-weight="700" fill="#7a3a6a">moe.gate_up（默认 0.8）</text>
-  <text x="474" y="113" font-size="13" fill="#4d5652" font-family="var(--font-mono)">select_experts</text>
-  <text x="474" y="135" font-size="13.5" fill="#4d5652">MoE 模型，入口行数 ≥ 96 且须取到 w13_weight</text>
+  <rect x="460" y="42" width="424" height="76" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="474" y="65" font-size="14.5" font-weight="700" fill="#7a3a6a">moe.gate_up（默认 0.8）</text>
+  <text x="474" y="87" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">select_experts → w13_weight</text>
+  <text x="474" y="107" font-size="13.5" fill="#4d5652">MoE 模型、入口行数 ≥ 96、层索引 &gt; 0 且须取到权重栈</text>
 
-  <rect x="16" y="160" width="424" height="82" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="30" y="184" font-size="14.5" font-weight="700" fill="#065f56">mlp.gate_up（默认 1.0）</text>
-  <text x="30" y="207" font-size="13" fill="#4d5652" font-family="var(--font-mono)">CustomRowParallelOp</text>
-  <text x="30" y="229" font-size="13.5" fill="#4d5652">稠密模型、token &lt; 500，在自定义行并行 apply 触发</text>
+  <rect x="16" y="128" width="424" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="151" font-size="14.5" font-weight="700" fill="#065f56">mlp.gate_up（默认 1.0）</text>
+  <text x="30" y="173" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">CustomRowParallelOp</text>
+  <text x="30" y="193" font-size="13.5" fill="#4d5652">稠密模型、token &lt; 500，在自定义行并行 apply 触发</text>
 
-  <rect x="460" y="160" width="424" height="82" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="474" y="184" font-size="14.5" font-weight="700" fill="#065f56">mlp.down（默认 1.0）</text>
-  <text x="474" y="207" font-size="13" fill="#4d5652" font-family="var(--font-mono)">AscendSiluAndMul</text>
-  <text x="474" y="229" font-size="13.5" fill="#4d5652">稠密模型、token &lt; 500，在带钩子 SwiGLU 前触发</text>
+  <rect x="460" y="128" width="424" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="474" y="151" font-size="14.5" font-weight="700" fill="#065f56">mlp.down（默认 1.0）</text>
+  <text x="474" y="173" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">AscendSiluAndMul</text>
+  <text x="474" y="193" font-size="13.5" fill="#4d5652">稠密模型、token &lt; 500，在带钩子 SwiGLU 前触发</text>
 
-  <!-- Connector down to byte calculation -->
-  <path d="M450 246 V274 m-5-5 l5 5 5-5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="464" y="264" font-size="13" fill="#66716d">满足父开关与路径门槛后进入字节换算</text>
+  <line x1="16" y1="220" x2="884" y2="220" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
 
-  <!-- 3-step byte conversion pipeline -->
-  <rect x="16" y="280" width="270" height="98" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="30" y="304" font-size="14.5" font-weight="700" fill="#17211f">① 比例乘成字节数</text>
-  <text x="30" y="327" font-size="13" fill="#4d5652" font-family="var(--font-mono)">int(ratio * weight_bytes)</text>
-  <text x="30" y="350" font-size="13.5" fill="#4d5652">按本卡分片权重字节数取整</text>
-  <text x="30" y="369" font-size="13" fill="#66716d">越界值（1.2 / -0.5）构造时丢弃</text>
+  <!-- Band 2: Geometric Byte Gauge + 18 MiB Cap + Zero Bounce-Back Trap -->
+  <text x="16" y="246" font-size="16" font-weight="700" fill="#17211f">② 字节换算标尺：18 MiB MLP 上限截断 vs 零值 / 缺项反向弹回「100% 整块」陷阱</text>
+  <text x="16" y="266" font-size="13.5" fill="#66716d">传 prefetch_ratio 即整体替换默认字典；0 ≤ r ≤ 1，越界值（如 1.2 / -0.5）静默丢弃不报错</text>
 
-  <path d="M286 329 H310 m-5-5 l5 5 -5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Step 1 -> Step 2 -> Step 3 pipeline -->
+  <rect x="16" y="282" width="268" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="150" y="305" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">① 比例乘本卡权重字节</text>
+  <text x="150" y="328" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">int(ratio * weight_bytes)</text>
+  <text x="150" y="346" text-anchor="middle" font-size="13.5" fill="#66716d">回填过滤后无 &gt; 0 项才关组</text>
+  <path d="M 284 318 L 310 318" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#pr-arr-g)"/>
 
-  <rect x="315" y="280" width="270" height="98" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="329" y="304" font-size="14.5" font-weight="700" fill="#936300">② MLP 侧 18 MiB 截断</text>
-  <text x="329" y="327" font-size="13" fill="#4d5652" font-family="var(--font-mono)">MAX_PREFETCH_WEIGHT_SIZE</text>
-  <text x="329" y="350" font-size="13.5" fill="#4d5652">MLP 正字节请求截断至 18 MiB</text>
-  <text x="329" y="369" font-size="13" fill="#66716d">attn / moe 后端上限仍待实机核验</text>
+  <rect x="316" y="282" width="268" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="450" y="305" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">② MLP 正字节截断 18 MiB</text>
+  <text x="450" y="328" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">MAX_PREFETCH_WEIGHT_SIZE</text>
+  <text x="450" y="346" text-anchor="middle" font-size="13.5" fill="#4d5652">attn / moe Python 侧不截断</text>
+  <path d="M 584 318 L 610 318" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#pr-arr-t)"/>
 
-  <path d="M585 329 H609 m-5-5 l5 5 -5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="616" y="282" width="268" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="750" y="305" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">③ 独立流提交 L2 预取</text>
+  <text x="750" y="328" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">maybe_npu_prefetch</text>
+  <text x="750" y="346" text-anchor="middle" font-size="13.5" fill="#4d5652">调 npu_prefetch 搬至 L2</text>
 
-  <rect x="614" y="280" width="270" height="98" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="628" y="304" font-size="14.5" font-weight="700" fill="#065f56">③ 独立流提交预取</text>
-  <text x="628" y="327" font-size="13" fill="#4d5652" font-family="var(--font-mono)">maybe_npu_prefetch</text>
-  <text x="628" y="350" font-size="13.5" fill="#4d5652">切流调 npu_prefetch 搬至 L2</text>
-  <text x="628" y="369" font-size="13" fill="#66716d">计算流在 postprocess 处等回</text>
+  <!-- Visual gauge bar showing 0% bounce-back vs normal range vs 18 MiB clip vs 100% full -->
+  <text x="16" y="388" font-size="14" font-weight="700" fill="#8f3229">陷阱几何示意（启用组内某项漏写、越界被丢或乘积取整为 0 时）：</text>
 
-  <!-- Trap callout card -->
-  <rect x="16" y="396" width="868" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="421" font-size="14.5" font-weight="700" fill="#936300">关键陷阱：启用组内漏写或写 0，会在 maybe_npu_prefetch 中改写成「整块权重」请求</text>
-  <text x="30" y="446" font-size="13.5" fill="#4d5652">• 传了 prefetch_ratio 就整体替换默认字典；非空组里漏项或乘积取整为 0 时，max_size ≤ 0 会被改为整块权重</text>
-  <text x="30" y="470" font-size="13.5" fill="#4d5652">• 只有整组过滤后全为 0 或为空才会关闭该组；输入空 dict 或漏写整组会先回填默认，与「过滤后为空」不同</text>
-  <text x="30" y="492" font-size="13" fill="#66716d">提示：越界值静默丢弃不报错，若同组仍有非零项且进入调用，被丢弃项即按缺项走整块请求</text>
+  <!-- Gauge track x=16..884 -->
+  <rect x="16" y="402" width="160" height="42" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="96" y="421" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">max_size ≤ 0</text>
+  <text x="96" y="438" text-anchor="middle" font-size="13.5" fill="#8f3229">（写 0 / 缺项）</text>
 
-  <!-- Removal card -->
-  <rect x="16" y="516" width="868" height="92" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="540" font-size="14.5" font-weight="700" fill="#8f3229">v0.24.0rc（PR #11949）随父配置删除：v0.30.0 (c09d3e20) / main (8d6180e2) 无等价替代键</text>
-  <text x="30" y="564" font-size="13.5" fill="#4d5652">• v0.26.0rc 静默忽略旧父键；v0.30.0 与 main 通常按 extra="forbid" 拒收（装有 vllm_omni 时告警过滤）</text>
-  <text x="30" y="588" font-size="13.5" fill="#4d5652">• 把子键挪到顶层同样无效；磁盘预读 --safetensors-load-strategy 与 CPU offload 均不沿用这组比例</text>
+  <rect x="184" y="402" width="380" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="374" y="428" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">正常正字节区间（MLP 超过 18 MiB 处封顶截断）</text>
+
+  <line x1="564" y1="396" x2="564" y2="450" stroke="#c78300" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="564" y="467" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">MLP 18 MiB 上限</text>
+
+  <rect x="572" y="402" width="312" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="728" y="421" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">100% 整块权重请求</text>
+  <text x="728" y="438" text-anchor="middle" font-size="13.5" fill="#4d5652">（maybe_npu_prefetch 自动改写落点）</text>
+
+  <!-- Arc arrow bouncing from max_size<=0 directly over to 100% full weight! -->
+  <path d="M 96 444 V 484 H 728 V 448" fill="none" stroke="#b54237" stroke-width="2" marker-end="url(#pr-arr-r)"/>
+  <rect x="206" y="471" width="414" height="24" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="413" y="488" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">写 0 ≠ 单项关闭！组仍启用时会反弹为请求 100% 整块</text>
+
+  <line x1="16" y1="510" x2="884" y2="510" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: 3-column Version Removal Strip -->
+  <rect x="16" y="524" width="276" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="154" y="548" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">v0.23.0（唯一可用基线）</text>
+  <text x="154" y="572" text-anchor="middle" font-size="13.5" fill="#17211f">发版即列 Ready to Deprecate</text>
+  <text x="154" y="594" text-anchor="middle" font-size="13.5" fill="#4d5652">GLM 双机五项均不触发</text>
+
+  <rect x="312" y="524" width="276" height="84" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="450" y="548" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">v0.24.0rc / v0.26.0rc</text>
+  <text x="450" y="572" text-anchor="middle" font-size="13.5" fill="#17211f">PR #11949 随父配置删除</text>
+  <text x="450" y="594" text-anchor="middle" font-size="13.5" fill="#4d5652">v0.26 逐键 .get() 静默忽略</text>
+
+  <rect x="608" y="524" width="276" height="84" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="746" y="548" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">v0.30.0 / main</text>
+  <text x="746" y="572" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">extra=forbid 拒收（无替代）</text>
+  <text x="746" y="594" text-anchor="middle" font-size="13.5" fill="#4d5652">仅 vllm_omni 告警过滤</text>
 </svg>

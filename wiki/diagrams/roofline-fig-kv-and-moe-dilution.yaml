@@ -1,0 +1,14 @@
+mode: native-svg
+id: roofline-fig-kv-and-moe-dilution
+caption: >-
+  从单算子外推到整座模型的两道 Roofline 边界：左侧展示 Qwen3-8B 在 B=16、32K 独立长上下文下每步读取 KV cache（72.0 GiB）反超共享权重（15.26 GiB）近 5 倍，且 4:1 GQA 算术强度锁死在约 4 FLOP/B；右侧展示 Qwen3-30B-A3B 在 B=32 近似均匀打散路由下，32×8=256 次指派点亮约 112/128 个专家（搬运 56.87 GiB 中绝大部分），被激活专家平均仅分到约 2.3 行（按 128 专家均摊为 2 行，极端集中退化情形除外）。
+size: [900, 456]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L135'
+    symbols:
+      - Qwen3Attention
+      - qkv_proj
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L167-L213'
+    symbols:
+      - n_routed_experts
+      - num_experts_per_tok

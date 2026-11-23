@@ -1,0 +1,10 @@
+mode: native-svg
+id: graph-mode-layer-fig-five-gates
+caption: >-
+  总宽同为 64 个 token 的两批走过 GLM 双机 FULL_DECODE_ONLY 五条判据对照：批次 A（16 条整齐 decode，各 4 位）连过五关并在跨 DP 取小后命中整图 #64；批次 B（含 1 段未完 prefill）在首关即被拦截，跨 DP 按 NONE < PIECEWISE < FULL 取小把两组一起拉回 eager。
+size: [900, 540]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2910-L2967
+    symbols: [uniform_decode, uniform_decode_query_len, CUDAGraphMode, BatchDescriptor]
+  - source: vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L262-L328
+    symbols: [CUDAGraphMode, BatchDescriptor, cudagraph_keys]

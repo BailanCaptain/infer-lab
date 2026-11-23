@@ -1,8 +1,8 @@
 mode: native-svg
 id: ascend-config-system-fig-pydantic-flow
 caption: >-
-  vllm-ascend v0.30.0 与 main 的 --additional-config 严格解析流水线：从工厂剥离旧调度键与 vllm_omni 顶层过滤、Pydantic extra="forbid" 拒收未知键、derive_and_validate（仅留 VLLM_ASCEND_ENABLE_FLASHCOMM1 逻辑或兜底，退役 NZ/MLAPO/FUSED_MC2 等旧环境变量）到校验通过后原子发布进程内单例 _ASCEND_CONFIG。
-size: [900, 444]
+  AscendConfig 从 v0.23.0 到 main 的配置收口与严格校验演进：左侧以比例柱状图对比 envs.py 环境变量从 21 条收口至 12 条（带 VLLM_ASCEND_ 前缀从 9 条减至 1 条），右侧展示强类型子配置从 8 组扩至 v0.30.0 的 12 组与 main 的 14 组（另含 runtime_config），并标明非空 JSON 纳入编译缓存 hash 与进程级隔离边界。
+size: [900, 420]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L625'
     symbols: [model_config, ConfigDict]

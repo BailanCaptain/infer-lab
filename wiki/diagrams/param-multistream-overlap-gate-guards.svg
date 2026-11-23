@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="multistream_overlap_gate 在 v0.23.0 中的四类前置陷阱、GLM MC2 行数失配与跨版本下线清理图" font-family="var(--font-sans)">
+  <title>multistream_overlap_gate 前置失效陷阱与版本下线清理</title>
+  <desc>Left: Four v0.23.0 failure traps including bare assert without shared experts, BF16 consumer missing, GLM MC2 4-row routing vs 1-row hidden mismatch without SP, and MoE LoRA v1 AssertionError. Right: Cross-version lifecycle from v0.23.0 to v0.24 PR #11956 removal, v0.26 silent ignore, and v0.30.0/main extra=forbid rejection vs surviving multistream_overlap_shared_expert.</desc>
+  <defs>
+    <marker id="mg-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="mg-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <line x1="468" y1="14" x2="468" y2="436" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- LEFT: v0.23.0 4 Guard Traps + GLM Row Mismatch -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. v0.23.0 强开的四类陷阱（含 GLM MC2 失配）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">打印 info_once 日志仅证明配置开启，不保证前向不报错或有收益</text>
+
+  <!-- Trap 1 -->
+  <rect x="16" y="64" width="436" height="72" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="26" y="87" font-size="14" font-weight="700" fill="#8f3229">① 无共享专家 MoE：不静默降级 → 裸断言崩溃</text>
+  <text x="26" y="109" font-size="13" fill="#4d5652">fc3_context 仅在 shared_forward_impl 初始化；缺共享专家命中</text>
+  <text x="26" y="129" font-size="13" font-family="var(--font-mono)" fill="#8f3229">assert fc3_context is not None</text>
+
+  <!-- Trap 2 -->
+  <rect x="16" y="144" width="436" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="26" y="168" font-size="14" font-weight="700" fill="#936300">② 非 W8A8 量化（如 BF16）：无消费端且丢 logits</text>
+  <text x="24" y="192" font-size="12.5" fill="#4d5652">仅 w8a8_dynamic / w8a8_mxfp8 读 context；BF16 既不读又不收 logits</text>
+
+  <!-- Trap 3: GLM MC2 4 rows vs 1 row -->
+  <rect x="16" y="216" width="436" height="122" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="28" y="240" font-size="14" font-weight="700" fill="#8f3229">③ 未开 SP（GLM 双机 R1 强开推演）：行数失配</text>
+  <!-- Mini visual comparing 4-row vs 1-row -->
+  <rect x="28" y="254" width="182" height="50" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="119" y="275" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">gate_stream 副流路由</text>
+  <text x="119" y="295" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">完整 4 token → 4 行 topk</text>
+
+  <text x="228" y="284" text-anchor="middle" font-size="16" font-weight="700" fill="#b54237">≠</text>
+
+  <rect x="246" y="254" width="194" height="50" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="343" y="275" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">主线 MC2（TP8 切片）</text>
+  <text x="343" y="295" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">4→补 8→每卡 1 行隐藏态</text>
+
+  <text x="28" y="326" font-size="13.5" fill="#8f3229">汇合后拿 4 行路由配 1 行隐藏态；且无 EP All-Gather 可隐藏</text>
+
+  <!-- Trap 4 -->
+  <rect x="16" y="348" width="436" height="82" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="372" font-size="14" font-weight="700" fill="#17211f">④ MoE LoRA v1 硬互斥 &amp; 310P 双实现分叉</text>
+  <text x="28" y="395" font-size="13.5" fill="#4d5652">• MoE LoRA v1 直接抛 AssertionError（无降级）</text>
+  <text x="28" y="417" font-size="13.5" fill="#4d5652">• 310P：新 runner 置 False；legacy 先算路由再算共享专家</text>
+
+  <!-- RIGHT: Removal Timeline & Migration Cleanup -->
+  <text x="486" y="28" font-size="16" font-weight="700" fill="#17211f">B. 跨版本下线与升级清理（勿误删现存键）</text>
+  <text x="486" y="49" font-size="13.5" fill="#66716d">PR #11956 自 v0.24.0rc 起整套删除，新版本无等价 gate 开关</text>
+
+  <!-- Timeline nodes -->
+  <rect x="486" y="68" width="398" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="500" y="92" font-size="14" font-weight="700" fill="#936300">v0.23.0（2c59ff10）：存在但已标 Ready to Deprecate</text>
+  <text x="500" y="114" font-size="13.5" fill="#4d5652">默认 False；同时开 shared_expert 时由 gate_stream 接管</text>
+
+  <line x1="685" y1="128" x2="685" y2="148" stroke="#4d5652" stroke-width="1.7" marker-end="url(#mg-arr-ink)"/>
+
+  <rect x="486" y="152" width="398" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="500" y="176" font-size="14" font-weight="700" fill="#17211f">v0.26.0rc（2ed6cbba）：已删代码，.get() 静默忽略</text>
+  <text x="500" y="198" font-size="13.5" fill="#4d5652">连同 flash_common3_context.py 与 fc3_quant_x 一起移除</text>
+
+  <line x1="685" y1="212" x2="685" y2="232" stroke="#b54237" stroke-width="1.7" marker-end="url(#mg-arr-red)"/>
+
+  <rect x="486" y="236" width="398" height="76" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="500" y="260" font-size="14" font-weight="700" fill="#8f3229">v0.30.0 (c09d3e20) &amp; main (8d6180e2)：通常拒收</text>
+  <text x="500" y="282" font-size="13.5" fill="#4d5652">• 普通 Ascend 进程：extra="forbid" 启动报错</text>
+  <text x="500" y="302" font-size="13.5" fill="#4d5652">• 含 vllm_omni：打印告警并过滤，同样不恢复旧功能</text>
+
+  <!-- Distinguish from surviving key -->
+  <rect x="486" y="330" width="398" height="100" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="500" y="355" font-size="14.5" font-weight="700" fill="#065f56">✓ 迁移必看：别误删现存兄弟开关</text>
+  <text x="500" y="379" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">multistream_overlap_shared_expert</text>
+  <text x="500" y="401" font-size="13.5" fill="#4d5652">v0.30.0 / main 均保留（默认 False），仅搬共享专家计算；</text>
+  <text x="500" y="421" font-size="13.5" fill="#065f56">注意 enable_fused_mc2 == 1 时会被自动告警关闭</text>
+</svg>

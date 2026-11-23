@@ -1,60 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="vLLM V1 高阶采样管线顺序与昇腾快慢路径分流" font-family="var(--font-sans)">
-<title>高阶采样 9 步流水线与昇腾 NPU 快慢路径分流</title>
-<desc>Sampler 9-step order, penalties, min_p, top_k/top_p, Gumbel-max random_sample and Ascend fast/slow paths</desc>
-<line x1="16" y1="252" x2="884" y2="252" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="154" height="84" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="192" y="54" width="184" height="84" rx="7" fill="#fff0e9" stroke="#b54237"/>
-<rect x="398" y="54" width="194" height="84" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="614" y="54" width="270" height="84" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="156" width="240" height="76" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="282" y="156" width="320" height="76" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="628" y="156" width="256" height="76" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="300" width="420" height="174" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="464" y="300" width="420" height="174" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M170 96h20m-5-4l5 4-5 4M376 96h20m-5-4l5 4-5 4M592 96h20m-5-4l5 4-5 4M748 138v16m-4-5l4 5 4-5M628 194h-24m5-4l-5 4 5 4M282 194h-24m5-4l-5 4 5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="12.5" fill="#4c65b6"/>
-<circle cx="28" cy="278" r="12.5" fill="#087f73"/>
-<g font-weight="700">
-<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">Sampler.forward 严格执行顺序（不可保序改分在前，随机截断在后）</text>
-<text x="93" y="79" text-anchor="middle" font-size="14.5" fill="#3a4f93">① 原始 Logprobs</text>
-<text x="284" y="79" text-anchor="middle" font-size="14.5" fill="#8f3229">② 非保序改分</text>
-<text x="495" y="79" text-anchor="middle" font-size="14.5" fill="#936300">③ 三类重复惩罚</text>
-<text x="749" y="79" text-anchor="middle" font-size="14.5" fill="#065f56">④ 贪心快退 vs 温度缩放</text>
-<text x="756" y="180" text-anchor="middle" font-size="14.5" fill="#065f56">⑤ 保序过滤：min_p</text>
-<text x="442" y="180" text-anchor="middle" font-size="14.5" fill="#7a3a6a">⑥ Top-k / Top-p + Gumbel 抽取</text>
-<text x="136" y="180" text-anchor="middle" font-size="14.5" fill="#17211f">⑦ 汇总 Logprobs 输出</text>
-<text x="28" y="282.5" text-anchor="middle" font-size="13" fill="#ffffff">2</text>
-<text x="48" y="284" font-size="16" fill="#17211f">vllm-ascend v0.30.0 昇腾采样快路径 vs 慢路径回退边界</text>
-<text x="30" y="326" font-size="15" fill="#065f56">✓ 昇腾快路径（默认开启，零 Host 同步）</text>
-<text x="478" y="326" font-size="15" fill="#8f3229">✗ 触发慢路径回退的典型条件</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="93" y="104" text-anchor="middle">raw_logprobs /</text>
-<text x="93" y="124" text-anchor="middle">raw_logits → FP32</text>
-<text x="284" y="104" text-anchor="middle">allowed / bad_words</text>
-<text x="284" y="124" text-anchor="middle">min_tokens / logit_bias</text>
-<text x="495" y="104" text-anchor="middle">repetition → frequency</text>
-<text x="495" y="124" text-anchor="middle">→ presence（原地改）</text>
-<text x="749" y="104" text-anchor="middle">all_greedy 直接 argmax 返回</text>
-<text x="749" y="124" text-anchor="middle">否则 logits /= temperature</text>
-<text x="756" y="204" text-anchor="middle">p &lt; min_p · max(p) 置 -inf</text>
-<text x="756" y="222" text-anchor="middle">（不影响 argmax）</text>
-<text x="442" y="204" text-anchor="middle">sort+mask 截断 → softmax →</text>
-<text x="442" y="222" text-anchor="middle">probs.div_(q).argmax（无同步）</text>
-<text x="136" y="204" text-anchor="middle">按 max_num_logprobs 或</text>
-<text x="136" y="222" text-anchor="middle">logprob_token_ids 收集排名</text>
-<text x="30" y="354">• 惩罚：HAS_TRITON=True 走 apply_penalties_triton</text>
-<text x="30" y="380">• Top-k/p：_apply_top_k_top_p_pytorch 稳定 ~1 ms</text>
-<text x="30" y="406">  （刻意绕开混合 k 下退化 5~28 ms 的 npu_top_k_top_p）</text>
-<text x="30" y="432">• 随机抽取：global_stream 生成指数噪 q 做 Gumbel-max</text>
-<text x="30" y="458" font-weight="600" fill="#087f73">  全程规避 torch.multinomial 的 CPU-NPU 同步阻塞</text>
-<text x="478" y="354">• HAS_TRITON=False：惩罚退回 PyTorch scatter 慢路径</text>
-<text x="478" y="380">• VLLM_BATCH_INVARIANT=1：Top-k/p 退回上游原生实现</text>
-<text x="478" y="406">• 请求自带独立 seed（generators 非空）：逐条循环生成 q[i]</text>
-<text x="478" y="432">• 请求全词表 logprobs=-1 或大 top_k：放大显存与 D2H 拷贝</text>
-<text x="478" y="458" font-weight="600" fill="#b54237">• 混入任意 1 条随机请求会打破 all_greedy 整批快退</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="vLLM V1 高阶采样管线顺序与昇腾快慢路径耗时分流图" font-family="var(--font-sans)">
+  <title>高阶采样 9 步流水线与昇腾 NPU 快慢路径分流</title>
+  <desc>上半区展示 Sampler.forward 从原始 logprobs 到非保序改分、重复惩罚、整批贪心快退、温度缩放、min_p、Top-k/Top-p 与 Gumbel 抽取的严格顺序；下半区以耗时比例条与路径对照直观呈现昇腾快路径（Triton 融合惩罚、~1 ms 排序掩码绕开 5–28 ms 融合算子退化、global_stream 异步 Gumbel-max）与慢路径回退条件。</desc>
+  <line x1="16" y1="252" x2="884" y2="252" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <g stroke-width="1.4">
+    <rect x="16" y="54" width="154" height="84" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="192" y="54" width="184" height="84" rx="7" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="398" y="54" width="194" height="84" rx="7" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="614" y="54" width="270" height="84" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="16" y="156" width="240" height="76" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="282" y="156" width="320" height="76" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="628" y="156" width="256" height="76" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+  <path d="M170 96h20m-5-4l5 4-5 4M376 96h20m-5-4l5 4-5 4M592 96h20m-5-4l5 4-5 4M748 138v16m-4-5l4 5 4-5M628 194h-24m5-4l-5 4 5 4M282 194h-24m5-4l-5 4 5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="28" cy="24" r="12.5" fill="#4c65b6"/>
+  <circle cx="28" cy="278" r="12.5" fill="#087f73"/>
+  <g font-weight="700">
+    <text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
+    <text x="48" y="30" font-size="16" fill="#17211f">Sampler.forward 严格执行顺序（不可保序改分在前，随机截断在后）</text>
+    <text x="93" y="79" text-anchor="middle" font-size="14.5" fill="#3a4f93">① 原始 Logprobs</text>
+    <text x="284" y="79" text-anchor="middle" font-size="14.5" fill="#8f3229">② 非保序改分</text>
+    <text x="495" y="79" text-anchor="middle" font-size="14.5" fill="#936300">③ 三类重复惩罚</text>
+    <text x="749" y="79" text-anchor="middle" font-size="14.5" fill="#065f56">④ 贪心快退 vs 温度缩放</text>
+    <text x="756" y="180" text-anchor="middle" font-size="14.5" fill="#065f56">⑤ 保序过滤：min_p</text>
+    <text x="442" y="180" text-anchor="middle" font-size="14.5" fill="#7a3a6a">⑥ Top-k / Top-p + Gumbel 抽取</text>
+    <text x="136" y="180" text-anchor="middle" font-size="14.5" fill="#17211f">⑦ 汇总 Logprobs 输出</text>
+    <text x="28" y="282.5" text-anchor="middle" font-size="13" fill="#ffffff">2</text>
+    <text x="48" y="284" font-size="16" fill="#17211f">vllm-ascend v0.30.0 昇腾快慢路径：耗时比例与回退闸门</text>
+  </g>
+  <g fill="#4d5652" font-size="13.5">
+    <text x="93" y="104" text-anchor="middle">raw_logprobs /</text>
+    <text x="93" y="124" text-anchor="middle">raw_logits → FP32</text>
+    <text x="284" y="104" text-anchor="middle">allowed / bad_words</text>
+    <text x="284" y="124" text-anchor="middle">min_tokens / logit_bias</text>
+    <text x="495" y="104" text-anchor="middle">repetition → frequency</text>
+    <text x="495" y="124" text-anchor="middle">→ presence（原地改）</text>
+    <text x="749" y="104" text-anchor="middle">all_greedy 直接 argmax 返回</text>
+    <text x="749" y="124" text-anchor="middle">否则 logits /= temperature</text>
+    <text x="756" y="204" text-anchor="middle">p &lt; min_p · max(p) 置 -inf</text>
+    <text x="756" y="222" text-anchor="middle">（不影响 argmax）</text>
+    <text x="442" y="204" text-anchor="middle">sort+mask 截断 → softmax →</text>
+    <text x="442" y="222" text-anchor="middle">probs.div_(q).argmax（无同步）</text>
+    <text x="136" y="204" text-anchor="middle">按 max_num_logprobs 或</text>
+    <text x="136" y="222" text-anchor="middle">logprob_token_ids 收集排名</text>
+  </g>
+
+  <!-- Zone 2 Left: Top-k/p latency bar comparison (1ms vs 5-28ms) -->
+  <text x="16" y="314" font-size="14.5" font-weight="700" fill="#17211f">A. Top-k/p 算子耗时比例（v0.30.0 为何绕开融合算子）</text>
+  <!-- Scale: 28 ms = 280px (10px/ms), x=142..422 -->
+  <text x="16" y="344" font-size="13.5" font-weight="700" fill="#065f56">sort+mask 快路</text>
+  <rect x="142" y="326" width="14" height="24" rx="3" fill="#087f73"/>
+  <text x="166" y="343" font-size="13.5" font-weight="700" fill="#065f56">~1 ms（稳定，默认选中）</text>
+
+  <text x="16" y="384" font-size="13.5" font-weight="700" fill="#8f3229">npu_top_k_top_p</text>
+  <rect x="142" y="366" width="50" height="24" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <rect x="192" y="366" width="230" height="24" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="307" y="383" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">5 – 28 ms（大 k / 混合 k 退化）</text>
+
+  <text x="16" y="422" font-size="13.5" fill="#4d5652">回退条件：<tspan font-family="var(--font-mono)" font-weight="700" fill="#17211f">VLLM_BATCH_INVARIANT=1</tspan> 退回上游原生路径</text>
+  <text x="16" y="448" font-size="13.5" fill="#4d5652">演进：main MRV2 在非 310P 上重启用新版融合算子</text>
+  <text x="16" y="472" font-size="13.5" fill="#8f3229">混入任意 1 条随机请求即打破 all_greedy 整批快退</text>
+
+  <!-- Vertical divider -->
+  <line x1="452" y1="298" x2="452" y2="476" stroke="#d8d8cf" stroke-width="1.3"/>
+
+  <!-- Zone 2 Right: Two side-by-side Fast vs Slow Gate Rows -->
+  <text x="470" y="314" font-size="14.5" font-weight="700" fill="#17211f">B. 惩罚与随机抽取的快慢分流</text>
+
+  <!-- Row 1: Penalties -->
+  <rect x="470" y="328" width="194" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="482" y="352" font-size="13.5" font-weight="700" fill="#065f56">✓ apply_penalties_triton</text>
+  <text x="482" y="376" font-size="13" fill="#4d5652">免全词表稠密 bin_counts</text>
+
+  <path d="M666 359h20m-5-4l5 4-5 4" fill="none" stroke="#b54237" stroke-width="1.6" stroke-linecap="round"/>
+
+  <rect x="690" y="328" width="194" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="702" y="352" font-size="13.5" font-weight="700" fill="#8f3229">✗ HAS_TRITON=False</text>
+  <text x="702" y="376" font-size="13" fill="#8f3229">退回 PyTorch scatter 慢路</text>
+
+  <!-- Row 2: Random draw -->
+  <rect x="470" y="406" width="194" height="68" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="482" y="430" font-size="13.5" font-weight="700" fill="#065f56">✓ global_stream Gumbel</text>
+  <text x="482" y="450" font-size="13" font-family="var(--font-mono)" fill="#065f56">probs.div_(q).argmax</text>
+  <text x="482" y="467" font-size="13" fill="#4d5652">零 CPU-NPU 同步阻塞</text>
+
+  <path d="M666 440h20m-5-4l5 4-5 4" fill="none" stroke="#b54237" stroke-width="1.6" stroke-linecap="round"/>
+
+  <rect x="690" y="406" width="194" height="68" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="702" y="430" font-size="13.5" font-weight="700" fill="#8f3229">✗ 逐条独立 seed 批</text>
+  <text x="702" y="450" font-size="13" fill="#4d5652">generators 非空逐行填 q[i]</text>
+  <text x="702" y="467" font-size="13" fill="#8f3229">放大调度开销（免同步仍慢）</text>
 </svg>

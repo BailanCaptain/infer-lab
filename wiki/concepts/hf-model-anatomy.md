@@ -82,7 +82,7 @@ updated: '2026-11-18'
 1. **架构是否受支持**：确认 `architectures` 和 `model_type` 是否命中当前版本 `vllm` 与 `vllm-ascend` 已适配的模型类，避免权重下载完才报模型未注册。
 2. **显存和卡数是否够用**：用层数、隐藏维度、注意力头数、词表大小与精度算出纯权重静态占用和每 token 的 KV cache（保存历史键和值向量的缓存）增量，先判断单卡能否放下、是否必须切多卡并行。
 3. **分词与上下文长度是否异常**：核对对话模板 `chat_template` 是否齐备，并检查 `tokenizer_config.json` 里的 `model_max_length` 有没有悄悄把模型原本支持的上下文长度截短。
-4. **量化格式与昇腾路径是否匹配**：分辨目录走的是 `config.json` 内嵌的 `quantization_config`（如 `compressed-tensors` 或原生 `fp8`），还是昇腾 ModelSlim 导出的 `quant_model_description.json`。提前核对可防止启动阶段因格式不兼容直接拒载。
+4. **量化格式与昇腾路径是否匹配**：分辨目录走 `config.json` 内嵌的 `quantization_config`（如 `compressed-tensors` 或原生 `fp8`），还是昇腾 ModelSlim 导出的 `quant_model_description.json`。提前核对能防止启动时因格式不兼容直接拒载。
 
 ## 模型目录文件地图：启动时谁读哪份文件
 
@@ -165,11 +165,11 @@ file: hf-fig-moe-gate-and-bars
 
 ### 词表与首尾共享：vocab_size、tie_word_embeddings 与权重核对
 
-模型的首尾两头由 `vocab_size`（记为 $V$）和 `tie_word_embeddings` 控制。`vocab_size` 是词表总行数，决定最前端把 token 编号查成向量的 `embed_tokens` 矩阵和最末端把隐藏向量投影回词表分数的 `lm_head` 矩阵各自有多大（两者的原理分别见 [embedding](embedding.md) 与 [lm_head](lm-head.md)）。当 `tie_word_embeddings` 为 `true` 时，首尾两处共享同一份 $V \times H$ 权重矩阵，省掉整整一张输出头表的参数量；为 `false` 时，首尾各自独立保存一份矩阵。
+模型的首尾两头由 `vocab_size`（记为 $V$）和 `tie_word_embeddings` 控制。`vocab_size` 是词表总行数，同时决定前端查表的 `embed_tokens` 矩阵和末端打分的 `lm_head` 矩阵各有多少行（原理见 [embedding](embedding.md) 与 [lm_head](lm-head.md)）。当 `tie_word_embeddings` 为 `true` 时，首尾共享同一份 $V \times H$ 权重，省掉整整一张输出头表；为 `false` 时，首尾各自独立保存一份。
 
 在 Qwen3 三个预设里，`Qwen3-8B` 和 `Qwen3-30B-A3B` 的 `tie_word_embeddings` 均为 `false`。仅首尾两张表就在 `Qwen3-8B` 里合占 $2 \times 151,936 \times 4,096 = 1,244,659,712$ 个参数（约 `1.24B`，BF16 下 `2.32 GiB`）。轻量模型 `Qwen3-0.6B`（`hidden_size = 1024`）则设为 `true`，省去约 `0.16B` 参数，使总参数收敛到 `0.60B`（不含嵌入层 `0.44B`）。
 
-`vllm@ced6857a`（`v0.30.0` 基线）新增了 `maybe_untie_word_embeddings` 保护：有些微调模型在 `config.json` 沿用 `tie_word_embeddings: true`，检查点里却带了独立 `lm_head` 张量，强行共享会将其静默丢弃。`v0.30.0+` 会在加载前探测权重文件：若发现独立 `lm_head`，先临时改 `false` 把两份张量都载入，加载完再比对数值是否相等并决定是否重新合并（`v0.23.0` 与 `v0.26.0rc` 无此保护）。
+`vllm@ced6857a`（`v0.30.0` 基线）新增了 `maybe_untie_word_embeddings` 保护。有些微调模型在 `config.json` 沿用 `tie_word_embeddings: true`，检查点里却带了独立 `lm_head` 张量，强行共享会将其静默丢弃。`v0.30.0+` 会在加载前探测权重文件：发现独立 `lm_head` 时先临时改 `false` 把两份都载入，加载完再比对数值是否相等并决定是否重新合并（`v0.23.0` 与 `v0.26.0rc` 无此保护）。
 
 ```wiki-diagram
 file: hf-fig-tie-and-untie
@@ -265,12 +265,16 @@ model: Qwen3-8B
 
 ## tokenizer_config.json、chat_template、分片与 generation_config 里的隐形坑
 
-很多启动异常或输出跑偏并不是 `config.json` 引起的，而是躲在同目录另外几份配置文件里。排查目录时至少要顺手核对下面四个隐形坑：
+很多启动异常或输出跑偏并不是 `config.json` 引起的，而是躲在同目录另外四份配置文件里。先通过下面的四象限排查图一眼看清触发机制，再逐项核对边界条件：
 
-1. **`chat_template` 的四级回落链**：发送对话请求时，`vllm` 渲染器 `resolve_chat_template` 按固定四级顺序寻找模板：先看命令行显式传入的 `--chat-template`；未传且未开工具调用时尝试从 `AutoProcessor` 读取；接着走 `AutoTokenizer` 读 `tokenizer_config.json` 或独立 `chat_template.jinja`；最后尝试使用 `vllm` 内置的模型名回落模板。如果四级全为空（常见于只有底座分词配置的裸预训练目录），模型能正常启动，但一收到对话补全请求就会触发模板解析失败。
-2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里的 `max_position_embeddings` 写着 `40960`，`vllm` 在 `_get_and_verify_max_len` 里仍会把推导长度与 `tokenizer_config.json` 中的 `model_max_length` 取一次较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。如果打包目录时误把 `model_max_length` 填成 `4096` 或 `8192`，服务可接收的最大上下文就会被悄悄压低，只能通过显式传 `--max-model-len` 或修正该字段绕开。
-3. **`model.safetensors.index.json` 缺片与混合文件陷阱**：对于多片切分的目录，权重加载器会读取 `model.safetensors.index.json` 中的 `weight_map` 字典，并与磁盘扫描到的 `.safetensors` 文件集合做差集。只要索引里提到的分片少了一片（如断点续传中断），会立即抛出 `FileNotFoundError`。反过来，某些上游仓库同时放了 `consolidated*.safetensors` 合并文件与分片文件，vLLM 正是靠 `index.json` 剔除未入索引的重复文件来避免双倍加载，切勿随意删除 `index.json`。
-4. **`generation_config.json` 静音改写采样默认参数**：引擎启动时调用 `try_get_generation_config` 读取 `generation_config.json`（缺失时回落到 `config.json` 提取生成字段）。里面记录的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 与额外 `eos_token_id` 会在 API 请求未显式传参时自动生效。若同一批请求在某个模型上默认开了随机采样或提前停在某个特定词上，多半是它在起作用；想恢复框架统一默认值可传 `--generation-config vllm` 或在请求体显式指定参数（采样链路见 [sampling](sampling.md)）。
+```wiki-diagram
+file: hf-fig-four-hidden-traps
+```
+
+1. **`chat_template` 四级回落链**：`resolve_chat_template` 依次检查 `--chat-template` → `AutoProcessor`（未传且未开工具调用时）→ `AutoTokenizer`（读 `tokenizer_config.json` 或独立 `chat_template.jinja`）→ `vllm` 内置模型名回落模板。若四级全为空（常见于裸预训练目录），服务能正常启动，但一收到对话补全请求就会触发模板解析失败。
+2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里 `max_position_embeddings` 为 `40960`，`_get_and_verify_max_len` 仍会与 `tokenizer_config.json` 的 `model_max_length` 取较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。打包目录误填 `4096` 或 `8192` 会悄悄压低默认上限；若显式传更大的 `--max-model-len`，引擎仍会校验 `hf_config` / 衍生上限，须修正该字段，或在超限场景配合 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 放行，否则仍抛 `ValueError`。
+3. **`model.safetensors.index.json` 缺片与混合文件去重**：多片切分目录加载时，框架将 `weight_map` 记录的分片清单与磁盘扫描结果求差集；只要缺一片（如断点续传中断）立刻抛 `FileNotFoundError`。当仓库混放 `consolidated*.safetensors` 合并文件与分片文件时，vLLM 也正靠 `index.json` 剔除未入索引的重复文件避免双倍加载，切勿随意删掉索引。
+4. **`generation_config.json` 静音改写默认采样参数与追加停词**：`try_get_generation_config` 读取该文件（缺失时回落 `config.json` 提取生成字段），其中的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 会在请求未显式传参时生效（可通过请求体覆写或传 `--generation-config vllm` 切回框架默认）。而其中列出的额外 `eos_token_id` 在 `ignore_eos=False` 时会与请求 `stop_token_ids` **取并集**，单靠传入 `stop_token_ids` 无法屏蔽，须显式设 `ignore_eos=True` 或 `--generation-config vllm`（采样链路见 [sampling](sampling.md)）。
 
 ## 对照源码
 

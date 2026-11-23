@@ -1,0 +1,10 @@
+mode: native-svg
+id: mrv2-fig-version-switch
+caption: >-
+  MRV2 开关跨仓与跨版决策对照：对比上游 vLLM v0.30.0（装 Triton 自动开）、vLLM Ascend v0.30.0（补丁覆写默认 False 且五类高阶特性强制要求 =1）与 main 分支（删除 MRV1、传 =0 直接抛 ValueError）。
+size: [900, 410]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L49
+    symbols: [_patched_use_v2_model_runner, VLLM_USE_V2_MODEL_RUNNER]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89
+    symbols: [use_v2_model_runner, apply_v2_model_runner_config_patch]

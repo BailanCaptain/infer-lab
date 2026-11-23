@@ -1,8 +1,8 @@
 mode: native-svg
 id: platform-plugin-registration-fig-discovery
 caption: >-
-  vLLM entry_points 插件发现、VLLM_PLUGINS 精确入口名白名单筛选与异常传播边界：区分导入失败跳过（load_plugins_by_group）与执行抛错中断（load_general_plugins，plugins_loaded 在执行前已置真、不自动重试），下方列出 v0.30.0 / main 三组六入口清单及显式 CPU 目标直通规则。
-size: [900, 454]
+  vLLM 插件四关故障传播图与三组六入口清单：上区按「读元数据 → VLLM_PLUGINS 精确入口名白名单（写 =all 反滤光）→ plugin.load() 异常捕获跳过 → func() 无 try 硬中断且 plugins_loaded 提前置真不重试」画出每关失败的不同后果；下区列出 v0.30.0 / main 的三组六个入口，区分三个补全局补丁的通用入口与仅做映射的 ascend_model，并标明显式 CPU 目标直通例外。
+size: [900, 520]
 pins:
   - source: 'vllm@ced6857a:vllm/plugins/__init__.py#L36-L90'
     symbols: [load_plugins_by_group, load_general_plugins, plugins_loaded]

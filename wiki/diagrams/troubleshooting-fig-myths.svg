@@ -60,11 +60,11 @@
     <text x="404" y="443">先确认采集点覆盖路径，再按最后成功站缩小</text>
   </g>
 
-  <g font-size="13.5" fill="#66716d">
-    <text x="404" y="113">单卡先挂会让其余卡卡死在 AllReduce；合并各卡 plog 定位首错</text>
-    <text x="404" y="203">先查 dmesg / OOMKilled；NPU HBM 不足会抛 RuntimeError 或 init_snapshot</text>
-    <text x="404" y="293">用 --enforce-eager 隔离后，仍需逐项加回并核对正常配置的吞吐与输出</text>
-    <text x="404" y="383"><tspan font-family="var(--font-mono)">AscendConfig</tspan> 虽严禁未知键，但部分硬件档位会自动降级关特性</text>
-    <text x="404" y="473">缺记录只代表缺证据；乱码也须先对比 token ID、采样参数与解码链路</text>
+  <g font-size="12.5" fill="#66716d">
+    <text x="402" y="113">单卡先挂会让其余卡卡死在 AllReduce；合并各卡 plog 定位首错</text>
+    <text x="402" y="203">先查 dmesg / OOMKilled；NPU HBM 不足会抛 RuntimeError 或 init_snapshot</text>
+    <text x="402" y="293">用 --enforce-eager 隔离后，仍需逐项加回并核对正常配置的吞吐与输出</text>
+    <text x="402" y="383"><tspan font-family="var(--font-mono)">AscendConfig</tspan> 虽严禁未知键，但部分硬件档位会自动降级关特性</text>
+    <text x="402" y="473">缺记录只代表缺证据；乱码也须先对比 token ID、采样参数与解码链路</text>
   </g>
 </svg>

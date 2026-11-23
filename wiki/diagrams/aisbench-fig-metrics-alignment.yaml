@@ -1,12 +1,12 @@
 mode: native-svg
 id: aisbench-fig-metrics-alignment
 caption: >-
-  客户端压测（AISBench / EvalScope / vllm bench serve）与服务端 Prometheus /metrics 的口径对齐图：客户端计时横跨 HTTP 网络、队列等待与 SSE 拆包，而服务端按 arrival → queued → scheduled → first_token → last_token 拆段记录，并指出并发模式与到达率模式以及预热剔除的差异。
-size: [900, 420]
+  客户端压测（AISBench / EvalScope / vllm bench serve）与服务端 Prometheus /metrics 的精确区间对齐：（一）客户端 TTFT 横跨网络/反代、API 到达、Prefill 与首块 SSE 回传，而服务端 TTFT 从 API 前端请求到达时间戳计至首输出批统计时间戳，服务端 decode_time 止于末次引擎出词事件（不含 SSE 网络回传）；代理缓冲合包会在客户端制造假 ITL 毛刺；（二）开环 burstiness 三种脉冲形态与预热/前缀缓存去污染红线。
+size: [900, 468]
 pins:
   - source: vllm@ced6857a:vllm/benchmarks/serve.py#L568-L635
     symbols: [calculate_metrics, ttfts, tpots, itls]
-  - source: vllm@ced6857a:vllm/v1/metrics/stats.py#L540-L580
-    symbols: [queued_time, prefill_time, decode_time, mean_time_per_output_token]
+  - source: vllm@ced6857a:vllm/v1/metrics/stats.py#L431-L580
+    symbols: [update_from_output, queued_time, prefill_time, decode_time, mean_time_per_output_token]
   - source: vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L839
     symbols: [histogram_time_to_first_token, histogram_inter_token_latency, histogram_request_time_per_output_token]

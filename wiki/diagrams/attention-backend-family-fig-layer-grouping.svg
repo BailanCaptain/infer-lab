@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="Runner 按后端类名与缓存规格将 GLM 46 层归拢成组，及单个稀疏 MLA 层注册 3 个条目的结构" font-family="var(--font-sans)">
+  <title>「一层 ≠ 一个后端」：单个稀疏 MLA 层注册 3 个条目，Runner 按（后端类名 + KV 规格）归拢元数据构建器</title>
+  <desc>Shows how one GLM Sparse MLA layer registers 3 cache entries (Main MLA, Indexer KPool cache-only, Tail state cache-only) and how Runner groups 34 KDA layers + 12 Sparse MLA layers (11 backbone + 1 MTP) by (full_cls_name, kv_cache_spec)</desc>
+  <defs>
+    <marker id="lg-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="lg-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">「一层 ≠ 一个后端」：单个稀疏 MLA 层挂 3 个缓存条目，Runner 按双键归拢成组</text>
+
+  <!-- Left: 1 Sparse MLA Layer Anatomy -->
+  <rect x="16" y="48" width="388" height="248" rx="8" fill="#e8edff" fill-opacity="0.45" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="76" font-size="13.5" font-weight="700" fill="#3a4f93">1 个稀疏 MLA 层（11 主干 + 第 45 层 MTP = 12 层）</text>
+
+  <!-- 3 registered modules inside 1 layer -->
+  <rect x="30" y="92" width="360" height="56" rx="6" fill="#4c65b6"/>
+  <text x="44" y="116" font-size="14" font-weight="700" fill="#ffffff">条目 1 · 主注意力（有真实前向）</text>
+  <text x="44" y="137" font-size="13.5" fill="#e8edff">报主 MLA 后端 → 读压缩潜向量（至多 2051 位置）</text>
+
+  <rect x="30" y="160" width="360" height="56" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="44" y="184" font-size="14" font-weight="700" fill="#936300">条目 2 · Indexer K 池（cache-only，前向为空）</text>
+  <text x="44" y="205" font-size="13.5" fill="#4d5652">专用缓存后端 → 仅让 Runner 分配管理 K 池显存块</text>
+
+  <rect x="30" y="228" width="360" height="56" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="44" y="252" font-size="14" font-weight="700" fill="#7a3a6a">条目 3 · KPool 尾状态（cache-only，前向为空）</text>
+  <text x="44" y="273" font-size="13.5" fill="#4d5652">专用缓存后端 → 仅管未凑满 4 位置的尾状态块</text>
+
+  <!-- Arrow Right into Runner Grouping Formula -->
+  <line x1="406" y1="172" x2="444" y2="172" stroke="#4c65b6" stroke-width="2" marker-end="url(#lg-arr-indigo)"/>
+
+  <!-- Right: Runner Grouping Engine -->
+  <rect x="448" y="48" width="436" height="248" rx="8" fill="#ddf4ef" fill-opacity="0.45" stroke="#087f73" stroke-width="1.4"/>
+  <text x="462" y="76" font-size="13.5" font-weight="700" fill="#065f56">Runner 组内归拢：每个 kv_cache_group 内按双键去重</text>
+
+  <!-- Formula Pill -->
+  <rect x="462" y="90" width="408" height="36" rx="5" fill="#087f73"/>
+  <text x="666" y="113" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#ffffff">per kv_cache_group: (full_cls_name, spec)</text>
+
+  <!-- Resulting Groups -->
+  <rect x="462" y="140" width="408" height="44" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="474" y="167" font-size="13" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">KDA（34 层跨 3 缓存组）：</tspan>每组 1 个 GDN 构建器（共 3 实例）</text>
+
+  <rect x="462" y="192" width="408" height="44" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="474" y="219" font-size="13" fill="#17211f"><tspan font-weight="700" fill="#3a4f93">稀疏 MLA 主组（12 层）：</tspan>含第 45 层 MTP，共用主构建器</text>
+
+  <rect x="462" y="244" width="408" height="40" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="474" y="269" font-size="13" fill="#17211f"><tspan font-weight="700" fill="#936300">两个 cache-only 组：</tspan>独立管理 K 池与尾状态规格</text>
+
+  <!-- Bottom Comparison Strip -->
+  <rect x="16" y="308" width="868" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="330" font-size="13" fill="#17211f"><tspan font-weight="700" fill="#065f56">对比标准模型：</tspan>Qwen3-8B 全 36 层报同一类名与同一规格 → 只建 1 组 1 份 <tspan font-family="var(--font-mono)">AscendMetadata</tspan>；</text>
+  <text x="30" y="350" font-size="13" fill="#4d5652">多机制模型每多一种后端，Runner 便多维护一套构建器。</text>
+</svg>

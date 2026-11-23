@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 516" width="900" height="516" role="img" aria-label="流式输出前端三道暂扣与合并闸门及判停与隐藏思考边界图" font-family="var(--font-sans)">
-  <title>流式输出前端三道缓冲与合并闸门（UTF-8 半字暂扣、停止串尾字扣留、单槽收集器合并），以及跨进程判停分工与 include_reasoning=false 隐藏副作用对照。</title>
-  <desc>上半部分展示新 token 进入前端后的三道闸门：UTF-8 半字缓冲、停止字符串 len(stop)-1 尾字扣留、RequestOutputCollector 单槽合并与 stream_interval 门控；下半部分对比跨进程判停位置及隐藏思考开关的副作用。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 546" width="900" height="546" role="img" aria-label="流式输出前端字节缓冲、停止串滑动扣留窗口、单槽合并及跨进程判停与思考隐藏边界图" font-family="var(--font-sans)">
+  <title>流式输出前端三道缓冲与合并闸门（UTF-8 字节拼装缓冲、停止串 4 步滑动扣留窗口、RequestOutputCollector 单槽合并），以及跨进程判停分工与 include_reasoning=false 隐藏副作用对照。</title>
+  <desc>上半部分用字节格、滑动字符窗口与单槽累加器直观画出前端三道闸门：闸门 1 展示 E7 8A 半字滞留并与 87 拼成「犇」；闸门 2 展示 stop=["###"] 下 4 步末尾 2 字扣留窗从「答案」推进到命中 ### 截断并发 ZMQ ABORT；闸门 3 展示 HTTP 慢消费时 RequestOutputCollector 将多步 DELTA 合并及 --stream-interval 计数门控；下半部分对照引擎与前端判停分工及 include_reasoning=false 的两项副作用。</desc>
   <defs>
     <marker id="st-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
@@ -10,63 +10,120 @@
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、为什么「1 步 ≠ 1 token ≠ 1 个字 ≠ 1 个 SSE 片段」？前端三道暂扣与合并闸门</text>
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、为什么「1 步 ≠ 1 token ≠ 1 字 ≠ 1 个 SSE 片段」？前端三道闸门状态图</text>
 
-  <rect x="14" y="46" width="268" height="224" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="148" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">闸门 1：UTF-8 半字缓冲</text>
-  <text x="148" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">decode_next(token_id)</text>
-  <rect x="26" y="110" width="244" height="62" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="38" y="133" font-size="13.5" fill="#17211f">步 2 到 <tspan font-family="var(--font-mono)" font-weight="700">E7 8A</tspan>（半个「犇」）</text>
-  <text x="38" y="156" font-size="13.5" fill="#8f3229">凑不成字 → 暂存，发空增量 ""</text>
-  <rect x="26" y="182" width="244" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="38" y="205" font-size="13.5" fill="#17211f">步 3 到 <tspan font-family="var(--font-mono)" font-weight="700">87</tspan>（与前 2 字节拼齐）</text>
-  <text x="38" y="228" font-size="13.5" font-weight="700" fill="#065f56">✓ 一次性推出完整汉字「犇」</text>
-  <text x="148" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">默认不解码末尾停止/EOS 编号</text>
+  <!-- Gate 1: UTF-8 Byte Assembly Buffer -->
+  <rect x="14" y="42" width="246" height="252" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="137" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">闸门 1：UTF-8 字节拼装</text>
+  <text x="137" y="86" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">decode_next(token_id)</text>
 
-  <path d="M 282 158 L 306 158" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#st-arr-i)"/>
+  <!-- Step 2 byte cells -->
+  <text x="26" y="112" font-size="13" font-weight="700" fill="#17211f">步 2 到 2 字节（缺尾）：</text>
+  <rect x="26" y="120" width="48" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="50" y="139" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">E7</text>
+  <rect x="78" y="120" width="48" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="102" y="139" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">8A</text>
+  <rect x="130" y="120" width="48" height="28" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="154" y="139" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">??</text>
+  <text x="186" y="139" font-size="13" font-weight="700" fill="#8f3229">→ ""</text>
+  <text x="26" y="166" font-size="13" fill="#4d5652">暂扣缓冲区，推空增量</text>
 
-  <rect x="312" y="46" width="286" height="224" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-  <text x="455" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">闸门 2：停止串尾字扣留</text>
-  <text x="455" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">check_stop_strings</text>
-  <rect x="324" y="110" width="262" height="62" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
-  <text x="336" y="133" font-size="13.5" fill="#17211f">设 <tspan font-family="var(--font-mono)" font-weight="700">stop=["###"]</tspan>（长度 3）</text>
-  <text x="336" y="156" font-size="13.5" fill="#936300">每步扣留末尾 3−1 = 2 字防泄露</text>
-  <rect x="324" y="182" width="262" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
-  <text x="336" y="205" font-size="13.5" font-weight="700" fill="#8f3229">命中后截断 + 发 ZMQ ABORT</text>
-  <text x="336" y="228" font-size="13.5" fill="#4d5652">v0.30.0 多串取文本中最早完成者</text>
-  <text x="455" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">include_stop_str_in_output=true 免扣</text>
+  <!-- Step 3 byte cells -->
+  <text x="26" y="196" font-size="13" font-weight="700" fill="#065f56">步 3 补齐 1 字节：</text>
+  <rect x="26" y="204" width="48" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="50" y="223" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">E7</text>
+  <rect x="78" y="204" width="48" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="102" y="223" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">8A</text>
+  <rect x="130" y="204" width="48" height="28" rx="4" fill="#087f73"/>
+  <text x="154" y="223" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">87</text>
+  <text x="184" y="223" font-size="13.5" font-weight="700" fill="#065f56">→「犇」</text>
+  <text x="26" y="252" font-size="13" fill="#4d5652">拼齐合法字符一次推出</text>
+  <text x="137" y="280" text-anchor="middle" font-size="13" fill="#3a4f93">默认不解码末枚 EOS 编号</text>
 
-  <path d="M 598 158 L 622 158" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#st-arr-a)"/>
+  <line x1="260" y1="168" x2="278" y2="168" stroke="#4c65b6" stroke-width="2" marker-end="url(#st-arr-i)"/>
 
-  <rect x="628" y="46" width="258" height="224" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="757" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">闸门 3：单槽合并与间隔</text>
-  <text x="757" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">RequestOutputCollector</text>
-  <rect x="640" y="110" width="234" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
-  <text x="652" y="133" font-size="13.5" font-weight="700" fill="#065f56">HTTP 消费慢于后台任务：</text>
-  <text x="652" y="156" font-size="13.5" fill="#17211f">DELTA 自动拼接多步（不丢字）</text>
-  <rect x="640" y="182" width="234" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
-  <text x="652" y="205" font-size="13.5" font-weight="700" fill="#065f56">--stream-interval N：</text>
-  <text x="652" y="228" font-size="13.5" fill="#17211f">按新增 token 计数攒批再推</text>
-  <text x="757" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">MTP 单圈也可直出 1–4 枚文字</text>
+  <!-- Gate 2: 4-Step Sliding Holdback Window -->
+  <rect x="282" y="42" width="332" height="252" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="448" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">闸门 2：停止串滑动扣留窗（stop=["###"]）</text>
+  <text x="448" y="86" text-anchor="middle" font-size="12" fill="#4d5652">每步扣末尾 3−1=2 字 · 绿=可推 · 琥珀=扣留 · 红=截断</text>
 
-  <line x1="14" y1="288" x2="886" y2="288" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <!-- Step 1 -->
+  <text x="292" y="118" font-size="13" font-weight="700" fill="#17211f">步1</text>
+  <rect x="320" y="100" width="66" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="353" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">答案</text>
+  <text x="502" y="118" font-size="12.5" fill="#4d5652">推 ""（全扣）</text>
 
-  <text x="14" y="316" font-size="16" font-weight="700" fill="#17211f">二、两类高频排障边界：判停跨进程分工 &amp; 隐藏思考开关的副作用</text>
+  <!-- Step 2 -->
+  <text x="292" y="154" font-size="13" font-weight="700" fill="#17211f">步2</text>
+  <rect x="320" y="136" width="84" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="362" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">答案是</text>
+  <rect x="408" y="136" width="48" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="432" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">42</text>
+  <text x="502" y="154" font-size="12.5" font-weight="700" fill="#065f56">推「答案是」</text>
 
-  <rect x="14" y="334" width="424" height="168" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="28" y="360" font-size="15" font-weight="700" fill="#7a3a6a">停止条件分在两个进程（响应延迟完全不同）</text>
-  <rect x="28" y="374" width="396" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="42" y="396" font-size="13.5" font-weight="700" fill="#065f56">引擎侧（EngineCore）当步即停：</text>
-  <text x="42" y="417" font-size="13.5" fill="#17211f">模型 EOS、<tspan font-family="var(--font-mono)">stop_token_ids</tspan>、<tspan font-family="var(--font-mono)">max_tokens</tspan> 逐枚拦截</text>
-  <rect x="28" y="436" width="396" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
-  <text x="42" y="458" font-size="13.5" font-weight="700" fill="#8f3229">前端侧（API Server）事后追停：</text>
-  <text x="42" y="479" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">stop</tspan> 字符串须反分词后命中，再发中止，引擎会多算 1–2 步</text>
+  <!-- Step 3 -->
+  <text x="292" y="190" font-size="13" font-weight="700" fill="#17211f">步3</text>
+  <rect x="320" y="172" width="100" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="370" y="190" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">答案是4</text>
+  <rect x="424" y="172" width="48" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="448" y="190" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">2#</text>
+  <text x="502" y="190" font-size="12.5" font-weight="700" fill="#065f56">推「4」</text>
 
-  <rect x="462" y="334" width="424" height="168" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
-  <text x="476" y="357" font-size="15" font-weight="700" fill="#8f3229">include_reasoning=false ≠ 不思考（注意两个副作用）</text>
-  <text x="476" y="383" font-size="13.5" fill="#17211f">• <tspan font-weight="700">不省计算：</tspan>仅过滤已解析思考字段，无解析器全进 content</text>
-  <text x="476" y="407" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 1：</tspan>新版有解析器时连带清空答案段的</text>
-  <text x="488" y="428" font-size="13.5" fill="#8f3229"><tspan font-family="var(--font-mono)">logprobs</tspan> 与 <tspan font-family="var(--font-mono)">token_ids</tspan></text>
-  <text x="476" y="453" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 2：</tspan>叠加结构化输出会传 <tspan font-family="var(--font-mono)" font-weight="700">reasoning_ended=True</tspan></text>
-  <text x="476" y="481" font-size="13.5" fill="#4d5652">（真正少思考要走模板开关或思考预算，见采样页）</text>
+  <!-- Step 4 -->
+  <text x="292" y="226" font-size="13" font-weight="700" fill="#8f3229">步4</text>
+  <rect x="320" y="208" width="116" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="378" y="226" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">答案是42</text>
+  <rect x="440" y="208" width="52" height="26" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="466" y="226" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">###</text>
+  <text x="502" y="226" font-size="12.5" font-weight="700" fill="#8f3229">推「2」+ABORT</text>
+
+  <rect x="294" y="246" width="308" height="36" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="448" y="269" text-anchor="middle" font-size="13" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">include_stop_str_in_output=true</tspan> 时免扣尾字</text>
+
+  <line x1="614" y1="168" x2="632" y2="168" stroke="#c78300" stroke-width="2" marker-end="url(#st-arr-a)"/>
+
+  <!-- Gate 3: Single-Slot Collector & Interval -->
+  <rect x="636" y="42" width="250" height="252" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="761" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">闸门 3：单槽合并与间隔</text>
+  <text x="761" y="86" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#065f56">RequestOutputCollector</text>
+
+  <!-- Single-slot visual -->
+  <rect x="648" y="100" width="226" height="84" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="761" y="121" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">每条请求仅 1 格收集槽</text>
+  <rect x="660" y="132" width="94" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1"/>
+  <text x="707" y="149" text-anchor="middle" font-size="13" fill="#065f56">步 k 增量</text>
+  <text x="762" y="149" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">+</text>
+  <rect x="770" y="132" width="92" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="816" y="149" text-anchor="middle" font-size="13" fill="#3a4f93">步 k+1</text>
+  <text x="761" y="175" text-anchor="middle" font-size="13" fill="#4d5652">HTTP 未取走则原地并成 1 帧</text>
+
+  <!-- Interval counter -->
+  <rect x="648" y="194" width="226" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="761" y="216" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">--stream-interval N</text>
+  <text x="761" y="238" text-anchor="middle" font-size="13" fill="#4d5652">按新增 token 计数攒批再发</text>
+
+  <text x="761" y="280" text-anchor="middle" font-size="13" fill="#065f56">不丢字、不乱序 · 帧数可少于步数</text>
+
+  <line x1="14" y1="312" x2="886" y2="312" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="340" font-size="16" font-weight="700" fill="#17211f">二、两类高频排障边界：判停跨进程分工 &amp; 隐藏思考开关的副作用</text>
+
+  <!-- Bottom left: Stop boundary -->
+  <rect x="14" y="356" width="424" height="176" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="28" y="382" font-size="14.5" font-weight="700" fill="#7a3a6a">停止条件分在两个进程（响应延迟完全不同）</text>
+  <rect x="28" y="396" width="396" height="56" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="42" y="418" font-size="13.5" font-weight="700" fill="#065f56">引擎侧（EngineCore）当步即停：</text>
+  <text x="42" y="440" font-size="13.5" fill="#17211f">EOS、<tspan font-family="var(--font-mono)">stop_token_ids</tspan>、<tspan font-family="var(--font-mono)">max_tokens</tspan> 逐枚拦截退块</text>
+  <rect x="28" y="462" width="396" height="56" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="42" y="484" font-size="13.5" font-weight="700" fill="#8f3229">前端侧（API Server）事后追停：</text>
+  <text x="42" y="506" font-size="13.5" fill="#17211f">反分词命中 <tspan font-family="var(--font-mono)">stop</tspan> 后发中止，期间引擎可能已推进若干在途步</text>
+
+  <!-- Bottom right: include_reasoning=false side effects -->
+  <rect x="462" y="356" width="424" height="176" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="476" y="382" font-size="14.5" font-weight="700" fill="#8f3229">include_reasoning=false ≠ 不思考（两项副作用）</text>
+  <text x="476" y="408" font-size="13.5" fill="#17211f">• <tspan font-weight="700">不省计算：</tspan>仅隐藏已解析思考段；无解析器全落 content</text>
+  <text x="476" y="434" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 1：</tspan>新版有解析器时连带清空答案段的</text>
+  <text x="488" y="456" font-size="13.5" fill="#8f3229"><tspan font-family="var(--font-mono)">logprobs</tspan> 与 <tspan font-family="var(--font-mono)">token_ids</tspan></text>
+  <text x="476" y="484" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 2：</tspan>叠加结构化输出向引擎传 <tspan font-family="var(--font-mono)" font-weight="700">reasoning_ended=True</tspan></text>
+  <text x="476" y="512" font-size="13.5" fill="#4d5652">（真正少思考须走模板参数或思考预算，见下节）</text>
 </svg>

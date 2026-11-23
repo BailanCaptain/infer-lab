@@ -391,6 +391,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
       title: "历史版本与来源快照",
       track: "advanced",
       pages: [
+        "ascend-910b3-measured-baseline",
         "v030rc2-baseline",
         "glm-5-3-flash-baseline",
         "ascend-config-version-source",

@@ -1,137 +1,156 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 628" width="900" height="628" role="img" aria-label="v0.23.0 layer_sharding 按层号 i % K 轮放权重、两份预取窗口与异步广播前向流水，以及 v0.30.0/main 移除说明" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 628" width="900" height="628" role="img" aria-label="v0.23.0 layer_sharding 按层号 i % K 轮放权重、显存比例对照条、两份预取窗口与双轨异步广播流水，以及 v0.30.0/main 移除" font-family="var(--font-sans)">
   <title>v0.23.0 层间权重分片（layer_sharding）：第 i 层常驻在组内 rank i % K，非 owner 卡经两份整层窗口提前一层异步 Broadcast 取回（示意：61 层 o_proj、每层 112 MiB、K=16，仅限 P 节点）；v0.24.0rc（PR #11953）已删除，v0.30.0 与 main 拒收旧键。</title>
-  <desc>Layer-modulo weight ownership (i % K) across 61 layers (K=16, 112 MiB/layer illustrative), two prefetch window buffers, async broadcast pipeline, and removal in v0.30.0/main.</desc>
+  <desc>Layer-modulo weight ownership strip (i % 16 across 61 layers), proportional HBM bars comparing 6,832 MiB full vs 672 MiB heaviest rank (448 resident + 224 two-window buffer), dual-lane compute/broadcast overlap timeline, and v0.30.0/main removal notice.</desc>
+  <defs>
+    <marker id="ls-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ls-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.23.0 layer_sharding：按层号 i % K 轮放常驻与提前一层异步广播</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">示意：61 层 o_proj（L0–L60，每层 112 MiB），K = 16 卡建组；非空列表仅限 P 节点（kv_producer）</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① v0.23.0 按层号 i % K 轮放常驻（示意：61 层 o_proj，每层 112 MiB，K = 16，仅限 P 节点）</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">青格 = rank 0 常驻的 4 层（L0 / L16 / L32 / L48）；灰格 = 非 owner 层登记时置单元素占位（dispose_tensor）</text>
 
-  <!-- Phase 1: 61-layer strip showing rank 0 ownership (0, 16, 32, 48) -->
-  <text x="16" y="78" font-size="14.5" font-weight="700" fill="#065f56">阶段一 · 加载与常驻分布（高亮 4 格 = rank 0 常驻层 L0 / L16 / L32 / L48；灰格 = 单元素占位）</text>
-
-  <!-- 61 cells: x = 16 + i*14, w = 11.5, h = 28 -> 60*14 + 11.5 = 851.5 -> x=16..867.5 -->
+  <!-- 61 cells: x = 16 + i*14, w = 11.5, h = 28 -->
   <g stroke-width="1">
-    <rect x="16" y="92" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
-    <rect x="30" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="44" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="58" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="72" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="86" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="100" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="114" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="128" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="142" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="156" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="170" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="184" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="198" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="212" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="226" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="240" y="92" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
-    <rect x="254" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="268" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="282" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="296" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="310" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="324" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="338" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="352" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="366" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="380" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="394" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="408" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="422" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="436" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="450" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="464" y="92" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
-    <rect x="478" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="492" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="506" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="520" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="534" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="548" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="562" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="576" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="590" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="604" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="618" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="632" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="646" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="660" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="674" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="688" y="92" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
-    <rect x="702" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="716" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="730" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="744" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="758" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="772" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="786" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="800" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="814" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="828" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="842" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="856" y="92" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="16" y="62" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
+    <rect x="30" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="44" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="58" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="72" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="86" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="100" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="114" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="128" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="142" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="156" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="170" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="184" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="198" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="212" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="226" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="240" y="62" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
+    <rect x="254" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="268" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="282" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="296" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="310" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="324" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="338" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="352" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="366" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="380" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="394" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="408" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="422" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="436" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="450" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="464" y="62" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
+    <rect x="478" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="492" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="506" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="520" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="534" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="548" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="562" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="576" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="590" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="604" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="618" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="632" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="646" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="660" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="674" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="688" y="62" width="11.5" height="28" rx="2" fill="#087f73" stroke="#065f56"/>
+    <rect x="702" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="716" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="730" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="744" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="758" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="772" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="786" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="800" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="814" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="828" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="842" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="856" y="62" width="11.5" height="28" rx="2" fill="#ece9df" stroke="#b8bcb5"/>
   </g>
-  <!-- Strip labels -->
-  <text x="22" y="138" font-size="13" font-weight="700" fill="#065f56" font-family="var(--font-mono)">L0</text>
-  <text x="246" y="138" font-size="13" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L16</text>
-  <text x="470" y="138" font-size="13" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L32</text>
-  <text x="694" y="138" font-size="13" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L48</text>
-  <text x="868" y="138" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">L60</text>
+  <text x="22" y="108" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)">L0</text>
+  <text x="246" y="108" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L16</text>
+  <text x="470" y="108" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L32</text>
+  <text x="694" y="108" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)" text-anchor="middle">L48</text>
+  <text x="868" y="108" font-size="13.5" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">L60</text>
 
-  <!-- Memory budget cards -->
-  <rect x="16" y="152" width="424" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="30" y="176" font-size="14.5" font-weight="700" fill="#065f56">rank 0 常驻 4 层：4 × 112 = 448 MiB</text>
-  <text x="30" y="200" font-size="13.5" fill="#4d5652">• 非 owner 层登记时置单元素占位（dispose_tensor）</text>
-  <text x="30" y="222" font-size="13.5" fill="#4d5652">• 加载后处理曾临时分配完整张量做广播与量化</text>
+  <!-- Band 2: Proportional Memory Bars (6,832 MiB = 610px; 1 MiB = 0.0893px) -->
+  <text x="16" y="138" font-size="14.5" font-weight="700" fill="#17211f">单卡常驻显存按比例对比（最高卡预算 = ceil(61/16) + 2 窗口，不可简单按 1/K 或均值估）</text>
 
-  <rect x="460" y="152" width="424" height="96" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="474" y="176" font-size="14.5" font-weight="700" fill="#936300">另加 2 份整权重窗口：224 MiB → 共 672 MiB</text>
-  <text x="474" y="200" font-size="13" fill="#4d5652" font-family="var(--font-mono)">ShardWindowMetadata (prefetch_step + 1 = 2)</text>
-  <text x="474" y="222" font-size="13.5" fill="#4d5652">• 最高卡预算按 ceil(层数/K)+2，非简单 1/K</text>
+  <!-- Full 61 layers = 6,832 MiB -> 610px -->
+  <text x="16" y="168" font-size="13.5" font-weight="700" fill="#4d5652">全量常驻（61 层）</text>
+  <rect x="196" y="150" width="610" height="24" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="501" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">6,832 MiB（约 6.67 GiB）</text>
 
-  <!-- Divider -->
-  <line x1="16" y1="268" x2="884" y2="268" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <!-- Rank 0-12 heaviest: 448 MiB (40px) + 224 MiB (20px) = 672 MiB (60px) -->
+  <text x="16" y="202" font-size="13.5" font-weight="700" fill="#065f56">rank 0–12（最高卡）</text>
+  <rect x="196" y="184" width="40" height="24" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="236" y="184" width="20" height="24" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="266" y="201" font-size="13.5" font-weight="700" fill="#065f56">448 常驻 + 224 两窗口 = 672 MiB（约省 6.0 GiB；每步收 57 层 = 6,384 MiB）</text>
 
-  <!-- Phase 2: Per-layer forward pipeline -->
-  <text x="16" y="294" font-size="14.5" font-weight="700" fill="#17211f">阶段二 · 前向期每层流水（注意力后端触发预取，执行该 Linear 前等待到位）</text>
+  <!-- Rank 13-15: 336 MiB (30px) + 224 MiB (20px) = 560 MiB (50px) -->
+  <text x="16" y="236" font-size="13.5" font-weight="700" fill="#3a4f93">rank 13–15（持 3 层）</text>
+  <rect x="196" y="218" width="30" height="24" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <rect x="226" y="218" width="20" height="24" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="256" y="235" font-size="13.5" fill="#3a4f93">336 常驻 + 224 两窗口 = 560 MiB（每步收 58 层 = 6,496 MiB ≈ 6.34 GiB）</text>
 
-  <rect x="16" y="308" width="270" height="106" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="30" y="332" font-size="14.5" font-weight="700" fill="#7a3a6a">① 为第 i+1 层发异步广播</text>
-  <text x="30" y="355" font-size="13" fill="#4d5652" font-family="var(--font-mono)">reach_layer (async_op=True)</text>
-  <text x="30" y="378" font-size="13.5" fill="#4d5652">常驻卡 rank (i+1)%K 发广播</text>
-  <text x="30" y="399" font-size="13.5" fill="#66716d">其余卡异步写入空闲窗口</text>
+  <line x1="16" y1="258" x2="884" y2="258" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
 
-  <path d="M286 361 H310 m-5-5 l5 5 -5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Band 3: Dual-lane Forward Overlap Pipeline -->
+  <text x="16" y="284" font-size="16" font-weight="700" fill="#17211f">② 前向期双轨流水：第 i 层计算尽量遮盖第 i+1 层异步广播（prefetch_step = 1）</text>
+  <text x="16" y="304" font-size="13.5" fill="#66716d">同 series 须层号连续且 ≥ 3 层；加载后处理曾临时分配完整张量做广播与量化，非占位即峰值</text>
 
-  <rect x="315" y="308" width="270" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="329" y="332" font-size="14.5" font-weight="700" fill="#3a4f93">② 第 i 层继续前向计算</text>
-  <text x="329" y="355" font-size="13" fill="#4d5652" font-family="var(--font-mono)">overlap compute &amp; bcast</text>
-  <text x="329" y="378" font-size="13.5" fill="#4d5652">用第 i 层计算尽量遮盖广播</text>
-  <text x="329" y="399" font-size="13.5" fill="#66716d">小批短序列难隐藏，不保收益</text>
+  <!-- Compute lane -->
+  <text x="16" y="352" font-size="14" font-weight="700" fill="#3a4f93">计算流</text>
+  <text x="16" y="372" font-size="13.5" fill="#66716d">主前向</text>
 
-  <path d="M585 361 H609 m-5-5 l5 5 -5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="112" y="324" width="286" height="64" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="255" y="349" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">执行第 i 层计算（掩盖下方广播）</text>
+  <text x="255" y="372" text-anchor="middle" font-size="13.5" fill="#4d5652">小批短序列窗口窄，不保隐藏收益</text>
+  <path d="M 398 356 L 430 356" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#ls-arr-t)"/>
 
-  <rect x="614" y="308" width="270" height="106" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="628" y="332" font-size="14.5" font-weight="700" fill="#065f56">③ 投影执行前等权重到位</text>
-  <text x="628" y="355" font-size="13" fill="#4d5652" font-family="var(--font-mono)">wait_weight</text>
-  <text x="628" y="378" font-size="13.5" fill="#4d5652">等待第 i 层异步句柄完成</text>
-  <text x="628" y="399" font-size="13.5" fill="#66716d">并校验窗口层号必须匹配</text>
+  <rect x="436" y="324" width="212" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="542" y="349" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">等第 i+1 层到位</text>
+  <text x="542" y="372" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">wait_weight 验层号</text>
+  <path d="M 648 356 L 674 356" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#ls-arr-t)"/>
 
-  <!-- Phase 3: Comm budget & removal cards -->
-  <rect x="16" y="432" width="424" height="180" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="30" y="458" font-size="14.5" font-weight="700" fill="#17211f">单卡前向接收账（61 层示意，非实测）</text>
-  <text x="30" y="484" font-size="13.5" fill="#4d5652">• rank 0–12（持 4 层）：每次前向收 57 × 112 =</text>
-  <text x="30" y="506" font-size="13.5" font-weight="700" fill="#17211f">  6,384 MiB（约 6.23 GiB）</text>
-  <text x="30" y="532" font-size="13.5" fill="#4d5652">• rank 13–15（持 3 层）：每次前向收 58 × 112 =</text>
-  <text x="30" y="554" font-size="13.5" font-weight="700" fill="#17211f">  6,496 MiB（约 6.34 GiB）</text>
-  <text x="30" y="582" font-size="13" fill="#66716d">注：同 series 需连续且 ≥ 3 层；不可用组均值替单卡预算</text>
+  <rect x="680" y="324" width="204" height="64" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="782" y="349" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">执行第 i+1 层 Linear</text>
+  <text x="782" y="372" text-anchor="middle" font-size="13.5" fill="#4d5652">同时发 i+2 层预取</text>
 
-  <rect x="460" y="432" width="424" height="180" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="474" y="458" font-size="14.5" font-weight="700" fill="#8f3229">v0.24.0rc（PR #11953）删除：v0.30.0 / main 拒收</text>
-  <text x="474" y="484" font-size="13.5" fill="#4d5652">• v0.26.0rc 静默忽略；v0.30.0 (c09d3e20) 与</text>
-  <text x="474" y="506" font-size="13.5" fill="#4d5652">  main (8d6180e2) 通常按 extra="forbid" 拒收旧键</text>
-  <text x="474" y="532" font-size="13.5" fill="#4d5652">• 新版权重切换由 weight_switch 承接；默认 True 的</text>
-  <text x="474" y="554" font-size="13" fill="#8f3229" font-family="var(--font-mono)">  enable_pcp_o_proj_weight_sharding</text>
-  <text x="474" y="580" font-size="13.5" fill="#4d5652">  是沿 PCP 域切同一层，不是按层轮放的同义替代</text>
+  <!-- Broadcast lane -->
+  <text x="16" y="436" font-size="14" font-weight="700" fill="#7a3a6a">通信流</text>
+  <text x="16" y="456" font-size="13.5" fill="#66716d">异步广播</text>
+
+  <rect x="112" y="408" width="376" height="64" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="300" y="433" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">reach_layer(async_op=True)：广播第 i+1 层 112 MiB</text>
+  <text x="300" y="456" text-anchor="middle" font-size="13.5" fill="#4d5652">常驻卡 rank (i+1)%K 发给同 shard_weight 组写入空闲窗口</text>
+
+  <path d="M 488 440 H 542 V 392" fill="none" stroke="#9a4b86" stroke-width="1.9" marker-end="url(#ls-arr-p)"/>
+
+  <rect x="564" y="408" width="320" height="64" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="724" y="433" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">两份窗口交替（ShardWindowMetadata）</text>
+  <text x="724" y="456" text-anchor="middle" font-size="13.5" fill="#4d5652">1 份供当前层读、1 份接下一层广播</text>
+
+  <line x1="16" y1="490" x2="884" y2="490" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 4: Removal & Distinction (no bullets) -->
+  <rect x="16" y="506" width="424" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="32" y="532" font-size="14.5" font-weight="700" fill="#8f3229">v0.24.0rc（PR #11953）删除：v0.30.0 / main 拒收</text>
+  <text x="32" y="558" font-size="13.5" fill="#17211f">v0.26 静默忽略；v0.30.0 与 main 按 extra=forbid 拒收</text>
+  <text x="32" y="584" font-size="13.5" fill="#4d5652">GLM 双机混部触发仅限 P 节点报错，且 KDA+MLA 交错不连续</text>
+
+  <rect x="460" y="506" width="424" height="106" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="476" y="532" font-size="14.5" font-weight="700" fill="#065f56">新版去向：weight_switch ≠ 按层轮放同义替代</text>
+  <text x="476" y="558" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">enable_pcp_o_proj_weight_sharding (默认 True)</text>
+  <text x="476" y="584" font-size="13.5" fill="#4d5652">沿 PCP 域切分「同一层」投影，不再按层号轮流归不同卡</text>
 </svg>

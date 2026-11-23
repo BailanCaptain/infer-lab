@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 506" width="900" height="506" role="img" aria-label="combine_quant_mode 仅作用于非融合 MC2 combine 阶段的边界、四级优先级瀑布及白名单硬件对照" font-family="var(--font-sans)">
+  <title>combine_quant_mode：仅覆盖非融合 MC2 combine、四级优先级与硬件白名单</title>
+  <desc>Execution scope showing dispatch_v2 untouched and FusedMC2CommImpl bypassing token_combine completely, followed by the 4-level priority waterfall for combine_v2 comm_quant_mode and hardware compatibility summary for modes 0, 2, 3, 4.</desc>
+  <defs>
+    <marker id="cqm-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="cqm-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="cqm-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: Two MC2 paths showing exact scope -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 作用边界：仅改非融合 MC2 的 combine 一半（dispatch 不看它，融合 MC2 绕过它）</text>
+
+  <!-- Track A: Non-fused MC2CommImpl -->
+  <text x="16" y="84" font-size="14" font-weight="700" fill="#065f56">非融合 MC2</text>
+  <text x="16" y="102" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">MC2CommImpl</text>
+
+  <rect x="148" y="54" width="212" height="64" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="254" y="79" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">1. dispatch_v2 发 token</text>
+  <text x="254" y="102" text-anchor="middle" font-size="13.5" fill="#66716d">独立 if/elif，不读本键</text>
+  <path d="M 360 86 L 386 86" fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#cqm-arr-g)"/>
+
+  <rect x="392" y="54" width="186" height="64" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="485" y="79" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2. 专家 FFN 计算</text>
+  <text x="485" y="102" text-anchor="middle" font-size="13.5" fill="#4d5652">各持有卡本地算完</text>
+  <path d="M 578 86 L 604 86" fill="none" stroke="#087f73" stroke-width="1.9" marker-end="url(#cqm-arr-t)"/>
+
+  <rect x="610" y="54" width="274" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="747" y="79" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3. combine_v2 收回（本键生效处）</text>
+  <text x="747" y="102" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">token_combine → comm_quant_mode</text>
+
+  <!-- Track B: FusedMC2CommImpl -->
+  <text x="16" y="160" font-size="14" font-weight="700" fill="#8f3229">融合 MC2</text>
+  <text x="16" y="178" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">FusedMC2</text>
+
+  <rect x="148" y="134" width="736" height="54" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="516" y="158" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">✗ 完全绕过：走 dispatch_ffn_combine / CANN MegaMoe，不经过 token_combine</text>
+  <text x="516" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">（官方表写 "Fused MC2 configuration" 与代码不符；配本键时需确认走非融合 MC2，如 enable_fused_mc2=0）</text>
+
+  <line x1="16" y1="208" x2="884" y2="208" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: 4-tier priority waterfall -->
+  <text x="16" y="234" font-size="16" font-weight="700" fill="#17211f">② combine 侧四级优先级（设 0 = 不人工干预，绝不等同于强制关闭量化）</text>
+
+  <rect x="16" y="250" width="204" height="92" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="118" y="274" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">第 1 顺位 · 人工强盖</text>
+  <text x="118" y="298" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">combine_quant_mode</text>
+  <text x="118" y="320" text-anchor="middle" font-size="13.5" fill="#065f56">非 0（2/3/4）直接生效</text>
+  <path d="M 220 296 L 238 296" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#cqm-arr-g)"/>
+  <text x="229" y="286" text-anchor="middle" font-size="13.5" fill="#66716d">0</text>
+
+  <rect x="242" y="250" width="204" height="92" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="344" y="274" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">第 2 顺位 · 模型声明</text>
+  <text x="344" y="298" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">comm_quant_mode</text>
+  <text x="344" y="320" text-anchor="middle" font-size="13.5" fill="#4d5652">非 None 即采用（含 0）</text>
+  <path d="M 446 296 L 464 296" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#cqm-arr-g)"/>
+
+  <rect x="468" y="250" width="204" height="92" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="570" y="274" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">第 3 顺位 · MXFP 默认</text>
+  <text x="570" y="298" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">QuantType.W8A8MXFP</text>
+  <text x="570" y="320" text-anchor="middle" font-size="13.5" fill="#7a3a6a">自动选模式 4（E4M3FN）</text>
+  <path d="M 672 296 L 690 296" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#cqm-arr-g)"/>
+
+  <rect x="694" y="250" width="190" height="92" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="789" y="274" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">第 4 顺位 · 兜底</text>
+  <text x="789" y="298" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">quant_mode = 0</text>
+  <text x="789" y="320" text-anchor="middle" font-size="13.5" fill="#4d5652">通信不额外量化</text>
+
+  <line x1="16" y1="362" x2="884" y2="362" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: Whitelist & Hardware Support Strip -->
+  <text x="16" y="388" font-size="16" font-weight="700" fill="#17211f">③ 白名单 Literal[0, 2, 3, 4]（禁整数 1 / 禁字符串 "4"）与硬件支持矩阵</text>
+
+  <rect x="16" y="404" width="204" height="84" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="118" y="428" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">值 0（默认）</text>
+  <text x="118" y="452" text-anchor="middle" font-size="13.5" fill="#4d5652">不人工覆盖</text>
+  <text x="118" y="474" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A2 / A3 / 950DT</text>
+
+  <rect x="236" y="404" width="208" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="340" y="428" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">值 2 · int8 量化</text>
+  <text x="340" y="452" text-anchor="middle" font-size="13.5" fill="#4d5652">A2 需 hierarchy / 驱动</text>
+  <text x="340" y="474" text-anchor="middle" font-size="13.5" fill="#3a4f93">A3 需 tp_world_size≠2</text>
+
+  <rect x="460" y="404" width="204" height="84" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="562" y="428" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">值 3 · MXFP E5M2</text>
+  <text x="562" y="452" text-anchor="middle" font-size="13.5" fill="#4d5652">op-plugin 快照标注</text>
+  <text x="562" y="474" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">仅 950DT 列出</text>
+
+  <rect x="680" y="404" width="204" height="84" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="782" y="428" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">值 4 · MXFP E4M3FN</text>
+  <text x="782" y="452" text-anchor="middle" font-size="13.5" fill="#4d5652">op-plugin 快照标注</text>
+  <text x="782" y="474" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">仅 950DT 列出</text>
+</svg>

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="细粒度 TP 的 o_proj 特征交换几何流与 GLM 双机反效果容量比例图" font-family="var(--font-sans)">
+  <title>细粒度 TP 几何机理与 GLM 双机选型反例：上半展示 o_proj 沿 DP 组如何先用 All-to-All 只交换所需特征段（[a1,a2|a3,a4] 与 [b1,b2|b3,b4]）、本卡行切算部分和后再 Reduce-Scatter 送回；下半按比例对照 GLM 双机默认 TP8（151.25 MiB 机内 HCCS）与硬开细粒度组 2（605 MiB 膨胀 4 倍且跨机 RoCE）。</title>
+  <desc>关联源码符号：OProjRowParallelOp, _create_or_get_group, finegrained_tp_config, lmhead_tensor_parallel_size, oproj_tensor_parallel_size</desc>
+  <defs>
+    <marker id="fgo-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="fgo-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- SECTION 1: o_proj All-to-All -> Row Matmul -> Reduce-Scatter -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">一、attention 输出投影（o_proj）：先 All-to-All 换特征段，再 Reduce-Scatter 送回（D = 4 示意）</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Step 1: Initial Inputs on DP0 & DP1 -->
+  <rect x="16" y="50" width="184" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="108" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">卡 0 · 请求 A 输出</text>
+  <rect x="28" y="84" width="76" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <rect x="112" y="84" width="76" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="66" y="103" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">a1, a2</text>
+  <text x="150" y="103" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">a3, a4</text>
+
+  <rect x="16" y="138" width="184" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="108" y="160" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">卡 1 · 请求 B 输出</text>
+  <rect x="28" y="172" width="76" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <rect x="112" y="172" width="76" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="66" y="191" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">b1, b2</text>
+  <text x="150" y="191" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">b3, b4</text>
+
+  <!-- Step 1 -> Step 2: All-to-All cross arrows -->
+  <path d="M 200 96 L 288 96" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#fgo-teal)"/>
+  <path d="M 200 104 L 288 164" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#fgo-plum)"/>
+  <path d="M 200 176 L 288 112" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#fgo-plum)"/>
+  <path d="M 200 186 L 288 186" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#fgo-teal)"/>
+  <text x="244" y="64" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">All-to-All</text>
+  <text x="244" y="82" text-anchor="middle" font-size="13.5" fill="#66716d">只换半段</text>
+
+  <!-- Step 2: Feature-sharded local Row Matmul -->
+  <rect x="296" y="50" width="268" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="430" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">卡 0：持 W_o 上半行 × 前半特征</text>
+  <text x="430" y="96" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">[a1,a2]→P_A0  |  [b1,b2]→P_B0</text>
+  <text x="430" y="114" text-anchor="middle" font-size="13.5" fill="#936300">（无需全条向量，省一半入口载荷）</text>
+
+  <rect x="296" y="138" width="268" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="430" y="160" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">卡 1：持 W_o 下半行 × 后半特征</text>
+  <text x="430" y="184" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">[a3,a4]→P_A1  |  [b3,b4]→P_B1</text>
+  <text x="430" y="202" text-anchor="middle" font-size="13.5" fill="#936300">（各算全组 token 的本段部分和）</text>
+
+  <!-- Step 2 -> Step 3: Reduce-Scatter -->
+  <path d="M 564 86 L 672 86" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#fgo-plum)"/>
+  <path d="M 564 174 L 672 174" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#fgo-plum)"/>
+  <path d="M 564 102 L 672 162" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#fgo-plum)"/>
+  <path d="M 564 158 L 672 98" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#fgo-plum)"/>
+  <text x="618" y="64" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">Reduce-Scatter</text>
+  <text x="618" y="82" text-anchor="middle" font-size="13.5" fill="#66716d">边加边送回</text>
+
+  <!-- Step 3: Final Outputs back on owning cards -->
+  <rect x="680" y="50" width="204" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="782" y="76" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">卡 0 收回 A 完整结果</text>
+  <text x="782" y="102" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">P_A0 + P_A1 = Y_A</text>
+
+  <rect x="680" y="138" width="204" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="782" y="164" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">卡 1 收回 B 完整结果</text>
+  <text x="782" y="190" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">P_B0 + P_B1 = Y_B</text>
+
+  <!-- SECTION 2: Why GLM Two-Node (TP8 + DP2) Does NOT Enable Fine-Grained TP -->
+  <text x="16" y="250" font-size="16" font-weight="700" fill="#17211f">二、为什么 GLM 双机（TP8 + DP2）不开细粒度 TP？新组替换原 TP8 反而膨胀 4 倍</text>
+  <line x1="14" y1="260" x2="886" y2="260" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Proportional Horizontal Bars for lm_head BF16 per card (scale: 0.45 px/MiB -> 1210 MiB = 545 px, x0=238) -->
+  <!-- Row 1: Default TP8 = 151.25 MiB -> 68 px -->
+  <text x="16" y="294" font-size="14.5" font-weight="700" fill="#065f56">默认按 TP8 切（8 卡机内）</text>
+  <text x="16" y="316" font-size="13.5" fill="#065f56">机内 HCCS · 1.18 MiB</text>
+  <rect x="238" y="276" width="68" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="318" y="296" font-size="15" font-weight="700" fill="#065f56">151.25 MiB / 卡（1× 基准）</text>
+  <text x="318" y="316" font-size="13.5" fill="#4d5652">稠密 MLP 每层仅 18 MiB；机内零重复算</text>
+
+  <!-- Row 2: Fine-grained DP=2 = 605 MiB -> 272 px -->
+  <text x="16" y="362" font-size="14.5" font-weight="700" fill="#8f3229">硬开细粒度组 2（沿 DP2）</text>
+  <text x="16" y="384" font-size="13.5" fill="#8f3229">跨机 RoCE · 18.9 MiB/步</text>
+  <rect x="238" y="344" width="272" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="374" y="371" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">605 MiB / 卡（膨胀 4×）</text>
+  <text x="522" y="364" font-size="14" font-weight="700" fill="#8f3229">✗ 替换原 TP8 → 机内 8 卡重复算同一半</text>
+  <text x="522" y="384" font-size="13.5" fill="#4d5652">稠密 MLP 升至 72 MiB，且把通信搬到跨机</text>
+
+  <!-- Row 3: Fine-grained DP=1 = 1210 MiB (1.182 GiB) -> 545 px -->
+  <text x="16" y="430" font-size="14.5" font-weight="700" fill="#66716d">组大小 1（每卡整份）</text>
+  <text x="16" y="452" font-size="13.5" fill="#66716d">对照：PD 纯 DP 拆前原貌</text>
+  <rect x="238" y="412" width="545" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="510" y="439" text-anchor="middle" font-size="14" font-weight="700" fill="#4d5652">1,210 MiB ≈ 1.182 GiB / 卡（全词表 154,880 行）</text>
+  <text x="794" y="439" font-size="14" font-weight="700" fill="#4d5652">8×</text>
+
+  <text x="16" y="480" font-size="13.5" fill="#3a4f93" font-weight="700">适用结论：细粒度 TP 面向 PD 分离 D 节点纯 DP（普通 TP=1）去重；机内已有大 TP 时改沿小 DP 建组反得其反</text>
+</svg>

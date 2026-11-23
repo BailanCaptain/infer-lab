@@ -1,0 +1,10 @@
+mode: native-svg
+id: batch-job-aware-fig-hybrid-mismatch
+caption: >-
+  混合多组模型（GLM-5.3-Flash 5 个缓存组）下单一块大小 B 估算失真对比：上区按真实比例对比场景 M 新请求 N（6,000 token）实际首步所需 1,523 块（其中尾状态组占 1,501 块、KDA 12 块、full 仅 10 块）与按 full 块 640 折算的 10 块（相差两个数量级）；下区演示旧镜像调度器块大小取 LCM 133,120 时，running 几乎永不跨块（R=0, P=2），使准入预算 (F-2)×133,120 恒远超 4,096 而锁死长作业优先。
+size: [900, 380]
+pins:
+  - source: 'vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L517'
+    symbols: ['get_num_free_blocks', 'block_size']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L332-L378'
+    symbols: ['_ascend_resolve_kv_cache_block_sizes']

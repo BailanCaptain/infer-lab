@@ -1,0 +1,14 @@
+mode: native-svg
+id: acl-graph-fig-910b3-u090-oom-and-tp-growth
+caption: >-
+  Ascend 910B3 真机图显存剖析：左半展示标称 64.00 GiB 与 OS 可见 60.96 GiB（3.04 GiB 底层预留）基数下，Qwen3-0.6B 在 u=0.90 通过 profile_run()（分配 53.47 GiB KV、500,480 tokens）及 35 档 PIECEWISE 后，于 FULL Decode 1/35 的 FIA 内申请 1.98 GiB（仅剩 1.71 GiB）触发捕获期 OOM，而 u=0.82 留足 1-u 余量后以 3.90 GiB（21s）通过；右半展示 Qwen3-8B 在固定 u=0.85 从 TP=1 扩至 TP=2/4/8 时，单卡权重由 15.29 GiB 递减至 1.94 GiB，但每层本地 KV 视图由 1.008 GiB 扩至 1.368 GiB，使捕获前后设备空闲显存差值反从 2.59 GiB 递增至 3.21 GiB（尚无逐算子分配快照闭合分摊）。
+size: [860, 580]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L907-L950
+    symbols: [capture_model, npugraph_memory_bytes, non_kv_memory]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224
+    symbols: [npu_fused_infer_attention_score, block_table]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L690
+    symbols: [get_capture_resource, _FIA_WORKSPACE_KEY, register_task]
+  - source: vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932
+    symbols: [start_free_gpu_memory, end_free_gpu_memory, cuda_graph_size]

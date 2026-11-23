@@ -1,0 +1,9 @@
+mode: native-svg
+id: context-parallel-fig-interleave-slots
+caption: CP 历史位置交错落槽（与 Prefill 头尾配对解耦，非本卡位置填 -1 跳过）、v0.30.0+ 虚拟块大小不重复乘 PCP 的同比例对照、轮换粒度（1 vs block_size）及复用 TP 设备时的显存切分与通信组边界。
+size: [900, 462]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L251-L275'
+    symbols: ['_compute_dcp_slot_mapping', 'dcp_world_size', 'cp_kv_cache_interleave_size']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1650-L1705'
+    symbols: ['_validate_parallel_config', '_validate_model_pcp_dcp_config', 'enable_sfa_dcp_replicated_indexer']

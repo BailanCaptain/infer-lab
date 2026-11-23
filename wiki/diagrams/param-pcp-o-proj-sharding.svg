@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 546" width="900" height="546" role="img" aria-label="enable_pcp_o_proj_weight_sharding 加载期沿输入维切分 1/pcp_size 与 prefill 临时 All-Gather 对 decode 本地分片加 PCP All-Reduce 空间图示" font-family="var(--font-sans)">
+  <title>enable_pcp_o_proj_weight_sharding：加载期输入维切分与 Prefill/Decode 双路径</title>
+  <desc>Spatial diagram of load-time input-axis weight sharding across PCP ranks (1/pcp_size resident per rank), contrasted with Prefill temporary weight All-Gather into o_proj_full_pools and Decode replicated-token local dot product (1*10+2*20=50, 3*30+4*40=250) plus PCP All-Reduce (=300) and subsequent TP All-Reduce.</desc>
+  <defs>
+    <marker id="po-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="po-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="po-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: Load-time 1/PCP Input-Axis Sharding -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 加载期直接缩片（非「先全量加载再裁剪」；以 PCP = 2 为例）</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">WeightLoadPartition.from_nested_groups(TP, PCP) 沿 row-parallel 输入维直读本地 1/pcp_size 切片</text>
+
+  <!-- Full TP-local weight matrix on left -->
+  <rect x="16" y="64" width="248" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="140" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">默认冗余（TP-local 完整权重）</text>
+  <rect x="32" y="98" width="104" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="84" y="117" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">[10, 20]</text>
+  <rect x="144" y="98" width="104" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="196" y="117" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">[30, 40]</text>
+
+  <path d="M 264 100 L 322 100" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#po-arr-t)"/>
+  <text x="293" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">输入维切</text>
+
+  <!-- Split across PCP Rank 0 & Rank 1 -->
+  <rect x="328" y="64" width="256" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="456" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">PCP rank 0 常驻前一半</text>
+  <text x="456" y="112" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#17211f">W_0 = [10, 20]（占 1/2）</text>
+
+  <rect x="604" y="64" width="280" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="744" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">PCP rank 1 常驻后一半</text>
+  <text x="744" y="112" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#17211f">W_1 = [30, 40]（占 1/2）</text>
+
+  <line x1="16" y1="154" x2="884" y2="154" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: Left Prefill vs Right Decode Dual-Phase Forward -->
+  <text x="16" y="180" font-size="16" font-weight="700" fill="#17211f">② 前向按阶段自动分叉：Prefill 拼权重 vs Decode 不拼权重做输出归约</text>
+
+  <!-- Vertical divider -->
+  <line x1="444" y1="196" x2="444" y2="410" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- LEFT: Prefill -->
+  <text x="16" y="208" font-size="14.5" font-weight="700" fill="#7a3a6a">A · Prefill（非 DecodeOnly / SpecDecoding）</text>
+  <text x="16" y="228" font-size="13.5" fill="#66716d">各卡算不同 token 行 → 无法把不同 token 的部分和相加</text>
+
+  <rect x="16" y="242" width="412" height="50" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="222" y="264" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">1. PCP All-Gather 拼回完整权重</text>
+  <text x="222" y="284" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">缓冲复用：o_proj_full_pools（通信量固定=权重）</text>
+
+  <path d="M 222 292 L 222 312" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#po-arr-p)"/>
+
+  <rect x="16" y="316" width="412" height="46" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="222" y="344" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">2. 完整权重视图执行本地 token 投影</text>
+
+  <path d="M 222 362 L 222 378" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#po-arr-b)"/>
+
+  <rect x="16" y="382" width="412" height="32" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="222" y="403" text-anchor="middle" font-size="13.5" fill="#17211f">3. 用完切回本地 1/pcp_size 分片（小批频繁最吃亏）</text>
+
+  <!-- RIGHT: Decode -->
+  <text x="462" y="208" font-size="14.5" font-weight="700" fill="#065f56">B · Decode（整数示意：输入 x = [1, 2, 3, 4] 跨 PCP 复制）</text>
+  <text x="462" y="228" font-size="13.5" fill="#66716d">不拼权重！各卡用本地片算部分和 → PCP All-Reduce 合并</text>
+
+  <rect x="462" y="242" width="202" height="62" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="563" y="266" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">PCP rank 0 本地算</text>
+  <text x="563" y="290" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">1×10 + 2×20 = 50</text>
+
+  <rect x="680" y="242" width="204" height="62" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="782" y="266" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">PCP rank 1 本地算</text>
+  <text x="782" y="290" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">3×30 + 4×40 = 250</text>
+
+  <path d="M 563 304 V 320 H 672 V 328" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#po-arr-t)"/>
+  <path d="M 782 304 V 320 H 672" fill="none" stroke="#087f73" stroke-width="1.8"/>
+
+  <rect x="462" y="332" width="422" height="42" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="673" y="358" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">PCP 组内 All-Reduce：50 + 250 = 300（量随 token 增长）</text>
+
+  <rect x="462" y="382" width="422" height="32" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="673" y="403" text-anchor="middle" font-size="13.5" fill="#17211f">若 TP&gt;1 且 reduce_results：再做一次 TP All-Reduce（不替代 TP）</text>
+
+  <line x1="16" y1="430" x2="884" y2="430" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: Scope, Fallback & GLM Boundary -->
+  <rect x="16" y="444" width="424" height="88" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="468" font-size="14" font-weight="700" fill="#065f56">v0.30.0 / main 范围与优雅回退（默认 True）</text>
+  <text x="30" y="493" font-size="13.5" fill="#17211f">SFA-PCP(o_proj) + DSA-PCP(wo_a/wo_b)</text>
+  <text x="30" y="516" font-size="13.5" fill="#17211f">需 V2 runner；不整除告警退回</text>
+
+  <rect x="460" y="444" width="424" height="88" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="474" y="468" font-size="14" font-weight="700" fill="#8f3229">区分边界：≠ 旧 layer_sharding / ≠ enable_dsa_cp</text>
+  <text x="474" y="493" font-size="13.5" fill="#4d5652">同层按 PCP 切而非按层轮放；</text>
+  <text x="474" y="516" font-size="13.5" fill="#4d5652">GLM 双机 PCP=1 且 KDA 拒 PCP&gt;1</text>
+</svg>

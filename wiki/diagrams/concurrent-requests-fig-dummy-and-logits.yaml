@@ -1,0 +1,18 @@
+mode: native-svg
+id: concurrent-requests-fig-dummy-and-logits
+caption: >-
+  变体 M′ 空闲 DP1 陪跑宽度对齐与 32 步结束共识（上半），以及场景 M 第 2 步 6,048 行混合隐藏状态中精准提取 49 行进 lm_head 词表投影（下半）：DP1 即使零请求也须陪跑以完成 16 卡 EP 专家计算，末条请求结束后最多再空跑 31 步；混合步里 12 条 decode 各取 4 行（48 行），6,000 token 的新请求 N 仅取末行第 6047 行（1 行），合计 49 行产出 [49, 154880] logits。
+size: [900, 430]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L1701-L1910'
+    symbols:
+      - DPEngineCoreProc
+      - execute_dummy_batch
+      - has_unfinished_requests
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1310'
+    symbols:
+      - logits_indices
+      - spec_decode_metadata
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L1945'
+    symbols:
+      - execute_model

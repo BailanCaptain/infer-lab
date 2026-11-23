@@ -1,7 +1,7 @@
 mode: native-svg
 id: swa-bounded-replay-fig-window-modes
 caption: SWA 有界回放的多层误差传播机理（窗口 W=3 时第 2 层位置 9 同读 7–9 却得 6 而非 4）、128/134/140 三种参数口径、L=1000 命中回退 128 位置切分，以及 off/mask/compact 两步验证逻辑。
-size: [900, 456]
+size: [900, 524]
 pins:
   - source: 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/cache_config.py#L30-L63'
     symbols: ['STATE_RING_ROWS', 'make_swa_cache_spec', 'bounded_replay']

@@ -1,8 +1,8 @@
 mode: native-svg
 id: inference-performance-troubleshooting-fig-funnel
 caption: >-
-  性能排障决策漏斗：从 TTFT 飙高与 TPOT/ITL 抖动两类核心现象出发，先拿最小首取证据把慢切进 6 条证据分支（未轮到排队 / 单步长批 / 主机空隙 / KV 抢占 / 多卡迟到 / 算完返慢），再对照各自的可证伪动作与必检代价边界。
-size: [900, 490]
+  性能排障六阶段锚定决策图：顶部沿请求生命周期标出入队等待、单步长批、主机下发、KV 缓存、多卡同步与响应返回六个阶段，下方逐一对应最小首取证据、单变量区分实验、优先杠杆与必检代价边界。
+size: [900, 520]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L555-L625'
     symbols:

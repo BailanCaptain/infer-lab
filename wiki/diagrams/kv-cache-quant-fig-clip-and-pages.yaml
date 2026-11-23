@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-cache-quant-fig-clip-and-pages
+caption: >-
+  INT8 C8 写入误差标尺与四页分页占用同比例对比：上半部在 INT8 [-128..127] 数轴上标出 s=0.0125 下 1.0 原样还原、1.006 舍入差 0.006 与 1.7 触顶截断至 127（1.5875，差 0.1125）；下半部按统一字节比例对比 100 位置（4 页 × 32 槽，末页 28 空槽）在 BF16（64 KiB）与 INT8（32 KiB）下的有效载荷与按页分配减半关系。
+size: [900, 412]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1560-L1615'
+    symbols:
+      - block_size
+      - key_cache
+      - value_cache
+      - _forward_c8_chunked_prefill

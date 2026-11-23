@@ -1,0 +1,12 @@
+mode: native-svg
+id: param-stair-replica-search-tree
+caption: >-
+  STAIR 分阶段副本数束搜索三键协同几何：stages 切分风险排序专家组数，radius 围绕贪心中心向两侧试探并按合法区间裁剪，beam_size 在三处截断且在设为 1 时会被强制保留的「份数不变」顶替导致关闭副本数调整。
+size: [900, 490]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L465-L533
+    symbols: [_candidate_group_budgets, _expand_replica_search_stage]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L534-L641
+    symbols: [replica_candidates, incremental_replica_candidates]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L222-L258
+    symbols: [replica_search_num_stages, replica_search_radius, replica_search_beam_size]

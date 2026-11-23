@@ -1,7 +1,8 @@
 mode: native-svg
 id: core-cli-four-knobs
-caption: vllm serve 四大核心旋钮与单卡 HBM 水位、单步 Token 预算的咬合关系
-size: [900, 488]
+caption: >-
+  vllm serve 四大核心旋钮与单卡 64 GiB HBM（Qwen3-8B 示意）比例条的咬合关系：将批预算从默认 2048 拉大到 16384 时，profile_run 激活峰值从 1.88 GiB 抬升至 6.38 GiB，等量挤走 4.5 GiB KV 池（39.0 → 34.5 GiB）；右侧 1−u（默认 8% = 5.12 GiB）为切完 KV 后的录图余量。
+size: [900, 500]
 pins:
   - source: "vllm@ced6857a:vllm/config/cache.py#L103-L110"
     symbols:

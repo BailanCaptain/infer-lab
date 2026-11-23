@@ -138,7 +138,7 @@ file: glm-two-node-topology
 
 TP 的通信留在机内，EP 横跨两台机器。因此，MoE 的通信会过机间链路，attention 和稠密层的通信不会。
 
-权重切分、请求分配与专家路由的 3D 演示分别放在 [TP](tensor-parallel.md#再过稠密-mlp本地升维和门控降维后再合齐)、[DP](data-parallel.md#放到-glm-双机每台机器一个-dp-组)、[EP](expert-parallel.md#16-张卡怎样分专家) 对应章节，按当前阅读的概念单独播放。
+权重切分、请求分配与专家路由的 3D 演示分别放在对应概念页中，便于按需单独播放：参见 [TP](tensor-parallel.md#再过稠密-mlp本地升维和门控降维后再合齐)、[DP](data-parallel.md#放到-glm-双机每台机器一个-dp-组) 与 [EP](expert-parallel.md#16-张卡怎样分专家)。
 
 **为什么用两台？** 单机的限制在于留给请求的显存更少：按相同切法把 288 个路由专家放到 8 张卡，每卡要放 36 个；双机摊到 16 张卡，每卡只放 18 个。于是本页所列语言权重的每卡子账从 38.72 GiB 降到 20.58 GiB；它不含视觉塔、MTP 旋转矩阵和量化辅助张量，范围见[每张卡上放了什么](#每张卡上放了什么)。按每卡 64 GiB、显存预算 0.85、激活峰值与非 torch 占用合计 3.4 GiB 的同一组教学假设，这份子账给出的双机 KV 容量约为单机的 2.5 倍。实际容量还要扣除表外项并代入 profile 结果。代价是 MoE 要跨机通信，两组每步还要同步；容量对照和 MC2 路径条件见[为什么是两台机器，不是一台](#为什么是两台机器不是一台)。
 
@@ -157,7 +157,7 @@ TP 的通信留在机内，EP 横跨两台机器。因此，MoE 的通信会过�
 
 ### 本页新出现的名字
 
-模型里的八个名字可回看上一页：[MoE、expert、router gate](glm-5-3-flash.md#moe288-个专家里每次挑-8-个)、[MTP](glm-5-3-flash.md#mtp主干之外的第-45-层)、[KDA](glm-5-3-flash.md#kda把全部历史压进一个固定大小的矩阵)、[稀疏 MLA 与索引器](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读)、[mHC](glm-5-3-flash.md#一层有两段计算四条-residual-流贯穿两段)。这里补充部署与执行侧的新名字：
+模型里的八个名字可回看上一页：路由与草拟见 [MoE、expert、router gate](glm-5-3-flash.md#moe288-个专家里每次挑-8-个) 与 [MTP](glm-5-3-flash.md#mtp主干之外的第-45-层)；注意力和残差见 [KDA](glm-5-3-flash.md#kda把全部历史压进一个固定大小的矩阵)、[稀疏 MLA 与索引器](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读) 及 [mHC](glm-5-3-flash.md#一层有两段计算四条-residual-流贯穿两段)。这里补充部署与执行侧的新名字：
 
 | 名字 | 一句话 |
 | --- | --- |
@@ -228,7 +228,7 @@ file: glm-two-node-request-route
 
 ## 每张卡上放了什么
 
-切法分三种。按 **EP** 切的只有路由专家：288 个专家除以 16，每张卡 18 个。按 **TP** 切成 8 份的是 KDA 的 q / k / v / o 四个大投影、稀疏 MLA 的 `q_b_proj` / `kv_b_proj` / `o_proj`、前 3 层的稠密 MLP、每层那 1 个共享专家；嵌入表（embedding）和 `lm_head` 按词表的 154880 行切成 8 份。第三类是**每张卡各放一整份、根本不切**：MLA 的 `fused_qkv_a_proj`、整个索引器（`wq_b`、`wk_weights_proj`、`index_kpool_compress_gate`）、KDA 的 `f_a_proj` 与 `g_a_proj`、router gate、mHC 的混合参数，以及 MTP 层的 `eh_proj`。这一类是有意为之：索引器那 32 个头每张卡各算一遍，用冗余计算换掉一次通信。
+切法分三种。按 **EP** 切的只有路由专家：288 个专家除以 16，每张卡 18 个。按 **TP** 切成 8 份的包括三类权重：KDA 的 q / k / v / o 与稀疏 MLA 的 `q_b_proj` / `kv_b_proj` / `o_proj`、前 3 层稠密 MLP 与共享专家，以及按 154880 行切开的嵌入表和 `lm_head`。第三类是**每张卡各放一整份、根本不切**：涵盖 MLA 的 `fused_qkv_a_proj`、整个索引器（`wq_b`、`wk_weights_proj`、`index_kpool_compress_gate`）、KDA 的 `f_a_proj` / `g_a_proj`，以及 router gate、mHC 混合参数和 MTP 的 `eh_proj`。这一类是有意为之：索引器那 32 个头每张卡各算一遍，用冗余计算换掉一次通信。
 
 下面保留一份可复算的**主要语言权重子账**：MLA 的 Q 压缩、KV 压缩、Q 展开和输出投影采用 INT8，其余按表中精度。这个配方对应量化目录的 3121f187 快照；9e55cbc8 快照把这四组投影留在浮点，差额见下节。表中未计视觉塔、MTP 旋转矩阵、量化 scale / offset 及未逐项列出的小型参数，因此小计不能当作整卡完整加载占用。
 
@@ -249,9 +249,13 @@ file: glm-two-node-request-route
 
 KDA 合计有两种取整口径：按每层字节精算、乘完 34 层后再取一位小数，是 1,176.9 MiB；表中的 1,176.7 MiB 则是先把每层取整到 34.61 MiB，再乘 34 层并取一位小数得到的。
 
-最大的一项是路由专家的 17.72 GiB，占这份语言权重子账的约 86%。这也是 EP 存在的理由：每卡只放 18 个专家，才压得住这一项。
+最大的一项是路由专家的 17.72 GiB，占这份语言权重子账的约 86%。这也是 EP 存在的理由：每卡只放 18 个专家，才压得住这一项。下图按真实比例汇总每卡 20.58 GiB 语言权重构成与三种切分在 16 张卡上的归属：
 
-**MTP 层放在哪里。** MTP 用来做 speculative decoding（先猜几个 token，再让主模型一次验证）。它是模型的第 45 层，有自己独立的一套稀疏 MLA、索引器和 288 个路由专家，不和主干共用；这一套按和主干一样的方式摊到 16 张卡上，所以**每张卡上是这么几项**：MLA 加索引器 37.25 MiB、18 个路由专家 432 MiB、共享专家 3 MiB、router gate 4.5 MiB，再加上不切 TP、每卡一整份的 `eh_proj` 64 MiB，合计 **540.75 MiB**。它没有 mHC 四路残差，也不自带输出投影——加载完成后它的输出头被换成主模型的 `lm_head`，所以那 151.25 MiB 不重复计。除了权重，它在 KV cache 里也占一层，这一点下一节再看。
+```wiki-diagram
+file: glm-5-3-flash-two-node-fig-weight-sharding
+```
+
+**MTP 层放在哪里。** MTP 用来做 speculative decoding（先猜几个 token，再让主模型一次验证）。它是模型的第 45 层，自带独立的稀疏 MLA、索引器和 288 个路由专家，不和主干共用，并按同样方式摊到 16 张卡上。每张卡上包括 MLA 加索引器 37.25 MiB、18 个路由专家 432 MiB、共享专家 3 MiB、router gate 4.5 MiB，以及每卡整份的 `eh_proj` 64 MiB，合计 **540.75 MiB**。它没有 mHC 四路残差，也不自带输出投影——加载完成后它的输出头被换成主模型的 `lm_head`，所以那 151.25 MiB 不重复计。除了权重，它在 KV cache 里也占一层，这一点下一节再看。
 
 540.75 MiB 也是所列模块的小计：两份量化快照都开启 QuaRot，MTP 还会在每卡加载不切 TP 的 4096 × 4096 旋转矩阵。按 BF16 计算要另加 **32 MiB**，这项随权重加载，不能归入首次前向才产生的索引器副本。
 
@@ -377,7 +381,7 @@ file: glm-two-node-startup
 1. **DP 组里最大 token 数一过 128，两台机器一起从 MC2 翻到 All-Gather。** 判断看两组本步 token 数的最大值，和有没有 prefill 无关；短的 chunked prefill 也能走 MC2。门槛取自最大图尺寸，因此上面算出的满载纯 decode 步刚好压线，再多一点 token 就翻路径。见 [large-scale EP](large-scale-ep.md) 与 [chunked prefill](chunked-prefill.md)。
 2. **空闲的 DP 组要陪跑。** 只要全局还有没做完的请求，没活干的那一组也必须一步不落地空跑一次完整前向——它本地只准备 4 个 token，但按 DP 对齐后会被拉到对端的宽度，跑满 45 层、在 EP 组里做 dispatch 和 combine，连草稿模型也陪跑一次。最后一条请求结束后，两组最多还会一起空跑 31 步才停。见 [data parallel](data-parallel.md)。
 3. **图模式取两组的最小值。** 一组是混合批就没有图可用，同步之后**两组这一步都退回 eager 执行**，本来能用 decode 图的那一组也用不上。见 [ACL Graph](acl-graph.md)。
-4. **块大让短请求浪费显存**，换来 KDA 状态和 MLA 历史共用一个池子；数字见[短请求为什么占 15 块](#为什么短请求也占-15-个块)，分配规则见 [KV block 分配](vllm-kv-block-allocation.md) 与 [KV cache spec](kv-cache-spec.md)。
+4. **块大让短请求浪费显存**，换来 KDA 状态和 MLA 历史共用一个池子。具体数字见[短请求为什么占 15 块](#为什么短请求也占-15-个块)，分配规则见 [KV block 分配](vllm-kv-block-allocation.md) 与 [KV cache spec](kv-cache-spec.md)。
 5. **prefix caching（复用相同前缀的 KV）关着。** 相同前缀不会被复用，每条请求的提示词都要重算。见 [prefix caching](prefix-caching.md)。
 6. **MTP 同时影响权重、KV 和每步 token 数。** 前两项见本页的权重表与每块字节算式；每请求每步从 1 个变成 4 个 token，还会影响图尺寸、token 预算和 MC2 的 128 门槛。见 [speculative decoding](speculative-decoding.md)。
 
@@ -398,7 +402,7 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 | **A2 双机混部启动项与环境变量** | 2×A2×8、TP8/DP2/EP16、133120、32、8192、0.85、MTP 3、`FULL_DECODE_ONLY`（未显式写 Runner 版本与 prefetch） | 保留上述 A2 双机混部核心参数；**显式设置 `VLLM_USE_V2_MODEL_RUNNER=0`**（当时仅支持 Model Runner V1），新增 `--safetensors-load-strategy prefetch`，并显式列出 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`、`HCCL_OP_EXPANSION_MODE=AIV`、`HCCL_BUFFSIZE=1024`、`VLLM_RPC_TIMEOUT=3600000`、`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000`、`HCCL_EXEC_TIMEOUT=3600`、`HCCL_CONNECT_TIMEOUT=1200` 与网卡环境变量 | 同组 A2 双机脚本保留核心参数与超时变量，但 **全面切换至 Model Runner V2（`VLLM_USE_V2_MODEL_RUNNER=1`）** |
 | **硬件覆盖与 PD / KV Pool 形态** | 仅覆盖 A2 双机混部 W8A8 | 扩展 **A3 单机（16 逻辑卡）** 与 **950DT 单机（`GLM-5.3-Flash-w8a8-mxfp8`）**；支持 **W8A8C8 动态 KV 量化**（A3 用 `--kv-cache-dtype int8`、950DT 用 `--kv-cache-dtype fp8`）；新增 4 机 A2 / 2 机 A3 / 2 机 950DT 的 **1P1D PD 分离** 与 DDR KV Cache Pool（`MultiConnector` = `MooncakeConnectorV2` + `AscendStoreConnector`，强制 `use_layerwise: false`、自动设 `--mamba-cache-mode align`） | A3 PD 进一步升级为 Prefill **`PCP8/TP1`** + `--mamba-ssm-cache-dtype bfloat16` + `enable_fused_mc2: 2` + `--enable-eplb`（Decode 保持 `PCP1`）；950DT 与 A2 同步收敛到 MRV2 |
 
-因此，阅读站内「09 旗舰异构模型全案」与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准；若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
+因此，阅读站内「09 旗舰异构模型全案」与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准。若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，则必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
 
 ## 对照源码
 

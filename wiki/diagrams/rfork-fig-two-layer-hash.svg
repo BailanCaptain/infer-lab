@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="RFork 两层哈希身份匹配结构图：对比进入 seed_key 的兼容性指纹、结构摘要与分片角色，以及明确不进钥匙的五类属性" font-family="var(--font-sans)">
+  <title>RFork 两层 SHA256 身份匹配与边界对照：左栏展示进入 seed_key 的三层输入（兼容性指纹 7 项、登记后绑定的结构摘要、TP/PP/EP/sharded_dp_rank 与主草角色）；右栏对照明确不进钥匙的五类项，说明为何同卡号跨节点可借、而同路径替换权重文件不会被钥匙发现。</title>
+  <desc>关联源码符号：build_compatibility_fingerprint, build_structural_digest, _resolve_sharded_dp_rank, build_seed_key</desc>
+  <defs>
+    <marker id="id-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="id-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">两层 SHA256 合成 seed_key：哪些进钥匙防错配，哪些明确不进钥匙</text>
+
+  <!-- 左侧三层输入盒子 (x=16..390) -->
+  <rect x="16" y="46" width="374" height="122" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">① 配置指纹（建会话时 SHA256）</text>
+  <text x="28" y="94" font-size="12.5" fill="#17211f">• protocol=1 · model_url · strategy_name</text>
+  <text x="28" y="116" font-size="12.5" fill="#17211f">• model_revision · quantization_config 摘要</text>
+  <text x="28" y="138" font-size="12.5" fill="#17211f">• architecture · rope · 有效 kv_role · mix_placement</text>
+  <text x="28" y="158" font-size="12.5" fill="#3a4f93">捕获「不改形状但改数值语义」的配置差异</text>
+
+  <rect x="16" y="182" width="374" height="104" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="28" y="206" font-size="14.5" font-weight="700" fill="#936300">② 结构摘要（预登记显存时 SHA256）</text>
+  <text x="28" y="230" font-size="12.5" fill="#17211f">• 全部可传张量：稳定 ID · shape · dtype · NPU 格式</text>
+  <text x="28" y="252" font-size="12.5" fill="#4d5652">自动捕获 dtype、TP/PP/EP 切分尺寸与 NZ 结果</text>
+  <text x="28" y="274" font-size="12.5" fill="#936300">绑定于 register_destination 之后、借租约之前</text>
+
+  <rect x="16" y="300" width="374" height="126" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="324" font-size="14.5" font-weight="700" fill="#065f56">③ 分片编号与角色（本卡独有坐标）</text>
+  <text x="28" y="348" font-size="12.5" fill="#17211f">• tp_rank（必进）· pp_rank（PP&gt;1 才进）</text>
+  <text x="28" y="370" font-size="12.5" fill="#17211f">• ep_rank（开 EP 且非稠密）</text>
+  <text x="28" y="392" font-size="12.5" fill="#17211f">• sharded_dp_rank（跨 DP 切分才进，纯复制 DP 为空）</text>
+  <text x="28" y="414" font-size="12.5" font-weight="700" fill="#065f56">• is_draft_model（主模型 vs 草稿分池）</text>
+
+  <!-- 汇聚箭头 -> seed_key -->
+  <path d="M 390 107 L 406 107 L 406 234 L 422 234" fill="none" stroke="#4d5652" stroke-width="1.6"/>
+  <line x1="390" y1="234" x2="422" y2="234" stroke="#4d5652" stroke-width="1.6" marker-end="url(#id-arr-ink)"/>
+  <path d="M 390 363 L 406 363 L 406 234" fill="none" stroke="#4d5652" stroke-width="1.6"/>
+
+  <!-- 中央：最终 seed_key -->
+  <rect x="424" y="176" width="158" height="118" rx="8" fill="#087f73" stroke="#065f56" stroke-width="1.5"/>
+  <text x="503" y="206" text-anchor="middle" font-size="15" font-weight="700" font-family="var(--font-mono)" fill="#ffffff">seed_key</text>
+  <text x="503" y="232" text-anchor="middle" font-size="13.5" fill="#ddf4ef">规范化 JSON 后</text>
+  <text x="503" y="254" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">第二次 SHA256</text>
+  <text x="503" y="278" text-anchor="middle" font-size="13.5" fill="#ddf4ef">Planner 逐字精确匹配</text>
+
+  <!-- 右侧：明确不进钥匙的五类属性 -->
+  <rect x="606" y="46" width="278" height="380" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="622" y="72" font-size="14.5" font-weight="700" fill="#8f3229">✗ 明确不进 seed_key（五类边界）</text>
+
+  <text x="622" y="106" font-size="14" font-weight="700" fill="#17211f">1. global_rank 与节点 IP</text>
+  <text x="622" y="128" font-size="13.5" fill="#4d5652">只用于端口与日志；跨机同配置可互借</text>
+
+  <text x="622" y="162" font-size="14" font-weight="700" fill="#17211f">2. 权重字节内容校验和</text>
+  <text x="622" y="184" font-size="13.5" fill="#8f3229">同路径悄悄换文件，钥匙仍相同！</text>
+
+  <text x="622" y="218" font-size="14" font-weight="700" fill="#17211f">3. RFork 代码 Git 提交号</text>
+  <text x="622" y="240" font-size="13.5" fill="#8f3229">升级隔离须手动换部署策略名</text>
+
+  <text x="622" y="274" font-size="14" font-weight="700" fill="#17211f">4. ModelSlim 外部描述文件</text>
+  <text x="622" y="296" font-size="13.5" fill="#4d5652">只读 config.json 内置量化字段</text>
+
+  <text x="622" y="330" font-size="14" font-weight="700" fill="#17211f">5. 并发上限与请求长度</text>
+  <text x="622" y="352" font-size="13.5" fill="#4d5652">max_num_batched_tokens 不进钥匙；</text>
+  <text x="622" y="374" font-size="13.5" fill="#065f56">对应工作区改走运行期排除名单</text>
+
+  <text x="622" y="408" font-size="13.5" font-weight="700" fill="#8f3229">日志只打哈希，排错须逐项对配置</text>
+
+  <!-- 底部 GLM 双机反例摘要 -->
+  <rect x="16" y="440" width="868" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="464" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#3a4f93">GLM 双机例（TP8/DP2/EP16）：</tspan>卡 1 与卡 9 的 tp_rank 都是 1，靠 ep_rank = 1 vs 9 拆成两把钥匙，防止错借别组 18 个专家。</text>
+</svg>

@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 458" width="900" height="458" role="img" aria-label="流式反分词字节缓冲、停止符跳字与词表三段式入口边界校验图">
+  <title>流式反分词字节缓冲与词表三段式边界校验</title>
+  <desc>上半部分以 4 步生成流展示 UTF-8 多字节拼字缓冲与跳过停止符文字解码但保留 token_ids；下半部分对比 Qwen3-8B 与 GLM-5.3-Flash 的词表分段与入口上下界拦截规则。</desc>
+  <defs>
+    <marker id="arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-plum" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
+    </marker>
+    <marker id="arr-muted" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#66716d" />
+    </marker>
+  </defs>
+
+  <!-- Section 1 Header -->
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. 流式反分词（IncrementalDetokenizer）：多字节缓冲与停止符跳字</text>
+  <text x="880" y="28" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">4 个输出 token → 仅 2 次可见文字更新</text>
+
+  <!-- Step Timeline Connector -->
+  <line x1="210" y1="74" x2="234" y2="74" stroke="#66716d" stroke-width="1.6" marker-end="url(#arr-muted)" />
+  <line x1="426" y1="74" x2="450" y2="74" stroke="#66716d" stroke-width="1.6" marker-end="url(#arr-muted)" />
+  <line x1="642" y1="74" x2="666" y2="74" stroke="#66716d" stroke-width="1.6" marker-end="url(#arr-muted)" />
+
+  <!-- Step 1: 9123 -> 推理 -->
+  <rect x="20" y="46" width="190" height="58" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="115" y="69" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">步 1 · ID 9123</text>
+  <text x="115" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">E6 8E A8 E7 90 86</text>
+  <line x1="115" y1="104" x2="115" y2="152" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)" />
+  <rect x="34" y="156" width="162" height="36" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.5" />
+  <text x="115" y="179" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">屏幕新增：「推理」</text>
+
+  <!-- Step 2: ID 148201 (illust.) -> 0xE7 0x8A held in buffer -->
+  <rect x="236" y="46" width="190" height="58" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6" />
+  <text x="331" y="69" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">步 2 · ID 148201(示)</text>
+  <text x="331" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">解码字节: E7 8A（2 B）</text>
+  <line x1="331" y1="104" x2="331" y2="122" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-amber)" />
+  <rect x="248" y="126" width="166" height="34" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" stroke-dasharray="5 3" />
+  <text x="331" y="148" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">字节缓冲 [E7 8A]</text>
+  <text x="331" y="182" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">屏幕无更新（防乱码）</text>
+
+  <!-- Buffer merge arrow Step 2 -> Step 3 -->
+  <path d="M 414 143 L 492 143 L 492 110" fill="none" stroke="#c78300" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arr-amber)" />
+
+  <!-- Step 3: ID 135 (illust.) -> 0x87 merges -> 犇 -->
+  <rect x="452" y="46" width="190" height="58" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="547" y="69" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">步 3 · ID 135(示)</text>
+  <text x="547" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">拼字节 [E7 8A]+87=3B</text>
+  <line x1="547" y1="104" x2="547" y2="152" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)" />
+  <rect x="466" y="156" width="162" height="36" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.5" />
+  <text x="547" y="179" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">屏幕新增：「犇」</text>
+
+  <!-- Step 4: EOS 151645 skipped from text, kept in token_ids -->
+  <rect x="668" y="46" width="212" height="58" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6" />
+  <text x="774" y="69" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#7a3a6a">步 4 · EOS 151645</text>
+  <text x="774" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">&lt;|im_end|&gt; 命中判停</text>
+  <line x1="774" y1="104" x2="774" y2="152" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arr-plum)" />
+  <rect x="676" y="156" width="196" height="36" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4" />
+  <text x="774" y="179" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a">跳过文字（不打印控制符）</text>
+
+  <!-- Internal token_ids rail -->
+  <rect x="20" y="206" width="860" height="32" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="34" y="227" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">self.token_ids（整数）:</text>
+  <text x="234" y="227" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">[ 9123, 148201, 135, 151645 ] → 4 个整数完整入账（含停止符）</text>
+
+  <!-- Section Divider -->
+  <line x1="20" y1="254" x2="880" y2="254" stroke="#d8d8cf" stroke-width="1.4" />
+
+  <!-- Section 2 Header -->
+  <text x="20" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. 词表分段结构与入口双边界校验（InputProcessor._validate_model_input）</text>
+
+  <!-- Left & Right Rejection Gates -->
+  <rect x="20" y="300" width="92" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6" />
+  <text x="66" y="330" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#8f3229">id &lt; 0</text>
+  <text x="66" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">主机拦截</text>
+  <text x="66" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">负数拒绝</text>
+
+  <rect x="768" y="300" width="112" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6" />
+  <text x="824" y="330" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#8f3229">id &gt; max</text>
+  <text x="824" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">主机拦截</text>
+  <text x="824" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">越界报错</text>
+
+  <!-- Row A: Qwen3-8B bar -->
+  <text x="128" y="314" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">Qwen3-8B（vocab_size = 151,936）</text>
+  <rect x="128" y="322" width="510" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+  <text x="383" y="341" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">0 .. 分词器词表（含 BOS 151643 / EOS 151645）</text>
+  <rect x="640" y="322" width="112" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="4 3" />
+  <text x="696" y="341" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">预留扩展行</text>
+
+  <!-- Row B: GLM-5.3-Flash 3-segment bar -->
+  <text x="128" y="370" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">GLM-5.3-Flash（vocab_size = 154,880，非等比例放大尾部两段）</text>
+  <rect x="128" y="378" width="320" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+  <text x="288" y="397" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">0–154819：154,820 普通词元</text>
+
+  <rect x="450" y="378" width="102" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4" />
+  <text x="501" y="397" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">18 special</text>
+
+  <rect x="554" y="378" width="104" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4" />
+  <text x="606" y="397" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#936300">18 非 special</text>
+
+  <rect x="660" y="378" width="92" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="4 3" />
+  <text x="706" y="397" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">24 预留行</text>
+
+  <!-- Bottom Boundary Rule Strip -->
+  <text x="450" y="438" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">放行区间：0 ≤ id ≤ max(tokenizer.max_token_id, vocab_size-1) ｜ &lt;think&gt; 属非 special</text>
+</svg>

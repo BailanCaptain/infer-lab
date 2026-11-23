@@ -1,0 +1,16 @@
+mode: native-svg
+id: mooncake-connector-fig-addr-and-completion
+caption: >-
+  Mooncake 显存地址换算、V2 三线完成泳道与 D2RH 两跳变体：顶栏展示 P#7/D#3 的 base + block × stride 换算及页补齐如何决定连续块能否并段；中栏将“D workers 读尝试结束”“请求级通知 P 释块（含 v0.30.0 480 s 超时与 main kv_lease_duration 默认 120 s + D 心跳兜底）”“D 汇合失败并判定能否开算”画成三条独立泳道；底栏以 D2RH 两跳说明先落 D 主机内存如何提前释放 P 源块。
+size: [900, 620]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L409-L435
+    symbols: [KVCacheRecvingThread]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L705-L756
+    symbols: [_handle_request, _send_done_recv_signal]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
+    symbols: [_transfer_kv_cache_all_groups, batch_transfer_sync_read]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L730-L746
+    symbols: [finished_recving, failed_recving]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L73-L88
+    symbols: [DEFAULT_KV_LEASE_DURATION, kv_lease_duration]

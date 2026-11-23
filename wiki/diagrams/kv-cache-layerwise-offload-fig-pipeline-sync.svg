@@ -1,58 +1,158 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="Layerwise KV offload 逐层流水线与共享槽双栅栏" font-family="var(--font-sans)">
-<title>Layerwise KV offload 逐层流水线与共享槽双栅栏</title>
-<desc>Multi-stream layerwise H2D prefetch gate, compute overlap, async D2H save event, and dual completion barriers for shared-slot reuse across AscendStore and RD2H/P2P</desc>
-<line x1="16" y1="268" x2="884" y2="268" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="16" y="122" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="16" y="190" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
-<rect x="190" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="370" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="550" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="370" y="122" width="160" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
-<rect x="550" y="122" width="160" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
-<rect x="730" y="122" width="154" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
-<rect x="550" y="190" width="160" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="730" y="190" width="154" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="314" width="420" height="116" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="464" y="314" width="420" height="116" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M350 80l18 68M530 80l18 68M530 148l18 68M710 148l18 68" fill="none" stroke="#17211f" stroke-width="1.5" stroke-dasharray="4 3"/>
-<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
-<circle cx="28" cy="290" r="13" fill="#9a4b86"/>
-<g font-weight="700">
-<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">三流并跑时序（预取层数 ≥ 2 时，将 H2D / D2H 隐藏在相邻层计算内）</text>
-<text x="93" y="85" text-anchor="middle" font-size="14.5" fill="#17211f">后台 H2D 接收流</text>
-<text x="93" y="153" text-anchor="middle" font-size="14.5" fill="#17211f">NPU 计算流</text>
-<text x="93" y="221" text-anchor="middle" font-size="14.5" fill="#17211f">后台 D2H 发送流</text>
-<text x="270" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">搬入 L0 历史</text>
-<text x="450" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">预取 L1 历史</text>
-<text x="630" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">预取 L2 历史</text>
-<text x="450" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L0（等 L0 到）</text>
-<text x="630" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L1（等 L1 到）</text>
-<text x="807" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L2 …</text>
-<text x="630" y="212" text-anchor="middle" font-size="14" fill="#065f56">存出 L0 新 KV</text>
-<text x="807" y="212" text-anchor="middle" font-size="14" fill="#065f56">存出 L1 新 KV</text>
-<text x="28" y="295" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="48" y="296" font-size="16" fill="#17211f">共享槽复用的双完成栅栏 &amp; 版本架构演进（v0.30.0 → main）</text>
-<text x="30" y="340" font-size="15" fill="#7a3a6a">联合部署覆写槽前须同时等齐两道门</text>
-<text x="478" y="340" font-size="15" fill="#8f3229">开启条件与代码拆包（v0.30.0 / main）</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="270" y="96" text-anchor="middle">第 0 层立刻发起</text>
-<text x="450" y="96" text-anchor="middle">由 L0 开算事件放行</text>
-<text x="630" y="96" text-anchor="middle">由 L1 开算事件放行</text>
-<text x="450" y="164" text-anchor="middle">写完记 NPU Event</text>
-<text x="630" y="164" text-anchor="middle">写完记 NPU Event</text>
-<text x="807" y="164" text-anchor="middle">末层排空 PUT 队列</text>
-<text x="630" y="232" text-anchor="middle">等 L0 写完事件</text>
-<text x="807" y="232" text-anchor="middle">等 L1 写完事件</text>
-<text x="30" y="366">• 门 1：AscendStore 本层存出完成（防混写）</text>
-<text x="30" y="390">• 门 2：RD2H 远端 D 读完 / P2P 推送完成</text>
-<text x="30" y="414" font-weight="600" fill="#7a3a6a">• 循环 10s 等待并抛后台错（废静默超时）</text>
-<text x="478" y="366">• 默认不共享槽；共享槽须 eager 且拒递推态</text>
-<text x="478" y="390">• Mooncake：v0.30 支持 TP/PP；main 增互斥 PCP/DCP</text>
-<text x="478" y="414" font-weight="600" fill="#8f3229">• main 拆出 ascend_store/layerwise/ 独立子包</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 594" width="900" height="594" role="img" aria-label="Layerwise KV offload 三流并跑时序、搬慢于算暴露等待反例与共享槽 S0 双栅栏" font-family="var(--font-sans)">
+  <title>Layerwise KV offload 三流并跑、4ms vs 3ms 暴露等待反例与物理槽 S0 复用双完成栅栏</title>
+  <desc>_parse_int_config, build_layerwise_cache_layout, handle_preemptions, start_load_kv, wait_for_layer_load</desc>
+  <defs>
+    <marker id="lw-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+    <marker id="lw-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="lw-arr-plum" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#9a4b86"/>
+    </marker>
+    <marker id="lw-arr-blue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1 Header (P1 FIX: do NOT claim prefetch >= 2 guarantees hiding!) -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">三流并跑时序：prefetch ≥ 2 只是重叠前提，搬得比算慢仍会露出等待</text>
+
+  <!-- Stream Labels -->
+  <g stroke="#b8bcb5" stroke-width="1.3" fill="#ece9df">
+    <rect x="16" y="48" width="136" height="46" rx="6"/>
+    <rect x="16" y="106" width="136" height="46" rx="6"/>
+    <rect x="16" y="164" width="136" height="46" rx="6"/>
+  </g>
+  <g text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">
+    <text x="84" y="76">后台 H2D 接收流</text>
+    <text x="84" y="134">NPU 计算流</text>
+    <text x="84" y="192">后台 D2H 发送流</text>
+  </g>
+
+  <!-- Ideal pipeline blocks -->
+  <rect x="168" y="48" width="142" height="46" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="239" y="69" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">搬入 L0 历史</text>
+  <text x="239" y="87" text-anchor="middle" font-size="13.5" fill="#4d5652">第 0 层立刻发起</text>
+
+  <rect x="330" y="48" width="146" height="46" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="403" y="69" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">预取 L1 历史</text>
+  <text x="403" y="87" text-anchor="middle" font-size="13.5" fill="#4d5652">等 L0 开算事件</text>
+
+  <rect x="496" y="48" width="146" height="46" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="569" y="69" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">预取 L2 历史</text>
+  <text x="569" y="87" text-anchor="middle" font-size="13.5" fill="#4d5652">等 L1 开算事件</text>
+
+  <rect x="330" y="106" width="146" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="403" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">算 L0（等 L0 到）</text>
+  <text x="403" y="145" text-anchor="middle" font-size="13.5" fill="#4d5652">写完记 NPU Event</text>
+
+  <rect x="496" y="106" width="146" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="569" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">算 L1（等 L1 到）</text>
+  <text x="569" y="145" text-anchor="middle" font-size="13.5" fill="#4d5652">写完记 NPU Event</text>
+
+  <rect x="662" y="106" width="222" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="773" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">算末层 → 末层存出收尾</text>
+  <text x="773" y="145" text-anchor="middle" font-size="13.5" fill="#8f3229">无 PUT 任务则事件直接置位！</text>
+
+  <rect x="496" y="164" width="146" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="569" y="185" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">存出 L0 新 KV</text>
+  <text x="569" y="203" text-anchor="middle" font-size="13.5" fill="#4d5652">等 L0 写完事件</text>
+
+  <rect x="662" y="164" width="222" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="773" y="185" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">顺序排空 PUT 队列（有任务时）</text>
+  <text x="773" y="203" text-anchor="middle" font-size="13.5" fill="#4d5652">末层空队列≠前队列已排空</text>
+
+  <!-- Dependency arrows between streams -->
+  <path d="M310 71 L326 122 M476 71 L492 122 M476 129 L492 180 M642 129 L658 180" fill="none" stroke="#17211f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#lw-arr-ink)"/>
+
+  <!-- Counterexample Strip: 4 ms copy vs 3 ms compute + 2 ms L3 D2H tail = 21 ms (scale: 26 px/ms) -->
+  <rect x="16" y="226" width="868" height="94" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="249" font-size="14" font-weight="700" fill="#8f3229">反例：prefetch ≥ 2 但搬入 (4 ms) &gt; 计算 (3 ms) → 每层暴露 +1 ms 等待，加末层存出 2 ms 共 21 ms（整趟 36 ms）</text>
+
+  <text x="30" y="276" font-size="13.5" font-weight="700" fill="#3a4f93">H2D (4 ms)</text>
+  <rect x="130" y="259" width="104" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="182" y="275" text-anchor="middle" font-size="13.5" fill="#3a4f93">L0 (4ms)</text>
+  <rect x="234" y="259" width="104" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="286" y="275" text-anchor="middle" font-size="13.5" fill="#3a4f93">预取 L1 (4ms)</text>
+  <rect x="338" y="259" width="104" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="390" y="275" text-anchor="middle" font-size="13.5" fill="#3a4f93">预取 L2 (4ms)</text>
+  <rect x="442" y="259" width="104" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="494" y="275" text-anchor="middle" font-size="13.5" fill="#3a4f93">预取 L3 (4ms)</text>
+  <text x="558" y="275" font-size="13.5" fill="#065f56">L0–L2 存出藏于计算，末层 L3 尾段露 2 ms</text>
+
+  <text x="30" y="306" font-size="13.5" font-weight="700" fill="#936300">计算+尾存</text>
+  <rect x="130" y="289" width="104" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="182" y="305" text-anchor="middle" font-size="13.5" fill="#66716d">首层等 4ms</text>
+  <rect x="234" y="289" width="78" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="273" y="305" text-anchor="middle" font-size="13.5" fill="#936300">算 L0</text>
+  <rect x="312" y="289" width="26" height="22" rx="2" fill="#b54237" fill-opacity="0.28" stroke="#b54237" stroke-width="1.4"/>
+  <text x="325" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">等</text>
+  <rect x="338" y="289" width="78" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="377" y="305" text-anchor="middle" font-size="13.5" fill="#936300">算 L1</text>
+  <rect x="416" y="289" width="26" height="22" rx="2" fill="#b54237" fill-opacity="0.28" stroke="#b54237" stroke-width="1.4"/>
+  <text x="429" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">等</text>
+  <rect x="442" y="289" width="78" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="481" y="305" text-anchor="middle" font-size="13.5" fill="#936300">算 L2</text>
+  <rect x="520" y="289" width="26" height="22" rx="2" fill="#b54237" fill-opacity="0.28" stroke="#b54237" stroke-width="1.4"/>
+  <text x="533" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">等</text>
+  <rect x="546" y="289" width="78" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="585" y="305" text-anchor="middle" font-size="13.5" fill="#936300">算 L3</text>
+  <rect x="624" y="289" width="52" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="650" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">存 L3</text>
+  <text x="686" y="305" font-size="13.5" font-weight="700" fill="#8f3229">总计 21 ms（+1 ms/层）</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="336" x2="884" y2="336" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Physical Slot Occupancy Strip (S0 shared by L1 -> L3) + Dual Barrier Arrows -->
+  <circle cx="24" cy="360" r="12" fill="#9a4b86"/>
+  <text x="24" y="364.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="366" font-size="16" font-weight="700" fill="#17211f">物理槽位占用条（S0 由 L1 → L3 轮换复用）：事件依赖箭头直接锁住 S0 覆写</text>
+
+  <!-- Slot S0 Label -->
+  <rect x="16" y="388" width="96" height="86" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="64" y="424" text-anchor="middle" font-size="15" font-weight="700" fill="#7a3a6a">物理槽 S0</text>
+  <text x="64" y="446" text-anchor="middle" font-size="13.5" fill="#4d5652">L1 → L3 共用</text>
+
+  <!-- S0 Phase 1: L1 occupies S0 -->
+  <rect x="124" y="398" width="142" height="66" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="195" y="425" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">L1 占用 S0</text>
+  <text x="195" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">搬入 + 算 L1</text>
+
+  <!-- Two parallel completion barriers draining S0 -->
+  <path d="M266 418 H292" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lw-arr-teal)"/>
+  <path d="M266 446 H292" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#lw-arr-plum)"/>
+
+  <rect x="298" y="388" width="224" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="410" y="411" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">门 1：AscendStore 存出 L1 完</text>
+
+  <rect x="298" y="438" width="224" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="410" y="461" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">门 2：RD2H 远端 D 读/推完 L1</text>
+
+  <!-- Converge to AND Dual Barrier -->
+  <path d="M522 406 H552 V420 M522 456 H552 V442" fill="none" stroke="#17211f" stroke-width="1.6"/>
+  <rect x="552" y="400" width="90" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="597" y="427" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">双栅栏</text>
+  <text x="597" y="448" text-anchor="middle" font-size="13.5" fill="#8f3229">全就绪 ✓</text>
+
+  <!-- Direct gate arrow into L3 reuse of S0 -->
+  <line x1="642" y1="431" x2="674" y2="431" stroke="#4c65b6" stroke-width="2.2" marker-end="url(#lw-arr-blue)"/>
+  <rect x="680" y="398" width="204" height="66" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="782" y="425" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">L3 才允许搬入覆写 S0</text>
+  <text x="782" y="447" text-anchor="middle" font-size="13.5" fill="#4d5652">无加载任务时入口也须等</text>
+
+  <!-- Slot S1 Label & concurrent bar -->
+  <rect x="16" y="488" width="96" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="64" y="515" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">物理槽 S1</text>
+
+  <rect x="220" y="490" width="430" height="40" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="435" y="515" text-anchor="middle" font-size="13.5" fill="#4d5652">L2 独占 S1（搬入 + 计算 + 存出，与 L1 排空 S0 重叠并行）</text>
+
+  <!-- Footer Architecture & Version Strip -->
+  <rect x="16" y="544" width="868" height="40" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
+  <text x="30" y="569" font-size="13.5" fill="#4d5652">v0.26+ 改为 10 s 循环等待并抛后台错（废旧版 10 s 静默超时）；共享槽须 eager 且拒递推态；main 拆包 <tspan font-family="var(--font-mono)" font-weight="700">ascend_store/layerwise/</tspan></text>
 </svg>

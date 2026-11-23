@@ -1,0 +1,10 @@
+mode: native-svg
+id: speculative-fig-rejection-sampling
+caption: >-
+  随机采样下的拒绝采样概率守恒与 block verify 反例：上半区在同一 [0, 1] 标尺上对比草稿分布 q=[0.8, 0.1, 0.1] 与目标分布 p=[0.6, 0.3, 0.1]，「猫」按 min(1, 0.6/0.8)=0.75 留下 0.6 质量、被拒的 0.2 质量经 max(0, p−q) 归一后 100% 补给「你」，精准复原 [0.6, 0.3, 0.1]；下半区演示 K=3、A/B 各 0.5、随机数 [0.8, 0.1, 0.9] 时 block verify 因累积比通过而连留三个 A，令首词 A 概率升至 ≥0.6733，打破保分布等价性。
+size: [900, 600]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L769-L925'
+    symbols: ['rejection_random_sample_kernel', 'sample_recovered_tokens_kernel']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L399-L410'
+    symbols: ['enable_block_verify', 'enable_entropy_verify', 'posterior_threshold', 'posterior_alpha']

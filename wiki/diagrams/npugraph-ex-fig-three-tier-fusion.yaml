@@ -1,14 +1,14 @@
 mode: native-svg
 id: npugraph-ex-fig-three-tier-fusion
 caption: >-
-  三级编译加速依赖链（npugraph_ex → static_kernel → super_kernel）与双路融合 Pass 门控：左侧展示三项配置在 A2/A3/A5、310P 与非纯整图档位下的强制断言或静默刷回规则；右侧对比规则一次注册、双路消费（npugraph_ex_compile 与本地 fusion_pass_compile）及 main 新增 MatmulReduceScatterFusionPass。
-size: [900, 470]
+  三级编译加速门控与 static kernel 宽度档位筛选：上半呈现硬件能力（310P 静默刷 False vs A2/A3/A5 强校验 AssertionError）与纯整图档位（非 FULL/FULL_DECODE_ONLY 静默刷 False）两道门控及双路融合分流；下半以 {2,4,8,16,32} 示意展示 [1+k, N×(1+k)] 闭区间如何精确筛出 {2,4,8} 送去静态编译。
+size: [900, 540]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L170
     symbols: [AscendCompilationConfig, enable_npugraph_ex, enable_static_kernel, enable_super_kernel]
   - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1354
     symbols: [enable_npugraph_ex, enable_static_kernel]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L48-L70
-    symbols: [fusion_pass_compile]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L71-L150
+    symbols: [_compute_decode_cudagraph_batch_sizes, _configure_backend, enable_static_kernel]
   - source: vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79
     symbols: [AddRMSNormQuantFusionPass, QKNormRopeFusionPass, MulsAddFusionPass, MatmulReduceScatterFusionPass]

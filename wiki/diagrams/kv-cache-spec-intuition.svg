@@ -1,24 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 350" width="860" height="350" role="img" aria-label="规格先说明每层要保存什么，再换成页的大小，最后按兼容的管理方式分组。图只画通用顺序；页是否补齐、分几组、哪些层共用显存，由实际模型布局决定。同组共用块号，各层的数据仍放在自己的页中。">
-  <title>规格先说明每层要保存什么，再换成页的大小，最后按兼容的管理方式分组。图只画通用顺序；页是否补齐、分几组、哪些层共用显存，由实际模型布局决定。同组共用块号，各层的数据仍放在自己的页中。</title>
-  <defs><marker id="kv-cache-spec-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-spec-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <path d="M215 115 L215 155" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-kv)"/>
-  <path d="M645 115 L645 155" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-kv)"/>
-  <path d="M215 215 L215 244 L340 244 L340 270" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-control)"/>
-  <path d="M645 215 L645 244 L520 244 L520 270" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-control)"/>
-  <rect x="35" y="50" width="360" height="65" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="215" y="78.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">随位置增加的历史</text>
-  <text x="215" y="97.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">每个位置有一份数据</text>
-  <rect x="465" y="50" width="360" height="65" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="645" y="78.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每条请求的固定状态</text>
-  <text x="645" y="97.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">更新同一份状态继续计算</text>
-  <rect x="35" y="155" width="360" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="215" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按一块覆盖的位置算页</text>
-  <text x="215" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">位置数 × 每个位置的字节数</text>
-  <rect x="465" y="155" width="360" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="645" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">页要容纳整份状态</text>
-  <text x="645" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">必要时补上空白以对齐槽位</text>
-  <rect x="190" y="270" width="480" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-  <text x="430" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按管理规则编成缓存组</text>
-  <text x="430" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">同组共用块号清单，各层各存自己的数据</text>
-  <text x="430" y="25" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每层的空间说明 → 页的单价 → 分组管理</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 356" width="900" height="356" role="img" aria-label="三类 KV cache 规格从存储形态到页大小补齐再到缓存分组的总览图" font-family="var(--font-sans)">
+  <title>KV cache 规格（KVCacheSpec）如何把普通注意力、MLA 与递推状态换算成单页字节，并按实际模型布局决定是否页补齐与编成缓存组。</title>
+  <desc>三排自上而下展示：一、三类规格各算各的页字节——FullAttentionSpec 按 2×block_size×n_kv×d_h×bytes、MLAAttentionSpec 无系数 2 且按 block_size÷压缩比折算、MambaSpec 按固定卷积与递推矩阵字节与块长无关；二、按模型布局决定是否补齐（单组同构如 Qwen3 免补齐，异构共用显存槽位时通过 page_size_padded 在档内对齐，如 GLM 分大小两档）；三、兼容的层编入同一 KVCacheGroupSpec，同组共用块号清单，各层独享自己的页。</desc>
+  <defs>
+    <marker id="ksi-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <pattern id="ksi-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#c78300" stroke-width="1.6" stroke-opacity="0.45"/>
+    </pattern>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">每层先报「规格」→ 换算并补齐「页单价」→ 按管理规则编成「缓存组」</text>
+
+  <!-- Row 1: 3 Spec classes -->
+  <rect x="14" y="40" width="278" height="106" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="64" font-size="14.5" font-weight="700" fill="#3a4f93">1A. AttentionSpec（GQA / 滑窗）</text>
+  <text x="28" y="88" font-size="13.5" fill="#17211f">每位置存 K、V 两份（系数 2）</text>
+  <text x="28" y="110" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2 × B × n_kv × d_h × bytes</text>
+  <text x="28" y="132" font-size="13" fill="#4d5652">例：Qwen3-8B 单层 512 KiB/块</text>
+
+  <rect x="310" y="40" width="278" height="106" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="324" y="64" font-size="14.5" font-weight="700" fill="#065f56">1B. MLAAttentionSpec（压缩潜向量）</text>
+  <text x="324" y="88" font-size="13.5" fill="#17211f">不分 K/V（无系数 2），支持压缩比 r</text>
+  <text x="324" y="110" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">(B ÷ r) × 1 × d_c × bytes</text>
+  <text x="324" y="132" font-size="13" fill="#4d5652">例：GLM MLA 640×512×2 = 640 KiB</text>
+
+  <rect x="606" y="40" width="280" height="106" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="620" y="64" font-size="14.5" font-weight="700" fill="#936300">1C. MambaSpec（KDA / 线性状态）</text>
+  <text x="620" y="88" font-size="13.5" fill="#17211f">整份卷积 + 递推矩阵，与块长无关</text>
+  <text x="620" y="110" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#936300">Σ(state_shape × bytes)</text>
+  <text x="620" y="132" font-size="13" fill="#4d5652">例：GLM KDA 561,152 B/层/请求</text>
+
+  <!-- Arrows down to Row 2 -->
+  <line x1="153" y1="146" x2="153" y2="170" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ksi-arr)"/>
+  <line x1="449" y1="146" x2="449" y2="170" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ksi-arr)"/>
+  <line x1="746" y1="146" x2="746" y2="170" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ksi-arr)"/>
+
+  <!-- Row 2: Page alignment / padding visual -->
+  <rect x="14" y="174" width="872" height="72" rx="9" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="28" y="198" font-size="14.5" font-weight="700" fill="#17211f">2. 按模型布局决定是否页对齐（单组免补齐；不同层共用槽位时同档须等跨度）</text>
+
+  <!-- Page A: Full unpadded (250 px) -->
+  <rect x="28" y="208" width="250" height="28" rx="4" fill="#087f73"/>
+  <text x="153" y="227" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">大页基准（满载零空白，如 MLA）</text>
+
+  <text x="294" y="227" text-anchor="middle" font-size="14" font-weight="700" fill="#4d5652">=</text>
+
+  <!-- Page B: Exact 85.6% (214 px) + 14.4% (36 px) on 250 px total -->
+  <rect x="310" y="208" width="214" height="28" rx="4" fill="#c78300"/>
+  <text x="417" y="227" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">有效状态（如 KDA 85.6%）</text>
+  <rect x="524" y="208" width="36" height="28" rx="3" fill="url(#ksi-hatch)" stroke="#c78300" stroke-width="1.2"/>
+  <text x="572" y="227" font-size="13" fill="#936300">← page_size_padded 补齐空白（14.4%）</text>
+
+  <line x1="450" y1="246" x2="450" y2="270" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ksi-arr)"/>
+
+  <!-- Row 3: Grouping -->
+  <rect x="14" y="274" width="872" height="68" rx="9" fill="#17211f"/>
+  <text x="450" y="302" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">3. 按兼容管理方式编成缓存组（KVCacheGroupSpec）</text>
+  <text x="450" y="326" text-anchor="middle" font-size="13.5" fill="#ddf4ef">同组各层共用 1 张 block_table（同一串块号），各层数据仍写入各自独立的物理页</text>
 </svg>

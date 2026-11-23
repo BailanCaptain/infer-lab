@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="GLM 双机示例请求 R1 第 1 步与第 2 步单卡增量对照及 DP1 空批陪跑" font-family="var(--font-sans)">
+  <title>GLM 双机 R1 两步对照：输入同为 4 行，选行 1→4、logits [1,154880]→[4,154880] 与 DP1 陪跑</title>
+  <desc>Compact 2-step GLM R1 delta comparing Step 1 prefill (selected 1 row, logits [1,154880], eager) vs Step 2 MTP-3 decode (selected 4 rows, logits [4,154880], ACLGraph #4, KDA accepted count) alongside DP1 dummy run</desc>
+  <defs>
+    <marker id="g2-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="g2-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="g2-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">GLM 双机 R1 两步单卡变化（同为 4 行输入，选行与执行路径完全不同）</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">2×A2×8 · TP8/DP2/EP16 · MTP-3</text>
+
+  <!-- Step 1 Row (Prefill) -->
+  <rect x="16" y="48" width="868" height="142" rx="8" fill="#fff4cf" fill-opacity="0.4" stroke="#c78300" stroke-width="1.3"/>
+  <text x="28" y="72" font-size="15" font-weight="700" fill="#936300">第 1 步 · Prefill（DP0 8 张卡各跑同 4 行提示词，位置 0..3）</text>
+
+  <!-- Input 4 rows with row 3 highlighted -->
+  <rect x="28" y="86" width="128" height="86" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="92" y="106" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">4 行前向输出</text>
+  <rect x="38" y="114" width="24" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/><text x="50" y="130" text-anchor="middle" font-size="13.5" fill="#66716d">0</text>
+  <rect x="66" y="114" width="24" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/><text x="78" y="130" text-anchor="middle" font-size="13.5" fill="#66716d">1</text>
+  <rect x="94" y="114" width="24" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/><text x="106" y="130" text-anchor="middle" font-size="13.5" fill="#66716d">2</text>
+  <rect x="122" y="114" width="24" height="22" rx="3" fill="#c78300"/><text x="134" y="130" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+  <text x="92" y="160" text-anchor="middle" font-size="13.5" fill="#936300">eager · 仅选第 3 行</text>
+
+  <line x1="158" y1="129" x2="184" y2="129" stroke="#4d5652" stroke-width="1.6" marker-end="url(#g2-arr-ink)"/>
+
+  <!-- Logits Step 1 -->
+  <rect x="188" y="86" width="210" height="86" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="293" y="110" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">lm_head + All-Gather</text>
+  <text x="293" y="134" text-anchor="middle" font-size="14.5" font-weight="700" font-family="var(--font-mono)" fill="#17211f">logits [1, 154880]</text>
+  <text x="293" y="158" text-anchor="middle" font-size="13.5" fill="#4d5652">每卡先算 19,360 词再拼齐</text>
+
+  <line x1="400" y1="129" x2="426" y2="129" stroke="#4d5652" stroke-width="1.6" marker-end="url(#g2-arr-ink)"/>
+
+  <!-- Sample + MTP Step 1 -->
+  <rect x="430" y="86" width="214" height="86" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="537" y="110" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">RPC 2: 普通采样器</text>
+  <text x="537" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">8 卡同出首词 y₀</text>
+  <text x="537" y="158" text-anchor="middle" font-size="13.5" fill="#4d5652">仅 0 号卡交回引擎</text>
+
+  <line x1="646" y1="129" x2="672" y2="129" stroke="#087f73" stroke-width="1.6" marker-end="url(#g2-arr-teal)"/>
+
+  <rect x="676" y="86" width="194" height="86" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="773" y="110" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">3× eager MTP 草拟</text>
+  <text x="773" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">猜出 d₁, d₂, d₃</text>
+  <text x="773" y="158" text-anchor="middle" font-size="13.5" fill="#4d5652">异步留 NPU 供下步直读</text>
+
+  <!-- Step 2 Row (Decode + MTP-3) -->
+  <rect x="16" y="206" width="868" height="150" rx="8" fill="#ddf4ef" fill-opacity="0.45" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="230" font-size="15" font-weight="700" fill="#065f56">第 2 步 · Decode + MTP-3（输入 y₀ + d₁..d₃，位置 4..7 → 命中 ACLGraph #4 整图回放）</text>
+
+  <!-- Input 4 rows ALL highlighted -->
+  <rect x="28" y="244" width="128" height="94" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="92" y="264" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">4 行全选中验证</text>
+  <rect x="38" y="272" width="24" height="22" rx="3" fill="#087f73"/><text x="50" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">0</text>
+  <rect x="66" y="272" width="24" height="22" rx="3" fill="#087f73"/><text x="78" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">1</text>
+  <rect x="94" y="272" width="24" height="22" rx="3" fill="#087f73"/><text x="106" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">2</text>
+  <rect x="122" y="272" width="24" height="22" rx="3" fill="#087f73"/><text x="134" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+  <text x="92" y="314" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">ACLGraph #4</text>
+  <text x="92" y="332" text-anchor="middle" font-size="13.5" fill="#4d5652">选行 1 → 4（×4）</text>
+
+  <line x1="158" y1="291" x2="184" y2="291" stroke="#087f73" stroke-width="1.6" marker-end="url(#g2-arr-teal)"/>
+
+  <!-- Logits Step 2 -->
+  <rect x="188" y="244" width="210" height="94" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="293" y="268" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">全 4 行过 lm_head</text>
+  <text x="293" y="294" text-anchor="middle" font-size="14.5" font-weight="700" font-family="var(--font-mono)" fill="#17211f">logits [4, 154880]</text>
+  <text x="293" y="316" text-anchor="middle" font-size="13.5" fill="#3a4f93">ExecuteModelState 前三项</text>
+  <text x="293" y="333" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">单卡合计 ≈ 1.24 MiB</text>
+
+  <line x1="400" y1="291" x2="426" y2="291" stroke="#087f73" stroke-width="1.6" marker-end="url(#g2-arr-teal)"/>
+
+  <!-- Rejection Sampler Step 2 -->
+  <rect x="430" y="244" width="214" height="94" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="537" y="268" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">RPC 2: 拒绝采样器</text>
+  <text x="537" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">交回 1 ~ 4 个 token</text>
+  <text x="537" y="316" text-anchor="middle" font-size="13.5" fill="#4d5652">前 3 行验草稿，全过</text>
+  <text x="537" y="333" text-anchor="middle" font-size="13.5" fill="#4d5652">第 4 行多给 1 个新词</text>
+
+  <line x1="646" y1="291" x2="672" y2="291" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#g2-arr-plum)"/>
+
+  <!-- KDA Accepted Count -->
+  <rect x="676" y="244" width="194" height="94" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="773" y="268" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">3× MTP + KDA 记账</text>
+  <text x="773" y="294" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">侧流统计本步接受数</text>
+  <text x="773" y="316" text-anchor="middle" font-size="13.5" fill="#4d5652">写 accepted_tokens 表</text>
+  <text x="773" y="333" text-anchor="middle" font-size="13.5" fill="#7a3a6a">供下步 34 层 KDA 续算</text>
+
+  <!-- Parallel Track: DP1 Dummy Sidecar -->
+  <rect x="16" y="374" width="868" height="82" rx="7" fill="#ece9df" stroke="#9a4b86" stroke-width="1.4" stroke-dasharray="6 3"/>
+  <text x="30" y="400" font-size="14.5" font-weight="700" fill="#7a3a6a">同期并行的另一台机 · DP1（node1 8 个 Worker，无真实请求）</text>
+  <text x="30" y="424" font-size="13.5" fill="#4d5652">不走常规 RPC 1 / RPC 2，而是执行 <tspan font-family="var(--font-mono)" fill="#17211f">execute_dummy_batch → _dummy_run(4)</tspan> 与 DP0 对齐宽度与图模式，</text>
+  <text x="30" y="445" font-size="13.5" fill="#4d5652">完整跑完 45 层并陪跑草稿层，凑齐 EP16 MoE 跨卡通信所需的全部 16 张卡。</text>
+</svg>

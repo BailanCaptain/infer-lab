@@ -92,7 +92,8 @@ file: continuous-batching-static-vs-iter
 由 Orca（OSDI'22）提出并被 vLLM 作为核心底座落地的 **Continuous Batching**，正是如上图右栏那样把锁死整批的铁门拆掉，改成围绕 `EngineCore.step()` 的**单步三连闭环**与**一维无填充拼接（1D Ragged Batching）**：
 
 - **步首动态选人（`Scheduler.schedule`）**：每一步只决定「本步让哪些请求各算几个 token」（记入字典 `num_scheduled_tokens`）。在 `t=2` 步末，`update_from_output` 调用 `check_stop` 发现 `R1` 命中 `eos_token_id`，当场释放 `R1` 的缓存块并将它移出在跑列表；到了 `t=3` 步首，新请求 `R3` 立刻补位，与正在逐词生成的 `R2` 混在同一批执行。
-- **一维紧致拼接（`_prepare_inputs` 零 `<pad>` 拼批）**：Worker 进程不再构造 `[batch_size, max_seq_len]` 二维矩阵，而是把本步入选请求的待算 token 头尾相接，拍平成长度为 `total_num_scheduled_tokens` 的一维紧致序列。例如 `t=1` 把 `R1` 的 2 个提示词和 `R2` 的 5 个提示词拼成长 `[7]`；`t=3` 把 `R2` 的 1 个生成词与 `R3` 的 3 个提示词拼成长 `[4]`。请求边界由一维前缀和数组 `query_start_loc`（如 `t=3` 为 `[0, 1, 4]`）与位置数组 `positions` 标记：线性层与 MLP 对所有行一视同仁做紧凑矩阵乘，注意力算子按 `query_start_loc` 切回各自请求、只读各自的历史缓存，请求之间**零 `<pad>` 填充**。
+- **一维紧致拼接（`_prepare_inputs` 零 `<pad>` 拼批）**：Worker 不再构造 `[batch_size, max_seq_len]` 二维矩阵，而是把本步入选请求的待算 token 头尾相接，拍平成长度为 `total_num_scheduled_tokens` 的一维紧致序列。例如 `t=1` 将 `R1` 的 2 个提示词和 `R2` 的 5 个提示词拼成长 `[7]`；`t=3` 将 `R2` 的 1 个生成词与 `R3` 的 3 个提示词拼成长 `[4]`。
+  请求边界由一维前缀和数组 `query_start_loc`（如 `t=3` 为 `[0, 1, 4]`）与位置数组 `positions` 标记：线性层与 MLP 对所有行做紧凑矩阵乘，注意力算子按 `query_start_loc` 切回各自请求、只读各自历史缓存，请求之间**零 `<pad>` 填充**。
 
 | 对比维度 | 静态批处理（Static Batching） | 连续批处理（Continuous Batching，vLLM V1） |
 | --- | --- | --- |
@@ -143,9 +144,9 @@ file: continuous-batching-two-queues-trace
 file: continuous-batching-budget-and-preempt
 ```
 
-下面用全站 `v0.30.0` 主基线的标准稠密模型 **`Qwen3-8B`** 把显存与抢占账算实。由 [读懂 HF 模型目录](hf-model-anatomy.md) 的静态参数可知，`Qwen3-8B` 共 `36` 层、每层 `8` 个 KV 头、`head_dim = 128`，BF16（`2 B`）精度下每 token 的 `KV cache` 为 $2 \times 36 \times 8 \times 128 \times 2\text{ B} = 144\text{ KiB}$。昇腾后端默认按 `block_size = 128` 个位置切分物理块，因此**每一块物理 KV 块固定占 $128 \times 144\text{ KiB} = 18\text{ MiB}$**。
+下面用全站 `v0.30.0` 主基线的标准稠密模型 **`Qwen3-8B`** 把显存与抢占账算实。由 [读懂 HF 模型目录](hf-model-anatomy.md) 可知，`Qwen3-8B` 共 `36` 层、每层 `8` 个 KV 头、`head_dim = 128`，BF16（`2 B`）精度下每 token 的 `KV cache` 为 $2 \times 36 \times 8 \times 128 \times 2\text{ B} = 144\text{ KiB}$。昇腾后端默认按 `block_size = 128` 切分物理块，因此**每块物理 KV 块固定占 $128 \times 144\text{ KiB} = 18\text{ MiB}$**。
 
-为了让你能徒手核对每一块的去向，下面取一个缩小版**教学示意块池**：设扣除系统永久保留的 0 号 `null_block` 后，池内共有 **`20` 个可分配物理 KV 块（可借容量 `2,560` 个位置，合 `360 MiB`）**，单步 `max_num_batched_tokens = 2048`，按先后顺序入场的 `R1`、`R2`、`R3` 三条请求正处于 `running` 列表中：
+为方便徒手核对每一块的去向，下面构造一个缩小版**教学示意块池**：扣除永久保留的 0 号 `null_block` 后，池内共有 **`20` 个可分配物理 KV 块（`2,560` 个位置，合 `360 MiB`）**，单步预算 `max_num_batched_tokens = 2048`。按先后顺序入场的 `R1`、`R2`、`R3` 正处于 `running` 列表中：
 
 | 演变时刻 | 三条请求的位置数与占块账（`128` 词/块） | `allocate_slots` 判定与调度器动作 | 显存块池余量与后续恢复 |
 | --- | --- | --- | --- |
@@ -159,14 +160,20 @@ file: continuous-batching-budget-and-preempt
 - **为什么默认挑 `running` 队尾（后进先出 LIFO）开刀？** 在默认 `FCFS` 策略下，队尾请求最晚入场、已生成的词通常最少，推倒重算浪费的算力最小；同时也能保住排在队首的老请求尽快跑完、腾出整片显存。
 - **为什么 vLLM V1 默认采用 `RECOMPUTE`（释放重算）而不是早期 V0 的 CPU `SWAP`？** 被抢占时，请求已生成的词早已作为普通 token 编号保存在 CPU 对象里。恢复时把「提示词 + 已生成词」拼成连续序列，在 Cube 矩阵单元上扫一遍宽 Prefill，耗时往往远低于把零散的 `18 MiB` 大块经 PCIe 总线来回搬运。
 
-> **边界与例外（`PRIORITY` 策略下的抢占顺序）**：若显式开启 `PRIORITY` 调度策略，因 `priority` 整数越小代表优先级越高，`max(self.running, key=lambda r: (r.priority, r.arrival_time))` 会改为驱逐逻辑优先级最低（即 `priority` 数值最大、同级最晚到达）的请求，而不再固定弹出队尾。
+> **边界与例外（`PRIORITY` 策略下的抢占顺序）**：开启 `PRIORITY` 策略时，`priority` 整数越小代表优先级越高。调度器改为通过 `max(self.running, key=lambda r: (r.priority, r.arrival_time))` 驱逐优先级最低（数值最大、同级最晚到达）的请求，而不再固定弹出队尾。
 
 ## 落到昇腾部署：2048 默认批预算、ACLGraph 补齐与扩展调度器边界
 
-把通用连续批处理搬上昇腾 NPU 时，执行与配置层有三条最容易让人误判的工程边界：
+把通用连续批处理搬上昇腾 NPU 时，执行与配置层最容易引起误判的两条工程边界——**`ACLGraph` 向上补齐**与 **`vllm serve` 的 `2048` 默认预算**——拆开看如下：
 
-1. **为什么 64 GiB 昇腾卡跑 `vllm serve` 时，`max_num_batched_tokens` 默认只有 `2048`？** 上游 `EngineArgs.get_batch_defaults` 在解析命令行默认值时，会调用 `get_device_total_memory()` 按显存大小分档（$\ge 70\text{ GiB}$ 在线默认给 `8192`）。但在该时机 Worker 尚未初始化 `torch_npu`，`NPUPlatform.get_device_total_memory()` 为避免提前触发单次全局 NPU 运行时初始化，会主动抛出 `NotImplementedError`，使外层回落到 `device_memory = 0` 分支。因此在线 `vllm serve` 默认拿到 `max_num_batched_tokens = 2048`、`max_num_seqs = 256`（离线 `LLM` 类为 `8192` / `256`；传入 `--performance-mode throughput` 会将两者翻倍，完整求值分支见 [vllm serve 核心参数](core-cli-params.md)）。
-2. **`ACLGraph` 的批次向上补齐（Padding）会不会把连续批处理打回静态批处理？** **不会。** 在昇腾默认开启的 `ACLGraph` 图模式下，Worker 执行侧（`cudagraph_dispatcher` 与 `_pad_query_start_loc_for_fia`）会把本步一维总长 `total_num_scheduled_tokens`（及纯 Decode 图下的请求数 `num_reqs`）向上补齐到最近的已捕获图档位（如 `19` 补到 `24` 或 `32`），并把尾部 `slot_mapping` 填为 `-1`，禁止算子污染真实物理 KV 块。这种补齐**只发生在单次前向的算子回放层**；谁在步末 `EOS` 退场、谁在下一步从 `waiting` 补位、物理块何时借还，依然 100% 按步动态流转（多机 DP/MoE 下的跨组宽度对齐与陪跑见 [多条请求同时跑](concurrent-requests.md)）。
+```wiki-diagram
+file: continuous-batching-fig-ascend-padding
+```
+
+结合上图把三条核心边界落到源码语义：
+
+1. **为什么 64 GiB 昇腾卡跑 `vllm serve` 默认只给 `2048`？** 上游 `EngineArgs.get_batch_defaults` 在解析命令行默认值时，按 `get_device_total_memory()` 分档（$\ge 70\text{ GiB}$ 在线默认 `8192`）。此时 Worker 尚未初始化 `torch_npu`，`NPUPlatform.get_device_total_memory()` 为避免提前触发单次全局 NPU 运行时初始化而主动抛出 `NotImplementedError`，使外层回落到 `device_memory = 0` 分支。因此在线 `vllm serve` 默认拿到 `max_num_batched_tokens = 2048`、`max_num_seqs = 256`（离线 `LLM` 类为 `8192` / `256`；加 `--performance-mode throughput` 会将两者翻倍，详见 [vllm serve 核心参数](core-cli-params.md)）。
+2. **`ACLGraph` 补齐（Padding）会不会把连续批处理打回静态批处理？** **不会。** 在昇腾默认 `ACLGraph` 图模式下，`cudagraph_dispatcher` 与 `_pad_query_start_loc_for_fia` 把本步 `total_num_scheduled_tokens`（及纯 Decode 图下的 `num_reqs`）向上补齐到最近已捕获图档位（如 `19 → 24` 或 `32`），并将尾部 `slot_mapping` 填为 `-1`，阻止算子污染真实物理 KV 块。这种补齐**仅发生在单步算子回放层**；谁在步末 `EOS` 退场、谁在下一步从 `waiting` 补位、物理块何时借还，依然 100% 按步动态流转（多机 DP/MoE 陪跑见 [多条请求同时跑](concurrent-requests.md)）。
 3. **昇腾 `additional_config["scheduler_config"]` 策略扩展何时接管默认 `Scheduler`？** 针对特殊部署形态，`vllm-ascend` 提供三类可插拔调度器扩展，按场景严格互斥或受限：
 
 | 扩展配置项（位于 `additional_config.scheduler_config`） | 替换的目标调度器类 | 适用拓扑与硬性边界 |
@@ -183,10 +190,10 @@ file: continuous-batching-budget-and-preempt
 file: continuous-batching-four-myths
 ```
 
-- **“连续批处理是在『纯 Prefill 轮』和『纯 Decode 轮』之间来回切挡。”** 错。V1 `Scheduler.schedule()` 没有阶段切换开关，同一步内先给 `running` 分 `1` 个续写位置，只要 `token_budget` 还有余量就会把 `waiting` 的新提示词拼进同一轮一维批次里混合前向（详见 [Scheduler](vllm-scheduler.md)）。
-- **“排队的新请求（`waiting`）等久了，会抢占正在生成的老请求（`running`）。”** 错。抢占**只**在第一趟扫描 `running` 续跑请求且 `allocate_slots` 返回 `None` 时触发；第二趟扫描 `waiting` 若遇空闲块不足直接 `break` 等待，且只要本步产生过 `preempted_reqs`，整步都会跳过 `waiting` 准入。
-- **“`--max-num-seqs` 调得越大，并发越高、吞吐就一定越高。”** 错。盲目拉高并发槽位会让过多请求同时进入 `running` 并每步 `+1` 吞噬 KV 块；一旦总需求突破块池容量，就会陷入「跨块缺槽 → `PREEMPTED` 释放 → 重算 Prefill」的连环抢占抖动，有效吞吐反而断崖下跌。
-- **“发生抢占时，vLLM 默认会把 KV cache 换出（Swap）到 CPU 内存。”** 错。这是早期 V0 的旧印象；vLLM V1 默认直接走 `RECOMPUTE`（释放物理块并将 `num_computed_tokens` 归零，排回 `waiting` 队首重算），需要把抢占 KV 保存在 CPU DRAM 时必须显式配置 `KVConnector`（如 P/D D 节点的 `PreemptOffloadConnector`）。
+- **“连续批处理是在『纯 Prefill 轮』和『纯 Decode 轮』之间来回切挡。”** 错。V1 `Scheduler.schedule()` 没有阶段切换开关：同一步先给 `running` 分续写位置，只要 `token_budget` 还有余量，就把 `waiting` 的新提示词拼进同一轮一维批次混跑（详见 [Scheduler](vllm-scheduler.md)）。
+- **“排队的新请求（`waiting`）等久了，会抢占正在生成的老请求（`running`）。”** 错。抢占**只**在第一趟扫描 `running` 续跑请求且 `allocate_slots` 返回 `None` 时触发；第二趟扫描 `waiting` 若缺块直接 `break` 等待。一旦本步产生 `preempted_reqs`，整步还会跳过 `waiting` 准入。
+- **“`--max-num-seqs` 调得越大，并发越高、吞吐就一定越高。”** 错。盲目拉高并发槽位会让过多请求同时进入 `running` 并每步 `+1` 吞噬 KV 块；总需求撞破块池容量后，会陷入「跨块缺槽 → `PREEMPTED` 释放 → 重算 Prefill」的连环抢占抖动，有效吞吐反而断崖下跌。
+- **“发生抢占时，vLLM 默认会把 KV cache 换出（Swap）到 CPU 内存。”** 错。那是早期 V0 的做法；vLLM V1 默认直接走 `RECOMPUTE`（释放物理块、`num_computed_tokens` 归零、排回 `waiting` 队首重算）。若需把抢占 KV 暂存 CPU DRAM，必须显式配置 `KVConnector`（如 P/D D 节点的 `PreemptOffloadConnector`）。
 
 ## 对照源码
 

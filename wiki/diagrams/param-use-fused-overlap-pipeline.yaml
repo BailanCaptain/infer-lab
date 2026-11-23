@@ -1,0 +1,14 @@
+mode: native-svg
+id: param-use-fused-overlap-pipeline
+caption: >-
+  Sparse KV Offload 中 use_fused_overlap=false（Copy-SFA：首次填充先搬后算、稳态算子内分段融合）与 true（arch22 多流/双缓冲融合重叠 decode）路径对照：展示分段搬运与计算重叠、混批 prefill 回退校验、TP 分工及报错配置块名陷阱。
+size: [900, 520]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1708
+    symbols: [SparseKVOffloadConfig, use_fused_overlap, use_fused_copy_sfa]
+  - source: vllm-ascend@c09d3e20:csrc/attention/fused_scatter_copy_sparse_flash_attention/README.md#L31-L36
+    symbols: [topk_src_ids]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_kv_offload.py#L1447-L1620
+    symbols: [_execute_fused_overlap_offload_decode, _execute_sparse_flash_attention_process, _check_device_kv_cache_exist]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L658-L790
+    symbols: [use_fused_overlap, kv_offload_decode_config, fused_plan_stream, current_kv_save_stream]

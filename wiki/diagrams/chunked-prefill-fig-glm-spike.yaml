@@ -1,0 +1,9 @@
+id: chunked-prefill-fig-glm-spike
+mode: native-svg
+size: [900, 376]
+caption: GLM-5.3-Flash 双机 DP0 在 8192 预算下把 20,000 词提示词切为 8144+8144+3712 三段时的预算拆法与单步持块量对比：full 组平滑升至 32 块、KDA 常驻 12 块，而块长仅 4 的尾状态组在第 1、2 步临时飙升至 2,037/2,038 块（约 15.9 GiB），进入 decode 后回落至 3 块。
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700
+    symbols: [num_computed_tokens, token_budget, enable_chunked_prefill]
+  - source: vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L582-L625
+    symbols: [SlidingWindowManager]

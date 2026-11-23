@@ -1,0 +1,18 @@
+mode: native-svg
+id: one-request-fig-moe-cross-card
+caption: >-
+  第 4 站 45 层排布与单层 MoE 跨 16 卡走读（R1，T = 4，MC2 路径）：顶部按实际 45 层顺序标出 KDA+稠密（3 层）、稀疏 MLA+MoE（11 层）与 KDA+MoE（31 层）；下方展开一层 MoE，展示路由专家支路（4 行补齐为 8 行、TP8 切片、EP16 MC2 dispatch 到全部 16 卡含填充源卡与 DP1 陪跑卡、combine 并 TP8 All-Gather 得到 routed_out）与共享专家支路（直接以原始 hidden_states [4, 4096] 并行计算并做 TP8 All-Reduce 得到 shared_out）在末尾相加汇合。
+size: [900, 560]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2242'
+    symbols:
+      - AscendGlm5NextDecoderLayer
+      - AscendGlm5NextMoE
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L845-L895'
+    symbols:
+      - shared_forward_impl
+      - _forward_shared_experts
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252'
+    symbols:
+      - mc2_tokens_capacity
+      - _select_a2_moe_comm_method

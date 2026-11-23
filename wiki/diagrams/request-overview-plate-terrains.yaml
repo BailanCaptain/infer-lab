@@ -1,0 +1,18 @@
+mode: native-svg
+id: request-overview-plate-terrains
+caption: >-
+  一次请求的三块硬件地盘立体拆解直觉：左侧 Host CPU 承接分词切号、调度与停止检查；中部 NPU HBM 显存常驻模型权重并逐层存放历史 KV Cache；四通道搬运带把权重与 KV 送进右侧 AI Core 计算阵列，Prefill 易吃满算力，Decode 则因每步仅算 1 个新词却搬运全量权重与历史 KV 而卡在 HBM 带宽。
+size: [900, 560]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L620'
+    symbols: ['step', 'schedule', 'execute_model']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L573'
+    symbols: ['schedule', 'num_computed_tokens']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L485-L530'
+    symbols: ['kv_cache', 'attn_metadata']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136'
+    symbols: ['check_stop']
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L96-L135'
+    symbols: ['update', 'decode_next']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2633-L2646'
+    symbols: ['logits_indices', 'compute_logits']

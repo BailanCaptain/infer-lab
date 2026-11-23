@@ -1,0 +1,14 @@
+mode: native-svg
+id: param-load-risk-quantile-scope
+caption: >-
+  load_risk_quantile 风险换算标尺与生效边界：左侧展示分位数到 z 的非线性放大及同均值（10）不同标准差（0 vs 4）的风险分差；右侧划清「z 仅驱动候选生成（副本数 + 协方差 LPT），不改变门槛与最终 mean/p95 裁决」。
+size: [900, 440]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L217-L244
+    symbols: [load_risk_quantile, z_score]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L310-L330
+    symbols: [weighted_moments]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L380-L396
+    symbols: [expert_risk]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1129-L1189
+    symbols: [plan_layer]

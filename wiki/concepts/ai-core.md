@@ -93,7 +93,7 @@ file: ai-core
 
 | 硬件部件 / 存储层级 | 所在位置与职责 | 典型处理的运算或流向 | 初学者最易混淆的边界 |
 | --- | --- | --- | --- |
-| **GM 与核外 L2** | 设备侧全局内存空间（对应物理 HBM）及核外共享缓存，长期存放输入、权重、KV 与算子输出 | 算子读入源头与最终落盘终点 | `GM` 是单卡内部地址空间，不是跨卡通信网络 |
+| **GM 与核外 L2** | 设备侧全局内存空间（对应物理 HBM）及核外共享缓存，长期存放输入、权重、KV 与算子输出 | 算子读入源头与输出写回终点 | `GM` 是单卡内部地址空间，不是跨卡通信网络 |
 | **Cube 与 L1 / L0A / L0B / L0C** | 矩阵侧核心：操作数先入 `L1` 暂存，再拆入 `L0A`（左矩阵）与 `L0B`（右矩阵）喂给 **Cube** 做分块乘加，累加结果落入 `L0C` | 线性层 `GEMM`、专家 `Grouped MatMul`、注意力打分与加权乘 | `L0C` 常以更高位宽（如 `FP32` 或 `INT32`）保存累加值，防止低精度乘加中途溢出 |
 | **FixPipe（图中写作 Fixpipe）** | 紧接 `L0C` 的随路后处理与写出引擎，负责量化尺度折算、类型转换与布局搬运 | 将 `L0C` 结果写回 `GM`（或可选写回矩阵侧 `L1`） | 在 910B 分离架构下，写回 `AIC` 的 `L1` **不等于**写进 `AIV` 的 `UB` |
 | **Vector 与 UB（Unified Buffer）** | 向量侧核心：数据装入片上缓冲 **UB** 后，由 **Vector** 原地读写完成向量级指令 | 逐项激活（ReLU / SiLU）、类型转换、动态量化，以及求和/求最大值等**归约** | `Vector` 不仅能逐项计算，RMSNorm 求均方、Softmax 求行最大值都靠它归约 |
@@ -105,7 +105,7 @@ file: ai-core
 
 矩阵乘恰好具备极高的**数据复用潜力**：当同一块权重矩阵在 `L1` / `L0B` 中驻留时，多行输入向量（例如 Prefill 阶段的一批词，或拼批后的多条请求）可以反复拿这块权重做乘加，把一次 `GM → 片上` 搬运摊薄到成百上千次乘加运算上。反过来，因为片上缓冲容量有限，真实的巨型权重与长序列张量装不进单次缓冲，软件必须做 **Tiling（分块）**——先搬入第 0 块、计算、写出结果，再接力处理后续分块。
 
-因此，AI Core 执行一个算子的真实代价从来不只是“一共做了多少次乘法（FLOPs）”，而是**核外访存字节数、片上缓冲占用空间，以及搬入—计算—写出各阶段之间的等待与同步**三者之和。尤其要注意层次边界：这里的 `GM ↔ L1 / UB` 搬运全部发生在一颗 NPU 内部；多张加速卡之间的张量汇聚与专家派发属于跨卡互联层，由 [CANN 与 HCCL](cann-hccl.md) 负责。
+因此，AI Core 执行一个算子的真实代价从来不只是“一共做了多少次乘法（FLOPs）”，还要分别衡量**核外访存流量（字节数）、片上缓冲容量占用（决定单次分块大小与能否双缓冲），以及搬入—计算—写出各阶段的耗时与同步等待**——不同量纲的指标不能直接相加，最终时延取决于哪些搬运与计算阶段能够重叠掩盖、哪一环成为瓶颈。尤其要注意层次边界：这里的 `GM ↔ L1 / UB` 搬运全部发生在一颗 NPU 内部；多张加速卡之间的张量汇聚与专家派发属于跨卡互联层，由 [CANN 与 HCCL](cann-hccl.md) 负责。
 
 ## 一块数据怎样经过矩阵计算和逐项计算？
 
@@ -121,13 +121,13 @@ $$\mathbf{z} = xW = [1 \times 1 + 2 \times 2,\; 1 \times (-1) + 2 \times (-2)] =
 | --- | --- | --- | --- |
 | **① 矩阵侧备料** | `GM` $\xrightarrow{\text{MTE2}}$ `AIC L1` $\xrightarrow{\text{MTE1}}$ `L0A / L0B` | $x = [1, 2]$，$W = \begin{bmatrix}1 & -1 \\ 2 & -2\end{bmatrix}$ | 搬运单元先把输入行与权重分块搬入 `L1`，再拆进 `L0A`、`L0B` 供矩阵阵列就近读取 |
 | **② 矩阵乘加** | `L0A / L0B` $\rightarrow$ **Cube** $\rightarrow$ `L0C` | 第 1 列 $1\times 1 + 2\times 2 = 5$；第 2 列 $1\times(-1) + 2\times(-2) = -5$ | **Cube** 完成行列配对乘加（数学规则见[矩阵乘与权重](matmul-and-weights.md)），`L0C` 接住累加结果 `[5, -5]` |
-| **③ 跨侧交接** | `L0C` $\xrightarrow{\text{FixPipe}}$ `GM 中间区` $\xrightarrow{\text{MTE2}}$ `AIV UB` | 中间结果 `[5, -5]` | 走写回 `GM` 的交接路径时，**FixPipe** 把 `[5, -5]` 落盘到 `GM`；向量侧再经 `MTE2` 将它搬入片上缓冲 **UB** |
+| **③ 跨侧交接** | `L0C` $\xrightarrow{\text{FixPipe}}$ `GM 中间区` $\xrightarrow{\text{MTE2}}$ `AIV UB` | 中间结果 `[5, -5]` | 走写回 `GM` 的交接路径时，**FixPipe** 把 `[5, -5]` 写回 `GM` 中间缓冲（是否命中核外 `L2` 或触发 HBM 事务由缓存层决定）；向量侧再经 `MTE2` 将它搬入片上缓冲 **UB** |
 | **④ 逐项激活与写回** | `UB` $\leftrightarrow$ **Vector** $\xrightarrow{\text{MTE3}}$ `GM 输出` | $[\max(5, 0), \max(-5, 0)] = [5, 0]$ | **Vector** 在 `UB` 内逐项执行 $\text{ReLU}$ 得到 `[5, 0]`，最后经 `MTE3` 写回 `GM` |
 
-上面的二元微型数组只用于看清“数据在哪准备、在哪算完、何时交接”，并不代表真实硬件矩阵指令的最小分块尺寸（实际 Cube 指令按固定分块粒度吞吐数据）。把同一组数放到下面的交互场景里按拍播放：先准备 `L1` 与 `L0A/L0B`，再由 Cube 算出 `[5, -5]` 存入 `L0C`；经 Fixpipe 写入 `GM` 中间区后，向量侧搬入 `UB` 执行 $\text{ReLU}$，最后把 `[5, 0]` 写回 `GM`。底座 NPU 模组上的格阵对应 `GM` 中的输入、权重、中间结果与输出并随写入实时更新；上方立体展开的各级缓冲与连线表达逻辑流向，而非裸片上的物理摆位。
+上面的二元微型数组只用于看清“数据在哪准备、在哪算完、何时交接”，并不代表真实硬件矩阵指令的最小分块尺寸（实际 Cube 指令按固定分块粒度吞吐数据）。下图按 CANN 8.0.RC2 架构规范把同一组数映射到 910B 分离架构的核外 `GM` 与片上 `AIC / AIV` 缓冲：先准备 `L1` 与 `L0A/L0B`，由 Cube 算出 `[5, -5]` 存入 `L0C`；经 `FixPipe` 写回核外 `GM` 中间缓冲后，向量侧再经 `MTE2` 搬入 `UB` 执行 $\text{ReLU}$，最后把 `[5, 0]` 经 `MTE3` 写回 `GM` 输出：
 
-```wiki-scene
-inference-mechanism:3
+```wiki-diagram
+file: aicore-handoff-walkthrough
 ```
 
 ### 一块向量的搬运与计算怎样配合？
@@ -139,7 +139,7 @@ $$\text{Bytes}_{\text{logical}} = \underbrace{4 \times 4\text{ B}}_{\text{装入
 | 搬运方向 | 元素个数 × 单元素字节（示意） | 逻辑数据量 | 为什么不能直接除以峰值带宽算耗时？ |
 | --- | --- | --- | --- |
 | **CopyIn（装入输入）** | `4 × 4 B`（`FP32`） | `16 B` | 真实内存事务受最小突发粒度（如缓存行/对齐约束）、核外 `L2` 命中率与指令启动开销支配 |
-| **CopyOut（写回输出）** | `4 × 4 B`（`FP32`） | `16 B` | 小块未满对齐宽度时会放大有效流量；单看 `FLOPs` 也测不出等待输入与落盘的停顿 |
+| **CopyOut（写回输出）** | `4 × 4 B`（`FP32`） | `16 B` | 小块未满对齐宽度时会放大有效流量；单看 `FLOPs` 也测不出等待输入与写回 `GM` 的停顿 |
 | **单块读写合计** | `16 B + 16 B` | **`32 B`** | 必须结合分块尺寸、片上复用次数与流水重叠程度评估真实访存效率 |
 
 同一块数据必须“先搬到、再计算、算完才能写出”，但**不同数据块的不同阶段可以在时间上重叠**。编写昇腾设备算子（kernel，即在 NPU 核心上实际执行的一段程序）的 **Ascend C** 编程模型把向量流水明确拆成 `CopyIn`（搬入）、`Compute`（计算）、`CopyOut`（搬出）三段，用队列（`TQue`）与流水屏障（`PipeBarrier` / 硬件事件标志）协调缓冲就绪与释放（完整算子追踪见[从算子到 AI Core](op-to-ai-core.md)中的融合归一化 kernel）。在此基础上，**双缓冲（`double buffer`，常称 Ping / Pong 缓冲）** 在片上同时开辟两份缓冲槽位：当计算单元正在处理 `Ping` 槽里的第 $k$ 块时，`MTE2` 可以同时往 `Pong` 槽预取第 $k+1$ 块。下图上半部分展示稳态三拍重叠的时间轴，下半部分集中排雷四个最常见的流水与交接误区：
@@ -148,7 +148,7 @@ $$\text{Bytes}_{\text{logical}} = \underbrace{4 \times 4\text{ B}}_{\text{装入
 file: aicore-fig-pipeline-myths
 ```
 
-对照上图时间轴，进入稳态拍 `T3` 后，`CopyIn`（搬第 2 块入 `Ping`）、`Compute`（算 `Pong` 中的第 1 块）与 `CopyOut`（把第 0 块从 `Ping` 写出后释放）在同一时间窗并行推进。但开启双缓冲有两条硬边界：① **空间减半**——同一容量下每份缓冲可用字节折半，若单块被迫切得过碎，指令与同步开销反而抬头；② **不突破物理屋顶**——双缓冲只能掩盖搬运与计算的串行气泡，让有效吞吐逼近 [Roofline](roofline-and-metrics.md) 的带宽斜坡或算力平顶，若算子本身已被计算塞满或总数据量极小，强开双缓冲未必更快。你可以在下方的交互实验室中切换分块与双缓冲，直接观察低比特矩阵乘与后继 `AddRMSNorm` 在 `AIC / AIV` 各级缓冲泳道上的气泡消长：
+对照上图时间轴，进入稳态拍 `T3` 后，三段流水得以并行推进的前提是输入队列（`VECIN`）与输出队列（`VECOUT`）各自持有独立的 `Ping / Pong` 槽位（或在同一槽复用时严格由 `TQue` 与硬件事件保证“块 0 写出并释放”先于“块 2 覆写”）：因此 `CopyIn` 可往空闲输入 `Ping` 预取第 2 块，同时 `Compute` 处理 `Pong` 中的第 1 块、`CopyOut` 把第 0 块从输出 `Ping` 写出并释放（上图时间轴为压缩展示将三者画在同一拍，下方已注明“先释放、后覆写”的同步约束）。但开启双缓冲有两条硬边界：① **空间减半**——同一容量下每份缓冲可用字节折半，若单块被迫切得过碎，指令与同步开销反而抬头；② **不突破物理屋顶**——双缓冲只能掩盖搬运与计算的串行气泡，让有效吞吐逼近 [Roofline](roofline-and-metrics.md) 的带宽斜坡或算力平顶，若算子本身已被计算塞满或总数据量极小，强开双缓冲未必更快。你可以在下方的交互实验室中切换分块与双缓冲，直接观察低比特矩阵乘与后继 `AddRMSNorm` 在 `AIC / AIV` 各级缓冲泳道上的气泡消长：
 
 ```wiki-tool
 tool: aicore-lab
@@ -206,12 +206,12 @@ AI Core 是芯片内的物理执行资源，框架没有所谓的“开启 AI Co
 ### 开销和什么时候别开
 
 权衡重点集中在格式转换时机、片上缓冲占用与多流重叠边界：
-- **权重分块格式转换只在加载后执行一次：** `process_weights_after_loading` 会将 `W8A8` 线性层与专家权重转置，并转为适配 Cube 分块读写的 `ACL_FORMAT_FRACTAL_NZ` 格式（线性层经 `maybe_trans_nz`，专家层对 `w13_weight`、`w2_weight` 调 `npu_format_cast`）同时展平尺度张量；这是启动期一次性开销，不能算进每个 token 的前向耗时。
+- **权重分块格式转换按分支条件只在加载后执行一次：** 在对应量化与部署分支的 `process_weights_after_loading` 中，普通 `W8A8` 线性层按硬件档案与算子条件经 `maybe_trans_nz` 决定是否转为适配 Cube 分块读写的 `ACL_FORMAT_FRACTAL_NZ` 格式（条件细分见[张量排布](tensor-layout.md)），而对应专家权重分支则对 `w13_weight`、`w2_weight` 直接调用 `npu_format_cast` 并展平尺度张量；这类转换属于启动期一次性开销，不能算进每个 token 的前向耗时。
 - **双缓冲与多流预量化各有适用前提：** `double buffer` 属于 kernel 内部实现选择，并无证据表明模型每个算子都无条件受益；而在 `v0.30.0` 与 `main` 中，`AscendW8A8DynamicLinearMethod.prepare_input_for_overlap` 构造的 `PreparedLinearInput` 主要由 [共享专家多流重叠](moe.md#版本差异)（`shared_experts.py` 在 `shared_experts_calculation_stream` 上提前跑完 AIV 动态量化，供 `apply` 直接复用量化值与尺度）消费，并非全模型线性层无条件提前量化，也不能由 Python 调用次数直接反推物理 kernel 数。
 
 ### 版本差异
 
-硬件的耦合或分离组织由芯片代际决定，软件升级不会把 910B 变成 950，但 `vllm-ascend` 的硬件档案抽象、`vllm_ascend_C` 门控与 `W8A8` 线性/专家入口在四个主干版本间有明确演进。历史冻结 3D 场景与下方 `MC2` 执行分支图继续钉住 **GLM 专用提交 `db701c1f`**（其 `w8a8_dynamic.py`、`moe_mlp.py` 与 `utils.py` 行为同 `v0.23.0`，额外包含配套 `vllm@0fc695fc` 的 GLM 模型代码）；四版本对照矩阵如下：
+硬件的耦合或分离组织由芯片代际决定，软件升级不会把 910B 变成 950，但 `vllm-ascend` 的硬件档案抽象、`vllm_ascend_C` 门控与 `W8A8` 线性/专家入口在四个主干版本间有明确演进。本页原单卡交接 3D 场景已退役为上方静态图 `aicore-handoff-walkthrough`；上文 GLM 双机小节与下方 `MC2` 执行分支图继续钉住 **GLM 专用提交 `db701c1f`**（其 `w8a8_dynamic.py`、`moe_mlp.py` 与 `utils.py` 行为同 `v0.23.0`，额外包含配套 `vllm@0fc695fc` 的 GLM 模型代码）；四版本对照矩阵如下：
 
 | 核对维度 | `v0.23.0` (`2c59ff10`) | `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ file: ai-core-execution
 
 页首 `sources` 与正文结论逐条对应如下：
 
-- [S1] [CANN 8.0.RC2「基本架构」](https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html)：Cube/Vector/Scalar 职责、耦合与分离架构、`AIC/AIV` 经 `GM` 交接及 `FixPipe` 写回 `GM` 或 `L1` 的路径。
+- [S1] [CANN 8.0.RC2「基本架构」](https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html)：Cube/Vector/Scalar 职责、耦合与分离架构、`AIC/AIV` 经 `GM` 交接及 `FixPipe` 写回 `GM` 或 `L1` 的路径（`aicore-handoff-walkthrough` 硬件通路据此绘制）。
 - [S2] [昇腾官方「流水优化」](https://www.hiascend.com/developer/techArticles/20240819-1) §02–03：`CopyIn/Compute/CopyOut` 三段流水、队列同步与 `double buffer` 的片上空间及收益边界。
 - [S3] [《昇腾 950 NPU 架构白皮书》](https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf) 物理第 17–25 页：`1 Cube + 2 Vector` 子系统、`L1/L0/UB` 容量、`L0C → UB` 随路转换直通与 `Buffer ID`（`get_buf`/`rel_buf`）同步机制。
 - [C4] `db701c1f` `add_rms_norm_bias.h:96–155` 与 [C5] `c09d3e20` `add_rms_norm_bias.h:96–347`：逐行调用 `CopyIn`、`Compute`、`CopyOutY`，配合 `LocalTensor`、`TQue<QuePosition::VECIN, BUFFER_NUM>`、`PipeBarrier<PIPE_V>` 与 `HardEvent::V_MTE2` 实现片上搬运与同步；完整核内走读见[从算子到 AI Core](op-to-ai-core.md)。

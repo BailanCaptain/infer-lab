@@ -1,8 +1,8 @@
 mode: native-svg
 id: troubleshooting-fig-first-fault
 caption: >-
-  多卡交错日志分流示意：同一通信组里只要 Rank 3 在前序算子或图捕获阶段先行失败离场，其余正常卡都会停在集合通信屏障处直至触发 EI0006 超时。排障时必须按时间戳与主故障优先级倒查最早报错的 Rank，而不是拿日志末尾的 EI0006 或退出码 137 直接下结论。
-size: [900, 408]
+  分布式集合通信超时与变慢三分支对照图：区分（A）某 Rank 在前序算子或录图崩溃根本没到屏障，导致其余卡卡在 Notify wait 刷屏次生 EI0006；（B）无报错但某 Rank 因 DP 偏斜、MoE 专家热点或 Host/GC 迟到，使早到卡的等待被计入通信耗时；（C）全员同时抵达屏障而集合交换本身慢，此时才进入 hccn_tool / hccl_test 链路排查。
+size: [900, 564]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473
     symbols: [init_snapshot, requested_memory, gpu_memory_utilization]

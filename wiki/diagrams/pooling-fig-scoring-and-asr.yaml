@@ -1,0 +1,10 @@
+mode: native-svg
+id: pooling-fig-scoring-and-asr
+caption: >-
+  生成式评分（/generative_scoring）概率重归一比例条与实时语音转写（/v1/realtime）事件时序：左半区在同一 [0, 1] 标尺上对比全词表概率（A=0.1, B=0.3, 其他=0.6）、默认 apply_softmax=true 对 [A, B] 重归一得 0.25、单标签 [A] 恒归一为 1.0 以及关闭重归一直接返回 0.1；右半区给出 WebSocket 实时音频流事件顺序（先 session.update 校验模型防 model_not_validated，普通 commit 启动、append 传 PCM16 16kHz 32,000 B/s → 42,668 base64 字符，末次 commit final=true 收尾）。
+size: [900, 438]
+pins:
+  - source: vllm@ced6857a:vllm/entrypoints/generate/generative_scoring/serving.py#L315-L365
+    symbols: [label_token_ids, apply_softmax, first_label_id, score]
+  - source: vllm@ced6857a:vllm/entrypoints/speech_to_text/realtime/connection.py#L96-L161
+    symbols: [handle_event, model_not_validated, InputAudioBufferAppend, InputAudioBufferCommit]

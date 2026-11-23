@@ -1,0 +1,18 @@
+mode: native-svg
+id: inference-benchmarking-fig-goodput-weighting
+caption: >-
+  压测口径两组核心对照（教学示意）：左侧按 24 条请求等比绘制 10 秒窗口结果，A/B 成功总吞吐均为 200 token/秒，但 B 达标吞吐 Goodput 更高（1.8 vs 1.6 请求/秒），同时两组因各有 2 失败 + 2 未完成均未过 99% 可靠性门槛；右侧展示短答（1×100 ms）与长答（9×20 ms）下请求级 TPOT 均值（60 ms）与全间隔 ITL 均值（28 ms）的样本权重差异。
+size: [900, 416]
+pins:
+  - source: 'vllm@ced6857a:vllm/benchmarks/serve.py#L568-L635'
+    symbols:
+      - calculate_metrics
+      - goodput
+      - ttfts
+      - tpots
+      - itls
+  - source: 'vllm@ced6857a:vllm/v1/metrics/stats.py#L430-L584'
+    symbols:
+      - mean_time_per_output_token
+      - decode_time
+      - queued_time

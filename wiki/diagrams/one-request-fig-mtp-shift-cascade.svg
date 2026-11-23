@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="第 5 站 MTP 左移一格对齐矩阵与 3 遍草拟级联图" font-family="var(--font-sans)">
+  <title>第 5 站：MTP 1 格左移配对（hidden[i] + token[i+1] → 预测 i+2）与 3 遍草拟级联</title>
+  <desc>4-row alignment of hidden[i] + left-shifted token[i+1] predicting position i+2, followed by 3-pass cascade through Layer 45 weights showing valid row extraction, position shifts, and why only y0 is confirmed</desc>
+  <defs>
+    <marker id="orp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="orp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="orp-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- UPPER BAND: 1-Position Left-Shift Matrix (Pass 1) -->
+  <text x="14" y="24" font-size="15.5" font-weight="700" fill="#17211f">① 第 1 遍「左移一格」配对：第 i 行合并 hidden[i] + token[i+1] → 预测位置 i+2</text>
+
+  <!-- Column headers -->
+  <g font-size="13.5" font-weight="700" fill="#4d5652">
+    <text x="16" y="52">行号 / pos</text>
+    <text x="116" y="52" fill="#3a4f93">主干隐藏向量（已读到）</text>
+    <text x="310" y="52" fill="#065f56">左移后 token 输入</text>
+    <text x="668" y="52" fill="#936300">预测目标位置</text>
+  </g>
+
+  <!-- Row 0 (pos=0, embed zeroed) -->
+  <rect x="14" y="60" width="84" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="56" y="81" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">行0 · p=0</text>
+  <rect x="108" y="60" width="180" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="198" y="81" text-anchor="middle" font-size="13.5" fill="#3a4f93">h[0]（已读 p₀）</text>
+  <text x="297" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="#66716d">+</text>
+  <rect x="308" y="60" width="184" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="400" y="81" text-anchor="middle" font-size="13.5" fill="#66716d">p₁（pos==0 嵌入清零）</text>
+
+  <!-- Row 1 -->
+  <rect x="14" y="98" width="84" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="56" y="119" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">行1 · p=1</text>
+  <rect x="108" y="98" width="180" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="198" y="119" text-anchor="middle" font-size="13.5" fill="#3a4f93">h[1]（已读 p₀..p₁）</text>
+  <text x="297" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#66716d">+</text>
+  <rect x="308" y="98" width="184" height="32" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="400" y="119" text-anchor="middle" font-size="13.5" fill="#065f56">p₂（位置 2）</text>
+
+  <!-- Row 2 -->
+  <rect x="14" y="136" width="84" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="56" y="157" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">行2 · p=2</text>
+  <rect x="108" y="136" width="180" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="198" y="157" text-anchor="middle" font-size="13.5" fill="#3a4f93">h[2]（已读 p₀..p₂）</text>
+  <text x="297" y="157" text-anchor="middle" font-size="14" font-weight="700" fill="#66716d">+</text>
+  <rect x="308" y="136" width="184" height="32" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="400" y="157" text-anchor="middle" font-size="13.5" fill="#065f56">p₃（位置 3）</text>
+
+  <!-- Row 3 (Active extracted row!) -->
+  <rect x="14" y="174" width="84" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="56" y="197" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#936300">行3 · p=3</text>
+  <rect x="108" y="174" width="180" height="36" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="198" y="197" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">h[3]（已读 p₀..p₃）</text>
+  <text x="297" y="197" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">+</text>
+  <rect x="308" y="174" width="184" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="400" y="197" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">刚采出的 y₀（位置 4）</text>
+
+  <!-- Fusion & Layer 45 Block -->
+  <path d="M 494 134 L 516 134" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#orp-arr-a)"/>
+  <rect x="520" y="60" width="124" height="150" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="582" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">MTP 第 45 层</text>
+  <text x="582" y="112" text-anchor="middle" font-size="13.5" fill="#4d5652">各归一化拼接</text>
+  <text x="582" y="132" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">[4,8192]→[4,4096]</text>
+  <text x="582" y="156" text-anchor="middle" font-size="13.5" fill="#4d5652">稀疏 MLA + MoE</text>
+  <text x="582" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">单残差 · 共享</text>
+  <text x="582" y="198" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">lm_head</text>
+  <path d="M 644 134 L 664 134" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#orp-arr-a)"/>
+
+  <!-- Output predictions column -->
+  <rect x="668" y="60" width="216" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="776" y="81" text-anchor="middle" font-size="13.5" fill="#66716d">位置 2（不取，仅建历史）</text>
+  <rect x="668" y="98" width="216" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="776" y="119" text-anchor="middle" font-size="13.5" fill="#66716d">位置 3（不取，仅建历史）</text>
+  <rect x="668" y="136" width="216" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="776" y="157" text-anchor="middle" font-size="13.5" fill="#66716d">位置 4（不取，仅建历史）</text>
+  <rect x="668" y="174" width="216" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="776" y="197" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">位置 5 → 取末行得草稿 d₁</text>
+
+  <!-- Note why only y0 is confirmed -->
+  <rect x="14" y="222" width="870" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="449" y="244" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">为何第 1 遍只确认 y₀？y₀ 由主干 45 层采出直接交付引擎；d₁ 仅由单层草稿贪心猜出，须等下一圈主干验证</text>
+
+  <line x1="14" y1="270" x2="886" y2="270" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- LOWER BAND: 3-Pass Cascade through Same Layer-45 Weights -->
+  <text x="14" y="296" font-size="15.5" font-weight="700" fill="#17211f">② 同一第 45 层连跑 3 遍草拟级联（强制 eager · 保持 4 行宽但后两遍仅取 R1 的 1 行）</text>
+
+  <!-- Pass 1 -->
+  <rect x="14" y="312" width="260" height="114" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="28" y="338" font-size="14.5" font-weight="700" fill="#065f56">第 1 遍（宽 4 行，末行出分）</text>
+  <text x="28" y="362" font-size="13.5" fill="#4d5652">token：[p₁, p₂, p₃, y₀]</text>
+  <text x="28" y="384" font-size="13.5" fill="#4d5652">pos：[0, 1, 2, 3] · 主干 h[0..3]</text>
+  <text x="28" y="408" font-size="14" font-weight="700" fill="#065f56">argmax → d₁（位置 5）+ h₁</text>
+
+  <path d="M 274 369 L 316 369" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#orp-arr-t)"/>
+  <text x="295" y="358" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">+1</text>
+
+  <!-- Pass 2 -->
+  <rect x="320" y="312" width="260" height="114" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="334" y="338" font-size="14.5" font-weight="700" fill="#3a4f93">第 2 遍（仍跑 4 行宽，取 1 行）</text>
+  <text x="334" y="362" font-size="13.5" fill="#4d5652">有效输入：d₁ + 第 1 遍输出 h₁</text>
+  <text x="334" y="384" font-size="13.5" fill="#4d5652">有效位 pos + 1（同套第 45 层权重）</text>
+  <text x="334" y="408" font-size="14" font-weight="700" fill="#3a4f93">argmax → d₂（位置 6）+ h₂</text>
+
+  <path d="M 580 369 L 622 369" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#orp-arr-b)"/>
+  <text x="601" y="358" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">+1</text>
+
+  <!-- Pass 3 -->
+  <rect x="626" y="312" width="258" height="114" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="640" y="338" font-size="14.5" font-weight="700" fill="#936300">第 3 遍（仍跑 4 行宽，取 1 行）</text>
+  <text x="640" y="362" font-size="13.5" fill="#4d5652">有效输入：d₂ + 第 2 遍输出 h₂</text>
+  <text x="640" y="384" font-size="13.5" fill="#4d5652">有效位 pos + 1（每遍重算索引器）</text>
+  <text x="640" y="408" font-size="14" font-weight="700" fill="#936300">argmax → d₃（位置 7）</text>
+
+  <!-- Final Handoff Strip -->
+  <rect x="14" y="442" width="424" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="226" y="469" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">回传 EngineCore（已确认输出）：y₀</text>
+
+  <rect x="460" y="442" width="424" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="672" y="469" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">留存 Worker（待下圈主干验证）：[d₁, d₂, d₃]</text>
+</svg>

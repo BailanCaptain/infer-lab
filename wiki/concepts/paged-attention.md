@@ -96,7 +96,7 @@ file: paged-attention-plate-cutaway
 file: paged-attention-fig-waste-vs-paging
 ```
 
-对照上图下半幅的 8 块教学池（按昇腾默认块长 `block_size = 128` 示意，`Block 0` 为系统保留块）：请求 A（`128` 词公共系统提示词 + `90` 词独有内容，共 `218` 词）的块表记为 `[1, 3]`，请求 B（同一段 `128` 词公共提示词 + `70` 词独有内容，共 `198` 词）的块表记为 `[1, 5]`。两者共指满块 `Block 1`（`ref_cnt = 2`），直接省掉一份 `128` 词的重复显存。物理上互不挨着的 `Block 2, 4, 6, 7` 全是等长 `128` 格抽屉，新请求 C 进场时直接拼进块表就能用，**外部碎片彻底归零**。
+对照上图下半幅的 8 块教学池（按昇腾默认块长 `block_size = 128` 示意，`Block 0` 为系统保留块）：请求 A 含 `128` 词公共系统提示词与 `90` 词独有内容（共 `218` 词），块表记为 `[1, 3]`。请求 B 含同一段 `128` 词公共提示词与 `70` 词独有内容（共 `198` 词），块表记为 `[1, 5]`。两者共指满块 `Block 1`（`ref_cnt = 2`），直接省掉一份 `128` 词的重复显存。物理上互不挨着的 `Block 2, 4, 6, 7` 全是等长 `128` 格抽屉，新请求 C 进场时直接拼进块表就能用，**外部碎片彻底归零**。
 
 对于单条长度为 $L_{\text{seq}}$（$L_{\text{seq}} \ge 1$）、块长为 $B$ 的普通注意力序列，它借用的物理块数与落在本请求最后一块里的未写满空槽位数（内部浪费）严格满足：
 
@@ -110,7 +110,9 @@ $$N_{\text{blocks}}(L_{\text{seq}}) = \left\lceil \frac{L_{\text{seq}}}{B} \righ
 
 ## 定长物理块池怎么运转：借块、共享与归还
 
-要把分页直觉变成每步微秒级完成的工程调度，vLLM 把**设备侧 HBM 里的真实张量**和**主机侧 CPU 上的块号账本**彻底拆开。NPU Worker 在启动期完成 [KV cache 显存预算](kv-cache-memory-profiling.md)探测后，一次性在 HBM 里切好整座缓存张量，推理全程不再向驱动反复申请或释放显存。EngineCore 里的 `KVCacheManager` 与底层 `BlockPool` 只在 CPU 上用双向链表 `free_block_queue`（`FreeKVCacheBlockQueue`）流转轻量级 `KVCacheBlock` 元数据对象（完整多组协调与抢占细节见 [KV 块分配](vllm-kv-block-allocation.md)）。
+要把分页直觉变成每步微秒级的工程调度，vLLM 把**设备侧 HBM 里的真实张量**和**主机侧 CPU 上的块号账本**彻底拆开。NPU Worker 在启动期完成 [KV cache 显存预算](kv-cache-memory-profiling.md)探测后，一次性在 HBM 里切好整座缓存张量，推理全程不再向驱动反复申请或释放显存。
+
+主机侧的 `KVCacheManager` 与 `BlockPool` 只通过双向链表 `free_block_queue`（`FreeKVCacheBlockQueue`）流转轻量级 `KVCacheBlock` 元数据对象；多组协调与抢占细节见 [KV 块分配](vllm-kv-block-allocation.md)。
 
 一个物理块号从启动到复用，在 `BlockPool` 里只走四步确定性状态流转：
 
@@ -135,13 +137,13 @@ $$N_{\text{blocks}}(L_{\text{seq}}) = \left\lceil \frac{L_{\text{seq}}}{B} \righ
 file: paged-attention-fig-qwen3-block-bytes
 ```
 
-承接[读懂 HuggingFace 模型目录与 config.json](hf-model-anatomy.md) 与 [GQA](gqa.md) 的单 token 推导，设块长为 $B$、单卡本地 KV 头数为 $n_{\text{kv,local}}$、每头维度为 $d_h$、单元素字节数为 $b_{\text{dtype}}$（BF16 为 `2 B`）、模型总层数为 $L$。单层单块页字节数（源码 `AttentionSpec.page_size_bytes`）与全模型跨 $L$ 层的单块总显存为：
+承接 [HF 模型目录解剖](hf-model-anatomy.md) 与 [GQA](gqa.md) 的单 token 推导，记块长为 $B$、单卡本地 KV 头数为 $n_{\text{kv,local}}$、每头维度为 $d_h$、单元素字节数为 $b_{\text{dtype}}$（BF16 为 `2 B`）、总层数为 $L$。单层单块页字节数（`AttentionSpec.page_size_bytes`）与全模型跨 $L$ 层的单块显存如下：
 
 $$n_{\text{kv,local}} = \max\!\left(1,\, \frac{n_{\text{kv}}}{T}\right), \qquad \text{Bytes}_{\text{layer-page}} = 2 \times B \times n_{\text{kv,local}} \times d_h \times b_{\text{dtype}}, \qquad \text{Bytes}_{\text{block}} = L \times \text{Bytes}_{\text{layer-page}}$$
 
 > **边界与例外（张量并行度 $T$ 与 KV 头复制）**
 > - **均分切头（$T \le n_{\text{kv}}$ 且 $n_{\text{kv}}$ 被 $T$ 整除）**：每卡分得 $n_{\text{kv,local}} = n_{\text{kv}} / T$ 个不重叠 KV 头，加卡可等比例缩小单卡单块显存。
-> - **跨卡复制（$T > n_{\text{kv}}$ 且 $T$ 被 $n_{\text{kv}}$ 整除）**：每卡保底复制保留 `1` 个完整 KV 头（$n_{\text{kv,local}} = 1$），单块显存不再减半。例如 `Qwen3-30B-A3B`（$n_{\text{kv}} = 4$）扩到 `TP = 8` 时，每卡仍按 `1` 个 KV 头计 **`3 MiB/块`**，而不能套用 `n_kv / T = 0.5` 错算成 `1.5 MiB/块`（切分与复制规则见 [GQA 张量并行](gqa.md#张量并行时kv-头不够分就要复制)）。
+> - **跨卡复制（$T > n_{\text{kv}}$ 且 $T$ 被 $n_{\text{kv}}$ 整除）**：每卡保底复制 `1` 个完整 KV 头（$n_{\text{kv,local}} = 1$），单块显存不再减半。例如 `Qwen3-30B-A3B`（$n_{\text{kv}} = 4$）扩到 `TP = 8` 时，每卡仍按 `1` 个头计 **`3 MiB/块`**，绝不能套用 `n_kv / T = 0.5` 错算成 `1.5 MiB/块`（规则见 [GQA 张量并行](gqa.md#张量并行时kv-头不够分就要复制)）。
 
 下面代入昇腾默认块长 $B = 128$ 与 BF16（$b_{\text{dtype}} = 2\text{ B}$），并用每卡 `10 GiB`（`10,240 MiB`）静态可用 KV 预算做横向示意对比。真实服务须先经启动期探测扣除权重、激活峰值与通信缓冲，且池中 `0` 号块固定留给 `null_block`。
 
@@ -156,11 +158,21 @@ $$n_{\text{kv,local}} = \max\!\left(1,\, \frac{n_{\text{kv}}}{T}\right), \qquad 
 | 扣 `0` 号 `null_block` 后可借块数 | `567` 块 | `852` 块 | `3,412` 块 |
 | 可装总 token 位置（每块 `128` 格） | `72,576` tok | `109,056` tok | `436,736` tok（约 `43.67` 万，4 卡同步支撑） |
 
-两组数字并排对比，就能看清架构参数如何左右分页容量：`Qwen3-30B-A3B` 虽然总参数高达 `30.53B`（BF16 权重占 `56.87 GiB`：在 `v0.30.0` 上游默认 `0.92` 显存利用率预算（`58.88 GiB`，若显式设 `0.90` 则为 `57.6 GiB`）下，`64 GiB` 单卡扣除 `56.87 GiB` 权重与运行时激活开销后余量极紧，常规多并发部署需切多卡，而在 `128 GiB` 级大显存卡上单卡即可容纳）、层数也比 `Qwen3-8B` 多三分之一（`48` vs `36`），但总 KV 头数减半到了 `4`，整模 1 个 `128`-token 物理块反而从 **`18 MiB` 降到 `12 MiB`**。切到 `TP = 4` 后每张卡只存 `1` 个 KV 头，单卡每块仅占 **`3 MiB`**；按上文复制规则，若继续扩到 `TP = 8`，单卡仍保底 `1` 个 KV 头即 `3 MiB/块`，不再减半。
+把「单块多大」与「整卡装不装得下」拆成两笔账，架构参数的作用一目了然：
+
+- **单块多大只看层数与 KV 头数**：`Qwen3-30B-A3B` 层数比 `Qwen3-8B` 多三分之一（`48` vs `36`），但总 KV 头数减半到 `4`。因此整模 1 个 `128`-token 物理块反而从 **`18 MiB` 降到 `12 MiB`**。切到 `TP = 4` 后每卡只存 `1` 个 KV 头，单卡每块仅占 **`3 MiB`**；继续扩到 `TP = 8` 时按复制规则仍保底 `1` 头即 `3 MiB/块`，不再减半。
+- **整卡余量边界（为何 30B-A3B 常规需切多卡）**：`Qwen3-30B-A3B` 总参数达 `30.53B`，BF16 纯权重即占 **`56.87 GiB`**。按卡容量对比如下：
+
+| 单卡显存规格 | `v0.30.0` 利用率预算口径 | 扣除 `56.87 GiB` 权重后的部署边界 |
+| --- | --- | --- |
+| **`64 GiB` 卡** | 上游默认 `0.92` → **`58.88 GiB`**（显式设 `0.90` → **`57.6 GiB`**） | 扣掉权重与运行时激活开销后余量极紧，常规多并发部署需切多卡 |
+| **`128 GiB` 级大显存卡** | 同口径可用超百 GiB | 单卡即可从容装下权重并留出充足 KV 块池 |
 
 ## 昇腾 v0.30.0 的块长对齐：为什么默认 128，何时变成 512？
 
-从 GPU 迁移到昇腾的开发者常会疑惑：上游 GPU 版 `CacheConfig` 长期把默认块长定为 `16`（上游 `main` 调至 `64`），为什么 `vllm-ascend` 默认采用 **`block_size = 128`**？根源在硬件访存与算子分形对齐：昇腾 AI Core 的突发 DMA 搬运、`NZ` 分形排布以及主力注意力后端 `AscendAttentionBackend`（底层调用 `torch_npu.npu_fused_infer_attention_score`，简称 FIA）均以 `128` 个位置为内核标准页。取 `128` 既满足 `C8 INT8` 缓存量化的 `32` 倍数断言，又把块表列宽压到块长 `16` 时的 `1/8`，避免小页拖垮 HBM 带宽利用率。
+上游 GPU 版 `CacheConfig` 长期把默认块长定为 `16`（上游 `main` 调至 `64`），而 `vllm-ascend` 默认采用 **`block_size = 128`**。
+
+根源在于硬件访存与算子对齐：昇腾 AI Core 的突发 DMA、`NZ` 分形排布，以及主力后端 `AscendAttentionBackend`（底层调用 `torch_npu.npu_fused_infer_attention_score`，简称 FIA），均以 `128` 个位置为标准内核页。取 `128` 既满足 `C8 INT8` 缓存量化的 `32` 倍数断言，又把块表列宽压到 `16` 时的 `1/8`，避免小页拖垮 HBM 带宽利用率。
 
 在 `v0.30.0` 主基线下，`NPUPlatform` 通过 `refresh_block_size` 与 `update_block_size_for_backend` 两道关口协同拍板最终生效的 `block_size`：
 
@@ -182,7 +194,7 @@ file: paged-attention-fig-myths
 ```
 
 - **“上了 PagedAttention，KV 显存浪费就变成 0 了。”** 错。彻底归零的是物理块之间的**外部碎片**；每条在途请求的最后一块只要没写满，仍留有至多 `block_size - 1` 个位置的**有界内部余量**（投机解码草稿槽位与混合状态页另计）。
-- **“命令行写了 `--block-size 16`，昇腾上就一定按 16 切块。”** 错。V1 引擎默认同时开启前缀缓存与分块预填充，常规非混合模型只要其中任一项开着，`refresh_block_size` 就会打印一条 `logger.info` 提示并把非 `128` 的块长自动改回 `128`。
+- **“命令行写了 `--block-size 16`，昇腾上就一定按 16 切块。”** 错。V1 引擎默认同时开启前缀缓存与分块预填充：在常规非混合且非 MXFP8 模型上，只要其中任一项开着，`refresh_block_size` 就会打印一条 `logger.info` 提示并把非 `128` 的块长自动改回 `128`；若启用了 `--kv-cache-dtype mxfp8`，则会更早命中 `512` 对齐分支，显式传 `16` 直接抛出 `ValueError`。
 - **“算注意力前，Worker 会先把分散的物理块拼回一段连续张量。”** 错。若每步都把历史块重拷拼接一遍，分页省下的带宽和显存当场归零；真实算子直接拿整数块表在离散物理块上原地寻址。
 - **“Profiling 里只看到 `FIA` 没看到 `PagedAttention` 算子，说明分页没生效。”** 错。分页是 KV 缓存的存储与寻址机制；昇腾主力算子 `npu_fused_infer_attention_score` 原生接收 `block_table` 完成分页读取，不依赖同名算子。
 - **“请求一结束，`free_blocks` 就会把物理块里的 K、V 清零。”** 错。归还动作只在 CPU 上递减 `ref_cnt` 并把空闲块挂回双向链表（无哈希插队头、带哈希挂队尾作 LRU 候选），HBM 里的数值原封不动留到下次被覆写或直接被后续相同前缀命中复用。

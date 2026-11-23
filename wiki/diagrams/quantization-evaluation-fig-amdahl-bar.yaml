@@ -1,0 +1,15 @@
+mode: native-svg
+id: quantization-evaluation-fig-amdahl-bar
+caption: >-
+  权重字节减半为何不等于推理快一倍（同比例 Amdahl 耗时拆账条：读权重 60 ms 减半为 30 ms，加新增量化/反量化 10 ms 与不变的其余 40 ms，总耗时从 100 ms 降至 80 ms，加速比 1.25× 而非 2×），以及模型文件、驻留权重、转换峰值与可用 KV 池四笔显存账边界。
+size: [900, 384]
+pins:
+  - source: 'vllm@ced6857a:vllm/benchmarks/serve.py#L568-L600'
+    symbols:
+      - calculate_metrics
+      - tpots
+      - ttfts
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L215'
+    symbols:
+      - resolve_block_scales
+      - model_dtype

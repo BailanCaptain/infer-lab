@@ -68,7 +68,7 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-把一套在线上稳定运行了几个月的 `v0.26` 或 `v0.30.0rc2` 启动脚本直接原样搬到 **`vLLM Ascend v0.30.0` 正式版（配套上游 `vLLM v0.30.0`）**，最隐蔽的风险并不是“当场报错起不来”，而是**旧环境变量静默失效、显存水位默认多占 `2%`、或原生 FP8 权重在 A2/A3 上静默反量化回 `BF16` 导致显存直接翻倍**。与此同时，社区 `main` 分支已经在 `v0.30.0` 之上进一步删掉了 Model Runner V1 与部分回退路径；如果升级时不顺手清掉过期开关，下一次升级还会二次踩坑。
+把一套在线上稳定运行了几个月的 `v0.26` 或 `v0.30.0rc2` 启动脚本直接搬到 **`vLLM Ascend v0.30.0` 正式版（配套上游 `vLLM v0.30.0`）**，最隐蔽的风险并非“当场报错起不来”。真正的雷区是三类容易忽略的静默差异：**旧环境变量无声失效、源码默认显存水位 `0.92` 比常见食谱 `0.90` 多占 `2%`（旧文档常沿写 `0.9`）、以及原生 FP8 权重在 A2/A3 上静默反量化回 `BF16` 导致显存翻倍**。与此同时，社区 `main` 分支已经在 `v0.30.0` 之上进一步删掉了 Model Runner V1 与部分回退路径；如果升级时不顺手清掉过期开关，下一次升级还会二次踩坑。
 
 本页按生产升级自检顺序，把六类最容易引发线上回滚的变化一次拉齐：
 
@@ -94,19 +94,25 @@ file: v030-mig-fig-checklist
 
 升级过程中涉及量化权重的两类高频坑点如下（量化原理见 [量化方法与布局](quantization-methods.md)）：
 
-1. **`W8A8_PDMIX` 命名与 `W8A8_MIX` MoE 路径退场**：历史上常称混合静态/动态激活的 W8A8 路径为 `W8A8_PDMIX`，对应文件虽仍保留在 `quantization/methods/w8a8/w8a8_pdmix.py`，但实际注册进量化方案表的键名是 **`W8A8_MIX`**。更重要的是，在 `v0.26.0rc` 中 `@register_scheme("W8A8_MIX", "moe")` 就已打印弃用警告；到了 `v0.30.0` 正式版，**`W8A8_MIX` 的 `moe` 注册已被彻底移除，仅保留 `linear` 线性层实现（`AscendW8A8PDMixLinearMethod`）**。如果你沿用了把 MoE 专家标成 `W8A8_MIX` 的旧 `quant_model_description.json`，请改用 `W8A8_DYNAMIC` 量化描述。
-2. **原生分块 `FP8_BLOCK`（`quant_method: "fp8"`）在 A2/A3 与 950 上的天壤之别**：对于社区直接发布的分块 `float8_e4m3fn` + `weight_scale_inv` 权重（例如官方注释举例的 `Qwen3.8-27B-FP8`），没有任何昇腾矩阵乘直接消费原始分块布局：
-   - 在 **昇腾 950（A5）** 上，`v0.30.0` 加载后会将权重实时重定量为原生 **MXFP8**（每 32 元素共享 1 个 E8M0 缩放因子），保持 1 字节/元素的显存体量并走原生 `npu_quant_matmul`。
-   - 在 **Atlas A2 / A3（910B/910C）** 上，`v0.30.0` 会把权重**静默反量化回模型浮点类型（通常为 `BF16`，2 字节/元素）**再走普通非量化 GEMM——服务能跑通、精度正确，但权重显存直接翻倍，极易挤爆原本按 FP8 算好的单卡 KV 预算。
-   - **面向 `main` 预警**：`main` 分支中 `fp8_block.py` 新增了 `_require_fp8_weight_matmul()` 硬门控，在无原生 FP8 矩阵乘的 A2/A3 卡上加载分块 FP8 权重不再静默反量化，而是**直接抛 `NotImplementedError`**，明确要求改用 `BF16` 原版权重或经 ModelSlim / LLM-Compressor 重新量化的权重。
+1. **`W8A8_PDMIX` 命名与 `W8A8_MIX` MoE 路径退场**：历史上常称混合静态/动态激活的 W8A8 路径为 `W8A8_PDMIX`，文件虽仍保留在 `quantization/methods/w8a8/w8a8_pdmix.py`，但实际注册键名是 **`W8A8_MIX`**。`v0.26.0rc` 起 `@register_scheme("W8A8_MIX", "moe")` 已打印弃用警告；到了 `v0.30.0` 正式版，**`W8A8_MIX` 的 `moe` 注册被彻底移除，仅保留 `linear` 线性层实现（`AscendW8A8PDMixLinearMethod`）**。若旧 `quant_model_description.json` 仍把 MoE 专家标为 `W8A8_MIX`，应改用 `W8A8_DYNAMIC`。
+2. **原生分块 `FP8_BLOCK`（`quant_method: "fp8"`）在 A2/A3 与 950 上的不同结局**：社区发布的分块 `float8_e4m3fn` + `weight_scale_inv` 权重（如 `Qwen3.8-27B-FP8`），目前没有昇腾矩阵乘直接消费原始分块布局：
+   - **昇腾 950（A5）**：`v0.30.0` 对符合条件的量化线性层与 MoE 权重实时重定量为原生 **MXFP8**（每 32 元素共享 1 个 E8M0 缩放因子），保持约 1 字节/元素并走原生 `npu_quant_matmul`；被注意力后端吸收的线性层以及归约维不能整除 MXFP8 分组大小的层仍回退模型浮点类型（`model_dtype`）。
+   - **Atlas A2 / A3（910B/910C）**：`v0.30.0` 会把权重**静默反量化回浮点类型（通常为 `BF16`，2 字节/元素）**再走普通 GEMM。服务能跑通且精度正确，但权重显存直接翻倍，极易挤爆原本按 FP8 算好的单卡 KV 预算。
+   - **面向 `main` 预警**：`main` 的 `fp8_block.py` 新增 `_require_fp8_weight_matmul()` 硬门控。A2/A3 加载分块 FP8 权重不再静默反量化，而是**直接抛 `NotImplementedError`**，须改用 `BF16` 原版权重或经 ModelSlim / LLM-Compressor 重新量化的权重。
+
+下面这张对照图把上述 `FP8_BLOCK` 跨卡显存翻倍、`CacheConfig` 默认 `0.92` 缩窄录图余量与 `HardwareProfile` 四家族能力差异放在同一屏核对：
+
+```wiki-diagram
+file: v030-mig-fig-fp8-memory-hardware
+```
 
 ## 清单 3：`CacheConfig` 显存水位 `0.92`、`HardwareProfile` 重构与 `MRV2` 切换
 
 除了配置项和量化，还有三项底层架构变化直接影响上线稳定性与自研插件兼容性：
 
-- **`gpu_memory_utilization` 源码默认是 `0.92` 而非 `0.90`**：上游 `CacheConfig` 在 `v0.30.0` 中的默认值是 **`0.92`**（部分旧版 `faqs.md` 文档文案仍停留在历史值 `0.9`）。在单卡 64 GiB 设备上，默认留给图捕获（ACL Graph / `npugraph_ex`）与运行期波动的预算外余量从 `6.4 GiB` 缩减到 `5.12 GiB`。如果你的部署叠加了 `FULL_DECODE_ONLY` 大档位录图或较大 HCCL 通信缓冲，建议在命令行显式传入 `--gpu-memory-utilization 0.90`（详细联动账单见 [核心参数全分支调优指南](core-cli-params.md) 与 [KV Cache 显存预算](kv-cache-memory-profiling.md)）。在 `main` 分支中，该字段默认值进一步演进为 `None`，由 `resolved_gpu_memory_utilization` 按常规模式解析为 `0.92`（可扩展 KV 池模式解析为 `1.0`）。
-- **`HardwareProfile` 四家族语义重构**：在 `v0.26.0rc` 及之前，仓内大量逻辑直接散落着 `is_310p()` 或芯片型号 `if/else`；`v0.30.0` 引入 `vllm_ascend/device/hardware_profile.py`，把硬件识别统一收拢为不可变的四家族档案——**`A2`、`A3`、`_310P`、`A5`（昇腾 950）**，通过 `HardwareCapability` 布尔能力契约、策略（`*Policy`）与实现家族（`*Family`）解耦业务逻辑。特别提醒：在 `v0.30.0` 中，`A5` 档案**暂不含 `RUNTIME_CUSTOM_OPS`**，因此 950 上会自动关闭 `vllm_ascend_C` 走标准算子回退（`main` 已补回该能力，详情见 [新模型适配与自定义算子开发](dev-new-model-and-custom-op.md)）。
-- **`MRV2` 切换红线与 `rc2 → v0.30.0` 稳定性收口**：在 `v0.30.0` 正式版中，`patch_use_v2_model_runner.py` 保持未设环境变量时默认走 **MRV1**，而开启 **PCP**、**DeepSeek V4.1（A5）**、**`--enable-return-routed-experts`**、**`CPP + async_scheduling`** 或 **V2 EPLB** 时必须显式导出 `VLLM_USE_V2_MODEL_RUNNER=1`（完整边界见 [Model Runner V2](model-runner-v2.md)）。相比 `v0.30.0rc2`，正式版 `v0.30.0`（`c09d3e20`）还对齐了 CANN `9.2.1` 基线、修复了 MRV2 结构化输出中 Triton 无序锁工作区问题、收口了 EPLB 文档与配置校验，并移除了部分模型教程中无效的 `enable_flashcomm1` 示例。而面向未来升级至 `main` 时，须提前验证业务在 MRV2 下的精度与时延，因为 `main` 已删除 MRV1，且残留 `VLLM_USE_V2_MODEL_RUNNER=0` 会直接报错退出。
+- **`gpu_memory_utilization` 源码默认是 `0.92` 而非 `0.90`**：上游 `CacheConfig` 在 `v0.26`、`v0.30.0rc2` 与 `v0.30.0` 中均默认 **`0.92`**（部分旧版 `faqs.md` 仍沿写 `0.9`）。在单卡 64 GiB 设备上，相比显式传入 `0.90`，默认 `0.92` 把预算外留给图捕获（ACL Graph / `npugraph_ex`）与运行期波动的余量从 `6.40 GiB` 缩窄到 `5.12 GiB`。若叠开 `FULL_DECODE_ONLY` 大档位录图或较大 HCCL 缓冲，建议显式传 `--gpu-memory-utilization 0.90`（详账见 [核心参数全分支调优指南](core-cli-params.md) 与 [KV Cache 显存预算](kv-cache-memory-profiling.md)）。在 `main` 中该字段默认改为 `None`，常规模式由 `resolved_gpu_memory_utilization` 解析为 `0.92`（可扩展 KV 池模式为 `1.0`）。
+- **`HardwareProfile` 四家族语义重构**：`v0.26.0rc` 及之前散落着 `is_310p()` 等芯片分支判断；`v0.30.0` 新增 `vllm_ascend/device/hardware_profile.py`，把硬件识别统一收拢为不可变的四家族档案——**`A2`、`A3`、`_310P`、`A5`（昇腾 950）**。业务层改读 `HardwareCapability` 布尔能力契约、策略（`*Policy`）与实现家族（`*Family`）。注意 `v0.30.0` 的 `A5` 档案**暂不含 `RUNTIME_CUSTOM_OPS`**，950 会自动关闭 `vllm_ascend_C` 走标准算子回退（`main` 已补回，见 [新模型适配与自定义算子开发](dev-new-model-and-custom-op.md)）。
+- **`MRV2` 切换红线与 `rc2 → v0.30.0` 稳定性收口**：在 `v0.30.0` 正式版中，`patch_use_v2_model_runner.py` 保持未设环境变量时默认走 **MRV1**。开启 **PCP**、**DeepSeek V4.1（A5）**、**`--enable-return-routed-experts`**、**`CPP + async_scheduling`** 或 **V2 EPLB** 时，必须显式导出 `VLLM_USE_V2_MODEL_RUNNER=1`（见 [Model Runner V2](model-runner-v2.md)）。相比 `v0.30.0rc2`，正式版 `v0.30.0`（`c09d3e20`）对齐了 CANN `9.2.1` 基线，修复了 MRV2 结构化输出 Triton 无序锁工作区问题，并收口了 EPLB 校验与失效 `enable_flashcomm1` 示例。面向 `main` 升级前务必提前验证 MRV2 精度与时延：`main` 已删除 MRV1，残留 `VLLM_USE_V2_MODEL_RUNNER=0` 会直接报错退出。
 
 ## 常见误解
 

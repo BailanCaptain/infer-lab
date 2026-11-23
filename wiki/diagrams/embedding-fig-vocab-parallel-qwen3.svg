@@ -14,11 +14,12 @@
 
   <rect x="14" y="46" width="180" height="156" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
   <text x="104" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">1. 编号广播</text>
-  <text x="104" y="98" text-anchor="middle" font-size="13.5" fill="#17211f">切词表不切输入编号</text>
-  <rect x="24" y="112" width="160" height="36" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="104" y="135" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">[151644, 872, 198, 151645]</text>
-  <text x="104" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">TP=2 两卡拿同一份</text>
-  <text x="104" y="190" text-anchor="middle" font-size="13.5" fill="#4d5652">形状 [T]（示意 T=4）</text>
+  <text x="104" y="96" text-anchor="middle" font-size="13.5" fill="#17211f">切词表不切输入编号</text>
+  <rect x="22" y="106" width="164" height="44" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="104" y="124" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#3a4f93">[151644, 872,</text>
+  <text x="104" y="142" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#3a4f93">198, 151645]</text>
+  <text x="104" y="171" text-anchor="middle" font-size="13.5" fill="#4d5652">TP=2 两卡拿同一份</text>
+  <text x="104" y="191" text-anchor="middle" font-size="13.5" fill="#4d5652">形状 [T]（示意 T=4）</text>
 
   <path d="M 194 124 L 214 124" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#embq-arr)"/>
 

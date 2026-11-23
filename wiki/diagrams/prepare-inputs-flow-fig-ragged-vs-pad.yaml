@@ -1,0 +1,8 @@
+mode: native-svg
+id: prepare-inputs-flow-fig-ragged-vs-pad
+caption: >-
+  为什么首尾相接展平而不是按最长补齐：左半展示按最长补齐 2×3 浪费 2 格（混批时浪费更剧）；右半展示 vLLM 首尾相接成 4 行并用 query_start_loc=[0,1,4] 切分归属；底部并列对照同一 token 的批次行号、请求内位置与 KV 槽位三套独立编号。
+size: [900, 390]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1042
+    symbols: [query_start_loc, gdn_query_start_loc]

@@ -1,0 +1,12 @@
+mode: native-svg
+id: npugraph-ex-fig-cache-vision
+caption: >-
+  视觉编码器编译区间放宽与 GLM 双机四条本地融合规则盘点：上半以数轴展示 compile_mm_encoder 仅放宽最后一段区间上界至 2³¹−1（不改前段与末段起点）；下半逐条核对 GLM 双机下四条本地规则的拓扑与门槛边界。
+size: [900, 456]
+pins:
+  - source: vllm@ced6857a:vllm/compilation/piecewise_backend.py#L133-L154
+    symbols: [is_encoder_compilation, compile_ranges, max_int32]
+  - source: vllm@ced6857a:vllm/config/compilation.py#L542-L554
+    symbols: [compile_mm_encoder, cudagraph_mm_encoder]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+    symbols: [AddRMSNormQuantFusionPass, QKNormRopeFusionPass, MulsAddFusionPass]

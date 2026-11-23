@@ -331,22 +331,33 @@ parallel-mechanism:3
 file: context-parallel-fig-matrix
 ```
 
-**落到 `v0.30.0` 主基线与 `main`，组合部署前需要特别核对四条门槛：** 第一，`PCP > 1` 强制要求 Model Runner V2，并拒绝 encoder-decoder、LoRA 与 `FULL` 图模式（投机解码白名单在 `v0.30.0` 为 `mtp / eagle3 / dspark`，`main` 扩至 `dflash`）；第二，SFA 复制索引路径允许 `DCP` 取 `PCP` 或 `TP × PCP`，而 GQA/MQA 同时开 PCP+DCP 时要求 `PCP == DCP`（`main` 上非 MLA/SFA 的 GQA 模型 DCP 已进入弃用告警）；第三，交错缓存的虚拟块大小在 `v0.30.0` 起按 `physical_block_size × dcp_world_size` 计算，不再重复乘 PCP；第四，GLM KPool 后端在 `v0.30.0` 仍明确拒绝 PCP 与 DCP，直到 `main` 才新增 KPool 的 PCP 支持而继续拒绝 DCP（完整四版对照见文末[版本差异](#版本差异)）。
+**落到 `v0.30.0` 主基线与 `main`，组合部署前需要核对四条门槛：**
+
+- **MRV2 与模式门槛**：`PCP > 1` 强制要求 Model Runner V2，并拒绝 encoder-decoder、LoRA 与 `FULL` 图模式；投机解码白名单在 `v0.30.0` 为 `mtp / eagle3 / dspark`，`main` 扩至 `dflash`。
+- **DCP 组大小与架构门槛**：SFA 复制索引路径允许 `DCP` 取 `PCP` 或 `TP × PCP`；GQA/MQA 同时开 PCP+DCP 时要求 `PCP == DCP`（`main` 上非 MLA/SFA 的 GQA 模型 DCP 已进入弃用告警）。
+- **虚拟块公式**：交错缓存的虚拟块大小自 `v0.30.0` 起按 `physical_block_size × dcp_world_size` 计算，不再重复乘 PCP。
+- **GLM KPool 边界**：GLM KPool 后端在 `v0.30.0` 仍明确拒绝 PCP 与 DCP；`main` 新增了 KPool 的 PCP 支持，但继续拒绝 DCP（完整四版对照见文末[版本差异](#版本差异)）。
 
 ## 历史位置怎么分着存？
 
-**输入位置由谁计算，与计算出的 K/V 最终存到哪里，是两套布局。** 前面的头尾配对分配 prefill 的查询；固定 Ascend 的 CP 缓存按位置交错存放，轮换粒度默认是 1。以 `DCP = 2`、轮换粒度 `= 1` 的教学布局为例，逻辑位置 `0..7` 交错落进两张卡的本地块槽位：
+**输入位置由谁计算，与计算出的 K/V 最终存到哪里，是两套布局。** 前面的头尾配对分配 prefill 的查询；固定 Ascend 的 CP 缓存则按位置交错落槽（轮换粒度默认是 `1`）。下面把交错落槽、虚拟块防重算公式、轮换粒度与复用 TP 显存边界画在一张图里：
+
+```wiki-diagram
+file: context-parallel-fig-interleave-slots
+```
+
+以 `DCP = 2`、轮换粒度 `= 1` 为例，逻辑位置 `0..7` 交错落进两张卡的本地块槽位：
 
 | 缓存持有卡（`DCP = 2`、粒度 `= 1`） | 逻辑序列位置归属 | 本卡本地槽位 `0..3` 对应位置（不归本卡填 `−1` 跳过写入） |
 | --- | --- | --- |
 | 卡 0（偶数槽） | `0, 2, 4, 6` | `[0] → pos 0`, `[1] → pos 2`, `[2] → pos 4`, `[3] → pos 6` |
 | 卡 1（奇数槽） | `1, 3, 5, 7` | `[0] → pos 1`, `[1] → pos 3`, `[2] → pos 5`, `[3] → pos 7` |
 
-在上述固定旧实现中，PCP 与 DCP 一起开时，参与分存的组大小为 PCP × DCP。实现使用[块表](block-table.md)将逻辑位置映射到本地槽位：把这些卡的本地块视为一个“虚拟块”，大小为本地块大小 × PCP × DCP，再根据轮换粒度确定持有者和本地偏移。不归本卡的位置，槽位填 −1，本卡跳过写入；此前取得 K/V 的计算路径要保证持有者能写入自己的部分。
+在固定旧实现中，PCP 与 DCP 同开时参与分存的组大小为 `PCP × DCP`：[块表](block-table.md)把各卡本地块拼成一个大小为 `本地块大小 × PCP × DCP` 的“虚拟块”，再按轮换粒度确定持有者和本地偏移；不归本卡的位置填 `−1` 跳过写入，此前取得 K/V 的计算路径要保证持有者能写入自己的部分。
 
-**升级后的关键变化是：DCP 的组大小可能已经包含 PCP，不能再乘一次。** 例如在 `v0.30.0` 主基线与 `main` 中，特定稀疏复制索引路径允许 `TP = 2`、`PCP = 2`、`DCP = 4`（总卡数 $2 \times 2 = 4$，DCP 复用全部 4 张已有设备）。假设每个本地块装 16 个位置（示意），虚拟块是 $16 \times 4 = 64$ 个位置；再乘 `PCP = 2` 得到 128 就重复计数了。究竟哪些 rank 属于同一个缓存组，应读该版本实际建组与块表，不能从两个参数的名字推断。
+**升级后的关键变化是：DCP 的组大小可能已经包含 PCP，不能再乘一次。** 例如在 `v0.30.0` 主基线与 `main` 中，特定稀疏复制索引路径允许 `TP = 2`、`PCP = 2`、`DCP = 4`（总卡数 $2 \times 2 = 4$，DCP 复用全部 4 张已有设备）。假设每个本地块装 `16` 个位置（示意），虚拟块是 $16 \times 4 = 64$ 个位置；再乘 `PCP = 2` 得到 `128` 就重复计数了。究竟哪些 rank 属于同一个缓存组，应读该版本实际建组与块表，不能从两个参数的名字推断。
 
-粒度也可以增大为一整块。需要整块传输 KV 的场景，如 [PD 分离](pd-disaggregation.md)和 KV 池，要按相应传输要求设置；固定版本的稀疏 CP 路径也要求粒度等于块大小。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与上表的教学布局分别说明。
+轮换粒度也可以增大为一整块。需要整块传输 KV 的场景（如 [PD 分离](pd-disaggregation.md)和 KV 池）须按传输要求设置；固定版本的稀疏 CP 路径也要求粒度等于块大小。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与上表的教学布局分别说明。
 
 ## 复用 TP 的卡，为什么还要建通信组？
 
@@ -374,7 +385,10 @@ file: context-parallel-fig-matrix
 在固定版本上真要开 CP，会先撞上三道门：
 
 - **PCP 这条路对 GLM 是关着的。** 34 层 KDA 的 prefill 在 PCP 大于 1 时直接抛 NotImplementedError。别的模型能用 PCP，不等于这个混合模型能用。
-- **DCP 这条路，平台层放行不等于模型接上了实现。** 平台校验按配置认出这是稀疏模型（有 index_topk、没有 compress_ratios），在 PCP = 1、DCP > 1 时要求 DCP 等于 TP、轮换粒度等于块大小（粒度配错会被就地改成块大小，只留一条 warning）。普通 SFA 后端会据此选择「主 KV 分片、索引复制」的 DCP builder 和实现；GLM 用的 KPool 后端却固定选择自己的普通 builder 和实现，绕过这次选择。它继承的 DCP 查询／KV 收集钩子是空操作，稀疏 attention 调用也设 `return_lse=False`，没有接上前文所述的局部输出与 LSE 合并路径。这里的 KPool 把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)。`v0.30.0` 上 KPool 索引器直接抛 NotImplementedError，明确拒绝 PCP > 1 或 DCP > 1；`main`（`8d6180e2`）虽已为 KPool 新增 PCP 支持，仍抛 NotImplementedError 明确拒绝 DCP > 1——不能只满足平台参数就把旧路径当作可用的 DCP。
+- **DCP 这条路，平台层放行不等于模型接上了实现。**
+  - *平台层放行规则*：平台校验按配置认出稀疏模型（有 `index_topk`、没有 `compress_ratios`），在 `PCP = 1, DCP > 1` 时要求 `DCP == TP`、轮换粒度等于块大小（配错会被就地改写并只留一条 warning）。
+  - *KPool 后端绕过现状*：普通 SFA 后端会据此选中“主 KV 分片、索引复制”的 DCP builder 和实现；但 GLM 用的 KPool 后端（把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)）固定选择普通 builder，绕过了这次选择。它继承的 DCP 查询／KV 收集钩子是空操作，稀疏 attention 调用也设 `return_lse=False`，并未接入局部输出与 LSE 合并路径。
+  - *新版显式拦截*：`v0.30.0` 上 KPool 索引器直接抛 `NotImplementedError`，明确拒绝 `PCP > 1` 或 `DCP > 1`；`main`（`8d6180e2`）虽为 KPool 新增了 PCP 支持，仍对 `DCP > 1` 抛 `NotImplementedError`——不能因为平台参数校验通过就把旧路径当作可用 DCP。
 - **开着[前缀缓存](prefix-caching.md)时，上游还有一道。** KV cache 分成多组（GLM 正是稀疏 MLA 与 KDA 两类）时用的那个协调器，要求 DCP、PCP 都是 1。
 
 所以 GLM 的双机主线继续用[官方的 TP/DP 配置](../sources/glm-5-3-flash-baseline.md)，本库不把没验证过的 CP 组合写进部署命令；真要开，上面三条得逐条核过。

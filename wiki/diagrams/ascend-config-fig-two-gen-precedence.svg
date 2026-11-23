@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="两代 AscendConfig 配置优先级全链路对照：旧版九对存在覆盖与新版 FLASHCOMM1 逻辑或及角色改写" font-family="var(--font-sans)">
+  <title>同一输入（JSON=false / env=1）在旧版与新版 AscendConfig 下的完整流转</title>
+  <desc>Feeds identical input JSON=false and VLLM_ASCEND_ENABLE_FLASHCOMM1=1 through Legacy 9-pair existence override (with early ValueError exit on non-int env like =true or "abc") vs Modern v0.30.0 Pydantic strict parse, FLASHCOMM1 logical OR, atomic in-process publish, kv_producer role rewrite, and consumer read.</desc>
+  <defs>
+    <marker id="cf-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+    <marker id="cf-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+    <marker id="cf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="cf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+    <marker id="cf-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">两代配置优先级对照：同一组冲突输入（JSON=false + env=1），截然相反的结果</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">输入对照：--additional-config '{"enable_flashcomm1":false}' 且 VLLM_ASCEND_ENABLE_FLASHCOMM1=1</text>
+
+  <!-- Shared Input Node on Far Left -->
+  <rect x="16" y="138" width="150" height="114" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.5"/>
+  <text x="91" y="164" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">同一测试输入</text>
+  <rect x="26" y="176" width="130" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="91" y="195" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)">JSON: false</text>
+  <rect x="26" y="212" width="130" height="28" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="91" y="231" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">env: 1 (True)</text>
+
+  <!-- Fork arrows to Track A & Track B -->
+  <path d="M166 172 H186 V116 H204" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#cf-arr-a)"/>
+  <path d="M166 222 H186 V318 H204" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#cf-arr-t)"/>
+
+  <!-- TRACK A: Legacy v0.23.0 / GLM -->
+  <text x="210" y="76" font-size="15" font-weight="700" fill="#936300">上轨 · 旧版 v0.23.0 / GLM（9 对兼容映射：键存在优先）</text>
+
+  <!-- A1: Eager Env Parse -->
+  <rect x="210" y="88" width="194" height="66" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="307" y="113" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">1. 先对环境变量求值</text>
+  <text x="307" y="138" text-anchor="middle" font-size="13.5" fill="#4d5652">bool(int(env)) 读 envs.py</text>
+
+  <!-- A1 Early Error Exit -->
+  <line x1="307" y1="154" x2="307" y2="178" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#cf-arr-r)"/>
+  <rect x="210" y="184" width="290" height="44" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="355" y="211" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">✕ 非整数（如 =true / "abc"）：提前抛错</text>
+
+  <!-- A2: _get_config_value -->
+  <line x1="404" y1="121" x2="444" y2="121" stroke="#c78300" stroke-width="1.8" marker-end="url(#cf-arr-a)"/>
+  <rect x="450" y="88" width="214" height="66" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="557" y="113" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2. _get_config_value()</text>
+  <text x="557" y="138" text-anchor="middle" font-size="13.5" fill="#4d5652">key in json？存在即覆盖</text>
+
+  <!-- A3: Result false -->
+  <line x1="664" y1="121" x2="704" y2="121" stroke="#c78300" stroke-width="1.8" marker-end="url(#cf-arr-a)"/>
+  <rect x="710" y="88" width="174" height="66" rx="7" fill="#ffffff" stroke="#c78300" stroke-width="1.6"/>
+  <text x="797" y="114" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">结果：false</text>
+  <text x="797" y="139" text-anchor="middle" font-size="13.5" fill="#4d5652">JSON 盖掉 env 真值</text>
+
+  <text x="514" y="211" font-size="13.5" fill="#66716d">注：旧版未知顶层键多静默忽略（EPLB 等除外）</text>
+
+  <!-- Divider -->
+  <line x1="210" y1="248" x2="884" y2="248" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- TRACK B: Modern v0.30.0 / main -->
+  <text x="210" y="274" font-size="15" font-weight="700" fill="#065f56">下轨 · 新版 v0.30.0 / main（Pydantic 严检 + FLASHCOMM1 逻辑或 → 发布 → 改写 → 消费）</text>
+
+  <!-- B1: Factory + Pydantic -->
+  <rect x="210" y="288" width="194" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="307" y="313" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">1. Pydantic 严格解析</text>
+  <text x="307" y="336" text-anchor="middle" font-size="13.5" fill="#4d5652">剥离旧调度键 / Omni 过滤</text>
+  <text x="307" y="354" text-anchor="middle" font-size="13.5" fill="#8f3229" font-family="var(--font-mono)">extra="forbid"</text>
+
+  <line x1="404" y1="324" x2="432" y2="324" stroke="#087f73" stroke-width="1.8" marker-end="url(#cf-arr-t)"/>
+
+  <!-- B2: derive_and_validate OR -->
+  <rect x="438" y="288" width="234" height="72" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="555" y="313" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">2. derive_and_validate</text>
+  <text x="555" y="336" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">false OR true → true</text>
+  <text x="555" y="355" text-anchor="middle" font-size="13.5" fill="#4d5652">其余 8 个旧环境变量已退役</text>
+
+  <line x1="672" y1="324" x2="700" y2="324" stroke="#087f73" stroke-width="1.8" marker-end="url(#cf-arr-t)"/>
+
+  <!-- B3: Result true + Atomic Publish -->
+  <rect x="706" y="288" width="178" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="795" y="313" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">结果：true</text>
+  <text x="795" y="336" text-anchor="middle" font-size="12.5" fill="#065f56">原子发布 _ASCEND_CONFIG</text>
+  <text x="795" y="355" text-anchor="middle" font-size="12.5" fill="#4d5652">并 clear_enable_sp()</text>
+
+  <!-- Downward flow from B3 to Post-Publish Gates -->
+  <path d="M795 360 V386 H312 V404" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#cf-arr-p)"/>
+
+  <!-- Bottom Row: Post-publish gates (B4 -> B5 -> B6) -->
+  <rect x="210" y="410" width="202" height="110" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="222" y="435" font-size="14" font-weight="700" fill="#7a3a6a">3. 进程内单例守卫</text>
+  <text x="222" y="460" font-size="13" fill="#4d5652">RL / 细粒度 TP / Xlite 全过</text>
+  <text x="222" y="482" font-size="13" fill="#4d5652">才写入单例，失败保旧缓存</text>
+  <text x="222" y="506" font-size="13" fill="#7a3a6a" font-weight="600">各进程隔离，重启方生效</text>
+
+  <line x1="412" y1="465" x2="434" y2="465" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#cf-arr-p)"/>
+
+  <rect x="438" y="410" width="234" height="110" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="450" y="435" font-size="14" font-weight="700" fill="#8f3229">4. 平台按角色二次改写</text>
+  <text x="450" y="460" font-size="13" fill="#4d5652">NPUPlatform.check_and_update</text>
+  <text x="450" y="482" font-size="13" fill="#8f3229" font-weight="600">kv_producer 上重算调度</text>
+  <text x="450" y="506" font-size="13" fill="#4d5652">被静默重置为 False + 告警</text>
+
+  <line x1="672" y1="465" x2="694" y2="465" stroke="#087f73" stroke-width="1.8" marker-end="url(#cf-arr-t)"/>
+
+  <rect x="698" y="410" width="186" height="110" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="710" y="435" font-size="14" font-weight="700" fill="#065f56">5. 消费者最终判定</text>
+  <text x="710" y="460" font-size="13" fill="#4d5652">Worker / 算子 / 调度器</text>
+  <text x="710" y="482" font-size="13" fill="#4d5652">结合硬件能力与 SP 联动</text>
+  <text x="710" y="506" font-size="13" fill="#065f56" font-weight="600">五步连看才算真正生效</text>
+
+  <!-- Left Bottom Note -->
+  <rect x="16" y="410" width="166" height="110" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="436" font-size="14" font-weight="700" fill="#17211f">排查铁律</text>
+  <text x="28" y="462" font-size="13.5" fill="#4d5652">① CLI 命令</text>
+  <text x="28" y="484" font-size="13.5" fill="#4d5652">② 默认与 env 兜底</text>
+  <text x="28" y="506" font-size="13.5" fill="#4d5652">③ 派生、改写与消费</text>
+</svg>

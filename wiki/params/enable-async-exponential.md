@@ -83,32 +83,47 @@ rawSources:
 
 ## 它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？
 
-`enable_async_exponential` 曾是 `additional_config` 下的布尔开关，改的只有一个**执行时机**：随机采样所需的指数分布随机数 `q ~ Exp(1)`，默认在 softmax 算完后才现填；开启本开关后，会在本步 model forward 开始之前就提交到副流 `global_stream()` 上预先填充，把生成耗时藏进模型各层前向里，到采样阶段直接取用。它在 `v0.23.0` 默认 `False`，且发版当天就已列入官方 Ready to Deprecate 待废弃清单——**新部署不要依赖它**。
+`enable_async_exponential` 曾是 `additional_config` 下的布尔开关，改的只有一个**执行时机**：随机采样所需的指数分布随机数 $q \sim \text{Exp}(1)$ 默认在 softmax 算完后才现填；开启后，会在本步 model forward 开始之前提交到副流 `global_stream()` 预先填充，争取把生成耗时藏进模型各层前向里。
 
-**自 `v0.25.1rc1` 起（PR #12306），该开关连同 `do_async_exponential`、`set_q_event` 与 `async_exponential_event` 事件对象一并删除**（同批待废弃下线的还有 layer sharding、FlashComm2、multistream-overlap gate、Hamming sparse、matmul all-reduce 融合、weight prefetch 与 dynamic-batch SLO）。残留旧键在不同版本的后果相反：
+它在 `v0.23.0` 默认 `False`，且发版当天就已列入官方 Ready to Deprecate 待废弃清单——**新部署不要依赖它**。
 
-- **`v0.26.0rc`**：`AscendConfig` 仍为普通类逐键 `.get()`，不认识的顶层键被静默忽略，服务能启动但异步重叠不再发生，且同步路径 `random_sample` 从这一版起补上了 `q.record_stream(torch.npu.current_stream())`；
-- **`v0.30.0` 与 `main`**：`AscendConfig` 启用 `extra="forbid"` 且不把该键列入 `_NON_USER_INPUT_KEYS` 豁免名单，传入该键通常直接拒收报错；仅当环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键。其中 `v0.30.0` 的 `vllm_ascend/sample/sampler.py` 仅保留同步 `random_sample`，到 `main` 则随 MRV1 采样器整体退役（仅 `310p/worker/v2` 等路径保留同步 `random_sample`），均不提供此开关。
+**自 `v0.25.1rc1` 起（PR #12306），该开关连同 `do_async_exponential`、`set_q_event` 与 `async_exponential_event` 事件对象一并删除**（同批待废弃下线的还有 layer sharding、FlashComm2、multistream-overlap gate、Hamming sparse、matmul all-reduce 融合、weight prefetch 与 dynamic-batch SLO）。升级后保留旧键的行为按版本分叉：
+
+| 版本 | 残留 `enable_async_exponential` 的行为 | 采样路径现状 |
+| --- | --- | --- |
+| `v0.26.0rc` | `AscendConfig` 仍为普通类逐键 `.get()`，未知顶层键静默忽略（能启动但无异步重叠） | 同步 `random_sample` 补上 `q.record_stream(torch.npu.current_stream())` |
+| `v0.30.0` | `AscendConfig` 启用 `extra="forbid"` 且不豁免本键，通常直接报错；仅环境可发现 `vllm_omni` 时告警过滤未知顶层键 | `vllm_ascend/sample/sampler.py` 仅保留同步 `random_sample` |
+| `main` | 同 `v0.30.0` | MRV1 采样器整体退役（仅 `310p/worker/v2` 等路径保留同步 `random_sample`） |
 
 ## 为什么叫 exponential 而不是 softmax，以及副流重叠的取舍
 
-采样的最后一步不调用 `torch.multinomial`（会触发 CPU-NPU 同步），而是为每个词表位置生成一个服从指数分布 $\text{Exp}(1)$ 的随机数 $q$，再计算 `probs.div_(q).argmax(dim=-1)`，全程留在设备上完成按概率抽样（数学等价性见[采样 · 真实实现怎样「按概率抽」](../concepts/sampling.md#真实实现怎样按概率抽)）。**名字里的 `exponential` 指的是 `q.exponential_()` 抽指数分布随机数，不是前一行 `logits.softmax(dim=-1, dtype=torch.float32)` 里的 `exp`**——这是该参数最容易被误解之处。
+采样的最后一步不调用 `torch.multinomial`（会触发 CPU-NPU 同步），而是为每个词表位置生成一个服从指数分布 $\text{Exp}(1)$ 的随机数 $q$，再计算 `probs.div_(q).argmax(dim=-1)`，全程留在设备上完成按概率抽样（数学等价性见[采样 · 真实实现怎样「按概率抽」](../concepts/sampling.md#真实实现怎样按概率抽)）。
 
-因为 `q.exponential_()` 在 NPU 上不便宜（源码注释点明它可能落到 AI CPU 上执行），同步路径把它夹在 softmax 与 argmax 之间会让主流干等。异步开关把填充起点前移到 forward 之前：
+**名字里的 `exponential` 指的是 `q.exponential_()` 抽指数分布随机数，不是前一行 `logits.softmax(dim=-1, dtype=torch.float32)` 里的 `exp`**——这是该参数最容易被误解之处。
+
+因为 `q.exponential_()` 在 NPU 上不便宜（源码注释点明它可能落到 AI CPU 执行），同步路径把它夹在 softmax 与 argmax 之间会让主流干等。异步开关把填充起点前移到 forward 之前：
 
 ```wiki-diagram
 file: enable-async-exponential
 ```
 
-两条路径其实都在进程级单例流 `global_stream()` 上填 `q`（同步路径也会 `npu_stream_switch(global_stream())` 再 `wait_stream` 收回），因此本开关换来的不是“另开一条专属流”，而是**把填充时刻从采样前挪到 forward 前**。
+两条路径其实都在进程级单例流 `global_stream()` 上填 `q`（同步路径同样会 `npu_stream_switch(global_stream())` 再 `wait_stream` 收回），因此本开关换来的不是「另开一条专属流」，而是**把填充时刻从采样前挪到 forward 前**。
 
-引入它的 PR #4501（TP4、`enforce-eager` 测试条件）给出了其他模型的吞吐参考：A2 上 `Qwen2.5-32B` 约 `+2.3%`，A3 上 `Qwen2.5-32B` 约 `+7%`、`Qwen3-32B` 约 `+13.3%`，但在 `Qwen3-30B`（MoE）上无论开不开 EP 均变慢（开 EP 约 `868 → 803 tok/s`，不开 EP 约 `-0.8%`），因此默认值保持 `False`（PR 未给出 MoE 变慢的原因，这些数字也不代表其他部署收益）。精度上，只要 `q` 形状与采样行对应且元素独立服从 $\text{Exp}(1)$，目标概率分布相同；但异步路径在 forward 前无条件预生成，抽取次数、行数与随机操作顺序可能与同步路径不同，同一 seed 不能保证逐 token 位级复现（且与 `VLLM_BATCH_INVARIANT` 互斥）。
+**历史 PR #4501 的吞吐对照（TP4、`enforce-eager` 测试条件，不代表其他部署收益）**：
+
+| 硬件与模型 | 相对关闭的吞吐变化 | 结论 |
+| --- | --- | --- |
+| A2 · `Qwen2.5-32B` | 约 `+2.3%` | 稠密模型见正收益 |
+| A3 · `Qwen2.5-32B` / `Qwen3-32B` | 约 `+7%` / `+13.3%` | 稠密模型见正收益 |
+| `Qwen3-30B`（MoE，开 EP / 不开 EP） | 约 `868 → 803 tok/s` / `-0.8%` | 无论是否开 EP 均变慢（PR 未说明原因），默认值因此保持 `False` |
+
+精度上，只要 `q` 形状与采样行对应且元素独立服从 $\text{Exp}(1)$，目标概率分布相同；但异步路径在 forward 前无条件预生成，抽取次数、行数与随机操作顺序可能与同步路径不同，同一 seed 不能保证逐 token 位级复现（且与 `VLLM_BATCH_INVARIANT` 互斥）。
 
 ## 历史版本的六项代价、GLM 双机 MTP 形状冲突与升级清理
 
 在仍保留本开关的 `v0.23.0`（及 `db701c1f`）上，开启它会带来六项工程代价与坑点：
 
-1. **与 `VLLM_BATCH_INVARIANT=1` 静默互斥**：只有 `VLLM_BATCH_INVARIANT` 为假时开关才真正生效，冲突时不打任何日志；上游 e2e 测试为此专门 `monkeypatch.setenv("VLLM_BATCH_INVARIANT", "0")` 并注释其会静默关闭异步指数采样（下面保留旧用例写法仅作条件说明，新部署不要照抄）：
+1. **与 `VLLM_BATCH_INVARIANT=1` 静默互斥**：只有 `VLLM_BATCH_INVARIANT` 为假时开关才真正生效，冲突时不打任何日志；上游 e2e 测试为此专门 `monkeypatch.setenv("VLLM_BATCH_INVARIANT", "0")` 并注释其会静默关闭异步指数采样（下面旧用例写法仅作条件说明，新部署不要照抄）：
 
 ```python
 llm = LLM(
@@ -122,13 +137,15 @@ llm = LLM(
 # 同时确保 VLLM_BATCH_INVARIANT 未被设为 1，否则本项静默失效
 ```
 
-2. **`q` 提前占位且生命周期覆盖整次 forward**：`do_async_exponential` 分配形状为 `(logits_indices.shape[0], vocab_size)` 的 `fp32` 张量（注意形参名 `head_dim` 具误导性，实际传入的是词表大小而非头维度），显存随 `batch × vocab_size` 增长、与模型层数无关。不开 MTP 时它和同步路径的 `torch.empty_like(probs)` 同样大，增量来自与 forward 激活重叠驻留；开启 MTP 时异步 `q` 按全部候选+主干行建，比同步路径仅按每请求 1 行 bonus 建更大。
-3. **与 `enable_reduce_sample` 或全 greedy 步同用时白做分配**：`forward_native` 仅在 `enable_reduce_sample` 的 `else` 分支里取用 `self.q`（走 reduce sample 时 `probs` 宽度是各 rank 候选拼接而非 `vocab_size`，仍调用同步 `random_sample` 重抽），且全 greedy 步不走随机采样分支；但 `do_async_exponential` 调用点不检查这些条件，预填的 `q` 无人消费。
-4. **取用前是 host 侧阻塞同步**：取用前执行 `self.async_event.synchronize()` 会挡住调用它的 CPU 线程（同步路径的 `wait_stream` 仅在设备侧排序、不挡 host），在 async scheduling 下会拖慢 host 提前准备下一步（源码注释仅写 `Add synchronize to prevent synchronize error`，未说明为何不用 `wait_event`）。
-5. **跨流分配缺少 `record_stream`**：`q` 在 `global_stream()` 分配却在默认流上被 `div_` 消费，`v0.23.0` 的异步与同步路径均未调用 `record_stream`，存在显存分配器提前回收复用的潜在风险；`v0.26.0rc` 与 `v0.30.0` 在同步 `random_sample` 中补上了 `q.record_stream(torch.npu.current_stream())`。
-6. **升级到 `v0.30.0` / `main` 必须删掉该键**：`v0.25.1rc1` 起已整体删除，`v0.26.0rc` 静默忽略（启动成功不等于重叠存在），`v0.30.0` 与 `main` 通常以 `extra="forbid"` 直接报错（仅环境可发现 `vllm_omni` 时告警过滤）。
+2. **`q` 提前占位且生命周期覆盖整次 forward**：`do_async_exponential` 分配形状为 `(logits_indices.shape[0], vocab_size)` 的 `fp32` 张量（形参名 `head_dim` 具误导性，实际传入的是词表大小而非头维度），显存随 `batch × vocab_size` 增长、与模型层数无关。不开 MTP 时它和同步路径的 `torch.empty_like(probs)` 同样大，增量来自与 forward 激活重叠驻留；开启 MTP 时异步 `q` 按全部候选+主干行建，比同步路径仅按每请求 1 行 bonus 建更大。
+3. **与 `enable_reduce_sample` 或全 greedy 步同用时白做分配**：`forward_native` 仅在 `enable_reduce_sample` 的 `else` 分支取用 `self.q`（走 reduce sample 时 `probs` 宽度是各 rank 候选拼接而非 `vocab_size`，仍调同步 `random_sample` 重抽），全 greedy 步也不走随机采样分支；但 `do_async_exponential` 调用点不检查这些条件，预填的 `q` 无人消费。
+4. **取用前是 host 侧阻塞同步**：取用前执行 `self.async_event.synchronize()` 会挡住调用 CPU 线程（同步路径 `wait_stream` 仅在设备侧排序、不挡 host），在 async scheduling 下会拖慢 host 提前准备下一步（源码注释仅写 `Add synchronize to prevent synchronize error`，未说明为何不用 `wait_event`）。
+5. **跨流分配缺少 `record_stream`**：`q` 在 `global_stream()` 分配却在默认流被 `div_` 消费，`v0.23.0` 的异步与同步路径均未调 `record_stream`，存在显存分配器提前回收复用的潜在风险；`v0.26.0rc` 与 `v0.30.0` 在同步 `random_sample` 中补上了 `q.record_stream(torch.npu.current_stream())`。
+6. **升级到 `v0.30.0` / `main` 必须删掉该键**：`v0.25.1rc1` 起已整体删除，`v0.26.0rc` 静默忽略（启动成功不等于重叠存在），`v0.30.0` 与 `main` 通常以 `extra="forbid"` 报错（仅环境可发现 `vllm_omni` 时告警过滤）。
 
-**放到 GLM 双机部署（历史例外 B 算例）**：采样站位置见[sampling · 放到 GLM 双机](../concepts/sampling.md#放到-glm-双机采样在哪一步谁来做)。固定镜像 `db701c1f` 与 `v0.23.0` 虽带该开关，但默认 `False` 且启动命令未传 `additional_config`，因此**本部署一直走同步采样**。假如强行开启：8 张 TP 卡各跑一份采样，按 GLM `154880` 词表计算每行 `q` 占 `154880 × 4 B = 619,520 B`，R1 的 4 行约 `2.36 MiB`、满载 128 行约 `75.6 MiB`；更重要的是本部署默认按 `T = 1, top-p = 0.95` 随机采样且开启 MTP，`q` 按全部 logits 索引行（每请求「候选数 + 1」，通常 4 行）分配，而拒绝采样器只把每请求 1 行 bonus logits 交给采样器，取用处直接拿整块 `q` 原地相除而不切片——非零候选导致 `q` 行数大于输出行数，按源码推断会触发形状错误（尚未在设备复现；该功能后续已被整体移除）。
+**放到 GLM 双机部署（历史例外 B 算例）**：采样站位置见[sampling · 放到 GLM 双机](../concepts/sampling.md#放到-glm-双机采样在哪一步谁来做)。固定镜像 `db701c1f` 与 `v0.23.0` 虽带该开关，但默认 `False` 且启动命令未传 `additional_config`，**本部署一直走同步采样**。
+
+假如强行开启，除 8 张 TP 卡各跑一份采样带来的显存占位（按 GLM `154880` 词表算，每行 `q` 占 $154880 \times 4\text{ B} = 619{,}520\text{ B}$，R1 的 4 行约 `2.36 MiB`、满载 128 行约 `75.6 MiB`）外，还会遇到 **MTP 行数冲突**：本部署默认按 `T = 1, top-p = 0.95` 随机采样且开启 MTP，`q` 按全部 logits 索引行（每请求「候选数 + 1」，通常 4 行）分配，而拒绝采样器只把每请求 1 行 bonus logits 交给采样器，取用处直接拿整块 `q` 原地相除而不切片——非零候选导致 `q` 行数大于输出行数，按源码推断会触发形状错误（尚未在设备复现；该功能后续已被整体移除）。
 
 ## 对照源码
 

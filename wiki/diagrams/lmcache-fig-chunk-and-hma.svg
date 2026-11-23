@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="LMCache 按 chunk 整块取整失配示意与 GLM SupportsHMA 互斥死锁图" font-family="var(--font-sans)">
+  <title>LMCache 256-token 整块失配比例条与 GLM 双机 SupportsHMA 双路死锁</title>
+  <desc>Proportional chunk-aligned prefix lookup showing 500 shared tokens only matching 256 tokens at chunk_size=256, and HMA mutual exclusion blocking GLM-5.3-Flash</desc>
+  <defs>
+    <marker id="lmc2-arr-danger" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Chunk Alignment Ruler (0..600 -> x=136..856, 1.2 px/token) -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">按 chunk 整块认人（示意 chunk = 256）：共享 500 位为何只省 256 位</text>
+
+  <!-- Scale markers: 0(136), 256(443.2), 500(736), 512(750.4), 600(856) -->
+  <g text-anchor="middle" font-size="13.5" fill="#66716d">
+    <text x="136" y="58">0</text>
+    <text x="443" y="58" font-weight="700" fill="#065f56">256</text>
+    <text x="720" y="58" font-weight="700" fill="#8f3229">500 分叉</text>
+    <text x="768" y="58">512</text>
+    <text x="856" y="58">600</text>
+  </g>
+  <line x1="736" y1="64" x2="736" y2="180" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3"/>
+
+  <!-- Row A: Request A stored -->
+  <text x="16" y="92" font-size="14" font-weight="700" fill="#3a4f93">请求 A 存入</text>
+  <text x="16" y="110" font-size="13.5" fill="#66716d">600 位存 2 块</text>
+  <rect x="136" y="72" width="307" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="289" y="96" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Chunk 0（0–255）存入 ✓</text>
+  <rect x="445" y="72" width="305" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="597" y="96" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Chunk 1（256–511）存入 ✓</text>
+  <rect x="752" y="72" width="104" height="38" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="804" y="96" text-anchor="middle" font-size="13.5" fill="#66716d">88 位不存</text>
+
+  <!-- Row B: Request B lookup -->
+  <text x="16" y="152" font-size="14" font-weight="700" fill="#065f56">请求 B 查询</text>
+  <text x="16" y="170" font-size="13.5" fill="#66716d">前 500 位相同</text>
+  <rect x="136" y="132" width="307" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="289" y="156" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Chunk 0 整块命中 ✓（省 256 位）</text>
+  <!-- Chunk 1: 256..499 same, 500..511 diff -> whole chunk miss! -->
+  <rect x="445" y="132" width="291" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <rect x="736" y="132" width="14" height="38" rx="2" fill="#b54237" fill-opacity="0.35" stroke="#b54237" stroke-width="1.5"/>
+  <text x="590" y="156" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">500–511 异 → 整块失配 ✗（244 位白共享）</text>
+  <rect x="752" y="132" width="104" height="38" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="804" y="156" text-anchor="middle" font-size="13.5" fill="#936300">自算尾巴</text>
+
+  <text x="450" y="198" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">最终结果：B 仅复用 256 位，其余 344 位（256–599）全部自算；自带 adapter 仅拿 prompt 查询，补不回同请求已生成段</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="214" x2="884" y2="214" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: GLM HMA Mutual Exclusion Deadlock & Shape Mismatch -->
+  <circle cx="24" cy="238" r="12" fill="#b54237"/>
+  <text x="24" y="242.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="244" font-size="16" font-weight="700" fill="#17211f">GLM 双机为何双路堵死：未实现 SupportsHMA 互斥 + 混合态形状不匹配</text>
+
+  <!-- Left origin node -->
+  <rect x="16" y="294" width="210" height="86" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="121" y="324" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">LMCacheConnectorV1</text>
+  <text x="121" y="348" text-anchor="middle" font-size="13.5" fill="#17211f">未继承 SupportsHMA</text>
+  <text x="121" y="370" text-anchor="middle" font-size="13.5" fill="#8f3229">（GLM 5 组强依赖 HMA）</text>
+
+  <!-- Two dead-end arrows -->
+  <path d="M226 322 H260 V290 H282" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#lmc2-arr-danger)"/>
+  <path d="M226 352 H260 V388 H282" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#lmc2-arr-danger)"/>
+
+  <!-- Dead-end 1 -->
+  <rect x="288" y="262" width="318" height="62" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="302" y="287" font-size="14" font-weight="700" fill="#8f3229">路径 1 · 不显式表态 HMA</text>
+  <text x="302" y="311" font-size="13.5" fill="#17211f">vLLM 自动关 HMA → GLM 建组报 ValueError ✗</text>
+
+  <!-- Dead-end 2 -->
+  <rect x="288" y="352" width="318" height="62" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="302" y="377" font-size="14" font-weight="700" fill="#8f3229">路径 2 · 显式强制开启 HMA</text>
+  <text x="302" y="401" font-size="13.5" fill="#17211f">工厂建连接器即抛 does not support HMA ✗</text>
+
+  <!-- Right secondary blockers -->
+  <rect x="622" y="262" width="262" height="152" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="636" y="288" font-size="14.5" font-weight="700" fill="#936300">即使改通互斥仍有两处阻断</text>
+  <text x="636" y="316" font-size="13.5" fill="#17211f">① 形状错位：34 层 KDA 不按位</text>
+  <text x="636" y="338" font-size="13.5" fill="#4d5652">   置存，稀疏 MLA 另含索引器</text>
+  <text x="636" y="366" font-size="13.5" fill="#17211f">② MLA 逐层直接报不支持</text>
+  <text x="636" y="394" font-size="13.5" font-weight="700" fill="#936300">注：1 chunk 256 位约 3.19 MiB/卡</text>
+
+  <text x="16" y="442" font-size="13.5" fill="#66716d">对比 AscendStore：后者声明 SupportsHMA 并自动把 KDA 切为 align 模式，不会触发上述双路互斥。</text>
+</svg>

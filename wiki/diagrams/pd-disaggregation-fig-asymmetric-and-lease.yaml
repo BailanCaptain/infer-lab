@@ -2,7 +2,7 @@ mode: native-svg
 id: pd-disaggregation-fig-asymmetric-and-lease
 caption: >-
   PD 分离非对称实例配比约束与源块释放协议对照：上半幅对比 P 实例（算力受限 TP/PP/PCP、仅按长度上限交棒、混合模型 N>1 截断末位）与 D 实例（带宽受限大 DP/EP + PP=1、WAITING_FOR_REMOTE_KVS 挂起与专属 RecomputeScheduler 退路），并标注 GLM 双机直拆 1P1D 退回 EP8 失 MC2 的代价；下半幅对照 Mooncake V1 480s 押块超时与上游 NIXL 30s 初始租约 / 5s 心跳 / 20s 续约窗口。
-size: [900, 514]
+size: [900, 470]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85
     symbols: [kv_transfer_config, is_kv_consumer, is_kv_producer, side_channel_port]

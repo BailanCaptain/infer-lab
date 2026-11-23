@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="排队主导请求加速计算收益比例条与单参数调整联动涟漪、四类无故障优化代价平衡图" font-family="var(--font-sans)">
+  <title>排队主导时计算减半的真实收益比例，以及单参数涟漪与四目标取舍</title>
+  <desc>Top: proportional 860ms vs 835ms vs 160ms latency bars demonstrating Amdahl effect on a queue-dominated request. Bottom: single-knob ripple across batch shape, graph mode, and MoE comm, plus 4 optimization goals with coupled costs</desc>
+  <defs>
+    <marker id="tr-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: Proportional Queue-Dominated Bar (860 ms = 602 px -> 0.7 px/ms, starting at x=166) -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 为什么不能见慢就先优化算子？排队主导请求的同比例拆段对照（示意）</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">0.7 px/ms 同比例尺</text>
+
+  <!-- Bar 1: Baseline 800 + 50 + 10 = 860 ms (560 + 35 + 7 = 602 px) -->
+  <text x="16" y="70" font-size="14" font-weight="700" fill="#17211f">当前基线</text>
+  <rect x="166" y="48" width="560" height="34" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="446" y="70" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">等调度排队 = 800 ms（93%）</text>
+  <rect x="728" y="48" width="35" height="34" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="765" y="48" width="10" height="34" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="786" y="70" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">860 ms</text>
+
+  <!-- Bar 2: Compute halved 800 + 25 + 10 = 835 ms (560 + 18 + 7) -->
+  <text x="16" y="118" font-size="14" font-weight="700" fill="#936300">仅算力翻倍</text>
+  <rect x="166" y="96" width="560" height="34" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="446" y="118" text-anchor="middle" font-size="13.5" fill="#8f3229">排队仍为 800 ms（单请求固定其余等待时）</text>
+  <rect x="728" y="96" width="18" height="34" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="748" y="96" width="10" height="34" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="768" y="118" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">835 ms (−25)</text>
+
+  <!-- Bar 3: Fix arrival/routing skew 100 + 50 + 10 = 160 ms (70 + 35 + 7) -->
+  <text x="16" y="166" font-size="14" font-weight="700" fill="#065f56">治排队/偏斜</text>
+  <rect x="166" y="144" width="70" height="34" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="201" y="166" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">100</text>
+  <rect x="238" y="144" width="35" height="34" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="275" y="144" width="10" height="34" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="296" y="166" font-size="14" font-weight="700" fill="#065f56">160 ms（先降压/调均衡验证排队根因，再回原负载验收扩容或路由）</text>
+
+  <text x="166" y="198" font-size="13.5" fill="#66716d">图例：陶红 = 排队等待 · 琥珀 = 设备计算（50 → 25 ms）· 青色 = 返回（10 ms）</text>
+
+  <line x1="16" y1="216" x2="884" y2="216" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Single-Knob Ripple + 4 Goals Tradeoff -->
+  <text x="16" y="244" font-size="16" font-weight="700" fill="#17211f">② 「只改一个参数」也会触发连锁变化：四类优化目标与必检联动项</text>
+
+  <!-- Ripple chain strip (y=260..310) -->
+  <rect x="16" y="260" width="184" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="108" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">改批预算 / 并发</text>
+  <line x1="200" y1="283" x2="226" y2="283" stroke="#4d5652" stroke-width="1.6" marker-end="url(#tr-arr)"/>
+
+  <rect x="228" y="260" width="194" height="46" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="325" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">批形状与补齐宽度变</text>
+  <line x1="422" y1="283" x2="448" y2="283" stroke="#4d5652" stroke-width="1.6" marker-end="url(#tr-arr)"/>
+
+  <rect x="450" y="260" width="198" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="549" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">图模式 / Eager 切换</text>
+  <line x1="648" y1="283" x2="674" y2="283" stroke="#4d5652" stroke-width="1.6" marker-end="url(#tr-arr)"/>
+
+  <rect x="676" y="260" width="208" height="46" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="780" y="288" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">MC2 ⇄ AllGather 翻路</text>
+
+  <!-- 4 Goals Cards (y=324..432) -->
+  <rect x="16" y="324" width="206" height="106" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="28" y="350" font-size="14.5" font-weight="700" fill="#065f56">提高吞吐</text>
+  <text x="28" y="374" font-size="13.5" fill="#17211f">逐档比批量与预算</text>
+  <text x="28" y="396" font-size="13.5" fill="#4d5652">必验：Goodput 而非</text>
+  <text x="28" y="416" font-size="13.5" fill="#8f3229">牺牲 TTFT/ITL 与显存</text>
+
+  <rect x="236" y="324" width="206" height="106" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="248" y="350" font-size="14.5" font-weight="700" fill="#936300">压低长尾（P95/P99）</text>
+  <text x="248" y="374" font-size="13.5" fill="#17211f">按长短输入分组隔离</text>
+  <text x="248" y="396" font-size="13.5" fill="#4d5652">必验：计入全部失败项</text>
+  <text x="248" y="416" font-size="13.5" fill="#8f3229">禁靠丢弃慢请求造好数</text>
+
+  <rect x="456" y="324" width="206" height="106" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="468" y="350" font-size="14.5" font-weight="700" fill="#3a4f93">节省显存</text>
+  <text x="468" y="374" font-size="13.5" fill="#17211f">分清权重/KV/图/临时</text>
+  <text x="468" y="396" font-size="13.5" fill="#4d5652">必验：质量 + 卸载搬运</text>
+  <text x="468" y="416" font-size="13.5" fill="#8f3229">重算开销与峰值变化</text>
+
+  <rect x="676" y="324" width="208" height="106" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="688" y="350" font-size="14.5" font-weight="700" fill="#7a3a6a">选择并行策略</text>
+  <text x="688" y="374" font-size="13.5" fill="#17211f">比单卡容量与关键路径</text>
+  <text x="688" y="396" font-size="13.5" fill="#4d5652">必验：新增跨卡通信、</text>
+  <text x="688" y="416" font-size="13.5" fill="#8f3229">单位卡产出与故障域</text>
+</svg>

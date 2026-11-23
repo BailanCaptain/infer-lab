@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="DBO 双批次重叠中两个 DP 组按 96 对齐与 48 中点切分的三组对照图" font-family="var(--font-sans)">
+  <title>DBO 跨 DP 组共同拆分判定（对齐长度 96、中点 48、门槛 32）</title>
+  <desc>在统一 [0, 96] token 长度标尺与中点 48 垂直切分线上，对比三组 DP 实际 token 数（64/96、32/96、16/96）：仅 64/96 两组后半微批均有真实 token 可拆微批，32/96 因第一组后半微批为空被全组取消，16/96 未达 32 门槛被全组取消；并标出 Ascend 重置 enable_dbo=False。</desc>
+
+  <circle cx="26" cy="24" r="12" fill="#9a4b86"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">DBO 为何要求全部 DP 组一致决策：对齐长度 96、中点 48 切分三对照（门槛 ≥ 32）</text>
+
+  <!-- Shared scale x = 140..620 (width 480px = 96 tokens -> 5px/token; 32=300, 48=380, 64=460, 96=620) -->
+  <g font-size="13" font-family="var(--font-mono)" fill="#66716d" text-anchor="middle">
+    <text x="140" y="54">0</text>
+    <text x="300" y="54">32 (门槛)</text>
+    <text x="380" y="54" font-weight="700" fill="#9a4b86">48 (中点切线)</text>
+    <text x="460" y="54">64</text>
+    <text x="620" y="54">96 (对齐长)</text>
+  </g>
+  <g stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="140" y1="60" x2="140" y2="306"/>
+    <line x1="300" y1="60" x2="300" y2="306"/>
+    <line x1="620" y1="60" x2="620" y2="306"/>
+  </g>
+
+  <!-- Case 1: 64 / 96 -> OK -->
+  <text x="16" y="90" font-size="14" font-weight="700" fill="#065f56">情景 1：64 / 96</text>
+  <text x="16" y="112" font-size="13" fill="#4d5652">DP0 (64) / DP1 (96)</text>
+  <!-- DP0 bar (y=68, h=22) -->
+  <rect x="140" y="68" width="240" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="260" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">微批 A: 48 实</text>
+  <rect x="380" y="68" width="80" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="420" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">B: 16</text>
+  <rect x="460" y="68" width="160" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <text x="540" y="84" text-anchor="middle" font-size="13" fill="#66716d">补齐 32</text>
+  <!-- DP1 bar (y=94, h=22) -->
+  <rect x="140" y="94" width="240" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="260" y="110" text-anchor="middle" font-size="13" fill="#3a4f93">DP1 微批 A: 48</text>
+  <rect x="380" y="94" width="240" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="500" y="110" text-anchor="middle" font-size="13" fill="#3a4f93">DP1 微批 B: 48</text>
+  <!-- Verdict 1 -->
+  <rect x="640" y="70" width="244" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="762" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">✓ 全组拆微批</text>
+  <text x="762" y="108" text-anchor="middle" font-size="13" fill="#065f56">双组达门槛且后半非空</text>
+
+  <!-- Case 2: 32 / 96 -> Cancel (empty 2nd ubatch!) -->
+  <text x="16" y="176" font-size="14" font-weight="700" fill="#8f3229">情景 2：32 / 96</text>
+  <text x="16" y="198" font-size="13" fill="#4d5652">恰好达 32 门槛</text>
+  <!-- DP0 bar (y=154, h=22) -->
+  <rect x="140" y="154" width="160" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="220" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">DP0 实 32</text>
+  <rect x="300" y="154" width="80" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <rect x="380" y="154" width="240" height="22" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="500" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">后半微批 B：0 真实 token！</text>
+  <!-- DP1 bar (y=180, h=22) -->
+  <rect x="140" y="180" width="240" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="380" y="180" width="240" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="380" y="196" text-anchor="middle" font-size="13" fill="#3a4f93">DP1: 48 + 48（被迫一起取消）</text>
+  <!-- Verdict 2 -->
+  <rect x="640" y="156" width="244" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="762" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">✗ 全组取消微批</text>
+  <text x="762" y="194" text-anchor="middle" font-size="13" fill="#8f3229">DP0 后半无真实 token</text>
+
+  <!-- Case 3: 16 / 96 -> Cancel (<32 threshold) -->
+  <text x="16" y="262" font-size="14" font-weight="700" fill="#8f3229">情景 3：16 / 96</text>
+  <text x="16" y="284" font-size="13" fill="#4d5652">DP0 未达 32</text>
+  <!-- DP0 bar (y=240, h=22) -->
+  <rect x="140" y="240" width="80" height="22" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="180" y="256" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">16 &lt; 32</text>
+  <rect x="220" y="240" width="400" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <!-- DP1 bar (y=266, h=22) -->
+  <rect x="140" y="266" width="480" height="22" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="380" y="282" text-anchor="middle" font-size="13" fill="#3a4f93">DP1: 96（不进入共同拆分）</text>
+  <!-- Verdict 3 -->
+  <rect x="640" y="242" width="244" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="762" y="262" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">✗ 全组取消微批</text>
+  <text x="762" y="280" text-anchor="middle" font-size="13" fill="#8f3229">任一组低于门槛即放弃</text>
+
+  <!-- Bold vertical cut line at 48 (x=380) -->
+  <line x1="380" y1="60" x2="380" y2="306" stroke="#9a4b86" stroke-width="2" stroke-dasharray="6 4"/>
+
+  <!-- Bottom Ascend platform boundary banner -->
+  <rect x="16" y="324" width="868" height="54" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="348" font-size="14" font-weight="700" fill="#936300">Ascend 平台硬边界：vllm_ascend/platform.py 强制重置 enable_dbo=False、ubatch_size=0</text>
+  <text x="30" y="369" font-size="13.5" fill="#4d5652">官方 DBO 针对上游 GPU DeepEP 路径；昇腾 NPU 的 EP 通信计算重叠另看 MC2，切勿把 --enable-dbo 当作昇腾生效加速开关</text>
+</svg>

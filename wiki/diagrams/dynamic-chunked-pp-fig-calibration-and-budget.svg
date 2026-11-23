@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 474" width="900" height="474" role="img" aria-label="动态分块流水线开机试跑、在线校准生命周期与单步多请求时间账状态机图" font-family="var(--font-sans)">
+  <title>动态分块流水线（CPP）双阶段校准与单步时间账：上半展示开机 1 热身加 64 试跑（有效点不足 8 则退回固定块）→ 在线 3 次 H=0 定 τ → 第 5..30 点在线拟合带历史曲线 → 第 31 点关同步计时；下半展示单步时间预算 τ 如何按剩余时间给多条 prefill 逐条截块与扣账（decode 不扣时间账），以及预测失败时的三分支处理。</title>
+  <desc>关联源码符号：fit_chunk, nnls, quadratic_chunk_a, ProfilingChunkScheduler, ProfilingChunkAsyncScheduler</desc>
+  <defs>
+    <marker id="cppc-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="cppc-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="cppc-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- SECTION 1: Calibration Lifecycle -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">一、预测曲线从哪来：开机试跑 → 在线校准 → 自动关闭同步计时</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="16" y="50" width="194" height="106" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="236" y="50" width="194" height="106" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="456" y="50" width="206" height="106" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="688" y="50" width="196" height="106" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+  <path d="M 210 103 L 230 103" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cppc-teal)"/>
+  <path d="M 430 103 L 450 103" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#cppc-amber)"/>
+  <path d="M 662 103 L 682 103" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cppc-teal)"/>
+
+  <g font-size="14.5" font-weight="700" text-anchor="middle">
+    <text x="113" y="75" fill="#3a4f93">① 开机试跑（冷启动）</text>
+    <text x="333" y="75" fill="#936300">② 在线定目标 τ</text>
+    <text x="559" y="75" fill="#7a3a6a">③ 拟合带历史曲线</text>
+    <text x="786" y="75" fill="#065f56">④ 稳定运行期</text>
+  </g>
+  <g font-size="13.5" fill="#4d5652" text-anchor="middle">
+    <text x="113" y="100">1 次热身 + 64 档块长</text>
+    <text x="113" y="122">各段独立空输入试算</text>
+    <text x="113" y="144" font-weight="700" fill="#8f3229">&lt;8 有效点 → 退固定块</text>
+
+    <text x="333" y="100">need_timing=True</text>
+    <text x="333" y="122">首块不截、每步同步计时</text>
+    <text x="333" y="144" font-weight="700" fill="#936300">攒满 3 次 H=0 定 τ</text>
+
+    <text x="559" y="100">第 5..30 点持续重拟</text>
+    <text x="559" y="122">v0.30 改 nnls 非负拟合</text>
+    <text x="559" y="144" font-weight="700" fill="#7a3a6a">第 31 点标记拟合完毕</text>
+
+    <text x="786" y="100">通知 worker 停同步计时</text>
+    <text x="786" y="122">消除步前后双同步开销</text>
+    <text x="786" y="144" font-weight="700" fill="#065f56">全面进入动态截块</text>
+  </g>
+
+  <!-- SECTION 2: Per-Step Multi-Request Time Budget -->
+  <text x="16" y="190" font-size="16" font-weight="700" fill="#17211f">二、单步多请求「时间账」（初始预算 τ = 10,000，示意）与预测失败三分支</text>
+  <line x1="14" y1="200" x2="886" y2="200" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Proportional Time Budget Bar (total w=870 representing τ=10000: 9856 = 857px, 144 = 13px) -->
+  <text x="16" y="226" font-size="14" font-weight="700" fill="#17211f">本步时间预算条（τ = 10,000，按实比例）：先排在跑请求，每次传剩余时间</text>
+  <text x="886" y="226" text-anchor="end" font-size="13.5" font-weight="700" fill="#065f56">余 144 (1.44%)</text>
+  <line x1="879.5" y1="230" x2="879.5" y2="238" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="16" y="238" width="857" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="873" y="238" width="13" height="44" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="444" y="265" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">请求 A（已有历史 L=300 → 切 16 词）扣掉预计耗时 9,856（占 98.56%）</text>
+
+  <!-- Next request B + decode callout -->
+  <rect x="16" y="294" width="510" height="60" rx="8" fill="#ece9df" fill-opacity="0.65" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="318" font-size="14" font-weight="700" fill="#17211f">轮到请求 B（L=100，仅剩 τ_rem = 144）：理想解 ≈ 0.7 词</text>
+  <text x="30" y="342" font-size="13.5" fill="#4d5652">经下限 min_chunk / 对齐抬高后扣账 → 预算转负 → 本步停止再接新 prefill</text>
+
+  <rect x="540" y="294" width="346" height="60" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="554" y="318" font-size="14" font-weight="700" fill="#3a4f93">Decode 规则：占 token 预算，不扣时间账</text>
+  <text x="554" y="342" font-size="13.5" fill="#17211f">不扣账 ≠ 零耗时，仍消耗实际算力与显存带宽</text>
+
+  <!-- Three failure branches when predictor returns None/invalid -->
+  <text x="16" y="382" font-size="14.5" font-weight="700" fill="#8f3229">当拟合退化（a=0 / 无正根）预测失败时的三分支处理（并非一律照常切）：</text>
+  <g stroke-width="1.4">
+    <rect x="16" y="394" width="276" height="68" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="312" y="394" width="276" height="68" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="608" y="394" width="278" height="68" rx="8" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+  <g font-size="14" font-weight="700">
+    <text x="30" y="420" fill="#936300">分支 A · 仍在线校准期</text>
+    <text x="326" y="420" fill="#17211f">分支 B · 本步时间预算未动</text>
+    <text x="622" y="420" fill="#8f3229">分支 C · 本步已扣过时间账</text>
+  </g>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="30" y="446">打校准 info → 按原预算走</text>
+    <text x="326" y="446">告警退化 → 回退固定 token 块</text>
+    <text x="622" y="446" font-weight="700" fill="#8f3229">直接 break 停装 → 后续等下步</text>
+  </g>
+</svg>

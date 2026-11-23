@@ -1,0 +1,10 @@
+mode: native-svg
+id: recompute-scheduler-fig-proxy-retry
+caption: >-
+  RecomputeScheduler 退回 P 节点的完整回路与帧数扣减机制：原 D1 还块并发出带 stop_reason="recomputed" 的空结束帧；代理累积已发文本与原问题重拼，按 max_tokens - chunks + retry_count 抵消空结束帧并重投新 P2/D2，底栏标出角色空帧、投机多词帧与直连 D 误判等边界。
+size: [900, 416]
+pins:
+  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056
+    symbols: [reassign_instances]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L1018-L1035
+    symbols: [recomputed_reqs]

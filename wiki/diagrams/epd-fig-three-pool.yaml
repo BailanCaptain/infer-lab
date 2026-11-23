@@ -2,7 +2,7 @@ mode: native-svg
 id: epd-fig-three-pool
 caption: >-
   多模态 E / P / D 三池分离架构与代理双路径分流（disagg_epd_proxy.py + model_runner_v1.py）：多模态请求先经 E 池运行视觉编码（E 节点执行完 _execute_mm_encoder 即提前返回，仅需极小显存水位 --gpu-memory-utilization 0.01），通过 ECConnector 将编码缓存交给 P 池完成语言 Prefill，再经 MooncakeLayerwise 推送 KV 至 D 池解码；纯文本请求则彻底绕过 E 池直达 P/D。
-size: [900, 460]
+size: [900, 500]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2311-L2320
     symbols: [has_ec_transfer, get_ec_transfer, maybe_get_ec_connector_output, _execute_mm_encoder, make_empty_encoder_model_runner_output]

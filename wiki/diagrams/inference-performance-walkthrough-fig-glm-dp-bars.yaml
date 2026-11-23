@@ -1,0 +1,16 @@
+mode: native-svg
+id: inference-performance-walkthrough-fig-glm-dp-bars
+caption: >-
+  GLM-5.3-Flash 双机场景 M（第 2 步）同比例双 DP 载荷条与四级联锁：DP0（12 条 decode×4 + N 6000 = 6048）与 DP1（7 条 decode×4 = 28）放在同一 0→6048 刻度上，左端放大 0→140 标出 28→32 本地补齐与 128 的 MC2 门槛；跨组同步为 DP1 新增 215× 空行（总宽 216× 至 6048），两组同退回 eager 并一起切到 AllGather（总宽 ≤128 恢复 MC2；纯 Decode 且 ≤128 才同步恢复 ACLGraph 回放）。
+size: [900, 470]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
+    symbols:
+      - _determine_batch_execution_and_padding
+      - is_all_decode
+      - num_tokens_padded
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L200-L282'
+    symbols:
+      - set_mc2_tokens_capacity
+      - _select_a2_moe_comm_method
+      - MoECommType

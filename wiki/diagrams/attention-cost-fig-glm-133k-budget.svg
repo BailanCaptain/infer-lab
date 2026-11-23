@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 468" width="900" height="468" role="img" aria-label="GLM 133120 位置 11 层稀疏 MLA 对数读量对比、Block-640 页补齐与 TP8 缓存切分图" font-family="var(--font-sans)">
+  <title>GLM 133,120 位置单卡逻辑读量（对数标尺）、640 混合页补齐与 TP8 切分</title>
+  <desc>基于 AscendIndexerKPoolMLABackend 与 mamba_raw_size、min_attn_block_size：上半部以对数标尺诚实展示 133,120 位置下主 attention 22.0 MiB、Indexer 89.4 MiB 与密集对照 1,430 MiB；下半部可视化 640-token 逻辑页 655,360 B 包裹 561,152 B KDA 状态的 14.4% 填充，并对照 KDA 1/8 切分与 MLA 全卡复制。</desc>
+  <defs>
+    <pattern id="ac-pad-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#d8b882" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <!-- Zone 1: Log-scale bars at n=133,120 (x=226..806 covers 10 MiB to 2000 MiB: log10(10)=1 to log10(2000)=3.301, span 2.301 -> 252 px/decade) -->
+  <!-- 10 MiB -> x=226; 22 MiB (log=1.342) -> w=86; 89.4 MiB (log=1.951) -> w=240; 100 MiB -> x=478; 1000 MiB -> x=730; 1430 MiB (log=3.155) -> w=543 -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① GLM 11 层稀疏 MLA 在 133,120 位置单卡单步逻辑读（对数刻度 · 反直觉：索引扫量 4× 主读）</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Log gridlines -->
+  <g stroke="#d8d8cf" stroke-width="1" stroke-dasharray="4 3">
+    <line x1="226" y1="50" x2="226" y2="188"/>
+    <line x1="478" y1="50" x2="478" y2="188"/>
+    <line x1="730" y1="50" x2="730" y2="188"/>
+  </g>
+
+  <g font-size="14" font-weight="700">
+    <text x="16" y="76" fill="#065f56">主 attention（≤2048）</text>
+    <text x="16" y="120" fill="#7a3a6a">Indexer（33,280 池）</text>
+    <text x="16" y="164" fill="#8f3229">密集全扫对照（11 层）</text>
+  </g>
+
+  <rect x="226" y="56" width="86" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="322" y="75" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">22.0 MiB（封顶不涨，仅占全史 1/65）</text>
+
+  <rect x="226" y="100" width="240" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="476" y="119" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">89.4 MiB（约主读 4.1×，仍随 n 线性涨！）</text>
+
+  <rect x="226" y="144" width="543" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="779" y="163" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">1.40 GiB</text>
+  <text x="498" y="163" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">1,430 MiB（11 × 133,120 × 1 KiB）</text>
+
+  <!-- Log axis -->
+  <line x1="226" y1="188" x2="860" y2="188" stroke="#8a928f" stroke-width="1.2"/>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#66716d" text-anchor="middle">
+    <text x="226" y="207">10 MiB</text>
+    <text x="478" y="207">100 MiB</text>
+    <text x="730" y="207">1,000 MiB</text>
+  </g>
+  <text x="884" y="207" text-anchor="end" font-size="13.5" fill="#66716d">对数标尺</text>
+
+  <!-- Horizontal divider -->
+  <line x1="14" y1="224" x2="886" y2="224" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2 Left: Block-640 Hybrid Page Packing -->
+  <text x="16" y="252" font-size="15.5" font-weight="700" fill="#17211f">② 640-token 混合逻辑页补齐（同比例）</text>
+  <line x1="450" y1="234" x2="450" y2="456" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- MLA 640x1KiB = 655,360 B full bar (w=416 px) -->
+  <text x="16" y="282" font-size="13.5" font-weight="700" fill="#3a4f93">1 个 MLA 物理页 = 640 tok × 1 KiB = 655,360 B</text>
+  <rect x="16" y="290" width="416" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="224" y="313" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">5 × 128-tok SFA 核块 = 640 tok（100% 满页）</text>
+
+  <!-- KDA raw state 561,152 B = 85.625% (356 px) + 14.375% padding (60 px) -->
+  <text x="16" y="352" font-size="13.5" font-weight="700" fill="#065f56">对齐同页大小的 KDA 页（561,152 B 原始 + 补齐）</text>
+  <rect x="16" y="360" width="356" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <rect x="372" y="360" width="60" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <rect x="372" y="360" width="60" height="36" rx="4" fill="url(#ac-pad-hatch)"/>
+  <text x="194" y="383" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">512K 矩阵 + 36K 卷积 = 561,152 B</text>
+  <text x="402" y="383" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">14.4%</text>
+
+  <text x="16" y="422" font-size="13.5" fill="#4d5652">KDA 每请求分配页合计 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">85 MiB/卡</tspan>（含补齐与投机草稿页），</text>
+  <text x="16" y="444" font-size="13.5" fill="#4d5652">32 并发须预留约 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">2.66 GiB/卡</tspan>，另计清单工作区 64.09 + 68.0 MiB。</text>
+
+  <!-- Zone 2 Right: Sparse MLA 3 Caches + TP8 Split vs Copy -->
+  <text x="468" y="252" font-size="15.5" font-weight="700" fill="#17211f">③ 稀疏 MLA 三份缓存与 TP8 除数陷阱</text>
+
+  <rect x="468" y="268" width="416" height="84" rx="8" fill="#f7e7f2" fill-opacity="0.5" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="482" y="292" font-size="14" font-weight="700" fill="#7a3a6a">一层稀疏 MLA 挂三份独立缓存（全卡复制，不除以 8）：</text>
+  <text x="482" y="316" font-size="13.5" fill="#17211f">• 主潜向量：<tspan font-family="var(--font-mono)" font-weight="700">1 KiB/tok</tspan> (O(n)) · 索引 key：<tspan font-family="var(--font-mono)" font-weight="700">64 B/tok</tspan> (4 tok/池)</text>
+  <text x="482" y="339" font-size="13.5" fill="#4d5652">• 尾状态：<tspan font-family="var(--font-mono)" font-weight="700">4 KiB/层</tspan> (FP32 4×256，不随长度增长)</text>
+
+  <rect x="468" y="366" width="416" height="86" rx="8" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.4"/>
+  <text x="482" y="391" font-size="14" font-weight="700" fill="#065f56">TP8 下两类层必须分开算每卡占比：</text>
+  <text x="482" y="416" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#065f56">34 层 KDA</tspan>：64 头按 TP8 切 <tspan font-family="var(--font-mono)" font-weight="700">1/8</tspan>（每卡 8 头，不通信）</text>
+  <text x="482" y="439" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">12 层 MLA</tspan>：每卡存 <tspan font-family="var(--font-mono)" font-weight="700">1×</tspan> 完整潜向量与索引副本</text>
+</svg>

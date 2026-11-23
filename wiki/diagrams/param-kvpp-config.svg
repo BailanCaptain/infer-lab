@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="kvpp_config 派生对象构造链、_NON_USER_INPUT_KEYS 静默剔除机制、size 大于 1 开启的三条运行链路及 validate 校验演进" font-family="var(--font-sans)">
+  <title>kvpp_config：非用户输入派生流、size&gt;1 三条链路与 validate 校验门槛</title>
+  <desc>Factory construction flow showing enable_kvpp + TP*PCP deriving frozen KVPPConfig(size), silent stripping of hand-written kvpp_config via _NON_USER_INPUT_KEYS, the three runtime pipelines activated when size &gt; 1, and KVPPConfig.validate rules across v0.30.0 and main.</desc>
+  <defs>
+    <marker id="kc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="kc-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="kc-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: User input vs _NON_USER_INPUT_KEYS strip -> Factory Derivation -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 工厂派生链：真正入口是 enable_kvpp，手写 kvpp_config 会在校验前被静默剔除</text>
+
+  <!-- Top track: Correct input -->
+  <rect x="16" y="44" width="234" height="62" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="133" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">✓ 正确用户输入</text>
+  <text x="133" y="91" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">"enable_kvpp": true</text>
+  <path d="M 250 75 L 288 75" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#kc-arr-t)"/>
+
+  <!-- Center factory box -->
+  <rect x="294" y="44" width="298" height="62" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="443" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">KVPPConfig.from_vllm_config()</text>
+  <text x="443" y="91" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">size = TP × PCP（关则 1）</text>
+  <path d="M 592 75 L 626 75" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#kc-arr-b)"/>
+
+  <!-- Right frozen object -->
+  <rect x="632" y="44" width="252" height="62" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="758" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">AscendConfig.kvpp_config</text>
+  <text x="758" y="91" text-anchor="middle" font-size="13.5" fill="#17211f">frozen=True · 仅 size 1 个字段</text>
+
+  <!-- Bottom track: Wrong hand-written kvpp_config silently discarded -->
+  <rect x="16" y="118" width="234" height="52" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="133" y="140" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">✗ 手写 "kvpp_config":{"size":4}</text>
+  <text x="133" y="160" text-anchor="middle" font-size="13.5" fill="#4d5652">（无法覆盖真实 TP×PCP）</text>
+  <path d="M 250 144 L 288 144" fill="none" stroke="#b54237" stroke-width="1.7" stroke-dasharray="4 3" marker-end="url(#kc-arr-r)"/>
+
+  <rect x="294" y="118" width="590" height="52" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="310" y="140" font-size="13.5" font-weight="700" fill="#8f3229">列在 _NON_USER_INPUT_KEYS：进 pydantic 前静默丢弃（无告警、也不报 extra=forbid）</text>
+  <text x="310" y="160" font-size="13.5" fill="#4d5652">例：TP8 开 enable_kvpp 同时误写 size=4 → 仍按 size=8 运行，极其隐蔽</text>
+
+  <line x1="16" y1="186" x2="884" y2="186" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: size > 1 Gate -> 3 Runtime Pipelines -->
+  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② size &gt; 1 门槛同时打开三条运行链路（单卡 TP=1, PCP=1 派生 size=1 全部跳过）</text>
+
+  <rect x="16" y="228" width="276" height="96" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="154" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">链路 1 · 建通信组</text>
+  <text x="154" y="276" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">kvpp 组 (TP × PCP)</text>
+  <text x="154" y="300" text-anchor="middle" font-size="13.5" fill="#4d5652">不跨 DP / PP · 断言 size 匹配</text>
+
+  <rect x="312" y="228" width="276" height="96" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="450" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">链路 2 · 按层划分归属</text>
+  <text x="450" y="276" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">divmod(层数, size)</text>
+  <text x="450" y="300" text-anchor="middle" font-size="13.5" fill="#4d5652">如 60 层÷8→前4卡8层+2暂存</text>
+
+  <rect x="608" y="228" width="276" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="746" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">链路 3 · 缓存分配与发布</text>
+  <text x="746" y="276" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">allocate_kvpp_cache</text>
+  <text x="746" y="300" text-anchor="middle" font-size="13.5" fill="#4d5652">Mooncake 仅发常驻层与 MTP</text>
+
+  <line x1="16" y1="342" x2="884" y2="342" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: KVPPConfig.validate() Hard Gates -->
+  <text x="16" y="368" font-size="16" font-weight="700" fill="#17211f">③ KVPPConfig.validate() 四道硬校验（v0.30.0 / main；不满足抛 ValueError）</text>
+
+  <rect x="16" y="384" width="186" height="104" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="109" y="408" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">1. 并行互斥</text>
+  <text x="109" y="434" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">DCP == 1</text>
+  <text x="109" y="460" text-anchor="middle" font-size="13.5" fill="#4d5652">不可与 DCP 同开</text>
+
+  <rect x="216" y="384" width="208" height="104" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="320" y="408" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">2. 图模式要求</text>
+  <text x="320" y="434" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">eager / PIECEWISE</text>
+  <text x="320" y="460" text-anchor="middle" font-size="13.5" fill="#8f3229">拒 FULL_DECODE_ONLY</text>
+
+  <rect x="438" y="384" width="208" height="104" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="542" y="408" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">3. 模型架构门槛</text>
+  <text x="542" y="434" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">仅非混合 MLA</text>
+  <text x="542" y="460" text-anchor="middle" font-size="13.5" fill="#8f3229">GLM(KDA+MLA) 被拒</text>
+
+  <rect x="660" y="384" width="224" height="104" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="772" y="408" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">4. 连接器白名单</text>
+  <text x="772" y="432" text-anchor="middle" font-size="13.5" fill="#17211f">AscendStore / MooncakeV2</text>
+  <text x="772" y="454" text-anchor="middle" font-size="13.5" fill="#065f56">main +Push · 均拒 consumer</text>
+  <text x="772" y="476" text-anchor="middle" font-size="13.5" fill="#4d5652">支持 MultiConnector 展开</text>
+</svg>

@@ -1,0 +1,19 @@
+mode: native-svg
+id: param-use-layerwise
+caption: >-
+  use_layerwise 四处同名键消歧图与开启后的三类分叉：AscendStoreConnector 主入口位于 --kv-transfer-config 的 kv_connector_extra_config（非 additional_config），默认 false；开启后改从块 0 查命中、关调度侧 load_async 标志、路由至 block_key/gva 数据面，并强制把含整图的 cudagraph_mode 改写为 PIECEWISE。
+size: [900, 504]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L100-L155'
+    symbols:
+      - requires_piecewise_for_cudagraph
+      - use_layerwise
+      - layerwise_data_plane
+      - validate_layerwise_topology
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L64-L125'
+    symbols:
+      - requires_piecewise_for_cudagraph
+      - use_layerwise
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20'
+    symbols:
+      - use_layerwise

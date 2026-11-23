@@ -109,14 +109,14 @@ file: hardware-plate-cutaway
 
 在 `vllm-ascend@c09d3e20`（`v0.30.0`）主基线中，业务代码不再到处散落按芯片名字硬编码的 `if` 分支，而是由 `vllm_ascend/device/` 包统一收敛为**四大家族语义能力档案（`HardwareProfile`）**。它的识别与路由分两步闭环：
 
-- **编译期与运行期双校验锁卡**：构建阶段通过 `SOC_VERSION`（写入 `_build_info`）映射出编译期 `AscendDeviceType`（`A2`、`A3`、`_310P`、`A5`）；Worker 启动时调用 `check_ascend_device_type()`，读取 `torch_npu.npu.get_soc_version()` 返回的运行期整数码（`220..225` 为 `A2`、`250..256` 为 `A3`、`200..205` 为 `_310P`、`260` 为 `A5`），一旦预编译包与现场硅片家族不符立即抛出 `RuntimeError`（标准 `pip install vllm-ascend` 默认 wheel 仅面向 `A2`）。
-- **语义契约驱动执行路径**：`get_current_hardware_profile()` 为当前家族绑定不可变的 `HardwareProfile`——用 `*Family`、`*Mode`、`*Policy` 选择注意力/量化后端、绑核与 MoE 通信策略，再用 `profile.supports(HardwareCapability.X)` 查询细粒度算子与图编译契约：
+- **编译期与运行期双校验锁卡**：构建阶段先按 `SOC_VERSION`（写入 `_build_info`）确定编译期家族 `AscendDeviceType`（`A2`、`A3`、`_310P`、`A5`）。Worker 启动时再调用 `check_ascend_device_type()` 读取 `torch_npu.npu.get_soc_version()` 的运行期整数码：`220..225` 对应 `A2`，`250..256` 对应 `A3`，`200..205` 对应 `_310P`，`260` 对应 `A5`。一旦预编译包与现场硅片家族不符，框架立即抛出 `RuntimeError`（标准 `pip install vllm-ascend` 默认 wheel 仅面向 `A2`）。
+- **语义契约驱动执行路径**：`get_current_hardware_profile()` 为当前家族绑定不可变的 `HardwareProfile`。上层先按 `*Family`、`*Mode`、`*Policy` 选择注意力/量化后端、绑核与 MoE 通信策略，再用 `profile.supports(HardwareCapability.X)` 查询细粒度算子与图编译契约：
 
 ```wiki-diagram
 file: hardware-fig-four-families
 ```
 
-把全站标尺模型 **`Qwen3-8B`**（稠密 GQA，`8.19B` 总参数）与 **`Qwen3-30B-A3B`**（稀疏 MoE，`30.53B` 总参数、每词激活 `3.35B` 参数，详见[模型目录与配置拆解](hf-model-anatomy.md)）放到四族硬件上选卡时，静态权重显存下界按**总参数量**（MoE 未选中专家同样常驻显存）与每参数字节数 $b_{\text{elem}}$ 折算为二进制 `GiB`（$1\text{ GiB} = 2^{30}\text{ B}$）：
+把全站标尺模型 **`Qwen3-8B`**（稠密 GQA，`8.19B` 总参数）与 **`Qwen3-30B-A3B`**（稀疏 MoE，`30.53B` 总参数、每词激活 `3.35B` 参数，详见[模型目录与配置拆解](hf-model-anatomy.md)）放到四族硬件上选卡时，静态权重显存下界必须按**总参数量**计算——MoE 未选中专家同样常驻显存。按每参数字节数 $b_{\text{elem}}$ 折算为二进制 `GiB`（$1\text{ GiB} = 2^{30}\text{ B}$）：
 
 $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qquad W_{\text{Qwen3-8B, BF16}} \approx 15.26\text{ GiB}, \qquad W_{\text{Qwen3-30B-A3B, BF16}} \approx 56.87\text{ GiB}$$
 
@@ -135,8 +135,8 @@ $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qqu
 
 这里有两条极易踩坑的硬件记账铁律：
 
-1. **主机内存与邻卡显存不能自动拼成一个免费地址池**：主机 DRAM 再大，输入张量也必须经过 PCIe 拷入目标设备显存才能参与本次计算；启动阶段引擎先绑定设备并加载本卡权重，跑一次 `profile_run()` 实测非缓存峰值，再把 `gpu_memory_utilization` 预算内的剩余本卡显存切给状态块池（完整 7 级冷启动账见 [Worker 生命周期](npu-worker-lifecycle.md)与 [KV Cache 显存划定](kv-cache-memory-profiling.md)）。
-2. **严格区分标称十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：硬件白皮书与产品页标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学预算算例会显式设定为 `64 GiB` 整（现场实测与教学设定必须分开记录）。更关键的是，操作系统与昇腾驱动会扣留一部分片上系统预留内存，运行时在完成设备初始化后调用 CANN `aclrtGetMemInfo` 或 `torch.npu.mem_get_info(device_id)` 查到的总量**已经扣除系统预留**，不能拿宣传册标称值硬减权重来猜剩余空间。
+1. **主机内存与邻卡显存不能自动拼成免费地址池**：主机 DRAM 再大，输入张量也须经 PCIe 拷入目标设备显存才能计算。启动时引擎先绑定设备并加载本卡权重，跑一次 `profile_run()` 实测非缓存峰值，再把 `gpu_memory_utilization` 预算内的剩余本卡显存切给状态块池（完整 7 级冷启动账见 [Worker 生命周期](npu-worker-lifecycle.md)与 [KV Cache 显存划定](kv-cache-memory-profiling.md)）。
+2. **严格区分十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：白皮书标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学算例显式设定为 `64 GiB` 整，现场实测与教学设定必须分开记。同时操作系统与驱动会扣留系统预留内存，初始化后调 `aclrtGetMemInfo` 或 `torch.npu.mem_get_info(device_id)` 查到的总量**已扣除系统预留**，不能拿宣传册标称值硬减权重来猜剩余空间。
 
 ## 为什么多几张卡还会多出等待：机内 HCCS/UB 与跨机 RoCE
 
@@ -168,13 +168,28 @@ $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qqu
 
 $$\text{Rate}_{\text{RoCE, port}} = \frac{200\text{ Gbit/s}}{8\text{ bit/B}} = 25\text{ GB/s}$$
 
-即便不扣协议损耗，单口 `25 GB/s` 与机内多链聚合 `392 GB/s` 的悬殊差距也直接解释了跨机并行的分工逻辑——以 `09 旗舰异构模型全案` 的历史归档算例（例外 B：`vllm@0fc695fc + vllm-ascend@db701c1f`，双机 `2 × Atlas 800 A2` 共 16 卡、`TP8 / DP2 / EP16`）为例：每台机器本地看见设备 `0..7`（全局 `rank` 分别为 `0..7` 与 `8..15`；启动期 A0 核心功能角色示意共 `20` 个，含 16 个每卡 Worker 与前端/协调/引擎角色，详见[双机部署启动与权重子账](glm-5-3-flash-two-node.md#启动时发生了什么)），所列语言权重子账约 `20.58 GiB/卡`（视觉塔、MTP 与量化辅助张量另计）。在关闭序列并行 `SP`、共享专家按 `TP` 切分的前提下，主干 45 层（前 3 层稠密前馈 + 后 42 层 MoE）每层 2 次加词嵌入后 1 次、整趟共 **91 次 `All-Reduce`** 全部留在各自机器内部走 `HCCS`（详见 [TP 通信账](tensor-parallel.md#从一层走到整次前向r1-的通信账)与 [EP](expert-parallel.md)）；只有进入 42 个 MoE 层寻找落在另一台机器上的路由专家时，才经 `RoCE` 跨机发送本次 token 的激活向量并收回计算结果，专家权重始终常驻持有卡——因此机器 1 即使当前没有收到本地客户端请求，也会协助处理机器 0 上[示例请求 R1 的跨机专家计算](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。而在 `v0.30.0` 新版食谱中，同一模型放到单台 16 逻辑设备的 **Atlas A3** 或 8 卡 `96 GB` 的 **950DT**（`MXFP8`）上时，单节点即可装下全部专家，从而省去跨机 RoCE 跳数。
+即便不扣协议损耗，单口 `25 GB/s` 与机内多链聚合 `392 GB/s` 的悬殊差距，也直接决定了跨机并行的分工——**把每层反复同步的 TP 锁在机内 HCCS 域，跨机 RoCE 只传命中远端专家的激活向量**。下图以 `09 旗舰异构模型全案` 的双机拓扑直观拆解这两条通路：
+
+```wiki-diagram
+file: hardware-fig-tp-hccs-vs-ep-roce
+```
+
+按例外 B 历史归档算例（`vllm@0fc695fc + vllm-ascend@db701c1f`，双机 `2 × Atlas 800 A2` 共 16 卡、`TP8 / DP2 / EP16`）核对上图中的四笔关键账：
+
+- **节点与角色分工**：每台机器本地看见设备 `0..7`，全局 `rank` 分别为 `0..7` 与 `8..15`。启动期 A0 核心功能角色示意共 `20` 个（含 16 个每卡 Worker 与前端/协调/引擎角色，详见[双机部署启动与权重子账](glm-5-3-flash-two-node.md#启动时发生了什么)），所列语言权重子账约 `20.58 GiB/卡`（已含主干与 MTP 主要语言层权重；MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量如 scale/offset 等另计）。
+- **高频 TP 全留机内 HCCS**：在关闭序列并行 `SP`、共享专家按 `TP` 切分的前提下，主干 45 层（前 3 层稠密前馈 + 后 42 层 MoE）每层 2 次加词嵌入后 1 次、整趟共 **91 次 `All-Reduce`** 全部留在各自机器内部走 `HCCS`（详见 [TP 通信账](tensor-parallel.md#从一层走到整次前向r1-的通信账)与 [EP](expert-parallel.md)）。
+- **跨机 RoCE 仅传远端专家激活**：只有进入 42 个 MoE 层、命中落在另一台机器上的路由专家时，才经 `RoCE` 跨机发送本次 token 的激活向量并收回结果；专家权重始终常驻持有卡。因此机器 1 即使当前没有收到本地客户端请求，也会协助处理机器 0 上[示例请求 R1 的跨机专家计算](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。
+- **`v0.30.0` 单节点免跨跳演进**：新版食谱把同一模型放到单台 16 逻辑设备的 **Atlas A3** 或 8 卡 `96 GB` 的 **950DT**（`MXFP8`）上时，单节点即可装下全部专家，从而省去跨机 RoCE 跳数（现场对比带宽时仍须区分 **800T A2** 与 **800I A2** 等具体子型号）。
 
 ## 超节点与内存池化会改变这些边界吗？
 
-**超节点（SuperPoD）通过更大规模的高速互联把多框计算资源织成紧耦合池，但软件仍须显式管理张量分片、状态归属与远端访问开销。** 像 `Atlas 900 A3 SuperPoD` 与 `Atlas 9000 A3 SuperPoD` 这类超节点，物理拓扑和带宽远强于普通双机 RoCE；但在记录线上环境时，不能只写一句笼统的“Atlas A2 / A3”，必须写清完整产品型号、软件可见 `Device` 数与每设备实测可用显存。
+**超节点（SuperPoD）通过更大规模的高速互联把多框计算资源织成紧耦合池，但软件仍须显式管理张量分片、状态归属与远端访问开销。** `Atlas 900 A3 SuperPoD` 与 `Atlas 9000 A3 SuperPoD` 的物理拓扑和带宽远强于普通双机 RoCE；记录线上环境时不能只写笼统的“Atlas A2 / A3”，必须写清完整产品型号、软件可见 `Device` 数与每设备实测可用显存。
 
-在官方 Atlas A3 内存池化实践中，软件栈在高速互联之上分出两层新边界：**MemFabric** 提供跨节点、跨介质（HBM 与主机 DRAM）的统一编址与内存访问语义；**MemCache** 则在 `MemFabric` 之上封装按键存取（`Put / Get`）的对象缓存接口，用来承载跨实例可复用的历史 KV 状态池（它解决的是按键存取缓存对象，与 `HCCL` 按通信组执行集合张量运算分属两层）。即便有了统一编址，当机器 A 想复用保存在机器 B 上的历史状态时，依然要走完四步物理代价：**① 查找键值身份与物理位置 → ② 校验前缀与块布局能否复用 → ③ 跨链路读取或传输数据 → ④ 恢复成机器 A 当前算子可消费的显存块布局**。哪些前缀可复用见 [prefix caching](prefix-caching.md)，外部缓存池如何接入引擎见 [KV Pool](kv-pool.md)；昇腾 950 的 `PR / DT` 规格与任务互联细节则分别见[昇腾 950 架构](ascend-950-architecture.md)与[950 调度与互联](ascend-950-execution-interconnect.md)。
+官方 Atlas A3 内存池化实践在高速互联之上分出两层新边界：
+- **MemFabric**：提供跨节点、跨介质（HBM 与主机 DRAM）的统一编址与内存访问语义。
+- **MemCache**：在 `MemFabric` 之上封装按键存取（`Put / Get`）的对象缓存接口，用于承载跨实例可复用的历史 KV 状态池；它面向缓存对象存取，与 `HCCL` 按通信组执行集合张量运算分属两层。
+
+即便有了统一编址，机器 A 复用保存在机器 B 上的历史状态时，依然要走完四步物理代价：**① 查找键值身份与物理位置 → ② 校验前缀与块布局能否复用 → ③ 跨链路读取或传输数据 → ④ 恢复成机器 A 当前算子可消费的显存块布局**。哪些前缀可复用见 [prefix caching](prefix-caching.md)，外部缓存池接入引擎见 [KV Pool](kv-pool.md)；昇腾 950 的 `PR / DT` 规格与任务互联细节分别见[昇腾 950 架构](ascend-950-architecture.md)与[950 调度与互联](ascend-950-execution-interconnect.md)。
 
 ## 常见误解
 

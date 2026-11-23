@@ -141,7 +141,11 @@ rawSources:
 
 `profiling_chunk_config` 开启的是上游称为 **CPP（Dynamic Chunked Pipeline Parallel）** 的动态切块机制：服务启动时实测几十次真实 forward，拟合「这台机器上一段长 `l` 的 prefill 要花多久」的延迟曲线；运行时再按每条请求已有前缀长度反解出本步该切多少 token，使流水线各阶段处理每块的时间尽量接近，从而压低 PP 流水线因各块耗时不均产生的等待气泡（完整概念见[动态切块](../concepts/dynamic-chunked-pp.md)）。
 
-**定位、硬前提与版本现状**：它默认关闭（`enabled: false`），官方定位为 PD 分离部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置，旧版指南也含普通 serve 与离线 LLM 示例，其他形态仍须单独验证）。硬性前提包括 `pipeline_parallel_size > 1`、开启 chunked prefill，且不能与 `enable_balance_scheduling`（以及 `v0.30.0` 新增的 `dyntra_lb_config`）同时开启。从 `v0.26.0rc` 到 `v0.30.0` 正式版，推荐把它写在 `additional_config.scheduler_config.profiling_chunk_config` 下（旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同时给出时嵌套优先）；**到了 `main`（`8d6180e2`），整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 整体移除**，升级到 `main` 时须删掉此键，否则普通 Ascend 进程会按未知顶层键拒收（发现 `vllm_omni` 时告警过滤）。
+**定位、硬前提与版本现状**：默认关闭（`enabled: false`），官方定位为 PD 分离部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置，旧版指南也含普通 serve 与离线 LLM 示例，其他形态仍须单独验证）。
+
+- **硬性前提**：必须同时满足 `pipeline_parallel_size > 1`、开启 chunked prefill，且不能与 `enable_balance_scheduling`（及 `v0.30.0` 新增的 `dyntra_lb_config`）同开。
+- **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config` 下；旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
+- **`main`（`8d6180e2`）已整体移除**：整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除。升级 `main` 须删此键，否则普通 Ascend 进程按未知顶层键拒收（发现 `vllm_omni` 时告警过滤）。
 
 | 配置项 / 约束 | `v0.30.0` 正式版（`c09d3e20`）行为 | 关键注意点 |
 | --- | --- | --- |
@@ -168,13 +172,16 @@ file: profiling-chunk-config
 
 ## 先量再算：启动拟合、公式平滑与在线校准
 
-一条长请求独占固定 token 预算时，普通 chunked prefill 切出等长块（多请求共享预算时块长也会变化）。对稠密因果注意力而言，理想计算量随已累计历史长度增长，等长块越往后耗时越长（设计文档以块 1 花 `T1`、块 2 花 `T2 > T1` 说明），导致流水线后段反复等待产生气泡；不过真实耗时还受算子、通信与调度影响，KDA 或稀疏注意力也不能直接套用这一二次增长假设。CPP 的思路是反过来根据前缀长度动态缩小后续块，让各块耗时接近——它能缓解耗时不均带来的等待，但流水线启动填充、结束排空及阶段间负载差异依然存在，不能认为所有气泡都会消失。该实现把 `PP > 1` 设为准入条件以针对多阶段流水等待，单阶段能否从其他动态切块策略受益不能由此推断。
+一条长请求独占固定 token 预算时，普通 chunked prefill 会切出等长块（多请求共享预算时块长也会变化）。对稠密因果注意力而言，理想计算量随已累计历史长度增长，等长块越往后耗时越长（设计文档以块 1 花 `T1`、块 2 花 `T2 > T1` 说明），导致流水线后段反复等待产生气泡。
+
+真实耗时还受算子、通信与调度影响，KDA 或稀疏注意力不能直接套用这一二次增长假设。CPP 的思路是按前缀长度动态缩小后续块，让各块耗时逼近一致——它能缓解耗时不均带来的等待，但流水线启动填充、结束排空及阶段间负载差异依然存在，不会消灭所有气泡。该实现把 `PP > 1` 设为准入条件以针对多阶段流水等待，单阶段能否从其他动态切块策略受益不能由此推断。
 
 工作流程分**启动测量**与**运行求根**两步：
-- **启动期**：在 1 次不入拟合的预热之后，从 `base_chunk_size` 逐步递减尝试采集 64 个样本，每次跑真实 forward（复用 `dummy_run`）量延迟，跳过无效或失败点，至少收集 8 个有效点后用最小二乘拟合启动模型 $f(l) = a \cdot l^2 + b \cdot l + c$。PP 模式下各 Worker 都会执行并返回本地计时；选用哪个 rank 的结果取决于执行器接口——支持 `unique_reply_rank` 时取 `world_size - TP × PCP`，否则取列表首项，不能一概简化为「只取第一级」。
-- **运行期**：初始目标耗时取 `f(base_chunk_size) - f(0)`（在线零历史样本也可在历史模型拟合成功前更新该目标耗时）。`base_chunk_size` 来自调度器的 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size`，因此 `--max-num-batched-tokens` 决定了曲线原点与目标耗时（上游经验是先用固定块调出最优值，再放大到 2–4 倍来开动态块）。逐条请求求根时，记本批剩余时间预算为 `T`、该请求已算前缀长度为 `L`，启动模型解 $a \cdot x^2 + (2aL + b) \cdot x - T = 0$ 的正根 `x`。
 
-拿到正根 `x` 后，还要经过三步后处理（平滑是在**基准块与本次预测**之间线性插值，而不是拿上一次 chunk 做平滑；`smooth_factor=1.0` 时直接使用原始预测）：
+- **启动期**：1 次不入拟合的预热后，从 `base_chunk_size` 逐步递减尝试采 64 个样本，每次跑真实 forward（复用 `dummy_run`）量延迟、跳过无效或失败点，至少收集 8 个有效点后用最小二乘拟合启动模型 $f(l) = a \cdot l^2 + b \cdot l + c$。PP 模式下各 Worker 都会执行并返回本地计时；选用哪个 rank 取决于执行器接口——支持 `unique_reply_rank` 时取 `world_size - TP × PCP`，否则取列表首项，不能简化为「只取第一级」。
+- **运行期**：初始目标耗时取 `f(base_chunk_size) - f(0)`（在线零历史样本也可在历史模型拟合成功前更新该目标耗时）。`base_chunk_size` 来自调度器 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size`，因此 `--max-num-batched-tokens` 决定了曲线原点与目标耗时（上游经验是先用固定块调出最优值，再放大到 2–4 倍开动态块）。逐条请求求根时，记本批剩余时间预算为 `T`、已算前缀长度为 `L`，启动模型解 $a \cdot x^2 + (2aL + b) \cdot x - T = 0$ 的正根 `x`。
+
+拿到正根 `x` 后，还要经过三步后处理（平滑是在**基准块与本次预测**之间线性插值，而不是拿上一次 chunk 做平滑；`smooth_factor=1.0` 直接使用原始预测）：
 
 ```text
 smoothed   = base_chunk_size + smooth_factor * (x - base_chunk_size)
@@ -183,17 +190,23 @@ align      = max(page_size, 64)
 chunk_size = ceil(chunk_size / align) * align
 ```
 
-公式复核示例（非性能实测）：取 `base_chunk_size = 8192`、原始预测 `x = 3000`、`smooth_factor = 0.5`、`min_chunk = 4096`、`page_size = 128`，得平滑值 `8192 + 0.5 × (3000 - 8192) = 5596`，过下限仍为 `5596`，向上对齐到 `128` 的倍数得 **5632**。注意一处文档与源码的分歧：设计文档写的是向下取整（"Round down to multiple of `page_size`"），源码实际却是向上取整 `((chunk_size + align - 1) // align) * align`，应以代码为准。
+公式复核示例（非性能实测）：取 `base_chunk_size = 8192`、原始预测 `x = 3000`、`smooth_factor = 0.5`、`min_chunk = 4096`、`page_size = 128`，得平滑值 $8192 + 0.5 \times (3000 - 8192) = 5596$，过下限仍为 `5596`，向上对齐到 `128` 的倍数得 **5632**。注意一处文档与源码分歧：设计文档写向下取整（"Round down to multiple of `page_size`"），源码实际却是向上取整 `((chunk_size + align - 1) // align) * align`，应以代码为准。
 
-调度器拿到有效预测后以 `num_new_tokens = min(predicted_chunk, num_new_tokens)` 截断已算出的 token 预算（因此只会收窄、不会放大）。预测器未就绪时跳过动态分支；进入分支后若二次项系数为 0、判别式为负或根非正会返回 `None`——此时若仍在校准或本批剩余时间预算仍等于初始目标，则保留原预算；若已退出校准且预算已被前面请求消耗，则停止本轮该请求队列的继续装入。
+调度器拿到有效预测后以 `num_new_tokens = min(predicted_chunk, num_new_tokens)` 截断已算出的 token 预算（只收窄、不放大）。预测器未就绪时跳过动态分支；进入分支后若二次项系数为 0、判别式为负或根非正会返回 `None`——此时若仍在校准或本批剩余时间预算仍等于初始目标，保留原预算；若已退出校准且预算已被前面请求消耗，则停止本轮该请求队列的继续装入。
 
 ### 在线校准怎么启动、切换与停止？
 
-因为启动期只能测到 `max_num_batched_tokens` 长度，长序列外推会偏差，所以默认开启在线校准（省略 `need_timing` 时跟随 `enabled`）。计时结果回传预测器后，用真实批次重拟合带历史长度的模型，拟合成功后再从启动模型切换过来：
-- **早期公式（`v0.23` / `v0.26` / 早期 `baa023ad`）**：单请求为 $f(C, H) = a \cdot C(C+H) + b \cdot (C+H) + c$（`C` 为本块 token 数，`H` 为已有前缀长度），默认在 5–30 个样本间每增一点重做最小二乘拟合。
-- **`v0.30.0` 公式（`c09d3e20`，始于 `rc2`）**：改为 $f(C, H) = a \cdot C(C+H) + b \cdot C + c$，线性项不再加历史长度，改用非负最小二乘（批次特征为各请求 `C(C+H)` 之和、`C` 之和与请求数），不能把旧版拟合系数直接搬入新版；MRV2 也已接入执行计时。
+启动期只能测到 `max_num_batched_tokens` 长度，长序列外推会偏差，因此默认开启在线校准（省略 `need_timing` 时跟随 `enabled`）。计时结果回传预测器后，用真实批次重拟合带历史长度的模型，拟合成功后再从启动模型切换过来：
 
-在线计时在**两项条件同时满足**后由调度器通知 Worker 自动关闭：① 已记录 3 次总历史长度为 0 的有效批次（用于更新目标时延）；② 历史拟合样本数**严格超过** `max_fit_chunk`（默认 30 时要到第 31 个样本才设完成标记，下一次检查双条件满足时发停止信号，不是拟合成功一次就停，也不保证拟合误差达到特定精度）。显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方提示未完成在线校准可能导致严重性能劣化、关闭校准性能可能次优，并建议投产前用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
+- **早期公式（`v0.23` / `v0.26` / 早期 `baa023ad`）**：单请求为 $f(C, H) = a \cdot C(C+H) + b \cdot (C+H) + c$（`C` 为本块 token 数，`H` 为已有前缀长度），默认在 5–30 个样本间每增一点重做最小二乘拟合。
+- **`v0.30.0` 公式（`c09d3e20`，始于 `rc2`）**：改为 $f(C, H) = a \cdot C(C+H) + b \cdot C + c$，线性项不再加历史长度，改用非负最小二乘（批次特征为各请求 `C(C+H)` 之和、`C` 之和与请求数），旧版拟合系数不可直接搬入新版；MRV2 也已接入执行计时。
+
+在线计时在**两项条件同时满足**后由调度器通知 Worker 自动关闭：
+
+1. 已记录 **3 次**总历史长度为 0 的有效批次（用于更新目标时延）；
+2. 历史拟合样本数**严格超过** `max_fit_chunk`（默认 30 时要到第 31 个样本才设完成标记，下一次检查双条件满足时发停止信号，既不是拟合成功一次就停，也不保证拟合误差达到特定精度）。
+
+显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方提示未完成在线校准可能导致严重性能劣化、关闭校准性能可能次优，并建议投产前用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
 
 ## 官方基准数字、代价与排障边界
 

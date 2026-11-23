@@ -1,0 +1,10 @@
+mode: native-svg
+id: rfork-plate-seed-borrow
+caption: >-
+  RFork 跨实例显存直读立体拆解：已在服务的 Seed A 将 HBM 中已处理好的权重暴露给传输引擎；新实例 B 先在本卡搭空模型、按需对齐布局并完成本地显存预登记与结构摘要绑定，再经顶部 Planner 虚线控制面按 seed_key 借取租约，最后通过 Direct RDMA 按地址分批把权重字节直读进自己的 HBM 空位，绕过本地磁盘；借不到或读取失败时，须先通过停服务且注销显存的双门清理，才允许退回默认磁盘加载。
+size: [900, 676]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, can_schedule_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L839-L876
+    symbols: [batch_transfer_sync_read]

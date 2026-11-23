@@ -1,0 +1,8 @@
+mode: native-svg
+id: ops-and-kernels-fig-special-layers
+caption: >-
+  GLM 双机四类特殊层的算子落点与约束对照：W8A8 动态量化线性层（dynamic_quant → 内置反量化 quant_matmul，KDA 投影保持 BF16）、34 层 KDA 线性注意力（窗口 4 短卷积后分叉 prefill 分块与 decode/投机递推，prefill 缺扩展直抛错）、11 层稀疏 MLA（不拼完整 KV，经 csrc 调 aclnnSparseFlashAttention）与 MoE（MC2/AllGather 分发合并 + NZ 权重分组矩阵乘与 SwiGLU）。
+size: [900, 416]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2213-L2240
+    symbols: [hc_pre, hc_post, input_layernorm, self_attn, mlp]

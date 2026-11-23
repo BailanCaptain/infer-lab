@@ -1,0 +1,10 @@
+mode: native-svg
+id: cpu-binding-plate-numa-cutaway
+caption: >-
+  服务器主板多 NUMA 拓扑与 Worker 亲和绑核拆解（以 A2 默认 topo_affinity 为例；A3 默认走 global_slice、A5 增 cluster）：以就近挂载 NPU 0–3 的 NUMA 0 起手（单节点亲和时扩入相邻 NUMA 1 允许核成池），按池内顺序切分 IRQ、主线程与 acl/release 后台线程；当环境具备 migratepages 且未启用 Engram CPU 卸载（migrate_memory=True）时将已有内存页迁至池内最小核所在节点。
+size: [860, 738]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L515-L593
+    symbols: [build_cpu_pools, _build_topo_affinity_cpu_pool]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L784-L802
+    symbols: [bind_cpus]

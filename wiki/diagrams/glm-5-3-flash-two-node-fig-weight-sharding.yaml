@@ -1,0 +1,12 @@
+mode: native-svg
+id: glm-5-3-flash-two-node-fig-weight-sharding
+caption: >-
+  GLM-5.3-Flash 双机 16 卡每卡语言权重子账比例条（20.58 GiB，3121f187 配方）与三种切分落点对照：上半按真实比例呈现路由专家占 86.1%（17.72 GiB），解释为何从单机 EP8 扩到双机 EP16 能让专家权重减半并满足 MC2 门槛；下半并列展示 EP16 独占不重叠、TP8 机内 8 切（两机各存一份）与每卡整份复制三类模块在 16 卡上的归属。
+size: [900, 412]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1880-L1930'
+    symbols:
+      - fused_qkv_a_proj
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L39-L92'
+    symbols:
+      - eh_proj

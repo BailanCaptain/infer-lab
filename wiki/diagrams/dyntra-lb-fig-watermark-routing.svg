@@ -1,49 +1,144 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="DyntraLB D 端 KV 水位均衡闭环与边界" font-family="var(--font-sans)">
-<title>DyntraLB D 端 KV 水位均衡闭环与边界</title>
-<desc>Step-end KV-block All-Gather, deterministic 4-step planner, local pause retaining KV vs preemption, and D-node MoE DP constraints in v0.30.0 and main</desc>
-<line x1="16" y1="246" x2="884" y2="246" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="54" width="272" height="170" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="314" y="54" width="272" height="170" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="612" y="54" width="272" height="170" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="294" width="420" height="130" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="464" y="294" width="420" height="130" rx="8" fill="#fff0e9" stroke="#b54237"/>
-</g>
-<path d="M288 139h24m-5-4l5 4-5 4M586 139h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
-<circle cx="28" cy="270" r="13" fill="#c78300"/>
-<g font-weight="700">
-<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="48" y="30" font-size="16" fill="#17211f">步末 KV 水位均衡闭环（仅在组内换人，不跨组搬请求）</text>
-<text x="30" y="80" font-size="15" fill="#3a4f93">① 步末预取与块数上报</text>
-<text x="328" y="80" font-size="15" fill="#7a3a6a">② All-Gather 与四步规划</text>
-<text x="626" y="80" font-size="15" fill="#065f56">③ 下一步开头对号落地</text>
-<text x="28" y="275" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="48" y="276" font-size="16" fill="#17211f">触发门槛与硬性约束（v0.30.0 / main 核验边界）</text>
-<text x="30" y="320" font-size="15" fill="#936300">激活条件与状态区分</text>
-<text x="478" y="320" font-size="15" fill="#8f3229">不适用与启动拦截边界</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="30" y="108">• prepare_dyntra_lb_step()</text>
-<text x="30" y="133">• 刷新阻塞队列并预取远端 KV</text>
-<text x="30" y="158">• 按全量 token ÷ 块长估块</text>
-<text x="30" y="183">• 打包定长 int32 向量</text>
-<text x="30" y="208" fill="#3a4f93">  (2×max_num_seqs + 2 格)</text>
-<text x="328" y="108">• 全 DP 组 All-Gather 同表</text>
-<text x="328" y="133">• 补空位 → 最轻换重 → 最重换轻</text>
-<text x="328" y="158">• 换不动才算启发式吞吐停一条</text>
-<text x="328" y="183">• bubble_threshold 默认 5.0 块</text>
-<text x="328" y="208" fill="#7a3a6a">  (≥1 按块差，&lt;1 按比例)</text>
-<text x="626" y="108">• 下步 schedule 开头落地计划</text>
-<text x="626" y="133">• _lb_pause_request 退回队首</text>
-<text x="626" y="158" font-weight="600" fill="#065f56">• 暂停不还 KV 块，进度保留</text>
-<text x="626" y="183">• 仅点名候选准入，无进则冻结</text>
-<text x="626" y="208">• 真抢占先移出暂停集再全还块</text>
-<text x="30" y="346">• dynamic：&gt;700 块长单激活，256 步无新长单关</text>
-<text x="30" y="371">• start_step=250（每波归零），块大可能达不到</text>
-<text x="30" y="396">• 压平 dispatch 前注意力等（EPLB 管 combine）</text>
-<text x="478" y="346">• 仅 PD 分离 D 节点（kv_consumer）+ 单机 DP&gt;1</text>
-<text x="478" y="371">• 仅 MoE 走 DPEngineCoreProc；Dense 不跑均衡</text>
-<text x="478" y="396">• 互斥 Balance；main 去 profiling_chunk 并关 SWA</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 572" width="900" height="572" role="img" aria-label="DyntraLB All-Gather 块数向量结构、四步规划与动态触发块尺陷阱图" font-family="var(--font-sans)">
+  <title>DyntraLB 定长 int32 互报向量、四步规划器与 dynamic 块尺陷阱</title>
+  <desc>DyntraLBConfig, bubble_threshold, long_req_block_threshold, dynamic_max_step, prepare_dyntra_lb_step, _lb_pause_request, _balance_load, calc_bubble</desc>
+  <defs>
+    <marker id="dlb-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+    <marker id="dlb-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="dlb-arr-amber" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: int32 All-Gather Vector & 4-Step Deterministic Planner -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">步末互报的定长 int32 向量（无请求 ID）与各组同跑的四步规划</text>
+
+  <!-- Packet Strip for DP1: [1,1,1,1 | 64,0,0,0 | 4 | 0] -->
+  <text x="16" y="62" font-size="14" font-weight="700" fill="#3a4f93">DP1 互报包（长度 2 × max_num_seqs + 2 = 10 格）：</text>
+  <!-- Running 4 cells -->
+  <g fill="#e8edff" stroke="#4c65b6" stroke-width="1.4">
+    <rect x="16" y="72" width="66" height="36" rx="4"/>
+    <rect x="86" y="72" width="66" height="36" rx="4"/>
+    <rect x="156" y="72" width="66" height="36" rx="4"/>
+    <rect x="226" y="72" width="66" height="36" rx="4"/>
+  </g>
+  <!-- Candidate 4 cells -->
+  <rect x="308" y="72" width="66" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <g fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2">
+    <rect x="378" y="72" width="66" height="36" rx="4"/>
+    <rect x="448" y="72" width="66" height="36" rx="4"/>
+    <rect x="518" y="72" width="66" height="36" rx="4"/>
+  </g>
+  <!-- Metadata 2 cells -->
+  <rect x="600" y="72" width="128" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="736" y="72" width="148" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+
+  <g text-anchor="middle" font-size="14" font-weight="700">
+    <text x="49" y="95" fill="#3a4f93">1</text>
+    <text x="119" y="95" fill="#3a4f93">1</text>
+    <text x="189" y="95" fill="#3a4f93">1</text>
+    <text x="259" y="95" fill="#3a4f93">1</text>
+    <text x="341" y="95" fill="#065f56">64</text>
+    <text x="411" y="95" fill="#66716d">0</text>
+    <text x="481" y="95" fill="#66716d">0</text>
+    <text x="551" y="95" fill="#66716d">0</text>
+    <text x="664" y="95" fill="#936300">n_run = 4</text>
+    <text x="810" y="95" fill="#7a3a6a">long_flag = 0</text>
+  </g>
+  <g text-anchor="middle" font-size="13.5" fill="#66716d">
+    <text x="154" y="126">running 各请求估块数</text>
+    <text x="446" y="126">候选（含预取与暂停）块数</text>
+    <text x="664" y="126">分界计数</text>
+    <text x="810" y="126">超长请求标志</text>
+  </g>
+
+  <!-- 4-step planner horizontal boxes -->
+  <g stroke-width="1.4">
+    <rect x="16" y="144" width="194" height="72" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="234" y="144" width="194" height="72" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="452" y="144" width="194" height="72" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="670" y="144" width="214" height="72" rx="7" fill="#fff4cf" stroke="#c78300"/>
+  </g>
+  <path d="M210 180 H228 M428 180 H446 M646 180 H664" fill="none" stroke="#17211f" stroke-width="1.7" marker-end="url(#dlb-arr-ink)"/>
+
+  <g font-size="13.5">
+    <text x="28" y="168" font-weight="700" fill="#17211f">① 一次性补空位</text>
+    <text x="28" y="190" fill="#4d5652">未满先补（循环外）</text>
+    <text x="28" y="208" fill="#66716d">防第 4 步停完立刻补回</text>
+
+    <text x="246" y="168" font-weight="700" fill="#065f56">② 最轻组换更重</text>
+    <text x="246" y="190" fill="#17211f">DP1: 1 块 ↔ 64 块</text>
+    <text x="246" y="208" fill="#065f56">失衡 63.5 → 32 块</text>
+
+    <text x="464" y="168" font-weight="700" fill="#3a4f93">③ 最重组换更轻</text>
+    <text x="464" y="190" fill="#4d5652">挑离新均值最近一对</text>
+    <text x="464" y="208" fill="#66716d">失衡 &lt; 5 块即停</text>
+
+    <text x="682" y="168" font-weight="700" fill="#936300">④ 换不动才算停一条</text>
+    <text x="682" y="190" fill="#17211f">N / (20000+19.2·L_max)</text>
+    <text x="682" y="208" fill="#936300">吞吐升才停；否则冻结</text>
+  </g>
+
+  <!-- Pause vs Preempt comparison strip -->
+  <rect x="16" y="228" width="424" height="36" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="251" font-size="13.5" font-weight="700" fill="#065f56">DyntraLB 暂停：退回队首但 KV 块一块不还（不能腾显存）</text>
+  <rect x="454" y="228" width="430" height="36" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="468" y="251" font-size="13.5" font-weight="700" fill="#8f3229">真正抢占：移出暂停集、收回全部 KV 块并清零进度重算</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="280" x2="884" y2="280" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: Dynamic State Machine + Block-Size Threshold Trap -->
+  <circle cx="24" cy="304" r="12" fill="#c78300"/>
+  <text x="24" y="308.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="310" font-size="16" font-weight="700" fill="#17211f">dynamic 激活状态机与块长门槛陷阱（700 块按块大小折算，不是固定 token 数）</text>
+
+  <!-- Left: 2-state dynamic loop -->
+  <rect x="16" y="330" width="422" height="170" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <rect x="32" y="378" width="154" height="72" rx="7" fill="#ffffff" stroke="#66716d" stroke-width="1.5"/>
+  <text x="109" y="407" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">Idle 待机</text>
+  <text x="109" y="431" text-anchor="middle" font-size="13.5" fill="#66716d">2-int All-Reduce</text>
+
+  <rect x="266" y="378" width="156" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="344" y="407" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">Active 均衡中</text>
+  <text x="344" y="431" text-anchor="middle" font-size="13.5" fill="#065f56">全向量 All-Gather</text>
+
+  <!-- Top transition arrow Idle -> Active -->
+  <path d="M109 378 V352 H344 V372" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#dlb-arr-teal)"/>
+  <text x="226" y="346" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">新单 &gt; 700 块 &amp; step ≥ 250</text>
+  <!-- Bottom transition arrow Active -> Idle -->
+  <path d="M344 450 V478 H109 V456" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#dlb-arr-amber)"/>
+  <text x="226" y="494" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">连续 256 有效规划步无新长单</text>
+
+  <!-- Right: Block-Size Threshold Ruler (exact 0..1000 blocks = 400px -> 0.4 px/block) -->
+  <rect x="454" y="330" width="430" height="170" rx="8" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="468" y="355" font-size="14.5" font-weight="700" fill="#17211f">块大小如何改变 700 块触发线（0–1,000 块等比尺）</text>
+
+  <!-- Row 1: block=128 -> 128K = 1,000 blocks -> exact 400px (x=468..868) -->
+  <text x="468" y="384" font-size="13.5" font-weight="700" fill="#065f56">block=128（89.6K token 即达 700 块 ✓）</text>
+  <rect x="468" y="392" width="400" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="608" y="408" text-anchor="middle" font-size="13.5" fill="#065f56">128K = 1,000 块 → 越线触发 ✓</text>
+  <text x="808" y="408" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">超出 300 块</text>
+
+  <!-- Row 2: GLM block=640 -> 133,120 / 640 = 208 blocks -> exact 83.2px (width=83) -->
+  <text x="468" y="438" font-size="13.5" font-weight="700" fill="#8f3229">GLM block=640（133K 仅 208 块 ✗，须降阈值/改 static）</text>
+  <rect x="468" y="446" width="83" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="509.5" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">208 块</text>
+  <text x="560" y="462" font-size="13.5" fill="#8f3229">仅 30%，触不到红线</text>
+
+  <!-- Scale threshold line: 700 blocks x 0.4 = 280px -> x = 468 + 280 = 748 -->
+  <line x1="748" y1="388" x2="748" y2="478" stroke="#b54237" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <text x="468" y="494" font-size="13.5" fill="#66716d">0</text>
+  <text x="748" y="494" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">700 块红线</text>
+  <text x="868" y="494" text-anchor="end" font-size="13.5" fill="#66716d">1,000 块</text>
+
+  <!-- Hard Constraints Footer -->
+  <rect x="16" y="514" width="868" height="46" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="534" font-size="13.5" font-weight="700" fill="#8f3229">硬性前提：仅 PD 分离 D 节点 (kv_consumer) · 单机 DP &gt; 1 · 仅 MoE（Dense 不建 DPEngineCoreProc 静默不跑）</text>
+  <text x="30" y="553" font-size="13.5" fill="#4d5652">互斥 Balance Scheduling；v0.30.0 另互斥 profiling_chunk_config，main 移除该项并自动关闭 SWA bounded replay。</text>
 </svg>

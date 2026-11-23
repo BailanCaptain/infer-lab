@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 368" width="900" height="368" role="img" aria-label="多模态请求四级独立缓存漏斗图：展示 HTTP 下载缓存、CPU 预处理缓存、编码器缓存与 KV Cache 的逐级跳过范围，以及部分命中保序合回 [A, B] 与 UUID 省传原图边界">
+  <title>多模态四级独立缓存分工与部分命中保序合回</title>
+  <desc>上半部分以横向四级漏斗展示 HTTP 原始字节下载缓存、CPU mm_processor_cache、编码器缓存 EC 与语言层 KV Cache/APC 四层独立缓存各自保存的对象与命中后跳过的阶段；下半部分展示双图部分命中保序合回 [A, B] 与 multi_modal_uuids 省略原图未命中即报错的边界。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
+    </marker>
+    <marker id="arr-m" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#66716d" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">多模态四级独立缓存漏斗：命中省哪一步，互不连带清理</text>
+  <text x="880" y="28" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">清掉一层 ≠ 清掉其余三层</text>
+
+  <!-- Bypass Jump Arcs above the 4 tiers -->
+  <path d="M 118 82 C 118 52, 232 52, 232 82" fill="none" stroke="#66716d" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-m)" />
+  <text x="175" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">命中省下载</text>
+
+  <path d="M 336 82 C 336 52, 452 52, 452 82" fill="none" stroke="#c78300" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-a)" />
+  <text x="394" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#936300">命中省预处理</text>
+
+  <path d="M 556 82 C 556 52, 672 52, 672 82" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-i)" />
+  <text x="614" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#3a4f93">命中省 ViT</text>
+
+  <path d="M 774 82 C 774 52, 864 52, 864 82" fill="none" stroke="#087f73" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-t)" />
+  <text x="819" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#065f56">省 Prefill</text>
+
+  <!-- Tier 1: HTTP Disk Cache -->
+  <rect x="20" y="86" width="196" height="148" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5" />
+  <text x="118" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">L1 · HTTP 下载缓存</text>
+  <text x="118" y="132" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">VLLM_MEDIA_CACHE</text>
+  <line x1="34" y1="144" x2="202" y2="144" stroke="#d8d8cf" stroke-width="1" />
+  <text x="118" y="166" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">存：URL 原始字节</text>
+  <text x="118" y="188" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" fill="#4d5652">5120 MiB · 24h 滑动</text>
+  <text x="118" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#66716d">按完整 URL 建键（非 UUID）</text>
+
+  <line x1="216" y1="160" x2="236" y2="160" stroke="#66716d" stroke-width="1.8" marker-end="url(#arr-m)" />
+
+  <!-- Tier 2: CPU mm_processor_cache -->
+  <rect x="240" y="86" width="198" height="148" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6" />
+  <text x="339" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">L2 · CPU 预处理缓存</text>
+  <text x="339" y="132" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">mm_processor_cache</text>
+  <line x1="254" y1="144" x2="424" y2="144" stroke="#d8d8cf" stroke-width="1" />
+  <text x="339" y="166" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">存：像素张量 + 占位</text>
+  <text x="339" y="188" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" fill="#936300">默认 4 GiB · lru / shm</text>
+  <text x="339" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">单API+DP=1/外部LB跨进程</text>
+
+  <line x1="438" y1="160" x2="458" y2="160" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+
+  <!-- Tier 3: Encoder Cache (EC) -->
+  <rect x="462" y="86" width="198" height="148" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6" />
+  <text x="561" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#3a4f93">L3 · 编码器缓存（EC）</text>
+  <text x="561" y="132" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">EC / ScoreECManager</text>
+  <line x1="476" y1="144" x2="646" y2="144" stroke="#d8d8cf" stroke-width="1" />
+  <text x="561" y="166" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">存：ViT 视觉嵌入特征</text>
+  <text x="561" y="188" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" fill="#3a4f93">NPU FIFO / 两级评分</text>
+  <text x="561" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">跨实例复用可接 EPD / UCM</text>
+
+  <line x1="660" y1="160" x2="680" y2="160" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+
+  <!-- Tier 4: KV Cache / APC -->
+  <rect x="684" y="86" width="196" height="148" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="782" y="110" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">L4 · KV Cache / APC</text>
+  <text x="782" y="132" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">语言主干前缀复用</text>
+  <line x1="698" y1="144" x2="866" y2="144" stroke="#d8d8cf" stroke-width="1" />
+  <text x="782" y="166" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">存：语言各层历史 K/V</text>
+  <text x="782" y="188" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#065f56">前缀完全一致免 Prefill</text>
+  <text x="782" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">依赖前级产出相同占位与哈希</text>
+
+  <!-- ================= BOTTOM BAR: Partial-Hit Order Preservation & UUID Rule ================= -->
+  <!-- Left: Partial Hit [A, B] -->
+  <rect x="20" y="256" width="444" height="96" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.4" />
+  <text x="34" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">部分命中保序合回（消息含 [图 A, 图 B]）</text>
+
+  <rect x="34" y="294" width="96" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+  <text x="82" y="317" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">A · 缓存命中</text>
+
+  <rect x="140" y="294" width="96" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4" />
+  <text x="188" y="317" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#936300">B · 新预处理</text>
+
+  <line x1="242" y1="312" x2="274" y2="312" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+
+  <rect x="280" y="292" width="170" height="40" rx="5" fill="#ece9df" stroke="#087f73" stroke-width="1.5" />
+  <text x="365" y="317" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">合回 [A, B] 重建占位</text>
+  <text x="34" y="346" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#66716d">绝不可把新算的 B 排到 A 前面导致图文错位</text>
+
+  <!-- Right: multi_modal_uuids Boundary -->
+  <rect x="480" y="256" width="400" height="96" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" />
+  <text x="494" y="280" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#8f3229">multi_modal_uuids 省传原图红线</text>
+  <text x="494" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">① 首次须带「内容+UUID」；换图沿用旧 UUID 会错复</text>
+  <text x="494" y="330" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#8f3229">② 仅传 UUID 若遭淘汰或落他进程 → 报 Cache miss</text>
+</svg>

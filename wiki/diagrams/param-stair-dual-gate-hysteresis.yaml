@@ -1,0 +1,12 @@
+mode: native-svg
+id: param-stair-dual-gate-hysteresis
+caption: >-
+  STAIR 双门滞回标尺（relative_balance_threshold=0.95 与 absolute_balance_threshold=0.90 的逻辑「或」关系）：展示前置判定序（全零跳过 → 无锚点直放 → 双门）以及为何 0.85 低锚点层在单相对门下会卡死在 0.81、必须靠 0.90 绝对下限托底。
+size: [900, 470]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L398-L435
+    symbols: [gated_layer_imbalance]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L218-L248
+    symbols: [relative_balance_threshold, absolute_balance_threshold]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1129-L1217
+    symbols: [plan_layer]

@@ -78,6 +78,17 @@ sources:
   - 'https://github.com/vllm-project/vllm/issues/56830'
   - >-
     raw:sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md#L1-L1457
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L3-L258
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L1077
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1466-L1505
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L686'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L281'
+  - 'vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -95,7 +106,7 @@ relations:
     kind: builds-on
     note: 显存快照、通信建组、装权重、量预算、建池与录图的严格先后顺序由 Worker 启动链固定
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
@@ -104,6 +115,8 @@ rawSources:
     raw/sha256-56af680207818f343bdc2d4b2dd36d4c1663bd196134b8a93711cb7d6ec2217f.md
   - >-
     raw/sha256-a1026f7df3575e077953d95909c1d1d1639fcad49299256f5fcb3069614b9e26.md
+  - >-
+    raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md
 ---
 
 ## 启动时怎样知道还能给 KV cache 多少显存？
@@ -174,27 +187,63 @@ file: mem-prof-fig-qwen3-waterfall
 | 6. 可用 KV 池与 `128 token` 物理块切分 | 剩余 `40.88 GiB`；每 token 全层 `144 KiB`，每块 **`18.000 MiB`** $\to$ **`2,325` 块**（扣 1 空块剩 `2,324` 可用块） | 单卡剩余 `48.28 GiB`；每卡 1 个 KV 头对应 `24 KiB/tok`，每块 **`3.000 MiB`** $\to$ **`16,479` 块**（扣 1 空块剩 `16,478` 可用块） |
 | 7. 切完 KV 后的 `ACLGraph` 与 `150 MiB` 裕度 | `capture_model()` 图显存从 `5.12 GiB` 预算外支付；建议值另扣 `150 MiB` | 四卡同步录制 decode 图并从各自 `5.12 GiB` 预算外支付；建议值另扣 `150 MiB` |
 
-这里最值得留心的是第 5 级的 **HCCL 通信域去重规则**（详见 [HCCL buffer](hccl-buffer.md)）。在 `v0.30.0` 中，普通通信组默认配 `_DEFAULT_BUFFER_SIZE = 200 MiB`，DP 组按 $\max(\lceil(\text{dp\_size}+1)\times 4 / 1\text{ MiB}\rceil, 50)$ 取保底 `50 MiB`，而 `patch_distributed.py` 的 `_HCCL_PG_REGISTRY` 会按 `(backend, ranks, options_key, reuse_domain)` 对共享通信域去重。以 `TP=4, EP=4, DP=1` 下的 **`rank 0`** 为例：在跨 `group_name` 复用的前提下，`tp` 与 `ep` 复用 `world [0..3]` 的同一个 `200 MiB` 句柄，`pcp` 与 `pp` 复用 `dcp [0]`，加上 `dp [0]` 的 `50 MiB`，PyTorch 侧配置上限合计为 `450 MiB`。更关键的是，无论底层最终复用了几组、物理上具象化了多少兆字节，它们都发生在 `init_snapshot` 之后、`after_profile` 之前，**早已包含在 `non_torch_increase` 中**。
+第 5 级最容易踩坑的是 **HCCL 通信域去重规则**（详见 [HCCL buffer](hccl-buffer.md)）。`v0.30.0` 里，普通通信组默认配 `_DEFAULT_BUFFER_SIZE = 200 MiB`，DP 组按 $\max(\lceil(\text{dp\_size}+1)\times 4 / 1\text{ MiB}\rceil, 50)$ 取保底 `50 MiB`；`patch_distributed.py` 的 `_HCCL_PG_REGISTRY` 则按 `(backend, ranks, options_key, reuse_domain)` 对共享通信域去重。
+
+以 `TP=4, EP=4, DP=1` 下的 **`rank 0`** 为例：在跨 `group_name` 复用前提下，`tp` 与 `ep` 复用 `world [0..3]` 的同一份 `200 MiB` 句柄，`pcp` 与 `pp` 复用 `dcp [0]`，再加上 `dp [0]` 的 `50 MiB`，PyTorch 侧配置上限合计为 `450 MiB`。无论底层最终复用了几组、物理上落地了多少兆字节，它们全都在 `init_snapshot` 之后、`after_profile` 之前完成具象化，因此**早已算进 `non_torch_increase`，读启动日志时绝不可再手工重扣**。
 
 > **边界与例外（跨 `group_name` 拆键与 `mc2` 托管）**：`create_hccl_pg_options` 会向 `Options.hccl_config` 写入不同的 `"group_name"` 字段；若真机据此拆键（详见 [HCCL buffer](hccl-buffer.md) 待核项），7 个逻辑组的配置字段合计为 `1,250 MiB`。此外，`mc2` 组传入 `pg_options=None`，其缓冲大小直接交由 CANN 环境变量 `HCCL_BUFFSIZE` 控制。
 
 ### 切成块：各卡取最小，块数不等于并发数
 
-**`EngineCore` 收齐本组所有 Worker 报来的可用 KV 字节数后，先按每块字节数各自整除，再取全组最小的块数 `min_num_blocks` 统一分配，并把多算出的张量空间按比例缩回，避免大卡白占显存。** 各卡的激活峰值与非 Torch 增量存在细微波动，取最小值才能保证同一并行组内每张卡都装得下同一张块表。若开启多组数据并行（DP），每个 `EngineCore` 只在自己管辖的卡组内取最小，前端 `core_client.py` 汇总日志时再把各 DP 引擎的 `num_gpu_blocks` 相加（API 侧打印的总块数是多组之和，不是单组容量）。
+**`EngineCore` 收齐本组所有 Worker 报来的可用 KV 字节数后，先按每块字节数各自整除，再取全组最小的块数 `min_num_blocks` 统一分配，并把多算出的张量空间按比例缩回。** 各卡的激活峰值与非 Torch 增量存在细微波动，取最小值才能保证组内每张卡都装得下同一张块表，也避免大卡白占显存。多 DP 部署下，每个 `EngineCore` 只在自己管辖的卡组内取最小；前端 `core_client.py` 汇总日志时再把各 DP 引擎的 `num_gpu_blocks` 相加（API 侧打印的总块数是多组之和，而非单组容量）。
 
-切块前还有三道准入关卡：可用显存不大于零直接报 `No available memory`；`v0.30.0` 与 `main` 先从校验预算 `check_memory` 里扣出 `BlockPool` 永久保留的 **1 个空块（null block）**；若剩余空间连 1 条 `max_model_len` 满长请求都装不下，同样当场报错退出（多缓存组每块规格见 [KV cache 规格](kv-cache-spec.md)）。
+切块前还要过三道准入关卡：
+1. 可用显存 $\le 0$ 时，直接报 `No available memory`；
+2. `v0.30.0` 与 `main` 先从校验预算 `check_memory` 里扣出 `BlockPool` 永久保留的 **1 个空块（null block）**；
+3. 剩余空间若连 1 条 `max_model_len` 满长请求都装不下，同样当场报错退出（多缓存组每块规格见 [KV cache 规格](kv-cache-spec.md)）。
 
-**切出来的物理块数绝不等于能同时服务的并发请求数（`max_num_seqs`）。** 物理块池装的是 token 槽位（例如 `Qwen3-8B` 单卡 `2,324` 个可用块共 `297,472` 个 token 槽位）。如果线上全是 `512` token 的短对话，两百多条并发也绰绰有余，真正卡住并发上限的是调度阈值 `--max-num-seqs`（默认 `256`）；如果全是 `32,768` token 的长文档（每条占 `256` 块），不到 10 条请求就会把块池借光并触发抢占重算。若遇到带线性注意力状态的混合模型，每条请求还会额外占住固定数量的状态块，块数与并发数的换算就更不能一刀切。
+**切出来的物理块数绝不等于能同时服务的并发请求数（`max_num_seqs`）。** 物理块池装的是 token 槽位——例如 `Qwen3-8B` 单卡 `2,324` 个可用块对应 `297,472` 个 token 槽位。若线上全是 `512` token 短对话，两百多条并发绰绰有余，真正卡住上限的是调度阈值 `--max-num-seqs`（默认 `256`）；若全是 `32,768` token 长文档（每条占 `256` 块），不到 10 条请求就会借光块池并触发抢占重算。遇到带线性注意力状态的混合模型，每条请求还会额外占住固定数量的状态块，块数与并发更不能一刀切。
+
+### Ascend 910B3 真机启动对账：60.96 GiB 实测基数、图显存逆向增长与 u=0.90 捕获期 OOM
+
+把上面的七级公式放到真实 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，全量原始日志摘录见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）上逐项核对，能暴露出四处只看纸面 `64 GiB` 算账极易忽略的真机细节：
+
+**第一，预算公式的真实基数是 OS 可见总显存 `60.96 GiB`，不是标称 `64.00 GiB`。** `npu-smi 25.5.0` 虽标称每卡 `65,536 MB`（空载板级占用已达 `3,426 ~ 3,453 MB`），但 `acl.rt.get_mem_info` 暴露给 PyTorch / vLLM 的设备总容量只有 **`60.96 GiB`**（启动空闲 `60.57 ~ 60.59 GiB`）。因此 `requested_memory = total_memory × u` 直接以 **`60.96 GiB`** 为基数（如 `u=0.85` 对应 `51.81 GiB`，`u=0.88` 对应 `53.64 GiB`）；相差的 `3.04 GiB` 为底层预留，不可二次扣减。
+
+下表汇总 910B3 上 6 组真机服务启动的 `Actual usage` 实测对账（`INFO` 干净态 rank 0 读数；`Qwen3-8B` 统一 `BF16`、`u=0.85`、`max_model_len=32768`；`Qwen3-30B-A3B` 统一 `BF16`、`u=0.88`、`max_model_len=32768`）：
+
+| 910B3 真机配置 | 权重 / 卡 | `peak_act` | `non_torch` | 可用 KV / 卡（总容量） | `ACLGraph` 图显存 (`INFO` 耗时) |
+|---|---:|---:|---:|---|---:|
+| `Qwen3-8B` · `TP=1` (`u=0.85`) | `15.29 GiB` | `0.20 GiB` | `0.03 GiB` | `36.29 GiB`（`264,192 tokens`） | **`2.59 GiB`** (`22s`) |
+| `Qwen3-8B` · `TP=2` (`u=0.85`) | `7.66 GiB` | `0.20 GiB` | `0.43 GiB` | `43.52 GiB`（`633,728 tokens`） | **`2.92 GiB`** (`32s`) |
+| `Qwen3-8B` · `TP=4` (`u=0.85`) | `3.84 GiB` | `0.18 GiB` | `0.43 GiB` | `47.36 GiB`（`1,379,200 tokens`） | **`3.10 GiB`** (`35s`) |
+| `Qwen3-8B` · `TP=8` (`u=0.85`) | `1.94 GiB` | `0.17 GiB` | `0.44 GiB` | `49.27 GiB`（`2,869,888 tokens`） | **`3.21 GiB`** (`36s`) |
+| `Qwen3-30B-A3B` · `TP=4+EP=4` (`u=0.88`) | `14.27 GiB` | `0.20 GiB` | `0.45 GiB` | `38.73 GiB`（`1,692,032 tokens`） | **`2.30 GiB`** (`67s`) |
+| `Qwen3-30B-A3B` · `DP=2+TP=4+EP=8` (`u=0.88`) | `7.52 GiB` | `0.37 GiB` | `0.55 GiB` | `45.21 GiB`（`1,975,168`/DP，双 DP `3,950,336`） | **`2.64 GiB`** (`83s`) |
+
+读表时须留意两点实测边界：`non_torch` 从单卡 `0.03 GiB` 涨到多卡 `0.43 ~ 0.55 GiB` 是整体非 Torch 增量，已经包含了在 `profile_run` 窗口内具象化的通信与 CANN 上下文，绝不可全贴上 HCCL 标签、更不能在日志上二次扣除；另外同一配置在不同轮次或不同 rank 上存在约 `0.01 GiB` 级自然波动（例如 `DEBUG` 摘录中 `TP=2` 图显存为 `2.93 GiB`、`TP=4` 为 `47.35 GiB` KV / `0.44 GiB` `non_torch`，八卡 MoE 有 1 个 rank 报 `2.65 GiB` 图显存）。
+
+**第二，固定 `u` 扩大 TP 时，每卡 KV 池与 `ACLGraph` 图显存反而双双逆向增长。** 表面看单卡权重从 `15.29 GiB` 降到 `1.94 GiB` 应该越切越省显存，但自动预算会把腾出来的空间全数回填进每卡本地 KV 池（`36.29 → 49.27 GiB`），同时 `capture_model()` 前后设备空闲显存的差值（即 `NPU graph memory`）却从 **`2.59 GiB` 递增至 `3.21 GiB`**（`+0.62 GiB`）。一个直接相关的尺寸变化是：随着块数从 `2,064` 激增到 `22,421`，单层本地 K+V 视图从 `1.008 GiB` 扩至 `1.368 GiB`，`FIA` 捕获阶段按更大视图申请 workspace，与多卡集合任务、运行时资源和分配器保留共同进入捕获前后空闲显存差值（在缺少逐算子分配快照时，不能把多出的 `0.62 GiB` 单独归因给 HCCL 或 Slice 任一项）。更关键的是，固定 `u` 扩 TP 推高每卡本地 KV 池后，在普通 GQA 页交错非连续布局下，若线上 `FULL` 图重放与 Eager 相同的整池连续化拷贝，便会同步放大该项候选开销（详见 [FlashAttention 页](ascend-flash-attention.md#实测劣化剖析页交错-kv-布局为何在-fia-内部触发整池连续化) 与 [Tensor Parallel 页](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)，待线上 `FULL` 设备时间线验证）。
+
+**第三，`Qwen3-0.6B` 在 `u=0.90` 触发捕获期 OOM，直观标出了 `1 − u` 余量生死线。** 小模型权重极轻，在 `u=0.90` 下预算几乎全部分给了 KV 池：910B3 真机日志显示 `profile_run()` 顺利通过并切出 **`53.47 GiB` KV（`500,480 tokens`，`max_model_len=4,096`，`122.19×`）**，35 档 `PIECEWISE` 图也全部捕获完成；但在切入 `FULL` Decode `1/35` 时，调用栈在 `device_op.py` 的 `FIA` 内尝试分配 **`1.98 GiB`** 而此时仅剩 **`1.71 GiB` free**（`allocated 54.62 GiB`、`reserved 58.75 GiB`），当场 OOM 退出。将水位降至 `u=0.82` 后，KV 池收敛至 `48.59 GiB`（`454,912 tokens`，`111.06×`），腾出足够预算外余量后录图耗时 `21 s`、占用 **`3.90 GiB`** 顺利就绪。这一标本明确证明：小模型设高 `u` 时不会死在 `profile_run()`，而是会因为切出的 KV 池过大挤压了 `1 − u` 预算外空间、在 `capture_model()` 的 `FIA` 捕获阶段爆显存（且不能拿 8B 的 `2.59 GiB` 去套 0.6B 的图显存）。
+
+**第四，生产排查后务必关闭 `VLLM_LOGGING_LEVEL=DEBUG`。** `NPUWorker.execute_model()` 每步都会进入 `log_memory_stats()`：`INFO` 级别立刻返回，而 `DEBUG` 级别每步读取 `torch.npu.memory_reserved()` 与 `torch.npu.memory_allocated()` 并格式化日志（`TP=8` 服务日志达 `3,312` 行），配合 `ACLGraph` `DEBUG` 分支的输入 `data_ptr()` 遍历校验，在 910B3 `TP=8 c=1` 单样本对照中把 `TTFT` 从 `139.07 ms` 推高到 `193.98 ms`（`+39.48%`；注意此处读的是 PyTorch 分配器计数，并非每步触发设备 `mem_get_info` 同步）。
 
 ## 空闲显存变多，为什么量测反而失败
 
-**“整张卡空闲了多少”与“当前 vLLM 实例新占了多少”是两笔不同的账。** `NPUWorker` 在量测末尾有一条硬断言：`assert self.init_snapshot.free_memory > free_gpu_memory`，要求试跑结束时的整卡空闲显存必须严格小于启动快照时的空闲显存。容器只隔离进程视图，不自动隔离同卡的物理 HBM；一旦同卡上的另一个进程恰好在 `init_snapshot` 与 `after_profile` 之间释放了显存，差分读数就会失真。
+**“整张卡空闲了多少”与“当前 vLLM 实例新占了多少”是两笔不同的账。** `NPUWorker` 在量测末尾设了一条硬断言：`assert self.init_snapshot.free_memory > free_gpu_memory`，要求试跑结束时的整卡空闲显存严格小于启动快照时的值。容器只隔离进程视图，不隔离同卡物理 HBM；一旦同卡另一进程恰好在 `init_snapshot` 与 `after_profile` 之间释放显存，整卡差分读数就会失真。
 
-用一个简化的教学示意数算一遍：设拍启动快照时整卡空闲 $80\text{ GiB}$，当前 vLLM 实例在加载与试跑期间净增占用 $2\text{ GiB}$，但同卡另一个容器恰好在这几秒内退场释放了 $10\text{ GiB}$：
+下面这张图把「外部容器释放触发断言失败」与后一节「多模态试跑提示 ≠ 运行期限制」两类最常见的显存口径边界并排拆清：
+
+```wiki-diagram
+file: mem-prof-fig-external-interference
+```
+
+按图上方示意数核对一遍：设拍启动快照时整卡空闲 $80\text{ GiB}$，当前 vLLM 实例在加载与试跑期间净增占用 $2\text{ GiB}$，而同卡另一个容器恰好退场释放了 $10\text{ GiB}$：
 
 $$M_{\text{free,after}} = 80 - 2 + 10 = 88\text{ GiB}, \qquad \Delta M_{\text{consumed}} = 80 - 88 = -8\text{ GiB}$$
 
-把整卡表观读数与本实例真实增量放在一起对比：
+把整卡表观读数与本实例真实增量并排对照：
 
 | 观察视角 | 快照初值 | 窗口内变化 | 试跑后读数与判定结果 |
 |---|---|---|---|
@@ -202,19 +251,23 @@ $$M_{\text{free,after}} = 80 - 2 + 10 = 88\text{ GiB}, \qquad \Delta M_{\text{co
 | 同卡其他进程占用（外部干扰） | 已占若干 | 量测窗口内释放 `−10 GiB` | 整卡空闲显存反而从 `80 GiB` 涨到 `88 GiB` |
 | `NPUWorker` 整卡差分断言 | `init = 80 GiB` | 表观消耗 `80 − 88 = −8 GiB` | 违反 `init_snapshot.free_memory > free_gpu_memory`，抛 `AssertionError` 中止 |
 
-这类 **`Error in memory profiling` 断言失败**代表“记账基准被外部污染”，与显存不够分配的 **OOM** 完全不是一回事。排障时先按[启动排障](inference-troubleshooting.md#启动依赖与加载还没到接请求这一步)定位挂在加载、试跑、建池还是录图阶段，再核对同一时间窗内是否有其他任务启停（注意 PyTorch 分配器的 `memory_reserved` 包含缓存待复用的块，不能只看 `memory_allocated`）。最小验证实验是固定配置做两组对照：一组让旁路进程提前占稳显存全程不释放，另一组在启动窗口内释放；只有释放组复现断言失败而占稳组正常通过，才能确认为外部释放干扰——正确修法是隔离设备或错峰拉起，绝不是注释掉断言。
+这类 **`Error in memory profiling` 断言失败**说明“记账基准被外部污染”，与显存耗尽的 **OOM** 完全不是一回事。排障按两步确认：
+1. 先按[启动排障](inference-troubleshooting.md#启动依赖与加载还没到接请求这一步)确认报错落在量测断言而非加载/录图，再核查同一时间窗内是否有同卡任务启停（排查时注意 PyTorch `memory_reserved` 包含缓存待复用块，不能只看 `memory_allocated`）；
+2. 用对照实验验证：旁路进程全程占稳不释放则正常通过，窗口内释放才复现断言失败。正确修法是隔离设备或错峰拉起，绝不能注释断言。
 
 ## 多模态输入的量测尺寸，等于运行时限制吗？
 
-**传给试跑的多模态尺寸提示（profiling size hints），只改变启动时假输入张量按多大规格构造，不会在运行期自动缩放真实媒体或封顶编码缓存。** 多模态模型除了文本 token，还要用视觉或音频编码器处理图片、视频与语音；图像分辨率、视频帧数与音频时长直接决定编码阶段的中间激活体积，仅靠文本批上限无法刻画这笔开销。
+**传给试跑的多模态尺寸提示（profiling size hints），只决定启动时假输入张量按多大规格构造，不会在运行期缩放真实媒体或封顶编码缓存。** 多模态模型除了文本 token，还需视觉或音频编码器处理图片、视频与语音；图像分辨率、视频帧数与音频时长直接决定编码激活体积，单靠文本批上限无法覆盖。
 
-上游官方显存指南给出的典型写法是：通过 `limit_mm_per_prompt` 同时传入数量上限与试跑尺寸提示（例如单请求最多 `5` 张图、试跑按 `512×512` 构造；最多 `1` 段视频、试跑按 `32` 帧 `640×640` 构造）。这里必须把两件事彻底拆开：“最多几张图/几段视频”（`count`）是运行期准入硬限制；`width` / `height` / `num_frames` 只是给 `profile_run()` 造假输入用的尺寸提示（超出模型上限时钳回有效最大值），**既不会把线上真实大图自动缩成 `512×512`，也不会把运行期的 `encoder cache`（存放视觉编码输出供语言主干读取的缓存）封顶在该尺寸**。
+对照上图下半部分，上游官方指南通过 `limit_mm_per_prompt` 同时传入数量上限与试跑尺寸提示（例如单请求最多 `5` 张图、试跑按 `512×512` 构造；最多 `1` 段视频、试跑按 `32` 帧 `640×640` 构造）。这两类字段的作用域截然不同：
+- **`count` 是运行期准入硬限制**：超过上限的请求会直接拒收；
+- **`width` / `height` / `num_frames` 只是 `profile_run()` 的假输入尺寸提示**（超模型上限时钳回有效最大值），既不会把线上真实大图缩成 `512×512`，也不会把运行期 `encoder cache` 封顶在该尺寸。
 
-因此，如果业务允许更高清的图片或更长视频，必须在目标输入尺寸下核实峰值；若想真正压低线上媒体开销，应配置模型对应的预处理器像素上限，而不是只调小试跑提示。同时要把 NPU 显存不足与主机内存不足分开：多模态预处理缓存放在主机 DRAM（由 `mm_processor_cache_gb` 控制），调小设备侧 KV 预算不会缩小主机侧缓存。
+因此，线上允许更高清图片或更长视频时，必须在目标尺寸下实测峰值；若要压低线上媒体开销，应配置模型预处理器的像素上限，而非只调小试跑提示。同时须把设备 HBM 与主机内存分开看：多模态预处理缓存位于主机 DRAM（由 `mm_processor_cache_gb` 控制），缩减 NPU 侧 KV 预算不会缩小主机侧缓存。
 
 ## 放到 GLM 双机：一张卡的预算怎样扣
 
-以下小节对照**「09 旗舰异构模型全案」GLM-5.3-Flash 历史绑定全案**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，双机 2 台 Atlas 800 A2 共 16 卡、`TP8 / DP2 / EP16`、`W8A8` 量化，教程将 `--gpu-memory-utilization` 设为 `0.85`，部署前提见[双机部署前提](glm-5-3-flash-two-node.md#部署前提)）。量测对应[双机启动的第五步](glm-5-3-flash-two-node.md#启动时发生了什么)：16 个 Worker 各自拍快照、建通信组、加载权重并试跑，再由两台机器各自的 `EngineCore` 收齐本机 8 张卡的结果定块数、建池并录图：
+看完标准 `Qwen3` 单卡与四卡量测，再切到「09 旗舰异构模型全案」的 **GLM-5.3-Flash 双机部署**（历史钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`，2 台 Atlas 800 A2 共 16 卡、`TP8 / DP2 / EP16`、`W8A8` 量化，教程把 `--gpu-memory-utilization` 设为 `0.85`，部署前提见[双机部署前提](glm-5-3-flash-two-node.md#部署前提)）。量测对应[双机启动的第五步](glm-5-3-flash-two-node.md#启动时发生了什么)：16 个 Worker 各自拍快照、建通信组、加载权重并试跑，两台机器的 `EngineCore` 再分别收齐本机 8 张卡的结果定块数、建池与录图：
 
 ```wiki-diagram
 file: kv-cache-memory-profiling-flow
@@ -222,18 +275,18 @@ file: kv-cache-memory-profiling-flow
 
 ### 试跑两次：先按 128 个 token，再按 8192 个
 
-**GLM 在同一个 `memory_profiling` 区间内连续试跑两次，是为了把 MoE 层的两条通信路径都量进去。** 该部署单步调度上限为 `8192` 个 token（见[调度的 token 预算](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)）。但 MoE 层在总 token 数不超过 `128` 时走昇腾融合的 MC2 路径，超过 `128` 则切到 AllGather 路径（见[MoE 通信选择](one-request.md#moe-通信走-mc2-还是-allgather)）。若只跑 `8192` 个 token，MC2 分支不会触发；因此当批上限大于 `mc2_tokens_capacity`（`128`）且该门槛命中 MC2 时，`model_runner.profile_run()` 先按 `128` 个 token 跑一次 MC2 假前向，再跑 `8192` 个 token 的主试跑，激活峰值取两次合起来的最高点减去试跑前基准。
+**GLM 在同一个 `memory_profiling` 区间内连续试跑两次，是为了把 MoE 层的两条通信路径都量进去。** 该部署单步调度上限为 `8192` token（见[调度的 token 预算](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)）。但 MoE 层按总 token 数切换通信路径：不超过 `128` 走昇腾融合 MC2，超过 `128` 则切到 AllGather（见[MoE 通信选择](one-request.md#moe-通信走-mc2-还是-allgather)）。若只按 `8192` 跑一次，MC2 分支永远不会触发；因此批上限大于 `mc2_tokens_capacity`（`128`）且命中 MC2 时，`profile_run()` 先跑 `128` token 假前向，再跑 `8192` token 主试跑，激活峰值取两次合起来的最高点减试跑前基准。
 
-**但试跑按 eager 执行且不构造注意力元数据（`attn_metadata is None`），GLM 的两类注意力核心计算在试跑中均提前返回：**
+**但试跑按 eager 执行且不构造注意力元数据（`attn_metadata is None`），GLM 两类注意力核心计算均会提前返回：**
 
-- **11 层稀疏 MLA**（见[稀疏注意力](sparse-attention.md)）：见到元数据为空直接将输出填零返回，内部的动态选块索引器（indexer）完全未运行。索引器在首次真实运行或录图时才转出的两份 FP32 副本（每卡约 `54 MiB`，见 [TP 页](tensor-parallel.md#加载权重之外每卡还会创建同样大的运行时副本)）也不会在试跑期出现。
-- **34 层 KDA 线性注意力**（见[线性注意力](linear-attention.md)）：照常算完输入侧的 `q`、`k`、`v`、$\beta$ 与门控投影，但在短卷积和分块递归之前就早退，拿着全零输出继续跑完层末归一化与输出投影。
+- **11 层稀疏 MLA**（见[稀疏注意力](sparse-attention.md)）：见到元数据为空直接填零返回，内部动态选块索引器（indexer）完全未运行。索引器在首次真实运行或录图时才转出的两份 FP32 副本（每卡约 `54 MiB`，见 [TP 页](tensor-parallel.md#加载权重之外每卡还会创建同样大的运行时副本)）也不会在试跑期出现。
+- **34 层 KDA 线性注意力**（见[线性注意力](linear-attention.md)）：照常算完输入侧的 `q`、`k`、`v`、$\beta$ 与门控投影，但在短卷积和分块递归之前就早退，拿着全零输出跑完层末归一化与输出投影。
 
-由于真实请求的批次形状、缓冲复用和异步流生命周期与假输入不同，试跑跳过的分支既不能简单把单层差值乘 34 当作上界，也不能断言最多只差一层；真实负载的额外临时开销必须靠预算外余量承接并由实机压测确认。注意区分“试跑跳过了递归算子”与“状态本身占多少缓存”：KDA 的递归状态常驻在 KV 池里，每条请求固定占 `12` 个块号（一条仅 7 个 token 的短请求也要占 `15` 块，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)），不会因为试跑早退而少占块。
+由于真实请求的批次形状、缓冲复用与异步流生命周期不同于假输入，试跑跳过的分支既不能把单层差值乘 `34` 当上界，也不能断言最多只差一层；额外临时开销必须由预算外余量兜底并经实机压测确认。注意把“试跑跳过递归算子”与“常驻状态占块”分开：KDA 递归状态常驻 KV 池，每条请求固定占 `12` 个块号（仅 7 token 的短请求也要占 `15` 块，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)），不会因试跑早退而少占块。
 
 ### 三项扣减在 GLM 里各是什么
 
-在双机历史绑定算例中，单张 64 GiB 卡按 `0.85` 划出 `54.40 GiB` 预算，三项非 KV 扣减的构成如下：
+在双机历史绑定算例中，单张 64 GiB 卡按 `0.85` 划出 `54.40 GiB` 预算，三项非 KV 扣减构成如下：
 
 | 扣减项 | GLM 双机单卡口径 | 算例取值与边界说明 |
 |---|---|---|
@@ -241,11 +294,17 @@ file: kv-cache-memory-profiling-flow
 | 激活峰值 | 128 与 8192 两次试跑合算的 PyTorch 分配最高点增量 | 缺实机日志，与下项合并按教学假设取值 |
 | 非 Torch 增量 | 快照之后建立的 HCCL 跨卡通信组缓冲等 | 四个跨卡逻辑组配置字段之和为 `650 M`（折算参考约 `82` 块，不等同实占损失，见[HCCL 容量折算](hccl-buffer.md#配置值怎样折算成容量参考)）；与激活峰值合计假设为 `3.4 GiB` |
 
-按这组教学假设扣完后，单卡剩余 **`30.00 GiB`** 可用 KV 显存，按每块 [7.969 MiB](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)（`8,355,840 B`）切出 **`3,855` 块**。若仅代入已列语言权重子账则对应 `3,908` 块，但尚未扣除视觉塔等表外项，不能当成精确设备容量。这两组块数的完整字节推导与适用场景只在唯一出处 [glm-5-3-flash-two-node「剩下的显存变成多少 KV cache」](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache) 维护，本页不重复展开。
+按这组教学假设扣完后，单卡剩余 **`30.00 GiB`** 可用 KV 显存，按每块 [7.969 MiB](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)（`8,355,840 B`）切出 **`3,855` 块**。若仅代入已列语言权重子账可得 `3,908` 块，但尚未扣除视觉塔等表外项，不可当成精确设备容量。两组块数的完整字节推导只在唯一出处 [glm-5-3-flash-two-node「剩下的显存变成多少 KV cache」](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache) 维护，本页不重复展开。
 
 ### 预算外的 15%：图、副本和启动前已被占的
 
-教程取 `0.85` 意味着每张 64 GiB 卡留出 **`15%`（`9.6 GiB`）** 不进预算（见[两种块数各在什么时候用](glm-5-3-flash-two-node.md#两种块数各在什么时候用)），专门承接四笔预算外开销：启动快照前已被占的显存、切完 KV 后按 7 个固定尺寸录制的 decode 图（见[启动第七步](glm-5-3-flash-two-node.md#启动时发生了什么)）、每卡约 `54 MiB` 的索引器 FP32 运行时副本，以及试跑早退未覆盖到的稀疏 MLA 注意力与 KDA 短卷积/递归临时缓冲。录完图后，未设显式字节预算的 Worker 会打印 `Actual usage` 四项汇总与扣除 `150 MiB` 后的 `--kv-cache-memory` 建议值，这是核对真机激活峰值、非 Torch 增量与图显存的唯一权威入口。
+教程取 `0.85` 意味着每张 64 GiB 卡留出 **`15%`（`9.6 GiB`）** 不进预算（见[两种块数各在什么时候用](glm-5-3-flash-two-node.md#两种块数各在什么时候用)），用来承接四笔预算外开销：
+- 启动快照前已被占用的显存；
+- 切完 KV 后按 7 个固定尺寸录制的 decode 图（见[启动第七步](glm-5-3-flash-two-node.md#启动时发生了什么)）；
+- 每卡约 `54 MiB` 的索引器 FP32 运行时副本；
+- 试跑早退未覆盖到的稀疏 MLA 注意力与 KDA 短卷积/递归临时缓冲。
+
+录完图后，未设显式字节预算的 Worker 会打印 `Actual usage` 四项汇总与再扣 `150 MiB` 后的 `--kv-cache-memory` 建议值——这是核对真机激活峰值、非 Torch 增量与图显存的唯一权威入口。
 
 ## 常见误解
 
@@ -258,6 +317,7 @@ file: mem-prof-fig-myths
 - **「做显存对账时，拿 `profile_run` 扣完的数再减一遍 HCCL 缓冲才保险。」** 错。`init_snapshot` 拍在建通信组之前，`profile_run` 结束时的 `non_torch_increase` 已经包含了具象化的 HCCL 与 MC2 缓冲（共享通信域另经 `_HCCL_PG_REGISTRY` 按 `(backend, ranks, options_key, reuse_domain)` 判键复用，跨 `group_name` 是否拆键见 [HCCL buffer](hccl-buffer.md) 待核项）。再减一遍属于双重扣减，只会平白浪费 KV 容量。
 - **「`0.92`（或教程的 `0.85`）就是专门留给 KV cache 的比例。」** 错。显存比例圈出的是整份实例预算，权重、试跑激活峰值和非 Torch 增量全都先从这份预算里扣，扣剩下的尾款才归 KV cache。
 - **「预算外那 `8%`～`15%` 空着也是浪费，把比例拉到 `0.98` 能多切块。」** 危险。昇腾 `NPUWorker` 在切完 KV 之后才调 `capture_model()` 录图，图显存、快照前占用与运行期延迟创建的缓冲全靠预算外 `1 − u` 余量买单；留太薄会在录图或首条请求时直接 OOM。
+- **「权重越小的模型（或 TP 越大、单卡权重越小）越不容易在录图期 OOM，图显存也会同步缩小？」** 错。自动预算会把省下的显存回填进 KV 池：910B3 真机上 `Qwen3-0.6B` 在 `u=0.90` 下 `profile_run()` 切出 `53.47 GiB` KV 后，恰恰在 `FULL` Decode 捕获 `1/35` 的 `FIA` 内因只剩 `1.71 GiB` 而申请 `1.98 GiB` OOM（降到 `u=0.82` 后录图占 `3.90 GiB` 顺利通过）；`Qwen3-8B` 从 `TP=1` 扩到 `TP=8` 时，单卡权重虽缩至 `1.94 GiB`，但图显存反而随每卡 KV 视图扩大从 `2.59 GiB` 递增至 `3.21 GiB`。
 - **「上游 GPU 代码会预先估算图显存并从预算扣除，昇腾也一样。」** 不一样。上游 `GPUWorker` 仅在 CUDA 平台且显式开启环境变量 `VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS` 时才在量测阶段预估图显存；昇腾 `NPUWorker` 没有这一步，图显存一律从预算外支付。
 - **「非 Torch 增量可以按张量形状算出来，试跑峰值就是任意真实负载的最高峰。」** 两半都错。非 Torch 占用不走 PyTorch 分配器，只能靠设备快照差测量；而试跑不录图、不建注意力块表元数据（如稀疏 MLA 与 KDA 核心分支会早退），不能代表所有真实输入组合的绝对上界。
 - **「切出来的物理块数就是能同时服务的并发请求数。」** 错。一条请求占多少块随上下文长度动态增长（混合线性注意力模型还额外占固定状态块），并发上限由块池容量与 `--max-num-seqs` 共同制约。
@@ -326,5 +386,6 @@ vllm serve Qwen/Qwen3-8B --gpu-memory-utilization 0.90 --kv-cache-memory-bytes 3
 - **第 3–5 级（权重量测、试跑峰值与非 Torch 差分）**：`NPUModelRunner.load_model`（`model_runner_v1.py#L4372-L4478`）与 `NPUPlatform.get_current_memory_usage`（`platform.py#L209-L212`）记录权重峰值增量[C7]；`MemorySnapshot` 与 `memory_profiling`（`vllm/utils/mem_utils.py#L81-L321`）定义 `(total - free) - memory_reserved` 非 Torch 差分[C14]；`determine_available_memory`（`worker.py#L566-L667`）包住 `profile_run`（`model_runner_v1.py#L3909-L3923` 不建注意力元数据，`gpu_model_runner.py#L6522-L6535` 含上游 `_dummy_sampler_run` 采样试跑），完成三项扣减、`free_memory` 严格递减断言与多组缩放[C2]。
 - **第 6–7 级（跨卡取最小块数、录图与 `150 MiB` 建议值）**：`EngineCore._initialize_kv_caches`（`vllm/v1/engine/core.py#L254-L320`）与 `get_kv_cache_configs`（`kv_cache_utils.py#L975-L1015, #L2697-L2774`）处理块数覆盖、1 空块预扣与 `min_num_blocks` 收缩，多 DP 客户端在 `core_client.py#L814-L818` 汇总相加；`compile_or_warm_up_model`（`worker.py#L879-L955`）执行 `capture_model()` 并按 `150 MiB` 安全裕度打印建议值[C4]（上游 CUDA 专属图预估门控见 `gpu_worker.py#L528-L600`[C21]）。
 - **GLM 双机例外与外部容器干扰参考**：「09 旗舰异构模型全案」GLM 教程 `0.85` 配方见 [S35]，固定镜像 `db701c1f` 的量测、录图、稀疏 MLA（`sfa_v1.py#L1660-L1666`）/ KDA（`kimi_gdn_linear_attn.py#L233-L284`、`kimi_kda.py#L244-L291`）早退及混合分组（`patch_kv_cache_utils.py#L459-L548`）均已归入本页来源索引；同卡容器释放显存触发断言的社区复现记录见 [issue #56830](https://github.com/vllm-project/vllm/issues/56830)[S42]。
+- **`Ascend 910B3` 真机对账与捕获期 OOM 证据**：单卡与八卡 `npu-smi` 板级空载占用与 `60.96 GiB` OS 可见容量见 `sources` 第 44 项 [M44]；`Qwen3-8B` `TP=1..8` 与 `Qwen3-30B-A3B` `TP4+EP4 / DP2+TP4+EP8` 的启动 `Actual usage` 对账及 `DEBUG/INFO` 对比见第 45 项 [M45]；`Qwen3-0.6B` `u=0.90` 在 `capture_model()` `FIA` 处申请 `1.98 GiB`（仅剩 `1.71 GiB`）的真实 OOM 栈见第 46 项 [M46]；对应源码为 `worker.py#L762-L778`（`log_memory_stats` DEBUG 分配器计数）[C47]、`attention_v1.py#L664-L686`（`FIA` 捕获 workspace 申请，第 48 项）、`device_op.py#L212-L224`（FIA 调用点，第 49 项）、`acl_graph.py#L275-L281`（DEBUG 输入地址校验，第 50 项）与 `gpu_model_runner.py#L6888-L6932`（`start_free_gpu_memory - end_free_gpu_memory` 图显存定义）[C51]，完整档案见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
 
-证据归属与待核边界：HCCL 缓冲已含在 `non_torch_increase` 中且严禁二次重扣，由 `init_snapshot` 先于 `_init_worker_distributed_environment()` 及试跑触发通信具象化的时序直接推出[D]；`Qwen3-8B`（`15.26 GiB` 权重、`18.000 MiB/块`）与 `Qwen3-30B-A3B`（TP4 下每卡 `3.000 MiB/块`、跨组名复用假设下 `450 MiB` 配置上限）由模型配置与通信域规则静态推出[D]，两表中的试跑激活峰值、非 Torch 实占数及 `80 / 2 / 10 / 88 GiB` 差分例子均为方便算账核对的教学示意设定，不代表真机实测读数[A]；将七步归纳为“预算内三扣减 + 预算外录图兜底”属架构总结[I]；GLM 双机算例中的 `64 GiB`、`21 GiB`、`3.4 GiB` 沿用双机页教学假设[A]，该固定部署的真机 `Actual usage` 日志、`main` 分支实跑布局转储、单成员 HCCL 组的硬件实占字节数以及 `Options.hccl_config["group_name"]` 在真机 `torch_npu` 下是否分离复用键仍属待核项（详见 [HCCL buffer 待核说明](hccl-buffer.md)）。
+证据归属与待核边界：HCCL 缓冲已含在 `non_torch_increase` 中且严禁二次重扣，由 `init_snapshot` 先于 `_init_worker_distributed_environment()` 及试跑触发通信具象化的时序直接推出[D]；`Qwen3-8B`（`15.26 GiB` 权重、`18.000 MiB/块`）与 `Qwen3-30B-A3B`（TP4 下每卡 `3.000 MiB/块`、跨组名复用假设下 `450 MiB` 配置上限）由模型配置与通信域规则静态推出[D]，两表中的试跑激活峰值、非 Torch 实占数及 `80 / 2 / 10 / 88 GiB` 差分例子均为方便算账核对的教学示意设定，不代表真机实测读数[A]（真机 `910B3` 启动实测以紧随其后的 `Actual usage` 真机对账表为准）；将七步归纳为“预算内三扣减 + 预算外录图兜底”属架构总结[I]；GLM 双机算例中的 `64 GiB`、`21 GiB`、`3.4 GiB` 沿用双机页教学假设[A]，该固定部署的真机 `Actual usage` 日志、`main` 分支实跑布局转储、单成员 HCCL 组的硬件实占字节数、`Qwen3-8B` `TP=1→8` 图显存增幅 `+0.62 GiB` 的逐算子精确分摊，以及 `Options.hccl_config["group_name"]` 在真机 `torch_npu` 下是否分离复用键仍属待核项（详见 [HCCL buffer 待核说明](hccl-buffer.md)）。

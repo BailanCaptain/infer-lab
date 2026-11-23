@@ -1,45 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 668" width="880" height="668" role="img" aria-label="一条长提示词的一段怎样走完一步：调度器按「还差几个」和剩余预算定下这一段有多长，排完立刻把已算数往前推；准备输入仍从本步开始前的已算数起排位置号、按块表找到写历史的格号，并给整批贴执行标签；前向读已存的历史、写下本段的历史；每条请求都在自己最后一个位置采样一次，提示词没算完的这一次结果丢掉，下一步从新的已算数接着排。">
-  <title>一条长提示词的一段怎样走完一步：调度器按「还差几个」和剩余预算定下这一段有多长，排完立刻把已算数往前推；准备输入仍从本步开始前的已算数起排位置号、按块表找到写历史的格号，并给整批贴执行标签；前向读已存的历史、写下本段的历史；每条请求都在自己最后一个位置采样一次，提示词没算完的这一次结果丢掉，下一步从新的已算数接着排。</title>
-  <defs><marker id="chunked-prefill-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M440 76 L440 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M650 46 L674 46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M440 168 L440 204" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M230 234 L212 234" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M440 264 L440 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M440 360 L440 396" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M440 452 L440 488" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M230 514 L176 514 L176 584" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M650 514 L704 514 L704 584" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <path d="M16 614 L8 614 L8 46 L230 46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#chunked-prefill-flow-ah-ink)"/>
-  <rect x="230" y="16" width="420" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 2 站 调度：这一段排几个位置</text>
-  <text x="440" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">本步 = min(还差几个, 剩余预算)</text>
-  <rect x="674" y="16" width="190" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="769" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步不再接新请求</text>
-  <text x="769" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">分块关着且截后仍超余量</text>
-  <rect x="230" y="112" width="420" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">排完立刻把已算数往前推</text>
-  <text x="440" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">下一步从这里接着排；标记提示词没算完</text>
-  <rect x="230" y="204" width="420" height="60" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="440" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 3 站 准备输入：位置号和格号</text>
-  <text x="440" y="249" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">位置号从步前已算数起编；格号查块表得到</text>
-  <rect x="16" y="204" width="196" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="114" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">给整批贴执行标签</text>
-  <text x="114" y="249" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">本例是 ChunkedPrefill</text>
-  <rect x="230" y="300" width="420" height="60" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="440" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 4 站 前向：读已存的历史，写下本段的</text>
-  <text x="440" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">注意力读前面各段的 KV；线性注意力接着上一段的状态</text>
-  <rect x="230" y="396" width="420" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 5 站 采样：每条请求在最后一个位置选一次</text>
-  <rect x="230" y="488" width="420" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这条请求的提示词算完了吗？</text>
-  <rect x="16" y="584" width="320" height="60" rx="8" fill="var(--color-danger-soft, #fbe5e2)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
-  <text x="176" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">没算完：这次选出的丢掉</text>
-  <text x="176" y="629" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">不追加、不返回，下一步回到调度</text>
-  <rect x="544" y="584" width="320" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="704" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算完：选出的就是第一个输出 token</text>
-  <text x="704" y="629" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">之后按 decode 每步排</text>
-  <text x="186" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
-  <text x="690" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
-  <text x="16" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">下一步</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 436" width="900" height="436" role="img" aria-label="分块预填充一步四站执行流与未完段采样丢弃闭环图" font-family="var(--font-sans)">
+  <title>分块预填充（Chunked Prefill）在主线第 2 到第 5 站的执行闭环：以 C(14→6, 6, 2) 追踪步前与步末已算数交接、ChunkedPrefill 执行标签以及未完段采样丢弃与 RNG 回拨。</title>
+  <desc>展示长提示词 C（14 个位置，按 6、6、2 切三段）流经四站：第 2 站调度器按 min(还差几个, 剩余预算) 排额并立即将 num_computed_tokens 从 0→6→12→14 前推并标 is_prefill_chunk（关闭分块且超余量时直接停收 waiting）；第 3 站 Worker 仍按步前已算数 num_computed_tokens_cpu 编位置号（0..5 / 6..11 / 12..13），查块表算槽位并贴 ChunkedPrefill 标签；第 4 站前向读旧 KV 或线性状态、写新槽位；第 5 站采样在每段末位选词，未完段由 discard_requests_mask 丢弃并回拨 RNG 偏移 4，仅末段产出首个输出 y0 并转入 decode。</desc>
+  <defs>
+    <marker id="cp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="cp-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="cp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">一段长提示词怎样走完一步：以 C（14 词 → 6, 6, 2）追踪第 2 到第 5 站</text>
+
+  <!-- 4 horizontal station cards (y=40..248) -->
+  <!-- Station 2 -->
+  <rect x="14" y="40" width="206" height="206" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="117" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">第 2 站 · 调度</text>
+  <rect x="26" y="78" width="182" height="44" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="117" y="97" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">n = min(差额, 预算)</text>
+  <text x="117" y="115" text-anchor="middle" font-size="13" fill="#4d5652">C 排 6 → 6 → 2</text>
+  <rect x="26" y="130" width="182" height="52" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="117" y="150" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">步前即推已算数</text>
+  <text x="117" y="170" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#17211f">0 → 6 → 12 → 14</text>
+  <text x="117" y="204" text-anchor="middle" font-size="13" fill="#4d5652">标 <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">is_prefill_chunk</tspan></text>
+  <text x="117" y="226" text-anchor="middle" font-size="13" fill="#8f3229">关分块超余量→停收waiting</text>
+
+  <line x1="220" y1="143" x2="236" y2="143" stroke="#4d5652" stroke-width="1.8" marker-end="url(#cp-arr)"/>
+
+  <!-- Station 3 -->
+  <rect x="240" y="40" width="212" height="206" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="346" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">第 3 站 · 准备输入</text>
+  <rect x="252" y="78" width="188" height="58" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="346" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">按「步前」已算数编位</text>
+  <text x="346" y="122" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#17211f">0..5 | 6..11 | 12..13</text>
+  <rect x="252" y="144" width="188" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="346" y="163" text-anchor="middle" font-size="13.5" fill="#17211f">查块表算 <tspan font-family="var(--font-mono)" font-weight="700">slot_mapping</tspan></text>
+  <text x="346" y="181" text-anchor="middle" font-size="13" fill="#4d5652">切点可落在物理块中间</text>
+  <text x="346" y="210" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#936300">标签: ChunkedPrefill</text>
+  <text x="346" y="230" text-anchor="middle" font-size="13" fill="#4d5652">与 A/B decode 一维混拼</text>
+
+  <line x1="452" y1="143" x2="468" y2="143" stroke="#4d5652" stroke-width="1.8" marker-end="url(#cp-arr)"/>
+
+  <!-- Station 4 -->
+  <rect x="472" y="40" width="204" height="206" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="574" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">第 4 站 · 前向计算</text>
+  <rect x="484" y="78" width="180" height="66" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="574" y="100" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">标准注意力</text>
+  <text x="574" y="120" text-anchor="middle" font-size="13" fill="#4d5652">读前段 KV + 本段因果</text>
+  <text x="574" y="137" text-anchor="middle" font-size="13" fill="#3a4f93">新 K/V 追加写进槽位</text>
+  <rect x="484" y="152" width="180" height="66" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="574" y="174" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">线性注意力（KDA）</text>
+  <text x="574" y="194" text-anchor="middle" font-size="13" fill="#4d5652">读入上段末状态续推</text>
+  <text x="574" y="211" text-anchor="middle" font-size="13" fill="#065f56">本段算完原地写回</text>
+  <text x="574" y="237" text-anchor="middle" font-size="13" fill="#4d5652">无需事后「拼接」结果</text>
+
+  <line x1="676" y1="143" x2="692" y2="143" stroke="#4d5652" stroke-width="1.8" marker-end="url(#cp-arr)"/>
+
+  <!-- Station 5 -->
+  <rect x="696" y="40" width="190" height="206" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="791" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">第 5 站 · 末位采样</text>
+  <rect x="708" y="78" width="166" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="791" y="100" text-anchor="middle" font-size="13.5" fill="#17211f">每条请求取本段</text>
+  <text x="791" y="122" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">最后 1 个位置采样</text>
+  <text x="791" y="164" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">步末判定：</text>
+  <text x="791" y="186" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#4d5652">已算 &lt; prompt_len?</text>
+  <text x="791" y="210" text-anchor="middle" font-size="13" fill="#8f3229">第 1、2 步 → 丢弃</text>
+  <text x="791" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">第 3 步 → 产出 y₀</text>
+
+  <!-- Decision branch down (y=246..300) -->
+  <path d="M 745 246 L 745 276 L 340 276 L 340 298" fill="none" stroke="#b54237" stroke-width="1.9" marker-end="url(#cp-arr-r)"/>
+  <path d="M 836 246 L 836 276 L 718 276 L 718 298" fill="none" stroke="#087f73" stroke-width="1.9" marker-end="url(#cp-arr-t)"/>
+
+  <!-- Bottom left: Incomplete chunk -> discard & loop back -->
+  <rect x="14" y="302" width="490" height="118" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="28" y="328" font-size="14.5" font-weight="700" fill="#8f3229">提示词未算完（步 1: 6/14、步 2: 12/14）：丢弃采样并续排</text>
+  <text x="28" y="354" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700">discard_requests_mask</tspan> 标记丢弃：不追加输出、不发往前端</text>
+  <text x="28" y="378" font-size="13.5" fill="#17211f">• 带请求种子时将 RNG 偏移量<tspan font-weight="700" fill="#8f3229">回拨 4</tspan>，防止白采样打乱真生成</text>
+  <text x="28" y="402" font-size="13.5" fill="#4d5652">• C 留在 <tspan font-family="var(--font-mono)" font-weight="700">running</tspan> 队列，下一步回到第 2 站继续接算下一段</text>
+
+  <!-- Loop-back dashed arrow from bottom-left back to Station 2 -->
+  <path d="M 117 302 L 117 252" fill="none" stroke="#b54237" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#cp-arr-r)"/>
+  <text x="128" y="282" font-size="13" font-weight="700" fill="#8f3229">下一步续排（6→12→14）</text>
+
+  <!-- Bottom right: Complete chunk -> emit y0 -->
+  <rect x="524" y="302" width="362" height="118" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="538" y="328" font-size="14.5" font-weight="700" fill="#065f56">提示词算完（步 3: 14/14）：产出首词 y₀</text>
+  <text x="538" y="354" font-size="13.5" fill="#17211f">• 位置 13 选出的 token 正式记作 <tspan font-family="var(--font-mono)" font-weight="700">y₀</tspan></text>
+  <text x="538" y="378" font-size="13.5" fill="#17211f">• 第 4 步起转入普通 decode（每步 1 词）</text>
+  <text x="538" y="402" font-size="13.5" fill="#4d5652">• 同步结束 TTFT 计时，与 A/B 同批推进</text>
 </svg>

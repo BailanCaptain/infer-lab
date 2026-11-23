@@ -1,13 +1,13 @@
 mode: native-svg
 id: vllm-v1-shape-fig-separation
 caption: >-
-  vLLM V1 三角色职责边界与两道跨进程消息契约：前端 AsyncLLM 只碰文字与流式输出，EngineCore 仅持整数账本与块号，Worker 驻守卡上权重、KV cache 与请求缓存并通过差量 SchedulerOutput 同步状态；底部标出 V1 引擎循环与 MRV1/MRV2 执行侧在 v0.30.0 与 main 上的正交演进。
-size: [900, 454]
+  vLLM V1 两道边界消息载荷与三种执行拓扑对照：上半展开第一道 ZMQ 边界（EngineCoreRequest / EngineCoreOutputs，不传文字）与第二道边界（SchedulerOutput 按首步 scheduled_new_reqs、续步差量 scheduled_cached_reqs、投机字段 scheduled_spec_decode_tokens〔同步传草稿 token 编号、异步传占位〕与收尾 finished_req_ids 下发，Worker 回传 ModelRunnerOutput）；下半对照单卡 TP=1 进程内直调、多卡共享内存广播（TP0 回传）与 GLM 双机 DP1 空闲组跑 dummy_batch 陪跑 EP 通信。
+size: [900, 560]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L630'
     symbols: [step, execute_model, sample_tokens, step_with_batch_queue]
   - source: 'vllm@ced6857a:vllm/v1/core/sched/output.py#L225-L260'
-    symbols: [SchedulerOutput, scheduled_new_reqs, scheduled_cached_reqs, finished_req_ids]
+    symbols: [SchedulerOutput, scheduled_new_reqs, scheduled_cached_reqs, scheduled_spec_decode_tokens, finished_req_ids]
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L774-L855'
     symbols: [execute_model, sample_tokens]
   - source: 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L72'

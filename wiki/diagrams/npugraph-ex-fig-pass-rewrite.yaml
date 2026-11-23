@@ -1,0 +1,10 @@
+mode: native-svg
+id: npugraph-ex-fig-pass-rewrite
+caption: >-
+  AddRMSNormQuant Pass 图改写对照：左侧两步独立算子须将 BF16 归一化结果 [0.78, 1.18] 写出全局显存再读回量化；右侧替换为单算子 npu_add_rms_norm_quant 后，中间 BF16 留在片上直接量化，同时完整保留 [4, 6] 残差与 [8, 12] INT8 两路外部消费者输出。
+size: [900, 470]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L49-L91
+    symbols: [npu_add_rms_norm_bias, quantize, npu_add_rms_norm_quant]
+  - source: vllm-ascend@db701c1f:vllm_ascend/compilation/passes/base_pattern.py#L41-L63
+    symbols: [register]

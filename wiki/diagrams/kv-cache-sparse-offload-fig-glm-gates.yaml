@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-cache-sparse-offload-fig-glm-gates
+caption: >-
+  GLM 双机（Atlas 800 A2）启用 Sparse KV offload 的五道门槛（四道代码硬拦：仅放行 A3、仅 PD D 端、仅单缓存组同块长、v0.30.0/main 默认热槽 -1 按 3 个 MTP 草稿解出 8,192 且旧默认 4,096 均除不尽 640 块长；以及一项非代码硬拦：未列入官方已验证清单，源码 index_topk 检查本身可通过）与假设放开后的定额热缓冲（3.75 GiB）对迁走主 KV（48.8 GiB，默认主机预算 110 GiB/DP 装得下，128 GiB/DP 为显式示例）显存收支比例。
+size: [900, 374]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1480-L1490
+    symbols: [A3]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1772
+    symbols: [SparseKVOffloadConfig, topk_buffer_size]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1775-L1869
+    symbols: [SparseKVOffloadConfig, topk_buffer_size, dram_size_per_dp_GB]

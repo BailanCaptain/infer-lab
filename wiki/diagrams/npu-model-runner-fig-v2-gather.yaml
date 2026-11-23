@@ -1,0 +1,10 @@
+mode: native-svg
+id: npu-model-runner-fig-v2-gather
+caption: >-
+  Model Runner V2 状态重组三项机制：用固定请求行 + 本步索引收集 [2, 7] 解耦排序搬运，用临时 pinned 快照隔离异步读写，用 StagedWriteTensor 仅向常驻设备基表下发局部块号变更。
+size: [900, 350]
+pins:
+  - source: vllm@ced6857a:vllm/v1/worker/gpu/states.py#L9-L51
+    symbols: [RequestState, StagedWriteTensor, all_token_ids]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L160
+    symbols: [NPUModelRunner]

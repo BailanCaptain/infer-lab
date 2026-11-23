@@ -1,0 +1,27 @@
+mode: native-svg
+id: troubleshooting-fig-memory-triage
+caption: >-
+  内存与容量排障分流树：先用 dmesg / cgroup / OOMKilled 将退出码 137（SIGKILL）与宿主机/容器 DRAM OOM 剥离，再把设备 NPU HBM 问题按启动与运行时点切为 init_snapshot 预检、权重加载/profile_run 按批预算试跑激活超限、KV 池建立后 capture_model() 图捕获吃空 1−u 余量，以及运行期 KV 抢占与池复用四类出口，并给出每类最小首取证据。
+size: [900, 490]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473'
+    symbols:
+      - init_snapshot
+      - requested_memory
+      - gpu_memory_utilization
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L635'
+    symbols:
+      - determine_available_memory
+      - profile_run
+      - kv_cache_memory_bytes
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L906-L952'
+    symbols:
+      - capture_model
+      - available_kv_cache_memory_bytes
+  - source: 'vllm@ced6857a:vllm/v1/engine/utils.py#L262-L285'
+    symbols:
+      - exitcode
+      - finished_procs
+  - source: 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L508-L572'
+    symbols:
+      - gauge_scheduler_waiting

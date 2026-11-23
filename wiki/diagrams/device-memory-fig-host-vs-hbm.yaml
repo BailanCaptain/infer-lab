@@ -1,8 +1,8 @@
 mode: native-svg
 id: device-memory-fig-host-vs-hbm
 caption: >-
-  主机内存（Host DRAM）与昇腾设备显存（NPU HBM）双账隔离及启动显存预算拆分：上半幅展示模型文件页缓存、调度状态与 UVA 锁页内存驻留主机侧，权重按本卡分片经 H2D 一次搬入设备后常驻复用；下半幅以单张 64 GiB NPU 运行 Qwen3-8B（BF16 权重约 15.25 GiB、每块 18 MiB、标准 GQA 零索引器开销）展示默认 u = 0.92 预算切分与 PYTORCH_NPU_ALLOC_CONF 约束。
-size: [900, 504]
+  主机内存（Host DRAM）与昇腾设备显存（NPU HBM）双账隔离及单卡 64 GiB（Qwen3-8B BF16，u=0.92）按真实比例绘制的显存预算条与四步冷启动落位时序：清晰区分权重 15.25 GiB、试跑 2.74 GiB、KV 池 40.88 GiB（2,324 块）与预算外 5.12 GiB 余量（承接 ACLGraph 录图）。
+size: [900, 520]
 pins:
   - source: vllm@ced6857a:vllm/config/cache.py#L103-L115
     symbols: [gpu_memory_utilization]

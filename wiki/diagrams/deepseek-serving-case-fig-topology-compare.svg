@@ -1,81 +1,117 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="DeepSeek E/P/D + 3FS 生产拓扑与 vLLM-Ascend A2/A3/950DT 跨代部署对照图" font-family="var(--font-sans)">
-  <title>DeepSeek 生产 E/P/D 分离拓扑 vs 昇腾 A2 / A3 / 950DT 跨代部署配方</title>
-  <desc>Production E/P/D + 3FS architecture compared against vLLM-Ascend cross-generation A2, A3, and 950DT deployment topologies across v0.30.0 and main</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="DeepSeek E/P/D + 3FS 生产拓扑与 vLLM-Ascend A2/A3/950DT 跨代部署演进图" font-family="var(--font-sans)">
+  <title>DeepSeek 生产 E/P/D + 3FS 阶段分离架构 vs 昇腾 A2 / A3 / 950DT 跨代配方演进</title>
+  <desc>Geometric E/P/D + 3FS &amp; local SWA stage architecture compared against vLLM-Ascend A2, A3, and 950DT v0.30.0-to-main progression</desc>
   <defs>
-    <marker id="dsc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="dsc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="dsc-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="dsc-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="dsc-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
     </marker>
   </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① DeepSeek 生产 E/P/D + 3FS 架构：按阶段独立配卡与按工作量分流</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">均不以“请求条数”作为单一调度依据</text>
+  <!-- UPPER BAND: E/P/D + 3FS/SWA Topology -->
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">① DeepSeek 生产 E / P / D 分离与双层缓存位置（按工作量分流，非按请求条数）</text>
 
   <!-- E Pool -->
-  <rect x="16" y="46" width="174" height="122" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
-  <text x="103" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">E · 图像编码池</text>
-  <text x="30" y="98" font-size="13.5" fill="#4d5652">• 每实例通常 1 卡</text>
-  <text x="30" y="122" font-size="13.5" fill="#4d5652">• 按切块 patch 计载</text>
-  <text x="30" y="146" font-size="13.5" fill="#66716d">• 交出特征非原图</text>
+  <rect x="14" y="44" width="170" height="104" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.4"/>
+  <text x="99" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">E · 图像编码池</text>
+  <rect x="28" y="78" width="142" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="99" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">1 卡 / 实例</text>
+  <text x="99" y="122" text-anchor="middle" font-size="13.5" fill="#4d5652">按图片 patch 计载</text>
+  <text x="99" y="140" text-anchor="middle" font-size="13.5" fill="#66716d">交出数值特征</text>
 
-  <line x1="190" y1="107" x2="210" y2="107" stroke="#4d5652" stroke-width="1.5" marker-end="url(#dsc-arr)"/>
+  <path d="M 184 96 L 216 96" fill="none" stroke="#4d5652" stroke-width="1.8" marker-end="url(#dsc-arr-g)"/>
+  <text x="200" y="86" text-anchor="middle" font-size="13.5" fill="#66716d">特征</text>
 
   <!-- P Pool -->
-  <rect x="212" y="46" width="234" height="122" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="329" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">P · Prefill（EP2–8 / DP2–8）</text>
-  <text x="226" y="98" font-size="13.5" fill="#4d5652">• 4 档分流（&lt;16K..≥256K）</text>
-  <text x="226" y="122" font-size="13.5" fill="#4d5652">• 按未命中量 + 历史长拟合预算</text>
-  <text x="226" y="146" font-size="13.5" fill="#065f56">• 独立存储免前缀亲和路由</text>
+  <rect x="220" y="44" width="296" height="104" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="368" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">P · Prefill 池（EP2–8 / DP2–8）</text>
+  <!-- 4 context buckets visual pills -->
+  <rect x="234" y="78" width="60" height="24" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="264" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">&lt;16K</text>
+  <rect x="299" y="78" width="66" height="24" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="332" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">16–64K</text>
+  <rect x="370" y="78" width="72" height="24" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="406" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">64–256K</text>
+  <rect x="447" y="78" width="56" height="24" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="475" y="95" text-anchor="middle" font-size="13.5" fill="#065f56">≥256K</text>
+  <text x="368" y="122" text-anchor="middle" font-size="13.5" fill="#17211f">四层预算分流：未命中输入 + 历史长拟合时间</text>
+  <text x="368" y="140" text-anchor="middle" font-size="13.5" fill="#065f56">共享 3FS 免前缀亲和路由</text>
 
-  <line x1="446" y1="107" x2="466" y2="107" stroke="#4d5652" stroke-width="1.5" marker-end="url(#dsc-arr)"/>
+  <path d="M 516 96 L 566 96" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#dsc-arr-b)"/>
+  <text x="541" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">KV+进度</text>
 
   <!-- D Pool -->
-  <rect x="468" y="46" width="234" height="122" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="585" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">D · Decode 池（EP64–128）</text>
-  <text x="482" y="98" font-size="13.5" fill="#4d5652">• 双维均衡：在算条数 + KV 总长</text>
-  <text x="482" y="122" font-size="13.5" fill="#4d5652">• 大 EP 单通信域 + EPLB 护热</text>
-  <text x="482" y="146" font-size="13.5" fill="#3a4f93">• 高效建议单位约 64P + 64D</text>
+  <rect x="570" y="44" width="314" height="104" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="727" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">D · Decode 池（EP64–128 / DP64–128）</text>
+  <rect x="584" y="78" width="136" height="24" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="652" y="95" text-anchor="middle" font-size="13.5" fill="#3a4f93">在算请求条数</text>
+  <rect x="730" y="78" width="140" height="24" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="800" y="95" text-anchor="middle" font-size="13.5" fill="#3a4f93">KV 总长度</text>
+  <text x="727" y="122" text-anchor="middle" font-size="13.5" fill="#17211f">双维均衡 + 大 EP 单域 + EPLB 护热</text>
+  <text x="727" y="140" text-anchor="middle" font-size="13.5" fill="#3a4f93">高效单位约 64P + 64D（暂不用 TP/CP）</text>
 
-  <!-- 3FS + SWA box -->
-  <rect x="716" y="46" width="168" height="122" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="800" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">三态分层存储</text>
-  <text x="730" y="98" font-size="13.5" fill="#4d5652">• Block KV → 3FS</text>
-  <text x="730" y="122" font-size="13.5" fill="#4d5652">• SWA → 本机内存</text>
-  <text x="730" y="146" font-size="13.5" fill="#936300">• 命中≠数据已到卡</text>
+  <!-- Storage bus underneath P & D -->
+  <path d="M 320 148 L 320 172" fill="none" stroke="#c78300" stroke-width="1.6" marker-end="url(#dsc-arr-a)"/>
+  <path d="M 420 172 L 420 150" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#dsc-arr-t)"/>
+  <path d="M 727 148 L 727 172" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="4 3"/>
 
-  <text x="16" y="196" font-size="13.5" fill="#8f3229">▸ 首字三完成点边界：前缀匹配 → 远端读到主机 → 主机换入设备；开算时刻 = max(排到引擎, 缓存到卡)</text>
+  <rect x="14" y="176" width="538" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="283" y="203" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">独立 3FS 存储集群：分页 Block KV（跨实例共享，但命中仍须读回主机再进卡）</text>
 
-  <line x1="16" y1="214" x2="884" y2="214" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <rect x="566" y="176" width="318" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="725" y="203" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">本机内存单副本：SWA 窗口（缺失靠有界回放）</text>
 
-  <text x="16" y="244" font-size="16" font-weight="700" fill="#17211f">② vLLM-Ascend 跨代硬件（A2 / A3 / 950DT）DeepSeek-V4.1-Flash 部署演进</text>
+  <line x1="14" y1="238" x2="886" y2="238" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- A2 Card -->
-  <rect x="16" y="262" width="278" height="202" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="30" y="288" font-size="14.5" font-weight="700" fill="#8f3229">Atlas 800 A2（4 台 1P1D）</text>
-  <text x="30" y="314" font-size="13.5" fill="#4d5652">• 1P1D 跨 4 机：P 占 2 机、D 占 2 机</text>
-  <text x="30" y="338" font-size="13.5" fill="#4d5652">• v0.30.0：W8A8 + Runner V1</text>
-  <text x="30" y="362" font-size="13.5" fill="#4d5652">• main：统一切至 Runner V2</text>
-  <text x="30" y="386" font-size="13.5" fill="#4d5652">• 支持 Mooncake / Memcache 池化</text>
-  <rect x="30" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="155" y="433" text-anchor="middle" font-size="13.5" fill="#17211f">CED 须设 use_layerwise=false</text>
+  <!-- LOWER BAND: vLLM-Ascend Cross-Generation Matrix (v0.30.0 -> main) -->
+  <text x="14" y="266" font-size="16" font-weight="700" fill="#17211f">② vLLM-Ascend 三代硬件 DeepSeek-V4.1-Flash 配方演进（v0.30.0 → main 统一收敛 MRV2）</text>
 
-  <!-- A3 Card -->
-  <rect x="311" y="262" width="278" height="202" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="325" y="288" font-size="14.5" font-weight="700" fill="#065f56">Atlas A3（2 台 32 逻辑卡 1P1D）</text>
-  <text x="325" y="314" font-size="13.5" fill="#4d5652">• v0.30.0（V1）：P DP4/TP4 +</text>
-  <text x="325" y="336" font-size="13.5" fill="#4d5652">　D DP8/TP2 · W8A8 + INT8 Engram</text>
-  <text x="325" y="362" font-size="13.5" fill="#065f56" font-weight="700">• main（V2 升级）：W4A8 +</text>
-  <text x="325" y="384" font-size="13.5" fill="#065f56">　P DP4/PCP4/TP1 + D DP16/TP1</text>
-  <rect x="325" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="450" y="423" text-anchor="middle" font-size="13.5" fill="#17211f">SWA 有界回放 + MegaMoE</text>
-  <text x="450" y="442" text-anchor="middle" font-size="13.5" fill="#17211f">+ 共享 Engram</text>
+  <!-- Column headers -->
+  <rect x="14" y="280" width="276" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="152" y="301" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">Atlas 800 A2（4 台 1P1D）</text>
 
-  <!-- 950DT Card -->
-  <rect x="606" y="262" width="278" height="202" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="620" y="288" font-size="14.5" font-weight="700" fill="#7a3a6a">昇腾 950DT（原生 V2 + MXFP）</text>
-  <text x="620" y="314" font-size="13.5" fill="#4d5652">• v0.30.0：直接启 Model Runner V2</text>
-  <text x="620" y="338" font-size="13.5" fill="#4d5652">• 典型并行：DP8 / TP1 / EP8</text>
-  <text x="620" y="362" font-size="13.5" fill="#4d5652">• 量化路径：MXFP 低精度 + A5 打包缓存</text>
-  <text x="620" y="386" font-size="13.5" fill="#7a3a6a">• main：延续 V2 + Memcache 池化</text>
-  <rect x="620" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="745" y="433" text-anchor="middle" font-size="13.5" fill="#17211f">勿将 A5/V2 边界外推给 A2/A3 V1</text>
+  <rect x="312" y="280" width="276" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="450" y="301" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">Atlas A3（2 台 32 逻辑卡）</text>
+
+  <rect x="610" y="280" width="274" height="32" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="747" y="301" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">昇腾 950DT（原生 A5/V2）</text>
+
+  <!-- v0.30.0 Row -->
+  <rect x="14" y="322" width="276" height="58" rx="6" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="26" y="344" font-size="13.5" font-weight="700" fill="#8f3229">v0.30.0：W8A8 + Runner V1</text>
+  <text x="26" y="368" font-size="13.5" fill="#4d5652">P 占 2 机 + D 占 2 机；关 layerwise</text>
+
+  <rect x="312" y="322" width="276" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="324" y="344" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0：V1 · W8A8 + INT8 Engram</text>
+  <text x="324" y="368" font-size="13.5" fill="#4d5652">P: DP4/TP4 · D: DP8/TP2</text>
+
+  <rect x="610" y="322" width="274" height="58" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="622" y="344" font-size="13.5" font-weight="700" fill="#7a3a6a">v0.30.0：原生 Runner V2 + MXFP</text>
+  <text x="622" y="368" font-size="13.5" fill="#4d5652">DP8/TP1/EP8 · A5 打包缓存</text>
+
+  <!-- Upgrade arrows v0.30.0 -> main -->
+  <path d="M 152 380 L 152 402" fill="none" stroke="#4d5652" stroke-width="1.6" marker-end="url(#dsc-arr-g)"/>
+  <path d="M 450 380 L 450 402" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#dsc-arr-t)"/>
+  <path d="M 747 380 L 747 402" fill="none" stroke="#4d5652" stroke-width="1.6" marker-end="url(#dsc-arr-g)"/>
+
+  <!-- main Row -->
+  <rect x="14" y="406" width="276" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="26" y="430" font-size="13.5" font-weight="700" fill="#8f3229">main：统一切至 Runner V2</text>
+  <text x="26" y="454" font-size="13.5" fill="#4d5652">Mooncake / Memcache 池化</text>
+
+  <rect x="312" y="406" width="276" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="324" y="430" font-size="13.5" font-weight="700" fill="#065f56">main：V2 + W4A8 + MegaMoE</text>
+  <text x="324" y="454" font-size="13.5" fill="#065f56">P: DP4/PCP4/TP1 · D: DP16/TP1</text>
+
+  <rect x="610" y="406" width="274" height="62" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="622" y="430" font-size="13.5" font-weight="700" fill="#7a3a6a">main：V2 + Memcache + 共享 Engram</text>
+  <text x="622" y="454" font-size="13.5" fill="#7a3a6a">勿将 A5/V2 边界外推给 A2/A3 V1</text>
 </svg>

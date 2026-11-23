@@ -1,95 +1,139 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 630" width="900" height="630" role="img" aria-label="每张卡一个 Worker，各自按同一顺序准备：换补丁、选卡并建通信组、装本卡那份权重、试跑量出预算。各卡把预算报给 EngineCore，它按最紧的那张卡定块数，把各卡对应的缓存配置发回；每张卡再建缓存池，最后预热并录 decode 图，之后才接请求。">
-  <title>每张卡一个 Worker，各自按同一顺序准备：换补丁、选卡并建通信组、装本卡那份权重、试跑量出预算。各卡把预算报给 EngineCore，它按最紧的那张卡定块数，把各卡对应的缓存配置发回；每张卡再建缓存池，最后预热并录 decode 图，之后才接请求。</title>
-  <defs><marker id="worker-lifecycle-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="worker-lifecycle-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="worker-lifecycle-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="worker-lifecycle-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <path d="M150 124 L150 150" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <path d="M420 124 L420 150" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <path d="M750 124 L750 150" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <path d="M270 176 L300 176" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-start="url(#worker-lifecycle-ah-comm)" marker-end="url(#worker-lifecycle-ah-comm)"/>
-  <path d="M540 176 L630 176" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-start="url(#worker-lifecycle-ah-comm)" marker-end="url(#worker-lifecycle-ah-comm)"/>
-  <path d="M150 202 L150 228" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#worker-lifecycle-ah-comm)"/>
-  <path d="M420 202 L420 228" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#worker-lifecycle-ah-comm)"/>
-  <path d="M750 202 L750 228" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#worker-lifecycle-ah-comm)"/>
-  <path d="M150 280 L150 306" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-weight)"/>
-  <path d="M420 280 L420 306" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-weight)"/>
-  <path d="M750 280 L750 306" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-weight)"/>
-  <path d="M150 358 L150 390" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M420 358 L420 390" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M750 358 L750 390" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M150 446 L150 480" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M420 446 L420 480" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M750 446 L750 480" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-kv)"/>
-  <path d="M150 532 L150 558" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <path d="M420 532 L420 558" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <path d="M750 532 L750 558" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#worker-lifecycle-ah-control)"/>
-  <rect x="30" y="72" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="150" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">换补丁</text>
-  <text x="150" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">替换上游代码，注册昇腾算子</text>
-  <rect x="300" y="72" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="420" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">换补丁</text>
-  <text x="420" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">替换上游代码，注册昇腾算子</text>
-  <rect x="630" y="72" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="750" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">换补丁</text>
-  <text x="750" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">替换上游代码，注册昇腾算子</text>
-  <rect x="30" y="150" width="240" height="52" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="150" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选卡，建通信组</text>
-  <text x="150" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">同组的 Worker 到齐才建成</text>
-  <rect x="300" y="150" width="240" height="52" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="420" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选卡，建通信组</text>
-  <text x="420" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">同组的 Worker 到齐才建成</text>
-  <rect x="630" y="150" width="240" height="52" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="750" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选卡，建通信组</text>
-  <text x="750" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">同组的 Worker 到齐才建成</text>
-  <rect x="30" y="228" width="240" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="150" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">装权重</text>
-  <text x="150" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只装本卡分到的那一份</text>
-  <rect x="300" y="228" width="240" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="420" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">装权重</text>
-  <text x="420" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只装本卡分到的那一份</text>
-  <rect x="630" y="228" width="240" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="750" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">装权重</text>
-  <text x="750" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只装本卡分到的那一份</text>
-  <rect x="30" y="306" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="150" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">试跑，量预算</text>
-  <text x="150" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">报出还能给 KV cache 多少</text>
-  <rect x="300" y="306" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="420" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">试跑，量预算</text>
-  <text x="420" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">报出还能给 KV cache 多少</text>
-  <rect x="630" y="306" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="750" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">试跑，量预算</text>
-  <text x="750" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">报出还能给 KV cache 多少</text>
-  <rect x="30" y="390" width="840" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="450" y="414" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">EngineCore 汇总</text>
-  <text x="450" y="433" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">统一可调度块数，各卡收到对应缓存配置</text>
-  <rect x="30" y="480" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="150" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建缓存池</text>
-  <text x="150" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">一次分配全部 KV 块</text>
-  <rect x="300" y="480" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="420" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建缓存池</text>
-  <text x="420" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">一次分配全部 KV 块</text>
-  <rect x="630" y="480" width="240" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="750" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建缓存池</text>
-  <text x="750" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">一次分配全部 KV 块</text>
-  <rect x="30" y="558" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="150" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">预热，录 decode 图</text>
-  <text x="150" y="599" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">录图要真跑前向，排在最后</text>
-  <rect x="300" y="558" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="420" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">预热，录 decode 图</text>
-  <text x="420" y="599" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">录图要真跑前向，排在最后</text>
-  <rect x="630" y="558" width="240" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="750" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">预热，录 decode 图</text>
-  <text x="750" y="599" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">录图要真跑前向，排在最后</text>
-  <text x="150" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">Worker（卡 0）</text>
-  <text x="420" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">Worker（卡 1）</text>
-  <text x="750" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">Worker（最后一张卡）</text>
-  <text x="585" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">⋯</text>
-  <text x="585" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">⋯</text>
-  <text x="585" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">⋯</text>
-  <text x="585" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">⋯</text>
-  <text x="585" y="590" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">⋯</text>
-  <circle cx="30" cy="72" r="11" fill="var(--color-control, #66716d)"/><text x="30" y="77" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
-  <circle cx="30" cy="150" r="11" fill="var(--color-comm, #9a4b86)"/><text x="30" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
-  <circle cx="30" cy="228" r="11" fill="var(--color-weight, #c78300)"/><text x="30" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
-  <circle cx="30" cy="306" r="11" fill="var(--color-kv, #4c65b6)"/><text x="30" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
-  <circle cx="30" cy="480" r="11" fill="var(--color-kv, #4c65b6)"/><text x="30" y="485" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
-  <circle cx="30" cy="558" r="11" fill="var(--color-control, #66716d)"/><text x="30" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 636" width="900" height="636" role="img" aria-label="NPUWorker 六步冷启动双驱动时序、两道跨卡栅栏、加载期重叠预热与 310P 差异" font-family="var(--font-sans)">
+  <title>NPUWorker 冷启动六步双驱动泳道、两道跨卡栅栏与 310P 定制边界</title>
+  <desc>WorkerProc drives steps 1-3 with optional early NZ/Triton warmup overlap; EngineCore broadcasts steps 4-6 with min_num_blocks shrink, KV pool sleep-tag split, 1-u ACLGraph capture and post-capture ATB warmup; NPUWorker310 differences at bottom.</desc>
+  <defs>
+    <marker id="wl-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+    <marker id="wl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="wl-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#4c65b6"/></marker>
+    <marker id="wl-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">NPUWorker 冷启动六步：WorkerProc 本地驱动 ①–③，EngineCore 广播驱动 ④–⑥</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">每张可见 NPU 一个 Worker；两道跨卡栅栏（HCCL 握手、全局最小块数）要求同组所有卡步调一致</text>
+
+  <!-- Phase A Driver Badge: WorkerProc -->
+  <rect x="16" y="64" width="116" height="220" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="74" y="136" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f" font-family="var(--font-mono)">WorkerProc</text>
+  <text x="74" y="164" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">子进程自驱</text>
+  <text x="74" y="188" text-anchor="middle" font-size="13.5" fill="#66716d">步骤 ① → ③</text>
+  <text x="74" y="216" text-anchor="middle" font-size="13.5" fill="#66716d">每卡独立跑</text>
+
+  <!-- Step 1 -->
+  <rect x="148" y="64" width="234" height="100" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <circle cx="170" cy="88" r="12" fill="#66716d"/>
+  <text x="170" y="93" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="190" y="93" font-size="15" font-weight="700" fill="#17211f" font-family="var(--font-mono)">__init__</text>
+  <text x="162" y="122" font-size="13.5" fill="#4d5652">打 worker 补丁 + CustomOp</text>
+  <text x="162" y="148" font-size="13.5" fill="#8f3229" font-weight="600">AscendConfig + 卡型门禁</text>
+
+  <line x1="382" y1="114" x2="404" y2="114" stroke="#66716d" stroke-width="1.8" marker-end="url(#wl-arr-g)"/>
+
+  <!-- Step 2 + Barrier 1 -->
+  <rect x="410" y="64" width="474" height="100" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <circle cx="432" cy="88" r="12" fill="#9a4b86"/>
+  <text x="432" y="93" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="452" y="93" font-size="15" font-weight="700" fill="#7a3a6a" font-family="var(--font-mono)">init_device</text>
+  <text x="562" y="93" font-size="13.5" fill="#4d5652">偏移 local_rank · 绑卡</text>
+  <rect x="424" y="106" width="184" height="46" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="516" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">建组前拍快照</text>
+  <text x="516" y="146" text-anchor="middle" font-size="13.5" fill="#4d5652">验 free ≥ u × total</text>
+  <line x1="608" y1="129" x2="628" y2="129" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#wl-arr-g)"/>
+  <rect x="634" y="106" width="236" height="46" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="752" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">栅栏 1：HCCL 建组握手</text>
+  <text x="752" y="146" text-anchor="middle" font-size="13.5" fill="#4d5652">TP/PP/DP/EP/MC2 → Runner</text>
+
+  <!-- Connector 2 -> 3 -->
+  <path d="M516 164 V174 H354 V180" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#wl-arr-a)"/>
+
+  <!-- Step 3 + Parallel Early Warmup -->
+  <rect x="148" y="186" width="424" height="98" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <circle cx="170" cy="210" r="12" fill="#c78300"/>
+  <text x="170" y="215" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+  <text x="190" y="215" font-size="15" font-weight="700" fill="#936300" font-family="var(--font-mono)">load_model</text>
+  <text x="302" y="215" font-size="13.5" fill="#4d5652">CaMemAllocator(weights)</text>
+  <text x="162" y="244" font-size="13.5" fill="#17211f">开空参 → 扫 safetensors 分片 → ND→NZ 后处理</text>
+  <text x="162" y="269" font-size="13.5" fill="#4d5652">记录 model_memory_usage（主模型 + 可选草稿）</text>
+
+  <!-- Parallel Early Warmup Fork & Join -->
+  <path d="M572 212 H598" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#wl-arr-t)"/>
+  <path d="M604 260 H578" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#wl-arr-t)"/>
+  <rect x="604" y="186" width="280" height="98" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="618" y="212" font-size="14" font-weight="700" fill="#065f56">可选后台重叠线程（与读盘并行）</text>
+  <text x="618" y="238" font-size="13.5" fill="#4d5652">• early_nz：隐去 15–19s 首次 NZ</text>
+  <text x="618" y="264" font-size="13.5" fill="#065f56" font-weight="600">• early_kernel：预编 Triton → join</text>
+
+  <!-- Divider between WorkerProc and EngineCore -->
+  <line x1="16" y1="298" x2="884" y2="298" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- Phase B Driver Badge: EngineCore -->
+  <rect x="16" y="312" width="116" height="240" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="74" y="394" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">EngineCore</text>
+  <text x="74" y="422" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">跨卡广播</text>
+  <text x="74" y="446" text-anchor="middle" font-size="13.5" fill="#4d5652">步骤 ④ → ⑥</text>
+  <text x="74" y="474" text-anchor="middle" font-size="13.5" fill="#4d5652">统一块配置</text>
+
+  <!-- Step 4: Multi-rank budget -> min_num_blocks -> shrink -->
+  <rect x="148" y="312" width="736" height="114" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <circle cx="170" cy="336" r="12" fill="#4c65b6"/>
+  <text x="170" y="341" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">4</text>
+  <text x="190" y="341" font-size="15" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">determine_available_memory</text>
+  <text x="456" y="341" font-size="13.5" fill="#4d5652">最大批 profile_run()（手设字节也必跑首次编译）</text>
+
+  <!-- Multi-rank bar comparison -->
+  <text x="162" y="370" font-size="13.5" fill="#4d5652">Rank 0</text>
+  <rect x="218" y="357" width="132" height="15" rx="3" fill="#4c65b6"/>
+  <text x="358" y="370" font-size="13.5" fill="#3a4f93">富余</text>
+
+  <text x="162" y="393" font-size="13.5" font-weight="700" fill="#8f3229">Rank 1</text>
+  <rect x="218" y="380" width="110" height="15" rx="3" fill="#b54237"/>
+  <text x="336" y="393" font-size="13.5" font-weight="700" fill="#8f3229">最紧卡</text>
+
+  <text x="162" y="416" font-size="13.5" fill="#4d5652">Rank k</text>
+  <rect x="218" y="403" width="140" height="15" rx="3" fill="#4c65b6"/>
+  <text x="366" y="416" font-size="13.5" fill="#3a4f93">富余</text>
+
+  <line x1="406" y1="387" x2="432" y2="387" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#wl-arr-i)"/>
+
+  <!-- Barrier 2 -->
+  <rect x="438" y="356" width="222" height="60" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="549" y="380" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">栅栏 2：全组取最小块</text>
+  <text x="549" y="404" text-anchor="middle" font-size="13.5" fill="#4d5652">整预算取 min（建池后留空块#0）</text>
+
+  <line x1="660" y1="387" x2="684" y2="387" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#wl-arr-i)"/>
+
+  <!-- Surplus rank shrink -->
+  <rect x="690" y="356" width="180" height="60" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="780" y="380" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">富余卡同步收缩</text>
+  <text x="780" y="404" text-anchor="middle" font-size="13.5" fill="#4d5652">按 min × B_page 裁剪</text>
+
+  <!-- Step 5 -->
+  <rect x="148" y="440" width="320" height="112" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <circle cx="170" cy="464" r="12" fill="#4c65b6"/>
+  <text x="170" y="469" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">5</text>
+  <text x="190" y="469" font-size="15" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">initialize_from_config</text>
+  <rect x="162" y="484" width="152" height="54" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="238" y="507" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">物理 KV 池本体</text>
+  <text x="238" y="528" text-anchor="middle" font-size="13.5" fill="#4d5652">tag="kv_cache"</text>
+  <rect x="322" y="484" width="134" height="54" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="389" y="507" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">清零元数据</text>
+  <text x="389" y="528" text-anchor="middle" font-size="13.5" fill="#4d5652">置于睡眠池外</text>
+
+  <line x1="468" y1="496" x2="490" y2="496" stroke="#087f73" stroke-width="1.8" marker-end="url(#wl-arr-t)"/>
+
+  <!-- Step 6 -->
+  <rect x="496" y="440" width="388" height="112" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <circle cx="518" cy="464" r="12" fill="#087f73"/>
+  <text x="518" y="469" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">6</text>
+  <text x="538" y="469" font-size="15" font-weight="700" fill="#065f56" font-family="var(--font-mono)">compile_or_warm_up_model</text>
+  <!-- HBM headroom bar inside Step 6 -->
+  <rect x="510" y="484" width="212" height="30" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="616" y="504" text-anchor="middle" font-size="13.5" fill="#3a4f93">u 预算（权重+激活+KV）</text>
+  <rect x="724" y="484" width="148" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="798" y="504" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">1−u 录图余量</text>
+  <text x="510" y="538" font-size="13.5" fill="#065f56" font-weight="600">预热 → capture_model → ATB 收尾 → CPU 绑核</text>
+
+  <!-- Bottom 310P Delta Strip -->
+  <rect x="16" y="566" width="868" height="58" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="590" font-size="14" font-weight="700" fill="#8f3229">NPUWorker310（Atlas 300I DUO / 200I Pro）五处专属定制（不改变 ①–⑥ 顺序）：</text>
+  <text x="30" y="614" font-size="13.5" fill="#4d5652">② RC 用 psutil 且 jit_compile=False ｜ ③ FORCE_NZ 禁 BF16 ｜ ④ KV 显存 // 2 ｜ ⑥ 无 Triton、关 npugraph_ex、跳过 ATB</text>
 </svg>

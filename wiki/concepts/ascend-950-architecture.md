@@ -19,6 +19,7 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_mxfp8.py#L54-L60'
   - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L441-L499'
   - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L35-L215'
 relations:
   - { to: ai-core, kind: builds-on, note: Cube、Vector、Scalar 与矩阵乘算例由原页解释，本页聚焦 950 的新增通路 }
   - { to: op-to-ai-core, kind: builds-on, note: 把硬件假设接回算子、kernel、分块和运行证据 }
@@ -37,6 +38,10 @@ updated: '2026-11-19'
 ---
 
 **昇腾 950 是执行模型计算的 NPU 芯片。理解它的一个入口，是看一块数据怎样搬到计算单元、怎样交给下一段计算，以及什么时候能够复用原来的缓冲。** 新的通路与指令可以减少绕行和控制工作；是否让请求更快，要看软件是否使用它，以及省下的工作是不是正在拖慢请求。
+
+```wiki-diagram
+file: ascend-950-plate-cutaway
+```
 
 ## 矩阵已经算完，下一步为什么还会等
 
@@ -135,6 +140,10 @@ file: ascend-950-buffer
 
 **CMO** 是缓存维护操作，包括预取、写回、失效等不同动作。预取适合提前准备之后会用的数据；写回和失效处理缓存状态，作用不同。是否值得做，要比较命中、有效搬运和这些操作本身的开销，不能把所有 CMO 都理解成加速读取。主机与设备、权重与 KV 的容量账继续使用[设备内存](device-memory.md)的分工。
 
+```wiki-diagram
+file: ascend-950-fig-simd-simt-memory
+```
+
 ## 图片还没交给模型时，哪些单元已经在工作
 
 [生产案例](deepseek-serving-case.md#上传一份带图长文服务要接力做什么)中的图片，进入 Vision Encoder 以前还要准备成像素与合适的尺寸。950 的 **DVPP** 是图像编解码和预处理子系统：JPEGD 把压缩的 JPEG 文件解成图像数据，VPC 做缩放、裁剪、填充等处理，JPEGE 则把图像编码回 JPEG。它们处理的是图像格式和像素；Vision Encoder 运行模型网络，把图像变成后续模型使用的数值特征。
@@ -151,9 +160,9 @@ file: ascend-950-buffer
 
 把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。
 
-在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径（并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力），但需要注意 `v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（导致 `enable_custom_op()` 在该版直接返回关闭），`main` 才将该能力补回 A5 档案。
+在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径，并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力。注意版本边界：`v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（`enable_custom_op()` 在该版直接返回关闭），直到 `main` 才将该能力补回 A5 档案。
 
-下面用一张全景图把 910B 分离核与 950 CV 融合子系统的片上通路、950PR/DT 规格档位以及 `v0.30.0` A5 软件档案收拢对照：
+下面用结构剖面图对照 910B 分离核绕行 GM 与 950 CV 融合子系统 L0C→UB 直通，并按同比例条展示 950PR/DT 内存带宽差距与软件档案演进：
 
 ```wiki-diagram
 file: ascend-950-architecture-fig-cv-vs-910b

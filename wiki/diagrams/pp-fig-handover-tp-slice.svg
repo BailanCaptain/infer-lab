@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="vLLM 流水线并行段内叠加 TP 时的切片点对点交接与段内 All-Gather 拼回示意图" font-family="var(--font-sans)">
+  <title>PP 段内叠加 TP 时的交接机制（以 TP=2 传 [3, 2] 为示意）：先等待上一轮发送句柄 _pp_send_work，非首段每步先经 recv_object 同步接收元数据字典再异步点对点收发张量；关闭 SP 时各 TP 卡仅跨段发送 1/TP 切片（总流量减半），接收段再经机内 tp_group All-Gather 还原；开启 SP 时各卡已持不同 token 片，关闭段内拼接（all_gather_group=None）。</title>
+  <desc>关联源码符号：irecv_tensor_dict, isend_tensor_dict, all_gather_group, AsyncIntermediateTensors, enable_sp</desc>
+  <defs>
+    <marker id="pph-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="pph-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="pph-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">PP 段内叠加 TP 时的交接走法：切片点对点发送 + 机内 All-Gather（TP=2 示意）</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Top Step Strip: Async lifecycle in NPUWorker.execute_model -->
+  <rect x="16" y="48" width="244" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="138" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">① 等上轮 _pp_send_work.wait()</text>
+  <path d="M 260 70 L 282 70" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#pph-teal)"/>
+
+  <rect x="288" y="48" width="302" height="44" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="439" y="75" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">② 非首段：每步先同步收元数据再异步收张量</text>
+  <path d="M 590 70 L 612 70" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#pph-plum)"/>
+
+  <rect x="618" y="48" width="266" height="44" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="751" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">③ 算本段层 → 非末段 isend 下一段</text>
+
+  <!-- MAIN GEOMETRIC COMPARISON: Default (SP OFF) -->
+  <text x="16" y="120" font-size="15" font-weight="700" fill="#065f56">默认路径（SP 关闭 · 元素数整除 TP）：跨段只传 1/TP 切片，流量减半</text>
+
+  <!-- Stage 0 bay -->
+  <rect x="16" y="132" width="268" height="176" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="156" font-size="14.5" font-weight="700" fill="#065f56">阶段 0（两卡各持完整 [3, 2]）</text>
+
+  <!-- Card 0a -->
+  <rect x="30" y="168" width="240" height="58" rx="6" fill="#ece9df" fill-opacity="0.45" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="42" y="191" font-size="14" font-weight="700" fill="#17211f">TP rank 0</text>
+  <rect x="128" y="178" width="58" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <rect x="192" y="178" width="58" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <text x="157" y="201" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">[ 3 ]</text>
+  <text x="221" y="201" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#66716d">[ 2 ]</text>
+
+  <!-- Card 0b -->
+  <rect x="30" y="236" width="240" height="58" rx="6" fill="#ece9df" fill-opacity="0.45" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="42" y="259" font-size="14" font-weight="700" fill="#17211f">TP rank 1</text>
+  <rect x="128" y="246" width="58" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <rect x="192" y="246" width="58" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="157" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#66716d">[ 3 ]</text>
+  <text x="221" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">[ 2 ]</text>
+
+  <!-- Inter-stage P2P Arrows (RoCE) -->
+  <path d="M 284 196 L 456 196" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#pph-plum)"/>
+  <text x="370" y="186" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">isend [3]（仅 1/2）</text>
+
+  <path d="M 284 264 L 456 264" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#pph-plum)"/>
+  <text x="370" y="254" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">isend [2]（仅 1/2）</text>
+
+  <rect x="306" y="210" width="128" height="28" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
+  <text x="370" y="229" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">跨机点对点 P2P</text>
+
+  <!-- Stage 1 bay -->
+  <rect x="464" y="132" width="420" height="176" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="478" y="156" font-size="14.5" font-weight="700" fill="#3a4f93">阶段 1（收到切片 → 机内 tp_group All-Gather 拼回）</text>
+
+  <!-- Stage 1 received slices -->
+  <rect x="478" y="176" width="84" height="40" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="520" y="201" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">R0: [3]</text>
+
+  <rect x="478" y="244" width="84" height="40" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="520" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">R1: [2]</text>
+
+  <!-- Intra-stage HCCS All-Gather arrows -->
+  <path d="M 562 196 L 636 220" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#pph-teal)"/>
+  <path d="M 562 264 L 636 240" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#pph-amber)"/>
+  <text x="598" y="295" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">机内 HCCS</text>
+
+  <rect x="644" y="176" width="224" height="108" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="756" y="202" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">段内 tp_group All-Gather</text>
+  <text x="756" y="228" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">R0, R1 → [ 3 , 2 ]</text>
+  <text x="756" y="254" text-anchor="middle" font-size="13.5" fill="#4d5652">跨段共传 2 数而非 4 数</text>
+  <text x="756" y="274" text-anchor="middle" font-size="13.5" fill="#3a4f93">空值 None 仅随元数据传递</text>
+
+  <!-- Bottom Branch: SP ON (all_gather_group=None) + V1 vs V2 return -->
+  <line x1="14" y1="326" x2="886" y2="326" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <rect x="16" y="340" width="430" height="96" rx="9" fill="#fff4cf" fill-opacity="0.7" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="366" font-size="14.5" font-weight="700" fill="#936300">例外分支 · 开启序列并行（SP）时关闭段内拼接</text>
+  <text x="30" y="392" font-size="13.5" fill="#17211f">各 TP 卡本就持有不同 token 分片，不再重复切片</text>
+  <text x="30" y="418" font-size="13.5" fill="#4d5652">Worker 置 <tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">all_gather_group = None</tspan>（main 限 MRV2+SP）</text>
+
+  <rect x="462" y="340" width="422" height="96" rx="9" fill="#e8edff" fill-opacity="0.7" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="476" y="366" font-size="14.5" font-weight="700" fill="#3a4f93">非末段发完后返回什么（MRV2 vs MRV1）</text>
+  <text x="476" y="392" font-size="13.5" fill="#17211f">• <tspan font-weight="700">MRV2</tspan>：发完 <tspan font-family="var(--font-mono)">isend_tensor_dict</tspan> 直接返回 <tspan font-family="var(--font-mono)">None</tspan></text>
+  <text x="476" y="418" font-size="13.5" fill="#17211f">• <tspan font-weight="700">MRV1</tspan>：若挂 KV 连接器，继续透传 <tspan font-family="var(--font-mono)">kv_connector_output</tspan></text>
+</svg>

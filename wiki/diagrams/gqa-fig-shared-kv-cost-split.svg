@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 382" width="900" height="382" role="img" aria-label="GQA 同组查询头共读同一组 K/V 产出不同 Softmax 权重与输出，以及 4:1 GQA 四项计算与缓存开销对比图">
+  <title>GQA 同组共读分化权重与四项开销真账</title>
+  <desc>左半部分展示同组两个查询头 Q0=[1,2] 与 Q1=[0,1] 共读同一组 K0/V0，却算出 [0.73,0.18,0.09] 与 [0.40,0.40,0.20] 两组不同权重与输出；右半部分用比例条对比 4:1 GQA 下 W_Q/W_O、QK^T/PV 保持 100% 不变，而 W_K/W_V 投影与 KV Cache 同步缩至 25%。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
+    </marker>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
+    </marker>
+  </defs>
+
+  <!-- Vertical Divider -->
+  <line x1="454" y1="14" x2="454" y2="368" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="5 4" />
+
+  <!-- ================= LEFT PANEL: Shared K0/V0 -> Divergent Weights & Outputs ================= -->
+  <text x="18" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. 同组共读 K₀ / V₀，各自算出不同结果</text>
+  <text x="18" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">位置 2 的两个查询头（d_h = 2，3 个历史位置）</text>
+
+  <!-- Shared K0/V0 center strip -->
+  <rect x="18" y="68" width="418" height="58" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6" />
+  <text x="227" y="90" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#3a4f93">第 0 组共享历史表（Q₀ 与 Q₁ 共读同一份）</text>
+  <text x="227" y="114" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">K₀: [2,1] [0,1] [1,0]   |   V₀: [1,0] [0,1] [1,1]</text>
+
+  <!-- Branch arrows from shared K0/V0 to Q0 and Q1 -->
+  <path d="M 118 126 L 118 148" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+  <path d="M 336 126 L 336 244 L 310 244" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="4 3" />
+
+  <!-- Track Q0 (Teal) -->
+  <rect x="18" y="152" width="418" height="84" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.5" />
+  <text x="30" y="176" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">Q₀ = [1, 2]</text>
+  <text x="424" y="176" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">输出 [0.82, 0.27]</text>
+
+  <!-- Proportional Softmax Stacked Bar for Q0: 0.73 / 0.18 / 0.09 across 394px -->
+  <rect x="30" y="190" width="288" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+  <text x="174" y="209" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">pos 0: 0.73</text>
+  <rect x="320" y="190" width="70" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />
+  <text x="355" y="209" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#3a4f93">0.18</text>
+  <rect x="392" y="190" width="32" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" />
+  <text x="408" y="209" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" fill="#4d5652">.09</text>
+
+  <!-- Track Q1 (Plum) -->
+  <rect x="18" y="250" width="418" height="114" rx="8" fill="#ffffff" stroke="#9a4b86" stroke-width="1.5" />
+  <text x="30" y="274" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#7a3a6a">Q₁ = [0, 1]</text>
+  <text x="424" y="274" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">输出 [0.60, 0.60]</text>
+
+  <!-- Proportional Softmax Stacked Bar for Q1: 0.40 / 0.40 / 0.20 across 394px -->
+  <rect x="30" y="288" width="156" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4" />
+  <text x="108" y="307" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#7a3a6a">pos 0: 0.40</text>
+  <rect x="188" y="288" width="156" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />
+  <text x="266" y="307" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">pos 1: 0.40</text>
+  <rect x="346" y="288" width="78" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" />
+  <text x="385" y="307" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">0.20</text>
+
+  <text x="30" y="348" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">对照 MHA 专属 V₁ 算出 [1.20, 0.80] → 少独立 V 换显存</text>
+
+  <!-- ================= RIGHT PANEL: 4:1 GQA Cost Breakdown ================= -->
+  <text x="476" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. 4:1 GQA 四项开销：哪些省、哪些不省</text>
+  <text x="476" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">以同头宽 MHA 为 100% 基准（如 Qwen3-8B 32Q:8KV）</text>
+
+  <!-- Bar 1: W_Q & W_O (100% UNCHANGED) -->
+  <text x="476" y="88" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">① Q 投影 W_Q 与输出投影 W_O</text>
+  <rect x="476" y="96" width="404" height="28" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
+  <text x="678" y="115" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">100%（完全不省 · 仍按全部 n_q 头）</text>
+
+  <!-- Bar 2: QK^T & PV (100% UNCHANGED) -->
+  <text x="476" y="152" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">② 逐位置打分 QKᵀ 与加权汇合 PV</text>
+  <rect x="476" y="160" width="404" height="28" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
+  <text x="678" y="179" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">100%（完全不省 · 小算例恒为 24 次）</text>
+
+  <!-- Bar 3: W_K & W_V (25% SHRUNK) -->
+  <text x="476" y="216" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">③ K、V 投影权重与乘法 W_K / W_V</text>
+  <rect x="476" y="224" width="404" height="28" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 3" />
+  <rect x="476" y="224" width="102" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
+  <text x="527" y="243" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">25%</text>
+  <text x="728" y="243" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">省 75%（按 n_kv / n_q 同步缩小）</text>
+
+  <!-- Bar 4: KV Cache Capacity & Reads (25% SHRUNK) -->
+  <text x="476" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#17211f">④ KV Cache 容量与每步逻辑读取量</text>
+  <rect x="476" y="288" width="404" height="28" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 3" />
+  <rect x="476" y="288" width="102" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
+  <text x="527" y="307" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">25%</text>
+  <text x="728" y="307" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">省 75%（4K 算例 2 GiB → 512 MiB）</text>
+
+  <!-- Bottom Punchline -->
+  <rect x="476" y="328" width="404" height="36" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="678" y="351" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#17211f">结论：W_K/W_V 与 KV 同省，QKᵀ/PV/W_O 一点没省</text>
+</svg>

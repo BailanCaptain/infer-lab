@@ -237,7 +237,7 @@ $$t_{\text{load,layer}} = \frac{4{,}096 \times (128\text{ KiB} \div 32)}{16\text
 
 **搬入以「第 L 层 attention 开算之前到齐」为界，存出以「传输真正完成」为界；交出存出任务不等于这块显存已经可以给别人用。**
 
-请求走到[模型执行](npu-model-runner.md)后，每层的 attention 入口和出口负责交接这些任务。下图汇总 `v0.30.0` / `main` 的三流并跑时序（含单层进出 attention 的事件同步点）、共享槽双完成栅栏与代码拆包架构（旧快照等到超时就返回的例外在后面单独说明）：
+请求走到[模型执行](npu-model-runner.md)后，每层的 attention 入口和出口负责交接这些任务。下图汇总 `v0.30.0` / `main` 的三流并跑时序（明确 `prefetch ≥ 2` 遇到搬慢于算时仍暴露等待，以及末层无 PUT 任务时事件直接置位），并在下半幅用物理槽 `S0`（`L1 → L3` 轮换）的占有条直连两道完成栅栏：
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload-fig-pipeline-sync
@@ -323,7 +323,7 @@ $$\text{ratio} = \frac{1P + 2P}{8P} = \frac{3}{8} = 37.5\%$$
 
 ### 放到 GLM 双机：主线没开，开了一层要搬多少？
 
-**[官方双机部署](glm-5-3-flash-two-node.md#部署前提)没有开：启动参数里没有 KV 传输配置，连外部池都没接，逐层搬无从谈起。** 下面只按底稿的形状算「要是开了，每层要搬多少」，不给时间数字。
+前面用均匀层的通用模型（4 层 / 8 层 / 32 层）算清了逐层流水与共享槽的代价。下面切入**例外 B 历史绑定算例**[官方双机部署](glm-5-3-flash-two-node.md#部署前提)：它的启动参数里没有 KV 传输配置，连外部池都没接，逐层搬无从谈起。下面只按底稿形状算「要是开了，每层要搬多少」，不给时间数字。
 
 GLM 的层很不均匀（见[模型结构](glm-5-3-flash.md)）：
 
@@ -342,7 +342,11 @@ $$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text
 | 12 层 MLA 合计 | $105 \times 7.969\text{ MiB}$ | **约 836.7 MiB** |
 | 一层 KDA 基线预留页容量（含草稿页与填充） | $4\text{ 页} \times 640\text{ KiB}$ | **2.5 MiB** |
 
-在这个全量取回的假设里，每 4 层有一层 MLA 要读约 69.7 MiB。两层 MLA 之间隔着 3 层 KDA 的计算，如果能提前 4 层发起，就有机会用前面几层的计算覆盖这次搬入。KDA 的 2.5 MiB 只描述未接池基线的页容量；改成 align 留档后，实际任务的状态块数和传输布局要另核。实现能不能正确排层，还取决于下面的入口与层计数条件。
+在这个全量取回的假设里，每 4 层有一层 MLA 要读约 69.7 MiB。两层 MLA 之间隔着 3 层 KDA 的计算，如果能提前 4 层发起，就有机会用前面几层的计算覆盖这次搬入。KDA 的 2.5 MiB 只描述未接池基线的页容量；改成 align 留档后，实际任务的状态块数和传输布局要另核。实现能不能正确排层，先看下面这张 GLM 层节拍与两处卡点图：
+
+```wiki-diagram
+file: kv-cache-layerwise-offload-fig-glm-cadence
+```
 
 先说一件不是卡点的事：AscendStore 要求 KDA 这类线性 attention 状态用 align 缓存模式（按块边界留档，而非只留最新一份）。检测到接入 AscendStore 且为混合模型时，vllm-ascend 会把默认的 none 自动改成 align，所以这里不会报错。它带来的连带要求（GLM 上还要同时开 prefix caching，段长才落到 640）和成本见 [KV Pool 的 GLM 一节](kv-pool.md#放到-glm-双机这套部署没有开-kv-pool)，本页不重讲。
 

@@ -1,70 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 454" width="900" height="454" role="img" aria-label="vLLM V1 三角色边界、两道跨进程消息契约与 MRV1/MRV2 正交演进" font-family="var(--font-sans)">
-  <title>vLLM V1 三角色边界与两道跨进程消息契约</title>
-  <desc>Frontend AsyncLLM, EngineCore Scheduler/Executor, Worker NPUModelRunner boundaries and v0.30.0 vs main MRV2 evolution</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="vLLM V1 两道边界紧凑消息载荷与单卡、多卡、DP 空闲陪跑拓扑对照" font-family="var(--font-sans)">
+  <title>vLLM V1 两道边界消息契约（首步/续步/结束）与三种执行拓扑对照</title>
+  <desc>Zone 1 details wire-level payloads across Boundary 1 (ZMQ EngineCoreRequest/Outputs) and Boundary 2 (SchedulerOutput new_reqs, cached_reqs, finished_req_ids plus ModelRunnerOutput); Zone 2 contrasts TP=1 in-process UniprocExecutor, multi-rank broadcast, and GLM DP1 dummy EP participation.</desc>
+  <defs>
+    <marker id="v1-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+    <marker id="v1-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+    <marker id="v1-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#4c65b6"/></marker>
+    <marker id="v1-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+    <marker id="v1-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+  </defs>
 
-  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">vLLM V1 三角色职责边界与两道跨进程契约（重权重留卡，轻账本过线）</text>
-  <text x="16" y="49" font-size="13.5" fill="#66716d">把网络 I/O、CPU 调度与 NPU 算力拆成三段流水交叠；进程边界不等于仓库边界</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 两道跨进程消息边界：重权重与 KV 留卡不动，仅传轻账本与差量编号</text>
 
-  <!-- Three Role Columns -->
-  <rect x="16" y="64" width="248" height="236" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="32" y="90" font-size="15" font-weight="700" fill="#065f56">① 前端（AsyncLLM）</text>
-  <text x="32" y="114" font-size="13.5" fill="#4d5652">• 接 HTTP、套聊天模板</text>
-  <text x="32" y="138" font-size="13.5" fill="#4d5652">• 分词与增量反分词</text>
-  <text x="32" y="162" font-size="13.5" fill="#4d5652">• 匹配跨 token 停止串</text>
-  <text x="32" y="186" font-size="13.5" fill="#4d5652">• 维护输出队列与 SSE 流</text>
-  <line x1="32" y1="204" x2="248" y2="204" stroke="#087f73" stroke-width="1"/>
-  <text x="32" y="226" font-size="13.5" font-weight="700" fill="#065f56">瓶颈：海量连接与收发</text>
-  <text x="32" y="250" font-size="13.5" fill="#4d5652">asyncio 事件循环驱动</text>
-  <text x="32" y="274" font-size="13.5" fill="#4d5652">不存权重，也不存 KV 块</text>
+  <!-- 3 Vertical Role Pillars (headers + slim rails) -->
+  <rect x="16" y="42" width="128" height="274" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="80" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">前端</text>
+  <text x="80" y="92" text-anchor="middle" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">AsyncLLM</text>
+  <text x="80" y="132" text-anchor="middle" font-size="13.5" fill="#4d5652">套模板 / 分词</text>
+  <text x="80" y="156" text-anchor="middle" font-size="13.5" fill="#4d5652">反分词 / SSE</text>
+  <text x="80" y="180" text-anchor="middle" font-size="13.5" fill="#4d5652">停止串匹配</text>
+  <text x="80" y="236" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">asyncio 循环</text>
+  <text x="80" y="262" text-anchor="middle" font-size="13.5" fill="#66716d">不碰权重/KV</text>
 
-  <rect x="326" y="64" width="248" height="236" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="342" y="90" font-size="15" font-weight="700" fill="#936300">② EngineCore 进程</text>
-  <text x="342" y="114" font-size="13.5" fill="#4d5652">• Scheduler 排步与预算</text>
-  <text x="342" y="138" font-size="13.5" fill="#4d5652">• 只记块号整数与进度</text>
-  <text x="342" y="162" font-size="13.5" fill="#4d5652">• Executor 传话不排调度</text>
-  <text x="342" y="186" font-size="13.5" fill="#4d5652">• 忙循环 + 双收发线程</text>
-  <line x1="342" y1="204" x2="558" y2="204" stroke="#c78300" stroke-width="1"/>
-  <text x="342" y="226" font-size="13.5" font-weight="700" fill="#936300">瓶颈：下一步不能卡顿</text>
-  <text x="342" y="250" font-size="13.5" fill="#4d5652">含 Ascend 全局补丁注入</text>
-  <text x="342" y="274" font-size="13.5" fill="#4d5652">异步调度交叠相邻两步</text>
+  <rect x="336" y="42" width="144" height="274" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="408" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">EngineCore</text>
+  <text x="408" y="92" text-anchor="middle" font-size="13.5" fill="#4d5652">Scheduler 排步</text>
+  <text x="408" y="114" text-anchor="middle" font-size="13.5" fill="#4d5652">Executor 传话</text>
+  <text x="408" y="158" text-anchor="middle" font-size="13.5" fill="#936300" font-weight="700">只记整数账本</text>
+  <text x="408" y="182" text-anchor="middle" font-size="13.5" fill="#4d5652">req 进度 + 块号</text>
+  <text x="408" y="236" text-anchor="middle" font-size="13.5" fill="#4d5652">含全局补丁注入</text>
+  <text x="408" y="262" text-anchor="middle" font-size="13.5" fill="#66716d">异步交叠两步</text>
 
-  <rect x="636" y="64" width="248" height="236" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="652" y="90" font-size="15" font-weight="700" fill="#3a4f93">③ Worker（每卡一个）</text>
-  <text x="652" y="114" font-size="13.5" fill="#4d5652">• 守本卡权重与 KV 张量</text>
-  <text x="652" y="138" font-size="13.5" fill="#4d5652">• 缓存请求资料与 block table</text>
-  <text x="652" y="162" font-size="13.5" fill="#4d5652">• execute_model 前向</text>
-  <text x="652" y="186" font-size="13.5" fill="#4d5652">• sample_tokens 采样</text>
-  <line x1="652" y1="204" x2="868" y2="204" stroke="#4c65b6" stroke-width="1"/>
-  <text x="652" y="226" font-size="13.5" font-weight="700" fill="#3a4f93">瓶颈：等待 NPU 算力与通信</text>
-  <text x="652" y="250" font-size="13.5" fill="#4d5652">NPUWorker + ModelRunner</text>
-  <text x="652" y="274" font-size="13.5" fill="#4d5652">常规仅 TP0 回传本步结果</text>
+  <rect x="752" y="42" width="132" height="274" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="818" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">Worker</text>
+  <text x="818" y="92" text-anchor="middle" font-size="13.5" fill="#4d5652">NPUModelRunner</text>
+  <text x="818" y="132" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">HBM 常驻不动</text>
+  <text x="818" y="156" text-anchor="middle" font-size="13.5" fill="#4d5652">权重 + KV 张量</text>
+  <text x="818" y="180" text-anchor="middle" font-size="13.5" fill="#4d5652">本地请求缓存</text>
+  <text x="818" y="236" text-anchor="middle" font-size="13.5" fill="#4d5652">v0.30 默 MRV1</text>
+  <text x="818" y="262" text-anchor="middle" font-size="13.5" fill="#7a3a6a" font-weight="600">main 全 MRV2</text>
 
-  <!-- Boundary 1 arrows -->
-  <path d="M266 132h56m-6-5l6 5-6 5" fill="none" stroke="#087f73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="295" y="122" text-anchor="middle" font-size="13.5" font-weight="600" fill="#065f56">请求</text>
-  <path d="M322 214h-56m6-5l-6 5 6 5" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="295" y="204" text-anchor="middle" font-size="13.5" font-weight="600" fill="#7a3a6a">新词</text>
-  <text x="295" y="242" text-anchor="middle" font-size="13.5" fill="#66716d">边界一</text>
-  <text x="295" y="262" text-anchor="middle" font-size="13.5" fill="#66716d">不传文字</text>
+  <!-- Boundary 1: ZMQ Packets (x=144..336) -->
+  <text x="240" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#66716d">边界 1 · ZMQ（不传文字）</text>
+  <rect x="160" y="72" width="160" height="74" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="240" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56" font-family="var(--font-mono)">EngineCoreRequest</text>
+  <text x="240" y="117" text-anchor="middle" font-size="13.5" fill="#4d5652">req_id + prompt_ids</text>
+  <text x="240" y="137" text-anchor="middle" font-size="13.5" fill="#4d5652">采样参数 + 目标 DP</text>
+  <line x1="144" y1="109" x2="156" y2="109" stroke="#087f73" stroke-width="1.8"/>
+  <line x1="320" y1="109" x2="332" y2="109" stroke="#087f73" stroke-width="1.8" marker-end="url(#v1-arr-t)"/>
 
-  <!-- Boundary 2 arrows -->
-  <path d="M576 132h56m-6-5l6 5-6 5" fill="none" stroke="#c78300" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="605" y="122" text-anchor="middle" font-size="13.5" font-weight="600" fill="#936300">计划</text>
-  <path d="M632 214h-56m6-5l-6 5 6 5" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="605" y="204" text-anchor="middle" font-size="13.5" font-weight="600" fill="#3a4f93">结果</text>
-  <text x="605" y="242" text-anchor="middle" font-size="13.5" fill="#66716d">边界二</text>
-  <text x="605" y="262" text-anchor="middle" font-size="13.5" fill="#66716d">只发差量</text>
+  <rect x="160" y="208" width="160" height="66" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="240" y="232" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a" font-family="var(--font-mono)">EngineCoreOutputs</text>
+  <text x="240" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">新 token ID + 结束原因</text>
+  <line x1="336" y1="241" x2="320" y2="241" stroke="#9a4b86" stroke-width="1.8"/>
+  <line x1="160" y1="241" x2="148" y2="241" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#v1-arr-p)"/>
 
-  <!-- Bottom strip: Delta sync & MRV1 vs MRV2 -->
-  <rect x="16" y="318" width="424" height="122" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="32" y="344" font-size="14.5" font-weight="700" fill="#17211f">第二道边界的差量同步（SchedulerOutput）</text>
-  <text x="32" y="370" font-size="13.5" fill="#4d5652">• 首步 new_reqs：发送完整 prompt 与采样参数</text>
-  <text x="32" y="396" font-size="13.5" fill="#4d5652">• 后续 cached_reqs：只发新增块号与步进计数</text>
-  <text x="32" y="422" font-size="13.5" fill="#4d5652">• 结束 finished_req_ids：随下步通知 Worker 释放</text>
+  <!-- Boundary 2: SchedulerOutput 3 Compact Payloads + ModelRunnerOutput (x=480..752) -->
+  <text x="616" y="58" text-anchor="middle" font-size="13.5" font-weight="700" fill="#66716d">边界 2 · SchedulerOutput（差量下发）</text>
 
-  <rect x="460" y="318" width="424" height="122" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="476" y="344" font-size="14.5" font-weight="700" fill="#7a3a6a">V1 引擎循环不变，执行侧演进 MRV1 → MRV2</text>
-  <text x="476" y="370" font-size="13.5" fill="#4d5652">• v0.30.0 主基线：默认 MRV1，设环境变量切 V2</text>
-  <text x="476" y="396" font-size="13.5" fill="#4d5652">• main（8d6180e2）：移除 MRV1，全量走 V2</text>
-  <text x="476" y="422" font-size="13.5" fill="#4d5652">• 两代 Runner 共用 V1 step / batch_queue 循环</text>
+  <!-- Packet 1: scheduled_new_reqs -->
+  <rect x="498" y="68" width="236" height="50" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="508" y="90" font-size="13.5" font-weight="700" fill="#065f56">scheduled_new_reqs（全量）</text>
+  <text x="508" y="110" font-size="13.5" fill="#4d5652">prompt + 采样参数 + 初始块号</text>
+  <line x1="480" y1="93" x2="494" y2="93" stroke="#087f73" stroke-width="1.7"/>
+  <line x1="734" y1="93" x2="748" y2="93" stroke="#087f73" stroke-width="1.7" marker-end="url(#v1-arr-t)"/>
+
+  <!-- Packet 2: scheduled_cached_reqs + scheduled_spec_decode_tokens -->
+  <rect x="498" y="124" width="236" height="60" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="508" y="145" font-size="13.5" font-weight="700" fill="#936300">scheduled_cached_reqs 差量</text>
+  <text x="508" y="164" font-size="13.5" fill="#4d5652">新借块 + 进度 + spec_decode</text>
+  <text x="508" y="180" font-size="13.5" fill="#936300">同步传草稿 ID / 异步传占位</text>
+  <line x1="480" y1="154" x2="494" y2="154" stroke="#c78300" stroke-width="1.7"/>
+  <line x1="734" y1="154" x2="748" y2="154" stroke="#c78300" stroke-width="1.7" marker-end="url(#v1-arr-a)"/>
+
+  <!-- Packet 3: finished_req_ids -->
+  <rect x="498" y="190" width="236" height="48" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="508" y="212" font-size="13.5" font-weight="700" fill="#8f3229">finished_req_ids（收尾）</text>
+  <text x="508" y="231" font-size="13.5" fill="#4d5652">随下步通知 Worker 删缓存</text>
+  <line x1="480" y1="214" x2="494" y2="214" stroke="#b54237" stroke-width="1.7"/>
+  <line x1="734" y1="214" x2="748" y2="214" stroke="#b54237" stroke-width="1.7" marker-end="url(#v1-arr-r)"/>
+
+  <!-- Return Packet: ModelRunnerOutput -->
+  <rect x="498" y="250" width="236" height="56" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="616" y="274" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93" font-family="var(--font-mono)">ModelRunnerOutput</text>
+  <text x="616" y="296" text-anchor="middle" font-size="13.5" fill="#4d5652">req 行映射 + 采样 token（TP0）</text>
+  <line x1="752" y1="278" x2="734" y2="278" stroke="#4c65b6" stroke-width="1.8"/>
+  <line x1="498" y1="278" x2="484" y2="278" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#v1-arr-i)"/>
+
+  <!-- Divider -->
+  <line x1="16" y1="334" x2="884" y2="334" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- ZONE 2: Three Execution Topology Contrasts -->
+  <text x="16" y="362" font-size="16" font-weight="700" fill="#17211f">② Executor 三种落地拓扑：单卡进程内直调 vs 多卡广播 vs GLM 空闲组陪跑</text>
+
+  <!-- Card A: TP=1 Uniproc -->
+  <rect x="16" y="378" width="276" height="168" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="30" y="404" font-size="14.5" font-weight="700" fill="#17211f">A. 单卡 TP=1（Uniproc）</text>
+  <text x="30" y="428" font-size="13.5" fill="#4d5652">如 Qwen3-8B 单卡部署</text>
+  <rect x="30" y="440" width="248" height="46" rx="6" fill="#ffffff" stroke="#66716d" stroke-width="1.2"/>
+  <text x="154" y="460" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">EngineCore 进程内直调 Worker</text>
+  <text x="154" y="479" text-anchor="middle" font-size="13.5" fill="#66716d">边界仍在，零 IPC / 无广播队列</text>
+  <text x="30" y="512" font-size="13.5" fill="#4d5652">共 2 进程：1 前端 + 1 引擎</text>
+  <text x="30" y="534" font-size="13.5" fill="#66716d">无 DP 协调器，无空批次陪跑</text>
+
+  <!-- Card B: Multi-rank Multiproc -->
+  <rect x="312" y="378" width="276" height="168" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="326" y="404" font-size="14.5" font-weight="700" fill="#3a4f93">B. 多卡（Multiproc 广播）</text>
+  <text x="326" y="428" font-size="13.5" fill="#4d5652">如 Qwen3 TP4 / GLM TP8</text>
+  <rect x="326" y="440" width="248" height="46" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="450" y="460" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">SHM 写 1 次 → N 卡同读 1 份</text>
+  <text x="450" y="479" text-anchor="middle" font-size="13.5" fill="#4d5652">仅 TP0 回传结果，卡间走 HCCL</text>
+  <text x="326" y="512" font-size="13.5" fill="#4d5652">两次调用：execute + sample</text>
+  <text x="326" y="534" font-size="13.5" fill="#66716d">TP 切头与矩阵，不切请求列表</text>
+
+  <!-- Card C: GLM DP1 Dummy EP Participation -->
+  <rect x="608" y="378" width="276" height="168" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="622" y="404" font-size="14.5" font-weight="700" fill="#7a3a6a">C. GLM 双机 DP1 空闲陪跑</text>
+  <text x="622" y="428" font-size="13.5" fill="#4d5652">DP0 跑 R1，DP1 零请求时</text>
+  <rect x="622" y="440" width="104" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="674" y="460" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">DP0 (8卡)</text>
+  <text x="674" y="479" text-anchor="middle" font-size="13.5" fill="#065f56">算 R1</text>
+  <line x1="726" y1="463" x2="758" y2="463" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#v1-arr-p)"/>
+  <rect x="764" y="440" width="106" height="46" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="817" y="460" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">DP1 (8卡)</text>
+  <text x="817" y="479" text-anchor="middle" font-size="13.5" fill="#7a3a6a">dummy_batch</text>
+  <text x="622" y="512" font-size="13.5" fill="#7a3a6a" font-weight="600">一起进出 16 卡 EP 专家通信</text>
+  <text x="622" y="534" font-size="13.5" fill="#4d5652">防跨机 MoE 集合通信挂死</text>
 </svg>

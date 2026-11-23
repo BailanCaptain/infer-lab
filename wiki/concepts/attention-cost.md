@@ -2,6 +2,8 @@
 id: attention-cost
 title: 注意力代价：容量、计算与访存
 type: concept
+legacyAnchors:
+  三类注意力在-glm-里各有什么特殊之处: 密集注意力：没有单独的层，短历史时稀疏 MLA 就是它
 summary: >-
   历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个
   token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。
@@ -160,7 +162,7 @@ file: attention-cost
 | [内容选取稀疏 MLA](sparse-attention.md) | $n \cdot (d_c + d_{\text{idx}}/p) \cdot b + \text{定长尾状态}$ | 主注意力封顶 $O(K_{\text{top}})$；indexer 仍 $O(n)$ | 主注意力 $O(n \cdot K_{\text{top}})$；indexer 仍 $O(n^2/p)$ | 潜向量与索引器逐卡复制，仅头展开投影随 `TP` 切分 |
 | [KDA（线性固定状态）](linear-attention.md) | 固定 $n_h \cdot d_k d_v \cdot b_s + \text{短卷积状态}$ | $O(1)$ 与历史长度 $n$ 无关 | $O(n)$（Prefill 分块并行，Decode 逐位递推） | 状态随头按 `TP` 均分，跨卡不交换状态 |
 
-下图把五类注意力的增长阶，与后文 GLM 在 133,120 位置处的三项读取对比和约 6,827 token 容量交点放在同一画面，方便先建立全局比例直觉再看逐层算账：
+下图左侧用增长曲线展示五类注意力的 Decode 单步读取阶，右侧则画出 GLM 单卡 KDA 固定 85 MiB 页与 12 层 MLA 按位置线性增长在约 6,827 token 处的容量交点：
 
 ```wiki-diagram
 file: attention-cost-fig-family-scaling
@@ -186,6 +188,10 @@ $$N_{\text{pool}} = \frac{133{,}120}{4} = 33{,}280\text{ 个完整池}$$
 | 稀疏 MLA 主 attention（11 层，至多 2048 位置） | 推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用) | **22.0 MiB** |
 | indexer 打分（11 层，扫全部完整池） | $11 \times 33{,}280 \times 256\text{ B} = 93{,}716{,}480\text{ B}$ | **约 89.4 MiB** |
 | 若这 11 层改用密集注意力 | $11 \times 133{,}120 \times 1024\text{ B} = 1{,}499{,}463{,}680\text{ B}$ | **约 1.40 GiB** |
+
+```wiki-diagram
+file: attention-cost-fig-glm-133k-budget
+```
 
 22.0 MiB 的推导在[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)，后两行是本页的新账。主 attention 读 2048 个位置，仅占全部历史的 1/65，11 层合计 22.0 MiB 且不再随长度增长。但 indexer 扫过的索引 key 已达 89.4 MiB，约为其 4 倍，而且仍随历史线性增长。另看 KDA：34 层的原始状态容量约 18.2 MiB，从第 1 个到第 13 万个 token 都一样；逐项字节账见 [tensor parallel 的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)，这项容量不能直接加进上面的读取量。运算量也是同样的增长关系：主 attention 每层每卡的打分和汇合上界约 33.6 MFLOP（推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)），不随历史增长；indexer 每个池一次 128 维点积，随池数线性增长。
 

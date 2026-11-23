@@ -1,8 +1,8 @@
 mode: native-svg
 id: vllm-ascend-repo-map-fig-v030-subsystems
 caption: >-
-  vllm_ascend v0.30.0（36 顶层项）到 main（39 顶层项）的子系统目录架构图：按「启动与硬件档案 → Worker/Runner 执行中枢 → 模型/量化/注意力与算子 → 通信/图编译/补丁/可观测性 → 根目录 csrc/ 扩展」五层归类，并标出 v0.30.0 新增目录与 main 收敛至 MRV2 的关键变迁。
-size: [900, 476]
+  跨仓库目录架构图：左侧上游 vllm/（v1/engine、v1/core、v1/executor）经插件扩展口接入右侧 vllm_ascend/ 四层子系统（启动与硬件档案、Worker/Runner 执行中枢、模型/量化/注意力与算子、通信/图编译/EC 与可观测性）及底部根目录 csrc/ AscendC 底座，并标出 v0.30.0（36 项）到 main（39 项，删除 MRV1 收敛至 worker/v2/、增 runtime_guard/ 与 engram_hixl/）的关键变迁。
+size: [900, 490]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L218-L401'
     symbols:

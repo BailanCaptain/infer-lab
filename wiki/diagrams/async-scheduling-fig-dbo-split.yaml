@@ -1,0 +1,10 @@
+mode: native-svg
+id: async-scheduling-fig-dbo-split
+caption: >-
+  Dual Batch Overlap（DBO）两 DP 组对齐切分判定（最终对齐长度 96，共同切分中点 48，decode 门槛 32）：64/96 两组均达门槛且后半微批均有真实 token，全组拆微批；32/96 虽达 32 门槛但第 1 组后半微批无真实 token，触发 is_last_ubatch_empty 全组取消；16/96 第 1 组未达门槛，全组取消。底栏标出 Ascend 平台将 enable_dbo 重置为 False、ubatch_size 置 0 的硬边界。
+size: [900, 390]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/worker/dp_utils.py#L57-L74'
+    symbols: ['_post_process_ubatch', 'is_last_ubatch_empty']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L915-L930'
+    symbols: ['enable_dbo', 'ubatch_size']

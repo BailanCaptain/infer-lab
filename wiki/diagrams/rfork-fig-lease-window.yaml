@@ -1,0 +1,10 @@
+mode: native-svg
+id: rfork-fig-lease-window
+caption: >-
+  RFork 晚申请租约窗口对比：旧版 v0.23/v0.26 一启动就先向 Planner 申请租约，使搭模型、布局转换与显存登记全耗在 60 秒租约期内；上游 main（8d6180e2）把上述本地准备与预登记全部移到申请租约之前，显著压缩租约占用并让 seed_key 携带真实结构摘要，代价是无可用 seed 的首次冷启动须清理恢复进程全局状态并重建一遍模型。
+size: [900, 410]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L495-L560
+    symbols: [_reset_process_global_model_state]

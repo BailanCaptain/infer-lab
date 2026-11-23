@@ -1,55 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="输出异常排查四级分流漏斗：输入对齐、贪心首次分歧、执行与解析隔离、MSProbe 与 Runtime Guard 取证" font-family="var(--font-sans)">
-  <title>输出异常排查四级漏斗：输入编号 → 贪心首次分歧 → 状态/解析器隔离 → MSProbe / Runtime Guard</title>
-  <desc>Four-stage correctness triage funnel from token ID alignment through greedy determinism and parser/buffer checks to MSProbe and Runtime Guard</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="输出异常四级排查漏斗：输入 token 格对齐、贪心首次分歧、四路 A/B 状态隔离与 MSProbe / Runtime Guard 分流" font-family="var(--font-sans)">
+  <title>输出异常四级收窄漏斗：从输入对齐到逐层取证</title>
+  <desc>True narrowing 4-stage correctness triage funnel: token cell comparison, greedy common prefix logits flip, 4 controlled A/B toggle switches, and offline MSProbe vs online Runtime Guard split</desc>
   <defs>
-    <marker id="ict-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="ict-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
     </marker>
   </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">输出异常四级排查漏斗：逐关收窄边界，只在最后才做逐层张量转储</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">输出异常四级收窄漏斗：把问题拦在最早边界，最后才做逐层张量转储</text>
 
-  <!-- Gate 1 -->
-  <rect x="16" y="46" width="548" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="32" y="72" font-size="14.5" font-weight="700" fill="#3a4f93">第 1 关 · 输入编号是否完全一致（如 [11,23,7] vs [11,23,9,7]）</text>
-  <text x="32" y="98" font-size="13.5" fill="#4d5652">核对模板展开、工具定义、多模态裁剪与 return_dict（v5）</text>
-  <line x1="564" y1="82" x2="594" y2="82" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
-  <rect x="596" y="46" width="288" height="72" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="612" y="72" font-size="14" font-weight="700" fill="#8f3229">不等 → 停在输入层修复</text>
-  <text x="612" y="98" font-size="13.5" fill="#4d5652">对齐模板并还原旧模板复现验证</text>
+  <!-- Gate 1 (y=42..120) -->
+  <rect x="16" y="42" width="548" height="76" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="67" font-size="14.5" font-weight="700" fill="#3a4f93">第 1 关 · 输入编号是否逐位一致？（模板 / 分词 / 多模态 / return_dict）</text>
+  <!-- Visual mini token cells A vs B -->
+  <g font-family="var(--font-mono)" font-size="13.5" text-anchor="middle">
+    <text x="48" y="102" font-weight="700" fill="#3a4f93">A:</text>
+    <rect x="64" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="81" y="100" fill="#17211f">11</text>
+    <rect x="102" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="119" y="100" fill="#17211f">23</text>
+    <rect x="140" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="157" y="100" fill="#17211f">7</text>
 
-  <line x1="290" y1="118" x2="290" y2="140" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
+    <text x="214" y="102" font-weight="700" fill="#8f3229">B:</text>
+    <rect x="230" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="247" y="100" fill="#17211f">11</text>
+    <rect x="268" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="285" y="100" fill="#17211f">23</text>
+    <rect x="306" y="83" width="34" height="24" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/><text x="323" y="100" font-weight="700" fill="#8f3229">9</text>
+    <rect x="344" y="83" width="34" height="24" rx="4" fill="#ffffff" stroke="#4c65b6"/><text x="361" y="100" fill="#17211f">7</text>
+  </g>
+  <text x="392" y="100" font-size="13.5" font-weight="700" fill="#8f3229">← 位置 2 已多出控制符</text>
 
-  <!-- Gate 2 -->
-  <rect x="16" y="144" width="548" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="32" y="170" font-size="14.5" font-weight="700" fill="#936300">第 2 关 · 切贪心确定性（temp &lt; 1e-5），钉死「首次分歧」共同前缀</text>
-  <text x="32" y="196" font-size="13.5" fill="#4d5652">仅比首个不同 token 前的 raw logits 与惩罚/约束后分数（全 greedy 走提前返回）</text>
-  <line x1="564" y1="180" x2="594" y2="180" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
-  <rect x="596" y="144" width="288" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="612" y="170" font-size="14" font-weight="700" fill="#065f56">生成编号一致 → 查展示/解析</text>
-  <text x="612" y="196" font-size="13.5" fill="#4d5652">tool / reasoning parser · 停止串缓冲</text>
+  <line x1="564" y1="80" x2="594" y2="80" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+  <rect x="598" y="42" width="286" height="76" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="612" y="70" font-size="14" font-weight="700" fill="#8f3229">不等 → 停在输入层修复</text>
+  <text x="612" y="96" font-size="13.5" fill="#4d5652">对齐模板/渲染项，还原复现验证</text>
 
-  <line x1="290" y1="216" x2="290" y2="238" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
+  <line x1="290" y1="118" x2="290" y2="140" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+  <text x="300" y="134" font-size="13.5" fill="#065f56">输入一致 ↓</text>
 
-  <!-- Gate 3 -->
-  <rect x="16" y="242" width="868" height="92" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="32" y="268" font-size="14.5" font-weight="700" fill="#7a3a6a">第 3 关 · 若首次分歧 raw logits 已不同：按四类受控对照隔离计算与状态变量</text>
-  <text x="32" y="294" font-size="13.5" fill="#4d5652">• 前缀/历史复用：冷态 vs 命中块对照　　　　　• 批形状数值序：单跑 vs 混批（查 batch-invariance）</text>
-  <text x="32" y="319" font-size="13.5" fill="#4d5652">• 图回放路径：ACLGraph vs Eager 对照　　　　• 低精度与 PD 交接：量化缩放对齐 + P/D 块校验值比对</text>
+  <!-- Gate 2 (narrowed left margin x=42..564, y=144..220) -->
+  <rect x="42" y="144" width="522" height="76" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="56" y="169" font-size="14.5" font-weight="700" fill="#936300">第 2 关 · 锁贪心（temp &lt; 1e-5），只比「首次分歧」共同前缀</text>
+  <text x="56" y="194" font-size="13.5" fill="#17211f">取两处分数：<tspan font-weight="700">① 模型 raw logits</tspan> 与 <tspan font-weight="700">② 惩罚/约束后分数</tspan></text>
+  <text x="56" y="212" font-size="13.5" fill="#4d5652">全 greedy 走提前返回；勿把分叉后已偏离的历史继续混比</text>
 
-  <line x1="230" y1="334" x2="230" y2="356" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
-  <line x1="670" y1="334" x2="670" y2="356" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ict-arr)"/>
+  <line x1="564" y1="182" x2="594" y2="182" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+  <rect x="598" y="144" width="286" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="612" y="172" font-size="14" font-weight="700" fill="#065f56">输出 ID 相同 → 查返回/解析</text>
+  <text x="612" y="198" font-size="13.5" fill="#4d5652">tool / reasoning parser · 停止串缓冲</text>
 
-  <!-- Gate 4: Two capture paths -->
-  <rect x="16" y="360" width="424" height="124" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="32" y="388" font-size="14.5" font-weight="700" fill="#065f56">第 4A 关 · 稳定复现 → MSProbe 逐层精度对齐</text>
-  <text x="32" y="414" font-size="13.5" fill="#4d5652">• 先 L1 statistics 摘要收窄异常层，再切 tensor</text>
-  <text x="32" y="438" font-size="13.5" fill="#4d5652">• L0 / mix 产出 construct.json 支持图可视化对比</text>
-  <text x="32" y="462" font-size="13.5" fill="#065f56">• 边界：graph 模式不支持动态 step/scope 控制</text>
+  <line x1="303" y1="220" x2="303" y2="242" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+  <text x="313" y="236" font-size="13.5" fill="#8f3229">raw logits 已不同 ↓</text>
 
-  <rect x="460" y="360" width="424" height="124" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="476" y="388" font-size="14.5" font-weight="700" fill="#8f3229">第 4B 关 · 线上偶发 → Runtime Guard（main MRV2）</text>
-  <text x="476" y="414" font-size="13.5" fill="#4d5652">• 检测器：token_repeat / logits_finite / spec_accept</text>
-  <text x="476" y="438" font-size="13.5" fill="#4d5652">• 热更新递增水位 dump.manual_dump + 限额 dump_kv</text>
-  <text x="476" y="462" font-size="13.5" fill="#8f3229">• 边界：v0.30.0 无此键；仅覆盖末级 PP 阶段 TP rank</text>
+  <!-- Gate 3: 4 Visual A/B Isolation Switches (y=246..340) -->
+  <text x="16" y="264" font-size="14.5" font-weight="700" fill="#7a3a6a">第 3 关 · 四组单变量受控 A/B 隔离（每次只切一个条件，确认差异是否复现）</text>
+
+  <rect x="16" y="276" width="206" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="119" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">历史缓存复用</text>
+  <text x="119" y="326" text-anchor="middle" font-size="13.5" fill="#17211f">冷态 ⇄ Prefix 命中</text>
+
+  <rect x="236" y="276" width="206" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="339" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">批形状浮点序</text>
+  <text x="339" y="326" text-anchor="middle" font-size="13.5" fill="#17211f">单跑 ⇄ 混批 / 批不变</text>
+
+  <rect x="456" y="276" width="206" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="559" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">图回放路径</text>
+  <text x="559" y="326" text-anchor="middle" font-size="13.5" fill="#17211f">ACLGraph ⇄ Eager</text>
+
+  <rect x="676" y="276" width="208" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="780" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">低精度与 PD 交接</text>
+  <text x="780" y="326" text-anchor="middle" font-size="13.5" fill="#17211f">高精度对照 · P→D 校验</text>
+
+  <line x1="230" y1="344" x2="230" y2="368" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+  <line x1="670" y1="344" x2="670" y2="368" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ict-arr)"/>
+
+  <!-- Gate 4: Offline Bisection vs Online Guard (y=372..486) -->
+  <rect x="16" y="372" width="424" height="114" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="399" font-size="14.5" font-weight="700" fill="#065f56">第 4A 关 · 离线稳定复现 → MSProbe 逐层二分</text>
+  <text x="30" y="425" font-size="13.5" fill="#17211f">先 <tspan font-family="var(--font-mono)">L1 statistics</tspan> 摘要定位首错层，再缩 scope 切 <tspan font-family="var(--font-mono)">tensor</tspan></text>
+  <text x="30" y="449" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)">L0 / mix</tspan> 生成 <tspan font-family="var(--font-mono)">construct.json</tspan> 支持图结构对比</text>
+  <text x="30" y="473" font-size="13.5" font-weight="700" fill="#065f56">边界：图模式不支持按 step / scope 动态过滤</text>
+
+  <rect x="460" y="372" width="424" height="114" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="474" y="399" font-size="14.5" font-weight="700" fill="#8f3229">第 4B 关 · 线上偶发难复现 → Runtime Guard（main）</text>
+  <text x="474" y="425" font-size="13.5" fill="#17211f">检测：<tspan font-family="var(--font-mono)">token_repeat/logits_finite/spec_acceptance</tspan></text>
+  <text x="474" y="449" font-size="13.5" fill="#4d5652">热更新递增水位 <tspan font-family="var(--font-mono)">manual_dump (1→2→3)</tspan> + 限额 <tspan font-family="var(--font-mono)">dump_kv</tspan></text>
+  <text x="474" y="473" font-size="13.5" font-weight="700" fill="#8f3229">边界：v0.30.0 无此键；仅覆末 PP 阶段 TP rank</text>
 </svg>

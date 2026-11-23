@@ -1,0 +1,12 @@
+mode: native-svg
+id: epd-plate-three-pool-cutaway
+caption: >-
+  EPD 三池物理集群与双分流拆解：示例 PROXY 按 image_url / audio_url / input_audio 识别需预编码请求送入轻量 E POOL 跑完编码器并经 EC CACHE 桥交给 P POOL，纯文本（及示例代理未匹配的仅 video_url 请求）走下方直通旁路跳过 E POOL（免受编码排队阻塞，P 池内仍共享语言算力）；P POOL 运行语言 Prefill 期间配合 MooncakeLayerwise 经 KV STREAM 边算边逐层把 KV 推给 D POOL 持续吐字。
+size: [860, 588]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/ec_transfer/ec_memcache_connector.py#L1-L130
+    symbols: [ECMemcacheConnector, _get_recv_buffer_tokens]
+  - source: vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_epd_proxy.py#L312-L321
+    symbols: [has_mm_input]
+  - source: vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L436
+    symbols: [forward_non_stream]

@@ -1,0 +1,14 @@
+mode: native-svg
+id: rfork-fig-route-and-fallback
+caption: >-
+  RFork 单 Worker 主干加载、四种成功解耦与严格双门回退全景：前半程经绕过守卫（sleep mode、EPLB 或 weight_transfer_config 任一命中即直接默认加载）、搭空位与按需后处理、预登记显存并绑定结构摘要与 seed_key，随后向 Planner 借租约、经五门清单校验并分批同步直读；传完后分叉为主线程交回模型与后台线程归还租约/发布 seed 两条并行线。可恢复失败须经最多两轮清理并通过 service_stopped 与 memory_reset 严格双门才允许回退默认加载；右侧对照同 Worker 内主模型与草稿双会话及 GLM 双机静态语言子账（20.91 vs 20.58 GiB，保活增量约 302.5 MiB）。
+size: [900, 680]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21
+    symbols: [mutable_weights_bypass_reason]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, RForkConfigurationError]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
+    symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559
+    symbols: [start_seed_service, DEFERRED]

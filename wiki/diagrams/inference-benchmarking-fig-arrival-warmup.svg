@@ -1,63 +1,101 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="闭环固定并发与开环到达率压测对比，以及冷启动预热与前缀缓存污染检查图" font-family="var(--font-sans)">
-  <title>闭环并发 vs 开环到达率压测模式与预热/缓存可比性边界</title>
-  <desc>Closed-loop concurrency vs open-loop Poisson arrival rate, coordinated omission gap, and warmup vs prefix cache pollution checks</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="闭环固定并发与开环到达率时间轴对比、生成器迟发 200ms 陷阱及三段压测可比性隔离条" font-family="var(--font-sans)">
+  <title>闭环并发 vs 开环到达率时序对照与三段压测可比性边界</title>
+  <desc>Shared timeline contrasting Closed-loop coordinated omission vs Open-loop queue buildup during a stall window, proportional 0-200-300ms generator stall bar, and 3-stage warmup/benchmark/profile isolation</desc>
   <defs>
-    <marker id="ib-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="ib-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="ib-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
     </marker>
   </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 闭环固定并发 vs 开环到达率：为什么同一套服务会测出两种尾部时延</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">决定是否暴露真实排队增长</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 闭环固定并发 vs 开环到达率：同一段服务卡顿，为何测出两种 P99 长尾</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">同一水平时间轴（示意）</text>
 
-  <rect x="16" y="44" width="424" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="32" y="72" font-size="15" font-weight="700" fill="#936300">闭环负载（固定并发 · 完成一条再补一条）</text>
-  <text x="32" y="98" font-size="13.5" fill="#4d5652">• 服务一旦变慢，客户端自动放慢补发速度</text>
-  <text x="32" y="122" font-size="13.5" fill="#4d5652">• 适合测饱和吞吐上限与固定在算宽度下的单步耗时</text>
-  <text x="32" y="146" font-size="13.5" fill="#8f3229">• 风险：掩盖外部持续到达时的队列积压与 P95/P99 长尾</text>
-  <rect x="32" y="164" width="392" height="40" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="228" y="189" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">吞吐看满载 ✓　但不能替代线上到达速率的 SLO 验收</text>
+  <!-- Shared stall highlight band (x = 300 .. 520) -->
+  <rect x="300" y="42" width="220" height="174" rx="4" fill="#fff0e9" opacity="0.65"/>
+  <line x1="300" y1="42" x2="300" y2="216" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <line x1="520" y1="42" x2="520" y2="216" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="410" y="59" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">服务端出现一次长混合步 / 抢占卡顿</text>
 
-  <rect x="460" y="44" width="424" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="476" y="72" font-size="15" font-weight="700" fill="#065f56">开环负载（按 request_rate / 泊松计划时刻发单）</text>
-  <text x="476" y="98" font-size="13.5" fill="#4d5652">• 不管服务快慢，到达时间表照常推进，暴露排队失控</text>
-  <text x="476" y="122" font-size="13.5" fill="#4d5652">• 生成器受并发上限阻塞时，须同记三时刻防等待消失：</text>
-  <rect x="476" y="138" width="118" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="535" y="161" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">计划 0 ms</text>
-  <line x1="594" y1="156" x2="616" y2="156" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ib-arr)"/>
-  <rect x="618" y="138" width="122" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
-  <text x="679" y="161" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">实发 200 ms</text>
-  <line x1="740" y1="156" x2="762" y2="156" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ib-arr)"/>
-  <rect x="764" y="138" width="104" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="816" y="161" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">首字 +100</text>
-  <text x="476" y="201" font-size="13.5" fill="#8f3229">▸ 若只算实发起 TTFT=100 ms，就漏掉了生成器里等的 200 ms</text>
+  <!-- Track A: Closed-loop -->
+  <rect x="16" y="70" width="146" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="89" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">闭环固定并发</text>
+  <text x="89" y="114" text-anchor="middle" font-size="13.5" fill="#4d5652">完一条才补发</text>
 
-  <line x1="16" y1="242" x2="884" y2="242" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <line x1="176" y1="97" x2="876" y2="97" stroke="#b8bcb5" stroke-width="1.4" marker-end="url(#ib-arr)"/>
+  <rect x="190" y="81" width="104" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="242" y="102" text-anchor="middle" font-size="13.5" fill="#065f56">R1 正常</text>
 
-  <text x="16" y="272" font-size="16" font-weight="700" fill="#17211f">② A/B 对照的冷暖隔离与结果留档：把一次性开销和缓存命中从收益里剥出来</text>
+  <rect x="300" y="81" width="220" height="32" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="410" y="102" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">R2 卡顿中 → 生成器自动停发</text>
 
-  <rect x="16" y="290" width="276" height="162" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="32" y="318" font-size="14.5" font-weight="700" fill="#3a4f93">阶段 1 · 预热（剔除统计）</text>
-  <text x="32" y="346" font-size="13.5" fill="#4d5652">• 消化首次图捕获与算子缓存</text>
-  <text x="32" y="372" font-size="13.5" fill="#4d5652">• 明确冷请求或热前缀前提</text>
-  <text x="32" y="398" font-size="13.5" fill="#3a4f93">• 严禁把同一条热缓存提示词</text>
-  <text x="32" y="422" font-size="13.5" fill="#3a4f93">　当成 B 组独有的配置提速</text>
+  <rect x="528" y="81" width="104" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="580" y="102" text-anchor="middle" font-size="13.5" fill="#065f56">R3 才发出</text>
 
-  <line x1="292" y1="371" x2="314" y2="371" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ib-arr)"/>
+  <text x="646" y="102" font-size="13.5" font-weight="700" fill="#8f3229">← 协调遗漏：替服务端削峰，藏掉排队</text>
 
-  <rect x="316" y="290" width="276" height="162" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="332" y="318" font-size="14.5" font-weight="700" fill="#065f56">阶段 2 · 无采集正式压测</text>
-  <text x="332" y="346" font-size="13.5" fill="#4d5652">• 交错重复 A/B 消除环境漂移</text>
-  <text x="332" y="372" font-size="13.5" fill="#4d5652">• 同步统计失败项与未完成项</text>
-  <text x="332" y="398" font-size="13.5" fill="#065f56">• 按长度分组报 P50/P95/P99</text>
-  <text x="332" y="422" font-size="13.5" fill="#065f56">• Goodput 须确认阈值已配置</text>
+  <!-- Track B: Open-loop -->
+  <rect x="16" y="142" width="146" height="68" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="89" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">开环到达率</text>
+  <text x="89" y="194" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">request_rate</text>
 
-  <line x1="592" y1="371" x2="614" y2="371" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ib-arr)"/>
+  <line x1="176" y1="176" x2="876" y2="176" stroke="#b8bcb5" stroke-width="1.4" marker-end="url(#ib-arr)"/>
+  <!-- Scheduled arrival ticks on top -->
+  <g stroke="#087f73" stroke-width="1.6">
+    <line x1="190" y1="146" x2="190" y2="158"/>
+    <line x1="300" y1="146" x2="300" y2="158"/>
+    <line x1="390" y1="146" x2="390" y2="158"/>
+    <line x1="470" y1="146" x2="470" y2="158"/>
+  </g>
+  <rect x="190" y="160" width="104" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="242" y="181" text-anchor="middle" font-size="13.5" fill="#065f56">R1 完成</text>
 
-  <rect x="616" y="290" width="268" height="162" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="632" y="318" font-size="14.5" font-weight="700" fill="#7a3a6a">阶段 3 · 短窗剖析与复验</text>
-  <text x="632" y="346" font-size="13.5" fill="#4d5652">• 单独短时开启 Profiler 定位</text>
-  <text x="632" y="372" font-size="13.5" fill="#4d5652">• 不把开启采集的耗时混入收益</text>
-  <text x="632" y="398" font-size="13.5" fill="#7a3a6a">• 区分前端墙上时钟与</text>
-  <text x="632" y="422" font-size="13.5" fill="#7a3a6a">　EngineCore 单调时钟口径</text>
+  <rect x="300" y="160" width="220" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="410" y="181" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">R2 / R3 / R4 照常到达 → 队列堆高</text>
+
+  <rect x="528" y="160" width="260" height="32" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="658" y="181" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">排队逐条消化（暴露真实 P95/P99）</text>
+
+  <!-- Track C: Generator Stall Proportional Bar (0 -> 200 -> 300 ms) -->
+  <text x="16" y="246" font-size="14.5" font-weight="700" fill="#17211f">② 生成器迟发比例条（示意）：须同时记录「计划发送」「实际发送」「收到首字」</text>
+  <!-- Bar scale: 300 ms = 600 px (2 px/ms), x = 180 .. 780 -->
+  <rect x="180" y="258" width="400" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="380" y="280" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">生成器并发上限阻塞迟发：0 → 200 ms（200 ms 易漏记）</text>
+  <rect x="582" y="258" width="200" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="682" y="280" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">实发起 TTFT = 100 ms</text>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">
+    <text x="180" y="311" text-anchor="middle">计划 0 ms</text>
+    <text x="581" y="311" text-anchor="middle" font-weight="700" fill="#8f3229">实发 200 ms</text>
+    <text x="782" y="311" text-anchor="middle" font-weight="700" fill="#065f56">首字 300 ms</text>
+  </g>
+  <text x="16" y="280" font-size="13.5" font-weight="700" fill="#8f3229">总等待 = 300 ms</text>
+
+  <line x1="16" y1="330" x2="884" y2="330" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Bottom: 3-Stage Benchmark Isolation Strip -->
+  <text x="16" y="358" font-size="15.5" font-weight="700" fill="#17211f">③ A/B 压测三段隔离流水：把预热、前缀缓存命中与 Profiler 开销从收益里剥离</text>
+
+  <rect x="16" y="374" width="274" height="104" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="400" font-size="14.5" font-weight="700" fill="#3a4f93">阶段 1 · 预热（数据丢弃）</text>
+  <text x="30" y="425" font-size="13.5" fill="#17211f">消化首次编译、录图与算子缓存</text>
+  <text x="30" y="447" font-size="13.5" fill="#3a4f93">锁死冷缓存或同等热前缀前提</text>
+  <text x="30" y="468" font-size="13.5" fill="#66716d">禁拿重复热 prompt 虚高 B 组</text>
+
+  <line x1="290" y1="426" x2="312" y2="426" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ib-arr)"/>
+
+  <rect x="314" y="374" width="274" height="104" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="328" y="400" font-size="14.5" font-weight="700" fill="#065f56">阶段 2 · 交错无采集正式测</text>
+  <text x="328" y="425" font-size="13.5" fill="#17211f">按 A/B/A/B 交错验差值大于运行波动</text>
+  <text x="328" y="447" font-size="13.5" fill="#065f56">同报失败/未完成、分长度 P95</text>
+  <text x="328" y="468" font-size="13.5" fill="#66716d">Goodput 确认已配置阈值非默认 0</text>
+
+  <line x1="588" y1="426" x2="610" y2="426" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ib-arr)"/>
+
+  <rect x="612" y="374" width="272" height="104" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="626" y="400" font-size="14.5" font-weight="700" fill="#7a3a6a">阶段 3 · 独立短窗剖析复验</text>
+  <text x="626" y="425" font-size="13.5" fill="#17211f">仅在定位原因时短时开 Profiler</text>
+  <text x="626" y="447" font-size="13.5" fill="#7a3a6a">采集开销不混入最终收益数字</text>
+  <text x="626" y="468" font-size="13.5" fill="#66716d">前端墙上时钟与引擎单调钟分算</text>
 </svg>

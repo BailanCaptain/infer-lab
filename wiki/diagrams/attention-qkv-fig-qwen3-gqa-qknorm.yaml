@@ -1,0 +1,10 @@
+mode: native-svg
+id: attention-qkv-fig-qwen3-gqa-qknorm
+caption: >-
+  Qwen3-8B 单层标准注意力完整流转（TP=1，d_h=128）：32 个 Q 头按 4:1 分成 8 组共享 8 个 K/V 头；Q 与 K 先分别经独立增益的逐头 128 维 RMSNorm（同层所有 Q 头共享一套 q_norm [128] 增益，所有 K 头共享另一套独立 k_norm [128] 增益）再施加全维 RoPE，V 绕过归一化与旋转直通 128-tok KV Cache 与加权汇合，经 1/√128 缩放与因果掩码后由 o_proj 拼回 [T, 4096] 交回单残差流。
+size: [900, 448]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L168'
+    symbols: ['head_dim', 'scaling', 'q_norm', 'k_norm', 'rotary_emb', 'o_proj']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L632-L636'
+    symbols: ['sparse_mode', 'causal']

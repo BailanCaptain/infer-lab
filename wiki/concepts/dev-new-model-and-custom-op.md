@@ -64,9 +64,9 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-拿到一个刚开源的 **HuggingFace**（主流大模型权重与架构配置托管规范）新模型，或者发现某层算子在昇腾上成为瓶颈时，新手最容易走错的第一步就是**直接把整个模型文件复制进 `vllm_ascend/models/` 并从头手写 C++ 核函数**。实际上，绝大多数标准 Transformer 架构只要在上游 vLLM 里已有实现（例如 `Qwen3-8B`、`Qwen3-30B-A3B`），通过插件的 **OOT（Out-of-Tree，树外扩展）**算子表就能自动在 NPU 上跑通，根本不需要在 `vllm-ascend` 里重复维护一套模型代码。
+拿到刚开源的 **HuggingFace**（主流模型权重与架构配置托管规范）新模型，或发现某层算子成为瓶颈时，新手最容易踩的坑是**直接把整份模型抄进 `vllm_ascend/models/` 并从头手写 C++ 核函数**。其实，只要上游 vLLM 已有标准 Transformer 实现（如 `Qwen3-8B`、`Qwen3-30B-A3B`），插件的 **OOT（Out-of-Tree，树外扩展）**算子表就能自动在 NPU 上接管算子，根本不必重复维护一套模型文件。
 
-本页在 `vLLM Ascend v0.30.0` 基线上，按真实工程顺序拆解两件事：一是新模型接入时的四道注册关口（模型类、权重映射、量化方案与 OOT 算子），二是三条自定义算子实现路径（`torch_npu` ACLNN/ATB、`AscendC` `vllm_ascend_C`、`triton-ascend`）的选型权衡与昇腾 950 / 310P 硬件能力门控。
+本页以 `vLLM Ascend v0.30.0` 为基线，按工程顺序拆解两件事。第一是新模型接入的四道注册关口（模型类、权重映射、量化方案与 OOT 算子）。第二是三条自定义算子路径（`torch_npu` ACLNN/ATB、`AscendC` `vllm_ascend_C`、`triton-ascend`）的选型权衡，以及昇腾 950 / 310P 的硬件能力门控。
 
 ## 新模型接入昇腾的四道关口
 
@@ -76,10 +76,10 @@ updated: '2026-11-19'
 file: custom-op-fig-model-onboarding
 ```
 
-1. **架构名登记（`ModelRegistry.register_model`）**：vLLM 启动时读取模型目录 `config.json` 里的 `architectures` 字段，并在 `ModelRegistry` 中查找对应的 Python 类。只有在**上游尚未合入该架构**（如早期 `DeepseekV41ForCausalLM`、`KimiK3ForCausalLM`）、**需要兼容旧版 checkpoint 架构别名**，或**需要昇腾专属多模态预处理 / 投机草拟头**（如 `AscendQwen3_5ForConditionalGeneration`、`AscendQwen3DSparkForCausalLM`）时，才在 `vllm_ascend/models/__init__.py` 的 `register_model()` 中显式登记字符串路径，从而覆盖或补充上游映射。标准模型直接留给上游类实现即可。
-2. **权重键名映射（`WeightsMapper` + `AutoWeightsLoader`）**：不同权重发布方的参数命名前缀常常和 vLLM 内部子模块树不一致（例如多了 `model.` 前缀、多了不需加载的 `rot.` 旋转缓存键，或把多个投影合并为 `qkv_proj`）。此时不必手写脆弱的字符串替换循环，直接使用上游 `WeightsMapper` 定义 `orig_to_new_prefix`（映射为 `None` 即丢弃该前缀权重）或 `orig_to_new_substr`，再交给 `AutoWeightsLoader.load_weights(..., mapper=...)` 完成打包与切分加载。
-3. **量化方案注册（`@register_scheme`）**：昇腾量化采用「配置解析 + 方案注册表」解耦设计。每种量化组合按 `(quant_type, layer_type)` 二元组（例如 `("W8A8_DYNAMIC", "linear")` 或 `("W8A8_DYNAMIC", "moe")`）通过 `@register_scheme` 装饰器登记进 `_SCHEME_REGISTRY`；运行期量化配置只需调用 `get_scheme_class(quant_type, layer_type)` 即可拿到对应线性层或 MoE 方案类，避免在模型前向里堆砌硬件量化分支（各量化格式的数值与布局细节见 [量化方法与布局](quantization-methods.md)）。
-4. **OOT 算子拦截（`register_ascend_customop`）**：模型代码里调用的 `RMSNorm`、`SiluAndMul`、`RotaryEmbedding`、`ColumnParallelLinear`、`MoERunner` 等都继承自上游 `CustomOp`。`vllm_ascend/utils.py` 中的 `register_ascend_customop()` 会按硬件能力档案一次性组装 `REGISTERED_ASCEND_OPS` 字典，再统一循环调用 `CustomOp.register_oot(_decorated_op_cls=op_cls, name=name)` 注册昇腾实现（原理见 [算子与内核分发](ops-and-kernels.md)）。如果检测到当前卡是 `310P`（支持 `COMPATIBILITY_OP_IMPLEMENTATIONS`），该函数会自动把 `RMSNorm`、`MoERunner` 等关键条目覆写为 `vllm_ascend/_310p/` 下的兼容子类。
+1. **架构名登记（`ModelRegistry.register_model`）**：vLLM 启动时读取 `config.json` 的 `architectures` 字段，并在 `ModelRegistry` 里找对应 Python 类。仅在三类情形下，才需在 `vllm_ascend/models/__init__.py` 的 `register_model()` 显式登记路径来补充或覆写上游：一是上游未合入该架构（如早期 `DeepseekV41ForCausalLM`、`KimiK3ForCausalLM`）。二是需兼容旧 checkpoint 别名，或需昇腾专属多模态预处理 / 投机草拟头（如 `AscendQwen3_5ForConditionalGeneration`、`AscendQwen3DSparkForCausalLM`）。标准模型直接留给上游类实现即可。
+2. **权重键名映射（`WeightsMapper` + `AutoWeightsLoader`）**：不同权重发布方的参数前缀常与 vLLM 子模块树不一致，例如多了 `model.`、含无须加载的 `rot.` 旋转缓存键，或把多个投影合为 `qkv_proj`。别手写脆弱的字符串替换循环。直接用上游 `WeightsMapper` 声明 `orig_to_new_prefix`（映为 `None` 即丢弃）或 `orig_to_new_substr`，再交给 `AutoWeightsLoader.load_weights(..., mapper=...)` 完成打包与切分加载。
+3. **量化方案注册（`@register_scheme`）**：昇腾量化把配置解析与方案表解耦。每种组合按 `(quant_type, layer_type)` 二元组（如 `("W8A8_DYNAMIC", "linear")` 或 `("W8A8_DYNAMIC", "moe")`）经 `@register_scheme` 登记进 `_SCHEME_REGISTRY`。运行期调用 `get_scheme_class(quant_type, layer_type)` 即可拿到对应线性层或 MoE 方案类，避免在模型前向堆砌硬件分支（格式与布局见 [量化方法与布局](quantization-methods.md)）。
+4. **OOT 算子拦截（`register_ascend_customop`）**：模型层调用的 `RMSNorm`、`SiluAndMul`、`RotaryEmbedding`、`ColumnParallelLinear`、`MoERunner` 都继承自上游 `CustomOp`。`vllm_ascend/utils.py` 的 `register_ascend_customop()` 按硬件能力档案组装 `REGISTERED_ASCEND_OPS`。随后它循环调用 `CustomOp.register_oot(_decorated_op_cls=op_cls, name=name)` 注册昇腾实现（原理见 [算子与内核分发](ops-and-kernels.md)）。若检测到 `310P`（支持 `COMPATIBILITY_OP_IMPLEMENTATIONS`），它会自动把 `RMSNorm`、`MoERunner` 等关键条目覆写为 `vllm_ascend/_310p/` 下的兼容子类。
 
 ## 三条自定义算子路径如何选型？
 
@@ -99,21 +99,27 @@ file: custom-op-fig-three-paths
 | 图捕获（ACL Graph / `torch.compile`）要求 | 原生支持，通常无需手写形状推导 | **必须在 `csrc/torch_binding_meta.cpp` 补齐 Meta 实现**（仅推导形状与 dtype，不分配真实计算），否则构图阶段报错 | 经 `direct_register_custom_op` 包装并配 `fake_impl` 后即可纳入分段/完整图 |
 | 典型适用场景 | RMSNorm、FIA、标准量化矩阵乘、常规激活 | 极致热点融合（`npu_add_rms_norm_bias`、稀疏 MLA/SFA、分组矩阵乘 + SwiGLU 量化） | 块表 `slot_mapping` 计算、`split_qkv_rmsnorm_rope` 融合、批不变确定性算子 |
 
-三条路径的黄金顺序是：**能调 `torch_npu` ACLNN/ATB 绝不自己造轮子；需要非标融合且逻辑偏访存/索引时优先用 `triton-ascend` 快速验证；只有经 profiling 确认属于核心热点且需要精细 Cube/Vector 协同或通信融合时，才下沉到 `csrc/` 编写 AscendC 算子。**
+三条路径的黄金顺序很明确：**能调 `torch_npu` ACLNN/ATB 绝不造轮子。** 遇非标融合且逻辑偏访存或索引时，优先用 `triton-ascend` 快速验证。只有经 profiling 证实为核心热点、且须精细协同 Cube/Vector 或做通信融合时，才下沉到 `csrc/` 写 AscendC 算子。
 
 ## 950（A5）与 310P 的硬件能力门控：千万别硬编码芯片名
 
-`v0.30.0` 将历史零散的芯片型号判断统一重构为 `HardwareProfile` 不可变能力档案。新增算子或模型分支时，**严禁写 `if soc == "Ascend950"` 这类型号硬编码**，而应查询 `get_current_hardware_profile().supports(HardwareCapability.XXX)`。两类最容易踩坑的门控如下：
+`v0.30.0` 将历史零散的芯片型号判断统一重构为 `HardwareProfile` 不可变能力档案。新增算子或模型分支时，**严禁写 `if soc == "Ascend950"` 这类型号硬编码**，而应查询 `get_current_hardware_profile().supports(HardwareCapability.XXX)`：
 
-1. **昇腾 950（`AscendDeviceType.A5`）上的 `vllm_ascend_C` 惰性加载门控**：调用 `csrc/` 算子前必须经过 `enable_custom_op()`。它不仅做惰性加载以避免过早初始化 CANN RTS 从而允许动态修改 `ASCEND_RT_VISIBLE_DEVICES`，还承担两道硬门控——只要开启了批不变模式（`VLLM_BATCH_INVARIANT=1`，见 [批不变性](batch-invariance.md)），**或者当前硬件档案不支持 `HardwareCapability.RUNTIME_CUSTOM_OPS`**，`enable_custom_op()` 就会直接返回 `False`。在 `v0.30.0` 中，950（A5）的档案**尚未包含 `RUNTIME_CUSTOM_OPS`**（自定义库仍在适配期），因此像 `AscendGemmaRMSNorm.forward_oot` 这类实现必须写成 `if enable_custom_op(): ... else: torch_npu.npu_add_rms_norm(...)` 的双分支回退，绝不能无条件直调 `torch.ops._C_ascend.*`（注：在 `main` 分支中，A5 已补回 `RUNTIME_CUSTOM_OPS`）。
-2. **昇腾 310P（`AscendDeviceType._310P`）的兼容算子表与 Triton 缺省**：310P 档案启用了 `COMPATIBILITY_OP_IMPLEMENTATIONS`（驱动 `register_ascend_customop` 批量替换为 `Ascend*310` 子类），并且强制权重采用 `FRACTAL_NZ` 排布（`WeightLayoutPolicy.FORCE_NZ`）。此外，310P 与纯 CPU 单测环境往往不安装 `triton-ascend`，且老一代 310P 片上 UB 容量仅 `128 KB`（A2/A3 默认 `192 KB`）。因此任何引入 Triton 核的模块都必须先判断 `HAS_TRITON` 并在导入期做好回退，解析 CANN 专属 Triton 原语（如 `insert_slice`、`extract_slice`）时应通过 `triton_utils._resolve_triton_ascend_op` 兼容不同 `triton-ascend` 版本。
+```wiki-diagram
+file: custom-op-fig-hardware-profile-gate
+```
+
+两类最容易踩坑的门控如下：
+
+1. **昇腾 950（`AscendDeviceType.A5`）上的 `vllm_ascend_C` 惰性加载门控**：调用 `csrc/` 算子前必须先调 `enable_custom_op()`。它一方面惰性加载以避免过早初始化 CANN RTS、保留动态修改 `ASCEND_RT_VISIBLE_DEVICES` 的窗口，另一方面把守两道硬闸门：只要开启批不变模式（`VLLM_BATCH_INVARIANT=1`，见 [批不变性](batch-invariance.md)），**或当前硬件档案不含 `HardwareCapability.RUNTIME_CUSTOM_OPS`**，它就立刻返回 `False`。在 `v0.30.0` 中，950（A5）档案**尚未包含 `RUNTIME_CUSTOM_OPS`**（自定义库仍在适配期）。因此像 `AscendGemmaRMSNorm.forward_oot` 这类实现必须写成 `if enable_custom_op(): ... else: torch_npu.npu_add_rms_norm(...)` 双分支回退，严禁无条件直调 `torch.ops._C_ascend.*`（注：`main` 分支中 A5 已补回 `RUNTIME_CUSTOM_OPS`）。
+2. **昇腾 310P（`AscendDeviceType._310P`）的兼容算子表与 Triton 缺省**：310P 档案同时开启两项硬件约束——用 `COMPATIBILITY_OP_IMPLEMENTATIONS` 驱动 `register_ascend_customop` 批量替换为 `Ascend*310` 子类，并用 `WeightLayoutPolicy.FORCE_NZ` 强制权重走 `FRACTAL_NZ` 排布。此外，310P 与纯 CPU 单测环境常不装 `triton-ascend`，老一代 310P 片上 UB 也只有 `128 KB`（A2/A3 默认 `192 KB`）。因此引入 Triton 核的模块必须在导入期判断 `HAS_TRITON` 并提供回退；解析 CANN 专属 Triton 原语（如 `insert_slice`、`extract_slice`）则应走 `triton_utils._resolve_triton_ascend_op` 兼容不同 `triton-ascend` 版本。
 
 ## 常见误解
 
 - **误解一：“要适配一个新开源模型，必须先在 `vllm_ascend/models/` 下抄一份完整建模代码。”**
-  错。只要上游 vLLM 已经支持该模型架构，昇腾插件会自动通过 `register_ascend_customop()` 拦截标准层（Norm、RoPE、Linear、MoE）替换为 NPU 实现；只有在架构未合入上游、需要兼容权重别名或有 NPU 专属前后处理时才需在 `vllm_ascend/models/` 注册覆写类。
+  错。只要上游 vLLM 已支持该架构，昇腾插件会自动通过 `register_ascend_customop()` 拦截标准层（Norm、RoPE、Linear、MoE）并换为 NPU 实现。只有在架构未合入上游、需兼容权重别名或有 NPU 专属前后处理时，才需在 `vllm_ascend/models/` 注册覆写类。
 - **误解二：“AscendC 自定义算子只要把 `op_host` / `op_kernel` 编译通过并绑到 `torch.ops._C_ascend` 就大功告成了。”**
-  还差关键一步：如果不往 `csrc/torch_binding_meta.cpp` 注册 Meta 形状推导函数，算子只能在 `--enforce-eager` 模式下运行，一旦进入 `torch.compile` 或 [ACL Graph](acl-graph.md) 捕获就会因无法推导假张量形状而失败。
+  还差关键一步：如果不往 `csrc/torch_binding_meta.cpp` 注册 Meta 形状推导函数，算子就只能在 `--enforce-eager` 模式下运行。一旦切进 `torch.compile` 或 [ACL Graph](acl-graph.md) 捕获，构图就会因推导不出假张量形状而报错。
 - **误解三：“既然 A2/A3 上 `torch.ops._C_ascend` 能跑，我在新模型里直接 `import vllm_ascend.vllm_ascend_C` 调用就行。”**
   危险。一方面过早导入会提前初始化 CANN RTS 破坏多卡可见设备重映射，另一方面在 `v0.30.0` 的昇腾 950（A5）与 `VLLM_BATCH_INVARIANT=1` 场景下 `enable_custom_op()` 会关闭自定义库，无保护直调会导致崩溃或破坏批不变性。
 - **误解四：“`triton-ascend` 在所有昇腾卡上都随时可用，且按 A2 的 `192 KB` UB 写死块大小就行。”**

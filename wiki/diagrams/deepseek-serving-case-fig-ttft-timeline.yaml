@@ -1,0 +1,9 @@
+mode: native-svg
+id: deepseek-serving-case-fig-ttft-timeline
+caption: >-
+  相同前缀命中长度下的双轨 TTFT 对齐时间线（教学示意，按真实毫秒比例绘制）：两条请求均在 20 ms 完成匹配、30 ms 排到 P 引擎，且计算与返回均为 50 ms；轨道 A 本机缓存 25 ms 到卡，30 ms 开算得 80 ms TTFT；轨道 B 远端 3FS 取回 150 ms 到卡，在 30–150 ms 产生 120 ms 数据未就绪停顿，得 200 ms TTFT。下方拆解同为 150 ms 到卡的两类根因（远端读慢 vs 主机换入排队），底栏保留全部到齐基线与真实逐层重叠边界。
+size: [900, 450]
+pins:
+  - source: 'vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+    symbols:
+      - DeepSeek-V4.1-Flash

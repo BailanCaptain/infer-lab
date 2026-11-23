@@ -1,0 +1,12 @@
+mode: native-svg
+id: fine-grained-tp-fig-oproj-and-glm
+caption: >-
+  细粒度 TP 几何机理与 GLM 双机选型反例：上半展示 o_proj 沿 DP 组如何先用 All-to-All 只交换所需特征段（[a1,a2|a3,a4] 与 [b1,b2|b3,b4]）、本卡行切算部分和后再 Reduce-Scatter 送回；下半按比例对照 GLM 双机默认 TP8（151.25 MiB 机内 HCCS）与硬开细粒度组 2（605 MiB 膨胀 4 倍且跨机 RoCE）。
+size: [900, 492]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L258-L299'
+    symbols: ['OProjRowParallelOp']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L110-L149'
+    symbols: ['_create_or_get_group']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L830-L840'
+    symbols: ['finegrained_tp_config', 'oproj_tensor_parallel_size', 'mlp_tensor_parallel_size']

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 632" width="900" height="632" role="img" aria-label="双机 16 卡昇腾节点与互联立体拆解剖面图：展示 NODE 0 与 NODE 1 各 8 张 NPU、机内黄铜 HCCS 高速总线、梅紫 RoCE 网卡端口与中央以太交换机 SWITCH，对照机内 TP8、跨机 EP16 MC2/AllGather 张量域与主机 CPU gloo 控制同步分工" font-family="var(--font-sans)">
+  <title>双机 16 卡昇腾节点与物理互联立体拆解：NODE 0 与 NODE 1 内各有 8 张 NPU 经板内黄铜 HCCS 高速总线互联，承载机内高频 TP8 归约；两机通过梅紫 RoCE 设备网口与中央 SWITCH 交换机连通，承载跨机 EP16 MC2 派发/收回及 AllGather 路径下的 DP HCCL 张量通信（每步 DP 宽度与图模式对齐默认走主机 CPU gloo 控制通道）。</title>
+  <desc>关联源码符号：_init_worker_distributed_environment, init_distributed_environment, ensure_model_parallel_initialized, init_ascend_model_parallel, init_model_parallel_group</desc>
+
+  <!-- 紧裁透明底双机等距拆解剖面插画（1200x525 -> 800x350，零外层底框、零网格笼） -->
+  <image href="./wiki-illustrations/cann-hccl-two-node-cutaway.webp" x="50" y="138" width="800" height="350" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉垂直引线与双环靶点 -->
+  <!-- 1 -> NODE 0 机内 NPU 芯片阵列 -->
+  <line x1="186" y1="118" x2="186" y2="293" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="186" cy="293" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="186" cy="293" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> 中央以太交换机 SWITCH 剖面 -->
+  <line x1="440" y1="118" x2="440" y2="358" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="440" cy="358" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="440" cy="358" r="2.5" fill="#9a4b86"/>
+
+  <!-- 3 -> NODE 1 板内黄铜 HCCS 互联总线通道 -->
+  <line x1="649" y1="118" x2="649" y2="293" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="649" cy="293" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="649" cy="293" r="2.5" fill="#c78300"/>
+
+  <!-- 4 -> NODE 0 梅紫 RoCE 设备网口 -->
+  <line x1="353" y1="520" x2="353" y2="358" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="353" cy="358" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="353" cy="358" r="2.5" fill="#9a4b86"/>
+
+  <!-- 5 -> NODE 1 远端 8 卡 NPU 阵列 -->
+  <line x1="688" y1="520" x2="688" y2="370" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="688" cy="370" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="688" cy="370" r="2.5" fill="#4c65b6"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-node0">
+    <circle cx="26" cy="28" r="12" fill="#087f73"/>
+    <text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="46" y="33" font-size="15" font-weight="700" fill="#17211f">机内 8 卡与 TP8 域 (NODE 0)</text>
+    <text x="46" y="58" font-size="13.5" fill="#4d5652">单机 8 张 NPU 组成 <tspan font-family="var(--font-mono)" font-weight="700">rank 0–7</tspan> 机内组</text>
+    <text x="46" y="81" font-size="13.5" fill="#4d5652">逐层高频 <tspan font-family="var(--font-mono)" font-weight="700">All-Reduce</tspan> 严格留在机内</text>
+    <text x="46" y="104" font-size="13.5" fill="#065f56">避免把每层等待拖进跨机网络</text>
+  </g>
+
+  <g id="callout-switch">
+    <circle cx="316" cy="28" r="12" fill="#9a4b86"/>
+    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">跨机交换与桥接 (SWITCH)</text>
+    <text x="336" y="58" font-size="13.5" fill="#4d5652">以太交换机直连两机 NPU 设备端口</text>
+    <text x="336" y="81" font-size="13.5" fill="#4d5652">承载跨机 EP16 MC2 与张量 AllGather</text>
+    <text x="336" y="104" font-size="13.5" fill="#7a3a6a">多机启动前须双向 <tspan font-family="var(--font-mono)" font-weight="700">hccn_tool</tspan> 探测</text>
+  </g>
+
+  <g id="callout-hccs">
+    <circle cx="604" cy="28" r="12" fill="#c78300"/>
+    <text x="604" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="624" y="33" font-size="15" font-weight="700" fill="#17211f">机内高速互联 (HCCS 总线)</text>
+    <text x="624" y="58" font-size="13.5" fill="#4d5652">黄铜走线高速互连本机 8 张 NPU</text>
+    <text x="624" y="81" font-size="13.5" fill="#4d5652">区分：<tspan font-family="var(--font-mono)" font-weight="700">HCCL</tspan> 是库，<tspan font-family="var(--font-mono)" font-weight="700">HCCS</tspan> 是互联</text>
+    <text x="624" y="104" font-size="13.5" fill="#936300">具体走哪条链路还看拓扑与算法</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-roce">
+    <circle cx="26" cy="544" r="12" fill="#9a4b86"/>
+    <text x="26" y="548.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="46" y="549" font-size="15" font-weight="700" fill="#17211f">NPU 设备网口与张量面 (ROCE 端口)</text>
+    <text x="46" y="575" font-size="14" fill="#4d5652">每张 NPU 有独立设备 IP，主机 SSH 通不代表数据面互通</text>
+    <text x="46" y="601" font-size="13.5" fill="#4d5652">跨机配 DP HCCL 张量组；步宽对齐默认走主机 CPU gloo</text>
+  </g>
+
+  <g id="callout-node1">
+    <circle cx="468" cy="544" r="12" fill="#4c65b6"/>
+    <text x="468" y="548.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="549" font-size="15" font-weight="700" fill="#17211f">对端节点与全组 EP16 (NODE 1 · rank 8–15)</text>
+    <text x="488" y="575" font-size="14" fill="#4d5652">双机 16 卡合建全组 <tspan font-family="var(--font-mono)" font-weight="700">EP {0…15}</tspan>，路由专家横跨两节点</text>
+    <text x="488" y="601" font-size="14" fill="#4d5652">同一张卡同属 TP/DP/EP 多组，由 <tspan font-family="var(--font-mono)" font-weight="700">device_group</tspan> 选定</text>
+  </g>
+</svg>

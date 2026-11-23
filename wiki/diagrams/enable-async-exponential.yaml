@@ -10,7 +10,7 @@ pins:
     symbols: [do_async_exponential, set_q_event, b_s, float32]
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L146-L191'
     symbols: [logits.softmax, async_event.synchronize]
-  - source: 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2322'
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L2322'
     symbols: [execute_model, enable_async_exponential]
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537'
     symbols: [global_stream]

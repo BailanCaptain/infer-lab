@@ -1,8 +1,8 @@
 mode: native-svg
 id: ascend-950-architecture-fig-cv-vs-910b
 caption: >-
-  昇腾 950（A5）CV 融合子系统与 910B（A2/A3）分离核的片上通路与软硬件档案对照：上半部对比 910B 经核外 GM/L2 绕行（1024×FP32 逻辑读写 8,192 B）与 950 子系统（1 Cube + 2 Vector；L1 512 KB / L0A·B 各 64 KB / L0C 256 KB → 随路转换直通 UB 2×256 KB + NDDMA 5D 重排 + Buffer ID 同步）；下半部并列 950PR 与 950DT 关键规格档位及 v0.30.0 A5 HardwareProfile（原生 MXFP8 与未开 RUNTIME_CUSTOM_OPS）边界。
-size: [900, 470]
+  910B 分离核经 GM 绕行交接（4096 B 写 + 4096 B 读 = 8192 B）与昇腾 950 CV 融合子系统 L0C→UB 随路直通及 L1↔UB 片上通路结构对比，下方按同比例条展示 950PR（1.6 TB/s）与 950DT（4.0 TB/s）带宽差距及 v0.30.0 到 main 的 A5 HardwareProfile 演进。
+size: [900, 524]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L333-L381'
     symbols:

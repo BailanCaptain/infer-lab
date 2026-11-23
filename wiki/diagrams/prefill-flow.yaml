@@ -1,37 +1,8 @@
-layout: figure
+mode: native-svg
 id: prefill-flow
-caption: 本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取生成采样用行，提示词没算完的这次采样丢弃。额外要求提示词概率时另取行评分，不在图中生成行数里。圆圈编号对应请求主线的站。
-size: [880, 972]
-items:
-  - { at: [200, 20], size: [480, 58], text: ② 调度：本步数量 = 进度差, sub: 再被每组每步 8192 的预算和长度上限夹住, style: plain }
-  - { at: [200, 118], size: [480, 58], text: ③ runner 给这一批贴注意力状态标签, sub: 看每条请求算过没有、本步几个位置, style: plain }
-  - { at: [20, 220], size: [270, 70], text: 全是新提示词, sub: PrefillNoCache · R1 第 1 步, tone: token }
-  - { at: [305, 220], size: [270, 70], text: 全是 1 个确定 + 候选, sub: SpecDecoding · R1 第 2 步起, tone: token }
-  - { at: [590, 220], size: [270, 70], text: 混合批或续算的分块, sub: ChunkedPrefill · 场景 M 第 2 步, tone: token }
-  - { at: [200, 340], size: [480, 58], text: ④ 能回放 decode 图吗？, sub: 要求提示词都已算完、每条宽度整齐, style: plain }
-  - { at: [20, 450], size: [400, 62], text: 否：eager，逐个下发算子, sub: 含 prefill 的步都走这里, tone: control }
-  - { at: [460, 450], size: [400, 62], text: 是：回放启动时录好的图, sub: 尺寸 4…128，两组对齐后一起用, tone: control }
-  - { at: [200, 562], size: [480, 62], text: ④ 前向：同一套 45 层权重, sub: KDA 的 prefill 行分段算，decode 行逐位置递推, tone: weight }
-  - { at: [200, 674], size: [480, 62], text: ⑤ 生成采样取哪几行算词表分数？, sub: 没有候选取最后 1 行；有候选取 1 + 候选数行, style: plain }
-  - { at: [200, 786], size: [480, 58], text: 这条请求的提示词算完了吗？, style: plain }
-  - { at: [20, 890], size: [400, 62], text: 否：这次采样结果丢弃, sub: 分块 prefill 的中间段, tone: token, style: faded }
-  - { at: [460, 890], size: [400, 62], text: 是：得到输出 token, sub: prefill 的最后一段产出首 token, tone: token }
-links:
-  - { from: [440, 78], to: [440, 118] }
-  - { from: [320, 176], to: [155, 220], via: [[320, 198], [155, 198]] }
-  - { from: [440, 176], to: [440, 220] }
-  - { from: [560, 176], to: [725, 220], via: [[560, 198], [725, 198]] }
-  - { from: [155, 290], to: [320, 340], via: [[155, 315], [320, 315]] }
-  - { from: [440, 290], to: [440, 340] }
-  - { from: [725, 290], to: [560, 340], via: [[725, 315], [560, 315]] }
-  - { from: [320, 398], to: [220, 450], via: [[320, 424], [220, 424]] }
-  - { from: [560, 398], to: [660, 450], via: [[560, 424], [660, 424]] }
-  - { from: [220, 512], to: [320, 562], via: [[220, 537], [320, 537]] }
-  - { from: [660, 512], to: [560, 562], via: [[660, 537], [560, 537]] }
-  - { from: [440, 624], to: [440, 674] }
-  - { from: [440, 736], to: [440, 786] }
-  - { from: [320, 844], to: [220, 890], via: [[320, 867], [220, 867]] }
-  - { from: [560, 844], to: [660, 890], via: [[560, 867], [660, 867]] }
+caption: >-
+  表面宽度同为 4 的两步为何走向不同执行分支（GLM 双机 R1 + MTP 3 候选对照）：调度器统一按进度差分配 token_budget，执行侧按是否已有历史与提示词是否算完贴上 PrefillNoCache / SpecDecoding / ChunkedPrefill，决定能否回放 decode 整图、KDA 走分段并行还是逐位置递推、logits_indices 切 1 行还是 4 行，以及分块中间段采样结果的丢弃与回拨。
+size: [900, 538]
 pins:
   - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L400-L416
     symbols: [num_new_tokens, token_budget]

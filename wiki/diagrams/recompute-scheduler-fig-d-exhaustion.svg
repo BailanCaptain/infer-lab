@@ -1,43 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="RecomputeScheduler D 节点 KV 耗尽三路处置漏斗" font-family="var(--font-sans)">
-<title>RecomputeScheduler D 节点 KV 耗尽三路处置漏斗</title>
-<desc>D-node KV allocation failure decision branches in v0.30.0 and main: offload via PreemptOffloadConnector vs finish and return to P vs fine-grained TP abort, compared against vanilla local recompute</desc>
-<line x1="16" y1="300" x2="884" y2="300" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="48" width="868" height="72" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="148" width="276" height="132" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="312" y="148" width="276" height="132" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="608" y="148" width="276" height="132" rx="8" fill="#fff0e9" stroke="#b54237"/>
-<rect x="16" y="344" width="868" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-</g>
-<path d="M154 120v26m-4-5l4 5 4-5M450 120v26m-4-5l4 5 4-5M746 120v26m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="28" cy="22" r="13" fill="#4c65b6"/>
-<circle cx="28" cy="322" r="13" fill="#66716d"/>
-<g font-weight="700">
-<text x="28" y="27" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
-<text x="48" y="28" font-size="16" fill="#17211f">D 节点续块失败（allocate_slots 返回 None）后的三路分流（v0.30.0 / main）</text>
-<text x="32" y="74" font-size="15" fill="#3a4f93">前置守门：检查 pending frees 与即时可还块 → 按调度策略（含 PRIORITY）选出待让出请求</text>
-<text x="30" y="174" font-size="15" fill="#065f56">路线 A：卸载到主机内存</text>
-<text x="326" y="174" font-size="15" fill="#936300">路线 B：退回 P 节点重算</text>
-<text x="622" y="174" font-size="15" fill="#8f3229">路线 C：细粒度 TP 直接中止</text>
-<text x="28" y="327" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
-<text x="48" y="328" font-size="16" fill="#17211f">对照：普通上游 Scheduler 本机重算 &amp; 开启前提</text>
-</g>
-<g fill="#4d5652" font-size="13.5">
-<text x="32" y="102">调用 update_state_before_preempt()（异常捕获按失败处理）；若无可即时释放块则停止本轮抢占</text>
-<text x="30" y="200">• 钩子返回 True（主机块够）</text>
-<text x="30" y="224">• 记 PreemptedRequestData</text>
-<text x="30" y="248">• 还显存块、排回 waiting 队首</text>
-<text x="30" y="269" font-weight="600" fill="#065f56">• 步内禁接新单，恢复免重算</text>
-<text x="326" y="200">• 钩子返回 False / 无卸载器</text>
-<text x="326" y="224">• 正式 finish 引擎请求并还块</text>
-<text x="326" y="248">• 发 STOP + recomputed 标记</text>
-<text x="326" y="269" font-weight="600" fill="#936300">• 代理拼「原问题+已生成」投 P</text>
-<text x="622" y="200">• oproj 或 mlp 细粒度 TP &gt; 1</text>
-<text x="622" y="224">• 启动即强制配 PreemptOffload</text>
-<text x="622" y="248">• 运行时保存失败不走回 P 降级</text>
-<text x="622" y="269" font-weight="600" fill="#8f3229">• 直接置 FINISHED_ABORTED</text>
-<text x="32" y="370">• 上游默认（无本调度器）：还块清零排回 D 本地 waiting，挤占 D 端紧缩的 decode 步预算（拖慢或 OOM）</text>
-<text x="32" y="394">• 仅 PD 分离 D 节点（kv_consumer）；P 端误开警告关闭，混部报 ValueError；与 DyntraLB 组 4 专用类</text>
-<text x="32" y="418" fill="#66716d">• 静默覆写：v0.30.0 排后的 profiling_chunk / batch_job_sched 覆写调度类；main 去 profiling_chunk 并关 SWA</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 506" width="900" height="506" role="img" aria-label="RecomputeScheduler D 节点续块失败三路决策树与 D 预算挤压比例条" font-family="var(--font-sans)">
+  <title>RecomputeScheduler D 节点续块失败三路决策树与 64=60+4 预算挤压比例条</title>
+  <desc>RecomputeScheduler, _preempt_or_recompute, update_state_before_preempt, _finish_recomputed_request, FINISHED_ABORTED, recompute_scheduler_enable, PreemptOffloadConnector</desc>
+  <defs>
+    <marker id="rs1-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+    <marker id="rs1-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="rs1-arr-amber" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#c78300"/>
+    </marker>
+    <marker id="rs1-arr-danger" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: 3-Way Decision Funnel -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">D 节点续块失败（allocate_slots 返回 None）三路决策树（v0.30.0 / main）</text>
+
+  <!-- Step 1: Pending frees guard -->
+  <rect x="16" y="48" width="548" height="44" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="290" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">前置守门：检查 pending frees 与即时可还块 → 按策略（含 PRIORITY）选出请求</text>
+
+  <line x1="564" y1="70" x2="612" y2="70" stroke="#66716d" stroke-width="1.6" marker-end="url(#rs1-arr-ink)"/>
+  <rect x="618" y="48" width="266" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="751" y="75" text-anchor="middle" font-size="13.5" fill="#4d5652">无即时可还块 → 停止本轮抢占</text>
+
+  <!-- Step 2: Connector hook query -->
+  <line x1="450" y1="92" x2="450" y2="108" stroke="#17211f" stroke-width="1.7" marker-end="url(#rs1-arr-ink)"/>
+  <rect x="176" y="114" width="548" height="44" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="450" y="141" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">询问 update_state_before_preempt(req, blocks, computed)（异常捕获按失败）</text>
+
+  <!-- 3 Branch Arrows -->
+  <path d="M290 158 V176 H154 V190" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#rs1-arr-teal)"/>
+  <line x1="450" y1="158" x2="450" y2="190" stroke="#c78300" stroke-width="1.8" marker-end="url(#rs1-arr-amber)"/>
+  <path d="M610 158 V176 H746 V190" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#rs1-arr-danger)"/>
+
+  <!-- Branch A: Offload -->
+  <rect x="16" y="196" width="276" height="126" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="220" font-size="14.5" font-weight="700" fill="#065f56">路线 A · 主机卸载（返回 True）</text>
+  <rect x="30" y="232" width="248" height="30" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="154" y="252" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">显存块 ──D2H──▶ 主机 DRAM</text>
+  <text x="30" y="284" font-size="13.5" fill="#17211f">还显存块、排回 waiting 队首</text>
+  <text x="30" y="306" font-size="13.5" font-weight="700" fill="#065f56">步内禁新 · 排回搬回免重算</text>
+
+  <!-- Branch B: Return to P -->
+  <rect x="312" y="196" width="276" height="126" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="326" y="220" font-size="14.5" font-weight="700" fill="#936300">路线 B · 退回 P（False / 无卸载）</text>
+  <rect x="326" y="232" width="248" height="30" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="450" y="252" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">finish → STOP + recomputed 帧</text>
+  <text x="326" y="284" font-size="13.5" fill="#17211f">本步禁新，不走本地重算</text>
+  <text x="326" y="306" font-size="13.5" font-weight="700" fill="#936300">代理拼「原问题+已生成」投 P</text>
+
+  <!-- Branch C: Fine-grained TP Abort -->
+  <rect x="608" y="196" width="276" height="126" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="622" y="220" font-size="14.5" font-weight="700" fill="#8f3229">路线 C · 细粒度 TP 直接中止</text>
+  <rect x="622" y="232" width="248" height="30" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="746" y="252" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">oproj 或 mlp 实际分片 &gt; 1</text>
+  <text x="622" y="284" font-size="13.5" fill="#17211f">启动强制配 PreemptOffload</text>
+  <text x="622" y="306" font-size="13.5" font-weight="700" fill="#8f3229">保存失败直置 FINISHED_ABORTED</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="338" x2="884" y2="338" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: D-Budget Squeeze Proportional Bar (64 = 60 + 4) -->
+  <circle cx="24" cy="364" r="12" fill="#b54237"/>
+  <text x="24" y="368.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="370" font-size="16" font-weight="700" fill="#17211f">对照：为何不能在 D 本机重算？64 位置预算被 15 条 Decode 挤到只剩 4 位</text>
+
+  <!-- Exact proportional bar: total 868px = 64 tokens -> 60 tokens = 813.75px, 4 tokens = 54.25px -->
+  <rect x="16" y="390" width="812" height="38" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="422" y="414" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">其余 15 条在线 Decode 请求占满：15 × (1 + 3 草稿) = 60 个位置 / 步</text>
+
+  <rect x="830" y="390" width="54" height="38" rx="4" fill="#b54237" fill-opacity="0.24" stroke="#b54237" stroke-width="1.6"/>
+  <text x="857" y="414" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">余 4</text>
+
+  <!-- Consequence & Scope bar -->
+  <rect x="16" y="444" width="868" height="48" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="464" font-size="13.5" font-weight="700" fill="#8f3229">本机重算 6,400 个位置需 6,400 ÷ 4 = 1,600 步（关 chunked prefill 甚至无法接纳）</text>
+  <text x="30" y="484" font-size="13.5" fill="#4d5652">仅 PD 分离 D 节点启用（P 误开警告关闭，混部 ValueError）；与 DyntraLB 组 4 专用类，注意排后调度器静默覆写。</text>
 </svg>

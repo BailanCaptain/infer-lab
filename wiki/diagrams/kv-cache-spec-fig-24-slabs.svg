@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="GLM 一个物理块号横跨 12 片大页与 12 片小页显存的 24 片复用与空位图解" font-family="var(--font-sans)">
+  <title>GLM-5.3-Flash 单个物理块号 b（8,355,840 B ≈ 7.969 MiB）同时索引 12 片 655,360 B 大页与 12 片 40,960 B 小页显存的复用排布与空槽来源。</title>
+  <desc>上下两排展示单个物理块号 b 占住的 24 片独立 HBM 显存槽：上排 12 片大页（每片 655,360 B，合 7.500 MiB）由 12 层 MLA 与 3 个 KDA 组（12/11/11 层）按块号互斥复用，其中第 11 号大页在 KDA 第 1、2 组持块时为空；下排 12 片小页（每片 40,960 B，合 0.469 MiB）由 12 层 indexer K 与尾状态复用，KDA 组持块时全部 12 片小页闲置；底栏汇总单块号 7.969 MiB 与每卡 3,855 块口径。</desc>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">GLM 单块号解剖：占住 1 个块号 b = 同时占住 24 片显存的第 b 页（7.969 MiB）</text>
+
+  <!-- Bank 1: 12 Large Slabs (655,360 B each) -->
+  <rect x="14" y="40" width="872" height="162" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="64" font-size="14.5" font-weight="700" fill="#3a4f93">一、12 片大页显存（每片 655,360 B · 合计 7,864,320 B = 7.500 MiB）</text>
+  <text x="872" y="64" text-anchor="end" font-size="13" fill="#4d5652">full 组 MLA 与 3 个 KDA 组互斥复用</text>
+
+  <!-- 12 slab columns (x=28..872, 12 cols × 68px + 2px gap = 840px) -->
+  <rect x="28" y="76" width="66" height="60" rx="5" fill="#087f73"/>
+  <text x="61" y="98" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">大页 0</text>
+  <text x="61" y="122" text-anchor="middle" font-size="13" fill="#ddf4ef">M0/K3组</text>
+
+  <rect x="98" y="76" width="66" height="60" rx="5" fill="#087f73"/>
+  <text x="131" y="98" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">大页 1</text>
+  <text x="131" y="122" text-anchor="middle" font-size="13" fill="#ddf4ef">M1/K3组</text>
+
+  <rect x="168" y="76" width="66" height="60" rx="5" fill="#087f73"/>
+  <text x="201" y="98" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">大页 2</text>
+  <text x="201" y="122" text-anchor="middle" font-size="13" fill="#ddf4ef">M2/K3组</text>
+
+  <rect x="238" y="76" width="66" height="60" rx="5" fill="#087f73"/>
+  <text x="271" y="98" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">大页 3</text>
+  <text x="271" y="122" text-anchor="middle" font-size="13" fill="#ddf4ef">M3/K3组</text>
+
+  <rect x="308" y="76" width="280" height="60" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="448" y="102" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">大页 4 … 大页 9（同左 6 片）</text>
+  <text x="448" y="124" text-anchor="middle" font-size="13" fill="#4d5652">每片由对应 MLA 层与 3 个 KDA 组各 1 层复用</text>
+
+  <rect x="594" y="76" width="90" height="60" rx="5" fill="#087f73"/>
+  <text x="639" y="98" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">大页 10</text>
+  <text x="639" y="122" text-anchor="middle" font-size="13" fill="#ddf4ef">M10 / K3组</text>
+
+  <!-- Slab 11 highlighted: MTP MLA + KDA G0 only; KDA G1 & G2 leave it EMPTY! -->
+  <rect x="690" y="76" width="182" height="60" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="781" y="98" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">大页 11（边界空槽）</text>
+  <text x="781" y="122" text-anchor="middle" font-size="13" fill="#8f3229">MTP + KDA组0（组1/2 空！）</text>
+
+  <text x="28" y="162" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#065f56">full 组持有 b</tspan>：12 片大页存 12 层 MLA（640 tok = 5×128 kernel 块，零空白）</text>
+  <text x="28" y="184" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">KDA 组1/2 持有 b</tspan>：仅用前 11 片（每页 14.4% 补齐 + 大页 11 空）</text>
+
+  <!-- Bank 2: 12 Small Slabs (40,960 B each) -->
+  <rect x="14" y="216" width="872" height="150" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="28" y="240" font-size="14.5" font-weight="700" fill="#936300">二、12 片小页显存（每片 40,960 B · 合计 491,520 B = 0.469 MiB）</text>
+  <text x="872" y="240" text-anchor="end" font-size="13" fill="#4d5652">indexer K（160 条）与尾状态（4 格 FP32）复用</text>
+
+  <!-- 12 small slab visual strip -->
+  <rect x="28" y="254" width="128" height="44" rx="5" fill="#c78300"/>
+  <text x="92" y="281" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">小页 0 · 1</text>
+
+  <rect x="162" y="254" width="380" height="44" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="352" y="281" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">小页 2 … 小页 10（同层 indexer K / 尾状态共用）</text>
+
+  <rect x="548" y="254" width="100" height="44" rx="5" fill="#c78300"/>
+  <text x="598" y="281" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">小页 11</text>
+
+  <rect x="656" y="254" width="216" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="764" y="273" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">KDA 组持块时：12 片全空！</text>
+  <text x="764" y="291" text-anchor="middle" font-size="13" fill="#4d5652">（尾状态仅有效 4 KiB，90% 补齐）</text>
+
+  <text x="28" y="324" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#065f56">full 组持有 b</tspan>：同步用满 12 大页（MLA）+ 12 小页（indexer K）</text>
+  <text x="28" y="346" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#936300">尾状态组持有 b</tspan>：仅用 12 小页，12 大页闲置</text>
+
+  <!-- Bottom summary bar -->
+  <rect x="14" y="380" width="872" height="54" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="450" y="403" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">整块号单价 = 7,864,320 + 491,520 = <tspan font-family="var(--font-mono)" fill="#3a4f93">8,355,840 B（≈ 7.969 MiB / 块 / 卡）</tspan></text>
+  <text x="450" y="424" text-anchor="middle" font-size="12.5" fill="#4d5652">同一时刻块号 b 只发给 1 个组（绝不撞车）；按权重 21 GiB 算例整卡切 3,855 块，R1 首步拿 15 块（1 full + 2 尾 + 12 KDA）</text>
+</svg>

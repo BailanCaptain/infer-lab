@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 478" width="900" height="478" role="img" aria-label="v0.30.0 原生分块 FP8_BLOCK 跨卡显存倍增对比、0.90 与 0.92 录图余量条及 HardwareProfile 四家族能力矩阵" font-family="var(--font-sans)">
+  <title>原生 FP8_BLOCK 跨卡命运、显存水位 0.92 余量变化与 HardwareProfile 四家族矩阵</title>
+  <desc>Proportional 1x MXFP8 vs 2x BF16 silent dequant vs main NotImplementedError bars for FP8_BLOCK, 64 GiB 0.90 vs 0.92 capture-margin comparison, and A2/A3/310P/A5 HardwareProfile matrix</desc>
+
+  <!-- Section 1: FP8_BLOCK Weight Footprint Proportional Bars -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">一、同一份原生分块 FP8 权重（float8_e4m3fn + weight_scale_inv）在不同卡上的真实显存</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">横条按每参数驻留字节等比绘制</text>
+
+  <!-- Row 1: Ascend 950 (A5) -->
+  <text x="16" y="66" font-size="14" font-weight="700" fill="#065f56">昇腾 950 (A5)</text>
+  <text x="16" y="86" font-size="13.5" fill="#4d5652">v0.30.0 &amp; main</text>
+  <rect x="166" y="48" width="260" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="296" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">1× · 合格层 MXFP8（约 1 B/参）</text>
+  <text x="440" y="68" font-size="13.5" font-weight="700" fill="#065f56">合格线性/MoE 层重定量 MXFP8（32 元素共享 E8M0）</text>
+  <text x="440" y="88" font-size="13.5" fill="#4d5652">注意力吸收层与归约维不整除层保留浮点 model_dtype</text>
+
+  <!-- Row 2: Atlas A2 / A3 in v0.30.0 (2x width!) -->
+  <text x="16" y="124" font-size="14" font-weight="700" fill="#936300">Atlas A2 / A3</text>
+  <text x="16" y="144" font-size="13.5" fill="#936300">v0.30.0 正式版</text>
+  <rect x="166" y="106" width="520" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <line x1="426" y1="106" x2="426" y2="150" stroke="#c78300" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="426" y="133" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2× · 静默反量化回 BF16（约 2 B/参数 · 显存翻倍）</text>
+  <text x="700" y="126" font-size="13.5" font-weight="700" fill="#8f3229">能跑通但极易挤爆 KV</text>
+  <text x="700" y="146" font-size="13.5" fill="#4d5652">无 FP8 加速，走普通 GEMM</text>
+
+  <!-- Row 3: Atlas A2 / A3 in main -->
+  <text x="16" y="182" font-size="14" font-weight="700" fill="#8f3229">Atlas A2 / A3</text>
+  <text x="16" y="202" font-size="13.5" fill="#8f3229">main 演进红线</text>
+  <rect x="166" y="164" width="718" height="42" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="525" y="190" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">✗ _require_fp8_weight_matmul() 硬门控直接抛 NotImplementedError（改用 BF16 或 ModelSlim 权重）</text>
+
+  <line x1="16" y1="224" x2="884" y2="224" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Section 2 Left: 64 GiB 0.90 vs 0.92 Margin Bar -->
+  <text x="16" y="252" font-size="15.5" font-weight="700" fill="#17211f">二、显存水位 0.90 vs 源码默认 0.92（64 GiB 示意）</text>
+
+  <!-- u = 0.90 bar (total width 392px from x=16..408) -->
+  <text x="16" y="280" font-size="13.5" font-weight="700" fill="#065f56">手传 u = 0.90（保守食谱）</text>
+  <rect x="16" y="288" width="353" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="192" y="311" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">预算池 57.60 GiB（90%）</text>
+  <rect x="371" y="288" width="52" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="397" y="311" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">6.4G</text>
+
+  <!-- u = 0.92 bar -->
+  <text x="16" y="352" font-size="13.5" font-weight="700" fill="#8f3229">默认 u = 0.92（CacheConfig 源码值）</text>
+  <rect x="16" y="360" width="363" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="197" y="383" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">预算池 58.88 GiB（92%）</text>
+  <rect x="381" y="360" width="42" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="402" y="383" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">5.1G</text>
+
+  <rect x="16" y="410" width="407" height="54" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="28" y="433" font-size="13.5" font-weight="700" fill="#8f3229">较手传 0.90，预算外余量少 1.28 GiB（6.40→5.12G）</text>
+  <text x="28" y="454" font-size="13.5" fill="#4d5652">大档位 FULL_DECODE_ONLY 录图建议显式传 0.90</text>
+
+  <!-- Section 2 Right: HardwareProfile 4-Family Matrix -->
+  <text x="452" y="252" font-size="15.5" font-weight="700" fill="#17211f">三、HardwareProfile 四家族能力档案</text>
+
+  <rect x="452" y="268" width="432" height="30" rx="5" fill="#ece9df"/>
+  <g font-size="13.5" font-weight="700" fill="#17211f">
+    <text x="464" y="288">家族</text>
+    <text x="556" y="288" text-anchor="middle">BF16 / 图</text>
+    <text x="670" y="288" text-anchor="middle">原生 FP8</text>
+    <text x="798" y="288" text-anchor="middle">CUSTOM_OPS</text>
+  </g>
+
+  <rect x="452" y="302" width="432" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1"/>
+  <text x="464" y="325" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">A2 / A3</text>
+  <text x="556" y="325" text-anchor="middle" font-size="13.5" fill="#065f56">✓ 全支持</text>
+  <text x="670" y="325" text-anchor="middle" font-size="13.5" fill="#936300">回退 BF16</text>
+  <text x="798" y="325" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ 启用</text>
+
+  <rect x="452" y="344" width="432" height="36" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1"/>
+  <text x="464" y="367" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">_310P</text>
+  <text x="556" y="367" text-anchor="middle" font-size="13.5" fill="#8f3229">FP16 · 无 EX</text>
+  <text x="670" y="367" text-anchor="middle" font-size="13.5" fill="#8f3229">✗ 不支持</text>
+  <text x="798" y="367" text-anchor="middle" font-size="13.5" fill="#17211f">兼容档案</text>
+
+  <rect x="452" y="386" width="432" height="36" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="464" y="409" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">A5 (950)</text>
+  <text x="556" y="409" text-anchor="middle" font-size="13.5" fill="#3a4f93">✓ 全支持</text>
+  <text x="670" y="409" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ MXFP8</text>
+  <text x="798" y="409" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">30.0 关/main 开</text>
+
+  <text x="452" y="452" font-size="13.5" fill="#4d5652">统一以 <tspan font-family="var(--font-mono)">HardwareCapability</tspan> 契约替代旧版零散 <tspan font-family="var(--font-mono)">is_310p()</tspan> 分支</text>
+</svg>

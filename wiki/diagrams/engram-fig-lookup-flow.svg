@@ -1,91 +1,113 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Engram 条件记忆单步执行链：N-gram 哈希、按头分片查表与门控融合" font-family="var(--font-sans)">
-  <title>Engram 条件记忆单步执行链：N-gram 哈希、按头分片查表反量化、EDP/TP 归集与门控残差融合。</title>
-  <desc>五步开放式流图：1. 由当前块、lookback 滑窗与 SWA 槽位缓存拼出短语前文，遇 image/dead 标记截断，算 N-gram int32 哈希 ID；2. 视 dp_shared_memory 决定是否经 EDP All-Gather 汇集哈希 ID；3. 本地按头分片查表并按组 32 反量化为 BF16（HBM 或 Host UVA 指针表或远程 HIXL 缓冲）；4. 经 EDP AllToAll 与 TP All-Gather 拼齐全部头；5. 经 ReplicatedLinear wkv 与门控融合回残差流。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Engram 条件记忆 N-gram 短语哈希查表几何流与三笔独立内存账对照图" font-family="var(--font-sans)">
+  <title>Engram 条件记忆：N-gram 哈希稀疏查表反量化、EDP 旁路与三笔独立内存账</title>
+  <desc>Geometric N-gram sliding window with image dead-mask cut, dp_shared_memory EDP bypass, sparse 32-row hit from 10^8-row read-only table via Triton CHUNK_ROWS pointer table, EDP AllToAll / TP All-Gather, wkv gate, and 3-account comparison</desc>
   <defs>
-    <marker id="egf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    <marker id="egf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
-    <marker id="egf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    <marker id="egf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
     </marker>
-    <marker id="egf-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    <marker id="egf-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
     </marker>
-    <marker id="egf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    <marker id="egf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单步主干流：从短语哈希到门控融合（仅取命中行，不搬整表）</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- ZONE 1: Geometric Lookup Flow -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 单步稀疏查表流：从 N-gram 哈希到门控融合（仅反量化命中行，绝不搬整表）</text>
 
-  <!-- Step 1: N-gram Hash -->
-  <rect x="12" y="56" width="202" height="148" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="26" y="82" font-size="15" font-weight="700" fill="#065f56">1. 构造 N-gram 哈希</text>
-  <text x="26" y="106" font-size="13.5" fill="#17211f">前文来源：当前块 + lookback</text>
-  <text x="26" y="128" font-size="13.5" fill="#17211f">窗口 + SWA 槽位历史</text>
-  <text x="26" y="154" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">engram_dead_mask</text>
-  <text x="26" y="176" font-size="13.5" fill="#4d5652">遇图片/死标记截断前文</text>
-  <text x="26" y="196" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">[T, L, (N-1)·H] int32</text>
+  <!-- Step 1: N-gram Sliding Window + Dead Mask -->
+  <rect x="14" y="44" width="204" height="176" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="116" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">1. 滑窗拼 N-gram 哈希</text>
+  <!-- Mini token cells showing <img/> dead-mask cut -->
+  <rect x="24" y="80" width="48" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="48" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">img</text>
+  <line x1="77" y1="76" x2="77" y2="112" stroke="#b54237" stroke-width="2" stroke-dasharray="3 2"/>
+  <rect x="83" y="80" width="40" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="103" y="99" text-anchor="middle" font-size="13.5" fill="#065f56">t−2</text>
+  <rect x="127" y="80" width="40" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="147" y="99" text-anchor="middle" font-size="13.5" fill="#065f56">t−1</text>
+  <rect x="171" y="80" width="38" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="190" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">t</text>
+  <text x="24" y="134" font-size="13.5" fill="#8f3229" font-weight="700">dead_mask 遇图截断前文</text>
+  <text x="24" y="156" font-size="13.5" fill="#4d5652">来源：当前块+lookback+SWA</text>
+  <text x="24" y="178" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">[T, L, (N-1)·H] int32</text>
+  <text x="24" y="202" font-size="13.5" fill="#66716d">填充位填 −1 防串请求</text>
 
-  <!-- Arrow 1->2 -->
-  <path d="M 214 130 L 238 130" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#egf-arr-t)"/>
+  <!-- Step 2: Fork (Shared Bypass vs EDP All-Gather) -->
+  <path d="M 218 106 L 238 86" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#egf-arr-t)"/>
+  <path d="M 218 158 L 238 178" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#egf-arr-p)"/>
 
-  <!-- Step 2: Hash Gather / Shard -->
-  <rect x="244" y="56" width="204" height="148" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
-  <text x="258" y="82" font-size="15" font-weight="700" fill="#7a3a6a">2. 跨副本哈希汇集</text>
-  <text x="258" y="106" font-size="13.5" fill="#17211f">非共享 EDP 分片表：</text>
-  <text x="258" y="128" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">EDP All-Gather</text>
-  <text x="258" y="152" font-size="13.5" fill="#17211f">已开 dp_shared_memory：</text>
-  <text x="258" y="174" font-size="13.5" font-weight="700" fill="#065f56">跳过！每卡直接查本地</text>
-  <text x="258" y="196" font-size="13.5" fill="#4d5652">免除每步 EDP 哈希通信</text>
+  <rect x="242" y="46" width="162" height="72" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="323" y="70" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">dp_shared_memory</text>
+  <text x="323" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">直通！跳过集合通信</text>
+  <text x="323" y="110" text-anchor="middle" font-size="13.5" fill="#4d5652">每副本直查共享表</text>
 
-  <!-- Arrow 2->3 -->
-  <path d="M 448 130 L 472 130" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#egf-arr-p)"/>
+  <rect x="242" y="142" width="162" height="76" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="323" y="166" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">非共享 EDP 分片</text>
+  <text x="323" y="188" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">EDP All-Gather</text>
+  <text x="323" y="208" text-anchor="middle" font-size="13.5" fill="#4d5652">跨副本汇集哈希号</text>
 
-  <!-- Step 3: Shard Lookup + Dequant -->
-  <rect x="478" y="56" width="204" height="148" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="492" y="82" font-size="15" font-weight="700" fill="#3a4f93">3. 按头分片查表反量化</text>
-  <text x="492" y="106" font-size="13.5" fill="#17211f">每卡仅管 local_heads 段</text>
-  <text x="492" y="128" font-size="13.5" fill="#17211f">Triton 核按分块指针表直读</text>
-  <text x="492" y="152" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">INT8/FP32 | MXFP8</text>
-  <text x="492" y="174" font-size="13.5" fill="#4d5652">仅命中行反量化进 HBM</text>
-  <text x="492" y="196" font-size="13.5" fill="#4d5652">越界/无效 ID 输出全 0</text>
+  <path d="M 404 86 L 424 106" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#egf-arr-t)"/>
+  <path d="M 404 178 L 424 158" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#egf-arr-p)"/>
 
-  <!-- Arrow 3->4 -->
-  <path d="M 682 130 L 706 130" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#egf-arr-b)"/>
+  <!-- Step 3: Huge Read-Only Table with Sparse 32-row Hit -->
+  <rect x="428" y="44" width="244" height="176" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="550" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">2. 分片巨表稀疏查行</text>
+  <!-- Visual table grid showing 3 tiny hit lines out of huge table -->
+  <rect x="444" y="80" width="212" height="72" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="448" y="92" width="204" height="10" rx="2" fill="#087f73"/>
+  <rect x="448" y="114" width="204" height="10" rx="2" fill="#087f73"/>
+  <rect x="448" y="134" width="204" height="10" rx="2" fill="#087f73"/>
+  <text x="550" y="174" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">示意：10⁸ 行(26.8 GiB) 仅取 32 行</text>
+  <text x="550" y="194" text-anchor="middle" font-size="12.5" fill="#4d5652">Triton 分块指针表(2²²行/块)</text>
+  <text x="550" y="212" text-anchor="middle" font-size="12" fill="#065f56">INT8/MXFP8 → 仅 16 KiB BF16 进 HBM</text>
 
-  <!-- Step 4: Exchange + Gate -->
-  <rect x="712" y="56" width="176" height="148" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-  <text x="726" y="82" font-size="15" font-weight="700" fill="#936300">4. 归集与门控融合</text>
-  <text x="726" y="106" font-size="13.5" fill="#17211f">EDP AllToAll（若分片）</text>
-  <text x="726" y="128" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">TP All-Gather</text>
-  <text x="726" y="152" font-size="13.5" font-family="var(--font-mono)" fill="#936300">wkv -&gt; key, value</text>
-  <text x="726" y="174" font-size="13.5" fill="#17211f">门控加权回残差流</text>
-  <text x="726" y="196" font-size="13.5" fill="#4d5652">A5 走融合门控核</text>
+  <path d="M 672 132 L 692 132" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#egf-arr-b)"/>
 
-  <!-- Lower band: Key Distinction (Engram Table vs KV Cache) -->
-  <text x="14" y="244" font-size="16" font-weight="700" fill="#17211f">二、关键区分：为什么 Engram 表 ≠ KV Cache（三笔独立内存账）</text>
-  <line x1="12" y1="256" x2="888" y2="256" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Step 4: Exchange + wkv Gate into Residual -->
+  <rect x="696" y="44" width="190" height="176" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="791" y="68" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">3. 归集与门控融合</text>
+  <rect x="708" y="80" width="166" height="32" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="791" y="101" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">EDP AllToAll（若分片）</text>
+  <rect x="708" y="118" width="166" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="791" y="139" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">TP All-Gather 拼齐头</text>
+  <rect x="708" y="156" width="166" height="52" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="791" y="177" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">wkv → key, value</text>
+  <text x="791" y="198" text-anchor="middle" font-size="13.5" fill="#4d5652">门控融合加回残差流</text>
 
-  <rect x="12" y="272" width="280" height="154" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="26" y="298" font-size="15" font-weight="700" fill="#3a4f93">Engram 条件记忆表（只读参数）</text>
-  <text x="26" y="324" font-size="13.5" fill="#17211f">• 归属：模型权重，跨请求共享只读</text>
-  <text x="26" y="348" font-size="13.5" fill="#17211f">• 大小：固定常数，不随上下文增长</text>
-  <text x="26" y="372" font-size="13.5" fill="#17211f">• 访问：按 N-gram 哈希随机稀疏查行</text>
-  <text x="26" y="396" font-size="13.5" fill="#3a4f93">→ 适合放 Host DRAM / 跨实例共享</text>
+  <line x1="14" y1="238" x2="886" y2="238" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <rect x="310" y="272" width="280" height="154" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="324" y="298" font-size="15" font-weight="700" fill="#065f56">请求 KV Cache（动态历史状态）</text>
-  <text x="324" y="324" font-size="13.5" fill="#17211f">• 归属：每条请求私有，运行期读写</text>
-  <text x="324" y="348" font-size="13.5" fill="#17211f">• 大小：随并发数与上下文长度增长</text>
-  <text x="324" y="372" font-size="13.5" fill="#17211f">• 访问：每步连续写入、读前文块表</text>
-  <text x="324" y="396" font-size="13.5" fill="#065f56">→ 卸载 Engram 不会顺带搬走 KV</text>
+  <!-- ZONE 2: 3-Account Comparison Strip (Zero Bullets!) -->
+  <text x="14" y="264" font-size="16" font-weight="700" fill="#17211f">② 三笔独立内存账对照：卸载 Engram 表不会顺带搬走 KV Cache，也不会归零 HBM 缓冲</text>
 
-  <rect x="608" y="272" width="280" height="154" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="622" y="298" font-size="15" font-weight="700" fill="#8f3229">查表瞬时产物（NPU HBM 缓冲）</text>
-  <text x="622" y="324" font-size="13.5" fill="#17211f">• 仅命中行在 HBM 物化为 BF16</text>
-  <text x="622" y="348" font-size="13.5" fill="#17211f">• HIXL 路径另开有界接收缓冲</text>
-  <text x="622" y="372" font-size="13.5" fill="#17211f">• 上限 capacity ≤ 262,144 行</text>
-  <text x="622" y="396" font-size="13.5" fill="#8f3229">→ 仍留 TP 归集与层内投影显存</text>
+  <!-- Account 1 -->
+  <rect x="14" y="280" width="280" height="146" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="154" y="306" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">Engram 条件记忆表</text>
+  <rect x="28" y="318" width="252" height="28" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1"/>
+  <text x="154" y="337" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">只读模型参数 · 体积恒定</text>
+  <text x="28" y="368" font-size="13.5" fill="#17211f">全请求共享，每步仅随机触达极少行</text>
+  <text x="28" y="392" font-size="13.5" fill="#4d5652">放 Host DRAM 或跨实例 Owner 池</text>
+  <text x="28" y="414" font-size="13.5" font-weight="700" fill="#3a4f93">省容量，但各副本查表带宽仍叠加</text>
+
+  <!-- Account 2 -->
+  <rect x="310" y="280" width="280" height="146" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="450" y="306" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">请求动态 KV Cache</text>
+  <rect x="324" y="318" width="252" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
+  <text x="450" y="337" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">每请求私有 · 随长度增长</text>
+  <text x="324" y="368" font-size="13.5" fill="#17211f">运行期持续追加与按块表连续读取</text>
+  <text x="324" y="392" font-size="13.5" fill="#4d5652">与 Engram 卸载开关、生命周期独立</text>
+  <text x="324" y="414" font-size="13.5" font-weight="700" fill="#065f56">cpu_offload 腾出 HBM 留给 KV</text>
+
+  <!-- Account 3 -->
+  <rect x="606" y="280" width="280" height="146" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="746" y="306" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">查表瞬时产物（HBM）</text>
+  <rect x="620" y="318" width="252" height="28" rx="4" fill="#ffffff" stroke="#b54237" stroke-width="1"/>
+  <text x="746" y="337" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">仅命中行物化为 BF16</text>
+  <text x="620" y="368" font-size="13.5" fill="#17211f">单步算完门控后即可释放复用</text>
+  <text x="620" y="392" font-size="13.5" fill="#4d5652">HIXL 路径另开有界缓冲 ≤262,144 行</text>
+  <text x="620" y="414" font-size="13.5" font-weight="700" fill="#8f3229">仍保留 TP 归集与层内投影显存</text>
 </svg>

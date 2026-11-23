@@ -1,0 +1,17 @@
+mode: native-svg
+id: structured-output-fig-async-sampling
+caption: >-
+  异步调度下三轨时间线（EngineCore CPU / NPU 前向 / NPU 采样）：当批次内存在带结构化约束的 decode 请求时，本步 NPU 前向仍提前派发并与 CPU 填 bitmask 重叠，但整批采样必须等上一步采样回传、文法推进、非法草稿截断补 −1 与 bitmask 填表全部完成才发出，同批无约束请求也随之一起等待。
+size: [900, 380]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L505-L596'
+    symbols:
+      - execute_model
+      - get_grammar_bitmask
+      - sample_tokens
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L12-L35'
+    symbols:
+      - AsyncScheduler
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1745-L1795'
+    symbols:
+      - validate_tokens

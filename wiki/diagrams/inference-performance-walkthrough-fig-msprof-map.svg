@@ -1,82 +1,134 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="msprof 与服务日志三层时间线拼接地图：通过 request_id、step 与 rank 串联客户端 SSE、调度批次与 NPU 执行" font-family="var(--font-sans)">
-  <title>msprof 与服务日志三层时间线阅读地图（以 D/N 混合步 step=42 为示意）</title>
-  <desc>Three-layer timeline stitching map for msprof/torch_npu profiler and service logs via request_id, step, and rank</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="msprof 与服务日志三层统一时间轴地图：按 request_id、step=42 与 rank 对齐客户端 SSE、调度交接与 NPU 执行，并诚实标出 620 到 650 ms 待细分区间" font-family="var(--font-sans)">
+  <title>msprof 与服务记录统一时间轴地图（D/N 混合步 step=42 示意）</title>
+  <desc>Shared horizontal time axis (390-660 ms) aligning Client SSE (request_id=D), Scheduler/Handoff (step=42), and NPU Trace (rank=0..N), with 430-620 ms device execution and 620-650 ms un-subdivided return interval</desc>
   <defs>
-    <marker id="ipw-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="ipw-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="ipw-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ipw-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
     </marker>
   </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">msprof / 服务记录三层时间线阅读图：用三个主键把一次 240 ms 停顿钉死到真因</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">先关联主键，切忌挑最长算子乱猜</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">msprof / 服务记录三层统一时间轴：用三个主键把 240 ms 停顿钉到对应区段</text>
+  <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">同一水平时间尺（教学示意 · 2.5 px/ms）</text>
 
-  <!-- Track 1: Client SSE -->
-  <rect x="16" y="48" width="144" height="72" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="88" y="77" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">① 客户端 SSE</text>
-  <text x="88" y="102" text-anchor="middle" font-size="13.5" fill="#3a4f93">键：request_id</text>
+  <!-- Shared Horizontal Time Axis (390 ms -> 660 ms : x = 180 + (t-390)*2.5) -->
+  <line x1="176" y1="54" x2="878" y2="54" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ipw-arr)"/>
+  <g stroke="#4d5652" stroke-width="1.2">
+    <line x1="205" y1="49" x2="205" y2="59"/>
+    <line x1="280" y1="49" x2="280" y2="59"/>
+    <line x1="455" y1="49" x2="455" y2="59"/>
+    <line x1="705" y1="49" x2="705" y2="59"/>
+    <line x1="755" y1="49" x2="755" y2="59"/>
+    <line x1="830" y1="49" x2="830" y2="59"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="13.5" fill="#4d5652" text-anchor="middle">
+    <text x="205" y="44">400</text>
+    <text x="280" y="44" font-weight="700" fill="#065f56">430</text>
+    <text x="455" y="44">500</text>
+    <text x="705" y="44">600</text>
+    <text x="755" y="44" font-weight="700" fill="#065f56">620</text>
+    <text x="838" y="44" font-weight="700" fill="#8f3229">650 ms</text>
+  </g>
 
-  <line x1="176" y1="84" x2="876" y2="84" stroke="#b8bcb5" stroke-width="1.5"/>
-  <circle cx="220" cy="84" r="6" fill="#087f73"/>
-  <text x="220" y="68" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">410 ms 收到上词</text>
-  <rect x="234" y="70" width="526" height="28" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
-  <text x="497" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">客户端可观测停顿窗口 = 240 ms（410 → 650 ms）</text>
-  <circle cx="774" cy="84" r="6" fill="#087f73"/>
-  <text x="774" y="68" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">650 ms 下词</text>
+  <!-- Vertical alignment guides across all 3 tracks -->
+  <g stroke="#d8d8cf" stroke-width="1.1" stroke-dasharray="4 4">
+    <line x1="230" y1="62" x2="230" y2="332"/>
+    <line x1="280" y1="62" x2="280" y2="332"/>
+    <line x1="755" y1="62" x2="755" y2="332"/>
+    <line x1="830" y1="62" x2="830" y2="332"/>
+  </g>
+  <!-- Counterfactual 450 ms guide -->
+  <line x1="330" y1="248" x2="330" y2="314" stroke="#b54237" stroke-width="1.3" stroke-dasharray="3 3"/>
 
-  <!-- Track 2: Scheduler & EngineCore -->
-  <rect x="16" y="138" width="144" height="76" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="88" y="168" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">② 调度与队列</text>
-  <text x="88" y="193" text-anchor="middle" font-size="13.5" fill="#936300">键：step=42</text>
+  <!-- Track 1: Client SSE (request_id = D) -->
+  <rect x="16" y="72" width="146" height="60" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="89" y="98" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">① 客户端 SSE</text>
+  <text x="89" y="121" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#3a4f93">request_id=D</text>
 
-  <rect x="184" y="144" width="236" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="302" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">SchedulerOutput (step=42)</text>
-  <text x="302" y="194" text-anchor="middle" font-size="13.5" fill="#4d5652">D: 1 pos + N: 1200 pos</text>
+  <line x1="180" y1="106" x2="868" y2="106" stroke="#b8bcb5" stroke-width="1.4"/>
+  <rect x="230" y="92" width="600" height="28" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="530" y="111" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">客户端可观测停顿窗口 = 240 ms（410 → 650 ms）</text>
+  <circle cx="230" cy="106" r="6" fill="#087f73"/>
+  <text x="230" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">410 上词</text>
+  <circle cx="830" cy="106" r="6" fill="#087f73"/>
+  <text x="830" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">650 下词</text>
 
-  <rect x="444" y="144" width="222" height="62" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="4 3"/>
-  <text x="555" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#4d5652">异步调度交错警示</text>
-  <text x="555" y="194" text-anchor="middle" font-size="13.5" fill="#66716d">CPU 已在准备 step=43</text>
+  <!-- Track 2: Scheduler & Handoff (step = 42) -->
+  <rect x="16" y="154" width="146" height="66" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="89" y="182" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">② 调度与交接</text>
+  <text x="89" y="206" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#936300">step=42</text>
 
-  <rect x="688" y="144" width="196" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="786" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">OutputProcessor</text>
-  <text x="786" y="194" text-anchor="middle" font-size="13.5" fill="#4d5652">620→650 ms (30 ms)</text>
+  <!-- N arrives at 400 ms -->
+  <circle cx="205" cy="182" r="4.5" fill="#c78300"/>
+  <text x="205" y="168" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">N 到</text>
 
-  <!-- Track 3: NPU trace_view.json -->
-  <rect x="16" y="232" width="144" height="76" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="88" y="262" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">③ NPU Trace</text>
-  <text x="88" y="287" text-anchor="middle" font-size="13.5" fill="#065f56">键：rank=0..N</text>
+  <!-- Step 42 scheduling block (410..430 ms -> x=230..280) -->
+  <rect x="230" y="162" width="50" height="40" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="255" y="187" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">42</text>
+  <text x="255" y="220" text-anchor="middle" font-size="13.5" fill="#936300">D:1 + N:1200</text>
 
-  <rect x="184" y="242" width="84" height="54" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="226" y="274" text-anchor="middle" font-size="13.5" fill="#4d5652">纯 D 20ms</text>
+  <!-- Async overlap during 430..620 ms -->
+  <rect x="286" y="162" width="463" height="40" rx="5" fill="#ece9df" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="517" y="187" text-anchor="middle" font-size="13.5" fill="#4d5652">异步调度交错区：CPU 已提前准备 step=43（时刻接近 ≠ 同一批次）</text>
 
-  <rect x="280" y="240" width="400" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
-  <text x="480" y="265" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">NPU 执行混合步 step=42：430 → 620 ms（190 ms）</text>
-  <text x="480" y="287" text-anchor="middle" font-size="13.5" fill="#065f56">trace_view.json + kernel_details.csv · 核对全 rank</text>
+  <!-- Honest un-subdivided 620..650 ms (30 ms) interval -->
+  <rect x="755" y="162" width="75" height="40" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="792" y="187" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">30 ms</text>
+  <line x1="792" y1="202" x2="792" y2="213" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="884" y="229" text-anchor="end" font-size="13.5" font-weight="700" fill="#7a3a6a">待细分区间（服务发送 / 代理转发 / 客户端读取）</text>
 
-  <rect x="692" y="242" width="192" height="54" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="788" y="266" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">解码 + SSE 发送</text>
-  <text x="788" y="287" text-anchor="middle" font-size="13.5" fill="#4d5652">不归入模型计算时间</text>
+  <!-- Track 3: NPU Trace (rank = 0..N) -->
+  <rect x="16" y="246" width="146" height="66" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="89" y="274" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">③ NPU Trace</text>
+  <text x="89" y="298" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">rank=0..N</text>
 
-  <!-- Vertical stitching arrows -->
-  <line x1="302" y1="206" x2="302" y2="236" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ipw-arr)"/>
-  <line x1="680" y1="238" x2="720" y2="208" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ipw-arr)"/>
+  <!-- Previous pure D step (20 ms -> x=180..230) -->
+  <rect x="180" y="256" width="50" height="40" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="205" y="281" text-anchor="middle" font-size="13.5" fill="#4d5652">纯 D</text>
+  <text x="205" y="315" text-anchor="middle" font-size="13.5" fill="#66716d">20 ms</text>
 
-  <line x1="16" y1="328" x2="884" y2="328" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Device execution bar 430..620 ms (190 ms -> x=280..755) -->
+  <rect x="280" y="252" width="475" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="517" y="274" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">设备执行混合步 step=42：430 → 620 ms（190 ms）</text>
+  <text x="517" y="294" text-anchor="middle" font-size="13.5" fill="#065f56">trace_view.json + kernel_details.csv · 按 step 核对全部参与 rank</text>
+
+  <!-- Post-device interval 620..650 ms -->
+  <rect x="755" y="256" width="75" height="40" rx="5" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="792" y="281" text-anchor="middle" font-size="13.5" fill="#66716d">已结束</text>
+  <text x="884" y="315" text-anchor="end" font-size="13.5" fill="#66716d">不归入模型计算</text>
+
+  <!-- Counterfactual 450 ms note -->
+  <text x="336" y="321" font-size="13.5" fill="#8f3229">↑ 若 450 ms 已算完，200 ms 等在返回链</text>
+
+  <!-- Vertical stitching arrows showing key chain -->
+  <line x1="274" y1="202" x2="292" y2="248" stroke="#087f73" stroke-width="1.5" marker-end="url(#ipw-teal)"/>
+  <line x1="755" y1="250" x2="770" y2="206" stroke="#9a4b86" stroke-width="1.5" marker-end="url(#ipw-plum)"/>
+
+  <line x1="16" y1="344" x2="884" y2="344" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
   <!-- Bottom: 3-way split -->
-  <text x="16" y="356" font-size="15.5" font-weight="700" fill="#17211f">证据一变，方向立刻变：三段切分决定下一步动作</text>
+  <text x="16" y="372" font-size="15.5" font-weight="700" fill="#17211f">证据一变，方向立刻变：三段切分决定下一步动作</text>
 
-  <rect x="16" y="372" width="276" height="82" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="30" y="399" font-size="14.5" font-weight="700" fill="#936300">没轮到计算（未进 step=42）</text>
-  <text x="30" y="423" font-size="13.5" fill="#4d5652">查等待队列、KV 抢占与 DP 路由</text>
-  <text x="30" y="443" font-size="13.5" fill="#936300">→ 勿先调分块或改算子</text>
+  <rect x="16" y="388" width="276" height="106" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="414" font-size="14.5" font-weight="700" fill="#936300">没轮到计算（未进 step=42）</text>
+  <text x="30" y="440" font-size="13.5" fill="#4d5652">查等待队列、KV 抢占与 DP 路由</text>
+  <text x="30" y="464" font-size="13.5" fill="#4d5652">先确认到达率与各组积压是否偏斜</text>
+  <text x="30" y="485" font-size="13.5" font-weight="700" fill="#936300">→ 勿先调分块或改算子</text>
 
-  <rect x="312" y="372" width="276" height="82" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="326" y="399" font-size="14.5" font-weight="700" fill="#065f56">混合步很长（430→620 ms）</text>
-  <text x="326" y="423" font-size="13.5" fill="#4d5652">查 N 分块预算、图回退与 MC2 切换</text>
-  <text x="326" y="443" font-size="13.5" fill="#065f56">→ 做 A/B 分块实验并守 TTFT 边界</text>
+  <rect x="312" y="388" width="276" height="106" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="326" y="414" font-size="14.5" font-weight="700" fill="#065f56">混合步很长（430 → 620 ms）</text>
+  <text x="326" y="440" font-size="13.5" fill="#4d5652">查 N 分块预算、图回退与 MC2 切换</text>
+  <text x="326" y="464" font-size="13.5" fill="#4d5652">同步核对全 rank 是否存在单卡迟到</text>
+  <text x="326" y="485" font-size="13.5" font-weight="700" fill="#065f56">→ 做 A/B 分块实验并守 TTFT 边界</text>
 
-  <rect x="608" y="372" width="276" height="82" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="622" y="399" font-size="14.5" font-weight="700" fill="#8f3229">450 ms 已算完，650 ms 才收到</text>
-  <text x="622" y="423" font-size="13.5" fill="#4d5652">查反分词、反代缓冲与客户端读取</text>
-  <text x="622" y="443" font-size="13.5" fill="#8f3229">→ 继续缩小预算毫无收益</text>
+  <rect x="608" y="388" width="276" height="106" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="622" y="414" font-size="14.5" font-weight="700" fill="#8f3229">450 ms 已算完，650 ms 才收到</text>
+  <text x="622" y="440" font-size="13.5" fill="#4d5652">拆解待细分区间的三个真实交接点：</text>
+  <text x="622" y="464" font-size="13.5" fill="#4d5652">服务发送 / 代理缓冲 / 客户端读取</text>
+  <text x="622" y="485" font-size="13.5" font-weight="700" fill="#8f3229">→ 继续缩小预算毫无收益</text>
 </svg>

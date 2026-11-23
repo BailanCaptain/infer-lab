@@ -1,8 +1,8 @@
 mode: native-svg
 id: reading-vllm-ascend-fig-5step-trail
 caption: >-
-  从入口到设备核函数的 5 步源码走读路径：先锁定双仓库 commit 与 HardwareProfile，再依次穿过「入口点与平台注册 → 配置合并与平台改写 → Runner 输入准备与设备迁移 → 6 类扩展点与分派解析 → 底层算子与图回放同步边界」，将任意问题写成可核验的输入输出与生效条件。
-size: [900, 474]
+  5 步源码走读流水线与三条问题路线对照：用色点标出数据流、配置流、实现流分别穿过的环节（锁双仓版本与 HardwareProfile → v0.30.0/main 配置 Pydantic 校验、FLASHCOMM1 等逻辑 OR 合并及旧版 JSON 覆盖与条件 patch → Runner V1/V2 输入准备与设备迁移 → 6 类扩展分派 → 设备核函数与异步同步边界），底部列出按符号跨版本核验命令与静态证据边界。
+size: [900, 468]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L72-L110'
     symbols:

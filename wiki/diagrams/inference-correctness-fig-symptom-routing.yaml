@@ -1,0 +1,21 @@
+mode: native-svg
+id: inference-correctness-fig-symptom-routing
+caption: >-
+  输出异常四类症状切入点与 Runtime Guard 取证规则：（一）沿「模型 Logits → 采样选 ID → 增量反分词/停止串缓冲 → Tool/Reasoning 解析器 → 客户端 SSE 拼接」五站标出 NaN、重复、乱码与空输出的真实切入点；（二）展示 main MRV2 Runtime Guard 热更新 manual_dump 的递增水位语义（设为 1→触发第 1 波，升至 2→再触发，勿一次写 100）。
+size: [900, 462]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L80-L165'
+    symbols:
+      - stop_buffer_length
+      - min_tokens
+  - source: 'vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L130-L170'
+    symbols:
+      - tool_parser
+      - reasoning_parser
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L15-L145'
+    symbols:
+      - runtime_guard_step
+      - runtime_guard_sample_tokens
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/detector/manager.py#L55-L95'
+    symbols:
+      - DetectorManager

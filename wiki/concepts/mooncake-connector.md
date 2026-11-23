@@ -221,12 +221,22 @@ sources:
   - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707"
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L899'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1020-L1044'
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1410-L1436'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L237-L270'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L730-L746'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L789-L835'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058'
+  - 'vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835'
+  - 'vllm-ascend@c09d3e20:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1059-L1072'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L156-L185'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1788-L2130
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162'
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L241-L312'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L945-L968'
@@ -258,7 +268,7 @@ relations:
     kind: builds-on
     note: 多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
@@ -288,7 +298,7 @@ file: mooncake-connector
 
 1. **对表。** 两端先确定「P 的 7 号对 D 的 3 号，P 的 12 号对 D 的 5 号」。D 的 3、5 号是它为这条请求预先分好、还空着的目的块。
 2. **按层搬。** 一个块号在每一层都对应一段显存，所以「搬一块」其实是把这一块在 3 层里的 3 段字节各搬一次：层 0 进层 0，层 1 进层 1。
-3. **完成通知。** 最后一层到齐以后，一端通知另一端：D 这才开始用这些状态往下生成；V1 里 P 也要等到这个通知，才把源块还回自己的块池。
+3. **完成通知（按协议分叉）。** 并非统一等到「最后一层到齐」后同一步放行：V1 里由 D 结束读取尝试，无论成败都通知 P 释放源块，同时 D 再按成败结果判定能否开算；Layerwise 里由 P 写完最后一层后回调通知 D 放行，而旧 Layerwise 的 P 本身不走请求级押块。
 
 对表和按层搬，昇腾上有两种做法：
 
@@ -488,16 +498,47 @@ $$T_{\text{saved}} = (L - 1) \times t_{\text{xfer}} = (3 - 1) \times 0.5 = 1\tex
 
 ## V2 的“接收完成”，是否代表读成功？
 
-**完成读取尝试与取得可用数据是两件事。** V2 沿用 D 主动拉取的方向，但把握手与请求完成的汇合移到调度侧：P 汇总各阶段、各 TP worker 的层名与地址；D 按同名层、本地缓存规格和实际头分片组织读取并提交网络读。符合交接条件的 P 请求保留源块，D 的各 worker 结束尝试后，由 D 调度侧发一次请求级释放通知，P 才将请求交回通常的还块入口；收不到通知则走到期释放。
+先用下面这张图把三件事放在同一视图里对照：顶栏是前面讲的 `base + block × stride` 地址换算与连续段合并，中栏把 V2 的三条独立完成事件拆成三条泳道，底栏补充刚才讲的 D2RH 两跳如何提前解套 P 源块：
+
+```wiki-diagram
+file: mooncake-connector-fig-addr-and-completion
+```
+
+**完成读取尝试与取得可用数据是两件事。** V2 沿用 D 主动拉取的方向，但把握手与请求完成的汇合移到调度侧。P 汇总各阶段、各 TP worker 的层名与地址；D 按同名层、本地缓存规格和实际头分片组织并提交网络读。符合交接条件的 P 请求保留源块，D 各 worker 结束尝试后，由 D 调度侧发一次请求级释放通知，P 才交回通常还块入口；收不到通知则走到期释放。
 
 - **早期社区主干缺口：** 早期主干只在单缓存组时标记无效块，多缓存组读取失败仅记录告警，随后仍将请求放进“接收完成”集合。**因此混合模型不能仅凭这个完成标志判断状态可用，也不能假定它会自动进入重算**；分组、地址和块数各自正确，不足以弥补失败没有传到调度器的问题。
 - **`v0.30.0` 与当前 `main` 的分离上报：** 两版都把“完成”与“失败”分开上报，任一读取失败或后台异常都会记下受影响请求。汇合完各 worker 后，调度器再按失败策略处理：默认让请求报错结束；显式开启且允许重算时，清零已算计数并在再次调度前处理原目的块。无论报错还是重算，D 都要通知 P 结束源块占用——释放通知只说明 P 可回收资源，不承诺 D 的结果成功（详见页末）。
+
+## 真机实测：Ascend 910B3 上 ADXL 传输剖面与两份报错标本
+
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + ADXL `AscendDirectTransport`）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通端到端闭环，再以均匀 `262`-token 输入 / `128`-token 输出实测了 `Qwen3-8B` `2P2D` 与 `Qwen3-30B-A3B` `4P4D` 的真实分段读取、传输段耗时与回退日志，并留档了两份真实配置报错标本（完整日志与基线表见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)，PD 端到端压测与配比讨论见 [PD 分离页](pd-disaggregation.md#真机实测ascend-910b3-上短输入-pd-首词放大与-eager-组合劣化)）：
+
+```wiki-diagram
+file: pd-fig-910b3-short-prompt-and-eager-trap
+```
+
+| 观测维度（`Ascend 910B3`，`MooncakeConnectorV1` ADXL，均匀 `262`-tok 输入） | `Qwen3-8B` `2P2D`（`TP=2`） | `Qwen3-30B-A3B` `4P4D`（`TP=4+EP=4`） |
+| --- | --- | --- |
+| 每请求单 rank 离散地址段与字节 | **`216` 段**（`3` 块 × `36` 层 × K/V），**`27 MiB/rank`**（`28,311,552 B`） | 按 `48` 层与 `TP=4` 切分，四 rank 并行拉取 |
+| `c=1` `batch_transfer_sync_read` 耗时（并行 rank） | `207.49 / 346.74 ms`（两 rank） | `11.38 / 16.64 / 15.42 / 16.45 ms`（最慢 **`16.64 ms`**） |
+| `c=16` 请求最慢 rank 传输中位数 | `115.04 ms` | `11.43 ms` |
+| D 端 `Dest buffer device_id >= endpoint count ... falling back` 告警 | `4,991` 行 | `19,941` 行 |
+| 端到端 `c=1` TTFT 增量（相对混部） | `+637.58 ms`（`125.84 → 763.42 ms`，`6.07×`） | `+396.97 ms`（`331.10 → 728.07 ms`，`2.20×`） |
+| 端到端 `c=1` TPOT（`PD + --enforce-eager` 组合对照） | `150.59 ms`（较混部 Graph `1.729×`） | `307.83 ms`（较混部 Graph `3.952×`，后 127 步多 `29.20 s`） |
+
+从连接器视角可以读出三条直接结论：
+
+1. **段数算式在真机日志中逐字节闭合。** `262` tokens 占满 `3` 个 `128`-token 逻辑块，`Qwen3-8B` 共 `36` 层、每层 K/V 两份，于是 D 端每条地址列表严格包含 $3 \times 36 \times 2 = 216$ 段，总载荷 `28,311,552 B`（`27 MiB/rank`）。同时源码计时从构建 `src_list / dst_list / length_list` 前启动，各 rank 并行读取，不能把多个 rank 的毫秒数相加。
+2. **不能把 TTFT 放大全部记作“纯网络传输”，也不能把 127 步解码劣化记给连接器。** `30B c=1` 最慢 rank 传输段仅 `16.64 ms`，端到端 `TTFT` 却净增 `+396.97 ms`（`2.20×`，对比 `8B 2P2D` 对 `TP=2` 为 `6.07×`），余量涉及两跳代理（P 端 `max_tokens=1` → D 端二次建流）、D 端高达 `19,941` 行的 ADXL endpoint 回退告警，以及同步改变的 `--enforce-eager`、关闭 prefix cache 与 `max_model_len=16384` 等配置。后续 `127` 步累计多出的 `29.20 s` 发生在单次 KV 移交完成之后的 D 端逐 token 执行路径上；该组属于同时改变拆池拓扑、`--enforce-eager`、prefix cache、`max_model_len=16384` 及 30B `u: 0.88→0.85`（8B 另含 DEBUG 日志）的多参数组合对照，MoE 48 层细粒度算子链在无图路径下暴露更多发射与同步环节，纯 PD 与纯 Eager 各自独立占比仍待同拓扑单变量实验拆分。
+3. **两份真机启动配置报错标本（`v0.30.0`）：**
+   - **标本 `err1`（非 MLA 整除断言）**：在 `Ascend 910B3` 配置 `prefill_tp_size=2, decode_tp_size=4`（`2 % 4 != 0`），直接命中普通 PD 配置校验（`ascend_config.py`），由 Pydantic 拦截抛出 `ValidationError: Assertion failed, Prefill TP size must be divisible by Decode TP size.`。
+   - **标本 `err2`（`MooncakeConnectorV2` 拒绝 `kv_both`）**：传入 `MooncakeConnectorV2` 与 `kv_role="kv_both"` 时，注册表解析为 `MooncakePullConnector`，在 worker 初始化阶段命中单一角色守卫（`base_worker.py`）立即抛出 `ValueError: Mooncake worker requires exactly one KV transfer role, got 'kv_both'`，避免了 V1 传入 `kv_both` 后静默挂死的陷阱。
 
 ## 复杂异构实战对照：GLM 双机为何未启用与静态换算
 
 ### 放到 GLM 双机：这套部署没有开 Mooncake 连接器
 
-**官方双机的启动配置里没有 KV 传输这一项，调度器和 16 个 worker 里一个连接器都不会造。两台机器是两个 DP 执行组，各自既做 prefill 也做 decode，KV cache 只在本机块池里分配和回收。** 部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)。下面按[PD 分离页的拆法](pd-disaggregation.md#把这两台机器拆成一-p-一-d)，假设一台做 P、一台做 D、两边都 TP8、用 V1，换算连接器在这套硬件上怎样配对、搬什么；这是读源码得出的换算，没有实测。
+前面讲的是标准单组 KV 与通用 PD 拓扑下的 Mooncake 交接协议。下面切入**例外 B 历史绑定算例**[官方 GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：它的启动配置里没有 KV 传输项，调度器和 16 个 worker 里一个连接器都不会造。两台机器是两个 DP 执行组，各自既做 prefill 也做 decode，KV cache 只在本机块池分配回收。下面沿用[PD 分离页的拆法](pd-disaggregation.md#把这两台机器拆成一-p-一-d)，假设一台做 P、一台做 D、两边都 TP8、用 V1，换算连接器在这套硬件上怎样配对、搬什么（均为读源码静态换算，无实测）。
 
 没开的痕迹在主线里也看得到：每一步开头，两个 DP 组会互报 token 数做一次 All-Reduce（见[并发页](concurrent-requests.md#再补到两组的最大值)）。对 GLM 这类 MoE 模型，只有在 KV 消费者（D）一侧且满足 [MC2](one-request.md#moe-通信走-mc2-还是-allgather) 条件时才会省掉它；本部署未配 KV 传输，因此每步照常执行。
 
@@ -522,7 +563,9 @@ $$B_{\text{full,total}} = 8 \times 1 \times 8{,}355{,}840\text{ B} = 66{,}846{,}
 
 一块 8,355,840 B 的来历见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。这里假设两边按 640 个位置的逻辑块对上了块大小；钉住版本在 GLM 上报给 D 的块大小取的是各组里最小的 4，D 端可能先断言失败，长提示词还会少传块，见 [PD 分离页](pd-disaggregation.md#钉住版本里长提示词交接时-full-组会少传块)。
 
-KDA 状态不一样：34 层 KDA 按头切到 8 张卡，每张卡读的是自己那 8 个头的状态，没有重复。每条请求在 3 个 KDA 组里各占 4 块（含 MTP 候选槽），但源码对递推状态组每层只搬一块两段：按「请求在组里的块数 − 推测 token 数 − 1」挑出 P 的那一块，搬进 D 为该组分的第一块。搬运只传卷积和递推两段有效字节，不传补齐——每层 561,152 B（卷积 36,864 B + 递推 524,288 B），而非补齐后的 655,360 B（两数见 [KV cache 页](kv-cache.md#混合模型到底要保留哪几类状态)）。每张 D 卡 34 层合计 19,079,168 B ≈ 18.2 MiB，比它从 full 组读的 7.97 MiB 还多一倍多（按源码换算，无实测，缺 D 端传输日志对数）。
+KDA 状态不一样：34 层 KDA 按头切到 8 张卡，每张卡只读自己那 8 个头的状态，没有重复。虽然每条请求在 3 个 KDA 组里各占 4 块（含 MTP 候选槽），但源码对递推状态组每层只搬一块两段——按 `请求在组里的块数 − 推测 token 数 − 1` 挑出 P 端当前有效块，搬进 D 端该组首块。
+
+搬运只传卷积和递推两段有效字节，跳过页补齐：每层 561,152 B（卷积 36,864 B + 递推 524,288 B），而非补齐后的 655,360 B（两数见 [KV cache 页](kv-cache.md#混合模型到底要保留哪几类状态)）。每张 D 卡 34 层合计 19,079,168 B ≈ 18.2 MiB，比从 full 组读的 7.97 MiB 还多一倍多（按源码换算，无实测，缺 D 端传输日志对数）。
 
 #### 押着的块会占 P 的块池多久
 
@@ -575,7 +618,8 @@ GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但�
 ### 会报什么错
 
 - 缺 `prefill` 或 `decode` 的 `tp_size`、`dp_size`：worker 初始化时 `AssertionError`；D 的 `pp_size` 不是 1：`decode pp size must be 1`。
-- 非 MLA 模型 P 的 TP 不能被 D 的 TP 整除：`Prefill TP size must be divisible by Decode TP size.`。有效正整数配置下，P 的 TP 小于 D 时也先触发这道整除检查；不能把后面的 `pd_tp_ratio == 0` 报错当成必然先出现的日志。
+- 非 MLA 模型 P 的 TP 不能被 D 的 TP 整除：`Prefill TP size must be divisible by Decode TP size.`（`vllm-ascend@c09d3e20` `ascend_config.py#L879-L884`）。八卡 `Ascend 910B3` 已以 `2 % 4 != 0` 实机复现该标本 `err1`，在 `VllmConfig` 初始化期由 Pydantic 直接抛出 `ValidationError`；有效正整数配置下 P 的 TP 小于 D 时也先触发这道整除检查，不能把后面的 `pd_tp_ratio == 0` 报错当成必然先出现的日志。
+- `MooncakeConnectorV2`（`v0.30.0` 解析为 `MooncakePullConnector`）传入 `kv_both`：调度侧校验抛 `ValueError: Mooncake scheduler requires exactly one KV transfer role, got 'kv_both'`，worker 侧在 `base_worker.py#L116` 抛 `ValueError: Mooncake worker requires exactly one KV transfer role, got 'kv_both'`；八卡 `Ascend 910B3` 已实机复现标本 `err2`（外层报 `Engine core initialization failed`，原始栈见不可变快照 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1870-L2130`）。
 - `v0.30.0` / `main` 下 GQA + C8 KV 量化配普通 `MooncakeConnector`：`ValueError: MooncakeConnector does not support C8 KV cache quantization on GQA models...`（需关闭 C8 或改用先量化再发送的 `MooncakeLayerwiseConnector`）。
 - `v0.30.0` / `main` 下 PD 分离或 KV 池同开 `DCP > 1` 且交错块大小不等：`AssertionError: cp_kv_cache_interleave_size(...) and block_size(...) needs to be equal if DCP is enabled in P/D disaggregate and kv pool scenario.`。
 - V1 的递推状态组 P 的 TP 小于或不能整除 D 的 TP：`Mamba prefill TP size must be >= decode TP size.` 等断言；Hybrid 遇到递推状态且两边 TP 不同：`Mooncake connector does not support different TP size with Mamba.`
@@ -634,8 +678,9 @@ V2 地址登记、按层/阶段匹配、实际网络读和调度侧释放见 120
 | 传输引擎与登记 | `utils/mooncake_transfer_engine.py`：`GlobalTE`；区间上限与超时在 `utils/utils.py` |
 | Layerwise | `kv_p2p/mooncake_layerwise_connector.py`：`update_state_after_alloc`（报给代理）、`save_kv_layer`、`KVCacheSendingLayerThread` |
 | Hybrid | `kv_p2p/mooncake_hybrid_connector.py` |
-| P、D 的 TP 比与 GQA+C8 校验 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899`（`pd_tp_ratio`/`pd_head_ratio`）、`#L1020-L1044`（`_check_mooncake_c8_kv_cache_quant`）；`main (8d6180e2)` 见 `#L945-L968`、`#L1138-L1162` |
-| `v0.30.0` / `main` D 端 `PP=1`、DCP 交错对齐与 V2/Push 路由 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250`、`platform.py#L1410-L1436`、`mooncake/connector.py#L237-L270`、`mooncake/pull_scheduler.py#L730-L746`；`vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162`、`mooncake/connector.py#L241-L312`、`platform.py#L1666-L1692` |
+| P、D 的 TP 比与 GQA+C8 校验 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L899`（`pd_tp_ratio`/`pd_head_ratio` 与实机标本 `err1`）、`#L1020-L1044`（`_check_mooncake_c8_kv_cache_quant`）；`main (8d6180e2)` 见 `#L945-L968`、`#L1138-L1162` |
+| `v0.30.0` / `main` D 端 `PP=1`、DCP 交错对齐与 V2/Push 路由 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250`、`platform.py#L1410-L1436`、`mooncake/connector.py#L237-L270`、`mooncake/base_worker.py#L110-L120`（实机标本 `err2`）、`mooncake/pull_scheduler.py#L730-L746`；`vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162`、`mooncake/connector.py#L241-L312`、`platform.py#L1666-L1692` |
+| `v0.30.0` 传输计时、代理两跳与 910B3 实测标本 | `vllm-ascend@c09d3e20`: `mooncake_connector.py#L789-L835, #L1040-L1058`、`examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L819-L835, #L1059-L1072`、`ops/fused_moe/moe_comm_method.py#L156-L185`；实测日志与 `err1`/`err2` 原始栈见 `raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1079-L1390, #L1788-L2130` 与[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) |
 | 池的 Mooncake 后端 | `kv_pool/ascend_store/backend/mooncake_backend.py` |
 
 **来源索引。** 接口分调度侧、worker 侧两半，一个进程只启用一半 [C1]；调度侧的几个方法与基类默认不押块 [C3]；只有配了 KV 传输才造连接器 [C5]；调度器的押块判断 [C7]；完成名单处理与等待队列跳过分别见来源 8、9；V1 的调度侧记账与交回参数 [C15][C16]；登记、起线程与按角色字符串分线程 [C17]；地址簿字段 [C18]；地址算式与批量读 [C19]；拉取份数与 extra config 断言 [C20]；押块超时 [C21]；传输引擎初始化与只登记一次 [C24]；传输超时公式与区间上限检查 [C25][C26]，上限常量 256 见来源 65；Layerwise 的 D 先报代理、P 不押块、逐层写与最后一层回调 [C27][C28][C29]；Hybrid 的等 TP 断言 [C34]；启动时的 TP 整除检查 [C35]；池后端复用传输引擎 [C36]；main 的 V2 与推送版 [C42]；递推状态组每层只搬一块、两段 [C48]；Hybrid 的握手端口基址与上下文并行断言（钉住版本 PCP × DCP = 1、main 只限 DCP）与 v0.26 上游接口新增的方法，行号在来源第 49–56 条。两种连接器的流程出自设计文档 [S44]，配置写法出自单机教程 [S45]，逐层池文档的后端要求与 main 的改写见 [S46][S47]。示意数与 R1、押块比例的换算 [D]；「押着的块抢占碰不到」由抢占只遍历运行队列、押块请求已移出运行队列推断 [I]。传输引擎和 Mooncake Store 的完整内部实现尚未核完；本页核对昇腾侧调用方式，本轮补核的 Store SDK 初始化、内存预算和 SSD 责任链见 [KV Pool](kv-pool.md#上游-mooncakestore池跟着推理进程还是独立持有)。按地址直接读写、两端握手与按名字定位的总体设计另参照固定的 Mooncake 官方资料。
@@ -650,7 +695,7 @@ AscendStore 与 `MooncakeConnectorStoreV1` 指向同一类，见注册表来源 
 - 固定 GLM 的逐层名称断言及实际 KDA 缺少 hook 已按源码定位；修复后的整体兼容性尚无设备验证。新版 Kimi K3 的等待/保存入口不能作为旧 GLM 已支持的证据。
 - 固定 GLM 的 V1 静态登记为 24 段；实际地址对齐、注册结果和其他布局仍缺启动日志。
 - Layerwise 的 D 侧 PCP>1 已由初始化断言拒绝；允许配置下的端口绑定与网络连通性仍缺设备启动日志。
-- 待核：上面「会报什么错」列出的报错都没有在双机上触发过，缺实际日志原文。
+- 待核：除 `err1`（`ascend_config.py#L879-L884` 整除断言）与 `err2`（`MooncakeConnectorV2` `base_worker.py#L116` 拒 `kv_both`）已在八卡 `Ascend 910B3` 实机复现并留档外，其余报错条目（如 Mamba TP 校验、256 段上限、GLM Layerwise 名称断言与超时）尚未在双机上实际触发，仍缺原始日志。
 
 固定 layerwise 连接器按层索引登记缓存名称，断言同一索引只出现一次；名称含 `mtp` 的项先跳过检查，再登记到最大索引之后（来源 31）。这是名称映射的局部规则，其他模型或预测配置还须满足各自的形状与拓扑条件。
 

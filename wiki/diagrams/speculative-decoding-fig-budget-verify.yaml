@@ -1,13 +1,13 @@
 mode: native-svg
 id: speculative-decoding-fig-budget-verify
-caption: Speculative Decoding 的 1+K 验证预算与前缀接受/拒绝收场机制（按位置 KV 下步原地覆盖 vs 递推状态 K+1 份槽位按接受数选取），以及保分布拒绝采样与昇腾 FIA 上限(1+K≤16)和 ACLGraph 对齐约束。
-size: [900, 456]
+caption: Speculative Decoding 状态收场与昇腾硬件标尺：上半区展示按位置 KV 退回进度后下步原地覆盖槽 8，与 KDA 递推层预留 K+1=4 份状态槽并按有效数 a 取第 a−1 份的两种收场机制；下半区以真实刻度标尺展示昇腾 FIA 单轮 1+K≤16 上限、ACLGraph 4 的倍数录图尺寸及 12 条请求下空跑补齐放大 4 倍的代价。
+size: [900, 480]
 pins:
-  - source: 'vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L715-L790'
-    symbols: ['rejection_greedy_sample_kernel', 'rejection_random_sample_kernel']
-  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1045-L1065'
-    symbols: ['num_spec_tokens', 'padded_num_tokens']
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436'
+    symbols: ['num_computed_tokens', 'num_rejected']
   - source: 'vllm@ced6857a:vllm/config/compilation.py#L1545-L1575'
     symbols: ['adjust_cudagraph_sizes_for_spec_decode']
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L525-L540'
     symbols: ['decode_threshold', 'reorder_batch_threshold']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L594-L670'
+    symbols: ['num_accepted_tokens']

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="RFork 显存切片半开区间登记、存储换绑保活与主草共享排除区间示意图" font-family="var(--font-sans)">
+  <title>RFork 显存登记四元组、存储换绑保活与草稿共享排除：上栏用半开区间 [1000, 2024) 承载逻辑视图 [1128, 1256) 展示 Ex 批量登记四元组；中栏展示后处理换绑新存储时为何必须保活登记那一刻的原始 storage owner；下栏对比主/草稿共享排除区间的完全覆盖、完全独立与部分跨界拒绝三种情形。</title>
+  <desc>关联源码符号：register_memory_region, batch_register_memory_ex, can_reuse_shared_weights, unregister_memory_region</desc>
+  <defs>
+    <marker id="st-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="st-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="st-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="st-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- 区域 1：半开区间与 Ex 登记四元组 -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 半开区间登记：逻辑视图 [1128, 1256) 落在支撑块 [1000, 2024) 之内（示意地址）</text>
+
+  <!-- 整个支撑块条 (x=24..576 对应 1000..2024, 1024B -> 552px) -->
+  <rect x="24" y="48" width="552" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="36" y="69" font-size="13.5" font-weight="700" fill="#3a4f93">分配器支撑块（Backing Block）：半开区间 [1000, 2024)，长 1024 B</text>
+
+  <!-- 逻辑权重 W (1128..1256 占其中一段) -->
+  <rect x="94" y="76" width="136" height="26" rx="4" fill="#c78300" stroke="#936300" stroke-width="1.2"/>
+  <text x="162" y="94" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">W: [1128, 1256)</text>
+
+  <!-- 同块另一张量（演示同块多段） -->
+  <rect x="296" y="76" width="128" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="360" y="94" text-anchor="middle" font-size="13.5" fill="#936300">同块另一段（有空洞）</text>
+
+  <!-- 端点刻度 -->
+  <text x="24" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">1000</text>
+  <text x="94" y="124" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">1128</text>
+  <text x="230" y="124" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">1256</text>
+  <text x="576" y="124" text-anchor="end" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">2024（不含）</text>
+
+  <!-- 右侧：Ex 注册四元组摘要卡 -->
+  <rect x="598" y="44" width="286" height="88" rx="6" fill="#f5f3ec" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="612" y="68" font-size="14" font-weight="700" fill="#17211f">batch_register_memory_ex 四元组</text>
+  <text x="612" y="92" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#936300">(1128, 128, 1000, 1024)</text>
+  <text x="612" y="114" font-size="13.5" fill="#4d5652">引擎只读写逻辑段；每批 ≤ 4096 项</text>
+
+  <!-- 分隔线 -->
+  <line x1="16" y1="148" x2="884" y2="148" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 区域 2：存储换绑时的旧 holder 保活 -->
+  <text x="16" y="176" font-size="16" font-weight="700" fill="#17211f">② 存储换绑保活：后处理替换 W 的存储后，为什么不能只保住 Python 张量对象？</text>
+
+  <!-- 左侧：Tensor W 换绑 -->
+  <rect x="16" y="196" width="154" height="54" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="93" y="219" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">模型参数 W</text>
+  <text x="93" y="239" text-anchor="middle" font-size="13.5" fill="#4d5652">后处理把数据换新</text>
+
+  <!-- 箭头指向新存储 -->
+  <line x1="170" y1="214" x2="246" y2="214" stroke="#087f73" stroke-width="1.7" marker-end="url(#st-arr-teal)"/>
+  <text x="208" y="206" text-anchor="middle" font-size="13.5" fill="#065f56">新指针</text>
+
+  <rect x="248" y="194" width="212" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="354" y="221" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">新存储 S_new（模型当前在用）</text>
+
+  <!-- 断开的旧指针 + 旧存储 S_old -->
+  <path d="M 93 250 L 93 292 L 246 292" fill="none" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#st-arr-red)"/>
+  <text x="168" y="284" text-anchor="middle" font-size="13.5" fill="#8f3229">原引用已断开</text>
+
+  <rect x="248" y="264" width="212" height="58" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="354" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">旧存储 S_old（MR 已登记地址）</text>
+  <text x="354" y="309" text-anchor="middle" font-size="13.5" fill="#4d5652">无人引用会被分配器回收复用！</text>
+
+  <!-- 右侧：RFork 双保活列表锁住 S_old -->
+  <line x1="462" y1="292" x2="516" y2="292" stroke="#4c65b6" stroke-width="1.8" marker-start="url(#st-arr-indigo)"/>
+
+  <rect x="518" y="194" width="366" height="128" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="534" y="218" font-size="14.5" font-weight="700" fill="#3a4f93">RFork 双保活列表（防传输期间悬空读）</text>
+  <text x="534" y="244" font-size="13.5" fill="#17211f">1. 保活列表 A：登记时收集到的张量对象</text>
+  <text x="534" y="268" font-size="13.5" font-weight="700" fill="#3a4f93">2. 保活列表 B：登记那一刻取出的原始 storage owner</text>
+  <text x="534" y="292" font-size="13.5" fill="#4d5652">直到确认 unregister 或 finalize 成功才放手；</text>
+  <text x="530" y="312" font-size="12.5" fill="#8f3229">因此草稿换用主词表后，旧双词表（302.5 MiB）仍钉在卡上</text>
+
+  <!-- 分隔线 -->
+  <line x1="16" y1="342" x2="884" y2="342" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 区域 3：主模型与草稿共享排除区间的三种情形 -->
+  <text x="16" y="370" font-size="16" font-weight="700" fill="#17211f">③ 主模型排除区间 vs 草稿张量：完全覆盖跳过、完全独立照传、部分跨界直接拒绝</text>
+
+  <!-- 情形 1：完全覆盖 -->
+  <rect x="16" y="390" width="276" height="168" rx="6" fill="#ddf4ef" fill-opacity="0.65" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="414" font-size="14.5" font-weight="700" fill="#065f56">A. 完全落在主模型排除区间</text>
+  <rect x="30" y="424" width="248" height="52" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="154" y="442" text-anchor="middle" font-size="13" fill="#3a4f93">主模型已登记块（排除区间）</text>
+  <rect x="66" y="448" width="176" height="24" rx="3" fill="#087f73"/>
+  <text x="154" y="465" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">草稿张量（完全包含）</text>
+  <text x="30" y="500" font-size="13.5" fill="#17211f">• 认定已由主模型登记并读完</text>
+  <text x="30" y="522" font-size="13.5" fill="#4d5652">• 草稿不重复登记、不重复读</text>
+  <text x="30" y="544" font-size="13.5" font-weight="700" fill="#065f56">• 全量共享 → shared_target 早退</text>
+
+  <!-- 情形 2：完全独立 -->
+  <rect x="312" y="390" width="276" height="168" rx="6" fill="#fff4cf" fill-opacity="0.65" stroke="#c78300" stroke-width="1.4"/>
+  <text x="326" y="414" font-size="14.5" font-weight="700" fill="#936300">B. 与主模型块完全不重叠</text>
+  <rect x="326" y="428" width="114" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="383" y="455" text-anchor="middle" font-size="13.5" fill="#3a4f93">主排除块</text>
+  <rect x="454" y="428" width="120" height="44" rx="4" fill="#c78300"/>
+  <text x="514" y="455" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">草稿独有块</text>
+  <text x="326" y="500" font-size="13.5" fill="#17211f">• 草稿照常登记、借租约并传输</text>
+  <text x="326" y="522" font-size="13.5" fill="#4d5652">• 字节按两套会话独立累加</text>
+  <text x="326" y="544" font-size="13.5" font-weight="700" fill="#936300">• GLM MTP 传输时即属此情形</text>
+
+  <!-- 情形 3：部分跨界 -->
+  <rect x="608" y="390" width="276" height="168" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="622" y="414" font-size="14.5" font-weight="700" fill="#8f3229">C. 部分重叠（跨越排除边界）</text>
+  <rect x="622" y="424" width="124" height="52" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="684" y="442" text-anchor="middle" font-size="13" fill="#3a4f93">主排除块</text>
+  <rect x="698" y="448" width="166" height="24" rx="3" fill="#b54237" fill-opacity="0.88"/>
+  <text x="781" y="465" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">跨界草稿张量 ✗</text>
+  <text x="622" y="500" font-size="13.5" fill="#17211f">• 不算共享跳过项</text>
+  <text x="622" y="522" font-size="13.5" fill="#4d5652">• 扣除排除块后缺完整支撑覆盖</text>
+  <text x="622" y="544" font-size="13.5" font-weight="700" fill="#8f3229">• 登记直接失败并走安全回退</text>
+</svg>

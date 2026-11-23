@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="900" height="380" role="img" aria-label="异步调度下结构化输出三轨时间线：前向照常提前派发，整批采样推迟等待上一步文法推进与填表" font-family="var(--font-sans)">
+  <title>三轨异步调度时间线：结构化输出保留前向重叠，但推迟整批采样</title>
+  <desc>Three-track timeline (EngineCore CPU, NPU Forward, NPU Sample) showing Step t Forward overlaps with CPU bitmask fill while whole-batch Step t Sample waits for Step t-1 token commit and draft truncation</desc>
+  <defs>
+    <marker id="soa-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="soa-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="soa-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">异步调度三轨时间线：前向照常提前派发，整批采样被迫等上一步确认与填表</text>
+  <text x="14" y="48" font-size="13.5" fill="#4d5652">调度器在批里发现任意 1 条受约束 decode 带占位，即给整批打“要等”标记（同批无约束请求也一起推迟采样）</text>
+
+  <!-- Time Axis Arrow -->
+  <line x1="150" y1="72" x2="876" y2="72" stroke="#b8bcb5" stroke-width="1.4" marker-end="url(#soa-arr-b)"/>
+  <text x="884" y="76" text-anchor="end" font-size="13.5" font-weight="700" fill="#66716d">时间 →</text>
+
+  <!-- Track Labels -->
+  <text x="14" y="122" font-size="14.5" font-weight="700" fill="#3a4f93">轨 1 · EngineCore</text>
+  <text x="14" y="142" font-size="13.5" fill="#66716d">CPU 主线程（串行）</text>
+  <line x1="150" y1="158" x2="884" y2="158" stroke="#d8d8cf" stroke-width="1"/>
+
+  <text x="14" y="204" font-size="14.5" font-weight="700" fill="#065f56">轨 2 · NPU 前向</text>
+  <text x="14" y="224" font-size="13.5" fill="#66716d">45 层计算（未阻塞）</text>
+  <line x1="150" y1="240" x2="884" y2="240" stroke="#d8d8cf" stroke-width="1"/>
+
+  <text x="14" y="286" font-size="14.5" font-weight="700" fill="#7a3a6a">轨 3 · NPU 采样</text>
+  <text x="14" y="306" font-size="13.5" fill="#66716d">整批 32 条一起发</text>
+
+  <!-- Track 2: NPU Forward blocks (continuous, overlapped!) -->
+  <rect x="156" y="176" width="180" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="246" y="205" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">第 t−1 步前向</text>
+
+  <rect x="350" y="176" width="234" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="467" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">第 t 步前向（照常提前派发）</text>
+  <text x="467" y="217" text-anchor="middle" font-size="13.5" fill="#065f56">与 CPU 填表并行重叠</text>
+
+  <!-- Track 3: Step t-1 Sample -->
+  <rect x="338" y="260" width="112" height="48" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="394" y="289" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">第 t−1 步采样</text>
+
+  <!-- Track 1: EngineCore CPU actions -->
+  <rect x="286" y="96" width="142" height="46" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="357" y="116" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">排第 t 步（带占位）</text>
+  <text x="357" y="135" text-anchor="middle" font-size="13.5" fill="#4d5652">立刻派发前向</text>
+  <!-- Dispatch arrow CPU -> NPU Forward -->
+  <path d="M 357 142 L 357 172" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#soa-arr-t)"/>
+
+  <!-- Step t-1 result returns to CPU -->
+  <path d="M 450 260 L 450 146" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#soa-arr-b)"/>
+
+  <rect x="442" y="96" width="176" height="46" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="530" y="116" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">处理 t−1 输出</text>
+  <text x="530" y="135" text-anchor="middle" font-size="13.5" fill="#3a4f93">推进文法 + 截草稿补 −1</text>
+
+  <rect x="626" y="96" width="144" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="698" y="116" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">串行填 4 行 bitmask</text>
+  <text x="698" y="135" text-anchor="middle" font-size="13.5" fill="#936300">再发采样调用</text>
+
+  <path d="M 618 119 L 624 119" fill="none" stroke="#4c65b6" stroke-width="1.6"/>
+
+  <!-- Synchronization gate from end of bitmask fill to Track 3 Sample -->
+  <line x1="770" y1="142" x2="770" y2="256" stroke="#b54237" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#soa-arr-r)"/>
+
+  <!-- Track 3: Red Stall Window between Forward end (584) and Sample start (770) -->
+  <rect x="584" y="260" width="184" height="48" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="676" y="281" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">整批采样推迟等待</text>
+  <text x="676" y="300" text-anchor="middle" font-size="13.5" fill="#8f3229">无约束请求也一起等</text>
+
+  <!-- Track 3: Step t Sample finally fires -->
+  <rect x="772" y="260" width="112" height="48" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="828" y="289" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">第 t 步采样</text>
+
+  <!-- Bottom takeaway strip -->
+  <rect x="14" y="328" width="870" height="40" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="449" y="353" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">精准边界：并非整条异步流水线失效——第 t 步前向仍提前派发；失去的是“第 t 步采样”与“第 t−1 步后处理”的重叠</text>
+</svg>

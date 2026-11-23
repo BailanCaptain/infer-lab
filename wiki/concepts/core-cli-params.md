@@ -137,7 +137,7 @@ file: core-cli-batch-tokens-tree
 
 上游 `EngineArgs.get_batch_defaults()` 在解析命令行参数时，会先调用 `current_platform.get_device_total_memory()` 读取单卡总显存：若 `>= 160 GiB` 则在线与离线默认都给 `16384`；若 `>= 70 GiB`（且非 A100）则在线给 `8192`、离线给 `16384`；否则进入兜底分支。
 
-然而在昇腾上，**命令行参数解析发生在主进程启动早期，此时 Worker 尚未拉起、`torch_npu` 尚未完成初始化**。过早调用底层接口读取显存，会提前触发 `torch_npu` 全局单次初始化并干扰多进程派生。因此 `v0.30.0` 的 `NPUPlatform.get_device_total_memory()` 检查 `not hasattr(torch, "npu") or not torch.npu.is_initialized()`，未初始化时直接抛出 `NotImplementedError`，由上游 `arg_utils.py` 捕获后静默将 `device_memory = 0`。
+然而在昇腾上，**命令行参数解析发生在主进程启动早期，此时 Worker 尚未拉起、`torch_npu` 尚未初始化**。过早调用底层接口读取显存，会提前触发 `torch_npu` 全局单次初始化并干扰多进程派生。因此 `v0.30.0` 的 `NPUPlatform.get_device_total_memory()` 先检查 `not hasattr(torch, "npu") or not torch.npu.is_initialized()`，满足其一时直接抛出 `NotImplementedError`。上游 `arg_utils.py` 捕获该异常后，静默把 `device_memory` 置为 `0`。
 
 > **边界提示（自定义 Python 启动脚本）**：若外层脚本在构造 `EngineArgs` 前已提前初始化 `torch.npu`，实际命中档位应以真机开启 `VLLM_LOGGING_LEVEL=DEBUG` 后的日志 `Defaulting max_num_batched_tokens to ...` 复核为准。
 
@@ -156,20 +156,20 @@ file: core-cli-batch-tokens-tree
 
 ### 3. 后置静默取整与 `PP > 1` 抬升批预算的空间从哪来
 
-走完上游 6 分支还不是终点。进入昇腾插件层构造 `AscendConfig` 时，如果同时开启了 **prefill context parallel**（`PCP`，`--prefill-context-parallel-size > 1`，沿上下文切分预填充计算，见 [Context Parallel](context-parallel.md)）与 **sequence parallel**（`SP`，把 **TP** 的 `All-Reduce` 拆为 `Reduce-Scatter + All-Gather`，见 [Sequence Parallel](sequence-parallel.md)），就会触发强制对齐。无论 `max_num_batched_tokens` 是默认推出还是**命令行手传**，都会被静默向上取整到 $\text{TP} \times \text{PCP}$ 的整数倍：
+走完上游 6 分支还不是终点。进入昇腾插件层构造 `AscendConfig` 时，如果同时开启了 **prefill context parallel**（`PCP`，`--prefill-context-parallel-size > 1`，见 [Context Parallel](context-parallel.md)）与 **sequence parallel**（`SP`，把 TP 的 `All-Reduce` 拆为 `Reduce-Scatter + All-Gather`，见 [Sequence Parallel](sequence-parallel.md)），就会触发强制对齐。无论 `max_num_batched_tokens` 是默认推出还是**命令行手传**，都会被静默向上取整到 $\text{TP} \times \text{PCP}$ 的整数倍：
 
 $$B'_{\text{tokens}} = \left\lceil \frac{B_{\text{tokens}}}{\text{TP} \times \text{PCP}} \right\rceil \times (\text{TP} \times \text{PCP})$$
 
 你可以换任意一组数验算：设 `TP = 8, PCP = 2`，整除粒度为 $8 \times 2 = 16$。若命令行传入 `--max-num-batched-tokens 2050`，因 $\lceil 2050 / 16 \rceil = 129$，`AscendConfig` 会打印告警并静默改写为 `2064`，确保各卡分片等长。
 
-反过来，什么时候应该**主动把 `--max-num-batched-tokens` 调大**？单机长文压测常从默认 `2048` 调到 `4096 ~ 16384` 以吃满矩阵核。而开启 **pipeline parallel**（`PP > 1`，流水线并行，按层段纵切模型并通过异步 `Send/Recv` 传递激活，见 [Pipeline Parallel](pipeline-parallel.md)）后，单卡还会释放三大块显存空间，使调大批预算格外划算：
-1. **层权重与 KV 减负**：`N` 层 Transformer 均摊到 `PP` 个阶段，每张卡仅常驻约 $1/\text{PP}$ 的隐藏层权重和每 token KV 缓存。
-2. **前 `PP - 1` 段免除词表 Logits 峰值**：阶段 `0 .. PP - 2` 把 `lm_head` 替换为占位层 `PPMissingLayer`，且 `profile_run()` 跳过 `_dummy_sampler_run`（`output = None`），消除了全词表（如 Qwen3 `151936`）打分与采样工作区峰值。层数不能被 `PP` 整除时，vLLM 优先把余数层往前段放（或用 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
-3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：`v0.30.0` 开启 `profiling_chunk_config` 后，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块，官方调优指南建议将其设为固定分块时的 **2～4 倍**（如 64K 配 `20480`、128K 配 `32768`；机制见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。注意该特性要求 `PP > 1`、与 `enable_balance_scheduling` 互斥，且若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens`，会被静默截断到该上限。
+反过来，什么时候应该**主动把 `--max-num-batched-tokens` 调大**？单机长文压测常从默认 `2048` 调到 `4096 ~ 16384` 以吃满矩阵核。开启 **pipeline parallel**（`PP > 1`，按层段纵切模型并异步 `Send/Recv` 传激活，见 [Pipeline Parallel](pipeline-parallel.md)）后，单卡还会释放三大块显存空间，使调大批预算格外划算：
+1. **层权重与 KV 减负**：`N` 层 Transformer 均摊到 `PP` 个阶段。每张卡仅常驻约 $1/\text{PP}$ 的隐藏层权重和每 token KV 缓存。
+2. **前 `PP - 1` 段免除词表 Logits 峰值**：阶段 `0 .. PP - 2` 把 `lm_head` 替换为占位层 `PPMissingLayer`，且 `profile_run()` 跳过 `_dummy_sampler_run`（`output = None`），直接省掉全词表（如 Qwen3 `151936`）打分与采样工作区峰值。层数不能被 `PP` 整除时，vLLM 优先把余数层往前段放（或用 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
+3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：`v0.30.0` 开启 `profiling_chunk_config` 后，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块。官方指南建议设为固定分块时的 **2～4 倍**（如 64K 配 `20480`、128K 配 `32768`，见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。该特性要求 `PP > 1` 且与 `enable_balance_scheduling` 互斥；若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens`，会被静默截断到该上限。
 
 ## 跨子系统联动：哪些组合会静默失效，哪些会直接报错？
 
-把容量和批预算定稳后，真正的深水区在 `--compilation-config`（上游编译与图捕获配置）与 `--additional-config`（昇腾扩展字典，解析机制见 [Ascend 配置体系](ascend-config-system.md)）之间的跨模块校验。在 `v0.30.0` 中，不兼容组合有两类截然不同的结局：**硬性互斥**在启动期直接抛 `ValueError` / `AssertionError` 拦停进程；更隐蔽的**静默改写**只打一行告警甚至不报错，悄悄把加速开关刷回 `False` 或换掉你的调度器：
+把容量和批预算定稳后，真正的深水区在 `--compilation-config`（上游编译与图捕获配置）与 `--additional-config`（昇腾扩展字典，见 [Ascend 配置体系](ascend-config-system.md)）之间的跨模块校验。在 `v0.30.0` 中，不兼容组合有两类截然不同的结局：**硬性互斥**在启动期直接抛 `ValueError` / `AssertionError` 拦停进程；**静默改写**只打一行告警甚至不报错，悄悄把加速开关刷回 `False` 或换掉调度器：
 
 ```wiki-diagram
 file: core-cli-graph-sched-matrix
@@ -177,20 +177,20 @@ file: core-cli-graph-sched-matrix
 
 ### 1. 图模式、`FA3` 与三级图融合开关（`npugraph_ex → static_kernel → super_kernel`）
 
-昇腾上的图执行分为外层捕获策略 `cudagraph_mode`（机制见 [ACL Graph](acl-graph.md)）与内层三级整图下沉优化 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`（状态机见 [npugraph_ex](npugraph-ex.md)），二者耦合极紧：
+昇腾上的图执行分为外层捕获策略 `cudagraph_mode`（见 [ACL Graph](acl-graph.md)）与内层三级整图下沉优化 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`（见 [npugraph_ex](npugraph-ex.md)），二者耦合极紧：
 
-- **三级依赖链与单开报错**：内层融合遵循严格单向依赖 `enable_npugraph_ex → enable_static_kernel → enable_super_kernel`。若只传 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默把 `enable_super_kernel` 补为 `true`**；但若在 Atlas A2 / A3 / 950 上**单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`**（或开了 `static_kernel` 却关了 `npugraph_ex`），启动直接抛 `AssertionError`。唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件无 `NPUGRAPH_EX` 能力，会打告警并将三项开关**全部静默重置为 `False`**。
-- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL` 会保留上述三项开关。一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力算子处分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`，代码会**静默将三项融合开关全部刷回 `False`**；此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
-- **`FA3` 注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 训练一致性路径）时，因其主机侧分块逻辑不支持 `FULL_DECODE_ONLY`，配该模式会直接抛 `ValueError`，必须改配 `PIECEWISE`（或 `--enforce-eager`）。另须留意三处静默行为：
+- **三级依赖链与单开报错**：内层融合遵循单向依赖 `enable_npugraph_ex → enable_static_kernel → enable_super_kernel`。若只传 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默把 `enable_super_kernel` 补为 `true`**。反之，在 Atlas A2 / A3 / 950 上单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`（或开 `static_kernel` 却关 `npugraph_ex`），启动直接抛 `AssertionError`。唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件无 `NPUGRAPH_EX` 能力，会打告警并将三项开关**全部静默重置为 `False`**。
+- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL` 保留上述三项开关。一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力处分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`，代码会**静默将三项融合开关全部刷回 `False`**。此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
+- **`FA3` 注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 路径）时，主机侧分块逻辑不支持 `FULL_DECODE_ONLY`。配该模式会直接抛 `ValueError`，必须改配 `PIECEWISE` 或 `--enforce-eager`。另须留意三处静默行为：
   - `v0.30.0` 在 `Ascend 950` 上因暂缺 `RUNTIME_CUSTOM_OPS`，会静默禁用 `vllm_ascend_C` 自定义算子库。
   - `PassConfig.enable_sp` 与 `PP > 1` 同开且未禁用 `-rms_norm` 时，会静默向 `custom_ops` 追加 `+rms_norm`。
-  - 开启强化学习 `rl_config.enabled=True`（见 [vLLM-Ascend 用于 RL](vllm-ascend-for-rl.md)）会强制把权重分形 `weight_nz_mode` 置 `0`，并在配合睡眠模式（`enable_sleep_mode`）时从 `PYTORCH_NPU_ALLOC_CONF` 剥离 `expandable_segments`（未开睡眠模式时后续初始化会重新追加）。
+  - 开启 `rl_config.enabled=True`（见 [vLLM-Ascend 用于 RL](vllm-ascend-for-rl.md)）会强制把 `weight_nz_mode` 置 `0`。叠开睡眠模式（`enable_sleep_mode`）时，还会从 `PYTORCH_NPU_ALLOC_CONF` 剥离 `expandable_segments`（未开睡眠模式时后续初始化会重新追加）。
 
 ### 2. 多调度器并存时的「后写胜出」静默覆盖链
 
-在 `additional_config.scheduler_config` 下配置扩展调度器时，系统先做前置互斥拦截，再按固定代码顺序赋值给同一个 `vllm_config.scheduler_config.scheduler_cls`：
+在 `additional_config.scheduler_config` 下配置扩展调度器时，系统先做前置互斥拦截，再按固定顺序赋值给同一个 `vllm_config.scheduler_config.scheduler_cls`：
 
-- **前置硬拦截与角色门禁**：`recompute_scheduler_enable: true`（见 [Recompute Scheduler](recompute-scheduler.md)）仅服务于 **PD disaggregation**（PD 分离，把预填充与持续解码拆到不同实例池，见 [PD 分离](pd-disaggregation.md)）的 D 节点（`kv_role="kv_consumer"`）。单机混部或 `kv_role="kv_both"` 开启会抛 `ValueError`，P 节点（`kv_role="kv_producer"`）开启会**打告警并静默置回 `False`**；细粒度张量并行 `finegrained_tp_config` 强依赖 `recompute_scheduler_enable=True`，否则抛 `AssertionError`。此外，`short_request_first_config`（见 [Short Request First](short-request-first.md)）禁止与 `batch_job_sched_config` 同开或用于 D 节点；`dyntra_lb_config`（见 [Dyntra LB](dyntra-lb.md)）仅限单节点 `DP > 1` 的 D 节点，与 `enable_balance_scheduling`、`profiling_chunk_config` 同开均抛 `ValueError`。
+- **前置硬拦截与角色门禁**：`recompute_scheduler_enable: true`（见 [Recompute Scheduler](recompute-scheduler.md)）仅服务于 **PD disaggregation**（PD 分离，见 [PD 分离](pd-disaggregation.md)）的 D 节点（`kv_role="kv_consumer"`）。单机混部或 `kv_role="kv_both"` 开启会抛 `ValueError`；P 节点（`kv_role="kv_producer"`）开启则**打告警并静默置回 `False`**。细粒度张量并行 `finegrained_tp_config` 强依赖 `recompute_scheduler_enable=True`，否则抛 `AssertionError`。`short_request_first_config`（见 [Short Request First](short-request-first.md)）禁止与 `batch_job_sched_config` 同开或用于 D 节点。`dyntra_lb_config`（见 [Dyntra LB](dyntra-lb.md)）仅限单节点 `DP > 1` 的 D 节点，与 `enable_balance_scheduling`、`profiling_chunk_config` 同开均抛 `ValueError`。
 - **顺序无条件覆盖（Last Writer Wins）**：未触发上述异常时，`_setup_worker_and_scheduler` 在 `v0.30.0` 按 `dyntra_lb（未开 recompute 时）→ profiling_chunk_config → batch_job_sched_config` 依次覆盖 `scheduler_cls`。在 D 节点同开 `recompute_scheduler_enable` 与 `profiling_chunk_config` 时，生效的是 `ProfilingChunkScheduler`（内部仍兼容 `short_request_first` 等待队列）。若再开 `batch_job_sched_config`（见 [Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)），它会作为最后写入者**无声覆盖前序所有调度器**，最终只跑 `BatchJobAwareScheduler`。
 
 ### 3. P/D 分离 `MooncakeConnector`、并行拓扑与量化红线

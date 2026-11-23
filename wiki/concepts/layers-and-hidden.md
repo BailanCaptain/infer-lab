@@ -165,7 +165,7 @@ file: layers-one-layer
 
 **embedding 交出第一条 hidden；之后每一层都把上一层的输出当输入，做一遍上一节的两段；最后一层交出的 hidden 经过最终归一化和输出投影，变成词表里每个词的分数。一路上 hidden 只是在同一条线上被一笔一笔地往上加，这条线叫 residual 流（残差流）。**
 
-每一层的骨架相同，但各有自己的一套权重；同一层的权重被这一步里所有位置、所有请求共用。标准 Pre-Norm 模型（如 `Qwen3-8B` 等 Dense 架构）全程就沿这一条单残差流从第 0 层堆叠到末层：上一节的位置走完第 1 层变成 $[2.8, 1.9, 2.1, 0.6]$，第 2 层就从这一条开始，再做「RMSNorm → attention → 加回」「RMSNorm → MLP → 加回」，这样一直做到最后一层。把加法摊开看，每一层交出的 hidden 都等于起点加上此前所有子层的改变量：
+每一层的骨架相同，但各有自己的一套权重；同一层的权重被本步所有位置和请求共用。标准 Pre-Norm 模型（如 `Qwen3-8B` 等 Dense 架构）全程沿这一条单残差流从第 0 层堆叠到末层。上一节的位置走完第 1 层变成 $[2.8, 1.9, 2.1, 0.6]$，第 2 层就从这里起步，重复「RMSNorm → attention → 加回」「RMSNorm → MLP → 加回」直至末层。把加法摊开看，每一层交出的 hidden 都等于起点加上此前所有子层的改变量：
 
 $$h_{\text{final}} = x_0 + \Delta_1 + \Delta_2 + \Delta_3 + \dots + \Delta_{2L}$$
 
@@ -188,17 +188,17 @@ hidden 是前向过程里逐层传递的中间表示，不是长期保存全部�
 file: layers-stack-qwen3
 ```
 
-沿图从上到下走完一次前向（本步共 $T$ 个 token、BF16 精度）：
+沿图从左到右走完一次前向（本步共 $T$ 个 token、BF16 精度）：
 
 1. **词表查表建立起点。** `embed_tokens`（形状 `[151936, 4096]`）为 $T$ 个输入 token 查出初始单流 `hidden`，形状 `[T, 4096]`。
-2. **36 层同构串联。** 第 `0–35` 层每一层都固定执行「2 次 Pre-RMSNorm（`eps = 1e-6`）+ 2 次残差相加」：先经 `input_layernorm` → GQA（`32Q : 8KV`，头宽 128，带逐头 QK-Norm 与全维 RoPE）→ 残差相加；再经 `post_attention_layernorm` → SwiGLU（`4096 → 12288 → 4096`）→ 残差相加。每层各有独立权重，但在层与层交界处形状始终保持 `[T, 4096]`。
-3. **末层收口与采样。** 出第 35 层后经最终 `model.norm`（RMSNorm）归一，仅取需要预测的位置行送入独立非绑定的 `lm_head [4096, 151936]`（`tie_word_embeddings = false`），产出词表分数交给采样。
+2. **36 层同构串联。** 第 `0–35` 层结构 100% 相同，固定执行「2 次 Pre-RMSNorm（`eps = 1e-6`）+ 2 次残差相加」：先走 `input_layernorm` → GQA（`32Q : 8KV`，头宽 128，带逐头 QK-Norm 与全维 RoPE）→ 残差相加；再走 `post_attention_layernorm` → SwiGLU（`4096 → 12288 → 4096`）→ 残差相加。每层各有独立权重，但在层交界处形状恒为 `[T, 4096]`。
+3. **末层收口与采样。** 出第 35 层后经最终 `model.norm`（RMSNorm）归一，再精选需预测的位置行送入独立非绑定的 `lm_head [4096, 151936]`（`tie_word_embeddings = false`），产出词表分数交给采样。
 
 | Qwen3-8B 逐层栈关键指标（BF16，单步 $T$ 个 token） | 数值 | 说明 |
 | --- | --- | --- |
 | 层数与异构切换 | `36` 层，0 次层型切换 | 第 `0–35` 层全部为同构 GQA + SwiGLU |
 | 层间残差流宽度 | 单条 `[T, 4096]` | 每 token 残差占 $4{,}096 \times 2\text{ B} = 8{,}192\text{ B}$（`8 KiB`） |
-| 主干 RMSNorm 次数 | 合计 `73` 次（$36 \times 2 + 1$） | 36 层内部子层前 `Pre-RMSNorm` 共 `72` 次（`36 × 2`）+ 末层独立最终 `model.norm` `1` 次 |
+| 主干 RMSNorm 次数 | 合计 `73` 次（$36 \times 2 + 1$） | 36 层子层入口 `Pre-RMSNorm` 共 `72` 次 + 末层独立最终 `model.norm` `1` 次（不含每层 Attention 内部独立的 `q_norm` / `k_norm`） |
 | 主干残差相加次数 | $36 \times 2 = 72$ 次 | 昇腾侧通常与下一处 RMSNorm 融合为 `npu_add_rms_norm` |
 
 **边界与例外。** 在稀疏 MoE 同构模型中（如 `Qwen3-30B-A3B`，48 层、`hidden_size = 2048`），层间依然保持同一条单残差流 `[T, 2048]`，仅将每层的稠密 SwiGLU 替换为 128 选 8 的 MoE；只有当模型同时引入多种注意力层型交替与多流残差混合时，才会进入下面要拆解的复杂异构路径。
@@ -292,15 +292,20 @@ GLM 配置的是 20 轮，和 mHC 论文实验所用的轮数相同。轮数有�
 
 **GLM-5.3-Flash 的文本主干有 45 层，编号 0–44；hidden 宽 4096。一次前向里，hidden 从 embedding 出来是一条，进第 0 层时变成四条，45 层里每层做两次 mHC，第 44 层结束时求平均回到一条，再去算词表分数。**
 
-固定部署是两台 Atlas 800 A2（每台 8 张卡，共 16 张），并行和精度取 TP8 / DP2 / EP16、W8A8，前提统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。这四个缩写本页只各用一句话交代，展开讲在各自的页面：**TP8** 是 tensor parallel（张量并行）取 8，把同一层的大矩阵切给一台机器里的 8 张卡，各算一份再合起来（[tensor parallel](tensor-parallel.md)）；**DP2** 是 data parallel（数据并行）取 2，两台机器各成一组，各有自己的调度和 KV cache，请求按负载分给其中一组（[data parallel](data-parallel.md)）；**EP16** 是 expert parallel（专家并行）取 16，把 288 个路由专家摊到全部 16 张卡上，每卡 18 个（[expert parallel](expert-parallel.md)）；**W8A8** 是权重和激活都用 8 位整数来存和算、另配缩放系数（[quantization](quantization.md)），但不是每一处都量化，比如 mHC 的混合参数仍是 FP32，哪些部分保留其它精度见[部署页的每卡账](glm-5-3-flash-two-node.md#每张卡上放了什么)。一个 **DP 执行组**就是其中一台机器的 8 张卡：请求的调度与 attention 历史状态归属于其中一组，attention 和稠密层在该组按 TP8 分工；MoE 路由专家分散在两台机器的 16 张卡上，同一请求的专家计算可以跨组。这里每个 DP 执行组的 8 张卡也构成下文的 **TP 组**。
+固定部署是两台 Atlas 800 A2（每台 8 张卡，共 16 张），并行与精度取 `TP8 / DP2 / EP16`、`W8A8`（前提统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)）：
 
-一条请求先进入 **prefill**：处理提示词并建立各层历史，可能一次完成，也可能分块经过多次前向（[prefill](prefill.md)）；之后一轮轮做 **decode**，读着历史继续生成。固定部署还开了**投机解码**（speculative decoding）：主干之外的 **MTP** 预测层草拟候选，下一轮由主干一起验证（见[投机解码](speculative-decoding.md)与[模型 MTP](glm-5-3-flash.md#mtp主干之外的第-45-层)）。下面沿示例请求 R1 走一遍：它的提示词只有 4 个 token，可在这一步全算完，所以 T = 4；完整设定见[示例请求](one-request.md#示例请求-r1-与官方双机部署)。
+- **TP8**（[张量并行](tensor-parallel.md)）：把同一层大矩阵切给单机 8 张卡合算。
+- **DP2**（[数据并行](data-parallel.md)）：两台机器各成一组，各有独立调度和 KV cache，请求按负载分发。每组 8 卡也构成下文的 **TP 组**。
+- **EP16**（[专家并行](expert-parallel.md)）：把 288 个路由专家摊到全部 16 张卡（每卡 18 个），同一请求的专家计算可跨组。
+- **W8A8**（[量化](quantization.md)）：权重和激活主体用 INT8 加缩放系数，但并非处处量化（如 mHC 混合参数保持 FP32，逐部件口径见[部署页的每卡账](glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+
+一条请求先经过 **prefill** 处理提示词并建立各层历史（可一次完成或分块，见 [prefill](prefill.md)），再逐轮 **decode** 生成。固定部署还开启了**投机解码**（speculative decoding）：主干之外的 **MTP** 层草拟候选，下一轮由主干一起验证（见[投机解码](speculative-decoding.md)与[模型 MTP](glm-5-3-flash.md#mtp主干之外的第-45-层)）。下面沿示例请求 R1 走一遍：提示词 4 个 token 一步算完（$T = 4$，完整设定见[示例请求](one-request.md#示例请求-r1-与官方双机部署)）。
 
 下面的逐卡形状与 All-Reduce 算例采用**普通 TP、SP 关闭**的教学基线。它不是只看默认环境就能确定的实测配置：固定实现还可能因共享专家 DP 条件启用 SP，须检查最终配置；共同条件见[版本与来源基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)。版本节另列 SP 开启时按 token 切分的行为。
 
 ### 45 层怎样排
 
-每层都是「attention 段 + MLP 段」，但两段各用哪种子层由层号决定。这里出现三种子层：**KDA** 是一种线性 attention，用一个固定大小的矩阵状态汇总全部历史；**稀疏 MLA** 先把历史压成低维的潜向量，再只挑一部分历史去读；**MoE** 是一组专家 MLP，每个 token 只选其中几个来算。三者的原理分别见模型总览的 [KDA](glm-5-3-flash.md#kda把全部历史压进一个固定大小的矩阵)、[稀疏 MLA](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读) 和 [MoE](glm-5-3-flash.md#moe288-个专家里每次挑-8-个) 三节，排法的由来见[45 层怎样排](glm-5-3-flash.md#45-层怎样排)。
+每层都是「attention 段 + MLP 段」，具体采用哪种子层由层号决定。这里出现三种子层：**KDA** 用固定大小矩阵状态汇总全部历史；**稀疏 MLA** 把历史压成低维潜向量后挑一部分去读；**MoE** 是一组专家 MLP，每个 token 只选其中几个。三者原理见 [KDA](glm-5-3-flash.md#kda把全部历史压进一个固定大小的矩阵)、[稀疏 MLA](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读) 和 [MoE](glm-5-3-flash.md#moe288-个专家里每次挑-8-个)，排法由来见[45 层怎样排](glm-5-3-flash.md#45-层怎样排)。
 
 | 层号 | attention 段 | MLP 段 | 层数 |
 |---|---|---|---|

@@ -1,49 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="vLLM-Ascend RL Actor Rollout 与 Trainer 显存权重交接及 RlConfig 护栏图" font-family="var(--font-sans)">
-  <title>vLLM-Ascend for RL：同卡与跨卡交接路径及 RlConfig.apply() 三项强制护栏</title>
-  <desc>关联源码符号：RlConfig, apply, weight_nz_mode, sleep_mode_extra_cleanup, _disable_expandable_segments, register_engine, HCCLWeightTransferEngine, NPUIPCWeightTransferEngine</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="vLLM-Ascend RL 同卡 NPU IPC 轮占与跨卡 HCCL 广播拓扑及 RlConfig.apply 护栏门控图" font-family="var(--font-sans)">
+  <title>vLLM-Ascend for RL：同物理卡 NPU IPC 轮占 vs 跨物理卡 HCCL 广播与 RlConfig 护栏</title>
+  <desc>Dual hardware-lane comparison of same-physical-NPU time-sliced sleep + npu_ipc handle transfer vs cross-NPU HCCL broadcast (world_size = 1 + N) and main sparse_hccl, plus RlConfig.apply() 3 forced guardrails vs 3 opt-in switches</desc>
+  <defs>
+    <marker id="rl-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="rl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="rl-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="rl-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
 
-  <!-- Zone 1: Two deployment handover patterns -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① Actor Rollout ↔ Trainer 交接双路径（看物理 NPU 是否共用，不只看同机）</text>
+  <!-- UPPER BAND: Dual Hardware Lanes -->
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">① 先看物理 NPU 是否共用，再选交接拓扑（同机不同卡仍属于跨卡）</text>
+  <line x1="450" y1="36" x2="450" y2="236" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
 
-  <rect x="16" y="44" width="424" height="136" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">同物理卡轮占：Sleep Mode + backend="npu_ipc"</text>
-  <text x="30" y="94" font-size="13.5" fill="#4d5652">1. rollout 暂停并 sleep(level=2) 让出 HBM 给训练端</text>
-  <text x="30" y="116" font-size="13.5" fill="#4d5652">2. 训练完让回空间 → wake_up(weights) → IPC 句柄装载</text>
-  <text x="30" y="138" font-size="13.5" fill="#4d5652">3. wake_up(kv_cache) → resume 开始下一轮 rollout</text>
-  <text x="30" y="162" font-size="13.5" font-weight="700" fill="#3a4f93">注：须填 npu_ipc（非 ipc），补齐 packed 装载</text>
+  <!-- Left Lane: Same Physical NPU (Time-Sliced + npu_ipc) -->
+  <text x="14" y="50" font-size="14.5" font-weight="700" fill="#3a4f93">模式 A · 同物理卡轮占（sleep L2 + npu_ipc）</text>
+  <!-- Single Physical NPU Timeline Box -->
+  <rect x="14" y="62" width="420" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="84" font-size="13.5" font-weight="700" fill="#3a4f93">同一颗物理 NPU（时间轴分时共享 HBM）</text>
 
-  <rect x="460" y="44" width="424" height="136" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="474" y="70" font-size="14.5" font-weight="700" fill="#065f56">不同物理卡常驻：Pause + backend="hccl"</text>
-  <text x="474" y="94" font-size="13.5" fill="#4d5652">1. 训练与推理各自独享设备，通常无需 sleep 释放显存</text>
-  <text x="474" y="116" font-size="13.5" fill="#4d5652">2. 建通信组（world_size = 1 发送方 + N 推理 worker）</text>
-  <text x="474" y="138" font-size="13.5" fill="#4d5652">3. pause → start / update / finish → resume</text>
-  <text x="474" y="162" font-size="13.5" font-weight="700" fill="#065f56">注：main 新增 sparse_hccl（仅未量化 ND 权重，关 EPLB）</text>
+  <rect x="24" y="94" width="80" height="48" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="64" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Rollout</text>
+  <text x="64" y="135" text-anchor="middle" font-size="13" fill="#4d5652">sleep L2</text>
+  <path d="M 104 118 L 120 118" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rl-arr-b)"/>
 
-  <line x1="16" y1="198" x2="884" y2="198" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <rect x="124" y="94" width="84" height="48" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="166" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Trainer</text>
+  <text x="166" y="135" text-anchor="middle" font-size="13" fill="#4d5652">占满 HBM</text>
+  <path d="M 208 118 L 224 118" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rl-arr-b)"/>
 
-  <!-- Zone 2: RlConfig.apply() Guardrails -->
-  <text x="16" y="226" font-size="16" font-weight="700" fill="#17211f">② RlConfig.apply() 护栏机制（v0.30.0 / main）：总开关触发三项强制，三项子开关默认关</text>
+  <rect x="228" y="94" width="196" height="48" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="326" y="114" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">IPC 句柄 → load_weights</text>
+  <text x="326" y="135" text-anchor="middle" font-size="12.5" fill="#4d5652">wake weights→kv→resume</text>
 
-  <rect x="16" y="242" width="424" height="122" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="30" y="268" font-size="14.5" font-weight="700" fill="#8f3229">开启 rl_config.enabled=true 立刻强制执行（3 项）</text>
-  <text x="30" y="294" font-size="13.5" fill="#4d5652">1. 强制 weight_nz_mode = 0（关闭 FRACTAL_NZ 防精度错）</text>
-  <text x="30" y="318" font-size="13.5" fill="#4d5652">2. 剥离 expandable_segments（未开 sleep 后续补回 True）</text>
-  <text x="30" y="342" font-size="13.5" fill="#8f3229" font-weight="600">3. 写入 VLLM_SERVER_DEV_MODE="1" 开放控制与更新端点</text>
+  <text x="26" y="170" font-size="13.5" font-weight="700" fill="#3a4f93">后端须写 npu_ipc（非 ipc）；仍需句柄重建与模型装载</text>
+  <text x="14" y="210" font-size="13.5" fill="#4d5652">v0.30.0/main 已补齐 packed=true 装载与逐层重载收尾</text>
 
-  <rect x="460" y="242" width="424" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="474" y="268" font-size="14.5" font-weight="700" fill="#936300">三个独立子开关默认 false（不随总开关隐式开启）</text>
-  <text x="474" y="294" font-size="13.5" fill="#4d5652">• sleep_mode_extra_cleanup：睡时清 HCCL 组与图工作区</text>
-  <text x="474" y="318" font-size="13.5" fill="#4d5652">• enable_training_consistency：切 FA3（拒 MLA / SFA）</text>
-  <text x="474" y="342" font-size="13.5" fill="#936300" font-weight="600">• enable_batch_invariant：置 BATCH_INVARIANT</text>
+  <!-- Right Lane: Separate Physical NPUs (HCCL Broadcast) -->
+  <text x="466" y="50" font-size="14.5" font-weight="700" fill="#065f56">模式 B · 不同物理卡常驻（pause + hccl / sparse_hccl）</text>
 
-  <line x1="16" y1="382" x2="884" y2="382" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Trainer Rank 0 -->
+  <rect x="466" y="66" width="128" height="114" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="530" y="96" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">Trainer 发送端</text>
+  <text x="530" y="120" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">rank 0</text>
+  <text x="530" y="146" text-anchor="middle" font-size="13.5" fill="#4d5652">独立训练卡</text>
+  <text x="530" y="168" text-anchor="middle" font-size="13.5" fill="#4d5652">发广播/打包</text>
 
-  <!-- Zone 3: Pause modes & Training signals -->
-  <text x="16" y="408" font-size="16" font-weight="700" fill="#17211f">③ 暂停语义与训练信号边界（防跨版权重混写，按算法挑返回字段）</text>
+  <!-- Broadcast arrows to Workers -->
+  <path d="M 594 106 L 674 88" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rl-arr-t)"/>
+  <path d="M 594 138 L 674 156" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rl-arr-t)"/>
+  <rect x="602" y="108" width="66" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="635" y="128" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">HCCL</text>
 
-  <rect x="16" y="422" width="424" height="48" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="30" y="451" font-size="13.5" fill="#7a3a6a" font-weight="600">同版权重选 abort/wait；keep 会混接新旧 KV</text>
+  <!-- Rollout Worker 1 & 2 -->
+  <rect x="680" y="64" width="204" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="782" y="87" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Rollout Worker 0（rank 1）</text>
+  <text x="782" y="107" text-anchor="middle" font-size="13.5" fill="#4d5652">常驻显存 · 不必 sleep</text>
 
-  <rect x="460" y="422" width="424" height="48" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="474" y="451" font-size="13.5" fill="#17211f">信号：logprobs / tokens-only / R3（须 MRV2）</text>
+  <rect x="680" y="128" width="204" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="782" y="151" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Rollout Worker 1（rank 2）</text>
+  <text x="782" y="171" text-anchor="middle" font-size="13.5" fill="#4d5652">rank 含 DP 偏移防撞号</text>
+
+  <text x="466" y="204" font-size="13" fill="#065f56" font-weight="700">world_size = 1 + N（此例 = 3）；</text>
+  <text x="466" y="224" font-size="13" fill="#065f56" font-weight="700">main 增 sparse_hccl（限未量化 ND）</text>
+
+  <line x1="14" y1="240" x2="886" y2="240" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- LOWER BAND: RlConfig.apply() Gate Diagram -->
+  <text x="14" y="268" font-size="16" font-weight="700" fill="#17211f">② RlConfig.apply() 门控分派（v0.30.0 / main）：总开关触发三项强制，三项子开关默认关</text>
+
+  <!-- Left Gate Box -->
+  <rect x="14" y="314" width="160" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="94" y="344" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">rl_config</text>
+  <text x="94" y="368" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">enabled=true</text>
+
+  <!-- Fan-out to 3 Forced Guardrails -->
+  <path d="M 174 334 L 222 302" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#rl-arr-r)"/>
+  <path d="M 174 350 L 222 350" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#rl-arr-r)"/>
+  <path d="M 174 366 L 222 398" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#rl-arr-r)"/>
+
+  <rect x="228" y="282" width="322" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="238" y="305" font-size="12.5" font-weight="700" fill="#8f3229">① 强制 weight_nz_mode = 0（关 NZ 防精度错）</text>
+
+  <rect x="228" y="326" width="322" height="46" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="238" y="346" font-size="13" font-weight="700" fill="#8f3229">② 剥离 expandable_segments</text>
+  <text x="238" y="365" font-size="12.5" fill="#4d5652">（未开 --enable-sleep-mode 后续仍补回 True）</text>
+
+  <rect x="228" y="380" width="322" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="238" y="403" font-size="12.5" font-weight="700" fill="#8f3229">③ 置 VLLM_SERVER_DEV_MODE="1" 启端点</text>
+
+  <!-- Right Column: 3 Opt-In Switches (default false) -->
+  <rect x="570" y="282" width="314" height="134" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="584" y="306" font-size="14" font-weight="700" fill="#936300">三项高代价子开关（默认全 false）</text>
+  <line x1="584" y1="316" x2="870" y2="316" stroke="#c78300" stroke-width="1" opacity="0.5"/>
+  <text x="584" y="340" font-size="13.5" fill="#17211f">sleep_mode_extra_cleanup（清 HCCL+图）</text>
+  <text x="584" y="366" font-size="13.5" fill="#17211f">enable_training_consistency（FA3 拒 MLA）</text>
+  <text x="584" y="392" font-size="13.5" fill="#17211f">enable_batch_invariant（需源码重编算子）</text>
+
+  <!-- Bottom Pause Semantics Bar -->
+  <rect x="14" y="428" width="870" height="40" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="449" y="453" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">暂停语义护栏：要求单条样本全程同版权重须选 abort 或 wait；keep 保留旧 KV 会混接新旧版本（且清缓存对其无效）</text>
 </svg>

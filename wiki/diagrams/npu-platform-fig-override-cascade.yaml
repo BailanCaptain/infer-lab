@@ -1,8 +1,8 @@
 mode: native-svg
 id: npu-platform-fig-override-cascade
 caption: >-
-  NPUPlatform.check_and_update_config 改写级联与默认 token 预算回退链路：上半部分展示 v0.30.0（L478）与 main（L606 首行锁 MRV2）的六段前置校验与就地改写顺序（含混合模型保留 640 逻辑块例外）；下半部分完整呈现未初始化时 get_device_total_memory 抛 NotImplementedError → arg_utils 落小档起点 2048，以及显式参数闸门互不干扰的规则。
-size: [900, 444]
+  NPUPlatform 两条启动时间线因果瀑布：上轨 T1（EngineArgs 早于 torch_npu 初始化）展示 get_device_total_memory() 抛 NotImplementedError → 吞错置 0 B 落入小档起点 2048（库调用 8192、批式 DP 256）→ 经两道独立参数闸门（显式值保留原样，省略项才接受翻倍与收窄）；下轨 T2（VllmConfig.__post_init__）展示 check_and_update_config 的前置校验与五处就地改写前后对比（含常规块长 16→128 vs 混合模型保 640、kv_producer 重置重算调度）。
+size: [900, 528]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L245'
     symbols: [get_device_total_memory, NotImplementedError, mem_get_info]

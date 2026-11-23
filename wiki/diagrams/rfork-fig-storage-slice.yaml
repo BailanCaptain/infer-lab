@@ -1,0 +1,10 @@
+mode: native-svg
+id: rfork-fig-storage-slice
+caption: >-
+  RFork 显存切片登记、原始存储保活与主草共享排除区间：上栏展示半开区间支撑块 [1000, 2024) 与逻辑范围 [1128, 1256) 如何构成 batch_register_memory_ex 四元组；中栏解释后处理换绑新存储时为何必须通过双保活列表锁住登记那一刻的原始 storage owner 防止传输期被回收；下栏对比草稿张量在主模型排除区间下的完全覆盖跳过、完全独立照传与部分跨界拒绝三种判定。
+size: [900, 580]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L338-L551
+    symbols: [can_reuse_shared_weights, register_memory_region, batch_register_memory_ex]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L552-L639
+    symbols: [unregister_memory_region]

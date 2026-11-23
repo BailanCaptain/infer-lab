@@ -1,48 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 472" width="900" height="472" role="img" aria-label="主机 cgroup 终止与 NPU 显存报错分层排障图" font-family="var(--font-sans)">
-<title>主机容器退出（cgroup v2）与设备 HBM 报错分层排障</title>
-<desc>init_snapshot, gpu_memory_utilization, get_device_total_memory, _disable_expandable_segments</desc>
-<text x="16" y="28" font-size="16" font-weight="700" fill="#8f3229">A. 主机侧：进程被杀或服务变慢（cgroup v2）</text>
-<text x="466" y="28" font-size="16" font-weight="700" fill="#3a4f93">B. 设备侧：NPU 显存与分配器报错（HBM）</text>
-<path d="M14 38H886M14 328H886" stroke="#b8bcb5" stroke-width="1.4"/>
-<rect x="14" y="48" width="424" height="266" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-<rect x="462" y="48" width="424" height="266" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-<g stroke-width="1.4">
-<rect x="28" y="62" width="396" height="68" rx="7" fill="#ffffff" stroke="#b8bcb5"/>
-<rect x="28" y="140" width="396" height="74" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="28" y="224" width="396" height="76" rx="7" fill="#ffffff" stroke="#b54237"/>
-<rect x="476" y="62" width="396" height="72" rx="7" fill="#ffffff" stroke="#4c65b6"/>
-<rect x="476" y="144" width="396" height="70" rx="7" fill="#ffffff" stroke="#9a4b86"/>
-<rect x="476" y="224" width="396" height="76" rx="7" fill="#ffffff" stroke="#c78300"/>
-</g>
-<g font-size="14" font-weight="700">
-<text x="40" y="86" fill="#17211f">① 退出码 137 ≠ 必然 OOM</text>
-<text x="40" y="164" fill="#936300">② memory.high（变慢） vs memory.max（强杀）</text>
-<text x="40" y="248" fill="#8f3229">③ 嵌套层级核验（勿误读 local）</text>
-<text x="488" y="86" fill="#3a4f93">① Free memory ... less than desired</text>
-<text x="488" y="168" fill="#7a3a6a">② Error in memory profiling</text>
-<text x="488" y="248" fill="#936300">③ 分配器冲突与提前查询拦截</text>
-</g>
-<g font-size="13.5" fill="#66716d">
-<text x="40" y="109">docker kill 发 SIGKILL 亦报 137；先对 PID 与审计</text>
-<text x="40" y="187">越 high 仅加强回收节流；触 max 且难回收才杀</text>
-<text x="40" y="206">K8s request 管调度，limit 不自动等同 memory.high</text>
-<text x="40" y="271">memory.events.local 的 oom_kill 只计归属，</text>
-<text x="40" y="291">仍须对照本容器 / 上层控制组 / 整机内核日志</text>
-<text x="488" y="109">启动快照空闲量低于目标份额；核卡号与残留进程</text>
-<text x="488" y="127">例：期望 0.92 但同卡已被他进程占用部分 HBM</text>
-<text x="488" y="191">试跑前后空闲量断言失败；常因并发释放扰乱快照</text>
-<text x="488" y="271">True/False 大小写敏感；冲突键需用户自查；</text>
-<text x="488" y="291">未初始化 NPU 查总显存抛 NotImplementedError</text>
-</g>
-<text x="16" y="354" font-size="16" font-weight="700" fill="#17211f">C. 常见误解直辨：可访问地址 ≠ 物理本地显存</text>
-<rect x="14" y="366" width="424" height="94" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-<rect x="462" y="366" width="424" height="94" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-<text x="28" y="392" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：UVA / MemFabric 或多卡相加 = 本卡池</text>
-<text x="476" y="392" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：寻址方式改变，物理介质与链路价仍在</text>
-<g font-size="13.5" fill="#17211f">
-<text x="28" y="418">• 以为主机注册映射后，数据自动变成 HBM 副本</text>
-<text x="28" y="442">• 以为 8 卡总 HBM 可被任意单卡无限制分配</text>
-<text x="476" y="418">• V2 UVA 需 pinned_mem_register:True 且避 3.2.1/3.2.2</text>
-<text x="476" y="442">• 本地分配、远端访问与实际复制必须分别记账</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="主机 cgroup v2 内存压力阈值标尺、NPU HBM 报错分流与可访问地址辨析图" font-family="var(--font-sans)">
+  <title>主机 cgroup v2 阈值标尺与 NPU HBM 报错排障分流</title>
+  <desc>关联源码：init_snapshot, gpu_memory_utilization, requested_memory, get_device_total_memory, mem_get_info, _disable_expandable_segments, weight_nz_mode</desc>
+  <defs>
+    <marker id="dmo-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="dmo-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Titles & vertical divider -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#8f3229">A. 主机侧：cgroup v2 压力标尺与嵌套红线</text>
+  <text x="466" y="28" font-size="16" font-weight="700" fill="#3a4f93">B. 设备侧：NPU HBM 与分配器报错分流</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="450" y1="48" x2="450" y2="360" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- LEFT: cgroup v2 Horizontal Memory Threshold Gauge -->
+  <text x="16" y="64" font-size="14" font-weight="700" fill="#17211f">容器内存用量 memory.current 攀升轨迹：</text>
+
+  <!-- Gauge bar: x=18..434 (416px) -->
+  <rect x="18" y="82" width="176" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="194" y="82" width="128" height="36" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="322" y="82" width="112" height="36" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+
+  <text x="106" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">正常运行区</text>
+  <text x="258" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">回收节流（变慢）</text>
+  <text x="378" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">OOM 强杀区</text>
+
+  <!-- Threshold drop lines -->
+  <line x1="194" y1="74" x2="194" y2="148" stroke="#c78300" stroke-width="2" stroke-dasharray="4 3"/>
+  <line x1="322" y1="74" x2="322" y2="148" stroke="#b54237" stroke-width="2.2"/>
+  <text x="194" y="164" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#936300">memory.high</text>
+  <text x="322" y="164" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">memory.max</text>
+  <text x="194" y="183" text-anchor="middle" font-size="13.5" fill="#66716d">不直接杀进程</text>
+  <text x="322" y="183" text-anchor="middle" font-size="13.5" fill="#8f3229">腾不出即杀</text>
+
+  <!-- Nested cgroup boxes (Russian doll geometry) -->
+  <rect x="16" y="198" width="418" height="84" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="28" y="220" font-size="13.5" font-weight="700" fill="#17211f">整机 / 上层 cgroup 共享总预算（同机任务共争）</text>
+  <rect x="30" y="230" width="194" height="42" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="127" y="256" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">本容器（未超限也可能被杀）</text>
+  <rect x="236" y="230" width="184" height="42" rx="6" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="328" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">同机其他容器 / 页缓存</text>
+
+  <!-- Exit 137 warning -->
+  <rect x="16" y="294" width="418" height="58" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="28" y="318" font-size="13.5" font-weight="700" fill="#8f3229">退出码 137 ≠ 必然 OOM；local 计数 ≠ 本组超限</text>
+  <text x="28" y="340" font-size="13.5" fill="#4d5652">先对 PID、docker kill 审计与同一窗口内核 OOM 日志</text>
+
+  <!-- RIGHT: Device HBM Triage Tree -->
+  <rect x="466" y="54" width="418" height="40" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="675" y="79" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">NPU 启动或运行期显存异常 → 按发生阶段定位</text>
+
+  <!-- Trunk line + 3 branches -->
+  <path d="M 500 94 L 500 318" fill="none" stroke="#4c65b6" stroke-width="1.8"/>
+  <line x1="500" y1="142" x2="520" y2="142" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#dmo-arr)"/>
+  <line x1="500" y1="226" x2="520" y2="226" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#dmo-arr)"/>
+  <line x1="500" y1="316" x2="520" y2="316" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#dmo-arr)"/>
+
+  <rect x="524" y="108" width="360" height="68" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="538" y="133" font-size="14" font-weight="700" fill="#3a4f93">① 启动快照：Free memory &lt; desired</text>
+  <text x="538" y="158" font-size="13.5" fill="#4d5652">空闲 HBM 低于 total×u；核卡号与同卡残留进程</text>
+
+  <rect x="524" y="190" width="360" height="72" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="538" y="215" font-size="14" font-weight="700" fill="#7a3a6a">② 试跑阶段：Error in memory profiling</text>
+  <text x="538" y="241" font-size="13.5" fill="#4d5652">试跑前后空闲量断言失败；常因并发释放扰乱快照</text>
+
+  <rect x="524" y="276" width="360" height="76" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="538" y="301" font-size="14" font-weight="700" fill="#936300">③ 分配器与平台守卫报错</text>
+  <text x="538" y="324" font-size="13.5" fill="#4d5652">True/False 大小写敏感、冲突键拒启；未初始化</text>
+  <text x="538" y="344" font-size="13.5" fill="#4d5652">NPU 调用 get_device_total_memory 抛异常</text>
+
+  <!-- Horizontal divider -->
+  <line x1="14" y1="370" x2="886" y2="370" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Bottom: Addressable != Local HBM strip -->
+  <text x="16" y="396" font-size="16" font-weight="700" fill="#17211f">C. 高频误区直辨：可访问地址（UVA / MemFabric）≠ 物理本地 HBM 容量</text>
+
+  <rect x="16" y="408" width="420" height="76" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="434" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：注册主机内存或拼多卡 = 扩大本卡池</text>
+  <text x="30" y="462" font-size="13.5" fill="#4d5652">以为注册后自动多出本地 HBM，或 8 卡总量任意单卡随便分</text>
+
+  <rect x="464" y="408" width="420" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="478" y="434" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：仅改变寻址方式，物理驻留与链路代价仍在</text>
+  <text x="478" y="462" font-size="13.5" fill="#4d5652">V2 UVA 须 pinned_mem_register:True，避 3.2.1/3.2.2</text>
 </svg>

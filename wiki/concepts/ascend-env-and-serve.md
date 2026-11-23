@@ -75,11 +75,11 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-在[新模型上线标准流程](ascend-model-onboarding.md)里锁死五维版本与权重选型、又在[读懂 HuggingFace 模型目录与 config.json](hf-model-anatomy.md)里摸清模型结构之后，临门一脚就是把容器拉起来、配好环境变量并敲下 `vllm serve`。很多新手明明下对了镜像和权重，却在这一步栽进“容器找不到 NPU”“多进程共享内存崩掉”或者“抄了一堆已失效的祖传环境变量”。本页把单机起服务拆成**容器挂载、环境变量四层甄别、最小启动命令与三步冒烟闭环**四个干净动作，一次跑通 `Qwen3-8B` 与 `Qwen3-30B-A3B`。
+锁死五维版本与权重选型（[新模型上线标准流程](ascend-model-onboarding.md)）、摸清模型结构（[读懂 HF 模型目录](hf-model-anatomy.md)）之后，临门一脚就是起容器、配环境变量并敲下 `vllm serve`。很多新手明明下对了镜像和权重，却栽在“容器找不到 NPU”“共享内存崩掉”或“抄了已失效的旧环境变量”。本页把单机起服务拆成**容器挂载、环境变量四层甄别、最小启动命令与三步冒烟闭环**四个动作，一次跑通 `Qwen3-8B` 与 `Qwen3-30B-A3B`。
 
 ## 第一步：容器怎么挂设备、驱动与缓存？
 
-官方预构建镜像 `quay.io/ascend/vllm-ascend`（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体）已内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
+官方预构建镜像 `quay.io/ascend/vllm-ascend` 按硬件族分标签（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体），内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
 
 ```wiki-diagram
 file: env-serve-container-mounts
@@ -149,14 +149,17 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 - **`ASCEND_RT_VISIBLE_DEVICES`**：昇腾平台唯一的设备可见性控制变量（`NPUPlatform.device_control_env_var` 与绑核模块 `cpu_binding.py` 均读取它）。例如设 `export ASCEND_RT_VISIBLE_DEVICES=2,3`，进程内看到的 `NPU 0, 1` 就对应宿主机的设备 `2, 3`。切记**不要写成 `CUDA_VISIBLE_DEVICES`，也不要漏掉中间的 `RT_` 写成 `ASCEND_VISIBLE_DEVICES`**。
 - **`PYTORCH_NPU_ALLOC_CONF`**：`torch_npu` 显存（NPU 设备内存，常见为 HBM）分配器配置。`v0.30.0` 在未开睡眠模式（`enable_sleep_mode`）时，`_set_pytorch_npu_alloc_env()` 会**自动追加 `expandable_segments:True`**，用可扩展虚拟地址段缓解碎片。注意它不能与 `max_split_size_mb` 或 `garbage_collection_threshold` 同写；配合睡眠模式开启强化学习 `rl_config.enabled=true` 时代码又会自动剥离它。
 - **`VLLM_USE_MODELSCOPE=True`**：由上游 `vllm/envs.py` 解析；机器无法直连 HuggingFace 时改从 ModelScope 下载权重（官方镜像已预装 `modelscope<1.38`）。如果直接传入本地已下载好的目录路径，无需设置该项。
-- **`VLLM_WORKER_MULTIPROC_METHOD=spawn`**：控制多进程执行器（`MultiprocExecutor`，对应 `--distributed-executor-backend mp`）用 `spawn` 还是 `fork` 拉起子进程（二者正交配合而非互相替代）。在线 `vllm serve` 未指定时默认注入 `"spawn"`；Python 离线 `LLM(...)` 默认 `"fork"`，若父进程提前触碰了 NPU 上下文，须显式设为 `spawn` 防卡死。
+- **`VLLM_WORKER_MULTIPROC_METHOD=spawn`**：控制多进程执行器（`MultiprocExecutor`，对应 `--distributed-executor-backend mp`）用 `spawn` 还是 `fork` 拉起子进程，二者正交配合而非互相替代。在线 `vllm serve` 未指定时默认注入 `"spawn"`；Python 离线 `LLM(...)` 默认 `"fork"`，若父进程提前触碰了 NPU 上下文，须显式设为 `spawn` 防卡死。
 - **`VLLM_HOST_IP` 与 `VLLM_PORT`**：多网卡环境下固定本机通信 IP 与内部起始端口；注意 `VLLM_PORT` 必须是纯整数，若在 Kubernetes 中被同名 Service 自动注入成 `tcp://...` 字符串，启动会直接抛出 `ValueError`。
 
 ### 3. 插件与通信仓内实读变量（及 `v0.30.0` 旧变量下线大坑）
 
-`v0.30.0` 的 `vllm_ascend/envs.py` 共保留 **14 项**变量（**8 项编译期** + **6 项运行期**；`main` 精简为 **12 项**）。8 项编译期开关含 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 及传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等；6 项运行期变量里最常见的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 仅在源码安装了非标准版本号触发 `InvalidVersion` 时才需手设 `0.30.0`（官方 `+empty` 后缀会自动剥离）。此外，**HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项包括 `HCCL_BUFFSIZE`（MC2 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）和 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
+`v0.30.0` 的 `vllm_ascend/envs.py` 共保留 **14 项**变量（**8 项编译期** + **6 项运行期**；`main` 精简为 **12 项**）。8 项编译期开关含 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 及传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等；6 项运行期变量里最常见的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 仅在源码安装了非标准版本号触发 `InvalidVersion` 时才需手设 `0.30.0`（官方 `+empty` 后缀会自动剥离）。
 
-> **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除且仓内 `0` 处读取，统一迁入 `--additional-config`（三路优先级见 [Ascend 配置体系](ascend-config-system.md)）。例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）的转换策略时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**，须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但同样建议改配 `additional_config.enable_flashcomm1`。
+通信侧 **HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项有两项：`HCCL_BUFFSIZE`（MC2 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）与 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
+
+> **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除且仓内 `0` 处读取，统一迁入 `--additional-config`（三路优先级见 [Ascend 配置体系](ascend-config-system.md)）。
+> 例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）的转换策略时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**，须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但同样建议改配 `additional_config.enable_flashcomm1`。
 
 ### 4. 无仓内读取点的底层变量与祖传脚本甄别（诚实标 `unknown`）
 

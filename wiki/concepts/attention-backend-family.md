@@ -158,7 +158,7 @@ rawSources:
 file: attention-backend-choice-qwen3
 ```
 
-在 `Qwen3-8B` 这条标准路径里，全部 36 层结构完全一致：平台 `get_attn_backend_cls` 统一将它们绑定到同一个 **`AscendAttentionBackend`**。每一步前向，Runner 只需构建 **1 份 `AscendMetadata`** 和 1 套 `slot_mapping` / `block_table`，36 层全程共用、零额外状态池；到了算子层，再按批次形态在 **FIA**（变长因果 prefill / 混合批）与 **PA / FIA**（纯 decode 按块表直读历史）之间分流。
+在 `Qwen3-8B` 这条标准路径里，全部 36 层结构完全一致。平台 `get_attn_backend_cls` 会把它们统一绑定到同一个 **`AscendAttentionBackend`**。每一步前向，Runner 只需构建 **1 份 `AscendMetadata`** 和 1 套 `slot_mapping` / `block_table`，36 层全程共用、零额外状态池。到了算子层，再按批次形态在 **FIA**（变长因果 prefill / 混合批）与 **PA / FIA**（纯 decode 按块表直读历史）之间分流。
 
 后端在架构上是**按层**挂载的：每层独立报出自己的后端类。同构模型 36 层报出同一个名字，因此合并成 1 个注意力组；一旦换到混合架构（如后文历史 GLM 双机），不同层就会在同一次前向里走上各自独立的后端与元数据分支。
 
@@ -177,7 +177,7 @@ file: attention-backend-choice-qwen3
 
 ## 放到 GLM 双机：一个 token 走过 45 层，要问 45 次
 
-与上面 `Qwen3-8B` 全 36 层共用单一 `AscendAttentionBackend` 形成鲜明对比的，是例外 B 历史 GLM-5.3-Flash 双机部署：同一次前向里，**KDA**（把历史汇入固定形状递推状态的线性注意力）与 **稀疏 MLA**（历史压成潜向量按位置存、每个查询只读选定子集）交替出现，谁也不经过对方的算子：
+上面 `Qwen3-8B` 全 36 层共用单一 `AscendAttentionBackend`；下面对照例外 B 历史 GLM-5.3-Flash 双机部署里的异构分层。同一次前向里，**KDA**（把历史汇入固定形状递推状态的线性注意力）与 **稀疏 MLA**（历史压成潜向量按位置存、每个查询只读选定子集）交替出现，谁也不经过对方的算子：
 
 ```wiki-diagram
 file: attention-backend-choice
@@ -220,7 +220,11 @@ KDA 这边不逐位置重读全部历史：一次递推读写每个头的矩阵�
 
 ### 一个稀疏 MLA 层其实注册了三个条目
 
-每个稀疏 MLA 层向 Runner 注册的不止主注意力：它还挂着两个只管缓存的模块——一个存 indexer 的 K 池，一个存 kpool 的尾状态。两者的前向是空的，报出的后端也不是稀疏 MLA 后端，而是各自专用的缓存后端。它们存在的意义只有一个：让 Runner 按自己的缓存规格给它们分配和管理那份缓存。所以"一层 = 一个后端"在这里也不成立，一层可以对应三个分组键。
+每个稀疏 MLA 层向 Runner 注册的不止主注意力：它还挂着两个只管缓存的模块——一个存 indexer 的 K 池，一个存 kpool 的尾状态。两者的前向是空的，报出的后端也不是稀疏 MLA 后端，而是各自专用的缓存后端。它们存在的意义只有一个：让 Runner 按自己的缓存规格给它们分配和管理那份缓存。所以"一层 = 一个后端"在这里也不成立，一层可以对应三个分组键：
+
+```wiki-diagram
+file: attention-backend-family-fig-layer-grouping
+```
 
 ### MTP 的第 45 层也走稀疏 MLA
 
@@ -248,9 +252,9 @@ FlashAttention 把 Q、K、V 分块装进更靠近计算单元的存储，在处
 file: attention-backend-family-fig-selector-tree
 ```
 
-- **标准密集注意力与 MLA / SFA / DSA（通用四元组查表）**：`(use_mla, use_sparse, use_compress)` 为 `(False, False, False)` 时默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）间分流。**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`。310P 由 `COMPATIBILITY` 硬件族落到 `AscendAttentionBackend310`，开启上下文并行 `use_pcp` 则查独立 MRV2 PCP 映射表。
+- **标准密集注意力与 MLA / SFA / DSA（通用四元组查表）**：三元组 `(use_mla, use_sparse, use_compress)` 为 `(False, False, False)` 时默认落入 `AscendAttentionBackend`。算子内部再按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）间分流。**MLA / SFA / DSA** 分别对应 `(True, False, False)`、`(True, True, False)` 与 `(True, False, True)`。310P 由 `COMPATIBILITY` 硬件族落到 `AscendAttentionBackend310`；开启上下文并行 `use_pcp` 则改查独立 MRV2 PCP 映射表。
 - **Linear（线性注意力 / KDA / GDN）**：不经过通用注意力后端表，由模型层直接报出 `AscendGDNAttentionBackend` 等线性后端。
-- **FA3（`AscendFABackend` / `AscendFAImpl`）与 `main` 新增前置分支**：在 `v0.23.0` / `v0.26.0rc` 中，FA3 须显式选 `FLASH_ATTN` 且开批不变；`v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled`、`enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）。`main` 还为特定草稿/模型新增 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支（算子族分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)，拒绝条件见[会报什么错](#会报什么错)）。
+- **FA3（`AscendFABackend` / `AscendFAImpl`）与 `main` 新增前置分支**：`v0.23.0` / `v0.26.0rc` 要求显式选 `FLASH_ATTN` 且开批不变；`v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled` 与 `enable_training_consistency` 同为真时优先命中。图模式须配 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口。`main` 还为特定草稿/模型新增 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置分支。算子族分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)，拒绝条件见[会报什么错](#会报什么错)。
 
 ## 常见误解
 

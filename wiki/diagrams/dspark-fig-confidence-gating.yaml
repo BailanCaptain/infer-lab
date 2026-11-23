@@ -1,7 +1,8 @@
 mode: native-svg
 id: dspark-fig-confidence-gating
-caption: DSpark 置信度累乘预算分配与耗时盈亏平衡模型（3 个验证名额在请求 A/B 间按连续存活概率择优，422 vs 243.4 token/s），以及半自回归草稿结构与昇腾四类变长/窗口配置路径的区分。
-size: [900, 456]
+caption: >-
+  DSpark 置信度累乘门控、耗时盈亏标尺与两根独立优化轴：上半区左图以真实 [0, 1] 比例条绘制请求 A/B 连续存活概率（Top-3 门槛 0.60 选中 A1=0.90、A2=0.72、B1=0.60），右图以真实比例条对比少验（422 tok/s）与全验（243.4 tok/s）及 11.54 ms 盈亏平衡线；下半区拆解半自回归草稿三组件（Markov 修正 3.4>3.3），并将「向前猜几个」与「往回读多长（草稿滑窗 2,048 ⊂ 10,000）」画成两根正交轴。
+size: [900, 500]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1294-L1320'
     symbols: ['DynamicSpecConfig', '_validate']

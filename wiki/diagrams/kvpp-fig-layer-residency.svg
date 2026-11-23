@@ -1,92 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="KVPP MLA 按层常驻布局、双暂存区提前广播与 v0.30.0/main 约束图" font-family="var(--font-sans)">
-  <title>KVPP：MLA 按层常驻、双暂存区提前一层整层广播与版本边界</title>
-  <desc>上半对比普通 TP 逐卡复制全部 L 层 MLA KV 与 KVPP 按层常驻（⌈L/N⌉ 常驻层 + 2 暂存区 + 复制 MTP），展示计算流与独立广播流的重叠节拍；下半列出 v0.30.0 与 main 对执行模式（eager/PIECEWISE）、非混合 MLA、DCP 互斥与连接器白名单的限制。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 536" width="900" height="536" role="img" aria-label="KVPP 单块物理成本比例对比、独立广播流提前一层流水时间线与 v0.30.0/main 约束图">
+  <title>KVPP：单块物理成本比例对比、独立广播流重叠节拍与版本约束</title>
+  <desc>上半部分按同比例对比不开 KVPP（8B/块→6块）、4卡开 KVPP（2常驻+2暂存=4B/块→12块翻倍）与短 PP 段反例（2层4卡：1常驻+2暂存=3B/块→块数反降）；中半部分用双流甘特时间线展示 NPU 计算流与独立广播流提前一层预发、双暂存区按层号%2轮换及 wait 同步点；下半部分列出 v0.30.0 与 main 准入门槛与连接器白名单。</desc>
   <defs>
     <marker id="kvpp-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
     </marker>
-    <marker id="kvpp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    <marker id="kvpp-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单卡显存账对比（MLA 潜向量）：从每卡存全层 → 常驻层 + 2 暂存区</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+  <!-- Header -->
+  <text x="16" y="26" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="700" fill="#17211f">KVPP：单块物理成本对比、双流提前一层广播与准入边界</text>
+  <text x="16" y="46" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#4d5652">同比例看“常驻层 + 2 暂存区”为何不是简单除 N；有历史时独立广播流提前一层发整层 bundle</text>
+  <line x1="16" y1="58" x2="884" y2="58" stroke="#d8d8cf" stroke-width="1" />
 
-  <g stroke-width="1.5">
-    <rect x="12" y="52" width="380" height="122" rx="9" fill="#fff0e9" stroke="#b54237"/>
-    <rect x="424" y="52" width="464" height="122" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  <!-- ========== SECTION 1: Proportional Block Cost Bars ========== -->
+  <text x="16" y="78" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14.5" font-weight="700" fill="#17211f">一、单卡每块物理占用对比（同比例：1 格 = 1 层 × B，每卡有效预算 48 MiB，B = 1 MiB）</text>
+
+  <!-- Row 1: Without KVPP (8B = 8 x 44px = 352px) -->
+  <text x="16" y="109" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="600" fill="#17211f">不开 KVPP（8 层全存）</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central">
+    <rect x="206" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="227" y="104" fill="#3a4f93">L0</text>
+    <rect x="250" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="271" y="104" fill="#3a4f93">L1</text>
+    <rect x="294" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="315" y="104" fill="#3a4f93">L2</text>
+    <rect x="338" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="359" y="104" fill="#3a4f93">L3</text>
+    <rect x="382" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="403" y="104" fill="#3a4f93">L4</text>
+    <rect x="426" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="447" y="104" fill="#3a4f93">L5</text>
+    <rect x="470" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="491" y="104" fill="#3a4f93">L6</text>
+    <rect x="514" y="90" width="42" height="28" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2" /><text x="535" y="104" fill="#3a4f93">L7</text>
   </g>
-  <path d="M 392 113 L 418 113" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#kvpp-arr-teal)"/>
+  <text x="570" y="109" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#4d5652">8B / 块 → 仅分 <tspan font-weight="700" fill="#17211f">6 块</tspan>（4 卡重复存 4 份）</text>
 
-  <text x="26" y="78" font-size="15" font-weight="700" fill="#8f3229">不开 KVPP（普通 TP 组 N 张卡）</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="103">MLA 潜向量所有头共用，无法随头切分：</text>
-    <text x="26" y="126">每卡存 <tspan font-weight="700" fill="#8f3229">全部 L 层 + MTP</tspan>（N 份一模一样）</text>
-    <text x="26" y="152">8 层 4 卡示意：每块占 <tspan font-family="var(--font-mono)" fill="#8f3229">8 × B</tspan> → 仅分 <tspan font-weight="700" fill="#8f3229">6 块</tspan></text>
+  <!-- Row 2: KVPP 8L 4-card (2 resident + 2 scratch = 4B) -->
+  <text x="16" y="149" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" fill="#065f56">开 KVPP（8 层 4 卡）</text>
+  <g font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" dominant-baseline="central">
+    <rect x="206" y="130" width="86" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
+    <text x="249" y="144" fill="#065f56">常驻 2 层</text>
+    <rect x="296" y="130" width="86" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3" stroke-dasharray="4 3" />
+    <text x="339" y="144" fill="#936300">暂存 A+B</text>
   </g>
+  <text x="398" y="149" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#065f56"><tspan font-weight="700">4B / 块 → 12 块（2× 容量）</tspan> · 若含 MTP 则各卡另留整份</text>
 
-  <text x="438" y="78" font-size="15" font-weight="700" fill="#065f56">开启 KVPP（组大小 = TP × PCP，不跨 DP/PP）</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="438" y="103">每卡常驻 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">⌈L/N⌉</tspan> 连续层 + <tspan font-weight="700" fill="#936300">2 暂存区</tspan> + 复制 MTP 层</text>
-    <text x="438" y="126">单块物理成本：<tspan font-family="var(--font-mono)" fill="#065f56">persistent + 2 × max_bundle</tspan></text>
-    <text x="438" y="152">8 层 4 卡示意：每块 <tspan font-family="var(--font-mono)" fill="#065f56">(2+2)×B</tspan> → 翻倍至 <tspan font-weight="700" fill="#065f56">12 块</tspan>（取各卡最小）</text>
+  <!-- Row 3: Counterexample short PP stage (2L 4-card -> 1 resident + 2 scratch = 3B > 2B) -->
+  <text x="16" y="189" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">反例：短 PP（2 层 4 卡）</text>
+  <g font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" dominant-baseline="central">
+    <rect x="206" y="170" width="42" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" />
+    <text x="227" y="184" fill="#065f56">1层</text>
+    <rect x="252" y="170" width="86" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3" />
+    <text x="295" y="184" fill="#8f3229">暂存 A+B</text>
   </g>
+  <text x="354" y="189" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#8f3229"><tspan font-weight="700">3B / 块 &gt; 原 2B / 块</tspan> → 24 块反降至 <tspan font-weight="700">16 块</tspan>（层少时增容失效）</text>
 
-  <text x="14" y="206" font-size="16" font-weight="700" fill="#17211f">二、前向流水节拍：独立广播流提前一层发整层 bundle（双暂存区交替复用）</text>
-  <line x1="12" y1="218" x2="888" y2="218" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="16" y1="214" x2="884" y2="214" stroke="#d8d8cf" stroke-width="1" />
 
-  <g stroke-width="1.4">
-    <rect x="12" y="232" width="124" height="46" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="148" y="232" width="234" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="394" y="232" width="238" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="644" y="232" width="244" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+  <!-- ========== SECTION 2: Staggered 2-Stream Gantt Timeline ========== -->
+  <text x="16" y="238" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14.5" font-weight="700" fill="#17211f">二、前向双流节拍：独立广播流提前一层发整层 bundle，双暂存区按层号 % 2 轮换</text>
 
-    <rect x="12" y="290" width="124" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-    <rect x="148" y="290" width="234" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-    <rect x="394" y="290" width="238" height="46" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-    <rect x="644" y="290" width="244" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-  </g>
+  <!-- Lane labels -->
+  <rect x="16" y="258" width="112" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" />
+  <text x="72" y="285" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#17211f">NPU 计算流</text>
 
-  <g font-size="13.5" font-weight="700" text-anchor="middle">
-    <text x="74" y="260" fill="#17211f">NPU 计算流</text>
-    <text x="265" y="253" fill="#936300">第 0 层：Q/KV 投影 → 等 L0</text>
-    <text x="513" y="253" fill="#936300">第 0 层 Attn + 第 1 层投影</text>
-    <text x="766" y="253" fill="#936300">等 L1 → 第 1 层 Attn + 写回</text>
+  <rect x="16" y="328" width="112" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2" />
+  <text x="72" y="355" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#7a3a6a">独立广播流</text>
 
-    <text x="74" y="318" fill="#7a3a6a">独立广播流</text>
-    <text x="265" y="311" fill="#7a3a6a">发 L0 整层广播 → 暂存 0</text>
-    <text x="513" y="311" fill="#3a4f93">一等完 L0 立刻预发 L1 → 暂存 1</text>
-    <text x="766" y="311" fill="#7a3a6a">一等完 L1 立刻预发 L2 → 暂存 0</text>
-  </g>
+  <!-- Compute Stream bars (y=258..302) -->
+  <rect x="142" y="258" width="136" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3" />
+  <text x="210" y="277" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#936300">L0 投影 (Q/KV)</text>
+  <text x="210" y="295" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">不碰缓存</text>
 
-  <g font-size="13.5" fill="#4d5652" text-anchor="middle">
-    <text x="265" y="271">（仅本批含历史时广播）</text>
-    <text x="513" y="271">（与 L1 广播并行遮挡）</text>
-    <text x="766" y="271">（常驻卡保新 KV，暂存区被覆盖）</text>
+  <!-- Wait barrier L0 -->
+  <line x1="292" y1="252" x2="292" y2="376" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" />
+  <rect x="266" y="305" width="54" height="19" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1" />
+  <text x="293" y="319" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="700" text-anchor="middle" fill="#8f3229">wait L0</text>
 
-    <text x="265" y="329">按整层已分配块全发，不挑活跃块</text>
-    <text x="513" y="329">双暂存区按层号 % 2 轮换</text>
-    <text x="766" y="329">全新 prefill / 试跑整步零广播</text>
-  </g>
+  <rect x="306" y="258" width="210" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" />
+  <text x="411" y="277" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#065f56">L0 Attn + MLP + L1 投影</text>
+  <text x="411" y="295" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">与下方 L1 广播并行遮挡</text>
 
-  <text x="14" y="370" font-size="16" font-weight="700" fill="#17211f">三、v0.30.0 主基线与 main 准入边界（启动期 KVPPConfig.validate）</text>
-  <line x1="12" y1="382" x2="888" y2="382" stroke="#b8bcb5" stroke-width="1.4"/>
+  <!-- Wait barrier L1 -->
+  <line x1="530" y1="252" x2="530" y2="376" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" />
+  <rect x="504" y="305" width="54" height="19" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1" />
+  <text x="531" y="319" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="700" text-anchor="middle" fill="#8f3229">wait L1</text>
 
-  <g stroke-width="1.5">
-    <rect x="12" y="394" width="430" height="90" rx="9" fill="#e8edff" stroke="#4c65b6"/>
-    <rect x="458" y="394" width="430" height="90" rx="9" fill="#fff0e9" stroke="#b54237"/>
-  </g>
+  <rect x="544" y="258" width="210" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" />
+  <text x="649" y="277" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#065f56">L1 Attn + MLP + L2 投影</text>
+  <text x="649" y="295" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">与下方 L2 广播并行遮挡</text>
 
-  <text x="26" y="420" font-size="14.5" font-weight="700" fill="#3a4f93">模型、模式与并行约束</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="445">• 仅限<tspan font-weight="700" fill="#17211f">非混合 MLA</tspan>（拒 GLM 混合架构）与单组全注意力</text>
-    <text x="26" y="468">• 放行 <tspan font-family="var(--font-mono)" fill="#3a4f93">eager</tspan> 或 <tspan font-family="var(--font-mono)" fill="#3a4f93">PIECEWISE</tspan>；与 <tspan font-family="var(--font-mono)" fill="#8f3229">DCP &gt; 1</tspan> 互斥</text>
-  </g>
+  <!-- Wait barrier L2 -->
+  <line x1="768" y1="252" x2="768" y2="376" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" />
+  <rect x="778" y="258" width="106" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" />
+  <text x="831" y="277" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#17211f">L2 Attn…</text>
+  <text x="831" y="295" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">逐层推进</text>
 
-  <text x="472" y="420" font-size="14.5" font-weight="700" fill="#8f3229">KV 连接器白名单（v0.30.0 vs main）</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="472" y="445">• v0.30.0：<tspan font-family="var(--font-mono)">MooncakeConnectorV2</tspan>（仅 P）、<tspan font-family="var(--font-mono)">AscendStore</tspan></text>
-    <text x="472" y="468">• main 增 <tspan font-family="var(--font-mono)">MooncakePush</tspan>（拒 D）；拒逐层 CP</text>
-  </g>
+  <!-- Broadcast Stream bars (y=328..372) -->
+  <rect x="142" y="328" width="142" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" />
+  <text x="213" y="347" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#7a3a6a">发 L0 → 暂存 A</text>
+  <text x="213" y="365" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">全层已分配块</text>
+
+  <rect x="306" y="328" width="212" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />
+  <text x="412" y="347" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#3a4f93">等完 L0 立刻发 L1 → 暂存 B</text>
+  <text x="412" y="365" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">常驻卡发，其余卡入暂存 B</text>
+
+  <rect x="544" y="328" width="212" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" />
+  <text x="650" y="347" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" text-anchor="middle" fill="#7a3a6a">等完 L1 立刻发 L2 → 暂存 A</text>
+  <text x="650" y="365" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#4d5652">覆盖旧 L0 暂存，常驻卡不丢</text>
+
+  <rect x="778" y="328" width="106" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3" />
+  <text x="831" y="347" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="600" text-anchor="middle" fill="#4d5652">无历史步</text>
+  <text x="831" y="365" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" text-anchor="middle" fill="#66716d">整步零广播</text>
+
+  <text x="16" y="396" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#4d5652">注：整层广播不挑活跃块（例 12 块全发而非只发 3 块）；SFA 融合路径在融合预处理前等待。</text>
+
+  <line x1="16" y1="412" x2="884" y2="412" stroke="#d8d8cf" stroke-width="1" />
+
+  <!-- ========== SECTION 3: v0.30.0 / main Guard Strip ========== -->
+  <text x="16" y="434" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14.5" font-weight="700" fill="#17211f">三、v0.30.0 主基线与 main 启动期准入门槛（KVPPConfig.validate）</text>
+
+  <rect x="16" y="446" width="424" height="80" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />
+  <text x="28" y="469" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">模型、模式与并行域（组大小 = TP × PCP）</text>
+  <text x="28" y="493" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#4d5652">仅限非混合 MLA（拒 GLM）· 放行 eager / PIECEWISE</text>
+  <text x="28" y="514" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#4d5652">拒 DCP &gt; 1</text>
+
+  <rect x="456" y="446" width="428" height="80" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" />
+  <text x="468" y="469" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">KV 连接器白名单（均支持 MultiConnector）</text>
+  <text x="468" y="493" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#4d5652">v0.30.0: MooncakeV2(仅P) / AscendStore</text>
+  <text x="468" y="514" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#4d5652">main 增 MooncakePush · 拒逐层 CP</text>
 </svg>

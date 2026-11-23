@@ -1,60 +1,109 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 582" width="900" height="582" role="img" aria-label="全站 01–12 目录阅读路线：01 全景入门按读者背景分为「概念起步」（直入 02–06 原理主线）与「工程上线速查」（直达模型解剖、起服与 08 调参排障）；右侧按需深入 07 架构源码与 09 旗舰双机全案；底部 10–12 三组随时查阅。">
-  <title>全站 01–12 目录阅读路线：01 全景入门按读者背景分为「概念起步」（直入 02–06 原理主线）与「工程上线速查」（直达模型解剖、起服与 08 调参排障）；右侧按需深入 07 架构源码与 09 旗舰双机全案；底部 10–12 三组随时查阅。</title>
-  <defs><marker id="learning-guide-route-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="learning-guide-route-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="learning-guide-route-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="learning-guide-route-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="learning-guide-route-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <rect x="16" y="62" width="868" height="106" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="32" y="50" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">01 全景入门与新模型上线（先按背景选入口）</text>
-  <rect x="16" y="196" width="556" height="268" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="32" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">概念原理主线（02 → 06 零倒挂递进）</text>
-  <rect x="596" y="196" width="288" height="268" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="612" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">工程架构、调参与全案（07 → 09）</text>
-  <path d="M350 152 L350 212 L158 212 L158 228" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-token)"/>
-  <path d="M280 259 L308 259" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-kv)"/>
-  <path d="M430 290 L430 301 L158 301 L158 312" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M280 343 L308 343" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#learning-guide-route-ah-comm)"/>
-  <path d="M430 374 L430 394" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#learning-guide-route-ah-comm)"/>
-  <path d="M856 152 L856 212 L740 212 L740 228" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-weight)"/>
-  <path d="M552 259 L616 259" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M552 343 L616 343" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M552 421 L616 421" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <rect x="36" y="90" width="380" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="226" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">路线 A · 概念起步：本页 → 请求全景</text>
-  <text x="226" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">零基础 3 分钟看懂两轮生成，再直入 02 组</text>
-  <rect x="484" y="90" width="380" height="62" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="674" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">路线 B · 上线速查：HF 解剖 → 上线 → 起服</text>
-  <text x="674" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">已有经验直接算显存、查支持、拉起 vllm serve</text>
-  <rect x="36" y="228" width="244" height="62" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="158" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">02 标准模型单层计算</text>
-  <text x="158" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">token / Attention / GQA / MoE</text>
-  <rect x="308" y="228" width="244" height="62" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="430" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">03 单实例调度与分页 KV</text>
-  <text x="430" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Prefill / KV / 分页与块表</text>
-  <rect x="36" y="312" width="244" height="62" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="158" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">04 昇腾硬件与现代量化</text>
-  <text x="158" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">Roofline / 四族硬件 / FA / W8A8</text>
-  <rect x="308" y="312" width="244" height="62" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="430" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">05 集合通信与分布式并行</text>
-  <text x="430" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">HCCL / TP / PP / DP / EP / CP</text>
-  <rect x="36" y="394" width="516" height="54" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="294" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">06 PD / EPD 分离架构与外置 KV 体系</text>
-  <text x="294" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">Mooncake 跨实例传输 · 抢占回退 · 逐层/稀疏卸载 · KV Pool</text>
-  <rect x="616" y="228" width="248" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="740" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">07 vllm-ascend 两仓架构</text>
-  <text x="740" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">插件 / 补丁 / 冷启动 / 图编译</text>
-  <rect x="616" y="312" width="248" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="740" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">08 基准、调参与排障手册</text>
-  <text x="740" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">核心 CLI / 压测 / 性能与精度排障</text>
-  <rect x="616" y="394" width="248" height="54" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="740" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">09 旗舰异构模型端到端全案</text>
-  <text x="740" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">GLM-5.3-Flash / DeepSeek-V4.1</text>
-  <rect x="16" y="510" width="274" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="153" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">10 历史版本快照与档案</text>
-  <text x="153" y="553" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">基线核验底稿 · PR 与问答记录</text>
-  <rect x="313" y="510" width="274" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="450" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">11 RFork 权重快载专题</text>
-  <text x="450" y="553" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">独立权重快载机制与故障定位</text>
-  <rect x="610" y="510" width="274" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="747" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">12 additional_config 参数字典</text>
-  <text x="747" y="553" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按配置键随手查定义与版本差异</text>
-  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全站 01–12 目录阅读导航：概念初学者走左侧主线，工程师走右侧上线与排障</text>
-  <text x="450" y="494" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">以下三组（10–12）作为字典与专题档案，随时按需查阅</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 568" width="900" height="568" role="img" aria-label="全站 01 至 12 目录阅读路线图：概念起步路线 A 沿 02 至 06 递进，新模型上线速查路线 B 走完 01 后直达 08 调参与排障，10 至 12 组随时查阅" font-family="var(--font-sans)">
+  <title>全站 01–12 目录阅读路线：01 全景入门按背景分为「路线 A · 概念起步」（直入 02–06 原理主线）与「路线 B · 新模型上线速查」（走完 HF 解剖、上线、起服后直达 08 核心 CLI 调参与排障）；右侧按需深入 07 两仓架构与 09 旗舰双机全案；底部 10–12 三组作为字典与档案随时查阅。</title>
+  <desc>站点 01 至 12 组知识导航：路线 A（青色主线）从 01 经请求全景进入 02 → 03 → 04 → 05 → 06；路线 B（琥珀色主线）从 01 上线三篇直达 08 基准、核心 CLI 参数与通用排障；虚线按需衔接 07 两仓架构与 09 旗舰异构全案；底部平铺 10 历史档案、11 RFork 专题与 12 additional_config 字典。</desc>
+  <defs>
+    <marker id="lg-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="lg-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="lg-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="lg-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="lg-arr-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <!-- 顶标题 -->
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">01–12 目录起步分流：路线 A 走左侧原理主线（02→06），路线 B 直奔 08 调参排障</text>
+
+  <!-- 01 组起步入口（无外大框，双通道直接并列） -->
+  <rect x="14" y="46" width="420" height="82" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.7"/>
+  <text x="30" y="73" font-size="15" font-weight="700" fill="#065f56">路线 A · 概念起步（01 → 02 组）</text>
+  <text x="30" y="98" font-size="13.5" fill="#17211f">本页 → 请求全景（6 词看懂两轮四件事）</text>
+  <text x="30" y="119" font-size="13.5" fill="#087f73">零前置概念倒挂，先建立 Qwen3 通用直觉</text>
+
+  <rect x="466" y="46" width="420" height="82" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.7"/>
+  <text x="482" y="73" font-size="15" font-weight="700" fill="#936300">路线 B · 新模型上线速查（01 → 08 组）</text>
+  <text x="482" y="98" font-size="13.5" fill="#17211f">HF 目录解剖 → 新模型上线总览 → 环境与起服</text>
+  <text x="482" y="119" font-size="13.5" fill="#936300">算清权重显存并拉起服务，随后转入 08 组</text>
+
+  <!-- 中段分栏标题 -->
+  <text x="14" y="164" font-size="15" font-weight="700" fill="#065f56">概念原理主线（02 → 06 递进）</text>
+  <text x="582" y="164" font-size="15" font-weight="700" fill="#17211f">架构源码、上线排障与旗舰全案（07–09）</text>
+  <line x1="564" y1="146" x2="564" y2="448" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 左侧：02 -> 03 -> 04 -> 05 -> 06 -->
+  <rect x="14" y="180" width="250" height="72" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="207" font-size="15" font-weight="700" fill="#3a4f93">02 标准模型单层计算</text>
+  <text x="28" y="232" font-size="13.5" fill="#4d5652">token · Attention · GQA · MoE</text>
+
+  <rect x="294" y="180" width="250" height="72" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="308" y="207" font-size="15" font-weight="700" fill="#3a4f93">03 单实例调度与分页 KV</text>
+  <text x="308" y="232" font-size="13.5" fill="#4d5652">Prefill · KV · PagedAttention</text>
+
+  <rect x="14" y="282" width="250" height="72" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="28" y="309" font-size="15" font-weight="700" fill="#936300">04 昇腾硬件与现代量化</text>
+  <text x="28" y="334" font-size="13.5" fill="#4d5652">Roofline · 四族硬件 · FA · W8A8</text>
+
+  <rect x="294" y="282" width="250" height="72" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="308" y="309" font-size="15" font-weight="700" fill="#7a3a6a">05 集合通信与分布式并行</text>
+  <text x="308" y="334" font-size="13.5" fill="#4d5652">HCCL · TP · PP · DP · EP · CP</text>
+
+  <rect x="14" y="380" width="530" height="66" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="28" y="407" font-size="15" font-weight="700" fill="#7a3a6a">06 PD / EPD 分离架构与跨实例外置 KV 体系</text>
+  <text x="28" y="431" font-size="13.5" fill="#4d5652">Mooncake 跨实例传输 · D 节点抢占回退 · 逐层卸载 · KV Pool</text>
+
+  <!-- 右侧：07 / 08 (路线 B 目标高亮) / 09 -->
+  <rect x="582" y="180" width="250" height="72" rx="9" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="596" y="207" font-size="15" font-weight="700" fill="#17211f">07 vllm-ascend 两仓架构</text>
+  <text x="596" y="232" font-size="13.5" fill="#4d5652">插件 · 冷启动 · ACL Graph</text>
+
+  <rect x="582" y="282" width="250" height="72" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.8"/>
+  <text x="596" y="309" font-size="15" font-weight="700" fill="#936300">08 基准、调参与排障手册</text>
+  <text x="596" y="334" font-size="13.5" fill="#17211f">核心 CLI · 压测 · 性能与精度排障</text>
+
+  <rect x="582" y="380" width="250" height="66" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="596" y="407" font-size="15" font-weight="700" fill="#065f56">09 旗舰异构模型全案</text>
+  <text x="596" y="431" font-size="13.5" fill="#4d5652">GLM-5.3-Flash · DeepSeek-V4.1</text>
+
+  <!-- 路线 A 主线箭头（实线） -->
+  <path d="M 139 128 L 139 178" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#lg-arr-t)"/>
+  <path d="M 264 216 L 292 216" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#lg-arr-i)"/>
+  <path d="M 419 252 L 419 267 L 139 267 L 139 280" fill="none" stroke="#66716d" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#lg-arr-m)"/>
+  <path d="M 264 318 L 292 318" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lg-arr-p)"/>
+  <path d="M 419 354 L 419 378" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lg-arr-p)"/>
+
+  <!-- 路线 B 主线箭头（粗实琥珀线，从 01 路线 B 明确直达 08 组，绝不误指 07！） -->
+  <path d="M 862 128 L 862 318 L 835 318" fill="none" stroke="#c78300" stroke-width="2.4" stroke-linejoin="round" marker-end="url(#lg-arr-a)"/>
+  <rect x="838" y="196" width="52" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="864" y="215" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">路线 B</text>
+  <text x="864" y="233" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">直达 08</text>
+
+  <!-- 虚线按需衔接（概念主线 -> 07/08/09，以及 08 -> 07 按需翻源码） -->
+  <path d="M 544 216 L 580 216" fill="none" stroke="#66716d" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#lg-arr-m)"/>
+  <path d="M 544 318 L 580 318" fill="none" stroke="#66716d" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#lg-arr-m)"/>
+  <path d="M 544 413 L 580 413" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#lg-arr-t)"/>
+  <path d="M 707 282 L 707 254" fill="none" stroke="#66716d" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lg-arr-m)"/>
+
+  <!-- 底部 10–12 随时查阅区 -->
+  <line x1="14" y1="464" x2="886" y2="464" stroke="#d8d8cf" stroke-width="1.4"/>
+  <text x="14" y="486" font-size="14" font-weight="700" fill="#4d5652">以下三组（10–12）作为档案、独立专题与参数字典，按需随时查阅</text>
+
+  <rect x="14" y="498" width="278" height="60" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="523" font-size="14.5" font-weight="700" fill="#17211f">10 历史版本快照与档案</text>
+  <text x="28" y="546" font-size="13.5" fill="#66716d">基线核验底稿 · PR 与问答档案</text>
+
+  <rect x="311" y="498" width="278" height="60" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="325" y="523" font-size="14.5" font-weight="700" fill="#17211f">11 RFork 权重快载专题</text>
+  <text x="325" y="546" font-size="13.5" fill="#66716d">独立权重快载机制与故障定位</text>
+
+  <rect x="608" y="498" width="278" height="60" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="622" y="523" font-size="14.5" font-weight="700" fill="#17211f">12 additional_config 字典</text>
+  <text x="622" y="546" font-size="13.5" fill="#66716d">按配置键随手查定义与版本差异</text>
 </svg>

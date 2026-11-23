@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="use_layerwise 四处同名配置入口消歧、开启后的三类调度与后端分叉及强制改写 PIECEWISE 图模式流程" font-family="var(--font-sans)">
+  <title>use_layerwise：四处同名入口消歧、三类运行分叉与 PIECEWISE 图模式覆写</title>
+  <desc>Disambiguation of four homonymous use_layerwise keys across AscendStoreConnector, sfa_pd_rd2h P2P connector, YuanrongConfig JSON, and external UCM YAML, followed by the three runtime forks and forced PIECEWISE CUDA graph override.</desc>
+  <defs>
+    <marker id="ul-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ul-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Band 1: 4 Homonymous Keys Disambiguation -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 先消歧：全仓与生态共四处同名 use_layerwise（均不在 additional_config 里，无自动一致性校验）</text>
+
+  <rect x="16" y="42" width="212" height="106" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="122" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">1. AscendStore 主入口</text>
+  <text x="122" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">kv_connector_extra</text>
+  <text x="122" y="112" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">默认 false（.get 取原值）</text>
+  <text x="122" y="134" text-anchor="middle" font-size="13.5" fill="#8f3229">字符串 "false" 会判真！</text>
+
+  <rect x="238" y="42" width="206" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="341" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">2. SFA P2P 连接器</text>
+  <text x="341" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">sfa_pd_rd2h</text>
+  <text x="341" y="112" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">默认 true（v0.26+）</text>
+  <text x="341" y="134" text-anchor="middle" font-size="13.5" fill="#4d5652">独立 P2P 路径</text>
+
+  <rect x="454" y="42" width="212" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="560" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">3. Yuanrong JSON</text>
+  <text x="560" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">YR_CONFIG_PATH</text>
+  <text x="560" y="112" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">默认 false（自动区钉此）</text>
+  <text x="560" y="134" text-anchor="middle" font-size="13.5" fill="#4d5652">须手动与入口 1 对齐</text>
+
+  <rect x="676" y="42" width="208" height="106" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="780" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">4. 外部 UCM YAML</text>
+  <text x="780" y="89" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">UCM_CONFIG_FILE</text>
+  <text x="780" y="112" text-anchor="middle" font-size="13.5" fill="#4d5652">外部 ucm 包直读</text>
+  <text x="780" y="134" text-anchor="middle" font-size="13.5" fill="#66716d">本仓包装只转发不读</text>
+
+  <line x1="16" y1="166" x2="884" y2="166" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: 3 Runtime Forks when use_layerwise=true -->
+  <text x="16" y="192" font-size="16" font-weight="700" fill="#17211f">② 主入口置 true 后牵动的三类分叉（按层加载、等待与存出）</text>
+
+  <rect x="16" y="208" width="276" height="114" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="154" y="232" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">分叉 1 · 外部命中与强制加载</text>
+  <text x="154" y="256" text-anchor="middle" font-size="13.5" fill="#17211f">查询起点改为从 块 0 起步</text>
+  <text x="154" y="280" text-anchor="middle" font-size="13.5" fill="#4d5652">无需新分配仍可能强制加载</text>
+  <text x="154" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">v0.26+: store_skip_tokens&gt;0</text>
+
+  <rect x="312" y="208" width="276" height="114" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="450" y="232" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">分叉 2 · 调度异步标志置假</text>
+  <text x="450" y="256" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">load_async and not layerwise</text>
+  <text x="450" y="280" text-anchor="middle" font-size="13.5" fill="#4d5652">不走整批异步加载标志</text>
+  <text x="450" y="304" text-anchor="middle" font-size="13.5" fill="#7a3a6a">main 独立调度器直置 False</text>
+
+  <rect x="608" y="208" width="276" height="114" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="746" y="232" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">分叉 3 · 数据面与拓扑校验</text>
+  <text x="746" y="256" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">block_key / gva 数据面</text>
+  <text x="746" y="280" text-anchor="middle" font-size="13.5" fill="#4d5652">Mooncake block_key 限纯 TP</text>
+  <text x="746" y="304" text-anchor="middle" font-size="13.5" fill="#8f3229">main 拒未实现数据面/仅存D</text>
+
+  <line x1="16" y1="340" x2="884" y2="340" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 3: CUDA Graph Override Flow -->
+  <text x="16" y="366" font-size="16" font-weight="700" fill="#17211f">③ 必然副作用：强制将整图模式改写为 PIECEWISE（无法录进整图；四版本一致）</text>
+
+  <rect x="16" y="384" width="224" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="128" y="410" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">原整图配置</text>
+  <text x="128" y="434" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">FULL / FULL_DECODE_ONLY</text>
+  <path d="M 240 420 L 278 420" fill="none" stroke="#c78300" stroke-width="1.9" marker-end="url(#ul-arr-a)"/>
+
+  <rect x="284" y="384" width="286" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="427" y="410" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">vLLM 启动告警并强制覆写</text>
+  <text x="427" y="434" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">cudagraph_mode → PIECEWISE</text>
+  <path d="M 570 420 L 608 420" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#ul-arr-t)"/>
+
+  <rect x="614" y="384" width="270" height="72" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="749" y="410" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">链式影响（关 npugraph_ex）</text>
+  <text x="749" y="434" text-anchor="middle" font-size="13.5" fill="#4d5652">若 enforce_eager=True → NONE</text>
+
+  <text x="16" y="484" font-size="13.5" fill="#66716d">注：PCP + KV 池化官方要求 use_layerwise=false；GLM 双机未配 --kv-transfer-config，若接入则 FULL_DECODE_ONLY 会退成 PIECEWISE。</text>
+</svg>

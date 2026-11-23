@@ -140,7 +140,7 @@ file: netloader-guide-intuition
 
 供方逐项比较这四项；相同才回复同意，双方随后建立临时 HCCL 通信组。**这是身份和分片配置的检查，不是权重内容校验。** 旧版握手没有模型文件哈希、量化配方、EP 配置或完整张量清单。两边路径相同而文件内容不同，不能靠这一关发现；换了并行划分，也没有重新切片功能帮它适配。
 
-模型路径比较的是路径字符串。因此，即使两端模型文件内容相同，只要路径字符串不同，也不能通过这一项检查。下面这张全景图把 TCP 握手与分片核对、主节点到新实例的 rank 对 rank P2P 权重搬运、`INT8_CACHE`（`v0.30.0` / `main` 默认推理布局直传 vs 原始 int8 缓存）以及失败时经 `disk_fallback_loader_extra_config` 保留多线程键回退磁盘的全链路收在一处：
+模型路径比较的是路径字符串。因此，即使两端模型文件内容相同，只要路径字符串不同，也不能通过这一项检查。下图按同分片协议流汇总了四个关键环节：TCP 握手与分片核对、rank 对 rank 建临时 HCCL 组搬运、`INT8_CACHE` 三轨布局分流，以及失败后经 `disk_fallback_loader_extra_config` 保留多线程键回退磁盘：
 
 ```wiki-diagram
 file: netloader-guide-fig-p2p-broadcast

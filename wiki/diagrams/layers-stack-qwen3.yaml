@@ -1,44 +1,7 @@
-layout: figure
 id: layers-stack-qwen3
-caption: 标准 Qwen3-8B 在主线第 4 站的单流逐层前向栈：embed_tokens 查表产出单条 [T, 4096] 残差流，依次穿过结构完全相同的第 0–35 层（每层固定为 RMSNorm → 带逐头 Q/K Norm 与 RoPE 的 GQA → 残差相加 → RMSNorm → SwiGLU 12288 → 残差相加），出第 35 层后经最终 RMSNorm 与 lm_head [4096, 151936] 产出采样词表分数。
-size: [900, 800]
-frames:
-  - { at: [148, 236], size: [404, 326], label: '每一层同构串联（第 0–35 层，共 36 层）' }
-items:
-  - { at: [190, 24], size: [320, 44], text: '本步 T 个输入 token 编号 [T]', style: plain }
-  - { at: [190, 92], size: [320, 50], text: embed_tokens 词表查表, sub: '[151936, 4096] → 初始单流 hidden', style: plain }
-  - { at: [190, 164], size: [320, 42], text: '单条残差流 hidden [T, 4096]', tone: token }
-  - { at: [176, 258], size: [348, 62], text: 'input_layernorm → GQA 注意力', sub: '32Q:8KV · 逐头 q_norm/k_norm + RoPE', tone: kv, style: plain }
-  - { at: [176, 342], size: [348, 44], text: '+ 残差相加 → 写回 [T, 4096]', tone: token }
-  - { at: [176, 410], size: [348, 62], text: 'post_attention_layernorm → SwiGLU', sub: 'gate_up [4096, 24576] → SiluAndMul → down', tone: weight, style: plain }
-  - { at: [176, 494], size: [348, 44], text: '+ 残差相加 → 写回 [T, 4096]', tone: token }
-  - { at: [16, 362], size: [112, 60], text: 本层权重, sub: 36 层独立参数, tone: weight }
-  - { at: [190, 592], size: [320, 44], text: 到第 35 层了吗？, style: plain }
-  - { at: [190, 666], size: [320, 46], text: '最终 RMSNorm（model.norm）', sub: '归一化单流 [T, 4096]', style: plain }
-  - { at: [190, 736], size: [320, 50], text: '选采样行 → lm_head [4096, 151936]', sub: '输出 [B_s, 151936] 词表分数交第 5 站', tone: token }
-links:
-  - { from: [350, 68], to: [350, 92] }
-  - { from: [350, 142], to: [350, 164], tone: token }
-  - { from: [350, 206], to: [350, 258], tone: token }
-  - { from: [350, 320], to: [350, 342], tone: token }
-  - { from: [350, 386], to: [350, 410], tone: token }
-  - { from: [350, 472], to: [350, 494], tone: token }
-  - { from: [350, 538], to: [350, 592], tone: token }
-  - { from: [510, 614], to: [524, 289], via: [[574, 614], [574, 289]], tone: token }
-  - { from: [350, 636], to: [350, 666], tone: token }
-  - { from: [350, 712], to: [350, 736], tone: token }
-fans:
-  - { from: [128, 392], to: [[176, 289], [176, 441]], tone: weight }
-texts:
-  - { at: [604, 42], text: '主线第 4 站：Qwen3-8B 单流前向', strong: true }
-  - { at: [604, 268], text: '三大同构特征', strong: true }
-  - { at: [604, 298], text: '• 全程 1 条 [T, 4096] 残差流贯通', size: 13.5 }
-  - { at: [604, 326], text: '• 0–35 层算子序列 100% 相同', size: 13.5 }
-  - { at: [604, 354], text: '• 残差加法融合进下一处 RMSNorm', size: 13.5 }
-  - { at: [586, 470], text: '否：进下一层', size: 13.5 }
-  - { at: [362, 654], text: '是', size: 13.5 }
-  - { at: [604, 700], text: '注：Qwen3-30B-A3B 仅把每层', size: 13.5, note: true }
-  - { at: [604, 724], text: 'SwiGLU 换成 128 选 8 MoE（共 48 层）', size: 13.5, note: true }
+mode: native-svg
+size: [900, 422]
+caption: "标准 Qwen3-8B 在主线第 4 站的单流逐层前向栈：embed_tokens 查表产出单条 [T, 4096] 残差高速路，循环穿过 36 个同构 DecoderLayer（73 次主干子层入口与最终 RMSNorm，不含每层 Attention 内独立的 q_norm / k_norm；72 次残差相加），经最终 model.norm 与 lm_head 输出词表分数。"
 pins:
   - source: vllm@ced6857a:vllm/model_executor/models/qwen3.py#L150-L170
     symbols: [q_norm, k_norm, rotary_emb, o_proj]

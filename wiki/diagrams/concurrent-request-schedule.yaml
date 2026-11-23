@@ -42,7 +42,7 @@ texts:
   - { at: [747, 844], text: 成功 → 再看 waiting, size: 13, anchor: middle }
   - { at: [463, 844], text: 失败, size: 13 }
 pins:
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L65-L967
     symbols: [Scheduler, schedule, SchedulerOutput, allocate_slots]
   - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L398
     symbols: [allocate_slots]

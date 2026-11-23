@@ -97,34 +97,57 @@ rawSources:
 
 ## 它曾经融合什么，为什么被删除？
 
-`fuse_allreduce_rms` 曾是 `ascend_compilation_config` 下的布尔开关：开启后，`torch.compile` 会在 `GraphFusionPassManager` 中多注册一个 `MatmulAllReduceAddRMSNormPass`，把 `matmul → AllReduce → 加残差 → RMSNorm` 这段连续子图整体替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather）。它是 `npugraph_ex` 算子级融合规则中的一条，其余保留规则的适用条件见 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)。
+`fuse_allreduce_rms` 曾是 `ascend_compilation_config` 下的布尔开关。开启后，`torch.compile` 会在 `GraphFusionPassManager` 中多注册一个 `MatmulAllReduceAddRMSNormPass`，把 `matmul → AllReduce → 加残差 → RMSNorm` 这段连续子图替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather）。
 
-即使在仍包含此键的 `v0.23.0` 与 `v0.24.0rc` 上，它也**不是只要设为 `true` 就会生效**：单卡（TP=1）没有 TP AllReduce，pattern 无从匹配；融合 pass 还要求编译区间满足 `compile_range.start > 512`，小于等于 512 的区间不会被改写。实际发生替换必须经过注册该 pass 的编译流程、满足区间下界，并且图里完整出现中间层或末层两种 pattern（末层少一路 residual 输出，因此单独注册一个 pattern）；开启图捕获或把参数设为 `true` 本身都不能证明融合已发生。
+它属于 `npugraph_ex` 算子级融合规则中的一条；其余保留规则的适用条件见 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)。
 
-**自 `v0.25.1rc1` 起（PR #12119），该开关与 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 一并删除**，对应的 `allreduce_rmsnorm_fusion_pass.py` 与官方参数表条目也同步移除。由于它是嵌套在 `ascend_compilation_config` 里的键，升级后保留它在不同版本的后果不同：
+即使在仍保留此键的 `v0.23.0` 与 `v0.24.0rc` 上，设为 `true` 也**不等于必然生效**。触发替换必须同时满足三项条件：
 
-- **`v0.26.0rc`**：`AscendCompilationConfig.__init__` 仍带 `**kwargs`，旧键会被静默吞掉，既不报错也不生效；
-- **`v0.30.0` 与 `main`**：`AscendCompilationConfig` 已迁至带 `extra="forbid"` 的 `@config` 类型化配置，保留该嵌套键会在启动校验时直接报错；且 `vllm_omni` 的未知顶层键过滤不会放过嵌套子键的校验错误。旧键移除只代表这条旧入口已下线，不代表新版缺少其他通算或归一化融合（例如 `main` 已在 `enable_sp` 且硬件支持时注册了 `MatmulReduceScatterFusionPass`）。
+- 存在多卡 TP AllReduce（单卡 TP=1 无从匹配 pattern）；
+- 编译区间满足 `compile_range.start > 512`（小于等于 512 的区间不会改写）；
+- 经过注册该 pass 的编译流程，且图里完整出现中间层或末层两种 pattern（末层少一路 residual 输出，因此单独注册一个 pattern）。开启图捕获或把参数设为 `true` 本身都不能证明融合已发生。
+
+**自 `v0.25.1rc1` 起（PR #12119），该开关与 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 一并删除**，对应的 `allreduce_rmsnorm_fusion_pass.py` 与官方参数表条目也同步移除。升级后保留该嵌套键的后果按版本分叉：
+
+| 版本 | 保留 `ascend_compilation_config.fuse_allreduce_rms` 的后果 | 替代与现存融合说明 |
+| --- | --- | --- |
+| `v0.26.0rc` | `AscendCompilationConfig.__init__` 仍带 `**kwargs`，旧键被静默吞掉，既不报错也不生效 | 旧融合已下线，不能以「未报错」判断仍生效 |
+| `v0.30.0` / `main` | `AscendCompilationConfig` 迁至 `@config(extra="forbid")`，启动校验直接报错；`vllm_omni` 的未知顶层键过滤**不会放过嵌套子键** | 仅代表这条旧入口下线，并非缺少通算或归一化融合（例如 `main` 在 `enable_sp` 且硬件支持时注册了 `MatmulReduceScatterFusionPass`） |
 
 ## 为什么和序列并行冲突，v0.23.0 的默认值为什么是分裂的？
 
-[张量并行](../concepts/tensor-parallel.md)下按行切分的行并行 Linear 只算出各卡的部分和，必须做一次 [All-Reduce](../concepts/collective-communication.md) 合齐完整 hidden。在采用普通残差连接和 [RMSNorm](../concepts/mlp-residual-norm.md) 的模型里，行并行投影之后紧接「加残差 + RMSNorm」，形成可融合的四步。未融合时各步串行依赖；融合实现按 token 行分块归约，各卡在负责的行上加残差、做 RMSNorm，再 All-Gather 归一化结果，从而争取让不同块的计算与通信交叠、减少串行等待（实际是否更快取决于形状与设备）。
+[张量并行](../concepts/tensor-parallel.md)下，按行切分的行并行 Linear 只算出各卡部分和，必须做一次 [All-Reduce](../concepts/collective-communication.md) 合齐完整 hidden。在普通残差连接与 [RMSNorm](../concepts/mlp-residual-norm.md) 模型中，投影后紧接「加残差 + RMSNorm」，构成四步连续子图。
 
-源码注释将 pass 的 512 阈值与计算通信分块联系起来，但内核实际按 `swizzlCount × m0` 决定一轮处理的行数，八卡分支会按形状选择 `m0`，不能把 512 概括为所有形状的固定块长；ring All-Reduce 与 ReduceScatter + AllGather 流量同阶，也不等同于已证明该自定义内核在每种拓扑上的线上字节数完全相等。
+未融合时这四步串行依赖。融合算子按 token 行分块归约，各卡在负责的行上加残差并做 RMSNorm，再 All-Gather 归一化结果，借此争取让不同块的计算与通信交叠、减少串行等待（实际是否更快取决于形状与设备）。
+
+注意两个实现边界：
+
+- 源码注释虽将 pass 的 512 阈值与计算通信分块联系起来，但内核实际按 `swizzlCount × m0` 决定一轮处理的行数，八卡分支还会按形状选择 `m0`，不能把 512 概括为所有形状的固定块长；
+- ring All-Reduce 与 ReduceScatter + AllGather 流量同阶，但不能据此断定该自定义内核在每种拓扑上的线上字节数完全相等。
 
 ```wiki-diagram
 file: fuse-allreduce-rms
 ```
 
-**与序列并行（SP）冲突的根源在于子图重叠**：旧版 SP 的 `MiddleAllReduceRMSNormPattern` 匹配 `all_reduce → npu_add_rms_norm_bias`，而融合 pass 覆盖的范围包含这段通信和归一化，并且连同前面的 matmul 一并吃掉。两者在 `v0.23.0` 注册在同一个 `GraphFusionPassManager` 里并按 `self.passes` 顺序执行，融合 pass 排在两个 SP pass（`SequenceParallelismPass` 与 `SequenceParallelismMoePass`）之前。当区间和完整 pattern 同时满足时，融合 pass 先把该段子图替换成单算子，后续 SP 就不再能匹配已被移除的 All-Reduce；未命中的子图和融合 pass 不适用的区间仍须分别检查，不能直接推成全模型 SP 静默失效。两者并非通信方向相反（旧版 SP 同样先 ReduceScatter、在分片上加残差与 norm，再 All-Gather），而是两条改图规则不能重复替换同一批节点，因此官方参数表将本项默认标为 `False`。
+**与序列并行（SP）冲突的根源在于子图重叠，而非通信方向相反。** 旧版 SP 的 `MiddleAllReduceRMSNormPattern` 匹配 `all_reduce → npu_add_rms_norm_bias`（同样先 ReduceScatter、在分片上加残差与 norm，再 All-Gather），而融合 pass 把这段通信、归一化连同前面的 matmul 一并吃掉。两者在 `v0.23.0` 同属 `GraphFusionPassManager` 并按 `self.passes` 顺序执行，融合 pass 排在 `SequenceParallelismPass` 与 `SequenceParallelismMoePass` 之前：满足区间和完整 pattern 时融合 pass 抢先替换为单算子，后续 SP 不再匹配已移除的 All-Reduce；未命中的子图与 `≤ 512` 区间仍须分别检查，不能直接推成全模型 SP 静默失效。两条改图规则无法重复改写同一批节点，官方参数表因此将本项默认标为 `False`。
 
-**`v0.23.0` 的默认值存在分裂**：类型化字段 `AscendCompilationConfig.fuse_allreduce_rms` 默认 `False`（与官方文档一致），但真正决定 pass 是否注册的 `GraphFusionPassManager.configure` 读的是原始 `additional_config` 字典且缺省写成 `True`，导致用户完全不写此键时 pass 仍被注册进 manager；与此同时，`update_compile_ranges_split_points` 在 `enable_npugraph_ex` 分支里读的又是类型化字段（`False`），不会往 `compile_ranges_endpoints` 插入 512 切分点——此时能否改到图，取决于现有编译区间里是否恰好存在 `start > 512` 的区间。到 `v0.30.0` 与 `main`，`configure` 改读递归校验后的类型化 `get_ascend_config().ascend_compilation_config`，消除了这类原始 dict 与类型化字段脱节的问题。
+**`v0.23.0` 的默认值存在分裂**，因为不同调用点分别读取了类型化字段与原始字典：
 
-**移除融合方与迁移 SP 不是同一版完成的**：`v0.26.0rc` 删掉了融合 pass，但 `configure` 仍在 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条之后保留 `if config.compilation_config.pass_config.enable_sp:` 注册昇腾侧两个 SP pass，属于“冲突消失、SP 仍由昇腾侧管”的过渡态；到了 `v0.30.0` 与 `main`，这两个昇腾侧 SP pass 的注册与 `sequence_parallelism.py` 文件也已撤走，`pass_config.enable_sp` 转由 `enable_sp_by_pass` 与平台层调用上游 `update_sizes_for_sequence_parallelism` 承接，SP 改由上游 vLLM pass 承担。
+| `v0.23.0` 读取位置 | 实际读取来源与缺省值 | 用户不写此键时的后果 |
+| --- | --- | --- |
+| 文档与 `AscendCompilationConfig.fuse_allreduce_rms` | 类型化字段，默认 `False` | 表面上与官方文档一致 |
+| `GraphFusionPassManager.configure` | 读原始 `additional_config` 字典，缺省 `True` | 即使完全不写此键，pass 仍会被注册进 manager |
+| `update_compile_ranges_split_points` | 在 `enable_npugraph_ex` 分支读类型化字段（`False`） | 不会往 `compile_ranges_endpoints` 插入 512 切分点；能否改到图取决于现有区间里是否恰好存在 `start > 512` |
+
+到了 `v0.30.0` 与 `main`，`configure` 改读递归校验后的类型化 `get_ascend_config().ascend_compilation_config`，消除了原始 dict 与类型化字段脱节的问题。
+
+**移除融合方与迁移 SP 并非同一版完成**：`v0.26.0rc` 删掉了融合 pass，但 `configure` 仍在 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条之后保留 `if config.compilation_config.pass_config.enable_sp:` 注册昇腾侧两个 SP pass，属于「冲突消失、SP 仍由昇腾侧管」的过渡态。到了 `v0.30.0` 与 `main`，这两个昇腾侧 SP pass 的注册与 `sequence_parallelism.py` 文件也已撤走，`pass_config.enable_sp` 转由 `enable_sp_by_pass` 与平台层调用上游 `update_sizes_for_sequence_parallelism` 承接，SP 改由上游 vLLM pass 承担。
 
 ## 升级报错、编译分区代价，以及 GLM 双机为什么配不上？
 
-**先确认图里有可融合的候选位置。** 旧 pass 的 `is_applicable_for_range` 要求 `compile_range.start > 512`。以 `Qwen3-0.6B`（`H = 1024`、28 层）为数值背景：若每层 attention 输出投影后、MLP 降维投影后各形成一处完整 pattern，最多可列出 `28 × 2 = 56` 处候选（其中最后只输出 norm 结果的形态对应 LastLayer pattern；这是候选数，不是已经 dump 图确认的命中数）。一个 1024 token、BF16 的 chunk 在每处传递 `1024 × 1024 × 2 B = 2 MiB` 的逻辑张量；示意按 512 行切分时为两块，实际块长仍由 tiling 决定。小于等于 512 的编译区间不会被此 pass 改写；大批量 decode 或 prefill 是否命中，应按各自区间与实际图检查，不能只按阶段名判断收益。
+**先确认图里有可融合的候选位置。** 旧 pass 的 `is_applicable_for_range` 要求 `compile_range.start > 512`。以 `Qwen3-0.6B`（`H = 1024`、28 层）作数值背景：若每层 attention 输出投影后、MLP 降维投影后各形成一处完整 pattern，最多可列出 `28 × 2 = 56` 处候选（最后只输出 norm 结果的形态对应 LastLayer pattern；这是候选数，不是已经 dump 图确认的命中数）。
+
+一个 1024 token、BF16 的 chunk 在每处传递 $1024 \times 1024 \times 2\text{ B} = 2\text{ MiB}$ 逻辑张量；示意按 512 行切分时为两块，实际块长仍由 tiling 决定。小于等于 512 的编译区间不会被此 pass 改写；大批量 decode 或 prefill 是否命中，应按各自区间与实际图检查，不能只按阶段名判断收益。
 
 在仍支持的 `v0.23.0` 上显式开启时，键必须嵌在 `ascend_compilation_config` 里（写在 `additional_config` 顶层不会传给子配置，而缺省为 `True` 的旧 manager 甚至仍可能默默注册该 pass）：
 
@@ -136,18 +159,20 @@ vllm serve Qwen/Qwen3-0.6B \
 
 开启或升级迁移时主要面临三项代价与边界：
 
-- **抢先替换 SP 候选子图**：在 `v0.23.0` 同时开启 `compilation_config.pass_config.enable_sp` 时，SP 两个 pass 虽仍被注册，但已被融合 pass 替换的节点不再可用；需要保留该处 SP 改写时应关闭本开关，并核对编译日志或图命中结果。
+- **抢先替换 SP 候选子图**：在 `v0.23.0` 同时开启 `compilation_config.pass_config.enable_sp` 时，SP 两个 pass 虽仍注册，但已被融合 pass 替换的节点不再可用；需要保留该处 SP 改写时应关闭本开关，并核对编译日志或图命中结果。
 - **可能增加编译分区**：开启该字段会把 `512` 加入 `compile_ranges_endpoints` 切分点；若原来没有这一边界且两侧区间都实际编译，可能增加编译开销与缓存条目，但不能据此断言耗时或条目数必然增加固定值。
-- **升级后必须删掉该嵌套键**：`v0.26.0rc` 虽因 `**kwargs` 静默吞掉而“能启动”，但不能以“配置未报错”判断融合仍生效；`v0.30.0` 与 `main` 的 `AscendCompilationConfig` 仅保留 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`、`fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 六个字段并开启 `extra="forbid"`，残留该嵌套键会直接启动失败——即便环境里装有 `vllm_omni`，其未知键警告剔除只作用于顶层 `additional_config`，不会放过嵌套在 `ascend_compilation_config` 里的无效子键。
+- **升级后必须删掉该嵌套键**：`v0.26.0rc` 虽因 `**kwargs` 静默吞掉而「能启动」，但融合并未生效；`v0.30.0` 与 `main` 的 `AscendCompilationConfig` 仅保留 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`、`fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 六个字段并开启 `extra="forbid"`，残留该嵌套键会直接启动失败——即便环境里装有 `vllm_omni`，其未知键警告剔除只作用于顶层 `additional_config`，不会放过嵌套在 `ascend_compilation_config` 里的无效子键。
 
-**放到 GLM 双机部署（历史例外 B 算例，源码推断、尚未真机 dump 图确认）**：在固定 TP8 部署中，R1 纯文本主干一次前向有 91 次 TP All-Reduce（不含视觉塔与 MTP，拆分见[逐层通信清单](../concepts/one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)），但不能把这些通信当作可融合点：
+**放到 GLM 双机部署（历史例外 B 算例，源码推断、尚未真机 dump 图确认）**：固定 TP8 部署下，R1 纯文本主干一次前向有 91 次 TP All-Reduce（不含视觉塔与 MTP，拆分见[逐层通信清单](../concepts/one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)），但逐类核对后都配不上该 pattern：
 
-- **34 个 KDA 层的 `o_proj`**：权重为 BF16，前端未量化 gemm 对得上，但后端被 mHC 结构挡住；
-- **11 个 MLA 层的 `o_proj`**：已核量化快照 `9e55cbc8` 为浮点、`3121f187` 改为 W8A8，不能一概而论（依据见[量化版本与权重子账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)）；
-- **3 个稠密层与 42 层共享专家的 `down_proj`**：两版快照均走 W8A8，不直接匹配未量化 gemm，且共享专家由外层归约；
-- **词嵌入那 1 次**：前置是查表而非 matmul，第一步根本不存在。
+| 通信位置（共 91 次） | 权重与前置算子 | 无法匹配旧 pattern 的原因 |
+| --- | --- | --- |
+| 34 个 KDA 层的 `o_proj` | 权重为 BF16，前端未量化 gemm 对得上 | 后端被 mHC 结构挡住 |
+| 11 个 MLA 层的 `o_proj` | 量化快照 `9e55cbc8` 为浮点、`3121f187` 改为 W8A8，不可一概而论（见[量化版本与权重子账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)） | 后端同样被 mHC 挡住；W8A8 版本连前端也对不上 |
+| 3 个稠密层 + 42 层共享专家 `down_proj` | 两版快照均走 W8A8 | 不直接匹配未量化 gemm，且共享专家由外层归约 |
+| 1 次词嵌入 | 前置是查表而非 matmul | 第一步根本不存在 |
 
-更共同的限制在结尾：旧 pattern 需要 `npu_add_rms_norm_bias`，而该语言主干使用 mHC，投影后经 `hc_post` 更新残差流、下一段再经 `hc_pre` 与独立 RMSNorm（归一化并非都由 `npu_hc_post` 完成），与普通 Add+RMSNorm pattern 不符；MTP 与视觉塔结构独立，也不适用此推断，且 MoE MC2 的 128 门槛不是这里的编译区间。
+更共同的限制在结尾：旧 pattern 需要 `npu_add_rms_norm_bias`，而该语言主干使用 mHC——投影后经 `hc_post` 更新残差流、下一段再经 `hc_pre` 与独立 RMSNorm（归一化并非都由 `npu_hc_post` 完成），与普通 Add+RMSNorm pattern 不符。此外，MTP 与视觉塔结构独立、不适用此推断，且 MoE MC2 的 128 门槛不是这里的编译区间。
 
 ## 对照源码
 

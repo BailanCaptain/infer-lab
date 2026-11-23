@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="UCM 主机内存预算拆分陷阱与四大存储后端管线前提对照图" font-family="var(--font-sans)">
+  <title>UCM 64 GiB 主机预算单服务 vs 外部 LB 拆分陷阱与四大后端管线对照</title>
+  <desc>UCMConnector, UCMConnectorV1, SupportsHMA, host cache_buffer_capacity_gb split across local DP vs external LB instances, and backend prerequisites for Posix, Ds3fs, Mooncake/DramPool, and Compress</desc>
+  <defs>
+    <marker id="ucm1-arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#17211f"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Host Budget Split Trap (64 GiB Node Budget) -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">主机预算拆分陷阱（节点留 64 GiB、2 个 DP；参数名写 GB 实按 GiB 算）</text>
+
+  <!-- Left: Single service with 2 local DP -->
+  <rect x="16" y="48" width="414" height="156" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="73" font-size="14.5" font-weight="700" fill="#065f56">✓ 单服务含 2 个本地 DP（配置填 64）</text>
+  <text x="30" y="96" font-size="13.5" fill="#4d5652">新核心识别本地 DP 数，自动拆分节点预算：</text>
+  <!-- Proportional bar: 64 GiB = 380px -> 32 + 32 -->
+  <rect x="30" y="110" width="188" height="38" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="124" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">DP0 Store：32 GiB</text>
+  <rect x="222" y="110" width="188" height="38" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="316" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">DP1 Store：32 GiB</text>
+  <text x="30" y="176" font-size="14" font-weight="700" fill="#065f56">节点合计 = 64 GiB（符合预期）</text>
+  <text x="30" y="196" font-size="13.5" fill="#66716d">查日志「配置预算 / 本地 DP 数 / 每 Store 预算」核验</text>
+
+  <!-- Right: 2 independent external LB services each set to 64 -> 128 GiB overcommit! -->
+  <rect x="446" y="48" width="438" height="156" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="460" y="73" font-size="14.5" font-weight="700" fill="#8f3229">✗ 外部 LB 启 2 个独立服务（各填 64 → 超配翻倍！）</text>
+  <text x="460" y="96" font-size="13.5" fill="#4d5652">进程各自只见 1 个 DP，互不知情 → 规划 128 GiB：</text>
+  <!-- Double-width visual overcommit bar -->
+  <rect x="460" y="110" width="196" height="38" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="558" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">独立服务 A：64 GiB</text>
+  <rect x="662" y="110" width="206" height="38" rx="5" fill="#b54237" fill-opacity="0.18" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <text x="765" y="134" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">独立服务 B：+64 GiB</text>
+  <text x="460" y="176" font-size="14" font-weight="700" fill="#8f3229">节点合计 = 128 GiB（须手动各改填 32！）</text>
+  <text x="460" y="196" font-size="13.5" fill="#66716d">文件容量不预分配磁盘，多实例共用目录须协调清理</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="220" x2="884" y2="220" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Zone 2: 4 Backend Pipeline Stacks -->
+  <circle cx="24" cy="244" r="12" fill="#9a4b86"/>
+  <text x="24" y="248.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="250" font-size="16" font-weight="700" fill="#17211f">换后端时，数据层与前置依赖跟着变（不可把一份 YAML 照搬给另一后端）</text>
+
+  <!-- Row 1: Cache|Posix -->
+  <rect x="16" y="268" width="156" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="94" y="295" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">Cache | Posix</text>
+  <line x1="172" y1="290" x2="196" y2="290" stroke="#17211f" stroke-width="1.5" marker-end="url(#ucm1-arr-ink)"/>
+  <rect x="202" y="268" width="234" height="44" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="319" y="295" text-anchor="middle" font-size="13.5" fill="#17211f">HBM ↔ 本机 DRAM ↔ SSD / NFS</text>
+  <rect x="448" y="268" width="436" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="462" y="295" font-size="13.5" fill="#4d5652">跨机复用须真挂载同一共享存储；同名本地目录不互通</text>
+
+  <!-- Row 2: Cache|Ds3fs -->
+  <rect x="16" y="322" width="156" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="94" y="349" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">Cache | Ds3fs</text>
+  <line x1="172" y1="344" x2="196" y2="344" stroke="#17211f" stroke-width="1.5" marker-end="url(#ucm1-arr-ink)"/>
+  <rect x="202" y="322" width="234" height="44" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="319" y="349" text-anchor="middle" font-size="13.5" fill="#17211f">HBM ↔ 本机 DRAM ↔ 3FS 客户端</text>
+  <rect x="448" y="322" width="436" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="462" y="349" font-size="13.5" fill="#4d5652">须具备 3FS 服务与 libds3fsstore.so，普通目录不可替代</text>
+
+  <!-- Row 3: Mooncake / DramPool -->
+  <rect x="16" y="376" width="156" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="94" y="403" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">Mooncake / Dram</text>
+  <line x1="172" y1="398" x2="196" y2="398" stroke="#17211f" stroke-width="1.5" marker-end="url(#ucm1-arr-ink)"/>
+  <rect x="202" y="376" width="234" height="44" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="319" y="403" text-anchor="middle" font-size="13.5" fill="#17211f">HBM ↔ 远端内存池（可选文件层）</text>
+  <rect x="448" y="376" width="436" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="462" y="403" font-size="13.5" fill="#4d5652">DramPool 限 A3+CANN9.1+HIXL；内存服务故障不承诺持久</text>
+
+  <!-- Row 4: Cache|Compress|Posix -->
+  <rect x="16" y="430" width="156" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="94" y="457" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">Cache|Compress</text>
+  <line x1="172" y1="452" x2="196" y2="452" stroke="#17211f" stroke-width="1.5" marker-end="url(#ucm1-arr-ink)"/>
+  <rect x="202" y="430" width="234" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="319" y="457" text-anchor="middle" font-size="13.5" fill="#17211f">HBM ↔ 有损压缩（仅 BF16）↔ Posix</text>
+  <rect x="448" y="430" width="436" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="462" y="457" font-size="13.5" fill="#4d5652">不缩小设备显存；须独立目录并经真实解码验输出质量</text>
+</svg>

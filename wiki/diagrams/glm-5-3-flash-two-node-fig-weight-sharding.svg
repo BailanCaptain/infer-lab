@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="GLM-5.3-Flash 双机 16 卡每卡语言权重子账 20.58 GiB 比例条与 EP16/TP8/整份复制三种切分落点图" font-family="var(--font-sans)">
+  <title>每张卡上放了什么：20.58 GiB 语言权重子账比例与三种切分在 16 卡上的落点</title>
+  <desc>Proportional bar of 20.58 GiB per-card language weight sub-account (17.72 GiB EP16 routed experts = 86.1%) plus visual 16-card mapping for EP16 unique sharding, TP8 intra-node sharding, and per-card full replication</desc>
+
+  <!-- UPPER BAND: Proportional 20.58 GiB Weight Bar (width=872px) -->
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">① 每卡所列语言权重子账（3121f187 配方：21,078 MiB ≈ 20.58 GiB，不含视觉塔与旋转矩阵）</text>
+
+  <!-- 17.72 GiB (18144 MiB) + MTP 432 MiB = 18576 MiB / 21078 MiB = 88.1% (768px); non-expert TP8 + replicated = 2502 MiB = 11.9% (104px) -->
+  <rect x="14" y="44" width="750" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="389" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">路由专家（EP16 每卡 18 个）：主干 17.72 GiB + MTP 432 MiB = 18,576 MiB（占 88.1%）</text>
+
+  <rect x="766" y="44" width="84" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="808" y="71" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">TP8</text>
+
+  <rect x="852" y="44" width="34" height="44" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="869" y="71" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">复</text>
+
+  <text x="886" y="108" text-anchor="end" font-size="13.5" fill="#4d5652">▲ 所列非专家权重合计 2,502 MiB（约 2.44 GiB，占 11.9%：含 KDA、MLA、词表、共享专家、mHC、router、MTP 非专家）</text>
+
+  <line x1="14" y1="126" x2="886" y2="126" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- LOWER BAND: 3 Sharding Strategies across 16 Cards -->
+  <text x="14" y="152" font-size="16" font-weight="700" fill="#17211f">② 16 张卡上的三种切分方式（为何每台机器不是完整模型副本）</text>
+
+  <!-- Row 1: EP16 Unique across 16 cards -->
+  <rect x="14" y="168" width="174" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="101" y="193" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">EP16 · 16 卡合 1 份</text>
+  <text x="101" y="214" text-anchor="middle" font-size="13.5" fill="#4d5652">仅 288 路由专家</text>
+
+  <rect x="200" y="168" width="332" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="366" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">node0（卡 0–7）：专家 #0–143（每卡 18 个）</text>
+  <text x="366" y="214" text-anchor="middle" font-size="13" fill="#4d5652">r=0:#0–17 · r=1:#18–35 · … · r=7:#126–143</text>
+
+  <rect x="546" y="168" width="340" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="716" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">node1（卡 8–15）：专家 #144–287（每卡 18 个）</text>
+  <text x="716" y="214" text-anchor="middle" font-size="12.5" fill="#4d5652">r=8:#144–161 · … · r=15:#270–287（两机合齐）</text>
+
+  <!-- Row 2: TP8 intra-node (2 full copies across 2 nodes) -->
+  <rect x="14" y="238" width="174" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="101" y="263" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">TP8 · 每机各 1 份</text>
+  <text x="101" y="284" text-anchor="middle" font-size="13.5" fill="#4d5652">机内 8 卡各切 1/8</text>
+
+  <rect x="200" y="238" width="332" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="366" y="262" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">node0（DP0 完整 1 份，8 卡分担）</text>
+  <text x="366" y="284" text-anchor="middle" font-size="12.5" fill="#4d5652">KDA q/k/v/o · MLA q_b/kv_b/o · 稠密/共享/词表</text>
+
+  <rect x="546" y="238" width="340" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="716" y="262" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">node1（DP1 同构副本，8 卡分担）</text>
+  <text x="716" y="284" text-anchor="middle" font-size="13.5" fill="#4d5652">通信留在机内 TP8，不跨机器</text>
+
+  <!-- Row 3: Replicated per card (compute trades off comm) -->
+  <rect x="14" y="308" width="174" height="88" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="101" y="346" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">整份复制 · 16 份</text>
+  <text x="101" y="368" text-anchor="middle" font-size="13.5" fill="#4d5652">以重复计算省通信</text>
+
+  <rect x="200" y="308" width="686" height="88" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="214" y="332" font-size="13" font-weight="700" fill="#7a3a6a">每张卡均持完整副本：fused_qkv_a_proj · 整个 32 头索引器 · KDA f_a/g_a</text>
+  <text x="214" y="354" font-size="13" font-weight="700" fill="#7a3a6a">router · mHC · MTP eh_proj（64 MiB）</text>
+  <text x="214" y="380" font-size="12.5" fill="#4d5652">表外另计：MTP 旋转矩阵（32 MiB/卡）+ 视觉塔（TP8 164.582 MiB/卡，因允许 1 图不跳过）+ 量化辅助张量</text>
+</svg>

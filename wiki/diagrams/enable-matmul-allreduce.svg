@@ -1,64 +1,104 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="v0.23.0 行并行实现派发优先级（_get_row_parallel_op）与 enable_matmul_allreduce 截断关系" font-family="var(--font-sans)">
-  <title>v0.23.0 行并行派发函数 _get_row_parallel_op 的八分支优先级：enable_matmul_allreduce 排在第五且不过滤 prefix，会截断后面的 FlashComm2、SP 与默认路径；v0.25.1rc1（PR #12119）已移除，v0.30.0 与 main 仅保留三条细粒度 TP 分支。</title>
-  <desc>Eight-branch priority order in v0.23.0 _get_row_parallel_op showing branches 1-4 preceding MatmulAllreduceRowParallelOp, branch 5 shadowing branches 6-8, and removal in v0.30.0/main.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 668" width="900" height="668" role="img" aria-label="v0.23.0 Matmul+AllReduce 分块交叠直觉与 _get_row_parallel_op 八分支派发优先级截断关系及 v0.30.0/main 简化" font-family="var(--font-sans)">
+  <title>enable_matmul_allreduce：通算切块交叠示意与 v0.23.0 八分支派发优先级</title>
+  <desc>Serial vs 4-chunk pipelined Matmul and AllReduce overlap illustration, eight-branch priority order in v0.23.0 _get_row_parallel_op where branch 5 shadows branches 6-8, and v0.30.0/main removal leaving only 3 fine-grained TP branches.</desc>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.23.0 _get_row_parallel_op 从上往下的 8 条派发优先级</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">首个命中的分支直接返回：排在前面的先认领特定层，第 5 条本开关不做 prefix 过滤、认领全部剩余行并行层</text>
+  <!-- Band 1: Serial vs 4-chunk overlap timeline (illustrative) -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 通算交叠直觉（示意：2048 行按 4 块切分；实际 eager 算子不传切块长）</text>
+
+  <!-- Serial bar -->
+  <text x="16" y="64" font-size="13.5" font-weight="700" fill="#4d5652">默认串行</text>
+  <rect x="112" y="44" width="380" height="28" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="302" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Matmul（2048 行整块算完）</text>
+  <rect x="496" y="44" width="380" height="28" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="686" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">HCCL All-Reduce（整份等待）</text>
+
+  <!-- Pipelined bars: 4 chunks of 95px each -->
+  <text x="16" y="106" font-size="13.5" font-weight="700" fill="#065f56">融合流水</text>
+  <rect x="112" y="82" width="94" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="159" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">MM 1</text>
+  <rect x="208" y="82" width="94" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="255" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">MM 2</text>
+  <rect x="304" y="82" width="94" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="351" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">MM 3</text>
+  <rect x="400" y="82" width="94" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="447" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">MM 4</text>
+
+  <rect x="208" y="110" width="94" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="255" y="127" text-anchor="middle" font-size="13.5" fill="#7a3a6a">AR 1</text>
+  <rect x="304" y="110" width="94" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="351" y="127" text-anchor="middle" font-size="13.5" fill="#7a3a6a">AR 2</text>
+  <rect x="400" y="110" width="94" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="447" y="127" text-anchor="middle" font-size="13.5" fill="#7a3a6a">AR 3</text>
+  <rect x="496" y="110" width="94" height="24" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="543" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">暴露 AR 4</text>
+
+  <rect x="602" y="82" width="274" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="739" y="103" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">仅最后 1 块通信暴露（约 1/4）</text>
+  <text x="739" y="124" text-anchor="middle" font-size="13.5" fill="#66716d">1 行无切块流水 · 真实收益须实测</text>
+
+  <line x1="16" y1="150" x2="884" y2="150" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: 8-branch priority order in v0.23.0 -->
+  <text x="16" y="176" font-size="16" font-weight="700" fill="#17211f">② v0.23.0 _get_row_parallel_op 从上往下的 8 条派发优先级</text>
+  <text x="16" y="196" font-size="13.5" fill="#66716d">首个命中的分支直接返回：第 5 条本开关不做 prefix 过滤、无告警认领全部剩余行并行层</text>
 
   <!-- Left tier indicators -->
-  <rect x="142" y="72" width="4" height="196" rx="2" fill="#4c65b6"/>
-  <text x="16" y="162" font-size="14" font-weight="700" fill="#3a4f93">第 1–4 条</text>
-  <text x="16" y="182" font-size="13.5" fill="#66716d">优先认领</text>
-  <text x="16" y="200" font-size="13.5" fill="#66716d">轮不到本开关</text>
+  <rect x="142" y="212" width="4" height="174" rx="2" fill="#4c65b6"/>
+  <text x="16" y="290" font-size="14" font-weight="700" fill="#3a4f93">第 1–4 条</text>
+  <text x="16" y="310" font-size="13.5" fill="#66716d">优先认领</text>
+  <text x="16" y="328" font-size="13.5" fill="#66716d">轮不到本开关</text>
 
-  <rect x="142" y="278" width="4" height="62" rx="2" fill="#c78300"/>
-  <text x="16" y="305" font-size="14" font-weight="700" fill="#936300">第 5 条</text>
-  <text x="16" y="325" font-size="13.5" font-weight="600" fill="#936300">本页开关</text>
+  <rect x="142" y="394" width="4" height="58" rx="2" fill="#c78300"/>
+  <text x="16" y="418" font-size="14" font-weight="700" fill="#936300">第 5 条</text>
+  <text x="16" y="438" font-size="13.5" font-weight="700" fill="#936300">本页开关</text>
 
-  <rect x="142" y="350" width="4" height="146" rx="2" fill="#b8bcb5"/>
-  <text x="16" y="414" font-size="14" font-weight="700" fill="#66716d">第 6–8 条</text>
-  <text x="16" y="434" font-size="13.5" fill="#66716d">已认领层</text>
-  <text x="16" y="452" font-size="13.5" fill="#66716d">到不了这里</text>
+  <rect x="142" y="460" width="4" height="128" rx="2" fill="#b8bcb5"/>
+  <text x="16" y="514" font-size="14" font-weight="700" fill="#66716d">第 6–8 条</text>
+  <text x="16" y="534" font-size="13.5" fill="#66716d">已认领层</text>
+  <text x="16" y="552" font-size="13.5" fill="#66716d">到不了这里</text>
 
-  <!-- Tier 1: Rows 1-4 -->
-  <rect x="158" y="72" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="174" y="99" font-size="13.5" font-weight="700" fill="#17211f">1. 细粒度 o_proj TP（DSV4）："wo_b" in prefix 且 oproj_tp_enable()</text>
-  <text x="868" y="99" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">DSV4OProjRowParallelOp</text>
+  <!-- Rows 1-4 -->
+  <rect x="158" y="212" width="726" height="39" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="172" y="237" font-size="13.5" font-weight="700" fill="#17211f">1. 细粒度 o_proj TP（DSV4）："wo_b" in prefix 且 oproj_tp_enable()</text>
+  <text x="870" y="237" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">DSV4OProjRowParallelOp</text>
 
-  <rect x="158" y="122" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="174" y="149" font-size="13.5" font-weight="700" fill="#17211f">2. DSA-CP P 侧 o_proj：enable_dsa_cp_with_layer_shard()</text>
-  <text x="868" y="149" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">ShardedCPRowParallelOp</text>
+  <rect x="158" y="257" width="726" height="39" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="172" y="282" font-size="13.5" font-weight="700" fill="#17211f">2. DSA-CP P 侧 o_proj：enable_dsa_cp_with_layer_shard()</text>
+  <text x="870" y="282" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">ShardedCPRowParallelOp</text>
 
-  <rect x="158" y="172" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="174" y="199" font-size="13.5" font-weight="700" fill="#17211f">3. 细粒度 MLP TP：down_proj 且开启 MLP TP，且非 MoE 层</text>
-  <text x="868" y="199" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">MLPRowParallelOp</text>
+  <rect x="158" y="302" width="726" height="39" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="172" y="327" font-size="13.5" font-weight="700" fill="#17211f">3. 细粒度 MLP TP：down_proj 且开启 MLP TP，且非 MoE 层</text>
+  <text x="870" y="327" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">MLPRowParallelOp</text>
 
-  <rect x="158" y="222" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="174" y="249" font-size="13.5" font-weight="700" fill="#17211f">4. 细粒度 o_proj TP："o_proj" in prefix 且 oproj_tp_enable()</text>
-  <text x="868" y="249" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">OProjRowParallelOp</text>
+  <rect x="158" y="347" width="726" height="39" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="172" y="372" font-size="13.5" font-weight="700" fill="#17211f">4. 细粒度 o_proj TP："o_proj" in prefix 且 oproj_tp_enable()</text>
+  <text x="870" y="372" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">OProjRowParallelOp</text>
 
-  <!-- Tier 2: Row 5 (Highlighted) -->
-  <rect x="158" y="278" width="726" height="62" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="2"/>
-  <text x="174" y="303" font-size="14.5" font-weight="700" fill="#936300">5. matmul_allreduce_enable() — 认领剩余行并行层</text>
-  <text x="868" y="303" font-size="13" font-weight="700" fill="#936300" font-family="var(--font-mono)" text-anchor="end">MatmulAllreduceRowParallelOp</text>
-  <text x="174" y="326" font-size="13.5" fill="#4d5652">进入类内仍检查 reduce_results 且 tp_size &gt; 1 才调 npu_mm_all_reduce_base，否则退回普通路径</text>
+  <!-- Row 5 (Highlighted) -->
+  <rect x="158" y="394" width="726" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="2"/>
+  <text x="172" y="418" font-size="14.5" font-weight="700" fill="#936300">5. matmul_allreduce_enable() — 认领剩余行并行层（含 down_proj）</text>
+  <text x="870" y="418" font-size="13.5" font-weight="700" fill="#936300" font-family="var(--font-mono)" text-anchor="end">MatmulAllreduceRowParallelOp</text>
+  <text x="172" y="441" font-size="13.5" fill="#4d5652">类内查 reduce_results 且 tp_size &gt; 1 才调 npu_mm_all_reduce_base，绕过 quant_method.apply</text>
 
-  <!-- Tier 3: Rows 6-8 (Shadowed) -->
-  <rect x="158" y="350" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="174" y="377" font-size="13.5" fill="#4d5652">6. FlashComm2 的 o_proj 路径：flashcomm2_enable()</text>
-  <text x="868" y="377" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">Flashcomm2OProjRowParallelOp</text>
+  <!-- Rows 6-8 (Shadowed) -->
+  <rect x="158" y="460" width="726" height="38" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="172" y="484" font-size="13.5" fill="#4d5652">6. FlashComm2：flashcomm2_enable() 且含 o_proj / out_proj</text>
+  <text x="870" y="484" font-size="13.5" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">Flashcomm2OProjRowParallelOp</text>
 
-  <rect x="158" y="400" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="174" y="427" font-size="13.5" fill="#4d5652">7. 序列并行的行并行路径：enable_sp()（5 个 prefix 各自认领）</text>
-  <text x="868" y="427" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">SequenceRowParallelOp</text>
+  <rect x="158" y="504" width="726" height="38" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="172" y="528" font-size="13.5" fill="#4d5652">7. 序列并行：enable_sp()（先排 shared_expert 再匹 5 prefix）</text>
+  <text x="870" y="528" font-size="13.5" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">SequenceRowParallelOp</text>
 
-  <rect x="158" y="450" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="174" y="477" font-size="13.5" fill="#4d5652">8. 均不命中：走 vLLM 默认串行 Matmul + All-Reduce</text>
-  <text x="868" y="477" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">return None</text>
+  <rect x="158" y="548" width="726" height="38" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="172" y="572" font-size="13.5" fill="#4d5652">8. 均不命中：走 vLLM 默认串行 Matmul + All-Reduce</text>
+  <text x="870" y="572" font-size="13.5" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">return None</text>
 
-  <!-- Bottom removal notice -->
-  <rect x="16" y="512" width="868" height="96" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="536" font-size="14.5" font-weight="700" fill="#8f3229">v0.25.1rc1（PR #12119）删除；v0.30.0 (c09d3e20) / main (8d6180e2) 仅留 3 条细粒度 TP 分支</text>
-  <text x="30" y="560" font-size="13.5" fill="#4d5652">• 被第 5 条认领只影响这些行并行层，不等于关掉全模型 SP / FlashComm2；实际等待是否缩短须实测</text>
-  <text x="30" y="584" font-size="13.5" fill="#4d5652">• 升级 v0.30.0 / main 须删此键与环境变量；残留顶层键按 extra="forbid" 拒收（装 vllm_omni 告警过滤）</text>
+  <!-- Bottom Version Strip (geometric 2-box split, no bullets) -->
+  <rect x="16" y="600" width="424" height="54" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="623" font-size="14" font-weight="700" fill="#8f3229">v0.25.1rc1（PR #12119）删除本开关与环境变量</text>
+  <text x="30" y="644" font-size="13.5" fill="#4d5652">v0.30.0 / main 残留键按 extra=forbid 拒收（Omni 过滤）</text>
+
+  <rect x="460" y="600" width="424" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="474" y="623" font-size="14" font-weight="700" fill="#065f56">v0.30.0 / main 现行 _get_row_parallel_op</text>
+  <text x="474" y="644" font-size="13.5" fill="#4d5652">仅留 wo_b / down_proj / o_proj 三条细粒度 TP 分支</text>
 </svg>

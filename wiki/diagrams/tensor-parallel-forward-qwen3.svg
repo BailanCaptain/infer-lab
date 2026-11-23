@@ -1,46 +1,161 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 770" width="900" height="770" role="img" aria-label="标准 Qwen3-8B 在 TP=2 下单个 Decoder 层的前向与通信边界：自注意力块按列切头（每卡 16Q + 4KV）、本地完成逐头 Q/K Norm + RoPE + 注意力后经 RowParallelLinear o_proj 做第 1 次 All-Reduce；SwiGLU 前馈块按列合并切分 gate_up、本地完成 SiluAndMul 激活后经 RowParallelLinear down_proj 做第 2 次 All-Reduce。全层结构规整对称，每层固定恰好 2 次 All-Reduce（36 层共 72 次）。">
-  <title>标准 Qwen3-8B 在 TP=2 下单个 Decoder 层的前向与通信边界：自注意力块按列切头（每卡 16Q + 4KV）、本地完成逐头 Q/K Norm + RoPE + 注意力后经 RowParallelLinear o_proj 做第 1 次 All-Reduce；SwiGLU 前馈块按列合并切分 gate_up、本地完成 SiluAndMul 激活后经 RowParallelLinear down_proj 做第 2 次 All-Reduce。全层结构规整对称，每层固定恰好 2 次 All-Reduce（36 层共 72 次）。</title>
-  <defs><marker id="tensor-parallel-forward-qwen3-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="tensor-parallel-forward-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="tensor-parallel-forward-qwen3-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <rect x="32" y="96" width="836" height="290" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="48" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">子层一 · GQA 自注意力块（列切分头 → 本地注意力 → 行切归约 #1）</text>
-  <rect x="32" y="418" width="836" height="266" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="48" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">子层二 · SwiGLU 稠密前馈块（列切合并激活 → 行切归约 #2）</text>
-  <path d="M450 66 L450 124" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-token)"/>
-  <path d="M340 168 L340 179 L242 179 L242 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-ink)"/>
-  <path d="M560 168 L560 179 L658 179 L658 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-ink)"/>
-  <path d="M242 246 L242 258 L340 258 L340 270" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-forward-qwen3-ah-comm)"/>
-  <path d="M658 246 L658 258 L560 258 L560 270" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-forward-qwen3-ah-comm)"/>
-  <path d="M450 322 L450 446" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-token)"/>
-  <path d="M340 490 L340 501 L242 501 L242 512" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-ink)"/>
-  <path d="M560 490 L560 501 L658 501 L658 512" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-ink)"/>
-  <path d="M242 568 L242 580 L340 580 L340 592" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-forward-qwen3-ah-comm)"/>
-  <path d="M658 568 L658 580 L560 580 L560 592" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-forward-qwen3-ah-comm)"/>
-  <path d="M450 644 L450 704" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-qwen3-ah-token)"/>
-  <rect x="230" y="18" width="440" height="48" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="450" y="47" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">层入口：单流 hidden [T, 4096]（两卡一致）</text>
-  <rect x="230" y="124" width="440" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="450" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">input_layernorm（RMSNorm [T, 4096]，本地无通信）</text>
-  <rect x="44" y="190" width="396" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="242" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Rank 0 · QKV 列切（16Q + 4KV 头）</text>
-  <text x="242" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地 q/k_norm + RoPE + FlashAttn → o_proj 部分和</text>
-  <rect x="460" y="190" width="396" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="658" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Rank 1 · QKV 列切（16Q + 4KV 头）</text>
-  <text x="658" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地 q/k_norm + RoPE + FlashAttn → o_proj 部分和</text>
-  <rect x="190" y="270" width="520" height="52" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="450" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP=2 All-Reduce #1（o_proj 部分和相加 → 完整 [T, 4096]）</text>
-  <text x="450" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">两卡同步注意力输出，随后与入口残差相加</text>
-  <rect x="230" y="446" width="440" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="450" y="473" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">post_attention_layernorm（融合残差相加 + RMSNorm）</text>
-  <rect x="44" y="512" width="396" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="242" y="536" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Rank 0 · gate_up 合并列切 [T, 12288]</text>
-  <text x="242" y="555" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地 SiluAndMul [T, 6144] → down_proj 部分和</text>
-  <rect x="460" y="512" width="396" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="658" y="536" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Rank 1 · gate_up 合并列切 [T, 12288]</text>
-  <text x="658" y="555" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地 SiluAndMul [T, 6144] → down_proj 部分和</text>
-  <rect x="190" y="592" width="520" height="52" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="450" y="614" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP=2 All-Reduce #2（down_proj 部分和相加 → 完整 [T, 4096]）</text>
-  <text x="450" y="633" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">先列切后行切使非线性 SiluAndMul 免掉中间通信</text>
-  <rect x="210" y="704" width="480" height="48" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="450" y="733" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">与注意力后残差相加 → 输出单流 [T, 4096] 进下一层</text>
-  <text x="64" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">每层固定恰 2 次 TP All-Reduce（36 层主干共 72 次；词表与 lm_head 在层外另计）</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 744" width="900" height="744" role="img" aria-label="Qwen3-8B 在 TP=2 下单层真实几何切分图：上半展示 GQA 32Q+8KV 分成每卡 4 组 4Q+1KV 头部网格与 o_proj 行切部分和归约；下半展示 SwiGLU gate/up 成对列切 6144、本地 SiluAndMul 激活、down_proj 行切部分和与第二次 All-Reduce" font-family="var(--font-sans)">
+  <title>Qwen3-8B 在 TP=2 下单个 Decoder 层的几何切分与通信边界：自注意力把 32Q + 8KV 按头列切为每卡 4 组（16Q + 4KV），本地完成 q/k_norm + RoPE + FlashAttn 后经 o_proj 上下半行切输出部分和 P₀、P₁ 并做第 1 次 All-Reduce；SwiGLU 成对列切 gate/up（各 6,144 维）、本地 SiluAndMul 零通信后经 down_proj 上下半行切输出部分和 P₀′、P₁′ 并做第 2 次 All-Reduce。</title>
+  <desc>关联源码符号：QKVParallelLinear, RowParallelLinear, q_norm, k_norm, rotary_emb, o_proj, Qwen2MLP, MergedColumnParallelLinear, SiluAndMul, down_proj, reduce_results, tensor_model_parallel_all_reduce</desc>
+  <defs>
+    <marker id="tpq-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="tpq-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="tpq-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Title & Entry -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B · TP=2 单层几何切分（32Q + 8KV · SwiGLU I = 12,288 · 每层固定 2 次 All-Reduce）</text>
+  <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <rect x="200" y="46" width="500" height="38" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="450" y="70" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">层入口 hidden [T, 4096]（两卡一致）→ 本地 input_layernorm（无通信）</text>
+
+  <path d="M 320 84 L 320 98 L 224 98 L 224 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
+  <path d="M 580 84 L 580 98 L 676 98 L 676 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
+
+  <!-- BAND 1: GQA Self-Attention (y=108..392) -->
+  <text x="16" y="106" font-size="14.5" font-weight="700" fill="#3a4f93">子层一 · GQA 自注意力（列切分头 → 本地注意力 → o_proj 行切 → All-Reduce #1）</text>
+
+  <!-- Center rank divider for Band 1 -->
+  <line x1="450" y1="118" x2="450" y2="320" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- Rank 0 Attention Bay -->
+  <rect x="16" y="118" width="416" height="202" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="140" font-size="14.5" font-weight="700" fill="#065f56">Rank 0 · QKV 列切前半（16 Q 头 + 4 KV 头）</text>
+
+  <!-- 4 GQA groups on Rank 0: each group has 4 Q cells on top + 1 KV cell below -->
+  <g stroke-width="1.1">
+    <!-- Group 0: Q0-3 / KV0 -->
+    <rect x="30" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="52" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="74" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="96" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="30" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <!-- Group 1: Q4-7 / KV1 -->
+    <rect x="128" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="150" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="172" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="194" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="128" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <!-- Group 2: Q8-11 / KV2 -->
+    <rect x="226" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="248" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="270" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="292" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="226" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <!-- Group 3: Q12-15 / KV3 -->
+    <rect x="324" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="346" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="368" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="390" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="324" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+  <g text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">
+    <text x="73" y="188">KV0</text><text x="171" y="188">KV1</text><text x="269" y="188">KV2</text><text x="367" y="188">KV3</text>
+  </g>
+  <text x="224" y="214" text-anchor="middle" font-size="13.5" fill="#4d5652">Q0–Q15 本地 q/k_norm + RoPE + FlashAttn → <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">[T, 2048]</tspan></text>
+
+  <!-- Row-parallel o_proj slice Rank 0 -->
+  <rect x="30" y="226" width="386" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="223" y="248" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">o_proj 行切上半行 W₀ [2048, 4096]（row 0..2047）</text>
+
+  <!-- Partial sum P0 -->
+  <rect x="30" y="270" width="386" height="38" rx="5" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="223" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">部分和 P₀ [T, 4096]（形状完整，仅含前 16 头贡献）</text>
+
+  <!-- Rank 1 Attention Bay -->
+  <rect x="468" y="118" width="416" height="202" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="482" y="140" font-size="14.5" font-weight="700" fill="#065f56">Rank 1 · QKV 列切后半（16 Q 头 + 4 KV 头）</text>
+
+  <!-- 4 GQA groups on Rank 1: Q16-31 / KV4-7 -->
+  <g stroke-width="1.1">
+    <rect x="482" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="504" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="526" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="548" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="482" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="580" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="602" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="624" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="646" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="580" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="678" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="700" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="722" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="744" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="678" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="776" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="798" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="820" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/><rect x="842" y="150" width="20" height="18" rx="2" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="776" y="172" width="86" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+  <g text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">
+    <text x="525" y="188">KV4</text><text x="623" y="188">KV5</text><text x="721" y="188">KV6</text><text x="819" y="188">KV7</text>
+  </g>
+  <text x="676" y="214" text-anchor="middle" font-size="13.5" fill="#4d5652">Q16–Q31 本地 q/k_norm + RoPE + FlashAttn → <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">[T, 2048]</tspan></text>
+
+  <!-- Row-parallel o_proj slice Rank 1 -->
+  <rect x="482" y="226" width="386" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="675" y="248" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">o_proj 行切下半行 W₁ [2048, 4096]（row 2048..4095）</text>
+
+  <!-- Partial sum P1 -->
+  <rect x="482" y="270" width="386" height="38" rx="5" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="675" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">部分和 P₁ [T, 4096]（形状完整，仅含后 16 头贡献）</text>
+
+  <!-- All-Reduce #1 -->
+  <path d="M 224 320 L 224 334 L 310 334 L 310 344" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#tpq-plum)"/>
+  <path d="M 676 320 L 676 334 L 590 334 L 590 344" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#tpq-plum)"/>
+
+  <rect x="132" y="346" width="636" height="46" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="450" y="374" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">TP=2 All-Reduce #1：P₀ + P₁ → 完整 [T, 4096] → 残差相加 + post_attention_layernorm</text>
+
+  <!-- Transition arrow down to Band 2 -->
+  <path d="M 320 392 L 320 406 L 224 406 L 224 422" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
+  <path d="M 580 392 L 580 406 L 676 406 L 676 422" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
+
+  <!-- BAND 2: SwiGLU MLP (y=414..700) -->
+  <text x="16" y="414" font-size="14.5" font-weight="700" fill="#936300">子层二 · SwiGLU 稠密前馈（成对列切 gate/up → 本地 SiluAndMul → down_proj 行切 → All-Reduce #2）</text>
+  <line x1="450" y1="426" x2="450" y2="628" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- Rank 0 MLP Bay -->
+  <rect x="16" y="426" width="416" height="202" rx="9" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="448" font-size="14.5" font-weight="700" fill="#936300">Rank 0 · gate / up 成对列切左半（通道 0..6143）</text>
+
+  <!-- Paired vertical column bars for gate & up -->
+  <rect x="30" y="458" width="186" height="50" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="123" y="479" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">gate_0 [4096, 6144]</text>
+  <text x="123" y="499" text-anchor="middle" font-size="13.5" fill="#4d5652">列切输出 [T, 6144]</text>
+
+  <rect x="230" y="458" width="186" height="50" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="323" y="479" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">up_0 [4096, 6144]</text>
+  <text x="323" y="499" text-anchor="middle" font-size="13.5" fill="#4d5652">列切输出 [T, 6144]</text>
+
+  <text x="223" y="529" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">本地 SiluAndMul：SiLU(gate_0) ⊙ up_0 → [T, 6144]（零通信）</text>
+
+  <!-- Row-parallel down_proj Rank 0 -->
+  <rect x="30" y="538" width="386" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="223" y="560" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">down_proj 行切上半行 [6144, 4096]（row 0..6143）</text>
+
+  <!-- Partial sum P0' -->
+  <rect x="30" y="582" width="386" height="36" rx="5" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="223" y="605" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">部分和 P₀′ [T, 4096]（仅含前 6,144 通道和）</text>
+
+  <!-- Rank 1 MLP Bay -->
+  <rect x="468" y="426" width="416" height="202" rx="9" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="482" y="448" font-size="14.5" font-weight="700" fill="#936300">Rank 1 · gate / up 成对列切右半（通道 6144..12287）</text>
+
+  <rect x="482" y="458" width="186" height="50" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="575" y="479" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">gate_1 [4096, 6144]</text>
+  <text x="575" y="499" text-anchor="middle" font-size="13.5" fill="#4d5652">列切输出 [T, 6144]</text>
+
+  <rect x="682" y="458" width="186" height="50" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="775" y="479" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">up_1 [4096, 6144]</text>
+  <text x="775" y="499" text-anchor="middle" font-size="13.5" fill="#4d5652">列切输出 [T, 6144]</text>
+
+  <text x="675" y="529" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">本地 SiluAndMul：SiLU(gate_1) ⊙ up_1 → [T, 6144]（零通信）</text>
+
+  <!-- Row-parallel down_proj Rank 1 -->
+  <rect x="482" y="538" width="386" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="675" y="560" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">down_proj 行切下半行 [6144, 4096]（row 6144..12287）</text>
+
+  <!-- Partial sum P1' -->
+  <rect x="482" y="582" width="386" height="36" rx="5" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="675" y="605" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">部分和 P₁′ [T, 4096]（仅含后 6,144 通道和）</text>
+
+  <!-- All-Reduce #2 -->
+  <path d="M 224 628 L 224 642 L 310 642 L 310 652" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#tpq-plum)"/>
+  <path d="M 676 628 L 676 642 L 590 642 L 590 652" fill="none" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#tpq-plum)"/>
+
+  <rect x="132" y="654" width="636" height="46" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="450" y="682" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">TP=2 All-Reduce #2：P₀′ + P₁′ → 完整 [T, 4096] → 残差相加输出至下一层</text>
+
+  <!-- Footer -->
+  <text x="450" y="728" text-anchor="middle" font-size="13.5" fill="#66716d">整座 36 层主干严格对称：固定 2 × 36 = 72 次 All-Reduce；层外 embedding 归约与 lm_head All-Gather 另计</text>
 </svg>

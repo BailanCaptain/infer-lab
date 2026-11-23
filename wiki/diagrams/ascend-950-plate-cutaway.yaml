@@ -1,0 +1,10 @@
+mode: native-svg
+id: ascend-950-plate-cutaway
+caption: >-
+  昇腾 950 片上两路关键通路立体剖面：其一为矩阵乘与向量融合路径（数据经 L1 → L0A/L0B 进入 CUBE 产出至 L0C，再经片上直通送进 UB 与 VECTOR，省去中间写回 GM 的逻辑往返）；其二为非连续切片路径（由多维搬运引擎 NDDMA 直接从全局内存重排搬入向量侧 UB）。
+size: [860, 684]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L35-L215
+    symbols: [HardwareCapability, QuantizationBackendFamily]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240
+    symbols: [process_weights_after_loading]

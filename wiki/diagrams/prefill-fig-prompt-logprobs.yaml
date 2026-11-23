@@ -1,0 +1,10 @@
+mode: native-svg
+id: prefill-fig-prompt-logprobs
+caption: >-
+  提示词概率（prompt_logprobs）错位 1 格评分机制与两笔工程代价：隐藏向量 h₀..h₂ 分别经 lm_head 评估下一枚已知提示词 x₁..x₃，末行 h₃ 照常选出首个输出 y₀，首位置 x₀ 因无前序位置固定返回 None（扁平容器为 {}）；即使传 0 仍须计算 N-1 行大词表分数，并默认触发 skip_reading_prefix_cache 跳过读取已有前缀缓存。
+size: [900, 388]
+pins:
+  - source: vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L5643-L5750
+    symbols: [_get_prompt_logprobs_dict, prompt_logprobs, compute_logits]
+  - source: vllm@ced6857a:vllm/sampling_params.py#L540-L645
+    symbols: [prompt_logprobs, skip_reading_prefix_cache]

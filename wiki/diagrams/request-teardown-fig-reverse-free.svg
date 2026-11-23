@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 374" width="900" height="374" role="img" aria-label="倒序还块进入空闲双向队列与 reset_prefix_cache 失败条件示意图" font-family="var(--font-sans)">
+  <title>请求 A 收尾倒序还块（5→2→9）如何改变引用计数与 free_block_queue 队列顺序，为何倒序能保护前缀开头块，以及块 9 仍被 B 持有时 reset_prefix_cache 返回失败的条件。</title>
+  <desc>上半部分画出请求 A 的块链 9(ref=2, 与 B 共享) → 2(ref=1) → 5(ref=1)，以及收尾时按 5→2→9 倒序减 1 的去向：5 与 2 引用归零后顺次挂到 free_block_queue 队尾，保留前缀指纹不擦显存；块 9 减至 1 留在请求 B 手中。中间画出队列从 [3,4,6,7] 变为 [3,4,6,7,5,2]（队头先被借走、队尾存活最久），并在左侧标出滑窗/无指纹块插回队头优先复用；底部标出因块 9 仍非空闲，默认 reset_prefix_cache 会返回失败。</desc>
+  <defs>
+    <marker id="rf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="rf-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="rf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">倒序还块：为何从序列末尾往开头还？共享块与清空缓存边界在哪？</text>
+
+  <!-- Top: Request A chain + Request B sharing Block 9 -->
+  <rect x="14" y="38" width="872" height="122" rx="10" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="28" y="61" font-size="14" font-weight="700" fill="#17211f">请求 A 原持有块链（借用顺序：9 → 2 → 5） · 收尾时按 <tspan fill="#065f56">① 块 5 → ② 块 2 → ③ 块 9</tspan> 倒序减 1</text>
+
+  <!-- Block 9 (shared with B) -->
+  <rect x="44" y="76" width="214" height="68" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
+  <text x="151" y="99" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">③ 块 9（前缀开头）</text>
+  <text x="151" y="120" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">ref: 2 → 1（与 B 共享）</text>
+  <text x="151" y="138" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">仍被 B 持有，不进空闲队列</text>
+
+  <line x1="258" y1="110" x2="314" y2="110" stroke="#4d5652" stroke-width="1.6"/>
+  <text x="286" y="102" text-anchor="middle" font-size="13" fill="#4d5652">→</text>
+
+  <!-- Block 2 -->
+  <rect x="318" y="76" width="234" height="68" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="435" y="99" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">② 块 2（中段）</text>
+  <text x="435" y="120" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">ref: 1 → 0（归零）</text>
+  <text x="435" y="138" text-anchor="middle" font-size="13" fill="#065f56">第 2 个挂队尾（比块 5 活更久）</text>
+
+  <line x1="552" y1="110" x2="608" y2="110" stroke="#4d5652" stroke-width="1.6"/>
+  <text x="580" y="102" text-anchor="middle" font-size="13" fill="#4d5652">→</text>
+
+  <!-- Block 5 -->
+  <rect x="612" y="76" width="246" height="68" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="735" y="99" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">① 块 5（序列末尾）</text>
+  <text x="735" y="120" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">ref: 1 → 0（归零）</text>
+  <text x="735" y="138" text-anchor="middle" font-size="13" fill="#065f56">最先挂队尾（较早被淘汰复用）</text>
+
+  <!-- Arrows down into free_block_queue -->
+  <path d="M 735 144 L 735 178 L 690 178 L 690 200" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rf-arr-t)"/>
+  <path d="M 435 144 L 435 178 L 774 178 L 774 200" fill="none" stroke="#087f73" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#rf-arr-t)"/>
+
+  <!-- Middle: free_block_queue deque -->
+  <rect x="14" y="186" width="872" height="110" rx="10" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.5"/>
+  <text x="28" y="210" font-size="14.5" font-weight="700" fill="#17211f">空闲双向队列 <tspan font-family="var(--font-mono)" fill="#3a4f93">free_block_queue</tspan>（空块数 4 → 6 · 显存数据与指纹均原地保留）</text>
+
+  <!-- Left label: Evict head -->
+  <rect x="28" y="224" width="166" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="111" y="246" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">← 队头优先借走</text>
+  <text x="111" y="266" text-anchor="middle" font-size="13" fill="#4d5652">滑窗/无指纹块插此处</text>
+
+  <!-- Queue blocks: 3, 4, 6, 7 (existing) + 5, 2 (appended) -->
+  <rect x="210" y="228" width="80" height="46" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="250" y="256" text-anchor="middle" font-size="14.5" font-family="var(--font-mono)" font-weight="700" fill="#4d5652">块 3</text>
+
+  <rect x="298" y="228" width="80" height="46" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="338" y="256" text-anchor="middle" font-size="14.5" font-family="var(--font-mono)" font-weight="700" fill="#4d5652">块 4</text>
+
+  <rect x="386" y="228" width="80" height="46" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="426" y="256" text-anchor="middle" font-size="14.5" font-family="var(--font-mono)" font-weight="700" fill="#4d5652">块 6</text>
+
+  <rect x="474" y="228" width="80" height="46" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="514" y="256" text-anchor="middle" font-size="14.5" font-family="var(--font-mono)" font-weight="700" fill="#4d5652">块 7</text>
+
+  <!-- Divider between old queue and newly appended -->
+  <line x1="564" y1="224" x2="564" y2="278" stroke="#087f73" stroke-width="1.6" stroke-dasharray="4 3"/>
+
+  <rect x="574" y="228" width="114" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="631" y="249" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">① 块 5</text>
+  <text x="631" y="267" text-anchor="middle" font-size="13" fill="#065f56">先入队尾</text>
+
+  <rect x="696" y="228" width="114" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="753" y="249" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">② 块 2</text>
+  <text x="753" y="267" text-anchor="middle" font-size="13" fill="#065f56">更靠近队尾</text>
+
+  <text x="848" y="250" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">队尾</text>
+  <text x="848" y="268" text-anchor="middle" font-size="13" fill="#4d5652">留最久</text>
+
+  <!-- Bottom guard bar: reset_prefix_cache -->
+  <rect x="14" y="308" width="872" height="54" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="28" y="331" font-size="14" font-weight="700" fill="#8f3229">为何此时调用 reset_prefix_cache() 会失败？</text>
+  <text x="28" y="352" font-size="13.5" fill="#17211f">要求除 <tspan font-family="var(--font-mono)" font-weight="700">null_block</tspan> 外全池空闲：因 B 仍持有<tspan font-weight="700" fill="#3a4f93">块 9（ref=1）</tspan>，默认返回 <tspan font-family="var(--font-mono)" font-weight="700">False</tspan>；须等 B 结束或设 <tspan font-family="var(--font-mono)" font-weight="700">reset_running_requests=True</tspan></text>
+</svg>

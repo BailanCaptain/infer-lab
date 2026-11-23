@@ -1,39 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 680" width="880" height="680" role="img" aria-label="标准 Qwen3-8B（词表 151,936）在 vLLM V1 中的单步采样流水线：lm_head 产出 [B, 151936] 完整词表分数后，按需施加结构化语法掩码、重复惩罚与温度缩放，再走贪心 argmax 或 Top-k / Top-p 随机抽取，每条请求选出 1 个 next_token_id（无需强制执行 MTP 3 候选验证），由 output_rank 回传 EngineCore 执行 check_stop。">
-  <title>标准 Qwen3-8B（词表 151,936）在 vLLM V1 中的单步采样流水线：lm_head 产出 [B, 151936] 完整词表分数后，按需施加结构化语法掩码、重复惩罚与温度缩放，再走贪心 argmax 或 Top-k / Top-p 随机抽取，每条请求选出 1 个 next_token_id（无需强制执行 MTP 3 候选验证），由 output_rank 回传 EngineCore 执行 check_stop。</title>
-  <defs><marker id="sampling-flow-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="sampling-flow-qwen3-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="sampling-flow-qwen3-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <path d="M20 566 L860 566" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="20" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">NPU Worker 进程（设备侧张量采样）</text>
-  <text x="20" y="588" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">EngineCore 进程（CPU 侧追加与停止判定）</text>
-  <path d="M440 78 L440 108" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-ink)"/>
-  <path d="M440 160 L440 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-ink)"/>
-  <path d="M320 246 L320 266 L228 266 L228 286" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-ink)"/>
-  <path d="M560 246 L560 266 L652 266 L652 286" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-ink)"/>
-  <path d="M228 354 L228 374 L320 374 L320 394" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-token)"/>
-  <path d="M652 354 L652 374 L560 374 L560 394" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-token)"/>
-  <path d="M440 450 L440 480" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sampling-flow-qwen3-ah-comm)"/>
-  <path d="M440 536 L440 598" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-flow-qwen3-ah-ink)"/>
-  <rect x="180" y="22" width="520" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="440" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">lm_head 输出完整词表分数 [B, 151936]</text>
-  <text x="440" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">TP=1 直接就绪；TP&gt;1 经 All-Gather 拼齐且各卡一致</text>
-  <rect x="180" y="108" width="520" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">可选结构化语法掩码（apply_grammar_bitmask）</text>
-  <text x="440" y="149" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">指定 JSON / 正则约束时将非法词位置为 −∞</text>
-  <rect x="180" y="190" width="520" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">惩罚项与温度缩放（AscendSampler）</text>
-  <text x="440" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">施加重复 / 频率惩罚；随机采样时 logits ÷ temperature</text>
-  <rect x="36" y="286" width="384" height="68" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="228" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">贪心采样（temperature = 0）</text>
-  <text x="228" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">直接 argmax 取最高分词编号</text>
-  <rect x="460" y="286" width="384" height="68" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="652" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">随机采样（Top-k / Top-p 截断）</text>
-  <text x="652" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">Softmax 过滤后除以指数噪声取 argmax</text>
-  <rect x="180" y="394" width="520" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每条在途请求产出 1 个 next_token_id [B, 1]</text>
-  <text x="440" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">TP 多卡随机种子同步故结果一致（开投机时另走候选验证）</text>
-  <rect x="180" y="480" width="520" height="56" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="440" y="504" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">仅 output_rank Worker 将采样结果交回引擎</text>
-  <text x="440" y="523" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">其余 TP 卡不重复回传，节省进程间通信</text>
-  <rect x="180" y="598" width="520" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="624" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">追加新 token 并执行 check_stop 停止判定</text>
-  <text x="440" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">命中 eos_token_id=151645、stop 词或 max_tokens 即收尾退块</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 356" width="900" height="356" role="img" aria-label="标准 Qwen3-8B 单步采样流水线图" font-family="var(--font-sans)">
+  <title>标准 Qwen3-8B（词表 151,936）在 vLLM V1 中的单步采样流水线：从 NPU Worker 张量采样到 output_rank 回传 EngineCore 执行 check_stop。</title>
+  <desc>上半泳道展示 NPU Worker 设备侧流水线：lm_head 产出 [B, 151936] 词表分数，经可选语法掩码与惩罚/温度缩放后分流为 T=0 贪心 argmax 与 Top-k/Top-p 指数噪声随机抽样，每条请求产出 1 个 next_token_id [B, 1]；下半泳道展示仅 output_rank 回传 EngineCore CPU 侧，逐条追加并按 eos_token_id=151645、stop 词或 max_tokens 判停退块。</desc>
+  <defs>
+    <marker id="sq-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="sq-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="sq-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">NPU Worker 设备侧：标准 Qwen3-8B（词表 151,936）单步采样流水线</text>
+
+  <!-- Step 1: lm_head -->
+  <rect x="14" y="40" width="194" height="176" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="111" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">1. 词表打分</text>
+  <text x="111" y="92" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#17211f">[B, 151936]</text>
+  <rect x="26" y="106" width="170" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1"/>
+  <text x="111" y="125" text-anchor="middle" font-size="13.5" fill="#17211f">TP=1 本地直接就绪</text>
+  <text x="111" y="143" text-anchor="middle" font-size="13" fill="#4d5652">TP&gt;1 All-Gather 拼齐</text>
+  <text x="111" y="176" text-anchor="middle" font-size="13.5" fill="#4d5652">各卡 logits 完全一致</text>
+  <text x="111" y="198" text-anchor="middle" font-size="13" fill="#4d5652">未开投机：每请求 1 行</text>
+
+  <line x1="208" y1="128" x2="232" y2="128" stroke="#4d5652" stroke-width="1.8" marker-end="url(#sq-arr)"/>
+
+  <!-- Step 2: grammar + penalties -->
+  <rect x="236" y="40" width="206" height="176" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="339" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">2. 掩码与调分</text>
+  <rect x="248" y="80" width="182" height="54" rx="6" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="4 3"/>
+  <text x="339" y="101" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">可选语法掩码</text>
+  <text x="339" y="122" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#4d5652">JSON/正则非法词 → −∞</text>
+  <rect x="248" y="144" width="182" height="58" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="339" y="166" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">AscendSampler</text>
+  <text x="339" y="188" text-anchor="middle" font-size="13" fill="#4d5652">重复/频率惩罚 · ÷T</text>
+
+  <!-- Branch arrows -->
+  <path d="M 442 100 L 468 82" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sq-arr-t)"/>
+  <path d="M 442 156 L 468 174" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sq-arr-t)"/>
+
+  <!-- Step 3: Dual selection -->
+  <rect x="472" y="40" width="222" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="583" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3A. 贪心（T = 0）</text>
+  <text x="583" y="90" text-anchor="middle" font-size="13.5" fill="#17211f">直接 <tspan font-family="var(--font-mono)" font-weight="700">argmax</tspan> 取最高分</text>
+  <text x="583" y="110" text-anchor="middle" font-size="13" fill="#4d5652">全批 greedy 走早退快路</text>
+
+  <rect x="472" y="134" width="222" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="583" y="160" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3B. 随机（T &gt; 0）</text>
+  <text x="583" y="184" text-anchor="middle" font-size="13.5" fill="#17211f">Top-k / Top-p + Softmax</text>
+  <text x="583" y="204" text-anchor="middle" font-size="13" fill="#4d5652">除以指数噪声 qᵢ 后 argmax</text>
+
+  <!-- Merge arrows -->
+  <path d="M 694 82 L 718 106" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sq-arr-t)"/>
+  <path d="M 694 174 L 718 150" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sq-arr-t)"/>
+
+  <!-- Step 4: Output token [B, 1] -->
+  <rect x="722" y="60" width="164" height="136" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="804" y="88" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">4. 单词产出</text>
+  <text x="804" y="118" text-anchor="middle" font-size="14.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">[B, 1]</text>
+  <text x="804" y="144" text-anchor="middle" font-size="13.5" fill="#17211f">每请求 1 个</text>
+  <text x="804" y="164" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">next_token_id</text>
+  <text x="804" y="186" text-anchor="middle" font-size="13" fill="#4d5652">TP 同种子一致</text>
+
+  <!-- Boundary divider -->
+  <line x1="14" y1="234" x2="886" y2="234" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- IPC arrow down from Step 4 -->
+  <path d="M 804 196 L 804 252" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#sq-arr-p)"/>
+
+  <!-- EngineCore CPU lane -->
+  <rect x="520" y="256" width="366" height="84" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="703" y="282" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">5. 单卡回传（仅 output_rank Worker）</text>
+  <text x="703" y="306" text-anchor="middle" font-size="13.5" fill="#17211f">其余 TP 卡不重复回传，节省进程间 IPC</text>
+  <text x="703" y="328" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#4d5652">_get_output_rank → EngineCore</text>
+
+  <line x1="520" y1="298" x2="492" y2="298" stroke="#9a4b86" stroke-width="2" marker-end="url(#sq-arr-p)"/>
+
+  <rect x="14" y="256" width="474" height="84" rx="9" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5"/>
+  <text x="251" y="282" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">6. EngineCore CPU 侧：追加 token 与 check_stop 判停</text>
+  <text x="251" y="306" text-anchor="middle" font-size="13.5" fill="#17211f">命中 <tspan font-family="var(--font-mono)" font-weight="700">eos_token_id = 151645</tspan>、<tspan font-family="var(--font-mono)" font-weight="700">stop_token_ids</tspan> 或 <tspan font-family="var(--font-mono)" font-weight="700">max_tokens</tspan></text>
+  <text x="251" y="328" text-anchor="middle" font-size="13.5" fill="#4d5652">立即置终态并释放 KV 物理块（停止字符串留前端反分词后判停）</text>
 </svg>

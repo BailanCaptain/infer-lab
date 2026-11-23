@@ -1,50 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" width="900" height="720" role="img" aria-label="标准 Qwen3-8B（词表 151,936）在 TP=2 下从第 35 层末尾到采样的流转：单流 hidden [T, 4096] 经最终 RMSNorm 后，先按 logits_indices 挑出每条请求需采样的最后 1 行（单请求为 [1, 4096]），再由本卡 ParallelLMHead 乘半张词表权重得到 [1, 75968] 分数，最后经一次 TP All-Gather 拼齐 [1, 151936] 完整词表 logits 交给 Sampler（TP=1 则直接完整输出、0 次通信）。">
-  <title>标准 Qwen3-8B（词表 151,936）在 TP=2 下从第 35 层末尾到采样的流转：单流 hidden [T, 4096] 经最终 RMSNorm 后，先按 logits_indices 挑出每条请求需采样的最后 1 行（单请求为 [1, 4096]），再由本卡 ParallelLMHead 乘半张词表权重得到 [1, 75968] 分数，最后经一次 TP All-Gather 拼齐 [1, 151936] 完整词表 logits 交给 Sampler（TP=1 则直接完整输出、0 次通信）。</title>
-  <defs><marker id="lm-head-flow-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M380 76 L380 106" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 158 L380 188" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 240 L380 270" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M600 294 L640 294" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 318 L380 350" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 406 L380 438" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M600 462 L640 462" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 486 L380 518" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 574 L380 600" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <path d="M380 642 L380 662" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-qwen3-ah-ink)"/>
-  <rect x="160" y="24" width="440" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="380" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 35 层输出 → 最终 RMSNorm</text>
-  <text x="380" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">单流 hidden [T, 4096]，TP=2 两卡一致</text>
-  <rect x="160" y="106" width="440" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="380" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按 logits_indices 挑出采样行</text>
-  <text x="380" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">标准单请求取末位 1 行 → [1, 4096]</text>
-  <rect x="160" y="188" width="440" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="380" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">进入 AscendLogitsProcessor._get_logits</text>
-  <text x="380" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">检查独立 lmhead_tp 与归约采样开关</text>
-  <rect x="160" y="270" width="440" height="48" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="380" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">单独配置了 lmhead_tp 吗？</text>
-  <text x="380" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">默认未设，复用模型 TP=2</text>
-  <rect x="640" y="264" width="236" height="60" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="758" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">收集 hidden 分段打分</text>
-  <text x="758" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">算完再按请求切回</text>
-  <rect x="160" y="350" width="440" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="380" y="374" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本卡 ParallelLMHead：[1, 4096] × [4096, 75968]</text>
-  <text x="380" y="393" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">每卡算出半张词表 [1, 75968] 分数</text>
-  <rect x="160" y="438" width="440" height="48" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="380" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">开启分段采样归约了吗？</text>
-  <text x="380" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">默认关闭，走标准拼齐</text>
-  <rect x="640" y="432" width="236" height="60" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="758" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">各卡先取局部候选</text>
-  <text x="758" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">免去全词表 All-Gather</text>
-  <rect x="160" y="518" width="440" height="56" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="380" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP=2 All-Gather → [1, 151936] logits</text>
-  <text x="380" y="561" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">两卡拼出完整词表分数（TP=1 免通信）</text>
-  <rect x="160" y="600" width="440" height="42" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="380" y="617" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按 org_vocab_size 裁掉词表对齐补列</text>
-  <text x="380" y="636" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">151,936 恰被 2 整除，无需删列</text>
-  <rect x="160" y="662" width="440" height="46" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="380" y="690" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">送入第 5 站 Sampler 抽取 1 个新 token</text>
-  <text x="620" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">设了</text>
-  <text x="620" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">开启</text>
-  <text x="392" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">默认未设</text>
-  <text x="392" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">默认关闭</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Qwen3-8B TP=2 出口打分链路图：展示从 Prefill [2048, 4096] 精选最后 1 行 [1, 4096]，经两卡列切 ParallelLMHead 各自产出局部真值分 [1, 75968]，再做一次 TP All-Gather 拼齐 [1, 151936] 交 Sampler">
+  <title>Qwen3-8B（TP = 2）出口选行、列切打分与 All-Gather 拼齐</title>
+  <desc>三阶段几何流转图：左段展示末层 RMSNorm 后按 logits_indices 跳过前 2047 行、仅抽出末位 1 行 [1,4096]；中段展示 TP=2 下两卡按词表列切各持 75,968 列（593.5 MiB）直接算出局部真值分，并标注 lmhead_tp 独立切分分支；右段展示单次 TP All-Gather 拼齐 151,936 维交 Sampler；底栏对比 tie_word_embeddings 与单行带宽特征。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B（TP = 2）出口链路：先精选末位行，再列切算真值、All-Gather 拼齐</text>
+  <text x="880" y="28" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">vocab_size = 151,936（BF16）</text>
+
+  <!-- ================= STAGE 1: Prefill Row Slicing ================= -->
+  <text x="20" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">① 末层 RMSNorm + 精选打分行</text>
+  <text x="20" y="80" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">例：2048-tok Prefill（无 logprobs）</text>
+
+  <!-- Visual Matrix [2048, 4096]: top rows dimmed, ONLY last row highlighted -->
+  <rect x="20" y="96" width="218" height="28" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="129" y="115" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">row 0    [1, 4096] 跳过</text>
+
+  <rect x="20" y="128" width="218" height="28" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
+  <text x="129" y="147" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">row 1    [1, 4096] 跳过</text>
+
+  <rect x="20" y="160" width="218" height="40" rx="4" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="4 3" />
+  <text x="129" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">… 略去前 2,047 行 …</text>
+
+  <rect x="20" y="206" width="218" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="2" />
+  <text x="129" y="226" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">row 2047（末位 1 行）</text>
+  <text x="129" y="244" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#065f56">仅抽 [1, 4096] = 8 KiB</text>
+
+  <text x="20" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">• sample_hidden_states 按</text>
+  <text x="32" y="294" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">logits_indices 精选行</text>
+  <text x="20" y="316" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">• 避免前 2047 行白算词表乘</text>
+
+  <!-- Split arrows from row 2047 to Rank 0 & Rank 1 -->
+  <path d="M 238 228 L 266 228 L 266 146 L 292 146" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#arr-t)" />
+  <path d="M 266 228 L 266 254 L 292 254" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#arr-t)" />
+
+  <!-- ================= STAGE 2: TP=2 Column-Cut ParallelLMHead ================= -->
+  <text x="296" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">② ParallelLMHead 按词表列切（TP = 2）</text>
+  <text x="296" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">两卡各持完整 [1, 4096]，直接算出半张词表真值</text>
+
+  <!-- Rank 0 Card -->
+  <rect x="296" y="96" width="322" height="92" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6" />
+  <text x="310" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">卡 0（rank 0）· 词 0 .. 75,967</text>
+  <text x="310" y="145" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">[1, 4096] × [4096, 75968]（593.5 MiB）</text>
+  <text x="310" y="171" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">→ 局部真值分 [1, 75968]（148.4 KiB）</text>
+
+  <!-- Rank 1 Card -->
+  <rect x="296" y="204" width="322" height="92" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6" />
+  <text x="310" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">卡 1（rank 1）· 词 75,968 .. 151,935</text>
+  <text x="310" y="253" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">[1, 4096] × [4096, 75968]（593.5 MiB）</text>
+  <text x="310" y="279" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">→ 局部真值分 [1, 75968]（148.4 KiB）</text>
+
+  <!-- Optional lmhead_tp note -->
+  <rect x="296" y="308" width="322" height="36" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="4 3" />
+  <text x="457" y="331" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#7a3a6a">若另配 lmhead_tp：走独立组分段收集打分</text>
+
+  <!-- Arrows from Rank 0 & Rank 1 into All-Gather -->
+  <path d="M 618 142 L 642 142 L 642 178 L 658 178" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#arr-p)" />
+  <path d="M 618 250 L 642 250 L 642 210 L 658 210" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#arr-p)" />
+
+  <!-- ================= STAGE 3: All-Gather & Sampler ================= -->
+  <text x="662" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#7a3a6a">③ 拼齐完整词表与采样</text>
+  <text x="662" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#66716d">TP = 1 则零通信直达采样</text>
+
+  <!-- All-Gather box -->
+  <rect x="662" y="138" width="218" height="106" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.8" />
+  <text x="771" y="164" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#7a3a6a">TP = 2 All-Gather</text>
+  <text x="771" y="188" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">拼成 [1, 151936]（296.8 KiB）</text>
+  <text x="771" y="210" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">151,936 % 64 == 0（零补列）</text>
+  <text x="771" y="232" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#7a3a6a">按 org_vocab_size 裁齐</text>
+
+  <line x1="771" y1="244" x2="771" y2="274" stroke="#087f73" stroke-width="2" marker-end="url(#arr-t)" />
+
+  <!-- Sampler box -->
+  <rect x="662" y="278" width="218" height="66" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="771" y="305" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#065f56">第 5 站 · Sampler</text>
+  <text x="771" y="330" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#17211f">Softmax / 贪心抽 1 个新词</text>
+
+  <!-- ================= BOTTOM BAR: Tie Embeddings & Bandwidth Fact ================= -->
+  <rect x="20" y="366" width="424" height="58" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.3" />
+  <text x="34" y="390" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">tie_word_embeddings：结构定死，推理不可切换</text>
+  <text x="34" y="412" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">Qwen3-8B: false（独立 1.16 GiB）｜ Qwen3-0.6B: true（复用）</text>
+
+  <rect x="458" y="366" width="422" height="58" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" />
+  <text x="472" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">单行打分典型受带宽限制（理想仅 1 FLOP/B）</text>
+  <text x="472" y="412" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">每卡搬 593.5 MiB 仅算 0.62 GFLOP；多请求合批增至 N 行复用</text>
 </svg>

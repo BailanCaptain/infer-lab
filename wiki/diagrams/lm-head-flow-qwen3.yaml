@@ -1,35 +1,7 @@
-layout: figure
 id: lm-head-flow-qwen3
-caption: 标准 Qwen3-8B（词表 151,936）在 TP=2 下从第 35 层末尾到采样的流转：单流 hidden [T, 4096] 经最终 RMSNorm 后，先按 logits_indices 挑出每条请求需采样的最后 1 行（单请求为 [1, 4096]），再由本卡 ParallelLMHead 乘半张词表权重得到 [1, 75968] 分数，最后经一次 TP All-Gather 拼齐 [1, 151936] 完整词表 logits 交给 Sampler（TP=1 则直接完整输出、0 次通信）。
-size: [900, 720]
-items:
-  - { at: [160, 24], size: [440, 52], text: '第 35 层输出 → 最终 RMSNorm', sub: '单流 hidden [T, 4096]，TP=2 两卡一致', tone: token }
-  - { at: [160, 106], size: [440, 52], text: '按 logits_indices 挑出采样行', sub: '标准单请求取末位 1 行 → [1, 4096]', style: plain }
-  - { at: [160, 188], size: [440, 52], text: '进入 AscendLogitsProcessor._get_logits', sub: '检查独立 lmhead_tp 与归约采样开关', style: plain }
-  - { at: [160, 270], size: [440, 48], text: '单独配置了 lmhead_tp 吗？', sub: '默认未设，复用模型 TP=2', style: plain }
-  - { at: [640, 264], size: [236, 60], text: '收集 hidden 分段打分', sub: '算完再按请求切回', tone: comm, style: faded }
-  - { at: [160, 350], size: [440, 56], text: '本卡 ParallelLMHead：[1, 4096] × [4096, 75968]', sub: '每卡算出半张词表 [1, 75968] 分数', tone: weight }
-  - { at: [160, 438], size: [440, 48], text: '开启分段采样归约了吗？', sub: '默认关闭，走标准拼齐', style: plain }
-  - { at: [640, 432], size: [236, 60], text: '各卡先取局部候选', sub: '免去全词表 All-Gather', tone: comm, style: faded }
-  - { at: [160, 518], size: [440, 56], text: 'TP=2 All-Gather → [1, 151936] logits', sub: '两卡拼出完整词表分数（TP=1 免通信）', tone: comm }
-  - { at: [160, 600], size: [440, 42], text: '按 org_vocab_size 裁掉词表对齐补列', sub: '151,936 恰被 2 整除，无需删列', style: plain }
-  - { at: [160, 662], size: [440, 46], text: '送入第 5 站 Sampler 抽取 1 个新 token', tone: token }
-links:
-  - { from: [380, 76], to: [380, 106] }
-  - { from: [380, 158], to: [380, 188] }
-  - { from: [380, 240], to: [380, 270] }
-  - { from: [600, 294], to: [640, 294], dashed: true }
-  - { from: [380, 318], to: [380, 350] }
-  - { from: [380, 406], to: [380, 438] }
-  - { from: [600, 462], to: [640, 462], dashed: true }
-  - { from: [380, 486], to: [380, 518] }
-  - { from: [380, 574], to: [380, 600] }
-  - { from: [380, 642], to: [380, 662] }
-texts:
-  - { at: [620, 282], text: '设了', anchor: middle, size: 13.5 }
-  - { at: [620, 450], text: '开启', anchor: middle, size: 13.5 }
-  - { at: [392, 338], text: '默认未设', size: 13.5 }
-  - { at: [392, 506], text: '默认关闭', size: 13.5 }
+mode: native-svg
+size: [900, 440]
+caption: "标准 Qwen3-8B（词表 151,936）在 TP=2 下的出口打分链路：末层 RMSNorm 后按 logits_indices 仅抽末位 1 行，两卡列切 ParallelLMHead 各自算出局部真值分 [1, 75968]，再经一次 TP All-Gather 拼齐交 Sampler。"
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2630-L2650
     symbols: [compute_logits, sample_hidden_states]

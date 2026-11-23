@@ -1,0 +1,17 @@
+mode: native-svg
+id: structured-output-fig-mtp-bitmask-grid
+caption: >-
+  MTP 4 行文法位图网格：从单一文法状态 S₀ 逐草稿临时推进填完 4 行后立即 rollback(3) 退回 S₀，采样后再正式 commit 已接受 token；非法草稿被截断为 [d₁, −1, −1]（链尾再补 −1）时，行 0 按 S₀ 填表并推进 d₁，行 1 按 S₁ 填表后遇首个 −1 停止推进，后续行 2 与行 3 均整行填全 1 放行；Worker 侧按 req_id 与批次索引把受约束行对回 logits，其余请求整行原样跳过。
+size: [900, 520]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L204-L320'
+    symbols:
+      - grammar_bitmask
+      - should_fill_bitmask
+      - rollback
+  - source: 'vllm@0fc695fc:vllm/v1/structured_output/utils.py#L44-L135'
+    symbols:
+      - apply_grammar_bitmask
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1745-L1795'
+    symbols:
+      - validate_tokens

@@ -2,6 +2,8 @@
 id: lmcache
 title: LMCache：接在引擎外面的一层 KV 缓存
 type: feature
+legacyAnchors:
+  放到-glm-双机没开而且照钉住的源码推演开不起来: 复杂异构实战对照：GLM 双机为何未启用且源码路径受阻
 summary: >-
   LMCache 是装在推理引擎外面的一层 KV cache 缓存，经 vLLM 的 KV connector
   插口对接：引擎管调度和显存，它管外部数据并回答能提供到第几个位置。本页讲这条交接边界、按 chunk 取整的账、和 AscendStore 版 KV
@@ -179,7 +181,11 @@ Ascend 上这条链由四段代码拼起来，来自三方，各管一件事：
 
 ## 复杂异构实战对照：GLM 双机为何未启用且源码路径受阻
 
-**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的启动参数里没有 KV 传输配置，所以 LMCache 没开；prefix caching 也关着（[原因](prefix-caching.md#glm-双机上它开着吗)）。更要紧的是：照钉住的源码推演，在这套部署上把它打开会直接起不来，两条路都堵死。**
+前面用标准单组模型（示意 `chunk = 256`）讲清了 LMCache 的取整规则与连接器边界。下面切入**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：它的启动参数里没有 KV 传输配置，prefix caching 也关着（[原因](prefix-caching.md#glm-双机上它开着吗)）。更关键的是，照钉住源码推演，在这套部署上打开 LMCache 会直接把两条启动路都堵死。先用一张图对照前文的 chunk 整块失配，以及 GLM 双机上的 `SupportsHMA` 双路死锁：
+
+```wiki-diagram
+file: lmcache-fig-chunk-and-hma
+```
 
 堵在一处**互斥**上。GLM 的缓存分成 5 个组（full 组、尾状态组、3 个 KDA 组，见 [KV cache 规格](kv-cache-spec.md#对齐成两档页编成五个组)），这种分组必须由混合缓存管理器来管；而上游这个 LMCache 连接器没有声明支持混合缓存管理器。于是：给上 KV 传输配置又不表态，vLLM 会自动把混合缓存管理器关掉，GLM 建缓存组时抛错；显式要求开着，则建连接器时就抛「不支持」。具体报错见[会报什么错](#会报什么错)。
 

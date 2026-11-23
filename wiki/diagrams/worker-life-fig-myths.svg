@@ -24,12 +24,12 @@
 <rect x="448" y="444" width="438" height="84" rx="9" fill="#ddf4ef"/>
 </g>
 <g fill="#b54237">
-<circle cx="34" cy="76" r="11"/><circle cx="34" cy="174" r="11"/>
-<circle cx="34" cy="272" r="11"/><circle cx="34" cy="370" r="11"/><circle cx="34" cy="468" r="11"/>
+<circle cx="34" cy="76" r="12"/><circle cx="34" cy="174" r="12"/>
+<circle cx="34" cy="272" r="12"/><circle cx="34" cy="370" r="12"/><circle cx="34" cy="468" r="12"/>
 </g>
-<g text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">
-<text x="34" y="80.5">1</text><text x="34" y="178.5">2</text>
-<text x="34" y="276.5">3</text><text x="34" y="374.5">4</text><text x="34" y="472.5">5</text>
+<g text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">
+<text x="34" y="81">1</text><text x="34" y="179">2</text>
+<text x="34" y="277">3</text><text x="34" y="375">4</text><text x="34" y="473">5</text>
 </g>
 <g stroke="#087f73" stroke-width="1.8" marker-end="url(#my-a)">
 <line x1="412" y1="94" x2="444" y2="94"/><line x1="412" y1="192" x2="444" y2="192"/>

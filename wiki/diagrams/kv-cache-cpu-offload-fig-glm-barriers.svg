@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="900" height="380" role="img" aria-label="GLM 双机释放池容量与实际传输载荷区分及钉住快照三道启动拦截墙图" font-family="var(--font-sans)">
+  <title>GLM 双机释放池容量 vs 实际恢复载荷，以及钉住快照三层碰壁</title>
+  <desc>上半区展示被抢占请求在 DP0 8 卡释放约 7.5 GiB 池容量经默认仅存 prompt、5 组页布局与留档边界过滤后并不等于实际拷贝字节；下半区按序展示钉住 GLM 快照开启 CPU offload 的三层阻碍（导入失败、单组断言、旧 K/V 张量与 KDA 对齐）与 v0.30.0 规范字节视图演进。</desc>
+  <defs>
+    <marker id="kco-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="kco-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Pool Release Capacity vs Actual Transfer Payload -->
+  <circle cx="26" cy="24" r="12" fill="#4c65b6"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">容量口径区分：释放的显存池容量（≈ 7.5 GiB）≠ 实际搬运字节</text>
+
+  <rect x="16" y="50" width="234" height="82" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="133" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">被抢占释放的池容量</text>
+  <text x="133" y="99" text-anchor="middle" font-size="13.5" fill="#17211f">120–121 块 × 8 卡（DP0）</text>
+  <text x="133" y="121" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">≈ 7.47–7.53 GiB</text>
+
+  <line x1="252" y1="91" x2="288" y2="91" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#kco-arr-b)"/>
+
+  <rect x="292" y="50" width="298" height="82" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="441" y="74" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">三道过滤决定真实载荷</text>
+  <text x="306" y="98" font-size="13" fill="#4d5652">• offload_prompt_only=true（不存 decode）</text>
+  <text x="306" y="120" font-size="13" fill="#4d5652">• 5 组共享页布局 &amp; 整段/对齐留档边界</text>
+
+  <line x1="592" y1="91" x2="628" y2="91" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#kco-arr-b)"/>
+
+  <rect x="632" y="50" width="252" height="82" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="758" y="75" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">实际恢复载荷与持平带宽</text>
+  <text x="758" y="99" text-anchor="middle" font-size="13" fill="#4d5652">实搬字节 ÷ 恢复位置 × 重算速率</text>
+  <text x="758" y="121" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">带宽、载荷与 9 步耗时均待实测</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="152" x2="884" y2="152" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Three-Gate Failure Stack on Pinned GLM Snapshot -->
+  <circle cx="26" cy="178" r="12" fill="#b54237"/>
+  <text x="26" y="182.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="184" font-size="16" font-weight="700" fill="#17211f">钉住 GLM 快照（db701c1f）直接开 CPU Offload 的三层碰壁 vs 新版演进</text>
+
+  <rect x="16" y="202" width="268" height="94" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="30" y="226" font-size="14" font-weight="700" fill="#8f3229">✗ 第 1 关：导入失败</text>
+  <text x="30" y="250" font-size="13.5" fill="#17211f">旧 Ascend spec 引用已删上游</text>
+  <text x="30" y="272" font-size="13" font-family="var(--font-mono)" fill="#8f3229">abstract / spec / mediums</text>
+  <text x="30" y="290" font-size="13" fill="#4d5652">加载 spec 阶段直接停下</text>
+
+  <line x1="286" y1="249" x2="312" y2="249" stroke="#b54237" stroke-width="1.8" marker-end="url(#kco-arr-r)"/>
+
+  <rect x="316" y="202" width="268" height="94" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="330" y="226" font-size="14" font-weight="700" fill="#8f3229">✗ 第 2 关：单缓存组断言</text>
+  <text x="330" y="250" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">assert len(gpu_block_size)==1</text>
+  <text x="330" y="272" font-size="13.5" fill="#17211f">GLM 状态分成 5 个缓存组</text>
+  <text x="330" y="290" font-size="13" fill="#4d5652">（full + 尾状态 + 3×KDA）</text>
+
+  <line x1="586" y1="249" x2="612" y2="249" stroke="#b54237" stroke-width="1.8" marker-end="url(#kco-arr-r)"/>
+
+  <rect x="616" y="202" width="268" height="94" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="630" y="226" font-size="14" font-weight="700" fill="#8f3229">✗ 第 3 关：布局与状态对齐</text>
+  <text x="630" y="250" font-size="13.5" fill="#17211f">旧版假定「每层一对 K/V 张量」</text>
+  <text x="630" y="272" font-size="13.5" fill="#17211f">GLM 多组共用显存页 + KDA</text>
+  <text x="630" y="290" font-size="13" fill="#4d5652">递推状态须在段边界整份留档</text>
+
+  <!-- Bottom evolution note -->
+  <rect x="16" y="312" width="868" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="335" font-size="14" font-weight="700" fill="#065f56">v0.30.0 / main 演进：原生 offload 已改写为按缓存组与页的规范字节视图搬运，解除「一层两张量」限制</text>
+  <text x="30" y="356" font-size="13.5" fill="#4d5652">每卡 3,855 块缓存池大小仍不变；GLM 5 组恢复字节、有效带宽与设备正确性尚需独立实跑验收</text>
+</svg>

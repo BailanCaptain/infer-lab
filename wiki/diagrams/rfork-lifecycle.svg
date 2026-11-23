@@ -1,56 +1,191 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="B 的一个 Worker 借完权重以后的几种状态。上排是模型这条线：权重传完、交出模型，等整个实例的 Worker 都备好才开始接请求。中排是「当 seed」这条线：借来的租约还上了才发布，还没还上就先记作延期，被拒或次数用完就不当 seed，模型照常推理。左列是失败这条线：读权重中途出错先清理，清干净才回退到从存储读。右下是进程退出时的收尾。">
-  <title>B 的一个 Worker 借完权重以后的几种状态。上排是模型这条线：权重传完、交出模型，等整个实例的 Worker 都备好才开始接请求。中排是「当 seed」这条线：借来的租约还上了才发布，还没还上就先记作延期，被拒或次数用完就不当 seed，模型照常推理。左列是失败这条线：读权重中途出错先清理，清干净才回退到从存储读。右下是进程退出时的收尾。</title>
-  <defs><marker id="rfork-lifecycle-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="rfork-lifecycle-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="rfork-lifecycle-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="rfork-lifecycle-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <path d="M196 84 L240 84" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#rfork-lifecycle-ah-weight)"/>
-  <path d="M416 84 L468 84" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#rfork-lifecycle-ah-weight)"/>
-  <path d="M644 84 L690 84" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-lifecycle-ah-control)"/>
-  <path d="M108 112 L108 196" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#rfork-lifecycle-ah-danger)"/>
-  <path d="M108 252 L108 336" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-lifecycle-ah-danger)"/>
-  <path d="M506 112 L506 150 L328 150 L328 196" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-lifecycle-ah-control)"/>
-  <path d="M604 112 L604 196" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-lifecycle-ah-comm)"/>
-  <path d="M416 224 L468 224" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-lifecycle-ah-comm)"/>
-  <path d="M328 252 L328 336" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-lifecycle-ah-danger)"/>
-  <path d="M644 224 L690 224" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-lifecycle-ah-comm)"/>
-  <path d="M785 252 L785 336" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-lifecycle-ah-control)"/>
-  <rect x="20" y="56" width="176" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="108" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">读权重</text>
-  <text x="108" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">中途失败就要清理</text>
-  <rect x="240" y="56" width="176" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="328" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">权重传完</text>
-  <text x="328" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">列出的读取全部返回</text>
-  <rect x="468" y="56" width="176" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="556" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">交出模型</text>
-  <text x="556" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">后处理、切推理模式</text>
-  <rect x="690" y="56" width="190" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="785" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">实例接请求</text>
-  <text x="785" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">所有 Worker 都备好之后</text>
-  <rect x="20" y="196" width="176" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="108" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">清理</text>
-  <text x="108" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">停服务 · 注销显存</text>
-  <rect x="240" y="196" width="176" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="328" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">等租约还上</text>
-  <text x="328" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">当 seed 先记作延期</text>
-  <rect x="468" y="196" width="176" height="56" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="556" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发布 seed</text>
-  <text x="556" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">起服务 · 首次登记</text>
-  <rect x="690" y="196" width="190" height="56" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="785" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">服务中</text>
-  <text x="785" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">定时心跳报平安</text>
-  <rect x="20" y="336" width="176" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="108" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">回退</text>
-  <text x="108" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">从存储重读一遍</text>
-  <rect x="240" y="336" width="176" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="328" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">不当 seed</text>
-  <text x="328" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">模型照常推理</text>
-  <rect x="690" y="336" width="190" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="785" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">关停收尾</text>
-  <text x="785" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">停心跳 · 撤登记 · 关服务</text>
-  <text x="118" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229">任一步失败</text>
-  <text x="118" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229">清干净才回退</text>
-  <text x="340" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652">还没还上</text>
-  <text x="614" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">已还上</text>
-  <text x="442" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">还上了</text>
-  <text x="338" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229">被拒或关停</text>
-  <text x="795" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652">进程退出</text>
-  <text x="460" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">回退加载完的模型同样交出，也照样可以去当 seed</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="RFork 八状态可循环状态机与双并行生命线图：展示 INITIALIZED 到 FINALIZED 全部八个状态、CLEANUP_REQUIRED 正常执行中枢与重入环路，以及模型交回与租约归还/发布两条并行生命线" font-family="var(--font-sans)">
+  <title>RFork 会话八状态可循环状态机与双并行生命线：上栏呈现全部八个 RForkLifecycleState 及 CLEANUP_REQUIRED 如何在正常登记、传输、发布与回退清理中被反复经过并闭环重入；下栏拆解模型交回主线与后台归还/发布 seed 线（3 次快试转 ≥60 秒慢试，仅 REJECTED 或关停取消延期）。</title>
+  <desc>关联源码符号：RForkLifecycleState, INITIALIZED, REGISTERED, LEASED, TRANSFERRED, READY, CLEANUP_REQUIRED, SERVING, FINALIZED, LeaseReleaseResult, LEASE_RELEASE_DEGRADED_RETRY_INTERVAL_SEC, start_seed_service, DEFERRED</desc>
+  <defs>
+    <marker id="lc-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="lc-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="lc-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="lc-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="lc-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="lc-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- 区域 1：全部 8 状态可循环状态机 -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 会话八状态可循环状态机（CLEANUP_REQUIRED 既是正常过渡态，也是清理重入枢纽）</text>
+
+  <!-- 上排 7 个主线状态（左→右） -->
+  <!-- 1. INITIALIZED -->
+  <rect x="16" y="48" width="114" height="62" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="73" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#17211f">INITIALIZED</text>
+  <text x="73" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">① 已建立</text>
+
+  <line x1="130" y1="79" x2="148" y2="79" stroke="#4d5652" stroke-width="1.5" marker-end="url(#lc-arr-ink)"/>
+
+  <!-- 2. REGISTERED -->
+  <rect x="150" y="48" width="114" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="207" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#3a4f93">REGISTERED</text>
+  <text x="207" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">② 已登记显存</text>
+
+  <line x1="264" y1="79" x2="282" y2="79" stroke="#4c65b6" stroke-width="1.5" marker-end="url(#lc-arr-indigo)"/>
+
+  <!-- 3. LEASED -->
+  <rect x="284" y="48" width="104" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="336" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#936300">LEASED</text>
+  <text x="336" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">③ 已借租约</text>
+
+  <line x1="388" y1="79" x2="406" y2="79" stroke="#c78300" stroke-width="1.5" marker-end="url(#lc-arr-amber)"/>
+
+  <!-- 4. TRANSFERRED -->
+  <rect x="408" y="48" width="122" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="469" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#065f56">TRANSFERRED</text>
+  <text x="469" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">④ 权重已传完</text>
+
+  <line x1="530" y1="79" x2="548" y2="79" stroke="#087f73" stroke-width="1.5" marker-end="url(#lc-arr-teal)"/>
+
+  <!-- 5. READY -->
+  <rect x="550" y="48" width="96" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="598" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#3a4f93">READY</text>
+  <text x="598" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">⑤ 备好当源</text>
+
+  <line x1="646" y1="79" x2="664" y2="79" stroke="#9a4b86" stroke-width="1.5" marker-end="url(#lc-arr-plum)"/>
+
+  <!-- 6. SERVING -->
+  <rect x="666" y="48" width="102" height="62" rx="6" fill="#9a4b86" stroke="#7a3a6a" stroke-width="1.5"/>
+  <text x="717" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#ffffff">SERVING</text>
+  <text x="717" y="96" text-anchor="middle" font-size="13.5" fill="#f7e7f2">⑥ 服务与心跳</text>
+
+  <line x1="768" y1="79" x2="786" y2="79" stroke="#4d5652" stroke-width="1.5" marker-end="url(#lc-arr-ink)"/>
+
+  <!-- 7. FINALIZED -->
+  <rect x="788" y="48" width="96" height="62" rx="6" fill="#ece9df" stroke="#17211f" stroke-width="1.5"/>
+  <text x="836" y="72" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#17211f">FINALIZED</text>
+  <text x="836" y="96" text-anchor="middle" font-size="13.5" fill="#4d5652">⑦ 退出收尾</text>
+
+  <!-- 底部中枢：第 8 个状态 CLEANUP_REQUIRED -->
+  <rect x="194" y="196" width="480" height="82" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.7"/>
+  <text x="434" y="222" text-anchor="middle" font-size="14.5" font-weight="700" font-family="var(--font-mono)" fill="#8f3229">⑧ CLEANUP_REQUIRED（待清理 · 正常执行也会先落于此）</text>
+  <text x="434" y="246" text-anchor="middle" font-size="12.5" fill="#4d5652">进入时机：开始登记、开始读权重、重登刷新、起 seed 失败、心跳被拒/停服务</text>
+  <text x="434" y="268" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">停不干净或注销失败时滞留此态，显存保活不放手</text>
+
+  <!-- 正常执行经过 CLEANUP_REQUIRED 的上下连线 -->
+  <!-- 登记期间：INITIALIZED <-> CLEANUP_REQUIRED -> REGISTERED -->
+  <path d="M 140 84 L 140 220 L 192 220" fill="none" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lc-arr-red)"/>
+  <text x="148" y="156" font-size="13.5" fill="#8f3229">开始登记</text>
+
+  <!-- 读权重期间：LEASED -> CLEANUP_REQUIRED -> TRANSFERRED -->
+  <path d="M 336 110 L 336 194" fill="none" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#lc-arr-red)"/>
+  <text x="328" y="156" text-anchor="end" font-size="13.5" fill="#8f3229">开始读权重</text>
+
+  <!-- 重登 / 起服务失败：READY / SERVING -> CLEANUP_REQUIRED -->
+  <path d="M 598 110 L 598 194" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#lc-arr-indigo)"/>
+  <text x="590" y="146" text-anchor="end" font-size="13.5" fill="#3a4f93">重登/起服务</text>
+  <text x="590" y="166" text-anchor="end" font-size="13.5" fill="#3a4f93">或停服务返回</text>
+  <!-- 停服务干净回到 READY -->
+  <path d="M 616 196 L 616 112" fill="none" stroke="#087f73" stroke-width="1.5" marker-end="url(#lc-arr-teal)"/>
+
+  <!-- SERVING 心跳被拒 / 进程退出 -->
+  <path d="M 717 110 L 717 236 L 676 236" fill="none" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#lc-arr-red)"/>
+  <text x="726" y="164" font-size="13.5" fill="#8f3229">心跳 REJECTED</text>
+  <text x="726" y="184" font-size="13.5" fill="#8f3229">或服务异常退出</text>
+
+  <!-- 重入闭环：清理干净且无租约 -> 回到 INITIALIZED（重入下一轮或回退加载） -->
+  <path d="M 194 250 L 73 250 L 73 112" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lc-arr-teal)"/>
+  <text x="20" y="188" font-size="13.5" font-weight="700" fill="#065f56">回退清净</text>
+  <text x="20" y="208" font-size="13.5" fill="#065f56">且无租约</text>
+  <text x="20" y="228" font-size="13.5" fill="#065f56">→ 重入循环</text>
+
+  <!-- 关停未清净不能进 FINALIZED 提示 -->
+  <path d="M 674 258 L 836 258 L 836 112" fill="none" stroke="#4d5652" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lc-arr-ink)"/>
+  <text x="760" y="294" text-anchor="middle" font-size="12.5" fill="#4d5652">全清净 + 无租约 + 引擎关完 → FINALIZED</text>
+
+  <!-- 分隔线 -->
+  <line x1="16" y1="306" x2="884" y2="306" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- 区域 2：传完后两条并行生命线与三种归还结果 -->
+  <text x="16" y="334" font-size="16" font-weight="700" fill="#17211f">② 权重传完（TRANSFERRED）后的双并行生命线：模型先交回，后台还租约决定何时当 seed</text>
+
+  <!-- 生命线 1：模型推理主线 -->
+  <rect x="16" y="352" width="128" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="80" y="378" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">启动线程主线</text>
+  <text x="80" y="399" text-anchor="middle" font-size="13.5" fill="#4d5652">永不等网络归还</text>
+
+  <line x1="144" y1="383" x2="166" y2="383" stroke="#087f73" stroke-width="1.7" marker-end="url(#lc-arr-teal)"/>
+
+  <rect x="168" y="356" width="188" height="54" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="262" y="379" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">后处理 / eval() 收尾</text>
+  <text x="262" y="399" text-anchor="middle" font-size="13" fill="#4d5652">调用 start_seed_service</text>
+
+  <line x1="356" y1="383" x2="378" y2="383" stroke="#087f73" stroke-width="1.7" marker-end="url(#lc-arr-teal)"/>
+
+  <rect x="380" y="356" width="264" height="54" rx="5" fill="#087f73" stroke="#065f56" stroke-width="1.4"/>
+  <text x="512" y="379" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">立刻交回模型给 vLLM</text>
+  <text x="512" y="399" text-anchor="middle" font-size="12.5" fill="#ddf4ef">STARTED / DEFERRED / FAILED 均交回</text>
+
+  <line x1="644" y1="383" x2="666" y2="383" stroke="#087f73" stroke-width="1.7" marker-end="url(#lc-arr-teal)"/>
+
+  <rect x="668" y="356" width="216" height="54" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="776" y="379" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">全卡就绪 → API 接请求</text>
+  <text x="776" y="399" text-anchor="middle" font-size="13.5" fill="#4d5652">量显存 · 建 KV 池 · 录图</text>
+
+  <!-- 生命线 2：后台归还租约与发布 seed（三分支） -->
+  <rect x="16" y="438" width="128" height="176" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="80" y="486" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">后台归还线程</text>
+  <text x="80" y="510" text-anchor="middle" font-size="13.5" fill="#4d5652">先停续租线程</text>
+  <text x="80" y="532" text-anchor="middle" font-size="13.5" fill="#4d5652">锁外发 /put_seed</text>
+  <text x="80" y="556" text-anchor="middle" font-size="13.5" fill="#7a3a6a">同张租约仅 1 线程</text>
+
+  <!-- 三条分支线 -->
+  <path d="M 144 468 L 170 468" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#lc-arr-teal)"/>
+  <path d="M 144 526 L 170 526" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#lc-arr-amber)"/>
+  <path d="M 144 584 L 170 584" fill="none" stroke="#b54237" stroke-width="1.7" marker-end="url(#lc-arr-red)"/>
+
+  <!-- 分支 1：RELEASED -->
+  <rect x="172" y="442" width="234" height="52" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="289" y="464" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">RELEASED（200 或 404）</text>
+  <text x="289" y="484" text-anchor="middle" font-size="12.5" fill="#4d5652">清空租约（404 不证按时还上）</text>
+
+  <line x1="406" y1="468" x2="436" y2="468" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#lc-arr-plum)"/>
+
+  <rect x="438" y="442" width="446" height="52" rx="5" fill="#9a4b86" stroke="#7a3a6a" stroke-width="1.4"/>
+  <text x="661" y="464" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">推进延期发布 → 起 seed 服务 + 首次登记 + 心跳（SERVING）</text>
+  <text x="661" y="484" text-anchor="middle" font-size="12.5" fill="#f7e7f2">由还租约线程原地补办；首次上报遇暂态错也先入 SERVING 靠心跳重试</text>
+
+  <!-- 分支 2：RETRYABLE -->
+  <rect x="172" y="500" width="234" height="52" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="289" y="522" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">RETRYABLE（408 / 429 / 5xx）</text>
+  <text x="289" y="542" text-anchor="middle" font-size="12.5" fill="#4d5652">网络异常也入此类；发布记 DEFERRED</text>
+
+  <line x1="406" y1="526" x2="436" y2="526" stroke="#c78300" stroke-width="1.7" marker-end="url(#lc-arr-amber)"/>
+
+  <rect x="438" y="500" width="446" height="52" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="661" y="522" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">3 次快试（30s）→ 自动转 ≥60s 慢试（不取消延期）</text>
+  <text x="661" y="542" text-anchor="middle" font-size="12.5" fill="#4d5652">持续降频重试，直到收到 RELEASED、REJECTED 或进程关停</text>
+
+  <!-- 慢试成功后回到 RELEASED 的虚线箭头 -->
+  <path d="M 421 500 L 421 476" fill="none" stroke="#087f73" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#lc-arr-teal)"/>
+
+  <!-- 分支 3：REJECTED -->
+  <rect x="172" y="558" width="234" height="52" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="289" y="580" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">REJECTED（400 / 3xx / 异常）</text>
+  <text x="289" y="600" text-anchor="middle" font-size="12.5" fill="#4d5652">或后台线程启动失败 / 进程关停</text>
+
+  <line x1="406" y1="584" x2="436" y2="584" stroke="#b54237" stroke-width="1.7" marker-end="url(#lc-arr-red)"/>
+
+  <rect x="438" y="558" width="446" height="52" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="661" y="580" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">立即停试并取消延期发布（不当 seed，模型照常推理）</text>
+  <text x="661" y="600" text-anchor="middle" font-size="12.5" fill="#4d5652">已登记显存不注销、留到退出收尾；旧租约未了结会阻止同会话再次借用</text>
+
+  <text x="16" y="642" font-size="12.5" fill="#66716d">注：失败回退走 CLEANUP_REQUIRED → 满足 service_stopped &amp;&amp; memory_reset 后默认加载，加载完仍可再走 READY → SERVING 当 seed。</text>
 </svg>

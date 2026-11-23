@@ -1,0 +1,19 @@
+mode: native-svg
+id: ascend-fa-fig-piecewise-vs-fullgraph
+caption: >-
+  为什么开启 FA3 必须配 PIECEWISE 图模式：对比默认 FIA（full_graph_fia 接入 register_task 支持整层 FULL_DECODE_ONLY 全图捕获）、FA3 配全图（Host 侧算 tiling 且无图任务注册，初始化抛 ValueError）与 FA3 配 PIECEWISE（splitting_ops 将注意力切出图外，前后线性投影与归一化子图照常录图加速）。
+size: [900, 456]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1327-L1345'
+    symbols:
+      - splitting_ops
+      - set_splitting_ops_for_v1
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L50-L60'
+    symbols:
+      - AscendFAImpl
+      - enforce_eager
+      - FULL_DECODE_ONLY
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L760'
+    symbols:
+      - register_task
+      - full_graph_fia_v2

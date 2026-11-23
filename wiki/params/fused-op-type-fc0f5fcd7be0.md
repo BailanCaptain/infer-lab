@@ -115,28 +115,52 @@ relations:
 ---
 ## 它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？
 
-`fused_op_type` 曾是 `additional_config["sparse_kv_offload_config"]` 下的子键，用于切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 在 decode 阶段是否使用融合算子：默认 `"none"` 走原来的四步（索引器打分 → LRU 管理热缓冲 → 从主机搬运缺失行 → 跑 SFA）；设为 `"fused_copy_sfa"` 时，将这四步替换为 `fused_lightning_indexer_manage`（LIM，合并打分与热缓冲进出管理）和 `fused_scatter_copy_sparse_flash_attention`（Copy-SFA，边把缺失行从主机拷入边算 attention）两个融合算子。两个枚举值仅此二者，且和同嵌套块里的 [use_fused_overlap](use-fused-overlap-75a180fff6ab.md) 互斥——decode 路径只能三选一（默认、overlap、copy-SFA）。
+`fused_op_type` 曾是 `additional_config["sparse_kv_offload_config"]` 下的子键，用于切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 在 decode 阶段是否走融合算子。
 
-**该用户键只短暂存在于 `v0.30.0rc2` 等过渡快照，在 `v0.30.0` 正式版与 `main` 中已被移除（PR #18301 / #18271 清理冗余稀疏 KV offload 配置）**：
+- 设为默认 `"none"` 时，走原始四步：索引器打分 → LRU 管理热缓冲 → 从主机搬运缺失行 → 跑 SFA。
+- 设为 `"fused_copy_sfa"` 时，将这四步替换为两个融合算子：`fused_lightning_indexer_manage`（LIM，合并打分与热缓冲进出管理）和 `fused_scatter_copy_sparse_flash_attention`（Copy-SFA，边把缺失行从主机拷入边算 attention）。
 
-- **`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f`**：`v0.23.0` 与 `db701c1f` 没有 Sparse KV Offload；`v0.26.0rc` 只按名称读取四个旧键，不识别 `fused_op_type`，写入时静默忽略。
-- **历史过渡快照（PR #17392 / `4ebb3090` 与 `v0.30.0rc2` `7d825229`）**：提供 `fused_op_type` 字段（默认 `"none"`），即使主开关 `enabled=false`，配置构造阶段仍会先校验取值是否合法以及是否与 `use_fused_overlap` 互斥，主开关关闭不能绕过拼写错误或互斥报错。其中 `v0.30.0rc2` 还将每请求最大查询行数 `Q_max` 从早期 `4ebb3090` 的 1–7 扩至 1–14、热缓冲上界扩至 32512（256 对齐，另含两块循环尾区、LIM 总上界 32640），接入 V1/V2 runner 与 DSpark MRV2 remote prompt 初始化，并在 `_lim_select` 中加入 LightningIndexer 的 C8 `int8` 分支（尚不支持 `fp8`，主 KV 仍为 BF16；同时需要包含 LIM、LI C8 LIM、Copy-SFA 及支持注册 MemFabric 主机内存视图的原生扩展，普通 CPU tensor 不能替代注册 DRAM）。注意 `v0.30.0rc2` 自动生成定义中的旧注释“C8 不由此服务路径选择”已落后于同快照代码，不能据此否定该快照的 LI C8 `int8` 支持，且 C8 从未作为第三个枚举值出现。
-- **`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）**：`SparseKVOffloadConfig` 删除了 `fused_op_type` 字段，改为提供只读属性 `use_fused_copy_sfa`（返回 `self.enabled and not self.use_fused_overlap`）——**开启 Sparse KV Offload 且未开 `use_fused_overlap` 时，默认直接走 LIM + Copy-SFA 融合路径**，同时 `topk_buffer_size` 默认值改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`）。由于 `SparseKVOffloadConfig` 启用了严格校验，在这两版里继续传 `"fused_op_type"` 会直接触发配置构造报错。
+该字段仅此两个枚举值，且与同嵌套块里的 [use_fused_overlap](use-fused-overlap-75a180fff6ab.md) 互斥——decode 路径只能三选一（默认、overlap、copy-SFA）。
+
+**该用户键只短暂存在于 `v0.30.0rc2` 等过渡快照；在 `v0.30.0` 正式版与 `main` 中已随 PR #18301 / #18271 清理移除，改为默认启用融合路径**：
+
+| 版本 / 快照 | `fused_op_type` 状态 | 关键能力与校验边界 |
+| --- | --- | --- |
+| `v0.23.0` 与 GLM 镜像 `db701c1f` | 无 Sparse KV Offload、无此键 | 写入不读也不报错 |
+| `v0.26.0rc` | 不识别此键 | 仅按名称读取四个旧键，写入时静默忽略 |
+| PR #17392（`4ebb3090`） | 存在，默认 `"none"` | 即使主开关 `enabled=false`，构造期仍先校验取值合法性与 `use_fused_overlap` 互斥；`Q_max` 限 1–7、禁用 DSpark 投机解码、热缓冲上限 `16128` |
+| `v0.30.0rc2`（`7d825229`） | 存在，默认 `"none"` | `Q_max` 扩至 1–14、热缓冲上界扩至 `32512`（256 对齐，另含两块循环尾区、LIM 总上界 `32640`）；接入 V1/V2 runner 与 DSpark MRV2 remote prompt 初始化；`_lim_select` 新增 LightningIndexer 的 C8 `int8` 分支（不含 `fp8`，主 KV 仍为 BF16），须配含 LIM、LI C8 LIM、Copy-SFA 及注册 MemFabric 主机内存视图的原生扩展（普通 CPU tensor 不能替代注册 DRAM）。注：文末自动生成定义里的旧注释「C8 不由此服务路径选择」已落后于同快照代码，且 C8 从未作为第三个枚举值出现 |
+| `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`） | **已删除**，传旧键直接报错 | `SparseKVOffloadConfig` 改为只读属性 `use_fused_copy_sfa`（返回 `self.enabled and not self.use_fused_overlap`）——开 offload 且未开 overlap 时默认走 LIM + Copy-SFA；`topk_buffer_size` 默认改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`） |
 
 ## 融合算子合并了哪四步，运行时回退与容量门槛怎么算？
 
-Sparse KV Offload 的每步 decode 计算量很小（见[为什么不整层搬回来](../concepts/kv-cache-sparse-offload.md#为什么不整层搬回来decode-一步算得太少)），原始路径按「打分选位置 → 查表管热缓冲槽位 → 搬运缺失行 → 算 attention」四阶段顺序执行（见[一步 decode 的顺序](../concepts/kv-cache-sparse-offload.md#一步-decode-的顺序写新行选查表搬换号算)），中间要反复传递选中位置、槽位和缺失行信息。融合路径用 LIM 合并打分与热缓冲管理、用 Copy-SFA 合并缺失行拷贝与 attention，目的是减少分步调度与中间结果传递；但“四步变两步”描述的是主要阶段，调用旁仍有连续化、查询准备和复用状态拷贝等开销，不能直接换算为固定减少两次 kernel 启动或两次显存读写。PR #17392 只说明加速目标而未给出分阶段计时，本仓库也无设备实测收益。
+Sparse KV Offload 的每步 decode 计算量很小（见[为什么不整层搬回来](../concepts/kv-cache-sparse-offload.md#为什么不整层搬回来decode-一步算得太少)）。原始路径按「打分选位置 → 查表管热缓冲槽位 → 搬运缺失行 → 算 attention」四阶段顺序执行（见[一步 decode 的顺序](../concepts/kv-cache-sparse-offload.md#一步-decode-的顺序写新行选查表搬换号算)），中间反复传递选中位置、槽位与缺失行信息。
 
-**启动期硬门槛与运行时回退是两层判断**：
+```wiki-diagram
+file: param-fused-op-type
+```
 
-- **启动期校验（开启融合路径时执行，不满足直接报错退出，不会自动退回默认路径）**：模型 `topk` 必须等于 `2048`；每请求每步的 query 行数 `Q_max = 1 + num_speculative_tokens` 必须落在合法区间（早期 `4ebb3090` 为 1–7 且禁用 DSpark 投机解码，`v0.30.0rc2` / `v0.30.0` / `main` 为 1–14）；热缓冲 `topk_buffer_size` 必须是 `256` 的倍数（Copy-SFA 的两块循环尾区要求 `2 × 128 = 256` 对齐），且落在 `[Q_max × 2048, 上限]` 内（`4ebb3090` 上限为 `16128`，`v0.30.0rc2` 及 `v0.30.0` / `main` 的 `LIM_MAX_HOT_TOKENS` 为 `32640`，按 256 对齐后的最大合法值为 `32512`）。
-- **单步运行时回退**：即便启动通过，若某一步的最长 query 行数超出上限，或批次中混入 prefill（处理提示词中尚未计算位置并建立历史状态的阶段）且未带 `offload_dummy` 标记（用模拟批次执行模型的路径，例如旧 runner / proposer 在 `dummy_run` 中构造的标记，不代表真实混合请求放宽条件），该步仍退回原来的四阶段路径。回退时，元数据准备会将本次 bank 的驻留历史标为失效，层前向再将本层 TopK 复用计数清零——前者是热缓冲管理状态、后者是层内复用状态，均仅在回退条件下触发，不是每次前向都清空全部历史，后续可复用行需重新判断。
+融合路径用 LIM 合并打分与热缓冲管理、用 Copy-SFA 合并缺失行拷贝与 attention，目的是减少分步调度与中间结果传递。但「四步变两步」只描述主要阶段，调用旁仍有连续化、查询准备和复用状态拷贝等开销，不能直接换算为固定减少两次 kernel 启动或两次显存读写。PR #17392 只说明加速目标而未给出分阶段计时，本仓库也无设备实测收益。
+
+**启动期硬门槛与单步运行时回退分属两层判断**：
+
+| 判断时机 | 触发条件与约束 | 不满足时的行为 |
+| --- | --- | --- |
+| **启动期校验**（开启融合路径时执行） | ① 模型 `topk == 2048`；② 每请求每步 query 行数 `Q_max = 1 + num_speculative_tokens` 落入区间（`4ebb3090` 为 1–7 且禁 DSpark 投机解码，`v0.30.0rc2`/`v0.30.0`/`main` 为 1–14）；③ `topk_buffer_size` 须为 `256` 的倍数（Copy-SFA 两块循环尾区要求 `2 × 128 = 256` 对齐）且在 `[Q_max × 2048, 上限]` 内（`4ebb3090` 上限 `16128`，新版 `LIM_MAX_HOT_TOKENS = 32640`、256 对齐最大 `32512`） | **直接报错退出**，不会自动退回默认四步路径 |
+| **单步运行时回退**（启动通过后每步检查） | 某步最长 query 行数超上限，或批次混入 prefill（处理提示词尚未计算位置并建立历史状态的阶段）且未带 `offload_dummy` 标记（仅模拟批次路径如旧 runner/proposer 的 `dummy_run` 构造该标记，不代表真实混合请求放宽条件） | 该步**退回原始四阶段路径**；元数据准备将本次 bank 驻留历史标为失效（热缓冲管理状态），层前向再将本层 TopK 复用计数清零（层内复用状态）。二者仅在回退时触发，非每次前向清空全部历史，后续可复用行需重新判断 |
 
 ## 升级后保留旧键会怎样，放到 GLM 双机能跑通吗？
 
-- **升级到 `v0.30.0` / `main` 时必须删掉 `fused_op_type`**：这两版已移除该字段，并让 `use_fused_copy_sfa` 在开启 `sparse_kv_offload_config.enabled` 且关闭 `use_fused_overlap` 时默认生效；继续在 `sparse_kv_offload_config` 中保留 `"fused_op_type"` 会触发严格配置校验报错。同时 `topk_buffer_size` 默认已改为 `-1`（自动按 `(1 + num_speculative_tokens) × 2048` 计算），无需为了 MTP 手动调高默认 `4096`（但仍可显式设置 256 倍数且不超过 `32512` 的值；多占设备显存的口径见[池子能开多大](../concepts/kv-cache-sparse-offload.md#池子能开多大三条上限取最小)）。
-- **旧版容量门槛的数值算例**：下限为 `Q_max × 2048`——不开 MTP 时为 `2048`，草拟 1 个为 `4096`，草拟 3 个为 `8192`。在早期 `4ebb3090` / `v0.30.0rc2` 上默认 `topk_buffer_size = 4096`，只够每请求 1–2 行，开 MTP 草拟 2 个及以上时必须显式调大。
-- **放到 GLM 双机部署（历史例外 B 算例：两台 Atlas 800 A2、16 张卡、MTP 每轮草拟 3 个）**：固定镜像 `db701c1f` 没有 Sparse KV Offload 也没有此键，写了既不读也不报；即便换到支持 Sparse KV Offload 的版本，硬件这一关也过不去（见[逐条门槛](../concepts/kv-cache-sparse-offload.md#放到-glm-双机硬件这一关就过不去)）。假如仅考察融合路径自己的几条检查：GLM 的 `index_topk` 为 [2048](../concepts/sparse-attention.md#对照源码) 可满足 TopK 门槛，MTP 草拟 3 个对应每请求每步 `4` 行落在 1–7（及新版 1–14）范围内，但在旧默认 `4096` 下会卡在热缓冲下限 `4 × 2048 = 8192`，启动直接报 `fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, ...]` 错误。
+- **升级到 `v0.30.0` / `main` 必须删掉 `fused_op_type`**：这两版已移除该字段，并让 `use_fused_copy_sfa` 在开启 `sparse_kv_offload_config.enabled` 且关闭 `use_fused_overlap` 时默认生效；继续在 `sparse_kv_offload_config` 中保留 `"fused_op_type"` 会触发严格配置校验报错。同时 `topk_buffer_size` 默认已改为 `-1`（自动按 `(1 + num_speculative_tokens) × 2048` 计算），无需为了 MTP 手动调高默认 `4096`；用户仍可显式设置 256 倍数且不超过 `32512` 的值（多占设备显存的口径见[池子能开多大](../concepts/kv-cache-sparse-offload.md#池子能开多大三条上限取最小)）。
+- **旧版容量门槛的数值算例**（下限为 $Q_{\max} \times 2048$）：
+
+| MTP 草拟数 | 每请求每步 `Q_max` | 融合路径热缓冲下限 | 旧默认 `topk_buffer_size = 4096`（`4ebb3090` / `v0.30.0rc2`） |
+| --- | --- | --- | --- |
+| 0（不开 MTP） | `1` | `2048` | 通过 |
+| 1 | `2` | `4096` | 通过（恰好贴下限） |
+| 3（如 GLM 双机） | `4` | `8192` | **启动报错**，须显式调大（草拟 ≥ 2 均超 4096） |
+
+- **放到 GLM 双机部署（历史例外 B 算例：两台 Atlas 800 A2、16 张卡、MTP 每轮草拟 3 个）**：固定镜像 `db701c1f` 没有 Sparse KV Offload 也没有此键，写入既不读也不报。即便换到支持 Sparse KV Offload 的版本，硬件这一关也过不去（见[逐条门槛](../concepts/kv-cache-sparse-offload.md#放到-glm-双机硬件这一关就过不去)）。假如仅考察融合路径自己的几条检查：GLM 的 `index_topk` 为 [2048](../concepts/sparse-attention.md#对照源码) 满足 TopK 门槛，MTP 草拟 3 个对应每请求每步 `4` 行落在 1–7（及新版 1–14）范围内，但在旧默认 `4096` 下会卡在热缓冲下限 `4 × 2048 = 8192`，启动直接报 `fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, ...]` 错误。
 
 ## 对照源码
 

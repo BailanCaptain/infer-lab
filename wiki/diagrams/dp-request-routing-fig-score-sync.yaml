@@ -1,7 +1,7 @@
 mode: native-svg
 id: dp-request-routing-fig-score-sync
 caption: DP 请求路由优先级链、打分公式演进（v0.23/v0.26 的 4W+R 对照 v0.30.0/main 的在途兜底与 KV 压力斜坡罚分），以及 100 ms 协调器推送滞后在 MoE 步宽对齐与空闲陪跑上的代价。
-size: [900, 496]
+size: [900, 520]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1596'
     symbols: ['get_core_engine_for_request', 'engine_inflight', 'eng_start_index', 'lb_engines']

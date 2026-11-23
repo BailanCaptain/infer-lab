@@ -1,0 +1,14 @@
+mode: native-svg
+id: mem-prof-fig-external-interference
+caption: >-
+  量测期两类最常见边界误区：上方展示同卡另一容器在 init_snapshot 与 after_profile
+  之间释放 10 GiB 显存，令整卡空闲从 80 GiB 反升至 88 GiB、差分变为 −8 GiB，触发
+  NPUWorker 严格递减断言失败（基准污染，非 OOM）；下方拆解多模态 limit_mm_per_prompt 中
+  count（运行期硬限）与 width/height/num_frames（仅启动期试跑提示）的分界，以及
+  mm_processor_cache_gb 归属主机 DRAM 而非 NPU HBM 的隔离关系。
+size: [900, 470]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L566-L667
+    symbols: [determine_available_memory, init_snapshot, free_memory, profile_run]
+  - source: vllm@ced6857a:vllm/utils/mem_utils.py#L228-L321
+    symbols: [memory_profiling]

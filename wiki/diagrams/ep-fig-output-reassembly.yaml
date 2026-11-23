@@ -1,0 +1,10 @@
+mode: native-svg
+id: ep-fig-output-reassembly
+caption: >-
+  GLM 双机 MC2（R1 四个 token）收尾三阶段重组：① EP16 combine 将各专家输出送回源卡并按 top-8 权重合齐为每卡 1 行 [1,4096]（rank 4–7 为补位）；② TP8 All-Gather（finalize）收集 8 张卡切片拼成 [8,4096] 并去掉尾部 4 行补位恢复 [4,4096]；③ 共享分支在完整 [4,4096] 上经 TP8 All-Reduce 合齐，再与路由输出卡内逐元素相加。
+size: [900, 548]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314
+    symbols: [PrepareAndFinalizeWithMC2, prepare, finalize]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719
+    symbols: [_forward_shared_experts, shared_forward_impl]

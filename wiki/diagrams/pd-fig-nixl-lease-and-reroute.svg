@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="上游 NIXL 动态租约时间标尺与跨轮双向复用闭环图" font-family="var(--font-sans)">
+  <title>NIXL 动态心跳租约时间标尺（30s 初始 / 5s 心跳 / 20s 续约窗）与跨轮双向复用闭环（代理 450s vs D 留块 480s）</title>
+  <desc>NIXL kv_lease_duration=30s, heartbeat=5s, renewal window=20s with max(t_expire, t_hb+20), and bidirectional multi-turn loop separating proxy 450s record from D 480s fixed TTL</desc>
+  <defs>
+    <marker id="nixl-arr-plum" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#9a4b86"/>
+    </marker>
+    <marker id="nixl-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#087f73"/>
+    </marker>
+    <marker id="nixl-arr-gray" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: Shared horizontal time ruler (0s..40s -> x=136..836, 17.5px/s) -->
+  <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">NIXL 租约时间尺：t'_expire = max(t_expire, t_hb + 20)，不是无脑累加</text>
+
+  <!-- Vertical grid lines at 0, 5, 10, 15, 20, 25, 30, 35, 40s -->
+  <g stroke="#ece9df" stroke-width="1.2">
+    <line x1="136" y1="62" x2="136" y2="230"/>
+    <line x1="223.5" y1="62" x2="223.5" y2="230"/>
+    <line x1="311" y1="62" x2="311" y2="230"/>
+    <line x1="398.5" y1="62" x2="398.5" y2="230"/>
+    <line x1="486" y1="62" x2="486" y2="230"/>
+    <line x1="573.5" y1="62" x2="573.5" y2="230"/>
+    <line x1="748.5" y1="62" x2="748.5" y2="230"/>
+    <line x1="836" y1="62" x2="836" y2="230"/>
+  </g>
+  <!-- Highlight reference line at t=30s (x=661) and t=35s (x=748.5) -->
+  <line x1="661" y1="58" x2="661" y2="230" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="748.5" y1="176" x2="748.5" y2="230" stroke="#087f73" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+  <!-- Axis ruler -->
+  <line x1="136" y1="62" x2="854" y2="62" stroke="#17211f" stroke-width="1.5"/>
+  <g text-anchor="middle" font-size="13.5" fill="#4d5652">
+    <text x="136" y="54">0 s</text>
+    <text x="223.5" y="54" font-weight="700" fill="#065f56">5 s</text>
+    <text x="311" y="54">10 s</text>
+    <text x="398.5" y="54" font-weight="700" fill="#065f56">15 s</text>
+    <text x="486" y="54">20 s</text>
+    <text x="573.5" y="54">25 s</text>
+    <text x="661" y="54" font-weight="700" fill="#3a4f93">30 s</text>
+    <text x="748.5" y="54" font-weight="700" fill="#065f56">35 s</text>
+    <text x="836" y="54">40 s</text>
+  </g>
+
+  <!-- Row 1: Initial Lease 0 -> 30s -->
+  <text x="16" y="96" font-size="14" font-weight="700" fill="#3a4f93">初始租约</text>
+  <text x="16" y="113" font-size="13.5" fill="#66716d">默认 30 s</text>
+  <rect x="136" y="78" width="525" height="32" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="398" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">P 算完初始保留 30 s（kv_lease_duration）</text>
+  <text x="670" y="99" font-size="13.5" font-weight="700" fill="#3a4f93">原到期 = 30 s</text>
+
+  <!-- Row 2: t=5s Heartbeat -> 5+20=25s <= 30s -->
+  <text x="16" y="150" font-size="14" font-weight="700" fill="#936300">t = 5 s 心跳</text>
+  <text x="16" y="167" font-size="13.5" fill="#66716d">间隔 30÷6</text>
+  <circle cx="223.5" cy="148" r="5.5" fill="#c78300"/>
+  <rect x="223.5" y="132" width="350" height="32" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="398.5" y="153" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">续约窗 20 s：5 + 20 = 25 s（落在 30 s 内）</text>
+  <rect x="573.5" y="132" width="87.5" height="32" rx="4" fill="#e8edff" fill-opacity="0.55" stroke="#4c65b6" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="670" y="153" font-size="13.5" font-weight="700" fill="#4d5652">max(30, 25) = 30 s 不变</text>
+
+  <!-- Row 3: t=15s Heartbeat -> 15+20=35s > 30s -->
+  <text x="16" y="204" font-size="14" font-weight="700" fill="#065f56">t = 15 s 心跳</text>
+  <text x="16" y="221" font-size="13.5" fill="#66716d">推后到期</text>
+  <circle cx="398.5" cy="202" r="5.5" fill="#087f73"/>
+  <rect x="398.5" y="186" width="262.5" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="530" y="207" text-anchor="middle" font-size="13.5" fill="#065f56">续约窗 20 s：15 + 20 = 35 s</text>
+  <rect x="661" y="186" width="87.5" height="32" rx="5" fill="#087f73" fill-opacity="0.28" stroke="#087f73" stroke-width="1.8"/>
+  <text x="704.7" y="207" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">+5 s</text>
+  <text x="758" y="207" font-size="13.5" font-weight="700" fill="#065f56">推至 35 s</text>
+
+  <!-- Two release outcomes -->
+  <rect x="16" y="242" width="424" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="30" y="264" font-size="13.5" font-weight="700" fill="#065f56">✓ 全部消费者报读完 → P 立刻释放源块（不等满租约）</text>
+  <rect x="460" y="242" width="424" height="34" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="474" y="264" font-size="13.5" font-weight="700" fill="#8f3229">✗ D 失联断心跳 → 到期由执行循环回收（受长前向影响）</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="292" x2="884" y2="292" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Bidirectional Multi-turn Loop (Old D -> P -> New D) -->
+  <circle cx="24" cy="318" r="12" fill="#9a4b86"/>
+  <text x="24" y="322.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+  <text x="44" y="324" font-size="16" font-weight="700" fill="#17211f">跨轮双向复用（旧 D → P → 新 D）：代理查路 450 s 与 D 留块 480 s 分开计时</text>
+
+  <!-- Proxy Box (Top Center) -->
+  <rect x="278" y="340" width="344" height="58" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="450" y="364" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">多轮代理（按 conversation_id 存定位）</text>
+  <text x="450" y="386" text-anchor="middle" font-size="13.5" fill="#4d5652">记录寿命 450 s · 取出即删 · 不逐 token 验前缀</text>
+
+  <!-- Arrows between Proxy and D/P -->
+  <path d="M132 426 V369 H272" fill="none" stroke="#66716d" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#nixl-arr-gray)"/>
+  <text x="200" y="361" text-anchor="middle" font-size="13.5" fill="#66716d">首轮返定位</text>
+  <line x1="450" y1="398" x2="450" y2="420" stroke="#66716d" stroke-width="1.5" marker-end="url(#nixl-arr-gray)"/>
+  <text x="536" y="415" font-size="13.5" fill="#66716d">下轮转交旧 D 地址</text>
+
+  <!-- 3 Nodes: Old D, P, New D -->
+  <rect x="16" y="426" width="246" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="30" y="450" font-size="14.5" font-weight="700" fill="#3a4f93">旧 D（首轮生成方）</text>
+  <text x="30" y="473" font-size="13.5" fill="#17211f">块固定留 480 s（无心跳续约）</text>
+  <text x="30" y="495" font-size="13.5" fill="#4d5652">v0.26+ 导出块到期时刻</text>
+
+  <rect x="327" y="426" width="246" height="84" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="341" y="450" font-size="14.5" font-weight="700" fill="#936300">P（下轮先读再算）</text>
+  <text x="341" y="473" font-size="13.5" fill="#17211f">读前留 5 s 余量；&lt;64 字重算</text>
+  <text x="341" y="495" font-size="13.5" fill="#4d5652">算完新输入再授 30 s 租约</text>
+
+  <rect x="638" y="426" width="246" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="652" y="450" font-size="14.5" font-weight="700" fill="#065f56">新 D（本轮 Decode）</text>
+  <text x="652" y="473" font-size="13.5" fill="#17211f">按原 prompt 长度补算末位</text>
+  <text x="652" y="495" font-size="13.5" fill="#4d5652">结束后再存 480 s 供下一轮</text>
+
+  <!-- Data transfer arrows -->
+  <line x1="264" y1="468" x2="321" y2="468" stroke="#9a4b86" stroke-width="2.2" marker-end="url(#nixl-arr-plum)"/>
+  <text x="294" y="456" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">① P 读</text>
+
+  <line x1="575" y1="468" x2="632" y2="468" stroke="#087f73" stroke-width="2.2" marker-end="url(#nixl-arr-teal)"/>
+  <text x="605" y="456" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">② D 拉</text>
+</svg>

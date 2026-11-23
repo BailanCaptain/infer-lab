@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-pool-plate-tiers
+caption: >-
+  KV Pool 多级存储立体拆解：请求先查本地 NPU HBM 的 prefix caching，未命中整段再经已登记显存通道从 HOST DRAM 与跨实例 SHARED KV POOL（含可选 SSD 扩展层）补齐；底部标注 AscendStore 显存直传规则以及 SSD 路径下的存储端暂存边界。
+size: [900, 672]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L99-L175
+    symbols: [AscendStoreConnector, SupportsHMA]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591
+    symbols: [get_num_new_matched_tokens]
+  - source: vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py#L125-L170
+    symbols: [MooncakeStoreConnector]

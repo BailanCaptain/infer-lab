@@ -1,64 +1,120 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 454" width="900" height="454" role="img" aria-label="vLLM 与 vllm-ascend 两仓五大扩展点与 HardwareProfile 演进图" font-family="var(--font-sans)">
-  <title>vLLM 与 vllm-ascend 两仓解耦架构与五大扩展点全景</title>
-  <desc>Two-repo decoupled plugin architecture: upstream vLLM + 5 vllm-ascend extension points + HardwareProfile A2/A3/310P/A5 and v0.30.0 to main evolution</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="vLLM 与 vllm-ascend 两仓解耦插槽、状态归属边界与 HardwareProfile 路由图" font-family="var(--font-sans)">
+  <title>vLLM 与 vllm-ascend 两仓插槽咬合、状态归属与 HardwareProfile 四家族路由</title>
+  <desc>Top shows 5 upstream vLLM slots snapping into 5 vllm-ascend extension points; middle shows state ownership split; bottom shows HardwareProfile A2/A3/310P/A5 routing and v0.30.0 to main convergence.</desc>
+  <defs>
+    <marker id="ov-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+    <marker id="ov-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">两仓解耦全景：vLLM 上游框架 + vllm-ascend 五大扩展点</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">独立发包而非 fork：装包写 entry_points 清单，启动按接口接入，无接口处用 patch 补齐</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">两仓解耦插槽全景：上游 vLLM 留出 4 个正式口 + 1 处无口补丁位</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">独立安装发包而非 fork；装包写 entry_points（v0.30.0 / main 均 3 组 6 入口），按需接入</text>
 
-  <!-- Top Band: Upstream vLLM -->
-  <rect x="16" y="64" width="868" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="32" y="90" font-size="15" font-weight="700" fill="#17211f">上游 vLLM 仓库（框架主干：API Server · Scheduler · KV 块号分配 · Executor 骨架）</text>
-  <text x="32" y="116" font-size="13.5" fill="#4d5652">留出标准插槽：entry_points 发现 · Platform 契约 · ModelRegistry · CustomOp · additional_config 不透明容器</text>
+  <!-- Upstream vLLM Top Bar with 5 explicit slot tabs -->
+  <rect x="16" y="62" width="868" height="72" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
+  <text x="32" y="88" font-size="15" font-weight="700" fill="#17211f">上游 vLLM 仓库（API Server · Scheduler · BlockPool · Executor 骨架）</text>
+  <!-- 5 Slot Pills along bottom edge of Upstream -->
+  <rect x="24" y="100" width="152" height="26" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="100" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Platform 契约</text>
 
-  <!-- Connector arrows -->
-  <path d="M98 136v24m-4-5l4 5 4-5M274 136v24m-4-5l4 5 4-5M450 136v24m-4-5l4 5 4-5M626 136v24m-4-5l4 5 4-5M802 136v24m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="196" y="100" width="152" height="26" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="272" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">无正式口（内部）</text>
 
-  <!-- 5 Extension Point Cards -->
-  <rect x="16" y="162" width="164" height="140" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="28" y="186" font-size="14.5" font-weight="700" fill="#065f56">① Platform</text>
-  <text x="28" y="210" font-size="13.5" fill="#4d5652">NPUPlatform</text>
-  <text x="28" y="232" font-size="13.5" fill="#4d5652">校验改写配置</text>
-  <text x="28" y="254" font-size="13.5" fill="#4d5652">选 Worker 类</text>
-  <text x="28" y="276" font-size="13.5" fill="#4d5652">选后端与通信器</text>
+  <rect x="368" y="100" width="152" height="26" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+  <text x="444" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">ModelRegistry</text>
 
-  <rect x="192" y="162" width="164" height="140" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="204" y="186" font-size="14.5" font-weight="700" fill="#8f3229">② Patch 补丁</text>
-  <text x="204" y="210" font-size="13.5" fill="#4d5652">无接口处改绑定</text>
-  <text x="204" y="232" font-size="13.5" fill="#4d5652">platform 全局</text>
-  <text x="204" y="254" font-size="13.5" fill="#4d5652">worker 执行侧</text>
-  <text x="204" y="276" font-size="13.5" fill="#8f3229" font-weight="600">可改调度与 KV</text>
+  <rect x="540" y="100" width="152" height="26" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="616" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">CustomOp / 后端</text>
 
-  <rect x="368" y="162" width="164" height="140" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="380" y="186" font-size="14.5" font-weight="700" fill="#936300">③ 模型注册</text>
-  <text x="380" y="210" font-size="13.5" fill="#4d5652">ascend_model</text>
-  <text x="380" y="232" font-size="13.5" fill="#4d5652">架构名 → 类</text>
-  <text x="380" y="254" font-size="13.5" fill="#4d5652">如 glm5next/</text>
-  <text x="380" y="276" font-size="13.5" fill="#4d5652">只建映射不装权</text>
+  <rect x="712" y="100" width="164" height="26" rx="5" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="794" y="118" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">additional_config</text>
 
-  <rect x="544" y="162" width="164" height="140" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="556" y="186" font-size="14.5" font-weight="700" fill="#3a4f93">④ 算子与后端</text>
-  <text x="556" y="210" font-size="13.5" fill="#4d5652">CustomOp 登记</text>
-  <text x="556" y="232" font-size="13.5" fill="#4d5652">MLA / KDA 后端</text>
-  <text x="556" y="254" font-size="13.5" fill="#4d5652">MoE / 量化 / 图</text>
-  <text x="556" y="276" font-size="13.5" fill="#4d5652">HCCL / MC2 通信</text>
+  <!-- 5 Vertical Plug-in Connectors -->
+  <line x1="100" y1="126" x2="100" y2="158" stroke="#66716d" stroke-width="1.8" marker-end="url(#ov-arr-g)"/>
+  <line x1="272" y1="126" x2="272" y2="158" stroke="#b54237" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#ov-arr-r)"/>
+  <line x1="444" y1="126" x2="444" y2="158" stroke="#66716d" stroke-width="1.8" marker-end="url(#ov-arr-g)"/>
+  <line x1="616" y1="126" x2="616" y2="158" stroke="#66716d" stroke-width="1.8" marker-end="url(#ov-arr-g)"/>
+  <line x1="794" y1="126" x2="794" y2="158" stroke="#66716d" stroke-width="1.8" marker-end="url(#ov-arr-g)"/>
 
-  <rect x="720" y="162" width="164" height="140" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="732" y="186" font-size="14.5" font-weight="700" fill="#7a3a6a">⑤ 配置体系</text>
-  <text x="732" y="210" font-size="13.5" fill="#4d5652">AscendConfig</text>
-  <text x="732" y="232" font-size="13.5" fill="#4d5652">三路输入汇流</text>
-  <text x="732" y="254" font-size="13.5" fill="#4d5652">每进程一份缓存</text>
-  <text x="732" y="276" font-size="13.5" fill="#4d5652">v0.30 严格校验</text>
+  <!-- 5 Ascend Extension Cards -->
+  <rect x="16" y="164" width="164" height="122" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="189" font-size="14.5" font-weight="700" fill="#065f56">① NPUPlatform</text>
+  <text x="28" y="215" font-size="13.5" fill="#4d5652">查卡型与改配置</text>
+  <text x="28" y="239" font-size="13.5" fill="#4d5652">选 Worker 与后端</text>
+  <text x="28" y="267" font-size="13.5" font-weight="700" fill="#065f56">默认 block=128</text>
 
-  <!-- Bottom two cards -->
-  <rect x="16" y="320" width="424" height="120" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="32" y="346" font-size="14.5" font-weight="700" fill="#065f56">v0.30.0 硬件抽象：HardwareProfile 四家族</text>
-  <text x="32" y="372" font-size="13.5" fill="#4d5652">• A2 / A3 / A5：默认 NPUWorker，按能力表门控</text>
-  <text x="32" y="398" font-size="13.5" fill="#4d5652">• _310P：独立 NPUWorker310 与兼容算子分支</text>
-  <text x="32" y="424" font-size="13.5" fill="#4d5652">• 收敛散落芯片判断，统一查 HardwareCapability</text>
+  <rect x="192" y="164" width="164" height="122" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="204" y="189" font-size="14.5" font-weight="700" fill="#8f3229">② Patch 补丁</text>
+  <text x="204" y="215" font-size="13.5" fill="#4d5652">platform / worker</text>
+  <text x="204" y="239" font-size="13.5" fill="#4d5652">逐进程内存改绑定</text>
+  <text x="204" y="267" font-size="13.5" font-weight="700" fill="#8f3229">可插手调度与 KV</text>
 
-  <rect x="460" y="320" width="424" height="120" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="476" y="346" font-size="14.5" font-weight="700" fill="#936300">v0.30.0 主基线 → main（8d6180e2）演进</text>
-  <text x="476" y="372" font-size="13.5" fill="#4d5652">• 入口点：两版均 3 组 6 入口（增指标采集组）</text>
-  <text x="476" y="398" font-size="13.5" fill="#4d5652">• v0.30.0：65 补丁（32/19/14），MRV1 默认</text>
-  <text x="476" y="424" font-size="13.5" fill="#4d5652">• main：59 补丁（29/30），退役 MRV1 全走 V2</text>
+  <rect x="368" y="164" width="164" height="122" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="380" y="189" font-size="14.5" font-weight="700" fill="#936300">③ 模型注册</text>
+  <text x="380" y="215" font-size="13.5" fill="#4d5652">Qwen3 复用上游</text>
+  <text x="380" y="239" font-size="13.5" fill="#4d5652">29 项昇腾定制类</text>
+  <text x="380" y="267" font-size="13.5" font-weight="700" fill="#936300">仅建映射不装权</text>
+
+  <rect x="544" y="164" width="164" height="122" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="556" y="189" font-size="14.5" font-weight="700" fill="#3a4f93">④ 算子与通信</text>
+  <text x="556" y="215" font-size="13.5" fill="#4d5652">GQA / MLA / KDA</text>
+  <text x="556" y="239" font-size="13.5" fill="#4d5652">MoE · W8A8 · 图</text>
+  <text x="556" y="267" font-size="13.5" font-weight="700" fill="#3a4f93">HCCL / MC2 通信</text>
+
+  <rect x="720" y="164" width="164" height="122" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="732" y="189" font-size="14.5" font-weight="700" fill="#7a3a6a">⑤ AscendConfig</text>
+  <text x="732" y="215" font-size="13.5" fill="#4d5652">CLI / JSON / env</text>
+  <text x="732" y="239" font-size="13.5" fill="#4d5652">每进程独立单例</text>
+  <text x="732" y="267" font-size="13.5" font-weight="700" fill="#7a3a6a">v0.30 Pydantic 严检</text>
+
+  <!-- Middle State-Ownership Split Bar -->
+  <rect x="16" y="302" width="424" height="58" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="326" font-size="14" font-weight="700" fill="#17211f">状态归上游（排不上队查这里）</text>
+  <text x="30" y="349" font-size="13.5" fill="#4d5652">等待/运行队列 · token 预算 · KV 整数块号</text>
+
+  <rect x="460" y="302" width="424" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="474" y="326" font-size="14" font-weight="700" fill="#3a4f93">状态归执行侧（读错历史查这里）</text>
+  <text x="474" y="349" font-size="13.5" fill="#4d5652">HBM 权重/KV 张量 · block table · 注意力元数据</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="376" x2="884" y2="376" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Bottom Left: HardwareProfile 4-Family Router -->
+  <text x="16" y="402" font-size="15" font-weight="700" fill="#065f56">v0.30.0 HardwareProfile 四家族能力路由</text>
+  <rect x="16" y="416" width="98" height="86" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="65" y="446" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">A2</text>
+  <text x="65" y="472" text-anchor="middle" font-size="13.5" fill="#4d5652">NPUWorker</text>
+  <text x="65" y="492" text-anchor="middle" font-size="13.5" fill="#4d5652">ATB 扩展</text>
+
+  <rect x="122" y="416" width="98" height="86" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="171" y="446" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">A3</text>
+  <text x="171" y="472" text-anchor="middle" font-size="13.5" fill="#4d5652">NPUWorker</text>
+  <text x="171" y="492" text-anchor="middle" font-size="13.5" fill="#4d5652">双裸片拓扑</text>
+
+  <rect x="228" y="416" width="104" height="86" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="280" y="446" text-anchor="middle" font-size="14.5" font-weight="700" fill="#8f3229">_310P</text>
+  <text x="280" y="472" text-anchor="middle" font-size="13.5" fill="#8f3229">Worker310</text>
+  <text x="280" y="492" text-anchor="middle" font-size="13.5" fill="#4d5652">FORCE_NZ</text>
+
+  <rect x="340" y="416" width="98" height="86" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="389" y="446" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">A5 (950)</text>
+  <text x="389" y="472" text-anchor="middle" font-size="13.5" fill="#4d5652">NPUWorker</text>
+  <text x="389" y="492" text-anchor="middle" font-size="13.5" fill="#4d5652">免 ATB 预热</text>
+
+  <!-- Bottom Right: v0.30.0 -> main Patch & Runner Bar -->
+  <text x="460" y="402" font-size="15" font-weight="700" fill="#936300">演进收敛：补丁分布与 MRV1 → MRV2</text>
+
+  <text x="460" y="442" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0</text>
+  <rect x="536" y="424" width="154" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="613" y="442" text-anchor="middle" font-size="13.5" fill="#065f56">platform 32</text>
+  <rect x="692" y="424" width="96" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="740" y="442" text-anchor="middle" font-size="13.5" fill="#936300">w 19</text>
+  <rect x="790" y="424" width="94" height="26" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="837" y="442" text-anchor="middle" font-size="13.5" fill="#7a3a6a">v2 14</text>
+
+  <text x="460" y="486" font-size="13.5" font-weight="700" fill="#7a3a6a">main</text>
+  <rect x="536" y="468" width="140" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="606" y="486" text-anchor="middle" font-size="13.5" fill="#065f56">platform 29</text>
+  <rect x="678" y="468" width="154" height="26" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="755" y="486" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">worker 30 (全 MRV2)</text>
+  <text x="840" y="486" font-size="13.5" fill="#66716d">59</text>
 </svg>

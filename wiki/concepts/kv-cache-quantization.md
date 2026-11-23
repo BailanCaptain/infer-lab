@@ -95,6 +95,12 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_c8_mxfp.py#L393-L408'
   - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/modelslim_config.py#L925-L960'
   - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L865-L880'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L2132-L2441
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L587'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1030-L1043'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L615-L631'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1138-L1161'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -115,7 +121,7 @@ relations:
     kind: builds-on
     note: 改精度改的是缓存规格里的字段，实际每页几个位置、怎样对齐看规格页
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-23'
 origin: direct
 ---
 
@@ -184,6 +190,10 @@ $$B_{\text{valid}}(\text{dtype}) = 2 \times 100 \times 2 \times 64 \times b, \qq
 | **BF16**（$b = 2\text{ B}$） | $2 \times 100 \times 2 \times 64 \times 2\text{ B} = 51{,}200\text{ B} =$ **50 KiB** | $2 \times 128 \times 2 \times 64 \times 2\text{ B} = 65{,}536\text{ B} =$ **64 KiB** |
 | **INT8**（$b = 1\text{ B}$） | $2 \times 100 \times 2 \times 64 \times 1\text{ B} = 25{,}600\text{ B} =$ **25 KiB** | $2 \times 128 \times 2 \times 64 \times 1\text{ B} = 32{,}768\text{ B} =$ **32 KiB** |
 
+```wiki-diagram
+file: kv-cache-quant-fig-clip-and-pages
+```
+
 最后一页只用了 4 个位置（100 − 96），剩下 28 个空着，两种格式空着的位置一样多。系数另算：k、v 各一套系数和偏移，每套 2 × 64 = 128 个数，这一层一共 512 个数，历史再长也不变。这里有效数据和按页分配都正好减半，前提是每页的位置数保持 32、没有别的对齐要求；[后面一节](#页和整卡为什么不一定跟着减半)讲这个前提什么时候不成立。
 
 ## 读回来：decode 直接读 8 位，prefill 接历史时先展开
@@ -249,6 +259,11 @@ C8 只让「不是 KV producer」的实例把缓存类型改为 INT8。producer 
 
 启动检查专门拦截一种禁配组合：普通 GQA 模型开了 C8，又用 [MooncakeConnector](mooncake-connector.md) 整块传输时会直接报错。报错会提示关掉 C8，或改用发送前先量化成 8 位的逐层 `MooncakeLayerwiseConnector`。这条检查说明的是接口约束，不是具体部署的实测结论。
 
+在 `Ascend 910B3` 真机排障（详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）中，必须严格区分两道互不替代的 GQA 报错守卫，不能看到命令行同时带了 Mooncake 与 `--kv-cache-dtype int8` 就混为一谈：
+
+- **守卫一（未量化 BF16 GQA 模型直传 `--kv-cache-dtype int8` → `attention_v1.py` 静态权重缺失报错）**：对没有经过离线 C8 校准的普通 BF16 GQA 模型传 `--kv-cache-dtype int8` 时，`enable_c8_quant` 为 `False` 且不属于 `mxfp8` 动态分支，实例在构建注意力层时直接于 `attention_v1.py`（`v0.30.0` 第 `583` 行）抛出首错 `ValueError: The current GQA‑related models adopt static quantization...`（源码原文中的连字符为不换行连字符 `U+2011` `‑`）。即使启动命令同时配了 PD 分离，真机故障标本（`err3`）抛出的也是这道权重缺失错误。
+- **守卫二（已带 C8 静态权重的 GQA 模型配普通 `MooncakeConnector` → `ascend_config.py` 整块传输保护）**：只有权重包真正开启了 `enable_c8_quant = True`，同时属于 GQA 后端并选用普通 `MooncakeConnector` 时，才会命中 `ascend_config.py`（`v0.30.0` 第 `1030–1042` 行）的独立传输检查，拦截“P 端 BF16 字节被 D 端原样当作 INT8 读取”的错位风险。
+
 对照其他模型时，还要核对不同状态是否使用不同精度。[DeepSeek 的主 KV、索引 K 与窗口格式](low-precision-formats.md#deepseek-为什么几种缓存不用同一种-fp4)放在格式页统一说明；本页继续维护 Ascend 路径及后文复杂异构实战对照。
 
 ## C8、FP8 与更低位缓存，区别不只是位数
@@ -297,6 +312,10 @@ $$n_{\text{kblk}} = \left\lceil \frac{561{,}152}{128 \times 512} \right\rceil = 
 | 所需 128-token kernel 块数 | $\lceil 561{,}152 \div (128 \times 512) \rceil = \lceil 8.5625 \rceil$ | **9 块** |
 | 重算后的逻辑块大小 | $128 \times 9$ | **1,152 个 token** |
 
+```wiki-diagram
+file: kv-cache-quant-fig-glm-block-realign
+```
+
 逻辑块从 640 个 token 变成 1,152 个，每个块号占多少字节、预算能切出多少块，都要整个重算。KDA 递推状态本身（每层每条请求 561,152 B，固定占 12 个块号，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)）不属于潜向量缓存，压潜向量不会让它变小。所以「潜向量字节减半」推不出「块数翻倍」或「能多装一倍请求」；这里只是代入规则看方向，固定版本里 GLM 缓存精度不会变成 1 字节。
 
 ## 常见误解
@@ -328,7 +347,8 @@ kv_cache_dtype 的默认、完整枚举、CLI/Python 字段名及 GLM 配置改�
 | 报错 | 什么条件 | 先看什么 |
 |---|---|---|
 | `C8 INT8 KV cache requires block_size to be a multiple of 32, got …` | C8 的 decode（含 chunked prefill 批里的 decode 部分）读分页缓存时，每页的位置数不是 32 的倍数（断言失败） | block size 的设置 |
-| `MooncakeConnector does not support C8 KV cache quantization on GQA models. …` | 启动检查：开了 C8、走 GQA 后端、KV 传输用 MooncakeConnector | 关掉 C8，或改用 MooncakeLayerwiseConnector |
+| `The current GQA‑related models adopt static quantization. …` | 未带 C8 静态校准权重的普通 GQA 模型在启动时传入 `--kv-cache-dtype int8`（非 `mxfp8` 分支），`attention_v1.py:583`（`main:627`）抛 `ValueError` [C63][M62] | 换用含 `kv_cache_type: C8` 与每层 scale 的 ModelSlim 权重包，或移除 `--kv-cache-dtype int8`（改用 `mxfp8` 须核对 512 页大小） |
+| `MooncakeConnector does not support C8 KV cache quantization on GQA models. …` | 启动独立传输保护（`ascend_config.py:1030-1042` / `main:1138-1161`）：权重已开 `enable_c8_quant`、走 GQA 后端且 KV 传输用普通 `MooncakeConnector` [C64] | 关掉 C8，或改用发送前先量化的 `MooncakeLayerwiseConnector` |
 | `fused output quantization is not yet supported for AscendC8AttentionBackendImpl` | C8 层的 attention 被要求直接输出量化结果 | 关掉 attention 输出的融合量化 |
 | `The current MLA‑related models adopt static quantization. …`（仅 main） | main 上 kv-cache-dtype 设成 fp8 或 int8、实例满足 FA 量化的设备门槛，但权重包里没有 FA 量化条目 | 权重包的描述文件是否带 `fa_quant_type` |
 | `GLM-5 Indexer KPool MLA does not support c8_enable_reshape_optim because its indexer state cache has an independent slot mapping.` | GLM 上同时打开了索引器 C8 和它的重排优化 | 去掉这两个开关；GLM 的后端不支持稀疏 C8 |
@@ -341,7 +361,7 @@ GLM 上写了 `enable_sparse_sfa_c8` 或 `enable_sparse_li_c8`（不带重排优
 - **读取：** decode 不展开，读的就是 8 位；prefill 接历史时，临时张量按「这一批里最长的块表 × 每页位置数」补齐，再掩掉空位，峰值随批里最长的历史增长。
 - **偏移：** 按块读回只乘系数，偏移非零的权重包读回来和写入时对不上。
 - **什么时候别开：** 没有带缓存系数的权重包；任务对精度敏感、又没有评估结果；PD 分离要用整块搬运的连接器（上表第二条）；模型的 attention 后端不支持，GLM-5.3-Flash 就是这种情况。
-- **怎么评估：** 同时比任务质量、实际能容纳的状态、临时显存峰值、prefill 与 decode 的延迟。本页核实的是固定源码的机制，数字都是示意数演算，没有设备上的性能或精度实测。
+- **怎么评估：** 同时比任务质量、实际能容纳的状态、临时显存峰值、prefill 与 decode 的延迟。本页演算数字均为教学示意设定；`Ascend 910B3` 已复现未量化 BF16 GQA 模型误传 `--kv-cache-dtype int8` 的静态权重缺失报错，带离线校准 C8 权重后的设备端精度与性能仍需按现场配置实测。
 
 ### 版本差异
 
@@ -364,7 +384,8 @@ KIVI 的二位缓存、K/V 不同量化方向和未满分组保留高精度状�
 |---|---|---|
 | `quantization/modelslim_config.py` / `configs/modelslim_config.py` | 读缓存量化类型、登记各层；FA 量化选 INT8/FP8，MLA 只压 K；非 A5 仅 decode 逐层生效 | 开关与逐层配方写在权重包描述文件里 |
 | `quantization/methods/kv_c8.py` & `kv_cache/kv_c8.py` | 建系数与偏移、换 C8 实现、非 producer 才改 INT8 | 同一份历史在 PD 两端格式不同 |
-| `attention/attention_v1.py`（`c09d3e20#L1560-L1615` / `8d6180e2#L1647-L1700`） | C8 前向分派、写入量化、decode 直接读 8 位与 `block_size % 32 == 0` 断言、prefill 接历史展开 | 读回不减偏移，实际配方须零偏移 |
+| `attention/attention_v1.py`（`c09d3e20#L571-L587, #L1560-L1615` / `8d6180e2#L615-L631, #L1647-L1700`） | 未量化 GQA 传 `int8` 的静态权重缺失校验、C8 前向分派、写入量化、decode 直接读 8 位与 `block_size % 32 == 0` 断言、prefill 接历史展开 | 未校准权重直接拦截；分页读回不减偏移，实际配方须零偏移 |
+| `ascend_config.py`（`c09d3e20#L1030-L1043` / `8d6180e2#L1138-L1161`） | `_check_mooncake_c8_kv_cache_quant`：仅在 `enable_c8_quant=True` 时拦截 GQA + 普通 `MooncakeConnector` | 与 `attention_v1.py` 的未量化权重校验分属两道独立守卫 |
 | `attention/attention_c8_mxfp.py` & `kv_cache/mxfp_c8.py`（`c09d3e20` / `8d6180e2`） | `MXFP8 C8` 的 512-token kernel 页、统一 QFA 路径、PCP/DCP/滑窗拒绝与四份缓存传输 | `MXFP8 C8` 与旧 INT8 C8 传输和页约束不同 |
 | `kv_cache/turboquant/config.py` & `platform.py` / `vllm/config/cache.py` | `TurboQuant` A2/A3 校验与 `--kv-cache-dtype-skip-layers`（含 A5 MiniMax-M3 GQA 自动跳过） | 稀疏低位缓存与按层回退由独立入口校验 |
 | `ops/indexer_kpool_mla.py`、`attention/indexer_kpool_mla_v1.py`、`patch_mamba_config.py` | 固定 GLM `db701c1f` 主缓存 BF16、稀疏 C8 强制关与 640-token 定块规则 | 固定镜像 GLM 双机未开缓存量化 |
@@ -373,7 +394,7 @@ KIVI 的二位缓存、K/V 不同量化方向和未满分组保留高精度状�
 
 - 写入量化公式、逐维系数、decode 直接读 8 位（`block_size % 32 == 0`）与 prefill 接历史展开见来源 1–10 及 `c09d3e20#L1560-L1615`、`8d6180e2#L1647-L1700` [C1][C3][C4][C6][C8]；「分页读回须零偏移」由两条读路均不减偏移推出 [I]。
 - FA 量化与稀疏 C8、GLM 固定镜像主缓存 BF16 及 640-token 定块规则见来源 11–21、29–34、46–47 [C11][C14][C17][C21]；两份公开 GLM 快照逐键筛查未见 C8/FA/indexer 量化条目。
-- `v0.30.0` / `main` 的 `MXFP8 C8`（512 页大小）、`TurboQuant` 与 `--kv-cache-dtype-skip-layers` 见来源 49–61（`ced6857a`/`ba15685a` `cache.py`、`c09d3e20`/`8d6180e2` `attention_c8_mxfp.py`、`mxfp_c8.py`、`turboquant/config.py`、`platform.py`）[C49][C53][C55][C56]。
+- `v0.30.0` / `main` 的 `MXFP8 C8`（512 页大小）、`TurboQuant`、`--kv-cache-dtype-skip-layers` 以及 GQA 静态量化权重校验与 Mooncake 独立传输保护见来源 49–66（`ced6857a`/`ba15685a` `cache.py`、`c09d3e20`/`8d6180e2` `attention_c8_mxfp.py`、`mxfp_c8.py`、`turboquant/config.py`、`platform.py`、`attention_v1.py`、`ascend_config.py` 及 `Ascend 910B3` 真机 `err3` 报错标本）[C49][C53][C55][C56][M62]。
 - 示意模型（8 KV 头 × 128 维 × 32 层）、$s = 0.0125$ 算例与 2 KV 头 × 64 维 × 100 位置为教学设定 [A]；有效/按页字节减半及 GLM 代入 1 字节重算得 1,152 token 均为推导 [D]，GLM 13,056 B/token 与 561,152 B KDA 状态回链[双机部署](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)单一出处 [D]。
 
-**待核：** 现场产物与公开快照是否一致、实际采用的 C8 产物偏移是否为 0，以及 A2/A5 上的精度和性能数据。`v0.30.0` / `main` 下主缓存精度、FA 量化、MXFP8 C8 与 TurboQuant 的具体模型组合仍须按实机配置验收；“GLM 没有可开的缓存量化路”仅限定旧镜像 `db701c1f`。
+**待核：** `Ascend 910B3` 已复现未量化 GQA 传 `--kv-cache-dtype int8` 在 `attention_v1.py:583` 的静态权重缺失报错；现场量化产物与公开快照是否一致、实际采用的 C8 产物偏移是否为 0，以及带静态 C8 校准权重后在 A2/A5 上的精度和性能数据仍待实测。`v0.30.0` / `main` 下主缓存精度、FA 量化、MXFP8 C8 与 TurboQuant 的具体模型组合仍须按实机配置验收；“GLM 没有可开的缓存量化路”仅限定旧镜像 `db701c1f`。

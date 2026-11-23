@@ -1,86 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="DeepSeek-V4.1-Flash 异构层栈、4 个全局 KV 来源层、MoE 与主机侧 Engram 分账图" font-family="var(--font-sans)">
-  <title>DeepSeek-V4.1-Flash 异构层栈与三笔独立内存账（CED + CSA2 + MoE + Engram）</title>
-  <desc>Heterogeneous layer stack of DeepSeek-V4.1-Flash showing CED encoder/decoder split, 4 shared global KV source layers, SWA, MoE, DSpark, and Host DRAM Engram sharing</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="DeepSeek-V4.1-Flash 40 层 CED 比例层带、4 个全局 KV 来源映射弧线与三笔独立内存账比例图" font-family="var(--font-sans)">
+  <title>DeepSeek-V4.1-Flash：40 层 CED 异构层带、4 源全局 KV 映射与三笔独立内存账</title>
+  <desc>40-layer CED architectural strip showing L0-1 SWA-only, 4 global KV source layers (L2, L8, L14 at 2x compression; L20 at 1x compression) feeding downstream layers via arcs, flanked by Vision 32L and DSpark 3L, plus proportional 128-token Block KV bar (113,920 B) alongside State Cache and Host Engram</desc>
   <defs>
-    <marker id="ds41-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="ds41-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ds41-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="ds41-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
     </marker>
   </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 40 层 CED 语言主干与外围模块：哪些层生产长历史，哪些层跨层复用</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">隐藏宽 5120 · MoE 每层 1 共享 + 384 选 6</text>
+  <!-- ZONE 1: 40-Layer CED Strip + KV Source Arcs -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 40 层 CED 语言主干与 4 个主 KV 来源映射（隐藏宽 5120 · MoE 每层 1 共享 + 384 选 6）</text>
 
-  <!-- Vision Encoder box -->
-  <rect x="16" y="48" width="140" height="168" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
-  <text x="86" y="78" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">Vision Encoder</text>
-  <text x="86" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">32 层 · 宽 1024</text>
-  <text x="86" y="130" text-anchor="middle" font-size="13.5" fill="#4d5652">patch = 14</text>
-  <text x="86" y="156" text-anchor="middle" font-size="13.5" fill="#66716d">独立于 CED</text>
-  <text x="86" y="180" text-anchor="middle" font-size="13.5" fill="#66716d">降采样投影入主干</text>
+  <!-- Vision Input Box -->
+  <rect x="14" y="88" width="110" height="114" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="69" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">Vision</text>
+  <text x="69" y="136" text-anchor="middle" font-size="13.5" fill="#4d5652">32 层·宽1024</text>
+  <text x="69" y="158" text-anchor="middle" font-size="13.5" fill="#4d5652">patch = 14</text>
+  <text x="69" y="182" text-anchor="middle" font-size="13.5" fill="#66716d">独立于 CED</text>
+  <path d="M 124 145 L 146 145" fill="none" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ds41-arr-g)"/>
 
-  <line x1="156" y1="132" x2="176" y2="132" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ds41-arr)"/>
+  <!-- 40-Layer CED Band: x=150..750 (600px => 15px per layer!) -->
+  <!-- Bracket headers above Encoder (L0-19: 150..450) and Decoder (L20-39: 450..750) -->
+  <rect x="150" y="42" width="296" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="298" y="60.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">CED 前半 L0–L19（Prefill 全长·压缩 2×）</text>
 
-  <!-- CED Encoder (L0-19) -->
-  <rect x="178" y="48" width="268" height="168" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="312" y="74" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">CED 前半（L0–L19 · 20 层）</text>
-  <text x="192" y="100" font-size="13.5" fill="#4d5652">• L0–L1：仅 SWA（128 窗）</text>
-  <text x="192" y="124" font-size="13.5" fill="#065f56" font-weight="700">• 3 个主 KV 来源：L2 / L8 / L14</text>
-  <text x="192" y="148" font-size="13.5" fill="#4d5652">　压缩率 2 → 每 128 位产 64 条</text>
-  <text x="192" y="172" font-size="13.5" fill="#4d5652">• Prefill 须处理全部提示词位置</text>
-  <text x="192" y="196" font-size="13.5" fill="#065f56">• 前半输出经投影生成全局共享 KV</text>
+  <rect x="454" y="42" width="296" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="602" y="60.5" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">CED 后半 L20–L39（Prefill 仅回放末尾·压缩 1×）</text>
 
-  <line x1="446" y1="132" x2="466" y2="132" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ds41-arr)"/>
+  <!-- 40 Layer Visual Blocks Grouped by KV Source -->
+  <!-- L0-L1 (30px): SWA-only -->
+  <rect x="150" y="114" width="30" height="58" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="165" y="138" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">0</text>
+  <text x="165" y="158" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">1</text>
 
-  <!-- CED Decoder (L20-39) -->
-  <rect x="468" y="48" width="272" height="168" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="604" y="74" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">CED 后半（L20–L39 · 20 层）</text>
-  <text x="482" y="100" font-size="13.5" fill="#3a4f93" font-weight="700">• 第 4 个主 KV 来源：L20（压缩 1）</text>
-  <text x="482" y="124" font-size="13.5" fill="#4d5652">　每 128 位产 128 条，供后半共享</text>
-  <text x="482" y="148" font-size="13.5" fill="#4d5652">• 两级稀疏索引：2048 候选 → 512</text>
-  <text x="482" y="172" font-size="13.5" fill="#4d5652">• Prefill 仅回放末尾保 SWA 窗口</text>
-  <text x="482" y="196" font-size="13.5" fill="#3a4f93">• Decode 全量逐层前向不可跳过</text>
+  <!-- L2 (source #1) + L3-L7 consumers -->
+  <rect x="182" y="106" width="24" height="66" rx="4" fill="#087f73" stroke="#17211f" stroke-width="1.5"/>
+  <text x="194" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">L2</text>
+  <rect x="208" y="114" width="60" height="58" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="238" y="148" text-anchor="middle" font-size="13.5" fill="#065f56">L3–7</text>
+  <path d="M 194 106 C 194 84, 238 84, 238 110" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ds41-arr-t)"/>
 
-  <line x1="740" y1="132" x2="760" y2="132" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ds41-arr)"/>
+  <!-- L8 (source #2) + L9-L13 consumers -->
+  <rect x="270" y="106" width="24" height="66" rx="4" fill="#087f73" stroke="#17211f" stroke-width="1.5"/>
+  <text x="282" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">L8</text>
+  <rect x="296" y="114" width="60" height="58" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="326" y="148" text-anchor="middle" font-size="13.5" fill="#065f56">L9–13</text>
+  <path d="M 282 106 C 282 84, 326 84, 326 110" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ds41-arr-t)"/>
 
-  <!-- DSpark -->
-  <rect x="762" y="48" width="122" height="168" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="823" y="78" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">DSpark</text>
-  <text x="823" y="106" text-anchor="middle" font-size="13.5" fill="#4d5652">3 个草稿层</text>
-  <text x="823" y="130" text-anchor="middle" font-size="13.5" fill="#4d5652">单轮出 5 候选</text>
-  <text x="823" y="156" text-anchor="middle" font-size="13.5" fill="#7a3a6a">不计入 40 层</text>
-  <text x="823" y="180" text-anchor="middle" font-size="13.5" fill="#66716d">另留回退状态</text>
+  <!-- L14 (source #3) + L15-L19 consumers -->
+  <rect x="358" y="106" width="28" height="66" rx="4" fill="#087f73" stroke="#17211f" stroke-width="1.5"/>
+  <text x="372" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">14</text>
+  <rect x="388" y="114" width="58" height="58" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="417" y="148" text-anchor="middle" font-size="13.5" fill="#065f56">L15–19</text>
+  <path d="M 372 106 C 372 84, 417 84, 417 110" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ds41-arr-t)"/>
 
-  <line x1="16" y1="236" x2="884" y2="236" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- L20 (source #4) + L21-L39 shared global KV -->
+  <rect x="454" y="106" width="32" height="66" rx="4" fill="#4c65b6" stroke="#17211f" stroke-width="1.5"/>
+  <text x="470" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">20</text>
+  <rect x="490" y="114" width="260" height="58" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="620" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">L21–L39 共用 L20 全局 KV</text>
+  <text x="620" y="160" text-anchor="middle" font-size="13.5" fill="#4d5652">两级稀疏索引：2048 候选 → 512</text>
+  <path d="M 470 106 C 470 78, 620 78, 620 110" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#ds41-arr-b)"/>
 
-  <text x="16" y="266" font-size="16" font-weight="700" fill="#17211f">② 三笔必须分开核对的内存账：绝不把“40 层乘一遍”或把 Engram 混进 KV cache</text>
+  <!-- Under-strip notes -->
+  <text x="150" y="196" font-size="13.5" fill="#936300">L0–1 仅 SWA</text>
+  <text x="274" y="196" font-size="13.5" font-weight="700" fill="#065f56">深色 4 柱 = 仅有的 4 个主 KV 来源</text>
+  <text x="536" y="196" font-size="13.5" fill="#3a4f93">索引模块 8 源，索引 K 仍随 4 主源</text>
 
-  <!-- Memory Account 1: Global Block KV -->
-  <rect x="16" y="284" width="278" height="188" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="30" y="310" font-size="14.5" font-weight="700" fill="#3a4f93">账目 A · 分页 Block KV（仅 4 源）</text>
-  <text x="30" y="336" font-size="13.5" fill="#4d5652">• 单条：主 KV 288 B + 索引 K 68 B</text>
-  <text x="30" y="360" font-size="13.5" fill="#4d5652">　合计 356 B / 条</text>
-  <text x="30" y="384" font-size="13.5" fill="#4d5652">• 128 位条目：3×64 + 1×128 = 320</text>
-  <text x="30" y="408" font-size="13.5" font-weight="700" fill="#3a4f93">• 载荷：113,920 B ≈ 890 B/原始位</text>
-  <text x="30" y="434" font-size="13.5" fill="#66716d">• 注意：索引计算有 8 源层，但</text>
-  <text x="30" y="456" font-size="13.5" fill="#66716d">　索引 K 跟随 4 个主 KV 源层</text>
+  <!-- Arrow to DSpark -->
+  <path d="M 750 145 L 772 145" fill="none" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ds41-arr-g)"/>
+  <rect x="776" y="88" width="110" height="114" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="831" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">DSpark</text>
+  <text x="831" y="138" text-anchor="middle" font-size="13.5" fill="#4d5652">3 个草稿层</text>
+  <text x="831" y="160" text-anchor="middle" font-size="13.5" fill="#4d5652">单轮出 5 候选</text>
+  <text x="831" y="184" text-anchor="middle" font-size="13.5" fill="#7a3a6a">不计入 40 层</text>
 
-  <!-- Memory Account 2: Per-request State Cache -->
-  <rect x="311" y="284" width="278" height="188" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="325" y="310" font-size="14.5" font-weight="700" fill="#936300">账目 B · 每请求独立 State Cache</text>
-  <text x="325" y="336" font-size="13.5" fill="#4d5652">• 逐层 SWA 窗口：128 位 · 528 B/位</text>
-  <text x="325" y="360" font-size="13.5" fill="#4d5652">• 压缩中间态（未满分组累积）</text>
-  <text x="325" y="384" font-size="13.5" fill="#4d5652">• DSpark 草稿回退槽与环形缓冲</text>
-  <text x="325" y="408" font-size="13.5" font-weight="700" fill="#936300">• 随活跃请求数线性增长，不跨请求</text>
-  <text x="325" y="434" font-size="13.5" fill="#66716d">• 生产仅前半 SWA 落主机内存，</text>
-  <text x="325" y="456" font-size="13.5" fill="#66716d">　后半在 Decode 侧有界回放重建</text>
+  <line x1="14" y1="220" x2="886" y2="220" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- Memory Account 3: Host Engram -->
-  <rect x="606" y="284" width="278" height="188" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="620" y="310" font-size="14.5" font-weight="700" fill="#8f3229">账目 C · 主机侧 INT8 Engram 表</text>
-  <text x="620" y="336" font-size="13.5" fill="#4d5652">• 属模型条件记忆参数，非请求 KV</text>
-  <text x="620" y="360" font-size="13.5" fill="#8f3229">• A3 24 头 ÷ 16 逻辑卡 = 1.5 不整除</text>
-  <text x="620" y="384" font-size="13.5" fill="#4d5652">• 须同开 cpu_offload +</text>
-  <text x="620" y="408" font-size="13.5" fill="#4d5652">　dp_shared_memory + --ipc=host</text>
-  <text x="620" y="434" font-size="13.5" font-weight="700" fill="#8f3229">• 本地 4 DP 共享：主机占用 4E → E</text>
-  <text x="620" y="456" font-size="13.5" fill="#66716d">• 注意：传输带宽与计算并未合并</text>
+  <!-- ZONE 2: Proportional 128-Token Block KV Bar + Three Separate Memory Accounts -->
+  <text x="14" y="248" font-size="16" font-weight="700" fill="#17211f">② 账目 A · 单块 128 位置分页 Block KV 构成（按 320 条真实比例，非“40 层乘一遍”）</text>
+
+  <!-- Proportional 320-entry bar: 3x64 = 192 (60% -> 523px), 1x128 = 128 (40% -> 349px) -->
+  <rect x="14" y="264" width="172" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="100" y="291" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">L2 源：64 条</text>
+  <rect x="190" y="264" width="172" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="276" y="291" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">L8 源：64 条</text>
+  <rect x="366" y="264" width="172" height="44" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="452" y="291" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">L14 源：64 条</text>
+  <rect x="542" y="264" width="344" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="714" y="291" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">L20 后半源（压缩 1×）：128 条（占 40%）</text>
+  <text x="14" y="330" font-size="14" font-weight="700" fill="#3a4f93">合计 320 条 ×（主 KV 288 B + 索引 K 68 B = 356 B）= 113,920 B / 块 ≈ 890 B / 原始位置</text>
+
+  <!-- Two Side-by-Side Remaining Accounts (State Cache + Host Engram) -->
+  <rect x="14" y="352" width="424" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="28" y="378" font-size="14.5" font-weight="700" fill="#936300">账目 B · 每请求独立 State Cache（不跨请求共享）</text>
+  <text x="28" y="404" font-size="13.5" fill="#17211f">逐层 SWA 128 窗（528 B/位）+ 压缩中间态 + DSpark 回退槽</text>
+  <text x="28" y="428" font-size="13.5" fill="#4d5652">随活跃请求数线性增长；生产仅前半 SWA 落主机内存</text>
+  <text x="28" y="454" font-size="13.5" font-weight="700" fill="#936300">后半窗口在 Decode 侧有界回放重建（不进持久存储仍占显存）</text>
+
+  <rect x="462" y="352" width="424" height="122" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="476" y="378" font-size="14.5" font-weight="700" fill="#8f3229">账目 C · 主机侧 INT8 Engram 条件记忆表（非 KV）</text>
+  <text x="476" y="404" font-size="13.5" fill="#17211f">A3 暴露 16 逻辑卡 vs 24 个头（24÷16=1.5 不可设备均分）</text>
+  <text x="476" y="428" font-size="13.5" fill="#4d5652">须同开 cpu_offload + dp_shared_memory + --ipc=host</text>
+  <text x="476" y="454" font-size="13.5" font-weight="700" fill="#8f3229">本地 4 DP 共享使主机底存 4E → E（查表带宽与计算不合并）</text>
 </svg>

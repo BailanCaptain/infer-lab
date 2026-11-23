@@ -1,38 +1,14 @@
-layout: figure
+mode: native-svg
 id: patch-binding
-caption: 固定旧 GLM 的两组常规入口：① 平台准备钩子或通用插件加载 global patch；② Worker 构造加载 worker patch。替换影响之后按该绑定查找的代码，早先复制的引用与子类父类不会自动变化。图中两组换的是不同名字；fork 可继承已有绑定，spawn 的新解释器重新加载。左侧均衡开关关闭时，BalanceScheduler.schedule 转调上游主体；实际导入与内部条件仍须分别核对。
-size: [900, 432]
-items:
-  - { at: [20, 52], size: [190, 50], text: 新解释器初始化, sub: 导入所需模块, tone: control, style: plain }
-  - { at: [250, 52], size: [190, 50], text: ① 平台钩子/插件, sub: 加载 global patch, tone: control }
-  - { at: [480, 52], size: [190, 50], text: ② Worker 启动时, sub: 打 worker patch, tone: weight }
-  - { at: [710, 52], size: [170, 50], text: 请求到来, sub: 按名字取实现, tone: token, style: plain }
-  - { at: [45, 168], size: [370, 50], text: vLLM 调度模块里的 Scheduler, sub: 一个名字, tone: ink, style: plain }
-  - { at: [45, 272], size: [160, 54], text: 上游实现, sub: Scheduler, tone: ink, style: faded }
-  - { at: [225, 272], size: [190, 54], text: 昇腾实现, sub: BalanceScheduler, tone: control }
-  - { at: [485, 168], size: [370, 50], text: vLLM 通信模块里的 GroupCoordinator, sub: 一个名字, tone: ink, style: plain }
-  - { at: [485, 272], size: [160, 54], text: 上游实现, sub: GroupCoordinator, tone: ink, style: faded }
-  - { at: [665, 272], size: [190, 54], text: 昇腾实现, sub: GroupCoordinatorPatch, tone: weight }
-frames:
-  - { label: ① global patch：Worker 出生前就要用的名字, at: [20, 132], size: [420, 290] }
-  - { label: ② worker patch：只在 Worker 里用的名字, at: [460, 132], size: [420, 290] }
-links:
-  - { from: [210, 77], to: [250, 77], tone: control }
-  - { from: [440, 77], to: [480, 77], tone: control }
-  - { from: [670, 77], to: [710, 77], tone: control }
-  - { from: [125, 218], to: [125, 272], tone: ink, dashed: true }
-  - { from: [320, 218], to: [320, 272], tone: control }
-  - { from: [565, 218], to: [565, 272], tone: ink, dashed: true }
-  - { from: [760, 218], to: [760, 272], tone: weight }
-texts:
-  - { at: [135, 250], text: 原来指向, note: true }
-  - { at: [330, 250], text: 改指向, note: true }
-  - { at: [575, 250], text: 原来指向, note: true }
-  - { at: [770, 250], text: 改指向, note: true }
-  - { at: [45, 362], text: 同类：配置校验、KV 分组、调度器、引擎入口 }
-  - { at: [45, 388], text: 在前端、EngineCore 里打，Worker 进程里也有, note: true }
-  - { at: [485, 362], text: 同类：通信组、权重后处理、图尺寸、采样函数 }
-  - { at: [485, 388], text: Worker 构造调用，成功导入后复用缓存, note: true }
+caption: >-
+  Python 模块符号表改写与 from-import 副本滞留对比：左侧展示 global patch（patch/platform）与 worker patch（patch/worker）分别改写模块级符号绑定，后续按「模块.名字」查表即转向昇腾实现（均衡开关关闭时 BalanceScheduler.schedule 转调父类）；右侧展示上游模块早先执行 from ... import ... 复制走引用后，仅改源模块会留下旧引用，必须同步覆写消费方模块副本。
+size: [900, 456]
 pins:
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718', symbols: [BalanceScheduler] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L268-L268', symbols: [GroupCoordinatorPatch] }
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L62'
+    symbols: [patch_use_v2_model_runner, patch_engine_core]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718'
+    symbols: [BalanceScheduler]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L268-L268'
+    symbols: [GroupCoordinatorPatch]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L811-L831'
+    symbols: [resolve_kv_cache_block_sizes, _ascend_resolve_kv_cache_block_sizes]

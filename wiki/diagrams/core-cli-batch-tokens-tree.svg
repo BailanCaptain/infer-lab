@@ -1,71 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 628" width="900" height="628" role="img" aria-label="max_num_batched_tokens 6分支决策树与静默取整图">
-  <title>昇腾 v0.30.0 上 max_num_batched_tokens 的早退回落、6 分支求值流水线与 SP+PCP 静默向上取整</title>
-  <desc>NPUPlatform 在 torch_npu 初始化前抛 NotImplementedError 置 device_memory=0，未传参时走 6 条分支，最后执行 SP+PCP 向上取整。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 590" width="900" height="590" role="img" aria-label="max_num_batched_tokens 早退置零、6 分支顺序求值流水线与 SP+PCP 向上取整图" font-family="var(--font-sans)">
+  <title>昇腾 v0.30.0 上 max_num_batched_tokens 的早退回落、6 分支顺序流水线与 SP+PCP 静默取整</title>
+  <desc>Sequential evaluation pipeline: NotImplementedError zeroes device_memory, 6 ordered default branches when unspecified (bypassed if CLI value passed), then mandatory SP+PCP cdiv rounding</desc>
   <defs>
-    <marker id="arr-dark" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <marker id="bt-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
     </marker>
-    <marker id="arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <marker id="bt-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
     </marker>
   </defs>
-  <g font-family="var(--font-sans)">
-    <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">前置陷阱：为什么 64GB / 128GB 昇腾卡在 <tspan font-family="var(--font-mono)" font-size="15" fill="#b54237">vllm serve</tspan> 下不会命中 8192 / 16384 档？</text>
 
-    <rect x="14" y="40" width="872" height="82" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
-    <text x="30" y="68" font-size="14.5" font-weight="700" fill="#8f3229">解析参数时 <tspan font-family="var(--font-mono)">torch_npu</tspan> 尚未初始化 → <tspan font-family="var(--font-mono)">get_device_total_memory()</tspan> 抛 <tspan font-family="var(--font-mono)">NotImplementedError</tspan></text>
-    <text x="30" y="96" font-size="14" fill="#17211f"><tspan font-family="var(--font-mono)" fill="#8f3229">arg_utils.py</tspan> 捕获异常并置 <tspan font-family="var(--font-mono)" font-weight="700" fill="#b54237">device_memory = 0</tspan> → 跳过 ≥160GiB (16384) 与 ≥70GiB (8192)，全系落入兜底档</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">为什么 64GB / 128GB 昇腾卡跑 vllm serve 默认退回 2048？全链路顺序求值图</text>
 
-    <line x1="450" y1="122" x2="450" y2="146" stroke="#4d5652" stroke-width="1.8" marker-end="url(#arr-dark)"/>
-    <text x="14" y="166" font-size="15" font-weight="700" fill="#3a4f93">未显式传 <tspan font-family="var(--font-mono)">--max-num-batched-tokens</tspan> 时，按顺序走完 6 条分支（显式传参则直接跳至底部紫框）：</text>
+  <!-- Top Gate: Early Exit -->
+  <rect x="16" y="42" width="620" height="80" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="32" y="68" font-size="14.5" font-weight="700" fill="#8f3229">前置早退：参数解析早于 torch_npu 初始化 → device_memory = 0</text>
+  <text x="32" y="92" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">get_device_total_memory()</tspan> 抛 <tspan font-family="var(--font-mono)">NotImplementedError</tspan> 被 <tspan font-family="var(--font-mono)">arg_utils.py</tspan> 捕获置 0</text>
+  <text x="32" y="113" font-size="13.5" fill="#8f3229">跳过 ≥160 GiB (16384) 与 ≥70 GiB (8192) 档，全系卡型落入兜底表</text>
 
-    <rect x="14" y="180" width="420" height="92" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
-    <circle cx="38" cy="206" r="13" fill="#4c65b6"/>
-    <text x="38" y="211" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
-    <text x="58" y="211" font-size="14.5" font-weight="700" fill="#3a4f93">按入口上下文取基线（非 Batched DP）</text>
-    <text x="28" y="238" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="600">vllm serve</tspan> (<tspan font-family="var(--font-mono)">OPENAI_API_SERVER</tspan>) → <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2048</tspan>（并发 <tspan font-family="var(--font-mono)">256</tspan>）</text>
-    <text x="28" y="260" font-size="13.5" fill="#4d5652">• 离线 <tspan font-family="var(--font-mono)" font-weight="600">LLM(...)</tspan> (<tspan font-family="var(--font-mono)">LLM_CLASS</tspan>) → <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">8192</tspan>（并发 <tspan font-family="var(--font-mono)">256</tspan>）</text>
+  <!-- Explicit CLI bypass track on the right -->
+  <rect x="658" y="42" width="226" height="80" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="771" y="70" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">若命令行手传具体值</text>
+  <text x="771" y="95" text-anchor="middle" font-size="13.5" fill="#17211f">直接跳过下方 6 条分支</text>
+  <text x="771" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">仍须经底部 SP+PCP 校验 ↓</text>
+  <line x1="771" y1="122" x2="771" y2="470" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#bt-plum)"/>
 
-    <rect x="466" y="180" width="420" height="92" rx="10" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
-    <circle cx="490" cy="206" r="13" fill="#c78300"/>
-    <text x="490" y="211" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-    <text x="510" y="211" font-size="14.5" font-weight="700" fill="#936300">Batched DP MoE 专有初值覆盖</text>
-    <text x="480" y="238" font-size="13.5" fill="#17211f">• 若 <tspan font-family="var(--font-mono)" font-weight="600">use_batched_dp_moe == True</tspan></text>
-    <text x="480" y="260" font-size="13.5" fill="#936300">• 替代分支 1，初始值直接压低为 <tspan font-family="var(--font-mono)" font-weight="700">256</tspan></text>
+  <!-- Flow arrow from Early Exit down to Branch 1 -->
+  <line x1="326" y1="122" x2="326" y2="146" stroke="#4d5652" stroke-width="1.7" marker-end="url(#bt-arr)"/>
 
-    <rect x="14" y="288" width="420" height="92" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
-    <circle cx="38" cy="314" r="13" fill="#087f73"/>
-    <text x="38" y="319" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
-    <text x="58" y="319" font-size="14.5" font-weight="700" fill="#065f56">吞吐模式成倍放大</text>
-    <text x="28" y="346" font-size="13.5" fill="#17211f">• 若传 <tspan font-family="var(--font-mono)" font-weight="600">--performance-mode throughput</tspan></text>
-    <text x="28" y="368" font-size="13.5" fill="#065f56">• 未手传项双双 <tspan font-family="var(--font-mono)" font-weight="700">× 2</tspan>（在线 <tspan font-family="var(--font-mono)">2048 → 4096</tspan>，并发 <tspan font-family="var(--font-mono)">512</tspan>）</text>
+  <!-- Ordered 6-Branch Serpentine Pipeline inside x=16..636 (2 columns x 3 rows with explicit arrows!) -->
+  <!-- Row 1: 1 -> 2 -->
+  <rect x="16" y="150" width="296" height="86" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="175" font-size="14" font-weight="700" fill="#3a4f93">① 常规入口基线查表</text>
+  <text x="28" y="200" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">vllm serve</tspan> → <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2048</tspan>（并发 256）</text>
+  <text x="28" y="222" font-size="13.5" fill="#4d5652">离线 <tspan font-family="var(--font-mono)">LLM(...)</tspan> → <tspan font-family="var(--font-mono)" font-weight="700">8192</tspan>（并发 256）</text>
 
-    <rect x="466" y="288" width="420" height="92" rx="10" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
-    <circle cx="490" cy="314" r="13" fill="#c78300"/>
-    <text x="490" y="319" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
-    <text x="510" y="319" font-size="14.5" font-weight="700" fill="#936300">关闭 Chunked Prefill 抬升下限</text>
-    <text x="480" y="346" font-size="13.5" fill="#17211f">• 若 <tspan font-family="var(--font-mono)" font-weight="600">enable_chunked_prefill == False</tspan></text>
-    <text x="480" y="368" font-size="13.5" fill="#936300">• 整条提示词须一步算完：<tspan font-family="var(--font-mono)" font-weight="700">max(max_model_len, cur)</tspan></text>
+  <line x1="312" y1="193" x2="338" y2="193" stroke="#4d5652" stroke-width="1.6" marker-end="url(#bt-arr)"/>
 
-    <rect x="14" y="396" width="420" height="92" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
-    <circle cx="38" cy="422" r="13" fill="#4c65b6"/>
-    <text x="38" y="427" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
-    <text x="58" y="427" font-size="14.5" font-weight="700" fill="#3a4f93">多模态 Prefix-LM 单项保底</text>
-    <text x="28" y="454" font-size="13.5" fill="#17211f">• 若 <tspan font-family="var(--font-mono)">is_multimodal_model &amp;&amp; is_mm_prefix_lm</tspan></text>
-    <text x="28" y="476" font-size="13.5" fill="#3a4f93">• 单项多模态不可切块，抬升至 <tspan font-family="var(--font-mono)" font-weight="700">max(mm_min, cur)</tspan></text>
+  <rect x="340" y="150" width="296" height="86" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="352" y="175" font-size="14" font-weight="700" fill="#936300">② Batched DP MoE 替代初值</text>
+  <text x="352" y="200" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">use_batched_dp_moe == True</tspan></text>
+  <text x="352" y="222" font-size="13.5" font-weight="700" fill="#936300">跳过 ①，起步值压低为 256</text>
 
-    <rect x="466" y="396" width="420" height="92" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
-    <circle cx="490" cy="422" r="13" fill="#087f73"/>
-    <text x="490" y="427" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#ffffff">6</text>
-    <text x="510" y="427" font-size="14.5" font-weight="700" fill="#065f56">模型总容量封顶与并发反向对齐</text>
-    <text x="480" y="454" font-size="13.5" fill="#17211f">• 封顶：<tspan font-family="var(--font-mono)" font-weight="700">min(max_num_seqs * max_model_len, cur)</tspan></text>
-    <text x="480" y="476" font-size="13.5" fill="#065f56">• 未手传并发时：<tspan font-family="var(--font-mono)">max_num_seqs = min(seqs, batched)</tspan></text>
+  <!-- Serpentine arrow: Row 1 right (x=488, y=236) -> Row 2 right (x=488, y=258) -->
+  <line x1="488" y1="236" x2="488" y2="256" stroke="#4d5652" stroke-width="1.6" marker-end="url(#bt-arr)"/>
 
-    <line x1="450" y1="494" x2="450" y2="520" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#arr-plum)"/>
+  <!-- Row 2: 4 <- 3 (right-to-left serpentine so arrows never cross!) -->
+  <rect x="340" y="260" width="296" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="352" y="285" font-size="14" font-weight="700" fill="#065f56">③ 吞吐模式成倍放大</text>
+  <text x="352" y="310" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">--performance-mode throughput</tspan></text>
+  <text x="352" y="332" font-size="13.5" font-weight="700" fill="#065f56">未手传项 ×2（2048→4096，并发 512）</text>
 
-    <rect x="14" y="524" width="872" height="90" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
-    <text x="30" y="553" font-size="15" font-weight="700" fill="#7a3a6a">后置静默改写（无论默认还是手传均生效）：<tspan font-family="var(--font-mono)">AscendConfig</tspan> 的 <tspan font-family="var(--font-mono)">SP + PCP</tspan> 整除写回</text>
-    <text x="30" y="580" font-size="14" fill="#17211f">当 <tspan font-family="var(--font-mono)">prefill_context_parallel_size &gt; 1</tspan> 且序列并行 <tspan font-family="var(--font-mono)">enable_sp</tspan> 激活时，为保证各 <tspan font-family="var(--font-mono)">tp × pcp</tspan> 分片等长：</text>
-    <text x="30" y="603" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">max_num_batched_tokens = cdiv(max_num_batched_tokens, tp_size * pcp_size) * (tp_size * pcp_size)</text>
-  </g>
+  <line x1="340" y1="303" x2="314" y2="303" stroke="#4d5652" stroke-width="1.6" marker-end="url(#bt-arr)"/>
+
+  <rect x="16" y="260" width="296" height="86" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="28" y="285" font-size="14" font-weight="700" fill="#936300">④ 关闭分块预填充抬下限</text>
+  <text x="28" y="310" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">--no-enable-chunked-prefill</tspan></text>
+  <text x="28" y="332" font-size="13.5" font-weight="700" fill="#936300">整条提示词一步算完：max(len, cur)</text>
+
+  <!-- Serpentine arrow: Row 2 left (x=164, y=346) -> Row 3 left (x=164, y=366) -->
+  <line x1="164" y1="346" x2="164" y2="366" stroke="#4d5652" stroke-width="1.6" marker-end="url(#bt-arr)"/>
+
+  <!-- Row 3: 5 -> 6 -->
+  <rect x="16" y="370" width="296" height="86" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="395" font-size="14" font-weight="700" fill="#3a4f93">⑤ 多模态 Prefix-LM 单项保底</text>
+  <text x="28" y="420" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">is_multimodal &amp;&amp; is_mm_prefix_lm</tspan></text>
+  <text x="28" y="442" font-size="13.5" font-weight="700" fill="#3a4f93">不可切块，抬升至 max(mm_min, cur)</text>
+
+  <line x1="312" y1="413" x2="338" y2="413" stroke="#4d5652" stroke-width="1.6" marker-end="url(#bt-arr)"/>
+
+  <rect x="340" y="370" width="296" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="352" y="395" font-size="14" font-weight="700" fill="#065f56">⑥ 总容量封顶与并发反向对齐</text>
+  <text x="352" y="420" font-size="13.5" fill="#17211f">封顶：<tspan font-family="var(--font-mono)">min(seqs × max_len, cur)</tspan></text>
+  <text x="352" y="442" font-size="13.5" fill="#065f56">未手传并发：<tspan font-family="var(--font-mono)">seqs = min(seqs, cur)</tspan></text>
+
+  <!-- Arrow down into SP+PCP rounding -->
+  <line x1="488" y1="456" x2="488" y2="472" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#bt-plum)"/>
+
+  <!-- Bottom Mandatory SP+PCP Rounding Bar -->
+  <rect x="16" y="476" width="868" height="100" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="32" y="503" font-size="15" font-weight="700" fill="#7a3a6a">必经后置写回（无论默认还是手传均触发）：AscendConfig 的 SP + PCP 向上取整</text>
+  <text x="32" y="529" font-size="13.5" fill="#17211f">条件：<tspan font-family="var(--font-mono)">prefill_context_parallel_size &gt; 1</tspan> 且序列并行 <tspan font-family="var(--font-mono)">enable_sp</tspan> 激活 → 强制对齐 <tspan font-family="var(--font-mono)" font-weight="700">tp × pcp</tspan> 整除粒度</text>
+  <rect x="32" y="540" width="836" height="28" rx="5" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="450" y="559" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">算例：TP=8, PCP=2 (粒度=16) · 手传 2050 → cdiv(2050, 16) × 16 = 2064（告警并静默改写）</text>
 </svg>

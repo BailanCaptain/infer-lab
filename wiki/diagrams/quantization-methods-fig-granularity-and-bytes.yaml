@@ -1,0 +1,17 @@
+mode: native-svg
+id: quantization-methods-fig-granularity-and-bytes
+caption: >-
+  量化缩放粒度坐标轴与同比例元数据字节账：上半部并排对比数学权重 W[输入维 in, 输出维 out] 上的 per-tensor、per-output-channel（按列，并提示 checkpoint 转置存储 [out, in] 对应文件每行）与沿输入轴切分的 per-group，以及激活矩阵 X[token, hidden] 上的 per-token（按行）；下半部按统一比例尺展示同列 256 个 INT4 权重在纯载荷（128 B）、group_size=128（132 B，4.125 bit）与 group_size=32（144 B，4.5 bit）下的 FP16 scale 开销。
+size: [900, 584]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L150'
+    symbols:
+      - AscendW8A8DynamicLinearMethod
+      - get_weight
+      - get_perchannel_param
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w4a4/w4a4_mxfp4.py#L71-L114'
+    symbols:
+      - AscendW4A4MXFP4DynamicLinearMethod
+      - get_pergroup_param
+      - group_size
+      - weight_scale

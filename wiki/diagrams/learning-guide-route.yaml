@@ -1,35 +1,6 @@
-layout: figure
+mode: native-svg
 id: learning-guide-route
-caption: 全站 01–12 目录阅读路线：01 全景入门按读者背景分为「概念起步」（直入 02–06 原理主线）与「工程上线速查」（直达模型解剖、起服与 08 调参排障）；右侧按需深入 07 架构源码与 09 旗舰双机全案；底部 10–12 三组随时查阅。
-size: [900, 582]
-frames:
-  - { at: [16, 62], size: [868, 106], label: "01 全景入门与新模型上线（先按背景选入口）" }
-  - { at: [16, 196], size: [556, 268], label: "概念原理主线（02 → 06 零倒挂递进）" }
-  - { at: [596, 196], size: [288, 268], label: "工程架构、调参与全案（07 → 09）" }
-items:
-  - { at: [36, 90], size: [380, 62], text: "路线 A · 概念起步：本页 → 请求全景", sub: "零基础 3 分钟看懂两轮生成，再直入 02 组", tone: token, style: solid }
-  - { at: [484, 90], size: [380, 62], text: "路线 B · 上线速查：HF 解剖 → 上线 → 起服", sub: "已有经验直接算显存、查支持、拉起 vllm serve", tone: weight, style: solid }
-  - { at: [36, 228], size: [244, 62], text: "02 标准模型单层计算", sub: "token / Attention / GQA / MoE", tone: kv, style: solid }
-  - { at: [308, 228], size: [244, 62], text: "03 单实例调度与分页 KV", sub: "Prefill / KV / 分页与块表", tone: kv, style: solid }
-  - { at: [36, 312], size: [244, 62], text: "04 昇腾硬件与现代量化", sub: "Roofline / 四族硬件 / FA / W8A8", tone: weight, style: solid }
-  - { at: [308, 312], size: [244, 62], text: "05 集合通信与分布式并行", sub: "HCCL / TP / PP / DP / EP / CP", tone: comm, style: solid }
-  - { at: [36, 394], size: [516, 54], text: "06 PD / EPD 分离架构与外置 KV 体系", sub: "Mooncake 跨实例传输 · 抢占回退 · 逐层/稀疏卸载 · KV Pool", tone: comm, style: plain }
-  - { at: [616, 228], size: [248, 62], text: "07 vllm-ascend 两仓架构", sub: "插件 / 补丁 / 冷启动 / 图编译", tone: control, style: plain }
-  - { at: [616, 312], size: [248, 62], text: "08 基准、调参与排障手册", sub: "核心 CLI / 压测 / 性能与精度排障", tone: control, style: plain }
-  - { at: [616, 394], size: [248, 54], text: "09 旗舰异构模型端到端全案", sub: "GLM-5.3-Flash / DeepSeek-V4.1", tone: token, style: plain }
-  - { at: [16, 510], size: [274, 56], text: "10 历史版本快照与档案", sub: "基线核验底稿 · PR 与问答记录", tone: ink, style: faded }
-  - { at: [313, 510], size: [274, 56], text: "11 RFork 权重快载专题", sub: "独立权重快载机制与故障定位", tone: ink, style: faded }
-  - { at: [610, 510], size: [274, 56], text: "12 additional_config 参数字典", sub: "按配置键随手查定义与版本差异", tone: ink, style: faded }
-links:
-  - { from: [350, 152], to: [158, 228], via: [[350, 212], [158, 212]], tone: token }
-  - { from: [280, 259], to: [308, 259], tone: kv }
-  - { from: [430, 290], to: [158, 312], via: [[430, 301], [158, 301]], tone: ink }
-  - { from: [280, 343], to: [308, 343], tone: comm }
-  - { from: [430, 374], to: [430, 394], tone: comm }
-  - { from: [856, 152], to: [740, 228], via: [[856, 212], [740, 212]], tone: weight, dashed: true }
-  - { from: [552, 259], to: [616, 259], dashed: true }
-  - { from: [552, 343], to: [616, 343], dashed: true }
-  - { from: [552, 421], to: [616, 421], dashed: true }
-texts:
-  - { at: [450, 26], text: "全站 01–12 目录阅读导航：概念初学者走左侧主线，工程师走右侧上线与排障", anchor: middle, strong: true, size: 15 }
-  - { at: [450, 494], text: "以下三组（10–12）作为字典与专题档案，随时按需查阅", anchor: middle, size: 13.5, tone: ink }
+caption: >-
+  全站 01–12 目录阅读路线：01 全景入门按背景分为「路线 A · 概念起步」（走完请求全景后直入 02–06 原理主线）与「路线 B · 新模型上线速查」（走完 HF 解剖、新模型上线与起服后直达 08 核心 CLI 调参与通用排障）；右侧按需深入 07 两仓架构与 09 旗舰双机全案；底部 10–12 三组随时查阅。
+size: [900, 568]
+pins: []

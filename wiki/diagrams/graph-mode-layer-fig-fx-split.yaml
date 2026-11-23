@@ -1,8 +1,8 @@
 mode: native-svg
 id: graph-mode-layer-fig-fx-split
 caption: >-
-  昇腾图模式三层分工与 FX 图切分对照：左侧展示 PIECEWISE 档如何沿 unified_attention_with_output / mla_forward / dsa_forward 切开 FX 计算图并同步关闭 npugraph_ex（回落本地 fusion_pass_compile）；右侧展示 FULL / FULL_DECODE_ONLY 档清空 splitting_ops=[] 后交由 npugraph_ex 整段改写，再由 ACLGraphWrapper 按档位捕获回放。
-size: [900, 460]
+  图模式三件事拆解：上半对比分段编译路线（PIECEWISE / FULL_AND_PIECEWISE 沿 unified_attention_with_output、mla_forward、dsa_forward 切开 FX 图并走本地 fusion_pass_compile）与纯整图编译路线（FULL / FULL_DECODE_ONLY 清空 splitting_ops=[] 后由 AscendCompiler 按 enable_npugraph_ex 分流：默认 True 进 npugraph_ex_compile，显式 False 仍走本地 fusion_pass_compile）；下半五档分派矩阵明确区分 FULL（后端支持时混合批也整图回放）与 FULL_DECODE_ONLY（仅此档在混入 prefill 时退回 eager）。
+size: [900, 560]
 pins:
   - source: vllm@ced6857a:vllm/config/compilation.py#L765-L785
     symbols: [unified_attention_with_output]

@@ -1,0 +1,10 @@
+mode: native-svg
+id: ucm-fig-budget-and-backends
+caption: >-
+  UCM 主机内存预算拆分陷阱与四大存储后端管线对照：上半幅对比单服务 2 本地 DP（64 GiB 自动平分为 32+32 GiB）与外部 LB 启 2 独立服务各填 64 造成 128 GiB 超配的差异；下半幅列出 Cache|Posix、Cache|Ds3fs、Mooncake/DramPool 与 Cache|Compress|Posix 各自的数据流与硬前置条件。
+size: [900, 492]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L37-L70
+    symbols: [UCMConnectorV1, SupportsHMA]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L290-L297
+    symbols: [get_loaded_kv_cache_group_ids]

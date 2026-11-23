@@ -1,0 +1,16 @@
+id: token-fig-detokenizer-vocab-bounds
+mode: native-svg
+size: [900, 458]
+caption: "流式反分词字节缓冲、停止符跳字与 Qwen3 / GLM 词表三段式边界校验"
+pins:
+  - source: vllm@ced6857a:vllm/v1/engine/detokenizer.py#L96-L180
+    symbols:
+      - update
+      - FastIncrementalDetokenizer
+      - decode_next
+      - include_stop_str_in_output
+  - source: vllm@ced6857a:vllm/v1/engine/input_processor.py#L440-L550
+    symbols:
+      - _validate_prompt_len
+      - _validate_model_input
+      - max_token_id

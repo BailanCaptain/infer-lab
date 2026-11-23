@@ -26,46 +26,46 @@
 <text x="16" y="28" font-size="16" fill="#17211f">v0.26 / rc2 历史配置</text>
 <text x="312" y="28" font-size="16" fill="#065f56">v0.30.0 正式版（c09d3e20）</text>
 <text x="628" y="28" font-size="16" fill="#3a4f93">main 演进预警（8d6180e2）</text>
-<text x="28" y="83" font-size="14" fill="#8f3229">4 个旧环境变量（NZ / MLAPO 等）</text>
-<text x="324" y="83" font-size="14" fill="#065f56">迁入 additional_config 字段</text>
-<text x="640" y="83" font-size="14" fill="#3a4f93">延续纯 JSON 配置，移除 CPP</text>
-<text x="28" y="147" font-size="14" fill="#8f3229">ENABLE_FLASHCOMM1 旧环境变量</text>
-<text x="324" y="147" font-size="14" fill="#936300">envs.py 已删，仅留 os.getenv 兜底</text>
-<text x="640" y="147" font-size="14" fill="#3a4f93">上游移除 PassConfig.enable_sp</text>
-<text x="28" y="211" font-size="14" fill="#8f3229">W8A8_PDMIX 量化命名与 MoE 路径</text>
-<text x="324" y="211" font-size="14" fill="#065f56">仅保留 W8A8_MIX（linear）</text>
-<text x="640" y="211" font-size="14" fill="#3a4f93">延续 W8A8_MIX 线性层注册</text>
-<text x="28" y="275" font-size="14" fill="#17211f">文档惯写 0.9 + 分散芯片判断</text>
-<text x="324" y="275" font-size="14" fill="#936300">CacheConfig=0.92 + HardwareProfile</text>
-<text x="640" y="275" font-size="14" fill="#3a4f93">A5 补回 RUNTIME_CUSTOM_OPS</text>
-<text x="28" y="339" font-size="14" fill="#17211f">原生 FP8_BLOCK 权重加载</text>
-<text x="324" y="339" font-size="14" fill="#936300">A2/A3 静默反量化回 BF16（显存翻倍）</text>
-<text x="640" y="339" font-size="14" fill="#8f3229">A2/A3 直接抛 NotImplementedError</text>
-<text x="28" y="403" font-size="14" fill="#17211f">默认 MRV1，按需实验 V2</text>
-<text x="324" y="403" font-size="14" fill="#7a3a6a">默认仍 V1；PCP/DSV4.1 等强制 V2</text>
-<text x="640" y="403" font-size="14" fill="#8f3229">删除 V1；设 =0 直接报 ValueError</text>
+<text x="26" y="83" font-size="13" fill="#8f3229">4 个旧环境变量（NZ / MLAPO 等）</text>
+<text x="322" y="83" font-size="13" fill="#065f56">迁入 additional_config 字段</text>
+<text x="638" y="83" font-size="13" fill="#3a4f93">延续纯 JSON 配置，移除 CPP</text>
+<text x="26" y="147" font-size="13" fill="#8f3229">ENABLE_FLASHCOMM1 旧环境变量</text>
+<text x="322" y="147" font-size="13" fill="#936300">envs.py 已删，仅留 os.getenv 兜底</text>
+<text x="638" y="147" font-size="13" fill="#3a4f93">上游移除 PassConfig.enable_sp</text>
+<text x="26" y="211" font-size="13" fill="#8f3229">W8A8_PDMIX 量化命名与 MoE 路径</text>
+<text x="322" y="211" font-size="13" fill="#065f56">仅保留 W8A8_MIX（linear）</text>
+<text x="638" y="211" font-size="13" fill="#3a4f93">延续 W8A8_MIX 线性层注册</text>
+<text x="26" y="275" font-size="13" fill="#17211f">文档惯写 0.9 + 分散芯片判断</text>
+<text x="322" y="275" font-size="13" fill="#936300">CacheConfig=0.92 + HardwareProfile</text>
+<text x="638" y="275" font-size="13" fill="#3a4f93">A5 补回 RUNTIME_CUSTOM_OPS</text>
+<text x="26" y="339" font-size="13" fill="#17211f">原生 FP8_BLOCK 权重加载</text>
+<text x="322" y="339" font-size="13" fill="#936300">A2/A3 静默反量化回 BF16（显存翻倍）</text>
+<text x="638" y="339" font-size="13" fill="#8f3229">A2/A3 直接抛 NotImplementedError</text>
+<text x="26" y="403" font-size="13" fill="#17211f">默认 MRV1，按需实验 V2</text>
+<text x="322" y="403" font-size="13" fill="#7a3a6a">默认仍 V1；PCP/DSV4.1 等强制 V2</text>
+<text x="638" y="403" font-size="13" fill="#8f3229">删除 V1；设 =0 直接报 ValueError</text>
 </g>
 <g fill="#4d5652">
 <text x="16" y="48" font-size="13.5">继续沿用将静默失效或启动失败</text>
 <text x="312" y="48" font-size="13.5">生产升级必须逐项核验的真实行为</text>
 <text x="628" y="48" font-size="13.5">避免下一版升级二次返工的硬边界</text>
-<text x="28" y="104" font-size="13.5">ENABLE_NZ / MLAPO / FUSED_MC2 等</text>
-<text x="324" y="104" font-size="13.5">weight_nz_mode / enable_mlapo 等</text>
-<text x="640" y="104" font-size="13.5">彻底移除 profiling_chunk_config</text>
-<text x="28" y="168" font-size="13.5">从 envs.py 正式表移出</text>
-<text x="324" y="168" font-size="13.5">迁入 additional_config.enable_flashcomm1</text>
-<text x="640" y="168" font-size="13.5">FlashComm1 改打印告警并关量化 AR</text>
-<text x="28" y="232" font-size="13.5">v0.26 起已弃用 W8A8_MIX MoE 路径</text>
-<text x="324" y="232" font-size="13.5">v0.30.0 移除 MoE 注册，仅留 linear</text>
-<text x="640" y="232" font-size="13.5">MoE 量化统一改用 W8A8_DYNAMIC</text>
-<text x="28" y="296" font-size="13.5">is_310p() 等零散型号分支</text>
-<text x="324" y="296" font-size="13.5">四家族档案：A2 / A3 / 310P / A5</text>
-<text x="640" y="296" font-size="13.5">gpu_memory_utilization 改按模式解析</text>
-<text x="28" y="360" font-size="13.5">如 Qwen3.8-27B-FP8 分块权重</text>
-<text x="324" y="360" font-size="13.5">仅 A5 转 MXFP8；A2/A3 走普通 GEMM</text>
-<text x="640" y="360" font-size="13.5">须改用 BF16 或 ModelSlim 重定量权重</text>
-<text x="28" y="424" font-size="13.5">VLLM_USE_V2_MODEL_RUNNER=1 可选</text>
-<text x="324" y="424" font-size="13.5">patch_use_v2_model_runner 兜底默认 False</text>
-<text x="640" y="424" font-size="13.5">mrv2_utils 恒定启用 V2，须清理 =0</text>
+<text x="26" y="104" font-size="12.5">ENABLE_NZ / MLAPO / FUSED_MC2 等</text>
+<text x="322" y="104" font-size="12.5">weight_nz_mode / enable_mlapo 等</text>
+<text x="638" y="104" font-size="12.5">彻底移除 profiling_chunk_config</text>
+<text x="26" y="168" font-size="12.5">从 envs.py 正式表移出</text>
+<text x="322" y="168" font-size="12.5">迁入 additional_config.enable_flashcomm1</text>
+<text x="638" y="168" font-size="12.5">FlashComm1 改打印告警并关量化 AR</text>
+<text x="26" y="232" font-size="12.5">v0.26 起已弃用 W8A8_MIX MoE 路径</text>
+<text x="322" y="232" font-size="12.5">v0.30.0 移除 MoE 注册，仅留 linear</text>
+<text x="638" y="232" font-size="12.5">MoE 量化统一改用 W8A8_DYNAMIC</text>
+<text x="26" y="296" font-size="12.5">is_310p() 等零散型号分支</text>
+<text x="322" y="296" font-size="12.5">四家族档案：A2 / A3 / 310P / A5</text>
+<text x="638" y="296" font-size="12.5">gpu_memory_utilization 改按模式解析</text>
+<text x="26" y="360" font-size="12.5">如 Qwen3.8-27B-FP8 分块权重</text>
+<text x="322" y="360" font-size="12.5">仅 A5 转 MXFP8；A2/A3 走普通 GEMM</text>
+<text x="638" y="360" font-size="12.5">须改用 BF16 或 ModelSlim 重定量权重</text>
+<text x="26" y="424" font-size="12.5">VLLM_USE_V2_MODEL_RUNNER=1 可选</text>
+<text x="322" y="424" font-size="12.5">patch_use_v2_model_runner 兜底默认 False</text>
+<text x="638" y="424" font-size="12.5">mrv2_utils 恒定启用 V2，须清理 =0</text>
 </g>
 </svg>

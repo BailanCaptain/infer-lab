@@ -1,0 +1,10 @@
+mode: native-svg
+id: tp-fig-memory-scale-16card
+caption: >-
+  固定 16 卡与 EP16 比较 TP4 / TP8 / TP16 的每卡语言权重子账（同比例刻度）：路由专家（18,576 MiB ≈ 18.14 GiB）与逐卡复制项（727.5 MiB ≈ 0.71 GiB）三档完全固定；只有 TP 可切分部分按 8/TP 缩放（3.47 / 1.73 / 0.87 GiB），因此总子账依次为 22.32、20.58、19.72 GiB——TP8 扩到 TP16 每卡仅省约 0.87 GiB，却把每层归约拖跨机。
+size: [900, 426]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
+    symbols: [AscendGlm5NextMLP, MergedColumnParallelLinear, RowParallelLinear]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558
+    symbols: [tensor_model_parallel_all_reduce]

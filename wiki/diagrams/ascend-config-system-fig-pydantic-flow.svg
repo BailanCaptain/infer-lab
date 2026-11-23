@@ -1,63 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="v0.30.0 与 main 的 AscendConfig Pydantic 严格校验流与环境变量收口" font-family="var(--font-sans)">
-  <title>v0.30.0 / main AscendConfig Pydantic 严格解析与原子发布流水线</title>
-  <desc>Strict Pydantic extra=forbid validation pipeline, retired env vars vs FLASHCOMM1 OR fallback, and atomic _ASCEND_CONFIG publish</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="AscendConfig 四版环境变量收口、强类型子配置扩张与编译缓存隔离图" font-family="var(--font-sans)">
+  <title>AscendConfig 四版收口演进：环境变量减法、强类型子配置加法与进程隔离边界</title>
+  <desc>Proportional bar charts contrasting envs.py shrinkage (21 to 12 total, 9 to 1 prefixed) against Pydantic sub-config expansion (8 to 12 to 14+runtime), plus compile cache hash and per-process singleton boundaries.</desc>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 / main 的 AscendConfig 严格校验与原子发布流</text>
-  <text x="16" y="48" font-size="13.5" fill="#66716d">告别旧版逐键 .get() 静默忽略：先预处理兼容键，再由 Pydantic 拦截拼写与类型错误，最后发布进程单例</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">配置演进全景：环境变量持续收口，强类型子配置统一接管</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">把零散环境变量迁回 --additional-config 强类型 schema，拼错键名在构造期即可拦截</text>
 
-  <!-- 4 horizontal pipeline boxes -->
-  <rect x="16" y="64" width="196" height="176" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="28" y="90" font-size="14.5" font-weight="700" fill="#17211f">1. 工厂预处理</text>
-  <text x="28" y="114" font-size="13.5" fill="#4d5652">init_ascend_config</text>
-  <text x="28" y="138" font-size="13.5" fill="#4d5652">• 剥离 5 个旧调度键</text>
-  <text x="28" y="160" font-size="13.5" fill="#4d5652">  （main 删分块后 4 个）</text>
-  <text x="28" y="184" font-size="13.5" fill="#4d5652">• 装有 vllm_omni 时</text>
-  <text x="28" y="206" font-size="13.5" fill="#4d5652">  未知顶层键告警过滤</text>
+  <!-- Left Chart: envs.py shrinkage (x=16..434) -->
+  <text x="16" y="82" font-size="15" font-weight="700" fill="#3a4f93">左：envs.py 环境变量条数收口（总条数 / 带前缀条数）</text>
 
-  <path d="M214 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Scale bar rows: max 21 -> width 273 (13px per var) -->
+  <text x="16" y="120" font-size="13.5" font-weight="700" fill="#4d5652">v0.23.0</text>
+  <rect x="100" y="102" width="273" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="100" y="102" width="117" height="24" rx="4" fill="#4c65b6"/>
+  <text x="158" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">9 前缀</text>
+  <text x="382" y="119" font-size="13.5" font-weight="700" fill="#3a4f93">21 条</text>
 
-  <rect x="240" y="64" width="196" height="176" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="252" y="90" font-size="14.5" font-weight="700" fill="#8f3229">2. Pydantic 严检</text>
-  <text x="252" y="114" font-size="13.5" fill="#4d5652">extra="forbid"</text>
-  <text x="252" y="138" font-size="13.5" fill="#4d5652">• 拼错键名直接报错</text>
-  <text x="252" y="162" font-size="13.5" fill="#4d5652">• 类型与范围即刻拦截</text>
-  <text x="252" y="186" font-size="13.5" fill="#4d5652">• 拆 12 组子配置</text>
-  <text x="252" y="210" font-size="13.5" fill="#8f3229" font-weight="600">（main 扩至 14 组）</text>
+  <text x="16" y="162" font-size="13.5" font-weight="700" fill="#4d5652">v0.26rc</text>
+  <rect x="100" y="144" width="260" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="100" y="144" width="104" height="24" rx="4" fill="#4c65b6"/>
+  <text x="152" y="161" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">8 前缀</text>
+  <text x="369" y="161" font-size="13.5" font-weight="700" fill="#3a4f93">20 条</text>
 
-  <path d="M438 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="16" y="204" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0</text>
+  <rect x="100" y="186" width="182" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="100" y="186" width="54" height="24" rx="4" fill="#087f73"/>
+  <text x="127" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">3</text>
+  <text x="291" y="203" font-size="13.5" font-weight="700" fill="#065f56">14 条（主基线）</text>
 
-  <rect x="464" y="64" width="196" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="476" y="90" font-size="14.5" font-weight="700" fill="#936300">3. 派生与组合校验</text>
-  <text x="476" y="114" font-size="13.5" fill="#4d5652">derive_and_validate</text>
-  <text x="476" y="138" font-size="13.5" fill="#4d5652">• 合并 FLASHCOMM1</text>
-  <text x="476" y="160" font-size="13.5" fill="#4d5652">  环境变量（逻辑或）</text>
-  <text x="476" y="184" font-size="13.5" fill="#4d5652">• 串联 RL / 细粒度 TP</text>
-  <text x="476" y="208" font-size="13.5" fill="#4d5652">  与 Xlite 能力校验</text>
+  <text x="16" y="246" font-size="13.5" font-weight="700" fill="#7a3a6a">main</text>
+  <rect x="100" y="228" width="156" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <rect x="100" y="228" width="28" height="24" rx="4" fill="#9a4b86"/>
+  <text x="114" y="245" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="265" y="245" font-size="13.5" font-weight="700" fill="#7a3a6a">12 条（仅 1 前缀）</text>
 
-  <path d="M662 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="16" y="278" font-size="13.5" fill="#66716d">注：表外仍保留 DYNAMIC_EPLB 等极早期直读变量</text>
 
-  <rect x="688" y="64" width="196" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="700" y="90" font-size="14.5" font-weight="700" fill="#065f56">4. 原子发布单例</text>
-  <text x="700" y="114" font-size="13.5" fill="#4d5652">_ASCEND_CONFIG</text>
-  <text x="700" y="138" font-size="13.5" fill="#4d5652">• 全部通过才写缓存</text>
-  <text x="700" y="162" font-size="13.5" fill="#4d5652">• clear_enable_sp()</text>
-  <text x="700" y="186" font-size="13.5" fill="#4d5652">• 失败保留旧单例</text>
-  <text x="700" y="210" font-size="13.5" fill="#065f56" font-weight="600">→ 仅限当前进程有效</text>
+  <!-- Vertical Divider -->
+  <line x1="452" y1="68" x2="452" y2="288" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
-  <!-- Bottom two cards -->
-  <rect x="16" y="260" width="424" height="170" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="32" y="286" font-size="14.5" font-weight="700" fill="#3a4f93">环境变量收口：从 9 对兼容回退到字段统一</text>
-  <text x="32" y="312" font-size="13.5" fill="#4d5652">• 已从 envs.py 退役：ENABLE_NZ / ENABLE_MLAPO /</text>
-  <text x="32" y="334" font-size="13.5" fill="#4d5652">  FUSED_MC2 / MSMONITOR_USE_DAEMON 等旧变量</text>
-  <text x="32" y="358" font-size="13.5" fill="#4d5652">• 唯一留存兜底：VLLM_ASCEND_ENABLE_FLASHCOMM1</text>
-  <text x="32" y="382" font-size="13.5" fill="#3a4f93" font-weight="600">  与 JSON 做逻辑或（写 false 盖不掉环境真值）</text>
-  <text x="32" y="408" font-size="13.5" fill="#4d5652">• envs 表条数：v0.23(21) → v0.30(14) → main(12)</text>
+  <!-- Right Chart: Sub-config expansion (x=470..884) -->
+  <text x="470" y="82" font-size="15" font-weight="700" fill="#936300">右：强类型子配置组数扩张与未知键策略</text>
 
-  <rect x="460" y="260" width="424" height="170" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="476" y="286" font-size="14.5" font-weight="700" fill="#7a3a6a">旧版（v0.23 / v0.26）vs v0.30.0 / main 排障差异</text>
-  <text x="476" y="312" font-size="13.5" fill="#4d5652">• 拼错键名：旧版多静默走默认（EPLB 除外），</text>
-  <text x="476" y="334" font-size="13.5" fill="#4d5652">  v0.30.0 起构造即报 ValidationError</text>
-  <text x="476" y="358" font-size="13.5" fill="#4d5652">• 编译缓存：非空 JSON 整段算进 VllmConfig hash</text>
-  <text x="476" y="382" font-size="13.5" fill="#4d5652">• 未初始化错：取配置查缓存非空与属性完整</text>
-  <text x="476" y="408" font-size="13.5" fill="#7a3a6a" font-weight="600">→ 写对值 ≠ 已生效，仍须核对平台改写与消费者</text>
+  <!-- Scale: max 15 -> width 270 (18px per group) -->
+  <text x="470" y="120" font-size="13.5" font-weight="700" fill="#4d5652">v0.23.0</text>
+  <rect x="554" y="102" width="144" height="24" rx="4" fill="#ece9df" stroke="#66716d" stroke-width="1.2"/>
+  <text x="626" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">8 组手写 .get()</text>
+  <text x="708" y="119" font-size="13.5" fill="#8f3229">多静默忽略</text>
+
+  <text x="470" y="162" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0</text>
+  <rect x="554" y="144" width="216" height="24" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="662" y="161" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">12 组 Pydantic</text>
+  <text x="778" y="161" font-size="13.5" font-weight="700" fill="#065f56">extra="forbid"</text>
+
+  <text x="470" y="204" font-size="13.5" font-weight="700" fill="#7a3a6a">main</text>
+  <rect x="554" y="186" width="252" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="680" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">14 组 + runtime_config</text>
+  <text x="814" y="203" font-size="13.5" font-weight="700" fill="#7a3a6a">15 项</text>
+
+  <rect x="470" y="226" width="414" height="54" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="484" y="249" font-size="13.5" font-weight="700" fill="#8f3229">唯一宽容例外：检测到 vllm_omni 时</text>
+  <text x="484" y="271" font-size="13.5" fill="#4d5652">未知顶层键先打告警再过滤（子配置内错键照样报错）</text>
+
+  <!-- Bottom Strip: 3 Engineering Guardrails -->
+  <line x1="16" y1="302" x2="884" y2="302" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <rect x="16" y="318" width="276" height="88" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="344" font-size="14" font-weight="700" fill="#936300">① 编译缓存 Hash 联动</text>
+  <text x="30" y="369" font-size="13.5" fill="#4d5652">非空 JSON 整段纳入配置 hash</text>
+  <text x="30" y="393" font-size="13.5" fill="#4d5652">改任一键都可能未命中旧编译缓存</text>
+
+  <rect x="312" y="318" width="276" height="88" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="326" y="344" font-size="14" font-weight="700" fill="#3a4f93">② 进程内单例与重启生效</text>
+  <text x="326" y="369" font-size="13.5" fill="#4d5652">_ASCEND_CONFIG 构造完即定型</text>
+  <text x="326" y="393" font-size="13.5" fill="#4d5652">终端重新 export 不热更运行服务</text>
+
+  <rect x="608" y="318" width="276" height="88" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="622" y="344" font-size="14" font-weight="700" fill="#065f56">③ 取配置未初始化报错</text>
+  <text x="622" y="369" font-size="13.5" fill="#4d5652">缓存为空或缺守卫属性即抛错</text>
+  <text x="622" y="393" font-size="13.5" fill="#4d5652">说明调用时机不对，非 JSON 错</text>
 </svg>

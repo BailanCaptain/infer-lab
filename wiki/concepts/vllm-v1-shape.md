@@ -189,85 +189,61 @@ file: vllm-v1-shape-loop
 
 ## 两道边界上，每一圈交接什么？
 
-把上面三类角色的职责与每一步跨线流动的数据摊开来看，整个 V1 架构就是两道清晰的消息契约——「重权重与 KV 张量留卡不动，轻账本与差量编号跨线流转」：
+把三类角色的跨线载荷与三种执行拓扑并排对照，整个 V1 架构就是「重权重与 KV 张量留卡不动，轻账本与差量编号跨线流转」：
 
 ```wiki-diagram
 file: vllm-v1-shape-fig-separation
 ```
 
-**第一道：前端和 EngineCore 之间。**
+| 边界与方向 | 消息类型 | 携带载荷（纯文本主干） | 关键边界规则 |
+|---|---|---|---|
+| **边界 1 下行**（前端 → EngineCore） | `EngineCoreRequest` | 请求 ID、提示词 token 编号、采样参数、可选指定 DP 组 | 多数不指定 DP 组，由前端按负载打分选组（见 [Data parallel](data-parallel.md)）；**两边都不传文字** |
+| **边界 1 上行**（EngineCore → 前端） | `EngineCoreOutputs` | 每条请求本步的新 token 编号，结束时附结束原因 | 分词、增量反分词与跨 token 停止串匹配只在前端做；EngineCore 另载分词器仅用于编译结构化输出语法表 |
+| **边界 2 下行**（EngineCore → Worker） | `SchedulerOutput` | **首步 `scheduled_new_reqs`**：完整资料；**续步 `scheduled_cached_reqs`**：仅发新借块号与已算进度；**收尾 `finished_req_ids`**：待删编号；另含本步 token 计数与 **`scheduled_spec_decode_tokens`**（同步投机传上步取回的草稿 token 编号，异步调度可传占位、实际候选留在 Worker） | 此线同时是**责任边界**——过线后只定「算哪些 token、写哪些块」，卡上排布与通信归 Worker（`vllm-ascend` 主要接在线下，见[五个扩展点](vllm-ascend-overview.md#两边各管什么五个扩展点)） |
+| **边界 2 上行**（Worker → EngineCore） | `ModelRunnerOutput` | 本步请求列表、批次行映射、每条请求新采样出的 token 编号 | 投机解码下每条请求单步可交回多个 token；常规单组仅由 TP0（output rank）交回 |
 
-- 往下是一条**请求消息**：请求编号、提示词的 token 编号、采样参数（温度、最多生成几个 token 等），以及指定的 DP 组（多数时候不指定，由前端按负载挑，见 [Data parallel](data-parallel.md)）。
-- 往上是每条请求这一步的**新 token 编号**，结束时再带上结束原因。
-- 两边都不传文字。把文字切成编号、把编号拼回文字只在前端做；停止字符串（stop string）可能横跨好几个 token，也在前端的增量反分词器里匹配。EngineCore 进程里也会加载一份分词器，但只拿来编译结构化输出的语法表，不处理请求的正文。
+**夹在中间的 Executor 只传话，不排调度。** 它按方法名驱动 Worker 执行起设备、加载模型、报规格、查显存、建缓存、预热、前向、采样与取回草稿 token 等调用。正常生成一步主要调用前向与采样（同步投机另增取回草稿，空步与池化走各自返回分支）。普通 Ascend 配置下默认三选一（完整规则见[executor 决定 Worker 是不是独立进程](engine-processes.md#executor-决定-worker-是不是独立进程)）：
 
-**第二道：EngineCore 和 Worker 之间。**
-
-- 往下是**调度计划**（SchedulerOutput）。里面有：第一次被调度的请求的完整资料；已在跑的请求只有变化量（新借的块号、已算到哪里）；每条请求这一步算几个 token 和总数；候选 token 字段（同步时传候选编号，异步时可传占位，实际候选留在 Worker）；上一步以来结束的请求编号。
-
-- 往上是**执行结果**（ModelRunnerOutput）：这一步有哪些请求、每条请求在批里排第几行、每条请求新得到的 token 编号。开了投机解码时，一条请求一步可能拿到好几个 token。
-
-这道边界同时是**责任边界**：计划一过线，「这一步算哪些 token、写进哪些块」就定了；Worker 那边只管「在卡上怎么算」：张量怎么摆、用哪个注意力后端、卡之间怎么通信。vllm-ascend 主要就接在这条线的下方，见[两边各管什么](vllm-ascend-overview.md#两边各管什么五个扩展点)。
-
-**夹在中间的 Executor 只传话。** 它按方法名让每个 Worker 执行 Worker 上的某个方法，并不限于一张固定清单。常用的有：起设备、加载模型、报告缓存规格、查剩余显存、按配置建缓存、预热、执行前向、采样、取回草稿 token；DP 部署里，本组这一步没有请求、另一组还在跑时，改发「跑空批次」（dummy batch），让本组的卡陪着进 MoE 层的通信，见 [Data parallel](data-parallel.md)。本部署正常生成一步主要用执行前向和采样；同步投机路径还要取回草稿，空步与池化等另走相应返回分支。在普通 Ascend 配置中，用哪种 Executor 由配置决定：
-
-- 多卡时默认用**多进程执行器**：每张卡起一个 Worker 进程，一次调用只写进广播队列一次，所有 Worker 读到同一条消息；
-- 只有一张卡时默认用**单进程执行器**：Worker 直接住在 EngineCore 进程里，边界还在，只是交接变成了进程内的函数调用；
-- 也可以选 Ray 来管 Worker。
-
-各种部署下一共有几个进程、Worker 是不是独立进程，见[executor 决定 Worker 是不是独立进程](engine-processes.md#executor-决定-worker-是不是独立进程)。
+- **单卡 `TP=1`**：默认单进程 `UniprocExecutor`，Worker 住在 EngineCore 进程内，边界变为进程内函数调用；
+- **多卡**：默认多进程 `MultiprocExecutor`，每卡一进程，计划写进共享内存广播队列 1 次供全体同读；
+- **Ray 集群**：也可由 Ray 托管 Worker。在 DP+MoE 部署里，若本组本步无请求而他组在跑，Executor 改发 `dummy_batch` 让本组陪着进出 MoE 通信（见 [Data parallel](data-parallel.md)）。
 
 ## 哪些东西启动时建好，哪些每一圈都在变？
 
-本页纯文本路径每步主要传请求标识、计数、参数和块号，因为重的东西在请求到来之前就建好了。启动顺序是：
+纯文本每步之所以只传轻账本，是因为重资源在接请求前已全部就位。启动按四步收敛：先建 Executor 拉起 Worker 装本卡权重 → 收集每层缓存规格与试跑后剩余显存 → 按全局最小块数一次切出 KV 张量池并预热录图 → 最后才建 Scheduler 接管块号池（逐站细节见 [NPUWorker 启动](npu-worker-lifecycle.md)，双机切块数见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）。
 
-1. EngineCore 先建 Executor；Executor 拉起 Worker，每个 Worker 起设备、建自己的 NPUModelRunner、把本卡那一份权重装上卡。
-2. EngineCore 问每个 Worker 两件事：模型每一层要在 KV cache 里存什么（**缓存规格**），以及装完权重、用假数据试跑一遍前向以后还剩多少显存。
-3. EngineCore 按规格和剩余显存算出能切多少块、怎样分组，再让 Worker 按这个配置在卡上建好 KV cache 张量，然后预热，把几种固定批量的前向录成图。
-4. 最后才建 Scheduler；它手里的块池，就是上一步切出来的那些块号。
-
-Worker 在这几步里各做什么、哪一步失败会怎样，见 [NPUWorker 启动](npu-worker-lifecycle.md)；双机上具体切出多少块，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
-
-缓存规格由模型的每一层自己报。以 GLM 的稀疏 MLA 层为例，实际推理走的是昇腾包里的注意力实现：这一层自己持有本层的 KV cache 张量，并向引擎报出「一个块装多少个位置、每个位置存多宽的向量」。引擎把所有层的规格收齐，才知道一个块号要占多少显存。
-
-服务就绪以后，每一圈改的只有三样：请求的进度、这一步的批次输入、注意力要读写的历史状态。权重一直复用；一条请求结束，只是把它的块号还回池子，别的请求照常跑；新请求到来只改变下一份计划，不需要重新加载模型。
-
-这也说明 KV cache 的管理为什么横跨两边：EngineCore 决定哪些块号分给哪条请求，它手里只有整数；Worker 手里才有块号背后的张量，它按 [block table](block-table.md) 把「第几个位置」换算成「写进哪一块的哪一格」。只看一边，说不清一个位置怎样找到自己的历史。
+缓存规格由每一层模型自己上报。以 GLM 稀疏 MLA 为例，昇腾注意力层自己持有本层 KV 张量，并向引擎报出块长与每位置向量宽度，引擎收齐后算出单块字节数。服务就绪后，每圈只改请求进度、批次输入与历史状态；权重常驻复用，请求结束只归还块号，新请求无需重装模型。因此 KV cache 天然横跨两边——EngineCore 管整数块号，Worker 靠 [block table](block-table.md) 把位置换算为卡上槽位。
 
 ## vllm-ascend 接在这个形状的哪几处？
 
-循环的形状是上游 vLLM 的，vllm-ascend 没有另造一套，而是换掉 Worker 一侧的实现，再在少数地方改写引擎侧的函数：
-
-- 启动时，昇腾的平台对象把 Worker 类定成 NPUWorker；
-- NPUWorker 起设备时建 NPUModelRunner。它继承上游的 GPU 版 model runner，只改需要不同的部分，比如更新缓存的请求资料时，先处理昇腾自己的特例，再调上游那一份；
-- GLM 的模型代码在昇腾包里，注意力、MoE 这些层的实现也在那里。
-
-因此**进程边界不等于两个仓库的分界**：EngineCore 进程里也跑着昇腾的代码（全局 patch 换掉的调度相关函数、决定块怎么切的函数），Worker 里也大量复用上游的代码。五个扩展点各管什么，见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md)；补丁为什么要在每个进程各打一遍，见[补丁和配置为什么要每个进程各做一遍](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
+vllm-ascend 沿用上游循环，通过替换 Worker 一侧实现并局部改写引擎侧函数接入：平台对象将 Worker 定为 `NPUWorker`；`NPUWorker` 创建继承自上游的 `NPUModelRunner`（只覆写昇腾特例，其余转调上游）；GLM 模型与注意力/MoE 层则完整落在昇腾包内。**进程边界不等于两仓分界**：EngineCore 里也跑着昇腾全局 patch 改过的调度与块分组函数，Worker 里也大量复用上游逻辑（见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md) 与[逐进程打补丁](engine-processes.md#补丁和配置为什么要每个进程各做一遍)）。
 
 ## 标准主干走读：Qwen3-8B 的三角色极简主循环
 
-在 `v0.30.0` 标准主基线下，用单卡（`TP=1`）或机内多卡（如 `TP=2/4`）部署 **Qwen3-8B** 时，V1 引擎循环最干净：
+在 `v0.30.0` 主基线下，单卡（`TP=1`）或机内多卡（`TP=2/4`）部署 **Qwen3-8B** 时，V1 循环最干净：
 
-- **角色与进程形态**：单卡 `TP=1` 时默认用 `UniprocExecutor`（API Server 进程 + EngineCore 进程内直调 `NPUWorker`，共 2 个进程）。多卡 `TP=N` 时切到 `MultiprocExecutor`（1 个 API Server + 1 个 EngineCore + $N$ 个独立 Worker 进程），**没有跨机 DP 协调器，也不存在跨 DP 组的空批次陪跑**。
-- **一步闭环**：API Server 分词入队后，EngineCore 的 Scheduler 从单一 `128-tok` `BlockPool` 借块并排定计划。Executor 依次下发 `execute_model`（全 36 层 GQA 共用 1 份 `AscendMetadata`）与 `sample_tokens`（每条请求产出 1 个 `next_token_id`，默认无 MTP 草拟），最终仅 `output_rank` 回传结果。Scheduler 更新进度与判停，API Server 流式推给客户端；无请求时，EngineCore 直接阻塞在输入队列上等待。
+- **角色与进程形态**：单卡 `TP=1` 默认用 `UniprocExecutor`（API Server + 内置 Worker 的 EngineCore，共 2 进程）；多卡 `TP=N` 切 `MultiprocExecutor`（1 前端 + 1 EngineCore + $N$ 独立 Worker），**无 DP 协调器，也无跨 DP 空批次陪跑**。
+- **一步闭环**：API Server 分词入队后，Scheduler 从单一 `128-tok` `BlockPool` 借块排步。Executor 顺次下发 `execute_model`（全 36 层 GQA 共用 1 份 `AscendMetadata`）与 `sample_tokens`（每条 1 个 `next_token_id`，无 MTP 草拟），仅 `output_rank` 回传结果。Scheduler 更新进度与判停，API Server 流式推给客户端；空闲时 EngineCore 直接阻塞等新消息。
 
-只有扩大到跨机 DP + EP 的 MoE 旗舰部署时，才会叠出多 EngineCore、DP 协调器、空批次陪跑与 MTP 候选验证——下面用历史 GLM 双机 20 进程全案作对照。
+扩大到跨机 DP + EP 的 MoE 旗舰部署后，才叠出多 EngineCore、DP 协调器、空批次陪跑与 MTP 验证——下面用历史 GLM 双机 20 进程全案对照。
 
 ## 放到 GLM 双机：R1 的一个 token 绕一圈
 
-从这里转入例外 B 历史绑定算例（[部署前提](glm-5-3-flash-two-node.md#部署前提)）：两台机器各 8 张卡，每台机器是一个 DP 组，组内 TP8、16 卡 EP16；在[双机部署的权重算例](glm-5-3-flash-two-node.md#每张卡上放了什么)中，所列主要语言权重每卡约 `20.58 GiB`（视觉塔、MTP 旋转矩阵与量化辅助张量另计），常驻卡上不动。落到进程角色上：node0 有 1 个前端（API server）与 1 个 DP 协调器，每台机器各有 1 个 EngineCore（管理本机 8 个 Worker），16 张卡各有 1 个 Worker，共 **20 个进程**（完整清单见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。
+从这里转入例外 B 历史绑定算例（[部署前提](glm-5-3-flash-two-node.md#部署前提)）：两台机器各 8 卡，每台是一个 DP 组（组内 TP8、跨机 EP16）；所列主要语言权重每卡约 `20.58 GiB` 常驻 HBM（视觉塔、MTP 旋转矩阵与量化辅助张量另计，见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）。全集群共 **20 个角色进程**（node0：1 API server + 1 DP 协调器 + 1 EngineCore + 8 Worker；node1：1 EngineCore + 8 Worker，完整清单见[20 个进程账](engine-processes.md#双机部署里一共有哪些进程)）。
 
-R1 是主线的示例请求，提示词送进引擎时是 4 个 token。这是为演示取的设定，真实请求套上聊天模板要长得多，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)。沿着循环走一圈：
+示例请求 R1 取教学设定的 4 个提示词 token（真实请求套模板更长，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），沿主循环绕一圈的七步如下：
 
-1. **前端。** node0 的 API server 把 R1 变成 4 个 token 编号，连同采样参数包成一条请求消息。R1 到来时两组都空，打分都是 0，R1 进了 DP0，也就是 node0 的 EngineCore，见[第 1 站](one-request.md#第-1-站-入口从-http-到-node0-的引擎)。
-2. **排计划。** DP0 的 Scheduler 给出第一步计划：R1 算 4 个 token，新借一小串块号，没有候选 token。R1 是第一次被调度，计划里带着它的完整资料。块号按缓存组借，KDA 的递推状态和注意力历史借法不同；借几块、怎么算，见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)。
-3. **发给 8 个 Worker。** DP0 的 Executor 把这份计划写进广播队列一次，node0 的 8 个 Worker 读到同样的内容，各自造出同样形状的输入：4 个 token 编号、位置 0 到 3，进模型后是 4 行、每行 4096 维的隐藏表示。8 张卡的差别只在各自持有的那份权重：每卡 8 个 KDA 头、8 个 MLA 头、18 个路由专家，见[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)。
-4. **node1 陪着跑。** DP1 此刻一条请求都没有，但 MoE 层的专家分在 16 张卡上，node0 的 token 要发到 node1 的卡上去算，所以 DP1 的 8 个 Worker 每一步都跑一个空批次，一起进出通信，见 [Data parallel](data-parallel.md)。
-5. **前向和采样。** 第一次调用做完前向；第二次调用采样出 y₀，草稿层再猜 3 个候选。异步调度下，候选留在 Worker 里供下一步用，只有 node0 的 0 号 Worker 把「R1 得到 y₀」交回 EngineCore，见[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。
-6. **更新进度。** DP0 的 Scheduler 把 y₀ 追加到 R1 上。R1 没结束，下一步计划就是 R1 算 1 + 3 = 4 个 token：y₀ 和 3 个候选一起验证。
-7. **回到前端。** y₀ 的编号回到 API server，增量反分词，经流式响应推给客户端。一个 decode 步最多交回 4 个 token（1 个确定的，加最多 3 个被接受的候选）；前端及时取走时，一个片段可以带出这一步的增量。前端跟不上时会合并多步，因此片段没有 4 个 token 的上限，见[流式输出的合并](streaming-output.md#前端跟不上时几步的文字并成一段)。
+| 步序与角色 | R1 在本步的流转动作 | 延伸出处 |
+|---|---|---|
+| **1. 前端**（node0 API server） | 切出 4 个 token 编号并打包采样参数；两组皆空、打分均为 0，R1 落入 DP0 | [第 1 站](one-request.md#第-1-站-入口从-http-到-node0-的引擎) |
+| **2. 排计划**（DP0 Scheduler） | 首次调度带完整资料：算 4 个 token、按 5 缓存组新借块号、无候选 token | [R1 借还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块) |
+| **3. 广播 8 卡**（DP0 Executor） | 计划写共享内存 1 次，node0 8 个 Worker 同读并拼出 `4 × 4096` 隐藏输入；各卡差别在权重分片（每卡 8 KDA 头、8 MLA 头、18 路由专家） | [第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker) |
+| **4. node1 陪跑**（DP1 8 卡） | DP1 零请求，但 288 专家分在 16 卡，DP1 每步跑 `dummy_batch` 一起进出 EP 通信 | [Data parallel](data-parallel.md) |
+| **5. 前向与采样**（Worker） | 第 1 次调用前向，第 2 次采样出 `y₀` 并由 MTP 猜 3 个候选（异步下候选留 Worker）；仅 node0 的 0 号 Worker 交回 `y₀` | [第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个) |
+| **6. 更新进度**（DP0 Scheduler） | 追加 `y₀`；未结束则下一步排 `1 + 3 = 4` 个 token 一起验证 | [一条请求](one-request.md) |
+| **7. 回到前端**（node0 API server） | 增量反分词并流式推送；单 decode 步最多交回 4 token（1 确定 + 最多 3 接受），前端跟不上时会合并多步故片段无 4 token 上限 | [流式合并](streaming-output.md#前端跟不上时几步的文字并成一段) |
 
-R1 结束时，它手里的块号一次还回 DP0 的池子，还多少块见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)。R1 的编号进结束名单，随 DP0 的下一份计划通知 node0 的 8 个 Worker 删掉缓存；DP0 的运行请求数减 1，会影响下一条请求被派到哪一组。
+R1 结束时，手里块号一次还回 DP0 块池（见 [R1 借还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)），编号进 `finished_req_ids` 随下份计划通知 node0 8 卡删缓存；DP0 运行请求数减 1 并影响下条请求选组。
 
 绕完这一圈，R1 在三类角色手里的样子：
 

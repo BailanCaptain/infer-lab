@@ -1,0 +1,10 @@
+mode: native-svg
+id: sampling-adv-fig-topk-topp-renorm
+caption: >-
+  Top-k + Top-p 联合截断（T=1, k=2, p=0.7，6 词示意分数 [3, 2, 1, 0, -1, -2]）双轨对齐对比：两条轨道共享同一 [0, 1] 累积概率标尺与 x 坐标完全对齐的 0.70 门槛线——上游 PyTorch 先按 top_k=2 屏蔽再重算 Softmax，使「猫」升至 0.731 独自过线（只留 1 词）；昇腾普通排序 _apply_top_k_top_p_pytorch 沿用过滤前 Softmax，使「猫」停在 0.634 未过线，必须把「你」一并纳入（留 2 词，累计 0.867）。底部补充 min_p 相对峰值门槛（非贪心且有效 min_p > 1e-5 时与投机解码互斥）与 top_k 同分并列保留规则。
+size: [900, 490]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/sample/ops/topk_topp_sampler.py#L352-L416'
+    symbols: ['apply_top_k_top_p_pytorch', 'apply_top_k_only']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/sample/sampler.py#L114-L162'
+    symbols: ['_apply_top_k_top_p_pytorch', '_apply_top_k_top_p_torch_npu']

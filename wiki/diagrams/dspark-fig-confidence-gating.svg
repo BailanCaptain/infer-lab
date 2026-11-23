@@ -1,74 +1,130 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="DSpark 置信度累乘预算门控、耗时盈亏对比与昇腾路径对照图" font-family="var(--font-sans)">
-  <title>DSpark 动态置信度累乘预算门控与昇腾变长验证路径区分</title>
-  <desc>上半区展示两条请求 A 与 B 按连续前缀存活概率累乘排序分配 3 个验证名额（选 A1、A2、B1），并对比少验（4.22/10ms=422 tok/s）与全验（4.868/20ms=243.4 tok/s，盈亏平衡 11.54ms）；下半区区分半自回归草稿的三大组件，并对照昇腾 MRV1/MRV2 置信变长、按批大小 K 与草稿滑动窗口四类独立路径。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="DSpark 连续存活概率比例条、422 对 243.4 吞吐与 11.54ms 盈亏平衡尺，以及半自回归与草稿滑窗正交轴图" font-family="var(--font-sans)">
+  <title>DSpark 置信度累乘比例条、耗时盈亏标尺与两根正交轴</title>
+  <desc>上半区左图用 [0, 1] 比例条与 0.60 Top-3 截断线展示 A1(0.90)、A2(0.72)、B1(0.60) 胜出；右图用真实比例条对比 422.0 与 243.4 token/s 及 10/11.54/20 ms 耗时盈亏标尺；下半区展示并行主干+Markov head 修正+Confidence head，并区分向前猜多长（按批 K / 逐请求置信）与往回读多长（draft_window_size 2,048 ⊂ 10,000）。</desc>
   <defs>
-    <marker id="dsp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <marker id="dsp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
-    <marker id="dsp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <marker id="dsp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、置信度累乘门控：按连续存活概率分预算，再用“期望输出 ÷ 整轮耗时”拍板</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Zone 1: Proportional Probability Bars (Left) + Throughput & Break-even Ruler (Right) -->
+  <circle cx="26" cy="24" r="12" fill="#087f73"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">连续存活概率 P(k)=∏p_j 按比例排 Top-3，再按「期望输出 ÷ 耗时」拍板</text>
 
-  <rect x="12" y="54" width="468" height="176" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="26" y="78" font-size="14.5" font-weight="700" fill="#065f56">A. 连续存活概率 P(k) = ∏ p_j，给 3 个验证名额（Top-3）</text>
+  <!-- Left Panel: 6 Proportional Horizontal Bars (scale 1.0 = 280px, x=90..370; cutoff 0.60 at x=258) -->
+  <text x="16" y="58" font-size="14" font-weight="700" fill="#065f56">A. 6 个候选的存活概率（Top-3 门槛 0.60）</text>
 
-  <text x="26" y="106" font-size="13.5" font-weight="700" fill="#17211f">请求 A</text>
-  <rect x="86" y="88" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="143" y="109" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A1: 0.90 ✓</text>
-  <rect x="208" y="88" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="265" y="109" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A2: 0.72 ✓</text>
-  <rect x="330" y="88" width="136" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
-  <text x="398" y="109" text-anchor="middle" font-size="13.5" fill="#66716d">A3: 0.36（省）</text>
+  <g font-size="13.5" font-weight="700">
+    <!-- A1: 0.90 -> 252px -->
+    <text x="16" y="88" fill="#065f56">A1</text>
+    <rect x="64" y="70" width="252" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+    <text x="324" y="87" fill="#065f56">0.90 ✓ 选</text>
+    <!-- A2: 0.72 -> 202px -->
+    <text x="16" y="118" fill="#065f56">A2</text>
+    <rect x="64" y="100" width="202" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+    <text x="274" y="117" fill="#065f56">0.72 ✓ 选</text>
+    <!-- B1: 0.60 -> 168px -->
+    <text x="16" y="148" fill="#065f56">B1</text>
+    <rect x="64" y="130" width="168" height="22" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+    <text x="242" y="147" fill="#065f56">0.60 ✓ 选</text>
+    <!-- A3: 0.36 -> 101px -->
+    <text x="16" y="178" fill="#66716d">A3</text>
+    <rect x="64" y="160" width="101" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="3 2"/>
+    <text x="174" y="177" fill="#66716d">0.36（省）</text>
+    <!-- B2: 0.24 -> 67px -->
+    <text x="16" y="208" fill="#66716d">B2</text>
+    <rect x="64" y="190" width="67" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="3 2"/>
+    <text x="140" y="207" fill="#66716d">0.24（省）</text>
+    <!-- B3: 0.048 -> 14px -->
+    <text x="16" y="238" fill="#66716d">B3</text>
+    <rect x="64" y="220" width="14" height="22" rx="2" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="3 2"/>
+    <text x="86" y="237" fill="#66716d">0.048（省）</text>
+  </g>
+  <!-- Top-3 vertical cutoff at 0.60 (x = 64 + 168 = 232) -->
+  <line x1="232" y1="64" x2="232" y2="248" stroke="#c78300" stroke-width="1.8" stroke-dasharray="5 3"/>
+  <text x="16" y="268" font-size="13" fill="#4d5652">累乘单调不增 → 天然成连续前缀（A 验 2、B 验 1，共 5 行）</text>
 
-  <text x="26" y="148" font-size="13.5" font-weight="700" fill="#17211f">请求 B</text>
-  <rect x="86" y="130" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="143" y="151" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">B1: 0.60 ✓</text>
-  <rect x="208" y="130" width="114" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
-  <text x="265" y="151" text-anchor="middle" font-size="13.5" fill="#66716d">B2: 0.24</text>
-  <rect x="330" y="130" width="136" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
-  <text x="398" y="151" text-anchor="middle" font-size="13.5" fill="#66716d">B3: 0.048</text>
+  <!-- Vertical divider -->
+  <line x1="450" y1="48" x2="450" y2="274" stroke="#d8d8cf" stroke-width="1.3"/>
 
-  <text x="26" y="188" font-size="13.5" fill="#17211f">累乘单调不增 → Top-3 天然形成连续前缀（A 验 2、B 验 1）</text>
-  <text x="26" y="212" font-size="13.5" fill="#4d5652">总输入 = 2 基础位置 + 3 候选 = 5 行（主模型决定最终接受）</text>
+  <!-- Right Panel: Proportional Throughput Bars + Break-even Latency Gauge -->
+  <text x="468" y="58" font-size="14" font-weight="700" fill="#936300">B. 期望输出率与耗时盈亏平衡（教学假设）</text>
 
-  <rect x="496" y="54" width="392" height="176" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
-  <text x="510" y="78" font-size="14.5" font-weight="700" fill="#936300">B. 期望输出率对比（教学耗时假设）</text>
-  <rect x="510" y="92" width="364" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="522" y="112" font-size="13.5" font-weight="700" fill="#065f56">少验（5 行，10 ms）：期望 4.22 token</text>
-  <text x="522" y="132" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">4.22 ÷ 0.010 s = 422.0 token/s（更优）</text>
-  <rect x="510" y="146" width="364" height="46" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
-  <text x="522" y="166" font-size="13.5" font-weight="700" fill="#8f3229">全验（8 行，20 ms）：期望 4.868 token</text>
-  <text x="522" y="186" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">4.868 ÷ 0.020 s = 243.4 token/s</text>
-  <text x="510" y="216" font-size="13.5" font-weight="700" fill="#936300">盈亏平衡点：全验须 &lt; 11.54 ms 才反超少验</text>
+  <!-- Throughput bars (scale 500 tok/s = 320px -> 0.64px/tok, x=552..872) -->
+  <text x="468" y="96" font-size="13.5" font-weight="700" fill="#065f56">少验 (5行)</text>
+  <rect x="552" y="76" width="270" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="687" y="95" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">4.22 / 10ms = 422.0 tok/s ✓</text>
 
-  <text x="14" y="264" font-size="16" font-weight="700" fill="#17211f">二、半自回归草稿三组件，以及昇腾侧四类“变长 / 窗口”机制辨析</text>
-  <line x1="12" y1="276" x2="888" y2="276" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="468" y="138" font-size="13.5" font-weight="700" fill="#8f3229">全验 (8行)</text>
+  <rect x="552" y="118" width="156" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="630" y="137" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">243.4 tok/s</text>
+  <text x="716" y="137" font-size="13" fill="#8f3229">(4.868 / 20ms)</text>
 
-  <rect x="12" y="290" width="280" height="152" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="26" y="314" font-size="14.5" font-weight="700" fill="#3a4f93">半自回归草稿三分工</text>
-  <text x="26" y="340" font-size="13.5" fill="#17211f">1. <tspan font-weight="700" fill="#3a4f93">并行主干</tspan>：一次算多位置基础分</text>
-  <text x="26" y="366" font-size="13.5" fill="#17211f">2. <tspan font-weight="700" fill="#936300">Markov head</tspan>：短串行改猜测内容</text>
-  <text x="26" y="392" font-size="13.5" fill="#17211f">3. <tspan font-weight="700" fill="#065f56">Confidence head</tspan>：估接受概率</text>
-  <text x="26" y="422" font-size="13.5" fill="#4d5652">注：异步调度时 CPU 定总预算，</text>
-  <text x="26" y="438" font-size="13.5" fill="#4d5652">设备拿到新置信值后修正逐请求长</text>
+  <!-- Latency Break-even Ruler (0..22 ms, x=468..864 -> 18px/ms; 10ms=648, 11.54ms=676, 20ms=828) -->
+  <text x="468" y="176" font-size="13.5" font-weight="700" fill="#17211f">全验耗时盈亏标尺（固定上述概率）</text>
+  <rect x="468" y="186" width="208" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="572" y="204" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">&lt; 11.54 ms：全验反超</text>
+  <rect x="676" y="186" width="198" height="26" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="775" y="204" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">&gt; 11.54 ms：少验更划算</text>
+  <line x1="676" y1="180" x2="676" y2="230" stroke="#c78300" stroke-width="2"/>
+  <g font-size="13" font-family="var(--font-mono)" fill="#66716d">
+    <text x="648" y="236" text-anchor="end">10ms</text>
+    <text x="676" y="246" text-anchor="middle" font-weight="700" fill="#936300">11.54ms</text>
+    <text x="828" y="236" text-anchor="middle">20ms</text>
+  </g>
+  <text x="468" y="268" font-size="13" fill="#4d5652">全验即使快到 12 ms 仍不如 10 ms 少验，须结合硬件实测曲线</text>
 
-  <rect x="308" y="290" width="284" height="152" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="322" y="314" font-size="14.5" font-weight="700" fill="#936300">Ascend 置信变长（逐请求不同）</text>
-  <text x="322" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700">v0.30.0 MRV1</tspan>：dynamic_spec_config</text>
-  <text x="322" y="364" font-size="13.5" fill="#4d5652">  （dspark 置信头 / dflash 概率代理）</text>
-  <text x="322" y="390" font-size="13.5" fill="#17211f">• <tspan font-weight="700">MRV2 / main</tspan>：统一收敛至</text>
-  <text x="322" y="412" font-size="13.5" font-family="var(--font-mono)" fill="#936300">enable_adaptive_verification</text>
-  <text x="322" y="434" font-size="13.5" fill="#8f3229">  A5 跑 V4.1 DSpark 强制 MRV2</text>
+  <!-- Horizontal Divider -->
+  <line x1="16" y1="286" x2="884" y2="286" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <rect x="608" y="290" width="280" height="152" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="622" y="314" font-size="14.5" font-weight="700" fill="#7a3a6a">勿与另外两根独立轴混淆</text>
-  <text x="622" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#7a3a6a">按批大小选 K</tspan>：整批共用一个 K</text>
-  <text x="622" y="364" font-size="13.5" fill="#4d5652">  不看逐请求置信度（不配 DSpark）</text>
-  <text x="622" y="392" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#3a4f93">草稿滑动窗口</tspan>：限制草稿回读</text>
-  <text x="622" y="414" font-size="13.5" fill="#4d5652">  历史长度（写槽位保持完整）</text>
-  <text x="622" y="434" font-size="13.5" fill="#4d5652">  仅 MRV1 支持，MTP 强制忽略</text>
+  <!-- Zone 2: Semi-AR Draft Flow (Left) + Two Orthogonal Axes (Right) -->
+  <circle cx="26" cy="312" r="12" fill="#4c65b6"/>
+  <text x="26" y="316.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="318" font-size="16" font-weight="700" fill="#17211f">半自回归草稿机制，以及「向前猜几个」与「往回读多长」两根正交轴</text>
+
+  <!-- Left: Semi-AR pipeline -->
+  <rect x="16" y="336" width="128" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="80" y="362" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">并行草稿主干</text>
+  <text x="80" y="384" text-anchor="middle" font-size="13" fill="#4d5652">同算多格基础分</text>
+
+  <line x1="144" y1="367" x2="168" y2="367" stroke="#c78300" stroke-width="1.8" marker-end="url(#dsp-arr-a)"/>
+
+  <rect x="172" y="336" width="152" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="248" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Markov head 修正</text>
+  <text x="248" y="382" text-anchor="middle" font-size="13" fill="#936300">坐 3.4 &gt; 跑 3.3（串行）</text>
+
+  <line x1="324" y1="367" x2="348" y2="367" stroke="#087f73" stroke-width="1.8" marker-end="url(#dsp-arr-t)"/>
+
+  <rect x="352" y="336" width="124" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="414" y="360" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Confidence head</text>
+  <text x="414" y="382" text-anchor="middle" font-size="13" fill="#065f56">估 p_j 分验证预算</text>
+
+  <text x="16" y="424" font-size="13.5" fill="#4d5652">• Ascend MRV1：<tspan font-family="var(--font-mono)" fill="#936300">dynamic_spec_config</tspan>（dspark / dflash）</text>
+  <text x="16" y="448" font-size="13.5" fill="#4d5652">• MRV2 / main：统一收敛至 <tspan font-family="var(--font-mono)" fill="#936300">enable_adaptive_verification</tspan></text>
+  <text x="16" y="472" font-size="13.5" fill="#8f3229">• A5 跑 DeepSeek V4.1 DSpark 强制 MRV2（非按批统一 K）</text>
+
+  <!-- Vertical divider -->
+  <line x1="494" y1="330" x2="494" y2="482" stroke="#d8d8cf" stroke-width="1.3"/>
+
+  <!-- Right: Draft KV Sliding Window Visual (Backward read 2048 vs 10000 history + Forward guess 5) -->
+  <text x="512" y="352" font-size="14" font-weight="700" fill="#7a3a6a">正交轴：草稿 KV 滑动窗口（只限回读，不改写槽位）</text>
+
+  <!-- History strip 10,000 tokens + 5 draft tokens -->
+  <rect x="512" y="366" width="190" height="36" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="607" y="389" text-anchor="middle" font-size="13" fill="#66716d">早期历史（草稿跳过读）</text>
+  <rect x="702" y="366" width="108" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="756" y="389" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">读窗 2,048</text>
+  <rect x="814" y="366" width="70" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="849" y="389" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">猜 5 词</text>
+
+  <!-- Full bracket underneath -->
+  <path d="M 512 408 L 512 416 L 810 416 L 810 408" fill="none" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="661" y="434" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">主模型验证与写槽位仍按完整 10,000 历史布局</text>
+
+  <text x="512" y="460" font-size="13" fill="#4d5652">draft_window_size 仅 MRV1（eagle3/dflash/dspark）支持；</text>
+  <text x="512" y="480" font-size="13" fill="#8f3229">MTP 强制忽略；起点向块边界下取整（可多读 ≤ 1 块−1）</text>
 </svg>

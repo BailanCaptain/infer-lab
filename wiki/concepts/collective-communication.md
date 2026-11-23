@@ -80,6 +80,14 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
   - >-
     raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L935-L950
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L705-L933
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L453-L465'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/prepare_finalize.py#L552-L569'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -94,12 +102,14 @@ relations:
     kind: builds-on
     note: 承接逻辑 Device 与机内 HCCS/UB、跨机 RoCE 带宽边界，解释高频同步为何锁在机内通信域
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-23'
 rawSources:
   - >-
     raw/sha256-0cf9c30845c054dfd27aba2a44b05dac82bc0225367eb1ff61d8f59c959eec1e.md
   - >-
     raw/sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md
+  - >-
+    raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md
 ---
 
 **集合通信是一组分布式参与者（`rank`）按共同约定交换张量的操作：它明确规定每张卡拿出什么数据，以及经过拼接、分发或逐元素归约后每张卡手里得到什么结果。**
@@ -316,6 +326,23 @@ file: coll-comm-fig-hccs-vs-roce
 
 因此，每层执行 2 次阻塞 `All-Reduce`（外加词表 `All-Gather`）的 **TP**，以及拆为 `Reduce-Scatter + All-Gather` 的 **SP**，应优先锁在单机 `HCCS / Unified Bus` 或超节点高速域内。跨机 `RoCE` 更适合承载只在层段边界异步交接激活的 **PP**（`isend/irecv`）、请求级独立的 **DP**（仅做几字节 CPU 状态归约），或单机装不下全部专家时的跨机 **EP**。
 
+### Ascend 910B3 真机标尺：TP=4 HCCS All-Reduce 微基准与理论峰值落差
+
+把前面的 ring 公式与标称 `392 GB/s` 理论规格落到真实硬件上，能立刻看清“理论端口峰值”与“单次集合操作有效带宽”之间的差距。在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，完整证据见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）的独立 `TP=4` HCCL 微基准中，构造行并行矩阵乘 `[2048, 1024] × [4096, 1024]ᵀ`（`BF16` 输出 `[2048, 4096]`，单次逻辑载荷 $M = 16\text{ MiB}$）紧接 `hcom_allReduce_`，两轮采样实测如下：
+
+| 910B3 `TP=4` 微基准观测项（`M=2048, N=4096`, `BF16`） | 实测读数 | 对应口径与物理含义 |
+|---|---|---|
+| 单卡对照 `MatMulV3`（`[2048, 4096] × [4096, 4096]ᵀ`） | `256.12 ~ 257.10 µs`（均值 **`256.61 µs`**） | `AI_CORE / 20`，`cube_utilization` `96.82% ~ 97.01%` |
+| `TP=4` 分片 `MatMulV3`（`[2048, 1024] × [4096, 1024]ᵀ`） | `70.66 / 70.48 µs`（均值 **`70.57 µs`**） | 相对单卡仅省下约 **`186 µs`** 计算耗时 |
+| 紧随其后的 `hcom_allReduce_` | **`525.10 / 522.66 µs`** | `step_trace_time` 两步通信合计 `1,047.76 µs`，通信重叠 **`0.0 µs`**（计算合计 `283.18 µs`，Stage `2,716.50 µs`） |
+| 链路类型、环网 transit 与有效带宽 | 走机内 **`HCCS`**，单次 transit **`25.165824 MB`**，聚合 **`17.71 ~ 17.74 GB/s`** | `0→1/2/3` 矩阵样本 **`17.63 ~ 17.93 GB/s`**；`25.165824 MB` 恰好等于 $2 \times \frac{4-1}{4} \times 16\text{ MiB} = 24\text{ MiB}$（十进制 MB 计） |
+
+这组真机轨迹把三条容易被忽视的工程边界摆上了台面：
+
+1. **标称峰值不能直接拿来除载荷估时延。** 尽管 A2 标称 7 链聚合 `392 GB/s`，但针对单次 `16 MiB` 的四卡 `All-Reduce`，受四卡间实际可用链路数、归约计算与协议启动开销影响，实测聚合带宽 `17.71 ~ 17.74 GB/s`（通信矩阵 `0→1/2/3` 边样本 **`17.63 ~ 17.93 GB/s`**）。同时须注意：通信矩阵呈现的是该消息尺寸与统计分母下的链路观测，其本身不足以唯一反推 HCCL 内部选用的具体集合算法。
+2. **微基准未重叠归约已盖过计算节省，但线上服务态重叠度与分项份额仍待实测。** 在 `M=2048` 独立微基准中，单次分片计算省下 `~186 µs`，一次未重叠 `HCCS` `All-Reduce` 却付出 `~524 µs`（`0.0 µs` 重叠为该独立 `16 MiB` 微基准的观测值）。放回 36 层 `Qwen3-8B` 服务态，启用多卡 TP 时源码每批存在 `36 × 2 = 72` 个行并行归约位置；实测 `TP=1 → 8` 在 `c ≤ 16` 呈现单调负扩展（`c=16` 吞吐 `195.28 → 160.38 tok/s`，详见 [Tensor Parallel 负扩展剖析](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)），线上服务态的通信重叠度与固定 `u` 下 KV 池布局嫌疑的各自时延份额均待线上设备时间线拆分。务必守住载荷口径：单 token Decode（`c=1`）每次归约仅 `[1, 4096] × 2 B = 8 KiB`（`c=16` 为 `128 KiB`），绝不能拿 `16 MiB` 微基准的 `525.1 µs × 72` 去算单 token 耗时。
+3. **A2 上 `EP=4/8` 选 `ALLGATHER` 路线，但跨 DP 的 `All-Gather / Reduce-Scatter` 受 `dp_size > 1` 门槛控制。** 在 `v0.30.0` 的 A2 硬件画像（`CAPACITY_AND_EXPERT_DENSITY`）下，无 LoRA 时需要 `ep_world_size >= 16` 才进入 `MC2`；因此 910B3 上 `Qwen3-30B-A3B` 的 4 卡 `TP4+EP4`（`DP=1`）与 8 卡 `DP2+TP4+EP8`（`DP=2`）均按源码选 **`ALLGATHER` 策略**（而非 `All-to-All` 或 `MC2`）。但 `prepare_finalize.py` 中的跨 DP `all_gather`（收集 hidden states 与 router logits）与 `_finalize_with_dp_group` 里的跨 DP `reduce_scatter` 均显式受 `if self.moe_config.dp_size > 1:` 门槛控制：**四卡 `TP4+EP4`（`dp_size = 1`）不执行这段跨 DP 通信，也无空闲 DP dummy batch；只有八卡 `DP2+TP4+EP8`（`dp_size = 2`）才进入跨 DP 的 `All-Gather / Reduce-Scatter` 与空闲 DP 同步推进。** 切勿把这两组的通信误写成已测得的逐层 `All-to-All`，也不可把 `dp_size > 1` 的跨 DP 通信套到四卡 `EP4/DP1` 头上。
+
 ## 放到 GLM 双机：一个 token 会在哪里通信？
 
 上面走完了通用 2 卡 / 4 卡原语、Ring 算法与机内/跨机带宽规律。下面转入本站 `09 旗舰异构模型全案` 的历史双机绑定算例（`vllm@0fc695fc + vllm-ascend@db701c1f`，双机 `2×A2×8`，`TP8 / DP2 / EP16`）：**A0 启动时建立通信组，A4 前向时反复使用这些组。** [双机部署的 16 卡分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)给出具体成员：两套机内 TP8 合算本机矩阵；八个跨机 DP2 组连接对应卡；EP16 覆盖全部卡共享专家。HCCL 是集合通信库，HCCS 是机内互联，分属两层；CPU 状态同步走 Gloo，不能全算作 HCCL 流量。
@@ -355,11 +382,11 @@ MoE finalize 用一次 TP8 All-Gather：每卡贡献 **8,192 B**，收齐后先�
 
 **MC2 是昇腾的一类计算与通信协同实现，不是第六种集合通信语义。** 普通集合通信定义数据如何从输入变成输出；MC2 可以把分块计算与通信安排成相互重叠的流水，让已经就绪的块先传或先算。它仍需要通信组、数据传输和同步条件。
 
-在本页的 MoE 路径里，**dispatch** 按选中的专家把输入派发给持有卡，**combine** 把专家结果送回源 token 所在卡并按路由权重组合。这在数据流上属于按目的地交换，但还涉及量化、重排、路由权重和有效行标记，不能把一次 MC2 调用直接替换成一次等长 All-to-All，也不能假定它内部必然调用 `HcclAlltoAll`。一个 token 交给多个专家，需要上层路由建立多份 token–expert 对应关系，再把输入送往相应设备；这里的多份对应关系来自专家选择，All-to-All 本身只按目的地交换交给它的数据，不自动为 token 增加专家副本。
+在 MoE 路径里，**dispatch** 按选中的专家把输入派发给持有卡，**combine** 把专家结果送回源 token 所在卡并按路由权重组合。这在数据流上属于按目的地交换，但还叠加了量化、重排、路由权重与有效行标记，因此既不能把一次 MC2 调用直接等同于一次等长 All-to-All，也不能假定其内部必然调用 `HcclAlltoAll`。需要区分两件事：一个 token 交给多个专家的多份对应关系来自上层路由选择；All-to-All 本身只按目的地交换交给它的数据，不自动为 token 增加副本。
 
-R1 中每个有效 token 选 8 个专家。按源 token 归属记账，一次 dispatch 的单专家副本是 **4,100 B**，8 份合计至多 **32,800 B**；combine 的单专家结果是 **8,192 B**，8 份返回至多 **65,536 B**。42 层各有一轮 dispatch 和 combine。这些是有效行的逻辑副本上界：本地命中无需跨卡，补位不贡献真实 token，专家热门程度还会改变目的卡接收量。单卡持有一行并不意味着所有卡都持有一行真实请求。推导与形状见[请求主线的 MoE 小节](one-request.md#42-层-moe每卡-18-个专家)。
+R1 中每个有效 token 选 8 个专家。按源 token 归属记账，一次 dispatch 的单专家副本是 **4,100 B**，8 份合计至多 **32,800 B**；combine 的单专家结果是 **8,192 B**，8 份返回至多 **65,536 B**，42 层各有一轮。这些数字均为有效行的逻辑副本上界：本地命中无需跨卡，补位行不贡献真实 token，专家热门程度也会改变目的卡接收量，推导与形状见[请求主线的 MoE 小节](one-request.md#42-层-moe每卡-18-个专家)。
 
-本部署的 A2、EP16、每卡 18 个专家条件下，两组最大执行宽度在 **128** 容量内选 MC2，超出则选 **AllGather 路径**。AllGather 是整条 MoE 实现路线的名字，All-Gather 是前面定义的单个集合操作；两条路线都会用到 All-Gather。容量推导见[请求主线](one-request.md#42-层-moe每卡-18-个专家)，两组共用选择见[并发请求的 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)。满足这些条件的短 prefill 也走 MC2，不能只凭 prefill/decode 标签判定。
+在本部署的 A2、EP16、每卡 18 个专家条件下，两组最大执行宽度在 **128** 容量内选 MC2，超出则切到 **AllGather 路径**。注意名称区别：AllGather 是整条 MoE 实现路线，All-Gather 是前面定义的单个集合操作，两条路线都会用到 All-Gather。容量推导见[请求主线](one-request.md#42-层-moe每卡-18-个专家)，两组共用选择见[并发请求的 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)；满足容量门槛的短 prefill 同样走 MC2，不能仅凭 prefill/decode 标签判定。
 
 下面沿 A0 到 A4 画出执行分支。MC2 中专家计算仍在 dispatch 与 combine 之间调用；通算协同不代表整层只有一个融合 kernel（设备上执行的计算程序）。图中的“本地专家”指本卡持有的那些专家。图按结果合并的依赖展开；启用共享专家多流时，共享计算可按事件与路由工作重叠，不能把主机调用先后当成设备上完全串行的时间线。
 
@@ -453,9 +480,10 @@ ring 公式只是有效传输模型；真实耗时还受启动次数、拓扑跳
 - 分格图中 `SUM` 为解释归约的示意设定 [A]；均衡 ring / 直接交换的 $(N-1)M/N$ 与 $2(N-1)M/N$ 字节公式由均分传输模型推导 [D]；`Reduce-Scatter + All-Gather` 与 `SUM All-Reduce` 的逻辑等价限定于同形状部分和与一致分片规则，浮点加法次序差异仍可改变末位舍入 [D]。
 - `v0.30.0` 上游通信底座：`GroupCoordinator` 的 `all_reduce / all_gather / reduce_scatter` 与缺失通信器异常 [C5]；`DeviceCommunicatorBase` 原地 `dist.all_reduce`（单成员组直接返回输入）与 `all_gather_into_tensor / reduce_scatter_tensor` [C6]；PP 张量字典 `send_tensor_dict / isend_tensor_dict / irecv_tensor_dict`（注意其切片发送与组内重组优化要求待传张量在组内完全复制，SP 分片 residual 不可仅因长度可整除就启用该优化）[C7]。
 - `v0.30.0` 昇腾通信实现：`PyHcclCommunicator` 独立输出分配、绑定设备校验与握手 `broadcast`（存在该类不代表主干默认经过它）[C10]；其余 `v0.23.0 / v0.26.0rc / main` 源码锚点对应 `sources` 第 18–19、21–23、26–27 项。
+- `Ascend 910B3` 真机微基准与端到端实测：`TP=4` HCCS `All-Reduce` 耗时（`525.10 / 522.66 µs`、独立微基准重叠 `0.0 µs`、单次 transit `25.17 MB`、聚合 `17.71 ~ 17.74 GB/s`、矩阵边样本 `17.63 ~ 17.93 GB/s`）原始摘录见 `sources` 第 42 项 [M42]，单卡 `MatMulV3` 对照均值 `256.61 µs` 见第 43 项 [M43]，`Qwen3-8B` `TP=1→8` 端到端负扩展数据见第 44 项 [M44]；A2 `ALLGATHER` 路径下受 `dp_size > 1` 门槛控制的跨 DP `all_gather` 与 `reduce_scatter`（四卡 `EP4/DP1` 不执行）见 `prepare_finalize.py:453-465, 552-569`（第 45–46 项），完整实测基线与边界见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
 - 例外 B（`db701c1f + 0fc695fc`）双机算例支撑：上游组封装、PP 发送与 DP/EP 建组对应 `sources` 第 29–31 项；A2 容量分流、MC2 补齐切分与 finalize 去补位、AllGather 路径两次收集加 DP `Reduce-Scatter`、dispatch/combine v2 检测与回退、共享专家多流事件重叠与外层归约及 SP 优先级条件对应 `sources` 第 33–40 项（原始摘录留存 `sources` 第 41 项及 `rawSources`）。正文的 218 次调用边界、91 次 All-Reduce 与每层 MoE 四个边界均限定于 SP 及共享专家 DP 未启用的基线条件。
 
 **待核**
 
-- 缺少固定镜像中 HCCL / CANN 运行时的实际算法选择与通信 trace，尚不能给出网卡收发实测字节、MC2 同目的卡副本合并策略或真实通信耗时；HCCL 官方文档用于核对原语语义，不代表已核实镜像内安装的库小版本。
+- GLM 双机固定镜像（例外 B）仍缺少对应双机 HCCL / CANN 运行时的实际算法选择与跨机 RoCE / MC2 通信 trace，尚不能给出双机网卡收发实测字节、MC2 同目的卡副本合并策略或 GLM 真实通信耗时；已补充的 910B3 单机 `TP=4` 微基准数据仅代表该 `16 MiB` 消息与四卡 HCCS 观测，不代表小消息或跨机 RoCE 实测；HCCL 官方文档用于核对原语语义，不代表已核实镜像内安装的库小版本。
 - 底稿未列出启动期 Broadcast 的完整调用清单、张量长度与后端归属，本页不填假定的启动广播字节数。

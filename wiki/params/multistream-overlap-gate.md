@@ -96,9 +96,11 @@ rawSources:
 
 ## 它曾做什么，为什么 v0.24 起已移除？
 
-推理走到 MoE（混合专家）层时，NPU 既要把本地隐藏态量化并跨卡汇总（`prepare` 准备阶段），又要算每个 token 必经的**共享专家前向**（含 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）和给每个 token 挑专家的 **`select_experts` 路由**（见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）。`multistream_overlap_gate`（上游称为 **FlashComm3 multistream-overlap gate**）的思路是把这两段工作拆到不同的 NPU **stream（流）**上并行跑：同一条流中的任务按顺序执行，不同流上的任务可以在设备上重叠运行；一条流停下来等另一条流完成再继续称为 **join（汇合）**——汇合之后才能安全读取对方的输出。
+推理走到 MoE（混合专家）层时，NPU 既要把本地隐藏态量化并跨卡汇总（`prepare` 准备阶段），又要算每个 token 必经的**共享专家前向**（含 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）和给每个 token 挑专家的 **`select_experts` 路由**（见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）。
 
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**这个开关和整套 FlashComm3 多流门控实现在 `v0.30.0` 与 `main` 中均已删除**——它在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) 整套移除（连同 `flash_common3_context.py`、`fc3_quant_x` 通信组与 `fc3_all_gather_and_maybe_unpad_impl` 一起删除），`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留。若从旧版迁移时把它残留在 `--additional-config` 里，`v0.30.0` 与 `main` 的普通进程会直接被 `extra="forbid"` 拒收（发现 `vllm_omni` 时告警过滤），升级时应直接删掉此键。
+`multistream_overlap_gate`（上游称 **FlashComm3 multistream-overlap gate**）的思路是把这两段工作拆到不同的 NPU **stream（流）**上并行跑：同一条流中的任务按顺序执行，不同流上的任务可以在设备上重叠运行；一条流停下来等另一条流完成再继续称为 **join（汇合）**——汇合之后才能安全读取对方的输出。
+
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**该开关和整套 FlashComm3 多流门控实现在 `v0.30.0` 与 `main` 中均已删除。** 它在 `v0.23.0` 发版时即被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) 整套移除（连同 `flash_common3_context.py`、`fc3_quant_x` 通信组与 `fc3_all_gather_and_maybe_unpad_impl` 一起删除），`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留。若从旧版迁移时把它残留在 `--additional-config` 里，`v0.30.0` 与 `main` 的普通进程会直接被 `extra="forbid"` 拒收（发现 `vllm_omni` 时告警过滤），升级时应直接删掉此键。
 
 在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 中，它是默认 `False` 的布尔开关：开启后把共享专家前向与 `select_experts` 路由整体搬到副流 `gate_stream` 上，让它们与主线里的「动态量化 + EP All-Gather 隐藏态」并行执行。迁移时不要把它和至今仍在 `v0.30.0` / `main` 中保留的 `multistream_overlap_shared_expert` 混为一谈：
 
@@ -108,37 +110,49 @@ rawSources:
 | 搬到副流的计算 | 共享专家前向（含 TP All-Reduce）+ `select_experts` 路由 | 仅共享专家计算（移至 `shared_experts_calculation_stream()`） |
 | 升级后留着旧键 | `v0.26.0rc` 静默忽略；`v0.30.0`/`main` 通常拒收（发现 `vllm_omni` 时告警过滤） | 正常字段；但 `enable_fused_mc2 == 1` 时会被自动告警关闭 |
 
-在 `v0.23.0` 上若同时开启这两个开关，共享专家由 `gate_stream` 接管，取结果时直接读取 `fc3_context.shared_out`，`_forward_shared_experts` 里的 `multistream_overlap_shared_expert` 分支会沦为死代码；但升级后被删除的只是 gate 开关，不要把 `multistream_overlap_shared_expert` 一并误当废弃项删掉。
+在 `v0.23.0` 上若同时开启这两个开关，共享专家由 `gate_stream` 接管，取结果时直接读取 `fc3_context.shared_out`，`_forward_shared_experts` 里的 `multistream_overlap_shared_expert` 分支会沦为死代码。升级后被删除的只是 gate 开关，不要把 `multistream_overlap_shared_expert` 一并误当废弃项删掉。
 
 ## 在 v0.23.0 里怎么跨流重叠，消费条件是什么？
 
-MoE 层在进入路由专家计算之前有一段准备期（`prepare`）。当开启序列并行且 MoE 走 AllGather 路径时，主线会先在当前流量化本卡隐藏态，再在 EP 组内收集隐藏态与量化尺度。共享专家 FFN 只需要本地隐藏态，`select_experts` 只需要已算出的 `router_logits`，因此这两段工作可以提前提交到副流 `gate_stream` 执行；不过 AllGather 路径仍需汇集选专家结果，并非完全免通信，且仅凭源码不能证明准备期所有计算单元都处于空闲状态（组和载荷见[序列并行接法](../concepts/sequence-parallel.md#vllm-ascend-里的-sp-是怎样接进去的)，通信路径选择见[专家并行](../concepts/expert-parallel.md#mc2-还是-allgather)）。
+MoE 层在进入路由专家计算之前有一段准备期（`prepare`）。开启序列并行且 MoE 走 AllGather 路径时，主线会先在当前流量化本卡隐藏态，再在 EP 组内收集隐藏态与量化尺度。共享专家 FFN 只需要本地隐藏态，`select_experts` 只需要已算出的 `router_logits`，因此这两段工作可以提前提交到副流 `gate_stream` 执行。需要注意，AllGather 路径仍须汇集选专家结果，并非完全免通信，仅凭源码也不能证明准备期所有计算单元都处于空闲状态（组和载荷见[序列并行接法](../concepts/sequence-parallel.md#vllm-ascend-里的-sp-是怎样接进去的)，通信路径选择见[专家并行](../concepts/expert-parallel.md#mc2-还是-allgather)）。
 
-它冠以 "FlashComm3" 之名，是因为整套重叠依赖序列并行对应的 prepare 分支：`PrepareAndFinalizeWithAllGather.prepare` 只有在 `enable_sp()`（FlashComm1）或 `enable_sp_by_pass()`（非强制 eager 且编译配置开启 `enable_sp`）为真时才走 `_prepare_with_ep_group`。两者均未开启时走的是按 DP 组收集的另一分支，`quant_stream` 那半边逻辑完全不会执行。
-
-跨流传递结果依靠模块级全局单例 `FlashCommon3Context`，本开关实际写入 `topk_weights`、`topk_ids`、`shared_experts`、`shared_out` 四个字段（类里另有 `gate`、`row_idx` 两个字段未由本开关写入）。两条副流都是**类级单例**，首次构造时创建且不随层数增长：`gate_stream` 挂在 MoE 层类上（配套 vLLM 0.23.0 实际导入的 legacy 实现为 `AscendFusedMoE`，新实现为 `AscendMoERunner`），`quant_stream` 挂在 `PrepareAndFinalize` 上。
+**三条实现核心事实**：
+- **为何冠以 FlashComm3（SP 依赖）**：`PrepareAndFinalizeWithAllGather.prepare` 只有在 `enable_sp()`（FlashComm1）或 `enable_sp_by_pass()`（非强制 eager 且编译配置开启 `enable_sp`）为真时，才走 `_prepare_with_ep_group`。两者均未开启时走按 DP 组收集的另一分支，`quant_stream` 那半边逻辑完全不会执行。
+- **跨流传值与类级单例流**：跨流传递结果依靠模块级全局单例 `FlashCommon3Context`，本开关实际写入 `topk_weights`、`topk_ids`、`shared_experts`、`shared_out` 四个字段（类里另有 `gate`、`row_idx` 两个字段未由本开关写入）。两条副流都是**类级单例**，首次构造时创建、不随层数增长：`gate_stream` 挂在 MoE 层类上（配套 vLLM 0.23.0 实际导入的 legacy 实现为 `AscendFusedMoE`，新实现为 `AscendMoERunner`），`quant_stream` 挂在 `PrepareAndFinalize` 上。
+- **副流通信与硬汇合点**：量化本身仍在当前流完成，随后才切到 `quant_stream`（先等待当前流），借助专门新建的 HCCL 通信组 `fc3_quant_x`（rank 划分与 `mc2` 组共用同一份 `group_ranks`）调用纯 Python 的 `fc3_all_gather_and_maybe_unpad_impl`（而非主线自定义算子 `torch.ops.vllm.maybe_all_gather_and_maybe_unpad`，推测是为规避自定义算子在非默认流上的行为问题）汇集隐藏向量并按各 DP 成员有效长度去填充；量化尺度仍在当前流另行收集。两条副流均有硬汇合点：`quant_stream` 在 `prepare` 结束前等待回来，`gate_stream` 在专家量化方法执行前等待回来。
 
 ```wiki-diagram
 file: multistream-overlap-gate
 ```
 
-实际执行时，量化本身仍在当前流完成，随后才切到 `quant_stream`（先等待当前流），借助专门新建的 HCCL 通信组 `fc3_quant_x`（rank 划分与 `mc2` 组共用同一份 `group_ranks`）调用纯 Python 的 `fc3_all_gather_and_maybe_unpad_impl`（而不是主线的自定义算子 `torch.ops.vllm.maybe_all_gather_and_maybe_unpad`，推测是为规避自定义算子在非默认流上的行为问题）汇集隐藏向量并按各 DP 成员有效长度去填充；量化尺度则在当前流另行收集。两条副流的汇合点都是硬约束：`quant_stream` 在 `prepare` 结束前等待回来，`gate_stream` 在专家量化方法执行前等待回来。理想情况下若两段独立耗时为 A 与 B 且无额外同步和资源争用，串行 `A + B` 可缩为 `max(A, B)`（最多省 `min(A, B)`），但实际路径包含选专家结果收集、量化尺度收集与设备资源竞争，不能把理想差额直接当成设备实测收益。
-
-消费端位于量化方法的 `apply()` 中：检测到开关开启后跳过自身 `select_experts`，改从 `FlashCommon3Context` 读取预先算好的 `topk_weights` 与 `topk_ids`。只有 `w8a8_dynamic` 与 `w8a8_mxfp8` 两个量化方法实现了该读取分支；未量化（BF16）MoE 没有接收端，而开启本开关后 `_prepare_with_ep_group` 又不再 All-Gather `router_logits`，两边无法衔接。稠密模型没有 MoE 入口；单卡部署没有跨卡 All-Gather 可隐藏（配置层本身并不禁止单卡）。
-
-构造阶段打印的 `info_once` 日志 `[fused_moe/layer] Multistream overlap gate is enabled.` 只能证明配置分支开启，不能证明首次前向成功、设备上发生有效重叠或性能提升。[v0.23.0 官方参数表](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)仅给出功能与默认值，没有同负载开关对照（引入 PR 另有图片记录，不能因参数表无数字推断上游未测）；仅凭源码也不能断言「小 decode 收益最大」或「长序列收益趋零」——例如 A2 小批走 MC2 时 `prepare` 只做补齐与切片、并无 EP All-Gather，无法套用通信隐藏窗口。是否省时仍须在同负载下对比完整执行时间。
+**收益边界与消费端**：
+- **理想模型 ≠ 实测收益**：理想情况下两段独立耗时 A 与 B 无额外同步与资源争用时，串行 `A + B` 可缩为 `max(A, B)`（最多省 `min(A, B)`）；但实际路径包含选专家结果收集、量化尺度收集与设备资源竞争，不能把理想差额直接当实测收益。
+- **仅两种量化方法消费**：消费端位于量化方法的 `apply()` 中——检测到开关开启后跳过自身 `select_experts`，改从 `FlashCommon3Context` 读取预先算好的 `topk_weights` 与 `topk_ids`。只有 `w8a8_dynamic` 与 `w8a8_mxfp8` 实现了该读取分支；未量化（BF16）MoE 没有接收端，而开启本开关后 `_prepare_with_ep_group` 又不再 All-Gather `router_logits`，两边无法衔接。稠密模型无 MoE 入口；单卡部署无跨卡 All-Gather 可隐藏（配置层本身不禁止单卡）。
+- **日志不等于收益证明**：构造阶段打印的 `info_once` 日志 `[fused_moe/layer] Multistream overlap gate is enabled.` 只能证明配置分支开启，不能证明首次前向成功、设备上发生有效重叠或性能提升。[v0.23.0 官方参数表](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)仅给出功能与默认值，没有同负载开关对照（引入 PR 另有图片记录，不能因参数表无数字推断上游未测）。仅凭源码也不能断言「小 decode 收益最大」或「长序列收益趋零」——例如 A2 小批走 MC2 时 `prepare` 只做补齐与切片、并无 EP All-Gather，无法套用通信隐藏窗口，是否省时仍须同负载实测对比完整执行时间。
 
 ## 旧部署的风险、迁移清理与 GLM 双机推演
 
-在仍停留在 `v0.23` 的部署上开启它，需要同时满足多项前置条件并承担额外开销：
+```wiki-diagram
+file: param-multistream-overlap-gate-guards
+```
 
-- **无共享专家不会静默降级**：官方描述的「只对带共享专家的 MoE 生效」容易误解为自动忽略。源码里 `self.multistream_overlap_gate` 直接取开关值，只有 `shared_multistream_overlap_gate` 才与 `has_shared_experts` 做与；而初始化 `fc3_context` 位于 `shared_forward_impl` 内。若进程此前未建立该 context，无共享专家的模型在 legacy `forward_impl`（或新实现 `no_shared_forward_impl`）进入门控分支第一句就会命中不带消息的裸断言 `assert fc3_context is not None`（源码推导，本页尚无实机错误日志）。开启前须核对实际模型结构、消费量化方法、prepare 路径与张量形状，不能仅凭模型家族名判断。
-- **绑定量化方法与序列并行**：仅 `w8a8_dynamic` / `w8a8_mxfp8` 消费预路由结果；且必须开启 FlashComm1 或图编译 pass 版 SP，否则 `quant_stream` 不执行，多卡下主线 MC2 切片或 AllGather 按 DP 汇集都会与副流未同步变换的路由结果发生行数不匹配（仅开图编译 pass 版 SP 时，AllGather 路径会补收路由结果，但 MC2 是否补齐切片只看 FlashComm1，该组合下行数的精确对齐尚待实测核验）。
-- **与 MoE LoRA v1 硬互斥、310P 需区分实现**：MoE LoRA v1 会在 `vllm_ascend/lora/fused_moe.py` 第 82–87 行抛 `AssertionError`（`multistream_overlap_gate=True interleaves quant_method.apply calls on multiple streams; ...`），带共享专家的层可能在第 75–81 行更早被拒，均无自动降级。Ascend 310P 上，非 vLLM 0.23.0 的 `AscendMoERunner310` 构造器把 `multistream_overlap_gate`、`shared_multistream_overlap_gate`、`multistream_overlap_shared_expert` 一起置为 `False`；legacy `AscendFusedMoE310` 没有这三行覆盖，但自实现的 `shared_forward_impl` 先算路由专家再算共享专家，同样不走门控重叠（不能仅凭新 runner 的字段覆盖断言所有 310P 配置静默通过或零初始化开销）。
-- **额外资源**：增加 2 条类级单例 NPU stream、1 个 `fc3_quant_x` HCCL 通信组（分布式初始化时创建）以及跨流等待和中间张量存活占用；流数本身不能推导独立内存池数或固定显存增量，具体峰值与耗时须实测。
-- **升级迁移与未知键处理**：`v0.26.0rc` 的 `AscendConfig` 仍是普通类、逐键 `.get()`，留着旧键会被静默忽略（不保证其他部署配置都通过）。`v0.30.0` 与 `main` 使用 `ConfigDict(extra="forbid")` 的 pydantic 模型，普通 Ascend 进程会在构造期拒收该未知顶层键；若进程能发现 `vllm_omni`，工厂会先打告警 `"The following additional_config keys are invalid for vLLM-Ascend: %s. They may be used by vLLM-Omni or another project. Please remove them if they are not needed for your use case."` 再过滤未知顶层键，但同样不会恢复已删除的功能。
+在仍停留在 `v0.23` 的部署上开启它，需同时满足多项前置条件并承担额外开销：
 
-**放到 GLM 双机（`db701c1f` 固定基线）**：该部署为两台 A2、TP8 / DP2 / EP16、W8A8（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），官方启动命令未传此键（默认 `False`），42 层 MoE 走不带门控的直路，共享专家在路由专家之后串行计算（见 [MoE 共享专家](../concepts/moe.md#共享专家按-tp8-切走融合算子)）。它具备共享专家与 W8A8-dynamic 两条前提，但未开启序列并行（见[序列并行 GLM 说明](../concepts/sequence-parallel.md#放到-glm-双机这套部署开了-sp-吗)）。按 `db701c1f` 源码推演若强行开启，在示例请求 R1（每边 4 token、走 MC2，见[单请求 MoE 通信](../concepts/one-request.md#moe-通信走-mc2-还是-allgather)）上：启动会建 2 条副流和 `fc3_quant_x` 并打印 legacy 的 `info_once` 日志；每层 MoE 副流先算共享专家及 TP8 All-Reduce，再对完整 4 token 算路由得到 4 行结果；主线 MC2 准备把 4 行补到 8 行并按 TP8 每卡切出 1 行（无通信可藏）；汇合后量化方法会拿 4 行路由去配 1 行隐藏态，MC2 路径无对应切分导致行数不一致。超出 MC2 容量转入 AllGather 时，未开 SP 也会使主线按 DP 组汇集隐藏态而路由辅助收集不执行相同变换，存在同样行数风险；具体报错或数值后果仍待实机验证。
+| 风险 / 边界场景 | 实际行为与源码触发点 | 工程提醒 |
+| --- | --- | --- |
+| 无共享专家的 MoE | `self.multistream_overlap_gate` 直接取开关值（仅 `shared_multistream_overlap_gate` 才与 `has_shared_experts` 做与）；`fc3_context` 仅在 `shared_forward_impl` 初始化。若进程未建立该 context，legacy `forward_impl`（或新实现 `no_shared_forward_impl`）进门控分支首句命中裸断言 `assert fc3_context is not None`（源码推导，尚无实机日志） | 不会静默降级；开启前须核对实际模型结构、量化方法、prepare 路径与张量形状，勿仅凭模型家族名判断 |
+| 量化方法与序列并行缺失 | 仅 `w8a8_dynamic` / `w8a8_mxfp8` 消费预路由结果；须开 FlashComm1 或图编译 pass 版 SP，否则 `quant_stream` 不执行，多卡下主线 MC2 切片或 AllGather 按 DP 汇集均会与副流路由发生行数失配 | 仅开图编译 pass 版 SP 时，AllGather 路径会补收路由结果，但 MC2 是否补齐切片只看 FlashComm1，该组合行数对齐尚待实测核验 |
+| MoE LoRA v1 硬互斥 | `vllm_ascend/lora/fused_moe.py` 第 82–87 行抛 `AssertionError`（`multistream_overlap_gate=True interleaves quant_method.apply calls on multiple streams; ...`）；带共享专家层在第 75–81 行更早被拒 | 均无自动降级 |
+| Ascend 310P 双实现分叉 | 非 vLLM 0.23.0 的 `AscendMoERunner310` 构造器把 `multistream_overlap_gate`、`shared_multistream_overlap_gate`、`multistream_overlap_shared_expert` 一并置为 `False`；legacy `AscendFusedMoE310` 无这三行覆盖，但自实现的 `shared_forward_impl` 先算路由专家再算共享专家，同样不走门控重叠 | 不能仅凭新 runner 的字段覆盖断言所有 310P 配置静默通过或零初始化开销 |
+| 额外资源占用 | 增加 2 条类级单例 NPU stream、1 个 `fc3_quant_x` HCCL 通信组（分布式初始化时创建）及跨流等待和中间张量存活占用 | 流数不能推导独立内存池数或固定显存增量，具体峰值与耗时须实测 |
+| 升级迁移与未知键处理 | `v0.26.0rc` 逐键 `.get()` 静默忽略（不保证其他配置通过）；`v0.30.0` 与 `main` 按 `ConfigDict(extra="forbid")` 拒收普通进程中的该未知顶层键；发现 `vllm_omni` 时先打告警 `"The following additional_config keys are invalid for vLLM-Ascend: %s. They may be used by vLLM-Omni or another project. Please remove them if they are not needed for your use case."` 再过滤 | 忽略与过滤均不恢复已删除功能，升级须直接删键 |
+
+**放到 GLM 双机（`db701c1f` 固定基线）**：该部署为两台 A2、TP8 / DP2 / EP16、W8A8（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），官方启动命令未传此键（默认 `False`），42 层 MoE 走无门控直路，共享专家在路由专家之后串行计算（见 [MoE 共享专家](../concepts/moe.md#共享专家按-tp8-切走融合算子)）。它虽具备共享专家与 W8A8-dynamic 两条前提，但未开启序列并行（见[序列并行 GLM 说明](../concepts/sequence-parallel.md#放到-glm-双机这套部署开了-sp-吗)）。
+
+按 `db701c1f` 源码推演强行开启的后果（以示例请求 R1 每边 4 token 走 MC2 为例，见[单请求 MoE 通信](../concepts/one-request.md#moe-通信走-mc2-还是-allgather)）：
+- **启动阶段**：建立 2 条副流与 `fc3_quant_x` 通信组，并打印 legacy 的 `info_once` 日志。
+- **MC2 路径（行数失配）**：每层 MoE 副流先算共享专家及 TP8 All-Reduce，再对完整 4 token 算路由得到 **4 行**结果；主线 MC2 准备把 4 行补到 8 行并按 TP8 每卡切出 **1 行**隐藏态（且无通信可隐藏）。汇合后量化方法拿 4 行路由去配 1 行隐藏态，MC2 路径无对应切分导致行数不一致。
+- **AllGather 路径**：超出 MC2 容量转入 AllGather 时，未开 SP 同样使主线按 DP 组汇集隐藏态，而路由辅助收集不执行相同变换，存在同样行数风险；具体报错或数值后果仍待实机验证。
 
 ## 对照源码
 

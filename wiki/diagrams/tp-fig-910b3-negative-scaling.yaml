@@ -1,0 +1,17 @@
+mode: native-svg
+id: tp-fig-910b3-negative-scaling
+caption: Ascend 910B3 上 Qwen3-8B（u=0.85）TP=1→2→4→8 负扩展实测与候选机制对照：左侧展示 KV 总容量从 264k 扩至 2.87M tokens 时 c=16 吞吐（195.28→160.38 tok/s）与 c=1 TPOT（78.54→94.42 ms）的单调劣化及整池复制条件外推曲线；右侧列出两项待线上设备时间线验证的候选机制——独立 TP=4 微基准（16 MiB 输出）中 MatMulV3 仅省 ~186 µs 却引入 525.1 µs 未重叠 HCCS AllReduce（0 µs 重叠仅在该独立微基准测得，多卡 TP 源码存在每批 72 个归约位置，线上通信重叠与分项占比仍待实测），叠加固定 u=0.85 下每卡本地 K+V 池反从 36.28 涨至 49.27 GiB（若线上 FULL 图重放同等整池连续化且保持 Eager 搬运率，则条件外推 56.77→77.09 ms，属强条件假设而非已抓 FULL kernel 实测），并标明单卡与八卡 TTFT 口径差异。
+size: [860, 624]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L125'
+    symbols: ['o_proj', 'RowParallelLinear']
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen2.py#L90-L110'
+    symbols: ['down_proj', 'RowParallelLinear']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1782'
+    symbols: ['tensor_model_parallel_all_reduce']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635'
+    symbols: ['available_kv_cache_memory_bytes', 'requested_memory', 'non_kv_cache_memory']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L5884-L5931'
+    symbols: ['as_strided', 'is_contiguous']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L319'
+    symbols: ['_updatable_graph_replay', 'synchronize']

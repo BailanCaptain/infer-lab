@@ -38,8 +38,8 @@
     <text x="26" y="294" font-size="14" fill="#8f3229">按稠密 3B 模型估算 32 路并发</text>
     <path d="M364,273 L386,273" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
     <rect x="392" y="234" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
-    <text x="408" y="263" font-size="15" font-weight="700" fill="#065f56">30B-A3B 选 8 专家分散后每专家平均仅 2 行</text>
-    <text x="408" y="294" font-size="14" fill="#4d5652">整批几乎读遍 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">56.87 GiB</tspan> 权重，须靠大 EP 聚批</text>
+    <text x="408" y="263" font-size="15" font-weight="700" fill="#065f56">均匀打散下点亮约 112/128 专家，单专家仅 ~2.3 行</text>
+    <text x="408" y="294" font-size="14" fill="#4d5652">被迫搬运 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">56.87 GiB</tspan> 中绝大部分，须靠大 EP 聚批</text>
   </g>
 
   <g>

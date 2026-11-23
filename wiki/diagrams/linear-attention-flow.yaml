@@ -1,34 +1,7 @@
-layout: figure
 id: linear-attention-flow
-caption: 有 attention 元数据时，一层 KDA 在 GLM 专用实现里的逻辑流程：各类位置都要经过投影和短卷积，再按位置种类走三条计算路径，算完拼回原来的行序，经过输出门控与输出投影，最后在 TP 组内归约一次。没有元数据的陪跑或试跑跳过短卷积和递推，仍执行外层投影、归一化与门控。
-size: [880, 700]
-items:
-  - { at: [300, 16], size: [280, 46], text: 本层输入：隐藏向量, sub: 这一步本卡要算的若干行, style: plain }
-  - { at: [240, 90], size: [400, 60], text: 投影出 q、k、v 和三个控制量, sub: 写入强度 β、遗忘门、输出门, tone: token }
-  - { at: [280, 178], size: [320, 56], text: 短卷积：核长 4, sub: 读写本请求的卷积状态, tone: control }
-  - { at: [240, 262], size: [400, 52], text: 这一步要算的是哪种位置？, style: plain }
-  - { at: [24, 356], size: [264, 76], text: 'prefill：分段并行', sub: 每 64 个位置一段算完, tone: token }
-  - { at: [308, 356], size: [264, 76], text: 'decode：逐位置递推', sub: 状态原地更新, tone: token }
-  - { at: [592, 356], size: [264, 76], text: 投机候选：一轮多个位置, sub: 按接受数量推进, tone: token }
-  - { at: [280, 502], size: [320, 50], text: 按原来的行序拼回一份输出, style: plain }
-  - { at: [280, 572], size: [320, 50], text: 输出门控与归一化 → 输出投影, tone: control }
-  - { at: [300, 640], size: [280, 46], text: TP8 归约一次 → 回残差流, tone: comm }
-links:
-  - { from: [440, 62], to: [440, 90] }
-  - { from: [440, 150], to: [440, 178] }
-  - { from: [440, 234], to: [440, 262] }
-  - { from: [340, 314], to: [156, 356], via: [[340, 336], [156, 336]] }
-  - { from: [440, 314], to: [440, 356] }
-  - { from: [540, 314], to: [724, 356], via: [[540, 336], [724, 336]] }
-  - { from: [156, 432], to: [340, 502], via: [[156, 470], [340, 470]] }
-  - { from: [440, 432], to: [440, 502] }
-  - { from: [724, 432], to: [540, 502], via: [[724, 470], [540, 470]] }
-  - { from: [440, 552], to: [440, 572] }
-  - { from: [440, 622], to: [440, 640], tone: comm }
-texts:
-  - { at: [182, 328], text: 本轮的提示词片段, size: 12 }
-  - { at: [452, 330], text: 只推进 1 个位置, size: 12 }
-  - { at: [592, 328], text: 带 3 个草稿位置, size: 12 }
+mode: native-svg
+size: [900, 442]
+caption: 有 attention 元数据时，一层 KDA 在 GLM 专用实现里的逻辑流程：各类位置都要经过投影和短卷积，再按位置种类分流进入分段 64 prefill、单步 decode 递推与 4 页投机验证三条路径，算完经 index_copy_ 拼回原行序，经过输出门控与投影，最后在 TP 组内 All-Reduce 一次；无元数据的陪跑或试跑跳过短卷积与递推，继续执行外层投影与门控。
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291
     symbols: [forward, q_proj, b_proj, f_b_proj, o_proj]

@@ -133,17 +133,17 @@ rawSources:
 
 **sparse attention（稀疏注意力）让每个查询先从因果范围里挑出一小部分位置，再只在这些位置上打分、做 softmax、汇合 V；没挑中的位置这一次不参与计算。**
 
-挑哪些位置由模型决定。GLM-5.3-Flash 沿用 DeepSeek-V3.2 提出的 **DSA**（DeepSeek Sparse Attention）：先用一个很便宜的打分网络 **lightning indexer**（下文简称 indexer，也称索引器）给每个历史位置粗打一个分，按分数取最高的 k 个位置，这一步叫 **top-k**；真正算输出的那次 attention（下文称主 attention）只读这 k 个位置。
+挑哪些位置由模型决定。GLM-5.3-Flash 沿用 DeepSeek-V3.2 的 **DSA**（DeepSeek Sparse Attention）：先用轻量的 **lightning indexer**（下文称 indexer）给每个历史位置粗打分并挑出前 k 个（**top-k**），再让主 attention 只读这 k 个位置。
 
-这样能少做主 attention 的读取和计算，代价是多做位置选择，而且以后可再次选中的历史必须继续保存。
+这样能省下主 attention 的读取与计算，代价是增加位置选择开销，且未来可能被重新选中的历史仍须留在缓存里。
 
 ```wiki-diagram
 file: sparse-attention-intuition
 ```
 
-图里用 12 个历史位置、k = 4 做示意。第一行是缓存里全部可见的历史，每个位置存着一份 K/V。indexer 给每个位置打一个分，深色的是分数最高的 4 个。主 attention 只读这 4 个位置的 K/V，softmax 也只在这 4 项之间分配权重。虚线格这次没被选中，但仍留在缓存里：后续重新选择时，这次落选的位置仍有机会被选中。
+图里用 12 个历史位置、`k = 4` 示意：indexer 给全部历史打分，主 attention 只读深色前 4 格并只在这 4 项间做 softmax；虚线落选格仍留在缓存中，供后续查询重新挑选。
 
-需要把「挑位置」和「算主 attention」拆成两步来看：在执行稀疏 attention 的 SFA（Sparse FlashAttention）路径中，并不是每一次调用都必须重跑 top-k 评分——如果开启了索引复用，本层可以从索引缓存直接取用已有的位置清单，但仍可能继续更新 indexer 的历史 key，因此「跳过选择」不等于「整个 indexer 都不执行」。跨层复用与 GLM 的实际边界见[下面的 IndexCache](#相邻层能否沿用同一份位置清单indexcache)。
+把「挑位置」和「算主 attention」拆开后，还可叠加索引复用：开启复用时本层直接读缓冲里的位置清单以跳过 top-k，但通常仍须更新 indexer 历史 key（跨层复用与 GLM 边界见[IndexCache 一节](#相邻层能否沿用同一份位置清单indexcache)）。
 
 ## 为什么能省，代价在哪？
 
@@ -257,7 +257,7 @@ GLM-5.3-Flash 有 11 个稀疏 MLA 层（第 3、7、11……43 层），另外 
 1. **indexer 只给完整池打分。** 因果范围 0…p 里有 ⌊(p+1)/4⌋ 个完整池，只有这些池参与打分；还没凑满的池和未来的池一律记成负无穷，不会被选中。
 2. **最多选 512 个池。** 位置预算 2048 ÷ 每池 4 个位置 = 512 个池。完整池不到 512 个时全部选中，多出的名额填 −1。
 3. **展开并补尾。** 每个选中的池展开成 4 个位置编号；再把 p 所在那组里还没凑满一池的 0–3 个位置直接补进来。所以清单每行留 2048 + 3 = 2051 个名额，2051 是容量，不是实际选中的个数，也不是头数。
-4. **主 attention 按清单读潜向量。** 清单交给昇腾的稀疏 FlashAttention 内核：它经 [block table](block-table.md) 找到每个位置在缓存里的 512 维潜向量，一次选一个位置（选择粒度为 1），用右下对齐的因果掩码算本卡的 8 个头；之后做 V 解压和输出投影，最后用一次 [All-Reduce](collective-communication.md#all-reduce) 把 8 张卡的部分和加起来。
+4. **主 attention 按清单读潜向量。** 清单交给昇腾稀疏 FlashAttention 内核：它经 [block table](block-table.md) 逐位置取出 512 维潜向量（选择粒度 `1`），用右下对齐因果掩码算完本卡 8 个头；随后做 V 解压、输出投影，并以一次 [All-Reduce](collective-communication.md#all-reduce) 汇总 8 卡部分和。
 
 ```wiki-diagram
 file: sparse-attention-path
@@ -282,7 +282,7 @@ TP8 下有两样东西不按卡切：indexer 在每张卡上各算一遍，512 �
 | 单层合计浮点运算量 | $(8.40\text{ M} + 8.40\text{ M}) \times 2\text{ FLOP}$ | $\approx 33.6\text{ MFLOP}$ |
 | 主干 11 层合计 | $11 \times 33.6\text{ MFLOP}$ | $\approx 370\text{ MFLOP}$ |
 
-同样按上界，选中潜向量的逻辑读取量是 2051 × 512 × 2 B ≈ 2.00 MiB（每个 token、每层、每卡），主干 11 层 22.0 MiB，加上 [MTP](speculative-decoding.md) 层（生成投机草稿的配套层，也是稀疏 MLA）共 12 层 24.0 MiB。潜向量在 TP 组内每卡各存一份，所以每张卡都要读这些。这是逻辑数据量，没有计入内核的分块、重复加载和缓存复用，也没有实测。
+同样按上界，选中潜向量的逻辑读取量为 `2051 × 512 × 2 B ≈ 2.00 MiB`（每 token、每层、每卡），主干 11 层合计 `22.0 MiB`，计入同样是稀疏 MLA 的 [MTP](speculative-decoding.md) 层共 12 层合计 `24.0 MiB`。潜向量在 TP 组内每卡各存一份，因此每张卡都要读这些（此为逻辑数据量，未计内核分块、重复加载与缓存复用，也未实测）。
 
 ## 常见误解
 

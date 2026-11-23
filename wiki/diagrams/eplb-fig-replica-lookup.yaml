@@ -1,0 +1,10 @@
+mode: native-svg
+id: eplb-fig-replica-lookup
+caption: >-
+  EPLB 物理槽位与两张翻译表（expert_map / log2phy）走读（2 卡 × 3 物理槽，4 专家 + 2 副本，对应纯 EP 即 tp_size=1 就近选本地副本分支）：卡 1 上 Token A 选中 E2，查卡 1 log2phy 得物理 2（2 // 3 = 0, 2 % 3 = 2）跨卡发往卡 0 第 2 格；Token B 选中热门 E0，查卡 1 log2phy 得物理 3（3 // 3 = 1, 3 % 3 = 0）直接命中卡 1 本卡第 0 格副本，零跨卡通信。
+size: [900, 520]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/eplb/core/eplb_utils.py#L46-L107
+    symbols: [generate_global_placement, init_eplb_config]
+  - source: vllm-ascend@db701c1f:vllm_ascend/eplb/core/eplb_utils.py#L110-L136
+    symbols: [generate_log2phy_map]

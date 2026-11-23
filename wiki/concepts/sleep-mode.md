@@ -75,6 +75,15 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L387-L392'
   - 'vllm@ba15685a:vllm/config/model.py#L375-L380'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1392-L1451
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1507-L1786
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L373-L386'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/safety.py#L9-L18'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L605-L620'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L392-L405'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -95,13 +104,15 @@ relations:
     kind: builds-on
     note: 固定双机部署未开 Sleep Mode，卡的分工与显存预算仍以部署页为准
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-23'
 origin: gap
 rawSources:
   - >-
     raw/sha256-420d0319585f07ff323b58f0ac201d0cb6155ea95bb8a8cba30c59e952ae6bf7.md
   - >-
     raw/sha256-ad479d365f8bbdc1a194ac58ffc4d8d965236880240b6dbf2e6124e3ec82d201.md
+  - >-
+    raw/sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md
 ---
 
 ## 推理暂时不用卡时，能把显存让出来吗？
@@ -175,6 +186,24 @@ file: sleep-mode-fig-levels-and-wakeup
 - **分标签唤醒期间，调用方必须继续挡住新流量**：钉住的 EngineCore 每次唤醒调用后都会恢复调度，包括只唤醒权重那一步；执行器此时仍能记录缓存标签尚未恢复。两种状态不能混为一谈，查询到仍在睡眠也不能代替调用方的流量控制。
 - **接口响应与操作完成需要区分**：旧 v0 引擎通过独立的前端进程接收控制请求时，接口返回成功不应单独当作内存交接完成的信号：在开始训练或恢复生成前，还需要确认睡眠或唤醒操作已经完成。这条提醒针对旧 v0 的前端多进程形态，不据此推断固定部署的控制时序。
 
+### Ascend 910B3 真机实测：`weight_nz_mode` 守卫、唤醒提速与显存净残留
+
+在单卡 `Ascend 910B3`（`v0.30.0`，完整实测档案见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）上对 `Qwen3-8B`（`BF16`）执行 Sleep Mode 对照实测，验证了配置守卫、唤醒速度、板级显存口径与 `RFork` 交互四项关键事实：
+
+1. **为什么默认 `weight_nz_mode=1` 下 BF16 权重并未转 `NZ`，`wake_up()` 却仍报错？** 在非 310P 设备上，`utils.py` 规定普通 `BF16 / FP16` 权重仅当 `weight_nz_mode == 2` 时才转换为 `FRACTAL_NZ`（默认 `1` 只转量化权重，因此 `Qwen3-8B` 的 BF16 权重本来就保持 `ND` 布局）；但 `worker.py` 的 `wake_up()` 守卫直接检查配置项 `if nz_mode:`，只要非零即抛出 `ValueError: FRACTAL_NZ mode is enabled...`（未改配置组实测 `level 1` 耗时 `16.593 s`、释放 `48.37 GiB`、Worker 侧报剩余 `3.02 GiB`，但在唤醒时被该守卫拦截）。因此这次报错不能反证 BF16 权重原本已转 `NZ`；对 BF16 模型显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 置 0 的 `rl_config`）不会带来在线算子布局损失，仅对真正依赖 `NZ` 的权重类型才会改变转换行为。
+2. **显式设 `weight_nz_mode=0` 后的五阶段实测账本**：
+
+| 实测检查点（单卡 `Qwen3-8B` BF16，`weight_nz_mode=0`） | `npu-smi` 板级 HBM 占用 | 扣除初始空载后进程净占 | 主机进程树 RSS | 耗时与输出校验 |
+| --- | ---: | ---: | ---: | --- |
+| `0_before_engine_init`（建引擎前空载基线） | `3,453 MB`（`3.372 GiB`） | `0 GiB`（基线） | `1.371 GiB` | 板级初始占用基线 |
+| `1_active_after_gen1`（首次生成后活跃态） | `55,740 MB`（`54.434 GiB`） | `51.062 GiB` | `8.189 GiB` | 完整引擎初始化 **`95.830 s`** |
+| `2_sleeping_level1_cpu_offload`（`level 1` 睡后） | `6,211 MB`（`6.065 GiB`） | **`2.693 GiB`**（`+2,758 MB`） | `8.190 GiB` | `sleep(level=1)` **`8.070 s`** |
+| `3_awake_after_gen2`（唤醒后二次生成） | `55,741 MB`（`54.435 GiB`） | `51.063 GiB` | `8.190 GiB` | `wake_up()` **`2.482 s`**，同输入生成文本逐字一致 |
+| `4_sleeping_level2_discard_all`（`level 2` 睡后） | `6,210 MB`（`6.064 GiB`） | **`2.692 GiB`**（`+2,757 MB`） | `8.200 GiB` | `sleep(level=2)` **`4.334 s`**（仅测卸载，未测重载后生成） |
+
+两处数字边界必须看清：其一，**`2.482 s` 唤醒较 `95.830 s` 初始化快 `38.61×`**，比较的是“存活引擎从 CPU 拷回权重并重映射缓存池”与“从零冷启动完整初始化（含加载、试跑、编译与录图）”两个不同阶段；其二，`npu-smi` 从 `55,740 MB` 降到 `6,211 MB`（`6.065 GiB`）是板级总读数，其中包含建引擎前已占的 `3,453 MB` 空载基线，因此该推理进程睡后净留显存为 **`2.693 GiB`（`2,758 MB`）**——不能把全部 `6.065 GiB` 认作该进程的 CANN/HCCL 上下文，也不能直接推广为多卡每卡残留。
+3. **启用 Sleep Mode 时 `RFork` 自动回退默认加载**：`rfork/safety.py` 中的可变权重安全检查 `mutable_weights_bypass_reason()` 只要检测到 `enable_sleep_mode` 为真便返回 `"sleep mode"`，`rfork_loader.py` 随即打印告警并回退至默认模型加载器；即便把 `weight_nz_mode` 设为 `0`，也不会恢复 `RFork` 的权重共享传输。
+
 ## GLM 双机中的一个 token 会遇到睡眠吗？
 
 **固定 GLM 双机部署没有启用 Sleep Mode，请求生成期间不会因空闲自动睡眠。** [部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)所用的官方两机命令都没有睡眠开关；上游配置默认关闭。启动时权重、缓存进入普通分配路径，详细顺序见 [Worker 生命周期](../concepts/npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
@@ -226,13 +255,13 @@ level 2 的恢复协议是 `wake_up(tags=["weights"])` → 外部重载或更新
 
 ### 会报什么错
 
-下面原文来自 GLM 执行侧钉点 db701c1f；它们是源码中的抛错条件，未在本机 NPU 复现。
+下面先列 GLM 执行侧钉点 `db701c1f` 的抛错条件，并标出 `v0.30.0`（`c09d3e20`）在 `Ascend 910B3` 真机复现的唤醒守卫原文：
 
 | 阶段与触发条件 | 原文与精确位置 | 应如何处理 |
 | --- | --- | --- |
 | 创建睡眠分配器时，分配环境含冲突选项 | `Expandable segments are not compatible with memory pool. Please track https://github.com/pytorch/pytorch/issues/147851 for the latest updates.`；camem.py:153–157 | 移除冲突项；GLM 教程原命令含该项 |
 | 同一 Worker 进程已有睡眠池占用，又加载另一实例 | `Sleep mode can only be used for one instance per process.`；worker.py:671 | 使用独立进程，不共用该单例池 |
-| 唤醒时 NZ 布局模式非零 | `FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios. Please set weight_nz_mode=0 via --additional-config.`；worker.py:244–247 | 启动时设兼容布局，并核对最终配置 |
+| 唤醒时 NZ 布局模式非零 | `db701c1f`（`worker.py:244-247`）：`FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios. Please set weight_nz_mode=0 via --additional-config.`；`v0.30.0`（`worker.py:279-286`）真机复现追加 `or enable additional_config.rl_config (enabled: true) which disables NZ automatically.` [C39][M48] | 启动时显式设 `weight_nz_mode=0`（或开启 `rl_config.enabled`）；注意普通 BF16 权重在默认 `mode=1` 下本不转 NZ（`utils.py:373-386`）[C49] |
 | 睡前后测得的可用显存差为负 | `Memory usage increased after sleeping.`；worker.py:232 | 检查同卡其他进程、未完成工作和实际显存变化 |
 
 表中路径均相对 vllm_ascend：前者在 device_allocator/，其余在 worker/；完整定位见页末来源。无效唤醒标签则是 warning 后返回，不保证抛异常：`Tag %s is not in sleeping tags %s`，位于 vLLM executor/abstract.py:335–341。调用方要核对状态，不能仅凭 HTTP 返回成功判定恢复了目标内存。
@@ -266,6 +295,6 @@ CPU 备份按分配器记录的实际字节数申请 pinned memory（便于设�
 - **定义、示例与官方版本修订**：`docs/source/user_guide/feature_guide/sleep_mode.md`（来源 1–5、28）；GLM 双机未启用事实见教程 `237-341` 行（来源 6）[S1][S6]。
 - **上游入口、状态控制与双机协作**：`api_router.py:21-48`、`core.py:688-783`、`1621-1668`（`mode=wait`）、`1771-1828`（DP 暂停共识与恢复同步）、`executor/abstract.py:318-356` [C8][C9][C10][C25]。
 - **显存去向与旧版实现**：GLM 镜像 `db701c1f` 的 `worker.py:216-280`、`668-679`、`894-905` 与 `camem.py:135-249` [C11][C12]；`v0.23.0`（`2c59ff10`）与 `v0.26.0rc`（`2ed6cbba`）见来源 15–16、29–30。
-- **`v0.30.0` 与 `main` 核心实现**：`vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306`、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L309-L382`、`vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298`（两版一致）、`vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290`、`ascend_config.py`（`c09d3e20#L371-L375`、`8d6180e2#L387-L392`），以及四版上游 `vllm/config/model.py`（`0fc695fc`、`568afb3a`、`ced6857a`、`ba15685a`）。
+- **`v0.30.0` 与 `main` 核心实现及 `RFork` 边界**：`vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306`（含 `wake_up` 非零 `weight_nz_mode` 守卫 `#L279-L286`）、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L309-L382`、`vllm_ascend/utils.py`（`c09d3e20#L373-L386`、`8d6180e2#L392-L405`，普通 BF16/FP16 仅在 `nz_mode == 2` 转 NZ）[C49]、`vllm_ascend/model_loader/rfork/safety.py`（`c09d3e20#L9-L18`、`8d6180e2#L9-L21`）与 `rfork_loader.py#L605-L620`（启用睡眠时返回 `"sleep mode"` 并回退默认加载）[C50][C51]、`vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298`（两版一致）、`vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290`、`ascend_config.py`（`c09d3e20#L371-L375`、`8d6180e2#L387-L392`），以及四版上游 `vllm/config/model.py`（`0fc695fc`、`568afb3a`、`ced6857a`、`ba15685a`）；`Ascend 910B3` 单卡 `Qwen3-8B` 五阶段实测与 `FRACTAL_NZ` 唤醒报错标本见来源 47–48 [M47][M48]。
 
-**待核与边界：** 缺少固定 GLM 双机在调整分配选项、NZ 布局及流量控制后的 level 1 / level 2 实测，需核对混合注意力状态、权重重载、输出一致性、释放显存和恢复耗时。来源 8 的 `api_router.py` 27–28、40–41 行保留仅针对旧 v0 frontend multiprocessing 的异步返回注释，交接仍应确认实际完成、流量暂停与权重恢复，不能只看 HTTP 成功 [I]。来源 1 第 26 行将 `COMPILE_CUSTOM_KERNELS=1` 限定于低于 v0.12.0rc1 的构建。正文每卡 6 GiB→1 GiB→3 GiB→6 GiB 的空间交接为教学示意假设 [A] 与分配器语义推导 [D]。
+**待核与边界：** 单卡 `Ascend 910B3` 已验证 `Qwen3-8B`（`weight_nz_mode=0`）`level 1` 休眠唤醒耗时、板级净残留与输出一致性，但 `level 2` 仅测到卸载（`4.334 s`），尚未验证重载权重后的输出；同时缺少固定 GLM 双机在调整分配选项、NZ 布局及流量控制后的 level 1 / level 2 实测，需核对混合注意力状态、权重重载、输出一致性、释放显存和恢复耗时。来源 8 的 `api_router.py` 27–28、40–41 行保留仅针对旧 v0 frontend multiprocessing 的异步返回注释，交接仍应确认实际完成、流量暂停与权重恢复，不能只看 HTTP 成功 [I]。来源 1 第 26 行将 `COMPILE_CUSTOM_KERNELS=1` 限定于低于 v0.12.0rc1 的构建。正文每卡 6 GiB→1 GiB→3 GiB→6 GiB 的空间交接为教学示意假设 [A] 与分配器语义推导 [D]。

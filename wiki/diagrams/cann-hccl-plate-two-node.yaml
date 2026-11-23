@@ -1,0 +1,10 @@
+mode: native-svg
+id: cann-hccl-plate-two-node
+caption: >-
+  双机 16 卡昇腾节点与物理互联立体拆解：NODE 0 与 NODE 1 内各有 8 张 NPU 经板内黄铜 HCCS 高速总线互联，承载机内高频 TP8 归约；两机通过梅紫 RoCE 设备网口与中央 SWITCH 交换机连通，承载跨机 EP16 MC2 派发/收回及 AllGather 路径下的 DP HCCL 张量通信（每步 DP 宽度与图模式对齐默认走主机 CPU gloo 控制通道）。
+size: [900, 632]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1283-L1305
+    symbols: [_init_worker_distributed_environment, init_distributed_environment, ensure_model_parallel_initialized, init_ascend_model_parallel]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L63-L115
+    symbols: [init_model_parallel_group]

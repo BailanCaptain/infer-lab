@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="异步调度加投机解码 R1 两步在途记账时间线：同步对齐 EngineCore 已算 12→10、占位 8→4 与 Worker 位置 8-11→6-9" font-family="var(--font-sans)">
+  <title>R1 两步在途记账时间线（第 2 步拒 2 收 2）：EngineCore 与 Worker 双向校准</title>
+  <desc>在一条共享水平时间轴上分 EngineCore 与 Worker 两轨追踪 R1（K=3）跨两步的异步记账：T1 排第 3 步乐观记已算 12、占位 8、位置 8–11；T2 Worker 凭卡上有效数 2 将实际位置回退为 6–9 并覆盖被拒 KV；T3 第 2 步结果回传主机，已算 12→10、占位 8→6→4；T4 排第 4 步恢复已算 10→14、占位 4→8。</desc>
+  <defs>
+    <marker id="asil-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="asil-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="asil-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="asil-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <circle cx="26" cy="24" r="12" fill="#087f73"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">R1 两步在途总账（K=3，第 2 步拒 2 收 2）：EngineCore 与 Worker 共享时间轴</text>
+
+  <!-- Shared Horizontal Time Axis (y = 54) -->
+  <line x1="108" y1="54" x2="878" y2="54" stroke="#4d5652" stroke-width="1.8" marker-end="url(#asil-arr-t)"/>
+  <g font-size="13.5" font-weight="700" fill="#17211f" text-anchor="middle">
+    <circle cx="192" cy="54" r="5" fill="#c78300"/>
+    <text x="192" y="45">T1 · 排第 3 步</text>
+    <circle cx="404" cy="54" r="5" fill="#4c65b6"/>
+    <text x="404" y="45">T2 · 卡上备第 3 步</text>
+    <circle cx="614" cy="54" r="5" fill="#b54237"/>
+    <text x="614" y="45">T3 · 第 2 步回传</text>
+    <circle cx="808" cy="54" r="5" fill="#087f73"/>
+    <text x="808" y="45">T4 · 排第 4 步</text>
+  </g>
+
+  <!-- Vertical milestone guides -->
+  <g stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="4 4">
+    <line x1="192" y1="62" x2="192" y2="430"/>
+    <line x1="404" y1="62" x2="404" y2="430"/>
+    <line x1="614" y1="62" x2="614" y2="430"/>
+    <line x1="808" y1="62" x2="808" y2="430"/>
+  </g>
+
+  <!-- Lane 1 Label: EngineCore (Host CPU) -->
+  <rect x="14" y="76" width="84" height="148" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="56" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">EngineCore</text>
+  <text x="56" y="160" text-anchor="middle" font-size="13" fill="#936300">主机账本</text>
+
+  <!-- T1 EngineCore box -->
+  <rect x="110" y="76" width="166" height="148" rx="7" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
+  <text x="193" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">乐观排第 3 步</text>
+  <text x="122" y="123" font-size="13.5" fill="#4d5652">已知 5 · 候选占位 3</text>
+  <text x="122" y="147" font-size="13.5" font-weight="700" fill="#17211f">已算：8 → <tspan fill="#936300">12</tspan></text>
+  <text x="122" y="171" font-size="13.5" font-weight="700" fill="#17211f">占位：4 → <tspan fill="#936300">8</tspan></text>
+  <text x="122" y="195" font-size="13.5" fill="#936300">乐观派发位置 8–11</text>
+  <text x="122" y="215" font-size="13" fill="#66716d">队列满 2 批，等第 2 步</text>
+
+  <!-- T3 EngineCore box (Two-step cancellation!) -->
+  <rect x="524" y="76" width="182" height="148" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+  <text x="615" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">收第 2 步（拒 2 收 2）</text>
+  <text x="536" y="123" font-size="13.5" fill="#17211f">已知：5 → <tspan font-weight="700">7</tspan></text>
+  <text x="536" y="147" font-size="13.5" font-weight="700" fill="#8f3229">已算：12 − 2 = 10</text>
+  <text x="536" y="171" font-size="13.5" font-weight="700" fill="#8f3229">占位：8 − 2 − 2 = 4</text>
+  <text x="536" y="195" font-size="13" fill="#4d5652">先减被拒 2，再减实收 2</text>
+  <text x="536" y="215" font-size="13" font-weight="700" fill="#065f56">已算−占位 = 6（对齐同步）</text>
+
+  <!-- T4 EngineCore box -->
+  <rect x="726" y="76" width="158" height="148" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="805" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">续排第 4 步</text>
+  <text x="738" y="123" font-size="13.5" fill="#4d5652">7 + 3 + 4 − 10 = 4</text>
+  <text x="738" y="147" font-size="13.5" font-weight="700" fill="#065f56">已算：10 → 14</text>
+  <text x="738" y="171" font-size="13.5" font-weight="700" fill="#065f56">占位：4 → 8</text>
+  <text x="738" y="195" font-size="13.5" fill="#065f56">乐观派发 10–13</text>
+  <text x="738" y="215" font-size="13" fill="#66716d">每步稳排 4 格</text>
+
+  <!-- Horizontal EngineCore continuity arrows -->
+  <line x1="276" y1="150" x2="520" y2="150" stroke="#c78300" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#asil-arr-a)"/>
+  <text x="398" y="141" text-anchor="middle" font-size="13" fill="#66716d">CPU 挂等第 2 步完成事件</text>
+  <line x1="706" y1="150" x2="722" y2="150" stroke="#087f73" stroke-width="1.8" marker-end="url(#asil-arr-t)"/>
+
+  <!-- Divider between EngineCore and Worker -->
+  <line x1="14" y1="244" x2="884" y2="244" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Lane 2 Label: Worker (NPU) -->
+  <rect x="14" y="264" width="84" height="162" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="56" y="334" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">Worker</text>
+  <text x="56" y="356" text-anchor="middle" font-size="13" fill="#3a4f93">NPU 卡上</text>
+
+  <!-- T1 Worker: running Step 2 -->
+  <rect x="110" y="264" width="166" height="162" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="193" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">正算第 2 步</text>
+  <text x="122" y="314" font-size="13.5" fill="#17211f">执行位置：4–7</text>
+  <text x="122" y="338" font-size="13.5" fill="#17211f">验出：留 1 候选 + 1 新</text>
+  <text x="122" y="362" font-size="13.5" font-weight="700" fill="#8f3229">被拒 2 个（槽 6、7）</text>
+  <text x="122" y="388" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">valid_count = 2</text>
+  <text x="122" y="410" font-size="13" fill="#4d5652">真值留卡 + 拷贝流回传</text>
+
+  <!-- Dispatch arrow T1 EngineCore -> T2 Worker -->
+  <path d="M 232 224 L 232 248 L 328 248 L 328 260" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#asil-arr-a)"/>
+
+  <!-- T2 Worker: Corrects optimistic 8-11 -> actual 6-9 -->
+  <rect x="296" y="264" width="218" height="162" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="405" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">卡上纠正第 3 步位置</text>
+  <text x="308" y="312" font-size="13.5" fill="#8f3229">收到乐观计划：位置 8–11</text>
+  <text x="308" y="335" font-size="13.5" font-weight="700" fill="#065f56">凭 valid_count=2 回退 2 格：</text>
+  <!-- 4 visual position cells [6, 7, 8, 9] -->
+  <rect x="308" y="346" width="46" height="32" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="331" y="367" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">槽 6*</text>
+  <rect x="358" y="346" width="46" height="32" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="381" y="367" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">槽 7*</text>
+  <rect x="408" y="346" width="46" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="431" y="367" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">槽 8</text>
+  <rect x="458" y="346" width="46" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="481" y="367" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">槽 9</text>
+  <text x="308" y="400" font-size="13" font-weight="700" fill="#065f56">实算 6–9（* 槽 6/7 原地覆写）</text>
+  <text x="308" y="418" font-size="13" fill="#4d5652">CPU 长度仅按后端需要补修正</text>
+
+  <!-- Arrow from T1 Worker -> T2 Worker (on-device valid_count) -->
+  <line x1="276" y1="360" x2="292" y2="360" stroke="#087f73" stroke-width="2" marker-end="url(#asil-arr-t)"/>
+
+  <!-- Async copy stream arrow from T1 Worker -> T3 EngineCore -->
+  <path d="M 276 410 L 570 410 L 570 228" fill="none" stroke="#9a4b86" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#asil-arr-p)"/>
+  <text x="582" y="320" font-size="13.5" font-weight="700" fill="#7a3a6a">异步拷贝流回传</text>
+  <text x="582" y="342" font-size="13" fill="#7a3a6a">第 2 步实收 2 词</text>
+
+  <!-- T4 Worker: Step 3 finishes & Step 4 arrives -->
+  <rect x="726" y="264" width="158" height="162" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="805" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">第 3 步全接受</text>
+  <text x="738" y="318" font-size="13.5" fill="#17211f">实际 6–9 全通过</text>
+  <text x="738" y="342" font-size="13.5" font-weight="700" fill="#065f56">valid_count = 4</text>
+  <text x="738" y="368" font-size="13.5" fill="#4d5652">第 4 步位置 10–13</text>
+  <text x="738" y="392" font-size="13.5" fill="#065f56">无需回退直接算</text>
+
+  <!-- Bottom alignment summary bar -->
+  <rect x="14" y="444" width="870" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="449" y="471" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">三处精确对齐：<tspan fill="#8f3229">EngineCore 已算 12 → 10</tspan> ｜ <tspan fill="#8f3229">输出占位 8 → 4</tspan> ｜ <tspan fill="#065f56">Worker 实际位置 8–11 → 6–9</tspan></text>
+</svg>

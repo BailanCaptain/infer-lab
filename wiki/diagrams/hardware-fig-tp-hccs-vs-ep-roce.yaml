@@ -1,0 +1,14 @@
+mode: native-svg
+id: hardware-fig-tp-hccs-vs-ep-roce
+caption: >-
+  双机拓扑下的机内 TP（HCCS）与跨机 EP（RoCE）激活路径对比：两台服务器各自将高频逐层同步的 TP8 All-Reduce（例外 B GLM 算例整趟 91 次）锁在机内 HCCS Full Mesh 域内，跨机 200GE RoCE（NPU 直出网口）仅转发 MoE 层命中远端专家的 token 激活向量并收回结果，权重常驻持有卡；底部按同比例条对照 800T A2 7 链聚合 392 GB/s 与单口 RoCE 25 GB/s（200 Gbit/s）的量级落差，并标出 v0.30.0 单机 A3 / 950DT 免跨跳路径。
+size: [900, 544]
+pins:
+  - source: 'vllm@ced6857a:vllm/distributed/parallel_state.py#L1772-L1830'
+    symbols:
+      - init_distributed_environment
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L284-L388'
+    symbols:
+      - HardwareProfile
+      - DUAL_CHIP_CARD
+      - FP8_OPTIMIZED

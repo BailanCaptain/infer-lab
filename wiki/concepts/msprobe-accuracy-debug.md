@@ -57,9 +57,9 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-当你已经按 [输出异常排查](inference-correctness-troubleshooting.md) 确认两套服务收到的 **token ID（词元编号）** 完全一致、采样也已锁死 `temperature=0`，但昇腾上的推理结果依然出现乱码、突现 `NaN/Inf`，或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比标杆精度（如 BF16 原版或参考 GPU）大幅掉点，单靠看最终输出文字已经无法猜出是哪一层出了问题。此时需要把模型内部每一层、甚至每一个算子的输入输出特征图抓取出来逐段比对——这就是昇腾 **MindStudio `msprobe`** 工具链的核心用途。
+按 [输出异常排查](inference-correctness-troubleshooting.md) 对齐后，两套服务收到的 **token ID（词元编号）** 已完全一致，采样也锁死 `temperature=0`。如果此时昇腾仍输出乱码、`NaN/Inf`，或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比标杆（如 BF16 原版或参考 GPU）大幅掉点，单看输出文字已无法猜出哪一层出错。此时需要抓取模型内部逐层、逐算子的输入输出特征图分段比对——这正是昇腾 **MindStudio `msprobe`** 的核心用途。
 
-不过，把全模型几十层、几百个算子的全量张量直接落盘动辄占满几十 GiB 磁盘且拖慢百倍。工程上正确姿势是：**先分清 `Runtime Guard`、`batch_invariant` 与 `msprobe` 三类工具的分工，再按「统计初筛 → 缩小范围 → 真实张量」由粗到细四步锁定首个分歧算子**。
+不过，把全模型几十层、几百个算子的全量张量直接落盘动辄占满几十 GiB 磁盘且拖慢百倍。工程上的正确姿势是：**先分清 `Runtime Guard`、`batch_invariant` 与 `msprobe` 三类工具的分工，再按「统计初筛 → 缩小范围 → 真实张量」由粗到细四步锁定首个分歧算子**。
 
 ```wiki-diagram
 file: msprobe-fig-layer-isolation
@@ -75,27 +75,31 @@ file: msprobe-fig-layer-isolation
 | **`batch_invariant` 模式** | 稳定性复现实验（`v0.30.0` 及前后版本可用：`enable_batch_invariant: true` / `VLLM_BATCH_INVARIANT=1`） | 判断分歧是否源自**并发批大小/形状变化导致的浮点归约顺序差异**（见 [批不变性](batch-invariance.md)） | 会关闭 `vllm_ascend_C` 自定义算子库并切到确定性核，吞吐显著下降；若打开后错误消失，说明是批相关数值敏感或自定义核引入的差异 |
 | **`msprobe` 逐层转储** | 离线精确定位（全版本 `ModelRunner` V1/V2 均内建钩子：`additional_config.dump_config`） | 针对**稳定复现的单条样本**，逐模块（`L0`）或逐算子（`L1`/`mix`）抓统计值与原始张量，与标杆对齐找出**第一处分歧算子** | 磁盘与耗时开销大，严禁直接开在生产高并发节点；须用单条固定请求、关闭干扰特性后在隔离环境采集 |
 
-一个高效的联合排查顺序是：线上先用 **Runtime Guard** 拦下坏样本与 KV 现场 → 拿到测试环境复现后，分别在 `--enforce-eager` 与 `VLLM_BATCH_INVARIANT=1` 下跑一次对照，立刻切分“是不是图模式问题”与“是不是 `vllm_ascend_C` 自定义核/批形状问题” → 确认稳定复现后，最后祭出 **`msprobe`** 精准打点。
+一个高效的联合排查顺序分三步走：先用线上 **Runtime Guard** 拦下坏样本与 KV 现场；再到测试环境分别在 `--enforce-eager` 与 `VLLM_BATCH_INVARIANT=1` 下做对照，切分是否涉及图模式或 `vllm_ascend_C` 自定义核/批形状；确认稳定复现后，最后启用 **`msprobe`** 精准打点。
 
 ## Eager 与图模式（ACL Graph）的接入边界，以及由粗到细四步法
 
-在 `vLLM Ascend` 中，无论运行在 MRV1 还是 [Model Runner V2](model-runner-v2.md)，引擎都已内建了 `msprobe` 启停钩子——你不需要修改模型代码，只需通过 `--additional-config` 传入 `dump_config`（内联 JSON 字典，引擎会自动落盘至 `.vllm_ascend/msprobe/msprobe_dump_config.json`）或旧版 `dump_config_path`（二者互斥，不可同时设置）。
+在 `vLLM Ascend` 中，MRV1 与 [Model Runner V2](model-runner-v2.md) 均已内建 `msprobe` 启停钩子，无需改模型代码。只需通过 `--additional-config` 传入内联 `dump_config`（引擎自动落盘至 `.vllm_ascend/msprobe/msprobe_dump_config.json`）或旧版 `dump_config_path`；二者互斥，不可同时设置。
 
 但 **Eager 模式** 与 **图模式（[ACL Graph](acl-graph.md)）** 背后的转储后端并不相同：
 
-- **Eager 模式（`cudagraph_mode == NONE`，即 `--enforce-eager`）**：实例化的调试器是 `PrecisionDebugger`，通过 `pip install mindstudio-probe` 即可直接启用；支持全部字段（`step`、`scope`、`list`、`dump_enable`）。
-- **图模式（`FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`）**：实例化的调试器是 `AclGraphDumper`，且会在 `load_model()` 末尾、**图捕获开始之前**就自动触发启动钩子以便对图捕获与回放插桩。使用该模式必须从 `msprobe` 源码带上 `include-mod=aclgraph_dump` 编译安装；并且**图模式暂不支持按 `step`、`scope`、`dump_enable` 过滤**，只能依赖 `list` 收缩算子范围。
+- **Eager 模式（`cudagraph_mode == NONE`，即 `--enforce-eager`）**：实例化 `PrecisionDebugger`，通过 `pip install mindstudio-probe` 即可直接启用，并支持全部字段（`step`、`scope`、`list`、`dump_enable`）。
+- **图模式（`FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`）**：实例化 `AclGraphDumper`，并在 `load_model()` 末尾、**图捕获开始之前**自动触发启动钩子以便对图捕获与回放插桩。该模式必须从 `msprobe` 源码带上 `include-mod=aclgraph_dump` 编译安装；且**暂不支持按 `step`、`scope`、`dump_enable` 过滤**，只能依赖 `list` 收缩算子范围。
 
-在执行抓取时，严禁第一步就跑全模型 `task: "tensor"`，标准四步法如下：
+执行抓取时严禁第一步就跑全模型 `task: "tensor"`，标准四步法如下：
 
-1. **锁死单请求与对比基准**：准备 1 条能稳定复现错误的 prompt，锁定 `temperature=0`、`max_completion_tokens` 取首次出错步前后几步；若为单卡调试，`dump_config` 中的 `rank` 必须设为 `[]`。
-2. **第一轮 `statistics` + `L1` / `L0` 粗筛**：设 `"task": "statistics"`，先只抓每个模块（`L0`，生成 `construct.json` 网络拓扑）或每个算子（`L1`）的 `max / min / mean / norm` 统计量与 `dump.json`。把待测版本与标杆版本的统计表按执行序逐行比对，30 秒内即可找到**第一个出现 `NaN/Inf` 或均值/幅值剧烈偏离的层号 `layers.k` 与迭代步 `step`**。
-3. **第二轮收窄 `scope` / `list` 与 `step`**：确定问题落在第 `k` 层第 `t` 步后，在 Eager 模式下填入 `"step": [t]` 与 `"scope"` 起止模块名（或 `"level": "mix"` + `"list"` 指定该层子模块），把 `"task"` 切换为 `"tensor"` 仅落盘这一层的真实 `.pt` 张量。
-4. **单算子数值核验与根因定性**：计算首分歧算子输入与输出的**余弦相似度**与**最大绝对误差**——若**输入几乎一致（余弦相似度接近 1.0）而输出突然偏离**，这个算子就是根因所在。
+1. **锁死单请求与对比基准**：准备 1 条稳定复现错误的 prompt，锁定 `temperature=0`，`max_completion_tokens` 覆盖首次出错步前后几步。若为单卡调试，`dump_config` 中的 `rank` 必须设为 `[]`。
+2. **第一轮 `statistics` + `L1` / `L0` 粗筛**：设 `"task": "statistics"`，先抓每模块（`L0`，生成 `construct.json`）或每算子（`L1`）的 `max / min / mean / norm` 摘要与 `dump.json`。按执行序逐行比对标杆，30 秒内即可找到**第一个出现 `NaN/Inf` 或均值/幅值断崖偏离的层号 `layers.k` 与迭代步 `step`**。
+3. **第二轮收窄 `scope` / `list` 与 `step`**：锁定第 `k` 层第 `t` 步后，在 Eager 下填入 `"step": [t]` 与 `"scope": [start_name, end_name]` 起止范围（单层定位须给该层起止模块名，或改用 `"level": "mix"` + `"list"` 指定该层子模块，不可传单元素 `scope`），再把 `"task"` 切换为 `"tensor"`，仅落盘这一层的真实 `.pt` 张量。
+4. **单算子数值核验与根因定性**：计算首分歧算子输入与输出的**余弦相似度**与**最大绝对误差**。若**输入几乎一致（余弦相似度接近 1.0）而输出骤降**，这个算子就是根因所在。
 
 ## 四类高频首分歧算子的排查指纹
 
-在昇腾推理精度排障实战中，绝大多数底层分歧最终都会收敛到以下四类核心模块，可根据首分歧位置直接对号入座：
+在昇腾推理精度排障实战中，绝大多数底层分歧都会收敛到以下四类核心模块。先对照指纹图定位症状形态，再按下方清单逐项核查：
+
+```wiki-diagram
+file: msprobe-fig-four-fingerprints
+```
 
 | 首分歧落点 | 典型统计与张量指纹 | 优先检查清单 |
 |---|---|---|

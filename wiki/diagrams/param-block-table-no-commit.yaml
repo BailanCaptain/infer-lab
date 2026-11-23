@@ -1,0 +1,23 @@
+mode: native-svg
+id: param-block-table-no-commit
+caption: >-
+  block_table_no_commit_optimize 曾用于反选 MRv1 块表 H2D 提交实现（默认 0 启用脏区增量提交 [_dirty_begin, _dirty_end)，填 1 退回整行 copy_to_gpu）；该键仅在 main 存活一日即随 PR #17470 整体回退，v0.30.0 走整行拷贝、main 退役 MRv1 块表，残留键通常按 extra="forbid" 拒收。
+size: [900, 396]
+pins:
+  - source: 'vllm-ascend@39fef3f8:vllm_ascend/worker/block_table.py#L417-L428'
+    symbols:
+      - _dirty_begin
+      - _dirty_end
+      - segment_begin
+      - segment_end
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L298-L306'
+    symbols:
+      - commit_block_table
+      - copy_to_gpu
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L519-L522'
+    symbols:
+      - commit_block_table
+      - block_tables
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1895-L1910'
+    symbols:
+      - unknown_keys

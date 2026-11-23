@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="拒绝采样概率质量转移复原目标分布，以及 block verify 打破保分布等价性的反例图" font-family="var(--font-sans)">
+  <title>拒绝采样 3 词概率质量转移与 block verify 反例</title>
+  <desc>上半区在同一 [0, 1] 概率标尺上展示草稿分布 q=[0.8, 0.1, 0.1]、目标分布 p=[0.6, 0.3, 0.1]、按 min(1, p/q) 接受后将「猫」被拒的 0.2 质量经 max(0, p−q) 归一后 100% 补抽给「你」，精准复原目标分布；下半区对比 K=3、A/B 各 0.5、随机数 [0.8, 0.1, 0.9] 时逐位拒绝与 block verify 的累积概率判定，并给出首词 P(A) 从 0.500 抬升至至少 0.6733 的比例条。</desc>
+  <defs>
+    <marker id="srs-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="srs-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Shared [0, 1] Scale for 3-word Rejection Sampling -->
+  <circle cx="26" cy="24" r="12" fill="#087f73"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">标准拒绝采样：3 词共享同一 [0, 1] 标尺，被拒质量 100% 流向目标低估词</text>
+
+  <!-- Vertical grid lines for [0, 1.0] scale: x = 136 + v * 600 (0.0=136 .. 1.0=736) -->
+  <g stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="136" y1="54" x2="136" y2="306"/>
+    <line x1="256" y1="54" x2="256" y2="306"/>
+    <line x1="376" y1="54" x2="376" y2="306"/>
+    <line x1="496" y1="54" x2="496" y2="306"/>
+    <line x1="616" y1="54" x2="616" y2="306"/>
+    <line x1="736" y1="54" x2="736" y2="306"/>
+  </g>
+  <g font-size="13" font-family="var(--font-mono)" fill="#66716d" text-anchor="middle">
+    <text x="136" y="50">0.0</text>
+    <text x="256" y="50">0.2</text>
+    <text x="376" y="50">0.4</text>
+    <text x="496" y="50">0.6</text>
+    <text x="616" y="50">0.8</text>
+    <text x="736" y="50">1.0</text>
+  </g>
+
+  <!-- Track 1: Draft q = [0.8, 0.1, 0.1] -->
+  <text x="16" y="88" font-size="14" font-weight="700" fill="#936300">草稿分布 q</text>
+  <rect x="136" y="64" width="480" height="36" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="376" y="87" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">猫 q = 0.80（草稿高估了 0.20）</text>
+  <rect x="616" y="64" width="60" height="36" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="646" y="87" text-anchor="middle" font-size="13" fill="#3a4f93">你 0.1</text>
+  <rect x="676" y="64" width="60" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="706" y="87" text-anchor="middle" font-size="13" fill="#7a3a6a">看 0.1</text>
+  <text x="748" y="87" font-size="12.5" font-family="var(--font-mono)" fill="#936300">[0.8, 0.1, 0.1]</text>
+
+  <!-- Track 2: Target p = [0.6, 0.3, 0.1] -->
+  <text x="16" y="140" font-size="14" font-weight="700" fill="#065f56">主模型目标 p</text>
+  <rect x="136" y="116" width="360" height="36" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="316" y="139" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">猫 p = 0.60</text>
+  <rect x="496" y="116" width="180" height="36" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="586" y="139" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">你 p = 0.30（差额 +0.20）</text>
+  <rect x="676" y="116" width="60" height="36" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="706" y="139" text-anchor="middle" font-size="13" fill="#7a3a6a">看 0.1</text>
+  <text x="748" y="139" font-size="12.5" font-family="var(--font-mono)" fill="#065f56">[0.6, 0.3, 0.1]</text>
+
+  <!-- Track 3: Accept vs Reject Step -->
+  <text x="16" y="196" font-size="14" font-weight="700" fill="#17211f">① 按 min(1, p/q)</text>
+  <rect x="136" y="172" width="360" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="316" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">猫 留下 0.8 × 0.75 = 0.60</text>
+  <rect x="496" y="172" width="120" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.6" stroke-dasharray="5 3"/>
+  <text x="556" y="196" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">被拒 0.20</text>
+  <rect x="616" y="172" width="60" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="646" y="196" text-anchor="middle" font-size="13" fill="#3a4f93">你 0.1</text>
+  <rect x="676" y="172" width="60" height="38" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="706" y="196" text-anchor="middle" font-size="13" fill="#7a3a6a">看 0.1</text>
+  <text x="748" y="196" font-size="13.5" fill="#8f3229">总拒率 0.20</text>
+
+  <!-- Mass-transfer arrow from rejected 0.20 straight into resampled "你" +0.20 -->
+  <line x1="556" y1="212" x2="556" y2="254" stroke="#4c65b6" stroke-width="2.2" marker-end="url(#srs-arr-b)"/>
+  <text x="568" y="239" font-size="12.5" font-weight="700" fill="#3a4f93">norm(max(0, p−q)) = [0, 1, 0] → 100% 补给「你」</text>
+
+  <!-- Track 4: Final Restored Distribution -->
+  <text x="16" y="284" font-size="14" font-weight="700" fill="#065f56">② 最终输出</text>
+  <rect x="136" y="260" width="360" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="316" y="284" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">猫 0.60</text>
+  <rect x="496" y="260" width="120" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="4 2"/>
+  <text x="556" y="284" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">补抽「你」+0.20</text>
+  <rect x="616" y="260" width="60" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="646" y="284" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">0.10</text>
+  <rect x="676" y="260" width="60" height="38" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="706" y="284" text-anchor="middle" font-size="13" fill="#7a3a6a">看 0.1</text>
+  <text x="748" y="284" font-size="13.5" font-weight="700" fill="#065f56">≡ p 精确复原</text>
+
+  <!-- Bracket showing "你" total 0.30 -->
+  <path d="M 498 302 L 498 310 L 674 310 L 674 302" fill="none" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="586" y="328" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">你 合计 0.10 + 0.20 = 0.30</text>
+  <text x="136" y="352" font-size="13" fill="#66716d">特例：草稿 greedy 时 q(x)=1，以 p(x) 留下，被拒后从去掉候选的主分布补抽</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="368" x2="884" y2="368" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: block verify counterexample -->
+  <circle cx="26" cy="394" r="12" fill="#b54237"/>
+  <text x="26" y="398.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="400" font-size="16" font-weight="700" fill="#17211f">反例：block verify 为何改变输出分布（K=3，草稿总猜 A，目标 A/B 各 0.5）</text>
+
+  <!-- Left chart: Cumulative Ratio vs Cumulative Random (u = [0.8, 0.1, 0.9]) -->
+  <text x="20" y="426" font-size="14" font-weight="700" fill="#17211f">u = [0.8, 0.1, 0.9] 时：格 1 落败，格 2/3 累积翻盘</text>
+  <!-- Legend -->
+  <rect x="348" y="414" width="14" height="12" rx="2" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="366" y="425" font-size="13" fill="#3a4f93">累积概率比</text>
+  <rect x="444" y="414" width="14" height="12" rx="2" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="462" y="425" font-size="13" fill="#8f3229">累积随机数</text>
+
+  <!-- Baseline y=526, scale 1.0 = 84px -->
+  <line x1="42" y1="526" x2="508" y2="526" stroke="#b8bcb5" stroke-width="1.3"/>
+  <line x1="42" y1="442" x2="42" y2="526" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="36" y="446" text-anchor="end" font-size="13" font-family="var(--font-mono)" fill="#66716d">1.0</text>
+  <text x="36" y="488" text-anchor="end" font-size="13" font-family="var(--font-mono)" fill="#66716d">0.5</text>
+  <text x="36" y="530" text-anchor="end" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
+
+  <!-- Pos 1: ratio 0.50 (h=42, y=484) vs u 0.80 (h=67, y=459) -->
+  <rect x="64" y="484" width="42" height="42" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="85" y="479" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">0.50</text>
+  <rect x="112" y="459" width="42" height="67" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="133" y="454" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">0.80</text>
+  <text x="109" y="545" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">格 1：✗ 落败</text>
+
+  <!-- Pos 2: ratio 0.25 (h=21, y=505) vs u 0.08 (h=7, y=519) -->
+  <rect x="214" y="505" width="42" height="21" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="235" y="499" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">0.25</text>
+  <rect x="262" y="519" width="42" height="7" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="283" y="513" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0.08</text>
+  <text x="259" y="545" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">格 2：✓ 通过</text>
+
+  <!-- Pos 3: ratio 0.125 (h=11, y=515) vs u 0.072 (h=6, y=520) -->
+  <rect x="364" y="515" width="42" height="11" rx="2" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="385" y="508" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#3a4f93">0.125</text>
+  <rect x="412" y="520" width="42" height="6" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="433" y="513" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0.072</text>
+  <text x="409" y="545" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">格 3：✓ 整块留</text>
+
+  <text x="20" y="568" font-size="13.5" fill="#4d5652">逐位拒绝在格 1 立刻停并补 B；block verify 凭格 3 通过连留三个 A</text>
+
+  <!-- Right panel: Resulting P(first token = A) shift -->
+  <line x1="534" y1="414" x2="534" y2="588" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="550" y="426" font-size="14" font-weight="700" fill="#17211f">结果：首词输出「A」的总体概率被拉偏</text>
+
+  <!-- Target 0.500 bar (scale 1.0 = 300px, x=550..850) -->
+  <text x="550" y="454" font-size="13.5" font-weight="700" fill="#065f56">✓ 标准拒绝采样（与主模型目标一致）</text>
+  <rect x="550" y="462" width="300" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1"/>
+  <rect x="550" y="462" width="150" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="625" y="481" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">P(A) = 0.500</text>
+  <text x="775" y="481" text-anchor="middle" font-size="13.5" fill="#4d5652">P(B) = 0.500</text>
+
+  <!-- Block verify >= 0.6733 bar -->
+  <text x="550" y="514" font-size="13.5" font-weight="700" fill="#8f3229">✗ block verify（格 2/3 翻盘抬高首词 A）</text>
+  <rect x="550" y="522" width="300" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1"/>
+  <rect x="550" y="522" width="150" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <rect x="700" y="522" width="52" height="28" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <rect x="752" y="522" width="22" height="28" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <text x="625" y="541" text-anchor="middle" font-size="13.5" fill="#065f56">0.500</text>
+  <text x="726" y="541" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">+0.173</text>
+  <text x="814" y="541" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">≥ 0.6733</text>
+
+  <!-- Reference vertical line at 0.500 -->
+  <line x1="700" y1="458" x2="700" y2="554" stroke="#17211f" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="550" y="568" font-size="13" fill="#66716d">默认均关闭；entropy / block verify 均改判法，</text>
+  <text x="550" y="587" font-size="13" fill="#66716d">不可套用保分布证明</text>
+</svg>

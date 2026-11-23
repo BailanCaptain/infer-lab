@@ -1,0 +1,20 @@
+mode: native-svg
+id: param-pcp-o-proj-sharding
+caption: >-
+  enable_pcp_o_proj_weight_sharding（v0.30.0/main 默认 True，覆盖 SFA-PCP o_proj 与 DSA-PCP wo_a/wo_b）：加载期沿输入维按 PCP 组直接缩片至 1/pcp_size；前向按阶段分叉——prefill 临时 All-Gather 拼齐完整权重进 o_proj_full_pools 后回切，decode 用本地分片算部分和并做 PCP All-Reduce（不替代 TP All-Reduce）。
+size: [900, 546]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L581'
+    symbols:
+      - enable_pcp_o_proj_weight_sharding
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/context_parallel/sfa_cp.py#L80-L108'
+    symbols:
+      - enable_pcp_o_proj_weight_sharding
+      - WeightSwitchConfig
+      - WeightLoadPartition
+      - prepare_layer_for_parallel_weight_load
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L912-L936'
+    symbols:
+      - ParallelOProjection
+      - o_proj_full_pools
+      - prepare_weight_load

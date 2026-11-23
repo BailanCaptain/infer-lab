@@ -2,6 +2,8 @@
 id: cpu-binding
 title: CPU 绑核：线程亲和性与 NUMA 局部性
 type: feature
+legacyAnchors:
+  放到-glm-双机8-个-worker-各绑在哪里: 复杂异构实战对照：GLM 双机 8 卡 Worker 的绑核映射与边界
 summary: >-
   模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA
   节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM
@@ -68,12 +70,12 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L334'
   - 'vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L338-L361'
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L452-L463'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L515-L550'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L515-L593'
   - 'vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L784-L802'
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L280-L340'
   - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L960-L974'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L563-L568'
-  - 'vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L515-L550'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L515-L593'
   - 'vllm-ascend@8d6180e2:vllm_ascend/cpu_binding.py#L784-L802'
   - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L380-L450'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1089-L1104'
@@ -110,6 +112,10 @@ rawSources:
 ## 绑核把 Worker 钉在哪些核上？
 
 **CPU 绑核就是在 Worker 启动的收尾处，把它的线程限制在少数几个逻辑 CPU 上运行，并把这个进程已经分配的内存页迁到这批 CPU 中指定的那一块内存上。** 模型计算在 NPU 上，但每一步都要主机侧先把张量和元数据准备好、再把算子提交给设备，绑核管的就是这一侧的运行位置。
+
+```wiki-diagram
+file: cpu-binding-plate-numa-cutaway
+```
 
 先说清五个词：
 
@@ -189,6 +195,12 @@ $$N_{\text{per-NPU}} = \frac{24 + 24}{2} = 24\text{ 核}, \qquad N_{\text{main}}
 - **核不够分时**：留 2 个给中断、主线程至少 1 个、ACL 与 release 各 1 个，一颗卡至少要 5 个核。cpuset 给得太小凑不齐会直接报错，但这个错会被 Worker 接住变成一条警告，服务照样起来，只是没绑上。
 - **cpuset 不均衡时**：收益会打折。官方文档建议把 cpuset 尽量均匀地分布在各 NUMA 节点上；歪在一侧时，有的卡挑不到自己节点的核。
 - **换了产品，路径也不同**：310P 和 A2 按拓扑亲和挑核，A3 默认按全局逻辑设备编号切。A5 则走另一套机制：按 CPU cluster 分配、不预留中断核，还要把主机轮询线程绑到固定节点，容器须能看见主机进程才找得到那些线程。固定执行侧的 A5 角色分配把整个 CPU 池分给主角色，ACL 与 release 留空列表（表示未单设 CPU 列表，不代表线程不存在）。上面的角色分配表只对 A2 这类产品成立，不要套到所有型号。
+
+| 卡型 | 默认挑核模式 | 每卡最低核数与角色切分 | 拿不到拓扑时的行为 |
+| --- | --- | --- | --- |
+| Atlas A2 / 310P | `TOPO_AFFINITY`（亲和 ∩ cpuset + 跨节点补池） | 至少 5 核：前 2 IRQ + 中间 Main + 末 2 ACL/release | 退回 `global_slice` |
+| Atlas A3 | `GLOBAL_SLICE`（按全局逻辑设备编号均分） | 同上（至少 5 核），须同 cpuset 与同设备总数防重叠 | 默认即不依赖拓扑 |
+| Ascend 950（A5） | 完整 CPU cluster（8/16 核） | 整池归 Main，不切 ACL/release、不绑 IRQ；另绑主机 UVB 到 NUMA0（除 CPU0） | 跳过 worker 绑核，不退回 `global_slice` |
 
 ## 换到 Ascend 950，为什么不能沿用每卡五个核？
 

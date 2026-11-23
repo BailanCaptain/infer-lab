@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 396" width="900" height="396" role="img" aria-label="块表整行 H2D 拷贝与单日历史 OptimizedBlockTable 脏区增量提交的拷贝范围对比，以及 09-23 引入 09-24 回退的一日生命周期" font-family="var(--font-sans)">
+  <title>block_table_no_commit_optimize：整行拷贝 vs 单日历史脏区提交与回退时间线</title>
+  <desc>Matrix comparison of full-row H2D copy_to_gpu(num_reqs) vs historical OptimizedBlockTable dirty-range [_dirty_begin, _dirty_end] commit, showing inverted 0/1 semantics and the one-day PR #17066 / PR #17470 revert timeline.</desc>
+  <defs>
+    <marker id="bt-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#66716d"/>
+    </marker>
+    <marker id="bt-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 历史单日对比（2026-09-23）：默认 0 走脏区增量 vs 填 1 退回整行 H2D（命名反直觉）</text>
+  <text x="16" y="46" font-size="13.5" fill="#66716d">decode 每步每请求通常只新增 0–1 个物理块号；以下为 3 条活跃请求 × 6 槽位的示意矩阵</text>
+
+  <!-- Left Matrix: Full-row copy (value=1 / current v0.30.0 MRv1) -->
+  <text x="16" y="76" font-size="14.5" font-weight="700" fill="#936300">普通 BlockTable（当时设 1；现 v0.30.0 MRv1 默认）</text>
+  <text x="16" y="96" font-size="13.5" fill="#4d5652">copy_to_gpu(num_reqs)：前 num_reqs 行全宽拷贝</text>
+
+  <!-- Row 0 (all amber) -->
+  <text x="16" y="128" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req0</text>
+  <rect x="64" y="108" width="358" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <line x1="124" y1="108" x2="124" y2="136" stroke="#c78300" stroke-width="1"/>
+  <line x1="184" y1="108" x2="184" y2="136" stroke="#c78300" stroke-width="1"/>
+  <line x1="244" y1="108" x2="244" y2="136" stroke="#c78300" stroke-width="1"/>
+  <line x1="304" y1="108" x2="304" y2="136" stroke="#c78300" stroke-width="1"/>
+  <line x1="364" y1="108" x2="364" y2="136" stroke="#c78300" stroke-width="1"/>
+  <text x="243" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">整行 6 槽全拷（仅末槽新增）</text>
+
+  <!-- Row 1 (all amber) -->
+  <text x="16" y="164" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req1</text>
+  <rect x="64" y="144" width="358" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <line x1="124" y1="144" x2="124" y2="172" stroke="#c78300" stroke-width="1"/>
+  <line x1="184" y1="144" x2="184" y2="172" stroke="#c78300" stroke-width="1"/>
+  <line x1="244" y1="144" x2="244" y2="172" stroke="#c78300" stroke-width="1"/>
+  <line x1="304" y1="144" x2="304" y2="172" stroke="#c78300" stroke-width="1"/>
+  <line x1="364" y1="144" x2="364" y2="172" stroke="#c78300" stroke-width="1"/>
+  <text x="243" y="163" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">整行 6 槽全拷（本步无改动）</text>
+
+  <!-- Row 2 (all amber) -->
+  <text x="16" y="200" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req2</text>
+  <rect x="64" y="180" width="358" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <line x1="124" y1="180" x2="124" y2="208" stroke="#c78300" stroke-width="1"/>
+  <line x1="184" y1="180" x2="184" y2="208" stroke="#c78300" stroke-width="1"/>
+  <line x1="244" y1="180" x2="244" y2="208" stroke="#c78300" stroke-width="1"/>
+  <line x1="304" y1="180" x2="304" y2="208" stroke="#c78300" stroke-width="1"/>
+  <line x1="364" y1="180" x2="364" y2="208" stroke="#c78300" stroke-width="1"/>
+  <text x="243" y="199" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">整行 6 槽全拷（仅 2 槽脏）</text>
+
+  <!-- Center divider -->
+  <line x1="450" y1="64" x2="450" y2="218" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- Right Matrix: Dirty-range commit (value=0, reverted 09-24) -->
+  <text x="472" y="76" font-size="14.5" font-weight="700" fill="#065f56">历史 OptimizedBlockTable（当时默认 0，已回退）</text>
+  <text x="472" y="96" font-size="13.5" fill="#4d5652">仅搬 [_dirty_begin, _dirty_end) 左闭右开脏段，未动行跳过</text>
+
+  <!-- Row 0: only slot 5 dirty -->
+  <text x="472" y="128" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req0</text>
+  <rect x="520" y="108" width="300" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="670" y="127" text-anchor="middle" font-size="13.5" fill="#66716d">未改动槽位（跳过）</text>
+  <rect x="822" y="108" width="60" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="852" y="127" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">脏1槽</text>
+
+  <!-- Row 1: untouched -->
+  <text x="472" y="164" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req1</text>
+  <rect x="520" y="144" width="362" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="701" y="163" text-anchor="middle" font-size="13.5" fill="#66716d">整行无脏区 → 本步不发起 H2D</text>
+
+  <!-- Row 2: 2 slots dirty -->
+  <text x="472" y="200" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">req2</text>
+  <rect x="520" y="180" width="240" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="640" y="199" text-anchor="middle" font-size="13.5" fill="#66716d">未改动槽位（跳过）</text>
+  <rect x="762" y="180" width="120" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="822" y="199" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">[begin..end) 脏2槽</text>
+
+  <line x1="16" y1="234" x2="884" y2="234" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <!-- Band 2: One-day lifespan & 4-version absence -->
+  <text x="16" y="260" font-size="16" font-weight="700" fill="#17211f">② 一日生命周期与四版本核验现状（勿写入任何部署模板）</text>
+
+  <rect x="16" y="276" width="196" height="104" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="114" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">v0.23 / v0.26 / GLM</text>
+  <text x="114" y="324" text-anchor="middle" font-size="13.5" fill="#4d5652">无此键（静默忽略）</text>
+  <text x="114" y="348" text-anchor="middle" font-size="13.5" fill="#66716d">走普通整行拷贝</text>
+  <path d="M 212 328 L 234 328" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#bt-arr-g)"/>
+
+  <rect x="240" y="276" width="196" height="104" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="338" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">09-23 · PR #17066</text>
+  <text x="338" y="324" text-anchor="middle" font-size="13.5" fill="#17211f">main 短暂引入一日</text>
+  <text x="338" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">Literal[0,1]=0，限 MRv1</text>
+  <path d="M 436 328 L 458 328" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#bt-arr-r)"/>
+
+  <rect x="464" y="276" width="196" height="104" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="562" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">09-24 · PR #17470</text>
+  <text x="562" y="324" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">次日整项回退删除</text>
+  <text x="562" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">键与脏区类一并消失</text>
+  <path d="M 660 328 L 682 328" fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#bt-arr-g)"/>
+
+  <rect x="688" y="276" width="196" height="104" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="786" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">v0.30.0 / main</text>
+  <text x="786" y="324" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">残留键 extra=forbid</text>
+  <text x="786" y="348" text-anchor="middle" font-size="13.5" fill="#4d5652">main 转向 v2 块表</text>
+</svg>

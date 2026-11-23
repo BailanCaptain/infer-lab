@@ -1,46 +1,12 @@
-layout: figure
+mode: native-svg
 id: rfork-lifecycle
-caption: B 的一个 Worker 借完权重以后的几种状态。上排是模型这条线：权重传完、交出模型，等整个实例的 Worker 都备好才开始接请求。中排是「当 seed」这条线：借来的租约还上了才发布，还没还上就先记作延期，被拒或次数用完就不当 seed，模型照常推理。左列是失败这条线：读权重中途出错先清理，清干净才回退到从存储读。右下是进程退出时的收尾。
-size: [900, 440]
-
-items:
-  - { at: [20, 56], size: [176, 56], text: 读权重, sub: 中途失败就要清理, tone: weight, style: faded }
-  - { at: [240, 56], size: [176, 56], text: 权重传完, sub: 列出的读取全部返回, tone: weight }
-  - { at: [468, 56], size: [176, 56], text: 交出模型, sub: 后处理、切推理模式, tone: weight }
-  - { at: [690, 56], size: [190, 56], text: 实例接请求, sub: 所有 Worker 都备好之后, tone: control }
-  - { at: [20, 196], size: [176, 56], text: 清理, sub: 停服务 · 注销显存, tone: danger, style: plain }
-  - { at: [240, 196], size: [176, 56], text: 等租约还上, sub: 当 seed 先记作延期, tone: control, style: faded }
-  - { at: [468, 196], size: [176, 56], text: 发布 seed, sub: 起服务 · 首次登记, tone: comm }
-  - { at: [690, 196], size: [190, 56], text: 服务中, sub: 定时心跳报平安, tone: comm, style: faded }
-  - { at: [20, 336], size: [176, 56], text: 回退, sub: 从存储重读一遍, tone: control, style: plain }
-  - { at: [240, 336], size: [176, 56], text: 不当 seed, sub: 模型照常推理, tone: danger, style: plain }
-  - { at: [690, 336], size: [190, 56], text: 关停收尾, sub: 停心跳 · 撤登记 · 关服务, tone: control, style: plain }
-
-links:
-  - { from: [196, 84], to: [240, 84], tone: weight }
-  - { from: [416, 84], to: [468, 84], tone: weight }
-  - { from: [644, 84], to: [690, 84], tone: control }
-  - { from: [108, 112], to: [108, 196], tone: danger }
-  - { from: [108, 252], to: [108, 336], tone: danger, dashed: true }
-  - { from: [506, 112], to: [328, 196], via: [[506, 150], [328, 150]], tone: control, dashed: true }
-  - { from: [604, 112], to: [604, 196], tone: comm }
-  - { from: [416, 224], to: [468, 224], tone: comm }
-  - { from: [328, 252], to: [328, 336], tone: danger, dashed: true }
-  - { from: [644, 224], to: [690, 224], tone: comm }
-  - { from: [785, 252], to: [785, 336], tone: control, dashed: true }
-
-texts:
-  - { at: [118, 160], text: 任一步失败, tone: danger, size: 13 }
-  - { at: [118, 300], text: 清干净才回退, tone: danger, size: 13 }
-  - { at: [340, 178], text: 还没还上, tone: control, size: 13 }
-  - { at: [614, 160], text: 已还上, tone: comm, size: 13 }
-  - { at: [442, 212], text: 还上了, anchor: middle, tone: comm, size: 13 }
-  - { at: [338, 300], text: 被拒或关停, tone: danger, size: 13 }
-  - { at: [795, 300], text: 进程退出, tone: control, size: 13 }
-  - { at: [460, 422], text: 回退加载完的模型同样交出，也照样可以去当 seed, anchor: middle, note: true, size: 13 }
-
+caption: >-
+  RFork 会话八状态可循环状态机与双并行生命线：上栏列出全部八个 RForkLifecycleState（INITIALIZED、REGISTERED、LEASED、TRANSFERRED、READY、SERVING、FINALIZED 与 CLEANUP_REQUIRED），标明正常登记、读取、重登与心跳异常都会经过 CLEANUP_REQUIRED 并可回退清净后重入循环；下栏对照权重传完后的两条并行生命线——启动线程直接交回模型推进实例接请求，后台归还线程按 RELEASED（推进延期发布）、RETRYABLE（3 次 30s 快试后转 ≥60s 慢试，不放弃延期）与 REJECTED（停试并取消延期，模型照常推理）分别落盘。
+size: [900, 660]
 pins:
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L14-L81
-    symbols: [TRANSFERRED, READY, SERVING, DEFERRED, can_schedule_seed]
+    symbols: [RForkLifecycleState, INITIALIZED, REGISTERED, LEASED, TRANSFERRED, READY, CLEANUP_REQUIRED, SERVING, FINALIZED, LeaseReleaseResult, DEFERRED]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L40-L46
+    symbols: [LEASE_RELEASE_DEGRADED_RETRY_INTERVAL_SEC]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559
     symbols: [start_seed_service, DEFERRED]

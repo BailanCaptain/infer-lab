@@ -1,0 +1,10 @@
+mode: native-svg
+id: ucm-fig-k8s-and-glm-hla
+caption: >-
+  UCM Kubernetes 2P2D 模板 8 引擎 Pod 构成与 GLM 双机三条接入路径对照：上半幅拆解官方 2P2D 模板（每逻辑实例含 1 入口 + 1 worker Pod，共 8 引擎 Pod 与 8 张 NPU）；下半幅对照旧镜像仅加 UCM（KDA 不改 align）、显式加开 prefix caching（640 边界）以及新外部 UCM HLA 混合路径（MLA 共享键 + KDA 按卡存 + 逐层退整块条件）。
+size: [900, 472]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L24-L41
+    symbols: [_using_kv_store]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L37-L70
+    symbols: [UCMConnectorV1, SupportsHMA]

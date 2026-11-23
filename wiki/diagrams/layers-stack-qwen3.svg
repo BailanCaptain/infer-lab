@@ -1,55 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" width="900" height="800" role="img" aria-label="标准 Qwen3-8B 在主线第 4 站的单流逐层前向栈：embed_tokens 查表产出单条 [T, 4096] 残差流，依次穿过结构完全相同的第 0–35 层（每层固定为 RMSNorm → 带逐头 Q/K Norm 与 RoPE 的 GQA → 残差相加 → RMSNorm → SwiGLU 12288 → 残差相加），出第 35 层后经最终 RMSNorm 与 lm_head [4096, 151936] 产出采样词表分数。">
-  <title>标准 Qwen3-8B 在主线第 4 站的单流逐层前向栈：embed_tokens 查表产出单条 [T, 4096] 残差流，依次穿过结构完全相同的第 0–35 层（每层固定为 RMSNorm → 带逐头 Q/K Norm 与 RoPE 的 GQA → 残差相加 → RMSNorm → SwiGLU 12288 → 残差相加），出第 35 层后经最终 RMSNorm 与 lm_head [4096, 151936] 产出采样词表分数。</title>
-  <defs><marker id="layers-stack-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="layers-stack-qwen3-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="layers-stack-qwen3-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <rect x="148" y="236" width="404" height="326" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="164" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每一层同构串联（第 0–35 层，共 36 层）</text>
-  <path d="M350 68 L350 92" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-ink)"/>
-  <path d="M350 142 L350 164" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 206 L350 258" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 320 L350 342" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 386 L350 410" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 472 L350 494" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 538 L350 592" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M510 614 L574 614 L574 289 L524 289" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 636 L350 666" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M350 712 L350 736" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-token)"/>
-  <path d="M128 392 L176 289" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-weight)"/>
-  <path d="M128 392 L176 441" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-qwen3-ah-weight)"/>
-  <rect x="190" y="24" width="320" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本步 T 个输入 token 编号 [T]</text>
-  <rect x="190" y="92" width="320" height="50" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">embed_tokens 词表查表</text>
-  <text x="350" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">[151936, 4096] → 初始单流 hidden</text>
-  <rect x="190" y="164" width="320" height="42" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="350" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">单条残差流 hidden [T, 4096]</text>
-  <rect x="176" y="258" width="348" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">input_layernorm → GQA 注意力</text>
-  <text x="350" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">32Q:8KV · 逐头 q_norm/k_norm + RoPE</text>
-  <rect x="176" y="342" width="348" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="350" y="369" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+ 残差相加 → 写回 [T, 4096]</text>
-  <rect x="176" y="410" width="348" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">post_attention_layernorm → SwiGLU</text>
-  <text x="350" y="456" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">gate_up [4096, 24576] → SiluAndMul → down</text>
-  <rect x="176" y="494" width="348" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="350" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+ 残差相加 → 写回 [T, 4096]</text>
-  <rect x="16" y="362" width="112" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="72" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本层权重</text>
-  <text x="72" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">36 层独立参数</text>
-  <rect x="190" y="592" width="320" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="619" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">到第 35 层了吗？</text>
-  <rect x="190" y="666" width="320" height="46" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="350" y="685" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">最终 RMSNorm（model.norm）</text>
-  <text x="350" y="704" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">归一化单流 [T, 4096]</text>
-  <rect x="190" y="736" width="320" height="50" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="350" y="757" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选采样行 → lm_head [4096, 151936]</text>
-  <text x="350" y="776" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输出 [B_s, 151936] 词表分数交第 5 站</text>
-  <text x="604" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">主线第 4 站：Qwen3-8B 单流前向</text>
-  <text x="604" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">三大同构特征</text>
-  <text x="604" y="298" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">• 全程 1 条 [T, 4096] 残差流贯通</text>
-  <text x="604" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">• 0–35 层算子序列 100% 相同</text>
-  <text x="604" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">• 残差加法融合进下一处 RMSNorm</text>
-  <text x="586" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否：进下一层</text>
-  <text x="362" y="654" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
-  <text x="604" y="700" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">注：Qwen3-30B-A3B 仅把每层</text>
-  <text x="604" y="724" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">SwiGLU 换成 128 选 8 MoE（共 48 层）</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 422" width="900" height="422" role="img" aria-label="Qwen3-8B 36 层同构单残差流前向架构图，展示 embed_tokens 入口、单条 [T, 4096] 残差高速路、GQA 与 SwiGLU 双支路以及末层归一化与 lm_head">
+  <title>Qwen3-8B 36 层同构单流残差前向栈</title>
+  <desc>横向展示 Qwen3-8B 从 embed_tokens 进入单条 [T, 4096] 残差高速路，循环穿过 36 个完全同构的 DecoderLayer（每层包含 input_layernorm + GQA 32Q:8KV 逐头 QK-Norm/RoPE 与 post_attention_layernorm + SwiGLU 12288），最终经 model.norm 与 lm_head 输出词表分数。</desc>
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
+    </marker>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
+    </marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
+    </marker>
+    <marker id="arr-m" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#66716d" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B 单流逐层前向栈：全程 1 条 [T, 4096] 残差高速路</text>
+  <text x="880" y="28" text-anchor="end" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#66716d">BF16 · 8 KiB / token</text>
+
+  <!-- Left Entry: token IDs -> embed_tokens -->
+  <rect x="20" y="64" width="124" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" />
+  <text x="82" y="91" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#17211f">input_ids [T]</text>
+  <line x1="82" y1="108" x2="82" y2="134" stroke="#66716d" stroke-width="1.6" marker-end="url(#arr-m)" />
+
+  <rect x="20" y="138" width="124" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="82" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">embed_tokens</text>
+  <text x="82" y="185" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">[151936, 4096]</text>
+  <text x="82" y="203" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">查表得初始流</text>
+
+  <!-- Arrow from embed_tokens onto main residual highway -->
+  <path d="M 144 174 L 164 174 L 164 102 L 182 102" fill="none" stroke="#087f73" stroke-width="2.6" marker-end="url(#arr-t)" />
+
+  <!-- Center 36x Repeat Container -->
+  <rect x="186" y="48" width="516" height="258" rx="10" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4" />
+  <text x="200" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">Qwen3DecoderLayer × 36 层同构串联（Layer 0 → 35，每层独立权重）</text>
+
+  <!-- UNOBSTRUCTED MAIN RESIDUAL HIGHWAY (y=102) -->
+  <line x1="186" y1="102" x2="412" y2="102" stroke="#087f73" stroke-width="3.2" marker-end="url(#arr-t)" />
+  <line x1="444" y1="102" x2="652" y2="102" stroke="#087f73" stroke-width="3.2" marker-end="url(#arr-t)" />
+  <line x1="684" y1="102" x2="728" y2="102" stroke="#087f73" stroke-width="3.2" marker-end="url(#arr-t)" />
+  <text x="312" y="93" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">残差流 [T, 4096]（恒等直通）</text>
+
+  <!-- Sub-block 1: Attention (Indigo) -->
+  <path d="M 214 102 L 214 198 L 228 198" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+  <rect x="232" y="138" width="174" height="122" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6" />
+  <text x="319" y="160" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">input_layernorm</text>
+  <text x="319" y="180" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">↓ RMSNorm (eps=1e-6)</text>
+  <text x="319" y="204" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">GQA（32Q : 8KV）</text>
+  <text x="319" y="226" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#3a4f93">逐头 q/k_norm + RoPE</text>
+  <text x="319" y="248" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">d_h=128 · o_proj 回4096</text>
+  <path d="M 406 198 L 430 198 L 430 118" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+
+  <!-- Sum Node 1 -->
+  <circle cx="430" cy="102" r="14" fill="#ddf4ef" stroke="#087f73" stroke-width="2" />
+  <text x="430" y="108" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#065f56">+</text>
+
+  <!-- Fused Add+RMSNorm Callout Tag between Sub-block 1 & 2 -->
+  <rect x="448" y="114" width="178" height="22" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.1" />
+  <text x="537" y="130" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#936300">融合 npu_add_rms_norm</text>
+
+  <!-- Sub-block 2: MLP SwiGLU (Amber) -->
+  <path d="M 458 102 L 458 198 L 470 198" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+  <rect x="474" y="144" width="172" height="116" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.6" />
+  <text x="560" y="166" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">post_attn_layernorm</text>
+  <text x="560" y="186" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">↓ RMSNorm (eps=1e-6)</text>
+  <text x="560" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">SwiGLU MLP</text>
+  <text x="560" y="232" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#936300">4096 → 12288 → 4096</text>
+  <text x="560" y="251" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">bias=false · 无截断</text>
+  <path d="M 646 198 L 670 198 L 670 118" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
+
+  <!-- Sum Node 2 -->
+  <circle cx="670" cy="102" r="14" fill="#ddf4ef" stroke="#087f73" stroke-width="2" />
+  <text x="670" y="108" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#065f56">+</text>
+
+  <!-- Repeat Loop Arc at bottom of 36x container -->
+  <path d="M 684 274 L 684 290 L 204 290 L 204 274" fill="none" stroke="#087f73" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#arr-t)" />
+  <rect x="334" y="276" width="220" height="24" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" />
+  <text x="444" y="293" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">重复 36 层（第 0 → 35 层）</text>
+
+  <!-- Right Exit: model.norm -> lm_head -->
+  <rect x="732" y="64" width="148" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5" />
+  <text x="806" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#17211f">model.norm</text>
+  <text x="806" y="114" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">末层最终 RMSNorm</text>
+  <line x1="806" y1="136" x2="806" y2="162" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+
+  <rect x="732" y="166" width="148" height="78" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
+  <text x="806" y="192" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">lm_head</text>
+  <text x="806" y="213" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#17211f">[4096, 151936]</text>
+  <text x="806" y="233" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#065f56">选采样行 → 打分</text>
+  <line x1="806" y1="244" x2="806" y2="268" stroke="#087f73" stroke-width="1.6" marker-end="url(#arr-t)" />
+  <text x="806" y="290" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#065f56">logits [B_s, V]</text>
+
+  <!-- Bottom Telemetry Counters (4 structured architectural badges) -->
+  <rect x="20" y="328" width="190" height="76" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.3" />
+  <text x="115" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">36 层 · 0 次切换</text>
+  <text x="115" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">全栈同构 GQA + SwiGLU</text>
+
+  <rect x="222" y="328" width="246" height="76" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />
+  <text x="345" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#3a4f93">73 次主干 / 入口与最终 RMSNorm</text>
+  <text x="345" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">36×2 入口+1 末层（不含 q/k_norm）</text>
+
+  <rect x="480" y="328" width="188" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" />
+  <text x="574" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">72 次残差相加</text>
+  <text x="574" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">常与下一处 Norm 融合</text>
+
+  <rect x="680" y="328" width="200" height="76" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3" />
+  <text x="780" y="356" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#936300">MoE 变体：30B-A3B</text>
+  <text x="780" y="382" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#4d5652">48 层单流，MLP 换 MoE</text>
 </svg>

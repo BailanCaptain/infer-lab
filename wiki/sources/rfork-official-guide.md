@@ -89,10 +89,10 @@ rawSources:
 
 社区上游 `vllm-ascend@8d6180e2` 的官方指南（`docs/source/user_guide/feature_guide/rfork.md`，经 PR `#20876`、`#21333`、`#21707` 补齐）已与当前实现基本对齐，涵盖：
 
-- **13 项客户端配置与环境变量回退规则**：逐字段说明优先级（有效 JSON > 环境变量 > 默认值）、8 个环境变量（`MODEL_URL`、`MODEL_DEPLOY_STRATEGY_NAME`、`RFORK_SCHEDULER_URL`、`RFORK_SEED_TIMEOUT_SEC`、`RFORK_REQUEST_TIMEOUT_SEC`、`RFORK_MODEL_IDENTITY_HEADERS`、`RFORK_SEED_BIND_HOST`、`RFORK_SEED_ADVERTISE_HOST`）、未知键告警与 `RForkConfigurationError` 中止语义。
-- **完整加载时序与绕过条件**：先建模型、恢复 MTP/DSpark checkpoint 归属并加载 Engram 宿主表，再准备布局、登记本地目的显存并绑定结构摘要，最后才向 Planner 申请租约；统一绕过条件为 sleep mode、在线权重传输与 `--enable-eplb`（移除 Model Runner V1 旧 EPLB 字段）。
-- **控制面与元数据端点表**：`/add_seed`、`/get_seed`（`LEASE_TTL_SEC` 改为可选兼容旧 Planner）、`/put_seed`、`/renew_seed_lease`、`/remove_seed`（默认关闭，由 `rfork_seed_removal_supported` 控制，支持 409 draining），以及 seed HTTP 的 `/health_check_with_key`（错 key 回 400）与 `/get_rfork_transfer_engine_info`（含 `rfork_protocol_version=1` 与 NPU format 清单，错 key 回 404）。
-- **三类网络端口与诊断边界**：seed HTTP（`base + 2 × global_rank + slot`，`EADDRINUSE` 退动态）、TransferEngine RPC（`port=0` + `get_rpc_port()`，可选 `YR_TE_RPC_PORT_MIN/MAX`）与 HIXL 数据端点（默认 `YR_TE_HIXL_BASE_PORT=22000`）；明确传输只读 `numel × element_size` 连续稠密字节，不搬运 padding，且 `seed_key` 会出现在日志/URL/调试快照中，须留在信任边界内。
+- **13 项客户端配置与环境回退**：按有效 JSON → 环境变量 → 默认值优先级读取，支持 8 个环境变量（`MODEL_URL`、`MODEL_DEPLOY_STRATEGY_NAME`、`RFORK_SCHEDULER_URL`、`RFORK_SEED_TIMEOUT_SEC`、`RFORK_REQUEST_TIMEOUT_SEC`、`RFORK_MODEL_IDENTITY_HEADERS`、`RFORK_SEED_BIND_HOST`、`RFORK_SEED_ADVERTISE_HOST`）；未知键打 warning，缺必填项或严格项非法抛 `RForkConfigurationError` 中止。
+- **加载时序与统一绕过**：先建模型、恢复 MTP/DSpark checkpoint 归属并加载 Engram 宿主表，再准备布局、预登记显存并绑定结构摘要，最后才向 Planner 申请租约。统一绕过条件为 sleep mode、在线权重传输与 `--enable-eplb`（已移除 Model Runner V1 旧 EPLB 字段）。
+- **控制面与元数据端点**：Planner 提供 `/add_seed`、`/get_seed`（`LEASE_TTL_SEC` 改为可选兼容旧 Planner）、`/put_seed`、`/renew_seed_lease`、`/remove_seed`（默认关，由 `rfork_seed_removal_supported` 控制，支持 409 draining）。seed HTTP 提供 `/health_check_with_key`（错 key 回 400）与 `/get_rfork_transfer_engine_info`（含 `rfork_protocol_version=1` 与 NPU format 清单，错 key 回 404）。
+- **三类网络端口与诊断边界**：seed HTTP 按 `base + 2 × global_rank + slot` 分配（`EADDRINUSE` 退动态）；TransferEngine RPC 传 `port=0` 后调 `get_rpc_port()`（可选 `YR_TE_RPC_PORT_MIN/MAX`）；HIXL 数据面默认 `YR_TE_HIXL_BASE_PORT=22000`。传输只读 `numel × element_size` 连续稠密字节、不搬 padding；`seed_key` 会出现在日志/URL/调试快照中，须留在信任边界内。
 
 在社区 `v0.30.0`（`c09d3e20`）中，Planner 仍强制要求 `LEASE_TTL_SEC`，且尚未包含 `rfork_model_identity_headers`、`rfork_seed_removal_supported`、Engram 宿主表与 DSpark 归属恢复。完整四版本矩阵统一在[RFork 总览](../concepts/rfork.md#版本差异)。
 
@@ -149,9 +149,11 @@ seed 心跳（`/add_seed`）与租约续期（`/renew_seed_lease`）是两套独
 
 ## 量化一节的派生权重不是 KV Cache
 
-官网量化一节提到的 `W_UV` / `W_UK_T`，名字里带 K、V，但它们是**权重**，不是随请求增长的 [KV Cache](../concepts/kv-cache.md)。在 [MLA](../concepts/mla.md) 这类注意力里，缓存里存的是压缩过的小向量，计算时要用一块叫 `kv_b_proj` 的矩阵把它投影回每个头的 Key（不含 RoPE 的那部分）和 Value。上游的 SFA 实现（[稀疏注意力](../concepts/sparse-attention.md)的一种实现）在加载后把这块矩阵按 Key、Value 两段拆开，各自换好维度顺序、存成连续张量：Key 那段成为 `W_UK_T`（转置后的 Key 上投影），Value 那段成为 `W_UV`（Value 上投影）。之后可以清空被替代的原权重；已有这两份张量时，则用 `copy_` 原地更新。
+官网量化一节提到的 `W_UV` / `W_UK_T` 虽带 K、V，但它们是**权重**，不是随请求增长的 [KV Cache](../concepts/kv-cache.md)。在 [MLA](../concepts/mla.md) 里，缓存存压缩低秩向量（及按模型配置可选的 RoPE Key 段），计算时用一块叫 `kv_b_proj` 的矩阵把低秩向量投影回各头的 Key（不含 RoPE 部分）和 Value。
 
-这解释了为什么 RFork 不能只搬原 checkpoint 的 Parameters：模型真正用于计算的状态已经换了位置和形状。`contiguous` 表示张量按当前维度顺序具有连续存储；转置通常先改变视图，随后生成连续数据可能另占 storage。RFork 的 processed collector 必须看最终属性及 `impl`，并保活实际注册的 storage，详见[布局](../concepts/rfork-layout.md)，以及[传输](../concepts/rfork-transfer.md)页讲内存登记的那一节。
+上游 SFA 实现（[稀疏注意力](../concepts/sparse-attention.md)的一种）在加载后把这块矩阵按 Key、Value 两段拆开，各自调整维度顺序并存成连续张量：Key 段成为 `W_UK_T`（转置后的 Key 上投影），Value 段成为 `W_UV`（Value 上投影）。之后可清空被替代的原权重；已有这两份张量时则用 `copy_` 原地更新。
+
+这解释了为什么 RFork 不能只搬原 checkpoint 的 Parameters：模型真正参与计算的状态已经换了位置与形状。`contiguous` 表示张量按当前维度顺序连续存储；转置通常先改视图，随后生成连续数据可能另占 storage。RFork 的 processed collector 必须覆盖最终属性及 `impl`，并保活实际注册的 storage，详见[布局](../concepts/rfork-layout.md)和[传输](../concepts/rfork-transfer.md)。
 
 ## 官方已测模型不等于本工作版已验收
 
@@ -164,9 +166,11 @@ seed 心跳（`/add_seed`）与租约续期（`/renew_seed_lease`）是两套独
 | GLM5-W4A8 | W4A8 | A2 |
 | Kimi2.5-W4A8 | W4A8 | A2 |
 
-这是旧指南报告的测试覆盖，固定在 `baa023ad` 的模型表，并非本轮复现，也不是当前 latest 的逐型号支持表。**BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表模型里每一个张量都用相同位宽，系数（scale）怎么来见[量化](../concepts/quantization.md)。模型名里的 **MTP** 指模型自带的草稿层，用来做[投机解码](../concepts/speculative-decoding.md)。
+这是旧指南报告的测试覆盖，固定在 `baa023ad` 的模型表，并非本轮复现，也不是当前 `latest` 的逐型号支持表。**BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表每个张量位宽相同（系数见[量化](../concepts/quantization.md)）。模型名里的 **MTP** 指模型自带的草稿层，用来做[投机解码](../concepts/speculative-decoding.md)。
 
-放到我们的部署上：社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与早期 `0576b647` 教程命令均未启用 RFork，且上游 RFork 官方指南（`docs/source/user_guide/feature_guide/rfork.md`）按传输契约泛称覆盖 DeepSeek / Qwen / GLM 家族、尚未列出专用的 GLM-5.3-Flash RFork 配方或实测结果（并明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须在目标硬件上单独验收 `source=transfer`、输出精度与接受率）。早期旧表里也只有 `GLM5-W4A8`，没有 GLM-5.3-Flash W8A8。所以这张表对我们的部署只是参考，每张卡借多少、这套部署现在能不能受益，见总览的[GLM 双机推演](../concepts/rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。
+放到我们的部署上：社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与早期 `0576b647` 教程命令均未启用 RFork。
+
+上游 RFork 官方指南按传输契约泛称覆盖 DeepSeek / Qwen / GLM 家族，尚未列出专用的 GLM-5.3-Flash RFork 配方或实测结果（并明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须在目标硬件上单独验收 `source=transfer`、输出精度与接受率）。早期旧表也只有 `GLM5-W4A8`，没有 GLM-5.3-Flash W8A8；每张卡借多少、能否受益见总览的[GLM 双机推演](../concepts/rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。
 
 迁到上游 `main` 部署时，还要记录模型 revision、并行配置、两端代码、YuanRong / CANN / torch_npu 版本，再验证实际 seed 命中、输出与默认加载一致、故障回退和资源清理。不能把模型名称出现在表里当作任意卡型、任意量化实现或任意 batching 参数都兼容。
 

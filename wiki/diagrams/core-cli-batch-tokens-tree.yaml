@@ -1,7 +1,8 @@
 mode: native-svg
 id: core-cli-batch-tokens-tree
-caption: 昇腾 v0.30.0 上 max_num_batched_tokens 的早退回落、6 分支求值流水线与 SP+PCP 静默向上取整
-size: [900, 628]
+caption: >-
+  昇腾 v0.30.0 上 max_num_batched_tokens 的早退回落（device_memory 置 0）、未手传时的 6 分支蛇形顺序求值流水线（手传则跳过 6 分支），以及最后必经的 AscendConfig SP+PCP 静默向上取整（以 TP=8, PCP=2, 2050→2064 示意）。
+size: [900, 590]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244"
     symbols:

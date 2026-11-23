@@ -89,17 +89,23 @@ updated: '2026-11-19'
 
 沿[请求全景](request-overview.md)与[分词入口](token.md)走进语言模型时，纯文本请求只需查一次 [Embedding](embedding.md) 词表即可进入首层 Transformer。可一旦用户在消息里附带一张图片或一段视频，语言主干既读不懂原始 RGB 像素，也分不清二维平面里“上下相邻”的图像块在拉平成一维序列后其实相隔一整行。多模态推理体系正是为了解决**媒体如何变 token、视觉编码器如何跨卡不卡顿、以及重复图片如何免重算**这三道核心工程难题。
 
+```wiki-diagram
+file: multimodal-plate-cutaway
+```
+
 ## 一张图怎样变成语言模型吃得下的 token 序列？
 
 前端处理器（MultiModal Processor，接入入口见 [API server 入口](api-server-entry.md)）收到图像、视频或音频后，并不等待 NPU 算完视觉网络才构造序列，而是先在 CPU 上解码、整理成模型可读的张量，再按分辨率与合并步幅算出精确的视觉 token 数量，直接在 `input_ids` 里展开等量的**占位 token（placeholder token）**，同时附带像素块张量与三维网格描述符 `image_grid_thw = (T, H, W)`。
 
-用一个最小位置示意看占位展开如何与语言序列对齐：设纯文本分为 $T_0, T_1$ 两个位置，图片 A 需要 `2` 个特征位置、图片 B 需要 `3` 个。按消息顺序展开后得到 `[T₀, A₀, A₁, T₁, B₀, B₁, B₂]` 共 `2 + 2 + 3 = 7` 个位置——A 占偏移 `1`、长度 `2`，B 占偏移 `4`、长度 `3`。CPU 预处理器会检测模型自身的 processor 是否已经展开过占位标记；未展开则按模型更新规则补齐，并核验媒体数量、更新条目与占位范围一致（即便调用方直接传入文本编号也须维持这层映射；仅当某些模型 processor 要求文字与媒体联合输入时，框架才临时构造匹配文字，并非再套一次真实聊天模板）。
+用最小位置示意看占位展开如何与语言序列对齐：设纯文本分为 $T_0, T_1$ 两个位置，图片 A 需要 `2` 个特征位置、图片 B 需要 `3` 个。按消息顺序展开后得到 `[T₀, A₀, A₁, T₁, B₀, B₁, B₂]` 共 `2 + 2 + 3 = 7` 个位置——A 占偏移 `1`、长度 `2`，B 占偏移 `4`、长度 `3`。
+
+CPU 预处理器会先检测模型自身 processor 是否已展开占位标记；未展开则按更新规则补齐，并核验媒体数量、更新条目与占位范围一致。即便调用方直接传入文本编号也须维持这层映射；仅当某些模型 processor 要求文字与媒体联合输入时，框架才临时构造匹配文字，并非重套真实聊天模板。
 
 以典型的 Qwen2.5-VL / Qwen3-VL 视觉切块规则做一笔示意账：设输入单张静图分辨率为 $448 \times 448$，视觉编码器块大小 `patch_size = 14`，经过视觉末尾的 $2 \times 2$ 空间合并（`spatial_merge_size = 2`）后，送入语言主干的视觉 token 数为：
 
 $$N_{\text{vis}} = T \times \frac{H_{\text{px}}}{\text{patch\_size} \times \text{merge}} \times \frac{W_{\text{px}}}{\text{patch\_size} \times \text{merge}} = 1 \times \frac{448}{28} \times \frac{448}{28} = 16 \times 16 = 256$$
 
-如果语言主干隐藏维 $D_{\text{llm}} = 4096$、`BF16`（每元素 `2 B`），这张图产出的视觉嵌入矩阵形状就是 `[256, 4096]`，显存仅占 `2 MiB`。进入 `ModelRunner` 后，引擎先对未命中编码缓存的媒体调用 `embed_multimodal()` 跑完 ViT 与投影层，再由 `_merge_multimodal_embeddings` 按布尔掩码 `is_multimodal` 执行一次**原地覆写**：`inputs_embeds[is_multimodal] = mm_embeds_flat.to(dtype=inputs_embeds.dtype)`。如果实际产出的视觉向量行数与占位 token 数对不上，此处会立即抛出 `ValueError` 拦截错位。
+如果语言主干隐藏维 $D_{\text{llm}} = 4096$、`BF16`（每元素 `2 B`），这张图产出的视觉嵌入矩阵形状为 `[256, 4096]`，显存仅占 `2 MiB`。进入 `ModelRunner` 后，引擎先对未命中编码缓存的媒体调用 `embed_multimodal()` 跑完 ViT 与投影层，再由 `_merge_multimodal_embeddings` 按布尔掩码 `is_multimodal` 执行一次**原地覆写**：`inputs_embeds[is_multimodal] = mm_embeds_flat.to(dtype=inputs_embeds.dtype)`。若产出的视觉向量行数与占位 token 数不一致，此处会立即抛 `ValueError` 拦截。
 
 ```wiki-diagram
 file: multimodal-fig-pipeline-mrope
@@ -107,9 +113,9 @@ file: multimodal-fig-pipeline-mrope
 
 ### 预计算媒体向量、视频帧元数据与音频预处理边界
 
-- **预计算媒体嵌入（`--enable-mm-embeds`）**：与文本 `--enable-prompt-embeds` 完全独立，允许调用方绕过编码器直接传入 `image_embeds` 等特征张量，但仍须满足当前模型的布局契约——例如 Qwen2-VL 另需 `image_grid_thw`（在线单项为 `3` 个整数），MiniCPM-V-2_6 另需 `image_sizes`（宽、高两个数），Qwen3-VL 还需提供中间层消费的 `deepstack` 额外视觉特征。在线 Chat 必须按**每张媒体一个内容项**提供向量，把多张图拼成一个内容项会让占位数量与真实向量行数错位。
-- **视频时间元数据与坏帧恢复**：客户端提前抽帧时应通过 `media_io_kwargs.video`（兼容 SDK 放 `extra_body`）保留 `fps`、`frames_indices`、`total_num_frames`、`duration`（及按需 `do_sample_frames`），否则三张相邻帧与相隔十秒的三帧无法区分时间跨度。OpenCV 解码路径提供默认关闭的 `video.frame_recovery`：读取坏帧失败时顺扫至下一个目标帧之前寻找可读帧替代（会改变观察内容，且只顺扫到最后一个目标帧，不保证补齐所有坏帧）。
-- **音频重采样、单声道与长音频静音切分**：音频输入需携带采样率由解析器重采样；要求单声道的模型默认把多声道求平均（声道形状转换，不是统一响度）。对于语音转写等支持切分的模型，长音频可走 `split_audio` 在每段上限末尾窗口内搜寻低能量切点（如 `max_clip_duration_s=30`、`overlap_duration_s=1`、`min_energy_window_size=1600`、`16000 Hz` 下，在 `480,000` 样本的末尾 `16,000` 样本里寻找安静点；下一段从该切点接续，输出不会重复保留 `1` 秒）。切分先转单声道再进行，既不是通用 Chat 音频步骤，也不等同于语言模型的 Chunked Prefill。
+- **预计算媒体嵌入（`--enable-mm-embeds`）**：与文本 `--enable-prompt-embeds` 独立，允许绕过编码器直接传入 `image_embeds` 等特征张量，但仍须满足对应模型的布局契约。例如 Qwen2-VL 另需 `image_grid_thw`（在线单项 `3` 个整数），MiniCPM-V-2_6 另需 `image_sizes`（宽、高两个数），Qwen3-VL 还需中间层消费的 `deepstack` 额外视觉特征。在线 Chat 必须按**每张媒体一个内容项**提供向量，把多张图拼成一个内容项会导致占位数量与向量行数错位。
+- **视频时间元数据与坏帧恢复**：客户端提前抽帧时应通过 `media_io_kwargs.video`（兼容 SDK 放 `extra_body`）保留 `fps`、`frames_indices`、`total_num_frames`、`duration`（及按需 `do_sample_frames`），否则无法区分相邻三帧与相隔十秒的三帧。OpenCV 解码路径提供默认关闭的 `video.frame_recovery`：遇坏帧失败时顺扫至下一目标帧之前寻找可读帧替代。注意该操作会改变观察内容，且只顺扫到最后一个目标帧，不保证补齐所有坏帧。
+- **音频重采样、单声道与长音频静音切分**：音频输入需带采样率由解析器重采样；要求单声道的模型默认把多声道求平均（声道转换，非响度归一化）。支持切分的语音转写模型可走 `split_audio`，在每段上限末尾窗口内搜寻低能量切点（如 `max_clip_duration_s=30`、`overlap_duration_s=1`、`min_energy_window_size=1600`、`16000 Hz` 下，在 `480,000` 样本的末尾 `16,000` 样本中寻安静点；下一段从该切点接续，输出不重复保留 `1` 秒）。切分先转单声道再执行，既非通用 Chat 音频步骤，也不同于语言模型的 Chunked Prefill。
 
 ## M-RoPE：怎样把二维空间与视频时间编进注意力旋转角？
 
@@ -120,7 +126,7 @@ file: multimodal-fig-pipeline-mrope
 - **纯文本 token**：三行坐标完全相同（$T = H = W = p$），旋转结果严格退化为标准一维 RoPE，保证纯文本能力不受损；
 - **图像与视频 Patch token**：$T$ 随视频帧号递增（静图固定不变），$H \in [0, H_{\text{grid}}-1]$ 与 $W \in [0, W_{\text{grid}}-1]$ 记录块在画面中的二维网格坐标；整张图结束后的下一个文本 token 从 $\max(T, H, W) + 1$ 继续顺延编号。
 
-在每个注意力头内部，M-RoPE 按模型配置的 `mrope_section`（例如 `head_dim = 128`、半维 `64` 时常见的 `[16, 24, 24]`，满足 $16 + 24 + 24 = 64$）把旋转频率维度切为三段，分别用 $T$、$H$、$W$ 三组坐标查 `cos_sin_cache` 并施加旋转；部分较新架构（如 Qwen3-VL / Qwen3.5）进一步采用**交错排布（`mrope_interleaved = True`）**，按模 3 余数把 $T/H/W$ 频段均匀分散到高中低频，避免某一空间轴独占全部高频分量。
+在每个注意力头内部，M-RoPE 按 `mrope_section`（例如 `head_dim = 128`、半维 `64` 时常见的 `[16, 24, 24]`，$16 + 24 + 24 = 64$）把旋转频率切为三段，分别用 $T$、$H$、$W$ 坐标查 `cos_sin_cache` 施加旋转。较新架构（如 Qwen3-VL / Qwen3.5）进一步采用**交错排布（`mrope_interleaved = True`）**，按模 3 余数把 $T/H/W$ 频段均摊到高中低频，避免单一空间轴独占全部高频分量。
 
 在 `vllm-ascend v0.30.0` 中，`AscendMRotaryEmbedding` 按硬件与排布自动走四条执行通路：
 
@@ -138,11 +144,15 @@ file: multimodal-fig-pipeline-mrope
 1. **权重极小但通信极碎**：ViT 的隐藏维通常只有 `1152`–`1280`，全套权重仅数百 MB 到 `1 GiB` 左右，按卡切分省不下多少显存；可它同样有 `27`–`32` 层 Transformer，每层注意力与 MLP 结束都要做一次 TP `All-Reduce`，一次前向就会多出 `54`–`64` 次小载荷跨卡同步。
 2. **头数整除陷阱**：某些视觉编码器的注意力头数不能被语言主干的 `tp_size` 整除（例如 `16` 个视觉头配 `TP=6`）。vLLM 的 `vision.py` 检测到 `num_heads % tp_size != 0` 时，会打印告警并静默回退到数据并行模式。
 
-显式开启 **`--mm-encoder-tp-mode data`** 后，每张 TP 卡各自保留一份完整的 ViT 权重，调用 `run_dp_sharded_vision_model` 把同批的多张图片（或视频帧）沿 batch 维均分（或按各图 Patch 总数贪心均衡分摊）给各张卡独立编码。整个 ViT 内部 **0 次跨卡通信**，直到编码器出口才做**唯一一次 `tensor_model_parallel_all_gather`** 拼齐全部视觉嵌入并裁掉对齐填充。代价只是每卡多占几百 MB ViT 权重显存，却能把多图请求的首字时延（TTFT）大幅压低。
+显式开启 **`--mm-encoder-tp-mode data`** 后，每张 TP 卡各自保留一份完整 ViT 权重，由 `run_dp_sharded_vision_model` 把同批多图（或视频帧）沿 batch 维均分或按 Patch 总数贪心均衡分摊到各卡独立编码。整个 ViT 内部 **0 次跨卡通信**，仅在编码器出口做**唯一一次 `tensor_model_parallel_all_gather`** 拼齐全部视觉嵌入并裁掉填充。代价仅每卡多占几百 MB ViT 权重显存，却能大幅压低多图请求的首字时延（TTFT）。
 
 ## 重复图片怎样免重算：四级缓存分工与昇腾 `ScoreEncoderCacheManager`
 
-多轮图文对话、文档 RAG 或高并发请求反复引用同一张底图时，一条多模态请求在进入语言生成前共经过四层独立缓存（各自占独立空间，清掉一层不会自动清掉其他层）：
+多轮图文对话、文档 RAG 或高并发请求反复引用同一张底图时，一条多模态请求在进入语言生成前共经过四层独立缓存（各自占独立空间，清掉一层不会连带清掉其他层）：
+
+```wiki-diagram
+file: multimodal-fig-four-tier-cache
+```
 
 ### 下载缓存、`mm_processor_cache`、编码缓存与 KV Cache 分工
 
@@ -153,37 +163,37 @@ file: multimodal-fig-pipeline-mrope
 | **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
 | **KV Cache / Prefix Caching（APC）** | 语言模型各层历史 K/V 状态 | 前缀完全一致时省去语言层 Prefill | 需前面各层产出相同的占位与哈希 |
 
-以包含图片 A、B 的消息为例看部分命中合并：若 CPU `mm_processor_cache` 中仅命中 A，预处理器只新处理 B，随后必须把缓存 A 与新 B **按原消息顺序合回 `[A, B]`** 并重建本次序列的占位区间（绝不能把新结果排在前面导致图文错配）；直通的预计算特征另走独立分支，不受 CPU 媒体缓存推断。
+以包含图片 A、B 的消息为例看部分命中合并：若 CPU `mm_processor_cache` 仅命中 A，预处理器只新算 B，随后必须把缓存 A 与新 B **按原消息顺序合回 `[A, B]`** 并重建占位区间（绝不能把新结果排在前面导致图文错配）。直通的预计算特征走独立分支，不受 CPU 媒体缓存推断。
 
 ### 媒体 UUID（`multi_modal_uuids`）与省传原图的边界
 
-默认由框架按媒体内容与处理参数计算缓存身份；调用方也可通过 Chat 内容项的 `uuid` 或离线 `multi_modal_uuids` 指定稳定身份（不要求特定随机格式，但必须保证同身份对应同内容与兼容处理方式，换图沿用旧 UUID 会导致复用错误内容）。
+默认由框架按媒体内容与处理参数计算缓存身份；调用方也可通过 Chat 内容项的 `uuid` 或离线 `multi_modal_uuids` 指定稳定身份（不限格式，但同身份必须对应同内容与兼容处理方式，换图沿用旧 UUID 会复用错误内容）。
 
-首次提交「实际内容 + UUID」建立缓存后，后续预期命中的请求才可只传 UUID、留空媒体内容。但**省略原图依赖实际缓存命中与对应模态解析器接受空项**：条目可能被淘汰、请求落到另一 API 进程或尚未建好，缺内容又未命中会直接报错；多张图时 UUID 列表须与数据顺序、数量严格一致（某项留 `None` 按内容生成）。在 `v0.30.0` 中，内容身份哈希已按模态纳入 `media_io_kwargs`，当 `mm_processor_cache` 与 APC 同时关闭时仍保留显式 UUID 供跨实例 EC 识别，且音频解析器亦开始允许空项配 UUID 走缓存命中。
+首次提交「实际内容 + UUID」建立缓存后，后续预期命中的请求才可只传 UUID、留空媒体内容。但**省略原图依赖实际缓存命中与对应解析器接受空项**：条目可能被淘汰、落到其他 API 进程或尚未就绪，缺内容又未命中会直接报错；多张图时 UUID 列表须与数据顺序、数量严格一致（某项留 `None` 按内容生成）。在 `v0.30.0` 中，内容身份哈希已按模态纳入 `media_io_kwargs`；双缓存（`mm_processor_cache` 与 APC）同时关闭时仍保留显式 UUID 供跨实例 EC 识别，且音频解析器亦开始允许空项配 UUID 走缓存命中。
 
 ### 单级 `EncoderCacheManager` 与昇腾 `ScoreEncoderCacheManager`
 
-进入模型侧后，vLLM V1 原生 `EncoderCacheManager` 按**嵌入槽位数（encoder embeddings）**在 NPU 显存中维护单级缓存，当引用计数归零且空间不足时按最老条目（FIFO）逐出。但在高并发多模态线上服务里，单靠有限的 NPU 显存做 FIFO 很容易把“刚用完但下一秒马上又被查到的高分辨率大图”顶出去。为此，`vllm-ascend v0.30.0` 新增了面向热点复用的 **`ScoreEncoderCacheManager`** 两级编码器缓存体系：
+进入模型侧后，vLLM V1 原生 `EncoderCacheManager` 按**嵌入槽位数（encoder embeddings）**在 NPU 显存中维护单级缓存，引用归零且空间不足时按 FIFO 逐出。高并发线上服务里，单靠有限 NPU 显存做 FIFO 容易把高频复用的高分辨率大图顶出去。为此，`vllm-ascend v0.30.0` 新增了面向热点复用的 **`ScoreEncoderCacheManager`** 两级编码器缓存体系：
 
 ```wiki-diagram
 file: multimodal-fig-score-ec-cache
 ```
 
-它的核心运转逻辑分成调度器决策与 Worker 执行两半：
+它的运转逻辑分成调度器决策与 Worker 执行两半：
 
-1. **新算条目先落 CPU 大池**：未命中缓存而刚经 ViT 算出的视觉嵌入，调度器先在主机内存池（`cpu_cache_slots` 默认 `100,000` 槽）记账，Worker 通过 `pin_memory=True` 与 `non_blocking=True` 异步拷贝至 `cpu_encoder_cache`，设备侧只暂存于 `tmp_encoder_cache`（请求结束即释放），不长期霸占昂贵的 HBM。
-2. **基于重算代价与热度的评分晋升**：每次命中都会累计访问频次 `freq` 与时间片新鲜度 `clock`（每 `clock_decay_every = 64` 次请求衰减一次，上限 `max_clock = 15`），并结合视觉层理论重算时间与存储槽之比 `cal_cost`（随 Patch 序列长度 $s$ 线性增长，因为视觉自注意力复杂度为 $O(s^2)$、存储为 $O(s)$，比值正比于 $\alpha s + \beta$）计算综合价值：
+1. **新算条目先落 CPU 大池**：未命中缓存而新经 ViT 算出的视觉嵌入，调度器先在主机内存池（`cpu_cache_slots` 默认 `100,000` 槽；若主机槽位不足则对零引用旧项按 `popitem(last=False)` 做 FIFO 逐出）记账。Worker 通过 `pin_memory=True` 与 `non_blocking=True` 拷入 `cpu_encoder_cache`，设备侧只暂存于 `tmp_encoder_cache`（待请求结束并移除请求状态、且不再有活跃请求引用该 `mm_hash` 时删除），不长期霸占 HBM。
+2. **基于重算代价与热度的评分晋升**：每次命中都会累计访问频次 `freq` 与新鲜度 `clock`（每 `clock_decay_every = 64` 次请求衰减，上限 `max_clock = 15`），再乘以视觉重算代价与槽位之比 `cal_cost`（视觉自注意力为 $O(s^2)$、存储为 $O(s)$，比值随 Patch 长度 $s$ 线性增长，正比于 $\alpha s + \beta$）：
 
 $$\text{score} = (\text{freq} + \text{clock}) \times \text{cal\_cost}, \qquad \text{cal\_cost}(s) = \frac{L_{\text{vis}}(\alpha s + \beta)}{4 \times 10^{14}}$$
 
-其中 $L_{\text{vis}}$ 对 `qwen3_5` 取 `27` 层、其余默认取 `32` 层。当某条 CPU 缓存项再次命中且 NPU 空槽不足时，`should_promote` 会把该条目不含 `clock` 的得分与 NPU 可回收集合 `npu_freeable` 中按升序排在 **`promote_percentile`（默认 `0.2`，即低 `20%` 分位）** 的门槛比较：跨过门槛才触发淘汰低分项（一次性清理到既够放下新项、又尽量留出 **`watermark`（默认 `0.2`）** 比例空槽），并由 Worker 借 `torch.npu.Event` 异步 H2D 晋升到常驻 `encoder_cache`。
-3. **防御性兜底**：如果调度器判定某条目在 CPU 缓存命中，但 Worker 临时缓存中尚未就绪，`_get_encoder_output_from_cache` 会退回一次同步 H2D 补拷并写入 `tmp_encoder_cache`，防止调度器与 Worker 状态微差演变成致命 cache miss。
+其中 $L_{\text{vis}}$ 对 `qwen3_5` 取 `27` 层、其余默认 `32` 层。当 CPU 条目再次命中时，若 NPU 空槽足够则直接晋升；若空槽不足且可回收槽位足够，`should_promote` 把候选条目不含 `clock` 的得分与 NPU 可回收集合 `npu_freeable` 中按升序排在 **`promote_percentile`（默认 `0.2`，即低 `20%` 分位）** 的门槛比较。得分达到或超过门槛（`score >= threshold`）才批量淘汰低分项（一次性清理到够放新项且尽量留出 **`watermark`（默认 `0.2`）** 空槽），再由 Worker 在当前 NPU 流发起 `non_blocking` H2D 晋升至常驻 `encoder_cache`，并由 `torch.npu.Event` 追踪拷贝完成与源缓冲生命周期。
+3. **防御性兜底**：若调度器判定某条目在 CPU 缓存命中、但 Worker 临时缓存尚未就绪，`_get_encoder_output_from_cache` 会退回同步 H2D 补拷并写入 `tmp_encoder_cache`，避免状态微差演变成致命 cache miss。
 
 ## 常见误解
 
 - **「多模态模型里 1 张图片只占 1 个 token 的 KV cache？」**：错。1 张图在预处理阶段就会按分辨率和合并步幅展开成几十到上千个占位 token（如 `448×448` 示意下为 `256` 个）；进入语言主干后，每个视觉 token 都会像普通文本 token 一样占用 KV cache 块并参与自注意力计算。
 - **「开了 TP=8 就应该把 ViT 也按权重切 8 份，这样一定更快？」**：错。ViT 参数量很小但层数并不少，按权重切分会在每层引入两次小包 `All-Reduce`；多图并发下开启 `--mm-encoder-tp-mode data` 往往能消除数十次同步通信，且视觉头数不能被 TP 整除时框架本身也会强制回退为 `data`。
-- **「开了 `ScoreEncoderCacheManager` 会把所有算过的图片都死锁在 NPU 显存里导致 OOM？」**：错。新编码出的嵌入默认写入 pinned CPU 缓存，设备侧仅在当步暂存 `tmp_encoder_cache`；只有访问频次与重算代价综合得分跨过 `promote_percentile` 门槛的热点条目才会晋升进固定槽位上限的 NPU 常驻池。
+- **「开了 `ScoreEncoderCacheManager` 会把所有算过的图片都死锁在 NPU 显存里导致 OOM？」**：错。新编码出的嵌入默认写入 pinned CPU 缓存，设备侧仅在请求存续期暂存 `tmp_encoder_cache`（无活跃请求引用该 `mm_hash` 即删除）；只有空槽充足或综合得分达到 `promote_percentile` 门槛的热点条目才会晋升进固定槽位上限的 NPU 常驻池。
 - **「纯文本请求走多模态模型时，M-RoPE 会破坏文本位置编码？」**：错。对所有纯文本 token，三维坐标 `(T, H, W)` 的三行取值完全一致，三段频率查出的旋转角与标准 1D RoPE 严格等价。
 
 ## 对照源码

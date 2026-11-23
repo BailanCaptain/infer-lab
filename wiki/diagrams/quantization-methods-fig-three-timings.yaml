@@ -1,0 +1,15 @@
+mode: native-svg
+id: quantization-methods-fig-three-timings
+caption: >-
+  量化生命周期三阶段时序（离线制包、引擎加载期 online 转换与排布、每次前向动态/静态激活）与四层解耦关系（算法名、工具链、导出产物格式、运行时加载器互不等同）。
+size: [900, 412]
+pins:
+  - source: 'vllm@ced6857a:vllm/config/quantization.py#L71-L115'
+    symbols:
+      - QuantSpec
+      - QuantKey
+      - QuantizationConfigArgs
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L215'
+    symbols:
+      - resolve_block_scales
+      - maybe_trans_nz

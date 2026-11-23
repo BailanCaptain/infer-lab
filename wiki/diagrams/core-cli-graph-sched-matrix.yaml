@@ -1,7 +1,8 @@
 mode: native-svg
 id: core-cli-graph-sched-matrix
-caption: 图编译三级融合门禁、多调度器静默覆盖链与 Mooncake P/D 联检硬边界
-size: [900, 566]
+caption: >-
+  跨子系统三大护栏全景：（一）cudagraph_mode × 三级图融合（npugraph_ex / static_kernel / super_kernel）与 FA3 / 310P 二维兼容矩阵；（二）扩展调度器 scheduler_cls 的后写胜出覆盖链；（三）P/D 分离 MooncakeConnector 跨实例拓扑配比（TP_P % TP_D == 0、PP_D=1、PCP_D=1）与 GQA+C8 量化红线。
+size: [900, 584]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L131-L170"
     symbols:

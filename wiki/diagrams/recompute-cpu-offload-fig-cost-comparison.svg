@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" width="900" height="330" role="img" aria-label="换出换回两趟同步停顿与重算时间对比及 4 GiB/s 持平带宽示意图" font-family="var(--font-sans)">
+  <title>换出换回（两趟同步拷贝停顿）vs 重算耗时对比与 4 GiB/s 持平门槛</title>
+  <desc>Proportional latency comparison between two-pass synchronous swap (D2H + H2D) and recomputation at 256, 4096, and 32768 tokens, plus 4 GiB/s breakeven bandwidth and GLM 127-block budget</desc>
+
+  <!-- Title -->
+  <circle cx="24" cy="24" r="12" fill="#c78300"/>
+  <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+  <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">换出换回 vs 重算时间账（示意：128 KiB/位，有效带宽 16 GiB/s，prefill 16,384 位/s）</text>
+
+  <!-- Each row uses an exact 1:4 bar ratio between two-pass swap and recompute -->
+  <!-- Row 1: 256 tokens (exact 1:4 ratio: 12px vs 48px) -->
+  <text x="16" y="72" font-size="14" font-weight="700" fill="#17211f">256 位置</text>
+  <text x="16" y="92" font-size="13.5" fill="#66716d">32 MiB/趟</text>
+  <rect x="136" y="56" width="6" height="18" rx="2" fill="#087f73" fill-opacity="0.32" stroke="#087f73" stroke-width="1.2"/>
+  <rect x="142" y="56" width="6" height="18" rx="2" fill="#4c65b6" fill-opacity="0.28" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="158" y="70" font-size="13.5" font-weight="700" fill="#065f56">换出+换回：3.9 ms（约 2 ms × 2 趟，省去代理排队固定开销）</text>
+  <rect x="136" y="80" width="48" height="18" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="194" y="94" font-size="13.5" fill="#936300">重算：15.6 ms（未计代理重投与 P/D 重新排队）</text>
+
+  <!-- Row 2: 4,096 tokens (exact 1:4 ratio: 48px = 24+24 vs 192px) -->
+  <text x="16" y="138" font-size="14" font-weight="700" fill="#17211f">4,096 位置</text>
+  <text x="16" y="158" font-size="13.5" fill="#66716d">512 MiB/趟</text>
+  <rect x="136" y="122" width="24" height="18" rx="2" fill="#087f73" fill-opacity="0.32" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="160" y="122" width="24" height="18" rx="2" fill="#4c65b6" fill-opacity="0.28" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="194" y="136" font-size="13.5" font-weight="700" fill="#065f56">换出+换回：62.5 ms（拆成 2 次同步停顿：D2H ~31 ms + H2D ~31 ms）</text>
+  <rect x="136" y="146" width="192" height="18" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="338" y="160" font-size="13.5" fill="#936300">重算：250 ms（精确 4 倍）</text>
+
+  <!-- Row 3: 32,768 tokens (exact 1:4 ratio: 140px = 70+70 vs 560px) -->
+  <text x="16" y="204" font-size="14" font-weight="700" fill="#17211f">32,768 位置</text>
+  <text x="16" y="224" font-size="13.5" fill="#66716d">4 GiB/趟</text>
+  <rect x="136" y="188" width="70" height="18" rx="2" fill="#087f73" fill-opacity="0.32" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="206" y="188" width="70" height="18" rx="2" fill="#4c65b6" fill-opacity="0.28" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="286" y="202" font-size="13.5" font-weight="700" fill="#8f3229">换出+换回：500 ms（D 每次同步停顿 ~250 ms，且单条占 8,192 块）</text>
+  <rect x="136" y="212" width="560" height="18" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="706" y="226" font-size="13.5" font-weight="700" fill="#936300">重算：2,000 ms</text>
+
+  <!-- Bottom Breakeven & GLM Note -->
+  <rect x="16" y="252" width="428" height="64" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="276" font-size="14" font-weight="700" fill="#8f3229">两趟持平带宽 = 4 GiB/s（单趟 CPU 备份的两倍）</text>
+  <text x="30" y="299" font-size="13.5" fill="#4d5652">实测有效带宽 &lt; 4 GiB/s 时，换出反而比重算更慢</text>
+
+  <rect x="458" y="252" width="426" height="64" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="472" y="276" font-size="14" font-weight="700" fill="#17211f">GLM 旧默认预算对照（TP8 1 GiB/卡 → 127 可借块）</text>
+  <text x="472" y="299" font-size="13.5" fill="#4d5652">主线被抢占单条需 120–121 块 → 仅够存 1 条（第 2 条退 P）</text>
+</svg>

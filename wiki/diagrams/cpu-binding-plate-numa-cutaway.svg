@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 738" width="860" height="738" role="img" aria-label="双路多 NUMA 服务器主板与 NPU 亲和性绑核立体拆解剖面图：展示上方 NUMA 0 与 NUMA 1 CPU 核池与本地内存条、跨路远端访存损耗标识、中间本地 PCIe ROOT 桥，以及下方就近挂载的 NPU 0-3 与 NPU 4-7 加速卡阵列" font-family="var(--font-sans)">
+  <title>服务器主板多 NUMA 拓扑与 Worker 亲和绑核拆解（以 A2 默认 topo_affinity 为例；A3 默认走 global_slice、A5 增 cluster）：以就近挂载 NPU 0–3 的 NUMA 0 起手（单节点亲和时扩入相邻 NUMA 1 允许核成池），按池内顺序切分 IRQ、主线程与 acl/release 后台线程；当宿主机具备 migratepages 且 migrate_memory=True（未启用 Engram CPU 卸载）时将已有页迁至最小核所在节点。</title>
+  <desc>关联源码符号：build_cpu_pools, _build_topo_affinity_cpu_pool, bind_cpus</desc>
+
+  <image href="./wiki-illustrations/cpu-binding-numa-cutaway.webp" x="148" y="128" width="564" height="484" preserveAspectRatio="xMidYMid meet"/>
+
+  <line x1="318" y1="114" x2="318" y2="268" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="318" cy="268" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="318" cy="268" r="2.5" fill="#087f73"/>
+
+  <line x1="432" y1="114" x2="432" y2="286" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="432" cy="286" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="432" cy="286" r="2.5" fill="#b54237"/>
+
+  <line x1="542" y1="114" x2="542" y2="268" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="542" cy="268" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="542" cy="268" r="2.5" fill="#c78300"/>
+
+  <line x1="318" y1="630" x2="318" y2="532" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="318" cy="532" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="318" cy="532" r="2.5" fill="#087f73"/>
+
+  <line x1="542" y1="630" x2="542" y2="532" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="542" cy="532" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="542" cy="532" r="2.5" fill="#4c65b6"/>
+
+  <g id="callout-numa0">
+    <circle cx="20" cy="26" r="11" fill="#087f73"/>
+    <text x="20" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
+    <text x="38" y="31" font-size="14" font-weight="700" fill="#17211f">亲和起手与迁页 (NUMA 0)</text>
+    <text x="38" y="55" font-size="12.5" fill="#4d5652">A2 默认 <tspan font-family="var(--font-mono)" font-weight="700">topo_affinity</tspan> 交 <tspan font-family="var(--font-mono)" font-weight="700">cpuset</tspan></text>
+    <text x="38" y="77" font-size="12.5" fill="#4d5652">有 <tspan font-family="var(--font-mono)" font-weight="700">migratepages</tspan> 且非卸载时迁页</text>
+    <text x="38" y="99" font-size="12.5" fill="#065f56">A3 默认 <tspan font-family="var(--font-mono)" font-weight="700">global_slice</tspan>，A5 含 <tspan font-family="var(--font-mono)" font-weight="700">cluster</tspan></text>
+  </g>
+
+  <g id="callout-cross-numa">
+    <circle cx="300" cy="26" r="11" fill="#b54237"/>
+    <text x="300" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
+    <text x="318" y="31" font-size="14" font-weight="700" fill="#17211f">抑制跨路漂移与抢占</text>
+    <text x="318" y="55" font-size="12.5" fill="#4d5652">未绑核时线程跨节点挪动致缓存失效</text>
+    <text x="318" y="77" font-size="12.5" fill="#4d5652">Decode 步耗时短，主机抖动伤尾时延</text>
+    <text x="318" y="99" font-size="12.5" fill="#8f3229">减少无序跨路，并非物理断开远端</text>
+  </g>
+
+  <g id="callout-numa1">
+    <circle cx="580" cy="26" r="11" fill="#c78300"/>
+    <text x="580" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
+    <text x="598" y="31" font-size="14" font-weight="700" fill="#17211f">扩池与角色切分 (NUMA 1)</text>
+    <text x="598" y="55" font-size="12.5" fill="#4d5652">单节点亲和时补入下一节点允许核</text>
+    <text x="598" y="77" font-size="12.5" fill="#4d5652">首 2 核留 <tspan font-family="var(--font-mono)" font-weight="700">IRQ</tspan>、尾 2 核钉 <tspan font-family="var(--font-mono)" font-weight="700">acl/release</tspan></text>
+    <text x="598" y="99" font-size="12.5" fill="#936300">中间全部核留给 Worker 主线程下发</text>
+  </g>
+
+  <g id="callout-pcie-local">
+    <circle cx="20" cy="654" r="11" fill="#087f73"/>
+    <text x="20" y="658.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
+    <text x="38" y="659" font-size="14" font-weight="700" fill="#17211f">本地 PCIe 根复合体直连 (PCIe ROOT → NPU 0–3)</text>
+    <text x="38" y="683" font-size="12.5" fill="#4d5652">拓扑表标明每张 NPU 挂在哪组本地 PCIe / NUMA 域下</text>
+    <text x="38" y="706" font-size="12.5" fill="#065f56">拿不到硬件拓扑时按机型回退全局均分或跳过绑核</text>
+  </g>
+
+  <g id="callout-npu-slice">
+    <circle cx="446" cy="654" r="11" fill="#4c65b6"/>
+    <text x="446" y="658.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
+    <text x="464" y="659" font-size="14" font-weight="700" fill="#17211f">同池多卡按序平分 (NPU 4–7 · 互不踩核)</text>
+    <text x="464" y="683" font-size="12.5" fill="#4d5652">共用同一核池的多张卡按卡序切成互不重叠的子段</text>
+    <text x="464" y="706" font-size="12.5" fill="#3a4f93">避免单机 8 个 Worker 争抢同一批核导致下发抖动</text>
+  </g>
+</svg>

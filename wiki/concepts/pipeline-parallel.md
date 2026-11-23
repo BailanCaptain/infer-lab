@@ -223,9 +223,9 @@ file: pp-fig-memory-and-budget
 
 对照上图的三栏结构与两项工程耦合：
 
-- **非末段（`0 .. PP−2`）用 `PPMissingLayer` 消除 `[T_sample, vocab_size]` 尖峰**：当 `PP = 1` 时，同一组卡既要装全量隐藏层权重和 KV cache，还要在出口执行 `norm`、`ParallelLMHead`、词表维 All-Gather 与采样器，撑起 `[采样行数, 词表大小]` 峰值。切分 `PP > 1` 后，各段只建本段约 $1/\text{PP}$ 的隐藏层与 KV cache；所有非末段（`not is_last_rank`）直接把 `norm` 与 `lm_head` 换成零开销的 `PPMissingLayer`，开机显存探测 `profile_run` 直接跳过 `_dummy_sampler_run`，正常前向也不算 `logits`。末段（`PP−1`）虽保留出口模块，但 `get_pp_indices` 默认不给末段摊余数层来对冲显存。单卡常驻与峰值双降后，就能安全拉高 `--max-num-batched-tokens`，并在 `v0.30.0` 下对接[动态分块 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config` 建议设为固定分块的 `2~4` 倍；注：`main` 已移除 CPP）。
-- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm` 与昇腾 SP 分支差异**：`v0.30.0` 同开上游 `compilation_config.pass_config.enable_sp` 与 `PP > 1` 时，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错。因此 `VllmConfig` 会静默向 `custom_ops` 追加 `"+rms_norm"`（显式传 `"-rms_norm"` 则打印告警；上游 `main` 已移除 `PassConfig.enable_sp`）。昇腾 `FlashComm1` 须区分两条路：MoE 序列并行（`use_sequence_parallel_moe`，即 MoE + EP + `TP > 1`）支持 `PP > 1` + SP；只有稠密 SP（`enable_dense_sp`）限制 `PP = 1`，在 `PP > 1` 时告警并自动关闭。
-- **跨机 RoCE `PP × DP` 禁区与 P/D `PP_D == 1` 约束**：跨节点 RoCE 跑 MoE 时，`MoeDistributeDispatch` 不支持 **`PP > 1` 与 `DP > 1` 同开**。且 Python 启动期**无断言拦截**，误配会在运行期报错或挂死，必须保持 `PP = 1` 或 `DP = 1`。在 [PD 分离](pd-disaggregation.md)采用 `MooncakeConnectorV1` 时，P 侧可开 `PP > 1`，但 **D 侧必须固定 `PP_D == 1`**（`decode.pp_size = 1`）。
+- **非末段（`0 .. PP−2`）用 `PPMissingLayer` 消除 `[T_sample, vocab_size]` 尖峰**：当 `PP = 1` 时，同一组卡既要装全量隐藏层权重和 KV cache，还要承担出口 `norm`、`ParallelLMHead`、词表维 All-Gather 与采样器，撑起 `[采样行数, 词表大小]` 峰值。切分 `PP > 1` 后，各段只建本段约 $1/\text{PP}$ 的隐藏层与 KV cache；所有非末段（`not is_last_rank`）直接把 `norm` 与 `lm_head` 换成零开销的 `PPMissingLayer`，开机显存探测 `profile_run` 跳过 `_dummy_sampler_run`，正常前向也不算 `logits`。末段（`PP−1`）虽保留出口模块，但 `get_pp_indices` 默认不给末段摊余数层来对冲显存。单卡常驻与峰值双降后，可安全拉高 `--max-num-batched-tokens`，并在 `v0.30.0` 下对接[动态分块 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config` 建议设为固定分块的 `2~4` 倍；注：`main` 已移除 CPP）。
+- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm` 与昇腾 SP 分支差异**：`v0.30.0` 同开上游 `compilation_config.pass_config.enable_sp` 与 `PP > 1` 时，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错，因此 `VllmConfig` 会静默向 `custom_ops` 追加 `"+rms_norm"`（显式传 `"-rms_norm"` 则告警；上游 `main` 已移除 `PassConfig.enable_sp`）。昇腾 `FlashComm1` 须区分两条路：MoE 序列并行（`use_sequence_parallel_moe`，即 MoE + EP + `TP > 1`）支持 `PP > 1` + SP；只有稠密 SP（`enable_dense_sp`）限制 `PP = 1`，在 `PP > 1` 时告警并自动关闭。
+- **跨机 RoCE `PP × DP` 禁区与 P/D `PP_D == 1` 约束**：跨节点 RoCE 跑 MoE 时，`MoeDistributeDispatch` 不支持 **`PP > 1` 与 `DP > 1` 同开**，且 Python 启动期**无断言拦截**，误配会在运行期报错或挂死，必须保持 `PP = 1` 或 `DP = 1`。在 [PD 分离](pd-disaggregation.md)采用 `MooncakeConnectorV1` 时，P 侧可开 `PP > 1`，但 **D 侧必须固定 `PP_D == 1`**（`decode.pp_size = 1`）。
 
 ## 推理和训练用 PP 有什么不同？
 
@@ -239,11 +239,15 @@ PP 最早普及于大模型分布式训练，阅读外部资料时要注意训�
 
 ## 交接在 vLLM 里怎么走？
 
-把段间那根交接箭头拆开，落到上游 `vllm` 与昇腾 `NPUWorker.execute_model` 里，每一步按以下顺序运转：
+把段间那根交接箭头拆开，落到上游 `vllm` 与昇腾 `NPUWorker.execute_model` 里，每一步遵循「等上轮发送 → 每步先同步收元数据再异步收张量切片 → 机内拼回（SP 关闭时）→ 异步发下一段」的流水顺序：
 
-- **先等上轮发送，再异步收、异步发。** 每步开头若有上一轮挂起的发送句柄 `_pp_send_work`，先 `wait()` 等它收尾。除首段外，先调 `irecv_tensor_dict` 发起异步接收并封装为 `AsyncIntermediateTensors`。本段算完后，除末段外拿到 `IntermediateTensors`，再调 `isend_tensor_dict` 异步发给下一段（V2 runner 随即返回 `None`；V1 runner 若挂有 KV 传输连接器，还会继续透传 `kv_connector_output`）。
-- **发的是「元数据 + 张量字典」。** 首次通信先传键值结构元数据（键名、形状与 `dtype`；`None` 这类非张量字段只随元数据走，不发空张量），再对字典里的真实张量逐个点对点收发。
-- **段内叠加 TP 时默认「切片点对点发 + 段内 All-Gather 拼回」。** 同一段内的多张 TP 卡在层末尾持有内容相同的完整隐藏状态。只要张量元素总数能被 `tp_size` 整除，发送侧每卡只发属于自己的 `1/TP` 切片给下一段同号 TP rank，接收侧收到后再在本段 `tp_group` 内做 All-Gather 还原（见[集合通信](collective-communication.md)）。例如 `[3, 2]` 在 `TP = 2` 下：卡 `a` 发 `[3]`、卡 `b` 发 `[2]`，跨段只传 2 个数而非 4 个，接收侧拼回 `[3, 2]`。若启用了保持激活按 token 切分的[序列并行](sequence-parallel.md)（`v0.30.0` 判 `enable_sp()`，`main` 收窄为 `use_v2_model_runner and enable_sp(vllm_config)`），卡上本就不是完整副本，Worker 会将 `all_gather_group` 置 `None` 关掉这步拼接。
+```wiki-diagram
+file: pp-fig-handover-tp-slice
+```
+
+- **先等上轮发送，再同步收元数据并异步收发张量。** 每步开头若有上一轮挂起的发送句柄 `_pp_send_work`，先 `wait()` 收尾。除首段外，先调 `irecv_tensor_dict` 接收并封装为 `AsyncIntermediateTensors`；本段算完后，除末段外调 `isend_tensor_dict` 异步发给下一段（V2 runner 随即返回 `None`；V1 runner 若挂有 KV 连接器则继续透传 `kv_connector_output`）。
+- **每步发的是「元数据 + 张量字典」。** 标准 `isend_tensor_dict` / `irecv_tensor_dict` 在**每一步**都会先发并经 `recv_object` **同步接收**键名、形状与 `dtype` 元数据（`None` 等非张量字段只随元数据走，不发空张量），随后才对真实张量逐个发起点对点异步 `irecv` / `isend`。
+- **段内叠加 TP 时的切片优化与 SP 例外。** 同一段内的 TP 卡持有相同完整隐藏状态：只要张量元素总数整除 `tp_size`，各卡只跨段点对点发送属于自己的 `1/TP` 切片，接收段再经机内 `tp_group` All-Gather 拼回（如图中 `[3, 2]` 跨段仅传 2 个数而非 4 个）。若开启按 token 分片的[序列并行](sequence-parallel.md)（`v0.30.0` 判 `enable_sp()`，`main` 收窄为 `use_v2_model_runner and enable_sp(vllm_config)`），各卡本就不是完整副本，Worker 会置 `all_gather_group = None` 关掉这步拼接。
 
 ## 两台机器怎样加入同一条流水线？
 

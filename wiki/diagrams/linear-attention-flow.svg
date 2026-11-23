@@ -1,44 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 700" width="880" height="700" role="img" aria-label="有 attention 元数据时，一层 KDA 在 GLM 专用实现里的逻辑流程：各类位置都要经过投影和短卷积，再按位置种类走三条计算路径，算完拼回原来的行序，经过输出门控与输出投影，最后在 TP 组内归约一次。没有元数据的陪跑或试跑跳过短卷积和递推，仍执行外层投影、归一化与门控。">
-  <title>有 attention 元数据时，一层 KDA 在 GLM 专用实现里的逻辑流程：各类位置都要经过投影和短卷积，再按位置种类走三条计算路径，算完拼回原来的行序，经过输出门控与输出投影，最后在 TP 组内归约一次。没有元数据的陪跑或试跑跳过短卷积和递推，仍执行外层投影、归一化与门控。</title>
-  <defs><marker id="linear-attention-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="linear-attention-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <path d="M440 62 L440 90" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 150 L440 178" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 234 L440 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M340 314 L340 336 L156 336 L156 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 314 L440 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M540 314 L540 336 L724 336 L724 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M156 432 L156 470 L340 470 L340 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 432 L440 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M724 432 L724 470 L540 470 L540 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 552 L440 572" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
-  <path d="M440 622 L440 640" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#linear-attention-flow-ah-comm)"/>
-  <rect x="300" y="16" width="280" height="46" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本层输入：隐藏向量</text>
-  <text x="440" y="54" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">这一步本卡要算的若干行</text>
-  <rect x="240" y="90" width="400" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">投影出 q、k、v 和三个控制量</text>
-  <text x="440" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">写入强度 β、遗忘门、输出门</text>
-  <rect x="280" y="178" width="320" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">短卷积：核长 4</text>
-  <text x="440" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">读写本请求的卷积状态</text>
-  <rect x="240" y="262" width="400" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步要算的是哪种位置？</text>
-  <rect x="24" y="356" width="264" height="76" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="156" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">prefill：分段并行</text>
-  <text x="156" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每 64 个位置一段算完</text>
-  <rect x="308" y="356" width="264" height="76" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">decode：逐位置递推</text>
-  <text x="440" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">状态原地更新</text>
-  <rect x="592" y="356" width="264" height="76" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="724" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">投机候选：一轮多个位置</text>
-  <text x="724" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">按接受数量推进</text>
-  <rect x="280" y="502" width="320" height="50" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="440" y="532" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按原来的行序拼回一份输出</text>
-  <rect x="280" y="572" width="320" height="50" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="602" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输出门控与归一化 → 输出投影</text>
-  <rect x="300" y="640" width="280" height="46" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="440" y="668" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP8 归约一次 → 回残差流</text>
-  <text x="182" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">本轮的提示词片段</text>
-  <text x="452" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">只推进 1 个位置</text>
-  <text x="592" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">带 3 个草稿位置</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 442" width="900" height="442" role="img" aria-label="一层 KDA 混合批次三条路径分流、短卷积与空闲 DP 组旁路流程图" font-family="var(--font-sans)">
+  <title>GLM-5.3-Flash 一层 KDA 在混合批次中的前向执行流：共享投影与短卷积后按位置类型拆分进入分段 64 prefill、单步 decode 递推与 4 页投机验证三路，再按原行序拼回并做 TP8 All-Reduce，同时标出无元数据陪跑时的旁路。</title>
+  <desc>顶栏展示每卡隐藏向量输入经投影出 q/k/v 及 β、遗忘门、输出门后进入核长 4 的短卷积（读写 6 格卷积状态）；右侧虚线标注无元数据陪跑/试跑跳过短卷积与递推、继续执行外层门控与输出投影；中部展示 split_non_spec 将批次按行拆入三条路径——Prefill 64 位置分段矩阵并行（算子边界做 dv/dk 转置）、Decode 单步原地递推与投机 1+3 候选按接受数选页；底部经 index_copy_ 拼回原行序、输出门控与投影，最终执行本层唯一一次 TP8 All-Reduce。</desc>
+  <defs>
+    <marker id="lf-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="lf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="lf-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">GLM 一层 KDA 前向执行流（TP8 单卡 8 头 · 混合批次三路分流与陪跑旁路）</text>
+
+  <!-- Step 1: Projection + Conv1d -->
+  <rect x="14" y="40" width="330" height="72" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="28" y="64" font-size="14.5" font-weight="700" fill="#936300">1. 输入投影（每卡 8 头 × 128 = 1024 列）</text>
+  <text x="28" y="88" font-size="13.5" fill="#17211f">隐藏 [4096] → <tspan font-family="var(--font-mono)" font-weight="700">q, k, v</tspan> + β / 遗忘门 / 输出门</text>
+
+  <line x1="344" y1="76" x2="368" y2="76" stroke="#4d5652" stroke-width="1.8" marker-end="url(#lf-arr)"/>
+
+  <rect x="372" y="40" width="286" height="72" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="386" y="64" font-size="14.5" font-weight="700" fill="#3a4f93">2. 短卷积 <tspan font-family="var(--font-mono)">causal_conv1d</tspan>（核长 4）</text>
+  <text x="386" y="88" font-size="13.5" fill="#17211f">按请求槽位读写 6 格 BF16 卷积状态</text>
+
+  <!-- Right dashed bypass: Idle DP / profiling without attn_metadata -->
+  <rect x="676" y="40" width="210" height="72" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="781" y="64" text-anchor="middle" font-size="13.5" font-weight="700" fill="#66716d">空闲 DP / 试跑（无元数据）</text>
+  <text x="781" y="86" text-anchor="middle" font-size="13" fill="#4d5652">跳过短卷积与递推，直达</text>
+  <text x="781" y="104" text-anchor="middle" font-size="13" fill="#4d5652">外层门控与输出投影 ↓</text>
+
+  <!-- Bypass dashed line down right edge to Step 5 -->
+  <path d="M 781 112 L 781 366 L 560 366" fill="none" stroke="#b8bcb5" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#lf-arr)"/>
+
+  <!-- Split arrows from Step 2 to 3 lanes -->
+  <path d="M 430 112 L 430 132 L 128 132 L 128 148" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lf-arr-t)"/>
+  <path d="M 515 112 L 515 132 L 368 132 L 368 148" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lf-arr-t)"/>
+  <path d="M 600 112 L 600 132 L 608 132 L 608 148" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lf-arr-t)"/>
+
+  <text x="28" y="130" font-size="13" font-weight="700" fill="#065f56">按行类型分流（split_non_spec）：</text>
+
+  <!-- 3 Middle Lanes (y=152..276) -->
+  <!-- Lane A: Prefill chunk_kda_fwd -->
+  <rect x="14" y="152" width="228" height="124" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="128" y="176" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3A. Prefill：分段并行</text>
+  <text x="128" y="200" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">chunk_kda_fwd (64/段)</text>
+  <text x="128" y="224" text-anchor="middle" font-size="13" fill="#4d5652">段内矩阵化 · 段间传状态</text>
+  <text x="128" y="244" text-anchor="middle" font-size="13" fill="#4d5652">读前段末态，写回最终态</text>
+  <text x="128" y="264" text-anchor="middle" font-size="13" fill="#065f56">算子边界做 [dv,dk]↔[dk,dv]</text>
+
+  <!-- Lane B: Decode recurrent_kda -->
+  <rect x="254" y="152" width="228" height="124" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="368" y="176" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">3B. Decode：逐位递推</text>
+  <text x="368" y="200" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">recurrent_kda (1 词/步)</text>
+  <text x="368" y="224" text-anchor="middle" font-size="13" fill="#4d5652">L2 归一 + 门控融合在核内</text>
+  <text x="368" y="244" text-anchor="middle" font-size="13" fill="#4d5652">按本请求槽位号原地更新</text>
+  <text x="368" y="264" text-anchor="middle" font-size="13" fill="#3a4f93">固定 O(1) 访存，不回扫</text>
+
+  <!-- Lane C: Spec decode 1+3 -->
+  <rect x="494" y="152" width="228" height="124" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="608" y="176" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">3C. 投机验证（1 + 3 候选）</text>
+  <text x="608" y="200" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">4 候选页并行保存</text>
+  <text x="608" y="224" text-anchor="middle" font-size="13" fill="#4d5652">每候选留 1 页递推状态</text>
+  <text x="608" y="244" text-anchor="middle" font-size="13" fill="#4d5652">卷积状态另留 +3 格</text>
+  <text x="608" y="264" text-anchor="middle" font-size="13" fill="#936300">下步按接受数选对应页续算</text>
+
+  <!-- Merge arrows into Step 4 -->
+  <path d="M 128 276 L 128 296 L 368 296 L 368 308" fill="none" stroke="#4d5652" stroke-width="1.7" marker-end="url(#lf-arr)"/>
+  <path d="M 368 276 L 368 308" fill="none" stroke="#4d5652" stroke-width="1.7" marker-end="url(#lf-arr)"/>
+  <path d="M 608 276 L 608 296 L 368 296" fill="none" stroke="#4d5652" stroke-width="1.7"/>
+
+  <!-- Step 4: index_copy_ -->
+  <rect x="14" y="312" width="708" height="44" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="368" y="339" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">4. <tspan font-family="var(--font-mono)" fill="#3a4f93">index_copy_</tspan> 按批次原行序拼回一份完整输出张量</text>
+
+  <line x1="285" y1="356" x2="285" y2="372" stroke="#4d5652" stroke-width="1.8" marker-end="url(#lf-arr)"/>
+
+  <!-- Step 5 & 6: Output gate + o_proj + TP8 All-Reduce -->
+  <rect x="14" y="376" width="540" height="54" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="284" y="400" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">5. 输出门控 + 归一化 → 按行切 <tspan font-family="var(--font-mono)">o_proj</tspan>（1024 → 4096）</text>
+  <text x="284" y="420" text-anchor="middle" font-size="13" fill="#4d5652">各卡只维护本地 8 头状态，计算全程零跨卡交换状态</text>
+
+  <line x1="554" y1="403" x2="584" y2="403" stroke="#9a4b86" stroke-width="2" marker-end="url(#lf-arr-p)"/>
+
+  <rect x="590" y="376" width="296" height="54" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="738" y="400" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">6. TP8 All-Reduce → 残差流</text>
+  <text x="738" y="420" text-anchor="middle" font-size="13" fill="#4d5652">全层唯一一次集合通信</text>
 </svg>

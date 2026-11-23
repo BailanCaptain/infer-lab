@@ -1,0 +1,20 @@
+mode: native-svg
+id: param-combine-quant-mode
+caption: >-
+  combine_quant_mode（Literal[0, 2, 3, 4] = 0）只覆盖非融合 MC2CommImpl 的 combine 阶段通信量化，不触碰 dispatch，且在 FusedMC2CommImpl 路径中完全绕过；默认 0 表示不人工覆盖，按四级优先级（用户非零 > 模型 comm_quant_mode > W8A8MXFP 自动 4 > 0）决定最终 comm_quant_mode。
+size: [900, 506]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L584-L590'
+    symbols:
+      - combine_quant_mode
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L271-L296'
+    symbols:
+      - combine_quant_mode
+      - comm_quant_mode
+      - quant_mode
+      - W8A8MXFP
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/token_dispatcher.py#L294-L314'
+    symbols:
+      - combine_quant_mode
+      - comm_quant_mode
+      - quant_mode

@@ -1,16 +1,15 @@
 mode: native-svg
 id: ascend-950-execution-interconnect-fig-stars-ub-fabric
 caption: >-
-  昇腾 950 芯片内任务调度（STARS 2.0 + CCU）与 Unified Bus 2.0 互联拓扑：上半部呈现 STARS 2.0 经专用控制总线 HSCB 调度计算核与 CCU（CCUM 解析 Mission、CCUA MemorySlice + Reduce Unit 卸载归约）；下半部对比 URMA 异步提交（Jetty/Doorbell/UMMU）与 UB Memory 同步远端访存两条路径，以及 IO Die 片内 UB Switch 转发、UBoE 物理端口复用和 v0.30.0 A5 框架通信能力钩子。
-size: [900, 470]
+  昇腾 950 芯片内 STARS 2.0 + CCU 卸载到 IO Die（UB On-Chip Switch 9×x4 片内直转）及 Unified Bus 2.0（URMA 异步搬运 vs UB Memory 直接访存）数据流，以及下方精确 18 格物理端口复用分布（72 路 HiLink 中 2 端口与 UBoE 复用、4 端口与 PCIe 5.0 复用，带宽严禁直接相加）与 v0.30.0 A5 通信能力钩子。
+size: [900, 504]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L365-L372'
     symbols:
       - LOCAL_KV_COMM_RESOURCE
       - MOE_DISPATCH_EXTRA_ARGS
       - MM_REDUCE_SCATTER_AI_CPU_INFERENCE
-  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L115-L125'
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L119-L120'
     symbols:
       - need_extra_args
-      - MOE_DISPATCH_EXTRA_ARGS
       - get_current_hardware_profile

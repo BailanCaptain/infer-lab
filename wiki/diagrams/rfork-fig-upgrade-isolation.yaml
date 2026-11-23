@@ -1,0 +1,10 @@
+mode: native-svg
+id: rfork-fig-upgrade-isolation
+caption: >-
+  RFork 版本升级隔离策略与验收边界：左栏对比不更换 model_deploy_strategy_name 时因代码 commit 不进指纹导致的跨版本混池风险，以及通过切换策略名自然分池并等待活跃读者排空的上线原则；右栏划清本地静态门禁（audit / lint / diagrams）与真机现场必验五项的边界。
+size: [900, 390]
+pins:
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/identity.py#L229-L349
+    symbols: [build_compatibility_fingerprint, build_seed_key]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21
+    symbols: [mutable_weights_bypass_reason]

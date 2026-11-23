@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 654" width="860" height="654" role="img" aria-label="Ascend 910B3 PD 分离实测双层剖析图（多参数组合对照）：上层展示均匀 262-token 输入下 P 池空转、两跳代理、216 段离散块与 ADXL 回退日志等组合因素下观测到 TTFT 为 2.20 倍与 6.07 倍；下层展示 4P4D+Eager 等组合下 48 层 MoE 后 127 步 TPOT 为 307.83 ms（3.952 倍）及候选机制，各项独立份额待单变量对照拆分" font-family="var(--font-sans)">
+  <title>Ascend 910B3（v0.30.0，均匀 262-token 输入 / 128-token 输出）PD 分离实测双层剖析（注：2P2D/4P4D 组同时改变拆池拓扑、双端 --enforce-eager、关闭 prefix caching、max_model_len=16384 与 30B u=0.88→0.85，属于多参数组合对照）：上层展示在 P 池运行采样全为 Running:0（8B 8/8、30B 7/7）、两跳代理、8B 每请求 216 段离散块读取（27 MiB/rank，c=1 读 207.49/346.74 ms）及 ADXL endpoint 回退告警（8B 4,991 行、30B 19,941 行）等组合条件下，c=1 TTFT 观测值为 6.07×（8B 2P2D 对 TP2）与 2.20×（30B 4P4D 对 TP4+EP4，最慢 rank 传输仅 16.64 ms 却净增 +396.97 ms）；下层对比 4P4D+Eager 组合下 48 层 MoE 后 127 步 Decode TPOT 由 77.90 升至 307.83 ms（3.952×，+229.93 ms/步，对比稠密 8B 1.729×），纯 PD 与纯 Eager 各自占比待同拓扑单变量对照拆分。</title>
+  <desc>build_prefill_request, do_remote_decode, stream_service_response, _transfer_kv_cache_all_groups, batch_transfer_sync_read, token_dispatch, apply_moe_mlp, token_combine</desc>
+  <defs>
+    <marker id="pd910-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="pd910-danger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Title Header -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">Ascend 910B3 真机实测（v0.30.0）：短输入 PD 首词放大与 Eager 组合劣化</text>
+  <line x1="16" y1="38" x2="844" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- ================= UPPER TIER: Short-Prompt TTFT Amplification ================= -->
+  <circle cx="28" cy="62" r="12" fill="#9a4b86"/>
+  <text x="28" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="48" y="67" font-size="15" font-weight="700" fill="#17211f">上层 · 均匀 262-tok 输入下 2P2D(8B) / 4P4D(30B) 首词达 6.07× / 2.20×</text>
+
+  <!-- 4 Pipeline Boxes (y=82..192) -->
+  <rect x="16" y="82" width="178" height="110" rx="8" fill="#f5f2ea" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="105" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">① 两跳代理串行</text>
+  <text x="26" y="128" font-size="13" fill="#17211f">P: do_remote_decode</text>
+  <text x="26" y="149" font-size="13" fill="#4d5652">设 max_tokens=1 交棒</text>
+  <text x="26" y="172" font-size="13" fill="#4d5652">取块号后再建 D HTTP 流</text>
+
+  <path d="M 194 137 L 208 137" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#pd910-plum)"/>
+
+  <rect x="212" y="82" width="182" height="110" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="303" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">② P 池采样全空转</text>
+  <text x="224" y="128" font-size="13" fill="#17211f">8B：8/8 次 Running:0</text>
+  <text x="224" y="149" font-size="13" fill="#17211f">30B：7/7 次 Running:0</text>
+  <text x="224" y="172" font-size="13" fill="#3a4f93">半数 NPU 难分担长解码</text>
+
+  <path d="M 394 137 L 408 137" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#pd910-plum)"/>
+
+  <rect x="412" y="82" width="206" height="110" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="515" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">③ ADXL 离散块读取</text>
+  <text x="424" y="128" font-size="13" fill="#17211f">8B: 216 段 (27 MiB/卡)</text>
+  <text x="424" y="149" font-size="13" fill="#4d5652">c=1 读 207.5 / 346.7 ms</text>
+  <text x="424" y="172" font-size="13" font-weight="700" fill="#7a3a6a">30B: 最慢 rank 16.64 ms</text>
+
+  <path d="M 618 137 L 632 137" fill="none" stroke="#b54237" stroke-width="2" marker-end="url(#pd910-danger)"/>
+
+  <rect x="636" y="82" width="208" height="110" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="740" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">④ Endpoint 回退告警</text>
+  <text x="648" y="128" font-size="13" fill="#17211f">device_id&gt;=endpoint</text>
+  <text x="648" y="149" font-size="13" fill="#8f3229">回退日志：8B 4,991 行</text>
+  <text x="648" y="172" font-size="13" font-weight="700" fill="#8f3229">30B 刷屏 19,941 行</text>
+
+  <!-- Two Side-by-Side TTFT Comparison Cards (y=204..310) -->
+  <rect x="16" y="204" width="406" height="106" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="30" y="226" font-size="13.5" font-weight="700" fill="#17211f">Qwen3-8B · c=1 TTFT（TP2 → 2P2D）</text>
+  <rect x="334" y="210" width="76" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1"/>
+  <text x="372" y="226" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">6.07×</text>
+
+  <text x="30" y="250" font-size="13" fill="#065f56">TP2 混部</text>
+  <rect x="98" y="238" width="33" height="15" rx="3" fill="#087f73"/>
+  <text x="139" y="250" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">125.84 ms</text>
+
+  <text x="30" y="274" font-size="13" fill="#8f3229">2P2D 分离</text>
+  <rect x="98" y="262" width="198" height="15" rx="3" fill="#b54237"/>
+  <text x="304" y="274" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#8f3229">763.42 ms</text>
+  <text x="30" y="298" font-size="13" fill="#4d5652">c=1 净增 +637.58 ms；c=16 达 2,343.86 ms (5.02×)</text>
+
+  <rect x="438" y="204" width="406" height="106" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="452" y="226" font-size="13.5" font-weight="700" fill="#17211f">Qwen3-30B-A3B · c=1 TTFT（4 卡 → 4P4D）</text>
+  <rect x="756" y="210" width="76" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1"/>
+  <text x="794" y="226" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">2.20×</text>
+
+  <text x="452" y="250" font-size="13" fill="#065f56">TP4+EP4</text>
+  <rect x="524" y="238" width="86" height="15" rx="3" fill="#087f73"/>
+  <text x="618" y="250" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">331.10 ms</text>
+
+  <text x="452" y="274" font-size="13" fill="#8f3229">4P4D 分离</text>
+  <rect x="524" y="262" width="189" height="15" rx="3" fill="#b54237"/>
+  <text x="721" y="274" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#8f3229">728.07 ms</text>
+  <text x="452" y="298" font-size="13" font-weight="700" fill="#8f3229">净增 +396.97 ms（最慢 rank 传输仅 16.64 ms）</text>
+
+  <!-- Section Separator -->
+  <line x1="16" y1="324" x2="844" y2="324" stroke="#d8d8cf" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- ================= LOWER TIER: 4P4D + Eager 127-step Decode Collapse ================= -->
+  <circle cx="28" cy="348" r="12" fill="#b54237"/>
+  <text x="28" y="353" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="48" y="353" font-size="15" font-weight="700" fill="#17211f">下层 · 4P4D+Eager 等组合对照：后 127 步 MoE Decode 达 3.952×</text>
+
+  <!-- Lower Left: Proportional c=1 TPOT Chart (x=16..444, y=370..576) -->
+  <rect x="16" y="370" width="428" height="206" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="30" y="392" font-size="14" font-weight="700" fill="#17211f">c=1 稳态 TPOT 对比（同线性刻度，ms/步）</text>
+
+  <text x="30" y="416" font-size="13" font-weight="700" fill="#936300">Qwen3-8B 稠密（36 层 · 1.729×，+63.47 ms/步）</text>
+  <rect x="30" y="424" width="70" height="15" rx="3" fill="#087f73"/>
+  <text x="108" y="436" font-family="var(--font-mono)" font-size="13" fill="#065f56">87.12 ms（TP2 混部 Graph）</text>
+  <rect x="30" y="446" width="120" height="15" rx="3" fill="#c78300"/>
+  <text x="158" y="458" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#936300">150.59 ms（2P2D + Eager）</text>
+
+  <line x1="30" y1="473" x2="430" y2="473" stroke="#ece9df" stroke-width="1.2"/>
+
+  <text x="30" y="494" font-size="13" font-weight="700" fill="#8f3229">Qwen3-30B-A3B MoE（48 层 · 3.952×，+229.93 ms/步）</text>
+  <rect x="30" y="502" width="62" height="15" rx="3" fill="#087f73"/>
+  <text x="100" y="514" font-family="var(--font-mono)" font-size="13" fill="#065f56">77.90 ms（TP4+EP4 Graph）</text>
+  <rect x="30" y="524" width="246" height="15" rx="3" fill="#b54237"/>
+  <text x="284" y="536" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#8f3229">307.83 ms · 3.952×</text>
+
+  <text x="30" y="564" font-size="13" font-weight="700" fill="#8f3229">30B 后 127 步累计多出 29.20 s（c=16 吞吐 179.7→45.6）</text>
+
+  <!-- Lower Right: MoE 48-layer Eager Mechanism Card (x=456..844, y=370..576) -->
+  <rect x="456" y="370" width="388" height="206" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="470" y="394" font-size="14" font-weight="700" fill="#936300">为何 48 层 MoE 持续解码崩塌更剧烈？</text>
+  <text x="470" y="420" font-size="13" fill="#17211f">• 跨实例 KV 移交每请求仅 1 次（≤16.64 ms），</text>
+  <text x="470" y="441" font-size="13" fill="#4d5652">无法解释其余 127 步累计多出的 29.20 s</text>
+  <text x="470" y="466" font-size="13" fill="#17211f">• 48 层 MoE 每层拆为多段细粒度算子链：</text>
+
+  <rect x="470" y="476" width="360" height="46" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="480" y="495" font-family="var(--font-mono)" font-size="13" fill="#936300">GatingTopK → InitRoutingV3 → GMM×2</text>
+  <text x="480" y="514" font-family="var(--font-mono)" font-size="13" fill="#936300">→ SwiGlu → TokenUnpermute + 跨卡通信</text>
+
+  <text x="470" y="544" font-size="13" fill="#17211f">• 失去 ACLGraph 在 2.4 GHz Host 暴露发射/同步</text>
+  <text x="470" y="565" font-size="13" font-weight="700" fill="#8f3229">（属组合对照，纯 Eager 与纯 PD 份额待拆分）</text>
+
+  <!-- Honest Attribution Footer Banner (y=588..642) -->
+  <rect x="16" y="588" width="828" height="54" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="430" y="610" text-anchor="middle" font-size="13" fill="#17211f"><tspan font-weight="700" fill="#8f3229">组合对照边界（非单变量 A/B）：</tspan>实测组同时改变分离拓扑、--enforce-eager、关 prefix cache 与 max_len 16k（30B u: 0.88→0.85）</text>
+  <text x="430" y="632" text-anchor="middle" font-size="13" fill="#4d5652">3.952× 与 1.729× 为组合端到端比值；拆解纯 PD 与纯 Eager 各自份额，需补同拓扑「混部 Eager」与「PD Graph」对照。</text>
+</svg>

@@ -1,77 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="KV Cache CPU Offload 双流异步换出换入、盈亏平衡带宽与主机布局图" font-family="var(--font-sans)">
-  <title>KV Cache CPU Offload 异步双流换出/换入与盈亏平衡模型</title>
-  <desc>上半区展示 KV Cache CPU Offload 在计算流、D2H 备份流与 H2D 搬回流之间的异步协同：满段即安排备份（不以显存满为触发）、显存回收后新请求命中主机副本时挂起 WAITING_FOR_REMOTE_KVS 并搬回；下半区展示搬回与重算的盈亏平衡带宽公式，以及 v0.30.0 CPU-only 私有锁页与多层共享 mmap 两种主机布局。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="KV Cache CPU Offload 计算流与 D2H/H2D 异步双流时间线，以及私有锁页张量与共享 mmap 两种主机布局图" font-family="var(--font-sans)">
+  <title>KV Cache CPU Offload 三流异步时间线与双 Spec 主机内存布局</title>
+  <desc>上半区展示计算流、D2H 备份流与 H2D 搬回流之间的事件同步、后台重叠拷贝、源页复用前等待以及请求 B 在 WAITING_FOR_REMOTE_KVS 的至少一步等待；下半区左右对照 NPUOffloadingSpec 私有锁页张量（执行组共享 cpu_bytes_to_use）与 NPUTieringOffloadingSpec 共享 mmap 区域（连文件系统次级层与纯 MLA 去重条件）。</desc>
   <defs>
-    <marker id="off-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <marker id="off-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
-    <marker id="off-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
-    </marker>
-    <marker id="off-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <marker id="off-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="off-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
     </marker>
   </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、异步双流换出/换入周期：“多存一份”省重算，而不是把显存池变大</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Zone 1: 3-Stream Asynchronous Timeline -->
+  <circle cx="26" cy="24" r="12" fill="#087f73"/>
+  <text x="26" y="28.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="46" y="30" font-size="16" font-weight="700" fill="#17211f">三流异步重叠时间线：存等计算流写完，取挂起请求至少等一步</text>
 
-  <rect x="12" y="56" width="194" height="132" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="26" y="80" font-size="14.5" font-weight="700" fill="#065f56">1. 计算写满可存段</text>
-  <text x="26" y="104" font-size="13.5" fill="#17211f">调度列保存计划（满段）</text>
-  <text x="26" y="126" font-size="13.5" fill="#17211f">默认只存 Prompt 部分</text>
-  <text x="26" y="148" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">offload_prompt_only</text>
-  <text x="26" y="172" font-size="13.5" fill="#66716d">不等显存满就安排备份</text>
+  <!-- Lane 1: Compute Stream -->
+  <text x="16" y="76" font-size="14" font-weight="700" fill="#065f56">计算流</text>
+  <rect x="116" y="54" width="164" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="198" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A 算满段 0 (Prompt)</text>
 
-  <path d="M 206 122 L 232 122" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#off-arr-t)"/>
+  <rect x="292" y="54" width="212" height="34" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="398" y="76" text-anchor="middle" font-size="13.5" fill="#4d5652">继续算其他请求（与拷贝重叠）</text>
 
-  <rect x="238" y="56" width="198" height="132" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
-  <text x="252" y="80" font-size="14.5" font-weight="700" fill="#7a3a6a">2. D2H 备份流拷主机</text>
-  <text x="252" y="104" font-size="13.5" fill="#17211f">先等计算流写完源页</text>
-  <text x="252" y="126" font-size="13.5" fill="#17211f">后台拷贝并与计算重叠</text>
-  <text x="252" y="148" font-size="13.5" fill="#7a3a6a">拷完才在主机登记可用</text>
-  <text x="252" y="172" font-size="13.5" fill="#66716d">源页覆盖前须等存完</text>
+  <rect x="516" y="54" width="176" height="34" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="604" y="76" text-anchor="middle" font-size="13.5" fill="#4d5652">算其他请求（B 挂起）</text>
 
-  <path d="M 436 122 L 462 122" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#off-arr-p)"/>
+  <rect x="704" y="54" width="180" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="794" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">B 恢复前向（省重算）</text>
 
-  <rect x="468" y="56" width="196" height="132" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="482" y="80" font-size="14.5" font-weight="700" fill="#3a4f93">3. Host DRAM 缓存池</text>
-  <text x="482" y="104" font-size="13.5" fill="#17211f">启动时按预算预分配</text>
-  <text x="482" y="126" font-size="13.5" fill="#17211f">按前缀哈希查可用段</text>
-  <text x="482" y="148" font-size="13.5" fill="#3a4f93">满池按 LRU / ARC 淘汰</text>
-  <text x="482" y="172" font-size="13.5" fill="#66716d">显存原页照常回收复用</text>
+  <!-- Lane 2: D2H Backup Stream -->
+  <text x="16" y="132" font-size="14" font-weight="700" fill="#7a3a6a">D2H 备份流</text>
+  <rect x="284" y="110" width="196" height="34" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="382" y="132" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">拷段 0 到主机 DRAM</text>
+  <text x="492" y="132" font-size="13" fill="#7a3a6a">完成信号 → 主机登记可用</text>
 
-  <path d="M 664 122 L 690 122" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#off-arr-b)"/>
+  <!-- Sync event arrow Compute -> D2H -->
+  <path d="M 280 88 L 280 127 L 284 127" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#off-arr-p)"/>
+  <text x="272" y="106" text-anchor="end" font-size="13" fill="#7a3a6a">等写完事件</text>
 
-  <rect x="696" y="56" width="192" height="132" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-  <text x="710" y="80" font-size="14.5" font-weight="700" fill="#936300">4. HBM 未命中 → 搬回</text>
-  <text x="710" y="104" font-size="13.5" fill="#17211f">分空页，请求先挂起</text>
-  <text x="710" y="126" font-size="13.5" font-family="var(--font-mono)" fill="#936300">WAITING_FOR_REMOTE</text>
-  <text x="710" y="148" font-size="13.5" fill="#17211f">H2D 流拷回并汇报完成</text>
-  <text x="710" y="172" font-size="13.5" fill="#66716d">至少晚一步恢复执行</text>
+  <!-- Reuse barrier callout -->
+  <line x1="480" y1="90" x2="480" y2="110" stroke="#b54237" stroke-width="1.6" stroke-dasharray="3 2"/>
+  <text x="476" y="103" text-anchor="end" font-size="13" fill="#8f3229">源页覆写前必等此点</text>
 
-  <text x="14" y="224" font-size="16" font-weight="700" fill="#17211f">二、搬回何时比重算划算（盈亏平衡带宽），以及 v0.30.0 主机内存布局</text>
-  <line x1="12" y1="236" x2="888" y2="236" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Lane 3: H2D Restore Stream -->
+  <text x="16" y="188" font-size="14" font-weight="700" fill="#3a4f93">H2D 搬回流</text>
+  <rect x="516" y="166" width="180" height="34" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="606" y="188" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">段 0 搬回 B 的空页</text>
+  <text x="116" y="188" font-size="13.5" fill="#66716d">A 显存页被回收后，新请求 B 命中主机哈希 → 分空页并挂起</text>
 
-  <rect x="12" y="250" width="432" height="192" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="26" y="274" font-size="14.5" font-weight="700" fill="#065f56">A. 盈亏平衡带宽：B_eq = 每位置字节 × prefill 速率</text>
-  <text x="26" y="300" font-size="13.5" fill="#17211f">示意 4,096 位置（每位置 128 KiB → 512 MiB）：</text>
-  <rect x="26" y="314" width="110" height="26" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="34" y="332" font-size="13.5" font-weight="700" fill="#065f56">搬回 31.25 ms</text>
-  <text x="146" y="332" font-size="13.5" fill="#4d5652">（按有效带宽 16 GiB/s，快 8×）</text>
-  <rect x="26" y="348" width="380" height="26" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="36" y="366" font-size="13.5" font-weight="700" fill="#8f3229">设备重算 250 ms（按 16,384 位置/s）</text>
-  <text x="26" y="400" font-size="13.5" font-weight="700" fill="#065f56">持平门槛：128 KiB × 16,384/s = 2 GiB/s</text>
-  <text x="26" y="424" font-size="13.5" fill="#4d5652">实测有效带宽 &gt; B_eq 且前缀够长时搬回才省时</text>
+  <!-- Sync arrow H2D complete -> Compute B resumes -->
+  <path d="M 696 183 L 724 183 L 724 92" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#off-arr-b)"/>
+  <text x="734" y="150" font-size="13" font-weight="700" fill="#3a4f93">全组完成通知</text>
+  <text x="734" y="170" font-size="13" fill="#4d5652">至少晚一步恢复</text>
 
-  <rect x="460" y="250" width="428" height="192" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="474" y="274" font-size="14.5" font-weight="700" fill="#3a4f93">B. v0.30.0 / main 双 Spec 主机布局与预算口径</text>
-  <rect x="474" y="288" width="400" height="66" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="486" y="310" font-size="13.5" font-weight="700" fill="#3a4f93">NPUOffloadingSpec（CPU-only 私有锁页张量）</text>
-  <text x="486" y="332" font-size="13.5" fill="#17211f">cpu_bytes_to_use 为整执行组总预算，非单卡独享</text>
-  <text x="486" y="348" font-size="13.5" fill="#4d5652">blocks_per_chunk 与 block_size 二选一互斥</text>
-  <rect x="474" y="364" width="400" height="66" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="486" y="386" font-size="13.5" font-weight="700" fill="#936300">NPUTieringOffloadingSpec（SharedOffloadRegion）</text>
-  <text x="486" y="408" font-size="13.5" fill="#17211f">worker / 调度 / 文件系统共享映射；纯 MLA 满足条件</text>
-  <text x="486" y="424" font-size="13.5" fill="#4d5652">可单份去重（混合 GLM 5 组不满足，仍需独立验收）</text>
+  <text x="16" y="222" font-size="13.5" fill="#4d5652">注意：传输流与计算流共享显存与主机总线带宽；实测有效带宽高于持平门槛（每位置字节 × prefill 速率）搬回才省时</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="240" x2="884" y2="240" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Two v0.30.0 Host Memory Layouts Side-by-Side -->
+  <circle cx="26" cy="266" r="12" fill="#4c65b6"/>
+  <text x="26" y="270.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="46" y="272" font-size="16" font-weight="700" fill="#17211f">v0.30.0 / main 双 Spec 主机内存布局：私有锁页张量 vs 共享 mmap 区域</text>
+
+  <!-- Left Architecture: CPU-only NPUOffloadingSpec -->
+  <rect x="16" y="290" width="424" height="186" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="315" font-size="14.5" font-weight="700" fill="#3a4f93">A. CPU-only · NPUOffloadingSpec（私有锁页）</text>
+
+  <!-- Budget bracket spanning Worker 0 & Worker 1 -->
+  <rect x="30" y="328" width="188" height="58" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="124" y="352" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Worker 0 私有锁页张量</text>
+  <text x="124" y="374" text-anchor="middle" font-size="13" fill="#4d5652">独立按页字节视图搬运</text>
+
+  <rect x="234" y="328" width="192" height="58" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="330" y="352" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Worker 1 私有锁页张量</text>
+  <text x="330" y="374" text-anchor="middle" font-size="13" fill="#4d5652">（同执行组合计分摊）</text>
+
+  <path d="M 32 392 L 32 400 L 424 400 L 424 392" fill="none" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="228" y="420" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">cpu_bytes_to_use = 执行组总预算（PP×TP×PCP）</text>
+  <text x="30" y="446" font-size="13" fill="#4d5652">多 DP 实例同机须叠加预算；blocks_per_chunk 与 block_size 互斥</text>
+  <text x="30" y="466" font-size="13" fill="#66716d">满池按 LRU（默认）或 ARC 淘汰，不增大 HBM 缓存池</text>
+
+  <!-- Right Architecture: Tiering NPUTieringOffloadingSpec -->
+  <rect x="460" y="290" width="424" height="186" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="474" y="315" font-size="14.5" font-weight="700" fill="#936300">B. 多层存储 · NPUTieringOffloadingSpec（共享 mmap）</text>
+
+  <!-- Top row: Workers & Scheduler -->
+  <rect x="474" y="328" width="122" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="535" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">Workers</text>
+  <rect x="606" y="328" width="122" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="667" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">调度侧 Manager</text>
+  <rect x="738" y="328" width="132" height="34" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="804" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">文件系统次级层</text>
+
+  <!-- Shared mmap box underneath -->
+  <rect x="474" y="376" width="396" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="672" y="396" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">SharedOffloadRegion（多进程共享 mmap 主机区域）</text>
+  <text x="672" y="414" text-anchor="middle" font-size="13" fill="#4d5652">纯 MLA（单组 + 同节点纯 TP）可多 rank 共享单份去重</text>
+
+  <text x="474" y="446" font-size="13" fill="#8f3229">注意：mmap 带宽不等同锁页张量，且次级层淘汰尚在演进</text>
+  <text x="474" y="466" font-size="13" fill="#4d5652">混合 5 组 GLM 不满足纯 MLA 单份去重条件；拒 store_threshold</text>
 </svg>

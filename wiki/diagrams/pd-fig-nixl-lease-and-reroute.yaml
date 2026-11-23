@@ -1,0 +1,10 @@
+mode: native-svg
+id: pd-fig-nixl-lease-and-reroute
+caption: >-
+  上游 NIXL 动态租约时间标尺与跨轮双向复用闭环：上半幅按比例标出 30 s 初始租约、5 s 心跳与 20 s 续约窗口，直观展示 t=5 s 心跳使到期维持 30 s、t=15 s 心跳将到期推至 35 s；下半幅画出旧 D → P → 新 D 的两跳复用回路，区分代理 450 s 查路记录（取出即删）与 D 侧 480 s 固定块保留 TTL。
+size: [900, 524]
+pins:
+  - source: vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L250-L294
+    symbols: [_kv_lease_duration, decoder_kv_blocks_ttl, remote_blocks_expiry_time]
+  - source: vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_scheduler.py#L470-L506
+    symbols: [scheduler_clock, _heartbeat_interval, _stop_heartbeat]

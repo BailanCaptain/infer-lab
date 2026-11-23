@@ -2,6 +2,8 @@
 id: dyntra-lb
 title: DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组
 type: feature
+legacyAnchors:
+  放到-glm-双机本部署没开也开不了: 复杂异构实战对照：GLM 双机为何未启用与块尺偏差
 summary: >-
   vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV
   块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling
@@ -249,7 +251,7 @@ file: dyntra-lb-flow
 
 **默认的 `dynamic` 模式平时不动，要等来了一条超过 700 块的新请求才激活，之后连续 256 个有效规划步没有新的超长请求就关掉；`static` 模式在配置的步数区间内一直评估负载，官方只建议排障时用。两种模式默认都从每一波第 250 步完成后的快照起生成下一步计划。**
 
-在展开触发细节之前，先用一张全景图把 DyntraLB 的步末闭环、状态边界与 `v0.30.0` / `main` 的启动约束串起来：
+在展开触发细节之前，先用一张图把 DyntraLB 步末互报的定长 `int32` 向量、四步规划器、暂停与抢占的区别，以及 `dynamic` 模式下的块长门槛陷阱（例如 `block=640` 时永远够不着 `700` 块）串起来：
 
 ```wiki-diagram
 file: dyntra-lb-fig-watermark-routing
@@ -272,9 +274,7 @@ file: dyntra-lb-fig-watermark-routing
 
 ## 复杂异构实战对照：GLM 双机为何未启用与块尺偏差
 
-**历史 GLM-5.3-Flash 官方双机部署是 PD 混部，两台机器各是一个 DP 组；DyntraLB 只在 PD 分离的 D 节点上能开，绑定镜像里也没有它的代码。下面只拿双机事实做对照，不给它在 GLM 上的效果数字。**
-
-部署本身见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
+前面用标准全注意力、每块 128 token 的 D 端双 DP 组走通了 DyntraLB 的换人与触发机制。下面切换标尺，对照**例外 B 历史绑定算例**[官方 GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：两台机器是 PD 混部且各跑一个 DP 组，绑定镜像里也没有 DyntraLB 代码；以下只拿双机事实对照门槛与块尺偏差，不给它在 GLM 上的效果数字。
 
 - **开不了的三个原因。** 其一，本部署没有配 KV 传输、不是 D 节点；采用含 DyntraLB 的版本也过不了 D 节点检查。其二，本部署钉住的 vllm-ascend 提交里没有 DyntraLB，本文对照的 `v0.30.0` 与 `main` 才有。其三，即使照 [PD 页的拆法](pd-disaggregation.md#把这两台机器拆成一-p-一-d)把两台拆成一 P 一 D，D 也只剩一台 8 卡的实例，按主线的 TP8 切法只有一个 DP 组，过不了「DP 至少两组」；在一台 8 卡里再分出多个 DP 组是另一套配置，本站没有它的数字。现在这两个 DP 组分在两台机器上，也不在官方支持的「一台机器内」范围里。
 - **主线里同样有「等最重的组」，但原因不同。** 场景 M 里 DP0 这一步有 6,048 个有效 token、DP1 只有 28 个，执行使用 6,048 的共同宽度，具体算子怎样处理有效行和补齐行见[示例场景 M](concurrent-requests.md#示例场景-m-与变体-m)。差距来自 DP0 正在 prefill 的一条 6,000 token 新请求；正常 PD 分工将这段工作交给 P，DyntraLB 主要针对 D 端 decode 的历史长短差距。不过 D 的调度代码仍能计算未命中的 token，不能把“D 端绝不做 prefill”当成保证。混部时对应的机制是 Balance Scheduling，本部署也没开（见 [Balance Scheduling 放到 GLM 双机](balance-scheduling.md#放到-glm-双机本部署没开开了会怎样)）。

@@ -1,0 +1,10 @@
+mode: native-svg
+id: pd-fig-glm-fullgroup-mismatch
+caption: >-
+  钉住版本 Mooncake V1 在 GLM full 组的 4→1 块失配机制（示意 2,000 token 提示词）：混合模型 N>1 截去末位后剩 1,999 token（≤641 时仅 1 块不受影响）；MLA 与 indexer 共用 4 个 640-token 逻辑块，但 V1 误取压缩比 4 得到 2,560 位置/块，仅选出 1 块；D 端经整除校验（待双机实测核验）分叉为断言失败或静默截齐导致后 3 个目的块未写入。
+size: [900, 486]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1666-L1749
+    symbols: [_get_group_transfer_info, _get_transfer_block_ids]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2585-L2616
+    symbols: [_get_kernel_block_ids]

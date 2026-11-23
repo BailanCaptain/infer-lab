@@ -1,0 +1,9 @@
+id: multimodal-fig-four-tier-cache
+mode: native-svg
+size: [900, 368]
+caption: "多模态请求的四级独立缓存漏斗（HTTP 下载缓存、CPU 预处理缓存、编码器缓存与 KV Cache / APC）、双图部分命中保序合回 [A, B] 及 multi_modal_uuids 省传原图边界。"
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/utils.py#L689-L725
+    symbols: [_merge_multimodal_embeddings, is_multimodal]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L83-L240
+    symbols: [ScoreEncoderCacheManager, should_promote]

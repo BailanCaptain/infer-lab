@@ -1,51 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="昇腾多实例集群拓扑、前缀感知路由与就绪摘流生命周期" font-family="var(--font-sans)">
-<title>DP 外部拉起 vs 多实例反代路由，以及冷启动探针与优雅摘流</title>
-<desc>External DP vs Multi-Instance Proxy, KVEventsConfig routing, /health startup probes, and graceful drain</desc>
-<line x1="450" y1="14" x2="450" y2="292" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-<g stroke-width="1.4">
-<rect x="16" y="60" width="404" height="56" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="16" y="138" width="194" height="70" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="226" y="138" width="194" height="70" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="228" width="404" height="56" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="480" y="60" width="404" height="56" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="480" y="138" width="194" height="70" rx="7" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="690" y="138" width="194" height="70" rx="7" fill="#fff4cf" stroke="#c78300"/>
-<rect x="480" y="228" width="404" height="56" rx="7" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="314" width="424" height="112" rx="8" fill="#fff0e9" stroke="#b54237"/>
-<rect x="460" y="314" width="424" height="112" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-</g>
-<path d="M113 116v20m-4-5l4 5 4-5M323 116v20m-4-5l4 5 4-5M210 173h14M113 208v18m-4-5l4 5 4-5M323 208v18m-4-5l4 5 4-5" fill="none" stroke="#9a4b86" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M577 116v20m-4-5l4 5 4-5M787 116v20m-4-5l4 5 4-5M577 208v18m-4-5l4 5 4-5M787 208v18m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-<g font-weight="700">
-<text x="16" y="28" font-size="16" fill="#17211f">模式 A：外部 DP 协同（共享 EP / DP 域）</text>
-<text x="218" y="83" text-anchor="middle" font-size="14.5" fill="#7a3a6a">外部 LB / DPSupervisor（聚合 /health 与 /ready）</text>
-<text x="113" y="164" text-anchor="middle" font-size="14.5" fill="#3a4f93">DP Rank 0..k-1</text>
-<text x="323" y="164" text-anchor="middle" font-size="14.5" fill="#3a4f93">DP Rank k..N-1</text>
-<text x="218" y="251" text-anchor="middle" font-size="14.5" fill="#936300">强耦合：共享 HCCL 专家域 + 跨 DP 同步步调</text>
-<text x="480" y="28" font-size="16" fill="#17211f">模式 B：独立多实例代理（无共享通信域）</text>
-<text x="682" y="83" text-anchor="middle" font-size="14.5" fill="#065f56">智能网关：前缀亲和 / KV 水位 / 动态分桶</text>
-<text x="577" y="164" text-anchor="middle" font-size="14.5" fill="#065f56">实例组 1（短序列）</text>
-<text x="787" y="164" text-anchor="middle" font-size="14.5" fill="#936300">实例组 2（长序列）</text>
-<text x="682" y="251" text-anchor="middle" font-size="14.5" fill="#3a4f93">状态订阅：/load 实时负载 + ZMQ KVEventsConfig</text>
-<text x="30" y="341" font-size="14.5" fill="#8f3229">长冷启动录图期：startupProbe 与 /health 护栏</text>
-<text x="474" y="341" font-size="14.5" fill="#065f56">滚动发布与缩容：四步优雅摘流（Graceful Drain）</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="48" font-size="13.5">适用大规模 MoE（EP 跨 DP 组），每个 DP 秩独立监听端口</text>
-<text x="218" y="105" text-anchor="middle" font-size="13.5">经 --data-parallel-address / rpc-port 协调</text>
-<text x="113" y="189" text-anchor="middle" font-size="13.5">独立 API 端口或 --headless</text>
-<text x="323" y="189" text-anchor="middle" font-size="13.5">共享同一 EP 专家权重池</text>
-<text x="218" y="274" text-anchor="middle" font-size="13.5">任意 DP 秩挂掉会影响全局通信组，需整体重启或扩缩整组</text>
-<text x="480" y="48" font-size="13.5">适用 Dense 模型与多副本弹性扩缩，单实例故障彻底隔离</text>
-<text x="682" y="105" text-anchor="middle" font-size="13.5">支持按前缀哈希路由或 dynamic_bucket_load_balancer 分桶</text>
-<text x="577" y="189" text-anchor="middle" font-size="13.5">独立 vllm serve（短上下文）</text>
-<text x="787" y="189" text-anchor="middle" font-size="13.5">独立 vllm serve（长上下文）</text>
-<text x="682" y="274" text-anchor="middle" font-size="13.5">实例把块写入/驱逐经 ZMQ 广播给路由器，避免盲目轮询</text>
-<text x="30" y="366" font-size="13.5">• 引擎初始化与 ACL Graph 录图完成前，serve_http 尚未监听端口</text>
-<text x="30" y="389" font-size="13.5">• K8s 须配长窗口 startupProbe，禁短探针误杀</text>
-<text x="30" y="411" font-size="13.5">• 引擎就绪后 /health 调 check_health()，死引擎返回 503</text>
-<text x="474" y="366" font-size="13.5">• 默认 --shutdown-timeout=0，收 SIGTERM 直接 abort 断连！</text>
-<text x="474" y="389" font-size="13.5">• 生产必须设 --shutdown-timeout &gt; 最长请求耗时（进入 drain）</text>
-<text x="474" y="411" font-size="13.5">• 先从 LB 摘除（preStop）→ 再发 SIGTERM 等在途请求自然吐完</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="昇腾多实例集群模式 A 外部 DP 协同与模式 B 独立多实例代理及路由信号对比图" font-family="var(--font-sans)">
+  <title>模式 A（外部 DP 协同）vs 模式 B（独立多实例代理）架构与 KV 感知路由对比</title>
+  <desc>Architectural comparison of Mode A External DP Launcher sharing HCCL EP domain vs Mode B Independent Multi-Instance Proxy with /load, ZMQ KVEventsConfig, and dynamic bucket routing</desc>
+  <defs>
+    <marker id="cl-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="cl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="cl-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Vertical divider between Mode A and Mode B -->
+  <line x1="450" y1="12" x2="450" y2="306" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- LEFT: MODE A (External DP Launcher) -->
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">模式 A · 外部 DP 协同（共享 EP / DP 域）</text>
+  <text x="14" y="46" font-size="13.5" fill="#4d5652">适用大规模 MoE（EP 跨 DP 切分专家），各 DP 秩紧耦合</text>
+
+  <rect x="14" y="60" width="414" height="54" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="221" y="83" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">外部 LB / DPSupervisor（聚合 /health 与 /ready）</text>
+  <text x="221" y="103" text-anchor="middle" font-size="13.5" fill="#4d5652">--data-parallel-address + rpc-port 统一协调</text>
+
+  <path d="M 114 114 L 114 138" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#cl-arr-p)"/>
+  <path d="M 326 114 L 326 138" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#cl-arr-p)"/>
+
+  <rect x="14" y="142" width="194" height="68" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="111" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">DP Rank 0..k−1</text>
+  <text x="111" y="192" text-anchor="middle" font-size="13.5" fill="#4d5652">独立端口或主节点 API</text>
+
+  <rect x="234" y="142" width="194" height="68" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="331" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">DP Rank k..N−1</text>
+  <text x="331" y="192" text-anchor="middle" font-size="13.5" fill="#4d5652">可设 --headless 无前端</text>
+
+  <!-- Coupling bridge between DP ranks -->
+  <path d="M 208 176 L 234 176" fill="none" stroke="#b54237" stroke-width="2.2"/>
+  <path d="M 111 210 L 111 232" fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#cl-arr-p)"/>
+  <path d="M 331 210 L 331 232" fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#cl-arr-p)"/>
+
+  <rect x="14" y="236" width="414" height="58" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="221" y="260" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">共享 HCCL 专家通信域 + 跨 DP 同步步调</text>
+  <text x="221" y="282" text-anchor="middle" font-size="13.5" fill="#4d5652">单秩异常牵连整组，扩缩与恢复按整组粒度</text>
+
+  <!-- RIGHT: MODE B (Multi-Instance Proxy) -->
+  <text x="472" y="26" font-size="16" font-weight="700" fill="#17211f">模式 B · 独立多实例代理（无共享通信域）</text>
+  <text x="472" y="46" font-size="13.5" fill="#4d5652">适用 Dense 或单机装满的 MoE，单副本彻底故障隔离</text>
+
+  <rect x="472" y="60" width="414" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="679" y="83" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">智能网关：前缀亲和 + /load 选低载 + 长度分桶</text>
+  <text x="679" y="103" text-anchor="middle" font-size="13.5" fill="#4d5652">支持 dynamic_bucket_load_balancer 动态重定向</text>
+
+  <path d="M 572 114 L 572 138" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#cl-arr-t)"/>
+  <path d="M 784 114 L 784 138" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#cl-arr-t)"/>
+
+  <rect x="472" y="142" width="194" height="68" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="569" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">短序列实例组</text>
+  <text x="569" y="192" text-anchor="middle" font-size="13.5" fill="#4d5652">独立 vllm serve（低时延）</text>
+
+  <rect x="692" y="142" width="194" height="68" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="789" y="168" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">长序列实例组</text>
+  <text x="789" y="192" text-anchor="middle" font-size="13.5" fill="#4d5652">独立 vllm serve（大 KV 池）</text>
+
+  <!-- Telemetry return arrows up/down to signal bus -->
+  <path d="M 569 210 L 569 232" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#cl-arr-b)"/>
+  <path d="M 789 210 L 789 232" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#cl-arr-b)"/>
+
+  <rect x="472" y="236" width="414" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="679" y="260" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">遥测回传：GET /load（需开 load-tracking）+ ZMQ KV</text>
+  <text x="679" y="282" text-anchor="middle" font-size="13.5" fill="#4d5652">tcp://*:5557 实时广播块写入/驱逐，支持 10,000 步重放</text>
+
+  <!-- LOWER BAND: Visual Prefix-Cache Hit Impact Bar (Wrong Round-Robin vs Right KV-Aware) -->
+  <line x1="14" y1="318" x2="886" y2="318" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="14" y="344" font-size="15.5" font-weight="700" fill="#17211f">为何禁用盲目轮询？会话多轮 / 差异化前缀在 N 副本下的缓存命中示意</text>
+
+  <!-- Bar 1: Round-Robin -->
+  <text x="14" y="378" font-size="13.5" font-weight="700" fill="#8f3229">✗ 普通轮询 / 随机</text>
+  <rect x="176" y="358" width="126" height="28" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="239" y="377" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">命中 ≈ ÷ N</text>
+  <rect x="302" y="358" width="582" height="28" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="593" y="377" text-anchor="middle" font-size="13.5" fill="#4d5652">冷/多轮/易驱逐前缀散射重算 Prefill（全副本常驻热提示词除外）</text>
+
+  <!-- Bar 2: KVEventsConfig Prefix-Aware -->
+  <text x="14" y="418" font-size="13.5" font-weight="700" fill="#065f56">✓ 前缀 + KV 感知</text>
+  <rect x="176" y="398" width="560" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="456" y="417" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">复用驻留 KV 块（感知 LRU 驱逐 + /load 择低载副本）</text>
+  <rect x="736" y="398" width="148" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="810" y="417" text-anchor="middle" font-size="13.5" fill="#3a4f93">仅算新增后缀</text>
 </svg>

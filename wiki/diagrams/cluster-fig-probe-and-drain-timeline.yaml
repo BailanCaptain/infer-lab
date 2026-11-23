@@ -1,0 +1,18 @@
+mode: native-svg
+id: cluster-fig-probe-and-drain-timeline
+caption: >-
+  昇腾在线 Pod 生命周期探针与四步优雅摘流（Graceful Drain）时间线：展示冷启动权重加载与 ACL Graph 录图期（2–10 分钟，serve_http 尚未监听、DPSupervisor 返回 503）由 startupProbe 承接；就绪后由 /health 监控；下线时先经 preStop 从 LB 摘流，再由 SIGTERM 对比默认 --shutdown-timeout 0（abort 立即掐断请求）与显式 --shutdown-timeout > 0（drain 自然吐完），底部标明 terminationGracePeriodSeconds 宽限约束。
+size: [900, 390]
+pins:
+  - source: 'vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L180-L202'
+    symbols:
+      - build_async_engine_client
+      - build_and_serve
+  - source: 'vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L138-L163'
+    symbols:
+      - handle_shutdown
+      - shutdown_timeout
+  - source: 'vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L22-L33'
+    symbols:
+      - check_health
+      - EngineDeadError

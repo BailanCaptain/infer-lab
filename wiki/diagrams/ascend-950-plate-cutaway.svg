@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 684" width="860" height="684" role="img" aria-label="昇腾 950 芯片两路关键数据通路立体拆解剖面图：矩阵输入经 L1 与 L0A/L0B 送入 CUBE 并在 L0C 产出后直通向量侧 UB 与 VECTOR；非连续张量则由 NDDMA 从全局内存直接多维重排进向量侧 UB" font-family="var(--font-sans)">
+  <title>昇腾 950 片上两路关键通路立体剖面：其一为矩阵乘与向量融合路径（数据经 L1 → L0A/L0B 进入 CUBE 产出至 L0C，再经片上直通送进 UB 与 VECTOR，省去中间写回 GM 的逻辑往返）；其二为非连续切片路径（由多维搬运引擎 NDDMA 直接从全局内存重排搬入向量侧 UB）。</title>
+  <desc>关联源码符号：HardwareCapability, QuantizationBackendFamily, process_weights_after_loading</desc>
+
+  <image href="./wiki-illustrations/ascend-950-die-cutaway.webp" x="90" y="128" width="680" height="435" preserveAspectRatio="xMidYMid meet"/>
+
+  <line x1="194" y1="114" x2="194" y2="248" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="194" cy="248" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="194" cy="248" r="2.5" fill="#4c65b6"/>
+
+  <line x1="416" y1="114" x2="416" y2="268" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="416" cy="268" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="416" cy="268" r="2.5" fill="#c78300"/>
+
+  <line x1="534" y1="114" x2="534" y2="338" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="534" cy="338" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="534" cy="338" r="2.5" fill="#087f73"/>
+
+  <line x1="290" y1="576" x2="290" y2="364" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="290" cy="364" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="290" cy="364" r="2.5" fill="#9a4b86"/>
+
+  <line x1="590" y1="576" x2="590" y2="400" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="590" cy="400" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="590" cy="400" r="2.5" fill="#087f73"/>
+
+  <g id="callout-hbm">
+    <circle cx="20" cy="26" r="11" fill="#4c65b6"/>
+    <text x="20" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">1</text>
+    <text x="38" y="31" font-size="14" font-weight="700" fill="#17211f">全局显存层次 (HBM / L2)</text>
+    <text x="38" y="55" font-size="12.5" fill="#4d5652">存放权重、KV 与输入输出大张量</text>
+    <text x="38" y="77" font-size="12.5" fill="#4d5652">未融合时中间结果须写出 GM 重读</text>
+    <text x="38" y="99" font-size="12.5" fill="#3a4f93">逻辑 GM 访存同时受片上 L2 影响</text>
+  </g>
+
+  <g id="callout-cube">
+    <circle cx="300" cy="26" r="11" fill="#c78300"/>
+    <text x="300" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2</text>
+    <text x="318" y="31" font-size="14" font-weight="700" fill="#17211f">矩阵乘与累加 (L1 → CUBE)</text>
+    <text x="318" y="55" font-size="12.5" fill="#4d5652">经 <tspan font-family="var(--font-mono)" font-weight="700">L1 → L0A/L0B</tspan> 喂入 Cube 乘加</text>
+    <text x="318" y="77" font-size="12.5" fill="#4d5652">950 原生支持 <tspan font-family="var(--font-mono)" font-weight="700">FP8 / MXFP8</tspan> 通路</text>
+    <text x="318" y="99" font-size="12.5" fill="#936300">分块累加结果先落入片上 <tspan font-family="var(--font-mono)" font-weight="700">L0C</tspan></text>
+  </g>
+
+  <g id="callout-cv-direct">
+    <circle cx="580" cy="26" r="11" fill="#087f73"/>
+    <text x="580" y="30.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">3</text>
+    <text x="598" y="31" font-size="14" font-weight="700" fill="#17211f">片上 CV 直通 (L0C → UB)</text>
+    <text x="598" y="55" font-size="12.5" fill="#4d5652">矩阵结果沿内部通路直交向量侧 <tspan font-family="var(--font-mono)" font-weight="700">UB</tspan></text>
+    <text x="598" y="77" font-size="12.5" fill="#4d5652">省去绕行 GM 写读（另含 <tspan font-family="var(--font-mono)" font-weight="700">L1 ↔ UB</tspan>）</text>
+    <text x="598" y="99" font-size="12.5" fill="#065f56">由 <tspan font-family="var(--font-mono)" font-weight="700">BufferID</tspan> 守住生产消费次序</text>
+  </g>
+
+  <g id="callout-nddma">
+    <circle cx="20" cy="600" r="11" fill="#9a4b86"/>
+    <text x="20" y="604.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">4</text>
+    <text x="38" y="605" font-size="14" font-weight="700" fill="#17211f">非连续搬运专道 (NDDMA · GM → UB)</text>
+    <text x="38" y="629" font-size="12.5" fill="#4d5652">面向向量侧：按最多五维跨度将 GM 非连续切片重排进 <tspan font-family="var(--font-mono)" font-weight="700">UB</tspan></text>
+    <text x="38" y="652" font-size="12.5" fill="#7a3a6a">内置缓存可将零散元素级读取归并为 128 B 内存事务</text>
+  </g>
+
+  <g id="callout-vector">
+    <circle cx="446" cy="600" r="11" fill="#087f73"/>
+    <text x="446" y="604.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">5</text>
+    <text x="464" y="605" font-size="14" font-weight="700" fill="#17211f">统一缓冲与向量段 (UB · SIMD / SIMT)</text>
+    <text x="464" y="629" font-size="12.5" fill="#4d5652">紧贴 <tspan font-family="var(--font-mono)" font-weight="700">UB</tspan> 完成激活、归一化、Softmax 与反量化</text>
+    <text x="464" y="652" font-size="12.5" fill="#4d5652">直通省去中间绕路，最终跨算子输出仍按需写回保存</text>
+  </g>
+</svg>

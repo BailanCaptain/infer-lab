@@ -126,7 +126,9 @@ rawSources:
 
 ## 它额外清理什么，两代配置入口怎么迁？
 
-在同卡（same-device）强化学习后训练工作流里，同一张 NPU 要在自回归生成与模型训练之间交替运行，因此推理引擎在进入训练阶段时需要通过 sleep mode 尽可能让出显存（整体流程见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)）。基本 sleep mode（基于 `CaMemAllocator`）主要释放可睡眠内存池中的分配（level 1 将权重备份到 CPU、丢弃旧 KV；level 2 丢弃权重池内容、仅留运行期持久 buffer）；但池外的 **HCCL 设备侧通信组缓冲**与 **ACL 图的 attention workspace** 仍会残留显存。开启本开关后，sleep 时会尝试进一步释放 HCCL 设备侧通信组（保留 `cpu_group`）并清空 ACL 图工作区、作废已捕获的图，在唤醒时再重建设备侧通信域并按标签重捕获图。
+在同卡（same-device）强化学习后训练工作流里，同一张 NPU 需要在自回归生成与模型训练之间交替运行，因此推理引擎在进入训练阶段前必须通过 sleep mode 尽可能让出显存（整体流程见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)）。
+
+基本 sleep mode（基于 `CaMemAllocator`）只释放可睡眠内存池中的分配（level 1 将权重备份到 CPU、丢弃旧 KV；level 2 丢弃权重池内容、仅留运行期持久 buffer），而池外的 **HCCL 设备侧通信组缓冲**与 **ACL 图的 attention workspace** 仍会残留显存。开启本开关后，sleep 时会尝试进一步释放 HCCL 设备侧通信组（保留 `cpu_group`）并清空 ACL 图工作区、作废已捕获的图；唤醒时再重建设备侧通信域并按标签重捕获图。
 
 **两代配置入口的迁移（旧键移除 ≠ 清理功能移除）**：该开关全版本均默认 `False`，并在 `v0.27+`（PR #13838 迁移 pydantic）后收归 `rl_config` 一键模式子配置：
 
@@ -148,10 +150,13 @@ rawSources:
 file: enable-sleep-mode-extra-cleanup
 ```
 
-具体清理动作分两半执行（`v0.23` 与 `v0.26` 仅差 `v0.26` 按带/不带 LoRA 存两份图参数dict、用 `acl_graph.iter_graph_params()` 遍历，其余动作相同）：
-- **ACL 图清理（仅 `use_aclgraph` 为真时执行）**：将主图、草稿图、草稿 prefill 图三套参数中按 token 数保存的 `workspaces` 逐个置 `None`，清空列表字段，清空各 graph wrapper 的 `concrete_aclgraph_entries` 并把 `first_run_finished` 置回 `False`，最后清空 `model_runner.cudagraph_manager` 的图并将 `_graphs_captured` 置回 `False`（等于回到从未捕获状态）。
-- **HCCL 通信组清理**：先对未完成的 PP 发送句柄执行 `wait()`、清空发送记录并调用 `torch.npu.synchronize()`，再销毁 device communicator、按引用计数退还共享 HCCL 组、销毁非共享组并将 `device_group` 置 `None`（保留 `cpu_group`）；唤醒时 `restore_hccl()` 就地重建设备组（`create_cpu_group=False`，对存活组返回 `False` 防止重复创建）并刷新 MoE dispatcher 句柄。
-- **`v0.30.0` 与 `main` 新增跨休眠周期 HCCL lifecycle anchor**：为了防止销毁全部设备通信组时拉崩多卡 HCCL 控制面，新版 `HcclSleepWakeupManager` 在多 rank 下先创建临时保活通信组并通过 `barrier` 完成物理初始化，再清理业务通信组；若单 rank、anchor 创建/初始化失败或 MoE 拆卸准备失败，则跳过本轮 HCCL 清理（记 `sleep_hccl_policy=skip`）。唤醒时先恢复业务通信组并完成图重捕获，再释放 anchor——分阶段仅唤醒 `weights` 时会继续保留 anchor，直到 `kv_cache` 恢复并完成重捕获后再收尾（完整新版流程见 [sleep mode 版本差异](../concepts/sleep-mode.md#版本差异)）。
+**两类清理动作与 `v0.30.0` / `main` 新增的 HCCL 生命周期锚点**（`v0.23` 与 `v0.26` 仅差 `v0.26` 按带/不带 LoRA 存两份图参数 dict、用 `acl_graph.iter_graph_params()` 遍历，其余动作相同）：
+
+| 清理模块 | `sleep()` 动作 | `wake_up(tags)` 恢复与边界 |
+| --- | --- | --- |
+| **ACL 图清理**（仅 `use_aclgraph` 为真） | 将主图、草稿图、草稿 prefill 图三套参数中按 token 数保存的 `workspaces` 逐个置 `None`，清空列表字段与各 graph wrapper 的 `concrete_aclgraph_entries`，将 `first_run_finished` 置 `False`，最后清空 `model_runner.cudagraph_manager` 的图并将 `_graphs_captured` 置 `False`（回到从未捕获状态） | 仅 `tags` 为 `None` 或含 `"kv_cache"` 时重调 `capture_model()`；`tags=["weights"]` 与 `tags=[]` 均跳过 |
+| **HCCL 业务通信组清理** | 先对未完成的 PP 发送句柄执行 `wait()`、清空发送记录并调用 `torch.npu.synchronize()`，再销毁 device communicator、按引用计数退还共享 HCCL 组、销毁非共享组并将 `device_group` 置 `None`（保留 `cpu_group`） | `restore_hccl()` 就地重建设备组（`create_cpu_group=False`，存活组返回 `False` 防重复创建）并刷新 MoE dispatcher 句柄 |
+| **跨休眠周期 HCCL lifecycle anchor**（`v0.30.0` / `main` 新增） | 为防销毁全部设备通信组时拉崩多卡 HCCL 控制面，`HcclSleepWakeupManager` 在多 rank 下先建临时保活组并 `barrier` 完成物理初始化，再清业务组；单 rank、anchor 创建/初始化失败或 MoE 拆卸准备失败时跳过本轮 HCCL 清理（记 `sleep_hccl_policy=skip`） | 先恢复业务组并完成图重捕获，再释放 anchor；分阶段仅醒 `weights` 时继续保留 anchor，直到 `kv_cache` 恢复并重捕获完成后收尾（详见 [sleep mode 版本差异](../concepts/sleep-mode.md#版本差异)） |
 
 ## 唤醒代价、常见踩坑、日志定位与启动命令
 

@@ -1,0 +1,12 @@
+mode: native-svg
+id: speculative-fig-draft-families
+caption: >-
+  三类投机草稿来源与资源/串行结构对比：左侧为无草稿权重的文本查找（ngram 局部序列、Suffix 局部+全局双树）；中部区分独立小模型的自回归串行 K 步与并行草稿（PARD 占位一步出 K）；右侧展示借主模型隐状态的 EAGLE/MTP，并拆解 GLM-5.3-Flash 单层 MTP 连跑 3 遍（主干 45 层 + 3×1 = 48 层）的串行结构与额外通信代价。
+size: [900, 440]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/spec_decode/ngram_proposer.py#L1-L40'
+    symbols: ['NgramProposer']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L217-L236'
+    symbols: ['_is_glm_model', 'use_cuda_graph', 'enforce_eager']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L127-L140'
+    symbols: ['AscendGlm5NextMultiTokenPredictor', 'num_mtp_layers', 'num_nextn_predict_layers']

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="三类思考开关生效阶段对比与 GLM 双机单前端扇入及 MTP 确认推送节奏图" font-family="var(--font-sans)">
+  <title>三类思考控制开关在输入模板、采样执行链与输出解析层的生效位置对比，以及 GLM 双机 DP0/DP1 汇入单 API Server 与 MTP 1–4 词确认推送节奏。</title>
+  <desc>左栏展示三类思考开关不能互替：模板层（reasoning_effort / enable_thinking）控制不/少思考、采样层（thinking_token_budget）按预算强转结束思考、输出解析层（include_reasoning=false）仅隐藏已算出的思考字段；右栏展示 GLM 官方双机的两套 DP 组经 ZMQ 汇入 node0 唯一 API Server，以及 R1 前三圈 MTP 仅交付已确认 token（1、2、4 枚），被拒草稿永不离开引擎、前端绝不撤回。</desc>
+  <defs>
+    <marker id="smr-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
+    </marker>
+    <marker id="smr-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <!-- Left panel: 3 thinking control stages -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">一、三类思考开关：作用阶段完全不同</text>
+
+  <rect x="14" y="40" width="424" height="88" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="64" font-size="14.5" font-weight="700" fill="#3a4f93">1. 输入模板层：不思考 / 控强度</text>
+  <text x="28" y="88" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">reasoning_effort / enable_thinking</text>
+  <text x="28" y="112" font-size="13" fill="#4d5652">改聊天模板提示词，真能省思考计算（取决于模型模板）</text>
+
+  <line x1="226" y1="128" x2="226" y2="146" stroke="#4d5652" stroke-width="1.7" marker-end="url(#smr-arr)"/>
+
+  <rect x="14" y="150" width="424" height="88" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="28" y="174" font-size="14.5" font-weight="700" fill="#936300">2. 采样执行链：硬控最多思考多少词</text>
+  <text x="28" y="198" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">thinking_token_budget</text>
+  <text x="28" y="222" font-size="13" fill="#4d5652">用满思考预算后抬高结束标记分数，推动模型切回答案</text>
+
+  <line x1="226" y1="238" x2="226" y2="256" stroke="#4d5652" stroke-width="1.7" marker-end="url(#smr-arr)"/>
+
+  <rect x="14" y="260" width="424" height="96" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="28" y="284" font-size="14.5" font-weight="700" fill="#8f3229">3. 输出解析层：仅隐藏已算出的思考</text>
+  <text x="28" y="308" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">include_reasoning = false</text>
+  <text x="28" y="332" font-size="13" fill="#8f3229">不撤销思考计算！需配对 reasoning parser 才切得出思考段</text>
+
+  <!-- Vertical separator -->
+  <line x1="452" y1="14" x2="452" y2="356" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- Right panel: GLM dual-DP fan-in + MTP 1-4 confirmed-only rhythm -->
+  <text x="468" y="24" font-size="16" font-weight="700" fill="#17211f">二、GLM 双机扇入与 MTP 确认推送节奏</text>
+
+  <!-- Dual-DP fan-in to single API server -->
+  <rect x="468" y="40" width="154" height="50" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="545" y="62" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">node0 · DP0</text>
+  <text x="545" y="80" text-anchor="middle" font-size="13" fill="#4d5652">≤32 并发 · R1</text>
+
+  <rect x="468" y="100" width="154" height="50" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="545" y="122" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">node1 · DP1</text>
+  <text x="545" y="140" text-anchor="middle" font-size="13" fill="#4d5652">≤32 并发</text>
+
+  <path d="M 622 65 L 664 90" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#smr-arr-p)"/>
+  <path d="M 622 125 L 664 100" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#smr-arr-p)"/>
+
+  <rect x="668" y="46" width="218" height="98" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="777" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">唯一 API Server (node0)</text>
+  <text x="777" y="94" text-anchor="middle" font-size="13" fill="#17211f">双 DP 经 ZMQ 汇入单前端 CPU</text>
+  <text x="777" y="114" text-anchor="middle" font-size="13" fill="#4d5652">≤32 &lt; 128 整批不拆片</text>
+  <text x="777" y="134" text-anchor="middle" font-size="13" fill="#7a3a6a">原配方无 parser → 全落 content</text>
+
+  <!-- MTP 3-circle confirmed-only SSE frames -->
+  <rect x="468" y="164" width="418" height="192" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+  <text x="482" y="188" font-size="14.5" font-weight="700" fill="#065f56">R1 前三圈：被拒草稿永不离引擎，绝无「撤回」</text>
+
+  <!-- Circle 1 -->
+  <text x="482" y="218" font-size="13" font-weight="700" fill="#17211f">Prefill：</text>
+  <rect x="562" y="200" width="54" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="589" y="218" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">y₀</text>
+  <text x="630" y="218" font-size="13" fill="#4d5652">→ 第 1 内容帧（1 枚）</text>
+
+  <!-- Circle 2 -->
+  <text x="482" y="256" font-size="13" font-weight="700" fill="#17211f">Decode 1：</text>
+  <rect x="562" y="238" width="96" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="610" y="256" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">y₁, y₂</text>
+  <rect x="664" y="238" width="66" height="26" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <text x="697" y="256" text-anchor="middle" font-size="13" fill="#8f3229">2拒·丢</text>
+  <text x="738" y="256" font-size="13" fill="#4d5652">→ 第 2 帧（2 枚）</text>
+
+  <!-- Circle 3 -->
+  <text x="482" y="294" font-size="13" font-weight="700" fill="#17211f">Decode 2：</text>
+  <rect x="562" y="276" width="168" height="26" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="646" y="294" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">y₃, y₄, y₅, y₆</text>
+  <text x="738" y="294" font-size="13" fill="#065f56">→ 第 3 帧（4 枚）</text>
+
+  <!-- Bottom note -->
+  <rect x="482" y="314" width="390" height="30" rx="5" fill="#ece9df"/>
+  <text x="677" y="334" text-anchor="middle" font-size="13" fill="#4d5652">异步调度下，上一圈帧在下一圈开跑后离引擎 · EOS 154820/27/29</text>
+</svg>

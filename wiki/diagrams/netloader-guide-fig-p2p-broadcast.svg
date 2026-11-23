@@ -1,76 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 476" width="900" height="476" role="img" aria-label="Netloader 已有实例到新实例的 P2P 权重握手传输、INT8_CACHE 分流与磁盘回退架构图" font-family="var(--font-sans)">
-  <title>Netloader：同分片 TCP 握手、2 进程临时 HCCL 传输、INT8_CACHE 与磁盘回退机制</title>
-  <desc>关联源码符号：ModelNetLoaderElastic, INT8_CACHE, disk_fallback_loader_extra_config, enable_multithread_load</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 498" width="900" height="498" role="img" aria-label="Netloader rank 对 rank 握手与临时 HCCL 权重搬运、INT8_CACHE 三轨分流及两级回退流图" font-family="var(--font-sans)">
+  <title>Netloader：同分片 TCP 握手 + 临时 HCCL 搬运、INT8_CACHE 三轨布局与两级磁盘回退</title>
+  <desc>Rank-to-rank TCP handshake and temporary 2-process HCCL weight transfer across main and +10000 draft ports, 3-lane INT8_CACHE data paths (no processed layout, hbm forced for draft, dram), and 2-stage error fallback preserving 3 multithread loader keys</desc>
   <defs>
-    <marker id="nl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="nl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
-    <marker id="nl-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="nl-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
     </marker>
-    <marker id="nl-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="nl-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="nl-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
     </marker>
   </defs>
 
-  <!-- Zone 1: P2P Broadcast Flow -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 启动期同分片 P2P 权重搬运：rank 对 rank 建 2 进程临时 HCCL 通信组</text>
+  <!-- UPPER BAND: Rank-to-Rank Protocol Diagram -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 启动期同分片 P2P 协议：同 rank 建 2 进程临时 HCCL 组（不重切片，draft 端口 +10000）</text>
 
-  <rect x="16" y="44" width="248" height="126" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">供方旧实例（Server）</text>
-  <text x="30" y="94" font-size="13.5" fill="#4d5652">已加载模型并开 TCP 监听</text>
-  <text x="30" y="116" font-size="13.5" fill="#4d5652">端口 = LISTEN_PORT + rank</text>
-  <text x="30" y="138" font-size="13.5" fill="#3a4f93">draft 通道另加 +10000 偏移</text>
-  <text x="30" y="160" font-size="13.5" fill="#4d5652">后台线程发送（串行接单）</text>
+  <!-- Server side (Rank 0 & Rank 1) -->
+  <rect x="14" y="44" width="214" height="146" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="121" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">供方旧实例（Server）</text>
+  <rect x="28" y="78" width="186" height="46" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="121" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">主模型 rank r</text>
+  <text x="121" y="116" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#4d5652">LISTEN_PORT + r</text>
+  <rect x="28" y="132" width="186" height="46" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="121" y="150" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">草稿通道（MTP）</text>
+  <text x="121" y="170" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#4d5652">基础端口 + r + 10000</text>
 
-  <line x1="266" y1="84" x2="312" y2="84" stroke="#087f73" stroke-width="1.8" marker-end="url(#nl-arr-t)"/>
-  <line x1="312" y1="130" x2="266" y2="130" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#nl-arr-p)"/>
+  <!-- Center Protocol Steps (Handshake -> Temp HCCL -> Barrier) -->
+  <path d="M 228 96 L 274 96" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#nl-arr-p)"/>
+  <path d="M 622 96 L 668 96" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#nl-arr-t)"/>
+  <path d="M 228 154 L 274 154" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#nl-arr-t)"/>
+  <path d="M 622 154 L 668 154" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#nl-arr-t)"/>
 
-  <rect x="316" y="44" width="268" height="126" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="330" y="70" font-size="14.5" font-weight="700" fill="#065f56">TCP 握手 + 临时 HCCL 搬运</text>
-  <text x="330" y="94" font-size="13.5" fill="#4d5652">核：rank / 路径串 / TP / PP</text>
-  <text x="330" y="116" font-size="13.5" fill="#065f56" font-weight="600">v0.30.0 增：缓存模式+清单</text>
-  <text x="330" y="138" font-size="13.5" fill="#4d5652">按遍历序发/收张量 + barrier</text>
-  <text x="330" y="160" font-size="13.5" fill="#66716d">仍无权重内容哈希，不重切片</text>
+  <rect x="278" y="44" width="344" height="68" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="450" y="65" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Step 1 · TCP 握手校验（非内容哈希）</text>
+  <text x="450" y="85" text-anchor="middle" font-size="12.5" fill="#17211f">核：rank / 模型路径字符串 / TP / PP</text>
+  <text x="450" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">v0.30.0+ 增：缓存模式 + transfer manifest</text>
 
-  <line x1="586" y1="107" x2="622" y2="107" stroke="#087f73" stroke-width="1.8" marker-end="url(#nl-arr-t)"/>
+  <rect x="278" y="122" width="344" height="68" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="450" y="143" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Step 2 · 2 进程临时 HCCL 通信组</text>
+  <text x="450" y="163" text-anchor="middle" font-size="12.5" fill="#17211f">按遍历序逐张量直传 NPU → 末次 barrier</text>
+  <text x="450" y="182" text-anchor="middle" font-size="12.5" fill="#4d5652">HCCL_BUFFSIZE 默认 200 MB（收发双倍）</text>
 
-  <rect x="626" y="44" width="258" height="126" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="640" y="70" font-size="14.5" font-weight="700" fill="#7a3a6a">接收新实例（Client）</text>
-  <text x="640" y="94" font-size="13.5" fill="#4d5652">按 SOURCE 顺序试候选地址</text>
-  <text x="640" y="116" font-size="13.5" fill="#4d5652">先建参数空位，接收写入卡内</text>
-  <text x="640" y="138" font-size="13.5" fill="#7a3a6a">收完后自身也开监听供扩容</text>
-  <text x="640" y="160" font-size="13.5" fill="#4d5652">之后才量显存、建 KV 池</text>
+  <!-- Client side -->
+  <rect x="672" y="44" width="212" height="146" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="778" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">接收新实例（Client）</text>
+  <rect x="686" y="78" width="184" height="46" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="778" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">先建同形状参数空位</text>
+  <text x="778" y="116" text-anchor="middle" font-size="12.5" fill="#4d5652">写入本卡 NPU HBM</text>
+  <rect x="686" y="132" width="184" height="46" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="778" y="150" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">完成后自启监听</text>
+  <text x="778" y="170" text-anchor="middle" font-size="12.5" fill="#4d5652">再量显存、建 KV 池</text>
 
-  <line x1="16" y1="188" x2="884" y2="188" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <line x1="14" y1="204" x2="886" y2="204" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- Zone 2: INT8_CACHE & Fallback -->
-  <text x="16" y="216" font-size="16" font-weight="700" fill="#17211f">② INT8_CACHE 布局模式与加载失败回退边界（v0.23 vs v0.30.0 / main）</text>
+  <!-- LOWER BAND: Left = 3-Lane INT8_CACHE | Right = 2-Stage Error Fallback -->
+  <text x="14" y="230" font-size="15.5" font-weight="700" fill="#17211f">② INT8_CACHE 三轨传输路径（不可跨版混接）</text>
+  <text x="466" y="230" font-size="15.5" font-weight="700" fill="#17211f">③ 两级容错与磁盘回退流（DefaultModelLoader）</text>
+  <line x1="450" y1="216" x2="450" y2="438" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="5 4"/>
 
-  <rect x="16" y="232" width="424" height="124" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="258" font-size="14.5" font-weight="700" fill="#936300">量化权重布局：INT8_CACHE = no / hbm / dram</text>
-  <text x="30" y="282" font-size="13.5" fill="#4d5652">• v0.30.0 / main（no）：直接传后处理后的推理布局 + 清单</text>
-  <text x="30" y="304" font-size="13.5" fill="#4d5652">• hbm / dram：供方留原始 int8 副本，接收端再做后处理</text>
-  <text x="30" y="326" font-size="13.5" fill="#8f3229" font-weight="600">• draft 供方只要非 no（含 dram）均强制改存 HBM 副本</text>
-  <text x="30" y="346" font-size="13.5" fill="#936300">• 新旧版布局与 manifest 协议不同，不可跨版混接</text>
+  <!-- Left 3 Lanes -->
+  <!-- Lane 1: no -->
+  <rect x="14" y="246" width="84" height="46" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="56" y="274" text-anchor="middle" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#065f56">no</text>
+  <path d="M 98 269 L 122 269" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#nl-arr-t)"/>
+  <rect x="128" y="246" width="308" height="46" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="140" y="266" font-size="13" font-weight="700" fill="#065f56">v0.30.0/main：直传后处理推理布局 + 清单</text>
+  <text x="140" y="285" font-size="13" fill="#4d5652">（旧版不留原始缓存，量化模型有偏离风险）</text>
 
-  <rect x="460" y="232" width="424" height="124" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="474" y="258" font-size="14.5" font-weight="700" fill="#8f3229">两级容错与磁盘回退（DefaultModelLoader）</text>
-  <text x="474" y="282" font-size="13.5" fill="#4d5652">• TCP 连接/握手拒收：继续顺序试 SOURCE 下一候选</text>
-  <text x="474" y="304" font-size="13.5" fill="#4d5652">• HCCL 传输中断：不再轮询其他供方，直接回退读磁盘</text>
-  <text x="474" y="326" font-size="13.5" fill="#065f56" font-weight="600">• v0.30.0 经 disk_fallback_loader_extra_config 过滤</text>
-  <text x="474" y="346" font-size="13.5" fill="#4d5652">  保留 enable_multithread_load 等 3 键、剔除专有键</text>
+  <!-- Lane 2: hbm -->
+  <rect x="14" y="302" width="84" height="48" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="56" y="331" text-anchor="middle" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#936300">hbm</text>
+  <path d="M 98 326 L 122 326" fill="none" stroke="#c78300" stroke-width="1.6" marker-end="url(#nl-arr-a)"/>
+  <rect x="128" y="302" width="308" height="48" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="140" y="322" font-size="13" font-weight="700" fill="#936300">供方 HBM 留原始 int8 → 接收端再后处理</text>
+  <text x="140" y="342" font-size="13" font-weight="700" fill="#8f3229">draft 非 no（含 dram）均强制改存 HBM！</text>
 
-  <line x1="16" y1="374" x2="884" y2="374" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Lane 3: dram -->
+  <rect x="14" y="360" width="84" height="46" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="56" y="388" text-anchor="middle" font-size="14" font-weight="700" font-family="var(--font-mono)" fill="#3a4f93">dram</text>
+  <path d="M 98 383 L 122 383" fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#nl-arr-p)"/>
+  <rect x="128" y="360" width="308" height="46" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="140" y="380" font-size="13" font-weight="700" fill="#3a4f93">供方主机 DRAM 存原始副本 → 发送前搬 NPU</text>
+  <text x="140" y="399" font-size="13" fill="#4d5652">省显存常驻，但增发前 H2D 搬运</text>
 
-  <!-- Zone 3: Practical details -->
-  <text x="16" y="400" font-size="16" font-weight="700" fill="#17211f">③ 通信缓冲拼写、对比 RFork 与双机冷启动前提</text>
+  <!-- Right: 2-Stage Error Fallback Flowchart -->
+  <rect x="466" y="246" width="186" height="46" rx="6" fill="#ece9df" stroke="#17211f" stroke-width="1.3"/>
+  <text x="559" y="266" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">遍历 SOURCE 候选</text>
+  <text x="559" y="285" text-anchor="middle" font-size="13.5" fill="#4d5652">发起 TCP 握手</text>
 
-  <rect x="16" y="414" width="424" height="52" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="30" y="437" font-size="13.5" font-weight="700" fill="#17211f">HCCL_BUFFSIZE（非 BUFFERSIZE）默认 200 MB × 收发双倍</text>
-  <text x="30" y="458" font-size="13.5" fill="#4d5652">每通信域另占片上缓冲；GLM 教程未启用 Netloader</text>
+  <!-- TCP fail loop -->
+  <path d="M 652 269 L 700 269" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#nl-arr-a)"/>
+  <rect x="704" y="246" width="180" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="794" y="266" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">TCP 拒收/断连</text>
+  <text x="794" y="285" text-anchor="middle" font-size="13.5" fill="#936300">续试下一候选地址</text>
 
-  <rect x="460" y="414" width="424" height="52" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="474" y="437" font-size="13.5" font-weight="700" fill="#065f56">对比 RFork：静态 SOURCE 地址 vs Planner 动态租约</text>
-  <text x="474" y="458" font-size="13.5" fill="#4d5652">双机同冷启动无已加载供方，EP16 不同专家分片不可互指</text>
+  <!-- Down to HCCL transfer fail -->
+  <path d="M 559 292 L 559 312" fill="none" stroke="#b54237" stroke-width="1.7" marker-end="url(#nl-arr-r)"/>
+  <rect x="466" y="316" width="418" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="675" y="339" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">HCCL 传输中断：不再轮询其他供方，直接回退读磁盘！</text>
+
+  <path d="M 675 352 L 675 364" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#nl-arr-t)"/>
+  <rect x="466" y="368" width="418" height="64" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="675" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">v0.30.0 disk_fallback_loader_extra_config 过滤</text>
+  <text x="675" y="407" text-anchor="middle" font-size="13" fill="#4d5652">保留 enable_multithread_load 等 3 键，</text>
+  <text x="675" y="424" text-anchor="middle" font-size="13" fill="#4d5652">剔除专有键 → DefaultModelLoader</text>
+
+  <!-- Bottom comparison strip -->
+  <rect x="14" y="448" width="870" height="38" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="449" y="472" text-anchor="middle" font-size="13" fill="#17211f">对比 RFork：Netloader 静态配 SOURCE + 2 进程临时 HCCL；GLM 双机冷启动无供方且 EP16 专家分片不同，未启用</text>
 </svg>

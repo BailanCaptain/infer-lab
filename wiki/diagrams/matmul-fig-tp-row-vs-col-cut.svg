@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="同一张 3x4 权重矩阵在张量并行下的按行切与按列切视觉对比图" font-family="var(--font-sans)">
+  <title>张量并行（TP）两种切法直观对比：把同一张 3×4 权重 W 分别按行横切（Row Parallel，各卡算出部分和 2 与 6，必须 All-Reduce 相加得 8）与按列竖切（Column Parallel，各卡直接算出完整真值 [8, 6] 与 [5, 7]，激活无需归约）。</title>
+  <desc>关联源码符号：ColumnParallelLinear, RowParallelLinear, MergedColumnParallelLinear, reduce_results</desc>
+  <defs>
+    <marker id="mm-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="mm-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="mm-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <line x1="450" y1="14" x2="450" y2="404" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- 左栏：按行切 Row Parallel -->
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#8f3229">一、按行切（Row Parallel · 沿输入维横切）</text>
+  <text x="14" y="51" font-size="13.5" fill="#4d5652">输入 <tspan font-family="var(--font-mono)" font-weight="700">[2, 1, 3]</tspan> 拆给两卡，各算输出 4 格的<tspan font-weight="700" fill="#8f3229">部分和</tspan></text>
+
+  <!-- Card A 输入 [2, 1] + 矩阵前 2 行 -->
+  <text x="14" y="82" font-size="13.5" font-weight="700" fill="#065f56">卡 A（前 2 行）</text>
+  <rect x="14" y="92" width="38" height="32" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="33" y="113" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">2</text>
+  <rect x="56" y="92" width="38" height="32" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="75" y="113" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1</text>
+  <text x="108" y="114" text-anchor="middle" font-size="16" font-weight="700" fill="#4d5652">×</text>
+
+  <!-- W Row 0 & Row 1 (高亮第 0 列) -->
+  <rect x="122" y="76" width="38" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="141" y="96" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1</text>
+  <rect x="164" y="76" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="183" y="96" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">0</text>
+  <rect x="206" y="76" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="225" y="96" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">2</text>
+  <rect x="248" y="76" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="267" y="96" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">1</text>
+
+  <rect x="122" y="110" width="38" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="141" y="130" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0</text>
+  <rect x="164" y="110" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="183" y="130" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">3</text>
+  <rect x="206" y="110" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="225" y="130" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">1</text>
+  <rect x="248" y="110" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="267" y="130" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">2</text>
+
+  <path d="M 290 108 L 312 108" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#mm-arr-t)"/>
+  <rect x="316" y="84" width="114" height="50" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="373" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">部分和 A</text>
+  <text x="373" y="125" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">[<tspan fill="#065f56">2</tspan>, 3, 5, 4]</text>
+
+  <!-- 红色水平横切线 -->
+  <line x1="14" y1="154" x2="430" y2="154" stroke="#b54237" stroke-width="2.2" stroke-dasharray="7 4"/>
+  <rect x="148" y="143" width="118" height="22" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="207" y="159" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">横切分界线</text>
+
+  <!-- Card B 输入 [3] + 矩阵第 3 行 -->
+  <text x="14" y="182" font-size="13.5" font-weight="700" fill="#936300">卡 B（第 3 行）</text>
+  <rect x="56" y="190" width="38" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="75" y="211" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">3</text>
+  <text x="108" y="212" text-anchor="middle" font-size="16" font-weight="700" fill="#4d5652">×</text>
+
+  <rect x="122" y="191" width="38" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.8"/>
+  <text x="141" y="211" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">2</text>
+  <rect x="164" y="191" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="183" y="211" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">1</text>
+  <rect x="206" y="191" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="225" y="211" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">0</text>
+  <rect x="248" y="191" width="38" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="267" y="211" text-anchor="middle" font-size="14" font-family="var(--font-mono)" fill="#4d5652">1</text>
+
+  <path d="M 290 206 L 312 206" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#mm-arr-a)"/>
+  <rect x="316" y="182" width="114" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="373" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">部分和 B</text>
+  <text x="373" y="223" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">[<tspan fill="#936300">6</tspan>, 3, 0, 3]</text>
+
+  <!-- 汇聚至 All-Reduce -->
+  <path d="M 373 134 L 373 150 M 373 232 L 373 260" fill="none" stroke="#9a4b86" stroke-width="1.8"/>
+  <path d="M 222 238 L 222 260" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#mm-arr-p)"/>
+
+  <rect x="14" y="264" width="416" height="84" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="222" y="290" text-anchor="middle" font-size="15" font-weight="700" fill="#7a3a6a">必须做 All-Reduce（逐格相加才得真值）</text>
+  <text x="222" y="315" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#17211f">第 1 格：<tspan fill="#065f56">2</tspan> + <tspan fill="#936300">6</tspan> = <tspan fill="#7a3a6a">8</tspan>  ·  整行 = [8, 6, 5, 7]</text>
+  <text x="222" y="338" text-anchor="middle" font-size="13.5" fill="#8f3229">输出虽占满 4 格，但少任一卡结果即错！</text>
+
+  <text x="14" y="378" font-size="13.5" fill="#4d5652">适用位置：<tspan font-family="var(--font-mono)" font-weight="700">down_proj / o_proj</tspan>（RowParallelLinear）</text>
+  <text x="14" y="399" font-size="13.5" fill="#66716d">紧接列切输出，把通信收口在子层最末尾</text>
+
+  <!-- 右栏：按列切 Column Parallel -->
+  <text x="470" y="28" font-size="16" font-weight="700" fill="#065f56">二、按列切（Column Parallel · 沿输出维竖切）</text>
+  <text x="470" y="51" font-size="13.5" fill="#4d5652">完整输入 <tspan font-family="var(--font-mono)" font-weight="700">[2, 1, 3]</tspan> 给两卡，各算自己几列的<tspan font-weight="700" fill="#065f56">完整真值</tspan></text>
+
+  <!-- 完整输入 x -->
+  <text x="470" y="84" font-size="13.5" font-weight="700" fill="#17211f">完整输入 x</text>
+  <rect x="470" y="94" width="38" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="489" y="115" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2</text>
+  <rect x="512" y="94" width="38" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="531" y="115" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">1</text>
+  <rect x="554" y="94" width="38" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="573" y="115" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">3</text>
+  <text x="608" y="116" text-anchor="middle" font-size="16" font-weight="700" fill="#4d5652">×</text>
+
+  <!-- 竖切矩阵 W：卡 A (Col 0-1) | 竖切线 | 卡 B (Col 2-3) -->
+  <text x="668" y="74" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">卡 A（前 2 列）</text>
+  <text x="794" y="74" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">卡 B（后 2 列）</text>
+
+  <!-- Col 0-1 (Card A) -->
+  <rect x="626" y="82" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="646" y="102" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1</text>
+  <rect x="670" y="82" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="690" y="102" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0</text>
+  <rect x="626" y="116" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="646" y="136" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">0</text>
+  <rect x="670" y="116" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="690" y="136" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">3</text>
+  <rect x="626" y="150" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="646" y="170" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">2</text>
+  <rect x="670" y="150" width="40" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="690" y="170" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1</text>
+
+  <!-- 红色垂直竖切线 -->
+  <line x1="731" y1="68" x2="731" y2="188" stroke="#b54237" stroke-width="2.2" stroke-dasharray="6 4"/>
+
+  <!-- Col 2-3 (Card B) -->
+  <rect x="752" y="82" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="772" y="102" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">2</text>
+  <rect x="796" y="82" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="816" y="102" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">1</text>
+  <rect x="752" y="116" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="772" y="136" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">1</text>
+  <rect x="796" y="116" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="816" y="136" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">2</text>
+  <rect x="752" y="150" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="772" y="170" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">0</text>
+  <rect x="796" y="150" width="40" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="816" y="170" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">1</text>
+
+  <!-- 本地真值输出 -->
+  <path d="M 668 184 L 668 206" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#mm-arr-t)"/>
+  <path d="M 794 184 L 794 206" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#mm-arr-a)"/>
+
+  <rect x="596" y="210" width="130" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="661" y="236" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">真值 [8, 6]</text>
+
+  <rect x="738" y="210" width="130" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="803" y="236" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">真值 [5, 7]</text>
+
+  <rect x="470" y="264" width="416" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="678" y="290" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">✓ 每段已是完整真值，无需相加</text>
+  <text x="678" y="315" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#17211f">需整行时再 All-Gather：[8, 6] | [5, 7]</text>
+  <text x="678" y="338" text-anchor="middle" font-size="13.5" fill="#065f56">可直接做本地 SiLU 门控，再接行切 down 省去中间通信</text>
+
+  <text x="470" y="378" font-size="13.5" fill="#4d5652">适用位置：<tspan font-family="var(--font-mono)" font-weight="700">gate_up_proj / qkv_proj / lm_head</tspan></text>
+  <text x="470" y="399" font-size="13.5" fill="#66716d">MLP 出口不拼接直接送行切；词表出口才做 All-Gather</text>
+
+  <!-- 底部成对黄金法则 -->
+  <rect x="14" y="420" width="872" height="58" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="450" y="445" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">MLP 先列后行配对：<tspan fill="#065f56">列切 gate/up（真值）</tspan> → <tspan fill="#3a4f93">本地 SiLU</tspan> → <tspan fill="#936300">行切 down（部分和）</tspan> → <tspan fill="#7a3a6a">1 次 All-Reduce</tspan></text>
+  <text x="450" y="468" text-anchor="middle" font-size="13.5" fill="#4d5652">若反过来先行切，激活前就必须先归约；叠加序列并行（SP）时末尾归约可换为 Reduce-Scatter</text>
+</svg>

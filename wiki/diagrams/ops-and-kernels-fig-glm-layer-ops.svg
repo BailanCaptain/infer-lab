@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="GLM 一层前向四套算子选路机制并存链：硬编码扩展、OOT 替换表、注意力后端表与量化通信方法" font-family="var(--font-sans)">
+  <title>四套算子选路机制如何在 GLM 单层前向中共存（mHC / RMSNorm / KDA vs 稀疏 MLA / MoE）</title>
+  <desc>Four dispatch mechanisms coexisting across one GLM decoder layer: hardcoded C++ extension (mHC), OOT table (RMSNorm), attention backend table (34L KDA vs 11L Sparse MLA), and quantization + MC2/AllGather MoE dispatcher</desc>
+  <defs>
+    <marker id="gl-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">一个 token 穿过 GLM 一层（第 3–44 层）：四套选路机制并存，并非一张替换表管到底</text>
+
+  <!-- Legend pills for 4 mechanisms -->
+  <rect x="16" y="44" width="196" height="28" rx="14" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="114" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">① 模型硬编码 C++ 扩展</text>
+
+  <rect x="224" y="44" width="184" height="28" rx="14" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="316" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">② OOT 替换表</text>
+
+  <rect x="420" y="44" width="204" height="28" rx="14" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="522" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">③ 注意力后端表/自定</text>
+
+  <rect x="636" y="44" width="248" height="28" rx="14" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="760" y="63" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">④ 量化方法 + MoE 通信选路</text>
+
+  <!-- Main Layer Flow Row 1: mHC pre -> RMSNorm -> Attention Fork -> mHC post -->
+  <rect x="16" y="96" width="136" height="92" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="84" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">mHC 入口</text>
+  <text x="84" y="146" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">npu_hc_pre</text>
+  <text x="84" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">4 路残差合 1 路</text>
+
+  <line x1="154" y1="142" x2="178" y2="142" stroke="#4d5652" stroke-width="1.6" marker-end="url(#gl-arr-ink)"/>
+
+  <rect x="182" y="96" width="142" height="92" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="253" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">RMSNorm</text>
+  <text x="253" y="146" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">npu_rms_norm</text>
+  <text x="253" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">单入参（无 res）</text>
+
+  <line x1="326" y1="120" x2="350" y2="112" stroke="#4d5652" stroke-width="1.6" marker-end="url(#gl-arr-ink)"/>
+  <line x1="326" y1="164" x2="350" y2="172" stroke="#4d5652" stroke-width="1.6" marker-end="url(#gl-arr-ink)"/>
+
+  <!-- Attention Fork: 34L KDA vs 11L Sparse MLA -->
+  <rect x="354" y="88" width="256" height="50" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="482" y="109" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">34 层 KDA（BF16 投影）</text>
+  <text x="482" y="129" text-anchor="middle" font-size="13" fill="#8f3229">短卷积+分块/递推（硬依赖 C++ 扩展）</text>
+
+  <rect x="354" y="146" width="256" height="50" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="482" y="167" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">11 层 稀疏 MLA（含 W8A8 投影）</text>
+  <text x="482" y="187" text-anchor="middle" font-size="13.5" fill="#4d5652">packed 缓存 → aclnnSparseFlashAttn</text>
+
+  <line x1="612" y1="112" x2="640" y2="124" stroke="#4d5652" stroke-width="1.6" marker-end="url(#gl-arr-ink)"/>
+  <line x1="612" y1="172" x2="640" y2="160" stroke="#4d5652" stroke-width="1.6" marker-end="url(#gl-arr-ink)"/>
+
+  <rect x="644" y="96" width="124" height="92" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="706" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">mHC 出口</text>
+  <text x="706" y="146" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">npu_hc_post</text>
+  <text x="706" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">摊回 4 路残差</text>
+
+  <!-- Connector down to Row 2: MoE Sublayer -->
+  <path d="M 770 142 L 820 142 L 820 218 L 154 218 L 154 236" fill="none" stroke="#4d5652" stroke-width="1.7" marker-end="url(#gl-arr-ink)"/>
+  <text x="832" y="186" font-size="13.5" font-weight="700" fill="#4d5652">进 MoE</text>
+
+  <!-- Row 2: MoE Dispatch -> Expert W8A8 NZ -> Combine -->
+  <rect x="16" y="240" width="268" height="84" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="150" y="266" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">MoE 分发（MC2 vs AllGather）</text>
+  <text x="150" y="290" text-anchor="middle" font-size="13.5" fill="#4d5652">按专家数 / EP / 对齐 token 数选路</text>
+  <text x="150" y="310" text-anchor="middle" font-size="13.5" fill="#7a3a6a">短 prefill 也可走 MC2，超容换 AllGather</text>
+
+  <line x1="286" y1="282" x2="314" y2="282" stroke="#4d5652" stroke-width="1.7" marker-end="url(#gl-arr-ink)"/>
+
+  <rect x="318" y="240" width="290" height="84" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="463" y="266" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">专家 W8A8 分组矩阵乘（要求 NZ）</text>
+  <text x="463" y="290" text-anchor="middle" font-size="13.5" fill="#4d5652">激活先量化 int8 → 算子内部反量化出 BF16</text>
+  <text x="463" y="310" text-anchor="middle" font-size="13.5" fill="#936300">GMM1+SwiGLU 可融合，后接 GMM2</text>
+
+  <line x1="610" y1="282" x2="638" y2="282" stroke="#4d5652" stroke-width="1.7" marker-end="url(#gl-arr-ink)"/>
+
+  <rect x="642" y="240" width="242" height="84" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="763" y="266" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">MoE 合并 + mHC 出口</text>
+  <text x="763" y="290" text-anchor="middle" font-size="13.5" fill="#4d5652">同分发路配对 MC2 / AllGather</text>
+  <text x="763" y="310" text-anchor="middle" font-size="13.5" fill="#4d5652">v2 接口须分发与合并成对匹配</text>
+
+  <!-- Bottom takeaway -->
+  <rect x="16" y="342" width="868" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="369" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#065f56">阅读铁律：</tspan>一次 Python 调用可能启动多个 kernel，一个 kernel 内也可多核分块循环；真实启动次数以 profiling 为准。</text>
+</svg>

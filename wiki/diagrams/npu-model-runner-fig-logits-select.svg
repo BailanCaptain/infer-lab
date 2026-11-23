@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="选行进输出头：4 行前向仅挑第 0、3 行过 lm_head 省去一半词表乘法" font-family="var(--font-sans)">
+  <title>为什么 4 行前向输出只送第 0、3 行进 lm_head：示意 5 词表选行与两类边界</title>
+  <desc>Visual row selection from 4 forward hidden rows (A: row 0, C: rows 1-3) extracting only rows 0 and 3 into lm_head for greedy argmax, plus chunked-prefill discard and speculative 1+k rules</desc>
+  <defs>
+    <marker id="ls-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ls-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">选行过输出头（logits_indices）：4 行全算前向，仅 2 行乘词表（5 词示意）</text>
+
+  <!-- Left: 4 Hidden Rows -->
+  <text x="16" y="56" font-size="14" font-weight="700" fill="#4d5652">前向输出 hidden_states（4 行）</text>
+  <!-- Row 0 (Selected: A) -->
+  <rect x="16" y="68" width="224" height="40" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="28" y="93" font-size="14" font-weight="700" fill="#065f56">行 0 · A (a₅, pos 5)</text>
+  <text x="228" y="93" text-anchor="end" font-size="13.5" font-weight="700" fill="#065f56">✓ 选中</text>
+
+  <!-- Row 1 (KV only: C) -->
+  <rect x="16" y="114" width="224" height="40" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="28" y="139" font-size="14" fill="#66716d">行 1 · C (c₀, pos 0)</text>
+  <text x="228" y="139" text-anchor="end" font-size="13.5" fill="#66716d">留 KV · 跳过</text>
+
+  <!-- Row 2 (KV only: C) -->
+  <rect x="16" y="160" width="224" height="40" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="28" y="185" font-size="14" fill="#66716d">行 2 · C (c₁, pos 1)</text>
+  <text x="228" y="185" text-anchor="end" font-size="13.5" fill="#66716d">留 KV · 跳过</text>
+
+  <!-- Row 3 (Selected: C) -->
+  <rect x="16" y="206" width="224" height="40" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="28" y="231" font-size="14" font-weight="700" fill="#065f56">行 3 · C (c₂, pos 2)</text>
+  <text x="228" y="231" text-anchor="end" font-size="13.5" font-weight="700" fill="#065f56">✓ 选中</text>
+
+  <!-- Selection Curves to lm_head -->
+  <path d="M 242 88 C 276 88, 282 122, 312 122" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ls-arr-teal)"/>
+  <path d="M 242 226 C 276 226, 282 186, 312 186" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ls-arr-teal)"/>
+
+  <!-- Middle: lm_head -->
+  <rect x="316" y="102" width="156" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="394" y="132" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">lm_head</text>
+  <text x="394" y="156" text-anchor="middle" font-size="13.5" fill="#4d5652">仅投影 [0, 3]</text>
+  <text x="394" y="178" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">2 × 5 = 10 分数</text>
+  <text x="394" y="198" text-anchor="middle" font-size="13.5" fill="#66716d">省 10 点积 (10×H)</text>
+
+  <line x1="474" y1="128" x2="496" y2="128" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#ls-arr-indigo)"/>
+  <line x1="474" y1="184" x2="496" y2="184" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#ls-arr-indigo)"/>
+
+  <!-- Right: Logits & Argmax -->
+  <text x="500" y="56" font-size="14" font-weight="700" fill="#3a4f93">暂存 logits（RPC 2 取出采样）</text>
+  <rect x="500" y="96" width="236" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="512" y="120" font-size="13.5" font-weight="700" fill="#3a4f93">A: [0.3, 2.1, -0.5, 1.4, 0.2]</text>
+  <text x="512" y="142" font-size="13.5" fill="#065f56">argmax = 1 → 交回 a₆</text>
+
+  <rect x="500" y="164" width="236" height="58" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="512" y="188" font-size="13.5" font-weight="700" fill="#3a4f93">C: [1.2, -0.3, 0.8, 3.0, 0.1]</text>
+  <text x="512" y="210" font-size="13.5" fill="#065f56">argmax = 3 → 交回 c₃</text>
+
+  <!-- Rightmost Output Tags -->
+  <line x1="738" y1="125" x2="764" y2="125" stroke="#087f73" stroke-width="1.7" marker-end="url(#ls-arr-teal)"/>
+  <line x1="738" y1="193" x2="764" y2="193" stroke="#087f73" stroke-width="1.7" marker-end="url(#ls-arr-teal)"/>
+  <rect x="768" y="106" width="116" height="38" rx="6" fill="#087f73"/>
+  <text x="826" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">A → a₆</text>
+  <rect x="768" y="174" width="116" height="38" rx="6" fill="#087f73"/>
+  <text x="826" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">C → c₃</text>
+
+  <!-- Bottom 2 Special Boundaries -->
+  <rect x="16" y="268" width="424" height="86" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="294" font-size="14.5" font-weight="700" fill="#8f3229">边界 1 · chunked prefill（提示词未算完）</text>
+  <text x="30" y="318" font-size="13.5" fill="#4d5652">末行落在提示词中间 → RPC 2 仍走采样流程，</text>
+  <text x="30" y="340" font-size="13.5" font-weight="700" fill="#8f3229">但在整理结果阶段丢弃，不交出该 token。</text>
+
+  <rect x="460" y="268" width="424" height="86" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="474" y="294" font-size="14.5" font-weight="700" fill="#7a3a6a">边界 2 · 投机解码（带 k 个草稿 token）</text>
+  <text x="474" y="318" font-size="13.5" fill="#4d5652">每个候选都须逐位验证 → 该请求取最后 1 + k 行，</text>
+  <text x="474" y="340" font-size="13.5" font-weight="700" fill="#7a3a6a">交由拒绝采样器（同批无草稿请求仍只取最后 1 行）。</text>
+</svg>

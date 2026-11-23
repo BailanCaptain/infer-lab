@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="FIA 全图捕获 vs FA3 全图报错与 PIECEWISE 分段捕获对比图" font-family="var(--font-sans)">
+  <title>为什么开启 FA3 必须配 PIECEWISE 图模式：Transformer 层 ACLGraph 捕获边界对照</title>
+  <desc>结合 splitting_ops、set_splitting_ops_for_v1、AscendFAImpl、FULL_DECODE_ONLY、register_task、full_graph_fia_v2，逐层对比默认 FIA 全图捕获、FA3 配 FULL_DECODE_ONLY 因 Host 侧算 tiling 抛 ValueError，以及 FA3 配 PIECEWISE 借 splitting_ops 将注意力留图外、前后子图照常录图的执行结构。</desc>
+  <defs>
+    <marker id="fap-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="fap-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+    <marker id="fap-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">单层前向 ACLGraph 捕获边界：为什么开启 FA3 必须配 PIECEWISE 图模式？</text>
+  <line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <!-- Row 1: Default FIA + FULL_DECODE_ONLY (y=52..154) -->
+  <text x="16" y="70" font-size="14.5" font-weight="700" fill="#065f56">① 默认主力 FIA + FULL_DECODE_ONLY：✓ 整层录进单一 ACLGraph</text>
+  <!-- Continuous ACLGraph capsule -->
+  <rect x="16" y="80" width="868" height="72" rx="10" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.8" stroke-dasharray="7 4"/>
+  <g font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="30" y="96" width="128" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+    <text x="94" y="120" fill="#17211f">RMSNorm</text>
+    <line x1="158" y1="115" x2="180" y2="115" stroke="#087f73" stroke-width="1.6" marker-end="url(#fap-arr-t)"/>
+
+    <rect x="184" y="96" width="142" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+    <text x="255" y="120" fill="#17211f">QKV + RoPE</text>
+    <line x1="326" y1="115" x2="348" y2="115" stroke="#087f73" stroke-width="1.6" marker-end="url(#fap-arr-t)"/>
+
+    <rect x="352" y="94" width="212" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+    <text x="458" y="114" fill="#065f56">FIA（register_task）</text>
+    <text x="458" y="131" font-family="var(--font-mono)" font-size="13.5" font-weight="400" fill="#065f56">full_graph_fia 图内执行</text>
+    <line x1="564" y1="115" x2="586" y2="115" stroke="#087f73" stroke-width="1.6" marker-end="url(#fap-arr-t)"/>
+
+    <rect x="590" y="96" width="128" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+    <text x="654" y="120" fill="#17211f">O Proj</text>
+    <line x1="718" y1="115" x2="740" y2="115" stroke="#087f73" stroke-width="1.6" marker-end="url(#fap-arr-t)"/>
+
+    <rect x="744" y="96" width="126" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+    <text x="807" y="120" fill="#17211f">MLP / MoE</text>
+  </g>
+
+  <!-- Row 2: FA3 + FULL_DECODE_ONLY (y=170..268) -->
+  <text x="16" y="186" font-size="14.5" font-weight="700" fill="#8f3229">② FA3 + FULL_DECODE_ONLY（无自动降级）：✗ 初始化直接抛 ValueError</text>
+  <rect x="16" y="196" width="868" height="72" rx="10" fill="#fff0e9" fill-opacity="0.6" stroke="#b54237" stroke-width="1.6"/>
+  <g font-size="13.5" font-weight="700" text-anchor="middle">
+    <rect x="30" y="212" width="128" height="38" rx="6" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.3"/>
+    <text x="94" y="236" fill="#4d5652">RMSNorm</text>
+    <line x1="158" y1="231" x2="180" y2="231" stroke="#b54237" stroke-width="1.6" marker-end="url(#fap-arr-r)"/>
+
+    <rect x="184" y="212" width="142" height="38" rx="6" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.3"/>
+    <text x="255" y="236" fill="#4d5652">QKV + RoPE</text>
+    <line x1="326" y1="231" x2="348" y2="231" stroke="#b54237" stroke-width="1.6" marker-end="url(#fap-arr-r)"/>
+
+    <rect x="352" y="208" width="276" height="46" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="2"/>
+    <text x="490" y="228" fill="#8f3229">✗ FA3：Host CPU 算 tiling + .npu() 搬运</text>
+    <text x="490" y="247" font-size="13.5" font-weight="400" fill="#8f3229">未接入 register_task，无法整图回放</text>
+
+    <rect x="646" y="212" width="224" height="38" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="758" y="236" fill="#8f3229">AscendFAImpl.__init__ 拦截</text>
+  </g>
+
+  <!-- Row 3: FA3 + PIECEWISE (y=284..394) -->
+  <text x="16" y="302" font-size="14.5" font-weight="700" fill="#7a3a6a">③ FA3 + PIECEWISE（唯一推荐图模式）：✓ splitting_ops 切出注意力，前后照常录图</text>
+
+  <!-- Subgraph 1 -->
+  <rect x="16" y="312" width="310" height="72" rx="9" fill="#e8edff" fill-opacity="0.65" stroke="#4c65b6" stroke-width="1.7" stroke-dasharray="6 4"/>
+  <text x="171" y="330" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">ACLGraph 子图 1（录图回放）</text>
+  <rect x="28" y="338" width="124" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="90" y="361" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">RMSNorm</text>
+  <rect x="168" y="338" width="144" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="240" y="361" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">QKV + 核外 RoPE</text>
+
+  <!-- Cut line 1 -->
+  <line x1="336" y1="308" x2="336" y2="388" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 3"/>
+  <line x1="326" y1="354" x2="346" y2="354" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#fap-arr-p)"/>
+
+  <!-- Eager FA3 middle -->
+  <rect x="350" y="312" width="212" height="72" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.8"/>
+  <text x="456" y="334" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">图外 Eager（splitting_ops）</text>
+  <text x="456" y="357" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">flash_attn_with_kvcache</text>
+  <text x="456" y="376" text-anchor="middle" font-size="13.5" fill="#4d5652">Host 侧动态算 tiling 逐次调</text>
+
+  <!-- Cut line 2 -->
+  <line x1="572" y1="308" x2="572" y2="388" stroke="#9a4b86" stroke-width="2" stroke-dasharray="4 3"/>
+  <line x1="562" y1="354" x2="582" y2="354" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#fap-arr-p)"/>
+
+  <!-- Subgraph 2 -->
+  <rect x="586" y="312" width="298" height="72" rx="9" fill="#e8edff" fill-opacity="0.65" stroke="#4c65b6" stroke-width="1.7" stroke-dasharray="6 4"/>
+  <text x="735" y="330" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">ACLGraph 子图 2（录图回放）</text>
+  <rect x="600" y="338" width="124" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="662" y="361" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">O Proj</text>
+  <rect x="740" y="338" width="130" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="805" y="361" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">MLP / MoE</text>
+
+  <!-- Bottom 3-rule strip -->
+  <rect x="16" y="400" width="868" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="450" y="427" text-anchor="middle" font-size="12.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 FA3 刚性门槛：</tspan>靠 <tspan font-family="var(--font-mono)">rl_config</tspan> 双开关启用（不看 --attention-backend）· 限 A2/A3 密集 MHA/GQA 块 128 · 禁 MLA/SFA/滑窗/FP8</text>
+</svg>

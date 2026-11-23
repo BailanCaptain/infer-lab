@@ -109,13 +109,13 @@ rawSources:
 file: ascend-vs-upstream-qwen3
 ```
 
-图中横线以上是上游 `vllm` 负责的部分：HTTP 分词入队、单组 `128-tok` 块池调度、Executor（负责把本步计划分发给各张卡的对象）发出前向与采样两次调用；像 `Qwen3ForCausalLM` 这类标准模型，模型骨架也直接复用上游 `vllm` 仓库。横线以下是 `vllm-ascend` 插件接管的执行层：`NPUPlatform` 负责定默认块长与选后端，`NPUWorker` 守着单卡管显存与通信域，`NPUModelRunner` 拼输入、建块表并回放图，再经昇腾注意力与 CustomOp 算子后端把这一步算完，最后将采样新 token 交回引擎。实线表示每步在线推理调用链，虚线表示启动期的注册、复用与算子绑定。
+图中横线以上是上游 `vllm` 负责的部分：HTTP 分词入队、单组 `128-tok` 块池调度，以及由 Executor（把本步计划分发给各卡的对象）发出前向与采样两次调用。像 `Qwen3ForCausalLM` 这类标准模型，模型骨架也直接复用上游 `vllm`。横线以下是 `vllm-ascend` 接管的执行层：`NPUPlatform` 定默认块长并选后端，`NPUWorker` 守单卡管显存与通信域，`NPUModelRunner` 拼输入、建块表并回放图，再经昇腾注意力与 CustomOp 算子后端算完这一步，最后把采样 token 交回引擎。实线表示在线推理调用链，虚线表示启动期注册、复用与算子绑定。
 
 它靠什么接进去？包的安装信息里登记了几条 entry point（入口点：包对外声明的「组名 → 入口名 → 要调用的函数」）。vLLM 的前端、引擎和 worker 进程启动时，都会按组名扫描一遍这些登记（完整激活链见[插件发现与模型注册](platform-plugin-registration.md#发现过滤激活)）。平台组只有一条，交出昇腾平台类 `NPUPlatform` 的路径，由 vLLM 导入；此后遇到「用哪个 worker、哪个注意力后端、哪种通信」这类硬件问题，都由它作答。
 
-通用组的几条入口分别登记连接器、模型加载器、性能采集和模型实现；加载时还会打上一批 patch（在进程内把上游函数或类替换成昇腾版）。再算上 custom op（vLLM 允许硬件插件整体替换的算子层），`vllm-ascend` 进入请求路径共有六处：平台、worker、注意力后端、custom op、patch、模型注册（逐站落点见[一条请求的代码路径](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)）。
+通用组的几条入口分别登记连接器、模型加载器、性能采集和模型实现，加载时还会打上一批 patch（进程内把上游函数或类换成昇腾版）。再算上 custom op（允许硬件插件整体替换的算子层），`vllm-ascend` 进入请求路径共有六处：平台、worker、注意力后端、custom op、patch 与模型注册（逐站落点见[一条请求的代码路径](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)）。
 
-对读代码而言，一条请求跑的永远是两个仓库拼起来的代码：HTTP 前端、引擎循环和调度器在 `vllm`，worker、model runner、注意力和昇腾算子在 `vllm-ascend`，标准模型骨架可留在 `vllm`（如 `Qwen3`）也可由插件自注册（如后文的 GLM）。两边互相穿插：上游文件里的函数可能被 patch 换掉，插件类又继承上游类、未重写的方法仍跑上游代码。因此读 `vllm-ascend` 不能只盯一个仓库，也不能仅凭文件归属判断它是否会执行。
+对读代码而言，一条请求跑的永远是两个仓库拼起来的代码：HTTP 前端、引擎循环和调度器在 `vllm`，worker、model runner、注意力和昇腾算子在 `vllm-ascend`。标准模型骨架可留在 `vllm`（如 `Qwen3`），也可由插件自注册（如后文的 GLM）。两边互相穿插：上游函数可能被 patch 换掉，插件类又继承上游类、未重写的方法仍跑上游代码。因此读 `vllm-ascend` 不能只盯一个仓库，也不能仅凭文件归属判断它是否会执行。
 
 ## 为什么先抓一条请求的主线，而不是按目录读
 
@@ -143,7 +143,7 @@ file: reading-vllm-ascend-fig-5step-trail
 
 ## 路线一：沿请求数据往前追
 
-以[输入准备页](prepare-inputs-flow.md#ac-第三轮如何拼接)里 A、C 两条请求拼成一批的那一步为例：先记下调度器给每条请求安排了几个位置，再读 model runner 怎样据此造出 token 张量、位置数组和要采样的行，核对四行输入为什么只采样两行；然后沿前向调用进到模型层，确认它读哪些张量、返回哪些张量。
+以[输入准备页](prepare-inputs-flow.md#ac-第三轮如何拼接)里 A、C 两条请求拼成一批的那一步为例。先记下调度器给每条请求安排了几个位置，再读 model runner 怎样据此造出 token 张量、位置数组和采样行，核对四行输入为何只采样两行。接着沿前向调用进入模型层，确认它读哪些张量、返回哪些张量。
 
 读的时候在笔记里留一张小表，每跨过一道边界填一行：
 
@@ -205,9 +205,9 @@ file: ascend-vs-upstream
 
 [R1](one-request.md#示例请求-r1-与官方双机部署) 是为了手算设的示例请求，提示词 4 个 token；它从入口走到返回，每一站的入口文件和函数已在[一条请求的代码路径](request-call-chain.md#源码位置)按阅读顺序列好。在官方双机部署上照上面三条路线读，会先碰到下面五件事：
 
-- **先定版本。** 控制流按 `vllm` `v0.23.0` 读，执行侧按 GLM 专用镜像对应的固定提交读（它与社区版本表快照不同）。固定 `v0.23` 维护版和 `v0.26 rc` 不含 GLM-5.3-Flash 模型文件；`v0.30.0` 与 `main` 把它挪进了 `glm5next` 目录，拿错版本就找不到同名文件。此外，`v0.30.0` 起硬件能力统一查 `HardwareProfile`，到 `main` 已移除 `model_runner_v1.py` 并全量迁入 `worker/v2/`（部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)）。
+- **先定版本。** 控制流按 `vllm` `v0.23.0` 读，执行侧按 GLM 专用镜像对应的固定提交读（它与社区版本表快照不同）。固定 `v0.23` 维护版和 `v0.26 rc` 不含 GLM-5.3-Flash 模型文件，`v0.30.0` 与 `main` 则挪进了 `glm5next` 目录，拿错版本就找不到同名文件。另外，`v0.30.0` 起硬件能力统一查 `HardwareProfile`，到 `main` 已删除 `model_runner_v1.py` 并全量迁入 `worker/v2/`（部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)）。
 - **路线一。** R1 被分到 DP0，第 3 站由 node0 的 8 个 worker 各拼一份一模一样的输入。因为 TP8 下它们算的是同一批 token，只是各持一部分权重；逐卡走读见[输入准备在双机上](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。
-- **路线二。** 官方命令没有传 `FlashComm1` 的 JSON 键；环境中也未设对应变量时，该配置字段默认关闭。但 `enable_sp` 在首次初始化或刷新时，仍可能因共享专家 DP 条件被改成开启。本页沿用[教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的 SP 关闭假设，不能仅凭命令缺少开关就认定实际部署关闭（完整覆盖链见[字段合并后的覆盖条件](ascend-config-system.md#解析完还会被改写生效值不是你写的值)）。
+- **路线二。** 官方命令没传 `FlashComm1` 的 JSON 键，环境中也未设对应变量时，该字段默认关闭。但 `enable_sp` 在首次初始化或刷新时，仍可能因共享专家 DP 条件被改成开启。本页沿用[教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的 SP 关闭假设，不能仅凭命令缺少开关就断言实际部署关闭（覆盖链见[字段合并后的覆盖条件](ascend-config-system.md#解析完还会被改写生效值不是你写的值)）。
 - **路线三。** GLM 解码层在 `vllm-ascend` 模型文件里，`RMSNorm` 经 custom op 登记换成昇腾实现。但 GLM 稀疏 MLA 不查平台那张「按注意力类型选后端」的表，而是由层自己给出后端；按「先查平台表」的习惯去读，会找错实际后端（见[六个口子](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)第 3 条）。
 - **异常。** node1 没接到 R1，也要陪着跑 MoE 通信。集合通信要组内成员到齐才结束，一张卡卡住会让别的卡一起超时，因此报错的那张卡未必是根因（日志前缀与超时判断见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)）。
 

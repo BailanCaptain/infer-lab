@@ -1,0 +1,15 @@
+mode: native-svg
+id: aisbench-fig-accuracy-pitfalls
+caption: >-
+  AISBench / EvalScope 精度基线四类高频非算子掉点陷阱：（一）max_out_len 过短截断长思维链，指南建议 --max-model-len > 35000、max_out_len = 32768；（二）未配置 extract_non_reasoning_content 导致正则误抓 think 中间数；（三）AIME 2024 等小样本集高温采样波动 ±5~10%，工程回归应锁 temp=0；（四）VLLM_USE_MODELSCOPE 与 HF_ENDPOINT 分管模型与数据集下载。
+size: [900, 448]
+pins:
+  - source: 'vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L245'
+    symbols:
+      - VLLMCustomAPIChat
+      - extract_non_reasoning_content
+      - max_out_len
+  - source: 'vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/performance_benchmark.md#L70-L230'
+    symbols:
+      - VLLM_USE_MODELSCOPE
+      - HF_ENDPOINT

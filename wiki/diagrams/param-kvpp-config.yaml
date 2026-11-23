@@ -1,0 +1,23 @@
+mode: native-svg
+id: param-kvpp-config
+caption: >-
+  kvpp_config 派生对象构造链与校验门槛：用户应配置 enable_kvpp 而非手写 kvpp_config（后者在 _NON_USER_INPUT_KEYS 中被静默剔除）；size = TP×PCP > 1 时开启建组、分层与缓存分配三条链路，并经 KVPPConfig.validate 校验 DCP=1、eager/PIECEWISE、非混合 MLA 与允许的连接器集合。
+size: [900, 504]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L110'
+    symbols:
+      - KVPPConfig
+      - from_vllm_config
+      - validate
+      - PIECEWISE
+      - MooncakeConnectorV2
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L38-L38'
+    symbols:
+      - _KVPP_SUPPORTED_CONNECTORS
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1841-L1914'
+    symbols:
+      - _NON_USER_INPUT_KEYS
+      - KVPPConfig
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L42-L42'
+    symbols:
+      - _KVPP_SUPPORTED_CONNECTORS

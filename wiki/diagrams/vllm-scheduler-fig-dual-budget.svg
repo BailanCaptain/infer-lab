@@ -1,71 +1,141 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="vLLM V1 统一调度器 token 预算闭环与 v0.30.0 双预算及抢占止损图" font-family="var(--font-sans)">
-  <title>vLLM V1 统一调度器：先续 running、后接 waiting、双预算与抢占边界</title>
-  <desc>关联源码符号：Scheduler, schedule, _update_after_schedule, _preempt_request, max_num_scheduled_tokens, max_num_new_slots_for_drafting, BalanceScheduler</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="vLLM V1 统一调度器双预算分离条、running 与 waiting 非对称决策漏斗及 GLM 8192 比例图">
+  <title>vLLM V1 统一调度器：双预算分离、running 与 waiting 非对称漏斗、GLM 8192 比例视图</title>
+  <desc>关联源码符号：schedule, max_num_scheduled_tokens, max_num_new_slots_for_drafting, _preempt_request, _update_after_schedule, BalanceScheduler</desc>
   <defs>
-    <marker id="sc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M1,1.5 L8.5,5 L1,8.5 z" fill="#087f73"/>
     </marker>
-    <marker id="sc-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M1,1.5 L8.5,5 L1,8.5 z" fill="#c78300"/>
     </marker>
+    <marker id="arr-e" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M1,1.5 L8.5,5 L1,8.5 z" fill="#b54237"/>
+    </marker>
+    <pattern id="hatch-draft" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#9a4b86" stroke-width="1.6" stroke-opacity="0.45"/>
+    </pattern>
   </defs>
 
-  <!-- Zone 1: Unified schedule() pipeline -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① V1 统一调度：不拆 prefill / decode 阶段，每步走同一套四关漏斗</text>
-  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">核心减法：差值 = 应算 − 已算</text>
+  <!-- ZONE 1: Dual Budget Bars (y=8..134) -->
+  <rect x="8" y="8" width="884" height="126" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>
+  <rect x="20" y="18" width="292" height="24" rx="12" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1"/>
+  <text x="166" y="34" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#7a3a6a">1. v0.30.0+ 双预算分离（示意总容量 10）</text>
+  <text x="326" y="34" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">排 4 新位置 + 需 2 草拟槽：两本账扣法不同，防挤爆 runner 缓冲</text>
 
-  <rect x="16" y="44" width="268" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#936300">1. 先扫 running（续跑优先）</text>
-  <text x="30" y="94" font-size="13.5" fill="#4d5652">差值含待验草稿 + 异步占位</text>
-  <text x="30" y="116" font-size="13.5" fill="#4d5652">依次受单条阈值、预算与长度截断</text>
-  <text x="30" y="138" font-size="13.5" fill="#8f3229" font-weight="600">缺块：按策略抢占退 waiting 队首</text>
-  <text x="30" y="158" font-size="13.5" fill="#936300">只要发生抢占，本步不再接新请求</text>
+  <!-- Bar A: Scheduled Tokens (scale: 1 unit = 42px -> 10 units = 420px, x=232..652) -->
+  <text x="20" y="72" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#17211f">调度位置预算</text>
+  <text x="116" y="72" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">scheduled</text>
+  <rect x="218" y="52" width="168" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="302" y="72" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">扣 4 新位置</text>
+  <rect x="386" y="52" width="252" height="30" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="512" y="72" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">余 6（不扣草拟槽）</text>
 
-  <line x1="286" y1="105" x2="314" y2="105" stroke="#c78300" stroke-width="1.8" marker-end="url(#sc-arr-a)"/>
+  <!-- Bar B: Input Capacity (max_num_batched_tokens) -->
+  <text x="20" y="114" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#17211f">输入容量预算</text>
+  <text x="116" y="114" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">batched</text>
+  <rect x="218" y="94" width="168" height="30" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="302" y="114" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">扣 4 新位置</text>
+  <rect x="386" y="94" width="84" height="30" fill="url(#hatch-draft)" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="428" y="114" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#7a3a6a">+2 草拟</text>
+  <rect x="470" y="94" width="168" height="30" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="554" y="114" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">余 4（共扣 6）</text>
 
-  <rect x="318" y="44" width="276" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="332" y="70" font-size="14.5" font-weight="700" fill="#065f56">2. 余量扫 waiting（准入接新）</text>
-  <text x="332" y="94" font-size="13.5" fill="#4d5652">前提：未抢占、未暂停、未满条数上限</text>
-  <text x="332" y="116" font-size="13.5" fill="#4d5652">默认检查完整输入能否放下（不预分）</text>
-  <text x="332" y="138" font-size="13.5" fill="#4d5652">关分块且超剩余预算 → 直接 break</text>
-  <text x="332" y="158" font-size="13.5" fill="#065f56" font-weight="600">缺块不抢占任何人，停止接纳等下步</text>
+  <!-- Right Callout Note in Zone 1 -->
+  <rect x="654" y="52" width="226" height="72" rx="7" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="668" y="75" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">new_slots_for_drafting</text>
+  <text x="668" y="97" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">≠ KV 管理器的 lookahead</text>
+  <text x="668" y="118" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">分别核算，避免混账越界</text>
 
-  <line x1="596" y1="105" x2="624" y2="105" stroke="#087f73" stroke-width="1.8" marker-end="url(#sc-arr-t)"/>
+  <!-- ZONE 2: Asymmetric running -> waiting Decision Funnel (y=146..390) -->
+  <rect x="8" y="146" width="884" height="244" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>
+  <rect x="20" y="156" width="326" height="24" rx="12" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
+  <text x="183" y="172" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#936300">2. 统一四关漏斗：先 running 后 waiting（不拆阶段）</text>
+  <text x="880" y="172" text-anchor="end" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">统一减法：差值 = 应算 − 已算</text>
 
-  <rect x="628" y="44" width="256" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="642" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">3. 排完即记账并下发计划</text>
-  <text x="642" y="94" font-size="13.5" fill="#4d5652">_update_after_schedule() 立刻</text>
-  <text x="642" y="116" font-size="13.5" fill="#4d5652">前推 num_computed_tokens</text>
-  <text x="642" y="138" font-size="13.5" fill="#4d5652">输出回传后按被拒草稿回退</text>
-  <text x="642" y="158" font-size="13.5" fill="#3a4f93" font-weight="600">不决定算子分路或图模式回放</text>
+  <!-- Stage 1: running (x=20..326, y=188..378) -->
+  <rect x="20" y="188" width="306" height="190" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="20" y="188" width="306" height="28" rx="8" fill="#fff4cf"/>
+  <text x="173" y="207" text-anchor="middle" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#936300">A. 先扫 running（续跑优先）</text>
 
-  <line x1="16" y1="184" x2="884" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <rect x="32" y="224" width="282" height="34" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="173" y="246" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">差值（含候选+占位）→ 阈值/预算/长度截断</text>
 
-  <!-- Zone 2: v0.30.0 dual budget & Ascend hooks -->
-  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② v0.30.0 / main 演进：双预算分离、抢占止损与昇腾调度器覆写链</text>
+  <!-- KV check split inside Stage 1 -->
+  <rect x="32" y="266" width="128" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="96" y="285" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">够块 ✓</text>
+  <text x="96" y="303" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">借块并扣预算</text>
 
-  <rect x="16" y="228" width="424" height="118" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="30" y="254" font-size="14.5" font-weight="700" fill="#7a3a6a">两本预算分开记（防草拟槽位挤爆缓冲）</text>
-  <text x="30" y="278" font-size="13.5" fill="#4d5652">• 调度位置预算：max_num_scheduled_tokens</text>
-  <text x="30" y="300" font-size="13.5" fill="#4d5652">• 输入容量预算：max_num_batched_tokens 含草拟</text>
-  <text x="30" y="324" font-size="13.5" fill="#7a3a6a" font-weight="600">• 延迟释放止损：抢占只产延迟释放块即停止</text>
+  <rect x="168" y="266" width="146" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="241" y="285" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#8f3229">缺块 ✗ → 抢占</text>
+  <text x="241" y="303" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">退 waiting 队首重试</text>
 
-  <rect x="460" y="228" width="424" height="118" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="474" y="254" font-size="14.5" font-weight="700" fill="#17211f">DP 节拍与昇腾 BalanceScheduler 覆写</text>
-  <text x="474" y="278" font-size="13.5" fill="#4d5652">• prefill_schedule_interval：有 decode 才暂缓</text>
-  <text x="474" y="300" font-size="13.5" fill="#4d5652">• 昇腾替换 BalanceScheduler，关闭时直走上游</text>
-  <text x="474" y="324" font-size="13.5" fill="#4d5652">• main 删 profiling_chunk，留 short / batch-job</text>
+  <rect x="32" y="318" width="282" height="50" rx="5" fill="#fff0e9" fill-opacity="0.55" stroke="#b54237" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="44" y="338" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">• fcfs 队尾 / priority 最大二元组</text>
+  <text x="44" y="360" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#8f3229">• v0.30.0+：延迟释放块触发抢占止损</text>
 
-  <line x1="16" y1="364" x2="884" y2="364" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <!-- Connectors Stage 1 -> Gate -->
+  <line x1="326" y1="242" x2="346" y2="242" stroke="#c78300" stroke-width="1.6" marker-end="url(#arr-a)"/>
+  <path d="M 314 290 L 336 290 L 336 232 L 346 232" fill="none" stroke="#b54237" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr-e)"/>
 
-  <!-- Zone 3: Myth vs Truth -->
-  <text x="16" y="390" font-size="16" font-weight="700" fill="#17211f">③ 预算与条数上限直觉校准（以 GLM 单组 8192 token / 32 条为例）</text>
+  <!-- Middle Gate: waiting 3-condition Admission Gate (x=350..492, y=188..378) -->
+  <rect x="350" y="188" width="142" height="190" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="350" y="188" width="142" height="28" rx="8" fill="#e8edff"/>
+  <text x="421" y="207" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#3a4f93">waiting 三门槛</text>
 
-  <rect x="16" y="404" width="424" height="64" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="429" font-size="14" font-weight="700" fill="#8f3229">✗ 常见误解：预算 8192 没用满就是浪费</text>
-  <text x="30" y="453" font-size="13.5" fill="#4d5652">纯 decode 32 条仅占 128（约 1.6%），先碰条数上限</text>
+  <rect x="360" y="224" width="122" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="421" y="245" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#8f3229">① 本步未抢占</text>
 
-  <rect x="460" y="404" width="424" height="64" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="474" y="429" font-size="14" font-weight="700" fill="#065f56">✓ 源码真相：余量留给长提示词分块，互不卡死</text>
-  <text x="474" y="453" font-size="13.5" fill="#4d5652">新提示词超 8192 − 4×running（最低 8068）才分步切块</text>
+  <rect x="360" y="264" width="122" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="421" y="285" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#065f56">② 引擎未暂停</text>
+
+  <rect x="360" y="304" width="122" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="421" y="325" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#065f56">③ 未满 max_seqs</text>
+
+  <text x="421" y="362" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#3a4f93">全过才放行 →</text>
+
+  <!-- Connector Gate -> Stage 2 -->
+  <line x1="492" y1="280" x2="512" y2="280" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)"/>
+
+  <!-- Stage 2: waiting + Bookkeeping (x=516..880, y=188..378) -->
+  <rect x="516" y="188" width="364" height="190" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="516" y="188" width="364" height="28" rx="8" fill="#ddf4ef"/>
+  <text x="698" y="207" text-anchor="middle" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#065f56">B. 余量扫 waiting（准入接新）→ 记账下发</text>
+
+  <rect x="528" y="224" width="340" height="34" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1"/>
+  <text x="698" y="246" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">full_isl 整段容量预检（只检能否放下，不提前预借）</text>
+
+  <rect x="528" y="266" width="166" height="48" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="611" y="286" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">够块 ✓ → 进 running</text>
+  <text x="611" y="306" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">仅借本步 + 候选预留</text>
+
+  <rect x="702" y="266" width="166" height="48" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="785" y="286" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#936300">缺块 / 关分块超余量</text>
+  <text x="785" y="306" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#936300">直接 break，绝不抢占</text>
+
+  <rect x="528" y="322" width="340" height="46" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="698" y="342" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">_update_after_schedule() 立即前推已算位置</text>
+  <text x="698" y="361" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">排完即发计划（不决定算子分路或 ACLGraph 回放）</text>
+
+  <!-- ZONE 3: Proportional GLM 8192 Bar + Ascend Override Badges (y=402..532) -->
+  <rect x="8" y="402" width="884" height="130" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>
+  <rect x="20" y="412" width="318" height="24" rx="12" fill="#ddf4ef" stroke="#087f73" stroke-width="1"/>
+  <text x="179" y="428" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">3. 真实比例：GLM 单组 8192 预算为何用不满</text>
+  <text x="352" y="428" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">破除误解：预算留白不是浪费，而是给新提示词分块的缓冲带</text>
+
+  <!-- Proportional bar (width=580px => 8192 tok; 128 tok = 9.06px -> exact 9px!) -->
+  <rect x="20" y="448" width="9" height="38" rx="2" fill="#9a4b86" stroke="#7a3a6a" stroke-width="1.3"/>
+  <rect x="29" y="448" width="571" height="38" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="315" y="472" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">余 8,064（98.4%）——但 32 条已满不再接 waiting；≤31 条才剩 ≥8,068 给新提示词</text>
+
+  <!-- Callout line pointing to the 1.56% sliver -->
+  <line x1="24" y1="486" x2="24" y2="508" stroke="#9a4b86" stroke-width="1.6"/>
+  <line x1="24" y1="508" x2="40" y2="508" stroke="#9a4b86" stroke-width="1.6"/>
+  <text x="46" y="514" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#7a3a6a">满载 32 decode × 4 = 128（1.56%），恰等于最大图尺寸，先撞 32 条上限</text>
+
+  <!-- Right Ascend / DP badges (x=616..880, y=444..522) -->
+  <rect x="616" y="444" width="264" height="36" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="748" y="467" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#3a4f93">DP prefill 间隔：有 decode 才暂缓</text>
+
+  <rect x="616" y="486" width="264" height="36" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="748" y="509" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">BalanceScheduler 关时透传上游</text>
 </svg>

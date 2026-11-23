@@ -1,0 +1,9 @@
+id: kv-cache-spec-fig-24-slabs
+mode: native-svg
+size: [900, 446]
+caption: GLM-5.3-Flash 单个物理块号 b 横跨 12 片 655,360 B 大页与 12 片 40,960 B 小页显存（合计 8,355,840 B ≈ 7.969 MiB）的复用排布：同一时刻仅归一个缓存组以防写冲突，同时揭示 KDA 组与尾状态组持块时产生闲置大/小页槽位的根因。
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L459-L548
+    symbols: [KVCacheGroupSpec]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698
+    symbols: [KVCacheTensor]

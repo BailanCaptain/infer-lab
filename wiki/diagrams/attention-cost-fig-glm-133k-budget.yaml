@@ -1,0 +1,16 @@
+mode: native-svg
+id: attention-cost-fig-glm-133k-budget
+caption: >-
+  GLM 双机 133,120 位置处的单卡注意力逻辑读与混合页对齐图：上半部以对数坐标诚实对比 11 层稀疏 MLA 主读（22.0 MiB 封顶）、Indexer 全扫 33,280 池（89.4 MiB，反超主读 4 倍）与密集全扫对照（1.40 GiB）；下半部展示 640-token 混合物理页（655,360 B）容纳 561,152 B KDA 状态与 14.4% 补齐，以及 TP8 下 KDA 1/8 切分与 MLA 全卡复制差异。
+size: [900, 468]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L140'
+    symbols:
+      - AscendIndexerKPoolMLABackend
+      - kv_cache_dtype
+      - block_size
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L159'
+    symbols:
+      - mamba_raw_size
+      - ssm_block_page_size
+      - min_attn_block_size

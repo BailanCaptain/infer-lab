@@ -1,7 +1,7 @@
 mode: native-svg
 id: linear-attention-fig-kda-delta-budget
 caption: KDA 固定 [d_k, d_v] 状态矩阵的五步按通道衰减与 Delta 纠错更新、Prefill 分段(64)与 Decode 递推双路径，以及单请求 KDA 状态在有效净载荷(18.2 MiB)、补齐页容量(85.0 MiB)与块号记账(95.6 MiB)三笔账上的拆解。
-size: [900, 456]
+size: [900, 496]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L107-L170'
     symbols: ['Glm5NextLinearAttention', 'get_state_dtype', 'get_state_shape', 'kda_state_shape']

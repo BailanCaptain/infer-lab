@@ -1,0 +1,10 @@
+mode: native-svg
+id: short-request-first-fig-glm-3step
+caption: >-
+  GLM 双机 20,000-token 场景变体三步预算推演（DP0 每步预算上限 8,192，12 条在跑 decode 每条占 1+3=4 位置）：FCFS 下长提示词先占满第 1、2 步，后到的 4-token 短请求被拖至第 3 步才首字出字；开启 SRF 后短请求在第 1 步即完成 prefill 出字（提前 2 步），长提示词每步仅让出 4 位置，照样在第 3 步算完且一步未晚。
+size: [900, 360]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/short_request_first_scheduler.py#L148-L183'
+    symbols: ['_select_schedulable_queue', '_short_queue', '_long_queue']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L202-L205'
+    symbols: ['waiting', 'skipped_waiting']

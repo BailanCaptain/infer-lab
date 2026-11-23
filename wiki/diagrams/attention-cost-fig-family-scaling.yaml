@@ -1,8 +1,8 @@
 mode: native-svg
 id: attention-cost-fig-family-scaling
 caption: >-
-  五类注意力机制（MHA / GQA / MLA / 稀疏 MLA / KDA）随历史长度 n 的容量、访存、算力与 TP 切分全景对照，以及 GLM 双机 133,120 位置处的三项逻辑读取对比（主 attention 封顶 22.0 MiB vs indexer 全扫 89.4 MiB vs 密集 1.40 GiB）和 KDA 固定 85 MiB 页与 MLA 按位置增长约 6,827 token 的容量交点。
-size: [900, 492]
+  五类注意力机制随历史长度 n 的单步 Decode 逻辑读取增长曲线（左侧对比 MHA/GQA/MLA 线性增长、稀疏 MLA 主读封顶而索引器线性反超、KDA 恒定 O(1)），以及右侧 GLM 单卡缓存容量交点图（KDA 固定 85 MiB 页 vs 12 层 MLA 13,056 B/token 线性增长在约 6,827 token 处持平）。
+size: [900, 456]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L27-L52'
     symbols:

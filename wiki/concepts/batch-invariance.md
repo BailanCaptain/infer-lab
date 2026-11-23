@@ -148,7 +148,7 @@ file: batch-invariance-fig-fp-splitk
 
 上游 GPU 实现也按硬件与算子分别处理。固定 0fc695fc 的注释在 Hopper／Blackwell 矩阵乘分支把 split-K 作为要抑制的差异来源，该分支设置了两个 cuBLAS 环境项；Ampere 则注册 Triton 矩阵乘。后面还统一替换 softmax、mean、bmm 等算子。因此，不能把这段注释扩写成「GPU 的全部批间差异只有 split-K、改一个配置就够了」。
 
-以 $K = 512$、固定 $K$ 分块 $64$、$M$ 方向块高 $128$（只看单个 $N$ 方向输出块）做设计示意：固定这一份回退实现后，$M$ 方向输出块随批次行数从 1 个变成 3 个，而每个输出块沿 $K$ 方向的加法链都锁死为段 1 到段 8 共 8 步（说明避免批大小改变 $K$ 段合并方式的原理，不替代整模型一致性测试）：
+以 $K = 512$、固定 $K$ 分块 $64$、$M$ 方向块高 $128$（只看单个 $N$ 方向输出块）做设计示意。固定这一份回退实现后，$M$ 方向输出块随批次行数从 1 个变成 3 个，但每个输出块沿 $K$ 方向的加法链始终锁死为段 1 到段 8 共 8 步（该算例说明避免批大小改变 $K$ 段合并方式的原理，不替代整模型一致性测试）：
 
 $$N_K = \frac{512}{64} = 8\text{ 段}, \qquad B_{M=1} = \lceil 1 / 128 \rceil = 1\text{ 块}, \qquad B_{M=300} = \lceil 300 / 128 \rceil = 3\text{ 块}$$
 
@@ -178,12 +178,18 @@ $$N_K = \frac{512}{64} = 8\text{ 段}, \qquad B_{M=1} = \lceil 1 / 128 \rceil = 
 
 ## 代价：部分加速路径被限制
 
-批不变会改变可选实现。在固定 `db701c1f` 以及 `v0.30.0` / `main` 中，`utils.py` 的 `enable_custom_op()` 在首次计算门禁且 `VLLM_BATCH_INVARIANT=1`（或当前硬件不支持 `HardwareCapability.RUNTIME_CUSTOM_OPS`）时直接返回 `False`，**统一禁用依赖这道门禁的 `vllm_ascend_C` 自定义核懒加载与算子分派**；直接调用扩展的路径未必经过它，也不保证每个模型都有完整通用回退（见[算子与核函数](ops-and-kernels.md)）。源码中可见的变化有四处：
+批不变会改变可选实现。在固定 `db701c1f` 以及 `v0.30.0` / `main` 中，只要 `VLLM_BATCH_INVARIANT=1`（或硬件缺少 `HardwareCapability.RUNTIME_CUSTOM_OPS`），`utils.py` 的 `enable_custom_op()` 在首次计算门禁时直接返回 `False`。这会**统一禁用依赖这道门禁的 `vllm_ascend_C` 自定义核懒加载与算子分派**；但直接调用扩展的路径未必经过门禁，也不保证所有模型都有完整通用回退（见[算子与核函数](ops-and-kernels.md)）。源码中可见的变化有四处：
 
 - 矩阵乘沿 K 方向的分块被钉死，`mm` / `matmul` 那条连 M、N 方向也不再按形状调优；
 - 带残差的归一化（`torch_npu.npu_add_rms_norm`）从一个融合步拆成先加残差再 `npu_rms_norm` 两步（在 `main` 中只要进入 `enable_batch_invariant_mode()` 便无条件覆盖，不再仅限 AscendC 在场分支）；
 - 采样退回上游的通用实现；
-- 初始化成功进入覆盖分支时，设置 `weight_nz_mode = 0`、`HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`，并在 `v0.30.0` 启用 `torch.use_deterministic_algorithms(True, warn_only=True)`、在 `main` 改为 `torch_npu.npu.set_deterministic_level(3)`。
+- 初始化成功进入覆盖分支后，会设 `weight_nz_mode = 0`、`HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`。同时，`v0.30.0` 会启用 `torch.use_deterministic_algorithms(True, warn_only=True)`，而 `main` 改为 `torch_npu.npu.set_deterministic_level(3)`。
+
+把双供应链算子替换优先级、全局门禁与下文 GLM-5.3-Flash 的 45 层覆盖缺口合到同一张图里，就能一眼看清“开了开关到底管住哪些层、管不住哪些层”：
+
+```wiki-diagram
+file: batch-invariance-fig-dispatch-gaps
+```
 
 本页引用的固定指南只定性提示性能代价，具体收益与开销取决于选中的实现和负载；指南及本项目均未提供该部署的开关对照实测倍数。
 
@@ -207,7 +213,7 @@ main／rc2 固定指南把 chunked prefill、prefix caching 和抢占列为不�
 
 ## 放到 GLM 双机：这套部署没有开它
 
-[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的启动命令里没有设这个开关，环境变量默认是关的；主线按**默认实现**分析，后面的批形状数字也是在指定条件下推导的算例。本页没有这套部署上的数值误差实测值。
+上面的已验证模型清单以标准 Qwen3 稠密/MoE 为主；换到例外 B 的[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)时，启动命令里并未设这个开关，环境变量默认关闭。主线按**默认实现**分析，后面的批形状数字也是在指定条件下推导的算例；本页没有这套部署上的数值误差实测值。
 
 这套部署的[并发请求示例](concurrent-requests.md)可以说明批形状变化：在该算例条件下，在跑的请求各拿 4 个 token，剩下预算用于新请求 prefill。下表两种批组成中，目标 decode 请求参与的总 token 数相差两个数量级：
 
@@ -228,7 +234,7 @@ main／rc2 固定指南把 chunked prefill、prefix caching 和抢占列为不�
 
 - **线性 attention 那些层不在替换名单里。** 这个模型 45 层里有 34 层用 KDA 线性 attention（见[线性注意力](linear-attention.md)），走的是它自己那套 Triton 核；上面那份换实现的名单管得住矩阵乘、归一化、softmax、求和以及全 attention 用的那个 attention 函数，管不到它。上一节那份官方验过的模型名单里也没有混合 attention 模型。
 - **直接调扩展算子的路径绕过了门禁。** GLM 的 mHC 前后处理直接调用扩展，没有在这里检查 `enable_custom_op()`。不能因为门禁关闭，就断定这些调用都被替换了。
-- **门禁还控制本包的扩展加载。** 固定 db 的生产 Python 代码中，显式导入 `vllm_ascend_C` 的两条语句都在这个函数里。若环境开关在首次门禁检查前已开启，它会返回 False 并跳过导入；而 GLM 随后仍直接调用 mHC 扩展，存在未注册的风险。实际注册状态还取决于门禁已有的缓存结果、外部提前加载与启动顺序，应同时记录这些条件和首次调用结果；这里没有该部署的启动失败实测。
+- **门禁还控制本包的扩展加载。** 固定 db 的生产 Python 代码中，显式导入 `vllm_ascend_C` 的两条语句都在 `enable_custom_op()` 里。若环境开关在首次门禁检查前已开启，它会返回 `False` 并跳过导入；而 GLM 随后仍直接调用 mHC 扩展，存在未注册的风险。实际注册状态还取决于门禁缓存、外部提前加载与启动顺序，应同时记录这些条件和首次调用结果（这里没有该部署的启动失败实测）。
 
 所以在这套部署上，「开了开关就一定逐位可复现」是没有依据的：缺哪些证据，列在常见误解之后。
 

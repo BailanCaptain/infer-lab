@@ -1,0 +1,14 @@
+mode: native-svg
+id: param-stair-transfer-limits
+caption: >-
+  STAIR 每卡（rank_transfer_limit）与每节点（cross_node_transfer_limit）双独立账本对照：展示 2 节点 × 2 卡三种搬运组合的独立记账判定、副本步数截断公式以及自动回退 torch_gloo 时的 -1→1 收紧边界。
+size: [900, 480]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L220-L252
+    symbols: [rank_transfer_limit, cross_node_transfer_limit]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L680-L842
+    symbols: [_has_feasible_migration_sources, _migration_sources]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1129-L1165
+    symbols: [plan_layer, max_replica_changes]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_eplb.py#L152-L240
+    symbols: [resolve_ascend_eplb_communicator, unset_keys]

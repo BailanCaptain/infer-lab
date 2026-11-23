@@ -249,11 +249,14 @@ All-Gather 传的是归一化后的结果而不是原始的和，但形状一样
 
 ## SP、CP、Ulysses 是什么关系？
 
-Megatron SP 解决 TP 组内部分激活重复的问题；[context parallelism（CP，上下文并行）](context-parallel.md)则让长序列的不同位置由不同设备计算，并处理 attention 对远端位置的依赖。两者可以组合，使用的通信组和负责的维度要分别标清。
+Megatron SP 解决 TP 组内部分激活重复的问题；[context parallelism（CP，上下文并行）](context-parallel.md)把长序列的不同位置分给多卡，并在 attention 里跨卡交换远端 K/V；DeepSpeed Ulysses 则通过 All-to-All 在「位置切分」与「头切分」之间转换布局。下图把 4 卡 `TP2 × CP2` 的正交网格与 Ulysses 换维并排对照：
 
-举一个 4 卡组合布局的示意：卡 0、1 组成一个 TP2 组，负责前 4 个位置；卡 2、3 组成另一个 TP2 组，负责后 4 个位置。SP 在每个 TP 组内运行：归一化时每卡 2 行，组内 All-Gather 后每卡得到本组的 4 行，再算本卡通道。CP 通信组连接持有对应 TP 分片的卡，即卡 0 与 2、卡 1 与 3，在 attention 中交换远端位置的 K/V。这里 SP 的 All-Gather 没有收齐全序列的 8 行。
+```wiki-diagram
+file: sp-fig-sp-cp-ulysses-grid
+```
 
-DeepSpeed Ulysses 的命名也属于 sequence parallelism。一个 attention 头是一套独立的查询匹配与加权汇合；Ulysses 通过 All-to-All，在“部分位置、全部头”和“全部位置、部分头”两种布局间转换，从而完成分布式 attention。它与 Megatron SP 的通信位置和作用不同；具体的前后形状及其与 Ring 的组合，统一见 [CP 页的 Ulysses 一节](context-parallel.md#ulysses-怎样把位置分工换成头分工)。
+- **Megatron SP 与 CP 正交组合**：如图左所示（4 卡、8 token 示意），卡 0、1 组成 TP 组 0（负责前 4 个位置），卡 2、3 组成 TP 组 1（负责后 4 个位置）。SP 只在各 TP 组内运行——归一化时每卡 2 行，组内 All-Gather 后每卡拿回本组的 4 行（绝不收齐全序列 8 行）；CP 组则垂直连接同位卡 `{0, 2}`、`{1, 3}`，在 attention 中交换远端 K/V。
+- **DeepSpeed Ulysses（同名 SP，机制不同）**：如图右所示，Ulysses 在 attention 前后用 All-to-All 在「部分位置、全部头」与「全部位置、部分头」之间做布局转置，从而让每张卡本地完成所负责头的全序列 attention（前后形状及与 Ring 的组合见 [CP 页的 Ulysses 一节](context-parallel.md#ulysses-怎样把位置分工换成头分工)）。
 
 ## vllm-ascend 里的 SP 是怎样接进去的？
 

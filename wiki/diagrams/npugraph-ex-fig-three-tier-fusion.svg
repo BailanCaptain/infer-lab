@@ -1,43 +1,124 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="npugraph_ex 三级依赖链与双路融合 Pass 门控" font-family="var(--font-sans)">
-<title>npugraph_ex → static_kernel → super_kernel 三级依赖与双路融合 Pass 架构</title>
-<desc>Three-tier compilation acceleration chain, hardware and graph-mode guards, and dual-path fusion passes</desc>
-<g stroke-width="1.4">
-<rect x="16" y="64" width="424" height="72" rx="8" fill="#ddf4ef" stroke="#087f73"/>
-<rect x="16" y="156" width="424" height="72" rx="8" fill="#e8edff" stroke="#4c65b6"/>
-<rect x="16" y="248" width="424" height="72" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
-<rect x="16" y="344" width="424" height="110" rx="8" fill="#fff0e9" stroke="#b54237"/>
-<rect x="466" y="64" width="418" height="164" rx="8" fill="#fff4cf" stroke="#c78300"/>
-<rect x="466" y="248" width="418" height="206" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
-</g>
-<path d="M228 136v18m-4-5l4 5 4-5M228 228v18m-4-5l4 5 4-5M228 320v22m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M675 228v18m-4-5l4 5 4-5" fill="none" stroke="#c78300" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-<g font-weight="700">
-<text x="16" y="30" font-size="16" fill="#17211f">三级编译加速依赖链（npugraph_ex → static → super）与双路融合 Pass</text>
-<text x="30" y="92" font-size="15" fill="#065f56">第 1 级：enable_npugraph_ex（默认 True）</text>
-<text x="30" y="184" font-size="15" fill="#3a4f93">第 2 级：enable_static_kernel（默认 False）</text>
-<text x="30" y="276" font-size="15" fill="#7a3a6a">第 3 级：enable_super_kernel（默认 False）</text>
-<text x="30" y="370" font-size="14.5" fill="#8f3229">两道铁门：硬件能力门控 + 非纯整图静默刷回</text>
-<text x="480" y="92" font-size="15" fill="#936300">规则注册一次，两条编译路各自消费</text>
-<text x="480" y="276" font-size="14.5" fill="#17211f">v0.30.0 / main 融合 Pass 清单与生效边界</text>
-</g>
-<g fill="#4d5652">
-<text x="16" y="50" font-size="13.5">上级关闭即下级不可开；v0.30.0+ Pydantic 强校验：显式传 static 且省 super 时，super 自动跟随 static</text>
-<text x="30" y="118" font-size="13.5">外部编译后端改写算子图（关闭切 fusion_pass_compile）</text>
-<text x="30" y="210" font-size="13.5">按 [1+草稿, 并发×(1+草稿)] 筛捕获表，提前编译核</text>
-<text x="30" y="302" font-size="13.5">ACL 捕获期合并算子二进制为大 kernel，减少下发</text>
-<text x="30" y="396" font-size="13.5">• A2/A3/A5：违背依赖链直接抛 AssertionError</text>
-<text x="30" y="418" font-size="13.5">• 310P（缺 NPUGRAPH_EX）：告警后三项静默刷 False</text>
-<text x="30" y="440" font-size="13.5">• NONE / PIECEWISE / FULL_AND_PIECEWISE：静默刷 False</text>
-<text x="480" y="118" font-size="13.5">• BasePattern 同时登记 PyTorch 与 npugraph_ex</text>
-<text x="480" y="142" font-size="13.5">• 路 1（开）：npugraph_ex_compile 消费</text>
-<text x="480" y="166" font-size="13.5">  （含 Triton 跳过缓存；缺包退 torchair）</text>
-<text x="480" y="190" font-size="13.5">• 路 2（关）：fusion_pass_compile 本地 FX 改写</text>
-<text x="480" y="212" font-size="13.5" fill="#936300" font-weight="600">→ 关 npugraph_ex ≠ 关融合，仅切换改图执行者</text>
-<text x="480" y="302" font-size="13.5">• AddRMSNormQuant（排 310P 与 W4A4 动态）</text>
-<text x="480" y="326" font-size="13.5">• QKNormRope（BF16/head=128，含 Gemma）</text>
-<text x="480" y="350" font-size="13.5">• MulsAdd（匹配路由缩放常数，排除 310P）</text>
-<text x="480" y="374" font-size="13.5">• main 新增：MatmulReduceScatter（SP 门控）</text>
-<text x="480" y="402" font-size="13.5">• 关原地改写，防算子回退 CPU 引起 H2D/D2H</text>
-<text x="480" y="426" font-size="13.5">• 开启 ≠ 注册 ≠ 命中，须核日志与 profiler</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="三级编译开关门控流程图与 static kernel 宽度档位筛选标尺" font-family="var(--font-sans)">
+  <title>npugraph_ex → static_kernel → super_kernel 两道门控流程与 2/4/8 静态编译档位筛选</title>
+  <desc>Hardware and graph-mode gate flowchart for the three-tier compilation switches, dual-path pass consumption, and visual bucket filter selecting widths 2, 4, 8 out of 2, 4, 8, 16, 32</desc>
+  <defs>
+    <marker id="ng-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="ng-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="ng-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Section 1: 3-Tier Switch & Two Hard Gates -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 三级开关门控流程：硬件能力 → 依赖链校验 → 图模式复筛</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">v0.30.0+ 传 static 省 super 时自动跟随</text>
+
+  <!-- Input Switch Stack -->
+  <rect x="16" y="48" width="184" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="108" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">用户三级配置</text>
+  <rect x="28" y="82" width="160" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="108" y="99" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">npugraph_ex (T)</text>
+  <rect x="28" y="110" width="160" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="108" y="127" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">static_kernel (F)</text>
+  <rect x="28" y="138" width="160" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
+  <text x="108" y="155" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">super_kernel (F)</text>
+
+  <line x1="202" y1="109" x2="226" y2="109" stroke="#4d5652" stroke-width="1.7" marker-end="url(#ng-arr-ink)"/>
+
+  <!-- Gate 1: Hardware Capability -->
+  <rect x="230" y="48" width="194" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="327" y="74" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">门控 1 · 硬件能力</text>
+  <text x="327" y="98" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">NPUGRAPH_EX?</text>
+  <text x="327" y="124" text-anchor="middle" font-size="13.5" fill="#065f56">A2/A3/A5：强查依赖</text>
+  <text x="327" y="146" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">违 super≤static≤ex</text>
+  <text x="327" y="164" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">→ AssertionError</text>
+
+  <!-- Gate 1 Downward Exit: 310P -->
+  <line x1="327" y1="172" x2="327" y2="202" stroke="#b54237" stroke-width="1.6" marker-end="url(#ng-arr-red)"/>
+  <rect x="218" y="206" width="218" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="327" y="226" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">310P（缺能力）：不抛断言</text>
+  <text x="327" y="244" text-anchor="middle" font-size="13.5" fill="#4d5652">打 warning → 三项静默刷 False</text>
+
+  <line x1="426" y1="109" x2="452" y2="109" stroke="#087f73" stroke-width="1.7" marker-end="url(#ng-arr-teal)"/>
+
+  <!-- Gate 2: Graph Mode -->
+  <rect x="456" y="48" width="194" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="553" y="74" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">门控 2 · 纯整图档位</text>
+  <text x="553" y="98" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">FULL / FULL_DEC?</text>
+  <text x="553" y="124" text-anchor="middle" font-size="13.5" fill="#065f56">是 → 清空 splitting_ops</text>
+  <text x="553" y="148" text-anchor="middle" font-size="13.5" fill="#4d5652">保留三级有效开关</text>
+
+  <!-- Gate 2 Downward Exit: Non-Full -->
+  <line x1="553" y1="172" x2="553" y2="202" stroke="#b54237" stroke-width="1.6" marker-end="url(#ng-arr-red)"/>
+  <rect x="448" y="206" width="212" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="554" y="226" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">NONE / PIECEWISE / F+P</text>
+  <text x="554" y="244" text-anchor="middle" font-size="13.5" fill="#4d5652">三项全部静默刷回 False</text>
+
+  <line x1="652" y1="84" x2="670" y2="84" stroke="#087f73" stroke-width="1.7" marker-end="url(#ng-arr-teal)"/>
+  <line x1="652" y1="142" x2="670" y2="142" stroke="#4d5652" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ng-arr-ink)"/>
+
+  <!-- Dual-Path Output -->
+  <rect x="674" y="48" width="212" height="62" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="780" y="74" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">npugraph_ex_compile</text>
+  <text x="780" y="96" text-anchor="middle" font-size="13" fill="#4d5652">开：外部后端（缺包退 torchair）</text>
+
+  <rect x="674" y="118" width="212" height="62" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="780" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">fusion_pass_compile</text>
+  <text x="780" y="166" text-anchor="middle" font-size="13" fill="#4d5652">关：本地 FX pass（仍做融合）</text>
+
+  <!-- Dual-Path Registration Badge -->
+  <rect x="674" y="192" width="212" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="780" y="216" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">规则一次注册 · 双路消费</text>
+  <text x="780" y="237" text-anchor="middle" font-size="12.5" fill="#4d5652">main 新增 MatmulReduceScatter</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="274" x2="884" y2="274" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <!-- Section 2: Static Kernel Bucket Filter (2/4/8 out of 2,4,8,16,32) -->
+  <text x="16" y="302" font-size="16" font-weight="700" fill="#17211f">② static kernel 档位筛选器：只编译落入 [1+k, N×(1+k)] 闭区间的既有捕获宽</text>
+  <text x="16" y="324" font-size="13.5" fill="#66716d">示意配置：捕获表 {2, 4, 8, 16, 32}，最大并发 N = 4，草稿数 k = 1 → 闭区间 [1+1, 4×2] = [2, 8]（绝不补造表外新档）</text>
+
+  <!-- 5 Width Buckets -->
+  <rect x="16" y="346" width="118" height="64" rx="7" fill="#087f73" stroke="#065f56" stroke-width="1.5"/>
+  <text x="75" y="374" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">宽度 2</text>
+  <text x="75" y="398" text-anchor="middle" font-size="13.5" fill="#ddf4ef">✓ 静态编译</text>
+
+  <rect x="150" y="346" width="118" height="64" rx="7" fill="#087f73" stroke="#065f56" stroke-width="1.5"/>
+  <text x="209" y="374" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">宽度 4</text>
+  <text x="209" y="398" text-anchor="middle" font-size="13.5" fill="#ddf4ef">✓ 静态编译</text>
+
+  <rect x="284" y="346" width="118" height="64" rx="7" fill="#087f73" stroke="#065f56" stroke-width="1.5"/>
+  <text x="343" y="374" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">宽度 8</text>
+  <text x="343" y="398" text-anchor="middle" font-size="13.5" fill="#ddf4ef">✓ 静态编译</text>
+
+  <!-- Cutoff vertical dashed line -->
+  <line x1="418" y1="336" x2="418" y2="454" stroke="#b54237" stroke-width="1.8" stroke-dasharray="5 3"/>
+
+  <rect x="434" y="346" width="118" height="64" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="493" y="374" text-anchor="middle" font-size="16" font-weight="700" fill="#66716d">宽度 16</text>
+  <text x="493" y="398" text-anchor="middle" font-size="13.5" fill="#8f3229">✗ 超上界 8</text>
+
+  <rect x="568" y="346" width="118" height="64" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="627" y="374" text-anchor="middle" font-size="16" font-weight="700" fill="#66716d">宽度 32</text>
+  <text x="627" y="398" text-anchor="middle" font-size="13.5" fill="#8f3229">✗ 超上界 8</text>
+
+  <!-- Right callout: GLM comparison -->
+  <rect x="704" y="346" width="180" height="106" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="794" y="372" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">若 GLM 开启它</text>
+  <text x="794" y="396" text-anchor="middle" font-size="13.5" fill="#4d5652">k=3, N=32 → [4, 128]</text>
+  <text x="794" y="418" text-anchor="middle" font-size="13.5" fill="#3a4f93">恰好覆盖 7 档全部</text>
+  <text x="794" y="440" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">（官方命令默认关闭）</text>
+
+  <!-- Bracket below 2/4/8 -->
+  <path d="M 16 420 L 16 432 L 402 432 L 402 420" fill="none" stroke="#087f73" stroke-width="1.6"/>
+  <text x="209" y="452" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">筛选结果 S_static = {2, 4, 8}（按节点分组协调分发安装）</text>
+
+  <!-- Bottom note -->
+  <rect x="16" y="474" width="868" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="30" y="497" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">Super Kernel（第 3 级）：</tspan>在 ACL 图捕获期将已静态编译的子 kernel 二进制合为大 kernel 并按依赖插同步；</text>
+  <text x="30" y="517" font-size="13.5" fill="#4d5652">此路径刻意关闭原地改写以防算子回退 CPU 引起拷贝；含 Triton kernel 时自动跳过编译缓存。</text>
 </svg>

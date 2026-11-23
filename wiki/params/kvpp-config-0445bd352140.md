@@ -162,18 +162,23 @@ rawSources:
 
 ## 统一推导规则与 size > 1 触发的三条链路
 
-`KVPPConfig.from_vllm_config(vllm_config)` 只依赖传入的 `vllm_config`，不要求调用方先拿到 `AscendConfig` 单例。早期 `baa023ad` 上有 7 处（配置工厂、platform 校验、worker 预算、层归属函数、KV 池 worker、新版 runner 缓存分配与运行时构造）各自调用一次该类方法，另有 3 处读单例（不能把这 7 处都概括成“拿不到单例”，因为 worker 在同一函数后文就会调用 `get_ascend_config()`；源码确定的是各入口复用同一纯推导规则）。
+```wiki-diagram
+file: param-kvpp-config
+```
+
+`KVPPConfig.from_vllm_config(vllm_config)` 只依赖传入的 `vllm_config`，不要求调用方先拿到 `AscendConfig` 单例。早期 `baa023ad` 上有 7 处（配置工厂、platform 校验、worker 预算、层归属函数、KV 池 worker、新版 runner 缓存分配与运行时构造）各自调用一次该类方法，另有 3 处读单例（不能把这 7 处都概括成「拿不到单例」，因为 worker 在同一函数后文就会调 `get_ascend_config()`；源码确定的是各入口复用同一纯推导规则）。
 
 因为 `size` 固定等于 `PCP × TP`，KVPP 的复制域天然不跨 DP 副本、也不跨 PP stage（DP 把不同请求或批次分配给不同执行组，PP 把模型分成前后阶段接力执行）：当 DCP 关闭时，MLA 缓存在 PCP 收集 KV 之后于 `PCP × TP` 域内各卡一致，层归属只在这个复制域内划分，这是设计边界而非可调项。
 
 一旦 `size > 1`，这一条件同时打开三条链路（具体做法见概念页）：
+
 - **建通信组**：创建名为 `kvpp` 的通信组，并断言 `kvpp_size == global_pcp_size * global_tp_size`（组内排布见[怎么开](../concepts/kvpp.md#怎么开)）。
 - **按层划分归属**：把目标层按 `size` 分给组内各卡，除不尽时前几张卡各多持有一层（详见[层怎么分](../concepts/kvpp.md#层怎么分每张卡要留多少显存)）。
 - **切换缓存分配与元数据发布**：model runner 改走 `allocate_kvpp_cache` 并把 `hybrid_with_attn_and_mamba` 置回 `False`；Mooncake worker 按层-owner 映射过滤对外发布的缓存元数据，仅保留本 rank 常驻目标层与未参与分层的 MTP 缓存，避免发布其他层共用的暂存地址（历史到位流程见[算到某一层时历史怎样到位](../concepts/kvpp.md#算到某一层时历史怎样到位)）。
 
 ## 误写静默过滤、校验条件演变与 GLM 双机分析
 
-**真正的启用写法**：在 `--additional-config` 中传 `"enable_kvpp": true`（例如官方指南配合 `--enforce-eager` 或新版支持的 `PIECEWISE`，线上持续更新文档见 [KVPP 文档](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html)）。把 `kvpp_config` 本身写进 JSON 不会报错，而是被 `_NON_USER_INPUT_KEYS` 静默丢弃（没有专门告警），比报错更隐蔽：
+**真正的启用写法**：在 `--additional-config` 中传 `"enable_kvpp": true`（配合 `--enforce-eager` 或新版支持的 `PIECEWISE`，线上持续更新文档见 [KVPP 文档](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html)）。把 `kvpp_config` 本身写进 JSON 不会报错，而是被 `_NON_USER_INPUT_KEYS` 静默丢弃（没有专门告警），比报错更隐蔽：
 
 ```bash
 # 满足模型、硬件及其他启动条件时，KVPP 仍采用 size=8（TP×PCP）；传入的 size=4 被静默忽略
@@ -181,12 +186,16 @@ vllm serve <非混合的 MLA 模型> --tensor-parallel-size 8 --enforce-eager \
     --additional-config '{"enable_kvpp": true, "kvpp_config": {"size": 4}}'
 ```
 
-**`size == 1` 跳过专属检查，但 `size > 1` 仍有完整前提**：当 `TP=1`、`PCP=1` 时即使写了 `enable_kvpp: true`，派生 `size` 仍为 `1`，`validate()` 不会被调用，也不会建组或切换缓存路径（但布尔类型校验与服务其他检查照常执行；确认是否真正生效须核对派生大小与通信组）。当 `size > 1` 时，`KVPPConfig.validate()` 校验的条件随版本逐步放宽：
-- **早期 `baa023ad`**：7 条检查（DCP 必须为 1、存在 KV 传输配置且非 `AscendStoreConnector` 时仅允许非 `kv_consumer` 的 `MooncakeConnectorV2`、必须 `--enforce-eager`、必须非混合 MLA、存在投机配置时仅允许固定候选数的 `mtp`）。
-- **过渡 `rc2`（`7d825229`）**：图模式放宽至 eager 或 `PIECEWISE`，投机解码扩展至固定候选数的 `mtp` / `dspark`（拒绝按批大小变化候选数，DSpark 还拒绝自适应验证和设置了 `method` 的 `dynamic_spec_config`）。
-- **`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）**：继续要求 `DCP == 1`、eager 或 `PIECEWISE`、非混合 MLA，并将 KV 连接器校验扩展支持 `MultiConnector`（逐个展开非空 `connectors` 列表校验）。`v0.30.0` 支持的连接器名单为 `("MooncakeConnectorV2", "AscendStoreConnector")`（`MooncakeConnectorV2` 拒绝 `kv_consumer`）；`main` 进一步纳入 `"MooncakePushConnector"`（同样拒绝 `kv_consumer`），且两版 `KVPPConfig.validate()` 内已不再硬编码投机解码拦截。
+**`size == 1` 跳过专属检查，但 `size > 1` 仍有完整前提**：当 `TP=1`、`PCP=1` 时即使写了 `enable_kvpp: true`，派生 `size` 仍为 `1`，`validate()` 不会被调用，也不会建组或切换缓存路径（但布尔类型校验与服务其他检查照常执行；确认是否真正生效须核对派生大小与通信组）。当 `size > 1` 时，`KVPPConfig.validate()` 的校验条件随版本逐步放宽：
 
-**放到 GLM 双机（`db701c1f` 固定基线）**：该部署（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）的 `db701c1f` 快照没有 KVPP，写 `enable_kvpp` 与 `kvpp_config` 都会被旧配置类静默忽略。换到 `v0.30.0` 或 `main` 写 `enable_kvpp: true`，TP8 × PCP1 算出 `size = 8 > 1`，进入 `validate()` 后会先撞图模式检查（`FULL_DECODE_ONLY` 不在 eager/`PIECEWISE` 之列），即使改用 `--enforce-eager` 或 `PIECEWISE` 也会在「只支持非混合 MLA」处被拒（GLM 含 KDA + MLA 混合结构），建组、分层、换分配路径均走不到（报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，详细原因见[GLM 双机一节](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)，本部署无 KVPP 实测数）。
+| 版本 / 快照 | 图模式与并行要求 | KV 连接器与投机解码约束 |
+| --- | --- | --- |
+| 早期 `baa023ad` | `DCP == 1`、必须 `--enforce-eager`、必须非混合 MLA | 存在 KV 传输配置且非 `AscendStoreConnector` 时仅允许非 `kv_consumer` 的 `MooncakeConnectorV2`；投机配置仅允许固定候选数的 `mtp`（共 7 条检查） |
+| 过渡 `rc2`（`7d825229`） | 图模式放宽至 eager 或 `PIECEWISE` | 投机解码扩展至固定候选数的 `mtp` / `dspark`（拒绝按批大小变化候选数，DSpark 还拒绝自适应验证和设置了 `method` 的 `dynamic_spec_config`） |
+| `v0.30.0`（`c09d3e20`） | `DCP == 1`、eager 或 `PIECEWISE`、非混合 MLA | 扩展支持 `MultiConnector`（逐个展开非空 `connectors` 列表）；白名单 `("MooncakeConnectorV2", "AscendStoreConnector")`，`MooncakeConnectorV2` 拒 `kv_consumer`；`validate()` 内不再硬编码投机解码拦截 |
+| `main`（`8d6180e2`） | 同 `v0.30.0` | 连接器名单进一步纳入 `"MooncakePushConnector"`（同样拒绝 `kv_consumer`） |
+
+**放到 GLM 双机（`db701c1f` 固定基线）**：该部署（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）的 `db701c1f` 快照没有 KVPP，写 `enable_kvpp` 与 `kvpp_config` 都会被旧配置类静默忽略。换到 `v0.30.0` 或 `main` 写 `enable_kvpp: true`，TP8 × PCP1 算出 `size = 8 > 1`，进入 `validate()` 后会先撞图模式检查（`FULL_DECODE_ONLY` 不在 eager/`PIECEWISE` 之列）；即使改用 `--enforce-eager` 或 `PIECEWISE`，也会在「只支持非混合 MLA」处被拒（GLM 含 KDA + MLA 混合结构），建组、分层、换分配路径均走不到（报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，详细原因见[GLM 双机一节](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)，本部署无 KVPP 实测数）。
 
 ## 对照源码
 

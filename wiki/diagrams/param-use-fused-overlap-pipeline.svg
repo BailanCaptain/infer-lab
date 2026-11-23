@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="use_fused_overlap 融合重叠 decode 分段流水、TP 分工与报错块名陷阱" font-family="var(--font-sans)">
+  <title>use_fused_overlap 分段流水、TP 分工与配置陷阱</title>
+  <desc>Top: Comparison of Copy-SFA (default false, two sub-paths: first-fill copies and syncs before HBM attention, while steady-state already fuses reading topk_src_ids, missing-KV copy, and attention compute inside the operator) versus Fused-Overlap (true, arch22 multi-stream/double-buffer segmented KV H2D/merge overlapping with MatMul1/Norm/MatMul2 and Selection KV Cache update; decode-only fork). Bottom: TP rank 0 vs non-0 roles, resident streams/tensors, and warning about misleading error string kv_offload_decode_config vs actual sparse_kv_offload_config.</desc>
+  <defs>
+    <marker id="fo-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="fo-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="fo-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. 默认 Copy-SFA（false，含两子路）vs 融合重叠（use_fused_overlap = true）</text>
+  <text x="16" y="49" font-size="13.5" fill="#66716d">v0.30.0 / main 中 use_fused_copy_sfa = enabled and not use_fused_overlap（仅分叉 decode，不接管 prefill）</text>
+
+  <!-- Row 1: Default Copy-SFA (two sub-paths: first-fill vs steady-state) -->
+  <text x="16" y="88" font-size="14" font-weight="700" fill="#4d5652">默认 false</text>
+  <text x="16" y="108" font-size="13.5" fill="#66716d">Copy-SFA</text>
+
+  <rect x="108" y="68" width="264" height="50" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="240" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">首次填充：先搬 Miss KV → 核内同步</text>
+  <text x="240" y="110" text-anchor="middle" font-size="13.5" fill="#66716d">数据可见后，再只访问 HBM 算 SFA</text>
+
+  <rect x="380" y="68" width="268" height="50" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="514" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">稳态路径：读 topk_src_ids 融合搬算</text>
+  <text x="514" y="110" text-anchor="middle" font-size="13.5" fill="#4d5652">算子内分段融合 Miss KV 搬运与计算</text>
+
+  <rect x="656" y="68" width="228" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="770" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">混批 Prefill 回退规则</text>
+  <text x="770" y="110" text-anchor="middle" font-size="13.5" fill="#4d5652">先验设备主 KV 在再交父类 SFA</text>
+
+  <!-- Row 2: Fused-Overlap segmented pipeline -->
+  <text x="16" y="164" font-size="14" font-weight="700" fill="#065f56">开启 true</text>
+  <text x="16" y="184" font-size="13.5" fill="#065f56">多流双缓冲</text>
+  <text x="16" y="204" font-size="13.5" fill="#66716d">(arch22)</text>
+
+  <!-- Segmented pipeline grid -->
+  <!-- Stage lane labels -->
+  <rect x="112" y="136" width="184" height="44" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="204" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">段 k：H2D/合并 KV</text>
+  <text x="204" y="174" text-anchor="middle" font-size="13" fill="#4d5652">+ 写 Selection 缓存</text>
+
+  <rect x="304" y="136" width="184" height="44" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="396" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">段 k+1：H2D/合并 KV</text>
+  <text x="396" y="174" text-anchor="middle" font-size="13" fill="#4d5652">发就绪信号</text>
+
+  <rect x="496" y="136" width="184" height="44" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="588" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">段 k+2：H2D/合并 KV</text>
+  <text x="588" y="174" text-anchor="middle" font-size="13" fill="#4d5652">更新选择缓存</text>
+
+  <!-- Compute lane staggered -->
+  <rect x="208" y="188" width="184" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="300" y="206" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">段 k：等信号 → MM1</text>
+  <text x="300" y="226" text-anchor="middle" font-size="13" fill="#4d5652">交错推进（非零等待）</text>
+
+  <rect x="400" y="188" width="184" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="492" y="206" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">段 k：Norm + MM2</text>
+  <text x="492" y="226" text-anchor="middle" font-size="13" fill="#4d5652">并行段 k+1 搬运</text>
+
+  <rect x="592" y="188" width="184" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="684" y="206" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">段 k：写最终输出</text>
+  <text x="684" y="226" text-anchor="middle" font-size="13" fill="#4d5652">TopK ≤ 2048，单头</text>
+
+  <!-- Signal arrows diagonal -->
+  <line x1="254" y1="181" x2="274" y2="188" stroke="#087f73" stroke-width="1.6"/>
+  <line x1="446" y1="181" x2="466" y2="188" stroke="#087f73" stroke-width="1.6"/>
+
+  <!-- Right badge: Plan stream note -->
+  <rect x="784" y="136" width="100" height="96" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="834" y="160" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">计划路径</text>
+  <text x="834" y="182" text-anchor="middle" font-size="13.5" fill="#065f56">捕获：副流</text>
+  <text x="834" y="202" text-anchor="middle" font-size="13.5" fill="#4d5652">非捕获：R0</text>
+  <text x="834" y="222" text-anchor="middle" font-size="13.5" fill="#4d5652">同步准备</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="252" x2="884" y2="252" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- Bottom Half: TP Roles & Resident Objects + Error String Trap -->
+  <text x="16" y="280" font-size="16" font-weight="700" fill="#17211f">B. TP 分工、常驻对象与报错字符串配置块名陷阱</text>
+
+  <!-- Left Bottom: TP Rank 0 vs Non-0 -->
+  <rect x="16" y="296" width="424" height="214" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="28" y="320" font-size="14.5" font-weight="700" fill="#3a4f93">TP 组分工与常驻对象（两处读取开关）</text>
+
+  <rect x="24" y="332" width="408" height="74" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="34" y="354" font-size="13.5" font-weight="700" fill="#17211f">TP rank 0：分配共享 CPU 池 + 预热 LRU OpenMP</text>
+  <text x="34" y="376" font-size="13" fill="#4d5652">• (rank 0 ∧ 捕获 ∧ 无 prefill) → current_kv_save_stream</text>
+  <text x="34" y="396" font-size="13" fill="#4d5652">• 非 0 rank：按广播形状附着共享 CPU 池非拥有 GVA 视图</text>
+
+  <rect x="24" y="414" width="408" height="88" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="34" y="435" font-size="13.5" font-weight="700" fill="#936300">开启即常驻（不待实际走到融合分支）：</text>
+  <text x="34" y="455" font-size="13" fill="#4d5652">• 2 条 stream（save + fused_plan）</text>
+  <text x="34" y="474" font-size="13" fill="#4d5652">• (1+max_topk_rows) int32 计划张量</text>
+  <text x="34" y="494" font-size="12.5" fill="#66716d">首调再配块表、驻留状态、membership map（须捕前配齐）</text>
+
+  <!-- Right Bottom: Error string trap + path rule -->
+  <rect x="460" y="296" width="424" height="214" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="474" y="322" font-size="14.5" font-weight="700" fill="#8f3229">✗ 排障必避坑：源码报错写着不存在的块名</text>
+
+  <rect x="474" y="338" width="396" height="58" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+  <text x="486" y="360" font-size="13.5" font-weight="700" fill="#8f3229">报错原文（v0.30.0 &amp; main 至今未改）：</text>
+  <text x="486" y="383" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">kv_offload_decode_config.use_fused_overlap=true</text>
+
+  <rect x="474" y="408" width="396" height="84" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="486" y="431" font-size="14" font-weight="700" fill="#065f56">✓ 真实合法配置路径（不在顶层！）：</text>
+  <text x="486" y="454" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">additional_config.sparse_kv_offload_config</text>
+  <text x="486" y="478" font-size="13.5" fill="#4d5652">必须同时设 enabled: true，否则后端不切卸载实现</text>
+</svg>

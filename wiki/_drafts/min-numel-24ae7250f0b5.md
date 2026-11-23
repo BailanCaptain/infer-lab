@@ -9,9 +9,13 @@ updated: '2026-11-10'
 sources:
   - >-
     vllm-ascend@e4d533d33211f0696bcdf65eda47245d52e428c5:vllm_ascend/ascend_config.py#L424
+  - >-
+    vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L433
 rawSources:
   - >-
     raw/sha256-b909f1f174d8a217b935475955f0945cdb5b6c1d34c00325d86952e2d862804e.md
+  - >-
+    raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
 ## 一句话
 
@@ -24,10 +28,11 @@ rawSources:
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["quantized_all_reduce_config"]["min_numel"]` |
+| 所属类 | `QuantizedAllReduceConfig` |
 | 类型 | `int` |
 | 默认表达式 | `16777216` |
-| 定义 | `vllm_ascend/ascend_config.py:424` [C1] |
-| 版本 | main · e4d533d33211f0696bcdf65eda47245d52e428c5 |
+| 定义 | `vllm_ascend/ascend_config.py:433` [C2] |
+| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
 
 字段注释：
 
@@ -70,8 +75,8 @@ if value < 1:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `00f74f23` |
+| releases/v0.30.0 | 无 | `0c002b4b` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `24487f4f` |
-| main | 有 | `e4d533d3` |
+| releases/v0.32.0rc | 无 | `49007fd8` |
+| main | 有 | `a38556f6` |

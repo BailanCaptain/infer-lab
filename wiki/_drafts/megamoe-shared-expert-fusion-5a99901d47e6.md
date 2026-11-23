@@ -13,6 +13,8 @@ sources:
     vllm-ascend@e8ae04b5c29f0d69b9dd729cbe838215e451045e:vllm_ascend/ascend_config.py#L685
   - >-
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L708
+  - >-
+    vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L740
 rawSources:
   - >-
     raw/sha256-2d13f8c316437a6c76d3586c7c71adb5b9fd8ee8754b97fa101e88fdb28b6374.md
@@ -20,6 +22,8 @@ rawSources:
     raw/sha256-81685fcf969928dd82668d18ecb202fda0d397667b8b8130345c5faf03886bde.md
   - >-
     raw/sha256-b909f1f174d8a217b935475955f0945cdb5b6c1d34c00325d86952e2d862804e.md
+  - >-
+    raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
 ## 一句话
 
@@ -32,10 +36,11 @@ rawSources:
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["megamoe_shared_expert_fusion"]` |
+| 所属类 | `AscendConfig` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:708` [C3] |
-| 版本 | main · 775899991f9614052e4836a62e4cb6541897faee |
+| 定义 | `vllm_ascend/ascend_config.py:740` [C4] |
+| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
 
 字段注释：
 
@@ -45,22 +50,11 @@ Derived from enable_fused_mc2=3: MegaMoE runs the shared expert inside the opera
 
 ````python
 if self.enable_fused_mc2 in (0, 1):
-    _MEGA_MOE_SUPPORTED = False
+    self._megamoe_supported = False
 elif self.enable_fused_mc2 in (2, 3):
     self.megamoe_shared_expert_fusion = self.enable_fused_mc2 == 3
-    _MEGA_MOE_SUPPORTED = importlib.util.find_spec('cann_ops_transformer') is not None
-    if self.enable_fused_mc2 == 3 and (not _MEGA_MOE_SUPPORTED):
-        logger.warning_once('enable_fused_mc2=3 requires the cann_ops_transformer package; MegaMoe (and its shared-expert fusion) will be disabled.')
-    self.enable_fused_mc2 = 1
-else:
-    raise ValueError(f'enable_fused_mc2 must be one of 0, 1, 2 (MegaMoE) or 3 (MegaMoE + shared-expert fusion); got {self.enable_fused_mc2}')
-````
-
-````python
-if self.enable_fused_mc2 in (2, 3):
-    self.megamoe_shared_expert_fusion = self.enable_fused_mc2 == 3
-    _MEGA_MOE_SUPPORTED = importlib.util.find_spec('cann_ops_transformer') is not None
-    if self.enable_fused_mc2 == 3 and (not _MEGA_MOE_SUPPORTED):
+    self._megamoe_supported = importlib.util.find_spec('cann_ops_transformer') is not None
+    if self.enable_fused_mc2 == 3 and (not self._megamoe_supported):
         logger.warning_once('enable_fused_mc2=3 requires the cann_ops_transformer package; MegaMoe (and its shared-expert fusion) will be disabled.')
     self.enable_fused_mc2 = 1
 else:
@@ -97,8 +91,8 @@ else:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `4113fd86` |
+| releases/v0.30.0 | 无 | `0c002b4b` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `39955127` |
-| main | 有 | `77589999` |
+| releases/v0.32.0rc | 无 | `49007fd8` |
+| main | 有 | `a38556f6` |

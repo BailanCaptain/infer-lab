@@ -11,11 +11,15 @@ sources:
     vllm-ascend@e8ae04b5c29f0d69b9dd729cbe838215e451045e:vllm_ascend/ascend_config.py#L634
   - >-
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L657
+  - >-
+    vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L688
 rawSources:
   - >-
     raw/sha256-2d13f8c316437a6c76d3586c7c71adb5b9fd8ee8754b97fa101e88fdb28b6374.md
   - >-
     raw/sha256-81685fcf969928dd82668d18ecb202fda0d397667b8b8130345c5faf03886bde.md
+  - >-
+    raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
 ## 一句话
 
@@ -28,10 +32,11 @@ rawSources:
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["shared_engram"]` |
+| 所属类 | `AscendConfig` |
 | 类型 | `SharedEngramConfig \| None` |
 | 默认表达式 | `None` |
-| 定义 | `vllm_ascend/ascend_config.py:657` [C2] |
-| 版本 | main · 775899991f9614052e4836a62e4cb6541897faee |
+| 定义 | `vllm_ascend/ascend_config.py:688` [C3] |
+| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
 
 字段注释：
 
@@ -54,21 +59,6 @@ if self.shared_engram is not None and self.shared_engram.backend == 'a3':
         raise ValueError('shared_engram requires Engram cpu_offload')
     if vc.load_config.load_format == 'dummy' or vc.model_config.enable_sleep_mode:
         raise ValueError('Shared host Engram does not support dummy loading or sleep mode')
-````
-
-````python
-if getattr(vc, 'shutdown_timeout', 0) <= 0:
-    raise ValueError('shared_engram requires --shutdown-timeout > 0 to retire reader leases')
-````
-
-````python
-if not vc.use_v2_model_runner:
-    raise ValueError('shared_engram requires Model Runner V2')
-````
-
-````python
-if not engram_config or not engram_config.cpu_offload:
-    raise ValueError('shared_engram requires Engram cpu_offload')
 ````
 
 ## 事实表
@@ -101,8 +91,8 @@ if not engram_config or not engram_config.cpu_offload:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `4113fd86` |
+| releases/v0.30.0 | 无 | `0c002b4b` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `39955127` |
-| main | 有 | `77589999` |
+| releases/v0.32.0rc | 无 | `49007fd8` |
+| main | 有 | `a38556f6` |

@@ -9,9 +9,13 @@ updated: '2026-11-13'
 sources:
   - >-
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L462
+  - >-
+    vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L481
 rawSources:
   - >-
     raw/sha256-81685fcf969928dd82668d18ecb202fda0d397667b8b8130345c5faf03886bde.md
+  - >-
+    raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
 ## 一句话
 
@@ -24,10 +28,11 @@ rawSources:
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["shared_engram"]["local_comm_res"]` |
+| 所属类 | `SharedEngramConfig` |
 | 类型 | `str \| None` |
 | 默认表达式 | `None` |
-| 定义 | `vllm_ascend/ascend_config.py:462` [C1] |
-| 版本 | main · 775899991f9614052e4836a62e4cb6541897faee |
+| 定义 | `vllm_ascend/ascend_config.py:481` [C2] |
+| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
 
 字段注释：
 
@@ -77,8 +82,8 @@ if self.listen_port is not None and self.local_comm_res:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `4113fd86` |
+| releases/v0.30.0 | 无 | `0c002b4b` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `39955127` |
-| main | 有 | `77589999` |
+| releases/v0.32.0rc | 无 | `49007fd8` |
+| main | 有 | `a38556f6` |

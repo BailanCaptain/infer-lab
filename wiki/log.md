@@ -1460,3 +1460,52 @@ vllm-ascend@main 775899991f9614052e4836a62e4cb6541897faee → 3649b8ff7fd69e707d
 ## [2026-11-19] review | Wave 6 全库审计后 Ch5–Ch8 / RFork / Params 闭环修订、重复图合并与 `figure.ts` 视觉统一
 
 按全库独立审计清单完成 `architecture`、`performance`、`cases`、`references`、`rfork`、`params` 六大区块（102 页）与 `scripts/wiki/figure.ts` 的闭环修订：（1）**RFork P1 与合规收口**：修正 `rfork-identity` / `rfork-startup` / `rfork-transfer` / `rfork-troubleshooting` 顺序为 `build empty model → register_destination（计算 seed_key）→ acquire_seed`，明确 `RForkConfigurationError` 中止启动而非回退；将 `rfork-troubleshooting` 全面重锚至 `vllm-ascend@8d6180e2`（移除已删 `/get_rfork_transfer_engine_shape_info`，`_RUNTIME_ONLY_TENSOR_NAMES` 校正为 3 项，198 条 `#L` 行号清零越界）；纠正 6 篇 RFork 页关于 `8d6180e2` 不含 `GLM-5.3-Flash` 的误述及 `rfork-official-guide` 13 项键、`rfork-patch-history` 基线与 `.yaml` 后缀；迁移全部 **17 处** `calc` 灰框为 KaTeX + 表格并清理正文段内证据标记，`wiki:lint` 实现 RFork `0 calc / 0 [mark-flood]`；（2）**Params 事实与教学升级**：修复 `c8-enable-reshape-optim-8bd7e5f82c6c` 在 `v0.23.0` / `v0.26.0rc` 谱系表误写为“无”的 P1 错误；为 12 篇旧锚定 / dataclass 开头参数页补齐直觉导读与具体数值算例；将全部 **8 张**旧 `layout: scene` 参数图转为暖纸矿物色板 `mode: "native-svg"` 并刷新至 `v0.30.0 (c09d3e20) / main (8d6180e2)`；（3）**Ch5–Ch7 事实、文风与去重**：修复 `api-server-entry`（`--enable-scale-out`）、`acl-graph` / `graph-mode-layer`（A5 四档裁剪与 `ASCEND_LAUNCH_BLOCKING` 移除边界）、`ascend-config-system`（`5/4` 剥离调度键与 `14` 子配置）、`ops-and-kernels`（`MoERunner / RoutedExperts / GateLinear`）、`vllm-ascend-for-rl`（Step 10 `expandable_segments` 回补门禁）、`inference-correctness-troubleshooting`（`patch_glm53_reasoning.py` 与 `63/43` 模块计数）及 4 处 YAML `pins`/引号问题；清理 13 页残余 `rc2` 措辞与 4 处“第 7 章”章号偏移，打磨 `model-runner-v2` 与 `engram-conditional-memory` 导读；合并 **16 组** Ch5–Ch6 重复图对及 `npu-worker-lifecycle` 三重冷启动图，删除 16 对无引用旧图（全库 **562 → 546 张图**）；（4）**`figure.ts` 暖纸矿物视觉统一与 Chromium 实测修复**：将 `scripts/wiki/figure.ts` 默认样式升级为柔和矿物底色 + `1.4px` 彩色描边 + `#17211f` 深墨 + `>=13px` 标签字号下限（`figure.test.ts` 44/44 通过），修复 `core-cli-graph-sched-matrix`（右框穿边）、`mem-prof-plate-cutaway`（引线 ② 准确指向 `PROFILE RUN PEAK WORKSPACE`）、`rfork-troubleshooting` / `rfork-lifecycle*` / `model-runner-layout` / `sleep-mode-intuition` / `cpu-binding` / `vllm-ascend-for-rl-*` 箭穿文字与字号问题，18 张重点图 Chromium 几何检测 `0` 缺陷并逐张目视确认。
+
+## [2026-11-19] ingest | 参数增量
+
+vllm-ascend@main 8d6180e28e0941fcfc85999bf2aafe194e98f8f6 → a38556f69529595e70598d0d6203009f5ac3293e；新增 11 / 删除 1 / 变更 4。
+
+- enable_fused_mc2: 默认表达式 "0" → "0"
+- megamoe_shared_expert_fusion: 默认表达式 "False" → "False"
+- config_path: 默认表达式 "None" → "None"
+- dsa_config: 默认表达式 "None" → "None"
+
+## [2026-11-19] ingest | 参数增量
+
+vllm-ascend@releases/v0.30.0 c09d3e20b9c45c80b34ae3781440d90904a44023 → 0c002b4b44cd2e7e12a094e6f778b62ed793afba；新增 1 / 删除 0 / 变更 0。
+
+## [2026-11-19] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-20] ingest | 参数增量
+
+vllm-ascend@main a38556f69529595e70598d0d6203009f5ac3293e → 7a7ed073c481d5e3a2fc2194c5b879efb2d373c0；新增 13 / 删除 3 / 变更 0。
+
+## [2026-11-20] ingest | 参数增量
+
+vllm-ascend@releases/v0.30.0 0c002b4b44cd2e7e12a094e6f778b62ed793afba → 205f3d14992601987b0c6317418d991cdf4a6f2d；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-20] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-21] ingest | 参数增量
+
+vllm-ascend@main 7a7ed073c481d5e3a2fc2194c5b879efb2d373c0 → c64ace678d12d5a48671d929c76f723f8158876c；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-21] ingest | 参数增量
+
+vllm-ascend@releases/v0.30.0 205f3d14992601987b0c6317418d991cdf4a6f2d → 5cb68ba64ae69bbcf72e0ccd2d696f4fca41aaf5；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-21] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-22] ingest | 参数增量
+
+vllm-ascend@main c64ace678d12d5a48671d929c76f723f8158876c → c12397a088f7e63ed9defae66ac98faffee88b81；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-22] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

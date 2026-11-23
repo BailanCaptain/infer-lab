@@ -22,6 +22,8 @@ sources:
     vllm-ascend@e8ae04b5c29f0d69b9dd729cbe838215e451045e:vllm_ascend/ascend_config.py#L674
   - >-
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L697
+  - >-
+    vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L729
 relations: []
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
@@ -41,6 +43,8 @@ rawSources:
     raw/sha256-c6bf675098d214a8441b7f9371b85caf3e6e8802740cd4c8424c4961d33be950.md
   - >-
     raw/sha256-c972368829e7e384b3c21d0815797ac0f5e2be6ddf069b67ecd9ccc8e557e677.md
+  - >-
+    raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
 
 ## 一句话
@@ -89,11 +93,11 @@ rawSources:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `4113fd86` |
+| releases/v0.30.0 | 无 | `0c002b4b` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 有 | `5e40bc72` |
-| releases/v0.32.0rc | 有 | `39955127` |
-| main | 有 | `77589999` |
+| releases/v0.32.0rc | 有 | `49007fd8` |
+| main | 有 | `a38556f6` |
 
 ## 参数定义（自动生成）
 
@@ -102,10 +106,11 @@ rawSources:
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["runtime_config_path"]` |
+| 所属类 | `AscendConfig` |
 | 类型 | `str \| None` |
 | 默认表达式 | `None` |
-| 定义 | `vllm_ascend/ascend_config.py:697` [C8] |
-| 版本 | main · 775899991f9614052e4836a62e4cb6541897faee |
+| 定义 | `vllm_ascend/ascend_config.py:729` [C9] |
+| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
 
 字段注释：
 

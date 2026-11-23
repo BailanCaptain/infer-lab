@@ -46,15 +46,18 @@ export default defineConfig({
           proxy.on("proxyReq", (proxyReq, req) => {
             if (req.headers.host) proxyReq.setHeader("host", req.headers.host);
           });
-          // 仅运行 pnpm dev（未起 dev:server）时，将连接拒绝转为显式离线标记，避免 502 污染浏览器控制台。
+          // 仅运行 pnpm dev（未起 dev:server）时，将连接拒绝转为显式未启动标记（区分纯静态部署），避免 502 污染浏览器控制台。
           proxy.on("error", (_err, _req, res) => {
             if ("writeHead" in res && !res.headersSent) {
               res.writeHead(200, {
                 "content-type": "text/plain; charset=utf-8",
                 "x-wiki-backend-offline": "1",
+                "x-wiki-backend-reason": "service-down",
                 "cache-control": "no-store",
               });
-              res.end("offline");
+              res.end("service-down");
+            } else if ("end" in res && !("writableEnded" in res && res.writableEnded)) {
+              res.end();
             }
           });
         },

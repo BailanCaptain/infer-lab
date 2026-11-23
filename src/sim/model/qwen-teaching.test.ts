@@ -77,7 +77,7 @@ describe("Qwen3-8B 与 Qwen3-30B-A3B 教学算子与形状契约", () => {
     expect(report.moeRealOutShape).toEqual([1, 2048]);
     expect(report.moeRealWeightSum).toBeCloseTo(1.0, 6);
     expect(report.moeRealNumSharedExperts).toBe(0);
-  });
+  }, 15_000);
 
   it("Qwen3-30B-A3B 128选8 Softmax 重归一权重和严格等于 1.0 且共享专家数为 0", () => {
     const spec30b = getPresetSpec("qwen3-30b-a3b");

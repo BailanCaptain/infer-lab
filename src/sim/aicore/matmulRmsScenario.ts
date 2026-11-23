@@ -932,3 +932,173 @@ export function simulateAiCoreLab(partial?: Partial<AiCoreLabInput>): AiCoreLabR
     npuSpecName: NPU_910B.name,
   };
 }
+
+// ─── Ascend 910B3 真机 msprof 实测对标数据 [M]（与上方示意泳道物理隔离）────────
+
+export interface MeasuredOperatorBenchmark {
+  readonly id: "bf16-add-rmsnorm" | "bf16-matmul-v3" | "w8a8-dynamic-quant" | "w8a8-quant-batch-matmul-v3";
+  readonly group: "bf16" | "w8a8";
+  readonly opName: string;
+  readonly kernelName: string;
+  readonly coreAndBlocks: string;
+  readonly durationUs: number;
+  readonly durationRangeUs: readonly [number, number];
+  readonly keyCounters: string;
+  readonly engineeringNote: string;
+}
+
+export interface MeasuredTp4StepEntry {
+  readonly id: "tp4-matmul-v3" | "tp4-hcom-allreduce" | "tp4-add-rmsnorm";
+  readonly opName: string;
+  readonly coreType: "AI_CORE" | "COMMUNICATION" | "AI_VECTOR_CORE";
+  readonly durationUs: number;
+  readonly detail: string;
+  readonly tone: "compute" | "comm" | "vector";
+}
+
+export interface Ascend910b3MeasuredBenchmarks {
+  readonly evidenceTag: "[M]";
+  readonly title: string;
+  readonly hardwareLabel: string;
+  readonly softwareStack: string;
+  readonly shapeLabel: string;
+  readonly sampleNote: string;
+  readonly singleCardOperators: readonly MeasuredOperatorBenchmark[];
+  readonly w8a8SpeedupSummary: {
+    readonly gemmOnlyRatio: number;
+    readonly withDynamicQuantRatio: number;
+    readonly fullBlockWithNormRatio: number;
+    readonly bf16GemmUs: number;
+    readonly w8a8GemmUs: number;
+    readonly w8a8QuantPlusGemmUs: number;
+    readonly bf16FullBlockUs: number;
+    readonly w8a8FullBlockUs: number;
+    readonly takeaway: string;
+  };
+  readonly tp4CommChain: {
+    readonly shapeNote: string;
+    readonly tp1ComputePlusNormUs: number;
+    readonly tp4TotalChainUs: number;
+    readonly computeSavedUs: number;
+    readonly overlappedCommUs: number;
+    readonly hccsBandwidthRangeGBs: readonly [number, number];
+    readonly hccsTransitMB: number;
+    readonly tensorSizeMiB: number;
+    readonly steps: readonly MeasuredTp4StepEntry[];
+    readonly boundaryNote: string;
+  };
+  readonly rawSources: readonly string[];
+}
+
+export const ASCEND_910B3_MEASURED_BENCHMARKS: Ascend910b3MeasuredBenchmarks = {
+  evidenceTag: "[M]",
+  title: "Ascend 910B3 真机算子与 TP=4 通信实测对标 [M]",
+  hardwareLabel: "Ascend 910B3 (Atlas A2 · 20 AIC / 40 AIV)",
+  softwareStack: "HDK 25.5.0 · CANN 9.1.0 · torch_npu 2.10.0.post7 · vllm-ascend 0.30.0",
+  shapeLabel: "M=2048, K=4096, N=4096",
+  sampleNote: "msprof 设备 kernel 3 次活跃采样均值（Steps 2–4）；与上方示意相对时序沙盘独立对照",
+  singleCardOperators: [
+    {
+      id: "bf16-add-rmsnorm",
+      group: "bf16",
+      opName: "BF16 AddRmsNorm",
+      kernelName: "aclnnAddRmsNorm_AddRmsNorm_AddRmsNorm",
+      coreAndBlocks: "AI_VECTOR_CORE / 40",
+      durationUs: 63.58,
+      durationRangeUs: [63.04, 64.0],
+      keyCounters: "Vec 74.6% / MTE2 18.6% / MTE3 26.9%（3 次均值）",
+      engineeringNote:
+        "大 token 融合残差归一化下，FP32 平方均值与 rsqrt 向量算术占 AIV 主导，并非 MTE2 搬运占满。",
+    },
+    {
+      id: "bf16-matmul-v3",
+      group: "bf16",
+      opName: "BF16 MatMulV3",
+      kernelName: "aclnnMatmul_MatMulV3Common_MatMulV3",
+      coreAndBlocks: "AI_CORE / 20",
+      durationUs: 256.61,
+      durationRangeUs: [256.12, 257.1],
+      keyCounters: "Cube util 96.9% · MAC 95.4% 与 MTE2 82.4% 流水重叠",
+      engineeringNote:
+        "MAC 与 MTE2 同时高占比印证计算与数据搬运硬件流水重叠，不能拆成互斥墙钟份额；cube_utilization 与 aic_mac_ratio 为不同列。",
+    },
+    {
+      id: "w8a8-dynamic-quant",
+      group: "w8a8",
+      opName: "W8A8 DynamicQuant",
+      kernelName: "aclnnDynamicQuantV2_DynamicQuant_DynamicQuant",
+      coreAndBlocks: "AI_VECTOR_CORE / 40",
+      durationUs: 31.79,
+      durationRangeUs: [31.28, 32.8],
+      keyCounters: "AIV Vec 79.8% / MTE2 23.7%（写出 INT8 激活 + per-token scale）",
+      engineeringNote: "未与前序归一化融合时，独立 DynamicQuant 多出一次核外 GM/L2 读写往返。",
+    },
+    {
+      id: "w8a8-quant-batch-matmul-v3",
+      group: "w8a8",
+      opName: "W8A8 QuantBatchMatmulV3",
+      kernelName: "aclnnQuantMatmulV5_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      coreAndBlocks: "MIX_AIC / 20+20",
+      durationUs: 195.61,
+      durationRangeUs: [193.56, 197.34],
+      keyCounters: "Cube util 91.2%~92.8% · MAC 67.1% / MTE2 91.9%",
+      engineeringNote:
+        "单看纯 GEMM 较 BF16 提速 1.312x，但计入独立 DynamicQuant（+31.79µs）后净提速降至 1.128x。",
+    },
+  ],
+  w8a8SpeedupSummary: {
+    gemmOnlyRatio: 1.312,
+    withDynamicQuantRatio: 1.128,
+    fullBlockWithNormRatio: 1.095,
+    bf16GemmUs: 256.61,
+    w8a8GemmUs: 195.61,
+    w8a8QuantPlusGemmUs: 227.4,
+    bf16FullBlockUs: 320.19,
+    w8a8FullBlockUs: 292.45,
+    takeaway:
+      "纯 GEMM 提速 1.312x（256.61 → 195.61µs），但未融合独立 DynamicQuant（31.79µs）把两算子合计提速压缩至 1.128x（含两侧实测 AddRmsNorm 整段为 1.095x），直接印证算子融合削减核外往返的价值。",
+  },
+  tp4CommChain: {
+    shapeNote: "TP=4 行并行 [2048, 1024] × [4096, 1024]ᵀ → [2048, 4096] BF16 (16 MiB · 两步一致均值)",
+    tp1ComputePlusNormUs: 320.19,
+    tp4TotalChainUs: 665.47,
+    computeSavedUs: 186.04,
+    overlappedCommUs: 0,
+    hccsBandwidthRangeGBs: [17.63, 17.93],
+    hccsTransitMB: 25.17,
+    tensorSizeMiB: 16,
+    steps: [
+      {
+        id: "tp4-matmul-v3",
+        opName: "MatMulV3",
+        coreType: "AI_CORE",
+        durationUs: 70.57,
+        detail: "AI_CORE / 20 · Cube util 95.5%（两步均值，单步 70.66 / 70.48µs，较单卡省 ~186µs）",
+        tone: "compute",
+      },
+      {
+        id: "tp4-hcom-allreduce",
+        opName: "hcom_allReduce_",
+        coreType: "COMMUNICATION",
+        durationUs: 523.88,
+        detail:
+          "未重叠通信（Overlapped 0.0µs，两步均值，单步 525.10 / 522.66µs）· HCCS 通信矩阵边样本带宽 17.63~17.93 GB/s（聚合 op 带宽 17.71~17.74 GB/s，25.17 MB transit）",
+        tone: "comm",
+      },
+      {
+        id: "tp4-add-rmsnorm",
+        opName: "AddRmsNorm",
+        coreType: "AI_VECTOR_CORE",
+        durationUs: 71.02,
+        detail: "AI_VECTOR_CORE / 40 · Vec 67.3% / MTE2 27.2%（两步均值，单步 71.14 / 70.90µs）",
+        tone: "vector",
+      },
+    ],
+    boundaryNote:
+      "测量边界：此处为 2,048 行（16 MiB 输出）独立 HCCL 微基准，采用两步一致均值（单步和 666.90 / 664.04µs，两步均值 70.57 + 523.88 + 71.02 = 665.47µs，较单卡 320.19µs 劣化 2.08x）；17.63~17.93 GB/s 为通信矩阵边样本带宽（聚合 op 带宽 17.71~17.74 GB/s）。在线 c=1 Decode 单次归约仅 8 KiB，不可把 523.88µs × 72 机械套入单 token 账本。",
+  },
+  rawSources: [
+    "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292",
+    "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L935-L950",
+  ],
+};

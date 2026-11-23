@@ -22,14 +22,7 @@ import {
 import { analyzeParams, indexerBytesPerTokenLayer, linearStateBytesPerSeqLayer } from "./analyze";
 import { parseHfConfig } from "./parseHfConfig";
 import { getPresetSpec, MODEL_PRESETS } from "./presets";
-import {
-  type AttentionSpec,
-  attnKvDim,
-  attnQDim,
-  type LayerSpec,
-  type MlpSpec,
-  type ModelSpec,
-} from "./types";
+import { type AttentionSpec, attnQDim, type LayerSpec, type MlpSpec, type ModelSpec } from "./types";
 
 export const KIB = 1024;
 export const MIB = 1024 ** 2;
@@ -301,6 +294,8 @@ export interface DeployPlanInput {
   dynamicEplb?: boolean;
   engramCpuOffload?: boolean;
   useV2ModelRunner?: boolean;
+  /** Alias of `useV2ModelRunner` for CLI/UI callers. */
+  enableModelRunnerV2?: boolean;
   numSpecTokens?: number;
   gpuMemoryUtilization?: number;
   maxModelLen?: number;
@@ -370,6 +365,15 @@ export interface RooflineAnalysis {
   peakComputeTflops: number;
   hbmBandwidthGBs: number;
   ridgePointFlopsPerByte: number;
+  prefillPrecisionLabel: string;
+  prefillPeakComputeTflops: number;
+  prefillRidgePointFlopsPerByte: number;
+  prefillAchievedTflops: number;
+  decodePeakComputeTflops: number;
+  decodeRidgePointFlopsPerByte: number;
+  decodeLinearAchievedTflops: number;
+  decodeKvAttnAchievedTflops: number;
+  maxPeakComputeTflops: number;
   prefillTokens: number;
   prefillIntensityFlopsPerByte: number;
   prefillRegime: "compute-bound" | "memory-bound";
@@ -428,6 +432,8 @@ export interface FourQuestionsReport {
   };
   q3Roofline: {
     primaryBottleneck: "memory-bound" | "compute-bound" | "kv-bandwidth-bound";
+    effectivePeakComputeTflops: number;
+    effectiveRidgePointFlopsPerByte: number;
     roofline: RooflineAnalysis;
     summary: string;
   };
@@ -460,6 +466,8 @@ export interface DeployPlanReport {
     kvCacheDtype: KvCacheDtype;
     requestedBlockSize: number;
     effectiveBlockSize: number;
+    userSpecifiedBlockSize?: boolean;
+    requestedEnableEp?: boolean;
     weightNzMode: 0 | 1 | 2;
     tpSize: number;
     ppSize: number;
@@ -478,6 +486,8 @@ export interface DeployPlanReport {
     cudagraphMode: CudaGraphMode;
     cudagraphCaptureCount: number;
     enforceEager: boolean;
+    useV2ModelRunner?: boolean;
+    userSpecifiedUseV2ModelRunner?: boolean;
   };
   totalHbmBytes: number;
   requestedBytes: number;
@@ -864,6 +874,31 @@ function getContiguousPpStages(spec: ModelSpec, ppSize: number): readonly Contig
   return stages;
 }
 
+export function getPerRankKvHeadLayout(
+  a: AttentionSpec,
+  tpSize: number,
+): { localKvHeads: number; localKvDim: number } {
+  const safeTp = Math.max(1, tpSize);
+  if (a.kind === "mla" || (a.kind === "dsa" && a.kvLoraRank !== undefined)) {
+    return {
+      localKvHeads: 1,
+      localKvDim: (a.kvLoraRank ?? 512) + (a.qkRopeHeadDim ?? 64),
+    };
+  }
+  if (a.kind === "linear_kda") {
+    const localKvHeads = Math.max(1, Math.ceil((a.linearNumKeyHeads ?? a.numHeads) / safeTp));
+    return {
+      localKvHeads,
+      localKvDim: localKvHeads * (a.linearKeyHeadDim ?? a.headDim),
+    };
+  }
+  const localKvHeads = Math.max(1, Math.ceil(a.numKvHeads / safeTp));
+  return {
+    localKvHeads,
+    localKvDim: localKvHeads * a.headDim,
+  };
+}
+
 function computePerRankKvAndState(params: {
   spec: ModelSpec;
   tpSize: number;
@@ -927,8 +962,8 @@ function computePerRankKvAndState(params: {
         localMainKvSlot += latentFull;
         perTokenMainKv += latentFull / safeDcp;
       } else {
-        const localKv = a.numKvHeads >= tpSize ? Math.ceil(a.numKvHeads / tpSize) : 1;
-        const mainSlot = 2 * localKv * a.headDim * kvElemBytes;
+        const { localKvDim } = getPerRankKvHeadLayout(a, tpSize);
+        const mainSlot = 2 * localKvDim * kvElemBytes;
         localMainKvSlot += mainSlot;
         perTokenMainKv += mainSlot / safeDcp;
       }
@@ -939,8 +974,8 @@ function computePerRankKvAndState(params: {
     } else {
       localFullAttnLayerCount += 1;
       if (!primaryFullAttn) primaryFullAttn = a;
-      const localKv = a.numKvHeads >= tpSize ? Math.ceil(a.numKvHeads / tpSize) : 1;
-      const mainSlot = 2 * localKv * a.headDim * kvElemBytes;
+      const { localKvDim } = getPerRankKvHeadLayout(a, tpSize);
+      const mainSlot = 2 * localKvDim * kvElemBytes;
       localMainKvSlot += mainSlot;
       perTokenMainKv += mainSlot / safeDcp;
     }
@@ -950,12 +985,7 @@ function computePerRankKvAndState(params: {
     primaryFullAttn ??
     spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ??
     spec.layers[0]!.attention;
-  const localKvHeadsPerRank =
-    refAttn.kind === "mla" || (refAttn.kind === "dsa" && refAttn.kvLoraRank !== undefined)
-      ? 1
-      : refAttn.numKvHeads >= tpSize
-        ? Math.ceil(refAttn.numKvHeads / tpSize)
-        : 1;
+  const { localKvHeads: localKvHeadsPerRank } = getPerRankKvHeadLayout(refAttn, tpSize);
 
   const perTokenMainKvBytes = Math.round(perTokenMainKv);
   const perTokenIndexerKvBytes = Math.round(perTokenIndexerKv);
@@ -992,6 +1022,8 @@ interface WeightBreakdownResult {
   lowBytes: number;
   pointBytes: number;
   highBytes: number;
+  residentScaleBytes: number;
+  activeScaleBytes: number;
   activeWeightBytesPerRank: number;
   effectiveWeightPrecision: string;
   effectiveLinearElemBytes: number;
@@ -1083,7 +1115,8 @@ function computeWeightsPerRank(params: {
     nonQuantBytes: number;
     activeNonQuantBytes: number;
     quantWeightBytes: number;
-    scaleBytes: number;
+    residentScaleBytes: number;
+    activeScaleBytes: number;
     activeQuantWeightBytes: number;
     unquantMoeNzBytes: number;
   } => {
@@ -1133,8 +1166,7 @@ function computeWeightsPerRank(params: {
       attnOutChannels += 2 * localKDim + 2 * localVDim + localVHeads + H;
     } else {
       const localQDim = attnQDim(a) / tpSize;
-      const layerLocalKvHeads = a.numKvHeads >= tpSize ? Math.ceil(a.numKvHeads / tpSize) : 1;
-      const localKvDim = layerLocalKvHeads * a.headDim;
+      const { localKvDim } = getPerRankKvHeadLayout(a, tpSize);
       if (a.qkNorm) {
         nonQuantParams += 2 * a.headDim;
         activeNonQuantParams += 2 * a.headDim;
@@ -1162,14 +1194,19 @@ function computeWeightsPerRank(params: {
 
     let quantParams = attnLinearParams;
     let activeQuantParams = attnLinearParams;
-    let scaleBytes = 0;
+    let residentScaleBytes = 0;
+    let activeScaleBytes = 0;
     let unquantMoeParams = 0;
 
     if (isInt8Quant) {
       // attention projections out channels, 8 B/out-ch (BF16 scale+offset + FP32 scale copy)
-      scaleBytes += attnOutChannels * 8;
+      const attnScale = attnOutChannels * 8;
+      residentScaleBytes += attnScale;
+      activeScaleBytes += attnScale;
     } else if (isW4a8) {
-      scaleBytes += Math.ceil(attnLinearParams / 128) * 4 + attnOutChannels * 4;
+      const attnScale = Math.ceil(attnLinearParams / 128) * 4 + attnOutChannels * 4;
+      residentScaleBytes += attnScale;
+      activeScaleBytes += attnScale;
     }
 
     if (layer.mlp.kind === "dense") {
@@ -1178,9 +1215,13 @@ function computeWeightsPerRank(params: {
       quantParams += mlpParams;
       activeQuantParams += mlpParams;
       if (isInt8Quant) {
-        scaleBytes += (2 * localI + H) * 8;
+        const mlpScale = (2 * localI + H) * 8;
+        residentScaleBytes += mlpScale;
+        activeScaleBytes += mlpScale;
       } else if (isW4a8) {
-        scaleBytes += Math.ceil(mlpParams / 128) * 4 + (2 * localI + H) * 4;
+        const mlpScale = Math.ceil(mlpParams / 128) * 4 + (2 * localI + H) * 4;
+        residentScaleBytes += mlpScale;
+        activeScaleBytes += mlpScale;
       }
     } else {
       const m = layer.mlp;
@@ -1194,20 +1235,26 @@ function computeWeightsPerRank(params: {
       const perExpertParams = 3 * H * localMoeI;
       const routedParams = localExperts * perExpertParams;
       const activeLocalExperts = Math.min(localExperts, m.topK);
+      const activeRoutedParams = activeLocalExperts * perExpertParams;
 
       if (isStaticW8a8NoMoe) {
         // Static W8A8 only covers linear layers; MoE routed & shared experts remain unquantized (2 B/elem, no MoE INT8 scale)
         nonQuantParams += routedParams;
-        activeNonQuantParams += activeLocalExperts * perExpertParams;
+        activeNonQuantParams += activeRoutedParams;
         unquantMoeParams += routedParams;
       } else {
         quantParams += routedParams;
-        activeQuantParams += activeLocalExperts * perExpertParams;
+        activeQuantParams += activeRoutedParams;
         if (isInt8Quant) {
           // quantization.md#L313-L316: w13 (BF16 scale+offset + FP32 copy = 8B/out), w2 (BF16 scale+offset = 4B/out)
-          scaleBytes += localExperts * (2 * localMoeI * 8 + H * 4);
+          const perExpertScale = 2 * localMoeI * 8 + H * 4;
+          residentScaleBytes += localExperts * perExpertScale;
+          activeScaleBytes += activeLocalExperts * perExpertScale;
         } else if (isW4a8) {
-          scaleBytes += Math.ceil(routedParams / 128) * 4 + localExperts * (2 * localMoeI + H) * 4;
+          const perExpertChannelScale = (2 * localMoeI + H) * 4;
+          residentScaleBytes += Math.ceil(routedParams / 128) * 4 + localExperts * perExpertChannelScale;
+          activeScaleBytes +=
+            Math.ceil(activeRoutedParams / 128) * 4 + activeLocalExperts * perExpertChannelScale;
         }
       }
 
@@ -1222,9 +1269,14 @@ function computeWeightsPerRank(params: {
           quantParams += sharedParams;
           activeQuantParams += sharedParams;
           if (isInt8Quant) {
-            scaleBytes += m.numSharedExperts * (2 * localSharedI + H) * 8;
+            const sharedScale = m.numSharedExperts * (2 * localSharedI + H) * 8;
+            residentScaleBytes += sharedScale;
+            activeScaleBytes += sharedScale;
           } else if (isW4a8) {
-            scaleBytes += Math.ceil(sharedParams / 128) * 4 + m.numSharedExperts * (2 * localSharedI + H) * 4;
+            const sharedScale =
+              Math.ceil(sharedParams / 128) * 4 + m.numSharedExperts * (2 * localSharedI + H) * 4;
+            residentScaleBytes += sharedScale;
+            activeScaleBytes += sharedScale;
           }
         }
       }
@@ -1234,7 +1286,8 @@ function computeWeightsPerRank(params: {
       nonQuantBytes: nonQuantParams * floatElemBytes,
       activeNonQuantBytes: activeNonQuantParams * floatElemBytes,
       quantWeightBytes: quantParams * quantElemBytes,
-      scaleBytes,
+      residentScaleBytes,
+      activeScaleBytes,
       activeQuantWeightBytes: activeQuantParams * quantElemBytes,
       unquantMoeNzBytes: unquantMoeParams * floatElemBytes,
     };
@@ -1245,14 +1298,16 @@ function computeWeightsPerRank(params: {
   let nonQuantBytes = 0;
   let activeNonQuantBytes = 0;
   let quantWeightBytes = 0;
-  let scaleBytes = 0;
+  let residentScaleBytes = 0;
+  let activeScaleBytes = 0;
   let activeQuantWeightBytes = 0;
   let unquantMoeNzBytes = 0;
   for (const c of rankLayers) {
     nonQuantBytes += c.nonQuantBytes;
     activeNonQuantBytes += c.activeNonQuantBytes;
     quantWeightBytes += c.quantWeightBytes;
-    scaleBytes += c.scaleBytes;
+    residentScaleBytes += c.residentScaleBytes;
+    activeScaleBytes += c.activeScaleBytes;
     activeQuantWeightBytes += c.activeQuantWeightBytes;
     unquantMoeNzBytes += c.unquantMoeNzBytes;
   }
@@ -1311,7 +1366,7 @@ function computeWeightsPerRank(params: {
     }
   }
 
-  const baseNdBytes = Math.round(nonQuantBytes + quantWeightBytes + scaleBytes);
+  const baseNdBytes = Math.round(nonQuantBytes + quantWeightBytes + residentScaleBytes);
   const forceAllNz = card.forceWeightNz || weightNzMode === 2;
   const nzTargetBytes = forceAllNz
     ? quantWeightBytes + unquantMoeNzBytes
@@ -1325,7 +1380,9 @@ function computeWeightsPerRank(params: {
   const lowBytes = baseNdBytes + nzLow;
   const pointBytes = baseNdBytes + nzPoint;
   const highBytes = baseNdBytes + nzHigh;
-  const activeWeightBytesPerRank = Math.round(activeNonQuantBytes + activeQuantWeightBytes + scaleBytes);
+  const activeWeightBytesPerRank = Math.round(
+    activeNonQuantBytes + activeQuantWeightBytes + activeScaleBytes,
+  );
 
   const notes: string[] = [];
   if (isFp8SilentBf16) {
@@ -1371,6 +1428,8 @@ function computeWeightsPerRank(params: {
     lowBytes,
     pointBytes,
     highBytes,
+    residentScaleBytes: Math.round(residentScaleBytes),
+    activeScaleBytes: Math.round(activeScaleBytes),
     activeWeightBytesPerRank,
     effectiveWeightPrecision,
     effectiveLinearElemBytes: quantElemBytes,
@@ -1524,26 +1583,54 @@ function computeProfileRunTorchPeak(params: {
   } = params;
   const T = Math.max(1, maxNumBatchedTokens);
   const H = spec.hidden;
-  const firstLayer = spec.layers[0];
-  const qDimPerRank = firstLayer ? attnQDim(firstLayer.attention) / tpSize : H / tpSize;
-  const kvDimPerRank = firstLayer ? attnKvDim(firstLayer.attention) / tpSize : H / tpSize;
   const moe = getMoeInfo(spec);
+  const epWorld = enableEp ? dpSize * tpSize * pcpSize : 1;
 
-  // Hidden + residual + QKV + O buffers
-  const hiddenAttnBytes = T * (6 * H + 2 * qDimPerRank + 4 * kvDimPerRank) * 2;
+  // Permutation-invariant per-layer activation peak across ALL layers (covers hybrid KDA+GQA & Dense+MoE stacks)
+  let layerCombinedPeakBytes = 0;
+  if (spec.layers.length === 0) {
+    const fallbackAttn = T * (6 * H + 6 * (H / tpSize)) * 2;
+    const fallbackFfn = 3 * T * ((4 * H) / tpSize) * 2;
+    layerCombinedPeakBytes = fallbackAttn + fallbackFfn;
+  } else {
+    for (const layer of spec.layers) {
+      const a = layer.attention;
+      let layerHiddenAttn: number;
+      if (a.kind === "linear_kda") {
+        // KDA / GatedDeltaNet: Q/K projections (localKDim each) + V/Z(gate)/recurrent-out (localVDim each) + residual/norm
+        const localKHeads = Math.max(1, Math.ceil((a.linearNumKeyHeads ?? a.numHeads) / tpSize));
+        const localVHeads = Math.max(1, Math.ceil((a.linearNumValueHeads ?? a.numHeads) / tpSize));
+        const localKDim = localKHeads * (a.linearKeyHeadDim ?? a.headDim);
+        const localVDim = localVHeads * (a.linearValueHeadDim ?? a.headDim);
+        layerHiddenAttn = T * (6 * H + 3 * localKDim + 3 * localVDim) * 2;
+      } else {
+        const qDimPerRank =
+          a.kind === "mla" || (a.kind === "dsa" && a.kvLoraRank !== undefined)
+            ? Math.max(1, (a.numHeads / tpSize) * ((a.qkNopeHeadDim ?? 128) + (a.qkRopeHeadDim ?? 64)))
+            : attnQDim(a) / tpSize;
+        const kvDimPerRank = getPerRankKvHeadLayout(a, tpSize).localKvDim;
+        layerHiddenAttn = T * (6 * H + 2 * qDimPerRank + 4 * kvDimPerRank) * 2;
+      }
 
-  // MLP / MoE intermediate buffers
-  let ffnPeakBytes: number;
+      let layerFfnPeak: number;
+      if (layer.mlp.kind === "moe") {
+        const routedTokens = T * layer.mlp.topK;
+        const perRankRouted = enableEp
+          ? Math.max(T, Math.ceil((routedTokens * 1.4) / epWorld))
+          : routedTokens;
+        const localMoeInter = enableEp
+          ? layer.mlp.moeIntermediate
+          : Math.max(1, Math.ceil(layer.mlp.moeIntermediate / (tpSize * dpSize * pcpSize)));
+        layerFfnPeak = perRankRouted * (2 * localMoeInter + H) * 2;
+      } else {
+        layerFfnPeak = 3 * T * (layer.mlp.intermediate / tpSize) * 2;
+      }
+      layerCombinedPeakBytes = Math.max(layerCombinedPeakBytes, layerHiddenAttn + layerFfnPeak);
+    }
+  }
+
   const notes: string[] = [];
   if (moe.isMoe) {
-    const epWorld = enableEp ? dpSize * tpSize * pcpSize : 1;
-    const routedTokens = T * moe.topK;
-    const perRankRouted = enableEp ? Math.max(T, Math.ceil((routedTokens * 1.4) / epWorld)) : routedTokens;
-    const localMoeInter = enableEp
-      ? moe.moeIntermediate
-      : Math.max(1, Math.ceil(moe.moeIntermediate / (tpSize * dpSize * pcpSize)));
-    ffnPeakBytes = perRankRouted * (2 * localMoeInter + H) * 2;
-
     const moeComm = selectMoeCommMethod(
       {
         hardwareFamily: card.family,
@@ -1582,9 +1669,6 @@ function computeProfileRunTorchPeak(params: {
     } else {
       notes.push(`MoE 通信路径估计：${moeComm.method ?? "ALLGATHER"}（${moeComm.reason}）。`);
     }
-  } else {
-    const denseI = firstLayer && firstLayer.mlp.kind === "dense" ? firstLayer.mlp.intermediate : 4 * H;
-    ffnPeakBytes = 3 * T * (denseI / tpSize) * 2;
   }
 
   // Last-PP-stage (or PP=1) vocab logits peak (FP32)
@@ -1606,11 +1690,10 @@ function computeProfileRunTorchPeak(params: {
   const scaleWithModel = Math.min(1.6, Math.max(0.55, (H / 4096) * 0.75 + (moe.isMoe ? 0.45 : 0.25)));
 
   const lowBytes = Math.round(
-    (hiddenAttnBytes + ffnPeakBytes + logitsLowBytes + baseWorkspaceLow * scaleWithModel) *
-      quantWorkspaceFactor,
+    (layerCombinedPeakBytes + logitsLowBytes + baseWorkspaceLow * scaleWithModel) * quantWorkspaceFactor,
   );
   const highBytes = Math.round(
-    ((hiddenAttnBytes + ffnPeakBytes) * 1.65 + logitsHighBytes + baseWorkspaceHigh * scaleWithModel) *
+    (layerCombinedPeakBytes * 1.65 + logitsHighBytes + baseWorkspaceHigh * scaleWithModel) *
       quantWorkspaceFactor,
   );
   const pointBytes = Math.round(lowBytes * 0.42 + highBytes * 0.58);
@@ -1764,46 +1847,67 @@ function computeRoofline(params: {
   const hasCsa2 = kvState.localDsaLayerCount > 0;
   const hasKda = kvState.localLinearLayerCount > 0;
 
-  const wBytes = weightInfo.effectiveLinearElemBytes;
-  let peakComputeTflops: number;
-  let computePrecisionLabel: string;
-  let actInBytes = 2;
+  const isStaticW8a8UnquantMoe = moe.isMoe && weightPrecision === "w8a8";
+  const linearWBytes = weightInfo.effectiveLinearElemBytes;
   const actOutBytes = 2;
 
-  if (wBytes <= 1.05 && weightPrecision === "fp8_block" && card.supportsNativeFp8) {
-    peakComputeTflops = card.peakFp8Tflops ?? card.peakInt8Tops;
-    computePrecisionLabel = "MXFP8 / FP8 Cube";
-    actInBytes = 1;
-  } else if (wBytes <= 1.05) {
-    peakComputeTflops = card.peakInt8Tops;
-    computePrecisionLabel = wBytes < 1 ? "W4A8 / INT8 Cube" : "INT8 W8A8 Cube";
-    actInBytes = 1;
+  // 1. Attention / Dense Linear execution precision (e.g. INT8 for static w8a8 q_proj)
+  let linearPeakTflops: number;
+  let linearPrecisionLabel: string;
+  let linearActInBytes = 2;
+  if (linearWBytes <= 1.05 && weightPrecision === "fp8_block" && card.supportsNativeFp8) {
+    linearPeakTflops = card.peakFp8Tflops ?? card.peakInt8Tops;
+    linearPrecisionLabel = "MXFP8 / FP8 Cube";
+    linearActInBytes = 1;
+  } else if (linearWBytes <= 1.05) {
+    linearPeakTflops = card.peakInt8Tops;
+    linearPrecisionLabel = linearWBytes < 1 ? "W4A8 / INT8 Cube" : "INT8 W8A8 Cube";
+    linearActInBytes = 1;
   } else {
-    peakComputeTflops = card.peakBf16Tflops ?? card.peakFp16Tflops;
-    computePrecisionLabel = card.supportsBf16 ? "BF16/FP16 Cube" : "FP16 Cube";
-    actInBytes = 2;
+    linearPeakTflops = card.peakBf16Tflops ?? card.peakFp16Tflops;
+    linearPrecisionLabel = card.supportsBf16 ? "BF16/FP16 Cube" : "FP16 Cube";
+    linearActInBytes = 2;
   }
+  const prefillRidgePointFlopsPerByte = (linearPeakTflops * 1000) / card.hbmBandwidthGBs;
 
+  // 2. Decode Linear / MoE Expert execution precision (BF16/FP16 when static w8a8 leaves MoE experts unquantized)
+  const decodeWBytes = isStaticW8a8UnquantMoe ? 2 : linearWBytes;
+  const decodeActInBytes = isStaticW8a8UnquantMoe ? 2 : linearActInBytes;
+  const peakComputeTflops = isStaticW8a8UnquantMoe
+    ? (card.peakBf16Tflops ?? card.peakFp16Tflops)
+    : linearPeakTflops;
+  const computePrecisionLabel = isStaticW8a8UnquantMoe
+    ? card.supportsBf16
+      ? "BF16/FP16 Cube（MoE 专家未量化；注意力 Linear 为 INT8）"
+      : "FP16 Cube（MoE 专家未量化；注意力 Linear 为 INT8）"
+    : linearPrecisionLabel;
   const ridgePointFlopsPerByte = (peakComputeTflops * 1000) / card.hbmBandwidthGBs;
 
-  // Representative linear GEMM shape (q_proj / expert proj)
+  // Representative per-rank linear GEMM shapes (actual TP-sharded Q / MLP / expert dims, never clamped up to hidden size)
   const K = spec.hidden;
+  const localQProjN =
+    a.kind === "mla" || (a.kind === "dsa" && a.kvLoraRank !== undefined)
+      ? Math.max(1, Math.round((a.numHeads / tpSize) * ((a.qkNopeHeadDim ?? 128) + (a.qkRopeHeadDim ?? 64))))
+      : a.kind === "linear_kda"
+        ? Math.max(
+            1,
+            Math.round(((a.linearNumKeyHeads ?? a.numHeads) / tpSize) * (a.linearKeyHeadDim ?? a.headDim)),
+          )
+        : Math.max(1, Math.round(attnQDim(a) / tpSize));
   const expertSliceDiv = enableEp ? 1 : tpSize * Math.max(1, dpSize) * Math.max(1, pcpSize);
-  const N = moe.isMoe
-    ? Math.max(1, Math.round(moe.moeIntermediate / expertSliceDiv))
-    : Math.max(Math.round(attnQDim(a) / tpSize), Math.round(K / tpSize));
-  const prefillN = Math.max(Math.round(attnQDim(a) / tpSize), K);
+  const N = moe.isMoe ? Math.max(1, Math.round(moe.moeIntermediate / expertSliceDiv)) : localQProjN;
+  const prefillN = localQProjN;
 
   const prefillIntensityFlopsPerByte = gemmArithmeticIntensity(
     prefillTokens,
     K,
     prefillN,
-    actInBytes,
-    wBytes,
+    linearActInBytes,
+    linearWBytes,
     actOutBytes,
   );
   const prefillRegime =
-    prefillIntensityFlopsPerByte >= ridgePointFlopsPerByte ? "compute-bound" : "memory-bound";
+    prefillIntensityFlopsPerByte >= prefillRidgePointFlopsPerByte ? "compute-bound" : "memory-bound";
 
   const localExpertsPerRank = moe.isMoe
     ? enableEp
@@ -1815,8 +1919,6 @@ function computeRoofline(params: {
   const moeRouterDilutedRows = moe.isMoe ? (dpSize * decodeBatchSize * moe.topK) / moe.numExperts : null;
   const decodeLinearMEff = moe.isMoe ? Math.max(1, moeRouterDilutedRows!) : decodeBatchSize;
 
-  const decodeWBytes = moe.isMoe && weightPrecision === "w8a8" ? 2 : wBytes;
-  const decodeActInBytes = moe.isMoe && weightPrecision === "w8a8" ? 2 : actInBytes;
   const decodeLinearIntensityFlopsPerByte = gemmArithmeticIntensity(
     decodeLinearMEff,
     K,
@@ -1832,7 +1934,7 @@ function computeRoofline(params: {
   const localNumHeads = Math.max(1, a.numHeads / tpSize);
   // Under DCP > 1, decode attention all_gathers Q heads across the DCP group before attending to local sequence-sharded KV
   const effectiveAttnQHeads = Math.min(a.numHeads, localNumHeads * safeDcp);
-  const localKvHeads = a.numKvHeads >= tpSize ? Math.max(1, Math.ceil(a.numKvHeads / tpSize)) : 1;
+  const { localKvHeads } = getPerRankKvHeadLayout(a, tpSize);
   const gqaGroupSize = hasMla ? effectiveAttnQHeads : effectiveAttnQHeads / localKvHeads;
   const sparseTopK = hasCsa2 ? (a.sparseTopK ?? 2048) : null;
   const effectiveDecodeContextLen =
@@ -1875,8 +1977,25 @@ function computeRoofline(params: {
   const linearStateTraffic = hasKda ? decodeBatchSize * kvState.perSeqFixedLinearStateBytes * 2 : 0; // read + write recurrent state S
   const decodeKvTrafficBytesPerStep = Math.round(mainKvTraffic + indexerTraffic + linearStateTraffic);
 
+  const prefillAchievedTflops = Math.min(
+    linearPeakTflops,
+    (prefillIntensityFlopsPerByte * card.hbmBandwidthGBs) / 1000,
+  );
+  const decodeLinearAchievedTflops = Math.min(
+    peakComputeTflops,
+    (decodeLinearIntensityFlopsPerByte * card.hbmBandwidthGBs) / 1000,
+  );
+  const decodeKvAttnAchievedTflops = Math.min(
+    peakComputeTflops,
+    (decodeKvAttnIntensityFlopsPerByte * card.hbmBandwidthGBs) / 1000,
+  );
+  const maxPeakComputeTflops = Math.max(linearPeakTflops, peakComputeTflops);
+  const hasSplitStagePrecision = Math.abs(prefillRidgePointFlopsPerByte - ridgePointFlopsPerByte) > 1e-6;
+
   const notes: string[] = [
-    `硬件脊点 I_ridge = ${peakComputeTflops} T / ${(card.hbmBandwidthGBs / 1000).toFixed(2)} TB/s = ${ridgePointFlopsPerByte.toFixed(1)} FLOP/B（${computePrecisionLabel}）。`,
+    hasSplitStagePrecision
+      ? `分阶段有效脊点：Prefill 注意力/稠密线性层 I_ridge = ${linearPeakTflops} T / ${(card.hbmBandwidthGBs / 1000).toFixed(2)} TB/s = ${prefillRidgePointFlopsPerByte.toFixed(1)} FLOP/B（${linearPrecisionLabel}）；Decode MoE 专家 I_ridge = ${peakComputeTflops} T / ${(card.hbmBandwidthGBs / 1000).toFixed(2)} TB/s = ${ridgePointFlopsPerByte.toFixed(1)} FLOP/B（BF16/FP16 Cube）。`
+      : `硬件脊点 I_ridge = ${peakComputeTflops} T / ${(card.hbmBandwidthGBs / 1000).toFixed(2)} TB/s = ${ridgePointFlopsPerByte.toFixed(1)} FLOP/B（${computePrecisionLabel}）。`,
   ];
   if (hasMla) {
     const kvLora = a.kvLoraRank ?? 512;
@@ -1915,6 +2034,15 @@ function computeRoofline(params: {
     peakComputeTflops,
     hbmBandwidthGBs: card.hbmBandwidthGBs,
     ridgePointFlopsPerByte,
+    prefillPrecisionLabel: linearPrecisionLabel,
+    prefillPeakComputeTflops: linearPeakTflops,
+    prefillRidgePointFlopsPerByte,
+    prefillAchievedTflops,
+    decodePeakComputeTflops: peakComputeTflops,
+    decodeRidgePointFlopsPerByte: ridgePointFlopsPerByte,
+    decodeLinearAchievedTflops,
+    decodeKvAttnAchievedTflops,
+    maxPeakComputeTflops,
     prefillTokens,
     prefillIntensityFlopsPerByte,
     prefillRegime,
@@ -2843,6 +2971,244 @@ function collectQ1Findings(params: {
   return { blockers, silentRewrites, warnings };
 }
 
+export interface DoctorModelTraitOverride {
+  isMoe?: boolean;
+  useMla?: boolean;
+  sfaDcpReplicatedIndexer?: boolean;
+  numExperts?: number;
+  numExpertsPerTok?: number;
+  numAttentionHeads?: number;
+  numKvHeads?: number;
+  headDim?: number;
+}
+
+export function extractDoctorModelTraitsFromSpec(spec: ModelSpec): DoctorModelTraitOverride {
+  const moe = getMoeInfo(spec);
+  const fullAttn =
+    spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ?? spec.layers[0]?.attention;
+  const hasMla = spec.layers.some(
+    (l) => l.attention.kind === "mla" || (l.attention.kind === "dsa" && l.attention.kvLoraRank !== undefined),
+  );
+  return {
+    isMoe: moe.isMoe,
+    useMla: hasMla,
+    ...(moe.isMoe ? { numExperts: moe.numExperts, numExpertsPerTok: moe.topK } : {}),
+    ...(fullAttn
+      ? {
+          numAttentionHeads: fullAttn.numHeads,
+          numKvHeads: fullAttn.numKvHeads,
+          headDim: fullAttn.headDim,
+        }
+      : {}),
+  };
+}
+
+export function resolveDoctorModelTraits(
+  modelId?: string,
+  override?: { [K in keyof DoctorModelTraitOverride]?: DoctorModelTraitOverride[K] | undefined },
+): DoctorModelTraitOverride | undefined {
+  let base: DoctorModelTraitOverride | undefined;
+  const trimmed = modelId?.trim();
+  if (trimmed && trimmed.toLowerCase() !== "auto") {
+    const gate = evaluateWave3ModelGate(trimmed);
+    if (gate.ok && gate.supportedInWave3) {
+      base = extractDoctorModelTraitsFromSpec(gate.spec);
+    }
+  }
+  const merged: Record<string, unknown> = {};
+  if (base) {
+    for (const [k, v] of Object.entries(base)) {
+      if (v !== undefined) merged[k] = v;
+    }
+  }
+  if (override) {
+    for (const [k, v] of Object.entries(override)) {
+      if (v !== undefined) merged[k] = v;
+    }
+  }
+  return Object.keys(merged).length > 0 ? (merged as DoctorModelTraitOverride) : undefined;
+}
+
+function selectRecommendedPrecision(params: {
+  card: AscendCalcCardSpec;
+  isMoe: boolean;
+  weightPrecision: WeightPrecision;
+  minCards: MinCardsRecommendation;
+}): WeightPrecision {
+  const { card, isMoe, weightPrecision, minCards } = params;
+  const isUnsolvable =
+    minCards.unsolvable ||
+    minCards.minCards === null ||
+    minCards.recommendedTp === null ||
+    minCards.recommendedPp === null;
+  return card.family === "310P"
+    ? weightPrecision === "fp16" || weightPrecision === "w8a8sc_310p"
+      ? weightPrecision
+      : "w8a8sc_310p"
+    : card.family === "A5" && weightPrecision === "fp8_block"
+      ? "fp8_block"
+      : isMoe &&
+          (weightPrecision === "bf16" || weightPrecision === "fp8_block") &&
+          (isUnsolvable || minCards.minCards! >= 4)
+        ? "w8a8_dynamic"
+        : weightPrecision === "fp8_block"
+          ? "bf16"
+          : weightPrecision;
+}
+
+function formatUtilCliValue(u: number): string {
+  const fixed2 = Number(u.toFixed(2));
+  return Math.abs(u - fixed2) < 1e-9 ? u.toFixed(2) : String(Number(u.toFixed(4)));
+}
+
+function quoteCliModelArg(name: string): string {
+  return /[\s'"()\\]/.test(name) ? `'${name.replace(/'/g, "'\\''")}'` : name;
+}
+
+function buildServeCliCommand(params: {
+  modelName: string;
+  cardFamily: AscendFamily;
+  tpSize: number;
+  ppSize: number;
+  dpSize: number;
+  pcpSize: number;
+  dcpSize: number;
+  enableEp: boolean;
+  weightPrecision: WeightPrecision;
+  kvCacheDtype: KvCacheDtype;
+  weightNzMode: 0 | 1 | 2;
+  useV2ModelRunner: boolean;
+  userSpecifiedUseV2ModelRunner: boolean;
+  repairForRecommendation?: boolean;
+  requestedBlockSize: number;
+  userSpecifiedBlockSize: boolean;
+  maxModelLen: number;
+  userSpecifiedMaxModelLen: boolean;
+  specMaxPosition: number;
+  maxNumBatchedTokens: number;
+  maxNumSeqs: number;
+  gpuMemoryUtilizationStr: string;
+  enforceEager: boolean;
+  cudagraphMode: CudaGraphMode;
+}): string {
+  const {
+    modelName,
+    cardFamily,
+    tpSize,
+    ppSize,
+    dpSize,
+    pcpSize,
+    dcpSize,
+    enableEp,
+    weightPrecision,
+    kvCacheDtype,
+    weightNzMode,
+    useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner,
+    repairForRecommendation = false,
+    requestedBlockSize,
+    userSpecifiedBlockSize,
+    maxModelLen,
+    userSpecifiedMaxModelLen,
+    specMaxPosition,
+    maxNumBatchedTokens,
+    maxNumSeqs,
+    gpuMemoryUtilizationStr,
+    enforceEager,
+    cudagraphMode,
+  } = params;
+  const defaultGraphMode: CudaGraphMode = cardFamily === "310P" ? "NONE" : "PIECEWISE";
+  const graphFlag =
+    enforceEager || (cudagraphMode === "NONE" && cardFamily !== "310P")
+      ? "--enforce-eager"
+      : cudagraphMode !== defaultGraphMode && cudagraphMode !== "NONE"
+        ? `--compilation-config '{"cudagraph_mode":"${cudagraphMode}"}'`
+        : "";
+  const v2EnvFlag = repairForRecommendation
+    ? pcpSize > 1 || useV2ModelRunner
+      ? "VLLM_USE_V2_MODEL_RUNNER=1"
+      : userSpecifiedUseV2ModelRunner
+        ? "VLLM_USE_V2_MODEL_RUNNER=0"
+        : ""
+    : userSpecifiedUseV2ModelRunner
+      ? useV2ModelRunner
+        ? "VLLM_USE_V2_MODEL_RUNNER=1"
+        : "VLLM_USE_V2_MODEL_RUNNER=0"
+      : "";
+  const dtypeFlag =
+    weightPrecision === "bf16"
+      ? repairForRecommendation && cardFamily === "310P"
+        ? "--dtype float16"
+        : "--dtype bfloat16"
+      : cardFamily === "310P" || weightPrecision === "fp16"
+        ? "--dtype float16"
+        : "";
+  const nzFlag =
+    weightNzMode === 0 || weightNzMode === 2
+      ? `--additional-config '{"weight_nz_mode":${weightNzMode}}'`
+      : "";
+  return [
+    v2EnvFlag,
+    `vllm serve ${quoteCliModelArg(modelName)}`,
+    `-tp ${tpSize}`,
+    ppSize > 1 ? `-pp ${ppSize}` : "",
+    dpSize > 1 ? `-dp ${dpSize}` : "",
+    pcpSize > 1 ? `--prefill-context-parallel-size ${pcpSize}` : "",
+    dcpSize > 1 ? `--decode-context-parallel-size ${dcpSize}` : "",
+    enableEp ? "--enable-expert-parallel" : "",
+    dtypeFlag,
+    weightPrecision === "w8a8_dynamic" ||
+    weightPrecision === "w8a8" ||
+    weightPrecision === "w4a8" ||
+    weightPrecision === "w8a8sc_310p"
+      ? "--quantization ascend"
+      : "",
+    kvCacheDtype !== "auto" ? `--kv-cache-dtype ${kvCacheDtype}` : "",
+    nzFlag,
+    userSpecifiedBlockSize ? `--block-size ${requestedBlockSize}` : "",
+    userSpecifiedMaxModelLen || maxModelLen !== specMaxPosition ? `--max-model-len ${maxModelLen}` : "",
+    maxNumBatchedTokens !== DEFAULT_MAX_NUM_BATCHED_TOKENS
+      ? `--max-num-batched-tokens ${maxNumBatchedTokens}`
+      : "",
+    maxNumSeqs !== DEFAULT_MAX_NUM_SEQS ? `--max-num-seqs ${maxNumSeqs}` : "",
+    graphFlag,
+    `--gpu-memory-utilization ${gpuMemoryUtilizationStr}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Build a complete `vllm serve` CLI replaying the exact currently evaluated plan verbatim (never silently repairing user mistakes). */
+export function buildCurrentPlanCliHint(plan: DeployPlanReport): string {
+  const s = plan.inputSummary;
+  return buildServeCliCommand({
+    modelName: plan.spec.name,
+    cardFamily: plan.card.family,
+    tpSize: s.tpSize,
+    ppSize: s.ppSize,
+    dpSize: s.dpSize,
+    pcpSize: s.pcpSize,
+    dcpSize: s.dcpSize,
+    enableEp: s.requestedEnableEp ?? s.enableEp,
+    weightPrecision: s.weightPrecision,
+    kvCacheDtype: s.kvCacheDtype,
+    weightNzMode: s.weightNzMode,
+    useV2ModelRunner: Boolean(s.useV2ModelRunner),
+    userSpecifiedUseV2ModelRunner: Boolean(s.userSpecifiedUseV2ModelRunner),
+    repairForRecommendation: false,
+    requestedBlockSize: s.requestedBlockSize,
+    userSpecifiedBlockSize: Boolean(s.userSpecifiedBlockSize),
+    maxModelLen: s.maxModelLen,
+    userSpecifiedMaxModelLen: true,
+    specMaxPosition: plan.spec.maxPosition,
+    maxNumBatchedTokens: s.maxNumBatchedTokens,
+    maxNumSeqs: s.maxNumSeqs,
+    gpuMemoryUtilizationStr: formatUtilCliValue(s.gpuMemoryUtilization),
+    enforceEager: s.enforceEager,
+    cudagraphMode: s.cudagraphMode,
+  });
+}
+
 function buildRecommendation(params: {
   spec: ModelSpec;
   card: AscendCalcCardSpec;
@@ -2852,8 +3218,18 @@ function buildRecommendation(params: {
   hasKda: boolean;
   hasEngram: boolean;
   minCards: MinCardsRecommendation;
+  recPrec: WeightPrecision;
   weightPrecision: WeightPrecision;
   kvCacheDtype: KvCacheDtype;
+  weightNzMode: 0 | 1 | 2;
+  useV2ModelRunner: boolean;
+  userSpecifiedUseV2ModelRunner: boolean;
+  requestedBlockSize: number;
+  userSpecifiedBlockSize: boolean;
+  maxModelLen: number;
+  userSpecifiedMaxModelLen: boolean;
+  maxNumBatchedTokens: number;
+  maxNumSeqs: number;
   tpSize: number;
   ppSize: number;
   dpSize: number;
@@ -2874,8 +3250,18 @@ function buildRecommendation(params: {
     hasKda,
     hasEngram,
     minCards,
+    recPrec,
     weightPrecision,
     kvCacheDtype,
+    weightNzMode,
+    useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner,
+    requestedBlockSize,
+    userSpecifiedBlockSize,
+    maxModelLen,
+    userSpecifiedMaxModelLen,
+    maxNumBatchedTokens,
+    maxNumSeqs,
     tpSize,
     ppSize,
     dpSize,
@@ -2884,32 +3270,16 @@ function buildRecommendation(params: {
     worldSize,
     gpuMemoryUtilization,
     canUseRecommendedUtil,
+    enforceEager,
+    cudagraphMode,
   } = params;
   const isUnsolvable =
     minCards.unsolvable ||
     minCards.minCards === null ||
     minCards.recommendedTp === null ||
     minCards.recommendedPp === null;
-  const recPrec: WeightPrecision =
-    card.family === "310P"
-      ? weightPrecision === "fp16" || weightPrecision === "w8a8sc_310p"
-        ? weightPrecision
-        : "w8a8sc_310p"
-      : card.family === "A5" && weightPrecision === "fp8_block"
-        ? "fp8_block"
-        : isMoe &&
-            (weightPrecision === "bf16" || weightPrecision === "fp8_block") &&
-            (isUnsolvable || minCards.minCards! >= 4)
-          ? "w8a8_dynamic"
-          : weightPrecision === "fp8_block"
-            ? "bf16"
-            : weightPrecision;
 
   const defaultRecUtil = card.family === "310P" ? 0.85 : isMoe ? 0.9 : 0.92;
-  const formatUtilValue = (u: number): string => {
-    const fixed2 = Number(u.toFixed(2));
-    return Math.abs(u - fixed2) < 1e-9 ? u.toFixed(2) : String(Number(u.toFixed(4)));
-  };
   let recUtil = defaultRecUtil;
   if (!isUnsolvable && !canUseRecommendedUtil(defaultRecUtil, recPrec)) {
     const candidates = [
@@ -2921,29 +3291,42 @@ function buildRecommendation(params: {
     recUtil =
       candidates.find((c) => canUseRecommendedUtil(c, recPrec)) ?? Number(gpuMemoryUtilization.toFixed(4));
   }
-  const recUtilStr = formatUtilValue(recUtil);
+  const recUtilStr = formatUtilCliValue(recUtil);
   const recTp = minCards.recommendedTp;
   const recPp = minCards.recommendedPp;
   const recDp = minCards.recommendedDp;
   const recPcp = minCards.recommendedPcp;
   const recDcp = minCards.recommendedDcp;
-  const flags = isUnsolvable
-    ? []
-    : [
-        recPcp !== null && recPcp > 1 ? "VLLM_USE_V2_MODEL_RUNNER=1" : "",
-        `vllm serve ${spec.name}`,
-        `-tp ${recTp}`,
-        recPp! > 1 ? `-pp ${recPp}` : "",
-        recDp !== null && recDp > 1 ? `-dp ${recDp}` : "",
-        recPcp !== null && recPcp > 1 ? `--prefill-context-parallel-size ${recPcp}` : "",
-        recDcp !== null && recDcp > 1 ? `--decode-context-parallel-size ${recDcp}` : "",
-        minCards.recommendedEnableEp ? "--enable-expert-parallel" : "",
-        card.family === "310P" ? "--dtype float16" : "",
-        recPrec === "w8a8_dynamic" || recPrec === "w8a8" || recPrec === "w4a8" || recPrec === "w8a8sc_310p"
-          ? "--quantization ascend"
-          : "",
-        `--gpu-memory-utilization ${recUtilStr}`,
-      ].filter(Boolean);
+  const cliHint = isUnsolvable
+    ? ""
+    : buildServeCliCommand({
+        modelName: spec.name,
+        cardFamily: card.family,
+        tpSize: recTp!,
+        ppSize: recPp!,
+        dpSize: recDp ?? 1,
+        pcpSize: recPcp ?? 1,
+        dcpSize: recDcp ?? 1,
+        enableEp: minCards.recommendedEnableEp,
+        weightPrecision: recPrec,
+        kvCacheDtype,
+        weightNzMode,
+        useV2ModelRunner,
+        userSpecifiedUseV2ModelRunner,
+        repairForRecommendation: true,
+        requestedBlockSize:
+          kvCacheDtype === "mxfp8" && requestedBlockSize % 512 !== 0 ? 512 : requestedBlockSize,
+        userSpecifiedBlockSize:
+          kvCacheDtype === "mxfp8" && requestedBlockSize % 512 !== 0 ? false : userSpecifiedBlockSize,
+        maxModelLen,
+        userSpecifiedMaxModelLen,
+        specMaxPosition: spec.maxPosition,
+        maxNumBatchedTokens,
+        maxNumSeqs,
+        gpuMemoryUtilizationStr: recUtilStr,
+        enforceEager,
+        cudagraphMode,
+      });
 
   const physCards = isUnsolvable ? null : Math.ceil(minCards.minCards! / card.diesPerPhysicalCard);
   const rationale = isUnsolvable
@@ -2966,7 +3349,7 @@ function buildRecommendation(params: {
     recommendedEnableEp: minCards.recommendedEnableEp,
     recommendedPrecision: recPrec,
     recommendedGpuMemoryUtilization: recUtil,
-    cliHint: flags.join(" "),
+    cliHint,
     rationale,
     relatedWikiIds: buildRelatedWikiIds({
       card,
@@ -3006,7 +3389,8 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const weightPrecision: WeightPrecision = input.weightPrecision ?? "bf16";
   const kvCacheDtype: KvCacheDtype = input.kvCacheDtype ?? "auto";
   const requestedBlockSize = Math.max(16, Math.round(input.blockSize ?? DEFAULT_BLOCK_SIZE));
-  const userSpecifiedBlockSize = input.userSpecifiedBlockSize ?? false;
+  const userSpecifiedBlockSize =
+    input.userSpecifiedBlockSize ?? (input.blockSize !== undefined && input.blockSize !== DEFAULT_BLOCK_SIZE);
   const effectiveBlockSize =
     kvCacheDtype === "mxfp8" && requestedBlockSize % 512 !== 0 && !userSpecifiedBlockSize
       ? 512
@@ -3065,7 +3449,9 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     : false;
   // AscendConfig.derive_and_validate: under explicit MRV2, cpu_offload=true & (DP>1 || PCP>1) derives dp_shared_memory=True
   // Note: platform.py#L1650-L1657 does NOT implicitly enable MRV2 for PCP>1; PCP>1 without useV2ModelRunner triggers d4-pcp-requires-mrv2.
-  const useV2ModelRunner = Boolean(input.useV2ModelRunner);
+  const rawUseV2ModelRunner = input.useV2ModelRunner ?? input.enableModelRunnerV2;
+  const userSpecifiedUseV2ModelRunner = rawUseV2ModelRunner !== undefined;
+  const useV2ModelRunner = Boolean(rawUseV2ModelRunner);
   const engramDpSharedMemoryDerived = Boolean(
     spec.engram?.enabled &&
       engramCpuOffload &&
@@ -3545,11 +3931,13 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
         ? "warn"
         : "pass";
 
+  const baseSearchPrecision: WeightPrecision =
+    card.family === "310P" && weightPrecision === "bf16" ? "fp16" : weightPrecision;
   const minCards = recommendMinCards({
     spec,
     card,
     version,
-    weightPrecision: card.family === "310P" && weightPrecision === "bf16" ? "fp16" : weightPrecision,
+    weightPrecision: baseSearchPrecision,
     kvCacheDtype,
     requestedBlockSize,
     userSpecifiedBlockSize,
@@ -3585,15 +3973,107 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       : {}),
   });
 
+  const recPrec = selectRecommendedPrecision({
+    card,
+    isMoe: moe.isMoe,
+    weightPrecision,
+    minCards,
+  });
+
+  const defaultRecUtil = card.family === "310P" ? 0.85 : moe.isMoe ? 0.9 : 0.92;
+  const headroomForUtil = (u: number): HeadroomStatus => {
+    const req = Math.floor(totalHbmBytes * u);
+    const hr = totalHbmBytes - req;
+    return stage7Low > hr ? "overflow" : stage7High > hr ? "risk" : "safe";
+  };
+  const runCandidateSearch = (prec: WeightPrecision, util: number): MinCardsRecommendation =>
+    recommendMinCards({
+      spec,
+      card,
+      version,
+      weightPrecision: prec,
+      kvCacheDtype,
+      requestedBlockSize,
+      userSpecifiedBlockSize,
+      weightNzMode,
+      kvElemBytes,
+      effectiveBlockSize,
+      gpuMemoryUtilization: util,
+      maxModelLen,
+      maxNumBatchedTokens,
+      maxNumSeqs,
+      numSpecTokens,
+      engramCpuOffload,
+      useV2ModelRunner,
+      cudagraphMode,
+      enforceEager,
+      headroomStatus: headroomForUtil(util),
+      hasMla,
+      hasCsa2,
+      hasKda,
+      isMoe: moe.isMoe,
+      ...(prec === weightPrecision &&
+      Math.abs(util - gpuMemoryUtilization) < 1e-9 &&
+      oomStatus === "fits" &&
+      q1.blockers.length === 0
+        ? {
+            currentFeasibleTopology: {
+              tpSize,
+              ppSize,
+              dpSize,
+              pcpSize,
+              dcpSize,
+              enableEp,
+              worldSize,
+            },
+          }
+        : {}),
+    });
+
+  let q4MinCards: MinCardsRecommendation;
+  if (recPrec !== baseSearchPrecision || Math.abs(gpuMemoryUtilization - defaultRecUtil) > 1e-9) {
+    const candDefault =
+      headroomForUtil(defaultRecUtil) !== "overflow"
+        ? recPrec === baseSearchPrecision && Math.abs(gpuMemoryUtilization - defaultRecUtil) < 1e-9
+          ? minCards
+          : runCandidateSearch(recPrec, defaultRecUtil)
+        : null;
+    const candInput =
+      headroomStatus !== "overflow"
+        ? recPrec === baseSearchPrecision
+          ? minCards
+          : Math.abs(gpuMemoryUtilization - defaultRecUtil) > 1e-9
+            ? runCandidateSearch(recPrec, gpuMemoryUtilization)
+            : null
+        : null;
+    if (
+      candDefault &&
+      !candDefault.unsolvable &&
+      candDefault.minCards !== null &&
+      (!candInput ||
+        candInput.unsolvable ||
+        candInput.minCards === null ||
+        candDefault.minCards <= candInput.minCards)
+    ) {
+      q4MinCards = candDefault;
+    } else if (candInput && !candInput.unsolvable) {
+      q4MinCards = candInput;
+    } else {
+      q4MinCards = candDefault ?? candInput ?? minCards;
+    }
+  } else {
+    q4MinCards = minCards;
+  }
+
   const canUseRecommendedUtil = (candUtil: number, candPrec: WeightPrecision): boolean => {
-    if (minCards.unsolvable || minCards.recommendedTp === null || minCards.recommendedPp === null)
+    if (q4MinCards.unsolvable || q4MinCards.recommendedTp === null || q4MinCards.recommendedPp === null)
       return false;
-    const recTp = minCards.recommendedTp;
-    const recPp = minCards.recommendedPp;
-    const recDp = minCards.recommendedDp ?? 1;
-    const recPcp = minCards.recommendedPcp ?? 1;
-    const recDcp = minCards.recommendedDcp ?? 1;
-    const recEnableEp = minCards.recommendedEnableEp;
+    const recTp = q4MinCards.recommendedTp;
+    const recPp = q4MinCards.recommendedPp;
+    const recDp = q4MinCards.recommendedDp ?? 1;
+    const recPcp = q4MinCards.recommendedPcp ?? 1;
+    const recDcp = q4MinCards.recommendedDcp ?? 1;
+    const recEnableEp = q4MinCards.recommendedEnableEp;
     const recEpWorld = recEnableEp ? recDp * recTp * recPcp : 1;
     const recWorld = recTp * recPp * recDp * recPcp;
     const candRequested = Math.floor(totalHbmBytes * candUtil);
@@ -3738,9 +4218,19 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     hasCsa2,
     hasKda,
     hasEngram,
-    minCards,
+    minCards: q4MinCards,
+    recPrec,
     weightPrecision,
     kvCacheDtype,
+    weightNzMode,
+    useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner: input.useV2ModelRunner !== undefined,
+    requestedBlockSize,
+    userSpecifiedBlockSize,
+    maxModelLen,
+    userSpecifiedMaxModelLen: input.maxModelLen !== undefined,
+    maxNumBatchedTokens,
+    maxNumSeqs,
     tpSize,
     ppSize,
     dpSize,
@@ -3886,13 +4376,33 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       maxConcurrencyPoint: maxConcPoint,
       summary: q2Summary,
     },
-    q3Roofline: {
-      primaryBottleneck,
-      roofline,
-      summary:
-        `硬件脊点 ${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B；Prefill(${prefillTokens}) 强度 ${roofline.prefillIntensityFlopsPerByte.toFixed(1)} FLOP/B（${roofline.prefillRegime}），` +
-        `Decode(B=${decodeBatchSize}, M_eff=${roofline.decodeLinearMEff.toFixed(2)}) 线性层 ${roofline.decodeLinearIntensityFlopsPerByte.toFixed(1)} FLOP/B、${roofline.attentionModeLabel} ${roofline.decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B。`,
-    },
+    q3Roofline: (() => {
+      const hasSplitStageRidge =
+        Math.abs(roofline.prefillRidgePointFlopsPerByte - roofline.ridgePointFlopsPerByte) > 1e-6;
+      const usePrefillCeiling =
+        hasSplitStageRidge &&
+        primaryBottleneck !== "kv-bandwidth-bound" &&
+        roofline.prefillAchievedTflops > roofline.decodeLinearAchievedTflops;
+      const effectivePeakComputeTflops = usePrefillCeiling
+        ? roofline.prefillPeakComputeTflops
+        : roofline.decodePeakComputeTflops;
+      const effectiveRidgePointFlopsPerByte = usePrefillCeiling
+        ? roofline.prefillRidgePointFlopsPerByte
+        : roofline.decodeRidgePointFlopsPerByte;
+      const ridgePrefix = hasSplitStageRidge
+        ? `Prefill 硬件脊点 ${roofline.prefillRidgePointFlopsPerByte.toFixed(1)} FLOP/B（峰值 ${roofline.prefillPeakComputeTflops.toFixed(0)} TFLOPS），Decode 硬件脊点 ${roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B（峰值 ${roofline.decodePeakComputeTflops.toFixed(0)} TFLOPS）；`
+        : `硬件脊点 ${effectiveRidgePointFlopsPerByte.toFixed(1)} FLOP/B；`;
+      return {
+        primaryBottleneck,
+        effectivePeakComputeTflops,
+        effectiveRidgePointFlopsPerByte,
+        roofline,
+        summary:
+          ridgePrefix +
+          `Prefill(${prefillTokens}) 强度 ${roofline.prefillIntensityFlopsPerByte.toFixed(1)} FLOP/B（实得 ${roofline.prefillAchievedTflops.toFixed(1)} TFLOPS，${roofline.prefillRegime}），` +
+          `Decode(B=${decodeBatchSize}, M_eff=${roofline.decodeLinearMEff.toFixed(2)}) 线性层 ${roofline.decodeLinearIntensityFlopsPerByte.toFixed(1)} FLOP/B、${roofline.attentionModeLabel} ${roofline.decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B。`,
+      };
+    })(),
     q4Recommendation: q4,
   };
 
@@ -3908,6 +4418,8 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       kvCacheDtype,
       requestedBlockSize,
       effectiveBlockSize,
+      userSpecifiedBlockSize,
+      requestedEnableEp: Boolean(input.enableEp),
       weightNzMode,
       tpSize,
       ppSize,
@@ -3926,6 +4438,8 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       cudagraphMode,
       cudagraphCaptureCount: acl.effectiveCount,
       enforceEager,
+      useV2ModelRunner,
+      userSpecifiedUseV2ModelRunner,
     },
     totalHbmBytes,
     requestedBytes,

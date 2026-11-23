@@ -198,24 +198,45 @@ export const domain4Rules: readonly CouplingRule[] = [
         errors.push(`pcp=${pcp} > 1 时 dcp (${dcp}) 必须属于 {1, ${pcp}, ${tp * pcp}}`);
       }
 
-      const isGqaMqa = !input.useMla;
-      if (isGqaMqa && dcp > 1) {
-        if (pcp > 1 && pcp !== dcp) {
-          errors.push(`GQA/MQA 开启 PCP+DCP 时要求 pcp (${pcp}) == dcp (${dcp})`);
+      if ((tp > 1 || pcp > 1 || dcp > 1) && input.numAttentionHeads !== undefined) {
+        if (input.numAttentionHeads <= 0) {
+          errors.push(`要求 num_attention_heads > 0（当前 ${input.numAttentionHeads}）`);
+        } else if (input.numAttentionHeads % tp !== 0) {
+          errors.push(`要求 num_attention_heads (${input.numAttentionHeads}) 能被 tp (${tp}) 整除`);
         }
-        if (input.numKvHeads !== undefined) {
-          if (input.numKvHeads <= 0) {
-            errors.push(`GQA/MQA 要求 total_num_kv_heads > 0（当前 ${input.numKvHeads}）`);
-          } else {
-            const kvReplication = Math.floor(tp / input.numKvHeads);
+      }
+
+      const isGqaMqa = !input.useMla;
+      if (isGqaMqa && (tp > 1 || pcp > 1 || dcp > 1) && input.numKvHeads !== undefined) {
+        if (input.numKvHeads <= 0) {
+          errors.push(`GQA/MQA 要求 total_num_kv_heads > 0（当前 ${input.numKvHeads}）`);
+        } else {
+          const kvHeadDivisible =
+            input.numKvHeads >= tp ? input.numKvHeads % tp === 0 : tp % input.numKvHeads === 0;
+          if (!kvHeadDivisible) {
+            errors.push(
+              input.numKvHeads >= tp
+                ? `GQA/MQA 要求 total_num_kv_heads (${input.numKvHeads}) 能被 tp (${tp}) 整除`
+                : `GQA/MQA 要求 tp (${tp}) 能被 total_num_kv_heads (${input.numKvHeads}) 整除`,
+            );
+          } else if (dcp > 1) {
             if (tp <= input.numKvHeads) {
               errors.push(`GQA/MQA 开启 dcp>1 时要求 tp (${tp}) > total_num_kv_heads (${input.numKvHeads})`);
-            } else if (dcp > kvReplication) {
-              errors.push(`GQA/MQA 要求 dcp (${dcp}) <= tp // total_num_kv_heads (${kvReplication})`);
-            } else if (kvReplication % dcp !== 0) {
-              errors.push(`GQA/MQA 要求 (tp // total_num_kv_heads = ${kvReplication}) % dcp (${dcp}) == 0`);
+            } else {
+              const kvReplication = Math.floor(tp / input.numKvHeads);
+              if (dcp > kvReplication) {
+                errors.push(`GQA/MQA 要求 dcp (${dcp}) <= tp // total_num_kv_heads (${kvReplication})`);
+              } else if (kvReplication % dcp !== 0) {
+                errors.push(`GQA/MQA 要求 (tp // total_num_kv_heads = ${kvReplication}) % dcp (${dcp}) == 0`);
+              }
             }
-            if (input.numAttentionHeads !== undefined) {
+          }
+          if (input.numAttentionHeads !== undefined && input.numAttentionHeads > 0) {
+            if (input.numAttentionHeads % input.numKvHeads !== 0) {
+              errors.push(
+                `GQA/MQA 要求 num_heads (${input.numAttentionHeads}) 能被 num_kv_heads (${input.numKvHeads}) 整除`,
+              );
+            } else if (dcp > 1) {
               const groupSize = Math.floor(input.numAttentionHeads / input.numKvHeads);
               if (groupSize % dcp !== 0) {
                 errors.push(`GQA/MQA 要求 (num_heads / num_kv_heads = ${groupSize}) % dcp (${dcp}) == 0`);
@@ -223,6 +244,9 @@ export const domain4Rules: readonly CouplingRule[] = [
             }
           }
         }
+      }
+      if (isGqaMqa && dcp > 1 && pcp > 1 && pcp !== dcp) {
+        errors.push(`GQA/MQA 开启 PCP+DCP 时要求 pcp (${pcp}) == dcp (${dcp})`);
       }
 
       if (input.sfaDcpReplicatedIndexer) {

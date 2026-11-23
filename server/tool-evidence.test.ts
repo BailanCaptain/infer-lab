@@ -328,4 +328,94 @@ describe("server/tool-evidence", () => {
     expect(formatted).toContain(ev.outputSha256);
     expect(formatted).toContain(ev.inputSha256);
   });
+
+  it("C.2: preserves tail firstFaultRank & findings on >64KB client-truncated logs and honors doctor modelId / modelTraitOverride", async () => {
+    const { buildDoctorChatAnalysis, buildTroubleshootChatAnalysis } = await import(
+      "../src/app/tools/workbenchHandoff"
+    );
+    const { analyzeTroubleshootInput } = await import("../src/sim/troubleshoot/logAnalyzer");
+
+    const longLog = [
+      "2026-11-20 10:00:01.000 [Rank 0] INFO Available KV cache memory: 20.00 GiB",
+      "2026-11-20 10:00:02.000 [Rank 0] INFO capture_model starting",
+      ...Array.from(
+        { length: 920 },
+        (_, i) =>
+          `2026-11-20 10:01:${String(i % 60).padStart(2, "0")}.000 [Rank ${i % 8}] INFO normal step=${i} ${"z".repeat(44)}`,
+      ),
+      "2026-11-20 10:08:10.100 [Rank 6] RuntimeError: NPU out of memory in capture_model (ACL_ERROR_RT_MEMORY_ALLOCATION)",
+      "2026-11-20 10:08:19.500 [Rank 0] HCCL Error: EI0006 Notify wait execute timeout",
+    ].join("\n");
+    expect(longLog.length).toBeGreaterThan(68_000);
+
+    const clientReport = analyzeTroubleshootInput(longLog);
+    expect(clientReport.firstFaultVerdict.rank).toBe(6);
+
+    const trAnalysis = buildTroubleshootChatAnalysis(longLog);
+    expect(trAnalysis).toBeDefined();
+    const trEv = runDeterministicToolEvidence(trAnalysis!);
+    expect(trEv.keyMetrics.firstFaultRank).toBe(6);
+    expect(trEv.keyMetrics.firstFaultLineNumber).toBe(923);
+    expect(trEv.summary).toContain("第 923 行");
+    expect(trEv.keyMetrics.findingCount).toBe(clientReport.findings.length);
+    expect(String(trEv.keyMetrics.topRuleIds)).toContain("oom-stage-split");
+    expect(verifyToolEvidence(trEv).ok).toBe(true);
+
+    // P2-6(b): Mid-log OOM at original L252 (with large tail so it is separated by omission markers)
+    // retains original L252 in server-side ToolEvidence instead of renumbering to excerpt line ~L71
+    const midOomLog = [
+      "(EngineCore pid=35805) INFO 11-22 20:58:45 [worker.py:660] Available KV cache memory: 53.47 GiB",
+      ...Array.from(
+        { length: 249 },
+        (_, i) => `(EngineCore pid=35805) INFO 11-22 20:59:10 [step.py:${i}] steady log ${"a".repeat(220)}`,
+      ),
+      '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/vllm_ascend/worker/model_runner_v1.py", line 6613, in capture_model',
+      "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366] torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.98 GiB (NPU 0; 60.96 GiB total capacity)",
+      ...Array.from(
+        { length: 200 },
+        (_, i) =>
+          `(APIServer pid=35800) INFO 11-22 20:59:59 [drain.py:${i}] draining socket ${"b".repeat(220)}`,
+      ),
+    ].join("\n");
+    expect(midOomLog.length).toBeGreaterThan(100_000);
+    const fullMidReport = analyzeTroubleshootInput(midOomLog);
+    expect(fullMidReport.firstFaultVerdict.primaryEvidenceLines[0]?.lineNumber).toBe(252);
+    const midPayload = buildTroubleshootChatAnalysis(midOomLog);
+    expect(midPayload).toBeDefined();
+    const midEv = runDeterministicToolEvidence(midPayload!);
+    expect(midEv.keyMetrics.firstFaultRank).toBe(0);
+    expect(midEv.keyMetrics.firstFaultLineNumber).toBe(252);
+    expect(midEv.summary).toContain("第 252 行");
+    expect(verifyToolEvidence(midEv).ok).toBe(true);
+
+    // Doctor with custom path + modelId / modelTraitOverride catches Qwen3-30B-A3B TP=10, DCP=2 blocker identically on server
+    const docAnalysis = buildDoctorChatAnalysis({
+      command: "vllm serve /mnt/weights/anonymous-ckpt -tp 10 --decode-context-parallel-size 2",
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelId: "qwen3-30b-a3b",
+    });
+    expect(docAnalysis).toBeDefined();
+    const docEv = runDeterministicToolEvidence(docAnalysis!);
+    expect(docEv.keyMetrics.hasBlockers).toBe(true);
+    expect(String(docEv.keyMetrics.topRuleIds)).toContain("d4-pcp-dcp-sizing");
+    expect(verifyToolEvidence(docEv).ok).toBe(true);
+
+    // P2-6: Leading `\n\n` preserves exact 1-based `firstFaultLineNumber === 255` on both client handoff and server evidence
+    const leadLog = `\n\n${Array.from(
+      { length: 252 },
+      (_, i) => `(APIServer pid=10) INFO 11-22 20:00:00 [a.py:${i}] ${"k".repeat(260)}`,
+    ).join(
+      "\n",
+    )}\n(Worker_TP0 pid=20) ERROR 11-22 20:01:00 [core.py:1] torch.OutOfMemoryError: NPU out of memory (NPU 0)\n${Array.from(
+      { length: 60 },
+      (_, i) => `(APIServer pid=10) INFO 11-22 20:02:00 [b.py:${i}] ${"m".repeat(120)}`,
+    ).join("\n")}`;
+    const leadPayload = buildTroubleshootChatAnalysis(leadLog);
+    expect(leadPayload).toBeDefined();
+    const leadEv = runDeterministicToolEvidence(leadPayload!);
+    expect(leadEv.keyMetrics.firstFaultLineNumber).toBe(255);
+    expect(verifyToolEvidence(leadEv).ok).toBe(true);
+  });
 });

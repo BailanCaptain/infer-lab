@@ -14,7 +14,7 @@ export const codexUsageSchema = z.object({
   output_tokens: z.number().int().nonnegative(),
 });
 export type CodexUsage = z.infer<typeof codexUsageSchema>;
-export const CODEX_EVIDENCE_LIMIT = 240_000;
+export const CODEX_EVIDENCE_LIMIT = 260_000;
 export const CODEX_REASONING_EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type CodexReasoningEffort = (typeof CODEX_REASONING_EFFORTS)[number];
 
@@ -23,7 +23,7 @@ export function codexEvidencePages(candidates: NonNullable<ChatContext["pages"]>
   const pages: typeof candidates = [];
   let size = 0;
   for (const page of candidates) {
-    // The four directly named TP / collectives / SP / MLP pages (~226 KB UTF-8) must fit together.
+    // The four directly named TP / collectives / SP / MLP pages (~241 KB UTF-8 after 910B3 measured evidence) must fit together.
     // Retain whole pages (also used by immutable answer receipts), with a bounded UTF-8 byte window.
     const bytes = Buffer.byteLength(page.text, "utf8");
     if (size + bytes > CODEX_EVIDENCE_LIMIT) continue;

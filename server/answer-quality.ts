@@ -9,6 +9,7 @@ import { citedPageLinks, matchesCitedPage, retrieve, terms } from "../src/conten
 import type { ChatTurn } from "./chat-session";
 import { CODEX_EVIDENCE_LIMIT } from "./codex-chat";
 import type { KnowledgeSnapshot } from "./snapshot";
+import { type ToolEvidenceV1, verifyToolEvidence } from "./tool-evidence";
 
 // Transport may turn Windows line endings into LF; wording and spacing stay exact.
 const containsQuote = (text: string | undefined, quote: string) =>
@@ -168,6 +169,10 @@ export function reviewEvidencePages(
   return pages;
 }
 
+const TOOL_EVIDENCE_RULES = `当输入包含 toolEvidence 时，它是服务端纯函数确定性工具（ToolEvidenceV1：summary 与 keyMetrics）向作答轮次注入的权威核算结果。
+回答中源自 toolEvidence（summary 或 keyMetrics）的显存、KV 池容量、Roofline 强度、阻塞/改写计数与首发故障判定均属有据可查，不得因正文中仅有通用公式而误判为无根据的 answer-error；反之，若回答篡改或违背 toolEvidence 数值，或将静态模型估算夸大为目标硬件实测，须判 answer-error。
+evidence 数组仍只能从 pages[].passages[].text 逐字摘录对应的知识库原理/规则正文（pageId 必须是 pages 中的页面 id，不得填 toolEvidence）。`;
+
 /** A fresh tool-free call using the answering turn's model and immutable knowledge revision. */
 export async function judgeAnswer(
   root: string,
@@ -176,6 +181,8 @@ export async function judgeAnswer(
     contextQuestions: string[];
     contextTurns?: ChatTurn[];
     answer: string;
+    /** Verified deterministic tool evidence injected into the answering turn, if any. */
+    toolEvidence?: readonly ToolEvidenceV1[] | undefined;
     /** A new user turn may retry a failed check; never silently retry the same turn. */
     observationId?: string;
     snapshot: KnowledgeSnapshot;
@@ -191,6 +198,22 @@ export async function judgeAnswer(
   deps: { runAgent?: RunAgent } = {},
 ): Promise<Extract<AnswerQuality, { status: "checked" }>> {
   const { snapshot } = input;
+  const reviewToolEvidence =
+    input.toolEvidence && input.toolEvidence.length > 0
+      ? input.toolEvidence.map((item) => {
+          const checked = verifyToolEvidence(item);
+          if (!checked.ok) throw new Error(`审阅工具证据校验失败（${checked.reason}）`);
+          const ev = checked.evidence;
+          return {
+            kind: ev.kind,
+            toolVersion: ev.toolVersion,
+            inputSha256: ev.inputSha256,
+            summary: ev.summary,
+            keyMetrics: ev.keyMetrics,
+            outputSha256: ev.outputSha256,
+          };
+        })
+      : undefined;
   const hits = retrieve([input.question, ...input.contextQuestions].join("\n"), snapshot.index, {
     limit: 10,
     expand: true,
@@ -198,7 +221,9 @@ export async function judgeAnswer(
   });
   const providedPages = input.retrievedPages ?? input.evidencePages;
   const originalFiles = new Set(providedPages.map((p) => p.file));
-  const rules = `${snapshot.handbook.reading}\n\n${RULES}`;
+  const rules = reviewToolEvidence
+    ? `${snapshot.handbook.reading}\n\n${RULES}\n\n${TOOL_EVIDENCE_RULES}`
+    : `${snapshot.handbook.reading}\n\n${RULES}`;
   const evidenceBudget =
     inputByteLimit(root, rules) -
     jsonBytes({
@@ -206,6 +231,7 @@ export async function judgeAnswer(
       contextQuestions: input.contextQuestions,
       contextTurns: input.contextTurns,
       answer: input.answer,
+      ...(reviewToolEvidence ? { toolEvidence: reviewToolEvidence } : {}),
     }) -
     8192;
   if (evidenceBudget < 4096) throw new Error("问题和回答占满审阅窗口，需要分轮核对");
@@ -261,6 +287,7 @@ export async function judgeAnswer(
         contextQuestions: input.contextQuestions,
         contextTurns: input.contextTurns,
         answer: input.answer,
+        ...(reviewToolEvidence ? { toolEvidence: reviewToolEvidence } : {}),
         observationId: input.observationId,
         pages,
         scope: {

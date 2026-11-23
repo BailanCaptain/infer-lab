@@ -10,6 +10,7 @@ import { analyzeParams, fmtBytes, fmtCount } from "../../sim/modelspec/analyze";
 import {
   ASCEND_CALC_CARDS,
   type AscendCalcCardId,
+  buildCurrentPlanCliHint,
   type CalcEvidenceLevel,
   DEFAULT_GPU_MEMORY_UTILIZATION,
   DEFAULT_MAX_NUM_BATCHED_TOKENS,
@@ -18,6 +19,7 @@ import {
   type DeployPlanReport,
   evaluateDeployPlan,
   evaluateWave3ModelGate,
+  extractDoctorModelTraitsFromSpec,
   GIB,
   type KvCacheDtype,
   MIB,
@@ -43,12 +45,179 @@ import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
   buildCalculatorQueryParams,
   buildDeployChatAnalysis,
+  type CalculatorQueryOverrides,
   cardIdToHardwareFamily,
   type DeployChatAnalysisPayload,
   parseCalculatorQueryParams,
   sanitizeDiagnosticText,
   workbenchHandoffStore,
 } from "./workbenchHandoff";
+
+const MAX_SHARE_CUSTOM_MODEL_CHARS = 4096;
+const DEFAULT_MAX_MODEL_LEN = 32768;
+const DEFAULT_PREFILL_TOKENS = 512;
+const DEFAULT_DECODE_BATCH_SIZE = 16;
+const DEFAULT_DECODE_CONTEXT_LEN = 4096;
+
+const CALCULATOR_SHARE_QUERY_KEYS = [
+  "panel",
+  "preset",
+  "customModel",
+  "card",
+  "precision",
+  "kv",
+  "nz",
+  "tp",
+  "pp",
+  "dp",
+  "pcp",
+  "dcp",
+  "ep",
+  "u",
+  "maxLen",
+  "batchTokens",
+  "maxSeqs",
+  "cudagraph",
+  "eager",
+  "v2",
+  "prefill",
+  "decodeBatch",
+  "decodeCtx",
+  "version",
+] as const;
+
+function normalizeCalcInt(value: number, min: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  const rounded = Math.round(value);
+  return rounded >= min ? rounded : Math.max(min, fallback);
+}
+
+function hasNonFiniteNumber(value: unknown): boolean {
+  if (typeof value === "number") return !Number.isFinite(value);
+  if (Array.isArray(value)) return value.some(hasNonFiniteNumber);
+  if (value && typeof value === "object") {
+    return Object.values(value).some(hasNonFiniteNumber);
+  }
+  return false;
+}
+
+export function evaluateCalculatorModelGate(
+  modelInput: string,
+  useCustomJson: boolean,
+): Wave3ModelGateResult {
+  if (useCustomJson) {
+    const trimmed = modelInput.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+        if (hasNonFiniteNumber(parsed)) {
+          return {
+            ok: false,
+            error: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再估算显存与并行方案。",
+          };
+        }
+      } catch {
+        // Let evaluateWave3ModelGate report standard JSON syntax diagnostics.
+      }
+    }
+  }
+  return evaluateWave3ModelGate(modelInput);
+}
+
+export function parseV2ModelRunnerParam(params?: URLSearchParams): boolean | undefined {
+  const raw = params?.get("v2")?.trim().toLowerCase();
+  if (raw === "1" || raw === "true") return true;
+  if (raw === "0" || raw === "false") return false;
+  return undefined;
+}
+
+export function parseCustomModelParam(params?: URLSearchParams): string | null {
+  const raw = params?.get("customModel")?.trim();
+  if (!raw || raw.length > MAX_SHARE_CUSTOM_MODEL_CHARS || !raw.startsWith("{")) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (hasNonFiniteNumber(parsed)) return null;
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+export function serializeCustomModelForShare(
+  rawJson: string,
+): { ok: true; compact: string } | { ok: false; reason: string } {
+  const trimmed = rawJson.trim();
+  if (!trimmed.startsWith("{")) {
+    return { ok: false, reason: "自定义 config.json 格式无效，暂不支持生成参数链接。" };
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, reason: "自定义 config.json 须为 JSON 对象，暂不支持生成参数链接。" };
+    }
+    if (hasNonFiniteNumber(parsed)) {
+      return {
+        ok: false,
+        reason: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再复制参数链接。",
+      };
+    }
+    const compact = JSON.stringify(parsed);
+    if (compact.length > MAX_SHARE_CUSTOM_MODEL_CHARS) {
+      return {
+        ok: false,
+        reason: `自定义 config.json 压缩后为 ${compact.length} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
+      };
+    }
+    return { ok: true, compact };
+  } catch {
+    return { ok: false, reason: "自定义 config.json 存在语法错误，请修正后再复制参数链接。" };
+  }
+}
+
+function getCalculatorQuerySignature(params?: URLSearchParams): string {
+  if (!params) return "";
+  const pairs: string[] = [];
+  for (const key of CALCULATOR_SHARE_QUERY_KEYS) {
+    const value = params.get(key);
+    if (value !== null) {
+      pairs.push(`${key}=${value}`);
+    }
+  }
+  return pairs.join("&");
+}
+
+export function hasAdvancedQueryOverrides(
+  q: CalculatorQueryOverrides,
+  useV2ModelRunner?: boolean | undefined,
+): boolean {
+  return Boolean(
+    (q.ppSize !== undefined && q.ppSize !== 1) ||
+      (q.dpSize !== undefined && q.dpSize !== 1) ||
+      (q.pcpSize !== undefined && q.pcpSize !== 1) ||
+      (q.dcpSize !== undefined && q.dcpSize !== 1) ||
+      (q.kvCacheDtype !== undefined && q.kvCacheDtype !== "auto") ||
+      (q.weightNzMode !== undefined && q.weightNzMode !== 1) ||
+      (q.cudagraphMode !== undefined && q.cudagraphMode !== "PIECEWISE") ||
+      q.enforceEager === true ||
+      useV2ModelRunner !== undefined ||
+      (q.maxNumBatchedTokens !== undefined && q.maxNumBatchedTokens !== DEFAULT_MAX_NUM_BATCHED_TOKENS) ||
+      (q.maxNumSeqs !== undefined && q.maxNumSeqs !== DEFAULT_MAX_NUM_SEQS) ||
+      (q.prefillTokens !== undefined && q.prefillTokens !== DEFAULT_PREFILL_TOKENS) ||
+      (q.decodeBatchSize !== undefined && q.decodeBatchSize !== DEFAULT_DECODE_BATCH_SIZE) ||
+      (q.decodeContextLen !== undefined && q.decodeContextLen !== DEFAULT_DECODE_CONTEXT_LEN) ||
+      (q.version !== undefined && q.version !== "v0.30.0"),
+  );
+}
+
+function hasNonPanelCalculatorParams(
+  q: CalculatorQueryOverrides,
+  customModel: string | null,
+  useV2ModelRunner?: boolean | undefined,
+): boolean {
+  if (customModel !== null || useV2ModelRunner !== undefined) return true;
+  return Object.entries(q).some(([key, value]) => key !== "subMode" && value !== undefined);
+}
 
 export interface DeployCalculatorViewProps {
   mode?: "quick-screen" | "minimal" | "full" | undefined;
@@ -57,6 +226,10 @@ export interface DeployCalculatorViewProps {
   initialModel?: string | undefined;
   embedded?: boolean | undefined;
   searchParams?: URLSearchParams | undefined;
+  locationKey?: string | undefined;
+  onClearCalculatorShareParams?:
+    | ((subMode: "static" | "reconcile", pushHistory?: boolean) => void)
+    | undefined;
   onNavigateToDoctor?: (() => void) | undefined;
 }
 
@@ -580,10 +753,20 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
 
+  const hasSplitRoof = Math.abs(roofline.prefillPeakComputeTflops - roofline.decodePeakComputeTflops) > 1e-6;
   const minX = 1;
-  const maxX = Math.max(1024, Math.ceil(roofline.prefillIntensityFlopsPerByte * 2.2));
+  const maxX = Math.max(
+    1024,
+    Math.ceil(
+      Math.max(
+        roofline.prefillIntensityFlopsPerByte,
+        roofline.prefillRidgePointFlopsPerByte,
+        roofline.decodeRidgePointFlopsPerByte,
+      ) * 2.2,
+    ),
+  );
   const minY = 1;
-  const maxY = Math.max(roofline.peakComputeTflops * 1.45, 64);
+  const maxY = Math.max(roofline.maxPeakComputeTflops * 1.45, 64);
   const logX = (v: number) =>
     padL +
     ((Math.log10(Math.max(minX, v)) - Math.log10(minX)) / (Math.log10(maxX) - Math.log10(minX))) * plotW;
@@ -592,23 +775,46 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
     plotH -
     ((Math.log10(Math.max(minY, v)) - Math.log10(minY)) / (Math.log10(maxY) - Math.log10(minY))) * plotH;
 
-  const achieved = (intensity: number) =>
-    Math.min(roofline.peakComputeTflops, (intensity * roofline.hbmBandwidthGBs) / 1000);
+  const decodeSlopeMinY = Math.min(
+    roofline.decodePeakComputeTflops,
+    (minX * roofline.hbmBandwidthGBs) / 1000,
+  );
+  const ridgeX = logX(roofline.decodeRidgePointFlopsPerByte);
+  const ridgeY = logY(roofline.decodePeakComputeTflops);
+  const roofPath = `M ${logX(minX)} ${logY(decodeSlopeMinY)} L ${ridgeX} ${ridgeY} L ${logX(maxX)} ${ridgeY}`;
 
-  const ridgeX = logX(roofline.ridgePointFlopsPerByte);
-  const ridgeY = logY(roofline.peakComputeTflops);
-  const roofPath = `M ${logX(minX)} ${logY(achieved(minX))} L ${ridgeX} ${ridgeY} L ${logX(maxX)} ${ridgeY}`;
-  const ridgeLabelOnLeft = ridgeX > padL + 150;
+  const prefillSlopeMinY = Math.min(
+    roofline.prefillPeakComputeTflops,
+    (minX * roofline.hbmBandwidthGBs) / 1000,
+  );
+  const prefillRidgeX = logX(roofline.prefillRidgePointFlopsPerByte);
+  const prefillRidgeY = logY(roofline.prefillPeakComputeTflops);
+  const prefillRoofPath = `M ${logX(minX)} ${logY(prefillSlopeMinY)} L ${prefillRidgeX} ${prefillRidgeY} L ${logX(maxX)} ${prefillRidgeY}`;
+
+  const ridgeLabelOnLeft = Math.min(ridgeX, prefillRidgeX) > padL + 165;
   const ridgeLabelX = ridgeLabelOnLeft ? ridgeX - 6 : ridgeX + 6;
   const ridgeLabelAnchor = ridgeLabelOnLeft ? "end" : "start";
-  const ridgeLabelY = padT + plotH - 12;
+  const ridgeLabelY = padT + plotH - 10;
+  const prefillRidgeLabelX = ridgeLabelOnLeft ? prefillRidgeX - 6 : prefillRidgeX + 6;
+  const prefillRidgeLabelY = padT + plotH - 28;
+  const prefillPeakHigher = roofline.prefillPeakComputeTflops > roofline.decodePeakComputeTflops;
+  const prefillPeakLabelY = prefillPeakHigher
+    ? Math.max(16, prefillRidgeY - 8)
+    : Math.min(padT + plotH - 42, prefillRidgeY + 15);
+  const decodePeakLabelY = hasSplitRoof
+    ? prefillPeakHigher
+      ? Math.min(padT + plotH - 42, ridgeY + 15)
+      : Math.max(16, ridgeY - 8)
+    : Math.max(14, ridgeY - 11);
+  const shortDecodePrecision =
+    roofline.computePrecisionLabel.split("（")[0] ?? roofline.computePrecisionLabel;
 
   const points = [
     {
       id: "kv",
       label: `Decode KV (${roofline.decodeKvAttnIntensityFlopsPerByte.toFixed(1)})`,
       xVal: roofline.decodeKvAttnIntensityFlopsPerByte,
-      yVal: achieved(roofline.decodeKvAttnIntensityFlopsPerByte),
+      yVal: roofline.decodeKvAttnAchievedTflops,
       color: "#4c65b6",
       dy: -12,
     },
@@ -616,7 +822,7 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
       id: "dec",
       label: `Decode GEMM (${roofline.decodeLinearIntensityFlopsPerByte.toFixed(1)})`,
       xVal: roofline.decodeLinearIntensityFlopsPerByte,
-      yVal: achieved(roofline.decodeLinearIntensityFlopsPerByte),
+      yVal: roofline.decodeLinearAchievedTflops,
       color: "#c78300",
       dy: 20,
     },
@@ -624,7 +830,7 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
       id: "pre",
       label: `Prefill (${roofline.prefillIntensityFlopsPerByte.toFixed(0)})`,
       xVal: roofline.prefillIntensityFlopsPerByte,
-      yVal: achieved(roofline.prefillIntensityFlopsPerByte),
+      yVal: roofline.prefillAchievedTflops,
       color: "#087f73",
       dy: -11,
     },
@@ -637,7 +843,11 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         role="img"
-        aria-label={`Roofline 对照图：脊点 ${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
+        aria-label={
+          hasSplitRoof
+            ? `Roofline 对照图：Prefill 脊点 ${roofline.prefillRidgePointFlopsPerByte.toFixed(1)} FLOP/B，Decode 脊点 ${roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+            : `Roofline 对照图：脊点 ${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`
+        }
         style={{ display: "block", maxWidth: width, height: "auto", background: "transparent" }}
       >
         {xTicks.map((t) => (
@@ -673,12 +883,50 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
           strokeDasharray="5 4"
           strokeWidth="1.5"
         />
+        {hasSplitRoof && (
+          <>
+            <line
+              x1={prefillRidgeX}
+              x2={prefillRidgeX}
+              y1={padT}
+              y2={padT + plotH}
+              stroke="#087f73"
+              strokeDasharray="4 4"
+              strokeWidth="1.3"
+              strokeOpacity="0.75"
+            />
+            <path
+              d={prefillRoofPath}
+              data-testid="roofline-prefill-ceiling"
+              fill="none"
+              stroke="#087f73"
+              strokeWidth="2.2"
+              strokeDasharray="6 4"
+            />
+          </>
+        )}
         <path d={roofPath} fill="none" stroke="#17211f" strokeWidth="2.4" />
+        {hasSplitRoof && (
+          <text
+            x={prefillRidgeLabelX}
+            y={prefillRidgeLabelY}
+            textAnchor={ridgeLabelAnchor}
+            fontSize="12.5"
+            fontWeight="700"
+            fill="#087f73"
+            paintOrder="stroke"
+            stroke="#fbfaf6"
+            strokeWidth={3.5}
+            strokeLinejoin="round"
+          >
+            Prefill 脊点 {roofline.prefillRidgePointFlopsPerByte.toFixed(1)} FLOP/B
+          </text>
+        )}
         <text
           x={ridgeLabelX}
           y={ridgeLabelY}
           textAnchor={ridgeLabelAnchor}
-          fontSize="13.5"
+          fontSize={hasSplitRoof ? "12.5" : "13.5"}
           fontWeight="700"
           fill="#b54237"
           paintOrder="stroke"
@@ -686,12 +934,31 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
           strokeWidth={3.5}
           strokeLinejoin="round"
         >
-          脊点 {roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B
+          {hasSplitRoof
+            ? `Decode 脊点 ${roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+            : `脊点 ${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
         </text>
+        {hasSplitRoof && (
+          <text
+            x={padL + 6}
+            y={prefillPeakLabelY}
+            fontSize="12.5"
+            fill="#087f73"
+            fontWeight="700"
+            paintOrder="stroke"
+            stroke="#fbfaf6"
+            strokeWidth={3.5}
+            strokeLinejoin="round"
+          >
+            Prefill 峰值 {roofline.prefillPeakComputeTflops}{" "}
+            {roofline.prefillPrecisionLabel.includes("INT") ? "TOPS" : "TFLOP/s"} (
+            {roofline.prefillPrecisionLabel})
+          </text>
+        )}
         <text
           x={padL + 6}
-          y={Math.max(14, ridgeY - 11)}
-          fontSize="13.5"
+          y={decodePeakLabelY}
+          fontSize={hasSplitRoof ? "12.5" : "13.5"}
           fill="#17211f"
           fontWeight="600"
           paintOrder="stroke"
@@ -699,7 +966,9 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
           strokeWidth={3.5}
           strokeLinejoin="round"
         >
-          峰值 {roofline.peakComputeTflops} {roofline.computePrecisionLabel}
+          {hasSplitRoof
+            ? `Decode 峰值 ${roofline.decodePeakComputeTflops} ${shortDecodePrecision.includes("INT") ? "TOPS" : "TFLOP/s"} (${shortDecodePrecision})`
+            : `峰值 ${roofline.peakComputeTflops} ${roofline.computePrecisionLabel.includes("INT") ? "TOPS" : "TFLOP/s"} (${roofline.computePrecisionLabel})`}
         </text>
         {points.map((pt) => {
           const cx = logX(pt.xVal);
@@ -707,10 +976,19 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
           const anchor = cx > width - 155 ? "end" : "start";
           const dx = anchor === "end" ? -10 : 10;
           const labelY =
-            pt.id === "pre" ? Math.max(14, cy - 11) : Math.min(padT + plotH - 6, Math.max(14, cy + pt.dy));
+            pt.id === "pre" ? Math.max(16, cy - 11) : Math.min(padT + plotH - 6, Math.max(14, cy + pt.dy));
           return (
             <g key={pt.id}>
-              <circle cx={cx} cy={cy} r="6.5" fill={pt.color} stroke="#fbfaf6" strokeWidth="2" />
+              <circle
+                cx={cx}
+                cy={cy}
+                r="6.5"
+                data-point-id={pt.id}
+                data-achieved-tflops={pt.yVal.toFixed(1)}
+                fill={pt.color}
+                stroke="#fbfaf6"
+                strokeWidth="2"
+              />
               <text
                 x={cx + dx}
                 y={labelY}
@@ -739,7 +1017,11 @@ function RooflineSvgChart({ roofline, compact = false }: { roofline: RooflineAna
           fill="#66716d"
           transform={`rotate(-90 16 ${padT + plotH / 2})`}
         >
-          TFLOP/s
+          {roofline.prefillPrecisionLabel.includes("INT") || roofline.computePrecisionLabel.includes("INT")
+            ? hasSplitRoof
+              ? "TFLOP/s · TOPS"
+              : "TOPS"
+            : "TFLOP/s"}
         </text>
       </svg>
     </div>
@@ -865,6 +1147,9 @@ function QuickScreenBody({ plan }: { plan: DeployPlanReport }) {
 function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
   const { roofline } = plan;
   const { q2Capacity, q3Roofline } = plan.fourQuestions;
+  const hasSplitRoof = Math.abs(roofline.prefillPeakComputeTflops - roofline.decodePeakComputeTflops) > 1e-6;
+  const shortDecodePrecision =
+    roofline.computePrecisionLabel.split("（")[0] ?? roofline.computePrecisionLabel;
   const moeNote =
     roofline.moeRouterDilutedRows !== null && roofline.localExpertsPerRank !== null
       ? `MoE 路由稀释：M_eff = (B × topK) / 本卡专家(${roofline.localExpertsPerRank}) = ${roofline.moeRouterDilutedRows.toFixed(2)}`
@@ -880,9 +1165,17 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
         }}
       >
         <MetricTile
-          label="硬件脊点（算力 / 带宽）"
-          value={`${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
-          sub={`${roofline.peakComputeTflops} ${roofline.computePrecisionLabel} ÷ ${roofline.hbmBandwidthGBs} GB/s`}
+          label={hasSplitRoof ? "分阶段脊点（Prefill / Decode）" : "硬件脊点（算力 / 带宽）"}
+          value={
+            hasSplitRoof
+              ? `${roofline.prefillRidgePointFlopsPerByte.toFixed(1)} / ${roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+              : `${roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`
+          }
+          sub={
+            hasSplitRoof
+              ? `Prefill ${roofline.prefillPeakComputeTflops} (${roofline.prefillPrecisionLabel}) · Decode ${roofline.decodePeakComputeTflops} (${shortDecodePrecision})`
+              : `${roofline.peakComputeTflops} ${roofline.computePrecisionLabel} ÷ ${roofline.hbmBandwidthGBs} GB/s`
+          }
           tone="danger"
         />
         <MetricTile
@@ -942,6 +1235,66 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
   );
 }
 
+function DeployVerdictStrip({ plan }: { plan: DeployPlanReport }) {
+  const { q1Fit, q2Capacity, q3Roofline } = plan.fourQuestions;
+  const isBlocked = q1Fit.verdict === "blocked" || q2Capacity.oomStatus !== "fits";
+  const isWarn = !isBlocked && q1Fit.verdict === "warn";
+  const stripTone = isBlocked ? "is-blocked" : isWarn ? "is-warn" : "is-pass";
+  const fitText =
+    q1Fit.verdict === "blocked"
+      ? "存在配置阻塞"
+      : q2Capacity.oomStatus === "fits"
+        ? isWarn
+          ? "可装下（有提示）"
+          : "装得下 ✓"
+        : "显存不足（需加卡或降精度）";
+  const fitClass = isBlocked ? "is-danger" : isWarn ? "is-warning" : "is-token";
+  const bottleneckLabel =
+    q3Roofline.primaryBottleneck === "memory-bound"
+      ? "带宽墙（Memory-bound）"
+      : q3Roofline.primaryBottleneck === "compute-bound"
+        ? "算力墙（Compute-bound）"
+        : q3Roofline.primaryBottleneck;
+
+  return (
+    <div className={`wt-verdict-strip ${stripTone}`} data-testid="calc-verdict-strip" role="status">
+      <div className="wt-verdict-item">
+        <span className="wt-verdict-label">当前配置能否装下</span>
+        <span className={`wt-verdict-value ${fitClass}`}>{fitText}</span>
+        <span className="wt-verdict-sub">
+          {plan.card.shortName} · {plan.inputSummary.effectiveWeightPrecision} · TP={plan.inputSummary.tpSize}
+        </span>
+      </div>
+      <div className="wt-verdict-item">
+        <span className="wt-verdict-label">建议最少卡数</span>
+        <span className="wt-verdict-value">{q2Capacity.minCardsRecommended} 逻辑卡</span>
+        <span className="wt-verdict-sub">
+          约 {q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 {q2Capacity.currentTotalCards} 逻辑卡）
+        </span>
+      </div>
+      <div className="wt-verdict-item">
+        <span className="wt-verdict-label">单卡可用 KV 缓存</span>
+        <span className="wt-verdict-value is-token">
+          {fmtGiBRange(q2Capacity.kvPoolLowBytes, q2Capacity.kvPoolHighBytes)}
+        </span>
+        <span className="wt-verdict-sub">
+          满长并发 [{q2Capacity.maxConcurrencyRange[0].toFixed(1)}x,{" "}
+          {q2Capacity.maxConcurrencyRange[1].toFixed(1)}x]
+        </span>
+      </div>
+      <div className="wt-verdict-item">
+        <span className="wt-verdict-label">当前主要瓶颈</span>
+        <span className="wt-verdict-value">{bottleneckLabel}</span>
+        <span className="wt-verdict-sub">
+          {Math.abs(plan.roofline.prefillPeakComputeTflops - plan.roofline.decodePeakComputeTflops) > 1e-6
+            ? `Prefill 脊点 ${plan.roofline.prefillRidgePointFlopsPerByte.toFixed(1)} / Decode ${plan.roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+            : `硬件脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function FourQuestionsGrid({
   plan,
   onHandoffToDoctor,
@@ -951,6 +1304,9 @@ function FourQuestionsGrid({
 }) {
   const [copied, setCopied] = useState(false);
   const { q1Fit, q2Capacity, q3Roofline, q4Recommendation } = plan.fourQuestions;
+  const currentPlanValid = q1Fit.verdict !== "blocked" && q2Capacity.oomStatus === "fits";
+  const currentPlanCli = useMemo(() => buildCurrentPlanCliHint(plan), [plan]);
+  const activeCli = currentPlanValid ? currentPlanCli : q4Recommendation.cliHint;
   const q1Tone =
     q1Fit.verdict === "blocked"
       ? "var(--color-danger)"
@@ -961,7 +1317,7 @@ function FourQuestionsGrid({
 
   const handleCopyCli = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      void navigator.clipboard.writeText(q4Recommendation.cliHint).then(() => {
+      void navigator.clipboard.writeText(activeCli).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
       });
@@ -979,7 +1335,7 @@ function FourQuestionsGrid({
     >
       <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <strong style={{ fontSize: 15 }}>Q1 · 架构与精度适配</strong>
+          <strong style={{ fontSize: 15 }}>Q1 · 模型与精度兼容吗</strong>
           <span
             style={{
               padding: "2px 9px",
@@ -1018,7 +1374,7 @@ function FourQuestionsGrid({
 
       <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <strong style={{ fontSize: 15 }}>Q2 · 单卡与集群装得下吗</strong>
+          <strong style={{ fontSize: 15 }}>Q2 · 显存装得下吗，剩多少 KV</strong>
           <span
             style={{
               padding: "2px 9px",
@@ -1059,7 +1415,7 @@ function FourQuestionsGrid({
 
       <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <strong style={{ fontSize: 15 }}>Q3 · 卡算力墙还是带宽墙</strong>
+          <strong style={{ fontSize: 15 }}>Q3 · 跑起来卡算力还是卡带宽</strong>
           <span className="wt-stat-pill is-warn">{q3Roofline.primaryBottleneck}</span>
         </div>
         <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>{q3Roofline.summary}</p>
@@ -1081,7 +1437,9 @@ function FourQuestionsGrid({
             gap: 8,
           }}
         >
-          <strong style={{ fontSize: 15 }}>Q4 · 推荐起步拓扑与命令提示</strong>
+          <strong style={{ fontSize: 15 }}>
+            {currentPlanValid ? "Q4 · 当前方案启动命令（可直接去体检）" : "Q4 · 推荐起步拓扑与启动命令"}
+          </strong>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
               {copied ? "已复制命令" : "复制命令"}
@@ -1098,8 +1456,13 @@ function FourQuestionsGrid({
             )}
           </div>
         </div>
-        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>{q4Recommendation.rationale}</p>
+        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>
+          {currentPlanValid
+            ? "当前配置可装下，已按你选定的并行度、上下文与图模式生成启动命令："
+            : q4Recommendation.rationale}
+        </p>
         <pre
+          data-testid="calc-handoff-cli"
           style={{
             margin: 0,
             padding: "9px 11px",
@@ -1112,8 +1475,14 @@ function FourQuestionsGrid({
             wordBreak: "break-all",
           }}
         >
-          {q4Recommendation.cliHint}
+          {activeCli}
         </pre>
+        {currentPlanValid && currentPlanCli !== q4Recommendation.cliHint && (
+          <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-ink-muted)" }}>
+            <strong>精简起步参考：</strong>
+            {q4Recommendation.rationale}
+          </p>
+        )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {q4Recommendation.relatedWikiIds.map((id) => (
             <ToolDeepLinkChip key={id} link={resolveSafeDeepLink(id)} />
@@ -1125,15 +1494,16 @@ function FourQuestionsGrid({
 }
 
 function SevenStageSection({ plan }: { plan: DeployPlanReport }) {
-  const [expandedStage, setExpandedStage] = useState<number | null>(5);
+  const [expandedStage, setExpandedStage] = useState<number | null>(null);
 
   return (
     <section className="wt-section wt-calc-stages">
       <div className="wt-section-head">
-        <h3 className="wt-section-title">7 级冷启动 HBM 静态区间瀑布账目</h3>
+        <h3 className="wt-section-title">单卡显存 7 级冷启动账目拆解</h3>
         <span className="wt-section-meta">
-          预算 requested = M_total × u（{fmtGiB(plan.requestedBytes)}）｜ 预算外 1−u（
-          {fmtGiB(plan.unbudgetedHeadroomBytes)}）支付 Stage 7 录图 + 150 MiB 裕度
+          预算内 = 总显存 × u（{fmtGiB(plan.requestedBytes)}）｜ 预算外 1−u（
+          {fmtGiB(plan.unbudgetedHeadroomBytes)}）用来支付录图 + 150 MiB 裕度；HCCL 归入非 Torch
+          固定区，不重复扣减
         </span>
       </div>
 
@@ -1349,7 +1719,7 @@ function ReconcileLogSection({
       )
       .join("\n");
     const rawPrompt = [
-      `我在昇腾 ${plan.card.name} 上用 ${plan.spec.name}（${plan.inputSummary.weightPrecision}，TP=${plan.inputSummary.tpSize}，PP=${plan.inputSummary.ppSize}，EP=${plan.inputSummary.enableEp ? plan.inputSummary.epWorldSize : "关"}，u=${plan.inputSummary.gpuMemoryUtilization}）做 Mode B 启动日志对账：`,
+      `我在昇腾 ${plan.card.name} 上用 ${plan.spec.name}（${plan.inputSummary.weightPrecision}，TP=${plan.inputSummary.tpSize}，PP=${plan.inputSummary.ppSize}，EP=${plan.inputSummary.enableEp ? plan.inputSummary.epWorldSize : "关"}，u=${plan.inputSummary.gpuMemoryUtilization}）做启动日志对账：`,
       recon.summary,
       lines,
       "请结合 vLLM-Ascend 7 级显存账目与 HCCL 不二次扣减守恒，帮我分析偏差根因和调参建议。",
@@ -1372,7 +1742,7 @@ function ReconcileLogSection({
   return (
     <section className="wt-section wt-calc-reconcile">
       <div className="wt-presets">
-        <span className="wt-presets-label">快速载入参考日志（同步 Mode A 配置）：</span>
+        <span className="wt-presets-label">示例启动日志（点击自动同步上方模型与卡型）：</span>
         {SAMPLE_ASCEND_STARTUP_LOGS.map((tpl) => (
           <button
             key={tpl.id}
@@ -1386,12 +1756,12 @@ function ReconcileLogSection({
                 padding: "1px 7px",
                 borderRadius: 999,
                 fontSize: 12,
-                background: "var(--color-weight-soft)",
-                color: "var(--color-warning)",
+                background: tpl.isReferenceTemplate ? "var(--color-weight-soft)" : "var(--color-kv-soft)",
+                color: tpl.isReferenceTemplate ? "var(--color-warning)" : "var(--color-kv)",
                 fontWeight: 700,
               }}
             >
-              参考模板 · 非真机实测
+              {tpl.isReferenceTemplate ? "参考模板 · 非真机实测" : "910B3 真机实测 [M]"}
             </span>
           </button>
         ))}
@@ -1557,6 +1927,7 @@ interface CalcState {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  pcpSize: number;
   dcpSize: number;
   enableEp: boolean;
   gpuMemoryUtilization: number;
@@ -1564,6 +1935,7 @@ interface CalcState {
   maxNumBatchedTokens: number;
   maxNumSeqs: number;
   cudagraphMode: CudaGraphMode;
+  useV2ModelRunner: boolean | undefined;
   prefillTokens: number;
   decodeBatchSize: number;
   decodeContextLen: number;
@@ -1613,7 +1985,7 @@ function CalcControlsBar({
       </label>
 
       <div className="wt-field" style={{ minWidth: 155 }}>
-        <span className="wt-field-label">张量并行 TP</span>
+        <span className="wt-field-label">张量并行 TP（卡数）</span>
         <div className="wt-segmented" style={{ padding: 2 }}>
           {[1, 2, 4, 8].map((tp) => (
             <button
@@ -1682,106 +2054,8 @@ function CalcControlsBar({
 
       {mode === "full" && (
         <>
-          <label className="wt-field" style={{ minWidth: 120 }}>
-            <span className="wt-field-label">代码基线</span>
-            <select
-              className="wt-select"
-              value={state.version}
-              onChange={(e) => onPatch({ version: e.target.value as RuleVersion })}
-            >
-              <option value="v0.30.0">v0.30.0（推荐）</option>
-              <option value="main">main（最新）</option>
-            </select>
-          </label>
-
           <label className="wt-field" style={{ minWidth: 145 }}>
-            <span className="wt-field-label">weight_nz_mode</span>
-            <select
-              className="wt-select"
-              value={state.weightNzMode}
-              onChange={(e) => onPatch({ weightNzMode: Number(e.target.value) as 0 | 1 | 2 })}
-            >
-              <option value={1}>1（默认按需）</option>
-              <option value={2}>2（强制 FRACTAL_NZ）</option>
-              <option value={0}>0（关闭）</option>
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 135 }}>
-            <span className="wt-field-label">KV Cache 精度</span>
-            <select
-              className="wt-select"
-              value={state.kvCacheDtype}
-              onChange={(e) => onPatch({ kvCacheDtype: e.target.value as KvCacheDtype })}
-            >
-              <option value="auto">auto（同权重 2B）</option>
-              <option value="int8">int8（C8 压缩）</option>
-              <option value="mxfp8">mxfp8（A5 原生）</option>
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 92 }}>
-            <span className="wt-field-label">PP</span>
-            <select
-              className="wt-select"
-              value={state.ppSize}
-              onChange={(e) => onPatch({ ppSize: Number(e.target.value) })}
-            >
-              {[1, 2, 4, 8].map((n) => (
-                <option key={n} value={n}>
-                  PP={n}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 92 }}>
-            <span className="wt-field-label">DP</span>
-            <select
-              className="wt-select"
-              value={state.dpSize}
-              onChange={(e) => onPatch({ dpSize: Number(e.target.value) })}
-            >
-              {[1, 2, 4, 8].map((n) => (
-                <option key={n} value={n}>
-                  DP={n}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 96 }}>
-            <span className="wt-field-label">DCP（序列切分）</span>
-            <select
-              className="wt-select"
-              value={state.dcpSize}
-              onChange={(e) => onPatch({ dcpSize: Number(e.target.value) })}
-            >
-              {[1, 2, 4, 8].map((n) => (
-                <option key={n} value={n}>
-                  DCP={n}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 180 }}>
-            <span className="wt-field-label">
-              gpu_memory_utilization = {state.gpuMemoryUtilization.toFixed(2)}
-            </span>
-            <input
-              type="range"
-              min={0.7}
-              max={0.98}
-              step={0.01}
-              value={state.gpuMemoryUtilization}
-              onChange={(e) => onPatch({ gpuMemoryUtilization: Number(e.target.value) })}
-              style={{ accentColor: "var(--color-accent)", height: 36 }}
-            />
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 130 }}>
-            <span className="wt-field-label">max_model_len</span>
+            <span className="wt-field-label">目标上下文长度</span>
             <input
               className="wt-input"
               type="number"
@@ -1793,99 +2067,322 @@ function CalcControlsBar({
             />
           </label>
 
-          <label className="wt-field" style={{ minWidth: 150 }}>
-            <span className="wt-field-label">max_num_batched_tokens</span>
+          <label className="wt-field" style={{ minWidth: 180 }}>
+            <span className="wt-field-label">显存预算占比 u = {state.gpuMemoryUtilization.toFixed(2)}</span>
             <input
-              className="wt-input"
-              type="number"
-              min={256}
-              max={32768}
-              step={512}
-              value={state.maxNumBatchedTokens}
-              onChange={(e) =>
-                onPatch({
-                  maxNumBatchedTokens: Math.max(
-                    256,
-                    Number(e.target.value) || DEFAULT_MAX_NUM_BATCHED_TOKENS,
-                  ),
-                })
-              }
-            />
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 120 }}>
-            <span className="wt-field-label">max_num_seqs</span>
-            <input
-              className="wt-input"
-              type="number"
-              min={1}
-              max={4096}
-              step={16}
-              value={state.maxNumSeqs}
-              onChange={(e) =>
-                onPatch({
-                  maxNumSeqs: Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_SEQS),
-                })
-              }
-            />
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 205 }}>
-            <span className="wt-field-label">cudagraph_mode</span>
-            <select
-              className="wt-select"
-              value={state.cudagraphMode}
-              onChange={(e) => onPatch({ cudagraphMode: e.target.value as CudaGraphMode })}
-            >
-              {CUDAGRAPH_OPTIONS.map((cg) => (
-                <option key={cg.value} value={cg.value}>
-                  {cg.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 120 }}>
-            <span className="wt-field-label">Prefill tokens</span>
-            <input
-              className="wt-input"
-              type="number"
-              min={32}
-              max={65536}
-              step={128}
-              value={state.prefillTokens}
-              onChange={(e) => onPatch({ prefillTokens: Math.max(1, Number(e.target.value) || 512) })}
-            />
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 115 }}>
-            <span className="wt-field-label">Decode 批 B</span>
-            <input
-              className="wt-input"
-              type="number"
-              min={1}
-              max={512}
-              value={state.decodeBatchSize}
-              onChange={(e) => onPatch({ decodeBatchSize: Math.max(1, Number(e.target.value) || 16) })}
-            />
-          </label>
-
-          <label className="wt-field" style={{ minWidth: 130 }}>
-            <span className="wt-field-label">Decode 上下文长</span>
-            <input
-              className="wt-input"
-              type="number"
-              min={128}
-              max={131072}
-              step={512}
-              value={state.decodeContextLen}
-              onChange={(e) => onPatch({ decodeContextLen: Math.max(128, Number(e.target.value) || 4096) })}
+              type="range"
+              min={0.7}
+              max={0.98}
+              step={0.01}
+              value={state.gpuMemoryUtilization}
+              onChange={(e) => onPatch({ gpuMemoryUtilization: Number(e.target.value) })}
+              style={{ accentColor: "var(--color-accent)", height: 36 }}
             />
           </label>
         </>
       )}
     </div>
   );
+}
+
+function AdvancedCalcControls({
+  state,
+  open,
+  onOpenChange,
+  onPatch,
+}: {
+  state: CalcState;
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+  onPatch: (patch: Partial<CalcState>) => void;
+}) {
+  return (
+    <details
+      className="wt-advanced-details"
+      data-testid="calc-advanced-controls"
+      open={open}
+      onToggle={(e) => onOpenChange(e.currentTarget.open)}
+    >
+      <summary className="wt-advanced-summary">
+        <span style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 10px" }}>
+          <span className="wt-advanced-summary-title">
+            进阶参数微调（多维并行 / KV 压缩 / 图模式 / Roofline 批假设）
+          </span>
+          <span className="wt-advanced-summary-meta">
+            PP={state.ppSize} · DP={state.dpSize} · PCP={state.pcpSize} · DCP={state.dcpSize} · KV=
+            {state.kvCacheDtype} · NZ={state.weightNzMode} · 图={state.cudagraphMode}
+            {state.useV2ModelRunner !== undefined ? ` · V2=${state.useV2ModelRunner ? "开" : "关"}` : ""}
+          </span>
+        </span>
+        <span className="wt-advanced-summary-cta">{open ? "收起进阶参数" : "展开微调"}</span>
+      </summary>
+
+      <div className="wt-advanced-body">
+        <div className="wt-advanced-group">
+          <span className="wt-advanced-group-title">多维并行与长序列切分</span>
+          <div className="wt-advanced-row">
+            <label className="wt-field" style={{ minWidth: 96 }}>
+              <span className="wt-field-label">流水线 PP</span>
+              <select
+                className="wt-select"
+                value={state.ppSize}
+                onChange={(e) => onPatch({ ppSize: Number(e.target.value) })}
+              >
+                {[1, 2, 4, 8].map((n) => (
+                  <option key={n} value={n}>
+                    PP={n}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 96 }}>
+              <span className="wt-field-label">数据并行 DP</span>
+              <select
+                className="wt-select"
+                value={state.dpSize}
+                onChange={(e) => onPatch({ dpSize: Number(e.target.value) })}
+              >
+                {[1, 2, 4, 8].map((n) => (
+                  <option key={n} value={n}>
+                    DP={n}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 118 }}>
+              <span className="wt-field-label">PCP（Prefill 切分）</span>
+              <select
+                className="wt-select"
+                value={state.pcpSize}
+                onChange={(e) => onPatch({ pcpSize: Number(e.target.value) })}
+              >
+                {[1, 2, 4, 8].map((n) => (
+                  <option key={n} value={n}>
+                    PCP={n}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 118 }}>
+              <span className="wt-field-label">DCP（Decode 切分）</span>
+              <select
+                className="wt-select"
+                value={state.dcpSize}
+                onChange={(e) => onPatch({ dcpSize: Number(e.target.value) })}
+              >
+                {[1, 2, 4, 8].map((n) => (
+                  <option key={n} value={n}>
+                    DCP={n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="wt-advanced-group">
+          <span className="wt-advanced-group-title">KV 缓存精度、权重格式与图捕获模式</span>
+          <div className="wt-advanced-row">
+            <label className="wt-field" style={{ minWidth: 145 }}>
+              <span className="wt-field-label">KV Cache 精度</span>
+              <select
+                className="wt-select"
+                value={state.kvCacheDtype}
+                onChange={(e) => onPatch({ kvCacheDtype: e.target.value as KvCacheDtype })}
+              >
+                <option value="auto">auto（同权重 2B）</option>
+                <option value="int8">int8（C8 压缩）</option>
+                <option value="mxfp8">mxfp8（A5 原生）</option>
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 155 }}>
+              <span className="wt-field-label">权重排布 weight_nz_mode</span>
+              <select
+                className="wt-select"
+                value={state.weightNzMode}
+                onChange={(e) => onPatch({ weightNzMode: Number(e.target.value) as 0 | 1 | 2 })}
+              >
+                <option value={1}>1（默认按需）</option>
+                <option value={2}>2（强制 FRACTAL_NZ）</option>
+                <option value={0}>0（关闭）</option>
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 215 }}>
+              <span className="wt-field-label">图捕获模式 cudagraph_mode</span>
+              <select
+                className="wt-select"
+                value={state.cudagraphMode}
+                onChange={(e) => onPatch({ cudagraphMode: e.target.value as CudaGraphMode })}
+              >
+                {CUDAGRAPH_OPTIONS.map((cg) => (
+                  <option key={cg.value} value={cg.value}>
+                    {cg.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 135 }}>
+              <span className="wt-field-label">代码规则基线</span>
+              <select
+                className="wt-select"
+                value={state.version}
+                onChange={(e) => onPatch({ version: e.target.value as RuleVersion })}
+              >
+                <option value="v0.30.0">v0.30.0（推荐）</option>
+                <option value="main">main（最新）</option>
+              </select>
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 210 }}>
+              <span className="wt-field-label">Model Runner V2</span>
+              <select
+                className="wt-select"
+                data-testid="calc-v2-runner-select"
+                value={state.useV2ModelRunner === undefined ? "auto" : state.useV2ModelRunner ? "1" : "0"}
+                onChange={(e) =>
+                  onPatch({
+                    useV2ModelRunner:
+                      e.target.value === "1" ? true : e.target.value === "0" ? false : undefined,
+                  })
+                }
+              >
+                <option value="auto">默认（随版本自动）</option>
+                <option value="1">开启（VLLM_USE_V2_MODEL_RUNNER=1）</option>
+                <option value="0">关闭（VLLM_USE_V2_MODEL_RUNNER=0）</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="wt-advanced-group">
+          <span className="wt-advanced-group-title">调度批处理上限与 Roofline 吞吐假设</span>
+          <div className="wt-advanced-row">
+            <label className="wt-field" style={{ minWidth: 155 }}>
+              <span className="wt-field-label">max_num_batched_tokens</span>
+              <input
+                className="wt-input"
+                type="number"
+                min={256}
+                max={32768}
+                step={512}
+                value={state.maxNumBatchedTokens}
+                onChange={(e) =>
+                  onPatch({
+                    maxNumBatchedTokens: Math.max(
+                      256,
+                      Number(e.target.value) || DEFAULT_MAX_NUM_BATCHED_TOKENS,
+                    ),
+                  })
+                }
+              />
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 120 }}>
+              <span className="wt-field-label">max_num_seqs</span>
+              <input
+                className="wt-input"
+                type="number"
+                min={1}
+                max={4096}
+                step={16}
+                value={state.maxNumSeqs}
+                onChange={(e) =>
+                  onPatch({
+                    maxNumSeqs: Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_SEQS),
+                  })
+                }
+              />
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 120 }}>
+              <span className="wt-field-label">Prefill tokens</span>
+              <input
+                className="wt-input"
+                type="number"
+                min={32}
+                max={65536}
+                step={128}
+                value={state.prefillTokens}
+                onChange={(e) => onPatch({ prefillTokens: Math.max(1, Number(e.target.value) || 512) })}
+              />
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 115 }}>
+              <span className="wt-field-label">Decode 批 B</span>
+              <input
+                className="wt-input"
+                type="number"
+                min={1}
+                max={512}
+                value={state.decodeBatchSize}
+                onChange={(e) => onPatch({ decodeBatchSize: Math.max(1, Number(e.target.value) || 16) })}
+              />
+            </label>
+
+            <label className="wt-field" style={{ minWidth: 130 }}>
+              <span className="wt-field-label">Decode 上下文长</span>
+              <input
+                className="wt-input"
+                type="number"
+                min={128}
+                max={131072}
+                step={512}
+                value={state.decodeContextLen}
+                onChange={(e) => onPatch({ decodeContextLen: Math.max(128, Number(e.target.value) || 4096) })}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function buildCalcStateFromQuery(
+  query: CalculatorQueryOverrides,
+  wave4Demo?: Wave4DemoPreset,
+  useV2ModelRunner?: boolean | undefined,
+): CalcState {
+  return {
+    version: query.version ?? "v0.30.0",
+    cardId: query.cardId ?? "a2-64g",
+    weightPrecision: query.weightPrecision ?? wave4Demo?.recommendedPrecision ?? "bf16",
+    kvCacheDtype: query.kvCacheDtype ?? "auto",
+    weightNzMode: query.weightNzMode ?? 1,
+    tpSize: query.tpSize ?? wave4Demo?.recommendedTp ?? 1,
+    ppSize: query.ppSize ?? wave4Demo?.recommendedPp ?? 1,
+    dpSize: query.dpSize ?? wave4Demo?.recommendedDp ?? 1,
+    pcpSize: query.pcpSize ?? 1,
+    dcpSize: query.dcpSize ?? 1,
+    enableEp: query.enableEp ?? wave4Demo?.recommendedEnableEp ?? false,
+    gpuMemoryUtilization: query.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
+    maxModelLen: normalizeCalcInt(query.maxModelLen ?? DEFAULT_MAX_MODEL_LEN, 512, DEFAULT_MAX_MODEL_LEN),
+    maxNumBatchedTokens: normalizeCalcInt(
+      query.maxNumBatchedTokens ?? DEFAULT_MAX_NUM_BATCHED_TOKENS,
+      256,
+      DEFAULT_MAX_NUM_BATCHED_TOKENS,
+    ),
+    maxNumSeqs: normalizeCalcInt(query.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS, 1, DEFAULT_MAX_NUM_SEQS),
+    cudagraphMode: query.enforceEager ? "NONE" : (query.cudagraphMode ?? "PIECEWISE"),
+    useV2ModelRunner,
+    prefillTokens: normalizeCalcInt(query.prefillTokens ?? DEFAULT_PREFILL_TOKENS, 1, DEFAULT_PREFILL_TOKENS),
+    decodeBatchSize: normalizeCalcInt(
+      query.decodeBatchSize ?? DEFAULT_DECODE_BATCH_SIZE,
+      1,
+      DEFAULT_DECODE_BATCH_SIZE,
+    ),
+    decodeContextLen: normalizeCalcInt(
+      query.decodeContextLen ?? DEFAULT_DECODE_CONTEXT_LEN,
+      128,
+      DEFAULT_DECODE_CONTEXT_LEN,
+    ),
+  };
 }
 
 export function DeployCalculatorView({
@@ -1895,31 +2392,51 @@ export function DeployCalculatorView({
   initialModel,
   embedded = false,
   searchParams,
+  locationKey,
+  onClearCalculatorShareParams,
   onNavigateToDoctor,
 }: DeployCalculatorViewProps) {
+  const activeTabParam = searchParams?.get("tab");
+  const isCalculatorRouteActive = !activeTabParam || activeTabParam === "calculator";
   const initialQuery = useMemo(
-    () => (!embedded && searchParams ? parseCalculatorQueryParams(searchParams) : {}),
-    [embedded, searchParams],
+    () =>
+      !embedded && searchParams && isCalculatorRouteActive ? parseCalculatorQueryParams(searchParams) : {},
+    [embedded, searchParams, isCalculatorRouteActive],
+  );
+  const initialCustomModelParam = useMemo(
+    () => (!embedded && searchParams && isCalculatorRouteActive ? parseCustomModelParam(searchParams) : null),
+    [embedded, searchParams, isCalculatorRouteActive],
+  );
+  const initialV2Param = useMemo(
+    () =>
+      !embedded && searchParams && isCalculatorRouteActive
+        ? parseV2ModelRunnerParam(searchParams)
+        : undefined,
+    [embedded, searchParams, isCalculatorRouteActive],
   );
   const initialWave4Demo = useMemo(
     () =>
-      initialQuery.presetId ? WAVE4_DEMO_PRESETS.find((d) => d.id === initialQuery.presetId) : undefined,
-    [initialQuery.presetId],
+      !initialCustomModelParam && initialQuery.presetId
+        ? WAVE4_DEMO_PRESETS.find((d) => d.id === initialQuery.presetId)
+        : undefined,
+    [initialCustomModelParam, initialQuery.presetId],
   );
   const initialTrimmed = initialModel?.trim() ?? "";
-  const startsWithJson = initialTrimmed.startsWith("{") || Boolean(initialWave4Demo);
+  const startsWithJson =
+    Boolean(initialCustomModelParam) || initialTrimmed.startsWith("{") || Boolean(initialWave4Demo);
   const defaultPreset =
-    !initialWave4Demo && initialQuery.presetId
+    !initialCustomModelParam && !initialWave4Demo && initialQuery.presetId
       ? matchInitialPresetId(initialQuery.presetId)
       : matchInitialPresetId(startsWithJson ? undefined : initialModel);
   const [presetId, setPresetId] = useState<string>(defaultPreset);
   const [useCustomJson, setUseCustomJson] = useState(startsWithJson);
   const [customJsonText, setCustomJsonText] = useState<string>(
-    initialWave4Demo
-      ? JSON.stringify(initialWave4Demo.config, null, 2)
-      : startsWithJson
-        ? initialTrimmed
-        : DEFAULT_WAVE4_MLA_JSON,
+    initialCustomModelParam ??
+      (initialWave4Demo
+        ? JSON.stringify(initialWave4Demo.config, null, 2)
+        : startsWithJson
+          ? initialTrimmed
+          : DEFAULT_WAVE4_MLA_JSON),
   );
   const [activeWave4DemoId, setActiveWave4DemoId] = useState<string | null>(initialWave4Demo?.id ?? null);
   const prevInitialModelRef = useRef<string | undefined>(initialModel);
@@ -1942,35 +2459,112 @@ export function DeployCalculatorView({
   );
   const [reconcileHandoffSource, setReconcileHandoffSource] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
-  const [state, setState] = useState<CalcState>({
-    version: initialQuery.version ?? "v0.30.0",
-    cardId: initialQuery.cardId ?? "a2-64g",
-    weightPrecision: initialQuery.weightPrecision ?? initialWave4Demo?.recommendedPrecision ?? "bf16",
-    kvCacheDtype: initialQuery.kvCacheDtype ?? "auto",
-    weightNzMode: 1,
-    tpSize: initialQuery.tpSize ?? initialWave4Demo?.recommendedTp ?? 1,
-    ppSize: initialQuery.ppSize ?? initialWave4Demo?.recommendedPp ?? 1,
-    dpSize: initialQuery.dpSize ?? initialWave4Demo?.recommendedDp ?? 1,
-    dcpSize: initialQuery.dcpSize ?? 1,
-    enableEp: initialQuery.enableEp ?? initialWave4Demo?.recommendedEnableEp ?? false,
-    gpuMemoryUtilization: initialQuery.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
-    maxModelLen: initialQuery.maxModelLen ?? 32768,
-    maxNumBatchedTokens: DEFAULT_MAX_NUM_BATCHED_TOKENS,
-    maxNumSeqs: DEFAULT_MAX_NUM_SEQS,
-    cudagraphMode: "PIECEWISE",
-    prefillTokens: 512,
-    decodeBatchSize: 16,
-    decodeContextLen: 4096,
+  const [state, setState] = useState<CalcState>(() =>
+    buildCalcStateFromQuery(initialQuery, initialWave4Demo, initialV2Param),
+  );
+  const [advancedOpen, setAdvancedOpen] = useState<boolean>(() =>
+    hasAdvancedQueryOverrides(initialQuery, initialV2Param),
+  );
+
+  const calcQuerySig = useMemo(
+    () => (!embedded && isCalculatorRouteActive ? getCalculatorQuerySignature(searchParams) : ""),
+    [embedded, isCalculatorRouteActive, searchParams],
+  );
+  const lastAppliedQuerySigRef = useRef<string>(calcQuerySig);
+  const hasLocalEditsRef = useRef<boolean>(false);
+  const pendingSelfUrlClearSigRef = useRef<string | null>(null);
+  const prevNavRef = useRef<{
+    tab: string;
+    panel: string | null;
+    calcQuerySig: string;
+    locationKey: string | undefined;
+  }>({
+    tab: isCalculatorRouteActive ? "calculator" : (activeTabParam ?? ""),
+    panel: isCalculatorRouteActive ? (searchParams?.get("panel") ?? null) : null,
+    calcQuerySig,
+    locationKey,
   });
 
-  const panelQuery = searchParams?.get("panel");
   useEffect(() => {
-    if (embedded) return;
-    if (panelQuery === "reconcile" || panelQuery === "static") {
-      setSubMode(panelQuery);
+    if (embedded || !searchParams) return;
+    const prev = prevNavRef.current;
+    const currentTab = isCalculatorRouteActive ? "calculator" : (activeTabParam ?? "");
+    const currentPanel = isCalculatorRouteActive ? (searchParams.get("panel") ?? null) : null;
+    const isNewNavigation =
+      (locationKey !== undefined && locationKey !== prev.locationKey) ||
+      calcQuerySig !== prev.calcQuerySig ||
+      prev.tab !== currentTab;
+
+    prevNavRef.current = {
+      tab: currentTab,
+      panel: currentPanel,
+      calcQuerySig,
+      locationKey,
+    };
+
+    if (!isCalculatorRouteActive) return;
+
+    if (pendingSelfUrlClearSigRef.current !== null && calcQuerySig === pendingSelfUrlClearSigRef.current) {
+      pendingSelfUrlClearSigRef.current = null;
+      lastAppliedQuerySigRef.current = calcQuerySig;
+      return;
     }
-  }, [embedded, panelQuery]);
+    pendingSelfUrlClearSigRef.current = null;
+
+    // In-place navigation on calculator tab from ?panel=reconcile -> ?tab=calculator (no panel) resets to static,
+    // while switching ?tab=doctor -> ?tab=calculator preserves user's local draft subMode.
+    // Clearing lastAppliedQuerySigRef whenever calculator query params are empty ensures navigating back
+    // to ?panel=reconcile or re-opening the same share link replays reliably.
+    if (!calcQuerySig) {
+      lastAppliedQuerySigRef.current = "";
+      if (prev.tab === "calculator" && prev.panel === "reconcile" && currentPanel === null) {
+        setSubMode("static");
+      }
+      return;
+    }
+
+    const shouldApplyShareUrl =
+      calcQuerySig !== lastAppliedQuerySigRef.current || (isNewNavigation && hasLocalEditsRef.current);
+    if (!shouldApplyShareUrl) return;
+
+    lastAppliedQuerySigRef.current = calcQuerySig;
+    hasLocalEditsRef.current = false;
+
+    const parsed = parseCalculatorQueryParams(searchParams);
+    const customModel = parseCustomModelParam(searchParams);
+    const parsedV2 = parseV2ModelRunnerParam(searchParams);
+    const hasCalcOverrides = hasNonPanelCalculatorParams(parsed, customModel, parsedV2);
+
+    if (!hasCalcOverrides) {
+      if (parsed.subMode === "reconcile" || parsed.subMode === "static") {
+        setSubMode(parsed.subMode);
+      }
+      return;
+    }
+
+    const matchedWave4 =
+      !customModel && parsed.presetId ? WAVE4_DEMO_PRESETS.find((d) => d.id === parsed.presetId) : undefined;
+
+    setSubMode(parsed.subMode ?? "static");
+    if (customModel) {
+      setUseCustomJson(true);
+      setActiveWave4DemoId(null);
+      setCustomJsonText(customModel);
+    } else if (matchedWave4) {
+      setUseCustomJson(true);
+      setActiveWave4DemoId(matchedWave4.id);
+      setCustomJsonText(JSON.stringify(matchedWave4.config, null, 2));
+    } else {
+      setUseCustomJson(false);
+      setActiveWave4DemoId(null);
+      setPresetId(parsed.presetId ? matchInitialPresetId(parsed.presetId) : "qwen3-8b");
+    }
+    setState(buildCalcStateFromQuery(parsed, matchedWave4, parsedV2));
+    setAdvancedOpen(hasAdvancedQueryOverrides(parsed, parsedV2));
+    setShareNotice(null);
+  }, [embedded, isCalculatorRouteActive, activeTabParam, searchParams, calcQuerySig, locationKey]);
 
   useEffect(() => {
     if (embedded) return;
@@ -1986,12 +2580,49 @@ export function DeployCalculatorView({
     return workbenchHandoffStore.subscribe(applyPending);
   }, [embedded]);
 
+  const markLocalEdit = (nextSubMode: "static" | "reconcile" = subMode, pushHistory = false) => {
+    hasLocalEditsRef.current = true;
+    if (!embedded && isCalculatorRouteActive && onClearCalculatorShareParams) {
+      const targetSig = nextSubMode === "reconcile" ? "panel=reconcile" : "";
+      if (calcQuerySig !== targetSig) {
+        pendingSelfUrlClearSigRef.current = targetSig;
+        lastAppliedQuerySigRef.current = targetSig;
+        onClearCalculatorShareParams(nextSubMode, pushHistory);
+      }
+    }
+  };
+
   const patchState = (patch: Partial<CalcState>) => {
-    setState((prev) => ({ ...prev, ...patch }));
+    markLocalEdit();
+    setState((prev) => {
+      const next: CalcState = { ...prev, ...patch };
+      if (patch.maxModelLen !== undefined) {
+        next.maxModelLen = normalizeCalcInt(patch.maxModelLen, 512, prev.maxModelLen);
+      }
+      if (patch.maxNumBatchedTokens !== undefined) {
+        next.maxNumBatchedTokens = normalizeCalcInt(patch.maxNumBatchedTokens, 256, prev.maxNumBatchedTokens);
+      }
+      if (patch.maxNumSeqs !== undefined) {
+        next.maxNumSeqs = normalizeCalcInt(patch.maxNumSeqs, 1, prev.maxNumSeqs);
+      }
+      if (patch.prefillTokens !== undefined) {
+        next.prefillTokens = normalizeCalcInt(patch.prefillTokens, 1, prev.prefillTokens);
+      }
+      if (patch.decodeBatchSize !== undefined) {
+        next.decodeBatchSize = normalizeCalcInt(patch.decodeBatchSize, 1, prev.decodeBatchSize);
+      }
+      if (patch.decodeContextLen !== undefined) {
+        next.decodeContextLen = normalizeCalcInt(patch.decodeContextLen, 128, prev.decodeContextLen);
+      }
+      return next;
+    });
   };
 
   const modelInput = useCustomJson ? customJsonText : presetId;
-  const gate = useMemo(() => evaluateWave3ModelGate(modelInput), [modelInput]);
+  const gate = useMemo(
+    () => evaluateCalculatorModelGate(modelInput, useCustomJson),
+    [modelInput, useCustomJson],
+  );
 
   const plan = useMemo(() => {
     if (!gate.ok || !gate.supportedInWave3) return null;
@@ -2005,8 +2636,10 @@ export function DeployCalculatorView({
       tpSize: state.tpSize,
       ppSize: state.ppSize,
       dpSize: state.dpSize,
+      pcpSize: state.pcpSize,
       dcpSize: state.dcpSize,
       enableEp: state.enableEp,
+      ...(state.useV2ModelRunner !== undefined ? { useV2ModelRunner: state.useV2ModelRunner } : {}),
       gpuMemoryUtilization: state.gpuMemoryUtilization,
       maxModelLen: state.maxModelLen,
       maxNumBatchedTokens: state.maxNumBatchedTokens,
@@ -2063,6 +2696,7 @@ export function DeployCalculatorView({
   }, [plan, useCustomJson, presetId, activeWave4DemoId, customJsonText, state]);
 
   const handleApplyTemplate = (tpl: SampleStartupLogTemplate) => {
+    markLocalEdit("reconcile");
     setLogText(tpl.logText);
     setActiveTemplateId(tpl.id);
     const rec = tpl.recommendedPlanInput;
@@ -2075,44 +2709,63 @@ export function DeployCalculatorView({
       cardId: rec.cardId,
       weightPrecision: rec.weightPrecision ?? prev.weightPrecision,
       kvCacheDtype: rec.kvCacheDtype ?? prev.kvCacheDtype,
+      weightNzMode: rec.weightNzMode ?? 1,
       tpSize: rec.tpSize ?? 1,
       ppSize: rec.ppSize ?? 1,
       dpSize: rec.dpSize ?? 1,
+      pcpSize: rec.pcpSize ?? 1,
+      dcpSize: rec.dcpSize ?? 1,
       enableEp: Boolean(rec.enableEp),
+      useV2ModelRunner: rec.useV2ModelRunner,
       gpuMemoryUtilization: rec.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
       maxModelLen: rec.maxModelLen ?? 32768,
       maxNumBatchedTokens: rec.maxNumBatchedTokens ?? DEFAULT_MAX_NUM_BATCHED_TOKENS,
+      maxNumSeqs: rec.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS,
       cudagraphMode: rec.cudagraphMode ?? "PIECEWISE",
     }));
   };
 
   const resetToStandard = () => {
+    markLocalEdit();
     setUseCustomJson(false);
     setActiveWave4DemoId(null);
     setPresetId("qwen3-8b");
+    setShareNotice(null);
   };
 
   const applyWave4Demo = (demo: Wave4DemoPreset) => {
+    markLocalEdit();
     setCustomJsonText(JSON.stringify(demo.config, null, 2));
     setUseCustomJson(true);
     setActiveWave4DemoId(demo.id);
+    setShareNotice(null);
     patchState({
       tpSize: demo.recommendedTp,
       ppSize: demo.recommendedPp,
       dpSize: demo.recommendedDp,
+      pcpSize: 1,
       dcpSize: 1,
       enableEp: demo.recommendedEnableEp,
+      useV2ModelRunner: undefined,
       weightPrecision: demo.recommendedPrecision,
     });
   };
 
   const handleHandoffToDoctor = () => {
     if (!plan) return;
+    const currentPlanValid =
+      plan.fourQuestions.q1Fit.verdict !== "blocked" && plan.fourQuestions.q2Capacity.oomStatus === "fits";
+    const commandText = currentPlanValid
+      ? buildCurrentPlanCliHint(plan)
+      : plan.fourQuestions.q4Recommendation.cliHint;
+    const modelId = useCustomJson ? (activeWave4DemoId ?? undefined) : presetId;
     workbenchHandoffStore.sendToDoctor({
-      commandText: plan.fourQuestions.q4Recommendation.cliHint,
+      commandText,
       hardwareFamily: cardIdToHardwareFamily(plan.card.id),
       version: state.version === "main" ? "main" : "v0.30.0",
-      sourceLabel: `${plan.spec.name} · ${plan.card.shortName}`,
+      sourceLabel: `${plan.spec.name} · ${plan.card.shortName} · TP=${plan.inputSummary.tpSize}`,
+      ...(modelId ? { modelId } : {}),
+      modelTraitOverride: extractDoctorModelTraitsFromSpec(plan.spec),
     });
     if (onNavigateToDoctor) {
       onNavigateToDoctor();
@@ -2121,7 +2774,17 @@ export function DeployCalculatorView({
     }
   };
 
+  const customShareGuard = useMemo(
+    () => (useCustomJson && !activeWave4DemoId ? serializeCustomModelForShare(customJsonText) : null),
+    [useCustomJson, activeWave4DemoId, customJsonText],
+  );
+
   const handleCopyShareLink = () => {
+    if (customShareGuard && !customShareGuard.ok) {
+      setShareNotice(customShareGuard.reason);
+      return;
+    }
+    setShareNotice(null);
     if (typeof window === "undefined" || !navigator.clipboard) return;
     const shareParams = buildCalculatorQueryParams(
       {
@@ -2130,17 +2793,32 @@ export function DeployCalculatorView({
         cardId: state.cardId,
         weightPrecision: state.weightPrecision,
         kvCacheDtype: state.kvCacheDtype,
+        weightNzMode: state.weightNzMode,
         tpSize: state.tpSize,
         ppSize: state.ppSize,
         dpSize: state.dpSize,
+        pcpSize: state.pcpSize,
         dcpSize: state.dcpSize,
         enableEp: state.enableEp,
         gpuMemoryUtilization: state.gpuMemoryUtilization,
         maxModelLen: state.maxModelLen,
+        maxNumBatchedTokens: state.maxNumBatchedTokens,
+        maxNumSeqs: state.maxNumSeqs,
+        cudagraphMode: state.cudagraphMode,
+        enforceEager: state.cudagraphMode === "NONE",
+        prefillTokens: state.prefillTokens,
+        decodeBatchSize: state.decodeBatchSize,
+        decodeContextLen: state.decodeContextLen,
         version: state.version === "main" ? "main" : "v0.30.0",
       },
       searchParams,
     );
+    if (state.useV2ModelRunner !== undefined) {
+      shareParams.set("v2", state.useV2ModelRunner ? "1" : "0");
+    }
+    if (customShareGuard?.ok) {
+      shareParams.set("customModel", customShareGuard.compact);
+    }
     const url = `${window.location.origin}${window.location.pathname}#/tools?${shareParams.toString()}`;
     void navigator.clipboard.writeText(url).then(() => {
       setLinkCopied(true);
@@ -2148,7 +2826,7 @@ export function DeployCalculatorView({
     });
   };
 
-  const displayTitle = title ?? "「立项四问」双模部署算账台";
+  const displayTitle = title ?? "估算要几张卡（部署算账）";
 
   return (
     <div
@@ -2189,28 +2867,43 @@ export function DeployCalculatorView({
                   className="wt-preset-btn"
                   style={{ padding: "2px 10px", fontSize: 12.5 }}
                   data-testid="calc-copy-share-link"
+                  aria-disabled={Boolean(customShareGuard && !customShareGuard.ok)}
                   onClick={handleCopyShareLink}
                 >
                   {linkCopied ? "已复制参数链接" : "复制参数链接"}
                 </button>
               )}
             </div>
+            {(shareNotice || (customShareGuard && !customShareGuard.ok)) && (
+              <p
+                className="wt-subtitle"
+                data-testid="calc-share-notice"
+                role="status"
+                style={{ color: "var(--color-warning)", fontSize: 13 }}
+              >
+                {shareNotice ?? (customShareGuard && !customShareGuard.ok ? customShareGuard.reason : "")}
+              </p>
+            )}
             <p className="wt-subtitle">
               {summary ??
-                "Mode A 用 7 级冷启动显存区间 + Roofline 回答「立项四问」；Mode B 粘贴真实 vllm serve 日志逐项对账（HCCL 不二次扣减）。"}
+                "第一步：选模型、昇腾卡型与目标上下文 → 立即看能否装下、最少几张卡与 KV 显存余量；已有启动日志也可切到「已有日志对账」核对偏差。"}
             </p>
           </div>
           {mode === "full" && (
-            <div className="wt-segmented" role="tablist" aria-label="算账台双模切换">
+            <div className="wt-segmented" role="tablist" aria-label="算账模式切换">
               <button
                 type="button"
                 role="tab"
                 aria-selected={subMode === "static"}
                 data-testid="calc-submode-static"
                 className={`wt-seg-btn${subMode === "static" ? " is-active" : ""}`}
-                onClick={() => setSubMode("static")}
+                onClick={() => {
+                  if (subMode === "static") return;
+                  markLocalEdit("static", true);
+                  setSubMode("static");
+                }}
               >
-                Mode A · 7 级静态估算
+                上线前估算（算卡数）
               </button>
               <button
                 type="button"
@@ -2218,56 +2911,74 @@ export function DeployCalculatorView({
                 aria-selected={subMode === "reconcile"}
                 data-testid="calc-submode-reconcile"
                 className={`wt-seg-btn${subMode === "reconcile" ? " is-active" : ""}`}
-                onClick={() => setSubMode("reconcile")}
+                onClick={() => {
+                  if (subMode === "reconcile") return;
+                  markLocalEdit("reconcile", true);
+                  setSubMode("reconcile");
+                }}
               >
-                Mode B · 真机日志对账
+                已有日志对账（查偏差）
               </button>
             </div>
           )}
         </header>
       )}
 
-      <div className="wt-presets">
-        <span className="wt-presets-label">模型结构：</span>
-        {MODEL_PRESETS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`wt-preset-btn${!useCustomJson && presetId === p.id ? " is-active" : ""}`}
-            onClick={() => {
-              setUseCustomJson(false);
-              setActiveWave4DemoId(null);
-              setPresetId(p.id);
-              if (p.id === "qwen3-30b-a3b" && state.tpSize === 1) {
-                patchState({ tpSize: 4, enableEp: true });
-              }
-            }}
-          >
-            <span>{p.name}</span>
-          </button>
-        ))}
-        <button
-          type="button"
-          className={`wt-preset-btn${useCustomJson && activeWave4DemoId === null ? " is-active" : ""}`}
-          onClick={() => {
-            setActiveWave4DemoId(null);
-            setUseCustomJson(true);
-          }}
-        >
-          粘贴 config.json
-        </button>
-        {mode === "full" &&
-          WAVE4_DEMO_PRESETS.map((demo) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="wt-presets">
+          <span className="wt-presets-label">第一步 · 选模型：</span>
+          {MODEL_PRESETS.map((p) => (
             <button
-              key={demo.id}
+              key={p.id}
               type="button"
-              data-testid={`wave4-demo-${demo.id}`}
-              className={`wt-preset-btn${useCustomJson && activeWave4DemoId === demo.id ? " is-active" : ""}`}
-              onClick={() => applyWave4Demo(demo)}
+              className={`wt-preset-btn${!useCustomJson && presetId === p.id ? " is-active" : ""}`}
+              onClick={() => {
+                markLocalEdit();
+                setUseCustomJson(false);
+                setActiveWave4DemoId(null);
+                setPresetId(p.id);
+                setShareNotice(null);
+                if (p.id === "qwen3-30b-a3b" && state.tpSize === 1) {
+                  patchState({ tpSize: 4, enableEp: true });
+                }
+              }}
             >
-              {demo.label}
+              <span>{p.name}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className={`wt-preset-btn${useCustomJson && activeWave4DemoId === null ? " is-active" : ""}`}
+            onClick={() => {
+              markLocalEdit();
+              setActiveWave4DemoId(null);
+              setUseCustomJson(true);
+              setShareNotice(null);
+            }}
+          >
+            粘贴 config.json
+          </button>
+        </div>
+
+        {mode === "full" && (
+          <div className="wt-preset-subrow">
+            <span className="wt-presets-label" style={{ fontSize: 12.5 }}>
+              特殊架构样例（MLA / 线性注意力 / Engram）：
+            </span>
+            {WAVE4_DEMO_PRESETS.map((demo) => (
+              <button
+                key={demo.id}
+                type="button"
+                data-testid={`wave4-demo-${demo.id}`}
+                className={`wt-preset-btn${useCustomJson && activeWave4DemoId === demo.id ? " is-active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: 12.5 }}
+                onClick={() => applyWave4Demo(demo)}
+              >
+                {demo.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {useCustomJson && (
@@ -2290,7 +3001,9 @@ export function DeployCalculatorView({
             data-testid="calc-custom-config-input"
             value={customJsonText}
             onChange={(e) => {
+              markLocalEdit();
               setActiveWave4DemoId(null);
+              setShareNotice(null);
               setCustomJsonText(e.target.value);
             }}
             placeholder="粘贴 HuggingFace config.json 原文..."
@@ -2301,6 +3014,7 @@ export function DeployCalculatorView({
       {!gate.ok && (
         <div
           className="wt-card"
+          data-testid="calc-gate-error"
           role="alert"
           style={{
             borderColor: "var(--color-danger)",
@@ -2341,13 +3055,24 @@ export function DeployCalculatorView({
 
           {mode === "full" && subMode === "static" && (
             <>
+              <DeployVerdictStrip plan={plan} />
+              <AdvancedCalcControls
+                state={state}
+                open={advancedOpen}
+                onOpenChange={setAdvancedOpen}
+                onPatch={patchState}
+              />
               <FourQuestionsGrid plan={plan} onHandoffToDoctor={handleHandoffToDoctor} />
               <SevenStageSection plan={plan} />
               <section className="wt-section">
                 <div className="wt-section-head">
                   <h3 className="wt-section-title">Roofline 算术强度落点与硬件脊点对照</h3>
                   <span className="wt-section-meta">
-                    {plan.card.shortName} · 脊点 {plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B
+                    {Math.abs(
+                      plan.roofline.prefillPeakComputeTflops - plan.roofline.decodePeakComputeTflops,
+                    ) > 1e-6
+                      ? `${plan.card.shortName} · Prefill 脊点 ${plan.roofline.prefillRidgePointFlopsPerByte.toFixed(1)} / Decode 脊点 ${plan.roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+                      : `${plan.card.shortName} · 脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
                   </span>
                 </div>
                 <div className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -85,6 +85,7 @@ interface ParsedLogLine {
   rawLine: string;
   trimmed: string;
   rank: number | null;
+  pid: number | null;
   timestamp: string | null;
   timestampMs: number | null;
 }
@@ -98,21 +99,37 @@ const FULL_TS_RE = /\b(\d{4})-(\d{2})-(\d{2})[T -](\d{2}):(\d{2}):(\d{2})(?:[.,]
 const SHORT_DATE_TS_RE = /\b(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,6}))?\b/;
 const TIME_ONLY_TS_RE = /\b(\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,6}))?\b/;
 
-const RANK_PATTERNS: readonly RegExp[] = [
+export const LOG_TIMESTAMP_PATTERNS: readonly RegExp[] = [FULL_TS_RE, SHORT_DATE_TS_RE, TIME_ONLY_TS_RE];
+
+export const RANK_PATTERNS: readonly RegExp[] = [
   /\[\s*(?:Rank|rank|RANK)\s*[:=#]?\s*(\d+)\s*\]/,
-  /\b(?:Worker_TP|VllmWorker_TP|Worker_DP|Worker_PP|EngineCore_DP)\s*[_:-]?\s*(\d+)\b/i,
+  /\bWorker_(?:DP\d+_)?(?:PP\d+_)?(?:TP\d+_)?EP(\d+)\b/i,
+  /\b(?:Worker_TP|VllmWorker_TP|Worker_DP|Worker_PP|EngineCore_DP)\s*[_:-]?\s*(\d+)(?=_|\b)/i,
   /\b(?:local_rank|global_rank|rank)\s*[:=]\s*(\d+)\b/i,
   /\brank\s+(\d+)\b/i,
   /\b(?:NPU|device)\s*[:=#]\s*(\d+)\b/i,
-  /\bdevice\s+(\d+)\b/i,
+  /\b(?:NPU|device)\s+(\d+)\b/i,
 ];
+
+export interface ExtractedTimestamp {
+  timestamp: string | null;
+  timestampMs: number | null;
+  index: number | null;
+  length: number;
+}
+
+export interface ExtractedRankMatch {
+  rank: number;
+  index: number;
+  raw: string;
+}
 
 function parseFractionMs(frac: string | undefined): number {
   if (!frac) return 0;
   return Number(frac.slice(0, 3).padEnd(3, "0"));
 }
 
-function extractTimestamp(line: string): { timestamp: string | null; timestampMs: number | null } {
+export function extractTimestamp(line: string): ExtractedTimestamp {
   const full = FULL_TS_RE.exec(line);
   if (full) {
     const year = Number(full[1]);
@@ -123,7 +140,7 @@ function extractTimestamp(line: string): { timestamp: string | null; timestampMs
     const ss = Number(full[6]);
     const ms = parseFractionMs(full[7]);
     const timestampMs = Date.UTC(year, month - 1, day, hh, mm, ss, ms);
-    return { timestamp: full[0], timestampMs };
+    return { timestamp: full[0], timestampMs, index: full.index, length: full[0].length };
   }
 
   const shortDate = SHORT_DATE_TS_RE.exec(line);
@@ -135,7 +152,7 @@ function extractTimestamp(line: string): { timestamp: string | null; timestampMs
     const ss = Number(shortDate[5]);
     const ms = parseFractionMs(shortDate[6]);
     const timestampMs = Date.UTC(2026, month - 1, day, hh, mm, ss, ms);
-    return { timestamp: shortDate[0], timestampMs };
+    return { timestamp: shortDate[0], timestampMs, index: shortDate.index, length: shortDate[0].length };
   }
 
   const timeOnly = TIME_ONLY_TS_RE.exec(line);
@@ -146,78 +163,125 @@ function extractTimestamp(line: string): { timestamp: string | null; timestampMs
     const ms = parseFractionMs(timeOnly[4]);
     if (hh <= 23 && mm <= 59 && ss <= 59) {
       const timestampMs = ((hh * 60 + mm) * 60 + ss) * 1000 + ms;
-      return { timestamp: timeOnly[0], timestampMs };
+      return { timestamp: timeOnly[0], timestampMs, index: timeOnly.index, length: timeOnly[0].length };
     }
   }
 
-  return { timestamp: null, timestampMs: null };
+  return { timestamp: null, timestampMs: null, index: null, length: 0 };
 }
 
-function extractRank(line: string): number | null {
+export function extractRankMatch(line: string): ExtractedRankMatch | null {
   for (const re of RANK_PATTERNS) {
     const match = re.exec(line);
     if (match?.[1] !== undefined) {
       const value = Number.parseInt(match[1], 10);
       if (Number.isFinite(value) && value >= 0 && value < 4096) {
-        return value;
+        return { rank: value, index: match.index, raw: match[0] };
       }
     }
   }
   return null;
 }
 
+export function extractRank(line: string): number | null {
+  return extractRankMatch(line)?.rank ?? null;
+}
+
+const PID_RE = /\bpid=(\d+)\b/i;
+
+const OMISSION_MARKER_RE =
+  /^\s*\.\.\.\s*\[日志节选：[^\]]*(?:下行起原行号\s*L(\d+)|已省略第\s*\d+\s*[–-]\s*(\d+)\s*行)[^\]]*\]\s*\.\.\.\s*$/;
+
+function extractPid(line: string): number | null {
+  const m = PID_RE.exec(line);
+  if (!m?.[1]) return null;
+  const val = Number.parseInt(m[1], 10);
+  return Number.isFinite(val) ? val : null;
+}
+
 function parseLogLines(input: string): ParsedLogLine[] {
   const rawLines = input.split(/\r?\n/);
   const parsed: ParsedLogLine[] = [];
   let tracebackRank: number | null = null;
+  let tracebackPid: number | null = null;
   let tracebackTs: string | null = null;
   let tracebackTsMs: number | null = null;
   let inTraceback = false;
+  let currentLineNumber = 1;
 
   for (let i = 0; i < rawLines.length; i++) {
     const rawLine = rawLines[i]!;
     const trimmed = rawLine.trim();
+
+    const omissionMatch = OMISSION_MARKER_RE.exec(rawLine);
+    if (omissionMatch) {
+      const nextLine = omissionMatch[1]
+        ? Number.parseInt(omissionMatch[1], 10)
+        : omissionMatch[2]
+          ? Number.parseInt(omissionMatch[2], 10) + 1
+          : NaN;
+      if (Number.isFinite(nextLine) && nextLine > currentLineNumber) {
+        currentLineNumber = nextLine;
+      }
+      inTraceback = false;
+      tracebackRank = null;
+      tracebackPid = null;
+      tracebackTs = null;
+      tracebackTsMs = null;
+      continue;
+    }
+
+    const lineNumber = currentLineNumber;
+    currentLineNumber += 1;
+
     const { timestamp, timestampMs } = extractTimestamp(rawLine);
     let rank = extractRank(rawLine);
+    let pid = extractPid(rawLine);
     let effectiveTimestamp = timestamp;
     let effectiveTimestampMs = timestampMs;
 
     if (/Traceback \(most recent call last\):/i.test(trimmed)) {
       inTraceback = true;
       tracebackRank = rank;
+      tracebackPid = pid;
       tracebackTs = timestamp;
       tracebackTsMs = timestampMs;
     } else if (inTraceback) {
       if (trimmed.length === 0) {
         inTraceback = false;
         tracebackRank = null;
+        tracebackPid = null;
         tracebackTs = null;
         tracebackTsMs = null;
       } else if (rank === null && timestamp === null) {
         if (/^(?:File "|[\s]{2,}|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception):)/.test(rawLine)) {
           rank = tracebackRank;
+          if (pid === null) pid = tracebackPid;
           effectiveTimestamp = tracebackTs;
           effectiveTimestampMs = tracebackTsMs;
         }
         if (/^[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception):/.test(trimmed)) {
           inTraceback = false;
           tracebackRank = null;
+          tracebackPid = null;
           tracebackTs = null;
           tracebackTsMs = null;
         }
       } else {
         inTraceback = false;
         tracebackRank = null;
+        tracebackPid = null;
         tracebackTs = null;
         tracebackTsMs = null;
       }
     }
 
     parsed.push({
-      lineNumber: i + 1,
+      lineNumber,
       rawLine,
       trimmed,
       rank,
+      pid,
       timestamp: effectiveTimestamp,
       timestampMs: effectiveTimestampMs,
     });
@@ -298,12 +362,47 @@ export function parsePrometheusMetrics(input: string): ParsedMetricsSnapshot {
   };
 }
 
-const CASCADE_SIGNAL_PATTERNS: ReadonlyArray<{ re: RegExp; tag: string }> = [
+const BENIGN_HCCL_TIMEOUT_CONFIG_RE =
+  /timeout interval of the HCCL operator|VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS|HCCL_EXEC_TIMEOUT\s*=/i;
+
+const EXPLICIT_HCCL_FAULT_RE =
+  /\bEI0006\b|\bHCCL_E_WAIT_TIMEOUT\b|Notify wait execute timeout|Watchdog caught collective operation timeout/i;
+
+const HCCL_CONTEXT_TIMEOUT_FAULT_RE =
+  /(?:AllReduce|AllGather|ReduceScatter|AllToAll)\b[^\r\n]{0,40}\b(?:timeout|timed?\s+out)\b|\bHCCL\b[^\r\n]{0,36}\b(?:wait\s+timeout|execute\s+timeout|collective[^\r\n]{0,20}timeout|timed?\s+out|(?:error|failed)[^\r\n]{0,20}timeout)\b|\b(?:ERROR|CRITICAL|FATAL|RuntimeError|TimeoutError)\b[^\r\n]{0,48}\bHCCL\b[^\r\n]{0,24}\btimeout\b/i;
+
+const EXPLICIT_ERROR_LEVEL_RE = /\b(?:ERROR|CRITICAL|FATAL|RuntimeError|TimeoutError)\b/i;
+
+function isHcclTimeoutFaultLine(rawLine: string): boolean {
+  if (EXPLICIT_HCCL_FAULT_RE.test(rawLine)) return true;
+  if (BENIGN_HCCL_TIMEOUT_CONFIG_RE.test(rawLine) && !EXPLICIT_ERROR_LEVEL_RE.test(rawLine)) {
+    return false;
+  }
+  return HCCL_CONTEXT_TIMEOUT_FAULT_RE.test(rawLine);
+}
+
+const SLEEP_FRACTAL_NZ_ERROR_RE =
+  /FRACTAL_NZ mode is enabled|Invocation of wake_up method failed[^\r\n]*FRACTAL_NZ|Please set weight_nz_mode=0/i;
+
+const GQA_STATIC_C8_KV_RE =
+  /The current GQA[-\u2010-\u2015\s]related models adopt static quantization|KV quantization is configured via `--kv[-\u2010-\u2015]cache[-\u2010-\u2015]dtype`[^\r\n]*quantized weights are required/i;
+
+const MOONCAKE_PD_ERROR_RE =
+  /Mooncake worker requires|Prefill TP size must be divisible by Decode TP size|MooncakeConnector\w*\b[^'\r\n]{0,40}\b(?:does not support|not supported|unsupported|failed|error|timeout|refused)|(?:ValueError|RuntimeError|AssertionError|ERROR)\b[^\r\n]*\bMooncakeConnector|\bmooncake\b(?![^\r\n]*kv_load_failure_policy)[^\r\n]{0,48}\b(?:failed|error|handshake\s+(?:failed|error|timeout)|refused|timeout)\b|\bRDMA\b[^\r\n]{0,30}\b(?:init\s+failed|register\s+failed|failed|error|timeout)\b/i;
+
+const CASCADE_SIGNAL_PATTERNS: ReadonlyArray<{
+  re?: RegExp;
+  predicate?: (rawLine: string) => boolean;
+  tag: string;
+}> = [
   { re: /\bEI0006\b/i, tag: "HCCL EI0006" },
   { re: /\bHCCL_E_WAIT_TIMEOUT\b/i, tag: "HCCL_E_WAIT_TIMEOUT" },
   { re: /Notify wait execute timeout/i, tag: "Notify wait execute timeout" },
   { re: /Watchdog caught collective operation timeout/i, tag: "Watchdog collective timeout" },
-  { re: /(?:HCCL|AllReduce|AllGather|ReduceScatter).{0,40}timeout/i, tag: "HCCL collective timeout" },
+  {
+    predicate: isHcclTimeoutFaultLine,
+    tag: "HCCL collective timeout",
+  },
   { re: /EngineCore(?:Proc)?\b.{0,50}died unexpectedly/i, tag: "EngineCoreProc died unexpectedly" },
   { re: /\bBrokenPipeError\b|\bChildFailedError\b/i, tag: "BrokenPipe / ChildFailed" },
 ];
@@ -320,11 +419,12 @@ const PRIMARY_SIGNAL_PATTERNS: ReadonlyArray<{ re: RegExp; tag: string }> = [
   { re: /Aicore kernel execute failed|aclnn[A-Za-z0-9_]+.*failed/i, tag: "AI Core / aclnn 算子失败" },
   { re: /Check ascend device type failed|\bSOC_VERSION\b.*mismatch/i, tag: "SoC/Wheel 型号不匹配" },
   { re: /AscendFAImpl does not support ACL graph capture/i, tag: "FA3 + FULL_DECODE_ONLY 图捕获冲突" },
-  { re: /The current GQA.{0,12}related models adopt static quantization/i, tag: "GQA + C8 缺少校准权重" },
+  { re: GQA_STATIC_C8_KV_RE, tag: "GQA + C8 缺少校准权重" },
   {
-    re: /MooncakeConnector|mooncake.{0,30}(?:fail|error|handshake|refused|timeout)|RDMA.{0,25}(?:init|register|fail)/i,
+    re: MOONCAKE_PD_ERROR_RE,
     tag: "Mooncake / RDMA KV 传输异常",
   },
+  { re: SLEEP_FRACTAL_NZ_ERROR_RE, tag: "Sleep 唤醒与 FRACTAL_NZ 冲突" },
   {
     re: /exit\s*code[:=\s]*137\b|exitcode[:=\s]*-9\b|\bSIGKILL\b|\bOOMKilled\b/i,
     tag: "OS SIGKILL (137 / -9)",
@@ -347,8 +447,8 @@ function classifyLineSignal(line: ParsedLogLine): ClassifiedSignal | null {
     }
   }
 
-  for (const { re, tag } of CASCADE_SIGNAL_PATTERNS) {
-    if (re.test(line.rawLine)) {
+  for (const { re, predicate, tag } of CASCADE_SIGNAL_PATTERNS) {
+    if (predicate ? predicate(line.rawLine) : re?.test(line.rawLine)) {
       return { ...line, kind: "cascade", signalTag: tag };
     }
   }
@@ -425,7 +525,14 @@ function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFa
 
     const rationale = `锁定首错 Rank 为 Rank ${winnerRank}（第 ${earliest.lineNumber} 行，${tsNote} 触发「${earliest.signalTag}」）${cascadeNote}`;
 
-    const evidencePool: ClassifiedSignal[] = [...primaries.slice(0, 4), ...cascades.slice(0, 3)];
+    const seenEvidenceLines = new Set<number>();
+    const evidencePool: ClassifiedSignal[] = [];
+    for (const sig of [...rankedPrimaries.slice(0, 4), ...primaries.slice(0, 4), ...cascades.slice(0, 3)]) {
+      if (seenEvidenceLines.has(sig.lineNumber)) continue;
+      seenEvidenceLines.add(sig.lineNumber);
+      evidencePool.push(sig);
+      if (evidencePool.length >= 7) break;
+    }
 
     return {
       rank: winnerRank,
@@ -472,9 +579,15 @@ function toMatched(line: ParsedLogLine): MatchedLogLine {
   };
 }
 
-function collectMatches(lines: readonly ParsedLogLine[], re: RegExp, limit = 4): MatchedLogLine[] {
+function collectMatches(
+  lines: readonly ParsedLogLine[],
+  re: RegExp,
+  limit = 4,
+  exclude?: RegExp,
+): MatchedLogLine[] {
   const out: MatchedLogLine[] = [];
   for (const line of lines) {
+    if (exclude?.test(line.rawLine)) continue;
     if (re.test(line.rawLine)) {
       out.push(toMatched(line));
       if (out.length >= limit) break;
@@ -483,12 +596,114 @@ function collectMatches(lines: readonly ParsedLogLine[], re: RegExp, limit = 4):
   return out;
 }
 
+function collectMatchesByPredicate(
+  lines: readonly ParsedLogLine[],
+  predicate: (rawLine: string) => boolean,
+  limit = 4,
+): MatchedLogLine[] {
+  const out: MatchedLogLine[] = [];
+  for (const line of lines) {
+    if (predicate(line.rawLine)) {
+      out.push(toMatched(line));
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
+}
+
+const COLD_START_OOM_STAGE_RE =
+  /\b(?:in\s+load_model|load_model\s*\(|in\s+load_weights|load_weights\b|during\s+load_weights|in\s+profile_run|profile_run\s*\(|in\s+determine_available_memory|determine_available_memory\s*\(|in\s+_dummy_run|Loading\s+safetensors|default_loader\.py|weight_utils\.py)/i;
+
+const POST_KV_CAPTURE_STACK_RE =
+  /\b(?:in\s+capture_model|capture_model\s*\(|in\s+compile_or_warm_up_model|compile_or_warm_up_model\s*\(|while\s+capturing\s+(?:acl|cuda|npu)?graph|during\s+(?:capture_model|graph\s+captur|aclgraph\s+pool|npugraph\s+pool)|aclgraph\s+pool\s+init|acl_graph\.py|npu_graph\.py|cudagraph_dispatcher\.py|in\s+initialize_cache|initialize_cache\s*\(|capturing\s+(?:cuda|acl|npu)graph|graph\s+captur(?:e|ing)\s+(?:failed|oom|error|batch))/i;
+
+const POST_KV_MILESTONE_RE =
+  /Available KV cache memory:\s*[\d.]+\s*(?:GiB|GB|MiB)|(?:NPU|GPU)\s+KV cache size:\s*[\d,]+\s*tokens|Entering\s+compile_or_warm_up_model|Graph capturing finished/i;
+
+function hasExplicitScopeMatch(oomLine: ParsedLogLine, candidate: ParsedLogLine): boolean {
+  if (oomLine.pid !== null) {
+    if (candidate.pid !== null) return oomLine.pid === candidate.pid;
+    return oomLine.rank !== null && candidate.rank !== null && oomLine.rank === candidate.rank;
+  }
+  if (oomLine.rank !== null) {
+    if (candidate.pid !== null) return false;
+    return candidate.rank !== null && oomLine.rank === candidate.rank;
+  }
+  return candidate.pid === null && candidate.rank === null;
+}
+
+function isContiguousStackFrameForOom(
+  lines: readonly ParsedLogLine[],
+  oomIdx: number,
+  candIdx: number,
+): boolean {
+  const oomLine = lines[oomIdx]!;
+  const candidate = lines[candIdx]!;
+  if (hasExplicitScopeMatch(oomLine, candidate)) return true;
+  if (candidate.pid !== null || candidate.rank !== null) return false;
+  // Unlabelled stack frame (`  File ... in capture_model`) may pair with a scoped OOM ONLY if
+  // original line numbers are strictly contiguous (no omission gap) and no conflicting process lies between them.
+  const idxSpan = Math.abs(candIdx - oomIdx);
+  const lineSpan = Math.abs(candidate.lineNumber - oomLine.lineNumber);
+  if (lineSpan !== idxSpan) return false;
+  const lo = Math.min(oomIdx, candIdx);
+  const hi = Math.max(oomIdx, candIdx);
+  for (let k = lo + 1; k < hi; k += 1) {
+    const mid = lines[k]!;
+    if (mid.pid !== null && oomLine.pid !== null && mid.pid !== oomLine.pid) return false;
+    if (mid.rank !== null && oomLine.rank !== null && mid.rank !== oomLine.rank) return false;
+  }
+  return true;
+}
+
+function isPostKvOomStage(
+  lines: readonly ParsedLogLine[],
+  oomMatches: readonly MatchedLogLine[],
+  verdictRank: number | null,
+): boolean {
+  const targetMatch =
+    (verdictRank !== null ? oomMatches.find((m) => m.rank === verdictRank) : undefined) ?? oomMatches[0];
+  if (!targetMatch) return false;
+  const oomIdx = lines.findIndex((l) => l.lineNumber === targetMatch.lineNumber);
+  if (oomIdx < 0) return false;
+  const oomLine = lines[oomIdx]!;
+
+  // 1. Inspect the OOM line and its immediate stack/context window measured in ORIGINAL line numbers (<= 20 lines)
+  const winStart = Math.max(0, oomIdx - 20);
+  const winEnd = Math.min(lines.length - 1, oomIdx + 20);
+  let minPostDist = Number.POSITIVE_INFINITY;
+  let minColdDist = Number.POSITIVE_INFINITY;
+  for (let i = winStart; i <= winEnd; i += 1) {
+    const candidate = lines[i]!;
+    const lineDist = Math.abs(candidate.lineNumber - oomLine.lineNumber);
+    if (lineDist > 20) continue;
+    if (!isContiguousStackFrameForOom(lines, oomIdx, i)) continue;
+    if (POST_KV_CAPTURE_STACK_RE.test(candidate.rawLine)) {
+      minPostDist = Math.min(minPostDist, lineDist);
+    }
+    if (COLD_START_OOM_STAGE_RE.test(candidate.rawLine)) {
+      minColdDist = Math.min(minColdDist, lineDist);
+    }
+  }
+  if (minPostDist !== Number.POSITIVE_INFINITY || minColdDist !== Number.POSITIVE_INFINITY) {
+    return minPostDist < minColdDist;
+  }
+
+  // 2. Fallback: scan backwards in strictly matching process/rank scope; stop false if a cold-start stage precedes OOM without a later KV milestone
+  for (let i = oomIdx - 1; i >= 0; i -= 1) {
+    const candidate = lines[i]!;
+    if (!hasExplicitScopeMatch(oomLine, candidate)) continue;
+    if (POST_KV_MILESTONE_RE.test(candidate.rawLine)) return true;
+    if (COLD_START_OOM_STAGE_RE.test(candidate.rawLine)) return false;
+  }
+  return false;
+}
+
 const VLLM_ASCEND_V030 = "vllm-ascend@c09d3e20";
 const VLLM_V030 = "vllm@ced6857a";
 
 function evaluateRules(
   lines: readonly ParsedLogLine[],
-  fullText: string,
   metrics: ParsedMetricsSnapshot,
   verdict: FirstFaultVerdict,
 ): LogDiagnosisFinding[] {
@@ -532,10 +747,7 @@ function evaluateRules(
     /NPU out of memory|ACL_ERROR_RT_MEMORY_ALLOCATION|OutOfMemoryError/i,
   );
   if (r2Matches.length > 0) {
-    const postKvContext =
-      /capture_model|compile_or_warm_up_model|aclgraph|npugraph|Available KV cache memory|initialize_cache|graph capture/i.test(
-        fullText,
-      );
+    const postKvContext = isPostKvOomStage(lines, r2Matches, verdict.rank);
     findings.push({
       ruleId: "oom-stage-split",
       title: postKvContext
@@ -552,24 +764,22 @@ function evaluateRules(
         : "权重显存 + HCCL 通信域常驻缓冲 + max_num_batched_tokens 试跑激活峰值已超过单卡可用 HBM，需要从 TP 切分、量化或收紧批处理/序列上限入手。",
       matchedLines: r2Matches,
       sources: [
-        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L596-L635`,
-        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L906-L952`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L599-L635`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L905-L928`,
         `${VLLM_ASCEND_V030}:vllm_ascend/worker/model_runner_v1.py#L6607-L6618`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/device/device_op.py#L212-L224`,
       ],
       nextEvidenceCmd:
         "grep -nE 'Model loading took|Available KV cache memory|capture_model|NPU out of memory' vllm_serve.log",
       experimentStep: postKvContext
-        ? "单项对照：先将 --gpu-memory-utilization 下调 0.05（例如 0.95 → 0.88）或改用 worker 建议的 --kv-cache-memory；若立即可过 capture_model，即可确认是 1 - u 余量不足而非权重超限。"
+        ? "单项对照：先将 --gpu-memory-utilization 下调 0.07~0.08（例如 0.95 → 0.88 下调 0.07，或 910B3 真机 0.90 → 0.82 下调 0.08）或改用 worker 建议的 --kv-cache-memory；若立即可过 capture_model，即可确认是 1 - u 余量不足而非权重超限。"
         : "单项对照：先开启 --enforce-eager 并收紧 --max-model-len / --max-num-batched-tokens 复测；若在 load_model 即 OOM，需增大 TP 或改用 W8A8/W4A8 量化。",
       wikiPageIds: ["kv-cache-memory-profiling", "acl-graph", "device-memory"],
     });
   }
 
   // Rule 3: Multi-rank EI0006 / HCCL_E_WAIT_TIMEOUT with root-cause Rank vs pure network/HCCS timeout
-  const r3Matches = collectMatches(
-    lines,
-    /\bEI0006\b|\bHCCL_E_WAIT_TIMEOUT\b|Notify wait execute timeout|Watchdog caught collective operation timeout|HCCL.{0,30}timeout/i,
-  );
+  const r3Matches = collectMatchesByPredicate(lines, isHcclTimeoutFaultLine, 4);
   if (r3Matches.length > 0) {
     const hasRootRank = verdict.rank !== null;
     findings.push({
@@ -652,11 +862,14 @@ function evaluateRules(
   // Rule 5: SoC / wheel mismatch or 310P BF16 / GQA + C8 uncalibrated checkpoint ValueError
   const r5Matches = collectMatches(
     lines,
-    /Check ascend device type failed|\bSOC_VERSION\b|Ascend310P.*bfloat16|bfloat16.*(?:310P|not supported)|The current GQA.{0,12}related models adopt static quantization|AscendModelSlimConfig310|FP8.*310P/i,
+    new RegExp(
+      `Check ascend device type failed|\\bSOC_VERSION\\b|Ascend310P.*bfloat16|bfloat16.*(?:310P|not supported)|${GQA_STATIC_C8_KV_RE.source}|AscendModelSlimConfig310|FP8.*310P`,
+      "i",
+    ),
   );
   if (r5Matches.length > 0) {
     const joined = r5Matches.map((m) => m.rawLine).join(" ");
-    const isGqaC8 = /GQA.{0,12}related models adopt static quantization|enable_c8_quant/i.test(joined);
+    const isGqaC8 = GQA_STATIC_C8_KV_RE.test(joined) || /enable_c8_quant/i.test(joined);
     const is310p = /310P|bfloat16|AscendModelSlimConfig310/i.test(joined);
     findings.push({
       ruleId: "soc-310p-or-c8-compat",
@@ -669,17 +882,17 @@ function evaluateRules(
       category: "compatibility",
       evidenceLevel: "C",
       summary: isGqaC8
-        ? "attention_v1.py 对标准 GQA 模型的 C8 KV Cache 采用离线静态量化，若未传入包含 C8 KV scale 的 ModelSlim 权重（enable_c8_quant=True），会直接抛出 ValueError。"
+        ? "attention_v1.py:583 对标准 GQA 模型的 C8 KV Cache 采用离线静态量化，若未传入包含 C8 KV scale 的 ModelSlim 权重（enable_c8_quant=True），模型初始化阶段即抛出 ValueError（独立且早于 Mooncake 传输校验）。"
         : is310p
           ? "Ascend 310P 走 COMPATIBILITY 硬件档位，仅支持 FP16 与 AscendModelSlimConfig310，不支持 BF16 与标准 AscendFp8Config。"
           : "当前运行设备的 SoC 型号与 vllm-ascend 编译产物（SOC_VERSION）或所选硬件档位不一致。",
       mechanism: isGqaC8
-        ? "vllm_ascend/attention/attention_v1.py 校验：当 kv_cache_dtype 非 FP16/BF16/FP32 且非 MXFP8 时，要求 quant_config.enable_c8_quant 为 True。"
+        ? "vllm_ascend/attention/attention_v1.py#L571-L586（第 583 行）校验：当普通 GQA 的 kv_cache_dtype 非 FP16/BF16/FP32 且非 MXFP8 时，要求 quant_config.enable_c8_quant 为 True，否则直接拒绝启动。"
         : "vllm_ascend/device/hardware_profile.py 将 Ascend310P 路由到 COMPATIBILITY 档位（强制 FRACTAL_NZ、不注册 AscendFp8Config）；若启动命令携带 BF16 或错装了 A2/A3 wheel，会在设备识别或权重加载阶段直接失败。",
       matchedLines: r5Matches,
       sources: [
         `${VLLM_ASCEND_V030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
-        `${VLLM_ASCEND_V030}:vllm_ascend/attention/attention_v1.py#L570-L587`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/attention/attention_v1.py#L571-L586`,
         `${VLLM_ASCEND_V030}:vllm_ascend/utils.py#L58-L62`,
       ],
       nextEvidenceCmd:
@@ -825,27 +1038,55 @@ function evaluateRules(
   }
 
   // Rule 9: Mooncake / PD KV-transfer error
-  const r9Matches = collectMatches(
-    lines,
-    /MooncakeConnector|mooncake.{0,30}(?:fail|error|handshake|refused|timeout)|RDMA.{0,25}(?:init|register|fail)/i,
-  );
+  const r9Matches = collectMatches(lines, MOONCAKE_PD_ERROR_RE);
   if (r9Matches.length > 0) {
     findings.push({
       ruleId: "mooncake-pd-transfer-error",
-      title: "P/D 分离 KV 传输（Mooncake / RDMA）握手或配置校验异常",
+      title: "P/D 分离 KV 传输（Mooncake / RDMA）握手或角色/TP 整除校验异常",
       severity: "error",
       category: "kv-transfer",
       evidenceLevel: "C",
       summary:
-        "检测到 MooncakeConnector 或 RDMA 建链/KV 传输异常；常见原因包括 P/D 两端 kv_role / metadata server / 网卡地址不一致，或 GQA 模型叠加了 Mooncake 不支持的 C8 KV 量化。",
+        "检测到 MooncakeConnector 或 P/D 参数校验失败；典型诱因包括误传 kv_role='kv_both'（Mooncake 要求单端严格二选一 kv_producer / kv_consumer）、TP_P 不能被 TP_D 整除、双端网卡/metadata 不一致，或 GQA 叠加 C8 KV 量化。",
       mechanism:
-        "vllm_ascend/ascend_config.py 显式禁止在 GQA 模型上将 MooncakeConnector 与 C8 KV 量化同开；运行期则依赖 P/D 双端通过同一 metadata server 与可达的 RDMA/RoCE 设备完成 KV 块搬运。",
+        "mooncake/base_worker.py#L110-L120 强制要求单实例仅担任单一传输角色；VllmConfig 经 ascend_config.py#L879-L884 校验普通 PD 的 prefill_tp_size % decode_tp_size == 0 以完成 KV 头切片对齐；ascend_config.py#L1030-L1042 独立禁止 GQA 模型在普通 Mooncake 上直接开 C8 KV 量化。",
       matchedLines: r9Matches,
-      sources: [`${VLLM_ASCEND_V030}:vllm_ascend/ascend_config.py#L1035-L1045`],
-      nextEvidenceCmd: "grep -nE 'Mooncake|kv_transfer_config|kv_role|RDMA|metadata' prefill.log decode.log",
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/ascend_config.py#L879-L884`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/ascend_config.py#L1030-L1042`,
+      ],
+      nextEvidenceCmd:
+        "grep -nE 'Mooncake|kv_transfer_config|kv_role|divisible|RDMA|metadata' prefill.log decode.log",
       experimentStep:
-        "先在单实例（不拆 P/D）验证模型可正常推理，再双端对照 kv_transfer_config 的 metadata_server、protocol 与网卡连通性，并确认 GQA 未开 C8 KV 量化。",
-      wikiPageIds: ["pd-disaggregation", "mooncake-connector"],
+        "核对 P 端 kv_role='kv_producer'、D 端 kv_role='kv_consumer'（禁止 kv_both），确保 TP_P 为 TP_D 的整数倍且 D 端 PP=1，再验证 RoCE/HCCS 连通性。",
+      wikiPageIds: ["pd-disaggregation", "mooncake-connector", "tensor-parallel"],
+    });
+  }
+
+  // Rule 10: Sleep Mode wake_up() + FRACTAL_NZ weight layout conflict
+  const r10Matches = collectMatches(lines, SLEEP_FRACTAL_NZ_ERROR_RE);
+  if (r10Matches.length > 0) {
+    findings.push({
+      ruleId: "sleep-mode-fractal-nz-wakeup",
+      title: "Sleep Mode 唤醒失败：weight_nz_mode 非零触发 wake_up() FRACTAL_NZ 守卫（ValueError）",
+      severity: "error",
+      category: "compatibility",
+      evidenceLevel: "C",
+      summary:
+        "实例在 --enable-sleep-mode 下可执行 sleep() 卸载权重，但调用 wake_up() 时被 worker.py:279-286 拦截抛出 ValueError：即使普通 BF16 权重在默认 weight_nz_mode=1 下按 utils.py:373-386 并未转为 FRACTAL_NZ，只要配置值非零即会拒绝唤醒。",
+      mechanism:
+        "按 vllm_ascend/utils.py#L373-L386，普通 BF16/FP16 权重仅在 weight_nz_mode=2 时转换为 FRACTAL_NZ，默认 weight_nz_mode=1 并不转 NZ；但 vllm_ascend/worker/worker.py#L279-L286 在 wake_up() 中直接校验配置项 weight_nz_mode != 0，只要非零即抛 ValueError（防范依赖 NZ 的量化权重在 RL/重加载场景出现精度异常）。",
+      matchedLines: r10Matches,
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L279-L286`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/utils.py#L373-L386`,
+      ],
+      nextEvidenceCmd:
+        "grep -nE 'enable_sleep_mode|weight_nz_mode|FRACTAL_NZ|CaMem sleep|wake_up' vllm_serve.log",
+      experimentStep:
+        "启动参数追加 --additional-config '{\"weight_nz_mode\": 0}'（或开启 rl_config.enabled=true）后重新验证 sleep(1) -> wake_up() 闭环（BF16 模型由 mode=1 改 0 不影响常规算子布局；注意启用 Sleep 会使 RFork 回退默认加载）。",
+      wikiPageIds: ["npu-worker-lifecycle", "device-memory", "quantization", "core-cli-params"],
     });
   }
 
@@ -893,7 +1134,7 @@ export function analyzeTroubleshootInput(rawInput: string): LogAnalysisReport {
   }
 
   const firstFaultVerdict = computeFirstFaultVerdict(signals);
-  const findings = evaluateRules(lines, rawInput, metrics, firstFaultVerdict);
+  const findings = evaluateRules(lines, metrics, firstFaultVerdict);
 
   const matchedLineNumbers = new Set<number>();
   for (const f of findings) {

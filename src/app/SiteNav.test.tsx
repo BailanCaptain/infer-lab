@@ -10,19 +10,19 @@ function renderNavAt(entry: string): string {
   );
 }
 
-describe("SiteNav 全站导航与工程实验室入口", () => {
-  it("包含五大入口（含工程实验室：算账、体检与在线排障）", () => {
+describe("SiteNav 全站导航与部署与排障入口", () => {
+  it("包含五大入口（含部署与排障：算卡数、检命令、查报错）", () => {
     const html = renderNavAt("/wiki");
     expect(html).toContain('aria-label="全站导航"');
     expect(html).toContain("首页");
     expect(html).toContain("主章节");
-    expect(html).toContain("工程实验室");
-    expect(html).toContain("算账、体检与在线排障");
+    expect(html).toContain("部署与排障");
+    expect(html).toContain("算卡数、检命令、查报错");
     expect(html).toContain("模型探索");
     expect(html).toContain("硬件探索");
   });
 
-  it("在 /tools 路由下精准高亮「工程实验室」，不再误高亮「主章节」", () => {
+  it("在 /tools 路由下精准高亮「部署与排障」，不再误高亮「主章节」", () => {
     const toolsHtml = renderNavAt("/tools?tab=doctor");
     expect(toolsHtml).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/tools"/);
     expect(toolsHtml).not.toMatch(/<a[^>]*aria-current="page"[^>]*href="\/wiki"/);

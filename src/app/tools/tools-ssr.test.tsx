@@ -3,13 +3,22 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from "react-router";
 import { describe, expect, it } from "vitest";
 import { LEGACY_BASELINE_BADGE_TEXT } from "../../content/wiki/toolDeeplinks";
-import { SCHEMATIC_TIMING_BADGE } from "../../sim/aicore/matmulRmsScenario";
+import { ASCEND_910B3_MEASURED_BENCHMARKS, SCHEMATIC_TIMING_BADGE } from "../../sim/aicore/matmulRmsScenario";
 import { SCHEMATIC_TRACE_BADGE_TEXT } from "../../sim/troubleshoot/timelineSandbox";
 import { AppShell } from "../AppShell";
-import { ToolsPage } from "../pages/ToolsPage";
+import { ToolsPage, ToolTabErrorBoundary } from "../pages/ToolsPage";
 import { WikiToolBlock } from "../wiki/WikiToolBlock";
-import { DeployCalculatorView } from "./DeployCalculatorView";
+import { extractNormalizedCliModel } from "./ConfigDoctorView";
+import {
+  DeployCalculatorView,
+  evaluateCalculatorModelGate,
+  hasAdvancedQueryOverrides,
+  parseCustomModelParam,
+  parseV2ModelRunnerParam,
+  serializeCustomModelForShare,
+} from "./DeployCalculatorView";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
+import { parseCalculatorQueryParams } from "./workbenchHandoff";
 
 const MLA_CONFIG_JSON = JSON.stringify({
   model_type: "deepseek_v3",
@@ -188,6 +197,29 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(fullHtml).toContain(SCHEMATIC_TIMING_BADGE);
     expect(fullHtml).toContain('data-testid="aicore-buffer-inspector"');
     expect(fullHtml).toContain('data-testid="aicore-gm-table-section"');
+    expect(fullHtml).toContain('data-testid="aicore-measured-910b3-section"');
+    expect(fullHtml).toContain(ASCEND_910B3_MEASURED_BENCHMARKS.title);
+    expect(fullHtml).toContain("M=2048, K=4096, N=4096");
+    expect(fullHtml).toContain("63.58µs");
+    expect(fullHtml).toContain("Vec 74.6% / MTE2 18.6%");
+    expect(fullHtml).toContain("256.61µs");
+    expect(fullHtml).toContain("Cube util 96.9%");
+    expect(fullHtml).toContain("MAC 95.4% 与 MTE2 82.4% 流水重叠");
+    expect(fullHtml).toContain("31.79µs");
+    expect(fullHtml).toContain("MIX_AIC / 20+20");
+    expect(fullHtml).toContain("195.61µs");
+    expect(fullHtml).toContain("1.312x");
+    expect(fullHtml).toContain("1.128x");
+    expect(fullHtml).toContain("70.57µs");
+    expect(fullHtml).toContain("hcom_allReduce_");
+    expect(fullHtml).toContain("523.88µs");
+    expect(fullHtml).toContain("665.47µs");
+    expect(fullHtml).toContain("通信矩阵边样本带宽 17.63~17.93 GB/s");
+    expect(fullHtml).toContain("71.02µs");
+    expect(ASCEND_910B3_MEASURED_BENCHMARKS.rawSources).toEqual([
+      "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292",
+      "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L935-L950",
+    ]);
     expect(fullHtml).toContain('data-testid="tool-deeplink-ai-core"');
   });
 
@@ -291,5 +323,232 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(aicoreHtml).toContain(SCHEMATIC_TIMING_BADGE);
     expect(aicoreHtml).toContain('data-testid="aicore-buffer-inspector"');
     expect(aicoreHtml).toContain('data-testid="aicore-ask-assistant"');
+  });
+
+  it("enforces human-first framing, progressive disclosure, honest doctor verdict, and full share-URL restoration", async () => {
+    const handler = createStaticHandler([
+      {
+        path: "/",
+        Component: AppShell,
+        children: [{ path: "tools", Component: ToolsPage }],
+      },
+    ]);
+
+    const renderUrl = async (url: string) => {
+      const ctx = await handler.query(new Request(url));
+      if (ctx instanceof Response) throw new Error(`unexpected redirect on ${url}`);
+      const router = createStaticRouter(handler.dataRoutes, ctx);
+      return renderToStaticMarkup(createElement(StaticRouterProvider, { router, context: ctx }));
+    };
+
+    // 1. Calculator default view: 3+1 scenario tabs, top-line verdict strip, collapsed advanced details, human submode tabs
+    const calcHtml = await renderUrl("http://localhost/tools?tab=calculator");
+    expect(calcHtml).toContain("估算要几张卡");
+    expect(calcHtml).toContain("检查启动命令");
+    expect(calcHtml).toContain("分析报错日志");
+    expect(calcHtml).toContain("微观原理演示");
+    expect(calcHtml).toContain('data-testid="calc-verdict-strip"');
+    expect(calcHtml).toContain('data-testid="calc-advanced-controls"');
+    expect(calcHtml).toContain("上线前估算（算卡数）");
+    expect(calcHtml).toContain("已有日志对账（查偏差）");
+    expect(calcHtml).not.toContain("Mode A · 7 级静态估算");
+    expect(calcHtml).not.toContain("Mode B · 真机日志对账");
+    expect(calcHtml).not.toContain("Mode A 用 7 级");
+
+    // 2. Full share-URL parameter restoration (including nz, pcp, batchTokens, maxSeqs, cudagraph, pp=1, dp=1)
+    const sharedCalcHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-8b&card=a2-64g&tp=2&pp=1&dp=1&pcp=2&dcp=1&nz=2&batchTokens=4096&maxSeqs=64&cudagraph=FULL_DECODE_ONLY&maxLen=16384",
+    );
+    expect(sharedCalcHtml).toContain("PP=1 · DP=1 · PCP=2 · DCP=1 · KV=auto · NZ=2 · 图=FULL_DECODE_ONLY");
+    expect(sharedCalcHtml).toContain("FULL_DECODE_ONLY");
+    expect(sharedCalcHtml).toContain("--max-model-len 16384");
+    expect(sharedCalcHtml).toContain("--max-num-batched-tokens 4096");
+    expect(sharedCalcHtml).toContain("--max-num-seqs 64");
+
+    // 3. ConfigDoctor honest pass copy (never over-claiming "零硬阻断（可起服务）")
+    const doctorHealthyHtml = renderToStaticMarkup(
+      createElement(WikiToolBlock, {
+        source: "tool: config-doctor\nmode: full\npreset: pd-healthy-mooncake-tp4-to-tp2-pp1",
+      }),
+    );
+    expect(doctorHealthyHtml).toContain("当前规则未发现冲突阻断");
+    expect(doctorHealthyHtml).not.toContain("零硬阻断（可起服务）");
+
+    // 4. Troubleshoot human labels + explicit built-in demo banner (no Panel A/B jargon)
+    const troubleshootHtml = await renderUrl("http://localhost/tools?tab=troubleshoot");
+    expect(troubleshootHtml).toContain('data-testid="troubleshoot-demo-banner"');
+    expect(troubleshootHtml).toContain("清空并粘贴你的真实日志");
+    expect(troubleshootHtml).not.toContain("Panel A");
+    expect(troubleshootHtml).not.toContain("Panel B");
+
+    // 5. AI Core lab plain-Chinese guide strip + byte table collapsed by default
+    const aicoreHtml = await renderUrl("http://localhost/tools?tab=aicore");
+    expect(aicoreHtml).toContain('data-testid="aicore-guide-strip"');
+    expect(aicoreHtml).toContain('data-testid="aicore-gm-table-section"');
+    expect(aicoreHtml).toContain("展开完整字节账本");
+    expect(aicoreHtml).not.toContain('data-testid="aicore-gm-row-');
+  });
+
+  it("handles default-vs-override details auto-open, customModel share links, CLI model extraction, and tab ErrorBoundary", async () => {
+    const handler = createStaticHandler([
+      {
+        path: "/",
+        Component: AppShell,
+        children: [{ path: "tools", Component: ToolsPage }],
+      },
+    ]);
+
+    const renderUrl = async (url: string) => {
+      const ctx = await handler.query(new Request(url));
+      if (ctx instanceof Response) throw new Error(`unexpected redirect on ${url}`);
+      const router = createStaticRouter(handler.dataRoutes, ctx);
+      return renderToStaticMarkup(createElement(StaticRouterProvider, { router, context: ctx }));
+    };
+
+    // 1. Default serialized calculator query params must NOT auto-open advanced <details>
+    const defaultSerialized = parseCalculatorQueryParams(
+      new URLSearchParams(
+        "tab=calculator&preset=qwen3-8b&card=a2-64g&precision=bf16&kv=auto&nz=1&tp=1&pp=1&dp=1&pcp=1&dcp=1&ep=0&u=0.92&maxLen=32768&batchTokens=2048&maxSeqs=256&cudagraph=PIECEWISE&eager=0&prefill=512&decodeBatch=16&decodeCtx=4096&version=v0.30.0",
+      ),
+    );
+    expect(hasAdvancedQueryOverrides(defaultSerialized)).toBe(false);
+    const defaultShareHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-8b&pp=1&dp=1&nz=1&batchTokens=2048&maxSeqs=256&prefill=512&decodeBatch=16&decodeCtx=4096",
+    );
+    expect(defaultShareHtml).toMatch(
+      /<details[^>]*data-testid="calc-advanced-controls"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+
+    // Non-default advanced param DOES auto-open <details>
+    const overrideParsed = parseCalculatorQueryParams(
+      new URLSearchParams("tab=calculator&pp=2&nz=2&decodeBatch=32"),
+    );
+    expect(hasAdvancedQueryOverrides(overrideParsed)).toBe(true);
+    const overrideHtml = await renderUrl("http://localhost/tools?tab=calculator&pp=2&nz=2&decodeBatch=32");
+    expect(overrideHtml).toMatch(/<details[^>]*data-testid="calc-advanced-controls"[^>]*\sopen/);
+
+    // 2. Custom JSON share link: <=4096 chars round-trips via customModel param; >4096 chars & non-finite numbers (1e400) rejected honestly
+    const smallCustom = serializeCustomModelForShare(MLA_CONFIG_JSON);
+    expect(smallCustom.ok).toBe(true);
+    if (smallCustom.ok) {
+      const encodedParams = new URLSearchParams({ tab: "calculator", customModel: smallCustom.compact });
+      expect(parseCustomModelParam(encodedParams)).toContain('"kv_lora_rank": 512');
+      const customShareHtml = await renderUrl(`http://localhost/tools?${encodedParams.toString()}`);
+      expect(customShareHtml).toContain('data-testid="wave4-arch-active"');
+      expect(customShareHtml).toContain("1152 B/tok/层");
+    }
+
+    const hugeCustom = serializeCustomModelForShare(
+      JSON.stringify({ model_type: "qwen3", pad: "x".repeat(4200) }),
+    );
+    expect(hugeCustom.ok).toBe(false);
+    if (!hugeCustom.ok) {
+      expect(hugeCustom.reason).toContain("4096");
+    }
+
+    const nonFiniteCustom = serializeCustomModelForShare('{"model_type":"qwen3","hidden_size":1e400}');
+    expect(nonFiniteCustom.ok).toBe(false);
+    expect(
+      parseCustomModelParam(
+        new URLSearchParams({ customModel: '{"model_type":"qwen3","hidden_size":1e400}' }),
+      ),
+    ).toBeNull();
+
+    // 2b. Model Runner V2 (`?v2=1|0`) wired into UI, URL, advanced <details>, and PCP=2 on v0.30.0
+    expect(parseV2ModelRunnerParam(new URLSearchParams("v2=1"))).toBe(true);
+    expect(parseV2ModelRunnerParam(new URLSearchParams("v2=0"))).toBe(false);
+    expect(parseV2ModelRunnerParam(new URLSearchParams("tab=calculator"))).toBeUndefined();
+    expect(hasAdvancedQueryOverrides({}, true)).toBe(true);
+    const pcpV2Html = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-8b&card=a2-64g&tp=2&pcp=2&v2=1&version=v0.30.0",
+    );
+    expect(pcpV2Html).toContain('data-testid="calc-v2-runner-select"');
+    expect(pcpV2Html).toContain("V2=开");
+    expect(pcpV2Html).toContain("VLLM_USE_V2_MODEL_RUNNER=1");
+    expect(pcpV2Html).toContain("--prefill-context-parallel-size 2");
+    expect(pcpV2Html).toMatch(/<details[^>]*data-testid="calc-advanced-controls"[^>]*\sopen/);
+
+    // 3. ConfigDoctor CLI model token normalization for stale handoff invalidation
+    expect(extractNormalizedCliModel("vllm serve Qwen3-8B -tp 2")).toBe("qwen3-8b");
+    expect(extractNormalizedCliModel("vllm serve Qwen3-8B -tp 4 --max-model-len 16384")).toBe("qwen3-8b");
+    expect(extractNormalizedCliModel("vllm serve Qwen/Qwen3-30B-A3B -tp 4")).toBe("qwen/qwen3-30b-a3b");
+
+    // 4. Tab-scoped ToolTabErrorBoundary state derivation, retry button & repeated-failure reload recovery
+    const derived = ToolTabErrorBoundary.getDerivedStateFromError(new Error("ChunkLoadError: timeout"));
+    expect(derived).toEqual({ hasError: true, errorMessage: "ChunkLoadError: timeout" });
+    const firstBoundary = new ToolTabErrorBoundary({
+      tabId: "aicore",
+      activeTab: "aicore",
+      tabLabel: "芯片算子沙盘",
+      retryCount: 0,
+      onRetry: () => {},
+      children: null,
+    });
+    firstBoundary.state = derived;
+    const firstFallbackHtml = renderToStaticMarkup(firstBoundary.render());
+    expect(firstFallbackHtml).toContain('data-testid="tools-tab-error-aicore"');
+    expect(firstFallbackHtml).toContain('data-testid="tools-tab-retry-aicore"');
+    expect(firstFallbackHtml).toContain('data-testid="tools-tab-reload-aicore"');
+    expect(firstFallbackHtml).toContain("重新加载此工具");
+    expect(firstFallbackHtml).toContain("完整刷新此页恢复");
+    expect(firstFallbackHtml).toContain("ChunkLoadError: timeout");
+
+    const repeatedBoundary = new ToolTabErrorBoundary({
+      tabId: "aicore",
+      activeTab: "aicore",
+      tabLabel: "芯片算子沙盘",
+      retryCount: 1,
+      onRetry: () => {},
+      children: null,
+    });
+    repeatedBoundary.state = derived;
+    const repeatedFallbackHtml = renderToStaticMarkup(repeatedBoundary.render());
+    expect(repeatedFallbackHtml).toContain("模块初始化重试仍失败");
+    expect(repeatedFallbackHtml).toContain('class="wt-assistant-btn" data-testid="tools-tab-reload-aicore"');
+
+    // 5. Split-stage Roofline SVG (static W8A8 MoE: Prefill INT8 640 TOPS / ridge 400 vs Decode BF16 320 TFLOPS / ridge 200)
+    const splitRooflineHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-30b-a3b&card=a2-64g&precision=w8a8&tp=8&ep=1&prefill=448",
+    );
+    expect(splitRooflineHtml).toContain('data-testid="roofline-prefill-ceiling"');
+    expect(splitRooflineHtml).toContain("Prefill 脊点 400.0 FLOP/B");
+    expect(splitRooflineHtml).toContain("Decode 脊点 200.0 FLOP/B");
+    expect(splitRooflineHtml).toContain("Prefill 峰值 640");
+    expect(splitRooflineHtml).toContain("Decode 峰值 320");
+    const prePointMatch = splitRooflineHtml.match(
+      /cy="([0-9.]+)"[^>]*data-point-id="pre"[^>]*data-achieved-tflops="([0-9.]+)"/,
+    );
+    expect(prePointMatch).not.toBeNull();
+    expect(Number(prePointMatch?.[2])).toBeGreaterThan(600);
+
+    // 6. Direct custom config.json with 1e400 (Infinity) must be rejected at gate before evaluateDeployPlan
+    const infinityGlmConfig = JSON.stringify({
+      model_type: "glm4_moe_lite",
+      architectures: ["Glm4MoeLiteForCausalLM"],
+      hidden_size: 2048,
+      num_hidden_layers: 47,
+      num_attention_heads: 20,
+      kv_lora_rank: 512,
+      qk_nope_head_dim: 192,
+      qk_rope_head_dim: 64,
+      v_head_dim: 256,
+      n_routed_experts: 64,
+      num_experts_per_tok: 4,
+      vocab_size: 154880,
+    }).replace('"kv_lora_rank":512', '"kv_lora_rank":1e400');
+    const infGate = evaluateCalculatorModelGate(infinityGlmConfig, true);
+    expect(infGate.ok).toBe(false);
+    if (!infGate.ok) {
+      expect(infGate.error).toContain("非有限数值");
+    }
+    const infSsrHtml = renderToStaticMarkup(
+      createElement(DeployCalculatorView, {
+        mode: "full",
+        initialModel: infinityGlmConfig,
+        embedded: true,
+      }),
+    );
+    expect(infSsrHtml).toContain('data-testid="calc-gate-error"');
+    expect(infSsrHtml).not.toContain('data-testid="calc-verdict-strip"');
   });
 });

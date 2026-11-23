@@ -146,7 +146,7 @@ function buildTroubleshootAssistantPrompt(report: LogAnalysisReport): string {
       : ["当前未命中内置排障规则，请结合原始片段协助定位最后成功阶段与下一项取证命令。"];
 
   return [
-    "请结合 vllm-ascend (v0.30.0) 源码与排障流程，帮我深究以下交互式排障工作台（Panel A）的分析结果：",
+    "请结合 vllm-ascend (v0.30.0) 源码与排障流程，帮我深究以下在线排障工作台的分析结果：",
     "",
     verdictLine,
     "",
@@ -195,7 +195,13 @@ const CMD_BLOCK_STYLE: CSSProperties = {
   wordBreak: "break-word",
 };
 
-function FirstFaultVerdictCard({ report }: { report: LogAnalysisReport }) {
+function FirstFaultVerdictCard({
+  report,
+  isSampleDemo = false,
+}: {
+  report: LogAnalysisReport;
+  isSampleDemo?: boolean;
+}) {
   const { firstFaultVerdict } = report;
   const conf = CONFIDENCE_META[firstFaultVerdict.confidence];
   const cardTone =
@@ -213,6 +219,7 @@ function FirstFaultVerdictCard({ report }: { report: LogAnalysisReport }) {
       data-confidence={firstFaultVerdict.confidence}
     >
       <div className="wt-finding-head">
+        {isSampleDemo && <span className="wt-demo-badge">示例演练</span>}
         <span className={`wt-badge-judgment ${conf.cls}`}>{conf.label}</span>
         {firstFaultVerdict.rank !== null ? (
           <span className="wt-badge-scope">首错 Rank: {firstFaultVerdict.rank}</span>
@@ -224,7 +231,7 @@ function FirstFaultVerdictCard({ report }: { report: LogAnalysisReport }) {
             次生连带 Rank: {firstFaultVerdict.cascadeRanks.join(" / ")}
           </span>
         )}
-        <h3 className="wt-finding-title">多卡交错日志「首错 Rank」判定</h3>
+        <h3 className="wt-finding-title">最早出错的卡（首错 Rank）判定</h3>
       </div>
 
       <p className="wt-finding-msg">{firstFaultVerdict.rationale}</p>
@@ -375,40 +382,52 @@ function DiagnosisFindingCard({ finding }: { finding: LogDiagnosisFinding }) {
 }
 
 function RealLogAnalyzerPanel({
-  initialPresetId,
+  activeFixtureId,
+  rawInput,
+  onSelectFixture,
+  onClear,
+  onRawInputChange,
   onAskAssistant,
   onHandoffToReconcile,
   hasAssistant,
 }: {
-  initialPresetId?: string | undefined;
+  activeFixtureId: string;
+  rawInput: string;
+  onSelectFixture: (fixtureId: string) => void;
+  onClear: () => void;
+  onRawInputChange: (next: string) => void;
   onAskAssistant: (report: LogAnalysisReport, rawInput: string, trigger: HTMLButtonElement) => void;
   onHandoffToReconcile: (rawInput: string, report: LogAnalysisReport) => void;
   hasAssistant: boolean;
 }) {
   const idPrefix = useId();
-  const initialFixture = useMemo(() => getTroubleshootFixture(initialPresetId), [initialPresetId]);
-  const [activeFixtureId, setActiveFixtureId] = useState<string>(initialFixture.id);
-  const [rawInput, setRawInput] = useState<string>(initialFixture.content);
-
   const report = useMemo(() => analyzeTroubleshootInput(rawInput), [rawInput]);
   const canReconcile = useMemo(() => hasReconcilableStartupMetrics(rawInput), [rawInput]);
   const activeFixture = TROUBLESHOOT_FIXTURES.find((f) => f.id === activeFixtureId);
 
-  const handleSelectFixture = (fixtureId: string) => {
-    const picked = getTroubleshootFixture(fixtureId);
-    setActiveFixtureId(picked.id);
-    setRawInput(picked.content);
-  };
-
-  const handleClear = () => {
-    setActiveFixtureId("");
-    setRawInput("");
-  };
-
   return (
     <div className="wt-section" data-testid="troubleshoot-panel-a">
+      {activeFixture && (
+        <div className="wt-demo-banner" data-testid="troubleshoot-demo-banner" role="status">
+          <div className="wt-demo-banner-main">
+            <span className="wt-demo-badge">内置示例</span>
+            <span>
+              当前展示示例日志（<strong>{activeFixture.label}</strong>），不是你的真实服务报错。
+            </span>
+          </div>
+          <button
+            type="button"
+            className="wt-assistant-btn"
+            data-testid="troubleshoot-clear-input"
+            onClick={onClear}
+          >
+            清空并粘贴你的真实日志
+          </button>
+        </div>
+      )}
+
       <div className="wt-presets">
-        <span className="wt-presets-label">真实日志 / /metrics 样例：</span>
+        <span className="wt-presets-label">演练样例（点击体验解析效果）：</span>
         {TROUBLESHOOT_FIXTURES.map((fixture) => {
           const isActive = fixture.id === activeFixtureId;
           return (
@@ -417,21 +436,23 @@ function RealLogAnalyzerPanel({
               type="button"
               className={`wt-preset-btn ${isActive ? "is-active" : ""}`}
               data-testid={`troubleshoot-fixture-${fixture.id}`}
-              onClick={() => handleSelectFixture(fixture.id)}
+              onClick={() => onSelectFixture(fixture.id)}
             >
               <span className={`wt-preset-dot ${fixture.kind === "metrics" ? "is-healthy" : "is-pitfall"}`} />
               <span>{fixture.label}</span>
             </button>
           );
         })}
-        <button
-          type="button"
-          className="wt-filter-btn"
-          data-testid="troubleshoot-clear-input"
-          onClick={handleClear}
-        >
-          清空粘贴自己的日志
-        </button>
+        {!activeFixture && rawInput.length > 0 && (
+          <button
+            type="button"
+            className="wt-filter-btn"
+            data-testid="troubleshoot-clear-input"
+            onClick={onClear}
+          >
+            清空当前日志
+          </button>
+        )}
       </div>
 
       {activeFixture && <p className="wt-preset-summary">{activeFixture.summary}</p>}
@@ -439,7 +460,7 @@ function RealLogAnalyzerPanel({
       <div className="wt-editor-card">
         <div className="wt-editor-head">
           <label className="wt-editor-title" htmlFor={`${idPrefix}-log-input`}>
-            Panel A · 真实报错日志 / CANN-HCCL 错误码 / Prometheus /metrics 输入区
+            粘贴你的报错日志、CANN/HCCL 错误码或 /metrics 指标
           </label>
           <span className="wt-editor-role">
             {report.totalLines > 0
@@ -454,10 +475,7 @@ function RealLogAnalyzerPanel({
           spellCheck={false}
           placeholder="粘贴多卡交错启动日志、CANN/HCCL 报错（EZ9999 / EI0006 / exitcode -9）或 curl /metrics 快照…"
           value={rawInput}
-          onChange={(e) => {
-            setActiveFixtureId("");
-            setRawInput(e.target.value);
-          }}
+          onChange={(e) => onRawInputChange(e.target.value)}
         />
       </div>
 
@@ -503,13 +521,15 @@ function RealLogAnalyzerPanel({
         </div>
       </div>
 
-      {report.inputKind !== "metrics" && <FirstFaultVerdictCard report={report} />}
+      {report.inputKind !== "metrics" && (
+        <FirstFaultVerdictCard report={report} isSampleDemo={Boolean(activeFixture)} />
+      )}
       <MetricsSnapshotBar report={report} />
 
       <section className="wt-section" data-testid="troubleshoot-findings-section">
         <div className="wt-section-head">
           <h3 className="wt-section-title">规则诊断与下一步取证（{report.findings.length}）</h3>
-          <span className="wt-section-meta">仅基于当前粘贴日志/指标，物理隔离于示意时序沙箱</span>
+          <span className="wt-section-meta">仅基于上方粘贴的真实日志 / 指标判定，不混入右侧时序演示</span>
         </div>
 
         {report.findings.length === 0 ? (
@@ -1000,16 +1020,36 @@ export function TroubleshootWorkbenchView({
           ? "timeline"
           : "logs";
 
+  const initialFixture = useMemo(() => getTroubleshootFixture(initialPresetId), [initialPresetId]);
+  const [activeFixtureId, setActiveFixtureId] = useState<string>(initialFixture.id);
+  const [rawInput, setRawInput] = useState<string>(initialFixture.content);
+
   const [activePanel, setActivePanel] = useState<ActiveWorkbenchPanel>(defaultPanel);
   const currentPanel: ActiveWorkbenchPanel = effectiveMode === "full" ? activePanel : effectiveMode;
+
+  const handleSelectFixture = (fixtureId: string) => {
+    const picked = getTroubleshootFixture(fixtureId);
+    setActiveFixtureId(picked.id);
+    setRawInput(picked.content);
+  };
+
+  const handleClearLog = () => {
+    setActiveFixtureId("");
+    setRawInput("");
+  };
+
+  const handleRawInputChange = (next: string) => {
+    setActiveFixtureId("");
+    setRawInput(next);
+  };
 
   const displayTitle =
     title ??
     (effectiveMode === "logs"
-      ? "真实日志与 /metrics 排障台"
+      ? "报错日志与 /metrics 定位"
       : effectiveMode === "timeline"
-        ? "示意相对时序排障沙箱"
-        : "双模交互式排障工作台");
+        ? "6 类典型阻塞时序演示"
+        : "分析报错日志（在线排障）");
 
   const handleAskAssistant = (report: LogAnalysisReport, rawInput: string, trigger: HTMLButtonElement) => {
     if (!assistant) return;
@@ -1086,7 +1126,7 @@ export function TroubleshootWorkbenchView({
             </div>
             <p className="wt-subtitle">
               {summary ??
-                "Panel A 专攻真实日志、多卡交错首错 Rank 与 /metrics 诊断；Panel B 独立提供六大典型故障的示意相对时序与对策验证沙箱，二者物理隔离。"}
+                "粘贴真实报错日志或 /metrics 指标，自动定位最早出错的卡（首错 Rank）与下一步取证命令；也可切到右侧查看 6 类典型阻塞的时序演示。"}
             </p>
           </div>
         </header>
@@ -1094,7 +1134,7 @@ export function TroubleshootWorkbenchView({
 
       {effectiveMode === "full" && (
         <div className="wt-toolbar-row">
-          <div className="wt-segmented" role="tablist" aria-label="排障工作台模式切换">
+          <div className="wt-segmented" role="tablist" aria-label="排障功能切换">
             <button
               type="button"
               role="tab"
@@ -1103,7 +1143,7 @@ export function TroubleshootWorkbenchView({
               data-testid="troubleshoot-tab-logs"
               onClick={() => setActivePanel("logs")}
             >
-              Panel A · 真实日志与 /metrics 排障
+              分析我的报错日志 / 指标
             </button>
             <button
               type="button"
@@ -1113,7 +1153,7 @@ export function TroubleshootWorkbenchView({
               data-testid="troubleshoot-tab-timeline"
               onClick={() => setActivePanel("timeline")}
             >
-              Panel B · 示意相对时序沙箱（Perfetto-lite）
+              查看 6 类典型阻塞时序演示
             </button>
           </div>
         </div>
@@ -1121,7 +1161,11 @@ export function TroubleshootWorkbenchView({
 
       {currentPanel === "logs" ? (
         <RealLogAnalyzerPanel
-          initialPresetId={initialPresetId}
+          activeFixtureId={activeFixtureId}
+          rawInput={rawInput}
+          onSelectFixture={handleSelectFixture}
+          onClear={handleClearLog}
+          onRawInputChange={handleRawInputChange}
           onAskAssistant={handleAskAssistant}
           onHandoffToReconcile={handleHandoffToReconcile}
           hasAssistant={assistant !== null}

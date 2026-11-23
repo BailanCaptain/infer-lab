@@ -518,3 +518,58 @@ it("separates answer honesty from task knowledge sufficiency in judge rules and 
   );
   expect(negative.decision).toMatchObject({ satisfied: false, classification: "missing-knowledge" });
 });
+
+it("injects verified deterministic toolEvidence summary and keyMetrics into judgeAnswer and rejects tampered toolEvidence", async () => {
+  const { runDeterministicToolEvidence } = await import("./tool-evidence");
+  const f = await setup();
+  const deployEvidence = runDeterministicToolEvidence({
+    kind: "deploy",
+    model: "qwen3-8b",
+    cardId: "a2-64g",
+    tpSize: 1,
+    weightPrecision: "bf16",
+  });
+
+  let capturedData: Record<string, unknown> | undefined;
+  let capturedRules = "";
+  const checked = await judgeAnswer(
+    f.root,
+    {
+      ...f.input,
+      question: "Qwen3-8B 单卡 A2 64G 的权重与 KV 池显存是多少？",
+      answer: `单卡权重占用 ${deployEvidence.keyMetrics.weightsPerRankGiB} GiB，KV 池点估 ${deployEvidence.keyMetrics.kvPoolPointGiB} GiB，机制见 [A](sources/a.md)。`,
+      toolEvidence: [deployEvidence],
+    },
+    {
+      runAgent: async (req) => {
+        capturedData = JSON.parse(req.stdin) as Record<string, unknown>;
+        capturedRules = req.args.join("\n");
+        return runner({
+          satisfied: true,
+          classification: "covered",
+          reason: "回答数值与确定性工具核算一致，且原理引用受正文支持。",
+          answerQuote: `单卡权重占用 ${deployEvidence.keyMetrics.weightsPerRankGiB} GiB`,
+          evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+        })(req);
+      },
+    },
+  );
+
+  expect(checked.decision).toMatchObject({ satisfied: true, classification: "covered" });
+  expect(capturedData?.toolEvidence).toEqual([
+    expect.objectContaining({
+      kind: "deploy",
+      toolVersion: deployEvidence.toolVersion,
+      summary: deployEvidence.summary,
+      keyMetrics: deployEvidence.keyMetrics,
+      outputSha256: deployEvidence.outputSha256,
+    }),
+  ]);
+  expect(capturedRules).toContain("toolEvidence");
+
+  // Tampered toolEvidence must be rejected before trusting numbers
+  const tampered = { ...deployEvidence, summary: "篡改后的确定性摘要" };
+  await expect(
+    judgeAnswer(f.root, { ...f.input, toolEvidence: [tampered] }, { runAgent: runner(decision) }),
+  ).rejects.toThrow(/toolEvidence|工具证据/i);
+});

@@ -56,6 +56,51 @@ describe("Domain 4: CP Three Routes & PD Disaggregation Constraints", () => {
       nonDivisibleKvReplica.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error"),
     ).toBe(true);
 
+    // Non-divisible Q heads & KV heads BEFORE floor(tp / numKvHeads):
+    // Qwen3-30B-A3B (32 Q / 4 KV) at TP=10, DCP=2 MUST be caught as an error instead of masked by floor(10/4)=2!
+    const qwen30bTp10Dcp2 = evaluateDomain4Rules(
+      { tpSize: 10, pcpSize: 1, dcpSize: 2, useMla: false, numAttentionHeads: 32, numKvHeads: 4 },
+      "v0.30.0",
+    );
+    expect(qwen30bTp10Dcp2.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error")).toBe(
+      true,
+    );
+
+    // Even when Q heads divide TP (40 Q / 4 KV at TP=10, DCP=2), 10 % 4 !== 0 must STILL be caught before floor(10/4)=2!
+    const kvNonDivisibleTp10 = evaluateDomain4Rules(
+      { tpSize: 10, pcpSize: 1, dcpSize: 2, useMla: false, numAttentionHeads: 40, numKvHeads: 4 },
+      "v0.30.0",
+    );
+    expect(kvNonDivisibleTp10.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error")).toBe(
+      true,
+    );
+
+    // Conversely when KV heads divide TP (40 Q / 4 KV at TP=16, DCP=2), 40 % 16 !== 0 must ALSO be caught!
+    const qNonDivisibleTp16 = evaluateDomain4Rules(
+      { tpSize: 16, pcpSize: 1, dcpSize: 2, useMla: false, numAttentionHeads: 40, numKvHeads: 4 },
+      "v0.30.0",
+    );
+    expect(qNonDivisibleTp16.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error")).toBe(
+      true,
+    );
+
+    // R2.4: KV head indivisibility (24 Q / 3 KV at TP=4, PCP=2, DCP=1 with MRV2) MUST be caught even when dcp === 1!
+    const kvIndivisibleDcp1 = evaluateDomain4Rules(
+      {
+        tpSize: 4,
+        pcpSize: 2,
+        dcpSize: 1,
+        useV2ModelRunner: true,
+        useMla: false,
+        numAttentionHeads: 24,
+        numKvHeads: 3,
+      },
+      "v0.30.0",
+    );
+    expect(kvIndivisibleDcp1.some((m) => m.ruleId === "d4-pcp-dcp-sizing" && m.judgment === "error")).toBe(
+      true,
+    );
+
     // Missing mandatory kv_role when kv_connector is set -> error citing L130-L140
     const missingRole = evaluateDomain4Rules({ kvConnector: "MooncakeConnectorV1" }, "v0.30.0");
     const missingRoleMatch = missingRole.find(

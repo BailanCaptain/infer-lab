@@ -169,6 +169,72 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
       "2026-04-12 14:22:10.144 ERROR [Rank 2] Watchdog caught collective operation timeout",
     ].join("\n"),
   },
+  {
+    id: "real-910b3-u090-aclgraph-oom",
+    label: "910B3 实测：u=0.90 录图期 OOM [M]",
+    kind: "logs",
+    summary:
+      "Ascend 910B3 真机捕获：Qwen3-0.6B 在 OS 可见 60.96 GiB 下设 u=0.90，KV 池划走 53.47 GiB（500,480 tokens / max_len 4,096 / 122.19x）并通过 35 档 PIECEWISE 后，在 FULL Decode 捕获期 device_op.py:216 FIA 申请 1.98 GiB（仅剩 1.71 GiB）触发 torch.OutOfMemoryError。",
+    expectedRuleIds: ["oom-stage-split"],
+    content: [
+      "(EngineCore pid=35805) INFO 11-22 20:58:45 [model_runner_v1.py:4476] Loading model weights took 1.1397 GB",
+      "(EngineCore pid=35805) INFO 11-22 20:59:23 [worker.py:660] Available KV cache memory: 53.47 GiB",
+      "(EngineCore pid=35805) INFO 11-22 20:59:23 [kv_cache_utils.py:2395] NPU KV cache size: 500,480 tokens, Maximum concurrency for 4,096 tokens per request: 122.19x",
+      '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/worker/model_runner_v1.py", line 6613, in capture_model',
+      "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]     cuda_graph_size = GPUModelRunner.capture_model(self)",
+      '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/device/device_op.py", line 216, in npu_fused_infer_attention_score',
+      "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]     return torch_npu.npu_fused_infer_attention_score(",
+      "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366] torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.98 GiB (NPU 0; 60.96 GiB total capacity; 54.62 GiB already allocated; 54.62 GiB current active; 1.71 GiB free; 58.75 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.",
+      '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/worker/worker.py", line 909, in compile_or_warm_up_model',
+      "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]     npugraph_memory_bytes = self.model_runner.capture_model()",
+    ].join("\n"),
+  },
+  {
+    id: "real-910b3-sleep-nz-wakeup",
+    label: "910B3 实测：Sleep 唤醒 FRACTAL_NZ 报错 [M]",
+    kind: "logs",
+    summary:
+      "Ascend 910B3 真机捕获：Qwen3-8B (BF16) 开启 --enable-sleep-mode 后 sleep(level=1) 卸载成功，但 wake_up() 因配置项默认 weight_nz_mode=1 非零触发 worker.py:282 守卫抛 ValueError（即使 BF16 按 utils.py:373-386 并未转 NZ）。",
+    expectedRuleIds: ["sleep-mode-fractal-nz-wakeup"],
+    content: [
+      "(EngineCore pid=42268) INFO 11-22 21:47:59 [camem.py:198] CaMem sleep: offloading 151/187 allocations (tags=('weights',))",
+      "(EngineCore pid=42268) INFO 11-22 21:48:16 [worker.py:272] Sleep mode (level=1) freed 48.37 GiB memory, 3.02 GiB memory is still in use.",
+      "(EngineCore pid=42268) ERROR 11-22 21:48:17 [core.py:1609] Invocation of wake_up method failed",
+      '(EngineCore pid=42268) ERROR 11-22 21:48:17 [core.py:1609]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/worker/worker.py", line 282, in wake_up',
+      "(EngineCore pid=42268) ERROR 11-22 21:48:17 [core.py:1609] ValueError: FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios. Please set weight_nz_mode=0 via --additional-config, or enable additional_config.rl_config (enabled: true) which disables NZ automatically.",
+    ].join("\n"),
+  },
+  {
+    id: "real-910b3-pd-mooncake-config",
+    label: "910B3 实测：PD 双故障组合样例（TP 整除 + kv_both） [M]",
+    kind: "logs",
+    summary:
+      "【双故障组合诊断样例，非单次故障时序】合并 8×Ascend 910B3 两次独立失败标本：① pid=66409（err1）TP_P=2 不能整除 TP_D=4 在 ascend_config.py:879-884 触发 VllmConfig AssertionError；② pid=66950（err2）MooncakeConnectorV2（解析为 MooncakePullConnector）误传 kv_role='kv_both' 在 base_worker.py:116 抛 ValueError。",
+    expectedRuleIds: ["mooncake-pd-transfer-error"],
+    content: [
+      "(APIServer pid=66409) pydantic_core._pydantic_core.ValidationError: 1 validation error for VllmConfig",
+      "(APIServer pid=66409)   Assertion failed, Prefill TP size must be divisible by Decode TP size. [type=assertion_error, input_value=ArgsKwargs((), {'model_co... 'shutdown_timeout': 0}), input_type=ArgsKwargs]",
+      "(EngineCore pid=66950) INFO 11-23 03:00:15 [factory.py:62] Creating v1 connector with name: MooncakePullConnector",
+      '(EngineCore pid=66950) ERROR 11-23 03:00:15 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py", line 116, in __init__',
+      "(EngineCore pid=66950) ERROR 11-23 03:00:15 [core.py:1366] ValueError: Mooncake worker requires exactly one KV transfer role, got 'kv_both'",
+    ].join("\n"),
+  },
+  {
+    id: "real-910b3-gqa-static-c8-kv",
+    label: "910B3 实测：未量化 GQA 开启 int8 KV 报错（err3） [M]",
+    kind: "logs",
+    summary:
+      "8×Ascend 910B3 真机捕获（err3，含正常 MooncakeConnectorV1 与 1836s HCCL 配置行）：未量化 BF16 Qwen3-0.6B 传入 --kv-cache-dtype int8，在 attention_v1.py:583 抛静态量化权重缺失 ValueError（保留原件 U+2011 不换行连字符 `‑`）。",
+    expectedRuleIds: ["soc-310p-or-c8-compat"],
+    content: [
+      "(APIServer pid=67670) INFO 11-23 03:00:44 [api_utils.py:286] non-default args: {'model_tag': '/mnt/workspace/models/Qwen3-0.6B', 'port': 19903, 'model': '/mnt/workspace/models/Qwen3-0.6B', 'enforce_eager': True, 'kv_cache_dtype': 'int8', 'kv_transfer_config': KVTransferConfig(kv_connector='MooncakeConnectorV1', engine_id='1cd5ffe8-8116-4248-8295-1d67c1fb3eb6', kv_buffer_device='npu', kv_buffer_size=1000000000.0, kv_role='kv_producer', kv_rank=None, kv_parallel_size=1, kv_ip='127.0.0.1', kv_port=31200, kv_connector_extra_config={'prefill': {'dp_size': 1, 'tp_size': 1}, 'decode': {'dp_size': 1, 'tp_size': 1}}, kv_connector_module_path=None, enable_permute_local_kv=False, kv_load_failure_policy='fail')}",
+      "(APIServer pid=67670) INFO 11-23 03:00:44 [platform.py:945] The timeout interval of the HCCL operator is 1836s. Timeout in seconds for execute_model RPC calls in multiprocessing must be greater than 1836s, Set VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000",
+      '(EngineCore pid=67937) ERROR 11-23 03:01:14 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/attention/attention_v1.py", line 583, in __init__',
+      "(EngineCore pid=67937) ERROR 11-23 03:01:14 [core.py:1366]     raise ValueError(",
+      "(EngineCore pid=67937) ERROR 11-23 03:01:14 [core.py:1366] ValueError: The current GQA\u2011related models adopt static quantization. KV quantization is configured via `--kv\u2011cache\u2011dtype` upon service startup, and the corresponding quantized weights are required.",
+      "(APIServer pid=67670) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}",
+    ].join("\n"),
+  },
 ];
 
 export function getTroubleshootFixture(id: string | undefined): TroubleshootFixture {

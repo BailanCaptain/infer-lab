@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join, posix, win32 } from "node:path";
 import { z } from "zod";
@@ -167,6 +168,49 @@ export function chatSessionModelKey(
   return `${base}@${digest(JSON.stringify({ provider: selection.provider, model: selection.model ?? "default", ...discriminators })).slice(0, 12)}`;
 }
 
+let nextLeaseGen = 0;
+const latestAcquiredLeaseGen = new Map<string, number>();
+const pendingFailedLeaseReleases = new Map<string, { root: string; lease: ChatLease; leaseGen: number }>();
+
+function recordAcquiredLeaseGen(pendingKey: string): number {
+  const gen = ++nextLeaseGen;
+  if (!latestAcquiredLeaseGen.has(pendingKey) && latestAcquiredLeaseGen.size >= 512) {
+    const oldest = latestAcquiredLeaseGen.keys().next().value;
+    if (oldest !== undefined) latestAcquiredLeaseGen.delete(oldest);
+  }
+  latestAcquiredLeaseGen.set(pendingKey, gen);
+  return gen;
+}
+
+function isLeaseSupersededInMemory(pendingKey: string, leaseGen: number): boolean {
+  const latestGen = latestAcquiredLeaseGen.get(pendingKey) ?? 0;
+  const pendingGen = pendingFailedLeaseReleases.get(pendingKey)?.leaseGen ?? 0;
+  return latestGen > leaseGen || pendingGen > leaseGen;
+}
+
+function deletePendingLeaseIfTokenMatches(pendingKey: string, expectedToken: string): void {
+  const cur = pendingFailedLeaseReleases.get(pendingKey);
+  if (cur && cur.lease.token === expectedToken) {
+    pendingFailedLeaseReleases.delete(pendingKey);
+  }
+}
+
+function isSupersededLeaseError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes("会话 attempt 已过期") || (error as NodeJS.ErrnoException)?.code === "ENOENT";
+}
+
+function isLeaseStillActiveOnDisk(root: string, lease: ChatLease): boolean {
+  const sessionPath = join(root, "wiki", "_jobs", "chat-sessions", `${lease.id}.json`);
+  try {
+    if (!existsSync(sessionPath)) return false;
+    const parsed = JSON.parse(readFileSync(sessionPath, "utf8")) as { active?: { token?: string } };
+    return parsed?.active?.token === lease.token;
+  } catch {
+    return true;
+  }
+}
+
 /** Both production HTTP and fixture browsers use this exact orchestration. */
 export async function handleChat(
   req: IncomingMessage,
@@ -178,14 +222,19 @@ export async function handleChat(
     judgeGap?: typeof judgeGapIdentity;
     judgeAnswer?: typeof judgeAnswer;
     corpusDocuments?: typeof corpusDocuments;
+    finishChat?: typeof finishChat;
+    captureAnswer?: typeof captureAnswer;
   } = {},
 ): Promise<boolean> {
   const url = parseWikiUrl(req, res);
   if (!url) return true;
   if (url.pathname !== "/api/wiki/chat") return false;
   let lease: ChatLease | undefined;
+  let currentLeaseGen = 0;
   let leaseSettled = false;
+  let sseStarted = false;
   let citeEmitted = false;
+  let errorEmitted = false;
   let message = "";
   let answer = "";
   let streamedAnswer = "";
@@ -194,13 +243,17 @@ export async function handleChat(
   const webTools: { name: string; target?: string }[] = [];
   let citations: CitationVerdict = { cited: false, selfDeclaredUncovered: false, reason: "回答尚未完整核对" };
   let outcome: Awaited<ReturnType<typeof runChat>> = { ok: false };
+  const canWriteSse = () => sseStarted && !res.writableEnded && !res.destroyed;
   const emit = (event: string, data: unknown) => {
-    if (!res.destroyed) res.write(sseFrame(event, data));
+    if (!canWriteSse()) return;
+    if (event === "error") errorEmitted = true;
+    res.write(sseFrame(event, data));
   };
+  const runFinishChat = deps.finishChat ?? finishChat;
   const settleLease = async (ok: boolean) => {
     if (!lease || leaseSettled) return;
+    await runFinishChat(root, lease, message, { ...outcome, answer, ok });
     leaseSettled = true;
-    await finishChat(root, lease, message, { ...outcome, answer, ok });
   };
   // 读者点「停止」= 浏览器断开连接：立刻中止模型，不再质检、不判缺口，会话随即释放
   const cancel = new AbortController();
@@ -227,12 +280,31 @@ export async function handleChat(
     // Codex / HTTP API / custom harness receive immutable page text directly; only Claude reads snapshot files.
     const location =
       selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
+    if (input.sessionId) {
+      const pendingKey = `${root}::${input.sessionId}`;
+      const stale = pendingFailedLeaseReleases.get(pendingKey);
+      if (stale) {
+        if (!isLeaseStillActiveOnDisk(root, stale.lease)) {
+          deletePendingLeaseIfTokenMatches(pendingKey, stale.lease.token);
+        } else {
+          try {
+            await runFinishChat(root, stale.lease, "", { ok: false });
+            deletePendingLeaseIfTokenMatches(pendingKey, stale.lease.token);
+          } catch (drainErr) {
+            if (isSupersededLeaseError(drainErr) || !isLeaseStillActiveOnDisk(root, stale.lease)) {
+              deletePendingLeaseIfTokenMatches(pendingKey, stale.lease.token);
+            }
+          }
+        }
+      }
+    }
     lease = await beginChat(
       root,
       snapshot.revision,
       input.sessionId,
       chatSessionModelKey(selectedModel, claudeEnv, turnEnv),
     );
+    currentLeaseGen = recordAcquiredLeaseGen(`${root}::${lease.id}`);
     cancel.signal.throwIfAborted();
     const retrievalQuery =
       selectedModel.provider !== "claude"
@@ -249,6 +321,7 @@ export async function handleChat(
       "cache-control": "no-cache",
       connection: "keep-alive",
     });
+    sseStarted = true;
     emit("knowledge", {
       revision: lease.revision,
       sessionId: lease.id,
@@ -389,6 +462,7 @@ export async function handleChat(
           contextQuestions: lease.contextQuestions,
           contextTurns: lease.contextTurns,
           answer,
+          ...(toolEvidence.length ? { toolEvidence } : {}),
           snapshot,
           evidencePages: retrievedPages,
           retrievedPages,
@@ -412,19 +486,38 @@ export async function handleChat(
           ),
       );
       if (
+        citations.cited &&
         !res.destroyed &&
         !cancel.signal.aborted &&
         !(quality.status === "checked" && quality.decision.satisfied === false) &&
         !signals.some((signal) => signal.kind === "agent-uncovered")
-      )
-        answerId = await captureAnswer(
-          root,
-          message,
-          answer,
-          citablePages,
-          outcome.models,
-          toolEvidence.length ? toolEvidence : undefined,
-        );
+      ) {
+        let captureThrew = false;
+        try {
+          answerId = await (deps.captureAnswer ?? captureAnswer)(
+            root,
+            message,
+            answer,
+            citablePages,
+            outcome.models,
+            toolEvidence.length ? toolEvidence : undefined,
+          );
+        } catch (error) {
+          captureThrew = true;
+          answerId = undefined;
+          emit("notice", {
+            kind: "receipt-save-failed",
+            message: `回答回执未能保存，暂无法存入 Wiki（本次回答与会话仍完整保留）：${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+        if (!captureThrew && !answerId && !res.destroyed && !cancel.signal.aborted) {
+          emit("notice", {
+            kind: "receipt-save-skipped",
+            message:
+              "回答已完成核对，但未能生成入库回执（引用页面在作答期间已变更、正在发布审阅，或回执体积超限），暂无法存入 Wiki；本次回答与会话仍完整保留。",
+          });
+        }
+      }
       if (quality.status === "checked" && quality.decision.satisfied !== true) {
         signals.unshift({
           kind: "independent-review",
@@ -466,31 +559,67 @@ export async function handleChat(
     }
   } catch (error) {
     if (!leaseSettled) outcome = { ok: false };
-    if (res.headersSent) {
+    if (sseStarted || res.headersSent) {
       if (!cancel.signal.aborted) emit("error", { message: String(error) });
-    } else
+    } else if (!res.writableEnded && !res.destroyed) {
       send(res, error instanceof HttpError ? error.status : error instanceof z.ZodError ? 400 : 503, {
         error: String(error),
       });
+    }
   } finally {
     if (lease) {
+      const pendingKey = `${root}::${lease.id}`;
       if (!leaseSettled) {
         try {
           await settleLease(false);
-        } catch (error) {
-          answerId = undefined;
-          emit("error", { message: String(error) });
+          deletePendingLeaseIfTokenMatches(pendingKey, lease.token);
+        } catch (firstErr) {
+          if (
+            isLeaseSupersededInMemory(pendingKey, currentLeaseGen) ||
+            isSupersededLeaseError(firstErr) ||
+            !isLeaseStillActiveOnDisk(root, lease)
+          ) {
+            leaseSettled = true;
+            deletePendingLeaseIfTokenMatches(pendingKey, lease.token);
+          } else {
+            try {
+              await new Promise((r) => setTimeout(r, 10));
+              await settleLease(false);
+              deletePendingLeaseIfTokenMatches(pendingKey, lease.token);
+            } catch (error) {
+              if (
+                isLeaseSupersededInMemory(pendingKey, currentLeaseGen) ||
+                isSupersededLeaseError(error) ||
+                !isLeaseStillActiveOnDisk(root, lease)
+              ) {
+                leaseSettled = true;
+                deletePendingLeaseIfTokenMatches(pendingKey, lease.token);
+              } else {
+                answerId = undefined;
+                if (pendingFailedLeaseReleases.size >= 256) {
+                  const oldest = pendingFailedLeaseReleases.keys().next().value;
+                  if (oldest !== undefined) pendingFailedLeaseReleases.delete(oldest);
+                }
+                pendingFailedLeaseReleases.set(pendingKey, { root, lease, leaseGen: currentLeaseGen });
+                if (!errorEmitted && !cancel.signal.aborted) {
+                  emit("error", { message: String(error) });
+                }
+              }
+            }
+          }
         }
       }
-      if (!citeEmitted) emit("cite", citations);
-      emit("done", {
-        sessionId: lease.id,
-        answerId,
-        revision: lease.revision,
-        ...(outcome.ok && answer && answer !== streamedAnswer ? { finalText: answer } : {}),
-      });
+      if (canWriteSse()) {
+        if (!citeEmitted) emit("cite", citations);
+        emit("done", {
+          sessionId: lease.id,
+          answerId,
+          revision: lease.revision,
+          ...(outcome.ok && answer && answer !== streamedAnswer ? { finalText: answer } : {}),
+        });
+      }
     }
-    if (!res.writableEnded) res.end();
+    if (sseStarted && !res.writableEnded && !res.destroyed) res.end();
   }
   return true;
 }

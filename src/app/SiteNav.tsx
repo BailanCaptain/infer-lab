@@ -1,4 +1,4 @@
-import { BookOpen, Box, Cpu, FlaskConical, House } from "lucide-react";
+import { BookOpen, Box, Cpu, House, Wrench } from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 const ENTRANCES = [
@@ -8,10 +8,10 @@ const ENTRANCES = [
   { to: "/hardware", label: "硬件", title: "硬件探索", detail: "从机柜走进芯片", icon: Cpu },
   {
     to: "/tools",
-    label: "工程实验室",
-    title: "工程实验室",
-    detail: "算账、体检与在线排障",
-    icon: FlaskConical,
+    label: "部署与排障",
+    title: "部署与排障",
+    detail: "算卡数、检命令、查报错",
+    icon: Wrench,
   },
 ];
 

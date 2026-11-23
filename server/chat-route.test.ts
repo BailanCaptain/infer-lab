@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import type { ChatTrace, traceChat } from "../scripts/wiki/chat-trace";
-import type { judgeGapIdentity } from "../scripts/wiki/gap-identity";
+import type { ChatTrace } from "../scripts/wiki/chat-trace";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
-import type { judgeAnswer } from "./answer-quality";
 import { judgeAnswer as reviewAnswer } from "./answer-quality";
 import type { runChat } from "./chat";
 import { handleChat } from "./chat-route";
@@ -21,14 +19,7 @@ afterEach(async () => {
 });
 const original =
   "---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n";
-async function setup(
-  run: typeof runChat,
-  extra: {
-    traceChat?: typeof traceChat;
-    judgeGap?: typeof judgeGapIdentity;
-    judgeAnswer?: typeof judgeAnswer;
-  } = {},
-) {
+async function setup(run: typeof runChat, extra: Parameters<typeof handleChat>[3] = {}) {
   const f = wikiFixture();
   fixtures.push(f);
   f.write("wiki/HANDBOOK.md", handbookFixture());
@@ -1443,4 +1434,379 @@ it("P2-11: isolates chat session keys when custom codexCli or claudeCli executab
   expect(frame(second, "knowledge").resetReason).toBe("model-changed");
   expect(seenRequests[1]?.stdin).not.toContain("上一轮回答");
   expect(seenRequests[1]?.stdin).not.toContain("默认值为 1，见 [A](sources/a.md)。");
+});
+
+it("[B1] releases active session lease in finally when settleLease(true) throws transiently, without clobbering a newer lease", async () => {
+  const { finishChat: realFinishChat } = await import("./chat-session");
+  let finishCalls = 0;
+  const f = await setup(
+    async (_req, on) => {
+      on.text("默认值为 1，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      finishChat: async (root, lease, question, result) => {
+        finishCalls++;
+        if (finishCalls === 1) {
+          throw new Error("EIO: transient session write failure");
+        }
+        return realFinishChat(root, lease, question, result);
+      },
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  // Turn 1: settleLease(true) throws transiently; finally must release the matching lease token!
+  const firstBody = await (await f.request({ message: "A 的默认值？" })).text();
+  const sessionId = frame(firstBody, "knowledge").sessionId as string;
+  expect(frame(firstBody, "error")?.message).toContain("EIO");
+  expect(frame(firstBody, "persisted")).toBeUndefined();
+
+  const sessionFile = join(f.root, `wiki/_jobs/chat-sessions/${sessionId}.json`);
+  expect(JSON.parse(readFileSync(sessionFile, "utf8")).active).toBeUndefined();
+
+  // Immediate Turn 2 on same sessionId must succeed with HTTP 200 instead of 10-minute 409 lockout!
+  const secondRes = await f.request({ message: "重试：A 的默认值？", sessionId });
+  expect(secondRes.status).toBe(200);
+  const secondBody = await secondRes.text();
+  expect(frame(secondBody, "persisted")?.sessionId).toBe(sessionId);
+  expect(frame(secondBody, "done")?.answerId).toMatch(/^[a-f0-9]{64}$/);
+});
+
+it("[B2 & B3] passes deterministic toolEvidence into judgeAnswer, and surfaces non-destructive receipt notice when captureAnswer throws after persisted", async () => {
+  let seenToolEvidence: unknown;
+  const f = await setup(
+    async (_req, on) => {
+      on.tool?.("WebFetch", "https://docs.vllm.ai/");
+      on.text("单卡显存核算以工具为准，原理见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      judgeAnswer: async (_root, input) => {
+        seenToolEvidence = (input as { toolEvidence?: unknown }).toolEvidence;
+        return {
+          status: "checked",
+          jobId: "7".repeat(64),
+          revision: input.snapshot.revision,
+          decision: {
+            satisfied: true,
+            classification: "covered",
+            reason: "工具证据与正文共同支持回答",
+            answerQuote: "单卡显存核算以工具为准",
+            evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+          },
+        };
+      },
+      captureAnswer: async () => {
+        throw new Error("ENOSPC: receipt disk full");
+      },
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  const res = await f.request({
+    message: "Qwen3-8B 单卡显存怎么算？",
+    analysis: {
+      kind: "deploy",
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      tpSize: 1,
+      weightPrecision: "bf16",
+    },
+  });
+  expect(res.status).toBe(200);
+  const body = await res.text();
+
+  // B2: judgeAnswer received the verified deterministic toolEvidence
+  expect(Array.isArray(seenToolEvidence)).toBe(true);
+  expect((seenToolEvidence as Array<{ kind: string }>)[0]?.kind).toBe("deploy");
+
+  // B3: persisted and session remain intact; non-destructive notice emitted instead of error; gap recording still runs!
+  expect(frame(body, "persisted")?.sessionId).toBeTruthy();
+  expect(frame(body, "error")).toBeUndefined();
+  expect(frame(body, "notice")).toMatchObject({
+    kind: "receipt-save-failed",
+    message: expect.stringContaining("ENOSPC"),
+  });
+  expect(frame(body, "done")?.answerId).toBeUndefined();
+  expect(frame(body, "gap")).toMatchObject({ count: 1 });
+});
+
+it("[R2-P2-4] drains orphaned failed lease after transient settleLease(false) error and emits notice when captureAnswer returns undefined", async () => {
+  const { finishChat: realFinishChat } = await import("./chat-session");
+  let failFinish = true;
+  let modelCall = 0;
+  const f = await setup(
+    async (_req, on) => {
+      modelCall++;
+      if (modelCall === 1) {
+        return { ok: false, reason: "model process crashed" };
+      }
+      on.text("恢复后的回答，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      finishChat: async (root, lease, question, result) => {
+        if (failFinish) {
+          throw new Error("ENOSPC: disk full during error cleanup");
+        }
+        return realFinishChat(root, lease, question, result);
+      },
+      captureAnswer: async () => undefined,
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  // Turn 1: model fails AND settleLease(false) fails during finally (disk full)
+  const firstBody = await (await f.request({ message: "第一问？" })).text();
+  const sessionId = frame(firstBody, "knowledge").sessionId as string;
+  expect(frame(firstBody, "error")?.message).toContain("model process crashed");
+
+  // Storage recovers before Turn 2: Turn 2 must drain orphaned Turn 1 lease token and succeed with 200 (NOT 409!)
+  failFinish = false;
+  const secondRes = await f.request({ message: "恢复后第二问？", sessionId });
+  expect(secondRes.status).toBe(200);
+  const secondBody = await secondRes.text();
+  expect(frame(secondBody, "persisted")?.sessionId).toBe(sessionId);
+  expect(frame(secondBody, "done")?.answerId).toBeUndefined();
+  // Silent captureAnswer === undefined after cited + persisted must emit non-fatal receipt warning notice!
+  expect(frame(secondBody, "notice")).toMatchObject({
+    kind: expect.stringMatching(/^receipt-save-/),
+  });
+});
+
+it("[R3-P1-5 & R3-P2-8] never writes SSE after JSON 503 end when corpusDocuments throws post-lease, and CAS-guards pendingFailedLeaseReleases across concurrent retries", async () => {
+  const { finishChat: realFinishChat } = await import("./chat-session");
+
+  // 1. P1-5: corpusDocuments throws EIO AFTER beginChat acquires lease, BEFORE SSE headers are sent -> JSON 503 cleanly without ERR_STREAM_WRITE_AFTER_END!
+  let throwCorpus = true;
+  const f1 = await setup(
+    async (_req, on) => {
+      on.text("恢复后正常回答，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      corpusDocuments: () => {
+        if (throwCorpus) throw new Error("EIO: corpus snapshot disk read failed");
+        return [];
+      },
+    },
+  );
+
+  // Trigger errorFragments(...) > 0 so loadCorpus(root) executes right after beginChat
+  const errRes = await f1.request({ message: "RuntimeError: EI0006 ACL error 507011" });
+  expect(errRes.status).toBe(503);
+  const errText = await errRes.text();
+  expect(() => JSON.parse(errText)).not.toThrow();
+  expect(errText).not.toContain("event: cite");
+  expect(errText).not.toContain("event: done");
+
+  throwCorpus = false;
+  const recoveredRes = await f1.request({ message: "RuntimeError: EI0006 ACL error 507011" });
+  expect(recoveredRes.status).toBe(200);
+
+  // 2. P2-8: Concurrent retry 2 finishing stale drain of lease A MUST NOT delete newer failed lease B from pendingFailedLeaseReleases!
+  let failSettleForB = false;
+  let releaseSlowDrainA!: () => void;
+  const slowDrainAGate = new Promise<void>((r) => {
+    releaseSlowDrainA = r;
+  });
+  let slowDrainIntercepted = false;
+  let failTurn1Settle = true;
+  let modelTurn = 0;
+
+  const f2 = await setup(
+    async (_req, on) => {
+      modelTurn++;
+      if (modelTurn === 1 || modelTurn === 2) {
+        return { ok: false, reason: `crash-${modelTurn}` };
+      }
+      on.text("第三轮在 B 恢复清理后成功，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      finishChat: async (root, lease, question, result) => {
+        if (failTurn1Settle) {
+          throw new Error("ENOSPC: turn 1 lease A cleanup failed");
+        }
+        // First concurrent retry drains A quickly; second concurrent retry blocks mid-drain on A!
+        if (!slowDrainIntercepted && question === "" && result.ok === false) {
+          slowDrainIntercepted = true;
+          await slowDrainAGate;
+        }
+        if (failSettleForB && question !== "") {
+          throw new Error("ENOSPC: turn 2 lease B cleanup failed");
+        }
+        return realFinishChat(root, lease, question, result);
+      },
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  // Turn 1 fails & leaves lease A in pendingFailedLeaseReleases
+  const t1Body = await (await f2.request({ message: "Turn 1" })).text();
+  const sid = frame(t1Body, "knowledge").sessionId as string;
+  failTurn1Settle = false;
+
+  // Launch slow Retry 2 (parks inside drain of A)
+  const slowRetry2Promise = f2.request({ message: "Slow Retry 2", sessionId: sid });
+  await new Promise((r) => setTimeout(r, 25));
+
+  // Meanwhile fast Retry 1 drains A, acquires lease B, crashes, and fails to settle B -> registers (sid -> B) in pendingFailedLeaseReleases!
+  failSettleForB = true;
+  await (await f2.request({ message: "Fast Retry 1 (creates B)", sessionId: sid })).text();
+
+  // Now let slow Retry 2 finish its stale drain of A (throws expired attempt on A): MUST NOT delete (sid -> B)!
+  releaseSlowDrainA();
+  await slowRetry2Promise;
+
+  // Storage recovers: Turn 3 must drain B and return 200, NOT 409!
+  failSettleForB = false;
+  const t3Res = await f2.request({ message: "Turn 3 after B", sessionId: sid });
+  expect(t3Res.status).toBe(200);
+});
+
+it("[R4-Inv3] superseded/expired request A waking up in finally never overwrites pendingFailedLeaseReleases entry of newer lease B", async () => {
+  const { finishChat: realFinishChat } = await import("./chat-session");
+  let releaseHungTurnA!: () => void;
+  const hungTurnAGate = new Promise<void>((r) => {
+    releaseHungTurnA = r;
+  });
+  let notifyTurnAStarted!: () => void;
+  const turnAStarted = new Promise<void>((r) => {
+    notifyTurnAStarted = r;
+  });
+
+  let failTurnBFinish = false;
+  let callNum = 0;
+  const f = await setup(
+    async (_req, on) => {
+      callNum++;
+      if (callNum === 1) {
+        notifyTurnAStarted();
+        await hungTurnAGate;
+        return { ok: false, reason: "turn A timed out after B took over" };
+      }
+      if (callNum === 2) {
+        return { ok: false, reason: "turn B failed with disk full" };
+      }
+      on.text("Turn C 恢复成功，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      finishChat: async (root, lease, question, result) => {
+        if (failTurnBFinish && callNum === 2 && question.includes("Turn B")) {
+          throw new Error("ENOSPC: turn B disk write failed");
+        }
+        return realFinishChat(root, lease, question, result);
+      },
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  // 1. Start Request A and wait until it acquires lease A and enters runChat
+  const reqAPromise = f.request({ message: "Turn A (hangs > 10min)" });
+  await turnAStarted;
+
+  // Locate session file on disk and backdate lease A's `startedAt` by 600,001 ms (simulating TTL expiry)
+  const sessionsDir = join(f.root, "wiki/_jobs/chat-sessions");
+  const sessionFiles = readdirSync(sessionsDir).filter((n) => n.endsWith(".json"));
+  expect(sessionFiles).toHaveLength(1);
+  const sessionFilePath = join(sessionsDir, sessionFiles[0]!);
+  const rawSessionA = JSON.parse(readFileSync(sessionFilePath, "utf8")) as {
+    id: string;
+    active: { token: string; pid: number; startedAt: number };
+  };
+  const sid = rawSessionA.id;
+  rawSessionA.active.startedAt -= 600_001;
+  writeFileSync(sessionFilePath, `${JSON.stringify(rawSessionA, null, 2)}\n`, "utf8");
+
+  // 2. Request B legally takes over expired lease A, acquiring lease B, then hits ENOSPC in settleLease -> registers (sid -> B)
+  failTurnBFinish = true;
+  await (await f.request({ message: "Turn B takes over", sessionId: sid })).text();
+
+  // 3. Now hung Request A wakes up and enters finally: settleLease(false) throws superseded token mismatch — MUST NOT overwrite (sid -> B) with A!
+  releaseHungTurnA();
+  await (await reqAPromise).text();
+
+  // 4. Storage recovers: Request C must drain B and succeed with 200 (NOT 409!)
+  failTurnBFinish = false;
+  const resC = await f.request({ message: "Turn C after recovery", sessionId: sid });
+  expect(resC.status).toBe(200);
+});
+
+it("[R5-P2-4] monotonic leaseGen prevents superseded request A from overwriting newer lease B in pendingFailedLeaseReleases even when disk read fails transiently (EACCES/EISDIR)", async () => {
+  const { finishChat: realFinishChat } = await import("./chat-session");
+  let releaseHungTurnA!: () => void;
+  const hungTurnAGate = new Promise<void>((r) => {
+    releaseHungTurnA = r;
+  });
+  let notifyTurnAStarted!: () => void;
+  const turnAStarted = new Promise<void>((r) => {
+    notifyTurnAStarted = r;
+  });
+
+  let failTurnAFinally = false;
+  let failTurnBFinish = false;
+  let callNum = 0;
+  const f = await setup(
+    async (_req, on) => {
+      callNum++;
+      if (callNum === 1) {
+        notifyTurnAStarted();
+        await hungTurnAGate;
+        return { ok: false, reason: "turn A woke up after B registered failed lease" };
+      }
+      if (callNum === 2) {
+        return { ok: false, reason: "turn B failed with disk write error" };
+      }
+      on.text("Turn C 恢复成功，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      finishChat: async (root, lease, question, result) => {
+        if (failTurnBFinish && question.includes("Turn B")) {
+          throw new Error("ENOSPC: turn B disk write failed");
+        }
+        if (failTurnAFinally && question.includes("Turn A")) {
+          throw Object.assign(new Error("EACCES: transient permission denied"), { code: "EACCES" });
+        }
+        return realFinishChat(root, lease, question, result);
+      },
+    } as Parameters<typeof handleChat>[3],
+  );
+
+  // 1. Request A acquires lease A (leaseGen=1) and hangs
+  const reqAPromise = f.request({ message: "Turn A (hangs)" });
+  await turnAStarted;
+
+  const sessionsDir = join(f.root, "wiki/_jobs/chat-sessions");
+  const sessionFiles = readdirSync(sessionsDir).filter((n) => n.endsWith(".json"));
+  expect(sessionFiles).toHaveLength(1);
+  const sessionFilePath = join(sessionsDir, sessionFiles[0]!);
+  const rawSessionA = JSON.parse(readFileSync(sessionFilePath, "utf8")) as {
+    id: string;
+    active: { token: string; pid: number; startedAt: number };
+  };
+  const sid = rawSessionA.id;
+  rawSessionA.active.startedAt -= 600_001;
+  writeFileSync(sessionFilePath, `${JSON.stringify(rawSessionA, null, 2)}\n`, "utf8");
+
+  // 2. Request B acquires lease B (leaseGen=2) and fails in settleLease -> registers (sid -> B, leaseGen=2)
+  failTurnBFinish = true;
+  await (await f.request({ message: "Turn B takes over", sessionId: sid })).text();
+  const savedSessionB = readFileSync(sessionFilePath, "utf8");
+
+  // 3. Simulate transient unreadable session file (existsSync === true, readFileSync throws EISDIR -> hits catch fallback!) while A runs finally!
+  failTurnAFinally = true;
+  rmSync(sessionFilePath, { force: true });
+  mkdirSync(sessionFilePath);
+  try {
+    releaseHungTurnA();
+    await (await reqAPromise).text();
+  } finally {
+    rmSync(sessionFilePath, { recursive: true, force: true });
+    writeFileSync(sessionFilePath, savedSessionB, "utf8");
+  }
+
+  // 4. Storage recovers: Request C MUST drain lease B (never overwritten by stale A!) and succeed with 200 (NOT 409!)
+  failTurnBFinish = false;
+  failTurnAFinally = false;
+  const resC = await f.request({ message: "Turn C after EACCES recovery", sessionId: sid });
+  expect(resC.status).toBe(200);
 });

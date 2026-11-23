@@ -1,9 +1,10 @@
 import "../../design/tools.css";
-import { type MouseEvent, useEffect, useId, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { sourceUrl } from "../../content/wiki/index";
 import { parseRepoRef } from "../../content/wiki/schema";
 import { runPdConfigDoctorWithLinks, runSingleConfigDoctorWithLinks } from "../../content/wiki/toolDeeplinks";
 import type { WikiToolSpec } from "../../content/wiki/toolFence";
+import { parseVllmServeCommand } from "../../sim/doctor/cliParser";
 import type {
   DoctorFinding,
   DoctorMode,
@@ -28,11 +29,40 @@ import type {
 } from "../../sim/rules";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
-import { buildDoctorChatAnalysis, sanitizeDiagnosticText, workbenchHandoffStore } from "./workbenchHandoff";
+import {
+  buildDoctorChatAnalysis,
+  type DoctorModelTraitOverride,
+  resolveDoctorModelTraits,
+  sanitizeDiagnosticText,
+  workbenchHandoffStore,
+} from "./workbenchHandoff";
 
 type DoctorTopology = "single" | "pd";
 type ModelHintKey = "auto" | "qwen3-8b" | "qwen3-30b-a3b";
 type FindingFilter = "all" | RuleJudgment;
+
+export function extractNormalizedCliModel(commandText: string): string | null {
+  const raw = parseVllmServeCommand(commandText).model?.trim();
+  return raw ? raw.toLowerCase() : null;
+}
+
+function toCouplingTraitOverride(
+  traits: DoctorModelTraitOverride | undefined,
+): Partial<CouplingCheckInput> | undefined {
+  if (!traits) return undefined;
+  const out: Partial<CouplingCheckInput> = {};
+  if (traits.isMoe !== undefined) out.isMoe = traits.isMoe;
+  if (traits.useMla !== undefined) out.useMla = traits.useMla;
+  if (traits.sfaDcpReplicatedIndexer !== undefined) {
+    out.sfaDcpReplicatedIndexer = traits.sfaDcpReplicatedIndexer;
+  }
+  if (traits.numExperts !== undefined) out.numExperts = traits.numExperts;
+  if (traits.numExpertsPerTok !== undefined) out.numExpertsPerTok = traits.numExpertsPerTok;
+  if (traits.numAttentionHeads !== undefined) out.numAttentionHeads = traits.numAttentionHeads;
+  if (traits.numKvHeads !== undefined) out.numKvHeads = traits.numKvHeads;
+  if (traits.headDim !== undefined) out.headDim = traits.headDim;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
 
 const HARDWARE_OPTIONS: ReadonlyArray<{ value: AscendFamily; label: string }> = [
   { value: "A2", label: "Atlas A2" },
@@ -51,26 +81,6 @@ const MODEL_HINT_OPTIONS: ReadonlyArray<{ value: ModelHintKey; label: string }> 
   { value: "qwen3-8b", label: "Qwen3-8B (Dense GQA)" },
   { value: "qwen3-30b-a3b", label: "Qwen3-30B-A3B (MoE)" },
 ];
-
-const MODEL_HINT_OVERRIDES: Readonly<Record<ModelHintKey, Partial<CouplingCheckInput> | undefined>> = {
-  auto: undefined,
-  "qwen3-8b": {
-    isMoe: false,
-    useMla: false,
-    numAttentionHeads: 32,
-    numKvHeads: 8,
-    headDim: 128,
-  },
-  "qwen3-30b-a3b": {
-    isMoe: true,
-    useMla: false,
-    numExperts: 128,
-    numExpertsPerTok: 8,
-    numAttentionHeads: 32,
-    numKvHeads: 4,
-    headDim: 128,
-  },
-};
 
 const JUDGMENT_META: Readonly<Record<RuleJudgment, { label: string; short: string; cls: string }>> = {
   error: { label: "硬报错 error", short: "硬报错", cls: "is-error" },
@@ -159,7 +169,7 @@ function EffectiveRewritesTable({ rows }: { rows: readonly ScopedRewriteRow[] })
   return (
     <section className="wt-section" data-testid="doctor-rewrites-section">
       <div className="wt-section-head">
-        <h3 className="wt-section-title">实际生效值与静默改写对照</h3>
+        <h3 className="wt-section-title">会被自动补齐或悄悄改写的参数</h3>
         <span className="wt-section-meta">共 {rows.length} 项默认补齐 / 静默改写</span>
       </div>
       <div className="wt-table-wrap">
@@ -446,12 +456,21 @@ export function ConfigDoctorView({
   const [decodeCommandText, setDecodeCommandText] = useState<string>(initial.decodeCommandText);
   const [findingFilter, setFindingFilter] = useState<FindingFilter>("all");
   const [handoffSourceLabel, setHandoffSourceLabel] = useState<string | null>(null);
+  const [modelHintFromHandoff, setModelHintFromHandoff] = useState<boolean>(false);
+  const handoffCliModelRef = useRef<string | null>(null);
+  const [handoffModelCtx, setHandoffModelCtx] = useState<{
+    modelId?: string | undefined;
+    traitOverride?: DoctorModelTraitOverride | undefined;
+    cliModel: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (embedded) return;
     const applyPending = () => {
       const payload = workbenchHandoffStore.consumeDoctor();
       if (!payload) return;
+      const cliModel = extractNormalizedCliModel(payload.commandText);
+      handoffCliModelRef.current = cliModel;
       setTopology("single");
       setActivePresetId("");
       setHardwareFamily(payload.hardwareFamily);
@@ -459,6 +478,19 @@ export function ConfigDoctorView({
       setCommandText(payload.commandText);
       setFindingFilter("all");
       setHandoffSourceLabel(payload.sourceLabel);
+      const nextHint: ModelHintKey =
+        payload.modelId === "qwen3-8b" || payload.modelId === "qwen3-30b-a3b" ? payload.modelId : "auto";
+      setModelHint(nextHint);
+      setModelHintFromHandoff(nextHint !== "auto");
+      setHandoffModelCtx(
+        payload.modelId || payload.modelTraitOverride
+          ? {
+              modelId: payload.modelId,
+              traitOverride: payload.modelTraitOverride,
+              cliModel,
+            }
+          : null,
+      );
     };
     applyPending();
     return workbenchHandoffStore.subscribe(applyPending);
@@ -466,7 +498,24 @@ export function ConfigDoctorView({
 
   const effectiveTopology: DoctorTopology = effectiveMode === "minimal" ? "single" : topology;
   const effectiveVersion: RuleVersion = effectiveMode === "minimal" ? "v0.30.0" : version;
-  const modelTraitOverride = effectiveMode === "full" ? MODEL_HINT_OVERRIDES[modelHint] : undefined;
+  const activeHandoffCtx = effectiveTopology === "single" ? handoffModelCtx : null;
+  const activeModelId =
+    effectiveMode === "full" ? (modelHint !== "auto" ? modelHint : activeHandoffCtx?.modelId) : undefined;
+  const modelTraitOverride = useMemo(() => {
+    if (effectiveMode !== "full") return undefined;
+    if (modelHint !== "auto") {
+      return resolveDoctorModelTraits(modelHint);
+    }
+    if (activeHandoffCtx) {
+      return resolveDoctorModelTraits(activeHandoffCtx.modelId, activeHandoffCtx.traitOverride);
+    }
+    return undefined;
+  }, [effectiveMode, modelHint, activeHandoffCtx]);
+
+  const couplingTraitOverride = useMemo(
+    () => toCouplingTraitOverride(modelTraitOverride),
+    [modelTraitOverride],
+  );
 
   const singleReport: SingleConfigDoctorReport | null = useMemo(() => {
     if (effectiveTopology !== "single") return null;
@@ -475,7 +524,7 @@ export function ConfigDoctorView({
       hardwareFamily,
       version: effectiveVersion,
       ...(effectiveMode === "full" ? { crossNodeRoce } : {}),
-      ...(modelTraitOverride ? { modelTraitOverride } : {}),
+      ...(couplingTraitOverride ? { modelTraitOverride: couplingTraitOverride } : {}),
     });
   }, [
     effectiveTopology,
@@ -484,7 +533,7 @@ export function ConfigDoctorView({
     hardwareFamily,
     effectiveVersion,
     crossNodeRoce,
-    modelTraitOverride,
+    couplingTraitOverride,
   ]);
 
   const pdReport: PdConfigDoctorReport | null = useMemo(() => {
@@ -494,7 +543,7 @@ export function ConfigDoctorView({
       decodeHardwareFamily,
       version: effectiveVersion,
       crossNodeRoce,
-      ...(modelTraitOverride ? { modelTraitOverride } : {}),
+      ...(couplingTraitOverride ? { modelTraitOverride: couplingTraitOverride } : {}),
     });
   }, [
     effectiveTopology,
@@ -504,7 +553,7 @@ export function ConfigDoctorView({
     decodeHardwareFamily,
     effectiveVersion,
     crossNodeRoce,
-    modelTraitOverride,
+    couplingTraitOverride,
   ]);
 
   const allFindings =
@@ -539,17 +588,44 @@ export function ConfigDoctorView({
 
   const activePreset = currentPresets.find((p) => p.id === activePresetId);
 
+  const clearInheritedHandoffTraits = () => {
+    handoffCliModelRef.current = null;
+    setHandoffModelCtx(null);
+    setHandoffSourceLabel(null);
+    if (modelHintFromHandoff) {
+      setModelHint("auto");
+      setModelHintFromHandoff(false);
+    }
+  };
+
+  const handleSingleCommandChange = (nextCommand: string) => {
+    setCommandText(nextCommand);
+    if (handoffModelCtx || modelHintFromHandoff || handoffSourceLabel) {
+      const nextModel = extractNormalizedCliModel(nextCommand);
+      const expectedModel = handoffModelCtx?.cliModel ?? handoffCliModelRef.current;
+      if (nextModel !== expectedModel) {
+        clearInheritedHandoffTraits();
+      }
+    }
+  };
+
   const handleSelectSinglePreset = (preset: SingleDoctorPreset) => {
+    handoffCliModelRef.current = null;
     setActivePresetId(preset.id);
     setHardwareFamily(preset.hardwareFamily);
     setCommandText(preset.command);
     setFindingFilter("all");
+    setModelHint("auto");
+    setModelHintFromHandoff(false);
+    setHandoffModelCtx(null);
+    setHandoffSourceLabel(null);
     if (effectiveMode === "full") {
       setVersion(preset.version === "main" ? "main" : "v0.30.0");
     }
   };
 
   const handleSelectPdPreset = (preset: PdDoctorPreset) => {
+    handoffCliModelRef.current = null;
     setActivePresetId(preset.id);
     setHardwareFamily(preset.hardwareFamily);
     setDecodeHardwareFamily(preset.decodeHardwareFamily ?? preset.hardwareFamily);
@@ -557,11 +633,21 @@ export function ConfigDoctorView({
     setPrefillCommandText(preset.prefillCommand);
     setDecodeCommandText(preset.decodeCommand);
     setFindingFilter("all");
+    setModelHint("auto");
+    setModelHintFromHandoff(false);
+    setHandoffModelCtx(null);
+    setHandoffSourceLabel(null);
   };
 
   const handleSwitchTopology = (next: DoctorTopology) => {
+    if (next === topology) return;
+    handoffCliModelRef.current = null;
     setTopology(next);
     setFindingFilter("all");
+    setModelHint("auto");
+    setModelHintFromHandoff(false);
+    setHandoffModelCtx(null);
+    setHandoffSourceLabel(null);
     if (next === "pd") {
       const matched = PD_DOCTOR_PRESETS.find((p) => p.id === activePresetId);
       if (!matched && PD_DOCTOR_PRESETS[0]) {
@@ -598,6 +684,8 @@ export function ConfigDoctorView({
       hardwareFamily,
       version: effectiveVersion,
       ...(effectiveMode === "full" ? { crossNodeRoce } : {}),
+      ...(activeModelId ? { modelId: activeModelId } : {}),
+      ...(modelTraitOverride ? { modelTraitOverride } : {}),
     });
     assistant.openChat({
       pendingAttachment: {
@@ -667,12 +755,33 @@ export function ConfigDoctorView({
       {handoffSourceLabel && (
         <div className="wt-handoff-banner" data-testid="doctor-handoff-banner" role="status">
           <span>
-            已从部署算账台（<strong>{handoffSourceLabel}</strong>
-            ）带入推荐起服务命令与芯片族，正在执行源码规则体检。
+            已从部署算账台（<strong>{handoffSourceLabel}</strong>）
+            {activeHandoffCtx || modelHintFromHandoff
+              ? "带入启动命令、芯片族与模型结构参数，正在按源码规则体检。"
+              : "带入启动命令与芯片族（已手动覆盖模型结构），正在按源码规则体检。"}
           </span>
-          <button type="button" className="wt-preset-btn" onClick={() => setHandoffSourceLabel(null)}>
-            知道了
-          </button>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {(activeHandoffCtx || modelHintFromHandoff) && (
+              <button
+                type="button"
+                className="wt-preset-btn"
+                data-testid="doctor-clear-handoff-traits"
+                onClick={clearInheritedHandoffTraits}
+              >
+                清除继承的模型结构
+              </button>
+            )}
+            <button
+              type="button"
+              className="wt-preset-btn"
+              onClick={() => {
+                handoffCliModelRef.current = null;
+                setHandoffSourceLabel(null);
+              }}
+            >
+              知道了
+            </button>
+          </div>
         </div>
       )}
 
@@ -704,7 +813,7 @@ export function ConfigDoctorView({
       )}
 
       <div className="wt-presets">
-        <span className="wt-presets-label">预设场景：</span>
+        <span className="wt-presets-label">示例命令（点击切换体验）：</span>
         {currentPresets.map((preset) => {
           const isActive = preset.id === activePresetId;
           return (
@@ -730,7 +839,9 @@ export function ConfigDoctorView({
 
       <div className="wt-controls-bar">
         <label className="wt-field" htmlFor={`${idPrefix}-hw`}>
-          <span className="wt-field-label">{effectiveTopology === "pd" ? "Prefill 硬件族" : "硬件族"}</span>
+          <span className="wt-field-label">
+            {effectiveTopology === "pd" ? "Prefill 硬件族" : "昇腾硬件族"}
+          </span>
           <select
             id={`${idPrefix}-hw`}
             className="wt-select"
@@ -792,13 +903,20 @@ export function ConfigDoctorView({
             </label>
 
             <label className="wt-field" htmlFor={`${idPrefix}-model-hint`}>
-              <span className="wt-field-label">模型特征覆写</span>
+              <span className="wt-field-label">
+                指定模型结构
+                {activeHandoffCtx && modelHint === "auto" ? "（已继承算账台）" : ""}
+              </span>
               <select
                 id={`${idPrefix}-model-hint`}
                 className="wt-select"
                 data-testid="doctor-model-hint-select"
                 value={modelHint}
-                onChange={(e) => setModelHint(e.target.value as ModelHintKey)}
+                onChange={(e) => {
+                  setModelHint(e.target.value as ModelHintKey);
+                  setModelHintFromHandoff(false);
+                  setHandoffModelCtx(null);
+                }}
               >
                 {MODEL_HINT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -862,12 +980,14 @@ export function ConfigDoctorView({
           <div className="wt-editor-card">
             <div className="wt-editor-head">
               <label className="wt-editor-title" htmlFor={`${idPrefix}-single-cmd`}>
-                vllm serve 启动命令与环境变量
+                粘贴你的 vllm serve 启动命令与环境变量
               </label>
               <span className="wt-editor-role">
-                {singleReport?.parsed.inferredHints.matchedPresetName
-                  ? `识别模型：${singleReport.parsed.inferredHints.matchedPresetName}`
-                  : "实时解析"}
+                {modelTraitOverride?.numKvHeads !== undefined && activeHandoffCtx && modelHint === "auto"
+                  ? `继承结构：Q=${modelTraitOverride.numAttentionHeads ?? "?"} / KV=${modelTraitOverride.numKvHeads}${modelTraitOverride.useMla ? " · MLA" : modelTraitOverride.isMoe ? " · MoE" : ""}`
+                  : singleReport?.parsed.inferredHints.matchedPresetName
+                    ? `识别模型：${singleReport.parsed.inferredHints.matchedPresetName}`
+                    : "实时解析"}
               </span>
             </div>
             <textarea
@@ -876,7 +996,7 @@ export function ConfigDoctorView({
               data-testid="doctor-cmd-input"
               spellCheck={false}
               value={commandText}
-              onChange={(e) => setCommandText(e.target.value)}
+              onChange={(e) => handleSingleCommandChange(e.target.value)}
             />
           </div>
         </div>
@@ -889,7 +1009,7 @@ export function ConfigDoctorView({
         <div className="wt-summary-left">
           {errors.length === 0 ? (
             <span className="wt-pass-banner" data-testid="doctor-pass-banner">
-              ✓ 零硬阻断（可起服务）
+              ✓ 当前规则未发现冲突阻断
             </span>
           ) : (
             <span className="wt-blocked-banner" data-testid="doctor-blocked-banner">
@@ -933,29 +1053,9 @@ export function ConfigDoctorView({
           </div>
         )}
 
-      {effectiveMode === "full" && (
-        <>
-          <EffectiveRewritesTable rows={scopedRewrites} />
-          <section className="wt-section" data-testid="doctor-insights-section">
-            <div className="wt-section-head">
-              <h3 className="wt-section-title">运行时子系统快照</h3>
-              <span className="wt-section-meta">批处理预算 · MoE 通信 · HCCL 通信域 · 环境变量核验</span>
-            </div>
-            {effectiveTopology === "pd" && pdReport ? (
-              <>
-                <InstanceInsightsCards report={pdReport.prefill} scopeTitle="Prefill" />
-                <InstanceInsightsCards report={pdReport.decode} scopeTitle="Decode" />
-              </>
-            ) : (
-              singleReport && <InstanceInsightsCards report={singleReport} />
-            )}
-          </section>
-        </>
-      )}
-
       <section className="wt-section" data-testid="doctor-findings-section">
         <div className="wt-section-head">
-          <h3 className="wt-section-title">诊断详情（{allFindings.length}）</h3>
+          <h3 className="wt-section-title">诊断详情与修改建议（{allFindings.length}）</h3>
           {effectiveMode === "full" && (
             <div className="wt-filter-row">
               {(
@@ -984,7 +1084,7 @@ export function ConfigDoctorView({
         {visibleFindings.length === 0 ? (
           <div className="wt-empty-state">
             {allFindings.length === 0
-              ? "当前配置未命中任何硬报错、静默改写或告警规则。"
+              ? "当前配置未命中任何硬报错、静默改写或告警规则（仍建议上线前实机核对显存与依赖版本）。"
               : "当前筛选条件下暂无诊断条目，可切换「全部」查看。"}
           </div>
         ) : (
@@ -999,6 +1099,28 @@ export function ConfigDoctorView({
           </div>
         )}
       </section>
+
+      {effectiveMode === "full" && (
+        <>
+          <EffectiveRewritesTable rows={scopedRewrites} />
+          <section className="wt-section" data-testid="doctor-insights-section">
+            <div className="wt-section-head">
+              <h3 className="wt-section-title">生效配置拆解</h3>
+              <span className="wt-section-meta">
+                批处理预算 · MoE 通信策略 · HCCL 常驻显存 · 环境变量核验
+              </span>
+            </div>
+            {effectiveTopology === "pd" && pdReport ? (
+              <>
+                <InstanceInsightsCards report={pdReport.prefill} scopeTitle="Prefill" />
+                <InstanceInsightsCards report={pdReport.decode} scopeTitle="Decode" />
+              </>
+            ) : (
+              singleReport && <InstanceInsightsCards report={singleReport} />
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

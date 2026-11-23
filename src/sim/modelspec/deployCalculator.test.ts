@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeKvPerToken, analyzeParams } from "./analyze";
 import {
   ASCEND_CALC_CARDS,
+  buildCurrentPlanCliHint,
   evaluateDeployPlan,
   evaluateWave3ModelGate,
   GIB,
@@ -413,8 +414,9 @@ describe("evaluateDeployPlan（硬件/量化/OOM/余量边界校验）", () => {
 
 describe("Mode B：parseAscendStartupLog 与 reconcileStartupLog", () => {
   it("两个内置参考日志模板完整解析并与 Mode A 闭环对齐（绝不二次扣 HCCL）", () => {
-    expect(SAMPLE_ASCEND_STARTUP_LOGS).toHaveLength(2);
-    for (const tpl of SAMPLE_ASCEND_STARTUP_LOGS) {
+    const refTemplates = SAMPLE_ASCEND_STARTUP_LOGS.filter((tpl) => tpl.isReferenceTemplate);
+    expect(refTemplates).toHaveLength(2);
+    for (const tpl of refTemplates) {
       expect(tpl.isReferenceTemplate).toBe(true);
       const plan = evaluateDeployPlan(tpl.recommendedPlanInput);
       const parsed = parseAscendStartupLog(tpl.logText);
@@ -431,6 +433,64 @@ describe("Mode B：parseAscendStartupLog 与 reconcileStartupLog", () => {
       expect(rec.overallStatus).toBe("aligned");
       expect(rec.items.every((it) => it.status === "within-interval")).toBe(true);
     }
+  });
+
+  it("六个 Ascend 910B3 真机实测启动日志（TP=1/2/4/8 + MoE TP4+EP4 / DP2+TP4+EP8）统一 FULL_AND_PIECEWISE 并完整提取 60.96 GiB 阶梯", () => {
+    const measuredTemplates = SAMPLE_ASCEND_STARTUP_LOGS.filter((tpl) => !tpl.isReferenceTemplate);
+    expect(measuredTemplates.map((tpl) => tpl.id)).toEqual([
+      "real-910b3-qwen3-8b-tp1",
+      "real-910b3-qwen3-8b-tp2",
+      "real-910b3-qwen3-8b-tp4",
+      "real-910b3-qwen3-8b-tp8",
+      "real-910b3-qwen3-30b-a3b-tp4-ep4",
+      "real-910b3-qwen3-30b-a3b-dp2-tp4-ep8",
+    ]);
+    for (const tpl of measuredTemplates) {
+      expect(tpl.recommendedPlanInput.cudagraphMode).toBe("FULL_AND_PIECEWISE");
+      const plan = evaluateDeployPlan(tpl.recommendedPlanInput);
+      const parsed = parseAscendStartupLog(tpl.logText);
+      expect(parsed.hasAnyMetric).toBe(true);
+      expect(parsed.weightsGiB).not.toBeNull();
+      expect(parsed.nonKvCacheMemoryGiB).not.toBeNull();
+      expect(parsed.availableKvGiB).not.toBeNull();
+      expect(parsed.kvCacheTokens).not.toBeNull();
+      expect(parsed.aclGraphGiB).not.toBeNull();
+      expect(parsed.totalDeviceGiB).toBeCloseTo(60.96, 2);
+
+      const rec = reconcileStartupLog(plan, parsed);
+      expect(rec.hcclDoubleCounted).toBe(false);
+      expect(rec.byKey.weights.status).toBe("within-interval");
+      expect(rec.byKey.availableKv.likelyRootCauses.join(" ")).toContain("60.96 GiB");
+    }
+
+    const tp2 = parseAscendStartupLog(
+      measuredTemplates.find((tpl) => tpl.id === "real-910b3-qwen3-8b-tp2")!.logText,
+    );
+    expect(tp2.weightsGiB).toBeCloseTo(7.658, 3);
+    expect(tp2.availableKvGiB).toBeCloseTo(43.52, 2);
+    expect(tp2.kvCacheTokens).toBe(633_728);
+    expect(tp2.aclGraphGiB).toBeCloseTo(2.93, 2);
+    expect(tp2.nonTorchIncreaseGiB).toBeCloseTo(0.43, 2);
+
+    const tp8 = parseAscendStartupLog(
+      measuredTemplates.find((tpl) => tpl.id === "real-910b3-qwen3-8b-tp8")!.logText,
+    );
+    expect(tp8.weightsGiB).toBeCloseTo(1.937, 3);
+    expect(tp8.availableKvGiB).toBeCloseTo(49.27, 2);
+    expect(tp8.kvCacheTokens).toBe(2_869_888);
+    expect(tp8.aclGraphGiB).toBeCloseTo(3.21, 2);
+    expect(tp8.nonTorchIncreaseGiB).toBeCloseTo(0.44, 2);
+
+    // TP=1 -> 2 -> 4 -> 8 固定 u=0.85 时，每卡 KV 与图显存呈单调递增阶梯
+    const denseLadder = [
+      "real-910b3-qwen3-8b-tp1",
+      "real-910b3-qwen3-8b-tp2",
+      "real-910b3-qwen3-8b-tp4",
+      "real-910b3-qwen3-8b-tp8",
+    ].map((id) => parseAscendStartupLog(measuredTemplates.find((tpl) => tpl.id === id)!.logText));
+    expect(denseLadder.map((p) => p.availableKvGiB)).toEqual([36.29, 43.52, 47.35, 49.27]);
+    expect(denseLadder.map((p) => p.kvCacheTokens)).toEqual([264_192, 633_728, 1_379_200, 2_869_888]);
+    expect(denseLadder.map((p) => p.aclGraphGiB)).toEqual([2.59, 2.93, 3.1, 3.21]);
   });
 
   it("解析多样日志格式（Model loading / GPU KV cache / MiB 录图 / 310P halved / profiling 报错）并识别漂移与 OOM 风险", () => {
@@ -459,6 +519,63 @@ describe("Mode B：parseAscendStartupLog 与 reconcileStartupLog", () => {
     expect(rec.byKey.aclGraph.status).toBe("oom-risk");
     expect(rec.byKey.headroomSafety.status).toBe("oom-risk");
     expect(rec.overallStatus).toBe("oom-risk");
+  });
+
+  it("P2-7: 多 Rank EP8 启动日志严格按进程/Rank 分桶，对调行序结果恒定、绝不跨进程混拼指标并支持显式 targetRank", () => {
+    // 原始 EP8 raw #L724 (line 13: Worker_DP0_TP1_EP1, 2.64 GiB) 与 #L729 (line 18: Worker_DP1_TP1_EP5, 2.65 GiB)
+    const ep1Line =
+      "(Worker_DP0_TP1_EP1 pid=58357) INFO 11-23 02:50:40 [worker.py:950] Free memory on device (60.59/60.96 GiB) on startup. Desired GPU memory utilization is (0.88, 53.64 GiB). Actual usage: 7.52 GiB for weights, 0.37 GiB for peak activation, 0.55 GiB for non-torch memory, 2.64 GiB for NPU graph memory. Replace gpu_memory_utilization with `--kv-cache-memory=45551219097` (42.42 GiB) to fit into requested memory, or `--kv-cache-memory=53007996928` (49.37 GiB) to fully utilize NPU free memory. Current KV cache memory: 45.21 GiB. After warmup: torch reserved memory 54.94 GiB, torch allocated memory 52.74 GiB.";
+    const ep5Line =
+      "(Worker_DP1_TP1_EP5 pid=58358) INFO 11-23 02:50:40 [worker.py:950] Free memory on device (60.58/60.96 GiB) on startup. Desired GPU memory utilization is (0.88, 53.64 GiB). Actual usage: 7.52 GiB for weights, 0.37 GiB for peak activation, 0.55 GiB for non-torch memory, 2.65 GiB for NPU graph memory. Replace gpu_memory_utilization with `--kv-cache-memory=45547135385` (42.42 GiB) to fit into requested memory, or `--kv-cache-memory=53001627648` (49.36 GiB) to fully utilize NPU free memory. Current KV cache memory: 45.21 GiB. After warmup: torch reserved memory 54.94 GiB, torch allocated memory 52.74 GiB.";
+
+    const orderA = parseAscendStartupLog([ep1Line, ep5Line].join("\n"));
+    const orderB = parseAscendStartupLog([ep5Line, ep1Line].join("\n"));
+
+    // 对调行顺序后，选定 Rank、图显存、初始空闲显存与建议 KV 字节必须完全一致
+    expect(orderA.selectedRankLabel).toBe("Worker_DP0_TP1_EP1");
+    expect(orderB.selectedRankLabel).toBe("Worker_DP0_TP1_EP1");
+    expect(orderA.aclGraphGiB).toBeCloseTo(2.64, 2);
+    expect(orderB.aclGraphGiB).toBeCloseTo(2.64, 2);
+    expect(orderA.initialFreeGiB).toBeCloseTo(60.59, 2);
+    expect(orderB.initialFreeGiB).toBeCloseTo(60.59, 2);
+    expect(orderA.suggestedKvMemoryBytes).toBe(45551219097);
+    expect(orderB.suggestedKvMemoryBytes).toBe(45551219097);
+    expect(orderA.detectedRanks).toEqual(["Worker_DP0_TP1_EP1", "Worker_DP1_TP1_EP5"]);
+    expect(orderB.detectedRanks).toEqual(["Worker_DP0_TP1_EP1", "Worker_DP1_TP1_EP5"]);
+    expect(orderA.rankSnapshots.map((s) => s.aclGraphGiB)).toEqual([2.64, 2.65]);
+    expect(orderB.rankSnapshots.map((s) => s.aclGraphGiB)).toEqual([2.64, 2.65]);
+    expect(orderA.crossRankNotes.join(" ")).toContain("2.64–2.65 GiB");
+    expect(orderA.crossRankNotes.join(" ")).toContain("Worker_DP1_TP1_EP5");
+
+    // 显式指定 targetRank 可确定性切换对账目标 Rank，同样与行序无关
+    const explicitA = parseAscendStartupLog([ep1Line, ep5Line].join("\n"), {
+      targetRank: "Worker_DP1_TP1_EP5",
+    });
+    const explicitB = parseAscendStartupLog([ep5Line, ep1Line].join("\n"), {
+      targetRank: "Worker_DP1_TP1_EP5",
+    });
+    expect(explicitA.selectedRankLabel).toBe("Worker_DP1_TP1_EP5");
+    expect(explicitB.selectedRankLabel).toBe("Worker_DP1_TP1_EP5");
+    expect(explicitA.aclGraphGiB).toBeCloseTo(2.65, 2);
+    expect(explicitB.aclGraphGiB).toBeCloseTo(2.65, 2);
+    expect(explicitA.suggestedKvMemoryBytes).toBe(45547135385);
+    expect(explicitB.suggestedKvMemoryBytes).toBe(45547135385);
+
+    // 跨进程不混拼：Worker_DP0_TP0_EP0 仅提供 weights 与 EngineCore_DP0 提供 KV tokens，
+    // 绝不能把另一个进程 Worker_DP1_TP1_EP5 的 graph/suggestedKvBytes 混入 Worker_DP0_TP0_EP0
+    const mixedLines = [
+      "(Worker_DP0_TP0_EP0 pid=58356) INFO 11-23 02:48:11 [model_runner_v1.py:4476] Loading model weights took 7.5152 GB",
+      "(Worker_DP0_TP0_EP0 pid=58356) INFO 11-23 02:49:16 [worker.py:660] Available KV cache memory: 45.21 GiB",
+      "(EngineCore_DP0 pid=57743) INFO 11-23 02:49:16 [kv_cache_utils.py:2395] NPU KV cache size: 1,975,168 tokens, Maximum concurrency for 32,768 tokens per request: 60.28x",
+      "(EngineCore_DP1 pid=57744) INFO 11-23 02:49:16 [kv_cache_utils.py:2395] NPU KV cache size: 1,975,168 tokens, Maximum concurrency for 32,768 tokens per request: 60.28x",
+      ep5Line,
+    ];
+    const ep0Only = parseAscendStartupLog(mixedLines.join("\n"), { targetRank: "Worker_DP0_TP0_EP0" });
+    expect(ep0Only.weightsGiB).toBeCloseTo(7.5152, 4);
+    expect(ep0Only.availableKvGiB).toBeCloseTo(45.21, 2);
+    expect(ep0Only.kvCacheTokens).toBe(1_975_168);
+    expect(ep0Only.aclGraphGiB).toBeNull();
+    expect(ep0Only.suggestedKvMemoryBytes).toBeNull();
   });
 });
 
@@ -1438,7 +1555,7 @@ describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
     expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
   });
 
-  it("P2-1: min-card search enumerates legal DCP candidates when dcp=1 is unsolvable (1M-context MLA on a2-32g u=0.15)", () => {
+  it("P2-1: min-card search enumerates legal DCP candidates when dcp=1 is unsolvable (1M-context MLA on a2-32g u=0.15 & 9M-context at u=0.92)", () => {
     const mla1m = {
       model_type: "deepseek_v3",
       hidden_size: 4096,
@@ -1451,15 +1568,27 @@ describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
       v_head_dim: 128,
       intermediate_size: 8192,
       vocab_size: 32000,
-      max_position_embeddings: 1_048_576,
+      max_position_embeddings: 10_485_760,
       torch_dtype: "bfloat16",
     };
-    const plan = evaluateDeployPlan({
+    const lowUtilPlan = evaluateDeployPlan({
       model: mla1m,
       cardId: "a2-32g",
       gpuMemoryUtilization: 0.15,
       tpSize: 1,
       maxModelLen: 1_048_576,
+      maxNumSeqs: 1,
+    });
+    expect(lowUtilPlan.fourQuestions.q2Capacity.unsolvable).toBe(false);
+    expect(lowUtilPlan.fourQuestions.q2Capacity.feasible).toBe(true);
+    expect(lowUtilPlan.fourQuestions.q2Capacity.minCardsRecommended).toBeGreaterThan(1);
+
+    const plan = evaluateDeployPlan({
+      model: mla1m,
+      cardId: "a2-32g",
+      gpuMemoryUtilization: 0.92,
+      tpSize: 1,
+      maxModelLen: 9_437_184,
       maxNumSeqs: 1,
     });
     const q4 = plan.fourQuestions.q4Recommendation;
@@ -1477,7 +1606,7 @@ describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
       ppSize: q4.recommendedPp!,
       dpSize: q4.recommendedDp ?? 1,
       dcpSize: q4.recommendedDcp ?? 1,
-      maxModelLen: 1_048_576,
+      maxModelLen: 9_437_184,
       maxNumSeqs: 1,
     });
     expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
@@ -1554,15 +1683,25 @@ describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
       v_head_dim: 128,
       intermediate_size: 6144,
       vocab_size: 32000,
-      max_position_embeddings: 2_000_000,
+      max_position_embeddings: 20_000_000,
       torch_dtype: "bfloat16",
     };
-    const plan = evaluateDeployPlan({
+    const lowUtilPlan = evaluateDeployPlan({
       model: mla24,
       cardId: "a2-32g",
       gpuMemoryUtilization: 0.15,
       tpSize: 1,
       maxModelLen: 1_500_000,
+      maxNumSeqs: 1,
+    });
+    expect(lowUtilPlan.fourQuestions.q2Capacity.minCardsRecommended).toBe(3);
+
+    const plan = evaluateDeployPlan({
+      model: mla24,
+      cardId: "a2-32g",
+      gpuMemoryUtilization: 0.92,
+      tpSize: 1,
+      maxModelLen: 18_000_000,
       maxNumSeqs: 1,
     });
     const q4 = plan.fourQuestions.q4Recommendation;
@@ -1628,5 +1767,526 @@ describe("Round 2 Verification Regressions (P1-1..P1-2 & P2-1..P2-4)", () => {
     });
     expect(replay.fourQuestions.q1Fit.blockers).toEqual([]);
     expect(replay.fourQuestions.q2Capacity.oomStatus).toBe("fits");
+  });
+});
+
+describe("Wave 7 Precision & Topology Regressions (A.1–A.5)", () => {
+  it("A.1: Stage 4 replicated KV head activation uses localKvHeads=1 (128 dim, NOT 512/8=64) when TP=8 > numKvHeads=4", () => {
+    // Compare Qwen3-30B-A3B (32 Q, 4 KV, headDim=128, H=2048) vs a 8-KV-head model at TP=8:
+    // At TP=8, BOTH have 1 local KV head (128 dim) per rank! Under the old bug, 4 KV heads got 512/8 = 64 dim (< 128 dim of 8 KV heads).
+    const qwen30bTp8 = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 8,
+      enableEp: true,
+      maxNumBatchedTokens: 4096,
+    });
+    const eightKvCfg = {
+      model_type: "qwen3_moe",
+      hidden_size: 2048,
+      num_hidden_layers: 48,
+      num_attention_heads: 32,
+      num_key_value_heads: 8,
+      head_dim: 128,
+      moe_intermediate_size: 768,
+      num_experts: 128,
+      num_experts_per_tok: 8,
+      vocab_size: 151936,
+      torch_dtype: "bfloat16",
+    };
+    const eightKvTp8 = evaluateDeployPlan({
+      model: eightKvCfg,
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 8,
+      enableEp: true,
+      maxNumBatchedTokens: 4096,
+    });
+    expect(qwen30bTp8.inputSummary.localKvHeadsPerRank).toBe(1);
+    expect(eightKvTp8.inputSummary.localKvHeadsPerRank).toBe(1);
+    // Identical H, Q/TP=512, localKvDim=128, FFN, vocab/TP -> Stage 4 torch peak must match 100%!
+    expect(qwen30bTp8.stages[3].lowBytes).toBe(eightKvTp8.stages[3].lowBytes);
+    expect(qwen30bTp8.stages[3].pointEstimateBytes).toBe(eightKvTp8.stages[3].pointEstimateBytes);
+    expect(qwen30bTp8.stages[3].highBytes).toBe(eightKvTp8.stages[3].highBytes);
+  });
+
+  it("A.2: Quantized MoE separates residentScaleBytes from activeScaleBytes (excludes 112.5 MiB of unactivated experts' scales in TP=1 W8A8_DYNAMIC Top-8)", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8_dynamic",
+      tpSize: 1,
+      enableEp: false,
+    });
+    // Per expert INT8 scale = 2 * 768 * 8 + 2048 * 4 = 20,480 B; 48 layers * 120 unactivated experts = 117,964,800 B = 112.5 MiB.
+    // Exact active weights + active scales for Qwen3-30B-A3B TP=1 W8A8_DYNAMIC:
+    // - embed + lm_head + final_norm (BF16): (2 * 151936 * 2048 + 2048) * 2 = 1,244,663,808 B
+    // - 48 layers non-quant (2*H + 2*headDim + H*128 router) * 2B: 48 * (4096 + 256 + 262144) * 2 = 25,583,616 B
+    // - 48 layers attn INT8 weights (2048*4096 + 2*2048*512 + 4096*2048 = 18,874,368) + scales ((4096+1024+2048)*8 = 57,344):
+    //   48 * (18,874,368 + 57,344) = 908,722,176 B
+    // - 48 layers Top-8 active experts INT8 weights (8 * 3 * 2048 * 768 = 37,748,736) + active scales (8 * 20,480 = 163,840):
+    //   48 * (37,748,736 + 163,840) = 1,819,803,648 B
+    const expectedActiveBytes = 1_244_663_808 + 25_583_616 + 908_722_176 + 1_819_803_648;
+    expect(plan.roofline.activeWeightBytesPerRank).toBe(expectedActiveBytes);
+    // Resident Stage 3 weights STILL include all 128 experts + 112.5 MiB unactivated scales (~29.6+ GiB)
+    expect(plan.stages[2].lowBytes).toBeGreaterThan(29 * GIB);
+  });
+
+  it("A.3: Roofline uses actual per-rank Q width (512 on TP=8, not clamped to 2048) and compares static w8a8 MoE against BF16 ridge point (~200)", () => {
+    const qwen30bTp8 = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 8,
+      enableEp: true,
+      prefillTokens: 512,
+    });
+    // Actual per-rank Q projection at TP=8: M=512, K=2048, N=4096/8=512 (2B in/w/out)
+    // flops = 2 * 512 * 2048 * 512 = 1,073,741,824
+    // bytes = 2 * (512*2048 + 2048*512 + 512*512) = 4,718,592 -> intensity = 227.555... FLOP/B (NOT 341.3 from N=2048!)
+    const expectedPrefillIntensity = (2 * 512 * 2048 * 512) / (2 * (512 * 2048 + 2048 * 512 + 512 * 512));
+    expect(qwen30bTp8.roofline.prefillIntensityFlopsPerByte).toBeCloseTo(expectedPrefillIntensity, 2);
+
+    // Static w8a8 on MoE: experts remain BF16 (2 B), so Roofline ridge point must be BF16 (~200 FLOP/B on A2-64G), NOT INT8 (400 FLOP/B)!
+    const staticW8a8Moe = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8",
+      tpSize: 4,
+      dpSize: 4,
+      enableEp: true,
+      decodeBatchSize: 2048, // M_eff = (4 * 2048 * 8) / 128 = 512 (N=768) -> BF16 intensity ~268.4 FLOP/B (between 200 and 400!)
+    });
+    expect(staticW8a8Moe.roofline.ridgePointFlopsPerByte).toBeCloseTo(200, 1);
+    expect(staticW8a8Moe.roofline.decodeLinearIntensityFlopsPerByte).toBeGreaterThan(220);
+    expect(staticW8a8Moe.roofline.decodeLinearIntensityFlopsPerByte).toBeLessThan(360);
+    expect(staticW8a8Moe.roofline.decodeLinearRegime).toBe("compute-bound");
+  });
+
+  it("A.4: Q4 re-runs minimal topology search with recommendedPrecision (TP=1 on A2 64G for w8a8_dynamic, 2 cards on 310P for w8a8sc_310p)", () => {
+    // 1) Qwen3-30B-A3B on A2 64G when Q4 switches precision -> w8a8_dynamic fits on TP=1 (1 card)!
+    const a2Fp8Main = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      version: "main",
+      weightPrecision: "fp8_block",
+      tpSize: 4,
+      enableEp: true,
+    });
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.recommendedPrecision).toBe("w8a8_dynamic");
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.feasible).toBe(true);
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.unsolvable).toBe(false);
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.recommendedTp).toBe(1);
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.recommendedPp).toBe(1);
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.cliHint).toContain("-tp 1");
+    expect(a2Fp8Main.fourQuestions.q4Recommendation.cliHint).toContain("--quantization ascend");
+
+    // Also when BF16 needs >= 4 cards on A2 64G (e.g. u=0.70, maxModelLen=131072, maxNumBatchedTokens=32768 where BF16 needs 4 cards,
+    // while w8a8_dynamic fits on TP=1 on A2 64G!)
+    const a2Bf16Tight = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      gpuMemoryUtilization: 0.7,
+      maxModelLen: 131072,
+      maxNumBatchedTokens: 32768,
+    });
+    // Wait: let's also check DeepSeek-V3 MLA BF16 -> w8a8_dynamic on A2 64G (BF16 unsolvable -> w8a8_dynamic feasible 16 cards!)
+    const dsBf16 = evaluateDeployPlan({
+      model: "deepseek-v3-mla",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 8,
+      ppSize: 2,
+      enableEp: true,
+    });
+    expect(dsBf16.fourQuestions.q4Recommendation.recommendedPrecision).toBe("w8a8_dynamic");
+    expect(dsBf16.fourQuestions.q4Recommendation.feasible).toBe(true);
+    expect(dsBf16.fourQuestions.q4Recommendation.unsolvable).toBe(false);
+    expect(dsBf16.fourQuestions.q4Recommendation.cliHint).toContain("--quantization ascend");
+    if (a2Bf16Tight.fourQuestions.q4Recommendation.recommendedPrecision === "w8a8_dynamic") {
+      expect(a2Bf16Tight.fourQuestions.q4Recommendation.recommendedTp).toBeLessThan(4);
+    }
+
+    // 2) Qwen3-30B-A3B BF16 on 310P-24G -> Q4 switches to w8a8sc_310p and finds 2 logical cards (1 physical 300I DUO card, TP=2), NOT 4 cards from fp16!
+    const p310Moe = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "310p-24g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 16384,
+    });
+    expect(p310Moe.fourQuestions.q4Recommendation.recommendedPrecision).toBe("w8a8sc_310p");
+    expect(p310Moe.fourQuestions.q4Recommendation.feasible).toBe(true);
+    expect(p310Moe.fourQuestions.q4Recommendation.recommendedTp).toBe(2);
+    expect(p310Moe.fourQuestions.q4Recommendation.recommendedPp).toBe(1);
+    expect(p310Moe.fourQuestions.q4Recommendation.cliHint).toContain("-tp 2");
+    expect(p310Moe.fourQuestions.q4Recommendation.cliHint).toContain("--dtype float16");
+    expect(p310Moe.fourQuestions.q4Recommendation.cliHint).toContain("--quantization ascend");
+  });
+
+  it("A.5: Doctor handoff CLI includes non-default --max-model-len, --kv-cache-dtype, --max-num-batched-tokens, --max-num-seqs, and graph flags", () => {
+    const planGraph = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8_dynamic",
+      kvCacheDtype: "int8",
+      tpSize: 2,
+      maxModelLen: 16384,
+      maxNumBatchedTokens: 4096,
+      maxNumSeqs: 64,
+      cudagraphMode: "FULL_DECODE_ONLY",
+    });
+    const cli = planGraph.fourQuestions.q4Recommendation.cliHint;
+    expect(cli).toContain("--max-model-len 16384");
+    expect(cli).toContain("--kv-cache-dtype int8");
+    expect(cli).toContain("--max-num-batched-tokens 4096");
+    expect(cli).toContain("--max-num-seqs 64");
+    expect(cli).toContain('--compilation-config \'{"cudagraph_mode":"FULL_DECODE_ONLY"}\'');
+
+    const planEager = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 1,
+      enforceEager: true,
+    });
+    expect(planEager.fourQuestions.q4Recommendation.cliHint).toContain("--enforce-eager");
+  });
+
+  it("R2.1: Stage 4 hybrid model activation peak is permutation-invariant across layer_types and captures the widest layer", () => {
+    const kdaPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "hybrid-kda-gqa")!;
+    const orderA = evaluateDeployPlan({
+      model: {
+        ...kdaPreset.config,
+        layer_types: ["linear_kda", "linear_kda", "linear_kda", "full_attention"],
+      },
+      cardId: "a2-64g",
+      tpSize: 1,
+    });
+    const orderB = evaluateDeployPlan({
+      model: {
+        ...kdaPreset.config,
+        layer_types: ["full_attention", "linear_kda", "linear_kda", "linear_kda"],
+      },
+      cardId: "a2-64g",
+      tpSize: 1,
+    });
+    expect(orderA.stages[3].lowBytes).toBe(orderB.stages[3].lowBytes);
+    expect(orderA.stages[3].pointEstimateBytes).toBe(orderB.stages[3].pointEstimateBytes);
+    expect(orderA.stages[3].highBytes).toBe(orderB.stages[3].highBytes);
+  });
+
+  it("R2.2: Static w8a8 MoE uses INT8 bytes & INT8 ridge (400 FLOP/B) for Prefill q_proj (~387.46 < 400 memory-bound) while keeping BF16 ridge (200) for MoE experts", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8",
+      tpSize: 8,
+      enableEp: true,
+      prefillTokens: 448,
+    });
+    // M=448, K=2048, N=512, INT8 actIn=1, w=1, BF16 out=2 -> 939,524,096 / 2,424,832 = 387.459... FLOP/B (< 400 INT8 ridge!)
+    expect(plan.roofline.prefillIntensityFlopsPerByte).toBeCloseTo(387.46, 1);
+    expect(plan.roofline.prefillRegime).toBe("memory-bound");
+  });
+
+  it("R2.3: Q4 minCards searches at recommended utilization when switching precision (1 card on low u -> 0.90) & CLI distinguishes dtype / weight_nz_mode / V2 runner", async () => {
+    const { buildCurrentPlanCliHint } = await import("./deployCalculator");
+    const u034Bf16 = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 16384,
+      gpuMemoryUtilization: 0.34,
+    });
+    const q4Bf16 = u034Bf16.fourQuestions.q4Recommendation;
+    expect(q4Bf16.recommendedPrecision).toBe("w8a8_dynamic");
+    expect(q4Bf16.recommendedGpuMemoryUtilization).toBeCloseTo(0.9, 2);
+    expect(q4Bf16.recommendedTp).toBe(1);
+    expect(q4Bf16.recommendedPp).toBe(1);
+
+    const u040Fp8Main = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      version: "main",
+      weightPrecision: "fp8_block",
+      tpSize: 1,
+      maxModelLen: 16384,
+      gpuMemoryUtilization: 0.4,
+    });
+    const q4Fp8 = u040Fp8Main.fourQuestions.q4Recommendation;
+    expect(q4Fp8.recommendedPrecision).toBe("w8a8_dynamic");
+    expect(q4Fp8.recommendedGpuMemoryUtilization).toBeCloseTo(0.9, 2);
+    expect(q4Fp8.recommendedTp).toBe(1);
+    expect(q4Fp8.recommendedPp).toBe(1);
+
+    const bf16Plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      weightNzMode: 2,
+      useV2ModelRunner: true,
+    });
+    const fp16Plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "fp16",
+      weightNzMode: 0,
+      useV2ModelRunner: false,
+    });
+    const cliBf16 = buildCurrentPlanCliHint(bf16Plan);
+    const cliFp16 = buildCurrentPlanCliHint(fp16Plan);
+    expect(cliBf16).not.toBe(cliFp16);
+    expect(cliBf16).toContain("--dtype bfloat16");
+    expect(cliFp16).toContain("--dtype float16");
+    expect(cliBf16).toContain('"weight_nz_mode":2');
+    expect(cliFp16).toContain('"weight_nz_mode":0');
+    expect(cliBf16).toContain("VLLM_USE_V2_MODEL_RUNNER=1");
+    expect(cliFp16).toContain("VLLM_USE_V2_MODEL_RUNNER=0");
+
+    // Verify full round-trip fidelity through ConfigDoctor's `parseVllmServeCommand` (#68)
+    const { parseVllmServeCommand } = await import("../doctor/cliParser");
+    const parsedBf16 = parseVllmServeCommand(cliBf16);
+    expect(parsedBf16.parseDiagnostics).toHaveLength(0);
+    expect(parsedBf16.couplingInput.modelDtype).toBe("bfloat16");
+    expect(parsedBf16.couplingInput.weightNzMode).toBe(2);
+    expect(parsedBf16.couplingInput.useV2ModelRunner).toBe(true);
+
+    const parsedFp16 = parseVllmServeCommand(cliFp16);
+    expect(parsedFp16.parseDiagnostics).toHaveLength(0);
+    expect(parsedFp16.couplingInput.modelDtype).toBe("float16");
+    expect(parsedFp16.couplingInput.weightNzMode).toBe(0);
+    expect(parsedFp16.couplingInput.useV2ModelRunner).toBe(false);
+
+    // Verify `enableModelRunnerV2` alias round-trips identically
+    const aliasPlan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "fp16",
+      weightNzMode: 2,
+      enableModelRunnerV2: true,
+    });
+    const parsedAlias = parseVllmServeCommand(buildCurrentPlanCliHint(aliasPlan));
+    expect(parsedAlias.parseDiagnostics).toHaveLength(0);
+    expect(parsedAlias.couplingInput.modelDtype).toBe("float16");
+    expect(parsedAlias.couplingInput.weightNzMode).toBe(2);
+    expect(parsedAlias.couplingInput.useV2ModelRunner).toBe(true);
+  });
+
+  it("R3.1: Stage 4 hybrid KDA wide V projection (linear_num_value_heads=512, linear_value_head_dim=512) bounds activation peak above single BF16 V output (8.59 GB)", () => {
+    const kdaPreset = WAVE4_DEMO_PRESETS.find((p) => p.id === "hybrid-kda-gqa")!;
+    const wideVKda = {
+      ...kdaPreset.config,
+      num_hidden_layers: 4,
+      linear_num_value_heads: 512,
+      linear_value_head_dim: 512,
+    };
+    const plan = evaluateDeployPlan({
+      model: wideVKda,
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxNumBatchedTokens: 16384,
+      maxNumSeqs: 1,
+    });
+    const singleVProjBytes = 16384 * 512 * 512 * 2; // 8,589,934,592 bytes
+    expect(plan.stages[3].lowBytes).toBeGreaterThan(singleVProjBytes);
+    expect(plan.stages[3].highBytes).toBeGreaterThan(singleVProjBytes * 1.5);
+  });
+
+  it("R3.2: Static w8a8 MoE Q3 exposes both INT8 Prefill ridge/peak (400 FLOP/B, 640 TFLOPS) & BF16 Decode MoE ridge/peak (200 FLOP/B, 320 TFLOPS) in structure and summary", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8",
+      tpSize: 8,
+      enableEp: true,
+      prefillTokens: 448,
+    });
+    const r = plan.roofline as unknown as Record<string, unknown>;
+    expect(r.prefillRidgePointFlopsPerByte).toBeCloseTo(400, 1);
+    expect(r.prefillPeakComputeTflops).toBe(640);
+    expect(Number(r.prefillAchievedTflops)).toBeGreaterThan(600);
+    expect(plan.fourQuestions.q3Roofline.summary).toContain("400.0");
+    expect(plan.fourQuestions.q3Roofline.summary).toContain("640");
+    expect(plan.fourQuestions.q3Roofline.summary).toContain("200.0");
+  });
+
+  it("R3.3: Q4 re-searches minCards at recommendedGpuMemoryUtilization (0.90) even when starting precision already equals recommendedPrecision (w8a8_dynamic at u=0.40 -> 1 card)", () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      version: "v0.30.0",
+      tpSize: 1,
+      maxModelLen: 16384,
+      weightPrecision: "w8a8_dynamic",
+      gpuMemoryUtilization: 0.4,
+    });
+    expect(plan.fourQuestions.q2Capacity.minCardsRecommended).toBe(2);
+    const q4 = plan.fourQuestions.q4Recommendation;
+    expect(q4.recommendedPrecision).toBe("w8a8_dynamic");
+    expect(q4.recommendedGpuMemoryUtilization).toBeCloseTo(0.9, 2);
+    expect(q4.recommendedTp).toBe(1);
+    expect(q4.recommendedPp).toBe(1);
+    expect(q4.cliHint).toContain("-tp 1");
+    expect(q4.cliHint).toContain("--gpu-memory-utilization 0.9");
+  });
+
+  it("R3.4: buildCurrentPlanCliHint faithfully preserves VLLM_USE_V2_MODEL_RUNNER=0 when PCP > 1 and useV2ModelRunner=false so ConfigDoctor catches d4-pcp-requires-mrv2", async () => {
+    const plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 2,
+      pcpSize: 2,
+      useV2ModelRunner: false,
+    });
+    const currentCli = buildCurrentPlanCliHint(plan);
+    expect(currentCli).toContain("VLLM_USE_V2_MODEL_RUNNER=0");
+    expect(currentCli).not.toContain("VLLM_USE_V2_MODEL_RUNNER=1");
+
+    const { runSingleConfigDoctor } = await import("../doctor/configDoctor");
+    const doc = runSingleConfigDoctor(currentCli, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(doc.hasBlockers).toBe(true);
+    expect(doc.errors.some((e) => e.id === "d4-pcp-requires-mrv2")).toBe(true);
+  });
+
+  it("R4.1: buildCurrentPlanCliHint never silently repairs user mistakes (omits V2 env when undefined on PCP=2, keeps --block-size 128 on mxfp8, keeps --dtype bfloat16 on 310P) & Q3 summary includes prefillAchievedTflops", async () => {
+    const { runSingleConfigDoctor } = await import("../doctor/configDoctor");
+
+    // (1) P2-1: PCP=2 with useV2ModelRunner omitted (undefined) -> must NOT inject VLLM_USE_V2_MODEL_RUNNER=1
+    const pcpUndefinedPlan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      tpSize: 2,
+      pcpSize: 2,
+    });
+    expect(pcpUndefinedPlan.fourQuestions.q1Fit.blockers.some((b) => b.id === "d4-pcp-requires-mrv2")).toBe(
+      true,
+    );
+    const pcpCli = buildCurrentPlanCliHint(pcpUndefinedPlan);
+    expect(pcpCli).not.toContain("VLLM_USE_V2_MODEL_RUNNER=1");
+    const pcpDoc = runSingleConfigDoctor(pcpCli, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(pcpDoc.errors.some((e) => e.id === "d4-pcp-requires-mrv2")).toBe(true);
+
+    // (2) P2-2: 950dt-128g + mxfp8 + blockSize=128 + userSpecifiedBlockSize=true -> must emit --block-size 128
+    const mxfp8Plan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "950dt-128g",
+      kvCacheDtype: "mxfp8",
+      blockSize: 128,
+      userSpecifiedBlockSize: true,
+    });
+    expect(mxfp8Plan.fourQuestions.q1Fit.blockers.some((b) => b.id === "d3-mxfp8-c8-kv-block-size")).toBe(
+      true,
+    );
+    const mxfp8Cli = buildCurrentPlanCliHint(mxfp8Plan);
+    expect(mxfp8Cli).toContain("--block-size 128");
+    const mxfp8Doc = runSingleConfigDoctor(mxfp8Cli, {
+      mode: "full",
+      hardwareFamily: "A5",
+      version: "v0.30.0",
+    });
+    expect(mxfp8Doc.errors.some((e) => e.id === "d3-mxfp8-c8-kv-block-size")).toBe(true);
+
+    // (3) P2-3: 310p-24g + bf16 -> must emit --dtype bfloat16 (NOT silently repaired to float16)
+    const plan310pBf16 = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "310p-24g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+      maxModelLen: 1024,
+    });
+    expect(plan310pBf16.fourQuestions.q1Fit.blockers.some((b) => b.id === "calc-310p-no-bf16")).toBe(true);
+    const cli310p = buildCurrentPlanCliHint(plan310pBf16);
+    expect(cli310p).toContain("--dtype bfloat16");
+    expect(cli310p).not.toContain("--dtype float16");
+    const doc310p = runSingleConfigDoctor(cli310p, {
+      mode: "full",
+      hardwareFamily: "310P",
+      version: "v0.30.0",
+    });
+    expect(doc310p.hasBlockers).toBe(true);
+
+    // (4) Q3 summary includes achieved Prefill TFLOPS (e.g. 619.9 TFLOPS)
+    const w8a8Plan = evaluateDeployPlan({
+      model: "Qwen3-30B-A3B",
+      cardId: "a2-64g",
+      weightPrecision: "w8a8",
+      tpSize: 8,
+      enableEp: true,
+      prefillTokens: 448,
+    });
+    expect(w8a8Plan.fourQuestions.q3Roofline.summary).toContain("619.9");
+
+    // (5) 310p-24g + w8a8sc_310p -> valid 310P quantized config MUST emit --dtype float16 so Doctor passes cleanly
+    const plan310pW8a8sc = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "310p-24g",
+      weightPrecision: "w8a8sc_310p",
+      tpSize: 1,
+      maxModelLen: 1024,
+    });
+    const cli310pW8a8sc = buildCurrentPlanCliHint(plan310pW8a8sc);
+    expect(cli310pW8a8sc).toContain("--dtype float16");
+    const doc310pW8a8sc = runSingleConfigDoctor(cli310pW8a8sc, {
+      mode: "full",
+      hardwareFamily: "310P",
+      version: "v0.30.0",
+    });
+    expect(doc310pW8a8sc.errors.some((e) => e.id === "d3-310p-requires-float16")).toBe(false);
+
+    // (6) 950dt-128g + mxfp8 + blockSize=256 + explicit userSpecifiedBlockSize=false -> omits --block-size 256 (uses auto 512)
+    const mxfp8AutoPlan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "950dt-128g",
+      kvCacheDtype: "mxfp8",
+      blockSize: 256,
+      userSpecifiedBlockSize: false,
+    });
+    const mxfp8AutoCli = buildCurrentPlanCliHint(mxfp8AutoPlan);
+    expect(mxfp8AutoCli).not.toContain("--block-size");
+    const mxfp8AutoDoc = runSingleConfigDoctor(mxfp8AutoCli, {
+      mode: "full",
+      hardwareFamily: "A5",
+      version: "v0.30.0",
+    });
+    expect(mxfp8AutoDoc.errors.some((e) => e.id === "d3-mxfp8-c8-kv-block-size")).toBe(false);
+  });
+
+  it("P2-7 regression: startupLogParser buckets by (workerLabel, pid) order-independently and never pairs EngineCore_DP0 with Worker_DP1", () => {
+    const pid1Lines = [
+      "(Worker_DP0_TP0_EP0 pid=1001) INFO 11-23 07:00:01 [worker.py:1] Loading model weights took 7.52 GB",
+      "(Worker_DP0_TP0_EP0 pid=1001) INFO 11-23 07:00:02 [worker.py:2] Available KV cache memory: 45.21 GiB",
+      "(Worker_DP0_TP0_EP0 pid=1001) INFO 11-23 07:00:03 [runner.py:3] Graph capturing finished in 80 secs, took 2.64 GiB",
+    ];
+    const pid2Lines = [
+      "(Worker_DP0_TP0_EP0 pid=2002) INFO 11-23 07:00:01 [worker.py:1] Loading model weights took 7.52 GB",
+      "(Worker_DP0_TP0_EP0 pid=2002) INFO 11-23 07:00:02 [worker.py:2] Available KV cache memory: 45.21 GiB",
+      "(Worker_DP0_TP0_EP0 pid=2002) INFO 11-23 07:00:03 [runner.py:3] Graph capturing finished in 83 secs, took 2.95 GiB",
+    ];
+    const forwardParsed = parseAscendStartupLog([...pid1Lines, ...pid2Lines].join("\n"));
+    const reverseParsed = parseAscendStartupLog([...pid2Lines, ...pid1Lines].join("\n"));
+    expect(forwardParsed.aclGraphGiB).toBe(reverseParsed.aclGraphGiB);
+    expect(forwardParsed.selectedRankLabel).toBe(reverseParsed.selectedRankLabel);
+    expect(forwardParsed.rankSnapshots.length).toBe(2);
+
+    // EngineCore_DP0 MUST NOT donate its KV token capacity to Worker_DP1_TP0_EP4
+    const crossDpMismatch = [
+      "(EngineCore_DP0 pid=500) INFO 11-23 07:00:05 [kv_cache_utils.py:1] NPU KV cache size: 1,975,168 tokens",
+      "(Worker_DP1_TP0_EP4 pid=600) INFO 11-23 07:00:06 [worker.py:2] Available KV cache memory: 45.21 GiB",
+    ].join("\n");
+    const parsedCrossDp = parseAscendStartupLog(crossDpMismatch);
+    expect(parsedCrossDp.kvCacheTokens).toBeNull();
   });
 });

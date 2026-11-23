@@ -10,9 +10,11 @@ import {
 import {
   type DeployPlanInput,
   type DeployPlanReport,
+  type DoctorModelTraitOverride,
   evaluateDeployPlan,
   GIB,
   MIB,
+  resolveDoctorModelTraits,
   WAVE4_DEMO_PRESETS,
 } from "../src/sim/modelspec/deployCalculator";
 import { parseHfConfig } from "../src/sim/modelspec/parseHfConfig";
@@ -98,6 +100,19 @@ export const deployAnalysisInputSchema = z
   })
   .strict();
 
+const doctorModelTraitOverrideSchema = z
+  .object({
+    isMoe: z.boolean().optional(),
+    useMla: z.boolean().optional(),
+    sfaDcpReplicatedIndexer: z.boolean().optional(),
+    numExperts: z.number().int().min(1).max(16_384).optional(),
+    numExpertsPerTok: z.number().int().min(1).max(1_024).optional(),
+    numAttentionHeads: z.number().int().min(1).max(4_096).optional(),
+    numKvHeads: z.number().int().min(1).max(4_096).optional(),
+    headDim: z.number().int().min(1).max(4_096).optional(),
+  })
+  .strict();
+
 export const doctorAnalysisInputSchema = z
   .object({
     kind: z.literal("doctor"),
@@ -108,13 +123,18 @@ export const doctorAnalysisInputSchema = z
     decodeHardwareFamily: ascendFamilySchema.optional(),
     version: ruleVersionSchema.optional(),
     crossNodeRoce: z.boolean().optional(),
+    modelId: z.string().trim().min(1).max(120).optional(),
+    modelTraitOverride: doctorModelTraitOverrideSchema.optional(),
   })
   .strict();
 
 export const troubleshootAnalysisInputSchema = z
   .object({
     kind: z.literal("troubleshoot"),
-    rawInput: z.string().trim().min(1).max(TOOL_EVIDENCE_LIMITS.maxTroubleshootChars),
+    rawInput: z
+      .string()
+      .max(TOOL_EVIDENCE_LIMITS.maxTroubleshootChars)
+      .refine((s) => s.trim().length > 0, { message: "排错日志或指标不能为空" }),
   })
   .strict();
 
@@ -240,9 +260,15 @@ export function redactSensitiveText(raw: string): string {
     .replace(/([a-z][a-z0-9+.-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/gi, "$1[REDACTED]@");
 }
 
-function sanitizeTextPayload(label: string, raw: string, maxChars: number): string {
-  const stripped = raw.replace(/\r\n?/g, "\n").replace(ANSI_ESCAPE_RE, "").trim();
-  if (!stripped) throw new Error(`${label}不能为空`);
+function sanitizeTextPayload(
+  label: string,
+  raw: string,
+  maxChars: number,
+  preserveLeadingLines = false,
+): string {
+  const normalized = raw.replace(/\r\n?/g, "\n").replace(ANSI_ESCAPE_RE, "");
+  const stripped = preserveLeadingLines ? normalized.replace(/[ \t\n]+$/, "") : normalized.trim();
+  if (!stripped.trim()) throw new Error(`${label}不能为空`);
   if (stripped.length > maxChars) throw new Error(`${label}超出长度上限（最多 ${maxChars} 字符）`);
   const clean = sanitizeRawInput(stripped);
   if (clean.blocked) {
@@ -346,8 +372,12 @@ function runDeployEvidence(input: z.infer<typeof deployAnalysisInputSchema>): To
     resolvedModel = parseHfConfig(cleanConfig);
   }
 
-  const { kind: _kind, model: _model, ...rest } = input;
-  const planInput: DeployPlanInput = { ...rest, model: resolvedModel };
+  const { kind: _kind, model: _model, cardId, ...rest } = input;
+  const definedRest = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) as Omit<
+    DeployPlanInput,
+    "model" | "cardId"
+  >;
+  const planInput: DeployPlanInput = { ...definedRest, cardId, model: resolvedModel };
   const report: DeployPlanReport = evaluateDeployPlan(planInput);
   const weightsStage = report.stages[2];
   const q1 = report.fourQuestions.q1Fit;
@@ -405,6 +435,11 @@ function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): To
   const hardwareFamily = input.hardwareFamily ?? "A2";
   const version = input.version ?? "v0.30.0";
   const mode = input.mode ?? "full";
+  const safeModelId = input.modelId ? sanitizeTextPayload("模型标识", input.modelId, 120) : undefined;
+  const resolvedTraits: DoctorModelTraitOverride | undefined = resolveDoctorModelTraits(
+    safeModelId,
+    input.modelTraitOverride,
+  );
 
   let keyMetrics: Record<string, ToolEvidenceMetricValue>;
   let summary: string;
@@ -412,9 +447,12 @@ function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): To
   if (decodeCommand) {
     const report: PdConfigDoctorReport = runPdConfigDoctor(command, decodeCommand, {
       hardwareFamily,
-      decodeHardwareFamily: input.decodeHardwareFamily,
+      ...(input.decodeHardwareFamily !== undefined
+        ? { decodeHardwareFamily: input.decodeHardwareFamily }
+        : {}),
       version,
-      crossNodeRoce: input.crossNodeRoce,
+      ...(input.crossNodeRoce !== undefined ? { crossNodeRoce: input.crossNodeRoce } : {}),
+      ...(resolvedTraits ? { modelTraitOverride: resolvedTraits } : {}),
     });
     const topRules = report.allFindings
       .slice(0, 6)
@@ -440,7 +478,8 @@ function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): To
       mode,
       hardwareFamily,
       version,
-      crossNodeRoce: input.crossNodeRoce,
+      ...(input.crossNodeRoce !== undefined ? { crossNodeRoce: input.crossNodeRoce } : {}),
+      ...(resolvedTraits ? { modelTraitOverride: resolvedTraits } : {}),
     });
     const topRules = report.findings
       .slice(0, 6)
@@ -475,6 +514,8 @@ function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): To
       ...(input.decodeHardwareFamily ? { decodeHardwareFamily: input.decodeHardwareFamily } : {}),
       version,
       ...(input.crossNodeRoce !== undefined ? { crossNodeRoce: input.crossNodeRoce } : {}),
+      ...(safeModelId ? { modelId: safeModelId } : {}),
+      ...(resolvedTraits ? { modelTraitOverride: resolvedTraits } : {}),
     },
     summary,
     keyMetrics,
@@ -486,6 +527,7 @@ function runTroubleshootEvidence(input: z.infer<typeof troubleshootAnalysisInput
     "排错日志或指标",
     input.rawInput,
     TOOL_EVIDENCE_LIMITS.maxTroubleshootChars,
+    true,
   );
   const report: LogAnalysisReport = analyzeTroubleshootInput(rawInput);
   const errorCount = report.findings.filter((f) => f.severity === "error").length;
@@ -500,6 +542,7 @@ function runTroubleshootEvidence(input: z.infer<typeof troubleshootAnalysisInput
     totalLines: report.totalLines,
     detectedRankCount: report.detectedRanks.length,
     firstFaultRank: report.firstFaultVerdict.rank,
+    firstFaultLineNumber: report.firstFaultVerdict.primaryEvidenceLines[0]?.lineNumber ?? null,
     firstFaultConfidence: report.firstFaultVerdict.confidence,
     cascadeRankCount: report.firstFaultVerdict.cascadeRanks.length,
     findingCount: report.findings.length,

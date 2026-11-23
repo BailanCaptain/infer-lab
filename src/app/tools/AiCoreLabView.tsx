@@ -5,6 +5,7 @@ import {
   AICORE_LAB_WIKI_PAGE_IDS,
   type AiCoreArch,
   type AiCoreLabResult,
+  ASCEND_910B3_MEASURED_BENCHMARKS,
   type BufferStepSpec,
   DEFAULT_AICORE_LAB_INPUT,
   GROUP0_LOCAL_MAX,
@@ -776,21 +777,27 @@ function BufferTopologyInspector({
 }
 
 function GmByteAccountingTable({ result }: { result: AiCoreLabResult }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   return (
     <section className="wt-section" data-testid="aicore-gm-table-section">
       <div className="wt-section-head">
-        <h3 className="wt-section-title">
-          核外 GM/L2 逻辑字节账本对比（2 Tile · {SCENARIO_META.tileShape.m}×{SCENARIO_META.tileShape.k}×
-          {SCENARIO_META.tileShape.n}）
-        </h3>
+        <div>
+          <h3 className="wt-section-title">核外显存（GM/L2）读写字节明细对比</h3>
+          <span className="wt-section-meta">
+            当前总流量 {result.gmBytes.totalGmBytes.toLocaleString("en-US")} B
+            {result.gmBytes.savedGmBytesVsBaseline > 0
+              ? `（较基线省 ${result.gmBytes.savedGmBytesVsBaseline.toLocaleString("en-US")} B）`
+              : "（与基线相同）"}
+            · 算术强度 {result.gmBytes.arithmeticIntensity.toFixed(2)} FLOP/B
+          </span>
+        </div>
         <button
           type="button"
           className="wt-filter-btn"
           data-testid="aicore-gm-table-toggle"
           onClick={() => setExpanded((prev) => !prev)}
         >
-          {expanded ? "收起字节账本" : "展开字节账本"}
+          {expanded ? "收起字节账本" : "展开完整字节账本"}
         </button>
       </div>
 
@@ -858,6 +865,307 @@ function GmByteAccountingTable({ result }: { result: AiCoreLabResult }) {
   );
 }
 
+const MEASURED_CHAIN_TONE: Readonly<Record<"compute" | "comm" | "vector", { bg: string; border: string }>> = {
+  compute: { bg: "#c78300", border: "#9e6800" },
+  comm: { bg: "#b54237", border: "#8f3229" },
+  vector: { bg: "#4c65b6", border: "#3b5094" },
+};
+
+function Measured910b3BenchmarkPanel() {
+  const data = ASCEND_910B3_MEASURED_BENCHMARKS;
+  const { w8a8SpeedupSummary: w8, tp4CommChain: tp4 } = data;
+  const maxBarUs = tp4.tp4TotalChainUs;
+  const tp1BarPct = (tp4.tp1ComputePlusNormUs / maxBarUs) * 100;
+  const tp1GemmPct = (w8.bf16GemmUs / tp4.tp1ComputePlusNormUs) * 100;
+  const tp1NormPct = 100 - tp1GemmPct;
+
+  return (
+    <section className="wt-section" data-testid="aicore-measured-910b3-section">
+      <div className="wt-section-head">
+        <div>
+          <h3 className="wt-section-title">{data.title}</h3>
+          <span className="wt-section-meta">
+            {data.hardwareLabel} · {data.shapeLabel} · {data.softwareStack}
+          </span>
+        </div>
+        <span
+          className="wt-baseline-pill"
+          data-testid="aicore-measured-badge"
+          style={{
+            borderColor: "#087f73",
+            background: "#ddf4ef",
+            color: "#087f73",
+            fontWeight: 700,
+          }}
+        >
+          msprof 真机实测 {data.evidenceTag}
+        </span>
+      </div>
+
+      <div className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink-muted)" }}>{data.sampleNote}</p>
+
+        <div className="wt-table-wrap">
+          <table className="wt-table" data-testid="aicore-measured-op-table">
+            <thead>
+              <tr>
+                <th>算子（{data.shapeLabel}）</th>
+                <th>核类型 / Block</th>
+                <th>均值耗时</th>
+                <th>关键硬件计数（msprof）</th>
+                <th>工程判读</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.singleCardOperators.map((op) => (
+                <tr key={op.id} data-testid={`aicore-measured-op-${op.id}`}>
+                  <td>
+                    <strong>{op.opName}</strong>
+                  </td>
+                  <td className="mono">{op.coreAndBlocks}</td>
+                  <td className="mono" style={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+                    {op.durationUs.toFixed(2)}µs
+                  </td>
+                  <td style={{ fontSize: 13 }}>{op.keyCounters}</td>
+                  <td style={{ fontSize: 13, color: "var(--color-ink-muted)" }}>{op.engineeringNote}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          data-testid="aicore-measured-w8a8-callout"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px 14px",
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid var(--color-line)",
+            background: "var(--color-canvas)",
+            fontSize: 13.5,
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <span className="wt-baseline-pill" style={{ fontWeight: 700, color: "#087f73" }}>
+              纯 GEMM：{w8.gemmOnlyRatio.toFixed(3)}x（{w8.bf16GemmUs.toFixed(2)} → {w8.w8a8GemmUs.toFixed(2)}
+              µs）
+            </span>
+            <span className="wt-baseline-pill" style={{ fontWeight: 700, color: "#936300" }}>
+              含未融合 DynamicQuant：{w8.withDynamicQuantRatio.toFixed(3)}x（
+              {w8.w8a8QuantPlusGemmUs.toFixed(2)}µs）
+            </span>
+            <span className="wt-baseline-pill">
+              含 AddRmsNorm 整段：{w8.fullBlockWithNormRatio.toFixed(3)}x
+            </span>
+          </div>
+          <span style={{ color: "var(--color-ink-muted)", fontSize: 13 }}>{w8.takeaway}</span>
+        </div>
+
+        <div
+          data-testid="aicore-measured-tp4-chain"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            paddingTop: 10,
+            borderTop: "1px solid var(--color-line)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 6,
+            }}
+          >
+            <strong style={{ fontSize: 14, color: "var(--color-ink)" }}>
+              TP=1 vs TP=4 通信劣化实测对比（{tp4.shapeNote}）
+            </strong>
+            <span
+              className="wt-baseline-pill"
+              style={{
+                borderColor: "#b54237",
+                background: "#fcebe9",
+                color: "#b54237",
+                fontWeight: 700,
+              }}
+            >
+              未重叠通信 {tp4.steps[1]!.durationUs.toFixed(2)}µs（两步均值）· HCCS 通信矩阵边样本带宽{" "}
+              {tp4.hccsBandwidthRangeGBs[0]}~{tp4.hccsBandwidthRangeGBs[1]} GB/s
+            </span>
+          </div>
+
+          {/* TP=1 proportional baseline bar */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>单卡 TP=1（无集合通信）</span>
+              <span className="mono" style={{ color: "#087f73", fontWeight: 700 }}>
+                {tp4.tp1ComputePlusNormUs.toFixed(2)}µs
+              </span>
+            </div>
+            <div
+              style={{
+                width: "100%",
+                background: "var(--color-surface-sunken)",
+                borderRadius: 8,
+                padding: 3,
+                border: "1px solid var(--color-line)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  width: `${tp1BarPct.toFixed(1)}%`,
+                  height: 26,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  gap: 2,
+                }}
+              >
+                <div
+                  title={`BF16 MatMulV3 ${w8.bf16GemmUs.toFixed(2)}µs`}
+                  style={{
+                    width: `${tp1GemmPct.toFixed(1)}%`,
+                    background: MEASURED_CHAIN_TONE.compute.bg,
+                    color: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                  }}
+                >
+                  MatMulV3 {w8.bf16GemmUs.toFixed(2)}µs
+                </div>
+                <div
+                  title={`BF16 AddRmsNorm 63.58µs`}
+                  style={{
+                    width: `${tp1NormPct.toFixed(1)}%`,
+                    background: MEASURED_CHAIN_TONE.vector.bg,
+                    color: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                  }}
+                >
+                  63.58µs
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* TP=4 proportional degradation bar */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>
+                四卡 TP=4（MatMulV3 → 未重叠 hcom_allReduce_ → AddRmsNorm）
+              </span>
+              <span className="mono" style={{ color: "#b54237", fontWeight: 700 }}>
+                {tp4.tp4TotalChainUs.toFixed(2)}µs（
+                {(tp4.tp4TotalChainUs / tp4.tp1ComputePlusNormUs).toFixed(2)}x）
+              </span>
+            </div>
+            <div
+              style={{
+                width: "100%",
+                background: "var(--color-surface-sunken)",
+                borderRadius: 8,
+                padding: 3,
+                border: "1px solid var(--color-line)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: 26,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  gap: 2,
+                }}
+              >
+                {tp4.steps.map((step) => {
+                  const pct = (step.durationUs / maxBarUs) * 100;
+                  const tone = MEASURED_CHAIN_TONE[step.tone];
+                  return (
+                    <div
+                      key={step.id}
+                      data-testid={`aicore-measured-${step.id}`}
+                      title={`${step.opName} (${step.durationUs.toFixed(2)}µs): ${step.detail}`}
+                      style={{
+                        width: `${pct.toFixed(2)}%`,
+                        background: tone.bg,
+                        color: "#ffffff",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        padding: "0 4px",
+                      }}
+                    >
+                      {step.opName === "hcom_allReduce_"
+                        ? `hcom_allReduce_ ${step.durationUs.toFixed(2)}µs（未重叠）`
+                        : `${step.durationUs.toFixed(2)}µs`}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 8,
+              fontSize: 12.5,
+            }}
+          >
+            {tp4.steps.map((step) => (
+              <div
+                key={`detail-${step.id}`}
+                style={{
+                  padding: "7px 9px",
+                  borderRadius: 8,
+                  border: "1px solid var(--color-line)",
+                  background: "var(--color-canvas)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+                  <strong>{step.opName}</strong>
+                  <span className="mono" style={{ fontWeight: 700 }}>
+                    {step.durationUs.toFixed(2)}µs
+                  </span>
+                </div>
+                <div style={{ color: "var(--color-ink-muted)", marginTop: 2 }}>{step.detail}</div>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "var(--color-ink-muted)" }}>
+            {tp4.boundaryNote}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCoreLabViewProps) {
   const effectiveMode: "single" | "full" = mode === "single" ? "single" : "full";
   const showSingleHead = embedded || effectiveMode === "single";
@@ -901,10 +1209,10 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
     });
   };
 
-  const displayTitle = title ?? "昇腾 AI Core 算子与流水线实验室";
+  const displayTitle = title ?? "芯片算子沙盘（微观原理演示 · AI Core）";
   const displaySummary =
     summary ??
-    "单场景深度对照：低比特矩阵乘 (QuantMatmul) + 后继 AddRMSNorm（2 Tile）在 AIC/AIV 泳道、GM/L2 Roofline 与跨组离群量化上的因果响应。";
+    "配合硬件章节理解芯片内部怎么跑：切换双缓冲、算子融合与 910B/950 架构，直观对比数据搬运怎样省显存带宽、以及拖动离群值看量化误差为何会放大。";
 
   return (
     <div
@@ -975,9 +1283,26 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
         </header>
       )}
 
+      {effectiveMode === "full" && !embedded && (
+        <div className="wt-guide-strip" data-testid="aicore-guide-strip">
+          <div className="wt-guide-item">
+            <strong>① 开「双缓冲」</strong>：搬运与计算重叠，Roofline 红点<strong>只向上抬</strong>
+            （不减少显存读写总量）。
+          </div>
+          <div className="wt-guide-item">
+            <strong>② 开「算子融合」或切「950」</strong>：省去中间结果回写显存，Roofline 红点
+            <strong>向右移动</strong>。
+          </div>
+          <div className="wt-guide-item">
+            <strong>③ 拉高「离群值」</strong>：观察 <strong>MXFP8 分块量化</strong> vs
+            整行共享尺度的精度差距。
+          </div>
+        </div>
+      )}
+
       <div className="wt-controls-bar" data-testid="aicore-controls-bar">
         <label className="wt-field" htmlFor={`${idPrefix}-arch`} style={{ minWidth: 230 }}>
-          <span className="wt-field-label">硬件架构</span>
+          <span className="wt-field-label">昇腾芯片架构</span>
           <select
             id={`${idPrefix}-arch`}
             className="wt-select"
@@ -994,7 +1319,7 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
         </label>
 
         <div className="wt-field" style={{ minWidth: 165 }}>
-          <span className="wt-field-label">反事实流水开关</span>
+          <span className="wt-field-label">流水线与融合开关</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button
               type="button"
@@ -1109,6 +1434,7 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
             onSelectStep={setActiveStepIdx}
           />
           <GmByteAccountingTable result={result} />
+          <Measured910b3BenchmarkPanel />
           <section className="wt-section" data-testid="aicore-deeplinks-section">
             <div className="wt-section-head">
               <h3 className="wt-section-title">关联知识库章节深链</h3>

@@ -42,6 +42,12 @@ relations:
   - to: sequence-parallel
     kind: builds-on
     note: 区分位置分片与权重分片，才能理解稠密模块的局部通信边界
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 该源码摘录对应 GLM-5.3-Flash 的前 3 层稠密 MLP 模块，整模型 45 层结构分布见模型页
+  - to: layers-and-hidden
+    kind: builds-on
+    note: 外层 mHC 多路残差混合与 SP 的 all-gather / reduce-scatter 衔接边界依赖该页说明的残差流结构
 contradicts: []
 updated: '2026-11-01'
 rawSources:
@@ -97,7 +103,7 @@ rawSources:
 
 两个发布分支的完整功能范围仍需分别核模型注册、其他入口与替代实现；线性层底层布局及通信函数内部行为也不在原三个摘录区间内。相关教学解释统一见[前馈计算](../concepts/mlp-residual-norm.md)、[序列并行](../concepts/sequence-parallel.md)和[层与隐藏向量](../concepts/layers-and-hidden.md)，不能把本页材料范围误作整个知识库的证据缺口。
 
-GLM-5.3-Flash 的固定配置 `690b7052` 与执行侧 `db701c1f` 对应旧部署：45 个主干层为前 3 层 dense、后 42 层 sparse，`swiglu_limit=10`。执行侧按层型选择稠密模块或 MoE，稠密激活由该限幅参数选出：限幅组件中 gate 只限上界、up 限上下界，随后算 $\text{SiLU}(\text{gate}) \times \text{up}$。
+[GLM-5.3-Flash](../concepts/glm-5-3-flash.md) 的固定配置 `690b7052` 与执行侧 `db701c1f` 对应旧部署：45 个主干层为前 3 层 dense、后 42 层 sparse，`swiglu_limit=10`。执行侧按层型选择稠密模块或 MoE，稠密激活由该限幅参数选出：限幅组件中 gate 只限上界、up 限上下界，随后算 $\text{SiLU}(\text{gate}) \times \text{up}$。
 
 完整条件及组件注册、分发边界见[前馈计算教学页](../concepts/mlp-residual-norm.md)。`main` 与 `rc2` 摘录不能替代旧部署快照，也不证明最终安装环境采用了哪个算子实现或获得了性能收益。
 

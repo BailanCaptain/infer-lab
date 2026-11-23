@@ -8,12 +8,16 @@ aliases:
   - RecomputeScheduler
   - AsyncRecomputeScheduler
   - 重计算调度
+  - D 端重算回退
+  - D 节点退回 P
   - recompute_scheduler_enable
   - recomputed
   - stop_reason recomputed
   - 退回 P 重算
   - D 节点抢占
   - update_state_before_preempt
+  - PreemptedRequestData
+  - FINISHED_ABORTED
   - RecomputeReqInfo
 chapters:
   - '12'
@@ -100,20 +104,26 @@ verified:
   - main
 evidence: C
 relations:
+  - to: kv-cache
+    kind: builds-on
+    note: 续块失败时须回收整条请求全部 KV 块，理解块池容量上限与抢占代价
+  - to: block-table
+    kind: builds-on
+    note: 退回前要通过块表归还或交给连接器保存该请求的全部物理块号
   - to: pd-disaggregation
     kind: builds-on
     note: P、D、代理和状态交接在那一页；本页只讲 D 上块不够时被让出的请求去哪
-  - to: vllm-scheduler
+  - to: mooncake-connector
     kind: builds-on
-    note: 上游调度器怎样续块、抢占、本步禁新在那一页；本页只讲本调度器改了哪几处
-  - to: vllm-kv-block-allocation
-    kind: builds-on
-    note: 「借不到块」怎么判定、抢占时块怎样还回池子
-  - to: concurrent-requests
-    kind: builds-on
-    note: 主线满载时被抢占的一条还回多少块、本机重算几步，整批账在那一页
+    note: 退回 P 重做 prefill 后须经连接器重新完成 P→D 状态交接
+  - to: recompute-cpu-offload
+    kind: alternative-to
+    note: D 节点块池耗尽时的两条互补去路：Recompute CPU Offload 将被抢占请求 KV 同步暂存主机稍后无重算恢复；无法保存时本调度器发 recomputed 帧交代理退回 P 重算（细粒度 TP>1 时直接中止）
+  - to: dyntra-lb
+    kind: alternative-to
+    note: DyntraLB 暂停请求但保留全部 KV 块以平衡组间注意力负载，不腾显存；本调度器在显存真不够续块时收回全部 KV 块，二者在 v0.30.0/main 可组合成专用调度器类
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

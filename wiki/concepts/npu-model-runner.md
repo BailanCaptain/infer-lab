@@ -20,6 +20,8 @@ aliases:
   - 前向与采样交接
   - need_accepted_tokens
   - 接受数
+  - MRV1
+  - Model Runner V1
 chapters:
   - 09
 order: 40
@@ -107,24 +109,21 @@ verified:
   - main
 evidence: C
 relations:
-  - to: model-runner-v2
-    kind: variant-of
-    note: V2 执行器的常驻设备缓冲、独立状态组织，以及 main 全面收敛至 MRV2 的架构演进
-  - to: prepare-inputs-flow
-    kind: builds-on
-    note: 对账之后怎样拼出 token id、位置、槽位和选行，逐行算法在那一页
-  - to: one-request
-    kind: builds-on
-    note: R1 在第 3–5 站的形状、词表分数的字节数和 MTP 草拟三遍
-  - to: concurrent-requests
-    kind: builds-on
-    note: 场景 M 一步 49 行词表分数怎样拆回 13 条请求，以及补齐与两组对齐的账
   - to: npu-worker-lifecycle
     kind: builds-on
     note: runner 在启动时何时建好、装权重、建缓存池、录图
-  - to: glm-5-3-flash
+  - to: request-call-chain
     kind: builds-on
-    note: Runner 调用的是已构建的 GLM 模型，各层计算由模型实现组织
+    note: EngineCore 每步对 Worker 发起 execute_model 与 sample_tokens 两次调用的跨进程时序见该页
+  - to: prepare-inputs-flow
+    kind: builds-on
+    note: 对账之后怎样拼出 token id、位置、槽位和选行，逐行算法在那一页
+  - to: sampling
+    kind: builds-on
+    note: 第二次调用 sample_tokens 按温度、top-p 与贪心规则从词表分数中选出下一个 token
+  - to: async-scheduling
+    kind: builds-on
+    note: 异步调度让下一轮前向与本轮采样回拷重叠，也要求 runner 在前向后补记乐观账本
 contradicts: []
 updated: 2026-11-10T00:00:00.000Z
 origin: gap
@@ -247,7 +246,7 @@ file: npu-model-runner-code-flow
 
 ## 两次调用之间，执行状态里存了什么？
 
-**执行状态（`ExecuteModelState`）是一个只装一份的单槽位暂存格：第一次调用 `execute_model` 在前向与选行输出头之后，把第二次调用 `sample_tokens` 要用的张量引用全部放进去；第二次调用一开头就取出并清空。** 它既不是 KV cache，也不是跨步保留的持久批次，寿命仅限于两次 RPC 之间这一小段。下面这张状态机图把「严格交替锁槽」「不写状态的早退/DP 陪跑分岔」和「Runner 三层对象寿命」合在一起对照：
+**执行状态（`ExecuteModelState`）是一个只装一份的单槽位暂存格：第一次调用 `execute_model` 在前向与选行输出头之后，把第二次调用 `sample_tokens` 要用的张量引用全部放进去；第二次调用一开头就取出并清空。** 它既不是 KV cache，也不是跨步保留的持久批次，寿命仅限于两次 **RPC**（Remote Procedure Call，跨进程远程调用）之间这一小段。下面这张状态机图把「严格交替锁槽」「不写状态的早退/DP 陪跑分岔」和「Runner 三层对象寿命」合在一起对照：
 
 ```wiki-diagram
 file: npu-model-runner-fig-step-lifecycle

@@ -10,6 +10,8 @@ aliases:
   - 逐层 KV 存取开关
   - kv_connector_extra_config.use_layerwise
   - layerwise 总开关
+  - YuanrongConfig.use_layerwise
+  - AscendStoreConnector use_layerwise
 legacyAnchors:
   一句话: 它配在哪里，四处同名键怎么区分？
   事实表: 它配在哪里，四处同名键怎么区分？
@@ -33,6 +35,12 @@ relations:
     note: >-
       它是 AscendStoreConnector 的 kv_connector_extra_config 里的一个键，连接器怎么挂上 vLLM KV
       Connector 接口在那一页
+  - to: acl-graph
+    kind: builds-on
+    note: 开启逐层 KV 存取后，vLLM 启动校验会强制将含整图的 cudagraph_mode 改写为 PIECEWISE
+  - to: mooncake-connector
+    kind: builds-on
+    note: Mooncake 逐层数据面采用 block_key 协议合并同块各层存储，且仅支持纯 TP 拓扑
 contradicts: []
 sources:
   - >-
@@ -147,7 +155,7 @@ rawSources:
 
 `use_layerwise` 是 [Layerwise KV offload](../concepts/kv-cache-layerwise-offload.md) 的总开关：开启后，KV cache 在显存和外部存储之间由整趟前向存取降为**按层加载、等待与存出**。以提前预取一层示意：计算第 `L` 层时可以搬入第 `L+1` 层的历史并存出已完成层的缓存，具体能重叠多少取决于后端、预取距离与搬运速度（完整机制与收益见概念页，本页聚焦配置键本身）。
 
-**它不在 `additional_config` 里**：全仓各版本的 `vllm_ascend/` 均不从 `additional_config` 读取该键，绝大多数场景的公共入口在 `--kv-transfer-config` 的 `kv_connector_extra_config` 内：
+**它不在 `additional_config` 里**：全仓各版本的 `vllm_ascend/` 均不从 `additional_config` 读取该键，绝大多数场景的公共入口在 `--kv-transfer-config`（见 [KV Pool](../concepts/kv-pool.md)）的 `kv_connector_extra_config` 内：
 
 ```bash
 --kv-transfer-config '{"kv_connector":"AscendStoreConnector","kv_role":"kv_producer",
@@ -175,7 +183,7 @@ file: param-use-layerwise
 
 1. **外部命中查询起点与强制加载**：非逐层模式从 `num_computed_tokens // block_size` 开始查外部命中，逐层模式直接从块 0 起步。且逐层模式下即使本轮无需新增分配也可能仍须加载池中数据——`v0.23.0` 检查外部命中 token 数 `> 0`，`v0.26.0rc` 之后改为检查 `store_skip_tokens > 0`，升级排查需核对对应字段。
 2. **调度侧异步加载标志变为 `False`**：调度器返回 `need_to_allocate, self.load_async and not self.use_layerwise`（在 `main` 拆分出的 `LayerwiseKVPoolScheduler` 中更是直接置 `self.load_async = False`）。这表示调度侧不走整批异步加载标志（不会修改 `load_async` 配置值，也不能仅凭该标志判断底层后端是否使用后台线程）。
-3. **后端逐层协议与数据面演化**：传统 per-layer key 把层号写进 key；Mooncake 的 `block_key` 路径把各层放在同一 block/rank 对象的不同字节范围内逐层写入，使远端对象数从 `块数 × 层数 × 存储 rank 数` 降到 `块数 × 存储 rank 数`（不减少 KV 总有效载荷）。各版本的数据面分流如下：
+3. **后端逐层协议与数据面演化**：传统 per-layer key 把层号写进 key；[Mooncake](../concepts/mooncake-connector.md) 的 `block_key` 路径把各层放在同一 block/rank 对象的不同字节范围内逐层写入，使远端对象数从 `块数 × 层数 × 存储 rank 数` 降到 `块数 × 存储 rank 数`（不减少 KV 总有效载荷）。各版本的数据面分流如下：
 
 | 版本 | 逐层数据面判定与后端路由 | 注意事项 |
 | --- | --- | --- |
@@ -185,12 +193,12 @@ file: param-use-layerwise
 
 ## 图模式改写、拓扑与混合缓存约束及 GLM 双机说明
 
-- **会强制把整图模式改写成 `PIECEWISE`（四个版本一致）**：`AscendStoreConnector.requires_piecewise_for_cudagraph` 直接返回 `use_layerwise`。vLLM 启动检查到接了 KV 连接器且图模式含整图时，因为逐层异步等待与存出无法录进整图，会打 warning 并把 `cudagraph_mode` 覆写成 `PIECEWISE`：
+- **会强制把整图模式改写成 `PIECEWISE`（四个版本一致）**：`AscendStoreConnector.requires_piecewise_for_cudagraph` 直接返回 `use_layerwise`。vLLM 启动检查到接了 KV 连接器且图模式（见 [ACL Graph](../concepts/acl-graph.md)）含整图时，因为逐层异步等待与存出无法录进整图，会打 warning 并把 `cudagraph_mode` 覆写成 `PIECEWISE`：
   > KV connector %s requires PIECEWISE CUDA graph mode due to layerwise async operations that cannot be captured in CUDA graphs. Overriding cudagraph_mode from %s to PIECEWISE.
   不过这不是最终图模式的全部判断：同一配置函数随后若检测到 `enforce_eager` 为真，会把图模式置为 `NONE` 并把最大捕获宽度归零，因此须核对最终配置，不能把连接器的 `PIECEWISE` 要求等同于一定启用图。
 - **拓扑、CP 与 `kv_consumer` 约束**：
   - `v0.30.0` 连接器构造时调用 `validate_layerwise_topology` 交由后端协议校验——Mooncake block-key 路径检查 `PP`、`PCP`、`DCP`，任一大于 1 即抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")`（因 block key 不含这些维度坐标，多机多维并行会撞 key），且拒绝 P/D TP 不一致。
-  - 官方 PCP 指南明确要求 KV 池化 + PCP 只支持 `use_layerwise=false`；旧 `v0.23` 指南亦记录 CP attention 未集成 wait/save。
+  - 官方 [PCP](../concepts/context-parallel.md) 指南明确要求 KV 池化 + PCP 只支持 `use_layerwise=false`；旧 `v0.23` 指南亦记录 CP attention 未集成 wait/save。
   - `main`（`8d6180e2`）中 `AscendStoreConnector` 新增对 `kv_consumer` 的显式限制：当 `kv_role == "kv_consumer"` 且开启 `save_decode_cache`、未开启 `consumer_is_to_put` 时，开 `use_layerwise` 直接抛 `ValueError`（提示 decode-only saving 未在逐层传输路径实现，须设 `use_layerwise=False`）。
 - **混合 KV cache 与 Mamba 状态边界**：多 KV 组须按版本与后端分别核对——`v0.23`/`v0.26` 调度器对 Mamba 检查 align 模式；`v0.26` 内存复用在存在复用关系时检查 `AttentionSpec` 并拒绝已共享或 packed 描述符；早期 `baa023ad` Mooncake 拒绝带 recurrent Mamba 状态的 hybrid 组合；`v0.30.0` 与 `main` 均通过 `requires_mamba_state_copy_after_layer_load = self.use_layerwise` 要求在逐层加载完成后复制 hybrid Mamba 状态。
 - **旧算例与放到 GLM 双机（`db701c1f` 固定基线）**：早先单卡 Qwen3-0.6B 与[GLM 双机官方部署](../concepts/glm-5-3-flash-two-node.md#部署前提)启动命令均未传 `--kv-transfer-config`，连接器不构造、四处同名键都不会被读到。因此在[多条请求页](../concepts/concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里因 KV 块不足被抢占的约 67,000 位置请求排回来时是整段 prefill 重算，而非外部池按层取回。若接上 AscendStore 并开启 `use_layerwise`：GLM 只有 12 层 MLA 存位置历史、34 层 KDA 存固定状态（每层搬运量及快照卡点见 [Layerwise KV offload GLM 一节](../concepts/kv-cache-layerwise-offload.md#放到-glm-双机主线没开开了一层要搬多少)），且原本的 `FULL_DECODE_ONLY` 会被改写成 `PIECEWISE`，昇腾平台在 `PIECEWISE` 分支会把 MLA 等 attention 切到图外并关掉 [npugraph_ex](../concepts/npugraph-ex.md)，decode 步不再是整图（GLM 在 `PIECEWISE` 下能否正常启动及 decode 慢多少均待实机核验；主线时延均为关闭态数字）。

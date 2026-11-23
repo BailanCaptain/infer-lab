@@ -1,118 +1,157 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="动态分块流水线二次气泡压缩、反解流程与版本演进图" font-family="var(--font-sans)">
-  <title>动态分块流水线（CPP）：等长块气泡压缩、二次方程反解与 v0.30.0/main 生命周期</title>
-  <desc>上半展示等长块 1:3:5:7 导致阶段 1 空等 6 格（23 格完成）与按耗时反解为 16 块每块 1 格压至 17 格的对比；下半展示反解公式与三道后处理流水线，以及 v0.30.0 nnls/MRV2 异步支持与 main 整体移除的边界。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 564" width="900" height="564" role="img" aria-label="动态分块流水线等尺甘特图、块长反解流水线与版本生命周期图" font-family="var(--font-sans)">
+  <title>动态分块流水线（CPP）：同尺 23 格 vs 17 格流水甘特图、反解四步与 v0.30.0/main 生命周期</title>
+  <desc>上半在同一时间标尺 t=0..23 上并排展示等长分块 1:3:5:7（阶段 1 空等 7 格、总耗时 23 格）与按耗时反解为 16 块每块 1 格（仅首块等 1 格、总耗时 17 格，省去 6 格气泡即 -26%）的真实两段流水线甘特排程；中段展示二次方程求正根到预算截断的四步流水；底栏对照 v0.30.0 保留增强与 main PR #21310 整体移除。</desc>
   <defs>
-    <marker id="cpp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
-    </marker>
-    <marker id="cpp-arr-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
-    </marker>
+    <pattern id="cpp-bubble-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#ece9df"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#c8c5ba" stroke-width="2"/>
+    </pattern>
+    <marker id="cpp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/></marker>
+    <marker id="cpp-arr-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/></marker>
   </defs>
-
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、为什么等长块越算越慢，按耗时反解如何压掉阶段 1 的空等气泡？</text>
-  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
-
+  <text x="12" y="26" font-size="16" font-weight="700" fill="#17211f">一、同一时间标尺（t = 0–23 格）：等长块二次气泡 vs 按耗时反解等时块</text>
+  <line x1="12" y1="36" x2="888" y2="36" stroke="#b8bcb5" stroke-width="1.3"/>
+  <g font-size="12" fill="#4d5652">
+    <rect x="14" y="45" width="14" height="12" rx="2.5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+    <text x="34" y="55">阶段 0（前半层）</text>
+    <rect x="148" y="45" width="14" height="12" rx="2.5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="168" y="55">阶段 1（后半层）</text>
+    <rect x="282" y="45" width="14" height="12" rx="2.5" fill="url(#cpp-bubble-hatch)" stroke="#b8bcb5" stroke-width="1.2"/>
+    <text x="302" y="55">空等气泡（无计算）</text>
+    <text x="444" y="55" fill="#66716d">每格 = 首块单段耗时 τ；总计算量均严格等于 16 格/段</text>
+  </g>
+  <text x="12" y="80" font-size="13.5" font-weight="700" fill="#8f3229">A. 等长分块（4 × 100 token，耗时 1 : 3 : 5 : 7，第 k 块 Q–K 对 ≈ x·L + x(x+1)/2）</text>
+  <g stroke="#b8bcb5" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="132" y1="88" x2="132" y2="152"/><line x1="222" y1="88" x2="222" y2="152"/>
+    <line x1="372" y1="88" x2="372" y2="152"/><line x1="582" y1="88" x2="582" y2="152"/>
+  </g>
+  <text x="14" y="108" font-size="13" font-weight="600" fill="#936300">阶段 0</text>
+  <g stroke-width="1.3">
+    <rect x="102" y="90" width="30" height="26" rx="4" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="132" y="90" width="90" height="26" rx="4" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="222" y="90" width="150" height="26" rx="4" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="372" y="90" width="210" height="26" rx="4" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="582" y="90" width="210" height="26" rx="4" fill="url(#cpp-bubble-hatch)" stroke="#b8bcb5" stroke-dasharray="4 3"/>
+  </g>
+  <g font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300" font-weight="600">
+    <text x="117" y="107">1</text><text x="177" y="107">块2 (3格)</text>
+    <text x="297" y="107">块3 (5格)</text><text x="477" y="107">块4 (7格)</text>
+  </g>
+  <text x="687" y="107" font-size="12" text-anchor="middle" fill="#66716d">阶段 0 空闲 (7格)</text>
+  <text x="14" y="142" font-size="13" font-weight="600" fill="#3a4f93">阶段 1</text>
+  <g stroke-width="1.3">
+    <rect x="102" y="124" width="30" height="26" rx="4" fill="url(#cpp-bubble-hatch)" stroke="#b8bcb5"/>
+    <rect x="132" y="124" width="30" height="26" rx="4" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="162" y="124" width="60" height="26" rx="4" fill="url(#cpp-bubble-hatch)" stroke="#b54237"/>
+    <rect x="222" y="124" width="90" height="26" rx="4" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="312" y="124" width="60" height="26" rx="4" fill="url(#cpp-bubble-hatch)" stroke="#b54237"/>
+    <rect x="372" y="124" width="150" height="26" rx="4" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="522" y="124" width="60" height="26" rx="4" fill="url(#cpp-bubble-hatch)" stroke="#b54237"/>
+    <rect x="582" y="124" width="210" height="26" rx="4" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+  <g font-size="12" font-family="var(--font-mono)" text-anchor="middle" font-weight="600">
+    <text x="147" y="141" fill="#3a4f93">1</text><text x="192" y="141" fill="#8f3229">等2</text>
+    <text x="267" y="141" fill="#3a4f93">块2 (3格)</text><text x="342" y="141" fill="#8f3229">等2</text>
+    <text x="447" y="141" fill="#3a4f93">块3 (5格)</text><text x="552" y="141" fill="#8f3229">等2</text>
+    <text x="687" y="141" fill="#3a4f93">块4 (7格)</text>
+  </g>
+  <rect x="804" y="102" width="84" height="38" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="846" y="119" font-size="13" font-weight="700" text-anchor="middle" fill="#8f3229">23 格</text>
+  <text x="846" y="135" font-size="12" text-anchor="middle" fill="#8f3229">多等 6 格</text>
+  <text x="12" y="182" font-size="13.5" font-weight="700" fill="#065f56">B. 动态等耗时分块（100→41→32→27…→13 token，拆为 16 块 × 1 格，零中间气泡）</text>
+  <text x="14" y="210" font-size="13" font-weight="600" fill="#936300">阶段 0</text>
+  <rect x="102" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="117" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">1</text>
+  <rect x="132" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="147" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">2</text>
+  <rect x="162" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="177" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">3</text>
+  <rect x="192" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="207" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">4</text>
+  <rect x="222" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="237" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">5</text>
+  <rect x="252" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="267" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">6</text>
+  <rect x="282" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="297" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">7</text>
+  <rect x="312" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="327" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">8</text>
+  <rect x="342" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="357" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">9</text>
+  <rect x="372" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="387" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">10</text>
+  <rect x="402" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="417" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">11</text>
+  <rect x="432" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="447" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">12</text>
+  <rect x="462" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="477" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">13</text>
+  <rect x="492" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="507" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">14</text>
+  <rect x="522" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="537" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">15</text>
+  <rect x="552" y="192" width="30" height="26" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/><text x="567" y="209" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#936300">16</text>
+  <text x="14" y="244" font-size="13" font-weight="600" fill="#3a4f93">阶段 1</text>
+  <rect x="102" y="226" width="30" height="26" rx="3" fill="url(#cpp-bubble-hatch)" stroke="#b8bcb5" stroke-width="1.2"/>
+  <rect x="132" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="147" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">1</text>
+  <rect x="162" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="177" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">2</text>
+  <rect x="192" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="207" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">3</text>
+  <rect x="222" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="237" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">4</text>
+  <rect x="252" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="267" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">5</text>
+  <rect x="282" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="297" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">6</text>
+  <rect x="312" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="327" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">7</text>
+  <rect x="342" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="357" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">8</text>
+  <rect x="372" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="387" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">9</text>
+  <rect x="402" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="417" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">10</text>
+  <rect x="432" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="447" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">11</text>
+  <rect x="462" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="477" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">12</text>
+  <rect x="492" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="507" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">13</text>
+  <rect x="522" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="537" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">14</text>
+  <rect x="552" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="567" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">15</text>
+  <rect x="582" y="226" width="30" height="26" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/><text x="597" y="243" font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#3a4f93">16</text>
+  <rect x="614" y="192" width="178" height="60" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="703" y="218" font-size="13.5" font-weight="700" text-anchor="middle" fill="#065f56">省去 6 格气泡</text>
+  <text x="703" y="238" font-size="12.5" font-family="var(--font-mono)" text-anchor="middle" fill="#065f56">23 → 17 (-26%)</text>
+  <rect x="804" y="203" width="84" height="38" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="846" y="220" font-size="13" font-weight="700" text-anchor="middle" fill="#065f56">17 格</text>
+  <text x="846" y="236" font-size="12" text-anchor="middle" fill="#065f56">仅首等1格</text>
+  <line x1="102" y1="266" x2="796" y2="266" stroke="#66716d" stroke-width="1.3"/>
+  <g stroke="#66716d" stroke-width="1.2"><line x1="102" y1="262" x2="102" y2="270"/><line x1="222" y1="262" x2="222" y2="270"/><line x1="342" y1="262" x2="342" y2="270"/><line x1="462" y1="262" x2="462" y2="270"/><line x1="582" y1="262" x2="582" y2="270"/><line x1="612" y1="262" x2="612" y2="270"/><line x1="702" y1="262" x2="702" y2="270"/><line x1="792" y1="262" x2="792" y2="270"/></g>
+  <g font-size="12" font-family="var(--font-mono)" text-anchor="middle" fill="#4d5652"><text x="102" y="284">t=0</text><text x="222" y="284">4</text><text x="342" y="284">8</text><text x="462" y="284">12</text><text x="582" y="284">16</text><text x="612" y="284" font-weight="700" fill="#065f56">17</text><text x="702" y="284">20</text><text x="792" y="284" font-weight="700" fill="#8f3229">23</text></g>
+  <text x="14" y="284" font-size="12" fill="#66716d">时间标尺</text>
+  <text x="846" y="284" font-size="12" text-anchor="middle" fill="#66716d">步数 4→16</text>
+  <text x="12" y="316" font-size="16" font-weight="700" fill="#17211f">二、单步块长反解四步流水（只截小、不切大）与版本生命周期</text>
+  <line x1="12" y1="326" x2="888" y2="326" stroke="#b8bcb5" stroke-width="1.3"/>
   <g stroke-width="1.4">
-    <rect x="12" y="52" width="430" height="148" rx="9" fill="#fff0e9" stroke="#b54237"/>
-    <rect x="458" y="52" width="430" height="148" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="12" y="338" width="212" height="96" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="246" y="338" width="198" height="96" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="466" y="338" width="196" height="96" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="684" y="338" width="204" height="96" rx="9" fill="#ddf4ef" stroke="#087f73"/>
   </g>
-
-  <text x="26" y="77" font-size="15" font-weight="700" fill="#8f3229">等长分块（4 × 100 token）：耗时呈 1 : 3 : 5 : 7</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="102">阶段 0（总活 16 格）：</text>
-    <rect x="180" y="86" width="16" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="198" y="86" width="48" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="248" y="86" width="80" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="330" y="86" width="102" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
-    <text x="184" y="102" font-family="var(--font-mono)" fill="#936300">1</text>
-    <text x="217" y="102" font-family="var(--font-mono)" fill="#936300">3</text>
-    <text x="283" y="102" font-family="var(--font-mono)" fill="#936300">5</text>
-    <text x="376" y="102" font-family="var(--font-mono)" fill="#936300">7</text>
-
-    <text x="26" y="138">阶段 1（多等 6 格）：</text>
-    <rect x="180" y="122" width="16" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="198" y="122" width="16" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
-    <rect x="216" y="122" width="30" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="248" y="122" width="48" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
-    <rect x="298" y="122" width="30" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="330" y="122" width="102" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
-    <text x="26" y="168">每块差值（3-1、5-3、7-5）变成气泡，共 <tspan font-weight="700" fill="#8f3229">23 格完成</tspan></text>
-    <text x="26" y="190">第 k 块 Q–K 对 ≈ <tspan font-family="var(--font-mono)" fill="#8f3229">x·L + x(x+1)/2</tspan>，越往后越重</text>
-  </g>
-
-  <text x="472" y="77" font-size="15" font-weight="700" fill="#065f56">按耗时反解（100→41→32→…→13）：每块 1 格</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="472" y="102">阶段 0（16 块 × 1）：</text>
-    <rect x="626" y="86" width="236" height="22" rx="4" fill="#fff4cf" stroke="#c78300"/>
-    <text x="652" y="102" font-family="var(--font-mono)" fill="#936300">1|1|1|1|…（16 块紧挨送出）</text>
-
-    <text x="472" y="138">阶段 1（仅首块等 1）：</text>
-    <rect x="626" y="122" width="16" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="644" y="122" width="234" height="22" rx="4" fill="#e8edff" stroke="#4c65b6"/>
-    <text x="668" y="138" font-family="var(--font-mono)" fill="#3a4f93">1|1|1|1|…（零中间气泡）</text>
-
-    <text x="472" y="168">总计算量仍为 16 格/段，压缩至 <tspan font-weight="700" fill="#065f56">17 格完成（-26%）</tspan></text>
-    <text x="472" y="190">代价：步数 4→16 增固定开销，且仍受块对齐与预算截断</text>
-  </g>
-
-  <text x="14" y="232" font-size="16" font-weight="700" fill="#17211f">二、单步块长反解流水线（只截小、不切大）与版本生命周期</text>
-  <line x1="12" y1="244" x2="888" y2="244" stroke="#b8bcb5" stroke-width="1.4"/>
-
-  <g stroke-width="1.5">
-    <rect x="12" y="258" width="212" height="96" rx="9" fill="#e8edff" stroke="#4c65b6"/>
-    <rect x="248" y="258" width="194" height="96" rx="9" fill="#fff4cf" stroke="#c78300"/>
-    <rect x="466" y="258" width="196" height="96" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
-    <rect x="686" y="258" width="202" height="96" rx="9" fill="#ddf4ef" stroke="#087f73"/>
-  </g>
-
   <g fill="none" stroke-width="2">
-    <path d="M 224 306 L 242 306" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
-    <path d="M 442 306 L 460 306" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
-    <path d="M 662 306 L 680 306" stroke="#087f73" marker-end="url(#cpp-arr-teal)"/>
+    <path d="M 224 386 L 240 386" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
+    <path d="M 444 386 L 460 386" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
+    <path d="M 662 386 L 678 386" stroke="#087f73" marker-end="url(#cpp-arr-teal)"/>
   </g>
-
-  <g font-size="14.5" font-weight="700">
-    <text x="26" y="284" fill="#3a4f93">1. 二次方程求正根</text>
-    <text x="262" y="284" fill="#936300">2. 平滑与下限保护</text>
-    <text x="480" y="284" fill="#7a3a6a">3. 向上凑整对齐</text>
-    <text x="700" y="284" fill="#065f56">4. 预算取小 + 扣时间账</text>
+  <g font-size="14" font-weight="700">
+    <text x="24" y="362" fill="#3a4f93">1. 二次方程求正根</text>
+    <text x="258" y="362" fill="#936300">2. 平滑与下限保护</text>
+    <text x="478" y="362" fill="#7a3a6a">3. 向上凑整对齐</text>
+    <text x="696" y="362" fill="#065f56">4. 预算取小与扣账</text>
   </g>
-
-  <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="309" font-family="var(--font-mono)" fill="#3a4f93">ax²+(2aL+b)x = τ_rem</text>
-    <text x="26" y="331">开机 1 热身 + 64 试跑</text>
-    <text x="26" y="348">（&lt;8 有效点退固定块）</text>
-
-    <text x="262" y="309">按 <tspan font-family="var(--font-mono)" fill="#936300">smooth_factor</tspan> 平滑</text>
-    <text x="262" y="331">下限 <tspan font-family="var(--font-mono)" fill="#936300">min_chunk=4096</tspan></text>
-    <text x="262" y="348">防块太碎算子效率塌缩</text>
-
-    <text x="480" y="309">向上取整至</text>
-    <text x="480" y="331" font-family="var(--font-mono)" fill="#7a3a6a">max(block_size, 64)</text>
-    <text x="480" y="348">整数倍（源码向上取整）</text>
-
-    <text x="700" y="309"><tspan font-family="var(--font-mono)" fill="#065f56">min(x, token_budget)</tspan></text>
-    <text x="700" y="331">只把块切小、不超上限</text>
-    <text x="700" y="348">decode 不扣时间账</text>
+  <g font-size="12.5" fill="#4d5652">
+    <text x="24" y="385" font-family="var(--font-mono)" fill="#3a4f93">ax²+(2aL+b)x = τ_rem</text>
+    <text x="24" y="405">开机 1 热身 + 64 次试跑</text>
+    <text x="24" y="423">&lt;8 有效点退回固定切块</text>
+    <text x="258" y="385">按 <tspan font-family="var(--font-mono)" fill="#936300">smooth_factor</tspan> 平滑</text>
+    <text x="258" y="405">下限 <tspan font-family="var(--font-mono)" fill="#936300">min_chunk=4096</tspan></text>
+    <text x="258" y="423">避免块太碎压垮算子效率</text>
+    <text x="478" y="385">向上取整至整数倍：</text>
+    <text x="478" y="405" font-family="var(--font-mono)" fill="#7a3a6a">max(block_size, 64)</text>
+    <text x="478" y="423">粗粒度凑整会带回少量空等</text>
+    <text x="696" y="385" font-family="var(--font-mono)" fill="#065f56">min(x, token_budget)</text>
+    <text x="696" y="405">只切小、不突破步预算上限</text>
+    <text x="696" y="423">decode 占 token 不扣时间账</text>
   </g>
-
-  <g stroke-width="1.5">
-    <rect x="12" y="372" width="430" height="106" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
-    <rect x="458" y="372" width="430" height="106" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  <g stroke-width="1.4">
+    <rect x="12" y="450" width="430" height="102" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="458" y="450" width="430" height="102" rx="9" fill="#fff0e9" stroke="#b54237"/>
   </g>
-
-  <text x="26" y="398" font-size="15" font-weight="700" fill="#17211f">v0.30.0（c09d3e20，主基线）保留并增强</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="423">• 历史拟合改用非负最小二乘 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">nnls</tspan>：<tspan font-family="var(--font-mono)">a∑C(C+H)+b∑C+c</tspan></text>
-    <text x="26" y="445">• 新增 <tspan font-family="var(--font-mono)" fill="#3a4f93">ProfilingChunkAsyncScheduler</tspan>（仅限 MRV2）</text>
-    <text x="26" y="467">• 须 <tspan font-family="var(--font-mono)">PP &gt; 1</tspan>；与 <tspan font-family="var(--font-mono)">balance_scheduling</tspan> / <tspan font-family="var(--font-mono)">DyntraLB</tspan> 互斥</text>
+  <text x="26" y="474" font-size="14.5" font-weight="700" fill="#17211f">v0.30.0（c09d3e20，主基线）：保留并升级</text>
+  <g font-size="12.5" fill="#4d5652">
+    <text x="26" y="497">• 历史拟合改用非负最小二乘 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">nnls</tspan>：<tspan font-family="var(--font-mono)">a∑C(C+H)+b∑C+c</tspan></text>
+    <text x="26" y="518">• 新增 <tspan font-family="var(--font-mono)" fill="#3a4f93">ProfilingChunkAsyncScheduler</tspan>（仅限 MRV2）</text>
+    <text x="26" y="539">• 须 <tspan font-family="var(--font-mono)">PP &gt; 1</tspan>；与 <tspan font-family="var(--font-mono)">balance_scheduling</tspan> / <tspan font-family="var(--font-mono)">DyntraLB</tspan> 互斥</text>
   </g>
-
-  <text x="472" y="398" font-size="15" font-weight="700" fill="#8f3229">main（8d6180e2）已整体移除 CPP</text>
-  <g font-size="13.5" fill="#4d5652">
-    <text x="472" y="423">• 继 PR #21317 弃用告警后，PR #21310 完整移除全部源码</text>
-    <text x="472" y="445">• 含 <tspan font-family="var(--font-mono)">ProfilingChunkConfig</tspan>、调度器、预测器与引擎钩子</text>
-    <text x="472" y="467">• 升级至 <tspan font-weight="700" fill="#8f3229">main</tspan> 的部署不能再依赖 <tspan font-family="var(--font-mono)">profiling_chunk_config</tspan></text>
+  <text x="472" y="474" font-size="14.5" font-weight="700" fill="#8f3229">main（8d6180e2）：PR #21310 整体移除 CPP</text>
+  <g font-size="12.5" fill="#4d5652">
+    <text x="472" y="497">• 继 PR #21317 弃用告警后，完整删除 CPP 全部源码</text>
+    <text x="472" y="518">• 移除 <tspan font-family="var(--font-mono)">ProfilingChunkConfig</tspan>、预测器、调度器与引擎补丁</text>
+    <text x="472" y="539">• 升级至 <tspan font-weight="700" fill="#8f3229">main</tspan> 不可再依赖 <tspan font-family="var(--font-mono)">profiling_chunk_config</tspan></text>
   </g>
 </svg>

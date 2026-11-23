@@ -13,6 +13,18 @@ aliases:
   - HCCL
   - 集合通信库
   - Huawei Collective Communication Library
+  - HCCS
+  - RoCE
+  - RDMA
+  - HIXL LocalCommRes
+  - LocalCommRes
+  - hccn_tool
+  - NNAL
+  - ATB
+  - TorchNPU
+  - Triton Ascend
+  - Gloo
+  - 通信域
 chapters:
   - '07'
   - 09
@@ -143,21 +155,18 @@ evidence: C
 relations:
   - to: hardware-devices
     kind: builds-on
-    note: 先认识参与计算的设备
+    note: 先认识参与计算的设备与机内 HCCS、跨机 RoCE 物理链路规格
+  - to: device-memory
+    kind: builds-on
+    note: 通信输入张量与 HCCL 缓冲同驻设备显存，须分清张量载荷与通信库预留
+  - to: ai-qos
+    kind: builds-on
+    note: 共享 UB 链路出口发生集合通信与 KV 搬运争用时，需借助虚拟通道与优先级调度
   - to: collective-communication
     kind: builds-on
-    note: 先掌握 rank、通信组和通信结果
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: A0 启动时建立通信域，16 卡分组与显存预算在部署页统一推导
-  - to: tensor-parallel
-    kind: builds-on
-    note: 张量并行把一层分给多张卡，部分和要靠 HCCL 合齐，具体数据流在张量并行页读
-  - to: data-parallel
-    kind: builds-on
-    note: 区分 DP 执行组与跨机 DP 设备通信组，需要先理解 DP 如何分配请求，以及执行组内部如何使用 TP。
+    note: 先掌握 rank、通信组与 All-Reduce 等集合通信语义，再对照 CANN/HCCL 软件栈与链路实现
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -201,7 +210,7 @@ file: cann-hccl
 | 框架接口与通信库 | 怎样提交并组织这次操作 | `RowParallelLinear` → `vllm` 通信组 / `torch.distributed` → HCCL |
 | 物理链路 | 字节沿什么连接搬运 | 机内 HCCS / Unified Bus（跨机部署另走 RoCE，主机侧走 PCIe） |
 
-HCCS 是昇腾设备互联，RoCE 是基于以太网的远程内存访问通信，PCIe 连接主机与设备等部件，Unified Bus 是统一互联总线。具体可用路径取决于产品、拓扑与软件配套。All-Gather、All-to-All 等操作的输入输出与传输量统一见[通信基础](collective-communication.md)，网线或总线的名称无法决定应该拼接还是求和。
+HCCS 是昇腾设备互联，RoCE 是基于以太网的远程内存访问通信，PCIe 连接主机与设备等部件，Unified Bus 是统一互联总线。具体可用路径取决于产品、拓扑与软件配套。All-Gather、All-to-All 等操作的输入输出与传输量统一见[通信基础](collective-communication.md)，网线或总线的名称无法决定应该拼接还是求和。在 `Ascend 910B3`（`CANN 9.1.0`）的独立 `TP=4` HCCS `All-Reduce` 微基准中，单次 `16 MiB` 归约实测聚合有效带宽为 `17.71 ~ 17.74 GB/s`、耗时约 `524 µs`（远低于 `392 GB/s` 标称端口峰值），完整链路数据见[通信基础 910B3 真机标尺](collective-communication.md#ascend-910b3-真机标尺tp4-hccs-all-reduce-微基准与理论峰值落差)与 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
 
 放大到双机 16 卡部署时，机内高速总线与跨机网络构成两级物理通路——下图用双节点立体剖面直标机内 `HCCS`、跨机 `RoCE` 网口与中央交换机，并与逻辑上的 TP、DP、EP 通信域一一对应：
 
@@ -232,7 +241,7 @@ file: cann-hccl-plate-two-node
 
 **驱动让系统使用设备，CANN 提供设备侧计算能力，框架和推理引擎再把模型接到这些能力上。** 容器主要封装用户空间的软件；宿主机仍要有与硬件匹配的驱动和固件，并把所用设备、驱动库和管理工具提供给容器。
 
-从下往上检查：CANN Toolkit 提供运行和开发接口，Ops 是针对硬件的算子包；NNAL 是神经网络加速库，提供 ATB 等张量运算加速能力。再往上，PyTorch 处理张量，TorchNPU 将这些操作接入昇腾，vLLM 与 Ascend 插件组织推理。Triton Ascend 则把使用 Triton 编写的算子接到 NPU。各层要按目标版本配成一套，安装成功的某个包只能证明其中一环。
+从下往上检查：CANN Toolkit 提供运行和开发接口，Ops 是针对硬件的算子包；NNAL 是神经网络加速库，提供 ATB（Ascend Transformer Boost，昇腾大模型算子加速库）等张量运算加速能力。再往上，PyTorch 处理张量，TorchNPU 将这些操作接入昇腾，vLLM 与 Ascend 插件组织推理。Triton Ascend 则把使用 Triton 编写的算子接到 NPU。各层要按目标版本配成一套，安装成功的某个包只能证明其中一环。
 
 选择安装路径时，先看起点已经包含什么：
 
@@ -263,7 +272,7 @@ file: cann-hccl-plate-two-node
 
 前三步给出基础连通性证据；最后一步还要用实际版本的分布式推理或通信测试验证。连接成功以后仍可能因某个 rank 没进入同一次操作而等待，取证方法见[分布式通信排障](inference-troubleshooting.md#分布式通信区分交换慢和有人没到)。P/D 分离还要核对各角色的 API、进程协调及 KV 传输端口，代理端口可达只是其中一项。具体查询命令与硬件范围见页末[怎么开](#怎么开)。
 
-P/D 方案采用 **HIXL** 时，由这个通信库为内存数据建立传输连接。它的 **LocalCommRes** 描述本进程可用的通信端点，包括端点在主机还是设备、协议类型、地址及直连对端。以 UB 场景的设备到设备传输为示意，双方需要对应的设备端点；改走主机内存传输时，还须具备主机端点。注意两点边界：文件能解析只说明格式可读，端点与实际链路匹配且连通才是下一步；它与「哪些 rank 合算模型」的并行分组表解决不同问题，具体配置方式受硬件与通信库版本限制。
+P/D 方案采用 **HIXL**（Huawei Xfer Library，昇腾面向内存直连与高速数据面搬运的传输库）时，由它为跨卡/跨机内存数据建立传输连接。它的 **LocalCommRes** 描述本进程可用的通信端点，包括端点在主机还是设备、协议类型、地址及直连对端。以 UB 场景的设备到设备传输为示意，双方需要对应的设备端点；改走主机内存传输时，还须具备主机端点。注意两点边界：文件能解析只说明格式可读，端点与实际链路匹配且连通才是下一步；它与「哪些 rank 合算模型」的并行分组表解决不同问题，具体配置方式受硬件与通信库版本限制。
 
 ## 异构旗舰对照：GLM 双机跨节点通信域与调用统计
 

@@ -7,6 +7,7 @@ summary: >-
   false；开启后把未命中 KV 的 H2D 搬运与 SFA 注意力计算放进同一流水线，并更新设备侧选择缓存。v0.23/v0.26 无此键，v0.30.0
   与 main 上开启时自动切离默认的 Copy-SFA 路径。
 aliases:
+  - use_fused_overlap
   - sparse_kv_offload_config.use_fused_overlap
   - 融合重叠 decode
   - npu_fused_sparse_attention_overlap
@@ -30,6 +31,12 @@ relations:
   - to: kv-cache-sparse-offload
     kind: builds-on
     note: 它选择卸载后端的融合 decode 路径；enabled 为真才选用该后端，配置解析仍先执行
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该开关嵌在 additional_config.sparse_kv_offload_config 下，误写顶层与嵌套拼错遵循 AscendConfig 校验规则
+  - to: sparse-attention
+    kind: builds-on
+    note: 融合重叠路径面向稀疏注意力（SFA）的 TopK≤2048 token 级解码选择，与普通全注意力后端无关
 sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1478'
   - >-
@@ -199,12 +206,12 @@ rawSources:
 ---
 ## 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
 
-[Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 把完整历史 KV 保存在主机内存，decode 每步只取索引器选出的部分行。默认路径 **Copy-SFA** 按设备侧元数据自动分两路：首次填充在同一 kernel 内先按请求级 `miss_*` 清单拷贝缺失行并核内同步，再执行只访问 HBM 的注意力；**稳态路径已在算子内部融合读取 `topk_src_ids`、分段搬运每路 Query 的 Miss KV 与注意力计算**。把 `use_fused_overlap`（`bool`，默认 `false`）打开后，则切入 **arch22 多流 / 双缓冲融合重叠路径**，将未命中 KV 的主机到设备搬运、注意力计算和设备侧 Selection KV Cache（保存选中行的缓存）更新排入分段重叠流水，供后续步骤直接命中复用。
+[Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 把完整历史 KV 保存在主机内存，decode 每步只取索引器选出的部分行。默认路径 **Copy-SFA** 按设备侧元数据自动分两路：首次填充在同一 kernel 内先按请求级 `miss_*` 清单拷贝缺失行并核内同步，再执行只访问 HBM 的注意力；**稳态路径已在算子内部融合读取 `topk_src_ids`、分段搬运每路 Query 的 Miss KV 与注意力计算**。把 `use_fused_overlap`（`bool`，默认 `false`）打开后，则切入 **arch22 多流 / 双缓冲融合重叠路径**，将未命中 KV 的主机到设备（H2D）搬运、[稀疏注意力（SFA）](../concepts/sparse-attention.md)计算和设备侧 Selection KV Cache（保存选中行的缓存）更新排入分段重叠流水，供后续步骤直接命中复用。
 
 以三行选择作概念示意：本步选中位置 `4, 8, 9`，设备选择缓存已有 `4, 8` 可直接复用，位置 `9` 仍须从主机拷入并写入选择缓存，供本步计算及下一步命中复用（三行仅为概念示意，实际按模型 TopK 与容量约束运行）。
 
 **配置位置与生效边界**：
-- **必须在嵌套块内，不能写顶层**：完整路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`。在普通 vLLM-Ascend 环境中误写到顶层会被未知键校验拒收；若进程装有 `vllm_omni`，工厂会先打告警再过滤未知顶层键，同样不会启用它。
+- **必须在嵌套块内，不能写顶层**：完整路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`。在普通 vLLM-Ascend 环境中误写到顶层会被 [AscendConfig](../concepts/ascend-config-system.md) 的未知键校验拒收；若进程装有 `vllm_omni`，工厂会先打告警再过滤未知顶层键，同样不会启用它。
 - **校验先于后端切换**：工厂总是先校验嵌套块（嵌套内拼错键照样报错）；而 `AscendSFABackend` 只有在主开关 `sparse_kv_offload_config.enabled` 为真时，才会把 metadata builder 与 impl 换成卸载实现。
 
 | 关键项 | 运行时行为 | 说明 |

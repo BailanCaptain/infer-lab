@@ -30,6 +30,12 @@ relations:
   - to: ascend-config-system
     kind: builds-on
     note: 该历史回退开关通过 additional_config 顶层键配置，其解析及未知键处理依赖 AscendConfig 配置系统，并随版本变化。
+  - to: prepare-inputs-flow
+    kind: builds-on
+    note: 块表脏区提交与整行 H2D 拷贝发生在每步准备输入阶段，完整组装流程见该页
+  - to: model-runner-v2
+    kind: builds-on
+    note: 该历史回退键仅作用于 MRv1，MRv2 已内置常驻设备块表与分段更新并退役 MRv1 块表实现
 sources:
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L513-L514
@@ -72,7 +78,7 @@ rawSources:
 
 **这个键在所有四个核验版本（`v0.23.0`、`v0.26.0rc`、`v0.30.0`、`main`）以及 GLM 固定镜像 `db701c1f` 中均不存在。** 它是 2026-09-23 随 PR #17066（`39fef3f8` / `ad7a731b`）合入 `main` 的 MRv1 临时回退开关，次日（2026-09-24）PR #17470 就将整项块表优化连同这个键一起回退。官方参数表原将其标为「MRv1 退役时删除的临时兼容项」，实际仅存活一日，切勿写入任何部署模板。
 
-先明确三个前置词：块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；「提交」指把主机侧块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现。
+先明确三个前置词：块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；「提交」指把主机侧块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现（新一代架构见 [Model Runner V2](../concepts/model-runner-v2.md)）。
 
 在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭该优化、退回旧实现**——**命名极易读反**：
 
@@ -102,7 +108,7 @@ PR #17066 为每行维护一对脏区边界 `_dirty_begin` / `_dirty_end`（提�
 | 版本 | 残留 `block_table_no_commit_optimize` 的行为 | 块表提交现状 |
 | --- | --- | --- |
 | `v0.23.0`、`v0.26.0rc` 与 GLM 镜像 `db701c1f` | 配置类逐键读取，多写的顶层键被静默忽略 | 均走普通整行拷贝 |
-| `v0.30.0`（`c09d3e20`） | 无此键；通常被 `@config(extra="forbid")` 直接拒收报错（仅环境可发现 `vllm_omni` 时告警过滤，不构成回退开关） | MRv1 `BlockTable` 直接调 `copy_to_gpu(num_reqs)` |
+| `v0.30.0`（`c09d3e20`） | 无此键；通常被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 直接拒收报错（仅环境可发现 `vllm_omni` 时告警过滤，不构成回退开关） | MRv1 `BlockTable` 直接调 `copy_to_gpu(num_reqs)` |
 | `main`（`8d6180e2`） | 同 `v0.30.0`（历史脚本迁往新版须删掉此键） | 已退役 MRv1 `worker/block_table.py`，转用 `worker/v2/block_table.py`（不代表新版没有其他块表优化） |
 
 ## 对照源码

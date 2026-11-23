@@ -4,7 +4,7 @@ title: "昇腾 950：一块数据怎样少绕路、少等候"
 type: concept
 origin: direct
 summary: 沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。
-aliases: [Ascend 950, Ascend950, 昇腾950, 950PR, 950DT, DaVinciCore, CV融合, Cube Vector融合, NDDMA, BufferID, Buffer ID, SIMD, SIMT, Unified Buffer, L0C, UMA]
+aliases: [Ascend 950, Ascend950, 昇腾950, 950PR, 950DT, A5, DaVinciCore, CV融合, Cube Vector融合, NDDMA, BufferID, Buffer ID, SIMD, SIMT, 950 Unified Buffer, 950 L0C, UMA, DVPP, CMO, AI CPU, Vector Function]
 chapters: ["07", "19"]
 order: 125
 sources:
@@ -22,11 +22,9 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L35-L215'
 relations:
   - { to: ai-core, kind: builds-on, note: Cube、Vector、Scalar 与矩阵乘算例由原页解释，本页聚焦 950 的新增通路 }
-  - { to: op-to-ai-core, kind: builds-on, note: 把硬件假设接回算子、kernel、分块和运行证据 }
   - { to: device-memory, kind: builds-on, note: 主机与设备、容量与带宽、权重和 KV 的基本记账继续复用原页 }
   - { to: low-precision-formats, kind: builds-on, note: 元素编码、分组、缩放和文件精度的唯一解释出处 }
   - { to: hardware-devices, kind: builds-on, note: 部署前确认完整产品型号，不把芯片、卡和服务器当成同一层 }
-  - { to: inference-performance-analysis, kind: builds-on, note: 用实际关键路径判断少搬数据是否能减少请求等待 }
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -34,7 +32,7 @@ verified:
   - main
 evidence: S
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 ---
 
 **昇腾 950 是执行模型计算的 NPU 芯片。理解它的一个入口，是看一块数据怎样搬到计算单元、怎样交给下一段计算，以及什么时候能够复用原来的缓冲。** 新的通路与指令可以减少绕行和控制工作；是否让请求更快，要看软件是否使用它，以及省下的工作是不是正在拖慢请求。
@@ -117,7 +115,7 @@ file: ascend-950-buffer
 
 ## Vector 为什么同时提供 SIMD 和 SIMT
 
-**SIMD** 用一条指令对一组数据执行同一种操作。比如首图对 [5,−5] 一起取与零的较大值，规则一致，适合成组处理。**SIMT** 以多个线程描述工作，每个线程有自己的位置和控制状态，更容易表达不同元素走不同分支、访问不同位置的部分。
+**SIMD（Single Instruction Multiple Data，单指令多数据）**用一条指令对一组数据执行同一种操作。比如首图对 [5,−5] 一起取与零的较大值，规则一致，适合成组处理。**SIMT（Single Instruction Multiple Threads，单指令多线程）**以多个线程描述工作，每个线程有自己的位置和控制状态，更容易表达不同元素走不同分支、访问不同位置的部分。
 
 例如按索引 [3,0,2] 从数组取数，读到的地址不连续；再按每个元素的条件决定下一步，控制过程也不一样。程序可以把这种部分交给 SIMT 表达，把后续规则的逐项计算交给 SIMD。它们描述如何组织计算，不改变索引和算式应该得到的结果。
 
@@ -125,7 +123,7 @@ file: ascend-950-buffer
 
 ## 大内存、缓存、核内缓冲分别解决什么
 
-前面的 UB 只暂存当前块，不负责装下整个模型。950 在同一封装内集成两个 **AI Die**（计算晶粒）和两个 **IO Die**（通信晶粒），并连接高速内存模块。白皮书把封装整体描述为 **UMA**，即统一内存访问的整体；软件仍要区分数据放在哪一层、路径经过哪里。
+前面的 UB 只暂存当前块，不负责装下整个模型。950 在同一封装内集成两个 **AI Die**（计算晶粒）和两个 **IO Die**（通信晶粒），并连接高速内存模块。白皮书把封装整体描述为 **UMA（Uniform Memory Access，统一内存访问）**的整体；软件仍要区分数据放在哪一层、路径经过哪里。
 
 | 层次 | 在前面例子中的用途 | 容易混淆的地方 |
 | --- | --- | --- |
@@ -138,7 +136,7 @@ file: ascend-950-buffer
 
 950 的 L2 以 512 B 缓存行为单位，又分为四个 128 B 的 sector，即可分别处理的子块；它支持软件提供缓存使用提示。对马上还会重复使用的数据，可以争取保留；对只扫一遍的大块数据，可避免把其他有用内容挤走。提示是帮助缓存管理的手段，不把“已发提示”当成“全部命中”。
 
-**CMO** 是缓存维护操作，包括预取、写回、失效等不同动作。预取适合提前准备之后会用的数据；写回和失效处理缓存状态，作用不同。是否值得做，要比较命中、有效搬运和这些操作本身的开销，不能把所有 CMO 都理解成加速读取。主机与设备、权重与 KV 的容量账继续使用[设备内存](device-memory.md)的分工。
+**CMO（Cache Maintenance Operation，缓存维护操作）**包括预取、写回、失效等不同动作。预取适合提前准备之后会用的数据；写回和失效处理缓存状态，作用不同。是否值得做，要比较命中、有效搬运和这些操作本身的开销，不能把所有 CMO 都理解成加速读取。主机与设备、权重与 KV 的容量账继续使用[设备内存](device-memory.md)的分工。
 
 ```wiki-diagram
 file: ascend-950-fig-simd-simt-memory
@@ -146,7 +144,7 @@ file: ascend-950-fig-simd-simt-memory
 
 ## 图片还没交给模型时，哪些单元已经在工作
 
-[生产案例](deepseek-serving-case.md#上传一份带图长文服务要接力做什么)中的图片，进入 Vision Encoder 以前还要准备成像素与合适的尺寸。950 的 **DVPP** 是图像编解码和预处理子系统：JPEGD 把压缩的 JPEG 文件解成图像数据，VPC 做缩放、裁剪、填充等处理，JPEGE 则把图像编码回 JPEG。它们处理的是图像格式和像素；Vision Encoder 运行模型网络，把图像变成后续模型使用的数值特征。
+[生产案例](deepseek-serving-case.md#上传一份带图长文服务要接力做什么)中的图片，进入 Vision Encoder 以前还要准备成像素与合适的尺寸。950 的 **DVPP（Digital Vision Pre-Processing，数字视觉预处理子系统）**承担图像编解码和预处理：JPEGD 把压缩的 JPEG 文件解成图像数据，VPC（视觉预处理核心）做缩放、裁剪、填充等处理，JPEGE 则把图像编码回 JPEG。它们处理的是图像格式和像素；Vision Encoder 运行模型网络，把图像变成后续模型使用的数值特征。
 
 例如上传一张 JPEG 后，首字迟迟不来，而模型计算核心大部分时间空闲。应先沿“读到图片 → 解码完成 → 尺寸与格式准备好 → 图像模型开始”记录时间。如果慢在前两段，就不能只靠增加文本生成资源解决。需要同时保留图片尺寸、格式、处理路径和队列等待；用相同图片比较实现时，还要检查准备好的像素是否一致。设备具备 DVPP，只说明存在硬件路径，实际服务也可能在主机上完成预处理。
 

@@ -4,6 +4,11 @@ title: placement_search_backtrack_limit
 type: param
 summary: >-
   STAIR 用带约束 LPT 为单个候选摆放专家副本时允许接受替代可行分支的回溯预算上限：默认 32，合法范围 0–64，每个候选单独计数；设为 0 只禁止接受替代可行选择，仍会执行首个可行选择及跳过来源不可行的试放。v0.30.0 与 main 已接入 MRv2。
+aliases:
+  - stair_config.placement_search_backtrack_limit
+  - 摆放搜索回溯上限
+  - 带约束 LPT 回溯预算
+  - STAIR placement search backtrack limit
 origin: seed
 evidence: C
 verified:
@@ -88,6 +93,15 @@ rawSources:
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 relations:
+  - to: stair-config-cca9e594a052
+    kind: builds-on
+    note: 这是 stair_config 第四步带约束 LPT 摆放的回溯预算子键，STAIR 整体四步流程见父参数页
+  - to: rank-transfer-limit-99529b37d91d
+    kind: builds-on
+    note: 每卡双向搬运上限与跨节点上限共同构成摆放硬约束，限额越紧越容易触发有界回溯
+  - to: eplb
+    kind: builds-on
+    note: 带约束 LPT 摆放为 EPLB 生成新的专家物理卡位方案，专家搬运与槽位规则见该页
   - to: ascend-config-system
     kind: builds-on
     note: >-
@@ -101,7 +115,7 @@ relations:
 
 给 MoE 专家分卡位时，最快的做法是按负载从重到轻依次把每份专家副本塞进当前最轻的卡（即 **LPT，Longest Processing Time first** 贪心摆放）。但一旦叠加上四道硬约束——每卡槽位固定、同卡不放重复专家、单卡搬运次数封顶、跨节点搬运次数封顶——前面贪心放下的副本很可能把后面副本的合法去路全部堵死。
 
-`placement_search_backtrack_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**单候选「悔棋」预算上限**（`int`，默认 `32`，合法范围 `0–64`）：它限制 STAIR 为**单个候选**摆放专家副本时，最多允许回退改选多少次**替代的可行分支**。这里的专家是执行特定计算的 MoE 模块，副本是该专家的一份权重实例，「可行」还要求能在每卡与跨节点搬运限额内凑出权重来源。
+`placement_search_backtrack_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**单候选「悔棋」预算上限**（`int`，默认 `32`，合法范围 `0–64`）：它限制 STAIR（[Model Runner V2](../concepts/model-runner-v2.md) 默认的动态 [EPLB](../concepts/eplb.md) 规划算法）为**单个候选**摆放专家副本时，最多允许回退改选多少次**替代的可行分支**。这里的专家是执行特定计算的 MoE 模块，副本是该专家的一份权重实例，「可行」还要求能在每卡与跨节点搬运限额内凑出权重来源。
 
 **关键区分**：预算计数的是「改主意」（回退到某一步并接受该步另一张来源可行的卡），而不是「试了几张卡」。设为 `0` 只把「接受替代可行分支」的预算归零，仍会执行每步的首个来源可行选择并跳过来源不可行的试放，不能解释为关闭搜索。`v0.30.0` 与 `main` 已在 MRv2 STAIR 中实际传入逐层规划器（须开启 `--enable-eplb` 且最终策略为 `stair`，默认已是 `stair`，显式选 `default` 则不消费 `stair_config`，入口见 [stair_config](stair-config-cca9e594a052.md)）；`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 没有 `stair_config`，写入直接启动报错。
 

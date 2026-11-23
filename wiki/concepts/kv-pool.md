@@ -10,9 +10,13 @@ aliases:
   - KV Pool
   - KV 池
   - 外部 KV 池
+  - 外部 KV 共享池
   - KV Cache Pool
   - AscendStore
   - AscendStoreConnector
+  - MooncakeConnectorStoreV1
+  - Mooncake Store
+  - MemcacheBackend
   - 外部前缀缓存
   - get_num_new_matched_tokens
   - cache_transfer_granularity
@@ -20,7 +24,9 @@ aliases:
   - global_segment_size
   - kv_load_failure_policy
   - MooncakeStoreConnector
+  - embedded store
   - standalone-store
+  - enable_ssd_offload
   - Mooncake SSD offload
 chapters:
   - '11'
@@ -196,23 +202,35 @@ verified:
   - main
 evidence: C
 relations:
+  - to: kv-cache
+    kind: builds-on
+    note: 理解各层 KV 与混合递推状态的布局，才能算清每段存进外部池的字节与边界
   - to: prefix-caching
     kind: builds-on
     note: 本地 prefix caching 的命中数是池查询的起点，池只补多出来的整段
   - to: block-table
     kind: builds-on
     note: 从池里搬回的段仍要占本地块、由 block table 指向
-  - to: vllm-kv-block-allocation
+  - to: pd-disaggregation
     kind: builds-on
-    note: 要搬的位置按已算过处理，照常从块池借块
+    note: PD 分离部署下 KV Pool 默认只服务 P 侧复用前缀，D 侧需显式开启才参与读写
+  - to: mooncake-connector
+    kind: builds-on
+    note: AscendStore 的 Mooncake 后端在 A2 上复用底层 TransferEngine，但改按内容指纹存取而非 P/D 点对点配对
   - to: recompute-cpu-offload
     kind: alternative-to
     note: 换出保存的是某条被抢占请求的状态，只有它恢复时取回；池按内容指纹存前缀段，谁的开头对上谁能取
   - to: kv-cache-cpu-offload
     kind: alternative-to
     note: 同样把 KV 放到显存之外，存放位置、共享范围和回填时机不同
+  - to: lmcache
+    kind: alternative-to
+    note: 同经 KV connector 接入外部前缀缓存：AscendStore KV Pool 内置于 vllm-ascend、直接登记显存并支持混合模型；LMCache 为独立外部包、按 chunk 分层管理
+  - to: ucm
+    kind: alternative-to
+    note: AscendStore 侧重多节点内存/SSD 拼成共享 KV 池；UCM 经薄转发外壳接入独立三层存储（显存→本机内存→共享文件/3FS/DramPool），支持持久化与集中式 PD 交接
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-24'
 origin: direct
 ---
 

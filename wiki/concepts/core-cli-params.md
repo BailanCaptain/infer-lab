@@ -85,7 +85,7 @@ relations:
     kind: builds-on
     note: P/D 分离两侧不对称并行目标与 Mooncake 传输约束是双实例联检的架构前提
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-24'
 ---
 
 在昇腾（Ascend）上跑通最小 `vllm serve` 命令只是起点。进入压测与上线调优时，容量、首字时延与解码吞吐由四个彼此咬合的核心旋钮共同决定：`--gpu-memory-utilization`、`--max-model-len`、`--max-num-seqs` 与 `--max-num-batched-tokens`。
@@ -114,7 +114,7 @@ $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\tex
 
 | 核心参数 | `v0.30.0` 默认行为 | 直接控制什么 | 调大或调小的连锁反应 |
 |---|---|---|---|
-| `--gpu-memory-utilization` | 源码 `CacheConfig` 默认 **`0.92`**（部分旧 FAQ 仍沿写历史值 `0.9`，生产食谱也常手传 `0.9` 多留余量） | 按整卡物理总显存 $M_{\text{total}}$ 划定实例预算上限 $M_{\text{total}} \times u$（不自动感知同卡其他进程） | 调大可多切 KV 块；但 **ACL Graph / `npugraph_ex` 录图发生在切完 KV 之后**，录图显存与运行期波动只能吃剩余 $1 - u$ 的预算外余量，拉太满会在录图阶段直接 OOM |
+| `--gpu-memory-utilization` | 源码 `CacheConfig` 默认 **`0.92`**（部分旧 FAQ 仍沿写历史值 `0.9`，生产食谱也常手传 `0.9` 多留余量） | 按整卡 OS 可见总显存 $M_{\text{total}}$ 划定实例预算上限 $M_{\text{total}} \times u$（不自动感知同卡其他进程；例如 `Ascend 910B3` 标称 64 GiB、OS 可见 `60.96 GiB`，详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)） | 调大可多切 KV 块；但 **ACL Graph / `npugraph_ex` 录图发生在切完 KV 之后**，录图显存与运行期波动只能吃剩余 $1 - u$ 的预算外余量，拉太满会在录图阶段直接 OOM（真机实测 `Qwen3-0.6B` 在 `u=0.90` 录 `FULL` 图即触 OOM，降至 `u=0.82` 成功） |
 | `--max-model-len` | 默认取模型 `config.json` 推导上下文上限（如 `Qwen3-8B` / `Qwen3-30B-A3B` 为 `40960`；传 `-1` 按可用显存自动收敛） | 单条请求允许的「提示词 + 生成词」最大总长度；启动期在预留 1 个永久空块后，强制校验 $M_{\text{KV}}$ 至少装得下 1 条满长序列 | 不截短直接跑超长默认值时，若剩余 $M_{\text{KV}}$ 装不下 1 条 `max_model_len` 序列，引擎在接请求前即报错退出；超模型训练上限且未设 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 则抛 `ValueError` |
 | `--max-num-seqs` | 昇腾 `vllm serve` 默认落入 **`256`**（按每个 **DP** 数据并行副本独立计数；API 进程级总排队阀门另用 `--max-num-queued-reqs`） | 单步最多并发拼入多少条序列，同时决定采样张量上界与默认图捕获档位 | 在 **chunked prefill**（分块预填充，把长提示词拆成多轮与解码混跑，见 [Chunked Prefill](chunked-prefill.md)）中，每条在跑 **decode**（逐词生成）请求每步先扣 `1` 个 token（开启投机解码草拟 $K$ 词则扣 $1 + K$ 个），高并发会压缩留给新请求 **prefill**（预填充）的剩余额度 |
 | `--max-num-batched-tokens` | 昇腾 `vllm serve` 默认回落 **`2048`**（离线 `LLM` 类默认 `8192`） | 单步所有请求合计调度的 token 总上限 $B_{\text{tokens}}$，并直接决定 `profile_run()` 假输入总 token 数 | 调大能让长提示词少切几刀、显著降低 TTFT 并提高矩阵乘算术强度；但会直接推高试跑激活与算子工作区峰值 $M_{\text{act}}(B_{\text{tokens}})$，等量扣减可用 KV 池 $M_{\text{KV}}$ |
@@ -148,7 +148,7 @@ file: core-cli-batch-tokens-tree
 | 执行顺序 | 触发条件 | 对 `max_num_batched_tokens`（及 `max_num_seqs`）的改写 | 典型结果示例 |
 |---|---|---|---|
 | **分支 1：入口基线查表** | `use_batched_dp_moe == False`（常规部署） | `vllm serve`（`OPENAI_API_SERVER`）取 **`2048`**；离线 `LLM(...)`（`LLM_CLASS`）取 **`8192`**；无上下文兜底取 `2048`（前两者默认 `max_num_seqs = 256`，兜底 `128`） | 昇腾 `vllm serve` 起步值为 `2048` |
-| **分支 2：Batched DP MoE 初值** | `parallel_config.use_batched_dp_moe == True` | 不用分支 1 查表值，直接采用 `DEFAULT_MAX_NUM_BATCHED_TOKENS_FOR_BATCHED_DP = 256` | 起步值压低为 `256` |
+| **分支 2：Batched DP MoE 初值** | `parallel_config.use_batched_dp_moe == True`（面向多 DP 批量同步执行 MoE 的专用低批预算路径） | 不用分支 1 查表值，直接采用 `DEFAULT_MAX_NUM_BATCHED_TOKENS_FOR_BATCHED_DP = 256` | 起步值压低为 `256` |
 | **分支 3：吞吐模式翻倍** | `--performance-mode throughput` | 将所有未手传项乘 `2`：`max_num_batched_tokens *= 2`，未手传的 `max_num_seqs` 同步 `*= 2` | `vllm serve` 变为 `4096`（并发 `512`） |
 | **分支 4：关闭分块预填充抬下限** | `--no-enable-chunked-prefill`（`enable_chunked_prefill == False`） | 整条提示词必须单步算完，取 $\max(\text{max\_model\_len},\ \text{当前值})$ | 若 `max_model_len = 8192`，由 `2048` 抬升至 `8192` |
 | **分支 5：多模态 Prefix-LM 保底** | `is_multimodal_model` 且 `is_mm_prefix_lm`（如 Gemma 4） | 单项多模态输入不支持切块，若单项上限 `mm_min` 更大则抬升至 `mm_min` | 自动放宽以容纳单张大图/长音频 token 数 |
@@ -164,8 +164,8 @@ $$B'_{\text{tokens}} = \left\lceil \frac{B_{\text{tokens}}}{\text{TP} \times \te
 
 反过来，什么时候应该**主动把 `--max-num-batched-tokens` 调大**？单机长文压测常从默认 `2048` 调到 `4096 ~ 16384` 以吃满矩阵核。开启 **pipeline parallel**（`PP > 1`，按层段纵切模型并异步 `Send/Recv` 传激活，见 [Pipeline Parallel](pipeline-parallel.md)）后，单卡还会释放三大块显存空间，使调大批预算格外划算：
 1. **层权重与 KV 减负**：`N` 层 Transformer 均摊到 `PP` 个阶段。每张卡仅常驻约 $1/\text{PP}$ 的隐藏层权重和每 token KV 缓存。
-2. **前 `PP - 1` 段免除词表 Logits 峰值**：阶段 `0 .. PP - 2` 把 `lm_head` 替换为占位层 `PPMissingLayer`，且 `profile_run()` 跳过 `_dummy_sampler_run`（`output = None`），直接省掉全词表（如 Qwen3 `151936`）打分与采样工作区峰值。层数不能被 `PP` 整除时，vLLM 优先把余数层往前段放（或用 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
-3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：`v0.30.0` 开启 `profiling_chunk_config` 后，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块。官方指南建议设为固定分块时的 **2～4 倍**（如 64K 配 `20480`、128K 配 `32768`，见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。该特性要求 `PP > 1` 且与 `enable_balance_scheduling` 互斥；若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens`，会被静默截断到该上限。
+2. **前 `PP - 1` 段免除词表 Logits 峰值**：阶段 `0 .. PP - 2` 把 `lm_head`（将末层隐藏状态投影到全词表分数的输出头）替换为占位层 `PPMissingLayer`，且 `profile_run()` 跳过 `_dummy_sampler_run`（`output = None`），直接省掉全词表（如 Qwen3 `151936`）打分与采样工作区峰值。层数不能被 `PP` 整除时，vLLM 优先把余数层往前段放（或用 `VLLM_PP_LAYER_PARTITION` 手工前移），为承担 `lm_head` 的末段腾出显存。
+3. **叠开动态分块流水并行（`CPP`）推荐放大 `2~4` 倍**：`v0.30.0` 开启 [`profiling_chunk_config`](../params/profiling-chunk-config.md) 后，调度器把 `max_num_batched_tokens` 当作二次耗时拟合的首块基准来求解后续等时分块。官方指南建议设为固定分块时的 **2～4 倍**（如 64K 配 `20480`、128K 配 `32768`，见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）。该特性要求 `PP > 1` 且与 `enable_balance_scheduling` 互斥；若填的 `min_chunk` 大于 SP 取整前的 `max_num_batched_tokens`，会被静默截断到该上限。
 
 ## 跨子系统联动：哪些组合会静默失效，哪些会直接报错？
 
@@ -179,9 +179,9 @@ file: core-cli-graph-sched-matrix
 
 昇腾上的图执行分为外层捕获策略 `cudagraph_mode`（见 [ACL Graph](acl-graph.md)）与内层三级整图下沉优化 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`（见 [npugraph_ex](npugraph-ex.md)），二者耦合极紧：
 
-- **三级依赖链与单开报错**：内层融合遵循单向依赖 `enable_npugraph_ex → enable_static_kernel → enable_super_kernel`。若只传 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默把 `enable_super_kernel` 补为 `true`**。反之，在 Atlas A2 / A3 / 950 上单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`（或开 `static_kernel` 却关 `npugraph_ex`），启动直接抛 `AssertionError`。唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件无 `NPUGRAPH_EX` 能力，会打告警并将三项开关**全部静默重置为 `False`**。
-- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL` 保留上述三项开关。一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力处分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`，代码会**静默将三项融合开关全部刷回 `False`**。此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
-- **`FA3` 注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 路径）时，主机侧分块逻辑不支持 `FULL_DECODE_ONLY`。配该模式会直接抛 `ValueError`，必须改配 `PIECEWISE` 或 `--enforce-eager`。另须留意三处静默行为：
+- **三级依赖链与单开报错**：内层融合遵循单向依赖 `enable_npugraph_ex → enable_static_kernel →` [`enable_super_kernel`](../params/enable-super-kernel-ce990e186bfa.md)。若只传 `enable_static_kernel: true` 而省略 `enable_super_kernel`，`_default_super_kernel_to_static_kernel` 会**静默把 `enable_super_kernel` 补为 `true`**。反之，在 Atlas A2 / A3 / 950 上单开 `enable_super_kernel: true` 却未开 `enable_static_kernel: true`（或开 `static_kernel` 却关 `npugraph_ex`），启动直接抛 `AssertionError`。唯一例外是 **Atlas 300I DUO（`310P`）**：因硬件无 `NPUGRAPH_EX` 能力，会打告警并将三项开关**全部静默重置为 `False`**。
+- **非完整图模式静默清空三项融合**：在 `NPUPlatform._setup_compile_backend` 中，只有 `FULL_DECODE_ONLY`（仅对 decode 录完整图）和 `FULL`（全路径录完整图）保留上述三项开关。一旦 `cudagraph_mode` 设为 `NONE`、`PIECEWISE`（在注意力处分段编译，要求 `CompilationMode.VLLM_COMPILE`）或 `FULL_AND_PIECEWISE`（decode 走整图、prefill 走分段图的混合模式），代码会**静默将三项融合开关全部刷回 `False`**。此外，开启 `PCP > 1` 时不支持 `FULL` 图模式。
+- **`FA3`（Flash Attention 3）注意力后端与其它编译期联动**：启用 `FA3`（`AscendFAImpl`，含开启强化学习 `rl_config` 路径）时，主机侧分块逻辑不支持 `FULL_DECODE_ONLY`。配该模式会直接抛 `ValueError`，必须改配 `PIECEWISE` 或 `--enforce-eager`。另须留意三处静默行为：
   - `v0.30.0` 在 `Ascend 950` 上因暂缺 `RUNTIME_CUSTOM_OPS`，会静默禁用 `vllm_ascend_C` 自定义算子库。
   - `PassConfig.enable_sp` 与 `PP > 1` 同开且未禁用 `-rms_norm` 时，会静默向 `custom_ops` 追加 `+rms_norm`。
   - 开启 `rl_config.enabled=True`（见 [vLLM-Ascend 用于 RL](vllm-ascend-for-rl.md)）会强制把 `weight_nz_mode` 置 `0`。叠开睡眠模式（`enable_sleep_mode`）时，还会从 `PYTORCH_NPU_ALLOC_CONF` 剥离 `expandable_segments`（未开睡眠模式时后续初始化会重新追加）。

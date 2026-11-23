@@ -12,6 +12,11 @@ aliases:
   - enable_expert_parallel
   - enable-expert-parallel
   - no-enable-expert-parallel
+  - dispatch
+  - combine
+  - AllGather 路径
+  - ep_world_size
+  - routed experts
 chapters:
   - '04'
 order: 10

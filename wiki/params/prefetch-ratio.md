@@ -9,6 +9,7 @@ summary: >-
 aliases:
   - 权重预取比例
   - weight prefetch ratio
+  - weight_prefetch_config.prefetch_ratio
 legacyAnchors:
   一句话: 这组比例控制什么，为什么 v0.24 起已删除？
   事实表: 这组比例控制什么，为什么 v0.24 起已删除？
@@ -101,11 +102,11 @@ rawSources:
 
 ## 这组比例控制什么，为什么 v0.24 起已删除？
 
-提前把权重从 HBM 搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与数据搬运通道（MTE），拖慢正在运行的向量算子。`prefetch_ratio` 曾作为 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套字典，按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」（最终请求尺寸还受取整、分组开关和路径规则影响）。
+提前把权重从 HBM（高带宽显存）搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与 MTE（AI Core 数据搬运引擎），拖慢正在运行的向量算子。`prefetch_ratio` 曾作为 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套字典，按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」（最终请求尺寸还受取整、分组开关和路径规则影响）。
 
 **当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`prefetch_ratio` 已随父配置 `weight_prefetch_config` 整体移除，且没有等价替代键**。它在 `v0.23.0` 发布说明中就已列入待废弃清单，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 彻底删除：
 
-- 升级到 `v0.30.0` / `main` 后若旧命令残留此键，通常按 `extra="forbid"` 拒收（装有 `vllm_omni` 时告警过滤）；
+- 升级到 `v0.30.0` / `main` 后若旧命令残留此键，通常按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 拒收（装有 `vllm_omni` 时告警过滤）；
 - `v0.26.0rc` 的普通配置类逐键 `.get()` 静默忽略（但不代表整条启动命令一定通过）；
 - 把子键移到顶层同样无效，其他 KV/pool 预取机制也不沿用这组比例。
 

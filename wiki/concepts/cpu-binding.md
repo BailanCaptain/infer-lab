@@ -9,6 +9,7 @@ summary: >-
   节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM
   双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。
 aliases:
+  - NUMA
   - CPU 绑核
   - CPU Binding
   - cpu_binding
@@ -19,6 +20,11 @@ aliases:
   - topo_affinity
   - 核绑定
   - NPU 亲和性绑核
+  - taskset
+  - numactl
+  - migratepages
+  - irqbalance
+  - migrate_memory
 chapters:
   - '16'
 order: 120
@@ -96,11 +102,17 @@ relations:
   - to: device-memory
     kind: builds-on
     note: 绑核管的是主机内存的位置，和设备显存是两本账
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 绑核发生在权重加载、显存探测与图捕获之后的启动收尾阶段，完整顺序见该页
+  - to: inference-performance-analysis
+    kind: builds-on
+    note: 先在性能剖析时间线里确认存在主机侧算子下发空泡，再决定是否调优 CPU 绑核与 NUMA 亲和
   - to: acl-graph
     kind: alternative-to
     note: 另一条减少主机侧下发开销的路；两者管同一段主机时间，可以同时开
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -121,7 +133,7 @@ file: cpu-binding-plate-numa-cutaway
 
 - **逻辑 CPU**：操作系统能单独派活的一个执行单元，从 0 开始编号；一台服务器上通常有几十到上百个。
 - **CPU affinity（CPU 亲和性）**：一个线程被允许在哪些逻辑 CPU 上运行，是一个集合。绑核改的就是这个集合，它不会把这些核变成本进程独占。
-- **NUMA（non-uniform memory access，非一致内存访问）**：多路服务器上 CPU 被分成几组，每组直连一块内存。一组 CPU 加上它直连的内存叫一个 **NUMA 节点**；访问本节点的内存是本地访问，访问别的节点要多绕一段路，时延更长、带宽更低。
+- **NUMA（non-uniform memory access，非一致内存访问）**：多路服务器或多 Die（芯片裸片）CPU 被分成几组，每组直连一块本地内存。一组 CPU 加上它直连的内存叫一个 **NUMA 节点**；访问本节点的内存是本地直连访问，而**跨 NUMA（跨 Die / 跨 Socket）**访问别的节点内存要绕行片间互联总线，访存时延显著增加、有效带宽明显下降。
 - **cpuset**：容器或作业调度器划给这个进程的 CPU 范围。亲和性只能在 cpuset 之内挑核，挑不出范围。
 - **ACL 线程与 release 线程**：ACL（Ascend Computing Language）是昇腾的设备接口层。运行时会自起两条后台线程：`acl_thread` 负责设备接口调用，`release_thread` 负责资源释放；绑核把它们各单独钉在一个核上。
 
@@ -191,7 +203,7 @@ $$N_{\text{per-NPU}} = \frac{24 + 24}{2} = 24\text{ 核}, \qquad N_{\text{main}}
 
 现场的拓扑、cpuset 与卡型并不总像标准 A2 那样齐整，遇到边界条件时代码会按以下四条规则分流：
 
-- **A2 拿不到拓扑亲和信息时**：退回按全局逻辑设备编号把允许的核平均切开（`global_slice`），每颗卡拿一段。之所以用全局逻辑设备编号而不是本进程看到的那几颗，是因为几个进程各自只看到设备的一个子集，都从自己的第 0 颗数会切出重叠分段。各进程使用同一份允许 CPU 列表、同一个设备总数和不同全局设备编号时，这种切法才得到互不重叠的分段；不同 cpuset 或设备识别结果不能靠全局编号自动消除重叠。代价是不看硬件亲和，局部性还取决于核编号与 NUMA 布局。A3 默认走的就是这条路。
+- **A2 拿不到拓扑亲和信息时**：退回按全局逻辑设备编号把允许的核平均切开（`global_slice`），每颗卡拿一段。之所以用全局逻辑设备编号而不是本进程看到的那几颗，是因为几个进程各自只看到设备的一个子集，都从自己的第 0 颗数会切出重叠分段。各进程使用同一份允许 CPU 列表、同一个设备总数和不同全局设备编号时，这种切法才得到互不重叠的分段；不同 cpuset 或设备识别结果不能靠全局编号自动消除重叠。代价是不看硬件亲和，局部性还取决于核编号与 NUMA 布局。A3 默认走的就是这条路；在真实八卡 `Ascend 910B3`（`192 vCPUs` ARM `TaishanV110`，`8 Sockets / 8 NUMA`，禁睿频 `2.4 GHz`）运行 `Qwen3-30B-A3B` `DP=2+TP=4+EP=8` 时，也实测观测到 CPU 绑核回退至 `global-slice`（详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。
 - **核不够分时**：留 2 个给中断、主线程至少 1 个、ACL 与 release 各 1 个，一颗卡至少要 5 个核。cpuset 给得太小凑不齐会直接报错，但这个错会被 Worker 接住变成一条警告，服务照样起来，只是没绑上。
 - **cpuset 不均衡时**：收益会打折。官方文档建议把 cpuset 尽量均匀地分布在各 NUMA 节点上；歪在一侧时，有的卡挑不到自己节点的核。
 - **换了产品，路径也不同**：310P 和 A2 按拓扑亲和挑核，A3 默认按全局逻辑设备编号切。A5 则走另一套机制：按 CPU cluster 分配、不预留中断核，还要把主机轮询线程绑到固定节点，容器须能看见主机进程才找得到那些线程。固定执行侧的 A5 角色分配把整个 CPU 池分给主角色，ACL 与 release 留空列表（表示未单设 CPU 列表，不代表线程不存在）。上面的角色分配表只对 A2 这类产品成立，不要套到所有型号。
@@ -206,7 +218,7 @@ $$N_{\text{per-NPU}} = \frac{24 + 24}{2} = 24\text{ 核}, \qquad N_{\text{main}}
 
 前面的五核角色拆分属于固定 A2/A3 路径。950PR/950DT（A5）使用另一条路径：从 NPU 的亲和 NUMA 节点给每个 worker 选择**一个完整 CPU cluster**。固定镜像与四个社区钉点都已有这条分支，2026-11-02 官方说明也明确了该部署要求。cluster 是一组 CPU 逻辑处理器；每核单线程时一组 8 个逻辑 CPU，每核双线程时一组 16 个。比如两名 worker 各需一组，单线程的示意需求就是 2×8=16 个可用逻辑 CPU，不能用 2×5=10 估算，也不能只看 cpuset 总量而忽略组是否完整、是否在亲和节点上。
 
-这条路径另外寻找主机的 UVB 轮询线程，把它们绑定到 cpuset 允许的 NUMA0 CPU 上，并排除 CPU0；它不为 ACL/release 线程单独切核，也不做 IRQ 绑定，已有内存页仍可迁移。因而日志没有单独的 ACL/release 核列表，并不等于这些线程消失。
+这条路径另外寻找主机的 **UVB 轮询线程**（昇腾 950 硬件互联层的后台轮询线程 `uvb_poll_window_thread`），把它们绑定到 cpuset 允许的 NUMA0 CPU 上，并排除 CPU0；它不为 ACL/release 线程单独切核，也不做 **IRQ**（硬件中断请求）绑定，已有内存页仍可迁移。因而日志没有单独的 ACL/release 核列表，并不等于这些线程消失。
 
 容器能看见设备，不代表能看见主机线程。Docker 的主机 PID 命名空间用于发现这些线程；共享主机 IPC 则用于进程间内存共享，两者用途不同。前者关系到这里的轮询线程绑核，后者在 [Engram 本地共享](deepseek-v4-1-flash.md#engram-为什么把另一笔内存账放到主机上)中使用。
 
@@ -278,7 +290,7 @@ A2 走的是**按拓扑亲和挑核**这条路：先问硬件「这颗卡挂在�
 
 按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；**本文 GLM-5.3-Flash 双机算例沿用例外 B 专用镜像钉点 `db701c1f`，与四版社区分支分别核对。**
 
-**`v0.30.0` 与 `main` 均保留按 `HardwareProfile` 选择绑定模式，并为内存迁移增加了 `migrate_memory` 开关。** A2/310P/A5 在 `HardwareProfile.cpu_binding_mode` 中设为 `TOPO_AFFINITY`，A3 设为 `GLOBAL_SLICE`；普通角色拆分保留有 IRQ 时 5 核、无 IRQ 时 3 核常量，但 A5（Ascend 950）提前进入完整 8/16 逻辑 CPU cluster 分支（取不到拓扑时跳过 worker 绑核，不回退 `global_slice`），不用五核门槛决定可用性。`bind_cpus(rank_id, npu_id, *, migrate_memory=True)` 新增 `migrate_memory` 参数（默认 `True`）；Worker 在 warmup/capture 后传入物理设备号，但启用 Engram CPU offload 时传 `migrate_memory=False`，跳过页迁移以避免搬动已固定的 `HOST_UVA` 内存，而线程与适用产品的 IRQ 绑定仍按原流程执行。
+**`v0.30.0` 与 `main` 均保留按 `HardwareProfile` 选择绑定模式，并为内存迁移增加了 `migrate_memory` 开关。** A2/310P/A5 在 `HardwareProfile.cpu_binding_mode` 中设为 `TOPO_AFFINITY`，A3 设为 `GLOBAL_SLICE`；普通角色拆分保留有 IRQ 时 5 核、无 IRQ 时 3 核常量，但 A5（Ascend 950）提前进入完整 8/16 逻辑 CPU cluster 分支（取不到拓扑时跳过 worker 绑核，不回退 `global_slice`），不用五核门槛决定可用性。`bind_cpus(rank_id, npu_id, *, migrate_memory=True)` 新增 `migrate_memory` 参数（默认 `True`）；Worker 在 warmup/capture 后传入物理设备号，但启用 [Engram 条件记忆](engram-conditional-memory.md) CPU offload 时传 `migrate_memory=False`，跳过页迁移以避免搬动已固定的 `HOST_UVA`（统一虚拟寻址固定主机内存），而线程与适用产品的 IRQ 绑定仍按原流程执行。
 
 | 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 | --- | --- | --- | --- | --- |

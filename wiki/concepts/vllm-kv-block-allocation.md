@@ -25,6 +25,9 @@ aliases:
   - 块归还
   - 块驱逐
   - 抢占回收
+  - FreeKVCacheBlockQueue
+  - Hybrid KV Cache Groups
+  - LRU 驱逐
 chapters:
   - '11'
 order: 10
@@ -114,12 +117,12 @@ relations:
   - to: block-table
     kind: builds-on
     note: 借到的块号写进块表，worker 按表把位置换算成槽位
-  - to: one-request
+  - to: paged-attention
     kind: builds-on
-    note: R1 在第 2 站借 15 块、第 7 站还块的主线出处
-  - to: concurrent-requests
+    note: 分页注意力把连续历史切成固定大小的显存块，是块池按整数块号借还的前提
+  - to: prefix-caching
     kind: builds-on
-    note: 池子不够时抢占的整批账：32 条满载、被抢占的一条还回 120–121 块
+    note: 前缀缓存通过内容哈希查表与 touch 加引用计数，让多条请求零拷贝共用满块
   - to: vllm-scheduler
     kind: builds-on
     note: 调度器怎样决定每步算多少 token；本页只讲它向池子要块这一步
@@ -195,7 +198,7 @@ $$N_{\text{ref}} = 2 + 2 = 4, \qquad N_{\text{used}} = 2 + 2 - 1 = 3\text{ 块},
 
 **打开 prefix caching 后，命中路径会让几条请求同时持有同一块。** 这一节按固定 v0.23 普通整块缓存路径讲它多做的几件事；什么样的前缀算「相同」、混合模型的默认与限制，见 [prefix caching](prefix-caching.md)。
 
-下面这张图把 `FreeKVCacheBlockQueue` 双向链表里「队头优先驱逐、队尾保护前缀」的顺序、`null_block` 隔离、`touch()` 命中记账以及 `v0.30.0` / `main` 跨池归还串在一起：
+下面这张图把 `FreeKVCacheBlockQueue` 双向链表里按 LRU（最近最少使用）顺序「队头优先驱逐、队尾保护前缀」的策略、`null_block` 隔离、`touch()` 命中记账以及 `v0.30.0` / `main` 跨池归还串在一起：
 
 ```wiki-diagram
 file: vllm-kv-block-allocation-fig-lru-queue
@@ -213,7 +216,7 @@ GLM 双机上 prefix caching 默认是关的：vLLM 对同时有注意力层和�
 
 ## 标准主干走读：Qwen3-8B 单池单组的借块、共享与归还
 
-在 `v0.30.0` 标准主基线下，**Qwen3-8B** 全 36 层属于同一个 `FullAttentionSpec` 缓存组（`block_size = 128`，每块 `18 MiB`）。整个引擎只维护一个 `BlockPool`、一笔块数账，生命周期沿借块、共享与归还三步走完：
+在 `v0.30.0` 标准主基线下，**Qwen3-8B** 全 36 层属于同一个 `FullAttentionSpec`（全注意力缓存规格，每块按位置存固定数目的 K/V 向量）缓存组（`block_size = 128`，每块 `18 MiB`）。整个引擎只维护一个 `BlockPool`、一笔块数账，生命周期沿借块、共享与归还三步走完：
 
 ```wiki-diagram
 file: block-allocation-flow-qwen3
@@ -243,7 +246,7 @@ file: block-allocation-flow
 
 **R1 的块由 DP0 的引擎进程借给它。** 两台机器对应两个 DP 组，各跑一个 EngineCore（CPU 侧调度进程），各有独立的调度器与 `BlockPool`。R1 被分到 DP0，只从 node0 的池子借块；DP1 的池子与它互不相干。
 
-**在这个固定部署中，一个 EngineCore 只建一个池子，由 5 个缓存组共用。** 缓存组是共用块号清单、管理规则兼容的一批层，不要求各层页大小完全相同。GLM 分成 5 组：1 个 full 组（12 层 MLA 压缩历史与 indexer K）、3 个 KDA 组、1 个 indexer 尾状态组（分组细节见 [KV cache 规格](kv-cache-spec.md)）。每组由各自管理器算缺口，但都从同一条空闲队列取号；同一时刻一个块号只属于一个组。
+**在这个固定部署中，一个 EngineCore 只建一个池子，由 5 个缓存组共用（Hybrid KV Cache Groups，混合缓存组）。** 缓存组是共用块号清单、管理规则兼容的一批层，不要求各层页大小完全相同。与纯注意力模型只用 `AttentionSpec`（按序列长度线性增块）不同，GLM 同时混装了注意力与线性递推状态 `MambaSpec`（按请求定额留块），分成 5 组：1 个 full 组（12 层 MLA 压缩历史与 indexer K）、3 个 KDA 组、1 个 indexer 尾状态组（分组细节见 [KV cache 规格](kv-cache-spec.md)）。每组由各自管理器算缺口，但都从同一条空闲队列取号；同一时刻一个块号只属于一个组。
 
 这里的 KDA 是线性注意力，为每条请求保留固定大小的递推状态。indexer 是筛选历史位置的索引器，每 4 个位置压成一条索引键 K，未凑满 4 个的位置暂存在尾状态里。前者按请求定额留块，后者既有随历史增长的索引键、又有持续滑动替换的尾状态，因此借还规则不同。
 

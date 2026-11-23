@@ -4,7 +4,7 @@ title: Embedding：按编号查表取出 token 的向量
 type: concept
 summary: >-
   Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6
-  行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机，看 8 张卡怎样分着查同一张表。
+  行的小表演示查表、one-hot 等价和 2 张卡切表求和，随后落到标准主基线 Qwen3-8B（TP2）与 GLM 双机 8 卡分表实战。
 aliases:
   - embedding
   - 词向量
@@ -80,11 +80,8 @@ relations:
   - to: token
     kind: builds-on
     note: 分词得到 token 编号，embedding 用这些编号选择输入向量
-  - to: tensor-parallel
-    kind: builds-on
-    note: 嵌入表按词表轴切分、入口求和的规则以 TP 页为准，本页只讲入口这一次
 contradicts: []
-updated: 2026-11-19T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -165,7 +162,7 @@ file: embedding-fig-onehot-vs-lookup
 | 4 个维度的最终输出 | $[-0.3,\; 0.8,\; 0.1,\; 0.0]$ | 正好等于 $E$ 的第 2 行：只有乘 $1$ 的那一项留下，其余全乘 $0$ |
 | 等价乘法次数 | $6\text{ 行} \times 4\text{ 列} = 24\text{ 次}$ | 其中 $20$ 次是无意义的乘 $0$ |
 
-结果与直接取第 `2` 行完全一致，却白算了 `20` 次乘 `0`。真实词表有十几万行，实现里直接按行号直取（`F.embedding`），入口零乘法开销。
+结果与直接取第 `2` 行完全一致，却白算了 `20` 次乘 `0`。真实词表有十几万行，实现里直接调用 PyTorch 查表算子（`F.embedding`）按行号直取，入口零乘法开销。
 
 ## 每行多宽、每步查几行？
 

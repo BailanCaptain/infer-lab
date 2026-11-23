@@ -7,7 +7,9 @@ evidence: C
 summary: >-
   STAIR 分阶段副本数搜索中每段的预算试探半径：以贪心分配给该组的额外副本位个数为中心，向少与多两侧各试至多本值个取值并按可行区间裁剪；默认 8，合法范围 0–32，设为 0 只试贪心中心预算（不关闭 EPLB）。v0.30.0 与 main 已接入 MRv2。
 aliases:
+  - stair_config.replica_search_radius
   - 副本搜索半径
+  - STAIR 副本搜索半径
   - STAIR replica search radius
 relations:
   - to: replica-search-num-stages-e4b10925ff97

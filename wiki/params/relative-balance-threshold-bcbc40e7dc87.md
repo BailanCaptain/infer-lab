@@ -7,7 +7,9 @@ evidence: C
 summary: >-
   STAIR 判断某层是否重新规划的相对滞回门槛：当前平衡度 ÷ 上次提交摆法时预测的平衡度 ≤ 本值（默认 0.95，合法范围 (0, 1]）即放行该层，与绝对门槛为“或”关系；从未提交过或锚点为空/NaN 的非零负载层直接放行。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
 aliases:
+  - stair_config.relative_balance_threshold
   - 相对平衡阈值
+  - 相对滞回门槛
   - STAIR relative balance threshold
 relations:
   - to: stair-config-cca9e594a052
@@ -93,7 +95,7 @@ rawSources:
 ---
 ## 它管什么，相对门槛怎么触发？
 
-每一轮 MoE 负载均衡规划前，STAIR 都要筛选「哪些层确实变不均、值得花通信代价重排，哪些层只是轻微抖动、不必折腾」。`relative_balance_threshold` 是 [stair_config](stair-config-cca9e594a052.md) 下的**相对退化门槛**（`float`，默认 `0.95`，合法范围 `(0, 1]`）：它把某层**当前的平衡度**与**上次提交新摆法时预测的平衡度**作比，跌到后者的 `relative_balance_threshold` 倍及以下时，放行该层进入本轮规划。
+每一轮 MoE 负载均衡规划前，STAIR（[Model Runner V2](../concepts/model-runner-v2.md) 默认的动态 [EPLB](../concepts/eplb.md) 规划算法）都要筛选「哪些层确实变不均、值得花通信代价重排，哪些层只是轻微抖动、不必折腾」。`relative_balance_threshold` 是 [stair_config](stair-config-cca9e594a052.md) 下的**相对退化门槛**（`float`，默认 `0.95`，合法范围 `(0, 1]`）：它把某层**当前的平衡度**与**上次提交新摆法时预测的平衡度**作比，跌到后者的 `relative_balance_threshold` 倍及以下时，放行该层进入本轮规划。
 
 这里的**平衡度**定义为 $\text{balance} = 1 / \text{平均峰均比}$（`1` 表示各卡完全均匀，越小越不均；峰均比算式见 [EPLB 页](../concepts/eplb.md#怎么算数配对比峰均换位置)）。当某层满足下式即放行：
 

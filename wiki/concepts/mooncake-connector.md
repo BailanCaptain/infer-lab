@@ -15,8 +15,10 @@ aliases:
   - MooncakeHybridConnector
   - MooncakeConnectorV2
   - MooncakePullConnector
+  - MooncakePushConnector
   - MooncakeD2RHConnectorV1
   - D2RH
+  - HIXL KV 传输
   - KVConnectorBase_V1
   - KVConnectorRole
   - kv_transfer_config
@@ -254,21 +256,21 @@ relations:
     note: 先弄清 P、D 为什么要交接、交接停在提示词的哪个位置；本页只讲交接由谁、怎样搬
   - to: kv-cache
     kind: builds-on
-    note: 搬的是各层留下的历史状态；GLM 有哪几类、每类多大在那一页
-  - to: vllm-kv-block-allocation
+    note: 搬的是各层留下的历史状态；标准单组 KV 与混合状态各自多大在那一页
+  - to: block-table
     kind: builds-on
-    note: 目的块照常从块池借；押着的块要等完成通知才还
-  - to: kv-pool
-    kind: alternative-to
-    note: 同一个连接器插口，池按内容指纹存取、不和某个对端配对
-  - to: npu-model-runner
+    note: 块号只在本实例块池内有效，需通过起始地址与块间距换算为远端与本地显存地址
+  - to: cann-hccl
     kind: builds-on
-    note: 前向开始前把请求交给后台线程，逐层接口挂在注意力前后
+    note: 跨实例传输依赖设备网络连通性及 ADXL / RDMA / HIXL 等底层传输底座
   - to: large-scale-ep
     kind: builds-on
     note: 多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排
+  - to: kv-pool
+    kind: alternative-to
+    note: 同一个连接器插口，池按内容指纹存取、不和某个对端配对
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -324,7 +326,11 @@ file: mooncake-connector
 - **启动时要登记显存、起后台线程。** 每张卡把存 KV cache 的显存区间登记给传输引擎，再起一个收或发的后台线程；答地址簿的那一边还要开一个握手端口。
 - **多出失败方式。** 端口配错、对端挂掉、传输超时都可能阻断交接。V1 读取失败后仍会通知 P 清理；若完成或失败通知无法送达，P 的源块才会继续押到超时回收。
 
-同一个插口也用在 [KV Pool](kv-pool.md)（多台实例共用的外部 KV 存储）上，Mooncake 也给那条路提供存储后端；两条路的区别放在后面「KV 池里也用 Mooncake」一节。
+同一个插口也用在 [KV Pool](kv-pool.md)（多台实例共用的外部 KV 存储）上，Mooncake 也给那条路提供存储后端；两条路的区别放在后面「KV 池里也用 Mooncake」一节。在跨实例 KV 传输生态里，最容易混淆的三套名字分别处在连接器层与底层直连数据面两层：
+
+- **Mooncake TransferEngine（昇腾 PD 主力传输引擎）**：承载本页的 `MooncakeConnector` 家族，负责注册显存区间、交换块地址簿并执行批量读写；昇腾固定实现初始化 `ascend` transport，再由机型、CANN 与端点共同选定底层路径（如 Atlas A2/A3 走 `ADXL` / `AscendDirectTransport` 或 `RDMA`，950DT / A5 对接 `HIXL`）。
+- **NIXL（上游通用 KV 传输连接器）**：NVIDIA Inference Xfer Library 驱动的上游 `NixlConnector`，安装指南同时覆盖 CUDA、ROCm 与非 CUDA 路径，自带动态心跳租约（`30s / 5s / 20s`）；其中多轮双向设备 KV buffer 复用特性须显式开启（默认 `false`）且限定于 CUDA 设备路径（见 [PD 分离的 NIXL 租约](pd-disaggregation.md#d-还在排队p-的块能保留多久nixl-租约)）。
+- **HIXL（昇腾底层直连通信库）**：Huawei Xfer Library（端点配置见 [CANN 与 HCCL](cann-hccl.md)），为昇腾超节点 / RoCE 等拓扑提供设备与主机内存的点对点传输库底座；它处在连接器下方，可选择机内高速互联或 RoCE 等链路搬运，而非与 `MooncakeConnector` 平级的 vLLM 连接器。
 
 ## 连接器插在 vLLM 的哪几处？
 

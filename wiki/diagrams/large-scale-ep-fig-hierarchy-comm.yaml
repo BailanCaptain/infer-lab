@@ -1,7 +1,7 @@
 mode: native-svg
 id: large-scale-ep-fig-hierarchy-comm
 caption: 大规模 EP 的三平面分工与跨机选路守卫：外置 DP 负载均衡与 P/D 独立专家域、跨机 MoE 分层通信与 MC2 门槛（A2 专家密度/EP 规模/动态容量），以及 decode 侧跳过逐步 DP 同步的组合条件。
-size: [900, 526]
+size: [900, 568]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L373-L426'
     symbols: ['select_moe_comm_method', 'MoECommType', 'MoECommPolicy']

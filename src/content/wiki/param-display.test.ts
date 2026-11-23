@@ -181,7 +181,15 @@ describe("param-display · 浏览器安全的受保护参数展示名派生", ()
     expect(findPageByName([entryA, entryB], "size")?.id).toBe("size-40a1c2ca47b8");
 
     const toc = buildToc([entryA, entryB]);
-    expect(toc[0]?.sections[0]?.pages.map((p) => pageDisplayTitle(p))).toEqual([
+    expect(toc[0]?.sections.flatMap((s) => s.pages.map((p) => pageDisplayTitle(p)))).toEqual([
+      "ascend_compilation_config.enable_super_kernel",
+      "KVPPConfig.size",
+    ]);
+    const uncuratedToc = buildToc([
+      { ...entryA, id: "uncurated-size" },
+      { ...entryB, id: "uncurated-super-kernel" },
+    ]);
+    expect(uncuratedToc[0]?.sections[0]?.pages.map((p) => pageDisplayTitle(p))).toEqual([
       "ascend_compilation_config.enable_super_kernel",
       "KVPPConfig.size",
     ]);

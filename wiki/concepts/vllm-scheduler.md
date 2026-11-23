@@ -43,6 +43,9 @@ aliases:
   - running
   - prefill_schedule_interval
   - prefill-schedule-interval
+  - Preemption
+  - Recomputation
+  - 抢占重算
 chapters:
   - '12'
 order: 10
@@ -181,12 +184,21 @@ relations:
   - to: vllm-engine-core
     kind: builds-on
     note: 调度器是 EngineCore 每一步开头做的第一件事；谁在什么时候调它，写在那一页
-  - to: concurrent-requests
-    kind: builds-on
-    note: 场景 M 的整批账（一步 6048 个 token、20000 token 提示词分三步）在那一页；本页给规则和结论
   - to: kv-cache
     kind: builds-on
     note: 请求能不能推进，还要看有没有空闲 KV 块存下它的历史
+  - to: continuous-batching
+    kind: builds-on
+    note: 每步动态重选批次、请求结束立刻补进新请求，是调度器统一混排的基础
+  - to: chunked-prefill
+    kind: builds-on
+    note: 分块预填充把长提示词按剩余预算切段，避免单条长输入独占整步并拖慢 decode
+  - to: prefix-caching
+    kind: builds-on
+    note: 前缀缓存命中时直接复用已算块，影响 waiting 准入差额与被抢占后的重算代价
+  - to: async-scheduling
+    kind: builds-on
+    note: 开启异步调度时，调度器为在途结果追加输出占位，并在回调更新时按实际产出对账
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
 origin: gap
@@ -238,7 +250,7 @@ file: token-budget
 
 1. **新请求排队变长**：优先保障 `running` 推进，高并发下新请求在 `waiting` 停留更久。
 2. **长提示词首字变晚**：超过余量的提示词被拆成多步，首 token 延后，换来已有 `running` 请求不被单条长输入整步卡死。
-3. **块荒时发生抢占**：已算进度归零并退回 `waiting`，待重新匹配缓存后再补算缺失段。抢占保留已生成的 token 编号，与请求收尾的区别见[抢占不是收尾](request-teardown.md#抢占不是收尾块还了请求还在)。
+3. **块荒时发生抢占（Preemption / Recomputation）**：当空闲 KV 块耗尽时，暂停部分正在运行的请求、收回其全部 KV 块，已算进度归零并退回 `waiting`，待稍后重新匹配前缀缓存再补算（重算）缺失段。抢占保留已生成的 token 编号，与请求收尾的区别见[抢占不是收尾](request-teardown.md#抢占不是收尾块还了请求还在)。
 
 ## 调度器怎样排一步：还差几个 → 截断 → 借块 → 记账
 
@@ -246,7 +258,7 @@ file: token-budget
 
 1. **算差额（还差几个位置）**。用「应算位置 − 已算位置」求本步需求。`running` 请求的应算位置计入待验证候选 token；开启 async scheduling（异步调度：不等上步结果就先排下一步）时再计入输出占位。`waiting` 请求则是全部已有 token 减已算位置：新请求是整段提示词，被抢占退回的请求还包括已生成部分。
 2. **做截断**。`running` 请求依次受正的单条上限阈值、剩余预算和单请求最大长度约束；截到 0 时跳过当前条。`waiting` 请求先按正阈值截断；若关闭分块且仍超剩余预算，直接终止本轮接纳，否则再按剩余预算截断。若后续编码器预算或状态对齐使 `waiting` 安排量归零，同样立即终止本轮接纳，不跳过找下一条。
-3. **借 KV 块**。按「已算 + 本步要算 + 下一步候选预留」折算所需块数。对于 `Qwen3-8B` 这类纯注意力单缓存组模型，只需核算 1 组块数；多缓存组混合模型则在各组分别折算，总数不超过空闲块池时一次借齐。缓存组编排见 [KV cache 规格](kv-cache-spec.md)。
+3. **借 KV 块**。按「已算 + 本步要算 + 下一步候选预留」折算所需块数。对于 `Qwen3-8B` 这类纯注意力单缓存组模型（`FullAttentionSpec`），只需核算 1 组块数；多缓存组混合模型（Hybrid KV Cache Groups，例如同时含按位置线性增块的 `AttentionSpec` 与按请求定额留块的递推线性状态 `MambaSpec`）则在各组分别折算，总数不超过空闲块池时一次借齐。缓存组编排见 [KV cache 规格](kv-cache-spec.md)。
 4. **扣预算并推进记账**。从本步预算扣去安排的位置数。整步排完后，调度器不等 worker 算完就将各请求的「已算位置」前移，下一步直接从新位置接着算差额。
 
 把单步四关放进 `v0.30.0` / `main` 的双预算演进里看，`running → waiting` 漏斗无需按 prefill / decode 切阶段，同时协调草拟槽位预算、抢占止损与昇腾覆写链：
@@ -260,8 +272,8 @@ file: vllm-scheduler-fig-dual-budget
 `waiting` 与 `running` 两条队列的退路并不对称，几类改变执行路径的关键边界如下：
 
 - **waiting 准入三门槛**：只有同时满足「本步未发生抢占」「引擎未暂停」「`running` 未达条数上限」时，才尝试接纳 `waiting`。关闭 [chunked prefill](chunked-prefill.md) 且单条上限为默认 `0` 时，队头新请求只要超出剩余预算，调度器就直接 `break` 停止本轮接纳，排在后面的请求一并等待；若额外设了正的单条上限，由于先截阈值再查分块开关，仍可能排入首段（两项联动见页末）。
-- **完整输入容量预检（`scheduler_reserve_full_isl`）**：默认对 `waiting` 开启。第 3 关先检验「整条完整输入折算后的块数」能否装下，防止刚接进来就在后续分块缺块触发抢占。**预检容量与当场借块是两件事**：预检通过后仍只借本步所需与候选预留块，不会提前为未知输出预留全部空间。
-- **running 缺块抢占（`fcfs` vs `priority`）**：`running` 借不到块时，按策略挑选一条请求抢占——`fcfs` 固定取 `running` 队尾，`priority` 取「优先级数值、到达时间」二元组最大者（数值相同才比到达时间）。被抢占请求归还全部 KV 块、已算位置清零、清空候选并退回 `waiting` 队首，随后当前请求重试借块。若被抢占的正是当前条，`running` 扫描随即终止；**只要本步发生过抢占，就不再接纳任何 `waiting`**。`v0.30.0` 起若失败原因指向延迟释放块（connector 尚未放回），会及时止损，避免无意义的连续抢占。
+- **完整输入容量预检（`scheduler_reserve_full_isl`，ISL 即 Input Sequence Length 输入序列长度）**：默认对 `waiting` 开启。第 3 关先检验「整条完整输入折算后的块数」能否装下，防止刚接进来就在后续分块缺块触发抢占。**预检容量与当场借块是两件事**：预检通过后仍只借本步所需与候选预留块，不会提前为未知输出预留全部空间。
+- **running 缺块抢占（`fcfs` vs `priority`）**：`running` 借不到块时，按策略挑选一条请求抢占——`fcfs`（First-Come, First-Served，先来先服务）固定取 `running` 队尾（最晚进入者），`priority`（按显式优先级数值排序）取「优先级数值、到达时间」二元组最大者（数值相同才比到达时间）。被抢占请求归还全部 KV 块、已算位置清零、清空候选并退回 `waiting` 队首，随后当前请求重试借块。若被抢占的正是当前条，`running` 扫描随即终止；**只要本步发生过抢占，就不再接纳任何 `waiting`**。`v0.30.0` 起若失败原因指向延迟释放块（connector 尚未放回），会及时止损，避免无意义的连续抢占。
 - **排入位置数 ≠ 产出 token 数**：截断会使安排量小于差额；分块 prefill 前几步只消化输入、无新输出；投机解码按实际接受数一次确认多个 token。余下预算无需强行填满，无符合条件请求时单步可远低于上限。
 
 ## 多个 DP 组怎样对齐 prefill 的节奏？
@@ -337,7 +349,7 @@ $$\text{ratio}_{\text{decode}} = \frac{32 \times 4}{8192} = \frac{128}{8192} \ap
 | 调度器变体 | 适用场景与约束 | 版本状态 |
 |---|---|---|
 | [Recompute Scheduler](recompute-scheduler.md) | 仅限 PD 分离的 decode 节点启用，混合部署直接报错 | 全四版保留 |
-| `SchedulerDynamicBatch` | 按 SLO 动态调整 token 预算 | 仅旧基线镜像存在，后续版本已移除 |
+| `SchedulerDynamicBatch` | 按 SLO（服务等级目标，如首字或每字时延上限）动态调整 token 预算 | 仅旧基线镜像存在，后续版本已移除 |
 | `ProfilingChunkScheduler` | 启动时剖析 prefill 耗时并决定分块大小 | `main` 已移除 |
 | [Batch Job Aware Scheduler](batch-job-aware-scheduler.md) | 按批任务与长度层级排程（与 `short-request-first` 互斥） | `v0.30.0` / `main` 提供 |
 

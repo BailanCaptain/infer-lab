@@ -12,8 +12,13 @@ summary: >-
 aliases:
   - HCCL buffer
   - HCCL_BUFFSIZE
+  - HCCL_BUFFSIZE_EP
   - hccl_buffer_size
   - HCCL 缓冲区
+  - HCCL 通信缓冲
+  - HCCL 显存占用
+  - 通信域复用
+  - GroupCoordinatorPatch
   - HCCL buffer：每个通信组各自预留的一块显存
 chapters:
   - '13'
@@ -102,11 +107,8 @@ relations:
   - to: device-memory
     kind: builds-on
     note: 理解权重以外的设备内存开销
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 这块缓冲是从哪份 KV 预算里扣掉的
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

@@ -10,6 +10,12 @@ type: param
 summary: >-
   曾用于切换 Sparse KV Offload decode 路径的子键（none 走四步、fused_copy_sfa 走 LIM +
   Copy-SFA）。仅见于 v0.30.0rc2 等过渡快照；v0.30.0 与 main 已移除该键并默认启用融合路径，传入旧键会报错。
+aliases:
+  - sparse_kv_offload_config.fused_op_type
+  - fused_copy_sfa
+  - Copy-SFA
+  - use_fused_copy_sfa
+  - LIM 融合算子
 origin: seed
 verified:
   - releases/v0.23.0
@@ -112,12 +118,21 @@ relations:
     note: >-
       fused_op_type 设为 fused_copy_sfa 时与 use_fused_overlap=true
       互斥；此约束适用于引入融合路径后的版本，不适用于钉住的 baa023ad。
+  - to: kv-cache-sparse-offload
+    kind: builds-on
+    note: 该历史子键曾切换 Sparse KV Offload 的 decode 路径，卸载原理、热缓冲与硬件门槛见该页
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该子键曾嵌在 additional_config.sparse_kv_offload_config 下，v0.30.0 移除后保留旧键会触发严格配置校验报错
+  - to: sparse-attention
+    kind: builds-on
+    note: Copy-SFA 融合算子与 LightningIndexer 打分均作用于稀疏注意力（SFA）路径，且硬性要求 TopK=2048
 ---
 ## 它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？
 
-`fused_op_type` 曾是 `additional_config["sparse_kv_offload_config"]` 下的子键，用于切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 在 decode 阶段是否走融合算子。
+`fused_op_type` 曾是 `additional_config["sparse_kv_offload_config"]`（见 [AscendConfig](../concepts/ascend-config-system.md)）下的子键，用于切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 在 decode 阶段是否走融合算子。
 
-- 设为默认 `"none"` 时，走原始四步：索引器打分 → LRU 管理热缓冲 → 从主机搬运缺失行 → 跑 SFA。
+- 设为默认 `"none"` 时，走原始四步：索引器打分 → LRU（最近最少使用淘汰策略）管理热缓冲（常驻 NPU 显存存放高频 KV 行的缓存区）→ 从主机搬运缺失行 → 跑 [SFA（稀疏注意力）](../concepts/sparse-attention.md)。
 - 设为 `"fused_copy_sfa"` 时，将这四步替换为两个融合算子：`fused_lightning_indexer_manage`（LIM，合并打分与热缓冲进出管理）和 `fused_scatter_copy_sparse_flash_attention`（Copy-SFA，边把缺失行从主机拷入边算 attention）。
 
 该字段仅此两个枚举值，且与同嵌套块里的 [use_fused_overlap](use-fused-overlap-75a180fff6ab.md) 互斥——decode 路径只能三选一（默认、overlap、copy-SFA）。

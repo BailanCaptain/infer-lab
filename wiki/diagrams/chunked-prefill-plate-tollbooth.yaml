@@ -1,0 +1,14 @@
+mode: native-svg
+id: chunked-prefill-plate-tollbooth
+caption: >-
+  用“长货运列车过闸 vs 分节切片混行”秒懂 Chunked Prefill：左侧未分块且预算被放宽以接纳长请求入批时，万字长提示词会一次性撑大整步耗时、把同批正在逐字吐出的快递车（Decode）一起拖慢（若预算未放宽，超长等待请求则会卡住队首无法入批）；右侧收费亭调度员按当步可用预算（token_budget）把长列车切成几小节分批过闸，让在跑快递车在单步预算内顺畅同行。
+size: [900, 560]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L665
+    symbols: [schedule, token_budget]
+  - source: vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1066-L1085
+    symbols: [enable_chunked_prefill, num_computed_tokens]
+  - source: vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1520-L1545
+    symbols: [_update_after_schedule, is_prefill_chunk]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1706-L1734
+    symbols: [_build_attn_state, ChunkedPrefill]

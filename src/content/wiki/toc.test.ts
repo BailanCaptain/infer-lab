@@ -154,6 +154,13 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
       page("kv-pool", "feature"),
     ]);
     expect(toc.map((p) => p.id)).toEqual(["disaggregation", "references", "rfork", "params"]);
+    expect(toc.find((p) => p.id === "rfork")).toMatchObject({
+      title: "RFork 权重快载专题",
+      blurb: "跨实例零拷贝权重快载专题：机制、租约容灾与排障定位",
+    });
+    expect(toc.find((p) => p.id === "rfork")?.sections.map((s) => s.title)).toEqual([
+      "核心机制、配置与排障维护",
+    ]);
     expect(toc.find((p) => p.id === "rfork")?.sections.flatMap((s) => s.pages.map((p) => p.id))).toEqual([
       "rfork",
       "rfork-startup",
@@ -291,6 +298,50 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
       section: "新增教学页（待编排）",
       track: "advanced",
     });
+  });
+
+  it("章内阅读顺序消除前置依赖倒挂（architecture / performance / distributed / disaggregation / cases / params）", () => {
+    const rows = locations(registry.pages);
+    const indexOf = (id: string) => rows.findIndex((r) => r.id === id);
+    const expectOrdered = (orderedIds: string[]) => {
+      const indices = orderedIds.map(indexOf);
+      for (const [i, id] of orderedIds.entries()) {
+        expect(indices[i], `missing ${id}`).toBeGreaterThanOrEqual(0);
+        if (i > 0) {
+          expect(
+            indices[i]!,
+            `expected ${orderedIds[i - 1]} (#${indices[i - 1]}) before ${id} (#${indices[i]})`,
+          ).toBeGreaterThan(indices[i - 1]!);
+        }
+      }
+    };
+
+    expectOrdered([
+      "platform-plugin-registration",
+      "vllm-platform-interface",
+      "npu-platform",
+      "ascend-patch-system",
+      "ascend-config-system",
+      "npu-worker-lifecycle",
+    ]);
+    expectOrdered(["attention-backend-family", "ops-and-kernels", "op-to-ai-core"]);
+    expectOrdered([
+      "inference-performance-walkthrough",
+      "inference-benchmarking",
+      "inference-capacity-and-reliability",
+      "aisbench-and-evalscope",
+      "inference-performance-analysis",
+      "inference-performance-troubleshooting",
+    ]);
+    expectOrdered(["batch-invariance", "inference-correctness-troubleshooting", "msprobe-accuracy-debug"]);
+    expectOrdered(["hccl-buffer", "large-scale-ep", "moe-comm-dispatch"]);
+    expectOrdered(["kv-pool", "kv-cache-layerwise-offload", "kv-cache-sparse-offload"]);
+    expectOrdered(["deepseek-serving-case", "deepseek-v4-1-flash", "engram-conditional-memory"]);
+    expectOrdered(["replica-search-num-stages-e4b10925ff97", "replica-search-beam-size-6556d1650a62"]);
+    expectOrdered(["kvpp-config-0445bd352140", "size-40a1c2ca47b8"]);
+    expect(rows.find((r) => r.id === "size-40a1c2ca47b8")?.section).toBe(
+      rows.find((r) => r.id === "kvpp-config-0445bd352140")?.section,
+    );
   });
 });
 

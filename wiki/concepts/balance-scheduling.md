@@ -8,6 +8,10 @@ summary: >-
 aliases:
   - Balance Scheduling
   - 均衡调度
+  - DP 均衡调度
+  - 共同闸门
+  - 统一准入
+  - running 条数同步
   - BalanceScheduler
   - enable_balance_scheduling
   - balance_gather
@@ -88,15 +92,15 @@ relations:
   - to: data-parallel
     kind: builds-on
     note: 各组怎样分请求、为什么每一步要同步推进、空闲组怎样陪跑
-  - to: vllm-scheduler
+  - to: collective-communication
     kind: builds-on
-    note: running 与 waiting、请求数上限，以及接纳 waiting 时原有的几道检查
-  - to: concurrent-requests
+    note: 各 DP 组每步末尾通过 CPU Gloo All-Gather 交换 running 条数，形成统一准入共识
+  - to: dp-request-routing
     kind: builds-on
-    note: 场景 M 的宽度对齐浪费，用来对照闸门管得到什么、管不到什么
+    note: 前端路由只数条数且计数滞后，留下某组率先顶满的缺口，Balance Scheduling 在组内准入侧补上这道共同闸门
   - to: dyntra-lb
     kind: alternative-to
-    note: 用 KV 块数而不是请求条数估计负载，main 上与本特性二选一
+    note: DyntraLB 用各组 KV 块数而不是请求条数估计负载，仅面向 PD 分离 D 节点，与本特性互斥二选一
   - to: recompute-scheduler
     kind: conflicts-with
     note: >-
@@ -105,10 +109,10 @@ relations:
   - to: profiling-chunk-config
     kind: conflicts-with
     note: >-
-      固定 db701c1f 中，Balance Scheduling 与动态切块配置不能同时启用；同开会在配置校验时报
+      固定 db701c1f 与 v0.30.0 中，Balance Scheduling 与动态切块配置不能同时启用；同开会在配置校验时报
       ValueError。具体配置入口及环境变量兜底仍按两页的版本条件核对。
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

@@ -1085,12 +1085,15 @@ test.describe("问答抽屉", () => {
   });
 
   test("服务未启动时给出错误提示而不是静默失败", async ({ page }) => {
+    await page.route("**/api/wiki/status", (route) =>
+      route.fulfill({ json: { models: { chatProvider: "claude" } } }),
+    );
     await page.route("**/api/wiki/chat", (route) => route.fulfill({ status: 502, body: "bad gateway" }));
     await page.goto("/#/wiki");
     await page.getByTestId("chat-open").click();
     await page.getByTestId("chat-input").fill("x");
     await page.getByTestId("chat-send").click();
-    await expect(page.getByTestId("chat-log")).toContainText("502");
+    await expect(page.getByTestId("chat-service-down-notice")).toContainText("本地问答服务未启动");
   });
 
   test("关闭后按钮回到浮标状态", async ({ page }) => {
@@ -1195,7 +1198,9 @@ test.describe("状态页签", () => {
     expect(writes).toEqual([]);
     await pane.getByRole("button", { name: "保存选择" }).click();
     await expect(pane.getByRole("status")).toContainText("已保存，后续所有模型任务生效");
-    expect(writes).toEqual([{ chatProvider: "codex", chatModel: "gpt-6-astra" }]);
+    expect(writes).toEqual([
+      { chatProvider: "codex", chatModel: "gpt-6-astra", codexAllowUserConfig: false },
+    ]);
     await page.reload();
     await page.getByTestId("chat-open").click();
     await page.getByRole("tab", { name: "状态" }).click();
@@ -1243,21 +1248,25 @@ test.describe("P3 最终验收：桌面", () => {
     await expect(page.locator(".wiki-calc-label", { hasText: "ceil(" })).toHaveCount(0);
 
     await open(page, "glm-5-3-flash-two-node");
-    const kv = page.locator(".wiki-calc-row").filter({
-      has: page.locator(".wiki-calc-label", { hasText: "减激活峰值与非 torch 占用" }),
-    });
-    await expect(kv.locator(".wiki-calc-result")).toHaveText("30.00 GiB");
-    await expect(kv.locator(".wiki-calc-note")).toHaveText("可用于 KV");
+    await expect(page.getByTestId("wiki-body")).toContainText("30.00 GiB");
   });
 
-  test("同一页的算式块标签栏一样宽：各块算式栏的起点对齐", async ({ page }) => {
+  test("同一页的公式展示块居中对齐且不溢出正文容器", async ({ page }) => {
     for (const width of [1440, 1920]) {
-      await open(page, "glm-5-3-flash-two-node", width);
-      const lefts = await page
-        .locator("[data-testid=wiki-body] .wiki-calc-expr")
-        .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
-      expect(lefts.length).toBeGreaterThan(8);
-      expect(Math.max(...lefts) - Math.min(...lefts), `${width}：${lefts.join(",")}`).toBeLessThanOrEqual(1);
+      await open(page, "paged-attention", width);
+      await page.locator("[data-testid=wiki-body] .katex").first().waitFor();
+      const bodyBox = (await page.getByTestId("wiki-body").boundingBox())!;
+      const boxes = await page.locator("[data-testid=wiki-body] .katex").evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          return { left: Math.round(r.left), right: Math.round(r.right) };
+        }),
+      );
+      expect(boxes.length).toBeGreaterThanOrEqual(2);
+      for (const b of boxes) {
+        expect(b.left, `${width} left`).toBeGreaterThanOrEqual(Math.floor(bodyBox.x) - 1);
+        expect(b.right, `${width} right`).toBeLessThanOrEqual(Math.ceil(bodyBox.x + bodyBox.width) + 2);
+      }
     }
   });
 
@@ -1336,7 +1345,7 @@ test.describe("P3 最终验收：桌面", () => {
     for (const [t, h] of Object.entries(short)) expect(h, t).toBeLessThan(30);
 
     await open(page, "learning-guide");
-    const groups = await heightOf(["模型结构与计算", "vLLM 与 Ascend 架构", "Ascend 硬件与软件栈"]);
+    const groups = await heightOf(["昇腾 950", "① 部署算账台", "③ 交互式排障工作台"]);
     expect(Object.keys(groups).length).toBe(3);
     for (const [t, h] of Object.entries(groups)) expect(h, t).toBeLessThan(30);
 

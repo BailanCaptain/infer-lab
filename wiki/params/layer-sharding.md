@@ -9,6 +9,8 @@ aliases:
   - Layer Sharding Linear
   - 层间权重分片
   - 按层切权重
+  - additional_config.layer_sharding
+  - ShardedCPRowParallelOp
 legacyAnchors:
   一句话: 它曾如何按层轮放权重，为什么 v0.24 起已删除？
   事实表: 它曾如何按层轮放权重，为什么 v0.24 起已删除？
@@ -91,6 +93,15 @@ relations:
     note: >-
       进入 row-parallel 分派后，DSA-CP 的 P 侧 o_proj 先被 ShardedCPRowParallelOp 认领，
       不再继续选择后面的 matmul-allreduce 分支；该判据并不检查列表是否实际包含 o_proj
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该历史列表键位于 additional_config 顶层，v0.24 移除后在 v0.30.0 与 main 保留旧键会触发 AscendConfig 严格校验报错
+  - to: pd-disaggregation
+    kind: builds-on
+    note: 该功能在 v0.23.0 强限定于 PD 分离的 P 节点（kv_role == "kv_producer"），混部与 D 节点直接启动报错
+  - to: collective-communication
+    kind: builds-on
+    note: 前向按层异步通过独立 shard_weight 通信组的 Broadcast 将常驻卡权重发给同组其他卡
 contradicts: []
 updated: 2026-11-19T00:00:00.000Z
 rawSources:
@@ -112,10 +123,10 @@ rawSources:
 
 **当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`layer_sharding` 及整套按层轮放广播实现在 `v0.30.0` 与 `main` 中均已彻底移除**。它早在 `v0.13` 系列出现，在 `v0.23.0` 发布说明中被与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 删除，`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径。
 
-- **升级须删掉该键**：`v0.30.0` 与 `main` 按 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片）；`v0.26.0rc` 普通配置类静默忽略它。
+- **升级须删掉该键**：`v0.30.0` 与 `main` 按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片）；`v0.26.0rc` 普通配置类静默忽略它。
 - **不要与新版 PCP 分片混为一谈**：新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
 
-在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，它是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`——注意旧官方表曾误写成 `dict / {}`），且面向旧版 PD 分离的 **P 节点**（`kv_role == "kv_producer"`；旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
+在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，它是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`——注意旧官方表曾误写成 `dict / {}`），且面向旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
 
 | 核心项 | `v0.23.0` 行为 | 说明 |
 | --- | --- | --- |

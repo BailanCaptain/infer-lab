@@ -11,8 +11,12 @@ aliases:
   - Preempt Offload
   - RecomputeCPUOffloadConnector
   - PreemptOffloadConnector
+  - PreemptOffloadConnectorV1
+  - AscendMultiConnector
   - 抢占卸载
   - 抢占换出
+  - D2H 抢占卸载
+  - 抢占暂存主机
   - 换出换回
   - enable_offload_prefix_caching
   - cpu_bytes_to_use_per_rank
@@ -110,14 +114,20 @@ relations:
   - to: block-table
     kind: builds-on
     note: 块映射决定需要保存和回填的物理位置
+  - to: recompute-scheduler
+    kind: alternative-to
+    note: 相比直接发 recomputed 帧退回 P 重做整段 prefill，本连接器用本机主机内存与两趟同步拷贝换取免重算恢复
   - to: kv-cache-cpu-offload
     kind: alternative-to
     note: 同样把 KV 放到主机，但那边算满一段就备份、给开头相同的请求用；这边只在抢占那一刻替这一条存
+  - to: kv-cache-sparse-offload
+    kind: alternative-to
+    note: 稀疏卸载把主 attention 完整历史常驻主机以换设备容量；抢占卸载不扩大设备块池，只在抢占瞬间暂存该条全部块以省重算（v0.30.0/main 两者互斥）
   - to: kv-pool
     kind: alternative-to
     note: 池按内容指纹存前缀段，谁的开头对上谁能取；换出只存被抢占的这一条，只有它恢复时取回
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

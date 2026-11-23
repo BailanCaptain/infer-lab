@@ -111,12 +111,18 @@ relations:
   - to: mla
     kind: builds-on
     note: 主 attention 读的是 MLA 压缩后的 512 维潜向量；历史怎样压缩归 MLA 页
-  - to: glm-5-3-flash
+  - to: block-table
     kind: builds-on
-    note: indexer 五步、压池门控与每个查询最多 2051 个位置的推导出处
-  - to: one-request
-    kind: builds-on
-    note: R1 在第 4 站的位置清单（4 行 × 2051）逐行内容与 11 层稀疏 MLA 的形状
+    note: 稀疏注意力挑出的历史位置编号经块表换算物理块与槽位后读取
+  - to: gqa
+    kind: alternative-to
+    note: GQA 通过减少 KV 头数降带宽但仍扫全历史；内容稀疏注意力则按查询动态挑出少量关键历史位置
+  - to: linear-attention
+    kind: alternative-to
+    note: 线性注意力用固定大小递推状态取代逐位置扫描；内容稀疏注意力仍保留逐位置历史但只读 top-k 子集
+  - to: swa-bounded-replay
+    kind: alternative-to
+    note: 滑动窗口注意力按固定近期窗口丢弃远端历史；内容稀疏注意力保留全历史并允许跨长距离按内容召回
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -257,7 +263,7 @@ GLM-5.3-Flash 有 11 个稀疏 MLA 层（第 3、7、11……43 层），另外 
 1. **indexer 只给完整池打分。** 因果范围 0…p 里有 ⌊(p+1)/4⌋ 个完整池，只有这些池参与打分；还没凑满的池和未来的池一律记成负无穷，不会被选中。
 2. **最多选 512 个池。** 位置预算 2048 ÷ 每池 4 个位置 = 512 个池。完整池不到 512 个时全部选中，多出的名额填 −1。
 3. **展开并补尾。** 每个选中的池展开成 4 个位置编号；再把 p 所在那组里还没凑满一池的 0–3 个位置直接补进来。所以清单每行留 2048 + 3 = 2051 个名额，2051 是容量，不是实际选中的个数，也不是头数。
-4. **主 attention 按清单读潜向量。** 清单交给昇腾稀疏 FlashAttention 内核：它经 [block table](block-table.md) 逐位置取出 512 维潜向量（选择粒度 `1`），用右下对齐因果掩码算完本卡 8 个头；随后做 V 解压、输出投影，并以一次 [All-Reduce](collective-communication.md#all-reduce) 汇总 8 卡部分和。
+4. **主 attention 按清单读潜向量。** 清单交给昇腾稀疏融合注意力内核 **SFA**（Sparse FlashAttention）：它经 [block table](block-table.md) 逐位置取出 512 维潜向量（选择粒度 `1`），用右下对齐因果掩码算完本卡 8 个头；随后做 V 解压、输出投影，并以一次 [All-Reduce](collective-communication.md#all-reduce) 汇总 8 卡部分和。
 
 ```wiki-diagram
 file: sparse-attention-path

@@ -151,6 +151,9 @@ relations:
   - to: npu-model-runner
     kind: builds-on
     note: Runner 决定本轮张量、模式与描述符
+  - to: kv-cache-memory-profiling
+    kind: builds-on
+    note: 图捕获发生在物理 KV 缓存池分配之后，所需显存由预算外 1−u 余量支付
   - to: ops-and-kernels
     kind: builds-on
     note: 先理解算子和设备任务的提交
@@ -275,7 +278,7 @@ Runner 里有一条「在侧流上刷新整图注意力参数」的通用路径�
 
 融合改写运算组织，回放减少重复提交，两者互不替代。`npugraph_ex` 与关闭该开关后使用的 Ascend pass manager 是两条不同路径，不能假定应用完全相同的规则或默认值；具体消费者和开关范围见 [npugraph-ex](npugraph-ex.md)，实际匹配的算子及收益要由编译记录和同负载测量确认。
 
-- **torchair** 是 `npugraph_ex` 编译路径的兼容退路：包导入、选项适配、后端构建或编译调用所在的 `try` 块抛出 `ImportError` 时进入它；其他异常不会因这条 `except` 自动回退。
+- **torchair**（昇腾面向 PyTorch 的 **GE**［Graph Engine，昇腾图引擎］编译前端）是 `npugraph_ex` 编译路径的兼容退路：包导入、选项适配、后端构建或编译调用所在的 `try` 块抛出 `ImportError` 时进入它；其他异常不会因这条 `except` 自动回退。
 - **xlite** 才是默认关着的那条：要在额外配置里单独打开；它的执行进程和模型运行器只是在昇腾原有的两个上薄薄包一层。打开后平台会把主模型的档位降到 `FULL_DECODE_ONLY`，或者干脆关掉图。
 
 下面这张架构与标尺图把原生三层分工与旁路 Xlite 的预算判断放在一起：

@@ -1,115 +1,195 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="vLLM V1 跨进程 ZMQ 与 SHM 通道拓扑及 fork vs spawn 状态继承时间轴" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 686" width="900" height="686" role="img" aria-label="vLLM V1 跨进程通信拓扑（ZMQ / 共享内存 / HCCL）与 fork vs spawn 隔离时间轴" font-family="var(--font-sans)">
   <title>跨进程通信拓扑（ZMQ / 共享内存 / HCCL）与 fork vs spawn 隔离时间轴</title>
-  <desc>Top shows multi-API SharedAdmissionStats slots -> ZMQ -> EngineCore bg threads -> Multiproc SHM broadcast vs UniProc in-process call; bottom shows fork COW snapshot inheritance vs spawn clean interpreter needing per-process patch/config init and EPLB daemon=False.</desc>
+  <desc>Top shows multi-API 64B-aligned SharedAdmissionStats to ZMQ to EngineCore to Multiproc SHM broadcast and NPUWorker W0..Wk pinned 1:1 to Ascend NPU davinci 0..k linked by HCCL Ring/Mesh, plus UniProc fast path; bottom shows t0 to t3 time axis with fork Y-fork COW snapshot and divergence vs spawn fresh Python interpreter and per-process patch/config init.</desc>
   <defs>
     <marker id="ep-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
     <marker id="ep-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#4c65b6"/></marker>
     <marker id="ep-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+    <marker id="ep-arr-p-bi" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
     <marker id="ep-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
     <marker id="ep-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#b54237"/></marker>
   </defs>
 
-  <!-- ZONE 1: IPC & Executor Topology -->
-  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 跨进程通道拓扑：客户端模式切前端/引擎，Executor 切引擎/Worker</text>
+  <!-- ZONE 1: True IPC + Device Topology -->
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">① 跨进程通信与设备拓扑：ZMQ · SHM 广播 · NPU HCCL 直连</text>
+  <text x="884" y="26" text-anchor="end" font-size="12.5" fill="#66716d">客户端模式切前端/引擎 · Executor 切引擎/Worker</text>
 
-  <!-- Multi-API + SharedAdmissionStats -->
-  <rect x="16" y="42" width="218" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="30" y="68" font-size="14.5" font-weight="700" fill="#065f56">API Server 前端</text>
-  <rect x="30" y="80" width="90" height="32" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
-  <text x="75" y="101" text-anchor="middle" font-size="13.5" fill="#065f56">API #0</text>
-  <rect x="130" y="80" width="90" height="32" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <text x="175" y="101" text-anchor="middle" font-size="13.5" fill="#4d5652">API #k</text>
-  <rect x="30" y="122" width="190" height="50" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
-  <text x="125" y="143" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">SharedAdmissionStats</text>
-  <text x="125" y="163" text-anchor="middle" font-size="13.5" fill="#4d5652">64B 槽位汇总全局在途数</text>
-  <text x="30" y="204" font-size="13.5" fill="#4d5652">--headless 节点不起前端</text>
+  <!-- Multi-API Frontend Nodes (open layout, no outer container box) -->
+  <rect x="16" y="48" width="84" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="58" y="70" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">API #0</text>
+  <text x="115" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#66716d">…</text>
+  <rect x="130" y="48" width="84" height="34" rx="6" fill="#f3fbf9" stroke="#087f73" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="172" y="70" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">API #k</text>
 
-  <!-- ZMQ Bidirectional -->
-  <line x1="234" y1="108" x2="298" y2="108" stroke="#087f73" stroke-width="1.8" marker-end="url(#ep-arr-t)"/>
-  <line x1="304" y1="146" x2="240" y2="146" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#ep-arr-p)"/>
-  <text x="269" y="98" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">ZMQ</text>
-  <text x="269" y="170" text-anchor="middle" font-size="13.5" fill="#66716d">IPC/TCP</text>
+  <!-- Connectors from API nodes to 64B-aligned SharedAdmissionStats strip -->
+  <line x1="58" y1="82" x2="58" y2="112" stroke="#087f73" stroke-width="1.4"/>
+  <line x1="172" y1="82" x2="172" y2="112" stroke="#087f73" stroke-width="1.4" stroke-dasharray="3 2"/>
 
-  <!-- EngineCore -->
-  <rect x="304" y="42" width="234" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="318" y="68" font-size="14.5" font-weight="700" fill="#936300">EngineCore 进程</text>
-  <rect x="318" y="80" width="206" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
-  <text x="421" y="100" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">双后台收发线程 + 忙循环</text>
-  <text x="421" y="118" text-anchor="middle" font-size="13.5" fill="#4d5652">调度账本 + KV 块号池</text>
-  <rect x="318" y="134" width="206" height="42" rx="6" fill="#f8f6f0" stroke="#c78300" stroke-width="1.2"/>
-  <text x="421" y="153" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">v0.30.0 patch_engine_core</text>
-  <text x="421" y="171" text-anchor="middle" font-size="13.5" fill="#4d5652">入口提前 init_ascend_config</text>
-  <text x="318" y="204" font-size="13.5" fill="#936300" font-weight="600">内持 Executor 分发调度计划</text>
+  <!-- 64B-Aligned Shared Memory Slots Strip -->
+  <rect x="16" y="114" width="198" height="32" rx="5" fill="#ece9df" stroke="#087f73" stroke-width="1.3"/>
+  <line x1="82" y1="114" x2="82" y2="146" stroke="#087f73" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <line x1="148" y1="114" x2="148" y2="146" stroke="#087f73" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <text x="49" y="135" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">slot 0</text>
+  <text x="115" y="135" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#4d5652">64B</text>
+  <text x="181" y="135" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">slot k</text>
+  <text x="115" y="168" text-anchor="middle" font-size="13" font-weight="700" font-family="var(--font-mono)" fill="#065f56">SharedAdmissionStats</text>
+  <text x="115" y="187" text-anchor="middle" font-size="12.5" fill="#4d5652">64B 槽位对齐 · 汇总全局在途</text>
+  <text x="115" y="216" text-anchor="middle" font-size="12.5" fill="#66716d">--headless 节点不启动前端</text>
 
-  <!-- Branch to mp vs uni -->
-  <path d="M538 96 H598" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#ep-arr-i)"/>
-  <text x="568" y="88" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">mp</text>
-  <path d="M538 186 H598" fill="none" stroke="#66716d" stroke-width="1.7" stroke-dasharray="4 3" marker-end="url(#ep-arr-g)"/>
-  <text x="568" y="178" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">uni</text>
+  <!-- ZMQ Bidirectional IPC/TCP -->
+  <line x1="216" y1="60" x2="294" y2="60" stroke="#087f73" stroke-width="1.8" marker-end="url(#ep-arr-t)"/>
+  <line x1="298" y1="90" x2="220" y2="90" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#ep-arr-p)"/>
+  <text x="257" y="51" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">ZMQ</text>
+  <text x="257" y="110" text-anchor="middle" font-size="12.5" fill="#66716d">IPC / TCP</text>
 
-  <!-- Multiproc Box -->
-  <rect x="604" y="42" width="280" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="618" y="66" font-size="14" font-weight="700" fill="#3a4f93">Multiproc（全局总卡数 &gt; 1）</text>
-  <rect x="618" y="76" width="252" height="28" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="744" y="95" text-anchor="middle" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)">rpc_broadcast_mq (SHM)</text>
-  <rect x="618" y="110" width="76" height="28" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="656" y="129" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">W0</text>
-  <rect x="706" y="110" width="76" height="28" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="744" y="129" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">W1</text>
-  <rect x="794" y="110" width="76" height="28" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="832" y="129" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">W_k</text>
-  <line x1="694" y1="124" x2="706" y2="124" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="3 2"/>
-  <line x1="782" y1="124" x2="794" y2="124" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="3 2"/>
+  <!-- EngineCore Process Hub (clean hairline sections, zero nested white cards) -->
+  <rect x="302" y="46" width="220" height="190" rx="8" fill="#fffaf0" stroke="#c78300" stroke-width="1.5"/>
+  <path d="M302 54 A8 8 0 0 1 310 46 H514 A8 8 0 0 1 522 54 V76 H302 Z" fill="#fff4cf"/>
+  <line x1="302" y1="76" x2="522" y2="76" stroke="#c78300" stroke-width="1.2"/>
+  <text x="412" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">EngineCore 进程</text>
 
-  <!-- UniProc Box -->
-  <rect x="604" y="158" width="280" height="60" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
-  <text x="618" y="182" font-size="14" font-weight="700" fill="#17211f">UniProc（全局仅 1 卡默认）</text>
-  <text x="618" y="206" font-size="13.5" fill="#4d5652">Worker 住引擎内，函数直调无 SHM</text>
+  <text x="412" y="97" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">双后台收发线程 + 主忙循环</text>
+  <text x="412" y="115" text-anchor="middle" font-size="12.5" fill="#4d5652">编解码与模型前向并行重叠</text>
+  <line x1="316" y1="126" x2="508" y2="126" stroke="#e6d3a3" stroke-width="1"/>
+
+  <text x="412" y="146" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">Scheduler 账本 + KV 块号池</text>
+  <text x="412" y="164" text-anchor="middle" font-size="12.5" fill="#4d5652">每步下发差量 SchedulerOutput</text>
+  <line x1="316" y1="175" x2="508" y2="175" stroke="#e6d3a3" stroke-width="1"/>
+
+  <text x="412" y="195" text-anchor="middle" font-size="12.5" font-weight="700" font-family="var(--font-mono)" fill="#936300">patch_engine_core</text>
+  <text x="412" y="214" text-anchor="middle" font-size="12.5" fill="#4d5652">入口提前 init_ascend_config</text>
+  <text x="412" y="254" text-anchor="middle" font-size="12.5" font-weight="600" fill="#936300">内持 Executor 分流 mp / uni</text>
+
+  <!-- Executor Branch: mp (top) vs uni (bottom fast path) -->
+  <line x1="522" y1="66" x2="588" y2="66" stroke="#4c65b6" stroke-width="2" marker-end="url(#ep-arr-i)"/>
+  <text x="556" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">mp</text>
+  <text x="556" y="84" text-anchor="middle" font-size="12" fill="#4d5652">&gt;1 卡</text>
+
+  <path d="M412 262 V292 H588" fill="none" stroke="#66716d" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ep-arr-g)"/>
+  <text x="502" y="284" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4d5652">uni（单卡默认）</text>
+
+  <!-- Multiproc SHM Broadcast Bus -->
+  <rect x="596" y="46" width="288" height="34" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="740" y="68" text-anchor="middle" font-size="13" font-weight="700" font-family="var(--font-mono)" fill="#3a4f93">rpc_broadcast_mq (SHM)</text>
+
+  <!-- SHM Fan-out arrows to W0, W1, Wk -->
+  <line x1="638" y1="80" x2="638" y2="106" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ep-arr-i)"/>
+  <line x1="740" y1="80" x2="740" y2="106" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ep-arr-i)"/>
+  <line x1="842" y1="80" x2="842" y2="106" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ep-arr-i)"/>
+
+  <!-- Worker Processes W0..Wk -->
+  <rect x="596" y="112" width="84" height="34" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="638" y="134" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">W0</text>
+  <rect x="698" y="112" width="84" height="34" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="740" y="134" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">W1</text>
+  <rect x="800" y="112" width="84" height="34" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="842" y="134" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Wk</text>
+
+  <!-- 1:1 Pinning to Ascend NPU davinci 0..k -->
+  <line x1="638" y1="146" x2="638" y2="174" stroke="#087f73" stroke-width="1.5"/>
+  <line x1="740" y1="146" x2="740" y2="174" stroke="#087f73" stroke-width="1.5"/>
+  <line x1="842" y1="146" x2="842" y2="174" stroke="#087f73" stroke-width="1.5"/>
+  <text x="655" y="164" font-size="12" fill="#065f56">1:1</text>
+  <text x="757" y="164" font-size="12" fill="#065f56">1:1</text>
+  <text x="859" y="164" font-size="12" fill="#065f56">1:1</text>
+
+  <!-- Ascend NPU Devices -->
+  <rect x="596" y="174" width="84" height="42" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="638" y="192" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Ascend NPU</text>
+  <text x="638" y="209" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#17211f">davinci 0</text>
+
+  <rect x="698" y="174" width="84" height="42" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="740" y="192" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Ascend NPU</text>
+  <text x="740" y="209" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#17211f">davinci 1</text>
+
+  <rect x="800" y="174" width="84" height="42" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="842" y="192" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Ascend NPU</text>
+  <text x="842" y="209" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#17211f">davinci k</text>
+
+  <!-- HCCL Ring / Mesh Interconnect -->
+  <line x1="682" y1="195" x2="696" y2="195" stroke="#9a4b86" stroke-width="2"/>
+  <line x1="784" y1="195" x2="798" y2="195" stroke="#9a4b86" stroke-width="2"/>
+  <path d="M638 218 C638 242, 842 242, 842 218" fill="none" stroke="#9a4b86" stroke-width="2" marker-start="url(#ep-arr-p-bi)" marker-end="url(#ep-arr-p-bi)"/>
+  <text x="740" y="256" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">HCCL Ring / Mesh（卡间张量直连）</text>
+
+  <!-- Compact UniProc Fast Path -->
+  <rect x="596" y="274" width="288" height="36" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="740" y="297" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">UniProc：Worker 住引擎内 · 函数直调无 SHM</text>
 
   <!-- Divider -->
-  <line x1="16" y1="238" x2="884" y2="238" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <line x1="16" y1="328" x2="884" y2="328" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
-  <!-- ZONE 2: fork vs spawn State Inheritance Timeline -->
-  <text x="16" y="266" font-size="16" font-weight="700" fill="#17211f">② fork vs spawn 进程隔离时间轴：为什么补丁和 AscendConfig 须逐进程到位</text>
+  <!-- ZONE 2: Horizontal Time Axis (t0 -> t3) fork Y-fork vs spawn Clean Track -->
+  <text x="16" y="356" font-size="16" font-weight="700" fill="#17211f">② 进程启动隔离时间轴（t0 → t3）：fork 写时复制分叉 vs spawn 空屋装配</text>
 
-  <!-- Track 1: fork -->
-  <rect x="16" y="282" width="868" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="30" y="308" font-size="14.5" font-weight="700" fill="#8f3229">A. fork（底层库默认；遇 Ray / NUMA / 设备已就绪强制改 spawn）</text>
+  <!-- Vertical time gridlines -->
+  <line x1="150" y1="388" x2="150" y2="636" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="336" y1="388" x2="336" y2="636" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="548" y1="388" x2="548" y2="636" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="772" y1="388" x2="772" y2="636" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="3 3"/>
 
-  <rect x="30" y="322" width="188" height="52" rx="6" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
-  <text x="124" y="344" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">父进程（t_fork 前）</text>
-  <text x="124" y="364" text-anchor="middle" font-size="13.5" fill="#065f56">global patch ✓ · 配置 ✓</text>
+  <!-- Horizontal Time Axis -->
+  <line x1="116" y1="388" x2="876" y2="388" stroke="#66716d" stroke-width="1.6" marker-end="url(#ep-arr-g)"/>
+  <circle cx="150" cy="388" r="3.5" fill="#17211f"/>
+  <circle cx="336" cy="388" r="3.5" fill="#17211f"/>
+  <circle cx="548" cy="388" r="3.5" fill="#17211f"/>
+  <circle cx="772" cy="388" r="3.5" fill="#17211f"/>
+  <text x="150" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">t0 启动前</text>
+  <text x="336" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">t1 派生子进程</text>
+  <text x="548" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">t2 EngineCore 入口</text>
+  <text x="772" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">t3 Worker 构造</text>
 
-  <line x1="218" y1="348" x2="280" y2="348" stroke="#b54237" stroke-width="1.8" marker-end="url(#ep-arr-r)"/>
-  <text x="249" y="338" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">拷贝快照</text>
+  <!-- Track A: fork (Y-fork COW snapshot + divergence) -->
+  <text x="16" y="454" font-size="14.5" font-weight="700" fill="#8f3229">A. fork</text>
+  <text x="16" y="473" font-size="12" fill="#66716d">底层库默认</text>
 
-  <rect x="286" y="322" width="234" height="52" rx="6" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
-  <text x="403" y="344" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">子进程出生瞬间带齐状态</text>
-  <text x="403" y="364" text-anchor="middle" font-size="13.5" fill="#4d5652">已有绑定 + 标记一起带过去</text>
+  <line x1="150" y1="456" x2="336" y2="456" stroke="#b54237" stroke-width="2.8"/>
+  <circle cx="150" cy="456" r="5.5" fill="#b54237"/>
+  <text x="242" y="444" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">global patch ✓ · 配置 ✓</text>
 
-  <line x1="520" y1="348" x2="554" y2="348" stroke="#66716d" stroke-width="1.7" stroke-dasharray="4 3" marker-end="url(#ep-arr-g)"/>
+  <!-- Visual Y-fork at t1 -->
+  <path d="M336 456 C380 426, 415 426, 868 426" fill="none" stroke="#66716d" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ep-arr-g)"/>
+  <path d="M336 456 C380 486, 415 486, 868 486" fill="none" stroke="#b54237" stroke-width="2.4" marker-end="url(#ep-arr-r)"/>
+  <circle cx="336" cy="456" r="6" fill="#fff0e9" stroke="#b54237" stroke-width="2.2"/>
+  <text x="424" y="460" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">COW 快照分叉</text>
 
-  <rect x="560" y="322" width="310" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="715" y="344" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">分叉后父子内存彻底隔离</text>
-  <text x="715" y="364" text-anchor="middle" font-size="13.5" fill="#4d5652">父进程后续再改绑定/配置均不同步</text>
+  <text x="640" y="418" text-anchor="middle" font-size="12.5" fill="#4d5652">父进程后续再改绑定 / 配置（子进程不可见）</text>
 
-  <!-- Track 2: spawn -->
-  <rect x="16" y="400" width="868" height="108" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="30" y="426" font-size="14.5" font-weight="700" fill="#7a3a6a">B. spawn（vllm serve 未预设时默认；动态 EPLB 须由全局补丁设 Worker daemon=False）</text>
+  <circle cx="548" cy="486" r="5" fill="#b54237"/>
+  <text x="548" y="507" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">带齐快照 · 重复补丁跳过</text>
 
-  <rect x="30" y="440" width="188" height="54" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
-  <text x="124" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">全新空 Python 解释器</text>
-  <text x="124" y="483" text-anchor="middle" font-size="13.5" fill="#8f3229">patch ∅ · 配置缓存 ∅</text>
+  <circle cx="772" cy="486" r="5" fill="#b54237"/>
+  <text x="772" y="507" text-anchor="middle" font-size="12.5" fill="#4d5652">写时复制隔离 · 内存分家</text>
 
-  <line x1="218" y1="467" x2="254" y2="467" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#ep-arr-p)"/>
+  <!-- Forced spawn trigger strip -->
+  <rect x="116" y="520" width="768" height="26" rx="5" fill="#fff0e9" stroke="#d88c82" stroke-width="1.1"/>
+  <text x="128" y="538" font-size="12.5" fill="#8f3229"><tspan font-weight="700">上游强制切 spawn 条件：</tspan>CUDA / XPU 已初始化 · Ray Actor · <tspan font-family="var(--font-mono)">--numa-bind</tspan> · WSL（昇腾靠 CLI 默认置 spawn）</text>
 
-  <rect x="260" y="440" width="268" height="54" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="394" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">EngineCore 靠 3 个通用插件补齐</text>
-  <text x="394" y="483" text-anchor="middle" font-size="13.5" fill="#4d5652">打 global patch + 入口建配置</text>
+  <!-- Track B: spawn (fresh clean Python track) -->
+  <text x="16" y="602" font-size="14.5" font-weight="700" fill="#7a3a6a">B. spawn</text>
+  <text x="16" y="621" font-size="12" fill="#66716d">CLI 默认</text>
 
-  <line x1="528" y1="467" x2="554" y2="467" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#ep-arr-p)"/>
+  <line x1="150" y1="604" x2="328" y2="604" stroke="#b8bcb5" stroke-width="1.6" stroke-dasharray="4 4"/>
+  <text x="242" y="594" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">✕ 不继承父内存</text>
 
-  <rect x="560" y="440" width="310" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="715" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">Worker 构造开头自补齐</text>
-  <text x="715" y="483" text-anchor="middle" font-size="13.5" fill="#4d5652">打 worker patch + 建本进程配置</text>
+  <line x1="336" y1="604" x2="868" y2="604" stroke="#9a4b86" stroke-width="2.6" marker-end="url(#ep-arr-p)"/>
+
+  <!-- t1: Empty Python -->
+  <circle cx="336" cy="604" r="6" fill="#ffffff" stroke="#9a4b86" stroke-width="2.2"/>
+  <text x="336" y="586" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">全新空 Python</text>
+  <text x="336" y="627" text-anchor="middle" font-size="12.5" fill="#8f3229">patch ∅ · 配置 ∅</text>
+
+  <!-- t2: EngineCore plugin patch -->
+  <circle cx="548" cy="604" r="6" fill="#c78300" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="548" y="586" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">EngineCore 通用插件 + 入口补丁</text>
+  <text x="548" y="627" text-anchor="middle" font-size="12.5" fill="#4d5652">重打 global patch · 建本进程配置</text>
+
+  <!-- t3: NPUWorker.__init__ -->
+  <circle cx="772" cy="604" r="6" fill="#087f73" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="772" y="586" text-anchor="middle" font-size="12.5" font-weight="700" font-family="var(--font-mono)" fill="#065f56">NPUWorker.__init__</text>
+  <text x="772" y="627" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">adapt_patch + init_ascend_config</text>
+
+  <!-- Dynamic EPLB daemon=False strip -->
+  <rect x="116" y="646" width="768" height="26" rx="5" fill="#f7e7f2" stroke="#c998bd" stroke-width="1.1"/>
+  <text x="128" y="664" font-size="12" fill="#7a3a6a"><tspan font-weight="700">MRV1 动态 EPLB：</tspan>Worker 起子进程须置 <tspan font-family="var(--font-mono)" font-weight="700">daemon=False</tspan>（<tspan font-family="var(--font-mono)">DYNAMIC_EPLB</tspan>；MRV2 走 <tspan font-family="var(--font-mono)">AscendEPLBController</tspan>）</text>
 </svg>

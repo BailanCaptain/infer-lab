@@ -10,6 +10,7 @@ summary: >-
 aliases:
   - Fine-Grained Tensor Parallelism
   - Fine-grained TP
+  - FGTP
   - 细粒度 TP
   - 细粒度张量并行
   - 模块级张量并行
@@ -20,9 +21,13 @@ aliases:
   - embedding_tensor_parallel_size
   - mlp_tensor_parallel_size
   - olora_tensor_parallel_size
+  - qkv_iproj_tensor_parallel_size
   - OProjRowParallelOp
   - get_otp_group
   - lmheadtp
+  - emtp
+  - mlptp
+  - otp
 chapters:
   - '13'
 order: 20
@@ -83,6 +88,9 @@ relations:
   - to: tensor-parallel
     kind: builds-on
     note: 理解矩阵分片与输出拼接或求和
+  - to: tensor-parallel
+    kind: variant-of
+    note: 细粒度 TP 是张量并行的模块级变体：不再全模型共用同一 TP 组，而是在 DP 维度为词表嵌入、lm_head、稠密 MLP 与 attention 输出投影分别建立独立分片组
   - to: data-parallel
     kind: builds-on
     note: 区分请求副本与并行通信组
@@ -92,8 +100,11 @@ relations:
   - to: collective-communication
     kind: builds-on
     note: 理解收集与归约分片的输入输出
+  - to: sequence-parallel
+    kind: alternative-to
+    note: SP 在同一 TP 组内拆开 All-Reduce 以省归一化与残差重复激活；细粒度 TP 则沿 DP 方向跨不同请求借卡合存特定模块权重
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

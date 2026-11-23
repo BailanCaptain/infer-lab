@@ -9,10 +9,14 @@ aliases:
   - Sequence Parallel
   - 序列并行
   - SP
+  - Megatron SP
+  - DeepSpeed Ulysses
+  - FlashComm
   - FlashComm1
   - FlashComm V1
   - enable_flashcomm1
   - enable_sp
+  - enable_dense_sp
   - sp_min_token_num
   - maybe_pad_and_reduce
   - SequenceRowParallelOp
@@ -96,8 +100,11 @@ relations:
   - to: mlp-residual-norm
     kind: builds-on
     note: 理解逐 token 的归一化和残差
+  - to: context-parallel
+    kind: alternative-to
+    note: Megatron SP 在 TP 组内按 token 切分归一化与残差激活，attention 前须 All-Gather 收齐；CP 则把同一长序列的不同位置分到多张卡并在 attention 内部跨卡交换 K/V 或合并 O/LSE，两者正交可叠加
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: direct
 ---
 

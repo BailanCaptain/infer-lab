@@ -7,7 +7,9 @@ evidence: C
 summary: >-
   STAIR 副本数搜索的束宽：每段展开后保留的最多候选状态数、最终生成的目标副本数上限，以及真正进入带约束 LPT 摆放的候选上限；默认 64，合法范围 1–128。注意设为 1 时唯一位置会被强制保留的“份数不变”占满，等于关闭副本数调整。v0.30.0 与 main 已接入 MRv2。
 aliases:
+  - stair_config.replica_search_beam_size
   - 副本搜索束宽
+  - STAIR 束宽
   - STAIR replica search beam size
 relations:
   - to: replica-search-num-stages-e4b10925ff97
@@ -92,7 +94,7 @@ rawSources:
 
 1. **每个搜索阶段展开后**保留的唯一部分状态数；
 2. **所有阶段结束后**产出的目标副本份数候选数；
-3. **从现状朝目标增量挪动后**、真正送入带约束 LPT 摆放的最终候选数。
+3. **从现状朝目标增量挪动后**、真正送入带约束 LPT（最长任务优先，按风险从重到轻优先摆进最轻卡）摆放的最终候选数。
 
 第三处最直接决定规划成本：带约束 LPT 摆放会对每个最终候选各跑一次（逐份更新同卡协方差、必要时做有界回溯），因此束宽就是「单层每轮最多跑几次带约束摆放」。默认 `64`，合法范围 `1–128`。副本数搜索的完整走法统一写在 [replica_search_num_stages](replica-search-num-stages-e4b10925ff97.md#副本数搜索完整走法与手算例子)，本页聚焦束宽截断与「写 1 陷阱」。`v0.30.0` 与 `main` 已在 MRv2 STAIR 中实际消费该参数；`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 没有 `stair_config`，写入直接启动报错（见 [stair_config](stair-config-cca9e594a052.md)）。
 

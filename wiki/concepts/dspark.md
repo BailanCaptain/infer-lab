@@ -31,9 +31,8 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/dspark/speculator.py#L60-L90'
 relations:
   - { to: speculative-decoding, kind: builds-on, note: 接受、拒绝和补出下一个 token 的基本规则由原页解释 }
+  - { to: speculative-decoding, kind: variant-of, note: 把固定长度 K 的投机验证扩展为按草稿置信度与步耗时动态分配逐请求验证长度 }
   - { to: async-scheduling, kind: builds-on, note: 调度与设备执行重叠会改变置信信息何时可用 }
-  - { to: deepseek-v4-1-flash, kind: builds-on, note: 模型页维护草稿层数与配置的唯一出处 }
-  - { to: inference-benchmarking, kind: builds-on, note: 用实际交付和服务目标验证候选调度是否有收益 }
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -143,7 +142,7 @@ $$s_{\text{final}}(w) = s_{\text{base}}(w) + \Delta_{\text{Markov}}(w \mid w_{\t
 file: dspark-flow
 ```
 
-DeepInfer 的分工是：CPU 先根据已有信息决定总预算，设备拿到更新的置信值后，再计算连续接受概率、排序并修正各请求的验证长度。请求重排信息让它知道新一批的请求对应上一批哪一行。结果异步回写供主机使用；这条修正路径要求存在可对应的上一批请求，变长开关也已启用，不是所有批次都执行修正。
+DeepInfer（DeepSeek 开源的参考推理引擎）的分工是：CPU 先根据已有信息决定总预算，设备拿到更新的置信值后，再计算连续接受概率、排序并修正各请求的验证长度。请求重排信息让它知道新一批的请求对应上一批哪一行。结果异步回写供主机使用；这条修正路径要求存在可对应的上一批请求，变长开关也已启用，不是所有批次都执行修正。
 
 这套时序需要谨慎保持：不能利用更后面的候选信息，反过来随意决定前面的候选是否得到验证。否则“主模型最终验证”这一句本身，并不足以证明采样分布被保留。源码为预算与逐请求长度使用不同轮次的信息；排查时必须同时记录步号、请求映射和置信信息的轮次，不能只看一张最终长度表。
 
@@ -164,7 +163,7 @@ DeepInfer 的分工是：CPU 先根据已有信息决定总预算，设备拿到
 
 ## Ascend 的变长验证，要先分清依据和执行器
 
-前面的具体调度公式和异步分工来自 DeepInfer。Ascend 也有置信度驱动的逐请求验证，但配置和接线分成两条路径：V1 的探索性实现根据草稿置信度调整验证预算，V2 的 adaptive verification 同样让不同请求保留不同候选长度。它们不能仅因目标相同就视为完全相同的算法或开关。
+前面的具体调度公式和异步分工来自 DeepInfer。Ascend 也有置信度驱动的逐请求验证，但配置和接线分成两条路径：V1（第一代 Model Runner 执行器）的探索性实现根据草稿置信度调整验证预算，V2（第二代 Model Runner 执行器）的 adaptive verification 同样让不同请求保留不同候选长度。它们不能仅因目标相同就视为完全相同的算法或开关。
 
 另一种“动态 K”只看当前批里有多少请求。例如配置 1–64 条请求时统一猜 3 个，65–128 条时统一猜 1 个，就能随并发降低验证负荷；它没有比较请求 A 与 B 的置信度，也不会给同一批内两条请求分别分配 3 个和 1 个。选择时先看改变依据，再看 runner 和草稿模型是否支持。
 
@@ -174,7 +173,7 @@ DeepInfer 的分工是：CPU 先根据已有信息决定总预算，设备拿到
 | Ascend V1 confidence / V2 adaptive | 所支持草稿提供的置信度，具体策略各自实现 | 可逐请求不同 |
 | 按批大小选择 K | 当前并发落在哪个配置区间 | 同一批共用 K |
 
-Ascend V1 的 DSpark 路径要求置信头，文档当前只支持 Qwen 系列草稿；DFlash 则用草稿分布的最大概率作置信代理，不额外挂置信头。V2 的 adaptive verification 要求带置信头的 DSpark，并存在并行、图模式与 LoRA 限制（方法名相同不代表自动满足，开关与边界集中在页末）。
+Ascend V1 的 DSpark 路径要求置信头，文档当前只支持 Qwen 系列草稿；DFlash 则用草稿分布的最大概率作置信代理，不额外挂置信头。V2 的 adaptive verification 要求带置信头的 DSpark，并存在[流水线并行](pipeline-parallel.md)、[上下文并行](context-parallel.md)、图模式与 [LoRA](lora.md) 限制（方法名相同不代表自动满足，开关与边界集中在页末）。
 
 ## 对话变长后，还可以只限制草稿读的历史
 

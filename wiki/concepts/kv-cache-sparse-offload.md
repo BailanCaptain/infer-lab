@@ -10,9 +10,15 @@ aliases:
   - Sparse KV Offload
   - 稀疏 KV 卸载
   - sparse_kv_offload
+  - sparse_kv_offload_config
   - SFA
+  - LIM
   - resident buffer
+  - 热缓冲
   - index_topk
+  - topk_buffer_size
+  - dram_size_per_dp_GB
+  - 三路木桶预算
 chapters:
   - '11'
 sources:
@@ -110,9 +116,6 @@ relations:
   - to: kv-cache
     kind: builds-on
     note: 分清哪几类状态要保留，才知道搬走的是哪一份
-  - to: kv-cache-cpu-offload
-    kind: alternative-to
-    note: 同样用主机内存，但那边是多存一份副本、按段取回
   - to: pd-disaggregation
     kind: builds-on
     note: 它只能开在 PD 分离的 D 端，先看两端怎样交接历史
@@ -121,8 +124,17 @@ relations:
     note: >-
       稀疏 KV 卸载的容量规划与搬运代价建立在主机内存、设备内存分别记账以及 H2D 传输的基础上；卸载将主 KV
       放到主机，并未消除容量约束或恢复传输成本。
+  - to: kv-cache-cpu-offload
+    kind: alternative-to
+    note: 同样用主机内存，但那边是多存一份副本、按段取回；稀疏卸载把完整主历史挪到主机、设备只留 indexer 与热槽
+  - to: kv-cache-layerwise-offload
+    kind: alternative-to
+    note: 逐层卸载在 Prefill 侧按整层流水搬运并与计算重叠；稀疏卸载在 Decode 侧把主历史常驻主机、每步仅搬回热缓冲缺失行，两者常在 P/D 两侧配合
+  - to: recompute-cpu-offload
+    kind: conflicts-with
+    note: v0.30.0 与 main 启动配置显式禁止 Sparse KV offload 与 PreemptOffloadConnector 同开（经 MultiConnector 组合同样拦截）
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

@@ -70,12 +70,12 @@ relations:
   - to: prefill
     kind: builds-on
     note: Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环
+  - to: attention-qkv
+    kind: builds-on
+    note: 双向编码器（非因果）与因果池化、交叉注意力的掩码差异建立在 Q/K/V 注意力基础上
   - to: sampling
     kind: alternative-to
     note: Pooling 路径完全绕过 lm_head 词表投影与 Sampler 采词，直接把末层隐藏状态送入 Pooler
-  - to: ascend-flash-attention
-    kind: builds-on
-    note: 双向编码器与因果池化模型在昇腾上分别落入 npu_fusion_attention 与标准 FIA 算子分支
   - to: acl-graph
     kind: conflicts-with
     note: Encoder-Decoder 模型受限于交叉注意力与动态编码长度，与全图捕获冲突并自动降级为 PIECEWISE 或 Eager
@@ -85,7 +85,7 @@ updated: '2026-11-19'
 
 **Pooling 推理（`--runner pooling`）面向 Embedding（文本向量化）、Reranker（检索精排）与 Reward（奖励打分）等非生成任务：引擎算完输入序列的末层隐藏状态后，直接跳过词表投影与采样，由池化头归约成向量或标量。** **Encoder-Decoder**（如 Whisper ASR 语音识别）则是混合路径：先跑双向编码器产出源特征，再在解码器里借交叉注意力自回归生成。
 
-沿[请求全景](request-overview.md)与 [Prefill / Decode](prefill.md) 走常规对话生成时，每条请求都要经历“先读完整段提示词写 KV Cache，再循环逐字生成几十上百步”。但工业界大量业务（RAG 向量入库、检索重排、内容审核分类、RLHF 奖励打分、语音转写）根本不需要套用纯 Decoder 自回归模式。理解 `vllm` 与 `vllm-ascend` 如何为这两类模型改道，能避开大批掩码错配、分块报错和图模式崩溃陷阱。
+沿[请求全景](request-overview.md)与 [Prefill / Decode](prefill.md) 走常规对话生成时，每条请求都要经历“先读完整段提示词写 KV Cache，再循环逐字生成几十上百步”。但工业界大量业务（RAG 检索增强生成的向量入库、检索重排、内容审核分类、RLHF 基于人类反馈的强化学习奖励打分、语音转写）根本不需要套用纯 Decoder 自回归模式。理解 `vllm` 与 `vllm-ascend` 如何为这两类模型改道，能避开大批掩码错配、分块报错和图模式崩溃陷阱。
 
 ## 三条执行主线对比：Generate、Pooling 与 Encoder-Decoder
 
@@ -120,9 +120,9 @@ file: pooling-fig-mask-and-heads
 
 `vllm-ascend` 的 `attention_mask.py` 与 `attention_v1.py` 为此做了极其细腻的硬件分流：
 
-- **Atlas A2 / A3 / 950DT（标准后端）**：当 `causal == False` 时，`get_attention_mask` **显式返回 `None`**。原因是主力融合算子 `FIA` 会把任何传入的掩码按 `defaultMask (sparse_mode=0)` 执行，导致上三角被错误遮蔽；随后在 `AscendAttentionBackendImpl.forward` 中，只要命中 `model_runner_type == "pooling" and not causal`，便绕开 `FIA`，转调 `_forward_encoder_attention`，以紧凑变长排布 `input_layout="TND"` 直接调用 `torch_npu.npu_fusion_attention`（不传因果掩码，且在 `query.shape[0] > actual_seq_qlen[-1]` 时给尾部补 `0` 吸收对齐填充）。
+- **Atlas A2 / A3 / 950DT（标准后端）**：当 `causal == False` 时，`get_attention_mask` **显式返回 `None`**。原因是主力融合算子 [FIA（融合推理注意力）](ascend-flash-attention.md) 会把任何传入的掩码按 `defaultMask (sparse_mode=0)` 执行，导致上三角被错误遮蔽；随后在 `AscendAttentionBackendImpl.forward` 中，只要命中 `model_runner_type == "pooling" and not causal`，便绕开 `FIA`，转调 `_forward_encoder_attention`，以紧凑变长排布 `input_layout="TND"`（`Token × Head × Dim`）直接调用 `torch_npu.npu_fusion_attention`（不传因果掩码，且在 `query.shape[0] > actual_seq_qlen[-1]` 时给尾部补 `0` 吸收对齐填充）。
 - **Atlas A2 / A3 / 950DT（因果池化模型）**：对于基于 Decoder 架构微调出来的 Embedding / Reranker / Reward 模型（例如 Qwen3-Embedding，`causal = True`），`get_attention_mask` 返回 `2048×2048` 布尔因果掩码，照常走标准因果注意力通路，只看左文。
-- **Atlas 300I DUO (`310P` 兼容后端)**：`310P` 底层注意力算子不接受 `mask = None`。因此在 `_310p/attention/attention_mask.py` 中覆写了同一接口：遇到 `runner_type == "pooling"` 且 `causal == False` 时，专门构造一张全零非屏蔽加性掩码，并用 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)` 转成分形排布后缓存复用。
+- **Atlas 300I DUO (`310P` 兼容后端)**：`310P` 底层注意力算子不接受 `mask = None`。因此在 `_310p/attention/attention_mask.py` 中覆写了同一接口：遇到 `runner_type == "pooling"` 且 `causal == False` 时，专门构造一张全零非屏蔽加性掩码，并用 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)` 转成[分形排布（FRACTAL_NZ）](tensor-layout.md)后缓存复用。
 
 ### 2. 三类序列池化头与分块限制
 
@@ -136,7 +136,7 @@ $$h_{\text{pool}}^{(i)} = \frac{1}{L_i} \sum_{t=1}^{L_i} h_{i,t}, \qquad \hat{h}
 
 为了避免大 batch、长文本下一次性转 `FP32` 撑爆显存，vLLM 的 `MeanPool` 按固定 `16 MiB` 块大小（`_MEAN_POOL_ACCUMULATION_CHUNK_BYTES`）分段调用 `segment_sums.index_add_` 累加。例如隐维 $H = 4096$、`FP32` 每 token 占 `16 KiB`，每块正好处理 $16\text{ MiB} / 16\text{ KiB} = 1024$ 个 token。
 
-**一条极易踩坑的分块约束**：`CLSPool.forward` 与 `MeanPool.forward` 入口都会检查 `pooling_cursor.is_partial_prefill()`——一旦请求被 Chunked Prefill 拆成半截执行，两者都会立即抛出 `RuntimeError`！原因很直观：如果只算了前半段或后半段，要么拿不到完整均值、要么首词已被切在上一批。只有 `LastPool` 能在完整因果 KV 支撑下与分块前向协同；调度器也会专门保护非分块池化请求不被拆半。
+**一条极易踩坑的分块约束**：`CLSPool.forward` 与 `MeanPool.forward` 入口都会检查 `pooling_cursor.is_partial_prefill()`——一旦请求被 [Chunked Prefill（分块预填充）](chunked-prefill.md)拆成半截执行，两者都会立即抛出 `RuntimeError`！原因很直观：如果只算了前半段或后半段，要么拿不到完整均值、要么首词已被切在上一批。只有 `LastPool` 能在完整因果 KV 支撑下与分块前向协同；调度器也会专门保护非分块池化请求不被拆半。
 
 在 HTTP 入口侧，Embedding、分类、打分、重排与通用池化分别挂载 `/v1/embeddings`、`/classify`、`/score`、`/rerank` 与 `/pooling`，由模型支持的任务与所选 pooling 任务决定准入——只改 URL 不会给生成模型补出向量或分类头。`/rerank` 把 `query` 与候选 `documents` 逐对比较并返回原候选 `index`（不可把返回顺位当输入序号）。此外，池化模型可通过[输入输出插件](platform-plugin-registration.md#输入输出插件为什么能把一张图拆成多个请求)把一份自定义应用输入拆成多个模型子请求再合并结果，不能直接用 HTTP 请求数代替模型计算任务数。
 
@@ -168,7 +168,7 @@ file: pooling-fig-scoring-and-asr
 
 另一类典型的非纯自回归解码模型是 **Encoder-Decoder**（以语音识别模型 **Whisper** 为代表，`model_config.is_encoder_decoder == True`）。它在推理引擎里分两段协同：
 
-1. **音频编码段（Encoder）**：输入音频梅尔频谱经 CNN 与双向 Transformer 编码器算出定长或变长声学特征序列（例如 Whisper 30 秒音频对应 `1500` 帧编码特征）。
+1. **音频编码段（Encoder）**：输入音频梅尔频谱（把声音波形转换成贴近人耳频率感知的二维时频图）经 CNN（卷积神经网络）与双向 Transformer 编码器算出定长或变长声学特征序列（例如 Whisper 30 秒音频对应 `1500` 帧编码特征）。
 2. **交叉注意力解码段（Cross-Attention + Decoder）**：在首轮解码前，编码器输出经投影写入专属于 `AttentionType.ENCODER_DECODER` 的交叉注意力 KV Cache 槽位。注意 `vllm_ascend/attention/attention_v1.py` 中的关键特判：常规自注意力写入缓存时会把 `key`、`value` 和 `slots` 按 `[:attn_metadata.num_actual_tokens]` 截断成当前解码步长，但交叉注意力缓存装的是**整段编码器输出**而非当前解码 token，因此当 `self.attn_type == AttentionType.ENCODER_DECODER` 时必须保留完整 `key / value / slots` 写入，绝不能按解码步长截断。
 3. **昇腾图模式自动降级**：由于编码器与解码器长度解耦且交叉注意力路径未接入全图捕获，`vllm_ascend/platform.py` 在配置检查阶段会自动拦截：`is_encoder_decoder` 为真且 `cudagraph_mode` 不是 `NONE` 或 `PIECEWISE` 时，直接回退为 `PIECEWISE`（开了 `VLLM_COMPILE` 时）或 `NONE`（未开编译时），并打印一次日志提示。
 

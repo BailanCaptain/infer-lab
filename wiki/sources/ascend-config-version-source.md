@@ -5,8 +5,10 @@ type: source
 summary: 四个固定快照展示共享专家开关、动态分块设置和配置缓存的取值变化；main 与 rc2 仍读取 FlashComm1 输入，环境值的解析和优先级需分版本核对。
 aliases:
   - AscendConfig 三版本来源摘要
+  - AscendConfig 四版本来源摘要
   - clear_ascend_config
   - enable_shared_expert_dp
+  - _ASCEND_CONFIG
 chapters:
   - '10'
 order: 20
@@ -79,7 +81,7 @@ rawSources:
 
 ## 本摘要覆盖哪些证据？
 
-AscendConfig 是将 vLLM 的 `additional_config` 转成昇腾插件配置的对象。本页只记录共享专家 DP、FlashComm1、动态分块子配置与模块级配置缓存的来源差异，配置体系的教学见[Ascend 配置](../concepts/ascend-config-system.md)。没有完整执行调用链或 NPU 实机验证。
+AscendConfig 是将 vLLM 的 `additional_config` 转成昇腾插件配置的对象。本页只记录共享专家 DP、FlashComm1（昇腾序列并行通信优化的旧版开关入口）、动态分块子配置与模块级配置缓存的来源差异，配置体系的教学见[Ascend 配置](../concepts/ascend-config-system.md)。没有完整执行调用链或 NPU 实机验证。
 
 原摘录日期为 2026-10-07，不是提交日期。v0.23、v0.26、`main` 分别固定在 `2c59ff10`、`2ed6cbba`、`baa023ad`，新增 `rc2` 对照固定在 `7d825229`。下列旧三版表格保留各自范围，`rc2` 的相同点与差异集中说明，均不外推到浮动分支。旧逐字摘录见[原始材料](../raw/sha256-3efa25973cae50780b72a10187d3892b2e32ef48bfcdd427fb2788045147b9af.md)。
 
@@ -165,6 +167,6 @@ rc2 在本页讨论的四项上与 main 大体相同，但不能把 main 的弃�
 
 ## 这些材料怎样用于相关教学页？
 
-阅读 `sequence-parallel`、`dynamic-chunked-pp` 和 `profiling-chunk-config` 时，应区分这里的配置构造证据与完整执行链。本页说明怎样得到配置值；实际分片、测速和调度行为由对应教学页给出消费路径，不能只凭默认字段推定。
+阅读[序列并行](../concepts/sequence-parallel.md)（`sequence-parallel`）、[动态分块流水线](../concepts/dynamic-chunked-pp.md)（`dynamic-chunked-pp`）和 [`profiling_chunk_config`](../params/profiling-chunk-config.md) 时，应区分这里的配置构造证据与完整执行链。本页说明怎样得到配置值；实际分片、测速和调度行为由对应教学页给出消费路径，不能只凭默认字段推定。
 
 两版旧环境默认与解析已有来源 34、35；完整 SP 支持条件、通用类型转换和调度执行还应分别查看 enable_sp、config_utils 与调度器调用者。本页未据这些配置片段给出设备性能或线程安全保证。

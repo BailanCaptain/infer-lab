@@ -21,6 +21,10 @@ aliases:
   - enable_cp
   - enable_dcp
   - enable_pcp
+  - DSA-CP
+  - Hierarchical CP
+  - 层次 CP
+  - log-sum-exp
   - AscendAttentionCPImpl
   - AscendMlaCPImpl
   - AscendAttentionDCPImpl
@@ -117,19 +121,20 @@ relations:
   - to: attention-qkv
     kind: builds-on
     note: 先理解完整的评分、softmax 与 V 汇合
+  - to: ascend-flash-attention
+    kind: builds-on
+    note: 在线 Softmax 与 LSE（log-sum-exp）分块合并的代数恒等式是 CP 跨卡汇聚局部 attention 输出的数学基础
   - to: collective-communication
     kind: builds-on
     note: 理解交换、收集与归约
   - to: block-table
     kind: builds-on
     note: 理解逻辑位置与物理存储槽位
-  - to: attention-backend-family
-    kind: builds-on
-    note: >-
-      上下文并行的数据交换和结果合并方式取决于注意力后端：decode 可合并局部输出与 LSE，MLA 的分块 prefill 则收集
-      KV；理解这些分路需要先理解后端对状态布局和执行方式的约束。
+  - to: sequence-parallel
+    kind: alternative-to
+    note: Megatron SP 在 TP 组内按 token 切分归一化与残差激活，attention 前须收齐；CP 则沿序列位置跨卡切分 attention 计算或 KV 历史，两者正交可叠加
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: direct
 ---
 

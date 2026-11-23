@@ -66,7 +66,7 @@ updated: '2026-11-19'
 
 拿到刚开源的 **HuggingFace**（主流模型权重与架构配置托管规范）新模型，或发现某层算子成为瓶颈时，新手最容易踩的坑是**直接把整份模型抄进 `vllm_ascend/models/` 并从头手写 C++ 核函数**。其实，只要上游 vLLM 已有标准 Transformer 实现（如 `Qwen3-8B`、`Qwen3-30B-A3B`），插件的 **OOT（Out-of-Tree，树外扩展）**算子表就能自动在 NPU 上接管算子，根本不必重复维护一套模型文件。
 
-本页以 `vLLM Ascend v0.30.0` 为基线，按工程顺序拆解两件事。第一是新模型接入的四道注册关口（模型类、权重映射、量化方案与 OOT 算子）。第二是三条自定义算子路径（`torch_npu` ACLNN/ATB、`AscendC` `vllm_ascend_C`、`triton-ascend`）的选型权衡，以及昇腾 950 / 310P 的硬件能力门控。
+本页以 `vLLM Ascend v0.30.0` 为基线，按工程顺序拆解两件事。第一是新模型接入的四道注册关口（模型类、权重映射、量化方案与 OOT 算子）。第二是三条自定义算子路径——`torch_npu`（经 **PTA** 适配器调 **ACLNN** 单算子 C 接口与 **ATB** 大模型算子库）、**AscendC**（昇腾面向 AI Core 的 C++ 核函数语言，编入 `vllm_ascend_C`）与 **`triton-ascend`**（昇腾 Python Triton 核函数编译器）——的选型权衡，以及昇腾 950 / 310P 的硬件能力门控。
 
 ## 新模型接入昇腾的四道关口
 

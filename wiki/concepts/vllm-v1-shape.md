@@ -17,6 +17,11 @@ aliases:
   - ModelRunnerOutput
   - EngineCoreRequest
   - EngineCoreOutputs
+  - 三角色循环
+  - V1 引擎循环
+  - UniprocExecutor
+  - MultiprocExecutor
+  - EngineCoreClient
 chapters:
   - '10'
 order: 10
@@ -85,21 +90,21 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L894-L935'
 relations:
-  - to: one-request
+  - to: request-overview
     kind: builds-on
-    note: 主线七站的形状、字节和块数都在那一页；本页讲七站背后是哪几个组件在循环
-  - to: concurrent-requests
+    note: 先看单条请求从文字到生成词的端到端全景，再拆解背后的三角色组件循环
+  - to: kv-cache
     kind: builds-on
-    note: 多条请求时同一个循环怎样装下一整批、结果怎样按请求拆回
-  - to: request-call-chain
+    note: KV cache 留在卡上按块复用，决定了 EngineCore 只传轻账本、Worker 就地算张量的分工
+  - to: continuous-batching
     kind: builds-on
-    note: 每个组件落在哪个进程、从哪个函数进、走哪条通道
-  - to: npu-worker-lifecycle
+    note: 每一圈调度循环把多条请求动态拼成同一批次，先了解连续批处理再看 EngineCore 循环
+  - to: paged-attention
     kind: builds-on
-    note: 循环开始之前，Worker 怎样起设备、装权重、建缓存池
-  - to: vllm-kv-block-allocation
+    note: 分页块管理让调度器手里只记块号、Worker 用块表寻址，构成两道边界的职责分界
+  - to: async-scheduling
     kind: builds-on
-    note: 计划里的块号从哪个池子借、请求结束时怎样还
+    note: 异步调度把相邻两步的排程与前向叠在一起，解释批次队列与占位 token 记账
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -122,7 +127,7 @@ vLLM V1 把推理服务拆成三类角色，绕成一个循环：**前端**把�
 
 这样分工，前端收请求、引擎排计划与设备计算可以交叠。代价是分到不同进程后，要把交接内容编码成消息、经过队列传递，并在各处保存和更新同一请求的相关状态；不是把函数拆开就没有成本。哪些角色实际另起进程，见[引擎进程](engine-processes.md)。
 
-先用一张等距立体拆解图建立三类角色的空间分工：左侧 API Server 管文本与分词，中央 EngineCore 维护调度队列，右侧 NPU Worker 就地操作常驻 HBM 的权重与 KV cache，三者之间只过轻消息管道：
+先用一张等距立体拆解图建立三类角色的空间分工：左侧 API Server 管文本与分词，中央 EngineCore 维护调度队列，右侧 NPU Worker 就地操作常驻 HBM（高带宽显存）的权重与 KV cache，三者之间只过轻消息管道：
 
 ```wiki-diagram
 file: vllm-v1-plate-cutaway
@@ -154,7 +159,7 @@ file: vllm-v1-plate-cutaway
 
 代价有三笔：
 
-1. **跨边界的东西都要打包。** 前端与 EngineCore 之间走进程间 ZMQ 消息，EngineCore 与多卡 Worker 之间走共享内存广播队列（通道细节见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)）。消息按约定组织字段，不共享对方进程内的请求对象；纯文本路径主要传编号、计数与参数，嵌入输入或池化输出路径则另计张量消息开销。
+1. **跨边界的东西都要打包。** 前端与 EngineCore 之间走 IPC（进程间通信）或跨机 TCP 上的 ZMQ（ZeroMQ，轻量级进程间消息传输库）消息，EngineCore 与多卡 Worker 之间走共享内存广播队列（通道细节见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)）。消息按约定组织字段，不共享对方进程内的请求对象；纯文本路径主要传编号、计数与参数，嵌入输入或池化输出路径则另计张量消息开销。
 2. **同一份请求资料存两处，后续只发差量。** 请求首次被调度时，计划携带全部资料（提示词 token 编号、采样参数、初始块号），Worker 缓存在本地持久批次里；之后每步只发变化量（新借块号与已算进度）。请求结束时，EngineCore 把编号放进下一份计划的 `finished_req_ids`，Worker 据此清理本地缓存。
    - **边界提醒**：`CachedRequestData.new_token_ids` 仅在流水线并行（PP）下传递新增 token 编号，非 PP 场景下为空，还原当轮完整输入须把差量计划与 Worker 本地缓存合起来看。
 3. **每一步都要跨两次边界。** 计划往下走一次，结果往上走一次。开启异步调度后，相邻两步重叠执行，把跨边界等待藏到前向后面（见[异步调度](async-scheduling.md)）。
@@ -223,7 +228,7 @@ vllm-ascend 沿用上游循环，通过替换 Worker 一侧实现并局部改写
 在 `v0.30.0` 主基线下，单卡（`TP=1`）或机内多卡（`TP=2/4`）部署 **Qwen3-8B** 时，V1 循环最干净：
 
 - **角色与进程形态**：单卡 `TP=1` 默认用 `UniprocExecutor`（API Server + 内置 Worker 的 EngineCore，共 2 进程）；多卡 `TP=N` 切 `MultiprocExecutor`（1 前端 + 1 EngineCore + $N$ 独立 Worker），**无 DP 协调器，也无跨 DP 空批次陪跑**。
-- **一步闭环**：API Server 分词入队后，Scheduler 从单一 `128-tok` `BlockPool` 借块排步。Executor 顺次下发 `execute_model`（全 36 层 GQA 共用 1 份 `AscendMetadata`）与 `sample_tokens`（每条 1 个 `next_token_id`，无 MTP 草拟），仅 `output_rank` 回传结果。Scheduler 更新进度与判停，API Server 流式推给客户端；空闲时 EngineCore 直接阻塞等新消息。
+- **一步闭环**：API Server 分词入队后，Scheduler 从单一 `128-tok` `BlockPool` 借块排步。Executor 顺次下发 `execute_model`（全 36 层 GQA［分组查询注意力］共用 1 份 `AscendMetadata`）与 `sample_tokens`（每条 1 个 `next_token_id`，无 MTP［多 token 预测，投机解码草稿头］草拟），仅 `output_rank` 回传结果。Scheduler 更新进度与判停，API Server 流式推给客户端；空闲时 EngineCore 直接阻塞等新消息。
 
 扩大到跨机 DP + EP 的 MoE 旗舰部署后，才叠出多 EngineCore、DP 协调器、空批次陪跑与 MTP 验证——下面用历史 GLM 双机 20 进程全案对照。
 

@@ -48,10 +48,7 @@ verified:
   - releases/v0.30.0
   - main
 evidence: C
-relations:
-  - to: learning-guide
-    kind: builds-on
-    note: 承接阅读指南的第一站，在进入各块基础积木前先建立单条请求的完整心智地图
+relations: []
 contradicts: []
 updated: '2026-11-18'
 ---

@@ -88,23 +88,26 @@ verified:
   - main
 evidence: C
 relations:
-  - to: vllm-scheduler
+  - to: continuous-batching
     kind: builds-on
-    note: 理解等待队列如何影响准入
-  - to: vllm-kv-block-allocation
+    note: 只替换连续批处理循环里的 waiting 队列，running 推进、token 预算与请求上限保持不变
+  - to: paged-attention
     kind: builds-on
-    note: 理解缓存增长与抢占回收
+    note: 块预留器按物理 KV 块大小估算 running 下一步的新增跨块需求，避免空闲块被新请求耗尽引发抢占
   - to: chunked-prefill
     kind: builds-on
     note: 理解当前轮和下一轮的输入预算
-  - to: concurrent-requests
+  - to: async-scheduling
     kind: builds-on
-    note: 场景 M 第 2 站的整批预算与块账，本页只讲在它上面多出的准入检查
+    note: 开启异步调度时切换为多继承的 BatchJobAwareAsyncScheduler，保持输出占位协议
   - to: short-request-first
     kind: alternative-to
-    note: 另一种改 waiting 顺序的调度器，两者同开启动即报错
+    note: 另一种改 waiting 接纳顺序的调度器（批作业感知面向离线批处理吞吐，短请求优先面向在线低 TTFT）
+  - to: short-request-first
+    kind: conflicts-with
+    note: 与 short_request_first_config 在平台初始化校验中显式互斥，同开启动即抛 ValueError
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -117,7 +120,7 @@ rawSources:
 
 **Batch-Job-Aware Scheduler（批作业感知调度器）是 `vllm-ascend` 为离线批处理准备的调度器。** 接新请求之前，它先估计正在生成的请求下一步还要借几块 KV 块，把这部分从空闲块里扣下来，只拿剩下的余额接新请求；先接谁，则看请求属于哪个「作业」，以及这个作业以往的输出有多长。
 
-几个词先说清楚。调度器每一步决定哪些请求各算几个 token，见[调度器](vllm-scheduler.md)；它手里有两队请求：running 是已经排上、正在推进的请求，waiting 是已经到达、还没排上的请求。KV 块是显存里预先切好的一格格存储，存每个位置算出的历史，一块能装好几个位置，请求把手里的块写满了才借新块，见[块分配](vllm-kv-block-allocation.md)。作业（job）是一次提交的一批同类请求，比如「给一万篇文章各写一段摘要」；提交时在请求 ID 里写上作业名，调度器就知道哪些请求是一伙的。
+几个词先说清楚。在[连续批处理](continuous-batching.md)中，调度器每一步决定哪些请求各算几个 token，见[调度器](vllm-scheduler.md)；它手里有两队请求：running 是已经排上、正在推进的请求，waiting 是已经到达、还没排上的请求。KV 块是显存里预先切好的一格格存储，存每个位置算出的历史，一块能装好几个位置，请求把手里的块写满了才借新块，见[块分配](vllm-kv-block-allocation.md)。作业（job）是一次提交的一批同类请求，比如「给一万篇文章各写一段摘要」；提交时在请求 ID 里写上作业名，调度器就知道哪些请求是一伙的。
 
 下图用一个小例子（数为示意）：一块装 4 个位置，池子里空闲 6 块。running 里的 A 这一步会把手里的块正好写满，下一步得借 1 块新的；B 的块里还空着一格，下一步不用借。调度器先替它们留出这 1 块，再加 2 块余量，一共扣下 3 块。剩下 3 块能装 12 个位置：waiting 里提示词 10 个位置的 X 放得下，这一步接进来，借走这 3 块；8 个位置的 Y 已经没有余额，先等（先接哪条的规则后面讲）。这就是图中「预留」那一行。
 
@@ -145,7 +148,7 @@ file: batch-job-aware-scheduler
 
 留多少由一个叫 RunningBlockReserver（运行请求的块预留器）的部件算。它对 running 里的每条请求问三个问题：
 
-1. **这一步会走到哪个位置。** 调度器排这一步时，已算位置数要等整步排完才往前推（见[调度器的记账](vllm-scheduler.md#调度器怎样排一步还差几个--截断--借块--记账)），所以预留器先自己模拟一遍。提示词还没算完的请求，这一步走「剩余提示词」与「每步 token 上限」中较小的那个；decode 请求走 `1` 个位置，再加上投机解码预留的 `lookahead` 个位置（MTP、EAGLE 这类方法每步猜几个，`lookahead` 就是几个）。
+1. **这一步会走到哪个位置。** 调度器排这一步时，已算位置数要等整步排完才往前推（见[调度器的记账](vllm-scheduler.md#调度器怎样排一步还差几个--截断--借块--记账)），所以预留器先自己模拟一遍。提示词还没算完的请求，这一步走「剩余提示词」与「每步 token 上限」中较小的那个；decode 请求走 `1` 个位置，再加上[投机解码](speculative-decoding.md)预留的 `lookahead` 个位置（MTP、EAGLE 这类方法每步猜几个，`lookahead` 就是几个）。
 2. **下一步要走几个位置。** 同样的规则，从这一步走完的位置接着算。
 3. **下一步要几块新块。** 看这一步走完后，手里最后一块还空几格。下一步要走的位置不超过空格，就是 0 块；超出的部分按每块 B 个位置向上取整。
 
@@ -182,7 +185,7 @@ $$P = \min(R + m,\; M), \qquad \text{Budget} = \max(0,\; (F - P) \times B)$$
 **每个作业有一个输出长度的估计值：**
 
 - 还没有请求结束时，估计值是 128 个 token。
-- 请求在引擎内因 EOS 或停止 token 编号正常结束时，记下它输出了多少个 token。第一个样本直接当估计值；之后按指数移动平均更新：$\hat{L}_k = 0.1 \times L_k + 0.9 \times \hat{L}_{k-1}$。旧样本的分量每更新一次就乘一次 0.9，慢慢淡出。
+- 请求在引擎内因 EOS 或停止 token 编号正常结束时，记下它输出了多少个 token。第一个样本直接当估计值；之后按指数移动平均（EWMA）更新：$\hat{L}_k = 0.1 \times L_k + 0.9 \times \hat{L}_{k-1}$。旧样本的分量每更新一次就乘一次 0.9，慢慢淡出。
 - 每个作业最多记 10 个样本，记满以后估计值不再变。
 - 因为生成长度到了上限才结束的请求不记。前端命中停止字符串、再通知尚未结束的引擎取消时，引擎记录的是取消，也不记进这个估计器；客户端看到的 stop 不等于引擎的正常结束状态。一个作业若一直没有可记录样本，估计值就停在 128；只截断一部分时，估计只从引擎内正常结束的样本里学，可能偏小。
 
@@ -228,10 +231,10 @@ file: batch-job-aware-scheduler-flow
 
 还有几处边界：
 
-- **只换了 waiting 这一条队列。** 上游另有一条挂起队列，放暂时不能排的请求，先来先服务模式下上游先从它取，进了这条队列的请求不经过预留、冷启动、作业排序和 best fit。带结构化输出（structured output，比如按 JSON schema 生成）的请求**一到达就进挂起队列**，等语法编译好，直接从那里排上，整条绕过本调度器；只有它后来被抢占，才退回作业桶。等远端传来的 KV、LoRA 个数已满这类请求，则是这一步排到时临时放进去的。离线批处理里用 JSON schema 做抽取、分类很常见，这类负载上本调度器新增的逻辑基本不起作用。
+- **只换了 waiting 这一条队列。** 上游另有一条挂起队列，放暂时不能排的请求，先来先服务模式下上游先从它取，进了这条队列的请求不经过预留、冷启动、作业排序和 best fit。带[结构化输出](structured-output.md)（structured output，比如按 JSON schema 生成）的请求**一到达就进挂起队列**，等语法编译好，直接从那里排上，整条绕过本调度器；只有它后来被抢占，才退回作业桶。等远端传来的 KV、[LoRA](lora.md) 个数已满这类请求，则是这一步排到时临时放进去的。离线批处理里用 JSON schema 做抽取、分类很常见，这类负载上本调度器新增的逻辑基本不起作用。
 - **估计不准照样会抢占。** 预留只看下一步，R 又被 M 封顶；最终还是由上游在借块时决定抢不抢。
 - **不看被抢占请求的真实工作量。** best fit 比的是提示词长度；被抢占退回的请求要重算的还包括它已经生成的部分，实际比提示词长。
-- **多调度器同时开启时存在静默覆盖顺序。** 在 `v0.30.0` 的平台初始化流程中，与[短请求优先](short-request-first.md)同开会直接抛 `ValueError` 显式互斥。但与其他扩展调度器（`recompute_scheduler`、`dyntra_lb`、`profiling_chunk`）同开时，平台按先后顺序依次改写 `scheduler_cls`。`batch_job_sched_config` 排在最末位，会静默覆盖前面已经选好的调度器类；`main` 移除 `profiling_chunk` 后仍排在 `recompute_scheduler` 与 `dyntra_lb` 之后。
+- **多调度器同时开启时存在静默覆盖顺序。** 在 `v0.30.0` 的平台初始化流程中，与[短请求优先](short-request-first.md)同开会直接抛 `ValueError` 显式互斥。但与其他扩展调度器（[`recompute_scheduler`](recompute-scheduler.md)、[`dyntra_lb`](dyntra-lb.md)、[`profiling_chunk`](../params/profiling-chunk-config.md)）同开时，平台按先后顺序依次改写 `scheduler_cls`。`batch_job_sched_config` 排在最末位，会静默覆盖前面已经选好的调度器类；`main` 移除 `profiling_chunk` 后仍排在 `recompute_scheduler` 与 `dyntra_lb` 之后。
 
 下图把两级准入闸门、多调度器静默覆盖链和两类易踩空的边界合到同一视图里：
 

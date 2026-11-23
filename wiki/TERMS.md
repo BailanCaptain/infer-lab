@@ -43,8 +43,10 @@
 | GQA | Grouped-Query Attention | 多个 Q 头共享一个 KV 头，减少 KV 表示数量。 | gqa | 是对照结构，不自动代表 GLM 的注意力实现。 |
 | MLA | Multi-head Latent Attention | 用压缩潜在表示及相应投影组织多头注意力。 | mla | 缓存压缩维度与读取位置数分开。 |
 | DeltaNet | delta rule | 按当前值与状态读出之间的误差修正矩阵状态的递推注意力机制。 | linear-attention | 它与加性线性注意力的更新形式不同。 |
-| Gated DeltaNet | GDN | 在 delta 更新中引入遗忘门，以调节历史保留。 | linear-attention | GLM 的具体 KDA 路径另有按通道衰减。 |
+| Gated DeltaNet（GDN） | GDN、Gated DeltaNet、门控 DeltaNet | 在线性注意力的 delta 误差修正中引入遗忘门，按当前输入动态决定保留多少旧状态、写入多少新信息。 | linear-attention | Qwen3-Next 等混合架构采用 GDN；GLM 的具体 KDA 路径另有按通道衰减。 |
 | KDA | Kimi Delta Attention | 采用按通道遗忘的 delta 更新注意力机制。 | linear-attention | 说明基础与数学变化，不把概念对照擅写成发明史。 |
+| SWA | Sliding Window Attention、滑动窗口注意力、滑窗注意力 | 每个查询只读取紧邻最近固定窗口长度内的历史位置，更早位置的逐词 KV 可不再常驻。 | swa-bounded-replay | 单层只看局部窗口，深层堆叠或与全局注意力层交替后仍可传递远距信息；窗口状态丢失后的近似恢复见有界回放。 |
+| LSE | Log-Sum-Exp、对数指数和 | 一组注意力分数的指数和再取对数（常拆成最大值与缩放和），用来在分块或跨卡计算后无损合并多段 softmax 结果。 | ascend-flash-attention | Online Softmax 靠块级最大值与指数和递推重标定；上下文并行跨卡归约注意力分片时也靠交换输出与 LSE 精确合齐。 |
 | mHC | Manifold-Constrained Hyper-Connections | 约束多路残差连接的混合与写回方式。 | layers-and-hidden | 路数、Sinkhorn 与代价只在对应页面讲。 |
 
 ### 二、推理框架
@@ -63,6 +65,8 @@
 | chunked prefill | 分块预填充 | 把尚未完成的提示词计算分配到多轮调度。 | chunked-prefill | 块大小由预算和实现约束决定。 |
 | speculative decoding | 投机解码、推测解码 | 先生成候选 token，再由目标模型验证，并按算法接受或修正候选。 | speculative-decoding | 草稿来源不一定是独立小模型；有草稿和验证开销。 |
 | MTP | Multi-Token Prediction | 多 token 预测结构或目标；推理可使用模型配套模块生成投机草稿。 | speculative-decoding | GLM 配置的 MTP 层数与每轮草拟 token 数是不同量，统一依据主模型来源基线。 |
+| EAGLE | EAGLE-3、特征级投机草稿 | 复用主模型上层隐藏向量与前一步 token 嵌入，用轻量草稿头连续预测后续候选 token 的投机解码方法。 | speculative-decoding | 比独立小模型草稿更省显存且接受率通常更高；与模型自带的原生 MTP 模块是两种不同的草稿来源。 |
+| COW | Copy-on-Write、写时复制 | 多方先将页表或块表映射到同一份只读物理空间，直到某一方改写该页或未满块时才分配新空间拷贝分离。 | vllm-kv-block-allocation | 操作系统 `fork` 复制页表让父子初始共指同一批只读物理页；vLLM V1 前缀缓存默认共享不可改写的已满整块（新版特定条件下支持部分尾块复用），续写分叉时另借新块追加而不复制已满共享块。 |
 | PD disaggregation | PD 分离、disaggregation、分离部署 | 把 prefill 与持续生成分配到不同执行组，通过传输相应历史状态衔接。 | pd-disaggregation | 执行组与物理服务器不必一一对应。 |
 | quantization | 量化、W8A8 | 以低精度格式及相应缩放表示数值，并配合量化、反量化或低精度算子计算。 | quantization | 分别说明权重、激活与缓存；误差和收益须验证。 |
 | graph mode | 图模式 | 捕获满足条件的设备操作序列并回放，以减少逐次提交开销。 | graph-mode-layer | 与编译优化分开；并非每次都捕获整个模型。 |
@@ -70,6 +74,8 @@
 | eager mode | eager 模式、单算子模式 | 按执行过程逐步提交算子，不复用该路径的捕获图。 | acl-graph | 不等于设备同步执行或没有算子内部融合。 |
 | operator | 算子、op | 对张量定义输入输出和运算语义的计算操作。 | ops-and-kernels | kernel 是具体设备实现，不作为算子的严格同义词。 |
 | 进程 | process | 由操作系统管理、具有独立地址空间的执行实体。 | engine-processes | 可以显式建立共享内存或其他通信机制。 |
+| ZMQ | ZeroMQ、进程间消息队列 | 轻量级异步消息通信库，vLLM V1 用它在前端 API server 与后端 EngineCore 进程之间收发请求与生成结果。 | engine-processes | 支持本机 IPC 套接字与跨网络 TCP 传输，承担控制面与请求流通信，不直接搬运大块 NPU 显存张量。 |
+| IPC / SHM | IPC、SHM、进程间通信、共享内存、POSIX 共享内存 | 同机不同进程交换数据的机制；其中共享内存（SHM）让多个进程直接映射同一块主机内存，免去序列化与反复拷贝。 | engine-processes | 同机 Worker 广播调度元数据、Engram 主机表多进程只读共享等常走 `/dev/shm`；容器启动须确认 `--shm-size` 充足。 |
 | Worker | worker、工作进程 | 负责设备初始化、模型执行与相关资源管理的执行角色。 | npu-worker-lifecycle | 角色不总是独立进程，须结合执行器部署说明。 |
 | rank | 全局 rank、组内 rank、DP rank、TP rank | 参与分布式执行的成员编号；编号的范围由全局或具体通信组决定。 | collective-communication | DP 编号和全局 worker 编号分开。 |
 
@@ -82,6 +88,7 @@
 | scale / zero-point | 缩放系数、零点 | 共同定义整数编码怎样映射回近似数值；对称方案可省去零点。 | quantization | 记录系数对应的维度、方向和类型。 |
 | BF16 | bfloat16、Brain Floating Point | 16 位浮点格式，符号、指数、尾数小数位分别为 1、8、7 位。 | low-precision-formats | 指数范围和局部分辨率分别比较。 |
 | NF4 | NormalFloat | QLoRA 中按正态分布设计的四位数值编码。 | low-precision-formats | 不等于 E2M1，也不是任意硬件原生 FP4。 |
+| MXFP8 / MXFP4 | MXFP8、MXFP4、MXFP、微缩浮点、Microscaling FP | OCP 微缩放浮点格式：每 32 个连续元素共用一个 8 位 2 的幂次块缩放指数（E8M0），元素本体用 8 位或 4 位浮点存储。 | low-precision-formats | 细粒度块缩放显著缓解激活与权重的离群值溢出；昇腾硬件原生支持范围按具体芯片代际（如 Ascend 950）核对。 |
 | PTQ | Post-Training Quantization、训练后量化 | 从已训练模型出发，通过统计、搜索或层级重构得到量化参数。 | quantization-methods | 不要求完整重跑训练；仍有量化计算成本，是否校准取决于方法。 |
 | QAT | Quantization-Aware Training、量化感知训练 | 在训练中模拟目标量化误差，让参数适应部署时的低精度计算。 | quantization-methods | 伪量化不等于所有训练张量都低比特存储。 |
 | 校准 | calibration、校准集 | 用代表性输入估计范围、分布或误差，帮助选择量化参数。 | quantization-methods | 不限于静态激活量化；和最终评测样本分开。 |
@@ -103,10 +110,15 @@
 | Atlas A2 / A3 | Atlas A2、Atlas A3 | 昇腾产品系列的称呼，具体规格还要看完整产品型号。 | hardware-devices | 不把 910B、A5 混作同义词；首次写全 Atlas A2 / Atlas A3。 |
 | 显存 | 设备内存、HBM | NPU 侧供计算使用的内存，常存权重、KV Cache 和临时结果。 | device-memory | HBM 是内存技术名，不是所有设备内存的同义词；实际预算见 kv-cache-memory-profiling。 |
 | 主机内存 | host memory、CPU 内存 | CPU 一侧的内存，和设备显存分别计算容量。 | device-memory | 不假定容量或速度关系；卸载过程见 kv-cache-cpu-offload。 |
+| UVA | Unified Virtual Addressing、统一虚拟编址、统一虚拟寻址、Host UVA | 把锁页注册后的主机内存与 NPU 显存编入同一套虚拟地址空间，让 NPU 核函数直接按统一指针读写主机侧缓冲。 | device-memory | 可省去部分显式拷贝（如 MRV2 请求状态表、Engram 主机卸载），但数据物理上仍在主机 DRAM，带宽与容量不计入 HBM。 |
+| NUMA | Non-Uniform Memory Access、非一致内存访问、NUMA 节点 | 多路服务器把 CPU 核心与本地内存条分成若干就近分组；访问本组内存和直连 PCIe/NPU 更快，跨组访问延迟更高。 | cpu-binding | Worker 绑核把主机下发线程钉在对应 NPU 就近的 NUMA 节点核心上，减少跨节点争抢与算子下发抖动。 |
 | AI Core | AICore | NPU 内承担计算的一类核心，另含存储、搬运与控制部件。 | ai-core | 已按 CANN 8.0.RC2 指南核实耦合/分离模式；不是 Cube、Vector 的同义词。 |
 | Cube / Vector / Scalar | AIC、AIV、AI Cube、AI Vector | 分别承担矩阵、向量、标量计算的单元。 | ai-core | AIC/AIV 是分离模式下的核心称呼，和单元层级分开讲；不推定核数比例。 |
+| MTE | Memory Transfer Engine、数据搬运引擎、MTE1、MTE2、MTE3 | 昇腾 AI Core 内部专职在全局显存（GM）与各级片上缓存（L1、L0A/B、UB）之间异步搬运数据块的硬件单元。 | ai-core | 与 Cube / Vector 计算单元流水重叠执行；搬运耗时盖过计算耗时时，算子就会受限于访存或搬运等待。 |
 | CANN | 昇腾软件栈 | 承接上层计算框架、提供运行时、算子、图与通信等能力的软件体系。 | cann-hccl | 环境记录中将 CANN 与驱动、固件版本分别列出。 |
+| ATB | Ascend Transformer Boost、昇腾加速库 | 昇腾神经网络加速库（NNAL）中面向大模型推理的高性能融合算子与图加速组件。 | ops-and-kernels | 裸机部署须加载对应环境脚本（官方容器已内置）；Worker 冷启动收尾常做一次小矩阵 ATB 预热以避免首请求抖动。 |
 | HCCL | 集合通信库 | 组织昇腾设备在同机或跨机器收发、合并数据的软件库。 | cann-hccl | 首次写「HCCL（昇腾集合通信库）」；属于 CANN，不是物理链路。 |
+| HCCS | Huawei Cache Coherence System、昇腾片间高速互联 | 昇腾芯片及同机多卡（或超节点内）之间的高速直连物理链路，带宽远高于跨机以太网。 | hardware-devices | 张量并行每层频繁同步，通常优先放在 HCCS 互联域内；具体环路或全互联拓扑依机型（如 A2 / A3）核对。 |
 | 超节点 | SuperPoD | 多个计算设备通过高速互联组成的协作系统。 | hardware-devices | 已核 Atlas 900 A3 SuperPoD 官方实践；内存池化还依赖软件，不能把它说成自动合成一颗 NPU。 |
 | 机器 | 节点、服务器、单机 | 一台物理服务器。 | hardware-devices | 「节点」可能指物理机器，也可能指 P/D 部署角色，正文应说明语境。 |
 
@@ -127,18 +139,21 @@
 | all-to-all | All-to-All、AllToAll、全交换 | 每个成员按目标成员拆分发送内容，并收集来自各成员的相应部分。 | collective-communication | 负载不均时还需相应变长协议或实现。 |
 | MC2 | 通算融合 | 把矩阵计算与通信协同执行的一类昇腾实现。 | large-scale-ep | 是否减少暴露的等待取决于实现与负载，不自动降低通信字节数。 |
 | dispatch / combine | 派发、结果组合 | MoE 按路由把输入分配给专家，再把返回结果按对应关系与权重组合。 | expert-parallel | token–expert 配对数、网络消息数与算子调用次数分开。 |
+| EPLB | Expert Parallelism Load Balancer、专家负载均衡、动态专家均衡 | 在专家并行运行期统计各专家被选中的冷热负载，把热门专家复制多份或重排卡间放置，并在线搬运权重切换路由表。 | eplb | 缓解少数热门专家把单张卡堵成整批木桶短板的问题；开启冗余副本会多占显存，重排搬运也有周期开销。 |
+| RoCE / RDMA | RoCE、RDMA、RoCEv2、远程直接内存访问 | 绕过操作系统内核协议栈、由网卡直接在两台机器的内存或显存之间读写数据的低延迟跨机网络技术（RoCE 即跑在以太网上的 RDMA）。 | cann-hccl | 跨机 EP 专家通信、PD 分离 KV 传输与跨节点权重直传常走高速 RoCE 网络（同机或超节点内则可走 HCCS / UB 等直连链路）；带宽仍低于机内互联，需区分机内与跨机通信域。 |
+| NIXL / HIXL | NIXL、HIXL、KV 传输后端 | 面向推理实例间异步点对点显存/内存块直传的传输库层（NIXL 为 NVIDIA Inference Xfer Library，HIXL 为昇腾 Huawei Xfer Library）。 | mooncake-connector | 处于连接器与底层物理链路（HCCS / UB / RoCE / TCP）之间，按登记好的内存地址段批量读写，不走 HTTP 传张量。 |
 | process group | 通信组 | 具有明确成员及组内编号、用于组织通信的逻辑集合。 | collective-communication | 成员关系不说明物理链路。 |
 | Broadcast | 广播 | 指定来源成员把同一数据传给组内其他成员。 | collective-communication | 无归约。 |
 | Reduce | 归约 | 对组成员输入执行指定操作，仅目标成员得到结果。 | collective-communication | 区别于所有成员都得到结果的 All-Reduce。 |
 | Gather / Scatter | 收集 / 分发 | 分别把各成员分片集中到目标，或从来源分发不同分片。 | collective-communication | 区分集合操作与本地索引。 |
 | Send / Recv | 发送 / 接收 | 两个通信成员之间的点对点数据传输。 | collective-communication | 消息与接收需要匹配。 |
-### 五、RFork 工作版
+### 五、RFork 权重快载
 
-RFork 是同事仓库的权重加载工作版，术语自成一套；下面只收 RFork 特有的词，和前四节重复的（TP / PP / EP / DP、rank、world size、MoE、expert、MTP、MLA、quantization、shape、dtype 等）不再重列。
+RFork 是社区上游 `vllm-ascend main` 中的实验性跨实例权重快载机制；下面只收 RFork 特有的词，和前四节重复的（TP / PP / EP / DP、rank、world size、MoE、expert、MTP、MLA、quantization、shape、dtype 等）不再重列。
 
 | 统一叫法 | 别的叫法（收进 aliases） | 简明定义 | 对应页面 | 备注 |
 | --- | --- | --- | --- | --- |
-| RFork | 工作版、权重直传 | 让新起的 Worker 直接从已加载好的 Worker 读权重的加载方式。 | rfork | 独立演进的工作版，不等于上游 vllm-ascend 的能力。 |
+| RFork | Tensor Remote Fork、权重直传 | 让新起的 Worker 直接从已加载好的同身份 Worker 显存读取权重的快载方式。 | rfork | 已合入社区上游 `vllm-ascend main`（实验特性），借不到或校验不合时安全退回默认存储加载。 |
 | seed | 种子 | 已加载好、可以对外提供权重的来源 Worker。 | rfork-identity | 它还可以同时服务推理；一个 Worker 先当 receiver，之后可以转成 seed。 |
 | receiver | destination、接收端 | 正在接收权重的 Worker。 | rfork-transfer | 自己分配目标内存并主动发起读。 |
 | Planner | scheduler、调度服务 | 管理有哪些 seed、还剩多少名额的外部服务。 | rfork-config | 名字虽叫 scheduler，但不是 vLLM 逐 token 的请求调度器。 |

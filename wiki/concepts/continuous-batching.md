@@ -17,6 +17,8 @@ aliases:
   - 随退随补
   - 两队列调度
   - ragged batching
+  - FCFS
+  - First-Come First-Served
 chapters:
   - '03'
 sources:
@@ -83,7 +85,7 @@ updated: '2026-11-18'
 file: continuous-batching-static-vs-iter
 ```
 
-对照上图左栏的示意（`R1` 提示词 2 个位置、只生成 2 个词就撞上 `EOS`；`R2` 提示词 5 个位置、要生成 4 步才完结；新请求 `R3` 在 `t=2` 到达），静态批处理的三重浪费一目了然：
+对照上图左栏的示意（`R1` 提示词 2 个位置、只生成 2 个词就撞上结束符 `EOS`（End of Sequence）；`R2` 提示词 5 个位置、要生成 4 步才完结；新请求 `R3` 在 `t=2` 到达），静态批处理的三重浪费一目了然：
 
 1. **短提示词补 `<pad>` 白跑乘加**：为了凑齐二维矩形宽度，`R1` 被迫在提示词末尾塞入 3 个无意义的 `<pad>` 占位符向 `R2` 对齐，既白占显存，又让矩阵乘法在无效位置上空耗算力。
 2. **短请求撞上 `EOS` 后陪跑空转**：`R1` 生成第 2 个词命中 `eos_token_id` 后早已完成使命，却因为二维批次形状锁死而退不出去，只能在后续迭代中继续空转陪跑，它占住的 `KV cache` 也无法归还。
@@ -178,9 +180,9 @@ file: continuous-batching-fig-ascend-padding
 
 | 扩展配置项（位于 `additional_config.scheduler_config`） | 替换的目标调度器类 | 适用拓扑与硬性边界 |
 | --- | --- | --- |
-| **`recompute_scheduler_enable: true`** | `RecomputeScheduler` / `AsyncRecomputeScheduler` | **仅限 P/D 分离的 D 节点**（`kv_role="kv_consumer"`）；混部模式直接抛 `ValueError`，P 节点告警忽略。可配 `PreemptOffloadConnector` 将被抢占 KV 暂存至主机 DRAM 免重算 |
-| **`batch_job_sched_config.enabled: true`** | `BatchJobAwareScheduler` / `BatchJobAwareAsyncScheduler` | 面向离线/大批量并发防抢占抖动：限制活跃作业数 `max_jobs` 并预留安全块水位 `reserve_margin_blocks`；与 `short_request_first_config` 互斥 |
-| **`profiling_chunk_config.enabled: true`** | `ProfilingChunkScheduler`（`v0.23.0`–`v0.30.0`） | 仅在流水线并行 `PP > 1` 下按耗时拟合动态分块尺寸，与 `enable_balance_scheduling` 互斥；社区 `main` 切入 MRV2 后已移除该分支 |
+| **`recompute_scheduler_enable: true`** | [`RecomputeScheduler`](recompute-scheduler.md) / `AsyncRecomputeScheduler` | **仅限 P/D 分离的 D 节点**（`kv_role="kv_consumer"`）；混部模式直接抛 `ValueError`，P 节点告警忽略。可配 [`PreemptOffloadConnector`](recompute-cpu-offload.md) 将被抢占 KV 暂存至主机 DRAM 免重算 |
+| **`batch_job_sched_config.enabled: true`** | [`BatchJobAwareScheduler`](batch-job-aware-scheduler.md) / `BatchJobAwareAsyncScheduler` | 面向离线/大批量并发防抢占抖动：限制活跃作业数 `max_jobs` 并预留安全块水位 `reserve_margin_blocks`；与 [`short_request_first_config`](short-request-first.md) 互斥 |
+| **`profiling_chunk_config.enabled: true`** | [`ProfilingChunkScheduler`](../params/profiling-chunk-config.md)（`v0.23.0`–`v0.30.0`） | 仅在流水线并行 `PP > 1` 下按耗时拟合动态分块尺寸，与 [`enable_balance_scheduling`](balance-scheduling.md) 互斥；社区 `main` 切入 MRV2 后已移除该分支 |
 
 ## 常见误解
 

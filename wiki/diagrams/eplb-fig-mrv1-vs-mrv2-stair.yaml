@@ -1,7 +1,7 @@
 mode: native-svg
 id: eplb-fig-mrv1-vs-mrv2-stair
 caption: EPLB 在 v0.30.0 的 MRV1/MRV2 互斥双轨与 main 全面收敛至 MRV2 STAIR 控面的对比：涵盖 MRV1 三段计数器与 D2D 搬运换表、MRV2 AscendEPLBController 的 STAIR 策略与全组一致 HIXL/Gloo 协商，以及 A2 无冗余专家与量化格式边界。
-size: [900, 526]
+size: [900, 572]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L282-L335'
     symbols: ['dynamic_eplb', 'expert_heat_collection_interval', 'algorithm_execution_interval', 'load_collection_phase', 'stair_config']

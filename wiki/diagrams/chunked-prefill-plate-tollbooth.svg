@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="Chunked Prefill 趣味微缩收费站对比图：左侧超长 PREFILL 货运列车整列过闸拖慢同批 Decode 快递车，右侧调度亭将长列车按预算分节切片并与快递车同批混行控停顿" font-family="var(--font-sans)">
+  <title>长货运列车过闸 vs 分节切片与快车混行：直观展示为什么开启 Chunked Prefill 能大幅收敛长提示词对同批在线生成请求（Decode）的单步等待拖累。</title>
+  <desc>关联源码符号：schedule, token_budget, enable_chunked_prefill, num_computed_tokens, _update_after_schedule, is_prefill_chunk, _build_attn_state, ChunkedPrefill</desc>
+
+  <image href="./wiki-illustrations/chunked-prefill-tollbooth-scene.webp" x="35" y="140" width="830" height="295" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 1 -> 左侧超长 PREFILL 列车 -->
+  <line x1="225" y1="112" x2="225" y2="232" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="225" cy="232" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="225" cy="232" r="2.5" fill="#c95b3c"/>
+
+  <!-- 2 -> 右上调度收费亭切片 -->
+  <line x1="612" y1="112" x2="612" y2="206" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="612" cy="206" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="612" cy="206" r="2.5" fill="#087f73"/>
+
+  <!-- 3 -> 右侧分节短车厢 -->
+  <line x1="695" y1="112" x2="695" y2="245" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="695" cy="245" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="695" cy="245" r="2.5" fill="#c78300"/>
+
+  <!-- 4 -> 左下被堵住的 Decode 快递车群 -->
+  <line x1="235" y1="456" x2="235" y2="322" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="235" cy="322" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="235" cy="322" r="2.5" fill="#c95b3c"/>
+
+  <!-- 5 -> 右下顺畅混行的 Decode 快递车 -->
+  <line x1="652" y1="456" x2="652" y2="324" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="652" cy="324" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="652" cy="324" r="2.5" fill="#087f73"/>
+
+  <g id="callout-1">
+    <circle cx="28" cy="28" r="12" fill="#c95b3c"/>
+    <text x="28" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="48" y="33" font-size="15" font-weight="700" fill="#17211f">整列硬闯的长提示词 (无分块)</text>
+    <text x="48" y="58" font-size="13.5" fill="#4d5652">万字提示词一次性塞满整步算力</text>
+    <text x="48" y="81" font-size="13.5" fill="#4d5652">算力大但耗时远超单步毫秒级生成</text>
+    <text x="48" y="104" font-size="13.5" fill="#66716d">激活显存峰值也随整段长度猛涨</text>
+  </g>
+
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#087f73"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="15" font-weight="700" fill="#17211f">按剩余预算切分 (<tspan font-family="var(--font-mono)">token_budget</tspan>)</text>
+    <text x="338" y="58" font-size="13.5" fill="#4d5652">调度器先扣掉在跑请求的每步 1 格</text>
+    <text x="338" y="81" font-size="13.5" fill="#4d5652">余下额度能装几节车厢就先放几节</text>
+    <text x="338" y="104" font-size="13.5" fill="#66716d"><tspan font-family="var(--font-mono)" font-weight="700">num_computed_tokens</tspan> 记住断点</text>
+  </g>
+
+  <g id="callout-3">
+    <circle cx="622" cy="28" r="12" fill="#c78300"/>
+    <text x="622" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="642" y="33" font-size="15" font-weight="700" fill="#17211f">分段续算、末节出首字</text>
+    <text x="642" y="58" font-size="13.5" fill="#4d5652">中间段只写 KV 历史、丢弃临时采样</text>
+    <text x="642" y="81" font-size="13.5" fill="#4d5652">最后一节过闸才真正吐出首个 token</text>
+    <text x="642" y="104" font-size="13.5" fill="#66716d">代价：前面已入库的历史会被多读几遍</text>
+  </g>
+
+  <g id="callout-4">
+    <circle cx="28" cy="476" r="12" fill="#c95b3c"/>
+    <text x="28" y="480.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="481" font-size="15" font-weight="700" fill="#17211f">被栏杆堵死的在跑生成（TPOT 尖峰）</text>
+    <text x="48" y="506" font-size="13.5" fill="#4d5652">每辆快递车原本只需算 1 个新词就能发走</text>
+    <text x="48" y="530" font-size="13.5" fill="#4d5652">陪跑整列长车导致屏幕输出瞬间顿挫停滞</text>
+  </g>
+
+  <g id="callout-5">
+    <circle cx="476" cy="476" r="12" fill="#087f73"/>
+    <text x="476" y="480.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="496" y="481" font-size="15" font-weight="700" fill="#17211f">同批混行控停顿（收敛单步等待）</text>
+    <text x="496" y="506" font-size="13.5" fill="#4d5652">快递车与单节短车厢并入同一个混合前向步</text>
+    <text x="496" y="530" font-size="13.5" fill="#4d5652">既吃满矩阵算力，又把单步耗时压在预算内</text>
+  </g>
+</svg>

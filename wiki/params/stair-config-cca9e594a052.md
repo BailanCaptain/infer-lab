@@ -7,6 +7,10 @@ evidence: C
 summary: >-
   additional_config.eplb_config 下给 MRv2 STAIR（StairEplbPolicy）调参的嵌套字典，十个数值键分管负载窗口压缩、滞回重排门槛、风险分位数、副本数搜索、搬运上限与有界回溯。v0.30.0 与 main 已接入 MRv2 并默认启用 stair 策略，未指定通信器回退 Gloo 时自动收紧未显式配置的搬运限额。
 aliases:
+  - STAIR
+  - StairConfig
+  - StairEplbPolicy
+  - eplb_config.stair_config
   - STAIR 配置
   - STAIR EPLB policy config
 relations:
@@ -18,6 +22,9 @@ relations:
     note: >-
       这个键是 additional_config.eplb_config 里的嵌套 dict；钉点上写了为什么会起不来（逐键报错与
       extra="forbid"）在那一页
+  - to: model-runner-v2
+    kind: builds-on
+    note: STAIR 仅在 Model Runner V2 的 AscendEPLBController 中接入并默认启用，MRv1 旧规划器拒绝 stair_config
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -109,7 +116,7 @@ rawSources:
 
 在 MoE（混合专家）分布式推理里，热门专家所在的卡容易排长队，冷门卡却在空等。[EPLB（专家并行负载均衡）](../concepts/eplb.md#怎么算数配对比峰均换位置)定期统计各专家负载，给热点专家增加冗余副本并在卡间重排位置。
 
-**STAIR（`StairEplbPolicy`）** 是 `v0.30.0` 与 `main` 在 Model Runner V2（MRv2）上默认启用的新一代 EPLB 规划算法，在常规重排之上叠加了三层保护：
+**STAIR（`StairEplbPolicy`）** 是 `v0.30.0` 与 `main` 在 [Model Runner V2（MRv2）](../concepts/model-runner-v2.md) 上默认启用的新一代 EPLB 规划算法，在常规重排之上叠加了三层保护：
 1. **波动留余量**：用「均值 + $z \times$ 标准差（含同卡专家协方差）」给专家与单卡打风险分；
 2. **双门滞回防抖**：避免轻微负载抖动就反复搬运权重；
 3. **搬运限流与有界回溯**：约束单轮每卡与跨节点的搬运上限。

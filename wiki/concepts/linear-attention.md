@@ -11,6 +11,7 @@ aliases:
   - Linear Attention
   - KDA
   - Kimi Delta Attention
+  - GDN
   - Gated DeltaNet
   - DeltaNet
   - 递推状态
@@ -71,19 +72,22 @@ evidence: C
 relations:
   - to: attention-qkv
     kind: builds-on
-    note: 那页讲标准 attention 的 q/k/v 与逐位置 softmax，并列出 GLM 两类 attention；本页是其中 KDA 的详细页
-  - to: glm-5-3-flash
+    note: 那页讲标准 attention 的 q/k/v 与逐位置 softmax；本页去掉逐位置 softmax，用定长递推状态替代
+  - to: kv-cache
     kind: builds-on
-    note: 34 层 KDA、64 个头 128 维、短卷积核长 4 这些模型形状以那页为准
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 逻辑块 640、一个块号 7.969 MiB、短请求 15 块的推导唯一出处在那页
-  - to: speculative-decoding
-    kind: builds-on
-    note: 状态为什么要为 3 个草稿位置多留格子
+    note: 线性注意力不按位置增长 KV cache，而是为每条请求维护固定大小的状态矩阵与短卷积缓存
+  - to: gqa
+    kind: alternative-to
+    note: GQA 仍保留逐位置 K/V 历史仅减少 KV 头数；线性注意力把历史压缩成 O(1) 定长状态
   - to: mla
     kind: alternative-to
-    note: 每 4 层里那 1 层用另一条路线，保留按位置访问的历史
+    note: MLA 压缩每位置潜向量但仍随长度线性增长；线性注意力状态大小恒定，常与 MLA 交替混排
+  - to: sparse-attention
+    kind: alternative-to
+    note: 内容稀疏注意力保留全历史按 top-k 召回；线性注意力通过衰减与 delta 纠错原地更新定长状态
+  - to: swa-bounded-replay
+    kind: alternative-to
+    note: 滑动窗口保留最近 W 格精确历史；线性注意力把任意长度的历史持续压缩进定长矩阵状态
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -180,7 +184,7 @@ file: kda-evolution
 file: linear-attention-state
 ```
 
-图画的是单个头、单个位置的递推。真实一层还会先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度和两个门；`q`、`k`、`v` 各过短卷积后，`q`、`k` 再做 L2 归一化使 $(I - \beta k k^\top)$ 不会放大状态。各头独立维护状态，读出结果经输出门、归一化与输出投影回到隐藏宽度。
+图画的是单个头、单个位置的递推。真实一层还会先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度和两个门；`q`、`k`、`v` 各过短卷积后，`q`、`k` 再做 L2 归一化（将向量除以自身欧氏长度缩放到单位长度）使 $(I - \beta k k^\top)$ 不会放大状态。各头独立维护状态，读出结果经输出门、归一化与输出投影回到隐藏宽度。
 
 把这五步在两维上走一遍就能看清各项的作用（示意数）：取旧状态 $S_{t-1} = I$、通道衰减 $D = \text{diag}(0.5, 1)$（通道 0 留一半、通道 1 全保留）、$k = q = (1, 0)^\top$、$v = (3, 2)^\top$、$\beta = 0.5$（图示见后文矩阵演进图上半区）：
 
@@ -213,7 +217,7 @@ file: linear-attention-state
 
 **为一条请求保留投机状态并补齐页面后，KDA 对应的页容量是 85 MiB，不是 18.2 MiB。** 中间有两步放大，来自状态份数和分配对齐，不能当成每步实际写入量：
 
-1. **一份状态被补齐到和一个 MLA 页一样大。** GLM 是 hybrid 模型，KDA 的固定状态和 MLA 的按位置历史要共用同一批物理槽，页大小取两者的较大值 655,360 B，放进 561,152 B 的状态后，页里约 14.4% 是填充。655,360 和逻辑块 640 个 token 的由来见[部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。
+1. **一份状态被补齐到和一个 MLA 页一样大。** GLM 是混合架构（hybrid）模型，KDA 的固定状态和 MLA 的按位置历史要共用同一批物理槽，页大小取两者的较大值 655,360 B，放进 561,152 B 的状态后，页里约 14.4% 是填充。655,360 和逻辑块 640 个 token 的由来见[部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。
 
    这里取较大值的是单页容量，不是把 KDA 各层与 MLA 各层的总缓存取较大值；物理槽位采用相同容量，也不表示两类层共享同一份历史内容。
 2. **投机解码再要 3 页。** 一轮验证会算出 3 个候选位置各自的状态，每个候选存一页；下一步按实际接受了几个，从对应那页接着算。于是每层每请求是 1 + 3 = 4 页，每页 655,360 B。

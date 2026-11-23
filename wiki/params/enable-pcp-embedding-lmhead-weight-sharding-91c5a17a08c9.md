@@ -7,7 +7,9 @@ summary: >-
   TP 互斥，main 还互斥 enable_batch_sharded_sampling。
 aliases:
   - enable_pcp_embedding_lmhead_weight_sharding
+  - additional_config.enable_pcp_embedding_lmhead_weight_sharding
   - PCP embedding/LM-head 权重切分
+  - TP×PCP 词表切分
 legacyAnchors:
   一句话: 它怎么按 TP×PCP 切分词表，生效门是什么？
   事实表: 它怎么按 TP×PCP 切分词表，生效门是什么？
@@ -32,6 +34,15 @@ relations:
     note: >-
       和它的 embedding_tensor_parallel_size / lmhead_tensor_parallel_size
       切的是同一批权重，撞上在权重构建期直接 ValueError，二选一
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该顶层布尔键通过 AscendConfig 解析并带缓存读取，配置工厂刷新与未知键校验机制见该页
+  - to: embedding
+    kind: builds-on
+    note: 开启后 embed_tokens 词表查表按 TP×PCP 网格分片并新增 PCP 组内 All-Gather 与 Reduce-Scatter
+  - to: lm-head
+    kind: builds-on
+    note: 开启后 lm_head 词表投影按 TP×PCP 网格分片，常规路径在 TP 汇聚前多一次 PCP All-Gather
 sources:
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480
@@ -141,16 +152,16 @@ rawSources:
 ---
 ## 它怎么按 TP×PCP 切分词表，生效门是什么？
 
-开启 PCP（`prefill_context_parallel_size > 1`，见 [Context Parallel](../concepts/context-parallel.md)）后，embedding 与 LM Head 通常是「词表 × hidden」的大矩阵；传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片。
+开启 PCP（`prefill_context_parallel_size > 1`，预填充上下文并行，见 [Context Parallel](../concepts/context-parallel.md)）后，[embedding](../concepts/embedding.md)（首层词表查表）与 [LM Head](../concepts/lm-head.md)（末层词表投影）通常是「词表 × hidden」的大矩阵；传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片。
 
 `enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 `True`）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。若要恢复 PCP 组内各卡保留完整 TP 切片的旧行为，须显式配置 `false`。
 
 | 关键项 | 行为与约束 | 说明 |
 | --- | --- | --- |
-| 真实路径与默认 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]`，`bool = True` | 顶层键；读取访问函数缓存结果，配置工厂发布新单例或清理配置时会清缓存（直接改旧对象不会刷新，也不重建已建权重布局） |
-| 生效门与优先级 | 先判 `disable_tp`：为真时优先走复制模式（如显式 `disable_tp=True` 的 `ParallelLMHead` / `markov_head`）；否则要求 `prefix` 字符串包含 `embed_tokens` 或 `head`、本键为真且 `PCP > 1` | `PCP = 1` 时不进入 PCP 分片路径，关闭本键则回退普通 TP 或适用的细粒度 TP |
+| 真实路径与默认 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]`，`bool = True` | 顶层键；经 [AscendConfig](../concepts/ascend-config-system.md) 解析，读取访问函数缓存结果，配置工厂发布新单例或清理配置时会清缓存（直接改旧对象不会刷新，也不重建已建权重布局） |
+| 生效门与优先级 | 先判 `disable_tp`：为真时优先走复制模式（如显式 `disable_tp=True` 的 `ParallelLMHead` / `markov_head`）；否则要求 `prefix` 字符串包含 `embed_tokens` 或 `head`、本键为真且 `PCP > 1` | `PCP = 1` 时不进入 PCP 分片路径，关闭本键则回退普通 TP 或适用的[细粒度 TP](../concepts/fine-grained-tp.md) |
 | 互斥规则 | 与同模块细粒度 TP（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）在模块构建期互斥抛 `ValueError`；`main` 另新增与 `enable_batch_sharded_sampling`（在 `PCP > 1` 时）的互斥 | 早期 `39fef3f8` 曾与 `enable_reduce_sample` 互斥；`v0.30.0` 与 `main` 已无 `enable_reduce_sample` 旧键（传入按未知顶层键拒收或 Omni 告警过滤） |
-| 版本与 runner 门槛 | PR #17159（2026-09-23）引入；`v0.23.0`、`v0.26.0rc`（及早期 `baa023ad`）无此键；`v0.30.0` 与 `main` 均有且要求 V2 model runner 才允许 `PCP > 1` | 旧普通构造器忽略该键；严格配置版本拒收未知顶层键（发现 `vllm_omni` 时告警过滤） |
+| 版本与 runner 门槛 | PR #17159（2026-09-23）引入；`v0.23.0`、`v0.26.0rc`（及早期 `baa023ad`）无此键；`v0.30.0` 与 `main` 均有且要求 [Model Runner V2](../concepts/model-runner-v2.md) 才允许 `PCP > 1` | 旧普通构造器忽略该键；严格配置版本拒收未知顶层键（发现 `vllm_omni` 时告警过滤） |
 
 ## 网格切分示例与两侧新增通信
 

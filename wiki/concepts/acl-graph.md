@@ -176,11 +176,11 @@ verified:
 evidence: C
 relations:
   - to: graph-mode-layer
+    kind: variant-of
+    note: ACL Graph 是通用图模式（graph mode）在昇腾 NPU 上的捕获与回放实现，对照分派规则先看该页
+  - to: kv-cache-memory-profiling
     kind: builds-on
-    note: 先看懂捕获与回放的一般道理，再看昇腾这套实现
-  - to: concurrent-requests
-    kind: builds-on
-    note: 本轮宽度补到哪一档、两组怎么对齐，账在那一页
+    note: capture_model 录图显存由 1−u 预算外余量支付，910B3 u=0.90 捕获期 OOM 账本见该页
   - to: npu-model-runner
     kind: builds-on
     note: 决定本轮用不用图、把数据写进固定缓冲的是它
@@ -209,7 +209,7 @@ rawSources:
 
 ## 一步里的几百个任务，能不能一次交给设备
 
-**ACL Graph 是昇腾（Ascend）上实现 graph mode 的那套代码：启动时按几个固定的宽度，把一步前向要做的设备任务连同它们读写的地址一起录下来；之后遇到同样宽度的一步，Host 只提交一次，设备就照录好的次序把整串跑完。**
+**ACL Graph 是昇腾（Ascend）基于 ACL（Ascend Computing Language，昇腾计算语言运行时接口）实现 graph mode 的那套代码：启动时按几个固定的宽度，把一步前向要做的设备任务连同它们读写的地址一起录下来；之后遇到同样宽度的一步，Host 只提交一次，设备就照录好的次序把整串跑完。**
 
 先说清三个词。**设备任务**是一次矩阵乘、归一化或注意力计算这样交给 NPU 执行的活儿，一步前向由几百个任务组成；**Host** 是跑模型的 CPU 进程，负责告诉设备「算什么、数据在哪」；**graph mode** 是「录下任务次序、之后整串重放」的通名。档位划分、选图判据与退回规则见[图模式](graph-mode-layer.md)。本页聚焦昇腾实现：图里录了什么、回放前必须满足什么、哪些活儿进不了图，以及标准与 GLM 双机配方如何落地。编译期算子融合是另一件事，可与回放同时开，见[编译期图融合](npugraph-ex.md)。
 

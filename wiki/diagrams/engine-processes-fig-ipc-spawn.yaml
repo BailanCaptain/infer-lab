@@ -1,8 +1,8 @@
 mode: native-svg
 id: engine-processes-fig-ipc-spawn
 caption: >-
-  vLLM V1 跨进程通道拓扑与 fork / spawn 状态继承时间轴：上半绘制多 API 前端通过 64B 槽位对齐的 SharedAdmissionStats 汇总在途准入，经 ZMQ IPC/TCP 接入 EngineCore 双收发线程，再按 Executor 分流至 Multiproc（rpc_broadcast_mq 共享内存广播 + HCCL 卡间通信）或 UniProc（进程内函数直调）；下半对比 fork 出生瞬间快照继承与 spawn 全新空解释器须靠各进程入口补齐补丁及 AscendConfig 的机制，并标注动态 EPLB 须设 daemon=False 的约束。
-size: [900, 520]
+  vLLM V1 跨进程通信拓扑（ZMQ / 共享内存 / HCCL）与 fork vs spawn 地址空间隔离时间轴：上半绘制多 API 前端经 64B 槽位对齐的 SharedAdmissionStats 汇总在途准入、通过 ZMQ IPC/TCP 接入 EngineCore（忙循环、调度器、KV 块号池与 patch_engine_core），再按 Executor 分流至 Multiproc（rpc_broadcast_mq 共享内存广播至 NPUWorker W0..Wk，1:1 绑定 Ascend NPU davinci 0..k 并以 HCCL Ring/Mesh 直连）或 UniProc（进程内函数直调）；下半以显式水平时间轴（t0→t3）对比 fork 的 Y 形虚拟内存分叉与 COW 页表共享物理页隔离（含上游强制切 spawn 条件）以及 spawn 启动空地址空间后在 EngineCore 与 NPUWorker.__init__ 节点补齐补丁与本地配置（含 MRV1 动态 EPLB 须设 daemon=False，MRV2 改走 AscendEPLBController）。
+size: [900, 686]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/admission_control.py#L13-L52'
     symbols: [SharedAdmissionStats, set_num_requests, get_num_requests]

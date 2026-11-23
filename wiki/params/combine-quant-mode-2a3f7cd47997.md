@@ -15,6 +15,8 @@ aliases:
   - MC2 combine 通信量化
   - combine 阶段通信量化模式
   - 强制 combine 量化模式
+  - additional_config.combine_quant_mode
+  - comm_quant_mode
 chapters:
   - '14'
   - '17'
@@ -159,13 +161,13 @@ rawSources:
 ---
 ## 它覆盖哪一步通信量化，为什么 0 不等于关闭量化？
 
-`combine_quant_mode` 是 `additional_config` 顶层的整数配置字段，只控制一件事：MoE 的 **MC2 combine 阶段**——专家算完后，把结果沿 EP 组收回各自 rank 的那次 all-to-all——在通信时采用哪种量化模式。设为**非零值**时，它会直接把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强行设成该值，短路压过模型量化类型与量化方法自己的判断。
+`combine_quant_mode` 是 `additional_config` 顶层的整数配置字段，只控制一件事：[MoE](../concepts/moe.md) 的 **MC2 combine 阶段**——专家算完后，把结果沿 [EP（专家并行）](../concepts/expert-parallel.md) 组收回各自 rank 的那次 all-to-all（全对全跨卡通信）——在通信时采用哪种量化模式。设为**非零值**时，它会直接把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强行设成该值，短路压过模型量化类型与量化方法自己的判断。
 
 **设为默认 `0` 表示「不人工干预」，不等于强制关闭通信量化。** combine 侧按四级优先级由高到低决定最终 `quant_mode`：
 
 1. 用户显式配置的非零 `combine_quant_mode`（第一顺位，优先级高于后续所有默认项，有上游单测锁死）；
 2. 模型量化方法传来的 `combine_metadata.quant.comm_quant_mode`（只要不是 `None` 就采用，包括显式的 `0`）；
-3. 未提供上述值且 `quant_type == QuantType.W8A8MXFP` 时，自动选用模式 `4`；
+3. 未提供上述值且 `quant_type == QuantType.W8A8MXFP`（微缩放 8 位浮点量化）时，自动选用模式 `4`；
 4. 其余情况回退到 `0`（仅表示通信不额外量化，不代表所有模型的专家输出一定是 BF16）。
 
 ```python

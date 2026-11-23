@@ -4,6 +4,11 @@ title: load_risk_quantile
 type: param
 summary: >-
   STAIR 评估专家与卡负载风险时所用的单侧标准正态分位数：把负载记为均值 + z × 标准差（卡级风险计入同卡专家协方差），默认 0.75（z ≈ 0.674），合法范围 (0.5, 1)。只影响候选生成（副本数与摆放），不影响门槛和最终优胜筛选。v0.30.0 与 main 已接入 MRv2。
+aliases:
+  - stair_config.load_risk_quantile
+  - 负载风险分位数
+  - STAIR load risk quantile
+  - 专家负载协方差风险
 origin: seed
 evidence: C
 verified:
@@ -101,6 +106,12 @@ rawSources:
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 relations:
+  - to: stair-config-cca9e594a052
+    kind: builds-on
+    note: 这是 stair_config 的风险估计子键；STAIR 四步规划流程与 MRv2 默认接入边界见父参数页
+  - to: eplb
+    kind: builds-on
+    note: 按风险分数分配冗余副本并摆放专家用于降低 MoE 峰均比，EPLB 原理与副本机制见该页
   - to: load-window-bins-cc21068b082d
     kind: builds-on
     note: 风险分位数作用于压缩窗口估出的方差与协方差，其效果依赖窗口分段保留的负载波动。
@@ -112,7 +123,7 @@ relations:
 ---
 ## 它管什么，分位数如何换算为风险分数？
 
-`load_risk_quantile` 是 [stair_config](stair-config-cca9e594a052.md) 下的浮点参数，决定 STAIR（vllm-ascend 为 Model Runner V2 编写的 EPLB 规划算法）估算专家和单卡负载时**按多保守的波动余量计分**。它是 EPLB 规划风险参数，与模型解码采样分位数无关。
+`load_risk_quantile` 是 [stair_config](stair-config-cca9e594a052.md) 下的浮点参数，决定 STAIR（vllm-ascend 为 [Model Runner V2](../concepts/model-runner-v2.md) 编写的动态 [EPLB](../concepts/eplb.md) 规划算法）估算专家和单卡负载时**按多保守的波动余量计分**。它是 EPLB 规划风险参数，与模型解码采样分位数无关。
 
 专家负载会随时间起伏，STAIR 不只看平均负载，而是把每个专家与每张卡的负载记为：
 
@@ -133,7 +144,7 @@ $$\text{risk} = \mu + z \cdot \sigma, \quad z = \Phi^{-1}(\text{load\_risk\_quan
 
 ## 为什么算波动和协方差，以及它用在哪里、不用在哪里？
 
-若只按每个专家的平均负载来摆放，平均上看似均衡的摆法可能把两个「成组变热」的专家（例如同一类请求进来时同时被高频路由）放在同一张卡上：平时均值看不出异常，一到并发高峰这张卡就会拉高整层峰均比（峰均比定义见 [EPLB 页](../concepts/eplb.md#怎么算数配对比峰均换位置)）。STAIR 把单专家波动和同卡专家两两协方差都写进风险公式，让一起变热的专家叠加出更大的卡级方差，从而推动 LPT 摆放把它们拆开。源码注释将「考虑协方差的风险估计」定义为策略固定行为、不可关闭，用户能调节的只有 `z` 的大小。
+若只按每个专家的平均负载来摆放，平均上看似均衡的摆法可能把两个「成组变热」的专家（例如同一类请求进来时同时被高频路由）放在同一张卡上：平时均值看不出异常，一到并发高峰这张卡就会拉高整层峰均比（峰均比定义见 [EPLB 页](../concepts/eplb.md#怎么算数配对比峰均换位置)）。STAIR 把单专家波动和同卡专家两两**协方差**（衡量两个专家是否经常在同一时段一起变热的统计量）都写进风险公式，让一起变热的专家叠加出更大的卡级方差，从而推动 **LPT**（最长任务优先，按风险从重到轻优先摆进最轻卡）摆放把它们拆开。源码注释将「考虑协方差的风险估计」定义为策略固定行为、不可关闭，用户能调节的只有 `z` 的大小。
 
 ```wiki-diagram
 file: param-load-risk-quantile-scope

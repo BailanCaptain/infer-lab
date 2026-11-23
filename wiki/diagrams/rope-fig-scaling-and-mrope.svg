@@ -1,61 +1,133 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" width="900" height="512" role="img" aria-label="RoPE 长上下文缩放策略对比与 NeoX/GPT-J 配对及 M-RoPE 边界图" font-family="var(--font-sans)">
-  <title>RoPE 长上下文扩展的三种缩放策略（PI、NTK-aware、YaRN）按快慢频段对比，以及分量配对布局（NeoX vs GPT-J）、多模态 M-RoPE 与 GLM NoPE 边界。</title>
-  <desc>上半部分按 d_r=8、训练长度 4096 扩展至 s=2 为例对比 PI、NTK-aware 与 YaRN 对高频快对与低频慢对的不同处理；下半部分对照 NeoX/GPT-J 分量配对、多模态 M-RoPE 三轴拆分以及 GLM qk_rope_head_dim=0 的 NoPE 跳过边界。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="RoPE 长上下文频率缩放曲线与 GPT-NeoX/GPT-J 配对拓扑及 M-RoPE 三轴切片图" font-family="var(--font-sans)">
+  <title>RoPE 长上下文扩展的三种频率缩放曲线（PI、NTK-aware、YaRN），以及分量配对拓扑（NeoX vs GPT-J）、多模态 M-RoPE 三轴切片与 GLM NoPE 边界。</title>
+  <desc>上半部分画出 d_r=8、扩展因子 s=2 时 PI、NTK-aware 与 YaRN 在高频快对到低频慢对（j=0..3）上的有效频率比曲线；下半部分左侧用 4 槽配对弧线对比 GPT-NeoX（is_neox_style=True）与 GPT-J（is_neox_style=False），右侧用通道切片条对比多模态 AscendMRotaryEmbedding（mrope_section 三轴 T/H/W）与 GLM-5.3-Flash qk_rope_head_dim=0 的 NoPE 边界。关联符号：get_rope, rope_theta, rope_type, partial_rotary_factor, AscendRotaryEmbedding, cos_sin_cache, is_neox_style, AscendMRotaryEmbedding, mrope_section, triton_mrope。</desc>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、超长上下文为何不能硬外推？PI / NTK-aware / YaRN 对快慢频段的不同做法（示意：训练 4096，s=2）</text>
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、长上下文频率缩放曲线：PI / NTK-aware / YaRN 怎样区分快慢频段（d_r = 8, s = 2）</text>
 
-  <rect x="14" y="46" width="280" height="156" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-  <text x="28" y="72" font-size="15" font-weight="700" fill="#8f3229">1. PI（位置插值：一刀切压位置）</text>
-  <text x="28" y="98" font-size="13.5" fill="#17211f">全部位置编号同除以 <tspan font-family="var(--font-mono)" font-weight="700">s = 2</tspan></text>
-  <text x="28" y="124" font-size="13.5" font-weight="700" fill="#065f56">✓ 慢对安全：6000 距压成 3.0 rad</text>
-  <text x="28" y="150" font-size="13.5" font-weight="700" fill="#8f3229">✗ 快对受损：相邻差 1.0 → 0.5 rad</text>
-  <text x="28" y="176" font-size="13.5" fill="#4d5652">分辨率整体减半，近距离变糊</text>
+  <!-- Frequency-band shaded columns behind curve plot (x=94..564, y=68..232) -->
+  <rect x="94" y="68" width="230" height="164" fill="#e8edff" fill-opacity="0.45"/>
+  <rect x="324" y="68" width="120" height="164" fill="#ece9df" fill-opacity="0.65"/>
+  <rect x="444" y="68" width="120" height="164" fill="#fff0e9" fill-opacity="0.55"/>
 
-  <rect x="310" y="46" width="280" height="156" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-  <text x="324" y="72" font-size="15" font-weight="700" fill="#936300">2. NTK-aware（调大频率基数 θ）</text>
-  <text x="324" y="98" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">θ: 10000 → 25198</tspan>（不压位置）</text>
-  <text x="324" y="124" font-size="13.5" font-weight="700" fill="#065f56">✓ 第 0 快对转速 1.0 完全不动</text>
-  <text x="324" y="150" font-size="13.5" font-weight="700" fill="#065f56">✓ 第 3 慢对放慢 s 倍（3.0 rad）</text>
-  <text x="324" y="176" font-size="13.5" fill="#4d5652">中间频段按幂次分摊缩放压力</text>
+  <text x="209" y="58" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">高频快对（秒针）</text>
+  <text x="384" y="58" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4d5652">中频过渡</text>
+  <text x="504" y="58" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">低频慢对（时针）</text>
 
-  <rect x="606" y="46" width="280" height="156" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="620" y="72" font-size="15" font-weight="700" fill="#065f56">3. YaRN（分频段 + 注意力温度）</text>
-  <text x="620" y="98" font-size="13.5" fill="#17211f">按圈数阈值 <tspan font-family="var(--font-mono)" font-weight="700">α=1, β=32</tspan> 分三区</text>
-  <text x="620" y="124" font-size="13.5" font-weight="700" fill="#065f56">✓ 快对不动 / 慢对插值 / 中间过渡</text>
-  <text x="620" y="150" font-size="13.5" fill="#17211f">cos/sin 表并入 <tspan font-family="var(--font-mono)" font-weight="700">0.1·ln(s)+1 ≈ 1.07</tspan></text>
-  <text x="620" y="176" font-size="13.5" fill="#4d5652">免改 attention 代码，续训省约 10×</text>
+  <!-- Gridlines and axes -->
+  <line x1="94" y1="82" x2="564" y2="82" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="94" y1="144.5" x2="564" y2="144.5" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="94" y1="207" x2="564" y2="207" stroke="#d8d8cf" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="94" y1="68" x2="94" y2="232" stroke="#17211f" stroke-width="1.6"/>
+  <line x1="94" y1="232" x2="564" y2="232" stroke="#17211f" stroke-width="1.6"/>
 
-  <rect x="14" y="216" width="268" height="48" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="148" y="237" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">高频快对（秒针：第 0–1 对）</text>
-  <text x="148" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">约 6.3 / 63 位置一圈，早已转满</text>
+  <!-- Y-axis ticks and label -->
+  <text x="86" y="86" text-anchor="end" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">1.00×</text>
+  <text x="86" y="149" text-anchor="end" font-size="12.5" font-family="var(--font-mono)" fill="#4d5652">0.75×</text>
+  <text x="86" y="211" text-anchor="end" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">0.50×</text>
+  <text x="14" y="58" font-size="12.5" font-weight="700" fill="#4d5652">有效频比 ω′/ω</text>
 
-  <rect x="294" y="216" width="290" height="48" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="439" y="237" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">中频过渡带（第 2 对：~628 位置/圈）</text>
-  <text x="439" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">YaRN 在原频与插值频间平滑混合</text>
+  <!-- Curve 1: PI (flat 0.50x across all pairs) -->
+  <path d="M 144 207 L 504 207" fill="none" stroke="#b54237" stroke-width="2.6" stroke-dasharray="7 4"/>
+  <circle cx="144" cy="207" r="4.5" fill="#b54237"/>
+  <circle cx="264" cy="207" r="4.5" fill="#b54237"/>
+  <circle cx="384" cy="207" r="4.5" fill="#b54237"/>
+  <circle cx="504" cy="207" r="4.5" fill="#b54237"/>
+  <text x="204" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">PI 全压 0.5×（近距分辨减半）</text>
 
-  <rect x="596" y="216" width="290" height="48" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="741" y="237" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">低频慢对（时针：第 3 对 ~6283/圈）</text>
-  <text x="741" y="256" text-anchor="middle" font-size="13.5" fill="#4d5652">直接外推落入 4.1–6.28 未见弧度</text>
+  <!-- Curve 2: NTK-aware (2^(-j/3): 1.00, 0.794, 0.630, 0.500 -> y=82, 133.5, 174.5, 207) -->
+  <path d="M 144 82 C 184 102, 224 119, 264 133.5 C 304 148, 344 162, 384 174.5 C 424 187, 464 198, 504 207" fill="none" stroke="#c78300" stroke-width="2.8"/>
+  <circle cx="144" cy="82" r="4.5" fill="#c78300"/>
+  <circle cx="264" cy="133.5" r="4.5" fill="#c78300"/>
+  <circle cx="384" cy="174.5" r="4.5" fill="#c78300"/>
+  <circle cx="504" cy="207" r="4.5" fill="#c78300"/>
+  <text x="264" y="156" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">NTK 0.79×</text>
 
-  <line x1="14" y1="282" x2="886" y2="282" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <!-- Curve 3: YaRN (flat 1.00x on j=0,1; blend 0.75x on j=2; 0.50x on j=3) -->
+  <path d="M 144 82 L 264 82 L 384 144.5 L 504 207" fill="none" stroke="#087f73" stroke-width="3"/>
+  <circle cx="144" cy="82" r="5" fill="#087f73" stroke="#ffffff" stroke-width="1.4"/>
+  <circle cx="264" cy="82" r="5" fill="#087f73" stroke="#ffffff" stroke-width="1.4"/>
+  <circle cx="384" cy="144.5" r="5" fill="#087f73" stroke="#ffffff" stroke-width="1.4"/>
+  <circle cx="504" cy="207" r="5" fill="#087f73" stroke="#ffffff" stroke-width="1.4"/>
+  <text x="384" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">YaRN 过渡</text>
 
-  <text x="14" y="310" font-size="16" font-weight="700" fill="#17211f">二、实现与昇腾算子边界：配对布局不可互换，多模态用 M-RoPE，GLM 主干为 NoPE</text>
+  <!-- X-axis ticks and wavelength labels -->
+  <text x="144" y="250" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">j = 0</text>
+  <text x="264" y="250" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">j = 1</text>
+  <text x="384" y="250" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">j = 2</text>
+  <text x="504" y="250" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">j = 3</text>
+  <text x="144" y="268" text-anchor="middle" font-size="12" fill="#4d5652">~6.3 位/圈</text>
+  <text x="264" y="268" text-anchor="middle" font-size="12" fill="#4d5652">~63 位/圈</text>
+  <text x="384" y="268" text-anchor="middle" font-size="12" fill="#4d5652">~628 位/圈</text>
+  <text x="504" y="268" text-anchor="middle" font-size="12" fill="#8f3229">~6283 位/圈</text>
 
-  <rect x="14" y="328" width="424" height="170" rx="9" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="28" y="354" font-size="15" font-weight="700" fill="#3a4f93">分量配对布局（模型训练定死，推理严禁切换）</text>
-  <rect x="28" y="368" width="396" height="48" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="42" y="390" font-size="13.5" font-weight="700" fill="#3a4f93">GPT-NeoX（<tspan font-family="var(--font-mono)">is_neox_style=True</tspan>）</text>
-  <text x="42" y="409" font-size="13.5" fill="#17211f">前后半区配对：(x₀, x₂)、(x₁, x₃) —— Qwen / LLaMA 常见</text>
-  <rect x="28" y="426" width="396" height="58" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
-  <text x="42" y="448" font-size="13.5" font-weight="700" fill="#936300">GPT-J 相邻配对（<tspan font-family="var(--font-mono)">is_neox_style=False</tspan>）</text>
-  <text x="42" y="468" font-size="13.5" fill="#17211f">相邻配对：(x₀, x₁)、(x₂, x₃) —— 昇腾按硬件能力分派融合核</text>
+  <!-- Right-hand concise strategy legend (open left-accent strips, x=586..886) -->
+  <rect x="586" y="48" width="300" height="68" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <rect x="586" y="48" width="5" height="68" rx="2" fill="#087f73"/>
+  <text x="602" y="69" font-size="14" font-weight="700" fill="#065f56">YaRN（分频段 + 温度 t）</text>
+  <text x="602" y="89" font-size="12.5" fill="#17211f">按圈数 α=1, β=32 分三区，快对留 1.0×</text>
+  <text x="602" y="108" font-size="12.5" fill="#065f56">cos/sin × (0.1·ln s + 1) ≈ 1.07，续训省约 10×</text>
 
-  <rect x="462" y="328" width="424" height="170" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="476" y="354" font-size="15" font-weight="700" fill="#7a3a6a">多模态 M-RoPE 与 GLM-5.3-Flash NoPE 边界</text>
-  <rect x="476" y="368" width="396" height="52" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
-  <text x="490" y="390" font-size="13.5" font-weight="700" fill="#7a3a6a">多模态 <tspan font-family="var(--font-mono)">AscendMRotaryEmbedding</tspan>（triton_mrope）</text>
-  <text x="490" y="411" font-size="13.5" fill="#17211f">按 <tspan font-family="var(--font-mono)">mrope_section</tspan> 把时间 T / 高度 H / 宽度 W 切入旋转角</text>
-  <rect x="476" y="430" width="396" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="490" y="452" font-size="13.5" font-weight="700" fill="#065f56">GLM-5.3-Flash：<tspan font-family="var(--font-mono)">qk_rope_head_dim = 0</tspan>（全主干 NoPE）</text>
-  <text x="490" y="473" font-size="13.5" fill="#17211f">MLA 与索引器皆不建旋转表；顺序靠 KDA + 池内偏置 + 因果</text>
+  <rect x="586" y="126" width="300" height="68" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <rect x="586" y="126" width="5" height="68" rx="2" fill="#c78300"/>
+  <text x="602" y="147" font-size="14" font-weight="700" fill="#936300">NTK-aware（调大频率基数 θ）</text>
+  <text x="602" y="167" font-size="12.5" fill="#17211f">θ: 10000 → 25198，不直接压缩位置编号</text>
+  <text x="602" y="186" font-size="12.5" fill="#4d5652">j=0 转速 1.0× 不动，中慢对按幂次衰减</text>
+
+  <rect x="586" y="204" width="300" height="68" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <rect x="586" y="204" width="5" height="68" rx="2" fill="#b54237"/>
+  <text x="602" y="225" font-size="14" font-weight="700" fill="#8f3229">PI（位置插值：m → m ÷ s）</text>
+  <text x="602" y="245" font-size="12.5" fill="#17211f">慢对 6000 距压成 3.0 rad（避免未见弧度）</text>
+  <text x="602" y="264" font-size="12.5" fill="#8f3229">快对相邻差 1.0 → 0.5 rad，近距分辨率受损</text>
+
+  <line x1="14" y1="288" x2="886" y2="288" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="314" font-size="16" font-weight="700" fill="#17211f">二、实现与昇腾算子边界：配对拓扑不可互换，M-RoPE 三轴切片 vs GLM NoPE</text>
+
+  <!-- Zone B-Left: 4-slot vector pairing arc schematic -->
+  <rect x="14" y="328" width="424" height="184" rx="9" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+
+  <!-- GPT-NeoX pairing -->
+  <text x="28" y="350" font-size="14" font-weight="700" fill="#3a4f93">GPT-NeoX（<tspan font-family="var(--font-mono)" font-size="13">is_neox_style=True</tspan> · 前后半区配对）</text>
+  <path d="M 60 384 C 60 364, 212 364, 212 384" fill="none" stroke="#4c65b6" stroke-width="2"/>
+  <path d="M 136 384 C 136 358, 288 358, 288 384" fill="none" stroke="#087f73" stroke-width="2"/>
+  <rect x="28" y="384" width="64" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="60" y="403" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">x₀</text>
+  <rect x="104" y="384" width="64" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="136" y="403" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₁</text>
+  <rect x="180" y="384" width="64" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="212" y="403" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">x₂</text>
+  <rect x="256" y="384" width="64" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="288" y="403" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">x₃</text>
+  <text x="332" y="403" font-size="12.5" font-weight="700" fill="#4d5652">Qwen / LLaMA</text>
+
+  <!-- GPT-J pairing -->
+  <text x="28" y="440" font-size="14" font-weight="700" fill="#936300">GPT-J（<tspan font-family="var(--font-mono)" font-size="13">is_neox_style=False</tspan> · 相邻分量配对）</text>
+  <path d="M 60 470 C 60 452, 136 452, 136 470" fill="none" stroke="#c78300" stroke-width="2"/>
+  <path d="M 212 470 C 212 452, 288 452, 288 470" fill="none" stroke="#9a4b86" stroke-width="2"/>
+  <rect x="28" y="470" width="64" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="60" y="489" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₀</text>
+  <rect x="104" y="470" width="64" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="136" y="489" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">x₁</text>
+  <rect x="180" y="470" width="64" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="212" y="489" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">x₂</text>
+  <rect x="256" y="470" width="64" height="28" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="288" y="489" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">x₃</text>
+  <text x="332" y="489" font-size="12.5" font-weight="700" fill="#8f3229">训练定死禁切</text>
+
+  <!-- Zone B-Right: Proportional M-RoPE slice strip vs GLM NoPE -->
+  <rect x="462" y="328" width="424" height="184" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
+
+  <text x="476" y="352" font-size="14" font-weight="700" fill="#7a3a6a">多模态 <tspan font-family="var(--font-mono)" font-size="13">AscendMRotaryEmbedding</tspan>（triton_mrope）</text>
+  <!-- Proportional M-RoPE T / H / W channel slice bar (width=396: 99 + 148 + 145 + gaps) -->
+  <rect x="476" y="366" width="98" height="34" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="525" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">时间轴 T</text>
+  <rect x="578" y="366" width="146" height="34" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="651" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">图像高度 H</text>
+  <rect x="728" y="366" width="144" height="34" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="800" y="388" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">图像宽度 W</text>
+  <text x="476" y="420" font-size="12.5" fill="#4d5652">按 <tspan font-family="var(--font-mono)" font-weight="700" fill="#17211f">mrope_section</tspan> 切分旋转通道：文本三轴同号，图/视独立注入</text>
+
+  <text x="476" y="450" font-size="14" font-weight="700" fill="#065f56">GLM-5.3-Flash：<tspan font-family="var(--font-mono)" font-size="13">qk_rope_head_dim = 0</tspan>（全主干 NoPE）</text>
+  <rect x="476" y="462" width="396" height="36" rx="5" fill="#ddf4ef" fill-opacity="0.45" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="674" y="485" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">0 维旋转（免建旋转表 · 顺序靠 KDA + 偏置 + 因果）</text>
 </svg>

@@ -8,13 +8,16 @@ summary: >-
 aliases:
   - msprobe
   - MindStudio msprobe
+  - mindstudio-probe
   - PrecisionDebugger
   - AclGraphDumper
+  - aclgraph_dump
   - dump_config
   - dump_config_path
   - 逐层精度对齐
   - 张量转储
   - 精度比对排障
+  - 余弦相似度
 chapters:
   - '19'
 order: 7
@@ -54,10 +57,10 @@ relations:
     kind: builds-on
     note: MRV1 与 MRV2 在 load_model 与 sample_tokens/pool 均内建了等价的 msprobe 启停钩子
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 ---
 
-按 [输出异常排查](inference-correctness-troubleshooting.md) 对齐后，两套服务收到的 **token ID（词元编号）** 已完全一致，采样也锁死 `temperature=0`。如果此时昇腾仍输出乱码、`NaN/Inf`，或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比标杆（如 BF16 原版或参考 GPU）大幅掉点，单看输出文字已无法猜出哪一层出错。此时需要抓取模型内部逐层、逐算子的输入输出特征图分段比对——这正是昇腾 **MindStudio `msprobe`** 的核心用途。
+按 [输出异常排查](inference-correctness-troubleshooting.md) 对齐后，两套服务收到的 **token ID（词元编号）** 已完全一致，采样也锁死 `temperature=0`。如果此时昇腾仍输出乱码、`NaN/Inf`（无效数值或无穷大），或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比标杆（如 BF16 脑浮点原版或参考 GPU）大幅掉点，单看输出文字已无法猜出哪一层出错。此时需要抓取模型内部逐层、逐算子的输入输出特征图分段比对——这正是昇腾 **MindStudio `msprobe`**（面向昇腾训练与推理的逐层精度比对与张量转储工具）的核心用途。
 
 不过，把全模型几十层、几百个算子的全量张量直接落盘动辄占满几十 GiB 磁盘且拖慢百倍。工程上的正确姿势是：**先分清 `Runtime Guard`、`batch_invariant` 与 `msprobe` 三类工具的分工，再按「统计初筛 → 缩小范围 → 真实张量」由粗到细四步锁定首个分歧算子**。
 
@@ -83,15 +86,15 @@ file: msprobe-fig-layer-isolation
 
 但 **Eager 模式** 与 **图模式（[ACL Graph](acl-graph.md)）** 背后的转储后端并不相同：
 
-- **Eager 模式（`cudagraph_mode == NONE`，即 `--enforce-eager`）**：实例化 `PrecisionDebugger`，通过 `pip install mindstudio-probe` 即可直接启用，并支持全部字段（`step`、`scope`、`list`、`dump_enable`）。
-- **图模式（`FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`）**：实例化 `AclGraphDumper`，并在 `load_model()` 末尾、**图捕获开始之前**自动触发启动钩子以便对图捕获与回放插桩。该模式必须从 `msprobe` 源码带上 `include-mod=aclgraph_dump` 编译安装；且**暂不支持按 `step`、`scope`、`dump_enable` 过滤**，只能依赖 `list` 收缩算子范围。
+- **Eager 模式（`cudagraph_mode == NONE`，即 `--enforce-eager`）**：实例化 `PrecisionDebugger`（Eager 逐算子挂钩调试器），通过 `pip install mindstudio-probe` 即可直接启用，并支持全部字段（`step`、`scope`、`list`、`dump_enable`）。
+- **图模式（`FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`）**：实例化 `AclGraphDumper`（面向静态图捕获与回放插桩的专用转储器），并在 `load_model()` 末尾、**图捕获开始之前**自动触发启动钩子以便对图捕获与回放插桩。该模式必须从 `msprobe` 源码带上 `include-mod=aclgraph_dump` 编译安装；且**暂不支持按 `step`、`scope`、`dump_enable` 过滤**，只能依赖 `list` 收缩算子范围。
 
 执行抓取时严禁第一步就跑全模型 `task: "tensor"`，标准四步法如下：
 
 1. **锁死单请求与对比基准**：准备 1 条稳定复现错误的 prompt，锁定 `temperature=0`，`max_completion_tokens` 覆盖首次出错步前后几步。若为单卡调试，`dump_config` 中的 `rank` 必须设为 `[]`。
 2. **第一轮 `statistics` + `L1` / `L0` 粗筛**：设 `"task": "statistics"`，先抓每模块（`L0`，生成 `construct.json`）或每算子（`L1`）的 `max / min / mean / norm` 摘要与 `dump.json`。按执行序逐行比对标杆，30 秒内即可找到**第一个出现 `NaN/Inf` 或均值/幅值断崖偏离的层号 `layers.k` 与迭代步 `step`**。
 3. **第二轮收窄 `scope` / `list` 与 `step`**：锁定第 `k` 层第 `t` 步后，在 Eager 下填入 `"step": [t]` 与 `"scope": [start_name, end_name]` 起止范围（单层定位须给该层起止模块名，或改用 `"level": "mix"` + `"list"` 指定该层子模块，不可传单元素 `scope`），再把 `"task"` 切换为 `"tensor"`，仅落盘这一层的真实 `.pt` 张量。
-4. **单算子数值核验与根因定性**：计算首分歧算子输入与输出的**余弦相似度**与**最大绝对误差**。若**输入几乎一致（余弦相似度接近 1.0）而输出骤降**，这个算子就是根因所在。
+4. **单算子数值核验与根因定性**：计算首分歧算子输入与输出的**余弦相似度**（衡量两个张量方向一致程度，越接近 `1.0` 越一致）与**最大绝对误差**。若**输入几乎一致（余弦相似度接近 1.0）而输出骤降**，这个算子就是根因所在。
 
 ## 四类高频首分歧算子的排查指纹
 
@@ -106,7 +109,7 @@ file: msprobe-fig-four-fingerprints
 | **RoPE（旋转位置编码）** | 第 `0` 层注意力前的 `Q` / `K` 投影还完全对齐，但经过 RoPE 旋转后立即出现大误差 | 检查位置索引 `positions`、`cos/sin` 预计算缓存（MRV2 MLA 的 `update_cos_sin`）、[RoPE](rope.md) 的交错（interleave）与分段旋转排布是否与模型权重一致 |
 | **QuantMatmul（量化线性层）** | 进入 `W8A8` / `MXFP8` / `FP8` 线性层前输入一致，输出整体缩放倍数漂移或局部分布截断 | 核对权重 `scale` / `offset`、是否开启了 `weight_nz_mode`（NZ 转置与 RL/特定量化冲突）、或 `quant_description` 中 `norm.bias` / 量化类型（`W8A8` vs `W8A8_DYNAMIC`）是否误配（参见 [量化原理](quantization.md)） |
 | **MoE 路由与融合专家** | 路由器（Gate）输出 `logits` 正常，但 `top-k` 专家索引分叉，或经 EP Dispatch/Combine 后某几行变全零/幅值减半 | 检查门控精度与 `top-k` 并列打平规则、EPLB 逻辑-物理专家映射表（`AscendEplbState`）、以及融合 MC2 / `vllm_ascend_C` 核（用 `VLLM_BATCH_INVARIANT=1` 关掉自定义库即可秒判，参见 [MoE](moe.md)） |
-| **FlashAttention / PagedAttention** | 首步 Prefill（`step 0`）全层对齐，但从第 `1` 步 Decode 开始逐步发散 | 重点查写入与读取 KV cache 的 `slot_mapping`、块表偏移、非连续/C8 量化 KV 的 scale 还原（如 GQA/MLA C8 缩放因子），以及 [Ascend FlashAttention](ascend-flash-attention.md) 在 Eager vs `FULL_DECODE_ONLY` 图模式下的 FIA 填充边界 |
+| **FlashAttention / PagedAttention** | 首步 Prefill（`step 0`）全层对齐，但从第 `1` 步 Decode 开始逐步发散 | 重点查写入与读取 KV cache 的 `slot_mapping`（把本步各 token 映射到物理 KV 块槽位的索引表）、块表偏移、非连续/C8 量化 KV 的 scale 还原（如 GQA/MLA C8 缩放因子），以及 [Ascend FlashAttention](ascend-flash-attention.md) 在 Eager vs `FULL_DECODE_ONLY` 图模式下的 **FIA**（FusedInferAttentionScore 融合注意力算子）填充边界 |
 
 ## 常见误解
 

@@ -138,7 +138,9 @@ describe("a route whose page is not in the reader snapshot", () => {
     expect(html).toContain("先读基础");
     expect(html).toContain('href="/wiki/matmul-and-weights"');
     expect(html).toContain("矩阵乘讲清 Y=XW 与权重的存法");
-    expect(html.indexOf("/wiki/matmul-and-weights")).toBeLessThan(html.indexOf("/wiki/glm-5-3-flash"));
+    expect(html.indexOf("/wiki/matmul-and-weights")).toBeLessThan(
+      html.indexOf("/wiki/low-precision-formats"),
+    );
 
     const guide = pages.find((p) => p.id === "learning-guide")!;
     const emptyHtml = renderToStaticMarkup(

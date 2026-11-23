@@ -35,6 +35,12 @@ relations:
     note: >-
       第二个生效点在 ACL Graph 捕获期：wrapper 的 runnable 框入 scope，录完再请求
       super_kernel_optimize
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该键位于 additional_config.ascend_compilation_config 子配置中，省略跟随与严格未知键校验由 AscendConfig 承载
+  - to: ops-and-kernels
+    kind: builds-on
+    note: Super Kernel 将静态编译出的相邻设备子 kernel 合并并插入同步以减少逐算子下发开销
 sources:
   - >-
     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L115
@@ -132,7 +138,7 @@ rawSources:
 ---
 ## 它优化什么，和前两级开关是什么关系？
 
-`enable_super_kernel` 是 `ascend_compilation_config` 中的第三级图编译优化开关（kernel 指一个算子在设备上运行的程序）。前两级先把计算图交给昇腾图编译器，再按固定批次形状把算子编译成静态二进制。
+`enable_super_kernel` 是 [AscendConfig](../concepts/ascend-config-system.md) 下 `ascend_compilation_config` 中的第三级图编译优化开关（[kernel](../concepts/ops-and-kernels.md) 指一个算子在设备上运行的程序）。前两级先把计算图交给昇腾图编译器，再按固定批次形状把算子编译成静态二进制。
 
 开启 `enable_super_kernel` 后，底层会在已编译的静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为一个更大的 Super Kernel 并按依赖关系自动插入内部同步，目的是减少逐个算子下发和调度的等待开销。不兼容的算子会把融合范围截成多段，它不保证整张网最终只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
 

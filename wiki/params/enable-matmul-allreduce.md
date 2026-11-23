@@ -15,6 +15,8 @@ aliases:
   - matmul allreduce 开关
   - VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE
   - MatmulAllReduce 融合
+  - additional_config.enable_matmul_allreduce
+  - npu_mm_all_reduce_base
 chapters:
   - '13'
 sources:
@@ -79,6 +81,9 @@ relations:
   - to: collective-communication
     kind: builds-on
     note: 该开关将矩阵乘与 All-Reduce 融合，理解其不改变计算语义，需要先理解 All-Reduce 合齐部分和的语义及其与融合实现的区别。
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该历史开关位于 additional_config 顶层，v0.30.0 与 main 启用 AscendConfig 严格校验后保留旧键会触发启动报错
 contradicts: []
 updated: 2026-11-19T00:00:00.000Z
 rawSources:
@@ -102,7 +107,7 @@ rawSources:
 
 | 版本 | 残留 `additional_config["enable_matmul_allreduce"]` 的后果 | 残留环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` |
 | --- | --- | --- |
-| `v0.26.0rc` | `AscendConfig` 仍逐键 `.get()`，顶层旧键静默忽略（能启动但无融合效果） | 无人读取，静默忽略 |
+| `v0.26.0rc` | [AscendConfig](../concepts/ascend-config-system.md) 仍逐键 `.get()`，顶层旧键静默忽略（能启动但无融合效果） | 无人读取，静默忽略 |
 | `v0.30.0` / `main` | `AscendConfig` 采用 `ConfigDict(extra="forbid")`，且本键不在 `_NON_USER_INPUT_KEYS` 豁免名单（同批下线的 `enable_flashcomm1` 有废弃告警与剥离，本键没有），通常直接启动失败；仅环境装有 `vllm_omni`（`importlib.util.find_spec("vllm_omni")` 非空）时只打 warning 并过滤未知顶层键 | 无人读取，一律静默忽略 |
 
 旧键移除只代表昇腾侧旧行并行包装下线（与 FlashComm2、multistream overlap gate、weight prefetch 等同批退场，方向是将 TP 通信优化交回上游），不代表新版完全没有通算融合能力。

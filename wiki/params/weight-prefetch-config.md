@@ -9,6 +9,8 @@ aliases:
   - 权重预取配置
   - weight prefetch
   - enable_prefetch
+  - additional_config.weight_prefetch_config
+  - WeightPrefetchConfig
 legacyAnchors:
   一句话: 它曾做什么，为什么 v0.24 起已删除？
   事实表: 它曾做什么，为什么 v0.24 起已删除？
@@ -117,6 +119,9 @@ relations:
   - to: ai-core
     kind: builds-on
     note: 权重预取建立在计算单元与数据搬运配合的基础上，通过提前把权重搬入 L2 并与向量计算重叠，减少矩阵计算等待数据的时间。
+  - to: op-to-ai-core
+    kind: builds-on
+    note: 权重预取需要与前一个向量算子在 AI Core 上重叠执行，算子落核与 MTE/Cube 分工见该页
 contradicts: []
 updated: 2026-11-19T00:00:00.000Z
 rawSources:
@@ -138,7 +143,7 @@ rawSources:
 
 **当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**该配置及其整个 HBM→L2 权重预取模块在 `v0.30.0` 与 `main` 中均已彻底移除，且没有等价替代参数。** 它早先由 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP` 统一而来，在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 连同 `vllm_ascend/ops/weight_prefetch.py` 一起删除。
 
-- **升级报错与忽略行为**：升级到 `v0.30.0` / `main` 时若仍将其留在 `--additional-config`，普通 Ascend 进程会按 `extra="forbid"` 启动报错（`v0.26.0rc` 静默忽略，发现 `vllm_omni` 时告警过滤）。
+- **升级报错与忽略行为**：升级到 `v0.30.0` / `main` 时若仍将其留在 `--additional-config`，普通 Ascend 进程会按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（`v0.26.0rc` 静默忽略，发现 `vllm_omni` 时告警过滤）。
 - **历史 `v0.23.0`（`2c59ff10`）默认态**：默认 `{}`（关闭），须显式写 `{"enabled": true}` 才启用，且仅面向高吞吐场景（低延迟优先场景上游建议不要开启）。
 
 升级清理时须从启动命令中删掉该键，并注意不要与三类近名特性混淆：

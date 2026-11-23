@@ -13,6 +13,10 @@ aliases:
   - RFork late acquisition
   - RFork has no available
   - RFork fallback aborted
+  - RFork 十步
+  - RFork 晚申请
+  - RFork 冷启动回退
+  - shared_target
 chapters: []
 order: 30
 sources:
@@ -52,6 +56,12 @@ relations:
   - to: npu-worker-lifecycle
     kind: builds-on
     note: RFork 只替换 Worker 启动里装权重那一步，先知道前后还有哪些步骤
+  - to: ascend-model-onboarding
+    kind: builds-on
+    note: RFork 启动路径的空模型构建、量化后处理与失败回退均依赖标准模型上线加载链路正常可用
+  - to: sleep-mode
+    kind: conflicts-with
+    note: 启用 sleep mode 会命中可变权重安全守卫，加载器在建会话前整体绕过 RFork 改走默认磁盘加载
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -93,9 +103,9 @@ file: rfork-fig-lease-window
 
 **第二层：租约既占有限名额，又有有效期。** 仓库示例 Planner 每个 seed 默认只有 `1` 个借用名额、租约有效期默认 `60` 秒。如果 B 先借再搭模型、转布局、登记显存，这些本地耗时全算进租约期：期间其他实例借不到同一个 A，准备稍慢就会在读权重前耗掉一大截 TTL。把本地准备与预登记全移出租约窗口后，租约只覆盖要清单、核清单、分批读和后台归还。过期后果见[租约与生命周期](rfork-lifecycle.md)。
 
-**代价是没借到时白准备了一遍。** 第 7 步发现没有可借的 seed 时，B 已经搭过模型；要转布局的模型（开了量化、权重 NZ 模式配成 2、或硬件要求 NZ 格式，三条任一成立）还已经转过布局。工作版不把这份空模型直接交给普通加载器去填，而是清掉重建，所以一次没命中的冷启动，搭模型和布局处理都要做两遍。这是晚申请换来的固定代价。
+**代价是没借到时白准备了一遍。** 第 7 步发现没有可借的 seed 时，B 已经搭过模型；要转布局的模型（开了量化、权重 NZ 模式配成 2、或硬件要求 NZ 格式，三条任一成立）还已经转过布局。当前上游主线（`main@8d6180e2`）不把这份空模型直接交给普通加载器去填，而是清掉重建，所以一次没命中的冷启动，搭模型和布局处理都要做两遍。这是晚申请换来的固定代价。
 
-这几段各花多久，工作版都单独打了耗时日志：搭模型、布局处理、申请租约、登记加读取各一条，读取内部还有登记、要清单、读数据三段的分段耗时，日志原文列在页末。要判断晚申请省了多少、未命中多付了多少，就拿这几条日志比。整个服务什么时候就绪也不能拿读权重那一段代替：模型交回以后还有量显存、录图等步骤。RFork 缩短的是加载等待，不改变之后逐步 decode 的速度。
+这几段各花多久，当前主线都单独打了耗时日志：搭模型、布局处理、申请租约、登记加读取各一条，读取内部还有登记、要清单、读数据三段的分段耗时，日志原文列在页末。要判断晚申请省了多少、未命中多付了多少，就拿这几条日志比。整个服务什么时候就绪也不能拿读权重那一段代替：模型交回以后还有量显存、录图等步骤。RFork 缩短的是加载等待，不改变之后逐步 decode 的速度。
 
 ## 十步各做什么，做完手里有什么
 
@@ -131,7 +141,7 @@ file: rfork-fig-lease-window
 
 ## 两处提前离开，不是漏了步骤
 
-- **命中可变权重安全守卫就整个绕过 RFork。** 在当前 `main` 主基线中，`safety.py:mutable_weights_bypass_reason` 统一检查三个条件，任一成立都在建会话前直接改走默认加载且不发布 seed：启用 `enable_sleep_mode`（sleep mode）、配置 `weight_transfer_config`（在线权重传输），或启用 `parallel_config.enable_eplb`（[EPLB](eplb.md) 专家负载均衡）。早期 Model Runner V1 的静态/动态 EPLB 附加字段已随 Model Runner V1 移除，不再触发绕过。这条路上普通加载自己失败会直接把异常抛出去。
+- **命中可变权重安全守卫就整个绕过 RFork。** 在当前 `main` 主基线中，`safety.py:mutable_weights_bypass_reason` 统一检查三个条件，任一成立都在建会话前直接改走默认加载（复用标准[新模型上线](ascend-model-onboarding.md)的磁盘权重加载路径）且不发布 seed：启用 `enable_sleep_mode`（[sleep mode](sleep-mode.md) 休眠卸载显存会移动物理页）、配置 `weight_transfer_config`（在线权重传输），或启用 `parallel_config.enable_eplb`（[EPLB](eplb.md) 专家负载均衡）。早期 Model Runner V1 的静态/动态 EPLB 附加字段已随 Model Runner V1 移除，不再触发绕过。这条路上普通加载自己失败会直接把异常抛出去。
 - **草稿模型整份共用主模型的权重。** 投机解码的草稿模型（先猜后面几个 token、再交给主模型验证的那部分，见[投机解码](speculative-decoding.md)）和主模型各有一个会话。建完会话，草稿会话先取来主模型已经登记过的显存范围。草稿要传的每个张量都落在这些范围里、也没有未豁免的非 NPU 状态时（开启 Engram 时经全员一致确认），加载器直接复用这些权重、切到推理模式交回并打 `source=shared_target`：不登记、不申请租约、不重复做布局后处理，也不把草稿发布成 seed。只共用一部分的草稿会继续往下走，只传自己独有的张量，见[传输与内存](rfork-transfer.md#主模型和草稿模型共享地址时谁登记谁来传)。
 
 ## 借不到或读失败：先拆干净，再从磁盘重来

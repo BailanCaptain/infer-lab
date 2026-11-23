@@ -48,6 +48,8 @@ aliases:
   - HCCL_IF_IP
   - HCCL_OP_EXPANSION_MODE
   - TP_SOCKET_IFNAME
+  - SharedAdmissionStats
+  - fork vs spawn
 chapters:
   - '10'
 order: 80
@@ -236,27 +238,24 @@ verified:
   - main
 evidence: C
 relations:
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 20 个进程是那套双机部署启动时拉起来的；启动的先后七步和 16 卡分组在那一页
-  - to: ascend-patch-system
-    kind: builds-on
-    note: 本页只讲补丁归哪个进程、从哪个入口进；补丁怎样替换名字、有哪几类，在那一页
-  - to: platform-plugin-registration
-    kind: builds-on
-    note: 三类进程都会加载通用插件；插件怎样被发现、平台怎样被选中，在那一页
-  - to: vllm-engine-core
-    kind: builds-on
-    note: EngineCore 进程里的忙循环一步做哪些事，在那一页展开
   - to: vllm-v1-shape
     kind: builds-on
     note: 组件分工与进程布局是两个视角：那一页按组件讲，本页按进程讲
+  - to: kv-cache
+    kind: builds-on
+    note: EngineCore 只管 KV cache 块号账本、真正键值张量驻留在各 Worker 显存，缓存机理在那一页
+  - to: collective-communication
+    kind: builds-on
+    note: 各 Worker 进程各自绑定一张卡并直接经集合通信交换张量，不经过 EngineCore
+  - to: tensor-parallel
+    kind: builds-on
+    note: 常规单组多卡（如 TP4/TP8）由多进程执行器每卡起一个 Worker，默认仅由 TP0 回传结果
+  - to: data-parallel
+    kind: builds-on
+    note: 开启 DP 时在线服务会新增 DP coordinator 进程并协调多组 EngineCore 忙闲与步调
   - to: eplb
     kind: builds-on
     note: 动态 EPLB 会让每个 Worker 再带两个子进程，这正是需要改 Worker 启动方式的原因；EPLB 本身在那一页
-  - to: one-request
-    kind: builds-on
-    note: 本页用示例请求 R1 说明清单只发差量；R1 每一站的数字和块号怎么来，在那一页
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -278,7 +277,7 @@ rawSources:
 
 因此不能把「三类角色」直接等同于「三类独立进程」。例如单进程执行器会让 Worker 住在 EngineCore 进程内，但单凭这一点也推不出 API server 与 EngineCore 在同一个进程里。以常见的单机 `Qwen3-8B` 部署为例：单卡 `vllm serve` 是 2 个进程（1 个 API server + 1 个内置 Worker 的 EngineCore）；单机 TP4 则是 6 个进程（1 个 API server + 1 个 EngineCore + 4 个独立 Worker）。
 
-**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到；进程间交换数据必须走显式通道，例如 ZMQ 网络/IPC 消息，或划出一块多进程共同读写的共享内存队列。
+**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到；进程间交换数据必须走显式通道，例如 **ZMQ**（ZeroMQ，轻量跨进程消息库）的 **IPC**（Inter-Process Communication，本机进程间通信）/TCP 套接字，或划出一块多进程共同读写的 **SHM**（Shared Memory，共享内存）队列。
 
 ```wiki-diagram
 file: engine-processes
@@ -290,7 +289,7 @@ file: engine-processes
 - **清单，每一步发一次。** EngineCore 里的 scheduler（调度器）定下这一步算哪些请求、各算几个 token、新产生的 K/V 写进 [KV cache](kv-cache.md) 的哪些块号。executor（执行器）把这份清单（`SchedulerOutput`）交给所有 Worker，再收回结果，详见[后文](#executor-决定-worker-是不是独立进程)。每个 Worker 收到同一份清单，各算自己那张卡上的一份；严格来说，executor 每步对 Worker 发两次调用，一次算到词表分数，一次采样出新 token，见[一步之内](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
 - **本步结果，默认只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同。常规单组部署未配 KV connector 且未开流水线并行（PP）与 prefill 上下文并行（PCP=1）时，executor 只读本组 TP（[张量并行](tensor-parallel.md)）编号为 0 的那个 Worker 的回信，不重复收 N 份。回程通道见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
 - **新 token，每一步发一次。** EngineCore 记完账，把新 token 发回 API server，由它还原成文字，一段一段推给用户。
-- **卡间通信（虚线）。** Worker 在计算中途互相交换张量，例如把各卡的部分结果加起来，见[集合通信](collective-communication.md)。这条路只连着 Worker，不经过 EngineCore。
+- **卡间通信（虚线）。** Worker 在计算中途互相交换张量，例如把各卡的部分结果加起来，见[集合通信](collective-communication.md)与 [HCCL（昇腾集合通信库）](cann-hccl.md)。这条路只连着 Worker 绑定的 NPU 卡，不经过 EngineCore。
 
 **边界与例外**：
 
@@ -377,10 +376,16 @@ vllm-ascend 不改 vLLM 的源码，而是在程序运行起来以后，把上�
 
 Ascend 的配置也一样。vllm-ascend 把自己的一组开关（从启动参数的附加配置里读出来）整理成一个配置对象，缓存在模块级的变量里，之后各处代码都来这里取。这个缓存同样是进程里的一个变量：API server 在建总配置时建一份，每个 Worker 在初始化时按传进来的总配置再建一份。某个进程里改了它，别的进程看不到；某个进程里没建就去取，会直接报错。
 
-**子进程出生时带不带父进程的状态，取决于启动方法。** vLLM 拉起 EngineCore 和 Worker 共用环境变量 `VLLM_WORKER_MULTIPROC_METHOD`：底层库读取该变量时默认 `fork`，而 `vllm serve` 命令行入口在环境未预设时会先填入 `spawn`，两层默认不能混为一谈：
+**子进程出生时带不带父进程的状态，取决于启动方法。** 如果把父进程比作一间已经挂好齿轮补丁与参数表的工坊，`fork` 就像把整间工坊按蓝图原样复印出一份副本，而 `spawn` 则是推开一间空无一物的洁净车间、让新进程在入口逐件开箱装配：
 
-- **`fork`**：子进程在出生瞬间拷贝父进程的内存快照，父进程里已换好的函数绑定和已建好的 `AscendConfig` 会原样带过去；但出生后父子内存立刻分道扬镳，互不可见。
-- **`spawn`**：子进程启动一个全新的 Python 解释器并从头导入模块，父进程里打过的补丁一个都不在。遇到当前进程已初始化设备运行时、运行在 Ray 里或开启 NUMA 绑定等强制条件时，vLLM 也会自动覆写为 `spawn`。
+```wiki-diagram
+file: engine-processes-plate-fork-spawn-workshop
+```
+
+vLLM 拉起 EngineCore 和 Worker 共用环境变量 `VLLM_WORKER_MULTIPROC_METHOD`：底层库读取该变量时默认 `fork`，而 `vllm serve` 命令行入口在环境未预设时会先填入 `spawn`，两层默认不能混为一谈：
+
+- **`fork`**：操作系统为子进程复制一份页表，让父子虚拟页在出生瞬间共同指向同一批只读物理内存页（**COW**，Copy-on-Write，写时复制，直到任一方改写某页时才真正拷贝分离该物理页），因此父进程里已换好的函数绑定和已建好的 `AscendConfig` 会原样带过去；但出生后父子后续修改立刻各走各的，互不可见。
+- **`spawn`**：子进程启动一个全新的 Python 解释器并从头导入模块，父进程里打过的补丁一个都不在。遇到当前进程已初始化 `CUDA / XPU` 设备运行时、运行在 Ray Actor 里、开启 `--numa-bind`（**NUMA**，Non-Uniform Memory Access，按 CPU 节点就近绑定内存的亲和策略）或处在 `WSL` 环境时，上游检查也会自动覆写为 `spawn`（昇腾 NPU 则主要靠 `vllm serve` 命令行入口默认置 `spawn` 避开设备句柄继承风险）。
 
 官方 GLM 教程没有显式设置该变量：若镜像或启动环境也没有预设，`vllm serve` 的命令行初始化会走 `spawn`；若环境已有值则先保留，随后仍须通过强制 `spawn` 条件检查。因此实际运行方式要核对镜像环境，不能仅因教程未写变量就推定是 `fork`。
 

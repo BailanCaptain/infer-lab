@@ -97,6 +97,66 @@ describe("findGaps", () => {
     const gaps = findGaps([mk("a", many), mk("b", many)], opts);
     expect(gaps.map((g) => g.term)).toEqual(["Alpha", "Beta"]);
   });
+
+  it("版本串、分支名、源码文件名、双下划线/私有方法与类方法片段不当概念", () => {
+    const codeNoise = [
+      "`v0.30.0` `v0.26.0rc` `v0.23.0` `v0.26` `v0.23` `main`",
+      "`model_runner_v1.py` `ascend_config.py` `worker.py` `kernel.cc` `ops.h` `sampler.rs` `README.md` `config.json`",
+      "`__init__` `_dummy_run` `Scheduler.schedule` `NPUWorker.__init__` `PassConfig.enable_sp`",
+    ].join(" ");
+    const pages = ["a", "b", "c"].map((id) => mk(id, `${rep(codeNoise, 5)} ${rep("EAGLE", 4)}`));
+    expect(findGaps(pages).map((g) => g.term)).toEqual(["EAGLE"]);
+  });
+
+  it("通用 HTTP/OS/日志/状态枚举与泛化英文词不当概念", () => {
+    const genericNoise = [
+      "HTTP HTTPS CLI SDK INFO DEBUG WARN FULL NONE FLOAT `STANDARD` MAX SUM POST GET",
+      "OS PID IP TCP UTF FAQ README PDF SSD DRAM CUDA NVIDIA ARM HF EOS BPE TTL LRU FCFS",
+      "`RETRYABLE` `REJECTED` `REGISTERED` `RELEASED` `PREEMPTED` `COMPATIBILITY`",
+      "`sources` `auto` `unknown` `apply` `break` `down` `free` `all` `model` `weights` `linear` `align`",
+    ].join(" ");
+    const pages = ["a", "b", "c"].map((id) => mk(id, `${rep(genericNoise, 5)} ${rep("HCCS", 4)}`));
+    expect(findGaps(pages).map((g) => g.term)).toEqual(["HCCS"]);
+  });
+
+  it("剥离折叠的「## 对照源码」（及自动生成参数区）与 wiki-diagram / wiki-scene / wiki-tool 围栏后再扫教学正文", () => {
+    const bodyWithVerificationAndFences = [
+      "## 核心机制",
+      `教学正文反复引用 \`RealConcept\`、\`RealConcept\` 与 ${rep("`HCCS / RoCE`", 3)}。`,
+      "",
+      "```wiki-diagram",
+      "file: `DiagOnlySymbol`",
+      "caption: DIAGID DIAGID DIAGID DIAGID",
+      "```",
+      "",
+      "```wiki-scene",
+      "scene: `SceneOnlySymbol`",
+      "anchor: SCENEA SCENEA SCENEA SCENEA",
+      "```",
+      "",
+      "```wiki-tool",
+      "tool: `ToolOnlySymbol`",
+      "preset: TOOLID TOOLID TOOLID TOOLID",
+      "```",
+      "",
+      "## 对照源码",
+      rep("`SourcePinOnlySymbol`", 6),
+      rep("PINID", 6),
+      "```python",
+      rep("OTHER", 4),
+      "```",
+      "",
+      "## 版本谱系",
+      rep("`LineageOnlySymbol`", 6),
+      "",
+      "## 参数定义（自动生成）",
+      rep("`ParamAutoOnlySymbol`", 6),
+    ].join("\n");
+    const pages = ["a", "b", "c"].map((id) =>
+      mk(id, `    \`\`\`wiki-diagram\n${rep("`CANN.Profiler`", 5)}\n${bodyWithVerificationAndFences}`),
+    );
+    expect(findGaps(pages, { minHits: 5, minPages: 3 }).map((g) => g.term)).toEqual(["HCCS", "RealConcept"]);
+  });
 });
 
 describe("danglingRelations", () => {

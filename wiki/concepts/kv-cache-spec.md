@@ -184,9 +184,12 @@ relations:
   - to: kv-cache
     kind: builds-on
     note: 先弄清要保存哪几类状态、为什么保存，再看它们怎样被写成规格、换算成页
-  - to: glm-5-3-flash-two-node
+  - to: paged-attention
     kind: builds-on
-    note: '逻辑块 640、每块号 8,355,840 B、3,855 块三个数的推导都在部署页，本页只用结论'
+    note: 规格算出的页字节数与块长直接决定分页缓存池能切出多少物理块
+  - to: mla
+    kind: builds-on
+    note: MLA 以单份压缩潜向量替代独立 K/V，并可带压缩比与角色标记形成 MLAAttentionSpec
   - to: linear-attention
     kind: builds-on
     note: KDA 一份状态有多大、为什么每组每请求 4 块，在线性注意力页推导
@@ -251,7 +254,7 @@ file: kv-cache-spec-intuition
 |---|---|---|
 | 普通注意力（`AttentionSpec` 及其 full、滑窗等子类） | 每个位置的 K 和 V | 未打包主数据为 $2 \times \text{block\_size} \times n_{\text{kv}} \times d_h \times \text{bytes}$（2 为 K、V 各一份） |
 | MLA（`MLAAttentionSpec`） | 每个位置一份压缩表示，不分 K、V | 普通主数据布局为「存储块位置数 × 头数 × 头维 × 每数字节」，存储块 = 块大小 ÷ 压缩比 |
-| 递推状态（`MambaSpec`） | 卷积历史、SSM 矩阵等固定形状状态 | 每份状态「各维相乘 × 每数字节」再相加，与块大小无关 |
+| 递推状态（`MambaSpec`） | 卷积历史、状态空间模型（SSM）矩阵等固定形状状态 | 每份状态「各维相乘 × 每数字节」再相加，与块大小无关 |
 | hidden state 缓存 | 草稿模型要回看的隐藏向量 | 从 MLA 规格派生，单独成组，页补齐到与其他组等大 |
 
 表里有三点要记住：
@@ -374,7 +377,7 @@ file: kv-cache-spec-flow
 2. **定 KDA 的目标页。** 取「一个 MLA 页」与「一份 KDA 状态」的较大值（即大页本身），KDA 状态补齐到该大小。
 3. **定 KDA 组的块大小。** 默认设成最大请求长度 133,120（一条请求一页）；只有前缀缓存打开且 KDA 缓存模式为对齐模式时，才改成逻辑块长度。
 
-**为什么必须是 128 的倍数？** 稀疏注意力（SFA）算子按 128 个位置一块读取历史。逻辑块是 128 的整数倍，worker 就能把一个 MLA 页原样看成几个首尾相接的 kernel 块，不需要在每块中间留洞的特殊视图。
+**为什么必须是 128 的倍数？** 昇腾稀疏融合注意力（SFA，Sparse FlashAttention）算子按 128 个位置一块读取历史。逻辑块是 128 的整数倍，worker 就能把一个 MLA 页原样看成几个首尾相接的 kernel 块，不需要在每块中间留洞的特殊视图。
 
 **为什么让 MLA 定大页，而不是反过来？** MLA 保存的是每一步 decode 都要读的历史，是最热的读取路径；让它的页不带补齐，空白全部落在每条请求只有一份的 KDA 状态上。运行时还会复查：MLA 的页如果不等于它的真实大小，切 kernel 块之前直接报错。
 

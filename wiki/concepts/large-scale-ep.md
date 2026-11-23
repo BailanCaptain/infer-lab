@@ -10,6 +10,9 @@ aliases:
   - 大规模专家并行
   - 大规模 EP
   - wide-EP
+  - 分层通信
+  - enable_mc2_hierarchy_comm
+  - should_skip_allreduce_across_dp_group
   - Distributed DP Server
   - 分布式 DP server
   - 外置 DP 负载均衡
@@ -106,32 +109,20 @@ verified:
   - main
 evidence: C
 relations:
-  - to: expert-parallel
+  - to: collective-communication
     kind: builds-on
-    note: 理解专家放置和派发组合
-  - to: moe-comm-dispatch
+    note: 理解 All-to-All、All-Gather 与跨机比例 (M-1)/M 的传输量规律
+  - to: cann-hccl
     kind: builds-on
-    note: 四族硬件 MoE 通信路径状态机、动态 mc2_tokens_capacity 与权重重切分见该专章
+    note: 区分机内 HCCS 与跨机 RoCE/RDMA 两级物理链路以及 HCCL 通信域建组边界
   - to: data-parallel
     kind: builds-on
-    note: 理解请求副本与 EP 组的关系
-  - to: pd-disaggregation
+    note: 理解请求副本与 EP 组的关系以及空闲 DP 组陪跑机制
+  - to: expert-parallel
     kind: builds-on
-    note: 理解 P/D 之间的状态交接
-  - to: engine-processes
-    kind: builds-on
-    note: 区分服务实例与其内部进程
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: EP16 基线：两台 A2 为什么正好对上 MC2 门槛
-  - to: concurrent-requests
-    kind: builds-on
-    note: 一个 DP 组的长 prefill 怎样把两台机器一起拖离 MC2
-  - to: eplb
-    kind: builds-on
-    note: 每卡专家变少后，热门专家的负载怎样调整
+    note: 理解专家放置和 Dispatch/Combine 派发组合
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -312,7 +303,7 @@ $$N_{\text{services}} = (4 \times 2)_{P} + (4 \times 16)_{D} = 8 + 64 = 72$$
 | 16 张卡（两台 A2） | 256 ÷ 16 = 16 | 刚好满足，再看这一步的 token 数 |
 | 64 张卡 | 256 ÷ 64 = 4 | 满足，再看这一步的 token 数 |
 
-跨机链路随硬件代际变化。官方文档要求所有机器处于同一局域网且所有 NPU 彼此互通：A2 机内走 HCCS、跨机走 RDMA 网络（网卡直接读写对端内存），A3 机内机外均走 HCCS。A2 上还能开启分层通信，让 MC2 先在机内汇合再跨机以压缩跨机流量；但它要求各 rank 每步 token 数一致（`global_bs = 0`），因此不能与“decode 侧跳过每步 DP 元数据同步”同时生效。
+跨机链路随硬件代际变化。官方文档要求所有机器处于同一局域网且所有 NPU 彼此互通：A2 机内走 HCCS、跨机走 RDMA 网络（网卡直接读写对端内存），A3 机内机外均走 HCCS。面对大规模 EP 的跨机尾时延，昇腾从两处压缩等待：一是 A2 可开启**分层通信**（`enable_mc2_hierarchy_comm`），不再让本机 8 张卡各自向对端机器零散发起跨机小包（跨机比例高达 $(M-1)/M$），而是先经机内高速 HCCS 把发往同一远端节点的 token 汇聚，再经单次跨机传输送出并在目标机内二次分发，大幅降低跨机流量与小包拥塞；但它要求各 rank 每步 token 数一致（`global_bs = 0`），因此不能与“decode 侧跳过每步 DP 元数据同步”同时生效。二是 A3 / 950DT 在开启融合路径（`FUSED_MC2` / `CANN MegaMoe`）时，把原本串行阻塞的 `dispatch → 专家分组矩阵乘 → combine` 切分成细粒度微块流水重叠，让网络搬运与片上专家计算并行推进，详细算子与缓冲机制见 [MoE 通信调度状态机](moe-comm-dispatch.md#四类-moe-通信实现各自做什么)。
 
 ```wiki-diagram
 file: large-scale-ep-fig-hierarchy-comm

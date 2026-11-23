@@ -1,7 +1,7 @@
 mode: native-svg
 id: dynamic-chunked-pp-fig-quadratic-bubble
 caption: 动态分块流水线（CPP）怎样消除等长分块的二次耗时气泡：将 1:3:5:7 递增块反解为越切越薄的等耗时块（23 格压至 17 格），经平滑、下限与对齐三道后处理，并在 v0.30.0 升级为 nnls 拟合与 MRV2 异步调度，随后在 main（PR #21310）整体移除。
-size: [900, 492]
+size: [900, 564]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205'
     symbols: ['fit_chunk', 'nnls', 'quadratic_chunk_a', 'linear_chunk_b', 'constant_chunk_c']

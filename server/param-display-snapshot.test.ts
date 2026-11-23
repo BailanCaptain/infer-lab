@@ -41,25 +41,25 @@ const ORACLE_ROWS = [
   {
     id: "size-40a1c2ca47b8",
     file: "params/size-40a1c2ca47b8.md",
-    sha256: "b119247adf91751e81d3f604679f8805c80c19f0ad9b03d276c76431d79eb124",
+    sha256: "f604d3c5355ba8188ea20093508b8130d71923fb58da5cbe3ed618fdd80d1123",
     expectedDisplay: "KVPPConfig.size",
   },
   {
     id: "enable-super-kernel-ce990e186bfa",
     file: "params/enable-super-kernel-ce990e186bfa.md",
-    sha256: "b1f7bde31123fa9120c102e80e37d7ec0b93c91d26d1b263a8343180b5f440f1",
+    sha256: "ae18cf830b19d5826492e587045030da2c858c1a90d66fb0071eab02d3308f3c",
     expectedDisplay: "ascend_compilation_config.enable_super_kernel",
   },
   {
     id: "absolute-balance-threshold-71578a0c428d",
     file: "params/absolute-balance-threshold-71578a0c428d.md",
-    sha256: "4a45dc621ba6089abe994206f9879624e8c61769dfa3afadd2556e4a2a2e7bd6",
+    sha256: "2b021b4eb2776d0538fb393b40e2b799b419f2accea4866719a385bda7951dbe",
     expectedDisplay: "stair_config.absolute_balance_threshold",
   },
   {
     id: "profiling-chunk-config",
     file: "params/profiling-chunk-config.md",
-    sha256: "e374f030950f6116b08e5d0e059b292765abd4cd011dd1f1fae9a5817f701d65",
+    sha256: "4d907884fe316f22d394f7443d2808937b88c2791502e3994dcebb5ef6f9711b",
     expectedDisplay: "动态切块配置（profiling_chunk_config）",
   },
 ] as const;

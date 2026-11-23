@@ -13,8 +13,14 @@ aliases:
   - DynTra
   - Dynamic Intra-Decoder Data-Parallel Load Balancing
   - dyntra_lb_config
+  - DyntraLBScheduler
+  - DyntraLBDPEngineCoreProc
   - 动态 DP 负载均衡
   - D 端 DP 负载均衡
+  - KV 块数均衡
+  - 暂停与抢占
+  - bubble_threshold
+  - long_req_block_threshold
   - lb_pause_request
 chapters:
   - '12'
@@ -101,32 +107,35 @@ verified:
   - main
 evidence: C
 relations:
+  - to: kv-cache
+    kind: builds-on
+    note: 全注意力下 decode 步读取历史与 KV 块数正相关，这是 DyntraLB 按块数估计组间负载的前提
+  - to: collective-communication
+    kind: builds-on
+    note: DyntraLB 依靠 All-Gather 汇集各组负载，其机制建立在集合通信的数据交换规则上
   - to: data-parallel
     kind: builds-on
     note: 各组为什么每一步要一起走、请求为什么一直留在派进去的那组
+  - to: expert-parallel
+    kind: builds-on
+    note: dispatch 与 combine 把各组绑在一起；专家那一段的等待归 EPLB 管
+  - to: dp-request-routing
+    kind: builds-on
+    note: 请求派进某 DP 组后终生不迁移，DyntraLB 在组内按步调整谁先上以缓解长短不均
   - to: pd-disaggregation
     kind: builds-on
     note: D 节点是什么，候选请求的 KV 怎样从 P 拉过来
   - to: balance-scheduling
     kind: alternative-to
-    note: 同样防「等最重的组」但只数条数，v0.30.0 与 main 中都与本特性二选一
-  - to: expert-parallel
-    kind: builds-on
-    note: dispatch 与 combine 把各组绑在一起；专家那一段的等待归 EPLB 管
-  - to: vllm-scheduler
-    kind: builds-on
-    note: running 与 waiting，以及真正的抢占怎样收回 KV 块
+    note: 同样防「等最重的组」但只数条数且仅用于 PD 混部，v0.30.0 与 main 中与本特性二选一互斥
+  - to: eplb
+    kind: alternative-to
+    note: DyntraLB 在 dispatch 前按各组 KV 块数暂停/换人以压平注意力等待；EPLB 在 combine 前按热点重排专家以压平专家等待，两者管相邻两段
   - to: profiling-chunk-config
     kind: conflicts-with
-    note: DyntraLB 的启动检查禁止与 profiling_chunk_config 同开；后者开启 CPP 动态切块。
-  - to: collective-communication
-    kind: builds-on
-    note: DyntraLB 依靠 All-Gather 汇集各组负载，其机制建立在集合通信的数据交换规则上。
-  - to: concurrent-requests
-    kind: builds-on
-    note: 借用多请求页的场景 M 区分混合 prefill 造成的宽度差距与 DyntraLB 处理的纯 decode 历史负载差距。
+    note: DyntraLB 的启动检查禁止与 profiling_chunk_config 同开；后者开启 CPP 动态切块
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

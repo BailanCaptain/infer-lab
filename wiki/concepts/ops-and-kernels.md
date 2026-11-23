@@ -21,6 +21,8 @@ aliases:
   - ir_op_priority
   - ir-op-priority
   - maybe_inplace
+  - PTA
+  - OpPlugin
 chapters:
   - '16'
 order: 10
@@ -154,6 +156,12 @@ relations:
   - to: matmul-and-weights
     kind: builds-on
     note: 先理解矩阵运算的输入输出
+  - to: tensor-layout
+    kind: builds-on
+    note: 融合算子与量化权重常要求 FRACTAL_NZ 分形排布，布局规则见该页
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: Worker 启动第①步完成 register_ascend_customop 注册与硬件能力门控
   - to: attention-backend-family
     kind: builds-on
     note: 后端选择决定注意力落到哪个算子
@@ -182,7 +190,7 @@ rawSources:
 file: ops-layers
 ```
 
-图里第二层的三条路，是 `vllm-ascend` 换实现的三种办法，它们最终汇入第三层的两类算子：一类是随 `torch_npu`（把 PyTorch 接到昇腾软件栈的那层）发布的成熟设备算子，另一类是仓库自己用 AscendC / Triton 编译出来的扩展与融合算子。
+图里第二层的三条路，是 `vllm-ascend` 换实现的三种办法，它们最终汇入第三层的两类算子：一类是随 `torch_npu`（昇腾 PyTorch 适配插件 **PTA**，通过 **OpPlugin** 将算子调用映射到 CANN 接口）发布的成熟设备算子，另一类是仓库自己用 **AscendC**（昇腾面向 AI Core 的 C++ 核函数语言）或 **Triton**（面向加速器的 Python 核函数编译器）编译出来的扩展与融合算子。
 
 | 层 | 它是什么 | 谁负责 | 在哪能看到 |
 |---|---|---|---|
@@ -200,7 +208,7 @@ file: ops-ir-selection-qwen3
 
 - **`enforce_eager = True`**：Python 逐算子即时下发 `torch_npu`，0 图捕获开销，常用于排障或启动期 `profile_run`。
 - **`PIECEWISE` / `FULL_AND_PIECEWISE`**：`AscendCompiler` 在注意力处切分子图，捕获分段 `ACLGraph`，兼容混合批（默认关闭 `npugraph_ex`）。
-- **`FULL_DECODE_ONLY`**：清空 `splitting_ops` 保持纯 decode 整图完整，可叠加 `npugraph_ex` FX 图融合，显著压低主机侧下发延迟（prefill 仍走 eager）。
+- **`FULL_DECODE_ONLY`**：清空 `splitting_ops` 保持纯 decode 整图完整，可叠加 `npugraph_ex` **FX**（PyTorch 捕获的函数级计算图）图融合，显著压低主机侧下发延迟（prefill 仍走 eager）。
 
 本页前四层讲清「每一层各是什么、由谁决定、在哪查到」；第五层里一个 kernel 具体怎样搬数据与切块，见[一次归一化落到 AI Core](op-to-ai-core.md)。确认执行方法时还需区分**实现选择**与**编译选择**：固定上游在 `CustomOp` 未启用时仍将原生方法交给编译选择器处理，因此禁用 `CustomOp` 不等于必然以 eager 方式逐算子执行。
 

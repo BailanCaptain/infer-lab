@@ -37,29 +37,83 @@ const DEFAULTS = { minHits: 8, minPages: 3 };
 const BACKTICK_RE = /`([A-Za-z_][A-Za-z0-9_.]{2,})`/g;
 const ACRONYM_RE = /\b([A-Z]{2,6})\b/g;
 
-/** 语言关键字、类型名一类，出现再多也不是「知识点」 */
+/** 语言关键字、通用协议/系统缩写、配置枚举与泛称，出现再多也不是待单开页面的「知识点」 */
 const STOPWORDS = new Set([
   "TODO",
   "NOTE",
   "FIXME",
   "API",
+  "CLI",
+  "SDK",
   "CPU",
   "GPU",
   "NPU",
   "HBM",
+  "DRAM",
+  "SRAM",
+  "SSD",
+  "CUDA",
+  "NVIDIA",
+  "ARM",
   "KV",
   "PR",
   "URL",
+  "URI",
+  "HTTP",
+  "HTTPS",
+  "POST",
+  "GET",
+  "PUT",
+  "DELETE",
+  "HEAD",
+  "PATCH",
+  "IP",
+  "TCP",
+  "UDP",
+  "SSH",
+  "TLS",
+  "SSL",
+  "OS",
+  "PID",
+  "UTF",
+  "ASCII",
+  "SHA",
   "JSON",
   "YAML",
+  "TOML",
+  "HTML",
+  "XML",
+  "CSV",
+  "PDF",
+  "FAQ",
+  "README",
   "MB",
   "GB",
   "KB",
   "KIB",
   "MIB",
   "GIB",
+  "FLOP",
+  "FLOPS",
+  "MFLOP",
+  "GFLOP",
+  "TFLOP",
+  "TFLOPS",
+  // Python / C 类型与关键字
   "int",
+  "int8",
+  "int16",
+  "int32",
+  "int64",
+  "uint8",
+  "uint16",
+  "uint32",
+  "uint64",
   "float",
+  "float16",
+  "float32",
+  "float64",
+  "FLOAT",
   "bool",
   "str",
   "None",
@@ -69,20 +123,79 @@ const STOPWORDS = new Set([
   "def",
   "class",
   "import",
+  "from",
   "return",
   "assert",
   "if",
   "else",
   "for",
   "while",
-  // 配置字面量：页里写「默认 `false`」很常见，不是知识点
+  "break",
+  "continue",
+  "pass",
+  "raise",
+  "with",
+  "async",
+  "await",
+  // 配置字面量、日志级别与通用状态枚举：页里写「默认 `false`」「状态 `RELEASED`」很常见，不是知识点
   "true",
   "false",
   "none",
   "null",
+  "auto",
+  "unknown",
+  "default",
   "enabled",
   "disabled",
-  // 泛称：整个库都在讲它，不会有单独一页
+  "INFO",
+  "DEBUG",
+  "WARN",
+  "WARNING",
+  "ERROR",
+  "FULL",
+  "NONE",
+  "STANDARD",
+  "MAX",
+  "MIN",
+  "SUM",
+  "RETRYABLE",
+  "REJECTED",
+  "REGISTERED",
+  "RELEASED",
+  "PREEMPTED",
+  "COMPATIBILITY",
+  // 泛化代码/数学/基础计算机词与分支泛称：整个库都在用，不会为其单开一页概念
+  "main",
+  "vllm",
+  "vLLM",
+  "ascend",
+  "HF",
+  "EOS",
+  "BOS",
+  "PAD",
+  "BPE",
+  "TTL",
+  "LRU",
+  "LIFO",
+  "FIFO",
+  "FCFS",
+  "EADDRINUSE",
+  "sources",
+  "apply",
+  "down",
+  "free",
+  "all",
+  "model",
+  "weights",
+  "linear",
+  "align",
+  "dynamic",
+  "forward",
+  "refresh",
+  "priority",
+  "content",
+  "choices",
+  "high",
   "AI",
   "LLM",
   "ID",
@@ -98,11 +211,86 @@ const STOPWORDS = new Set([
 const EXCEPTION_RE = /(Error|Exception|Warning)$/;
 /** commit 短号（含数字的 7–40 位十六进制串）：页里写版本快照时会反复出现 */
 const COMMIT_RE = /^(?=.*\d)[a-f0-9]{7,40}$/;
+/** 版本号字符串（如 v0.30.0、v0.26.0rc、v0.23）：四版对照高频出现，不是概念缺口 */
+const VERSION_RE = /^v\d+(?:\.\d+)+(?:[._-]?(?:rc|post|dev|a|b|alpha|beta)\d*)?$/i;
+/** 源码与文档文件名（如 model_runner_v1.py、ascend_config.py、*.cc、*.h、*.rs、*.md、*.json） */
+const FILE_NAME_RE =
+  /\.(?:py|cc|cpp|cxx|c|h|hpp|cu|rs|go|java|ts|tsx|js|mjs|cjs|md|rst|json|ya?ml|toml|ini|cfg|sh|bash|txt|html?|svg|webp|png|whl|so)$/i;
+/** Python 双下划线/私有内部符号（如 __init__、_dummy_run） */
+const DUNDER_OR_PRIVATE_RE = /^_[A-Za-z0-9_.]*$/;
+/** 模块/类成员访问片段（如 Scheduler.schedule、NPUWorker.__init__、PassConfig.enable_sp） */
+const DOTTED_SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_.]*$/;
+/** 并行组编号实例（如 DP0、DP1、TP8、EP16），对应并行机制已有专页 */
+const RANK_LABEL_RE = /^(?:DP|TP|PP|EP|CP|SP)\d+$/i;
+
+const NON_PROSE_H2_RE = /^##\s+(?:对照源码|版本谱系|参数定义（自动生成）)(?:\s.*)?$/;
+const H2_HEADING_RE = /^##\s+\S/;
+const FENCE_OPEN_RE = /^ {0,3}(`{3,}|~{3,})\s*([^\s`~]*)/;
+
+/**
+ * 提取真正面向读者的教学正文：
+ * 剥离页末默认折叠的「## 对照源码」（以及参数页自动生成的「## 版本谱系」「## 参数定义（自动生成）」）
+ * 与 `wiki-diagram` / `wiki-scene` / `wiki-tool` 结构围栏，避免源码锚点文件名与组件 ID 污染概念缺口雷达。
+ */
+export function teachingProse(body: string): string {
+  const out: string[] = [];
+  let fenceMarker: string | null = null;
+  let skipFence = false;
+  let skipSection = false;
+
+  for (const line of body.split(/\r?\n/)) {
+    if (fenceMarker !== null) {
+      const ch = fenceMarker[0]!;
+      const closeRe = new RegExp(`^ {0,3}${ch}{${fenceMarker.length},}\\s*$`);
+      if (closeRe.test(line)) {
+        fenceMarker = null;
+        skipFence = false;
+      } else if (!skipFence && !skipSection) {
+        out.push(line);
+      }
+      continue;
+    }
+
+    const open = FENCE_OPEN_RE.exec(line);
+    if (open) {
+      fenceMarker = open[1]!;
+      const lang = (open[2] ?? "").toLowerCase();
+      skipFence = lang === "wiki-diagram" || lang === "wiki-scene" || lang === "wiki-tool";
+      continue;
+    }
+
+    if (H2_HEADING_RE.test(line)) {
+      skipSection = NON_PROSE_H2_RE.test(line.trim());
+    }
+    if (!skipSection) {
+      out.push(line);
+    }
+  }
+  return out.join("\n");
+}
+
+function isNoiseTerm(term: string): boolean {
+  return (
+    STOPWORDS.has(term) ||
+    EXCEPTION_RE.test(term) ||
+    COMMIT_RE.test(term) ||
+    VERSION_RE.test(term) ||
+    FILE_NAME_RE.test(term) ||
+    DUNDER_OR_PRIVATE_RE.test(term) ||
+    DOTTED_SYMBOL_RE.test(term) ||
+    RANK_LABEL_RE.test(term)
+  );
+}
 
 function candidates(text: string): string[] {
+  const prose = teachingProse(text);
   const out: string[] = [];
-  for (const m of text.matchAll(BACKTICK_RE)) if (m[1]) out.push(m[1]);
-  for (const m of text.matchAll(ACRONYM_RE)) if (m[1]) out.push(m[1]);
+  for (const m of prose.matchAll(BACKTICK_RE)) if (m[1]) out.push(m[1]);
+  // 仅抹掉已被单标识符规则判为噪音的反引号片段（如 `CANN.Profiler`、`foo.py`），保留含空格的多词短语（如 `HCCS / RoCE`）
+  const scrubbed = prose.replace(/`([A-Za-z_][A-Za-z0-9_.-]*)`/g, (full, t: string) =>
+    isNoiseTerm(t) ? " " : full,
+  );
+  for (const m of scrubbed.matchAll(ACRONYM_RE)) if (m[1]) out.push(m[1]);
   return out;
 }
 
@@ -133,7 +321,7 @@ export function findGaps(pages: WikiPage[], opts: GapOptions = {}): Gap[] {
   const hits = new Map<string, { n: number; pages: Set<string> }>();
   for (const p of pages) {
     for (const term of candidates(p.body)) {
-      if (STOPWORDS.has(term) || EXCEPTION_RE.test(term) || COMMIT_RE.test(term)) continue;
+      if (isNoiseTerm(term)) continue;
       const id = toId(term);
       if (covered.has(id)) continue;
       const rec = hits.get(term) ?? { n: 0, pages: new Set<string>() };

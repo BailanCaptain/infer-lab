@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 488" width="900" height="488" role="img" aria-label="Sleep Mode Level 1 与 Level 2 按 6 GiB 示意账的 HBM/CPU 显存释放恢复比例柱与 HCCL 通信锚点生命周期图" font-family="var(--font-sans)">
-  <title>Sleep Mode：HBM / CPU 比例显存交接（6 GiB → 1 GiB → 3 GiB → 6 GiB）与 HCCL 通信锚点</title>
-  <desc>Proportional stacked HBM and CPU memory bars across Running, Level 1 Sleep, Level 2 Sleep, wake_up(weights), and wake_up(kv_cache), plus HCCL _lifecycle_anchor_group lifespan bracket and NZ/expandable_segments guardrails</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 552" width="900" height="552" role="img" aria-label="Sleep Mode Host DRAM 与 NPU HBM 双层比例显存交接（Level 1 vs Level 2 并列对比）及 HCCL 通信锚点双轨生命周期图" font-family="var(--font-sans)">
+  <title>Sleep Mode：Host DRAM / NPU HBM 双层比例交接（Level 1 vs Level 2）与 HCCL 锚点双轨生命周期</title>
+  <desc>Dual-plane memory architecture (Host DRAM pinned backup plane above, proportional NPU HBM stacked bars 1 GiB = 24px below) showing Level 1 vs Level 2 as parallel sleep depths and 2-stage wake_up(weights then kv_cache), plus 2-track HCCL lifespan Gantt comparing business HCCL group teardown/rebuild vs continuous _lifecycle_anchor_group survival and two hard guardrails.</desc>
   <defs>
     <marker id="sm-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
@@ -11,119 +11,158 @@
     <marker id="sm-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
     </marker>
+    <marker id="sm-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
   </defs>
 
-  <!-- UPPER BAND: Proportional HBM & CPU Stacked Bars (1 GiB = 26px; Baseline y=250, 6 GiB top y=94) -->
-  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">① HBM 与 CPU 内存去向（按每卡 6 GiB 示意账真实比例绘制：1 GiB = 26 px）</text>
+  <!-- BAND 1: Dual-Plane Host DRAM + Proportional NPU HBM Bars (1 GiB = 24px; HBM Baseline y=276, 6 GiB top y=132) -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 双层内存去向：Host DRAM 锁页备份 vs NPU HBM 按比例释放恢复（1 GiB = 24 px）</text>
 
-  <!-- Legend -->
-  <rect x="14" y="34" width="16" height="14" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-  <text x="36" y="46" font-size="13.5" fill="#936300">weights 权重池（2 GiB）</text>
-  <rect x="216" y="34" width="16" height="14" rx="3" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="238" y="46" font-size="13.5" fill="#3a4f93">kv_cache 缓存池（3 GiB）</text>
-  <rect x="434" y="34" width="16" height="14" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="456" y="46" font-size="13.5" fill="#4d5652">持久 + 池外常驻（1 GiB）</text>
-  <rect x="652" y="34" width="16" height="14" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" stroke-dasharray="3 2"/>
-  <text x="674" y="46" font-size="13.5" fill="#065f56">归还训练的 5 GiB 空间</text>
+  <!-- Compact inline legend -->
+  <rect x="14" y="34" width="14" height="12" rx="2" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="34" y="45" font-size="12.5" fill="#936300">weights（2 GiB）</text>
+  <rect x="166" y="34" width="14" height="12" rx="2" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="186" y="45" font-size="12.5" fill="#3a4f93">kv_cache（3 GiB）</text>
+  <rect x="330" y="34" width="14" height="12" rx="2" fill="#ece9df" stroke="#8a928f" stroke-width="1.1"/>
+  <text x="350" y="45" font-size="12.5" fill="#4d5652">常驻（1 GiB）</text>
+  <rect x="466" y="34" width="14" height="12" rx="2" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1" stroke-dasharray="3 2"/>
+  <text x="486" y="45" font-size="12.5" fill="#065f56">释放给训练端（5 GiB）</text>
+  <text x="884" y="45" text-anchor="end" font-size="12" font-weight="700" fill="#66716d">L1 / L2 为二选一休眠深度</text>
 
-  <!-- Baseline axis -->
-  <line x1="14" y1="250" x2="886" y2="250" stroke="#b8bcb5" stroke-width="1.3"/>
+  <!-- Plane A: Host DRAM Backup Band (y=56..110) -->
+  <rect x="14" y="56" width="872" height="54" rx="6" fill="#e8edff" fill-opacity="0.45" stroke="#c3cde8" stroke-width="1"/>
+  <text x="24" y="79" font-size="12.5" font-weight="700" fill="#3a4f93">Host DRAM</text>
+  <text x="24" y="97" font-size="12" fill="#66716d">CPU 锁页区</text>
 
-  <!-- State 1: Running (6 GiB) x=26, w=134 -->
-  <text x="93" y="84" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">睡前运行中</text>
-  <rect x="26" y="94" width="134" height="78" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="93" y="138" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">KV 池 · 3 GiB</text>
-  <rect x="26" y="172" width="134" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="93" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">权重 · 2 GiB</text>
-  <rect x="26" y="224" width="134" height="26" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="93" y="242" text-anchor="middle" font-size="13.5" fill="#4d5652">常驻 1 GiB</text>
-  <text x="93" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">HBM 6.0 GiB</text>
+  <!-- Plane B: NPU HBM Band Header & Baseline (y=118..286) -->
+  <text x="24" y="188" font-size="12.5" font-weight="700" fill="#936300">NPU HBM</text>
+  <text x="24" y="206" font-size="12" fill="#66716d">按比例堆叠</text>
+  <line x1="102" y1="276" x2="886" y2="276" stroke="#8a928f" stroke-width="1.4"/>
 
-  <!-- Arrow 1 -> 2A -->
-  <path d="M 164 172 L 194 172" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#sm-arr-b)"/>
+  <!-- COLUMN 1: Running (6.0 GiB) x=108..232 (w=124) -->
+  <text x="170" y="88" text-anchor="middle" font-size="12.5" fill="#9aa39f">0 备份</text>
+  <rect x="108" y="132" width="124" height="72" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="170" y="173" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">KV 池 · 3 GiB</text>
+  <rect x="108" y="204" width="124" height="48" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="170" y="233" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">权重 · 2 GiB</text>
+  <rect x="108" y="252" width="124" height="24" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="170" y="269" text-anchor="middle" font-size="12.5" fill="#4d5652">常驻 1 GiB</text>
+  <text x="170" y="296" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">睡前 · 6.0 GiB</text>
 
-  <!-- State 2A: Level 1 Sleep x=200, w=146 -->
-  <rect x="200" y="58" width="146" height="32" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="273" y="79" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">CPU +2,048 MiB</text>
-  <rect x="200" y="94" width="146" height="130" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 4"/>
-  <text x="273" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">释放 5.0 GiB</text>
-  <text x="273" y="170" text-anchor="middle" font-size="13.5" fill="#065f56">让给训练端</text>
-  <text x="273" y="194" text-anchor="middle" font-size="13.5" fill="#4d5652">权重锁页备 CPU</text>
-  <rect x="200" y="224" width="146" height="26" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="273" y="242" text-anchor="middle" font-size="13.5" fill="#4d5652">余 1.0 GiB</text>
-  <text x="273" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">Level 1 睡后</text>
+  <!-- Fork arrow from Running to Sleep box frame -->
+  <path d="M 232 204 L 258 204" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#sm-arr-b)"/>
 
-  <!-- State 2B: Level 2 Sleep x=366, w=146 -->
-  <rect x="366" y="58" width="146" height="32" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="439" y="79" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">CPU 仅 +16 MiB</text>
-  <rect x="366" y="94" width="146" height="130" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 4"/>
-  <text x="439" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">释放 5.0 GiB</text>
-  <text x="439" y="170" text-anchor="middle" font-size="13.5" fill="#936300" font-weight="700">权重直接丢弃</text>
-  <text x="439" y="194" text-anchor="middle" font-size="13.5" fill="#4d5652">仅留 buffers</text>
-  <rect x="366" y="224" width="146" height="26" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="439" y="242" text-anchor="middle" font-size="13.5" fill="#4d5652">余 1.0 GiB</text>
-  <text x="439" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Level 2 睡后</text>
+  <!-- Parallel Sleep Options Enclosure (subtle dashed grouping L1 vs L2 so they don't look sequential!) -->
+  <rect x="262" y="120" width="302" height="186" rx="8" fill="none" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 4"/>
 
-  <!-- Arrow 2B -> 3 -->
-  <path d="M 516 172 L 546 172" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#sm-arr-p)"/>
+  <!-- COLUMN 2A: Level 1 Sleep x=272..406 (w=134) -->
+  <!-- Host DRAM pinned backup block -->
+  <rect x="272" y="64" width="134" height="38" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="339" y="81" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">CPU +2,048 MiB</text>
+  <text x="339" y="97" text-anchor="middle" font-size="12" fill="#3a4f93">锁页备份权重</text>
+  <!-- Upward offload arrow HBM -> Host DRAM -->
+  <path d="M 339 130 L 339 106" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#sm-arr-b)"/>
 
-  <!-- State 3: wake_up(weights) x=552, w=148 -->
-  <text x="626" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">wake(["weights"])</text>
-  <rect x="552" y="94" width="148" height="78" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
-  <text x="626" y="138" text-anchor="middle" font-size="13.5" fill="#66716d">KV 尚未唤醒</text>
-  <rect x="552" y="172" width="148" height="52" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
-  <text x="626" y="194" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">权重空间 2 GiB</text>
-  <text x="626" y="214" text-anchor="middle" font-size="13.5" fill="#8f3229" font-weight="700">L2 须外部重载！</text>
-  <rect x="552" y="224" width="148" height="26" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="626" y="242" text-anchor="middle" font-size="13.5" fill="#4d5652">常驻 1 GiB</text>
-  <text x="626" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">HBM 3.0 GiB</text>
+  <rect x="272" y="132" width="134" height="120" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="339" y="176" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">释放 5.0 GiB</text>
+  <text x="339" y="198" text-anchor="middle" font-size="12.5" fill="#065f56">让给训练端</text>
+  <text x="339" y="220" text-anchor="middle" font-size="12" fill="#3a4f93">权重拷入 CPU</text>
+  <rect x="272" y="252" width="134" height="24" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="339" y="269" text-anchor="middle" font-size="12.5" fill="#4d5652">余 1.0 GiB</text>
+  <text x="339" y="296" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">选项 A · Level 1</text>
+
+  <!-- Vertical separator between L1 and L2 inside Sleep bracket -->
+  <line x1="413" y1="132" x2="413" y2="296" stroke="#d8d8cf" stroke-width="1.1" stroke-dasharray="3 3"/>
+
+  <!-- COLUMN 2B: Level 2 Sleep x=420..554 (w=134) -->
+  <!-- Tiny Host DRAM buffer sliver -->
+  <rect x="420" y="64" width="134" height="38" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="487" y="81" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">CPU 仅 +16 MiB</text>
+  <text x="487" y="97" text-anchor="middle" font-size="12" fill="#936300">仅留 buffers</text>
+  <path d="M 487 130 L 487 106" fill="none" stroke="#c78300" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#sm-arr-a)"/>
+
+  <rect x="420" y="132" width="134" height="120" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="487" y="176" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">释放 5.0 GiB</text>
+  <text x="487" y="198" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">✕ 权重直接丢弃</text>
+  <text x="487" y="220" text-anchor="middle" font-size="12" fill="#4d5652">省主机内存</text>
+  <rect x="420" y="252" width="134" height="24" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="487" y="269" text-anchor="middle" font-size="12.5" fill="#4d5652">余 1.0 GiB</text>
+  <text x="487" y="296" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">选项 B · Level 2</text>
+
+  <!-- Arrow from Sleep options -> Stage 1 wake_up(["weights"]) -->
+  <path d="M 564 204 L 592 204" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#sm-arr-p)"/>
+
+  <!-- COLUMN 3: wake_up(["weights"]) x=596..732 (w=136) -->
+  <!-- Host DRAM restore indicator -->
+  <text x="664" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">L1 拷回 / L2 外部重载</text>
+  <text x="664" y="98" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#7a3a6a">wake(["weights"])</text>
+  <path d="M 664 106 L 664 128" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#sm-arr-p)"/>
+
+  <rect x="596" y="132" width="136" height="72" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="664" y="173" text-anchor="middle" font-size="12.5" fill="#66716d">KV 尚未唤醒</text>
+  <rect x="596" y="204" width="136" height="48" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="664" y="224" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">权重空间 2 GiB</text>
+  <text x="664" y="243" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">L2 须外部重载!</text>
+  <rect x="596" y="252" width="136" height="24" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="664" y="269" text-anchor="middle" font-size="12.5" fill="#4d5652">常驻 1 GiB</text>
+  <text x="664" y="296" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">阶段 1 · 3.0 GiB</text>
 
   <!-- Arrow 3 -> 4 -->
-  <path d="M 704 172 L 734 172" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sm-arr-t)"/>
+  <path d="M 732 204 L 754 204" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#sm-arr-t)"/>
 
-  <!-- State 4: wake_up(kv_cache) x=740, w=144 -->
-  <text x="812" y="84" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">wake(["kv_cache"])</text>
-  <rect x="740" y="94" width="144" height="78" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="812" y="128" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">空 KV 池 3 GiB</text>
-  <text x="812" y="150" text-anchor="middle" font-size="13.5" fill="#4d5652">旧历史已丢弃</text>
-  <rect x="740" y="172" width="144" height="52" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="812" y="203" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">就绪权重 2 GiB</text>
-  <rect x="740" y="224" width="144" height="26" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
-  <text x="812" y="242" text-anchor="middle" font-size="13.5" fill="#4d5652">常驻 1 GiB</text>
-  <text x="812" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">HBM 6.0 GiB</text>
+  <!-- COLUMN 4: wake_up(["kv_cache"]) x=758..884 (w=126) -->
+  <text x="821" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">重建 KV 池</text>
+  <text x="821" y="98" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">wake(["kv_cache"])</text>
+  <rect x="758" y="132" width="126" height="72" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="821" y="164" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">空 KV 池 3 GiB</text>
+  <text x="821" y="184" text-anchor="middle" font-size="12" fill="#4d5652">旧历史已丢弃</text>
+  <rect x="758" y="204" width="126" height="48" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="821" y="233" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">就绪权重 2 GiB</text>
+  <rect x="758" y="252" width="126" height="24" rx="3" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="821" y="269" text-anchor="middle" font-size="12.5" fill="#4d5652">常驻 1 GiB</text>
+  <text x="821" y="296" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">阶段 2 · 6.0 GiB</text>
 
-  <line x1="14" y1="286" x2="886" y2="286" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <line x1="14" y1="316" x2="886" y2="316" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- LOWER BAND: HCCL Lifecycle Anchor Span & Guardrails -->
-  <text x="14" y="314" font-size="16" font-weight="700" fill="#17211f">② v0.30.0 / main 额外清理通信锚点（_lifecycle_anchor_group）存活区间与两条硬前提</text>
+  <!-- BAND 2: 2-Track HCCL Lifespan Gantt (Business Group vs Anchor Group) -->
+  <text x="14" y="342" font-size="16" font-weight="700" fill="#17211f">② v0.30.0 / main 额外清理双轨生命周期：业务 HCCL 组拆建 vs 锚点组桥接存活</text>
 
-  <!-- 4 Pipeline Steps on a track -->
-  <rect x="14" y="330" width="194" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
-  <text x="111" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">1. 建锚点并拆业务组</text>
-  <path d="M 208 352 L 234 352" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#sm-arr-t)"/>
+  <!-- Phase column headers across x=146..884 (4 equal columns of 180px + 6px gap) -->
+  <text x="236" y="366" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4d5652">1. sleep 额外清理</text>
+  <text x="422" y="366" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">2. wake weights + 重载</text>
+  <text x="608" y="366" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">3. wake kv_cache</text>
+  <text x="794" y="366" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">4. 放行推理流量</text>
 
-  <rect x="240" y="330" width="194" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-  <text x="337" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">2. wake weights + 重载</text>
-  <path d="M 434 352 L 460 352" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#sm-arr-p)"/>
+  <!-- Track A: Business HCCL Groups & ACL Graphs -->
+  <text x="14" y="396" font-size="13" font-weight="700" fill="#3a4f93">业务 HCCL 组</text>
+  <text x="14" y="413" font-size="12" fill="#66716d">与 ACL 图缓冲</text>
 
-  <rect x="466" y="330" width="204" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="568" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">3. wake kv_cache + 重建组/图</text>
-  <path d="M 670 352 L 696 352" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#sm-arr-t)"/>
+  <rect x="146" y="376" width="366" height="38" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="329" y="400" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">销毁业务组与图缓存（释放 HCCL 显存）</text>
 
-  <rect x="702" y="330" width="182" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="793" y="357" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">4. 释放锚点 → 放行流量</text>
+  <rect x="518" y="376" width="180" height="38" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="608" y="400" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">重建业务组与图</text>
 
-  <!-- Anchor Lifespan Bracket spanning Step 1 -> Step 3 end -->
-  <path d="M 64 380 L 64 396 L 664 396 L 664 380" fill="none" stroke="#087f73" stroke-width="2"/>
-  <rect x="150" y="384" width="430" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="365" y="401" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">锚点组全程存活（防销毁最后 HCCL 组），至 kv_cache 恢复后释放</text>
+  <rect x="704" y="376" width="180" height="38" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="794" y="400" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">恢复正常推理</text>
 
-  <!-- Two hard guardrails at bottom -->
-  <rect x="14" y="420" width="424" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="28" y="443" font-size="13" font-weight="700" fill="#8f3229">✗ 禁 expandable_segments：</text>
-  <text x="28" y="463" font-size="13" fill="#8f3229">与睡眠内存池冲突，建池即断言报错</text>
+  <!-- Track B: _lifecycle_anchor_group continuous survival bridge -->
+  <text x="14" y="446" font-size="13" font-weight="700" fill="#065f56">通信锚点组</text>
+  <text x="14" y="463" font-size="12" font-family="var(--font-mono)" fill="#66716d">anchor_group</text>
 
-  <rect x="460" y="420" width="424" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-  <text x="474" y="443" font-size="13" font-weight="700" fill="#8f3229">✗ 禁非零 weight_nz_mode：</text>
-  <text x="474" y="463" font-size="13" fill="#8f3229">wake_up 明确拒收（须设 0 或开 rl_config）</text>
+  <rect x="146" y="426" width="552" height="38" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="422" y="450" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">_lifecycle_anchor_group 全程存活（防销毁最后 HCCL 组触发底层清理）</text>
+
+  <rect x="704" y="426" width="180" height="38" rx="5" fill="#ece9df" stroke="#8a928f" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="794" y="450" text-anchor="middle" font-size="13" fill="#4d5652">release 释放锚点</text>
+
+  <!-- Bottom Two Hard Guardrails -->
+  <rect x="14" y="482" width="424" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="28" y="505" font-size="13" font-weight="700" fill="#8f3229">✗ 禁 expandable_segments：</text>
+  <text x="28" y="525" font-size="12.5" fill="#8f3229">与睡眠内存池冲突，建池即断言报错</text>
+
+  <rect x="460" y="482" width="424" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="474" y="505" font-size="13" font-weight="700" fill="#8f3229">✗ 禁非零 weight_nz_mode：</text>
+  <text x="474" y="525" font-size="12.5" fill="#8f3229">wake_up 明确拒收（须设 0 或开 rl_config）</text>
 </svg>

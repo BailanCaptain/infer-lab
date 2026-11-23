@@ -4,7 +4,7 @@ title: "SWA bounded replay：历史窗口丢了，为什么只重算一小段"
 type: feature
 origin: direct
 summary: 用窗口为三个位置的小例子推演回放为何近似，分清 encoder 缺失恢复与 decoder 窗口准备、128/134/140 的不同口径，以及 mask/compact 一致不能证明与完整重算一致。
-aliases: [SWA Bounded Replay, 有界回放, 滑窗重算, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
+aliases: [SWA, Sliding Window Attention, SWA Bounded Replay, 有界回放, 滑窗重算, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
 chapters: ["19"]
 order: 2
 sources:
@@ -28,10 +28,11 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L19-L35'
   - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L673-L679'
 relations:
-  - { to: deepseek-v4-1-flash, kind: builds-on, note: 先理解全局历史与逐层窗口为何分开 }
-  - { to: prefix-caching, kind: builds-on, note: 前缀复用的通用前提仍由原页维护 }
-  - { to: inference-correctness-troubleshooting, kind: builds-on, note: 回放引入差异时，用同一前缀找第一处变化 }
-  - { to: kv-cache, kind: builds-on, note: 区分分页历史、窗口与运行状态 }
+  - { to: attention-qkv, kind: builds-on, note: 滑动窗口注意力将标准因果注意力的可见历史截断为最近固定窗口 }
+  - { to: kv-cache, kind: builds-on, note: 区分分页全局历史、逐层滑窗状态与运行中间态 }
+  - { to: prefix-caching, kind: builds-on, note: 命中全局前缀块但滑窗状态已淘汰时，触发本页的有界回放恢复 }
+  - { to: linear-attention, kind: alternative-to, note: 两者都将单步访存压到 O(1) 有界开销：SWA 截断到固定近期窗口，线性注意力则压进定长递推矩阵 }
+  - { to: sparse-attention, kind: alternative-to, note: 滑动窗口按固定近邻范围淘汰旧历史；内容稀疏注意力保留全历史并按查询动态挑选 }
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -42,7 +43,7 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**SWA bounded replay 在缺少滑窗状态时，只重新计算末尾一段历史，用较少工作恢复一个可继续生成的近似状态。** “有界”指重新处理的历史长度被限制了；“近似”意味着它不保证与完整历史重算得到相同的中间数值。
+**SWA bounded replay（滑动窗口注意力有界回放，其中 SWA 即 Sliding Window Attention）是指：在缺少近期滑窗状态时，只重新计算末尾一段有限长度的历史，用较少工作恢复一个可继续生成的近似状态。** “有界”指重新处理的历史长度被限制了；“近似”意味着它不保证与完整历史重算得到相同的中间数值。
 
 ## 长历史还在，为什么仍不能直接继续回答
 

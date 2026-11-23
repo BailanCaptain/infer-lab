@@ -115,9 +115,18 @@ relations:
   - to: engine-processes
     kind: builds-on
     note: Worker 是否作为独立子进程派生、每个 EngineCore 管几个 Worker，由执行器决定
+  - to: platform-plugin-registration
+    kind: builds-on
+    note: Worker 子进程初始化先加载通用插件注册模型与加载器，再进入设备准备
+  - to: npu-platform
+    kind: builds-on
+    note: NPUPlatform 按硬件画像选出 NPUWorker 或 NPUWorker310 并提前就地改写块长与图配置
   - to: ascend-patch-system
     kind: builds-on
     note: 第①步构造函数在当前进程内打 worker 层补丁，生效范围受进程边界约束
+  - to: ascend-config-system
+    kind: builds-on
+    note: 第①步在 Worker 进程内独立初始化 AscendConfig 缓存，后续加载与预热直接消费它
   - to: vllm-platform-interface
     kind: builds-on
     note: 上游执行器通过平台契约查询 worker_cls，才定位到昇腾侧的 NPUWorker 或 NPUWorker310
@@ -209,9 +218,9 @@ file: model-resolution-flow
 
 | 冷启动阶段 | 驱动方与核心方法 | 核心动作与硬门禁 | 关键启动日志（排查定位） |
 | --- | --- | --- | --- |
-| **① 构造与补丁** | `WorkerProc` → `__init__` | 在 `super().__init__()` 前完成 `adapt_patch()`、`register_dummy_fusion_op()`、A2/A3 专属 `ATB_EXTENSIONS`、`register_ascend_customop` 与 `init_ascend_config`；`check_ascend_device_type()` 核对编译目标与 `get_soc_version()`，错包当场抛 `RuntimeError` | `COMPILE_CUSTOM_KERNELS` 为假时打编译告警 |
+| **① 构造与补丁** | `WorkerProc` → `__init__` | 在 `super().__init__()` 前完成 `adapt_patch()`、`register_dummy_fusion_op()`、A2/A3 专属 `ATB_EXTENSIONS`（**ATB** 即 Ascend Transformer Boost，昇腾大模型算子加速库）、`register_ascend_customop` 与 `init_ascend_config`；`check_ascend_device_type()` 核对编译目标与 `get_soc_version()`（**SoC** 芯片型号代号），错包当场抛 `RuntimeError` | `COMPILE_CUSTOM_KERNELS` 为假时打编译告警 |
 | **② 绑卡与建组** | `WorkerProc` → `init_device` | 按本机 DP 序号偏移 `local_rank` 并执行 `torch.npu.set_device(device)`，随后先执行 `gc.collect()` 与 `torch.npu.empty_cache()` 清空缓存，再在**建组前**拍 `MemorySnapshot` 校验空闲显存 $\ge M_{\text{total}} \times u$（`v0.30.0` 默认 $u=0.92$）；用 `"hccl"` 建 TP/PP/DP/EP/MC2 通信域后注 `register_ascend_fla_customop()`、建工作区并按 `use_v2_model_runner` 创建 `NPUModelRunner` / `V2` | 空闲不足直接抛 `ValueError` |
-| **③ 读盘与分形** | `WorkerProc` → `load_model` | 主模型与可选草稿全程包在 `DeviceMemoryProfiler` 内：开空参 → 扫 `safetensors` 截本卡切片 → `process_weights_after_loading` 做 `ND→NZ` 与延迟注意力初始化 → 记 `model_memory_usage`；开睡眠模式时包进 `CaMemAllocator(tag="weights")`（单进程限单实例）；配 RL 在线更新时另建 `WeightTransferEngine` | `Checkpoint size:`；MRV1 打 `Loading model weights took ... GB` + `Model runner load_model total time: ... seconds`（MRV2 打 `... GiB memory and ... seconds`） |
+| **③ 读盘与分形** | `WorkerProc` → `load_model` | 主模型与可选草稿全程包在 `DeviceMemoryProfiler` 内：开空参 → 扫 `safetensors` 截本卡切片 → `process_weights_after_loading` 做 `ND→NZ` 与延迟注意力初始化 → 记 `model_memory_usage`；开睡眠模式时包进 `CaMemAllocator(tag="weights")`（支持睡眠挂起/释放的显存分配器，单进程限单实例）；配 RL 在线更新时另建 `WeightTransferEngine` | `Checkpoint size:`；MRV1 打 `Loading model weights took ... GB` + `Model runner load_model total time: ... seconds`（MRV2 打 `... GiB memory and ... seconds`） |
 | **④ 试跑与对齐** | `EngineCore` → `determine_available_memory` | 广播 `get_kv_cache_spec` 后执行最大批 `profile_run()`，在**图捕获前**截 Torch 峰值（手传 `--kv-cache-memory` 仍照跑以完成首次图外编译）；`EngineCore` 校验单条 `max_model_len` 时留出 1 块空块余量（改写则广播 `update_max_model_len`），物理配置仍按整预算取 `min(num_blocks)` 并收缩富余卡（建 `BlockPool` 后再弹出 `null_block` #0） | `Available KV cache memory: ... GiB` |
 | **⑤ 切物理池** | `EngineCore` → `initialize_from_config` | 仅当本进程存在草稿投机实例（`self.speculator is not None`）、`speculative.method == "dspark"` 且搭配相应 SFA DSpark KV 传输（`uses_sfa_dspark_kv_transfer`）或逐层复用（`get_layerwise_reuse_config`）时，才在 `ensure_kv_transfer_initialized` 初始化连接器之前登记 `dspark_draft_layer_names`；随后初始化 KV 连接器并一次切出物理 KV 张量池；睡眠池 `tag="kv_cache"` 仅包缓存本体，块回收清零元数据 `_init_kv_zero_meta`（MRV2 或 `MRV1+Mamba+Eagle3` 多步草稿启用）专门留池外防唤醒丢失 | 块池尚未绑定请求，运行期按需借还 |
 | **⑥ 预热与录图** | `EngineCore` → `compile_or_warm_up_model` | 跑完 7 类预热与分桶 `capture_model()`（吃 $1-u$ 预算外余量），打印 `Actual usage:` 四项账单与扣 `150 MiB` 裕度的 `--kv-cache-memory` 建议值，最后执行 ATB 预热、`bind_cpus` 绑核与重置随机种子 | `Graph capturing finished`、`Actual usage:`、`init engine ... took` |

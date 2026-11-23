@@ -62,15 +62,6 @@ relations:
   - to: hardware-devices
     kind: builds-on
     note: 对照四族昇腾硬件与 A3 双裸片物理拓扑，理解 /dev/davinci* 设备节点挂载与逻辑卡重映射
-  - to: ascend-config-system
-    kind: builds-on
-    note: 分清环境变量与 --additional-config 的职责边界，避免沿用 v0.30.0 已下线的旧环境变量
-  - to: npu-worker-lifecycle
-    kind: builds-on
-    note: 敲下 vllm serve 后容器内部如何依次完成设备检查、权重加载、显存探测与图捕获，见 Worker 生命周期页
-  - to: kv-cache-memory-profiling
-    kind: builds-on
-    note: --gpu-memory-utilization 与 --max-model-len 在冷启动时如何折算成可用 KV cache 块预算，见显存划定页
 contradicts: []
 updated: '2026-11-18'
 ---
@@ -79,7 +70,7 @@ updated: '2026-11-18'
 
 ## 第一步：容器怎么挂设备、驱动与缓存？
 
-官方预构建镜像 `quay.io/ascend/vllm-ascend` 按硬件族分标签（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体），内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
+官方预构建镜像 `quay.io/ascend/vllm-ascend` 按硬件族分标签（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体），内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`（昇腾神经网络加速库，含 ATB 算子库）、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
 
 ```wiki-diagram
 file: env-serve-container-mounts
@@ -156,7 +147,7 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 
 `v0.30.0` 的 `vllm_ascend/envs.py` 共保留 **14 项**变量（**8 项编译期** + **6 项运行期**；`main` 精简为 **12 项**）。8 项编译期开关含 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 及传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等；6 项运行期变量里最常见的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 仅在源码安装了非标准版本号触发 `InvalidVersion` 时才需手设 `0.30.0`（官方 `+empty` 后缀会自动剥离）。
 
-通信侧 **HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项有两项：`HCCL_BUFFSIZE`（MC2 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）与 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
+通信侧 **HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项有两项：`HCCL_BUFFSIZE`（通算融合算子 [MC2](expert-parallel.md#mc2-还是-allgather) 的 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）与 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
 
 > **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除且仓内 `0` 处读取，统一迁入 `--additional-config`（三路优先级见 [Ascend 配置体系](ascend-config-system.md)）。
 > 例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）的转换策略时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**，须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但同样建议改配 `additional_config.enable_flashcomm1`。
@@ -183,7 +174,7 @@ file: env-serve-startup-probes
 | `--max-model-len` | 首轮验证传 `8192` 或 `16384` | 限制单条请求的输入与生成总 token（分词器切出的离散整数符号，见 [token](token.md)）上限；不传时默认取 `config.json` 原生上限（如 `32768` 或 `40960`），小显存卡易在预检阶段报错 |
 | `--gpu-memory-utilization` | 显式传 `0.90`（`v0.30.0` 代码默认 `0.92`） | 控制单卡总显存划给当前实例的比例，扣除权重与运行时开销后剩余空间全部折算为 **KV cache**（保存历史键值表示以避免重算前文的缓存，详见 [KV 显存探测与划定](kv-cache-memory-profiling.md)） |
 | `--dtype` 与 `--quantization` | A2/A3/950DT 浮点免传（默认 `BF16`），ModelSlim 量化传 `--quantization ascend`；**`310P` 必传 `--dtype float16`** | `310P` 硬件不支持 16 位脑浮点 **BF16**，跑浮点权重漏传 `--dtype float16` 会直接失败 |
-| `--compilation-config` 与 `--additional-config` | A2/A3 常用 `'{"cudagraph_mode":"FULL_DECODE_ONLY"}'`（分段捕获可设 `"PIECEWISE"`）；**`310P` 必关 `enable_npugraph_ex`** | **ACL Graph**（昇腾上捕获并回放设备算子序列的图模式，见 [ACL Graph](acl-graph.md)）在 `FULL_DECODE_ONLY` 下对生成步做整图回放并默认开启 `npugraph_ex` 优化；切为 `PIECEWISE` 时代码会自动关闭 `npugraph_ex`，而 `310P` 不支持 `npugraph_ex`，须显式关闭并限制捕获尺寸 |
+| `--compilation-config` 与 `--additional-config` | A2/A3 常用 `'{"cudagraph_mode":"FULL_DECODE_ONLY"}'`（分段捕获可设 `"PIECEWISE"`）；**`310P` 必关 `enable_npugraph_ex`** | **ACL Graph**（昇腾上捕获并回放设备算子序列的图模式，见 [ACL Graph](acl-graph.md)）在 `FULL_DECODE_ONLY` 下对生成步做整图回放并默认开启 `npugraph_ex`（昇腾静态图编译扩展优化）；切为 `PIECEWISE` 时代码会自动关闭 `npugraph_ex`，而 `310P` 不支持 `npugraph_ex`，须显式关闭并限制捕获尺寸 |
 
 ### 1. 三套单机最小启动模板
 

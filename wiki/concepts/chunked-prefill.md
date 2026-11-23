@@ -126,6 +126,12 @@ rawSources:
 
 prefill 是处理提示词、建立后续计算所需历史的阶段，可以经过一步或多步；处理到最后一个提示词位置后，选出回答的第一个 token。之后进入 decode，普通路径逐个推进，投机路径可以一轮验证多个候选，区别见 [Prefill 与 Decode](prefill.md#回答的第一个字出来之前模型在算什么)。「一步」是模型对一批请求做的一次前向；一步的位置预算由调度器封顶，为什么按位置而非请求条数算，见 [连续批处理](continuous-batching.md) 与 [调度器](vllm-scheduler.md#为什么按-token-设预算还要另设请求数上限)。
 
+进入数字算账前，先把这件事想成**货运长列车与同城快递车共用同一座收费道口**：
+
+```wiki-diagram
+file: chunked-prefill-plate-tollbooth
+```
+
 下面用与后文冻结 3D 场景绑定的示意数走一遍。假设每步最多算 `8` 个位置。`A`、`B` 两条请求已经在生成回答，每步各算 `1` 个位置；这时来了一条新请求 `C`，提示词有 `14` 个 token，占位置 `0–13`。
 
 ```wiki-diagram
@@ -274,9 +280,9 @@ file: chunked-prefill-fig-budget-game
 
 1. **为什么昇腾 `vllm serve` 默认预算只有 `2048`？** 上游 `EngineArgs.get_batch_defaults` 按设备总显存分档给默认值，$\ge 70\text{ GiB}$ 在线默认本应给 `8192`。但参数解析时 Worker 尚未初始化 `torch_npu`，`NPUPlatform.get_device_total_memory()` 主动抛 `NotImplementedError`，外层回落到 `device_memory = 0` 分支。因此在线 `vllm serve` 默认落到 `max_num_batched_tokens = 2048`、`max_num_seqs = 256`（离线 `LLM` 类默认 `8192` / `256`）。传入 `--performance-mode throughput` 会把未显式指定的两者翻倍；外部启动器若提前初始化了 `torch_npu`，以启动日志实际打印值为准。
 2. **`running` 先扣 `1` 或 `1 + K` 个投机槽位。** V1 `Scheduler.schedule` 将单步 `token_budget` 初始化为 `max_num_scheduled_tokens`。它先遍历 `running`，为每条在跑 decode 请求扣除 $1 + K$ 个位置（$K$ 为投机草稿数 `num_spec_tokens`，普通解码 $K = 0$）。剩余预算才切给续跑或新入场的长提示词：高并发或大草稿数会压缩每步分块长度，迫使长文跨更多步并拉长 TTFT。
-3. **`SP + PCP > 1` 向上取整（打印 `warning_once`）。** 当开启 Prefill Context Parallelism（`prefill_context_parallel_size > 1`）且序列并行（SP）生效时，`AscendConfig` 需要让各 `tp × pcp` 分片切得均等，因此按 $\lceil B / (\text{tp} \times \text{pcp})\rceil \times (\text{tp} \times \text{pcp})$ 向上取整 `max_num_batched_tokens`，并通过 `logger.warning_once` 显式打印调整值，并非静默改写。
+3. **`SP + PCP > 1` 向上取整（打印 `warning_once`）。** 当开启[预填充上下文并行（PCP）](context-parallel.md)（`prefill_context_parallel_size > 1`）且[序列并行（SP）](sequence-parallel.md)生效时，`AscendConfig` 需要让各 `tp × pcp` 分片切得均等，因此按 $\lceil B / (\text{tp} \times \text{pcp})\rceil \times (\text{tp} \times \text{pcp})$ 向上取整 `max_num_batched_tokens`，并通过 `logger.warning_once` 显式打印调整值，并非静默改写。
 4. **`PP > 1` 与 `CPP` 允许把预算放宽 `2~4×`（先下钳 `min_chunk`，再走 `SP + PCP` 取整）。** 开启[流水线并行](pipeline-parallel.md)（`PP > 1`）后，`get_pp_indices` 把层权重与 KV 拆到各阶段，非末级阶段省去 `lm_head` 与词表 logits 峰值，单卡可承受更大预算。
-   若在 `PP > 1` 下进一步开启[动态分块流水线 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config`，与 `enable_balance_scheduling`、`dyntra_lb_config` 互斥），`AscendConfig` 会**先于** `SP + PCP` 取整检查初始预算；预算小于 `min_chunk` 时打印 `logger.warning` 并将 `min_chunk` 下钳至该值。运行期以最终预算为基准按二次耗时曲线 $f(l)=al^2+bl+c$ 求解等耗时分块，官方调优指南建议将预算设为固定分块的 `2~4` 倍（该特性已在社区 `main` 移除）。
+   若在 `PP > 1` 下进一步开启[动态分块流水线 CPP](dynamic-chunked-pp.md)（[`profiling_chunk_config`](../params/profiling-chunk-config.md)，与 [`enable_balance_scheduling`](balance-scheduling.md)、[`dyntra_lb_config`](dyntra-lb.md) 互斥），`AscendConfig` 会**先于** `SP + PCP` 取整检查初始预算；预算小于 `min_chunk` 时打印 `logger.warning` 并将 `min_chunk` 下钳至该值。运行期以最终预算为基准按二次耗时曲线 $f(l)=al^2+bl+c$ 求解等耗时分块，官方调优指南建议将预算设为固定分块的 `2~4` 倍（该特性已在社区 `main` 移除）。
 
 ## 异构旗舰对照：GLM 双机与投机步下的分块账
 
@@ -303,7 +309,7 @@ file: chunked-prefill-fig-glm-spike
 
 执行侧，这三步和纯 decode 步有四处关键不同：
 
-- **不回放图，MoE 通信换路径。** 这几步整批贴 `ChunkedPrefill` 标签并走 eager mode（不回放 decode 图）。单步超过 `128` 个 token 时，MoE 通信在两台机器同步切到 `AllGather`（先收齐本步全部隐藏向量，各卡再挑路由到本地专家的行，见[并发页的 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)）。
+- **不回放图，MoE 通信换路径。** 这几步整批贴 `ChunkedPrefill` 标签并走 eager mode（不回放预录的 decode 整图，改由主机逐算子下发）。单步超过 `128` 个 token 时，MoE 通信在两台机器同步切到 `AllGather`（先收齐本步全部隐藏向量，各卡再挑路由到本地专家的行，见[并发页的 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)）。
 - **34 层 KDA 接着上一段的状态算。** KDA 每条请求只存定长状态；每段在算子内部还会再切成 `64` 位置小块并行，那是算子内部算法，与调度器跨步分块是两回事（见[线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进)）。
 - **11 层稀疏 MLA 在前面全部位置里挑着读。** 第 2 段面对 `8,144` 个以上历史时，indexer 先给因果历史打分，主注意力只读挑中的清单（每行最多 `2,051` 个位置），真实读量不是各段历史之和（见[稀疏注意力](sparse-attention.md#放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读)）。
 - **切点不对齐到块。** 一个逻辑块占 `640` 个位置，$8144 = 12 \times 640 + 464$，第 2 段从第 `13` 块的第 `465` 格续写。本部署关闭 prefix caching，KDA 不按块存档，因此无需对齐切分（开启后的变化见 [prefix caching](prefix-caching.md#glm-双机上它开着吗)）。

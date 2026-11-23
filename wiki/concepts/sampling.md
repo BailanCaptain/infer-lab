@@ -31,6 +31,7 @@ aliases:
   - SamplingParams
   - 采样参数
   - 停止条件
+  - EOS
   - top_p
   - top_k
   - top-k 采样
@@ -109,18 +110,6 @@ relations:
   - to: attention-qkv
     kind: builds-on
     note: softmax 和「除以一个数调节尖锐程度」在 attention 页先讲过，本页把它用到词表上
-  - to: one-request
-    kind: builds-on
-    note: 主线第 5 站在这里选出 y₀、第 6、7 站按停止条件收尾，R1 的形状与字节只在那页推导
-  - to: speculative-decoding
-    kind: builds-on
-    note: 有 MTP 候选时，采样换成对候选的验证，接受规则以投机解码页为准
-  - to: structured-output
-    kind: builds-on
-    note: 结构化输出在采样之前把不合法的词压成负无穷，怎样算 bitmask 以那页为准
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: TP8、MTP 3 个候选、133120 的长度上限等部署取值的出处
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -261,7 +250,7 @@ vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`mi
 
 ## 什么时候停下来？
 
-**每出一个 token，引擎都检查一遍要不要停。** 在本页固定 GLM 基线中，输出还没到 `min_tokens` 时先跳过判停。达到 `min_tokens` 后，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`，命中即正常结束（`finish_reason = "stop"`）。若未命中，再检查长度：输出数达到 `max_tokens` 或总长到达模型上限，即截断结束（`finish_reason = "length"`）。
+**每出一个 token，引擎都检查一遍要不要停。** 在标准 `v0.30.0` 与本页固定 GLM 基线中，输出还没到 `min_tokens` 时先跳过判停。达到 `min_tokens` 后，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`，命中即正常结束（`finish_reason = "stop"`）。若未命中，再检查长度：输出数达到 `max_tokens` 或总长到达模型上限，即截断结束（`finish_reason = "length"`）。
 
 结束 token（EOS）和普通词一样参与打分与采样；模型生成配置里列出的其他结束编号也并进停止 token 集合。请求设 `ignore_eos = true` 只关闭自动 EOS 判停，手工指定的 `stop_token_ids`、`stop` 字符串与长度上限仍有效（详见[请求收尾](request-teardown.md#停止文字停止编号和忽略-eos-怎样配合)）。举例：提示词「我 喜欢」，`max_tokens = 3`，输出「猫」「。」「我」，第 3 枚一追加即以 `length` 截断，接口返回输出「猫。我」。
 
@@ -292,9 +281,9 @@ file: sampling-flow-qwen3
 按图中顺序从 NPU Worker 走到 EngineCore：
 
 1. **拿到完整词表分数**：`lm_head` 输出形状 `[B, 151936]` 的 logits。单卡 `TP=1` 本地直接就绪；多卡 `TP>1` 时经一次 All-Gather 拼齐，各卡分数完全一致。
-2. **可选语法掩码与惩罚缩放**：若请求带 JSON/正则结构化约束，先由 `apply_grammar_bitmask` 把非法词位置为 $-\infty$；随后 `AscendSampler` 施加重复/频率惩罚，随机采样路径把分数除以 `temperature`。
+2. **可选语法掩码与惩罚缩放**：若请求带 JSON/正则[结构化输出](structured-output.md)约束，先由 `apply_grammar_bitmask` 把非法词位置为 $-\infty$；随后 `AscendSampler` 施加重复/频率惩罚，随机采样路径把分数除以 `temperature`。
 3. **双路选词**：`temperature = 0` 直接 `argmax` 取最高分；随机路径经 Top-k / Top-p 截断、Softmax 与指数噪声除法后 `argmax`，每条在途请求产出 1 个编号 `[B, 1]`。多卡 TP 共享同一起点的全局随机流，各卡得出相同结果。
-4. **单卡回传与 CPU 判停**：多卡部署时仅 `output_rank` Worker 将采样结果交回 `EngineCore`（省去重复 IPC）。`EngineCore` 逐条追加新 token 并执行 `check_stop`：命中 `Qwen3-8B` 的 `eos_token_id = 151645`、用户 `stop_token_ids` 或 `max_tokens` 即触发收尾退块。
+4. **单卡回传与 CPU 判停**：多卡部署时仅 `output_rank` Worker 将采样结果交回 `EngineCore`（省去重复的跨进程通信 IPC）。`EngineCore` 逐条追加新 token 并执行 `check_stop`：命中 `Qwen3-8B` 的 `eos_token_id = 151645`、用户 `stop_token_ids` 或 `max_tokens` 即触发收尾退块。
 
 开启投机解码（如 MTP）后，解码步不再是「每条请求 1 行分数」，而是扩展为「多行验证 + 额外采样」——下面以历史 GLM 双机配方展示这条多卡验证路径。
 

@@ -23,6 +23,11 @@ aliases:
   - 乱码排查
   - 首错 Rank
   - EI0006
+  - SIGKILL
+  - exitcode -9
+  - '137'
+  - HCCL_E_WAIT_TIMEOUT
+  - plog
 chapters:
   - '19'
 order: 4
@@ -89,7 +94,7 @@ verified:
   - main
 evidence: C
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 ---
 
 **推理排障先回答一个问题：这条请求或这次启动，最后在哪一步还正常？** 找到这个边界，才能决定下一份证据该从哪里取。
@@ -134,7 +139,7 @@ file: inference-troubleshooting-experiment
 
 ## 现场实操：交互式排障工作台
 
-手头已经有报错日志、多卡交错刷屏的 `EI0006`、退出码 `137` 或一份 `curl /metrics` 文本时，可以直接放进下面的交互式排障工作台。它提供两项独立视图：一是**粘贴报错日志或 `/metrics` 快照**，自动区分主故障与次生集合通信超时、定位最早异常卡并给出下一条取证命令；二是**查看 6 类典型阻塞的时序对照**，用无量纲示意相对时序快速建立读图直觉（仅用于理解阻塞机理，不替代真机 Trace）。
+手头已经有报错日志、多卡交错刷屏的 **`EI0006`**（昇腾 HCCL 集合通信等待超时错误码）、**退出码 `137`**（进程收到 `SIGKILL` 强制终止信号）或一份 `curl /metrics` 文本时，可以直接放进下面的交互式排障工作台。它提供两项独立视图：一是**粘贴报错日志或 `/metrics` 快照**，自动区分主故障与次生集合通信超时、定位最早异常卡并给出下一条取证命令；二是**查看 6 类典型阻塞的时序对照**，用无量纲示意相对时序快速建立读图直觉（仅用于理解阻塞机理，不替代真机 Trace）。
 
 ```wiki-tool
 tool: troubleshoot-workbench
@@ -150,11 +155,11 @@ summary: 粘贴报错日志或 /metrics 定位最早异常卡与下一条取证�
 | 现象归类 | 先拿哪一份最小首取证据 | 优先分流去向 |
 | --- | --- | --- |
 | 启动/加载失败 | `NPUWorker` 最后一条成功里程碑、首处 traceback、进程退出码与安装包路径 | [NPUWorker 启动](npu-worker-lifecycle.md)、[插件注册](platform-plugin-registration.md) |
-| 延迟/吞吐/长尾 | `/metrics` 中的 `kv_cache_usage_perc`、`num_requests_waiting`、TTFT 与 ITL | [性能排障](inference-performance-troubleshooting.md)、[Roofline 与指标](roofline-and-metrics.md) |
-| 内存与容量 | `dmesg`/`OOMKilled` + 启动六步各节点显存占用 + 运行期 `num_preemptions` | [显存探测](kv-cache-memory-profiling.md)、[设备内存](device-memory.md) |
+| 延迟/吞吐/长尾 | `/metrics` 中的 `kv_cache_usage_perc`、`num_requests_waiting`、TTFT（首字时延）与 ITL（相邻词间隔） | [性能排障](inference-performance-troubleshooting.md)、[Roofline 与指标](roofline-and-metrics.md) |
+| 内存与容量 | `dmesg`/`OOMKilled`（容器因超主机内存被强杀标志）+ 启动六步各节点显存占用 + 运行期 `num_preemptions` | [显存探测](kv-cache-memory-profiling.md)、[设备内存](device-memory.md) |
 | 输出与数值异常 | 展开后的输入 token ID、生效采样参数、输出 token ID 与结束原因 | [输出正确性排障](inference-correctness-troubleshooting.md) |
 | 图捕获与算子失败 | 失败前输入形状/精度、生效 `cudagraph_mode` 与 `--enforce-eager` 对照 | [ACL Graph](acl-graph.md)、[NPUGraph-ex](npugraph-ex.md) |
-| 分布式通信超时 | 全组各 rank 按时间戳合并的前序日志与 CANN `plog` + 链路预检 | [HCCL 通信](cann-hccl.md)、[集合通信](collective-communication.md) |
+| 分布式通信超时 | 全组各 rank 按时间戳合并的前序日志与 CANN `plog`（昇腾底层运行日志）+ 链路预检 | [HCCL 通信](cann-hccl.md)、[集合通信](collective-communication.md) |
 | 缓存与 P/D 分离 | 前缀复用命中记录、发送端/接收端请求映射与 connector 状态 | [Prefix Caching](prefix-caching.md)、[PD 分离](pd-disaggregation.md)、[Mooncake](mooncake-connector.md) |
 | 接口/流式/解析 | 直连服务的原始流式片段 vs 代理与客户端收到的内容 | [API 入口](api-server-entry.md)、[流式输出](streaming-output.md)、[结构化输出](structured-output.md) |
 | 长运行卡死/取消 | 连续活动请求数、完成计数、进程存活状态与取消后的块释放记录 | [请求收尾](request-teardown.md)、[容量与恢复案例](inference-capacity-and-reliability.md) |
@@ -168,7 +173,7 @@ summary: 粘贴报错日志或 /metrics 定位最早异常卡与下一条取证�
 - **最先在哪一步失败：** 保留第一处异常、前后上下文及出错 rank，多卡时一起收集其他 rank 的同期日志。
 - **实际运行的是哪份环境：** 保留启动命令、实际生效配置、安装包版本和实际加载路径，以及驱动、运行时版本。版本号相同，也可能加载了另一处安装的包。
 
-插件未选中、依赖不兼容、芯片档位与权重或模型实现不匹配，发生在不同位置。例如在 `v0.30.0` 下，Atlas 300I DUO (`310P`) 走兼容性硬件档位，不支持 `bfloat16` 与原生 FP8，需要显式传 `--dtype float16` 或 ModelSlim 量化。标准 GQA 模型开启 `--kv-cache-dtype int8` 时依赖离线静态校准权重，缺少 C8 scale 会在 `attention_v1.py` 直接抛出 `ValueError`。先有了成功与失败的边界，才知道该检查哪一段。
+插件未选中、依赖不兼容、芯片档位与权重或模型实现不匹配，发生在不同位置。例如在 `v0.30.0` 下，Atlas 300I DUO (`310P`) 走兼容性硬件档位，不支持 `bfloat16` 与原生 FP8，需要显式传 `--dtype float16` 或 ModelSlim 量化。标准 GQA 模型开启 `--kv-cache-dtype int8` 时依赖离线静态校准权重，缺少 **C8 scale**（INT8 KV 缓存量化缩放因子）会在 `attention_v1.py` 直接抛出 `ValueError`。先有了成功与失败的边界，才知道该检查哪一段。
 
 若日志突然中断、进程直接退出，先保留同一次运行的容器 ID、PID、退出时刻和平台终止记录。**退出码 `137`（`SIGKILL` / `exitcode: -9`）本身不能证明 NPU HBM 显存不足**。应沿[进程退出的三步检查](device-memory.md#进程突然退出先查哪三件事)先查 `dmesg` / cgroup `memory.events` 与容器 `OOMKilled` 标志，区分主动终止、宿主机或容器 DRAM OOM，再决定是否进入设备预算排查。
 
@@ -181,7 +186,9 @@ summary: 粘贴报错日志或 /metrics 定位最早异常卡与下一条取证�
 在 `v0.30.0` 下，一份简单的 `/metrics` 快照就能快速分流两类高频慢问题：
 
 - **KV 块枯竭型（抢占重算风暴）**：`vllm:kv_cache_usage_perc` 持续超过 `0.95`，并伴随 `vllm:num_preemptions` 递增与 `vllm:num_requests_waiting > 0`。
-- **低 KV 高延迟型（排除排队与容量）**：KV 使用率偏低且排队为 `0`，却出现偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`。高 TTFT 优先查长输入、[Chunked Prefill](chunked-prefill.md) 单步预算，以及是否误留 `VLLM_LOGGING_LEVEL=DEBUG` 触发每步分配器读数日志与图回放 `data_ptr()` 遍历校验（`Ascend 910B3` 上 `Qwen3-8B` `TP=8 c=1` 单样本对照下 `TTFT` 由 `139.07 ms` 升至 `193.98 ms`，`+39.48%`）；高 ITL / TPOT 优先查是否误开 `--enforce-eager` 放大 Host 发射与同步开销（如 `Qwen3-30B-A3B` `4P4D` Eager 组合配置相对四卡混部 Graph `c=1` `TPOT` 从 `77.90 ms` 升至 `307.83 ms`），或核查 GQA 非连续共享 KV 池的整池连续化复制（Eager 轨迹已实测，线上 `FULL` 图待设备时间线闭合）与固定 `u` 扩 TP 下的负扩展（完整对账与边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。
+- **低 KV 高延迟型（排除排队与容量）**：KV 使用率偏低且排队为 `0`，却出现偏高的 `inter_token_latency_seconds` 或 `time_to_first_token_seconds`。
+  - **高 TTFT**：优先查长输入、[Chunked Prefill](chunked-prefill.md) 单步预算，以及是否误留 `VLLM_LOGGING_LEVEL=DEBUG` 触发每步分配器读数日志与图回放 `data_ptr()` 遍历校验（`Ascend 910B3` 上 `Qwen3-8B` `TP=8 c=1` 单样本对照下 `TTFT` 由 `139.07 ms` 升至 `193.98 ms`，`+39.48%`）。
+  - **高 ITL / TPOT**：优先查是否误开 `--enforce-eager` 放大 Host 发射与同步开销（如 `Qwen3-30B-A3B` `4P4D` Eager 组合配置相对四卡混部 Graph `c=1` `TPOT` 从 `77.90 ms` 升至 `307.83 ms`），或核查 GQA 非连续共享 KV 池的整池连续化复制（Eager 轨迹已实测，线上 `FULL` 图待设备时间线闭合）与固定 `u` 扩 TP 下的负扩展（完整对账与边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。
 
 在相同负载下，只控制已定位阶段的一个变量；比较该段等待与端到端指标是否一起变化。阶段没变而汇总指标变了，先查负载与统计差异。分支实验、代价和验收条件见[性能排障](inference-performance-troubleshooting.md)。
 
@@ -262,7 +269,7 @@ file: troubleshooting-fig-first-fault
 
 ### 版本与配置回归：同一命令不等于同一路径
 
-适用于升级后变慢、结果改变、开关被忽略或默认行为变化。保存升级前后精确 commit、安装路径、镜像、模型文件、启动日志与每个进程的最终配置。在 `v0.30.0` 下，`AscendConfig` 对 `--additional-config` 采用严格未知键校验（`extra="forbid"`），拼写错误会直接失败，但硬件能力降级仍可能把不支持的开关自动关掉，因此“未报错”仍不等于目标路径已生效。先查[配置系统](ascend-config-system.md)的覆盖与校验，再查[补丁系统](ascend-patch-system.md)是否替换了相关实现。
+适用于升级后变慢、结果改变、开关被忽略或默认行为变化。保存升级前后精确 commit、安装路径、镜像、模型文件、启动日志与每个进程的最终配置。在 `v0.30.0` 下，`AscendConfig` 对 `--additional-config` 采用严格未知键校验（Pydantic `extra="forbid"`，即遇到配置类未声明字段直接拒绝启动），拼写错误会直接失败，但硬件能力降级仍可能把不支持的开关自动关掉，因此“未报错”仍不等于目标路径已生效。先查[配置系统](ascend-config-system.md)的覆盖与校验，再查[补丁系统](ascend-patch-system.md)是否替换了相关实现。
 
 固定输入和负载，分别运行两套完整且兼容的环境；若能定位到单项配置变化，再在各版本支持范围内显式对齐。版本标签相同而安装文件不同，先解决产物不一致。只有在输入、有效配置与依赖可比较后，差异才进入版本回归调查；不能把新版本参数粘回旧版本当作已验证修复。
 

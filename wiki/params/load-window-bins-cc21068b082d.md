@@ -4,6 +4,11 @@ title: load_window_bins
 type: param
 summary: >-
   STAIR 在分析上游 EPLB 负载窗口前按时间顺序压缩的最多分段数：默认 64，合法范围 2–256。每段保留段均负载与步数权重，后续均衡度、p95 峰均比、方差与协方差均基于压缩后的分段计算。v0.30.0 与 main 已在 MRv2 STAIR 中实际读取。
+aliases:
+  - stair_config.load_window_bins
+  - 负载窗口分段数
+  - 负载窗口压缩箱数
+  - STAIR load window bins
 origin: seed
 evidence: C
 verified:
@@ -92,6 +97,12 @@ rawSources:
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 relations:
+  - to: stair-config-cca9e594a052
+    kind: builds-on
+    note: 这是 stair_config 第一步窗口压缩的子键；STAIR 四步规划流程与 MRv2 入口见父参数页
+  - to: eplb
+    kind: builds-on
+    note: 压缩的对象是 EPLB 收集的逐专家负载窗口，重排与峰均比计算基础见 EPLB 页
   - to: ascend-config-system
     kind: builds-on
     note: >-
@@ -100,7 +111,7 @@ relations:
 ---
 ## 它管什么，分段压缩怎么切？
 
-`load_window_bins` 是 [stair_config](stair-config-cca9e594a052.md) 下的整数参数，决定 STAIR（vllm-ascend 为 Model Runner V2 编写的 EPLB 规划算法）在分析负载前，把上游收集的逐步负载窗口**按时间顺序压缩成至多多少段**。
+`load_window_bins` 是 [stair_config](stair-config-cca9e594a052.md) 下的整数参数，决定 STAIR（vllm-ascend 为 [Model Runner V2](../concepts/model-runner-v2.md) 编写的动态 [EPLB](../concepts/eplb.md) 规划算法）在分析负载前，把上游收集的逐步负载窗口**按时间顺序压缩成至多多少段**。
 
 上游负载窗口记录最近若干步中每一步、每层、每个专家处理的 token 数。STAIR 不直接逐步运算，而是把样本聚合成 `min(窗口步数, load_window_bins)` 个连续时间箱（bin），每段保留负载平均值（或局部聚合时的负载和）与步数权重——并非随机抽 64 个时间点。
 

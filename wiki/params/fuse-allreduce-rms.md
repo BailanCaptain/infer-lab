@@ -12,8 +12,10 @@ summary: >-
   融成单算子；因与序列并行争抢子图而官方默认关闭（v0.23.0 实际注册逻辑存在默认值分裂），自 v0.25.1rc1 起已整体移除，v0.26
   静默吞掉、v0.30.0 与 main 严格校验直接报错。
 aliases:
+  - ascend_compilation_config.fuse_allreduce_rms
   - Matmul AllReduce RMSNorm 融合
   - MatmulAllReduceAddRMSNormPass
+  - matmul_allreduce_add_rmsnorm
 chapters:
   - '13'
 sources:
@@ -82,6 +84,15 @@ relations:
       同一个 Matmul+AllReduce 瓶颈的两条路——那个开关在 eager 里直接换用
       npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
       一起吃掉；main 上两条一起被删
+  - to: npugraph-ex
+    kind: builds-on
+    note: 该历史开关曾作为 npugraph_ex 编译图融合 pass 之一，按子图 pattern 将 matmul、AllReduce、残差与 RMSNorm 融为单算子
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该嵌套键位于 ascend_compilation_config 下，v0.30.0 与 main 的 extra="forbid" 严格校验会直接拒收残留子键
+  - to: sequence-parallel
+    kind: conflicts-with
+    note: 与旧版序列并行 pass 争抢同一段 AllReduce + RMSNorm 子图，在 v0.23.0 同开时融合 pass 会抢先改写命中节点
 contradicts: []
 updated: 2026-11-19T00:00:00.000Z
 rawSources:
@@ -97,7 +108,7 @@ rawSources:
 
 ## 它曾经融合什么，为什么被删除？
 
-`fuse_allreduce_rms` 曾是 `ascend_compilation_config` 下的布尔开关。开启后，`torch.compile` 会在 `GraphFusionPassManager` 中多注册一个 `MatmulAllReduceAddRMSNormPass`，把 `matmul → AllReduce → 加残差 → RMSNorm` 这段连续子图替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather）。
+`fuse_allreduce_rms` 曾是 [AscendConfig](../concepts/ascend-config-system.md) 中 `ascend_compilation_config` 下的布尔开关。开启后，`torch.compile` 会在 `GraphFusionPassManager` 中多注册一个 `MatmulAllReduceAddRMSNormPass`，把计算图中连续出现的 `matmul → AllReduce → 加残差 → RMSNorm` 子图模式（pattern）替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather）。
 
 它属于 `npugraph_ex` 算子级融合规则中的一条；其余保留规则的适用条件见 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)。
 
@@ -129,7 +140,7 @@ rawSources:
 file: fuse-allreduce-rms
 ```
 
-**与序列并行（SP）冲突的根源在于子图重叠，而非通信方向相反。** 旧版 SP 的 `MiddleAllReduceRMSNormPattern` 匹配 `all_reduce → npu_add_rms_norm_bias`（同样先 ReduceScatter、在分片上加残差与 norm，再 All-Gather），而融合 pass 把这段通信、归一化连同前面的 matmul 一并吃掉。两者在 `v0.23.0` 同属 `GraphFusionPassManager` 并按 `self.passes` 顺序执行，融合 pass 排在 `SequenceParallelismPass` 与 `SequenceParallelismMoePass` 之前：满足区间和完整 pattern 时融合 pass 抢先替换为单算子，后续 SP 不再匹配已移除的 All-Reduce；未命中的子图与 `≤ 512` 区间仍须分别检查，不能直接推成全模型 SP 静默失效。两条改图规则无法重复改写同一批节点，官方参数表因此将本项默认标为 `False`。
+**与[序列并行（SP）](../concepts/sequence-parallel.md)冲突的根源在于子图重叠，而非通信方向相反。** 旧版 SP 的 `MiddleAllReduceRMSNormPattern` 匹配 `all_reduce → npu_add_rms_norm_bias`（同样先 ReduceScatter、在分片上加残差与 norm，再 All-Gather），而融合 pass 把这段通信、归一化连同前面的 matmul 一并吃掉。两者在 `v0.23.0` 同属 `GraphFusionPassManager` 并按 `self.passes` 顺序执行，融合 pass 排在 `SequenceParallelismPass` 与 `SequenceParallelismMoePass` 之前：满足区间和完整 pattern 时融合 pass 抢先替换为单算子，后续 SP 不再匹配已移除的 All-Reduce；未命中的子图与 `≤ 512` 区间仍须分别检查，不能直接推成全模型 SP 静默失效。两条改图规则无法重复改写同一批节点，官方参数表因此将本项默认标为 `False`。
 
 **`v0.23.0` 的默认值存在分裂**，因为不同调用点分别读取了类型化字段与原始字典：
 

@@ -355,7 +355,7 @@ it.each(["knowledge", "observation", "input"])(
     const result = await assessGap(f.root, f.key, policy, { runAgent: runner() });
     expect(result.ok).toBe(true);
     if (change === "knowledge")
-      f.write("wiki/sources/a.md", readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + "\n变更。\n");
+      f.write("wiki/sources/a.md", `${readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")}\n变更。\n`);
     if (change === "observation") {
       const { recordedAt: _, ...input } = listGaps(f.root)[0]!.occurrences[0]!;
       await recordGapObservation(f.root, { ...input, eventId: randomUUID() });
@@ -441,7 +441,7 @@ it("keeps v1 receipts readable without silently upgrading them into review input
 it("prepares selected raw lines and complete existing pages without promoting them to verified facts", async () => {
   const f = await setup();
   const page = readFileSync(join(f.root, "wiki/sources/a.md"), "utf8");
-  f.write("wiki/sources/a.md", page + "\n材料边界。".repeat(700) + "\n此前摘录未包含的约束。\n");
+  f.write("wiki/sources/a.md", `${page}${"\n材料边界。".repeat(700)}\n此前摘录未包含的约束。\n`);
   f.write("wiki/sources/b.md", page.replace("id: a", "id: b").replaceAll("A", "B"));
   f.write(
     "wiki/sources/z.md",

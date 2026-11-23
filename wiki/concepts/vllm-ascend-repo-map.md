@@ -9,6 +9,9 @@ aliases:
   - 仓库结构
   - repo map
   - vllm_ascend 目录
+  - vllm-ascend 目录地图
+  - 子系统地图
+  - csrc 目录
 chapters:
   - '20'
 order: 10
@@ -56,9 +59,15 @@ verified:
   - main
 evidence: C
 relations:
+  - to: vllm-v1-shape
+    kind: builds-on
+    note: 先认识 EngineCore、Executor、Worker 与 Runner 的运行时协作，再按职责映射仓库目录
   - to: vllm-ascend-overview
     kind: builds-on
     note: 先认识上游框架和设备适配的协作
+  - to: platform-plugin-registration
+    kind: builds-on
+    note: 入口文件 __init__.py 与 platform.py 的执行时机依赖插件发现与激活机制
   - to: request-call-chain
     kind: builds-on
     note: 用实际数据交接定位源文件
@@ -121,10 +130,10 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 | spec_decode/、sample/ | 前者生成供后续验证的草稿候选；后者实现采样与候选验证 | 对应生成模式的执行路径 |
 | kv_offload/、simple_kv_offload/ | 状态在设备内外怎样搬运 | 所选卸载与缓存机制 |
 | \_310p/、device/、device_allocator/ | 设备专用实现、硬件能力档案（`hardware_profile.py`）与资源分配 | 硬件条件、能力门控与分配器选择 |
-| ec_manager/、observability/（`v0.30.0` 起） | 编码器缓存管理（`score_ec_manager.py`）与指标/运行时守护（`main` 扩出 `runtime_guard/` 与 `ms_metrics/`） | 多模态 EC 与运行期观测钩子 |
-| 根目录 csrc/ | 自定义设备扩展如何构建与计算（`main` 移除旧 `sparse_attention_score/` / `msa_index_score/` 并新增 `engram_hixl/`） | `torch.ops` 等扩展调用 |
+| ec_manager/、observability/（`v0.30.0` 起） | 编码器缓存管理（EC 即 Encoder Cache，`score_ec_manager.py`）与指标/运行时守护（`main` 扩出 `runtime_guard/` 与 `ms_metrics/`） | 多模态 EC 与运行期观测钩子 |
+| 根目录 csrc/ | C++/AscendC 原生自定义设备算子源码（`main` 移除旧 `sparse_attention_score/` / `msa_index_score/` 并新增 `engram_hixl/`） | `torch.ops` 等扩展调用 |
 
-同一目录常含互斥实现，须按当前配置分支继续追。`main` 分支已物理删除 `worker/model_runner_v1.py`，并由 `mrv2_utils.py` 收敛至 `worker/v2/model_runner.py`，详见[版本差异](#版本差异)。
+同一目录常含互斥实现，须按当前配置分支继续追。`main` 分支已物理删除 `worker/model_runner_v1.py`（MRV1，第一代模型运行器），并由 `mrv2_utils.py` 收敛至 `worker/v2/model_runner.py`（MRV2，第二代模型运行器），详见[版本差异](#版本差异)。
 
 ## 沿 GLM 执行路径读一组文件
 

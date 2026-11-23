@@ -4,6 +4,11 @@ title: cross_node_transfer_limit
 type: param
 summary: >-
   STAIR 单层一轮规划里每个节点跨节点发出与接收专家搬运的各自上限：-1 不限，0 禁止跨节点，正整数按节点双向封顶。v0.30.0 与 main 已接入 MRv2，声明默认 -1；未显式指定通信器而自动回退 torch_gloo 时，仅将未显式配置的限额收紧为 1。
+aliases:
+  - stair_config.cross_node_transfer_limit
+  - 跨节点专家搬运上限
+  - 跨机搬运限额
+  - STAIR cross node transfer limit
 origin: seed
 evidence: C
 verified:
@@ -92,17 +97,30 @@ rawSources:
     raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
+relations:
+  - to: stair-config-cca9e594a052
+    kind: builds-on
+    note: 这是 stair_config 下的跨节点搬运限额子键；STAIR 四步规划与 Gloo 回退收紧机制见父参数页
+  - to: eplb
+    kind: builds-on
+    note: 单层跨节点重排搬运的是 EPLB 管理的 MoE 专家权重，搬运代价与循环流程见 EPLB 页
+  - to: ascend-config-system
+    kind: builds-on
+    note: 该键嵌在 additional_config.eplb_config.stair_config 下，版本识别与严格校验遵循 AscendConfig 体系
+  - to: hardware-devices
+    kind: builds-on
+    note: 按节点而非单卡双向封顶的动机在于同机卡间与跨机网络链路的带宽差异，硬件拓扑规格见该页
 ---
 ## 它管什么，声明默认与 Gloo 回退收紧的区别？
 
-同一台机器内卡间走高速互联，跨机器搬专家权重则要挤占窄得多的机间网络链路。`cross_node_transfer_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**节点级跨机搬运闸门**（`int`），控制 STAIR 给单层重排专家时**每个节点（每台机器）往外发出与往里接收跨节点专家搬运的各自次数上限**。
+同一台机器内卡间走高速互联，跨机器搬专家权重则要挤占窄得多的机间网络链路。`cross_node_transfer_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**节点级跨机搬运闸门**（`int`），控制 STAIR（vllm-ascend 为 [Model Runner V2](../concepts/model-runner-v2.md) 提供的动态 [EPLB](../concepts/eplb.md) 规划算法）给单层重排专家时**每个节点（每台机器）往外发出与往里接收跨节点专家搬运的各自次数上限**。
 
 所谓「一次搬运」，指新摆法中某槽位要放入原卡没有的专家、须从当前持有该专家的某张源卡拷贝权重；只要源卡与目标卡的节点编号不同（节点编号由调用方按卡传入，相同即同节点），就计为一次跨节点搬运。取值含义如下：
 - `-1`：取消这道跨节点次数限制；
 - `0`：完全禁止跨节点搬运（禁止从外机引入本机当前没有的专家；零冗余且不覆盖孤本时集合不变，允许机内扩副本覆盖时本机专家集合仍可能缩小）；
 - 正整数：按节点双向封顶。
 
-**声明默认与运行时有效值须结合通信器核对**：早期快照 `4d1412d1`（随 PR #17512 引入）声明默认为 `1`。到了 `v0.30.0` 与 `main`，声明默认改为 `-1`；但当用户未显式指定 `eplb_config.communicator` 而全组 HIXL 探查失败（任一 rank 不可用或绑定类型不一致）自动回退 `torch_gloo` 时，系统仅把**未显式配置**的限额收紧为 `1`（显式写的 `0`、`-1` 或其他正整数都会原样保留；显式指定 `communicator` 也跳过自动回退与收紧）。因此不能把「声明默认 `-1`」理解为所有现场都不限跨节点搬运。`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 没有此键，写入即启动失败。
+**声明默认与运行时有效值须结合通信器核对**：早期快照 `4d1412d1`（随 PR #17512 引入）声明默认为 `1`。到了 `v0.30.0` 与 `main`，声明默认改为 `-1`；但当用户未显式指定 `eplb_config.communicator` 而全组 HIXL（昇腾跨卡高速传输引擎）探查失败（任一 rank 不可用或绑定类型不一致）自动回退 `torch_gloo`（PyTorch 主机/通用网络通信后端）时，系统仅把**未显式配置**的限额收紧为 `1`（显式写的 `0`、`-1` 或其他正整数都会原样保留；显式指定 `communicator` 也跳过自动回退与收紧）。因此不能把「声明默认 `-1`」理解为所有现场都不限跨节点搬运。`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 没有此键，写入会因 [AscendConfig](../concepts/ascend-config-system.md) 不识别而启动失败。
 
 | 维度 | 行为与约束 | 工程含义 |
 | --- | --- | --- |
@@ -138,7 +156,7 @@ file: param-stair-transfer-limits
 
 - **调小（往 `0` 靠）**：可选摆法收窄，均衡度收敛变慢，甚至该层本轮找不到合法摆法而保持不动。设为 `0` 时，禁止从外机引入本机当前没有的专家（零冗余且不覆盖孤本时集合不变；允许机内扩副本覆盖时本机集合仍可能缩小），只能在机内卡间换位置、新增副本也只能拷贝本机已有专家；若最热的几个专家都挤在同一台机器上，`0` 会导致这台机器的高负载无法通过跨机迁出分摊。
 - **调大（或写 `-1`）**：放宽的是一轮允许跨节点搬运的范围；实际搬运量与均衡度变化仍取决于其他约束及最终胜出的摆法。若最终多搬了专家，机间链路的字节传输与同步等待也随之增加。注意 `-1` 仅取消跨节点次数封顶，来源卡的 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 额度、可行摆放约束与本层待搬运总数上界依然生效。
-- **与其他 STAIR 字段的耦合**：本键与 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 同时生效、须双双满足；副本数搜索（[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md) 等）产出的候选若在摆放阶段凑不出合法来源就会被淘汰。限额越紧，LPT 摆放的首选卡越易撞墙，[placement_search_backtrack_limit](placement-search-backtrack-limit-82b03cef98b0.md) 回溯预算越易耗尽。
+- **与其他 STAIR 字段的耦合**：本键与 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 同时生效、须双双满足；副本数搜索（[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md) 等）产出的候选若在摆放阶段凑不出合法来源就会被淘汰。限额越紧，LPT（最长任务优先贪心摆放）的首选卡越易撞墙，[placement_search_backtrack_limit](placement-search-backtrack-limit-82b03cef98b0.md) 回溯预算越易耗尽。
 - **放到 GLM 双机部署**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、EP16、每卡每层 18 个路由专家，零冗余）：
   - 当前部署[未开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，固定镜像 `db701c1f` 不认 `stair_config`，写入直接报 `Config has no attribute 'stair_config'`。
   - 若迁移到已接入 STAIR 的 `v0.30.0`/`main` 并沿用当前零冗余摆法（16 卡 × 18 槽刚好装下 288 个专家各 1 份，无副本增减余地，只能换位置）：当**显式设为 `1`，或自动回退 Gloo 收紧为 `1` 时**，跨机器对调一对专家会让两台机器各发 1 个、各收 1 个，恰好用满上限——即**每层每轮最多跨机器对调一对专家**（声明默认 `-1` 本身不保证此上界）。按[每个专家每层 24 MiB](../concepts/glm-5-3-flash-two-node.md#为什么是两台机器不是一台) 估算，一对专家相当于每层每轮至多 `48 MiB` 过机间链路；若热点集中在同一台机器上，靠逐对交换需多轮才能摊开。

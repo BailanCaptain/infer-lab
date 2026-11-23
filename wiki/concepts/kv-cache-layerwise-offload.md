@@ -10,12 +10,18 @@ aliases:
   - Layerwise KV Offload
   - Layerwise KV Pool
   - 逐层 KV 卸载
+  - 逐层 KV 池
   - 逐层缓存传输
+  - 边算边搬
+  - 共享槽
   - use_layerwise
   - layerwise_prefetch_layers
   - layerwise_num_shared_buffers
+  - layerwise_independent_layers
   - shared buffer
   - layerwise_cache_layout
+  - SfaRemoteD2HConnector
+  - RD2H
 chapters:
   - '11'
   - '18'
@@ -140,22 +146,25 @@ relations:
   - to: kv-cache-cpu-offload
     kind: builds-on
     note: 同样把 KV cache 放到显存之外；本页按层拆开搬，并和计算重叠
-  - to: kv-pool
-    kind: builds-on
-    note: 在外部缓存生命周期中细化每层的传输时机
   - to: kv-cache-spec
     kind: builds-on
     note: 缓存规格决定哪些层可以共享物理缓冲区
   - to: pd-disaggregation
     kind: builds-on
-    note: P和D消费历史状态的时间不同
+    note: P 和 D 消费历史状态的时间不同，决定共享槽与远端读取的完成屏障
   - to: prefix-caching
     kind: builds-on
     note: >-
       本页固定 GLM 配置接入外部池进行逐层搬运时，align 状态留档还要求开启 prefix caching，使状态段长落到
       640；前缀缓存页解释了这一配置下按 640 边界留档的机制。
+  - to: kv-pool
+    kind: variant-of
+    note: 把外部 KV 池的整趟前向搬运细化为逐层流水预取与回写，并支持多层轮用共享物理槽以压缩显存占位
+  - to: kv-cache-sparse-offload
+    kind: alternative-to
+    note: 逐层卸载面向 Prefill 阶段按整层与计算流水重叠（并可用共享槽省显存）；稀疏卸载面向 Decode 阶段把主历史常驻主机、每步仅搬热缓冲缺失行，二者常在 P/D 两侧配合部署
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-24'
 origin: direct
 ---
 

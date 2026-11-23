@@ -17,6 +17,9 @@ aliases:
   - SFA DCP t-major 还原
   - 强制 t-major 连续化
   - DCP query gather 布局回退
+  - additional_config.sfa_dcp_force_tmajor_restore
+  - sfa_dcp_force_tmajor_restore
+  - t-major
 chapters:
   - '15'
 verified:
@@ -182,14 +185,14 @@ rawSources:
 
 `sfa_dcp_force_tmajor_restore` 是一个**布局对照 / 回退开关**（`bool`，默认 `False`），不是开启 DCP（decode context parallel，解码期上下文并行；历史位置如何分卡存储见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）的开关。
 
-在 SFA-DCP 的普通解码 query 汇聚路径中，通信缓冲以 head 为第一维（head-major），而注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。汇聚收回后转回 t-major 有两条分支：
+在 [SFA（稀疏注意力）](../concepts/sparse-attention.md)-DCP 的普通解码 query 汇聚路径中，通信缓冲以 head 为第一维（head-major），而注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。汇聚收回后转回 t-major 有两条分支：
 
-- **默认 `false`（优化路径）**：消费处将开关取反传入 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 得到共享原存储的视图（视图可能连续，也可能带跨步），直接交给 `torch.split` 拆成 `ql_nope` 与 `q_pe`，两步均不复制数据。
+- **默认 `false`（优化路径）**：消费处将开关取反传入 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 得到共享原存储的 strided view（带跨步的非连续张量视图，也可能恰好连续），直接交给 `torch.split` 拆成 `ql_nope` 与 `q_pe`，两步均不复制数据。
 - **设为 `true`（对照 / 回退路径）**：`keep_view=False`，在 `restore_perm` 非空时紧跟一次 `.contiguous()`，要求恢复后的整体张量以 `[T, H, D]` 连续存储。按 PyTorch 契约，**只有恢复视图尚不连续时才会真正分配并复制数据**；若视图本来已连续，`.contiguous()` 直接返回原张量。
 
 引入它的 PR #15970（2026-09-16，“Optimize the DCP decode query-gather layout path”）指出：交给 `npu_sparse_flash_attention` 的 query 片段经 `torch.split` 后本来就可能是带跨步视图（沿最后一维切分不保证各片段连续，即使整块缓冲连续亦然），旧写法的 `permute + contiguous` 只是顺带物化了底层 t-major 存储；本开关把那次物化保留为可选项，专供精度或性能对照实验。
 
-**版本存在范围**：`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 均无此键、`enable_sfa_dcp_force_tmajor_restore()` 及 `ops/triton/query_gather_prep.py`，旧 `AscendConfig` 逐键 `.get()` 静默忽略。`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）均保留此键（默认 `False`），且 `AscendConfig` 示例 docstring 收录了它（`main` 在 `kv_cache[0]` 为 `int8`/`fp8` 量化类型时改走 `_finish_dcp_packed_gather`，其余走 `_finish_dcp_gather`，两条分支都继续传入 `keep_view=not enable_sfa_dcp_force_tmajor_restore()`）；拼写错误在两版会被严格校验拒收（仅可发现 `vllm_omni` 时告警过滤未知顶层键）。
+**版本存在范围**：`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 均无此键、`enable_sfa_dcp_force_tmajor_restore()` 及 `ops/triton/query_gather_prep.py`，旧 [AscendConfig](../concepts/ascend-config-system.md) 逐键 `.get()` 静默忽略。`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）均保留此键（默认 `False`），且 `AscendConfig` 示例 docstring 收录了它（`main` 在 `kv_cache[0]` 为 `int8`/`fp8` 量化类型时改走 `_finish_dcp_packed_gather`，其余走 `_finish_dcp_gather`，两条分支都继续传入 `keep_view=not enable_sfa_dcp_force_tmajor_restore()`）；拼写错误在两版会被严格校验拒收（仅可发现 `vllm_omni` 时告警过滤未知顶层键）。
 
 ## 为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？
 

@@ -9,6 +9,9 @@ aliases:
   - EPD
   - EPD 分离
   - EPD Disaggregation
+  - E+PD
+  - E+P+D
+  - EC
   - Disaggregated-encoder
   - 分离式编码器
   - 编码器分离
@@ -20,6 +23,8 @@ aliases:
   - ECExampleConnector
   - ECMemcacheConnector
   - AscendECMooncakeConnector
+  - Score Encoder Cache Manager
+  - disagg_epd_proxy
   - encoder cache
   - EC 连接器
 chapters:
@@ -49,6 +54,9 @@ relations:
   - to: pd-disaggregation
     kind: builds-on
     note: 先理解 Prefill 与 Decode 分离及两池交接 KV 的基本原理，再把视觉编码器抽离为第三池 E
+  - to: pd-disaggregation
+    kind: variant-of
+    note: 在 P/D 两池解耦基础上进一步将多模态视觉编码器拆为独立 E 池，经 ECConnector 跨进程复用视觉嵌入
   - to: multimodal-inference
     kind: builds-on
     note: 掌握单实例内 ViT 视觉编码、占位覆写与编码缓存概念，才能看懂跨进程 EC 缓存交接在传什么
@@ -59,7 +67,7 @@ relations:
     kind: alternative-to
     note: 外部集中式缓存（如 UCM / Memcache）同样可作为跨实例复用编码嵌入的共享存储层
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 ---
 
 **EPD 分离（Encoder–Prefill–Decode Disaggregation）在 [PD 分离](pd-disaggregation.md) 的基础上，再把多模态模型中提取图像/视频/音频特征的编码器拆成独立 E 节点池。** E 节点经 `ECConnector` 把编码器输出张量（encoder cache）交接给 Prefill（P 节点）或混合 PD 实例，实现视觉编码、语言预填充与语言解码三段各自独立配卡和扩缩容。

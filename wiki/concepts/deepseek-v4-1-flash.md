@@ -12,6 +12,8 @@ aliases:
   - Hierarchical Sparse Indexer
   - DeepSeek 状态布局
   - DeepInfer 模型配置
+  - V4.1-Flash
+  - DeepSeek-V4.1
 chapters:
   - '19'
 order: 1
@@ -44,6 +46,12 @@ relations:
   - to: inference-performance-analysis
     kind: builds-on
     note: 后半输入截断的收益判断依赖设备耗时与请求关键路径的区分：局部计算变快后，仍须检查交接、排队和其他计算是否决定首字时间。
+  - to: sparse-attention
+    kind: builds-on
+    note: CSA2 与两级稀疏索引器建立在通用稀疏注意力的筛选预算与重归一化机制上
+  - to: mla
+    kind: builds-on
+    note: V4.1 单头 512 维全局 KV 压缩表示与 MLA 低秩压缩共享同一核心降存思路
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -159,10 +167,10 @@ file: deepseek-v4-1-flash-fig-layer-stack
 | --- | --- |
 | 语言主干 | 40 层，前后各 20 层；隐藏向量 5120 维，即每个位置在层间传递的一排数有 5120 项 |
 | MoE | 每层一个共享专家和 384 个可选专家；每个位置选中其中 6 个，再加共享专家的计算 |
-| 草稿模块 | 另有 3 个 DSpark 层，一次提出 5 个候选；不计入前述 40 层主干 |
+| 草稿模块 | 另有 3 个 [DSpark](dspark.md) 层（DeepSeek 用于投机解码的多 token 预测草稿模块），一次提出 5 个候选；不计入前述 40 层主干 |
 | 图片路径 | Vision Encoder 32 层、隐藏宽度 1024、patch 边长 14；特征经过空间降采样和投影进入语言主干 |
 
-模型还含 **[Engram 条件记忆](engram-conditional-memory.md)**，即按短 token 组合查询的条件记忆表；以及 **mHC**，即在多条残差信息流之间混合和传递中间结果的结构。它们不等于请求的 KV cache。参数文件大小、单次激活的参数量、每请求历史状态大小因此是三笔不同的账，不能用其中一个替代另外两个。
+模型还含 **[Engram 条件记忆](engram-conditional-memory.md)**，即按短 token 组合查询的条件记忆表；以及 **[mHC](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)**，即在多条残差信息流之间混合和传递中间结果的结构。它们不等于请求的 KV cache。参数文件大小、单次激活的参数量、每请求历史状态大小因此是三笔不同的账，不能用其中一个替代另外两个。
 
 ## Engram 为什么把另一笔内存账放到主机上？
 
@@ -170,11 +178,11 @@ file: deepseek-v4-1-flash-fig-layer-stack
 
 这张表属于模型参数，加载后可被多条请求读取。KV cache 则是某条请求处理到当前位置形成的历史，随输入和生成过程变化。两者都可能占主机内存，但内容、生命周期和传输目的不同：把 Engram 放到 CPU，不会顺便把请求的 KV cache 全部搬到 CPU，也不会免去 NPU 上其余权重和算子的显存。
 
-Ascend 的 A3 教程选择把 INT8 Engram 表留在主机内存，再让**同一主机上的 DP rank 共享这份分配**。共享省的是重复的主机副本。例如 4 个本地 DP rank 若各需同一份大小为 E 的表，重复保存是 4E；共享这份表后是 E，少掉 3E。这个示意只算相同表的载荷，实际预算还包括索引、对齐、暂存与传输缓冲，也不能把“每台一份”误写成“整个 P/D 集群一份”。
+Ascend 的 A3 教程选择把 INT8 Engram 表留在主机内存，再让**同一主机上的 DP rank（[数据并行](data-parallel.md) 中的单个独立副本编号）共享这份分配**。共享省的是重复的主机副本。例如 4 个本地 DP rank 若各需同一份大小为 E 的表，重复保存是 4E；共享这份表后是 E，少掉 3E。这个示意只算相同表的载荷，实际预算还包括索引、对齐、暂存与传输缓冲，也不能把“每台一份”误写成“整个 P/D 集群一份”。
 
 这里还有硬件布局限制。官方 A3 示例暴露 16 个逻辑设备，而模型有 24 个 Engram 头；24÷16=1.5，无法按该设备路径均分，因此教程要求主机卸载与本地 DP 共享同时开启。它不是一个可随意关闭的纯性能建议。A2、A3 的分片条件和容器拓扑分别核对，不能只看 TP2 或 TP4 能整除 24 就认定 A3 的 16 设备路径可用。
 
-代价是主机容量、查表与主机到设备的数据供应。减少显存占用后，要确认主机没有因其他模型权重、KV pool 和 Engram 叠加而超预算；多个 DP rank 共享内存也不代表传输带宽和计算需求合并为一份。容器还必须看见共同的主机 IPC 命名空间，才能共享分配；具体选项在页末。
+代价是主机容量、查表与主机到设备的数据供应。减少显存占用后，要确认主机没有因其他模型权重、KV pool 和 Engram 叠加而超预算；多个 DP rank 共享内存也不代表传输带宽和计算需求合并为一份。容器还必须看见共同的主机 IPC 命名空间（Linux 用于隔离进程间共享内存的命名空间，传 `--ipc=host` 让同机容器共用宿主机 `/dev/shm`），才能共享分配；具体选项在页末。
 
 ## Ascend 上的 1P1D 究竟用了多少设备？
 
@@ -239,7 +247,7 @@ GLM 主线的 KDA、稀疏 MLA 及 MTP，不能直接替换成这里的 CED、CS
 
 ### 怎么开
 
-使用与 DeepInfer 固定快照兼容的 V4.1 HF checkpoint，模型配置与 tokenizer 必须配套。CED 与共享来源是模型结构；后半输入是否实际截断另由 YoCo 执行设置决定，入口与检查步骤见[有界回放](swa-bounded-replay.md#怎么开)。
+使用与 DeepInfer 固定快照兼容的 V4.1 HF checkpoint，模型配置与 tokenizer 必须配套。CED 与共享来源是模型结构；后半输入是否实际截断另由 YoCo（You Only Cache Once，CED 后半层共享全局 KV 时的截断执行路径）执行设置决定，入口与检查步骤见[有界回放](swa-bounded-replay.md#怎么开)。
 
 **Ascend A3 是另一套入口。** 官方示例使用 W8A8 权重、INT8 Engram、Model Runner V1（`VLLM_USE_V2_MODEL_RUNNER=0`）和 EP。共置使用 DP4/TP4；P/D 脚本另外配置每轮 5 个候选的 DSpark，并使用上表拓扑与 `MooncakeHybridConnector`，P 开启 prefix caching，D 关闭并使用 recompute 抢占。完整环境、通信检查、代理和启动脚本应连同[官方模型教程 §3–5](https://docs.vllm.ai/projects/ascend/en/latest/tutorials/models/DeepSeek-V4.1-Flash.html)一起使用，不把下面两行当完整服务命令。
 

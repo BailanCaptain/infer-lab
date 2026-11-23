@@ -36,6 +36,12 @@ aliases:
   - '--dtype'
   - '--quantization'
   - 模型计算精度
+  - W4A8_DYNAMIC
+  - W8A8_MXFP8
+  - W4A4_MXFP4
+  - pertoken_scale
+  - deq_scale
+  - quant_mode
 chapters:
   - '11'
 sources:
@@ -108,20 +114,20 @@ relations:
   - to: matmul-and-weights
     kind: builds-on
     note: 矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成低精度后多了哪两步
-  - to: glm-5-3-flash
+  - to: low-precision-formats
     kind: builds-on
-    note: 历史 GLM-5.3-Flash 双机部署的逐部件文件精度在模型页，本页保留该历史子表与选路规则
-  - to: expert-parallel
+    note: 先分清 BF16、INT8、FP8 与 MXFP 的底层编码和分组缩放，再看昇腾 W8A8 四步矩阵乘与逐层选路
+  - to: device-memory
     kind: builds-on
-    note: 专家权重和 dispatch 的 int8/MXFP 载荷都出现在 MoE 这一站
-  - to: cann-hccl
+    note: 权重常驻显存与 HBM 搬运带宽是启用量化的直接工程动因
+  - to: moe
     kind: builds-on
-    note: 量化改变的是交给通信的张量类型，字节账在通信页
+    note: 稀疏 MoE 专家权重分片与路由激活是 W8A8_DYNAMIC 在专家层落地的直接对象
   - to: kv-cache-quantization
     kind: alternative-to
     note: 同样是降精度，但对象是历史状态、写在缓存里，收益和误差都另算
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-24'
 origin: direct
 ---
 
@@ -244,7 +250,7 @@ $$\hat{y} = 0.01 \times 0.02 \times (52 \times 20 + (-31) \times (-127) + 127 \t
 但省容量不是无代价的，实际部署至少要看三笔代价：
 
 - **误差。** 舍入误差和超出范围后的截断误差都会进入这一层的输出，并随层数累积；同一模型换权重精度或换导出配方后必须重新跑质量评估。
-- **多出来的参数、格式转换与硬件回退。** 缩放系数和偏移要跟权重一起加载；权重加载后还要转置、按需要转成设备偏好的分块布局（如 `FRACTAL_NZ`），动态方法还会为权重系数多建一份 FP32 副本；运行时激活量化会增加算子调用，除非被 `PreparedLinearInput` 或融合算子吃掉。更要注意硬件差异：**在 `v0.30.0` 中，把原生 block-wise FP8（`fp8_block`）权重放到 Atlas A2 / A3 上时，加载期会静默反量化回 `model_dtype`（通常是 BF16，`2 B/元素`），权重要多占回两倍显存，等于 0 节省**，到了社区 `main` 分支则在 A2 / A3 上改为直接抛 `NotImplementedError` 拒绝启动；**至于 300I DUO（310P），由于它走 `QuantizationBackendFamily.COMPATIBILITY` 量化后端、平台预注册时不注册 `AscendFp8Config`（只注册 `AscendModelSlimConfig310`），且其 `model_dtype` 为 FP16 而非 BF16，因此原生 FP8 在 `310P` 上没有 Ascend 执行路径、不受支持**。
+- **多出来的参数、格式转换与硬件回退。** 缩放系数和偏移要跟权重一起加载；权重加载后还要转置、按需要转成设备偏好的分块布局（如 `FRACTAL_NZ`，见[ND 与 NZ](tensor-layout.md)），动态方法还会为权重系数多建一份 FP32 副本；运行时激活量化会增加算子调用，除非被 `PreparedLinearInput` 或融合算子吃掉（例如在 `Ascend 910B3` 真机 `M=2048, K=4096, N=4096` 微基准中，纯 `QuantBatchMatmulV3` 较 BF16 `MatMulV3` 提速 `1.312×`，但未与前序归一化融合时独立 `DynamicQuant` 的 `31.79 µs` 读写把两算子合计提速拉回 `1.128×`，详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。更要注意硬件差异：**在 `v0.30.0` 中，把原生 block-wise FP8（`fp8_block`）权重放到 Atlas A2 / A3 上时，加载期会静默反量化回 `model_dtype`（通常是 BF16，`2 B/元素`），权重要多占回两倍显存，等于 0 节省**，到了社区 `main` 分支则在 A2 / A3 上改为直接抛 `NotImplementedError` 拒绝启动；**至于 300I DUO（310P），由于它走 `QuantizationBackendFamily.COMPATIBILITY` 量化后端、平台预注册时不注册 `AscendFp8Config`（只注册 `AscendModelSlimConfig310`），且其 `model_dtype` 为 FP16 而非 BF16，因此原生 FP8 在 `310P` 上没有 Ascend 执行路径、不受支持**。
 - **只有能量化的层才省。** 精度按层生效，模型代码或描述文件留给高精度的投影（例如路由门控、部分注意力分支或输出头）不会变小。
 
 | 存同一个权重矩阵 | 权重元素 | 另外要存与实际落点 |

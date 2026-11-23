@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="PagedAttention 趣味微缩场景直觉图：左侧传统连续预留包间酒店锁死空床与门间窄缝，右侧标准太空舱旅馆经前台 TABLE 账本按需派舱并支持已满共享舱与分叉新开尾舱" font-family="var(--font-sans)">
+  <title>传统包间酒店 vs 标准太空舱旅馆：左侧按最大长度预留整间套房导致空床锁死与外部窄缝浪费，右侧统一划分定长标准舱并由前台账本（TABLE）按需串联、相同前缀只读合住已满共享舱并在续写分叉时另开新尾舱。</title>
+  <desc>关联源码符号：BlockPool, free_block_queue, null_block, get_new_blocks, touch, free_blocks, ref_cnt, allocate_slots, block_size</desc>
+
+  <image href="./wiki-illustrations/paged-attention-hotel-scene.webp" x="40" y="130" width="820" height="405" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 1 -> 左侧上锁预留套房 -->
+  <line x1="210" y1="112" x2="210" y2="275" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="210" cy="275" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="210" cy="275" r="2.5" fill="#c95b3c"/>
+
+  <!-- 2 -> 右侧前台 TABLE 账本 -->
+  <line x1="532" y1="112" x2="532" y2="304" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="532" cy="304" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="532" cy="304" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> 右上标准定长太空舱 -->
+  <line x1="712" y1="112" x2="712" y2="276" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="712" cy="276" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="712" cy="276" r="2.5" fill="#087f73"/>
+
+  <!-- 4 -> 左下套房间外部缝隙 -->
+  <line x1="278" y1="538" x2="278" y2="418" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="278" cy="418" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="278" cy="418" r="2.5" fill="#c95b3c"/>
+
+  <!-- 5 -> 右中双人同住 COW 共享舱 -->
+  <line x1="664" y1="538" x2="664" y2="364" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="664" cy="364" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="664" cy="364" r="2.5" fill="#9a4b86"/>
+
+  <g id="callout-1">
+    <circle cx="28" cy="28" r="12" fill="#c95b3c"/>
+    <text x="28" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="48" y="33" font-size="15" font-weight="700" fill="#17211f">传统连续套房（按最大长度锁死）</text>
+    <text x="48" y="58" font-size="13.5" fill="#4d5652">不知客人住多久，只能先锁整间大房</text>
+    <text x="48" y="81" font-size="13.5" fill="#4d5652">未住满的空床全程闲置（内部碎片）</text>
+    <text x="48" y="104" font-size="13.5" fill="#66716d">并发数早早撞上显存硬天花板</text>
+  </g>
+
+  <g id="callout-2">
+    <circle cx="326" cy="28" r="12" fill="#c78300"/>
+    <text x="326" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="346" y="33" font-size="15" font-weight="700" fill="#17211f">前台页表账本 (TABLE · 按需派舱)</text>
+    <text x="346" y="58" font-size="13.5" fill="#4d5652">记录每位旅客第 0, 1, 2 段住哪号舱</text>
+    <text x="346" y="81" font-size="13.5" fill="#4d5652">物理舱位无需挨在一起，随住随续</text>
+    <text x="346" y="104" font-size="13.5" fill="#66716d">注意力算子照着账本跨舱直读历史</text>
+  </g>
+
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="15" font-weight="700" fill="#17211f">等长标准舱池 (零外部碎片)</text>
+    <text x="632" y="58" font-size="13.5" fill="#4d5652">所有舱尺寸严格一致 (<tspan font-family="var(--font-mono)" font-weight="700">block_size</tspan>)</text>
+    <text x="632" y="81" font-size="13.5" fill="#4d5652">任何退房空舱都能立刻派给下一位</text>
+    <text x="632" y="104" font-size="13.5" fill="#66716d">仅最后一舱可能余下少量未满空床</text>
+  </g>
+
+  <g id="callout-4">
+    <circle cx="28" cy="556" r="12" fill="#c95b3c"/>
+    <text x="28" y="560.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="561" font-size="15" font-weight="700" fill="#17211f">房间夹缝死角（外部碎片）</text>
+    <text x="48" y="586" font-size="13.5" fill="#4d5652">退房时间参差不齐，留下零散窄过道</text>
+    <text x="48" y="610" font-size="13.5" fill="#4d5652">总空余够大，却塞不下新来的长请求</text>
+  </g>
+
+  <g id="callout-5">
+    <circle cx="468" cy="556" r="12" fill="#9a4b86"/>
+    <text x="468" y="560.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="561" font-size="15" font-weight="700" fill="#17211f">已满共享舱与分叉新开尾舱</text>
+    <text x="488" y="586" font-size="13.5" fill="#4d5652">相同前缀只读合住同一满舱 (<tspan font-family="var(--font-mono)" font-weight="700">ref_cnt=2</tspan>)</text>
+    <text x="488" y="610" font-size="13.5" fill="#4d5652">分叉续写直接另领新尾舱，免拷贝原满舱</text>
+  </g>
+</svg>

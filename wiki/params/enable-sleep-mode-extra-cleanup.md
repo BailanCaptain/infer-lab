@@ -8,6 +8,8 @@ summary: >-
 aliases:
   - sleep 模式额外清理
   - rl_config.sleep_mode_extra_cleanup
+  - additional_config.enable_sleep_mode_extra_cleanup
+  - HcclSleepWakeupManager
 legacyAnchors:
   一句话: 它额外清理什么，两代配置入口怎么迁？
   事实表: 它额外清理什么，两代配置入口怎么迁？
@@ -111,6 +113,9 @@ relations:
   - to: ascend-config-system
     kind: builds-on
     note: 这个键从顶层搬进 rl_config 子配置，旧写法在 v0.30.0 与 main 上会撞上 extra="forbid"——搬家的机制在那一页
+  - to: vllm-ascend-for-rl
+    kind: builds-on
+    note: v0.30.0 与 main 将该能力收归 rl_config.sleep_mode_extra_cleanup，面向同卡 RL 训推交替的显存让出场景
 contradicts: []
 updated: 2026-11-19T00:00:00.000Z
 rawSources:
@@ -136,7 +141,7 @@ rawSources:
 | --- | --- | --- |
 | 配置键路径与默认 | 顶层 `additional_config["enable_sleep_mode_extra_cleanup"]`，`bool = False` | 嵌套 `additional_config["rl_config"]["sleep_mode_extra_cleanup"]`，`bool = False` |
 | 生效守卫 | 仅查本开关为真（`getattr` 守卫） | 必须 **`rl_config.enabled` 与 `rl_config.sleep_mode_extra_cleanup` 同时为真**；漏写 `enabled: true` 等于没开 |
-| 字符串 `"false"` 与未知键 | `.get()` 取原值，JSON 写字符串 `"false"` 会反向判真 | pydantic 宽松强转 `"false"` → `False`；旧顶层键通常被 `extra="forbid"` 拒收（装 `vllm_omni` 时告警过滤并静默无效） |
+| 字符串 `"false"` 与未知键 | `.get()` 取原值，JSON 写字符串 `"false"` 会反向判真 | pydantic 宽松强转 `"false"` → `False`；旧顶层键通常被 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 拒收（装 `vllm_omni` 时告警过滤并静默无效） |
 | 联动前置项 | 须手工配 `weight_nz_mode: 0`、设 `VLLM_SERVER_DEV_MODE=1` 并移除 `expandable_segments` | `rl_config.enabled: true` 自动强制 `weight_nz_mode=0`（打 warning）、设 `VLLM_SERVER_DEV_MODE=1` 并移除 `PYTORCH_NPU_ALLOC_CONF` 里的 `expandable_segments` |
 | 适用部署与前置条件 | 须实际调用 `sleep(level >= 1)`（`level < 1` 在 EngineCore 即返回）；文档未限同卡 | 同左；官方明确限**同卡模式**（异卡训练/rollout 靠 pause/resume + HCCL 权重传输，通常不需 sleep mode） |
 

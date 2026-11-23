@@ -103,15 +103,18 @@ relations:
   - to: vllm-platform-interface
     kind: builds-on
     note: 先理解平台契约：谁在问、当前平台怎么选出来
-  - to: ascend-config-system
+  - to: platform-plugin-registration
     kind: builds-on
-    note: 配置的三路输入与优先级，本页只讲平台这一道校验与改写
-  - to: attention-backend-family
+    note: NPUPlatform 类路径由 vllm.platform_plugins 入口点返回后懒加载实例化
+  - to: hardware-devices
     kind: builds-on
-    note: 区分通用选择接口与 GLM 两类层的专用后端
-  - to: npu-worker-lifecycle
+    note: NPUPlatform 按 A2 / A3 / 310P 等硬件画像校验并行、图模式与量化组合
+  - to: cann-hccl
     kind: builds-on
-    note: 选出的 Worker 类接着做起卡、量显存、切块
+    note: 平台对外交出 NPUCommunicator 类并协调设备通信器选择，底层通信库见 HCCL 页
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 平台在此就地写回 128 块长或豁免混合模型 640 块长，五种块大小消歧见缓存规格页
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -135,12 +138,12 @@ file: platform-surface-qwen3
 图分三步，对应两个时刻：
 
 1. **硬件画像与组合校验（启动期）**：结合 `HardwareProfile`（识别 A2 / A3 / 310P 等芯片能力）检查并行、图模式与特性组合，不兼容的参数组合在建通信组与加载权重前直接拦截。
-2. **平台默认值就地写回（启动期，同一次 `check_and_update_config` 调用）**：把 `worker_cls` 选定为常规 `NPUWorker`（或可选 MRV2），把默认 `block_size` 写回 `128`，同时定好图档位与默认捕获上限（如封顶 `512`）。校验与改写穿插执行：若后段检查失败，前面的就地改写已发生，启动仍立即中止。
-3. **建层时统一答复后端（Worker 起卡后）**：模型建层时调用 `get_attn_backend_cls`，标准 GQA（如 `Qwen3-8B` 全 36 层或 `Qwen3-30B-A3B` 全 48 层）统一绑定 `AscendAttentionBackend`，不需要异构层自带私有后端绕行。
+2. **平台默认值就地写回（启动期，同一次 `check_and_update_config` 调用）**：把 `worker_cls` 选定为常规 `NPUWorker`（或可选 **MRV2**，即第二代 [Model Runner V2](model-runner-v2.md)），把默认 `block_size` 写回 `128`，同时定好图档位与默认捕获上限（如封顶 `512`）。校验与改写穿插执行：若后段检查失败，前面的就地改写已发生，启动仍立即中止。
+3. **建层时统一答复后端（Worker 起卡后）**：模型建层时调用 `get_attn_backend_cls`，标准 **GQA**（[分组查询注意力](gqa.md)，如 `Qwen3-8B` 全 36 层或 `Qwen3-30B-A3B` 全 48 层）统一绑定 `AscendAttentionBackend`，不需要异构层自带私有后端绕行。
 
 ## 为什么这层非要能改配置，代价在哪
 
-**只读属性表挡不住昇腾硬件与算子的启动约束。** 以最常见的 `--block-size` 为例：上游 `CacheConfig` 在缺省时会把块长填成 `16`，而昇腾注意力算子在开启前缀缓存或 chunked prefill 时要求块长为 `128`。`NPUPlatform` 在 `check_and_update_config` 里就地把它补齐或改回 `128`，并自动挑出与当前芯片匹配的 `NPUWorker` 与图模式，用户才能用极简 CLI 启动标准 `Qwen3` 模型。
+**只读属性表挡不住昇腾硬件与算子的启动约束。** 以最常见的 `--block-size` 为例：上游 `CacheConfig` 在缺省时会把块长填成 `16`，而昇腾注意力算子在开启[前缀缓存](prefix-caching.md)或 [chunked prefill](chunked-prefill.md)（将长提示词拆成多步送入）时要求块长为 `128`。`NPUPlatform` 在 `check_and_update_config` 里就地把它补齐或改回 `128`，并自动挑出与当前芯片匹配的 `NPUWorker` 与图模式，用户才能用极简 CLI 启动标准 `Qwen3` 模型。
 
 如果换到混合注意力模型（如后文历史 GLM 双机案例），逻辑会再深一层：更早运行的混合模型[补丁](ascend-patch-system.md)把逻辑块倒推写成 `640`（推导见[部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)），更晚被调用的平台则专门对混合模型**跳过「改回 128」这一条**，把 `640` 保留下来。可见，用户不能仅凭命令行是否显式传参，就断言最终生效值。
 

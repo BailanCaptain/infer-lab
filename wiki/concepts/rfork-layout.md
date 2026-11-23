@@ -13,6 +13,10 @@ aliases:
   - RFork topk_indices_buffer
   - RFork conflicting tensor entries
   - collect_transferable_tensors
+  - processed layout
+  - checkpoint layout
+  - RFork 排除名单
+  - _RUNTIME_ONLY_TENSOR_NAMES
 chapters: []
 order: 50
 sources:
@@ -35,12 +39,24 @@ verified:
   - main
 evidence: C
 relations:
+  - to: rfork
+    kind: builds-on
+    note: 先从总览区分直读与回退两条路径，再深入量化与 NZ 格式为何把后处理前移到传输之前
   - to: rfork-startup
     kind: builds-on
     note: processed 路径把后处理挪到申请租约前，改变整条启动路径的顺序
   - to: rfork-identity
     kind: builds-on
     note: dtype、量化与 NZ 策略先进入兼容性指纹，再对齐具体张量清单
+  - to: tensor-layout
+    kind: builds-on
+    note: 理解昇腾 ND 与 NZ 分块存储格式及补齐差异，是判断 processed layout 不可省去后处理的前提
+  - to: quantization
+    kind: builds-on
+    note: W8A8 等权重量化在加载后会转置、转 NZ 并生成额外 FP32 缩放副本，直接决定是否走 processed 路径
+  - to: device-memory
+    kind: builds-on
+    note: 派生权重与运行期临时缓冲均驻留在 NPU 设备显存中，按张量底层 storage 与格式校验决定可传边界
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -136,7 +152,7 @@ file: rfork-layout
 
 扫到的张量里，元数据占位张量、空张量和不在 NPU 上的张量都不算。另外登记时还会检查已经真正分配、却不在 NPU 上的参数和 buffer，免得「漏了 CPU 上的状态却说整个模型传完了」。这并不等于检查任意 Python 对象里的一切状态。
 
-**为什么派生状态这么要紧。** 官方文档讲量化时专门点了两个派生权重的名字，它们属于 [MLA](mla.md)（Multi-head Latent Attention，把各头要用的 K、V 先压成一条共用的短向量存起来、用时再展开的注意力）：MLA 的实现对象在加载后从一块投影权重拆出这两份，挂在 impl 上。文档提醒的是：**原始权重之外的派生状态也影响推理结果**。必须先把 B 的算子布局和派生张量建出来，再把 A 的对应数据读进去，B 才不会留下由「空壳、还没加载的权重」算出来的派生值。工作版靠加载后处理准备布局、再大范围扫描普通属性和 impl 对象来覆盖这些状态，不是靠写死这两个名字来保证所有模型都完整。
+**为什么派生状态这么要紧。** 官方文档讲量化时专门点了两个派生权重的名字，它们属于 [MLA](mla.md)（Multi-head Latent Attention，把各头要用的 K、V 先压成一条共用的短向量存起来、用时再展开的注意力）：MLA 的实现对象在加载后从一块投影权重拆出这两份，挂在 impl 上。文档提醒的是：**原始权重之外的派生状态也影响推理结果**。必须先把 B 的算子布局和派生张量建出来（流程见[启动路径](rfork-startup.md)），再把 A 的对应数据读进去，B 才不会留下由「空壳、还没加载的权重」算出来的派生值。当前上游主线（`main@8d6180e2`）靠加载后处理准备布局、再大范围扫描普通属性和 impl 对象来覆盖这些驻留在[设备显存](device-memory.md)里的状态，不是靠写死这两个名字来保证所有模型都完整。
 
 举个例子：有一种稀疏注意力实现，会把一块原始的投影权重拆开、转置成两份算子真正使用的权重，原来那块随即被释放成元素个数为 0 的空张量。只对比 checkpoint 文件或参数个数，就会漏掉真正参与计算的状态。验收应当看最终的张量清单，并和默认加载方式对照输出。
 
@@ -150,7 +166,7 @@ file: rfork-layout
 
 有一类张量是运行时的临时工作区，比如给 top-k 选择存下标的那块缓冲区。它的容量由**本实例**的批处理上限决定，不是应该从 A 继承的权重。A 和 B 批处理上限不同，这块缓冲区大小就不同，硬搬会出错。
 
-所以工作版有一张「只属于运行时」的张量名单，两条路共用的采集入口按名字最后一段比对，把名单里的都排除掉。不管它挂在直接属性、buffer 还是 impl 对象下面，都进不了清单。
+所以当前主线有一张「只属于运行时」的张量名单，两条路共用的采集入口按名字最后一段比对，把名单里的都排除掉。不管它挂在直接属性、buffer 还是 impl 对象下面，都进不了清单。
 
 批处理上限不在兼容性指纹里，所以 A 和 B 可以配得不一样、照样被 Planner 配到一起。随修复一起加的测试就是这个场景：造两个批处理上限分别为 `2048` 和 `4096` 的模型，工作区的行数等于批处理上限，每行 `2048` 个下标，每个下标是 `4` 字节的 `int32`：
 

@@ -1,0 +1,14 @@
+mode: native-svg
+id: engine-processes-plate-fork-spawn-workshop
+caption: >-
+  用“蓝图复印工坊 vs 空屋开箱车间”秒懂 fork 与 spawn：左侧 fork 把父工坊墙上已挂好的齿轮补丁与全局状态原样复印进子工坊，分叉快但若父进程已提前初始化 NPU 驱动句柄就会一并带入隐患，且分叉后各自改动互不同步；右侧 spawn（vllm serve 默认）让子进程走进一间空无一物的洁净车间，所有平台插件、全局补丁与 AscendConfig 必须在 EngineCore 与 NPUWorker 入口重新开箱装配。
+size: [900, 640]
+pins:
+  - source: vllm@ced6857a:vllm/entrypoints/serve/utils/api_utils.py#L149-L166
+    symbols: [VLLM_WORKER_MULTIPROC_METHOD]
+  - source: vllm@ced6857a:vllm/utils/system_utils.py#L125-L181
+    symbols: [_maybe_force_spawn, get_mp_context]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L55-L103
+    symbols: [_ensure_global_patch, register_connector]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L140-L157
+    symbols: [adapt_patch, init_ascend_config]

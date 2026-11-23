@@ -151,12 +151,18 @@ verified:
   - main
 evidence: C
 relations:
-  - to: glm-5-3-flash
+  - to: vllm-v1-shape
     kind: builds-on
-    note: 注册表里那个架构名对应的模型长什么样
-  - to: npu-worker-lifecycle
+    note: vLLM V1 架构里哪些组件留了插件扩展口，先看全景分工
+  - to: engine-processes
     kind: builds-on
-    note: 注册完成之后，worker 才真正建设备、建模型、装权重
+    note: 插件注册表与防重标记按进程隔离，spawn 下前端、EngineCore 与 Worker 各自重新加载入口点
+  - to: vllm-ascend-overview
+    kind: builds-on
+    note: 昇腾包如何整体挂入 vLLM 生态，本页展开具体的 entry_points 发现与注册链路
+  - to: hardware-devices
+    kind: builds-on
+    note: 平台插件仅返回类路径不做硬件探测，真正设备规格与驱动就绪见硬件体系页
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -219,11 +225,11 @@ file: platform-plugin-registration-fig-discovery
 
 **平台候选的激活**在这里定义很窄：入口通过筛选、导入成功且探测调用返回非 `None` 的类路径。固定昇腾入口无条件返回 `NPUPlatform` 类路径，因此会记为激活候选；多候选仲裁与缓存见[平台接口](vllm-platform-interface.md#当前平台是怎么选出来的)（`v0.30.0` 与 `main` 额外为显式 CPU 目标开了直通例外，不再被外置插件无条件压过）。通用组则不挑赢家，而是逐个执行已加载的函数；某个函数抛错会直接中断循环，且由于防重标志已提前置真，必须核对执行结果而非仅看“调用过加载函数”。
 
-注册这一层全部成功，也不证明设备已经可用。驱动、运行库、设备可见性和 HCCL 初始化都是后面几步的事，见 [Worker 启动](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
+注册这一层全部成功，也不证明设备已经可用。驱动、运行库、设备可见性和 [HCCL](cann-hccl.md)（昇腾集合通信库）初始化都是后面几步的事，见 [Worker 启动](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
 
 ## 输入输出插件为什么能把一张图拆成多个请求？
 
-**IO Processor 插件把应用的数据变成模型能接收的输入，再把模型结果整理成应用需要的输出。** 这里接的是 pooling 模型：一次前向得到向量、类别或分割结果等，不逐 token 生成聊天回答。例如，应用提交一张地理影像，插件把它切成小图送进分割模型，最后将每块的分类结果拼回完整图。它扩展的是请求前后处理，模型本身仍须支持这些输入和输出。
+**IO Processor 插件把应用的数据变成模型能接收的输入，再把模型结果整理成应用需要的输出。** 这里接的是 [pooling 模型](pooling-and-non-ar.md)：一次前向得到向量、类别或分割结果等，不逐 token 生成聊天回答。例如，应用提交一张地理影像，插件把它切成小图送进分割模型，最后将每块的分类结果拼回完整图。它扩展的是请求前后处理，模型本身仍须支持这些输入和输出。
 
 这是与 [API server](api-server-entry.md) 相邻的一条入口：应用把数据放进插件定义的字段，前处理可以展开成多个模型子请求；引擎算完后，后处理再合并成应用结果。切图、读取文件、拼图都花主机时间和内存，模型也必须完成每块的计算。一次 HTTP 请求不等于一次模型子请求，不能按 HTTP 条数估算实际工作量。
 

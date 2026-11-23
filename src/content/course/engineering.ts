@@ -330,7 +330,7 @@ export const ENGINEERING_LESSONS: Record<string, CourseLesson> = {
       "wiki/params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md#为什么存在",
       "wiki/params/stair-config-cca9e594a052.md#一句话",
       "wiki/params/stair-config-cca9e594a052.md#为什么存在",
-      "docs/mainline/review/pages/stair-config-cca9e594a052-review.md#L36-L37",
+      "wiki/params/stair-config-cca9e594a052.md",
     ],
   },
 };

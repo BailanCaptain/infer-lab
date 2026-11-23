@@ -17,6 +17,10 @@ aliases:
   - rfork_seed_timeout_sec
   - rfork_model_identity_headers
   - rfork_seed_removal_supported
+  - RFork 四类端口
+  - RFork 十三项参数
+  - model_loader_extra_config
+  - YR_TE_HIXL_BASE_PORT
 legacyAnchors:
   十一项设置管什么默认多少什么时候改: 十三项设置管什么默认多少什么时候改
   键名写错不报错只是悄悄当没填: 键名写错会打警告并按未填处理
@@ -48,12 +52,27 @@ verified:
   - main
 evidence: C
 relations:
+  - to: rfork
+    kind: builds-on
+    note: 先从总览看懂控制面、元数据面与数据面三条通道，再核对十三项参数与四类端口的归属
   - to: rfork-identity
     kind: builds-on
     note: model_url 与部署策略是匹配标识，必须先理解它们不等于 served-model-name
   - to: rfork-lifecycle
     kind: builds-on
     note: lease 重试、心跳与 seed 启动超时分别作用于不同生命周期
+  - to: ascend-config-system
+    kind: builds-on
+    note: RFork 参数走 --model-loader-extra-config 而非昇腾 --additional-config，两者入口隔离
+  - to: ascend-model-onboarding
+    kind: builds-on
+    note: 模型本地路径与默认加载链路必须始终保持可用，以支撑首次冷启动与传输失败回退
+  - to: cann-hccl
+    kind: builds-on
+    note: 多网卡环境下须将 seed 宣告地址与 VLLM_HOST_IP / HIXL 数据面端口同底层通信网卡一并规划
+  - to: sleep-mode
+    kind: conflicts-with
+    note: 配置中同时开启 sleep mode 会触发可变权重绕过守卫，RFork 自动退回默认加载
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -86,7 +105,7 @@ rawSources:
 - **一个开关**：告诉 vLLM「这次用 RFork 这种方式加载权重」。
 - **一包设置**：写成一段 JSON，交给「模型加载器的额外设置」这个入口。里面全是 B 自己的事：我是哪个模型、去哪里找 Planner、我当 seed 时对外报什么地址和端口、多久报一次平安、还租约失败了重试几次。
 
-最容易写错的是入口：这包设置**不是**塞进昇腾插件平时用的那个「附加设置」入口。放错了地方，RFork 读不到这些设置，结果和一项都没填一样（后果见下一节）。
+最容易写错的是入口：这包设置（`--model-loader-extra-config`）**不是**塞进昇腾插件平时用的 `--additional-config`（见 [Ascend 配置系统](ascend-config-system.md)）。放错了地方，RFork 读不到这些设置，结果和一项都没填一样（后果见下一节）。同时，本地模型路径仍需满足标准[新模型上线](ascend-model-onboarding.md)的磁盘加载要求，以支撑首次冷启动与失败回退。
 
 为什么要配这么多项？因为借一次权重要连好几个地方。下图是一台 A、一台 B 时，RFork 牵涉的四类端口：
 
@@ -186,9 +205,9 @@ file: rfork-config-ports
 - **API 端口**：启动命令里写的端口。
 - **Planner 端口**：Planner 自己的启动参数；B 的设置包里只写它的地址。
 - **seed 元数据端口**：默认由系统随机分配；设了非零端口基数，采用双槽公式 `基数 + 2 × 全局 rank + 角色槽`（主模型槽 0、草稿模型槽 1）。
-- **传输引擎端点**：初始化时向引擎传 `port=0`，由引擎自行绑定并经 `get_rpc_port()` 读回（可通过 YuanRong 环境变量 `YR_TE_RPC_PORT_MIN` / `YR_TE_RPC_PORT_MAX` 限定范围；HIXL 数据面默认基址 `YR_TE_HIXL_BASE_PORT=22000`）。
+- **传输引擎端点**：初始化时向引擎传 `port=0`，由引擎自行绑定并经 `get_rpc_port()` 读回（可通过 YuanRong 环境变量 `YR_TE_RPC_PORT_MIN` / `YR_TE_RPC_PORT_MAX` 限定范围；HIXL［昇腾高速点对点传输链路］数据面默认基址 `YR_TE_HIXL_BASE_PORT=22000`）。
 
-所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
+所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走；多网卡环境须与 [CANN 与 HCCL](cann-hccl.md) 的业务/集合通信网卡拓扑一并规划）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
 
 双槽固定端口按 $\text{port} = \text{base} + 2 \times \text{global\_rank} + \text{slot}$ 计算（主模型槽 `0`、草稿槽 `1`），超出 `65535` 或端口被占用（Linux `EADDRINUSE`）时都会自动退回系统随机端口：
 
@@ -229,7 +248,7 @@ $$\text{快速阶段合计} = 3 \times 10\text{ 秒（三次请求）} + 2 \time
 
 - 传输引擎来自 YuanRong 数据系统的 Python 包（`yr.datasystem`）。除了安装同名包，它还必须提供 `get_rpc_port` 与 `batch_register_memory_ex` 接口，缺任一项都会直接判为不支持。
 - 模型已经落地的参数和缓冲区必须全部在 NPU 上（经 `local_weights.py` 完成本地加载的 Engram 宿主表除外）；未豁免的混合 CPU/NPU 状态会被拒绝，转去正常加载。
-- 命中 `safety.py:mutable_weights_bypass_reason` 的三类可变权重场景——`enable_sleep_mode`（sleep mode）、`weight_transfer_config`（在线权重传输）或 `parallel_config.enable_eplb`（[EPLB](eplb.md)）——时，RFork 会被整体绕过，只留一条 warning 并改走默认加载（不发布 seed）。早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已在上游移除，不再构成绕过条件。
+- 命中 `safety.py:mutable_weights_bypass_reason` 的三类可变权重场景——`enable_sleep_mode`（[sleep mode](sleep-mode.md)）、`weight_transfer_config`（在线权重传输）或 `parallel_config.enable_eplb`（[EPLB](eplb.md)）——时，RFork 会被整体绕过，只留一条 warning 并改走默认加载（不发布 seed）。早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已在上游移除，不再构成绕过条件。
 - 正常加载的路径必须留着：第一个实例冷启动要靠它，借不到时也要退回它。「能从来源加载」不等于可以不要磁盘上的权重文件。
 
 不同时期文档里的安装包名差异见[官方文档核读](../sources/rfork-official-guide.md)。不要在已经在跑的环境里盲目升级同名包，先在**真正跑推理进程的那个 Python 环境**里做一次只读检查（脚本在下面「怎么开」），记下模块路径、包版本与 `get_rpc_port` / `batch_register_memory_ex` 可用性，再验证设备上的行为。
@@ -375,7 +394,7 @@ print("optional kNotFound:",
       hasattr(getattr(ds, "ErrorCode", None), "kNotFound"))
 ```
 
-此检查不实例化引擎、不注册设备内存；通过只说明 API 名称可见。还需核对 `MemoryRegistration` 四参数的语义、部分失败后的注销结果、native 返回对象及 finalize 对活动传输的行为。`kNotFound` 在工作版是可选探测，缺少时不能走对应的「已不存在」确认逻辑；不能擅自补一个猜测错误码。[C4]
+此检查不实例化引擎、不注册设备内存；通过只说明 API 名称可见。还需核对 `MemoryRegistration` 四参数的语义、部分失败后的注销结果、native 返回对象及 finalize 对活动传输的行为。`kNotFound` 在当前主线是可选探测，缺少时不能走对应的「已不存在」确认逻辑；不能擅自补一个猜测错误码。[C4]
 
 ### 会报什么错
 

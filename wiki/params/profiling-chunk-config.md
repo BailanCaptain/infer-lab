@@ -12,6 +12,10 @@ aliases:
   - smooth_factor
   - CPP
   - Dynamic Chunked Pipeline Parallel
+  - scheduler_config.profiling_chunk_config
+  - additional_config.profiling_chunk_config
+  - min_chunk
+  - max_fit_chunk
 legacyAnchors:
   一句话: 它解决什么问题，适用范围与版本状态是什么？
   事实表: 它解决什么问题，适用范围与版本状态是什么？
@@ -139,12 +143,12 @@ rawSources:
 
 ## 它解决什么问题，适用范围与版本状态是什么？
 
-`profiling_chunk_config` 开启的是上游称为 **CPP（Dynamic Chunked Pipeline Parallel）** 的动态切块机制：服务启动时实测几十次真实 forward，拟合「这台机器上一段长 `l` 的 prefill 要花多久」的延迟曲线；运行时再按每条请求已有前缀长度反解出本步该切多少 token，使流水线各阶段处理每块的时间尽量接近，从而压低 PP 流水线因各块耗时不均产生的等待气泡（完整概念见[动态切块](../concepts/dynamic-chunked-pp.md)）。
+`profiling_chunk_config` 开启的是上游称为 **CPP（Dynamic Chunked Pipeline Parallel）** 的动态切块机制：服务启动时实测几十次真实 forward，拟合「这台机器上一段长 `l` 的 prefill 要花多久」的延迟曲线；运行时再按每条请求已有前缀长度反解出本步该切多少 token，使流水线各阶段处理每块的时间尽量接近，从而压低 [PP（流水线并行）](../concepts/pipeline-parallel.md)因各块耗时不均产生的等待气泡（完整概念见[动态切块](../concepts/dynamic-chunked-pp.md)）。
 
-**定位、硬前提与版本现状**：默认关闭（`enabled: false`），官方定位为 PD 分离部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置，旧版指南也含普通 serve 与离线 LLM 示例，其他形态仍须单独验证）。
+**定位、硬前提与版本现状**：默认关闭（`enabled: false`），官方定位为 [PD 分离](../concepts/pd-disaggregation.md)部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置，旧版指南也含普通 serve 与离线 LLM 示例，其他形态仍须单独验证）。
 
 - **硬性前提**：必须同时满足 `pipeline_parallel_size > 1`、开启 chunked prefill，且不能与 `enable_balance_scheduling`（及 `v0.30.0` 新增的 `dyntra_lb_config`）同开。
-- **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config` 下；旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
+- **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下；旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
 - **`main`（`8d6180e2`）已整体移除**：整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除。升级 `main` 须删此键，否则普通 Ascend 进程按未知顶层键拒收（发现 `vllm_omni` 时告警过滤）。
 
 | 配置项 / 约束 | `v0.30.0` 正式版（`c09d3e20`）行为 | 关键注意点 |

@@ -25,6 +25,15 @@ aliases:
   - 内存池化
   - MemFabric
   - MemCache
+  - 910B
+  - 910B3
+  - 910C
+  - Atlas 800T A2
+  - Atlas 800I A2
+  - Atlas 300I DUO
+  - 310P
+  - HardwareProfile
+  - SOC_VERSION
 chapters:
   - '04'
 order: 100
@@ -103,11 +112,11 @@ file: hardware-plate-cutaway
 
 1. **物理板卡不一定只含 1 个逻辑 `Device`**：在 **Atlas A2** 单芯板卡上，1 张物理卡搭载 1 颗计算裸片（Die）与配套显存，对应 1 个 `/dev/davinciX` 逻辑设备；而在 **Atlas A3** 双裸片（dual-Die）板卡上，1 张物理卡封装了 **2 颗片间高速互联的计算裸片**，系统会暴露出成对的 2 个逻辑设备（如 `/dev/davinci0` 与 `/dev/davinci1`），单台 8 物理模组服务器在软件眼里就是 **16 个逻辑 NPU（`davinci0..15`）**。
 2. **程序按 `ASCEND_RT_VISIBLE_DEVICES` 认领逻辑编号**：宿主机可能有 8 个或 16 个 `/dev/davinci*`，但进程通过环境变量 `ASCEND_RT_VISIBLE_DEVICES=2,3` 过滤后，只会看见重映射为本地 `0, 1` 的两个逻辑 `Device`，并在选定设备后才分配显存、提交算子。
-3. **机内总线与跨机网络差出一个数量级**：单台服务器内各 NPU 模组通过 **HCCS** 或 **Unified Bus（UB）** 高速直连，主机 CPU 则经 **PCIe** 向设备传输控制与输入数据；一旦跨出单台服务器进入机柜交换层，普通集群就必须改走速率低得多的 **RoCE**（以太网承载远程直接内存访问）网络接口。
+3. **机内总线与跨机网络差出一个数量级**：单台服务器内各 NPU 模组通过 **HCCS**（华为昇腾片间高速缓存一致性互联总线）或 **Unified Bus（UB）** 高速直连，主机 CPU 则经 **PCIe**（主机与加速卡间的标准总线）向设备传输控制与输入数据；一旦跨出单台服务器进入机柜交换层，普通集群就必须改走速率低得多的 **RoCE**（以太网承载远程直接内存访问 RDMA）网络接口。
 
 ## v0.30.0 四族昇腾硬件：从 SoC 识别到 HardwareProfile
 
-在 `vllm-ascend@c09d3e20`（`v0.30.0`）主基线中，业务代码不再到处散落按芯片名字硬编码的 `if` 分支，而是由 `vllm_ascend/device/` 包统一收敛为**四大家族语义能力档案（`HardwareProfile`）**。它的识别与路由分两步闭环：
+在 `vllm-ascend@c09d3e20`（`v0.30.0`）主基线中，业务代码不再到处散落按芯片名字硬编码的 `if` 分支，而是由 `vllm_ascend/device/` 包统一收敛为**四大家族语义能力档案（`HardwareProfile`）**。它的识别（依据芯片 **SoC**，即 System on Chip 片上系统型号码）与路由分两步闭环：
 
 - **编译期与运行期双校验锁卡**：构建阶段先按 `SOC_VERSION`（写入 `_build_info`）确定编译期家族 `AscendDeviceType`（`A2`、`A3`、`_310P`、`A5`）。Worker 启动时再调用 `check_ascend_device_type()` 读取 `torch_npu.npu.get_soc_version()` 的运行期整数码：`220..225` 对应 `A2`，`250..256` 对应 `A3`，`200..205` 对应 `_310P`，`260` 对应 `A5`。一旦预编译包与现场硅片家族不符，框架立即抛出 `RuntimeError`（标准 `pip install vllm-ascend` 默认 wheel 仅面向 `A2`）。
 - **语义契约驱动执行路径**：`get_current_hardware_profile()` 为当前家族绑定不可变的 `HardwareProfile`。上层先按 `*Family`、`*Mode`、`*Policy` 选择注意力/量化后端、绑核与 MoE 通信策略，再用 `profile.supports(HardwareCapability.X)` 查询细粒度算子与图编译契约：
@@ -136,7 +145,7 @@ $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qqu
 这里有两条极易踩坑的硬件记账铁律：
 
 1. **主机内存与邻卡显存不能自动拼成免费地址池**：主机 DRAM 再大，输入张量也须经 PCIe 拷入目标设备显存才能计算。启动时引擎先绑定设备并加载本卡权重，跑一次 `profile_run()` 实测非缓存峰值，再把 `gpu_memory_utilization` 预算内的剩余本卡显存切给状态块池（完整 7 级冷启动账见 [Worker 生命周期](npu-worker-lifecycle.md)与 [KV Cache 显存划定](kv-cache-memory-profiling.md)）。
-2. **严格区分十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：白皮书标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学算例显式设定为 `64 GiB` 整，现场实测与教学设定必须分开记。同时操作系统与驱动会扣留系统预留内存，初始化后调 `aclrtGetMemInfo` 或 `torch.npu.mem_get_info(device_id)` 查到的总量**已扣除系统预留**，不能拿宣传册标称值硬减权重来猜剩余空间。
+2. **严格区分十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：白皮书标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学算例显式设定为 `64 GiB` 整，现场实测与教学设定必须分开记。同时操作系统与驱动会扣留系统预留内存，初始化后调 `aclrtGetMemInfo`（CANN 运行时查询显存余量的接口）或 `torch.npu.mem_get_info(device_id)` 查到的总量**已扣除系统预留**（例如单卡与八卡 `Ascend 910B3` 真机标称 `64.00 GiB`，但运行时 OS 可见总量固定为 **`60.96 GiB`**，相差的 `3.04 GiB` 为底层预留，详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)），不能拿宣传册标称值硬减权重来猜剩余空间。
 
 ## 为什么多几张卡还会多出等待：机内 HCCS/UB 与跨机 RoCE
 

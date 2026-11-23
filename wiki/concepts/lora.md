@@ -6,6 +6,7 @@ summary: LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一
 aliases:
   - LoRA
   - LoRA 适配器
+  - LoRA adapter
   - 低秩适配
   - Low-Rank Adaptation
   - Multi-LoRA
@@ -18,6 +19,10 @@ aliases:
   - LoRARequest
   - enable-lora
   - lora-modules
+  - max_loras
+  - max_lora_rank
+  - fully_sharded_loras
+  - adapter_config.json
   - LoRA resolver
   - lora_filesystem_resolver
   - lora_hf_hub_resolver
@@ -175,8 +180,17 @@ relations:
   - to: acl-graph
     kind: builds-on
     note: 适配器状态参与捕获图分派。
+  - to: npu-model-runner
+    kind: builds-on
+    note: ModelRunner 在加载期替换 LoRA 线性层，并在每步前向刷新活跃适配器与槽号映射。
+  - to: expert-parallel
+    kind: builds-on
+    note: MoE 模型同时开启 LoRA 与 EP（ep_size > 1）时，因融合 MC2 无法插入低秩旁路，v0.26 起会强制切换至 ALLTOALL 通信。
+  - to: batch-invariance
+    kind: builds-on
+    note: 多适配器混批与单槽快路会随批形状切换算子路径，需要逐位一致性验证时需对照批不变限制。
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -275,7 +289,7 @@ file: lora-resolver-loading
 
 入口也影响怎样识别媒体。离线路径看预处理后真正留下的媒体占位类型；HTTP chat 路径按消息 content 的 type 匹配，所列四版取第一个下划线之前的部分。例如 audio_url 匹配 audio，而 input_audio 得到 input，不能仅因二者都携带音频就认定自动选择相同。HTTP 实际匹配的是已登记的适配器名，手动登记为 audio 或 image 的同名适配器也会参与这种匹配。媒体输入本身怎样处理，见 [API 的多模态入口](api-server-entry.md#一张图片进来怎样和文字一起交给模型)。
 
-选中适配器，也不意味着它覆盖视觉编码器或连接层。**给语言模型挂 LoRA，与给媒体编码器、连接层挂 LoRA，是不同的启用范围。** 媒体编码器处理的行数、连接层处理的行数和最终进入语言模型的媒体 token 数可能不同；旁路必须为每个部件准备正确的行数与槽号映射，否则会把更新加到错误位置。因此 tower / connector 路径还要求模型实现相应计数接口，并单独准备计算包装与容量；不能看到模型支持普通 LoRA 就推断视觉部分也支持。
+选中适配器，也不意味着它覆盖视觉编码器或连接层。**给语言模型挂 LoRA，与给媒体编码器（`tower`）、跨模态投影连接层（`connector`）挂 LoRA，是不同的启用范围。** 媒体编码器处理的行数、连接层处理的行数和最终进入语言模型的媒体 token 数可能不同；旁路必须为每个部件准备正确的行数与槽号映射，否则会把更新加到错误位置。因此 tower / connector 路径还要求模型实现相应计数接口，并单独准备计算包装与容量；不能看到模型支持普通 LoRA 就推断视觉部分也支持。
 
 ## MoE 适配器的二维、三维格式为什么要声明？
 
@@ -287,7 +301,11 @@ file: lora-resolver-loading
 
 ## 昇腾上是谁在算这一路
 
-上游 vLLM 把「按槽号取小矩阵乘回去」这一段做成了可替换的插件位，平台启动时交出一个类名。昇腾交出自己的 `PunicaWrapperNPU` 实现：槽号表、段的起点、是不是 prefill 这些元数据全用上游算好的，自己只重写乘法入口。真正做乘法的是昇腾用 AscendC（昇腾的算子编程语言，见[算子与核函数](ops-and-kernels.md)）写的四个核函数：按段压（`sgmv_shrink`）、按段抬（`sgmv_expand`）、按行压（`bgmv_shrink`）、按行抬（`bgmv_expand`）。它们注册成 torch 算子后，由 Python 侧的一层薄包装调起，源文件与注册入口见「对照源码 › 源码位置」。层替换表里也插了昇腾自己的 LoRA 层类，这样昇腾自建的线性层同样换得上；模型运行器则在加载期挂上适配器，每步刷新「这一步谁在用哪个」。
+上游 vLLM 把「在同一批里按槽号取小矩阵、给各行叠加各自低秩更新」的算子框架称为 **Punica**（源自多租户 LoRA 批处理论文 *Punica*），并将其做成可替换的插件位，由平台启动时交出一个类名。昇腾交出自己的 `PunicaWrapperNPU` 实现：槽号表、段的起点、是不是 prefill 这些元数据全用上游算好的，自己只重写乘法入口。真正做乘法的是昇腾用 AscendC（昇腾的算子编程语言，见[算子与核函数](ops-and-kernels.md)）写的四个核函数，对应两种批量乘模式：
+- **SGMV（Segmented Gather Matrix-Vector，按段聚集乘）**：把连续相同槽号的行合成一段一起压窄（`sgmv_shrink`）和抬回（`sgmv_expand`）；
+- **BGMV（Batched Gather Matrix-Vector，按行聚集乘）**：按每行各自的槽号直接索引矩阵压窄（`bgmv_shrink`）和抬回（`bgmv_expand`）。
+
+它们注册成 torch 算子后，由 Python 侧的一层薄包装调起，源文件与注册入口见「对照源码 › 源码位置」。层替换表里也插了昇腾自己的 LoRA 层类，这样昇腾自建的线性层同样换得上；[ModelRunner](npu-model-runner.md)（模型运行器）则在加载期挂上适配器，每步刷新「这一步谁在用哪个」。
 
 下面这张图把多适配器槽号混批、`PunicaWrapperNPU` 在 `v0.30.0` / `main` 上的三条快慢执行路径，以及 310P 与 MoE EP 边界收在一屏里：
 
@@ -298,8 +316,8 @@ file: lora-fig-punica-paths
 沿图看清三处最容易踩坑的边界：
 
 - **MoE 模型的双层索引**：适配器索引还要和专家索引组合起来，对展开后的专家输入行算更新、再结合路由权重，比普通线性层多一层索引关系（token 怎么分派到专家见 [MoE](moe.md)）。
-- **310P 与大秩静默退回纯 PyTorch**：旧部署在 310P 上，或最大秩设到 128 及以上时，会把 SGMV/BGMV 绑定到上游的纯 PyTorch 实现。`v0.30.0` 起改为检查 `HardwareProfile` 的 `LORA_CUSTOM_OPS` 能力位，或判定 `max_lora_rank >= 128` 走同一退路，且该选择分支没有专门提示日志。新版单槽（`max_loras=1`）路径还会另选 Triton 融合或 matmul 实现。
-- **ACL Graph 捕获分桶**：批描述符记录「这一批带不带 LoRA」和「这一步有几个活跃适配器」，但捕获哪些组合由配置决定。旧上游在启用 LoRA 图专化时分别准备带与不带适配器的图；进一步启用活跃数量专化后，才把适配器数映射到捕获的数量档位。未启用数量专化时，各个非零数量共用同一个数量键；找不到匹配图时，允许 `NONE` 模式才回到普通执行，否则断言报错（图模式见 [ACL Graph](acl-graph.md)）。旧昇腾指南推荐图模式，同时对应支持矩阵将 LoRA 标为 Experimental。
+- **310P 与大秩静默退回纯 PyTorch**：旧部署在 310P 上，或最大秩设到 128 及以上时，会把 SGMV/BGMV 绑定到上游的纯 PyTorch 实现。`v0.30.0` 起改为检查 `HardwareProfile`（昇腾四家族硬件能力档案，见 [v0.30.0 升级清单](v030-release-baseline.md)）的 `LORA_CUSTOM_OPS` 能力位，或判定 `max_lora_rank >= 128` 走同一退路，且该选择分支没有专门提示日志。新版单槽（`max_loras=1`）路径还会另选 Triton 融合或 matmul 实现。
+- **ACL Graph 捕获分桶**：批描述符记录「这一批带不带 LoRA」和「这一步有几个活跃适配器」，但捕获哪些组合由配置决定。旧上游在启用 LoRA 图专化时分别准备带与不带适配器的图；进一步启用活跃数量专化后，才把适配器数映射到捕获的数量档位。未启用数量专化时，各个非零数量共用同一个数量键；找不到匹配图时，允许 `NONE` 模式才回到普通执行，否则断言报错（图模式见 [ACL Graph](acl-graph.md)）。旧昇腾指南推荐图模式，同时对应支持矩阵将 LoRA 标为 Experimental（实验性支持）。
 
 ## 本部署有没有开
 

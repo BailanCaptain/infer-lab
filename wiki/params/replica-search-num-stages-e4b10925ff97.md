@@ -7,7 +7,9 @@ evidence: C
 summary: >-
   STAIR 分阶段副本数搜索把按风险降序排列的专家切成的阶段组数：前面各组逐段探索额外副本预算，最后一组贪心补齐；默认 4，合法范围 1–8，实际组数取配置值与专家数的较小者，设为 1 时目标退化为纯贪心。v0.30.0 与 main 已接入 MRv2。
 aliases:
+  - stair_config.replica_search_num_stages
   - 副本搜索阶段数
+  - STAIR 副本搜索阶段数
   - STAIR replica search stages
 relations:
   - to: stair-config-cca9e594a052

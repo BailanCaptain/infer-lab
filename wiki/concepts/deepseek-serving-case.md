@@ -4,7 +4,7 @@ title: "DeepSeek 生产实践：一条请求怎样走过整套服务"
 type: concept
 origin: direct
 summary: 从长输入干扰已有回答出发，推演为什么把 E/P/D 分开、要交接哪些状态以及何时得不偿失；再沿带图长文的追问拆开缓存就绪与计算等待，对照 DeepInfer 的实际发布边界。
-aliases: [DeepSeek 生产实践, DeepInfer, DeepSeek EPD 架构, 推理生产架构, 缓存命中但首字慢, 3FS, DeepSeek Recipe]
+aliases: [DeepSeek 生产实践, DeepInfer, DeepSeek EPD 架构, EPD 架构, DeepSeek-V4.1 部署, 推理生产架构, 缓存命中但首字慢, 3FS, DeepSeek Recipe]
 chapters: ["19"]
 order: 1
 sources:
@@ -24,6 +24,8 @@ relations:
   - { to: prefix-caching, kind: builds-on, note: 可复用前缀怎样判断由原页解释 }
   - { to: dp-request-routing, kind: builds-on, note: 比较 DeepSeek 的工作量路由与本站 vLLM 请求分配 }
   - { to: eplb, kind: builds-on, note: 请求分配均匀后还要检查专家负载 }
+  - { to: epd-disaggregation, kind: builds-on, note: 结合通用的多模态 E/P/D 三池解耦架构理解图片编码与 P/D 资源配比 }
+  - { to: inference-benchmarking, kind: builds-on, note: P/D 分离的真实收益须在同资源与同到达负载下用 TTFT、TPOT 与 goodput 基准验证 }
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -56,7 +58,7 @@ file: deepseek-serving-request
 
 同一批用户的工作并不平均：有人上传图片，有人贴长文，有人只追问几个字，却要求生成很长的回答。若每台机器都按固定比例准备资源，就会出现一边排队、另一边空闲。P 希望高效处理一批输入，D 则要不断及时交回后续输出；[停顿样例](inference-performance-walkthrough.md)已经演示两者共用一步时如何相互影响。
 
-DeepSeek 将 E、P、D 分开配置资源。长文读入变多时可以增加 P，长回答变多时可以增加 D；图片处理也有自己的资源池。**PD disaggregation** 就是把 P 和 D 分开部署。这样，P 的长计算不再与 D 的生成直接挤进同一执行步，但它们仍可能竞争共享网络或存储。
+DeepSeek 将 E、P、D 分开配置资源。长文读入变多时可以增加 P，长回答变多时可以增加 D；图片处理也有自己的资源池（通用的三池解耦机制见 [EPD 分离](epd-disaggregation.md)）。**PD disaggregation** 就是把 P 和 D 分开部署。这样，P 的长计算不再与 D 的生成直接挤进同一执行步，但它们仍可能竞争共享网络或存储。
 
 分开以后不能只把原始问题转发给 D。P 已算出的历史状态要交给 D，D 还需要请求的生成设置与当前进度，才能从正确位置继续。交接完成以前，D 有卡可用也未必能开算。若模型还有其他历史状态，也必须按实现的协议传递或重建，具体由 [PD 分离](pd-disaggregation.md)解释。
 
@@ -98,7 +100,7 @@ DeepSeek 将 E、P、D 分开配置资源。长文读入变多时可以增加 P�
 | 用于会话复用的 SWA 窗口状态 | 产生它的计算机器内存，单副本 | 本机没有时需要找持有者；缺失时进入模型支持的重建路径 |
 | 正在执行的请求所需缓存与中间状态 | 推理卡的设备内存 | 决定当前能否继续算；持久存储里有历史块，不代表执行状态已经齐全 |
 
-V4.1 的 SWA bounded replay 会在特定路径重算一小段后缀，恢复**近似**的窗口状态，同时复用已有的 Block KV。它依赖该模型的设计，不能把它推成“任意模型丢掉任意状态都能无损恢复”。这个区别直接影响排查：判断命中要说明是哪类状态，判断恢复还要说明缺了什么。
+V4.1 的 [SWA bounded replay](swa-bounded-replay.md)（有界回放，即只重算末尾一小段后缀来恢复窗口状态）会在特定路径重算一小段后缀，恢复**近似**的窗口状态，同时复用已有的 Block KV。它依赖该模型的设计，不能把它推成“任意模型丢掉任意状态都能无损恢复”。这个区别直接影响排查：判断命中要说明是哪类状态，判断恢复还要说明缺了什么。
 
 一次缓存读取又有三个不同的完成点：查到可复用前缀；数据从存储取到主机内存；数据从主机进入设备内存。DeepSeek 的匹配在路由前完成，后两段尽量异步执行，并把逐层搬运与计算重叠。**异步表示允许同时推进，不保证需要数据时它已经到了。**
 
@@ -144,11 +146,11 @@ file: deepseek-serving-case-fig-ttft-timeline
 - **E 侧（按图片切块数）**：看图片拆成多少个小块处理，不能只数图片张数。
 - **专家层负载（MoE / EPLB 单独核查）**：**MoE** 为每个 token 选择少数专家网络，**EP** 把这些专家分放到不同卡上。即使请求分配均匀，热门专家所在卡仍可能更忙；**EPLB** 通过冗余专家和调整专家位置来减轻不均，代价包括额外显存与权重搬运。请求分流和专家负载必须分别检查（原理见 [DP 请求分配](dp-request-routing.md)与 [EPLB](eplb.md)）。现场先比较同一批、同一层里各卡收到的专家工作量与完成时刻；若工作量接近却仍有长时间等待，再沿[性能分析](inference-performance-analysis.md#时间线怎样告诉你应该先优化哪一段)检查执行依赖和通信。
 
-沿学习路径，下一步用[容量与恢复案例](inference-capacity-and-reliability.md)回答“每段安排了资源，究竟够不够；少一套以后要等多久”。想进一步解释状态为什么分开保存，可先读 [DeepSeek 模型结构](deepseek-v4-1-flash.md)。随后再沿 [SWA 回放](swa-bounded-replay.md)、[DSpark](dspark.md)和[低精度格式](low-precision-formats.md)分别推演恢复、验证工作量与存储误差。协议转换的问题则回到[请求入口](api-server-entry.md#换成-deepseek-recipe入口负责到哪里)，不用把它们都归到设备性能。
+沿学习路径，下一步用[容量与恢复案例](inference-capacity-and-reliability.md)回答“每段安排了资源，究竟够不够；少一套以后要等多久”。想进一步解释状态为什么分开保存，可先读 [DeepSeek 模型结构](deepseek-v4-1-flash.md) 与 [Engram 条件记忆](engram-conditional-memory.md)。随后再沿 [SWA 回放](swa-bounded-replay.md)、[DSpark](dspark.md)和[低精度格式](low-precision-formats.md)分别推演恢复、验证工作量与存储误差。协议转换的问题则回到[请求入口](api-server-entry.md#换成-deepseek-recipe入口负责到哪里)，不用把它们都归到设备性能。
 
 ## 放到 GLM 双机，哪些经验可以带走
 
-[本站固定部署](glm-5-3-flash-two-node.md#部署前提)是 GLM-5.3-Flash、2×A2×8、TP8/DP2/EP16、W8A8。TP 是多卡分担同一次张量运算，DP 在这里是分配请求的执行组；两组共同持有 EP16 的专家，**不是两套独立完整副本**。这套基线没有开启 PD 分离。
+[本站固定部署](glm-5-3-flash-two-node.md#部署前提)是 GLM-5.3-Flash、2×A2×8、TP8/DP2/EP16、W8A8（权重与激活均采用 8 位整数量化）。TP 是多卡分担同一次张量运算，DP 在这里是分配请求的执行组；两组共同持有 EP16 的专家，**不是两套独立完整副本**。这套基线没有开启 PD 分离。
 
 可以直接复用的是分析顺序：先找请求在哪段等待，再看那段的工作量、状态是否齐备和资源是否就绪。若要改成 PD，必须先核对 GLM 的混合状态和连接器兼容性；已知限制统一见 [PD 页的 GLM 交接问题](pd-disaggregation.md#钉住版本里长提示词交接时-full-组会少传块)。
 

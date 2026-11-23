@@ -63,12 +63,6 @@ relations:
   - to: token
     kind: builds-on
     note: tokenizer.json、tokenizer_config.json 与 chat_template 如何把对话渲染并切成 token 编号，详见 token 页
-  - to: quantization
-    kind: builds-on
-    note: config.json 中的 quantization_config 与 ModelSlim 的 quant_model_description.json 在昇腾上的量化执行路径见量化页
-  - to: kv-cache-memory-profiling
-    kind: builds-on
-    note: 从 config.json 读出的层数、KV 头数、head_dim 与 dtype 如何决定实际 KV 显存池大小，见显存划定页
 contradicts: []
 updated: '2026-11-18'
 ---
@@ -80,7 +74,7 @@ updated: '2026-11-18'
 在 `vllm-ascend@c09d3e20`（配套 `vllm@ced6857a`）主基线下，`vllm serve` 初始化模型配置时并不需要先把所有权重矩阵搬进设备显存，而是先读取目录顶层的几份 JSON 文件。哪怕此时本地还没拉取几十 GiB 的 `.safetensors` 分片，仅看这几份不到几 MB 的配置文件，就能在几秒内完成四项部署初筛：
 
 1. **架构是否受支持**：确认 `architectures` 和 `model_type` 是否命中当前版本 `vllm` 与 `vllm-ascend` 已适配的模型类，避免权重下载完才报模型未注册。
-2. **显存和卡数是否够用**：用层数、隐藏维度、注意力头数、词表大小与精度算出纯权重静态占用和每 token 的 KV cache（保存历史键和值向量的缓存）增量，先判断单卡能否放下、是否必须切多卡并行。
+2. **显存和卡数是否够用**：用层数、隐藏维度、注意力头数、词表大小与精度算出纯权重静态占用和每 token 的 [KV cache](kv-cache.md)（保存历史键和值向量的缓存）增量，先判断单卡能否放下、是否必须切多卡并行。
 3. **分词与上下文长度是否异常**：核对对话模板 `chat_template` 是否齐备，并检查 `tokenizer_config.json` 里的 `model_max_length` 有没有悄悄把模型原本支持的上下文长度截短。
 4. **量化格式与昇腾路径是否匹配**：分辨目录走 `config.json` 内嵌的 `quantization_config`（如 `compressed-tensors` 或原生 `fp8`），还是昇腾 ModelSlim 导出的 `quant_model_description.json`。提前核对能防止启动时因格式不兼容直接拒载。
 
@@ -177,7 +171,7 @@ file: hf-fig-tie-and-untie
 
 ### 上下文长度与位置编码：max_position_embeddings、rope_theta 与 rope_scaling
 
-`max_position_embeddings` 给出位置编码基准上限（三个 Qwen3 预设均为 `40960`），`rope_theta` 设定 RoPE 基础底频（`1000000`）。当长上下文模型配置了 `rope_scaling`（较新 Transformers 中也可能归一化为 `rope_parameters`）时，`vllm` 的 `_get_and_verify_max_len` 并非一律乘以 `factor`：
+`max_position_embeddings` 给出位置编码基准上限（三个 Qwen3 预设均为 `40960`），`rope_theta` 设定 [RoPE（旋转位置编码）](rope.md) 的基础底频（`1000000`）。当长上下文模型配置了 `rope_scaling`（较新 Transformers 中也可能归一化为 `rope_parameters`）时，`vllm` 的 `_get_and_verify_max_len` 并非一律乘以 `factor`：
 
 - **`linear`、`dynamic` 等传统缩放**：把推导出的最大长度乘以 `factor`（若配置误把 `factor` 写成 `null`，打印警告并回落为 `1.0`）。
 - **`yarn`、`su`、`longrope`、`llama3`、`deepseek_yarn`、`deepseek_llama_scaling` 及 `gemma3`**：`vllm` 认为 `max_position_embeddings` 已是扩展后长度，**不再二次乘 `factor`**。此外对于 `longrope`，若未显式指定 `--max-model-len`（或传 `-1`），引擎默认回退到 `original_max_position_embeddings`，避免短上下文精度下降。
@@ -253,7 +247,7 @@ $$\text{KV}_{\text{token}} = 2 \times L \times n_{\text{kv}} \times d_h \times \
 | 单层每 token BF16 KV cache | `4,096 B`（`2 × 8 × 128 × 2 B`） | `2,048 B`（`2 × 4 × 128 × 2 B`） |
 | 全模型每 token BF16 KV cache | **`144.0 KiB`**（`36` 层） | **`96.0 KiB`**（`48` 层） |
 
-有了这两组数字，启动前就能心里有底：哪怕不计激活与框架缓冲（详细试跑扣减见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡跑 BF16 `Qwen3-30B-A3B` 加载期就会直接 OOM；而跑 BF16 `Qwen3-8B` 扣完 `15.26 GiB` 权重后仍能腾出可观显存给 KV cache。下面可用快速初筛台直接对照卡数门槛：
+有了这两组数字，启动前就能心里有底：哪怕不计激活与框架缓冲（详细试跑扣减见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡跑 BF16 `Qwen3-30B-A3B` 加载期就会直接 OOM（显存溢出，Out of Memory）；而跑 BF16 `Qwen3-8B` 扣完 `15.26 GiB` 权重后仍能腾出可观显存给 KV cache。下面可用快速初筛台直接对照卡数门槛：
 
 ```wiki-tool
 tool: deploy-calculator

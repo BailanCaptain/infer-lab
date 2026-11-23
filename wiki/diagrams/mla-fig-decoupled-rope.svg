@@ -1,52 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 364" width="900" height="364" role="img" aria-label="RoPE 为何阻断 MLA 吸收、DeepSeek-V2 Decoupled RoPE 绕行与 GLM NoPE 零 RoPE 段对比图" font-family="var(--font-sans)">
-  <title>为什么直接对展开 K 施加 RoPE 会破坏 MLA 权重吸收、DeepSeek-V2 如何通过 Decoupled RoPE 拆通道绕开，以及 GLM-5.3-Flash 为何设 qk_rope_head_dim=0 不存 RoPE 段。</title>
-  <desc>三条横向方案对比：一、直接对展开后的 K 施加 RoPE 时，随相对位置变化的旋转矩阵 R(t-s) 夹在 q_i 与 W_UK_i^T 之间，无法提前合并，吸收失效；二、DeepSeek-V2 的 Decoupled RoPE 将主通路 512 维潜向量保持 NoPE 以继续吸收，并另存 64 维已旋转共享 k^R（总 576 维）独立点积相加；三、GLM-5.3-Flash 设 qk_rope_head_dim=0 且 mla_use_nope=true，主缓存仅存 512 维纯潜向量（1,024 B BF16），吸收零阻碍。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="RoPE 阻断 MLA 权重吸收的矩阵结合律障碍、DeepSeek-V2 Decoupled RoPE 双支路与 512:64 比例槽位及 GLM NoPE 对比图" font-family="var(--font-sans)">
+  <title>为什么直接对展开 K 施加 RoPE 会因 R(t-s) 夹在中间而阻断 MLA 权重吸收、DeepSeek-V2 如何通过 Decoupled RoPE 双支路（512+64=576 维比例槽位）绕开，以及 GLM-5.3-Flash（qk_rope_head_dim=0, mla_use_nope=true）为何省去 64 维只存 512 维纯潜向量。</title>
+  <desc>三行对比：第一行用受阻的矩阵结合弧线画出 R(t-s) 挡在 q_i 与 W_UK_i^T 之间使吸收失效；第二行左侧用双支路汇合图画出 DeepSeek-V2 的 512 维 NoPE 吸收支路与 64 维已旋转 RoPE 支路在 + 号处求和，右侧按真实 512:64（8:1）宽度比画出 576 维 KV 槽位；第三行在同比例标尺下展示 GLM-5.3-Flash 消除 64 维 RoPE 通道后仅存 512 维（1,024 B BF16）纯潜向量。关联符号：qk_rope_head_dim, rotary_emb, _exec_kv_no_rope, _exec_kv_mla_nope。</desc>
+  <defs>
+    <marker id="mla-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="mla-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="mla-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">RoPE 与 MLA 吸收的冲突，以及两条工程解法（DeepSeek-V2 vs GLM-5.3-Flash）</text>
+  <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">RoPE 如何阻断 MLA 权重吸收，以及两条工程解法（DeepSeek-V2 vs GLM-5.3-Flash）</text>
 
-  <!-- Row 1: Naive RoPE blocks absorb -->
-  <rect x="14" y="38" width="872" height="94" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-  <text x="28" y="62" font-size="14.5" font-weight="700" fill="#8f3229">✗ 朴素方案：直接对展开后的 K 施加 RoPE → 吸收失效</text>
-  <!-- Equation blocks showing R(t-s) wedged between q and W_UK -->
-  <rect x="28" y="74" width="66" height="42" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
-  <text x="61" y="100" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">qᵢ</text>
-  <text x="106" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
-  <rect x="118" y="74" width="160" height="42" rx="6" fill="#b54237"/>
-  <text x="198" y="94" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">R(t − s)</text>
-  <text x="198" y="111" text-anchor="middle" font-size="13" fill="#fff0e9">随历史位置 s 变！</text>
-  <text x="290" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
-  <rect x="302" y="74" width="104" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="354" y="100" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#936300">W_UKᵢᵀ</text>
-  <text x="418" y="100" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
-  <rect x="430" y="74" width="68" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="464" y="100" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">cₛᵀ</text>
+  <!-- Row 1: Blocked matrix-associativity visual -->
+  <rect x="14" y="40" width="872" height="108" rx="9" fill="#fff0e9" fill-opacity="0.65" stroke="#b54237" stroke-width="1.5"/>
+  <text x="28" y="62" font-size="14.5" font-weight="700" fill="#8f3229">✗ 朴素方案：直接对展开后的 K 施加 RoPE → R(t − s) 夹在中间，结合律受阻</text>
 
-  <text x="518" y="92" font-size="13.5" font-weight="700" fill="#8f3229">矩阵乘法不可交换：R(t−s) 挡在中间</text>
-  <text x="518" y="113" font-size="13.5" fill="#4d5652">无法把 W_UKᵢᵀ 提前并进 qᵢ，被迫逐历史位置重算 K</text>
+  <!-- Blocked association dashed arc over R(t-s) -->
+  <path d="M 56 96 C 56 72, 148 72, 166 80" fill="none" stroke="#b54237" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <path d="M 300 96 C 300 72, 208 72, 190 80" fill="none" stroke="#b54237" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <circle cx="178" cy="80" r="9.5" fill="#b54237"/>
+  <text x="178" y="84.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">×</text>
 
-  <!-- Row 2: DeepSeek-V2 Decoupled RoPE -->
-  <rect x="14" y="146" width="872" height="106" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#3a4f93">✓ DeepSeek-V2 解法：Decoupled RoPE（主潜向量照常吸收 + 另存 64 维已旋转小通道）</text>
+  <!-- Matrix chain chips -->
+  <rect x="28" y="98" width="56" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="56" y="121" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">qᵢ</text>
+  <text x="96" y="121" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
 
-  <rect x="28" y="182" width="248" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-  <text x="152" y="204" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">(qᵢ · W_UKᵢᵀ) · cₛᵀ</text>
-  <text x="152" y="226" text-anchor="middle" font-size="13" fill="#065f56">主通道 NoPE · 512 维（完整吸收）</text>
+  <rect x="108" y="96" width="140" height="40" rx="6" fill="#b54237"/>
+  <text x="178" y="114" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">R(t − s)</text>
+  <text x="178" y="131" text-anchor="middle" font-size="12" fill="#fff0e9">随历史位置 s 变！</text>
+  <text x="260" y="121" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
 
-  <text x="294" y="215" text-anchor="middle" font-size="18" font-weight="700" fill="#3a4f93">+</text>
+  <rect x="272" y="98" width="88" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="316" y="121" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">W_UKᵢᵀ</text>
+  <text x="372" y="121" text-anchor="middle" font-size="15" font-weight="700" fill="#4d5652">·</text>
 
-  <rect x="312" y="182" width="234" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-  <text x="429" y="204" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">qᵢᴿ · kₛᴿ（已旋转）</text>
-  <text x="429" y="226" text-anchor="middle" font-size="13" fill="#936300">位置通道 · 64 维（不经过 W_UK）</text>
+  <rect x="384" y="98" width="58" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="413" y="121" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">cₛᵀ</text>
 
-  <rect x="564" y="182" width="308" height="54" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="718" y="204" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">每位置缓存 = 512 + 64 = <tspan font-family="var(--font-mono)" fill="#3a4f93">576</tspan> 维</text>
-  <text x="718" y="226" text-anchor="middle" font-size="13" fill="#4d5652">打分直接相加；缩放分母用 √(128 + 64)</text>
+  <text x="462" y="108" font-size="13.5" font-weight="700" fill="#8f3229">矩阵乘不可交换：R(t−s) 挡住预合并路径</text>
+  <text x="462" y="130" font-size="13" fill="#4d5652">无法提前算 qᵢ·W_UKᵢᵀ，被迫逐历史位置展开重算 K</text>
 
-  <!-- Row 3: GLM-5.3-Flash NoPE -->
-  <rect x="14" y="266" width="872" height="86" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="28" y="290" font-size="14.5" font-weight="700" fill="#065f56">✓ GLM-5.3-Flash 配置：qk_rope_head_dim = 0, mla_use_nope = true（无 RoPE 段）</text>
-  <rect x="28" y="302" width="330" height="38" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
-  <text x="193" y="326" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">主缓存仅存 512 维纯潜向量（1,024 B BF16）</text>
-  <text x="374" y="319" font-size="13.5" fill="#17211f">• RoPE 通道宽 0，跳过旋转，吸收零阻碍（缩放 ÷√256）</text>
-  <text x="374" y="339" font-size="13" fill="#4d5652">• 位置感由 34 层 KDA 递推 + indexer 池偏置 + 因果掩码提供</text>
+  <!-- Row 2: DeepSeek-V2 Decoupled RoPE (two branches + proportional 512:64 KV bar) -->
+  <rect x="14" y="160" width="872" height="136" rx="9" fill="#e8edff" fill-opacity="0.55" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="183" font-size="14.5" font-weight="700" fill="#3a4f93">✓ DeepSeek-V2 解法：Decoupled RoPE（主潜向量照常吸收 + 旁路 64 维旋转位置通道）</text>
+
+  <!-- Branch 1: Absorbed NoPE path -->
+  <rect x="28" y="198" width="166" height="36" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="111" y="221" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">(qᵢ · W_UKᵢᵀ)</text>
+  <line x1="194" y1="216" x2="218" y2="216" stroke="#087f73" stroke-width="1.8" marker-end="url(#mla-arr-t)"/>
+  <rect x="222" y="198" width="150" height="36" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="297" y="221" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">点积 cₛᵀ（吸收）</text>
+
+  <!-- Branch 2: Decoupled 64-dim RoPE path -->
+  <rect x="28" y="246" width="166" height="36" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="111" y="269" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">qᵢᴿ（已旋转）</text>
+  <line x1="194" y1="264" x2="218" y2="264" stroke="#c78300" stroke-width="1.8" marker-end="url(#mla-arr-a)"/>
+  <rect x="222" y="246" width="150" height="36" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="297" y="269" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">点积 kₛᴿ（64 维）</text>
+
+  <!-- Converge to + circle -->
+  <path d="M 372 216 L 404 216 L 422 232" fill="none" stroke="#087f73" stroke-width="1.8"/>
+  <path d="M 372 264 L 404 264 L 422 248" fill="none" stroke="#c78300" stroke-width="1.8"/>
+  <circle cx="434" cy="240" r="14" fill="#4c65b6"/>
+  <text x="434" y="245.5" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">+</text>
+  <line x1="448" y1="240" x2="472" y2="240" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#mla-arr-i)"/>
+  <text x="478" y="245" font-size="13.5" font-weight="700" fill="#3a4f93">打分</text>
+
+  <!-- Right-side proportional 512:64 KV slot bar (exact 8:1 width -> 277px + 35px = 312px) -->
+  <line x1="528" y1="194" x2="528" y2="286" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="544" y="210" font-size="13" font-weight="700" fill="#17211f">每位置 KV 槽位（真实宽比 512 : 64 = 8 : 1）</text>
+  <rect x="544" y="220" width="277" height="36" rx="4" fill="#087f73"/>
+  <text x="682" y="243" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">512 维潜向量 c_KV（NoPE）</text>
+  <rect x="824" y="220" width="36" height="36" rx="4" fill="#c78300"/>
+  <text x="842" y="243" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#ffffff">64</text>
+  <text x="544" y="278" font-size="12.5" fill="#4d5652">合计 <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">576</tspan> 维 · 注意力缩放分母 √(128 + 64)</text>
+
+  <!-- Row 3: GLM-5.3-Flash NoPE (aligned on exact same 512+0 slot scale!) -->
+  <rect x="14" y="308" width="872" height="92" rx="9" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.5"/>
+  <text x="28" y="331" font-size="14.5" font-weight="700" fill="#065f56">✓ GLM-5.3-Flash 配置：qk_rope_head_dim = 0, mla_use_nope = true（省去 RoPE 旁路）</text>
+
+  <text x="28" y="358" font-size="13.5" fill="#17211f">• 跳过全部旋转，权重吸收零阻碍（缩放 ÷√256）</text>
+  <text x="28" y="382" font-size="13" fill="#4d5652">• 位置顺序改由 34 层 KDA 递推 + indexer 池偏置 + 因果掩码提供</text>
+
+  <line x1="528" y1="338" x2="528" y2="390" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <!-- Aligned 512-dim bar (277px) + dashed 0-dim ghost slot (36px) directly below Row 2 -->
+  <rect x="544" y="346" width="277" height="36" rx="4" fill="#087f73"/>
+  <text x="682" y="369" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">512 维纯潜向量（1,024 B BF16）</text>
+  <rect x="824" y="346" width="36" height="36" rx="4" fill="#ffffff" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="842" y="369" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#66716d">0</text>
 </svg>

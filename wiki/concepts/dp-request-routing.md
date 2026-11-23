@@ -11,10 +11,14 @@ summary: >-
 aliases:
   - DP 请求路由
   - DP routing
+  - DP 路由器
   - DP 负载均衡
   - DP load balancing
   - 选 DP 组
   - 前端路由
+  - waiting × 4 + running
+  - 流式会话亲和
+  - streaming_reqs
   - get_core_engine_for_request
   - X-data-parallel-rank
   - data_parallel_hybrid_lb
@@ -76,23 +80,17 @@ relations:
   - to: data-parallel
     kind: builds-on
     note: DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移
-  - to: request-call-chain
-    kind: builds-on
-    note: 前端、协调器、EngineCore 各在哪个进程，请求和计数走哪条通道
-  - to: vllm-engine-core
-    kind: builds-on
-    note: 引擎一圈的顺序决定计数什么时候报、新请求什么时候进 waiting
-  - to: concurrent-requests
-    kind: builds-on
-    note: 场景 M 的两组打分，以及两组每步按最宽的一组对齐
-  - to: balance-scheduling
-    kind: builds-on
-    note: 路由只数条数、计数会过时留下的缺口，由它在各组准入时补
   - to: prefix-caching
     kind: builds-on
     note: 前缀缓存只在一组自己的池子里命中，派到别组要重算
+  - to: large-scale-ep
+    kind: builds-on
+    note: 大规模 EP 下主节点内置单点路由易成瓶颈，需理解 hybrid 与 external 路由的演进动机
+  - to: balance-scheduling
+    kind: alternative-to
+    note: DP 请求路由在入口按估计负载一次派定组别且终生不迁移；Balance Scheduling 则在派定后由各组每步互报 running 条数，顶满时共同暂停接纳 waiting 以防失衡滚雪球
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

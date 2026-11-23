@@ -40,7 +40,7 @@ aliases:
   - ignore eos
   - 忽略 EOS
 chapters:
-  - 09
+  - '09'
 order: 80
 sources:
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1825-L1886'
@@ -179,32 +179,20 @@ verified:
   - main
 evidence: C
 relations:
-  - to: one-request
-    kind: builds-on
-    note: 第 7 站讲了 R1 长度到限的那一圈和归还 16–17 个块号的账；本页把收尾拆成前端、引擎、worker 三处各删什么
   - to: streaming-output
     kind: builds-on
     note: 停止字符串怎样被发现、最后一个片段怎样推出在那一页；本页接着讲发现之后怎样通知引擎、谁先还
-  - to: vllm-kv-block-allocation
+  - to: sampling
     kind: builds-on
-    note: 引用计数、空闲队列、各组倒序还块在那一页；本页只用到「计数减到 0 才回队列」和它与清空前缀缓存的区别
-  - to: request-call-chain
+    note: 引擎侧判停（EOS、stop_token_ids、长度上限）与 min_tokens 规则由采样页定义
+  - to: continuous-batching
     kind: builds-on
-    note: API server、EngineCore、worker 三种进程和它们之间的通道在那一页；本页讲收尾时每种进程删掉什么
-  - to: api-server-entry
+    note: 请求完结当步移出 running 队列并归还缓存块，与显存吃紧时的抢占机制分属两条流转路径
+  - to: block-table
     kind: builds-on
-    note: 请求进门时登记的前端记录和输出槽在那一页；本页讲它们在结束时怎样被删
-  - to: prefix-caching
-    kind: builds-on
-    note: 块的登记和驱逐在那一页；本页区分还块和清空前缀缓存这两个动作
-  - to: async-scheduling
-    kind: builds-on
-    note: 调度器先排下一步再处理上一步结果；本页讲这让收尾时多算一步、通知 worker 晚一步
-  - to: concurrent-requests
-    kind: builds-on
-    note: 池子不够时抢占的整批推导在那一页；本页只讲抢占和收尾的区别
+    note: 引擎收尾倒序归还物理块引用计数，并由下一份调度清单通知 worker 清理批次块表行
 contradicts: []
-updated: 2026-11-19T00:00:00.000Z
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -221,7 +209,7 @@ file: request-teardown-intuition
 以标准单缓存组场景（如 `Qwen3-8B`）的示意数走一遍：请求 A 正在生成，B、C 也在运行。
 
 - **前端**：为 A 保存一条反分词进度记录和一个单槽输出队列；引擎每步结果先放进输出槽，等 A 的 HTTP 任务取走。
-- **引擎**：在请求表里给 A 留一条**请求表项**（记录算到哪、持有哪几块），并在 `running` 队列占一席。A 顺序持有 3 个 KV 块：块 9 → 块 2 → 块 5。开启 prefix caching（前缀缓存）时，块 9 存着 A 与 B 相同的开头，因此块 9 的引用计数为 `2`，块 2 与块 5 为 `1`。
+- **引擎**：在请求表里给 A 留一条**请求表项**（记录算到哪、持有哪几块），并在 `running` 队列占一席。A 顺序持有 3 个 KV 块：块 9 → 块 2 → 块 5。开启 [prefix caching](prefix-caching.md)（前缀缓存）时，块 9 存着 A 与 B 相同的开头，因此块 9 的引用计数为 `2`，块 2 与块 5 为 `1`。
 - **worker**：每张卡的批次表里各给 A 留一行，保存块号表与已算位置。
 
 A 停下后，三处按先后顺序收尾：
@@ -238,7 +226,7 @@ A 停下后，三处按先后顺序收尾：
 
 沿用上图示意：空闲队列原有 4 块（3、4、6、7），等待队头的请求 D 需要 6 块才能进场。A 停下若不还块，D 只能干等；A 归还块 5、块 2 后空闲变为 6 块，D 下一步立刻排入（块 9 仍被 B 持有，不计入空闲）。
 
-客户端断连同样必须收尾。设 A 上限 200 个 token，用户看到第 20 个就关掉页面。引擎只与前端建有 ZMQ 通道、感知不到 HTTP 断开；若前端不发中止消息，引擎会白算完剩余 180 个 token，期间一直占着块与批位置。
+客户端断连同样必须收尾。设 A 上限 200 个 token，用户看到第 20 个就关掉页面。引擎只与前端建有 ZMQ（ZeroMQ，进程间消息通信库）通道、感知不到 HTTP 断开；若前端不发中止消息，引擎会白算完剩余 180 个 token，期间一直占着块与批位置。
 
 收尾的代价集中在三处：
 
@@ -342,7 +330,7 @@ file: request-teardown-fig-reverse-free
 ### 边界与例外
 
 - **滑动窗口缓存组插回队头**：仅保留最近若干位置的滑动窗口组，其无指纹登记的块归还时直接插回队头优先复用。
-- **延迟还块（KV connector 与在途写入保护）**：在 [PD 分离](pd-disaggregation.md)等挂载 KV connector 的场景，prefill 端须待 KV 发送完毕才真正还块与删表项（请求先标记结束并进清单）。`v0.26.0rc` 起新增的 `deferred_frees` 还会在多批在途接收端保护尚未完成写入的块，等在途步完成后再回收（详见后半实战对照）。
+- **延迟还块（KV connector 与在途写入保护）**：在 [PD 分离](pd-disaggregation.md)等挂载 KV connector（跨节点/跨介质传输 KV cache 的连接器接口）的场景，prefill 端须待 KV 发送完毕才真正还块与删表项（请求先标记结束并进清单）。`v0.26.0rc` 起新增的 `deferred_frees` 还会在多批在途接收端保护尚未完成写入的块，等在途步完成后再回收（详见后半实战对照）。
 
 ## 收尾的最后两步：worker 删行，前端更新路由表
 
@@ -389,7 +377,7 @@ file: request-teardown-fig-abort-lifecycle
 
 沿用块 9 例子：A 结束而 B 仍在跑时，默认重置失败；须等 B 结束或显式指定先抢占运行请求（B 退回等待队列重算，前端不会收到取消，但会打断节拍）。注意前缀重置只清索引，既不把显存 KV 字节抹零，也不释放块池显存。
 
-**媒体预处理缓存是另一份独立状态。** `reset_mm_cache()` 清前处理与接收侧媒体缓存，不等同于清 KV 前缀，也不等于清 encoder 已算出的媒体表示（三者分工见[多模态缓存](api-server-entry.md#三种缓存各自省掉哪一步)，冷启动核对见 [UCM 验证步骤](ucm.md#怎么开)）。存在在途请求时调用只发不同步警告、不阻塞等待，务必等当前请求完成后再重置。
+**媒体预处理缓存是另一份独立状态。** `reset_mm_cache()` 清[多模态推理](multimodal-inference.md)的前处理与接收侧媒体缓存，不等同于清 KV 前缀，也不等于清 encoder 已算出的媒体表示（三者分工见[多模态缓存](api-server-entry.md#三种缓存各自省掉哪一步)，冷启动核对见 [UCM 验证步骤](ucm.md#怎么开)）。存在在途请求时调用只发不同步警告、不阻塞等待，务必等当前请求完成后再重置。
 
 ## 复杂异构实战对照：GLM 双机 DP / 多缓存组释放与 P-D 延迟还块
 

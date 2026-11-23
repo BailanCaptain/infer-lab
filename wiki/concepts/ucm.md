@@ -12,12 +12,17 @@ aliases:
   - UCM
   - Unified Cache Manager
   - 统一缓存管理
+  - UCM 缓存
+  - UCM 三层缓存
   - UCMConnector
   - UCMConnectorV1
   - UCM_CONFIG_FILE
   - UcmPipelineStore
   - PipelineStore
+  - Cache|Posix
+  - DramPool
   - 集中式 KV 存储
+  - 集中式 PD
   - 存算分离
   - UCMECConnector
 chapters:
@@ -161,12 +166,6 @@ relations:
   - to: kv-pool
     kind: builds-on
     note: 同样经连接器查询和搬运，具体加载、保存与回收时序由各自实现决定
-  - to: lmcache
-    kind: alternative-to
-    note: 另一套经 KV connector 接入的外部前缀缓存，Ascend 侧只装插件、复用上游连接器
-  - to: kv-cache-cpu-offload
-    kind: alternative-to
-    note: 只存到本机主机内存、只给本实例用，没有共享存储这一层
   - to: prefix-caching
     kind: builds-on
     note: 本地命中数是问 UCM 的起点；GLM 上还决定 KDA 状态能不能按块留档
@@ -176,8 +175,17 @@ relations:
   - to: mooncake-connector
     kind: builds-on
     note: P2P 模式由 Mooncake 承担 P 到 D 的传输
+  - to: kv-pool
+    kind: alternative-to
+    note: 同经 KV connector 复用外部前缀：AscendStore KV Pool 在 vllm-ascend 仓内直接管理显存区间与键名；UCM 通过薄转发外壳对接独立三层持久存储与多后端，并支持集中式 PD 交接
+  - to: lmcache
+    kind: alternative-to
+    note: 另一套经 KV connector 接入的外部前缀缓存，Ascend 侧只装插件、复用上游连接器
+  - to: kv-cache-cpu-offload
+    kind: alternative-to
+    note: 只存到本机主机内存、只给本实例用，没有共享存储这一层
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: direct
 ---
 

@@ -15,6 +15,7 @@ aliases:
   - 硬件插件接口
   - OOT
   - 平台契约
+  - UnspecifiedPlatform
 chapters:
   - '10'
 order: 70
@@ -86,18 +87,18 @@ relations:
   - to: vllm-v1-shape
     kind: builds-on
     note: 先看请求调度与设备执行如何分工，再定位平台接口
+  - to: vllm-ascend-overview
+    kind: builds-on
+    note: 先从插件总览看清五个扩展点的分工，再深入平台层的方法契约与仲裁规则
   - to: platform-plugin-registration
     kind: builds-on
     note: 继续追踪当前平台如何从已安装插件中被发现和选中
   - to: hardware-devices
     kind: builds-on
     note: 分清软件设备、板卡和服务器，理解平台报告的设备身份
-  - to: request-call-chain
+  - to: device-memory
     kind: builds-on
-    note: 平台选定组件后，沿进程和函数链追到真正执行的位置
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: A0 启动顺序、卡数与显存预算以双机部署页为准
+    note: 分清主机内存与设备显存的账目边界，理解设备总内存查询与运行时显存画像的分工
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -205,13 +206,13 @@ file: platform-startup-contract
 
 | 上游问的 | 本部署得到的答案 |
 |---|---|
-| 平台身份与设备类型 | 仓库外平台，设备类型 `npu`；算子分派键 `PrivateUse1`，PyTorch 按它把算子交给昇腾后端 |
+| 平台身份与设备类型 | OOT（out-of-tree，仓库外独立维护的插件平台），设备类型 `npu`；算子分派键 `PrivateUse1`，PyTorch 按它把算子交给昇腾后端 |
 | 限制可见设备的环境变量 | `ASCEND_RT_VISIBLE_DEVICES`，每机 8 卡由它划定 |
 | 允许的量化取值 | 含昇腾量化名，对应启动命令的 `--quantization ascend` |
 | 自动选哪个 Worker 类 | 常规 A2 路径选 `NPUWorker`，310P 与 xlite 走别的分支 |
 | 设备通信器类 | `NPUCommunicator`；`hccl` 这个后端名由 `NPUWorker` 给出 |
 | 设备总内存有多少 | 固定实现一律报不支持，后果见[分账一节](#主机内存设备显存和-token-预算怎样分账) |
-| 注意力后端用哪个 | 按 MLA、稀疏等条件返回昇腾实现的类路径 |
+| 注意力后端用哪个 | 按 MLA（多头潜在注意力）、稀疏等条件返回昇腾实现的类路径 |
 
 平台的身份字段不能直接给出完整部署结果：卡怎么分组、每步的 token 预算、KV cache 占多少，需要合看启动参数、平台配置调整与后续消费者。[官方命令](../sources/glm-5-3-flash-baseline.md)显式写了每步 8192 token 的预算：上游照样查询、照样在失败后选出回退档，但只有用户未填写时才用默认档补值，本部署保留显式值。
 

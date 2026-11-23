@@ -1,117 +1,136 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="Engram 四种存储与共享拓扑几何图及 4 台 A3 表底存压缩比例条" font-family="var(--font-sans)">
-  <title>Engram 四档存储共享拓扑几何与 4×A3 超节点表底存实测比例对照（824 → 208 GiB）</title>
-  <desc>4 architectural placement mini-diagrams (NPU HBM sharded, per-replica Host UVA, intra-node POSIX /dev/shm + Gloo, cross-instance Owner MemFabric GVA / HIXL RDMA) plus proportional 4xA3 backing memory bar (824 GiB vs 208 GiB = 25.2%)</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 544" width="900" height="544" role="img" aria-label="Engram 三层物理内存拓扑（远端共享池、宿主机 DRAM 与 NPU HBM）四档放置对照及 4 台 A3 表底存比例条" font-family="var(--font-sans)">
+  <title>Engram 三层物理内存平面放置对照与 4×A3 超节点表底存实测比例（824 → 208 GiB）</title>
+  <desc>Three physical memory elevation planes (Remote Owner Pool, Host DRAM / POSIX shm, NPU HBM &amp; Compute) showing how Engram tables climb up the hierarchy across 4 placement modes without nested card templates, plus proportional 4xA3 backing memory comparison (824 GiB vs 208 GiB = 25.2%).</desc>
   <defs>
-    <marker id="ego-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <marker id="ego-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
     </marker>
-    <marker id="ego-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <marker id="ego-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
-    <marker id="ego-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <marker id="ego-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
     </marker>
   </defs>
 
-  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① 四档表放置与共享拓扑：从 HBM 分片 → 机内共享 → 全集群唯一 Owner</text>
+  <!-- BAND 1: Multi-Tier Physical Memory Hierarchy Planes -->
+  <text x="14" y="24" font-size="16" font-weight="700" fill="#17211f">① Engram 表沿三级物理内存逐级上移：从 NPU HBM → 本机 DRAM → 机内共享 → 全集群唯一池</text>
 
-  <!-- Mode 1: NPU HBM Sharded -->
-  <rect x="14" y="42" width="206" height="258" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="117" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">1. NPU HBM 分片</text>
-  <text x="117" y="86" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">cpu_offload=false</text>
-  <!-- Mini architecture: 2 NPUs with shards inside HBM + HCCL link -->
-  <rect x="26" y="100" width="84" height="58" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
-  <text x="68" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">NPU 0</text>
-  <rect x="34" y="128" width="68" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
-  <text x="68" y="144" text-anchor="middle" font-size="13.5" fill="#936300">表片 0</text>
-  <rect x="124" y="100" width="84" height="58" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
-  <text x="166" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">NPU 1</text>
-  <rect x="132" y="128" width="68" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
-  <text x="166" y="144" text-anchor="middle" font-size="13.5" fill="#936300">表片 1</text>
-  <line x1="110" y1="138" x2="124" y2="138" stroke="#9a4b86" stroke-width="2"/>
-  <text x="117" y="182" text-anchor="middle" font-size="13.5" fill="#7a3a6a" font-weight="700">HCCL：EDP 汇哈希+A2A</text>
-  <text x="117" y="206" text-anchor="middle" font-size="13.5" fill="#17211f">切分：TP×EDP 或 ETP</text>
-  <rect x="26" y="220" width="182" height="66" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
-  <text x="117" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">硬限：头数整除分片</text>
-  <text x="117" y="264" text-anchor="middle" font-size="13.5" fill="#8f3229">24 头 ÷ 16 卡报错</text>
-  <text x="117" y="280" text-anchor="middle" font-size="13.5" fill="#4d5652">挤占 KV cache 显存</text>
+  <!-- Column headers across the 4 progressive placement stages -->
+  <text x="214" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">1. NPU HBM 分片</text>
+  <text x="214" y="67" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#66716d">cpu_offload=false</text>
 
-  <!-- Mode 2: Local Host UVA (per replica) -->
-  <rect x="234" y="42" width="206" height="258" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="337" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">2. 本机 Host UVA</text>
-  <text x="337" y="86" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">cpu_offload=true</text>
-  <!-- Mini architecture: 2 separate DRAM blocks -> 2 NPUs -->
-  <rect x="246" y="98" width="84" height="32" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="288" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">DRAM E</text>
-  <rect x="344" y="98" width="84" height="32" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="386" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">DRAM E</text>
-  <path d="M 288 130 L 288 150" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ego-arr-b)"/>
-  <path d="M 386 130 L 386 150" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#ego-arr-b)"/>
-  <rect x="246" y="154" width="84" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="288" y="173" text-anchor="middle" font-size="13.5" fill="#065f56">DP 0</text>
-  <rect x="344" y="154" width="84" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="386" y="173" text-anchor="middle" font-size="13.5" fill="#065f56">DP 1</text>
-  <text x="337" y="206" text-anchor="middle" font-size="13.5" fill="#3a4f93" font-weight="700">HostUvaBuffer 钉页直读</text>
-  <rect x="246" y="220" width="182" height="66" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
-  <text x="337" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">无 H2D 整表拷贝</text>
-  <text x="337" y="264" text-anchor="middle" font-size="13.5" fill="#8f3229">代价：D 副本占 D×E</text>
-  <text x="337" y="280" text-anchor="middle" font-size="13.5" fill="#4d5652">适合单副本 DP=1</text>
+  <text x="406" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">2. 本机 Host UVA</text>
+  <text x="406" y="67" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#66716d">cpu_offload=true</text>
 
-  <!-- Mode 3: Intra-Node DP Shared Memory -->
-  <rect x="454" y="42" width="206" height="258" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="557" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">3. 机内 DP 共享</text>
-  <text x="557" y="86" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">dp_shared_memory</text>
-  <!-- Mini architecture: ONE POSIX /dev/shm block -> fan-out to DP0 & DP1 -->
-  <rect x="466" y="98" width="182" height="32" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
-  <text x="557" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">1 份 POSIX /dev/shm (1E)</text>
-  <path d="M 526 130 L 508 150" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ego-arr-t)"/>
-  <path d="M 588 130 L 606 150" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ego-arr-t)"/>
-  <rect x="466" y="154" width="84" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="508" y="173" text-anchor="middle" font-size="13.5" fill="#3a4f93">DP 0</text>
-  <rect x="564" y="154" width="84" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="606" y="173" text-anchor="middle" font-size="13.5" fill="#3a4f93">DP 1</text>
-  <text x="557" y="206" text-anchor="middle" font-size="13.5" fill="#065f56" font-weight="700">Gloo 协调 · 0 EDP 通信</text>
-  <rect x="466" y="220" width="182" height="66" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
-  <text x="557" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">机内 4E → 1E</text>
-  <text x="557" y="264" text-anchor="middle" font-size="13.5" fill="#4d5652">需 --ipc=host 与 shm</text>
-  <text x="557" y="280" text-anchor="middle" font-size="13.5" fill="#065f56">MRV2 多 DP 自动开启</text>
+  <text x="598" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">3. 机内 DP 共享</text>
+  <text x="598" y="67" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#065f56">dp_shared_memory</text>
 
-  <!-- Mode 4: Cross-Instance Shared (main) -->
-  <rect x="674" y="42" width="212" height="258" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
-  <text x="780" y="66" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">4. 跨实例共享（main）</text>
-  <text x="780" y="86" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">shared_engram</text>
-  <!-- Mini architecture: Owner -> P & D nodes (0 local backing!) -->
-  <rect x="688" y="98" width="184" height="32" rx="4" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
-  <text x="780" y="119" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">独立 Owner（全集群 1E）</text>
-  <path d="M 744 130 L 728 150" fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#ego-arr-p)"/>
-  <path d="M 816 130 L 832 150" fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#ego-arr-p)"/>
-  <rect x="688" y="154" width="84" height="28" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-  <text x="730" y="173" text-anchor="middle" font-size="13.5" fill="#065f56">P 节点(0)</text>
-  <rect x="788" y="154" width="84" height="28" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
-  <text x="830" y="173" text-anchor="middle" font-size="13.5" fill="#3a4f93">D 节点(0)</text>
-  <text x="780" y="206" text-anchor="middle" font-size="13.5" fill="#7a3a6a" font-weight="700">A3: BM GVA | A2/A5: HIXL</text>
-  <rect x="688" y="220" width="184" height="66" rx="5" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
-  <text x="780" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">消费实例 0 本地整表</text>
-  <text x="780" y="264" text-anchor="middle" font-size="13.5" fill="#4d5652">A3 强需 MRV2</text>
-  <text x="780" y="280" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">HIXL: timeout &gt; 0</text>
+  <text x="790" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">4. 跨实例共享 (main)</text>
+  <text x="790" y="67" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#7a3a6a">shared_engram</text>
 
-  <!-- LOWER BAND: 4xA3 Measured Backing Memory Proportion Bar -->
-  <line x1="14" y1="316" x2="886" y2="316" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="14" y="344" font-size="16" font-weight="700" fill="#17211f">② 4 台 A3 超节点实测表底存比例条（3×DP4/TP4 P + 1×DP8/TP2 D，共 64 NPU）</text>
+  <!-- Three Horizontal Elevation Bands (Physical Memory Planes) -->
+  <!-- Plane A: Remote Owner / RDMA / MemFabric BM -->
+  <rect x="14" y="78" width="872" height="68" rx="6" fill="#f7e7f2" fill-opacity="0.45" stroke="#d8bfd2" stroke-width="1"/>
+  <text x="24" y="106" font-size="13" font-weight="700" fill="#7a3a6a">远端共享池</text>
+  <text x="24" y="125" font-size="12" fill="#66716d">Owner / 网络</text>
 
-  <!-- Native Host Offload Bar: 824 GiB -> 640px -->
-  <text x="14" y="388" font-size="14.5" font-weight="700" fill="#17211f">原生机内卸载</text>
-  <text x="14" y="408" font-size="13.5" fill="#4d5652">4 实例各存 1 份</text>
-  <rect x="148" y="370" width="640" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="162" y="394" font-size="14" font-weight="700" fill="#3a4f93">≈ 824 GiB（4 份 POSIX 共享表底存，每台约 206 GiB）</text>
-  <text x="798" y="394" font-size="14.5" font-weight="700" fill="#3a4f93">100%</text>
+  <!-- Plane B: Local Host DRAM -->
+  <rect x="14" y="156" width="872" height="74" rx="6" fill="#e8edff" fill-opacity="0.55" stroke="#c3cde8" stroke-width="1"/>
+  <text x="24" y="186" font-size="13" font-weight="700" fill="#3a4f93">宿主机 DRAM</text>
+  <text x="24" y="205" font-size="12" fill="#66716d">UVA / shm</text>
 
-  <!-- Shared GVA Bar: 208 GiB -> 162px -->
-  <text x="14" y="452" font-size="14.5" font-weight="700" fill="#065f56">跨实例共享池</text>
-  <text x="14" y="472" font-size="13.5" fill="#4d5652">1 Owner + 64 卡</text>
-  <rect x="148" y="434" width="162" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <rect x="310" y="434" width="478" height="36" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 4"/>
-  <text x="158" y="458" font-size="14" font-weight="700" fill="#065f56">≈ 208 GiB</text>
-  <text x="326" y="458" font-size="13.5" fill="#4d5652">省下约 616 GiB 重复表底存（仅计表底存，不含总内存与 KVPool）</text>
-  <text x="798" y="458" font-size="14.5" font-weight="700" fill="#065f56">25.2%</text>
+  <!-- Plane C: NPU HBM & Compute Dies -->
+  <rect x="14" y="240" width="872" height="84" rx="6" fill="#fff4cf" fill-opacity="0.48" stroke="#e2cc8f" stroke-width="1"/>
+  <text x="24" y="274" font-size="13" font-weight="700" fill="#936300">NPU HBM</text>
+  <text x="24" y="293" font-size="12" fill="#66716d">计算卡显存</text>
+
+  <!-- Subtle Vertical Column Separators -->
+  <line x1="118" y1="42" x2="118" y2="352" stroke="#d8d8cf" stroke-width="1.2"/>
+  <line x1="310" y1="42" x2="310" y2="352" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <line x1="502" y1="42" x2="502" y2="352" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <line x1="694" y1="42" x2="694" y2="352" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="4 4"/>
+
+  <!-- COLUMN 1: Mode 1 (NPU HBM Sharded) -->
+  <text x="214" y="116" text-anchor="middle" font-size="12.5" fill="#9aa39f">— 未使用 —</text>
+  <text x="214" y="198" text-anchor="middle" font-size="12.5" fill="#9aa39f">— 不放表 —</text>
+  <rect x="128" y="250" width="76" height="58" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="166" y="269" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">NPU 0</text>
+  <rect x="135" y="276" width="62" height="24" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="166" y="293" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">表片 0</text>
+
+  <rect x="224" y="250" width="76" height="58" rx="5" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="262" y="269" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">NPU 1</text>
+  <rect x="231" y="276" width="62" height="24" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="262" y="293" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">表片 1</text>
+
+  <line x1="204" y1="288" x2="224" y2="288" stroke="#9a4b86" stroke-width="2.4"/>
+  <text x="214" y="344" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">挤占 KV · 24头÷16卡报错</text>
+
+  <!-- COLUMN 2: Mode 2 (Local Host UVA, per-replica) — caption placed cleanly ABOVE DRAM blocks, zero arrow crossing! -->
+  <text x="406" y="116" text-anchor="middle" font-size="12.5" fill="#9aa39f">— 未使用 —</text>
+  <text x="406" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">HostUvaBuffer 钉页注册</text>
+  <rect x="322" y="184" width="78" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="361" y="207" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">DRAM E</text>
+  <rect x="412" y="184" width="78" height="36" rx="5" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="451" y="207" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">DRAM E</text>
+  <path d="M 361 220 L 361 258" fill="none" stroke="#4c65b6" stroke-width="1.9" marker-end="url(#ego-arr-b)"/>
+  <path d="M 451 220 L 451 258" fill="none" stroke="#4c65b6" stroke-width="1.9" marker-end="url(#ego-arr-b)"/>
+  <rect x="322" y="264" width="78" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="361" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">DP 0</text>
+  <rect x="412" y="264" width="78" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="451" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">DP 1</text>
+  <text x="406" y="316" text-anchor="middle" font-size="12" fill="#065f56">按行直读进 HBM（无整表拷）</text>
+  <text x="406" y="344" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">代价：D 副本占 D×E</text>
+
+  <!-- COLUMN 3: Mode 3 (Intra-Node POSIX /dev/shm) — caption ABOVE shm block, zero arrow crossing! -->
+  <text x="598" y="116" text-anchor="middle" font-size="12.5" fill="#9aa39f">— 单机内 —</text>
+  <text x="598" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Gloo 协调 · 0 EDP 通信</text>
+  <rect x="514" y="184" width="168" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="598" y="207" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">1 份 POSIX /dev/shm (1E)</text>
+  <path d="M 552 220 L 552 258" fill="none" stroke="#087f73" stroke-width="1.9" marker-end="url(#ego-arr-t)"/>
+  <path d="M 644 220 L 644 258" fill="none" stroke="#087f73" stroke-width="1.9" marker-end="url(#ego-arr-t)"/>
+  <rect x="514" y="264" width="76" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="552" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">DP 0</text>
+  <rect x="606" y="264" width="76" height="36" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="644" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">DP 1</text>
+  <text x="598" y="316" text-anchor="middle" font-size="12" fill="#4d5652">需 --ipc=host · 解除头整除限</text>
+  <text x="598" y="344" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">机内 4E → 1E · MRV2 自动开</text>
+
+  <!-- COLUMN 4: Mode 4 (Cross-Instance Shared Pool) — arrows route cleanly around Plane B badge! -->
+  <rect x="706" y="90" width="168" height="40" rx="5" fill="#ffffff" stroke="#9a4b86" stroke-width="1.7"/>
+  <text x="790" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">唯一 Owner（全集群 1E）</text>
+
+  <!-- Remote fabric arrows drawn BEHIND a clean Plane B pill badge, curving cleanly to P & D -->
+  <path d="M 744 130 L 744 258" fill="none" stroke="#9a4b86" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ego-arr-p)"/>
+  <path d="M 836 130 L 836 258" fill="none" stroke="#9a4b86" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ego-arr-p)"/>
+  <!-- Opaque Plane B callout pill covering the dashed rails cleanly -->
+  <rect x="706" y="168" width="168" height="48" rx="5" fill="#f3f5fc" stroke="#c3cde8" stroke-width="1.1"/>
+  <text x="790" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">消费机 0 整表 DRAM</text>
+  <text x="790" y="207" text-anchor="middle" font-size="12" fill="#4d5652">A3: BM GVA | A2/A5: HIXL</text>
+
+  <rect x="706" y="264" width="76" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="744" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">P 节点(0)</text>
+  <rect x="798" y="264" width="76" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="836" y="287" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">D 节点(0)</text>
+  <text x="790" y="316" text-anchor="middle" font-size="12" fill="#4d5652">HIXL 仅开有界缓冲 ≤262,144 行</text>
+  <text x="790" y="344" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">A3 强需 MRV2 · timeout &gt; 0</text>
+
+  <!-- BAND 2: 4xA3 Measured Backing Memory Proportion Bar -->
+  <line x1="14" y1="364" x2="886" y2="364" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="14" y="392" font-size="16" font-weight="700" fill="#17211f">② 4 台 A3 超节点实测表底存比例条（3×DP4/TP4 P + 1×DP8/TP2 D，共 64 NPU）</text>
+
+  <text x="14" y="434" font-size="14.5" font-weight="700" fill="#17211f">原生机内卸载</text>
+  <text x="14" y="454" font-size="13" fill="#4d5652">4 实例各存 1 份</text>
+  <rect x="148" y="416" width="640" height="38" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="164" y="440" font-size="14" font-weight="700" fill="#3a4f93">≈ 824 GiB（4 份 POSIX 共享表底存，每台约 206 GiB）</text>
+  <text x="800" y="440" font-size="14.5" font-weight="700" fill="#3a4f93">100%</text>
+
+  <text x="14" y="498" font-size="14.5" font-weight="700" fill="#065f56">跨实例共享池</text>
+  <text x="14" y="518" font-size="13" fill="#4d5652">1 Owner + 64 卡</text>
+  <rect x="148" y="480" width="162" height="38" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <rect x="310" y="480" width="478" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="160" y="504" font-size="14" font-weight="700" fill="#065f56">≈ 208 GiB</text>
+  <text x="326" y="504" font-size="13" fill="#4d5652">省下约 616 GiB 重复表底存（仅计表底存，不含总内存与 KVPool）</text>
+  <text x="800" y="504" font-size="14.5" font-weight="700" fill="#065f56">25.2%</text>
 </svg>

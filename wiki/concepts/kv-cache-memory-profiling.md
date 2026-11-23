@@ -102,6 +102,12 @@ relations:
   - to: paged-attention
     kind: builds-on
     note: 扣完非 KV 开销后的可用字节预算，最终要按固定块长切成物理分页块供请求借还
+  - to: device-memory
+    kind: builds-on
+    note: 显存量测的七级账本对应设备 HBM 里权重、激活、非 Torch 与 KV 池四类物理占用
+  - to: hccl-buffer
+    kind: builds-on
+    note: 建组前快照使已具象化 HCCL 缓冲已包含在 non_torch_increase 内，去重规则见该页
   - to: npu-worker-lifecycle
     kind: builds-on
     note: 显存快照、通信建组、装权重、量预算、建池与录图的严格先后顺序由 Worker 启动链固定
@@ -137,7 +143,7 @@ file: kv-cache-memory-profiling
 
 1. **第 1–2 级 · 拍启动快照、划定预算上限与预算外 `1 − u` 余量。** `NPUWorker._init_device` 在**初始化分布式通信组之前**拍下 `init_snapshot`（`MemorySnapshot`），记下整卡总显存 `total_memory` 与空闲显存 `free_memory`。随后按 `requested_memory = total_memory × gpu_memory_utilization` 定下实例预算（`v0.30.0` 源码 `CacheConfig` 默认 `0.92`，生产部署常显式传 `0.90` 多留余量）。若此时 `init_snapshot.free_memory < requested_memory`（说明同卡其他进程或底层上下文已占走超过 `1 − u` 的空间），进程当场抛 `ValueError` 退出。
 2. **第 3 级 · 扣常驻模型权重（`weights_memory`）。** 建好通信组后，`load_model()` 包在 `DeviceMemoryProfiler` 里加载本卡分到的权重分片、完成 `FRACTAL_NZ` 等昇腾分块布局重排与量化缩放系数构造。前后 `torch.npu.max_memory_allocated` 之差记为 `model_memory_usage`，推理全程常驻不释放。
-3. **第 4 级 · 扣试跑激活与算子工作区峰值（`torch_peak_increase`）。** 进入 `memory_profiling` 上下文后，`model_runner.profile_run()` 按单步最大批量（`max_num_batched_tokens`）构造假输入跑一次前向（MoE 模型满足 MC2 门槛时先加跑一次小批量试跑）。读取 PyTorch 分配器峰值增量 `profile_torch_peak - before_profile.torch_peak` 特意安排在**图捕获之前**，避免把后续图池显存重复算进激活。
+3. **第 4 级 · 扣试跑激活与算子工作区峰值（`torch_peak_increase`）。** 进入 `memory_profiling` 上下文后，`model_runner.profile_run()` 按单步最大批量（`max_num_batched_tokens`）构造假输入跑一次前向（MoE 模型满足 **MC2**［昇腾计算与通信融合算子］门槛时先加跑一次小批量试跑）。读取 PyTorch 分配器峰值增量 `profile_torch_peak - before_profile.torch_peak` 特意安排在**图捕获之前**，避免把后续图池显存重复算进激活。
 4. **第 5 级 · 扣非 Torch 增量（`non_torch_increase`，已含已具象化 HCCL 缓冲——严禁二次重扣！）。** HCCL（昇腾集合通信库）通信域缓冲、CANN 流与算子底层上下文不经过 PyTorch 分配器，只能用「设备已用（`total - free`）减去 PyTorch 已保留（`memory_reserved`）」衡量非 Torch 占用。由于 `init_snapshot` 拍在 `_init_worker_distributed_environment()` **之前**，而 `profile_run()` 的前向与通信预热已触发通信域具象化，试跑差值 `non_torch_increase` **已经完整包含了建组与试跑期间落地的 HCCL/MC2 缓冲**。因此，只有在启动前做纯静态纸面估算时才需要单独估 [HCCL buffer](hccl-buffer.md)；一旦读取 `profile_run` 结果或启动日志，**绝对不能在 `non_kv_cache_memory` 之上再手工减一遍 HCCL 缓冲**。
 5. **第 6 级 · 切分页 KV 块池（`available_kv_cache_memory_bytes → min_num_blocks`）。** 预算扣完上述三项（并按需经过多组布局、层复用、稀疏卸载或 KVPP 修正）后报给 `EngineCore`。`EngineCore` 按每块字节数（昇腾标准注意力默认 `block_size = 128` 个 token）在同组各卡间取最小块数 `min_num_blocks`，一次性分配物理 KV 池。
 6. **第 7 级 · 切完 KV 才录制的 `ACLGraph` 与 `150 MiB` 建议值安全裕度。** 建完 KV 池后，`compile_or_warm_up_model()` 才执行预热并调用 `capture_model()` 录制 decode 图。图显存（`npugraph_memory_bytes`）、快照前已被占的显存以及首次真实请求才分配的运行期缓冲，全部由最右侧斜纹的**预算外 `1 − u` 余量**买单。未显式指定 `--kv-cache-memory-bytes` 时，Worker 录完图还会打印一行汇总日志，在扣除权重、激活峰值、非 Torch 增量和图显存四项之外再多留 **`150 MiB`**（`redundancy_buffer`），兜住 ACL 上下文、HCCL 缓冲与驱动层可能存在的少量非 Torch 低估。

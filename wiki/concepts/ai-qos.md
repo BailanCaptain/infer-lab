@@ -29,6 +29,11 @@ aliases:
   - SDMA_D2D
   - SDMA_H2D
   - PCIEDMA_H2D
+  - QoS
+  - SDMA
+  - PCIEDMA
+  - DSMI
+  - strict priority
 chapters:
   - '07'
   - 09
@@ -68,23 +73,20 @@ verified:
   - main
 evidence: C
 relations:
-  - to: cann-hccl
+  - to: hardware-devices
     kind: builds-on
-    note: 先分清通信库与物理链路，再看共享出口上的流量优先级
-  - to: glm-5-3-flash-two-node
+    note: AI QoS 仅面向 Atlas A3 拓扑与超节点交换机，需先分清板卡、逻辑设备与机内高速互联
+  - to: device-memory
     kind: builds-on
-    note: 固定 A2 双机没有启用本特性，部署前提与通信组以该页为准
-  - to: kv-cache-layerwise-offload
+    note: 主机侧 KV 卸载搬运与设备间通信共用出口，先区分主机内存与设备显存两本账
+  - to: kv-cache-cpu-offload
     kind: builds-on
-    note: 下一层状态预取为何与当前层计算通信重叠，见逐层换出机制
-  - to: vllm-scheduler
+    note: 主机侧 KV 换出与预取正是共享链路上与关键计算通信争用出口的后台流量来源
+  - to: ascend-950-execution-interconnect
     kind: builds-on
-    note: 先理解请求怎样进入计算，再区分本页的网络流量调度
-  - to: pd-disaggregation
-    kind: builds-on
-    note: 先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表
+    note: 从共享出口排队与关键路径视角对照底层互联争用与多类流量优先级隔离
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-24'
 origin: direct
 ---
 
@@ -102,7 +104,7 @@ file: ai-qos-intuition
 
 ## 为什么要区分流量，代价由谁承担？
 
-**同一条链路上，有的数据晚到会卡住当前计算，有的数据晚到暂时只影响下一步准备。** 先把流量粗分成「计算急需的通信」和「后台状态搬运」两类；在 `v0.30.0` 主基线与 `main` 上，配置入口按硬件通道收敛为 **3 类通道（`AIV` / `SDMA` / `PCIEDMA`）**。完整分类、CLI 与默认值见[怎么开](#怎么开)和[版本差异](#版本差异)。
+**同一条链路上，有的数据晚到会卡住当前计算，有的数据晚到暂时只影响下一步准备。** 先把流量粗分成「计算急需的通信」和「后台状态搬运」两类；在 `v0.30.0` 主基线与 `main` 上，配置入口按硬件搬运通道收敛为 **3 类通道**：`AIV`（向量计算核发起的数据搬运/派发）、`SDMA`（系统直接内存搬运通道，承担集合通信与 KV 换出预取）与 `PCIEDMA`（经 PCIe 总线的直接内存搬运，常用于算子下发）。完整分类、CLI 与默认值见[怎么开](#怎么开)和[版本差异](#版本差异)。
 
 长上下文会积累更多 KV cache。把暂时不用的历史状态移到主机内存，可以腾出设备显存；为了让下一层少等，系统会在当前层计算、通信期间提前取回下一层状态，见[逐层 KV 换出](kv-cache-layerwise-offload.md)。于是原本有益的重叠也带来了争用：下一层的预取与当前层急需的通信同时经过一个出口，当前层反而更晚结束。AI QoS 的动机就是在这种冲突处保护关键流量。
 

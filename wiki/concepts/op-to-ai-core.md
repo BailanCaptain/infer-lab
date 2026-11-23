@@ -86,9 +86,12 @@ relations:
   - to: mlp-residual-norm
     kind: builds-on
     note: RMSNorm 的数学定义与残差结构
-  - to: one-request
+  - to: device-memory
     kind: builds-on
-    note: 回到 A4 逐层前向核对真实形状与通信
+    note: 全局内存（GM）与片上缓冲（UB）之间的往返流量决定融合与分块收益
+  - to: tensor-layout
+    kind: builds-on
+    note: 矩阵乘与向量算子在片上分块搬运时受张量排布与对齐约束
   - to: prepare-inputs-flow
     kind: builds-on
     note: 往前追踪 A3 的块表、槽位和注意力元数据
@@ -171,9 +174,9 @@ $$s = x + \text{residual} = [2, 2], \qquad r = \frac{1}{\sqrt{(2^2 + 2^2)/2}} = 
 file: op-to-ai-core-fig-execution-pipe
 ```
 
-Python 调用先进入 C++ 适配层，预分配三份输出（`y`、`rstd` 与更新后残差 `s`），再经 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交由 **CANN**（昇腾算子与运行时软件栈）衔接主机规划与设备执行。
+Python 调用先进入 C++ 适配层，预分配三份输出（`y`、`rstd` 与更新后残差 `s`），再经 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)`（**aclnn** 即 AscendCL Neural Network，CANN 单算子 C 接口）交由 **CANN**（昇腾算子与运行时软件栈）衔接主机侧 **AscendC** `op_host` 规划与设备侧 `op_kernel` 执行。
 
-主机 tiling 读取可用向量核数与片上 **UB（Unified Buffer）** 容量，按行数、行宽、FP16/FP32/BF16 精度和是否有 bias 挑模板（普通、沿宽拆分、合并多行等），生成每核范围与临时空间参数。分块阈值随精度和偏置改变，元素总数相同也须重挑模板。无编译对象时查平台、有编译对象时读其记录；UB 容量须先扣预留空间，剩余部分才分给数据块。
+主机 tiling 读取可用向量核数与片上 **UB**（Unified Buffer，向量核片上统一缓存）容量，按行数、行宽、FP16/FP32/BF16 精度和是否有 bias 挑模板（普通、沿宽拆分、合并多行等），生成每核范围与临时空间参数。分块阈值随精度和偏置改变，元素总数相同也须重挑模板。无编译对象时查平台、有编译对象时读其记录；UB 容量须先扣预留空间，剩余部分才分给数据块。
 
 行分配先按「总行数 $\div$ 可用向量核数」向上取整得普通核配额，再求实际启用核数，末核接余行。以 10 行、4 个可用向量核为例（宽度与精度满足模板条件）：
 

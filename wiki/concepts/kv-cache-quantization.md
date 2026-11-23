@@ -22,6 +22,14 @@ aliases:
   - fa_quant_type
   - enable_sparse_sfa_c8
   - enable_sparse_li_c8
+  - KV 量化
+  - W8A8C8
+  - C8-MXFP
+  - MXFP8 KV
+  - TurboQuant
+  - turboquant_4bit_nc
+  - FA 量化
+  - '--kv-cache-dtype'
 chapters:
   - '11'
 sources:
@@ -120,8 +128,14 @@ relations:
   - to: kv-cache-spec
     kind: builds-on
     note: 改精度改的是缓存规格里的字段，实际每页几个位置、怎样对齐看规格页
+  - to: low-precision-formats
+    kind: builds-on
+    note: INT8 C8、FP8、MXFP8 与 4-bit TurboQuant 的元素位域与块缩放规则由低精度格式页定义
+  - to: ascend-flash-attention
+    kind: builds-on
+    note: C8 与 MXFP8 分页缓存读取直接受昇腾 FIA 与量化注意力算子的分块及页大小约束
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 origin: direct
 ---
 
@@ -242,7 +256,7 @@ file: kv-cache-quantization
 
 - **GQA `INT8 C8`**：仍依赖 ModelSlim 量化权重包（`quant_model_description.json` 含 `kv_cache_type: C8` 与每层 scale）和 `block_size % 32 == 0` 约束。
 - **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）**：面向标准 full Attention（K 动态量化、V 静态 E8M0 scale）。其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗。
-- **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）**：仅支持 A2/A3，按模型家族分为 SFA 打包主缓存与 DeepSeek V4 压缩缓存两路。其中后者还要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`。
+- **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）**：仅支持 A2/A3，按模型家族分为 SFA（稀疏闪电注意力）打包主缓存与 DeepSeek V4 压缩缓存两路。其中后者还要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`。
 - **按层跳过选项 `--kv-cache-dtype-skip-layers`**：上游支持按层号或注意力类型跳过 KV 量化；例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层加入跳过列表以保持 BF16。
 
 下图将 `v0.30.0` 昇腾上四条 KV cache 量化路径（`INT8 C8`、`MXFP8 C8`、FA 量化、`TurboQuant 4-bit`）的入口、页大小对齐和跳过/PD 边界并排对照：

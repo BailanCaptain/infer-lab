@@ -11,6 +11,7 @@ aliases:
   - 强制专家均衡路由
   - force_eplb
   - 轮转 topk_ids
+  - additional_config.enable_force_eplb
 chapters:
   - '14'
 verified:
@@ -162,7 +163,7 @@ rawSources:
 `enable_force_eplb` 是 `additional_config` 顶层的布尔开关，默认 `false`。它与 [EPLB](../concepts/eplb.md) 改变的对象完全不同：
 
 - **真实 EPLB** 调整专家权重摆放在哪张卡上，路由器逻辑不变，模型精度保持等价。
-- **`enable_force_eplb`** 改写的是路由结果本身——在每次 MoE 前向返回前，丢弃真实 router 算出的 `topk_ids`，替换成按 `ep_size` 与 `ep_rank` 纯算术生成的轮转专家编号表，同时原封不动保留原始 `topk_weights`。
+- **`enable_force_eplb`** 改写的是路由结果本身——在每次 MoE 前向返回前，丢弃真实 router 算出的 `topk_ids`（每个 token 选中的专家编号），替换成按 `ep_size` 与 `ep_rank` 纯算术生成的轮转专家编号表，同时原封不动保留原始 `topk_weights`（各选中专家的加权系数）。
 
 **这不是生产优化开关，而是压测与性能上限分析夹具。** 拿真实门控权重去加权一组强行指定的专家输出，模型输出与精度会彻底失效。它只适合在均匀、可重复的专家负载下测 MC2 通信带宽，或评估 EPLB 路径的性能天花板。
 
@@ -185,7 +186,7 @@ file: param-enable-force-eplb-round-robin
 | 配置入口与默认 | `additional_config["enable_force_eplb"]`，`bool`，默认 `False` | 只有开关两档，无强度可调；通过 `--additional-config '{"enable_force_eplb": true}'` 开启 |
 | 替换对象 | 仅整表替换 `topk_ids`，`topk_weights` 不变；开启 `mix_placement` 时追加在末尾的共享专家列也一并被换成路由专家编号 | 权重与专家编号脱钩，输出无意义，严禁用于精度验证 |
 | 生效时机与优先级 | 每次 MoE 前向均生效；分支排在显存探测 `enable_force_load_balance`（`elif`）之前 | 连 profile / dummy run 原有的随机均衡也会被覆盖；当前向无通信方法时返回 `None` |
-| 与 EPLB 摆放关系 | 先完成 `log2phy` 物理映射，随后整表覆盖；编号仅覆盖 `0..num_logical_experts-1` | 不保留物理映射结果，也不保证适配静态/冗余专家摆放 |
+| 与 EPLB 摆放关系 | 先完成 `log2phy`（逻辑专家号到物理槽位的映射）物理映射，随后整表覆盖；编号仅覆盖 `0..num_logical_experts-1` | 不保留物理映射结果，也不保证适配静态/冗余专家摆放 |
 | 互斥与硬约束 | 同时开启本键、`eplb_config.dynamic_eplb`、模型配置已就位且模型为 MoE 时抛 `ValueError`；建表要求 `num_tokens > 0`、`top_k > 0`、`ep_size > 0` 且 `num_logical_experts % ep_size == 0` | 非 MoE 模型不触发互斥报错与预热；整除失败在建表时直接抛 `ValueError` |
 
 ## 轮转表怎么算，何时建表与缓存？

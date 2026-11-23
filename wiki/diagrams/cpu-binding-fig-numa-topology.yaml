@@ -2,7 +2,7 @@ mode: native-svg
 id: cpu-binding-fig-numa-topology
 caption: >-
   昇腾 NPU-PCIe-NUMA 亲和拓扑与跨卡型绑核分派图：A2/310P 按 TOPO_AFFINITY 取「亲和核 ∩ cpuset」，若全落单节点则 extend_numa 补下一节点，多卡共用池时按卡序 average_distribute 平分并切出「2 IRQ + main + 1 ACL + 1 release」（至少 5 核），迁页到池内最小核所在 NUMA；对比 A3 默认 GLOBAL_SLICE、Ascend 950 完整 8/16 核 cluster + 主机 UVB 轮询线程，以及 v0.30.0 Engram 跳过页迁移（migrate_memory=False）。
-size: [900, 480]
+size: [900, 544]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L255-L280'
     symbols:

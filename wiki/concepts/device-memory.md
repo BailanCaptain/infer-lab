@@ -24,6 +24,11 @@ aliases:
   - PYTORCH_NPU_ALLOC_CONF
   - expandable_segments
   - NPU 内存分配器
+  - GM
+  - Global Memory
+  - H2D
+  - UVA
+  - Unified Virtual Addressing
 chapters:
   - '07'
   - 09
@@ -116,32 +121,23 @@ relations:
   - to: hardware-devices
     kind: builds-on
     note: 先明确设备边界，才能回答某段内存归哪个设备使用
-  - to: npu-worker-lifecycle
+  - to: matmul-and-weights
     kind: builds-on
-    note: 启动冷启动阶段各次 HBM 分配峰值与权重/试跑/KV/录图时序统一在生命周期页核对
-  - to: kv-cache-memory-profiling
+    note: 权重矩阵作为推理期最大静态常驻项，决定了单卡显存预算的起点
+  - to: kv-cache
     kind: builds-on
-    note: 自动显存预算如何通过 profile run 扣除激活与非 PyTorch 占用，由显存探测页完整推演
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: A0 启动及每卡权重、KV 预算的数字与推导统一在双机部署页
+    note: 物理 KV 缓存池占满权重与激活峰值之外的剩余显存预算
   - to: kv-cache-cpu-offload
     kind: builds-on
-    note: 本页的卸载边界依赖实际搬运机制，继续读可看 KV 在主机和设备间怎样恢复
-  - to: vllm-platform-interface
-    kind: builds-on
-    note: 平台契约决定何时能查询设备，不能把通用接口当作提前初始化的许可
-  - to: request-call-chain
-    kind: builds-on
-    note: 内存启动流程以请求调用链页的完整进程调用链为背景，本页聚焦各步骤中的内存分配与测量。
+    note: 本页的卸载边界对照主机与设备间的实际换出与恢复路径
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 origin: direct
 ---
 
 ## 权重在主机里，为什么还要搬进显存？
 
-**主机内存供 CPU 使用；显存是计算设备本地的内存，本页的设备是负责模型计算的 NPU。** 权重是训练好的数值，常排成按行、列组织的[矩阵](matmul-and-weights.md)。
+**主机内存供 CPU 使用；显存（在昇腾硬件文档中也称 GM，即 Global Memory 全局内存）是计算设备本地的内存，本页的设备是负责模型计算的 NPU。** 权重是训练好的数值，常排成按行、列组织的[矩阵](matmul-and-weights.md)。
 
 ```wiki-diagram
 file: device-memory-plate-cutaway
@@ -159,7 +155,7 @@ file: device-memory
 
 ## 为什么要分开记账，搬运的代价在哪里？
 
-**NPU 执行默认的本地计算路径，需要本卡显存里已有输入和权重。** 以单张 `64 GiB` 昇腾 NPU 运行标准稠密模型 **`Qwen3-8B`**（`BF16` 精度，`8.19B` 参数）为例，常驻权重约占 **`15.25 GiB`**；除了权重，设备显存还要装下前向激活峰值、HCCL 通信缓冲、物理 KV cache 池以及图捕获开销。主机内存能装下磁盘上的 `.safetensors` 权重文件，只解决了读取与暂存这一侧的问题。
+**NPU 执行默认的本地计算路径，需要本卡显存里已有输入和权重。** 以单张 `64 GiB` 昇腾 NPU 运行标准稠密模型 **`Qwen3-8B`**（`BF16` 精度，`8.19B` 参数）为例，常驻权重约占 **`15.25 GiB`**；除了权重，设备显存还要装下前向激活峰值、HCCL（昇腾集合通信库）通信缓冲、物理 KV cache 池以及图捕获开销。主机内存能装下磁盘上的 `.safetensors` 权重文件，只解决了读取与暂存这一侧的问题。
 
 主机到设备的复制叫 **H2D**。加载器取出本卡权重分片后触发 H2D，依赖它的计算必须等数据就绪。常驻权重在启动阶段按张量分批搬入；进入稳态推理后，每层处理 token 时常驻权重的 H2D 次数为 **`0`**，全部直接读取本地 HBM。若另行启用卸载，把暂时不用的数据留在主机，用到时就要付出恢复传输或远端读取的代价，触发条件见 [KV cache CPU 卸载](kv-cache-cpu-offload.md)。
 
@@ -186,13 +182,13 @@ file: device-memory-fig-host-vs-hbm
 |---|---|
 | 磁盘 `.safetensors` 文件页缓存、加载中的 CPU 张量 | 本卡权重分片（如 `Qwen3-8B` BF16 约 `15.25 GiB`）与布局重排 |
 | token 编号、请求队列、调度状态及块号表 | 执行用输入、激活峰值、算子临时工作区 |
-| 启用卸载或 UVA 时锁页留在主机的数据 | 已分配的物理 KV 缓存池、HCCL 缓冲与 `ACLGraph` 录图资源 |
+| 启用卸载或 UVA（统一虚拟编址，见下文）时锁页留在主机的数据 | 已分配的物理 KV 缓存池、HCCL 缓冲与 `ACLGraph` 录图资源 |
 
 在 `v0.30.0` 主基线上，单张 `64 GiB` NPU 运行 **`Qwen3-8B`**（默认 `--gpu-memory-utilization 0.92`，实例预算 `58.88 GiB`，预算外 `1 − u` 余量 `5.12 GiB`）按四步落位：
 
 1. **主机读盘 → 一次 H2D 常驻权重**：加载器先将磁盘 `.safetensors` 读入主机页缓存与临时 CPU 张量，再逐张量 H2D 搬入 NPU HBM，落定 **`~15.25 GiB`** 常驻权重（推理期权重 H2D 为 `0`）。
-2. **启动试跑（`profile_run`）扣峰值激活与非 Torch 增量**：用最大单步批量跑一次假输入，量出激活峰值与已具象化 HCCL 缓冲在内的非 Torch 增量（示意共 **`~2.74 GiB`**）。
-3. **剩余预算切成物理 KV 缓存池**：扣完权重与试跑两项后，余下约 **`40.88 GiB`** 全拨给 KV 池。`Qwen3-8B` 在默认 `block_size = 128` 下每块占 **`18 MiB`**，共切出 `2,325` 块；扣除 `1` 个 `null_block` 后剩 **`2,324` 个可用块**，标准 GQA 零索引器额外副本。
+2. **启动试跑（`profile_run`）扣峰值激活与非 Torch 增量**：用最大单步批量跑一次假输入，量出激活峰值与已具象化 HCCL 缓冲在内的非 Torch 增量（PyTorch 分配器之外的底层显存增量，示意共 **`~2.74 GiB`**）。
+3. **剩余预算切成物理 KV 缓存池**：扣完权重与试跑两项后，余下约 **`40.88 GiB`** 全拨给 KV 池。`Qwen3-8B` 在默认 `block_size = 128` 下每块占 **`18 MiB`**，共切出 `2,325` 块；扣除 `1` 个 `null_block`（框架预留的空哨兵块）后剩 **`2,324` 个可用块**，标准 GQA 零索引器额外副本。
 4. **切完 KV 才录 `ACLGraph`**：图捕获显存与运行期延迟缓冲由预算外 `5.12 GiB` 余量支付；请求结束归还块只回收到池内复用，设备已保留显存不会立即下降。
 
 完整的七级冷启动显存台阶、HCCL 通信域去重规则与四卡 MoE 预算推导，统一见 [KV cache 显存预算](kv-cache-memory-profiling.md)与 [NPU Worker 生命周期](npu-worker-lifecycle.md)。

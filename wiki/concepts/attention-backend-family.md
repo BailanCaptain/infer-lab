@@ -114,6 +114,12 @@ verified:
   - main
 evidence: C
 relations:
+  - to: npu-platform
+    kind: builds-on
+    note: 通用注意力后端经 NPUPlatform.get_attn_backend_cls 三级门控与四元组查表选出
+  - to: prepare-inputs-flow
+    kind: builds-on
+    note: Runner 准备输入的末尾按后端与缓存规格分组构造元数据，供本页各后端消费
   - to: attention-qkv
     kind: builds-on
     note: 后端要实现已经定义的注意力计算和因果约束
@@ -158,7 +164,7 @@ rawSources:
 file: attention-backend-choice-qwen3
 ```
 
-在 `Qwen3-8B` 这条标准路径里，全部 36 层结构完全一致。平台 `get_attn_backend_cls` 会把它们统一绑定到同一个 **`AscendAttentionBackend`**。每一步前向，Runner 只需构建 **1 份 `AscendMetadata`** 和 1 套 `slot_mapping` / `block_table`，36 层全程共用、零额外状态池。到了算子层，再按批次形态在 **FIA**（变长因果 prefill / 混合批）与 **PA / FIA**（纯 decode 按块表直读历史）之间分流。
+在 `Qwen3-8B` 这条标准路径里，全部 36 层结构完全一致。平台 `get_attn_backend_cls` 会把它们统一绑定到同一个 **`AscendAttentionBackend`**。每一步前向，Runner 只需构建 **1 份 `AscendMetadata`** 和 1 套 `slot_mapping` / `block_table`，36 层全程共用、零额外状态池。到了算子层，再按批次形态在 **FIA**（`FusedInferAttentionScore`，昇腾融合推理注意力算子，处理变长因果 prefill / 混合批）与 **PA**（`PagedAttention` 分页注意力算子，纯 decode 按块表直读历史）之间分流。
 
 后端在架构上是**按层**挂载的：每层独立报出自己的后端类。同构模型 36 层报出同一个名字，因此合并成 1 个注意力组；一旦换到混合架构（如后文历史 GLM 双机），不同层就会在同一次前向里走上各自独立的后端与元数据分支。
 

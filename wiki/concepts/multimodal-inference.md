@@ -9,6 +9,9 @@ aliases:
   - 多模态推理
   - 多模态预处理
   - 视觉编码
+  - VL
+  - VLM
+  - Vision-Language Model
   - VLM 推理
   - multimodal inputs
   - image_grid_thw
@@ -69,6 +72,9 @@ verified:
   - main
 evidence: C
 relations:
+  - to: token
+    kind: builds-on
+    note: 多模态预处理器先按分辨率与合并步幅在 input_ids 里展开等量视觉占位 token，再与文本序列一起进模型
   - to: embedding
     kind: builds-on
     note: 视觉编码器输出的嵌入张量最终按占位掩码原地覆写进标准词向量表查出的 inputs_embeds
@@ -78,14 +84,11 @@ relations:
   - to: epd-disaggregation
     kind: alternative-to
     note: 当多图或高分辨率视频把视觉编码器推成瓶颈时，可把单实例内置编码器切换为独立 E 节点池的 EPD 分离架构
-  - to: api-server-entry
-    kind: builds-on
-    note: 前端进程在进入引擎前完成图片解码、Processor 切块缓存与多模态哈希生成
 contradicts: []
 updated: '2026-11-19'
 ---
 
-**多模态推理（Multimodal Inference）是指引擎在同一条提示词中同时接收文本与图像、视频或音频，先将非文本媒体切块并经专用编码器（如视觉编码器 ViT）投影到语言模型的隐藏维度，再把视觉向量原地填回序列占位槽，最后交由标准语言主干完成自回归生成。**
+**多模态推理（Multimodal Inference）是指引擎在同一条提示词中同时接收文本与图像、视频或音频，先将非文本媒体切块并经专用编码器（如视觉编码器 ViT，即 Vision Transformer）投影到语言模型的隐藏维度，再把视觉向量原地填回序列占位槽，最后交由标准语言主干完成自回归生成。**
 
 沿[请求全景](request-overview.md)与[分词入口](token.md)走进语言模型时，纯文本请求只需查一次 [Embedding](embedding.md) 词表即可进入首层 Transformer。可一旦用户在消息里附带一张图片或一段视频，语言主干既读不懂原始 RGB 像素，也分不清二维平面里“上下相邻”的图像块在拉平成一维序列后其实相隔一整行。多模态推理体系正是为了解决**媒体如何变 token、视觉编码器如何跨卡不卡顿、以及重复图片如何免重算**这三道核心工程难题。
 
@@ -115,7 +118,7 @@ file: multimodal-fig-pipeline-mrope
 
 - **预计算媒体嵌入（`--enable-mm-embeds`）**：与文本 `--enable-prompt-embeds` 独立，允许绕过编码器直接传入 `image_embeds` 等特征张量，但仍须满足对应模型的布局契约。例如 Qwen2-VL 另需 `image_grid_thw`（在线单项 `3` 个整数），MiniCPM-V-2_6 另需 `image_sizes`（宽、高两个数），Qwen3-VL 还需中间层消费的 `deepstack` 额外视觉特征。在线 Chat 必须按**每张媒体一个内容项**提供向量，把多张图拼成一个内容项会导致占位数量与向量行数错位。
 - **视频时间元数据与坏帧恢复**：客户端提前抽帧时应通过 `media_io_kwargs.video`（兼容 SDK 放 `extra_body`）保留 `fps`、`frames_indices`、`total_num_frames`、`duration`（及按需 `do_sample_frames`），否则无法区分相邻三帧与相隔十秒的三帧。OpenCV 解码路径提供默认关闭的 `video.frame_recovery`：遇坏帧失败时顺扫至下一目标帧之前寻找可读帧替代。注意该操作会改变观察内容，且只顺扫到最后一个目标帧，不保证补齐所有坏帧。
-- **音频重采样、单声道与长音频静音切分**：音频输入需带采样率由解析器重采样；要求单声道的模型默认把多声道求平均（声道转换，非响度归一化）。支持切分的语音转写模型可走 `split_audio`，在每段上限末尾窗口内搜寻低能量切点（如 `max_clip_duration_s=30`、`overlap_duration_s=1`、`min_energy_window_size=1600`、`16000 Hz` 下，在 `480,000` 样本的末尾 `16,000` 样本中寻安静点；下一段从该切点接续，输出不重复保留 `1` 秒）。切分先转单声道再执行，既非通用 Chat 音频步骤，也不同于语言模型的 Chunked Prefill。
+- **音频重采样、单声道与长音频静音切分**：音频输入需带采样率由解析器重采样；要求单声道的模型默认把多声道求平均（声道转换，非响度归一化）。支持切分的语音转写模型可走 `split_audio`，在每段上限末尾窗口内搜寻低能量切点（如 `max_clip_duration_s=30`、`overlap_duration_s=1`、`min_energy_window_size=1600`、`16000 Hz` 下，在 `480,000` 样本的末尾 `16,000` 样本中寻安静点；下一段从该切点接续，输出不重复保留 `1` 秒）。切分先转单声道再执行，既非通用 Chat 音频步骤，也不同于语言模型的 [Chunked Prefill](chunked-prefill.md)。
 
 ## M-RoPE：怎样把二维空间与视频时间编进注意力旋转角？
 
@@ -148,7 +151,7 @@ file: multimodal-fig-pipeline-mrope
 
 ## 重复图片怎样免重算：四级缓存分工与昇腾 `ScoreEncoderCacheManager`
 
-多轮图文对话、文档 RAG 或高并发请求反复引用同一张底图时，一条多模态请求在进入语言生成前共经过四层独立缓存（各自占独立空间，清掉一层不会连带清掉其他层）：
+多轮图文对话、文档检索增强生成（RAG）或高并发请求反复引用同一张底图时，一条多模态请求在进入语言生成前共经过四层独立缓存（各自占独立空间，清掉一层不会连带清掉其他层）：
 
 ```wiki-diagram
 file: multimodal-fig-four-tier-cache
@@ -161,7 +164,7 @@ file: multimodal-fig-four-tier-cache
 | **HTTP 原始字节下载缓存**（`VLLM_MEDIA_CACHE`） | 远程 URL 下载的原始媒体字节（本地磁盘目录） | 省去再次 HTTP 下载；命中后仍须解码、预处理、编码与语言前向 | 按完整 URL 建键（非 UUID；`data:`/`file:` 不走此缓存）；默认 `5120 MiB` 淘汰目标（非硬磁盘上限，刚写文件受保护）、`24h` 滑动 TTL（读/写懒检查过期）；同 URL 内容变更须换地址 |
 | **CPU 多模态预处理缓存**（`mm_processor_cache`） | CPU 预处理张量及其占位更新信息 | 省去相同媒体的重复 CPU 预处理；仍须经编码器或 EC 取得特征 | 默认 `4 GiB`（`0` 关闭）、类型 `lru`/`shm`（`shm` 单对象上限 `128 MiB`）；**仅当 `api_server_count == 1` 且（`DP=1` 或 external LB）时建立进程间缓存**（`lru` 接收端在 EngineCore，`shm` 在 Worker），否则退回 `processor_only` |
 | **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
-| **KV Cache / Prefix Caching（APC）** | 语言模型各层历史 K/V 状态 | 前缀完全一致时省去语言层 Prefill | 需前面各层产出相同的占位与哈希 |
+| **[KV Cache](kv-cache.md) / [Prefix Caching（APC）](prefix-caching.md)** | 语言模型各层历史 K/V 状态 | 前缀完全一致时省去语言层 Prefill | 需前面各层产出相同的占位与哈希 |
 
 以包含图片 A、B 的消息为例看部分命中合并：若 CPU `mm_processor_cache` 仅命中 A，预处理器只新算 B，随后必须把缓存 A 与新 B **按原消息顺序合回 `[A, B]`** 并重建占位区间（绝不能把新结果排在前面导致图文错配）。直通的预计算特征走独立分支，不受 CPU 媒体缓存推断。
 
@@ -173,7 +176,7 @@ file: multimodal-fig-four-tier-cache
 
 ### 单级 `EncoderCacheManager` 与昇腾 `ScoreEncoderCacheManager`
 
-进入模型侧后，vLLM V1 原生 `EncoderCacheManager` 按**嵌入槽位数（encoder embeddings）**在 NPU 显存中维护单级缓存，引用归零且空间不足时按 FIFO 逐出。高并发线上服务里，单靠有限 NPU 显存做 FIFO 容易把高频复用的高分辨率大图顶出去。为此，`vllm-ascend v0.30.0` 新增了面向热点复用的 **`ScoreEncoderCacheManager`** 两级编码器缓存体系：
+进入模型侧后，vLLM V1 原生 `EncoderCacheManager` 按**嵌入槽位数（encoder embeddings）**在 NPU 显存中维护单级缓存，引用归零且空间不足时按先进先出（FIFO）逐出。高并发线上服务里，单靠有限 NPU 显存做 FIFO 容易把高频复用的高分辨率大图顶出去。为此，`vllm-ascend v0.30.0` 新增了面向热点复用的 **`ScoreEncoderCacheManager`** 两级编码器缓存体系：
 
 ```wiki-diagram
 file: multimodal-fig-score-ec-cache
@@ -186,7 +189,7 @@ file: multimodal-fig-score-ec-cache
 
 $$\text{score} = (\text{freq} + \text{clock}) \times \text{cal\_cost}, \qquad \text{cal\_cost}(s) = \frac{L_{\text{vis}}(\alpha s + \beta)}{4 \times 10^{14}}$$
 
-其中 $L_{\text{vis}}$ 对 `qwen3_5` 取 `27` 层、其余默认 `32` 层。当 CPU 条目再次命中时，若 NPU 空槽足够则直接晋升；若空槽不足且可回收槽位足够，`should_promote` 把候选条目不含 `clock` 的得分与 NPU 可回收集合 `npu_freeable` 中按升序排在 **`promote_percentile`（默认 `0.2`，即低 `20%` 分位）** 的门槛比较。得分达到或超过门槛（`score >= threshold`）才批量淘汰低分项（一次性清理到够放新项且尽量留出 **`watermark`（默认 `0.2`）** 空槽），再由 Worker 在当前 NPU 流发起 `non_blocking` H2D 晋升至常驻 `encoder_cache`，并由 `torch.npu.Event` 追踪拷贝完成与源缓冲生命周期。
+其中 $L_{\text{vis}}$ 对 `qwen3_5` 取 `27` 层、其余默认 `32` 层。当 CPU 条目再次命中时，若 NPU 空槽足够则直接晋升；若空槽不足且可回收槽位足够，`should_promote` 把候选条目不含 `clock` 的得分与 NPU 可回收集合 `npu_freeable` 中按升序排在 **`promote_percentile`（默认 `0.2`，即低 `20%` 分位）** 的门槛比较。得分达到或超过门槛（`score >= threshold`）才批量淘汰低分项（一次性清理到够放新项且尽量留出 **`watermark`（默认 `0.2`）** 空槽），再由 Worker 在当前 NPU 流发起非阻塞的主机到设备（`non_blocking` H2D）拷贝晋升至常驻 `encoder_cache`，并由 `torch.npu.Event` 追踪拷贝完成与源缓冲生命周期。
 3. **防御性兜底**：若调度器判定某条目在 CPU 缓存命中、但 Worker 临时缓存尚未就绪，`_get_encoder_output_from_cache` 会退回同步 H2D 补拷并写入 `tmp_encoder_cache`，避免状态微差演变成致命 cache miss。
 
 ## 常见误解

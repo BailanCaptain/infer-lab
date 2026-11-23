@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="fork 与 spawn 趣味微缩工坊对比图：左侧 FORK 蓝图复印父工坊已挂齿轮补丁，右侧 SPAWN 空屋洁净车间重新搬箱安装补丁与配置" font-family="var(--font-sans)">
+  <title>蓝图复印工坊（FORK）vs 空屋开箱车间（SPAWN）：直观解释为什么 spawn 子进程会丢掉父进程里的猴子补丁与全局配置缓存，必须逐进程重新加载插件与初始化 AscendConfig。</title>
+  <desc>关联源码符号：VLLM_WORKER_MULTIPROC_METHOD, _maybe_force_spawn, get_mp_context, _ensure_global_patch, register_connector, adapt_patch, init_ascend_config</desc>
+
+  <image href="./wiki-illustrations/fork-vs-spawn-workshop-scene.webp" x="40" y="130" width="820" height="398" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 1 -> 左上父工坊齿轮墙 -->
+  <line x1="188" y1="112" x2="188" y2="246" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="188" cy="246" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="188" cy="246" r="2.5" fill="#c78300"/>
+
+  <!-- 2 -> 左中蓝图复印桥 -->
+  <line x1="340" y1="112" x2="340" y2="335" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="340" cy="335" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="340" cy="335" r="2.5" fill="#087f73"/>
+
+  <!-- 3 -> 右侧 SPAWN 空洁净室 -->
+  <line x1="665" y1="112" x2="665" y2="310" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="665" cy="310" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="665" cy="310" r="2.5" fill="#4c65b6"/>
+
+  <!-- 4 -> 左下分叉独立子工坊 -->
+  <line x1="262" y1="538" x2="262" y2="442" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="262" cy="442" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="262" cy="442" r="2.5" fill="#c78300"/>
+
+  <!-- 5 -> 右下搬箱重新装插件 -->
+  <line x1="680" y1="538" x2="680" y2="426" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="680" cy="426" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="680" cy="426" r="2.5" fill="#9a4b86"/>
+
+  <g id="callout-1">
+    <circle cx="28" cy="28" r="12" fill="#c78300"/>
+    <text x="28" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="48" y="33" font-size="15" font-weight="700" fill="#17211f">父进程已挂好补丁（FORK 前）</text>
+    <text x="48" y="58" font-size="13.5" fill="#4d5652">启动进程先加载平台插件与全局补丁</text>
+    <text x="48" y="81" font-size="13.5" fill="#4d5652">遇 Ray / NUMA / CUDA·XPU 就绪强制切 spawn</text>
+    <text x="48" y="104" font-size="13.5" fill="#66716d">昇腾 CLI 默认 spawn 以避开设备句柄继承</text>
+  </g>
+
+  <g id="callout-2">
+    <circle cx="316" cy="28" r="12" fill="#087f73"/>
+    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">蓝图快照继承（写时复制）</text>
+    <text x="336" y="58" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">fork</tspan> 瞬间把已有模块替换一并带走</text>
+    <text x="336" y="81" font-size="13.5" fill="#4d5652">无需重新扫描导入大体积 Python 包</text>
+    <text x="336" y="104" font-size="13.5" fill="#66716d">库模式未显式设方法时默认走此路</text>
+  </g>
+
+  <g id="callout-3">
+    <circle cx="598" cy="28" r="12" fill="#4c65b6"/>
+    <text x="598" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="618" y="33" font-size="15" font-weight="700" fill="#17211f">洁净空屋启动（SPAWN 默认）</text>
+    <text x="618" y="58" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">vllm serve</tspan> 拉起全新 Python 解释器</text>
+    <text x="618" y="81" font-size="13.5" fill="#4d5652">父进程打过的猴子补丁与缓存全部归零</text>
+    <text x="618" y="104" font-size="13.5" fill="#66716d">最干净安全，彻底杜绝驱动句柄污染</text>
+  </g>
+
+  <g id="callout-4">
+    <circle cx="28" cy="556" r="12" fill="#c78300"/>
+    <text x="28" y="560.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="561" font-size="15" font-weight="700" fill="#17211f">分叉后各自关门独立（互不同步）</text>
+    <text x="48" y="586" font-size="13.5" fill="#4d5652">子工坊出生后与父工坊内存彻底分家</text>
+    <text x="48" y="610" font-size="13.5" fill="#4d5652">后续再改配置或打 Worker 补丁只生效于本进程</text>
+  </g>
+
+  <g id="callout-5">
+    <circle cx="476" cy="556" r="12" fill="#9a4b86"/>
+    <text x="476" y="560.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="496" y="561" font-size="15" font-weight="700" fill="#17211f">逐进程开箱补齐插件与配置</text>
+    <text x="496" y="586" font-size="13.5" fill="#4d5652">EngineCore 靠平台插件重跑 <tspan font-family="var(--font-mono)" font-weight="700">_ensure_global_patch</tspan></text>
+    <text x="496" y="610" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">NPUWorker</tspan> 构造开头自调 <tspan font-family="var(--font-mono)" font-weight="700">adapt_patch</tspan> 与 <tspan font-family="var(--font-mono)" font-weight="700">init_ascend_config</tspan></text>
+  </g>
+</svg>

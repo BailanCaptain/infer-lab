@@ -14,6 +14,9 @@ aliases:
   - '3284850'
   - 2db39b6
   - 7b1a690
+  - RFork 升级隔离
+  - RFork 策略名隔离
+  - RFork 历史补丁
 chapters: []
 order: 110
 sources:
@@ -33,12 +36,24 @@ relations:
   - to: rfork
     kind: builds-on
     note: 本章全部机制已对齐社区上游 main，更新升级时要保持整章与代码一起演进
-  - to: rfork-troubleshooting
+  - to: rfork-identity
     kind: builds-on
-    note: 排错前先识别实际运行版本，旧报错不能直接套用后来版本的行为
+    note: 配置指纹不含 RFork 代码提交号，升级隔离旧 seed 池必须通过更换 model_deploy_strategy_name 实现
   - to: rfork-layout
     kind: builds-on
     note: 维护涉及权重采集、布局或量化方法的改动时，需依据布局页核对张量采集与运行时工作区排除规则
+  - to: rfork-config
+    kind: builds-on
+    note: 升级核对涉及 13 项配置键、双槽端口与 Planner 协议开关变动时，须同步回归配置页
+  - to: rfork-troubleshooting
+    kind: builds-on
+    note: 排错前先识别实际运行版本，旧报错不能直接套用后来版本的行为
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 升级验证须覆盖加载器交回模型后的完整 Worker 启动、回退保护与资源清理闭环
+  - to: netloader-guide
+    kind: alternative-to
+    note: 同为昇腾跨节点权重快载方案，RFork 侧重已就绪实例显存点对点借用，NetLoader 侧重网络广播分发
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -131,7 +146,7 @@ file: rfork-fig-upgrade-isolation
 
 改好的代码要上线时，最容易踩的坑是**代码升级未必会改变 `seed_key`**。配置指纹里有部署策略名、协议版本和模型权重的版本号，**却没有 RFork 代码本身的提交号**（见[身份](rfork-identity.md#部署指纹里写了什么)）。只要模型配置、张量结构摘要与协议版本等指纹输入未变，新旧代码仍会算出同一把钥匙，可能跨版本混借。
 
-反过来，部署策略名在指纹里，换一个名字钥匙就会全变。新旧版本应使用各自独立的部署策略名；切换前先核对 Planner 候选、旧登记信息和活跃传输，再安排实例与 Planner 一起切。**绝不能拿清空 Planner 账本来代替「等正在读的实例排空」或「确认底层内存已清理」。** 官方材料的核读与差异见[官网对照页](../sources/rfork-official-guide.md)。
+反过来，部署策略名在指纹里，换一个名字钥匙就会全变。新旧版本应使用各自独立的部署策略名；切换前先核对 Planner 候选、旧登记信息和活跃传输，再安排实例与 Planner 一起切。**绝不能拿清空 Planner 账本来代替「等正在读的实例排空」或「确认底层内存已清理」。** 上线验收还须联动覆盖 [Worker 启动生命周期](npu-worker-lifecycle.md)的显存画像与图捕获闭环；若集群需要跨节点网络广播分发而非点对点借用，可对照同为昇腾权重快载替代方案的 [NetLoader 指南](netloader-guide.md)。官方材料的核读与差异见[官网对照页](../sources/rfork-official-guide.md)。
 
 ## 哪些已经核过，哪些要到现场
 

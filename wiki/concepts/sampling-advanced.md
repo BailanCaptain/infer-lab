@@ -90,9 +90,6 @@ relations:
   - to: prefix-caching
     kind: builds-on
     note: V1 外置 Beam Search 每轮以 max_tokens=1 扩展候选束，极度依赖前缀缓存复用共同历史 KV
-  - to: batch-invariance
-    kind: variant-of
-    note: 开启批不变模式 VLLM_BATCH_INVARIANT 时，昇腾 Top-k/Top-p 会退回上游确定性原生路径
 contradicts: []
 updated: '2026-11-19'
 ---
@@ -103,7 +100,7 @@ updated: '2026-11-19'
 
 ## `Sampler.forward` 为什么严格区分「不可保序」与「可保序」？
 
-vLLM V1 的 `Sampler.forward` 先把输入转成 `FP32` 精度（避免 `BF16` / `FP16` 下指数与累加精度塌缩），再按**是否可能改变最高分项（`argmax`）**把所有处理器拆成两道闸门：
+vLLM V1 的 `Sampler.forward` 先把输入转成 `FP32`（32 位单精度浮点，避免 `BF16` / `FP16` 16 位半精度下指数与累加精度塌缩），再按**是否可能改变最高分项（`argmax`）**把所有处理器拆成两道闸门：
 
 ```wiki-diagram
 file: sampling-adv-fig-pipeline
@@ -111,7 +108,7 @@ file: sampling-adv-fig-pipeline
 
 这个先后次序直接决定了贪心请求（`temperature < 1e-5`）的命运：
 
-1. **不可保序阶段（贪心也会受影响）**：依次施加 `allowed_token_ids` 白名单、`bad_words` 禁词、`min_tokens`（未达最短长度前屏蔽 EOS）、`logit_bias` 分数偏置、`is_argmax_invariant() == False` 的自定义处理器，以及三类重复惩罚。这些步骤都会改变谁是最高分，因此必须在 `greedy_sample`（`argmax`）之前完成。
+1. **不可保序阶段（贪心也会受影响）**：依次施加 `allowed_token_ids` 白名单、`bad_words` 禁词、`min_tokens`（未达最短长度前屏蔽 EOS 结束标记）、`logit_bias` 分数偏置、`is_argmax_invariant() == False` 的自定义处理器，以及三类重复惩罚。这些步骤都会改变谁是最高分，因此必须在 `greedy_sample`（`argmax`）之前完成。
 2. **整批贪心快退**：若整批请求都是贪心（`sampling_metadata.all_greedy`），算完 `argmax` 就直接返回，跳过温度除法、`min_p`、全词表排序与随机数生成。**只要同一批里混进 1 条随机请求，整批就必须跑完随机采样管线**，最后再用 `torch.where(temperature < 1e-5, greedy, random)` 挑回贪心结果。
 3. **可保序阶段（仅影响随机采样）**：温度缩放（`logits /= temperature`）、`is_argmax_invariant() == True` 的自定义处理器（含 `min_p`）与 Top-k / Top-p 截断都不改变最高分冠军，因此统一排在贪心分支之后。已接通思考预算（`thinking_token_budget`）的版本会在筛选与罚分之后按预算抬高思考结束串分数。另外，[结构化输出](structured-output.md#4-每张卡把-bitmask-作用到-logits)在进入 `Sampler` 之前就先把非法词压成 $-\infty$，所以默认的原始 `logprobs` 不会撤销已施加的文法掩码。
 
@@ -171,7 +168,7 @@ file: sampling-adv-fig-penalties-shift
 
 - **`min_p`（相对峰值门槛）**：先做一次 Softmax 找出本步最高概率 $p_{\max} = \max_v p_v$，凡 $p_v < \text{min\_p} \cdot p_{\max}$ 的候选一律剔除。分布尖峰时（如 $p_{\max} = 0.90$、$\text{min\_p} = 0.1$）门槛拉高到 `0.09` 迅速收紧；分布平坦时（$p_{\max} = 0.20$）门槛放宽到 `0.02` 保留多样性。因 $p_{\max} \ge \text{min\_p} \cdot p_{\max}$，`MinPLogitsProcessor.is_argmax_invariant()` 恒为 `True`。**投机解码限制**：非贪心且归一化后的有效 `min_p > 1e-5` 时与 `speculative_config` 互斥被拒；贪心请求（`temperature=0`）会先将合法 `min_p` 归零再进检查，因此 `temperature=0, min_p=0.1` 放行，而非法 `min_p=1.1` 在归零前就会报错。
 - **`top_k`（固定名次门槛与同分并列）**：只保留最高的前 $k$ 档。上游 PyTorch 排序掩码路径以第 $k$ 大分数为门槛，仅屏蔽**严格低于**门槛的词。若示意分数为 `[5, 4, 4, 1]` 且 `k=2`，并列的两项 `4` 会一并保留（共留 `3` 项）。
-- **`top_p`（核采样，Nucleus Sampling）与重归一差异**：将概率排序并累加，丢弃落在累计阈值之外的长尾，并强制保留最大概率词防止全空。**上游 PyTorch 与昇腾普通排序路径在 `top_k + top_p` 联合截断上存在数值分岔**：上游先按 `top_k` 屏蔽后**在保留集上重算 Softmax** 再做 `top_p`；`vllm-ascend` `v0.26 / v0.30.0 / main` 的 `_apply_top_k_top_p_pytorch` 只在过滤前算一次 Softmax，随后沿用过滤前概率做 `top_p`（仅开启 `VLLM_BATCH_INVARIANT=1` 才回退上游路径）。
+- **`top_p`（核采样，Nucleus Sampling）与重归一差异**：将概率排序并累加，丢弃落在累计阈值之外的长尾，并强制保留最大概率词防止全空。**上游 PyTorch 与昇腾普通排序路径在 `top_k + top_p` 联合截断上存在数值分岔**：上游先按 `top_k` 屏蔽后**在保留集上重算 Softmax** 再做 `top_p`；`vllm-ascend` `v0.26 / v0.30.0 / main` 的 `_apply_top_k_top_p_pytorch` 只在过滤前算一次 Softmax，随后沿用过滤前概率做 `top_p`（仅开启[批不变模式](batch-invariance.md) `VLLM_BATCH_INVARIANT=1` 才回退上游路径）。
 
 用 6 词分数（猫 `3`、你 `2`、看 `1`、「。」`0`、我 `-1`、喜欢 `-2`）取 `T=1, k=2, p=0.7`，双轨对齐到同一条 `0.70` 门槛线，分叉一目了然：
 
@@ -202,7 +199,7 @@ file: sampling-adv-fig-beam-logprobs
 
 - **四种服务级模式（`--logprobs-mode`）**：`raw_logprobs`（默认）在采样器入口抓取，早于罚分、温度与截断；`processed_logprobs` 抓取处理后分布（纯 greedy 路径不做随机温度与截断，不会把所选词强变成概率 `1`）。`raw_logits` 与 `processed_logits` 返回未归一化打分，可为正数，不可取 $\exp$ 当概率，但内部字段名仍叫 `logprob` 且累计字段仍直接相加。HTTP 普通返回会把低于 `-9999` 的值（含 $-\infty$）夹到 `-9999`。提示词的 `prompt_logprobs` 见 [prefill](prefill.md#提示词已经给定为什么还要算它的概率)。
 - **前 $k$ 名 vs 指定编号（`logprob_token_ids`）**：请求前 $k$ 名时，若实际抽中的词不在前 $k$ 名里也会一并附上，因此至多返回 $k+1$ 个不同编号；设 `0` 仍记录所选词，仅 `None`/`false` 关闭。传入 `logprob_token_ids`（最多 `128` 项，`0 <= id < vocab_size`）走 `gather_specific_token_logprobs` 定向采集，只观察这些编号而不限制生成；其 `rank` 按列表枚举填入（若与所选词重合还可能覆盖名次），不能当真实词表排名。
-- **容器与 HTTP 格式**：Python 开启 `flat_logprobs=True`（HTTP 未暴露）时，改用 `FlatLogprobs` 把 `token_ids`、`logprobs`、`ranks`、`decoded_tokens` 存在四条连续数组里，按半开区间 `[start_indices[i], end_indices[i])` 定位每步以降低小对象 GC 开销（所选词命中前 $k$ 时底层数组存两份，按索引取字典时合并）。HTTP Chat 在 `choices[i].logprobs.content` 逐 token 返回 `token / logprob / bytes / top_logprobs`（`bytes` 为 UTF-8）；Completion 返回 `tokens / token_logprobs / top_logprobs / text_offset` 四条并行列表。带 `return_tokens_as_token_ids=true` 可用 `token_id:<id>` 避免同名文本键合并。
+- **容器与 HTTP 格式**：Python 开启 `flat_logprobs=True`（HTTP 未暴露）时，改用 `FlatLogprobs` 把 `token_ids`、`logprobs`、`ranks`、`decoded_tokens` 存在四条连续数组里，按半开区间 `[start_indices[i], end_indices[i])` 定位每步以降低小对象 GC（垃圾回收）开销（所选词命中前 $k$ 时底层数组存两份，按索引取字典时合并）。HTTP Chat 在 `choices[i].logprobs.content` 逐 token 返回 `token / logprob / bytes / top_logprobs`（`bytes` 为 UTF-8）；Completion 返回 `tokens / token_logprobs / top_logprobs / text_offset` 四条并行列表。带 `return_tokens_as_token_ids=true` 可用 `token_id:<id>` 避免同名文本键合并。
 - **MTP / 投机解码边界**：MTP 仅保留最终被接受的输出 token 记录，滤掉被拒候选（勿与草稿接受概率混淆）。固定快照中 `logprob_token_ids` 未贯通候选验证与额外 token 拼接，且 `processed` 模式下额外 token 的 `logprobs_mode_override` 传递存在边界；定向查标签或生成式评分应在非投机实例核验。
 
 ## V1 外置 Beam Search：多路径扩展与含提示词长度惩罚
@@ -223,7 +220,7 @@ $$\text{score}(y) = \frac{\sum_{t} \log p(y_t \mid x, y_{<t})}{\max(L_{\text{eff
 
 **在线 HTTP 与离线 Python 的关键差异**：
 - **参数与解码**：离线用 `BeamSearchParams(beam_width, max_tokens)`，默认 `temperature=0`、`length_penalty=1.0`、`ignore_eos=False`，返回 `text` 包含提示词全文。HTTP 在 Chat/Completions 传 `use_beam_search=true`，由 **`n` 充当 `beam_width`**（默认 `1`），温度继承请求或模型默认（不套 Python 的 `0`），只传递 beam 相关字段（`top_k`/`top_p`/罚分/`structured_outputs` 不进入搜索），返回文本仅解码新增部分。
-- **流式、文法与缓存**：HTTP Completion 拒绝 `use_beam_search=true` + `stream=true`；Chat SSE 正常到搜索完全结束才交出结果；独立 Chat render 也拒绝 beam。`v0.26+` 离线 beam 支持逐束重建文法状态并过滤候选（合法集合过大时仅过滤已返回候选，带 CPU 开销），但不扩展至 HTTP。因 $W$ 条束共享完整提示词与长前缀，必须配合 [前缀缓存（APC）](prefix-caching.md) 避免每步重算 Prefill。
+- **流式、文法与缓存**：HTTP Completion 拒绝 `use_beam_search=true` + `stream=true`；Chat SSE（Server-Sent Events，服务端推送事件流）正常到搜索完全结束才交出结果；独立 Chat render 也拒绝 beam。`v0.26+` 离线 beam 支持逐束重建文法状态并过滤候选（合法集合过大时仅过滤已返回候选，带 CPU 开销），但不扩展至 HTTP。因 $W$ 条束共享完整提示词与长前缀，必须配合 [前缀缓存（APC）](prefix-caching.md) 避免每步重算 Prefill。
 
 ## 昇腾 NPU 采样快慢路径剖析（`v0.30.0`）
 
@@ -231,9 +228,9 @@ $$\text{score}(y) = \frac{\sum_{t} \log p(y_t \mid x, y_{<t})}{\max(L_{\text{eff
 
 | 采样环节 | 昇腾快路径实现（`v0.30.0`） | 触发慢路径回退的条件与影响 |
 |---|---|---|
-| **三类惩罚** | `HAS_TRITON=True` 时走 `apply_penalties_triton` 融合核，避免在全词表（如 `151,936` 维）上反复构造稠密 `bin_counts` | 未安装 Triton-Ascend 时告警并退回上游 `Sampler.apply_penalties`（PyTorch scatter），大词表下显著变慢 |
-| **Top-k / Top-p** | `_apply_top_k_top_p_pytorch` 走升序 `sort + gather + mask`（实测稳定约 `1 ms`）；源码明确注释绕开 `npu_top_k_top_p`，因其在大 $k$ 或混合 $k$ 批下会退化至 **`5–28 ms`** | 开启 `VLLM_BATCH_INVARIANT=1` 时为保批不变确定性，退回上游 `super().forward_native` |
-| **按概率随机抽取** | `random_sample` 在独立 `global_stream()` 生成指数分布噪声 $q \sim \text{Exp}(1)$，以 `probs.div_(q).argmax(dim=-1)` 完成等价 Gumbel-max 抽取，全程零 Host 同步 | 规避 `torch.multinomial` 的 CPU-NPU 同步停顿；但若单批内大量请求携带各自独立 `seed`（`generators` 非空），逐条 `for` 循环填充 `q[i]` 仍会放大调度开销 |
+| **三类惩罚** | `HAS_TRITON=True` 时走 `apply_penalties_triton` 融合核，避免在全词表（如 `151,936` 维）上反复构造稠密 `bin_counts` | 未安装 Triton-Ascend（昇腾适配版 Triton 算子编译器）时告警并退回上游 `Sampler.apply_penalties`（PyTorch scatter），大词表下显著变慢 |
+| **Top-k / Top-p** | `_apply_top_k_top_p_pytorch` 走升序 `sort + gather + mask`（实测稳定约 `1 ms`）；源码明确注释绕开 `npu_top_k_top_p`，因其在大 $k$ 或混合 $k$ 批下会退化至 **`5–28 ms`** | 开启[批不变模式](batch-invariance.md) `VLLM_BATCH_INVARIANT=1` 时为保批不变确定性，退回上游 `super().forward_native` |
+| **按概率随机抽取** | `random_sample` 在独立 `global_stream()` 生成指数分布噪声 $q \sim \text{Exp}(1)$，以 `probs.div_(q).argmax(dim=-1)` 完成等价 Gumbel-max（用随机噪声加权后取最大值，数学上等价于按原概率分布抽样）抽取，全程零 Host 同步 | 规避 `torch.multinomial` 的 CPU-NPU 同步停顿；但若单批内大量请求携带各自独立 `seed`（`generators` 非空），逐条 `for` 循环填充 `q[i]` 仍会放大调度开销 |
 
 ## 常见误解
 

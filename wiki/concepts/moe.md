@@ -183,12 +183,6 @@ relations:
   - to: mlp-residual-norm
     kind: builds-on
     note: 专家内部就是一个门控前馈网络；MoE 在它之外加了选择和加权合并
-  - to: glm-5-3-flash
-    kind: builds-on
-    note: 288 选 8、共享专家、每层维度和全模型参数量的出处
-  - to: moe-comm-dispatch
-    kind: builds-on
-    note: 昇腾四族硬件下 AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 通信调度状态机与运行期权重重切分
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -336,7 +330,7 @@ file: moe-fig-router-shared-flow-qwen3
 
 | 交接布局 | 张量形状 | 配套元数据与典型路径 |
 |---|---|---|
-| `Standard`（紧凑二维行） | `[M, K]` | 附 `topk_ids`、组合权重与全局→本地映射（DeepEP 高吞吐路径使用，支持延后输入量化） |
+| `Standard`（紧凑二维行） | `[M, K]` | 附 `topk_ids`、组合权重与全局→本地映射（DeepEP，即 DeepSeek 开源的 GPU 专家并行通信库的高吞吐路径使用，支持延后输入量化） |
 | `BatchedExperts`（按专家预留） | `[E, T, K]` | 另列每专家实际有效行数；$T$ 是预留容量而非负载（DeepEP 低时延路径使用，拒绝延后量化） |
 
 沿用上节卡 A（持有专家 1–3，有效负载 `[1, 4, 1]`、隐藏宽缩为 `4`）：若有 `2` 个派发端、每端最多 `4` 行，则每专家预留 $T = 8$ 行，输入容量为 `[3, 8, 4]`（共 `24` 槽：上图 `6` 个实色有效格 + `18` 个虚框空槽，BF16 输入区占 $3 \times 8 \times 4 \times 2\text{ B} = \mathbf{192\text{ B}}$，不含权重、缩放、输出与临时工作区）。空槽不代表新增请求也不必为零，而部分生命周期不重叠的临时工作区可复用存储——因此**预留容量、实际有效负载与同时存活缓冲是三笔独立账**，绝不能混算。

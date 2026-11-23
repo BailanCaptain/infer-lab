@@ -149,7 +149,7 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 
 | 运行阶段与批宽（`Qwen3-8B` BF16） | 全层权重理想读取 | `q_proj` 算术强度 $I_{\text{BF16}}$ | 全层 HBM `KV cache` 读写 | `lm_head` 输出分数张量（FP32） | 典型硬件受限倾向 |
 | --- | --- | --- | --- | --- | --- |
-| **Prefill（`N = 2048` 整段）** | `15.26 GiB` 读 1 遍复用 `2048` 行 | **`1024.0 FLOP/B`**（若 `N=6000` 达 `1526.8`） | 批量写入 `2048 × 144 KiB = 288.0 MiB` | `logits_indices` 切末行：`[1, 151936] ≈ 0.58 MiB`（省去全算 `1.16 GiB`） | 远高于硬件脊点（`~120–270`），偏 **Cube 算力受限** |
+| **Prefill（`N = 2048` 整段）** | `15.26 GiB` 读 1 遍复用 `2048` 行 | **`1024.0 FLOP/B`**（若 `N=6000` 达 `1526.8`） | 批量写入 `2048 × 144 KiB = 288.0 MiB` | `logits_indices` 切末行：`[1, 151936] ≈ 0.58 MiB`（省去全算 `1.16 GiB`） | 远高于硬件脊点（`~120–270`），偏 **[Cube 矩阵核](ai-core.md)算力受限** |
 | **单请求 Decode（`M = 1`）** | `15.26 GiB` 仍须整套通读 1 遍 | **`1.00 FLOP/B`** | 读历史 `288.0 MiB` + 写新格 `144.0 KiB` | 单行输出：`[1, 151936] ≈ 0.58 MiB` | 深陷 **HBM 权重 + KV 带宽受限** |
 | **拼批 Decode（`M = 12` 条同长历史）** | `15.26 GiB` 由 12 条请求分摊 | **`11.93 FLOP/B`**（单条的约 12 倍） | 读独立历史 `12 × 288 MiB = 3.38 GiB` | 12 行输出：`[12, 151936] ≈ 6.96 MiB` | 权重带宽摊薄，但仍处带宽斜坡且独立 KV 读取增至单路的 12 倍（`×12`） |
 
@@ -176,7 +176,7 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 | **Prefix Caching** | 开头与历史请求兼容的前缀块直接复用既有 `KV cache`，Prefill 只算剩余未命中位置，见 [prefix caching](prefix-caching.md) |
 | **PD 分离** | 把 Prefill 与 Decode 拆到两组独立实例（各占一组卡）并通过网络传 `KV cache`，消除长 Prefill 对 Decode 的同批干扰，见 [PD 分离](pd-disaggregation.md) |
 
-注意前缀缓存命中以**完整块哈希身份兼容**为前提：哈希同时纳入前块指纹、本块 token 编号，以及 LoRA、多模态特征、缓存盐值 `cache_salt` 与直接输入嵌入标识。光有字面相同的开头文本并不保证可复用，且复用后的剩余后缀位置依然走提示词处理逻辑，不会提前变成生成输出。
+注意前缀缓存命中以**完整块哈希身份兼容**为前提：哈希同时纳入前块指纹、本块 token 编号，以及 [LoRA](lora.md) 适配器、多模态特征、缓存盐值 `cache_salt` 与直接输入嵌入标识。光有字面相同的开头文本并不保证可复用，且复用后的剩余后缀位置依然走提示词处理逻辑，不会提前变成生成输出。
 
 ## 提示词已经给定，为什么还要算它的概率？
 
@@ -210,7 +210,7 @@ file: prefill-fig-prompt-logprobs
 2. **执行侧状态标签与图模式派发**：`vllm-ascend` 的 runner 在准备输入时，按批内各请求进度贴上 `AscendAttentionState` 标签：
    - 整批从零起算贴 `PrefillNoCache`；全批每请求仅排 1 个位置贴 `DecodeOnly`（开启 MTP 时改贴 `SpecDecoding`）。
    - 混合批、分块续算或非 MTP 投机验证贴 `ChunkedPrefill`；关闭分块时的前缀命中贴 `PrefillCacheHit`。只要不是 `DecodeOnly` / `SpecDecoding`，就标记 `with_prefill = True`。
-   - 随后 `CUDAGraphDispatcher.dispatch` 决定能否回放预录制的 `ACLGraph`（详见 [图模式](graph-mode-layer.md)）。在 **`FULL_DECODE_ONLY`**（仅录纯解码整图，`mixed_mode = NONE`）下，只有满足 `uniform_decode == True` 的纯 Decode 批能回放 `FULL` 整图，**任何含 Prefill 的步或混合批都会退回 `NONE`（Eager 逐算子下发）**。在默认 **`FULL_AND_PIECEWISE`** 下，不超过 `max_cudagraph_capture_size` 的短 Prefill 或混合批可命中绕开注意力算子的 `PIECEWISE` 分段图，超宽 Prefill 批同样退回 Eager。
+   - 随后 `CUDAGraphDispatcher.dispatch` 决定能否回放预录制的 `ACLGraph`（详见 [图模式](graph-mode-layer.md)）。在 **`FULL_DECODE_ONLY`**（仅录纯解码整图，`mixed_mode = NONE`）下，只有满足 `uniform_decode == True` 的纯 Decode 批能回放 `FULL` 整图，**任何含 Prefill 的步或混合批都会退回 `NONE`（Eager 模式，即不录整图、算子逐个下发）**。在默认 **`FULL_AND_PIECEWISE`** 下，不超过 `max_cudagraph_capture_size` 的短 Prefill 或混合批可命中绕开注意力算子的 `PIECEWISE` 分段图，超宽 Prefill 批同样退回 Eager。
 3. **末行切片与分块中间段丢弃**：普通生成时，`logits_indices = query_start_loc[1:num_reqs+1] - 1` 只挑每条请求的末尾行算 `compute_logits`。对尚未算完提示词的中间分块，runner 为保持流水简单照常采样一次，但由 `discard_requests_mask` 标记并在 `_bookkeeping_sync` 中清空输出。若请求自带随机种子，还会调用 `gen.set_offset(gen.get_offset() - 4)` 把随机数发生器往回拨，防止白采样污染正式生成。
 
 > **边界与例外（末 1 词尾块与 `uniform_decode` 判定）**：未开 MTP 时，恰剩最后 1 个提示词尾块的请求也会落入 `DecodeOnly` 单步执行分支，但请求语义上仍属提示词收尾。整图放行条件 `uniform_decode == True` 要求所有请求已有初始历史、混合模型已完成全部提示词，且每请求长度整齐等于 `uniform_decode_query_len`。

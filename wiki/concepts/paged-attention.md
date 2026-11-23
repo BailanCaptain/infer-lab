@@ -76,7 +76,13 @@ updated: '2026-11-18'
 2. **外部碎片死角（External Fragmentation）**：在连续批处理下，长短不一的请求随时穿插退场，显存条上留下一段段互不相连的零碎夹缝；哪怕所有空闲夹缝加起来足够装下新请求，只要找不到一整段够长的连续空间，新请求就只能排队干等，或者付出高昂带宽把在途大张量整段搬家拼合。
 3. **相同前缀被迫重复拷贝**：线上服务里成百上千条请求往往带着完全相同的长系统提示词（system prompt）或公共参考文档；每条请求独占一段连续缓冲区时，相同的开头只能在显存里复制几十份，白付成倍显存与重复的 Prefill 计算。
 
-操作系统几十年前解决进程内存碎片用的是同一把钥匙——**虚拟内存分页（Paging）**：程序自己看到的是从 `0` 开始连续增长的虚拟页，底层物理内存则切成等长的物理页框，靠一张页表做翻译。PagedAttention 把这套思想原封不动搬进了 HBM 显存池：
+先把这笔显存账想成现实里的住宿分配——**传统大包间酒店 vs 定长标准太空舱旅馆**：
+
+```wiki-diagram
+file: paged-attention-plate-hotel-scene
+```
+
+为什么右边这套旅馆方案能一口气治好三种浪费？因为它来自操作系统几十年前解决进程内存碎片的同一把钥匙——**虚拟内存分页（Paging）**：程序自己看到的是从 `0` 开始连续增长的虚拟页，底层物理内存则切成等长的物理页框，靠一张页表做翻译。PagedAttention 把这套思想原封不动搬进了 HBM 显存池：
 
 ```wiki-diagram
 file: paged-attention-plate-cutaway
@@ -122,7 +128,7 @@ $$N_{\text{blocks}}(L_{\text{seq}}) = \left\lceil \frac{L_{\text{seq}}}{B} \righ
 | **按需借出新块** | `allocate_slots` → `get_new_blocks` | `0 → 1` | 请求写满上一块越界时，从队头 `popleft_n` 取出所需块数；若原块带有旧前缀哈希，当场注销旧哈希并覆写新计算的 K、V |
 | **命中前缀共享** | `get_computed_blocks` + `allocate_slots` → `touch` | `0 → 1` 或 `k → k + 1` | [前缀缓存](prefix-caching.md)先由 `get_computed_blocks` 匹配到已写满的哈希块，再在 `allocate_slots` 实际分配时调 `touch`（若 `ref_cnt == 0` 先从空闲队列摘出，再累加引用计数），HBM 零拷贝 |
 | **归还未哈希块** | `free` → `free_blocks`（无哈希） | `1 → 0` | 未写满的尾块或关闭前缀缓存时的块归零后，用 `prepend_n` 插回**队头（LIFO）**优先复用，HBM 旧数据原地保留不擦除 |
-| **归还已哈希满块** | `free` → `free_blocks`（带哈希） | `k → k - 1`（至 `0` 入队） | 仍有其他请求共指（`ref_cnt > 0`）时仅减计数；减至 `0` 后用 `append_n` 挂入**队尾（FIFO / LRU）**保留哈希，等后续请求命中或队头耗尽时再淘汰 |
+| **归还已哈希满块** | `free` → `free_blocks`（带哈希） | `k → k - 1`（至 `0` 入队） | 仍有其他请求共指（`ref_cnt > 0`）时仅减计数；减至 `0` 后用 `append_n` 挂入**队尾（按先进先出 FIFO / 最近最少使用 LRU 顺序等待复用或淘汰）**保留哈希，等后续请求命中或队头耗尽时再淘汰 |
 
 理解这张状态表能打通两个关键工程细节：
 
@@ -179,8 +185,8 @@ $$n_{\text{kv,local}} = \max\!\left(1,\, \frac{n_{\text{kv}}}{T}\right), \qquad 
 | 启动配置场景 | `v0.30.0` 生效块长 | 触发条件与运行时行为 |
 | --- | --- | --- |
 | **默认不传 `--block-size`**（BF16 / FP16 / C8 INT8） | **`128`** | `refresh_block_size` 与 `AscendAttentionBackend` 首选块长一致落定 `128`；若启用 `C8 INT8` 还会额外校验 `block_size % 32 == 0` |
-| **显式传 `--block-size 16 / 32 / 64`**（常规模型） | **默认打印 info 日志并改回 `128`** | 只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 任一开启（V1 默认双开），即打印 `logger.info` 提示并强制重置为 `128`；开启 `xlite` 图模式且 `> 128` 时也会钳回 `128` |
-| **开启 `--kv-cache-dtype mxfp8`**（`C8_MXFP`） | **`512`（或其整数倍）** | QFA 内核要求整 `512`-token 块（`A5_C8_MXFP_KV_CACHE_BLOCK_SIZE = 512`）：未传 `--block-size` 时自动抬升为 `512`；显式错传非 `512` 倍数直接抛 `ValueError` |
+| **显式传 `--block-size 16 / 32 / 64`**（常规模型） | **默认打印 info 日志并改回 `128`** | 只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 任一开启（V1 默认双开），即打印 `logger.info` 提示并强制重置为 `128`；开启 `xlite`（轻量融合图加速模式）且 `> 128` 时也会钳回 `128` |
+| **开启 `--kv-cache-dtype mxfp8`**（`C8_MXFP`） | **`512`（或其整数倍）** | 昇腾量化融合注意力内核 QFA（Quantized FlashAttention）要求整 `512`-token 块（`A5_C8_MXFP_KV_CACHE_BLOCK_SIZE = 512`）：未传 `--block-size` 时自动抬升为 `512`；显式错传非 `512` 倍数直接抛 `ValueError` |
 | **特殊模型与混合架构**（`deepseek_v4` / Attention+Mamba） | **按模型规则对齐** | `deepseek_v4` 限定 `{32, 64, 128}`（越界告警改回 `32`）；Attention+Mamba 混合模型跳过通用 `128` 覆盖，交由多缓存组对齐逻辑处理 |
 
 块池分配好整数块号后，每层 HBM 缓存张量默认按 `(2, num_blocks, block_size, num_kv_heads, head_size)` 排布。将环境变量 `VLLM_KV_CACHE_LAYOUT` 设为 `LBHNC` 或 `HND` 时，轴顺序切为 `(2, num_blocks, num_kv_heads, block_size, head_size)`。

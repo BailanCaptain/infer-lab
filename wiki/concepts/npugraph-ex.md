@@ -34,6 +34,8 @@ aliases:
   - 编译缓存
   - TORCH_TRACE
   - tlparse
+  - FX 图融合
+  - Graph Engine
 chapters:
   - '16'
 order: 50
@@ -165,15 +167,15 @@ relations:
   - to: ops-and-kernels
     kind: builds-on
     note: 先分清算子接口和真正执行的 kernel，再看融合换掉了什么
+  - to: ascend-config-system
+    kind: builds-on
+    note: enable_npugraph_ex、static kernel 与 super kernel 三级开关统一由 ascend_compilation_config 配置与门控
   - to: graph-mode-layer
     kind: builds-on
     note: 编译改「算什么」，捕获回放改「怎么提交」，两层的先后在那页
   - to: acl-graph
     kind: builds-on
-    note: 分档捕获与回放条件的唯一出处
-  - to: concurrent-requests
-    kind: builds-on
-    note: B4 的图尺寸补齐、DP 对齐与空闲组陪跑都在那页算
+    note: 编译图融合位于 ACLGraph 分档捕获之前，且仅在 FULL / FULL_DECODE_ONLY 纯整图档位保持开启
   - to: mlp-residual-norm
     kind: builds-on
     note: 融合规则里最常命中的那一对，先理解残差加与归一化的数据依赖
@@ -191,7 +193,7 @@ rawSources:
 
 ## 两步计算能不能合着做，再反复用？
 
-**编译图融合，是在编译阶段把计算图里符合规则的相邻几步，整段换成一个融合实现，为减少中间结果写出再读回提供机会。** 具体能省掉哪些读写，取决于融合实现内部怎样存储和传递数据。编译器眼里的「图」，是一个个算子（一次矩阵乘、一次归一化这样的操作）加上它们之间的输入输出依赖；npugraph_ex 是昇腾默认接上的外部编译后端，这类改写由它或本地规则来做。
+**编译图融合，是在编译阶段把计算图里符合规则的相邻几步，整段换成一个融合实现，为减少中间结果写出再读回提供机会。** 具体能省掉哪些读写，取决于融合实现内部怎样存储和传递数据。编译器眼里的「图」，是一个个算子（一次矩阵乘、一次归一化这样的操作）加上它们之间的输入输出依赖；`npugraph_ex` 是昇腾基于 PyTorch **FX** 计算图与 **GE**（Graph Engine，昇腾图引擎）扩展接口默认接上的外部编译后端，这类改写由它或本地规则来做。
 
 这会增加启动时识别规则、编译和保存产物的工作；改写后的数值也要按容差验证。能否省回这些成本，取决于后面多少次计算能用上它。
 

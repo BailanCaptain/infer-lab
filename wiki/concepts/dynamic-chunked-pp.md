@@ -9,11 +9,16 @@ summary: >-
   格的账、二次曲线反解、开机试跑与时间账，以及 GLM 双机 PP=1 开不了的边界。
 aliases:
   - 动态分块流水线并行
+  - Dynamic Chunked PP
   - ProfilingChunkScheduler
+  - ProfilingChunkAsyncScheduler
   - ChunkSizePredictor
   - ProfilingChunkManager
   - profile_prefill_latency
+  - profiling_chunk_config
+  - nnls
   - 动态分块 PP
+  - 动态切块
   - 等耗时切块
 chapters:
   - '13'
@@ -99,14 +104,14 @@ relations:
   - to: pipeline-parallel
     kind: builds-on
     note: 理解分段执行和流水线空闲
-  - to: profiling-chunk-config
-    kind: builds-on
-    note: 查阅字段及各版本定义
+  - to: pipeline-parallel
+    kind: variant-of
+    note: 面向多段 PP 的动态等耗时切块变体，利用开机试跑与在线校准二次曲线反推每块长度，消除等长分块引发的流水线后段气泡
   - to: chunked-prefill
     kind: variant-of
     note: 动态分块流水线是用于 PP 部署的 prefill 分块变体，在普通 token 预算约束内，按已算进度和预计耗时进一步缩小块大小。
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

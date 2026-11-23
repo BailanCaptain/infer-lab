@@ -26,6 +26,8 @@ aliases:
   - wait_for_completion
   - LLM.collective_rpc
   - LLM.apply_model
+  - ZMQ 通道
+  - RPC 超时
 chapters:
   - 09
 order: 10
@@ -224,24 +226,21 @@ relations:
   - to: learning-guide
     kind: builds-on
     note: 阅读指南给出五页主线的顺序，本页把七站对回代码
-  - to: one-request
+  - to: request-overview
     kind: builds-on
-    note: 七站的站名和编号沿用那一页；每一站上的形状、字节、通信次数和块数都在那一页，本页只讲代码走哪条路
+    note: 先建立单条请求从入口到输出的全景框架，再沿本页把七站落到具体进程、通道与函数
+  - to: vllm-v1-shape
+    kind: builds-on
+    note: 先理解前端、EngineCore、Worker 三类角色的两道边界，再展开每道边界的具体 RPC 与函数调用链
   - to: engine-processes
     kind: builds-on
     note: 进程是怎样被拉起来的、每种进程里还有哪些对象，在那一页展开；本页只用到「谁在哪个进程里」
-  - to: npu-model-runner
+  - to: npu-worker-lifecycle
     kind: builds-on
-    note: 第 3 到第 5 站的大部分函数都在 model_runner_v1.py 这一个文件里，那一页讲这个文件怎么分区
-  - to: model-runner-v2
-    kind: builds-on
-    note: v0.30.0 默认仍走 MRV1、main 收口为 MRV2 唯一路径，第 3 到第 5 站的 V2 常驻设备缓冲与执行栈在那页展开
+    note: 第 3 到第 5 站跑在每张卡的 NPUWorker 内，先看清 Worker 启动如何备好权重、通信域与 KV 池
   - to: async-scheduling
     kind: builds-on
     note: 官方部署默认开着异步调度，EngineCore 因此走带批次队列的那条循环；占位 token 的记账规则在那一页
-  - to: reading-vllm-ascend
-    kind: builds-on
-    note: 本页给出一条请求沿途的入口函数，那一页讲整个仓库的目录怎么分工
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
 origin: direct
@@ -287,7 +286,7 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 图上的连线分四种。前两种按先后顺序把请求和结果从一个进程送到下一个进程；后两种是几个进程同时参与的集合通信，按固定的节奏发生，R1 的每一步都会用到其中一部分。
 
-**ZMQ：API server 和每个 EngineCore 之间。** ZMQ 是在进程间收发消息的库，本机与跨机都能用。API server 开一发一收两个口子，两个 EngineCore 通过 node0 的 TCP 端口连入，消息用 msgpack 打包。EngineCore 另有两个后台**线程**专管收发：收线程把解码后的请求放进进程内队列，发线程从另一队列取出结果回传；主线程只跑不停转圈的**忙循环**——取新请求、跑一步、放结果。
+**ZMQ：API server 和每个 EngineCore 之间。** ZMQ（ZeroMQ，轻量级进程间消息传输库）支持本机 IPC（同机进程间通信）与跨机 TCP。API server 开一发一收两个口子，两个 EngineCore 通过 node0 的 TCP 端口连入，消息用 msgpack（紧凑二进制序列化格式）打包。EngineCore 另有两个后台**线程**专管收发：收线程把解码后的请求放进进程内队列，发线程从另一队列取出结果回传；主线程只跑不停转圈的**忙循环**——取新请求、跑一步、放结果。
 
 **共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同机进程都能读写的内存，传数据不经过网络。EngineCore 里的 `MultiprocExecutor` 管理本机 8 个 worker：把「要执行的函数名和参数」写进广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条响应队列；本页生成内部调用指定第 0 号 worker（TP 组内编号 0）回复，执行器只读它的那一条（公开 Python RPC 默认收各 Worker 结果）。
 
@@ -302,7 +301,7 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 让另一个进程执行某个函数、再把返回值送回来，叫**远程过程调用**（RPC）。生成循环每转一圈（一步），EngineCore 都要对本机 8 个 worker 发两次 RPC：
 
 1. `execute_model`：把调度结果 `SchedulerOutput`（哪些请求、各算几个 token、新分哪些块）送过去，worker 做第 3 站和第 4 站，算到需要出 token 那几行的词表分数（logits）。logits 暂存在 worker 的 `ExecuteModelState` 中，这次调用返回空值。
-2. `sample_tokens`：worker 取出 logits 做第 5 站，采样选出新 token，再让 MTP 草稿层猜候选。这次调用返回 `ModelRunnerOutput`，装入每个请求本步新得的 token 编号。
+2. `sample_tokens`：worker 取出 logits 做第 5 站，采样选出新 token，再让 MTP（多 token 预测，投机解码草稿头）猜候选。这次调用返回 `ModelRunnerOutput`，装入每个请求本步新得的 token 编号。
 
 拆成两次以后，EngineCore 可以趁 worker 做前向的时候算一张结构化输出要用的表（结构化输出限定模型只能生成合法 JSON 这类格式，这张表写明下一个 token 允许是哪些），随第二次调用一起送过去，见[结构化输出](structured-output.md)。
 
@@ -351,7 +350,7 @@ file: request-call-chain-functions
 
 **④ 把结果暂存在 worker，⑤再消费它。** 前向上下文保存本步宽度和 MoE 通信方式，供模型各层读取。主干的 attention 按层型进入 KDA 或稀疏 MLA，随后前馈进入稠密 MLP 或 MoE；MoE 经 prepare / finalize 派发和收回 token。前向结束后，词表分数留在 ExecuteModelState，等第二次 RPC 取用；MoE 的版本文件差异见页末。
 
-**⑤交回确定的 token，并为下一步留下候选。** 采样器执行普通采样或验证候选，整理实际产出后，草稿器再生成下一步候选。GLM 草拟固定走 eager，具体迭代见[一条请求](one-request.md)第 5 站。ModelRunnerOutput 经第 0 号 worker 的响应队列交回 EngineCore；异步调度还要等待 NPU 结果拷回 CPU。
+**⑤交回确定的 token，并为下一步留下候选。** 采样器执行普通采样或验证候选，整理实际产出后，草稿器再生成下一步候选。GLM 草拟固定走 eager（逐算子即时执行，不录制静态图），具体迭代见[一条请求](one-request.md)第 5 站。ModelRunnerOutput 经第 0 号 worker 的响应队列交回 EngineCore；异步调度还要等待 NPU 结果拷回 CPU。
 
 **⑥的向上箭头延续生成，向下箭头持续返回。** 结果更新按拒绝数修正进度，再追加 token、检查停止条件。结束时归还块号，完成的请求 ID 随下一份清单通知 worker 清理。每步结果都经 ZMQ 发回前端。
 
@@ -433,7 +432,7 @@ file: request-call-chain-fig-log-landmarks
 
 **卡住不动怎么判断。** 本页 GLM 配方给两次 RPC 各设 3000 秒等待预算；超时只说明 worker 没在限时内回话。先查同一步各卡最后完成了什么：若仍在计算，继续查前向耗时；若部分卡已进入集合通信，另一些还未到达，就沿未到达的卡往前查。通信要组内成员到齐才结束：机内是 8 张，MoE 是全部 16 张。一张卡故障会让其余卡一起等，因此要将 16 个 worker 的日志按时间对齐，并核对两机时钟；缺少某张卡的记录时先补齐，不能把最后报超时的卡当根因。上游定义默认、Ascend 改写与通信库等待的区别见页末。
 
-**图模式下怎样定位算子。** 先看 plog（CANN 的运行日志）；若要用同步调试，让每个算子提交后立刻等待完成，就须先关闭 ACL Graph，此时第 4 站改走 eager。开关和日志目录见页末。
+**图模式下怎样定位算子。** 先看 plog（CANN 的运行日志）；若要用同步调试，让每个算子提交后立刻等待完成，就须先关闭 ACL Graph（昇腾静态计算图录制与回放模式），此时第 4 站改走 eager。开关和日志目录见页末。
 
 ## 常见误解
 

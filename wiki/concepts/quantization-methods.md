@@ -46,6 +46,11 @@ aliases:
   - Quark
   - TorchAO
   - quantization_config
+  - LLM-Compressor
+  - compressed-tensors
+  - AutoAWQ
+  - GPTQModel
+  - MindIE
 chapters:
   - '11'
   - '19'
@@ -145,6 +150,9 @@ relations:
   - to: low-precision-formats
     kind: builds-on
     note: 方法名不指定全部数值编码；FP8、FP4 与分组缩放由格式页解释
+  - to: tensor-layout
+    kind: builds-on
+    note: 离线方法产出的打包权重在加载后还须按算子要求转置与转换 ND/NZ 分块排布
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc

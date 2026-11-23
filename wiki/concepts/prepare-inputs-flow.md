@@ -89,18 +89,21 @@ verified:
   - main
 evidence: C
 relations:
-  - to: vllm-scheduler
+  - to: continuous-batching
     kind: builds-on
-    note: 调度器决定每步算哪些请求、各几个 token、借哪些块；本页从它交出的计划接着往下翻译
+    note: 连续批处理在同一轮里混排不同长度的 prefill 与 decode 请求，因此必须首尾相接拍平并配身份表
+  - to: paged-attention
+    kind: builds-on
+    note: 分页注意力按块存历史 KV，本页的 slot_mapping 正是把位置翻译成缓存池里的物理槽位号
   - to: block-table
     kind: builds-on
     note: 位置怎样经块表换成槽位、GLM 的 5 张块表各怎样用，推导在块表页
-  - to: attention-backend-family
+  - to: chunked-prefill
     kind: builds-on
-    note: 注意力元数据交给哪个后端、层怎样按后端和缓存规格分组
-  - to: concurrent-requests
+    note: 长提示词分块送入时只保留未完请求的 KV 并丢弃中间采样，决定选行与形态标签
+  - to: request-call-chain
     kind: builds-on
-    note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账
+    note: 准备输入对应请求调用链第 3 站，承接 EngineCore 下发的差量 SchedulerOutput 计划
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -247,7 +250,7 @@ A、C 那一步里 A 有历史、C 本步 3 个 token，前三条都不满足，
 
 边界、长度、请求数、token 数这些全局批次信息对所有层都一样，model runner 先造一份公共底稿（`AscendCommonAttentionMetadata`）。在 `Qwen3-8B` 上只有一个缓存组，直接产出全 36 层共用的 1 份 `AscendMetadata`；在多缓存组异构模型上，model runner 对每个缓存组复制底稿、换上该组块表与槽位，再交给对应后端的元数据构建器整理成算子张量格式。
 
-下面这张双轨流水与张量格图展示整段 Host → Device 打包（层分组方式见[注意力后端](attention-backend-family.md#runner-怎样把层归拢成组)）。上半看非阻塞块表 H2D 如何与 CPU 展平重叠并汇入 NPU 槽位核；下半直观对比补齐行在 `slot_mapping`、常规/SFA 边界与 KDA 边界里的真实格值：
+下面这张双轨流水与张量格图展示整段 Host → Device 打包（层分组方式见[注意力后端](attention-backend-family.md#runner-怎样把层归拢成组)）。上半看非阻塞块表 **H2D**（Host-to-Device，主机内存拷往设备显存）如何与 CPU 展平重叠并汇入 NPU 槽位核；下半直观对比补齐行在 `slot_mapping`、常规/**SFA**（Sparse Flash Attention，稀疏闪电注意力）边界与 KDA 边界里的真实格值：
 
 ```wiki-diagram
 file: prepare-inputs-flow-fig-h2d-packing

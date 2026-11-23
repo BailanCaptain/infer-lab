@@ -13,6 +13,11 @@ aliases:
   - sleep_mode
   - enable_sleep_mode
   - '--enable-sleep-mode'
+  - Level 1
+  - Level 2
+  - wake_up
+  - is_sleeping
+  - camem
 chapters:
   - '19'
 order: 60
@@ -97,14 +102,20 @@ relations:
   - to: request-call-chain
     kind: builds-on
     note: Sleep Mode 从请求调度转入 Worker 控制调用，主线页解释这些进程怎样连接
+  - to: device-memory
+    kind: builds-on
+    note: 睡眠释放的是专用池中的物理显存，池外常驻显存与板级空载基线归类见该页
   - to: enable-sleep-mode-extra-cleanup
     kind: builds-on
     note: 理解池外显存为何仍驻留需对照清理开关页；睡眠级别与恢复顺序在本页，额外清理代价及配置迁移在参数页
   - to: glm-5-3-flash-two-node
     kind: builds-on
     note: 固定双机部署未开 Sleep Mode，卡的分工与显存预算仍以部署页为准
+  - to: rfork
+    kind: conflicts-with
+    note: 启用 enable_sleep_mode 时，RFork 可变权重安全检查返回 "sleep mode" 并自动回退默认加载器
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -117,7 +128,7 @@ rawSources:
 
 ## 推理暂时不用卡时，能把显存让出来吗？
 
-**Sleep Mode（睡眠模式）让推理引擎保留进程，却暂时释放所管理的一部分显存，等需要生成时再恢复。** 权重是模型学到的参数；KV cache 是为了接着生成而保存的历史计算结果。睡眠时，权重可以先搬到 CPU 内存，也可以丢弃等以后重载；旧 KV cache 则直接丢弃。
+**Sleep Mode（睡眠模式）让推理引擎保留进程，却暂时释放所管理的一部分显存，等需要生成时再通过 `wake_up` 恢复。** 权重是模型学到的参数；KV cache 是为了接着生成而保存的历史计算结果。它提供两档释放深度：**Level 1** 把权重先备份到 CPU 内存再释放设备显存（适合复用同一版权重快速唤醒），**Level 2** 直接丢弃权重（省去 CPU 备份，适合唤醒前由训练端重新写入新权重）；无论哪一档，旧 KV cache 都会直接丢弃。
 
 ```wiki-diagram
 file: sleep-mode-intuition
@@ -190,7 +201,7 @@ file: sleep-mode-fig-levels-and-wakeup
 
 在单卡 `Ascend 910B3`（`v0.30.0`，完整实测档案见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）上对 `Qwen3-8B`（`BF16`）执行 Sleep Mode 对照实测，验证了配置守卫、唤醒速度、板级显存口径与 `RFork` 交互四项关键事实：
 
-1. **为什么默认 `weight_nz_mode=1` 下 BF16 权重并未转 `NZ`，`wake_up()` 却仍报错？** 在非 310P 设备上，`utils.py` 规定普通 `BF16 / FP16` 权重仅当 `weight_nz_mode == 2` 时才转换为 `FRACTAL_NZ`（默认 `1` 只转量化权重，因此 `Qwen3-8B` 的 BF16 权重本来就保持 `ND` 布局）；但 `worker.py` 的 `wake_up()` 守卫直接检查配置项 `if nz_mode:`，只要非零即抛出 `ValueError: FRACTAL_NZ mode is enabled...`（未改配置组实测 `level 1` 耗时 `16.593 s`、释放 `48.37 GiB`、Worker 侧报剩余 `3.02 GiB`，但在唤醒时被该守卫拦截）。因此这次报错不能反证 BF16 权重原本已转 `NZ`；对 BF16 模型显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 置 0 的 `rl_config`）不会带来在线算子布局损失，仅对真正依赖 `NZ` 的权重类型才会改变转换行为。
+1. **为什么默认 `weight_nz_mode=1` 下 BF16 权重并未转 `NZ`，`wake_up()` 却仍报错？** 在非 310P 设备上，`utils.py` 规定普通 `BF16 / FP16` 权重仅当 `weight_nz_mode == 2` 时才转换为 `FRACTAL_NZ`（默认 `1` 只转量化权重，因此 `Qwen3-8B` 的 BF16 权重本来就保持 `ND` 布局）。然而 `worker.py` 的 `wake_up()` 守卫直接检查配置项 `if nz_mode:`，只要非零即抛出 `ValueError: FRACTAL_NZ mode is enabled...`——未改配置组实测 `level 1` 耗时 `16.593 s`、释放 `48.37 GiB`、Worker 侧报剩余 `3.02 GiB`，但在唤醒时被该守卫拦截。因此这次报错不能反证 BF16 权重原本已转 `NZ`；对 BF16 模型显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 置 0 的 `rl_config`）不会带来在线算子布局损失，仅对真正依赖 `NZ` 的权重类型才会改变转换行为。
 2. **显式设 `weight_nz_mode=0` 后的五阶段实测账本**：
 
 | 实测检查点（单卡 `Qwen3-8B` BF16，`weight_nz_mode=0`） | `npu-smi` 板级 HBM 占用 | 扣除初始空载后进程净占 | 主机进程树 RSS | 耗时与输出校验 |
@@ -202,7 +213,7 @@ file: sleep-mode-fig-levels-and-wakeup
 | `4_sleeping_level2_discard_all`（`level 2` 睡后） | `6,210 MB`（`6.064 GiB`） | **`2.692 GiB`**（`+2,757 MB`） | `8.200 GiB` | `sleep(level=2)` **`4.334 s`**（仅测卸载，未测重载后生成） |
 
 两处数字边界必须看清：其一，**`2.482 s` 唤醒较 `95.830 s` 初始化快 `38.61×`**，比较的是“存活引擎从 CPU 拷回权重并重映射缓存池”与“从零冷启动完整初始化（含加载、试跑、编译与录图）”两个不同阶段；其二，`npu-smi` 从 `55,740 MB` 降到 `6,211 MB`（`6.065 GiB`）是板级总读数，其中包含建引擎前已占的 `3,453 MB` 空载基线，因此该推理进程睡后净留显存为 **`2.693 GiB`（`2,758 MB`）**——不能把全部 `6.065 GiB` 认作该进程的 CANN/HCCL 上下文，也不能直接推广为多卡每卡残留。
-3. **启用 Sleep Mode 时 `RFork` 自动回退默认加载**：`rfork/safety.py` 中的可变权重安全检查 `mutable_weights_bypass_reason()` 只要检测到 `enable_sleep_mode` 为真便返回 `"sleep mode"`，`rfork_loader.py` 随即打印告警并回退至默认模型加载器；即便把 `weight_nz_mode` 设为 `0`，也不会恢复 `RFork` 的权重共享传输。
+3. **启用 Sleep Mode 时 [RFork](rfork.md) 自动回退默认加载**：`rfork/safety.py` 中的可变权重安全检查 `mutable_weights_bypass_reason()` 只要检测到 `enable_sleep_mode` 为真便返回 `"sleep mode"`，`rfork_loader.py` 随即打印告警并回退至默认模型加载器；即便把 `weight_nz_mode` 设为 `0`，也不会恢复 `RFork` 的权重共享传输。
 
 ## GLM 双机中的一个 token 会遇到睡眠吗？
 
@@ -210,7 +221,7 @@ file: sleep-mode-fig-levels-and-wakeup
 
 跟着请求中的一个 token（文本切出的一个小片段）走：调度器把本轮工作交给 Worker，Worker 使用已加载权重与缓存算完并采样，下一轮继续使用这些资源。请求结束后可以回收请求占用的缓存块，但权重与缓存池仍供下一批请求使用。Sleep Mode 是外部控制动作，不能从“这一轮没请求”推导出它会触发。
 
-若要改成同卡训练，首先会撞上一个明确的启动条件：教程两机都设置了可扩展分配段，而睡眠专用池不兼容这个选项。只追加睡眠开关，会在创建分配器时触发断言。处理该冲突之后，还要配置兼容的权重布局、协调参与的引擎与 Worker，并保证睡眠和权重更新期间没有生成请求进入。
+若要改成同卡训练，首先会撞上一个明确的启动条件：教程两机都设置了可扩展分配段（`PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`），而睡眠专用池不兼容这个选项。只追加睡眠开关，会在创建分配器时触发断言。处理该冲突之后，还要配置兼容的权重布局、协调参与的引擎与 Worker，并保证睡眠和权重更新期间没有生成请求进入。
 
 双机分工与卡数以部署页为准；不能把一台机器当成可以单独休眠的完整模型。本部署的专家跨两机分布，若改成睡眠循环，需要整体协调参与的执行组。钉住的控制层有跨数据并行组的暂停共识和恢复同步；这说明状态切换需要协作，不构成该 GLM 配置已经通过睡眠恢复测试的证据。
 

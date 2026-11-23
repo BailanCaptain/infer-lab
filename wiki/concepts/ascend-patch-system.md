@@ -158,18 +158,15 @@ verified:
   - main
 evidence: C
 relations:
+  - to: engine-processes
+    kind: builds-on
+    note: 补丁只改当前进程内存里的模块符号表，fork 与 spawn 如何决定各进程何时重打见进程页
   - to: platform-plugin-registration
     kind: builds-on
     note: 插件怎样被发现、四个通用入口里哪三个先补 global patch，在那一页
-  - to: request-call-chain
-    kind: builds-on
-    note: 第 2 站调度器上被换过的五处，以及 traceback 里 patch 帧属于哪一站
   - to: npu-platform
     kind: builds-on
     note: 平台准备钩子 pre_register_and_update 属于 NPUPlatform
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 逻辑块 640 与 KDA 块 133120 的推导，由 patch 过的函数算出
   - to: balance-scheduling
     kind: builds-on
     note: 被 patch 换上的 BalanceScheduler 在本部署关着时做什么
@@ -205,7 +202,7 @@ file: patch-binding
 
 ## 为什么非打 patch 不可，代价在哪
 
-vLLM 给硬件厂商留了三类正式扩展点：平台插件接管设备探测、Worker 选择与注意力后端；`CustomOp` 允许插件按同名算子登记昇腾实现；模型注册表则将模型架构名映射到昇腾模型类。插件的发现、过滤与激活流程见[平台注册](platform-plugin-registration.md#发现过滤激活)。
+vLLM 给硬件厂商留了三类正式扩展点：平台插件接管设备探测、Worker 选择与注意力后端；`CustomOp`（自定义算子注册机制，见[自定义模型与算子](dev-new-model-and-custom-op.md)）允许插件按同名算子登记昇腾实现；模型注册表则将模型架构名映射到昇腾模型类。插件的发现、过滤与激活流程见[平台注册](platform-plugin-registration.md#发现过滤激活)。
 
 当上游尚未开放正式扩展点，或某个标准流程需要拦截内部工厂函数与配置校验时，`vllm-ascend` 只能借助 patch 直接替换符号或向内部登记表追加条目。以 `v0.30.0` 上运行常见模型（如 `Qwen3-8B` / `Qwen3-30B-A3B`）为例，四类接入机制分工如下：
 

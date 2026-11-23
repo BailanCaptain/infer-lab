@@ -7,7 +7,9 @@ evidence: C
 summary: >-
   STAIR 单层一轮规划里每张卡换入专家与充当搬运来源的次数上限（两方向分别计数），同时截断一轮副本数调整步数。v0.30.0 与 main 声明默认 -1（不限），合法值为 -1 或正整数；未显式指定通信器而自动回退 torch_gloo 时，未显式填写的限额会自动收紧为 1。
 aliases:
+  - stair_config.rank_transfer_limit
   - 每卡专家搬运上限
+  - 单卡专家搬运上限
   - STAIR rank transfer limit
 relations:
   - to: stair-config-cca9e594a052
@@ -98,7 +100,7 @@ rawSources:
 ---
 ## 它管什么，声明默认与 Gloo 回退收紧的区别？
 
-每次 EPLB 重排专家，都需要把整份专家权重在卡间拷贝；若多份搬运同时砸在一张卡上，这张卡的显存带宽和推理时延会被瞬间拖垮。`rank_transfer_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**单卡搬运限流阀**（`int`），控制单层一轮 STAIR 规划中**每张卡接收（换入）与发出（充当搬运来源）专家的各自次数上限**——两个方向分别计数，原来就在该卡上并被保留的专家计 `0` 次。
+每次 [EPLB（专家并行负载均衡）](../concepts/eplb.md)重排专家，都需要把整份专家权重在卡间拷贝；若多份搬运同时砸在一张卡上，这张卡的显存带宽和推理时延会被瞬间拖垮。`rank_transfer_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的**单卡搬运限流阀**（`int`），控制单层一轮 STAIR（[Model Runner V2](../concepts/model-runner-v2.md) 默认的动态 EPLB 规划算法）规划中**每张卡接收（换入）与发出（充当搬运来源）专家的各自次数上限**——两个方向分别计数，原来就在该卡上并被保留的专家计 `0` 次。
 
 它同时承担第二处作用——**前置截断增量副本挪动步数**：STAIR 搜出理想副本份数后，会从现状朝目标逐份挪动（每步给一个专家加 1 份、另一个减 1 份）。在 `v0.30.0` 与 `main` 上，挪动总步数截断在 $\min(\text{总槽位数} - \text{逻辑专家数},\ \text{卡数} \times \text{rank\_transfer\_limit})$；取 `-1` 时仅受总额外副本槽位数（$\text{总槽位数} - \text{逻辑专家数}$）限制（早期快照 `4d1412d1` 曾以总槽位数作 `-1` 时的上界）。
 
@@ -108,8 +110,8 @@ rawSources:
 | --- | --- | --- |
 | `v0.23.0` / `v0.26.0rc` / GLM `db701c1f` | 无此键 | 写入直接启动报错（见 [stair_config](stair-config-cca9e594a052.md)） |
 | 早期快照 `4d1412d1` | 声明默认 `1` | 引入初期默认每卡限 1 |
-| `v0.30.0` / `main`（显式指定 `communicator`，或 HIXL 共识成功） | 声明默认 `-1`（不限） | 显式指定 `communicator` 会跳过自动探查与收紧路径 |
-| `v0.30.0` / `main`（未指定 `communicator` 且回退 `torch_gloo`） | **未显式填写项自动收紧为 `1`** | 全组 HIXL 探查任一 rank 不可用或绑定类型不一致触发；用户显式写出的值（如 `-1` 或正整数）原样保留 |
+| `v0.30.0` / `main`（显式指定 `communicator`，或 HIXL 共识成功） | 声明默认 `-1`（不限） | HIXL 为昇腾跨卡高速传输引擎；显式指定 `communicator` 会跳过自动探查与收紧路径 |
+| `v0.30.0` / `main`（未指定 `communicator` 且回退 `torch_gloo`） | **未显式填写项自动收紧为 `1`** | 全组 HIXL 探查任一 rank 不可用或绑定类型不一致时回退 PyTorch `torch_gloo` 通信后端；用户显式写出的值（如 `-1` 或正整数）原样保留 |
 
 完整配置入口、合法取值与两处运行时约束如下：
 

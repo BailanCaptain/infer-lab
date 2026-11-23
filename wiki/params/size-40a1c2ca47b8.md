@@ -33,6 +33,15 @@ relations:
   - to: kvpp
     kind: builds-on
     note: 它是 KVPP 分层广播的除数，层归属、广播时机与实测收益都在那一页
+  - to: tensor-parallel
+    kind: builds-on
+    note: 开启 enable_kvpp 后 size 按 TP × PCP 自动派生，调大或调小 TP 会直接改变每卡常驻层数与容量放大上限
+  - to: context-parallel
+    kind: builds-on
+    note: 当 PCP > 1 时 size 等于 TP × PCP，v0.30.0 与 main 按 pcp_rank × TP + tp_rank 划分各卡层归属
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 各卡按本卡常驻层与 2 层 scratch 的每块物理字节数核算逻辑块上限，缓存规格换算见该页
 sources:
   - >-
     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L64
@@ -103,13 +112,13 @@ rawSources:
 ---
 ## size 是什么，由谁算出、为什么不能手写？
 
-本页说明的是 **`kvpp_config.size`**（`ascend_config.py` 中 `KVPPConfig` 类的唯一字段，与其他类的同名 `size` 无关）。多卡跑 MLA 模型时，同组卡原本各存一份相同的历史 KV cache；开启 [KVPP](../concepts/kvpp.md) 后，各层历史 KV 会平分到组内多张卡各自常驻，**`kvpp_config.size` 就是单个 PP stage 上参与平分层缓存的卡数**。
+本页说明的是 **`kvpp_config.size`**（`ascend_config.py` 中 `KVPPConfig` 类的唯一字段，与其他类的同名 `size` 无关）。多卡跑 MLA（多头潜在注意力）模型时，同组卡原本各存一份相同的历史 KV cache；开启 [KVPP](../concepts/kvpp.md) 后，各层历史 KV 会平分到组内多张卡各自常驻，**`kvpp_config.size` 就是单个 PP stage（流水线并行阶段）上参与平分层缓存的卡数**。
 
 它是整数类型、默认 `1`（表示每卡存全层、KVPP 关闭）。只有 `size > 1` 时才进入 KVPP 建组、校验和分配路径；所在类 `KVPPConfig` 声明为 `frozen=True`，运行时不可修改。
 
 用户**不能也不需要手写 `size`**：
 
-- 启动时只需通过 `additional_config` 里的 `enable_kvpp` 开关启用 KVPP（推荐用 JSON 布尔值 `true` / `false`，避免布尔解析歧义），`KVPPConfig.from_vllm_config()` 会在 `enable_kvpp` 为真时自动按 `tensor_parallel_size × prefill_context_parallel_size`（即 `TP × PCP`）派生 `size`。
+- 启动时只需通过 `additional_config` 里的 `enable_kvpp` 开关启用 KVPP（推荐用 JSON 布尔值 `true` / `false`，避免布尔解析歧义），`KVPPConfig.from_vllm_config()` 会在 `enable_kvpp` 为真时自动按 `tensor_parallel_size × prefill_context_parallel_size`（即 [TP](../concepts/tensor-parallel.md) × [PCP](../concepts/context-parallel.md)）派生 `size`。
 - 如果直接往 `additional_config` 塞 `{"kvpp_config": {"size": 4}}`，工厂函数在构造配置时会把它剔除，无法覆盖真实拓扑（入口规则见 [`kvpp_config`](kvpp-config-0445bd352140.md)）。它划分的是单个 DP 副本、单个 PP stage 内的 `TP × PCP` 复制域，不是 DP 数，也不是 PP stage 数。
 
 **版本存在范围**：`v0.23.0`、`v0.26.0rc`（以及 `v0.27.1rc` 与 GLM 固定镜像 `db701c1f`）均无 `KVPPConfig` 与 KVPP 实现，传入 `enable_kvpp` 会被静默忽略。`v0.28.0rc` / `v0.29.0rc`、`v0.30.0` 及 `main` 均保留 `KVPPConfig.size` 与 `TP × PCP` 派生规则，其中 `v0.30.0` 与 `main` 修正了 `PCP > 1` 时的 owner 编号算法，并将执行模式限制从早期 `main`（`baa023ad`）的仅 `enforce-eager` 放宽为 `enforce-eager` 或 `PIECEWISE`（仍要求 `DCP = 1`、模型为非 hybrid MLA，完整连接器与 MTP 约束见 [KVPP 配置页](kvpp-config-0445bd352140.md)）。

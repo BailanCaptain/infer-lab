@@ -10,6 +10,8 @@ aliases:
   - GLM 双机启动
   - 我们的部署
   - 两机十六卡部署
+  - TP8/DP2/EP16
+  - 2xA2x8
 chapters:
   - '13'
 order: 90
@@ -148,7 +150,7 @@ TP 的通信留在机内，EP 横跨两台机器。因此，MoE 的通信会过�
 
 | 参数是什么 | 取值 | 为什么这样取、会影响什么 |
 | --- | --- | --- |
-| 显存预算比例（`--gpu-memory-utilization`） | 0.85 | 把总显存的 85% 用作权重、激活峰值、非 torch 占用与 KV cache 的预算；其余 15% 留给切完 KV 后的录图等开销 |
+| 显存预算比例（`--gpu-memory-utilization`） | 0.85 | 把总显存的 85% 用作权重、激活峰值、非 torch 占用（CANN 运行时、HCCL 通信缓冲等不由 PyTorch 分配器统计的显存）与 KV cache 的预算；其余 15% 留给切完 KV 后的录图等开销 |
 | 每个 DP 执行组一步的 token 预算（`--max-num-batched-tokens`） | 8192 | 限制一步的计算量；先满足正在运行的请求，长提示词超过剩余预算时分步处理 |
 | 每个 DP 执行组一步的请求数上限（`--max-num-seqs`） | 32 | 限制批处理宽度；配合每请求 4 个 token 的 decode 步，最大图尺寸为 128；能否同时容纳这些请求还受 KV 容量限制 |
 | 单请求总长度上限（`--max-model-len`） | 133120 token | 按官方配方限制提示词与生成内容的总长度，并据此确定块表最大长度和 KDA 状态组的逻辑块长度 |
@@ -257,7 +259,7 @@ file: glm-5-3-flash-two-node-fig-weight-sharding
 
 **MTP 层放在哪里。** MTP 用来做 speculative decoding（先猜几个 token，再让主模型一次验证）。它是模型的第 45 层，自带独立的稀疏 MLA、索引器和 288 个路由专家，不和主干共用，并按同样方式摊到 16 张卡上。每张卡上包括 MLA 加索引器 37.25 MiB、18 个路由专家 432 MiB、共享专家 3 MiB、router gate 4.5 MiB，以及每卡整份的 `eh_proj` 64 MiB，合计 **540.75 MiB**。它没有 mHC 四路残差，也不自带输出投影——加载完成后它的输出头被换成主模型的 `lm_head`，所以那 151.25 MiB 不重复计。除了权重，它在 KV cache 里也占一层，这一点下一节再看。
 
-540.75 MiB 也是所列模块的小计：两份量化快照都开启 QuaRot，MTP 还会在每卡加载不切 TP 的 4096 × 4096 旋转矩阵。按 BF16 计算要另加 **32 MiB**，这项随权重加载，不能归入首次前向才产生的索引器副本。
+540.75 MiB 也是所列模块的小计：两份量化快照都开启 QuaRot（量化前对隐藏向量乘正交旋转矩阵以压平离群值的预处理），MTP 还会在每卡加载不切 TP 的 4096 × 4096 旋转矩阵。按 BF16 计算要另加 **32 MiB**，这项随权重加载，不能归入首次前向才产生的索引器副本。
 
 ### 量化版本和视觉塔怎样补进这份账
 
@@ -349,7 +351,7 @@ file: glm-two-node-card-budget
 file: glm-two-node-startup
 ```
 
-**第一步，起核心功能进程。** 机器 0 有三个角色：API server（接 HTTP、套聊天模板、分词）、DP 协调进程、EngineCore。本配方的 `--api-server-count 1` 让启动进程直接运行唯一的 API server。机器 1 用 headless 模式启动，不建 HTTP 前端；它派生一个 EngineCore，向机器 0 的握手端口报到，headless 启动父进程继续监控这个引擎。
+**第一步，起核心功能进程。** 机器 0 有三个角色：API server（接 HTTP、套聊天模板、分词）、DP 协调进程、EngineCore。本配方的 `--api-server-count 1` 让启动进程直接运行唯一的 API server。机器 1 用 headless（无前端）模式启动，不建 HTTP 前端；它派生一个 EngineCore，向机器 0 的握手端口报到，headless 启动父进程继续监控这个引擎。
 
 **第二步，每张卡一个 worker。** 每个 EngineCore 再派生出 8 个 worker，并建一条共享内存广播队列，一次性把本步工作发给它们。两台机器合计 16 个 worker。
 
@@ -400,9 +402,9 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 | **模型目录与缓存重构** | 单文件 `models/glm5_next.py` + `glm5_next_mtp.py` + `glm5_next_multimodal.py`；依赖 `patch/platform/` 改写块长与 5 组 KV | 重构为模块化目录 `models/glm5next/`（`model.py`、`attention.py`、`kda.py`、`mtp.py`、`cache_config.py`、`kv_cache.py`、`sparse_attn_indexer_kpool.py`、`ops/`）；尾状态改用每请求 1 格的环形缓冲规格 | 延续 `models/glm5next/`，新增 `kda_input_projection_tp.py`、`recoverssm_config.py`、`recoverssm_metadata.py` |
 | **KDA / MLA 投影融合** | KDA 经 `REGISTERED_ASCEND_OPS` 替换上游类，6 路输入投影独立执行；MLA 权重按旧镜像量化描述分派 | KDA 的 `q/k/v/b/f_a/g_a` 六路输入合并为单次列切融合投影 `in_proj_qkvbfg_a`（`f_a/g_a` 仍逐卡复制）；MLA 低秩输入改用 `DeepSeekV2FusedQkvAProjLinear`，且 `kv_b_proj` 显式设 `quant_config=None` 保持 BF16 | `in_proj_qkvbfg_a` 进一步支持细粒度 `qkv_iproj_tensor_parallel_size`（`KDAInputProjectionTP`） |
 | **A2 双机混部启动项与环境变量** | 2×A2×8、TP8/DP2/EP16、133120、32、8192、0.85、MTP 3、`FULL_DECODE_ONLY`（未显式写 Runner 版本与 prefetch） | 保留上述 A2 双机混部核心参数；**显式设置 `VLLM_USE_V2_MODEL_RUNNER=0`**（当时仅支持 Model Runner V1），新增 `--safetensors-load-strategy prefetch`，并显式列出 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`、`HCCL_OP_EXPANSION_MODE=AIV`、`HCCL_BUFFSIZE=1024`、`VLLM_RPC_TIMEOUT=3600000`、`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000`、`HCCL_EXEC_TIMEOUT=3600`、`HCCL_CONNECT_TIMEOUT=1200` 与网卡环境变量 | 同组 A2 双机脚本保留核心参数与超时变量，但 **全面切换至 Model Runner V2（`VLLM_USE_V2_MODEL_RUNNER=1`）** |
-| **硬件覆盖与 PD / KV Pool 形态** | 仅覆盖 A2 双机混部 W8A8 | 扩展 **A3 单机（16 逻辑卡）** 与 **950DT 单机（`GLM-5.3-Flash-w8a8-mxfp8`）**；支持 **W8A8C8 动态 KV 量化**（A3 用 `--kv-cache-dtype int8`、950DT 用 `--kv-cache-dtype fp8`）；新增 4 机 A2 / 2 机 A3 / 2 机 950DT 的 **1P1D PD 分离** 与 DDR KV Cache Pool（`MultiConnector` = `MooncakeConnectorV2` + `AscendStoreConnector`，强制 `use_layerwise: false`、自动设 `--mamba-cache-mode align`） | A3 PD 进一步升级为 Prefill **`PCP8/TP1`** + `--mamba-ssm-cache-dtype bfloat16` + `enable_fused_mc2: 2` + `--enable-eplb`（Decode 保持 `PCP1`）；950DT 与 A2 同步收敛到 MRV2 |
+| **硬件覆盖与 PD / KV Pool 形态** | 仅覆盖 A2 双机混部 W8A8 | 扩展 **A3 单机（16 逻辑卡）** 与 **950DT 单机（`GLM-5.3-Flash-w8a8-mxfp8`）**；支持 **W8A8C8 动态 KV 量化**（A3 用 `--kv-cache-dtype int8`、950DT 用 `--kv-cache-dtype fp8`）；新增 4 机 A2 / 2 机 A3 / 2 机 950DT 的 **1P1D PD 分离** 与宿主机 DDR [KV Cache Pool](kv-pool.md)（`MultiConnector` = `MooncakeConnectorV2` + `AscendStoreConnector`，强制 `use_layerwise: false`、自动设 `--mamba-cache-mode align`） | A3 PD 进一步升级为 Prefill **`PCP8/TP1`** + `--mamba-ssm-cache-dtype bfloat16` + `enable_fused_mc2: 2` + `--enable-eplb`（Decode 保持 `PCP1`）；950DT 与 A2 同步收敛到 MRV2 |
 
-因此，阅读站内「09 旗舰异构模型全案」与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准。若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，则必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
+因此，阅读站内「09 旗舰异构模型全案」与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准。若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，则必须先核对 [v0.30.0 正式版升级与避坑清单](v030-release-baseline.md)，并以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile（假数据试跑测得的峰值显存）重新核定 KV 块数。
 
 ## 对照源码
 

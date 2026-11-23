@@ -26,7 +26,7 @@
 - [新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径](concepts/dev-new-model-and-custom-op.md) — 串通新 HuggingFace 模型接入 vLLM Ascend 的架构注册、WeightsMapper、@register_scheme 量化注册与 OOT 分发，对比 torch_npu、AscendC 与 Triton-Ascend 三条算子路径及 950/310P 能力门控。 `16 20`
 - [主机内存与显存：数据现在放在哪](concepts/device-memory.md) — CPU 一侧的主机内存和 NPU 一侧的设备内存要分别计算。模型能放进主机，不代表设备有足够空间直接执行。 `07 09`
 - [DP 请求路由：新请求派给哪一个 DP 组](concepts/dp-request-routing.md) — 开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。 `13`
-- [Embedding：按编号查表取出 token 的向量](concepts/embedding.md) — Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机，看 8 张卡怎样分着查同一张表。 `01`
+- [Embedding：按编号查表取出 token 的向量](concepts/embedding.md) — Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和，随后落到标准主基线 Qwen3-8B（TP2）与 GLM 双机 8 卡分表实战。 `01`
 - [引擎有哪几个进程：API server、EngineCore 与 Worker](concepts/engine-processes.md) — vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker 执行设备上的模型；客户端模式与 executor（执行器）决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存均按进程隔离管理。 `10`
 - [Engram 条件记忆：N-gram 哈希查表与 Host DRAM / RDMA 共享](concepts/engram-conditional-memory.md) — Engram 是模型自带的只读条件记忆表：按相邻短 token 序列的 N-gram 哈希稀疏查表，反量化后经门控融入残差流。因整表体积可达数百 GiB 且每步仅随机读取命中行，昇腾推理将其卸载到 Host DRAM（经 ACL 钉页直读与 POSIX 机内共享）或跨实例 MemFabric / HIXL 共享池，把宝贵的 NPU HBM 留给权重主干与动态 KV cache。 `07`
 - [认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来](concepts/glm-5-3-flash.md) — GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余 42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。 `00`
@@ -49,7 +49,7 @@
 - [KDA：用一个固定大小的状态代替逐位置历史](concepts/linear-attention.md) — linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta 规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与 decode 两条执行路径差在哪。 `04`
 - [lm_head：把最后的隐藏向量变成每个 token 的分数](concepts/lm-head.md) — lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照 GLM 双机 TP8 与 MTP 共享输出头。 `03`
 - [BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样](concepts/low-precision-formats.md) — 从 FP32、FP16、BF16 与 INT8 出发，拆解 FP8、HiF8、NF4、MXFP8、MXFP4 与 NVFP4 的位域分配和块级缩放；区分权重文件精度、加载后 HBM 驻留格式与 Cube 实际计算类型，对照 vllm-ascend v0.30.0 下 A2/A3、310P 与 Ascend 950 的四族选路边界。 `04`
-- [矩阵乘与权重：从输入向量到输出表示](concepts/matmul-and-weights.md) — 权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数怎么算、一批 token 怎么一起算，再分清参数量、计算量、容量与访存，最后落到 GLM 双机的前馈投影与 MoE 边界。 `02`
+- [矩阵乘与权重：从输入向量到输出表示](concepts/matmul-and-weights.md) — 权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数与一批 token 怎么算，再分清参数量、计算量、容量与访存，最后落到标准 Qwen3-8B 单层七投影与 GLM 双机 MoE 边界。 `02`
 - [MLA：历史压成一条潜向量，用时再展开](concepts/mla.md) — MLA（Multi-head Latent Attention）把每个位置给所有头用的 K/V 压成一条共用的潜向量存进 KV cache，读取时由各头的上投影展开，或把展开吸收进查询和输出投影；GLM-5.3-Flash 的稀疏 MLA 每位置只存 512 维潜向量、不带 RoPE 段，读哪些位置由 indexer 另行决定，主缓存、indexer 缓存与计算开销分别计量。 `04`
 - [MLP、residual 与 RMSNorm：一个子层怎样更新 hidden](concepts/mlp-residual-norm.md) — 以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准 Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与历史 GLM 四流 mHC。 `03`
 - [Model Runner V2：常驻设备缓冲、异步调度与从可选到统一的执行引擎演进](concepts/model-runner-v2.md) — 解析 vLLM Ascend 从单文件 Model Runner V1 演进到模块化 Model Runner V2 的核心动因，拆解常驻设备侧缓冲 AscendInputBuffers、UVA 请求状态、异步调度兼容性、PCP 与 EPLB V2 集成边界，以及 v0.30.0 显式开关到 main 彻底统一的版本切换路径。 `10`

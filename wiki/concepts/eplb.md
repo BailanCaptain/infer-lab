@@ -9,8 +9,18 @@ aliases:
   - EPLB
   - Expert Parallelism Load Balancer
   - 专家负载均衡
+  - 在线重均衡
+  - 热专家
   - dynamic_eplb
+  - DYNAMIC_EPLB
+  - STAIR EPLB
+  - 阶梯式重均衡
+  - SwiftBalanceEplb
+  - FlashLB
+  - expert_map
   - log2phy
+  - num_redundant_experts
+  - load_collection_phase
   - 冗余专家
 chapters:
   - '14'
@@ -125,17 +135,26 @@ verified:
   - main
 evidence: C
 relations:
-  - to: expert-parallel
-    kind: builds-on
-    note: 理解专家权重如何分配到设备
   - to: moe
     kind: builds-on
-    note: 理解逻辑路由和专家函数
+    note: 理解逻辑路由、专家函数与训练期静态均衡偏置的局限
   - to: collective-communication
     kind: builds-on
-    note: 理解专家激活和权重搬运的不同通信
+    note: 理解热度统计 All-Gather 与专家权重跨卡搬运的不同通信路径
+  - to: cann-hccl
+    kind: builds-on
+    note: MRV1 走独立 dynamic_eplb HCCL 组逐层异步搬运，MRV2 STAIR 初始化协商全组 HIXL 绑定一致性或回退 Gloo
+  - to: expert-parallel
+    kind: builds-on
+    note: 理解专家权重如何按 EP 分配到设备以及热点专家拖尾的原因
+  - to: large-scale-ep
+    kind: builds-on
+    note: 大规模 EP 将专家摊到几十张卡后每卡仅剩极少专家，冷热对冲减弱、热点失衡显著放大
+  - to: balance-scheduling
+    kind: alternative-to
+    note: Balance Scheduling 在 DP 组准入层按 running 条数节流以防请求失衡；EPLB 则在 MoE 专家层按实测 token–expert 热度重排权重与副本位置，两者作用于不同粒度
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -278,9 +297,9 @@ file: eplb-fig-mrv1-vs-mrv2-stair
 
 **边界与例外：`v0.30.0` 双轨并存与 `main` 收敛至 MRV2。**
 
-- **MRV1 路线（上文三段计数器）**：由 `DYNAMIC_EPLB=true` 与三段计数器（600 / 50 / L）驱动，通过独立 `dynamic_eplb` 组逐层搬运。
-- **`v0.30.0` 主基线（MRV1 与 MRV2 互斥双轨并存）**：MRV2 改由上游 `--enable-eplb` 与 `AscendEPLBController` 驱动。平台补丁把默认策略切为 `stair`（指南默认 `window_size=1000`、`step_interval=3000`、`use_async=true`）。该路线支持 `load_collection_phase` 阶段过滤，且草稿模型不再随目标模型自动注册。
-- **MRV2 HIXL 一致性协商**：初始化阶段全组检查 HIXL binding 是否一致；若任意 rank 不一致，全组回退至 Gloo，并将未显式设定的 STAIR 搬运限额收紧为 1。
+- **MRV1 路线（上文三段计数器）**：由 `DYNAMIC_EPLB=true` 与固定短周期三段计数器（`600` 步收集 / `50` 步 CPU 规划 / `L` 步逐层迁移）驱动，通过独立 `dynamic_eplb` HCCL 组搬运；一旦单轮重排幅度大，步末等待权重传完就可能放大推理毛刺。
+- **`v0.30.0` 主基线（MRV1 与 MRV2 互斥双轨并存）**：MRV2 改由上游 `--enable-eplb` 与 `AscendEPLBController` 驱动。平台补丁把默认策略切为 **`stair`（阶梯式渐进重均衡）**（指南默认 `window_size=1000`、`step_interval=3000`、`use_async=true`）：用更长的滑动窗口过滤瞬时抖动，按单轮限额渐进搬移权重并异步重叠前向；同时支持 `load_collection_phase` 按步过滤采集阶段（按整批是否含 prefill 判断，混合批整步归为 prefill，不做逐请求或逐 token 隔离），且草稿模型不再随目标模型自动注册。
+- **MRV2 HIXL 一致性协商**：未显式指定 `communicator` 时，初始化阶段全组检查直连数据面通信库 **HIXL**（Huawei Xfer Library）的绑定状态是否一致；全组齐备时用高速直连搬运专家权重，若任意 rank 不可用或绑定类别不同，全组安全回退至 CPU 通道 `Gloo` 并把未显式设定的 STAIR 单轮搬运限额收紧为 `1`（若用户显式指定了 `communicator`，源码则直接按指定值执行，跳过自动回退协商）。
 - **`main` 分支（全面收敛至 MRV2）**：MRV1 正式退场，`AscendEPLBController` 成为唯一运行时路径（四版细节见文末[版本差异](#版本差异)）。
 
 ## 代价：多占的显存、搬运和等待

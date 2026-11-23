@@ -13,12 +13,16 @@ aliases:
   - KV 流水并行
   - KV 层并行
   - KV 按层并行
+  - KV cache 按层切分
   - KV layer parallelism
+  - KV 广播
+  - MLA KV 去重
   - enable_kvpp
   - KVPPConfig
   - KVPPScheduler
   - KVPPRuntime
   - KVPPPhysicalCachePlan
+  - KVPP_SCRATCH_BUFFER_COUNT
   - BroadcastKVPPTransport
   - LayerSplit
   - 常驻卡
@@ -114,15 +118,12 @@ relations:
     note: 同叫「流水」，PP 分的是层的权重和计算，KVPP 只分历史放在哪
   - to: context-parallel
     kind: alternative-to
-    note: DCP 按位置分历史，和 KVPP 互斥
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: GLM 变体推导用到的每 token 字节与块数
+    note: DCP 按序列位置跨卡分存历史，KVPP 按层号整层常驻并提前广播，两者互斥
   - to: context-parallel
     kind: conflicts-with
     note: 仅针对 CP 中的 DCP：DCP 将同层历史按位置分存，KVPP 按层常驻并广播；当前实现明确禁止两者同开。此限制不适用于满足条件的 PCP。
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-

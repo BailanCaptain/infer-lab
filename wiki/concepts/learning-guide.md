@@ -133,7 +133,7 @@ file: learning-guide-route
 | DeepSeek 生产实践：E/P/D、分流与共享缓存 | [生产接力](deepseek-serving-case.md#分流看什么决定了哪些卡会一起等)、[大规模 EP](large-scale-ep.md)、[EPLB](eplb.md) | 请求数相同为什么仍可能等最慢的卡？为什么前缀亲和取决于缓存放在哪里？ |
 | DeepSeek 生产实践：扩缩容和故障恢复 | [容量与恢复](inference-capacity-and-reliability.md) | 一张卡故障影响多大范围？机器回来后为何还要消化积压？ |
 | DeepInfer：离线吞吐与 profiler 图 | [测量口径](inference-benchmarking.md#读-deepinfer-的性能图先弄清哪些工作被计入) | 哪些 token 是按假设计数的？拼起来的时间线能不能用来量首字等待？ |
-| DeepInfer：SWA、变长验证、异步与确定性 | [模型状态](deepseek-v4-1-flash.md)、[回放](swa-bounded-replay.md)、[DSpark](dspark.md)、[异步调度](async-scheduling.md)、[批次一致性](batch-invariance.md) | 分别省了计算、验证还是主机空隙？ |
+| DeepInfer：SWA（滑动窗口注意力）、变长验证、异步与确定性 | [模型状态](deepseek-v4-1-flash.md)、[回放](swa-bounded-replay.md)、[DSpark](dspark.md)、[异步调度](async-scheduling.md)、[批次一致性](batch-invariance.md) | 分别省了计算、验证还是主机空隙？ |
 | Recipe 与结构化输出 | [请求入口](api-server-entry.md#换成-deepseek-recipe入口负责到哪里)、[流式输出](streaming-output.md)、[格式约束](structured-output.md) | 普通文本和控制 token 怎么区分？跨片段的字符为什么不能逐段独立解码？ |
 | 950 白皮书：计算、搬运与图像处理 | [计算与存储](ascend-950-architecture.md)、[低精度格式](low-precision-formats.md) | 哪一次搬运被省掉？图像预处理与图像模型分别做什么？ |
 | 950 白皮书：通信、超节点与资源池 | [执行与互联](ascend-950-execution-interconnect.md#接入内存池以后模型就能直接多留历史了吗)、[KV Pool](kv-pool.md) | 硬件能访问远端资源以后，软件还要怎样找到并用上正确的历史？ |

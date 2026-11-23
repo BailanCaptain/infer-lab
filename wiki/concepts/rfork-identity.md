@@ -17,6 +17,10 @@ aliases:
   - RFork 部署指纹
   - RFork 兼容性指纹
   - is_draft_worker
+  - structural_digest
+  - RFork 结构摘要
+  - sharded_dp_rank
+  - model_deploy_strategy_name
 chapters: []
 order: 40
 sources:
@@ -64,12 +68,21 @@ relations:
   - to: rfork
     kind: builds-on
     note: 先知道 seed、Planner 和借一次权重的几步，再看两边凭什么配对
+  - to: rfork-startup
+    kind: builds-on
+    note: 先看清启动十步把目的显存登记与结构摘要绑定排在借租约之前，再理解 seed_key 何时生成
   - to: tensor-parallel
     kind: builds-on
     note: 钥匙里的 TP 编号对应的就是 TP 把矩阵切成的那一份
   - to: expert-parallel
     kind: builds-on
     note: EP 编号区分每张卡放的是哪几个专家
+  - to: ascend-model-onboarding
+    kind: builds-on
+    note: 配置指纹里的模型架构、量化描述与版本来源均取自标准模型上线的配置体系
+  - to: cann-hccl
+    kind: builds-on
+    note: TP / PP / EP 并行组未初始化时会直接触发取编号失败回退，分片编号与底层通信组拓扑一一对应
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -187,7 +200,7 @@ file: rfork-fig-two-layer-hash
 | 全局编号（`global_rank`） | 不进；seed 服务的端口用它算（设了非零基础端口时为 `base + 2 × global_rank + 角色槽`，主模型 0、草稿 1，基数为 0 时由系统随机分配），日志里也用它标卡 | 不该拿「是第几号进程」限制跨实例借用 |
 | 节点 IP | 不进 | 同配置跨节点实例可以互借；有效 `kv_role` 已进入兼容性指纹 |
 
-取 PP 编号或 EP 编号时，如果对应的并行组还没建好，会抛出 `RuntimeError`，不会悄悄记成空。这类可恢复异常会被 RFork 加载器接住：打一条「传输失败、清理后回退到默认加载」的警告，改从存储加载，启动不会停下；因为这时会话还没建起来，这张卡回退后不会登记成 seed。注意这与建会话时缺少三项必填配置不同——后者会抛 `RForkConfigurationError` 直接中止启动，不走回退。
+取 PP 编号或 EP 编号时，如果对应的并行组（由底层 [CANN 与 HCCL](cann-hccl.md) 在 Worker 启动早期建立）还没建好，会抛出 `RuntimeError`，不会悄悄记成空。这类可恢复异常会被 RFork 加载器接住：打一条「传输失败、清理后回退到默认加载」的警告，改从存储加载（依赖标准[新模型上线](ascend-model-onboarding.md)的磁盘加载路径可用），启动不会停下；因为这时会话还没建起来，这张卡回退后不会登记成 seed。注意这与建会话时缺少三项必填配置不同——后者会抛 `RForkConfigurationError` 直接中止启动，不走回退（完整先后见[启动路径](rfork-startup.md)）。
 
 **怎么判断自己是草稿。** 模型配置里的运行类型写明是草稿，或者模型类型以「_mtp」结尾、架构名以「MTPModel」结尾，满足一条就算。主模型和草稿模型在同一个 Worker 里各开一个会话，各算各的指纹和钥匙。有一个例外：草稿模型的权重如果全都和已经加载好的主模型共用，草稿就直接复用主模型那一份，不去问 Planner，也不多借一次。GLM 的 MTP 层有自己的权重，不属于这种情况。
 

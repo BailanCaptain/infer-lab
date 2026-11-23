@@ -1,7 +1,7 @@
 mode: native-svg
 id: engram-fig-offload-sharing
 caption: Engram 四种表放置与共享模式对照（HBM 分片 / Host UVA / 机内 dp_shared_memory + Gloo / 跨实例 shared_engram MemFabric BM 与 HIXL RDMA）及 4×A3 超节点表底存实测对比（824 GiB 降至 208 GiB）。
-size: [900, 500]
+size: [900, 544]
 pins:
   - source: 'vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L88-L136'
     symbols: ['_ETP', '_ENGRAM_DP', 'etp', 'edp', 'dp_shared_memory', 'gloo']

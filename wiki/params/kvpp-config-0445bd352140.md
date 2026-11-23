@@ -145,7 +145,7 @@ rawSources:
 ---
 ## 为什么它是派生对象而非用户输入键？
 
-多卡部署 MLA（多头潜在注意力）模型时，同组各张卡原本都要保存一份**完全相同的全部层历史 KV cache**，显存重复占用了好几倍。[KVPP（KV Cache 流水线并行）](../concepts/kvpp.md#kvpp-是什么)把这些重复保存的层按卡分工——每一层历史 KV 只由组内一张卡常驻保存，算到哪一层再通过广播临时发给同组其他卡。`kvpp_config` 就是 `v0.30.0` 与 `main` 中 `AscendConfig` 用来保存这份分工结果的内部只读对象（冻结子配置 `frozen=True`，**里面只有 `size: int = 1` 一个字段**，表示一共由多少张卡来平分各层历史 KV）。
+多卡部署 MLA（多头潜在注意力）模型时，同组各张卡原本都要保存一份**完全相同的全部层历史 KV cache**，显存重复占用了好几倍。[KVPP（KV Cache 流水线并行）](../concepts/kvpp.md#kvpp-是什么)把这些重复保存的层按卡分工——每一层历史 KV 只由组内一张卡常驻保存，算到哪一层再通过广播临时发给同组其他卡。`kvpp_config` 就是 `v0.30.0` 与 `main` 中 [AscendConfig](../concepts/ascend-config-system.md) 用来保存这份分工结果的内部只读对象（冻结子配置 `frozen=True`，**里面只有 `size: int = 1` 一个字段**，表示一共由多少张卡来平分各层历史 KV）。
 
 最重要的边界是：**`kvpp_config` 不是用户填写的配置键，真正的开关是 `enable_kvpp`**。配置工厂调用 `KVPPConfig.from_vllm_config(vllm_config)`，读取 `additional_config["enable_kvpp"]`（默认为 `False`）并结合并行度自动计算 `size`，再作为关键字参数注入 `AscendConfig`；而 `"kvpp_config"` 这个名字直接列在 `_NON_USER_INPUT_KEYS` 中，用户在 `additional_config` 里硬写 `"kvpp_config": {"size": 4}` 会在进入 pydantic 校验之前就被静默剔除（没有任何针对该键的告警），既不会覆盖派生结果，也不会像其他未知顶层键那样触发 `extra="forbid"` 报错。
 

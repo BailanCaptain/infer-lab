@@ -10,6 +10,10 @@ aliases:
   - 910B3 真机实测
   - 910B3 性能劣化根因
   - KV 整池连续化实测
+  - Ascend 910B3
+  - 910B3 实测
+  - 910B3 基准
+  - CANNLab 910B3
 chapters:
   - '10'
   - '15'
@@ -80,29 +84,44 @@ relations:
   - to: sleep-mode
     kind: builds-on
     note: 提供 level 1/2 休眠唤醒耗时、显存净残留与 weight_nz_mode 唤醒守卫报错标本
+  - to: v030-release-baseline
+    kind: builds-on
+    note: 提供 v0.30.0 正式版在 Ascend 910B3 上的真机显存基数、配置守卫报错标本与运行期劣化实证
+  - to: inference-benchmarking
+    kind: builds-on
+    note: 提供单卡 /v1/chat/completions 与八卡 /v1/completions 的 TTFT、TPOT、吞吐实测数据与对比口径边界
+  - to: inference-performance-analysis
+    kind: builds-on
+    note: 提供 AI Core / Vector Core 算子微观 Profiler 占比、整池 KV Slice 热点剖析与 DEBUG 热路径开销实测
+  - to: cpu-binding
+    kind: builds-on
+    note: 提供 192 vCPUs 八 NUMA 宿主机指纹，以及 DP=2+TP=4+EP=8 下绑核回退 global-slice 的实机观测
+  - to: kv-cache-memory-profiling
+    kind: builds-on
+    note: 提供 npu-smi 65,536 MB 与 acl.rt.get_mem_info 60.96 GiB 显存基数差额，以及多拓扑可用 KV 容量与录图期 OOM 实测
 contradicts: []
 updated: '2026-11-23'
 ---
 
 ## 硬件与软件基线指纹
 
-本档案汇总 GitCode CANNLab 上单卡与八卡 `Ascend 910B3`（A2 代际）在 `vLLM 0.30.0` + `vllm-ascend 0.30.0` 下的全量实机采集证据。所有原始 Profiler CSV、压测 JSON、启动显存对账日志与真实故障标本均已通过 SHA-256 完整性校验，并摘录固化于本页绑定的不可变 `raw` 快照中。
+本档案汇总 GitCode CANNLab 上单卡与八卡 `Ascend 910B3`（A2 代际）在 `vLLM 0.30.0` + `vllm-ascend 0.30.0`（升级变更见 [v0.30.0 正式版升级与避坑清单](../concepts/v030-release-baseline.md)）下的全量实机采集证据。所有原始 Profiler CSV、压测 JSON、启动显存对账日志与真实故障标本均已通过 SHA-256 完整性校验，并摘录固化于本页绑定的不可变 `raw` 快照中。
 
 | 维度 | 实测指纹 | 阅读各页时的计量边界 |
 |---|---|---|
-| NPU 与可见显存 | `8 × Ascend 910B3`，`npu-smi 25.5.0` 标称 `65,536 MB` / 卡，空载板级占用 `3,426 ~ 3,453 MB`；`acl.rt.get_mem_info` OS 可见总容量 **`60.96 GiB`**，启动空闲 `60.57 ~ 60.59 GiB` | 预算公式 `total × u` 的基数是 **`60.96 GiB`** 而非 `64.00 GiB`；相差的 `3.04 GiB` 为底层预留，不可二次扣减 |
-| 宿主机拓扑 | 八卡实例为 `192 vCPUs` `HiSilicon TaishanV110` `aarch64`（`8 Sockets / 8 NUMA`，每 Socket 24 核，`2,400 MHz` 且 `Frequency boost: disabled`，`1.4 TiB` RAM）；单卡实例暴露 `16 vCPUs`（`2 Sockets / 2 NUMA`） | 禁睿频 `2.4 GHz` ARM 核心对 Eager 逐算子发射敏感；跨单卡与八卡比较首 token 时还须区分下文输入长度差异 |
-| 软件与通信栈 | `HDK 25.5.0` · `CANN 9.1.0` · `Python 3.11.4` · `torch 2.10.0` · `torch_npu 2.10.0.post7` · `vllm 0.30.0`（对照 `ced6857a`）· `vllm_ascend 0.30.0`（对照 `c09d3e20`）· `Mooncake` ADXL `AscendDirectTransport` | 四卡 `TP=4` 微基准实测走 `HCCS`（单次 `16 MiB` 输出张量，环网 transit `25.17 MB` @ `17.63 ~ 17.93 GB/s`），未走 RoCE |
-| 基准口径差异 | 单卡 `TP=1` 使用 `/v1/chat/completions`（`24 ~ 40` prompt tokens，取 `5/8/16` 请求中位数）；八卡实验使用 `/v1/completions`（平均 `262` prompt tokens，取均值，各档完成 `128/512/2,048` 输出 tokens） | 八卡内部 `TP=2 → 4 → 8` 严格同脚本同输入；单卡与八卡直接对比时，稳态 128 步 `TPOT` 可对照，首 token `TTFT` 受输入长度影响不可混作单变量 A/B |
+| NPU 与可见显存 | `8 × Ascend 910B3`，`npu-smi 25.5.0` 标称 `65,536 MB` / 卡，空载板级占用 `3,426 ~ 3,453 MB`；`acl.rt.get_mem_info` OS 可见总容量 **`60.96 GiB`**，启动空闲 `60.57 ~ 60.59 GiB` | [KV cache 显存预算](../concepts/kv-cache-memory-profiling.md)公式 `total × u` 的基数是 **`60.96 GiB`** 而非 `64.00 GiB`；相差的 `3.04 GiB` 为底层预留，不可二次扣减 |
+| 宿主机拓扑 | 八卡实例为 `192 vCPUs` `HiSilicon TaishanV110` `aarch64`（`8 Sockets / 8 NUMA`，NUMA 即非统一内存访问节点，每 Socket 24 核，`2,400 MHz` 且 `Frequency boost: disabled`，`1.4 TiB` RAM）；单卡实例暴露 `16 vCPUs`（`2 Sockets / 2 NUMA`） | 禁睿频 `2.4 GHz` ARM 核心对 Eager（单算子逐条下发）发射敏感，绑核策略见 [CPU 绑核](../concepts/cpu-binding.md)；跨单卡与八卡比较首 token 时还须区分下文输入长度差异 |
+| 软件与通信栈 | `HDK 25.5.0` · `CANN 9.1.0` · `Python 3.11.4` · `torch 2.10.0` · `torch_npu 2.10.0.post7` · `vllm 0.30.0`（对照 `ced6857a`）· `vllm_ascend 0.30.0`（对照 `c09d3e20`）· `Mooncake` ADXL `AscendDirectTransport` | 四卡 `TP=4` 微基准实测走机内高速互联 `HCCS`（单次 `16 MiB` 输出张量，环网 transit `25.17 MB` @ `17.63 ~ 17.93 GB/s`），未走跨机以太网 RDMA 协议 `RoCE` |
+| 基准口径差异 | 单卡 `TP=1` 使用 `/v1/chat/completions`（`24 ~ 40` prompt tokens，取 `5/8/16` 请求中位数）；八卡实验使用 `/v1/completions`（平均 `262` prompt tokens，取均值，各档完成 `128/512/2,048` 输出 tokens） | 压测指标定义见 [推理测量](../concepts/inference-benchmarking.md)：八卡内部 `TP=2 → 4 → 8` 严格同脚本同输入；单卡与八卡直接对比时，稳态 128 步 `TPOT`（每输出 token 平均时延）可对照，首 token `TTFT`（首词延迟）受输入长度影响不可混作单变量 A/B |
 
 ## 算子微观剖析与全拓扑端到端账本
 
-在形状 `M=2048, K=4096, N=4096` 的 3 次活跃采样微基准中：
+在形状 `M=2048, K=4096, N=4096` 的 3 次活跃采样微基准中（瓶颈分解方法见 [性能分析](../concepts/inference-performance-analysis.md)）：
 
 - **BF16 `AddRmsNorm`**（`AI_VECTOR_CORE / 40`）：耗时 `63.04 ~ 64.00 µs`（均值 **`63.58 µs`**），`aiv_vec_ratio` **`74.4% ~ 75.2%`**，`aiv_mte2_ratio` `18.0% ~ 18.9%`，`aiv_mte3_ratio` `26.8% ~ 27.0%`。大 token 融合残差归一化下，FP32 平方均值与倒数平方根向量算术占 AIV 主导。
 - **BF16 `MatMulV3`**（`AI_CORE / 20`）：耗时 `256.12 ~ 257.10 µs`（均值 **`256.61 µs`**），`cube_utilization` **`96.82% ~ 97.01%`**，`aic_mac_ratio` **`95.4%`** 与 `aic_mte2_ratio` **`82.4%`** 并行重叠（硬件流水重叠，非互斥墙钟占比）。
 - **W8A8 动态量化链**（`DynamicQuant` `AIV / 40` **`31.79 µs`** → `QuantBatchMatmulV3` `MIX_AIC / 20+20` **`195.61 µs`**，`cube_utilization` `91.17% ~ 92.85%`）：纯矩阵乘较 BF16 提速 **`1.312×`**，但未与前序归一化融合时，独立 `DynamicQuant` 的二次读写把两算子合计提速压缩至 **`1.128×`**（含 `AddRmsNorm` 整段为 `1.095×`）。
-- **四卡 `TP=4` 归约微基准**：`MatMulV3`（`[2048, 1024] × [4096, 1024]ᵀ`）耗时降至 **`70.57 µs`**（省约 `186 µs`），但紧随其后的 `hcom_allReduce_` 耗时 **`522.66 ~ 525.10 µs`**，通信重叠为 **`0.0 µs`**。
+- **四卡 `TP=4` 归约微基准**：[张量并行（TP）](../concepts/tensor-parallel.md)下 `MatMulV3`（`[2048, 1024] × [4096, 1024]ᵀ`）耗时降至 **`70.57 µs`**（省约 `186 µs`），但紧随其后的 `hcom_allReduce_` 耗时 **`522.66 ~ 525.10 µs`**，通信重叠为 **`0.0 µs`**。
 
 下表汇总全部 8 组服务态实测（`Qwen3-8B` 统一 `u=0.85`、`max_model_len=32768`；混部 `Qwen3-30B-A3B` 统一 `u=0.88`；`INFO` 干净态）：
 
@@ -121,17 +140,17 @@ updated: '2026-11-23'
 
 ### 1. 整池 KV 非连续物化与稠密 TP=1→8 单调负扩展
 
-在 `vllm-ascend@c09d3e20`（及 `main@8d6180e2`）中，普通 GQA 注意力层默认分配单块共享显存 `[2, num_blocks, block_size, kv_heads, head_dim]`，通过 `torch.as_strided` 将前两维步长设为 `(H, 2H)`（每页 K 后紧跟该页 V）。单独取出 `kv_cache[0]` 与 `kv_cache[1]` 后跨页不连续，线上服务日志直接记录 `shape=(2,2064,128,8,128)`、`stride=(131072,262144,1024,128,1)`、`k_contiguous=False v_contiguous=False`。
+在 `vllm-ascend@c09d3e20`（及 `main@8d6180e2`）中，普通 GQA（分组查询注意力）层默认分配单块共享显存 `[2, num_blocks, block_size, kv_heads, head_dim]`，通过 `torch.as_strided` 将前两维步长设为 `(H, 2H)`（每页 K 后紧跟该页 V）。单独取出 `kv_cache[0]` 与 `kv_cache[1]` 后跨页不连续，线上服务日志直接记录 `shape=(2,2064,128,8,128)`、`stride=(131072,262144,1024,128,1)`、`k_contiguous=False v_contiguous=False`。
 
 在两份 Eager Profiler 轨迹中，Decode 阶段的 `aclnnFusedInferAttentionScoreV3` 在内部调用 `aclnnContiguous`（设备核函数 `aclnnContiguous_SliceAiCore_Slice`），无视 `block_table` 实际命中的少量历史块，**每层每步将整个已分配物理 KV 池完整复制一遍**：
 
 - **`Qwen3-8B`（36 层，`u=0.75`，`1,678` 块）**：两个 Decode 步共触发 **`144/144` 次**整池大 `Slice`（每步 `36 × 2 = 72` 次，单次 `593.60 ~ 691.48 µs`，合计 `92.3106 ms`，占设备算子总时间 **`62.220%`**；全部 290 次 `Slice` 占 `62.463%`），两步各自耗费 **`46.1552 ms` 与 `46.1554 ms`**，每步最低读写流量达 **`58.992 GiB`**（折合有效带宽 `1.372 TB/s`）；而 108 次真正的 `FusedInferAttentionScore` 计算核函数合计仅耗时 **`2.356 ms`**。首个 Prefill 步未触发整池 `Slice`。
 - **2 层裁剪 MoE（`u=0.60`，`66,139` 块）**：因空闲显存集中分给 2 层，单层 K 或 V 视图高达 `8.074 GiB`，8 次整池 `Slice` 单次耗时 **`13.45 ~ 13.67 ms`**，占设备算子总时间的 **`95.990%`**（全部 18 次 `Slice` 占 `96.012%`），直接证明该复制开销与**已分配物理块数**呈线性正比。
-- **线上 `FULL` 图单卡平台期与负 TP 扩展的条件解释边界**：线上日志确认单请求 Decode 运行 `FULL` 图（`npu_fused_infer_attention_score.out`）。**若**图内重放同等整池连续化且保持 Eager 有效带宽（强条件外推，包内尚无线上 `FULL` 设备时间线实测），固定 `u=0.85` 将 `TP` 从 `1` 扩到 `2/4/8` 时，每卡本地 K+V 容量从 `36.28 GiB` 反增至 `43.52 / 47.35 / 49.27 GiB`（条件外推复制耗时 `56.77 → 68.09 → 74.09 → 77.09 ms`）；再结合启用多卡 TP 时源码存在的 **72 个行并行 `AllReduce` 位置**（`0.0 µs` 重叠仅在独立 `16 MiB` 微基准中测得，线上重叠与分项时延贡献仍待实测），这组候选机制与观测到的 `TP=1→8` `TPOT`（`78.54 → 94.42 ms`）、`c=16` 吞吐（`195.28 → 160.38 tok/s`）单调劣化，以及 `TP=1` 从 `c=1→16` `TPOT` 仅微增 `+2.23 ms (+2.84%)` 而吞吐跃升 `15.3×` 相吻合。
+- **线上 `FULL` 图单卡平台期与负 TP 扩展的条件解释边界**：线上日志确认单请求 Decode 运行 `FULL` 图（`npu_fused_infer_attention_score.out`，图捕获机制见 [ACL Graph](../concepts/acl-graph.md)）。**若**图内重放同等整池连续化且保持 Eager 有效带宽（强条件外推，包内尚无线上 `FULL` 设备时间线实测），固定 `u=0.85` 将 `TP` 从 `1` 扩到 `2/4/8` 时，每卡本地 K+V 容量从 `36.28 GiB` 反增至 `43.52 / 47.35 / 49.27 GiB`（条件外推复制耗时 `56.77 → 68.09 → 74.09 → 77.09 ms`）；再结合启用多卡 TP 时源码存在的 **72 个行并行 `AllReduce` 位置**（`0.0 µs` 重叠仅在独立 `16 MiB` 微基准中测得，线上重叠与分项时延贡献仍待实测），这组候选机制与观测到的 `TP=1→8` `TPOT`（`78.54 → 94.42 ms`）、`c=16` 吞吐（`195.28 → 160.38 tok/s`）单调劣化，以及 `TP=1` 从 `c=1→16` `TPOT` 仅微增 `+2.23 ms (+2.84%)` 而吞吐跃升 `15.3×` 相吻合。
 
 ### 2. 4P4D / 2P2D 叠加 Eager 等配置下 MoE Decode 持续步延迟劣化 3.952×
 
-`Qwen3-30B-A3B` 从四卡混部 `ACLGraph` 切换到八卡 `4P4D`（同时改变拆池拓扑、双端 `--enforce-eager`、`prefix_caching=False`、`max_model_len=16384` 与 `u=0.88→0.85`）后，`c=1` `TPOT` 从 **`77.90 ms` 恶化至 `307.83 ms`（`3.952×`，每步净增 `+229.93 ms`）**，`c=16` 吞吐从 `179.70` 跌至 `45.59 tok/s`；稠密 `Qwen3-8B`（`TP=2` 混部 Graph 对 `2P2D` Eager）的 `c=1` `TPOT` 从 `87.12 ms` 增至 `150.59 ms`（`1.729×`）。跨实例 KV 移交每请求只发生一次（`30B c=1` 最慢 rank 传输段仅 `16.64 ms`），其余 127 个生成步累计多出的 **`29.20 s`** 全部落在 Decode 实例的逐 token 执行路径上；纯 Eager 与纯 PD 的独立份额仍需同拓扑控制变量实验拆分。
+`Qwen3-30B-A3B` 从四卡混部 [ACL Graph](../concepts/acl-graph.md) 切换到八卡 `4P4D` [PD 分离](../concepts/pd-disaggregation.md)（同时改变拆池拓扑、双端 `--enforce-eager`、`prefix_caching=False`、`max_model_len=16384` 与 `u=0.88→0.85`）后，`c=1` `TPOT` 从 **`77.90 ms` 恶化至 `307.83 ms`（`3.952×`，每步净增 `+229.93 ms`）**，`c=16` 吞吐从 `179.70` 跌至 `45.59 tok/s`；稠密 `Qwen3-8B`（`TP=2` 混部 Graph 对 `2P2D` Eager）的 `c=1` `TPOT` 从 `87.12 ms` 增至 `150.59 ms`（`1.729×`）。跨实例 KV 移交每请求只发生一次（`30B c=1` 最慢 rank 传输段仅 `16.64 ms`），其余 127 个生成步累计多出的 **`29.20 s`** 全部落在 Decode 实例的逐 token 执行路径上；纯 Eager 与纯 PD 的独立份额仍需同拓扑控制变量实验拆分。
 
 ### 3. 均匀 262-token 负载下 2P2D（8B）与 4P4D（30B）首 token 放大 6.07× / 2.20×
 
@@ -139,13 +158,13 @@ updated: '2026-11-23'
 
 ### 4. Qwen3-30B-A3B 扩至 DP=2+TP=4+EP=8 在 c≤16 出现负扩展
 
-运行指标证实请求已均分至双 DP（`c=1` 为 `1/0`，`c=4` 为 `2/2`，`c=16` 为 `8/8`）；路由专家权重精确减半（`54.000 GiB ÷ 8 = 6.750 GiB`），叠加非专家 `0.7652 GiB` 后单卡总权重由 `14.2652` 降至 **`7.5152 GiB`**（下降 `47.32%`），双引擎合计解锁 `3,950,336 tokens` KV 容量。在 A2 无 LoRA 下，`ep_world_size = 4` 与 `8`（均 `< 16`）都选 **`ALLGATHER`**，其中 `dp_size > 1` 的八卡组还须执行跨 DP gather 与 reduce-scatter，且空闲 DP 在 `c=1` 时运行 dummy batch 同步推进；`c=16` 时每 DP 仅分得 8 个并发请求，双池隔离使前缀命中率从 `25.49%` 降至 `16.99%`、CPU 绑核回退至 `global-slice`，观测到总吞吐从 `179.70` 降至 `149.45 tok/s`（单卡吞吐从 `44.93` 降至 `18.68 tok/s`；各项时延子份额待逐步通信轨迹拆分）。
+运行指标证实请求已均分至双 DP（`c=1` 为 `1/0`，`c=4` 为 `2/2`，`c=16` 为 `8/8`）；[专家并行（EP）](../concepts/expert-parallel.md)下路由专家权重精确减半（`54.000 GiB ÷ 8 = 6.750 GiB`），叠加非专家 `0.7652 GiB` 后单卡总权重由 `14.2652` 降至 **`7.5152 GiB`**（下降 `47.32%`），双引擎合计解锁 `3,950,336 tokens` KV 容量。在 A2 无 LoRA 下，`ep_world_size = 4` 与 `8`（均 `< 16`）都选 **`ALLGATHER`**，其中 `dp_size > 1` 的八卡组还须执行跨 DP gather 与 reduce-scatter，且空闲 DP 在 `c=1` 时运行 dummy batch 同步推进；`c=16` 时每 DP 仅分得 8 个并发请求，双池隔离使前缀命中率从 `25.49%` 降至 `16.99%`、[CPU 绑核](../concepts/cpu-binding.md)回退至 `global-slice`，观测到总吞吐从 `179.70` 降至 `149.45 tok/s`（单卡吞吐从 `44.93` 降至 `18.68 tok/s`；各项时延子份额待逐步通信轨迹拆分）。
 
 ### 5. DEBUG 日志热路径开销与三类启动配置陷阱
 
 - **`VLLM_LOGGING_LEVEL=DEBUG` 热路径税**：`worker.py` 每步在 DEBUG 分支读取 `torch.npu.memory_reserved()` / `memory_allocated()` 并格式化输出（`TP=8` 达 `3,312` 行），配合 `acl_graph.py` 的输入 `data_ptr()` 遍历校验，使 `TP=8 c=1` 单样本 `TTFT` 从 `139.07 ms` 升至 `193.98 ms (+39.48%)`。
 - **图显存随 TP 逆向增长与 `u=0.90` 捕获期 OOM**：`Qwen3-0.6B` 在 `u=0.90` 下通过 `profile_run()`（分配 `53.47 GiB` KV、`500,480 tokens`）及 35 档 `PIECEWISE` 后，在 `FULL` Decode `1/35` 的 `FIA` 内因申请 `1.98 GiB`（仅剩 `1.71 GiB`）触发 OOM（`u=0.82` 成功录图占 `3.90 GiB`）。`Qwen3-8B` 随 `TP=1→8` 每层本地 KV 视图从 `1.008 GiB` 扩至 `1.368 GiB`，捕获前后设备空闲显存差值反从 **`2.59 GiB` 递增至 `3.21 GiB`**。
-- **Sleep Mode 守卫、冷启动微基准与静态量化校验**：默认 `weight_nz_mode=1` 下 BF16 普通权重本不转 NZ，但 `worker.py:279-286` 在 `wake_up()` 中只要配置非零即抛 `ValueError: FRACTAL_NZ mode is enabled`；显式设 `weight_nz_mode=0` 后 `2.482s` 唤醒成功（较 `95.83s` 完整初始化快 `38.61×`，`npu-smi` 从 `55,740 MB` 降至 `6,211 MB`，较初始空载 `3,453 MB` 净增 `2.693 GiB`），且启用 Sleep 会使 RFork 安全检查返回 `sleep mode` 回退默认加载。八进程并发导入预编译 `.pyc` 耗时从 `24.311s` 降至 `12.598s`（省 `11.713s`）；首次 `npu_format_cast(NZ)` 懒加载耗时 `7.1618s`（二次 `0.0007s`）。未量化 GQA 模型传 `--kv-cache-dtype int8` 在 `attention_v1.py:583` 直接抛静态量化权重缺失异常，而 `MooncakeConnectorV2`（`MooncakePullConnector`）在 `base_worker.py:116` 拒绝 `kv_both` 双角色。
+- **Sleep Mode 守卫、冷启动微基准与静态量化校验**：默认 `weight_nz_mode=1` 下 BF16 普通权重本不转 NZ（昇腾分形分块格式），但 `worker.py:279-286` 在 [Sleep Mode](../concepts/sleep-mode.md) 的 `wake_up()` 中只要配置非零即抛 `ValueError: FRACTAL_NZ mode is enabled`；显式设 `weight_nz_mode=0` 后 `2.482s` 唤醒成功（较 `95.83s` 完整初始化快 `38.61×`，`npu-smi` 从 `55,740 MB` 降至 `6,211 MB`，较初始空载 `3,453 MB` 净增 `2.693 GiB`），且启用 Sleep 会使 [RFork](../concepts/rfork.md) 安全检查返回 `sleep mode` 回退默认加载。八进程并发导入预编译 `.pyc` 耗时从 `24.311s` 降至 `12.598s`（省 `11.713s`）；首次 `npu_format_cast(NZ)` 懒加载耗时 `7.1618s`（二次 `0.0007s`）。未量化 GQA 模型传 `--kv-cache-dtype int8`（参见 [KV cache 量化](../concepts/kv-cache-quantization.md)）在 `attention_v1.py:583` 直接抛静态量化权重缺失异常，而 `MooncakeConnectorV2`（`MooncakePullConnector`）在 `base_worker.py:116` 拒绝 `kv_both` 双角色。
 
 ## 对照源码
 

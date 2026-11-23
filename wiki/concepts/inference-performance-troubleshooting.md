@@ -20,6 +20,9 @@ aliases:
   - 图优化
   - 没有提速
   - 单位卡产出
+  - 性能瓶颈排查
+  - 延迟优化
+  - 吞吐调优
 chapters:
   - '19'
 order: 5
@@ -81,7 +84,7 @@ verified:
   - main
 evidence: I
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-24'
 rawSources:
   - >-
     raw/sha256-3e27f506a54dd667865dd7464a2a928d626d75896ef7442f2fc6695208165fd5.md
@@ -99,7 +102,7 @@ rawSources:
 
 后文说的“一步”，指调度器选出一组请求后执行的一轮。模型用 **token（词元）**表示文本；处理提示词叫 **prefill**，利用历史继续生成叫 **decode**。增加一步容纳的输入，可能让长提示词更集中地算完，却也让同批正在回答的请求等得更久。它能影响图里的执行段，却不能直接消除代理把输出暂存起来的等待。
 
-这里有两个不同目标：TTFT 是提交请求到收到首个输出 token 的等待时间，ITL 是后续输出 token 之间的间隔。启用 chunked prefill（将未完成的提示词计算分配到多轮调度）时，所核上游文档给出的调优方向是：较小的每轮 token 预算减少同轮 prefill 对 decode 的拖慢，有利于 ITL；较大的预算让一轮处理更多提示词位置，有利于 TTFT。实际效果取决于负载，应分别测量这两个指标。
+这里有几个核心时延指标：**TTFT**（Time to First Token）是提交请求到收到首个输出 token 的等待时间，**ITL**（Inter-Token Latency）是相邻两个输出 token 之间的间隔，**TPOT**（Time Per Output Token）是首字之后平均每个输出 token 的耗时。启用 chunked prefill（将未完成的提示词计算分配到多轮调度）时，所核上游文档给出的调优方向是：较小的每轮 token 预算减少同轮 prefill 对 decode 的拖慢，有利于 ITL；较大的预算让一轮处理更多提示词位置，有利于 TTFT。实际效果取决于负载，应分别测量这些指标。
 
 ```wiki-diagram
 file: inference-performance-choice
@@ -144,12 +147,13 @@ file: inference-performance-troubleshooting-fig-funnel
 
 - **适用现象与首取证据**：单步设备时间变长，或 decode 与长输入同批时出现停顿。记录该步 prefill/decode 位置数、历史长度、实际批形状、算子时间和执行方式。**算子**是设备执行的一项运算；**attention** 让当前位置读取、汇合相关历史信息。长输入增加当前工作量；长历史增加某些 attention 读取；更大的批次还会改变执行路径。
 - **区分实验**：固定输入与到达表，只控制每步预算，确认实际分块和设备步骤长度是否改变。若长步随分块缩短，继续按首字、输出间隔、吞吐和失败数评估；若主要成本随历史长度增长，沿 [attention 成本](attention-cost.md)找实际读取对象。计算与读取谁更紧，使用[性能模型](inference-performance-analysis.md)判断，不能只凭设备利用率选量化或加卡。
-- **预算与算子边界**：预算表示每轮可安排的工作量，预算翻倍不能推出服务快一倍。上游文档还给出以吞吐量为目标的尝试方向：尤其对于大 GPU 上的较小模型，可尝试大于 8192 的每轮 token 预算——这个条件不能直接转成 GLM 双机 NPU 的推荐值，批次变大后单轮耗时、输出间隔和总轮数都要实际测量。**量化**用较少位数表示数值，能改变数据量与计算路径，但同时需要验证输出质量及支持的算子；**speculative decoding** 先猜多个后续 token 再验证，收益取决于接受数量和验证成本，候选数增长不等于实际产出增长（深入机制分别见[量化](quantization.md)与[投机解码](speculative-decoding.md)）。
+- **预算与算子边界**：预算表示每轮可安排的工作量，预算翻倍不能推出服务快一倍。上游文档还给出以吞吐量为目标的尝试方向：尤其对于大 GPU 上的较小模型，可尝试大于 8192 的每轮 token 预算——这个条件不能直接转成 GLM 双机 NPU 的推荐值，批次变大后单轮耗时、输出间隔和总轮数都要实际测量（若涉及流水线并行下的动态分块，另见 `v0.30.0` 的 [`profiling_chunk_config`](../params/profiling-chunk-config.md) 参数页，注意该特性已在 `main` 移除）。**量化**用较少位数表示数值，能改变数据量与计算路径，但同时需要验证输出质量及支持的算子；**speculative decoding** 先猜多个后续 token 再验证，收益取决于接受数量和验证成本，候选数增长不等于实际产出增长（深入机制分别见[量化](quantization.md)与[投机解码](speculative-decoding.md)）。
+- **真机反直觉负扩展对照**：切勿在未取设备轨迹时盲目堆并行或拆池——例如在 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 中，固定 `u=0.85` 将 `Qwen3-8B` 从 `TP=1` 扩至 `TP=8` 时，`c=1` `TPOT` 反而从 `78.54 ms` 升至 `94.42 ms`（每卡本地 KV 增大叠加非连续整池 `Slice` 候选机制与行并行 `AllReduce`）；而 `Qwen3-30B-A3B` 在 `4P4D` 叠加 `--enforce-eager` 等配置下 `c=1` `TPOT` 相对四卡混部图模式恶化 `3.952×`（`77.90 → 307.83 ms`）。
 
 ## 设备两段工作之间空着：它在等主机还是等依赖
 
 - **适用现象与首取证据**：设备时间线反复出现空隙，而单个算子并不突出。保留主机输入准备、任务提交、设备就绪/开始及结果回传的时间；CPU 提交完成不等于设备依赖已经满足，先按[关键路径](inference-performance-analysis.md#时间线怎样告诉你应该先优化哪一段)区分。
-- **区分实验与杠杆**：若空隙前主机仍在整理输入，在固定设备路径下检查 CPU 竞争和输入准备，再按现场条件比较 [CPU 绑定](cpu-binding.md)或[异步调度](async-scheduling.md)；若主机已经提交而设备仍等其他任务，先追那个依赖，不能把空隙统称为 CPU 瓶颈。**graph mode** 通过预先捕获并重放执行流程来省去逐算子下发。启用它后，应先核实实际命中了图、哪些尺寸回退，再看主机空隙与端到端指标是否同步下降（图的资源占用、补齐与支持条件见[图模式分层](graph-mode-layer.md)、[ACLGraph](acl-graph.md)及 [NPUGraph-ex](npugraph-ex.md)）。
+- **区分实验与杠杆**：若空隙前主机仍在整理输入，在固定设备路径下检查 CPU 竞争和输入准备，再按现场条件比较 [CPU 绑定](cpu-binding.md)或[异步调度](async-scheduling.md)；若主机已经提交而设备仍等其他任务，先追那个依赖，不能把空隙统称为 CPU 瓶颈。**graph mode** 通过预先捕获并重放执行流程来省去逐算子下发。启用它后，应先核实实际命中了图、哪些尺寸回退，再看主机空隙与端到端指标是否同步下降（图的资源占用、补齐与支持条件见[图模式分层](graph-mode-layer.md)、[ACLGraph](acl-graph.md)及 [NPUGraph-ex](npugraph-ex.md)；若在旧版脚本中看到 [`weight_prefetch_config`](../params/weight-prefetch-config.md)、[`multistream_overlap_gate`](../params/multistream-overlap-gate.md) 或 [`enable_async_exponential`](../params/enable-async-exponential.md) 等早期副流重叠开关，须先按对应参数页核对其在 `v0.30.0` 是否已移除，避免触发严格配置拒收）。
 - **阶段判别边界**：判断阶段要结合提示词计算进度，不能只数本轮 token——PD 交接时，一个 token 的块仍可能属于 prefill；启用投机解码时，尾部提示词块也可能恰好具有验证批次的宽度。固定镜像在投机路径中先检查全部提示词是否已算完，再判断整齐 decode；最终图模式还要经过分派与 DP 协调。
 
 ## 缓存紧张，暂停和重算越来越多
@@ -166,7 +170,7 @@ file: inference-performance-troubleshooting-fig-funnel
 
 如果其他卡一直等某一张卡，先控制这张卡之前的工作量，看等待是否随之减少；这能区分迟到与交换本身慢。若参与者都已具备条件，则固定交换规模核对拓扑、链路和并行通信。机制见[集合通信](collective-communication.md)，解释等待的方法见[关键路径](inference-performance-analysis.md)。
 
-请求偏斜去查 [DP 路由](dp-request-routing.md)，专家偏斜去查 [EPLB](eplb.md)，即调整专家放置或副本以缓解不均的机制。移动专家也有开销、支持范围和触发条件；单次短窗口偏斜不代表应立即重排。比较并行方案时，既计减少的本地计算，也计新增通信和各卡容量。
+请求偏斜去查 [DP 路由](dp-request-routing.md)，专家偏斜去查 [EPLB](eplb.md)，即调整专家放置或副本以缓解不均的机制。移动专家也有开销、支持范围和触发条件；单次短窗口偏斜不代表应立即重排。比较并行方案时，既计减少的本地计算，也计新增通信和各卡容量——例如在 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 中，`Qwen3-30B-A3B` 在 `c ≤ 16` 负载下从 `TP=4+EP=4` 扩到 `DP=2+TP=4+EP=8` 后，单卡权重虽降 `47.32%`，但跨 DP 通信、低并发分流与前缀命中率下降使总吞吐反而从 `179.70` 降至 `149.45 tok/s`。
 
 ## 设备算完了，客户端却还在等
 
@@ -227,7 +231,7 @@ file: inference-performance-troubleshooting-fig-tradeoffs
 
 ### 版本差异
 
-**跨版本排查性能回归时，除遵循单项实验与六阶段取证方法外，还必须把最终配置、实际 runner（MRV1 vs MRV2）与 KV 显存预算后处理链路一并记入实验档案。** 在 `v0.30.0` 及 `main` 中，显式 `kv_cache_memory_bytes` 仍跑 `profile_run`，但不走按利用率自动算预算的相同分支，而是继续应用多组缩放、稀疏 KV 卸载与 KVPP 约束；PCP 权重分片与 SFA C8 也会同时牵动通信与显存布局，单个“可用字节数”不能直接跨版本对比请求容量；旧 GLM 的图/MTP/MC2 账单仍锚定固定镜像 `db701c1f` 不随之重算。
+**跨版本排查性能回归时，除遵循单项实验与六阶段取证方法外，还必须把最终配置、实际 runner（MRV1 vs MRV2，历史过渡边界见 [v0.30.0rc2 快照说明](../sources/v030rc2-baseline.md)）与 KV 显存预算后处理链路一并记入实验档案。** 在 `v0.30.0` 及 `main` 中，显式 `kv_cache_memory_bytes` 仍跑 `profile_run`，但不走按利用率自动算预算的相同分支，而是继续应用多组缩放、稀疏 KV 卸载与 [`kvpp_config`](../params/kvpp-config-0445bd352140.md)（KVPP）约束；PCP 权重分片与 SFA C8 也会同时牵动通信与显存布局，单个“可用字节数”不能直接跨版本对比请求容量；旧 GLM 的图/MTP/MC2 账单仍锚定固定镜像 `db701c1f` 不随之重算。
 
 | 核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|

@@ -16,6 +16,10 @@ aliases:
   - RowParallelLinear
   - 列并行
   - 行并行
+  - QKVParallelLinear
+  - MergedColumnParallelLinear
+  - VocabParallelEmbedding
+  - 负扩展
 chapters:
   - '04'
 order: 10

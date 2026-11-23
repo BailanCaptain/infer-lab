@@ -12,8 +12,13 @@ aliases:
   - LMCache
   - LMCacheAscendConnector
   - LMCacheConnectorV1
+  - LMCacheMPConnector
   - LMCache-Ascend
+  - 外部 KV 缓存
+  - SupportsHMA
   - use_native
+  - save_unfull_chunk
+  - save_decode_cache
   - chunk
 chapters:
   - '11'
@@ -78,8 +83,14 @@ relations:
   - to: prefix-caching
     kind: builds-on
     note: 外部前缀复用要求一致的数据身份
+  - to: kv-pool
+    kind: alternative-to
+    note: 与内置于 vllm-ascend、支持混合缓存管理器的 AscendStore KV Pool 不同，LMCache 作为独立外部包按 chunk 管理主机内存、本地磁盘与远端存储
+  - to: ucm
+    kind: alternative-to
+    note: 同为经 KV connector 接入的独立外部缓存包；UCM 仓内保留薄转发外壳并声明 SupportsHMA、原生适配共享文件存储与集中式 PD，LMCache 自 v0.30.0 起改由外部插件包自注册
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 origin: direct
 ---
 

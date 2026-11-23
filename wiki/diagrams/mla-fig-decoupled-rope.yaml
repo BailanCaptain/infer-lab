@@ -1,6 +1,6 @@
 id: mla-fig-decoupled-rope
 mode: native-svg
-size: [900, 364]
+size: [900, 412]
 caption: 为什么直接对展开后的 K 施加 RoPE 会因 R(t-s) 夹在中间而破坏 MLA 吸收，DeepSeek-V2 如何通过 Decoupled RoPE（512+64=576 维）拆通道绕开，以及 GLM-5.3-Flash（qk_rope_head_dim=0, mla_use_nope=true）为何只存 512 维纯潜向量。
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000

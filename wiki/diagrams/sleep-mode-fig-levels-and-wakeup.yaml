@@ -2,7 +2,7 @@ mode: native-svg
 id: sleep-mode-fig-levels-and-wakeup
 caption: >-
   Sleep Mode Level 1（CPU 锁页备份权重）与 Level 2（丢弃权重仅留 buffers，醒后须按 weights → 外部重载 → kv_cache 分阶段唤醒）的内存去向与恢复顺序对比，并展示 v0.30.0 / main 引入的 HCCL sleep_lifecycle_anchor 通信锚点与 weight_nz_mode=0 / 禁 expandable_segments 护栏。
-size: [900, 488]
+size: [900, 552]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306'
     symbols:

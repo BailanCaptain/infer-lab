@@ -117,9 +117,9 @@ relations:
   - to: pooling-and-non-ar
     kind: builds-on
     note: Generate、Pooling 与 Encoder-Decoder 三条执行主线，以及 /embeddings、/score、/generative_scoring、语音上传与实时转写入口
-  - to: cluster-serving
+  - to: streaming-output
     kind: builds-on
-    note: 多实例代理、前缀感知路由、/health 探针与 --shutdown-timeout 优雅停机护栏
+    note: 入口登记的单槽输出队列与 SSE 200 状态码边界，直接连着后续流式增量反分词与推送机制
   - to: engine-processes
     kind: builds-on
     note: API server 是哪个进程、和 EngineCore 与 worker 怎样分工、各自跨步留着什么
@@ -194,7 +194,7 @@ file: api-server-entry
 
 **① 检查。** 网页框架先按接口约定核对 JSON 字段与类型，格式不对直接回 `400`。接着核对模型名：未启用 LoRA 且开启模型名校验时，仅允许省略或使用基座对外名，其余回 `404`；启用 LoRA 后同时接受已登记适配器名，允许动态更新时未知名字进入[适配器查找与加载](lora.md#请求只写适配器名服务怎样找到权重)，不能一律拒收。此外还有三道前置守卫：请求自带聊天模板须声明 `--trust-request-chat-template`；让模型自行决定调工具（`tool_choice = "auto"`）须同时开启 `--enable-auto-tool-choice` 与 `--tool-call-parser`；若引擎已停止，前端直接报错退出。
 
-**② 套聊天模板。** 聊天接口收到的是一串带角色的消息。前端用模型自带的 Jinja 模板把消息拼成训练时约定的对话文本，并附上「轮到助手回答」的标记（详见 [token 页的聊天模板一节](token.md#聊天消息先套模板再分词)）。
+**② 套聊天模板。** 聊天接口收到的是一串带角色的消息。前端用模型自带的 **Jinja**（Python 文本模板引擎）模板把消息拼成训练时约定的对话文本，并附上「轮到助手回答」的标记（详见 [token 页的聊天模板一节](token.md#聊天消息先套模板再分词)）。
 
 **③ 分词。** 拼好的文本交给分词器切成 token 编号（见 [token](token.md#字节级-bpe-怎样一步步切出-token)）。入口有两个关键细节：
 - **不再补一遍特殊标记。** 模板已经写好起始与角色标记，聊天接口默认不让分词器再加起始标记，避免开头重复。

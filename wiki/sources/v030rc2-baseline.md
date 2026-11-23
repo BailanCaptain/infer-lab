@@ -11,6 +11,9 @@ aliases:
   - rc2
   - 三十版本
   - Model Runner V2
+  - 7d825229
+  - v0.30.0rc2 基线
+  - rc2 基线
 chapters:
   - '10'
   - '15'
@@ -46,6 +49,12 @@ relations:
   - to: glm-5-3-flash-two-node
     kind: builds-on
     note: 保留旧双机部署的固定来源，迁移版本时重新核对容量和运行条件
+  - to: v030-release-baseline
+    kind: variant-of
+    note: 本页归档历史 v0.30.0rc2 快照（7d825229），不包含后来 v0.30.0 正式版（c09d3e20）的修复与生产迁移清单
+  - to: model-runner-v2
+    kind: builds-on
+    note: rc2 的 PCP 管理器与执行器补丁（只读 VLLM_USE_V2_MODEL_RUNNER）依赖 Model Runner V2 的演进边界
 contradicts: []
 updated: '2026-11-03'
 rawSources:
@@ -63,11 +72,11 @@ rawSources:
 
 `ced6857a` 是 `9ed533eb` 之后的 CPU 镜像构建修复提交，仅为 `Dockerfile` 增加 SLEEF 子模块获取兜底，未改执行代码（完整固定值以 seeds 为准）。Ascend 的 `rc2` 发布说明称这次 RC 更新主要修复 Docker 构建所用的 CANN 版本，不能把“rc1 到 rc2 没有业务代码变化”解释成“0.26 到 rc2 没有变化”。[S1]
 
-这组基线不包含后来 Ascend `v0.30.0` 正式版的修复。旧的 v0.23、v0.26 和 `main` 快照继续保留；GLM 双机教学仍按其[来源基线](glm-5-3-flash-baseline.md)解释已有形状、通信与容量算例。RFork 是独立工作版，不随社区版本升级。
+这组基线不包含后来 Ascend [`v0.30.0` 正式版](../concepts/v030-release-baseline.md)的修复。旧的 v0.23、v0.26 和 `main` 快照继续保留；GLM 双机教学仍按其[来源基线](glm-5-3-flash-baseline.md)解释已有形状、通信与容量算例。RFork 是独立工作版，不随社区版本升级。
 
 ## 为什么不能只照 CP 设计文档的一句话判断支持范围
 
-同一 rc2 提交的设计说明写着 PCP 不支持，但实际平台只在未启用 V2 时拒绝 PCP，V2 已有 PCP 管理器与后端分派。其限制包括 encoder-decoder、多模态输入、LoRA、投机方法及 graph mode 组合；“存在实现”和“所有模型都支持”之间还有这些校验。[S2][C3][C4]
+先分清三个[上下文并行（CP）](../concepts/context-parallel.md)术语：**PCP** 是预填充上下文并行（prefill 切序列）、**DCP** 是解码上下文并行（decode 切历史 KV）、**DSA-CP** 是面向稀疏注意力的实验性上下文并行；**V1 / V2** 指两代单卡执行器（新一代执行器见 [Model Runner V2](../concepts/model-runner-v2.md)）。同一 rc2 提交的设计说明写着 PCP 不支持，但实际平台只在未启用 V2 时拒绝 PCP，V2 已有 PCP 管理器与后端分派。其限制包括 encoder-decoder、多模态输入、LoRA、投机方法及 graph mode 组合；“存在实现”和“所有模型都支持”之间还有这些校验。[S2][C3][C4]
 
 GLM-5.3-Flash 的教程要求 V1，KPool 后端明确拒绝 PCP 或 DCP。它另有实验性的 SFA-only DSA-CP：在 TP 组内分担 SFA 查询位置，主 KV、索引池与尾缓存仍复制，KDA 沿用 TP；此时 PCP=DCP=1。三个名称不能互换，也不能由 DSA-CP 推出“GLM 的 KV 已按 DCP 分片”。[S5][C6]
 

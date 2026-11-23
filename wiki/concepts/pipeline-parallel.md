@@ -18,6 +18,13 @@ aliases:
   - IntermediateTensors
   - get_pp_indices
   - make_layers
+  - isend
+  - irecv
+  - AsyncIntermediateTensors
+  - SupportsPP
+  - max_concurrent_batches
+  - '--headless'
+  - 微批
 chapters:
   - '04'
 order: 20
@@ -266,7 +273,7 @@ file: pp-fig-handover-tp-slice
 
 用户请求发往第 1 台的 API server，后端把同一微批依次送过两台机器上的两个阶段，最终采样结果经引擎送回 API。**`--headless` 只代表不暴露前端 HTTP 接口，绝不代表不加载权重、不参与计算，也不代表它固定对应 PP 末段。** 反过来，看到“用了 2 台机器”也不能反推出 `PP = 2`——两台机器同样可以跑跨机 TP，或各自跑独立的 DP 组。
 
-多机拉起有 `mp` 与 `ray` 两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的命令，靠同一组 `--master-addr` / `--master-port` 会合。`ray` 则先组建集群并确认 NPU 入池，再在 head 节点只提交一次 `vllm serve`（切忌把 `mp` 两份命令原样提交两次给 Ray）。在 [PD 分离](pd-disaggregation.md)场景中，P 实例可由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例必须保持 `PP = 1`（完整设备账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)）。
+多机拉起有 `mp`（`multiprocessing`，Python 多进程分布式后端）与 `ray`（分布式集群调度框架）两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的命令，靠同一组 `--master-addr` / `--master-port` 会合。`ray` 则先组建集群并确认 NPU 入池，再在 head 节点只提交一次 `vllm serve`（切忌把 `mp` 两份命令原样提交两次给 Ray）。在 [PD 分离](pd-disaggregation.md)场景中，P 实例可由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例必须保持 `PP = 1`（完整设备账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)）。
 
 ## GLM 双机为什么没用 PP？
 

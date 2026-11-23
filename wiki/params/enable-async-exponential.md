@@ -13,6 +13,8 @@ summary: >-
 aliases:
   - 异步指数分布重叠
   - Asynchronous exponential overlap
+  - additional_config.enable_async_exponential
+  - do_async_exponential
 chapters:
   - '19'
 sources:
@@ -83,7 +85,7 @@ rawSources:
 
 ## 它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？
 
-`enable_async_exponential` 曾是 `additional_config` 下的布尔开关，改的只有一个**执行时机**：随机采样所需的指数分布随机数 $q \sim \text{Exp}(1)$ 默认在 softmax 算完后才现填；开启后，会在本步 model forward 开始之前提交到副流 `global_stream()` 预先填充，争取把生成耗时藏进模型各层前向里。
+`enable_async_exponential` 曾是 `additional_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下的布尔开关，改的只有一个**执行时机**：随机采样所需的指数分布随机数 $q \sim \text{Exp}(1)$ 默认在 softmax 算完后才现填；开启后，会在 [NPUModelRunner](../concepts/npu-model-runner.md) 本步 model forward 开始之前提交到副流（独立 NPU stream）`global_stream()` 预先填充，争取把生成耗时藏进模型各层前向里。
 
 它在 `v0.23.0` 默认 `False`，且发版当天就已列入官方 Ready to Deprecate 待废弃清单——**新部署不要依赖它**。
 

@@ -6,12 +6,14 @@ summary: >-
   把一条请求的 prefill 与 decode 交给 P、D 两套独立实例，中间由连接器跨实例交接历史状态。本页先走通标准单组 KV（如
   Qwen3-8B）的 P→D 拉取、完成信号、押块与 NIXL 租约，再解释混合模型（如历史 GLM 5 组状态）为何把最后一个 token 留给 D 计算。
 aliases:
+  - PD
   - PD 分离
   - PD Disaggregation
   - Prefill/Decode 分离
   - Prefill-decode Disaggregation
   - disaggregated prefill
   - 分离部署
+  - PD 混部
   - P 节点
   - D 节点
   - P 实例
@@ -19,8 +21,15 @@ aliases:
   - kv_role
   - kv_producer
   - kv_consumer
+  - prefill_tp_size
+  - decode_tp_size
+  - kv_transfer_params
   - MooncakeConnectorV1
   - NixlConnector
+  - NIXL
+  - ADXL
+  - AscendDirectTransport
+  - ECCPUConnector
   - KV 租约
   - 双向 KV 传输
 chapters:
@@ -217,21 +226,24 @@ relations:
     note: P 实例做的就是整段提示词的 prefill；混合步为什么拖慢 decode 也在那页
   - to: kv-cache
     kind: builds-on
-    note: 交接的是 GLM 的几类历史状态，各自多大、怎样分组见该页
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 本页对照的部署：两台机器是两个 DP 执行组，拆成一 P 一 D 时的换算也在那页
+    note: 交接的是各层留下的历史状态，标准单组 KV 与混合多组状态各自多大、怎样分组见该页
   - to: block-table
     kind: builds-on
     note: 源块与目的块各属自己的块池，块号怎样对应显存见该页
+  - to: cann-hccl
+    kind: builds-on
+    note: 跨实例 KV 传输依赖设备网络预检、HIXL/RDMA 链路与端口规划
+  - to: tensor-parallel
+    kind: builds-on
+    note: P 与 D 可配置非对称 TP 切分，需理解注意力头分片与重排约束
+  - to: data-parallel
+    kind: builds-on
+    note: P 与 D 各自按需配置独立 DP 实例组，分别优化 TTFT 与 TPOT
   - to: chunked-prefill
     kind: alternative-to
     note: 不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路
-  - to: epd-disaggregation
-    kind: variant-of
-    note: 再把多模态编码器独立成 E 池、与 P/D 协同的完整三池架构与 ECConnector 见该页
 contradicts: []
-updated: '2026-11-23'
+updated: '2026-11-24'
 origin: direct
 ---
 
@@ -440,7 +452,7 @@ $$t_{\text{expire}}' = \max(t_{\text{expire}},\; t_{\text{hb}} + 20)$$
 
 ## 真机实测：Ascend 910B3 上短输入 PD 首词放大与 Eager 组合劣化
 
-在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + ADXL `AscendDirectTransport`）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通功能闭环，再用统一压测脚本（均匀 `262`-token 输入、`128`-token 输出）实测了稠密 `Qwen3-8B`（`2P+2D`）与稀疏 MoE `Qwen3-30B-A3B`（`4P+4D`），并与同机混部基线对照（完整日志摘录、环境指纹与口径边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + `ADXL` 即 Ascend Direct Transfer Library 的 `AscendDirectTransport` 直连传输后端）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通功能闭环，再用统一压测脚本（均匀 `262`-token 输入、`128`-token 输出）实测了稠密 `Qwen3-8B`（`2P+2D`）与稀疏 MoE `Qwen3-30B-A3B`（`4P+4D`），并与同机混部基线对照（完整日志摘录、环境指纹与口径边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
 
 ```wiki-diagram
 file: pd-fig-910b3-short-prompt-and-eager-trap

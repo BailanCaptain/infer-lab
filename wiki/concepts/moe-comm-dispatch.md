@@ -7,14 +7,23 @@ summary: >-
   vllm-ascend v0.30.0 将四族昇腾硬件的 MoE 通信收拢进 HardwareProfile 与 select_moe_comm_method 状态机，依动态 mc2_tokens_capacity 切换 AllGather / MC2 / MegaMoe / AllToAll，并以 WeightSwitchMixin 实现运行期权重零拷贝重切分。
 aliases:
   - MoE 通信状态机
+  - MoE 通信派发
   - MoECommType
   - MoECommPolicy
   - select_moe_comm_method
+  - ALLGATHER
+  - AllGather
+  - ALLTOALL
+  - AllToAll
   - MC2
   - Fused MC2
   - FUSED_MC2
   - MegaMoe
   - CANN_MEGAMOE
+  - symm buffer
+  - dispatch_ffn_combine
+  - npu_moe_distribute_dispatch
+  - npu_moe_distribute_combine
   - mc2_tokens_capacity
   - set_mc2_tokens_capacity
   - WeightSwitchMixin
@@ -45,20 +54,29 @@ verified:
   - main
 evidence: C
 relations:
+  - to: hardware-devices
+    kind: builds-on
+    note: 四族昇腾芯片（A2/A3/310P/950DT）的硬件能力画像直接决定可选的 MoE 通信策略枚举
+  - to: collective-communication
+    kind: builds-on
+    note: 先掌握 All-Gather、All-to-All 与 MC2 的数据交换语义与传输量差异
+  - to: data-parallel
+    kind: builds-on
+    note: 多 DP 组步宽对齐与是否开启跨 DP 专家并行直接触发不同的派发策略与缓冲约束
   - to: expert-parallel
     kind: builds-on
     note: 先掌握专家并行中路由专家跨卡分散与 Dispatch/Combine 的基本逻辑，再看不同硬件与批长下的选路状态机
+  - to: expert-parallel
+    kind: variant-of
+    note: 在基础 EP Dispatch/Combine 之上，按硬件画像与每步批长动态切换 AllGather / AllToAll / MC2 / MegaMoe 四条通路，并辅以 WeightSwitchMixin 运行期权重重切分
   - to: hccl-buffer
     kind: builds-on
-    note: 常规 MC2 占用 HCCL_BUFFSIZE 通信缓冲，而 MegaMoe 改走独立对称内存缓冲 symm buffer
+    note: 常规 MC2 与融合 DispatchFFNCombine 的容量上限受 HCCL_BUFFSIZE 约束，而新一代 CANN MegaMoe 改走独立对称内存 symm buffer
   - to: large-scale-ep
-    kind: variant-of
-    note: 跨机大规模 EP 部署中，MC2、MegaMoe 与 AllToAll 的切换直接决定 Prefill 与 Decode 两阶段吞吐
-  - to: one-request
-    kind: alternative-to
-    note: 历史 GLM-5.3-Flash 双机算例中的固定 MC2 容量门槛 128 推导见该页单一出处，本页聚焦 v0.30.0 动态容量体系
+    kind: builds-on
+    note: 多机大规模 EP 的跨机分层通信、全组按 max(tokens) 选路与跳过 DP 同步守卫都直接受本页状态机裁决
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 ---
 
 **MoE 通信调度状态机是推理引擎在每次进入 MoE 层前自动“挑路”的决策组件**：它会按当前昇腾芯片型号、专家并行卡数和这一步要算多少个 token，实时在四类卡间通信与融合算子之间切换，让小批低延迟和大批高吞吐都能走最快的通路；配套的**运行期权重动态重切分（`WeightSwitchMixin`）**则让部分线性层平时只存 $1/N$ 权重省显存、算到时再异步拼齐并原地切换视图。

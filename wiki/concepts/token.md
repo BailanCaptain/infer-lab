@@ -24,6 +24,9 @@ aliases:
   - 对话模板
   - 聊天模板
   - chat template
+  - BPE
+  - Byte Pair Encoding
+  - Tokenization
   - 字节级 BPE
   - '--tokenizer'
   - tokenizer_mode
@@ -106,9 +109,6 @@ relations:
   - to: request-overview
     kind: builds-on
     note: 承接请求全景鸟瞰的第 1 件事与第 4 件事，拆解真实模型怎样把对话渲染、切块成整数编号，又怎样把输出编号还原为文字
-  - to: device-memory
-    kind: builds-on
-    note: 主机 CPU 侧的字符串与编号列表和 NPU 显存里的权重、激活与历史缓存分属两本独立的内存账
 contradicts: []
 updated: '2026-11-18'
 rawSources:
@@ -193,7 +193,7 @@ $$N_{\text{tok}} = N_{\text{byte}} - M_{\text{char}} - M_{\text{word}} = 24 - 16
 
 **调用 `/v1/chat/completions` 发送的多轮聊天消息不会原样交给分词器：服务端先通过 `chat_template`（一段与模型配套发布的 Jinja 对话模板）把系统提示、角色边界、对话历史和助手起始引导符拼成训练时约定的格式，再把整段序列编码成 token 编号。**
 
-模型在后训练（SFT / RL）阶段见到的对话都严格遵守各自的模板标记协议，靠控制标记区分 `system`、`user` 与 `assistant`。以 `v0.30.0` 主基线标准模型 `Qwen3-8B`（`vocab_size = 151936`，`bos_token_id = 151643`，`eos_token_id = 151645`）为例，其模板遵循 ChatML 风格：每条消息以 `<|im_start|>角色名\n` 开头、`<|im_end|>\n`（`151645`）收尾。开启 `add_generation_prompt=True` 时，末尾还会自动拼上 `<|im_start|>assistant\n`，并按 `enable_thinking` 等变量控制 `<think>...</think>` 前缀。
+模型在后训练（SFT 监督微调 / RL 强化学习）阶段见到的对话都严格遵守各自的模板标记协议，靠控制标记区分 `system`、`user` 与 `assistant`。以 `v0.30.0` 主基线标准模型 `Qwen3-8B`（`vocab_size = 151936`，`bos_token_id = 151643`，`eos_token_id = 151645`）为例，其模板遵循 ChatML 风格：每条消息以 `<|im_start|>角色名\n` 开头、`<|im_end|>\n`（`151645`）收尾。开启 `add_generation_prompt=True` 时，末尾还会自动拼上 `<|im_start|>assistant\n`，并按 `enable_thinking` 等变量控制 `<think>...</think>` 前缀。
 
 不同模型家族的模板语法与标记属性各有差异，切勿跨模型混套。下图并排展示了另一套典型真实仓库——`GLM-5.3-Flash` 自带的 Jinja 模板——怎样把同一句「推理引擎怎么工作」包裹成完整序列：
 
@@ -212,7 +212,7 @@ file: token-fig-chat-pipeline
 围绕这一主机侧闭环，日常排查长度不符与输出异常时必须守住三条铁律：
 
 1. **真实输入长度（`prompt_len`）统计的是套完模板后的整条编号序列**：多轮对话的系统说明、历史问答、所有 `<|im_start|>` / `<|im_end|>` 边界符及末尾助手引导符都会进入 `prompt_token_ids`。仅对用户最后一句裸文本分词，永远算不出服务端校验的 `prompt_len`；模板渲染与编码均在主机 CPU 完成，尚未占用 NPU。
-2. **一步直出编号，避免二次编码重复塞入 BOS**：`safe_apply_chat_template` 默认以 `tokenize=True` 直接输出扁平整数列表（并设 `return_dict=False` 兼容 Transformers v5）。若线下先用 `tokenize=False` 拿到字符串再单独调 `tokenizer.encode(...)`，务必传 `add_special_tokens=False`，否则自动补 BOS 会多塞一遍起始符导致长度与哈希错位。比对两次编码结果时，还要锁死消息正文、`tokenizer` 版本、模板文本与变量（如 `enable_thinking` / `reasoning_effort`）并关闭随机切分。
+2. **一步直出编号，避免二次编码重复塞入 BOS（序列起始符，Beginning of Sequence）**：`safe_apply_chat_template` 默认以 `tokenize=True` 直接输出扁平整数列表（并设 `return_dict=False` 兼容 Transformers v5）。若线下先用 `tokenize=False` 拿到字符串再单独调 `tokenizer.encode(...)`，务必传 `add_special_tokens=False`，否则自动补 BOS 会多塞一遍起始符导致长度与哈希错位。比对两次编码结果时，还要锁死消息正文、`tokenizer` 版本、模板文本与变量（如 `enable_thinking` / `reasoning_effort`）并关闭随机切分。
 3. **无模板目录调用对话接口会当场报错**：Transformers v4.44 起移除了硬编码默认模板。当 `resolve_chat_template` 走完四级回落仍找不到可用模板（常见于裸基座目录），`vllm` 直接抛 `ChatTemplateResolutionError` 拒绝请求（已有配套模板的模型不受影响）。
 
 ## 生成的编号怎样变回文字？
@@ -251,7 +251,7 @@ file: token-fig-detokenizer-vocab-bounds
 
 $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab\_size} - 1)$$
 
-任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ 发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
+任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ（ZeroMQ，进程间高速消息通信库）发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
 
 ### DeepSeek Recipe：控制标记与用户文字怎样分开
 

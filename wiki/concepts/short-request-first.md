@@ -80,24 +80,21 @@ verified:
   - main
 evidence: C
 relations:
-  - to: vllm-scheduler
+  - to: continuous-batching
     kind: builds-on
-    note: 每步先续 running、余量再接 waiting；短请求优先只改后半段从哪条队里拿
+    note: 连续批处理每步先续 running、余量再接 waiting；短请求优先替换 waiting 队列，把默认 FCFS 改为三车道取队
   - to: chunked-prefill
     kind: builds-on
     note: 选中之后这一步给它算多少由分块决定；例子里 B 只算 4 个就靠它
-  - to: concurrent-requests
-    kind: builds-on
-    note: 场景 M 和 20,000 token 提示词分三步的整批账在那一页；本页只加一条短请求看它排到哪一步
   - to: async-scheduling
     kind: builds-on
     note: 开异步调度时换成 ShortRequestFirstAsyncScheduler 这条安装路径
-  - to: balance-scheduling
-    kind: builds-on
-    note: 同步路径上装队列的是均衡调度补丁换进来的 BalanceScheduler，与均衡开关无关
   - to: batch-job-aware-scheduler
     kind: alternative-to
-    note: 另一种改等待顺序的策略，两者不能同开
+    note: 另一种改等待队列接纳顺序的策略（短请求优先保在线短请求 TTFT，批作业感知调度保离线吞吐与降抢占）
+  - to: batch-job-aware-scheduler
+    kind: conflicts-with
+    note: 两者在平台初始化校验中显式互斥，同开会直接抛出 ValueError 拒绝启动
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -120,7 +117,7 @@ rawSources:
 file: short-request-first
 ```
 
-- **先到先服务。** 按到达先后取，A、B 正好把第 1 步的 16 个位置占满。C、D 加起来只要 4 个位置，也得等到第 2 步。
+- **先到先服务（FCFS，[连续批处理](continuous-batching.md)默认等待策略）。** 按到达先后取，A、B 正好把第 1 步的 16 个位置占满。C、D 加起来只要 4 个位置，也得等到第 2 步。
 - **短请求优先。** 先把 C、D 分进短车道，A、B 分进长车道。第 1 步先取短车道，C、D 用掉 4 个位置；再取长车道，A 用掉 8 个，还剩 4 个给 B，B 这一步只算前 4 个 token。
 - **第 2 步。** 第 1 步算完提示词的请求，第 2 步起逐个生成回答，每条每步只占 1 个位置（图里的灰格）。短请求优先这边，B 在第 2 步算完剩下的 4 个 token。
 - **结果。** C、D 的第一个输出 token 从第 2 步提前到第 1 步，A 不受影响，B 的提示词晚一步算完。两种取法第 1 步都用满 16 个位置；第 2 步先到先服务用 1+1+2+2=6 个，短请求优先用 1+1+1+4=7 个。预算上限相同，实际工作量会因哪些请求已转入 decode 而不同。
@@ -192,7 +189,7 @@ file: short-request-first-flow
 
 **关掉分块时，余量装不下的长请求整条排不进。** 例子里如果关掉 chunked prefill，第 1 步取完 C、D、A 还剩 4 个位置，B 要 8 个装不下；调度器不会切开它，而是这一步直接停止接纳新请求，B 等到下一步。
 
-**还有两道闸门排在三条车道之外。** 一是被挂起的请求：等别的机器把 KV cache 传过来的、等输出格式规则（structured output 的语法）准备好的，另排在一条挂起队列里；调度器每次先看这条队，再看三条车道。二是 running 的条数上限：running 已满时，恢复车道里的请求也进不来。
+**还有两道闸门排在三条车道之外。** 一是被挂起的请求：等别的机器把 KV cache 传过来的、等输出格式规则（[结构化输出](structured-output.md)的语法）准备好的，另排在一条挂起队列里；调度器每次先看这条队，再看三条车道。二是 running 的条数上限：running 已满时，恢复车道里的请求也进不来。
 
 **混合模型按块对齐切分时，长请求更容易卡住。** 有线性注意力层的混合模型，在按块对齐的缓存模式下，提示词每一段的终点要向下取整到块大小的整数倍；取整后得 0 的请求，这一步排不进，调度器也就不再往下看等待队列。按这条规则推断，短请求优先让短请求先占掉一部分余量，长请求会更常碰上取整得 0（具体切点边界见 [chunked prefill](chunked-prefill.md)）。
 
@@ -204,7 +201,7 @@ file: short-request-first-flow
 
 前半段规则适用于 `v0.26` 及 `v0.30.0` 标准主基线模型（如 `Qwen3-8B` / `Qwen3-30B-A3B`，按 `threshold` 直接拆分短/长车道）。下面单独对照历史 **[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)**（例外 B，钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`）：**这份镜像代码里没有短请求优先，不是关着，而是根本没有这个特性（该双机也未开启按块对齐切分）。** 本部署的等待队列就是上游 FCFS 队列：平台补丁换进来的调度器在均衡开关关着时直接走上游逻辑（见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。短请求优先从 `v0.26` 分支才出现，而那个分支没有 GLM 模型代码；`v0.30.0` 与 `main` 两样都有，但尚无两者同开的实跑记录。因此本节只按调度规则推演「换上它后排队步数怎么变」，不含毫秒实测。
 
-**它能动的，只有每个 DP 组每一步的余量。** 本部署分两个 DP 组，各有一个调度器、每步 8,192 个位置预算、最多 32 条 running。每条正在生成的请求一步占 4 个位置（1 个已定 token + 3 个 MTP 草稿）。已有 running 全在 decode 时，先按每条 4 个扣，余量才给等待队列；仍在 prefill 的 running 按实际未算量扣（见[已有请求都在 decode 时的余量](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。短请求优先只决定这份余量先给谁，不跨 DP 组搬移请求。
+**它能动的，只有每个 DP 组每一步的余量。** 本部署分两个 [DP（数据并行）](data-parallel.md)组，各有一个调度器、每步 8,192 个位置预算、最多 32 条 running。每条正在生成的请求一步占 4 个位置（1 个已定 token + 3 个 [MTP 投机解码](speculative-decoding.md)草稿）。已有 running 全在 decode 时，先按每条 4 个扣，余量才给等待队列；仍在 prefill 的 running 按实际未算量扣（见[已有请求都在 decode 时的余量](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。短请求优先只决定这份余量先给谁，不跨 DP 组搬移请求。
 
 **按默认门槛 256 分车道。** [R1](one-request.md)（提示词 4 token）进短车道；[场景 M](concurrent-requests.md#示例场景-m-与变体-m)（DP0 有 12 条 decode，新到 1 条 6,000 token 请求）的新请求进长车道。场景 M 一步只来这一条新请求，没有竞争对手，因此换上短请求优先每一步位置都不变。
 
@@ -230,7 +227,7 @@ $$T_{\text{SRF},1} = 48 + 4 + \min(20{,}000,\; 8{,}192 - 52) = 8{,}192, \qquad T
 
 - **抢占在这里很贵。** 本部署没开 prefix caching，被抢占的请求要从头重算（见[调度器](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。恢复车道让它排在新来的短请求前面，不会被反复压下去；但抢占本身的代价不变。
 - **GLM 能不能和它一起跑没有核过。** GLM 的线性注意力层要跨段延续状态、每步带 MTP 草稿；开发主线上两者同开有没有额外限制，要看同一版本的实现和测试。
-- **它会走异步调度那条安装路径。** 本部署没写异步调度的开关，按启动时的自动判定是开着的，见[异步调度 · 落到 GLM 双机](async-scheduling.md#落到-glm-双机r1-每一步的占位账)。换上短请求优先时，平台层会把调度器换成它专门的异步子类，构造完再装三车道队列。也因为开着异步调度，它不能和 profiling chunk 同开：v0.26 一律不行，main 只放开了同步调度。
+- **它会走异步调度那条安装路径。** 本部署没写异步调度的开关，按启动时的自动判定是开着的，见[异步调度 · 落到 GLM 双机](async-scheduling.md#落到-glm-双机r1-每一步的占位账)。换上短请求优先时，平台层会把调度器换成它专门的异步子类，构造完再装三车道队列。也因为开着异步调度，它不能和 [profiling chunk（动态分块预填充）](../params/profiling-chunk-config.md)同开：v0.26 一律不行，main 只放开了同步调度。
 
 ## 常见误解
 

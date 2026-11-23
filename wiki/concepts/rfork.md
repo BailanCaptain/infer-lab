@@ -13,6 +13,11 @@ aliases:
   - Tensor R-Fork
   - RFork 工作版
   - rfork_loader
+  - 权重快载
+  - P2P 权重借用
+  - seed 实例
+  - consumer 实例
+  - YuanRong TransferEngine
 chapters: []
 order: 10
 sources:
@@ -58,6 +63,15 @@ relations:
   - to: npu-worker-lifecycle
     kind: builds-on
     note: RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好
+  - to: device-memory
+    kind: builds-on
+    note: RFork 通过内存登记把权重字节直接跨卡读进接收方 HBM 显存，须先分清设备显存分配块、存储保活与主机内存的边界
+  - to: cann-hccl
+    kind: builds-on
+    note: 与推理期通过 HCCL 做集合通信不同，RFork 启动期借 YuanRong 传输引擎（HIXL/RDMA）完成点对点权重直读，两者共用底层昇腾互联与网卡拓扑
+  - to: ascend-model-onboarding
+    kind: builds-on
+    note: 新模型上线默认走磁盘加载并经受昇腾量化与权重排布约束，RFork 在同构扩容时替换其中的权重读取阶段
 contradicts: []
 updated: '2026-11-19'
 rawSources:
@@ -77,13 +91,13 @@ rawSources:
 
 ## 已经有实例在跑同一个模型，新实例还要从存储再读一遍权重吗
 
-设想实例 A 已经起好、正在服务请求。流量涨了，要再起一个一模一样的实例 B。B 开始算之前，得先把模型权重放进自己的 NPU 显存。默认做法是把 A 当初走过的路再走一遍：从存储读 checkpoint 文件，挑出本卡那一份拷进显存，再做一遍昇腾的后处理（步骤见 [Worker 生命周期](npu-worker-lifecycle.md)）。
+设想实例 A 已经起好、正在服务请求。流量涨了，要再起一个一模一样的实例 B。B 开始算之前，得先把模型权重放进自己的 NPU 显存。默认做法是把 A 当初走过的路再走一遍：从磁盘或共享存储读 checkpoint（模型权重检查点）文件，挑出本卡那一份拷进显存，再做一遍昇腾的后处理（标准上线流程见[新模型上线速查](ascend-model-onboarding.md)，启动步骤见 [Worker 生命周期](npu-worker-lifecycle.md)）。
 
-可这份权重 A 的显存里本来就有，而且已经是处理好的样子。**RFork（Tensor Remote Fork）让 B 按地址把 A 显存里的权重字节直接读过来，读不成再退回默认路径从存储加载。** B 先在自己卡上把模型的空架子搭好、把放权重的空位开好，再把 A 那边对应的字节读进这些空位。
+可这份权重 A 的显存里本来就有，而且已经是处理好的样子。**RFork（Tensor Remote Fork）让新启动的接收方实例（consumer / receiver，即 B）直接经点对点高速传输通道（P2P，由 YuanRong 传输引擎调昇腾 HIXL 传输库等后端，底层按拓扑走机内互联或 RoCE/RDMA 等链路直读）按地址把来源实例（seed，即 A）显存里的权重字节读过来，替代从磁盘反复读取；读不成再退回默认路径从存储加载。** B 先在自己卡上把模型的空架子搭好、把放权重的空位开好，再把 A 那边对应的字节读进这些空位。
 
 图里有两个新角色：
 
-- **seed**：被借的一方，已经就绪、愿意把权重借出去的实例。准确说是它上面的某一个 Worker（每张卡一个进程）；后面会看到，借是一张卡对一张卡。
+- **seed（来源实例）**：被借的一方（实例 A），已经就绪、愿意把权重借出去的实例。准确说是它上面的某一个 Worker（每张卡一个进程）；后面会看到，借是一张卡对一张卡；对应来借权重的新实例 B 则是 **consumer / receiver（接收方）**。
 - **Planner**：集群外的一个小服务，记着现在有哪些 seed。B 拿自己的「身份」来问，Planner 挑一个身份相同的 seed，再发一张**租约**（lease），记下「这个 seed 正被人借着」；B 读完要把租约还回去。
 
 ```wiki-diagram
@@ -125,7 +139,7 @@ file: rfork-fig-route-and-fallback
 
 按图中顺序，单次加载走八步（每步细则见箭头后的专页）：
 
-1. **绕过检查与配置指纹。** 先查可变权重守卫（sleep mode、在线权重传输或 EPLB）；未命中则建会话，把协议版本、模型标识、版本、量化摘要、架构、RoPE、有效 `kv_role` 与 `mix_placement` 算成兼容性指纹，并记下 TP / PP / EP / `sharded_dp_rank` 与主/草稿角色。最终 `seed_key` 等第 3 步算完结构摘要再绑定。→ [身份匹配](rfork-identity.md)
+1. **绕过检查与配置指纹。** 先查可变权重守卫（[sleep mode](sleep-mode.md)、在线权重传输或 EPLB）；未命中则建会话，把协议版本、模型标识、版本、量化摘要、架构、RoPE、有效 `kv_role` 与 `mix_placement` 算成兼容性指纹，并记下 TP / PP / EP / `sharded_dp_rank` 与主/草稿角色。最终 `seed_key` 等第 3 步算完结构摘要再绑定。→ [身份匹配](rfork-identity.md)
 2. **搭空模型与准备布局。** 在卡上建出空模型，恢复 MTP/DSpark checkpoint 归属并按需加载 Engram 宿主表。草稿若全部可传权重均与主模型共享，此时提前交回（`source=shared_target`）。要转布局的模型先对空参数跑后处理，并等 NPU 异步格式转换完成。→ [启动路径](rfork-startup.md)、[张量布局](rfork-layout.md)
 3. **预登记显存并绑定 `seed_key`。** 先把空位显存登记给传输引擎，由登记清单（稳定 ID、形状、dtype、NPU 存储格式）算出结构摘要，再结合兼容性指纹与分片角色绑定 `seed_key`。登记耗时因此移出租约有效期。→ [传输](rfork-transfer.md)
 4. **向 Planner 借租约。** 凭 `seed_key` 申请 seed 的 IP、端口与租约编号；若 Planner 返回 `LEASE_TTL_SEC` 则启动后台续租线程，借不到直接进回退。
@@ -185,9 +199,9 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 
 读 RFork 最容易混的是**同一个词分属不同层**：一个 seed 不是整个模型集群，一个地址不是一个张量的身份，一个 lease 不是内存锁。
 
-先把软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈。
+先将软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈（推理期卡间集合通信由 [CANN 与 HCCL](cann-hccl.md) 承担）。
 
-**YuanRong 数据系统**（Python 包名 `yr.datasystem`）提供 RFork 用的数据传输能力，不参与逐 token 推理。传输引擎、内存登记与错误码三样都从这个包导入，导入不到就直接抛 `ImportError`（原文见[会报什么错](#会报什么错)）——传输本身不是 RFork 自己实现的。排错时须分别报出各层版本，RFork 的 Python 代码决定不了底层设备调用的表现。
+**YuanRong 数据系统**（Python 包名 `yr.datasystem`）提供 RFork 用的点对点数据传输能力（经昇腾 HIXL 等传输后端选择机内互联或 RoCE/RDMA 等网络路径），不参与逐 token 推理。传输引擎、内存登记与错误码三样都从这个包导入，导入不到就直接抛 `ImportError`（原文见[会报什么错](#会报什么错)）——传输本身不是 RFork 自己实现的。排错时须分别报出各层版本，RFork 的 Python 代码决定不了底层设备调用的表现。
 
 **native** 指 Python 往下调用本地库或设备接口的那部分；**同步**指这次调用要等对应操作做完才返回，**异步**指把工作交给后台继续做。它们要带着对象理解：同一条加载流程里，权重读取是同步的，返回就说明这批字节已经到位；归还租约是异步的，只是把请求交给后台线程。两件事的「完成」不在同一个时刻。
 
@@ -209,7 +223,7 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 
 逐项行为的四版本对照见本页的[版本差异](#版本差异)，各子页的版本说明以那里为准。
 
-**哪个阶段。** 同一句「传输失败」可能出在内存登记、取元数据、核清单，也可能真是读数据时失败。只截最后一行，信息通常不够。要留下第一次 RFork 报错之前的上下文，至少带上：工作版的提交、是主模型还是投机解码的草稿模型、各类 rank、两端的配置，以及 Planner 的相关响应。
+**哪个阶段。** 同一句「传输失败」可能出在内存登记、取元数据、核清单，也可能真是读数据时失败。只截最后一行，信息通常不够。要留下第一次 RFork 报错之前的上下文，至少带上：当前 `vllm-ascend` 版本或提交号、是主模型还是投机解码的草稿模型、各类 rank、两端的配置，以及 Planner 的相关响应。
 
 **哪个 rank。** 借是按卡配对的：B 的每个 Worker 各自算 seed key、各自借、各自读、各自回退。看日志先确认是哪一张卡、是主模型还是草稿模型的那一套。
 
@@ -313,7 +327,7 @@ B 启动时加 `--load-format rfork`；配置写进 `--model-loader-extra-config
 | `RFork fallback aborted because seed service or registered memory cleanup failed; …` | 回退前清理失败 | 加载器拒绝再分配一份模型，启动失败 |
 | `ImportError: RFork requires the YuanRong TransferEngine, MemoryRegistration, and ErrorCode APIs.` | 初始化时无法导入 yr.datasystem 中所需的三个 API；可能没安装，也可能版本不提供接口 | 核对安装包与实际 API，不能只检查包名是否存在 |
 
-报错时要带上工作版提交、主模型还是草稿模型、全局/TP/PP/EP rank、两端配置和 Planner 响应。
+报错时要带上当前 `vllm-ascend` 版本或提交号、主模型还是草稿模型、全局/TP/PP/EP rank、两端配置和 Planner 响应。
 
 ### 开销和什么时候别开
 

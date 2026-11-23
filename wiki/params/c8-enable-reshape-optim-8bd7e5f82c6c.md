@@ -32,6 +32,12 @@ relations:
   - to: ascend-config-system
     kind: builds-on
     note: 本页四个固定快照都有此用户键，默认值与派生条件存在差异；还须核对具体层的运行时消费者
+  - to: sparse-attention
+    kind: builds-on
+    note: 该历史开关仅作用于稀疏注意力 LightningIndexer 的 C8 量化缓存写入路径
+  - to: pd-disaggregation
+    kind: builds-on
+    note: 过渡版 v0.30.0rc2 将该优化硬性限定为 PD 分离的 P 节点（is_prefill_node），混部部署恒为关闭
 sources:
   - >-
     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L526
@@ -132,17 +138,17 @@ rawSources:
 ---
 ## 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
 
-在长上下文稀疏注意力（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份缩放因子，这就是 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
+在长上下文[稀疏注意力](../concepts/sparse-attention.md)（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份反量化缩放因子（scale），这就是 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
 
-**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同其背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除**，`LightningIndexer.write_cache` 统一经设备适配层 `DeviceOperator.scatter_cache` 写入 K 缓存与量化 scale 缓存。若升级后仍在 `additional_config` 中保留该键，会被 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。
+**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同其背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除**，`LightningIndexer.write_cache` 统一经设备适配层 `DeviceOperator.scatter_cache` 写入 K 缓存与量化 scale 缓存。若升级后仍在 `additional_config` 中保留该键，会被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。
 
-在仍保留该键的历史版本里，`c8_enable_reshape_optim` 只控制一件事：**往显存写这份 C8 量化缓存时，用按整批 slot 索引直接写入的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经 `DeviceOperator.scatter_cache` 回退），还是改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。**
+在仍保留该键的历史版本里，`c8_enable_reshape_optim` 只控制一件事：**往显存写这份 C8 量化缓存时，用按整批 slot 索引分散写入的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经 `DeviceOperator.scatter_cache` 回退），还是改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。**
 
 不同版本的开关状态与演化如下：
 
 | 版本 / 快照 | 字段与默认 | 生效条件与消费点 |
 | --- | --- | --- |
-| `v0.23.0` / `v0.26.0rc` | 顶层键，默认 `False` | 实际取值 `enable_sparse_li_c8 and additional_config.get(..., False)`（索引器不走 C8 时恒为假）；官方表建议 PD 分离只在 P 节点开，但代码未拦截、混部可开；消费点在 `sfa_v1.py` |
+| `v0.23.0` / `v0.26.0rc` | 顶层键，默认 `False` | 实际取值 `enable_sparse_li_c8 and additional_config.get(..., False)`（索引器不走 C8 时恒为假）；官方表建议 [PD 分离](../concepts/pd-disaggregation.md)只在 P 节点开，但代码未拦截、混部可开；消费点在 `sfa_v1.py` |
 | `v0.28.0.rc1` 空窗期 | 暂删（PR #15752，2026-09-07） | 曾改为自动判定，该 tag 写入此键会被拒绝 |
 | 早期 `main`（`baa023ad`）与 `v0.30.0rc2`（`7d825229`） | PR #16952（2026-09-20）恢复并**反转默认 `True`** | 消费点迁至 `attention/indexer.py`（只读属性 `c8_reshape_optim_enabled`），硬性叠加 PD 角色：`c8_enable_reshape_optim and enable_sparse_li_c8 and is_prefill_node`。其中 `enable_sparse_li_c8` 改由 `attention_config.indexer_kv_dtype` 为 `fp8`/`int8` 且模型满足稀疏条件派生；全局为真后，每层仍经 `is_sparse_li_c8_layer` 检查是否在模型量化配置范围内 |
 | `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`） | **已删除**（PR #18128） | `LightningIndexer.write_cache` 统一经 `DeviceOperator.scatter_cache` 写入 K 与 scale 缓存；保留旧键被 `@config(extra="forbid")` 拒收（装 `vllm_omni` 时告警过滤未知顶层键） |

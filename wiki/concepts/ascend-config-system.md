@@ -99,15 +99,12 @@ relations:
   - to: engine-processes
     kind: builds-on
     note: 配置缓存是进程里的一个变量，进程边界决定它属于谁
+  - to: npu-platform
+    kind: builds-on
+    note: NPUPlatform.check_and_update_config 在前置校验后触发 init_ascend_config 并按角色改写开关
   - to: ascend-patch-system
     kind: builds-on
     note: patch 换的是名字指向谁，发生得比配置更早
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 官方双机命令写了哪些通用参数、每项取值管哪一步
-  - to: npu-worker-lifecycle
-    kind: builds-on
-    note: Worker 初始化时建立本进程的配置状态
 contradicts: []
 updated: '2026-11-19'
 origin: gap
@@ -158,19 +155,19 @@ file: config-inputs
 
 ## JSON 进来以后被拆成什么
 
-在 `v0.30.0` 主基线中，`init_ascend_config` 工厂会先把旧顶层调度兼容键（5 个，含 `profiling_chunk_config`）剥离并转交 `scheduler_config` 构造；装有 `vllm_omni` 时对未知顶层键先告警后过滤。其余字典直接交给 Pydantic dataclass（`ConfigDict(extra="forbid")`），一次拆成 **12 组强类型子配置**与若干顶层开关（`main` 移除 `dynamic_spec_config`，新增 `shared_engram`、`kv_trace` 与 `quantized_all_reduce_config` 扩至 14 组，另含 `runtime_config`）：
+在 `v0.30.0` 主基线中，`init_ascend_config` 工厂会先把旧顶层调度兼容键（5 个，含 `profiling_chunk_config`）剥离并转交 `scheduler_config` 构造；装有 `vllm_omni` 时对未知顶层键先告警后过滤。其余字典直接交给 **Pydantic dataclass**（带运行期强类型与未知键拦截的 Python 数据类，`ConfigDict(extra="forbid")`），一次拆成 **12 组强类型子配置**与若干顶层开关（`main` 移除 `dynamic_spec_config`，新增 `shared_engram`、`kv_trace` 与 `quantized_all_reduce_config` 扩至 14 组，另含 `runtime_config`）：
 
 | 子配置键名 | 负责什么 |
 |---|---|
 | `ascend_compilation_config` | 图编译期融合 pass（例如将 norm 与紧随量化融合成单算子） |
-| `ascend_fusion_config` | 运行期融合算子开关（例如 MoE 中 GMM、SwiGLU 与量化三步合一） |
+| `ascend_fusion_config` | 运行期融合算子开关（例如 MoE 中 **GMM**［Grouped MatMul，分组矩阵乘］、**SwiGLU** 门控激活与量化三步合一） |
 | `ascend_warmup_config` | 启动预热开关（`v0.30.0` 两项默认 `false`） |
 | `scheduler_config` | 昇腾扩展调度配置（收拢均衡调度、重算调度与 profiling 分块等） |
 | `finegrained_tp_config` | 细粒度 TP，为注意力输出投影、词嵌入、LM head 等模块单独指定 TP 规模（见[细粒度 TP](fine-grained-tp.md)） |
 | `eplb_config` | 专家负载均衡，统计专家热度并调整分布（见 [EPLB](eplb.md)） |
-| `xlite_graph_config` | Xlite 图执行路径配置 |
+| `xlite_graph_config` | Xlite（昇腾轻量整图执行引擎）图执行路径配置 |
 | `rejection_sampler_config` | 投机解码拒绝采样选项（见[投机解码](speculative-decoding.md)） |
-| `rl` / `dynamic_spec` / `sparse_kv_offload` / `kvpp` | 强化学习权重同步、动态投机解码、稀疏 KV 卸载与 KV 预取扩展 |
+| `rl` / `dynamic_spec` / `sparse_kv_offload` / `kvpp` | 强化学习权重同步、动态投机解码、稀疏 KV 卸载与 [KVPP](kvpp.md)（KV 预取并行）扩展 |
 
 > **历史结构对照（`v0.23.0` / GLM 镜像）**：旧版手写 `.get()` 路径共拆 8 组子配置——包含已被后续版本删除的 `weight_prefetch_config`（注意力/MoE/MLP 权重预取比例）与独立顶层的 `profiling_chunk_config`（启动量测 prefill 耗时拟合分块曲线）；且旧版在 Worker 类为 `auto`、非 310P 分支下才按 `xlite_graph_config` 自动切换 Xlite 专用 Worker。
 

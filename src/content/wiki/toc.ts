@@ -125,7 +125,7 @@ const PARTS: Pick<TocPart<never>, "id" | "title" | "blurb">[] = [
     title: "历史版本来源快照与开发档案",
     blurb: "历史基线快照、PR 档案、问答记录与尚待编排的新教学页",
   },
-  { id: "rfork", title: "RFork 权重快载专题", blurb: "独立演进的权重快载实现：机制、术语与故障定位" },
+  { id: "rfork", title: "RFork 权重快载专题", blurb: "跨实例零拷贝权重快载专题：机制、租约容灾与排障定位" },
   { id: "params", title: "additional_config 参数字典", blurb: "配置定义、默认值、约束线索与版本谱系" },
 ];
 
@@ -265,11 +265,11 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "sequence-parallel",
         "fine-grained-tp",
         "dynamic-chunked-pp",
-        "moe-comm-dispatch",
+        "hccl-buffer",
         "large-scale-ep",
+        "moe-comm-dispatch",
         "context-parallel",
         "kvpp",
-        "hccl-buffer",
       ],
     },
     {
@@ -292,9 +292,9 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "dyntra-lb",
         "recompute-scheduler",
         "recompute-cpu-offload",
+        "kv-pool",
         "kv-cache-layerwise-offload",
         "kv-cache-sparse-offload",
-        "kv-pool",
         "lmcache",
         "ucm",
       ],
@@ -309,19 +309,19 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "engine-processes",
         "vllm-ascend-overview",
         "platform-plugin-registration",
-        "ascend-patch-system",
-        "ascend-config-system",
         "vllm-platform-interface",
         "npu-platform",
+        "ascend-patch-system",
+        "ascend-config-system",
         "npu-worker-lifecycle",
         "kv-cache-memory-profiling",
         "request-call-chain",
         "prepare-inputs-flow",
         "npu-model-runner",
         "model-runner-v2",
+        "attention-backend-family",
         "ops-and-kernels",
         "op-to-ai-core",
-        "attention-backend-family",
         "graph-mode-layer",
         "acl-graph",
         "npugraph-ex",
@@ -349,15 +349,15 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "core-cli-params",
         "v030-release-baseline",
         "inference-troubleshooting",
-        "inference-benchmarking",
-        "aisbench-and-evalscope",
-        "inference-capacity-and-reliability",
-        "inference-performance-analysis",
         "inference-performance-walkthrough",
+        "inference-benchmarking",
+        "inference-capacity-and-reliability",
+        "aisbench-and-evalscope",
+        "inference-performance-analysis",
         "inference-performance-troubleshooting",
+        "batch-invariance",
         "inference-correctness-troubleshooting",
         "msprobe-accuracy-debug",
-        "batch-invariance",
       ],
     },
     {
@@ -383,7 +383,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
     {
       title: "DeepSeek-V4.1-Flash 百万上下文与跨代部署全案",
       track: "mainline",
-      pages: ["engram-conditional-memory", "deepseek-v4-1-flash", "deepseek-serving-case"],
+      pages: ["deepseek-serving-case", "deepseek-v4-1-flash", "engram-conditional-memory"],
     },
   ],
   references: [
@@ -413,7 +413,6 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "enable-super-kernel-ce990e186bfa",
         "fuse-allreduce-rms",
         "fused-op-type-fc0f5fcd7be0",
-        "size-40a1c2ca47b8",
         "c8-enable-reshape-optim-8bd7e5f82c6c",
         "combine-quant-mode-2a3f7cd47997",
         "enable-matmul-allreduce",
@@ -434,8 +433,8 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "absolute-balance-threshold-71578a0c428d",
         "rank-transfer-limit-99529b37d91d",
         "cross-node-transfer-limit-06ee92260b7a",
-        "replica-search-beam-size-6556d1650a62",
         "replica-search-num-stages-e4b10925ff97",
+        "replica-search-beam-size-6556d1650a62",
         "replica-search-radius-cd3118b5aae5",
         "placement-search-backtrack-limit-82b03cef98b0",
       ],
@@ -450,6 +449,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "prefetch-ratio",
         "profiling-chunk-config",
         "kvpp-config-0445bd352140",
+        "size-40a1c2ca47b8",
         "use-layerwise-b475778cd352",
         "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
         "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
@@ -538,11 +538,11 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
       else sections.push({ title, track: "advanced", pages: take([page.id]) });
     }
     if (part.id === "rfork") {
-      sections.push({
-        title: "工作版机制与维护",
-        track: "advanced",
-        pages: remaining(isRforkTopicPage),
-      });
+      const rforkDefaultTitle = "核心机制、配置与排障维护";
+      const rest = remaining(isRforkTopicPage);
+      const existing = sections.find((s) => s.title === rforkDefaultTitle);
+      if (existing) existing.pages.push(...rest);
+      else sections.push({ title: rforkDefaultTitle, track: "advanced", pages: rest });
     } else if (part.id === "params") {
       sections.push({
         title: "其他参数（待归组）",

@@ -49,7 +49,7 @@ aliases:
   - '--stream-interval'
   - '[DONE]'
 chapters:
-  - 09
+  - '09'
 order: 70
 sources:
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1695-L1711'
@@ -195,29 +195,14 @@ verified:
   - main
 evidence: C
 relations:
-  - to: one-request
-    kind: builds-on
-    note: 第 7 站的停止分支和 R1 结束时归还 16–17 个块号的账在那一页；本页展开前端怎样把编号变成 SSE 片段
   - to: token
     kind: builds-on
     note: 字节级 BPE 和「推理」「犇」两个例子在那一页；本页讲增量反分词怎样一步步还原并推送
   - to: sampling
     kind: builds-on
     note: 结束 token、停止 token 和长度上限在引擎侧判断，见那一页；本页只讲前端的停止字符串
-  - to: request-call-chain
-    kind: builds-on
-    note: API server、EngineCore 两种进程和它们之间的 ZMQ 通道在那一页
-  - to: speculative-decoding
-    kind: builds-on
-    note: MTP 让一步交回 1–4 个 token，一个片段因此可能带出几个 token 的文字
-  - to: api-server-entry
-    kind: builds-on
-    note: 请求进门时分词、登记反分词器和收集器在那一页；本页接着讲结果回程怎样变成片段
-  - to: async-scheduling
-    kind: builds-on
-    note: 本部署异步调度开着，引擎这一步的结果在下一步开跑后才回收、发往前端
 contradicts: []
-updated: 2026-11-19T00:00:00.000Z
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -270,7 +255,7 @@ file: streaming-output-intuition
 
 ## 怎么做：一步交回的编号要走过哪几道工序？
 
-**一步的结果先在引擎进程里追加、判停，再经 ZMQ 送到前端进程；前端后台任务统一完成反分词、停止字符串检查与增量计算，每条请求各自的 HTTP 任务再把增量拼成 SSE 片段写进连接。**
+**一步的结果先在引擎进程里追加、判停，再经 ZMQ（ZeroMQ，跨进程高速消息通道）送到前端进程；前端后台任务统一完成反分词、停止字符串检查与增量计算，每条请求各自的 HTTP 任务再把增量拼成 SSE 片段写进连接。**
 
 vLLM 服务由两类进程协同完成这条链路（见[调用链](request-call-chain.md#七站分在三种进程里)）：接 HTTP 请求的前端进程 `API server` 与调度推理的引擎进程 `EngineCore`。普通文本生成在前端做分词与反分词，两进程经 ZMQ 收发 token 编号和控制结果（预计算 embedding 等输入见 [vLLM V1 请求流](vllm-v1-shape.md#vllm-怎样把一条请求变成一步一步的计算)）。请求进门时的登记见 [API server 入口](api-server-entry.md)，本节沿结果回程往下走。
 
@@ -360,7 +345,7 @@ file: streaming-output-fig-holdback-buffer
 
 **挂载解析器后，同一段输出文字会被分拣到不同 JSON 字段；客户端断连时，前端按停止串相同的通道通知引擎中止。**
 
-- **思考段**：推理模型先写思考再写答案。服务端配置 `reasoning parser` 后，思考文字落入 `reasoning` 字段、答案落入 `content`；未配置时全部混在 `content` 里，非特殊 token 的思考标记也按正文输出。
+- **思考段**：推理模型先写思考再写答案。服务端配置 `reasoning parser`（思考内容解析器）后，思考文字落入 `reasoning` 字段、答案落入 `content`；未配置时全部混在 `content` 里，非特殊 token 的思考标记也按正文输出。
 - **工具调用**：配置 `tool-call parser` 且请求带工具定义时，调用结构被拆进 `tool_calls` 字段逐段推出；解析器尚未认出完整结构的前几步可能不发任何片段。普通 Chat 中，`auto` 或 `required` 实际发出工具调用时结束原因改为 `tool_calls`；指定函数名（named）调用则保留引擎原结束原因（`stop` 或 `length`）。
 - **多候选（`n > 1`）**：每个候选分配独立 `index`，按序号并行推送并各自带结束片段。
 - **逐 token 概率（`logprobs`）**：允许返回概率的分支中，每段只附本次新增 token 的记录；关闭思考返回时的额外影响见下节。
@@ -421,8 +406,8 @@ MTP（multi-token prediction）每步草拟 3 个候选 token，下一轮由主�
 ### GLM 的思考标记、结束编号与专用补丁
 
 - **快速解码流**：GLM 分词器为字节级 BPE（见 [token](token.md#glm-的分词器是字节级-bpe)），配置声明 `tokenizers` 后端，镜像内 `tokenizers >= 0.22` 时走快速解码流。
-- **思考标记归属**：聊天模板把 `&lt;think&gt;` 放在提示词末尾，模型从第 1 枚输出就开始写思考。`&lt;think&gt;` 与 `&lt;/think&gt;` 编号为 `154841`、`154842`，落在 36 个特殊标记编号段内，但分词器文件中 `special` 标志为 `false`，默认 `skip_special_tokens=true` 去不掉它们。
-  官方双机原配方未配 reasoning parser（仅传 `include_reasoning=false` 不能剥离思考），因此思考文字、`&lt;/think&gt;` 与答案全落在 `content` 里，客户端须自行按 `&lt;/think&gt;` 切分。函数调用教程另配 `--tool-call-parser glm47` 与 `--reasoning-parser glm45`，配齐后思考文字才分入 `reasoning` 字段（见[结构化输出](structured-output.md)）。
+- **思考标记归属**：聊天模板把 `<think>` 放在提示词末尾，模型从第 1 枚输出就开始写思考。`<think>` 与 `</think>` 编号为 `154841`、`154842`，落在 36 个特殊标记编号段内，但分词器文件中 `special` 标志为 `false`，默认 `skip_special_tokens=true` 去不掉它们。
+  官方双机原配方未配 reasoning parser（仅传 `include_reasoning=false` 不能剥离思考），因此思考文字、`</think>` 与答案全落在 `content` 里，客户端须自行按 `</think>` 切分。函数调用教程另配 `--tool-call-parser glm47` 与 `--reasoning-parser glm45`，配齐后思考文字才分入 `reasoning` 字段（见[结构化输出](structured-output.md)）。
 - **三个结束编号**：`154820`、`154827`、`154829` 均标为特殊 token（见 [token](token.md#编号要落在-154880-行之内)）；抽中后引擎判正常结束，默认不解码，结束原因记 `stop`。
 - **专用补丁**：昇腾快照 `db701c1f` 为 GLM 聊天流增加一层专用补丁（仅工具调用时生效），把原本挤在同一帧里的末段工具参数与 `finish_reason: "tool_calls"` 拆成两帧，先发参数再发只带结束原因的空帧。
 
@@ -440,7 +425,7 @@ MTP（multi-token prediction）每步草拟 3 个候选 token，下一轮由主�
 - **「停止字符串和结束 token 一样，都在引擎里判断。」** 结束 token、停止 token 与长度在引擎里判；停止字符串必须还原成文本，只能在前端判并回发中止。
 - **「反分词在 NPU 上或 worker 里做。」** 反分词在前端 `API server` 进程用 CPU 完成（GLM 双机即 node0 唯一前端）；worker 只产出编号。
 - **「content 为空的片段说明出了问题。」** 半个 UTF-8 字符的字节、或因停止字符串扣留结尾，都会产生无新文字的空片段，属正常行为。
-- **「GLM 的思考过程会自动放进 reasoning 字段。」** 只有服务端配了 reasoning parser 才会分字段；官方双机原配方未配置，思考文字与 `&lt;/think&gt;` 都在 `content` 中。
+- **「GLM 的思考过程会自动放进 reasoning 字段。」** 只有服务端配了 reasoning parser 才会分字段；官方双机原配方未配置，思考文字与 `</think>` 都在 `content` 中。
 
 ## 对照源码
 

@@ -6,14 +6,16 @@ summary: >-
   Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退，以及 GLM
   双机未启用的事实和 main 的布局传输变化。
 aliases:
-  - Netloader
   - NetLoader
-  - netloader
   - Netloader Guide
+  - NetLoader P2P
+  - P2P
+  - P2P 权重加载
   - 网络权重加载
   - 网络加载器
   - ModelNetLoaderElastic
   - INT8_CACHE
+  - disk_fallback_loader_extra_config
 chapters:
   - '19'
 order: 35
@@ -101,7 +103,7 @@ relations:
       两页涉及启动时从已有实例复用权重的不同方案：Netloader 显式配置来源并建立临时 HCCL 通信组；RFork 先向 Planner
       领取租约，传输后后台归还，确认归还后才能发布为 seed。
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-24'
 origin: gap
 rawSources:
   - >-
@@ -112,7 +114,7 @@ rawSources:
 
 ## 已有一张卡装好了模型，新实例还要从文件重读吗？
 
-**Netloader 是启动时的权重加载器：新实例向已经装好相同模型分片的实例要权重，把这些数直接从旧 NPU 卡复制到新卡自己的模型里。** 权重就是模型计算所用的参数；这里的 server 是供权重的旧实例，client 是取权重的新实例，两者也都可以运行推理服务。
+**NetLoader 是启动阶段的 P2P（Peer-to-Peer，点对点）卡间权重加载器：新实例直接向已经装好相同模型分片的旧实例请求权重，绕开重复读盘，通过卡间网络把这些数直接从旧 NPU 复制到新卡自己的模型里。** 权重就是模型计算所用的参数；这里的 server 是供权重的旧实例，client 是取权重的新实例，两者也都可以运行推理服务。
 
 ```wiki-diagram
 file: netloader-guide-intuition
@@ -261,7 +263,7 @@ vllm serve /models/example --tensor-parallel-size 1 --enforce-eager \
 
 按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；**本文 GLM-5.3-Flash 双机算例沿用例外 B 专用镜像钉点 `db701c1f`（与 `2c59ff10`、`2ed6cbba` 的 `netloader` 目录树及官方指南文件逐文件相同），与四版社区分支分别核对。**
 
-**`v0.30.0` 与 `main` 的 Netloader 实现完全一致**：均采用后处理布局传输（`INT8_CACHE=no`）、transfer manifest 与缓存模式握手，并在磁盘回退时通过 `disk_fallback_loader_extra_config`（`utils.py#L24-L46`、`netloader.py#L741-L765`）保留 `enable_multithread_load`、`num_threads`、`enable_weights_track` 三项 `DefaultModelLoader` 认识的参数、剔除 `SOURCE` / `LISTEN_PORT` 等 Netloader 专用键，避免回退时静默丢失多线程加载配置或触发未知键报错。与同属网络快载方案的 [RFork](rfork.md) 相比，Netloader 靠静态显式配置 `SOURCE` 地址并为每对供需 rank 建立 2 进程临时 HCCL 通信组逐参数收发，而 RFork 由 Planner 撮合 seed 租约、登记内存并按地址分批直读，两者加载协议与排障路径独立。
+**`v0.30.0` 与 `main` 的 Netloader 实现完全一致**：均采用后处理布局传输（`INT8_CACHE=no`）、传输清单（`transfer manifest`）与缓存模式握手，并在磁盘回退时通过 `disk_fallback_loader_extra_config`（`utils.py#L24-L46`、`netloader.py#L741-L765`）保留 `enable_multithread_load`、`num_threads`、`enable_weights_track` 三项 `DefaultModelLoader` 认识的参数、剔除 `SOURCE` / `LISTEN_PORT` 等 Netloader 专用键，避免回退时静默丢失多线程加载配置或触发未知键报错。与同属网络快载方案的 [RFork](rfork.md) 相比，Netloader 靠静态显式配置 `SOURCE` 地址并为每对供需 rank 建立 2 进程临时 HCCL 通信组逐参数收发，而 RFork 由 Planner 撮合 seed 租约、登记内存并按地址分批直读，两者加载协议与排障路径独立。
 
 | 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 | --- | --- | --- | --- | --- |

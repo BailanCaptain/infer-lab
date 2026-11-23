@@ -1,0 +1,12 @@
+mode: native-svg
+id: paged-attention-plate-hotel-scene
+caption: >-
+  用“传统包间酒店 vs 标准太空舱旅馆”秒懂 PagedAttention：左侧传统预留按最大可能长度切死大包间，单人入住也锁死整间（内部碎片），退房留下的窄缝又塞不进新团体（外部碎片）；右侧旅馆把床位统一建成定长标准舱（block_size），前台账本（TABLE）按需把散落空舱串给任意旅客，说同样开场白的两位旅客还能只读共住同一间已满共享舱（ref_cnt=2），在续写分叉时直接各自新开尾舱而无需复制原满舱。
+size: [900, 640]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L143-L195
+    symbols: [BlockPool, free_block_queue, null_block]
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L801
+    symbols: [get_new_blocks, touch, free_blocks, ref_cnt]
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L370-L465
+    symbols: [allocate_slots, block_size]

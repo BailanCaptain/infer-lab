@@ -58,21 +58,12 @@ verified:
   - main
 evidence: C
 relations:
-  - to: learning-guide
+  - to: hf-model-anatomy
     kind: builds-on
-    note: 先明确两条生命线与知识库导航，再按本页流程推进新模型上线
+    note: 先读懂模型目录的 config.json、架构名与量化文件特征，再按四道关完成昇腾版本锁死与权重选型
   - to: hardware-devices
     kind: builds-on
     note: 分清 Atlas A2/A3、310P 与 950DT 系列及软件可见设备映射，才能正确锁死第五维卡型
-  - to: vllm-ascend-overview
-    kind: builds-on
-    note: 理解 vllm-ascend 作为插件通过五个扩展点接入 vLLM，才能看清模型实现由谁提供
-  - to: low-precision-formats
-    kind: builds-on
-    note: 分清 BF16、INT8 W8A8、MXFP8/MXFP4 与原生分块 FP8 的加载期转换差异，避免显存估算翻倍
-  - to: npu-worker-lifecycle
-    kind: builds-on
-    note: 接续上线校验之后 NPUWorker 的设备检查、模型加载后处理与显存探测流程
 contradicts: []
 updated: '2026-11-18'
 ---
@@ -138,7 +129,7 @@ file: onboarding-fig-four-families
 | 硬件族 | 典型产品与 `SOC_VERSION` | 官方镜像与安装通道 | 核心硬件限制与必改开关 |
 |---|---|---|---|
 | **Atlas A2** | `Atlas 800T/I A2`、`900 A2 PoD`、`200T A2 Box16`、`300T A2`（`ascend910b*`） | `vllm-ascend:v0.30.0`；标准 `pip install vllm-ascend` 默认预编译 wheel **仅面向 A2** | 需 `triton-ascend`；支持 `BF16`、`W8A8`、`W4A8`、`ACL Graph`（昇腾图模式，捕获算子序列以减少逐次下发开销） |
-| **Atlas A3** | `Atlas 800T/I A3`、`900/9000 A3 SuperPoD`（`ascend910_93*`） | `vllm-ascend:v0.30.0-a3`；不能直接用默认 `pip` wheel，需官方镜像、`uv` WheelNext 变体索引或带 `SOC_VERSION` 源码编译 | 双裸片（dual-Die）设计使单张物理 NPU 暴露为两个可见设备（`/dev/davinci[0-15]`）；需 `triton-ascend` |
+| **Atlas A3** | `Atlas 800T/I A3`、`900/9000 A3 SuperPoD`（`ascend910_93*`） | `vllm-ascend:v0.30.0-a3`；不能直接用默认 `pip` wheel，需官方镜像、`uv` WheelNext（按硬件架构自动选包的扩展索引）或带芯片型号标识 `SOC_VERSION` 的源码编译 | 双裸片（dual-Die）设计使单张物理 NPU 暴露为两个可见设备（`/dev/davinci[0-15]`）；需 `triton-ascend` |
 | **Atlas 300I DUO / 200I Pro（`310P`）** | `Atlas 300I DUO`、`Atlas 200I Pro`（`ascend310p*`） | `vllm-ascend:v0.30.0-310p`；源码编译或镜像均定向构建，使用专用 `NPUWorker310` | **不支持 `triton`/`triton-ascend`**、**不支持 `BF16`**、**不支持 `npugraph_ex`**；启动必须显式传 `--dtype float16`（或 `W8A8-310P`）、限制 `FULL_DECODE_ONLY` 捕获尺寸，并设 `enable_npugraph_ex: false` |
 | **950DT（`A5`）** | `950DT` 系列（`ascend950*`） | `vllm-ascend:v0.30.0-a5`；需对应镜像、`uv` WheelNext 或源码编译 | 硬件档案启用 `FP8_OPTIMIZED` 与 `CANN_MEGAMOE_MXFP`，支持 `MXFP8` / `MXFP4` 低比特路径；需 `triton-ascend` |
 
@@ -175,14 +166,14 @@ file: onboarding-fig-recipes-funnel
 | 食谱文件 | 覆盖模型与定位 | 核心硬件、Runner 与权重提示 | 镜像与合入状态 |
 |---|---|---|---|
 | `Qwen3-Dense.md` | `Qwen3-0.6B/1.7B/4B/8B/14B/32B`（**标准教学标尺 `Qwen3-8B`**） | A2/A3（`BF16`、`W8A8`、`W4A4`），300I DUO（`W8A8SC-310`） | `v0.30.0` 正式标准镜像 |
-| `Qwen3-30B-A3B.md` | `Qwen3-30B-A3B`（30.5B/3.3B MoE，**标准教学标尺**） | A2/A3（`BF16`、`W8A8`，常配合 EP 与 EAGLE3），300I DUO（`w8a8-QuaRot-310`） | `v0.30.0` 正式标准镜像 |
-| `Qwen3.5-Dense.md` | `Qwen3.5-2B/4B/9B`（GDN 门控线性注意力 + 全注意力） | Atlas 300I DUO 与 Atlas 200I Pro（`FP16`、`W8A8-310P`） | `v0.30.0` 正式标准镜像 |
+| `Qwen3-30B-A3B.md` | `Qwen3-30B-A3B`（30.5B/3.3B MoE，**标准教学标尺**） | A2/A3（`BF16`、`W8A8`，常配合 EP 与 [EAGLE3](speculative-decoding.md) 投机解码），300I DUO（`w8a8-QuaRot-310`） | `v0.30.0` 正式标准镜像 |
+| `Qwen3.5-Dense.md` | `Qwen3.5-2B/4B/9B`（[GDN 门控线性注意力](linear-attention.md) + 全注意力） | Atlas 300I DUO 与 Atlas 200I Pro（`FP16`、`W8A8-310P`） | `v0.30.0` 正式标准镜像 |
 | `Qwen3.5-27B-Qwen3.6-27B.md` | `Qwen3.5-27B` & `Qwen3.6-27B`（GDN + 全注意力） | A2/A3（`BF16`/`W8A8`），300I DUO（浮点权重配 `--dtype float16` / `W8A8-310P`），950DT（`BF16`/`w8a8-mxfp8`/`w8a8c8-mxfp8`） | `v0.30.0` 正式标准镜像 |
 | `Qwen3.6-35B-A3B.md` | `Qwen3.6-35B-A3B`（GDN + 全注意力 MoE） | A2/A3（`BF16`/`W8A8`）、300I DUO（浮点权重配 `--dtype float16` / `W8A8`），950DT（`BF16`/`w8a8-mxfp8`/`w8a8c8-mxfp8`/`w4a8-mxfp`） | `v0.30.0` 正式标准镜像 |
-| `Qwen3.8-27B.md` | `Qwen3.8-27B`（GDN + 全注意力 + MTP 多 token 预测） | 950PR/950DT（`BF16`/`mxfp8`/`w8a8c8-mxfp8`），A2/A3（`BF16`/`W8A8`），300I DUO（`W8A8-310P`） | `v0.30.0` 正式标准镜像 |
+| `Qwen3.8-27B.md` | `Qwen3.8-27B`（GDN + 全注意力 + [MTP 多 token 预测](speculative-decoding.md)） | 950PR/950DT（`BF16`/`mxfp8`/`w8a8c8-mxfp8`），A2/A3（`BF16`/`W8A8`），300I DUO（`W8A8-310P`） | `v0.30.0` 正式标准镜像 |
 | `Qwen3.8-2.4T-A95B.md` | `Qwen3.8-2.4T-A95B`（2.4T 总参 / 95B 激活 MoE） | 多机 A3（`W8A8`，4×A3）或 A2（`W4A8`，8×A2） | **需专属镜像 / 代码未进 `v0.30.0` 正式包**（食谱指定 `vllm-ascend:qwen3.8-a3` / `qwen3.8-a2`） |
 | `Qwen3.8-Flash-Next.md` | `Qwen3.8-Flash-Next`（实验支持 `🔵`，GDN + QSA MoE） | **仅 Atlas A3**（`W8A8`）；A2 与 950 暂不支持 | **需专属镜像 / 代码未进 `v0.30.0` 正式包**（食谱指定 `vllm-ascend:qwen3.8-next-a3` / `-openeuler`） |
-| `DeepSeek-V4-Flash.md` | `DeepSeek-V4-Flash`（mHC 多路残差 + 稀疏/MLA MoE） | A2/A3（`W8A8`），950DT（`MXFP`、`W4A4C8`） | **需专属镜像 / 代码未进 `v0.30.0` 正式包**（MTP 路径用 `v0.30.0` 标准镜像；DSpark 变体与超长序列 PD 注明改用 `vllm-ascend:nightly-main`） |
+| `DeepSeek-V4-Flash.md` | `DeepSeek-V4-Flash`（[mHC 多路残差](layers-and-hidden.md) + [稀疏](sparse-attention.md)/[MLA](mla.md) MoE） | A2/A3（`W8A8`），950DT（`MXFP`、`W4A4C8`） | **需专属镜像 / 代码未进 `v0.30.0` 正式包**（MTP 路径用 `v0.30.0` 标准镜像；[DSpark](dspark.md) 变体与超长序列 PD 注明改用 `vllm-ascend:nightly-main`） |
 | `DeepSeek-V4-Pro.md` | `DeepSeek-V4-Pro` | A2/A3（`W4A8`），950DT（`MXFP`、`W4A4C8`） | `v0.30.0` 正式标准镜像 |
 | `DeepSeek-V4.1-Flash.md` | `DeepSeek-V4.1-Flash`（552B/8B CED + CSA2 + Engram） | 950DT（`MXFP` + `VLLM_USE_V2_MODEL_RUNNER=1` + `--quantization deepseek_v4_fp8`），A2/A3（`W8A8` + `VLLM_USE_V2_MODEL_RUNNER=0`） | `v0.30.0` 正式标准镜像 |
 | `GLM5.md` | `# GLM-5 & GLM-5.1`（**仅 `GLM-5.1` 活跃，`GLM-5` 已停服**） | `GLM-5.1` 支持 A2/A3（`W4A8`/`W8A8`/`W8A8C8-MTP`）与 950DT（`W4A4C8-mxfp4`），要求 `transformers >= 5.2.0` | `v0.30.0` 正式标准镜像 |
@@ -192,6 +183,8 @@ file: onboarding-fig-recipes-funnel
 | `Kimi-K3.md` | `Kimi-K3`（KDA + MLA + LatentMoE + MoonViT） | `v0.30.0` 验证支持 950DT、A3、A2（`W4A8`，支持 DSpark） | `v0.30.0` 正式标准镜像 |
 
 #### 2. 多模态视觉（VLM）、语音（ASR）与嵌入（Embedding）模型（9 篇）
+
+> 多模态视觉语言模型（VLM）的图像/视频预处理与跨模态合并详见 [多模态推理](multimodal-inference.md)；语音转写（ASR）与非自回归嵌入（Embedding）池化路径详见 [Pooling 与非自回归推理](pooling-and-non-ar.md)。
 
 | 食谱文件 | 覆盖模型与定位 | 核心硬件与使用限制 | 镜像与合入状态 |
 |---|---|---|---|

@@ -48,8 +48,8 @@ verified:
 evidence: C
 relations:
   - to: npu-model-runner
-    kind: builds-on
-    note: 先理解单卡每步前向与采样拆成两次调用的基本骨架，再对照本页看 V2 如何重写状态与缓冲层
+    kind: variant-of
+    note: MRV2 是第一代单体 NPUModelRunner（MRV1）的模块化换代实现，用常驻设备缓冲替代每步宿主重排，main 已彻底收敛至本页架构
   - to: prepare-inputs-flow
     kind: builds-on
     note: V1 在宿主侧组装输入批与注意力元数据的逐项步骤见该页，本页展开 V2 常驻缓冲的替代路径
@@ -88,7 +88,7 @@ file: mrv2-fig-v1-vs-v2
 |---|---|---|
 | 代码组织与对齐 | 单体大类，大量方法整段复制自上游 V1 并做昇腾改写 | 拆分为 `states`、`input_batch`、`block_table`、`pcp_manager`、`eplb`、`aclgraph_utils`、`spec_decode` 等子模块薄继承上游 V2，免去重复维护主干 |
 | 请求状态存放 | CPU 侧 `NPUInputBatch` 维护全量请求元数据与历史 token | `AscendRequestState` 将大词表 `all_token_ids` 放进 **UVA**（统一虚拟地址映射主机内存），并以 `torch.from_numpy` 零拷贝共享长度缓冲，省显存且免重复拷贝 |
-| 输入缓冲与块表 | 每步在 CPU 整理 NumPy 数组再整体 H2D 拷贝 | `AscendInputBuffers` 在 NPU 预分配常驻缓冲，`AscendBlockTables` 用 Triton 核直接在设备侧算 `slot_mapping`，压低 CPU 准备耗时并契合固定地址图回放 |
+| 输入缓冲与块表 | 每步在 CPU 整理 NumPy 数组再整体 **H2D**（Host-to-Device，主机到设备）拷贝 | `AscendInputBuffers` 在 NPU 预分配常驻缓冲，`AscendBlockTables` 用 **Triton** 核直接在设备侧算 `slot_mapping`，压低 CPU 准备耗时并契合固定地址图回放 |
 | KV Cache 组织 | 按层/按注意力类型各自分配，混合模型复用困难 | 开启标准化共享 KV 底板（`shared_kv_backing`），保留上游共享页池并按昇腾连续 K/V 与 2 MiB 对齐切出视图，消除混合状态模型碎片 |
 | 扩展能力边界 | 仅留旧 `DYNAMIC_EPLB`；不支持 PCP、路由专家回传与 CPP 异步 | 原生接入 `AscendPCPManager`、`AscendEPLBController`、统一 `spec_decode` 族与标准 `kv_connector`，承接新模型与高阶并行主干 |
 

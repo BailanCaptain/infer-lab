@@ -2,7 +2,7 @@ mode: native-svg
 id: layer-sharding
 caption: >-
   v0.23.0 层间权重分片（layer_sharding）：第 i 层常驻在组内 rank i % K，非 owner 卡经两份整层窗口提前一层异步 Broadcast 取回（示意：61 层 o_proj、每层 112 MiB、K=16，仅限 P 节点）；v0.24.0rc（PR #11953）已删除，v0.30.0 与 main 拒收旧键。
-size: [900, 628]
+size: [900, 668]
 pins:
   - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L58'
     symbols: [SeriesMetadata, ShardWindowMetadata, prefetch_step, is_source]

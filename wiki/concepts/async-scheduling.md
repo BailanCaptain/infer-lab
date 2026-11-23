@@ -153,17 +153,14 @@ verified:
   - main
 evidence: C
 relations:
-  - to: vllm-scheduler
+  - to: continuous-batching
     kind: builds-on
-    note: 「应算减已算」这道减法和已算数当场前推在那一页，本页只讲异步多出来的输出占位
-  - to: npu-model-runner
-    kind: builds-on
-    note: Worker 怎样准备输入、采样，本页只讲异步时 token 值留在卡上、结果晚一步拷回
+    note: 异步调度是在连续批处理逐迭代排步循环之上叠加的输出占位与在途批次队列机制
   - to: speculative-decoding
     kind: builds-on
     note: 候选被拒后已算数怎样回退；异步下先按全接受排、回来再改正
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -212,7 +209,7 @@ $$\text{Util}_{\text{sync}}(S) = \frac{3S}{1 + 3S + (S - 1) + 1}, \qquad \text{U
 
 代价都来自同一件事：计划发出去的时候，上一步的结果还没回来。
 
-- **多压一批在途。** 本页先按 PP=1 的 V1 runner 解释，引擎最多保留 2 批：一批在卡上算，一批已经排好。PP 与 V2 的上限见本页[怎么开](#怎么开)。队列满、没有更多可排工作或采样需要前批结果时，要处理最老的一批，见 [EngineCore 的批次队列](vllm-engine-core.md#批次队列下一圈的调度和这一圈的计算叠起来)。
+- **多压一批在途。** 本页先按 PP=1（不含流水线并行）的 V1 runner（第一代 Model Runner 执行器）解释，引擎最多保留 2 批：一批在卡上算，一批已经排好。PP 与 V2 runner（第二代执行器）的上限见本页[怎么开](#怎么开)。队列满、没有更多可排工作或采样需要前批结果时，要处理最老的一批，见 [EngineCore 的批次队列](vllm-engine-core.md#批次队列下一圈的调度和这一圈的计算叠起来)。
 - **记账变复杂。** 调度器要给还没回来的 token 记占位，结果回来再销掉；带[投机解码](speculative-decoding.md)（先草拟几个候选 token，下一步由主模型一次验证）时，还要先按「候选全被接受」排，回来再改正。下面三节讲这些。
 - **有些活仍依赖上一步。** 结构化输出（按 JSON 等格式约束输出）可能要先收到上一步 token 才能计算采样约束；强制清空前缀缓存时要识别并丢弃旧的在途结果；本页固定实现的 FULL 图回放还有当前流同步点。图同步并非异步开关专属，具体条件见[在途的结果怎样收尾](#在途的结果怎样收尾抢占结构化输出与图回放)。
 
@@ -278,7 +275,7 @@ file: async-scheduling-flow
 
 左边展示固定旧版上游 EngineCore 的批次循环与占位协议；调度类仍可能被昇腾扩展，不能把整个进程视为完全未修改。右边由昇腾的 [NPUModelRunner](npu-model-runner.md) 准备输入和执行。图按 PP=1、普通生成请求画出主要路径：① 排计划、② 记账、③ 提交后，队列未满且还有计算或待排请求时，直接回到 ①；否则在 ④ 处理最老的一批，⑤ 销账，⑥ 把 token 发回前端。结构化输出需要前批 token 时，还有先提交前向、处理前批结果、再提交采样的分支。右列 ⑧ 的采样值一路留在卡上给下一步的 ⑦，一路拷回主机，由后续的 ④ 收下。
 
-昇腾这边还有版本相关的接线。固定旧版在异步 PP、且本 Worker 不是 PD 分离的 P 节点时，让最后一段直接广播采样结果；继承的广播函数要求每条请求只有一个采样值，纯中间 prefill 批还会跳过广播，不能把它当成所有 PP 与投机组合的支持保证。v0.26 rc 和 main 的 V1 PP 改为经调度输出传回，见版本表。ACL graph（昇腾的计算图录制与回放）的同步条件见[在途的结果怎样收尾](#在途的结果怎样收尾抢占结构化输出与图回放)。
+昇腾这边还有版本相关的接线。固定旧版在异步 PP、且本 Worker 不是 [PD 分离](pd-disaggregation.md)的 P 节点（Prefill 预填充节点）时，让最后一段直接广播采样结果；继承的广播函数要求每条请求只有一个采样值，纯中间 prefill 批还会跳过广播，不能把它当成所有 PP 与投机组合的支持保证。v0.26 rc 和 main 的 V1 PP 改为经调度输出传回，见版本表。ACL graph（昇腾的计算图录制与回放）的同步条件见[在途的结果怎样收尾](#在途的结果怎样收尾抢占结构化输出与图回放)。
 
 ## 带投机解码时：先按候选全被接受排，回来再改
 
@@ -306,7 +303,7 @@ $$\Delta_{\text{cancel}} = (K - A) + (1 + A) = 1 + K = \Delta_{\text{add}}$$
 
 - **强制清空前缀缓存时，丢掉在途的结果。** 清空前缀缓存这个操作可以要求先把所有在跑的请求抢占掉（让出 KV 块、退回等待队列）。被抢占的请求还有结果在路上。调度器把它当时的输出占位数记成「待丢弃」的计数、占位清零；之后每回来一份结果就把计数减 1，这份结果直接跳过，不接到请求上。这条丢弃路径只为这种强制抢占而设。请求判停或被中止时，在途的结果怎样丢掉、worker 为什么晚一步才删它，见[请求收尾](request-teardown.md#异步调度下判停的时候下一步已经排好了)。
 - **结构化输出要等上一步的 token。** [结构化输出](structured-output.md)（按 JSON schema 等格式约束，每步屏蔽不合法的 token）要根据已生成的 token 算下一步的屏蔽表。上一步的 token 还没回来时，这一步的前向照样提交，采样推迟到上一步的结果处理完再做，见[思考阶段、异步调度与收尾](structured-output.md#思考阶段异步调度与收尾有什么不同)。
-- **FULL 图回放有当前流同步点。** [ACL graph](acl-graph.md) 复用已录制的计算图，执行前需协调参数更新与前批回放的先后。本页固定实现只在 FULL、非 EAGLE 草稿且未启用 ENPU 时，调用 `torch.npu.current_stream().synchronize()`，等待当前流此前提交的工作完成；它不是整个设备的无条件同步，也不检查异步开关。异步调度和输入准备仍可在此前重叠，实际同步耗时取决于到达这一点时的工作进度。
+- **FULL 图回放有当前流同步点。** [ACL graph](acl-graph.md) 复用已录制的计算图，执行前需协调参数更新与前批回放的先后。本页固定实现只在 FULL、非 EAGLE 草稿且未启用 ENPU（昇腾扩展图优化模式）时，调用 `torch.npu.current_stream().synchronize()`，等待当前流此前提交的工作完成；它不是整个设备的无条件同步，也不检查异步开关。异步调度和输入准备仍可在此前重叠，实际同步耗时取决于到达这一点时的工作进度。
 
 ## 换了调度器的特性，要备一个异步版
 
@@ -316,7 +313,7 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 - [Recompute Scheduler](recompute-scheduler.md)：各版本都有同步、异步两版。
 - [ShortRequestFirst](short-request-first.md)、[BatchJobAwareScheduler](batch-job-aware-scheduler.md)：本页 v0.26 rc 快照带异步版；main 上的 [DyntraLB](dyntra-lb.md) 也带异步版。
-- `SchedulerDynamicBatch`（按服务时延目标动态调预算）在旧版快照中仅提供同步类；`ProfilingChunkScheduler`（先测 prefill 耗时再动态定块长）在早期快照中也由平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`，要求同时开启 MRV2（`VLLM_USE_V2_MODEL_RUNNER=1`）。当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制（见[版本差异](#版本差异)）。早期 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
+- `SchedulerDynamicBatch`（按服务时延目标动态调预算）在旧版快照中仅提供同步类；`ProfilingChunkScheduler`（先测 prefill 耗时再动态定块长）在早期快照中也由平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`，要求同时开启 MRV2（第二代 Model Runner 执行器，`VLLM_USE_V2_MODEL_RUNNER=1`）。当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制（见[版本差异](#版本差异)）。早期 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
 
 若调度还依赖草稿的置信预测，异步也会影响“这次决定用了哪一轮信息”。[DSpark 的 CPU/设备分工](dspark.md#cpu-已经排下一步新的置信度还没回来怎么办)把总预算与逐请求长度分开讲，示范怎样记录步号和请求映射；它不是 GLM 占位机制的另一个名称。
 
@@ -360,7 +357,7 @@ file: async-scheduling-fig-dbo-split
 
 **开着，靠自动判定。** 官方双机命令没写 async scheduling 的开关，因此走自动判定：模型不是 pooling 类，投机方法 MTP（每步草拟 `3` 个候选）在允许名单里，未关掉候选批次补齐，且多进程执行器支持异步。四条全部通过，所以处于开启状态（启动日志里有一行写明开关结果，本部署还缺这份日志）。
 
-**两个 EngineCore 各记各的账。** 在这组 DP2、TP8、PP1 部署条件下，每台机器的一组请求由自己的 EngineCore 调度，使用异步占位协议和最多 2 批的队列。上面列出的专用调度配置没有出现在命令中；若 AsyncScheduler 首次定义在 Scheduler 被替换之后，它继承 BalanceScheduler，均衡关闭时回父类调度；若已经提前导入，后来换名不会改变父类。实际类型要结合目标进程的 MRO 核对，见[补丁系统](ascend-patch-system.md#落到-glm-双机哪些-patch-真的起作用)。一圈里各发什么、收什么，见[两个 EngineCore 各转各的圈](vllm-engine-core.md#落到-glm-双机两个-enginecore-各转各的圈)。
+**两个 EngineCore 各记各的账。** 在这组 DP2、TP8、PP1 部署条件下，每台机器的一组请求由自己的 EngineCore 调度，使用异步占位协议和最多 2 批的队列。上面列出的专用调度配置没有出现在命令中；若 AsyncScheduler 首次定义在 Scheduler 被替换之后，它继承 BalanceScheduler，均衡关闭时回父类调度；若已经提前导入，后来换名不会改变父类。实际类型要结合目标进程的 MRO（Python 类继承的方法解析顺序，Method Resolution Order）核对，见[补丁系统](ascend-patch-system.md#落到-glm-双机哪些-patch-真的起作用)。一圈里各发什么、收什么，见[两个 EngineCore 各转各的圈](vllm-engine-core.md#落到-glm-双机两个-enginecore-各转各的圈)。
 
 **R1 连续 decode 示例每步排 4 个位置，输出占位每步加 4。** 假设每步 3 个候选齐备、预算足够且请求尚未停止或被抢占，占位增量为 `1 + 3 = 4`。下面跟着 [R1](one-request.md#示例请求-r1-与官方双机部署)（提示词 4 个 token，是教学设定）看账上的数。R1 在 DP0 上；和[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)一样，假设第 2 步接受 1 个候选、第 3 步全部接受。
 

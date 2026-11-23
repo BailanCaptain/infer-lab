@@ -23,6 +23,8 @@ aliases:
   - 量化性能
   - INT8累加
   - 量化溢出
+  - Rel-L2
+  - 阿姆达尔定律
 chapters:
   - '11'
   - '19'
@@ -70,18 +72,18 @@ relations:
   - to: quantization-methods
     kind: builds-on
     note: 确定量化对象、方法与校准之后，用同一标准比较候选产物
-  - to: aisbench-and-evalscope
+  - to: quantization
     kind: builds-on
-    note: 量化质量评测与服务性能压测的 AISBench / EvalScope 实操命令、预热剔除与双端口径对齐见该实战页
+    note: 逐层 W8A8/FP8 选路与硬件反量化回退是产物一致性核查的首要对象
+  - to: kv-cache-quantization
+    kind: builds-on
+    note: 长上下文与前缀复用验收必须把缓存量化误差与权重量化分开评估
   - to: tensor-layout
     kind: builds-on
     note: 先分清精度误差与数据排布错误，再统计实际存储和转换成本
-  - to: inference-correctness-troubleshooting
+  - to: roofline-and-metrics
     kind: builds-on
-    note: 核对输入与采样，沿首次分歧判断是否真是量化问题
-  - to: inference-performance-walkthrough
-    kind: builds-on
-    note: 用设备与请求时间线区分转换、计算、通信和排队
+    note: 量化提速验证依赖 TTFT/TPOT/ITL 性能三角与 Roofline 带宽/算力瓶颈判据
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -89,7 +91,7 @@ verified:
   - main
 evidence: S
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-24'
 ---
 
 ## 量化模型能回答问题，就算成功了吗？
@@ -148,7 +150,7 @@ $$\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}(\hat{x}_i - x_i)^2, \qquad \text{Rel-L2
 
 ## 权重字节减半，推理会快一倍吗？
 
-**只能缩短被优化的那部分工作，新增转换也要计时。** 假设一次前向原来耗时 100 ms，其中读权重 60 ms，其余工作 40 ms；量化后读权重降为 30 ms，但新增量化与反量化共 10 ms。这是各阶段不重叠的教学模型：
+**只能缩短被优化的那部分工作，新增转换也要计时（阿姆达尔定律的直接体现）。** 假设一次前向原来耗时 100 ms，其中读权重 60 ms，其余工作 40 ms；量化后读权重降为 30 ms，但新增量化与反量化共 10 ms。这是各阶段不重叠的教学模型：
 
 $$S = \frac{T_{\text{orig}}}{T_{\text{new}}} = \frac{100}{80} = 1.25, \qquad \Delta T = \frac{100 - 80}{100} = 20\%$$
 
@@ -163,13 +165,13 @@ $$S = \frac{T_{\text{orig}}}{T_{\text{new}}} = \frac{100}{80} = 1.25, \qquad \De
 file: quantization-evaluation-fig-amdahl-bar
 ```
 
-真实执行还会重叠搬运与计算，需要用时间线确认关键路径。小批 decode、较大批 prefill、长上下文 attention 的瓶颈不同：weight-only 重点检查权重流量，W8A8 还要检查是否实际选中低精度矩阵计算，KV 量化重点检查历史状态容量与读取。三类收益要分别测。
+`Ascend 910B3` 真机微基准（`M=2048, K=4096, N=4096`，见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）正是这条规律的直观印证：纯 `W8A8` `QuantBatchMatmulV3`（`195.61 µs`）相对 BF16 `MatMulV3`（`256.61 µs`）提速 `1.312×`，但若未与前序 `AddRmsNorm` 融合，独立 `DynamicQuant` 的 `31.79 µs` 读写立即把两算子合计提速压回 `1.128×`（计入 `AddRmsNorm` 整段为 `1.095×`）。真实执行还会重叠搬运与计算，需要用时间线确认关键路径。小批 decode、较大批 prefill、长上下文 attention 的瓶颈不同：weight-only 重点检查权重流量，W8A8 还要检查是否实际选中低精度矩阵计算，KV 量化重点检查历史状态容量与读取。三类收益要分别测。
 
 服务侧记录首 token 延迟 **TTFT**、后续输出 token 平均时间 **TPOT**、相邻 token 间隔 **ITL** 的分布，以及端到端延迟、成功率和吞吐。TPOT 对一条输出多于一个 token 的请求，是“总延迟减 TTFT”再除以后续 token 数；平均值不能揭示某次长停顿。流式消息可能一次带多个 token，不能直接把网络消息间隔当 ITL。
 
 输出不超过一个 token 时，没有后续 token 可供 TPOT 求平均。该 benchmark 将这类请求排除在普通 TPOT 样本之外，却在 goodput 判断中把 TPOT 记作 0。这个 0 是统计约定，不是测得了后续 token 的生成时间。
 
-负载固定输入输出长度分布、请求速率或并发、缓存命中条件、并行配置与预热方式。分别报告冷启动和稳态结果，再检查 P95/P99 等尾部延迟。**goodput** 只统计满足既定服务延迟目标的请求吞吐；吞吐上升却大量请求超时，不能按同一目标判为获益。
+负载固定输入输出长度分布、请求速率或并发、缓存命中条件、并行配置与预热方式。分别报告冷启动和稳态结果，再检查 P95/P99（第 95 / 99 百分位）等尾部延迟。**goodput** 只统计满足既定服务延迟目标的请求吞吐；吞吐上升却大量请求超时，不能按同一目标判为获益。
 
 goodput 可同时配置 TTFT、TPOT 和端到端延迟目标；一个请求满足所有已配置目标才计入达标数，测量值等于阈值也算达标。比较结果时，应一并记录选择了哪些指标以及各自阈值。
 

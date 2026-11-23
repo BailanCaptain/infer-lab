@@ -10,10 +10,10 @@
 
 **① 直接读文件**（零依赖，最省事）
 
-- [index.md](index.md) —— 人读的目录，按类型列出全部页面，每行是 `[标题](concepts/xxx.md) — 一句话摘要`。
+- [index.md](index.md) —— 人读的目录，按类型列出全部页面，每行是 `` `[标题](concepts/<id>.md)` — 一句话摘要 ``。
 - `../src/content/wiki/registry.json` —— 机器读的索引：每页的 `id`、`title`、`aliases`、`summary`、`relations`、`backlinks`、`verified`、`file`。
   按 `aliases` 找页（别名就是为「layer share」「cudagraph_mode」这类问法写的），拿到 `file` 再读 `wiki/<file>`。
-- 页面正文在 `concepts/<id>.md`（概念与特性）、`params/<id>.md`（参数）、`sources/<id>.md`（基线快照、归档来源与存进来的问答记录，当前包含 7 份正式来源页）。
+- 页面正文在 `concepts/<id>.md`（概念与特性）、`params/<id>.md`（参数）、`sources/<id>.md`（基线快照、归档来源与存进来的问答记录，当前包含 8 份正式来源页）。
 
 **② 命令行**（能跑 shell 就能用，只读）
 
@@ -58,4 +58,4 @@ pnpm wiki:mcp     # stdio 上的 JSON-RPC，三个工具：wiki_search / wiki_ge
 
 1. **结论带页面链接，版本说清楚。** 让人能顺着来源行号去核对；引用版本相关的结论时说明是哪个版本、`verified` 里有没有它。
 2. **没收录就说没收录。** 不要拿模型自己的知识冒充知识库结论。换别名 / 英文名 / 参数名再查一次仍然没有，就如实说，并把缺口记下来（现成的清单命令是 `pnpm wiki:gaps`）。
-3. **不要改 `wiki/` 下的页面，不要读 `tools/repos/`。** 知识库的写入有自己的流程（见 HANDBOOK.md），发现错了报告出来、别就地改；`tools/repos/` 是 196 MB 的第三方源码全量克隆，该引的行号页面里已经钉好了。
+3. **不要私自绕过规范改 `wiki/` 下的页面，不要扫整个 `tools/repos/`。** 知识库的写入遵守 [HANDBOOK.md](HANDBOOK.md) 与 [docs/wiki-writing-standard.md](../docs/wiki-writing-standard.md)，只读查页时发现错误报告出来；`tools/repos/` 是约 1.6 GiB 的第三方源码全量克隆，该引的行号页面里已经钉好了。

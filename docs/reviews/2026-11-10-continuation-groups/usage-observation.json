@@ -1,9 +1,0 @@
-{
-  "observed_at": "2026-11-10 08:08:44 UTC",
-  "scope": "Shared account observation; includes concurrent chats, not attributable to this group alone",
-  "primary": {
-    "usedPercent": 24,
-    "windowDurationMins": 10080,
-    "resetsAt": 1794852129
-  }
-}

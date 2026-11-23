@@ -1,7 +1,0 @@
-{
-  "before": "159b50a3bb9d3febe3e66e8ce2f3162d2f2d8a30bdf03970c644649b4d7f88e6",
-  "after": "2291a2b267ac3be21e88168fe937456d7e937f50142e70ee6c7640dd3640ad3e",
-  "changed": 6,
-  "basis": "children-four-independent-summary.json metadata_followup; each exact read_status retained",
-  "new_reading_credit": 0
-}

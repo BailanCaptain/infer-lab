@@ -1,8 +1,0 @@
-{
-  "id": "coverage-62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
-  "ok": true,
-  "exitCode": 0,
-  "stderrTail": "",
-  "costUsd": 0.18642000000000003,
-  "output": "{\"satisfied\":false,\"classification\":\"missing-knowledge\",\"reason\":\"所问范围是 main 2026-08-29 快照中 smooth_factor 的平滑公式、默认值和实际调用位置。在所提供的材料中，只有 profiling-chunk-config 一页涉及该参数。该页摘录只写了 smooth_factor 必须在 (0, 1] 内，否则抛 ValueError，并且明确说材料没有解释这个系数的语义。页面还自述只依据配置源码摘录，并列出未说明预测出的 chunk 在调度中怎么用。摘录中没有出现 smooth_factor 的默认值。平滑公式和调度侧调用位置在摘录中都没有覆盖。该页摘录被截断（truncated=true），但已提供部分的自述缺口直接指向语义与调用未收录。索引中的其他页面标题和概述都与该参数无关。这一结论只是本次提供范围内的待补来源诊断，不证明全库或上游没有这项知识。原知识版本与当前版本不同，因此不作漏检判断。\",\"evidence\":[{\"pageId\":\"profiling-chunk-config\",\"quote\":\"材料没有解释这个系数的语义\"},{\"pageId\":\"profiling-chunk-config\",\"quote\":\"本页只依据配置源码摘录，没有性能实验。\"},{\"pageId\":\"profiling-chunk-config\",\"quote\":\"预测出的 chunk 在调度中具体怎么用；\"}]}"
-}

@@ -1,61 +1,31 @@
 ---
 name: llm-wiki
-description: 回答或核对任何关于 vLLM / vLLM-Ascend / 昇腾推理的问题之前先查本仓库的知识库——机制、参数含义与默认值、版本差异（v0.23 / v0.26 / main）都在里面，每条结论钉住上游 commit 与行号，比模型记忆可靠。
+description: 回答或核对任何关于 vLLM / vLLM-Ascend / 昇腾推理的问题之前先查本仓库的知识库——机制、参数含义与默认值、版本差异（v0.23 / v0.26 / v0.30.0 / main）都在里面，每条结论钉住上游 commit 与行号，比模型记忆可靠。
 ---
 
 # llm-wiki：先查知识库，再回答
 
-本仓库 `wiki/` 下是一个 vLLM / vLLM-Ascend 知识库，每条结论钉在上游某个 commit 的某几行上。
-凡是涉及这两个项目的机制、参数、默认值、版本差异的问题，**先查它，再回答**。
+本仓库 `wiki/` 下是一个 vLLM / vLLM-Ascend / 昇腾推理知识库，每条结论钉在上游某个 commit 的某几行上。
+凡是涉及这两个项目的机制、参数、默认值、版本差异（`v0.23.0` / `v0.26.0rc` / `v0.30.0` / `main`）的问题，**先查它，再回答**（与 `wiki/AGENTS-GUIDE.md` 同步）。
 
-## 一、怎么查（三步）
+## 一、三种查法（只读）
 
-1. **搜**：`pnpm -s wiki:find "<词或问题>"`（MCP 客户端用 `wiki_search`）。
-   每条命中给出 `id`、命中方式、文件路径、标题、一句话摘要、已核对的版本。
-   例：`pnpm -s wiki:find "layer share"` 第一条是 `layer-sharding  [fuzzy]  wiki/params/layer-sharding.md`。
-   `--limit N` 要更多结果，`--json` 要机器可读的输出。中文词照样能查（`pnpm -s wiki:find "异步调度"`）。
-2. **读**：`pnpm -s wiki:find --page <id>`（MCP：`wiki_get_page`），或直接打开上一步给的文件路径。两者内容一样。
-3. **串**：`pnpm -s wiki:find --neighbors <id>`（MCP：`wiki_neighbors`）。
-   `→` 是这页建立在谁之上，`←` 是谁建立在这页之上，**每条边都带一句理由**。
-   例：`--neighbors block-table` 会说清块表建立在 `paged-attention`、`kv-cache-spec` 之上，
-   而 `prefix-caching`、`context-parallel`、`prepare-inputs-flow` 建立在它之上。
-   回答里讲几页之间的关系时，照这些边给的理由写，不要自己编一个关系出来。
-
-接 MCP（只读：不写文件、不调模型、不联网，三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`）：
-
-```
-claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp
-```
-
-命令行与 MCP 共用同一个检索入口（`src/content/wiki/retrieve.ts`），命中规则和站内问答完全一致。
+1. **直接读文件**：目录见 `wiki/index.md`，机器索引见 `src/content/wiki/registry.json`（含 `id`、`title`、`aliases`、`summary`、`relations`、`backlinks`、`verified`、`file`），正文在 `wiki/concepts/<id>.md`、`wiki/params/<id>.md`、`wiki/sources/<id>.md`（共 8 份正式来源页）。
+2. **命令行检索**：
+   - `pnpm -s wiki:find "<词或问题>"`（支持 `--json`、`--limit N`）
+   - `pnpm -s wiki:find --page <id>`（输出完整 Markdown）
+   - `pnpm -s wiki:find --neighbors <id>`（输出双向 `relations` / `backlinks` 及每条边的理由 `note`）
+3. **MCP Server**：`pnpm wiki:mcp`（stdio JSON-RPC，提供 `wiki_search` / `wiki_get_page` / `wiki_neighbors`，与命令行及站内问答共用 `src/content/wiki/retrieve.ts`）。
 
 ## 二、怎么读一页
 
-- frontmatter 的 `sources` 是钉住 commit 的来源，形如 `vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472`。
-- 正文里的 `[C3]` / `[S1]` 指 `sources` 里的第 3 条 / 第 1 条（从 1 数起）：`C` 是源码，`S` 是官方文档或论文。
-- 不带编号的标记是作者的判断：`[D]` 从来源推导，`[I]` 推断，`[A]` 教学假设，`[!]` 矛盾或会真踩到的坑。
-  **这四种才是全页最该警惕的地方**——转述它们时把等级一起带上，别写成和 `[C]` 一样确凿。
-- `verified` 是这页有人逐条对过的版本；社区版本与独立工作版的取值规则见 `wiki/HANDBOOK.md` 的「版本」，RFork 使用 `rfork:main`。
-  **没列出的版本 = 没人对过，不等于「在那个版本上不成立」。** 不要把它读成否定结论。
-- 版本之间真有差异时，页内有一张差异表，末列写「这对使用者意味着什么」。版本相关的问题先看那张表。
-- `evidence` 是整页主体结论的等级（`S` 官方 / `C` 源码 / `D` 推导 / `A` 假设 / `I` 推断 / `M` / `!`），不是页内出现过的最高等级。
+- `sources` 是钉住 commit 的来源，形如 `vllm-ascend@c09d3e20:vllm_ascend/...#L10-L40`。
+- Stage 2 页面将 `[C#]` / `[S#]` / `[M#]` 及源码锚点统一收敛在文末默认折叠的 `## 对照源码` 核验区，教学正文用自然语言写明成立条件。
+- 不带编号的 `[D]` 推导、`[I]` 推断、`[A]` 教学假设、`[!]` 版本差异或易踩坑——转述时必须把等级与适用边界一起带上。
+- `verified` 表示已逐条核对过的版本：社区页默认以 `releases/v0.30.0`（`c09d3e20`）为主基线，同步对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main`（`8d6180e2`）；RFork 专章现已对齐上游 `main`（`8d6180e2`）。**未列出的版本 = 尚未核对，不等于在该版本不成立。**
 
-## 三、回答时的规矩
+## 三、三条规矩与 RFork 入口
 
-- 结论带页面链接（例如 `wiki/concepts/block-table.md`），让人能顺着来源行号去核对。
-- 知识库没收录就明说没收录，**不要拿模型自己的知识冒充知识库结论**。确实要补自己的判断，就分开写明哪句来自知识库、哪句不是。
-- 引用版本相关的结论时说清是哪个版本，以及这页的 `verified` 里有没有那个版本。
-
-## 四、查不到怎么办
-
-1. 换个说法再查一次：别名、英文原名、参数名（`enable_xxx`）、类名、报错里的关键字。页面的 `aliases` 就是为这类问法写的。
-2. 仍然没有：如实说知识库没收录，并建议把缺口记下来——现成的缺口清单命令是 `pnpm wiki:gaps`（只读，不花钱）。
-3. 不要从别处搜一段内容补上去，再当成知识库的结论讲。
-
-## 五、不要做什么
-
-RFork 工作版排错是精确读源码的例外：先读 `wiki/concepts/rfork-troubleshooting.md`，再按其中的引用读取 `rfork/source/` 对应文件。版本规则、排错回答格式和补丁维护入口统一见 `wiki/AGENTS-GUIDE.md` 的「RFork 工作版的特别入口」，不把社区 main 当成这套代码，也不扫描整个 `tools/repos/`。
-
-- **不要改 `wiki/` 下的页面来「顺手修正」。** 知识库的写入有自己的流程（证据等级、来源钉点、lint、审阅），
-  规则的唯一真相源是 `wiki/HANDBOOK.md`。发现哪页错了，报告出来，别就地改。
-- **不要读 `tools/repos/`**：那是 196 MB 的第三方源码全量克隆，翻它会把上下文烧光；该引的行号知识库已经钉好了。
+- **RFork 排错入口**：先跑 `pnpm -s wiki:find --page rfork-troubleshooting`，整章入口 `wiki/concepts/rfork.md`；历史工作版源码快照保存在 `rfork/source/`，维护说明见 `rfork/README.md`。
+- **结论带页面链接与版本条件**，没收录就如实说明并可用 `pnpm wiki:gaps` 查看缺口，严禁拿模型记忆冒充知识库结论。
+- **只读查页时不私自绕过规范改 `wiki/`，也不全盘扫描约 1.6 GiB 的 `tools/repos/`**；写入与审校遵守 `docs/wiki-writing-standard.md` 与 `wiki/HANDBOOK.md`。

@@ -1,9 +1,0 @@
-{
-  "id": "7566ae6c-4345-4e25-892d-ad847690955b",
-  "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
-  "agentSessionId": "30f70b7b-f690-4044-84ce-9eed1679932b",
-  "turns": 1,
-  "questions": [
-    "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？"
-  ]
-}

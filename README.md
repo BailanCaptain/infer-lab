@@ -1,12 +1,12 @@
 # infer-lab · 大模型推理可视化实验室
 
-以知识库为主章节的大模型推理学习网站（vLLM / vLLM-Ascend 主线）。首页以已有 3D 城市和一个「开始阅读」按钮作为开场，进入 `/#/wiki` 后按 12 个主题章节阅读完整正文；`/#/tools` 提供四套与知识库双向深链的交互式工程工作台（部署计算器、配置体检、故障排查工作台与 AI Core 执行实验室）。主题目录、正文、搜索、问答与工具共用同一套知识与规则基座，模型与硬件 3D 作为辅助探索入口（19 篇正式概念页另通过 `wiki-scene` 内嵌交互 3D 场景；现有 3D 实现当前保持冻结）。
+以知识库为主章节的大模型推理学习网站（vLLM / vLLM-Ascend 主线）。首页以已有 3D 城市和一个「开始阅读」按钮作为开场，进入 `/#/wiki` 后按 12 个主题章节阅读完整正文；`/#/tools` 提供四套与知识库双向深链的交互式工程工作台（部署计算器、配置体检、故障排查工作台与 AI Core 执行实验室）。主题目录、正文、搜索、问答与工具共用同一套知识与规则基座，模型与硬件 3D 作为辅助探索入口（17 篇正式概念页另通过 `wiki-scene` 内嵌交互 3D 场景；新建或修改教学 3D 遵守 `docs/3d-teaching-standard.md`）。
 
 2026-10-14 用户已推翻独立 22 章课程方案。当前方向见 `PLAN.md` 顶部；`/` 和 `/#/home` 为单按钮城市首页，按钮进入 `/#/wiki` 知识主站，`/#/archive/home` 是首页的兼容链接。旧课程深链接仍可读，不再是主站的编排依据。
 
 ## 无设备阅读知识库
 
-知识库（Stage 2）以 **`vllm-ascend v0.30.0 (c09d3e20)`** 为默认主基线（同步对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main (8d6180e2)`），主线讲解采用 **Qwen3-8B（Dense）** 与 **Qwen3-30B-A3B（MoE）**，并在第 `09` 篇「旗舰异构模型全案」给出 **GLM-5.3-Flash** 与 **DeepSeek-V4.1-Flash** 的端到端剖析。12 个主题目录与学习路径见 [阅读指南](wiki/concepts/learning-guide.md)，旗舰模型固定材料见 [GLM-5.3-Flash 来源基线](wiki/sources/glm-5-3-flash-baseline.md)（全库当前共 184 篇正式页，现查命令见 `HANDOFF-LLM-WIKI.md`）。
+知识库（Stage 2）以 **`vllm-ascend v0.30.0 (c09d3e20)`** 为默认主基线（同步对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main (8d6180e2)`），主线讲解采用 **Qwen3-8B（Dense）** 与 **Qwen3-30B-A3B（MoE）**，并在第 `09` 篇「旗舰异构模型全案」给出 **GLM-5.3-Flash** 与 **DeepSeek-V4.1-Flash** 的端到端剖析。12 个主题目录与学习路径见 [阅读指南](wiki/concepts/learning-guide.md)，旗舰模型固定材料见 [GLM-5.3-Flash 来源基线](wiki/sources/glm-5-3-flash-baseline.md)（全库当前共 185 篇正式页，现查命令见 `HANDOFF-LLM-WIKI.md`）。
 
 阅读静态正文、结构图、交互工作台（`#/tools`）和通信演示不需要 NPU、驱动、模型权重、外部源码仓库或本机后端服务。问答后端与真实部署是另行配置的能力；未启动后端时，正文与工作台仍可离线使用。双机页是经过来源核读的工程参考，没有设备与性能实测。
 
@@ -61,14 +61,10 @@ pnpm test:e2e             # 需要本机浏览器依赖的完整验收
 | `PITFALLS.md` | 踩过的坑 |
 | `CLAUDE.md` / `AGENTS.md` | 协作规则（两份内容相同，改动要同步） |
 | `docs/features/` | 单个 feature 的聚合文件（Why / What / AC / 决策 / Timeline），**验收状态的唯一真相源**就是每份里的验收表；索引见 `PLAN.md` 七 |
-| `docs/plans/` | 单个 feature 的分步实施计划 |
 | `wiki/HANDBOOK.md` | 知识库 schema 真相源（F001） |
 
 ## 参考与授权
 
-- 并行策略教学图包（`reference/parallelism-teaching-dark/`）：只使用其事实与证据账本，图全部重做为交互组件。
-- InferFlux：只借鉴教学与交互思路，不复制其代码或图；原材料的授权条件不推广到本项目。
-- LLM Visualization、Transformer Explainer（MIT）：借鉴叙事与交互设计。
-- 站内嵌入的 vLLM / vLLM-Ascend 源码片段遵循 Apache-2.0，标注固定 commit 与行号。
-
-本轮知识库图形来源与复用范围见 [资产与署名记录](docs/wiki-assets-and-attribution.md)。仓库当前没有统一的项目 LICENSE；本地构建可用性不等于已完成公开发行授权。公开前仍须由维护者确定项目许可，并处理既有 RFork 原补丁与其他材料的权属事项。
+- 站内嵌入的 `vLLM` / `vllm-Ascend` 源码片段遵循上游 `Apache-2.0`，标注固定 commit 与行号。
+- 图形、立体剖面插画与实测基线来源说明见 [资产与署名记录](docs/wiki-assets-and-attribution.md)。
+- 本项目采用 [Apache-2.0 许可证](LICENSE)。

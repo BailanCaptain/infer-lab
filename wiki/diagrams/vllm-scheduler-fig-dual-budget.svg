@@ -48,8 +48,8 @@
 
   <!-- ZONE 2: Asymmetric running -> waiting Decision Funnel (y=146..390) -->
   <rect x="8" y="146" width="884" height="244" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>
-  <rect x="20" y="156" width="326" height="24" rx="12" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
-  <text x="183" y="172" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#936300">2. 统一四关漏斗：先 running 后 waiting（不拆阶段）</text>
+  <rect x="16" y="156" width="352" height="24" rx="12" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
+  <text x="192" y="172" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#936300">2. 统一四关漏斗：先 running 后 waiting（不拆阶段）</text>
   <text x="880" y="172" text-anchor="end" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">统一减法：差值 = 应算 − 已算</text>
 
   <!-- Stage 1: running (x=20..326, y=188..378) -->

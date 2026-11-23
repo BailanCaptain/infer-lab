@@ -8,15 +8,15 @@ created: 2026-09-07
 
 # F001 — LLM Wiki：课程知识库 + 右侧问答
 
-**11-15 渐进改造包 1 / 包 2 契约同步：** 依据 [项目渐进改造与问题修复方案](../plans/2026-11-14-progressive-restructure-and-fix-plan.md)（A/A 路线、2D 可改、3D 冻结），在既有桌面单列阅读列宽（`--wiki-measure: 1200px`）与 2D 图表 `.wiki-diagram-scroll` `≤900px` 画布 `1:1` 横滚兜底基线之上，分包演进如下：
+**11-15 渐进改造包 1 / 包 2 契约同步：** 依据 项目渐进改造与问题修复方案（历史归档 `../plans/2026-11-14-progressive-restructure-and-fix-plan.md`）（A/A 路线、2D 可改、3D 冻结），在既有桌面单列阅读列宽（`--wiki-measure: 1200px`）与 2D 图表 `.wiki-diagram-scroll` `≤900px` 画布 `1:1` 横滚兜底基线之上，分包演进如下：
 - **包 1（任务 `040` / `092`，已落盘并通过独立复审；当前工作区尚未提交 commit）：** 正式阅读页（`WikiDiagram.tsx`）与 `ReviewPane` 浏览器预览共享 `src/content/wiki/diagram-sanitize.ts` 的 SVG 正向属性值语法白名单清洗；`wiki:lint`（离线检查 `[diagram-missing]`）与 `wiki:audit` / `integration-check.ts`（`[diagram-identifier]` / `[diagram-symbol]` 单图同名符号去重、`git.ts` 单次运行期有界缺失 SHA 负缓存）门禁分层；服务端 URL/GET 边界与问答流结束后质检期取消保护；实验稿归档至 `docs/reviews/experiments/chunked-prefill/`；全站 3D `wiki-scene` 冻结保护。
 - **包 2（任务 `041`，代码开发中、待独立审查与端到端核验）：** 写作与审计契约切换为「反八股自适应结构 + 正文自然语言条件 + 文末 `## 对照源码` 折叠核验区（页内搜索与锚点命中自动展开）」；移除 `maxInlineCodePerK: 13` 机械上限、`## 对照源码` 固定 5 个 H3 精确匹配与每页强制配图配额；复用 `supersede.claims`（`claims[].old` / `replacement` / `sources[]`）并校验 `editorial` / `supersede` 旧事实三出口守恒（含跨页迁移同批候选 `Review.writes`、真实锚点与承接事实、`base` 校验与独立语义复核，禁用三类伪判据）；纯静态构建支持 `raw:` 引用预览兜底。包 2 条目在 `041` 完成代码核验前，作为定稿终态契约记录，不冒充已验收现状（新原生 `.svg` 与静态注册交互 2D 双通道属后续**包 4**）。
 
-**10-08 16:29 整体复审闭合：** 用户已批准 MLP 图文纠错包 `16282a8a656d…`；实际状态 published，正文、图 YAML/SVG 与来源快照共 4 项写入逐字匹配。正式浏览器读取通过，发布后本地引用审计与 104/104 标准页通过；待审 0、排队 0。此前因核心定义范围错误重开的 P1 已正式关闭，F001 恢复 completed。代码/界面四项 P2 的修复与复审仍有效；完整范围和证据见 [整体审查](../plans/wiki-overall-review-2026-10-08.md)。
+**10-08 16:29 整体复审闭合：** 用户已批准 MLP 图文纠错包 `16282a8a656d…`；实际状态 published，正文、图 YAML/SVG 与来源快照共 4 项写入逐字匹配。正式浏览器读取通过，发布后本地引用审计与 104/104 标准页通过；待审 0、排队 0。此前因核心定义范围错误重开的 P1 已正式关闭，F001 恢复 completed。代码/界面四项 P2 的修复与复审仍有效；完整范围和证据见 整体审查（历史归档 `../plans/wiki-overall-review-2026-10-08.md`）。
 
-**10-08 完成：** 开发及当前契约下 AC1–AC12 验收完成，逐项证据见下方 10-08 对账。正式库 145 页、课程入口 30/30；本轮四页来源纠错包已由用户批准，15:08 核对正式文件与批准内容一致，待审 0。工程检查、87 项浏览器回归和生产构建结果见 [最终验收](../plans/wiki-final-acceptance.md)。下方较早日期的“待做”只代表历史。
+**10-08 完成：** 开发及当前契约下 AC1–AC12 验收完成，逐项证据见下方 10-08 对账。正式库 145 页、课程入口 30/30；本轮四页来源纠错包已由用户批准，15:08 核对正式文件与批准内容一致，待审 0。工程检查、87 项浏览器回归和生产构建结果见 最终验收（历史归档 `../plans/wiki-final-acceptance.md`）。下方较早日期的“待做”只代表历史。
 
-**10-07 收尾增量：** 三个固定 ref 的真实提取、整合、隔离批准、幂等重跑与发布后两题独立评判已通过；全部 44 个种子按现有内容对账，避免同主题重复建页。新增来源与 AscendConfig 纠错在正式待审包中，用户批准前不算发布。原 AC1 的规则文字差异与全库语义边界不被此次样本抹平。[本轮证据与剩余动作](../plans/wiki-final-acceptance.md)。
+**10-07 收尾增量：** 三个固定 ref 的真实提取、整合、隔离批准、幂等重跑与发布后两题独立评判已通过；全部 44 个种子按现有内容对账，避免同主题重复建页。新增来源与 AscendConfig 纠错在正式待审包中，用户批准前不算发布。原 AC1 的规则文字差异与全库语义边界不被此次样本抹平。本轮证据与剩余动作（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 **Status**: completed（2026-10-08 16:29；开发与约定验收完成，整体复审所发现的问题已修复并正式闭合）
 **Created**: 2026-09-07
@@ -49,7 +49,7 @@ created: 2026-09-07
 
 ### 2026-10-08 验收对账
 
-按下方“当前契约对照”验收；原始条文和历史失败记录保留。详细命令、真实模型回执及限制见 [最终验收记录](../plans/wiki-final-acceptance.md)。
+按下方“当前契约对照”验收；原始条文和历史失败记录保留。详细命令、真实模型回执及限制见 最终验收记录（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 | AC | 已取得的验收证据 |
 | --- | --- |
@@ -77,19 +77,19 @@ created: 2026-09-07
 | AC5：再次全量灌种 | 当前 44 项 seeds 按既有页与别名对账，课程术语 30/30；用户已确定不做无目标的大规模重复导入。真正版本缺口通过提取、整合、人审补充，现有直接写作页保留如实的 direct 来源。 |
 | AC9：必须按 ref 建工作树 | 固定 Git 对象导出材料，保存完整 commit 与缺失路径，再交模型提取；三版实际链路已通过。完整克隆和版本隔离要求不变。2c59ff10 的全仓 Python `layer_sharding` 命中已重查为 14 个文件，产品目录口径另算 8 个。 |
 | AC10：必须 index.md + grep | 聊天通过统一可替换的 `retrieve` 接口检索同一知识快照，保留关键词、别名与一层关系扩展；存储实现不再要求单独 grep 派生目录。 |
-| AC11：每条正文就地插入角标 | 按优先级更高的 [写作标准](../wiki-writing-standard.md) 与 [2026-11-14 渐进改造方案](../plans/2026-11-14-progressive-restructure-and-fix-plan.md)，教学正文采用反八股自适应结构，只用自然语言交代必要的版本/硬件条件，机器角标与四版差异矩阵统一归入文末默认折叠的 `## 对照源码` 核验区（搜索与锚点命中自动展开，属包 2 待 `041` 代码核验）；2D 图按信息增量配图、画布 ≤900px 且正式阅读页与 `ReviewPane` 浏览器预览共享 `diagram-sanitize.ts` 正向属性值语法白名单校验（包 1 已落盘复审），3D `wiki-scene` 冻结不动；废除每千字 13 处行内代码机械上限与固定 5 个 H3 名称死卡（`standard.ts` 规则更新属包 2 待 `041` 代码核验）。 |
+| AC11：每条正文就地插入角标 | 按优先级更高的 [写作标准](../wiki-writing-standard.md) 与 2026-11-14 渐进改造方案（历史归档 `../plans/2026-11-14-progressive-restructure-and-fix-plan.md`），教学正文采用反八股自适应结构，只用自然语言交代必要的版本/硬件条件，机器角标与四版差异矩阵统一归入文末默认折叠的 `## 对照源码` 核验区（搜索与锚点命中自动展开，属包 2 待 `041` 代码核验）；2D 图按信息增量配图、画布 ≤900px 且正式阅读页与 `ReviewPane` 浏览器预览共享 `diagram-sanitize.ts` 正向属性值语法白名单校验（包 1 已落盘复审），3D `wiki-scene` 冻结不动；废除每千字 13 处行内代码机械上限与固定 5 个 H3 名称死卡（`standard.ts` 规则更新属包 2 待 `041` 代码核验）。 |
 
-目录超过 80 页的 R4 已补搜索：标题、别名、参数名均可过滤，参数默认折叠、搜索时展开；无需增加虚拟滚动。当前真实证据及限制统一见 [10-08 收尾记录](../plans/wiki-final-acceptance.md)。
+目录超过 80 页的 R4 已补搜索：标题、别名、参数名均可过滤，参数默认折叠、搜索时展开；无需增加虚拟滚动。当前真实证据及限制统一见 10-08 收尾记录（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 ### 当前对账与历史证据
 
-**10-07 AC5：** 最后一个 qk-norm 入口已在有版本边界的正文、固定源码来源及独立审查后挂接，课程术语 30/30。AC7/AC12 的固定版本问答、引用与检索增量统一见 [验收记录](../plans/wiki-qknorm-multiversion-acceptance.md)，不替代 AC3/AC9 的真实多版本导入验收。
+**10-07 AC5：** 最后一个 qk-norm 入口已在有版本边界的正文、固定源码来源及独立审查后挂接，课程术语 30/30。AC7/AC12 的固定版本问答、引用与检索增量统一见 验收记录（历史归档 `../plans/wiki-qknorm-multiversion-acceptance.md`），不替代 AC3/AC9 的真实多版本导入验收。
 
-当前结论以上方 10-08 对账与契约说明为准。[10-05 P6 对账](../plans/2026-10-05-p6-acceptance.md)及下表保留历史记录；不把历史失败删除，也不把样本通过扩张为全库正确保证。
+当前结论以上方 10-08 对账与契约说明为准。10-05 P6 对账（历史归档 `../plans/2026-10-05-p6-acceptance.md`）及下表保留历史记录；不把历史失败删除，也不把样本通过扩张为全库正确保证。
 
 ### 历史验收状态（2026-09-24）
 
-这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查，或看阅读页右侧「状态」页签。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。**固定模型输出的测试只证明机制能跑**，不证明内容质量。
+这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查，或看阅读页右侧「状态」页签。分级取 2026-09-19 审视（历史归档 `../plans/wiki-audit-2026-09-19.md`） §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。**固定模型输出的测试只证明机制能跑**，不证明内容质量。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
@@ -106,11 +106,11 @@ created: 2026-09-07
 | AC11 | AC 文本已于 2026-09-20 修订；修订后部分达成 | 载体已全部换成 `wiki-diagram`：全库 markdown 无 ```mermaid 围栏，阅读页的 mermaid 渲染器与 npm 依赖已删（提交 `b222c58`，见 `src/app/pages/WikiPage.tsx:260` 的注释）。`pnpm wiki:diagrams --check` 2026-09-21 通过（`ok wiki:diagrams 78 张图与 spec 一致`），`diagram-symbol` 拿 spec 的 `pins` 对钉住的 commit 逐个查。含图比例（2026-09-21 按 `registry.json` 现数）：概念/特性页 68/71 = 95.8%，过了八成线；参数页 8/19 未达——夜间生成的骨架页按设计不配图，09-21 补完正文的那 10 页也没补图。09-22 另补 kv-cache / rope / prefill 的图及 LMCache / UCM 新页图，未因此声称参数页缺图已经全部解决。修订内容与原因见下方 AC11 条目。 |
 | AC12 | 部分实现 | `relations` 的图扩展在 `retrieve.ts`，反向边由 `wiki:build` 派生成 `backlinks`。`related` 只剩 `schema.ts:156` 的兼容字段，`wiki/concepts/`、`wiki/params/` 现有页 0 处使用（`grep -ln '^related:'` 为 0）。09-21 起同一份邻域也给了站外 agent：`pnpm wiki:find --neighbors block-table` 2026-09-21 实跑返回 4 条声明的 `builds-on` + 5 条派生的 `enables`，每条带 `note`。回答质量仍未用真实模型成组评测过（审视状态 §4 那一行「机制在，没系统评过」）。 |
 
-**AC 之外的增补（2026-09-21）：知识库做完以后，别的 agent 怎么用。** 上面 12 条 AC 只管「站内怎么生产、站内怎么读」，没有一条覆盖「别的 agent 怎么调用这个库」——这不是漏做的 AC，是用户 09-21 上午新提的问题，**这里记一笔，不新编 AC 号**。当天下午按三档补齐：① 一页使用说明 [wiki/AGENTS-GUIDE.md](../../wiki/AGENTS-GUIDE.md)（不依赖任何工具）+ `.claude/skills/llm-wiki/SKILL.md`；② 只读命令 `pnpm wiki:find <词> [--limit N] | --page <id> | --neighbors <id> [--json]`；③ 只读 MCP server `pnpm wiki:mcp`（stdio 上的换行分隔 JSON-RPC，没加依赖，三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`）。②③ 共用 `scripts/wiki/agent-access.ts`，检索只走 `src/content/wiki/retrieve.ts` 这一个入口，命中规则与站内问答完全一致；三个动作都只读——不写文件、不调模型、不联网（提交 `d9f4fe5`、`bfacba1`、`e2dc5f8`）。2026-09-21 实跑 `pnpm wiki:find "layer_sharding"`，首条是 `[exact]` 命中 `wiki/params/layer-sharding.md` 并带出该页的「已核对」版本列表。明细见 [wiki-audit-status-2026-09-21](../plans/wiki-audit-status-2026-09-21.md) §5。
+**AC 之外的增补（2026-09-21）：知识库做完以后，别的 agent 怎么用。** 上面 12 条 AC 只管「站内怎么生产、站内怎么读」，没有一条覆盖「别的 agent 怎么调用这个库」——这不是漏做的 AC，是用户 09-21 上午新提的问题，**这里记一笔，不新编 AC 号**。当天下午按三档补齐：① 一页使用说明 [wiki/AGENTS-GUIDE.md](../../wiki/AGENTS-GUIDE.md)（不依赖任何工具）+ `.claude/skills/llm-wiki/SKILL.md`；② 只读命令 `pnpm wiki:find <词> [--limit N] | --page <id> | --neighbors <id> [--json]`；③ 只读 MCP server `pnpm wiki:mcp`（stdio 上的换行分隔 JSON-RPC，没加依赖，三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`）。②③ 共用 `scripts/wiki/agent-access.ts`，检索只走 `src/content/wiki/retrieve.ts` 这一个入口，命中规则与站内问答完全一致；三个动作都只读——不写文件、不调模型、不联网（提交 `d9f4fe5`、`bfacba1`、`e2dc5f8`）。2026-09-21 实跑 `pnpm wiki:find "layer_sharding"`，首条是 `[exact]` 命中 `wiki/params/layer-sharding.md` 并带出该页的「已核对」版本列表。明细见 wiki-audit-status-2026-09-21（历史归档 `../plans/wiki-audit-status-2026-09-21.md`） §5。
 
 **另一条 AC 之外的增补（2026-09-21）：站外死链。** AC 文本只管站内 `broken-link`。`pnpm wiki:urls` 真发 HTTP，404 / 410 才判死链，403 / 5xx / 超时只列「这次没验证到」；已挂进每晚巡检（`wiki/sync.config.json` 的 `checkUrls: true`，规则名 `dead-url`，`scripts/wiki/urls.ts:105`）。首跑 95 条里 1 条死链已修（`a64bce1`）。2026-09-21 本轮实跑：站外链接 96 条，可达 90，**死链 0**，这次没验证到 6 条（全是 huggingface.co，客户端 `TypeError`，不判死链）。
 
-**一笔欠账：「agent 写、人只审」目前是绕开的。** F001 的设计决策写的是「agent 写，人只审」，页面应走 `wiki:ingest` → `_drafts/` → `wiki:review`。09-20 到 09-21 新写与重写的页**全部**是 Opus 子代理直接写进正式区、主会话对着钉住的源码抽查后提交——不走待审、没有 `raw/` 摘录、`wiki/log.md` 里没有对应的 ingest 记录，`origin` 仍标 `seed`。用户 09-20 同意了这个做法，09-21 又明确「**只是暂时这样，要做**」。所以这是明确欠账不是终态，还账时点用户已定：**这个阶段做完、大规模导入之前打开 `maxTasks`**。要还的两笔与操作办法写在 [wiki-audit-status-2026-09-21](../plans/wiki-audit-status-2026-09-21.md) §3。
+**一笔欠账：「agent 写、人只审」目前是绕开的。** F001 的设计决策写的是「agent 写，人只审」，页面应走 `wiki:ingest` → `_drafts/` → `wiki:review`。09-20 到 09-21 新写与重写的页**全部**是 Opus 子代理直接写进正式区、主会话对着钉住的源码抽查后提交——不走待审、没有 `raw/` 摘录、`wiki/log.md` 里没有对应的 ingest 记录，`origin` 仍标 `seed`。用户 09-20 同意了这个做法，09-21 又明确「**只是暂时这样，要做**」。所以这是明确欠账不是终态，还账时点用户已定：**这个阶段做完、大规模导入之前打开 `maxTasks`**。要还的两笔与操作办法写在 wiki-audit-status-2026-09-21（历史归档 `../plans/wiki-audit-status-2026-09-21.md`） §3。
 
 - **AC1 · 骨架与派生**：`wiki/HANDBOOK.md` 是 schema 唯一真相源，六个 H2 切片（页面格式 / 提取 / 整合 / 查询 / Lint / 人类须知）可被程序按 H2 切出；`pnpm wiki:build` 从 `concepts/`、`sources/` 的 frontmatter 派生 `wiki/index.md` 与 `src/content/wiki/registry.json`，重复运行结果一致。验收：`pnpm wiki:build` 两次，`git diff` 为空。
 - **AC2 · Lint 把关**：`pnpm wiki:lint` 拒收空 `sources`、非法 frontmatter、重复 id 或 alias、断链、孤页，非零退出并指名文件与规则；纳入 `pnpm check`。验收：故意造一页空 sources 与一条断链，lint 非零退出且输出含两个文件名；修复后 `pnpm check` 全绿。
@@ -200,7 +200,7 @@ created: 2026-09-07
 
 ## Links
 
-- Plan: [llm-wiki-plan.md](../plans/llm-wiki-plan.md)
+- Plan: llm-wiki-plan.md（历史归档 `../plans/llm-wiki-plan.md`）
 - 哲学来源: 仓库根 `llm-wiki.md`（用户放入，只读）
 - 参照实现: `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\`、`runtime\`（只借纯函数与思路）
 - 总体大纲: `PLAN.md` 七「知识库与问答」

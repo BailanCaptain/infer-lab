@@ -8,13 +8,13 @@ created: 2026-09-10
 
 # F002 — vLLM-Ascend 参数清单与版本谱系
 
-**11-15 渐进改造包 2 契约同步（待 `041` 代码核验）：** 依据 [项目渐进改造与问题修复方案](../plans/2026-11-14-progressive-restructure-and-fix-plan.md) §3.3 P3-4 与 §5.2，参数扫描与参数页维护补充三项契约：① 在 `wiki/seeds/vllm-ascend.yaml:12-15` 固定版本映射（`main = baa023ad`、`releases/v0.23.0 = 2c59ff10`、`releases/v0.26.0rc = 2ed6cbba`、`releases/v0.30.0rc2 = 7d825229`）下，`scripts/wiki/params/scan.py`（及 `lineage-git.ts`）在 dataclass/配置类属性之外扩展扫描普通 Python 配置类（如 `AscendCompilationConfig`）的 `__init__` 构造函数签名入参（见 `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L603`），修复 `enable_super_kernel` 在 `2ed6cbba`（`releases/v0.26.0rc`）因 `__init__` 签名漏扫导致自动生成的 `## 版本谱系` 误标该版本为「`无`」的问题；② 参数页自动生成区需更新时，先经 `publishParamSync`、`pnpm wiki:lineage:apply` 或 `pnpm wiki:build-param-pages` 等确定性同步入口刷新并取得新 `base`，再提交教学正文修订，`review.ts:459-464` 继续严格逐字对比并保护自动生成区；③ 参数页保留 `## 事实表` 紧凑标识，不再强制写 `**v0.30.0rc2 对照：**` 开篇段。上述包 2 改造在任务 `041` 完成独立核验前，作为定稿终态契约记录，不冒充已验收现状。
+**11-15 渐进改造包 2 契约同步（待 `041` 代码核验）：** 依据 项目渐进改造与问题修复方案（历史归档 `../plans/2026-11-14-progressive-restructure-and-fix-plan.md`） §3.3 P3-4 与 §5.2，参数扫描与参数页维护补充三项契约：① 在 `wiki/seeds/vllm-ascend.yaml:12-15` 固定版本映射（`main = baa023ad`、`releases/v0.23.0 = 2c59ff10`、`releases/v0.26.0rc = 2ed6cbba`、`releases/v0.30.0rc2 = 7d825229`）下，`scripts/wiki/params/scan.py`（及 `lineage-git.ts`）在 dataclass/配置类属性之外扩展扫描普通 Python 配置类（如 `AscendCompilationConfig`）的 `__init__` 构造函数签名入参（见 `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L603`），修复 `enable_super_kernel` 在 `2ed6cbba`（`releases/v0.26.0rc`）因 `__init__` 签名漏扫导致自动生成的 `## 版本谱系` 误标该版本为「`无`」的问题；② 参数页自动生成区需更新时，先经 `publishParamSync`、`pnpm wiki:lineage:apply` 或 `pnpm wiki:build-param-pages` 等确定性同步入口刷新并取得新 `base`，再提交教学正文修订，`review.ts:459-464` 继续严格逐字对比并保护自动生成区；③ 参数页保留 `## 事实表` 紧凑标识，不再强制写 `**v0.30.0rc2 对照：**` 开篇段。上述包 2 改造在任务 `041` 完成独立核验前，作为定稿终态契约记录，不冒充已验收现状。
 
-**10-08 整体复审修复：** 补正文和 CLI 现在共用参数身份映射：显式定义绑定复用稳定 ID，引用身份跳过，稳定 ID 可从同名不同作用域的扫描中精确选中目标；未映射的当前目标仍拒绝。独立复现及红绿测试通过，R2 已关闭；[整体审查](../plans/wiki-overall-review-2026-10-08.md)保留初审失败与复审依据。
+**10-08 整体复审修复：** 补正文和 CLI 现在共用参数身份映射：显式定义绑定复用稳定 ID，引用身份跳过，稳定 ID 可从同名不同作用域的扫描中精确选中目标；未映射的当前目标仍拒绝。独立复现及红绿测试通过，R2 已关闭；整体审查（历史归档 `../plans/wiki-overall-review-2026-10-08.md`）保留初审失败与复审依据。
 
-**10-08 完成：** AC1–AC6 开发与约定验收完成。现行扫描 1,112 条、suspect 三态回执齐全；260 个确认身份的隔离骨架全覆盖、生成幂等、独立审查通过。345 条 undetermined 按协议保留，244 个新骨架不冒充已补正文或已正式发布。详见下方 10-08 对账及 [最终证据](../plans/wiki-final-acceptance.md)。
+**10-08 完成：** AC1–AC6 开发与约定验收完成。现行扫描 1,112 条、suspect 三态回执齐全；260 个确认身份的隔离骨架全覆盖、生成幂等、独立审查通过。345 条 undetermined 按协议保留，244 个新骨架不冒充已补正文或已正式发布。详见下方 10-08 对账及 最终证据（历史归档 `../plans/wiki-final-acceptance.md`）。
 
-**10-07 收尾增量：** 三快照 1,007 条 suspect 全部完成模型三态复核：247 参数、312 非参数、448 信息不足。AST 排除 ClassVar 常量后共有 1,112 条扫描记录。真实补写暴露的丢失旧文与旧快照覆盖已修复为只补空白并保护自动定义；新参数正例经独立固定源码审查通过。结果不代表 1,007 条全经人工确认，也不自动发布全部参数页。[证据、失败记录和边界](../plans/wiki-final-acceptance.md)。
+**10-07 收尾增量：** 三快照 1,007 条 suspect 全部完成模型三态复核：247 参数、312 非参数、448 信息不足。AST 排除 ClassVar 常量后共有 1,112 条扫描记录。真实补写暴露的丢失旧文与旧快照覆盖已修复为只补空白并保护自动定义；新参数正例经独立固定源码审查通过。结果不代表 1,007 条全经人工确认，也不自动发布全部参数页。证据、失败记录和边界（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 **Status**: completed（2026-10-08；按三态分类、确认身份骨架及选择性补正文的既定范围）
 **Created**: 2026-09-10
@@ -62,7 +62,7 @@ F001 结构上答不了这类问题，三个原因：
 
 ### 2026-10-08 验收对账
 
-原始三态协议允许保留证据不足项。“全量骨架”指当前已确认的参数身份，不将拿不准项强行确认为参数，也不将骨架当作完整教学页。证据及独立审查见 [参数全量验收](../plans/wiki-final-acceptance.md#10-08-参数全量验收)。
+原始三态协议允许保留证据不足项。“全量骨架”指当前已确认的参数身份，不将拿不准项强行确认为参数，也不将骨架当作完整教学页。证据及独立审查见 参数全量验收（历史归档 `../plans/wiki-final-acceptance.md#10-08-参数全量验收`）。
 
 | AC | 已取得的验收证据 |
 | --- | --- |
@@ -77,11 +77,11 @@ F001 结构上答不了这类问题，三个原因：
 
 ### 当前对账与历史证据
 
-当前结论以上方 10-08 对账为准。[10-05 P6 对账](../plans/2026-10-05-p6-acceptance.md)及下表保留历史记录；原始三态分类和骨架范围不变，未确定项不冒充已确认。
+当前结论以上方 10-08 对账为准。10-05 P6 对账（历史归档 `../plans/2026-10-05-p6-acceptance.md`）及下表保留历史记录；原始三态分类和骨架范围不变，未确定项不冒充已确认。
 
 ### 历史验收状态（2026-09-24）
 
-这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。
+这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。分级取 2026-09-19 审视（历史归档 `../plans/wiki-audit-2026-09-19.md`） §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
@@ -148,7 +148,7 @@ F001 结构上答不了这类问题，三个原因：
 
 ## Links
 
-- Plan: [param-lineage-plan.md](../plans/param-lineage-plan.md)
+- Plan: param-lineage-plan.md（历史归档 `../plans/param-lineage-plan.md`）
 - 依赖: [F001](F001-llm-wiki.md) AC9 多 ref 钉定
 - 姊妹: [F003](F003-github-corpus.md) GitHub 语料与报错检索
 

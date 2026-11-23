@@ -17,7 +17,7 @@ grids:
   - { at: [232, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [我] }
   - { at: [332, 160], rows: 4, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [我, 吃, 了, 苹果] }
   - { at: [432, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [了] }
-  - { at: [568, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [苹果] }
+  - { at: [580, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [苹果] }
   - { at: [668, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [吃] }
 links:
   - { from: [150, 178], to: [196, 178], tone: token }

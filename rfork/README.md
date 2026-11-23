@@ -1,6 +1,8 @@
+> **基线说明（Stage 2 已重锚）：** 站内 10 篇 RFork 正式页（`wiki/concepts/rfork*.md` 与 `wiki/sources/rfork-official-guide.md`）现已统一重锚至社区上游 `vllm-project/vllm-ascend` `main`（`8d6180e2`，见 `wiki/seeds/vllm-ascend.yaml`）。本目录保留早期独立演进工作版（`patch1–7`、`3284850b`）的不可变源码快照与补丁链，供对照核验。
+
 # RFork 工作版代码
 
-这是随用户提供的补丁独立演进的 RFork，不跟随社区 main 自动升级。用户已确认以 patch7 所在的完整实现历史作为本次基线；实际提交的唯一钉点在 [seeds/rfork.yaml](../wiki/seeds/rfork.yaml)。教学入口为 [RFork 专章](../wiki/concepts/rfork.md)。
+这是随用户提供的补丁独立演进的 RFork，不跟随社区 main 自动升级。用户已确认以 patch7 所在的完整实现历史作为本次基线；实际提交的唯一钉点在 [archived-seed.yaml](archived-seed.yaml)。教学入口为 [RFork 专章](../wiki/concepts/rfork.md)。
 
 ## 三种文件，各有一个职责
 
@@ -22,7 +24,7 @@
 
 ```bash
 pnpm rfork:verify
-pnpm wiki:clone --seeds wiki/seeds/rfork.yaml
+pnpm wiki:clone --seeds rfork/archived-seed.yaml
 pnpm rfork:verify --git
 ```
 
@@ -37,7 +39,7 @@ pnpm rfork:verify --git
 3. **检查再应用**。在当前工作版的独立分支/工作树执行 `git apply --check <绝对补丁路径>`；检查失败就读基线差异，不能强行忽略 hunk。确认原件是邮件格式且父版本吻合时可用 `git am`，普通 diff 用 `git apply --index` 后提交。记录应用结果的 commit 与 tree，不按文件编号猜版本。
 4. **核对行为变化**。对变动函数和相关测试做 review。比较启动顺序、identity / manifest、MR / storage owner、main/draft、release / fallback / shutdown；协议或布局变化要同时检查 seed 和 receiver，不能只改一边。
 5. **运行合适的测试**。完整 RFork 测试依赖对应 vLLM、torch/torch_npu 和数据系统环境；隔离 CPU 测试也有各自依赖。测试日志应写明真实环境、通过/失败/未执行，不能把 AST parse 或 fake backend 测试当成 NPU 传输验收。
-6. **更新同一个版本事实**。将 `wiki/seeds/rfork.yaml` 的工作版 pin 改成已审定的新 commit；按 `sourceScope` 从该 commit 的 Git blob 导出 `source/`，删除已确认从新版本移除的旧快照文件，重算 `sourceFiles`，登记新补丁并保留原历史桥接。固定提交是源，入库文件和哈希是派生物。
+6. **更新同一个版本事实**。将 `rfork/archived-seed.yaml` 的历史工作版 pin 改成已审定的新 commit；按 `sourceScope` 从该 commit 的 Git blob 导出 `source/`，删除已确认从新版本移除的旧快照文件，重算 `sourceFiles`，登记新补丁并保留原历史桥接。固定提交是源，入库文件和哈希是派生物。
 7. **同步知识页**。逐条检查受影响的 sources、图 pin、参数、日志表和正文，更新前先移除这些页旧的 `verified: ["rfork:main"]`，复核完成再加回。运行 `pnpm rfork:evidence`，从已核验快照为引用文件生成不可变 raw 材料并更新页面的 `rawSources`；旧材料保留。站内问答的冻结快照会携带这些材料，不能假定它能直接读取外部 `tools/repos/`。旧事故注明实际版本，不因当前 pin 移动就重解释成新版本故障。
 8. **校验后交付**。`pnpm rfork:verify --git` → Wiki build / lint / audit / diagram check；动了 UI 或检索代码再跑对应代码测试和浏览器验证。最后记录变了什么、为何改变、哪些现场验证尚缺。
 

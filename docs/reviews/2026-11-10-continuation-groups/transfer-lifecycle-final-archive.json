@@ -1,8 +1,0 @@
-{
-  "path": ".tmp/continuation-groups-2026-11-10/transfer-lifecycle-final.zip",
-  "sha256": "c5cca951f279e74cebc400e7e933176d77d713b440d508f2591e11fcf41089c6",
-  "files": 193,
-  "bytes": 13823989,
-  "crc_test": "passed",
-  "scope": "lifecycle 86 new+10 claim bindings; previous transfer72 archive left intact"
-}

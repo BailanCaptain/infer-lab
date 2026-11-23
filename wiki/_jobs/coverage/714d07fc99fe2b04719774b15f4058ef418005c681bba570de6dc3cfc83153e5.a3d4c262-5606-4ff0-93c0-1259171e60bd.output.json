@@ -1,8 +1,0 @@
-{
-  "id": "coverage-62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
-  "ok": true,
-  "exitCode": 0,
-  "stderrTail": "",
-  "costUsd": 0.15836850000000002,
-  "output": "{\"satisfied\":false,\"classification\":\"missing-knowledge\",\"reason\":\"问题要求 main 2026-08-29 快照中 smooth_factor 的平滑公式、默认值和实际调用位置。索引未截断，只有 profiling-chunk-config 页与该参数相关。其余两页候选正文讨论的是 KV 逐层卸载和 MatMul AllReduce，与该参数无关。已提供的摘录只说明 smooth_factor 在两版中都必须位于 (0, 1] 内，否则抛出 ValueError。该页明确写明材料没有解释这个系数的语义，也没有说明预测出的 chunk 在调度中如何使用，并注明本页只依据配置源码摘录。因此，所给范围缺少平滑公式和调度侧的调用位置。可见摘录中也没有出现 smooth_factor 的默认值。该页正文被截断，省略部分可能写有默认值。不过页面已在可见正文中说明缺少语义和调度用法，判断公式与调用位置缺失不依赖省略内容。本结论只针对所提供的索引与摘录，不能证明全库或上游源码中没有这些信息。原候选的知识版本与当前版本不同，本判定不涉及当时是否漏检。\",\"evidence\":[{\"pageId\":\"profiling-chunk-config\",\"quote\":\"必须在 `(0, 1]` 内，否则 `ValueError`\"},{\"pageId\":\"profiling-chunk-config\",\"quote\":\"材料没有解释这个系数的语义\"},{\"pageId\":\"profiling-chunk-config\",\"quote\":\"预测出的 chunk 在调度中具体怎么用；\"},{\"pageId\":\"profiling-chunk-config\",\"quote\":\"本页只依据配置源码摘录，没有性能实验。\"}]}"
-}

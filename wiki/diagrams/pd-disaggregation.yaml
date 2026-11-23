@@ -36,7 +36,7 @@ badges:
   - { at: [612, 426], n: 5 }
   - { at: [612, 516], n: 6 }
 texts:
-  - { at: [372, 172], text: 交回块号、地址, anchor: middle, tone: control }
+  - { at: [390, 172], text: 交回块号、地址, anchor: middle, tone: control }
   - { at: [450, 354], text: 按块读取历史状态, anchor: middle, tone: comm }
   - { at: [450, 444], text: 完成信号, anchor: middle, tone: control }
   - { at: [172, 276], text: 请求已结束，块仍押着, size: 12, anchor: start, note: true }

@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 440" width="880" height="440" role="img" aria-label="图示本页普通动态 W8A8 Linear 的 BF16 输入路径：权重在离线阶段按输出通道压成 INT8，每个通道留下一个缩放系数；前向把输入激活按行（一行是一个 token）压成 INT8，每行留下一个缩放系数。整数乘加只吃两份 INT8，结果先是整数；缩放系数不进整数乘加，最后乘回来，输出恢复成 BF16。这是逻辑步骤，提前量化和融合可以改变实际算子调用次数。">
   <title>图示本页普通动态 W8A8 Linear 的 BF16 输入路径：权重在离线阶段按输出通道压成 INT8，每个通道留下一个缩放系数；前向把输入激活按行（一行是一个 token）压成 INT8，每行留下一个缩放系数。整数乘加只吃两份 INT8，结果先是整数；缩放系数不进整数乘加，最后乘回来，输出恢复成 BF16。这是逻辑步骤，提前量化和融合可以改变实际算子调用次数。</title>
   <defs><marker id="quantization-intuition-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="quantization-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <rect x="104" y="46" width="430" height="158" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="120" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">离线做一次：权重压成 INT8</text>
-  <rect x="104" y="240" width="430" height="158" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="120" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每次前向：激活当场压成 INT8</text>
+  <rect x="84" y="46" width="464" height="158" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="100" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">离线做一次：权重压成 INT8</text>
+  <rect x="84" y="240" width="464" height="158" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="100" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每次前向：激活当场压成 INT8</text>
   <path d="M208 98 L240 98" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-intuition-ah-ink)"/>
   <path d="M396 98 L420 98" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-intuition-ah-ink)"/>
   <path d="M504 118 L532 118 L532 205 L560 205" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-intuition-ah-ink)"/>
@@ -41,11 +41,11 @@
   <rect x="676" y="186" width="96" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="724" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">乘回两个系数</text>
   <text x="166" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">BF16：每个数 2 字节</text>
-  <text x="462" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">INT8：每个数 1 字节</text>
-  <text x="462" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">细条是每个输出通道的系数</text>
+  <text x="444" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">INT8：每个数 1 字节</text>
+  <text x="444" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">细条是每个输出通道的系数</text>
   <text x="166" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">BF16：一行是一个 token</text>
-  <text x="462" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">INT8：右边细条是每行的系数</text>
-  <text x="462" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">同一份权重，每次配新的激活系数</text>
+  <text x="444" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">INT8：右边细条是每行的系数</text>
+  <text x="444" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">同一份权重，每次配新的激活系数</text>
   <text x="724" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">缩放系数不进整数乘加</text>
   <text x="818" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输出 BF16</text>
   <circle cx="244" cy="80" r="11" fill="var(--color-ink, #17211f)"/><text x="244" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>

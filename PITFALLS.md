@@ -10,7 +10,6 @@
 - RMSNorm 后 RMS 不是恰好 1：词嵌入数值小（σ=0.02）时 ε=1e-6 占 mean(x²) 的 0.25%，RMS≈0.99875。写文案和断言都要按 `sqrt(ms/(ms+ε))`。
 - 因果 mask 的 −1e30 存进 Float32 是 `Math.fround(-1e30)`，断言别用字面量。
 - `ropeInplace` / `causalMaskInplace` 原地修改，`splitHeads` / `mergeHeads` 是共享 data 的视图：录制前要 `clone`，否则前一步的张量会被改掉。
-- `tsconfig.*.tsbuildinfo` 被 git 跟踪，每次 tsc 都会改动；提交时不要顺手带上（建议用户决定是否 `git rm --cached` + 加 .gitignore）。
 - `src/sim/model/presets.tokens.json` 是生成文件：改句子只改 `scripts/gen-preset-tokens.ts` 的 `SENTENCES`，然后 `pnpm gen:presets --write`；改完要同步 `presets.test.ts` 的 golden id。`tools/tokenizer/*.json` 已 gitignore，勿提交 11 MB 词表。
 - `pnpm gen:trace` 用 transformers.js 跑真实 Qwen3-0.6B（ONNX q8，缓存 `tools/hf-cache/` 598 MB，已 gitignore）；Node 要加 `NODE_USE_ENV_PROXY=1` 才走系统代理，否则 fetch huggingface.co 超时。
 - Tailwind v4 冲突类按样式表顺序而非 class 顺序取胜：`bg-surface-elevated` 会盖掉后写的 `bg-accent`。基础类不要带背景色，按钮变体各自加（见 `PlaybackBar` 的 `btnGhost/btnPrimary`）。
@@ -19,3 +18,5 @@
 - 预设句里选的词都是词表内完整 UTF-8 片段的 token；若新句子有字被拆成半个 UTF-8 字节序列，脚本会直接报错，换一句而不是存乱码。
 - Playwright 每次运行会清空 `test-results/`；`playwright.config.ts` 已设 `workers: 1`：两个浏览器同时跑时 8B Worker 构建从 2.2 s 变成 6.1 s，计时断言会被拖垮。
 - UI 验收必须看截图：曾有字体渲染成实心方块而所有数值断言全过的情况。
+- `pnpm dev:server` 使用 `node --import tsx --watch-path=server --watch-path=scripts/wiki --watch-path=src/content/wiki`，避免在 Windows 下全盘 watch `tools/` 导致 `8790` 端口卡死。
+- 修改或新增 `wiki/diagrams/*.svg` 后必须跑 `pnpm wiki:svg-geometry`，用真实 Chromium `getBBox()` 拦截内框文字溢出、重叠与 `<12px` 小字。

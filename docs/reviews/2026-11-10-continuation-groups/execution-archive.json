@@ -1,9 +1,0 @@
-{
-  "path": ".tmp/continuation-groups-2026-11-10/execution-final.zip",
-  "sha256": "ed261b14dfd3521cfc243c7cd165c835458791456090080294d1766c6820fc4e",
-  "bytes": 43464289,
-  "files": 491,
-  "recorded_at": "2026-11-10T11:40:42.936020+00:00",
-  "reviewer": "/root/groups_replay_review",
-  "scope": "48 old +44 new occurrence audit, final six pages/11 diagrams; excludes unrelated shared app/3D changes; no hardware run"
-}

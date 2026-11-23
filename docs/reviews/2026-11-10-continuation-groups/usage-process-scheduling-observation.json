@@ -1,9 +1,0 @@
-{
-  "recorded_at": "2026-11-10T11:29:39.062431+00:00",
-  "used_percent": 46,
-  "window_minutes": 10080,
-  "resets_at": 1794852129,
-  "previous_request_used_percent": 40,
-  "observed_change_percentage_points": 6,
-  "scope": "Shared account window, including concurrent threads. Not attribution or forecast for this task."
-}

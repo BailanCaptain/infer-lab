@@ -1,6 +1,0 @@
-{
-  "diagrams": [
-    {"id":"rfork-lifecycle","path":"wiki/diagrams/rfork-lifecycle.yaml","reviewed":true,"verdict":"部分支持","review_scope":"YAML全文与两个pin及补充流程源码；非视觉验收","claim":"模型交出、成为seed、失败清理和关停分开","read_ranges":["rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L50","rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347","rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L286","rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L621-L710"],"evidence":"图两pin只覆盖类型和发布检查，不独立覆盖失败回退/启动返回/关停，已补读全session与loader。分支关系成立；实例API就绪是背景流程，需主线API来源另证。","visual_review":false},
-    {"id":"rfork-lifecycle-threads","path":"wiki/diagrams/rfork-lifecycle-threads.yaml","reviewed":true,"verdict":"支持","review_scope":"YAML全文、时间算例与两个固定pin；非视觉验收","claim":"首次503后等30，次次成功后同线程发布，心跳先等30","read_ranges":["rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L170-L250","rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L237-L267"],"evidence":"线程循环214等待、202推进、238调用seed启动；heartbeat initial_delay先wait。2+30=32，32+2=34，34+2=36，36+30=66都为标明的示意。","visual_review":false}
-  ]
-}

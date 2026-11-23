@@ -8,11 +8,11 @@ created: 2026-09-10
 
 # F003 — GitHub issue / PR 报错溯源
 
-**11-15 渐进改造包 2 契约同步（待 `041` 代码核验）：** 依据 [项目渐进改造与问题修复方案](../plans/2026-11-14-progressive-restructure-and-fix-plan.md) §2.6 与 §5.3，排障与来源页继续遵守「社区讨论与回答记录不自动升格为源码实证（`C`）或官方结论（`S`）」的证据分级纪律；文末 `## 对照源码` 核验区集中承载跨版本排障差异与可点击来源索引，且针对已归档 `raw:sha256-<hash>.md#L起-L止` 引用补齐纯静态站点构建下的原文预览兜底（待任务 `041` 完成代码核验，核验前不冒充已验收现状）。
+**11-15 渐进改造包 2 契约同步（待 `041` 代码核验）：** 依据 项目渐进改造与问题修复方案（历史归档 `../plans/2026-11-14-progressive-restructure-and-fix-plan.md`） §2.6 与 §5.3，排障与来源页继续遵守「社区讨论与回答记录不自动升格为源码实证（`C`）或官方结论（`S`）」的证据分级纪律；文末 `## 对照源码` 核验区集中承载跨版本排障差异与可点击来源索引，且针对已归档 `raw:sha256-<hash>.md#L起-L止` 引用补齐纯静态站点构建下的原文预览兜底（待任务 `041` 完成代码核验，核验前不冒充已验收现状）。
 
-**10-08 完成：** AC1–AC7 按在线检索契约验收完成。冻结十题实际 Top-1 6/10、Top-5 7/10 达标；真实正负例、新样本及文档版本映射已核。失败与未命中照实保留，不将社区线索说成已确认修复。逐项对账见下方，原始结果见 [最终验收](../plans/wiki-final-acceptance.md)。
+**10-08 完成：** AC1–AC7 按在线检索契约验收完成。冻结十题实际 Top-1 6/10、Top-5 7/10 达标；真实正负例、新样本及文档版本映射已核。失败与未命中照实保留，不将社区线索说成已确认修复。逐项对账见下方，原始结果见 最终验收（历史归档 `../plans/wiki-final-acceptance.md`）。
 
-**10-07 收尾增量：** 文档自身版本映射已接入在线聊天与界面；实际正例、重构误认修复的负例、近期新异常样本已执行。修复查询排序、兜底遗漏、跨仓同号去重和限流时正文被截短的问题。社区证据与正式 Wiki 覆盖分开，详细读取限流明确标为不完整。[真实样本与验证边界](../plans/wiki-final-acceptance.md)。
+**10-07 收尾增量：** 文档自身版本映射已接入在线聊天与界面；实际正例、重构误认修复的负例、近期新异常样本已执行。修复查询排序、兜底遗漏、跨仓同号去重和限流时正文被截短的问题。社区证据与正式 Wiki 覆盖分开，详细读取限流明确标为不完整。真实样本与验证边界（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 **Status**: completed（2026-10-08；在线检索、溯源和文档映射的约定验收完成）
 **Created**: 2026-09-10
@@ -60,7 +60,7 @@ created: 2026-09-10
 
 ### 2026-10-08 验收对账
 
-按用户已定的在线检索口径，保留社区材料与正式 Wiki 的边界。逐题输入、限流失败、原始结果和真实问答见 [最终验收记录](../plans/wiki-final-acceptance.md)。
+按用户已定的在线检索口径，保留社区材料与正式 Wiki 的边界。逐题输入、限流失败、原始结果和真实问答见 最终验收记录（历史归档 `../plans/wiki-final-acceptance.md`）。
 
 | AC | 已取得的验收证据 |
 | --- | --- |
@@ -74,11 +74,11 @@ created: 2026-09-10
 
 ### 当前对账与历史证据
 
-当前结论以上方 10-08 对账为准。[10-05 P6 对账](../plans/2026-10-05-p6-acceptance.md)及下表保留历史记录；失败、未命中及因果判断边界照实保留。
+当前结论以上方 10-08 对账为准。10-05 P6 对账（历史归档 `../plans/2026-10-05-p6-acceptance.md`）及下表保留历史记录；失败、未命中及因果判断边界照实保留。
 
 ### 历史验收状态（2026-09-24）
 
-这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。09-22 的改写与 09-23 的恢复见 [2026-09-23 增量审视](../plans/wiki-audit-2026-09-23.md)。
+这张表记录 2026-09-24 的历史验收状态，不代表当前全量复测结果。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)。分级取 2026-09-19 审视（历史归档 `../plans/wiki-audit-2026-09-19.md`） §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。09-22 的改写与 09-23 的恢复见 2026-09-23 增量审视（历史归档 `../plans/wiki-audit-2026-09-23.md`）。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
@@ -87,7 +87,7 @@ created: 2026-09-10
 | AC3 | 真实实现并测试 | 鉴权 / 限额 / 网络 / 404 / API 分开报（`scripts/wiki/github.ts`，旧同步器 09-19 用真实无效 token 验过 401）。**09-23 起在线命令失败时非零退出**：`traceFailures`（`scripts/wiki/github-trace.ts`）有单测；实测核对一个不存在的 ref 退出码 1 并写明原因，只做查询规划退出码 0。聊天里搜索失败显示「在线搜索失败」，问答模型被告知不得说成没有相关 issue（`server/chat-route.test.ts`、`tests/wiki.spec.ts`）。「在 `wiki/log.md` 写一条同步记录」针对的是同步器 `wiki:sync-github`，当时已满足；在线查询没有同步这一步，也不写 `log.md`（它属于知识快照，每问一次就写会让知识版本变、所有问答会话被重置）。 |
 | AC4 | 部分实现 | **聊天层接入 09-23 完成**：贴报错时服务端在同一次问答里先在线搜 GitHub，追第一个 issue 的关联 PR，用本地克隆核对版本，把候选作为社区线索交给问答模型，并在回答上方显示「GitHub 上的相关讨论」（`scripts/wiki/chat-trace.ts`；5 个单测、2 个问答路由测试、1 个浏览器测试、1 次真实在线跑）。只在问题里有异常类名或 traceback 时触发，普通提问不发网络请求。命中率：09-22 在线评测 Top-1 = 6/10、Top-5 = 8/10，达到 ≥7 的门槛；但「命中」是拿 issue 自己的正文把它搜回来，不等于新报错能找到修复。**未满足**：调参样本另取未证实（没有另取样本的记录；查询规则定于题集 09-16 冻结之前，评测后代码没再改，没发现拿题集调参的证据）；无匹配对照未达原意（09-22 用随机造的词做对照，必然零命中，测不到「把词面相似说成已确认修复」）。 |
 | AC5 | 真实实现并测试（聊天路径） | 09-23 真实跑：issue #15815 → cross-reference 找到 PR #15981 → 本地克隆找到合并提交 `87c345c1`（它直接合进了 `releases/v0.26.0rc`，main 上没有）→ v0.26.0rc 钉点包含、main 与 v0.23.0 钉点不包含 → 含该提交的 tag 列表为空（本地没有 tag 包含它），照实输出空列表。与 09-22 命令行在线 compare 的结论一致。程序不判断「哪个 PR 真正修了它」：关联 PR 按依据排序（主动引用 issue 的在前），因果由问答模型读原文判断。命令行 `verify` 只核对一个目标 ref，不列 tag。 |
-| AC6 | 真实实现并测试（一个真实 PR 走完全程发布） | 排队逻辑在：PR 触及 seeds 入口或参数定义文件时排队（`queueImportantPr`），不可信文本经 sanitize。历史两次失败照旧记着：09-16 凌晨编译 60 秒超时（账本 UTC 09-15 16:55）；09-22 另一会话写死整合的草稿 09-23 按用户决定驳回（review `c95be198…` 等三份 rejected）。**09-23 第二步付费验证用真实链路重编并发布**：`wiki/sources/pr-11953.md` 经 review `f59d1c05…` 批准发布，origin: pr（细节见 [09-23 增量审视](../plans/wiki-audit-2026-09-23.md) §八）。队列任务 `026efb56` 停在 needs-review，等开 `maxTasks` 后由夜间关单（不花钱）。**样本量是一（就这一个 PR），不能推广成「重要 PR 升级链路都稳」**；注入对照那半边仍只有 sanitize 单测。 |
+| AC6 | 真实实现并测试（一个真实 PR 走完全程发布） | 排队逻辑在：PR 触及 seeds 入口或参数定义文件时排队（`queueImportantPr`），不可信文本经 sanitize。历史两次失败照旧记着：09-16 凌晨编译 60 秒超时（账本 UTC 09-15 16:55）；09-22 另一会话写死整合的草稿 09-23 按用户决定驳回（review `c95be198…` 等三份 rejected）。**09-23 第二步付费验证用真实链路重编并发布**：`wiki/sources/pr-11953.md` 经 review `f59d1c05…` 批准发布，origin: pr（细节见 09-23 增量审视（历史归档 `../plans/wiki-audit-2026-09-23.md`） §八）。队列任务 `026efb56` 停在 needs-review，等开 `maxTasks` 后由夜间关单（不花钱）。**样本量是一（就这一个 PR），不能推广成「重要 PR 升级链路都稳」**；注入对照那半边仍只有 sanitize 单测。 |
 | AC7 | 真实实现并测试（10 条样本，旧同步链路） | 12 个文档链接全部解析出版本与路径，9 个映射到本地，3 个给出「本地无对应 ref」的原因。在线路径与聊天路径还没有嵌入这份映射。 |
 
 - **AC1 · 有界在线搜索**（2026-09-22 按用户方向取代原「全量拉取」，原文见 `git show f4c55d3^:docs/features/F003-github-corpus.md`）：实际仓库、时间与查询可核对；候选数量不冒充全量计数。
@@ -117,7 +117,7 @@ pnpm -s wiki:github-trace verify --repo vllm-project/vllm-ascend --fix 87c345c13
 - **F001 AC10**：聊天层接入走同一次问答的检索步骤（`server/chat-route.ts`）。
 - **F002 与本地克隆**：「修复进了哪些版本」用本地克隆判断，钉点只认 `wiki/seeds/vllm-ascend-code.yaml`（夜间任务与行号审计用的也是它）。
 - **官方文档站与本地 `docs/source/`（AC7）**：解析 issue 里的文档链接需要两边的映射关系。
-- **F004 共用编译与审阅管线（AC6）**：sanitize、队列、草稿和批准后的整合由 [F004 plan](../plans/knowledge-loop-plan.md) 定义一次。
+- **F004 共用编译与审阅管线（AC6）**：sanitize、队列、草稿和批准后的整合由 F004 plan（历史归档 `../plans/knowledge-loop-plan.md`） 定义一次。
 
 ## Design Decisions
 
@@ -133,7 +133,7 @@ pnpm -s wiki:github-trace verify --repo vllm-project/vllm-ascend --fix 87c345c13
 | 不可信文本 | 直接进 prompt / 先 sanitize | **先 sanitize，并限制问答与编译 agent 的工具与读取范围** | issue、PR 正文、评论都不能作为工具指令；文本清洗本身不是完整隔离 |
 | 写不写回知识库（09-23） | 写成草稿待审 / 不写 | **不写** | 用户：「不需要 排错只是我们的一个功能」 |
 
-各轮的历史实施证据在 [逐轮 review 归档](../plans/archive/README.md)，只作历史保留；当前状态一律以上方验收表为准。
+各轮的历史实施证据在 逐轮 review 归档（历史归档 `../plans/archive/README.md`），只作历史保留；当前状态一律以上方验收表为准。
 
 ## Timeline
 
@@ -146,7 +146,7 @@ pnpm -s wiki:github-trace verify --repo vllm-project/vllm-ascend --fix 87c345c13
 
 ## Links
 
-- Plan: [github-corpus-plan.md](../plans/github-corpus-plan.md)（历史同步器设计，不是当前首拉指令）
+- Plan: github-corpus-plan.md（历史归档 `../plans/github-corpus-plan.md`）（历史同步器设计，不是当前首拉指令）
 - 依赖: [F001](F001-llm-wiki.md) AC10、[F002](F002-param-lineage.md)、[F004](F004-knowledge-loop.md)
 - sanitize 来源: `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\`
 - [GitHub Search](https://docs.github.com/en/rest/search/search)、[PR API](https://docs.github.com/en/rest/pulls/pulls)：搜索上限与 PR 字段的官方依据

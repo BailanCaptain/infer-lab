@@ -4,7 +4,13 @@ dist-ssr
 /preview-dist/
 /.tmp/
 /tmp/
-/debug.log
+/*.log
+/shot-*.png
+/animated-*.png
+/bycroft-*.png
+/poloclub-*.png
+/*.docx
+/*.pptx
 __pycache__/
 *.local
 .vite

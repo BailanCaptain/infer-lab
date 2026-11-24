@@ -1,0 +1,12 @@
+mode: native-svg
+id: structured-output-plate-grammar-gate
+caption: >-
+  用“无遮挡摇奖滚落碎渣卡死齿轮箱 vs 前置齿孔掩码挡板精准放行拼图块”秒懂结构化输出（Structured Output）：左侧仅靠提示词叮嘱输出 JSON 时，概率转盘仍可能抽中多一个逗号或少半边引号的非法碎片，直接把下游解析器齿轮卡崩；右侧状态机（如 xgrammar）根据当前已生成位置实时推算出本步合法的词表子集，在采样摇奖前先立起一块严丝合缝的位图掩码挡板（grammar_bitmask），把一切破坏语法的候选概率当场清零。
+size: [900, 656]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/structured_output/__init__.py#L36-L70'
+    symbols: [StructuredOutputManager]
+  - source: 'vllm@ced6857a:vllm/v1/structured_output/__init__.py#L310-L345'
+    symbols: [grammar_bitmask]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2803-L2810'
+    symbols: [apply_grammar_bitmask, grammar_output]

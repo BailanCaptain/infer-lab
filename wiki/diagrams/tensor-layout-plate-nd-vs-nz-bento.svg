@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 630" width="900" height="630" role="img" aria-label="ND 与 FRACTAL_NZ 内存布局趣味微缩场景图：左侧方形抓斗在四排长条货架间跨行跳跃抓取，右侧已排成整齐方形便当盒由抓斗垂直一次整盒端起" font-family="var(--font-sans)">
+  <title>长条货架跨行散抓（ND）vs 预装方块便当盒整盒端走（FRACTAL_NZ）：直观理解为什么昇腾矩阵算子偏好分形块连续排布。</title>
+  <desc>关联源码符号：_should_trans_nz, maybe_trans_nz, ACL_FORMAT_FRACTAL_NZ, weight_nz_mode, WeightLayoutPolicy, FORCE_NZ</desc>
+  <image href="./wiki-illustrations/tensor-layout-nd-vs-nz-bento-scene.webp" x="40" y="128" width="820" height="404" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="171" y1="112" x2="171" y2="225" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="171" cy="225" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="171" cy="225" r="2.5" fill="#c95b3c"/>
+  <line x1="630" y1="112" x2="630" y2="306" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="630" cy="306" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="630" cy="306" r="2.5" fill="#c78300"/>
+  <line x1="770" y1="112" x2="770" y2="217" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="770" cy="217" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="770" cy="217" r="2.5" fill="#087f73"/>
+  <line x1="270" y1="544" x2="270" y2="403" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="270" cy="403" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="270" cy="403" r="2.5" fill="#c95b3c"/>
+  <line x1="581" y1="544" x2="581" y2="427" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="581" cy="427" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="581" cy="427" r="2.5" fill="#087f73"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">方形 Cube 抓斗遇上长条 ND 行存</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">二维子块的一列元素散落在不同长行</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">搬运引擎被迫按步长跨多段地址跳取</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">打碎连续突发访存效率或触发临时重排</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#c78300"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">分形方块预装箱（FRACTAL_NZ）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">数值本身不变，仅在内存里按小块聚拢</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">同一二维子块的元素在物理地址紧挨存放</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">块间按列、块内按行形成大 N 小 z 序</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">一次垂直抓取直喂 Cube 脉动阵</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">静态权重在加载收尾一次性转好 NZ 常驻</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">前向每步直接连续整块搬入 L1 / L0 缓冲</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">省去运行期反复转格式的额外开销</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="562" r="12" fill="#c95b3c"/>
+    <text x="24" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="567" font-size="14.5" font-weight="700" fill="#17211f">行列不整除块长时需补齐边角</text>
+    <text x="44" y="591" font-size="13" fill="#4d5652">分形装箱按固定硬件块粒度对齐边界</text>
+    <text x="44" y="614" font-size="13" fill="#4d5652">尾部不足一整格时会留出少量填零余量</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="562" r="12" fill="#087f73"/>
+    <text x="468" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="567" font-size="14.5" font-weight="700" fill="#17211f">按芯片代际与算子需求选路（weight_nz_mode）</text>
+    <text x="488" y="591" font-size="13" fill="#4d5652">310P 等形态强制转 NZ，A2/A3 依算子与量化策略开启</text>
+    <text x="488" y="614" font-size="13" fill="#4d5652">跨实例直读权重（如 RFork）须确保双方格式一致</text>
+  </g>
+</svg>

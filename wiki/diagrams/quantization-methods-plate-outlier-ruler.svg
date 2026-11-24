@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 642" width="900" height="642" role="img" aria-label="量化方法离群值与分组缩放趣味微缩场景图：左侧粗刻度木尺因单根高耸赤陶巨刺将七个小人挤在最底端一格，右侧黄铜螺旋压机压平尖刺并配两把精细游标卡尺分组测量" font-family="var(--font-sans)">
+  <title>单根离群巨刺撑废整把粗木尺 vs 平滑压刺与分组精密游标卡尺：直观理解为什么现代低比特量化必须解决离群值与缩放粒度问题。</title>
+  <desc>关联源码符号：QuantSpec, QuantKey, QuantizationConfigArgs, AscendW8A8DynamicLinearMethod, get_perchannel_param, AscendW4A4MXFP4DynamicLinearMethod, get_pergroup_param, group_size</desc>
+  <image href="./wiki-illustrations/quantization-outlier-ruler-scene.webp" x="40" y="128" width="820" height="416" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="343" y1="112" x2="343" y2="228" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="343" cy="228" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="343" cy="228" r="2.5" fill="#c95b3c"/>
+  <line x1="712" y1="112" x2="712" y2="228" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="712" cy="228" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="712" cy="228" r="2.5" fill="#c78300"/>
+  <line x1="565" y1="112" x2="565" y2="336" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="565" cy="336" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="565" cy="336" r="2.5" fill="#087f73"/>
+  <line x1="196" y1="556" x2="196" y2="411" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="196" cy="411" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="196" cy="411" r="2.5" fill="#c95b3c"/>
+  <line x1="630" y1="556" x2="630" y2="411" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="630" cy="411" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="630" cy="411" r="2.5" fill="#4c65b6"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">离群值巨刺拉爆全局量程</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">特定激活通道常冒出数十倍尖刺</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">单把全局尺必须迁就最高点防溢出</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">有限整数刻度被单根巨刺独占</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="310" cy="28" r="12" fill="#c78300"/>
+    <text x="310" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="330" y="33" font-size="14.5" font-weight="700" fill="#17211f">平滑压刺与误差补偿</text>
+    <text x="330" y="57" font-size="13" fill="#4d5652">SmoothQuant/AWQ 分摊激活尖刺</text>
+    <text x="330" y="79" font-size="13" fill="#4d5652">GPTQ 用二阶误差微调剩余权重</text>
+    <text x="330" y="101" font-size="13" fill="#66716d">不改算子外部接口守住低比特精度</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="608" cy="28" r="12" fill="#087f73"/>
+    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="628" y="33" font-size="14.5" font-weight="700" fill="#17211f">细粒度分组卡尺（逐通道/块）</text>
+    <text x="628" y="57" font-size="13" fill="#4d5652">权重逐通道、激活逐行现算系数</text>
+    <text x="628" y="79" font-size="13" fill="#4d5652">4 位缩至 32/128 元素配一把尺</text>
+    <text x="628" y="101" font-size="13" fill="#66716d">把巨刺影响关在所在小格内</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="574" r="12" fill="#c95b3c"/>
+    <text x="24" y="578.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="579" font-size="14.5" font-weight="700" fill="#17211f">正常小数值扎堆归零（下溢糊成一团）</text>
+    <text x="44" y="603" font-size="13" fill="#4d5652">绝大多数普通数值全落进最低一两个刻度</text>
+    <text x="44" y="626" font-size="13" fill="#4d5652">舍入后彼此区分度尽失，输出迅速崩坏</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="574" r="12" fill="#4c65b6"/>
+    <text x="468" y="578.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="579" font-size="14.5" font-weight="700" fill="#17211f">粒度越细精度越稳，但元数据与算子需匹配</text>
+    <text x="488" y="603" font-size="13" fill="#4d5652">卡尺越多，额外存储的 scale 系数占比越高</text>
+    <text x="488" y="626" font-size="13" fill="#4d5652">实际能否提速取决于硬件是否原生支持该组粒度</text>
+  </g>
+</svg>

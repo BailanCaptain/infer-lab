@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 648" width="900" height="648" role="img" aria-label="MLA 多头潜在注意力趣味微缩场景图：左侧货架被成对蓬松床垫塞满，右侧漏斗将床垫压成紧实青色真空卷筒并配独立罗盘位置环高密度入柜" font-family="var(--font-sans)">
+  <title>蓬松床垫塞爆货架 vs 真空潜向量卷筒与解耦位置环：直观展示 MLA 如何用低秩联合压缩与解耦 RoPE 大幅缩减 KV 缓存体积。</title>
+  <desc>关联源码符号：process_weights_after_loading, W_UK, W_UV, W_UK_T, _exec_kv_no_rope, _exec_kv_mla_nope, kv_lora_rank, qk_rope_head_dim</desc>
+  <image href="./wiki-illustrations/mla-vacuum-latent-roll-scene.webp" x="40" y="128" width="820" height="422" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="220" y1="112" x2="220" y2="255" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="220" cy="255" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="220" cy="255" r="2.5" fill="#c95b3c"/>
+  <line x1="540" y1="112" x2="540" y2="246" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="540" cy="246" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="540" cy="246" r="2.5" fill="#c78300"/>
+  <line x1="671" y1="112" x2="671" y2="238" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="671" cy="238" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="671" cy="238" r="2.5" fill="#087f73"/>
+  <line x1="270" y1="562" x2="270" y2="432" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="270" cy="432" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="270" cy="432" r="2.5" fill="#c95b3c"/>
+  <line x1="762" y1="562" x2="762" y2="364" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="762" cy="364" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="762" cy="364" r="2.5" fill="#4c65b6"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">逐头全量 K/V（货架早早爆满）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">每个注意力头都要各存一份 K 与 V</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">上下文一拉长，容量与搬运带宽双双告急</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">成为制约高并发批次规模的头号瓶颈</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#c78300"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">联合下投影压缩（低秩卷筒）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">把多头共享信息压进窄维潜向量 c_KV</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">一格储物柜即可叠放原先数倍长历史</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">大幅降低每步 Decode 从 HBM 读入字节</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">解耦位置小环（独立 RoPE 支路）</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">旋转位置矩阵卡在中间会阻断权重吸收</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">单独拆出窄维位置支路配挂在卷筒端头</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">兼顾相对位置感知与主体潜向量压缩</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="580" r="12" fill="#c95b3c"/>
+    <text x="24" y="584.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="585" font-size="14.5" font-weight="700" fill="#17211f">每步生成都要搬运沉重历史</text>
+    <text x="44" y="609" font-size="13" fill="#4d5652">Decode 每算 1 词都要重读全部旧床垫</text>
+    <text x="44" y="632" font-size="13" fill="#4d5652">带宽墙下算力单元长期等数据</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="580" r="12" fill="#4c65b6"/>
+    <text x="468" y="584.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="585" font-size="14.5" font-weight="700" fill="#17211f">Prefill 展开算、Decode 矩阵吸收</text>
+    <text x="488" y="609" font-size="13" fill="#4d5652">提示词阶段可在片上按需还原多头键值</text>
+    <text x="488" y="632" font-size="13" fill="#4d5652">生成阶段把上投影并入查询侧免展开直算</text>
+  </g>
+</svg>

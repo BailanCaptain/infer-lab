@@ -1,0 +1,12 @@
+mode: native-svg
+id: sleep-mode-plate-bakery-hibernation
+caption: >-
+  用“拆厂装车慢速重建 vs 保壳休眠侧仓暂存”秒懂 Sleep Mode（睡眠模式）：左侧不用睡眠模式时，推理让卡给 RL 训练只能彻底杀进程拆厂，等训练完再重新拉起进程、建通信组并从远端慢盘重拉几十 GB 权重；右侧开启睡眠模式后保留进程、HCCL 通信组与图壳不拆，Level 1 把权重木箱经滚筒桥滑入隔壁主机内存侧仓（秒级滑回唤醒），Level 2 直接清空权重腾尽显存供同机训练借用、醒来仅原地重填权重。
+size: [900, 566]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306'
+    symbols: [sleep, wake_up, weight_nz_mode]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L140-L225'
+    symbols: [_lifecycle_anchor_group, _ensure_lifecycle_anchor, release_lifecycle_anchor]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L388'
+    symbols: [RlConfig, sleep_mode_extra_cleanup]

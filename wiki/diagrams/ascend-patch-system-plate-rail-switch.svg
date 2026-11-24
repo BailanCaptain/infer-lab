@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 548" width="900" height="548" role="img" aria-label="vllm-ascend 补丁机制趣味微缩场景图：左侧石砌车站原装铁轨通向封闭铁门，右侧在不拆原车站墙体的前提下加装黄铜扳道器将列车平滑改道至青色昇腾旋转转盘与高速弯轨" font-family="var(--font-sans)">
+  <title>不拆原站房的外挂黄铜扳道器：直观理解 vllm-ascend 如何在运行期用两阶段猴子补丁无侵入接管上游 vLLM 关键路径。</title>
+  <desc>关联源码符号：patch_use_v2_model_runner, patch_engine_core, STANDARD_MAMBA_PATCH, STANDARD_WORKER_PATCHES, patch_distributed, patch_rejection_sampler</desc>
+  <image href="./wiki-illustrations/ascend-patch-rail-switch-scene.webp" x="40" y="128" width="820" height="322" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="171" y1="112" x2="171" y2="218" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="171" cy="218" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="171" cy="218" r="2.5" fill="#4c65b6"/>
+  <line x1="630" y1="112" x2="630" y2="270" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="630" cy="270" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="630" cy="270" r="2.5" fill="#c78300"/>
+  <line x1="762" y1="112" x2="762" y2="257" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="762" cy="257" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="762" cy="257" r="2.5" fill="#087f73"/>
+  <line x1="368" y1="462" x2="368" y2="205" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="368" cy="205" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="368" cy="205" r="2.5" fill="#c95b3c"/>
+  <line x1="639" y1="462" x2="639" y2="328" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="639" cy="328" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="639" cy="328" r="2.5" fill="#9a4b86"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#4c65b6"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">上游 vLLM 站房原封不动（零侵入）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">直接安装官方 vLLM 包，无需维护分叉大仓</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">常规接口优先走平台插件契约正规接入</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">仅在插件钩子覆盖不到的深水区才动用扳道器</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#c78300"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">两级黄铜扳道器（Global + Worker）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">平台级补丁在引擎/调度初始化前先行扳道</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">Worker 级补丁在 NPUWorker 构造开头挂入</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">按进程幂等保护，同一进程绝不重复改道</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">无缝切入昇腾专属转盘与高速轨</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">透明替换分布式建组、采样与特定模型注意力</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">上层业务调用原函数名即可跑通 NPU 实现</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">快速填平上下游发版节奏差</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="480" r="12" fill="#c95b3c"/>
+    <text x="24" y="484.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="485" font-size="14.5" font-weight="700" fill="#17211f">未打补丁或导包早于扳道就会撞门</text>
+    <text x="44" y="509" font-size="13" fill="#4d5652">若提前绑定了旧函数引用，后续扳道对其无效</text>
+    <text x="44" y="532" font-size="13" fill="#4d5652">spawn 子进程须各自重扳一次才能继承改道</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="480" r="12" fill="#9a4b86"/>
+    <text x="468" y="484.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="485" font-size="14.5" font-weight="700" fill="#17211f">治理边界：随上游演进持续收敛回归正规接口</text>
+    <text x="488" y="509" font-size="13" fill="#4d5652">上游补齐通用扩展点后即拆掉对应临时扳道器</text>
+    <text x="488" y="532" font-size="13" fill="#4d5652">排障时先查当前进程补丁登记表确认哪条轨生效</text>
+  </g>
+</svg>

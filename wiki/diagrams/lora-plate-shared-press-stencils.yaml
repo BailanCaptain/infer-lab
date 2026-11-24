@@ -1,0 +1,10 @@
+mode: native-svg
+id: lora-plate-shared-press-stencils
+caption: >-
+  用“四台重型印刷机挤爆车间 vs 一台共享母机 + 轻量插拔套色板”秒懂多 LoRA 推理：左侧若为四个垂直业务各自微调并部署一整套全量模型，四台几十 GB 的重型印刷机瞬间把显存车间塞爆且无法合批；右侧冻结并只存一份黄金基座母机，业务差异浓缩成几块几 MB 的超薄低秩套色插板（A/B 小矩阵），同一批里不同请求各自指定插板编号，主干矩阵乘合批共享、旁路用分段算子并行叠加各自微调增量。
+size: [900, 587]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L16-L70'
+    symbols: [PunicaWrapperNPU, LORA_CUSTOM_OPS, max_loras]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/lora/lora_ops.py#L30-L70'
+    symbols: [bgmv_shrink, bgmv_expand]

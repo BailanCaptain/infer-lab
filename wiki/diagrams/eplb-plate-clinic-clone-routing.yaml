@@ -1,0 +1,10 @@
+mode: native-svg
+id: eplb-plate-clinic-clone-routing
+caption: >-
+  用“网红专家窗口排长龙堵住全院 vs 热门分身开新窗均衡分流”秒懂 EPLB（专家并行负载均衡）：左侧固定摆放专家时，线上流量一旦扎堆某个热门专家，1 号窗口排起长龙而其余窗口空等，全组卡在步末集合通信栏杆前一起陪等最慢卡；右侧 EPLB 统计窗口期真实热度后，利用冗余槽位为最热专家增开副本窗口并重排冷热卡位，让各卡队列齐头并进。
+size: [900, 609]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L282-L335'
+    symbols: [dynamic_eplb, load_collection_phase, stair_config]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/eplb.py#L37-L85'
+    symbols: [AscendEPLBController, resolve_ascend_eplb_communicator, AscendEplbState]

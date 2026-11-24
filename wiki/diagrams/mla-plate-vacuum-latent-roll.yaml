@@ -1,0 +1,10 @@
+mode: native-svg
+id: mla-plate-vacuum-latent-roll
+caption: >-
+  用“蓬松双床垫塞爆货架 vs 真空潜向量卷筒 + 独立位置环”秒懂 MLA（多头潜在注意力）：左侧传统多头注意力按头逐份存放展开后的 K 与 V 大床垫，几条长上下文就把显存架塞满；右侧 MLA 先经下投影漏斗把各头历史压成一条紧实的低秩潜向量卷筒（kv_lora_rank）入柜，把不兼容矩阵吸收的旋转位置信息单独拆成端头小罗盘环（qk_rope_head_dim），解码时更可通过矩阵吸收免去显式展开。
+size: [900, 648]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1270-L1320'
+    symbols: [process_weights_after_loading, W_UK, W_UV, W_UK_T]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1765-L1840'
+    symbols: [_exec_kv_no_rope, _exec_kv_mla_nope, kv_lora_rank, qk_rope_head_dim]

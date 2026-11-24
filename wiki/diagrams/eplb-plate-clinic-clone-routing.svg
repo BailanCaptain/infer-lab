@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 609" width="900" height="609" role="img" aria-label="EPLB 专家负载均衡趣味微缩场景图：左侧 1 号冒热气窗口排起长队堵死统一出口栏杆，右侧上方天平重排并为热门专家增开副本窗口使四队均匀短排通行" font-family="var(--font-sans)">
+  <title>热门专家窗口排长龙堵死全组 vs 热度天平增开副本与均衡挪位：直观理解稀疏 MoE 跨卡木桶短板与在线重均衡机制。</title>
+  <desc>关联源码符号：dynamic_eplb, load_collection_phase, stair_config, AscendEPLBController, resolve_ascend_eplb_communicator, AscendEplbState</desc>
+  <image href="./wiki-illustrations/eplb-clinic-clone-routing-scene.webp" x="40" y="128" width="820" height="383" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="138" y1="112" x2="138" y2="312" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="138" cy="312" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="138" cy="312" r="2.5" fill="#c95b3c"/>
+  <line x1="663" y1="112" x2="663" y2="189" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="663" cy="189" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="663" cy="189" r="2.5" fill="#c78300"/>
+  <line x1="663" y1="112" x2="663" y2="289" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="663" cy="289" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="663" cy="289" r="2.5" fill="#087f73"/>
+  <line x1="319" y1="523" x2="319" y2="404" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="319" cy="404" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="319" cy="404" r="2.5" fill="#c95b3c"/>
+  <line x1="712" y1="523" x2="712" y2="388" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="712" cy="388" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="712" cy="388" r="2.5" fill="#9a4b86"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">热门专家扎堆（单卡算力过载）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">真实语料常集中命中少数高频领域专家</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">静态切分无法预知运行期哪位专家爆火</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">单张卡被迫串行消化成倍路由 token</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#c78300"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">滑动窗口测热度与阶梯规划（STAIR）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">统计近期窗口各专家被选中的真实次数</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">仅在峰均失衡越过滞回门槛时触发重排</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">限制单轮搬移数量以防权重拷贝反噬时延</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">冗余副本分流 + 冷热专家换位</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">把滚烫专家多复制一份放到空闲卡窗口</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">逻辑专家号经映射表分摊到多个物理副本</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">无冗余槽位时也可通过冷热对调削平尖峰</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="541" r="12" fill="#c95b3c"/>
+    <text x="24" y="545.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="546" font-size="14.5" font-weight="700" fill="#17211f">步末栏杆同步陪等（Combine 木桶效应）</text>
+    <text x="44" y="570" font-size="13" fill="#4d5652">同层 All-to-All / Combine 须等最慢卡交卷</text>
+    <text x="44" y="593" font-size="13" fill="#4d5652">其余空闲卡算力再多也只能在栏杆后干等</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="541" r="12" fill="#9a4b86"/>
+    <text x="468" y="545.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="546" font-size="14.5" font-weight="700" fill="#17211f">代价边界：常驻副本显存与在线搬运带宽</text>
+    <text x="488" y="570" font-size="13" fill="#4d5652">冗余专家槽位与接收缓冲需常驻占用 HBM</text>
+    <text x="488" y="593" font-size="13" fill="#4d5652">异步传权重仍须在切换步点前确认落定</text>
+  </g>
+</svg>

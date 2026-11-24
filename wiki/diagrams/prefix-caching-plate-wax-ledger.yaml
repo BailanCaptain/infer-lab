@@ -1,0 +1,12 @@
+mode: native-svg
+id: prefix-caching-plate-wax-ledger
+caption: >-
+  用“全员重抄厚卷宗 vs 共享火漆档案柜”秒懂 Prefix Caching：左侧关闭前缀缓存时，四位书记员面对完全相同的三卷长开场白也要各自从头手抄（重复 Prefill 计算与多份显存）；右侧开启链式块哈希 APC 后，写满的公共前缀卷宗盖上链式哈希印章存入共享柜，各请求对上指纹后直接引用（touch），只在薄续写本上计算各自的差异后缀。
+size: [900, 588]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L590'
+    symbols: [generate_block_hash_extra_keys, hash_block_tokens]
+  - source: 'vllm@ced6857a:vllm/v1/core/kv_cache_coordinator.py#L657-L684'
+    symbols: [find_longest_cache_hit]
+  - source: 'vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L801'
+    symbols: [touch, ref_cnt]

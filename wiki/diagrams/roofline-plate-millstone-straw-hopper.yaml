@@ -1,0 +1,10 @@
+mode: native-svg
+id: roofline-plate-millstone-straw-hopper
+caption: >-
+  用“细吸管滴粮空转石磨 vs 宽漏斗满载啮合齿轮”秒懂 Roofline 带宽墙与算力墙：左侧小批 Decode 每把整套沉重权重从显存搬进片上只算寥寥几个新词（算术强度低于拐点），就像用细吸管往巨型石磨里一粒粒滴粮，齿轮算力再强也只能空转干等（访存受限）；右侧大块 Prefill 或高并发合批让一次搬入的权重同时服务成百上千个位置，如宽漏斗满载供料把齿轮啮合推满峰值（计算受限）。
+size: [900, 633]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/metrics/perf.py#L1740-L1835'
+    symbols: [PerfMetricsProm, avg_tflops_per_gpu, avg_gbps_per_gpu]
+  - source: 'vllm@ced6857a:vllm/v1/metrics/stats.py#L497-L563'
+    symbols: [inter_token_latencies_iter, mean_time_per_output_token]

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 587" width="900" height="587" role="img" aria-label="LoRA 多适配器推理趣味微缩场景图：左侧四台笨重黑色铸铁印刷机挤满地面，右侧一台共享黄金母版印刷机配一排四色超薄可插拔微调套色板轻松换版合印" font-family="var(--font-sans)">
+  <title>四台笨重全量印刷机挤爆显存 vs 一台共享黄金母机配轻量插拔套色板：直观理解多 LoRA 如何用极小显存增量实现单实例多业务混合合批。</title>
+  <desc>关联源码符号：PunicaWrapperNPU, LORA_CUSTOM_OPS, max_loras, bgmv_shrink, bgmv_expand</desc>
+  <image href="./wiki-illustrations/lora-shared-press-stencils-scene.webp" x="40" y="128" width="820" height="361" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="220" y1="112" x2="220" y2="229" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="220" cy="229" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="220" cy="229" r="2.5" fill="#c95b3c"/>
+  <line x1="573" y1="112" x2="573" y2="229" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="573" cy="229" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="573" cy="229" r="2.5" fill="#9a4b86"/>
+  <line x1="663" y1="112" x2="663" y2="287" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="663" cy="287" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="663" cy="287" r="2.5" fill="#c78300"/>
+  <line x1="270" y1="501" x2="270" y2="388" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="270" cy="388" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="270" cy="388" r="2.5" fill="#c95b3c"/>
+  <line x1="680" y1="501" x2="680" y2="337" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="680" cy="337" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="680" cy="337" r="2.5" fill="#087f73"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">全量副本独立部署（显存成倍爆炸）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">每个微调业务各起一套完整参数实例</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">冷门长尾业务占死整卡却吃不满算力</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">不同业务请求无法拼进同一批共享权重</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#9a4b86"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">轻量低秩套色插板（A 降维 · B 升维）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">旁路只存两个窄秩小矩阵，体积仅占千分之几</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">显存槽位池按 max_loras 动态换入活跃插板</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">冷插板留驻主机内存或磁盘，按需热加载</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#c78300"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">一台黄金基座母机全批共享</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">主干大矩阵乘把同批所有请求合在一起算</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">无适配器请求与多适配器请求可同批混跑</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">完整保住高并发合批的访存摊薄红利</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="519" r="12" fill="#c95b3c"/>
+    <text x="24" y="523.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="524" font-size="14.5" font-weight="700" fill="#17211f">跨实例切流与运维成本高昂</text>
+    <text x="44" y="548" font-size="13" fill="#4d5652">增加第 N 个租户就要再扩第 N 组机器</text>
+    <text x="44" y="571" font-size="13" fill="#4d5652">流量波峰波谷无法在各业务间弹性互借</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="519" r="12" fill="#087f73"/>
+    <text x="468" y="523.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="524" font-size="14.5" font-weight="700" fill="#17211f">旁路分段算子精准叠加（shrink → expand）</text>
+    <text x="488" y="548" font-size="13" fill="#4d5652">按每行 token 绑定的适配器编号分组路由增量</text>
+    <text x="488" y="571" font-size="13" fill="#4d5652">算完加回主干输出，前缀缓存也把适配器身份纳入哈希</text>
+  </g>
+</svg>

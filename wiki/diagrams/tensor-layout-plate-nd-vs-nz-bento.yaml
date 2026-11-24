@@ -1,0 +1,12 @@
+mode: native-svg
+id: tensor-layout-plate-nd-vs-nz-bento
+caption: >-
+  用“长条货架跨行散抓 vs 预装方块便当盒整盒端走”秒懂 ND 与 FRACTAL_NZ：左侧通用 ND 按自然行逐行平铺，而昇腾 Cube 矩阵单元每次按固定二维分块（如 16×16）吞吐数据，抓一块就要跨多条长架跳读；右侧在加载期预先排成 FRACTAL_NZ 分形格式（块内连续、块间按大 N 小 z 遍历），让搬运引擎一次连续突发传输就能整盒端进片上。
+size: [900, 630]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L352-L412'
+    symbols: [_should_trans_nz, maybe_trans_nz, ACL_FORMAT_FRACTAL_NZ]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L615-L657'
+    symbols: [weight_nz_mode]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L320'
+    symbols: [WeightLayoutPolicy, FORCE_NZ]

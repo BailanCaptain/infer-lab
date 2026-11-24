@@ -1,0 +1,12 @@
+mode: native-svg
+id: acl-graph-plate-tape-replay
+caption: >-
+  用“传令员过桥逐张递单炉火空等 vs 打孔母带直连连发回放”秒懂 ACLGraph 图捕获与回放：左侧 Eager 单算子模式下，CPU 每跑一个微小算子都要跨长桥往返下发一次指令，NPU 炉膛烧得飞快、大半时间却在空等下一张纸条（Host 下发瓶颈）；右侧 ACLGraph 在预热期按固定档位把整步数百个算子录成一卷打孔母带，在线解码命中档位时直接拨动母带整串一键回放（replay），彻底省掉中间逐算子 Python 往返。
+size: [900, 575]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L907-L950'
+    symbols: [capture_model, npugraph_memory_bytes]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250'
+    symbols: [ACLGraphWrapper]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L290-L320'
+    symbols: [_updatable_graph_replay]

@@ -1,0 +1,12 @@
+mode: native-svg
+id: continuous-batching-plate-revolving-bar
+caption: >-
+  用“同桌等齐翻台 vs 回转吧台随走随补”秒懂连续批处理：左侧静态批处理锁死整桌，两位早已吃完的短请求食客被迫干坐陪等最慢的大锅食客，门外新客也进不来；右侧连续批处理在每一步迭代末尾检查离座条件，吃完即释放块位并立刻从等待队列补入新客，在途席位始终满载。
+size: [900, 617]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L577'
+    symbols: [schedule, preempted_reqs, num_computed_tokens]
+  - source: 'vllm@ced6857a:vllm/v1/request.py#L364-L388'
+    symbols: [RequestStatus, WAITING, RUNNING, PREEMPTED]
+  - source: 'vllm@ced6857a:vllm/config/scheduler.py#L26-L68'
+    symbols: [SchedulerConfig, max_num_batched_tokens, max_num_seqs]

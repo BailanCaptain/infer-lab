@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 566" width="900" height="566" role="img" aria-label="Sleep Mode 睡眠模式趣味微缩场景图：左侧拆毁厂房用卡车慢速搬运重型机器，右侧保留明亮厂房外壳，上层滚筒桥将黄金权重箱滑入蓝色主机侧仓，下层腾空场地让位紫色训练架" font-family="var(--font-sans)">
+  <title>拆厂重建慢拉盘 vs 保壳休眠双档让卡：直观对比销毁重启与 Level 1（卸载至主机内存）/ Level 2（丢弃权重留空壳）的唤醒速度与省显存力度。</title>
+  <desc>关联源码符号：sleep, wake_up, weight_nz_mode, _lifecycle_anchor_group, _ensure_lifecycle_anchor, release_lifecycle_anchor, RlConfig, sleep_mode_extra_cleanup</desc>
+  <image href="./wiki-illustrations/sleep-mode-bakery-hibernation-scene.webp" x="40" y="128" width="820" height="340" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="220" y1="112" x2="220" y2="271" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="220" cy="271" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="220" cy="271" r="2.5" fill="#c95b3c"/>
+  <line x1="696" y1="112" x2="696" y2="210" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="696" cy="210" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="696" cy="210" r="2.5" fill="#4c65b6"/>
+  <line x1="548" y1="112" x2="548" y2="250" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="548" cy="250" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="548" cy="250" r="2.5" fill="#087f73"/>
+  <line x1="376" y1="480" x2="376" y2="332" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="376" cy="332" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="376" cy="332" r="2.5" fill="#c95b3c"/>
+  <line x1="712" y1="480" x2="712" y2="352" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="712" cy="352" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="712" cy="352" r="2.5" fill="#9a4b86"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">销毁进程重起（冷启动全套重来）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">每次训推切换都要重跑导包、建组与图捕获</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">几十 GB 权重反复走磁盘或网络慢速加载</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">RL 每轮采样与更新之间白白耗掉数分钟</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#4c65b6"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">Level 1 浅睡：权重滑入主机内存侧仓</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">丢弃 KV 缓存，把模型权重备份到 CPU RAM</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">醒来经 PCIe 直接滑回显存，免读盘免重排</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">适合主机内存充裕、追求极速频繁切换场景</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">保留热壳：进程、通信域与虚拟地址锚点</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">物理显存归还驱动，虚拟地址壳原地不动</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">已捕获的图指针无需推倒重录即可衔接</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">省去最耗时的分布式握手与编译预热</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="498" r="12" fill="#c95b3c"/>
+    <text x="24" y="502.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="503" font-size="14.5" font-weight="700" fill="#17211f">慢速卡车重拉权重拖垮训推周转</text>
+    <text x="44" y="527" font-size="13" fill="#4d5652">集群规模越大，反复冷启动的同步木桶越长</text>
+    <text x="44" y="550" font-size="13" fill="#4d5652">闲置等待吞噬宝贵的算力卡时</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="498" r="12" fill="#9a4b86"/>
+    <text x="468" y="502.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="503" font-size="14.5" font-weight="700" fill="#17211f">Level 2 深睡：清空权重腾出最大 HBM 给训练</text>
+    <text x="488" y="527" font-size="13" fill="#4d5652">不占主机大内存，专门服务 RL 新一轮原地更新权重</text>
+    <text x="488" y="550" font-size="13" fill="#4d5652">唤醒时分段重绑物理页并直灌新权重即可开跑</text>
+  </g>
+</svg>

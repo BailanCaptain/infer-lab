@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 656" width="900" height="656" role="img" aria-label="结构化输出语法掩码趣味微缩场景图：左侧无遮挡抽奖转盘甩出杂乱三角碎片卡死下方齿轮箱，右侧转盘前加装精密黄铜齿孔掩码挡板将非法红碎片拦入废料槽，仅放行严丝合缝的青色拼图块落入整齐网格" font-family="var(--font-sans)">
+  <title>盲抽碎渣卡死解析器 vs 采样前齿孔位图挡板精准滤除非法词：直观理解有限状态机与 grammar_bitmask 如何从物理上保证 100% 语法合规。</title>
+  <desc>关联源码符号：StructuredOutputManager, grammar_bitmask, apply_grammar_bitmask, grammar_output</desc>
+  <image href="./wiki-illustrations/structured-output-grammar-gate-scene.webp" x="40" y="128" width="820" height="430" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="188" y1="112" x2="188" y2="231" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="188" cy="231" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="188" cy="231" r="2.5" fill="#c95b3c"/>
+  <line x1="647" y1="112" x2="647" y2="266" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="647" cy="266" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="647" cy="266" r="2.5" fill="#c78300"/>
+  <line x1="737" y1="112" x2="737" y2="438" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="737" cy="438" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="737" cy="438" r="2.5" fill="#087f73"/>
+  <line x1="319" y1="570" x2="319" y2="420" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="319" cy="420" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="319" cy="420" r="2.5" fill="#c95b3c"/>
+  <line x1="532" y1="570" x2="532" y2="369" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="532" cy="369" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="532" cy="369" r="2.5" fill="#4c65b6"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">裸采样无硬约束（随时冒出语法坏词）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">软提示无法把非法 token 的概率压成绝对 0</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">长输出只要抽歪一步就会破坏整段括号闭合</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">事后重试既浪费整轮算力又拉高尾时延</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="312" cy="28" r="12" fill="#c78300"/>
+    <text x="312" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="332" y="33" font-size="14.5" font-weight="700" fill="#17211f">采样前位图挡板 (bitmask)</text>
+    <text x="332" y="57" font-size="13" fill="#4d5652">将 JSON/正则编译为下推状态机</text>
+    <text x="332" y="79" font-size="13" fill="#4d5652">按当前状态生成紧凑二进制掩码</text>
+    <text x="332" y="101" font-size="13" fill="#66716d">采样前将禁止位分数置为负无穷</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="608" cy="28" r="12" fill="#087f73"/>
+    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="628" y="33" font-size="14.5" font-weight="700" fill="#17211f">严丝合缝落入结构网格</text>
+    <text x="628" y="57" font-size="13" fill="#4d5652">入选 token 同步推进状态机状态</text>
+    <text x="628" y="79" font-size="13" fill="#4d5652">保证引号、键名与嵌套层级合法</text>
+    <text x="628" y="101" font-size="13" fill="#66716d">语法合规不替代业务语义核验</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="588" r="12" fill="#c95b3c"/>
+    <text x="24" y="592.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="593" font-size="14.5" font-weight="700" fill="#17211f">下游工具调用与反序列化直接报错</text>
+    <text x="44" y="617" font-size="13" fill="#4d5652">一个尾随逗号或未转义换行就能击穿解析器</text>
+    <text x="44" y="640" font-size="13" fill="#4d5652">生产级 Agent 工具链无法承受随机解析崩溃</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="588" r="12" fill="#4c65b6"/>
+    <text x="468" y="592.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="593" font-size="14.5" font-weight="700" fill="#17211f">CPU 异步算掩码与投机解码逐位核验</text>
+    <text x="488" y="617" font-size="13" fill="#4d5652">主机侧趁前向计算提前备好下一步位图掩码</text>
+    <text x="488" y="640" font-size="13" fill="#4d5652">配合投机解码时须按步推进掩码逐位核验草稿</text>
+  </g>
+</svg>

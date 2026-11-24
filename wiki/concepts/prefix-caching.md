@@ -128,6 +128,12 @@ origin: direct
 
 满足复用条件时，可以省去命中部分的计算。**Prefix caching（前缀缓存，自动复用也叫 Automatic Prefix Caching，简称 APC）给算过的开头登记输入指纹，后来请求找到可用的前缀块，直接共享它们并接着算。**
 
+把它想成一间文书房——**每人各自重抄三卷相同红皮开场白 vs 共享中央火漆封印卷宗柜、只在薄本上续写差异结尾**：
+
+```wiki-diagram
+file: prefix-caching-plate-wax-ledger
+```
+
 多条请求经常共享同一段开头——同一段系统提示、同一份文档、同一场对话的历史。这些开头的计算结果本来就躺在 [KV cache](kv-cache.md) 里，prefix caching 让后来的请求接着用，而不是从头再算一遍。
 
 ```wiki-diagram

@@ -1,0 +1,10 @@
+mode: native-svg
+id: ascend-patch-system-plate-rail-switch
+caption: >-
+  用“原封保留老站房、外挂黄铜扳道器切入高速转盘”秒懂 vllm-ascend 的 Patch（猴子补丁）机制：左侧上游 vLLM 代码库像一座不直接拆墙改建的石砌车站，原生铁轨在部分 CUDA 专属分支前走不通；右侧 vllm-ascend 在进程启动期于关键道岔口挂上两级黄铜扳道器（Global Patch 与 Worker Patch），在不动上游源码文件的前提下，把运行期调用平滑改道至昇腾自定义调度、通信与算子转盘。
+size: [900, 548]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L62'
+    symbols: [patch_use_v2_model_runner, patch_engine_core, STANDARD_MAMBA_PATCH]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/worker/__init__.py#L18-L85'
+    symbols: [STANDARD_WORKER_PATCHES, patch_distributed, patch_rejection_sampler]

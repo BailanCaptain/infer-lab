@@ -6,8 +6,8 @@
 
 | 资产类别 | 生成与组织方式 | 仓内位置 / 授权条件 |
 |---|---|---|
-| 知识库 2D 矢量图（`691` 套） | 包含 `layout: figure` 规格渲染图与 `mode: "native-svg"` 手写原生暖矿物色矢量图，全部由本站根据固定模型配置、源码逻辑与手算推导绘制 | `wiki/diagrams/*.yaml` 与同名 `*.svg` 入库；不外链第三方页面截图 |
-| 立体剖面与趣味场景插画（`30` 张 `PLATE`） | 为核心全景页、架构页与抽象工程机制页专门制作的等距立体拆解剖面（`27` 张）与趣味微缩场景破冰底图（`3` 张，透明底紧裁 `.webp`），外层中文引线与源码 `pins` 由伴生 `native-svg` 矢量承载 | `public/wiki-illustrations/*.webp`（共 `30` 张）及对应 `wiki/diagrams/*plate*.svg` |
+| 知识库 2D 矢量图（`703` 套） | 包含 `layout: figure` 规格渲染图与 `mode: "native-svg"` 手写原生暖矿物色矢量图，全部由本站根据固定模型配置、源码逻辑与手算推导绘制 | `wiki/diagrams/*.yaml` 与同名 `*.svg` 入库；不外链第三方页面截图 |
+| 立体剖面与趣味场景插画（`42` 张 `PLATE`） | 为核心全景页、架构页与抽象工程机制页专门制作的等距立体拆解剖面（`27` 张）与趣味微缩场景破冰底图（`15` 张，透明底紧裁 `.webp`），外层中文引线与源码 `pins` 由伴生 `native-svg` 矢量承载 | `public/wiki-illustrations/*.webp`（共 `42` 张）及对应 `wiki/diagrams/*plate*.svg` |
 | 通信与工程交互组件 | 本地 React/TypeScript 实现的集合通信分步演示与 `#/tools` 四套工程工作台（部署计算器、配置体检、故障排查工作台、AI Core 执行实验室） | `src/content/wiki/`、`src/app/tools/`、`src/sim/`；离线自包含，无外部运行时请求 |
 | 首页城市与硬件 3D 资产 | 首页服务器城市模型、Draco 解码器与硬件探索 `.glb` 资产 | `public/models/`、`assets/city/`、`public/experiences/`、`public/draco/LICENSE`（保留原许可证） |
 | 论文与官方模型材料 | 正文引用公开论文、官方文档与模型结构配置（`Qwen3-8B`、`Qwen3-30B-A3B`、`GLM-5.3-Flash`、`DeepSeek-V4.1-Flash`），固定出处记录在 `sources` | 仅引用机制、公式与公开配置数值，未打包分发任何模型权重 |

@@ -117,6 +117,12 @@ rawSources:
 
 **MLA（Multi-head Latent Attention，多头潜在注意力）把一个位置给所有头用的 K 和 V 先压成一条短得多的向量，叫潜向量（latent），存进 KV cache；用到这个位置时，再由每个头各自的投影矩阵从潜向量得到这个头的 K 和 V，照常参与注意力计算。**
 
+进入矩阵推导前，先把它想成储物间收纳——**塞满货架的蓬松双人床垫 vs 真空压缩潜向量卷筒与独立位置小挂环**：
+
+```wiki-diagram
+file: mla-plate-vacuum-latent-roll
+```
+
 打个比方：普通多头 attention 给每个头各抄一份笔记；MLA 只记一份所有头共用的摘要，哪个头要读，就用自己的读法从摘要里还原出自己那份。摘要短，存的就少；各头读法不同，还原出来的 K、V 也各不相同。
 
 ```wiki-diagram

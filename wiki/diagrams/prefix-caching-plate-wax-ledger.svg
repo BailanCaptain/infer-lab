@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 588" width="900" height="588" role="img" aria-label="前缀缓存趣味微缩场景图：左侧四张书桌各自重抄三卷相同红皮厚书，右侧共享中央火漆封印卷宗柜并仅在薄本上续写差异部分" font-family="var(--font-sans)">
+  <title>全员重抄厚卷宗 vs 共享火漆档案柜：直观展示链式块哈希前缀缓存如何省去公共前缀的重复计算与重复显存占用。</title>
+  <desc>关联源码符号：generate_block_hash_extra_keys, hash_block_tokens, find_longest_cache_hit, touch, ref_cnt</desc>
+  <image href="./wiki-illustrations/prefix-caching-wax-ledger-scene.webp" x="40" y="128" width="820" height="362" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="171" y1="112" x2="171" y2="258" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="171" cy="258" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="171" cy="258" r="2.5" fill="#c95b3c"/>
+  <line x1="573" y1="112" x2="573" y2="215" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="573" cy="215" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="573" cy="215" r="2.5" fill="#9a4b86"/>
+  <line x1="729" y1="112" x2="729" y2="251" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="729" cy="251" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="729" cy="251" r="2.5" fill="#087f73"/>
+  <line x1="237" y1="502" x2="237" y2="374" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="237" cy="374" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="237" cy="374" r="2.5" fill="#c95b3c"/>
+  <line x1="630" y1="502" x2="630" y2="367" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="630" cy="367" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="630" cy="367" r="2.5" fill="#087f73"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#c95b3c"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">逐请求重算公共前缀（无缓存）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">多轮对话或长系统提示词反复出现</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">每条请求仍从第 0 个位置重做 Prefill</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">既烧算力又复制多份相同历史块</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#9a4b86"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">链式块哈希印章（前块+本块）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">每写满一整块就串联前块哈希登记</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">确保不仅本段文字同、前文语境也全同</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">多模态或 LoRA 额外身份一并入哈希</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">跳过命中段、只算新后缀</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">查出最长连续命中块推进已算进度</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">分块预填充仅切分余下未命中后缀</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">显著压缩长提示词首字延迟</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="520" r="12" fill="#c95b3c"/>
+    <text x="24" y="524.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="525" font-size="14.5" font-weight="700" fill="#17211f">显存与首字延迟成倍膨胀</text>
+    <text x="44" y="549" font-size="13" fill="#4d5652">并发越高，重复卷宗占满块池越快</text>
+    <text x="44" y="572" font-size="13" fill="#4d5652">后续请求更容易触发块不足排队</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="520" r="12" fill="#087f73"/>
+    <text x="468" y="524.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="525" font-size="14.5" font-weight="700" fill="#17211f">满块零拷贝共指、归还留尾待命</text>
+    <text x="488" y="549" font-size="13" fill="#4d5652">命中时调 touch 增加引用计数零拷贝</text>
+    <text x="488" y="572" font-size="13" fill="#4d5652">归零后挂入空闲队尾按 LRU 等待复用</text>
+  </g>
+</svg>

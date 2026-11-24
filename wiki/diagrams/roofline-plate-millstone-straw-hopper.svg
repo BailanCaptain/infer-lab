@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 633" width="900" height="633" role="img" aria-label="Roofline 算力墙与带宽墙趣味微缩场景图：左侧细弯吸管逐粒滴粮导致大石磨半空转，右侧三道宽漏斗满载倾倒金粮推满双层铜齿轮" font-family="var(--font-sans)">
+  <title>细吸管空转石磨（访存受限）vs 宽漏斗满载齿轮（计算受限）：直观建立算术强度、带宽墙与算力墙的物理直觉。</title>
+  <desc>关联源码符号：PerfMetricsProm, avg_tflops_per_gpu, avg_gbps_per_gpu, inter_token_latencies_iter, mean_time_per_output_token</desc>
+  <image href="./wiki-illustrations/roofline-millstone-straw-hopper-scene.webp" x="40" y="128" width="820" height="407" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="278" y1="112" x2="278" y2="209" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="278" cy="209" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="278" cy="209" r="2.5" fill="#4c65b6"/>
+  <line x1="606" y1="112" x2="606" y2="323" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="606" cy="323" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="606" cy="323" r="2.5" fill="#c78300"/>
+  <line x1="737" y1="112" x2="737" y2="218" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="737" cy="218" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="737" cy="218" r="2.5" fill="#087f73"/>
+  <line x1="220" y1="547" x2="220" y2="356" stroke="#c95b3c" stroke-width="1.6"/>
+  <circle cx="220" cy="356" r="5.5" fill="#ffffff" stroke="#c95b3c" stroke-width="2"/>
+  <circle cx="220" cy="356" r="2.5" fill="#c95b3c"/>
+  <line x1="647" y1="547" x2="647" y2="421" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="647" cy="421" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="647" cy="421" r="2.5" fill="#087f73"/>
+  <g id="callout-1">
+    <circle cx="24" cy="28" r="12" fill="#4c65b6"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="14.5" font-weight="700" fill="#17211f">细吸管供料瓶颈（HBM 带宽墙）</text>
+    <text x="44" y="57" font-size="13" fill="#4d5652">单步只算极少 token 却要读完整层权重</text>
+    <text x="44" y="79" font-size="13" fill="#4d5652">每搬 1 字节做的乘加次数远低于拐点</text>
+    <text x="44" y="101" font-size="13" fill="#66716d">耗时几乎全花在显存到片上的搬运路上</text>
+  </g>
+  <g id="callout-2">
+    <circle cx="318" cy="28" r="12" fill="#c78300"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="338" y="33" font-size="14.5" font-weight="700" fill="#17211f">满载啮合的矩阵齿轮（算力墙）</text>
+    <text x="338" y="57" font-size="13" fill="#4d5652">算术强度跨过硬件峰值比拐点之后</text>
+    <text x="338" y="79" font-size="13" fill="#4d5652">搬运时间被密集矩阵乘加完全掩盖</text>
+    <text x="338" y="101" font-size="13" fill="#66716d">再往上堆位置数会线性拉长单步耗时</text>
+  </g>
+  <g id="callout-3">
+    <circle cx="612" cy="28" r="12" fill="#087f73"/>
+    <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">宽槽合批摊薄搬运（提升复用）</text>
+    <text x="632" y="57" font-size="13" fill="#4d5652">Prefill 整段并算或扩大并发合批规模</text>
+    <text x="632" y="79" font-size="13" fill="#4d5652">搬一次权重同时喂饱成百上千个位置</text>
+    <text x="632" y="101" font-size="13" fill="#66716d">把运行点从左坡带宽区推向右顶算力区</text>
+  </g>
+  <g id="callout-4">
+    <circle cx="24" cy="565" r="12" fill="#c95b3c"/>
+    <text x="24" y="569.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="44" y="570" font-size="14.5" font-weight="700" fill="#17211f">Decode 典型落点：大石磨等细粮</text>
+    <text x="44" y="594" font-size="13" fill="#4d5652">单调抬高芯片峰值算力救不了细吸管</text>
+    <text x="44" y="617" font-size="13" fill="#4d5652">需靠量化缩体积、MLA/GQA 减读量破局</text>
+  </g>
+  <g id="callout-5">
+    <circle cx="468" cy="565" r="12" fill="#087f73"/>
+    <text x="468" y="569.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="488" y="570" font-size="14.5" font-weight="700" fill="#17211f">吞吐与单步时延的性能三角权衡</text>
+    <text x="488" y="594" font-size="13" fill="#4d5652">供料越满总吞吐越高，但单步耗时也变长</text>
+    <text x="488" y="617" font-size="13" fill="#4d5652">调参本质是在拐点附近平衡首字与吐字间隔</text>
+  </g>
+</svg>

@@ -8,7 +8,7 @@ export const ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256 =
 export const ROOFLINE_PRECISIONS = ["BF16", "W8A8"] as const;
 export type RooflinePrecision = (typeof ROOFLINE_PRECISIONS)[number];
 
-export const ROOFLINE_M_STOPS = [1, 4, 16, 64, 128, 256, 512] as const;
+export const ROOFLINE_M_STOPS = [1, 4, 16, 64, 128, 228, 256, 512] as const;
 export type RooflineMStop = (typeof ROOFLINE_M_STOPS)[number];
 export type RooflineDiagramMode = "sandbox" | "svg";
 
@@ -125,9 +125,9 @@ function mapLogX(intensity: number): number {
 }
 
 function mapLogY(tops: number): number {
-  const clamped = Math.min(800, Math.max(1.2, tops));
-  const t = (Math.log10(clamped) - Math.log10(1.2)) / (Math.log10(800) - Math.log10(1.2));
-  return Math.round(176 - t * 144);
+  const clamped = Math.min(1100, Math.max(1.2, tops));
+  const t = (Math.log10(clamped) - Math.log10(1.2)) / (Math.log10(1100) - Math.log10(1.2));
+  return Math.round(176 - t * 142);
 }
 export interface RooflineMatmulInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: RooflineDiagramMode | undefined;
@@ -168,7 +168,17 @@ export function RooflineMatmulInteractive({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    if (typeof HTMLInputElement !== "undefined" && event.target instanceof HTMLInputElement) return;
+    if (
+      typeof HTMLInputElement !== "undefined" &&
+      event.target instanceof HTMLInputElement &&
+      (event.key.startsWith("Arrow") ||
+        event.key === "Home" ||
+        event.key === "End" ||
+        event.key === "PageUp" ||
+        event.key === "PageDown")
+    ) {
+      return;
+    }
     if (
       scrollable &&
       typeof Element !== "undefined" &&
@@ -210,8 +220,11 @@ export function RooflineMatmulInteractive({
   const dotX = mapLogX(state.intensity);
   const dotY = mapLogY(state.achievedTops);
   const dotColor = state.isComputeBound ? "#087f73" : state.mRows === 1 ? "#b54237" : "#9a4b86";
+  const calloutX = Math.min(296, Math.max(108, dotX));
+  const calloutY = dotY > 112 ? dotY - 14 : Math.min(168, dotY + 22);
 
   const isSinglePreset = mode === "sandbox" && state.mRows === 1 && state.precision === "BF16";
+  const isWatershedPreset = mode === "sandbox" && state.mRows >= 222 && state.mRows <= 234;
   const isPrefillPreset = mode === "sandbox" && state.mRows === 512;
 
   return (
@@ -261,17 +274,14 @@ export function RooflineMatmulInteractive({
               <input
                 id={sliderId}
                 type="range"
-                min={0}
-                max={ROOFLINE_M_STOPS.length - 1}
+                min={1}
+                max={512}
                 step={1}
-                value={stopIdx}
+                value={state.mRows}
                 data-testid="roofline-m-slider"
                 aria-valuetext={`M=${state.mRows} tokens`}
                 onPointerDown={() => setMode("sandbox")}
-                onChange={(e) => {
-                  const next = ROOFLINE_M_STOPS[Number(e.target.value)];
-                  if (next !== undefined) applyM(next);
-                }}
+                onChange={(e) => applyM(Number(e.target.value))}
               />
             </label>
             <button
@@ -279,13 +289,23 @@ export function RooflineMatmulInteractive({
               className="wiki-edu-btn"
               data-testid="roofline-preset-decode"
               aria-pressed={isSinglePreset}
-              style={eduBtnStyle(isSinglePreset, "accent")}
+              style={eduBtnStyle(isSinglePreset, "dark")}
               onClick={() => {
                 applyPrecision("BF16");
                 applyM(1);
               }}
             >
               单请求 M=1
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="roofline-preset-watershed"
+              aria-pressed={isWatershedPreset}
+              style={eduBtnStyle(isWatershedPreset, "teal")}
+              onClick={() => applyM(228)}
+            >
+              试试 M=228 分水岭
             </button>
             <button
               type="button"
@@ -319,7 +339,7 @@ export function RooflineMatmulInteractive({
           </>
         )
       }
-      kpi={`I = ${state.intensity} ${state.unitLabel} · 有效 ${state.achievedTops} ${state.rateUnit}`}
+      kpi={`I = ${state.intensity} ${state.unitLabel} · 理想吞吐上限 ${state.achievedTops} ${state.rateUnit}`}
       detailsSummary="查看工程与源码细节（Qwen3-8B q_proj 精确算式 / 950DT 脊点左移 / GQA 与 MoE 稀释边界）"
       detailsContent={
         <>
@@ -369,7 +389,7 @@ export function RooflineMatmulInteractive({
               <span className="wiki-edu-metric-val">{state.flopsText}</span>
             </div>
             <div className="wiki-edu-metric-row">
-              <span className="wiki-edu-metric-label">权重复用次数 × 单卡有效吞吐</span>
+              <span className="wiki-edu-metric-label">权重复用次数 × 单卡理想吞吐上限</span>
               <span className="wiki-edu-metric-val">{`复用 ${state.mRows}× · ${state.achievedTops} ${state.rateUnit}`}</span>
             </div>
             {!state.isComputeBound && (
@@ -399,7 +419,7 @@ export function RooflineMatmulInteractive({
           <div className="wiki-edu-panel-head">
             <span className="wiki-edu-panel-title">② Roofline 对数屋顶落点</span>
             <span className={`wiki-edu-badge ${state.isComputeBound ? "is-good" : "is-warn"}`}>
-              {`利用率 ${state.ceilingUtilizationPct}%`}
+              {`屋顶占比 ${state.ceilingUtilizationPct}%`}
             </span>
           </div>
 
@@ -462,23 +482,16 @@ export function RooflineMatmulInteractive({
             />
 
             <circle cx={dotX} cy={dotY} r="7" fill={dotColor} stroke="#ffffff" strokeWidth="2" />
-            <text x="54" y="152" fontSize="12" fontWeight="700" fill="#b54237">
+            <text x="56" y="38" fontSize="12" fontWeight="700" fill="#b54237">
               带宽斜坡
             </text>
-            <text x="274" y={Math.max(34, roofY - 8)} fontSize="12" fontWeight="700" fill="#087f73">
+            <text x="354" y={roofY - 8} textAnchor="end" fontSize="12" fontWeight="700" fill="#087f73">
               算力平顶
             </text>
             <text x={ridgeX} y="194" textAnchor="middle" fontSize="12" fill="#66716d">
               {`脊点 ${state.ridgePoint}`}
             </text>
-            <text
-              x={Math.min(316, Math.max(82, dotX))}
-              y={Math.max(34, dotY - 12)}
-              textAnchor="middle"
-              fontSize="12"
-              fontWeight="700"
-              fill="#17211f"
-            >
+            <text x={calloutX} y={calloutY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
               {`M=${state.mRows} (${state.intensity})`}
             </text>
           </svg>

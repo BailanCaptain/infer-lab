@@ -59,8 +59,9 @@ export const ASCEND_FA_STEPS: readonly AscendFaStepSpec[] = [
     shortBtn: "② 分块进片上",
     badgeText: "动作 2 / 4 · 片上驻留首块",
     takeawayTone: "default",
-    title: "阶段 ② · 片上 Tiling：Q 小块驻留片上，第 1 块 K/V [1, 2] 流式滑入",
-    takeaway: "把 Q 切小块常驻片上高速缓冲（UB/L1），第 1 块 K/V 滑进来当场打分记账，HBM 中间表直接归零！",
+    title: "阶段 ② · 片上 Tiling：Q 小块驻留片上，第 1 块分数 s=[1, 2] 流式滑入",
+    takeaway:
+      "把 Q 切小块常驻片上高速缓冲（UB/L1），第 1 块 K/V 滑进来当场算出局部打分 s=[1, 2]，HBM 中间表直接归零！",
     kpi: "HBM 中间落盘 0 B · 暂记 m₁ = 2",
     isNaiveOom: false,
     hbmScorePeakText: "0 B 落盘",
@@ -104,9 +105,9 @@ export const ASCEND_FA_STEPS: readonly AscendFaStepSpec[] = [
     shortBtn: "④ 单次写回 O",
     badgeText: "动作 4 / 4 · 精确归一收尾",
     takeawayTone: "default",
-    title: "阶段 ④ · 扫完全块单次除 l₂ 写回 O（与全量 Softmax 28.5009 代数严格相等）",
+    title: "阶段 ④ · 扫完全块单次除 l₂ 写回 O（与全量 Softmax 28.5009 实数代数严格等价）",
     takeaway:
-      "全部分块流过片上后做唯一一次除法 O = Õ₂ / l₂，算出 28.5009 一次写回 HBM——省掉 256 GiB 流量且结果一字不差！",
+      "全部分块流过片上后做唯一一次除法 O = Õ₂ / l₂，算出 28.5009 一次写回 HBM——省掉 256 GiB 流量且实数代数等价（浮点重排仅末位微小舍入差）！",
     kpi: "输出 28.5009 · 仅写 256 MiB",
     isNaiveOom: false,
     hbmScorePeakText: "0 B 落盘",
@@ -116,11 +117,11 @@ export const ASCEND_FA_STEPS: readonly AscendFaStepSpec[] = [
     ubScaleM: "全局 m = 4",
     ubDenomL: "除以 1.2349",
     ubNumerO: "O = 28.5009",
-    ubActionNote: "与看齐全行标准 Softmax (28.5009) 实数代数严格一致",
+    ubActionNote: "与全量 Softmax 实数代数等价（有限浮点仅末位舍入差）",
     wireDirection: "write-out",
     wireLabel: "单次写出 O",
     detail:
-      "最终 O = 35.1961 / 1.2349 ≈ 28.5009，与全量 Softmax 严格相等（跨卡 PCP/DCP 的 npu_attention_update 也复用同一 LSE=m+ln(l) 重标定）。v0.30.0 默认主力为 FIA（npu_fused_infer_attention_score，注意 910B3 普通 GQA 页交错 (H,2H) 视图在 Eager Decode 下会触发整池 Slice 连续化）；RL 训推一致 FA3 须开启 rl_config 双开关并绑定 PIECEWISE 图模式。",
+      "未截断递推值 O = 35.196059 / 1.234909 ≈ 28.5009（上表 35.1961 与 1.2349 为四位小数展示截断），在实数代数上与全量 Softmax 严格相等，有限浮点下仅因加法结合顺序存在末位微小舍入差（跨卡 PCP/DCP 的 npu_attention_update 也复用同一 LSE=m+ln(l) 重标定）。v0.30.0 默认主力为 FIA（npu_fused_infer_attention_score，注意 910B3 普通 GQA 页交错 (H,2H) 视图在 Eager Decode 下会触发整池 Slice 连续化）；RL 训推一致 FA3 须开启 rl_config 双开关，图模式仅支持 PIECEWISE，或开启 enforce_eager 走逐算子 eager 路径。",
   },
 ];
 export interface AscendFaTilingInteractiveProps extends InteractiveDiagramProps {
@@ -155,7 +156,9 @@ export function AscendFaTilingInteractive({
           setPlaying(false);
           return 4;
         }
-        return (prev + 1) as AscendFaStep;
+        const next = (prev + 1) as AscendFaStep;
+        if (next >= 4) setPlaying(false);
+        return next;
       });
     }, 1800);
     return () => clearInterval(timer);
@@ -240,7 +243,7 @@ export function AscendFaTilingInteractive({
               className="wiki-edu-btn"
               data-testid="ascend-fa-autoplay"
               aria-pressed={playing}
-              style={eduBtnStyle(playing, "accent")}
+              style={eduBtnStyle(playing, "dark")}
               onClick={toggleAutoPlay}
             >
               {playing ? "⏸ 暂停演示" : "▶ 自动演示"}

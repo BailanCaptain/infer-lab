@@ -129,46 +129,46 @@ export const MOONCAKE_CONNECTOR_STEPS: readonly MooncakeStepSpec[] = [
   {
     step: 3,
     shortBtn: "③ V1 整批拉放行",
-    badgeText: "动作 3 / 4 · 收完通知释块开算",
+    badgeText: "动作 3 / 4 · 齐信释块回可调度",
     takeawayTone: "default",
-    title: "动作 ③ · V1 完成通知：D 结束读取后回执释 P 源块，校验通过直入 Decode",
+    title: "动作 ③ · V1 完成通知：P 收齐预期 D 卡回执才释源块，D 校验成功回可调度态",
     takeaway:
-      "D 读完立刻发回执让 P 归还源块（防漏信另有 480 秒超时兜底），同时把 D 请求放回运行队列直接吐首字后生成！",
-    kpi: "P 释放 #7,#12 · D 直入 Decode",
-    pHeader: "P 实例 · 源块已归还",
-    pBadge: "回收进空闲池",
+      "D 读完发回执（P 收齐全部预期 D 卡信号才释放源块，防漏信另有 480s 兜底），成功请求回到可调度态，下一步排上接着算！",
+    kpi: "齐收信释 P 块 · D 回可调度态",
+    pHeader: "P 实例 · 收齐回执释块",
+    pBadge: "齐信回收进池",
     pBadgeTone: "is-good",
     dHeader: "D 实例 · 全部层就绪",
-    dBadge: "唤醒进 Decode!",
+    dBadge: "回可调度态",
     dBadgeTone: "is-good",
     layers: [
       {
         layerLabel: "层 0",
-        pSlotText: "已释放回池",
+        pSlotText: "齐信后回池",
         dSlotText: "D#3, #5 就绪",
         dReady: true,
         transferring: false,
       },
       {
         layerLabel: "层 1",
-        pSlotText: "已释放回池",
+        pSlotText: "齐信后回池",
         dSlotText: "D#3, #5 就绪",
         dReady: true,
         transferring: false,
       },
       {
         layerLabel: "层 2",
-        pSlotText: "已释放回池",
+        pSlotText: "齐信后回池",
         dSlotText: "D#3, #5 就绪",
         dReady: true,
         transferring: false,
       },
     ],
     wireKind: "v1-ack",
-    wireLabel: "完成通知释块",
-    protocolBanner: "V1 无论读取成功或失败都通知 P 释块；押块期间不在运行队列，调度器抢占碰不到。",
+    wireLabel: "完成回执释块",
+    protocolBanner: "D 读完或失败均发完成信号，P 计齐全部预期 D 卡后还块；D 成功后回到可调度态等下一轮调度。",
     detail:
-      "V1（v0.30.0 新拉取入口为 MooncakeConnectorV2 -> MooncakePullConnector）把「通知 P 放块」与「D 判成败」解耦：D 读取尝试结束即通知 P 归还源块（若通知丢失，P 押块 480s 超时强制回收，单次传输超时约 33s）；D 仅在读取成功时把请求迁回可调度态。",
+      "V1（v0.30.0 新拉取入口为 MooncakeConnectorV2 -> MooncakePullConnector）中：D 读取尝试结束无论成败均发信号，P 计数收齐全部预期 D 卡完成信号后才报发完并释放源块（通知丢失则 480s 强制回收，单次传输超时约 33s）；D 仅在读取成功时把请求从等待队列放回可调度态，下一次排上时才接着算（纯注意力模型全命中远端 KV 时仍回退 1 个位置计算末位提示词 logits）。",
   },
   {
     step: 4,
@@ -247,7 +247,9 @@ export function MooncakeConnectorInteractive({
           setPlaying(false);
           return 4;
         }
-        return (prev + 1) as MooncakeStep;
+        const next = (prev + 1) as MooncakeStep;
+        if (next >= 4) setPlaying(false);
+        return next;
       });
     }, 1800);
     return () => clearInterval(timer);
@@ -332,7 +334,7 @@ export function MooncakeConnectorInteractive({
               className="wiki-edu-btn"
               data-testid="mooncake-autoplay"
               aria-pressed={playing}
-              style={eduBtnStyle(playing, "accent")}
+              style={eduBtnStyle(playing, "dark")}
               onClick={toggleAutoPlay}
             >
               {playing ? "⏸ 暂停演示" : "▶ 自动演示"}

@@ -103,17 +103,17 @@ export const EPLB_CYCLE_STEPS: readonly EplbStepSpec[] = [
     wireKind: "plan",
     wireLabel: "规划 E1↔E2",
     detail:
-      "MRV1 默认留 50 步（algorithm_execution_interval=50，默认策略 2 SwiftBalanceEplb）在非守护子进程内计算新布局，期间 NPU 照常执行旧表推理；对调 E1 与 E2 后两边均为 8+2=10 对，峰均比压至 10/10 = 1.0。",
+      "Worker 进程因需派生子进程而由补丁改为非守护进程，EPLB 内部再通过 Process(..., daemon=True) 拉起守护规划子进程（MRV1 默认留 algorithm_execution_interval=50 步，默认策略 2 SwiftBalanceEplb）计算新布局，期间 NPU 照常按旧表推理；对调 E1 与 E2 后两边均为 8+2=10 对，估计峰均比压至 10/10 = 1.0。",
   },
   {
     step: 3,
     shortBtn: "③ 逐层搬与换表",
     badgeText: "阶段 3 / 5 · 接收区缓冲原子换表",
     takeawayTone: "accent",
-    title: "阶段 ③ · 搬权重：逐层异步互传进接收区，步末同步原子切换查表与槽位",
+    title: "阶段 ③ · 搬权重：逐层异步互传进接收区，步末等传完后原子切换查表与槽位",
     takeaway:
-      "一层一层搬运权重（收到的先存接收区），等本层传完瞬间同时切换权重和路由翻译表，线上推理零中断！",
-    kpi: "逐层异步搬 · 表与权重原子切换",
+      "每步异步发起 1 层权重互传（收到的先存接收区），步末确认本层传完后原子切换权重和两张路由表（若传输或后台规划未完，步末仍需等待）！",
+    kpi: "逐层异步搬 · 步末等完原子换表",
     imbalanceRatio: "1.0",
     card0Header: "卡 0 · 边跑边收 E2",
     card1Header: "卡 1 · 边跑边收 E1",
@@ -144,7 +144,7 @@ export const EPLB_CYCLE_STEPS: readonly EplbStepSpec[] = [
     wireKind: "swap-xfer",
     wireLabel: "互传权重",
     detail:
-      "MRV1 用独立 dynamic_eplb HCCL 组每步迁移 1 层 MoE（4 层共 600+50+4=654 步），步末确认传完后同步更新 expert_map（本卡槽位表）与 log2phy（逻辑→物理槽路由表）并拷入接收区权重；v0.30.0 / main 的 MRV2 默认采用 stair 阶梯式异步重均衡（优先协商 HIXL，不一致则回退 Gloo）。",
+      "MRV1 用独立 dynamic_eplb HCCL 组每步迁移 1 层 MoE（4 层共 600+50+4=654 步），前向前异步提交收发，步末必须等本层传完（及取规划那步若后台未算完也会阻塞）才同步更新 expert_map 与 log2phy 并拷入接收区权重；v0.30.0 / main 的 MRV2 默认采用 stair 阶梯式异步重均衡（优先协商 HIXL，不一致则回退 Gloo）。",
   },
   {
     step: 4,
@@ -256,7 +256,9 @@ export function EplbCycleInteractive({
           setPlaying(false);
           return 5;
         }
-        return (prev + 1) as EplbStep;
+        const next = (prev + 1) as EplbStep;
+        if (next >= 5) setPlaying(false);
+        return next;
       });
     }, 1800);
     return () => clearInterval(timer);
@@ -324,18 +326,18 @@ export function EplbCycleInteractive({
     <div className={`wiki-edu-hbm${isHot ? " is-oom" : ""}`}>
       <div className="wiki-edu-col-title">
         <span>{header}</span>
-        <span className="mono">{`负载 ${loadPct}%`}</span>
+        <span className="mono">{`配对占 ${loadPct}%`}</span>
       </div>
       <div className="wiki-edu-track">
         <div
           className={`wiki-edu-op ${loadPct >= 70 ? "is-bubble" : "is-full"}`}
           style={{ flex: Math.max(0.15, loadPct / 100) }}
         >
-          {`忙碌 ${loadPct}%`}
+          {`配对占 ${loadPct}%`}
         </div>
         {loadPct < 60 && (
           <div className="wiki-edu-op is-eager" style={{ flex: Math.max(0.15, (100 - loadPct) / 100) }}>
-            {step === 1 ? "空等同步" : "均衡"}
+            {step === 1 ? "空等同步" : "配对均衡"}
           </div>
         )}
       </div>
@@ -379,7 +381,7 @@ export function EplbCycleInteractive({
               className="wiki-edu-btn"
               data-testid="eplb-autoplay"
               aria-pressed={playing}
-              style={eduBtnStyle(playing, "accent")}
+              style={eduBtnStyle(playing, "dark")}
               onClick={toggleAutoPlay}
             >
               {playing ? "⏸ 暂停演示" : "▶ 自动演示"}

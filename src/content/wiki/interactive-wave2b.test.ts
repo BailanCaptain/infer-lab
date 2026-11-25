@@ -42,7 +42,9 @@ import {
   V030MigChecklistInteractive,
 } from "./V030MigChecklistInteractive";
 import {
+  COLD_START_SIX_CARDS,
   WORKER_LIFECYCLE_APPROVED_SHA256,
+  WORKER_LIFECYCLE_STAGES,
   WORKER_LIFECYCLE_STEPS,
   WorkerLifecycleInteractive,
 } from "./WorkerLifecycleInteractive";
@@ -215,7 +217,8 @@ function assertToolbarButtonsContrast(label: string, html: string) {
     const pressed = /\baria-pressed="true"/.test(tag);
     if (pressed) {
       expect(tag, `${label} pressed btn white text`).toContain("color:#ffffff");
-      expect(tag, `${label} pressed btn dark bg`).toMatch(/background:#(087f73|17211f|e85b32|b54237)/);
+      // WCAG AA >= 4.5:1: pressed buttons use dark (#17211f) or teal (#087f73)
+      expect(tag, `${label} pressed btn high-contrast dark/teal bg`).toMatch(/background:#(087f73|17211f)/);
     } else {
       expect(tag, `${label} idle btn dark text`).toContain("color:#17211f");
       expect(tag, `${label} idle btn light bg`).toContain("background:#ffffff");
@@ -249,6 +252,8 @@ function assertSandboxInvariants(label: string, html: string) {
     "determine_available_memory",
     "npu_fused_infer_attention_score",
     "batch_transfer_sync_read",
+    "_HCCL_PG_REGISTRY",
+    "_init_kv_zero_meta",
   ]) {
     expect(withoutDetails, `${label} canvas hides ${rawCodeLeak}`).not.toContain(rawCodeLeak);
   }
@@ -318,7 +323,7 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       expect(svgHtml, `${item.id} return sandbox btn`).toContain('data-testid="diagram-mode-sandbox"');
       assertToolbarButtonsContrast(`${item.id}-svg-mode`, svgHtml);
 
-      // 同页双实例渲染时内部 <marker id> 100% 独立无冲突
+      // 同页双实例渲染时：含内联 SVG 的组件内部 <marker id> 100% 独立无冲突；纯响应式 HTML 组件为 0 个内联 SVG
       const dualHtml = renderToStaticMarkup(
         createElement(
           "div",
@@ -328,16 +333,21 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
         ),
       );
       const markerIds = [...dualHtml.matchAll(/<marker[^>]*\bid="([^"]+)"/g)].map((m) => m[1]!);
-      expect(markerIds.length, `${item.id} has markers`).toBeGreaterThanOrEqual(2);
-      expect(new Set(markerIds).size, `${item.id} unique markers`).toBe(markerIds.length);
+      if (markerIds.length > 0) {
+        expect(markerIds.length, `${item.id} has dual markers`).toBeGreaterThanOrEqual(2);
+        expect(new Set(markerIds).size, `${item.id} unique markers`).toBe(markerIds.length);
+      }
     }
   });
 
-  it("9. RooflineMatmulInteractive：精确对齐 Qwen3-8B 四档工况表、强度与有效算力随 M 单调不减", () => {
+  it("9. RooflineMatmulInteractive：对齐四档工况表、M=222..234 分水岭（BF16 登顶而 W8A8 仍在斜坡）及 SVG 文本零重叠", () => {
     const s1Bf16 = computeRooflineMatmulState(1, "BF16");
     const s1W8a8 = computeRooflineMatmulState(1, "W8A8");
     const s16Bf16 = computeRooflineMatmulState(16, "BF16");
     const s16W8a8 = computeRooflineMatmulState(16, "W8A8");
+    const s228Bf16 = computeRooflineMatmulState(228, "BF16");
+    const s228W8a8 = computeRooflineMatmulState(228, "W8A8");
+    const s235W8a8 = computeRooflineMatmulState(235, "W8A8");
     const s512Bf16 = computeRooflineMatmulState(512, "BF16");
 
     expect(s1Bf16.totalMiB).toBe(32.02);
@@ -351,13 +361,20 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
     expect(s16Bf16.totalMiB).toBe(32.25);
     expect(s16Bf16.intensity).toBe(15.88);
     expect(s16W8a8.intensity).toBe(31.63);
+
+    // 分水岭区间 M=228：BF16 已越过脊点 200 登顶，而 W8A8 因屋顶抬升至 640 TOP/s（脊点 400）仍处带宽斜坡；M=235 越过 400
+    expect(ROOFLINE_M_STOPS).toContain(228);
+    expect(s228Bf16.isComputeBound).toBe(true);
+    expect(s228W8a8.isComputeBound).toBe(false);
+    expect(s235W8a8.isComputeBound).toBe(true);
+
     expect(s512Bf16.totalMiB).toBe(40.0);
     expect(s512Bf16.intensity).toBe(409.6);
     expect(s512Bf16.isComputeBound).toBe(true);
 
     for (const prec of ROOFLINE_PRECISIONS) {
       let prevI = 0;
-      for (const m of ROOFLINE_M_STOPS) {
+      for (const m of [1, 4, 16, 64, 128, 222, 228, 235, 256, 512]) {
         const st = computeRooflineMatmulState(m, prec);
         expect(st.intensity).toBeGreaterThan(prevI);
         prevI = st.intensity;
@@ -369,11 +386,35 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
           }),
         );
         assertSandboxInvariants(`roofline-${prec}-M${m}`, html);
+        expect(html).toContain("理想吞吐上限");
+
+        // 校验 SVG 内 4 个 <text> 包围盒两两不重叠
+        const texts = [...html.matchAll(/<text\b([^>]*)>([^<]+)<\/text>/g)].map((tm) => {
+          const attrs = tm[1]!;
+          const content = tm[2]!;
+          const x = Number(/\bx="([0-9.]+)"/.exec(attrs)?.[1]);
+          const y = Number(/\by="([0-9.]+)"/.exec(attrs)?.[1]);
+          const anchor = /\btext-anchor="([^"]+)"/.exec(attrs)?.[1] ?? "start";
+          const estW = content.length * 8;
+          const x0 = anchor === "end" ? x - estW : anchor === "middle" ? x - estW / 2 : x;
+          return { content, x0, x1: x0 + estW, y0: y - 12, y1: y + 2 };
+        });
+        expect(texts).toHaveLength(4);
+        for (let i = 0; i < texts.length; i++) {
+          for (let j = i + 1; j < texts.length; j++) {
+            const a = texts[i]!;
+            const b = texts[j]!;
+            const overlap = a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
+            expect(overlap, `SVG text overlap at ${prec} M=${m}: "${a.content}" vs "${b.content}"`).toBe(
+              false,
+            );
+          }
+        }
       }
     }
   });
 
-  it("10–13. AscendFaTiling / EplbCycle / MooncakeConnector / WorkerLifecycle 全分步状态与不变量核验", () => {
+  it("10–13. AscendFaTiling / EplbCycle / MooncakeConnector / WorkerLifecycle 五钮以内分步与源码口径核验", () => {
     expect(ASCEND_FA_STEPS).toHaveLength(4);
     for (const item of ASCEND_FA_STEPS) {
       const html = renderToStaticMarkup(
@@ -385,7 +426,12 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       assertSandboxInvariants(`ascend-fa-step-${item.step}`, html);
       expect(html).toContain(`data-step="${item.step}"`);
       if (item.step === 1) expect(html).toContain("64 GiB");
-      if (item.step === 4) expect(html).toContain("28.5009");
+      if (item.step === 2) expect(html).toContain("s=[1, 2]");
+      if (item.step === 4) {
+        expect(html).toContain("35.196059");
+        expect(html).toContain("enforce_eager");
+        expect(html).not.toContain("结果一字不差");
+      }
     }
 
     expect(EPLB_CYCLE_STEPS).toHaveLength(5);
@@ -395,6 +441,12 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       );
       assertSandboxInvariants(`eplb-step-${item.step}`, html);
       expect(html).toContain(`峰均比 ${item.imbalanceRatio}`);
+      expect(html).not.toContain("忙碌 80%");
+      if (item.step === 1) {
+        expect(html).toContain("配对占 80%");
+        expect(html).toContain("配对占 20%");
+      }
+      if (item.step === 2) expect(html).toContain("daemon=True");
     }
 
     expect(MOONCAKE_CONNECTOR_STEPS).toHaveLength(4);
@@ -407,22 +459,30 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       );
       assertSandboxInvariants(`mooncake-step-${item.step}`, html);
       expect(html).toContain(item.kpi);
+      if (item.step === 3) {
+        expect(html).toContain("回可调度态");
+        expect(html).toContain("收齐全部预期 D 卡");
+      }
     }
 
-    expect(WORKER_LIFECYCLE_STEPS).toHaveLength(6);
-    for (const item of WORKER_LIFECYCLE_STEPS) {
+    expect(COLD_START_SIX_CARDS).toHaveLength(6);
+    expect(WORKER_LIFECYCLE_STAGES).toHaveLength(5);
+    expect(WORKER_LIFECYCLE_STEPS).toHaveLength(5);
+    for (const item of WORKER_LIFECYCLE_STAGES) {
       const html = renderToStaticMarkup(
         createElement(WorkerLifecycleInteractive, {
           ...baseProps("worker-lifecycle"),
-          initialStep: item.step,
+          initialStep: item.stage,
         }),
       );
-      assertSandboxInvariants(`worker-step-${item.step}`, html);
+      assertSandboxInvariants(`worker-stage-${item.stage}`, html);
       expect(html).toContain(`data-barrier="${item.hasCrossCardBarrier ? "true" : "false"}"`);
+      if (item.stage === 3) expect(html).toContain("BF16 权重保持原 ND");
+      if (item.stage === 5) expect(html).toContain("enforce-eager");
     }
   });
 
-  it("14–16. MemProfWaterfall 瀑布账本与逆向图涨、V030MigChecklist 六关、RforkTroubleshooting 五步分诊核验", () => {
+  it("14–16. MemProfWaterfall 三档余量区分、V030MigChecklist 五关、RforkTroubleshooting 404/400 分流核验", () => {
     const mpTp1Default = computeMemProfWaterfallState(0.92, 1);
     expect(mpTp1Default.budgetGiB).toBe(58.88);
     expect(mpTp1Default.headroomGiB).toBe(5.12);
@@ -430,14 +490,26 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
     expect(mpTp1Default.totalBlocks).toBe(2325);
     expect(mpTp1Default.usableBlocks).toBe(2324);
     expect(mpTp1Default.tokenSlots).toBe(297472);
-    expect(mpTp1Default.isHeadroomTight).toBe(false);
+    expect(mpTp1Default.headroomStatus).toBe("safe");
+
+    // TP=4, u=0.95 -> 留白 3.20 GiB >= 图显存 3.10 GiB，但低于 3.25 GiB (150MB 建议余量) -> margin-warn 而非 oom-risk!
+    const mpTp4Warn = computeMemProfWaterfallState(0.95, 4);
+    expect(mpTp4Warn.headroomGiB).toBe(3.2);
+    expect(mpTp4Warn.isCaptureOomRisk).toBe(false);
+    expect(mpTp4Warn.isBelowRecommendMargin).toBe(true);
+    expect(mpTp4Warn.headroomStatus).toBe("margin-warn");
+
+    // TP=4, u=0.96 -> 留白 2.56 GiB < 图显存 3.10 GiB -> oom-risk
+    const mpTp4Oom = computeMemProfWaterfallState(0.96, 4);
+    expect(mpTp4Oom.isCaptureOomRisk).toBe(true);
+    expect(mpTp4Oom.headroomStatus).toBe("oom-risk");
 
     let prevGraph = 0;
     for (const tp of MEM_PROF_TP_OPTIONS) {
       const st = computeMemProfWaterfallState(0.92, tp);
       expect(st.graphGiB).toBeGreaterThan(prevGraph);
       prevGraph = st.graphGiB;
-      for (const u of [0.9, 0.92, 0.96]) {
+      for (const u of [0.9, 0.92, 0.95, 0.96]) {
         const html = renderToStaticMarkup(
           createElement(MemProfWaterfallInteractive, {
             ...baseProps("mem-prof-fig-qwen3-waterfall"),
@@ -446,11 +518,11 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
           }),
         );
         assertSandboxInvariants(`memprof-tp${tp}-u${u}`, html);
-        if (u === 0.96) expect(html).toContain('data-headroom-tight="true"');
+        expect(html).toContain("_HCCL_PG_REGISTRY");
       }
     }
 
-    expect(V030_MIG_GATES).toHaveLength(6);
+    expect(V030_MIG_GATES).toHaveLength(5);
     for (const item of V030_MIG_GATES) {
       const html = renderToStaticMarkup(
         createElement(V030MigChecklistInteractive, {
@@ -460,6 +532,11 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       );
       assertSandboxInvariants(`v030-step-${item.step}`, html);
       expect(html).toContain(item.kpi);
+      if (item.step === 1) {
+        expect(html).toContain("Unknown vLLM environment variable detected");
+        expect(html).toContain("quantized_all_reduce_config");
+      }
+      if (item.step === 4) expect(html).toContain("model_dtype");
     }
 
     expect(RFORK_DIAG_STEPS).toHaveLength(5);
@@ -472,8 +549,16 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
       );
       assertSandboxInvariants(`rfork-diag-${item.step}`, html);
       expect(html).toContain(escapeXml(item.kpi));
-      if (item.step === 4) expect(html).toContain("批 1–6：已写进显存");
-      if (item.step === 5) expect(html).toContain("48.2s");
+      expect(html).not.toContain("逐字节清零");
+      if (item.step === 4) {
+        expect(html).toContain("批 1–6 已写入");
+        expect(html).toContain("停服并注销后回退");
+      }
+      if (item.step === 5) {
+        expect(html).toContain("404 清租可发源");
+        expect(html).toContain("400 停试禁发源");
+        expect(html).toContain("无时钟跳变");
+      }
     }
   });
 });

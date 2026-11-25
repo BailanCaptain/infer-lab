@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -11,7 +11,6 @@ export type RforkDiagMode = "sandbox" | "svg";
 export interface RforkDiagSpec {
   readonly step: RforkDiagStep;
   readonly shortBtn: string;
-  readonly stageTag: string;
   readonly stationTitle: string;
   readonly stationSub: string;
   readonly badgeText: string;
@@ -19,11 +18,10 @@ export interface RforkDiagSpec {
   readonly title: string;
   readonly takeaway: string;
   readonly kpi: string;
-  readonly logHeadline: string;
-  readonly stateVerdict: string;
-  readonly firstEvidenceTitle: string;
-  readonly firstEvidenceList: string;
-  readonly visualMode: "abort-0" | "reg-fail-1" | "miss-2" | "chunk-7-of-12" | "ttl-ruler";
+  readonly logTag: string;
+  readonly stateTag: string;
+  readonly seedTag: string;
+  readonly actionTag: string;
   readonly detail: string;
 }
 
@@ -31,111 +29,92 @@ export const RFORK_DIAG_STEPS: readonly RforkDiagSpec[] = [
   {
     step: 1,
     shortBtn: "① 配置错直停",
-    stageTag: "阶段 0 · 配置解析",
     stationTitle: "0. 配置校验",
     stationSub: "直停不回退",
     badgeText: "分诊 1 / 5 · 缺必填直接中止",
     takeawayTone: "danger",
     title: "阶段 0 · 缺三项必填配置或严格项非法：直接抛异常中止启动（不打汇总、不走回退）",
     takeaway:
-      "连配置都没写对时绝不会静默退回读盘：进程当场抛配置异常退场，日志里根本不会出现那句“传输失败回退”汇总！",
+      "连必填配置都没写全时绝不会静默退回读盘：进程当场抛配置异常退场，日志里根本不会出现回退汇总；首先核对两端启动参数与绕开开关！",
     kpi: "进程直接中止 · 不打回退汇总",
-    logHeadline: "表象：进程启动即退出，无 transfer failed 汇总警告",
-    stateVerdict: "真实状态：阶段 0 被硬拦截，尚未建模型骨架、未碰显存登记与租约。",
-    firstEvidenceTitle: "30 秒首取证据",
-    firstEvidenceList:
-      "核对两端完整启动参数（脱敏凭据）、三项必填项是否齐全、是否开了睡眠/动态均衡触发整体绕开警告。",
-    visualMode: "abort-0",
+    logTag: "无回退汇总",
+    stateTag: "中止启动",
+    seedTag: "未建会话",
+    actionTag: "核必填参数",
     detail:
-      "缺少三项必填配置或严格参数非法时抛出 RForkConfigurationError，由 rfork_loader.py#L889-L892 直接重抛中止启动（未知配置键打 warning）；若开启 sleep mode、在线权重传输或 --enable-eplb，则命中 safety.py 整体绕开并打 RFork transfer is disabled when ... is enabled 警告。",
+      "缺少三项必填配置或严格参数非法抛 RForkConfigurationError（rfork_loader.py#L889-L892 直接重抛中止启动，未知键打 warning）；若开启 sleep mode、在线权重传输或 --enable-eplb，则命中 safety.py 整体绕开并打 RFork transfer is disabled when ... is enabled 警告。",
   },
   {
     step: 2,
-    shortBtn: "② 借前登记失败",
-    stageTag: "阶段 1 · 显存预登记",
-    stationTitle: "1. 登记显存",
-    stationSub: "reg failed.",
-    badgeText: "分诊 2 / 5 · 借租约前登记报错",
+    shortBtn: "② 借前登记败",
+    stationTitle: "1. 显存登记",
+    stationSub: "借前报错",
+    badgeText: "分诊 2 / 5 · 借租约前登记失败",
     takeawayTone: "warn",
-    title: "阶段 1 · 借租约前登记目的显存失败：汇总明确写 destination registration failed.",
+    title: "阶段 1 · 借租约前登记目的显存失败：汇总原因栏明确写 destination registration failed.",
     takeaway:
-      "还没向调度器开口借权重就挂了：看一眼汇总原因栏写的是 registration failed，直接查传输引擎版本接口与张量覆盖！",
+      "还没向调度器借租约就挂在显存预登记：汇总原因栏明确区分于传输失败；首取传输引擎接口版本、张量覆盖区间与更前一行的原始报错！",
     kpi: "原因栏：destination registration failed.",
-    logHeadline: "表象：汇总原因明确写 destination registration failed.（非 transfer failed.）",
-    stateVerdict:
-      "真实状态：挂在借租约之前（0 份租约、0 字节远端写入）；注意若回滚未完，原始报错在更前一行！",
-    firstEvidenceTitle: "30 秒首取证据",
-    firstEvidenceList:
-      "查数据系统版本是否支持带显存登记对象的批量接口、报错批次段数与返回码、NPU 分配器张量覆盖范围。",
-    visualMode: "reg-fail-1",
+    logTag: "预登记失败",
+    stateTag: "回退本地盘",
+    seedTag: "0 租约借入",
+    actionTag: "查引擎接口",
     detail:
-      "session.register_destination 返回 False 时抛出 RuntimeError('destination registration failed.')（rfork_loader.py#L835-L836），具体错误在 transfer_backend.py#L416-L531（缺 batch_register_memory_ex 接口、张量区间未覆盖或返回错误码）。若紧挨汇总的是 rollback is incomplete，须再往前翻找首条登记报错。",
+      "session.register_destination 返回 False 时抛 RuntimeError('destination registration failed.')（rfork_loader.py#L835-L836），具体错误在 transfer_backend.py#L416-L531（缺 batch_register_memory_ex 接口、张量范围未覆盖或返回码异常）；若回滚未完打印 rollback is incomplete，原始登记报错在更前一行。",
   },
   {
     step: 3,
-    shortBtn: "③ 没借到静默读盘",
-    stageTag: "阶段 2 · 申请来源",
-    stationTitle: "2. 找调度器借",
-    stationSub: "仅 TP0 打 INFO",
+    shortBtn: "③ 没借到读盘",
+    stationTitle: "2. 申请来源",
+    stationSub: "静默读盘",
     badgeText: "分诊 3 / 5 · 区分冷启动与请求异常",
     takeawayTone: "default",
-    title: "阶段 2 · 没有可用来源：不打失败汇总直接读盘，必查是否藏着申请失败告警",
+    title: "阶段 2 · 没有可用来源：不打失败汇总直接读盘，须开 DEBUG 并查申请失败告警",
     takeaway:
-      "日志静悄悄改读硬盘了？别急着当成首台冷启动——先往前看有没有“申请来源失败”告警，且默认只有 TP0 卡会打 INFO！",
+      "没借到来源时默认只有 TP0 卡打一条 INFO，其余卡静悄悄转读盘；务必往前查有无“申请来源失败”警告，别把网络或配对键失配误当正常冷启动！",
     kpi: "不打失败汇总 · 非 TP0 需开 DEBUG",
-    logHeadline: "表象：仅 TP0 打印未借到转本地加载，其余卡在 INFO 下完全静默",
-    stateVerdict:
-      "真实状态：Planner 回 404、网络不通、状态码非 200 或租约响应头非法，全都会被折算成“没借到”。",
-    firstEvidenceTitle: "30 秒首取证据",
-    firstEvidenceList:
-      "开 VLLM_LOGGING_LEVEL=DEBUG 看全卡日志，往前搜 acquisition failed 警告，核对两端 seed_key 与结构摘要。",
-    visualMode: "miss-2",
+    logTag: "仅 TP0 提示",
+    stateTag: "回退本地盘",
+    seedTag: "本轮未命中",
+    actionTag: "开调试核键",
     detail:
-      "planner_client.py#L137-L205 把 404（仅记 debug）、请求异常、非 200 及响应头端口/rank/LEASE_TTL_SEC 非法统一折成 None 走本地加载（仅 tp_rank == 0 按 INFO 打 seed acquisition was unsuccessful，16 卡 TP8 下仅 rank 0 与 rank 8 可见），绝不可修改配对键算法强凑命中。",
+      "planner_client.py#L137-L205 把 404（仅记 debug）、请求异常、非 200 及响应头端口/rank/LEASE_TTL_SEC 非法统一折成 None 走本地加载（仅 tp_rank == 0 打 INFO，16 卡 TP8 下仅 rank 0 与 8 可见；查全卡须设 VLLM_LOGGING_LEVEL=DEBUG），严禁篡改 seed_key 算法强凑命中。",
   },
   {
     step: 4,
-    shortBtn: "④ 借后三步同汇总",
-    stageTag: "阶段 3–5 · 取单/核单/分批读",
-    stationTitle: "3–5. 借后传输",
-    stationSub: "同打 transfer failed",
-    badgeText: "分诊 4 / 5 · 揪同卡首错与脏显存剖面",
+    shortBtn: "④ 借后同汇总",
+    stationTitle: "3–5. 借后三步",
+    stationSub: "同句汇总",
+    badgeText: "分诊 4 / 5 · 揪同卡首错与停服注销门",
     takeawayTone: "danger",
-    title: "阶段 3–5 · 取清单、五门核对、分批读失败共用同一句 transfer failed. 汇总",
+    title: "阶段 3–5 · 取清单、五门核对、分批读失败共用同一句汇总，回退前须停服并注销已登记显存",
     takeaway:
-      "三步报错最后汇总一字不差！必须往前揪出同一个 rank 的第一条 error；若死在第 7/12 批，前 6 批已写进显存必须清零！",
-    kpi: "三步同汇总 → 必查同 rank 首条 error",
-    logHeadline: "表象：汇总只写 transfer failed.；前序紧跟元数据非 200、五门差集或 chunk 7/12 失败",
-    stateVerdict:
-      "真实状态：死在五门核对则写入 0 字节；死在第 7/12 批则批 1–6 已写入、批 7 未知，回退须过双安全门清扫！",
-    firstEvidenceTitle: "30 秒首取证据",
-    firstEvidenceList:
-      "按 rank 过滤揪第一条 error：元数据查 HTTP 端口与协议版本 1；五门比对名字/dtype/NZ 格式；读失败抓 chunk k/N 与数据面端点。",
-    visualMode: "chunk-7-of-12",
+      "借后三步失败汇总一字不差，必按同卡揪首条 error！若死在第 7/12 批（前 6 批已写），回退安全门须确认停掉种子服务且注销已登记显存，才释放旧模型重读硬盘！",
+    kpi: "查同卡首错 · 停服注销后回退",
+    logTag: "同句传输败",
+    stateTag: "过双门回退",
+    seedTag: "阻断脏复用",
+    actionTag: "揪同卡首错",
     detail:
-      "session.transfer_from_seed 三步（/get_rfork_transfer_engine_info 取协议版本 1 + 五元组清单 + NPU 格式表 → validate_weight_manifest 五门核对并排除 3 个运行期张量 → ≤1GiB/512段 batch_transfer_sync_read）返回 False 均抛同一句 RuntimeError('transfer failed.')；回退须通过 service_stopped && memory_reset 双门，否则抛 RuntimeError 拒绝分配第二份模型。",
+      "session.transfer_from_seed 三步（/get_rfork_transfer_engine_info 协议 1 + 五元组 + 格式表 → validate_weight_manifest 五门核对并排除 3 个运行期张量 → ≤1GiB/512段 batch_transfer_sync_read）返回 False 均抛 RuntimeError('transfer failed.')。prepare_for_fallback（session.py:446-477）检查停止种子服务与注销已登记显存（service_stopped && memory_reset）通过后才释放旧模型回退本地加载，否则保留张量所有者并抛 RuntimeError 拒绝分配第二份模型。",
   },
   {
     step: 5,
-    shortBtn: "⑤ 归还 404/400 判据",
-    stageTag: "阶段 6–8 · 还租约与 TTL 标尺",
-    stationTitle: "6–8. 归还发布",
-    stationSub: "48.2s vs 75.6s",
-    badgeText: "分诊 5 / 5 · 持租时长对照 60s TTL",
+    shortBtn: "⑤ 归还404/400",
+    stationTitle: "6–8. 归还租约",
+    stationSub: "404 与 400",
+    badgeText: "分诊 5 / 5 · 区分 404 清租与 400 禁发布",
     takeawayTone: "accent",
-    title: "阶段 6–8 · 读完还租约收 404 或 400：模型照常服务，用 held_elapsed 对照 60s TTL 断案",
+    title: "阶段 6–8 · 归还租约 404（清租仍可发新源）vs 400（停试并取消发布新源）与 60s TTL 标尺",
     takeaway:
-      "权重读完后还租约告警不影响对外推理（只放弃当新源）！48.2s 收到 404 铁定没过期，示例调度器回 400 只怪请求头格式错！",
-    kpi: "48.2s<60s 排除过期 · 400=请求头解析错",
-    logHeadline: "表象：数据已读完，后台归还租约收到 HTTP 404（记 RELEASED）或 400（记 REJECTED 停试）",
-    stateVerdict:
-      "真实状态：推理服务 100% 正常可用，仅取消登记为新 Seed；404 不等于按时还上，400 在示例调度器与过期无关！",
-    firstEvidenceTitle: "30 秒首取证据",
-    firstEvidenceList:
-      "提取客户端 held_elapsed 与尝试次数对照 TTL（默认 60s），保留 lease= 哈希摘要与 400 响应体核对服务端记录。",
-    visualMode: "ttl-ruler",
+      "权重读完后对外推理 100% 正常！收 404 记已归还清租约（延后新源仍可发布；默认 TTL=60s 未续租且无时钟跳变下 48.2s<60s 排除过期）；收 400 则停试并取消发布新源（示例调度器 400 仅因请求头解析错）！",
+    kpi: "404 仍可发源 · 400 取消发源",
+    logTag: "归还回执码",
+    stateTag: "推理全正常",
+    seedTag: "404发·400禁",
+    actionTag: "核耗时与头",
     detail:
-      "示例 Planner（DEFAULT_LEASE_TTL_SEC=60）发出租约才开始计时，真实年龄必短于客户端 held_elapsed：若 held_elapsed=48.2s < 60s 却收 404，铁定排除到期（转查前次超时重发已删、身份不符、Planner 重启或多副本分裂）；若 75.6s ≥ 60s，到期收回才列为候选。示例 Planner 仅在请求头缺项/非整数/越界时回 400（现场自定义实现需另核响应体）。",
+      "planner_client.py:228-249 与 session.py:329-392：HTTP 200/404 均记 RELEASED 清除借入租约，延后的本机新 Seed 发布仍可继续完成；HTTP 400 记 REJECTED 立即停试并取消本机新 Seed 发布（示例 Planner 中 400 仅来自请求头缺项/非整数/越界，与到期无关）。在默认 TTL=60s、未触发续租展期且期间无时钟跳变前提下，客户端 held_elapsed=48.2s < 60s 可确定排除到期清扫；75.6s ≥ 60s（或存在续租展期时按展期窗口核对）则将到期收回列为候选之一。",
   },
 ];
 export interface RforkTroubleshootingInteractiveProps extends InteractiveDiagramProps {
@@ -157,9 +136,6 @@ export function RforkTroubleshootingInteractive({
   const [step, setStep] = useState<RforkDiagStep>(initialStep);
   const [playing, setPlaying] = useState(false);
   const spec = RFORK_DIAG_STEPS[step - 1]!;
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const mRed = `${id}-${uid}-rft-red`;
-  const mTeal = `${id}-${uid}-rft-teal`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -169,7 +145,9 @@ export function RforkTroubleshootingInteractive({
           setPlaying(false);
           return 5;
         }
-        return (prev + 1) as RforkDiagStep;
+        const next = (prev + 1) as RforkDiagStep;
+        if (next >= 5) setPlaying(false);
+        return next;
       });
     }, 2000);
     return () => clearInterval(timer);
@@ -228,8 +206,6 @@ export function RforkTroubleshootingInteractive({
     }
   };
 
-  const stageCenterX = 86 + (step - 1) * 172;
-
   return (
     <WikiEduSandboxShell
       id={id}
@@ -245,7 +221,7 @@ export function RforkTroubleshootingInteractive({
       onScroll={onScroll}
       kickerTag="母版 A · 首错证据分诊"
       kickerTitle="RFork 30 秒首错定位与 404 / 400 判据"
-      question="日志最后只写一句“transfer failed 回退默认加载”，怎么 30 秒揪出真凶？"
+      question="日志最后只写一句“传输失败回退默认加载”，怎么 30 秒揪出真凶？"
       toolbarLabel="RFork 五阶段首错分诊控制"
       onToolbarKeyDown={handleKeyDown}
       extraRootAttrs={{ "data-step": step }}
@@ -257,7 +233,7 @@ export function RforkTroubleshootingInteractive({
               className="wiki-edu-btn"
               data-testid="rfork-diag-autoplay"
               aria-pressed={playing}
-              style={eduBtnStyle(playing, "accent")}
+              style={eduBtnStyle(playing, "dark")}
               onClick={toggleAutoPlay}
             >
               {playing ? "⏸ 暂停分诊" : "▶ 自动分诊"}
@@ -307,15 +283,15 @@ export function RforkTroubleshootingInteractive({
       takeawayTone={spec.takeawayTone}
       takeaway={spec.takeaway}
       kpi={spec.kpi}
-      detailsSummary="查看工程与源码细节（main 8d6180e2 日志原文表 / held_elapsed 60s TTL 推导 / GLM 32 份租约规则）"
+      detailsSummary="查看工程与源码细节（main 8d6180e2 日志原文 / 停服注销双门 / 404 vs 400 与 60s TTL 前提）"
       detailsContent={
         <>
           <strong>{spec.title}</strong>：{spec.detail}
         </>
       }
     >
-      <div>
-        <div className="wiki-edu-chunks-wrap" style={{ marginBottom: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-chunks-wrap">
           {RFORK_DIAG_STEPS.map((item) => {
             const cls =
               item.step < step
@@ -326,7 +302,7 @@ export function RforkTroubleshootingInteractive({
                     : "is-fault"
                   : "is-skip";
             return (
-              <div key={item.step} className={`wiki-edu-station ${cls}`} style={{ flex: "1 1 136px" }}>
+              <div key={item.step} className={`wiki-edu-station ${cls}`} style={{ flex: "1 1 132px" }}>
                 <strong>{item.stationTitle}</strong>
                 <span>{item.stationSub}</span>
               </div>
@@ -334,140 +310,75 @@ export function RforkTroubleshootingInteractive({
           })}
         </div>
 
-        <svg
-          viewBox="0 0 860 88"
-          width="860"
-          height="88"
-          style={{ width: "100%", height: "auto", display: "block", marginBottom: "10px" }}
-          role="img"
-          aria-label={`RFork 排错剖面：${spec.stageTag}`}
-        >
-          <defs>
-            <marker
-              id={mRed}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
-            </marker>
-            <marker
-              id={mTeal}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
-            </marker>
-          </defs>
-
-          {spec.visualMode === "chunk-7-of-12" ? (
-            <g>
-              <rect x="14" y="10" width="832" height="68" rx="8" fill="#fbfaf6" stroke="#d8d8cf" />
-              <text x="28" y="30" fontSize="12.5" fontWeight="700" fill="#17211f">
-                第 7 / 12 批读断连时 B 显存剖面（回退前必须清零脏数据）
-              </text>
-              <rect x="28" y="40" width="380" height="26" rx="4" fill="#c78300" />
-              <text x="218" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#ffffff">
-                批 1–6：已写进显存
-              </text>
-              <rect
-                x="414"
-                y="40"
-                width="96"
-                height="26"
-                rx="4"
-                fill="#fff0e9"
-                stroke="#b54237"
-                strokeDasharray="4 3"
-              />
-              <text x="462" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-                批 7 未知!
-              </text>
-              <rect x="516" y="40" width="316" height="26" rx="4" fill="#ece9df" stroke="#d8d8cf" />
-              <text x="674" y="58" textAnchor="middle" fontSize="12" fill="#66716d">
-                批 8–12：尚未执行
-              </text>
-            </g>
-          ) : spec.visualMode === "ttl-ruler" ? (
-            <g>
-              <rect x="14" y="8" width="832" height="72" rx="8" fill="#fbfaf6" stroke="#d8d8cf" />
-              <line
-                x1="590"
-                y1="12"
-                x2="590"
-                y2="76"
-                stroke="#b54237"
-                strokeWidth="2"
-                strokeDasharray="4 3"
-              />
-              <text x="590" y="24" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-                60s 默认 TTL 线
-              </text>
-              <rect x="28" y="30" width="440" height="20" rx="4" fill="#ddf4ef" stroke="#087f73" />
-              <text x="248" y="44" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-                48.2s &lt; 60s：铁定排除过期!
-              </text>
-              <rect x="28" y="54" width="690" height="20" rx="4" fill="#fff4cf" stroke="#c78300" />
-              <text x="373" y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                75.6s ≥ 60s：过期列为候选，核对服务端记录
-              </text>
-            </g>
-          ) : (
-            <g>
-              <path
-                className="wiki-edu-wire is-flow"
-                d={`M ${stageCenterX} 6 L ${stageCenterX} 44 L 430 44 L 430 76`}
-                stroke={step === 3 ? "#087f73" : "#b54237"}
-                markerEnd={`url(#${step === 3 ? mTeal : mRed})`}
-              />
-              <rect
-                x="280"
-                y="26"
-                width="300"
-                height="28"
-                rx="14"
-                fill={step === 3 ? "#ddf4ef" : "#fff0e9"}
-                stroke={step === 3 ? "#087f73" : "#b54237"}
-              />
-              <text x="430" y="45" textAnchor="middle" fontSize="12.5" fontWeight="700" fill="#17211f">
-                {spec.stageTag}
-              </text>
-            </g>
-          )}
-        </svg>
-
-        <div className="wiki-edu-dual-grid">
-          <div className={`wiki-edu-panel${step === 1 || step === 4 ? " is-oom" : ""}`}>
-            <div className="wiki-edu-panel-head">
-              <span className="wiki-edu-panel-title">① 日志表象 vs 真实阶段状态</span>
-              <span className={`wiki-edu-badge ${step === 5 ? "is-good" : step === 3 ? "is-mid" : "is-bad"}`}>
-                {step === 5 ? "服务照常可用" : step === 1 ? "直接中止" : "回退分支"}
-              </span>
+        {step === 4 && (
+          <div className="wiki-edu-lane-box">
+            <div className="wiki-edu-lane-label">
+              <span>第 7/12 批中断剖面</span>
+              <span>停服并注销后回退</span>
             </div>
-            <div className="wiki-edu-note-card">
-              <strong>{spec.logHeadline}</strong>
-              <br />
-              {spec.stateVerdict}
+            <div className="wiki-edu-track">
+              <div className="wiki-edu-op is-attn" style={{ flex: 6 }}>
+                批 1–6 已写入
+              </div>
+              <div className="wiki-edu-op is-bubble" style={{ flex: 1.8 }}>
+                批 7 未知
+              </div>
+              <div className="wiki-edu-op is-eager" style={{ flex: 5 }}>
+                批 8–12 未读
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="wiki-edu-panel">
-            <div className="wiki-edu-panel-head">
-              <span className="wiki-edu-panel-title">② 现场 30 秒首取证据清单</span>
-              <span className="wiki-edu-badge is-warn">证据优先</span>
+        {step === 5 && (
+          <div className="wiki-edu-dual-grid">
+            <div className="wiki-edu-lane-box">
+              <div className="wiki-edu-lane-label">
+                <span>持租时长 vs 60s TTL</span>
+                <span>未续租无跳钟</span>
+              </div>
+              <div className="wiki-edu-track">
+                <div className="wiki-edu-op is-full" style={{ flex: 4.8 }}>
+                  48.2s 排除过期
+                </div>
+                <div className="wiki-edu-op is-attn" style={{ flex: 5.2 }}>
+                  75.6s 过期候选
+                </div>
+              </div>
             </div>
-            <div className="wiki-edu-note-card">
-              <strong>{spec.firstEvidenceTitle}</strong>
-              <br />
-              {spec.firstEvidenceList}
+            <div className="wiki-edu-lane-box">
+              <div className="wiki-edu-lane-label">
+                <span>归还状态码分流</span>
+                <span>推理均正常</span>
+              </div>
+              <div className="wiki-edu-track">
+                <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
+                  404 清租可发源
+                </div>
+                <div className="wiki-edu-op is-bubble" style={{ flex: 1 }}>
+                  400 停试禁发源
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+
+        <div className="wiki-edu-chunks-wrap">
+          <div className="wiki-edu-chunk-pill">
+            <strong>日志表象</strong>
+            <span>{spec.logTag}</span>
+          </div>
+          <div className="wiki-edu-chunk-pill">
+            <strong>服务状态</strong>
+            <span>{spec.stateTag}</span>
+          </div>
+          <div className="wiki-edu-chunk-pill">
+            <strong>新源发布</strong>
+            <span>{spec.seedTag}</span>
+          </div>
+          <div className="wiki-edu-chunk-pill is-last">
+            <strong>首查动作</strong>
+            <span>{spec.actionTag}</span>
           </div>
         </div>
       </div>

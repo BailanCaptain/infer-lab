@@ -189,6 +189,11 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   "d1-fused-mc2-3-main-only": [{ pageId: "expert-parallel" }, { pageId: "core-cli-params" }],
   "d1-dp-ep-moe-comm-strategy": [{ pageId: "expert-parallel" }, { pageId: "data-parallel" }],
   "d1-idle-dp-dummy-batch": [{ pageId: "data-parallel" }],
+  "d1-quantized-ar-constraints": [{ pageId: "collective-communication" }, { pageId: "tensor-parallel" }],
+  "d1-megamoe-shared-expert-fusion-constraints": [
+    { pageId: "moe-comm-dispatch" },
+    { pageId: "ascend-950-architecture" },
+  ],
 
   // Domain 2: Batch tokens & PP / CPP
   "d2-default-batch-tokens-early-fallback": [{ pageId: "core-cli-params" }, { pageId: "chunked-prefill" }],
@@ -317,6 +322,17 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
     { pageId: "ascend-env-and-serve" },
     { pageId: "sequence-parallel" },
   ],
+  "d5-main-only-additional-config-keys": [
+    { pageId: "ascend-config-system" },
+    { pageId: "v030-release-baseline" },
+  ],
+  "d5-shared-engram-constraints": [{ pageId: "engram-conditional-memory" }, { pageId: "model-runner-v2" }],
+  "d5-multistream-engram-overlap-cudagraph-gate": [
+    { pageId: "engram-conditional-memory" },
+    { pageId: "acl-graph" },
+  ],
+  "d5-gdn-prefill-checkpoints-constraints": [{ pageId: "linear-attention" }, { pageId: "paged-attention" }],
+  "d5-runtime-config-constraints": [{ pageId: "ascend-config-system" }, { pageId: "msprobe-accuracy-debug" }],
 
   // Cross-instance P/D consistency diagnostics
   "pd-missing-kv-transfer-config": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
@@ -436,6 +452,18 @@ function detectDeferredAdvancedFeatures(parsed: ParsedVllmServeCommand, input: C
   ) {
     deferred.push("finegrained_tp_config (细粒度 TP)");
   }
+  if (input.sharedEngramConfigured) {
+    deferred.push("shared_engram (跨实例共享 Engram 词表池)");
+  }
+  if (input.quantizedAllReduceEnabled || input.quantizedAllReduceMinNumel !== undefined) {
+    deferred.push("quantized_all_reduce_config (低精度 TP All-Reduce)");
+  }
+  if (input.gdnInternalPrefillCheckpoints) {
+    deferred.push("gdn_internal_prefill_checkpoints (GDN 内部检查点)");
+  }
+  if (input.multistreamEngramOverlap) {
+    deferred.push("multistream_engram_overlap (Engram 辅助流重叠)");
+  }
   return deferred;
 }
 
@@ -523,6 +551,7 @@ const MINIMAL_ALLOWED_RULE_IDS: ReadonlySet<string> = new Set([
   "d5-cann-env-var-classification",
   "d5-retired-ascend-env-var",
   "d5-deprecated-flashcomm1-env-fallback",
+  "d5-main-only-additional-config-keys",
 ]);
 
 function evaluateCommonCliAndEnvFindings(

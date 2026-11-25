@@ -72,6 +72,10 @@ export interface CouplingCheckInput {
   cannOpsTransformerAvailable?: boolean;
   nnopbaseSupportTensorV2?: boolean;
   vllmBatchInvariant?: boolean;
+  vllmOmniAvailable?: boolean;
+  envFacts?: {
+    readonly vllmOmniAvailable?: boolean;
+  };
 
   // Parallelism topology
   tpSize?: number;
@@ -89,12 +93,18 @@ export interface CouplingCheckInput {
   cpRoute?: CpRouteConcept;
   customOps?: readonly string[];
   quantizedAllReduceEnabled?: boolean;
+  quantizedAllReduceMinNumel?: number;
+  quantizedAllReduceInvalidReason?: string;
+  useUbatching?: boolean;
   oprojTensorParallelSize?: number;
   mlpTensorParallelSize?: number;
   embeddingTensorParallelSize?: number;
 
   // Model traits
   isMoe?: boolean;
+  hasRoutedExpertHiddenSize?: boolean;
+  enableSharedExpertDp?: boolean;
+  megamoeSharedExpertFusion?: boolean;
   numExperts?: number;
   numExpertsPerTok?: number;
   isQwen35Dense?: boolean;
@@ -184,6 +194,30 @@ export interface CouplingCheckInput {
   weightNzMode?: number;
   pytorchNpuAllocConf?: string;
   envVars?: Readonly<Record<string, string>>;
+
+  // Promoted AscendConfig & CLI cross-check fields (v0.30.0 / main)
+  loadFormat?: string;
+  shutdownTimeout?: number;
+  mambaCacheMode?: string;
+  multistreamEngramOverlap?: boolean;
+  sharedEngramConfigured?: boolean;
+  sharedEngramBackend?: string;
+  sharedEngramEndpoint?: string;
+  sharedEngramCapacity?: number;
+  sharedEngramLibraryPath?: string;
+  sharedEngramListenPort?: number;
+  sharedEngramLocalCommRes?: string;
+  gdnInternalPrefillCheckpoints?: boolean;
+  kvPoolRangeDebug?: boolean;
+  runtimeConfigConfigured?: boolean;
+  runtimeConfigInvalidType?: string;
+  runtimeConfigHasNestedHotReload?: boolean;
+  runtimeConfigManualDumpSet?: boolean;
+  runtimeConfigPathConfigured?: boolean;
+  runtimeConfigPathInvalidType?: string;
+  runtimeConfigHotReload?: boolean;
+  runtimeConfigHotReloadInvalidValue?: unknown;
+  mainOnlyAdditionalConfigKeys?: readonly string[];
 }
 
 export type MutationValue = string | number | boolean | null;

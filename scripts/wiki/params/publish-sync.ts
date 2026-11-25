@@ -9,7 +9,7 @@ import { appendWikiLog } from "../log";
 import { loadPages } from "../pages";
 import { localFile } from "../review-files";
 import { atomicText, digest, WorkflowStore } from "../workflow";
-import { parameterPageId } from "./identities";
+import { hasPublishedParentParamPage, parameterPageId } from "./identities";
 import { buildParamPage } from "./pages";
 import { recordParamSource } from "./provenance";
 import { parameterDiff, parameterKey } from "./sync";
@@ -97,7 +97,13 @@ export async function publishParamSync(
   }));
   for (const { entry, id } of resolved) {
     if (!id) {
-      skipped.push({ name: entry.name, file: entry.file, reason: "explicit-reference-identity" });
+      skipped.push({
+        name: entry.name,
+        file: entry.file,
+        reason: hasPublishedParentParamPage(entry, pages)
+          ? "nested-subkey-folded-into-parent"
+          : "explicit-reference-identity",
+      });
       continue;
     }
     const published = localFile(root, `wiki/params/${id}.md`);
@@ -140,7 +146,13 @@ export async function publishParamSync(
   for (const entry of diff.removed) {
     const id = parameterPageId(root, input.repo, entry, pages, input.repoDir);
     if (!id) {
-      skipped.push({ name: entry.name, file: entry.file, reason: "explicit-reference-identity" });
+      skipped.push({
+        name: entry.name,
+        file: entry.file,
+        reason: hasPublishedParentParamPage(entry, pages)
+          ? "nested-subkey-folded-into-parent"
+          : "explicit-reference-identity",
+      });
       continue;
     }
     const published = localFile(root, `wiki/params/${id}.md`);

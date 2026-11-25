@@ -207,6 +207,14 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L78`],
     note: "定义于 vllm_ascend/envs.py，用于开启动态专家负载均衡（EPLB）。",
   },
+  VLLM_ASCEND_KVPOOL_RANGE_DEBUG: {
+    versions: ["v0.30.0"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L84`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L48-L55`,
+    ],
+    note: "v0.30.0 下定义于 vllm_ascend/envs.py（严格 0/1），输出 [KVPOOL_RANGE_DEBUG] JSON 审计日志；main 已迁移至 additional_config.kv_pool_range_debug。",
+  },
   TASK_QUEUE_ENABLE: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:Dockerfile#L55-L57`],
@@ -294,6 +302,17 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
     },
     replacement: `--additional-config '{"enable_transpose_kv_cache_by_block": true}'`,
     note: "VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK 已在 v0.30.0 移除（源码 0 处读取）；请迁移到 additional_config.enable_transpose_kv_cache_by_block。",
+  },
+  VLLM_ASCEND_KVPOOL_RANGE_DEBUG: {
+    versions: ["main"],
+    sourcesByVersion: {
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L60`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L670`,
+      ],
+    },
+    replacement: `--additional-config '{"kv_pool_range_debug": true}'`,
+    note: "VLLM_ASCEND_KVPOOL_RANGE_DEBUG 已在 main 移除（源码 0 处读取），继续导出将静默失效；请迁移到 additional_config.kv_pool_range_debug。",
   },
 };
 
@@ -1126,6 +1145,372 @@ export const domain5Rules: readonly CouplingRule[] = [
         message:
           "VLLM_ASCEND_ENABLE_FLASHCOMM1 已于 v0.30.0 从 vllm_ascend/envs.py 移除，但在 ascend_config.py / utils.py 中仍通过 os.getenv 兼容兜底生效（并非 0 读取失效）。",
         remediation: `建议迁移至 ${classified.replacement ?? `--additional-config '{"enable_flashcomm1": true}'`}。`,
+      };
+    },
+  },
+  {
+    id: "d5-main-only-additional-config-keys",
+    domain: "graph-sched-env",
+    title: "main 分支专属 additional_config 顶层键在旧版本下的拒收或过滤行为",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L397-L410`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1895-L1914`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L656-L741`,
+      `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L56-L70`,
+    ],
+    description:
+      "shared_engram、quantized_all_reduce_config、runtime_config、runtime_config_hot_reload、runtime_config_path、gdn_internal_prefill_checkpoints、kv_pool_range_debug 与 megamoe_shared_expert_fusion 仅在 main@8d6180e2 定义；标准 v0.30.0 直接拒收未知键报错，v0.30.0 安装 vllm_omni 时告警剥离，rfork 用 .get() 静默忽略。",
+    rationale: "区分纯 v0.30.0 启动期硬报错、vllm_omni 共享扩展剥离与 rfork 字典按需读取三类行为。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      const keys = new Set<string>(input.mainOnlyAdditionalConfigKeys ?? []);
+      if (input.sharedEngramConfigured) keys.add("shared_engram");
+      if (
+        input.quantizedAllReduceEnabled ||
+        input.quantizedAllReduceMinNumel !== undefined ||
+        input.quantizedAllReduceInvalidReason !== undefined
+      ) {
+        keys.add("quantized_all_reduce_config");
+      }
+      if (input.runtimeConfigConfigured || input.runtimeConfigInvalidType !== undefined) {
+        keys.add("runtime_config");
+      }
+      if (
+        input.runtimeConfigHotReload !== undefined ||
+        input.runtimeConfigHotReloadInvalidValue !== undefined
+      ) {
+        keys.add("runtime_config_hot_reload");
+      }
+      if (input.runtimeConfigPathConfigured || input.runtimeConfigPathInvalidType !== undefined) {
+        keys.add("runtime_config_path");
+      }
+      if (input.gdnInternalPrefillCheckpoints !== undefined) keys.add("gdn_internal_prefill_checkpoints");
+      if (input.kvPoolRangeDebug !== undefined) keys.add("kv_pool_range_debug");
+      if (input.megamoeSharedExpertFusion !== undefined) keys.add("megamoe_shared_expert_fusion");
+      if (keys.size === 0) return null;
+      const list = [...keys].sort();
+      const strippedMutation = Object.fromEntries(list.map((k) => [k, null]));
+
+      if (version === "rfork") {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "silent-rewrite",
+          evidenceLevel: this.evidenceLevel,
+          sources: [`rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L56-L70`],
+          message: `rfork 的 AscendConfig 通过 additional_config.get(...) 按需读取已知键，以下 main 分支专属键会被静默忽略且不生效：${list.join("、")}。`,
+          effectiveMutation: strippedMutation,
+          remediation: `在 rfork 分支上请移除无效的 ${list.join("、")}，避免误以为对应特性已启用。`,
+        };
+      }
+
+      const kvPoolHint = list.includes("kv_pool_range_debug")
+        ? "（其中 kv_pool_range_debug 在 v0.30.0 应改用环境变量 export VLLM_ASCEND_KVPOOL_RANGE_DEBUG=1）"
+        : "";
+      const omniActive = input.vllmOmniAvailable === true || input.envFacts?.vllmOmniAvailable === true;
+      if (omniActive) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "silent-rewrite",
+          evidenceLevel: this.evidenceLevel,
+          sources: [
+            `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1895-L1914`,
+          ],
+          message: `当前环境检测到 vllm_omni：v0.30.0 的 init_ascend_config 会打印告警并从 AscendConfig 入参剥离以下未知键（对应 main 特性不会生效）：${list.join("、")}。`,
+          effectiveMutation: strippedMutation,
+          remediation: `从 --additional-config 移除 ${list.join("、")}${kvPoolHint}，或切换到 vllm-ascend main 分支。`,
+        };
+      }
+
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "error",
+        evidenceLevel: this.evidenceLevel,
+        sources: [
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L397-L410`,
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1895-L1914`,
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L656-L741`,
+        ],
+        message: `ValidationError / TypeError: 标准 v0.30.0（未安装 vllm_omni）的 AscendConfig(extra="forbid") 不存在以下 main 分支专属键：${list.join("、")}，启动将直接报 Extra inputs are not permitted。`,
+        remediation: `从 --additional-config 移除 ${list.join("、")}${kvPoolHint}，或切换到 vllm-ascend main 分支。`,
+      };
+    },
+  },
+  {
+    id: "d5-shared-engram-constraints",
+    domain: "graph-sched-env",
+    title: "shared_engram 子键范围、并行拓扑、A3/A2/A5 后端边界与进程停机租约校验（main）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L457-L491`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L797-L809`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/models/deepseek_v41/model.py#L1056-L1068`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/models/deepseek_v41/engram/parallel.py#L26-L28`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L2092-L2102`,
+    ],
+    description:
+      "校验 SharedEngramConfig 子键范围与昇腾 Engram 并行约束（TP ∈ {1,2,4,8} 且 PP=DCP=1），区分 A3（MemFabric BM，需 MRv2，禁传 A2/A5 专属键）与 A2/A5（HIXL RDMA/UB，需 --shutdown-timeout > 0、DP×PCP > 1 本地 DP 共享与惰性 safetensors）。",
+    rationale: "在配置体检阶段提前拦截平台层、SharedEngramConfig 与模型挂载阶段的 ValueError。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (!input.sharedEngramConfigured) return null;
+      const errors: string[] = [];
+      const tp = Math.max(1, input.tpSize ?? 1);
+      const pp = Math.max(1, input.ppSize ?? 1);
+      const dcp = Math.max(1, input.dcpSize ?? 1);
+      if ((tp !== 1 && tp !== 2 && tp !== 4 && tp !== 8) || pp !== 1 || dcp !== 1) {
+        errors.push(
+          `Ascend Engram 要求 tensor_parallel_size ∈ {1, 2, 4, 8} 且 PP=1、DCP=1（当前 TP=${tp}, PP=${pp}, DCP=${dcp}）`,
+        );
+      }
+      const backend = input.sharedEngramBackend;
+      if (backend !== "a2" && backend !== "a3" && backend !== "a5") {
+        errors.push(`shared_engram.backend 必须为 "a2"、"a3" 或 "a5"（当前为 ${JSON.stringify(backend)}）`);
+      }
+      const ep = input.sharedEngramEndpoint ?? "";
+      const sep = ep.lastIndexOf(":");
+      const host = sep > 0 ? ep.slice(0, sep) : "";
+      const portStr = sep > 0 ? ep.slice(sep + 1) : "";
+      const portNum = /^\d+$/.test(portStr) ? Number.parseInt(portStr, 10) : Number.NaN;
+      if (!host || !Number.isInteger(portNum) || portNum <= 0 || portNum >= 65536) {
+        errors.push(`shared_engram.endpoint 必须为合法 host:port（1..65535，当前为 ${JSON.stringify(ep)}）`);
+      }
+      const cap = input.sharedEngramCapacity;
+      if (cap !== undefined && (cap < 1 || cap > 262144)) {
+        errors.push(`shared_engram.capacity 必须在 [1, 262144] 范围内（当前为 ${cap}）`);
+      }
+      const lp = input.sharedEngramListenPort;
+      if (lp !== undefined && (lp < 1 || lp >= 65536)) {
+        errors.push(`shared_engram.listen_port 必须在 [1, 65535] 范围内（当前为 ${lp}）`);
+      }
+      if (lp !== undefined && input.sharedEngramLocalCommRes) {
+        errors.push("shared_engram.listen_port 与 local_comm_res 严格互斥，不能同时设置");
+      }
+      if (backend === "a3") {
+        if (
+          (cap !== undefined && cap !== 65536) ||
+          input.sharedEngramLibraryPath !== undefined ||
+          lp !== undefined ||
+          input.sharedEngramLocalCommRes !== undefined
+        ) {
+          errors.push(
+            "A3 后端不接受非默认的 A2/A5 专属子键（capacity / library_path / listen_port / local_comm_res）",
+          );
+        }
+        if (input.useV2ModelRunner === false) {
+          errors.push("shared_engram backend='a3' 要求启用 Model Runner V2（VLLM_USE_V2_MODEL_RUNNER=1）");
+        }
+        if (input.enableSleepMode === true || input.loadFormat === "dummy") {
+          errors.push("shared_engram backend='a3' 不支持 --enable-sleep-mode 或 --load-format dummy");
+        }
+      } else if (backend === "a2" || backend === "a5") {
+        const effectiveShutdownTimeout =
+          input.shutdownTimeout ?? (input.usageContext === "vllm_serve" ? 0 : undefined);
+        if (effectiveShutdownTimeout !== undefined && effectiveShutdownTimeout <= 0) {
+          errors.push(
+            "shared_engram backend='a2'/'a5' 要求显式设置 --shutdown-timeout > 0（vllm serve 默认为 0）以回收远端读者租约",
+          );
+        }
+        const hasExplicitDpOrPcp =
+          input.usageContext === "vllm_serve" || input.dpSize !== undefined || input.pcpSize !== undefined;
+        const edpSize = Math.max(1, input.dpSize ?? 1) * Math.max(1, input.pcpSize ?? 1);
+        if (hasExplicitDpOrPcp && edpSize <= 1) {
+          errors.push(
+            `shared_engram backend='a2'/'a5' 要求本地 DP 共享激活（DP × PCP > 1，当前 DP=${input.dpSize ?? 1}, PCP=${input.pcpSize ?? 1}）`,
+          );
+        }
+        if (
+          input.loadFormat !== undefined &&
+          input.loadFormat !== "auto" &&
+          input.loadFormat !== "safetensors"
+        ) {
+          errors.push(`shared_engram 要求惰性 safetensors 加载，不支持 --load-format ${input.loadFormat}`);
+        }
+      }
+      if (errors.length === 0) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "error",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `ValueError: ${errors.join("；")}。`,
+        remediation:
+          "确保 TP ∈ {1,2,4,8} 且 PP=DCP=1，核对 shared_engram 必填键（backend + host:port endpoint）；A3 去掉 A2/A5 子键并开启 MRv2，A2/A5 需满足 DP×PCP > 1 且显式设置 --shutdown-timeout > 0。",
+      };
+    },
+  },
+  {
+    id: "d5-multistream-engram-overlap-cudagraph-gate",
+    domain: "graph-sched-env",
+    title: "multistream_engram_overlap 在 PIECEWISE 分段图步进下自动回退主流串行",
+    judgment: "warn",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L567-L575`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/models/deepseek_v41/model.py#L1433`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/models/deepseek_v41/model.py#L1546`,
+    ],
+    description:
+      "prepare_engram_inputs 在单步 cg_mode in (CUDAGraphMode.NONE, CUDAGraphMode.FULL) 时激活辅助流重叠（FULL_DECODE_ONLY 展开为 FULL 与 NONE 均可生效）；PIECEWISE 模式或 FULL_AND_PIECEWISE 的分段步会自动退回主流串行。",
+    rationale: "分段图边界破坏整图跨流外部事件链，只有 NONE 与 FULL 单步能保持跨流外部事件同步。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.multistreamEngramOverlap !== true) return null;
+      const mode = input.cudagraphMode;
+      if (mode !== "PIECEWISE" && mode !== "FULL_AND_PIECEWISE") return null;
+      const message =
+        mode === "FULL_AND_PIECEWISE"
+          ? "已显式开启 multistream_engram_overlap=true 且 cudagraph_mode=FULL_AND_PIECEWISE：纯 Decode 的 FULL 步仍启用辅助流重叠，但分段图 PIECEWISE 的 Prefill/混合步会自动退回主流串行。"
+          : "已显式开启 multistream_engram_overlap=true，但当前 cudagraph_mode=PIECEWISE；源码仅在单步 cg_mode 为 NONE 或 FULL（含 FULL_DECODE_ONLY）时启用辅助流重叠，所有分段步均会退回主流串行。";
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "warn",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message,
+        remediation: `若需启用 Engram 辅助流重叠，请改用 -cc '{"cudagraph_mode":"FULL"}' 或 '{"cudagraph_mode":"FULL_DECODE_ONLY"}'。`,
+      };
+    },
+  },
+  {
+    id: "d5-gdn-prefill-checkpoints-constraints",
+    domain: "graph-sched-env",
+    title:
+      "gdn_internal_prefill_checkpoints 依赖 mamba_cache_mode='align'、BF16、PCP=1、未开 DBO 且无 KV 传输（main）",
+    judgment: "warn",
+    evidenceLevel: "C",
+    versions: ["main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L741`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ops/gdn_checkpoint.py#L24-L53`,
+    ],
+    description:
+      "开启 gdn_internal_prefill_checkpoints=True 时，若 mamba_cache_mode != 'align'、PCP > 1、dtype != bfloat16、use_ubatching (--enable-dbo) 或启用了 kv_transfer_config，initialize_gdn_checkpoints 将跳过或告警回退常规切分调度。",
+    rationale: "64-token Triton 分块检查点要求对齐页模式、单 PCP、BF16、非微批流水以及一致的块边界规划。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.gdnInternalPrefillCheckpoints !== true) return null;
+      const reasons: string[] = [];
+      if (input.mambaCacheMode !== undefined && input.mambaCacheMode !== "align") {
+        reasons.push(`--mamba-cache-mode='${input.mambaCacheMode}'（需为 'align'）`);
+      }
+      if ((input.pcpSize ?? 1) > 1) {
+        reasons.push(`prefill_context_parallel_size=${input.pcpSize}（需为 1）`);
+      }
+      if (input.modelDtype !== undefined && input.modelDtype !== "bfloat16") {
+        reasons.push(`dtype=${input.modelDtype}（需为 bfloat16）`);
+      }
+      if (input.useUbatching === true) {
+        reasons.push("已开启 --enable-dbo（use_ubatching=True，与 GDN 内部检查点互斥）");
+      }
+      if (input.kvConnector !== undefined || input.kvRole !== undefined) {
+        reasons.push("已启用 kv_transfer_config（P/D 分离下连接器边界与检查点规划器不兼容，会告警回退）");
+      }
+      if (reasons.length === 0) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "warn",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `gdn_internal_prefill_checkpoints=true 因以下条件不满足将被跳过并回退常规 Prefill 调度：${reasons.join("；")}。`,
+        remediation:
+          "请确保开启 --mamba-cache-mode align、--dtype bfloat16、PCP=1、关闭 --enable-dbo，且不在 P/D 分离实例上强求 GDN 内部检查点导出。",
+      };
+    },
+  },
+  {
+    id: "d5-runtime-config-constraints",
+    domain: "graph-sched-env",
+    title: "Runtime Guard 启动参数类型校验与热重载前置检查（main）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L697-L701`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/observability/runtime_config/__init__.py#L46-L82`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/observability/runtime_config/config.py#L535-L565`,
+    ],
+    description:
+      "校验 runtime_config（须为 dict 且不含仅启动键 runtime_config_hot_reload）、runtime_config_path（须为 str）与 runtime_config_hot_reload（仅认 bool 或 0/1，传轮询秒数抛 ValueError），并提示手动 dump 依赖热重载。",
+    rationale: "build_runtime_config_from_additional 在构造 AscendConfig 前对类型与布尔取值做严格校验。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      const errors: string[] = [];
+      if (input.runtimeConfigInvalidType !== undefined) {
+        errors.push(
+          `additional_config.runtime_config 必须为 JSON 对象（dict），实际为 ${input.runtimeConfigInvalidType}`,
+        );
+      }
+      if (input.runtimeConfigPathInvalidType !== undefined) {
+        errors.push(
+          `additional_config.runtime_config_path 必须为字符串，实际为 ${input.runtimeConfigPathInvalidType}`,
+        );
+      }
+      if (input.runtimeConfigHotReloadInvalidValue !== undefined) {
+        errors.push(
+          `additional_config.runtime_config_hot_reload 仅接受 bool 或整数 0/1（周期固定 3.0s，不可传 ${JSON.stringify(input.runtimeConfigHotReloadInvalidValue)}）`,
+        );
+      }
+      if (errors.length > 0) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "error",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message: `ValueError: ${errors.join("；")}。`,
+          remediation:
+            "将 runtime_config_hot_reload 设为 true/false（不要传秒数），runtime_config 设为合法字典，runtime_config_path 设为字符串路径。",
+        };
+      }
+      const warnings: string[] = [];
+      if (input.runtimeConfigHasNestedHotReload) {
+        warnings.push(
+          "runtime_config 字典内部包含 runtime_config_hot_reload；该键仅能写在 additional_config 顶层，写在内部会导致启动覆盖层校验失败并回退默认配置",
+        );
+      }
+      if (input.runtimeConfigManualDumpSet && input.runtimeConfigHotReload !== true) {
+        warnings.push(
+          "在 runtime_config.dump 中配置了 manual_dump 但未开启顶层 runtime_config_hot_reload=true，后续在线推进水位线不会生效",
+        );
+      }
+      if (warnings.length === 0) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "warn",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `${warnings.join("；")}。`,
+        remediation:
+          "将 runtime_config_hot_reload: true 放在 --additional-config 顶层，并在服务启动后再按 1 -> 2 -> 3 递增编辑磁盘 runtime_config.json。",
       };
     },
   },

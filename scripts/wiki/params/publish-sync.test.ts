@@ -227,3 +227,74 @@ it("publishes one addition, removal and default change without overwriting prose
     f.cleanup();
   }
 });
+
+it("folds nested sub-dataclass fields ONLY when parent has a published wiki/params/*.md page, keeping unpromoted parent sub-keys staged", async () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/ascend_config.py";
+    const beforeText = [
+      "class SharedEngramConfig:",
+      "    backend: str = 'a3'",
+      "",
+      "class AscendConfig:",
+      "    shared_engram: SharedEngramConfig | None = None",
+      "",
+    ].join("\n");
+    f.write(`repo/${file}`, beforeText);
+    const before = { commit: f.commit("initial"), entries: scanSources({ [file]: beforeText }) };
+    const publishedParent = before.entries.find((e) => e.name === "shared_engram")!;
+    f.write(
+      `wiki/params/${paramId(publishedParent)}.md`,
+      buildParamPage({
+        repo: "vllm-ascend",
+        ref: "main",
+        commit: before.commit,
+        entry: publishedParent,
+        date: "2026-11-26",
+      })
+        .replace(/骨架，待补：[^\n]*/g, "正式父参数页已收录子键说明。")
+        .replace(/的静态定义，正文待补。/g, "正式父参数页摘要。"),
+    );
+
+    const afterText = [
+      "class SharedEngramConfig:",
+      "    backend: str = 'a3'",
+      "    capacity: int = 65536",
+      "",
+      "class ExpertOffloadConfig:",
+      "    enabled: bool = False",
+      "",
+      "class AscendConfig:",
+      "    shared_engram: SharedEngramConfig | None = None",
+      "    expert_offload_config: ExpertOffloadConfig | None = None",
+      "",
+    ].join("\n");
+    f.write(`repo/${file}`, afterText);
+    const after = { commit: f.commit("add subkeys"), entries: scanSources({ [file]: afterText }) };
+    const foldedCapacity = after.entries.find((e) => e.name === "capacity")!;
+    const unpromotedParent = after.entries.find((e) => e.name === "expert_offload_config")!;
+    const unpromotedSubEnabled = after.entries.find((e) => e.name === "enabled")!;
+
+    // capacity folds into published shared_engram (0 drafts for capacity), shared_engram refreshes its relocated line (1 write), and unpromoted expert_offload_config + enabled stage 2 drafts (total 3 writes)
+    const result = await publishParamSync(f.root, {
+      repo: "vllm-ascend",
+      repoDir: join(f.root, "repo"),
+      ref: "main",
+      before,
+      after,
+      maxNewPages: 2,
+    });
+    expect(result).toEqual({ added: 3, removed: 0, changed: 0, written: 3 });
+    expect(existsSync(join(f.root, `wiki/_drafts/${paramId(foldedCapacity)}.md`))).toBe(false);
+    expect(existsSync(join(f.root, `wiki/_drafts/${paramId(unpromotedParent)}.md`))).toBe(true);
+    expect(existsSync(join(f.root, `wiki/_drafts/${paramId(unpromotedSubEnabled)}.md`))).toBe(true);
+
+    const queue = JSON.parse(readFileSync(join(f.root, "wiki/_drafts/_param-queue.json"), "utf8"));
+    expect(queue[0].added).toHaveLength(3);
+    expect(queue[0].skipped).toEqual(
+      expect.arrayContaining([{ name: "capacity", file, reason: "nested-subkey-folded-into-parent" }]),
+    );
+  } finally {
+    f.cleanup();
+  }
+});

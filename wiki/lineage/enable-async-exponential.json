@@ -90,10 +90,8 @@
         ],
         "branches": [
           "origin/arc-fedsched-e2e-lab",
-          "origin/dependabot/github_actions/actions/labeler-7",
-          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/dependabot/github_actions/jlumbroso/free-disk-space-2.0.0",
           "origin/main",
-          "origin/pr-20926",
           "origin/releases/v0.13.0",
           "origin/releases/v0.18.0",
           "origin/releases/v0.20.2rc",
@@ -110,14 +108,15 @@
           "origin/releases/v0.30.0rc2",
           "origin/releases/v0.31.0rc",
           "origin/releases/v0.32.0rc",
-          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
-          "origin/revert-15210-glm52_v2_dspark",
-          "origin/revert-15908-new-refactor",
+          "origin/releases/v0.33.0rc",
+          "origin/revert-20758-feature/glm53-kernel-block-size",
+          "origin/revert-21727-codex/dspark-megamoe-cann921",
+          "origin/revert-22181-codex/kimi-pcp-dcp-dspark-main",
+          "origin/revert-22679-accuracy-lower-bound-only",
           "origin/rfc/0.26.0rc1-bugfix",
           "origin/rfc/community-contrib",
           "origin/rfc/megakernel",
-          "origin/rfc/vllm_cann",
-          "origin/zxy_fix_boradash"
+          "origin/rfc/vllm_cann"
         ]
       }
     },
@@ -160,10 +159,8 @@
         ],
         "branches": [
           "origin/arc-fedsched-e2e-lab",
-          "origin/dependabot/github_actions/actions/labeler-7",
-          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/dependabot/github_actions/jlumbroso/free-disk-space-2.0.0",
           "origin/main",
-          "origin/pr-20926",
           "origin/releases/v0.25.1rc",
           "origin/releases/v0.26.0rc",
           "origin/releases/v0.27.1rc",
@@ -173,11 +170,13 @@
           "origin/releases/v0.30.0rc2",
           "origin/releases/v0.31.0rc",
           "origin/releases/v0.32.0rc",
-          "origin/revert-15210-glm52_v2_dspark",
-          "origin/revert-15908-new-refactor",
+          "origin/releases/v0.33.0rc",
+          "origin/revert-20758-feature/glm53-kernel-block-size",
+          "origin/revert-21727-codex/dspark-megamoe-cann921",
+          "origin/revert-22181-codex/kimi-pcp-dcp-dspark-main",
+          "origin/revert-22679-accuracy-lower-bound-only",
           "origin/rfc/0.26.0rc1-bugfix",
-          "origin/rfc/megakernel",
-          "origin/zxy_fix_boradash"
+          "origin/rfc/megakernel"
         ]
       }
     }

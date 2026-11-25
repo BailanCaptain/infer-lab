@@ -20,6 +20,7 @@ export interface CliParseDiagnostic {
 export interface InferredModelHints {
   matchedPresetName: string | null;
   isMoe?: boolean | undefined;
+  hasRoutedExpertHiddenSize?: boolean | undefined;
   useMla?: boolean | undefined;
   usesSfaSparse?: boolean | undefined;
   isQwen35Dense?: boolean | undefined;
@@ -501,6 +502,11 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.isMoe = true;
     hints.useMla = false;
     hints.defaultModelDtype = "bfloat16";
+  } else if (/kimi[-_.]?k3/.test(s)) {
+    hints.matchedPresetName = "Kimi-K3-LatentMoE";
+    hints.isMoe = true;
+    hints.hasRoutedExpertHiddenSize = true;
+    hints.defaultModelDtype = "bfloat16";
   }
 
   // Weight quantization & C8 naming hints
@@ -620,9 +626,49 @@ function isLikelyModelArg(token: string): boolean {
 
 function normalizeCliFlag(rawFlag: string): string {
   if (rawFlag.startsWith("--")) {
-    return `--${rawFlag.slice(2).replace(/_/g, "-")}`;
+    const body = rawFlag.slice(2);
+    const dotIdx = body.indexOf(".");
+    if (dotIdx >= 0) {
+      return `--${body.slice(0, dotIdx).replace(/_/g, "-")}${body.slice(dotIdx)}`;
+    }
+    return `--${body.replace(/_/g, "-")}`;
   }
   return rawFlag;
+}
+
+function parseDottedScalarOrJson(raw: string): unknown {
+  const trimmed = raw.trim();
+  if (trimmed === "True") return true;
+  if (trimmed === "False") return false;
+  if (trimmed === "None") return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return raw;
+  }
+}
+
+function setDottedRecordValue(
+  target: Record<string, unknown>,
+  pathSegments: readonly string[],
+  value: unknown,
+): void {
+  let cursor: Record<string, unknown> = target;
+  for (let idx = 0; idx < pathSegments.length - 1; idx += 1) {
+    const seg = pathSegments[idx]!;
+    const existing = cursor[seg];
+    if (isRecord(existing)) {
+      cursor = existing;
+    } else {
+      const next: Record<string, unknown> = {};
+      cursor[seg] = next;
+      cursor = next;
+    }
+  }
+  const leaf = pathSegments[pathSegments.length - 1];
+  if (leaf) {
+    cursor[leaf] = value;
+  }
 }
 
 function findServeTokens(statements: readonly ShellStatement[]): {
@@ -732,6 +778,8 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   let host: string | null = null;
   let distributedExecutorBackend: string | null = null;
   let loadFormat: string | null = null;
+  let shutdownTimeout: number | undefined;
+  let mambaCacheMode: string | undefined;
   let trustRemoteCode = false;
   let enforceEager = false;
   let enableSleepMode = false;
@@ -757,6 +805,8 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   let isLoraEnabled: boolean | undefined;
   let attentionBackend: string | undefined;
   let useSequenceParallelMoe: boolean | undefined;
+  let useUbatching: boolean | undefined;
+  let rawHotReloadFloatLiteral: string | undefined;
   let additionalConfig: Record<string, unknown> | null = null;
   let compilationConfig: Record<string, unknown> | null = null;
   let kvTransferConfig: Record<string, unknown> | null = null;
@@ -973,6 +1023,12 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       case "--no-use-sequence-parallel-moe":
         useSequenceParallelMoe = false;
         break;
+      case "--enable-dbo":
+        useUbatching = inlineVal !== undefined ? (parseBoolLike(inlineVal) ?? true) : true;
+        break;
+      case "--no-enable-dbo":
+        useUbatching = false;
+        break;
       case "--distributed-executor-backend": {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
@@ -983,6 +1039,30 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
         if (v !== undefined) loadFormat = v.trim();
+        break;
+      }
+      case "--shutdown-timeout": {
+        const [v, ni] = readValue(flag, inlineVal, i);
+        i = ni;
+        if (v !== undefined) {
+          const n = parseNumberLike(v);
+          if (n === undefined || n < 0) {
+            diagnostics.push({
+              code: "parse-invalid-number",
+              severity: "error",
+              flag,
+              message: `${flag} 需要非负数值，收到 '${v}'。`,
+            });
+          } else {
+            shutdownTimeout = n;
+          }
+        }
+        break;
+      }
+      case "--mamba-cache-mode": {
+        const [v, ni] = readValue(flag, inlineVal, i);
+        i = ni;
+        if (v !== undefined) mambaCacheMode = v.trim().toLowerCase();
         break;
       }
       case "--host": {
@@ -1002,7 +1082,15 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       case "--additional-config": {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
-        if (v !== undefined) additionalConfig = parseJsonObjectFlag(flag, v, diagnostics);
+        if (v !== undefined) {
+          const floatMatch = /["']runtime_config_hot_reload["']\s*:\s*(-?\d+\.\d+)/.exec(v);
+          rawHotReloadFloatLiteral = floatMatch?.[1];
+          const parsedObj = parseJsonObjectFlag(flag, v, diagnostics);
+          if (parsedObj) {
+            const base: Record<string, unknown> = additionalConfig ?? {};
+            additionalConfig = { ...base, ...parsedObj };
+          }
+        }
         break;
       }
       case "-cc":
@@ -1025,6 +1113,20 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         break;
       }
       default: {
+        if (flag.startsWith("--additional-config.")) {
+          const dottedPath = flag.slice("--additional-config.".length);
+          const segments = dottedPath.split(".").filter((seg) => seg.length > 0);
+          const [v, ni] = readValue(flag, inlineVal, i);
+          i = ni;
+          if (v !== undefined && segments.length > 0) {
+            if (!additionalConfig) additionalConfig = {};
+            if (segments.length === 1 && segments[0] === "runtime_config_hot_reload") {
+              rawHotReloadFloatLiteral = /^-?\d+\.\d+$/.test(v.trim()) ? v.trim() : undefined;
+            }
+            setDottedRecordValue(additionalConfig, segments, parseDottedScalarOrJson(v));
+          }
+          break;
+        }
         const isKnownNoArgBool =
           KNOWN_NO_ARG_BOOL_FLAGS.has(flag) || /^--(?:no-)?(?:enable|disable)-/.test(flag);
         if (!KNOWN_NO_ARG_BOOL_FLAGS.has(flag)) {
@@ -1073,6 +1175,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   };
 
   if (inferredHints.isMoe !== undefined) couplingInput.isMoe = inferredHints.isMoe;
+  if (inferredHints.hasRoutedExpertHiddenSize !== undefined) {
+    couplingInput.hasRoutedExpertHiddenSize = inferredHints.hasRoutedExpertHiddenSize;
+  }
   if (inferredHints.useMla !== undefined) couplingInput.useMla = inferredHints.useMla;
   if (inferredHints.usesSfaSparse !== undefined) couplingInput.usesSfaSparse = inferredHints.usesSfaSparse;
   if (inferredHints.isQwen35Dense !== undefined) couplingInput.isQwen35Dense = inferredHints.isQwen35Dense;
@@ -1117,7 +1222,11 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   if (isLoraEnabled !== undefined) couplingInput.isLoraEnabled = isLoraEnabled;
   if (attentionBackend !== undefined) couplingInput.attentionBackend = attentionBackend;
   if (useSequenceParallelMoe !== undefined) couplingInput.useSequenceParallelMoe = useSequenceParallelMoe;
+  if (useUbatching !== undefined) couplingInput.useUbatching = useUbatching;
   if (rawKvCacheDtype !== undefined) couplingInput.cacheDtype = rawKvCacheDtype;
+  if (loadFormat !== null) couplingInput.loadFormat = loadFormat.toLowerCase();
+  couplingInput.shutdownTimeout = shutdownTimeout ?? 0;
+  if (mambaCacheMode !== undefined) couplingInput.mambaCacheMode = mambaCacheMode;
 
   // Env-driven coupling fields
   if (Object.hasOwn(envVars, "VLLM_USE_V2_MODEL_RUNNER")) {
@@ -1240,8 +1349,119 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
     if (isEnabledSubConfig(additionalConfig.xlite_graph_config)) {
       couplingInput.xliteEnabled = true;
     }
-    if (isEnabledSubConfig(additionalConfig.quantized_all_reduce_config)) {
-      couplingInput.quantizedAllReduceEnabled = true;
+    const qarc = additionalConfig.quantized_all_reduce_config;
+    if (qarc !== undefined && qarc !== null) {
+      if (!isRecord(qarc)) {
+        couplingInput.quantizedAllReduceInvalidReason = `TypeError / ValidationError: additional_config.quantized_all_reduce_config 必须为字典对象（仅含 enable 与 min_numel），不能传 ${Array.isArray(qarc) ? "list" : typeof qarc}`;
+      } else {
+        const unknownQarKeys = Object.keys(qarc)
+          .filter((k) => k !== "enable" && k !== "min_numel")
+          .sort();
+        if (unknownQarKeys.length > 0) {
+          couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
+        }
+        const qEn = parseBoolLike(qarc.enable);
+        if (qEn !== undefined) couplingInput.quantizedAllReduceEnabled = qEn;
+        if (qarc.min_numel !== undefined) {
+          const qMin = parseNumberLike(qarc.min_numel);
+          if (qMin !== undefined && Number.isInteger(qMin)) {
+            couplingInput.quantizedAllReduceMinNumel = qMin;
+          } else {
+            couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.min_numel 必须为整数（收到 ${JSON.stringify(qarc.min_numel)}）`;
+          }
+        }
+      }
+    }
+
+    const MAIN_ONLY_ADDITIONAL_KEYS = [
+      "shared_engram",
+      "quantized_all_reduce_config",
+      "runtime_config",
+      "runtime_config_hot_reload",
+      "runtime_config_path",
+      "gdn_internal_prefill_checkpoints",
+      "kv_pool_range_debug",
+      "megamoe_shared_expert_fusion",
+    ] as const;
+    const presentMainOnly = MAIN_ONLY_ADDITIONAL_KEYS.filter((k) => Object.hasOwn(additionalConfig, k));
+    if (presentMainOnly.length > 0) {
+      couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
+    }
+
+    const sedp = parseBoolLike(additionalConfig.enable_shared_expert_dp);
+    if (sedp !== undefined) couplingInput.enableSharedExpertDp = sedp;
+    const mmSef = parseBoolLike(additionalConfig.megamoe_shared_expert_fusion);
+    if (mmSef !== undefined) couplingInput.megamoeSharedExpertFusion = mmSef;
+    const meo = parseBoolLike(additionalConfig.multistream_engram_overlap);
+    if (meo !== undefined) couplingInput.multistreamEngramOverlap = meo;
+    const gdnCp = parseBoolLike(additionalConfig.gdn_internal_prefill_checkpoints);
+    if (gdnCp !== undefined) couplingInput.gdnInternalPrefillCheckpoints = gdnCp;
+    const kvDbg = parseBoolLike(additionalConfig.kv_pool_range_debug);
+    if (kvDbg !== undefined) couplingInput.kvPoolRangeDebug = kvDbg;
+
+    const rawSe = additionalConfig.shared_engram;
+    if (rawSe !== undefined && rawSe !== null) {
+      couplingInput.sharedEngramConfigured = true;
+      if (isRecord(rawSe)) {
+        if (rawSe.backend !== undefined) {
+          couplingInput.sharedEngramBackend =
+            typeof rawSe.backend === "string" ? rawSe.backend.trim() : String(rawSe.backend);
+        }
+        if (typeof rawSe.endpoint === "string") {
+          couplingInput.sharedEngramEndpoint = rawSe.endpoint.trim();
+        }
+        const seCap = parseNumberLike(rawSe.capacity);
+        if (seCap !== undefined) couplingInput.sharedEngramCapacity = seCap;
+        if (typeof rawSe.library_path === "string" && rawSe.library_path.length > 0) {
+          couplingInput.sharedEngramLibraryPath = rawSe.library_path;
+        }
+        const seLp = parseNumberLike(rawSe.listen_port);
+        if (seLp !== undefined) couplingInput.sharedEngramListenPort = seLp;
+        if (typeof rawSe.local_comm_res === "string" && rawSe.local_comm_res.length > 0) {
+          couplingInput.sharedEngramLocalCommRes = rawSe.local_comm_res;
+        }
+      }
+    }
+
+    const rawRc = additionalConfig.runtime_config;
+    if (rawRc !== undefined && rawRc !== null) {
+      if (isRecord(rawRc)) {
+        couplingInput.runtimeConfigConfigured = true;
+        if (Object.hasOwn(rawRc, "runtime_config_hot_reload")) {
+          couplingInput.runtimeConfigHasNestedHotReload = true;
+        }
+        if (
+          isRecord(rawRc.dump) &&
+          rawRc.dump.manual_dump !== undefined &&
+          rawRc.dump.manual_dump !== null &&
+          rawRc.dump.manual_dump !== false &&
+          rawRc.dump.manual_dump !== 0
+        ) {
+          couplingInput.runtimeConfigManualDumpSet = true;
+        }
+      } else {
+        couplingInput.runtimeConfigInvalidType = Array.isArray(rawRc) ? "list" : typeof rawRc;
+      }
+    }
+    const rawRcp = additionalConfig.runtime_config_path;
+    if (rawRcp !== undefined && rawRcp !== null) {
+      if (typeof rawRcp === "string") {
+        couplingInput.runtimeConfigPathConfigured = true;
+      } else {
+        couplingInput.runtimeConfigPathInvalidType = Array.isArray(rawRcp) ? "list" : typeof rawRcp;
+      }
+    }
+    const rawHr = additionalConfig.runtime_config_hot_reload;
+    if (rawHotReloadFloatLiteral !== undefined) {
+      couplingInput.runtimeConfigHotReloadInvalidValue = rawHotReloadFloatLiteral;
+    } else if (rawHr !== undefined && rawHr !== null) {
+      if (typeof rawHr === "boolean") {
+        couplingInput.runtimeConfigHotReload = rawHr;
+      } else if (rawHr === 0 || rawHr === 1) {
+        couplingInput.runtimeConfigHotReload = rawHr === 1;
+      } else {
+        couplingInput.runtimeConfigHotReloadInvalidValue = rawHr;
+      }
     }
     if (isRecord(additionalConfig.finegrained_tp_config)) {
       const oproj = parseNumberLike(additionalConfig.finegrained_tp_config.oproj_tensor_parallel_size);

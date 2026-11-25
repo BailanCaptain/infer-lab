@@ -75,8 +75,52 @@ function copyIntoTemp(tempRoot: string, relPath: string): void {
   copyFileSync(src, dst);
 }
 
+const EXPECTED_FORMAL_PARAM_IDS = [
+  "absolute-balance-threshold-71578a0c428d",
+  "block-table-no-commit-optimize-8328d0d2d00d",
+  "c8-enable-reshape-optim-8bd7e5f82c6c",
+  "combine-quant-mode-2a3f7cd47997",
+  "cross-node-transfer-limit-06ee92260b7a",
+  "enable-async-exponential",
+  "enable-force-eplb-b7ec3661121f",
+  "enable-matmul-allreduce",
+  "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+  "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+  "enable-sleep-mode-extra-cleanup",
+  "enable-super-kernel-ce990e186bfa",
+  "fuse-allreduce-rms",
+  "fused-op-type-fc0f5fcd7be0",
+  "gdn-internal-prefill-checkpoints-50f5ac80d583",
+  "kv-pool-range-debug-83e8b165addd",
+  "kvpp-config-0445bd352140",
+  "layer-sharding",
+  "load-risk-quantile-d89a080ba048",
+  "load-window-bins-cc21068b082d",
+  "megamoe-shared-expert-fusion-5a99901d47e6",
+  "multistream-engram-overlap-29113aa3f8fc",
+  "multistream-overlap-gate",
+  "placement-search-backtrack-limit-82b03cef98b0",
+  "prefetch-ratio",
+  "profiling-chunk-config",
+  "quantized-all-reduce-config-3cc69e492011",
+  "rank-transfer-limit-99529b37d91d",
+  "relative-balance-threshold-bcbc40e7dc87",
+  "replica-search-beam-size-6556d1650a62",
+  "replica-search-num-stages-e4b10925ff97",
+  "replica-search-radius-cd3118b5aae5",
+  "runtime-config-abb228bbf148",
+  "runtime-config-hot-reload-9c9ab794933a",
+  "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+  "shared-engram-31bf0d820403",
+  "size-40a1c2ca47b8",
+  "stair-config-cca9e594a052",
+  "use-fused-overlap-75a180fff6ab",
+  "use-layerwise-b475778cd352",
+  "weight-prefetch-config",
+] as const;
+
 describe("param-display snapshot parity · 单一真相源重导出与隔离临时副本快照校验", () => {
-  it("lineage / params/pages 与前端共用同一纯函数引用，33 篇正式参数页保持只读，快照构建在隔离临时目录运行并清理", async () => {
+  it("lineage / params/pages 与前端共用同一纯函数引用，41 篇正式参数页保持只读，快照构建在隔离临时目录运行并清理", async () => {
     // 1. P4 单一真相源：Node 旧入口与浏览器公共入口导出完全同一函数/常量引用
     expect(generatedSectionLineage).toBe(generatedSectionShared);
     expect(PARAM_SECTION_NODE).toBe(PARAM_SECTION_SHARED);
@@ -99,7 +143,8 @@ describe("param-display snapshot parity · 单一真相源重导出与隔离临�
     const paramFiles = readdirSync(join(REPO_ROOT, "wiki/params"))
       .filter((name) => name.endsWith(".md"))
       .sort();
-    expect(paramFiles.length).toBe(33);
+    expect(paramFiles.length).toBe(41);
+    expect(paramFiles).toEqual(EXPECTED_FORMAL_PARAM_IDS.map((id) => `${id}.md`));
 
     for (const name of paramFiles) {
       const rel = `params/${name}`;

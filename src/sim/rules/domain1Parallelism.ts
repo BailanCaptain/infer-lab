@@ -517,6 +517,185 @@ export const domain1Rules: readonly CouplingRule[] = [
       };
     },
   },
+  {
+    id: "d1-quantized-ar-constraints",
+    domain: "parallelism-moe",
+    title: "quantized_all_reduce_config 仅支持 Atlas A2、tp_size <= 8 且 min_numel >= 1（main）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L427-L454`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L2047`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/distributed/device_communicators/quantized_all_reduce.py#L87-L96`,
+    ],
+    description:
+      "main@8d6180e2 中 QuantizedAllReduceConfig 要求 min_numel >= 1 且启用时 tensor_parallel_size <= 8（否则抛 ValueError），并在构造 QuantizedAllReduce 时要求设备为 Atlas A2（否则抛 RuntimeError）。",
+    rationale:
+      "对称 int8 规约防溢出量化预算为 max_q = 127 // world_size（TP>8 动态范围不足），且收支平衡仅在 Atlas A2 HCCS 上完成标定。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      const errors: string[] = [];
+      if (input.quantizedAllReduceInvalidReason) {
+        errors.push(input.quantizedAllReduceInvalidReason);
+      }
+      if (input.quantizedAllReduceMinNumel !== undefined && input.quantizedAllReduceMinNumel < 1) {
+        errors.push(
+          `ValueError: additional_config.quantized_all_reduce_config.min_numel 必须 >= 1（当前为 ${input.quantizedAllReduceMinNumel}）`,
+        );
+      }
+      if (input.quantizedAllReduceEnabled) {
+        const tp = Math.max(1, input.tpSize ?? 1);
+        const moeSpSilentlyDisables = Boolean(
+          input.enableFlashcomm1 &&
+            input.useSequenceParallelMoe !== false &&
+            input.isMoe &&
+            input.enableExpertParallel &&
+            tp > 1,
+        );
+        if (!moeSpSilentlyDisables) {
+          if (tp > 8) {
+            errors.push(
+              `ValueError: quantized_all_reduce_config 仅支持 tensor_parallel_size <= 8（当前 TP=${tp}，127 // world_size 有效量化台阶不足）`,
+            );
+          }
+          if (input.hardwareFamily !== undefined && input.hardwareFamily !== "A2") {
+            errors.push(
+              `RuntimeError: quantized_all_reduce_config 在 main@8d6180e2 仅支持 Atlas A2，当前硬件族 ${input.hardwareFamily} 实例化通信器时会直接报错`,
+            );
+          }
+        }
+      }
+      if (errors.length === 0) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "error",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `${errors.join("；")}。`,
+        remediation:
+          "仅在 Atlas A2 且 TP <= 8、min_numel >= 1（推荐默认 16777216 即 32 MiB，仅含 enable 与 min_numel 两个子键）下启用 quantized_all_reduce_config。",
+      };
+    },
+  },
+  {
+    id: "d1-megamoe-shared-expert-fusion-constraints",
+    domain: "parallelism-moe",
+    title:
+      "MegaMoE 共享专家融合（enable_fused_mc2=3）仅限 Atlas A5 非 Latent-MoE 且 TP>1 需复制共享权重（main）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L708`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L774-L785`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L1100-L1128`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ops/fused_moe/shared_experts.py#L186-L263`,
+    ],
+    description:
+      "enable_fused_mc2=3 先将 megamoe_shared_expert_fusion 置为 True（enable_fused_mc2=2 则将其覆写回 False），在非 Atlas A5 或含 routed_expert_hidden_size 的 Latent-MoE 上（即使缺少 cann_ops_transformer）仍直接抛 NotImplementedError；在 A5 且 TP>1 未开 enable_shared_expert_dp 时回退独立共享专家前向。",
+    rationale: "CANN MegaMoE 共享专家并入契约绑定 A5 MXFP 算子与同残差宽度，且算子内部不做跨 TP 规约。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.enableFusedMc2 === 2 && input.megamoeSharedExpertFusion === true) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "silent-rewrite",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message:
+            "enable_fused_mc2=2 会在 _validate_user_input_ranges 中按 enable_fused_mc2 == 3 将手写的 megamoe_shared_expert_fusion=true 静默覆写回 False。",
+          effectiveMutation: { megamoeSharedExpertFusion: false },
+          remediation:
+            "移除手写的 megamoe_shared_expert_fusion；若需共享专家融合（仅限 Atlas A5），请改用 enable_fused_mc2=3。",
+        };
+      }
+
+      const effectiveSef =
+        input.enableFusedMc2 === 3 ||
+        (input.megamoeSharedExpertFusion === true && input.enableFusedMc2 !== 2);
+      if (!effectiveSef) return null;
+
+      if (input.hardwareFamily !== undefined && input.hardwareFamily !== "A5") {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "error",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message: `NotImplementedError: enable_fused_mc2=3（megamoe_shared_expert_fusion）仅支持 Atlas A5 (Ascend 950)，当前硬件族 ${input.hardwareFamily} 启动校验直接报错。`,
+          remediation:
+            "在非 A5 设备上请将 additional_config.enable_fused_mc2 设为 0、1 或 2，并移除手写的 megamoe_shared_expert_fusion。",
+        };
+      }
+      if (input.hasRoutedExpertHiddenSize) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "error",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message:
+            "NotImplementedError: Latent-MoE 模型（含 routed_expert_hidden_size）不支持 enable_fused_mc2=3 共享专家融合。",
+          remediation: "改用 enable_fused_mc2=2（保持独立共享专家前向）或关闭融合 MC2。",
+        };
+      }
+      if (input.enableFusedMc2 === 3 && input.cannOpsTransformerAvailable === false) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "silent-rewrite",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message:
+            "当前环境缺少 cann_ops_transformer 包：enable_fused_mc2=3 已告警降级为 enable_fused_mc2=1，运行期不会启用 MegaMoE 及其共享专家融合。",
+          effectiveMutation: { enableFusedMc2: 1 },
+          remediation: "安装匹配的 cann_ops_transformer 包以启用 MegaMoE 共享专家融合。",
+        };
+      }
+      if (input.enableFusedMc2 !== 3) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "warn",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message:
+            "megamoe_shared_expert_fusion 是由 enable_fused_mc2=3 派生的内部标志；未设置 enable_fused_mc2=3 时手写该键不会激活 MegaMoE 共享专家融合。",
+          remediation: `请移除手写的 megamoe_shared_expert_fusion，改用 --additional-config '{"enable_fused_mc2": 3, "enable_shared_expert_dp": true}'。`,
+        };
+      }
+      const tp = Math.max(1, input.tpSize ?? 1);
+      if (tp > 1 && input.enableSharedExpertDp !== true) {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "warn",
+          evidenceLevel: this.evidenceLevel,
+          sources: this.sources,
+          message: `已请求 enable_fused_mc2=3 且 TP=${tp} > 1，但未开启 enable_shared_expert_dp=true；MegaMoE 算子内不做跨卡规约，共享专家层将自动回退独立前向。`,
+          remediation: `在 --additional-config 中同时传入 "enable_shared_expert_dp": true 以在每卡复制共享专家权重。`,
+        };
+      }
+      return null;
+    },
+  },
 ];
 
 export function evaluateDomain1Rules(

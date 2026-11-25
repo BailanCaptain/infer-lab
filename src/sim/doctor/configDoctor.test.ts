@@ -525,4 +525,120 @@ describe("Wave 3 Review Remediations (P2-2, P2-3, P2-4, P3-2, P3-3)", () => {
     });
     expect(glm45C8.errors.some((f) => f.id === "d3-gqa-c8-requires-quant-weights")).toBe(true);
   });
+
+  it("WS4 promoted parameter CLI-to-ConfigDoctor end-to-end checks across v0.30.0 and main", () => {
+    // 1. Passing main-only shared_engram / quantized_all_reduce_config / runtime_config on v0.30.0 triggers error even in minimal mode
+    const mainOnlyOnV030 = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-8B --additional-config '{"quantized_all_reduce_config":{"enable":true},"kv_pool_range_debug":true}'`,
+      { mode: "minimal", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(mainOnlyOnV030.hasBlockers).toBe(true);
+    expect(mainOnlyOnV030.errors.some((f) => f.id === "d5-main-only-additional-config-keys")).toBe(true);
+
+    // 2. quantized_all_reduce_config on main: errors on A3, passes on A2 with TP=8
+    const qarCmd = `vllm serve /models/Qwen3-32B -tp 8 --additional-config '{"quantized_all_reduce_config":{"enable":true,"min_numel":16777216}}'`;
+    const qarA3 = runSingleConfigDoctor(qarCmd, { mode: "full", hardwareFamily: "A3", version: "main" });
+    expect(qarA3.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
+    const qarA2 = runSingleConfigDoctor(qarCmd, { mode: "full", hardwareFamily: "A2", version: "main" });
+    expect(qarA2.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
+
+    // 3. shared_engram A5: omitting --shutdown-timeout defaults to 0 and errors; DP=1 errors; -tp 4 -dp 2 --shutdown-timeout 120 passes; -pp 2 errors
+    const seDefaultTimeout = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4.1-Flash -tp 4 -dp 2 --additional-config '{"shared_engram":{"backend":"a5","endpoint":"10.0.0.8:29500"}}'`,
+      { mode: "full", hardwareFamily: "A5", version: "main" },
+    );
+    expect(seDefaultTimeout.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(true);
+
+    const seMissingDp = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4.1-Flash --shutdown-timeout 120 --additional-config '{"shared_engram":{"backend":"a5","endpoint":"10.0.0.8:29500"}}'`,
+      { mode: "full", hardwareFamily: "A5", version: "main" },
+    );
+    expect(seMissingDp.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(true);
+
+    const seBadPp = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4.1-Flash -tp 4 -pp 2 -dp 2 --shutdown-timeout 120 --additional-config '{"shared_engram":{"backend":"a5","endpoint":"10.0.0.8:29500"}}'`,
+      { mode: "full", hardwareFamily: "A5", version: "main" },
+    );
+    expect(seBadPp.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(true);
+
+    const seOk = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4.1-Flash -tp 4 -dp 2 --shutdown-timeout 120 --additional-config '{"shared_engram":{"backend":"a5","endpoint":"10.0.0.8:29500"}}'`,
+      { mode: "full", hardwareFamily: "A5", version: "main" },
+    );
+    expect(seOk.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(false);
+
+    // 4. runtime_config_hot_reload rejects numeric interval (3) AND float literal (1.0), allows manual_dump: null, and VLLM_ASCEND_KVPOOL_RANGE_DEBUG warns as retired on main
+    const rcBad = runSingleConfigDoctor(
+      `export VLLM_ASCEND_KVPOOL_RANGE_DEBUG=1
+vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.0}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(rcBad.errors.some((f) => f.id === "d5-runtime-config-constraints")).toBe(true);
+    expect(rcBad.warnings.some((f) => f.id === "d5-retired-ascend-env-var")).toBe(true);
+
+    const rcNullDump = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-8B --additional-config '{"runtime_config":{"dump":{"manual_dump":null}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(rcNullDump.findings.some((f) => f.id === "d5-runtime-config-constraints")).toBe(false);
+
+    // 5. Kimi-K3 Latent-MoE blocks enable_fused_mc2=3 on main even on A5
+    const kimiMc2 = runSingleConfigDoctor(
+      `vllm serve /models/Kimi-K3 -tp 8 --enable-expert-parallel --additional-config '{"enable_fused_mc2":3,"enable_shared_expert_dp":true}'`,
+      { mode: "full", hardwareFamily: "A5", version: "main" },
+    );
+    expect(kimiMc2.errors.some((f) => f.id === "d1-megamoe-shared-expert-fusion-constraints")).toBe(true);
+
+    // 6. Dotted --additional-config.<path> & --additional_config.<path>, strict quantized_all_reduce_config sub-keys, rfork/vllm_omni, and --enable-dbo
+    const dottedCmd = `vllm serve /models/Qwen3-32B -tp 4 --additional_config.quantized_all_reduce_config.enable true --additional-config.runtime_config_hot_reload=1.0`;
+    const dottedRes = runSingleConfigDoctor(dottedCmd, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(dottedRes.parsed.unknownFlags).toHaveLength(0);
+    expect(dottedRes.effectiveInput.quantizedAllReduceEnabled).toBe(true);
+    expect(dottedRes.errors.some((f) => f.id === "d5-runtime-config-constraints")).toBe(true);
+
+    const qarBoolBad = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":true}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarBoolBad.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
+
+    const qarUnknownSubkey = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enabled":true,"quant_dtype":"fp8"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarUnknownSubkey.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
+
+    const mainOnlyRfork = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-8B --additional-config '{"kv_pool_range_debug":true}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(mainOnlyRfork.hasBlockers).toBe(false);
+    expect(mainOnlyRfork.silentRewrites.some((f) => f.id === "d5-main-only-additional-config-keys")).toBe(
+      true,
+    );
+
+    const mainOnlyOmni = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-8B --additional-config '{"kv_pool_range_debug":true}'`,
+      {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelTraitOverride: { vllmOmniAvailable: true },
+      },
+    );
+    expect(mainOnlyOmni.hasBlockers).toBe(false);
+    expect(mainOnlyOmni.silentRewrites.some((f) => f.id === "d5-main-only-additional-config-keys")).toBe(
+      true,
+    );
+
+    const gdnDbo = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-Next-80B-A3B -tp 4 --mamba-cache-mode align --enable-dbo --additional-config '{"gdn_internal_prefill_checkpoints":true}'`,
+      { mode: "full", hardwareFamily: "A3", version: "main" },
+    );
+    expect(gdnDbo.warnings.some((f) => f.id === "d5-gdn-prefill-checkpoints-constraints")).toBe(true);
+  });
 });

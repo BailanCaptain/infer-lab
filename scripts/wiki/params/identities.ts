@@ -40,6 +40,28 @@ export function parameterBindings(root: string) {
   return bindings;
 }
 
+export function topLevelAdditionalConfigJsonPath(entry: Pick<ParamEntry, "json_path">): string | undefined {
+  const m = /^(additional_config\["[^"]+"\])(?:\["[^"]+"\])+$/.exec(entry.json_path);
+  return m?.[1];
+}
+
+export function isNestedAdditionalConfigSubKey(entry: Pick<ParamEntry, "json_path">): boolean {
+  return topLevelAdditionalConfigJsonPath(entry) !== undefined;
+}
+
+export function hasPublishedParentParamPage(
+  entry: Pick<ParamEntry, "json_path">,
+  pages: readonly WikiPage[],
+): boolean {
+  const parentJsonPath = topLevelAdditionalConfigJsonPath(entry);
+  if (!parentJsonPath) return false;
+  return pages.some((p) => {
+    if (p.fm.type !== "param" || !p.file.startsWith("params/")) return false;
+    const pinned = parsePinnedParamIdentity(p.body);
+    return pinned?.kind === "json_path" && pinned.jsonPath === parentJsonPath;
+  });
+}
+
 function matchesBoundParamTarget(
   repo: string,
   repoDir: string | undefined,
@@ -54,7 +76,13 @@ function matchesBoundParamTarget(
     if (protectedParamSection(page.body)) return false;
     return page.fm.title === entry.name || page.fm.aliases.includes(entry.name);
   }
-  if (role === "reference") return pinned.name === entry.name;
+  if (role === "reference") {
+    return (
+      pinned.name === entry.name ||
+      Boolean(pinned.jsonPath && entry.json_path.startsWith(`${pinned.jsonPath}[`)) ||
+      page.fm.aliases.includes(entry.name)
+    );
+  }
   if (!matchesConfirmedParamDefinition({ repo, repoDir, sources: page.fm.sources, pinned }, entry)) {
     return false;
   }
@@ -82,6 +110,15 @@ export function parameterPageId(
   const page = pages.find((p) => p.fm.id === id);
   if (binding && !matchesBoundParamTarget(repo, repoDir, page, entry, binding.role, pages))
     throw new Error(`参数身份映射目标不匹配：${id}`);
+  if (!binding && !page && hasPublishedParentParamPage(entry, pages)) {
+    const unmappedLegacySubKey = pages.some((p) => {
+      if (p.fm.type !== "param" || p.fm.id === id) return false;
+      const pinned = parsePinnedParamIdentity(p.body);
+      return pinned?.jsonPath === entry.json_path;
+    });
+    if (unmappedLegacySubKey) throw new Error(`旧参数页需要明确身份映射：${entry.name}`);
+    return undefined;
+  }
   if (
     !binding &&
     !page &&

@@ -214,8 +214,8 @@ $$\text{capacity} = \max\bigl(\text{max\_num\_batched\_tokens} \times \text{PCP}
 | 版本 | 定义是否存在 | 固定提交 |
 | --- | --- | --- |
 | main | 无 | `8d6180e2` |
-| releases/v0.23.0 | 有 | `2c59ff10` |
-| releases/v0.26.0rc | 有 | `2ed6cbba` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
 | releases/v0.30.0 | 无 | `c09d3e20` |
 

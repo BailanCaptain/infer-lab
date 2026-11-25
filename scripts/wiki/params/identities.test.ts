@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { parsePage } from "../pages";
 import { wikiFixture } from "../test-fixture";
-import { parameterPageId } from "./identities";
+import { hasPublishedParentParamPage, isNestedAdditionalConfigSubKey, parameterPageId } from "./identities";
 import { buildParamPage, paramId } from "./pages";
 import { scanSources } from "./scan";
 
@@ -287,6 +287,147 @@ it("enforces file scope on definition bindings for both explicit-class and legac
       );
       expect(parameterPageId(f.root, "r", left, [page])).toBeUndefined();
     }
+  } finally {
+    f.cleanup();
+  }
+});
+
+it("folds unauthored nested AscendConfig sub-keys into parent while preserving existing published sub-key pages and validating reference bindings", () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/ascend_config.py";
+    const src = [
+      "class SharedEngramConfig:",
+      "    backend: str = 'a2'",
+      "",
+      "class AscendCompilationConfig:",
+      "    enable_static_kernel: bool = False",
+      "",
+      "class ExpertOffloadConfig:",
+      "    enabled: bool = False",
+      "",
+      "class AscendConfig:",
+      "    shared_engram: SharedEngramConfig | None = None",
+      "    ascend_compilation_config: AscendCompilationConfig | None = None",
+      "    expert_offload_config: ExpertOffloadConfig | None = None",
+      "    sub_feature_path: str | None = None",
+      "    unrelated_flag: bool = False",
+      "",
+    ].join("\n");
+    const entries = scanSources({ [file]: src });
+    const parent = entries.find((e) => e.name === "shared_engram")!;
+    const subBackend = entries.find((e) => e.name === "backend")!;
+    const compStaticKernel = entries.find((e) => e.name === "enable_static_kernel")!;
+    const expertOffloadParent = entries.find((e) => e.name === "expert_offload_config")!;
+    const expertOffloadEnabled = entries.find((e) => e.name === "enabled")!;
+    const siblingPath = entries.find((e) => e.name === "sub_feature_path")!;
+    const unrelated = entries.find((e) => e.name === "unrelated_flag")!;
+
+    expect(isNestedAdditionalConfigSubKey(parent)).toBe(false);
+    expect(isNestedAdditionalConfigSubKey(subBackend)).toBe(true);
+    expect(isNestedAdditionalConfigSubKey(compStaticKernel)).toBe(true);
+    expect(isNestedAdditionalConfigSubKey(expertOffloadEnabled)).toBe(true);
+
+    const parentId = paramId(parent);
+    const parentRaw = buildParamPage({
+      repo: "vllm-ascend",
+      ref: "main",
+      commit: "b".repeat(40),
+      entry: parent,
+      date: "2026-11-26",
+    }).replace(/^type: param$/m, "type: param\naliases:\n  - sub_feature_path");
+    const parentPage = parsePage(`params/${parentId}.md`, parentRaw).page!;
+
+    // Draft-only parent (`_drafts/expert-offload-config-*.md`) must NOT trigger folding!
+    const draftParentId = paramId(expertOffloadParent);
+    const draftParentPage = parsePage(
+      `_drafts/${draftParentId}.md`,
+      buildParamPage({
+        repo: "vllm-ascend",
+        ref: "main",
+        commit: "b".repeat(40),
+        entry: expertOffloadParent,
+        date: "2026-11-26",
+      }),
+    ).page!;
+
+    // 1. Sub-key folds ONLY when a published `params/*.md` page exists for `json_path[0]`
+    expect(hasPublishedParentParamPage(subBackend, [parentPage, draftParentPage])).toBe(true);
+    expect(hasPublishedParentParamPage(compStaticKernel, [parentPage, draftParentPage])).toBe(false);
+    expect(hasPublishedParentParamPage(expertOffloadEnabled, [parentPage, draftParentPage])).toBe(false);
+
+    expect(parameterPageId(f.root, "vllm-ascend", parent, [parentPage])).toBe(parentId);
+    expect(parameterPageId(f.root, "vllm-ascend", subBackend, [parentPage])).toBeUndefined();
+    expect(parameterPageId(f.root, "vllm-ascend", compStaticKernel, [parentPage])).toBe(
+      paramId(compStaticKernel),
+    );
+    expect(parameterPageId(f.root, "vllm-ascend", expertOffloadEnabled, [parentPage, draftParentPage])).toBe(
+      paramId(expertOffloadEnabled),
+    );
+
+    // 2. Existing published sub-key pages continue to resolve their standalone pageId
+    const publishedSubId = paramId(subBackend);
+    const publishedSubPage = parsePage(
+      `params/${publishedSubId}.md`,
+      buildParamPage({
+        repo: "vllm-ascend",
+        ref: "main",
+        commit: "b".repeat(40),
+        entry: subBackend,
+        date: "2026-11-26",
+      }),
+    ).page!;
+    expect(parameterPageId(f.root, "vllm-ascend", subBackend, [parentPage, publishedSubPage])).toBe(
+      publishedSubId,
+    );
+
+    // 3. Explicit reference bindings work for child json_path and aliased sibling keys, but reject unrelated keys
+    f.write(
+      "wiki/params/identities.json",
+      JSON.stringify({
+        schemaVersion: 1,
+        bindings: [
+          {
+            repo: "vllm-ascend",
+            file,
+            class: subBackend.class,
+            json_path: subBackend.json_path,
+            pageId: parentId,
+            role: "reference",
+          },
+          {
+            repo: "vllm-ascend",
+            file,
+            class: siblingPath.class,
+            json_path: siblingPath.json_path,
+            pageId: parentId,
+            role: "reference",
+          },
+        ],
+      }),
+    );
+    expect(parameterPageId(f.root, "vllm-ascend", subBackend, [parentPage])).toBeUndefined();
+    expect(parameterPageId(f.root, "vllm-ascend", siblingPath, [parentPage])).toBeUndefined();
+
+    f.write(
+      "wiki/params/identities.json",
+      JSON.stringify({
+        schemaVersion: 1,
+        bindings: [
+          {
+            repo: "vllm-ascend",
+            file,
+            class: unrelated.class,
+            json_path: unrelated.json_path,
+            pageId: parentId,
+            role: "reference",
+          },
+        ],
+      }),
+    );
+    expect(() => parameterPageId(f.root, "vllm-ascend", unrelated, [parentPage])).toThrow(
+      "参数身份映射目标不匹配",
+    );
   } finally {
     f.cleanup();
   }

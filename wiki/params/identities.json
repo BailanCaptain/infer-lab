@@ -128,6 +128,78 @@
       "json_path": "YuanrongConfig[\"use_layerwise\"]",
       "pageId": "use-layerwise-b475778cd352",
       "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "AscendConfig",
+      "json_path": "additional_config[\"runtime_config_path\"]",
+      "pageId": "runtime-config-abb228bbf148",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"backend\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"endpoint\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"capacity\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"library_path\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"listen_port\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SharedEngramConfig",
+      "json_path": "additional_config[\"shared_engram\"][\"local_comm_res\"]",
+      "pageId": "shared-engram-31bf0d820403",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "QuantizedAllReduceConfig",
+      "json_path": "additional_config[\"quantized_all_reduce_config\"][\"enable\"]",
+      "pageId": "quantized-all-reduce-config-3cc69e492011",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "QuantizedAllReduceConfig",
+      "json_path": "additional_config[\"quantized_all_reduce_config\"][\"min_numel\"]",
+      "pageId": "quantized-all-reduce-config-3cc69e492011",
+      "role": "reference"
     }
   ]
 }

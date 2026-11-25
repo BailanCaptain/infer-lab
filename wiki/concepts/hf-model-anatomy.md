@@ -20,6 +20,7 @@ aliases:
   - tie_word_embeddings
   - architectures
   - model_type
+  - vocab_size
 chapters:
   - '01'
 order: 15

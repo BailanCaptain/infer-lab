@@ -21,6 +21,9 @@ aliases:
   - persistent batch
   - 注意力元数据
   - attention metadata
+  - DecodeOnly
+  - SpecDecoding
+  - AscendAttentionState
 chapters:
   - 09
 order: 30

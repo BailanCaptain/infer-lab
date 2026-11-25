@@ -21,6 +21,7 @@ aliases:
   - kv_role
   - kv_producer
   - kv_consumer
+  - kv_both
   - prefill_tp_size
   - decode_tp_size
   - kv_transfer_params
@@ -452,7 +453,7 @@ $$t_{\text{expire}}' = \max(t_{\text{expire}},\; t_{\text{hb}} + 20)$$
 
 ## 真机实测：Ascend 910B3 上短输入 PD 首词放大与 Eager 组合劣化
 
-在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + `ADXL` 即 Ascend Direct Transfer Library 的 `AscendDirectTransport` 直连传输后端）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通功能闭环，再用统一压测脚本（均匀 `262`-token 输入、`128`-token 输出）实测了稠密 `Qwen3-8B`（`2P+2D`）与稀疏 MoE `Qwen3-30B-A3B`（`4P+4D`），并与同机混部基线对照（完整日志摘录、环境指纹与口径边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + `ADXL` 即 Ascend Direct Transfer Library 的 `AscendDirectTransport` 直连传输后端）上，测试先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通功能闭环。随后用统一压测脚本（均匀 `262`-token 输入、`128`-token 输出）实测了稠密 `Qwen3-8B`（`2P+2D`）与稀疏 MoE `Qwen3-30B-A3B`（`4P+4D`），并与同机混部基线对照（完整日志摘录、环境指纹与口径边界见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）：
 
 ```wiki-diagram
 file: pd-fig-910b3-short-prompt-and-eager-trap

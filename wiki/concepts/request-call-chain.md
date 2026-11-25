@@ -27,6 +27,9 @@ aliases:
   - LLM.collective_rpc
   - LLM.apply_model
   - ZMQ 通道
+  - RPC
+  - 远程过程调用
+  - Remote Procedure Call
   - RPC 超时
 chapters:
   - 09

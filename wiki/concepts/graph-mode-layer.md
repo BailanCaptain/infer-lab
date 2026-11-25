@@ -29,6 +29,10 @@ aliases:
   - max-cudagraph-capture-size
   - enforce_eager
   - enforce-eager
+  - FX
+  - FX 图
+  - FX 计算图
+  - torch.fx
 chapters:
   - '16'
 order: 30

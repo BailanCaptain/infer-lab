@@ -50,6 +50,16 @@ aliases:
   - TP_SOCKET_IFNAME
   - SharedAdmissionStats
   - fork vs spawn
+  - fork
+  - spawn
+  - ZMQ
+  - ZeroMQ
+  - 进程间消息队列
+  - ZMQ IPC
+  - SHM
+  - 进程间通信
+  - 共享内存
+  - POSIX 共享内存
 chapters:
   - '10'
 order: 80

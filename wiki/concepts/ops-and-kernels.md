@@ -190,7 +190,7 @@ rawSources:
 file: ops-layers
 ```
 
-图里第二层的三条路，是 `vllm-ascend` 换实现的三种办法，它们最终汇入第三层的两类算子：一类是随 `torch_npu`（昇腾 PyTorch 适配插件 **PTA**，通过 **OpPlugin** 将算子调用映射到 CANN 接口）发布的成熟设备算子，另一类是仓库自己用 **AscendC**（昇腾面向 AI Core 的 C++ 核函数语言）或 **Triton**（面向加速器的 Python 核函数编译器）编译出来的扩展与融合算子。
+图里第二层的三条路，是 `vllm-ascend` 换实现的三种办法，它们最终汇入第三层的两类算子。第一类是随 `torch_npu`（昇腾 PyTorch 适配插件 **PTA**，通过 **OpPlugin** 将算子调用映射到 CANN 接口）发布的成熟设备算子；第二类是仓库自己用 **AscendC**（昇腾面向 AI Core 的 C++ 核函数语言）或 **Triton**（面向加速器的 Python 核函数编译器）编译出来的扩展与融合算子。
 
 | 层 | 它是什么 | 谁负责 | 在哪能看到 |
 |---|---|---|---|

@@ -42,6 +42,7 @@ aliases:
   - pertoken_scale
   - deq_scale
   - quant_mode
+  - model_dtype
 chapters:
   - '11'
 sources:
@@ -232,7 +233,7 @@ $$\hat{y} = 0.01 \times 0.02 \times (52 \times 20 + (-31) \times (-127) + 127 \t
 
 缩放系数不参与整数乘加，只在第 4 步用上。数值范围完全靠它恢复，所以系数本身必须用较高精度保存，也必须跟着权重一起搬。
 
-**系数的粒度是一笔取舍。** 整个张量共用一个系数最省元数据（系数这类跟着数据一起存的附加信息），但一个离群值就会把系数拉大，其余的数被挤到很少的几个整数上；按输出通道、按行或按更小的分组（例如 32 个元素一组）各给一个系数，可以把离群值的影响限制在更小范围，同时增加元数据，最终误差仍取决于数据与量化规则，还要看算子支持哪种粒度。
+**系数的粒度是一笔取舍。** 整个张量共用一个系数最省元数据（系数这类跟着数据一起存的附加信息），但一个离群值就会把系数拉大，其余的数被挤到很少的几个整数上。按输出通道、按行或按更小的分组（例如 32 个元素一组）各给一个系数，可以把离群值的影响限制在更小范围，代价是增加元数据；最终误差仍取决于数据与量化规则，还要看算子支持哪种粒度。
 
 ## 省下什么，付出什么
 
@@ -250,7 +251,7 @@ $$\hat{y} = 0.01 \times 0.02 \times (52 \times 20 + (-31) \times (-127) + 127 \t
 但省容量不是无代价的，实际部署至少要看三笔代价：
 
 - **误差。** 舍入误差和超出范围后的截断误差都会进入这一层的输出，并随层数累积；同一模型换权重精度或换导出配方后必须重新跑质量评估。
-- **多出来的参数、格式转换与硬件回退。** 缩放系数和偏移要跟权重一起加载；权重加载后还要转置、按需要转成设备偏好的分块布局（如 `FRACTAL_NZ`，见[ND 与 NZ](tensor-layout.md)），动态方法还会为权重系数多建一份 FP32 副本；运行时激活量化会增加算子调用，除非被 `PreparedLinearInput` 或融合算子吃掉（例如在 `Ascend 910B3` 真机 `M=2048, K=4096, N=4096` 微基准中，纯 `QuantBatchMatmulV3` 较 BF16 `MatMulV3` 提速 `1.312×`，但未与前序归一化融合时独立 `DynamicQuant` 的 `31.79 µs` 读写把两算子合计提速拉回 `1.128×`，详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。更要注意硬件差异：**在 `v0.30.0` 中，把原生 block-wise FP8（`fp8_block`）权重放到 Atlas A2 / A3 上时，加载期会静默反量化回 `model_dtype`（通常是 BF16，`2 B/元素`），权重要多占回两倍显存，等于 0 节省**，到了社区 `main` 分支则在 A2 / A3 上改为直接抛 `NotImplementedError` 拒绝启动；**至于 300I DUO（310P），由于它走 `QuantizationBackendFamily.COMPATIBILITY` 量化后端、平台预注册时不注册 `AscendFp8Config`（只注册 `AscendModelSlimConfig310`），且其 `model_dtype` 为 FP16 而非 BF16，因此原生 FP8 在 `310P` 上没有 Ascend 执行路径、不受支持**。
+- **多出来的参数、格式转换与硬件回退。** 缩放系数和偏移要跟权重一起加载；权重加载后还要转置、按需要转成设备偏好的分块布局（如 `FRACTAL_NZ`，见[ND 与 NZ](tensor-layout.md)），动态方法还会为权重系数多建一份 FP32 副本。运行时激活量化会增加算子调用，除非被 `PreparedLinearInput` 或融合算子吃掉：例如在 `Ascend 910B3` 真机 `M=2048, K=4096, N=4096` 微基准中，纯 `QuantBatchMatmulV3` 较 BF16 `MatMulV3` 提速 `1.312×`，但未与前序归一化融合时独立 `DynamicQuant` 的 `31.79 µs` 读写把两算子合计提速拉回 `1.128×`（详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。更要注意硬件差异：**在 `v0.30.0` 中，把原生 block-wise FP8（`fp8_block`）权重放到 Atlas A2 / A3 上时，加载期会静默反量化回 `model_dtype`（通常是 BF16，`2 B/元素`），权重要多占回两倍显存，等于 0 节省**；到了社区 `main` 分支则在 A2 / A3 上改为直接抛 `NotImplementedError` 拒绝启动。**至于 300I DUO（310P），由于它走 `QuantizationBackendFamily.COMPATIBILITY` 量化后端、平台预注册时不注册 `AscendFp8Config`（只注册 `AscendModelSlimConfig310`），且其 `model_dtype` 为 FP16 而非 BF16，因此原生 FP8 在 `310P` 上没有 Ascend 执行路径、不受支持。**
 - **只有能量化的层才省。** 精度按层生效，模型代码或描述文件留给高精度的投影（例如路由门控、部分注意力分支或输出头）不会变小。
 
 | 存同一个权重矩阵 | 权重元素 | 另外要存与实际落点 |
@@ -299,7 +300,7 @@ file: quantization-fig-w8a8-mix-pd
 - 在普通线性层（`AscendW8A8DynamicLinearMethod`）里，按「输出维 × 输入维」建 INT8 `weight` 与逐输出通道 `weight_scale`、`weight_offset`；权重装完后，统一在 `process_weights_after_loading` 里把矩阵转置成 `[输入维, 输出维]` 并连续化，若 `act_quant_type == torch.int8` 再视策略转成昇腾偏好的 `FRACTAL_NZ` 分块格式，并把 `weight_scale` 压平后多转一份 `weight_scale_fp32`（`to(torch.float32)`）。转置方向与数学形状的对应见[矩阵乘与权重](matmul-and-weights.md#开销和什么时候别开)。
 - 在 MoE 层（`AscendW8A8DynamicFusedMoEMethod`）里，每卡分到的本地专家合成两块 3 维大权重：`w13_weight`（合并 gate 与 up）和 `w2_weight`（down）。加载后同样转置为算子方向；当 `quant_type == QuantType.W8A8` 时，直接通过 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)` 转成 NZ 布局，同时构造 `w13_weight_scale_fp32`（注意：`w2_weight_scale` 在普通分支下**不**额外复制一份 FP32 副本，只有在 `enable_fused_mc2 == 1` 时才会把 `w13_weight_scale` 和 `w2_weight_scale` 一起转成 INT64 打包的 `fused_w1_scale` / `fused_w2_scale`）。
 
-**激活侧每次前向现算，或沿融合/预量化路径复用。** 普通动态 Linear 拿到 BF16 输入，先调 `npu_dynamic_quant` 按 token 算出 INT8 激活和每行一个 FP32 `pertoken_scale`，再调 `npu_quant_matmul` 把权重和两份系数一起送进核函数，输出恢复成 BF16；在支持通信计算重叠（如共享专家与通信重叠）的路径里，`prepare_input_for_overlap` 会把提前量化的结果打包成 `PreparedLinearInput`，线性层直接复用这份预量化张量而不再重复量化。到了 MoE 阶段，如果前一步 **dispatch**（把 token 向量发给持有它选中专家的卡）已经带着 `quant_mode=2` 传回了 INT8 激活和 `dynamic_scale`，专家计算入口就直接复用；进入 `apply_gmm1_act_quant` 时，开启 `fusion` 的 MC2 路径可以调融合算子 `grouped_matmul_swiglu_quant_weight_nz` 把第一次分组矩阵乘、SwiGLU 激活与第二次矩阵乘前的再量化合在一起做完，而非融合 MC2 路径则先做 INT32 输出的 `npu_grouped_matmul`，再调 `npu_dequant_swiglu_quant` 反量化、激活并量化，prefill 阶段再按条件走 `swiglu_quant` 或 `npu_swiglu` + `npu_dynamic_quant`。下图把稠密 Linear 与稀疏 MoE 两条执行轨道并排对照：
+**激活侧每次前向现算，或沿融合/预量化路径复用。** 普通动态 Linear 拿到 BF16 输入，先调 `npu_dynamic_quant` 按 token 算出 INT8 激活和每行一个 FP32 `pertoken_scale`，再调 `npu_quant_matmul` 把权重和两份系数一起送进核函数，输出恢复成 BF16；在支持通信计算重叠（如共享专家与通信重叠）的路径里，`prepare_input_for_overlap` 会把提前量化的结果打包成 `PreparedLinearInput`，线性层直接复用这份预量化张量而不再重复量化。到了 MoE 阶段，如果前一步 **dispatch**（把 token 向量发给持有它选中专家的卡）已经带着 `quant_mode=2` 传回了 INT8 激活和 `dynamic_scale`，专家计算入口就直接复用。进入 `apply_gmm1_act_quant` 时，开启 `fusion` 的 MC2 路径可以调融合算子 `grouped_matmul_swiglu_quant_weight_nz`，把第一次分组矩阵乘、SwiGLU 激活与第二次矩阵乘前的再量化合在一起做完；非融合 MC2 路径则先做 INT32 输出的 `npu_grouped_matmul`，再调 `npu_dequant_swiglu_quant` 反量化、激活并量化，prefill 阶段另按条件走 `swiglu_quant` 或 `npu_swiglu` + `npu_dynamic_quant`。下图把稠密 Linear 与稀疏 MoE 两条执行轨道并排对照：
 
 ```wiki-diagram
 file: quantization-fig-linear-moe-pipeline

@@ -517,7 +517,7 @@ file: mooncake-connector-fig-addr-and-completion
 
 ## 真机实测：Ascend 910B3 上 ADXL 传输剖面与两份报错标本
 
-在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + ADXL `AscendDirectTransport`）上，先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通端到端闭环，再以均匀 `262`-token 输入 / `128`-token 输出实测了 `Qwen3-8B` `2P2D` 与 `Qwen3-30B-A3B` `4P4D` 的真实分段读取、传输段耗时与回退日志，并留档了两份真实配置报错标本（完整日志与基线表见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)，PD 端到端压测与配比讨论见 [PD 分离页](pd-disaggregation.md#真机实测ascend-910b3-上短输入-pd-首词放大与-eager-组合劣化)）：
+在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`MooncakeConnectorV1` + ADXL `AscendDirectTransport`）上，测试先以 `Qwen3-0.6B` `1P1D`（`18 prompt + 40 completion tokens`）跑通端到端闭环。随后以均匀 `262`-token 输入 / `128`-token 输出实测了 `Qwen3-8B` `2P2D` 与 `Qwen3-30B-A3B` `4P4D` 的真实分段读取、传输段耗时与回退日志，并留档了两份真实配置报错标本（完整日志与基线表见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)，PD 端到端压测与配比讨论见 [PD 分离页](pd-disaggregation.md#真机实测ascend-910b3-上短输入-pd-首词放大与-eager-组合劣化)）：
 
 ```wiki-diagram
 file: pd-fig-910b3-short-prompt-and-eager-trap

@@ -25,6 +25,9 @@ aliases:
   - Triton Ascend
   - Gloo
   - 通信域
+  - ACL
+  - AscendCL
+  - Ascend Computing Language
 chapters:
   - '07'
   - 09
@@ -179,7 +182,7 @@ rawSources:
 
 ## 一张卡上的通信请求，怎样到达另一张卡？
 
-**CANN 是连接框架与昇腾设备的计算软件体系；HCCL 是其中负责组织多卡数据交换的通信库，物理链路承载实际传输。** CANN 提供算子（矩阵乘等具体运算）、运行时（安排设备执行与资源）和图执行等能力。vLLM 组织推理，vllm-ascend 把计算与通信接到昇腾的软件接口上。
+**CANN 是连接框架与昇腾设备的计算软件体系；HCCL 是其中负责组织多卡数据交换的通信库，物理链路承载实际传输。** CANN 提供算子（矩阵乘等具体运算）、运行时（通过 **ACL**，即 **AscendCL / Ascend Computing Language** 底层运行时接口安排设备执行、显存与流资源）和图执行等能力。vLLM 组织推理，vllm-ascend 把计算与通信接到昇腾的软件接口上。
 
 下图只画两张卡，各自以一个 [rank](collective-communication.md#两张卡交换以后各自手里多了什么) 参加一次 [All-Reduce](collective-communication.md#all-reduce)(SUM)：做完后两张卡都拿到对应位置之和。
 

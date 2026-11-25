@@ -14,6 +14,7 @@ aliases:
   - KV Cache 声明
   - 按层 KV 规格声明
   - AttentionSpec
+  - FullAttentionSpec
   - MLAAttentionSpec
   - MambaSpec
   - 缓存组

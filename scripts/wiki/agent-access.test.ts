@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { redactSensitiveText } from "../../server/tool-evidence";
-import { type AgentWiki, handleRpc, makeAgentWiki } from "./agent-access";
+import { type AgentWiki, createCachedAgentWikiLoader, handleRpc, makeAgentWiki } from "./agent-access";
 
 const pages = [
   {
@@ -817,5 +817,134 @@ describe("handleRpc（MCP 的 stdio JSON-RPC）", () => {
     const bareBearerMasked = redactSensitiveText("log: Bearer\nTP_SIZE=4\nMAX_MODEL_LEN=8192");
     expect(bareBearerMasked).toContain("TP_SIZE=4");
     expect(bareBearerMasked).toContain("MAX_MODEL_LEN=8192");
+  });
+
+  it("WS6 真实 193 页仓库契约：createCachedAgentWikiLoader 惰性复用并覆盖全部 7 个工具、新晋升参数与 qwen3-32b / qwen3-235b-a22b", () => {
+    const realLoader = createCachedAgentWikiLoader(process.cwd());
+    expect(realLoader()).toBe(realLoader());
+
+    const callTool = (id: number, name: string, args: Record<string, unknown>) => {
+      const res = handleRpc(
+        { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } },
+        realLoader,
+      );
+      const result = res?.result as { content?: { text: string }[]; isError?: boolean } | undefined;
+      expect(result?.isError, `${name} (${id}): ${result?.content?.[0]?.text}`).toBe(false);
+      return result?.content?.[0]?.text ?? "";
+    };
+
+    // 1. wiki_search: exact Top-1 on newly promoted params
+    const searchHits = JSON.parse(callTool(801, "wiki_search", { query: "shared_engram", limit: 5 }));
+    expect(searchHits[0]).toMatchObject({
+      id: "shared-engram-31bf0d820403",
+      how: "exact",
+      file: "wiki/params/shared-engram-31bf0d820403.md",
+    });
+
+    // 2. wiki_get_page: promoted param pages load real markdown + frontmatter sources
+    for (const promotedId of [
+      "shared-engram-31bf0d820403",
+      "runtime-config-hot-reload-9c9ab794933a",
+      "quantized-all-reduce-config-3cc69e492011",
+      "megamoe-shared-expert-fusion-5a99901d47e6",
+    ]) {
+      const md = callTool(802, "wiki_get_page", { id: promotedId });
+      expect(md).toContain(`id: ${promotedId}`);
+      expect(md).toContain("sources:");
+    }
+
+    // 3. wiki_neighbors: real bidirectional graph edges on promoted param
+    const neighbors = JSON.parse(callTool(803, "wiki_neighbors", { id: "shared-engram-31bf0d820403" }));
+    expect(Array.isArray(neighbors)).toBe(true);
+    expect(neighbors.length).toBeGreaterThan(0);
+
+    // 4. ascend_plan_deploy on qwen3-32b and qwen3-235b-a22b
+    const plan32 = JSON.parse(
+      callTool(804, "ascend_plan_deploy", {
+        model: "qwen3-32b",
+        cardId: "a2-64g",
+        tpSize: 2,
+        weightPrecision: "bf16",
+      }),
+    );
+    expect(plan32.keyMetrics.modelId).toBe("qwen3-32b");
+    expect(plan32.stages).toHaveLength(7);
+
+    const plan235 = JSON.parse(
+      callTool(805, "ascend_plan_deploy", {
+        model: "qwen3-235b-a22b",
+        cardId: "a3-die64g",
+        tpSize: 8,
+        weightPrecision: "w8a8_dynamic",
+        enableEp: true,
+      }),
+    );
+    expect(plan235.keyMetrics.modelId).toBe("qwen3-235b-a22b");
+    expect(plan235.stages).toHaveLength(7);
+    expect(plan235.blockers).toHaveLength(0);
+
+    // 5. ascend_lint_serve_cmd on dotted --additional-config.runtime_config_hot_reload 1.0 & shared_engram
+    const lintHotReload = JSON.parse(
+      callTool(806, "ascend_lint_serve_cmd", {
+        command:
+          "VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-32B -tp 2 --additional-config.runtime_config_hot_reload 1.0",
+        hardwareFamily: "A2",
+        version: "main",
+      }),
+    );
+    expect(lintHotReload.keyMetrics.scope).toBe("single");
+    expect(Array.isArray(lintHotReload.findings)).toBe(true);
+
+    const lintEngram = JSON.parse(
+      callTool(807, "ascend_lint_serve_cmd", {
+        command:
+          "vllm serve Qwen/Qwen3-235B-A22B -tp 8 --enable-expert-parallel --additional-config '{\"shared_engram\": true}'",
+        hardwareFamily: "A3",
+        version: "main",
+      }),
+    );
+    expect(lintEngram.keyMetrics.scope).toBe("single");
+    expect(Array.isArray(lintEngram.findings)).toBe(true);
+
+    // 6. ascend_diagnose_log: multi-rank root cause vs EI0006 cascade
+    const diag = JSON.parse(
+      callTool(808, "ascend_diagnose_log", {
+        rawInput: [
+          "2026-11-25 10:01:02.100 ERROR [Rank 5] RuntimeError: NPU out of memory during capture_model()",
+          "2026-11-25 10:02:30.400 ERROR [Rank 0] EI0006 Notify wait execute timeout",
+        ].join("\n"),
+      }),
+    );
+    expect(diag.firstFaultVerdict.rank).toBe(5);
+
+    // 7. ascend_reconcile_startup_log on qwen3-32b and qwen3-235b-a22b
+    const recon32 = JSON.parse(
+      callTool(809, "ascend_reconcile_startup_log", {
+        model: "qwen3-32b",
+        cardId: "a2-64g",
+        tpSize: 2,
+        weightPrecision: "bf16",
+        logText: [
+          "INFO [Rank 0] Model loading took 30.52 GiB and 18.4 seconds",
+          "INFO [Rank 0] Available KV cache memory: 22.10 GiB",
+        ].join("\n"),
+      }),
+    );
+    expect(recon32.items).toHaveLength(6);
+
+    const recon235 = JSON.parse(
+      callTool(810, "ascend_reconcile_startup_log", {
+        model: "qwen3-235b-a22b",
+        cardId: "a3-die64g",
+        tpSize: 8,
+        weightPrecision: "w8a8_dynamic",
+        enableEp: true,
+        logText: [
+          "INFO [Rank 0] Model loading took 27.60 GiB and 24.2 seconds",
+          "INFO [Rank 0] Available KV cache memory: 24.80 GiB",
+        ].join("\n"),
+      }),
+    );
+    expect(recon235.items).toHaveLength(6);
   });
 });

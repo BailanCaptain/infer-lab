@@ -10842,7 +10842,7 @@
         "vllm@0fc695fc:docs/usage/reproducibility.md#L1-L24",
         "https://huggingface.co/docs/transformers/chat_templating",
         "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html",
-        "https://github.com/vllm-project/vllm/issues/64048",
+        "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420",
         "raw:sha256-a28c4479cb8576de061fe485dc0b2822395ead2da38946ef10cd3b152953b055.md#L1-L282",
         "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/renderers/hf.py#L731-L745",
         "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/sample/sampler.py#L17-L17",

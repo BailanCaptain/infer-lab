@@ -20,8 +20,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
       - run: pnpm check
+      - run: pnpm wiki:svg-geometry
+      - run: pnpm wiki:audit
+      - run: pnpm wiki:gaps
       - run: pnpm build
+      - run: npx playwright test tests/stage2-polish.spec.ts tests/wiki-search.spec.ts
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
   deploy:

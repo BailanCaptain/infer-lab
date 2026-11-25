@@ -4,8 +4,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 test.use({ trace: { mode: "retain-on-failure", screenshots: false, snapshots: true } });
 
-const EVIDENCE_DIR =
-  "C:/Users/-/.gemini/antigravity/brain/a61d2784-a8f8-4e8c-a1e1-14b600b1d2b5/browser_evidence/final_closure";
+const EVIDENCE_DIR = join(process.cwd(), "test-results", "evidence", "final_closure");
 const RUNTIME_STAGE_DIR = join(process.cwd(), "tools", "wiki-runtime", "final-closure-2026-11-19");
 mkdirSync(EVIDENCE_DIR, { recursive: true });
 mkdirSync(RUNTIME_STAGE_DIR, { recursive: true });

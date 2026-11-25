@@ -10,10 +10,10 @@
 
 **① 直接读文件**（零依赖，最省事）
 
-- [index.md](index.md) —— 人读的目录，按类型列出全部页面，每行是 `` `[标题](concepts/<id>.md)` — 一句话摘要 ``。
+- [index.md](index.md) —— 人读的目录，按类型列出全部 **193 篇正式页面**（含 **41 篇正式参数页**），每行是 `` `[标题](concepts/<id>.md)` — 一句话摘要 ``。
 - `../src/content/wiki/registry.json` —— 机器读的索引：每页的 `id`、`title`、`aliases`、`summary`、`relations`、`backlinks`、`verified`、`file`。
   按 `aliases` 找页（别名就是为「layer share」「cudagraph_mode」这类问法写的），拿到 `file` 再读 `wiki/<file>`。
-- 页面正文在 `concepts/<id>.md`（概念与特性）、`params/<id>.md`（参数）、`sources/<id>.md`（基线快照、归档来源与存进来的问答记录，当前包含 8 份正式来源页）。
+- 页面正文在 `concepts/<id>.md`（概念与特性，144 篇）、`params/<id>.md`（正式参数页，41 篇）、`sources/<id>.md`（基线快照、归档来源、PR 记录与问答记录，共 8 篇）。
 
 **② 命令行**（能跑 shell 就能用，只读）
 
@@ -30,10 +30,35 @@ pnpm -s wiki:find --neighbors block-table # 这页和哪些页有关，每条边
 pnpm wiki:mcp     # stdio 上的 JSON-RPC，共 7 个工具（3 个知识库 + 4 个确定性昇腾仿真）
 ```
 
-- 知识库工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors`
-- 确定性仿真工具（零幻觉纯函数）：`ascend_plan_deploy`（显存与卡数算账）/ `ascend_lint_serve_cmd`（单机或 P/D 启动命令体检、静默改写检测，P/D 模式并附带逐端 `prefill` / `decode` 环境分类与生效改写明细）/ `ascend_diagnose_log`（多卡交错报错首错 Rank 定位）/ `ascend_reconcile_startup_log`（理论预算 vs 实机启动日志逐项对账）
+- 知识库工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors`（覆盖全站 193 篇正式页面与 41 篇正式参数页）
+- 确定性仿真工具（零幻觉纯函数）：`ascend_plan_deploy`（显存与卡数算账，内置 `qwen3-0.6b`、`qwen3-8b`、`qwen3-30b-a3b`、`qwen3-32b`、`qwen3-235b-a22b` 及异构架构预设，或直接传 HuggingFace `config.json`）/ `ascend_lint_serve_cmd`（单机或 P/D 启动命令体检、静默改写与点分 `--additional-config.<key>` 检测，P/D 模式并附带逐端 `prefill` / `decode` 环境分类与生效改写明细）/ `ascend_diagnose_log`（多卡交错报错首错 Rank 定位）/ `ascend_reconcile_startup_log`（理论预算 vs 实机启动日志逐项对账，同样支持 `qwen3-32b` / `qwen3-235b-a22b` 等全部预设）
 
-接进 Claude Code：`claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`
+各客户端即拷即用接入方式（将 `<本仓库绝对路径>` 替换为实际克隆目录）：
+
+- **Claude Code（命令行一键注册）**：
+  ```bash
+  claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp
+  ```
+- **Codex CLI（命令行一键注册或写入 `~/.codex/config.toml`）**：
+  ```bash
+  codex mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp
+  ```
+  ```toml
+  [mcp_servers.llm-wiki]
+  command = "pnpm"
+  args = ["--dir", "<本仓库绝对路径>", "-s", "wiki:mcp"]
+  ```
+- **Cursor / 标准 `mcpServers` JSON（`.cursor/mcp.json` 或 `claude_desktop_config.json`）**：
+  ```json
+  {
+    "mcpServers": {
+      "llm-wiki": {
+        "command": "pnpm",
+        "args": ["--dir", "<本仓库绝对路径>", "-s", "wiki:mcp"]
+      }
+    }
+  }
+  ```
 
 ②③ 共用同一个检索入口（`src/content/wiki/retrieve.ts`），命中规则和站内问答完全一致，不是另一套。
 

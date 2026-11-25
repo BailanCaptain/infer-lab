@@ -10,12 +10,15 @@ description: 回答或核对任何关于 vLLM / vLLM-Ascend / 昇腾推理的问
 
 ## 一、三种查法（只读）
 
-1. **直接读文件**：目录见 `wiki/index.md`，机器索引见 `src/content/wiki/registry.json`（含 `id`、`title`、`aliases`、`summary`、`relations`、`backlinks`、`verified`、`file`），正文在 `wiki/concepts/<id>.md`、`wiki/params/<id>.md`、`wiki/sources/<id>.md`（共 8 份正式来源页）。
+1. **直接读文件**：目录见 `wiki/index.md`（共 **193 篇正式页面**，含 **41 篇正式参数页**），机器索引见 `src/content/wiki/registry.json`（含 `id`、`title`、`aliases`、`summary`、`relations`、`backlinks`、`verified`、`file`），正文在 `wiki/concepts/<id>.md`（144 篇）、`wiki/params/<id>.md`（41 篇）、`wiki/sources/<id>.md`（8 篇正式来源/PR 页）。
 2. **命令行检索**：
    - `pnpm -s wiki:find "<词或问题>"`（支持 `--json`、`--limit N`）
    - `pnpm -s wiki:find --page <id>`（输出完整 Markdown）
    - `pnpm -s wiki:find --neighbors <id>`（输出双向 `relations` / `backlinks` 及每条边的理由 `note`）
-3. **MCP Server**：`pnpm wiki:mcp`（stdio JSON-RPC，共 7 个只读工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors` 与命令行及站内问答共用 `src/content/wiki/retrieve.ts`；另提供 `ascend_plan_deploy` / `ascend_lint_serve_cmd`［P/D 模式附带逐端 `prefill` / `decode` 的 `envClassifications` 与 `effectiveRewrites`］ / `ascend_diagnose_log` / `ascend_reconcile_startup_log` 四个零幻觉确定性仿真核算工具）。
+3. **MCP Server**：`pnpm wiki:mcp`（stdio JSON-RPC，共 7 个只读工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors` 与命令行及站内问答共用 `src/content/wiki/retrieve.ts`；另提供 `ascend_plan_deploy` / `ascend_lint_serve_cmd`［支持点分 `--additional-config.<key>`，P/D 模式附带逐端 `prefill` / `decode` 的 `envClassifications` 与 `effectiveRewrites`］ / `ascend_diagnose_log` / `ascend_reconcile_startup_log` 四个零幻觉确定性仿真工具，内置 `qwen3-0.6b`、`qwen3-8b`、`qwen3-30b-a3b`、`qwen3-32b`、`qwen3-235b-a22b` 及异构模型预设）。
+   - **Claude Code**：`claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`
+   - **Codex CLI（或写入 `~/.codex/config.toml` 的 `[mcp_servers.llm-wiki]`）**：`codex mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`
+   - **Cursor / 标准 `mcpServers` JSON**：`{"mcpServers":{"llm-wiki":{"command":"pnpm","args":["--dir","<本仓库绝对路径>","-s","wiki:mcp"]}}}`
 
 ## 二、怎么读一页
 

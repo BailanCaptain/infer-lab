@@ -38,7 +38,7 @@ sources:
   - 'https://huggingface.co/docs/transformers/chat_templating'
   - >-
     https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html
-  - 'https://github.com/vllm-project/vllm/issues/64048'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420'
   - >-
     raw:sha256-a28c4479cb8576de061fe485dc0b2822395ead2da38946ef10cd3b152953b055.md#L1-L282
   - 'vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/renderers/hf.py#L731-L745'
@@ -347,7 +347,7 @@ Runtime Guard 报告的 `dump_attempted` 表示动作被请求，不表示异步
 
 - Runtime Guard 的检测阶段、V2 接线、报告与 KV 转储范围见 [S16]；启动 overlay、热更新、水位、配额、日志及有限性同步语义见 [S17]。它是收集证据的入口，不作为已定位根因的证明。
 
-- “传输完成但内容不对”的公开个案见来源 7 的 vLLM issue #64048：作者报告环境为 GH200、vLLM 0.31.0、NIXL 1.5.0，用分层分块校验继续定位。它提供比较交接内容的个案线索；本站 A2/GLM 是否遇到相同问题，还需自身传输数据与运行环境证据。通用取证顺序为本站分析。
+- 跨实例 KV 交接完成信号与块数据一致性边界见来源 7（`vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420`）：`wait_for_save`、`get_transfer_results` 与 `get_block_ids_with_load_errors` 仅回报异步收发完成集合及传输层报错块号（接收失败的请求也会进入 `finished_recving` 以解除调度等待），接口本身不对逐层块内数值做内容摘要校验；遇到“传输完成但内容不对”时，须按正文的源端保存完未复用、目的端接收完未覆盖两个时点分层分块取样比对，通用取证顺序为本站分析。
 
 - greedy 与随机采样的选择路径 [C1]；约束、惩罚及停止行为由采样与结构化输出页展开。
 - 增量解码、字符片段和停止字符串处理入口 [C2]；聊天模板到输入的路径 [C3]。

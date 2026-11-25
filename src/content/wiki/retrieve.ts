@@ -111,18 +111,23 @@ function sameish(a: string, b: string): boolean {
 function buildLookupMaps(pages: PageIndex[]) {
   const exact = new Map<string, PageIndex>();
   const squashed = new Map<string, PageIndex>();
+  const registerKey = (key: string, page: PageIndex) => {
+    const k = norm(key);
+    if (k && !exact.has(k)) exact.set(k, page);
+    const s = squash(key);
+    if (s && !squashed.has(s)) squashed.set(s, page);
+  };
+  // Pass 1: canonical page identifiers & titles take priority over secondary aliases on other pages
+  // (e.g. formal param page `shared_engram` / `runtime_config` wins exact over a concept page alias).
   for (const p of pages) {
-    for (const key of [
-      p.id,
-      ...(p.legacyIds ?? []),
-      ...(p.displayTitle ? [p.displayTitle] : []),
-      p.title,
-      ...p.aliases,
-    ]) {
-      const k = norm(key);
-      if (k && !exact.has(k)) exact.set(k, p);
-      const s = squash(key);
-      if (s && !squashed.has(s)) squashed.set(s, p);
+    for (const key of [p.id, ...(p.legacyIds ?? []), ...(p.displayTitle ? [p.displayTitle] : []), p.title]) {
+      registerKey(key, p);
+    }
+  }
+  // Pass 2: secondary aliases and file paths fill remaining slots.
+  for (const p of pages) {
+    for (const alias of p.aliases) {
+      registerKey(alias, p);
     }
     if (p.file) {
       const fileBase = p.file.split("/").pop();
@@ -388,6 +393,29 @@ const SYMPTOM_RULES: readonly { pattern: RegExp; targets: readonly [string, stri
   },
 ];
 
+/**
+ * 昇腾 / vLLM 明确报错码与高频工程简写路由表：
+ * 为 CANN/ACL 数字错误码（正文中未逐一硬编码全部数字变体）及跨模块简写补充确定性候选页（how="keyword"），
+ * 不冒充 exact 标题命中，也不压过社区语料精确报错命中（corpus-exact > 1100）。
+ */
+const DOMAIN_ANCHOR_RULES: readonly { pattern: RegExp; targets: readonly [string, string] }[] = [
+  { pattern: /\b507015\b/, targets: ["inference-troubleshooting", "acl-graph"] },
+  { pattern: /\b507034\b/, targets: ["inference-troubleshooting", "cann-hccl"] },
+  { pattern: /\b507035\b/, targets: ["inference-troubleshooting", "ai-core"] },
+  { pattern: /\b161002\b/, targets: ["ops-and-kernels", "inference-troubleshooting"] },
+  { pattern: /\b107030\b/, targets: ["device-memory", "inference-troubleshooting"] },
+  {
+    pattern: /\bzmqerror\b|address\s+already\s+in\s+use/i,
+    targets: ["pd-disaggregation", "cluster-serving"],
+  },
+  { pattern: /\bspec_?decod(?:e|ing)?\b/i, targets: ["speculative-decoding", "prepare-inputs-flow"] },
+  {
+    pattern: /(?:lpt[^\n]{0,10}专家|专家放置)/i,
+    targets: ["eplb", "placement-search-backtrack-limit-82b03cef98b0"],
+  },
+  { pattern: /\bm\s*=\s*(?:200|228)\b/i, targets: ["roofline-and-metrics", "quantization"] },
+];
+
 export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}): Hit[] {
   const limit = opts.limit ?? 5;
   const q = norm(query);
@@ -406,10 +434,20 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   // A named topic inside a question is still a title hit. Long alias lists must not
   // dilute exact names beneath generic context. Chinese phrases need at least
   // four characters here; shorter words remain ordinary BM25 terms.
+  // Ubiquitous 2–3 letter platform words (e.g. "npu" appearing in >40% of a full wiki)
+  // stay on BM25 so tracebacks like "NPU out of memory during capture_model" don't get hijacked.
   if (!hit) {
     const named = new Map<string, PageIndex>();
     for (const [name, page] of index.exact) {
       if (!/^(?:--?)?[a-z0-9][a-z0-9_./ -]+$/.test(name) && !/^[\u3400-\u9fff]{4,}$/.test(name)) continue;
+      if (
+        name !== page.id.toLowerCase() &&
+        /^[a-z]{2,3}$/.test(name) &&
+        index.pages.length >= 20 &&
+        (index.postings.get(name)?.size ?? 0) > index.pages.length * 0.65
+      ) {
+        continue;
+      }
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       if (new RegExp(`(?<![a-z0-9_-])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
     }
@@ -423,6 +461,7 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   // 「hccl_buffsize」只有一页认领，分高；「vllm-ascend」满库都沾边，自然低分。
   // 不再先试整句、命中了就跳过片段：问题以标识符开头时（09-23 的 HCCL 病例），
   // 整句压平后恰好前缀命中总览页，逐片段那一步被跳过，真正的高分标识符就丢了。
+  let hasFuzzyMatch = false;
   if (!hit) {
     const patterns = new Set<string>();
     const candidates = [
@@ -444,6 +483,7 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
         if (!prev || closeness > prev.closeness) matched.set(page.id, { page, closeness });
       }
       if (!matched.size) continue;
+      hasFuzzyMatch = true;
       const patternIdf = idf(index.pages.length, matched.size);
       for (const { page, closeness } of matched.values()) {
         add(page, patternIdf * closeness * saturate(weightedTf(index, page.id, [1, 0, 0])), "fuzzy");
@@ -451,23 +491,62 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
     }
   }
 
+  let matchedDomainAnchor = false;
+  const anchorBase = idf(index.pages.length, Math.min(2, Math.max(1, index.pages.length)));
+  for (const rule of DOMAIN_ANCHOR_RULES) {
+    if (!rule.pattern.test(q)) continue;
+    matchedDomainAnchor = true;
+    for (const [rank, targetId] of rule.targets.entries()) {
+      const page = index.byId.get(targetId);
+      if (!page) continue;
+      const boost = (rank === 0 ? 3.2 : 2.6) * anchorBase;
+      const prev = scored.get(page.id);
+      if (prev) {
+        if (prev.how !== "exact") prev.score = Math.max(prev.score, boost) + 1.5;
+      } else {
+        scored.set(page.id, { page, score: boost, how: "keyword" });
+      }
+    }
+  }
+
   const ts = [...new Set(terms(query))];
-  for (const t of ts) {
-    const byPage = index.postings.get(t);
-    if (!byPage) continue;
-    // 纯双字母拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声；带数字的 o2 / a2 仍查全文
-    const fields = t.length < 3 && /^[a-z]+$/.test(t) ? SHORT_LATIN_FIELDS : undefined;
-    const df = fields ? [...byPage.entries()].filter(([, tf]) => tf[0]! > 0).length : byPage.size;
-    if (!df) continue;
-    // 全库任何标题、摘要里都没有的词多半是切分噪声（「什么是」切出的「么是」全库只在
-    // 六页正文里出现，罕见反而成了大权重）。这类词的 idf 封顶，不让它决定排序。
-    const anchored = [...byPage.values()].some((tf) => tf[0]! > 0 || tf[1]! > 0);
-    const termIdf = anchored
-      ? idf(index.pages.length, df)
-      : Math.min(idf(index.pages.length, df), BODY_ONLY_IDF_CAP);
-    for (const [pageId, tf] of byPage) {
-      const wtf = weightedTf(index, pageId, tf, fields);
-      if (wtf > 0) add(index.byId.get(pageId)!, termIdf * saturate(wtf), "keyword");
+
+  // Guard against hallucinated / nonexistent single compound identifiers (e.g. `UnseenHallucinatedParam_999`
+  // or `--imaginary-hyperdrive-flag-xyz`): when the entire query is a single ASCII identifier with neither
+  // exact, fuzzy, whole-token posting, nor domain-rule match, and at least one alphabetic sub-word (>=3 chars)
+  // does not exist anywhere in the index, do not return unrelated pages matched solely by generic suffixes
+  // like `_param`, `_config`, `_flag`, or bare line numbers.
+  const isSingleCompoundIdentifier =
+    /^(?:--?)?[a-z0-9]+(?:[_.-][a-z0-9]+)*$/i.test(query.trim()) &&
+    (ts.length > 1 || /[_.-]/.test(query.trim()));
+  const squashedWholeQuery = squash(q.replace(/^--?/, ""));
+  const rejectHallucinatedCompound =
+    !hit &&
+    !hasFuzzyMatch &&
+    !matchedDomainAnchor &&
+    isSingleCompoundIdentifier &&
+    !index.postings.has(squashedWholeQuery) &&
+    ts.some((t) => t.length >= 3 && /[a-z]/.test(t) && t !== squashedWholeQuery && !index.postings.has(t));
+
+  if (!rejectHallucinatedCompound) {
+    for (const t of ts) {
+      const byPage = index.postings.get(t);
+      if (!byPage) continue;
+      // 纯双字母拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声；带数字的 o2 / a2 仍查全文
+      const fields = t.length < 3 && /^[a-z]+$/.test(t) ? SHORT_LATIN_FIELDS : undefined;
+      const df = fields ? [...byPage.entries()].filter(([, tf]) => tf[0]! > 0).length : byPage.size;
+      if (!df) continue;
+      // 中文二元切分噪声（「什么是」切出的「么是」）与纯数字行号在全库标题/摘要中均未出现时，idf 封顶，
+      // 但完整拉丁/字母数字技术标识符（如 zmqerror、capturemodel、235b）保留真实 idf。
+      const anchored = [...byPage.values()].some((tf) => tf[0]! > 0 || tf[1]! > 0);
+      const capUnanchoredNoise = !anchored && (/^[\u3400-\u9fff]{2}$/.test(t) || /^\d+$/.test(t));
+      const termIdf = capUnanchoredNoise
+        ? Math.min(idf(index.pages.length, df), BODY_ONLY_IDF_CAP)
+        : idf(index.pages.length, df);
+      for (const [pageId, tf] of byPage) {
+        const wtf = weightedTf(index, pageId, tf, fields);
+        if (wtf > 0) add(index.byId.get(pageId)!, termIdf * saturate(wtf), "keyword");
+      }
     }
   }
 

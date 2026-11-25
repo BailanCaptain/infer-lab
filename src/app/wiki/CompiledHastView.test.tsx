@@ -278,8 +278,67 @@ describe("CompiledHastView direct HAST renderer", () => {
     ).toBeNull();
     expect(extractSingleVllmServeFenceCommand("vllm serve ... -tp 2", "bash")).toBeNull();
     expect(extractSingleVllmServeFenceCommand("vllm serve $UNSET_MODEL -tp 2", "bash")).toBeNull();
+    const literalShellBraceVar = `\${${"MODEL_PATH"}}`;
+    expect(
+      extractSingleVllmServeFenceCommand(`vllm serve /models/${literalShellBraceVar} -tp 2`, "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand(
+        `export MODEL_PATH=/data/Qwen3-8B\nvllm serve "${literalShellBraceVar}" -tp 2`,
+        "bash",
+      ),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("cd /models\nvllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2\necho ready", "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 | tee serve.log", "bash"),
+    ).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 &", "bash")).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("export FOO=1 && vllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 || true", "bash")).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("export FOO=1; vllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    // Trailing whitespace after `\` line continuation breaks bash continuation -> must reject
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B \\   \n  -tp 2", "bash")).toBeNull();
     expect(extractSingleVllmServeFenceCommand("# vllm serve comment only\necho ok", "bash")).toBeNull();
     expect(extractSingleVllmServeFenceCommand('cmd = "vllm serve Qwen/Qwen3-8B -tp 2"', "python")).toBeNull();
+
+    // Leading whitespace text node inside <pre>\n<code>...</code></pre> still locates <code> and renders both Copy & Doctor buttons
+    const preWithLeadingNewlineTree: CompiledNode = deepFreeze({
+      type: "root",
+      children: [
+        {
+          type: "element",
+          tagName: "pre",
+          properties: {},
+          children: [
+            { type: "text", value: "\n" },
+            {
+              type: "element",
+              tagName: "code",
+              properties: { className: ["language-bash"] },
+              children: [{ type: "text", value: "vllm serve Qwen/Qwen3-8B -tp 2\n" }],
+            },
+          ],
+        },
+      ],
+    });
+    const preWhitespaceHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(CompiledHastView, { root: preWithLeadingNewlineTree, page: samplePage }),
+      ),
+    );
+    expect(preWhitespaceHtml).toContain('data-testid="wiki-code-copy-btn"');
+    expect(preWhitespaceHtml).toContain('data-testid="wiki-code-doctor-btn"');
 
     // Render full markdown mixing single-serve, multi-serve, placeholder, and calc fences
     const mixedMd = [

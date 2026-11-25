@@ -137,6 +137,7 @@ const UPGRADE_SEVERITY_META: Readonly<
 
 const MODEL_HINT_OPTIONS: ReadonlyArray<{ value: ModelHintKey; label: string }> = [
   { value: "auto", label: "自动识别" },
+  { value: "qwen3-0.6b", label: "Qwen3-0.6B (Dense GQA)" },
   { value: "qwen3-8b", label: "Qwen3-8B (Dense GQA)" },
   { value: "qwen3-32b", label: "Qwen3-32B (Dense GQA)" },
   { value: "qwen3-30b-a3b", label: "Qwen3-30B-A3B (MoE)" },
@@ -956,6 +957,7 @@ export function ConfigDoctorView({
       setFindingFilter("all");
       setHandoffSourceLabel(payload.sourceLabel);
       const nextHint: ModelHintKey =
+        payload.modelId === "qwen3-0.6b" ||
         payload.modelId === "qwen3-8b" ||
         payload.modelId === "qwen3-30b-a3b" ||
         payload.modelId === "qwen3-32b" ||

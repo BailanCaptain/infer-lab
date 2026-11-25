@@ -1053,10 +1053,16 @@ function QuickScreenBody({ plan }: { plan: DeployPlanReport }) {
           tone="kv"
         />
         <MetricTile
-          label="建议最少卡数"
-          value={`${q2Capacity.minCardsRecommended} 逻辑卡`}
-          sub={`约 ${q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`}
-          tone={q2Capacity.oomStatus === "fits" ? "token" : "danger"}
+          label={`建议最少卡数（${formatHumanPrecisionLabel(plan.inputSummary.weightPrecision)}）`}
+          value={`${q2Capacity.minCardsRecommended ?? "—"} 逻辑卡`}
+          sub={`约 ${q2Capacity.minPhysicalCardsRecommended ?? "—"} 张物理卡（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`}
+          tone={
+            q2Capacity.oomStatus === "fits"
+              ? "token"
+              : q2Capacity.oomStatus === "tight_budget_oom_risk"
+                ? "weight"
+                : "danger"
+          }
         />
       </div>
       <HbmStackedBar plan={plan} compact />
@@ -1185,33 +1191,445 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
   );
 }
 
-export function isCurrentDeployPlanValid(plan: DeployPlanReport): boolean {
+export interface CalcState {
+  version: RuleVersion;
+  cardId: AscendCalcCardId;
+  weightPrecision: WeightPrecision;
+  kvCacheDtype: KvCacheDtype;
+  weightNzMode: 0 | 1 | 2;
+  tpSize: number;
+  ppSize: number;
+  dpSize: number;
+  pcpSize: number;
+  dcpSize: number;
+  enableEp: boolean;
+  gpuMemoryUtilization: number;
+  maxModelLen: number;
+  maxNumBatchedTokens: number;
+  maxNumSeqs: number;
+  cudagraphMode: CudaGraphMode;
+  useV2ModelRunner: boolean | undefined;
+  prefillTokens: number;
+  decodeBatchSize: number;
+  decodeContextLen: number;
+}
+
+const ALLOWED_UI_PARALLEL_SIZES = [1, 2, 4, 8] as const;
+const ALLOWED_UI_PARALLEL_SET = new Set<number>(ALLOWED_UI_PARALLEL_SIZES);
+
+const POWER_OF_TWO_TOPOLOGIES: ReadonlyArray<readonly [number, number, number]> = (() => {
+  const list: Array<[number, number, number]> = [];
+  for (const tp of ALLOWED_UI_PARALLEL_SIZES) {
+    for (const pp of ALLOWED_UI_PARALLEL_SIZES) {
+      for (const dp of ALLOWED_UI_PARALLEL_SIZES) {
+        if (tp * pp * dp <= 64) {
+          list.push([tp, pp, dp]);
+        }
+      }
+    }
+  }
+  list.sort((a, b) => {
+    const cardsA = a[0] * a[1] * a[2];
+    const cardsB = b[0] * b[1] * b[2];
+    if (cardsA !== cardsB) return cardsA - cardsB;
+    const dpPenaltyA = a[2] > 1 ? 1 : 0;
+    const dpPenaltyB = b[2] > 1 ? 1 : 0;
+    if (dpPenaltyA !== dpPenaltyB) return dpPenaltyA - dpPenaltyB;
+    if (a[1] !== b[1]) return a[1] - b[1];
+    return b[0] - a[0];
+  });
+  return list;
+})();
+
+export function formatHumanPrecisionLabel(prec: WeightPrecision): string {
+  switch (prec) {
+    case "bf16":
+      return "BF16";
+    case "fp16":
+      return "FP16";
+    case "w8a8":
+      return "静态 INT8";
+    case "w8a8_dynamic":
+      return "动态 INT8";
+    case "w4a8":
+      return "W4A8";
+    case "fp8_block":
+      return "FP8_BLOCK";
+    case "w8a8sc_310p":
+      return "W8A8SC";
+  }
+}
+
+function formatShortPrecisionCode(prec: WeightPrecision): string {
+  if (prec === "w8a8sc_310p") return "W8A8SC";
+  if (prec === "w8a8_dynamic") return "W8A8_DYN";
+  return prec.toUpperCase();
+}
+
+export function formatTopologySummaryBadge(input: {
+  tpSize: number;
+  ppSize: number;
+  dpSize: number;
+  pcpSize?: number | undefined;
+  dcpSize?: number | undefined;
+  enableEp?: boolean | undefined;
+}): string {
+  const parts = [`TP=${input.tpSize}`];
+  if (input.ppSize > 1) parts.push(`PP=${input.ppSize}`);
+  if (input.dpSize > 1) parts.push(`DP=${input.dpSize}`);
+  if ((input.pcpSize ?? 1) > 1) parts.push(`PCP=${input.pcpSize}`);
+  if ((input.dcpSize ?? 1) > 1) parts.push(`DCP=${input.dcpSize}`);
+  if (input.enableEp) parts.push("EP");
+  return parts.join(" · ");
+}
+
+export function isHardOverflowOrBlocked(plan: DeployPlanReport): boolean {
+  const oom = plan.fourQuestions.q2Capacity.oomStatus;
   return (
-    plan.fourQuestions.q1Fit.verdict !== "blocked" &&
-    plan.fourQuestions.q2Capacity.oomStatus === "fits" &&
-    plan.headroomStatus !== "overflow"
+    plan.fourQuestions.q1Fit.verdict === "blocked" ||
+    (oom !== "fits" && oom !== "tight_budget_oom_risk") ||
+    plan.headroomStatus === "overflow"
   );
 }
 
-export function formatRecommendedParallelSummary(plan: DeployPlanReport): string | null {
+export function isCurrentDeployPlanValid(plan: DeployPlanReport): boolean {
+  return !isHardOverflowOrBlocked(plan);
+}
+
+function extractStateFromPlan(plan: DeployPlanReport, currentState?: Partial<CalcState>): CalcState {
+  const s = plan.inputSummary;
+  const hasExplicitV2 = currentState !== undefined && "useV2ModelRunner" in currentState;
+  return {
+    version: currentState?.version ?? plan.version,
+    cardId: currentState?.cardId ?? plan.card.id,
+    weightPrecision: currentState?.weightPrecision ?? s.weightPrecision,
+    kvCacheDtype: currentState?.kvCacheDtype ?? s.kvCacheDtype,
+    weightNzMode: currentState?.weightNzMode ?? s.weightNzMode,
+    tpSize: currentState?.tpSize ?? s.tpSize,
+    ppSize: currentState?.ppSize ?? s.ppSize,
+    dpSize: currentState?.dpSize ?? s.dpSize,
+    pcpSize: currentState?.pcpSize ?? s.pcpSize,
+    dcpSize: currentState?.dcpSize ?? s.dcpSize,
+    enableEp: currentState?.enableEp ?? s.requestedEnableEp ?? s.enableEp,
+    gpuMemoryUtilization: currentState?.gpuMemoryUtilization ?? s.gpuMemoryUtilization,
+    maxModelLen: currentState?.maxModelLen ?? s.maxModelLen,
+    maxNumBatchedTokens: currentState?.maxNumBatchedTokens ?? s.maxNumBatchedTokens,
+    maxNumSeqs: currentState?.maxNumSeqs ?? s.maxNumSeqs,
+    cudagraphMode: currentState?.cudagraphMode ?? (s.enforceEager ? "NONE" : s.cudagraphMode),
+    useV2ModelRunner: hasExplicitV2
+      ? currentState.useV2ModelRunner
+      : s.userSpecifiedUseV2ModelRunner
+        ? Boolean(s.useV2ModelRunner)
+        : undefined,
+    prefillTokens: currentState?.prefillTokens ?? plan.roofline.prefillTokens,
+    decodeBatchSize: currentState?.decodeBatchSize ?? plan.roofline.decodeBatchSize,
+    decodeContextLen: currentState?.decodeContextLen ?? plan.roofline.decodeContextLen,
+  };
+}
+
+function evaluateCalcState(spec: DeployPlanInput["model"], s: CalcState): DeployPlanReport {
+  return evaluateDeployPlan({
+    model: spec,
+    cardId: s.cardId,
+    version: s.version,
+    weightPrecision: s.weightPrecision,
+    kvCacheDtype: s.kvCacheDtype,
+    weightNzMode: s.weightNzMode,
+    tpSize: s.tpSize,
+    ppSize: s.ppSize,
+    dpSize: s.dpSize,
+    pcpSize: s.pcpSize,
+    dcpSize: s.dcpSize,
+    enableEp: s.enableEp,
+    ...(s.useV2ModelRunner !== undefined ? { useV2ModelRunner: s.useV2ModelRunner } : {}),
+    gpuMemoryUtilization: s.gpuMemoryUtilization,
+    maxModelLen: s.maxModelLen,
+    maxNumBatchedTokens: s.maxNumBatchedTokens,
+    maxNumSeqs: s.maxNumSeqs,
+    cudagraphMode: s.cudagraphMode,
+    enforceEager: s.cudagraphMode === "NONE",
+    prefillTokens: s.prefillTokens,
+    decodeBatchSize: s.decodeBatchSize,
+    decodeContextLen: s.decodeContextLen,
+  });
+}
+
+export interface CanonicalRecommendedPlan {
+  readonly nextState: CalcState;
+  readonly nextPlan: DeployPlanReport;
+  readonly summary: string;
+  readonly buttonLabel: string;
+  readonly cliHint: string;
+  readonly rationale: string;
+  readonly theoreticalMinCards: number | null;
+  readonly canonicalCards: number;
+}
+
+export function resolveCanonicalRecommendedPlan(
+  plan: DeployPlanReport,
+  currentState?: Partial<CalcState>,
+): CanonicalRecommendedPlan | null {
+  const base = extractStateFromPlan(plan, currentState);
   const q4 = plan.fourQuestions.q4Recommendation;
-  if (q4.unsolvable || q4.recommendedTp === null) return null;
-  const parts = [`TP=${q4.recommendedTp}`];
-  if ((q4.recommendedPp ?? 1) > 1) parts.push(`PP=${q4.recommendedPp}`);
-  if ((q4.recommendedDp ?? 1) > 1) parts.push(`DP=${q4.recommendedDp}`);
-  if ((q4.recommendedPcp ?? 1) > 1) parts.push(`PCP=${q4.recommendedPcp}`);
-  if ((q4.recommendedDcp ?? 1) > 1) parts.push(`DCP=${q4.recommendedDcp}`);
-  if (q4.recommendedEnableEp && !plan.inputSummary.enableEp) parts.push("EP");
-  if (q4.recommendedPrecision !== plan.inputSummary.weightPrecision) {
-    const shortPrec =
-      q4.recommendedPrecision === "w8a8sc_310p"
-        ? "W8A8SC"
-        : q4.recommendedPrecision === "w8a8_dynamic"
-          ? "W8A8_DYN"
-          : q4.recommendedPrecision.toUpperCase();
-    parts.push(shortPrec);
+  const theoreticalMatch = /建议起步\s+(\d+)\s+逻辑设备/.exec(q4.rationale);
+  const theoreticalMinCards = theoreticalMatch ? Number(theoreticalMatch[1]) : null;
+
+  const normalizeCandidate = (cand: CalcState): CalcState => {
+    let useV2 = cand.useV2ModelRunner;
+    if (cand.version === "main" && useV2 === false) {
+      useV2 = undefined;
+    }
+    if (cand.pcpSize > 1 && cand.version === "v0.30.0") {
+      useV2 = true;
+    }
+    if (
+      plan.spec.engram?.enabled &&
+      plan.spec.engram.cpuOffload === false &&
+      cand.version === "v0.30.0" &&
+      useV2 === true &&
+      cand.pcpSize === 1
+    ) {
+      useV2 = undefined;
+    }
+    let kvDtype = cand.kvCacheDtype;
+    if (kvDtype === "mxfp8" && (plan.card.family !== "A5" || plan.wave4Arch.hasCsa2)) {
+      kvDtype = "auto";
+    }
+    const hasQuantWeights =
+      cand.weightPrecision === "w8a8" ||
+      cand.weightPrecision === "w8a8_dynamic" ||
+      cand.weightPrecision === "w4a8" ||
+      cand.weightPrecision === "w8a8sc_310p";
+    if (kvDtype === "int8" && !hasQuantWeights && !plan.wave4Arch.hasMla) {
+      kvDtype = "auto";
+    }
+    let cgMode = cand.cudagraphMode;
+    if (plan.card.family === "310P") {
+      cgMode = "NONE";
+    } else if (cand.pcpSize > 1 && (cgMode === "FULL" || cgMode === "FULL_AND_PIECEWISE")) {
+      cgMode = "PIECEWISE";
+    }
+    return {
+      ...cand,
+      useV2ModelRunner: useV2,
+      kvCacheDtype: kvDtype,
+      cudagraphMode: cgMode,
+    };
+  };
+
+  const utilCandidates = Array.from(
+    new Set(
+      [
+        q4.recommendedGpuMemoryUtilization,
+        base.gpuMemoryUtilization <= 0.92 ? base.gpuMemoryUtilization : undefined,
+        plan.card.family === "310P" ? 0.85 : plan.isMoe ? 0.9 : 0.92,
+        0.88,
+        0.85,
+      ].filter((u): u is number => typeof u === "number" && Number.isFinite(u) && u >= 0.1 && u <= 0.99),
+    ),
+  );
+
+  const cgFallbacks = (initialCg: CudaGraphMode): CudaGraphMode[] => {
+    const out: CudaGraphMode[] = [initialCg];
+    if (plan.card.family !== "310P" && !out.includes("PIECEWISE")) {
+      out.push("PIECEWISE");
+    }
+    if (!out.includes("NONE")) out.push("NONE");
+    return out;
+  };
+
+  let fallbackTightMatch: { state: CalcState; report: DeployPlanReport } | null = null;
+
+  const tryTuple = (
+    tp: number,
+    pp: number,
+    dp: number,
+    pcp: number,
+    dcp: number,
+    ep: boolean,
+    prec: WeightPrecision,
+  ): { state: CalcState; report: DeployPlanReport } | null => {
+    if (
+      !ALLOWED_UI_PARALLEL_SET.has(tp) ||
+      !ALLOWED_UI_PARALLEL_SET.has(pp) ||
+      !ALLOWED_UI_PARALLEL_SET.has(dp) ||
+      !ALLOWED_UI_PARALLEL_SET.has(pcp) ||
+      !ALLOWED_UI_PARALLEL_SET.has(dcp) ||
+      tp * pp * dp * pcp > 64
+    ) {
+      return null;
+    }
+    const primaryUtil = utilCandidates[0] ?? base.gpuMemoryUtilization;
+    const firstBase = normalizeCandidate({
+      ...base,
+      tpSize: tp,
+      ppSize: pp,
+      dpSize: dp,
+      pcpSize: pcp,
+      dcpSize: dcp,
+      enableEp: plan.isMoe ? ep : false,
+      weightPrecision: prec,
+      gpuMemoryUtilization: primaryUtil,
+    });
+    const firstReport = evaluateCalcState(plan.spec, firstBase);
+    if (isCurrentDeployPlanValid(firstReport)) {
+      if (firstReport.fourQuestions.q2Capacity.oomStatus === "fits") {
+        return { state: firstBase, report: firstReport };
+      }
+      if (!fallbackTightMatch) {
+        fallbackTightMatch = { state: firstBase, report: firstReport };
+      }
+    }
+    const firstOom = firstReport.fourQuestions.q2Capacity.oomStatus;
+    // Lowering `u` or changing `cudagraphMode` ONLY rescues Stage-7 `headroomStatus === "overflow"`,
+    // never Stage 3–6 budget OOM or head/expert divisibility blockers.
+    if (
+      (firstOom !== "fits" && firstOom !== "tight_budget_oom_risk") ||
+      firstReport.headroomStatus !== "overflow"
+    ) {
+      return null;
+    }
+    for (const u of utilCandidates) {
+      const normalizedBase = normalizeCandidate({
+        ...base,
+        tpSize: tp,
+        ppSize: pp,
+        dpSize: dp,
+        pcpSize: pcp,
+        dcpSize: dcp,
+        enableEp: plan.isMoe ? ep : false,
+        weightPrecision: prec,
+        gpuMemoryUtilization: u,
+      });
+      for (const cg of cgFallbacks(normalizedBase.cudagraphMode)) {
+        if (u === primaryUtil && cg === firstBase.cudagraphMode) continue;
+        const candState: CalcState = { ...normalizedBase, cudagraphMode: cg };
+        const report = evaluateCalcState(plan.spec, candState);
+        if (!isCurrentDeployPlanValid(report)) continue;
+        if (report.fourQuestions.q2Capacity.oomStatus === "fits") {
+          return { state: candState, report };
+        }
+        if (!fallbackTightMatch) {
+          fallbackTightMatch = { state: candState, report };
+        }
+      }
+    }
+    return null;
+  };
+
+  let winner: { state: CalcState; report: DeployPlanReport } | null = null;
+
+  if (!q4.unsolvable && q4.recommendedTp !== null) {
+    winner = tryTuple(
+      q4.recommendedTp,
+      q4.recommendedPp ?? 1,
+      q4.recommendedDp ?? 1,
+      q4.recommendedPcp ?? base.pcpSize,
+      q4.recommendedDcp ?? base.dcpSize,
+      q4.recommendedEnableEp,
+      q4.recommendedPrecision,
+    );
   }
-  return parts.join(" · ");
+
+  if (!winner) {
+    const precOrder = Array.from(
+      new Set<WeightPrecision>(
+        plan.card.family === "310P"
+          ? [q4.recommendedPrecision, "w8a8sc_310p", "fp16"]
+          : [q4.recommendedPrecision, base.weightPrecision, "w8a8_dynamic", "w4a8", "bf16"],
+      ),
+    ).filter((p) => !(plan.card.family === "310P" && p === "bf16"));
+
+    const cpPairs: Array<[number, number]> = [];
+    const basePcp = ALLOWED_UI_PARALLEL_SET.has(base.pcpSize) ? base.pcpSize : 1;
+    const baseDcp = ALLOWED_UI_PARALLEL_SET.has(base.dcpSize) ? base.dcpSize : 1;
+    cpPairs.push([basePcp, baseDcp]);
+    if (basePcp !== 1 || baseDcp !== 1) cpPairs.push([1, 1]);
+
+    outerSearch: for (const prec of precOrder) {
+      for (const [pcp, dcp] of cpPairs) {
+        for (const [tp, pp, dp] of POWER_OF_TWO_TOPOLOGIES) {
+          const epChoices = plan.isMoe && tp * dp * pcp > 1 ? [true, false] : [false];
+          for (const ep of epChoices) {
+            const hit = tryTuple(tp, pp, dp, pcp, dcp, ep, prec);
+            if (hit) {
+              winner = hit;
+              break outerSearch;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const chosen = winner ?? fallbackTightMatch;
+  if (!chosen) return null;
+
+  const next = chosen.state;
+  const nextPlan = chosen.report;
+  const parallelChanged =
+    next.tpSize !== base.tpSize ||
+    next.ppSize !== base.ppSize ||
+    next.dpSize !== base.dpSize ||
+    next.pcpSize !== base.pcpSize ||
+    next.dcpSize !== base.dcpSize ||
+    next.enableEp !== base.enableEp;
+
+  const parts: string[] = [];
+  if (parallelChanged) {
+    parts.push(`TP=${next.tpSize}`);
+    if (next.ppSize > 1 || next.ppSize !== base.ppSize) parts.push(`PP=${next.ppSize}`);
+    if (next.dpSize > 1 || next.dpSize !== base.dpSize) parts.push(`DP=${next.dpSize}`);
+    if (next.pcpSize > 1 || next.pcpSize !== base.pcpSize) parts.push(`PCP=${next.pcpSize}`);
+    if (next.dcpSize > 1 || next.dcpSize !== base.dcpSize) parts.push(`DCP=${next.dcpSize}`);
+    if (next.enableEp && !base.enableEp) parts.push("EP");
+  }
+  if (next.weightPrecision !== base.weightPrecision) {
+    parts.push(formatShortPrecisionCode(next.weightPrecision));
+  }
+  if (next.useV2ModelRunner !== base.useV2ModelRunner) {
+    parts.push(next.useV2ModelRunner ? "MRV2=1" : "默认MRV2");
+  }
+  if (next.kvCacheDtype !== base.kvCacheDtype) {
+    parts.push(`KV=${next.kvCacheDtype}`);
+  }
+  if (next.cudagraphMode !== base.cudagraphMode && !(plan.card.family === "310P" && parallelChanged)) {
+    parts.push(next.cudagraphMode === "NONE" ? "Eager" : `图=${next.cudagraphMode}`);
+  }
+  if (!parallelChanged && Math.abs(next.gpuMemoryUtilization - base.gpuMemoryUtilization) > 1e-4) {
+    parts.push(`u=${next.gpuMemoryUtilization.toFixed(2)}`);
+  }
+  if (parts.length === 0) {
+    parts.push(`TP=${next.tpSize}`);
+  }
+
+  const summary = parts.join(" · ");
+  const buttonLabel = parallelChanged ? `一键应用推荐并行 (${summary})` : `一键应用推荐方案 (${summary})`;
+  const cliHint = buildCurrentPlanCliHint(nextPlan);
+  const canonicalCards = next.tpSize * next.ppSize * next.dpSize * next.pcpSize;
+  const physCards = Math.ceil(canonicalCards / plan.card.diesPerPhysicalCard);
+  const topoBadge = formatTopologySummaryBadge(next);
+  const uStr = next.gpuMemoryUtilization.toFixed(2);
+  const recHumanPrec = formatHumanPrecisionLabel(next.weightPrecision);
+  const rationale =
+    theoreticalMinCards !== null && theoreticalMinCards < canonicalCards
+      ? `在 ${plan.card.shortName} 上，${recHumanPrec} 理论最少需 ${theoreticalMinCards} 逻辑卡；按标准整机 2 的幂切分推荐 ${canonicalCards} 逻辑卡（${physCards} 张物理卡，${topoBadge}），预算比例 ${uStr}。`
+      : `在 ${plan.card.shortName} 上建议采用 ${canonicalCards} 逻辑卡（${physCards} 张物理卡，${topoBadge}），精度 ${recHumanPrec}，预算比例 ${uStr}。`;
+
+  return {
+    nextState: next,
+    nextPlan,
+    summary,
+    buttonLabel,
+    cliHint,
+    rationale,
+    theoreticalMinCards,
+    canonicalCards,
+  };
+}
+
+export function formatRecommendedParallelSummary(plan: DeployPlanReport): string | null {
+  return resolveCanonicalRecommendedPlan(plan)?.summary ?? null;
 }
 
 export function formatHardware3dLinkLabel(plan: DeployPlanReport): string {
@@ -1219,11 +1637,15 @@ export function formatHardware3dLinkLabel(plan: DeployPlanReport): string {
     plan.inputSummary.ppSize > 1
       ? `TP=${plan.inputSummary.tpSize}·PP=${plan.inputSummary.ppSize}`
       : `TP=${plan.inputSummary.tpSize}`;
-  if (plan.fourQuestions.q2Capacity.oomStatus !== "fits" || plan.headroomStatus === "overflow") {
+  const oom = plan.fourQuestions.q2Capacity.oomStatus;
+  if ((oom !== "fits" && oom !== "tight_budget_oom_risk") || plan.headroomStatus === "overflow") {
     return `去 3D 查看当前 ${curTopo} 溢出态`;
   }
   if (plan.fourQuestions.q1Fit.verdict === "blocked") {
     return `去 3D 查看当前 ${curTopo} 阻断态`;
+  }
+  if (oom === "tight_budget_oom_risk") {
+    return `在 3D 整机中透视此方案 (${curTopo} · 显存偏紧) →`;
   }
   return `在 3D 整机中透视此方案 (${curTopo}) →`;
 }
@@ -1262,28 +1684,59 @@ const DEMO_HUMAN_LABELS: Readonly<Record<Wave4DemoPreset["id"], string>> = {
 
 function DeployVerdictStrip({
   plan,
+  canonicalRecommendation,
   onApplyRecommended,
 }: {
   plan: DeployPlanReport;
+  canonicalRecommendation: CanonicalRecommendedPlan | null;
   onApplyRecommended?: (() => void) | undefined;
 }) {
   const { q1Fit, q2Capacity, q3Roofline } = plan.fourQuestions;
   const currentPlanValid = isCurrentDeployPlanValid(plan);
   const isBlocked = !currentPlanValid;
-  const isWarn = !isBlocked && (q1Fit.verdict === "warn" || plan.headroomStatus === "risk");
+  const isTightBudget = !isBlocked && q2Capacity.oomStatus === "tight_budget_oom_risk";
+  const isWarn = !isBlocked && (isTightBudget || q1Fit.verdict === "warn" || plan.headroomStatus === "risk");
   const stripTone = isBlocked ? "is-blocked" : isWarn ? "is-warn" : "is-pass";
   const fitText =
-    q2Capacity.oomStatus !== "fits"
+    q2Capacity.oomStatus !== "fits" && q2Capacity.oomStatus !== "tight_budget_oom_risk"
       ? "显存不足（需加卡或降精度）"
       : plan.headroomStatus === "overflow"
         ? "录图穿透 1−u 余量（OOM）"
         : q1Fit.verdict === "blocked"
           ? "存在配置阻塞"
-          : isWarn
-            ? "可装下（有提示）"
-            : "装得下 ✓";
+          : isTightBudget
+            ? "显存偏紧（可启动，高并发/录图有 OOM 风险）"
+            : isWarn
+              ? "可装下（有提示）"
+              : "装得下 ✓";
   const fitClass = isBlocked ? "is-danger" : isWarn ? "is-warning" : "is-token";
-  const recSummary = !currentPlanValid ? formatRecommendedParallelSummary(plan) : null;
+  const curPrecLabel = formatHumanPrecisionLabel(plan.inputSummary.weightPrecision);
+  const recPrec = canonicalRecommendation?.nextState.weightPrecision;
+  const recPrecLabel = recPrec ? formatHumanPrecisionLabel(recPrec) : null;
+  const minCardsValueText =
+    q2Capacity.minCardsRecommended !== null
+      ? `当前 ${curPrecLabel} 至少 ${q2Capacity.minCardsRecommended} 卡`
+      : `当前 ${curPrecLabel} 单节点超限`;
+  const minCardsSubText = (() => {
+    if (canonicalRecommendation && recPrec && recPrecLabel && recPrec !== plan.inputSummary.weightPrecision) {
+      const { theoreticalMinCards, canonicalCards } = canonicalRecommendation;
+      if (theoreticalMinCards !== null && theoreticalMinCards < canonicalCards) {
+        return `改${recPrecLabel}理论最少 ${theoreticalMinCards} 卡（推荐 ${canonicalCards} 卡整机并行）`;
+      }
+      return `改${recPrecLabel}推荐 ${canonicalCards} 卡整机并行（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`;
+    }
+    if (q2Capacity.minPhysicalCardsRecommended !== null) {
+      if (
+        canonicalRecommendation &&
+        q2Capacity.minCardsRecommended !== null &&
+        canonicalRecommendation.canonicalCards > q2Capacity.minCardsRecommended
+      ) {
+        return `${curPrecLabel} 约 ${q2Capacity.minPhysicalCardsRecommended} 张物理卡 · 推荐 ${canonicalRecommendation.canonicalCards} 卡整机并行`;
+      }
+      return `${curPrecLabel} 约 ${q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`;
+    }
+    return `当前 ${q2Capacity.currentTotalCards} 逻辑卡（单节点 64 卡内无解）`;
+  })();
   const bottleneckLabel =
     q3Roofline.primaryBottleneck === "memory-bound"
       ? "带宽墙（Memory-bound）"
@@ -1302,12 +1755,8 @@ function DeployVerdictStrip({
       </div>
       <div className="wt-verdict-item">
         <span className="wt-verdict-label">建议最少卡数</span>
-        <span className="wt-verdict-value">{q2Capacity.minCardsRecommended ?? "—"} 逻辑卡</span>
-        <span className="wt-verdict-sub">
-          {q2Capacity.minPhysicalCardsRecommended !== null
-            ? `约 ${q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`
-            : `当前 ${q2Capacity.currentTotalCards} 逻辑卡（单节点 64 卡内无解）`}
-        </span>
+        <span className="wt-verdict-value">{minCardsValueText}</span>
+        <span className="wt-verdict-sub">{minCardsSubText}</span>
       </div>
       <div className="wt-verdict-item">
         <span className="wt-verdict-label">单卡可用 KV 缓存</span>
@@ -1328,11 +1777,11 @@ function DeployVerdictStrip({
             : `硬件脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
         </span>
       </div>
-      {!currentPlanValid && recSummary && onApplyRecommended && (
+      {!currentPlanValid && canonicalRecommendation && onApplyRecommended && (
         <div className="wt-verdict-cta-bar" data-testid="calc-verdict-cta-bar">
           <span style={{ fontSize: 13.5, color: "var(--color-ink)" }}>
-            当前 <strong>TP={plan.inputSummary.tpSize}</strong>{" "}
-            无法直接启动；一键切到最小可行方案后，下方启动命令与 3D 硬件拓扑将保持一致：
+            当前配置（<strong>{formatTopologySummaryBadge(plan.inputSummary)}</strong>
+            ）无法直接启动；点击右侧按钮切换后，下方启动命令与 3D 硬件拓扑将保持一致：
           </span>
           <button
             type="button"
@@ -1340,7 +1789,7 @@ function DeployVerdictStrip({
             data-testid="calc-apply-recommended-plan"
             onClick={onApplyRecommended}
           >
-            一键应用推荐并行 ({recSummary})
+            {canonicalRecommendation.buttonLabel}
           </button>
         </div>
       )}
@@ -1350,30 +1799,51 @@ function DeployVerdictStrip({
 
 function FourQuestionsGrid({
   plan,
+  canonicalRecommendation,
   hardware3dHref,
   onHandoffToDoctor,
-  onApplyRecommended,
 }: {
   plan: DeployPlanReport;
+  canonicalRecommendation: CanonicalRecommendedPlan | null;
   hardware3dHref: string;
   onHandoffToDoctor?: (() => void) | undefined;
-  onApplyRecommended?: (() => void) | undefined;
 }) {
   const [copied, setCopied] = useState(false);
   const { q1Fit, q2Capacity, q3Roofline, q4Recommendation } = plan.fourQuestions;
   const currentPlanValid = isCurrentDeployPlanValid(plan);
+  const isTightBudget = currentPlanValid && q2Capacity.oomStatus === "tight_budget_oom_risk";
   const currentPlanCli = useMemo(() => buildCurrentPlanCliHint(plan), [plan]);
-  const activeCli = currentPlanValid ? currentPlanCli : q4Recommendation.cliHint;
-  const recSummary = !currentPlanValid ? formatRecommendedParallelSummary(plan) : null;
+  const activeCli = currentPlanValid
+    ? currentPlanCli
+    : (canonicalRecommendation?.cliHint ?? q4Recommendation.cliHint);
+  const activeRationale = currentPlanValid
+    ? isTightBudget
+      ? "当前配置可启动（显存偏紧，高并发或录图落到区间上界时有 OOM 风险），已按当前参数生成启动命令："
+      : "当前配置可装下，已按你选定的并行度、上下文与图模式生成启动命令："
+    : (canonicalRecommendation?.rationale ?? q4Recommendation.rationale);
   const hwLinkLabel = formatHardware3dLinkLabel(plan);
   const contextualPrinciples = useMemo(() => selectContextualPrincipleWikiIds(plan), [plan]);
+  const curPrecLabel = formatHumanPrecisionLabel(plan.inputSummary.weightPrecision);
+  const recPrec = canonicalRecommendation?.nextState.weightPrecision;
+  const recPrecLabel = recPrec ? formatHumanPrecisionLabel(recPrec) : null;
   const q1Tone =
     q1Fit.verdict === "blocked"
       ? "var(--color-danger)"
       : q1Fit.verdict === "warn"
         ? "var(--color-warning)"
         : "var(--color-token)";
-  const q2Tone = q2Capacity.oomStatus === "fits" ? "var(--color-token)" : "var(--color-danger)";
+  const q2Tone =
+    q2Capacity.oomStatus === "fits"
+      ? "var(--color-token)"
+      : q2Capacity.oomStatus === "tight_budget_oom_risk"
+        ? "var(--color-warning)"
+        : "var(--color-danger)";
+  const q2StatusLabel =
+    q2Capacity.oomStatus === "fits"
+      ? "装得下"
+      : q2Capacity.oomStatus === "tight_budget_oom_risk"
+        ? "显存偏紧（有 OOM 风险）"
+        : q2Capacity.oomStatus;
 
   const handleCopyCli = () => {
     void copyTextToClipboard(activeCli).then((ok) => {
@@ -1410,11 +1880,6 @@ function FourQuestionsGrid({
             {currentPlanValid ? "启动命令与下一步验证（可直接复制或送去体检）" : "推荐起步拓扑与启动命令"}
           </strong>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {!currentPlanValid && recSummary && onApplyRecommended && (
-              <button type="button" className="wt-assistant-btn" onClick={onApplyRecommended}>
-                一键应用推荐并行 ({recSummary})
-              </button>
-            )}
             {activeCli && (
               <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
                 {copied ? "已复制命令" : "复制命令"}
@@ -1440,11 +1905,7 @@ function FourQuestionsGrid({
             </a>
           </div>
         </div>
-        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>
-          {currentPlanValid
-            ? "当前配置可装下，已按你选定的并行度、上下文与图模式生成启动命令："
-            : q4Recommendation.rationale}
-        </p>
+        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>{activeRationale}</p>
         {activeCli && (
           <pre
             data-testid="calc-handoff-cli"
@@ -1463,12 +1924,14 @@ function FourQuestionsGrid({
             {activeCli}
           </pre>
         )}
-        {currentPlanValid && currentPlanCli !== q4Recommendation.cliHint && (
-          <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-ink-muted)" }}>
-            <strong>精简起步参考：</strong>
-            {q4Recommendation.rationale}
-          </p>
-        )}
+        {currentPlanValid &&
+          canonicalRecommendation &&
+          currentPlanCli !== canonicalRecommendation.cliHint && (
+            <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-ink-muted)" }}>
+              <strong>标准整机参考：</strong>
+              {canonicalRecommendation.rationale}
+            </p>
+          )}
         <div
           data-testid="calc-contextual-principles"
           style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}
@@ -1536,15 +1999,32 @@ function FourQuestionsGrid({
               border: `1px solid ${q2Tone}`,
             }}
           >
-            {q2Capacity.oomStatus === "fits" ? "装得下" : q2Capacity.oomStatus}
+            {q2StatusLabel}
           </span>
         </div>
         <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>{q2Capacity.summary}</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 13.5 }}>
           <span>
-            最少建议卡数：<strong>{q2Capacity.minCardsRecommended}</strong>（
-            {q2Capacity.minPhysicalCardsRecommended} 物理卡）
+            当前 {curPrecLabel} 最少卡数：
+            <strong>{q2Capacity.minCardsRecommended ?? "超限"}</strong>
+            {q2Capacity.minPhysicalCardsRecommended !== null
+              ? `（${q2Capacity.minPhysicalCardsRecommended} 物理卡）`
+              : ""}
           </span>
+          {canonicalRecommendation &&
+            recPrec &&
+            recPrecLabel &&
+            recPrec !== plan.inputSummary.weightPrecision && (
+              <span>
+                改{recPrecLabel}最少卡数：
+                <strong>
+                  {canonicalRecommendation.theoreticalMinCards !== null &&
+                  canonicalRecommendation.theoreticalMinCards < canonicalRecommendation.canonicalCards
+                    ? `理论 ${canonicalRecommendation.theoreticalMinCards} 卡 / 推荐 ${canonicalRecommendation.canonicalCards} 卡`
+                    : `${canonicalRecommendation.canonicalCards} 卡`}
+                </strong>
+              </span>
+            )}
           <span>
             单 token 分页 KV：<strong>{fmtBytes(q2Capacity.perTokenPagedKvBytes)}</strong>
           </span>
@@ -2024,29 +2504,6 @@ function ReconcileLogSection({
       </div>
     </section>
   );
-}
-
-interface CalcState {
-  version: RuleVersion;
-  cardId: AscendCalcCardId;
-  weightPrecision: WeightPrecision;
-  kvCacheDtype: KvCacheDtype;
-  weightNzMode: 0 | 1 | 2;
-  tpSize: number;
-  ppSize: number;
-  dpSize: number;
-  pcpSize: number;
-  dcpSize: number;
-  enableEp: boolean;
-  gpuMemoryUtilization: number;
-  maxModelLen: number;
-  maxNumBatchedTokens: number;
-  maxNumSeqs: number;
-  cudagraphMode: CudaGraphMode;
-  useV2ModelRunner: boolean | undefined;
-  prefillTokens: number;
-  decodeBatchSize: number;
-  decodeContextLen: number;
 }
 
 function CalcControlsBar({
@@ -2850,6 +3307,16 @@ export function DeployCalculatorView({
     setActiveWave4DemoId(null);
     setPresetId("qwen3-8b");
     setShareNotice(null);
+    patchState({
+      tpSize: 1,
+      ppSize: 1,
+      dpSize: 1,
+      pcpSize: 1,
+      dcpSize: 1,
+      enableEp: false,
+      useV2ModelRunner: undefined,
+      weightPrecision: state.cardId === "310p-24g" ? "fp16" : "bf16",
+    });
   };
 
   const applyWave4Demo = (demo: Wave4DemoPreset) => {
@@ -2871,43 +3338,36 @@ export function DeployCalculatorView({
     });
   };
 
+  const canonicalRecommendation = useMemo(
+    () =>
+      plan && mode === "full" && subMode === "static" && !isCurrentDeployPlanValid(plan)
+        ? resolveCanonicalRecommendedPlan(plan, state)
+        : null,
+    [plan, mode, subMode, state],
+  );
+
   const handleApplyRecommendedPlan = () => {
-    if (!plan) return;
-    const q4 = plan.fourQuestions.q4Recommendation;
-    if (q4.unsolvable || q4.recommendedTp === null) return;
-    const nextPcp = q4.recommendedPcp ?? 1;
-    patchState({
-      tpSize: q4.recommendedTp,
-      ppSize: q4.recommendedPp ?? 1,
-      dpSize: q4.recommendedDp ?? 1,
-      pcpSize: nextPcp,
-      dcpSize: q4.recommendedDcp ?? 1,
-      enableEp: q4.recommendedEnableEp,
-      weightPrecision: q4.recommendedPrecision,
-      gpuMemoryUtilization: q4.recommendedGpuMemoryUtilization,
-      ...(nextPcp > 1 && state.version === "v0.30.0" ? { useV2ModelRunner: true } : {}),
-      ...(plan.card.family === "310P" || plan.headroomStatus === "overflow" ? { cudagraphMode: "NONE" } : {}),
-    });
+    if (!plan || !canonicalRecommendation) return;
+    patchState(canonicalRecommendation.nextState);
   };
 
   const handleHandoffToDoctor = () => {
     if (!plan) return;
     const currentPlanValid = isCurrentDeployPlanValid(plan);
+    const effectivePlan = currentPlanValid ? plan : (canonicalRecommendation?.nextPlan ?? plan);
     const commandText = currentPlanValid
       ? buildCurrentPlanCliHint(plan)
-      : plan.fourQuestions.q4Recommendation.cliHint;
+      : (canonicalRecommendation?.cliHint ?? plan.fourQuestions.q4Recommendation.cliHint);
     if (!commandText) return;
-    const effectiveTp = currentPlanValid
-      ? plan.inputSummary.tpSize
-      : (plan.fourQuestions.q4Recommendation.recommendedTp ?? plan.inputSummary.tpSize);
+    const topoSummary = formatTopologySummaryBadge(effectivePlan.inputSummary);
     const modelId = useCustomJson ? (activeWave4DemoId ?? undefined) : presetId;
     workbenchHandoffStore.sendToDoctor({
       commandText,
-      hardwareFamily: cardIdToHardwareFamily(plan.card.id),
+      hardwareFamily: cardIdToHardwareFamily(effectivePlan.card.id),
       version: state.version === "main" ? "main" : "v0.30.0",
-      sourceLabel: `${plan.spec.name} · ${plan.card.shortName} · TP=${effectiveTp}`,
+      sourceLabel: `${effectivePlan.spec.name} · ${effectivePlan.card.shortName} · ${topoSummary}`,
       ...(modelId ? { modelId } : {}),
-      modelTraitOverride: extractDoctorModelTraitsFromSpec(plan.spec),
+      modelTraitOverride: extractDoctorModelTraitsFromSpec(effectivePlan.spec),
     });
     if (onNavigateToDoctor) {
       onNavigateToDoctor();
@@ -3273,13 +3733,25 @@ export function DeployCalculatorView({
               type="button"
               className={`wt-preset-btn${!useCustomJson && presetId === p.id ? " is-active" : ""}`}
               onClick={() => {
+                const returningFromWave4Demo = useCustomJson && activeWave4DemoId !== null;
                 markLocalEdit();
                 setUseCustomJson(false);
                 setCustomEditorOpen(false);
                 setActiveWave4DemoId(null);
                 setPresetId(p.id);
                 setShareNotice(null);
-                if (p.id === "qwen3-30b-a3b" && state.tpSize === 1) {
+                if (returningFromWave4Demo) {
+                  patchState({
+                    tpSize: p.id === "qwen3-30b-a3b" ? 4 : 1,
+                    ppSize: 1,
+                    dpSize: 1,
+                    pcpSize: 1,
+                    dcpSize: 1,
+                    enableEp: p.id === "qwen3-30b-a3b",
+                    useV2ModelRunner: undefined,
+                    weightPrecision: state.cardId === "310p-24g" ? "fp16" : "bf16",
+                  });
+                } else if (p.id === "qwen3-30b-a3b" && state.tpSize === 1) {
                   patchState({ tpSize: 4, enableEp: true });
                 }
               }}
@@ -3434,14 +3906,6 @@ export function DeployCalculatorView({
                 </div>
               )}
               <CalcControlsBar mode={mode} state={state} isMoe={plan.isMoe} onPatch={patchState} />
-              {mode === "full" && subMode === "static" && (
-                <AdvancedCalcControls
-                  state={state}
-                  open={advancedOpen}
-                  onOpenChange={setAdvancedOpen}
-                  onPatch={patchState}
-                />
-              )}
             </div>
           )}
 
@@ -3469,14 +3933,24 @@ export function DeployCalculatorView({
                     <span>一眼确认能否装下、最少几张卡，并一键复制启动命令或去体检 / 3D 透视</span>
                   </span>
                 </div>
-                <DeployVerdictStrip plan={plan} onApplyRecommended={handleApplyRecommendedPlan} />
-                <FourQuestionsGrid
+                <DeployVerdictStrip
                   plan={plan}
-                  hardware3dHref={hardware3dHref}
-                  onHandoffToDoctor={handleHandoffToDoctor}
+                  canonicalRecommendation={canonicalRecommendation}
                   onApplyRecommended={handleApplyRecommendedPlan}
                 />
+                <FourQuestionsGrid
+                  plan={plan}
+                  canonicalRecommendation={canonicalRecommendation}
+                  hardware3dHref={hardware3dHref}
+                  onHandoffToDoctor={handleHandoffToDoctor}
+                />
               </div>
+              <AdvancedCalcControls
+                state={state}
+                open={advancedOpen}
+                onOpenChange={setAdvancedOpen}
+                onPatch={patchState}
+              />
               <details className="wt-calc-eng-drawer" data-testid="calc-engineering-details">
                 <summary className="wt-calc-eng-summary" data-testid="calc-engineering-summary">
                   展开查看 7 级显存推导、HCCL 通信域与 Roofline 工程依据

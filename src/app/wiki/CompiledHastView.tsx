@@ -292,13 +292,18 @@ function diagramId(node: unknown): string | null {
 const SHELL_FENCE_LANGUAGES = new Set(["bash", "sh", "shell", "zsh", "console", "text"]);
 const ENV_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=.*$/;
 const PLACEHOLDER_ANGLE_TOKEN_RE = /<(?:[A-Za-z_][A-Za-z0-9_.:/-]*|)>/;
+const SHELL_VAR_EXPANSION_RE = /\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[^}]*\}|\(|\d|[?#@*!-])/;
 
 interface LogicalShellStatement {
   rawChunk: string;
   logicalLine: string;
 }
 
-function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
+/**
+ * 严格单命令 Shell 分句器：
+ * - 遇到未加引号的 `|`、`||`、`&`、`&&`、`;`、`<`、`>`、反引号 `` ` ``、未闭合引号，或 `\` 续行符后残留空白字符（`\\[ \t]+\n`）时，直接返回 `null` 拒绝提取。
+ */
+function splitStrictShellLogicalStatements(raw: string): LogicalShellStatement[] | null {
   const text = raw.replace(/\r\n/g, "\n");
   const out: LogicalShellStatement[] = [];
   let curRaw = "";
@@ -327,6 +332,7 @@ function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
       continue;
     }
     if (quote === '"') {
+      if (ch === "`") return null;
       if (ch === "\\" && i + 1 < text.length) {
         curRaw += ch + next;
         curLogical += ch + next;
@@ -341,11 +347,14 @@ function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
     }
 
     if (ch === "\\") {
-      const contMatch = /^\\[ \t]*\n/.exec(text.slice(i));
-      if (contMatch) {
-        curRaw += contMatch[0];
+      const tail = text.slice(i);
+      if (/^\\[ \t]+\n/.test(tail) || /^\\[ \t]*$/.test(tail)) {
+        return null;
+      }
+      if (next === "\n") {
+        curRaw += "\\\n";
         curLogical += " ";
-        i += contMatch[0].length;
+        i += 2;
         continue;
       }
       if (i + 1 < text.length) {
@@ -354,6 +363,7 @@ function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
         i += 2;
         continue;
       }
+      return null;
     }
 
     if (ch === "'" || ch === '"') {
@@ -369,17 +379,11 @@ function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
       continue;
     }
 
-    if (ch === "\n" || ch === ";") {
-      flush();
-      i += 1;
-      continue;
+    if (ch === "|" || ch === "&" || ch === ";" || ch === "`" || ch === "<" || ch === ">") {
+      return null;
     }
-    if ((ch === "&" && next === "&") || (ch === "|" && next === "|")) {
-      flush();
-      i += 2;
-      continue;
-    }
-    if (ch === "|") {
+
+    if (ch === "\n") {
       flush();
       i += 1;
       continue;
@@ -389,6 +393,8 @@ function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
     curLogical += ch;
     i += 1;
   }
+
+  if (quote !== null) return null;
   flush();
   return out;
 }
@@ -441,8 +447,9 @@ function simpleShellWords(line: string): string[] {
 }
 
 /**
- * 活代码块单命令门禁：仅当围栏内包含**唯一一条**可解析的 `vllm serve` 命令（无 `<model>` 占位符、无多实例/多模板混写）时，
- * 返回保留了前置环境变量与 `\` 续行符的启动命令字符串；否则返回 `null`。
+ * 活代码块单命令门禁：仅当围栏内仅由可选前置环境变量赋值（`export KEY=VAL` / `KEY=VAL`）与**唯一一条**具体可解析的 `vllm serve` 命令组成
+ * （无 `cd`/`echo` 等其他命令，无 `|`/`&`/`;`/`&&`/`||`，无 `\` 后尾随空白，无 `<model>` 或 `$VAR`/`${VAR}` 变量展开）时，
+ * 返回保留了前置环境变量与 `\` 续行符的启动命令字符串；否则返回 `null`（仅渲染「复制」）。
  */
 export function extractSingleVllmServeFenceCommand(
   rawFenceText: string,
@@ -453,28 +460,37 @@ export function extractSingleVllmServeFenceCommand(
     return null;
   }
 
-  const statements = splitShellLogicalStatements(rawFenceText);
-  if (statements.length === 0) return null;
+  const statements = splitStrictShellLogicalStatements(rawFenceText);
+  if (!statements || statements.length === 0) return null;
 
   const classified = statements.map((stmt) => {
     const cleanedRaw = stmt.rawChunk.replace(/^\$\s+/, "");
     const cleanedLogical = stmt.logicalLine.replace(/^\$\s+/, "");
+    if (
+      SHELL_VAR_EXPANSION_RE.test(cleanedLogical) ||
+      SHELL_VAR_EXPANSION_RE.test(cleanedRaw) ||
+      PLACEHOLDER_ANGLE_TOKEN_RE.test(cleanedLogical)
+    ) {
+      return { kind: "other" as const, cleanedRaw, cleanedLogical };
+    }
     const words = simpleShellWords(cleanedLogical);
-    if (words.length === 0) return { kind: "other" as const, cleanedRaw, cleanedLogical };
+    if (words.length === 0 || words.some((w) => SHELL_VAR_EXPANSION_RE.test(w))) {
+      return { kind: "other" as const, cleanedRaw, cleanedLogical };
+    }
 
-    if (words[0] === "export" && words.slice(1).every((w) => ENV_TOKEN_RE.test(w))) {
+    if (words[0] === "export" && words.length >= 2 && words.slice(1).every((w) => ENV_TOKEN_RE.test(w))) {
       return { kind: "env" as const, cleanedRaw, cleanedLogical };
     }
     let idx = 0;
     while (idx < words.length) {
       const w = words[idx] ?? "";
-      if (ENV_TOKEN_RE.test(w) || w === "nohup" || w === "env" || w === "setsid") {
+      if (ENV_TOKEN_RE.test(w) || w === "env") {
         idx += 1;
         continue;
       }
       break;
     }
-    if (idx === words.length) {
+    if (idx === words.length && words.every((w) => ENV_TOKEN_RE.test(w))) {
       return { kind: "env" as const, cleanedRaw, cleanedLogical };
     }
     const head = words[idx] ?? "";
@@ -482,35 +498,22 @@ export function extractSingleVllmServeFenceCommand(
     if (head === "vllm" && second === "serve") {
       return { kind: "vllm-serve" as const, cleanedRaw, cleanedLogical };
     }
-    if (
-      (head === "python" || head === "python3") &&
-      second === "-m" &&
-      (words[idx + 2] === "vllm.entrypoints.openai.api_server" ||
-        words[idx + 2] === "vllm.entrypoints.cli.main")
-    ) {
-      return { kind: "python-serve" as const, cleanedRaw, cleanedLogical };
-    }
     return { kind: "other" as const, cleanedRaw, cleanedLogical };
   });
 
+  if (classified.some((item) => item.kind === "other")) return null;
+
   const vllmServeIndices: number[] = [];
   for (let i = 0; i < classified.length; i += 1) {
-    const item = classified[i]!;
-    if (item.kind === "python-serve") return null;
-    if (item.kind === "vllm-serve") vllmServeIndices.push(i);
-    else if (/\bvllm\s+serve\b/.test(item.cleanedLogical)) return null;
+    if (classified[i]!.kind === "vllm-serve") vllmServeIndices.push(i);
   }
 
   if (vllmServeIndices.length !== 1) return null;
   const targetIdx = vllmServeIndices[0]!;
+  if (targetIdx !== classified.length - 1) return null;
   const targetStmt = classified[targetIdx]!;
 
-  if (PLACEHOLDER_ANGLE_TOKEN_RE.test(targetStmt.cleanedLogical)) return null;
-
-  const envPrefixLines = classified
-    .slice(0, targetIdx)
-    .filter((s) => s.kind === "env")
-    .map((s) => s.cleanedRaw);
+  const envPrefixLines = classified.slice(0, targetIdx).map((s) => s.cleanedRaw);
   const handoffCommand = [...envPrefixLines, targetStmt.cleanedRaw].join("\n").trim();
 
   const parsed = parseVllmServeCommand(handoffCommand);
@@ -518,7 +521,7 @@ export function extractSingleVllmServeFenceCommand(
   const model = parsed.model?.trim() ?? "";
   if (
     !model ||
-    model.startsWith("$") ||
+    model.includes("$") ||
     model.includes("<") ||
     model.includes(">") ||
     model.includes("...") ||
@@ -602,15 +605,12 @@ function WikiFallbackCodeFence({
 }) {
   const [copied, setCopied] = useState(false);
   const inRouter = useInRouterContext();
-  const codeNode = (node as CompiledNode | undefined)?.children?.[0];
-  const rawText = (codeNode ? hastTextOf(codeNode) : hastTextOf(node as CompiledNode | undefined)).replace(
-    /\n$/,
-    "",
+  const preNode = node as CompiledNode | undefined;
+  const codeNode = preNode?.children?.find(
+    (child): child is CompiledNode => child.type === "element" && child.tagName === "code",
   );
-  const rawClasses =
-    codeNode?.type === "element" && Array.isArray(codeNode.properties?.className)
-      ? codeNode.properties.className
-      : [];
+  const rawText = (codeNode ? hastTextOf(codeNode) : hastTextOf(preNode)).replace(/\n$/, "");
+  const rawClasses = Array.isArray(codeNode?.properties?.className) ? codeNode.properties.className : [];
   const langCls = rawClasses.find((c): c is string => typeof c === "string" && c.startsWith("language-"));
   const fenceLang = langCls ? langCls.slice("language-".length).toLowerCase() : null;
   const doctorCommand = rawText ? extractSingleVllmServeFenceCommand(rawText, fenceLang) : null;

@@ -66,6 +66,11 @@ const ALLOWED_CUDAGRAPH_MODES = new Set<CudaGraphMode>([
 ]);
 const ALLOWED_CARDS = new Set<AscendCalcCardId>(ASCEND_CALC_CARDS.map((c) => c.id));
 const ALLOWED_PRESETS = new Set<string>([
+  "qwen3-0.6b",
+  "qwen3-8b",
+  "qwen3-30b-a3b",
+  "qwen3-32b",
+  "qwen3-235b-a22b",
   ...MODEL_PRESETS.map((p) => p.id),
   ...WAVE4_DEMO_PRESETS.map((d) => d.id),
 ]);
@@ -75,10 +80,17 @@ const ALLOWED_HARDWARE_FAMILIES = new Set<AscendFamily>(["A2", "A3", "310P", "A5
 const ALLOWED_RULE_VERSIONS = new Set<Extract<RuleVersion, "v0.30.0" | "main">>(["v0.30.0", "main"]);
 const ALLOWED_UPGRADE_FROM_VERSIONS = new Set<LegacyUpgradeFromVersion>(["v0.23.0", "v0.26.0rc"]);
 const ALLOWED_DOCTOR_TOPOLOGIES = new Set<"single" | "pd">(["single", "pd"]);
-export type DoctorModelHintKey = "auto" | "qwen3-8b" | "qwen3-30b-a3b" | "qwen3-32b" | "qwen3-235b-a22b";
+export type DoctorModelHintKey =
+  | "auto"
+  | "qwen3-0.6b"
+  | "qwen3-8b"
+  | "qwen3-30b-a3b"
+  | "qwen3-32b"
+  | "qwen3-235b-a22b";
 
 const ALLOWED_DOCTOR_HINTS = new Set<DoctorModelHintKey>([
   "auto",
+  "qwen3-0.6b",
   "qwen3-8b",
   "qwen3-30b-a3b",
   "qwen3-32b",

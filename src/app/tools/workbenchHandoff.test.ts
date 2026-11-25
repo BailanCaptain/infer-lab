@@ -1172,4 +1172,54 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
     expect(bareBearerNewline).toContain("TP_SIZE=4");
     expect(bareBearerNewline).toContain("MAX_MODEL_LEN=8192");
   });
+
+  it("Red-Team P1: qwen3-32b 与 qwen3-235b-a22b 在算账 URL、体检 hint/mid 与 AI 分析载荷白名单中无损往返", () => {
+    for (const presetId of ["qwen3-0.6b", "qwen3-32b", "qwen3-235b-a22b"] as const) {
+      const calcParams = buildCalculatorQueryParams({
+        subMode: "static",
+        presetId,
+        cardId: "a2-64g",
+        tpSize: presetId === "qwen3-235b-a22b" ? 8 : presetId === "qwen3-32b" ? 2 : 1,
+        ppSize: 1,
+        dpSize: 1,
+        enableEp: presetId === "qwen3-235b-a22b",
+      });
+      expect(calcParams.get("preset")).toBe(presetId);
+      const parsedCalc = parseCalculatorQueryParams(calcParams);
+      expect(parsedCalc.presetId).toBe(presetId);
+
+      const docShare = buildDoctorShareLink({
+        topology: "single",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelHint: presetId,
+        commandText: `vllm serve ${presetId} -tp 2`,
+      });
+      expect(docShare.ok).toBe(true);
+      if (docShare.ok) {
+        const parsedDoc = parseDoctorQueryParams(docShare.params);
+        expect(parsedDoc.modelHint).toBe(presetId);
+      }
+
+      const autoMidShare = buildDoctorShareLink({
+        topology: "single",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelHint: "auto",
+        sharedModelId: presetId,
+        commandText: `vllm serve /models/${presetId} -tp 2`,
+      });
+      expect(autoMidShare.ok).toBe(true);
+      if (autoMidShare.ok) {
+        expect(parseDoctorQueryParams(autoMidShare.params).sharedModelId).toBe(presetId);
+      }
+
+      const chatPayload = buildDeployChatAnalysis({
+        model: presetId,
+        cardId: "a2-64g",
+        tpSize: 2,
+      });
+      expect(chatPayload?.model).toBe(presetId);
+    }
+  });
 });

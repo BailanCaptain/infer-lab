@@ -12,6 +12,7 @@ import {
   DiagramEvidenceContext,
   DiagramPageContext,
   DiagramSnapshot,
+  extractSingleVllmServeFenceCommand,
   parseInlineStyle,
   sanitizeHastUrl,
 } from "./CompiledHastView";
@@ -239,5 +240,142 @@ describe("CompiledHastView direct HAST renderer", () => {
       msFlex: "1",
       backgroundImage: "url('a;b.png')",
     });
+  });
+
+  it("活代码块单命令门禁：普通围栏渲染复制按钮；仅唯一合法 vllm serve 围栏暴露「送去体检」，严格拒绝多命令与 <model> 占位符", () => {
+    const singleServeCmd = [
+      "# 单机四卡启动 Qwen3-30B-A3B",
+      "export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3",
+      "export HCCL_BUFFSIZE=1024",
+      "vllm serve /root/.cache/Qwen3-30B-A3B-W8A8 \\",
+      "    --served-model-name qwen3-30b-a3b \\",
+      "    --tensor-parallel-size 4 \\",
+      "    --enable-expert-parallel",
+    ].join("\n");
+
+    const extracted = extractSingleVllmServeFenceCommand(singleServeCmd, "bash");
+    expect(extracted).not.toBeNull();
+    expect(extracted).toContain("export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3");
+    expect(extracted).toContain("export HCCL_BUFFSIZE=1024");
+    expect(extracted).toContain("vllm serve /root/.cache/Qwen3-30B-A3B-W8A8 \\\n");
+    expect(extracted).toContain("--enable-expert-parallel");
+
+    // Reject multi-command fences (like ascend-env-and-serve.md A/B/C templates)
+    const multiServeFence = [
+      "export ASCEND_RT_VISIBLE_DEVICES=0",
+      "vllm serve /root/.cache/Qwen3-8B --max-model-len 8192",
+      "export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3",
+      "vllm serve /root/.cache/Qwen3-30B-A3B-W8A8 --tensor-parallel-size 4 --enable-expert-parallel",
+    ].join("\n");
+    expect(extractSingleVllmServeFenceCommand(multiServeFence, "bash")).toBeNull();
+
+    // Reject placeholder <model> / angle-bracket / ellipsis / undefined env var / non-shell language
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve <model> --tensor-parallel-size 2", "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve /path/to/<your-model> --max-model-len 8192", "bash"),
+    ).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve ... -tp 2", "bash")).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve $UNSET_MODEL -tp 2", "bash")).toBeNull();
+    const literalShellBraceVar = `\${${"MODEL_PATH"}}`;
+    expect(
+      extractSingleVllmServeFenceCommand(`vllm serve /models/${literalShellBraceVar} -tp 2`, "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand(
+        `export MODEL_PATH=/data/Qwen3-8B\nvllm serve "${literalShellBraceVar}" -tp 2`,
+        "bash",
+      ),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("cd /models\nvllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2\necho ready", "bash"),
+    ).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 | tee serve.log", "bash"),
+    ).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 &", "bash")).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("export FOO=1 && vllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B -tp 2 || true", "bash")).toBeNull();
+    expect(
+      extractSingleVllmServeFenceCommand("export FOO=1; vllm serve Qwen/Qwen3-8B -tp 2", "bash"),
+    ).toBeNull();
+    // Trailing whitespace after `\` line continuation breaks bash continuation -> must reject
+    expect(extractSingleVllmServeFenceCommand("vllm serve Qwen/Qwen3-8B \\   \n  -tp 2", "bash")).toBeNull();
+    expect(extractSingleVllmServeFenceCommand("# vllm serve comment only\necho ok", "bash")).toBeNull();
+    expect(extractSingleVllmServeFenceCommand('cmd = "vllm serve Qwen/Qwen3-8B -tp 2"', "python")).toBeNull();
+
+    // Leading whitespace text node inside <pre>\n<code>...</code></pre> still locates <code> and renders both Copy & Doctor buttons
+    const preWithLeadingNewlineTree: CompiledNode = deepFreeze({
+      type: "root",
+      children: [
+        {
+          type: "element",
+          tagName: "pre",
+          properties: {},
+          children: [
+            { type: "text", value: "\n" },
+            {
+              type: "element",
+              tagName: "code",
+              properties: { className: ["language-bash"] },
+              children: [{ type: "text", value: "vllm serve Qwen/Qwen3-8B -tp 2\n" }],
+            },
+          ],
+        },
+      ],
+    });
+    const preWhitespaceHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(CompiledHastView, { root: preWithLeadingNewlineTree, page: samplePage }),
+      ),
+    );
+    expect(preWhitespaceHtml).toContain('data-testid="wiki-code-copy-btn"');
+    expect(preWhitespaceHtml).toContain('data-testid="wiki-code-doctor-btn"');
+
+    // Render full markdown mixing single-serve, multi-serve, placeholder, and calc fences
+    const mixedMd = [
+      "```bash",
+      singleServeCmd,
+      "```",
+      "",
+      "```bash",
+      multiServeFence,
+      "```",
+      "",
+      "```bash",
+      "vllm serve <model> --tensor-parallel-size 2",
+      "```",
+      "",
+      "```calc",
+      "权重显存 = 8 * 2 = 16 GB",
+      "```",
+    ].join("\n");
+
+    const compiled = deepFreeze(compileMarkdown(mixedMd) as CompiledNode);
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(
+          DiagramPageContext.Provider,
+          { value: "ascend-env-and-serve" },
+          createElement(CompiledHastView, { root: compiled, page: samplePage }),
+        ),
+      ),
+    );
+
+    // 3 fallback code blocks -> 3 copy buttons, but ONLY 1 doctor handoff button!
+    expect(html.match(/data-testid="wiki-code-copy-btn"/g)?.length).toBe(3);
+    expect(html.match(/data-testid="wiki-code-doctor-btn"/g)?.length).toBe(1);
+    // Calc fence untouched
+    expect(html).toContain('class="wiki-calc"');
   });
 });

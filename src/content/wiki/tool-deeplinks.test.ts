@@ -262,6 +262,13 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
     }
 
     // 2. Every MODEL_PRESETS × ASCEND_CALC_CARDS plan (+ branch-covering variants) emits only registered relatedWikiIds
+    expect(MODEL_PRESETS.slice(0, 5).map((p) => p.id)).toEqual([
+      "qwen3-0.6b",
+      "qwen3-8b",
+      "qwen3-30b-a3b",
+      "qwen3-32b",
+      "qwen3-235b-a22b",
+    ]);
     for (const preset of MODEL_PRESETS) {
       for (const card of ASCEND_CALC_CARDS) {
         const plan = evaluateDeployPlan({ model: preset.id, cardId: card.id });

@@ -66,6 +66,11 @@ const ALLOWED_CUDAGRAPH_MODES = new Set<CudaGraphMode>([
 ]);
 const ALLOWED_CARDS = new Set<AscendCalcCardId>(ASCEND_CALC_CARDS.map((c) => c.id));
 const ALLOWED_PRESETS = new Set<string>([
+  "qwen3-0.6b",
+  "qwen3-8b",
+  "qwen3-30b-a3b",
+  "qwen3-32b",
+  "qwen3-235b-a22b",
   ...MODEL_PRESETS.map((p) => p.id),
   ...WAVE4_DEMO_PRESETS.map((d) => d.id),
 ]);
@@ -75,10 +80,21 @@ const ALLOWED_HARDWARE_FAMILIES = new Set<AscendFamily>(["A2", "A3", "310P", "A5
 const ALLOWED_RULE_VERSIONS = new Set<Extract<RuleVersion, "v0.30.0" | "main">>(["v0.30.0", "main"]);
 const ALLOWED_UPGRADE_FROM_VERSIONS = new Set<LegacyUpgradeFromVersion>(["v0.23.0", "v0.26.0rc"]);
 const ALLOWED_DOCTOR_TOPOLOGIES = new Set<"single" | "pd">(["single", "pd"]);
-const ALLOWED_DOCTOR_HINTS = new Set<"auto" | "qwen3-8b" | "qwen3-30b-a3b">([
+export type DoctorModelHintKey =
+  | "auto"
+  | "qwen3-0.6b"
+  | "qwen3-8b"
+  | "qwen3-30b-a3b"
+  | "qwen3-32b"
+  | "qwen3-235b-a22b";
+
+const ALLOWED_DOCTOR_HINTS = new Set<DoctorModelHintKey>([
   "auto",
+  "qwen3-0.6b",
   "qwen3-8b",
   "qwen3-30b-a3b",
+  "qwen3-32b",
+  "qwen3-235b-a22b",
 ]);
 const ALLOWED_DOCTOR_PRESETS = new Set<string>(DOCTOR_PRESETS.map((p) => p.id));
 const ALLOWED_AICORE_ARCHS = new Set<AiCoreArch>(["910b", "950"]);
@@ -647,7 +663,7 @@ export interface DoctorQueryOverrides {
   decodeHardwareFamily?: AscendFamily | undefined;
   version?: Extract<RuleVersion, "v0.30.0" | "main"> | undefined;
   fromVersion?: LegacyUpgradeFromVersion | undefined;
-  modelHint?: "auto" | "qwen3-8b" | "qwen3-30b-a3b" | undefined;
+  modelHint?: DoctorModelHintKey | undefined;
   crossNodeRoce?: boolean | undefined;
   sharedModelId?: string | undefined;
   sharedTraitOverride?: DoctorModelTraitOverride | undefined;
@@ -733,7 +749,7 @@ export function parseDoctorQueryParams(
   const fromVer = params.get("fromVer")?.trim() as LegacyUpgradeFromVersion | undefined;
   if (fromVer && ALLOWED_UPGRADE_FROM_VERSIONS.has(fromVer)) out.fromVersion = fromVer;
 
-  const hint = params.get("hint")?.trim() as "auto" | "qwen3-8b" | "qwen3-30b-a3b" | undefined;
+  const hint = params.get("hint")?.trim() as DoctorModelHintKey | undefined;
   if (hint && ALLOWED_DOCTOR_HINTS.has(hint)) out.modelHint = hint;
 
   const roce = params.get("roce")?.trim().toLowerCase();
@@ -838,7 +854,7 @@ export function buildDoctorShareLink(
     decodeHardwareFamily?: AscendFamily | undefined;
     version: Extract<RuleVersion, "v0.30.0" | "main">;
     fromVersion?: LegacyUpgradeFromVersion | undefined;
-    modelHint: "auto" | "qwen3-8b" | "qwen3-30b-a3b";
+    modelHint: DoctorModelHintKey;
     crossNodeRoce?: boolean | undefined;
     preferredPresetId?: string | undefined;
     sharedModelId?: string | undefined;

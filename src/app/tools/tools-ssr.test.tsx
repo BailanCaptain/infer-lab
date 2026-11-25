@@ -14,9 +14,15 @@ import { ConfigDoctorView, extractNormalizedCliModel } from "./ConfigDoctorView"
 import {
   DeployCalculatorView,
   evaluateCalculatorModelGate,
+  formatHardware3dLinkLabel,
+  formatRecommendedParallelSummary,
+  formatTopologySummaryBadge,
   hasAdvancedQueryOverrides,
+  isCurrentDeployPlanValid,
   parseCustomModelParam,
   parseV2ModelRunnerParam,
+  resolveCanonicalRecommendedPlan,
+  selectContextualPrincipleWikiIds,
   serializeCustomModelForShare,
 } from "./DeployCalculatorView";
 import {
@@ -741,5 +747,214 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     );
     expect(engramConflictHtml).toContain("配置校验冲突");
     expect(engramConflictHtml).not.toContain("单卡 NPU 权重 HBM 占用 <strong>0 B</strong>");
+
+    // 8. Master Polish WS1: P1 overflow CTA ("一键应用推荐并行"), honest 3D overflow label, collapsed engineering drawer,
+    //    expanded Qwen3-32B / Qwen3-235B-A22B presets, contextual principle chips, Doctor secondary <details>, and Troubleshoot collateral folding
+    const { evaluateDeployPlan } = await import("../../sim/modelspec/deployCalculator");
+    const overflow310pPlan = evaluateDeployPlan({
+      model: "qwen3-30b-a3b",
+      cardId: "310p-24g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+    });
+    expect(isCurrentDeployPlanValid(overflow310pPlan)).toBe(false);
+    expect(formatRecommendedParallelSummary(overflow310pPlan)).toContain("TP=2");
+    expect(formatHardware3dLinkLabel(overflow310pPlan)).toBe("去 3D 查看当前 TP=1 溢出态");
+
+    const overflowHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-30b-a3b&card=310p-24g&precision=bf16&tp=1",
+    );
+    expect(overflowHtml).toContain('data-testid="calc-apply-recommended-plan"');
+    expect(overflowHtml).toContain("一键应用推荐并行 (TP=2");
+    expect(overflowHtml).toContain("去 3D 查看当前 TP=1 溢出态");
+    expect(overflowHtml).not.toContain("在 3D 整机中透视此方案");
+
+    // Pure TP=1 -> TP=2 overflow on Qwen3-32B + A2 64G + BF16
+    const q32OverflowHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-32b&card=a2-64g&precision=bf16&tp=1",
+    );
+    expect(q32OverflowHtml).toContain("一键应用推荐并行 (TP=2)");
+    expect(q32OverflowHtml).toContain("去 3D 查看当前 TP=1 溢出态");
+
+    // Applied TP=2 fits -> both CLI and 3D link show TP=2, apply CTA disappears
+    const q32FitsHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-32b&card=a2-64g&precision=bf16&tp=2",
+    );
+    expect(q32FitsHtml).not.toContain('data-testid="calc-apply-recommended-plan"');
+    expect(q32FitsHtml).toContain("在 3D 整机中透视此方案 (TP=2) →");
+    expect(q32FitsHtml).toContain("-tp 2");
+    expect(q32FitsHtml).toContain('data-testid="calc-contextual-principles"');
+    expect(
+      selectContextualPrincipleWikiIds(
+        evaluateDeployPlan({ model: "qwen3-235b-a22b", cardId: "a3-die64g", tpSize: 8, enableEp: true }),
+      ),
+    ).toEqual(["gqa", "moe", "kv-cache-memory-profiling", "expert-parallel"]);
+
+    // Engineering drawer collapsed by default ONLY on mode="full" && subMode="static"
+    expect(q32FitsHtml).toMatch(
+      /<details[^>]*data-testid="calc-engineering-details"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+    expect(q32FitsHtml).toContain(
+      '<summary class="wt-calc-eng-summary" data-testid="calc-engineering-summary">展开查看 7 级显存推导、HCCL 通信域与 Roofline 工程依据</summary>',
+    );
+    const reconcileHtml = await renderUrl("http://localhost/tools?tab=calculator&panel=reconcile");
+    expect(reconcileHtml).not.toContain('data-testid="calc-engineering-details"');
+    const minimalEmbeddedHtml = renderToStaticMarkup(
+      createElement(DeployCalculatorView, { mode: "minimal", embedded: true }),
+    );
+    expect(minimalEmbeddedHtml).not.toContain('data-testid="calc-engineering-details"');
+
+    // ConfigDoctor secondary options collapsed by default, auto-opened when fromVer/roce/hint active
+    const docDefaultHtml = await renderUrl("http://localhost/tools?tab=doctor");
+    expect(docDefaultHtml).toMatch(
+      /<details[^>]*data-testid="doctor-secondary-options"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+    const docActiveSecHtml = await renderUrl("http://localhost/tools?tab=doctor&roce=1&hint=qwen3-32b");
+    expect(docActiveSecHtml).toMatch(/<details[^>]*data-testid="doctor-secondary-options"[^>]*\sopen/);
+
+    // Troubleshoot folds secondary collateral timeout lines into default-collapsed <details>
+    const tsCollateralHtml = await renderUrl(
+      "http://localhost/tools?tab=troubleshoot&fixture=multi-rank-hccl-rank3-fault",
+    );
+    expect(tsCollateralHtml).toMatch(
+      /<details[^>]*data-testid="troubleshoot-collateral-details"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+
+    // 9. Red-Team Regression Suite (Items 1–5):
+    //    (a) 235B canonical power-of-two {1,2,4,8} apply -> URL -> remount -> Doctor -> 3D wire round-trip (never PP=5, never falls back to qwen3-8b)
+    const { buildCurrentPlanCliHint } = await import("../../sim/modelspec/deployCalculator");
+    const { buildCalculatorQueryParams } = await import("./workbenchHandoff");
+    const plan235Overflow = evaluateDeployPlan({
+      model: "qwen3-235b-a22b",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+    });
+    const resolved235 = resolveCanonicalRecommendedPlan(plan235Overflow);
+    expect(resolved235).not.toBeNull();
+    expect([1, 2, 4, 8]).toContain(resolved235!.nextState.tpSize);
+    expect([1, 2, 4, 8]).toContain(resolved235!.nextState.ppSize);
+    expect([1, 2, 4, 8]).toContain(resolved235!.nextState.dpSize);
+    expect(resolved235!.nextState.tpSize).toBe(8);
+    expect(resolved235!.nextState.ppSize).toBe(1);
+    expect(resolved235!.nextState.enableEp).toBe(true);
+    expect(resolved235!.nextState.weightPrecision).toBe("w8a8_dynamic");
+    expect(isCurrentDeployPlanValid(resolved235!.nextPlan)).toBe(true);
+    expect(resolved235!.nextPlan.fourQuestions.q1Fit.blockers).toHaveLength(0);
+
+    const q235InitialHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-235b-a22b&card=a2-64g&precision=bf16&tp=1",
+    );
+    expect(q235InitialHtml).toContain("vllm serve Qwen3-235B-A22B -tp 8");
+    expect(q235InitialHtml).not.toContain("vllm serve Qwen3-8B");
+    // Qualified precision next to minimum card counts
+    expect(q235InitialHtml).toContain("当前 BF16 至少 9 卡");
+    expect(q235InitialHtml).toContain("改动态 INT8理论最少 5 卡（推荐 8 卡整机并行）");
+    // Single primary apply button (no duplicate second apply button) & Step ③ precedes advanced controls
+    expect(q235InitialHtml.match(/data-testid="calc-apply-recommended-plan"/g)?.length).toBe(1);
+    expect(q235InitialHtml.match(/一键应用推荐/g)?.length).toBe(1);
+    expect(q235InitialHtml.indexOf('data-testid="calc-verdict-strip"')).toBeGreaterThan(0);
+    expect(q235InitialHtml.indexOf('data-testid="calc-handoff-cli"')).toBeLessThan(
+      q235InitialHtml.indexOf('data-testid="calc-advanced-controls"'),
+    );
+
+    // Serialize applied canonical state -> URL -> remount SSR -> CLI & Doctor sourceLabel & 3D payload match 100%
+    const applied235Params = buildCalculatorQueryParams({
+      subMode: "static",
+      presetId: "qwen3-235b-a22b",
+      cardId: resolved235!.nextState.cardId,
+      weightPrecision: resolved235!.nextState.weightPrecision,
+      kvCacheDtype: resolved235!.nextState.kvCacheDtype,
+      weightNzMode: resolved235!.nextState.weightNzMode,
+      tpSize: resolved235!.nextState.tpSize,
+      ppSize: resolved235!.nextState.ppSize,
+      dpSize: resolved235!.nextState.dpSize,
+      pcpSize: resolved235!.nextState.pcpSize,
+      dcpSize: resolved235!.nextState.dcpSize,
+      enableEp: resolved235!.nextState.enableEp,
+      gpuMemoryUtilization: resolved235!.nextState.gpuMemoryUtilization,
+      maxModelLen: resolved235!.nextState.maxModelLen,
+      maxNumBatchedTokens: resolved235!.nextState.maxNumBatchedTokens,
+      maxNumSeqs: resolved235!.nextState.maxNumSeqs,
+      cudagraphMode: resolved235!.nextState.cudagraphMode,
+      enforceEager: resolved235!.nextState.cudagraphMode === "NONE",
+      version: "v0.30.0",
+    });
+    expect(parseCalculatorQueryParams(applied235Params)).toMatchObject({
+      presetId: "qwen3-235b-a22b",
+      tpSize: 8,
+      ppSize: 1,
+      dpSize: 1,
+      enableEp: true,
+      weightPrecision: "w8a8_dynamic",
+    });
+    const q235AppliedHtml = await renderUrl(`http://localhost/tools?${applied235Params.toString()}`);
+    expect(q235AppliedHtml).not.toContain('data-testid="calc-apply-recommended-plan"');
+    expect(q235AppliedHtml).toContain(resolved235!.cliHint);
+    expect(formatTopologySummaryBadge(resolved235!.nextPlan.inputSummary)).toBe("TP=8 · EP");
+    const hw235Match =
+      /data-testid="calc-open-3d-hardware"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*data-testid="calc-open-3d-hardware"/.exec(
+        q235AppliedHtml,
+      );
+    const hw235Href = (hw235Match?.[1] ?? hw235Match?.[2] ?? "").replaceAll("&amp;", "&");
+    const deployToken = new URLSearchParams(hw235Href.slice("#/hardware?".length)).get("deploy") ?? "";
+    const paddedB64 = `${deployToken.replace(/-/g, "+").replace(/_/g, "/")}${"=".repeat((4 - (deployToken.length % 4)) % 4)}`;
+    const wire235 = JSON.parse(Buffer.from(paddedB64, "base64").toString("utf-8")) as Record<string, unknown>;
+    expect(wire235).toMatchObject({
+      m: "qwen3-235b-a22b",
+      c: "a2-64g",
+      tp: 8,
+      pp: 1,
+      dp: 1,
+      ep: 1,
+      r: 8,
+      oom: "headroom_risk",
+      pr: "w8a8_dynamic",
+    });
+
+    //    (b) Single canonical patch on `version=main&v2=0` & `u=0.98&cudagraph=FULL` (pre-apply CLI === post-apply CLI)
+    const mainMrv1Blocked = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      version: "main",
+      useV2ModelRunner: false,
+      tpSize: 1,
+    });
+    expect(isCurrentDeployPlanValid(mainMrv1Blocked)).toBe(false);
+    const mainResolved = resolveCanonicalRecommendedPlan(mainMrv1Blocked, {
+      version: "main",
+      useV2ModelRunner: false,
+    });
+    expect(mainResolved).not.toBeNull();
+    expect(mainResolved!.nextState.useV2ModelRunner).toBeUndefined();
+    expect(isCurrentDeployPlanValid(mainResolved!.nextPlan)).toBe(true);
+    expect(mainResolved!.cliHint).toBe(buildCurrentPlanCliHint(mainResolved!.nextPlan));
+    expect(mainResolved!.cliHint).not.toContain("VLLM_USE_V2_MODEL_RUNNER=0");
+
+    const headroomFullBlocked = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      gpuMemoryUtilization: 0.98,
+      cudagraphMode: "FULL",
+      tpSize: 1,
+    });
+    expect(isCurrentDeployPlanValid(headroomFullBlocked)).toBe(false);
+    const headroomResolved = resolveCanonicalRecommendedPlan(headroomFullBlocked, {
+      gpuMemoryUtilization: 0.98,
+      cudagraphMode: "FULL",
+    });
+    expect(headroomResolved).not.toBeNull();
+    expect(isCurrentDeployPlanValid(headroomResolved!.nextPlan)).toBe(true);
+    expect(headroomResolved!.cliHint).toBe(buildCurrentPlanCliHint(headroomResolved!.nextPlan));
+
+    //    (c) `tight_budget_oom_risk` (`warn`) is NOT mislabeled as hard overflow / blocked
+    const tightHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-8b&card=310p-24g&precision=w8a8_dynamic&tp=1&u=0.84",
+    );
+    expect(tightHtml).toContain("显存偏紧（可启动，高并发/录图有 OOM 风险）");
+    expect(tightHtml).toContain("在 3D 整机中透视此方案 (TP=1 · 显存偏紧) →");
+    expect(tightHtml).not.toContain("显存不足（需加卡或降精度）");
+    expect(tightHtml).not.toContain("无法直接启动");
+    expect(tightHtml).not.toContain("溢出态");
   });
 });

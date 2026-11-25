@@ -42,6 +42,7 @@ import {
   buildDoctorQueryParams,
   buildDoctorShareLink,
   copyTextToClipboard,
+  type DoctorModelHintKey,
   type DoctorModelTraitOverride,
   type DoctorQueryOverrides,
   hasExplicitDoctorQueryParams,
@@ -54,7 +55,7 @@ import {
 } from "./workbenchHandoff";
 
 type DoctorTopology = "single" | "pd";
-type ModelHintKey = "auto" | "qwen3-8b" | "qwen3-30b-a3b";
+type ModelHintKey = DoctorModelHintKey;
 type FindingFilter = "all" | RuleJudgment;
 
 export function extractNormalizedCliModel(commandText: string): string | null {
@@ -136,8 +137,11 @@ const UPGRADE_SEVERITY_META: Readonly<
 
 const MODEL_HINT_OPTIONS: ReadonlyArray<{ value: ModelHintKey; label: string }> = [
   { value: "auto", label: "自动识别" },
+  { value: "qwen3-0.6b", label: "Qwen3-0.6B (Dense GQA)" },
   { value: "qwen3-8b", label: "Qwen3-8B (Dense GQA)" },
+  { value: "qwen3-32b", label: "Qwen3-32B (Dense GQA)" },
   { value: "qwen3-30b-a3b", label: "Qwen3-30B-A3B (MoE)" },
+  { value: "qwen3-235b-a22b", label: "Qwen3-235B-A22B (MoE)" },
 ];
 
 const JUDGMENT_META: Readonly<Record<RuleJudgment, { label: string; short: string; cls: string }>> = {
@@ -880,6 +884,9 @@ export function ConfigDoctorView({
   const [fromVersion, setFromVersion] = useState<LegacyUpgradeFromVersion | undefined>(initial.fromVersion);
   const [crossNodeRoce, setCrossNodeRoce] = useState<boolean>(initial.crossNodeRoce);
   const [modelHint, setModelHint] = useState<ModelHintKey>(initial.modelHint);
+  const [secondaryOptionsOpen, setSecondaryOptionsOpen] = useState<boolean>(() =>
+    Boolean(initial.fromVersion || initial.crossNodeRoce || initial.modelHint !== "auto"),
+  );
   const [commandText, setCommandText] = useState<string>(initial.commandText);
   const [prefillCommandText, setPrefillCommandText] = useState<string>(initial.prefillCommandText);
   const [decodeCommandText, setDecodeCommandText] = useState<string>(initial.decodeCommandText);
@@ -915,8 +922,11 @@ export function ConfigDoctorView({
 
   const wasActiveRef = useRef<boolean>(isDoctorRouteActive);
   const prevLocationKeyRef = useRef<string | undefined>(locationKey);
+  const prevSerializedQueryRef = useRef<string>(searchParams?.toString() ?? "");
   const lastSelfSyncedQueryRef = useRef<string | null>(null);
   const skipNextUrlRestoreRef = useRef<boolean>(false);
+  const lastConsumedHandoffSeqRef = useRef<number>(0);
+  const strictModePendingHandoffRef = useRef<ReturnType<typeof workbenchHandoffStore.consumeDoctor>>(null);
   const handoffApplyingInCommitRef = useRef<boolean>(false);
   const restoringFromUrlInCommitRef = useRef<boolean>(false);
   handoffApplyingInCommitRef.current = false;
@@ -924,9 +934,14 @@ export function ConfigDoctorView({
 
   useEffect(() => {
     if (embedded) return;
-    const applyPending = () => {
-      const payload = workbenchHandoffStore.consumeDoctor();
+    const applyPending = (fromStrictRemount = false) => {
+      const fresh = workbenchHandoffStore.consumeDoctor(lastConsumedHandoffSeqRef.current);
+      const payload = fresh ?? (fromStrictRemount ? strictModePendingHandoffRef.current : null);
       if (!payload) return;
+      if (fresh) {
+        lastConsumedHandoffSeqRef.current = fresh.seq;
+        strictModePendingHandoffRef.current = fresh;
+      }
       handoffApplyingInCommitRef.current = true;
       skipNextUrlRestoreRef.current = true;
       const cliModel = extractNormalizedCliModel(payload.commandText);
@@ -942,9 +957,16 @@ export function ConfigDoctorView({
       setFindingFilter("all");
       setHandoffSourceLabel(payload.sourceLabel);
       const nextHint: ModelHintKey =
-        payload.modelId === "qwen3-8b" || payload.modelId === "qwen3-30b-a3b" ? payload.modelId : "auto";
+        payload.modelId === "qwen3-0.6b" ||
+        payload.modelId === "qwen3-8b" ||
+        payload.modelId === "qwen3-30b-a3b" ||
+        payload.modelId === "qwen3-32b" ||
+        payload.modelId === "qwen3-235b-a22b"
+          ? payload.modelId
+          : "auto";
       setModelHint(nextHint);
       setModelHintFromHandoff(nextHint !== "auto");
+      if (nextHint !== "auto") setSecondaryOptionsOpen(true);
       setHandoffModelCtx(
         payload.modelId || payload.modelTraitOverride
           ? {
@@ -955,8 +977,11 @@ export function ConfigDoctorView({
           : null,
       );
     };
-    applyPending();
-    return workbenchHandoffStore.subscribe(applyPending);
+    applyPending(true);
+    const unsub = workbenchHandoffStore.subscribe(() => applyPending(false));
+    return () => {
+      unsub();
+    };
   }, [embedded]);
 
   // URL -> State restoration on deep link / Back / Forward (strictly gated by isDoctorRouteActive)
@@ -965,12 +990,14 @@ export function ConfigDoctorView({
     wasActiveRef.current = isDoctorRouteActive;
     const isNewLocation = prevLocationKeyRef.current !== locationKey;
     prevLocationKeyRef.current = locationKey;
+    const serialized = searchParams?.toString() ?? "";
+    const prevSerialized = prevSerializedQueryRef.current;
+    prevSerializedQueryRef.current = serialized;
     if (!isDoctorRouteActive || !searchParams) return;
     if (skipNextUrlRestoreRef.current) {
       skipNextUrlRestoreRef.current = false;
       return;
     }
-    const serialized = searchParams.toString();
     if (serialized === lastSelfSyncedQueryRef.current) {
       lastSelfSyncedQueryRef.current = null;
       return;
@@ -980,7 +1007,7 @@ export function ConfigDoctorView({
       // Keep-alive tab reactivation via plain ?tab=doctor preserves in-memory draft
       return;
     }
-    if (wasActive && !isNewLocation && serialized === "") return;
+    if (wasActive && !isNewLocation && (serialized === "" || serialized === prevSerialized)) return;
     restoringFromUrlInCommitRef.current = true;
     const parsed = parseDoctorQueryParams(searchParams);
     const next = resolveDoctorViewState(effectiveMode, initialPresetId, parsed);
@@ -1006,6 +1033,9 @@ export function ConfigDoctorView({
     setFromVersion(next.fromVersion);
     setCrossNodeRoce(next.crossNodeRoce);
     setModelHint(next.modelHint);
+    if (next.fromVersion || next.crossNodeRoce || next.modelHint !== "auto") {
+      setSecondaryOptionsOpen(true);
+    }
     setCommandText(next.commandText);
     setPrefillCommandText(next.prefillCommandText);
     setDecodeCommandText(next.decodeCommandText);
@@ -1423,6 +1453,7 @@ export function ConfigDoctorView({
     setFromVersion(undefined);
     setCrossNodeRoce(false);
     setModelHint("auto");
+    setSecondaryOptionsOpen(false);
     setCommandText(defaultState.commandText);
     setPrefillCommandText(defaultState.prefillCommandText);
     setDecodeCommandText(defaultState.decodeCommandText);
@@ -1441,6 +1472,7 @@ export function ConfigDoctorView({
     setActivePresetId("");
     setHardwareFamily("A2");
     if (!fromVersion) setFromVersion("v0.23.0");
+    setSecondaryOptionsOpen(true);
     setCommandText(LEGACY_V023_MIGRATION_SAMPLE_CMD);
     setIsSharedCommandFromUrl(false);
     setShareNotice(null);
@@ -1595,10 +1627,18 @@ export function ConfigDoctorView({
       {handoffSourceLabel && (
         <div className="wt-handoff-banner" data-testid="doctor-handoff-banner" role="status">
           <span>
-            已从部署算账台（<strong>{handoffSourceLabel}</strong>）
-            {activeHandoffCtx || modelHintFromHandoff
-              ? "带入启动命令、芯片族与模型结构参数，正在按源码规则体检。"
-              : "带入启动命令与芯片族（已手动覆盖模型结构），正在按源码规则体检。"}
+            {handoffSourceLabel.startsWith("知识页") ? (
+              <>
+                已从「<strong>{handoffSourceLabel}</strong>」带入启动命令与环境变量，正在按源码规则体检。
+              </>
+            ) : (
+              <>
+                已从部署算账台（<strong>{handoffSourceLabel}</strong>）
+                {activeHandoffCtx || modelHintFromHandoff
+                  ? "带入启动命令、芯片族与模型结构参数，正在按源码规则体检。"
+                  : "带入启动命令与芯片族（已手动覆盖模型结构），正在按源码规则体检。"}
+              </>
+            )}
           </span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {(activeHandoffCtx || modelHintFromHandoff) && (
@@ -1750,69 +1790,94 @@ export function ConfigDoctorView({
                 ))}
               </select>
             </label>
-
-            <label className="wt-field" htmlFor={`${idPrefix}-from-ver`}>
-              <span className="wt-field-label">版本迁移对比基线</span>
-              <select
-                id={`${idPrefix}-from-ver`}
-                className="wt-select"
-                data-testid="doctor-upgrade-from-select"
-                value={fromVersion ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFromVersion(val === "v0.23.0" || val === "v0.26.0rc" ? val : undefined);
-                  setShareNotice(null);
-                }}
-              >
-                {UPGRADE_FROM_OPTIONS.map((opt) => (
-                  <option key={opt.value || "off"} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="wt-field" htmlFor={`${idPrefix}-model-hint`}>
-              <span className="wt-field-label">
-                指定模型结构
-                {activeHandoffCtx && modelHint === "auto" ? "（已继承算账台）" : ""}
-              </span>
-              <select
-                id={`${idPrefix}-model-hint`}
-                className="wt-select"
-                data-testid="doctor-model-hint-select"
-                value={modelHint}
-                onChange={(e) => {
-                  setModelHint(e.target.value as ModelHintKey);
-                  setModelHintFromHandoff(false);
-                  setHandoffModelCtx(null);
-                  setShareNotice(null);
-                }}
-              >
-                {MODEL_HINT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="wt-checkbox-label" htmlFor={`${idPrefix}-roce`}>
-              <input
-                id={`${idPrefix}-roce`}
-                type="checkbox"
-                data-testid="doctor-roce-checkbox"
-                checked={crossNodeRoce}
-                onChange={(e) => {
-                  setCrossNodeRoce(e.target.checked);
-                  setShareNotice(null);
-                }}
-              />
-              <span>跨机 RoCE 网络</span>
-            </label>
           </>
         )}
       </div>
+
+      {effectiveMode === "full" && (
+        <details
+          className="wt-advanced-details"
+          data-testid="doctor-secondary-options"
+          open={secondaryOptionsOpen}
+          onToggle={(e) => setSecondaryOptionsOpen(e.currentTarget.open)}
+        >
+          <summary className="wt-advanced-summary" data-testid="doctor-secondary-summary">
+            <span style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 10px" }}>
+              <span className="wt-advanced-summary-title">
+                进阶场景选项（从旧版升级 / 跨机 RoCE / 模型结构覆盖）
+              </span>
+              <span className="wt-advanced-summary-meta">
+                从旧版升级={fromVersion ?? "关"} · 跨机 RoCE={crossNodeRoce ? "开" : "关"} · 模型结构=
+                {modelHint === "auto" ? (activeHandoffCtx ? "已继承算账台" : "自动识别") : modelHint}
+              </span>
+            </span>
+            <span className="wt-advanced-summary-cta">{secondaryOptionsOpen ? "收起选项" : "展开设置"}</span>
+          </summary>
+          <div className="wt-advanced-body">
+            <div className="wt-advanced-row">
+              <label className="wt-field" htmlFor={`${idPrefix}-from-ver`}>
+                <span className="wt-field-label">从旧版升级对比基线</span>
+                <select
+                  id={`${idPrefix}-from-ver`}
+                  className="wt-select"
+                  data-testid="doctor-upgrade-from-select"
+                  value={fromVersion ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFromVersion(val === "v0.23.0" || val === "v0.26.0rc" ? val : undefined);
+                    setShareNotice(null);
+                  }}
+                >
+                  {UPGRADE_FROM_OPTIONS.map((opt) => (
+                    <option key={opt.value || "off"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="wt-field" htmlFor={`${idPrefix}-model-hint`}>
+                <span className="wt-field-label">
+                  模型结构覆盖
+                  {activeHandoffCtx && modelHint === "auto" ? "（已继承算账台）" : ""}
+                </span>
+                <select
+                  id={`${idPrefix}-model-hint`}
+                  className="wt-select"
+                  data-testid="doctor-model-hint-select"
+                  value={modelHint}
+                  onChange={(e) => {
+                    setModelHint(e.target.value as ModelHintKey);
+                    setModelHintFromHandoff(false);
+                    setHandoffModelCtx(null);
+                    setShareNotice(null);
+                  }}
+                >
+                  {MODEL_HINT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="wt-checkbox-label" htmlFor={`${idPrefix}-roce`}>
+                <input
+                  id={`${idPrefix}-roce`}
+                  type="checkbox"
+                  data-testid="doctor-roce-checkbox"
+                  checked={crossNodeRoce}
+                  onChange={(e) => {
+                    setCrossNodeRoce(e.target.checked);
+                    setShareNotice(null);
+                  }}
+                />
+                <span>跨机 RoCE 网络</span>
+              </label>
+            </div>
+          </div>
+        </details>
+      )}
 
       {effectiveTopology === "pd" ? (
         <div className="wt-editor-grid wt-editor-grid-pd">

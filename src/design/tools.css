@@ -1669,6 +1669,258 @@
   padding-top: 2px;
 }
 
+/* ---------- 算账台单页三步引导、一键应用与工程依据抽屉 ---------- */
+
+.wt-step-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wt-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.wt-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wt-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 38%, var(--color-line));
+  color: var(--color-accent-hover);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.wt-step-hint {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
+.wt-verdict-cta-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px dashed color-mix(in srgb, var(--color-danger) 35%, var(--color-line));
+}
+
+.wt-3d-overflow-link {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-field);
+  border: 1px solid color-mix(in srgb, var(--color-weight) 58%, var(--color-line));
+  background: var(--color-weight-soft);
+  color: var(--color-warning);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.wt-3d-overflow-link:hover {
+  border-color: var(--color-weight);
+  background: color-mix(in srgb, var(--color-weight) 18%, var(--color-surface-elevated));
+}
+
+.wt-3d-overflow-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.wt-calc-eng-drawer {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-surface-elevated);
+  overflow: hidden;
+}
+
+.wt-calc-eng-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 700;
+  user-select: none;
+  transition: background-color 140ms ease;
+}
+
+.wt-calc-eng-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wt-calc-eng-summary:hover {
+  background: color-mix(in srgb, var(--color-accent-soft) 35%, var(--color-canvas));
+}
+
+.wt-calc-eng-summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.wt-calc-eng-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+
+/* ---------- 排障台次生日志与机制明细折叠抽屉 ---------- */
+
+.wt-collateral-details {
+  margin-top: 4px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-line);
+  background: var(--color-canvas);
+  overflow: hidden;
+}
+
+.wt-collateral-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 7px 11px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  user-select: none;
+}
+
+.wt-collateral-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wt-collateral-summary:hover {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-surface-elevated) 65%, transparent);
+}
+
+.wt-collateral-summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.wt-collateral-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface-elevated);
+}
+
+/* ---------- 知识页活代码块悬浮工具条（CompiledHastView） ---------- */
+
+.wt-wiki-codeblock {
+  position: relative;
+  max-width: var(--wiki-measure);
+  margin: 0 0 14px;
+}
+
+:is(.wiki-body, .wiki-diff-read) .wt-wiki-codeblock > pre,
+.wt-wiki-codeblock > pre {
+  margin: 0;
+}
+
+.wt-code-fence-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wt-code-fence-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, var(--color-surface));
+  color: var(--color-ink-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.wt-code-fence-btn:hover {
+  border-color: var(--color-ink-muted);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+}
+
+.wt-code-fence-btn.is-copied {
+  border-color: var(--color-token);
+  background: var(--color-token-soft);
+  color: var(--color-token);
+}
+
+.wt-code-fence-btn.is-doctor {
+  border-color: color-mix(in srgb, var(--color-accent) 48%, var(--color-line));
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.wt-code-fence-btn.is-doctor:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-elevated));
+}
+
+.wt-code-fence-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 1120px) {
   .wt-scenario-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));

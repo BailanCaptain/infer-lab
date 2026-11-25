@@ -378,11 +378,176 @@ const DEPLOY_CARDS={
 };
 const DEPLOY_MODEL_NAMES={
  'qwen3-0.6b':'Qwen3-0.6B','qwen3-8b':'Qwen3-8B','qwen3-30b-a3b':'Qwen3-30B-A3B',
+ 'qwen3-32b':'Qwen3-32B','qwen3-235b-a22b':'Qwen3-235B-A22B',
  'deepseek-v3-mla':'DeepSeek-V3 MLA 样例','hybrid-kda-gqa':'KDA+GQA 混合样例',
  'csa2-sparse-mla':'CSA2 稀疏注意力样例','engram-conditional':'Engram 条件记忆样例',
  'custom-dense':'自定义稠密模型','custom-moe':'自定义 MoE 模型',
  'custom-mla':'自定义 MLA 模型','custom-kda':'自定义线性注意力模型'
 };
+const DEPLOY_MODEL_SPECS={
+ 'qwen3-0.6b':{L:28,nH:16,nKv:8,moe:0,fDense:28,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:1,tpl:0},
+ 'qwen3-8b':{L:36,nH:32,nKv:8,moe:0,fDense:36,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:0},
+ 'qwen3-32b':{L:64,nH:64,nKv:8,moe:0,fDense:64,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:0},
+ 'qwen3-30b-a3b':{L:48,nH:32,nKv:4,moe:1,fDense:0,nExp:128,topK:8,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:0},
+ 'qwen3-235b-a22b':{L:94,nH:64,nKv:4,moe:1,fDense:0,nExp:128,topK:8,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:0},
+ 'deepseek-v3-mla':{L:61,nH:128,nKv:1,moe:1,fDense:3,nExp:256,topK:8,nShared:1,mla:1,kvLora:512,qkRope:64,csa2:0,kda:0,engram:0,tie:0,tpl:0},
+ 'hybrid-kda-gqa':{L:32,nH:32,nKv:8,moe:0,fDense:32,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:1,engram:0,tie:0,tpl:0},
+ 'csa2-sparse-mla':{L:61,nH:128,nKv:1,moe:1,fDense:3,nExp:256,topK:8,nShared:1,mla:1,kvLora:512,qkRope:64,csa2:1,kda:0,engram:0,tie:0,tpl:0},
+ 'engram-conditional':{L:36,nH:32,nKv:8,moe:0,fDense:36,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:0,engram:1,tie:0,tpl:0},
+ 'custom-dense':{L:32,nH:32,nKv:8,moe:0,fDense:32,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:1},
+ 'custom-moe':{L:48,nH:32,nKv:4,moe:1,fDense:0,nExp:128,topK:8,nShared:0,mla:0,csa2:0,kda:0,engram:0,tie:0,tpl:1},
+ 'custom-mla':{L:61,nH:128,nKv:1,moe:1,fDense:3,nExp:256,topK:8,nShared:1,mla:1,kvLora:512,qkRope:64,csa2:0,kda:0,engram:0,tie:0,tpl:1},
+ 'custom-kda':{L:32,nH:32,nKv:8,moe:0,fDense:32,nExp:0,topK:0,nShared:0,mla:0,csa2:0,kda:1,engram:0,tie:0,tpl:1}
+};
+function resolveCustomSpecOverride(baseSpec){
+ if(!baseSpec?.tpl)return baseSpec;
+ try{
+  let raw=new URLSearchParams(location.search).get('customModel');
+  if(!raw&&window.parent&&window.parent!==window){
+   const hash=window.parent.location.hash||'';
+   const qIdx=hash.indexOf('?');
+   if(qIdx>=0)raw=new URLSearchParams(hash.slice(qIdx+1)).get('customModel');
+  }
+  if(!raw||raw.length>4096)return baseSpec;
+  const root=JSON.parse(raw);
+  const cfg=(root&&typeof root.text_config==='object'&&root.text_config)?root.text_config:root;
+  if(!cfg||typeof cfg!=='object')return baseSpec;
+  const L=Number.isInteger(cfg.num_hidden_layers)&&cfg.num_hidden_layers>0?cfg.num_hidden_layers:baseSpec.L;
+  const nH=Number.isInteger(cfg.num_attention_heads)&&cfg.num_attention_heads>0?cfg.num_attention_heads:baseSpec.nH;
+  const mla=Number(cfg.kv_lora_rank)>0||['deepseek_v2','deepseek_v3','deepseek_v4','glm4_moe_lite'].includes(String(cfg.model_type||'').toLowerCase())?1:0;
+  const nKv=mla?1:(Number.isInteger(cfg.num_key_value_heads)&&cfg.num_key_value_heads>0?cfg.num_key_value_heads:nH);
+  const nExp=Number(cfg.n_routed_experts||cfg.num_experts||cfg.num_local_experts||0);
+  const moe=nExp>0?1:0;
+  const topK=Number(cfg.num_experts_per_tok||8);
+  const nShared=Number(cfg.num_shared_experts??cfg.n_shared_experts??(Number(cfg.shared_expert_intermediate_size)>0?1:0));
+  const fDense=moe?Math.max(0,Number(cfg.first_k_dense_replace??0)):L;
+  const mlpOnlySet=new Set(Array.isArray(cfg.mlp_only_layers)?cfg.mlp_only_layers.map(Number).filter(Number.isInteger):[]);
+  const sparseStep=Math.max(1,Number(cfg.decoder_sparse_step??cfg.moe_layer_freq??1)||1);
+  const moeMask=moe?Array.from({length:L},(_,idx)=>{
+   if(idx<fDense||mlpOnlySet.has(idx))return 0;
+   return sparseStep>1?((idx+1)%sparseStep===0?1:0):1;
+  }):null;
+  const kvLora=cfg.kv_lora_rank!==undefined&&cfg.kv_lora_rank!==null&&Number.isFinite(Number(cfg.kv_lora_rank))?Number(cfg.kv_lora_rank):(baseSpec.kvLora??512);
+  const qkRope=cfg.qk_rope_head_dim!==undefined&&cfg.qk_rope_head_dim!==null&&Number.isFinite(Number(cfg.qk_rope_head_dim))?Number(cfg.qk_rope_head_dim):(baseSpec.qkRope??64);
+  return {...baseSpec,L,nH,nKv,moe,fDense,moeMask,nExp,topK,nShared,mla,kvLora,qkRope,tie:Boolean(cfg.tie_word_embeddings)?1:0,tpl:0};
+ }catch{return baseSpec;}
+}
+function computeDeployRankShard(plan,rankIdx){
+ const spec=resolveCustomSpecOverride(DEPLOY_MODEL_SPECS[plan.modelKey]||DEPLOY_MODEL_SPECS['qwen3-8b']);
+ const r=Math.max(0,Math.min(plan.totalRanks-1,Math.trunc(rankIdx)));
+ const {tp,pp,dp,pcp,dcp,ep}=plan;
+ const isMultiNode=plan.totalRanks>plan.ranksPerNode;
+ const nodeIdx=Math.floor(r/plan.ranksPerNode),isLocal=nodeIdx===0;
+ const localR=r%plan.ranksPerNode;
+ const slotIdx=Math.floor(localR/plan.diesPerSlot),dieIdx=localR%plan.diesPerSlot;
+ const slotCode=`${plan.partPrefix}${slotIdx}`;
+ const slotLabel=plan.diesPerSlot===2
+  ?(plan.partPrefix==='card'
+   ?`${isMultiNode?`节点 #${nodeIdx} · `:''}PCIe 标卡 ${slotCode} · Chip ${dieIdx}（单卡双芯 48 GiB，本芯 24 GiB）`
+   :`${isMultiNode?`节点 #${nodeIdx} · `:''}双芯模组 ${slotCode} · Die ${dieIdx}（共封装 128 GiB，本 Die 64 GiB）`)
+  :`${isMultiNode?`节点 #${nodeIdx} · `:''}物理模组 ${slotCode}（单卡 ${plan.cardGiB} GiB）`;
+ const multiNodeNote=isMultiNode
+  ?(isLocal
+   ?`跨 ${plan.nodeCount} 台整机共 ${plan.totalRanks} Ranks · 当前选中本机（节点 #0）槽位`
+   :`跨 ${plan.nodeCount} 台整机共 ${plan.totalRanks} Ranks · Rank ${r} 位于远端节点 #${nodeIdx}（3D 舞台展示节点 #0）`)
+  :null;
+ const inner=tp*pcp,repStride=inner*pp;
+ const dpRep=Math.floor(r/repStride),ppStage=Math.floor((r%repStride)/inner),tpRank=r%tp,pcpRank=Math.floor((r%inner)/tp);
+ const epWorld=spec.moe&&ep?tp*dp*pcp:1,epRank=dpRep*inner+pcpRank*tp+tpRank;
+ const gParts=[`DP 副本 #${dpRep}`,`PP 段 #${ppStage}`,`TP 秩 #${tpRank}`];
+ if(pcp>1)gParts.push(`PCP 秩 #${pcpRank}`);
+ if(dcp>1)gParts.push(`DCP=${dcp}`);
+ const effStages=Math.min(Math.max(1,pp),spec.L),baseL=Math.floor(spec.L/effStages),remL=spec.L%effStages;
+ const partsL=Array.from({length:effStages},()=>baseL);
+ for(let i=2;i<remL+2;i++)partsL[effStages-i]+=1;
+ let lStart=spec.L,lCount=0;
+ if(ppStage<effStages){
+  lStart=0;for(let s=0;s<ppStage;s++)lStart+=partsL[s];
+  lCount=partsL[ppStage];
+ }
+ const lEnd=lStart+lCount-1;
+ const tplNote=spec.tpl?`（按 ${spec.L} 层代表结构示意）`:'';
+ const endp=pp<=1?(spec.tie?' + 共享词表/LM Head':' + embed_tokens + lm_head'):(ppStage===0?' + 输入词表 embed_tokens':(ppStage===effStages-1?' + final_norm / lm_head':''));
+ const remTxt=pp>1&&remL>0?`；余 ${remL} 层自倒数第 2 段往前分配`:'';
+ const ppText=lCount>0?`第 ${lStart}–${lEnd} 层（共 ${lCount}/${spec.L} 层${endp}${remTxt}）${tplNote}`:`空流水段（PP=${pp} 超过层数 ${spec.L}）`;
+ const qPer=Math.max(1,Math.ceil(spec.nH/tp)),q0=Math.min(spec.nH-1,tpRank*qPer),q1=Math.min(spec.nH-1,q0+qPer-1);
+ const tpText=tp===1
+  ?`TP=1 整份常驻（QKV / GateUp / O / Down 不切分，Q 头 H0–H${spec.nH-1}）`
+  :`QKV / GateUp 按列切 1/${tp}（分片 #${tpRank}/${tp}，Q 头 H${q0}–H${q1}）；O / Down 按行切 1/${tp}`;
+ const dcpTxt=dcp>1?`；DCP=${dcp} 按历史序列位置切 1/${dcp}`:'';
+ let kvText='',kvWarnBadge=null;
+ if(spec.mla){
+  kvWarnBadge='MLA 潜向量全卡驻留';
+  const kvLora=spec.kvLora??512,qkRope=spec.qkRope??64;
+  const latentVec=qkRope>0?`c_KV(${kvLora}) + k_R(${qkRope})`:`c_KV(${kvLora})`;
+  kvText=`单头低秩潜向量 ${latentVec} 在 TP 各卡完整驻留，不按 TP 切头${spec.csa2?'（含 Indexer 索引全卡驻留）':''}${dcpTxt}`;
+ }else if(tp>spec.nKv){
+  const rep=Math.max(1,Math.floor(tp/spec.nKv)),kvIdx=Math.min(spec.nKv-1,Math.floor(tpRank/rep));
+  kvWarnBadge=`KV 头复制 (TP=${tp} > KV=${spec.nKv})`;
+  kvText=`总 KV 头仅 ${spec.nKv} 个少于 TP=${tp}，本卡驻留 KV${kvIdx} 完整副本（每 ${rep} 张 TP 卡共享同一份 KV）${dcpTxt}`;
+ }else if(tp===1){
+  kvText=`完整持有全部 ${spec.nKv} 个 KV 头（KV0–KV${spec.nKv-1}）${spec.kda?'；KDA 线性状态整份常驻':''}${dcpTxt}`;
+ }else{
+  const kvPer=Math.max(1,Math.ceil(spec.nKv/tp)),k0=Math.min(spec.nKv-1,tpRank*kvPer),k1=Math.min(spec.nKv-1,k0+kvPer-1);
+  kvText=`持有 ${kvPer}/${spec.nKv} 个 KV 头（${k0===k1?`KV${k0}`:`KV${k0}–KV${k1}`}）${spec.kda?`；KDA 递归/卷积状态按 1/${tp} 切头`:''}${dcpTxt}`;
+ }
+ let mInStage=0,dInStage=0;
+ if(lCount>0&&spec.moe){
+  if(Array.isArray(spec.moeMask)&&spec.moeMask.length===spec.L){
+   for(let l=lStart;l<=lEnd;l++)if(spec.moeMask[l])mInStage++;
+   dInStage=lCount-mInStage;
+  }else{
+   dInStage=Math.max(0,Math.min(lEnd+1,spec.fDense)-lStart);
+   mInStage=Math.max(0,lCount-dInStage);
+  }
+ }else{
+  dInStage=Math.max(0,lCount);
+ }
+ let moeText='';
+ if(!spec.moe){
+  moeText=tp===1
+   ?`稠密 FFN（无路由专家）：Gate / Up / Down 整份驻留${spec.engram?'；Engram 记忆表默认卸载主机内存':''}`
+   :`稠密 FFN（无路由专家）：Gate / Up 按列切 1/${tp}，Down 按行切 1/${tp}${spec.engram?'；Engram 记忆表默认卸载主机内存':''}`;
+ }else if(lCount===0){
+  moeText='空流水段：本卡无层驻留（不承载路由专家或共享专家）';
+ }else if(mInStage===0){
+  const denseSlice=tp===1?'Gate / Up / Down 整份驻留':`Gate / Up 按列切 1/${tp}，Down 按行切 1/${tp}`;
+  moeText=`本流水段（第 ${lStart}–${lEnd} 层）全为稠密 FFN 层：本卡不驻留 MoE 路由专家或共享专家（${denseSlice}）`;
+ }else{
+  const dHint=dInStage>0?`（本段含 ${dInStage} 层稠密 + ${mInStage} 层 MoE）`:'';
+  const shTxt=spec.nShared>0?`；${spec.nShared} 个共享专家各卡常驻、内部矩阵按 1/${tp} 切分`:'；无独立共享专家，Router 门控各卡完整常驻';
+  if(ep){
+   const cap=Math.ceil(spec.nExp/epWorld);
+   const baseE=Math.floor(spec.nExp/epWorld),remE=spec.nExp%epWorld;
+   const cnt=epRank<remE?baseE+1:baseE;
+   const e0=epRank<remE?epRank*(baseE+1):remE*(baseE+1)+(epRank-remE)*baseE;
+   const e1=e0+cnt-1;
+   const eRange=cnt>0?(e0===e1?`E${e0}`:`E${e0}–E${e1}`):'无分配槽';
+   const capTxt=cnt!==cap?`本卡 ${cnt} 个、容量上限 ${cap} 个/卡`:`容量 ${cap} 个/卡`;
+   moeText=`EP 开启（EP 域=${epWorld}）：本卡承载 ${eRange}（${capTxt}，共 ${spec.nExp} 专家每词激活 Top-${spec.topK}）${shTxt}${dHint}`;
+  }else{
+   moeText=`EP 关闭：全部 ${spec.nExp} 个路由专家均驻留本卡，专家内部 GateUp/Down 按 1/${tp*dp*pcp} 张量切分${shTxt}${dHint}`;
+  }
+ }
+ const comm=[];
+ if(tp>1)comm.push(`TP 组内 All-Reduce（${tp} 卡同组归约）`);
+ if(pcp>1)comm.push(`PCP 上下文并行（Query 序列按 1/${pcp} 切分，${pcp} 卡跨组聚合 KV 上下文注意力）`);
+ if(dcp>1&&pcp<=1)comm.push(`DCP 解码上下文并行（KV 历史按 1/${dcp} 切分并跨卡归约注意力）`);
+ if(spec.moe&&ep&&epWorld>1&&mInStage>0)comm.push(`EP 组内 All-to-All 或 MC2（${epWorld} 卡专家分发/合并）`);
+ if(pp>1){
+  const pDir=ppStage===0?'向 PP 段 #1 点对点传激活':(ppStage===effStages-1?`接收 PP 段 #${ppStage-1} 激活并输出 logits`:`在 PP 段 #${ppStage-1} → #${ppStage+1} 间 P2P 传激活`);
+  comm.push(`PP 段间 P2P（${pDir}）`);
+ }
+ if(dp>1&&!(spec.moe&&ep&&mInStage>0))comm.push(`DP 副本 #${dpRep} 独立服务请求批次`);
+ if(!comm.length)comm.push('单卡独立完成全部层前向，零跨卡集合通信');
+ return {
+  rank:r,isLocal,slotIdx,dieIdx,slotLabel,multiNodeNote,
+  groupBadge:gParts.join(' · '),ppText,tpText,kvText,kvWarnBadge,moeText,
+  commText:comm.join(' · '),
+  ppBudgetNote:pp>1?'注：PP>1 时 3D 显存柱高度统一按瓶颈 PP 段的单卡峰值预算水位绘制；本卡实际驻留层段见上方「PP 流水层区间」。':null,
+  boundaryNote:'注：3D 弧线仅表达逻辑通信分组与数据交接，不代表交换芯片真实包路由或物理线序。'
+ };
+}
 const DEPLOY_OOM_LABELS={
  fits:'装得下',tight_budget_oom_risk:'预算紧绷风险',
  insufficient_for_single_max_len_seq:'不足单条满长序列 KV',
@@ -559,7 +724,14 @@ function frame(reset=true){
   target.y=Math.max(1.5,p.height*.62+.9);
   if(p.u>=8)pos.multiplyScalar(1.18);
   else if(p.u<=1)pos.multiplyScalar(.94);
-  if(isDeployOverlayActive())pos.y+=2.8;
+  if(isDeployOverlayActive()){
+   pos.y+=2.8;
+   if(innerWidth>850){
+    const liftY=p.u>=8?2.55:1.35;
+    target.y+=liftY;
+    pos.y+=liftY;
+   }
+  }
  }else if((level===3||level===4)&&focused){
   const bounds=new THREE.Box3().setFromObject(focused),
    size=bounds.getSize(new THREE.Vector3()),
@@ -653,9 +825,11 @@ const DEPLOY_MATS={
  runtime:new THREE.MeshStandardMaterial({color:'#9a4b86',roughness:.48,metalness:.12}),
  oom:new THREE.MeshStandardMaterial({color:'#b54237',roughness:.40,metalness:.10,emissive:'#3d100c'}),
  pedestal:new THREE.MeshStandardMaterial({color:'#efe6cc',roughness:.52,metalness:.18,emissive:'#261906'}),
+ pedestalSelected:new THREE.MeshStandardMaterial({color:'#ffe5d8',roughness:.38,metalness:.20,emissive:'#6e220c'}),
  pedestalIdle:new THREE.MeshStandardMaterial({color:'#d8dbd2',roughness:.82,metalness:.06,transparent:true,opacity:.72}),
  uCollar:new THREE.MeshStandardMaterial({color:'#17211f',roughness:.55,metalness:.20}),
  outerFrame:new THREE.LineBasicMaterial({color:'#8a928f',transparent:true,opacity:.44}),
+ selectedFrame:new THREE.LineBasicMaterial({color:'#e85b32',transparent:true,opacity:1}),
  uFrame:new THREE.LineDashedMaterial({color:'#66716d',dashSize:.045,gapSize:.035,transparent:true,opacity:.90}),
  oomFrame:new THREE.LineBasicMaterial({color:'#b54237',transparent:true,opacity:.96}),
  tpArc:new THREE.MeshStandardMaterial({color:'#087f73',roughness:.34,metalness:.18,emissive:'#043832'}),
@@ -877,7 +1051,83 @@ function rebuildGuides(){
  }
 }
 
-let deployColEntries=[],deployArcEntries=[],activeDeployPartSet=new Set();
+let deployColEntries=[],deployArcEntries=[],activeDeployPartSet=new Set(),deployPickables=[],selectedDeployRank=null,selectedDeployNode=0;
+function ensureDeployShardStyles(){
+ if(document.getElementById('deploy-shard-style'))return;
+ const st=document.createElement('style');
+ st.id='deploy-shard-style';
+ st.textContent=`
+.deploy-rank-tag{pointer-events:auto;cursor:pointer}
+.deploy-rank-tag:hover{border-color:#e85b32;transform:translate(-50%,-105%)}
+.deploy-rank-tag.is-selected{background:#e85b32!important;border-color:#e85b32!important;color:#fff!important;z-index:4;box-shadow:0 4px 12px rgba(232,91,50,.32)}
+.deploy-rank-bar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:7px;padding-top:7px;border-top:1px solid #ece9df}
+.deploy-rank-bar-label{font-size:11.5px;color:#66716d;font-weight:600;margin-right:2px}
+.deploy-node-switcher{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-right:4px;padding-right:6px;border-right:1px solid #d8d8cf}
+.deploy-node-pill{padding:2px 7px;border-radius:6px;font:600 11px/1.4 var(--journey-font-sans);background:#f3f0e7;color:#4a5551;border:1px solid #d8d8cf;cursor:pointer}
+.deploy-node-pill:hover{border-color:#087f73;color:#065f56}
+.deploy-node-pill.is-active{background:#087f73;color:#fff;border-color:#087f73}
+.deploy-node-select{padding:2px 6px;border-radius:6px;font:600 11px/1.4 var(--journey-font-sans);background:#f3f0e7;color:#17211f;border:1px solid #d8d8cf}
+.deploy-rank-pill{padding:2px 8px;border-radius:999px;font:600 11px/1.45 "JetBrains Mono",Consolas,monospace;font-variant-numeric:tabular-nums;background:#ece9df;color:#17211f;border:1px solid #d8d8cf;cursor:pointer}
+.deploy-rank-pill:hover{border-color:#e85b32;color:#e85b32;background:#fbfaf6}
+.deploy-rank-pill.is-remote{background:#fff4cf;color:#936300;border-style:dashed;border-color:rgba(199,131,0,.45)}
+.deploy-rank-pill.is-active{background:#e85b32;color:#fff;border-color:#e85b32;border-style:solid}
+.deploy-rank-bar-hint{font-size:11px;color:#66716d;margin-left:auto}
+#deploy-shard-card{order:-1;margin:0 0 14px;padding:12px 13px;border-radius:10px;background:#fbfaf6;border:1.5px solid #e85b32;box-shadow:0 6px 18px rgba(23,33,31,.07);color:#17211f}
+#deploy-shard-card[hidden]{display:none!important}
+.deploy-shard-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.deploy-shard-head b{font:700 13.5px/1.35 var(--journey-font-sans);color:#17211f}
+.deploy-shard-close{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#ece9df;color:#17211f;border:1px solid #d8d8cf}
+.deploy-shard-close:hover{border-color:#e85b32;color:#e85b32}
+.deploy-shard-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.deploy-shard-badge{display:inline-block;padding:2px 7px;border-radius:999px;font:600 11px/1.35 "JetBrains Mono",Consolas,monospace;background:#ece9df;color:#17211f;border:1px solid #d8d8cf}
+.deploy-shard-badge.is-slot{background:#ddf4ef;color:#065f56;border-color:rgba(8,127,115,.32);font-family:var(--journey-font-sans)}
+.deploy-shard-badge.is-warn{background:#fff4cf;color:#936300;border-color:rgba(199,131,0,.42);font-family:var(--journey-font-sans)}
+.deploy-shard-rows{display:grid;gap:6px}
+.deploy-shard-row{padding:6px 8px;border-radius:7px;background:#fff;border:1px solid #e5e2d8;border-left:3px solid #c78300}
+.deploy-shard-row.is-kv{border-left-color:#4c65b6}
+.deploy-shard-row.is-moe{border-left-color:#087f73}
+.deploy-shard-row.is-comm{border-left-color:#9a4b86}
+.deploy-shard-row small{display:block;font-size:11px;font-weight:700;color:#66716d;margin-bottom:2px}
+.deploy-shard-row span{display:block;font-size:12px;line-height:1.5;color:#17211f}
+.deploy-shard-foot{margin-top:8px;padding-top:7px;border-top:1px solid #ece9df;display:flex;flex-direction:column;gap:6px}
+.deploy-shard-foot small{font-size:11px;line-height:1.45;color:#66716d}
+.deploy-shard-teardown{align-self:flex-start;padding:4px 9px;border-radius:5px;font-size:11.5px;font-weight:600;background:#ece9df;color:#17211f;border:1px solid #d8d8cf}
+.deploy-shard-teardown:hover{border-color:#e85b32;color:#e85b32}
+`;
+ document.head.append(st);
+}
+function syncDeploySelectionVisuals(){
+ for(const item of deployColEntries){
+  if(!item.active)continue;
+  const isSel=selectedDeployRank===item.rank;
+  if(item.selHalo)item.selHalo.visible=isSel;
+  if(item.pedestalMesh)item.pedestalMesh.material=isSel?DEPLOY_MATS.pedestalSelected:DEPLOY_MATS.pedestal;
+  if(item.tagEl){
+   item.tagEl.classList.toggle('is-selected',isSel);
+   item.tagEl.setAttribute('aria-pressed',String(isSel));
+  }
+ }
+ syncDeployServerMaterials(isDeployOverlayActive());
+}
+function selectDeployNode(nextNode){
+ if(!deployPlan)return;
+ const maxNode=Math.max(0,deployPlan.nodeCount-1);
+ selectedDeployNode=Math.max(0,Math.min(maxNode,Math.trunc(nextNode)||0));
+ updateDeployBanner();
+}
+function selectDeployRank(nextRank){
+ if(!deployPlan||nextRank===null||nextRank===undefined||nextRank<0||nextRank>=deployPlan.totalRanks){
+  selectedDeployRank=null;
+ }else{
+  selectedDeployRank=Math.trunc(nextRank);
+  selectedDeployNode=Math.floor(selectedDeployRank/deployPlan.ranksPerNode);
+  if(level!==2)setLevel(2);
+ }
+ syncDeploySelectionVisuals();
+ updateDeployBanner();
+ updateDeployShardCard();
+ invalidate();
+}
 function isDeployOverlayActive(){
  return Boolean(deployPlan&&level===2&&currentModel===deployPlan.targetModel&&server);
 }
@@ -925,6 +1175,8 @@ function syncDeployServerMaterials(active){
    });
   }else if(kind==='npu'){
    const slotActive=activeDeployPartSet.has(part);
+   const selCol=selectedDeployRank!==null?deployColEntries.find(c=>c.active&&c.rank===selectedDeployRank):null;
+   const slotSelected=Boolean(selCol&&selCol.part===part);
    part.traverse(m=>{
     if(!m.isMesh||!m.material)return;
     ensureCloneMat(m);
@@ -932,8 +1184,9 @@ function syncDeployServerMaterials(active){
      if(m.material.color&&m.userData.origBaseColor!==undefined){
       m.material.color.setHex(m.userData.origBaseColor);
       if(!slotActive)m.material.color.lerp(_idleTint,.44);
+      else if(selectedDeployRank!==null&&!slotSelected)m.material.color.lerp(_idleTint,.18);
      }
-     m.userData.deployEmissive=slotActive?0x221606:0x000000;
+     m.userData.deployEmissive=slotSelected?0x4b1d0b:(slotActive?0x221606:0x000000);
      if(hoveredPart!==part)m.material.emissive?.setHex(m.userData.deployEmissive);
     }else{
      if(m.material.color&&m.userData.origBaseColor!==undefined)m.material.color.setHex(m.userData.origBaseColor);
@@ -977,8 +1230,9 @@ function addOverlayEdges(parent,w,h,d,mat,yc,dashed){
 function buildDeployOverlay(){
  disposeGroup(overlayRoot);
  clearDeployLabels();
- deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();deployPickables=[];
  if(!deployPlan||currentModel!==deployPlan.targetModel||!server)return;
+ ensureDeployShardStyles();
  const npuParts=parts.filter(o=>o.userData.kind==='npu').map(o=>{
   const m=o.name.match(/(?:npu|card)(\d+)$/i);
   return {part:o,idx:m?Number(m[1]):999};
@@ -1017,7 +1271,7 @@ function buildDeployOverlay(){
     deployColEntries.push({rank,active:false,part,slot,isPcie,localAnchor:new THREE.Vector3(lx,topY+.045,lz),displacedDir,colGroup,portDot:null,leaderLine:null,cardPortDot:null,tagEl:null,capTopY:.25});
     continue;
    }
-   addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.06,.032,colD+.06),DEPLOY_MATS.pedestal,0,.016,0);
+   const pedestalMesh=addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.06,.032,colD+.06),DEPLOY_MATS.pedestal,0,.016,0);
    const portDot=new THREE.Mesh(DEPLOY_PORT_GEO,deployPlan.tp>1?DEPLOY_MATS.tpPort:DEPLOY_MATS.uCollar);
    portDot.position.set(0,.034,isPcie?0:(slot<4?.14:-.14));
    portDot.userData.ownGeo=false;portDot.userData.ownMat=false;
@@ -1033,6 +1287,10 @@ function buildDeployOverlay(){
     }
    }
    addOverlayEdges(colGroup,colW+.012,fullH,colD+.012,DEPLOY_MATS.outerFrame,yBase+fullH*.5,false);
+   const selHalo=addOverlayEdges(colGroup,colW+.054,fullH+.052,colD+.054,DEPLOY_MATS.selectedFrame,yBase+fullH*.5,false);
+   selHalo.visible=selectedDeployRank===rank;
+   if(selectedDeployRank===rank)pedestalMesh.material=DEPLOY_MATS.pedestalSelected;
+   colGroup.traverse(m=>{if(m.isMesh){m.userData.deployRank=rank;deployPickables.push(m);}});
    addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.028,.014,colD+.028),DEPLOY_MATS.uCollar,0,yBase+u*fullH,0);
    const remH=Math.max(.024,(1-u)*fullH);
    addOverlayEdges(colGroup,colW+.020,remH,colD+.020,isOom?DEPLOY_MATS.oomFrame:DEPLOY_MATS.uFrame,yBase+u*fullH+remH*.5,!isOom);
@@ -1061,12 +1319,19 @@ function buildDeployOverlay(){
    }
    const ppStage=Math.floor((rank%repStride)/innerGroup);
    const tag=document.createElement('div');
-   tag.className='deploy-rank-tag'+(isOom?' is-oom':'');
+   tag.className='deploy-rank-tag'+(isOom?' is-oom':'')+(selectedDeployRank===rank?' is-selected':'');
+   tag.dataset.rank=String(rank);
+   tag.dataset.testid=`deploy-stage-tag-${rank}`;
+   tag.setAttribute('role','button');
+   tag.tabIndex=0;
+   tag.setAttribute('aria-pressed',String(selectedDeployRank===rank));
    const dieTag=deployPlan.diesPerSlot>1?(isPcie?`·C${d}`:`·D${d}`):'';
    const ppTag=deployPlan.pp>1?`·P${ppStage}`:'';
    const tagFull=`R${rank}${dieTag}${ppTag}${isOom?' !':(isWarn?' ?':'')}`;
    const tagCompact=`R${rank}${isOom?'!':(isWarn?'?':'')}`;
    tag.textContent=tagFull;
+   tag.onclick=ev=>{ev.stopPropagation();selectDeployRank(selectedDeployRank===rank?null:rank);};
+   tag.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectDeployRank(selectedDeployRank===rank?null:rank);}};
    labelsHost.append(tag);
    let tickEl=null;
    if(linesSvg){
@@ -1077,7 +1342,7 @@ function buildDeployOverlay(){
     tickEl.setAttribute('stroke-dasharray','2.5 2');
     linesSvg.append(tickEl);
    }
-   deployColEntries.push({rank,active:true,part,slot,isPcie,localAnchor:new THREE.Vector3(lx,topY+.045,lz),displacedDir,colGroup,portDot,leaderLine,cardPortDot,tagEl:tag,tickEl,tagFull,tagCompact,capTopY});
+   deployColEntries.push({rank,active:true,part,slot,isPcie,localAnchor:new THREE.Vector3(lx,topY+.045,lz),displacedDir,colGroup,pedestalMesh,selHalo,portDot,leaderLine,cardPortDot,tagEl:tag,tickEl,tagFull,tagCompact,capTopY});
   }
  }
  const dummyCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,.2,0),new THREE.Vector3(.2,0,0)]);
@@ -1091,9 +1356,10 @@ function buildDeployOverlay(){
   overlayRoot.add(mesh);
   deployArcEntries.push({fromRank,toRank,kind,radius,mesh});
  };
- if(deployPlan.tp>1){
+ if(deployPlan.tp>1||deployPlan.pcp>1){
+  const grpSpan=deployPlan.tp>1?deployPlan.tp:innerGroup;
   for(let r=0;r+1<deployPlan.localRanks;r++){
-   if(Math.floor(r/deployPlan.tp)===Math.floor((r+1)/deployPlan.tp))addArc(r,r+1,'tp');
+   if(Math.floor(r/grpSpan)===Math.floor((r+1)/grpSpan))addArc(r,r+1,'tp');
   }
  }
  if(deployPlan.pp>1){
@@ -1193,28 +1459,49 @@ function projectDeployLabels(){
   if(item.tagEl.textContent!==txt)item.tagEl.textContent=txt;
   item.tagEl.style.display='';
   const ax=(ndc.x*.5+.5)*w,ay=(-ndc.y*.5+.5)*h;
-  const halfW=Math.max(15,txt.length*3.7+(compact?5:8));
+  const halfW=Math.max(18,txt.length*4.3+(compact?6:10));
   vis.push({item,ax,ay,tx:ax,ty:ay-(item.rank%2===0?14:3),halfW});
  }
- const tagH=compact?17:20;
+ const tagH=compact?19:24;
+ const bannerEl=$('#deploy-banner');
+ let bLeft=-1,bRight=-1,bSafeY=22;
+ if(bannerEl&&!bannerEl.hidden){
+  const br=bannerEl.getBoundingClientRect();
+  const relBottom=br.bottom-rect.top,relTop=br.top-rect.top;
+  if(relBottom>4&&relTop<h*.45){
+   bLeft=br.left-rect.left;
+   bRight=br.right-rect.left;
+   bSafeY=Math.min(h*.52,relBottom+20);
+  }
+ }
+ const minTopFor=(x,hw)=>(bRight>bLeft&&x+hw+4>bLeft&&x-hw-4<bRight)?bSafeY:22;
+ for(const v of vis){
+  const mTop=minTopFor(v.tx,v.halfW);
+  if(v.ty<mTop)v.ty=mTop+(v.item.rank%2)*12;
+ }
  vis.sort((a,b)=>a.ay-b.ay||a.ax-b.ax);
- for(let pass=0;pass<6;pass++){
+ for(let pass=0;pass<16;pass++){
   for(let i=0;i<vis.length;i++){
    for(let j=i+1;j<vis.length;j++){
     const a=vis[i],b=vis[j];
-    const minX=a.halfW+b.halfW+4,dx=b.tx-a.tx,dy=b.ty-a.ty;
+    const minX=a.halfW+b.halfW+5,dx=b.tx-a.tx,dy=b.ty-a.ty;
     if(Math.abs(dx)<minX&&Math.abs(dy)<tagH){
-     const pushY=(tagH-Math.abs(dy))*.55+1;
-     if(a.ty<=b.ty){a.ty-=pushY;b.ty+=pushY*.35;}else{b.ty-=pushY;a.ty+=pushY*.35;}
-     const sign=dx>=0?1:-1;
-     a.tx-=sign*2.8;b.tx+=sign*2.8;
+     const ma0=minTopFor(a.tx,a.halfW),pinnedTop=a.ty<=ma0+3||b.ty<=minTopFor(b.tx,b.halfW)+3;
+     const pushY=(tagH-Math.abs(dy))*(pinnedTop?.68:.55)+1.2;
+     if(a.ty<=b.ty){if(!pinnedTop)a.ty-=pushY*.55;b.ty+=pushY*(pinnedTop?.95:.45);}
+     else{if(!pinnedTop)b.ty-=pushY*.55;a.ty+=pushY*(pinnedTop?.95:.45);}
+     const sign=dx>=0?1:-1,pushX=Math.min(8,(minX-Math.abs(dx))*.36+2.6);
+     a.tx-=sign*pushX;b.tx+=sign*pushX;
+     const ma=minTopFor(a.tx,a.halfW),mb=minTopFor(b.tx,b.halfW);
+     if(a.ty<ma){const d=ma-a.ty;a.ty=ma;b.ty=Math.max(b.ty,ma+Math.min(tagH,d*.85));}
+     if(b.ty<mb)b.ty=mb;
     }
    }
   }
  }
  for(const v of vis){
   const cx=THREE.MathUtils.clamp(v.tx,v.halfW+6,w-v.halfW-6);
-  const cy=THREE.MathUtils.clamp(v.ty,22,h-10);
+  const cy=THREE.MathUtils.clamp(v.ty,minTopFor(cx,v.halfW),h-10);
   v.item.tagEl.style.left=`${cx.toFixed(1)}px`;
   v.item.tagEl.style.top=`${cy.toFixed(1)}px`;
   if(v.item.tickEl){
@@ -1312,9 +1599,11 @@ function updateDeployBanner(){
  metrics.innerHTML=`<span>单 Rank 容量 <b>${deployPlan.cardGiB} GiB</b> (u=${deployPlan.u.toFixed(2)})</span><span>常驻权重 <b>${deployPlan.weightGiB.toFixed(2)} GiB</b></span><span>可用 KV <b>${deployPlan.kvGiB.toFixed(2)} GiB</b></span><span>运行态/图/HCCL <b>${deployPlan.runtimeGiB.toFixed(2)} GiB</b></span><span>物理余量 <b>${headroom.toFixed(2)} GiB</b></span>`;
  const legend=document.createElement('div');legend.className='deploy-legend';
  const items=[['#c78300','权重','box'],['#4c65b6','KV Cache','box'],['#9a4b86','运行态/录图/HCCL','box'],['','1−u 预留虚框','u']];
- if(deployPlan.tp>1)items.push(['#087f73','TP 组内通信','arc']);
+ if(deployPlan.tp>1)items.push(['#087f73',deployPlan.pcp>1?'TP/PCP 组内通信':'TP 组内通信','arc']);
+ else if(deployPlan.pcp>1)items.push(['#087f73','PCP 上下文组通信','arc']);
  if(deployPlan.pp>1||(deployPlan.dp>1&&deployPlan.ep))items.push(['#9a4b86','PP/EP 跨组互联','arc']);
  if(deployPlan.dp>1&&!deployPlan.ep)items.push(['#5b75a6','DP 副本分组','arc']);
+ if(deployPlan.pp>1)items.push(['#c78300','PP>1 柱高=瓶颈段峰值','box']);
  if(isOom)items.push(['#b54237',physOver?'超出物理显存 OOM':'越过 u 预算上限警示','box']);
  for(const [col,lbl,shape] of items){
   const sw=document.createElement('span');sw.className='deploy-swatch';
@@ -1325,7 +1614,146 @@ function updateDeployBanner(){
   sw.append(ic,document.createTextNode(lbl));
   legend.append(sw);
  }
- banner.append(head,metrics,legend);
+ ensureDeployShardStyles();
+ const rankBar=document.createElement('div');
+ rankBar.className='deploy-rank-bar';
+ rankBar.dataset.testid='deploy-rank-selector';
+ const rLabel=document.createElement('span');
+ rLabel.className='deploy-rank-bar-label';
+ rLabel.textContent='单卡切分透视：';
+ rankBar.append(rLabel);
+ const safeNode=Math.max(0,Math.min(deployPlan.nodeCount-1,selectedDeployNode));
+ if(safeNode!==selectedDeployNode)selectedDeployNode=safeNode;
+ if(deployPlan.nodeCount>1){
+  const nSwitch=document.createElement('span');
+  nSwitch.className='deploy-node-switcher';
+  nSwitch.dataset.testid='deploy-node-selector';
+  if(deployPlan.nodeCount<=8){
+   for(let n=0;n<deployPlan.nodeCount;n++){
+    const nb=document.createElement('button');
+    nb.type='button';
+    nb.className='deploy-node-pill'+(safeNode===n?' is-active':'');
+    nb.dataset.testid=`deploy-node-pill-${n}`;
+    nb.dataset.node=String(n);
+    nb.setAttribute('aria-pressed',String(safeNode===n));
+    nb.textContent=n===0?'节点 #0 (本机)':`节点 #${n}`;
+    nb.onclick=()=>selectDeployNode(n);
+    nSwitch.append(nb);
+   }
+  }else{
+   const sel=document.createElement('select');
+   sel.className='deploy-node-select';
+   sel.dataset.testid='deploy-node-select';
+   sel.setAttribute('aria-label','选择节点查看对应 Ranks');
+   for(let n=0;n<deployPlan.nodeCount;n++){
+    const opt=document.createElement('option');
+    opt.value=String(n);
+    opt.textContent=n===0?`节点 #0 (本机 · R0–R${deployPlan.ranksPerNode-1})`:`节点 #${n} (R${n*deployPlan.ranksPerNode}–R${Math.min(deployPlan.totalRanks,(n+1)*deployPlan.ranksPerNode)-1})`;
+    if(n===safeNode)opt.selected=true;
+    sel.append(opt);
+   }
+   sel.onchange=()=>selectDeployNode(Number(sel.value));
+   nSwitch.append(sel);
+  }
+  rankBar.append(nSwitch);
+ }
+ const rankIds=[];
+ const nStart=safeNode*deployPlan.ranksPerNode;
+ const nEnd=Math.min(deployPlan.totalRanks,nStart+deployPlan.ranksPerNode);
+ for(let r=nStart;r<nEnd;r++)rankIds.push(r);
+ const useShortPill=rankIds.length>8||deployPlan.nodeCount>1;
+ for(const r of rankIds){
+  const rb=document.createElement('button');
+  rb.type='button';
+  const isRemote=r>=deployPlan.ranksPerNode;
+  rb.className='deploy-rank-pill'+(isRemote?' is-remote':'')+(selectedDeployRank===r?' is-active':'');
+  rb.dataset.testid=`deploy-rank-pill-${r}`;
+  rb.dataset.rank=String(r);
+  rb.setAttribute('aria-label',`Rank ${r}`);
+  rb.setAttribute('aria-pressed',String(selectedDeployRank===r));
+  rb.textContent=isRemote?`R${r}·N${Math.floor(r/deployPlan.ranksPerNode)}`:(useShortPill?`R${r}`:`Rank ${r}`);
+  rb.onclick=()=>selectDeployRank(selectedDeployRank===r?null:r);
+  rankBar.append(rb);
+ }
+ const rHint=document.createElement('span');
+ rHint.className='deploy-rank-bar-hint';
+ const panelDir=innerWidth<=850?'下方':'右侧';
+ rHint.textContent=selectedDeployRank===null?'点选 Rank 或 3D 模组查看该卡权重与 KV 切分':`已在${panelDir}展开「单卡权重与缓存切分卡」`;
+ rankBar.append(rHint);
+ banner.append(head,metrics,legend,rankBar);
+}
+
+function updateDeployShardCard(){
+ const panelEl=$('.panel');
+ if(!panelEl)return;
+ let card=document.getElementById('deploy-shard-card');
+ if(!deployPlan||currentModel!==deployPlan.targetModel||level!==2||selectedDeployRank===null){
+  if(card){card.hidden=true;card.replaceChildren();}
+  return;
+ }
+ ensureDeployShardStyles();
+ if(!card){
+  card=document.createElement('section');
+  card.id='deploy-shard-card';
+  card.dataset.testid='deploy-rank-shard-card';
+  card.setAttribute('aria-label','单卡权重与缓存切分卡');
+  panelEl.prepend(card);
+ }
+ const info=computeDeployRankShard(deployPlan,selectedDeployRank);
+ card.hidden=false;
+ card.replaceChildren();
+ const head=document.createElement('div');head.className='deploy-shard-head';
+ const title=document.createElement('b');title.textContent=`单卡权重与缓存切分卡 · Rank ${info.rank}`;
+ const closeBtn=document.createElement('button');
+ closeBtn.type='button';closeBtn.className='deploy-shard-close';closeBtn.dataset.testid='deploy-shard-close';
+ closeBtn.textContent='收起 ×';
+ closeBtn.onclick=()=>selectDeployRank(null);
+ head.append(title,closeBtn);
+
+ const badges=document.createElement('div');badges.className='deploy-shard-badges';
+ const bGroup=document.createElement('span');bGroup.className='deploy-shard-badge';bGroup.textContent=info.groupBadge;
+ const bSlot=document.createElement('span');bSlot.className='deploy-shard-badge is-slot';bSlot.textContent=info.slotLabel;
+ badges.append(bGroup,bSlot);
+ if(info.kvWarnBadge){
+  const bKv=document.createElement('span');bKv.className='deploy-shard-badge is-warn';bKv.textContent=info.kvWarnBadge;
+  badges.append(bKv);
+ }
+ if(info.multiNodeNote){
+  const bNode=document.createElement('span');bNode.className='deploy-shard-badge is-warn';bNode.textContent=info.multiNodeNote;
+  badges.append(bNode);
+ }
+
+ const rows=document.createElement('div');rows.className='deploy-shard-rows';
+ const addRow=(cls,lbl,val)=>{
+  const row=document.createElement('div');row.className='deploy-shard-row'+(cls?' '+cls:'');
+  const sm=document.createElement('small');sm.textContent=lbl;
+  const sp=document.createElement('span');sp.textContent=val;
+  row.append(sm,sp);rows.append(row);
+ };
+ addRow('','PP 流水层区间',info.ppText);
+ addRow('is-kv','TP 矩阵切分与 KV 头归属',`${info.tpText}；${info.kvText}`);
+ addRow('is-moe','MoE 专家 / FFN 驻留',info.moeText);
+ addRow('is-comm','组内与跨段通信角色',info.commText);
+
+ const foot=document.createElement('div');foot.className='deploy-shard-foot';
+ if(info.ppBudgetNote){
+  const ppNote=document.createElement('small');ppNote.textContent=info.ppBudgetNote;
+  foot.append(ppNote);
+ }
+ const note=document.createElement('small');note.textContent=info.boundaryNote;
+ foot.append(note);
+ if(info.isLocal){
+  const tdBtn=document.createElement('button');
+  tdBtn.type='button';tdBtn.className='deploy-shard-teardown';
+  tdBtn.textContent='独立拆解此物理模组 →';
+  tdBtn.onclick=()=>{
+   const col=deployColEntries.find(c=>c.active&&c.rank===info.rank);
+   if(col?.part){selection=col.part;setLevel(3);}
+  };
+  foot.append(tdBtn);
+ }
+ card.append(head,badges,rows,foot);
+ panelEl.scrollTop=0;
 }
 
 function rebuild(){
@@ -1336,7 +1764,7 @@ function rebuild(){
  disposeGroup(focusRoot);
  disposeGroup(overlayRoot);
  clearDeployLabels();
- deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();deployPickables=[];
  if(guideDotsMesh)guideDotsMesh.visible=false;
  if(guideLinesObj)guideLinesObj.visible=false;
  const p=MODELS[currentModel];
@@ -1672,6 +2100,7 @@ function updateUI(){
  document.body.dataset.platform=platform;
  document.body.dataset.model=currentModel;
  updateDeployBanner();
+ updateDeployShardCard();
  updateDiagram();
 }
 
@@ -1759,9 +2188,57 @@ function raycastPart(e){
  return null;
 }
 
+function raycastDeployRank(e){
+ if(!isDeployOverlayActive())return null;
+ const rect=renderer.domElement.getBoundingClientRect();
+ ray.setFromCamera(
+  new THREE.Vector2(
+   ((e.clientX-rect.left)/rect.width)*2-1,
+   -((e.clientY-rect.top)/rect.height)*2+1
+  ),
+  camera
+ );
+ if(deployPickables.length){
+  const colHits=ray.intersectObjects(deployPickables,false);
+  if(colHits.length){
+   const r=colHits[0].object.userData.deployRank;
+   if(Number.isInteger(r)){
+    const col=deployColEntries.find(c=>c.active&&c.rank===r);
+    return {rank:r,part:col?.part||null};
+   }
+  }
+ }
+ for(const hit of ray.intersectObjects(pickables,false)){
+  let o=hit.object;
+  while(o&&!o.userData.kind)o=o.parent;
+  while(o&&['cooler','ihs','memory'].includes(o.userData.kind))o=o.parent;
+  if(o&&activeDeployPartSet.has(o)){
+   const cols=deployColEntries.filter(c=>c.active&&c.part===o);
+   if(!cols.length)return null;
+   if(cols.length===1)return {rank:cols[0].rank,part:o};
+   const lp=o.worldToLocal(hit.point.clone());
+   const die=cols[0].isPcie?(lp.z<-.05?0:1):(lp.x<0?0:1);
+   const pickedCol=cols.find(c=>c.rank%2===die)||cols[0];
+   return {rank:pickedCol.rank,part:o};
+  }
+ }
+ return null;
+}
+
 const onPointerDown=e=>{down=[e.clientX,e.clientY];};
 const onPointerMove=e=>{
  if(viewerDisposed||!ready||level!==2||down)return;
+ const dr=raycastDeployRank(e);
+ if(dr){
+  setHover(dr.part,e.clientX,e.clientY);
+  const pill=$('#hover-pill');
+  if(pill&&deployPlan){
+   const sub=deployPlan.diesPerSlot>1?` · ${deployPlan.dieWord} ${dr.rank%2}`:'';
+   pill.textContent=`Rank ${dr.rank} (${dr.part?.userData.label||'NPU'}${sub}) · 点击查看单卡切分`;
+   pill.hidden=false;
+  }
+  return;
+ }
  setHover(raycastPart(e),e.clientX,e.clientY);
 };
 const onPointerLeave=()=>clearHover();
@@ -1769,6 +2246,11 @@ const onPointerUp=e=>{
  const start=down;
  down=null;
  if(viewerDisposed||!ready||level!==2||!start||Math.hypot(e.clientX-start[0],e.clientY-start[1])>5)return;
+ const dr=raycastDeployRank(e);
+ if(dr){
+  selectDeployRank(selectedDeployRank===dr.rank?null:dr.rank);
+  return;
+ }
  const picked=raycastPart(e);
  if(picked){
   selection=picked;
@@ -1963,7 +2445,10 @@ function disposeViewer(){
  disposeGroup(focusRoot);
  disposeGroup(overlayRoot);
  clearDeployLabels();
- deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
+ document.getElementById('deploy-shard-card')?.remove();
+ document.getElementById('deploy-shard-style')?.remove();
+ selectedDeployRank=null;
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();deployPickables=[];
  for(const tpl of Object.values(templates))disposeGroup(tpl);
  templates={};
  UNIT_BOX.dispose();

@@ -126,6 +126,119 @@ export function resolveExperienceBackTarget(
   return { to: "/wiki", label: "返回主章节" };
 }
 
+export interface ExperienceWikiContextLink {
+  to: string;
+  pageId: string;
+  label: string;
+}
+
+/**
+ * 解析 `/model` 与 `/hardware` 顶栏对应的核心 Wiki 原理页快捷入口：
+ * - 不改变 `resolveExperienceBackTarget` 原路返回契约；
+ * - 若 `backTarget` 已直接指向同一篇 Wiki 页面，则自动切换至互补核心页或去重，避免顶栏重复。
+ */
+export function resolveExperienceWikiContextLink({
+  kind,
+  params,
+  backTarget,
+}: {
+  kind: "model" | "hardware";
+  params: URLSearchParams;
+  backTarget?: ExperienceBackTarget | null | undefined;
+}): ExperienceWikiContextLink | null {
+  const candidates: Array<{ pageId: string; shortTitle: string }> = [];
+
+  if (kind === "model") {
+    const edition = resolveModelEdition(params);
+    if (edition === "glm-5-3-flash") {
+      candidates.push(
+        { pageId: "glm-5-3-flash", shortTitle: "GLM-5.3-Flash 架构" },
+        { pageId: "mla", shortTitle: "MLA 低秩注意力" },
+      );
+    } else {
+      const variant = resolveQwenVariant(params);
+      const view = params.get("view");
+      if (variant === "30b-a3b") {
+        candidates.push(
+          { pageId: "moe", shortTitle: "MoE 混合专家" },
+          { pageId: "request-overview", shortTitle: "请求完整旅程" },
+        );
+      } else if (view === "layer") {
+        candidates.push(
+          { pageId: "attention-qkv", shortTitle: "Attention 与 QKV" },
+          { pageId: "request-overview", shortTitle: "请求完整旅程" },
+        );
+      } else {
+        candidates.push(
+          { pageId: "request-overview", shortTitle: "请求完整旅程" },
+          { pageId: "gqa", shortTitle: "GQA 分组查询注意力" },
+        );
+      }
+    }
+  } else {
+    const deployOverlay = parseHardwareDeployOverlay(params.get("deploy"));
+    if (deployOverlay) {
+      if (deployOverlay.ep && deployOverlay.tp * deployOverlay.dp > 1) {
+        candidates.push(
+          { pageId: "expert-parallel", shortTitle: "专家并行 EP" },
+          { pageId: "tensor-parallel", shortTitle: "张量并行 TP" },
+        );
+      } else if (deployOverlay.pp > 1) {
+        candidates.push(
+          { pageId: "pipeline-parallel", shortTitle: "流水线并行 PP" },
+          { pageId: "tensor-parallel", shortTitle: "张量并行 TP" },
+        );
+      } else if (deployOverlay.tp > 1) {
+        candidates.push(
+          { pageId: "tensor-parallel", shortTitle: "张量并行 TP" },
+          { pageId: "hardware-devices", shortTitle: "NPU、板卡与机柜" },
+        );
+      } else {
+        candidates.push(
+          { pageId: "kv-cache-memory-profiling", shortTitle: "显存七段账本" },
+          { pageId: "hardware-devices", shortTitle: "NPU、板卡与机柜" },
+        );
+      }
+    } else if (params.get("view") === "npu" || params.get("level") === "4") {
+      candidates.push(
+        { pageId: "ai-core", shortTitle: "AI Core 计算与搬运" },
+        { pageId: "hardware-devices", shortTitle: "NPU、板卡与机柜" },
+      );
+    } else if (params.get("model") === "ascend-950dt") {
+      candidates.push(
+        { pageId: "ascend-950-architecture", shortTitle: "昇腾 950 架构" },
+        { pageId: "hardware-devices", shortTitle: "NPU、板卡与机柜" },
+      );
+    } else {
+      candidates.push(
+        { pageId: "hardware-devices", shortTitle: "NPU、板卡与机柜" },
+        { pageId: "tensor-parallel", shortTitle: "张量并行 TP" },
+      );
+    }
+  }
+
+  const coveredTargets = new Set<string>();
+  for (const existing of [backTarget?.to, backTarget?.secondary?.to]) {
+    if (!existing) continue;
+    const withoutHash = existing.split("#")[0] ?? existing;
+    coveredTargets.add(withoutHash);
+  }
+
+  for (const candidate of candidates) {
+    const resolved = resolvePageId(candidate.pageId) ?? candidate.pageId;
+    const page = findByAlias(resolved);
+    if (!page) continue;
+    const to = `/wiki/${page.id}`;
+    if (coveredTargets.has(to)) continue;
+    return {
+      to,
+      pageId: page.id,
+      label: `原理：${candidate.shortTitle}`,
+    };
+  }
+  return null;
+}
+
 /**
  * 为 Wiki 正文内指向 `/model` 或 `/hardware` 的站内路由自动附加 `fromPage=${currentId}`，
  * 完整保留原有 query 参数顺序（如 `view=play&segment=28`）与锚点。

@@ -1509,3 +1509,29 @@ vllm-ascend@main c64ace678d12d5a48671d929c76f723f8158876c → c12397a088f7e63ed9
 ## [2026-11-22] review | 周期维护
 
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-11-24] ingest | 参数增量
+
+vllm-ascend@main 8d6180e28e0941fcfc85999bf2aafe194e98f8f6 → 9b8c54e0d189f34259ab5112f2378ccf558a4e18；新增 39 / 删除 12 / 变更 5。
+
+- enable_fused_mc2: 默认表达式 "0" → "0"
+- megamoe_shared_expert_fusion: 默认表达式 "False" → "False"
+- mask_mode: 默认表达式 "3" → "FLASHMLA_CAUSAL_MASK_MODE"
+- layout_kv: 默认表达式 "'PA_BBND'" → "FLASHMLA_KV_LAYOUT"
+- config_path: 默认表达式 "None" → "None"
+
+## [2026-11-24] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 2c59ff1047573f40a471cf7535f01a8877344415 → c399628f2e5d7ff4905aed32d0efce266eb3bf20；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-24] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → b98aab21139be21988b91fcea2a71c815b47acf9；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-24] ingest | 参数增量
+
+vllm-ascend@releases/v0.30.0 c09d3e20b9c45c80b34ae3781440d90904a44023 → 07fab1a64dfdca55060b902a296053db861b8d3e；新增 2 / 删除 0 / 变更 0。
+
+## [2026-11-24] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。

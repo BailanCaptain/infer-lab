@@ -15,11 +15,15 @@ sources:
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L727
   - >-
     vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L759
+  - >-
+    vllm-ascend@9b8c54e0d189f34259ab5112f2378ccf558a4e18:vllm_ascend/ascend_config.py#L759
 rawSources:
   - >-
     raw/sha256-2d13f8c316437a6c76d3586c7c71adb5b9fd8ee8754b97fa101e88fdb28b6374.md
   - >-
     raw/sha256-81685fcf969928dd82668d18ecb202fda0d397667b8b8130345c5faf03886bde.md
+  - >-
+    raw/sha256-8b62fbf64500d54cd80faa70070cb10e16f3058f0af1c12e30b99970d02309e0.md
   - >-
     raw/sha256-b909f1f174d8a217b935475955f0945cdb5b6c1d34c00325d86952e2d862804e.md
   - >-
@@ -39,8 +43,8 @@ rawSources:
 | 所属类 | `AscendConfig` |
 | 类型 | `QuantizedAllReduceConfig` |
 | 默认表达式 | `dataclasses.field(default_factory=QuantizedAllReduceConfig)` |
-| 定义 | `vllm_ascend/ascend_config.py:759` [C4] |
-| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
+| 定义 | `vllm_ascend/ascend_config.py:759` [C5] |
+| 版本 | main · 9b8c54e0d189f34259ab5112f2378ccf558a4e18 |
 
 字段注释：
 
@@ -84,8 +88,9 @@ if sp_active and self.quantized_all_reduce_config.enable:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `0c002b4b` |
+| releases/v0.30.0 | 无 | `07fab1a6` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `49007fd8` |
-| main | 有 | `a38556f6` |
+| releases/v0.32.0rc | 无 | `ec59279f` |
+| releases/v0.33.0rc | 有 | `c64ace67` |
+| main | 有 | `9b8c54e0` |

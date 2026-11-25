@@ -25,6 +25,8 @@ sources:
     vllm-ascend@775899991f9614052e4836a62e4cb6541897faee:vllm_ascend/ascend_config.py#L670
   - >-
     vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L702
+  - >-
+    vllm-ascend@9b8c54e0d189f34259ab5112f2378ccf558a4e18:vllm_ascend/ascend_config.py#L702
 relations: []
 updated: 2026-11-03T00:00:00.000Z
 origin: gap
@@ -37,6 +39,8 @@ rawSources:
     raw/sha256-703d348dfed5c48687d7ecc8b88872ff05f85ddde437c775ada624d740514e88.md
   - >-
     raw/sha256-81685fcf969928dd82668d18ecb202fda0d397667b8b8130345c5faf03886bde.md
+  - >-
+    raw/sha256-8b62fbf64500d54cd80faa70070cb10e16f3058f0af1c12e30b99970d02309e0.md
   - >-
     raw/sha256-b909f1f174d8a217b935475955f0945cdb5b6c1d34c00325d86952e2d862804e.md
   - >-
@@ -93,11 +97,12 @@ rawSources:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `0c002b4b` |
+| releases/v0.30.0 | 无 | `07fab1a6` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 有 | `5e40bc72` |
-| releases/v0.32.0rc | 有 | `49007fd8` |
-| main | 有 | `a38556f6` |
+| releases/v0.32.0rc | 有 | `ec59279f` |
+| releases/v0.33.0rc | 有 | `c64ace67` |
+| main | 有 | `9b8c54e0` |
 
 ## 参数定义（自动生成）
 
@@ -109,8 +114,8 @@ rawSources:
 | 所属类 | `AscendConfig` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:702` [C9] |
-| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
+| 定义 | `vllm_ascend/ascend_config.py:702` [C10] |
+| 版本 | main · 9b8c54e0d189f34259ab5112f2378ccf558a4e18 |
 
 字段注释：
 

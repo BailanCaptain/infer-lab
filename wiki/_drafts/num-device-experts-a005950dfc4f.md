@@ -9,7 +9,11 @@ updated: '2026-11-19'
 sources:
   - >-
     vllm-ascend@a38556f69529595e70598d0d6203009f5ac3293e:vllm_ascend/ascend_config.py#L513
+  - >-
+    vllm-ascend@9b8c54e0d189f34259ab5112f2378ccf558a4e18:vllm_ascend/ascend_config.py#L513
 rawSources:
+  - >-
+    raw/sha256-8b62fbf64500d54cd80faa70070cb10e16f3058f0af1c12e30b99970d02309e0.md
   - >-
     raw/sha256-dc561029278178cdc9222d8f07a7cbac8503b71b01ca3817fe405738fd14fd7d.md
 ---
@@ -27,8 +31,8 @@ rawSources:
 | 所属类 | `ExpertOffloadConfig` |
 | 类型 | `int \| None` |
 | 默认表达式 | `Field(default=None, gt=0)` |
-| 定义 | `vllm_ascend/ascend_config.py:513` [C1] |
-| 版本 | main · a38556f69529595e70598d0d6203009f5ac3293e |
+| 定义 | `vllm_ascend/ascend_config.py:513` [C2] |
+| 版本 | main · 9b8c54e0d189f34259ab5112f2378ccf558a4e18 |
 
 字段注释：
 
@@ -71,8 +75,9 @@ if self.enabled and self.num_device_experts is None:
 | releases/v0.27.1rc | 无 | `0ce12444` |
 | releases/v0.28.0rc | 无 | `96df6231` |
 | releases/v0.29.0rc | 无 | `b3d3bb68` |
-| releases/v0.30.0 | 无 | `0c002b4b` |
+| releases/v0.30.0 | 无 | `07fab1a6` |
 | releases/v0.30.0rc2 | 无 | `7d825229` |
 | releases/v0.31.0rc | 无 | `5e40bc72` |
-| releases/v0.32.0rc | 无 | `49007fd8` |
-| main | 有 | `a38556f6` |
+| releases/v0.32.0rc | 无 | `ec59279f` |
+| releases/v0.33.0rc | 有 | `c64ace67` |
+| main | 有 | `9b8c54e0` |

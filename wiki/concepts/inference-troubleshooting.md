@@ -68,6 +68,10 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120'
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
+  - 'https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/aclcppdevg_000537.html'
+  - 'vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606'
+  - 'vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552'
 relations:
   - to: request-call-chain
     kind: builds-on
@@ -286,6 +290,18 @@ file: troubleshooting-fig-first-fault
 | **5. 未量化 GQA 传 `--kv-cache-dtype int8`** | 在 `attention_v1.py` 抛 `ValueError: The current GQA‑related models adopt static quantization...`（含 `U+2011` `‑` 不换行连字符） | 这是缺少离线 C8 校准权重报错，区别于 `ascend_config.py` 针对已带 C8 权重配普通 `MooncakeConnector` 的传输拦截（见 [KV cache 量化](kv-cache-quantization.md)） |
 | **6. 误留 `VLLM_LOGGING_LEVEL=DEBUG`** | 无异常退出，但 `worker.py` 每步读分配器打印日志（`TP=8` 达 `3,312` 行）+ `acl_graph.py` 逐 Tensor 核对 `data_ptr()`，`TP=8 c=1` 单样本 `TTFT` `+39.48%` | 压测与线上服务恢复 `VLLM_LOGGING_LEVEL=INFO`；勿把该开销误写成每步 `mem_get_info` 设备同步（见 [设备内存](device-memory.md)） |
 
+### CANN 与 AscendCL 高频数字错误码速查（507015 / 507034 / 507035 / 161002 / 107030）
+
+外层 Python 日志常只停在 `AclrtSynchronizeStreamWithTimeout` 或 `synchronize stream failed`，真正区分硬件执行异常、算子入参越界与图捕获限制的线索藏在数字 `aclError` 与 `plog` 中：
+
+| 数字错误码与常见外层报错 | 所属层级与物理含义 | 首取证据与下一步分流 |
+| --- | --- | --- |
+| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | Runtime 汇报 **AI Core 执行异常**，常见于核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
+| **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | Runtime 汇报 **Vector Core（AIV）执行超时**，向量核任务超最大等待阈值或死锁未归还事件 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
+| **`507035`**（`vector core exception` / `aicore VEC 507035`） | Runtime 汇报 **Vector Core（AIV）执行异常**，常见于向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
+| **`161002`**（`ACLNN_ERR_PARAM_INVALID`） | `aclnn` 二段式算子接口**参数校验失败**，即输入输出 `dtype`、数据格式、维度或步长违反算子约束 | 查紧邻报错的 `aclGetRecentErrMsg` 明细核对张量形状与量化 Scale 类型，转 [算子与 kernel](ops-and-kernels.md) |
+| **`107030`**（`ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT`） | Runtime **图捕获模式不支持当前操作**，捕获流内夹杂受限同步或 `rtMemcpy`（部分算子仅打 `plog` 不影响推理） | 先核对服务是否实际中断；若捕获失败则用 `--enforce-eager` 对照并转 [ACL Graph](acl-graph.md) 与 [设备内存](device-memory.md) |
+
 ## 证据不足时，下一步应该有多具体
 
 有用的回答可以停在“尚不能判根因”，但要同时说明**已经确认什么、还差哪项证据、怎样取、两种结果分别去哪**。例如只有通信超时日志时，先要同一通信组里最早报错的 rank 及其前序记录；没必要先让用户转储整个模型。
@@ -374,5 +390,5 @@ curl -s http://127.0.0.1:8000/metrics | grep -E "vllm:(kv_cache_usage_perc|num_r
 - **启动预检、显存探测、Sleep 守卫与图捕获 OOM**：`vllm_ascend/worker/worker.py`（来源 1–3、28–29）涵盖 `init_snapshot` 校验、`determine_available_memory()` 试跑量测、`compile_or_warm_up_model()` 录图后显存账建议、`wake_up()` 对非零 `weight_nz_mode` 的拦截与 `execute_model()` 中 `DEBUG` 分配器读数日志；`device/device_op.py`（来源 33）与 `compilation/acl_graph.py`（来源 30）分别对应 `FULL` 图捕获 FIA 调用栈与回放 `data_ptr()` 校验；`device/hardware_profile.py`（来源 10）划分 `310P` 兼容硬件档位。
 - **配置、PD 分离、图捕获与量化兼容硬报错**：`vllm_ascend/ascend_config.py`（来源 5–7、31）包含 `NPUGRAPH_EX` 硬件降级、`extra="forbid"` 未知键校验、普通 PD `TP_P % TP_D == 0` 整除断言与 `MooncakeConnector` 禁配 GQA C8；`mooncake/base_worker.py`（来源 32）校验单一 KV 传输角色；`attention_v1.py`（来源 8）与 `fa3_v1.py`（来源 9）分别负责 GQA+C8 校准校验与 FA3 `FULL_DECODE_ONLY` 拦截。
 - **分布式超时、进程退出、收尾与 `/metrics`**：`vllm_ascend/platform.py`（来源 4）与 `utils.py`（来源 11）维护 HCCL 超时与通信组缓冲配置；`vllm/v1/engine/utils.py`（来源 12）、`scheduler.py`（来源 13）、`async_llm.py`（来源 14）与 `metrics/loggers.py`（来源 15–16）覆盖子进程退出码、取消释放与 Prometheus 指标定义。
-- **官方文档、历史快照与 `Ascend 910B3` 真机标本**：官方 Profiling 指南 [S17] 与 FAQ [S18] 提供采集与高频问题索引；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25；`Ascend 910B3` 八卡扩展、`DEBUG` 延迟对照与五份真机故障标本归档于来源 26–27 [M26][M27]。
+- **官方文档、历史快照与 `Ascend 910B3` 真机标本**：官方 Profiling 指南 [S17]、FAQ [S18] 与 AscendCL 错误码参考（来源 34）提供采集与数字错误码索引，算子参数校验码 `161002`、图模式 `rtMemcpy` `107030` 发布说明与 AI Core `507015` 实证约束分别见来源 35–37；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25；`Ascend 910B3` 八卡扩展、`DEBUG` 延迟对照与五份真机故障标本归档于来源 26–27 [M26][M27]。
 - **方法论与示意边界**：十域分流和判别实验是基于既有机制组织的诊断方法 [I]；请求 R 的时间与步骤号、多卡交错时间轴图及工作台 6 类阻塞时序对照视图均为教学示意 [A]，不代表目标硬件实测耗时。

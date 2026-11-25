@@ -231,8 +231,71 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
     expect(uniforms.some((u) => u.part === p && u.name === "uCut" && u.value.join() === "1,0,0")).toBe(true);
   }
 
-  // 注意力 3D 原位乘比例、求和、投影与核对面板一致性
+  // 注意力标签各自贴近矩阵，多进度与鼠标旋转后连线不穿标签、标签两两零重叠
   const attn = page.locator('[data-layer-scene="attention"]');
+  await attn.locator(".layer-scene").scrollIntoViewIfNeeded();
+  const summaryMatrix = attn.locator('[data-matrix="汇总内容"]');
+  const outputMatrix = attn.locator('[data-matrix="注意力 ΔA"]');
+  expect((await outputMatrix.boundingBox())!.y - (await summaryMatrix.boundingBox())!.y).toBeGreaterThan(25);
+  for (const progress of [0.15, 0.425, 0.61, 0.975]) {
+    await attn.getByRole("slider").fill(String(progress));
+    const wireHits = await attn.locator(".layer-scene").evaluate((host) => {
+      const frame = host.getBoundingClientRect();
+      const labels = Array.from(host.querySelectorAll(".layer-label")).map((label) => ({
+        rect: label.getBoundingClientRect(),
+        name: label.textContent,
+      }));
+      const hits: string[] = [];
+      for (const path of host.querySelectorAll<SVGPathElement>(".attention-workbench-wires path")) {
+        if (Number(getComputedStyle(path).opacity) < 0.1) continue;
+        for (let d = 0; d < path.getTotalLength(); d += 2) {
+          const p = path.getPointAtLength(d);
+          for (const { rect, name } of labels) {
+            if (
+              p.x + frame.x > rect.left &&
+              p.x + frame.x < rect.right &&
+              p.y + frame.y > rect.top &&
+              p.y + frame.y < rect.bottom
+            ) {
+              hits.push(name ?? "");
+            }
+          }
+        }
+      }
+      return hits;
+    });
+    expect(wireHits, `wire intersection at progress ${progress}`).toEqual([]);
+    const overlapping = await attn.locator(".layer-label").evaluateAll((nodes) => {
+      const boxes = nodes.map((node) => node.getBoundingClientRect());
+      return boxes.some((a, i) =>
+        boxes
+          .slice(i + 1)
+          .some((b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top),
+      );
+    });
+    expect(overlapping, `label overlap at progress ${progress}`).toBe(false);
+  }
+  await attn.getByRole("slider").fill("0.747");
+  const attnSceneBox = (await attn.locator(".layer-scene").boundingBox())!;
+  await page.mouse.move(attnSceneBox.x + attnSceneBox.width / 2, attnSceneBox.y + attnSceneBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    attnSceneBox.x + attnSceneBox.width / 2 + 60,
+    attnSceneBox.y + attnSceneBox.height / 2 + 15,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  const rotatedOverlaps = await attn.locator(".layer-label").evaluateAll((labels) => {
+    const boxes = labels.map((label) => label.getBoundingClientRect());
+    return boxes.flatMap((a, i) =>
+      boxes
+        .slice(i + 1)
+        .filter((b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top),
+    );
+  });
+  expect(rotatedOverlaps).toEqual([]);
+
+  // 注意力 3D 原位乘比例、求和、投影与核对面板一致性
   await attn.locator(".layer-scene").scrollIntoViewIfNeeded();
   await attn.getByRole("slider").fill("0.48");
   const contributions = await attn.locator(".attention-cell[data-role='contribution']").evaluateAll((nodes) =>

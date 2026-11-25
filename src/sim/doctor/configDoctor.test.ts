@@ -640,5 +640,49 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       { mode: "full", hardwareFamily: "A3", version: "main" },
     );
     expect(gdnDbo.warnings.some((f) => f.id === "d5-gdn-prefill-checkpoints-constraints")).toBe(true);
+
+    // 7. Non-strict Pydantic bool on quantized_all_reduce_config.enable, shared_engram nullability, fractional binary suffix "1.5K", and --ubatch-size message
+    const qarIntBool = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":1,"min_numel":32768}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarIntBool.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
+    expect(qarIntBool.effectiveInput.quantizedAllReduceEnabled).toBe(true);
+
+    const qarInvalidStr = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":"maybe"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarInvalidStr.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
+
+    const seNullCap = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(seNullCap.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(true);
+
+    const seDecimalK = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config.shared_engram.backend a2 --additional-config.shared_engram.endpoint 10.0.0.1:29661 --additional-config.shared_engram.capacity 25.6k`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(seDecimalK.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(false);
+    expect(seDecimalK.effectiveInput.sharedEngramCapacity).toBe(25600);
+
+    const seFractionalBinaryK = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config.shared_engram.backend a2 --additional-config.shared_engram.endpoint 10.0.0.1:29661 --additional-config.shared_engram.capacity 1.5K`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(seFractionalBinaryK.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(true);
+
+    const gdnUbatchOnly = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-Next-80B-A3B -tp 4 --mamba-cache-mode align --no-enable-dbo --ubatch-size 2 --additional-config '{"gdn_internal_prefill_checkpoints":true}'`,
+      { mode: "full", hardwareFamily: "A3", version: "main" },
+    );
+    const gdnUbatchWarn = gdnUbatchOnly.warnings.find(
+      (f) => f.id === "d5-gdn-prefill-checkpoints-constraints",
+    );
+    expect(gdnUbatchWarn).toBeDefined();
+    expect(gdnUbatchWarn?.message).toContain("--ubatch-size=2");
+    expect(gdnUbatchWarn?.message).not.toContain("已开启 --enable-dbo");
   });
 });

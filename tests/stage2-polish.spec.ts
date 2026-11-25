@@ -77,6 +77,16 @@ test("1. /#/tools ①→②→③ 视觉层级、Qwen3-235B-A22B 一键应用推
   const doctor = page.getByTestId("config-doctor-view");
   await expect(doctor).toBeVisible();
   await expect(doctor.getByTestId("doctor-cmd-input")).toHaveValue(/Qwen3-235B-A22B.*-tp 8/s);
+  await expect(page).toHaveURL(/hint=qwen3-235b-a22b/);
+
+  // Round-trip Doctor -> 3D -> Doctor preserves inherited handoff context, and editing CLI model to Qwen3-8B resets hint to auto
+  await doctor.getByTestId("doctor-open-3d-sharding").click();
+  await expect(page).toHaveURL(/#\/hardware\?.*fromTools=doctor/);
+  await page.getByTestId("experience-back-link").click();
+  await expect(page).toHaveURL(/#\/tools\?.*tab=doctor/);
+  await expect(page).toHaveURL(/hint=qwen3-235b-a22b/);
+  await doctor.getByTestId("doctor-cmd-input").fill("vllm serve Qwen/Qwen3-8B -tp 2");
+  await expect(page).not.toHaveURL(/hint=qwen3-235b-a22b/);
   expect(errors).toEqual([]);
 });
 
@@ -125,7 +135,14 @@ test("2. Wiki 代码块双动作按钮（送去体检 / 看 3D 切分）与 Conf
   await expect(backToDoctor).toContainText("返回配置体检台");
   await backToDoctor.click();
   await expect(page).toHaveURL(/#\/tools\?tab=doctor/);
-  await expect(page.getByTestId("config-doctor-view").getByTestId("doctor-cmd-input")).toHaveValue(customCmd);
+  const returnedDoctor = page.getByTestId("config-doctor-view");
+  await expect(returnedDoctor.getByTestId("doctor-cmd-input")).toHaveValue(customCmd);
+
+  // Clicking "清除分享参数" after 3D return must reset cleanly to default preset without replaying stale 3D return state
+  const clearShareBtn = returnedDoctor.getByTestId("doctor-clear-share-params").first();
+  await expect(clearShareBtn).toBeVisible();
+  await clearShareBtn.click();
+  await expect(returnedDoctor.getByTestId("doctor-cmd-input")).not.toHaveValue(customCmd);
   expect(errors).toEqual([]);
 });
 

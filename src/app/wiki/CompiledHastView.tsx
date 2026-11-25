@@ -549,12 +549,27 @@ function buildDoctorTargetQuery(pageId: string): string {
   return params.toString();
 }
 
+const MAIN_ONLY_PARAM_PAGE_IDS = new Set([
+  "shared-engram-31bf0d820403",
+  "quantized-all-reduce-config-3cc69e492011",
+  "kv-pool-range-debug-83e8b165addd",
+  "runtime-config-abb228bbf148",
+  "runtime-config-hot-reload-9c9ab794933a",
+  "megamoe-shared-expert-fusion-5a99901d47e6",
+  "gdn-internal-prefill-checkpoints-50f5ac80d583",
+]);
+
 export function inferFenceRuleVersion(
   commandText: string,
   pageId: string,
 ): Extract<RuleVersion, "v0.30.0" | "main"> {
   const page = pageId ? findByAlias(resolvePageId(pageId) ?? pageId) : undefined;
-  if (page && page.verified.includes("main") && !page.verified.includes("releases/v0.30.0")) {
+  if (
+    page &&
+    ((page.verified.includes("main") && !page.verified.includes("releases/v0.30.0")) ||
+      MAIN_ONLY_PARAM_PAGE_IDS.has(page.id) ||
+      (page.type === "param" && page.summary.startsWith("main 分支新增")))
+  ) {
     return "main";
   }
   const parsed = parseVllmServeCommand(commandText);

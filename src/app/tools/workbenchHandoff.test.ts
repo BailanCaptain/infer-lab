@@ -1221,5 +1221,27 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
       });
       expect(chatPayload?.model).toBe(presetId);
     }
+
+    // IPv6 precision: C++ a::b / HH:MM:SS preserved; trailing 2001:db8:: & [2001:db8::] redacted
+    const ipv6Precision = sanitizeDiagnosticText(
+      "12:34:56 a::b a::b::c std::bad_alloc c10::Error 2001:db8:: 2001:db8::1 fe80::1 ::1 [2001:db8::]:8000",
+    );
+    expect(ipv6Precision.sanitized).toBe(
+      "12:34:56 a::b a::b::c std::bad_alloc c10::Error <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> [<REDACTED_IP>]:8000",
+    );
+
+    // dpLocal preserved across Calculator query rebuilds when valid for dpSize
+    const preservedDpLocal = buildCalculatorQueryParams(
+      {
+        subMode: "static",
+        presetId: "qwen3-30b-a3b",
+        cardId: "a2-64g",
+        tpSize: 4,
+        dpSize: 2,
+        enableEp: true,
+      },
+      new URLSearchParams("dpLocal=1"),
+    );
+    expect(preservedDpLocal.get("dpLocal")).toBe("1");
   });
 });

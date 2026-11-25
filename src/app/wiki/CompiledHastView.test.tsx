@@ -393,6 +393,19 @@ describe("CompiledHastView direct HAST renderer", () => {
         "quantized-all-reduce-config-3cc69e492011",
       ),
     ).toBe("main");
+    // Even a plain vllm serve snippet without main-only flags on a main-only param page infers "main"
+    for (const mainOnlyPageId of [
+      "shared-engram-31bf0d820403",
+      "quantized-all-reduce-config-3cc69e492011",
+      "kv-pool-range-debug-83e8b165addd",
+      "runtime-config-abb228bbf148",
+      "runtime-config-hot-reload-9c9ab794933a",
+      "megamoe-shared-expert-fusion-5a99901d47e6",
+      "gdn-internal-prefill-checkpoints-50f5ac80d583",
+    ]) {
+      expect(inferFenceRuleVersion("vllm serve Qwen/Qwen3-8B -tp 2", mainOnlyPageId)).toBe("main");
+    }
+    expect(inferFenceRuleVersion("vllm serve Qwen/Qwen3-8B -tp 2", "ascend-env-and-serve")).toBe("v0.30.0");
     const ipv6Check = sanitizeDiagnosticText(
       "2026-11-26 10:12:35 c10::Error::Error --host 2001:db8::1 --endpoint [fe80::1]:29661",
     );

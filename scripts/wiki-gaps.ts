@@ -34,3 +34,7 @@ if (process.argv.includes("--json")) {
   }
   if (!gaps.length && !dangling.length) console.log("没有发现漏洞。");
 }
+
+if (process.argv.includes("--check") && (gaps.length > 0 || dangling.length > 0)) {
+  process.exitCode = 1;
+}

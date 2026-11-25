@@ -655,8 +655,14 @@ function parseHumanReadableInt(raw: string): number | undefined {
     G: 2 ** 30,
     T: 2 ** 40,
   };
-  const mult = decimalMult[m[2]] ?? binaryMult[m[2]];
-  return mult !== undefined ? Math.trunc(num * mult) : undefined;
+  if (Object.hasOwn(decimalMult, m[2])) {
+    return Math.trunc(num * decimalMult[m[2]]!);
+  }
+  if (Object.hasOwn(binaryMult, m[2])) {
+    if (m[1].includes(".")) return undefined;
+    return Number.parseInt(m[1], 10) * binaryMult[m[2]]!;
+  }
+  return undefined;
 }
 
 function parseDottedScalarOrJson(raw: string): unknown {
@@ -1297,6 +1303,8 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   if (attentionBackend !== undefined) couplingInput.attentionBackend = attentionBackend;
   if (useSequenceParallelMoe !== undefined) couplingInput.useSequenceParallelMoe = useSequenceParallelMoe;
   if (useUbatching !== undefined) couplingInput.useUbatching = useUbatching;
+  if (enableDbo !== undefined) couplingInput.enableDbo = enableDbo;
+  if (ubatchSize !== undefined) couplingInput.ubatchSize = ubatchSize;
   if (rawKvCacheDtype !== undefined) couplingInput.cacheDtype = rawKvCacheDtype;
   if (loadFormat !== null) couplingInput.loadFormat = loadFormat.toLowerCase();
   couplingInput.shutdownTimeout = shutdownTimeout ?? 0;
@@ -1435,8 +1443,16 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
         }
         if (qarc.enable !== undefined) {
-          if (typeof qarc.enable === "boolean") {
-            couplingInput.quantizedAllReduceEnabled = qarc.enable;
+          const qEn =
+            typeof qarc.enable === "boolean"
+              ? qarc.enable
+              : qarc.enable === 0 || qarc.enable === 1
+                ? qarc.enable === 1
+                : typeof qarc.enable === "string"
+                  ? parseBoolLike(qarc.enable)
+                  : undefined;
+          if (qEn !== undefined) {
+            couplingInput.quantizedAllReduceEnabled = qEn;
           } else {
             couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.enable 必须为布尔值（收到 ${JSON.stringify(qarc.enable)}）`;
           }
@@ -1498,8 +1514,12 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           couplingInput.sharedEngramInvalidReason = `ValidationError: additional_config.shared_engram 未知子键将被 extra="forbid" 拒收：${unknownSeKeys.join("、")}`;
         }
         if (rawSe.backend !== undefined) {
-          couplingInput.sharedEngramBackend =
-            typeof rawSe.backend === "string" ? rawSe.backend.trim() : String(rawSe.backend);
+          if (typeof rawSe.backend === "string") {
+            couplingInput.sharedEngramBackend = rawSe.backend.trim();
+          } else {
+            couplingInput.sharedEngramBackend = String(rawSe.backend);
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.backend 必须为字符串（不能为 null，收到 ${JSON.stringify(rawSe.backend)}）`;
+          }
         }
         if (rawSe.endpoint !== undefined) {
           if (typeof rawSe.endpoint === "string") {
@@ -1508,11 +1528,11 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
             couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.endpoint 必须为字符串（收到 ${JSON.stringify(rawSe.endpoint)}）`;
           }
         }
-        if (rawSe.capacity !== undefined && rawSe.capacity !== null) {
+        if (rawSe.capacity !== undefined) {
           if (typeof rawSe.capacity === "number" && Number.isInteger(rawSe.capacity)) {
             couplingInput.sharedEngramCapacity = rawSe.capacity;
           } else {
-            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.capacity 必须为整数（收到 ${JSON.stringify(rawSe.capacity)}）`;
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.capacity 必须为整数（不能为 null；省略该字段才使用默认值 65536，收到 ${JSON.stringify(rawSe.capacity)}）`;
           }
         }
         if (rawSe.library_path !== undefined && rawSe.library_path !== null) {

@@ -526,5 +526,35 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     expect(dpLocalLayout.ranksPerNode).toBe(4);
     expect(dpLocalLayout.nodeCount).toBe(2);
     expect(dpLocalLayout.localActiveRanks).toBe(4);
+
+    // 7. 带引号的 --kv-cache-memory-bytes / --num-gpu-blocks-override 同样拒绝；3D -> 算账台 -> 3D 保持 dpLocal 多机节点数
+    expect(
+      buildHardwareDeployHrefFromCommand("vllm serve Qwen/Qwen3-8B -tp 2 '--kv-cache-memory-bytes' 1048576", {
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }),
+    ).toBeNull();
+    expect(
+      buildHardwareDeployHrefFromCommand('vllm serve Qwen/Qwen3-8B -tp 2 "--num-gpu-blocks-override=512"', {
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }),
+    ).toBeNull();
+
+    const calcReturnUrl = buildCalculatorReturnToFromDeploy(dpLocalDecoded!);
+    const calcReturnParams = new URLSearchParams(calcReturnUrl.slice("/tools?".length));
+    expect(calcReturnParams.get("dpLocal")).toBe("1");
+    const rebuilt3dHref = buildHardwareDeployHref(
+      {
+        ...dpLocalDecoded!,
+        calc: { ...dpLocalDecoded!.calc, dpLocal: undefined },
+      },
+      calcReturnParams,
+    );
+    const rebuiltDecoded = parseHardwareDeployOverlay(
+      new URLSearchParams(rebuilt3dHref.slice("#/hardware?".length)).get("deploy"),
+    );
+    expect(rebuiltDecoded?.calc?.dpLocal).toBe(1);
+    expect(computeHardwareNodeSlotLayout(rebuiltDecoded!).nodeCount).toBe(2);
   });
 });

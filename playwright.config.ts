@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 const PORT = Number(process.env.PLAYWRIGHT_PORT || 4173);
+const USE_PREVIEW = process.env.PLAYWRIGHT_PREVIEW === "1";
 
 export default defineConfig({
   testDir: "tests",
@@ -18,11 +19,13 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `pnpm dev --port ${PORT} --strictPort`,
+    command: USE_PREVIEW
+      ? `pnpm preview --port ${PORT} --strictPort`
+      : `pnpm dev --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: true,
+    reuseExistingServer: !USE_PREVIEW,
     timeout: 90_000,
-    env: { NODE_ENV: "development" },
+    env: { NODE_ENV: USE_PREVIEW ? "production" : "development" },
   },
   projects: [
     {

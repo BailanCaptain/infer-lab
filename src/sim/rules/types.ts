@@ -96,6 +96,8 @@ export interface CouplingCheckInput {
   quantizedAllReduceMinNumel?: number;
   quantizedAllReduceInvalidReason?: string;
   useUbatching?: boolean;
+  enableDbo?: boolean;
+  ubatchSize?: number;
   oprojTensorParallelSize?: number;
   mlpTensorParallelSize?: number;
   embeddingTensorParallelSize?: number;

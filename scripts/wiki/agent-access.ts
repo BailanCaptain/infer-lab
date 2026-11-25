@@ -21,6 +21,7 @@ import {
 import { MODEL_PRESETS } from "../../src/sim/modelspec/presets";
 import { parseAscendStartupLog, reconcileStartupLog } from "../../src/sim/modelspec/startupLogParser";
 import { analyzeTroubleshootInput } from "../../src/sim/troubleshoot/logAnalyzer";
+import { loadPages } from "./pages";
 
 /**
  * 给站外的 agent（Claude Code、Codex、任何 MCP 客户端）用的只读入口。
@@ -31,7 +32,7 @@ import { analyzeTroubleshootInput } from "../../src/sim/troubleshoot/logAnalyzer
  * 命中规则与站内问答完全一致，不另起一套。
  */
 
-export type AgentPage = RegistryEntry & { text: string };
+export type AgentPage = RegistryEntry & { text: string; indexText?: string | undefined };
 
 export interface AgentWiki {
   search: (query: string, limit?: number) => AgentHit[];
@@ -63,7 +64,7 @@ export interface AgentEdge {
 
 export function makeAgentWiki(pages: AgentPage[]): AgentWiki {
   const byId = new Map(pages.map((p) => [p.id, p]));
-  const index = buildIndex(pages);
+  const index = buildIndex(pages.map((p) => ({ ...p, text: p.indexText ?? p.text })));
   const hitOf = (p: AgentPage): AgentHit => ({
     id: p.id,
     title: p.title,
@@ -108,13 +109,21 @@ export function makeAgentWiki(pages: AgentPage[]): AgentWiki {
 
 export type AgentWikiSource = AgentWiki | (() => AgentWiki);
 
-/** 从磁盘上的派生物建：registry.json 给元数据，页面文件给正文 */
+/** 从磁盘上的派生物建：registry.json 给元数据，页面文件给完整文本，检索索引与浏览器端保持一致（剥离 YAML frontmatter） */
 export function loadAgentWiki(root: string): AgentWiki {
   const registry = registrySchema.parse(
     JSON.parse(readFileSync(join(root, "src/content/wiki/registry.json"), "utf8")),
   );
+  const bodyByFile = new Map(loadPages(join(root, "wiki")).pages.map((p) => [p.file, p.body.trim()]));
   return makeAgentWiki(
-    registry.pages.map((page) => ({ ...page, text: readFileSync(join(root, "wiki", page.file), "utf8") })),
+    registry.pages.map((page) => {
+      const rawText = readFileSync(join(root, "wiki", page.file), "utf8");
+      return {
+        ...page,
+        text: rawText,
+        indexText: bodyByFile.get(page.file) ?? rawText,
+      };
+    }),
   );
 }
 

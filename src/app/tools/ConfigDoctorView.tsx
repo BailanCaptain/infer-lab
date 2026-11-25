@@ -67,6 +67,14 @@ interface PendingDoctor3dReturn {
   readonly fromVersion?: LegacyUpgradeFromVersion | undefined;
   readonly crossNodeRoce: boolean;
   readonly modelHint: ModelHintKey;
+  readonly modelHintFromHandoff: boolean;
+  readonly handoffSourceLabel: string | null;
+  readonly handoffCliModel: string | null;
+  readonly handoffModelCtx: {
+    modelId?: string | undefined;
+    traitOverride?: DoctorModelTraitOverride | undefined;
+    cliModel: string | null;
+  } | null;
 }
 
 let pendingDoctor3dReturnSeq = 0;
@@ -942,7 +950,13 @@ export function ConfigDoctorView({
   const lastConsumedHandoffSeqRef = useRef<number>(0);
   const strictModePendingHandoffRef = useRef<ReturnType<typeof workbenchHandoffStore.consumeDoctor>>(null);
   const strictModePending3dReturnRef = useRef<PendingDoctor3dReturn | null>(null);
-  const initialMount3dActiveRef = useRef<boolean | null>(null);
+  const mount3dGateRef = useRef<{
+    isDoctorRouteActive: boolean;
+    hasExplicitQuery: boolean;
+  }>({
+    isDoctorRouteActive,
+    hasExplicitQuery: hasExplicitDoctorQueryParams(searchParams),
+  });
   const handoffApplyingInCommitRef = useRef<boolean>(false);
   const restoringFromUrlInCommitRef = useRef<boolean>(false);
   handoffApplyingInCommitRef.current = false;
@@ -950,13 +964,12 @@ export function ConfigDoctorView({
 
   useEffect(() => {
     if (embedded) return;
-    if (initialMount3dActiveRef.current === null) {
-      initialMount3dActiveRef.current = isDoctorRouteActive;
-    } else if (initialMount3dActiveRef.current !== isDoctorRouteActive) {
-      // Tab switched after initial mount — never replay stale StrictMode 3D return snapshot!
+    const { isDoctorRouteActive: activeOnMount, hasExplicitQuery } = mount3dGateRef.current;
+    if (!activeOnMount || hasExplicitQuery) {
+      pendingDoctor3dReturn = null;
       strictModePending3dReturnRef.current = null;
+      return;
     }
-    if (!isDoctorRouteActive || hasExplicitDoctorQueryParams(searchParams)) return;
     const fresh3d = pendingDoctor3dReturn;
     const ret3d = fresh3d ?? strictModePending3dReturnRef.current;
     if (!ret3d) return;
@@ -966,12 +979,16 @@ export function ConfigDoctorView({
     }
     handoffApplyingInCommitRef.current = true;
     skipNextUrlRestoreRef.current = true;
+    handoffCliModelRef.current = ret3d.handoffCliModel;
     setTopology("single");
     setHardwareFamily(ret3d.hardwareFamily);
     setVersion(ret3d.version);
     setFromVersion(ret3d.fromVersion);
     setCrossNodeRoce(ret3d.crossNodeRoce);
     setModelHint(ret3d.modelHint);
+    setModelHintFromHandoff(ret3d.modelHintFromHandoff);
+    setHandoffSourceLabel(ret3d.handoffSourceLabel);
+    setHandoffModelCtx(ret3d.handoffModelCtx);
     if (ret3d.fromVersion || ret3d.crossNodeRoce || ret3d.modelHint !== "auto") {
       setSecondaryOptionsOpen(true);
     }
@@ -983,7 +1000,7 @@ export function ConfigDoctorView({
       decodeCommandText: "",
     });
     setActivePresetId(matched ?? "");
-  }, [embedded, isDoctorRouteActive, searchParams]);
+  }, [embedded]);
 
   useEffect(() => {
     if (embedded) return;
@@ -1402,6 +1419,8 @@ export function ConfigDoctorView({
   };
 
   const handleSelectSinglePreset = (preset: SingleDoctorPreset) => {
+    strictModePending3dReturnRef.current = null;
+    pendingDoctor3dReturn = null;
     handoffCliModelRef.current = null;
     setActivePresetId(preset.id);
     setHardwareFamily(preset.hardwareFamily);
@@ -1419,6 +1438,8 @@ export function ConfigDoctorView({
   };
 
   const handleSelectPdPreset = (preset: PdDoctorPreset) => {
+    strictModePending3dReturnRef.current = null;
+    pendingDoctor3dReturn = null;
     handoffCliModelRef.current = null;
     setActivePresetId(preset.id);
     setHardwareFamily(preset.hardwareFamily);
@@ -1437,6 +1458,8 @@ export function ConfigDoctorView({
 
   const handleSwitchTopology = (next: DoctorTopology) => {
     if (next === topology) return;
+    strictModePending3dReturnRef.current = null;
+    pendingDoctor3dReturn = null;
     handoffCliModelRef.current = null;
     setTopology(next);
     setIsSharedCommandFromUrl(false);
@@ -1507,6 +1530,8 @@ export function ConfigDoctorView({
   };
 
   const handleClearShareParams = () => {
+    strictModePending3dReturnRef.current = null;
+    pendingDoctor3dReturn = null;
     handoffCliModelRef.current = null;
     setHandoffModelCtx(null);
     setHandoffSourceLabel(null);
@@ -1533,6 +1558,8 @@ export function ConfigDoctorView({
   };
 
   const handleLoadUpgradeSample = () => {
+    strictModePending3dReturnRef.current = null;
+    pendingDoctor3dReturn = null;
     clearInheritedHandoffTraits();
     setTopology("single");
     setActivePresetId("");
@@ -2040,8 +2067,23 @@ export function ConfigDoctorView({
                   hardwareFamily,
                   version: effectiveVersion === "main" ? "main" : "v0.30.0",
                   ...(effectiveMode === "full"
-                    ? { fromVersion, crossNodeRoce, modelHint }
-                    : { crossNodeRoce: false, modelHint: "auto" }),
+                    ? {
+                        fromVersion,
+                        crossNodeRoce,
+                        modelHint,
+                        modelHintFromHandoff,
+                        handoffSourceLabel,
+                        handoffCliModel: handoffCliModelRef.current,
+                        handoffModelCtx,
+                      }
+                    : {
+                        crossNodeRoce: false,
+                        modelHint: "auto",
+                        modelHintFromHandoff: false,
+                        handoffSourceLabel: null,
+                        handoffCliModel: null,
+                        handoffModelCtx: null,
+                      }),
                 };
               }}
             >

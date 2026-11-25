@@ -393,29 +393,6 @@ const SYMPTOM_RULES: readonly { pattern: RegExp; targets: readonly [string, stri
   },
 ];
 
-/**
- * 昇腾 / vLLM 明确报错码与高频工程简写路由表：
- * 为 CANN/ACL 数字错误码（正文中未逐一硬编码全部数字变体）及跨模块简写补充确定性候选页（how="keyword"），
- * 不冒充 exact 标题命中，也不压过社区语料精确报错命中（corpus-exact > 1100）。
- */
-const DOMAIN_ANCHOR_RULES: readonly { pattern: RegExp; targets: readonly [string, string] }[] = [
-  { pattern: /\b507015\b/, targets: ["inference-troubleshooting", "acl-graph"] },
-  { pattern: /\b507034\b/, targets: ["inference-troubleshooting", "cann-hccl"] },
-  { pattern: /\b507035\b/, targets: ["inference-troubleshooting", "ai-core"] },
-  { pattern: /\b161002\b/, targets: ["ops-and-kernels", "inference-troubleshooting"] },
-  { pattern: /\b107030\b/, targets: ["device-memory", "inference-troubleshooting"] },
-  {
-    pattern: /\bzmqerror\b|address\s+already\s+in\s+use/i,
-    targets: ["pd-disaggregation", "cluster-serving"],
-  },
-  { pattern: /\bspec_?decod(?:e|ing)?\b/i, targets: ["speculative-decoding", "prepare-inputs-flow"] },
-  {
-    pattern: /(?:lpt[^\n]{0,10}专家|专家放置)/i,
-    targets: ["eplb", "placement-search-backtrack-limit-82b03cef98b0"],
-  },
-  { pattern: /\bm\s*=\s*(?:200|228)\b/i, targets: ["roofline-and-metrics", "quantization"] },
-];
-
 export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}): Hit[] {
   const limit = opts.limit ?? 5;
   const q = norm(query);
@@ -491,29 +468,11 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
     }
   }
 
-  let matchedDomainAnchor = false;
-  const anchorBase = idf(index.pages.length, Math.min(2, Math.max(1, index.pages.length)));
-  for (const rule of DOMAIN_ANCHOR_RULES) {
-    if (!rule.pattern.test(q)) continue;
-    matchedDomainAnchor = true;
-    for (const [rank, targetId] of rule.targets.entries()) {
-      const page = index.byId.get(targetId);
-      if (!page) continue;
-      const boost = (rank === 0 ? 3.2 : 2.6) * anchorBase;
-      const prev = scored.get(page.id);
-      if (prev) {
-        if (prev.how !== "exact") prev.score = Math.max(prev.score, boost) + 1.5;
-      } else {
-        scored.set(page.id, { page, score: boost, how: "keyword" });
-      }
-    }
-  }
-
   const ts = [...new Set(terms(query))];
 
   // Guard against hallucinated / nonexistent single compound identifiers (e.g. `UnseenHallucinatedParam_999`
   // or `--imaginary-hyperdrive-flag-xyz`): when the entire query is a single ASCII identifier with neither
-  // exact, fuzzy, whole-token posting, nor domain-rule match, and at least one alphabetic sub-word (>=3 chars)
+  // exact, fuzzy, nor whole-token posting match, and at least one alphabetic sub-word (>=3 chars)
   // does not exist anywhere in the index, do not return unrelated pages matched solely by generic suffixes
   // like `_param`, `_config`, `_flag`, or bare line numbers.
   const isSingleCompoundIdentifier =
@@ -523,7 +482,6 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   const rejectHallucinatedCompound =
     !hit &&
     !hasFuzzyMatch &&
-    !matchedDomainAnchor &&
     isSingleCompoundIdentifier &&
     !index.postings.has(squashedWholeQuery) &&
     ts.some((t) => t.length >= 3 && /[a-z]/.test(t) && t !== squashedWholeQuery && !index.postings.has(t));

@@ -290,6 +290,13 @@ export function buildCalculatorQueryParams(
   }
   if (input.dpSize !== undefined && ALLOWED_PARALLEL_SIZES.has(input.dpSize)) {
     next.set("dp", String(input.dpSize));
+    const rawDl = preserve?.get("dpLocal")?.trim();
+    if (rawDl && /^\d+$/.test(rawDl)) {
+      const dl = Number(rawDl);
+      if (Number.isSafeInteger(dl) && dl >= 1 && dl <= input.dpSize && input.dpSize % dl === 0) {
+        next.set("dpLocal", String(dl));
+      }
+    }
   }
   if (input.pcpSize !== undefined && ALLOWED_PARALLEL_SIZES.has(input.pcpSize)) {
     next.set("pcp", String(input.pcpSize));
@@ -519,9 +526,9 @@ export function sanitizeDiagnosticText(raw: string): { sanitized: string; redact
     },
   );
 
-  // 6. IPv6 addresses (bracketed [2001:db8::1], full 8-hextet, or :: compressed hex; never matches HH:MM:SS timestamps or C++ a::b identifiers)
+  // 6. IPv6 addresses (bracketed [2001:db8::1]/[2001:db8::], full 8-hextet, or :: compressed hex; never matches HH:MM:SS timestamps or C++ a::b identifiers)
   text = text.replace(
-    /\[(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}\]|\[[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4})*::[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4})*\]|(?<![A-Za-z0-9_:])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5}|::(?:ffff:)?[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})(?![A-Za-z0-9_:])/g,
+    /\[(?:(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}|(?=[^\]]*[0-9a-fA-F])(?:[0-9a-fA-F]{1,4}:){1,6}:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})?|::(?:ffff:(?:<REDACTED_IP>|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})?)|(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,6})?))(?:%[A-Za-z0-9_.-]+)?\]|(?<![A-Za-z0-9_:])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){2,6}:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,4})?|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,5}|(?:fe[89abAB][0-9a-fA-F]|f[cdCD][0-9a-fA-F]{2}|ff[0-9a-fA-F]{2}|[23][0-9a-fA-F]{3})::(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})?)(?![A-Za-z0-9_:])|(?<=^|[\s='"([,])::(?:ffff:(?:<REDACTED_IP>|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})?)|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,6})(?![A-Za-z0-9_:])/g,
     (full) => {
       redactionCount += 1;
       return full.startsWith("[") && full.endsWith("]") ? "[<REDACTED_IP>]" : "<REDACTED_IP>";

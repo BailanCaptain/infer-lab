@@ -659,7 +659,30 @@ export function buildHardwareDeployHref(
   customModelCompact?: string | null,
 ): string {
   const mapping = CARD_TO_3D_HARDWARE_MAP[payload.cardId];
-  const encoded = encodeHardwareDeployOverlay(payload);
+  let effectivePayload = payload;
+  if (payload.calc?.dpLocal === undefined && preserveParams?.has("dpLocal")) {
+    const rawDl = preserveParams.get("dpLocal")?.trim();
+    if (rawDl && /^\d+$/.test(rawDl)) {
+      const dl = Number(rawDl);
+      const pcp = payload.calc?.pcp ?? 1;
+      if (
+        Number.isSafeInteger(dl) &&
+        dl >= 1 &&
+        dl <= payload.dp &&
+        payload.dp % dl === 0 &&
+        dl * payload.tp * payload.pp * pcp <= mapping.ranksPerNode
+      ) {
+        effectivePayload = {
+          ...payload,
+          calc: {
+            ...payload.calc,
+            dpLocal: dl,
+          },
+        };
+      }
+    }
+  }
+  const encoded = encodeHardwareDeployOverlay(effectivePayload);
   const next = new URLSearchParams();
   next.set("vendor", "ascend");
   next.set("model", mapping.hardwareModel);
@@ -697,6 +720,7 @@ export function buildCalculatorReturnToFromDeploy(
   next.set("tp", String(payload.tp));
   next.set("pp", String(payload.pp));
   next.set("dp", String(payload.dp));
+  if (c?.dpLocal !== undefined) next.set("dpLocal", String(c.dpLocal));
   if (c?.pcp && c.pcp !== 1) next.set("pcp", String(c.pcp));
   if (c?.dcp && c.dcp !== 1) next.set("dcp", String(c.dcp));
   next.set("ep", payload.ep ? "1" : "0");
@@ -1638,8 +1662,14 @@ export function buildHardwareDeployHrefFromCommand(
   if (parsed.rawDtype !== undefined && !ALLOWED_RAW_DTYPES.has(parsed.rawDtype.toLowerCase())) {
     return null;
   }
+  const OVERRIDE_KV_FLAG_RE =
+    /(?:^|\s)--(?:kv[-_]cache[-_]memory[-_]bytes|num[-_]gpu[-_]blocks[-_]override)(?:\s|=|$)/i;
   if (
-    /(?:^|\s)--(?:kv[-_]cache[-_]memory[-_]bytes|num[-_]gpu[-_]blocks[-_]override)(?:\s|=|$)/i.test(rawSource)
+    OVERRIDE_KV_FLAG_RE.test(rawSource) ||
+    OVERRIDE_KV_FLAG_RE.test(parsed.normalizedCommandLine) ||
+    parsed.unknownFlags.some((f) =>
+      /^--(?:kv[-_]cache[-_]memory[-_]bytes|num[-_]gpu[-_]blocks[-_]override)(?:=|$)/i.test(f),
+    )
   ) {
     return null;
   }

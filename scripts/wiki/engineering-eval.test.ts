@@ -10,15 +10,38 @@ import {
 } from "../../src/content/wiki/retrieve";
 import { registrySchema } from "../../src/content/wiki/schema";
 import { loadAgentWiki } from "./agent-access";
+import { loadPages } from "./pages";
 
-const evalCaseSchema = z.object({
-  id: z.string().min(1),
-  category: z.enum(["error-trace", "exact-param", "exact-concept", "arch-deploy", "negative"]),
-  query: z.string().min(1),
-  expectedTop1: z.string().min(1).optional(),
-  expectedAnyTop3: z.array(z.string().min(1)).min(1).optional(),
-  expectEmpty: z.boolean().optional(),
-});
+const evalCaseSchema = z
+  .object({
+    id: z.string().min(1),
+    category: z.enum(["error-trace", "exact-param", "exact-concept", "arch-deploy", "negative"]),
+    query: z.string().min(1),
+    expectedTop1: z.string().min(1).optional(),
+    expectedAnyTop3: z.array(z.string().min(1)).min(1).optional(),
+    expectEmpty: z.boolean().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.expectEmpty) {
+      if (val.category !== "negative") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${val.id}: expectEmpty cases must use category="negative"`,
+        });
+      }
+      if (val.expectedTop1 || val.expectedAnyTop3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${val.id}: negative cases cannot declare expectedTop1/expectedAnyTop3`,
+        });
+      }
+    } else if (!val.expectedAnyTop3 || val.expectedAnyTop3.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${val.id}: every positive eval case must declare non-empty expectedAnyTop3`,
+      });
+    }
+  });
 
 const evalSuiteSchema = z.object({
   id: z.string().min(1),
@@ -31,9 +54,10 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
   const registry = registrySchema.parse(
     JSON.parse(readFileSync(join(root, "src/content/wiki/registry.json"), "utf8")),
   );
+  const bodyByFile = new Map(loadPages(join(root, "wiki")).pages.map((p) => [p.file, p.body.trim()]));
   const pages = registry.pages.map((page) => ({
     ...page,
-    text: readFileSync(join(root, "wiki", page.file), "utf8"),
+    text: bodyByFile.get(page.file) ?? "",
   }));
   const fullIndex = buildIndex(pages);
   const browserIndex = deserializeSearchIndex(serializeSearchIndex(fullIndex, "e".repeat(64)));
@@ -103,6 +127,24 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
       expect(retrieve(neg.query, fullIndex, { limit: 5 }), `negative case ${neg.id}`).toEqual([]);
       expect(retrieve(neg.query, browserIndex, { limit: 5 }), `browser negative case ${neg.id}`).toEqual([]);
       expect(agentWiki.search(neg.query, 5), `agentWiki negative case ${neg.id}`).toEqual([]);
+    }
+  });
+
+  it("不依赖硬编码数字错误码路由表：未收录报错码的干净索引对 507015 / 507034 / 161002 返回空命中", () => {
+    const cleanIndex = buildIndex([
+      {
+        id: "inference-troubleshooting",
+        title: "通用排障导览",
+        summary: "演示不含任何数字错误码时的检索行为。",
+        aliases: [],
+        chapters: ["19"],
+        evidence: "C",
+        relations: [],
+        text: "## 先看阶段边界\n\n当请求超时时，先核对入口与调度日志。",
+      },
+    ]);
+    for (const code of ["507015", "507034", "507035", "161002", "107030"]) {
+      expect(retrieve(code, cleanIndex, { limit: 5 })).toEqual([]);
     }
   });
 });

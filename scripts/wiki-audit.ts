@@ -50,8 +50,7 @@ if (useDrafts) {
 }
 
 const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
-const allowUnclonedRepos =
-  process.argv.includes("--allow-uncloned") || process.env.CI === "true" || process.env.CI === "1";
+const allowUnclonedRepos = process.argv.includes("--allow-uncloned");
 
 const deps = {
   repoRoots,

@@ -893,7 +893,13 @@ describe("handleRpc（MCP 的 stdio JSON-RPC）", () => {
       }),
     );
     expect(lintHotReload.keyMetrics.scope).toBe("single");
-    expect(Array.isArray(lintHotReload.findings)).toBe(true);
+    expect(lintHotReload.keyMetrics.errorCount).toBeGreaterThanOrEqual(1);
+    expect(
+      lintHotReload.findings.some(
+        (f: { id: string; judgment: string }) =>
+          f.id === "d5-runtime-config-constraints" && f.judgment === "error",
+      ),
+    ).toBe(true);
 
     const lintEngram = JSON.parse(
       callTool(807, "ascend_lint_serve_cmd", {
@@ -904,7 +910,13 @@ describe("handleRpc（MCP 的 stdio JSON-RPC）", () => {
       }),
     );
     expect(lintEngram.keyMetrics.scope).toBe("single");
-    expect(Array.isArray(lintEngram.findings)).toBe(true);
+    expect(lintEngram.keyMetrics.errorCount).toBeGreaterThanOrEqual(1);
+    expect(
+      lintEngram.findings.some(
+        (f: { id: string; judgment: string }) =>
+          f.id === "d5-shared-engram-constraints" && f.judgment === "error",
+      ),
+    ).toBe(true);
 
     // 6. ascend_diagnose_log: multi-rank root cause vs EI0006 cascade
     const diag = JSON.parse(

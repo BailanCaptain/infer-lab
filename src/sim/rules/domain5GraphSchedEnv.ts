@@ -1424,7 +1424,17 @@ export const domain5Rules: readonly CouplingRule[] = [
         reasons.push(`dtype=${input.modelDtype}（需为 bfloat16）`);
       }
       if (input.useUbatching === true) {
-        reasons.push("已开启 --enable-dbo（use_ubatching=True，与 GDN 内部检查点互斥）");
+        if (input.enableDbo === true && (input.ubatchSize ?? 0) > 1) {
+          reasons.push(
+            `已同时开启 --enable-dbo 与 --ubatch-size=${input.ubatchSize}（use_ubatching=True，与 GDN 内部检查点互斥）`,
+          );
+        } else if (input.enableDbo !== true && (input.ubatchSize ?? 0) > 1) {
+          reasons.push(
+            `已设置 --ubatch-size=${input.ubatchSize}（>1 会触发 use_ubatching=True，与 GDN 内部检查点互斥）`,
+          );
+        } else {
+          reasons.push("已开启 --enable-dbo（use_ubatching=True，与 GDN 内部检查点互斥）");
+        }
       }
       if (input.kvConnector !== undefined || input.kvRole !== undefined) {
         reasons.push("已启用 kv_transfer_config（P/D 分离下连接器边界与检查点规划器不兼容，会告警回退）");
@@ -1440,7 +1450,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         sources: this.sources,
         message: `gdn_internal_prefill_checkpoints=true 因以下条件不满足将被跳过并回退常规 Prefill 调度：${reasons.join("；")}。`,
         remediation:
-          "请确保开启 --mamba-cache-mode align、--dtype bfloat16、PCP=1、关闭 --enable-dbo，且不在 P/D 分离实例上强求 GDN 内部检查点导出。",
+          "请确保开启 --mamba-cache-mode align、--dtype bfloat16、PCP=1、关闭微批流水（不传 --enable-dbo 且 --ubatch-size <= 1），且不在 P/D 分离实例上强求 GDN 内部检查点导出。",
       };
     },
   },

@@ -113,13 +113,13 @@ export const TOKEN_BPE_STEPS: readonly TokenBpeStepSpec[] = [
   },
   {
     step: 5,
-    shortBtn: "⑤ 查词表得 Token ID",
+    shortBtn: "⑤ 查词表得示意编号",
     badgeText: "步骤 5 / 5 · 字典映射",
-    title: "动作 ⑤ · 对照配套词表查出整数编号 token ID = 9123",
-    takeaway: "最终子词块「推理」在词表里查出座位号 9123，经上下界安全校验后交由嵌入表抽出浮点数向量。",
-    kpi: "「推理」→ ID 9123",
+    title: "动作 ⑤ · 对照配套词表查出示意编号 9123",
+    takeaway: "最终子词块「推理」在词表里查出示意座位号 9123，经上下界安全校验后交由嵌入表抽出浮点数向量。",
+    kpi: "「推理」→ 示意编号 9123",
     detail:
-      "整句查表得示意序列 [9123, 40517, 2256, 1180]。Qwen3-8B 标准词表 vocab_size = 151,936（eos=151645），InputProcessor._validate_model_input 严格拦截 < 0 或超出上界的越界编号。",
+      "整句查表得教学示意序列 [9123, 40517, 2256, 1180]（合并表与编号均为示意）。真实 Qwen3-8B 标准词表 vocab_size = 151,936（eos=151645），InputProcessor._validate_model_input 严格拦截 < 0 或超出上界的越界编号。",
     activeRules: [],
     doneRules: [1, 2, 3, 4, 5],
     pieces: [{ label: "推理", sub: "词表条目" }],
@@ -377,10 +377,10 @@ export function TokenBpeInteractive({
               strokeWidth="1.5"
             />
             <text x="308" y="34" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              {spec.tokenId !== null ? `Token ID = ${spec.tokenId}` : "待合并完查词表"}
+              {spec.tokenId !== null ? `示意编号 ${spec.tokenId}` : "待合并完查词表"}
             </text>
             <text x="308" y="50" textAnchor="middle" fontSize="12" fill="#66716d">
-              {spec.tokenId !== null ? "整句 24 字节 → 4 个 ID" : "越靠前的规则越先并"}
+              {spec.tokenId !== null ? "整句 24 字节 → 4 个示意 ID" : "越靠前的规则越先并"}
             </text>
           </svg>
         </div>

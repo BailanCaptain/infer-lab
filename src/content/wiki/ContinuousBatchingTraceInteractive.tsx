@@ -31,6 +31,7 @@ export interface BatchTraceStepSpec {
   readonly detail: string;
   readonly queryStartLoc: string;
   readonly budgetUsed: number;
+  readonly exitedNote: string | null;
   readonly waitingList: readonly BatchQueueItem[];
   readonly runningList: readonly BatchQueueItem[];
   readonly batchSlices: readonly RaggedBatchSlice[];
@@ -49,6 +50,7 @@ export const BATCH_TRACE_STEPS: readonly BatchTraceStepSpec[] = [
       "教学设定 token_budget = 8（R1 提示3/生2，R2 提示2/生3，R3 提示4/生2）：t=1 步首 running 为空，接纳 R1、R2 转入 running，query_start_loc=[0, 3, 5]；步末两者各产出首词。",
     queryStartLoc: "[0, 3, 5]",
     budgetUsed: 5,
+    exitedNote: null,
     waitingList: [{ name: "R3（提示 4 词）", status: "步中刚到达", tone: "is-sys" }],
     runningList: [
       { name: "R1（提示 3 → 得首词）", status: "占预算 3", tone: "is-priv" },
@@ -71,6 +73,7 @@ export const BATCH_TRACE_STEPS: readonly BatchTraceStepSpec[] = [
       "Scheduler.schedule() 固定两趟扫描：第一趟先排 running（R1+1, R2+1 扣 2 剩 6），第二趟用剩余预算从 waiting 接纳 R3(+4)，统一按 num_tokens_with_spec - num_computed_tokens 算差额，query_start_loc=[0, 1, 2, 6]。",
     queryStartLoc: "[0, 1, 2, 6]",
     budgetUsed: 6,
+    exitedNote: null,
     waitingList: [{ name: "waiting 队列已清空", status: "0 条排队", tone: "is-empty" }],
     runningList: [
       { name: "R1（续写第 2 词）", status: "优先 +1", tone: "is-priv" },
@@ -87,24 +90,24 @@ export const BATCH_TRACE_STEPS: readonly BatchTraceStepSpec[] = [
     step: 3,
     shortBtn: "③ t=2 完结当步释块",
     badgeText: "迭代 t=2 步末 · 即完即退",
-    title: "动作 ③ · 短请求 R1 凑满 2 词命中停止条件，当步退场并立即归还 KV 块",
+    title: "动作 ③ · 短请求 R1 凑满 2 词命中停止条件，当步移出 running 并归还 KV 块",
     takeaway:
-      "短请求 R1 吃完立刻买单离席！当步释放 KV 块并腾出槽位，绝不像静态批处理那样陪慢请求 R2 干等空转。",
-    kpi: "R1 当步释块退场 · 0 陪跑",
+      "短请求 R1 吃完立刻买单离席！当步从 running 移除并释放 KV 块，只留 R2、R3 继续在跑，零空转陪跑。",
+    kpi: "R1 已移出 running 释块 · 剩 2 条在跑",
     detail:
-      "update_from_output 调用 check_stop 发现 R1 满 max_tokens=2，当场触发 remove_all 移出 running 并归还物理 KV 块；若运行中途 KV 块不足，V1 默认对 running 队尾触发 LIFO RECOMPUTE 抢占（Qwen3-8B 每 128-tok 块 18 MiB）。",
+      "t=2 本步拼批仍为 [1, 1, 4]（query_start_loc=[0, 1, 2, 6]）；步末 update_from_output 调 check_stop 发现 R1 满 max_tokens=2，当场触发 remove_all 将 R1 移出 running 并归还物理 KV 块（running 仅剩 R2、R3）。",
     queryStartLoc: "[0, 1, 2, 6]",
     budgetUsed: 6,
+    exitedNote: "⚡ 步末退场：R1 满 2 词已从 running 移除，KV 块当场归还池中！",
     waitingList: [{ name: "waiting 队列为空", status: "随时可接新单", tone: "is-empty" }],
     runningList: [
-      { name: "R1（已满 2 词完结）", status: "✓ 已释块离场", tone: "is-cow" },
-      { name: "R2（已生 2/3 词）", status: "继续在跑", tone: "is-priv" },
-      { name: "R3（已得首词 1/2）", status: "继续在跑", tone: "is-priv" },
+      { name: "R2（已生 2/3 词）", status: "留在 running", tone: "is-priv" },
+      { name: "R3（已得首词 1/2）", status: "留在 running", tone: "is-priv" },
     ],
     batchSlices: [
-      { label: "R1 完结释块!", tokens: 2, kind: "is-bubble" },
-      { label: "R2 留场", tokens: 2, kind: "is-full" },
-      { label: "R3 得首词", tokens: 2, kind: "is-piece" },
+      { label: "R1 [1] 完结", tokens: 1, kind: "is-bubble" },
+      { label: "R2 [1]", tokens: 1, kind: "is-full" },
+      { label: "R3 提示 [4]", tokens: 4, kind: "is-piece" },
     ],
   },
   {
@@ -118,6 +121,7 @@ export const BATCH_TRACE_STEPS: readonly BatchTraceStepSpec[] = [
       "t=3 query_start_loc=[0, 1, 2]；昇腾 ACLGraph 模式下若将 [2] 向上补齐图档位，尾部 slot_mapping 会填 -1 防止污染真实 KV 块，丝毫不影响请求按步动态进出。",
     queryStartLoc: "[0, 1, 2]",
     budgetUsed: 2,
+    exitedNote: null,
     waitingList: [{ name: "waiting 队列为空", status: "无积压", tone: "is-empty" }],
     runningList: [
       { name: "R2（末词 3/3 完结）", status: "步末释块", tone: "is-priv" },
@@ -380,6 +384,7 @@ export function ContinuousBatchingTraceInteractive({
               </div>
             ))}
           </div>
+          {spec.exitedNote && <div className="wiki-edu-cow-banner">{spec.exitedNote}</div>}
         </div>
 
         <div className="wiki-edu-panel">

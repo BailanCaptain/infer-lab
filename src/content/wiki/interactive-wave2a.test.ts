@@ -14,6 +14,7 @@ import {
   GQA_RATIO_MODES,
   GQA_SHARED_KV_APPROVED_SHA256,
   GqaSharedKvInteractive,
+  shouldPassKeyToRangeInput,
 } from "./GqaSharedKvInteractive";
 import { sha256Hex } from "./interactive-diagrams";
 import {
@@ -352,10 +353,19 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
       );
       assertSandboxInvariants(`token-bpe-${s.step}`, html);
       if (s.step === 5) {
-        expect(html).toContain("Token ID = 9123");
+        expect(html).toContain("示意编号 9123");
+        expect(html).not.toContain("Token ID = 9123");
         expect(html).toContain("151,936");
       }
     }
+
+    // Slider keyboard shortcut contract: ArrowLeft/Right pass through to <input type="range">, while 0/Escape/digits trigger sandbox handlers
+    const fakeRangeInput = { tagName: "INPUT" };
+    expect(shouldPassKeyToRangeInput(fakeRangeInput, "ArrowLeft")).toBe(true);
+    expect(shouldPassKeyToRangeInput(fakeRangeInput, "ArrowRight")).toBe(true);
+    expect(shouldPassKeyToRangeInput(fakeRangeInput, "0")).toBe(false);
+    expect(shouldPassKeyToRangeInput(fakeRangeInput, "Escape")).toBe(false);
+    expect(shouldPassKeyToRangeInput(fakeRangeInput, "1")).toBe(false);
 
     const mha = computeGqaSandboxMetrics("mha-1-1");
     const gqa4 = computeGqaSandboxMetrics("gqa-4-1");
@@ -364,6 +374,8 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
     expect([mha.kv4kMiB, gqa4.kv4kMiB, gqa8.kv4kMiB, mqa.kv4kMiB]).toEqual([2048, 512, 256, 64]);
     expect(gqa4.wqWoPct).toBe(100);
     expect(gqa4.scoreMergePct).toBe(100);
+    expect(gqa4.modelRef).toContain("同为 32 层示意基准");
+    expect(gqa8.modelRef).toContain("同为 32 层示意基准");
     for (const rm of GQA_RATIO_MODES) {
       const html = renderToStaticMarkup(
         createElement(GqaSharedKvInteractive, {
@@ -373,7 +385,10 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
       );
       assertSandboxInvariants(`gqa-${rm}`, html);
       expect(html).toContain(`data-ratio-mode="${rm}"`);
+      expect(html).toContain("同为 32 层示意基准");
       expect(html).toContain("[0.82, 0.27]");
+      if (rm === "gqa-4-1") expect(html).toContain("576 MiB");
+      if (rm === "gqa-8-1") expect(html).toContain("384 MiB");
     }
 
     for (const s of MOE_CALC_STEPS) {
@@ -384,6 +399,15 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
         }),
       );
       assertSandboxInvariants(`moe-step-${s.step}`, html);
+      const canvasOnly = html.split("<details")[0]!;
+      expect(canvasOnly).not.toContain("(0.55+0.20)÷0.75");
+      if (s.step === 2) {
+        expect(canvasOnly).toContain("入选：专家 2（权 0.73）");
+        expect(canvasOnly).not.toContain("[2,0,1,−1]");
+      }
+      if (s.step === 3) {
+        expect(canvasOnly).toContain("0.73 × E₂ [2,0,1,−1]");
+      }
       if (s.step === 4) {
         expect(html).toContain("[1.46, 0.27, 1.27, −0.46]");
       }
@@ -397,6 +421,10 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
       "[0, 1, 2, 6]",
       "[0, 1, 2]",
     ]);
+    // Step 3 consistency: query_start_loc=[0,1,2,6] -> slice widths [1, 1, 4], and R1 already removed from runningList
+    expect(BATCH_TRACE_STEPS[2]!.batchSlices.map((b) => b.tokens)).toEqual([1, 1, 4]);
+    expect(BATCH_TRACE_STEPS[2]!.runningList.some((r) => r.name.startsWith("R1"))).toBe(false);
+    expect(BATCH_TRACE_STEPS[2]!.exitedNote).toContain("R1");
     for (const s of BATCH_TRACE_STEPS) {
       const html = renderToStaticMarkup(
         createElement(ContinuousBatchingTraceInteractive, {
@@ -408,17 +436,21 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
       expect(html).toContain(s.queryStartLoc);
     }
 
-    const short8k = computePagedWasteComparison(300, 8192);
+    const short300 = computePagedWasteComparison(300, 8192);
+    const short600 = computePagedWasteComparison(600, 8192);
     const short16k = computePagedWasteComparison(300, 16384);
     const long8k = computePagedWasteComparison(2000, 8192);
-    expect(short8k.blocksPerReq).toBe(3);
-    expect(short8k.tailInternalSlack).toBe(84);
-    expect(short8k.pagedConcurrency).toBe(189);
-    expect(short16k.concurrencyGain).toBeGreaterThan(short8k.concurrencyGain);
-    expect(short8k.pagedConcurrency).toBeGreaterThan(long8k.pagedConcurrency);
+    expect(short300.blocksPerReq).toBe(3);
+    expect(short300.tailInternalSlack).toBe(84);
+    expect(short300.pagedConcurrency).toBe(189);
+    expect(short300.externalFragPct).toBe(15);
+    // Visual usedBarPct grows strictly from 300 -> 600 without 14% clamping
+    expect(short600.usedBarPct).toBeGreaterThan(short300.usedBarPct);
+    expect(short16k.concurrencyGain).toBeGreaterThan(short300.concurrencyGain);
+    expect(short300.pagedConcurrency).toBeGreaterThan(long8k.pagedConcurrency);
 
     for (const maxLen of MAX_MODEL_LEN_OPTIONS) {
-      for (const actLen of [300, 1200, 3000]) {
+      for (const actLen of [300, 600, 1200, 3000]) {
         const cmp = computePagedWasteComparison(actLen, maxLen);
         expect(cmp.tailInternalSlack).toBeLessThan(128);
         const html = renderToStaticMarkup(
@@ -429,6 +461,8 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
           }),
         );
         assertSandboxInvariants(`paged-${actLen}-${maxLen}`, html);
+        expect(html).toContain("15% 外部碎片损耗");
+        expect(html).toContain(`data-used-pct="${cmp.usedBarPct}"`);
       }
     }
 
@@ -440,6 +474,11 @@ describe("Wave 2A (#1–#8) 2D 教学交互沙盘全量契约与领域算例核�
         }),
       );
       assertSandboxInvariants(`mla-step-${s.step}`, html);
+      if (s.step === 3) {
+        expect(html).toContain("稀疏 MLA 变体挑子集（含 c₀）；标准 MLA 读全部历史 c_t");
+        // c0 is highlighted (#ddf4ef), not dimmed
+        expect(html).toContain('x="10" y="64" width="34" height="36" rx="5" fill="#ddf4ef"');
+      }
       if (s.step === 4) {
         expect(html).toContain("k=[1,4]");
         expect(html).toContain("k=[2,1]");

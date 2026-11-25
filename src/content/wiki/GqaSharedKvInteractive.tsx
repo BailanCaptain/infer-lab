@@ -34,7 +34,7 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
   "mha-1-1": {
     shortBtn: "MHA 1:1 (32KV)",
     label: "MHA 多头注意力（32Q : 32KV）",
-    modelRef: "传统 32 层基准（一对一独占）",
+    modelRef: "同为 32 层示意基准（一对一独占）",
     numQHeads: 32,
     numKvHeads: 32,
     groupSize: 1,
@@ -47,14 +47,14 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
     qualityTone: "is-warn",
     qualityBadge: "显存与带宽最重",
     summary:
-      "32 个查询头各占 1 组专属 K/V：表达自由度最高，但 4K 请求光 KV 就吃掉 2048 MiB（2 GiB），Decode 搬运极重。",
+      "32 个查询头各占 1 组专属 K/V：表达自由度最高，但 32 层示意基准下 4K 请求光 KV 就占 2048 MiB（2 GiB）。",
     detail:
-      "MHA 下 n_kv = n_q = 32（d_h=128, BF16）：32 层基准每 token 占 512 KiB，4,096 token 单请求占 2 GiB；小算例中 Q₁ 读专属 V₁ 得 [1.20, 0.80]。",
+      "画布容量条统一按 32 层示意基准（d_h=128, BF16）横向对齐对比：MHA 下 n_kv = n_q = 32，每 token 占 512 KiB，4,096 token 单请求占 2048 MiB（2 GiB）；小算例中 Q₁ 读专属 V₁ 得 [1.20, 0.80]。",
   },
   "gqa-4-1": {
-    shortBtn: "GQA 4:1 (8KV · Qwen3-8B)",
+    shortBtn: "GQA 4:1 (8KV)",
     label: "GQA 4:1 分组共享（32Q : 8KV）",
-    modelRef: "Qwen3-8B 主基线（36层 144 KiB/tok）",
+    modelRef: "同为 32 层示意基准（省 4×）",
     numQHeads: 32,
     numKvHeads: 8,
     groupSize: 4,
@@ -66,14 +66,15 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
     perTok32LayerKiB: 128,
     qualityTone: "is-good",
     qualityBadge: "质量紧贴 MHA · 省 4×",
-    summary: "每 4 个查询头共读 1 组 K/V：各头仍拿自己的 Q 算出不同权重与输出，KV 显存与投影立减 75%！",
+    summary:
+      "每 4 个查询头共读 1 组 K/V：各头仍拿自己的 Q 算出不同权重与输出，同为 32 层基准下 KV 立减 75%（512 MiB）！",
     detail:
-      "同组共读不等于合并 Q 头：小算例 Q₀=[1,2] 与 Q₁=[0,1] 共读第 0 组 K₀/V₀，仍算出 [0.73,0.18,0.09]→[0.82,0.27] 与 [0.40,0.40,0.20]→[0.60,0.60] 两份不同输出。Qwen3-8B（36层 32Q:8KV）每 tok 为 144.0 KiB（4K 占 576 MiB），TP=8 时每卡恰分 1 个 KV 头零复制。",
+      "同组共读不等于合并 Q 头：小算例 Q₀=[1,2] 与 Q₁=[0,1] 共读第 0 组 K₀/V₀，仍算出 [0.73,0.18,0.09]→[0.82,0.27] 与 [0.40,0.40,0.20]→[0.60,0.60]。注意区分画布 32 层示意基准（128 KiB/tok、4K 占 512 MiB）与真实 Qwen3-8B（36 层 32Q:8KV，每 tok 实为 144.0 KiB、4K 实占 576 MiB，TP=8 零复制）。",
   },
   "gqa-8-1": {
-    shortBtn: "GQA 8:1 (4KV · 30B-A3B)",
+    shortBtn: "GQA 8:1 (4KV)",
     label: "GQA 8:1 高倍分组（32Q : 4KV）",
-    modelRef: "Qwen3-30B-A3B（48层 96 KiB/tok）",
+    modelRef: "同为 32 层示意基准（省 8×）",
     numQHeads: 32,
     numKvHeads: 4,
     groupSize: 8,
@@ -85,14 +86,15 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
     perTok32LayerKiB: 64,
     qualityTone: "is-good",
     qualityBadge: "高并发甜点 · 省 8×",
-    summary: "每 8 个查询头共读 1 组 K/V：KV 容量与逻辑读取压到 1/8（256 MiB），腾出大片显存接纳更高并发。",
+    summary:
+      "每 8 个查询头共读 1 组 K/V：同为 32 层示意基准下 KV 压到 1/8（256 MiB），腾出大片显存接纳更高并发。",
     detail:
-      "Qwen3-30B-A3B 显式指定 head_dim=128、32Q:4KV，哪怕 48 层每 tok 全层 KV 也仅 96.0 KiB（比 36 层 Qwen3-8B 还省 1/3）；注意 TP=8 > n_kv=4 时触发跨卡复制（num_kv_head_replicas=2），单卡保底驻留 1 个 KV 头。",
+      "画布按 32 层示意基准（64 KiB/tok、4K 占 256 MiB）横向对比压缩率；落到真实 Qwen3-30B-A3B（48 层、显式 head_dim=128、32Q:4KV），全层每 tok 实为 96.0 KiB、4K 请求实占 384 MiB（比 36 层 Qwen3-8B 的 576 MiB 还省 1/3）；TP=8 > n_kv=4 时触发跨卡复制（replicas=2）。",
   },
   "mqa-32-1": {
     shortBtn: "MQA 32:1 (1KV)",
     label: "MQA 多查询注意力（32Q : 1KV）",
-    modelRef: "极端单组共享（n_kv = 1）",
+    modelRef: "同为 32 层示意基准（省 32×）",
     numQHeads: 32,
     numKvHeads: 1,
     groupSize: 32,
@@ -105,7 +107,7 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
     qualityTone: "is-warn",
     qualityBadge: "省 32× · 易损表达质量",
     summary:
-      "全部 32 个查询头挤着共读唯一 1 组 K/V：4K 缓存缩到 64 MiB，但缺少独立 V 子空间易导致生成质量下滑。",
+      "全部 32 个查询头挤着共读唯一 1 组 K/V：32 层示意基准下 4K 缩到 64 MiB，但缺少独立 V 子空间易致质量下滑。",
     detail:
       "GQA 论文指出 MQA（G=1）虽把 KV 压到 1/n_q，但在大模型上易引起质量退化与训练不稳；且 W_Q/W_O 与逐位置 QKᵀ/PV 乘加次数（小算例恒为 24 次）依然 100% 不省。昇腾 FIA 原生直读双头数，无需在 HBM 做 repeat_kv 展开。",
   },
@@ -113,6 +115,27 @@ const GQA_META: Record<GqaRatioMode, Omit<GqaSandboxMetrics, "ratioMode">> = {
 
 export function computeGqaSandboxMetrics(ratioMode: GqaRatioMode): GqaSandboxMetrics {
   return { ratioMode, ...GQA_META[ratioMode] };
+}
+
+const RANGE_NATIVE_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+]);
+
+export function shouldPassKeyToRangeInput(target: unknown, key: string): boolean {
+  const isInput =
+    (typeof HTMLInputElement !== "undefined" && target instanceof HTMLInputElement) ||
+    (typeof target === "object" &&
+      target !== null &&
+      "tagName" in target &&
+      (target as { tagName?: string }).tagName === "INPUT");
+  return isInput && RANGE_NATIVE_KEYS.has(key);
 }
 
 export interface GqaSharedKvInteractiveProps extends InteractiveDiagramProps {
@@ -145,7 +168,7 @@ export function GqaSharedKvInteractive({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    if (typeof HTMLInputElement !== "undefined" && event.target instanceof HTMLInputElement) return;
+    if (shouldPassKeyToRangeInput(event.target, event.key)) return;
     if (
       scrollable &&
       typeof Element !== "undefined" &&
@@ -261,8 +284,8 @@ export function GqaSharedKvInteractive({
       takeawayBadge={metrics.qualityBadge}
       takeawayTone={metrics.qualityTone === "is-warn" ? "warn" : "accent"}
       takeaway={metrics.summary}
-      kpi={`4K KV：${metrics.kv4kMiB} MiB（省 ${metrics.savedPct}%）`}
-      detailsSummary="查看工程与源码细节（同组独立 Softmax 手算 / TP 复制拐点 / 昇腾 FIA 直读）"
+      kpi={`32层示意 4K KV：${metrics.kv4kMiB} MiB（省 ${metrics.savedPct}%）`}
+      detailsSummary="查看工程与源码细节（真实 Qwen3 576MiB/384MiB 对账 / TP 复制拐点 / 昇腾 FIA）"
       detailsContent={
         <>
           <strong>{metrics.label}</strong>（{metrics.modelRef}）：{metrics.detail}
@@ -380,8 +403,8 @@ export function GqaSharedKvInteractive({
 
           <div className="wiki-edu-lane-box">
             <div className="wiki-edu-lane-label">
-              <span>K / V 投影与 KV Cache 显存带宽</span>
-              <span className="mono">{`${metrics.kvPct}%（4K 占 ${metrics.kv4kMiB} MiB）`}</span>
+              <span>K / V 投影与 KV Cache（32层示意）</span>
+              <span className="mono">{`${metrics.kvPct}%（32层示意 4K：${metrics.kv4kMiB} MiB）`}</span>
             </div>
             <div className="wiki-edu-track">
               <div className="wiki-edu-op is-full" style={{ flex: Math.max(0.16, metrics.kvPct / 100) }}>
@@ -403,7 +426,7 @@ export function GqaSharedKvInteractive({
               style={eduBtnStyle(false)}
               onClick={() => selectRatio("gqa-4-1")}
             >
-              🔧 切回主流均衡档 GQA 4:1（Qwen3-8B 省 4× 且保质量）
+              🔧 切回主流均衡档 GQA 4:1（省 4× 且紧贴 MHA 质量）
             </button>
           )}
         </div>

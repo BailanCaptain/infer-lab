@@ -321,7 +321,11 @@ export function MoeRouterCalcInteractive({
               strokeWidth="1.5"
             />
             <text x="91" y="33" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {step >= 2 ? "0.73 × E₂ [2,0,1,−1]" : "待选 Top-1 专家"}
+              {step === 1
+                ? "待选 Top-1 专家"
+                : step === 2
+                  ? "入选：专家 2（权 0.73）"
+                  : "0.73 × E₂ [2,0,1,−1]"}
             </text>
 
             <rect
@@ -335,7 +339,11 @@ export function MoeRouterCalcInteractive({
               strokeWidth="1.5"
             />
             <text x="91" y="81" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {step >= 2 ? "0.27 × E₃ [0,1,2,1]" : "待选 Top-2 专家"}
+              {step === 1
+                ? "待选 Top-2 专家"
+                : step === 2
+                  ? "入选：专家 3（权 0.27）"
+                  : "0.27 × E₃ [0,1,2,1]"}
             </text>
 
             <path
@@ -365,7 +373,13 @@ export function MoeRouterCalcInteractive({
               {step >= 4 ? "[1.46, 0.27, 1.27, −0.46]" : "等待加权相加"}
             </text>
             <text x="311" y="67" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step >= 2 ? "重归一：(0.55+0.20)÷0.75" : "宽度不变 [1, 4]"}
+              {step === 1
+                ? "宽度保持 [1, 4]"
+                : step === 2
+                  ? "两项权重和 = 1.00"
+                  : step === 3
+                    ? "仅算 2 位入选专家"
+                    : "加权合回 [1, 4]"}
             </text>
           </svg>
 

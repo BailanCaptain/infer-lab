@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useId, useMemo, useState } from "react";
+import { shouldPassKeyToRangeInput } from "./GqaSharedKvInteractive";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -14,10 +15,15 @@ export const ASCEND_DEFAULT_BLOCK_SIZE = 128;
 export const QWEN3_8B_10G_TOTAL_BLOCKS = 568;
 export const QWEN3_8B_10G_USABLE_BLOCKS = 567;
 export const QWEN3_8B_10G_TOKEN_SLOTS = QWEN3_8B_10G_USABLE_BLOCKS * ASCEND_DEFAULT_BLOCK_SIZE;
+export const CONTIG_EXTERNAL_FRAG_RATIO = 0.15;
 
 export interface PagedWasteComparison {
   readonly actualLen: number;
   readonly maxModelLen: MaxModelLenOption;
+  readonly externalFragPct: 15;
+  readonly externalFragTokens: number;
+  readonly usableAfterExternalFrag: number;
+  readonly usedBarPct: number;
   readonly contigConcurrency: number;
   readonly contigInternalWastePerReq: number;
   readonly contigWastePct: number;
@@ -33,7 +39,9 @@ export function computePagedWasteComparison(
   maxModelLen: MaxModelLenOption,
 ): PagedWasteComparison {
   const actualLen = Math.min(maxModelLen, Math.max(200, Math.round(rawActualLen / 100) * 100));
-  const usableAfterExternalFrag = Math.floor(QWEN3_8B_10G_TOKEN_SLOTS * 0.85);
+  const externalFragTokens = Math.ceil(QWEN3_8B_10G_TOKEN_SLOTS * CONTIG_EXTERNAL_FRAG_RATIO);
+  const usableAfterExternalFrag = QWEN3_8B_10G_TOKEN_SLOTS - externalFragTokens;
+  const usedBarPct = Number(((actualLen / maxModelLen) * 100).toFixed(2));
   const contigConcurrency = Math.max(1, Math.floor(usableAfterExternalFrag / maxModelLen));
   const contigInternalWastePerReq = Math.max(0, maxModelLen - actualLen);
   const contigUsefulTokens = contigConcurrency * actualLen;
@@ -55,6 +63,10 @@ export function computePagedWasteComparison(
   return {
     actualLen,
     maxModelLen,
+    externalFragPct: 15,
+    externalFragTokens,
+    usableAfterExternalFrag,
+    usedBarPct,
     contigConcurrency,
     contigInternalWastePerReq,
     contigWastePct,
@@ -105,7 +117,7 @@ export function PagedAttentionWasteInteractive({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    if (typeof HTMLInputElement !== "undefined" && event.target instanceof HTMLInputElement) return;
+    if (shouldPassKeyToRangeInput(event.target, event.key)) return;
     if (
       scrollable &&
       typeof Element !== "undefined" &&
@@ -142,8 +154,7 @@ export function PagedAttentionWasteInteractive({
   };
 
   const isTypicalShort = mode === "sandbox" && cmp.actualLen === 300 && maxModelLen === 8192;
-  const activeRatio = Math.max(0.14, cmp.actualLen / cmp.maxModelLen);
-  const holeRatio = Math.max(0.2, 1 - activeRatio);
+  const holeBarPct = Number((100 - cmp.usedBarPct).toFixed(2));
 
   return (
     <WikiEduSandboxShell
@@ -226,48 +237,53 @@ export function PagedAttentionWasteInteractive({
       takeawayTone={cmp.concurrencyGain >= 5 ? "accent" : "default"}
       takeaway={
         <>
-          同样 <strong>10 GiB</strong> 池子（Qwen3-8B 共 567 个可借块）：连续预留被空洞卡死在{" "}
-          <strong>{`${cmp.contigConcurrency} 条`}</strong>，换成 128 词分页立刻装下{" "}
-          <strong>{`${cmp.pagedConcurrency} 条`}</strong>并发请求！
+          同样 <strong>10 GiB</strong> 池子（Qwen3-8B 共 567 个可借块 = 72,576 格）：连续预留受内部空洞与{" "}
+          <strong>15% 外部碎片损耗</strong>双重夹击卡死在 <strong>{`${cmp.contigConcurrency} 条`}</strong>
+          ，换成 128 词分页立刻装下 <strong>{`${cmp.pagedConcurrency} 条`}</strong>并发请求！
         </>
       }
       kpi={`连续 ${cmp.contigConcurrency} 条 → 分页 ${cmp.pagedConcurrency} 条`}
-      detailsSummary="查看工程与源码细节（Qwen3-8B 18MiB/块 / Block 0 保留 / 昇腾默认 128 块长）"
+      detailsSummary="查看工程与源码细节（Qwen3-8B 18MiB/块 / 15% 外部碎片假设 / 昇腾默认 128 块长）"
       detailsContent={
         <>
           <strong>Qwen3-8B（TP=1, BF16）10 GiB 静态池对账</strong>：每 tok 144 KiB，昇腾默认{" "}
           <code>block_size = 128</code> 时每块固定 <strong>18 MiB</strong>，10 GiB 切 568 块（扣{" "}
-          <code>Block 0 = null_block</code> 剩 567 块 = 72,576 格）。当前单请求实际 {cmp.actualLen} 词仅借{" "}
-          <code>{cmp.blocksPerReq}</code> 块，末块未满余量仅 <code>{cmp.tailInternalSlack}</code> 格（恒{" "}
-          <code>&lt;= 127</code> 格），零外部碎片且公共前缀满块可跨请求 <code>ref_cnt</code> 共享！
+          <code>Block 0 = null_block</code> 剩 567 块 = 72,576 格）。左栏连续预留示意扣除 <code>15%</code>{" "}
+          退场外部断档夹缝（{cmp.externalFragTokens} 格，剩 {cmp.usableAfterExternalFrag} 格）后按{" "}
+          <code>max_model_len={cmp.maxModelLen}</code> 整段圈地；右栏分页下每请求仅借{" "}
+          <code>{cmp.blocksPerReq}</code> 块，末块余量仅 <code>{cmp.tailInternalSlack}</code> 格（恒{" "}
+          <code>&lt;= 127</code> 格），零外部碎片且公共前缀满块可 <code>ref_cnt</code> 共享！
         </>
       }
     >
       <div className="wiki-edu-dual-grid">
         <div className={`wiki-edu-panel${cmp.contigWastePct >= 75 ? " is-oom" : ""}`}>
           <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">✗ 传统连续预留（按上限死占连续段）</span>
-            <span className="wiki-edu-badge is-bad">{`浪费约 ${cmp.contigWastePct}%`}</span>
+            <span className="wiki-edu-panel-title">✗ 传统连续预留（含 15% 外部碎片损耗）</span>
+            <span className="wiki-edu-badge is-bad">{`总浪费约 ${cmp.contigWastePct}%`}</span>
           </div>
 
           <div className="wiki-edu-lane-box">
             <div className="wiki-edu-lane-label">
-              <span>单条请求占住的连续显存条</span>
-              <span className="mono">{`预留 ${cmp.maxModelLen} 格`}</span>
+              <span>{`实写 ${cmp.actualLen} 格（占 ${cmp.usedBarPct}%）`}</span>
+              <span className="mono">{`预留 ${cmp.maxModelLen} · 空洞 ${cmp.contigInternalWastePerReq}`}</span>
             </div>
             <div className="wiki-edu-track">
-              <div className="wiki-edu-op is-piece" style={{ flex: activeRatio }}>
-                {`实写 ${cmp.actualLen}`}
-              </div>
-              <div className="wiki-edu-op is-bubble" style={{ flex: holeRatio }}>
-                {`空洞浪费 ${cmp.contigInternalWastePerReq} + 断档`}
+              <div
+                className="wiki-edu-op is-piece"
+                data-used-pct={cmp.usedBarPct}
+                style={{ flex: cmp.usedBarPct, paddingInline: 0 }}
+                title={`实写 ${cmp.actualLen} 格 (${cmp.usedBarPct}%)`}
+              />
+              <div className="wiki-edu-op is-bubble" style={{ flex: holeBarPct }}>
+                {`内部预留空洞 ${cmp.contigInternalWastePerReq} 格 + 15% 外部夹缝`}
               </div>
             </div>
           </div>
 
           <div className="wiki-edu-metrics">
             <div className={`wiki-edu-metric-row${cmp.contigWastePct >= 75 ? " is-oom" : ""}`}>
-              <span className="wiki-edu-metric-label">10 GiB 池最多同时接纳并发</span>
+              <span className="wiki-edu-metric-label">10 GiB 池（扣 15% 外部断档后）最多接纳</span>
               <span className="wiki-edu-metric-val">{`仅 ${cmp.contigConcurrency} 条请求`}</span>
             </div>
           </div>

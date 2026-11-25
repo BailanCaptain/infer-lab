@@ -43,23 +43,24 @@ export const MLA_INTUITION_STEPS: readonly MlaStepSpec[] = [
   {
     step: 3,
     shortBtn: "③ 按需挑位置读取",
-    badgeText: "步骤 3 / 4 · 轻量搬运",
-    title: "动作 ③ · 读取可见历史（或稀疏 indexer 选中的候选位置）潜向量",
-    takeaway: "不管是全量读取因果历史，还是稀疏选择只挑重点位置，从 HBM 搬进芯片的都只是这条瘦身后的窄向量！",
-    kpi: "图例 10 格挑 4 格窄向量",
+    badgeText: "步骤 3 / 4 · 稀疏变体挑子集",
+    title: "动作 ③ · 标准 MLA 读全部历史 c_t；稀疏 MLA 变体仅挑候选位置（含 c₀ 等 4 格）",
+    takeaway:
+      "标准 MLA 读全部因果历史潜向量，稀疏 MLA 变体再由索引器只挑重点位置（如含 c₀ 的 4 格），搬运字节锐减！",
+    kpi: "稀疏变体：10 格挑 c₀ 等 4 格",
     detail:
-      "标准 MLA 读取全部因果历史位置；GLM 稀疏 MLA 先由轻量 indexer 交出候选位置清单（最多 2051 位置），主 attention 按清单经 block_table 仅读取命中位置的 512 维潜向量。",
+      "区分两层独立机制：标准 MLA（如 DeepSeek-V2）读取全部因果历史位置的 c_t；GLM 稀疏 MLA 变体叠加轻量 indexer 交出候选位置清单（最多 2051 位置），主 attention 仅读取选中位置（如图中 c₀, c₄, c₆, 新）的 512 维潜向量。",
   },
   {
     step: 4,
     shortBtn: "④ 恢复/吸收做多头",
     badgeText: "步骤 4 / 4 · 各头独立还原",
-    title: "动作 ④ · 各头用专属上投影恢复独立 Kᵢ、Vᵢ（推理期矩阵吸收免展开直算）",
+    title: "动作 ④ · 对刚选中的 c₀，各头用专属上投影恢复独立 Kᵢ、Vᵢ（推理期吸收免展开）",
     takeaway:
-      "妙处就在这里：虽然共读同一条摘要 c_KV，但每个头拿专属矩阵读出各不相同的 Kᵢ、Vᵢ，表达力远超硬砍头数！",
-    kpi: "吸收：q̃·c 恒等免展开",
+      "妙处就在这里：虽然共读刚挑出的同一条 c₀，但每个头拿专属矩阵读出各不相同的 Kᵢ、Vᵢ，表达力远超硬砍头数！",
+    kpi: "吸收：q̃·c₀ 恒等免展开",
     detail:
-      "数学上 k_{t,i}=c_t W_{UK,i}、v_{t,i}=c_t W_{UV,i}（小算例 c₀=[1,2] 还原出头1 [1,4] 与头2 [2,1] 不同键）。Decode 推理利用结合律 q_i K_iᵀ = (q_i W_{UK,i}ᵀ) Cᵀ 与 (p_i C) W_{UV,i} 将上投影吸收进查询与输出侧，内核把同一份潜向量同时当 K 和 V 直算（缩放仍除 √d_k）。",
+      "数学上 k_{t,i}=c_t W_{UK,i}、v_{t,i}=c_t W_{UV,i}（小算例读取刚高亮选中的 c₀=[1,2]，还原出头1 [1,4] 与头2 [2,1] 不同键）。Decode 推理利用结合律 q_i K_iᵀ = (q_i W_{UK,i}ᵀ) Cᵀ 与 (p_i C) W_{UV,i} 将上投影吸收进查询与输出侧，内核把同一份潜向量同时当 K 和 V 直算（缩放仍除 √d_k）。",
   },
 ];
 
@@ -69,7 +70,7 @@ export interface MlaIntuitionInteractiveProps extends InteractiveDiagramProps {
 }
 
 const HIST_SLOTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
-const SELECTED_HIST_INDICES = new Set<number>([1, 4, 6, 9]);
+const SELECTED_HIST_INDICES = new Set<number>([0, 4, 6, 9]);
 
 export function MlaIntuitionInteractive({
   id,
@@ -244,7 +245,7 @@ export function MlaIntuitionInteractive({
           <div className="wiki-edu-panel-head">
             <span className="wiki-edu-panel-title">① 压入窄潜向量池（10 格历史示意）</span>
             <span className="wiki-edu-badge is-good">
-              {step >= 3 ? "按需挑 4 格读取" : "每格只存 1 条 c_KV"}
+              {step >= 3 ? "稀疏变体挑 4 格（含 c₀）" : "每格只存 1 条 c_KV"}
             </span>
           </div>
 
@@ -347,7 +348,7 @@ export function MlaIntuitionInteractive({
             })}
             <text x="200" y="122" textAnchor="middle" fontSize="12" fill="#66716d">
               {step >= 3
-                ? "绿色高亮：本次被选中参与多头注意力的潜向量"
+                ? "稀疏 MLA 变体挑子集（含 c₀）；标准 MLA 读全部历史 c_t"
                 : "KV cache 每位置只存 1 条共用窄潜向量"}
             </text>
           </svg>

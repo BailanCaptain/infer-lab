@@ -389,7 +389,9 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
         const pressed = /\baria-pressed="true"/.test(tag);
         if (pressed) {
           expect(tag, `${label} pressed btn white text`).toContain("color:#ffffff");
-          expect(tag, `${label} pressed btn dark bg`).toMatch(/background:#(087f73|17211f)/);
+          expect(tag, `${label} pressed btn dark bg`).toMatch(/background:#(087f73|17211f|e85b32|b54237)/);
+        } else if (tag.includes('data-testid="acl-apply-remediation"')) {
+          expect(tag, `${label} remediation btn white text`).toContain("color:#ffffff");
         } else {
           expect(tag, `${label} idle btn dark text`).toContain("color:#17211f");
           expect(tag, `${label} idle btn light bg`).toContain("background:#ffffff");
@@ -398,10 +400,14 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
     };
 
     const assertSandboxInvariants = (label: string, html: string) => {
+      expect(html, `${label} has unified edu shell`).toContain("wiki-edu-card");
+      expect(html, `${label} has collapsible details drawer`).toContain("wiki-edu-details");
       const svgMatches = [...html.matchAll(/<svg\b[^>]*>/g)];
-      expect(svgMatches, `${label} single <svg>`).toHaveLength(1);
-      const widthMatch = /\bwidth="(\d+)"/.exec(svgMatches[0]![0]);
-      expect(Number(widthMatch?.[1]), `${label} width <= 900`).toBeLessThanOrEqual(900);
+      expect(svgMatches.length, `${label} <= 1 inline <svg>`).toBeLessThanOrEqual(1);
+      if (svgMatches[0]) {
+        const widthMatch = /\bwidth="(\d+)"/.exec(svgMatches[0][0]);
+        expect(Number(widthMatch?.[1]), `${label} width <= 900`).toBeLessThanOrEqual(900);
+      }
       for (const fm of html.matchAll(/\bfont-size="([0-9.]+)"/g)) {
         expect(Number(fm[1]), `${label} font-size >= 12`).toBeGreaterThanOrEqual(12);
       }
@@ -423,16 +429,20 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       };
     };
 
-    // 0) 静态图初始态（mode="svg"）下四套组件工具栏选中/未选中按钮文字对比度同样显式锁定
+    // 0) 默认直接进入交互态（data-mode="sandbox"），且静态图态（mode="svg"）下按钮对比度与返回交互入口均完好
     for (const [Comp, diagramId] of [
       [PrefixCachingInteractive, "prefix-caching"],
       [ChunkedPrefillInteractive, "chunked-prefill-fig-budget-game"],
       [AclGraphModeInteractive, "acl-graph-fig-mode-budget"],
       [RforkFallbackInteractive, "rfork-fig-route-and-fallback"],
     ] as const) {
+      const defaultHtml = renderToStaticMarkup(createElement(Comp, baseProps(diagramId)));
+      expect(defaultHtml, `${diagramId} defaults to sandbox`).toContain('data-mode="sandbox"');
       const svgModeHtml = renderToStaticMarkup(
         createElement(Comp, { ...baseProps(diagramId), initialMode: "svg" }),
       );
+      expect(svgModeHtml, `${diagramId} svg mode`).toContain('data-mode="svg"');
+      expect(svgModeHtml, `${diagramId} return btn`).toContain('data-testid="diagram-mode-sandbox"');
       assertToolbarButtonsContrast(`${diagramId}-svg-mode`, svgModeHtml);
     }
 
@@ -486,7 +496,7 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       }
     }
 
-    // 3) AclGraphModeInteractive 四档模式、动态无 OOM 处方与水位线描边高对比度
+    // 3) AclGraphModeInteractive 四档模式、单一玻璃水箱与动态无 OOM 一键处方
     expect(computeAclGraphSandboxState("FULL_AND_PIECEWISE", 0.85).isCaptureOom).toBe(false);
     expect(computeAclGraphSandboxState("FULL_AND_PIECEWISE", 0.92).isCaptureOom).toBe(true);
     expect(computeAclGraphSandboxState("FULL_DECODE_ONLY", 0.92).isCaptureOom).toBe(false);
@@ -526,10 +536,10 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
         expect(html).not.toContain("u=0.90 复现OOM");
         expect(html).toContain("示意 8B");
         expect(html).toContain("非实测");
-        expect(html).toContain('paint-order="stroke"');
         if (m === "FULL_AND_PIECEWISE" && u >= 0.9) {
           expect(html).toContain('data-oom="true"');
           expect(html).toContain("示意录图期 OOM 预警");
+          expect(html).toContain('data-testid="acl-apply-remediation"');
         }
         if (m === "PIECEWISE" && u === 0.95) {
           expect(html).toContain('data-oom="true"');
@@ -557,8 +567,9 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       assertSandboxInvariants(`rfork-${sc}`, html);
       expect(html).toContain(`data-scenario="${sc}"`);
       expect(html).toContain("Safetensors");
-      expect(html).toContain("② Planner 404 无可用 Seed");
+      expect(html).toContain("② 没人可借 (404)");
       if (sc === "planner-miss") {
+        expect(html).toContain("② Planner 404 无可用 Seed");
         expect(html).toContain("404 / 暂无空闲 Seed");
         expect(html).toContain("零中断安全降级本地 Safetensors 加载");
       }

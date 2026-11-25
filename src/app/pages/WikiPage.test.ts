@@ -2,11 +2,15 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
-import { getReaderState } from "../../content/wiki/index";
+import { ensurePage, getPage, getReaderState, retrieve } from "../../content/wiki/index";
+import { pageDisplayTitle } from "../../content/wiki/param-display";
 import { createReaderStore } from "../../content/wiki/reader-store";
 import { buildIndex, serializeSearchIndex } from "../../content/wiki/retrieve";
+import { buildToc } from "../../content/wiki/toc";
+import { createQuickSearchController } from "../wiki/QuickSearch";
 import { isPlainPrimaryLinkClick, WikiContentLink } from "../wiki/WikiLink";
 import {
+  Article,
   canonicalWikiRedirectTarget,
   MissingPage,
   PrerequisiteBar,
@@ -127,9 +131,38 @@ describe("a route whose page is not in the reader snapshot", () => {
     expect(state).toEqual({ desktop: false, directoryOpen: false });
   });
 
-  it("PrerequisiteBar 从 page.relations 派生 builds-on 前置导航并保留关系 note，无前置关系时不占位", () => {
-    const pages = getReaderState().pages;
-    const quant = pages.find((p) => p.id === "quantization")!;
+  it("轻目录在未加载任何单页前剥离重字段，且可直接完成目录编排与 QuickSearch 检索", async () => {
+    const initialPages = getReaderState().pages;
+    const unloaded = initialPages.find((p) => p.id === "block-table")!;
+    expect(getPage("block-table")).toBeUndefined();
+    expect(unloaded.sources).toEqual([]);
+    expect(unloaded.rawSources).toBeUndefined();
+    expect(unloaded.relations).toEqual([]);
+    expect(unloaded.backlinks).toEqual([]);
+
+    const toc = buildToc(initialPages);
+    expect(toc.length).toBeGreaterThan(0);
+    const tocPageIds = toc.flatMap((part) => part.sections.flatMap((sec) => sec.pages.map((p) => p.id)));
+    expect(tocPageIds).toContain("block-table");
+    const sizeInManifest = initialPages.find((p) => p.id === "size-40a1c2ca47b8")!;
+    expect(pageDisplayTitle(sizeInManifest)).toBe("KVPPConfig.size");
+
+    const controller = createQuickSearchController({
+      search: (q, opts) => retrieve(q, opts),
+      getPages: () => getReaderState().pages,
+      onNavigate: () => {},
+    });
+    controller.openSearch();
+    await controller.setQuery("Block Table");
+    expect(controller.getState().status).toBe("ready");
+    expect(controller.getState().items.length).toBeGreaterThan(0);
+    expect(controller.getState().items[0]?.typeLabel).toBeTruthy();
+    expect(getPage("block-table")).toBeUndefined();
+  });
+
+  it("PrerequisiteBar 按需加载单页后从 hydrated page.relations 派生 builds-on 前置导航并保留关系 note，无前置关系时不占位", async () => {
+    await ensurePage("quantization");
+    const quant = getPage("quantization")!.fm;
     const html = renderToStaticMarkup(
       createElement(MemoryRouter, null, createElement(PrerequisiteBar, { page: quant })),
     );
@@ -142,7 +175,8 @@ describe("a route whose page is not in the reader snapshot", () => {
       html.indexOf("/wiki/low-precision-formats"),
     );
 
-    const guide = pages.find((p) => p.id === "learning-guide")!;
+    await ensurePage("learning-guide");
+    const guide = getPage("learning-guide")!.fm;
     const emptyHtml = renderToStaticMarkup(
       createElement(
         MemoryRouter,
@@ -153,14 +187,30 @@ describe("a route whose page is not in the reader snapshot", () => {
     expect(emptyHtml).toBe("");
   });
 
-  it("PrerequisiteBar 与 WikiContentLink 均展示受保护参数身份派生的展示名而不修改路由 ID", () => {
-    const pages = getReaderState().pages;
-    const sizePage = pages.find((p) => p.id === "size-40a1c2ca47b8")!;
+  it("PrerequisiteBar、Article 直出编译视图与 WikiContentLink 均展示受保护参数身份派生的展示名而不修改路由 ID", async () => {
+    await ensurePage("size-40a1c2ca47b8");
+    const sizeLoaded = getPage("size-40a1c2ca47b8")!;
     const prereqHtml = renderToStaticMarkup(
-      createElement(MemoryRouter, null, createElement(PrerequisiteBar, { page: sizePage })),
+      createElement(MemoryRouter, null, createElement(PrerequisiteBar, { page: sizeLoaded.fm })),
     );
     expect(prereqHtml).toContain('href="/wiki/kvpp-config-0445bd352140"');
     expect(prereqHtml).toContain("AscendConfig.kvpp_config");
+
+    const prodArticleHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(Article, {
+          page: sizeLoaded.fm,
+          body: "",
+          compiled: sizeLoaded.compiled,
+          diagrams: getReaderState().diagrams,
+        }),
+      ),
+    );
+    expect(prodArticleHtml).toContain("KVPPConfig.size");
+    expect(prodArticleHtml).toContain('data-testid="wiki-sources"');
+    expect(sizeLoaded.fm.sources.length).toBeGreaterThan(0);
 
     const linkHtml = renderToStaticMarkup(
       createElement(

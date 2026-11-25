@@ -1,10 +1,14 @@
 import { type ReaderPageEvidence, readerPageEvidenceSchema } from "./evidence-schema";
+import { unpackCompiledNode } from "./hast-pack";
 import { deriveParamDisplayTitle, pageDisplayTitle } from "./param-display";
 import { deserializeSearchIndex, type Index } from "./retrieve";
 import {
   type CompiledNode,
+  extractReaderGraph,
+  type ReaderGraph,
   type ReaderSearchIndex,
   type RegistryEntry,
+  readerGraphSchema,
   readerManifestSchema,
   readerPageSchema,
   readerSearchIndexSchema,
@@ -39,6 +43,7 @@ export function createReaderStore(
   loadPage?: (id: string) => Promise<unknown>,
   loadSearchIndex?: () => Promise<unknown>,
   loadPageEvidence?: (id: string, revision: string) => Promise<unknown>,
+  loadWikiGraph?: () => Promise<unknown>,
 ) {
   const prepare = (input: unknown, mode: "build" | "local", lazy = false) => {
     const snapshot = lazy
@@ -82,6 +87,7 @@ export function createReaderStore(
       lazy,
       serializedIndex: snapshot.searchIndex,
       index: undefined as Index | undefined,
+      graph: lazy ? (undefined as ReaderGraph | undefined) : extractReaderGraph(snapshot.revision, pages),
       canonicalIdByRouteId,
       evidenceById: new Map<string, ReaderPageEvidence>(),
       byId: new Map(
@@ -104,12 +110,16 @@ export function createReaderStore(
   const pending = new Map<string, Promise<void>>();
   const pendingEvidence = new Map<string, Promise<ReaderPageEvidence>>();
   let pendingIndex: { revision: string; task: Promise<Index> } | undefined;
+  let pendingGraph: { revision: string; task: Promise<ReaderGraph> } | undefined;
   const install = (input: unknown) => {
     const next = prepare(input, "local");
     generation++;
     if (next.state.revision === current.state.revision) {
       if (!current.serializedIndex && next.serializedIndex) {
         current.serializedIndex = next.serializedIndex;
+      }
+      if (!current.graph && next.graph) {
+        current.graph = next.graph;
       }
       let diagrams = current.state.diagrams;
       let diagramsChanged = false;
@@ -123,8 +133,19 @@ export function createReaderStore(
         pagesChanged = true;
       }
       if (!next.lazy && current.lazy) {
+        pages = next.state.pages;
+        pagesChanged = true;
         for (const [id, page] of next.byId) {
-          if (!current.byId.has(id) || pagesChanged) current.byId.set(id, page);
+          const existing = current.byId.get(id);
+          if (!existing) {
+            current.byId.set(id, page);
+          } else {
+            current.byId.set(id, {
+              fm: page.fm,
+              body: existing.body || page.body,
+              compiled: existing.compiled ?? page.compiled,
+            });
+          }
         }
         if (next.state.diagrams.size > 0) {
           const merged = new Map(current.state.diagrams);
@@ -160,14 +181,39 @@ export function createReaderStore(
     if (existing) return existing;
     const task = loadPage(canonicalId)
       .then((input) => {
-        if (current.state.revision !== revision) return;
+        if (current.state.revision !== revision || current.byId.has(canonicalId)) return;
         const page = readerPageSchema.parse(input);
-        if (page.revision !== revision || page.file !== fm.file)
+        const latestFm = current.state.pages.find((p) => p.id === canonicalId) ?? fm;
+        if (page.revision !== revision || page.file !== latestFm.file)
           throw new Error("正文版本与目录不一致，请刷新知识库。");
-        current.byId.set(canonicalId, { fm, body: stripFrontmatter(page.text), compiled: page.compiled });
+        const compiled =
+          page.compiled ??
+          (page.packedCompiled !== undefined ? unpackCompiledNode(page.packedCompiled) : undefined);
+        const rawSources = page.rawSources ?? latestFm.rawSources;
+        let hydratedFm: RegistryEntry = {
+          ...latestFm,
+          sources: page.sources ?? latestFm.sources,
+          relations: page.relations ?? latestFm.relations,
+          backlinks: page.backlinks ?? latestFm.backlinks,
+          ...(rawSources !== undefined ? { rawSources } : {}),
+        };
+        if (!hydratedFm.displayTitle && page.text) {
+          const derived = deriveParamDisplayTitle(hydratedFm, page.text);
+          if (derived !== hydratedFm.title) {
+            hydratedFm = { ...hydratedFm, displayTitle: derived };
+          }
+        }
+        const body = page.text ? stripFrontmatter(page.text) : "";
+        current.byId.set(canonicalId, { fm: hydratedFm, body, compiled });
+        const nextPages = current.state.pages.map((p) => (p.id === canonicalId ? hydratedFm : p));
+        const nextDiagrams =
+          page.diagrams.length > 0
+            ? new Map([...current.state.diagrams, ...page.diagrams.map((d) => [d.id, d.svg] as const)])
+            : current.state.diagrams;
         current.state = {
           ...current.state,
-          diagrams: new Map([...current.state.diagrams, ...page.diagrams.map((d) => [d.id, d.svg] as const)]),
+          pages: nextPages,
+          diagrams: nextDiagrams,
         };
         notify();
       })
@@ -241,8 +287,39 @@ export function createReaderStore(
     pendingEvidence.set(key, task);
     return task;
   };
+  const ensureWikiGraph = (): Promise<ReaderGraph> => {
+    if (current.graph) return Promise.resolve(current.graph);
+    if (!loadWikiGraph) {
+      return Promise.reject(new Error("当前构建快照缺少知识图谱数据，请重新构建或连接最新问答服务。"));
+    }
+    const revision = current.state.revision;
+    if (pendingGraph?.revision === revision) return pendingGraph.task;
+    const task = loadWikiGraph()
+      .then(
+        (input): Promise<ReaderGraph> | ReaderGraph => {
+          if (current.state.revision !== revision) return ensureWikiGraph();
+          const parsed = readerGraphSchema.parse(input);
+          if (parsed.revision !== revision) {
+            throw new Error("知识图谱版本与目录不一致，请刷新知识库。");
+          }
+          current.graph = parsed;
+          notify();
+          return parsed;
+        },
+        (error) => {
+          if (current.state.revision !== revision) return ensureWikiGraph();
+          throw error;
+        },
+      )
+      .finally(() => {
+        if (pendingGraph?.task === task) pendingGraph = undefined;
+      });
+    pendingGraph = { revision, task };
+    return task;
+  };
   return {
     getState: () => current.state,
+    getWikiGraph: (): ReaderGraph | undefined => current.graph,
     resolvePageId: (id: string): string | undefined => current.canonicalIdByRouteId.get(id),
     getPage: (id: string): WikiPage | undefined => {
       const canonicalId = current.canonicalIdByRouteId.get(id);
@@ -262,6 +339,7 @@ export function createReaderStore(
     ensurePage,
     ensureSearchIndex,
     ensurePageEvidence,
+    ensureWikiGraph,
     async refresh(load: () => Promise<unknown>, signal?: AbortSignal): Promise<boolean> {
       if (signal?.aborted) return false;
       const request = ++generation;

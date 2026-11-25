@@ -19,6 +19,7 @@ import {
 } from "../src/sim/modelspec/deployCalculator";
 import { parseHfConfig } from "../src/sim/modelspec/parseHfConfig";
 import { MODEL_PRESETS } from "../src/sim/modelspec/presets";
+import { redactAuthorizationHeaders, redactYamlCredentials } from "../src/sim/shared/yamlRedactor";
 import { analyzeTroubleshootInput, type LogAnalysisReport } from "../src/sim/troubleshoot/logAnalyzer";
 
 export const TOOL_EVIDENCE_VERSIONS = {
@@ -87,7 +88,7 @@ export const deployAnalysisInputSchema = z
     dynamicEplb: z.boolean().optional(),
     engramCpuOffload: z.boolean().optional(),
     numSpecTokens: z.number().int().min(0).max(16).optional(),
-    gpuMemoryUtilization: z.number().finite().min(0.05).max(0.999).optional(),
+    gpuMemoryUtilization: z.number().finite().min(0.1).max(0.99).optional(),
     maxModelLen: z.number().int().min(64).max(1_048_576).optional(),
     maxNumBatchedTokens: z.number().int().min(1).max(1_048_576).optional(),
     maxNumSeqs: z.number().int().min(1).max(65_536).optional(),
@@ -231,16 +232,57 @@ export function verifyToolEvidence(
   return { ok: true, evidence: ev };
 }
 
-const SECRET_KEY_RE = /api[_-]?key|secret|token|password|authorization/i;
-
 const MULTI_VALUE_SECRET_FLAG_RE =
-  /(?<![A-Za-z0-9_-])(--(?:api[-_]?key|access[-_]?token|auth[-_]?token|bearer[-_]?token|token|password|passwd|secret|client[-_]?secret|bearer))((?:[ \t]*=[ \t]*(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s"'\\;|&<>(){}]+))|(?:(?:(?:[ \t]+(?:\\\r?\n[ \t]*)*|\\\r?\n[ \t]*)(?:"[^"\r\n]*"|'[^'\r\n]*'|(?![-\\;|&<>(){}])[^\s"'\\;|&<>(){}]+))+))/gi;
+  /(?<![A-Za-z0-9_-])(--(?:bearer|[A-Za-z0-9_-]*(?:password|passwd|secret|credential|cookie|api[-_]?key|access[-_]?key|private[-_]?key|secret[-_]?key|auth[-_]?key|client[-_]?key|token)[A-Za-z0-9_-]*))((?:[ \t]*=[ \t]*(?:"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|[^\s"'\\;|&<>(){}]+))|(?:(?:(?:[ \t]+(?:\\\r?\n[ \t]*)*|\\\r?\n[ \t]*)(?:"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|(?![-\\;|&<>(){}])[^\s"'\\;|&<>(){}]+))+))/gi;
 const SECRET_FLAG_SEP_TOKEN_RE =
-  /((?:[ \t]+(?:\\\r?\n[ \t]*)*|\\\r?\n[ \t]*))("[^"\r\n]*"|'[^'\r\n]*'|(?![-\\;|&<>(){}])[^\s"'\\;|&<>(){}]+)/g;
+  /((?:[ \t]+(?:\\\r?\n[ \t]*)*|\\\r?\n[ \t]*))("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|(?![-\\;|&<>(){}])[^\s"'\\;|&<>(){}]+)/g;
+
+const PEM_PRIVATE_KEY_RE =
+  /-----BEGIN [A-Z0-9 _-]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 _-]*PRIVATE KEY-----/gi;
+const URI_USERINFO_RE = /([a-z][a-z0-9+.-]*:\/\/)([^/\s@]*:[^/\s@]+|[^/\s:@]+)@/gi;
+const STRONG_CREDENTIAL_KEY_RE =
+  /api[-_]?key|apikey|access[-_]?key|private[-_]?key|secret[-_]?key|auth[-_]?key|client[-_]?key|secret|password|passwd|credentials?|cookie|session[-_]?id|(?:proxy[-_]?)?authorization|bearer|(?:auth|access|refresh|hf|huggingface)[-_]?token/i;
+const TOKEN_KEY_RE = /token/i;
+const NON_SECRET_TOKEN_KEY_RE =
+  /(?:(?:^|[_-])tokens|token[_-]?ids?|token[_-]?len|(?:bos|eos|pad|unk|cls|sep|mask)[_-]?token)$|tokeniz/i;
+const STRONG_CRED_LOOKAHEAD =
+  "(?:api[-_]?key|apikey|access[-_]?key|private[-_]?key|secret[-_]?key|auth[-_]?key|client[-_]?key|secret|password|passwd|credentials?|cookie|session[-_]?id|(?:proxy[-_]?)?authorization|bearer|(?:auth|access|refresh|hf|huggingface)[-_]?token)";
+const NON_SECRET_KEY_LOOKAHEAD = `(?!(?![A-Za-z0-9_.-]*${STRONG_CRED_LOOKAHEAD})(?:[A-Za-z0-9_.-]*tokeniz[A-Za-z0-9_.-]*|[A-Za-z0-9_.-]*[-_]tokens|[A-Za-z0-9_.-]*token[-_]?ids?|[A-Za-z0-9_.-]*token[-_]?len|(?:bos|eos|pad|unk|cls|sep|mask)[-_]?token)(?![A-Za-z0-9_.-]))`;
+const CREDENTIAL_KEY_BODY =
+  "[A-Za-z0-9_.-]*(?:api[-_]?key|apikey|access[-_]?key|private[-_]?key|secret[-_]?key|auth[-_]?key|client[-_]?key|secret|password|passwd|credentials?|cookie|session[-_]?id|(?:proxy[-_]?)?authorization|token)[A-Za-z0-9_.-]*";
+const QUOTED_KV_SECRET_RE = new RegExp(
+  `(["'])${NON_SECRET_KEY_LOOKAHEAD}(${CREDENTIAL_KEY_BODY})\\1([ \\t]*:[ \\t]*)("(?:\\\\[\\s\\S]|[^"\\\\])*"|'(?:\\\\[\\s\\S]|[^'\\\\])*'|(?!\\[REDACTED)(?![#&*|>!])[^\\s"',}\\]\\u3000-\\u303f\\uff00-\\uffef]+)`,
+  "gi",
+);
+const UNQUOTED_EQ_SECRET_RE = new RegExp(
+  `(?<![A-Za-z0-9_-])${NON_SECRET_KEY_LOOKAHEAD}(${CREDENTIAL_KEY_BODY})([ \\t]*=[ \\t]*)("(?:\\\\[\\s\\S]|[^"\\\\])*"|'(?:\\\\[\\s\\S]|[^'\\\\])*'|(?!\\[REDACTED)[^\\s"',;}\\]\\u3000-\\u303f\\uff00-\\uffef]+)`,
+  "gi",
+);
+const UNQUOTED_COLON_SECRET_RE = new RegExp(
+  `(?<![A-Za-z0-9_-])${NON_SECRET_KEY_LOOKAHEAD}(${CREDENTIAL_KEY_BODY})([ \\t]*:[ \\t]*)("(?:\\\\[\\s\\S]|[^"\\\\])*"|'(?:\\\\[\\s\\S]|[^'\\\\])*'|(?!\\[REDACTED)(?!(?:Bearer|Basic|Token|ApiKey|Digest)[ \\t]+\\[REDACTED)(?![#&*|>!])[^\\s"',}\\]\\u3000-\\u303f\\uff00-\\uffef]+)`,
+  "gi",
+);
+const IPV4_RE =
+  /(?<![A-Za-z0-9_.])(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}(?![A-Za-z0-9_.])/g;
+
+function isCredentialKey(key: string): boolean {
+  const cleanKey = key.replace(/^--/, "");
+  if (STRONG_CREDENTIAL_KEY_RE.test(cleanKey)) return true;
+  if (!TOKEN_KEY_RE.test(cleanKey)) return false;
+  return !NON_SECRET_TOKEN_KEY_RE.test(cleanKey);
+}
+
+const CREDENTIAL_MAPPING_KEY_RE = new RegExp(`^${NON_SECRET_KEY_LOOKAHEAD}(?:${CREDENTIAL_KEY_BODY})$`, "i");
+
+function isYamlSecretKey(key: string): boolean {
+  return CREDENTIAL_MAPPING_KEY_RE.test(key) && isCredentialKey(key);
+}
 
 export function redactSensitiveText(raw: string): string {
-  return raw
+  const afterFlags = raw
+    .replace(PEM_PRIVATE_KEY_RE, "[REDACTED]")
     .replace(MULTI_VALUE_SECRET_FLAG_RE, (full, flag: string, tail: string) => {
+      if (!isCredentialKey(flag)) return full;
       if (/^[ \t]*=/.test(tail)) return `${flag}=[REDACTED]`;
       let matched = 0;
       const replaced = tail.replace(SECRET_FLAG_SEP_TOKEN_RE, (_m, sep: string) => {
@@ -249,15 +291,42 @@ export function redactSensitiveText(raw: string): string {
       });
       if (matched === 0) return full;
       return `${flag}${replaced}`;
-    })
-    .replace(/(Authorization\s*:\s*Bearer\s+)([^\s"']+)/gi, "$1[REDACTED]")
-    .replace(/(Authorization\s*:\s*(?:Basic|Token)\s+)([^\s"']+)/gi, "$1[REDACTED]")
-    .replace(
-      /\b((?:OPENAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|DEEPSEEK_API_KEY|HF_TOKEN|HUGGING_FACE_HUB_TOKEN|VLLM_API_KEY|[A-Z0-9_]*(?:API_KEY|SECRET|TOKEN|PASSWORD)))\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"']+)/g,
-      "$1=[REDACTED]",
+    });
+
+  const afterAuth = redactAuthorizationHeaders(afterFlags, "[REDACTED]")
+    .text.replace(
+      /\b(Bearer[ \t]+)(?!\[REDACTED)(?![A-Za-z_][A-Za-z0-9_]*=[^=\r\n\t ])[A-Za-z0-9._~+/=-]{6,}/gi,
+      "$1[REDACTED]",
     )
-    .replace(/\b(sk-[A-Za-z0-9_-]{12,}|hf_[A-Za-z0-9]{12,})\b/g, "[REDACTED]")
-    .replace(/([a-z][a-z0-9+.-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/gi, "$1[REDACTED]@");
+    .replace(URI_USERINFO_RE, "$1[REDACTED]@");
+
+  return redactYamlCredentials(afterAuth, isYamlSecretKey, "[REDACTED]")
+    .text.replace(QUOTED_KV_SECRET_RE, (full, quote: string, key: string, sep: string, val: string) => {
+      if (!isCredentialKey(key)) return full;
+      if (val === '"[REDACTED]"' || val === "'[REDACTED]'") return full;
+      const masked = val.startsWith('"')
+        ? '"[REDACTED]"'
+        : val.startsWith("'")
+          ? "'[REDACTED]'"
+          : "[REDACTED]";
+      return `${quote}${key}${quote}${sep}${masked}`;
+    })
+    .replace(UNQUOTED_EQ_SECRET_RE, (full, key: string) => {
+      if (!isCredentialKey(key)) return full;
+      return `${key}=[REDACTED]`;
+    })
+    .replace(UNQUOTED_COLON_SECRET_RE, (full, key: string, sep: string, val: string) => {
+      if (!isCredentialKey(key)) return full;
+      if (val === '"[REDACTED]"' || val === "'[REDACTED]'") return full;
+      const masked = val.startsWith('"')
+        ? '"[REDACTED]"'
+        : val.startsWith("'")
+          ? "'[REDACTED]'"
+          : "[REDACTED]";
+      return `${key}${sep}${masked}`;
+    })
+    .replace(/\b(sk-[A-Za-z0-9_-]{10,}|hf_[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16})\b/g, "[REDACTED]")
+    .replace(IPV4_RE, "[REDACTED]");
 }
 
 function sanitizeTextPayload(
@@ -308,7 +377,7 @@ function sanitizeConfigObject(input: unknown, depth = 0, keyCounter = { count: 0
         throw new Error(`模型 config.json 字段数量超出上限（${TOOL_EVIDENCE_LIMITS.maxConfigKeys}）`);
       }
       if (v === undefined) continue;
-      if (SECRET_KEY_RE.test(k)) {
+      if (isCredentialKey(k)) {
         out[k] = "[REDACTED]";
       } else {
         out[k] = sanitizeConfigObject(v, depth + 1, keyCounter);
@@ -351,7 +420,10 @@ function buildEvidence(
   });
 }
 
-function runDeployEvidence(input: z.infer<typeof deployAnalysisInputSchema>): ToolEvidenceV1 {
+function runDeployEvidenceCore(input: z.infer<typeof deployAnalysisInputSchema>): {
+  evidence: ToolEvidenceV1;
+  plan: DeployPlanReport;
+} {
   let resolvedModel: DeployPlanInput["model"];
   let sanitizedModel: string | Record<string, unknown>;
   if (typeof input.model === "string") {
@@ -424,7 +496,24 @@ function runDeployEvidence(input: z.infer<typeof deployAnalysisInputSchema>): To
     `静态估算边界：基于解析显存与 Roofline 模型，非目标硬件实测。`,
   ].join("");
 
-  return buildEvidence("deploy", { ...rest, model: sanitizedModel }, summary, keyMetrics);
+  return {
+    evidence: buildEvidence("deploy", { ...rest, model: sanitizedModel }, summary, keyMetrics),
+    plan: report,
+  };
+}
+
+function runDeployEvidence(input: z.infer<typeof deployAnalysisInputSchema>): ToolEvidenceV1 {
+  return runDeployEvidenceCore(input).evidence;
+}
+
+export function runDeployToolEvidenceWithPlan(rawInput: Record<string, unknown>): {
+  checked: z.infer<typeof deployAnalysisInputSchema>;
+  evidence: ToolEvidenceV1;
+  plan: DeployPlanReport;
+} {
+  const checked = deployAnalysisInputSchema.parse({ kind: "deploy", ...rawInput });
+  const { evidence, plan } = runDeployEvidenceCore(checked);
+  return { checked, evidence, plan };
 }
 
 function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): ToolEvidenceV1 {
@@ -501,7 +590,7 @@ function runDoctorEvidence(input: z.infer<typeof doctorAnalysisInputSchema>): To
       hcclEstimatedMiB: report.hcclEstimate ? round2(report.hcclEstimate.totalMaterializedMiB) : null,
       topRuleIds: topRules || "none",
     };
-    summary = `[单实例配置体检确定性核算] 硬件=${report.hardwareFamily}（模式=${report.mode}, 规则=${report.version}）：阻塞=${report.hasBlockers ? "是" : "否"}（错误 ${report.errors.length} / 静默改写 ${report.silentRewrites.length} / 告警 ${report.warnings.length} / 生效改写 ${report.effectiveRewrites.length}），默认批 token=${report.batchTokensResolution.finalMaxNumBatchedTokens}；命中规则：${topRules || "无"}。静态规则体检边界：仅基于命令与环境参数静态校验。`;
+    summary = `[单实例配置体检确定性核算] 硬件=${report.hardwareFamily}（模式=${report.mode}, 规则=${report.version}）：阻塞=${report.hasBlockers ? "是" : "否"}（错误 ${report.errors.length} / 静默改写 ${report.silentRewrites.length} / 告警 ${report.warnings.length} / 生效改写 ${report.effectiveRewrites.length}），默认批上限 max_num_batched_tokens=${report.batchTokensResolution.finalMaxNumBatchedTokens}；命中规则：${topRules || "无"}。静态规则体检边界：仅基于命令与环境参数静态校验。`;
   }
 
   return buildEvidence(

@@ -27,8 +27,11 @@ pnpm -s wiki:find --neighbors block-table # 这页和哪些页有关，每条边
 **③ MCP server**（给 MCP 客户端用，只读：不写文件、不调模型、不联网）
 
 ```bash
-pnpm wiki:mcp     # stdio 上的 JSON-RPC，三个工具：wiki_search / wiki_get_page / wiki_neighbors
+pnpm wiki:mcp     # stdio 上的 JSON-RPC，共 7 个工具（3 个知识库 + 4 个确定性昇腾仿真）
 ```
+
+- 知识库工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors`
+- 确定性仿真工具（零幻觉纯函数）：`ascend_plan_deploy`（显存与卡数算账）/ `ascend_lint_serve_cmd`（单机或 P/D 启动命令体检、静默改写检测，P/D 模式并附带逐端 `prefill` / `decode` 环境分类与生效改写明细）/ `ascend_diagnose_log`（多卡交错报错首错 Rank 定位）/ `ascend_reconcile_startup_log`（理论预算 vs 实机启动日志逐项对账）
 
 接进 Claude Code：`claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`
 

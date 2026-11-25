@@ -610,3 +610,224 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
   };
   return spec;
 }
+
+const STRUCTURAL_SCALAR_KEYS = new Set<string>([
+  "model_type",
+  "hidden_size",
+  "num_hidden_layers",
+  "num_attention_heads",
+  "num_key_value_heads",
+  "vocab_size",
+  "torch_dtype",
+  "dtype",
+  "intermediate_size",
+  "moe_intermediate_size",
+  "rope_theta",
+  "attention_bias",
+  "qk_norm",
+  "head_dim",
+  "kv_lora_rank",
+  "q_lora_rank",
+  "qk_rope_head_dim",
+  "qk_nope_head_dim",
+  "v_head_dim",
+  "index_topk",
+  "index_head_dim",
+  "index_n_heads",
+  "index_num_heads",
+  "indexer_kv_dtype",
+  "indexer_cache_dtype",
+  "indexer_quant",
+  "use_indexer_quant",
+  "lightning_indexer_quant",
+  "enable_indexer_quant",
+  "dsa",
+  "csa2",
+  "use_csa2",
+  "cross_stage_attention",
+  "uses_sfa_sparse",
+  "kda",
+  "linear_kda",
+  "kimi_linear",
+  "use_kda",
+  "hybrid_override_pattern",
+  "linear_num_key_heads",
+  "num_k_heads",
+  "linear_num_value_heads",
+  "num_v_heads",
+  "linear_key_head_dim",
+  "head_k_dim",
+  "linear_value_head_dim",
+  "head_v_dim",
+  "linear_conv_kernel_dim",
+  "conv_kernel_size",
+  "linear_state_dtype",
+  "mamba_ssm_cache_dtype",
+  "full_attention_interval",
+  "all_linear",
+  "hidden_act",
+  "hidden_activation",
+  "n_routed_experts",
+  "num_experts",
+  "num_local_experts",
+  "num_experts_per_tok",
+  "shared_expert_intermediate_size",
+  "num_shared_experts",
+  "n_shared_experts",
+  "norm_topk_prob",
+  "decoder_sparse_step",
+  "moe_layer_freq",
+  "first_k_dense_replace",
+  "use_engram",
+  "engram_vocab_size",
+  "engram_hidden_size",
+  "engram_cpu_offload",
+  "cpu_offload",
+  "engram_dp_shared_memory",
+  "etp_size",
+  "engram_tp_size",
+  "num_nextn_predict_layers",
+  "tie_word_embeddings",
+  "rms_norm_eps",
+  "initializer_range",
+  "max_position_embeddings",
+  "sliding_window",
+  "use_sliding_window",
+  "max_window_layers",
+]);
+
+const STRUCTURAL_INT_ARRAY_KEYS = new Set<string>(["mlp_only_layers", "engram_layers", "engram_layer_ids"]);
+const ENGRAM_SUBCONFIG_KEYS = new Set<string>([
+  "enabled",
+  "vocab_size",
+  "hidden_size",
+  "engram_layers",
+  "layer_ids",
+  "cpu_offload",
+  "engram_cpu_offload",
+  "dp_shared_memory",
+  "etp_size",
+]);
+const QUANT_SUBCONFIG_KEYS = new Set<string>([
+  "quant_method",
+  "bits",
+  "group_size",
+  "activation_scheme",
+  "fmt",
+  "weight_block_size",
+  "is_checkpoint_fp8_serialized",
+]);
+
+function isSafePrimitive(val: unknown): val is string | number | boolean {
+  if (typeof val === "boolean") return true;
+  if (typeof val === "number") return Number.isFinite(val);
+  if (typeof val === "string") return val.length <= 120;
+  return false;
+}
+
+const STRUCTURAL_TRUTHY_FLAG_KEYS = new Set<string>([
+  "dsa",
+  "csa2",
+  "use_csa2",
+  "cross_stage_attention",
+  "uses_sfa_sparse",
+  "kda",
+  "linear_kda",
+  "kimi_linear",
+  "use_kda",
+  "use_engram",
+]);
+
+function pickStructuralScope(scope: Json): Json {
+  const out: Json = {};
+  for (const [key, val] of Object.entries(scope)) {
+    if (key === "architectures" && Array.isArray(val)) {
+      const archs = val
+        .filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 80)
+        .slice(0, 8);
+      if (archs.length > 0) out.architectures = archs;
+    } else if (STRUCTURAL_TRUTHY_FLAG_KEYS.has(key)) {
+      if (isSafePrimitive(val)) {
+        out[key] = val;
+      } else if (val !== undefined && val !== null) {
+        out[key] = isTruthyFlag(val);
+      }
+    } else if (STRUCTURAL_SCALAR_KEYS.has(key) && isSafePrimitive(val)) {
+      out[key] = val;
+    } else if (key === "layer_types" && Array.isArray(val)) {
+      out.layer_types = val.filter((x): x is string => typeof x === "string" && x.length <= 64).slice(0, 512);
+    } else if (STRUCTURAL_INT_ARRAY_KEYS.has(key)) {
+      if (Array.isArray(val)) {
+        const ints = val.filter((x): x is number => Number.isSafeInteger(x)).slice(0, 512);
+        if (ints.length > 0) out[key] = ints;
+        else if (isTruthyFlag(val) && (key === "engram_layers" || key === "engram_layer_ids")) {
+          out[key] = [1];
+        }
+      } else if (typeof val === "number" && Number.isFinite(val)) {
+        out[key] = val;
+      } else if (isTruthyFlag(val) && (key === "engram_layers" || key === "engram_layer_ids")) {
+        out[key] = [1];
+      }
+    } else if (key === "engram_config" || key === "engram") {
+      if (typeof val === "boolean") {
+        out[key] = val;
+      } else if (val && typeof val === "object" && !Array.isArray(val)) {
+        const cleanSub: Json = {};
+        for (const [sk, sv] of Object.entries(val as Json)) {
+          if (!ENGRAM_SUBCONFIG_KEYS.has(sk)) continue;
+          if (isSafePrimitive(sv)) cleanSub[sk] = sv;
+          else if (Array.isArray(sv)) {
+            cleanSub[sk] = sv.filter((x): x is number => Number.isSafeInteger(x)).slice(0, 512);
+          }
+        }
+        if (Object.keys(cleanSub).length > 0) out[key] = cleanSub;
+        else if (isTruthyFlag(val)) out[key] = key === "engram" ? true : { enabled: true };
+      } else if (isTruthyFlag(val)) {
+        out[key] = key === "engram" ? true : { enabled: true };
+      }
+    } else if (key === "quantization_config" && val && typeof val === "object" && !Array.isArray(val)) {
+      const cleanQuant: Json = {};
+      for (const [qk, qv] of Object.entries(val as Json)) {
+        if (!QUANT_SUBCONFIG_KEYS.has(qk)) continue;
+        if (isSafePrimitive(qv)) cleanQuant[qk] = qv;
+        else if (Array.isArray(qv) && qv.length <= 8 && qv.every((x) => Number.isFinite(x))) {
+          cleanQuant[qk] = qv;
+        }
+      }
+      if (Object.keys(cleanQuant).length > 0) out.quantization_config = cleanQuant;
+    }
+  }
+  return out;
+}
+
+/**
+ * 提取仅含模型结构与量化维度的最小安全 HF 配置对象，剥离 token / _name_or_path 等无关或敏感字段。
+ * 调用方在持久化（localStorage）或写入分享链接（customModel）前必须经过此白名单归一化。
+ */
+export function extractStructuralHfConfig(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("config 不是 JSON 对象");
+  }
+  // Ensure the input is a valid, supported HF config first
+  parseHfConfig(raw);
+  const root = raw as Json;
+  const { cfg, nested } = unwrapTextConfig(root);
+  if (!nested) {
+    return pickStructuralScope(cfg);
+  }
+  const top: Json = {};
+  if (typeof root.model_type === "string" && root.model_type.length <= 80) {
+    top.model_type = root.model_type;
+  }
+  if (Array.isArray(root.architectures)) {
+    const archs = root.architectures
+      .filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 80)
+      .slice(0, 8);
+    if (archs.length > 0) top.architectures = archs;
+  }
+  if (typeof root.tie_word_embeddings === "boolean") {
+    top.tie_word_embeddings = root.tie_word_embeddings;
+  }
+  top.text_config = pickStructuralScope(cfg);
+  return top;
+}

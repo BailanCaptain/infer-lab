@@ -1,9 +1,10 @@
-import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, ListTree, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, ListTree, Network, Search } from "lucide-react";
 import {
-  createContext,
+  type JSX,
+  lazy,
   memo,
+  Suspense,
   useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -11,10 +12,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
-import { alignCalcLabels, CalcBlock } from "../../content/wiki/CalcBlock";
-import { parseCalcFence, textFenceAsCalc } from "../../content/wiki/calc";
+import { alignCalcLabels } from "../../content/wiki/CalcBlock";
 import {
   createEvidenceViewController,
   ensurePage,
@@ -22,40 +21,27 @@ import {
   findByAlias,
   getPage,
   getReaderState,
-  sourceUrl,
   subscribeReader,
 } from "../../content/wiki/index";
-import {
-  createWikiRehypePlugins,
-  plainFenceCode,
-  textOf,
-  WIKI_REMARK_PLUGINS,
-} from "../../content/wiki/markdown";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
 import { groupRelations, prerequisiteRelations } from "../../content/wiki/relations";
-import {
-  type CompiledNode,
-  parseRepoRef,
-  type RegistryEntry,
-  rawSourceHref,
-  resolveCanonicalPageId,
-} from "../../content/wiki/schema";
-import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
+import { type CompiledNode, type RegistryEntry, resolveCanonicalPageId } from "../../content/wiki/schema";
+import { EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { buildToc, type TocPart } from "../../content/wiki/toc";
-import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { useWikiAssistant } from "../wiki/assistant-context";
+import {
+  CompiledHastView,
+  createWikiMarkdownComponents,
+  DiagramEvidenceContext,
+  DiagramPageContext,
+  DiagramSnapshot,
+  hrefOfSource,
+} from "../wiki/CompiledHastView";
 import { hasPageToc, type PageHeading, PageTocFab, PageTocSide, readHeadings } from "../wiki/PageToc";
 import { ReaderResizeHandle } from "../wiki/ReaderResizeHandle";
-import { isSceneLessonId, sceneAnchorIds } from "../wiki/scene-lessons";
-import {
-  canonicalWikiRedirectTarget,
-  expandAncestorDetails,
-  isPlainPrimaryLinkClick,
-  scrollToWikiFragment,
-  WikiContentLink,
-} from "../wiki/WikiLink";
-import { WikiScene } from "../wiki/WikiScene";
-import { WikiToolBlock } from "../wiki/WikiToolBlock";
+import { markPageRead } from "../wiki/readingProgressStore";
+import { WikiCausalGraphView, WikiViewSwitch } from "../wiki/WikiCausalGraphView";
+import { canonicalWikiRedirectTarget, expandAncestorDetails, scrollToWikiFragment } from "../wiki/WikiLink";
 import "katex/dist/katex.min.css";
 import "../../design/tools.css";
 import "../../design/wiki.css";
@@ -80,46 +66,50 @@ const TYPE_LABEL: Record<string, string> = {
   pr: "PR",
 };
 
-const EVIDENCE_LETTERS = new Set(EVIDENCE_LEVELS_INFO.map((e) => e.level as string));
-
-type HastNode = {
-  type: string;
-  tagName?: string;
-  value?: string;
-  properties?: Record<string, unknown>;
-  children?: HastNode[];
-};
-
-/** `<pre><code class="language-X">…</code></pre>` 的正文；不是这个语言就返回 null */
-function fenceSource(node: unknown, language: string): string | null {
-  const code = (node as HastNode | undefined)?.children?.[0];
-  if (code?.type !== "element" || code.tagName !== "code") return null;
-  const cls = code.properties?.className;
-  if (!Array.isArray(cls) || !cls.includes(`language-${language}`)) return null;
-  const text = code.children?.[0];
-  return text?.type === "text" && text.value ? text.value.trim() : null;
+interface FallbackMarkdownProps {
+  body: string;
+  page: Pick<RegistryEntry, "id" | "legacyAnchors" | "sources">;
+  onOpenSource?: ((sourceIndex: number, trigger: HTMLElement | null) => void) | undefined;
+  onRendered?: (() => void) | undefined;
 }
 
-function hasFenceLanguage(node: unknown, language: string): boolean {
-  const code = (node as HastNode | undefined)?.children?.[0];
-  if (code?.type !== "element" || code.tagName !== "code") return false;
-  const cls = code.properties?.className;
-  return Array.isArray(cls) && cls.includes(`language-${language}`);
+type FallbackMarkdownComponent = (props: FallbackMarkdownProps) => JSX.Element;
+
+let resolvedFallbackMarkdown: FallbackMarkdownComponent | undefined;
+let fallbackMarkdownTask: Promise<{ default: FallbackMarkdownComponent }> | undefined;
+
+function loadFallbackMarkdown() {
+  if (!fallbackMarkdownTask) {
+    fallbackMarkdownTask = Promise.all([
+      import("react-markdown"),
+      import("../../content/wiki/markdown"),
+    ]).then(([{ default: ReactMarkdown }, { WIKI_REMARK_PLUGINS, createWikiRehypePlugins }]) => {
+      const FallbackMarkdown: FallbackMarkdownComponent = ({ body, page, onOpenSource, onRendered }) => {
+        // biome-ignore lint/correctness/useExhaustiveDependencies: body 与 page 变化时通知 Article 重测目录与锚点
+        useLayoutEffect(() => {
+          onRendered?.();
+        }, [body, page, onRendered]);
+        return (
+          <ReactMarkdown
+            remarkPlugins={WIKI_REMARK_PLUGINS}
+            rehypePlugins={createWikiRehypePlugins(page.legacyAnchors)}
+            components={createWikiMarkdownComponents(page, onOpenSource) as never}
+          >
+            {body}
+          </ReactMarkdown>
+        );
+      };
+      resolvedFallbackMarkdown = FallbackMarkdown;
+      return { default: FallbackMarkdown };
+    });
+  }
+  return fallbackMarkdownTask;
 }
 
-/** 不标语言或标 text 的代码块正文；算式块识别只看这两种。字已被 rehypeTextGrid 分进字格，按拼起来的原文认 */
-function plainFenceSource(node: unknown): string | null {
-  const code = plainFenceCode(node as HastNode | undefined);
-  const text = code ? textOf(code) : "";
-  return text ? text.replace(/\n$/, "") : null;
-}
+const LazyFallbackMarkdown = lazy(loadFallbackMarkdown);
 
-/** ```wiki-diagram 围栏里的 `file:` 就是 wiki/diagrams/<id>.yaml 的 id */
-function diagramId(node: unknown): string | null {
-  const body = fenceSource(node, "wiki-diagram");
-  if (!body) return null;
-  const file = /^\s*file:\s*(\S+)\s*$/m.exec(body)?.[1];
-  return file ? file.replace(/\.(ya?ml|svg)$/, "") : null;
+if (import.meta.env.MODE === "test") {
+  void loadFallbackMarkdown();
 }
 
 const desktopDirectory = () => window.matchMedia("(min-width: 1025px)").matches;
@@ -216,6 +206,24 @@ export function WikiPage() {
   );
   const page = activeId ? getPage(activeId) : undefined;
   const knownPage = Boolean(canonicalId);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const isGraphView = !id && searchParams.get("view") === "graph";
+  const graphFocusParam = searchParams.get("focus") ?? undefined;
+  const rawGraphMode = searchParams.get("mode");
+  const graphModeParam =
+    rawGraphMode === "core-26" || rawGraphMode === "all" || rawGraphMode === "params"
+      ? rawGraphMode
+      : undefined;
+  const autoMarkedRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!canonicalId || page?.fm.id !== canonicalId) {
+      if (!id) autoMarkedRef.current = undefined;
+      return;
+    }
+    if (autoMarkedRef.current === canonicalId) return;
+    autoMarkedRef.current = canonicalId;
+    markPageRead(canonicalId, pages, skipped);
+  }, [id, canonicalId, page?.fm.id, pages, skipped]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new snapshot must retry the external page loader.
   useEffect(() => {
     setPageError("");
@@ -290,6 +298,14 @@ export function WikiPage() {
               <Link className="reader-overview" to="/wiki" onClick={() => setDirectoryOpen(false)}>
                 全部主题 <span>{pages.length} 篇</span>
               </Link>
+              <WikiViewSwitch
+                activeView={isGraphView ? "graph" : "directory"}
+                focusId={canonicalId ?? graphFocusParam}
+                mode={graphModeParam}
+                compact
+                testId="wiki-toc-view-switch"
+                onNavigate={() => setDirectoryOpen(false)}
+              />
             </div>
             <div className="wiki-toc-search">
               <label className="reader-search">
@@ -376,9 +392,16 @@ export function WikiPage() {
         </details>
 
         <main className="wiki-main" id="main-content" tabIndex={-1}>
-          {!id && (
-            <Landing count={pages.length} guide={pages.find((entry) => entry.id === GUIDE_ID)} toc={toc} />
+          {!id && !isGraphView && (
+            <Landing
+              count={pages.length}
+              guide={pages.find((entry) => entry.id === GUIDE_ID)}
+              toc={toc}
+              focusId={graphFocusParam}
+              mode={graphModeParam}
+            />
           )}
+          {!id && isGraphView && <WikiCausalGraphView initialFocusParam={graphFocusParam} />}
           {id && !page && !knownPage && <MissingPage id={id} skipped={skipped} />}
           {id && !page && knownPage && (
             <p className="reader-loading" role="status">
@@ -470,10 +493,14 @@ function Landing({
   count,
   guide,
   toc,
+  focusId,
+  mode,
 }: {
   count: number;
   guide: RegistryEntry | undefined;
   toc: TocPart<RegistryEntry>[];
+  focusId?: string | undefined;
+  mode?: "core-26" | "all" | "params" | undefined;
 }) {
   return (
     <div className="wiki-landing">
@@ -481,9 +508,12 @@ function Landing({
         <span className="eyebrow">THE INFERENCE HANDBOOK</span>
         <h1 className="display">大模型推理</h1>
         <p>从模型计算到系统执行，按主题读懂推理的每一部分。</p>
-        <span className="reader-collection-note">
-          {toc.length} 个主题 · {count} 篇内容
-        </span>
+        <div className="wiki-graph-landing-bar">
+          <span className="reader-collection-note">
+            {toc.length} 个主题 · {count} 篇内容
+          </span>
+          <WikiViewSwitch activeView="directory" focusId={focusId} mode={mode} />
+        </div>
       </header>
 
       {guide && (
@@ -604,50 +634,6 @@ function Landing({
   );
 }
 
-const DiagramSnapshot = createContext(new Map<string, string>());
-const DiagramPageContext = createContext("");
-const DiagramEvidenceContext = createContext<
-  ((diagramId: string, trigger: HTMLElement | null) => void) | undefined
->(undefined);
-
-// A stable fence type preserves live scene playback when article data or its hash changes.
-const WikiFence: Components["pre"] = ({ children, node }) => {
-  const diagrams = useContext(DiagramSnapshot);
-  const pageId = useContext(DiagramPageContext);
-  const onOpenDiagram = useContext(DiagramEvidenceContext);
-  const scene = fenceSource(node, "wiki-scene");
-  if (scene) {
-    const [id, part] = scene.split(":");
-    const section = part === undefined ? undefined : Number(part);
-    if (id && isSceneLessonId(id) && sceneAnchorIds(scene).length > 0)
-      return <WikiScene key={scene} id={id} section={section} />;
-  }
-  const diagram = diagramId(node);
-  if (diagram)
-    return (
-      <WikiDiagram
-        key={`${pageId}:${diagram}`}
-        id={diagram}
-        svg={diagrams.get(diagram)}
-        allowInteractive
-        onOpenEvidence={onOpenDiagram}
-      />
-    );
-  if (hasFenceLanguage(node, "wiki-tool")) {
-    return <WikiToolBlock source={fenceSource(node, "wiki-tool") ?? ""} />;
-  }
-  // 算式块（calc.ts / CalcBlock.tsx）：```calc 围栏，和每行都是「标签 = …」的纯文本块。
-  // 现有页面的 ```text 算式块不用改写就能认出来；认不出的照旧是代码块
-  const source = fenceSource(node, "calc");
-  if (source) {
-    const { title, rows } = parseCalcFence(source);
-    return <CalcBlock rows={rows} title={title} />;
-  }
-  const plain = plainFenceSource(node);
-  const rows = plain ? textFenceAsCalc(plain) : null;
-  return rows ? <CalcBlock rows={rows} /> : <pre>{children}</pre>;
-};
-
 export const Article = memo(function Article({
   page,
   body,
@@ -668,6 +654,11 @@ export const Article = memo(function Article({
   // 带锚点的地址都走这里；换页时新正文和标题 id 已在同一次提交里渲染好。
   const { hash } = useLocation();
   const hasContent = Boolean(body || compiled);
+  const [fallbackCommitSeq, setFallbackCommitSeq] = useState(0);
+  const handleFallbackRendered = useCallback(() => {
+    setFallbackCommitSeq((n) => n + 1);
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fallbackCommitSeq 确保异步懒加载 Markdown 挂载后重新对齐锚点
   useEffect(() => {
     if (!hash || !page.id || !hasContent) return;
     let live = true;
@@ -681,14 +672,15 @@ export const Article = memo(function Article({
       live = false;
       cancelAnimationFrame(raf);
     };
-  }, [hash, page.id, hasContent]);
+  }, [hash, page.id, hasContent, fallbackCommitSeq]);
   // 本页目录的条目从渲染好的正文里读（id 由 anchors.ts 生成），在绘制前拿到，不闪一下
   const bodyRef = useRef<HTMLDivElement>(null);
   const [headings, setHeadings] = useState<PageHeading[]>([]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: body、compiled 与 fallbackCommitSeq 变化均代表正文 DOM 更新，需重读标题锚点
   useLayoutEffect(() => {
     const el = bodyRef.current;
-    setHeadings(el && body ? readHeadings(el) : []);
-  }, [body]);
+    setHeadings(el && hasContent ? readHeadings(el) : []);
+  }, [body, compiled, hasContent, fallbackCommitSeq]);
   // 页内查找命中默认收起的「对照源码」等折叠区内部节点时，响应 beforematch 自动展开
   useEffect(() => {
     const el = bodyRef.current;
@@ -700,9 +692,10 @@ export const Article = memo(function Article({
     return () => el.removeEventListener("beforematch", onBeforeMatch);
   }, []);
   // 整页的算式块标签栏对齐（CalcBlock.tsx）：换页、正文变宽变窄、字体就绪后各量一次
+  // biome-ignore lint/correctness/useExhaustiveDependencies: body、compiled 与 fallbackCommitSeq 变化均代表正文 DOM 更新，需重对算式标签宽度
   useLayoutEffect(() => {
     const el = bodyRef.current;
-    if (!el || !body || !el.querySelector(".wiki-calc-label")) return;
+    if (!el || !hasContent || !el.querySelector(".wiki-calc-label")) return;
     let width = -1;
     const align = () => {
       width = el.clientWidth;
@@ -720,79 +713,39 @@ export const Article = memo(function Article({
       live = false;
       observer.disconnect();
     };
-  }, [body]);
-  // TOC state and hash navigation must not parse or remount the article again.
-  const markdown = useMemo(
-    () => (
-      <ReactMarkdown
-        remarkPlugins={compiled ? [] : WIKI_REMARK_PLUGINS}
-        rehypePlugins={
-          compiled
-            ? [() => () => structuredClone(compiled) as never]
-            : createWikiRehypePlugins(page.legacyAnchors)
-        }
-        components={{
-          // 图的围栏渲染成图。HANDBOOK 要求讲结构关系时必须画图，不接这一段
-          // 就会以源码形式显示。在 pre 而不是 code 上拦，否则 <figure> 会落进
-          // <pre> 里。静态图用 wiki-diagram，正文中的母版交互图用 wiki-scene。
-          pre: WikiFence,
-          // 事实表比正文列宽，不包一层会溢出到侧栏底下，把「来源」整列裁掉
-          table: ({ children }) => (
-            <div className="wiki-table-scroll">
-              <table>{children}</table>
-            </div>
-          ),
-          // remarkEvidenceMarks 把内联的 [C3] 变成 <abbr data-source="3">C</abbr>。
-          // markdown 本身没有 abbr 语法，所以单字母的 abbr 一定是它产的。
-          abbr: ({ children, node, ...rest }) => {
-            const level = String(children);
-            if (!EVIDENCE_LETTERS.has(level)) return <abbr {...rest}>{children}</abbr>;
-            const idx = Number((node as HastNode | undefined)?.properties?.["data-source"] ?? 0);
-            const src = idx >= 1 && idx <= page.sources.length ? page.sources[idx - 1] : undefined;
-            if (!src) return <EvidenceBadge level={level} />;
-            const href = hrefOfSource(src);
-            // 带编号的角标能点进去看那一行源码；未知仓库即使没有外部 URL 也能在右侧证据面板打开不可用说明
-            return href ? (
-              <a
-                className="wiki-mark-link"
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                title={`来源 ${idx}`}
-                data-source={idx}
-                onClick={(event) => {
-                  if (!onOpenSource || !isPlainPrimaryLinkClick(event)) return;
-                  event.preventDefault();
-                  onOpenSource(idx - 1, event.currentTarget);
-                }}
-              >
-                <EvidenceBadge level={level} />
-              </a>
-            ) : (
-              <button
-                type="button"
-                className="wiki-mark-btn"
-                title={`来源 ${idx}`}
-                data-source={idx}
-                onClick={(event) => onOpenSource?.(idx - 1, event.currentTarget)}
-              >
-                <EvidenceBadge level={level} />
-              </button>
-            );
-          },
-          a: ({ href, children }) => (
-            <WikiContentLink href={href} currentId={page.id}>
-              {children}
-            </WikiContentLink>
-          ),
-          img: ({ node: _node, alt = "", ...props }) => <img alt={alt} decoding="async" {...props} />,
-        }}
-      >
-        {compiled ? "" : body}
-      </ReactMarkdown>
-    ),
-    [body, compiled, onOpenSource, page.id, page.legacyAnchors, page.sources],
+  }, [body, compiled, hasContent, fallbackCommitSeq]);
+  const articlePage = useMemo(
+    () => ({ id: page.id, legacyAnchors: page.legacyAnchors, sources: page.sources }),
+    [page.id, page.legacyAnchors, page.sources],
   );
+  // TOC state and hash navigation must not parse or remount the article again.
+  const markdown = useMemo(() => {
+    if (compiled) {
+      return <CompiledHastView root={compiled} page={articlePage} onOpenSource={onOpenSource} />;
+    }
+    if (!body) return null;
+    if (resolvedFallbackMarkdown) {
+      const Resolved = resolvedFallbackMarkdown;
+      return (
+        <Resolved
+          body={body}
+          page={articlePage}
+          onOpenSource={onOpenSource}
+          onRendered={handleFallbackRendered}
+        />
+      );
+    }
+    return (
+      <Suspense fallback={null}>
+        <LazyFallbackMarkdown
+          body={body}
+          page={articlePage}
+          onOpenSource={onOpenSource}
+          onRendered={handleFallbackRendered}
+        />
+      </Suspense>
+    );
+  }, [articlePage, body, compiled, handleFallbackRendered, onOpenSource]);
   // 只给长页（H2 ≥ 4）；短页一屏半就读完，导航只是噪音
   const withToc = hasPageToc(headings);
   const tocProps = { pageId: page.id, headings, scrollTo: scrollToWikiFragment };
@@ -828,6 +781,14 @@ export const Article = memo(function Article({
             }
           </span>
           <span className="wiki-updated">更新于 {page.updated}</span>
+          <Link
+            className="wiki-chip wiki-article-graph-link"
+            data-testid="article-open-graph"
+            to={`/wiki?view=graph&focus=${encodeURIComponent(page.id)}`}
+          >
+            <Network size={12} aria-hidden="true" />
+            在星图中查看前后因果
+          </Link>
         </div>
         <h1 className="display">{pageDisplayTitle(page)}</h1>
         <p className="wiki-summary">{page.summary}</p>
@@ -908,15 +869,6 @@ export const Article = memo(function Article({
     </div>
   );
 });
-
-/** 来源引用 → 可点的 URL（源码引用指向钉住 commit 的 GitHub 行号） */
-function hrefOfSource(ref: string): string | null {
-  const rawHref = rawSourceHref(ref);
-  if (rawHref) return rawHref;
-  const parsed = parseRepoRef(ref);
-  if (parsed) return sourceUrl(parsed);
-  return ref.startsWith("http") ? ref : null;
-}
 
 /**
  * 页头紧凑前置阅读（`builds-on`）导览条：

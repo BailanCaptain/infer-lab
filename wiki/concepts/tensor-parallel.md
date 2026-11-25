@@ -278,6 +278,14 @@ file: tensor-parallel-forward-qwen3
 - 在 **`TP=4`** 时，每张卡分到 `8` 个 Q 头和 **`1` 个 KV 头**（`4 ÷ 4 = 1`，零复制），每卡每块（`128` token）BF16 KV cache 为 `3 MiB`。
 - 扩到 **`TP=8`** 时，`TP > n_kv`（`8 > 4`）：Q 头继续减半为每卡 `4` 个，但每张卡必须保底驻留 **`1` 个完整 KV 头**（每 `2` 张卡复制同一份 KV 头，`num_kv_head_replicas = 8 ÷ 4 = 2`）。单卡 KV cache 仍停在 `3 MiB/块`，不再随 TP 翻倍继续减半（完整推导见 [GQA 的 KV 头复制一节](gqa.md#张量并行时kv-头不够分就要复制)）。
 
+```wiki-tool
+tool: formula-ruler
+mode: tp-shard-comm
+model: qwen3-8b
+title: 随文活体算例标尺 · TP 权重分片与归约通信载荷
+summary: 调节 TP 并行度、权重精度与卡型，实时查看单卡分片权重 GiB、列切→行切每层 All-Reduce 次数与单步激活通信字节数。
+```
+
 ### Ascend 910B3 实测：Qwen3-8B 从 TP=1 扩到 TP=8 为何出现负扩展？
 
 纸面推演容易让人误以为“只要还留在单机 HCCS 内、也没触到 KV 复制拐点，加卡做 TP 就会越跑越快”。但在单卡与八卡 `Ascend 910B3`（`vllm-ascend v0.30.0`、`CANN 9.1.0`，完整真机数据与采集边界见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）上，固定 `u = 0.85`、`max_model_len = 32768` 将 `Qwen3-8B` 从 `TP=1` 一路扩到 `TP=8` 时，虽然总 KV 容量放大了 **`10.9×`**（`264k → 2.87M tokens`），服务态的 **`c=16` 吞吐与 `c=1` `TPOT` 却双双单调劣化**：

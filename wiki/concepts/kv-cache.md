@@ -193,6 +193,14 @@ file: kv-cache-fig-qwen3-scaling
 > - **`INT8 C8`（A2 / A3 / 950 GQA 模型）**：必须配对经 ModelSlim `C8` 校准导出的量化检查点，同时满足 `--quantization ascend`、`quant_model_description.json` 声明 `"kv_cache_type": "C8"` 与 `--kv-cache-dtype int8`。对纯 BF16 权重单独传 `--kv-cache-dtype int8` 会在启动期直接抛 `ValueError`。
 > - **`MXFP8`（`--kv-cache-dtype mxfp8`，即 `C8_MXFP`）**：要求 Ascend 950（`A5`）与 `512` token 整数倍 `block_size`，另加 `+1/32` 字节的 `E8M0` 缩放因子（约 `1.03125 B/数`，单词实际约 `74.25 / 49.5 KiB`）。
 
+```wiki-tool
+tool: formula-ruler
+mode: kv-token-bytes
+model: qwen3-8b
+title: 随文活体算例标尺 · 单词与分块 KV 容量
+summary: 切换模型预设、昇腾卡型、TP 并行度或自定义 config.json，实时换算单层/全层每 token 字节数、128-token 物理块大小与可用 KV 池容量。
+```
+
 ## 省了重算，要付什么代价？
 
 **KV cache 拿空间和访存换计算：省掉的是旧位置 $O(t^2)$ 的整趟前向重算，多付的是常驻占用的显存、每步解码读取历史的带宽，以及分页空间管理的开销。**

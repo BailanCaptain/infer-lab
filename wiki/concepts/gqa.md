@@ -234,6 +234,14 @@ file: gqa-fig-qwen3-shapes
 - **单卡 KV 缓存触底不再缩小**：以 `Qwen3-30B-A3B` 为例，从 `TP=4` 扩到 `TP=8` 时，单卡每 token 的 KV cache（单层恒为 `512 B`）与单卡 $W_K, W_V$ 权重（单层各 `[2048, 128]`）均已触到「至少 1 个 KV 头」的地板，继续加 TP 卡不再省显存。
 - **单卡呈 `1Q : 1KV` 不等于退回 MHA**：小例子在 `TP=4` 下单卡表面是 `1Q : 1KV`，那只是两张卡共持同一份 KV 副本，全模型依然只有 `2` 组独立 K、V。
 
+```wiki-tool
+tool: formula-ruler
+mode: gqa-ratio
+model: qwen3-8b
+title: 随文活体算例标尺 · GQA 压缩比与 TP 复制拐点
+summary: 切换 Qwen3-8B（4:1）或 Qwen3-30B-A3B（8:1）并调节 TP 并行度，对照同头宽 MHA 压缩比与 TP > n_kv 时的 KV 头跨卡复制边界。
+```
+
 ## 昇腾算子执行与变体边界：FIA、Mooncake+C8 与 MLA / KDA
 
 ### 昇腾 FIA 原生分组与 Mooncake+C8、上下文并行约束

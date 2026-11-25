@@ -1,5 +1,5 @@
 import "../../design/tools.css";
-import { type CSSProperties, type MouseEvent, useId, useMemo, useState } from "react";
+import { type CSSProperties, type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { WikiToolSpec } from "../../content/wiki/toolFence";
 import {
   AICORE_LAB_WIKI_PAGE_IDS,
@@ -17,13 +17,23 @@ import {
 } from "../../sim/aicore/matmulRmsScenario";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
-import { sanitizeDiagnosticText } from "./workbenchHandoff";
+import {
+  buildAiCoreQueryParams,
+  copyTextToClipboard,
+  hasExplicitAiCoreQueryParams,
+  parseAiCoreQueryParams,
+  sanitizeDiagnosticText,
+} from "./workbenchHandoff";
 
 export interface AiCoreLabViewProps {
   mode?: "single" | "full" | undefined;
   title?: string | undefined;
   summary?: string | undefined;
   embedded?: boolean | undefined;
+  isActive?: boolean | undefined;
+  searchParams?: URLSearchParams | undefined;
+  locationKey?: string | undefined;
+  onUpdateSearchParams?: ((nextParams: URLSearchParams, opts?: { replace?: boolean }) => void) | undefined;
 }
 
 const ARCH_OPTIONS: ReadonlyArray<{ value: AiCoreArch; label: string }> = [
@@ -1166,18 +1176,146 @@ function Measured910b3BenchmarkPanel() {
   );
 }
 
-export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCoreLabViewProps) {
+export function AiCoreLabView({
+  mode,
+  title,
+  summary,
+  embedded = false,
+  isActive,
+  searchParams,
+  locationKey,
+  onUpdateSearchParams,
+}: AiCoreLabViewProps) {
   const effectiveMode: "single" | "full" = mode === "single" ? "single" : "full";
   const showSingleHead = embedded || effectiveMode === "single";
   const idPrefix = useId();
   const assistant = useOptionalWikiAssistant();
+  const isAiCoreRouteActive =
+    effectiveMode === "full" &&
+    !embedded &&
+    (isActive !== undefined ? isActive : searchParams?.get("tab") === "aicore");
 
-  const [arch, setArch] = useState<AiCoreArch>(DEFAULT_AICORE_LAB_INPUT.arch);
-  const [doubleBuffer, setDoubleBuffer] = useState<boolean>(DEFAULT_AICORE_LAB_INPUT.doubleBuffer);
-  const [fuseAddRmsNorm, setFuseAddRmsNorm] = useState<boolean>(DEFAULT_AICORE_LAB_INPUT.fuseAddRmsNorm);
-  const [quantFormat, setQuantFormat] = useState<QuantFormatId>(DEFAULT_AICORE_LAB_INPUT.quantFormat);
-  const [outlierCh64, setOutlierCh64] = useState<number>(DEFAULT_AICORE_LAB_INPUT.outlierCh64);
+  const initialQuery = useMemo(
+    () => (isAiCoreRouteActive && searchParams ? parseAiCoreQueryParams(searchParams) : undefined),
+    [isAiCoreRouteActive, searchParams],
+  );
+
+  const [arch, setArch] = useState<AiCoreArch>(initialQuery?.arch ?? DEFAULT_AICORE_LAB_INPUT.arch);
+  const [doubleBuffer, setDoubleBuffer] = useState<boolean>(
+    initialQuery?.doubleBuffer ?? DEFAULT_AICORE_LAB_INPUT.doubleBuffer,
+  );
+  const [fuseAddRmsNorm, setFuseAddRmsNorm] = useState<boolean>(
+    initialQuery?.fuseAddRmsNorm ?? DEFAULT_AICORE_LAB_INPUT.fuseAddRmsNorm,
+  );
+  const [quantFormat, setQuantFormat] = useState<QuantFormatId>(
+    initialQuery?.quantFormat ?? DEFAULT_AICORE_LAB_INPUT.quantFormat,
+  );
+  const [outlierCh64, setOutlierCh64] = useState<number>(
+    initialQuery?.outlierCh64 ?? DEFAULT_AICORE_LAB_INPUT.outlierCh64,
+  );
   const [activeStepIdx, setActiveStepIdx] = useState<number>(3);
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  const [copyErrorUrl, setCopyErrorUrl] = useState<string | null>(null);
+
+  const wasActiveRef = useRef<boolean>(isAiCoreRouteActive);
+  const prevLocationKeyRef = useRef<string | undefined>(locationKey);
+  const lastSelfSyncedQueryRef = useRef<string | null>(null);
+  const restoringFromUrlInCommitRef = useRef<boolean>(false);
+  restoringFromUrlInCommitRef.current = false;
+
+  useEffect(() => {
+    const wasActive = wasActiveRef.current;
+    const prevKey = prevLocationKeyRef.current;
+    wasActiveRef.current = isAiCoreRouteActive;
+    prevLocationKeyRef.current = locationKey;
+    if (!isAiCoreRouteActive || !searchParams) return;
+    const serialized = searchParams.toString();
+    if (serialized === lastSelfSyncedQueryRef.current) {
+      lastSelfSyncedQueryRef.current = null;
+      return;
+    }
+    const hasExplicit = hasExplicitAiCoreQueryParams(searchParams);
+    if (!wasActive && !hasExplicit) return;
+    if (wasActive && prevKey === locationKey && serialized === "") return;
+    restoringFromUrlInCommitRef.current = true;
+    const parsed = parseAiCoreQueryParams(searchParams);
+    setArch(parsed.arch ?? DEFAULT_AICORE_LAB_INPUT.arch);
+    setDoubleBuffer(parsed.doubleBuffer ?? DEFAULT_AICORE_LAB_INPUT.doubleBuffer);
+    setFuseAddRmsNorm(parsed.fuseAddRmsNorm ?? DEFAULT_AICORE_LAB_INPUT.fuseAddRmsNorm);
+    setQuantFormat(parsed.quantFormat ?? DEFAULT_AICORE_LAB_INPUT.quantFormat);
+    setOutlierCh64(parsed.outlierCh64 ?? DEFAULT_AICORE_LAB_INPUT.outlierCh64);
+  }, [isAiCoreRouteActive, searchParams, locationKey]);
+
+  const isAtDefaultConfig =
+    arch === DEFAULT_AICORE_LAB_INPUT.arch &&
+    doubleBuffer === DEFAULT_AICORE_LAB_INPUT.doubleBuffer &&
+    fuseAddRmsNorm === DEFAULT_AICORE_LAB_INPUT.fuseAddRmsNorm &&
+    quantFormat === DEFAULT_AICORE_LAB_INPUT.quantFormat &&
+    Math.abs(outlierCh64 - DEFAULT_AICORE_LAB_INPUT.outlierCh64) < 1e-6;
+
+  useEffect(() => {
+    if (!isAiCoreRouteActive || !searchParams || !onUpdateSearchParams) return;
+    if (restoringFromUrlInCommitRef.current) return;
+    if (isAtDefaultConfig && !hasExplicitAiCoreQueryParams(searchParams)) return;
+
+    const nextParams = isAtDefaultConfig
+      ? buildAiCoreQueryParams({}, searchParams)
+      : buildAiCoreQueryParams(
+          { arch, doubleBuffer, fuseAddRmsNorm, quantFormat, outlierCh64 },
+          searchParams,
+        );
+    const nextStr = nextParams.toString();
+    if (nextStr !== searchParams.toString()) {
+      lastSelfSyncedQueryRef.current = nextStr;
+      onUpdateSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    isAiCoreRouteActive,
+    searchParams,
+    onUpdateSearchParams,
+    isAtDefaultConfig,
+    arch,
+    doubleBuffer,
+    fuseAddRmsNorm,
+    quantFormat,
+    outlierCh64,
+  ]);
+
+  const handleCopyShareLink = () => {
+    const shareParams = buildAiCoreQueryParams(
+      { arch, doubleBuffer, fuseAddRmsNorm, quantFormat, outlierCh64 },
+      searchParams,
+    );
+    const baseToolsUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}#/tools`
+        : "http://localhost/#/tools";
+    const url = `${baseToolsUrl}?${shareParams.toString()}`;
+    void copyTextToClipboard(url).then((copied) => {
+      if (copied) {
+        setCopyErrorUrl(null);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      } else {
+        setLinkCopied(false);
+        setCopyErrorUrl(url);
+      }
+    });
+  };
+
+  const handleResetDefaults = () => {
+    setArch(DEFAULT_AICORE_LAB_INPUT.arch);
+    setDoubleBuffer(DEFAULT_AICORE_LAB_INPUT.doubleBuffer);
+    setFuseAddRmsNorm(DEFAULT_AICORE_LAB_INPUT.fuseAddRmsNorm);
+    setQuantFormat(DEFAULT_AICORE_LAB_INPUT.quantFormat);
+    setOutlierCh64(DEFAULT_AICORE_LAB_INPUT.outlierCh64);
+    setActiveStepIdx(3);
+    if (isAiCoreRouteActive && searchParams && onUpdateSearchParams) {
+      const cleanParams = buildAiCoreQueryParams({}, searchParams);
+      lastSelfSyncedQueryRef.current = cleanParams.toString();
+      onUpdateSearchParams(cleanParams, { replace: false });
+    }
+  };
 
   const result = useMemo(
     () =>
@@ -1265,6 +1403,39 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
               >
                 {result.schematicBadge}
               </span>
+              {effectiveMode === "full" && (
+                <>
+                  <button
+                    type="button"
+                    className="wt-preset-btn"
+                    style={{ padding: "2px 10px", fontSize: 12.5 }}
+                    data-testid="aicore-copy-share-link"
+                    onClick={handleCopyShareLink}
+                  >
+                    {linkCopied ? "已复制沙盘配置链接" : "复制沙盘配置链接"}
+                  </button>
+                  {copyErrorUrl && (
+                    <span
+                      role="alert"
+                      data-testid="aicore-copy-fallback"
+                      style={{ fontSize: 12.5, color: "var(--color-danger)" }}
+                    >
+                      剪贴板不可用，请手动复制：<code>{copyErrorUrl}</code>
+                    </span>
+                  )}
+                  {(!isAtDefaultConfig || hasExplicitAiCoreQueryParams(searchParams)) && (
+                    <button
+                      type="button"
+                      className="wt-preset-btn"
+                      style={{ padding: "2px 10px", fontSize: 12.5 }}
+                      data-testid="aicore-reset-defaults"
+                      onClick={handleResetDefaults}
+                    >
+                      重置默认
+                    </button>
+                  )}
+                </>
+              )}
             </div>
             <p className="wt-subtitle">{displaySummary}</p>
           </div>

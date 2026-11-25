@@ -1,8 +1,12 @@
 import type { ComponentType } from "react";
+import { AclGraphModeInteractive } from "./AclGraphModeInteractive";
+import { ChunkedPrefillInteractive } from "./ChunkedPrefillInteractive";
+import { PrefixCachingInteractive } from "./PrefixCachingInteractive";
 import {
   type InteractiveDiagramProps,
   QuantizationIntuitionInteractive,
 } from "./QuantizationIntuitionInteractive";
+import { RforkFallbackInteractive } from "./RforkFallbackInteractive";
 
 const K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,
@@ -96,6 +100,14 @@ const VALID_DIAGRAM_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const QUANTIZATION_INTUITION_APPROVED_SHA256 =
   "babc9b8e90798f1375d7eca7410edc9d85202a0b6924928f4dd498dd48a2e0fc";
+export const PREFIX_CACHING_APPROVED_SHA256 =
+  "00c404a6eb577a9ad39e13553ff7d5ee6c902c0cbcfc623af2a98cc9b40d06bd";
+export const CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256 =
+  "6104ef044abcbb31394d3c5d10d1c7c20788ab4c1735eb4367968573e5a6b1e7";
+export const ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256 =
+  "919524920ff9b4f53d4ee50cbb9cb8c96da51eefb4f2ca1cf07343004b773a77";
+export const RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 =
+  "8a818887ca8c5672463f32616905f804ab4a8344dc016e00d03c75e51d07b73d";
 
 /**
  * 人工代码审查的编译期静态白名单注册表：
@@ -108,6 +120,38 @@ const INTERACTIVE_2D_REGISTRY: ReadonlyMap<string, InteractiveDiagramRegistratio
       id: "quantization-intuition",
       approvedSvgSha256: QUANTIZATION_INTUITION_APPROVED_SHA256,
       Component: QuantizationIntuitionInteractive,
+    },
+  ],
+  [
+    "prefix-caching",
+    {
+      id: "prefix-caching",
+      approvedSvgSha256: PREFIX_CACHING_APPROVED_SHA256,
+      Component: PrefixCachingInteractive,
+    },
+  ],
+  [
+    "chunked-prefill-fig-budget-game",
+    {
+      id: "chunked-prefill-fig-budget-game",
+      approvedSvgSha256: CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256,
+      Component: ChunkedPrefillInteractive,
+    },
+  ],
+  [
+    "acl-graph-fig-mode-budget",
+    {
+      id: "acl-graph-fig-mode-budget",
+      approvedSvgSha256: ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256,
+      Component: AclGraphModeInteractive,
+    },
+  ],
+  [
+    "rfork-fig-route-and-fallback",
+    {
+      id: "rfork-fig-route-and-fallback",
+      approvedSvgSha256: RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256,
+      Component: RforkFallbackInteractive,
     },
   ],
 ]);

@@ -1,15 +1,22 @@
 /** Build and live readers share one content snapshot, including its revision. */
-import buildSnapshot, { loadPage, loadPageEvidence, loadSearchIndex } from "virtual:wiki-reader-snapshot";
+import buildSnapshot, {
+  loadPage,
+  loadPageEvidence,
+  loadSearchIndex,
+  loadWikiGraph,
+} from "virtual:wiki-reader-snapshot";
 import { repoSourceUrl } from "./evidence-schema";
 import { findPageByName } from "./page-names";
 import { createReaderStore } from "./reader-store";
 import { type Hit, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
 import { inlineRawSourceHref, type RegistryEntry, type RepoRef, rawSourceHref } from "./schema";
 
-const reader = createReaderStore(buildSnapshot, loadPage, loadSearchIndex, loadPageEvidence);
+const reader = createReaderStore(buildSnapshot, loadPage, loadSearchIndex, loadPageEvidence, loadWikiGraph);
 export const ensurePage = reader.ensurePage;
 export const ensurePageEvidence = reader.ensurePageEvidence;
+export const ensureWikiGraph = reader.ensureWikiGraph;
 export const getPageEvidence = reader.getPageEvidence;
+export const getWikiGraph = reader.getWikiGraph;
 export const getReaderState = reader.getState;
 export const resolvePageId = reader.resolvePageId;
 export const subscribeReader = reader.subscribe;
@@ -27,6 +34,7 @@ export type {
 } from "./evidence-schema";
 export { createEvidenceViewController, resolveActiveEvidence } from "./evidence-schema";
 export type { WikiPage } from "./reader-store";
+export type { ReaderGraph, WikiGraphEdge } from "./schema";
 export { resolveCanonicalPageId } from "./schema";
 
 export function listPages(): RegistryEntry[] {

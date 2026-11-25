@@ -15,7 +15,7 @@ description: 回答或核对任何关于 vLLM / vLLM-Ascend / 昇腾推理的问
    - `pnpm -s wiki:find "<词或问题>"`（支持 `--json`、`--limit N`）
    - `pnpm -s wiki:find --page <id>`（输出完整 Markdown）
    - `pnpm -s wiki:find --neighbors <id>`（输出双向 `relations` / `backlinks` 及每条边的理由 `note`）
-3. **MCP Server**：`pnpm wiki:mcp`（stdio JSON-RPC，提供 `wiki_search` / `wiki_get_page` / `wiki_neighbors`，与命令行及站内问答共用 `src/content/wiki/retrieve.ts`）。
+3. **MCP Server**：`pnpm wiki:mcp`（stdio JSON-RPC，共 7 个只读工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors` 与命令行及站内问答共用 `src/content/wiki/retrieve.ts`；另提供 `ascend_plan_deploy` / `ascend_lint_serve_cmd`［P/D 模式附带逐端 `prefill` / `decode` 的 `envClassifications` 与 `effectiveRewrites`］ / `ascend_diagnose_log` / `ascend_reconcile_startup_log` 四个零幻觉确定性仿真核算工具）。
 
 ## 二、怎么读一页
 

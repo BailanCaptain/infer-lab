@@ -7,18 +7,26 @@ import {
   lazy,
   type ReactNode,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import type { AiCoreLabViewProps } from "../tools/AiCoreLabView";
 import type { ConfigDoctorViewProps } from "../tools/ConfigDoctorView";
 import type { DeployCalculatorViewProps } from "../tools/DeployCalculatorView";
+import type { IncidentWarGameViewProps } from "../tools/IncidentWarGameView";
 import type { TroubleshootWorkbenchViewProps } from "../tools/TroubleshootWorkbenchView";
-import { resolveToolsBackTarget } from "../tools/workbenchHandoff";
+import {
+  applyControlledTabQueryUpdate,
+  preserveWikiBackParams,
+  resolveToolsBackTarget,
+  type WorkbenchTabId,
+} from "../tools/workbenchHandoff";
 
-type ActiveToolTab = "calculator" | "doctor" | "troubleshoot" | "aicore";
+type ActiveToolTab = WorkbenchTabId;
 
 const pendingTestPreloads: Array<Promise<void>> = [];
 
@@ -69,12 +77,18 @@ const loadAiCoreLabView = async (): Promise<{ default: ComponentType<AiCoreLabVi
   return { default: AiCoreLabView };
 };
 
+const loadIncidentWarGameView = async (): Promise<{ default: ComponentType<IncidentWarGameViewProps> }> => {
+  const { IncidentWarGameView } = await import("../tools/IncidentWarGameView");
+  return { default: IncidentWarGameView };
+};
+
 const LazyDeployCalculatorView = createLazyView<DeployCalculatorViewProps>(loadDeployCalculatorView);
 const LazyConfigDoctorView = createLazyView<ConfigDoctorViewProps>(loadConfigDoctorView);
 const LazyTroubleshootWorkbenchView = createLazyView<TroubleshootWorkbenchViewProps>(
   loadTroubleshootWorkbenchView,
 );
 const LazyAiCoreLabView = createLazyView<AiCoreLabViewProps>(loadAiCoreLabView);
+const LazyIncidentWarGameView = createLazyView<IncidentWarGameViewProps>(loadIncidentWarGameView);
 
 if (import.meta.env.MODE === "test") {
   await Promise.all(pendingTestPreloads);
@@ -206,10 +220,17 @@ const SCENARIO_TABS: readonly ScenarioTabMeta[] = [
     desc: "配合硬件章节直观理解 AI Core 双缓冲与算子融合如何省显存带宽。",
     teaching: true,
   },
+  {
+    id: "wargame",
+    tag: "⑤ 实战闯关演练",
+    title: "生产故障通关场",
+    desc: "6 道真实生产故障演练：看日志判首错、改对启动命令并通过防逃课判卷。",
+    teaching: true,
+  },
 ];
 
 function resolveToolTab(raw: string | null): ActiveToolTab {
-  if (raw === "doctor" || raw === "troubleshoot" || raw === "aicore") return raw;
+  if (raw === "doctor" || raw === "troubleshoot" || raw === "aicore" || raw === "wargame") return raw;
   return "calculator";
 }
 
@@ -217,12 +238,17 @@ export function ToolsPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = resolveToolTab(searchParams.get("tab"));
+  const activeTabRef = useRef<ActiveToolTab>(activeTab);
+  const searchParamsRef = useRef<URLSearchParams>(searchParams);
+  activeTabRef.current = activeTab;
+  searchParamsRef.current = searchParams;
   const [visitedTabs, setVisitedTabs] = useState<ReadonlySet<ActiveToolTab>>(() => new Set([activeTab]));
   const [retryNonce, setRetryNonce] = useState<Record<ActiveToolTab, number>>({
     calculator: 0,
     doctor: 0,
     troubleshoot: 0,
     aicore: 0,
+    wargame: 0,
   });
 
   const bumpRetry = (tab: ActiveToolTab) => {
@@ -248,6 +274,10 @@ export function ToolsPage() {
     () => (retryNonce.aicore === 0 ? LazyAiCoreLabView : createLazyView(loadAiCoreLabView)),
     [retryNonce.aicore],
   );
+  const WarGameView = useMemo(
+    () => (retryNonce.wargame === 0 ? LazyIncidentWarGameView : createLazyView(loadIncidentWarGameView)),
+    [retryNonce.wargame],
+  );
 
   useEffect(() => {
     setVisitedTabs((prev) => {
@@ -258,20 +288,34 @@ export function ToolsPage() {
     });
   }, [activeTab]);
 
-  const navigateToTab = (next: ActiveToolTab, extra?: Record<string, string>, replace = true) => {
-    const nextParams = new URLSearchParams();
-    nextParams.set("tab", next);
-    const fromPage = searchParams.get("fromPage");
-    const fromAnchor = searchParams.get("fromAnchor");
-    if (fromPage) nextParams.set("fromPage", fromPage);
-    if (fromAnchor) nextParams.set("fromAnchor", fromAnchor);
-    if (extra) {
-      for (const [k, v] of Object.entries(extra)) {
-        nextParams.set(k, v);
+  const navigateToTab = useCallback(
+    (next: ActiveToolTab, extra?: Record<string, string>, replace = true) => {
+      const nextParams = new URLSearchParams();
+      nextParams.set("tab", next);
+      preserveWikiBackParams(nextParams, searchParamsRef.current);
+      if (extra) {
+        for (const [k, v] of Object.entries(extra)) {
+          nextParams.set(k, v);
+        }
       }
-    }
-    setSearchParams(nextParams, { replace });
-  };
+      setSearchParams(nextParams, { replace });
+    },
+    [setSearchParams],
+  );
+
+  const handleUpdateTabSearchParams = useCallback(
+    (ownerTab: ActiveToolTab, tabParams: URLSearchParams, opts?: { replace?: boolean }) => {
+      const merged = applyControlledTabQueryUpdate(
+        activeTabRef.current,
+        ownerTab,
+        searchParamsRef.current,
+        tabParams,
+      );
+      if (!merged) return;
+      setSearchParams(merged, { replace: opts?.replace ?? true, preventScrollReset: true });
+    },
+    [setSearchParams],
+  );
 
   const backTarget = resolveToolsBackTarget(searchParams);
   const backTo = backTarget.hash
@@ -287,7 +331,8 @@ export function ToolsPage() {
           <span className="wt-workbench-eyebrow">昇腾部署与排障 · VLLM-ASCEND V0.30.0 / MAIN</span>
           <h1 className="wt-workbench-title">部署与排障工作台</h1>
           <p className="wt-workbench-desc">
-            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；第四个是配合硬件章节的芯片微观原理沙盘。
+            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；后两个提供芯片算子微观沙盘与 6
+            关真实生产故障实战闯关。
           </p>
         </div>
         <Link className="wt-workbench-back" to={backTo} data-testid="tools-back-to-wiki">
@@ -307,7 +352,9 @@ export function ToolsPage() {
               aria-selected={isActive}
               className={`wt-scenario-tab${isActive ? " is-active" : ""}${tab.teaching ? " is-teaching" : ""}`}
               data-testid={`tools-tab-${tab.id}`}
-              onClick={() => navigateToTab(tab.id)}
+              onClick={() => {
+                if (!isActive) navigateToTab(tab.id);
+              }}
             >
               <span className="wt-scenario-tab-top">
                 <span className="wt-scenario-tag">{tab.tag}</span>
@@ -341,13 +388,17 @@ export function ToolsPage() {
                 summary="第一步：选模型、昇腾卡型与目标上下文 → 立即看能否装下、最少几张卡与 KV 显存余量；已有启动日志也可切到右侧「已有日志对账」核对偏差。"
                 searchParams={searchParams}
                 locationKey={location.key}
-                onClearCalculatorShareParams={(nextSubMode, pushHistory) =>
+                onUpdateSearchParams={(params, opts) =>
+                  handleUpdateTabSearchParams("calculator", params, opts)
+                }
+                onClearCalculatorShareParams={(nextSubMode, pushHistory) => {
+                  if (activeTabRef.current !== "calculator") return;
                   navigateToTab(
                     "calculator",
                     nextSubMode === "reconcile" ? { panel: "reconcile" } : undefined,
                     !pushHistory,
-                  )
-                }
+                  );
+                }}
                 onNavigateToDoctor={() => navigateToTab("doctor")}
               />
             </Suspense>
@@ -373,6 +424,10 @@ export function ToolsPage() {
             >
               <DoctorView
                 mode="full"
+                isActive={activeTab === "doctor"}
+                searchParams={searchParams}
+                locationKey={location.key}
+                onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("doctor", params, opts)}
                 title="检查启动命令（配置体检）"
                 summary="粘贴单机或 P/D 分离的 vllm serve 命令，按 vllm-ascend 源码规则提前揪出参数冲突、会被悄悄改写的选项与实际生效值。"
               />
@@ -399,6 +454,12 @@ export function ToolsPage() {
             >
               <TroubleshootView
                 mode="full"
+                isActive={activeTab === "troubleshoot"}
+                searchParams={searchParams}
+                locationKey={location.key}
+                onUpdateSearchParams={(params, opts) =>
+                  handleUpdateTabSearchParams("troubleshoot", params, opts)
+                }
                 title="分析报错日志（在线排障）"
                 summary="粘贴真实报错日志、CANN/HCCL 错误码或 /metrics 指标，自动定位最早出错的卡（首错 Rank）；也可切到右侧查看 6 类典型阻塞的时序演示。"
                 onNavigateToReconcile={() => navigateToTab("calculator", { panel: "reconcile" })}
@@ -426,8 +487,41 @@ export function ToolsPage() {
             >
               <AiCoreView
                 mode="full"
+                isActive={activeTab === "aicore"}
+                searchParams={searchParams}
+                locationKey={location.key}
+                onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("aicore", params, opts)}
                 title="芯片算子沙盘（微观原理演示 · AI Core）"
                 summary="配合硬件章节理解底层原理：切换双缓冲、算子融合与 910B/950 架构，直观观察数据搬运怎样省显存带宽、以及离群值如何影响量化精度。"
+              />
+            </Suspense>
+          </ToolTabErrorBoundary>
+        </div>
+      )}
+
+      {isTabMounted("wargame") && (
+        <div className="wt-workbench-pane" hidden={activeTab !== "wargame"}>
+          <ToolTabErrorBoundary
+            tabId="wargame"
+            activeTab={activeTab}
+            tabLabel="生产故障通关场（实战闯关演练）"
+            retryCount={retryNonce.wargame}
+            onRetry={() => bumpRetry("wargame")}
+          >
+            <Suspense
+              fallback={
+                <div className="wt-pane-loading" role="status">
+                  正在加载「生产故障通关场（实战闯关演练）」…
+                </div>
+              }
+            >
+              <WarGameView
+                isActive={activeTab === "wargame"}
+                searchParams={searchParams}
+                locationKey={location.key}
+                onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("wargame", params, opts)}
+                title="生产故障通关场（实战闯关演练）"
+                summary="6 道源自本仓源码 [C] 与 910B3 真机实测 [M] 的生产故障关卡：先看现场日志或 /metrics 锁定首错根因，再亲手修复启动命令并通过确定性防逃课判卷。"
               />
             </Suspense>
           </ToolTabErrorBoundary>

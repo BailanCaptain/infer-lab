@@ -278,21 +278,31 @@ describe("server/tool-evidence", () => {
         num_key_value_heads: 8,
         intermediate_size: 12288,
         vocab_size: 151936,
+        bos_token_id: 151643,
+        eos_token_id: 151645,
         api_key: secrets[1],
         hf_token: secrets[4],
         clientSecret: "top-secret-999",
         password: secrets[6],
         authorization: `Bearer ${secrets[3]}`,
+        private_key: "QA_PRIVATE",
+        credentials: "QA_CREDENTIAL",
+        access_key: "QA_ACCESS",
         custom_note: `url=https://u:${secrets[6]}@host/v1 key=${secrets[0]}`,
       },
       cardId: "a2-64g",
     });
     const deployJson = JSON.stringify(deployEv);
-    for (const s of [...secrets, "top-secret-999"]) {
+    for (const s of [...secrets, "top-secret-999", "QA_PRIVATE", "QA_CREDENTIAL", "QA_ACCESS"]) {
       expect(deployJson).not.toContain(s);
     }
     expect(deployJson).toContain("[REDACTED]");
+    expect((deployEv.sanitizedInput.model as Record<string, unknown>).bos_token_id).toBe(151643);
+    expect((deployEv.sanitizedInput.model as Record<string, unknown>).eos_token_id).toBe(151645);
     expect(formatToolEvidenceForPrompt(deployEv)).not.toContain(secrets[0]);
+    expect(formatToolEvidenceForPrompt(deployEv)).not.toContain("QA_PRIVATE");
+    expect(formatToolEvidenceForPrompt(deployEv)).not.toContain("QA_CREDENTIAL");
+    expect(formatToolEvidenceForPrompt(deployEv)).not.toContain("QA_ACCESS");
   });
 
   it("P1-6: redacts all consecutive non-option values after multi-value --api-key and --token flags", () => {

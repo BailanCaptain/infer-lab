@@ -7,6 +7,8 @@ import {
   readReaderSnapshot,
   readReaderSnapshotWithEvidenceLock,
 } from "../../server/snapshot";
+import { packCompiledNode } from "../../src/content/wiki/hast-pack";
+import { extractReaderGraph } from "../../src/content/wiki/schema";
 import { DIAGRAM_DIR, diagramRefs } from "./diagrams";
 import { buildAllLockedEvidence, buildPageEvidenceFromLocked } from "./evidence";
 import { PAGE_DIRS } from "./pages";
@@ -18,6 +20,7 @@ const moduleId = "virtual:wiki-reader-snapshot";
 const resolvedId = `\0${moduleId}`;
 const pagePrefix = "virtual:wiki-reader-page/";
 const indexPrefix = "virtual:wiki-reader-index/";
+const graphPrefix = "virtual:wiki-reader-graph/";
 const evidencePrefix = "virtual:wiki-reader-evidence/";
 
 /** Embed metadata, bodies and identity from one locked read; never import a stale registry separately. */
@@ -27,6 +30,7 @@ export function wikiReaderPlugin(): Plugin {
   let isBuild = false;
   let lockedPublishedRawPaths: Set<string> | undefined;
   let lockedSearchIndex: { revision: string; json: string } | undefined;
+  let lockedGraph: { revision: string; json: string } | undefined;
   let lockedEvidenceSnapshot: LockedEvidenceSnapshot | undefined;
   const revisions = new Map<
     string,
@@ -34,6 +38,8 @@ export function wikiReaderPlugin(): Plugin {
       pages: Map<string, string>;
       searchIndex: string;
       searchIndexJson: string;
+      graph: string;
+      graphJson: string;
       lockedEvidence: LockedEvidenceSnapshot;
       evidenceJsonCache: Map<string, string>;
     }
@@ -49,6 +55,7 @@ export function wikiReaderPlugin(): Plugin {
       return id === moduleId ||
         id.startsWith(pagePrefix) ||
         id.startsWith(indexPrefix) ||
+        id.startsWith(graphPrefix) ||
         id.startsWith(evidencePrefix)
         ? `\0${id}`
         : undefined;
@@ -63,6 +70,12 @@ export function wikiReaderPlugin(): Plugin {
       if (id.startsWith(`\0${indexPrefix}`)) {
         const revision = id.slice(indexPrefix.length + 1);
         const source = revisions.get(revision)?.searchIndex;
+        if (!source) throw new Error("知识库版本已更新，请刷新页面。");
+        return source;
+      }
+      if (id.startsWith(`\0${graphPrefix}`)) {
+        const revision = id.slice(graphPrefix.length + 1);
+        const source = revisions.get(revision)?.graph;
         if (!source) throw new Error("知识库版本已更新，请刷新页面。");
         return source;
       }
@@ -92,19 +105,39 @@ export function wikiReaderPlugin(): Plugin {
         const payload = JSON.stringify({
           revision: snapshot.revision,
           file: page.file,
-          text,
-          compiled,
+          ...(isBuild && compiled ? {} : { text }),
+          ...(compiled ? { packedCompiled: packCompiledNode(compiled) } : {}),
+          sources: page.sources,
+          ...(page.rawSources ? { rawSources: page.rawSources } : {}),
+          relations: page.relations,
+          backlinks: page.backlinks,
           diagrams: snapshot.diagrams.filter((d) => refs.has(d.id)),
         });
         modules.set(page.id, `export default JSON.parse(${JSON.stringify(payload)});`);
         return `${JSON.stringify(page.id)}:()=>import(${JSON.stringify(`${pagePrefix}${snapshot.revision}/${page.id}`)}).then(m=>m.default)`;
       });
+      const lightRegistry = {
+        ...snapshot.registry,
+        pages: snapshot.registry.pages.map(
+          ({
+            sources: _sources,
+            rawSources: _rawSources,
+            relations: _relations,
+            backlinks: _backlinks,
+            ...light
+          }) => light,
+        ),
+      };
       const indexPayload = JSON.stringify(snapshot.searchIndex);
       lockedSearchIndex = { revision: snapshot.revision, json: indexPayload };
+      const graphPayload = JSON.stringify(extractReaderGraph(snapshot.revision, snapshot.registry.pages));
+      lockedGraph = { revision: snapshot.revision, json: graphPayload };
       revisions.set(snapshot.revision, {
         pages: modules,
         searchIndex: `export default JSON.parse(${JSON.stringify(indexPayload)});`,
         searchIndexJson: indexPayload,
+        graph: `export default JSON.parse(${JSON.stringify(graphPayload)});`,
+        graphJson: graphPayload,
         lockedEvidence: locked,
         evidenceJsonCache: new Map(),
       });
@@ -114,16 +147,25 @@ export function wikiReaderPlugin(): Plugin {
       const loadIndexExpr = isBuild
         ? `()=>${fetchIndexExpr}`
         : `()=>typeof window==="undefined"?import(${JSON.stringify(`${indexPrefix}${snapshot.revision}`)}).then(m=>m.default):${fetchIndexExpr}`;
+      const fetchGraphExpr = `fetch(${JSON.stringify(`./wiki-graph/graph-${snapshot.revision}.json`)}).then(r=>{if(!r.ok)throw new Error("知识图谱加载失败，请检查连接后重试。");return r.json();},()=>{throw new Error("知识图谱加载失败，请检查连接后重试。");})`;
+      const loadGraphExpr = isBuild
+        ? `()=>${fetchGraphExpr}`
+        : `()=>typeof window==="undefined"?import(${JSON.stringify(`${graphPrefix}${snapshot.revision}`)}).then(m=>m.default):${fetchGraphExpr}`;
       const buildRevLiteral = JSON.stringify(snapshot.revision);
       const fetchEvidenceExpr = `(id,rev)=>fetch(rev===${buildRevLiteral}?"./wiki-evidence/"+rev+"/"+encodeURIComponent(id)+".json":"/api/wiki/evidence?page="+encodeURIComponent(id)+"&revision="+encodeURIComponent(rev)).then(r=>{if(!r.ok)throw new Error("证据资料加载失败，请检查连接后重试。");return r.json();},()=>{throw new Error("证据资料加载失败，请检查连接后重试。");})`;
+      const manifestJson = JSON.stringify({
+        revision: snapshot.revision,
+        registry: lightRegistry,
+        skipped: snapshot.skipped,
+      });
       if (isBuild) {
-        return `export default ${JSON.stringify({ revision: snapshot.revision, registry: snapshot.registry, skipped: snapshot.skipped })};\nconst pages={${loaders.join(",")}};export const loadPage=id=>pages[id]();export const loadSearchIndex=${loadIndexExpr};export const loadPageEvidence=${fetchEvidenceExpr};`;
+        return `export default ${manifestJson};\nconst pages={${loaders.join(",")}};export const loadPage=id=>pages[id]();export const loadSearchIndex=${loadIndexExpr};export const loadWikiGraph=${loadGraphExpr};export const loadPageEvidence=${fetchEvidenceExpr};`;
       }
       const evLoaders = snapshot.registry.pages.map(
         (page) =>
           `${JSON.stringify(page.id)}:()=>import(${JSON.stringify(`${evidencePrefix}${snapshot.revision}/${page.id}`)}).then(m=>m.default)`,
       );
-      return `export default ${JSON.stringify({ revision: snapshot.revision, registry: snapshot.registry, skipped: snapshot.skipped })};\nconst pages={${loaders.join(",")}};const evPages={${evLoaders.join(",")}};export const loadPage=id=>pages[id]();export const loadSearchIndex=${loadIndexExpr};export const loadPageEvidence=(id,rev)=>typeof window==="undefined"&&rev===${buildRevLiteral}&&evPages[id]?evPages[id]():(${fetchEvidenceExpr})(id,rev);`;
+      return `export default ${manifestJson};\nconst pages={${loaders.join(",")}};const evPages={${evLoaders.join(",")}};export const loadPage=id=>pages[id]();export const loadSearchIndex=${loadIndexExpr};export const loadWikiGraph=${loadGraphExpr};export const loadPageEvidence=(id,rev)=>typeof window==="undefined"&&rev===${buildRevLiteral}&&evPages[id]?evPages[id]():(${fetchEvidenceExpr})(id,rev);`;
     },
     configureServer(server) {
       void readReaderSnapshot(root).catch((error) =>
@@ -192,6 +234,30 @@ export function wikiReaderPlugin(): Plugin {
           res.end(json);
           return;
         }
+        if (req.url?.startsWith("/wiki-graph/")) {
+          const pathname = new URL(req.url, "http://127.0.0.1").pathname;
+          const m = /^\/wiki-graph\/(?:graph-)?([a-f0-9]{64})\.json$/.exec(pathname);
+          if (!m) {
+            res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+            res.end("未找到对应版本的知识图谱。");
+            return;
+          }
+          let json = revisions.get(m[1]!)?.graphJson;
+          if (!json) {
+            const snapshot = await readReaderSnapshot(root);
+            if (snapshot.revision === m[1]) {
+              json = JSON.stringify(extractReaderGraph(snapshot.revision, snapshot.registry.pages));
+            }
+          }
+          if (!json) {
+            res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+            res.end("知识库版本已更新，请刷新页面。");
+            return;
+          }
+          res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+          res.end(json);
+          return;
+        }
         if (!req.url?.startsWith("/wiki-raw/")) return next();
         let url: URL;
         try {
@@ -237,16 +303,25 @@ export function wikiReaderPlugin(): Plugin {
     async writeBundle(options) {
       const targetOut = options.dir ? resolve(root, options.dir) : outDir;
       const snapshot =
-        lockedPublishedRawPaths && lockedSearchIndex ? undefined : await readReaderSnapshot(root);
+        lockedPublishedRawPaths && lockedSearchIndex && lockedGraph
+          ? undefined
+          : await readReaderSnapshot(root);
       const published = lockedPublishedRawPaths ?? collectSnapshotPublishedRawPaths(snapshot!);
       const searchEntry = lockedSearchIndex ?? {
         revision: snapshot!.revision,
         json: JSON.stringify(snapshot!.searchIndex),
       };
+      const graphEntry = lockedGraph ?? {
+        revision: snapshot!.revision,
+        json: JSON.stringify(extractReaderGraph(snapshot!.revision, snapshot!.registry.pages)),
+      };
       emitStaticRawSnapshots(join(root, "wiki"), targetOut, published);
       const searchDir = join(targetOut, "wiki-search");
       mkdirSync(searchDir, { recursive: true });
       writeFileSync(join(searchDir, `index-${searchEntry.revision}.json`), searchEntry.json, "utf8");
+      const graphDir = join(targetOut, "wiki-graph");
+      mkdirSync(graphDir, { recursive: true });
+      writeFileSync(join(graphDir, `graph-${graphEntry.revision}.json`), graphEntry.json, "utf8");
       const lockedEvidence = lockedEvidenceSnapshot ?? (await readLockedEvidenceSnapshot(root));
       const evidenceDir = join(targetOut, "wiki-evidence", lockedEvidence.revision);
       mkdirSync(evidenceDir, { recursive: true });

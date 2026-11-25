@@ -1767,9 +1767,9 @@
     },
     {
       "path": "whole/index.html",
-      "bytes": 12333,
+      "bytes": 15773,
       "sourceSha256": "d7e2007c613e3011328823f9becf4d60909e86d78714152c30f333c57b745075",
-      "sha256": "d252977378676f2211702d234ce1ec15c483a329267f38f62e57d10846e46491"
+      "sha256": "c38616c66f87a21f968177fd23f174a7a0ddd96df743866d6ac820f43ae6d372"
     },
     {
       "path": "whole/readable-diagrams.css",
@@ -1785,9 +1785,9 @@
     },
     {
       "path": "whole/viewer.js",
-      "bytes": 54561,
+      "bytes": 83527,
       "sourceSha256": "0d42479a8c5585f7cc2b9032bd7305257f053e6ac70e293f77216a4c8e758fff",
-      "sha256": "1dbbc41afaa2f8b43f77a46771bcbc92f7fa68ceecd8921f50f3b24dace43a43"
+      "sha256": "e51d8762239df65fbd1bf956443eb2c703b45540929812a1e0d71bf3592ac68d"
     }
   ]
 }

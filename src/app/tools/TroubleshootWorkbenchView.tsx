@@ -1,5 +1,5 @@
 import "../../design/tools.css";
-import { type CSSProperties, type MouseEvent, useId, useMemo, useState } from "react";
+import { type CSSProperties, type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { sourceUrl } from "../../content/wiki/index";
 import { parseRepoRef } from "../../content/wiki/schema";
 import type { WikiToolSpec } from "../../content/wiki/toolFence";
@@ -25,7 +25,12 @@ import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
 import {
   buildTroubleshootChatAnalysis,
+  buildTroubleshootQueryParams,
+  copyTextToClipboard,
+  hasExplicitTroubleshootQueryParams,
   hasReconcilableStartupMetrics,
+  matchExactTroubleshootFixtureId,
+  parseTroubleshootQueryParams,
   sanitizeDiagnosticText,
   workbenchHandoffStore,
 } from "./workbenchHandoff";
@@ -869,11 +874,19 @@ function SchematicSwimlaneSvg({
   );
 }
 
-function SchematicTimelinePanel({ initialScenarioId }: { initialScenarioId?: string | undefined }) {
+function SchematicTimelinePanel({
+  scenarioId,
+  step,
+  onSelectScenario,
+  onStepChange,
+}: {
+  scenarioId: TimelineScenarioId;
+  step: number;
+  onSelectScenario: (nextId: TimelineScenarioId) => void;
+  onStepChange: (nextStep: number) => void;
+}) {
   const idPrefix = useId();
-  const initialScenario = useMemo(() => getTimelineScenario(initialScenarioId), [initialScenarioId]);
-  const [scenarioId, setScenarioId] = useState<TimelineScenarioId>(initialScenario.id);
-  const [counterfactualOn, setCounterfactualOn] = useState<boolean>(false);
+  const counterfactualOn = step > 0;
   const [selectedSpan, setSelectedSpan] = useState<TimelineSpan | null>(null);
 
   const scenario = useMemo(() => getTimelineScenario(scenarioId), [scenarioId]);
@@ -882,9 +895,14 @@ function SchematicTimelinePanel({ initialScenarioId }: { initialScenarioId?: str
     [scenario.id, counterfactualOn],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear stale selected span whenever scenario or step changes via URL/Back/Forward.
+  useEffect(() => {
+    setSelectedSpan(null);
+  }, [scenario.id, counterfactualOn]);
+
   const handleSelectScenario = (nextId: TimelineScenarioId) => {
-    setScenarioId(nextId);
-    setCounterfactualOn(false);
+    onSelectScenario(nextId);
+    onStepChange(0);
     setSelectedSpan(null);
   };
 
@@ -901,7 +919,7 @@ function SchematicTimelinePanel({ initialScenarioId }: { initialScenarioId?: str
             data-testid="counterfactual-toggle"
             checked={counterfactualOn}
             onChange={(e) => {
-              setCounterfactualOn(e.target.checked);
+              onStepChange(e.target.checked ? 1 : 0);
               setSelectedSpan(null);
             }}
           />
@@ -997,6 +1015,10 @@ export interface TroubleshootWorkbenchViewProps {
   initialPresetId?: string | undefined;
   initialTab?: ActiveWorkbenchPanel | undefined;
   onNavigateToReconcile?: (() => void) | undefined;
+  isActive?: boolean | undefined;
+  searchParams?: URLSearchParams | undefined;
+  locationKey?: string | undefined;
+  onUpdateSearchParams?: ((nextParams: URLSearchParams, opts?: { replace?: boolean }) => void) | undefined;
 }
 
 export function TroubleshootWorkbenchView({
@@ -1007,9 +1029,17 @@ export function TroubleshootWorkbenchView({
   initialPresetId,
   initialTab,
   onNavigateToReconcile,
+  isActive,
+  searchParams,
+  locationKey,
+  onUpdateSearchParams,
 }: TroubleshootWorkbenchViewProps) {
   const effectiveMode: TroubleshootMode = mode === "logs" || mode === "timeline" ? mode : "full";
   const assistant = useOptionalWikiAssistant();
+  const isTroubleshootRouteActive =
+    effectiveMode === "full" &&
+    !embedded &&
+    (isActive !== undefined ? isActive : searchParams?.get("tab") === "troubleshoot");
 
   const defaultPanel: ActiveWorkbenchPanel =
     effectiveMode === "timeline"
@@ -1020,27 +1050,171 @@ export function TroubleshootWorkbenchView({
           ? "timeline"
           : "logs";
 
-  const initialFixture = useMemo(() => getTroubleshootFixture(initialPresetId), [initialPresetId]);
-  const [activeFixtureId, setActiveFixtureId] = useState<string>(initialFixture.id);
-  const [rawInput, setRawInput] = useState<string>(initialFixture.content);
+  const initialQuery = useMemo(
+    () =>
+      isTroubleshootRouteActive && searchParams ? parseTroubleshootQueryParams(searchParams) : undefined,
+    [isTroubleshootRouteActive, searchParams],
+  );
+  const defaultFixture = useMemo(() => getTroubleshootFixture(initialPresetId), [initialPresetId]);
+  const defaultScenario = useMemo(() => getTimelineScenario(initialPresetId), [initialPresetId]);
+  const initialFixture = useMemo(
+    () => getTroubleshootFixture(initialQuery?.fixtureId ?? initialPresetId),
+    [initialQuery?.fixtureId, initialPresetId],
+  );
+  const initialScenario = useMemo(
+    () => getTimelineScenario(initialQuery?.scenarioId ?? initialPresetId),
+    [initialQuery?.scenarioId, initialPresetId],
+  );
 
-  const [activePanel, setActivePanel] = useState<ActiveWorkbenchPanel>(defaultPanel);
+  const [rawInput, setRawInput] = useState<string>(initialFixture.content);
+  const [activePanel, setActivePanel] = useState<ActiveWorkbenchPanel>(initialQuery?.panel ?? defaultPanel);
+  const [scenarioId, setScenarioId] = useState<TimelineScenarioId>(initialScenario.id);
+  const [timelineStep, setTimelineStep] = useState<number>(initialQuery?.step ?? 0);
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+
+  const exactFixtureId = useMemo(() => matchExactTroubleshootFixtureId(rawInput), [rawInput]);
   const currentPanel: ActiveWorkbenchPanel = effectiveMode === "full" ? activePanel : effectiveMode;
+
+  const wasActiveRef = useRef<boolean>(isTroubleshootRouteActive);
+  const prevLocationKeyRef = useRef<string | undefined>(locationKey);
+  const lastSelfSyncedQueryRef = useRef<string | null>(null);
+  const restoringFromUrlInCommitRef = useRef<boolean>(false);
+  restoringFromUrlInCommitRef.current = false;
+
+  useEffect(() => {
+    const wasActive = wasActiveRef.current;
+    const prevKey = prevLocationKeyRef.current;
+    wasActiveRef.current = isTroubleshootRouteActive;
+    prevLocationKeyRef.current = locationKey;
+    if (!isTroubleshootRouteActive || !searchParams) return;
+    const serialized = searchParams.toString();
+    if (serialized === lastSelfSyncedQueryRef.current) {
+      lastSelfSyncedQueryRef.current = null;
+      return;
+    }
+    const hasExplicit = hasExplicitTroubleshootQueryParams(searchParams);
+    if (!wasActive && !hasExplicit) return;
+    if (wasActive && prevKey === locationKey && serialized === "") return;
+    restoringFromUrlInCommitRef.current = true;
+    const parsed = parseTroubleshootQueryParams(searchParams);
+    setActivePanel(parsed.panel ?? defaultPanel);
+    const nextFixture = getTroubleshootFixture(parsed.fixtureId ?? initialPresetId);
+    setRawInput(nextFixture.content);
+    setScenarioId(getTimelineScenario(parsed.scenarioId ?? initialPresetId).id);
+    setTimelineStep(parsed.step ?? 0);
+    setShareNotice(null);
+  }, [isTroubleshootRouteActive, searchParams, locationKey, defaultPanel, initialPresetId]);
+
+  useEffect(() => {
+    if (!isTroubleshootRouteActive || !searchParams || !onUpdateSearchParams) return;
+    if (restoringFromUrlInCommitRef.current) return;
+
+    const isAtDefault =
+      activePanel === defaultPanel &&
+      exactFixtureId === defaultFixture.id &&
+      scenarioId === defaultScenario.id &&
+      timelineStep === 0;
+
+    if (isAtDefault && !hasExplicitTroubleshootQueryParams(searchParams)) return;
+
+    const nextParams = isAtDefault
+      ? buildTroubleshootQueryParams({}, searchParams)
+      : activePanel === "timeline"
+        ? buildTroubleshootQueryParams(
+            {
+              panel: "timeline",
+              scenarioId,
+              step: timelineStep,
+              ...(exactFixtureId && exactFixtureId !== defaultFixture.id
+                ? { fixtureId: exactFixtureId }
+                : {}),
+            },
+            searchParams,
+          )
+        : buildTroubleshootQueryParams(
+            {
+              panel: "logs",
+              fixtureId: exactFixtureId,
+              ...(scenarioId !== defaultScenario.id ? { scenarioId } : {}),
+              ...(timelineStep > 0 ? { step: timelineStep } : {}),
+            },
+            searchParams,
+          );
+
+    const nextStr = nextParams.toString();
+    if (nextStr !== searchParams.toString()) {
+      lastSelfSyncedQueryRef.current = nextStr;
+      onUpdateSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    isTroubleshootRouteActive,
+    searchParams,
+    onUpdateSearchParams,
+    activePanel,
+    defaultPanel,
+    exactFixtureId,
+    defaultFixture.id,
+    scenarioId,
+    defaultScenario.id,
+    timelineStep,
+  ]);
 
   const handleSelectFixture = (fixtureId: string) => {
     const picked = getTroubleshootFixture(fixtureId);
-    setActiveFixtureId(picked.id);
     setRawInput(picked.content);
+    setShareNotice(null);
   };
 
   const handleClearLog = () => {
-    setActiveFixtureId("");
     setRawInput("");
+    setShareNotice(null);
   };
 
   const handleRawInputChange = (next: string) => {
-    setActiveFixtureId("");
     setRawInput(next);
+    setShareNotice(null);
+  };
+
+  const handleCopyShareLink = () => {
+    const shareParams =
+      currentPanel === "timeline"
+        ? buildTroubleshootQueryParams(
+            {
+              panel: "timeline",
+              scenarioId,
+              step: timelineStep,
+              ...(exactFixtureId ? { fixtureId: exactFixtureId } : {}),
+            },
+            searchParams,
+          )
+        : buildTroubleshootQueryParams(
+            {
+              panel: "logs",
+              ...(exactFixtureId ? { fixtureId: exactFixtureId } : {}),
+              ...(scenarioId !== defaultScenario.id ? { scenarioId } : {}),
+              ...(timelineStep > 0 ? { step: timelineStep } : {}),
+            },
+            searchParams,
+          );
+    const baseToolsUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}#/tools`
+        : "http://localhost/#/tools";
+    const url = `${baseToolsUrl}?${shareParams.toString()}`;
+    const isCustomLogPanel = currentPanel === "logs" && !exactFixtureId && rawInput.trim().length > 0;
+    void copyTextToClipboard(url).then((copied) => {
+      if (copied) {
+        setShareNotice(
+          isCustomLogPanel ? "已复制排障视图入口链接（为保护现场隐私，自定义粘贴日志不会写入 URL）。" : null,
+        );
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      } else {
+        setLinkCopied(false);
+        setShareNotice(`剪贴板不可用，请手动复制链接：${url}`);
+      }
+    });
   };
 
   const displayTitle =
@@ -1123,7 +1297,28 @@ export function TroubleshootWorkbenchView({
             <div className="wt-title-row">
               <h2 className="wt-title">{displayTitle}</h2>
               <span className="wt-baseline-pill">基线: v0.30.0 (c09d3e20)</span>
+              {effectiveMode === "full" && (
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "2px 10px", fontSize: 12.5 }}
+                  data-testid="troubleshoot-copy-share-link"
+                  onClick={handleCopyShareLink}
+                >
+                  {linkCopied ? "已复制当前视图链接" : "复制当前视图链接"}
+                </button>
+              )}
             </div>
+            {shareNotice && (
+              <p
+                className="wt-subtitle"
+                data-testid="troubleshoot-share-notice"
+                role="status"
+                style={{ color: "var(--color-ink-muted)", fontSize: 13 }}
+              >
+                {shareNotice}
+              </p>
+            )}
             <p className="wt-subtitle">
               {summary ??
                 "粘贴真实报错日志或 /metrics 指标，自动定位最早出错的卡（首错 Rank）与下一步取证命令；也可切到右侧查看 6 类典型阻塞的时序演示。"}
@@ -1141,7 +1336,10 @@ export function TroubleshootWorkbenchView({
               aria-selected={currentPanel === "logs"}
               className={`wt-seg-btn ${currentPanel === "logs" ? "is-active" : ""}`}
               data-testid="troubleshoot-tab-logs"
-              onClick={() => setActivePanel("logs")}
+              onClick={() => {
+                setActivePanel("logs");
+                setShareNotice(null);
+              }}
             >
               分析我的报错日志 / 指标
             </button>
@@ -1151,7 +1349,10 @@ export function TroubleshootWorkbenchView({
               aria-selected={currentPanel === "timeline"}
               className={`wt-seg-btn ${currentPanel === "timeline" ? "is-active" : ""}`}
               data-testid="troubleshoot-tab-timeline"
-              onClick={() => setActivePanel("timeline")}
+              onClick={() => {
+                setActivePanel("timeline");
+                setShareNotice(null);
+              }}
             >
               查看 6 类典型阻塞时序演示
             </button>
@@ -1161,7 +1362,7 @@ export function TroubleshootWorkbenchView({
 
       {currentPanel === "logs" ? (
         <RealLogAnalyzerPanel
-          activeFixtureId={activeFixtureId}
+          activeFixtureId={exactFixtureId ?? ""}
           rawInput={rawInput}
           onSelectFixture={handleSelectFixture}
           onClear={handleClearLog}
@@ -1171,7 +1372,12 @@ export function TroubleshootWorkbenchView({
           hasAssistant={assistant !== null}
         />
       ) : (
-        <SchematicTimelinePanel initialScenarioId={initialPresetId} />
+        <SchematicTimelinePanel
+          scenarioId={scenarioId}
+          step={timelineStep}
+          onSelectScenario={setScenarioId}
+          onStepChange={setTimelineStep}
+        />
       )}
     </div>
   );

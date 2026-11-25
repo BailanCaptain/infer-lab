@@ -335,6 +335,14 @@ file: expert-parallel-assign-qwen3
 
 **容量直觉：** `Qwen3-30B-A3B` 全模型 `48` 层 × `128` 专家仅路由专家权重在 `BF16` 下就达 `54.0 GiB`（整模型 `56.87 GiB`），单张 32 GiB 卡装不下。经 `EP=4` 均分后，每卡每层只驻留 `32` 个完整专家：路由专家权重降为 `BF16` `13.5 GiB/卡`，在 `W8A8` 动态量化下仅 `6.75 GiB/卡`（整卡权重约 `7.40 GiB`，单卡对账见[显存预算](kv-cache-memory-profiling.md#放到-v0300-标准部署qwen3-8b-单卡与-qwen3-30b-a3b-四卡怎么算)）。
 
+```wiki-tool
+tool: formula-ruler
+mode: moe-ep-dispatch
+model: qwen3-30b-a3b
+title: 随文活体算例标尺 · MoE 专家切分与 Dispatch+Combine 通信
+summary: 对照路由专家总数与 top-k 激活率、EP 开启 vs 关闭的单卡专家驻留形态，以及昇腾 MC2/AllGather 选路与派发收回通信量。
+```
+
 ### 真机实测：Ascend 910B3 上 MoE 反超稠密与扩至 EP=8 的负扩展
 
 在单机八卡 `Ascend 910B3`（`CANN 9.1.0`、`vllm-ascend 0.30.0`、`INFO` 干净态）下，以统一脚本（平均 `262` prompt tokens、`128` 输出 tokens）实测 BF16 `Qwen3-30B-A3B` 的四卡 `TP4+EP4`、八卡 `DP2+TP4+EP8` 与四卡稠密 `Qwen3-8B TP4`（完整环境指纹、对账摘录与原始 JSON 见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。两组对比同时揭示了稀疏 MoE 的低激活收益与 `EP=8` 低中并发下的负扩展边界：

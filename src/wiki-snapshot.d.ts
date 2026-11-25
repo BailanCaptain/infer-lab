@@ -6,5 +6,6 @@ declare module "virtual:wiki-reader-snapshot" {
     id: string,
     revision: string,
   ) => Promise<import("./content/wiki/evidence-schema").ReaderPageEvidence>;
+  export const loadWikiGraph: () => Promise<import("./content/wiki/schema").ReaderGraph>;
   export default snapshot;
 }

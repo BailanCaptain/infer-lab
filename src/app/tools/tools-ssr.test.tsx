@@ -2,13 +2,15 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from "react-router";
 import { describe, expect, it } from "vitest";
-import { LEGACY_BASELINE_BADGE_TEXT } from "../../content/wiki/toolDeeplinks";
+import { LEGACY_BASELINE_BADGE_TEXT, resolveToolDeepLink } from "../../content/wiki/toolDeeplinks";
 import { ASCEND_910B3_MEASURED_BENCHMARKS, SCHEMATIC_TIMING_BADGE } from "../../sim/aicore/matmulRmsScenario";
 import { SCHEMATIC_TRACE_BADGE_TEXT } from "../../sim/troubleshoot/timelineSandbox";
+import { WARGAME_SCENARIOS } from "../../sim/wargame/scenarios";
 import { AppShell } from "../AppShell";
 import { ToolsPage, ToolTabErrorBoundary } from "../pages/ToolsPage";
 import { WikiToolBlock } from "../wiki/WikiToolBlock";
-import { extractNormalizedCliModel } from "./ConfigDoctorView";
+import { AiCoreLabView } from "./AiCoreLabView";
+import { ConfigDoctorView, extractNormalizedCliModel } from "./ConfigDoctorView";
 import {
   DeployCalculatorView,
   evaluateCalculatorModelGate,
@@ -17,8 +19,17 @@ import {
   parseV2ModelRunnerParam,
   serializeCustomModelForShare,
 } from "./DeployCalculatorView";
+import {
+  buildWarGameQueryParams,
+  IncidentWarGameView,
+  parseWarGameCaseParam,
+  readWarGamePassedIds,
+  WARGAME_PROGRESS_STORAGE_KEY,
+  writeWarGamePassedIds,
+} from "./IncidentWarGameView";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
-import { parseCalculatorQueryParams } from "./workbenchHandoff";
+import { TroubleshootWorkbenchView } from "./TroubleshootWorkbenchView";
+import { encodeDoctorCommandParam, parseCalculatorQueryParams } from "./workbenchHandoff";
 
 const MLA_CONFIG_JSON = JSON.stringify({
   model_type: "deepseek_v3",
@@ -550,5 +561,155 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     );
     expect(infSsrHtml).toContain('data-testid="calc-gate-error"');
     expect(infSsrHtml).not.toContain('data-testid="calc-verdict-strip"');
+  });
+
+  it("Track 1B: restores Doctor/AiCore/Troubleshoot deep links via SSR, escapes XSS in cmd, preserves fromPage/fromAnchor, and isolates inactive/embedded views", async () => {
+    const handler = createStaticHandler([
+      {
+        path: "/",
+        Component: AppShell,
+        children: [{ path: "tools", Component: ToolsPage }],
+      },
+    ]);
+    const renderUrl = async (url: string) => {
+      const ctx = await handler.query(new Request(url));
+      if (ctx instanceof Response) throw new Error(`unexpected redirect on ${url}`);
+      const router = createStaticRouter(handler.dataRoutes, ctx);
+      return renderToStaticMarkup(createElement(StaticRouterProvider, { router, context: ctx }));
+    };
+
+    // 1. ConfigDoctor shared cmd restoration + XSS escaping + clear button + fromPage/fromAnchor
+    const xssCmd = 'vllm serve Qwen/Qwen3-8B -tp 2 --served-model-name "<script>alert(1)</script>"';
+    const encodedCmd = encodeDoctorCommandParam(xssCmd);
+    const doctorShareHtml = await renderUrl(
+      `http://localhost/tools?tab=doctor&topology=single&hw=310P&ver=main&hint=qwen3-8b&cmd=${encodedCmd}&fromPage=core-cli-params&fromAnchor=静默改写`,
+    );
+    expect(doctorShareHtml).toContain('data-testid="doctor-copy-share-link"');
+    expect(doctorShareHtml).toContain('data-testid="doctor-share-banner"');
+    expect(doctorShareHtml).toContain('data-testid="doctor-clear-share-params"');
+    expect(doctorShareHtml).toContain("main (8d6180e2)");
+    expect(doctorShareHtml).toContain("返回主章节 · core-cli-params");
+    expect(doctorShareHtml).toContain('href="/wiki/core-cli-params#');
+    expect(doctorShareHtml).not.toContain("<script>alert(1)</script>");
+    expect(doctorShareHtml).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+
+    // 2. AiCoreLab full URL parameter restoration + share & reset buttons
+    const aicoreShareHtml = await renderUrl(
+      "http://localhost/tools?tab=aicore&arch=950&db=1&fuse=1&quant=w8a8_dynamic&outlier=20.5&fromPage=ai-core&fromAnchor=双缓冲",
+    );
+    expect(aicoreShareHtml).toContain('data-arch="950"');
+    expect(aicoreShareHtml).toContain("Ping / Pong 双槽重叠");
+    expect(aicoreShareHtml).toContain("20.5");
+    expect(aicoreShareHtml).toContain('data-testid="aicore-copy-share-link"');
+    expect(aicoreShareHtml).toContain('data-testid="aicore-reset-defaults"');
+    expect(aicoreShareHtml).toContain("返回主章节 · ai-core");
+
+    // 3. TroubleshootWorkbench timeline scenario + step=1 (counterfactual) restoration + copy button
+    const tsShareHtml = await renderUrl(
+      "http://localhost/tools?tab=troubleshoot&panel=timeline&scenario=kv-preemption-storm&step=1&fromPage=hccl-buffer",
+    );
+    expect(tsShareHtml).toContain('data-panel="timeline"');
+    expect(tsShareHtml).toContain("对策验证态");
+    expect(tsShareHtml).toContain('data-testid="troubleshoot-copy-share-link"');
+    expect(tsShareHtml).toContain("返回主章节 · hccl-buffer");
+
+    // 4. Inactive (isActive=false) and embedded (embedded=true) views strictly ignore searchParams
+    const foreignParams = new URLSearchParams(
+      `tab=aicore&arch=950&db=1&topology=pd&cmd=${encodedCmd}&panel=timeline&step=1`,
+    );
+    const inactiveAiCoreHtml = renderToStaticMarkup(
+      createElement(AiCoreLabView, { mode: "full", isActive: false, searchParams: foreignParams }),
+    );
+    expect(inactiveAiCoreHtml).toContain('data-arch="910b"');
+    const embeddedDoctorHtml = renderToStaticMarkup(
+      createElement(ConfigDoctorView, { mode: "full", embedded: true, searchParams: foreignParams }),
+    );
+    expect(embeddedDoctorHtml).toContain('data-topology="single"');
+    expect(embeddedDoctorHtml).not.toContain("&lt;script&gt;");
+    const inactiveTsHtml = renderToStaticMarkup(
+      createElement(TroubleshootWorkbenchView, {
+        mode: "full",
+        isActive: false,
+        searchParams: foreignParams,
+      }),
+    );
+    expect(inactiveTsHtml).toContain('data-panel="logs"');
+  });
+
+  it("Track 3B: renders tab=wargame SSR, restores ?case=<scenarioId>, guards spoilers/inactive URL, and validates all 6 scenario Wiki deep-links", async () => {
+    const handler = createStaticHandler([
+      {
+        path: "/",
+        Component: AppShell,
+        children: [{ path: "tools", Component: ToolsPage }],
+      },
+    ]);
+    const renderUrl = async (url: string) => {
+      const ctx = await handler.query(new Request(url));
+      if (ctx instanceof Response) throw new Error(`unexpected redirect on ${url}`);
+      const router = createStaticRouter(handler.dataRoutes, ctx);
+      return renderToStaticMarkup(createElement(StaticRouterProvider, { router, context: ctx }));
+    };
+
+    // 1. Default tab=wargame SSR: 5th scenario tab active, progress 0 / 6, hints & debrief locked (no spoilers)
+    const defaultHtml = await renderUrl("http://localhost/tools?tab=wargame");
+    expect(defaultHtml).toContain('data-testid="tools-tab-wargame"');
+    expect(defaultHtml).toContain("⑤ 实战闯关演练");
+    expect(defaultHtml).toContain("生产故障通关场");
+    expect(defaultHtml).toContain('data-testid="wargame-view"');
+    expect(defaultHtml).toContain('data-active-case="rank3-oom-ei0006"');
+    expect(defaultHtml).toContain('data-testid="wargame-progress-badge"');
+    expect(defaultHtml).toContain("已通关 0 / 6 关");
+    expect(defaultHtml).toContain('data-testid="wargame-debrief-locked"');
+    expect(defaultHtml).not.toContain('data-testid="wargame-debrief-card"');
+    expect(defaultHtml).not.toContain('data-testid="wargame-hints-list"');
+    expect(defaultHtml).toContain('data-testid="wargame-ask-assistant"');
+
+    // 2. ?tab=wargame&case=pd-mooncake-kv-mismatch SSR restores PD dual-editor + preserves fromPage
+    const pdCaseHtml = await renderUrl(
+      "http://localhost/tools?tab=wargame&case=pd-mooncake-kv-mismatch&fromPage=pd-disaggregation",
+    );
+    expect(pdCaseHtml).toContain('data-active-case="pd-mooncake-kv-mismatch"');
+    expect(pdCaseHtml).toContain('data-topology="pd"');
+    expect(pdCaseHtml).toContain('data-testid="wargame-cmd-input"');
+    expect(pdCaseHtml).toContain('data-testid="wargame-decode-cmd-input"');
+    expect(pdCaseHtml).toContain("返回主章节 · pd-disaggregation");
+
+    // 3. Inactive / embedded IncidentWarGameView strictly ignores foreign ?case= query param
+    const foreignWgParams = new URLSearchParams("tab=calculator&case=metrics-preemption-avalanche");
+    const inactiveWgHtml = renderToStaticMarkup(
+      createElement(IncidentWarGameView, { isActive: false, searchParams: foreignWgParams }),
+    );
+    expect(inactiveWgHtml).toContain('data-active-case="rank3-oom-ei0006"');
+    expect(parseWarGameCaseParam(new URLSearchParams("case=metrics-preemption-avalanche"))).toBe(
+      "metrics-preemption-avalanche",
+    );
+    expect(
+      buildWarGameQueryParams(
+        "910b3-u090-aclgraph-oom",
+        new URLSearchParams("fromPage=acl-graph"),
+      ).toString(),
+    ).toBe("tab=wargame&fromPage=acl-graph&case=910b3-u090-aclgraph-oom");
+
+    // 4. Storage persistence (`infer-lab:wargame:v1`) & graceful no-storage fallback
+    expect(readWarGamePassedIds(null).size).toBe(0);
+    const memStore = new Map<string, string>();
+    const mockStorage = {
+      getItem: (k: string) => memStore.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        memStore.set(k, v);
+      },
+    };
+    expect(writeWarGamePassedIds(["rank3-oom-ei0006", "pd-mooncake-kv-mismatch"], mockStorage)).toBe(true);
+    expect(memStore.has(WARGAME_PROGRESS_STORAGE_KEY)).toBe(true);
+    expect([...readWarGamePassedIds(mockStorage)]).toEqual(["rank3-oom-ei0006", "pd-mooncake-kv-mismatch"]);
+
+    // 5. All 6 scenarios' debrief Wiki deep-links resolve to valid v0.30.0 verified pages
+    for (const sc of WARGAME_SCENARIOS) {
+      for (const ref of sc.debrief.wikiRefs) {
+        const resolved = resolveToolDeepLink(ref.pageId, { anchor: ref.anchor, label: ref.label });
+        expect(resolved.isLegacyBaseline).toBe(false);
+      }
+    }
   });
 });

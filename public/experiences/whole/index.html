@@ -51,10 +51,39 @@ header{position:absolute;top:30px;left:36px;right:36px;display:flex;align-items:
 .stage-label{position:absolute;left:40px;top:152px;font:12.5px Georgia,serif;letter-spacing:2px;color:#808a78;z-index:2;pointer-events:none}
 .hint{position:absolute;left:40px;bottom:104px;font-size:10.5px;color:#65725f;max-width:235px;line-height:1.65;z-index:2;pointer-events:none}
 @media(max-width:900px){header{top:16px;left:16px;right:16px}.brand h1{font-size:22px}.brand small{font-size:8px;letter-spacing:1px}.seal{display:none}.vendors button{padding:8px 12px;font-size:11px}.panel{top:auto;bottom:136px;right:14px;width:246px;max-height:46svh;padding:16px}.panel h2{font-size:18px;margin:10px 0}.panel p{font-size:11.5px}.facts{margin-top:12px;padding-top:12px}.step-note{left:16px;top:82px;font-size:10.5px}.stage-label{left:16px;top:108px}.dock{bottom:38px;padding:4px}.dock button{min-width:60px;padding:7px 8px}.dock button b{letter-spacing:0;font-size:11px}.transport{bottom:102px;left:16px;transform:none;padding:6px 10px}.transport input[type=range]{width:95px}.viewtools{left:16px;bottom:154px;flex-direction:column}.hint{display:none}.footer{left:16px;right:16px;font-size:8.5px}}
-</style><link rel="stylesheet" href="../diagram-kit.css"><script type="importmap">{"imports":{"three":"../vendor/build/three.module.js","three/addons/":"../vendor/examples/jsm/"}}</script><link rel="stylesheet" href="../hardware-site.css"><script>if(new URLSearchParams(location.search).get("site")==="1")document.documentElement.dataset.site="true";</script><link rel="stylesheet" href="../typography.css"></head>
+</style><link rel="stylesheet" href="../diagram-kit.css"><script type="importmap">{"imports":{"three":"../vendor/build/three.module.js","three/addons/":"../vendor/examples/jsm/"}}</script><link rel="stylesheet" href="../hardware-site.css"><script>if(new URLSearchParams(location.search).get("site")==="1")document.documentElement.dataset.site="true";</script><link rel="stylesheet" href="../typography.css"><style>
+#deploy-labels{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+#deploy-labels[hidden],#deploy-banner[hidden]{display:none!important}
+.deploy-rank-tag{position:absolute;padding:2px 6px;border-radius:999px;background:rgba(251,250,246,.92);border:1px solid #d8d8cf;color:#17211f;font:600 10.5px/1.3 "JetBrains Mono",Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;transform:translate(-50%,-100%);box-shadow:0 2px 8px rgba(23,33,31,.10)}
+.deploy-rank-tag.is-oom{border-color:#b54237;background:#fff0e9;color:#8f3229}
+#deploy-banner{position:absolute;top:106px;left:36px;z-index:5;max-width:min(680px,calc(100vw - 396px));padding:10px 14px;border-radius:12px;background:rgba(251,250,246,.95);border:1px solid #d8d8cf;box-shadow:0 8px 24px rgba(23,33,31,.08);color:#17211f;font-size:12.5px;line-height:1.5;backdrop-filter:blur(8px);pointer-events:auto}
+.deploy-banner-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
+.deploy-banner-title{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-weight:600;color:#17211f}
+.deploy-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:#ece9df;color:#17211f;border:1px solid #d8d8cf;font-variant-numeric:tabular-nums}
+.deploy-pill.is-tp{background:#ddf4ef;color:#065f56;border-color:rgba(8,127,115,.35)}
+.deploy-pill.is-multinode{background:#fff4cf;color:#936300;border-color:rgba(199,131,0,.4)}
+.deploy-pill.is-oom{background:#fff0e9;color:#8f3229;border-color:rgba(181,66,55,.45)}
+.deploy-banner-metrics{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px;color:#66716d;font-size:12px;font-variant-numeric:tabular-nums}
+.deploy-banner-metrics b{color:#17211f;font-family:"JetBrains Mono",Consolas,monospace;font-weight:600}
+.deploy-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px;padding-top:6px;border-top:1px solid #ece9df;font-size:11.5px;color:#66716d}
+.deploy-swatch{display:inline-flex;align-items:center;gap:5px}
+.deploy-swatch i{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.deploy-swatch i.is-u{background:transparent;border:1.5px dashed #66716d}
+.deploy-swatch i.is-arc{height:3px;width:14px;border-radius:99px}
+.deploy-action-btn{padding:4px 10px;border-radius:999px;background:#e85b32;color:#fff;font-size:12px;font-weight:600;border:1px solid #e85b32;cursor:pointer;transition:opacity .15s}
+.deploy-action-btn:hover{opacity:.9}
+.deploy-action-btn.is-subtle{background:#ece9df;color:#17211f;border-color:#d8d8cf}
+body[data-deploy="true"] .step-note{display:none}
+html[data-site] #deploy-banner{position:static;grid-column:1;grid-row:2;align-self:start;justify-self:center;width:calc(100% - 28px);max-width:760px;margin:10px 14px 0}
+@media(max-width:900px){#deploy-banner{top:76px;left:14px;right:14px;max-width:none}}
+@media(max-width:850px){html[data-site] #deploy-banner{order:1;width:calc(100% - 24px);max-width:none;margin:8px 12px 0}}
+@media(max-width:560px){.deploy-rank-tag{padding:1px 4px;font-size:9.5px}}
+</style></head>
 <body>
+<div id="deploy-banner" role="region" aria-label="部署方案 3D 显存与并行透视" hidden></div>
 <div id="stage" aria-label="可旋转的硬件三维场景">
   <div id="callouts" hidden><svg id="callout-lines" aria-hidden="true"></svg><div id="callout-tags"></div></div>
+  <div id="deploy-labels" aria-hidden="true" hidden><svg id="deploy-label-lines" style="position:absolute;inset:0;width:100%;height:100%"></svg><div id="deploy-label-tags"></div></div>
   <div id="hover-pill" hidden></div>
 </div>
 <header><div class="brand"><span class="seal">算力</span><div><h1>算力群岛</h1><small>A FIELD GUIDE TO AI HARDWARE</small></div></div><div class="vendors" role="group" aria-label="硬件平台"><button data-vendor="nvidia" class="active" aria-pressed="true">NVIDIA</button><button data-vendor="ascend" aria-pressed="false">华为 ASCEND</button></div></header>

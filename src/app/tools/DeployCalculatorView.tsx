@@ -30,6 +30,7 @@ import {
   type Wave4DemoPreset,
   type WeightPrecision,
 } from "../../sim/modelspec/deployCalculator";
+import { extractStructuralHfConfig } from "../../sim/modelspec/parseHfConfig";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
 import {
   type LogReconciliationReport,
@@ -40,6 +41,11 @@ import {
   type SampleStartupLogTemplate,
 } from "../../sim/modelspec/startupLogParser";
 import type { CudaGraphMode, RuleVersion } from "../../sim/rules/types";
+import {
+  buildHardwareDeployHref,
+  type DeployOverlayModelKey,
+  type DeployOverlayOomStatus,
+} from "../model/hardwareDeployOverlay";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
@@ -47,6 +53,7 @@ import {
   buildDeployChatAnalysis,
   type CalculatorQueryOverrides,
   cardIdToHardwareFamily,
+  copyTextToClipboard,
   type DeployChatAnalysisPayload,
   parseCalculatorQueryParams,
   sanitizeDiagnosticText,
@@ -138,7 +145,8 @@ export function parseCustomModelParam(params?: URLSearchParams): string | null {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     if (hasNonFiniteNumber(parsed)) return null;
-    return JSON.stringify(parsed, null, 2);
+    const clean = extractStructuralHfConfig(parsed);
+    return JSON.stringify(clean, null, 2);
   } catch {
     return null;
   }
@@ -162,7 +170,20 @@ export function serializeCustomModelForShare(
         reason: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再复制参数链接。",
       };
     }
-    const compact = JSON.stringify(parsed);
+    let clean: Record<string, unknown>;
+    try {
+      clean = extractStructuralHfConfig(parsed);
+    } catch {
+      const rawLen = JSON.stringify(parsed).length;
+      if (rawLen > MAX_SHARE_CUSTOM_MODEL_CHARS) {
+        return {
+          ok: false,
+          reason: `自定义 config.json 压缩后为 ${rawLen} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
+        };
+      }
+      return { ok: false, reason: "自定义 config.json 缺少必要结构维度，请修正后再复制参数链接。" };
+    }
+    const compact = JSON.stringify(clean);
     if (compact.length > MAX_SHARE_CUSTOM_MODEL_CHARS) {
       return {
         ok: false,
@@ -171,7 +192,7 @@ export function serializeCustomModelForShare(
     }
     return { ok: true, compact };
   } catch {
-    return { ok: false, reason: "自定义 config.json 存在语法错误，请修正后再复制参数链接。" };
+    return { ok: false, reason: "自定义 config.json 存在语法或结构错误，请修正后再复制参数链接。" };
   }
 }
 
@@ -191,6 +212,7 @@ export function hasAdvancedQueryOverrides(
   q: CalculatorQueryOverrides,
   useV2ModelRunner?: boolean | undefined,
 ): boolean {
+  const defaultCg: CudaGraphMode = (q.cardId ?? "a2-64g") === "310p-24g" ? "NONE" : "PIECEWISE";
   return Boolean(
     (q.ppSize !== undefined && q.ppSize !== 1) ||
       (q.dpSize !== undefined && q.dpSize !== 1) ||
@@ -198,8 +220,8 @@ export function hasAdvancedQueryOverrides(
       (q.dcpSize !== undefined && q.dcpSize !== 1) ||
       (q.kvCacheDtype !== undefined && q.kvCacheDtype !== "auto") ||
       (q.weightNzMode !== undefined && q.weightNzMode !== 1) ||
-      (q.cudagraphMode !== undefined && q.cudagraphMode !== "PIECEWISE") ||
-      q.enforceEager === true ||
+      (q.cudagraphMode !== undefined && q.cudagraphMode !== defaultCg) ||
+      (q.enforceEager === true && defaultCg !== "NONE") ||
       useV2ModelRunner !== undefined ||
       (q.maxNumBatchedTokens !== undefined && q.maxNumBatchedTokens !== DEFAULT_MAX_NUM_BATCHED_TOKENS) ||
       (q.maxNumSeqs !== undefined && q.maxNumSeqs !== DEFAULT_MAX_NUM_SEQS) ||
@@ -227,6 +249,7 @@ export interface DeployCalculatorViewProps {
   embedded?: boolean | undefined;
   searchParams?: URLSearchParams | undefined;
   locationKey?: string | undefined;
+  onUpdateSearchParams?: ((params: URLSearchParams, options?: { replace?: boolean }) => void) | undefined;
   onClearCalculatorShareParams?:
     | ((subMode: "static" | "reconcile", pushHistory?: boolean) => void)
     | undefined;
@@ -1297,9 +1320,11 @@ function DeployVerdictStrip({ plan }: { plan: DeployPlanReport }) {
 
 function FourQuestionsGrid({
   plan,
+  hardware3dHref,
   onHandoffToDoctor,
 }: {
   plan: DeployPlanReport;
+  hardware3dHref: string;
   onHandoffToDoctor?: (() => void) | undefined;
 }) {
   const [copied, setCopied] = useState(false);
@@ -1454,6 +1479,14 @@ function FourQuestionsGrid({
                 送去配置体检 →
               </button>
             )}
+            <a
+              href={hardware3dHref}
+              className="wt-assistant-btn"
+              data-testid="calc-open-3d-hardware"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+            >
+              在 3D 整机中透视此方案 →
+            </a>
           </div>
         </div>
         <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>
@@ -1693,6 +1726,7 @@ function formatReconcileDelta(delta: number | null, unit: "GiB" | "tokens"): str
 function ReconcileLogSection({
   plan,
   deployAnalysis,
+  hardware3dHref,
   logText,
   onLogTextChange,
   activeTemplateId,
@@ -1700,6 +1734,7 @@ function ReconcileLogSection({
 }: {
   plan: DeployPlanReport;
   deployAnalysis?: DeployChatAnalysisPayload | undefined;
+  hardware3dHref: string;
   logText: string;
   onLogTextChange: (next: string) => void;
   activeTemplateId: string | null;
@@ -1803,11 +1838,21 @@ function ReconcileLogSection({
             </span>
           )}
         </div>
-        {assistant && (
-          <button type="button" className="wt-assistant-btn" onClick={handleAskAssistant}>
-            送入问答助手分析偏差
-          </button>
-        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {assistant && (
+            <button type="button" className="wt-assistant-btn" onClick={handleAskAssistant}>
+              送入问答助手分析偏差
+            </button>
+          )}
+          <a
+            href={hardware3dHref}
+            className="wt-assistant-btn"
+            data-testid="calc-open-3d-hardware"
+            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+          >
+            在 3D 整机中透视此方案 →
+          </a>
+        </div>
       </div>
 
       <div
@@ -2369,7 +2414,9 @@ function buildCalcStateFromQuery(
       DEFAULT_MAX_NUM_BATCHED_TOKENS,
     ),
     maxNumSeqs: normalizeCalcInt(query.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS, 1, DEFAULT_MAX_NUM_SEQS),
-    cudagraphMode: query.enforceEager ? "NONE" : (query.cudagraphMode ?? "PIECEWISE"),
+    cudagraphMode: query.enforceEager
+      ? "NONE"
+      : (query.cudagraphMode ?? ((query.cardId ?? "a2-64g") === "310p-24g" ? "NONE" : "PIECEWISE")),
     useV2ModelRunner,
     prefillTokens: normalizeCalcInt(query.prefillTokens ?? DEFAULT_PREFILL_TOKENS, 1, DEFAULT_PREFILL_TOKENS),
     decodeBatchSize: normalizeCalcInt(
@@ -2393,6 +2440,7 @@ export function DeployCalculatorView({
   embedded = false,
   searchParams,
   locationKey,
+  onUpdateSearchParams,
   onClearCalculatorShareParams,
   onNavigateToDoctor,
 }: DeployCalculatorViewProps) {
@@ -2582,7 +2630,7 @@ export function DeployCalculatorView({
 
   const markLocalEdit = (nextSubMode: "static" | "reconcile" = subMode, pushHistory = false) => {
     hasLocalEditsRef.current = true;
-    if (!embedded && isCalculatorRouteActive && onClearCalculatorShareParams) {
+    if (!embedded && isCalculatorRouteActive && !onUpdateSearchParams && onClearCalculatorShareParams) {
       const targetSig = nextSubMode === "reconcile" ? "panel=reconcile" : "";
       if (calcQuerySig !== targetSig) {
         pendingSelfUrlClearSigRef.current = targetSig;
@@ -2779,13 +2827,109 @@ export function DeployCalculatorView({
     [useCustomJson, activeWave4DemoId, customJsonText],
   );
 
+  // Live URL sync in replace mode so refreshing after editing TP / card / precision preserves current plan
+  useEffect(() => {
+    if (embedded || !isCalculatorRouteActive || !searchParams || !onUpdateSearchParams) return;
+
+    const isAtDefault =
+      subMode === "static" &&
+      !useCustomJson &&
+      presetId === "qwen3-8b" &&
+      state.cardId === "a2-64g" &&
+      state.weightPrecision === "bf16" &&
+      state.kvCacheDtype === "auto" &&
+      state.weightNzMode === 1 &&
+      state.tpSize === 1 &&
+      state.ppSize === 1 &&
+      state.dpSize === 1 &&
+      state.pcpSize === 1 &&
+      state.dcpSize === 1 &&
+      !state.enableEp &&
+      Math.abs(state.gpuMemoryUtilization - DEFAULT_GPU_MEMORY_UTILIZATION) < 1e-6 &&
+      state.maxModelLen === DEFAULT_MAX_MODEL_LEN &&
+      state.maxNumBatchedTokens === DEFAULT_MAX_NUM_BATCHED_TOKENS &&
+      state.maxNumSeqs === DEFAULT_MAX_NUM_SEQS &&
+      state.cudagraphMode === "PIECEWISE" &&
+      state.useV2ModelRunner === undefined &&
+      state.prefillTokens === DEFAULT_PREFILL_TOKENS &&
+      state.decodeBatchSize === DEFAULT_DECODE_BATCH_SIZE &&
+      state.decodeContextLen === DEFAULT_DECODE_CONTEXT_LEN &&
+      state.version === "v0.30.0";
+
+    if (isAtDefault && !calcQuerySig) return;
+
+    let nextParams: URLSearchParams;
+    if (isAtDefault) {
+      nextParams = new URLSearchParams(searchParams);
+      for (const k of CALCULATOR_SHARE_QUERY_KEYS) nextParams.delete(k);
+    } else {
+      nextParams = buildCalculatorQueryParams(
+        {
+          subMode,
+          presetId: useCustomJson ? (activeWave4DemoId ?? undefined) : presetId,
+          cardId: state.cardId,
+          weightPrecision: state.weightPrecision,
+          kvCacheDtype: state.kvCacheDtype,
+          weightNzMode: state.weightNzMode,
+          tpSize: state.tpSize,
+          ppSize: state.ppSize,
+          dpSize: state.dpSize,
+          pcpSize: state.pcpSize,
+          dcpSize: state.dcpSize,
+          enableEp: state.enableEp,
+          gpuMemoryUtilization: state.gpuMemoryUtilization,
+          maxModelLen: state.maxModelLen,
+          maxNumBatchedTokens: state.maxNumBatchedTokens,
+          maxNumSeqs: state.maxNumSeqs,
+          cudagraphMode: state.cudagraphMode,
+          enforceEager: state.cudagraphMode === "NONE",
+          prefillTokens: state.prefillTokens,
+          decodeBatchSize: state.decodeBatchSize,
+          decodeContextLen: state.decodeContextLen,
+          version: state.version === "main" ? "main" : "v0.30.0",
+        },
+        searchParams,
+      );
+      if (state.useV2ModelRunner !== undefined) {
+        nextParams.set("v2", state.useV2ModelRunner ? "1" : "0");
+      } else {
+        nextParams.delete("v2");
+      }
+      if (customShareGuard?.ok) {
+        nextParams.set("customModel", customShareGuard.compact);
+      } else if (!useCustomJson || activeWave4DemoId) {
+        nextParams.delete("customModel");
+      }
+    }
+
+    const nextStr = nextParams.toString();
+    if (nextStr !== searchParams.toString()) {
+      const nextSig = getCalculatorQuerySignature(nextParams);
+      pendingSelfUrlClearSigRef.current = nextSig;
+      lastAppliedQuerySigRef.current = nextSig;
+      onUpdateSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    embedded,
+    isCalculatorRouteActive,
+    searchParams,
+    onUpdateSearchParams,
+    calcQuerySig,
+    subMode,
+    useCustomJson,
+    activeWave4DemoId,
+    presetId,
+    state,
+    customShareGuard,
+  ]);
+
   const handleCopyShareLink = () => {
     if (customShareGuard && !customShareGuard.ok) {
       setShareNotice(customShareGuard.reason);
       return;
     }
     setShareNotice(null);
-    if (typeof window === "undefined" || !navigator.clipboard) return;
+    if (typeof window === "undefined") return;
     const shareParams = buildCalculatorQueryParams(
       {
         subMode,
@@ -2820,11 +2964,93 @@ export function DeployCalculatorView({
       shareParams.set("customModel", customShareGuard.compact);
     }
     const url = `${window.location.origin}${window.location.pathname}#/tools?${shareParams.toString()}`;
-    void navigator.clipboard.writeText(url).then(() => {
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1800);
+    void copyTextToClipboard(url).then((copied) => {
+      if (copied) {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      } else {
+        setLinkCopied(false);
+        setShareNotice(`剪贴板不可用，请手动复制链接：${url}`);
+      }
     });
   };
+
+  const hardware3dHref = useMemo(() => {
+    if (!plan) return "#/hardware?vendor=ascend&level=2";
+    let modelKey: DeployOverlayModelKey;
+    if (!useCustomJson) {
+      modelKey =
+        presetId === "qwen3-0.6b" || presetId === "qwen3-8b" || presetId === "qwen3-30b-a3b"
+          ? presetId
+          : "qwen3-8b";
+    } else if (
+      activeWave4DemoId === "deepseek-v3-mla" ||
+      activeWave4DemoId === "hybrid-kda-gqa" ||
+      activeWave4DemoId === "csa2-sparse-mla" ||
+      activeWave4DemoId === "engram-conditional"
+    ) {
+      modelKey = activeWave4DemoId;
+    } else if (plan.wave4Arch.hasMla) {
+      modelKey = "custom-mla";
+    } else if (plan.wave4Arch.hasKda) {
+      modelKey = "custom-kda";
+    } else if (plan.isMoe) {
+      modelKey = "custom-moe";
+    } else {
+      modelKey = "custom-dense";
+    }
+
+    const wBytes = plan.stages[2].pointEstimateBytes;
+    const actBytes = plan.stages[3].pointEstimateBytes;
+    const nonTorchBytes = plan.stages[4].pointEstimateBytes;
+    const kvBytes = plan.stages[5].pointEstimateBytes;
+    const aclBytes = plan.stages[6].pointEstimateBytes;
+    const workspace310pBytes = plan.card.halvesKvForWorkspace
+      ? Math.max(0, plan.requestedBytes - (wBytes + actBytes + nonTorchBytes + kvBytes))
+      : 0;
+
+    const rawOom = plan.fourQuestions.q2Capacity.oomStatus;
+    const oomStatus: DeployOverlayOomStatus =
+      rawOom !== "fits" ? rawOom : plan.headroomStatus === "overflow" ? "headroom_overflow" : "fits";
+
+    return buildHardwareDeployHref(
+      {
+        modelKey,
+        cardId: plan.card.id,
+        tp: state.tpSize,
+        pp: state.ppSize,
+        dp: state.dpSize,
+        ep: state.enableEp,
+        totalRanks: plan.fourQuestions.q2Capacity.currentTotalCards,
+        cardGiB: plan.card.hbmGiB,
+        u: state.gpuMemoryUtilization,
+        weightGiB: wBytes / GIB,
+        kvGiB: kvBytes / GIB,
+        runtimeGiB: (actBytes + nonTorchBytes + workspace310pBytes + aclBytes) / GIB,
+        oomStatus,
+        headroomOverflow: plan.headroomStatus === "overflow",
+        calc: {
+          subMode,
+          weightPrecision: state.weightPrecision,
+          kvCacheDtype: state.kvCacheDtype,
+          weightNzMode: state.weightNzMode,
+          pcp: state.pcpSize,
+          dcp: state.dcpSize,
+          maxModelLen: state.maxModelLen,
+          maxNumBatchedTokens: state.maxNumBatchedTokens,
+          maxNumSeqs: state.maxNumSeqs,
+          cudagraphMode: state.cudagraphMode,
+          useV2ModelRunner: state.useV2ModelRunner,
+          prefillTokens: state.prefillTokens,
+          decodeBatchSize: state.decodeBatchSize,
+          decodeContextLen: state.decodeContextLen,
+          version: state.version === "main" ? "main" : "v0.30.0",
+        },
+      },
+      searchParams,
+      customShareGuard?.ok ? customShareGuard.compact : null,
+    );
+  }, [plan, useCustomJson, presetId, activeWave4DemoId, state, subMode, searchParams, customShareGuard]);
 
   const displayTitle = title ?? "估算要几张卡（部署算账）";
 
@@ -3052,6 +3278,18 @@ export function DeployCalculatorView({
 
           {mode === "quick-screen" && <QuickScreenBody plan={plan} />}
           {mode === "minimal" && <MinimalRooflineBody plan={plan} />}
+          {mode !== "full" && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+              <a
+                href={hardware3dHref}
+                className="wt-assistant-btn"
+                data-testid="calc-open-3d-hardware"
+                style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+              >
+                在 3D 整机中透视此方案 →
+              </a>
+            </div>
+          )}
 
           {mode === "full" && subMode === "static" && (
             <>
@@ -3062,7 +3300,11 @@ export function DeployCalculatorView({
                 onOpenChange={setAdvancedOpen}
                 onPatch={patchState}
               />
-              <FourQuestionsGrid plan={plan} onHandoffToDoctor={handleHandoffToDoctor} />
+              <FourQuestionsGrid
+                plan={plan}
+                hardware3dHref={hardware3dHref}
+                onHandoffToDoctor={handleHandoffToDoctor}
+              />
               <SevenStageSection plan={plan} />
               <section className="wt-section">
                 <div className="wt-section-head">
@@ -3107,6 +3349,7 @@ export function DeployCalculatorView({
               <ReconcileLogSection
                 plan={plan}
                 deployAnalysis={deployAnalysis}
+                hardware3dHref={hardware3dHref}
                 logText={logText}
                 onLogTextChange={(next) => {
                   setLogText(next);

@@ -5,6 +5,7 @@ import { findChapter } from "../../content/chapters";
 import { CourseDirectory } from "../CourseDirectory";
 import {
   buildExperienceIframeSrc,
+  buildHardwareExperienceIframeSrc,
   buildModelSwitchTo,
   buildModelTabTo,
   createExperienceReadyProbe,
@@ -12,7 +13,6 @@ import {
   type InPlaceVariantSyncState,
   type ModelViewId,
   parseExperienceFrameMessage,
-  parseHardwareLevel,
   parseLegacyGlmSegment,
   type QwenVariant,
   resolveExperienceBackTarget,
@@ -129,13 +129,6 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const qwenVariant = resolveQwenVariant(params);
   const legacySegment = parseLegacyGlmSegment(params);
 
-  // Both hardware entrances use the accepted whole-machine master, including its NPU module.
-  const hardwareModule = params.get("view") === "npu";
-  const vendor = params.get("vendor") === "nvidia" ? "nvidia" : "ascend";
-  const hardwareModel = params.get("model");
-  const modelParam = hardwareModel && /^[a-z0-9-]+$/.test(hardwareModel) ? `&model=${hardwareModel}` : "";
-  const level = parseHardwareLevel(params, hardwareModule);
-
   const computedSrc =
     kind === "model"
       ? buildExperienceIframeSrc({
@@ -145,7 +138,10 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
           viewId: view.id,
           segment: legacySegment,
         })
-      : `${import.meta.env.BASE_URL}experiences/whole/index.html?site=1&vendor=${vendor}&level=${level}${modelParam}`;
+      : buildHardwareExperienceIframeSrc({
+          baseUrl: import.meta.env.BASE_URL,
+          params,
+        });
 
   const title =
     kind === "model"
@@ -438,10 +434,19 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
       <main className={`experience-page experience-${kind}`} id="main-content" tabIndex={-1}>
         <header className="experience-toolbar">
           <div className="experience-heading">
-            <Link to={backTarget.to}>
+            <Link to={backTarget.to} data-testid="experience-back-link">
               <ArrowLeft size={14} />
               {backTarget.label}
             </Link>
+            {backTarget.secondary && (
+              <Link
+                to={backTarget.secondary.to}
+                data-testid="experience-back-secondary"
+                style={{ fontSize: 13, color: "var(--color-ink-muted)" }}
+              >
+                {backTarget.secondary.label}
+              </Link>
+            )}
             <h1>{id && chapter ? chapter.title : kind === "model" ? "模型探索" : "硬件探索"}</h1>
           </div>
           {!isReady && outgoing && !isTimedOut && (

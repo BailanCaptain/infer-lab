@@ -20,6 +20,14 @@ import {
   type PdDoctorPreset,
   type SingleDoctorPreset,
 } from "../../sim/doctor/presets";
+import {
+  analyzePdUpgradeRadar,
+  analyzeSingleUpgradeRadar,
+  LEGACY_V023_MIGRATION_SAMPLE_CMD,
+  type UpgradeImpactSeverity,
+  type UpgradeRadarReport,
+  type UpgradeTargetVersion,
+} from "../../sim/doctor/upgradeRadar";
 import type {
   AscendFamily,
   CouplingCheckInput,
@@ -28,10 +36,18 @@ import type {
   RuleVersion,
 } from "../../sim/rules";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
-import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
+import { ToolDeepLinkById, ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
   buildDoctorChatAnalysis,
+  buildDoctorQueryParams,
+  buildDoctorShareLink,
+  copyTextToClipboard,
   type DoctorModelTraitOverride,
+  type DoctorQueryOverrides,
+  hasExplicitDoctorQueryParams,
+  type LegacyUpgradeFromVersion,
+  matchExactDoctorPresetId,
+  parseDoctorQueryParams,
   resolveDoctorModelTraits,
   sanitizeDiagnosticText,
   workbenchHandoffStore,
@@ -75,6 +91,48 @@ const VERSION_OPTIONS: ReadonlyArray<{ value: Extract<RuleVersion, "v0.30.0" | "
   { value: "v0.30.0", label: "v0.30.0 (c09d3e20)" },
   { value: "main", label: "main (8d6180e2)" },
 ];
+
+const UPGRADE_FROM_OPTIONS: ReadonlyArray<{ value: "" | LegacyUpgradeFromVersion; label: string }> = [
+  { value: "", label: "关闭" },
+  { value: "v0.23.0", label: "从 v0.23.0 (2c59ff10) 升级" },
+  { value: "v0.26.0rc", label: "从 v0.26.0rc (2ed6cbba) 升级" },
+];
+
+const UPGRADE_SEVERITY_META: Readonly<
+  Record<
+    UpgradeImpactSeverity,
+    { label: string; short: string; cardCls: string; borderColor: string; targetBg: string }
+  >
+> = {
+  "breaking-error": {
+    label: "启动即报错 breaking-error",
+    short: "硬阻断",
+    cardCls: "is-error",
+    borderColor: "var(--color-danger)",
+    targetBg: "color-mix(in srgb, var(--color-danger) 8%, var(--color-surface-elevated))",
+  },
+  "silent-noop": {
+    label: "静默零读取 silent-noop",
+    short: "退役无效",
+    cardCls: "is-silent-rewrite",
+    borderColor: "var(--color-weight)",
+    targetBg: "color-mix(in srgb, var(--color-weight-soft) 65%, var(--color-surface-elevated))",
+  },
+  "behavior-changed": {
+    label: "语义/层级变更 behavior-changed",
+    short: "优先级/层级变更",
+    cardCls: "is-warn",
+    borderColor: "var(--color-comm)",
+    targetBg: "color-mix(in srgb, var(--color-comm-soft) 65%, var(--color-surface-elevated))",
+  },
+  "legacy-counterproductive": {
+    label: "历史绕过反噬 legacy-counterproductive",
+    short: "吞吐反噬",
+    cardCls: "is-warn",
+    borderColor: "var(--color-accent)",
+    targetBg: "color-mix(in srgb, var(--color-accent-soft) 68%, var(--color-surface-elevated))",
+  },
+};
 
 const MODEL_HINT_OPTIONS: ReadonlyArray<{ value: ModelHintKey; label: string }> = [
   { value: "auto", label: "自动识别" },
@@ -156,6 +214,267 @@ function FindingCard({ finding, showScope }: { finding: DoctorFinding; showScope
         </div>
       )}
     </article>
+  );
+}
+
+function UpgradeRadarItemCard({
+  item,
+  fromVersion,
+  fromCommit,
+  toVersion,
+  toCommit,
+  showScope,
+}: {
+  item: UpgradeRadarReport["items"][number];
+  fromVersion: LegacyUpgradeFromVersion;
+  fromCommit: string;
+  toVersion: UpgradeTargetVersion;
+  toCommit: string;
+  showScope: boolean;
+}) {
+  const meta = UPGRADE_SEVERITY_META[item.severity];
+  return (
+    <article
+      className={`wt-finding-card ${meta.cardCls}`}
+      data-testid={`doctor-upgrade-item-${item.id}`}
+      data-severity={item.severity}
+      style={{ borderLeftColor: meta.borderColor }}
+    >
+      <div className="wt-finding-head">
+        <span className={`wt-badge-judgment ${meta.cardCls}`}>{meta.label}</span>
+        {showScope && <span className="wt-badge-scope">{SCOPE_LABELS[item.scope]}</span>}
+        <span className="wt-badge-evidence">证据 [{item.evidenceLevel}]</span>
+        <code className="wt-code-inline">{item.subject}</code>
+        <h4 className="wt-finding-title">{item.title}</h4>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            padding: "9px 11px",
+            borderRadius: "var(--radius-field)",
+            border: "1px solid var(--color-line)",
+            background: "var(--color-canvas)",
+            fontSize: 13.5,
+            lineHeight: 1.58,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: "var(--color-ink-muted)", marginBottom: 3 }}>
+            旧基线行为 · {fromVersion} ({fromCommit})
+          </div>
+          <div>{item.legacyBehavior}</div>
+        </div>
+        <div
+          style={{
+            padding: "9px 11px",
+            borderRadius: "var(--radius-field)",
+            border: `1px solid color-mix(in srgb, ${meta.borderColor} 38%, var(--color-line))`,
+            background: meta.targetBg,
+            fontSize: 13.5,
+            lineHeight: 1.58,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: "var(--color-ink)", marginBottom: 3 }}>
+            目标基线冲击 · {toVersion} ({toCommit})
+          </div>
+          <div>{item.targetBehavior}</div>
+        </div>
+      </div>
+      <p className="wt-finding-remediation">
+        <strong>迁移修复建议：</strong>
+        {item.remediation}
+      </p>
+      <div className="wt-finding-footer">
+        {item.sources.length > 0 && (
+          <div className="wt-source-links">
+            {item.sources.map((src) => (
+              <SourceRefLink key={`${item.id}-src-${src}`} rawRef={src} />
+            ))}
+          </div>
+        )}
+        {item.wikiPageIds.length > 0 && (
+          <div className="wt-deeplinks">
+            {item.wikiPageIds.map((pid) => (
+              <ToolDeepLinkById key={`${item.id}-wiki-${pid}`} pageId={pid} />
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function UpgradeRadarPanel({
+  report,
+  showScope,
+  onLoadSample,
+  onApplyRecommendedSingle,
+  onApplyRecommendedPd,
+}: {
+  report: UpgradeRadarReport;
+  showScope: boolean;
+  onLoadSample: () => void;
+  onApplyRecommendedSingle?: ((cmd: string) => void) | undefined;
+  onApplyRecommendedPd?: ((prefillCmd: string, decodeCmd: string) => void) | undefined;
+}) {
+  const { counts, fromVersion, fromCommit, toVersion, toCommit } = report;
+  const hasRecommended = Boolean(report.recommendedSingleCommand || report.recommendedPdCommands);
+  return (
+    <section
+      className="wt-section"
+      data-testid="doctor-upgrade-radar"
+      style={{
+        padding: "14px 16px",
+        borderRadius: "var(--radius-card)",
+        border: "1px solid color-mix(in srgb, var(--color-weight) 45%, var(--color-line))",
+        background: "color-mix(in srgb, var(--color-weight-soft) 38%, var(--color-surface))",
+      }}
+    >
+      <div className="wt-section-head">
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <span className="wt-demo-badge">迁移雷达</span>
+          <h3 className="wt-section-title">
+            版本迁移冲击波对照：{fromVersion} ({fromCommit}) → {toVersion} ({toCommit})
+          </h3>
+        </div>
+        <button
+          type="button"
+          className="wt-preset-btn"
+          data-testid="doctor-upgrade-load-sample"
+          onClick={onLoadSample}
+        >
+          <span className="wt-preset-dot is-pitfall" />
+          <span>加载 v0.23 老脚本迁移示例</span>
+        </button>
+      </div>
+
+      <div className="wt-summary-left">
+        <span className="wt-stat-pill is-error">启动即报错 {counts.breakingError}</span>
+        <span className="wt-stat-pill is-rewrite">静默零读取 {counts.silentNoop}</span>
+        <span className="wt-stat-pill is-warn">优先级/层级变更 {counts.behaviorChanged}</span>
+        <span className="wt-stat-pill is-unknown">历史绕过反噬 {counts.legacyCounterproductive}</span>
+      </div>
+
+      {report.items.length === 0 ? (
+        <div className="wt-empty-state" data-testid="doctor-upgrade-clean-state">
+          <strong>当前命令未命中四类已知静态迁移冲突</strong>（未检出已删 JSON 键、已退役环境变量、FlashComm1
+          优先级反转或 Eager 绕过开关）。
+          <div style={{ marginTop: 6, fontSize: 13.5 }}>{report.honestBoundaryNote}</div>
+        </div>
+      ) : (
+        <>
+          <div className="wt-findings-list">
+            {report.items.map((item) => (
+              <UpgradeRadarItemCard
+                key={`${item.scope}-${item.id}-${item.subject}`}
+                item={item}
+                fromVersion={fromVersion}
+                fromCommit={fromCommit}
+                toVersion={toVersion}
+                toCommit={toCommit}
+                showScope={showScope}
+              />
+            ))}
+          </div>
+          {hasRecommended && (
+            <div
+              className="wt-card"
+              data-testid="doctor-upgrade-recommended-box"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                borderColor: "color-mix(in srgb, var(--color-token) 45%, var(--color-line))",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
+                <strong style={{ fontSize: 13.5, color: "var(--color-ink)" }}>
+                  升级至 {toVersion} 推荐命令草稿（已自动清理退役项与风险绕过）
+                </strong>
+                {report.recommendedSingleCommand && onApplyRecommendedSingle && (
+                  <button
+                    type="button"
+                    className="wt-assistant-btn"
+                    data-testid="doctor-upgrade-apply-recommended"
+                    onClick={() => onApplyRecommendedSingle(report.recommendedSingleCommand!)}
+                  >
+                    一键套用至上方命令框重检
+                  </button>
+                )}
+                {report.recommendedPdCommands && onApplyRecommendedPd && (
+                  <button
+                    type="button"
+                    className="wt-assistant-btn"
+                    data-testid="doctor-upgrade-apply-recommended"
+                    onClick={() =>
+                      onApplyRecommendedPd(
+                        report.recommendedPdCommands!.prefillCommand,
+                        report.recommendedPdCommands!.decodeCommand,
+                      )
+                    }
+                  >
+                    一键套用至 Prefill / Decode 命令框重检
+                  </button>
+                )}
+              </div>
+              {report.recommendedSingleCommand && (
+                <pre
+                  data-testid="doctor-upgrade-recommended-cmd"
+                  style={{
+                    margin: 0,
+                    padding: "8px 10px",
+                    borderRadius: "var(--radius-field)",
+                    background: "var(--color-surface-sunken)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12.5,
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {report.recommendedSingleCommand}
+                </pre>
+              )}
+              {report.recommendedPdCommands && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <pre
+                    data-testid="doctor-upgrade-recommended-prefill-cmd"
+                    style={{
+                      margin: 0,
+                      padding: "8px 10px",
+                      borderRadius: "var(--radius-field)",
+                      background: "var(--color-surface-sunken)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12.5,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {`# Prefill\n${report.recommendedPdCommands.prefillCommand}\n\n# Decode\n${report.recommendedPdCommands.decodeCommand}`}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="wt-insight-meta" data-testid="doctor-upgrade-boundary-note">
+            <strong>核验边界：</strong>
+            {report.honestBoundaryNote}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -418,12 +737,105 @@ function resolveInitialState(effectiveMode: DoctorMode, initialPresetId?: string
   };
 }
 
+interface ResolvedDoctorState extends InitialDoctorState {
+  fromVersion: LegacyUpgradeFromVersion | undefined;
+  modelHint: ModelHintKey;
+  crossNodeRoce: boolean;
+  isSharedCommandFromUrl: boolean;
+}
+
+function resolveDoctorViewState(
+  effectiveMode: DoctorMode,
+  initialPresetId?: string,
+  query?: DoctorQueryOverrides,
+): ResolvedDoctorState {
+  const base = resolveInitialState(effectiveMode, query?.presetId ?? initialPresetId);
+  if (effectiveMode !== "full" || !query) {
+    return {
+      ...base,
+      fromVersion: undefined,
+      modelHint: "auto",
+      crossNodeRoce: false,
+      isSharedCommandFromUrl: false,
+    };
+  }
+  if (query.sharedPrefillCommand !== undefined && query.sharedDecodeCommand !== undefined) {
+    const hw = query.hardwareFamily ?? "A3";
+    return {
+      ...base,
+      topology: "pd",
+      activePresetId: "",
+      hardwareFamily: hw,
+      decodeHardwareFamily: query.decodeHardwareFamily ?? hw,
+      version: query.version ?? "v0.30.0",
+      fromVersion: query.fromVersion,
+      prefillCommandText: query.sharedPrefillCommand,
+      decodeCommandText: query.sharedDecodeCommand,
+      modelHint: query.modelHint ?? "auto",
+      crossNodeRoce: query.crossNodeRoce ?? false,
+      isSharedCommandFromUrl: true,
+    };
+  }
+  if (query.sharedCommand !== undefined) {
+    const hw = query.hardwareFamily ?? "A2";
+    return {
+      ...base,
+      topology: "single",
+      activePresetId: "",
+      hardwareFamily: hw,
+      decodeHardwareFamily: hw,
+      version: query.version ?? "v0.30.0",
+      fromVersion: query.fromVersion,
+      commandText: query.sharedCommand,
+      modelHint: query.modelHint ?? "auto",
+      crossNodeRoce: query.crossNodeRoce ?? false,
+      isSharedCommandFromUrl: true,
+    };
+  }
+  const nextTopology = query.topology ?? base.topology;
+  const fallbackPd = PD_DOCTOR_PRESETS[0]!;
+  if (nextTopology === "pd" && !query.presetId) {
+    const hw = query.hardwareFamily ?? fallbackPd.hardwareFamily;
+    return {
+      ...base,
+      topology: "pd",
+      activePresetId: fallbackPd.id,
+      hardwareFamily: hw,
+      decodeHardwareFamily: query.decodeHardwareFamily ?? fallbackPd.decodeHardwareFamily ?? hw,
+      version: query.version ?? (fallbackPd.version === "main" ? "main" : "v0.30.0"),
+      fromVersion: query.fromVersion,
+      prefillCommandText: fallbackPd.prefillCommand,
+      decodeCommandText: fallbackPd.decodeCommand,
+      modelHint: query.modelHint ?? "auto",
+      crossNodeRoce: query.crossNodeRoce ?? false,
+      isSharedCommandFromUrl: false,
+    };
+  }
+  const hw = query.hardwareFamily ?? base.hardwareFamily;
+  return {
+    ...base,
+    topology: nextTopology,
+    hardwareFamily: hw,
+    decodeHardwareFamily:
+      query.decodeHardwareFamily ?? (nextTopology === "pd" ? base.decodeHardwareFamily : hw),
+    version: query.version ?? base.version,
+    fromVersion: query.fromVersion,
+    modelHint: query.modelHint ?? "auto",
+    crossNodeRoce: query.crossNodeRoce ?? false,
+    isSharedCommandFromUrl: false,
+  };
+}
+
 export interface ConfigDoctorViewProps {
   mode?: "minimal" | "full" | undefined;
   title?: string | undefined;
   summary?: string | undefined;
   embedded?: boolean | undefined;
   initialPresetId?: string | undefined;
+  isActive?: boolean | undefined;
+  searchParams?: URLSearchParams | undefined;
+  locationKey?: string | undefined;
+  onUpdateSearchParams?: ((nextParams: URLSearchParams, opts?: { replace?: boolean }) => void) | undefined;
 }
 
 export function ConfigDoctorView({
@@ -432,14 +844,30 @@ export function ConfigDoctorView({
   summary,
   embedded = false,
   initialPresetId,
+  isActive,
+  searchParams,
+  locationKey,
+  onUpdateSearchParams,
 }: ConfigDoctorViewProps) {
   const effectiveMode: DoctorMode = mode === "minimal" ? "minimal" : "full";
   const assistant = useOptionalWikiAssistant();
   const idPrefix = useId();
+  const isDoctorRouteActive =
+    effectiveMode === "full" &&
+    !embedded &&
+    (isActive !== undefined ? isActive : searchParams?.get("tab") === "doctor");
 
-  const initial = useMemo(
+  const initialQuery = useMemo(
+    () => (isDoctorRouteActive && searchParams ? parseDoctorQueryParams(searchParams) : undefined),
+    [isDoctorRouteActive, searchParams],
+  );
+  const defaultState = useMemo(
     () => resolveInitialState(effectiveMode, initialPresetId),
     [effectiveMode, initialPresetId],
+  );
+  const initial = useMemo(
+    () => resolveDoctorViewState(effectiveMode, initialPresetId, initialQuery),
+    [effectiveMode, initialPresetId, initialQuery],
   );
 
   const [topology, setTopology] = useState<DoctorTopology>(initial.topology);
@@ -449,33 +877,68 @@ export function ConfigDoctorView({
     initial.decodeHardwareFamily,
   );
   const [version, setVersion] = useState<Extract<RuleVersion, "v0.30.0" | "main">>(initial.version);
-  const [crossNodeRoce, setCrossNodeRoce] = useState<boolean>(false);
-  const [modelHint, setModelHint] = useState<ModelHintKey>("auto");
+  const [fromVersion, setFromVersion] = useState<LegacyUpgradeFromVersion | undefined>(initial.fromVersion);
+  const [crossNodeRoce, setCrossNodeRoce] = useState<boolean>(initial.crossNodeRoce);
+  const [modelHint, setModelHint] = useState<ModelHintKey>(initial.modelHint);
   const [commandText, setCommandText] = useState<string>(initial.commandText);
   const [prefillCommandText, setPrefillCommandText] = useState<string>(initial.prefillCommandText);
   const [decodeCommandText, setDecodeCommandText] = useState<string>(initial.decodeCommandText);
+  const [isSharedCommandFromUrl, setIsSharedCommandFromUrl] = useState<boolean>(
+    initial.isSharedCommandFromUrl,
+  );
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  const [shareNotice, setShareNotice] = useState<{
+    tone: "warn" | "redacted" | "ok";
+    text: string;
+  } | null>(null);
   const [findingFilter, setFindingFilter] = useState<FindingFilter>("all");
   const [handoffSourceLabel, setHandoffSourceLabel] = useState<string | null>(null);
   const [modelHintFromHandoff, setModelHintFromHandoff] = useState<boolean>(false);
-  const handoffCliModelRef = useRef<string | null>(null);
+  const handoffCliModelRef = useRef<string | null>(
+    initialQuery?.sharedModelId || initialQuery?.sharedTraitOverride
+      ? extractNormalizedCliModel(initial.commandText)
+      : null,
+  );
   const [handoffModelCtx, setHandoffModelCtx] = useState<{
     modelId?: string | undefined;
     traitOverride?: DoctorModelTraitOverride | undefined;
     cliModel: string | null;
-  } | null>(null);
+  } | null>(() =>
+    initialQuery?.sharedModelId || initialQuery?.sharedTraitOverride
+      ? {
+          modelId: initialQuery.sharedModelId,
+          traitOverride: initialQuery.sharedTraitOverride,
+          cliModel: extractNormalizedCliModel(initial.commandText),
+        }
+      : null,
+  );
+
+  const wasActiveRef = useRef<boolean>(isDoctorRouteActive);
+  const prevLocationKeyRef = useRef<string | undefined>(locationKey);
+  const lastSelfSyncedQueryRef = useRef<string | null>(null);
+  const skipNextUrlRestoreRef = useRef<boolean>(false);
+  const handoffApplyingInCommitRef = useRef<boolean>(false);
+  const restoringFromUrlInCommitRef = useRef<boolean>(false);
+  handoffApplyingInCommitRef.current = false;
+  restoringFromUrlInCommitRef.current = false;
 
   useEffect(() => {
     if (embedded) return;
     const applyPending = () => {
       const payload = workbenchHandoffStore.consumeDoctor();
       if (!payload) return;
+      handoffApplyingInCommitRef.current = true;
+      skipNextUrlRestoreRef.current = true;
       const cliModel = extractNormalizedCliModel(payload.commandText);
       handoffCliModelRef.current = cliModel;
       setTopology("single");
       setActivePresetId("");
       setHardwareFamily(payload.hardwareFamily);
       setVersion(payload.version);
+      setFromVersion(undefined);
       setCommandText(payload.commandText);
+      setIsSharedCommandFromUrl(false);
+      setShareNotice(null);
       setFindingFilter("all");
       setHandoffSourceLabel(payload.sourceLabel);
       const nextHint: ModelHintKey =
@@ -495,6 +958,163 @@ export function ConfigDoctorView({
     applyPending();
     return workbenchHandoffStore.subscribe(applyPending);
   }, [embedded]);
+
+  // URL -> State restoration on deep link / Back / Forward (strictly gated by isDoctorRouteActive)
+  useEffect(() => {
+    const wasActive = wasActiveRef.current;
+    wasActiveRef.current = isDoctorRouteActive;
+    const isNewLocation = prevLocationKeyRef.current !== locationKey;
+    prevLocationKeyRef.current = locationKey;
+    if (!isDoctorRouteActive || !searchParams) return;
+    if (skipNextUrlRestoreRef.current) {
+      skipNextUrlRestoreRef.current = false;
+      return;
+    }
+    const serialized = searchParams.toString();
+    if (serialized === lastSelfSyncedQueryRef.current) {
+      lastSelfSyncedQueryRef.current = null;
+      return;
+    }
+    const hasExplicit = hasExplicitDoctorQueryParams(searchParams);
+    if (!wasActive && !hasExplicit) {
+      // Keep-alive tab reactivation via plain ?tab=doctor preserves in-memory draft
+      return;
+    }
+    if (wasActive && !isNewLocation && serialized === "") return;
+    restoringFromUrlInCommitRef.current = true;
+    const parsed = parseDoctorQueryParams(searchParams);
+    const next = resolveDoctorViewState(effectiveMode, initialPresetId, parsed);
+    const restoredCliModel =
+      parsed.sharedModelId || parsed.sharedTraitOverride ? extractNormalizedCliModel(next.commandText) : null;
+    handoffCliModelRef.current = restoredCliModel;
+    setHandoffModelCtx(
+      parsed.sharedModelId || parsed.sharedTraitOverride
+        ? {
+            modelId: parsed.sharedModelId,
+            traitOverride: parsed.sharedTraitOverride,
+            cliModel: restoredCliModel,
+          }
+        : null,
+    );
+    setHandoffSourceLabel(null);
+    setModelHintFromHandoff(false);
+    setTopology(next.topology);
+    setActivePresetId(next.activePresetId);
+    setHardwareFamily(next.hardwareFamily);
+    setDecodeHardwareFamily(next.decodeHardwareFamily);
+    setVersion(next.version);
+    setFromVersion(next.fromVersion);
+    setCrossNodeRoce(next.crossNodeRoce);
+    setModelHint(next.modelHint);
+    setCommandText(next.commandText);
+    setPrefillCommandText(next.prefillCommandText);
+    setDecodeCommandText(next.decodeCommandText);
+    setIsSharedCommandFromUrl(next.isSharedCommandFromUrl);
+    setShareNotice(null);
+  }, [isDoctorRouteActive, searchParams, locationKey, effectiveMode, initialPresetId]);
+
+  // Safe enum & preset-ID auto-sync (replace mode only; preserves already-redacted URL cmd when editing safe enums)
+  useEffect(() => {
+    if (!isDoctorRouteActive || !searchParams || !onUpdateSearchParams) return;
+    if (handoffApplyingInCommitRef.current || restoringFromUrlInCommitRef.current) return;
+
+    if (isSharedCommandFromUrl) {
+      const nextParams = buildDoctorQueryParams(
+        {
+          topology,
+          hardwareFamily,
+          ...(topology === "pd" ? { decodeHardwareFamily } : {}),
+          version,
+          ...(fromVersion ? { fromVersion } : {}),
+          modelHint,
+          ...(crossNodeRoce ? { crossNodeRoce: true } : {}),
+        },
+        searchParams,
+      );
+      for (const sharedKey of ["cmd", "pcmd", "dcmd", "traits", "mid"] as const) {
+        const existing = searchParams.get(sharedKey);
+        if (existing !== null) {
+          nextParams.set(sharedKey, existing);
+        }
+      }
+      const nextStr = nextParams.toString();
+      if (nextStr !== searchParams.toString()) {
+        lastSelfSyncedQueryRef.current = nextStr;
+        onUpdateSearchParams(nextParams, { replace: true });
+      }
+      return;
+    }
+
+    const matchedPresetId = matchExactDoctorPresetId({
+      topology,
+      commandText,
+      prefillCommandText,
+      decodeCommandText,
+      preferredPresetId: activePresetId,
+    });
+    const hasSharedModelContext =
+      topology === "single" &&
+      modelHint === "auto" &&
+      (searchParams.has("mid") || searchParams.has("traits"));
+    const isAtDefault =
+      !hasSharedModelContext &&
+      topology === defaultState.topology &&
+      matchedPresetId === defaultState.activePresetId &&
+      hardwareFamily === defaultState.hardwareFamily &&
+      version === defaultState.version &&
+      fromVersion === undefined &&
+      modelHint === "auto" &&
+      !crossNodeRoce;
+
+    if (isAtDefault && !hasExplicitDoctorQueryParams(searchParams)) return;
+
+    const nextParams = isAtDefault
+      ? buildDoctorQueryParams({}, searchParams)
+      : buildDoctorQueryParams(
+          {
+            topology,
+            presetId: matchedPresetId,
+            hardwareFamily,
+            ...(topology === "pd" ? { decodeHardwareFamily } : {}),
+            version,
+            ...(fromVersion ? { fromVersion } : {}),
+            modelHint,
+            ...(crossNodeRoce ? { crossNodeRoce: true } : {}),
+          },
+          searchParams,
+        );
+    if (topology === "single" && modelHint === "auto") {
+      for (const ctxKey of ["mid", "traits"] as const) {
+        const existing = searchParams.get(ctxKey);
+        if (existing !== null) {
+          nextParams.set(ctxKey, existing);
+        }
+      }
+    }
+
+    const nextStr = nextParams.toString();
+    if (nextStr !== searchParams.toString()) {
+      lastSelfSyncedQueryRef.current = nextStr;
+      onUpdateSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    isDoctorRouteActive,
+    searchParams,
+    onUpdateSearchParams,
+    isSharedCommandFromUrl,
+    topology,
+    activePresetId,
+    hardwareFamily,
+    decodeHardwareFamily,
+    version,
+    fromVersion,
+    modelHint,
+    crossNodeRoce,
+    commandText,
+    prefillCommandText,
+    decodeCommandText,
+    defaultState,
+  ]);
 
   const effectiveTopology: DoctorTopology = effectiveMode === "minimal" ? "single" : topology;
   const effectiveVersion: RuleVersion = effectiveMode === "minimal" ? "v0.30.0" : version;
@@ -556,6 +1176,32 @@ export function ConfigDoctorView({
     couplingTraitOverride,
   ]);
 
+  const upgradeRadarReport: UpgradeRadarReport | null = useMemo(() => {
+    if (effectiveMode !== "full" || !fromVersion) return null;
+    const targetVer: UpgradeTargetVersion = version === "main" ? "main" : "v0.30.0";
+    if (effectiveTopology === "pd") {
+      return analyzePdUpgradeRadar(
+        pdReport?.prefill.parsed ?? prefillCommandText,
+        pdReport?.decode.parsed ?? decodeCommandText,
+        { fromVersion, toVersion: targetVer },
+      );
+    }
+    return analyzeSingleUpgradeRadar(singleReport?.parsed ?? commandText, {
+      fromVersion,
+      toVersion: targetVer,
+    });
+  }, [
+    effectiveMode,
+    fromVersion,
+    version,
+    effectiveTopology,
+    pdReport,
+    singleReport,
+    prefillCommandText,
+    decodeCommandText,
+    commandText,
+  ]);
+
   const allFindings =
     effectiveTopology === "pd" ? (pdReport?.allFindings ?? []) : (singleReport?.findings ?? []);
   const errors = effectiveTopology === "pd" ? (pdReport?.errors ?? []) : (singleReport?.errors ?? []);
@@ -586,7 +1232,19 @@ export function ConfigDoctorView({
         ? PD_DOCTOR_PRESETS
         : FULL_SINGLE_DOCTOR_PRESETS;
 
-  const activePreset = currentPresets.find((p) => p.id === activePresetId);
+  const matchedPresetId = useMemo(
+    () =>
+      matchExactDoctorPresetId({
+        topology: effectiveTopology,
+        commandText,
+        prefillCommandText,
+        decodeCommandText,
+        preferredPresetId: activePresetId,
+      }),
+    [effectiveTopology, commandText, prefillCommandText, decodeCommandText, activePresetId],
+  );
+  const activePreset = matchedPresetId ? currentPresets.find((p) => p.id === matchedPresetId) : undefined;
+  const hasDoctorUrlShareParams = isDoctorRouteActive && hasExplicitDoctorQueryParams(searchParams);
 
   const clearInheritedHandoffTraits = () => {
     handoffCliModelRef.current = null;
@@ -600,6 +1258,16 @@ export function ConfigDoctorView({
 
   const handleSingleCommandChange = (nextCommand: string) => {
     setCommandText(nextCommand);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
+    const nextMatched = matchExactDoctorPresetId({
+      topology: "single",
+      commandText: nextCommand,
+      prefillCommandText,
+      decodeCommandText,
+      preferredPresetId: activePresetId,
+    });
+    setActivePresetId(nextMatched ?? "");
     if (handoffModelCtx || modelHintFromHandoff || handoffSourceLabel) {
       const nextModel = extractNormalizedCliModel(nextCommand);
       const expectedModel = handoffModelCtx?.cliModel ?? handoffCliModelRef.current;
@@ -609,11 +1277,41 @@ export function ConfigDoctorView({
     }
   };
 
+  const handlePrefillCommandChange = (nextCommand: string) => {
+    setPrefillCommandText(nextCommand);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
+    const nextMatched = matchExactDoctorPresetId({
+      topology: "pd",
+      commandText,
+      prefillCommandText: nextCommand,
+      decodeCommandText,
+      preferredPresetId: activePresetId,
+    });
+    setActivePresetId(nextMatched ?? "");
+  };
+
+  const handleDecodeCommandChange = (nextCommand: string) => {
+    setDecodeCommandText(nextCommand);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
+    const nextMatched = matchExactDoctorPresetId({
+      topology: "pd",
+      commandText,
+      prefillCommandText,
+      decodeCommandText: nextCommand,
+      preferredPresetId: activePresetId,
+    });
+    setActivePresetId(nextMatched ?? "");
+  };
+
   const handleSelectSinglePreset = (preset: SingleDoctorPreset) => {
     handoffCliModelRef.current = null;
     setActivePresetId(preset.id);
     setHardwareFamily(preset.hardwareFamily);
     setCommandText(preset.command);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
     setFindingFilter("all");
     setModelHint("auto");
     setModelHintFromHandoff(false);
@@ -632,6 +1330,8 @@ export function ConfigDoctorView({
     setVersion(preset.version === "main" ? "main" : "v0.30.0");
     setPrefillCommandText(preset.prefillCommand);
     setDecodeCommandText(preset.decodeCommand);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
     setFindingFilter("all");
     setModelHint("auto");
     setModelHintFromHandoff(false);
@@ -643,6 +1343,8 @@ export function ConfigDoctorView({
     if (next === topology) return;
     handoffCliModelRef.current = null;
     setTopology(next);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
     setFindingFilter("all");
     setModelHint("auto");
     setModelHintFromHandoff(false);
@@ -659,6 +1361,90 @@ export function ConfigDoctorView({
         setActivePresetId(FULL_SINGLE_DOCTOR_PRESETS[0].id);
       }
     }
+  };
+
+  const handleCopyShareLink = () => {
+    const baseToolsUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}#/tools`
+        : "http://localhost/#/tools";
+    const res = buildDoctorShareLink(
+      {
+        topology: effectiveTopology,
+        hardwareFamily,
+        decodeHardwareFamily,
+        version,
+        ...(fromVersion ? { fromVersion } : {}),
+        modelHint,
+        crossNodeRoce,
+        preferredPresetId: matchedPresetId,
+        ...(activeHandoffCtx?.modelId ? { sharedModelId: activeHandoffCtx.modelId } : {}),
+        ...(activeHandoffCtx?.traitOverride ? { sharedTraitOverride: activeHandoffCtx.traitOverride } : {}),
+        commandText,
+        prefillCommandText,
+        decodeCommandText,
+      },
+      searchParams,
+      baseToolsUrl,
+    );
+    if (!res.ok) {
+      setShareNotice({ tone: "warn", text: res.reason });
+      return;
+    }
+    void copyTextToClipboard(res.url).then((copied) => {
+      if (!copied) {
+        setLinkCopied(false);
+        setShareNotice({ tone: "warn", text: `剪贴板不可用，请手动复制分享链接：${res.url}` });
+        return;
+      }
+      if (res.redactionCount > 0) {
+        setShareNotice({
+          tone: "redacted",
+          text: `已自动脱敏 ${res.redactionCount} 处敏感凭据/IP 后复制分享链接`,
+        });
+      } else {
+        setShareNotice(null);
+      }
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1800);
+    });
+  };
+
+  const handleClearShareParams = () => {
+    handoffCliModelRef.current = null;
+    setHandoffModelCtx(null);
+    setHandoffSourceLabel(null);
+    setModelHintFromHandoff(false);
+    setTopology(defaultState.topology);
+    setActivePresetId(defaultState.activePresetId);
+    setHardwareFamily(defaultState.hardwareFamily);
+    setDecodeHardwareFamily(defaultState.decodeHardwareFamily);
+    setVersion(defaultState.version);
+    setFromVersion(undefined);
+    setCrossNodeRoce(false);
+    setModelHint("auto");
+    setCommandText(defaultState.commandText);
+    setPrefillCommandText(defaultState.prefillCommandText);
+    setDecodeCommandText(defaultState.decodeCommandText);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
+    if (isDoctorRouteActive && searchParams && onUpdateSearchParams) {
+      const cleanParams = buildDoctorQueryParams({}, searchParams);
+      lastSelfSyncedQueryRef.current = cleanParams.toString();
+      onUpdateSearchParams(cleanParams, { replace: false });
+    }
+  };
+
+  const handleLoadUpgradeSample = () => {
+    clearInheritedHandoffTraits();
+    setTopology("single");
+    setActivePresetId("");
+    setHardwareFamily("A2");
+    if (!fromVersion) setFromVersion("v0.23.0");
+    setCommandText(LEGACY_V023_MIGRATION_SAMPLE_CMD);
+    setIsSharedCommandFromUrl(false);
+    setShareNotice(null);
+    setFindingFilter("all");
   };
 
   const handleAskAssistant = (event: MouseEvent<HTMLButtonElement>) => {
@@ -734,7 +1520,47 @@ export function ConfigDoctorView({
               <span className="wt-baseline-pill">
                 基线: {effectiveVersion === "main" ? "main (8d6180e2)" : "v0.30.0 (c09d3e20)"}
               </span>
+              {effectiveMode === "full" && (
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "2px 10px", fontSize: 12.5 }}
+                  data-testid="doctor-copy-share-link"
+                  onClick={handleCopyShareLink}
+                >
+                  {linkCopied ? "已复制体检分享链接" : "复制体检分享链接"}
+                </button>
+              )}
+              {hasDoctorUrlShareParams && !isSharedCommandFromUrl && (
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "2px 10px", fontSize: 12.5 }}
+                  data-testid="doctor-clear-share-params"
+                  onClick={handleClearShareParams}
+                >
+                  清除分享参数
+                </button>
+              )}
             </div>
+            {shareNotice && (
+              <p
+                className="wt-subtitle"
+                data-testid="doctor-share-notice"
+                role="status"
+                style={{
+                  color:
+                    shareNotice.tone === "warn"
+                      ? "var(--color-danger)"
+                      : shareNotice.tone === "redacted"
+                        ? "var(--color-warning)"
+                        : "var(--color-token)",
+                  fontSize: 13,
+                }}
+              >
+                {shareNotice.text}
+              </p>
+            )}
             {summary && <p className="wt-subtitle">{summary}</p>}
           </div>
           {assistant && (
@@ -750,6 +1576,20 @@ export function ConfigDoctorView({
             </div>
           )}
         </header>
+      )}
+
+      {isSharedCommandFromUrl && (
+        <div className="wt-handoff-banner" data-testid="doctor-share-banner" role="status">
+          <span>当前正在检视分享链接带入的启动命令（凭据与 IP 在生成分享链接时已执行脱敏）。</span>
+          <button
+            type="button"
+            className="wt-preset-btn"
+            data-testid="doctor-clear-share-params"
+            onClick={handleClearShareParams}
+          >
+            清除分享参数
+          </button>
+        </div>
       )}
 
       {handoffSourceLabel && (
@@ -815,12 +1655,12 @@ export function ConfigDoctorView({
       <div className="wt-presets">
         <span className="wt-presets-label">示例命令（点击切换体验）：</span>
         {currentPresets.map((preset) => {
-          const isActive = preset.id === activePresetId;
+          const isPresetActive = preset.id === matchedPresetId;
           return (
             <button
               key={preset.id}
               type="button"
-              className={`wt-preset-btn ${isActive ? "is-active" : ""}`}
+              className={`wt-preset-btn ${isPresetActive ? "is-active" : ""}`}
               data-testid={`doctor-preset-${preset.id}`}
               onClick={() =>
                 preset.kind === "pd" ? handleSelectPdPreset(preset) : handleSelectSinglePreset(preset)
@@ -847,7 +1687,10 @@ export function ConfigDoctorView({
             className="wt-select"
             data-testid="doctor-hardware-select"
             value={hardwareFamily}
-            onChange={(e) => setHardwareFamily(e.target.value as AscendFamily)}
+            onChange={(e) => {
+              setHardwareFamily(e.target.value as AscendFamily);
+              setShareNotice(null);
+            }}
           >
             {HARDWARE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -874,7 +1717,10 @@ export function ConfigDoctorView({
                   className="wt-select"
                   data-testid="doctor-decode-hardware-select"
                   value={decodeHardwareFamily}
-                  onChange={(e) => setDecodeHardwareFamily(e.target.value as AscendFamily)}
+                  onChange={(e) => {
+                    setDecodeHardwareFamily(e.target.value as AscendFamily);
+                    setShareNotice(null);
+                  }}
                 >
                   {HARDWARE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -892,10 +1738,34 @@ export function ConfigDoctorView({
                 className="wt-select"
                 data-testid="doctor-version-select"
                 value={version}
-                onChange={(e) => setVersion(e.target.value as Extract<RuleVersion, "v0.30.0" | "main">)}
+                onChange={(e) => {
+                  setVersion(e.target.value as Extract<RuleVersion, "v0.30.0" | "main">);
+                  setShareNotice(null);
+                }}
               >
                 {VERSION_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="wt-field" htmlFor={`${idPrefix}-from-ver`}>
+              <span className="wt-field-label">版本迁移对比基线</span>
+              <select
+                id={`${idPrefix}-from-ver`}
+                className="wt-select"
+                data-testid="doctor-upgrade-from-select"
+                value={fromVersion ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFromVersion(val === "v0.23.0" || val === "v0.26.0rc" ? val : undefined);
+                  setShareNotice(null);
+                }}
+              >
+                {UPGRADE_FROM_OPTIONS.map((opt) => (
+                  <option key={opt.value || "off"} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
@@ -916,6 +1786,7 @@ export function ConfigDoctorView({
                   setModelHint(e.target.value as ModelHintKey);
                   setModelHintFromHandoff(false);
                   setHandoffModelCtx(null);
+                  setShareNotice(null);
                 }}
               >
                 {MODEL_HINT_OPTIONS.map((opt) => (
@@ -932,7 +1803,10 @@ export function ConfigDoctorView({
                 type="checkbox"
                 data-testid="doctor-roce-checkbox"
                 checked={crossNodeRoce}
-                onChange={(e) => setCrossNodeRoce(e.target.checked)}
+                onChange={(e) => {
+                  setCrossNodeRoce(e.target.checked);
+                  setShareNotice(null);
+                }}
               />
               <span>跨机 RoCE 网络</span>
             </label>
@@ -955,7 +1829,7 @@ export function ConfigDoctorView({
               data-testid="doctor-prefill-input"
               spellCheck={false}
               value={prefillCommandText}
-              onChange={(e) => setPrefillCommandText(e.target.value)}
+              onChange={(e) => handlePrefillCommandChange(e.target.value)}
             />
           </div>
           <div className="wt-editor-card">
@@ -971,7 +1845,7 @@ export function ConfigDoctorView({
               data-testid="doctor-decode-input"
               spellCheck={false}
               value={decodeCommandText}
-              onChange={(e) => setDecodeCommandText(e.target.value)}
+              onChange={(e) => handleDecodeCommandChange(e.target.value)}
             />
           </div>
         </div>
@@ -1052,6 +1926,19 @@ export function ConfigDoctorView({
             </div>
           </div>
         )}
+
+      {effectiveMode === "full" && upgradeRadarReport && (
+        <UpgradeRadarPanel
+          report={upgradeRadarReport}
+          showScope={effectiveTopology === "pd"}
+          onLoadSample={handleLoadUpgradeSample}
+          onApplyRecommendedSingle={(cmd) => handleSingleCommandChange(cmd)}
+          onApplyRecommendedPd={(pre, dec) => {
+            handlePrefillCommandChange(pre);
+            handleDecodeCommandChange(dec);
+          }}
+        />
+      )}
 
       <section className="wt-section" data-testid="doctor-findings-section">
         <div className="wt-section-head">

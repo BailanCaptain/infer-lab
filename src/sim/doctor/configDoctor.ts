@@ -326,6 +326,7 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   "pd-block-size-mismatch": [{ pageId: "mooncake-connector" }, { pageId: "paged-attention" }],
   "pd-kv-cache-dtype-mismatch": [{ pageId: "mooncake-connector" }, { pageId: "kv-cache-quantization" }],
   "pd-model-dtype-mismatch": [{ pageId: "pd-disaggregation" }, { pageId: "low-precision-formats" }],
+  "pd-extra-config-topology-mismatch": [{ pageId: "mooncake-connector" }, { pageId: "pd-disaggregation" }],
 };
 
 export function getAllDoctorWikiRefs(): readonly DoctorWikiRef[] {
@@ -1168,6 +1169,87 @@ export function runPdConfigDoctor(
       sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1019-L1043`],
       message: `Prefill 侧 --dtype=${pInput.modelDtype} 与 Decode 侧 --dtype=${dInput.modelDtype} 不一致。`,
       remediation: "保持 P/D 双实例采用一致的模型精度（如两侧均为 bfloat16）。",
+      wikiRefs,
+      deepLinks,
+    });
+  }
+
+  // 9. kv_connector_extra_config.{prefill,decode} topology consistency against actual CLI TP/DP/PP
+  const actualPTp = Math.max(1, pInput.tpSize ?? 1);
+  const actualPDp = Math.max(1, pInput.dpSize ?? 1);
+  const actualPPp = Math.max(1, pInput.ppSize ?? 1);
+  const actualDTp = Math.max(1, dInput.tpSize ?? 1);
+  const actualDDp = Math.max(1, dInput.dpSize ?? 1);
+  const extraMismatches: string[] = [];
+  for (const [sideName, kvCfg] of [
+    ["Prefill 端", parsedP.kvTransferConfig],
+    ["Decode 端", parsedD.kvTransferConfig],
+  ] as const) {
+    const extra = kvCfg?.kv_connector_extra_config;
+    if (!extra || typeof extra !== "object" || Array.isArray(extra)) continue;
+    const ex = extra as Record<string, unknown>;
+    const pre =
+      ex.prefill && typeof ex.prefill === "object" && !Array.isArray(ex.prefill)
+        ? (ex.prefill as Record<string, unknown>)
+        : null;
+    const dec =
+      ex.decode && typeof ex.decode === "object" && !Array.isArray(ex.decode)
+        ? (ex.decode as Record<string, unknown>)
+        : null;
+    if (pre) {
+      if (pre.tp_size !== undefined && pre.tp_size !== actualPTp) {
+        extraMismatches.push(
+          `${sideName} extra_config.prefill.tp_size=${String(pre.tp_size)} 与实际 Prefill TP=${actualPTp} 不一致`,
+        );
+      }
+      if (pre.dp_size !== undefined && pre.dp_size !== actualPDp) {
+        extraMismatches.push(
+          `${sideName} extra_config.prefill.dp_size=${String(pre.dp_size)} 与实际 Prefill DP=${actualPDp} 不一致`,
+        );
+      }
+      if (pre.pp_size !== undefined && pre.pp_size !== actualPPp) {
+        extraMismatches.push(
+          `${sideName} extra_config.prefill.pp_size=${String(pre.pp_size)} 与实际 Prefill PP=${actualPPp} 不一致`,
+        );
+      }
+    }
+    if (dec) {
+      if (dec.tp_size !== undefined && dec.tp_size !== actualDTp) {
+        extraMismatches.push(
+          `${sideName} extra_config.decode.tp_size=${String(dec.tp_size)} 与实际 Decode TP=${actualDTp} 不一致`,
+        );
+      }
+      if (dec.dp_size !== undefined && dec.dp_size !== actualDDp) {
+        extraMismatches.push(
+          `${sideName} extra_config.decode.dp_size=${String(dec.dp_size)} 与实际 Decode DP=${actualDDp} 不一致`,
+        );
+      }
+      if (dec.pp_size !== undefined && dec.pp_size !== 1) {
+        extraMismatches.push(
+          `${sideName} extra_config.decode.pp_size=${String(dec.pp_size)} 非法（Decode PP 须为 1）`,
+        );
+      }
+    }
+  }
+  if (extraMismatches.length > 0) {
+    const { wikiRefs, deepLinks } = resolveWikiRefs(
+      "pd-extra-config-topology-mismatch",
+      opts.resolveDeepLink,
+    );
+    crossInstanceFindings.push({
+      id: "pd-extra-config-topology-mismatch",
+      scope: "cross-instance",
+      category: "pd",
+      domain: "cp-pd",
+      title: "kv_connector_extra_config 声明拓扑与实例实际 CLI 切分失配",
+      judgment: "error",
+      evidenceLevel: "C",
+      sources: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2151-L2241`,
+      ],
+      message: `${extraMismatches.join("；")}。握手端口与块映射按 extra_config 声明跨度计算，与实例真实 TP/DP/PP 不一致会导致连接失败或切块错位。`,
+      remediation:
+        "将 P/D 两侧 kv_connector_extra_config 中的 prefill.{tp_size,dp_size} 与 decode.{tp_size,dp_size,pp_size:1} 修正为与两侧实际 CLI 并行度完全一致。",
       wikiRefs,
       deepLinks,
     });

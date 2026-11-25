@@ -1,5 +1,12 @@
 import { findByAlias, resolvePageId } from "../../content/wiki/index";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
+import {
+  buildCalculatorReturnToFromDeploy,
+  canRestoreDeployModelOnReturn,
+  encodeHardwareDeployOverlay,
+  getHardwareModelMapping,
+  parseHardwareDeployOverlay,
+} from "./hardwareDeployOverlay";
 
 export type ModelEdition = "qwen3-8b" | "glm-5-3-flash";
 export type QwenVariant = "8b" | "30b-a3b";
@@ -43,10 +50,16 @@ export function resolveQwenVariant(params: URLSearchParams): QwenVariant {
 
 /**
  * 严格整数校验硬件 3D 的 `level` 参数（0..4）：
- * 若传入小数、负数、越界或 NaN 一律回退 0，杜绝脏参数穿透进 `whole/index.html`。
+ * 若传入小数、负数、越界或 NaN 一律回退 0，杜绝脏参数穿透进 `whole/index.html`；
+ * 未显式指定 `level` 且携带经校验的合法 `deploy` 时默认 `2`（展开内部机箱）。
  */
-export function parseHardwareLevel(params: URLSearchParams, hardwareModule: boolean): number {
-  if (!params.has("level")) return hardwareModule ? 3 : 0;
+export function parseHardwareLevel(
+  params: URLSearchParams,
+  hardwareModule: boolean,
+  hasValidDeploy?: boolean,
+): number {
+  const validDeploy = hasValidDeploy ?? parseHardwareDeployOverlay(params.get("deploy")) !== null;
+  if (!params.has("level")) return hardwareModule ? 3 : validDeploy ? 2 : 0;
   const raw = params.get("level")?.trim();
   if (!raw) return 0;
   const n = Number(raw);
@@ -67,13 +80,15 @@ export function sanitizeAnchor(raw: string | null | undefined): string {
 export interface ExperienceBackTarget {
   to: string;
   label: string;
+  secondary?: { to: string; label: string } | undefined;
 }
 
 /**
  * 解析顶栏「原路返回」目标：
  * 1. 若处于课程章节上下文 → 返回对应章节
- * 2. 若携带经知识库索引验证的 `fromPage`（及可选 `fromAnchor`）→ 返回该 Wiki 页面对应位置
- * 3. 否则兜底回 `/wiki` 主章节
+ * 2. 若携带合法 `deploy` 部署透视参数 → 返回部署算账台还原微调参数（若同时带合法 `fromPage`，提供旁侧入口并透传回算账台）
+ * 3. 若携带经知识库索引验证的 `fromPage`（及可选 `fromAnchor`）→ 返回该 Wiki 页面对应位置
+ * 4. 否则兜底回 `/wiki` 主章节
  */
 export function resolveExperienceBackTarget(
   params: URLSearchParams,
@@ -85,18 +100,29 @@ export function resolveExperienceBackTarget(
       label: `返回第 ${chapter.id} 章`,
     };
   }
+  let wikiTarget: { to: string; label: string } | undefined;
   const fromPageRaw = params.get("fromPage")?.trim();
   if (fromPageRaw) {
     const canonical = resolvePageId(fromPageRaw) ?? fromPageRaw;
     const page = findByAlias(canonical);
     if (page) {
       const anchor = sanitizeAnchor(params.get("fromAnchor"));
-      return {
+      wikiTarget = {
         to: `/wiki/${page.id}${anchor ? `#${anchor}` : ""}`,
         label: `返回「${pageDisplayTitle(page)}」`,
       };
     }
   }
+  const deployOverlay = parseHardwareDeployOverlay(params.get("deploy"));
+  if (deployOverlay) {
+    const exactModelRestored = canRestoreDeployModelOnReturn(deployOverlay, params);
+    return {
+      to: buildCalculatorReturnToFromDeploy(deployOverlay, params),
+      label: exactModelRestored ? "返回部署算账台微调" : "返回部署算账台（超长自定义模型需重新粘贴）",
+      ...(wikiTarget ? { secondary: wikiTarget } : {}),
+    };
+  }
+  if (wikiTarget) return wikiTarget;
   return { to: "/wiki", label: "返回主章节" };
 }
 
@@ -141,6 +167,29 @@ export function buildExperienceIframeSrc({
     return `${baseUrl}experiences/glm-flow/master/${file}?site=1${segQuery}`;
   }
   return `${baseUrl}experiences/qwen-flow/master/index.html?view=${viewId}&site=1&variant=${variant}`;
+}
+
+export function buildHardwareExperienceIframeSrc({
+  baseUrl,
+  params,
+}: {
+  baseUrl: string;
+  params: URLSearchParams;
+}): string {
+  const deployOverlay = parseHardwareDeployOverlay(params.get("deploy"));
+  const hardwareModule = params.get("view") === "npu";
+  const vendor = params.get("vendor") === "nvidia" ? "nvidia" : "ascend";
+  const rawModel = params.get("model");
+  const effectiveModel =
+    rawModel && /^[a-z0-9-]+$/.test(rawModel)
+      ? rawModel
+      : deployOverlay && vendor === "ascend"
+        ? getHardwareModelMapping(deployOverlay.cardId).hardwareModel
+        : null;
+  const modelParam = effectiveModel ? `&model=${effectiveModel}` : "";
+  const level = parseHardwareLevel(params, hardwareModule, deployOverlay !== null);
+  const deployParam = deployOverlay ? `&deploy=${encodeHardwareDeployOverlay(deployOverlay)}` : "";
+  return `${baseUrl}experiences/whole/index.html?site=1&vendor=${vendor}&level=${level}${modelParam}${deployParam}`;
 }
 
 function preserveContextParams(

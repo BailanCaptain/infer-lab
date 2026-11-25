@@ -24,9 +24,22 @@ export const KNOWN_WIKI_TOOLS = {
     defaultTab: "aicore",
     allowedModes: ["single", "full"] as const,
   },
+  "formula-ruler": {
+    title: "随文活体算例标尺",
+    defaultTab: "calculator",
+    allowedModes: [
+      "kv-token-bytes",
+      "gqa-ratio",
+      "mla-compression",
+      "tp-shard-comm",
+      "moe-ep-dispatch",
+      "cold-start-budget",
+    ] as const,
+  },
 } as const;
 
 export type WikiToolId = keyof typeof KNOWN_WIKI_TOOLS;
+export type FormulaRulerMode = (typeof KNOWN_WIKI_TOOLS)["formula-ruler"]["allowedModes"][number];
 
 export interface WikiToolSpec {
   tool: WikiToolId;

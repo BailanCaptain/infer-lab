@@ -1,7 +1,20 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DeployCalculatorView } from "../tools/DeployCalculatorView";
+import { parseCalculatorQueryParams } from "../tools/workbenchHandoff";
+import {
+  buildHardwareDeployHref,
+  CARD_TO_3D_HARDWARE_MAP,
+  computeHardwareNodeSlotLayout,
+  encodeHardwareDeployOverlay,
+  type HardwareDeployOverlayPayload,
+  parseHardwareDeployOverlay,
+} from "./hardwareDeployOverlay";
 import {
   appendFromPageToExperienceRoute,
   buildExperienceIframeSrc,
+  buildHardwareExperienceIframeSrc,
   buildModelSwitchTo,
   buildModelTabTo,
   isExperienceFrameReady,
@@ -554,5 +567,442 @@ describe("qwen-frame 路由与状态解析", () => {
     expect(resetUnsynced.nextState).toBeNull();
     expect(resetUnsynced.syncChildVariant).toBe("8b");
     expect(playSrc30b).not.toBe(playSrc8b);
+  });
+
+  it("Track 3C (#9): deploy 参数紧凑编解码与严格防篡改范围校验", () => {
+    const sample: HardwareDeployOverlayPayload = {
+      modelKey: "qwen3-30b-a3b",
+      cardId: "a3-die64g",
+      tp: 4,
+      pp: 1,
+      dp: 1,
+      ep: true,
+      totalRanks: 4,
+      cardGiB: 64,
+      u: 0.9,
+      weightGiB: 14.52,
+      kvGiB: 38.4,
+      runtimeGiB: 4.85,
+      oomStatus: "fits",
+      calc: {
+        subMode: "static",
+        weightPrecision: "bf16",
+        kvCacheDtype: "int8",
+        weightNzMode: 2,
+        pcp: 1,
+        dcp: 2,
+        maxModelLen: 65536,
+        cudagraphMode: "FULL_DECODE_ONLY",
+        useV2ModelRunner: true,
+        version: "main",
+      },
+    };
+    const encoded = encodeHardwareDeployOverlay(sample);
+    expect(encoded).toMatch(/^[A-Za-z0-9_-]+$/);
+    const decoded = parseHardwareDeployOverlay(encoded);
+    expect(decoded).toMatchObject({
+      modelKey: "qwen3-30b-a3b",
+      cardId: "a3-die64g",
+      tp: 4,
+      pp: 1,
+      dp: 1,
+      ep: true,
+      totalRanks: 4,
+      cardGiB: 64,
+      u: 0.9,
+      weightGiB: 14.52,
+      kvGiB: 38.4,
+      runtimeGiB: 4.85,
+      oomStatus: "fits",
+    });
+    expect(decoded?.calc).toMatchObject({
+      weightPrecision: "bf16",
+      kvCacheDtype: "int8",
+      weightNzMode: 2,
+      dcp: 2,
+      maxModelLen: 65536,
+      cudagraphMode: "FULL_DECODE_ONLY",
+      useV2ModelRunner: true,
+      version: "main",
+    });
+
+    const b64 = (obj: unknown) =>
+      Buffer.from(JSON.stringify(obj), "utf8")
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+    // 拦截伪造 cardGiB（310p-24g 标称单芯 24 GiB，篡改为 64 GiB 必须拒绝）
+    expect(
+      parseHardwareDeployOverlay(
+        b64({
+          v: 1,
+          m: "qwen3-8b",
+          c: "310p-24g",
+          tp: 2,
+          pp: 1,
+          dp: 1,
+          ep: 0,
+          r: 2,
+          cg: 64,
+          u: 0.9,
+          w: 8,
+          kv: 8,
+          rt: 2,
+          oom: "fits",
+        }),
+      ),
+    ).toBeNull();
+    // 拦截 totalRanks 与 tp*pp*dp*pcp 不一致
+    expect(
+      parseHardwareDeployOverlay(
+        b64({
+          v: 1,
+          m: "qwen3-8b",
+          c: "a2-64g",
+          tp: 2,
+          pp: 1,
+          dp: 1,
+          ep: 0,
+          r: 8,
+          cg: 64,
+          u: 0.9,
+          w: 8,
+          kv: 40,
+          rt: 4,
+          oom: "fits",
+        }),
+      ),
+    ).toBeNull();
+    // 拦截未知卡型、未知模型枚举、越界 u 与负数显存
+    expect(
+      parseHardwareDeployOverlay(
+        b64({
+          v: 1,
+          m: "evil-xss",
+          c: "a2-64g",
+          tp: 1,
+          pp: 1,
+          dp: 1,
+          ep: 0,
+          r: 1,
+          cg: 64,
+          u: 0.9,
+          w: 8,
+          kv: 40,
+          rt: 4,
+          oom: "fits",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      parseHardwareDeployOverlay(
+        b64({
+          v: 1,
+          m: "qwen3-8b",
+          c: "a2-64g",
+          tp: 1,
+          pp: 1,
+          dp: 1,
+          ep: 0,
+          r: 1,
+          cg: 64,
+          u: 1.5,
+          w: 8,
+          kv: 40,
+          rt: 4,
+          oom: "fits",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      parseHardwareDeployOverlay(
+        b64({
+          v: 1,
+          m: "qwen3-8b",
+          c: "a2-64g",
+          tp: 1,
+          pp: 1,
+          dp: 1,
+          ep: 0,
+          r: 1,
+          cg: 64,
+          u: 0.9,
+          w: -1,
+          kv: 40,
+          rt: 4,
+          oom: "fits",
+        }),
+      ),
+    ).toBeNull();
+    expect(parseHardwareDeployOverlay("not-valid-base64!!!")).toBeNull();
+    expect(parseHardwareDeployOverlay("a".repeat(1200))).toBeNull();
+  });
+
+  it("Track 3C (#9): 卡型到 3D 机型、A3 双裸片 / 310P 双芯 PCIe 槽位及跨机截断精确映射", () => {
+    expect(CARD_TO_3D_HARDWARE_MAP["a2-64g"].hardwareModel).toBe("atlas-800t-a2");
+    expect(CARD_TO_3D_HARDWARE_MAP["a2-32g"].hardwareModel).toBe("atlas-800t-a2");
+    expect(CARD_TO_3D_HARDWARE_MAP["a3-die64g"].hardwareModel).toBe("atlas-800i-a3");
+    expect(CARD_TO_3D_HARDWARE_MAP["310p-24g"].hardwareModel).toBe("atlas-800-3000");
+    expect(CARD_TO_3D_HARDWARE_MAP["950dt-128g"].hardwareModel).toBe("ascend-950dt");
+
+    // A3 双芯模组：TP=4 占用 npu0 [R0,R1] 与 npu1 [R2,R3]，其余 6 颗物理模组空闲，整机可容 16 Ranks
+    const a3Tp4 = computeHardwareNodeSlotLayout({
+      modelKey: "qwen3-30b-a3b",
+      cardId: "a3-die64g",
+      tp: 4,
+      pp: 1,
+      dp: 1,
+      ep: true,
+      totalRanks: 4,
+      cardGiB: 64,
+      u: 0.9,
+      weightGiB: 15,
+      kvGiB: 36,
+      runtimeGiB: 5,
+      oomStatus: "fits",
+    });
+    expect(a3Tp4.ranksPerNode).toBe(16);
+    expect(a3Tp4.isMultiNode).toBe(false);
+    expect(a3Tp4.activePhysicalSlotCount).toBe(2);
+    expect(a3Tp4.slots[0]?.active).toBe(true);
+    expect(a3Tp4.slots[0]?.dies.map((d) => [d.rankIndex, d.active])).toEqual([
+      [0, true],
+      [1, true],
+    ]);
+    expect(a3Tp4.slots[1]?.dies.map((d) => [d.rankIndex, d.active])).toEqual([
+      [2, true],
+      [3, true],
+    ]);
+    expect(a3Tp4.slots[2]?.active).toBe(false);
+    expect(a3Tp4.arcs).toEqual([
+      { fromRank: 0, toRank: 1, kind: "tp" },
+      { fromRank: 1, toRank: 2, kind: "tp" },
+      { fromRank: 2, toRank: 3, kind: "tp" },
+    ]);
+
+    // 310P 4 张双芯 PCIe 卡：card0(-1) 与 card2(+1) 下层卡向外侧 X 偏移引出，整机 8 Ranks
+    const duo8 = computeHardwareNodeSlotLayout({
+      modelKey: "qwen3-8b",
+      cardId: "310p-24g",
+      tp: 4,
+      pp: 2,
+      dp: 1,
+      ep: false,
+      totalRanks: 8,
+      cardGiB: 24,
+      u: 0.85,
+      weightGiB: 4.2,
+      kvGiB: 7.5,
+      runtimeGiB: 8.1,
+      oomStatus: "fits",
+    });
+    expect(duo8.ranksPerNode).toBe(8);
+    expect(duo8.activePhysicalSlotCount).toBe(4);
+    expect(duo8.slots.map((s) => [s.partSuffix, s.displacedOutwardX])).toEqual([
+      ["card0", -1],
+      ["card1", 0],
+      ["card2", 1],
+      ["card3", 0],
+    ]);
+    expect(duo8.arcs.some((a) => a.kind === "pp" && a.fromRank === 0 && a.toRank === 4)).toBe(true);
+
+    // 跨机 32 Ranks 在单机 8 Ranks (A2) 下诚实标记 nodeCount=4、本机激活 8 Ranks
+    const multiNode = computeHardwareNodeSlotLayout({
+      modelKey: "deepseek-v3-mla",
+      cardId: "a2-64g",
+      tp: 8,
+      pp: 2,
+      dp: 2,
+      ep: true,
+      totalRanks: 32,
+      cardGiB: 64,
+      u: 0.9,
+      weightGiB: 22,
+      kvGiB: 28,
+      runtimeGiB: 6,
+      oomStatus: "fits",
+    });
+    expect(multiNode.isMultiNode).toBe(true);
+    expect(multiNode.nodeCount).toBe(4);
+    expect(multiNode.localActiveRanks).toBe(8);
+  });
+
+  it("Track 3C (#9): 算账台 calc-open-3d-hardware 跳转、whole iframe 透传默认 level=2 与返回部署算账台往返", () => {
+    for (const mode of ["full", "quick-screen", "minimal"] as const) {
+      const html = renderToStaticMarkup(
+        createElement(DeployCalculatorView, { mode, embedded: mode !== "full" }),
+      );
+      expect(html).toContain('data-testid="calc-open-3d-hardware"');
+      expect(html).toContain("在 3D 整机中透视此方案 →");
+    }
+
+    const href = buildHardwareDeployHref(
+      {
+        modelKey: "qwen3-30b-a3b",
+        cardId: "a3-die64g",
+        tp: 4,
+        pp: 2,
+        dp: 1,
+        ep: true,
+        totalRanks: 8,
+        cardGiB: 64,
+        u: 0.9,
+        weightGiB: 8.1,
+        kvGiB: 42.3,
+        runtimeGiB: 4.5,
+        oomStatus: "fits",
+        calc: {
+          weightPrecision: "w8a8_dynamic",
+          kvCacheDtype: "int8",
+          maxModelLen: 65536,
+          cudagraphMode: "FULL_DECODE_ONLY",
+        },
+      },
+      new URLSearchParams("fromPage=mla&fromAnchor=kv-compress"),
+    );
+    expect(href.startsWith("#/hardware?")).toBe(true);
+    const hwParams = new URLSearchParams(href.slice("#/hardware?".length));
+    expect(hwParams.get("model")).toBe("atlas-800i-a3");
+
+    // 省略 level 时合法 deploy 默认展开 level=2；篡改 deploy 回退 level=0 且不透传
+    const paramsNoLevel = new URLSearchParams(`deploy=${hwParams.get("deploy")}`);
+    expect(parseHardwareLevel(paramsNoLevel, false)).toBe(2);
+    const iframeSrc = buildHardwareExperienceIframeSrc({ baseUrl: "/", params: paramsNoLevel });
+    expect(iframeSrc).toContain("level=2");
+    expect(iframeSrc).toContain("model=atlas-800i-a3");
+    expect(iframeSrc).toContain(`deploy=${hwParams.get("deploy")}`);
+
+    const tamperedSrc = buildHardwareExperienceIframeSrc({
+      baseUrl: "/",
+      params: new URLSearchParams("deploy=tampered_bad_payload"),
+    });
+    expect(tamperedSrc).toBe("/experiences/whole/index.html?site=1&vendor=ascend&level=0");
+
+    // 顶栏返回：章节优先 > deploy 跳回算账台还原全部参数（并保留旁侧 Wiki 返回入口）
+    expect(resolveExperienceBackTarget(hwParams, { id: "05" })).toEqual({
+      to: "/chapters/05",
+      label: "返回第 05 章",
+    });
+    const back = resolveExperienceBackTarget(hwParams, null);
+    expect(back.label).toBe("返回部署算账台微调");
+    expect(back.to.startsWith("/tools?")).toBe(true);
+    expect(back.secondary?.to).toBe("/wiki/mla#kv-compress");
+
+    const calcRoundTrip = parseCalculatorQueryParams(new URLSearchParams(back.to.slice("/tools?".length)));
+    expect(calcRoundTrip).toMatchObject({
+      presetId: "qwen3-30b-a3b",
+      cardId: "a3-die64g",
+      tpSize: 4,
+      ppSize: 2,
+      enableEp: true,
+      gpuMemoryUtilization: 0.9,
+      weightPrecision: "w8a8_dynamic",
+      kvCacheDtype: "int8",
+      maxModelLen: 65536,
+      cudagraphMode: "FULL_DECODE_ONLY",
+    });
+
+    // Review closures: explicit PP=1 & DP=1 preserved for non-unit presets (deepseek-v3-mla), and customModel preserved on return
+    const dsHref = buildHardwareDeployHref({
+      modelKey: "deepseek-v3-mla",
+      cardId: "a2-64g",
+      tp: 8,
+      pp: 1,
+      dp: 1,
+      ep: true,
+      totalRanks: 8,
+      cardGiB: 64,
+      u: 0.9,
+      weightGiB: 42,
+      kvGiB: 12,
+      runtimeGiB: 4,
+      oomStatus: "fits",
+    });
+    const dsBack = resolveExperienceBackTarget(new URLSearchParams(dsHref.slice("#/hardware?".length)), null);
+    const dsBackParams = new URLSearchParams(dsBack.to.slice("/tools?".length));
+    expect(dsBackParams.get("pp")).toBe("1");
+    expect(dsBackParams.get("dp")).toBe("1");
+
+    const customJson = JSON.stringify({
+      model_type: "qwen3",
+      hidden_size: 2048,
+      intermediate_size: 6144,
+      num_hidden_layers: 24,
+      num_attention_heads: 16,
+      num_key_value_heads: 4,
+      vocab_size: 151936,
+      max_position_embeddings: 32768,
+    });
+    const customHref = buildHardwareDeployHref(
+      {
+        modelKey: "custom-dense",
+        cardId: "a2-64g",
+        tp: 1,
+        pp: 1,
+        dp: 1,
+        ep: false,
+        totalRanks: 1,
+        cardGiB: 64,
+        u: 0.9,
+        weightGiB: 4,
+        kvGiB: 48,
+        runtimeGiB: 3,
+        oomStatus: "fits",
+      },
+      undefined,
+      customJson,
+    );
+    const customHwParams = new URLSearchParams(customHref.slice("#/hardware?".length));
+    const customBack = resolveExperienceBackTarget(customHwParams, null);
+    expect(customBack.label).toBe("返回部署算账台微调");
+    expect(new URLSearchParams(customBack.to.slice("/tools?".length)).get("customModel")).toBe(customJson);
+
+    // Missing customModel on custom-* key honestly indicates custom model cannot be auto-restored
+    customHwParams.delete("customModel");
+    expect(resolveExperienceBackTarget(customHwParams, null).label).toContain("超长自定义模型需重新粘贴");
+
+    // Session audit P1-2, P2-12 & P2-13: customModel strips unrelated secrets, DP>1 without EP emits dp arcs, and headroomOverflow round-trips alongside oomStatus
+    const dirtyCustomJson = JSON.stringify({
+      model_type: "qwen3",
+      hidden_size: 2048,
+      intermediate_size: 6144,
+      num_hidden_layers: 24,
+      num_attention_heads: 16,
+      num_key_value_heads: 4,
+      vocab_size: 151936,
+      token: "AUDITMARK",
+      _name_or_path: "/private/AUDITMARK",
+    });
+    const sanitizedHref = buildHardwareDeployHref(
+      {
+        modelKey: "custom-dense",
+        cardId: "310p-24g",
+        tp: 1,
+        pp: 1,
+        dp: 2,
+        ep: false,
+        totalRanks: 2,
+        cardGiB: 24,
+        u: 0.95,
+        weightGiB: 1.2,
+        kvGiB: 10.5,
+        runtimeGiB: 13.4,
+        oomStatus: "insufficient_for_single_max_len_seq",
+        headroomOverflow: true,
+      },
+      undefined,
+      dirtyCustomJson,
+    );
+    expect(sanitizedHref).not.toContain("AUDITMARK");
+    const sanParams = new URLSearchParams(sanitizedHref.slice("#/hardware?".length));
+    expect(sanParams.get("customModel") ?? "").not.toContain("AUDITMARK");
+    const parsedOverlay = parseHardwareDeployOverlay(sanParams.get("deploy"));
+    expect(parsedOverlay).not.toBeNull();
+    expect(parsedOverlay!.oomStatus).toBe("insufficient_for_single_max_len_seq");
+    expect(parsedOverlay!.headroomOverflow).toBe(true);
+    const dpLayout = computeHardwareNodeSlotLayout(parsedOverlay!);
+    expect(dpLayout.arcs).toEqual([{ fromRank: 0, toRank: 1, kind: "dp" }]);
   });
 });

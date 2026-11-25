@@ -89,6 +89,11 @@ const LazyAiCoreLab = createLazyTool(async () => {
   return { default: WikiAiCoreLabBlock };
 });
 
+const LazyFormulaRuler = createLazyTool(async () => {
+  const { WikiFormulaRulerBlock } = await import("../tools/FormulaRulerView");
+  return { default: WikiFormulaRulerBlock };
+});
+
 if (import.meta.env.MODE === "test") {
   await Promise.all(pendingTestPreloads);
 }
@@ -98,6 +103,7 @@ const TOOL_REGISTRY = new Map<WikiToolId, LazyExoticComponent<ComponentType<Wiki
   ["config-doctor", LazyConfigDoctor],
   ["troubleshoot-workbench", LazyTroubleshootWorkbench],
   ["aicore-lab", LazyAiCoreLab],
+  ["formula-ruler", LazyFormulaRuler],
 ]);
 
 const TOOL_MODE_LABELS: Readonly<Record<string, string>> = {
@@ -107,6 +113,12 @@ const TOOL_MODE_LABELS: Readonly<Record<string, string>> = {
   minimal: "精简模式",
   logs: "日志定位",
   timeline: "时序沙箱",
+  "kv-token-bytes": "单词与分块 KV",
+  "gqa-ratio": "GQA 压缩与复制",
+  "mla-compression": "MLA 潜向量压缩",
+  "tp-shard-comm": "TP 分片与通信",
+  "moe-ep-dispatch": "MoE 专家与派发",
+  "cold-start-budget": "7 级冷启动预算",
 };
 
 export function formatWikiToolModeBadge(mode: string | undefined, fallback: string): string {

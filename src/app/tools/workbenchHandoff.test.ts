@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
+import { FULL_SINGLE_DOCTOR_PRESETS } from "../../sim/doctor/presets";
+import { TROUBLESHOOT_FIXTURES } from "../../sim/troubleshoot/fixtures";
 import { RANK_PATTERNS as LOG_ANALYZER_RANK_PATTERNS } from "../../sim/troubleshoot/logAnalyzer";
 import {
+  applyControlledTabQueryUpdate,
+  buildAiCoreQueryParams,
   buildCalculatorQueryParams,
   buildDeployChatAnalysis,
   buildDoctorChatAnalysis,
+  buildDoctorQueryParams,
+  buildDoctorShareLink,
   buildTroubleshootChatAnalysis,
+  buildTroubleshootQueryParams,
   cardIdToHardwareFamily,
   createWorkbenchHandoffStore,
+  decodeDoctorCommandParam,
+  encodeDoctorCommandParam,
   extractLineIdentitySpans,
   extractRank,
   hasReconcilableStartupMetrics,
+  MAX_DOCTOR_COMMAND_CHARS,
+  MAX_WORKBENCH_SHARE_URL_CHARS,
+  matchExactDoctorPresetId,
+  matchExactTroubleshootFixtureId,
+  parseAiCoreQueryParams,
   parseCalculatorQueryParams,
+  parseDoctorQueryParams,
+  parseTroubleshootQueryParams,
   RANK_PATTERNS,
   resolveToolsBackTarget,
   sanitizeDiagnosticText,
@@ -589,5 +605,571 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
     expect(payload).toBeDefined();
     const truncDiag = analyzeTroubleshootInput(payload!.rawInput);
     expect(truncDiag.firstFaultVerdict.primaryEvidenceLines[0]?.lineNumber).toBe(255);
+  });
+
+  it("Track 1B: 增强版 sanitizeDiagnosticText 拦截任意大小写 DB_PASSWORD/SECRET/KEY 环境变量、JSON 凭据与 --*secret*/--*password*，且零误伤 v0.30.0 与常规标志", () => {
+    const raw = [
+      "export DB_PASSWORD=SuperSecretDbPass!2026",
+      "export db_passwd = 'single quoted pass' MY_SECRET_KEY=\"double quoted secret\"",
+      "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE SSH_PRIVATE_KEY=priv_abc123456 REDIS_AUTH_TOKEN=rtok_999",
+      "PYTORCH_NPU_ALLOC_CONF=expandable_segments:True HCCL_BUFFSIZE=1024 \\",
+      "vllm serve Qwen/Qwen3-30B-A3B --api-key k1 k2 --db-password=cli_pw --redis-secret 'cli sec' \\",
+      "  --max-num-batched-tokens 4096 --speculative-num-draft-tokens 4 --host 10.24.18.92 \\",
+      '  --additional-config \'{"redis_password":"json_pw_val","enable_npugraph_ex":true}\' # baseline v0.30.0',
+    ].join("\n");
+
+    const { sanitized, redactionCount } = sanitizeDiagnosticText(raw);
+    expect(redactionCount).toBeGreaterThanOrEqual(10);
+    for (const leaked of [
+      "SuperSecretDbPass!2026",
+      "single quoted pass",
+      "double quoted secret",
+      "AKIAIOSFODNN7EXAMPLE",
+      "priv_abc123456",
+      "rtok_999",
+      "k1",
+      "k2",
+      "cli_pw",
+      "cli sec",
+      "10.24.18.92",
+      "json_pw_val",
+    ]) {
+      expect(sanitized).not.toContain(leaked);
+    }
+    expect(sanitized).toContain("v0.30.0");
+    expect(sanitized).toContain("--max-num-batched-tokens 4096");
+    expect(sanitized).toContain("--speculative-num-draft-tokens 4");
+    expect(sanitized).toContain("PYTORCH_NPU_ALLOC_CONF=expandable_segments:True");
+    expect(sanitized).toContain("HCCL_BUFFSIZE=1024");
+    expect(sanitized).toContain('"enable_npugraph_ex":true');
+  });
+
+  it("Track 1B: ConfigDoctor 自动参数白名单、显式分享链接脱敏编码与 >4096 超长门禁拒绝截断", () => {
+    const preset = FULL_SINGLE_DOCTOR_PRESETS[0]!;
+    expect(
+      matchExactDoctorPresetId({
+        topology: "single",
+        commandText: preset.command,
+        prefillCommandText: "",
+        decodeCommandText: "",
+      }),
+    ).toBe(preset.id);
+    expect(
+      matchExactDoctorPresetId({
+        topology: "single",
+        commandText: `${preset.command} --port 9000`,
+        prefillCommandText: "",
+        decodeCommandText: "",
+      }),
+    ).toBeUndefined();
+
+    const preserve = new URLSearchParams("fromPage=core-cli-params&fromAnchor=静默改写");
+    const autoParams = buildDoctorQueryParams(
+      { topology: "single", hardwareFamily: "A3", version: "main", modelHint: "qwen3-30b-a3b" },
+      preserve,
+    );
+    expect(autoParams.get("tab")).toBe("doctor");
+    expect(autoParams.get("fromPage")).toBe("core-cli-params");
+    expect(autoParams.get("fromAnchor")).toBe("静默改写");
+    expect(autoParams.has("cmd")).toBe(false);
+    expect(autoParams.has("preset")).toBe(false);
+
+    expect(
+      parseDoctorQueryParams(
+        new URLSearchParams("topology=evil&preset=<script>&hw=H100&dhw=B200&ver=v99&hint=bad&cmd=%%%"),
+      ),
+    ).toEqual({});
+  });
+
+  it("Track 1B: buildDoctorShareLink 单机/PD 自定义命令 UTF-8 编解码往返、凭据脱敏计数与 >4096 硬门禁", () => {
+    const preserve = new URLSearchParams("fromPage=pd-disaggregation&fromAnchor=拓扑约束");
+    const singleShare = buildDoctorShareLink(
+      {
+        topology: "single",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelHint: "qwen3-8b",
+        crossNodeRoce: true,
+        commandText:
+          "DB_PASSWORD=top_secret vllm serve Qwen/Qwen3-8B --api-key k_one k_two --host 10.11.12.13 # 中文备注 v0.30.0",
+      },
+      preserve,
+    );
+    expect(singleShare.ok).toBe(true);
+    if (singleShare.ok) {
+      expect(singleShare.usesPresetOnly).toBe(false);
+      expect(singleShare.redactionCount).toBe(4);
+      expect(singleShare.url.length).toBeLessThanOrEqual(MAX_WORKBENCH_SHARE_URL_CHARS);
+      expect(singleShare.url).not.toContain("top_secret");
+      expect(singleShare.url).not.toContain("10.11.12.13");
+      const decoded = parseDoctorQueryParams(singleShare.params);
+      expect(decoded.hardwareFamily).toBe("A2");
+      expect(decoded.modelHint).toBe("qwen3-8b");
+      expect(decoded.crossNodeRoce).toBe(true);
+      expect(decoded.sharedCommand).toContain("中文备注 v0.30.0");
+      expect(decoded.sharedCommand).not.toContain("top_secret");
+      expect(decoded.sharedCommand).not.toContain("k_one");
+      expect(decoded.sharedCommand).not.toContain("10.11.12.13");
+    }
+
+    const pdShare = buildDoctorShareLink({
+      topology: "pd",
+      hardwareFamily: "A3",
+      decodeHardwareFamily: "A2",
+      version: "main",
+      modelHint: "qwen3-30b-a3b",
+      commandText: "",
+      prefillCommandText: "vllm serve Qwen/Qwen3-30B-A3B -tp 4 --host 192.168.1.10",
+      decodeCommandText: "REDIS_SECRET=sec99 vllm serve Qwen/Qwen3-30B-A3B -tp 2",
+    });
+    expect(pdShare.ok).toBe(true);
+    if (pdShare.ok) {
+      expect(pdShare.redactionCount).toBe(2);
+      const parsedPd = parseDoctorQueryParams(pdShare.params);
+      expect(parsedPd.topology).toBe("pd");
+      expect(parsedPd.decodeHardwareFamily).toBe("A2");
+      expect(parsedPd.sharedPrefillCommand).toContain("<REDACTED_IP>");
+      expect(parsedPd.sharedDecodeCommand).toContain("REDIS_SECRET=[REDACTED_KEY]");
+    }
+
+    // Overlong >4096 URL rejected without silent truncation
+    const overlongShare = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText: `vllm serve Qwen/Qwen3-8B ${"--env-note x ".repeat(280)}`,
+    });
+    expect(overlongShare.ok).toBe(false);
+    if (!overlongShare.ok) {
+      expect(overlongShare.reason).toContain(String(MAX_WORKBENCH_SHARE_URL_CHARS));
+    }
+
+    // Receiver also rejects >4096 query string & >MAX_DOCTOR_COMMAND_CHARS decoded payload
+    const bigEncoded = encodeDoctorCommandParam("vllm serve Qwen/Qwen3-8B ".repeat(140));
+    expect(bigEncoded.length).toBeGreaterThan(MAX_WORKBENCH_SHARE_URL_CHARS);
+    expect(parseDoctorQueryParams(new URLSearchParams({ cmd: bigEncoded })).sharedCommand).toBeUndefined();
+    const overMaxDecoded = encodeDoctorCommandParam("a".repeat(MAX_DOCTOR_COMMAND_CHARS + 10));
+    expect(decodeDoctorCommandParam(overMaxDecoded, 20_000)).toBeNull();
+  });
+
+  it("Track 1B: AiCoreLab 与 TroubleshootWorkbench 参数编解码、自由文本零同步与保活面板 URL 隔离", () => {
+    const preserve = new URLSearchParams("fromPage=ai-core&fromAnchor=双缓冲流水");
+    const aicoreParams = buildAiCoreQueryParams(
+      {
+        arch: "950",
+        doubleBuffer: true,
+        fuseAddRmsNorm: false,
+        quantFormat: "w8a8_dynamic",
+        outlierCh64: 21.5,
+      },
+      preserve,
+    );
+    expect(aicoreParams.get("tab")).toBe("aicore");
+    expect(aicoreParams.get("fromPage")).toBe("ai-core");
+    expect(aicoreParams.get("fromAnchor")).toBe("双缓冲流水");
+    expect(parseAiCoreQueryParams(aicoreParams)).toEqual({
+      arch: "950",
+      doubleBuffer: true,
+      fuseAddRmsNorm: false,
+      quantFormat: "w8a8_dynamic",
+      outlierCh64: 21.5,
+    });
+    expect(
+      parseAiCoreQueryParams(new URLSearchParams("arch=910a_fake&db=2&fuse=yes&quant=int4_fake&outlier=999")),
+    ).toEqual({});
+    expect(parseAiCoreQueryParams(new URLSearchParams("outlier=1e400"))).toEqual({});
+    expect(parseAiCoreQueryParams(new URLSearchParams("outlier=0.2"))).toEqual({});
+
+    // Troubleshoot: exact fixture match only; custom free-text log never produces fixture ID
+    const firstFixture = TROUBLESHOOT_FIXTURES[0]!;
+    expect(matchExactTroubleshootFixtureId(firstFixture.content)).toBe(firstFixture.id);
+    expect(matchExactTroubleshootFixtureId(`${firstFixture.content}\nDB_PASSWORD=secret`)).toBeUndefined();
+
+    const tsParams = buildTroubleshootQueryParams(
+      {
+        panel: "timeline",
+        fixtureId: firstFixture.id,
+        scenarioId: "kv-preemption-storm",
+        step: 1,
+      },
+      preserve,
+    );
+    expect(parseTroubleshootQueryParams(tsParams)).toEqual({
+      panel: "timeline",
+      fixtureId: firstFixture.id,
+      scenarioId: "kv-preemption-storm",
+      step: 1,
+    });
+    expect(
+      parseTroubleshootQueryParams(new URLSearchParams("panel=hack&fixture=evil&scenario=bad&step=-1")),
+    ).toEqual({});
+    expect(parseTroubleshootQueryParams(new URLSearchParams("step=999"))).toEqual({});
+
+    // Keep-alive isolation: inactive tab update is strictly dropped; active tab preserves fromPage/fromAnchor
+    const activeCalcSearch = new URLSearchParams(
+      "tab=calculator&preset=qwen3-8b&tp=2&fromPage=kv-cache&fromAnchor=容量账本",
+    );
+    const hiddenDoctorAttempt = buildDoctorQueryParams({
+      topology: "single",
+      hardwareFamily: "A3",
+      version: "main",
+      modelHint: "auto",
+    });
+    expect(
+      applyControlledTabQueryUpdate("calculator", "doctor", activeCalcSearch, hiddenDoctorAttempt),
+    ).toBeNull();
+
+    const activeDoctorSearch = new URLSearchParams("tab=doctor&fromPage=kv-cache&fromAnchor=容量账本");
+    const mergedDoctor = applyControlledTabQueryUpdate(
+      "doctor",
+      "doctor",
+      activeDoctorSearch,
+      hiddenDoctorAttempt,
+    );
+    expect(mergedDoctor).not.toBeNull();
+    expect(mergedDoctor?.get("tab")).toBe("doctor");
+    expect(mergedDoctor?.get("fromPage")).toBe("kv-cache");
+    expect(mergedDoctor?.get("fromAnchor")).toBe("容量账本");
+    expect(mergedDoctor?.get("ver")).toBe("main");
+    // Idempotent no-op when query already matches
+    expect(applyControlledTabQueryUpdate("doctor", "doctor", mergedDoctor!, hiddenDoctorAttempt)).toBeNull();
+  });
+
+  it("Review closures: AWS_SESSION_TOKEN 经分享链接往返解码已彻底脱敏（零误伤 MAX_TOKENS），且继承的模型特征与剪贴板不可用诚实返回生效", async () => {
+    const { copyTextToClipboard } = await import("./workbenchHandoff");
+    const link = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      sharedModelId: "qwen3-8b",
+      sharedTraitOverride: { isMoe: false, numAttentionHeads: 32, numKvHeads: 8, headDim: 128 },
+      commandText:
+        "AWS_SESSION_TOKEN=EXAMPLE_ONLY GITHUB_TOKEN=ghp_secret99 MAX_TOKENS=1024 vllm serve custom/hybrid -tp 3",
+    });
+    expect(link.ok).toBe(true);
+    if (!link.ok) return;
+    expect(link.redactionCount).toBe(2);
+    const decoded = parseDoctorQueryParams(link.params);
+    expect(decoded.sharedCommand).not.toContain("EXAMPLE_ONLY");
+    expect(decoded.sharedCommand).not.toContain("ghp_secret99");
+    expect(decoded.sharedCommand).toContain("AWS_SESSION_TOKEN=[REDACTED_KEY]");
+    expect(decoded.sharedCommand).toContain("MAX_TOKENS=1024");
+    expect(decoded.sharedModelId).toBe("qwen3-8b");
+    expect(decoded.sharedTraitOverride).toEqual({
+      isMoe: false,
+      numAttentionHeads: 32,
+      numKvHeads: 8,
+      headDim: 128,
+    });
+    expect(await copyTextToClipboard("http://localhost/#/tools?tab=aicore")).toBe(false);
+
+    // Wave 3 prep: Doctor fromVer round-trip & wargame controlled tab sync
+    const radarLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      fromVersion: "v0.23.0",
+      modelHint: "auto",
+      commandText: "VLLM_ASCEND_ENABLE_NZ=0 vllm serve Qwen/Qwen3-8B",
+    });
+    expect(radarLink.ok).toBe(true);
+    if (radarLink.ok) {
+      expect(radarLink.params.get("fromVer")).toBe("v0.23.0");
+      expect(parseDoctorQueryParams(radarLink.params).fromVersion).toBe("v0.23.0");
+    }
+    const wgMerged = applyControlledTabQueryUpdate(
+      "wargame",
+      "wargame",
+      new URLSearchParams("tab=wargame&fromPage=acl-graph"),
+      new URLSearchParams("case=rank3-oom-ei0006"),
+    );
+    expect(wgMerged?.toString()).toBe("tab=wargame&fromPage=acl-graph&case=rank3-oom-ei0006");
+
+    // Wave 3 review closure: Authorization: Basic / Token headers redacted in Doctor share links
+    const basicSecret = "dXNlcjpzdXBlcnNlY3JldA==";
+    const basicLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText: `curl -H "Authorization: Basic ${basicSecret}" && vllm serve Qwen/Qwen3-8B`,
+    });
+    expect(basicLink.ok).toBe(true);
+    if (basicLink.ok) {
+      expect(basicLink.redactionCount).toBeGreaterThanOrEqual(1);
+      const parsedBasic = parseDoctorQueryParams(basicLink.params);
+      expect(parsedBasic.sharedCommand).not.toContain(basicSecret);
+      expect(parsedBasic.sharedCommand).toContain("Authorization: Basic [REDACTED_TOKEN]");
+    }
+  });
+
+  it("Session audit P1-1 & P3-2: redacts Redis empty-user URI, multiline PRIVATE_KEY, and HUGGINGFACE_TOKEN in decoded share links, and bounds timeline step <= 1", async () => {
+    for (const secretCmd of [
+      "KV_CACHE_URI=redis://:AUDITMARK@cache.internal:6379/0 vllm serve Qwen/Qwen3-8B",
+      'PRIVATE_KEY="line1\nAUDITMARK\nline3" vllm serve Qwen/Qwen3-8B',
+      "HUGGINGFACE_TOKEN=AUDITMARK vllm serve Qwen/Qwen3-8B --max-num-batched-tokens 4096",
+    ]) {
+      const shared = buildDoctorShareLink({
+        topology: "single",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelHint: "auto",
+        commandText: secretCmd,
+      });
+      expect(shared.ok).toBe(true);
+      if (shared.ok) {
+        expect(shared.redactionCount).toBeGreaterThanOrEqual(1);
+        expect(shared.url).not.toContain("AUDITMARK");
+        const decoded = parseDoctorQueryParams(shared.params);
+        expect(decoded.sharedCommand).toBeDefined();
+        expect(decoded.sharedCommand).not.toContain("AUDITMARK");
+      }
+    }
+
+    // Multiline + HUGGINGFACE_TOKEN in P/D share links must also never survive decoding
+    const pdShared = buildDoctorShareLink({
+      topology: "pd",
+      hardwareFamily: "A3",
+      decodeHardwareFamily: "A3",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText: "",
+      prefillCommandText: "HUGGINGFACE_TOKEN=AUDITMARK vllm serve Qwen/Qwen3-30B-A3B -tp 4",
+      decodeCommandText:
+        'REDIS_URL=redis://:AUDITMARK@kv.local:6379 PRIVATE_KEY="a\nAUDITMARK" vllm serve Qwen/Qwen3-30B-A3B -tp 2',
+    });
+    expect(pdShared.ok).toBe(true);
+    if (pdShared.ok) {
+      expect(pdShared.redactionCount).toBeGreaterThanOrEqual(3);
+      const decodedPd = parseDoctorQueryParams(pdShared.params);
+      expect(decodedPd.sharedPrefillCommand).not.toContain("AUDITMARK");
+      expect(decodedPd.sharedDecodeCommand).not.toContain("AUDITMARK");
+    }
+
+    // Timeline step > 1 rejected cleanly
+    expect(parseTroubleshootQueryParams(new URLSearchParams("panel=timeline&step=1")).step).toBe(1);
+    expect(parseTroubleshootQueryParams(new URLSearchParams("panel=timeline&step=5")).step).toBeUndefined();
+
+    // Round-2 closures: escaped quotes inside PRIVATE_KEY/flags are redacted, while --tokenizer & TOKENIZERS_PARALLELISM stay intact
+    const escapedLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText:
+        'TOKENIZERS_PARALLELISM=false PRIVATE_KEY="line1\\"keep\nAUDITMARK_ESCAPED" vllm serve Qwen/Qwen3-8B --tokenizer /models/Qwen3-8B --api-key "k1\\"AUDITMARK_FLAG"',
+    });
+    expect(escapedLink.ok).toBe(true);
+    if (escapedLink.ok) {
+      const dec = parseDoctorQueryParams(escapedLink.params);
+      expect(dec.sharedCommand).not.toContain("AUDITMARK_ESCAPED");
+      expect(dec.sharedCommand).not.toContain("AUDITMARK_FLAG");
+      expect(dec.sharedCommand).toContain("--tokenizer /models/Qwen3-8B");
+      expect(dec.sharedCommand).toContain("TOKENIZERS_PARALLELISM=false");
+    }
+
+    const diagNested = sanitizeDiagnosticText(
+      "NPU out of memory: AWS_SECRET_ACCESS_KEY=AUDITMARK_MEM max_tokens: PRIVATE_KEY=AUDITMARK_TOK api_key: org:AUDITMARK_COLON=tail",
+    );
+    expect(diagNested.sanitized).not.toContain("AUDITMARK_MEM");
+    expect(diagNested.sanitized).not.toContain("AUDITMARK_TOK");
+    expect(diagNested.sanitized).not.toContain("AUDITMARK_COLON");
+    expect(diagNested.sanitized).toContain("max_tokens:");
+
+    // Round-3 closures: backslash line-continuation inside double quotes & TOKENIZER_API_KEY must be redacted
+    const contLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText:
+        'TOKENIZER_API_KEY=AUDITMARK_TOKKEY PRIVATE_KEY="part1\\\nAUDITMARK_CONT" vllm serve Qwen/Qwen3-8B --tokenizer /models/Qwen3-8B',
+    });
+    expect(contLink.ok).toBe(true);
+    if (contLink.ok) {
+      const decCont = parseDoctorQueryParams(contLink.params);
+      expect(decCont.sharedCommand).not.toContain("AUDITMARK_TOKKEY");
+      expect(decCont.sharedCommand).not.toContain("AUDITMARK_CONT");
+      expect(decCont.sharedCommand).toContain("--tokenizer /models/Qwen3-8B");
+    }
+
+    // Round-4+5 closures: YAML quoted/unquoted keys (same-line `;`, next-line indented, `>-` folded, `|` literal) + Authorization: ApiKey
+    const yamlAndHeaderCmd = [
+      '"api_key":',
+      "  org:AUDITMARK_NEXTLINE=tail",
+      '"secret_key": >-',
+      "  org:AUDITMARK_FOLDED=tail",
+      "  second_line_AUDITMARK_FOLDED2",
+      "private_key: |",
+      "  org;AUDITMARK_LITERAL=tail",
+      '"client_secret": org;AUDITMARK_SEMI=tail',
+      '"access_key": org;part AUDITMARK_SPACE',
+      "auth_token:",
+      "  # comment before indented value",
+      "  org:AUDITMARK_AFTER_COMMENT=tail",
+      "refresh_token: first_line",
+      "",
+      "  - AUDITMARK_AFTER_BLANK_DASH",
+      "- private_key: |",
+      "    \tAUDITMARK_SEQ_TAB_L1",
+      "    AUDITMARK_SEQ_TAB_L2",
+      "  max_model_len: 8192",
+      "- secret_key: >-",
+      "  # public note",
+      "  max_num_seqs: 128",
+      "  tp_size: 4",
+      "{client_secret: AUDITMARK_FLOW_A; project AUDITMARK_FLOW_B, dp_size: 2}",
+      'curl -H "Authorization: ApiKey AUDITMARK_APIKEY" https://example.invalid/',
+      `curl -H 'Authorization: Digest username="alice", realm="r", response="0123456789abcdef0123456789abcdef"' https://example.invalid/`,
+      'Authorization: Digest username*=UTF-8\'\'AUDITMARK_RFC5987, realm="r", nonce="n1", response="fedcba9876543210fedcba9876543210"',
+      "vllm serve Qwen/Qwen3-8B --max-model-len 8192",
+    ].join("\n");
+    const yamlLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText: yamlAndHeaderCmd,
+    });
+    expect(yamlLink.ok).toBe(true);
+    if (yamlLink.ok) {
+      expect(yamlLink.redactionCount).toBeGreaterThanOrEqual(9);
+      const decYaml = parseDoctorQueryParams(yamlLink.params);
+      for (const m of [
+        "AUDITMARK_NEXTLINE",
+        "AUDITMARK_FOLDED",
+        "AUDITMARK_FOLDED2",
+        "AUDITMARK_LITERAL",
+        "AUDITMARK_SEMI",
+        "AUDITMARK_SPACE",
+        "AUDITMARK_AFTER_COMMENT",
+        "AUDITMARK_AFTER_BLANK_DASH",
+        "AUDITMARK_SEQ_TAB_L1",
+        "AUDITMARK_SEQ_TAB_L2",
+        "AUDITMARK_FLOW_A",
+        "AUDITMARK_FLOW_B",
+        "AUDITMARK_APIKEY",
+        "AUDITMARK_RFC5987",
+        "0123456789abcdef0123456789abcdef",
+        "fedcba9876543210fedcba9876543210",
+      ]) {
+        expect(decYaml.sharedCommand).not.toContain(m);
+      }
+      expect(decYaml.sharedCommand).toContain("  # public note");
+      expect(decYaml.sharedCommand).toContain("  max_model_len: 8192");
+      expect(decYaml.sharedCommand).toContain("  max_num_seqs: 128");
+      expect(decYaml.sharedCommand).toContain("  tp_size: 4");
+      expect(decYaml.sharedCommand).toContain("dp_size: 2");
+      expect(decYaml.sharedCommand).toContain("vllm serve Qwen/Qwen3-8B --max-model-len 8192");
+    }
+
+    // Round-6 closures: single-line shell with YAML flow object, valid YAML block scalar embedding shell/YAML, and multiline Digest header preserving next-line env vars
+    const singleLineFlowLink = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText:
+        "vllm serve Qwen/Qwen3-8B --config '{client_secret: QA_FIRST; project QA_LAST, tp_size: 4}'",
+    });
+    expect(singleLineFlowLink.ok).toBe(true);
+    if (singleLineFlowLink.ok) {
+      expect(singleLineFlowLink.redactionCount).toBeGreaterThanOrEqual(1);
+      const decFlow = parseDoctorQueryParams(singleLineFlowLink.params).sharedCommand ?? "";
+      expect(decFlow).not.toContain("QA_FIRST");
+      expect(decFlow).not.toContain("QA_LAST");
+      expect(decFlow).toContain("tp_size: 4");
+    }
+
+    const nestedBlockYaml = [
+      "apiVersion: v1",
+      "kind: ConfigMap",
+      "data:",
+      "  config.yaml: |",
+      "    api_key:",
+      "      org:QA_NESTED_BLOCK=tail",
+      "    max_model_len: 8192",
+      "  command: |",
+      "    vllm serve Qwen/Qwen3-8B --config '{client_secret: QA_CMD_FIRST; project QA_CMD_LAST, tp_size: 4}'",
+    ].join("\n");
+    const nestedSan = sanitizeDiagnosticText(nestedBlockYaml);
+    expect(nestedSan.redactionCount).toBeGreaterThanOrEqual(2);
+    expect(nestedSan.sanitized).not.toContain("QA_NESTED_BLOCK");
+    expect(nestedSan.sanitized).not.toContain("QA_CMD_FIRST");
+    expect(nestedSan.sanitized).not.toContain("QA_CMD_LAST");
+    expect(nestedSan.sanitized).toContain("    max_model_len: 8192");
+    expect(nestedSan.sanitized).toContain("tp_size: 4");
+
+    const digestMultiline = sanitizeDiagnosticText(
+      'Authorization: Digest username="alice", response="0123456789abcdef0123456789abcdef"  \r\nTP_SIZE=4\r\nMAX_MODEL_LEN=8192',
+    );
+    expect(digestMultiline.sanitized).not.toContain("0123456789abcdef0123456789abcdef");
+    expect(digestMultiline.sanitized).toContain("TP_SIZE=4");
+    expect(digestMultiline.sanitized).toContain("MAX_MODEL_LEN=8192");
+
+    // Round-7 closures: apostrophe inside flow scalar, alias inside collection, heredoc inside command:|,
+    // 4-level nested block scalars, quoted YAML Authorization values, valid YAML string output, comments/anchors, standalone Bearer newline
+    const { parse: parseYaml } = await import("yaml");
+
+    const apostropheFlow = sanitizeDiagnosticText(
+      'vllm serve M --config "{client_secret: team\'s QA_FIRST; project QA_LAST, tp_size: 4}"',
+    );
+    expect(apostropheFlow.sanitized).not.toContain("QA_FIRST");
+    expect(apostropheFlow.sanitized).not.toContain("QA_LAST");
+    expect(apostropheFlow.sanitized).toContain("tp_size: 4");
+
+    const aliasInCollection = sanitizeDiagnosticText("common: &demo QA_DEMO\napi_keys: [*demo]\ntp_size: 4");
+    expect(aliasInCollection.sanitized).not.toContain("QA_DEMO");
+    expect(aliasInCollection.sanitized).toContain("tp_size: 4");
+
+    const heredocInBlock = sanitizeDiagnosticText(
+      "command: |\n  cat <<EOF\n  defaults: &key QA_DEMO\n  client_secret: *key\n  EOF\ntp_size: 4",
+    );
+    expect(heredocInBlock.sanitized).not.toContain("QA_DEMO");
+    expect(heredocInBlock.sanitized).toContain("tp_size: 4");
+
+    const deepBlocks = sanitizeDiagnosticText(
+      "a: |\n  b: |\n    c: |\n      d: |\n        client_secret: QA_FIRST; project QA_LAST\n        tp_size: 4",
+    );
+    expect(deepBlocks.sanitized).not.toContain("QA_FIRST");
+    expect(deepBlocks.sanitized).not.toContain("QA_LAST");
+    expect(deepBlocks.sanitized).toContain("tp_size: 4");
+
+    // 20-level nested block scalars also redact cleanly with no depth-16 cliff
+    const depth20Lines = Array.from({ length: 20 }, (_, i) => `${"  ".repeat(i)}l${i}: |`);
+    depth20Lines.push(`${"  ".repeat(20)}client_secret: QA_DEEP_FIRST; project QA_DEEP_LAST`);
+    depth20Lines.push(`${"  ".repeat(20)}tp_size: 4`);
+    const deep20 = sanitizeDiagnosticText(depth20Lines.join("\n"));
+    expect(deep20.sanitized).not.toContain("QA_DEEP_FIRST");
+    expect(deep20.sanitized).not.toContain("QA_DEEP_LAST");
+    expect(deep20.sanitized).toContain("tp_size: 4");
+
+    const quotedYamlAuth = sanitizeDiagnosticText(
+      "headers:\n  Authorization: 'Basic QA_BASIC_TOKEN'\n  Proxy-Authorization: \"Digest username=QA_USER, response=QA_RESPONSE\"",
+    );
+    expect(quotedYamlAuth.sanitized).not.toContain("QA_BASIC_TOKEN");
+    expect(quotedYamlAuth.sanitized).not.toContain("QA_USER");
+    expect(quotedYamlAuth.sanitized).not.toContain("QA_RESPONSE");
+
+    const plainYamlStr = sanitizeDiagnosticText("client_secret: QA_DEMO\ntp_size: 4").sanitized;
+    expect(parseYaml(plainYamlStr)).toEqual({ client_secret: "[REDACTED_KEY]", tp_size: 4 });
+
+    const commentYaml = sanitizeDiagnosticText("client_secret: # optional value\ntp_size: 4").sanitized;
+    expect(parseYaml(commentYaml)).toEqual({ client_secret: null, tp_size: 4 });
+
+    const anchorYaml = sanitizeDiagnosticText(
+      "client_secret: &key QA_DEMO\ncopy: *key\ntp_size: 4",
+    ).sanitized;
+    expect(parseYaml(anchorYaml)).toEqual({
+      client_secret: "[REDACTED_KEY]",
+      copy: "[REDACTED_KEY]",
+      tp_size: 4,
+    });
+
+    const bareBearerNewline = sanitizeDiagnosticText("log: Bearer\nTP_SIZE=4\nMAX_MODEL_LEN=8192").sanitized;
+    expect(bareBearerNewline).toContain("TP_SIZE=4");
+    expect(bareBearerNewline).toContain("MAX_MODEL_LEN=8192");
   });
 });

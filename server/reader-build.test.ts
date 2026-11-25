@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createServer, normalizePath } from "vite";
 import { expect, it } from "vitest";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { wikiReaderPlugin } from "../scripts/wiki/reader-plugin";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
+import { createReaderStore } from "../src/content/wiki/reader-store";
+import { readerGraphSchema } from "../src/content/wiki/schema";
 import { readReaderSnapshot } from "./snapshot";
 
 it("the build reader and API expose the same knowledge revision, pages and content", async () => {
@@ -69,6 +72,140 @@ it("the build reader and API expose the same knowledge revision, pages and conte
     expect(await reader.retrieve("参见")).toEqual([]);
   } finally {
     await server?.close();
+    f.cleanup();
+  }
+});
+
+it("isBuild virtual modules strip heavy manifest fields, omit redundant text, round-trip packedCompiled and emit wiki-graph JSON", async () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/HANDBOOK.md", handbookFixture());
+    const raw = saveRawSnapshot(join(f.root, "wiki"), "公式与表格原文依据。\n");
+    f.write(
+      "wiki/concepts/base.md",
+      [
+        "---",
+        "id: base",
+        "title: 基础概念",
+        "type: concept",
+        "summary: 基础页摘要",
+        `sources: [raw:${raw.slice(4)}#L1]`,
+        `rawSources: [${raw}]`,
+        "evidence: C",
+        "updated: '2026-11-24'",
+        "---",
+        "## 基础公式 [C1]",
+        "",
+        "计算 $y = x^2 + \\sqrt{z}$，以及等宽块：",
+        "",
+        "```text",
+        "形状 → [B, H]",
+        "```",
+        "",
+      ].join("\n"),
+    );
+    f.write(
+      "wiki/concepts/derived.md",
+      [
+        "---",
+        "id: derived",
+        "title: 派生概念",
+        "type: concept",
+        "summary: 派生页摘要",
+        `sources: [raw:${raw.slice(4)}#L1]`,
+        "relations:",
+        "  - to: base",
+        "    kind: builds-on",
+        "    note: 派生概念依赖基础概念",
+        "evidence: C",
+        "updated: '2026-11-24'",
+        "---",
+        "## 派生说明 [C1]",
+        "",
+        "参见 [基础概念](base.md)。",
+        "",
+      ].join("\n"),
+    );
+
+    const plugin = wikiReaderPlugin();
+    const outDir = join(f.root, "dist-test");
+    const configResolved = plugin.configResolved as (cfg: unknown) => void;
+    configResolved.call(plugin, {
+      root: f.root,
+      command: "build",
+      build: { outDir: "dist-test" },
+    });
+
+    const resolveId = plugin.resolveId as (id: string) => string | undefined;
+    const load = plugin.load as (id: string) => Promise<string | undefined>;
+
+    const resolvedSnapshotId = resolveId.call(plugin, "virtual:wiki-reader-snapshot")!;
+    const snapshotModuleCode = (await load.call(plugin, resolvedSnapshotId))!;
+    expect(snapshotModuleCode).toContain("export const loadWikiGraph=");
+
+    const manifestJsonMatch = /^export default (\{.*\});\n/.exec(snapshotModuleCode);
+    expect(manifestJsonMatch).not.toBeNull();
+    const manifest = JSON.parse(manifestJsonMatch![1]!) as {
+      revision: string;
+      registry: { pages: Record<string, unknown>[] };
+    };
+
+    const fullSnapshot = await readReaderSnapshot(f.root);
+    expect(manifest.revision).toBe(fullSnapshot.revision);
+
+    // 轻目录剥离四个重字段
+    for (const lightPage of manifest.registry.pages) {
+      expect(Object.hasOwn(lightPage, "sources")).toBe(false);
+      expect(Object.hasOwn(lightPage, "rawSources")).toBe(false);
+      expect(Object.hasOwn(lightPage, "relations")).toBe(false);
+      expect(Object.hasOwn(lightPage, "backlinks")).toBe(false);
+    }
+
+    const decodeVirtualDefault = async (virtualId: string): Promise<Record<string, unknown>> => {
+      const resolved = resolveId.call(plugin, virtualId)!;
+      const code = (await load.call(plugin, resolved))!;
+      const m = /^export default JSON\.parse\((".*")\);$/.exec(code);
+      expect(m).not.toBeNull();
+      return JSON.parse(JSON.parse(m![1]!) as string) as Record<string, unknown>;
+    };
+
+    const baseVirtual = await decodeVirtualDefault(`virtual:wiki-reader-page/${manifest.revision}/base`);
+    expect(Object.hasOwn(baseVirtual, "text")).toBe(false);
+    expect(Object.hasOwn(baseVirtual, "compiled")).toBe(false);
+    expect(Array.isArray(baseVirtual.packedCompiled)).toBe(true);
+    expect(baseVirtual.sources).toEqual([`raw:${raw.slice(4)}#L1`]);
+    expect(baseVirtual.rawSources).toEqual([raw]);
+    expect(baseVirtual.backlinks).toEqual([
+      { from: "derived", kind: "enables", note: "派生概念依赖基础概念" },
+    ]);
+
+    const writeBundle = plugin.writeBundle as (opts: { dir?: string }) => Promise<void>;
+    await writeBundle.call(plugin, { dir: outDir });
+
+    const graphPath = join(outDir, "wiki-graph", `graph-${manifest.revision}.json`);
+    const graphData = readerGraphSchema.parse(JSON.parse(readFileSync(graphPath, "utf8")));
+    expect(graphData).toEqual({
+      revision: manifest.revision,
+      edges: [{ from: "derived", to: "base", kind: "builds-on", note: "派生概念依赖基础概念" }],
+    });
+
+    // 通过 createReaderStore 验证单页往返解码与权威重字段合并与服务端完整快照 100% 等价
+    const store = createReaderStore(
+      manifest,
+      (id) => decodeVirtualDefault(`virtual:wiki-reader-page/${manifest.revision}/${id}`),
+      undefined,
+      undefined,
+      async () => graphData,
+    );
+    expect(await store.ensureWikiGraph()).toEqual(graphData);
+    for (const fullPage of fullSnapshot.registry.pages) {
+      await store.ensurePage(fullPage.id);
+      const loaded = store.getPage(fullPage.id)!;
+      expect(loaded.body).toBe("");
+      expect(loaded.fm).toEqual(fullPage);
+      expect(loaded.compiled).toEqual(fullSnapshot.pageTexts.find((p) => p.file === fullPage.file)?.compiled);
+    }
+  } finally {
     f.cleanup();
   }
 });

@@ -289,6 +289,14 @@ GLM 实取潜向量 `512` 维、RoPE 段 `0` 维、主缓存固定 BF16。每层
 
 这些状态也不能统一按 BF16 估算。本页固定的 GLM 专用路径中，完整 MLA 主缓存使用 BF16，压缩器窗口保留 FP32 状态，压缩结果进入 indexer 缓存时再舍入。BF16 与 FP32 是不同的浮点数表示格式，计算容量时需要分别采用对应状态的元素字节数。
 
+```wiki-tool
+tool: formula-ruler
+mode: mla-compression
+model: qwen3-8b
+title: 随文活体算例标尺 · 标准 KV 与 MLA 潜向量压缩对照
+summary: 对照当前目标机器模型的单 token 缓存与 DeepSeek MLA 潜向量规则，或一键切至 MLA 样例实算压缩比与跨 TP 复制特征。
+```
+
 ## 放到 GLM 双机：一个 token 走过一层稀疏 MLA
 
 这一站在主线的[第 4 站 · 11 层稀疏 MLA](one-request.md#11-层稀疏-mla)。部署是 2 台 A2 × 8 卡、机内 TP8，前提统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。

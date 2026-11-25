@@ -199,6 +199,14 @@ file: mem-prof-fig-qwen3-waterfall
 
 > **边界与例外（跨 `group_name` 拆键与 `mc2` 托管）**：`create_hccl_pg_options` 会向 `Options.hccl_config` 写入不同的 `"group_name"` 字段；若真机据此拆键（详见 [HCCL buffer](hccl-buffer.md) 待核项），7 个逻辑组的配置字段合计为 `1,250 MiB`。此外，`mc2` 组传入 `pg_options=None`，其缓冲大小直接交由 CANN 环境变量 `HCCL_BUFFSIZE` 控制。
 
+```wiki-tool
+tool: formula-ruler
+mode: cold-start-budget
+model: qwen3-8b
+title: 随文活体算例标尺 · 7 级冷启动显存扣减与 1−u 余量
+summary: 切换目标卡型、显存比例 u、模型与 TP 并行度，一行核对预算内权重/激活扣减后的剩余 KV 池与预算外 ACLGraph 录图安全余量。
+```
+
 ### 切成块：各卡取最小，块数不等于并发数
 
 **`EngineCore` 收齐本组所有 Worker 报来的可用 KV 字节数后，先按每块字节数各自整除，再取全组最小的块数 `min_num_blocks` 统一分配，并把多算出的张量空间按比例缩回。** 各卡的激活峰值与非 Torch 增量存在细微波动，取最小值才能保证组内每张卡都装得下同一张块表，也避免大卡白占显存。多 DP 部署下，每个 `EngineCore` 只在自己管辖的卡组内取最小；前端 `core_client.py` 汇总日志时再把各 DP 引擎的 `num_gpu_blocks` 相加（API 侧打印的总块数是多组之和，而非单组容量）。

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { packCompiledNode } from "./hast-pack";
 import { createReaderStore } from "./reader-store";
 import { buildIndex, retrieve, serializeSearchIndex } from "./retrieve";
+import type { CompiledNode } from "./schema";
 
 function snapshot(version: string) {
   const revision = version.repeat(64);
@@ -369,5 +371,146 @@ describe("reader snapshot state", () => {
     expect(store.getState()).toBe(beforeState);
     expect(store.getPage("former-page")).toBe(beforeArticle);
     expect(store.resolvePageId("former-page")).toBe("current-page");
+  });
+
+  it("hydrates stripped heavy fields + packedCompiled on ensurePage and completes all unloaded pages on same-revision live install", async () => {
+    const rev = "e".repeat(64);
+    const rawPath = `raw/sha256-${"f".repeat(64)}.md`;
+    const compiledTree: CompiledNode = {
+      type: "root",
+      children: [
+        {
+          type: "element",
+          tagName: "p",
+          properties: {},
+          children: [{ type: "text", value: "紧凑编译正文" }],
+        },
+      ],
+    };
+    const fullA = {
+      id: "alpha",
+      title: "Alpha",
+      type: "concept" as const,
+      summary: "Alpha summary",
+      file: "concepts/alpha.md",
+      sources: [
+        "https://example.com/c1",
+        "vllm-ascend@28bf3a2e:vllm_ascend/a.py#L1-L5",
+        `raw:${rawPath.slice(4)}#L1-L2`,
+      ],
+      rawSources: [rawPath],
+      relations: [{ to: "beta", kind: "builds-on" as const, note: "Alpha 建在 Beta 之上" }],
+      backlinks: [],
+      evidence: "C" as const,
+      updated: "2026-11-24",
+    };
+    const fullB = {
+      id: "beta",
+      title: "Beta",
+      type: "concept" as const,
+      summary: "Beta summary",
+      file: "concepts/beta.md",
+      sources: ["https://example.com/beta"],
+      relations: [],
+      backlinks: [{ from: "alpha", kind: "enables", note: "Alpha 建在 Beta 之上" }],
+      evidence: "S" as const,
+      updated: "2026-11-24",
+    };
+
+    const stripHeavy = <T extends Record<string, unknown>>({
+      sources: _s,
+      rawSources: _rs,
+      relations: _rel,
+      backlinks: _bl,
+      ...light
+    }: T) => light;
+
+    let resolveLateBeta!: (val: unknown) => void;
+    const loadPage = vi.fn((id: string) => {
+      if (id === "alpha") {
+        return Promise.resolve({
+          revision: rev,
+          file: fullA.file,
+          packedCompiled: packCompiledNode(compiledTree),
+          sources: fullA.sources,
+          rawSources: fullA.rawSources,
+          relations: fullA.relations,
+          backlinks: fullA.backlinks,
+          diagrams: [],
+        });
+      }
+      return new Promise((resolve) => {
+        resolveLateBeta = resolve;
+      });
+    });
+    const loadGraph = vi.fn(async () => ({
+      revision: rev,
+      edges: [{ from: "alpha", to: "beta", kind: "builds-on" as const, note: "Alpha 建在 Beta 之上" }],
+    }));
+
+    const store = createReaderStore(
+      { revision: rev, registry: { version: 1, pages: [stripHeavy(fullA), stripHeavy(fullB)] } },
+      loadPage,
+      undefined,
+      undefined,
+      loadGraph,
+    );
+
+    // 轻目录初始缺省为空数组
+    expect(store.getState().pages.find((p) => p.id === "alpha")?.sources).toEqual([]);
+    expect(store.getState().pages.find((p) => p.id === "alpha")?.relations).toEqual([]);
+    expect(store.getState().pages.find((p) => p.id === "beta")?.backlinks).toEqual([]);
+
+    // 按需加载图谱无需下载单页
+    const graph = await store.ensureWikiGraph();
+    expect(graph.edges).toEqual([
+      { from: "alpha", to: "beta", kind: "builds-on", note: "Alpha 建在 Beta 之上" },
+    ]);
+    expect(loadGraph).toHaveBeenCalledTimes(1);
+    expect(loadPage).not.toHaveBeenCalled();
+
+    // 加载单页 alpha（无 text，仅 packedCompiled）
+    await store.ensurePage("alpha");
+    const hydratedAlpha = store.getPage("alpha")!;
+    expect(hydratedAlpha.body).toBe("");
+    expect(hydratedAlpha.compiled).toEqual(compiledTree);
+    expect(hydratedAlpha.fm.sources).toEqual(fullA.sources);
+    expect(hydratedAlpha.fm.rawSources).toEqual(fullA.rawSources);
+    expect(hydratedAlpha.fm.relations).toEqual(fullA.relations);
+    expect(store.getState().pages.find((p) => p.id === "alpha")?.sources).toEqual(fullA.sources);
+
+    // beta 在途请求期间同 revision live install 到达：补齐所有页重字段与正文，且晚到的无 text 构建包不冲掉正文
+    const inFlightBeta = store.ensurePage("beta");
+    const liveSnapshot = {
+      revision: rev,
+      registry: { version: 1 as const, pages: [fullA, fullB] },
+      pageTexts: [
+        { file: fullA.file, text: "---\nid: alpha\n---\nLive Alpha 正文", compiled: compiledTree },
+        { file: fullB.file, text: "---\nid: beta\n---\nLive Beta 正文", compiled: compiledTree },
+      ],
+      searchIndex: serializeSearchIndex(
+        buildIndex([
+          { ...fullA, aliases: [], chapters: [], related: [], text: "Live Alpha 正文" },
+          { ...fullB, aliases: [], chapters: [], related: [], text: "Live Beta 正文" },
+        ]),
+        rev,
+      ),
+    };
+    store.install(liveSnapshot);
+    resolveLateBeta({
+      revision: rev,
+      file: fullB.file,
+      packedCompiled: packCompiledNode(compiledTree),
+      sources: fullB.sources,
+      relations: fullB.relations,
+      backlinks: fullB.backlinks,
+      diagrams: [],
+    });
+    await inFlightBeta;
+
+    expect(store.getState().mode).toBe("local");
+    expect(store.getState().pages.find((p) => p.id === "beta")?.backlinks).toEqual(fullB.backlinks);
+    expect(store.getPage("beta")?.body).toBe("Live Beta 正文");
+    expect(store.getPage("alpha")?.body).toBe("Live Alpha 正文");
   });
 });

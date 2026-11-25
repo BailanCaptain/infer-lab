@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { headingSlug } from "./anchors";
+import { isPackedHastRoot, type PackedHastNode } from "./hast-pack";
 
 /** Static discoveries are not runtime guarantees; suspect rows require explicit review. */
 export const paramEntrySchema = z.object({
@@ -441,11 +442,50 @@ export type Registry = z.infer<typeof registrySchema>;
 export const skippedPageSchema = z.object({ id: z.string(), file: z.string(), reason: z.string() });
 export type SkippedPage = z.infer<typeof skippedPageSchema>;
 
+const sourceRefItemSchema = z
+  .string()
+  .refine(isSourceRef, "sources 每项必须是 repo@commit:path#L起-L止、HTTP(S) URL 或带行号的 raw 快照引用");
+
+export const readerManifestEntrySchema = pageFrontmatterObjectSchema
+  .extend({
+    file: z.string(),
+    displayTitle: z.string().min(1).optional(),
+    sources: z.array(sourceRefItemSchema).default([]),
+    backlinks: z.array(backlinkSchema).default([]),
+  })
+  .superRefine(refineSinglePageFrontmatter);
+
+export const readerManifestRegistrySchema = z
+  .object({
+    version: z.literal(1),
+    pages: z.array(readerManifestEntrySchema),
+  })
+  .superRefine(({ pages }, ctx) => {
+    const seenIds = new Set<string>();
+    for (const page of pages) {
+      if (seenIds.has(page.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["pages"],
+          message: `规范 id「${page.id}」重复出现`,
+        });
+      }
+      seenIds.add(page.id);
+    }
+    for (const conflict of collectLegacyIdConflicts(pages)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["pages"],
+        message: formatLegacyIdConflict(conflict),
+      });
+    }
+  });
+
 /** The directory can be loaded without downloading every article and diagram. */
 export const readerManifestSchema = z
   .object({
     revision: z.string().regex(/^[a-f0-9]{64}$/),
-    registry: registrySchema,
+    registry: readerManifestRegistrySchema,
     skipped: z.array(skippedPageSchema).default([]),
   })
   .superRefine(({ registry, skipped }, ctx) => {
@@ -478,14 +518,67 @@ const compiledSchema = compiledNodeSchema.refine(
   "正文编译结果需要根节点",
 );
 
-export const readerPageSchema = z.object({
-  revision: z.string().regex(/^[a-f0-9]{64}$/),
-  file: z.string(),
-  text: z.string(),
-  compiled: compiledSchema.optional(),
-  diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })),
-});
+const packedCompiledSchema = z.custom<PackedHastNode>(isPackedHastRoot, "正文紧凑编译结果需要合法根节点");
+
+export const readerPageSchema = z
+  .object({
+    revision: z.string().regex(/^[a-f0-9]{64}$/),
+    file: z.string(),
+    text: z.string().optional(),
+    compiled: compiledSchema.optional(),
+    packedCompiled: packedCompiledSchema.optional(),
+    sources: z.array(sourceRefItemSchema).min(1).optional(),
+    rawSources: z.array(z.string().regex(RAW_SNAPSHOT_RE)).min(1).optional(),
+    relations: z.array(relationSchema).optional(),
+    backlinks: z.array(backlinkSchema).optional(),
+    diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })),
+  })
+  .superRefine((page, ctx) => {
+    if (page.text === undefined && page.compiled === undefined && page.packedCompiled === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["text"],
+        message: "单页数据必须包含 text、compiled 或 packedCompiled 之一",
+      });
+    }
+  })
+  .transform((page) => ({
+    ...page,
+    text: page.text ?? "",
+  }));
 export type ReaderPage = z.infer<typeof readerPageSchema>;
+
+export const wikiGraphEdgeSchema = z.object({
+  from: idField,
+  to: idField,
+  kind: z.enum(RELATION_KINDS),
+  note: z.string().min(1),
+});
+export type WikiGraphEdge = z.infer<typeof wikiGraphEdgeSchema>;
+
+export const readerGraphSchema = z.object({
+  revision: z.string().regex(/^[a-f0-9]{64}$/),
+  edges: z.array(wikiGraphEdgeSchema),
+});
+export type ReaderGraph = z.infer<typeof readerGraphSchema>;
+
+export function extractReaderGraph(
+  revision: string,
+  pages: readonly Pick<RegistryEntry, "id" | "relations">[],
+): ReaderGraph {
+  const edges: WikiGraphEdge[] = [];
+  for (const page of pages) {
+    for (const rel of page.relations) {
+      edges.push({
+        from: page.id,
+        to: rel.to,
+        kind: rel.kind,
+        note: rel.note,
+      });
+    }
+  }
+  return { revision, edges };
+}
 
 export const readerSearchIndexPageSchema = z.object({
   id: idField,

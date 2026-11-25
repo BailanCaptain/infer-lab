@@ -365,8 +365,65 @@ scene.add(plinth);
 const cabinetRoot=new THREE.Group(),
  serverRoot=new THREE.Group(),
  guideRoot=new THREE.Group(),
- focusRoot=new THREE.Group();
-scene.add(cabinetRoot,serverRoot,guideRoot,focusRoot);
+ focusRoot=new THREE.Group(),
+ overlayRoot=new THREE.Group();
+scene.add(cabinetRoot,serverRoot,guideRoot,focusRoot,overlayRoot);
+
+const DEPLOY_CARDS={
+ 'a2-64g':{model:'atlas-800t-a2',slots:8,dies:1,ranks:8,gib:64,prefix:'npu',dieWord:'Rank',displaced:[]},
+ 'a2-32g':{model:'atlas-800t-a2',slots:8,dies:1,ranks:8,gib:32,prefix:'npu',dieWord:'Rank',displaced:[]},
+ 'a3-die64g':{model:'atlas-800i-a3',slots:8,dies:2,ranks:16,gib:64,prefix:'npu',dieWord:'Die',displaced:[]},
+ '310p-24g':{model:'atlas-800-3000',slots:4,dies:2,ranks:8,gib:24,prefix:'card',dieWord:'Chip',displaced:[0,2]},
+ '950dt-128g':{model:'ascend-950dt',slots:8,dies:1,ranks:8,gib:128,prefix:'npu',dieWord:'Rank',displaced:[]}
+};
+const DEPLOY_MODEL_NAMES={
+ 'qwen3-0.6b':'Qwen3-0.6B','qwen3-8b':'Qwen3-8B','qwen3-30b-a3b':'Qwen3-30B-A3B',
+ 'deepseek-v3-mla':'DeepSeek-V3 MLA 样例','hybrid-kda-gqa':'KDA+GQA 混合样例',
+ 'csa2-sparse-mla':'CSA2 稀疏注意力样例','engram-conditional':'Engram 条件记忆样例',
+ 'custom-dense':'自定义稠密模型','custom-moe':'自定义 MoE 模型',
+ 'custom-mla':'自定义 MLA 模型','custom-kda':'自定义线性注意力模型'
+};
+const DEPLOY_OOM_LABELS={
+ fits:'装得下',tight_budget_oom_risk:'预算紧绷风险',
+ insufficient_for_single_max_len_seq:'不足单条满长序列 KV',
+ weights_exceed_budget:'权重超出可用预算',
+ weights_plus_activation_exceed_budget:'权重+激活超出预算',
+ non_kv_exceeds_budget:'非 KV 固定项超预算',
+ headroom_overflow:'录图穿透 1−u 裕度'
+};
+function parseDeployParam(raw){
+ if(!raw||raw.length>1024||!/^[A-Za-z0-9_-]+$/.test(raw)||raw.length%4===1)return null;
+ try{
+  const pad=(4-(raw.length%4))%4;
+  const bin=atob(raw.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat(pad));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  const txt=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+  const o=JSON.parse(txt);
+  if(!o||typeof o!=='object'||Array.isArray(o)||o.v!==1)return null;
+  const card=DEPLOY_CARDS[o.c],mName=DEPLOY_MODEL_NAMES[o.m];
+  if(!card||!mName||!DEPLOY_OOM_LABELS[o.oom])return null;
+  const okP=n=>[1,2,4,8].includes(n);
+  const pcp=o.pcp===undefined?1:o.pcp,dcp=o.dcp===undefined?1:o.dcp;
+  if(!okP(o.tp)||!okP(o.pp)||!okP(o.dp)||!okP(pcp)||!okP(dcp))return null;
+  if(o.ep!==0&&o.ep!==1&&typeof o.ep!=='boolean')return null;
+  if(!Number.isInteger(o.r)||o.r<1||o.r>4096||o.r!==o.tp*o.pp*o.dp*pcp)return null;
+  if(o.cg!==card.gib||typeof o.u!=='number'||!Number.isFinite(o.u)||o.u<0.1||o.u>0.99)return null;
+  const okG=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=4096;
+  if(!okG(o.w)||!okG(o.kv)||!okG(o.rt))return null;
+  const localRanks=Math.min(o.r,card.ranks);
+  return {
+   modelKey:o.m,modelName:mName,cardId:o.c,targetModel:card.model,
+   physicalSlots:card.slots,diesPerSlot:card.dies,ranksPerNode:card.ranks,
+   partPrefix:card.prefix,dieWord:card.dieWord,displaced:card.displaced,
+   tp:o.tp,pp:o.pp,dp:o.dp,pcp,dcp,ep:Boolean(o.ep),
+   totalRanks:o.r,localRanks,nodeCount:Math.max(1,Math.ceil(o.r/card.ranks)),
+   activePhysicalSlots:Math.ceil(localRanks/card.dies),
+   cardGiB:card.gib,u:o.u,weightGiB:o.w,kvGiB:o.kv,runtimeGiB:o.rt,oomStatus:o.oom,
+   headroomOverflow:Boolean(o.ho)
+  };
+ }catch{return null;}
+}
 
 const entry=new URLSearchParams(location.search),SITE=entry.get('site')==='1';
 if(SITE){
@@ -380,16 +437,17 @@ if(SITE){
  plinth.visible=false;
 }
 
-const requestedVendor=entry.get('vendor')==='ascend'?'ascend':entry.get('vendor')==='nvidia'?'nvidia':(SITE?'ascend':'nvidia');
-const requestedModel=entry.get('model');
-let lastAscendModel=ASCEND_KEYS.includes(requestedModel)?requestedModel:'atlas-800t-a2';
+const deployPlan=parseDeployParam(entry.get('deploy'));
+const requestedVendor=entry.get('vendor')==='ascend'?'ascend':entry.get('vendor')==='nvidia'?'nvidia':(deployPlan||SITE?'ascend':'nvidia');
+const requestedModel=entry.get('model')||(deployPlan&&requestedVendor!=='nvidia'?deployPlan.targetModel:null);
+let lastAscendModel=ASCEND_KEYS.includes(requestedModel)?requestedModel:(deployPlan?deployPlan.targetModel:'atlas-800t-a2');
 let lastNvidiaModel=NVIDIA_KEYS.includes(requestedModel)?requestedModel:'dgx-h100';
 let currentModel=ASCEND_KEYS.includes(requestedModel)||NVIDIA_KEYS.includes(requestedModel)
  ?requestedModel
  :(requestedVendor==='nvidia'?lastNvidiaModel:lastAscendModel);
 let platform=MODELS[currentModel].vendor;
-let level=Math.max(0,Math.min(4,Number(entry.get('level'))||0));
-let spread=.65,
+let level=entry.has('level')?Math.max(0,Math.min(4,Number(entry.get('level'))||0)):(deployPlan?2:0);
+let spread=deployPlan?.78:.65,
  templates={},
  cabinet,
  server,
@@ -406,17 +464,24 @@ let spread=.65,
  cabinetDoor=null,
  showCallouts=true,
  activeCallouts=[];
+if(deployPlan){
+ $('#spread').value='0.78';
+ $('#amount').textContent='78%';
+}
 
-let renderRequest=0,doorMotion=null;
+let renderRequest=0,doorMotion=null,modelLoadSeq=0,hasLoadedOnce=false,viewerDisposed=false;
 function invalidate(shadows=false){
+ if(viewerDisposed)return;
  if(shadows)renderer.shadowMap.needsUpdate=true;
  if(!renderRequest&&!document.hidden)renderRequest=requestAnimationFrame(draw);
 }
-controls.addEventListener('change',()=>invalidate());
-document.addEventListener('visibilitychange',()=>{
+const onControlsChange=()=>invalidate();
+const onVisibilityChange=()=>{
  if(document.hidden){cancelAnimationFrame(renderRequest);renderRequest=0;}
  else invalidate();
-});
+};
+controls.addEventListener('change',onControlsChange);
+document.addEventListener('visibilitychange',onVisibilityChange);
 
 // Populate 4-model switcher cards for active platform (Ascend or NVIDIA)
 const modelGrid=$('#modelgrid');
@@ -492,6 +557,7 @@ function frame(reset=true){
   target.y=Math.max(1.5,p.height*.62+.9);
   if(p.u>=8)pos.multiplyScalar(1.18);
   else if(p.u<=1)pos.multiplyScalar(.94);
+  if(isDeployOverlayActive())pos.y+=2.8;
  }else if((level===3||level===4)&&focused){
   const bounds=new THREE.Box3().setFromObject(focused),
    size=bounds.getSize(new THREE.Vector3()),
@@ -578,7 +644,49 @@ const UNIT_BOX=new THREE.BoxGeometry(1,1,1);
 const GUIDE_DOT_GEO=new THREE.SphereGeometry(.038,8,8);
 const GUIDE_DOT_MAT=new THREE.MeshBasicMaterial({color:'#8b6a47'});
 const GUIDE_LINE_MAT=new THREE.LineDashedMaterial({color:'#6c7f72',dashSize:.14,gapSize:.10,transparent:true,opacity:.68});
+const DEPLOY_PORT_GEO=new THREE.SphereGeometry(.034,10,10);
+const DEPLOY_MATS={
+ weight:new THREE.MeshStandardMaterial({color:'#c78300',roughness:.44,metalness:.14}),
+ kv:new THREE.MeshStandardMaterial({color:'#4c65b6',roughness:.46,metalness:.12}),
+ runtime:new THREE.MeshStandardMaterial({color:'#9a4b86',roughness:.48,metalness:.12}),
+ oom:new THREE.MeshStandardMaterial({color:'#b54237',roughness:.40,metalness:.10,emissive:'#3d100c'}),
+ pedestal:new THREE.MeshStandardMaterial({color:'#efe6cc',roughness:.52,metalness:.18,emissive:'#261906'}),
+ pedestalIdle:new THREE.MeshStandardMaterial({color:'#d8dbd2',roughness:.82,metalness:.06,transparent:true,opacity:.72}),
+ uCollar:new THREE.MeshStandardMaterial({color:'#17211f',roughness:.55,metalness:.20}),
+ outerFrame:new THREE.LineBasicMaterial({color:'#8a928f',transparent:true,opacity:.44}),
+ uFrame:new THREE.LineDashedMaterial({color:'#66716d',dashSize:.045,gapSize:.035,transparent:true,opacity:.90}),
+ oomFrame:new THREE.LineBasicMaterial({color:'#b54237',transparent:true,opacity:.96}),
+ tpArc:new THREE.MeshStandardMaterial({color:'#087f73',roughness:.34,metalness:.18,emissive:'#043832'}),
+ ppArc:new THREE.MeshStandardMaterial({color:'#9a4b86',roughness:.38,metalness:.16,emissive:'#2c1125'}),
+ dpArc:new THREE.MeshStandardMaterial({color:'#5b75a6',roughness:.36,metalness:.16,emissive:'#16233b'}),
+ leaderDash:new THREE.LineDashedMaterial({color:'#6b533b',dashSize:.065,gapSize:.045,transparent:true,opacity:.92}),
+ leaderPort:new THREE.MeshBasicMaterial({color:'#a9553e'}),
+ tpPort:new THREE.MeshBasicMaterial({color:'#087f73'})
+};
 const _tmpM4=new THREE.Matrix4(),_tmpPos=new THREE.Vector3(),_tmpQuat=new THREE.Quaternion(),_tmpScl=new THREE.Vector3();
+const _tubePt=new THREE.Vector3(),_idleTint=new THREE.Color('#cfd3cb');
+const TUBE_SEGS=22,TUBE_RADIAL=6;
+function updateTubeGeoInPlace(geom,curve,radius){
+ const frames=curve.computeFrenetFrames(TUBE_SEGS,false);
+ const posAttr=geom.getAttribute('position'),normAttr=geom.getAttribute('normal');
+ const pa=posAttr.array,na=normAttr.array;
+ let idx=0;
+ for(let i=0;i<=TUBE_SEGS;i++){
+  curve.getPointAt(i/TUBE_SEGS,_tubePt);
+  const N=frames.normals[i],B=frames.binormals[i];
+  for(let j=0;j<=TUBE_RADIAL;j++){
+   const v=(j/TUBE_RADIAL)*Math.PI*2,cv=-Math.cos(v),sv=Math.sin(v);
+   const nx=cv*N.x+sv*B.x,ny=cv*N.y+sv*B.y,nz=cv*N.z+sv*B.z;
+   const len=Math.hypot(nx,ny,nz)||1,ux=nx/len,uy=ny/len,uz=nz/len;
+   na[idx]=ux;na[idx+1]=uy;na[idx+2]=uz;
+   pa[idx]=_tubePt.x+radius*ux;pa[idx+1]=_tubePt.y+radius*uy;pa[idx+2]=_tubePt.z+radius*uz;
+   idx+=3;
+  }
+ }
+ posAttr.needsUpdate=true;
+ normAttr.needsUpdate=true;
+ geom.computeBoundingSphere();
+}
 
 function addInstancedBoxes(parent,mat,specs,castShadow=false){
  if(!specs.length)return;
@@ -677,7 +785,8 @@ function clearHover(){
  if(hoveredPart){
   hoveredPart.traverse(o=>{
    if(o.isMesh&&o.userData.origEmissive!==undefined){
-    o.material.emissive?.setHex(o.userData.origEmissive);
+    const targetHex=o.userData.deployEmissive!==undefined?o.userData.deployEmissive:o.userData.origEmissive;
+    o.material.emissive?.setHex(targetHex);
    }
   });
   hoveredPart=null;
@@ -766,11 +875,458 @@ function rebuildGuides(){
  }
 }
 
+let deployColEntries=[],deployArcEntries=[],activeDeployPartSet=new Set();
+function isDeployOverlayActive(){
+ return Boolean(deployPlan&&level===2&&currentModel===deployPlan.targetModel&&server);
+}
+function clearDeployLabels(){
+ const host=$('#deploy-labels'),tags=$('#deploy-label-tags'),lines=$('#deploy-label-lines');
+ if(tags)tags.replaceChildren();
+ if(lines)lines.replaceChildren();
+ if(host)host.hidden=true;
+}
+function ensureCloneMat(mesh){
+ if(!mesh.userData.deployMatCloned&&mesh.material){
+  mesh.material=mesh.material.clone();
+  mesh.userData.deployMatCloned=true;
+  mesh.userData.ownMat=true;
+  mesh.userData.ownGeo=false;
+  if(mesh.userData.origEmissive===undefined&&mesh.material.emissive){
+   mesh.userData.origEmissive=mesh.material.emissive.getHex();
+  }
+  if(mesh.material.color)mesh.userData.origBaseColor=mesh.material.color.getHex();
+  mesh.userData.origOpacity=mesh.material.opacity;
+  mesh.userData.origTransparent=mesh.material.transparent;
+  mesh.userData.origDepthWrite=mesh.material.depthWrite;
+ }
+}
+let hasSyncedDeployMats=false;
+function syncDeployServerMaterials(active){
+ if(!server)return;
+ if(!active&&!hasSyncedDeployMats)return;
+ if(active)hasSyncedDeployMats=true;
+ for(const part of parts){
+  const kind=part.userData.kind;
+  if(kind==='cooling'){
+   part.traverse(m=>{
+    if(!m.isMesh||!m.material)return;
+    ensureCloneMat(m);
+    if(active){
+     m.material.transparent=true;
+     m.material.opacity=.24;
+     m.material.depthWrite=false;
+    }else{
+     m.material.transparent=m.userData.origTransparent;
+     m.material.opacity=m.userData.origOpacity;
+     m.material.depthWrite=m.userData.origDepthWrite;
+    }
+   });
+  }else if(kind==='npu'){
+   const slotActive=activeDeployPartSet.has(part);
+   part.traverse(m=>{
+    if(!m.isMesh||!m.material)return;
+    ensureCloneMat(m);
+    if(active){
+     if(m.material.color&&m.userData.origBaseColor!==undefined){
+      m.material.color.setHex(m.userData.origBaseColor);
+      if(!slotActive)m.material.color.lerp(_idleTint,.44);
+     }
+     m.userData.deployEmissive=slotActive?0x221606:0x000000;
+     if(hoveredPart!==part)m.material.emissive?.setHex(m.userData.deployEmissive);
+    }else{
+     if(m.material.color&&m.userData.origBaseColor!==undefined)m.material.color.setHex(m.userData.origBaseColor);
+     m.userData.deployEmissive=undefined;
+     if(hoveredPart!==part&&m.userData.origEmissive!==undefined)m.material.emissive?.setHex(m.userData.origEmissive);
+    }
+   });
+  }
+ }
+}
+
+function computePartLocalTopY(part){
+ part.updateMatrixWorld(true);
+ const inv=part.matrixWorld.clone().invert(),box=new THREE.Box3(),sub=new THREE.Box3();
+ part.traverse(m=>{
+  if(!m.isMesh||!m.geometry)return;
+  if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();
+  sub.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld).applyMatrix4(inv);
+  box.union(sub);
+ });
+ return Number.isFinite(box.max.y)?box.max.y:.62;
+}
+function addOverlayMesh(parent,geo,mat,x,y,z){
+ const m=new THREE.Mesh(geo,mat);
+ m.position.set(x,y,z);
+ m.castShadow=false;m.receiveShadow=false;
+ m.userData.ownGeo=true;m.userData.ownMat=false;
+ parent.add(m);
+ return m;
+}
+function addOverlayEdges(parent,w,h,d,mat,yc,dashed){
+ const b=new THREE.BoxGeometry(w,h,d),eg=new THREE.EdgesGeometry(b);
+ b.dispose();
+ const ls=new THREE.LineSegments(eg,mat);
+ ls.position.y=yc;ls.frustumCulled=false;
+ ls.userData.ownGeo=true;ls.userData.ownMat=false;
+ if(dashed)ls.computeLineDistances();
+ parent.add(ls);
+ return ls;
+}
+function buildDeployOverlay(){
+ disposeGroup(overlayRoot);
+ clearDeployLabels();
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
+ if(!deployPlan||currentModel!==deployPlan.targetModel||!server)return;
+ const npuParts=parts.filter(o=>o.userData.kind==='npu').map(o=>{
+  const m=o.name.match(/(?:npu|card)(\d+)$/i);
+  return {part:o,idx:m?Number(m[1]):999};
+ }).sort((a,b)=>a.idx-b.idx);
+ const labelsHost=$('#deploy-label-tags')||$('#deploy-labels'),linesSvg=$('#deploy-label-lines');
+ const C=deployPlan.cardGiB,u=deployPlan.u,budgetGiB=u*C;
+ const usedGiB=deployPlan.weightGiB+deployPlan.kvGiB+deployPlan.runtimeGiB;
+ const physOverflow=usedGiB>C+.005;
+ const hardBudgetOom=['weights_exceed_budget','weights_plus_activation_exceed_budget','non_kv_exceeds_budget','headroom_overflow'].includes(deployPlan.oomStatus);
+ const budgetOverflow=!physOverflow&&(hardBudgetOom||Boolean(deployPlan.headroomOverflow)||deployPlan.weightGiB+deployPlan.kvGiB>budgetGiB+.02);
+ const isOom=physOverflow||budgetOverflow;
+ const isWarn=!isOom&&deployPlan.oomStatus!=='fits';
+ const innerGroup=deployPlan.tp*deployPlan.pcp,repStride=innerGroup*deployPlan.pp;
+ for(let slot=0;slot<deployPlan.physicalSlots;slot++){
+  const entryItem=npuParts[slot];
+  if(!entryItem)continue;
+  const part=entryItem.part,topY=computePartLocalTopY(part);
+  const displacedDir=deployPlan.displaced.includes(slot)?(slot===0?-1:1):0;
+  let slotHasActive=false;
+  for(let d=0;d<deployPlan.diesPerSlot;d++){
+   if(slot*deployPlan.diesPerSlot+d<deployPlan.localRanks)slotHasActive=true;
+  }
+  if(slotHasActive)activeDeployPartSet.add(part);
+  for(let d=0;d<deployPlan.diesPerSlot;d++){
+   const rank=slot*deployPlan.diesPerSlot+d,active=rank<deployPlan.localRanks;
+   if(!active&&!slotHasActive)continue;
+   const isPcie=deployPlan.partPrefix==='card',isDualNpu=deployPlan.diesPerSlot===2&&!isPcie;
+   const lx=isDualNpu?(d===0?-.19:.19):(isPcie?.06:0),lz=isPcie?(d===0?-.48:.36):.02;
+   const colW=isDualNpu?.23:(isPcie?.25:.34),colD=isDualNpu?.27:(isPcie?.30:.34),fullH=isPcie?.88:(isDualNpu?.92:.96);
+   const colGroup=new THREE.Group();
+   overlayRoot.add(colGroup);
+   if(!active){
+    addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.04,.024,colD+.04),DEPLOY_MATS.pedestalIdle,0,.012,0);
+    addOverlayEdges(colGroup,colW,.20*fullH,colD,DEPLOY_MATS.outerFrame,.03+.10*fullH,false);
+    deployColEntries.push({rank,active:false,part,slot,isPcie,localAnchor:new THREE.Vector3(lx,topY+.045,lz),displacedDir,colGroup,portDot:null,leaderLine:null,cardPortDot:null,tagEl:null,capTopY:.25});
+    continue;
+   }
+   addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.06,.032,colD+.06),DEPLOY_MATS.pedestal,0,.016,0);
+   const portDot=new THREE.Mesh(DEPLOY_PORT_GEO,deployPlan.tp>1?DEPLOY_MATS.tpPort:DEPLOY_MATS.uCollar);
+   portDot.position.set(0,.034,isPcie?0:(slot<4?.14:-.14));
+   portDot.userData.ownGeo=false;portDot.userData.ownMat=false;
+   colGroup.add(portDot);
+   const yBase=.040;
+   let curGiB=0;
+   for(const [gib,mat] of [[deployPlan.weightGiB,DEPLOY_MATS.weight],[deployPlan.kvGiB,DEPLOY_MATS.kv],[deployPlan.runtimeGiB,DEPLOY_MATS.runtime]]){
+    const lo=Math.min(curGiB,C),hi=Math.min(curGiB+gib,C);
+    curGiB+=gib;
+    if(hi-lo>.004*C){
+     const h=((hi-lo)/C)*fullH,visH=Math.max(.010,h-.004);
+     addOverlayMesh(colGroup,new THREE.BoxGeometry(colW,visH,colD),mat,0,yBase+(lo/C)*fullH+h*.5,0);
+    }
+   }
+   addOverlayEdges(colGroup,colW+.012,fullH,colD+.012,DEPLOY_MATS.outerFrame,yBase+fullH*.5,false);
+   addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.028,.014,colD+.028),DEPLOY_MATS.uCollar,0,yBase+u*fullH,0);
+   const remH=Math.max(.024,(1-u)*fullH);
+   addOverlayEdges(colGroup,colW+.020,remH,colD+.020,isOom?DEPLOY_MATS.oomFrame:DEPLOY_MATS.uFrame,yBase+u*fullH+remH*.5,!isOom);
+   let capTopY=yBase+fullH+.03;
+   if(physOverflow){
+    const oomRatio=(usedGiB-C)/C;
+    const oomH=Math.min(.48*fullH,Math.max(.045*fullH,oomRatio*fullH));
+    addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.024,oomH,colD+.024),DEPLOY_MATS.oom,0,yBase+fullH+.010+oomH*.5,0);
+    capTopY=yBase+fullH+.024+oomH;
+   }else if(isOom){
+    const overLo=budgetGiB,overHi=Math.min(C,Math.max(usedGiB,budgetGiB+.045*C));
+    const overH=Math.max(.022,((overHi-overLo)/C)*fullH);
+    addOverlayMesh(colGroup,new THREE.BoxGeometry(colW+.016,overH,colD+.016),DEPLOY_MATS.oom,0,yBase+(overLo/C)*fullH+overH*.5,0);
+   }
+   let leaderLine=null,cardPortDot=null;
+   if(displacedDir!==0){
+    const lg=new THREE.BufferGeometry();
+    lg.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(9),3));
+    lg.setAttribute('lineDistance',new THREE.Float32BufferAttribute(new Float32Array(3),1));
+    leaderLine=new THREE.Line(lg,DEPLOY_MATS.leaderDash);
+    leaderLine.frustumCulled=false;leaderLine.userData.ownGeo=true;leaderLine.userData.ownMat=false;
+    overlayRoot.add(leaderLine);
+    cardPortDot=new THREE.Mesh(DEPLOY_PORT_GEO,DEPLOY_MATS.leaderPort);
+    cardPortDot.userData.ownGeo=false;cardPortDot.userData.ownMat=false;
+    overlayRoot.add(cardPortDot);
+   }
+   const ppStage=Math.floor((rank%repStride)/innerGroup);
+   const tag=document.createElement('div');
+   tag.className='deploy-rank-tag'+(isOom?' is-oom':'');
+   const dieTag=deployPlan.diesPerSlot>1?(isPcie?`·C${d}`:`·D${d}`):'';
+   const ppTag=deployPlan.pp>1?`·P${ppStage}`:'';
+   const tagFull=`R${rank}${dieTag}${ppTag}${isOom?' !':(isWarn?' ?':'')}`;
+   const tagCompact=`R${rank}${isOom?'!':(isWarn?'?':'')}`;
+   tag.textContent=tagFull;
+   labelsHost.append(tag);
+   let tickEl=null;
+   if(linesSvg){
+    tickEl=document.createElementNS(NS,'path');
+    tickEl.setAttribute('fill','none');
+    tickEl.setAttribute('stroke','#7b6a55');
+    tickEl.setAttribute('stroke-width','1.2');
+    tickEl.setAttribute('stroke-dasharray','2.5 2');
+    linesSvg.append(tickEl);
+   }
+   deployColEntries.push({rank,active:true,part,slot,isPcie,localAnchor:new THREE.Vector3(lx,topY+.045,lz),displacedDir,colGroup,portDot,leaderLine,cardPortDot,tagEl:tag,tickEl,tagFull,tagCompact,capTopY});
+  }
+ }
+ const dummyCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,.2,0),new THREE.Vector3(.2,0,0)]);
+ const addArc=(fromRank,toRank,kind)=>{
+  const radius=kind==='tp'?.022:(kind==='dp'?.015:.017);
+  const mat=kind==='tp'?DEPLOY_MATS.tpArc:(kind==='dp'?DEPLOY_MATS.dpArc:DEPLOY_MATS.ppArc);
+  const geo=new THREE.TubeGeometry(dummyCurve,TUBE_SEGS,radius,TUBE_RADIAL,false);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
+  mesh.userData.ownGeo=true;mesh.userData.ownMat=false;
+  overlayRoot.add(mesh);
+  deployArcEntries.push({fromRank,toRank,kind,radius,mesh});
+ };
+ if(deployPlan.tp>1){
+  for(let r=0;r+1<deployPlan.localRanks;r++){
+   if(Math.floor(r/deployPlan.tp)===Math.floor((r+1)/deployPlan.tp))addArc(r,r+1,'tp');
+  }
+ }
+ if(deployPlan.pp>1){
+  for(let r=0;r+innerGroup<deployPlan.localRanks;r+=innerGroup){
+   if(r%innerGroup===0&&Math.floor(r/repStride)===Math.floor((r+innerGroup)/repStride))addArc(r,r+innerGroup,'pp');
+  }
+ }
+ if(deployPlan.dp>1){
+  const dpKind=deployPlan.ep?'ep':'dp';
+  for(let r=0;r+repStride<deployPlan.localRanks;r+=repStride){
+   if(r%repStride===0)addArc(r,r+repStride,dpKind);
+  }
+ }
+}
+
+const _rankPorts=new Map();
+function updateDeployOverlayPositions(){
+ const active=isDeployOverlayActive();
+ overlayRoot.visible=active;
+ syncDeployServerMaterials(active);
+ if(!active){
+  const host=$('#deploy-labels');
+  if(host)host.hidden=true;
+  return;
+ }
+ $('#deploy-labels').hidden=false;
+ server.updateMatrixWorld(true);
+ _rankPorts.clear();
+ for(const item of deployColEntries){
+  const portWorld=item.localAnchor.clone().applyMatrix4(item.part.matrixWorld);
+  if(item.displacedDir===0){
+   item.colGroup.position.copy(portWorld);
+  }else{
+   const dx=item.displacedDir<0?-1.10:.96;
+   const colY=Math.max(portWorld.y+.14,server.position.y+.96);
+   item.colGroup.position.set(portWorld.x+dx,colY,portWorld.z);
+   if(item.cardPortDot)item.cardPortDot.position.set(portWorld.x,portWorld.y-.02,portWorld.z);
+   if(item.leaderLine){
+    const arr=item.leaderLine.geometry.getAttribute('position').array;
+    const x0=portWorld.x,y0=portWorld.y-.02,z0=portWorld.z;
+    const x1=portWorld.x+dx*.75,y1=portWorld.y+.03,z1=portWorld.z;
+    const x2=item.colGroup.position.x,y2=item.colGroup.position.y+.016,z2=item.colGroup.position.z;
+    arr[0]=x0;arr[1]=y0;arr[2]=z0;
+    arr[3]=x1;arr[4]=y1;arr[5]=z1;
+    arr[6]=x2;arr[7]=y2;arr[8]=z2;
+    item.leaderLine.geometry.getAttribute('position').needsUpdate=true;
+    const distAttr=item.leaderLine.geometry.getAttribute('lineDistance');
+    if(distAttr){
+     const da=distAttr.array;
+     da[0]=0;
+     da[1]=Math.hypot(x1-x0,y1-y0,z1-z0);
+     da[2]=da[1]+Math.hypot(x2-x1,y2-y1,z2-z1);
+     distAttr.needsUpdate=true;
+    }
+   }
+  }
+  if(item.active&&item.portDot){
+   item.colGroup.updateMatrixWorld(true);
+   const pPos=new THREE.Vector3().setFromMatrixPosition(item.portDot.matrixWorld);
+   _rankPorts.set(item.rank,{pos:pPos,slot:item.slot,isPcie:item.isPcie});
+  }
+ }
+ for(const arc of deployArcEntries){
+  const a=_rankPorts.get(arc.fromRank),b=_rankPorts.get(arc.toRank);
+  if(!a||!b){arc.mesh.visible=false;continue;}
+  arc.mesh.visible=true;
+  const pA=a.pos,pB=b.pos,hd=Math.hypot(pB.x-pA.x,pB.z-pA.z);
+  const midX=(pA.x+pB.x)*.5,midZ=(pA.z+pB.z)*.5;
+  const lift=(arc.kind==='tp'?.20:.38)+hd*.11;
+  const bowZ=!a.isPcie&&Math.abs(pA.z-pB.z)<.3?(a.slot<4?.22:.24):0;
+  const bowX=a.isPcie&&Math.abs(pA.x-pB.x)<.2?(pA.x<0?-.18:.18):0;
+  const cMid=new THREE.Vector3(midX+bowX,Math.max(pA.y,pB.y)+lift,midZ+bowZ);
+  const curve=new THREE.CatmullRomCurve3([pA,cMid,pB]);
+  updateTubeGeoInPlace(arc.mesh.geometry,curve,arc.radius);
+ }
+ projectDeployLabels();
+}
+
+function projectDeployLabels(){
+ if(!isDeployOverlayActive()||!deployColEntries.length)return;
+ const rect=$('#stage').getBoundingClientRect();
+ const w=rect.width||1,h=rect.height||1,compact=w<540;
+ const linesSvg=$('#deploy-label-lines');
+ if(linesSvg)linesSvg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+ const vis=[];
+ for(const item of deployColEntries){
+  if(!item.active||!item.tagEl)continue;
+  const world=item.colGroup.position.clone();
+  world.y+=item.capTopY;
+  const ndc=world.project(camera);
+  if(ndc.z>1){
+   item.tagEl.style.display='none';
+   if(item.tickEl)item.tickEl.setAttribute('d','');
+   continue;
+  }
+  const txt=compact?item.tagCompact:item.tagFull;
+  if(item.tagEl.textContent!==txt)item.tagEl.textContent=txt;
+  item.tagEl.style.display='';
+  const ax=(ndc.x*.5+.5)*w,ay=(-ndc.y*.5+.5)*h;
+  const halfW=Math.max(15,txt.length*3.7+(compact?5:8));
+  vis.push({item,ax,ay,tx:ax,ty:ay-(item.rank%2===0?14:3),halfW});
+ }
+ const tagH=compact?17:20;
+ vis.sort((a,b)=>a.ay-b.ay||a.ax-b.ax);
+ for(let pass=0;pass<6;pass++){
+  for(let i=0;i<vis.length;i++){
+   for(let j=i+1;j<vis.length;j++){
+    const a=vis[i],b=vis[j];
+    const minX=a.halfW+b.halfW+4,dx=b.tx-a.tx,dy=b.ty-a.ty;
+    if(Math.abs(dx)<minX&&Math.abs(dy)<tagH){
+     const pushY=(tagH-Math.abs(dy))*.55+1;
+     if(a.ty<=b.ty){a.ty-=pushY;b.ty+=pushY*.35;}else{b.ty-=pushY;a.ty+=pushY*.35;}
+     const sign=dx>=0?1:-1;
+     a.tx-=sign*2.8;b.tx+=sign*2.8;
+    }
+   }
+  }
+ }
+ for(const v of vis){
+  const cx=THREE.MathUtils.clamp(v.tx,v.halfW+6,w-v.halfW-6);
+  const cy=THREE.MathUtils.clamp(v.ty,22,h-10);
+  v.item.tagEl.style.left=`${cx.toFixed(1)}px`;
+  v.item.tagEl.style.top=`${cy.toFixed(1)}px`;
+  if(v.item.tickEl){
+   if(Math.hypot(cx-v.ax,cy-v.ay)>6){
+    v.item.tickEl.setAttribute('d',`M${v.ax.toFixed(1)},${v.ay.toFixed(1)} L${cx.toFixed(1)},${(cy+1).toFixed(1)}`);
+   }else v.item.tickEl.setAttribute('d','');
+  }
+ }
+}
+
+function updateDeployBanner(){
+ const banner=$('#deploy-banner');
+ if(!banner)return;
+ if(!deployPlan){
+  banner.hidden=true;
+  delete document.body.dataset.deploy;
+  return;
+ }
+ document.body.dataset.deploy='true';
+ banner.hidden=false;
+ banner.replaceChildren();
+ const targetInfo=MODELS[deployPlan.targetModel];
+ if(currentModel!==deployPlan.targetModel){
+  const head=document.createElement('div');
+  head.className='deploy-banner-head';
+  const title=document.createElement('div');
+  title.className='deploy-banner-title';
+  const mp=document.createElement('span');mp.className='deploy-pill';mp.textContent=deployPlan.modelName;
+  const txt=document.createElement('span');
+  txt.textContent=`当前浏览 ${MODELS[currentModel].name}（原部署方案对应 ${targetInfo.name}，已自动隐藏显存染色柱）`;
+  title.append(mp,txt);
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='deploy-action-btn';btn.dataset.testid='deploy-restore-model';
+  btn.textContent='已切换硬件视图 · 点击切回原部署机型';
+  btn.onclick=async()=>{
+   if(level!==2)level=2;
+   await loadModel(deployPlan.targetModel);
+  };
+  head.append(title,btn);
+  banner.append(head);
+  return;
+ }
+ const topoParts=[`TP=${deployPlan.tp}`];
+ if(deployPlan.pp>1)topoParts.push(`PP=${deployPlan.pp}`);
+ if(deployPlan.dp>1)topoParts.push(`DP=${deployPlan.dp}`);
+ if(deployPlan.pcp>1)topoParts.push(`PCP=${deployPlan.pcp}`);
+ if(deployPlan.dcp>1)topoParts.push(`DCP=${deployPlan.dcp}`);
+ if(deployPlan.ep)topoParts.push('EP=开');
+ const used=deployPlan.weightGiB+deployPlan.kvGiB+deployPlan.runtimeGiB;
+ const headroom=Math.max(0,deployPlan.cardGiB-used);
+ const physOver=used>deployPlan.cardGiB+.005;
+ const hardBudgetOom=['weights_exceed_budget','weights_plus_activation_exceed_budget','non_kv_exceeds_budget','headroom_overflow'].includes(deployPlan.oomStatus);
+ const isOom=physOver||hardBudgetOom||Boolean(deployPlan.headroomOverflow)||deployPlan.weightGiB+deployPlan.kvGiB>deployPlan.u*deployPlan.cardGiB+.02;
+ const hasAdmissionOrTightWarn=['insufficient_for_single_max_len_seq','tight_budget_oom_risk'].includes(deployPlan.oomStatus);
+ const head=document.createElement('div');head.className='deploy-banner-head';
+ const title=document.createElement('div');title.className='deploy-banner-title';
+ const pModel=document.createElement('span');pModel.className='deploy-pill';pModel.textContent=`${deployPlan.modelName} · ${topoParts.join(' · ')}`;
+ const pNode=document.createElement('span');
+ if(deployPlan.totalRanks>deployPlan.ranksPerNode){
+  pNode.className='deploy-pill is-multinode';
+  pNode.textContent=`共 ${deployPlan.totalRanks} Ranks（跨 ${deployPlan.nodeCount} 台整机 · 当前展示第 1 节点本机槽位）`;
+ }else{
+  pNode.className='deploy-pill is-tp';
+  const dualTxt=deployPlan.diesPerSlot>1?` · 单槽双${deployPlan.dieWord}`:'';
+  pNode.textContent=`本机 ${deployPlan.totalRanks}/${deployPlan.ranksPerNode} 逻辑 Ranks（激活 ${deployPlan.activePhysicalSlots}/${deployPlan.physicalSlots} 物理槽${dualTxt}）`;
+ }
+ title.append(pModel,pNode);
+ if(isOom){
+  const pOom=document.createElement('span');pOom.className='deploy-pill is-oom';
+  const oomLabel=hardBudgetOom?DEPLOY_OOM_LABELS[deployPlan.oomStatus]:(deployPlan.headroomOverflow||physOver?DEPLOY_OOM_LABELS.headroom_overflow:'超出 u 预算上限');
+  pOom.textContent=`OOM 超支：${oomLabel}`;
+  title.append(pOom);
+ }
+ if(hasAdmissionOrTightWarn){
+  const pWarn=document.createElement('span');pWarn.className='deploy-pill is-multinode';
+  pWarn.textContent=`容量/准入告警：${DEPLOY_OOM_LABELS[deployPlan.oomStatus]}`;
+  title.append(pWarn);
+ }
+ head.append(title);
+ if(level!==2){
+  const lBtn=document.createElement('button');
+  lBtn.type='button';lBtn.className='deploy-action-btn';
+  lBtn.textContent='切至「展开内部」查看 3D 显存柱 →';
+  lBtn.onclick=()=>setLevel(2);
+  head.append(lBtn);
+ }
+ const metrics=document.createElement('div');metrics.className='deploy-banner-metrics';
+ metrics.innerHTML=`<span>单 Rank 容量 <b>${deployPlan.cardGiB} GiB</b> (u=${deployPlan.u.toFixed(2)})</span><span>常驻权重 <b>${deployPlan.weightGiB.toFixed(2)} GiB</b></span><span>可用 KV <b>${deployPlan.kvGiB.toFixed(2)} GiB</b></span><span>运行态/图/HCCL <b>${deployPlan.runtimeGiB.toFixed(2)} GiB</b></span><span>物理余量 <b>${headroom.toFixed(2)} GiB</b></span>`;
+ const legend=document.createElement('div');legend.className='deploy-legend';
+ const items=[['#c78300','权重','box'],['#4c65b6','KV Cache','box'],['#9a4b86','运行态/录图/HCCL','box'],['','1−u 预留虚框','u']];
+ if(deployPlan.tp>1)items.push(['#087f73','TP 组内通信','arc']);
+ if(deployPlan.pp>1||(deployPlan.dp>1&&deployPlan.ep))items.push(['#9a4b86','PP/EP 跨组互联','arc']);
+ if(deployPlan.dp>1&&!deployPlan.ep)items.push(['#5b75a6','DP 副本分组','arc']);
+ if(isOom)items.push(['#b54237',physOver?'超出物理显存 OOM':'越过 u 预算上限警示','box']);
+ for(const [col,lbl,shape] of items){
+  const sw=document.createElement('span');sw.className='deploy-swatch';
+  const ic=document.createElement('i');
+  if(shape==='u')ic.className='is-u';
+  else if(shape==='arc'){ic.className='is-arc';ic.style.background=col;}
+  else ic.style.background=col;
+  sw.append(ic,document.createTextNode(lbl));
+  legend.append(sw);
+ }
+ banner.append(head,metrics,legend);
+}
+
 function rebuild(){
  clearHover();
+ hasSyncedDeployMats=false;
  disposeGroup(cabinetRoot);
  disposeGroup(serverRoot);
  disposeGroup(focusRoot);
+ disposeGroup(overlayRoot);
+ clearDeployLabels();
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
  if(guideDotsMesh)guideDotsMesh.visible=false;
  if(guideLinesObj)guideLinesObj.visible=false;
  const p=MODELS[currentModel];
@@ -799,6 +1355,7 @@ function rebuild(){
  server.position.y=.23;
  serverRoot.add(server);
  collect();
+ buildDeployOverlay();
  defaultModule();
  applyLevel();
 }
@@ -820,10 +1377,14 @@ function applySpread(){
   if(level===2){
    o.position.y+=(u.explodeZ||0)*spread;
    o.position.z-=(u.explodeY||0)*spread;
+   if(isDeployOverlayActive()&&MODELS[currentModel]?.u>=8&&(u.kind==='npu'||u.kind==='board')){
+    o.position.y+=1.35*spread;
+   }
   }
   if(u.kind==='lid')o.visible=level!==2;
  });
  rebuildGuides();
+ updateDeployOverlayPositions();
 
  if(focused){
   focused.traverse(o=>{
@@ -965,6 +1526,7 @@ function applyLevel(){
  focusRoot.visible=level===3||level===4;
  doorButton.hidden=level!==0;
  plinth.scale.setScalar(level===0?.7:level>=3?.22:1);
+ if(level!==2)syncDeployServerMaterials(false);
  if((level===3||level===4)&&selection)setFocus(selection);
  applySpread();
  buildDieCallouts();
@@ -1027,7 +1589,11 @@ function updateUI(){
   p.dieDesc
  ][level];
 
- const factRows=level===0?p.rackFacts:p.serverFacts;
+ const factRows=(level===0?p.rackFacts:p.serverFacts).map(([k,v])=>
+  deployPlan&&deployPlan.targetModel===currentModel&&deployPlan.cardId==='a2-32g'&&k==='单卡显存'
+   ?[k,'32 GB HBM (910B4 档)']
+   :[k,v]
+ );
  $('#facts').innerHTML=factRows.map(([k,v])=>`<div><small>${k}</small><b>${v}</b></div>`).join('');
 
  $('#boundary').textContent=level===0
@@ -1095,6 +1661,7 @@ function updateUI(){
  document.body.dataset.level=String(level);
  document.body.dataset.platform=platform;
  document.body.dataset.model=currentModel;
+ updateDeployBanner();
  updateDiagram();
 }
 
@@ -1160,7 +1727,8 @@ $('#rotate').onclick=()=>{
  invalidate();
  $('#rotate').setAttribute('aria-pressed',String(controls.autoRotate));
 };
-controls.addEventListener('start',()=>animation=null);
+const onControlsStart=()=>animation=null;
+controls.addEventListener('start',onControlsStart);
 
 const ray=new THREE.Raycaster();
 function raycastPart(e){
@@ -1181,41 +1749,53 @@ function raycastPart(e){
  return null;
 }
 
-renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
-renderer.domElement.addEventListener('pointermove',e=>{
- if(!ready||level!==2||down)return;
+const onPointerDown=e=>{down=[e.clientX,e.clientY];};
+const onPointerMove=e=>{
+ if(viewerDisposed||!ready||level!==2||down)return;
  setHover(raycastPart(e),e.clientX,e.clientY);
-});
-renderer.domElement.addEventListener('pointerleave',()=>clearHover());
-renderer.domElement.addEventListener('pointerup',e=>{
+};
+const onPointerLeave=()=>clearHover();
+const onPointerUp=e=>{
  const start=down;
  down=null;
- if(!ready||level!==2||!start||Math.hypot(e.clientX-start[0],e.clientY-start[1])>5)return;
+ if(viewerDisposed||!ready||level!==2||!start||Math.hypot(e.clientX-start[0],e.clientY-start[1])>5)return;
  const picked=raycastPart(e);
  if(picked){
   selection=picked;
   setLevel(3);
  }
-});
+};
+renderer.domElement.addEventListener('pointerdown',onPointerDown);
+renderer.domElement.addEventListener('pointermove',onPointerMove);
+renderer.domElement.addEventListener('pointerleave',onPointerLeave);
+renderer.domElement.addEventListener('pointerup',onPointerUp);
 
 function resize(){
- const box=SITE?$('#stage').getBoundingClientRect():{width:innerWidth,height:innerHeight};
+ if(viewerDisposed)return;
+ const stageEl=$('#stage');
+ if(SITE&&!stageEl)return;
+ const box=SITE?stageEl.getBoundingClientRect():{width:innerWidth,height:innerHeight};
  const w=Math.max(1,box.width),h=Math.max(1,box.height);
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,Math.sqrt(2600000/(w*h))));
  renderer.setSize(w,h);
  camera.aspect=w/h;
  camera.updateProjectionMatrix();
  projectCallouts();
+ projectDeployLabels();
  invalidate();
 }
-if(SITE)new ResizeObserver(resize).observe(document.getElementById('stage'));
-else addEventListener('resize',resize);
+let stageResizeObserver=null;
+if(SITE){
+ stageResizeObserver=new ResizeObserver(resize);
+ stageResizeObserver.observe(document.getElementById('stage'));
+}else{
+ addEventListener('resize',resize);
+}
 resize();
 camera.position.set(24.5,21.5,35.5);
 controls.target.set(0,9.2,0);
 
 const loader=new GLTFLoader(),pendingTemplates=new Map();
-let modelLoadSeq=0,hasLoadedOnce=false,viewerDisposed=false;
 const retryLoad=document.createElement('button');
 retryLoad.textContent='重试加载';
 retryLoad.hidden=true;
@@ -1306,6 +1886,7 @@ function draw(now){
  }
  const changed=controls.update();
  if(level===4&&showCallouts)projectCallouts();
+ if(level===2)projectDeployLabels();
  renderer.render(scene,camera);
  if(animation||doorMotion||controls.autoRotate||changed)invalidate();
 }
@@ -1338,6 +1919,12 @@ function updateDiagram(){
  );
 }
 
+function onPageHide(e){if(!e.persisted)disposeViewer();}
+function onWindowMessage(e){
+ if(e.origin&&e.origin!==location.origin)return;
+ if(e.data?.type==='dispose')disposeViewer();
+}
+
 function disposeViewer(){
  if(viewerDisposed)return;
  viewerDisposed=true;
@@ -1346,18 +1933,36 @@ function disposeViewer(){
  modelLoadSeq+=1;
  cancelAnimationFrame(renderRequest);
  renderRequest=0;
+ stageResizeObserver?.disconnect();
+ stageResizeObserver=null;
+ removeEventListener('resize',resize);
+ removeEventListener('pagehide',onPageHide);
+ removeEventListener('unload',disposeViewer);
+ removeEventListener('message',onWindowMessage);
+ document.removeEventListener('visibilitychange',onVisibilityChange);
+ controls.removeEventListener('change',onControlsChange);
+ controls.removeEventListener('start',onControlsStart);
+ renderer.domElement.removeEventListener('pointerdown',onPointerDown);
+ renderer.domElement.removeEventListener('pointermove',onPointerMove);
+ renderer.domElement.removeEventListener('pointerleave',onPointerLeave);
+ renderer.domElement.removeEventListener('pointerup',onPointerUp);
  controls.dispose();
  disposeGroup(cabinetRoot);
  disposeGroup(serverRoot);
  disposeGroup(guideRoot);
  disposeGroup(focusRoot);
+ disposeGroup(overlayRoot);
+ clearDeployLabels();
+ deployColEntries=[];deployArcEntries=[];activeDeployPartSet=new Set();
  for(const tpl of Object.values(templates))disposeGroup(tpl);
  templates={};
  UNIT_BOX.dispose();
  GUIDE_DOT_GEO.dispose();
  GUIDE_DOT_MAT.dispose();
  GUIDE_LINE_MAT.dispose();
+ DEPLOY_PORT_GEO.dispose();
  for(const mat of Object.values(RACK_MATS))mat.dispose();
+ for(const mat of Object.values(DEPLOY_MATS))mat.dispose();
  ground.geometry?.dispose();
  ground.material?.dispose();
  plinth.geometry?.dispose();
@@ -1367,10 +1972,7 @@ function disposeViewer(){
  renderer.forceContextLoss?.();
  renderer.dispose();
 }
-addEventListener('pagehide',e=>{if(!e.persisted)disposeViewer();});
+addEventListener('pagehide',onPageHide);
 addEventListener('unload',disposeViewer);
-addEventListener('message',e=>{
- if(e.origin&&e.origin!==location.origin)return;
- if(e.data?.type==='dispose')disposeViewer();
-});
-window.__viewer={dispose:disposeViewer,get envRT(){return envRT;}};
+addEventListener('message',onWindowMessage);
+window.__viewer={dispose:disposeViewer,get envRT(){return envRT;},get rendererMemory(){return renderer.info.memory;}};

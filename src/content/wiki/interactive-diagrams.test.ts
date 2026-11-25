@@ -1,14 +1,34 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import APPROVED_SVG from "../../../wiki/diagrams/quantization-intuition.svg?raw";
-import { decodeXmlEntities } from "./diagram-sanitize";
 import {
+  ACL_CAPTURE_MODES,
+  AclGraphModeInteractive,
+  computeAclGraphRemediation,
+  computeAclGraphSandboxState,
+} from "./AclGraphModeInteractive";
+import {
+  CHUNKED_BUDGET_OPTIONS,
+  ChunkedPrefillInteractive,
+  computeChunkedPrefillPlan,
+  DECODE_CONCURRENCY_OPTIONS,
+} from "./ChunkedPrefillInteractive";
+import { decodeXmlEntities, sanitizeDiagram } from "./diagram-sanitize";
+import {
+  ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256,
+  CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256,
+  PREFIX_CACHING_APPROVED_SHA256,
   QUANTIZATION_INTUITION_APPROVED_SHA256,
+  RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256,
   registeredInteractiveDiagramIds,
   resolveInteractiveDiagram,
   sha256Hex,
 } from "./interactive-diagrams";
+import { PREFIX_CACHING_STEPS, PrefixCachingInteractive } from "./PrefixCachingInteractive";
+import { RFORK_SCENARIOS, RforkFallbackInteractive } from "./RforkFallbackInteractive";
 import { WikiDiagram } from "./WikiDiagram";
 
 interface MiniAttr {
@@ -171,7 +191,13 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       expect(sha256Hex(sample)).toBe(expected);
     }
     expect(sha256Hex(APPROVED_SVG.replace(/\r\n/g, "\n"))).toBe(QUANTIZATION_INTUITION_APPROVED_SHA256);
-    expect(registeredInteractiveDiagramIds()).toEqual(["quantization-intuition"]);
+    expect(registeredInteractiveDiagramIds()).toEqual([
+      "quantization-intuition",
+      "prefix-caching",
+      "chunked-prefill-fig-budget-game",
+      "acl-graph-fig-mode-budget",
+      "rfork-fig-route-and-fallback",
+    ]);
   });
 
   it("拒绝未知图 ID、非 kebab-case 路径与 Object.prototype 同名属性，绝不回落到原型对象", () => {
@@ -266,5 +292,305 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
     expect(markerIds).toHaveLength(4);
     expect(new Set(markerIds).size).toBe(4);
     expect(dualHtml).not.toContain('id="quantization-intuition-ah-ink"');
+  });
+
+  it("全部 5 张已注册图逐一读取真实 SVG（CRLF→LF 归一）：正式态命中、审阅态返回 null、1 字节改动严格回退静态 SVG", () => {
+    const cases = [
+      { id: "quantization-intuition", sha: QUANTIZATION_INTUITION_APPROVED_SHA256 },
+      { id: "prefix-caching", sha: PREFIX_CACHING_APPROVED_SHA256 },
+      { id: "chunked-prefill-fig-budget-game", sha: CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256 },
+      { id: "acl-graph-fig-mode-budget", sha: ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256 },
+      { id: "rfork-fig-route-and-fallback", sha: RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 },
+    ] as const;
+
+    for (const item of cases) {
+      const svgPath = resolve(process.cwd(), "wiki", "diagrams", `${item.id}.svg`);
+      const rawDisk = readFileSync(svgPath, "utf8");
+      const lfSvg = rawDisk.replace(/\r\n/g, "\n");
+      const crlfSvg = lfSvg.replace(/\n/g, "\r\n");
+
+      expect(sha256Hex(lfSvg), `${item.id} LF sha256`).toBe(item.sha);
+
+      // ① 正式态 allowInteractive: true 命中注册组件并正常挂载渲染
+      const hitLf = resolveInteractiveDiagram({ id: item.id, svg: lfSvg, allowInteractive: true });
+      const hitCrlf = resolveInteractiveDiagram({ id: item.id, svg: crlfSvg, allowInteractive: true });
+      expect(hitLf, `${item.id} hitLf`).not.toBeNull();
+      expect(hitCrlf, `${item.id} hitCrlf`).not.toBeNull();
+
+      const formalHtml = renderToStaticMarkup(
+        createElement(WikiDiagram, {
+          id: item.id,
+          svg: crlfSvg,
+          allowInteractive: true,
+          onOpenEvidence: () => {},
+        }),
+      );
+      expect(formalHtml, `${item.id} formal interactive`).toContain('data-interactive="true"');
+      expect(formalHtml, `${item.id} toolbar`).toContain("wiki-diagram-toolbar");
+      expect(formalHtml, `${item.id} figcaption`).toContain("<figcaption>");
+      expect(formalHtml, `${item.id} evidence btn`).toContain(`data-testid="diagram-evidence-${item.id}"`);
+
+      // ② 审阅态 allowInteractive: false（ReviewPane）严格返回 null 并渲染静态 SVG
+      expect(
+        resolveInteractiveDiagram({ id: item.id, svg: lfSvg, allowInteractive: false }),
+        `${item.id} review false`,
+      ).toBeNull();
+      expect(resolveInteractiveDiagram({ id: item.id, svg: lfSvg }), `${item.id} review omitted`).toBeNull();
+      const reviewHtml = renderToStaticMarkup(
+        createElement(WikiDiagram, { id: item.id, svg: lfSvg, allowInteractive: false }),
+      );
+      expect(reviewHtml, `${item.id} review no interactive`).not.toContain('data-interactive="true"');
+      expect(reviewHtml, `${item.id} review no toolbar`).not.toContain("wiki-diagram-toolbar");
+
+      // ③ 当 SVG 内容发生恰好 1 字节改动时，严格返回 null 并回退静态 SVG
+      const titleIdx = lfSvg.indexOf("</title>");
+      expect(titleIdx).toBeGreaterThan(0);
+      const mutatedChar = lfSvg[titleIdx - 1] === "!" ? "?" : "!";
+      const oneByteMutatedSvg = `${lfSvg.slice(0, titleIdx - 1)}${mutatedChar}${lfSvg.slice(titleIdx)}`;
+      expect(oneByteMutatedSvg.length).toBe(lfSvg.length);
+      expect(
+        resolveInteractiveDiagram({ id: item.id, svg: oneByteMutatedSvg, allowInteractive: true }),
+        `${item.id} 1-byte mutation must return null`,
+      ).toBeNull();
+      const mutatedHtml = renderToStaticMarkup(
+        createElement(WikiDiagram, { id: item.id, svg: oneByteMutatedSvg, allowInteractive: true }),
+      );
+      expect(mutatedHtml, `${item.id} mutated fallback`).not.toContain('data-interactive="true"');
+      expect(mutatedHtml, `${item.id} mutated no toolbar`).not.toContain("wiki-diagram-toolbar");
+    }
+  });
+
+  it("新增四套 2D 沙盘全状态切换演化、暖矿物色值、字号 >=12px、画布 <=900px 与单 SVG 约束均成立", () => {
+    const allowedWarmMineralHex = new Set([
+      "#fbfaf6",
+      "#ece9df",
+      "#d8d8cf",
+      "#17211f",
+      "#66716d",
+      "#e85b32",
+      "#087f73",
+      "#ddf4ef",
+      "#c78300",
+      "#fff4cf",
+      "#4c65b6",
+      "#e8edff",
+      "#9a4b86",
+      "#f7e7f2",
+      "#b54237",
+      "#fff0e9",
+      "#ffffff",
+    ]);
+
+    const assertToolbarButtonsContrast = (label: string, html: string) => {
+      const btnMatches = [...html.matchAll(/<button\b[^>]*>/g)];
+      expect(btnMatches.length, `${label} has toolbar buttons`).toBeGreaterThanOrEqual(4);
+      for (const bm of btnMatches) {
+        const tag = bm[0];
+        const pressed = /\baria-pressed="true"/.test(tag);
+        if (pressed) {
+          expect(tag, `${label} pressed btn white text`).toContain("color:#ffffff");
+          expect(tag, `${label} pressed btn dark bg`).toMatch(/background:#(087f73|17211f)/);
+        } else {
+          expect(tag, `${label} idle btn dark text`).toContain("color:#17211f");
+          expect(tag, `${label} idle btn light bg`).toContain("background:#ffffff");
+        }
+      }
+    };
+
+    const assertSandboxInvariants = (label: string, html: string) => {
+      const svgMatches = [...html.matchAll(/<svg\b[^>]*>/g)];
+      expect(svgMatches, `${label} single <svg>`).toHaveLength(1);
+      const widthMatch = /\bwidth="(\d+)"/.exec(svgMatches[0]![0]);
+      expect(Number(widthMatch?.[1]), `${label} width <= 900`).toBeLessThanOrEqual(900);
+      for (const fm of html.matchAll(/\bfont-size="([0-9.]+)"/g)) {
+        expect(Number(fm[1]), `${label} font-size >= 12`).toBeGreaterThanOrEqual(12);
+      }
+      for (const hm of html.matchAll(/#[0-9a-fA-F]{6}\b/g)) {
+        expect(allowedWarmMineralHex.has(hm[0].toLowerCase()), `${label} hex ${hm[0]}`).toBe(true);
+      }
+      assertToolbarButtonsContrast(label, html);
+    };
+
+    const baseProps = (id: string) => {
+      const raw = readFileSync(resolve(process.cwd(), "wiki", "diagrams", `${id}.svg`), "utf8");
+      return {
+        id,
+        safeSvg: sanitizeDiagram(raw, `${id}::test`) ?? "",
+        caption: id,
+        scrollRef: () => {},
+        scrollable: false,
+        onScroll: () => {},
+      };
+    };
+
+    // 0) 静态图初始态（mode="svg"）下四套组件工具栏选中/未选中按钮文字对比度同样显式锁定
+    for (const [Comp, diagramId] of [
+      [PrefixCachingInteractive, "prefix-caching"],
+      [ChunkedPrefillInteractive, "chunked-prefill-fig-budget-game"],
+      [AclGraphModeInteractive, "acl-graph-fig-mode-budget"],
+      [RforkFallbackInteractive, "rfork-fig-route-and-fallback"],
+    ] as const) {
+      const svgModeHtml = renderToStaticMarkup(
+        createElement(Comp, { ...baseProps(diagramId), initialMode: "svg" }),
+      );
+      assertToolbarButtonsContrast(`${diagramId}-svg-mode`, svgModeHtml);
+    }
+
+    // 1) PrefixCachingInteractive 五步动作切换（区分满块后分配私有尾块与未满/共享块写时复制 CoW 分叉）
+    expect(PREFIX_CACHING_STEPS).toHaveLength(5);
+    expect(PREFIX_CACHING_STEPS[1]!.savedCellsText).toBe("省 8/10 格（跳过 80% 计算）");
+    expect(PREFIX_CACHING_STEPS[2]!.buttonLabel).toBe("③ 请求 B 续写分配私有尾块");
+    expect(PREFIX_CACHING_STEPS[2]!.detail).toContain("未写满且 ref_cnt > 1");
+    expect(PREFIX_CACHING_STEPS[4]!.buttonLabel).toBe("⑤ 写时复制 CoW 分叉");
+    for (const spec of PREFIX_CACHING_STEPS) {
+      const html = renderToStaticMarkup(
+        createElement(PrefixCachingInteractive, {
+          ...baseProps("prefix-caching"),
+          initialMode: "sandbox",
+          initialStep: spec.step,
+        }),
+      );
+      assertSandboxInvariants(`prefix-step-${spec.step}`, html);
+      expect(html).toContain(`data-step="${spec.step}"`);
+      expect(html).toContain(spec.savedCellsText);
+      if (spec.step === 3) {
+        expect(html).toContain("满块零拷贝，续写配空块 B3");
+        expect(html).not.toContain("CoW：B0,B1 只读");
+      }
+      if (spec.step === 5) {
+        expect(html).toContain("CoW 拷贝 B3→B2，B3 ref 2→1");
+        expect(html).toContain("动作 5 / 5");
+        expect(html).toContain("队头 [ B4 ] 队尾");
+      }
+    }
+
+    // 2) ChunkedPrefillInteractive 预算 × 并发矩阵与跷跷板单调性
+    const p512 = computeChunkedPrefillPlan(512, 8);
+    const p2048 = computeChunkedPrefillPlan(2048, 8);
+    const p4096 = computeChunkedPrefillPlan(4096, 0);
+    expect(p2048.slices.map((s) => s.prefillTokens)).toEqual([2040, 2040, 16]);
+    expect(p512.chunkCount).toBeGreaterThan(p2048.chunkCount);
+    expect(p4096.peakStepUnits).toBeGreaterThan(p512.peakStepUnits);
+    expect(p512.totalTtftUnits).toBeGreaterThan(p4096.totalTtftUnits);
+    for (const b of CHUNKED_BUDGET_OPTIONS) {
+      for (const d of DECODE_CONCURRENCY_OPTIONS) {
+        const html = renderToStaticMarkup(
+          createElement(ChunkedPrefillInteractive, {
+            ...baseProps("chunked-prefill-fig-budget-game"),
+            initialMode: "sandbox",
+            initialBudget: b,
+            initialDecodeConcurrency: d,
+          }),
+        );
+        assertSandboxInvariants(`chunked-${b}-${d}`, html);
+      }
+    }
+
+    // 3) AclGraphModeInteractive 四档模式、动态无 OOM 处方与水位线描边高对比度
+    expect(computeAclGraphSandboxState("FULL_AND_PIECEWISE", 0.85).isCaptureOom).toBe(false);
+    expect(computeAclGraphSandboxState("FULL_AND_PIECEWISE", 0.92).isCaptureOom).toBe(true);
+    expect(computeAclGraphSandboxState("FULL_DECODE_ONLY", 0.92).isCaptureOom).toBe(false);
+    const piecewise095 = computeAclGraphSandboxState("PIECEWISE", 0.95);
+    expect(piecewise095.isCaptureOom).toBe(true);
+    expect(piecewise095.remediation.maxSafeUtilization).toBe(0.94);
+    expect(piecewise095.remediation.safeAlternativeModes).toEqual(["NONE"]);
+    expect(piecewise095.remediation.summaryText).not.toContain("FULL_DECODE_ONLY");
+    expect(piecewise095.remediation.summaryText).not.toContain("PIECEWISE");
+
+    for (const m of ACL_CAPTURE_MODES) {
+      for (let uPct = 82; uPct <= 95; uPct += 1) {
+        const u = uPct / 100;
+        const st = computeAclGraphSandboxState(m, u);
+        if (st.isCaptureOom) {
+          const rem = computeAclGraphRemediation(m, u);
+          if (rem.maxSafeUtilization !== null) {
+            expect(computeAclGraphSandboxState(m, rem.maxSafeUtilization).isCaptureOom).toBe(false);
+          }
+          for (const altMode of rem.safeAlternativeModes) {
+            expect(altMode).not.toBe(m);
+            expect(computeAclGraphSandboxState(altMode, u).isCaptureOom).toBe(false);
+          }
+        }
+      }
+      for (const u of [0.82, 0.9, 0.92, 0.95]) {
+        const html = renderToStaticMarkup(
+          createElement(AclGraphModeInteractive, {
+            ...baseProps("acl-graph-fig-mode-budget"),
+            initialMode: "sandbox",
+            initialCaptureMode: m,
+            initialUtilization: u,
+          }),
+        );
+        assertSandboxInvariants(`acl-${m}-${u}`, html);
+        expect(html).toContain("u=0.92 触发示意 OOM");
+        expect(html).not.toContain("u=0.90 复现OOM");
+        expect(html).toContain("示意 8B");
+        expect(html).toContain("非实测");
+        expect(html).toContain('paint-order="stroke"');
+        if (m === "FULL_AND_PIECEWISE" && u >= 0.9) {
+          expect(html).toContain('data-oom="true"');
+          expect(html).toContain("示意录图期 OOM 预警");
+        }
+        if (m === "PIECEWISE" && u === 0.95) {
+          expect(html).toContain('data-oom="true"');
+          expect(html).toContain("处方：u ≤ 0.94，或切 NONE（需 0.00G）");
+        }
+      }
+    }
+
+    // 4) RforkFallbackInteractive 五种现场状态机分支（含 404/失联/归还400/脏缓冲清理失败阻断）与双实例 marker 隔离
+    expect(RFORK_SCENARIOS).toEqual([
+      "hit-seed",
+      "planner-miss",
+      "seed-transfer-drop",
+      "lease-reject-400",
+      "cleanup-abort",
+    ]);
+    for (const sc of RFORK_SCENARIOS) {
+      const html = renderToStaticMarkup(
+        createElement(RforkFallbackInteractive, {
+          ...baseProps("rfork-fig-route-and-fallback"),
+          initialMode: "sandbox",
+          initialScenario: sc,
+        }),
+      );
+      assertSandboxInvariants(`rfork-${sc}`, html);
+      expect(html).toContain(`data-scenario="${sc}"`);
+      expect(html).toContain("Safetensors");
+      expect(html).toContain("② Planner 404 无可用 Seed");
+      if (sc === "planner-miss") {
+        expect(html).toContain("404 / 暂无空闲 Seed");
+        expect(html).toContain("零中断安全降级本地 Safetensors 加载");
+      }
+      if (sc === "seed-transfer-drop") {
+        expect(html).toContain("Seed 失联 / 传输中断");
+        expect(html).toContain("零崩溃退回本地 Safetensors 重载");
+      }
+      if (sc === "lease-reject-400") {
+        expect(html).toContain("归还 400 / TTL 告警");
+        expect(html).toContain("推理服务仍正常可用");
+      }
+      if (sc === "cleanup-abort") {
+        expect(html).toContain("脏缓冲清理失败");
+        expect(html).toContain("安全门阻断回退：抛明确 RuntimeError");
+      }
+    }
+    const dualRfork = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(RforkFallbackInteractive, {
+          ...baseProps("rfork-fig-route-and-fallback"),
+          initialMode: "sandbox",
+        }),
+        createElement(RforkFallbackInteractive, {
+          ...baseProps("rfork-fig-route-and-fallback"),
+          initialMode: "sandbox",
+        }),
+      ),
+    );
+    const rforkMarkers = [...dualRfork.matchAll(/<marker[^>]*\bid="([^"]+)"/g)].map((m) => m[1]!);
+    expect(rforkMarkers).toHaveLength(8);
+    expect(new Set(rforkMarkers).size).toBe(8);
   });
 });

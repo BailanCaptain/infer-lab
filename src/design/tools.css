@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -593,6 +594,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .wt-section-head {
@@ -659,12 +661,16 @@
 }
 
 .wt-code-inline {
+  display: inline-block;
+  max-width: 100%;
   font-family: var(--font-mono);
   font-size: 13px;
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--color-surface-sunken);
   color: var(--color-ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .wt-rewrite-kind {
@@ -952,6 +958,7 @@
   font-size: 14.5px;
   font-weight: 700;
   color: var(--color-ink);
+  overflow-wrap: anywhere;
 }
 
 .wt-finding-msg {
@@ -959,6 +966,7 @@
   font-size: 14px;
   line-height: 1.65;
   color: var(--color-ink);
+  overflow-wrap: anywhere;
 }
 
 .wt-finding-remediation {
@@ -970,6 +978,7 @@
   font-size: 13.5px;
   line-height: 1.6;
   color: var(--color-ink);
+  overflow-wrap: anywhere;
 }
 
 .wt-finding-remediation strong {
@@ -1305,6 +1314,10 @@
   }
 }
 
+.wt-workbench-pane {
+  min-width: 0;
+}
+
 .wt-workbench-pane[hidden] {
   display: none !important;
 }
@@ -1324,11 +1337,11 @@
   line-height: 1.55;
 }
 
-/* ---------- 3+1 场景引导标签栏（ToolsPage） ---------- */
+/* ---------- 3+2 场景引导标签栏（ToolsPage） ---------- */
 
 .wt-scenario-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1656,6 +1669,12 @@
   padding-top: 2px;
 }
 
+@media (max-width: 1120px) {
+  .wt-scenario-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 960px) {
   .wt-scenario-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1667,13 +1686,35 @@
 }
 
 @media (max-width: 680px) {
+  .wt-workbench {
+    padding: 16px 14px 44px;
+    gap: 14px;
+  }
+
   .wt-guide-strip {
     grid-template-columns: 1fr;
+  }
+
+  .wt-scenario-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .wt-scenario-tab {
+    padding: 8px 10px;
+    gap: 3px;
+  }
+
+  .wt-scenario-tab-title {
+    font-size: 13.5px;
+  }
+
+  .wt-scenario-tab-desc {
+    display: none;
   }
 }
 
 @media (max-width: 560px) {
-  .wt-scenario-tabs,
   .wt-verdict-strip {
     grid-template-columns: 1fr;
   }

@@ -475,4 +475,112 @@ describe("Wiki 快捷搜索状态机与视图（Task 751 第 2 短轮）", () =>
     ctl.pickItem(1);
     expect(navigated.at(-1)).toMatch(/^\/hardware\?vendor=ascend&model=atlas-800i-a3&level=2&deploy=/);
   });
+
+  it("Red-Team #1: QuickSearch 处理 vllm serve 命令时必须脱敏 --api-key / Token / IP，绝不将明文密钥编入 URL", async () => {
+    const { createQuickSearchController, matchQuickSearchActionItems } = QuickSearchModule;
+    const rawCmd =
+      "HF_TOKEN=hf_SecretToken9999999999 vllm serve Qwen/Qwen3-8B --api-key SECRET -tp 2 --host 10.20.30.40";
+    const items = matchQuickSearchActionItems(rawCmd);
+    expect(items.length).toBeGreaterThanOrEqual(1);
+
+    for (const item of items) {
+      const route = item.route ?? "";
+      expect(route).not.toContain("SECRET");
+      expect(route).not.toContain("hf_SecretToken9999999999");
+      expect(route).not.toContain("10.20.30.40");
+      const qIdx = route.indexOf("?");
+      if (qIdx >= 0) {
+        const sp = new URLSearchParams(route.slice(qIdx + 1));
+        const cmdB64 = sp.get("cmd");
+        if (cmdB64) {
+          const pad = "=".repeat((4 - (cmdB64.length % 4)) % 4);
+          const decoded = Buffer.from(cmdB64.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64").toString(
+            "utf8",
+          );
+          expect(decoded).not.toContain("SECRET");
+          expect(decoded).not.toContain("hf_SecretToken9999999999");
+          expect(decoded).not.toContain("10.20.30.40");
+          expect(decoded).toContain("[REDACTED]");
+        }
+      }
+    }
+
+    const navigated: string[] = [];
+    const ctl = createQuickSearchController({
+      search: async () => [],
+      getPages: () => [],
+      onNavigate: (target) => navigated.push(target),
+    });
+    ctl.openSearch();
+    await ctl.setQuery("vllm serve Qwen/Qwen3-8B --api-key SECRET");
+    expect(ctl.handleKeyDown({ key: "Enter", preventDefault: () => {} })).toBe(true);
+    expect(navigated).toHaveLength(1);
+    expect(navigated[0]).not.toContain("SECRET");
+    const sp = new URLSearchParams(navigated[0]!.split("?")[1] ?? "");
+    const cmdParam = sp.get("cmd") ?? "";
+    const decodedNav = Buffer.from(
+      cmdParam.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (cmdParam.length % 4)) % 4),
+      "base64",
+    ).toString("utf8");
+    expect(decodedNav).not.toContain("SECRET");
+    expect(decodedNav).toContain("--api-key [REDACTED]");
+  });
+
+  it("Red-Team #2: 普通 Wiki 词条检索（如「HCCL 超时原理」）保持 Wiki 命中排首不劫持 Enter，且拒绝将蒸馏模型误判为 DeepSeek-V3/Qwen3", async () => {
+    const { createQuickSearchController, matchQuickSearchActionItems } = QuickSearchModule;
+    const navigated: string[] = [];
+
+    // 1. 蒸馏与非预设变体绝不误报为 256 专家 MLA DeepSeek-V3 或 Qwen3-32B/8B
+    for (const nonMatchingModel of [
+      "DeepSeek-R1-Distill-Qwen-32B",
+      "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+      "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+      "Qwen/Qwen2.5-32B-Instruct",
+      "Qwen/Qwen3-VL-8B-Instruct",
+      "deepseek-ai/DeepSeek-V2-Lite",
+    ]) {
+      expect(matchQuickSearchActionItems(nonMatchingModel), nonMatchingModel).toEqual([]);
+    }
+
+    // 2. 有 Wiki 页面命中时（即使非 exact 标题匹配，如 "HCCL 超时原理"），Wiki 页面始终排在最前，按 Enter 打开 cann-hccl
+    const ctl = createQuickSearchController({
+      search: async (q) =>
+        q === "HCCL 超时原理"
+          ? [
+              {
+                id: "cann-hccl",
+                title: "CANN HCCL 集合通信",
+                summary: "昇腾集合通信库与超时排查。",
+                evidence: "C",
+                score: 14,
+                how: "keyword",
+              },
+              {
+                id: "hccl-buffer",
+                title: "HCCL 通信域显存缓冲",
+                summary: "HCCL_BUFFSIZE 与通信域分配机制。",
+                evidence: "C",
+                score: 11,
+                how: "related",
+              },
+            ]
+          : [],
+      getPages: () => [
+        { id: "cann-hccl", type: "concept" },
+        { id: "hccl-buffer", type: "param" },
+      ],
+      onNavigate: (target) => navigated.push(target),
+    });
+
+    ctl.openSearch();
+    await ctl.setQuery("HCCL 超时原理");
+    expect(ctl.getState().items.map((x) => x.id)).toEqual([
+      "cann-hccl",
+      "hccl-buffer",
+      "action:troubleshoot-hccl",
+      "action:hw3d-hccl",
+    ]);
+    expect(ctl.handleKeyDown({ key: "Enter", preventDefault: () => {} })).toBe(true);
+    expect(navigated).toEqual(["cann-hccl"]);
+  });
 });

@@ -420,8 +420,16 @@ function resolveCustomSpecOverride(baseSpec){
   const moe=nExp>0?1:0;
   const topK=Number(cfg.num_experts_per_tok||8);
   const nShared=Number(cfg.num_shared_experts??cfg.n_shared_experts??(Number(cfg.shared_expert_intermediate_size)>0?1:0));
-  const fDense=moe?Math.max(0,Number(cfg.first_k_dense_replace||0)):L;
-  return {...baseSpec,L,nH,nKv,moe,fDense,nExp,topK,nShared,mla,kvLora:Number(cfg.kv_lora_rank||512),qkRope:Number(cfg.qk_rope_head_dim||64),tie:Boolean(cfg.tie_word_embeddings)?1:0,tpl:0};
+  const fDense=moe?Math.max(0,Number(cfg.first_k_dense_replace??0)):L;
+  const mlpOnlySet=new Set(Array.isArray(cfg.mlp_only_layers)?cfg.mlp_only_layers.map(Number).filter(Number.isInteger):[]);
+  const sparseStep=Math.max(1,Number(cfg.decoder_sparse_step??cfg.moe_layer_freq??1)||1);
+  const moeMask=moe?Array.from({length:L},(_,idx)=>{
+   if(idx<fDense||mlpOnlySet.has(idx))return 0;
+   return sparseStep>1?((idx+1)%sparseStep===0?1:0):1;
+  }):null;
+  const kvLora=cfg.kv_lora_rank!==undefined&&cfg.kv_lora_rank!==null&&Number.isFinite(Number(cfg.kv_lora_rank))?Number(cfg.kv_lora_rank):(baseSpec.kvLora??512);
+  const qkRope=cfg.qk_rope_head_dim!==undefined&&cfg.qk_rope_head_dim!==null&&Number.isFinite(Number(cfg.qk_rope_head_dim))?Number(cfg.qk_rope_head_dim):(baseSpec.qkRope??64);
+  return {...baseSpec,L,nH,nKv,moe,fDense,moeMask,nExp,topK,nShared,mla,kvLora,qkRope,tie:Boolean(cfg.tie_word_embeddings)?1:0,tpl:0};
  }catch{return baseSpec;}
 }
 function computeDeployRankShard(plan,rankIdx){
@@ -470,7 +478,9 @@ function computeDeployRankShard(plan,rankIdx){
  let kvText='',kvWarnBadge=null;
  if(spec.mla){
   kvWarnBadge='MLA 潜向量全卡驻留';
-  kvText=`单头低秩潜向量 c_KV(${spec.kvLora||512}) + k_R(${spec.qkRope||64}) 在 TP 各卡完整驻留，不按 TP 切头${spec.csa2?'（含 Indexer 索引全卡驻留）':''}${dcpTxt}`;
+  const kvLora=spec.kvLora??512,qkRope=spec.qkRope??64;
+  const latentVec=qkRope>0?`c_KV(${kvLora}) + k_R(${qkRope})`:`c_KV(${kvLora})`;
+  kvText=`单头低秩潜向量 ${latentVec} 在 TP 各卡完整驻留，不按 TP 切头${spec.csa2?'（含 Indexer 索引全卡驻留）':''}${dcpTxt}`;
  }else if(tp>spec.nKv){
   const rep=Math.max(1,Math.floor(tp/spec.nKv)),kvIdx=Math.min(spec.nKv-1,Math.floor(tpRank/rep));
   kvWarnBadge=`KV 头复制 (TP=${tp} > KV=${spec.nKv})`;
@@ -481,37 +491,60 @@ function computeDeployRankShard(plan,rankIdx){
   const kvPer=Math.max(1,Math.ceil(spec.nKv/tp)),k0=Math.min(spec.nKv-1,tpRank*kvPer),k1=Math.min(spec.nKv-1,k0+kvPer-1);
   kvText=`持有 ${kvPer}/${spec.nKv} 个 KV 头（${k0===k1?`KV${k0}`:`KV${k0}–KV${k1}`}）${spec.kda?`；KDA 递归/卷积状态按 1/${tp} 切头`:''}${dcpTxt}`;
  }
+ let mInStage=0,dInStage=0;
+ if(lCount>0&&spec.moe){
+  if(Array.isArray(spec.moeMask)&&spec.moeMask.length===spec.L){
+   for(let l=lStart;l<=lEnd;l++)if(spec.moeMask[l])mInStage++;
+   dInStage=lCount-mInStage;
+  }else{
+   dInStage=Math.max(0,Math.min(lEnd+1,spec.fDense)-lStart);
+   mInStage=Math.max(0,lCount-dInStage);
+  }
+ }else{
+  dInStage=Math.max(0,lCount);
+ }
  let moeText='';
  if(!spec.moe){
   moeText=tp===1
    ?`稠密 FFN（无路由专家）：Gate / Up / Down 整份驻留${spec.engram?'；Engram 记忆表默认卸载主机内存':''}`
    :`稠密 FFN（无路由专家）：Gate / Up 按列切 1/${tp}，Down 按行切 1/${tp}${spec.engram?'；Engram 记忆表默认卸载主机内存':''}`;
+ }else if(lCount===0){
+  moeText='空流水段：本卡无层驻留（不承载路由专家或共享专家）';
+ }else if(mInStage===0){
+  const denseSlice=tp===1?'Gate / Up / Down 整份驻留':`Gate / Up 按列切 1/${tp}，Down 按行切 1/${tp}`;
+  moeText=`本流水段（第 ${lStart}–${lEnd} 层）全为稠密 FFN 层：本卡不驻留 MoE 路由专家或共享专家（${denseSlice}）`;
  }else{
-  const dInStage=lCount>0?Math.max(0,Math.min(lEnd+1,spec.fDense)-lStart):0;
-  const mInStage=Math.max(0,lCount-dInStage);
-  const dHint=dInStage>0?`（本段含前 ${dInStage} 层稠密 + ${mInStage} 层 MoE）`:'';
+  const dHint=dInStage>0?`（本段含 ${dInStage} 层稠密 + ${mInStage} 层 MoE）`:'';
   const shTxt=spec.nShared>0?`；${spec.nShared} 个共享专家各卡常驻、内部矩阵按 1/${tp} 切分`:'；无独立共享专家，Router 门控各卡完整常驻';
   if(ep){
-   const cap=Math.ceil(spec.nExp/epWorld),e0=epRank*cap,e1=Math.min(spec.nExp-1,e0+cap-1);
-   const cnt=e0<spec.nExp?e1-e0+1:0;
-   moeText=`EP 开启（EP 域=${epWorld}）：本卡承载 ${cnt>0?`E${e0}–E${e1}`:'无分配槽'}（容量 ${cap} 个/卡，共 ${spec.nExp} 专家每词激活 Top-${spec.topK}）${shTxt}${dHint}`;
+   const cap=Math.ceil(spec.nExp/epWorld);
+   const baseE=Math.floor(spec.nExp/epWorld),remE=spec.nExp%epWorld;
+   const cnt=epRank<remE?baseE+1:baseE;
+   const e0=epRank<remE?epRank*(baseE+1):remE*(baseE+1)+(epRank-remE)*baseE;
+   const e1=e0+cnt-1;
+   const eRange=cnt>0?(e0===e1?`E${e0}`:`E${e0}–E${e1}`):'无分配槽';
+   const capTxt=cnt!==cap?`本卡 ${cnt} 个、容量上限 ${cap} 个/卡`:`容量 ${cap} 个/卡`;
+   moeText=`EP 开启（EP 域=${epWorld}）：本卡承载 ${eRange}（${capTxt}，共 ${spec.nExp} 专家每词激活 Top-${spec.topK}）${shTxt}${dHint}`;
   }else{
    moeText=`EP 关闭：全部 ${spec.nExp} 个路由专家均驻留本卡，专家内部 GateUp/Down 按 1/${tp*dp*pcp} 张量切分${shTxt}${dHint}`;
   }
  }
  const comm=[];
  if(tp>1)comm.push(`TP 组内 All-Reduce（${tp} 卡同组归约）`);
- if(spec.moe&&ep&&epWorld>1)comm.push(`EP 组内 All-to-All 或 MC2（${epWorld} 卡专家分发/合并）`);
+ if(pcp>1)comm.push(`PCP 上下文并行（Query 序列按 1/${pcp} 切分，${pcp} 卡跨组聚合 KV 上下文注意力）`);
+ if(dcp>1&&pcp<=1)comm.push(`DCP 解码上下文并行（KV 历史按 1/${dcp} 切分并跨卡归约注意力）`);
+ if(spec.moe&&ep&&epWorld>1&&mInStage>0)comm.push(`EP 组内 All-to-All 或 MC2（${epWorld} 卡专家分发/合并）`);
  if(pp>1){
   const pDir=ppStage===0?'向 PP 段 #1 点对点传激活':(ppStage===effStages-1?`接收 PP 段 #${ppStage-1} 激活并输出 logits`:`在 PP 段 #${ppStage-1} → #${ppStage+1} 间 P2P 传激活`);
   comm.push(`PP 段间 P2P（${pDir}）`);
  }
- if(dp>1&&!(spec.moe&&ep))comm.push(`DP 副本 #${dpRep} 独立服务请求批次`);
+ if(dp>1&&!(spec.moe&&ep&&mInStage>0))comm.push(`DP 副本 #${dpRep} 独立服务请求批次`);
  if(!comm.length)comm.push('单卡独立完成全部层前向，零跨卡集合通信');
  return {
   rank:r,isLocal,slotIdx,dieIdx,slotLabel,multiNodeNote,
   groupBadge:gParts.join(' · '),ppText,tpText,kvText,kvWarnBadge,moeText,
   commText:comm.join(' · '),
+  ppBudgetNote:pp>1?'注：PP>1 时 3D 显存柱高度统一按瓶颈 PP 段的单卡峰值预算水位绘制；本卡实际驻留层段见上方「PP 流水层区间」。':null,
   boundaryNote:'注：3D 弧线仅表达逻辑通信分组与数据交接，不代表交换芯片真实包路由或物理线序。'
  };
 }
@@ -1018,7 +1051,7 @@ function rebuildGuides(){
  }
 }
 
-let deployColEntries=[],deployArcEntries=[],activeDeployPartSet=new Set(),deployPickables=[],selectedDeployRank=null;
+let deployColEntries=[],deployArcEntries=[],activeDeployPartSet=new Set(),deployPickables=[],selectedDeployRank=null,selectedDeployNode=0;
 function ensureDeployShardStyles(){
  if(document.getElementById('deploy-shard-style'))return;
  const st=document.createElement('style');
@@ -1029,6 +1062,11 @@ function ensureDeployShardStyles(){
 .deploy-rank-tag.is-selected{background:#e85b32!important;border-color:#e85b32!important;color:#fff!important;z-index:4;box-shadow:0 4px 12px rgba(232,91,50,.32)}
 .deploy-rank-bar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:7px;padding-top:7px;border-top:1px solid #ece9df}
 .deploy-rank-bar-label{font-size:11.5px;color:#66716d;font-weight:600;margin-right:2px}
+.deploy-node-switcher{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-right:4px;padding-right:6px;border-right:1px solid #d8d8cf}
+.deploy-node-pill{padding:2px 7px;border-radius:6px;font:600 11px/1.4 var(--journey-font-sans);background:#f3f0e7;color:#4a5551;border:1px solid #d8d8cf;cursor:pointer}
+.deploy-node-pill:hover{border-color:#087f73;color:#065f56}
+.deploy-node-pill.is-active{background:#087f73;color:#fff;border-color:#087f73}
+.deploy-node-select{padding:2px 6px;border-radius:6px;font:600 11px/1.4 var(--journey-font-sans);background:#f3f0e7;color:#17211f;border:1px solid #d8d8cf}
 .deploy-rank-pill{padding:2px 8px;border-radius:999px;font:600 11px/1.45 "JetBrains Mono",Consolas,monospace;font-variant-numeric:tabular-nums;background:#ece9df;color:#17211f;border:1px solid #d8d8cf;cursor:pointer}
 .deploy-rank-pill:hover{border-color:#e85b32;color:#e85b32;background:#fbfaf6}
 .deploy-rank-pill.is-remote{background:#fff4cf;color:#936300;border-style:dashed;border-color:rgba(199,131,0,.45)}
@@ -1071,11 +1109,18 @@ function syncDeploySelectionVisuals(){
  }
  syncDeployServerMaterials(isDeployOverlayActive());
 }
+function selectDeployNode(nextNode){
+ if(!deployPlan)return;
+ const maxNode=Math.max(0,deployPlan.nodeCount-1);
+ selectedDeployNode=Math.max(0,Math.min(maxNode,Math.trunc(nextNode)||0));
+ updateDeployBanner();
+}
 function selectDeployRank(nextRank){
  if(!deployPlan||nextRank===null||nextRank===undefined||nextRank<0||nextRank>=deployPlan.totalRanks){
   selectedDeployRank=null;
  }else{
   selectedDeployRank=Math.trunc(nextRank);
+  selectedDeployNode=Math.floor(selectedDeployRank/deployPlan.ranksPerNode);
   if(level!==2)setLevel(2);
  }
  syncDeploySelectionVisuals();
@@ -1311,9 +1356,10 @@ function buildDeployOverlay(){
   overlayRoot.add(mesh);
   deployArcEntries.push({fromRank,toRank,kind,radius,mesh});
  };
- if(deployPlan.tp>1){
+ if(deployPlan.tp>1||deployPlan.pcp>1){
+  const grpSpan=deployPlan.tp>1?deployPlan.tp:innerGroup;
   for(let r=0;r+1<deployPlan.localRanks;r++){
-   if(Math.floor(r/deployPlan.tp)===Math.floor((r+1)/deployPlan.tp))addArc(r,r+1,'tp');
+   if(Math.floor(r/grpSpan)===Math.floor((r+1)/grpSpan))addArc(r,r+1,'tp');
   }
  }
  if(deployPlan.pp>1){
@@ -1413,10 +1459,10 @@ function projectDeployLabels(){
   if(item.tagEl.textContent!==txt)item.tagEl.textContent=txt;
   item.tagEl.style.display='';
   const ax=(ndc.x*.5+.5)*w,ay=(-ndc.y*.5+.5)*h;
-  const halfW=Math.max(15,txt.length*3.7+(compact?5:8));
+  const halfW=Math.max(18,txt.length*4.3+(compact?6:10));
   vis.push({item,ax,ay,tx:ax,ty:ay-(item.rank%2===0?14:3),halfW});
  }
- const tagH=compact?19:23;
+ const tagH=compact?19:24;
  const bannerEl=$('#deploy-banner');
  let bLeft=-1,bRight=-1,bSafeY=22;
  if(bannerEl&&!bannerEl.hidden){
@@ -1425,27 +1471,29 @@ function projectDeployLabels(){
   if(relBottom>4&&relTop<h*.45){
    bLeft=br.left-rect.left;
    bRight=br.right-rect.left;
-   bSafeY=Math.min(h*.52,relBottom+22);
+   bSafeY=Math.min(h*.52,relBottom+20);
   }
  }
  const minTopFor=(x,hw)=>(bRight>bLeft&&x+hw+4>bLeft&&x-hw-4<bRight)?bSafeY:22;
  for(const v of vis){
   const mTop=minTopFor(v.tx,v.halfW);
-  if(v.ty<mTop)v.ty=mTop+(v.item.rank%2)*8;
+  if(v.ty<mTop)v.ty=mTop+(v.item.rank%2)*12;
  }
  vis.sort((a,b)=>a.ay-b.ay||a.ax-b.ax);
- for(let pass=0;pass<12;pass++){
+ for(let pass=0;pass<16;pass++){
   for(let i=0;i<vis.length;i++){
    for(let j=i+1;j<vis.length;j++){
     const a=vis[i],b=vis[j];
-    const minX=a.halfW+b.halfW+4,dx=b.tx-a.tx,dy=b.ty-a.ty;
+    const minX=a.halfW+b.halfW+5,dx=b.tx-a.tx,dy=b.ty-a.ty;
     if(Math.abs(dx)<minX&&Math.abs(dy)<tagH){
-     const pushY=(tagH-Math.abs(dy))*.55+1;
-     if(a.ty<=b.ty){a.ty-=pushY;b.ty+=pushY*.35;}else{b.ty-=pushY;a.ty+=pushY*.35;}
-     const sign=dx>=0?1:-1;
-     a.tx-=sign*2.8;b.tx+=sign*2.8;
+     const ma0=minTopFor(a.tx,a.halfW),pinnedTop=a.ty<=ma0+3||b.ty<=minTopFor(b.tx,b.halfW)+3;
+     const pushY=(tagH-Math.abs(dy))*(pinnedTop?.68:.55)+1.2;
+     if(a.ty<=b.ty){if(!pinnedTop)a.ty-=pushY*.55;b.ty+=pushY*(pinnedTop?.95:.45);}
+     else{if(!pinnedTop)b.ty-=pushY*.55;a.ty+=pushY*(pinnedTop?.95:.45);}
+     const sign=dx>=0?1:-1,pushX=Math.min(8,(minX-Math.abs(dx))*.36+2.6);
+     a.tx-=sign*pushX;b.tx+=sign*pushX;
      const ma=minTopFor(a.tx,a.halfW),mb=minTopFor(b.tx,b.halfW);
-     if(a.ty<ma){const d=ma-a.ty;a.ty=ma;b.ty+=d*.75;}
+     if(a.ty<ma){const d=ma-a.ty;a.ty=ma;b.ty=Math.max(b.ty,ma+Math.min(tagH,d*.85));}
      if(b.ty<mb)b.ty=mb;
     }
    }
@@ -1551,9 +1599,11 @@ function updateDeployBanner(){
  metrics.innerHTML=`<span>单 Rank 容量 <b>${deployPlan.cardGiB} GiB</b> (u=${deployPlan.u.toFixed(2)})</span><span>常驻权重 <b>${deployPlan.weightGiB.toFixed(2)} GiB</b></span><span>可用 KV <b>${deployPlan.kvGiB.toFixed(2)} GiB</b></span><span>运行态/图/HCCL <b>${deployPlan.runtimeGiB.toFixed(2)} GiB</b></span><span>物理余量 <b>${headroom.toFixed(2)} GiB</b></span>`;
  const legend=document.createElement('div');legend.className='deploy-legend';
  const items=[['#c78300','权重','box'],['#4c65b6','KV Cache','box'],['#9a4b86','运行态/录图/HCCL','box'],['','1−u 预留虚框','u']];
- if(deployPlan.tp>1)items.push(['#087f73','TP 组内通信','arc']);
+ if(deployPlan.tp>1)items.push(['#087f73',deployPlan.pcp>1?'TP/PCP 组内通信':'TP 组内通信','arc']);
+ else if(deployPlan.pcp>1)items.push(['#087f73','PCP 上下文组通信','arc']);
  if(deployPlan.pp>1||(deployPlan.dp>1&&deployPlan.ep))items.push(['#9a4b86','PP/EP 跨组互联','arc']);
  if(deployPlan.dp>1&&!deployPlan.ep)items.push(['#5b75a6','DP 副本分组','arc']);
+ if(deployPlan.pp>1)items.push(['#c78300','PP>1 柱高=瓶颈段峰值','box']);
  if(isOom)items.push(['#b54237',physOver?'超出物理显存 OOM':'越过 u 预算上限警示','box']);
  for(const [col,lbl,shape] of items){
   const sw=document.createElement('span');sw.className='deploy-swatch';
@@ -1572,15 +1622,46 @@ function updateDeployBanner(){
  rLabel.className='deploy-rank-bar-label';
  rLabel.textContent='单卡切分透视：';
  rankBar.append(rLabel);
- const rankIds=[];
- if(deployPlan.totalRanks<=16){
-  for(let r=0;r<deployPlan.totalRanks;r++)rankIds.push(r);
- }else{
-  for(let r=0;r<deployPlan.localRanks;r++)rankIds.push(r);
-  const step=Math.max(deployPlan.ranksPerNode,deployPlan.tp*deployPlan.pcp);
-  for(let r=deployPlan.localRanks;r<deployPlan.totalRanks&&rankIds.length<22;r+=step)rankIds.push(r);
+ const safeNode=Math.max(0,Math.min(deployPlan.nodeCount-1,selectedDeployNode));
+ if(safeNode!==selectedDeployNode)selectedDeployNode=safeNode;
+ if(deployPlan.nodeCount>1){
+  const nSwitch=document.createElement('span');
+  nSwitch.className='deploy-node-switcher';
+  nSwitch.dataset.testid='deploy-node-selector';
+  if(deployPlan.nodeCount<=8){
+   for(let n=0;n<deployPlan.nodeCount;n++){
+    const nb=document.createElement('button');
+    nb.type='button';
+    nb.className='deploy-node-pill'+(safeNode===n?' is-active':'');
+    nb.dataset.testid=`deploy-node-pill-${n}`;
+    nb.dataset.node=String(n);
+    nb.setAttribute('aria-pressed',String(safeNode===n));
+    nb.textContent=n===0?'节点 #0 (本机)':`节点 #${n}`;
+    nb.onclick=()=>selectDeployNode(n);
+    nSwitch.append(nb);
+   }
+  }else{
+   const sel=document.createElement('select');
+   sel.className='deploy-node-select';
+   sel.dataset.testid='deploy-node-select';
+   sel.setAttribute('aria-label','选择节点查看对应 Ranks');
+   for(let n=0;n<deployPlan.nodeCount;n++){
+    const opt=document.createElement('option');
+    opt.value=String(n);
+    opt.textContent=n===0?`节点 #0 (本机 · R0–R${deployPlan.ranksPerNode-1})`:`节点 #${n} (R${n*deployPlan.ranksPerNode}–R${Math.min(deployPlan.totalRanks,(n+1)*deployPlan.ranksPerNode)-1})`;
+    if(n===safeNode)opt.selected=true;
+    sel.append(opt);
+   }
+   sel.onchange=()=>selectDeployNode(Number(sel.value));
+   nSwitch.append(sel);
+  }
+  rankBar.append(nSwitch);
  }
- const useShortPill=rankIds.length>8;
+ const rankIds=[];
+ const nStart=safeNode*deployPlan.ranksPerNode;
+ const nEnd=Math.min(deployPlan.totalRanks,nStart+deployPlan.ranksPerNode);
+ for(let r=nStart;r<nEnd;r++)rankIds.push(r);
+ const useShortPill=rankIds.length>8||deployPlan.nodeCount>1;
  for(const r of rankIds){
   const rb=document.createElement('button');
   rb.type='button';
@@ -1655,6 +1736,10 @@ function updateDeployShardCard(){
  addRow('is-comm','组内与跨段通信角色',info.commText);
 
  const foot=document.createElement('div');foot.className='deploy-shard-foot';
+ if(info.ppBudgetNote){
+  const ppNote=document.createElement('small');ppNote.textContent=info.ppBudgetNote;
+  foot.append(ppNote);
+ }
  const note=document.createElement('small');note.textContent=info.boundaryNote;
  foot.append(note);
  if(info.isLocal){

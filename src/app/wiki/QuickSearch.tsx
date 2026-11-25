@@ -11,7 +11,11 @@ import { useNavigate } from "react-router";
 import { retrieve } from "../../content/wiki/index";
 import type { Hit, RetrieveOptions } from "../../content/wiki/retrieve";
 import type { RegistryEntry } from "../../content/wiki/schema";
-import { buildHardwareDeployHrefFromCommand } from "../model/hardwareDeployOverlay";
+import {
+  buildHardwareDeployHrefFromCommand,
+  matchDeployPresetModelKey,
+} from "../model/hardwareDeployOverlay";
+import { buildDoctorShareLink, sanitizeDiagnosticText } from "../tools/workbenchHandoff";
 
 const TYPE_LABEL: Record<string, string> = {
   concept: "概念",
@@ -123,15 +127,6 @@ export function handleModalDialogKeyDown(event: ModalDialogKeyInput): boolean {
   return false;
 }
 
-function encodeBase64UrlCommand(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i]!);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 function makeActionItem(
   id: string,
   kind: "tool" | "3d",
@@ -165,7 +160,7 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
   if (!q) return [];
   const actions: QuickSearchItem[] = [];
 
-  // 1. vllm serve 命令或关键字
+  // 1. vllm serve 命令或关键字（严格先经 sanitizeDiagnosticText 脱敏，绝不将密钥/Token/IP 编入 URL）
   if (/\bvllm\s+serve\b/i.test(q)) {
     const isBareKeyword = /^vllm\s+serve$/i.test(q);
     if (isBareKeyword) {
@@ -179,18 +174,25 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
         ),
       );
     } else {
-      const encodedCmd = q.length <= 2400 ? encodeBase64UrlCommand(q) : null;
-      const doctorRoute = encodedCmd ? `/tools?tab=doctor&cmd=${encodedCmd}` : "/tools?tab=doctor";
+      const { sanitized } = sanitizeDiagnosticText(q);
+      const shareRes = buildDoctorShareLink({
+        topology: "single",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelHint: "auto",
+        commandText: sanitized,
+      });
+      const doctorRoute = shareRes.ok ? `/tools?${shareRes.params.toString()}` : "/tools?tab=doctor";
       actions.push(
         makeActionItem(
           "action:doctor-check-cmd",
           "tool",
           "送去配置体检台：体检这条 vllm serve 命令",
-          "自动带入当前命令，静态检查参数冲突、静默反量化与通信域隐患",
+          "自动脱敏并带入当前命令，静态检查参数冲突、静默反量化与通信域隐患",
           doctorRoute,
         ),
       );
-      const hwHref = stripHashPrefix(buildHardwareDeployHrefFromCommand(q, { hardwareFamily: "A2" }));
+      const hwHref = stripHashPrefix(buildHardwareDeployHrefFromCommand(sanitized, { hardwareFamily: "A2" }));
       if (hwHref) {
         actions.push(
           makeActionItem(
@@ -322,8 +324,9 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
     ];
   }
 
-  // 4. 预设模型名（Qwen3-8B / Qwen3-32B / Qwen3-30B-A3B / Qwen3-235B-A22B / DeepSeek-V3）
-  if (/\bqwen3[-_.\s]?235b(?:[-_.\s]?a22b)?\b/i.test(q)) {
+  // 4. 预设模型名（与 hardwareDeployOverlay 共享严格边界匹配，拒绝 Distill / VL / V2 / V4 等混淆变体）
+  const matchedPreset = matchDeployPresetModelKey(q, { allowShortMoeAlias: true });
+  if (matchedPreset === "qwen3-235b-a22b") {
     const hw235 =
       stripHashPrefix(
         buildHardwareDeployHrefFromCommand(
@@ -348,7 +351,7 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
       ),
     ];
   }
-  if (/\bqwen3[-_.\s]?30b(?:[-_.\s]?a3b)?\b/i.test(q)) {
+  if (matchedPreset === "qwen3-30b-a3b") {
     return [
       makeActionItem(
         "action:calc-qwen3-30b-a3b",
@@ -366,7 +369,7 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
       ),
     ];
   }
-  if (/\bqwen3[-_.\s]?32b\b/i.test(q)) {
+  if (matchedPreset === "qwen3-32b") {
     const hw32 =
       stripHashPrefix(
         buildHardwareDeployHrefFromCommand("vllm serve Qwen/Qwen3-32B -tp 2", { cardId: "a2-64g" }),
@@ -388,7 +391,7 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
       ),
     ];
   }
-  if (/\bqwen3[-_.\s]?8b\b/i.test(q)) {
+  if (matchedPreset === "qwen3-8b") {
     return [
       makeActionItem(
         "action:calc-qwen3-8b",
@@ -406,7 +409,25 @@ export function matchQuickSearchActionItems(rawQuery: string): QuickSearchItem[]
       ),
     ];
   }
-  if (/\bdeepseek[-_.\s]?(?:v3|r1)\b/i.test(q) && !/v4/i.test(q)) {
+  if (matchedPreset === "qwen3-0.6b") {
+    return [
+      makeActionItem(
+        "action:calc-qwen3-0.6b",
+        "tool",
+        "部署算账台：加载 Qwen3-0.6B 试算轻量单卡显存与吞吐",
+        "28 层共享词表轻量模型在 Atlas A2 / 310P 上的并发容量推演",
+        "/tools?tab=calculator&preset=qwen3-0.6b",
+      ),
+      makeActionItem(
+        "action:model3d-qwen3-0.6b",
+        "3d",
+        "3D 模型探索：对照 Qwen3 架构前向计算流",
+        "逐拍查看词表嵌入、GQA 注意力与 SwiGLU FFN 数据流动",
+        "/model?model=qwen3-8b&variant=8b",
+      ),
+    ];
+  }
+  if (matchedPreset === "deepseek-v3-mla") {
     const hwDs =
       stripHashPrefix(
         buildHardwareDeployHrefFromCommand(
@@ -476,17 +497,16 @@ export function createQuickSearchController(deps: QuickSearchDeps) {
         };
       });
       const actionItems = matchQuickSearchActionItems(trimmed);
+      const isLiteralServeCmd = /^vllm\s+serve\s+\S/i.test(trimmed);
+      const isBareErrorCodeWithoutTitleHit =
+        /^(?:507015|ei0006)$/i.test(trimmed) && wikiItems[0]?.how !== "exact";
       let items: QuickSearchItem[];
       if (actionItems.length === 0) {
         items = wikiItems;
-      } else if (
-        wikiItems.length > 0 &&
-        wikiItems[0]!.how === "exact" &&
-        !/^\s*vllm\s+serve\b/i.test(trimmed)
-      ) {
-        items = [wikiItems[0]!, ...actionItems, ...wikiItems.slice(1)];
-      } else {
+      } else if (wikiItems.length === 0 || isLiteralServeCmd || isBareErrorCodeWithoutTitleHit) {
         items = [...actionItems, ...wikiItems];
+      } else {
+        items = [...wikiItems, ...actionItems];
       }
       emit({ status: "ready", items, selectedIndex: 0, error: "" });
     } catch (error) {

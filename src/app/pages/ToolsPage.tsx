@@ -385,7 +385,7 @@ export function ToolsPage() {
               <CalculatorView
                 mode="full"
                 title="估算要几张卡（部署算账）"
-                summary="第一步：选模型、昇腾卡型与目标上下文 → 立即看能否装下、最少几张卡与 KV 显存余量；已有启动日志也可切到右侧「已有日志对账」核对偏差。"
+                summary="① 选模型 → ② 选卡与上下文 → ③ 看人话结论与复制命令；已有启动日志也可切到右上角「已有日志对账」核对偏差。"
                 searchParams={searchParams}
                 locationKey={location.key}
                 onUpdateSearchParams={(params, opts) =>

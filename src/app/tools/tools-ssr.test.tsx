@@ -14,9 +14,13 @@ import { ConfigDoctorView, extractNormalizedCliModel } from "./ConfigDoctorView"
 import {
   DeployCalculatorView,
   evaluateCalculatorModelGate,
+  formatHardware3dLinkLabel,
+  formatRecommendedParallelSummary,
   hasAdvancedQueryOverrides,
+  isCurrentDeployPlanValid,
   parseCustomModelParam,
   parseV2ModelRunnerParam,
+  selectContextualPrincipleWikiIds,
   serializeCustomModelForShare,
 } from "./DeployCalculatorView";
 import {
@@ -741,5 +745,77 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     );
     expect(engramConflictHtml).toContain("配置校验冲突");
     expect(engramConflictHtml).not.toContain("单卡 NPU 权重 HBM 占用 <strong>0 B</strong>");
+
+    // 8. Master Polish WS1: P1 overflow CTA ("一键应用推荐并行"), honest 3D overflow label, collapsed engineering drawer,
+    //    expanded Qwen3-32B / Qwen3-235B-A22B presets, contextual principle chips, Doctor secondary <details>, and Troubleshoot collateral folding
+    const { evaluateDeployPlan } = await import("../../sim/modelspec/deployCalculator");
+    const overflow310pPlan = evaluateDeployPlan({
+      model: "qwen3-30b-a3b",
+      cardId: "310p-24g",
+      weightPrecision: "bf16",
+      tpSize: 1,
+    });
+    expect(isCurrentDeployPlanValid(overflow310pPlan)).toBe(false);
+    expect(formatRecommendedParallelSummary(overflow310pPlan)).toContain("TP=2");
+    expect(formatHardware3dLinkLabel(overflow310pPlan)).toBe("去 3D 查看当前 TP=1 溢出态");
+
+    const overflowHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-30b-a3b&card=310p-24g&precision=bf16&tp=1",
+    );
+    expect(overflowHtml).toContain('data-testid="calc-apply-recommended-plan"');
+    expect(overflowHtml).toContain("一键应用推荐并行 (TP=2");
+    expect(overflowHtml).toContain("去 3D 查看当前 TP=1 溢出态");
+    expect(overflowHtml).not.toContain("在 3D 整机中透视此方案");
+
+    // Pure TP=1 -> TP=2 overflow on Qwen3-32B + A2 64G + BF16
+    const q32OverflowHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-32b&card=a2-64g&precision=bf16&tp=1",
+    );
+    expect(q32OverflowHtml).toContain("一键应用推荐并行 (TP=2)");
+    expect(q32OverflowHtml).toContain("去 3D 查看当前 TP=1 溢出态");
+
+    // Applied TP=2 fits -> both CLI and 3D link show TP=2, apply CTA disappears
+    const q32FitsHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-32b&card=a2-64g&precision=bf16&tp=2",
+    );
+    expect(q32FitsHtml).not.toContain('data-testid="calc-apply-recommended-plan"');
+    expect(q32FitsHtml).toContain("在 3D 整机中透视此方案 (TP=2) →");
+    expect(q32FitsHtml).toContain("-tp 2");
+    expect(q32FitsHtml).toContain('data-testid="calc-contextual-principles"');
+    expect(
+      selectContextualPrincipleWikiIds(
+        evaluateDeployPlan({ model: "qwen3-235b-a22b", cardId: "a3-die64g", tpSize: 8, enableEp: true }),
+      ),
+    ).toEqual(["gqa", "moe", "kv-cache-memory-profiling", "expert-parallel"]);
+
+    // Engineering drawer collapsed by default ONLY on mode="full" && subMode="static"
+    expect(q32FitsHtml).toMatch(
+      /<details[^>]*data-testid="calc-engineering-details"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+    expect(q32FitsHtml).toContain(
+      '<summary class="wt-calc-eng-summary" data-testid="calc-engineering-summary">展开查看 7 级显存推导、HCCL 通信域与 Roofline 工程依据</summary>',
+    );
+    const reconcileHtml = await renderUrl("http://localhost/tools?tab=calculator&panel=reconcile");
+    expect(reconcileHtml).not.toContain('data-testid="calc-engineering-details"');
+    const minimalEmbeddedHtml = renderToStaticMarkup(
+      createElement(DeployCalculatorView, { mode: "minimal", embedded: true }),
+    );
+    expect(minimalEmbeddedHtml).not.toContain('data-testid="calc-engineering-details"');
+
+    // ConfigDoctor secondary options collapsed by default, auto-opened when fromVer/roce/hint active
+    const docDefaultHtml = await renderUrl("http://localhost/tools?tab=doctor");
+    expect(docDefaultHtml).toMatch(
+      /<details[^>]*data-testid="doctor-secondary-options"(?![^>]*\sopen(?:=|\s|>))/,
+    );
+    const docActiveSecHtml = await renderUrl("http://localhost/tools?tab=doctor&roce=1&hint=qwen3-32b");
+    expect(docActiveSecHtml).toMatch(/<details[^>]*data-testid="doctor-secondary-options"[^>]*\sopen/);
+
+    // Troubleshoot folds secondary collateral timeout lines into default-collapsed <details>
+    const tsCollateralHtml = await renderUrl(
+      "http://localhost/tools?tab=troubleshoot&fixture=multi-rank-hccl-rank3-fault",
+    );
+    expect(tsCollateralHtml).toMatch(
+      /<details[^>]*data-testid="troubleshoot-collateral-details"(?![^>]*\sopen(?:=|\s|>))/,
+    );
   });
 });

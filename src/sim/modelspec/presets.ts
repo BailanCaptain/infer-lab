@@ -6,6 +6,8 @@ import { parseHfConfig } from "./parseHfConfig";
 import qwen3_0_6b from "./presets/Qwen3-0.6B.config.json";
 import qwen3_8b from "./presets/Qwen3-8B.config.json";
 import qwen3_30b_a3b from "./presets/Qwen3-30B-A3B.config.json";
+import qwen3_32b from "./presets/Qwen3-32B.config.json";
+import qwen3_235b_a22b from "./presets/Qwen3-235B-A22B.config.json";
 import type { ModelSpec } from "./types";
 
 export interface ModelPreset {
@@ -53,6 +55,30 @@ export const MODEL_PRESETS: ModelPreset[] = [
       totalParams: 30.5e9,
       activatedParams: 3.3e9,
       source: "https://huggingface.co/Qwen/Qwen3-30B-A3B（模型卡：30.5B 总参数，3.3B 激活参数）",
+    },
+  },
+  {
+    id: "qwen3-32b",
+    name: "Qwen3-32B",
+    hfRepo: "Qwen/Qwen3-32B",
+    configUrl: "https://huggingface.co/Qwen/Qwen3-32B/raw/main/config.json",
+    raw: qwen3_32b,
+    official: {
+      totalParams: 32.8e9,
+      nonEmbeddingParams: 31.2e9,
+      source: "https://huggingface.co/Qwen/Qwen3-32B（模型卡：32.8B 总参数，31.2B 非 embedding）",
+    },
+  },
+  {
+    id: "qwen3-235b-a22b",
+    name: "Qwen3-235B-A22B",
+    hfRepo: "Qwen/Qwen3-235B-A22B",
+    configUrl: "https://huggingface.co/Qwen/Qwen3-235B-A22B/raw/main/config.json",
+    raw: qwen3_235b_a22b,
+    official: {
+      totalParams: 235e9,
+      activatedParams: 22e9,
+      source: "https://huggingface.co/Qwen/Qwen3-235B-A22B（模型卡：235B 总参数，22B 激活参数）",
     },
   },
 ];

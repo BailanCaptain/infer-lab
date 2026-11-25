@@ -215,6 +215,11 @@ function FirstFaultVerdictCard({
       : firstFaultVerdict.primaryEvidenceLines.length > 0
         ? "is-warn"
         : "is-unknown";
+  const allEv = firstFaultVerdict.primaryEvidenceLines;
+  const explicitRoots = allEv.filter((ev) => ev.kind === "root-cause");
+  const primaryVisibleLines = explicitRoots.length > 0 ? explicitRoots : allEv.slice(0, 1);
+  const collateralLines =
+    explicitRoots.length > 0 ? allEv.filter((ev) => ev.kind !== "root-cause") : allEv.slice(1);
 
   return (
     <section
@@ -241,12 +246,12 @@ function FirstFaultVerdictCard({
 
       <p className="wt-finding-msg">{firstFaultVerdict.rationale}</p>
 
-      {firstFaultVerdict.primaryEvidenceLines.length > 0 && (
+      {primaryVisibleLines.length > 0 && (
         <div style={EVIDENCE_LIST_STYLE}>
-          {firstFaultVerdict.primaryEvidenceLines.map((ev) => (
+          {primaryVisibleLines.map((ev) => (
             <div key={`ff-${ev.lineNumber}-${ev.kind}`} style={EVIDENCE_ROW_STYLE}>
               <span className={`wt-badge-judgment ${ev.kind === "root-cause" ? "is-error" : "is-warn"}`}>
-                {ev.kind === "root-cause" ? "主故障" : "次生超时"}
+                {ev.kind === "root-cause" ? "主故障" : "关键日志"}
               </span>
               <span className="wt-baseline-pill">
                 L{ev.lineNumber}
@@ -259,6 +264,30 @@ function FirstFaultVerdictCard({
             </div>
           ))}
         </div>
+      )}
+
+      {collateralLines.length > 0 && (
+        <details className="wt-collateral-details" data-testid="troubleshoot-collateral-details">
+          <summary className="wt-collateral-summary" data-testid="troubleshoot-collateral-summary">
+            <span>展开查看 {collateralLines.length} 条次生连带超时 / 伴随报错行</span>
+            <span className="wt-advanced-summary-cta">点击展开</span>
+          </summary>
+          <div className="wt-collateral-body">
+            {collateralLines.map((ev) => (
+              <div key={`ff-col-${ev.lineNumber}-${ev.kind}`} style={EVIDENCE_ROW_STYLE}>
+                <span className="wt-badge-judgment is-warn">次生超时</span>
+                <span className="wt-baseline-pill">
+                  L{ev.lineNumber}
+                  {ev.rank !== null ? ` · Rank ${ev.rank}` : ""}
+                  {ev.timestamp ? ` · ${ev.timestamp}` : ""}
+                </span>
+                <code style={{ fontFamily: "var(--font-mono)", fontSize: "13.5px", wordBreak: "break-all" }}>
+                  {ev.rawLine}
+                </code>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
     </section>
   );
@@ -318,6 +347,17 @@ function MetricsSnapshotBar({ report }: { report: LogAnalysisReport }) {
 
 function DiagnosisFindingCard({ finding }: { finding: LogDiagnosisFinding }) {
   const sev = SEVERITY_META[finding.severity];
+  const [cmdCopied, setCmdCopied] = useState(false);
+
+  const handleCopyNextCmd = () => {
+    void copyTextToClipboard(finding.nextEvidenceCmd).then((ok) => {
+      if (ok) {
+        setCmdCopied(true);
+        setTimeout(() => setCmdCopied(false), 1600);
+      }
+    });
+  };
+
   return (
     <article
       className={`wt-finding-card ${sev.cls}`}
@@ -332,40 +372,67 @@ function DiagnosisFindingCard({ finding }: { finding: LogDiagnosisFinding }) {
       </div>
 
       <p className="wt-finding-msg">{finding.summary}</p>
-      <p className="wt-insight-meta">
-        <strong>源码与机制依据：</strong>
-        {finding.mechanism}
-      </p>
 
       <div className="wt-finding-remediation">
-        <div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <strong>下一步现场取证命令：</strong>
+          <button
+            type="button"
+            className="wt-preset-btn"
+            style={{ padding: "2px 9px", fontSize: 12 }}
+            onClick={handleCopyNextCmd}
+          >
+            {cmdCopied ? "已复制命令" : "复制命令"}
+          </button>
+        </div>
+        <code style={CMD_BLOCK_STYLE}>{finding.nextEvidenceCmd}</code>
+        <div style={{ marginTop: 8 }}>
           <strong>最小区分实验：</strong>
           {finding.experimentStep}
         </div>
-        <div style={{ marginTop: 8 }}>
-          <strong>下一步现场取证命令：</strong>
-          <code style={CMD_BLOCK_STYLE}>{finding.nextEvidenceCmd}</code>
-        </div>
       </div>
 
-      {finding.matchedLines.length > 0 && (
-        <div style={EVIDENCE_LIST_STYLE}>
-          {finding.matchedLines.map((line) => (
-            <div key={`${finding.ruleId}-L${line.lineNumber}`} style={EVIDENCE_ROW_STYLE}>
-              <span className="wt-baseline-pill">
-                命中 L{line.lineNumber}
-                {line.rank !== null ? ` · Rank ${line.rank}` : ""}
-              </span>
-              <code style={{ fontFamily: "var(--font-mono)", fontSize: "13.5px", wordBreak: "break-all" }}>
-                {line.rawLine}
-              </code>
+      <details
+        className="wt-collateral-details"
+        data-testid={`troubleshoot-finding-details-${finding.ruleId}`}
+      >
+        <summary className="wt-collateral-summary">
+          <span>
+            展开源码机制依据
+            {finding.matchedLines.length > 0 ? `与原始命中日志（${finding.matchedLines.length} 行）` : ""}
+          </span>
+          <span className="wt-advanced-summary-cta">点击展开</span>
+        </summary>
+        <div className="wt-collateral-body">
+          <p className="wt-insight-meta">
+            <strong>源码与机制依据：</strong>
+            {finding.mechanism}
+          </p>
+          {finding.matchedLines.length > 0 && (
+            <div style={EVIDENCE_LIST_STYLE}>
+              {finding.matchedLines.map((line) => (
+                <div key={`${finding.ruleId}-L${line.lineNumber}`} style={EVIDENCE_ROW_STYLE}>
+                  <span className="wt-baseline-pill">
+                    命中 L{line.lineNumber}
+                    {line.rank !== null ? ` · Rank ${line.rank}` : ""}
+                  </span>
+                  <code
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "13.5px", wordBreak: "break-all" }}
+                  >
+                    {line.rawLine}
+                  </code>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {(finding.sources.length > 0 || finding.wikiPageIds.length > 0) && (
-        <div className="wt-finding-footer">
+          )}
           {finding.sources.length > 0 && (
             <div className="wt-source-links">
               {finding.sources.map((src) => (
@@ -373,13 +440,16 @@ function DiagnosisFindingCard({ finding }: { finding: LogDiagnosisFinding }) {
               ))}
             </div>
           )}
-          {finding.wikiPageIds.length > 0 && (
-            <div className="wt-deeplinks">
-              {finding.wikiPageIds.map((pageId) => (
-                <ToolDeepLinkById key={`${finding.ruleId}-wiki-${pageId}`} pageId={pageId} />
-              ))}
-            </div>
-          )}
+        </div>
+      </details>
+
+      {finding.wikiPageIds.length > 0 && (
+        <div className="wt-finding-footer">
+          <div className="wt-deeplinks">
+            {finding.wikiPageIds.map((pageId) => (
+              <ToolDeepLinkById key={`${finding.ruleId}-wiki-${pageId}`} pageId={pageId} />
+            ))}
+          </div>
         </div>
       )}
     </article>

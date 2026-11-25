@@ -30,6 +30,42 @@ describe("parseHfConfig（Qwen3）", () => {
     expect(s.layers[0]?.mlp).toMatchObject({ kind: "moe", numExperts: 128, topK: 8, moeIntermediate: 768 });
     expect(s.unrecognized).toEqual([]);
   });
+  it("解析扩容预设 Qwen3-32B 与 Qwen3-235B-A22B，同时保持 MODEL_PRESETS[0..2] 下标契约", () => {
+    expect(MODEL_PRESETS.slice(0, 5).map((p) => p.id)).toEqual([
+      "qwen3-0.6b",
+      "qwen3-8b",
+      "qwen3-30b-a3b",
+      "qwen3-32b",
+      "qwen3-235b-a22b",
+    ]);
+    const s32 = getPresetSpec("qwen3-32b");
+    expect(s32.hidden).toBe(5120);
+    expect(s32.numLayers).toBe(64);
+    expect(s32.layers[0]?.attention).toMatchObject({
+      kind: "gqa",
+      numHeads: 64,
+      numKvHeads: 8,
+      headDim: 128,
+    });
+    expect(s32.unrecognized).toEqual([]);
+
+    const s235 = getPresetSpec("qwen3-235b-a22b");
+    expect(s235.hidden).toBe(4096);
+    expect(s235.numLayers).toBe(94);
+    expect(s235.layers[0]?.attention).toMatchObject({
+      kind: "gqa",
+      numHeads: 64,
+      numKvHeads: 4,
+      headDim: 128,
+    });
+    expect(s235.layers[0]?.mlp).toMatchObject({
+      kind: "moe",
+      numExperts: 128,
+      topK: 8,
+      moeIntermediate: 1536,
+    });
+    expect(s235.unrecognized).toEqual([]);
+  });
   it("mlp_only_layers 与 decoder_sparse_step 决定 dense/MoE 交错", () => {
     const raw = {
       ...(MODEL_PRESETS[2]?.raw as object),

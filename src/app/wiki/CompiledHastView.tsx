@@ -1,3 +1,4 @@
+import "../../design/tools.css";
 import {
   type CSSProperties,
   createContext,
@@ -5,8 +6,9 @@ import {
   Fragment,
   type ReactNode,
   useContext,
+  useState,
 } from "react";
-import { Link, useInRouterContext } from "react-router";
+import { Link, useInRouterContext, useNavigate } from "react-router";
 import { CalcBlock } from "../../content/wiki/CalcBlock";
 import { parseCalcFence, textFenceAsCalc } from "../../content/wiki/calc";
 import {
@@ -25,7 +27,10 @@ import {
 } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge } from "../../content/wiki/Term";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
+import { parseVllmServeCommand } from "../../sim/doctor/cliParser";
+import type { AscendFamily } from "../../sim/rules";
 import { appendFromPageToExperienceRoute } from "../model/qwen-frame";
+import { copyTextToClipboard, workbenchHandoffStore } from "../tools/workbenchHandoff";
 import { isSceneLessonId, sceneAnchorIds } from "./scene-lessons";
 import { isPlainPrimaryLinkClick, scrollToWikiFragment, WikiContentLink } from "./WikiLink";
 import { WikiScene } from "./WikiScene";
@@ -284,6 +289,366 @@ function diagramId(node: unknown): string | null {
   return file ? file.replace(/\.(ya?ml|svg)$/, "") : null;
 }
 
+const SHELL_FENCE_LANGUAGES = new Set(["bash", "sh", "shell", "zsh", "console", "text"]);
+const ENV_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=.*$/;
+const PLACEHOLDER_ANGLE_TOKEN_RE = /<(?:[A-Za-z_][A-Za-z0-9_.:/-]*|)>/;
+
+interface LogicalShellStatement {
+  rawChunk: string;
+  logicalLine: string;
+}
+
+function splitShellLogicalStatements(raw: string): LogicalShellStatement[] {
+  const text = raw.replace(/\r\n/g, "\n");
+  const out: LogicalShellStatement[] = [];
+  let curRaw = "";
+  let curLogical = "";
+  let quote: "'" | '"' | null = null;
+  let i = 0;
+
+  const flush = () => {
+    const logical = curLogical.trim();
+    if (logical.length > 0) {
+      out.push({ rawChunk: curRaw.trim(), logicalLine: logical });
+    }
+    curRaw = "";
+    curLogical = "";
+  };
+
+  while (i < text.length) {
+    const ch = text[i] ?? "";
+    const next = text[i + 1] ?? "";
+
+    if (quote === "'") {
+      curRaw += ch;
+      curLogical += ch;
+      if (ch === "'") quote = null;
+      i += 1;
+      continue;
+    }
+    if (quote === '"') {
+      if (ch === "\\" && i + 1 < text.length) {
+        curRaw += ch + next;
+        curLogical += ch + next;
+        i += 2;
+        continue;
+      }
+      curRaw += ch;
+      curLogical += ch;
+      if (ch === '"') quote = null;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "\\") {
+      const contMatch = /^\\[ \t]*\n/.exec(text.slice(i));
+      if (contMatch) {
+        curRaw += contMatch[0];
+        curLogical += " ";
+        i += contMatch[0].length;
+        continue;
+      }
+      if (i + 1 < text.length) {
+        curRaw += ch + next;
+        curLogical += ch + next;
+        i += 2;
+        continue;
+      }
+    }
+
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      curRaw += ch;
+      curLogical += ch;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "#" && (curLogical.length === 0 || /\s/.test(curLogical[curLogical.length - 1] ?? ""))) {
+      while (i < text.length && text[i] !== "\n") i += 1;
+      continue;
+    }
+
+    if (ch === "\n" || ch === ";") {
+      flush();
+      i += 1;
+      continue;
+    }
+    if ((ch === "&" && next === "&") || (ch === "|" && next === "|")) {
+      flush();
+      i += 2;
+      continue;
+    }
+    if (ch === "|") {
+      flush();
+      i += 1;
+      continue;
+    }
+
+    curRaw += ch;
+    curLogical += ch;
+    i += 1;
+  }
+  flush();
+  return out;
+}
+
+function simpleShellWords(line: string): string[] {
+  const words: string[] = [];
+  let cur = "";
+  let has = false;
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i] ?? "";
+    const next = line[i + 1] ?? "";
+    if (quote === "'") {
+      if (ch === "'") quote = null;
+      else cur += ch;
+      continue;
+    }
+    if (quote === '"') {
+      if (ch === '"') quote = null;
+      else if (ch === "\\" && i + 1 < line.length) {
+        cur += next;
+        i += 1;
+      } else cur += ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (has) {
+        words.push(cur);
+        cur = "";
+        has = false;
+      }
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      has = true;
+      continue;
+    }
+    if (ch === "\\" && i + 1 < line.length) {
+      cur += next;
+      has = true;
+      i += 1;
+      continue;
+    }
+    cur += ch;
+    has = true;
+  }
+  if (has) words.push(cur);
+  return words;
+}
+
+/**
+ * 活代码块单命令门禁：仅当围栏内包含**唯一一条**可解析的 `vllm serve` 命令（无 `<model>` 占位符、无多实例/多模板混写）时，
+ * 返回保留了前置环境变量与 `\` 续行符的启动命令字符串；否则返回 `null`。
+ */
+export function extractSingleVllmServeFenceCommand(
+  rawFenceText: string,
+  fenceLanguage?: string | null,
+): string | null {
+  if (!rawFenceText || !rawFenceText.includes("vllm")) return null;
+  if (fenceLanguage && !SHELL_FENCE_LANGUAGES.has(fenceLanguage.toLowerCase())) {
+    return null;
+  }
+
+  const statements = splitShellLogicalStatements(rawFenceText);
+  if (statements.length === 0) return null;
+
+  const classified = statements.map((stmt) => {
+    const cleanedRaw = stmt.rawChunk.replace(/^\$\s+/, "");
+    const cleanedLogical = stmt.logicalLine.replace(/^\$\s+/, "");
+    const words = simpleShellWords(cleanedLogical);
+    if (words.length === 0) return { kind: "other" as const, cleanedRaw, cleanedLogical };
+
+    if (words[0] === "export" && words.slice(1).every((w) => ENV_TOKEN_RE.test(w))) {
+      return { kind: "env" as const, cleanedRaw, cleanedLogical };
+    }
+    let idx = 0;
+    while (idx < words.length) {
+      const w = words[idx] ?? "";
+      if (ENV_TOKEN_RE.test(w) || w === "nohup" || w === "env" || w === "setsid") {
+        idx += 1;
+        continue;
+      }
+      break;
+    }
+    if (idx === words.length) {
+      return { kind: "env" as const, cleanedRaw, cleanedLogical };
+    }
+    const head = words[idx] ?? "";
+    const second = words[idx + 1] ?? "";
+    if (head === "vllm" && second === "serve") {
+      return { kind: "vllm-serve" as const, cleanedRaw, cleanedLogical };
+    }
+    if (
+      (head === "python" || head === "python3") &&
+      second === "-m" &&
+      (words[idx + 2] === "vllm.entrypoints.openai.api_server" ||
+        words[idx + 2] === "vllm.entrypoints.cli.main")
+    ) {
+      return { kind: "python-serve" as const, cleanedRaw, cleanedLogical };
+    }
+    return { kind: "other" as const, cleanedRaw, cleanedLogical };
+  });
+
+  const vllmServeIndices: number[] = [];
+  for (let i = 0; i < classified.length; i += 1) {
+    const item = classified[i]!;
+    if (item.kind === "python-serve") return null;
+    if (item.kind === "vllm-serve") vllmServeIndices.push(i);
+    else if (/\bvllm\s+serve\b/.test(item.cleanedLogical)) return null;
+  }
+
+  if (vllmServeIndices.length !== 1) return null;
+  const targetIdx = vllmServeIndices[0]!;
+  const targetStmt = classified[targetIdx]!;
+
+  if (PLACEHOLDER_ANGLE_TOKEN_RE.test(targetStmt.cleanedLogical)) return null;
+
+  const envPrefixLines = classified
+    .slice(0, targetIdx)
+    .filter((s) => s.kind === "env")
+    .map((s) => s.cleanedRaw);
+  const handoffCommand = [...envPrefixLines, targetStmt.cleanedRaw].join("\n").trim();
+
+  const parsed = parseVllmServeCommand(handoffCommand);
+  if (parsed.parseDiagnostics.some((d) => d.severity === "error")) return null;
+  const model = parsed.model?.trim() ?? "";
+  if (
+    !model ||
+    model.startsWith("$") ||
+    model.includes("<") ||
+    model.includes(">") ||
+    model.includes("...") ||
+    model.includes("…")
+  ) {
+    return null;
+  }
+  return handoffCommand;
+}
+
+function inferFenceHardwareFamily(commandText: string): AscendFamily {
+  if (/310p|enable_npugraph_ex["']?\s*:\s*false/i.test(commandText)) return "310P";
+  if (/950dt|\ba5\b|mxfp8/i.test(commandText)) return "A5";
+  if (/\ba3\b|800i-a3|davinci15/i.test(commandText)) return "A3";
+  return "A2";
+}
+
+function buildDoctorTargetQuery(pageId: string): string {
+  const params = new URLSearchParams();
+  params.set("tab", "doctor");
+  if (pageId && /^[a-z0-9][a-z0-9-_]{0,127}$/i.test(pageId)) {
+    params.set("fromPage", pageId);
+  }
+  return params.toString();
+}
+
+function sendFenceCommandToDoctor(commandText: string, pageId: string): void {
+  workbenchHandoffStore.sendToDoctor({
+    commandText,
+    hardwareFamily: inferFenceHardwareFamily(commandText),
+    version: "v0.30.0",
+    sourceLabel: pageId ? `知识页 · ${pageId}` : "知识页代码块",
+  });
+}
+
+function WikiFenceDoctorRouterButton({ commandText, pageId }: { commandText: string; pageId: string }) {
+  const navigate = useNavigate();
+  const query = buildDoctorTargetQuery(pageId);
+  return (
+    <button
+      type="button"
+      className="wt-code-fence-btn is-doctor"
+      data-testid="wiki-code-doctor-btn"
+      onClick={() => {
+        sendFenceCommandToDoctor(commandText, pageId);
+        navigate(`/tools?${query}`);
+      }}
+    >
+      送去体检 →
+    </button>
+  );
+}
+
+function WikiFenceDoctorFallbackButton({ commandText, pageId }: { commandText: string; pageId: string }) {
+  const query = buildDoctorTargetQuery(pageId);
+  return (
+    <button
+      type="button"
+      className="wt-code-fence-btn is-doctor"
+      data-testid="wiki-code-doctor-btn"
+      onClick={() => {
+        sendFenceCommandToDoctor(commandText, pageId);
+        if (typeof window !== "undefined") {
+          window.location.hash = `#/tools?${query}`;
+        }
+      }}
+    >
+      送去体检 →
+    </button>
+  );
+}
+
+function WikiFallbackCodeFence({
+  children,
+  node,
+  pageId,
+}: {
+  children?: ReactNode;
+  node?: unknown;
+  pageId: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const inRouter = useInRouterContext();
+  const codeNode = (node as CompiledNode | undefined)?.children?.[0];
+  const rawText = (codeNode ? hastTextOf(codeNode) : hastTextOf(node as CompiledNode | undefined)).replace(
+    /\n$/,
+    "",
+  );
+  const rawClasses =
+    codeNode?.type === "element" && Array.isArray(codeNode.properties?.className)
+      ? codeNode.properties.className
+      : [];
+  const langCls = rawClasses.find((c): c is string => typeof c === "string" && c.startsWith("language-"));
+  const fenceLang = langCls ? langCls.slice("language-".length).toLowerCase() : null;
+  const doctorCommand = rawText ? extractSingleVllmServeFenceCommand(rawText, fenceLang) : null;
+
+  const handleCopy = () => {
+    void copyTextToClipboard(rawText).then((ok) => {
+      if (ok) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      }
+    });
+  };
+
+  return (
+    <div className="wt-wiki-codeblock" data-testid="wiki-code-fence">
+      {rawText.length > 0 && (
+        <div className="wt-code-fence-toolbar" data-testid="wiki-code-fence-toolbar">
+          {doctorCommand !== null &&
+            (inRouter ? (
+              <WikiFenceDoctorRouterButton commandText={doctorCommand} pageId={pageId} />
+            ) : (
+              <WikiFenceDoctorFallbackButton commandText={doctorCommand} pageId={pageId} />
+            ))}
+          <button
+            type="button"
+            className={`wt-code-fence-btn${copied ? " is-copied" : ""}`}
+            data-testid="wiki-code-copy-btn"
+            onClick={handleCopy}
+          >
+            {copied ? "已复制" : "复制"}
+          </button>
+        </div>
+      )}
+      <pre>{children}</pre>
+    </div>
+  );
+}
+
 // A stable fence type preserves live scene playback when article data or its hash changes.
 export function WikiFence({ children, node }: { children?: ReactNode; node?: unknown }) {
   const diagrams = useContext(DiagramSnapshot);
@@ -317,7 +682,13 @@ export function WikiFence({ children, node }: { children?: ReactNode; node?: unk
   }
   const plain = plainFenceSource(node);
   const rows = plain ? textFenceAsCalc(plain) : null;
-  return rows ? <CalcBlock rows={rows} /> : <pre>{children}</pre>;
+  return rows ? (
+    <CalcBlock rows={rows} />
+  ) : (
+    <WikiFallbackCodeFence node={node} pageId={pageId}>
+      {children}
+    </WikiFallbackCodeFence>
+  );
 }
 
 function renderWikiAbbr(

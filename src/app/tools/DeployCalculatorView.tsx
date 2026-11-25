@@ -45,7 +45,7 @@ import {
   type DeployOverlayOomStatus,
 } from "../model/hardwareDeployOverlay";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
-import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
+import { ToolDeepLinkById, ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
   buildCalculatorQueryParams,
   buildDeployChatAnalysis,
@@ -385,7 +385,7 @@ function Wave4ArchActiveBanner({
             fontWeight: 700,
           }}
         >
-          Wave 4 异构注意力/记忆账本已激活 · 检测到 {arch.activeFeatures.join(" / ")}
+          异构架构专属账本已激活 · 检测到 {arch.activeFeatures.join(" / ")}
         </span>
       </div>
 
@@ -526,7 +526,7 @@ function Wave3InterceptCard({
             fontWeight: 700,
           }}
         >
-          Wave 3 架构分波边界拦截 · {gate.blockedFeature}
+          特殊架构边界拦截 · {gate.blockedFeature}
         </span>
         <code
           style={{
@@ -544,7 +544,7 @@ function Wave3InterceptCard({
       </div>
       <p style={{ margin: 0, fontSize: 14, color: "var(--color-ink)", lineHeight: 1.65 }}>{gate.reason}</p>
       <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--color-warning)" }}>
-        解锁波次：Wave 4（专章与单测完备后开放，拒绝套用标准 GQA 公式输出伪精确数字）
+        说明：当前模型包含尚未内置专属公式的结构，拒绝套用标准 GQA 公式输出失真估算，请先对照对应原理页核验。
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
         <ToolDeepLinkChip link={deepLink} />
@@ -1185,20 +1185,105 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
   );
 }
 
-function DeployVerdictStrip({ plan }: { plan: DeployPlanReport }) {
+export function isCurrentDeployPlanValid(plan: DeployPlanReport): boolean {
+  return (
+    plan.fourQuestions.q1Fit.verdict !== "blocked" &&
+    plan.fourQuestions.q2Capacity.oomStatus === "fits" &&
+    plan.headroomStatus !== "overflow"
+  );
+}
+
+export function formatRecommendedParallelSummary(plan: DeployPlanReport): string | null {
+  const q4 = plan.fourQuestions.q4Recommendation;
+  if (q4.unsolvable || q4.recommendedTp === null) return null;
+  const parts = [`TP=${q4.recommendedTp}`];
+  if ((q4.recommendedPp ?? 1) > 1) parts.push(`PP=${q4.recommendedPp}`);
+  if ((q4.recommendedDp ?? 1) > 1) parts.push(`DP=${q4.recommendedDp}`);
+  if ((q4.recommendedPcp ?? 1) > 1) parts.push(`PCP=${q4.recommendedPcp}`);
+  if ((q4.recommendedDcp ?? 1) > 1) parts.push(`DCP=${q4.recommendedDcp}`);
+  if (q4.recommendedEnableEp && !plan.inputSummary.enableEp) parts.push("EP");
+  if (q4.recommendedPrecision !== plan.inputSummary.weightPrecision) {
+    const shortPrec =
+      q4.recommendedPrecision === "w8a8sc_310p"
+        ? "W8A8SC"
+        : q4.recommendedPrecision === "w8a8_dynamic"
+          ? "W8A8_DYN"
+          : q4.recommendedPrecision.toUpperCase();
+    parts.push(shortPrec);
+  }
+  return parts.join(" · ");
+}
+
+export function formatHardware3dLinkLabel(plan: DeployPlanReport): string {
+  const curTopo =
+    plan.inputSummary.ppSize > 1
+      ? `TP=${plan.inputSummary.tpSize}·PP=${plan.inputSummary.ppSize}`
+      : `TP=${plan.inputSummary.tpSize}`;
+  if (plan.fourQuestions.q2Capacity.oomStatus !== "fits" || plan.headroomStatus === "overflow") {
+    return `去 3D 查看当前 ${curTopo} 溢出态`;
+  }
+  if (plan.fourQuestions.q1Fit.verdict === "blocked") {
+    return `去 3D 查看当前 ${curTopo} 阻断态`;
+  }
+  return `在 3D 整机中透视此方案 (${curTopo}) →`;
+}
+
+export function selectContextualPrincipleWikiIds(plan: DeployPlanReport): string[] {
+  const ids: string[] = [];
+  const pushUnique = (id: string) => {
+    if (!ids.includes(id)) ids.push(id);
+  };
+  if (plan.wave4Arch.hasCsa2) pushUnique("sparse-attention");
+  if (plan.wave4Arch.hasMla) pushUnique("mla");
+  else if (plan.wave4Arch.hasKda) pushUnique("linear-attention");
+  else if (!plan.wave4Arch.hasCsa2) pushUnique("gqa");
+
+  if (plan.wave4Arch.hasEngram) pushUnique("engram-conditional-memory");
+  if (plan.isMoe) pushUnique("moe");
+
+  pushUnique("kv-cache-memory-profiling");
+
+  if (plan.isMoe && (plan.inputSummary.enableEp || plan.fourQuestions.q4Recommendation.recommendedEnableEp)) {
+    pushUnique("expert-parallel");
+  } else if (plan.inputSummary.weightPrecision !== "bf16" && plan.inputSummary.weightPrecision !== "fp16") {
+    pushUnique("quantization");
+  } else if (plan.inputSummary.tpSize > 1) {
+    pushUnique("tensor-parallel");
+  }
+  return ids.slice(0, 4);
+}
+
+const DEMO_HUMAN_LABELS: Readonly<Record<Wave4DemoPreset["id"], string>> = {
+  "deepseek-v3-mla": "DeepSeek-V3（MLA 潜向量）",
+  "hybrid-kda-gqa": "Kimi-Linear（KDA+GQA 混合）",
+  "csa2-sparse-mla": "DeepSeek-V4（CSA2 稀疏索引）",
+  "engram-conditional": "Qwen3-Engram（条件记忆）",
+};
+
+function DeployVerdictStrip({
+  plan,
+  onApplyRecommended,
+}: {
+  plan: DeployPlanReport;
+  onApplyRecommended?: (() => void) | undefined;
+}) {
   const { q1Fit, q2Capacity, q3Roofline } = plan.fourQuestions;
-  const isBlocked = q1Fit.verdict === "blocked" || q2Capacity.oomStatus !== "fits";
-  const isWarn = !isBlocked && q1Fit.verdict === "warn";
+  const currentPlanValid = isCurrentDeployPlanValid(plan);
+  const isBlocked = !currentPlanValid;
+  const isWarn = !isBlocked && (q1Fit.verdict === "warn" || plan.headroomStatus === "risk");
   const stripTone = isBlocked ? "is-blocked" : isWarn ? "is-warn" : "is-pass";
   const fitText =
-    q1Fit.verdict === "blocked"
-      ? "存在配置阻塞"
-      : q2Capacity.oomStatus === "fits"
-        ? isWarn
-          ? "可装下（有提示）"
-          : "装得下 ✓"
-        : "显存不足（需加卡或降精度）";
+    q2Capacity.oomStatus !== "fits"
+      ? "显存不足（需加卡或降精度）"
+      : plan.headroomStatus === "overflow"
+        ? "录图穿透 1−u 余量（OOM）"
+        : q1Fit.verdict === "blocked"
+          ? "存在配置阻塞"
+          : isWarn
+            ? "可装下（有提示）"
+            : "装得下 ✓";
   const fitClass = isBlocked ? "is-danger" : isWarn ? "is-warning" : "is-token";
+  const recSummary = !currentPlanValid ? formatRecommendedParallelSummary(plan) : null;
   const bottleneckLabel =
     q3Roofline.primaryBottleneck === "memory-bound"
       ? "带宽墙（Memory-bound）"
@@ -1217,9 +1302,11 @@ function DeployVerdictStrip({ plan }: { plan: DeployPlanReport }) {
       </div>
       <div className="wt-verdict-item">
         <span className="wt-verdict-label">建议最少卡数</span>
-        <span className="wt-verdict-value">{q2Capacity.minCardsRecommended} 逻辑卡</span>
+        <span className="wt-verdict-value">{q2Capacity.minCardsRecommended ?? "—"} 逻辑卡</span>
         <span className="wt-verdict-sub">
-          约 {q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 {q2Capacity.currentTotalCards} 逻辑卡）
+          {q2Capacity.minPhysicalCardsRecommended !== null
+            ? `约 ${q2Capacity.minPhysicalCardsRecommended} 张物理卡（当前 ${q2Capacity.currentTotalCards} 逻辑卡）`
+            : `当前 ${q2Capacity.currentTotalCards} 逻辑卡（单节点 64 卡内无解）`}
         </span>
       </div>
       <div className="wt-verdict-item">
@@ -1241,6 +1328,22 @@ function DeployVerdictStrip({ plan }: { plan: DeployPlanReport }) {
             : `硬件脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
         </span>
       </div>
+      {!currentPlanValid && recSummary && onApplyRecommended && (
+        <div className="wt-verdict-cta-bar" data-testid="calc-verdict-cta-bar">
+          <span style={{ fontSize: 13.5, color: "var(--color-ink)" }}>
+            当前 <strong>TP={plan.inputSummary.tpSize}</strong>{" "}
+            无法直接启动；一键切到最小可行方案后，下方启动命令与 3D 硬件拓扑将保持一致：
+          </span>
+          <button
+            type="button"
+            className="wt-assistant-btn"
+            data-testid="calc-apply-recommended-plan"
+            onClick={onApplyRecommended}
+          >
+            一键应用推荐并行 ({recSummary})
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1249,16 +1352,21 @@ function FourQuestionsGrid({
   plan,
   hardware3dHref,
   onHandoffToDoctor,
+  onApplyRecommended,
 }: {
   plan: DeployPlanReport;
   hardware3dHref: string;
   onHandoffToDoctor?: (() => void) | undefined;
+  onApplyRecommended?: (() => void) | undefined;
 }) {
   const [copied, setCopied] = useState(false);
   const { q1Fit, q2Capacity, q3Roofline, q4Recommendation } = plan.fourQuestions;
-  const currentPlanValid = q1Fit.verdict !== "blocked" && q2Capacity.oomStatus === "fits";
+  const currentPlanValid = isCurrentDeployPlanValid(plan);
   const currentPlanCli = useMemo(() => buildCurrentPlanCliHint(plan), [plan]);
   const activeCli = currentPlanValid ? currentPlanCli : q4Recommendation.cliHint;
+  const recSummary = !currentPlanValid ? formatRecommendedParallelSummary(plan) : null;
+  const hwLinkLabel = formatHardware3dLinkLabel(plan);
+  const contextualPrinciples = useMemo(() => selectContextualPrincipleWikiIds(plan), [plan]);
   const q1Tone =
     q1Fit.verdict === "blocked"
       ? "var(--color-danger)"
@@ -1268,12 +1376,12 @@ function FourQuestionsGrid({
   const q2Tone = q2Capacity.oomStatus === "fits" ? "var(--color-token)" : "var(--color-danger)";
 
   const handleCopyCli = () => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      void navigator.clipboard.writeText(activeCli).then(() => {
+    void copyTextToClipboard(activeCli).then((ok) => {
+      if (ok) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
-      });
-    }
+      }
+    });
   };
 
   return (
@@ -1281,10 +1389,101 @@ function FourQuestionsGrid({
       className="wt-calc-4q-grid"
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
         gap: 12,
       }}
     >
+      <article
+        className="wt-card"
+        style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 10 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <strong style={{ fontSize: 15 }}>
+            {currentPlanValid ? "启动命令与下一步验证（可直接复制或送去体检）" : "推荐起步拓扑与启动命令"}
+          </strong>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {!currentPlanValid && recSummary && onApplyRecommended && (
+              <button type="button" className="wt-assistant-btn" onClick={onApplyRecommended}>
+                一键应用推荐并行 ({recSummary})
+              </button>
+            )}
+            {activeCli && (
+              <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
+                {copied ? "已复制命令" : "复制命令"}
+              </button>
+            )}
+            {onHandoffToDoctor && activeCli && (
+              <button
+                type="button"
+                className="wt-assistant-btn"
+                data-testid="handoff-to-doctor"
+                onClick={onHandoffToDoctor}
+              >
+                送去配置体检 →
+              </button>
+            )}
+            <a
+              href={hardware3dHref}
+              className={currentPlanValid ? "wt-assistant-btn" : "wt-3d-overflow-link"}
+              data-testid="calc-open-3d-hardware"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+            >
+              {hwLinkLabel}
+            </a>
+          </div>
+        </div>
+        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>
+          {currentPlanValid
+            ? "当前配置可装下，已按你选定的并行度、上下文与图模式生成启动命令："
+            : q4Recommendation.rationale}
+        </p>
+        {activeCli && (
+          <pre
+            data-testid="calc-handoff-cli"
+            style={{
+              margin: 0,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "var(--color-surface-sunken)",
+              border: "1px solid var(--color-line)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {activeCli}
+          </pre>
+        )}
+        {currentPlanValid && currentPlanCli !== q4Recommendation.cliHint && (
+          <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-ink-muted)" }}>
+            <strong>精简起步参考：</strong>
+            {q4Recommendation.rationale}
+          </p>
+        )}
+        <div
+          data-testid="calc-contextual-principles"
+          style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}
+        >
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-ink-muted)" }}>
+            关联必读原理页：
+          </span>
+          {contextualPrinciples.map((id) => (
+            <ToolDeepLinkById key={`ctx-${id}`} pageId={id} />
+          ))}
+          {q4Recommendation.relatedWikiIds.includes("hccl-buffer") &&
+            !contextualPrinciples.includes("hccl-buffer") && <ToolDeepLinkById pageId="hccl-buffer" />}
+        </div>
+      </article>
+
       <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
           <strong style={{ fontSize: 15 }}>Q1 · 模型与精度兼容吗</strong>
@@ -1377,77 +1576,6 @@ function FourQuestionsGrid({
             {plan.roofline.localExpertsPerRank} 个本地专家），Decode 线性层更难爬过脊点。
           </div>
         )}
-      </article>
-
-      <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <strong style={{ fontSize: 15 }}>
-            {currentPlanValid ? "Q4 · 当前方案启动命令（可直接去体检）" : "Q4 · 推荐起步拓扑与启动命令"}
-          </strong>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
-              {copied ? "已复制命令" : "复制命令"}
-            </button>
-            {onHandoffToDoctor && (
-              <button
-                type="button"
-                className="wt-assistant-btn"
-                data-testid="handoff-to-doctor"
-                onClick={onHandoffToDoctor}
-              >
-                送去配置体检 →
-              </button>
-            )}
-            <a
-              href={hardware3dHref}
-              className="wt-assistant-btn"
-              data-testid="calc-open-3d-hardware"
-              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
-            >
-              在 3D 整机中透视此方案 →
-            </a>
-          </div>
-        </div>
-        <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>
-          {currentPlanValid
-            ? "当前配置可装下，已按你选定的并行度、上下文与图模式生成启动命令："
-            : q4Recommendation.rationale}
-        </p>
-        <pre
-          data-testid="calc-handoff-cli"
-          style={{
-            margin: 0,
-            padding: "9px 11px",
-            borderRadius: 8,
-            background: "var(--color-surface-sunken)",
-            border: "1px solid var(--color-line)",
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-          }}
-        >
-          {activeCli}
-        </pre>
-        {currentPlanValid && currentPlanCli !== q4Recommendation.cliHint && (
-          <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-ink-muted)" }}>
-            <strong>精简起步参考：</strong>
-            {q4Recommendation.rationale}
-          </p>
-        )}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {q4Recommendation.relatedWikiIds.map((id) => (
-            <ToolDeepLinkChip key={id} link={resolveSafeDeepLink(id)} />
-          ))}
-        </div>
       </article>
     </div>
   );
@@ -1781,11 +1909,11 @@ function ReconcileLogSection({
           )}
           <a
             href={hardware3dHref}
-            className="wt-assistant-btn"
+            className={isCurrentDeployPlanValid(plan) ? "wt-assistant-btn" : "wt-3d-overflow-link"}
             data-testid="calc-open-3d-hardware"
             style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
           >
-            在 3D 整机中透视此方案 →
+            {formatHardware3dLinkLabel(plan)}
           </a>
         </div>
       </div>
@@ -2413,6 +2541,9 @@ export function DeployCalculatorView({
       : matchInitialPresetId(startsWithJson ? undefined : initialModel);
   const [presetId, setPresetId] = useState<string>(defaultPreset);
   const [useCustomJson, setUseCustomJson] = useState(startsWithJson);
+  const [customEditorOpen, setCustomEditorOpen] = useState<boolean>(
+    Boolean(initialCustomModelParam) || initialTrimmed.startsWith("{"),
+  );
   const [customJsonText, setCustomJsonText] = useState<string>(
     initialCustomModelParam ??
       (initialWave4Demo
@@ -2429,6 +2560,7 @@ export function DeployCalculatorView({
     const nextTrimmed = initialModel?.trim() ?? "";
     const nextIsJson = nextTrimmed.startsWith("{");
     setUseCustomJson(nextIsJson);
+    setCustomEditorOpen(nextIsJson);
     if (nextIsJson) {
       setCustomJsonText(nextTrimmed);
     } else {
@@ -2533,14 +2665,17 @@ export function DeployCalculatorView({
     setSubMode(parsed.subMode ?? "static");
     if (customModel) {
       setUseCustomJson(true);
+      setCustomEditorOpen(true);
       setActiveWave4DemoId(null);
       setCustomJsonText(customModel);
     } else if (matchedWave4) {
       setUseCustomJson(true);
+      setCustomEditorOpen(false);
       setActiveWave4DemoId(matchedWave4.id);
       setCustomJsonText(JSON.stringify(matchedWave4.config, null, 2));
     } else {
       setUseCustomJson(false);
+      setCustomEditorOpen(false);
       setActiveWave4DemoId(null);
       setPresetId(parsed.presetId ? matchInitialPresetId(parsed.presetId) : "qwen3-8b");
     }
@@ -2711,6 +2846,7 @@ export function DeployCalculatorView({
   const resetToStandard = () => {
     markLocalEdit();
     setUseCustomJson(false);
+    setCustomEditorOpen(false);
     setActiveWave4DemoId(null);
     setPresetId("qwen3-8b");
     setShareNotice(null);
@@ -2720,6 +2856,7 @@ export function DeployCalculatorView({
     markLocalEdit();
     setCustomJsonText(JSON.stringify(demo.config, null, 2));
     setUseCustomJson(true);
+    setCustomEditorOpen(false);
     setActiveWave4DemoId(demo.id);
     setShareNotice(null);
     patchState({
@@ -2734,19 +2871,41 @@ export function DeployCalculatorView({
     });
   };
 
+  const handleApplyRecommendedPlan = () => {
+    if (!plan) return;
+    const q4 = plan.fourQuestions.q4Recommendation;
+    if (q4.unsolvable || q4.recommendedTp === null) return;
+    const nextPcp = q4.recommendedPcp ?? 1;
+    patchState({
+      tpSize: q4.recommendedTp,
+      ppSize: q4.recommendedPp ?? 1,
+      dpSize: q4.recommendedDp ?? 1,
+      pcpSize: nextPcp,
+      dcpSize: q4.recommendedDcp ?? 1,
+      enableEp: q4.recommendedEnableEp,
+      weightPrecision: q4.recommendedPrecision,
+      gpuMemoryUtilization: q4.recommendedGpuMemoryUtilization,
+      ...(nextPcp > 1 && state.version === "v0.30.0" ? { useV2ModelRunner: true } : {}),
+      ...(plan.card.family === "310P" || plan.headroomStatus === "overflow" ? { cudagraphMode: "NONE" } : {}),
+    });
+  };
+
   const handleHandoffToDoctor = () => {
     if (!plan) return;
-    const currentPlanValid =
-      plan.fourQuestions.q1Fit.verdict !== "blocked" && plan.fourQuestions.q2Capacity.oomStatus === "fits";
+    const currentPlanValid = isCurrentDeployPlanValid(plan);
     const commandText = currentPlanValid
       ? buildCurrentPlanCliHint(plan)
       : plan.fourQuestions.q4Recommendation.cliHint;
+    if (!commandText) return;
+    const effectiveTp = currentPlanValid
+      ? plan.inputSummary.tpSize
+      : (plan.fourQuestions.q4Recommendation.recommendedTp ?? plan.inputSummary.tpSize);
     const modelId = useCustomJson ? (activeWave4DemoId ?? undefined) : presetId;
     workbenchHandoffStore.sendToDoctor({
       commandText,
       hardwareFamily: cardIdToHardwareFamily(plan.card.id),
       version: state.version === "main" ? "main" : "v0.30.0",
-      sourceLabel: `${plan.spec.name} · ${plan.card.shortName} · TP=${plan.inputSummary.tpSize}`,
+      sourceLabel: `${plan.spec.name} · ${plan.card.shortName} · TP=${effectiveTp}`,
       ...(modelId ? { modelId } : {}),
       modelTraitOverride: extractDoctorModelTraitsFromSpec(plan.spec),
     });
@@ -2914,10 +3073,15 @@ export function DeployCalculatorView({
     if (!plan) return "#/hardware?vendor=ascend&level=2";
     let modelKey: DeployOverlayModelKey;
     if (!useCustomJson) {
-      modelKey =
-        presetId === "qwen3-0.6b" || presetId === "qwen3-8b" || presetId === "qwen3-30b-a3b"
+      modelKey = (
+        presetId === "qwen3-0.6b" ||
+        presetId === "qwen3-8b" ||
+        presetId === "qwen3-30b-a3b" ||
+        presetId === "qwen3-32b" ||
+        presetId === "qwen3-235b-a22b"
           ? presetId
-          : "qwen3-8b";
+          : "qwen3-8b"
+      ) as DeployOverlayModelKey;
     } else if (
       activeWave4DemoId === "deepseek-v3-mla" ||
       activeWave4DemoId === "hybrid-kda-gqa" ||
@@ -3054,7 +3218,7 @@ export function DeployCalculatorView({
             )}
             <p className="wt-subtitle">
               {summary ??
-                "第一步：选模型、昇腾卡型与目标上下文 → 立即看能否装下、最少几张卡与 KV 显存余量；已有启动日志也可切到「已有日志对账」核对偏差。"}
+                "① 选模型 → ② 选卡与上下文 → ③ 看人话结论与复制命令；已有启动日志也可切到右上角「已有日志对账」核对偏差。"}
             </p>
           </div>
           {mode === "full" && (
@@ -3092,9 +3256,17 @@ export function DeployCalculatorView({
         </header>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div className="wt-step-block">
+        {mode === "full" && subMode === "static" && (
+          <div className="wt-step-head">
+            <span className="wt-step-badge">
+              <span className="wt-step-num">① 选模型</span>
+              <span>选择官方主线模型或异构架构代表模型</span>
+            </span>
+          </div>
+        )}
         <div className="wt-presets">
-          <span className="wt-presets-label">第一步 · 选模型：</span>
+          <span className="wt-presets-label">标准主线模型：</span>
           {MODEL_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -3103,6 +3275,7 @@ export function DeployCalculatorView({
               onClick={() => {
                 markLocalEdit();
                 setUseCustomJson(false);
+                setCustomEditorOpen(false);
                 setActiveWave4DemoId(null);
                 setPresetId(p.id);
                 setShareNotice(null);
@@ -3116,22 +3289,28 @@ export function DeployCalculatorView({
           ))}
           <button
             type="button"
+            data-testid="calc-toggle-custom-json"
             className={`wt-preset-btn${useCustomJson && activeWave4DemoId === null ? " is-active" : ""}`}
             onClick={() => {
               markLocalEdit();
+              if (useCustomJson && activeWave4DemoId === null && customEditorOpen) {
+                setCustomEditorOpen(false);
+                return;
+              }
               setActiveWave4DemoId(null);
               setUseCustomJson(true);
+              setCustomEditorOpen(true);
               setShareNotice(null);
             }}
           >
-            粘贴 config.json
+            自定义粘贴 config.json
           </button>
         </div>
 
         {mode === "full" && (
           <div className="wt-preset-subrow">
             <span className="wt-presets-label" style={{ fontSize: 12.5 }}>
-              特殊架构样例（MLA / 线性注意力 / Engram）：
+              异构架构代表模型：
             </span>
             {WAVE4_DEMO_PRESETS.map((demo) => (
               <button
@@ -3142,27 +3321,57 @@ export function DeployCalculatorView({
                 style={{ padding: "4px 10px", fontSize: 12.5 }}
                 onClick={() => applyWave4Demo(demo)}
               >
-                {demo.label}
+                {DEMO_HUMAN_LABELS[demo.id]}
               </button>
             ))}
+            {useCustomJson && !customEditorOpen && (
+              <>
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "4px 10px", fontSize: 12.5 }}
+                  onClick={() => setCustomEditorOpen(true)}
+                >
+                  查看/编辑 config.json
+                </button>
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "4px 10px", fontSize: 12.5 }}
+                  onClick={resetToStandard}
+                >
+                  恢复内置预设
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {useCustomJson && (
+      {useCustomJson && customEditorOpen && (
         <div className="wt-editor-card">
           <div className="wt-editor-head">
             <span className="wt-editor-title">
               自定义 HuggingFace config.json（支持 GQA / MoE / MLA / CSA2 / KDA / Engram 全架构解析）
             </span>
-            <button
-              type="button"
-              className="wt-preset-btn"
-              style={{ padding: "3px 10px" }}
-              onClick={resetToStandard}
-            >
-              恢复内置预设
-            </button>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <button
+                type="button"
+                className="wt-preset-btn"
+                style={{ padding: "3px 10px" }}
+                onClick={() => setCustomEditorOpen(false)}
+              >
+                收起 JSON 框
+              </button>
+              <button
+                type="button"
+                className="wt-preset-btn"
+                style={{ padding: "3px 10px" }}
+                onClick={resetToStandard}
+              >
+                恢复内置预设
+              </button>
+            </div>
           </div>
           <textarea
             className="wt-textarea wt-textarea-compact"
@@ -3215,7 +3424,25 @@ export function DeployCalculatorView({
           )}
 
           {(mode !== "full" || subMode === "static") && (
-            <CalcControlsBar mode={mode} state={state} isMoe={plan.isMoe} onPatch={patchState} />
+            <div className="wt-step-block">
+              {mode === "full" && subMode === "static" && (
+                <div className="wt-step-head">
+                  <span className="wt-step-badge">
+                    <span className="wt-step-num">② 选卡与上下文</span>
+                    <span>设定昇腾卡型、权重精度、张量并行卡数与目标上下文</span>
+                  </span>
+                </div>
+              )}
+              <CalcControlsBar mode={mode} state={state} isMoe={plan.isMoe} onPatch={patchState} />
+              {mode === "full" && subMode === "static" && (
+                <AdvancedCalcControls
+                  state={state}
+                  open={advancedOpen}
+                  onOpenChange={setAdvancedOpen}
+                  onPatch={patchState}
+                />
+              )}
+            </div>
           )}
 
           {mode === "quick-screen" && <QuickScreenBody plan={plan} />}
@@ -3224,50 +3451,60 @@ export function DeployCalculatorView({
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
               <a
                 href={hardware3dHref}
-                className="wt-assistant-btn"
+                className={isCurrentDeployPlanValid(plan) ? "wt-assistant-btn" : "wt-3d-overflow-link"}
                 data-testid="calc-open-3d-hardware"
                 style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
               >
-                在 3D 整机中透视此方案 →
+                {formatHardware3dLinkLabel(plan)}
               </a>
             </div>
           )}
 
           {mode === "full" && subMode === "static" && (
             <>
-              <DeployVerdictStrip plan={plan} />
-              <AdvancedCalcControls
-                state={state}
-                open={advancedOpen}
-                onOpenChange={setAdvancedOpen}
-                onPatch={patchState}
-              />
-              <FourQuestionsGrid
-                plan={plan}
-                hardware3dHref={hardware3dHref}
-                onHandoffToDoctor={handleHandoffToDoctor}
-              />
-              <SevenStageSection plan={plan} />
-              <section className="wt-section">
-                <div className="wt-section-head">
-                  <h3 className="wt-section-title">Roofline 算术强度落点与硬件脊点对照</h3>
-                  <span className="wt-section-meta">
-                    {Math.abs(
-                      plan.roofline.prefillPeakComputeTflops - plan.roofline.decodePeakComputeTflops,
-                    ) > 1e-6
-                      ? `${plan.card.shortName} · Prefill 脊点 ${plan.roofline.prefillRidgePointFlopsPerByte.toFixed(1)} / Decode 脊点 ${plan.roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
-                      : `${plan.card.shortName} · 脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
+              <div className="wt-step-block">
+                <div className="wt-step-head">
+                  <span className="wt-step-badge">
+                    <span className="wt-step-num">③ 看人话结论与复制命令</span>
+                    <span>一眼确认能否装下、最少几张卡，并一键复制启动命令或去体检 / 3D 透视</span>
                   </span>
                 </div>
-                <div className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <RooflineSvgChart roofline={plan.roofline} />
-                  {plan.roofline.notes.map((n) => (
-                    <div key={n} style={{ fontSize: 13.5, color: "var(--color-ink-muted)" }}>
-                      • {n}
+                <DeployVerdictStrip plan={plan} onApplyRecommended={handleApplyRecommendedPlan} />
+                <FourQuestionsGrid
+                  plan={plan}
+                  hardware3dHref={hardware3dHref}
+                  onHandoffToDoctor={handleHandoffToDoctor}
+                  onApplyRecommended={handleApplyRecommendedPlan}
+                />
+              </div>
+              <details className="wt-calc-eng-drawer" data-testid="calc-engineering-details">
+                <summary className="wt-calc-eng-summary" data-testid="calc-engineering-summary">
+                  展开查看 7 级显存推导、HCCL 通信域与 Roofline 工程依据
+                </summary>
+                <div className="wt-calc-eng-body">
+                  <SevenStageSection plan={plan} />
+                  <section className="wt-section">
+                    <div className="wt-section-head">
+                      <h3 className="wt-section-title">Roofline 算术强度落点与硬件脊点对照</h3>
+                      <span className="wt-section-meta">
+                        {Math.abs(
+                          plan.roofline.prefillPeakComputeTflops - plan.roofline.decodePeakComputeTflops,
+                        ) > 1e-6
+                          ? `${plan.card.shortName} · Prefill 脊点 ${plan.roofline.prefillRidgePointFlopsPerByte.toFixed(1)} / Decode 脊点 ${plan.roofline.decodeRidgePointFlopsPerByte.toFixed(1)} FLOP/B`
+                          : `${plan.card.shortName} · 脊点 ${plan.roofline.ridgePointFlopsPerByte.toFixed(1)} FLOP/B`}
+                      </span>
                     </div>
-                  ))}
+                    <div className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <RooflineSvgChart roofline={plan.roofline} />
+                      {plan.roofline.notes.map((n) => (
+                        <div key={n} style={{ fontSize: 13.5, color: "var(--color-ink-muted)" }}>
+                          • {n}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </div>
-              </section>
+              </details>
             </>
           )}
 

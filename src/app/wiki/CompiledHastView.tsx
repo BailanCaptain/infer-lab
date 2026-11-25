@@ -28,7 +28,7 @@ import {
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge } from "../../content/wiki/Term";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { parseVllmServeCommand } from "../../sim/doctor/cliParser";
-import type { AscendFamily } from "../../sim/rules";
+import type { AscendFamily, RuleVersion } from "../../sim/rules";
 import { buildHardwareDeployHrefFromCommand } from "../model/hardwareDeployOverlay";
 import { appendFromPageToExperienceRoute } from "../model/qwen-frame";
 import { copyTextToClipboard, workbenchHandoffStore } from "../tools/workbenchHandoff";
@@ -549,11 +549,29 @@ function buildDoctorTargetQuery(pageId: string): string {
   return params.toString();
 }
 
+export function inferFenceRuleVersion(
+  commandText: string,
+  pageId: string,
+): Extract<RuleVersion, "v0.30.0" | "main"> {
+  const page = pageId ? findByAlias(resolvePageId(pageId) ?? pageId) : undefined;
+  if (page && page.verified.includes("main") && !page.verified.includes("releases/v0.30.0")) {
+    return "main";
+  }
+  const parsed = parseVllmServeCommand(commandText);
+  if (
+    (parsed.couplingInput.mainOnlyAdditionalConfigKeys?.length ?? 0) > 0 ||
+    parsed.couplingInput.enableFusedMc2 === 3
+  ) {
+    return "main";
+  }
+  return "v0.30.0";
+}
+
 function sendFenceCommandToDoctor(commandText: string, pageId: string): void {
   workbenchHandoffStore.sendToDoctor({
     commandText,
     hardwareFamily: inferFenceHardwareFamily(commandText),
-    version: "v0.30.0",
+    version: inferFenceRuleVersion(commandText, pageId),
     sourceLabel: pageId ? `知识页 · ${pageId}` : "知识页代码块",
   });
 }
@@ -622,7 +640,7 @@ function WikiFallbackCodeFence({
   const hardwareHref = doctorCommand
     ? buildHardwareDeployHrefFromCommand(doctorCommand, {
         hardwareFamily: inferFenceHardwareFamily(doctorCommand),
-        version: "v0.30.0",
+        version: inferFenceRuleVersion(doctorCommand, pageId),
         ...(preserveParams ? { preserveParams } : {}),
       })
     : null;

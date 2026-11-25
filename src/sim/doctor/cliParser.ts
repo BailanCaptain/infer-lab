@@ -636,39 +636,84 @@ function normalizeCliFlag(rawFlag: string): string {
   return rawFlag;
 }
 
+const FORBIDDEN_DOTTED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function parseHumanReadableInt(raw: string): number | undefined {
+  const m = /^(\d+(?:\.\d+)?)([kKmMgGtT])$/.exec(raw.trim());
+  if (!m?.[1] || !m[2]) return undefined;
+  const num = Number(m[1]);
+  if (!Number.isFinite(num)) return undefined;
+  const decimalMult: Readonly<Record<string, number>> = {
+    k: 1e3,
+    m: 1e6,
+    g: 1e9,
+    t: 1e12,
+  };
+  const binaryMult: Readonly<Record<string, number>> = {
+    K: 2 ** 10,
+    M: 2 ** 20,
+    G: 2 ** 30,
+    T: 2 ** 40,
+  };
+  const mult = decimalMult[m[2]] ?? binaryMult[m[2]];
+  return mult !== undefined ? Math.trunc(num * mult) : undefined;
+}
+
 function parseDottedScalarOrJson(raw: string): unknown {
   const trimmed = raw.trim();
-  if (trimmed === "True") return true;
-  if (trimmed === "False") return false;
-  if (trimmed === "None") return null;
   try {
     return JSON.parse(trimmed);
   } catch {
-    return raw;
+    const hr = parseHumanReadableInt(trimmed);
+    return hr !== undefined ? hr : raw;
   }
 }
 
-function setDottedRecordValue(
+function defineOwnRecordField(target: Record<string, unknown>, key: string, value: unknown): void {
+  if (Object.hasOwn(target, key)) {
+    target[key] = value;
+  } else {
+    Object.defineProperty(target, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+}
+
+export function setDottedRecordValue(
   target: Record<string, unknown>,
   pathSegments: readonly string[],
   value: unknown,
-): void {
+): boolean {
+  if (pathSegments.length === 0 || pathSegments.some((seg) => FORBIDDEN_DOTTED_KEYS.has(seg))) {
+    return false;
+  }
   let cursor: Record<string, unknown> = target;
   for (let idx = 0; idx < pathSegments.length - 1; idx += 1) {
     const seg = pathSegments[idx]!;
-    const existing = cursor[seg];
+    const existing = Object.hasOwn(cursor, seg) ? cursor[seg] : undefined;
     if (isRecord(existing)) {
       cursor = existing;
     } else {
       const next: Record<string, unknown> = {};
-      cursor[seg] = next;
+      defineOwnRecordField(cursor, seg, next);
       cursor = next;
     }
   }
-  const leaf = pathSegments[pathSegments.length - 1];
-  if (leaf) {
-    cursor[leaf] = value;
+  const leaf = pathSegments[pathSegments.length - 1]!;
+  const prevLeaf = Object.hasOwn(cursor, leaf) ? cursor[leaf] : undefined;
+  if (Array.isArray(prevLeaf) && Array.isArray(value)) {
+    defineOwnRecordField(cursor, leaf, [...prevLeaf, ...value]);
+  } else if (isRecord(prevLeaf) && isRecord(value)) {
+    for (const [k, v] of Object.entries(value)) {
+      setDottedRecordValue(prevLeaf, [k], v);
+    }
+  } else {
+    defineOwnRecordField(cursor, leaf, value);
   }
+  return true;
 }
 
 function findServeTokens(statements: readonly ShellStatement[]): {
@@ -805,9 +850,12 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   let isLoraEnabled: boolean | undefined;
   let attentionBackend: string | undefined;
   let useSequenceParallelMoe: boolean | undefined;
-  let useUbatching: boolean | undefined;
-  let rawHotReloadFloatLiteral: string | undefined;
-  let additionalConfig: Record<string, unknown> | null = null;
+  let enableDbo: boolean | undefined;
+  let ubatchSize: number | undefined;
+  let regularHotReloadFloatLiteral: string | undefined;
+  let dottedHotReloadFloatLiteral: string | undefined;
+  let regularAdditionalConfig: Record<string, unknown> | null = null;
+  let dottedAdditionalConfig: Record<string, unknown> | null = null;
   let compilationConfig: Record<string, unknown> | null = null;
   let kvTransferConfig: Record<string, unknown> | null = null;
   let speculativeConfig: Record<string, unknown> | null = null;
@@ -1024,11 +1072,19 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         useSequenceParallelMoe = false;
         break;
       case "--enable-dbo":
-        useUbatching = inlineVal !== undefined ? (parseBoolLike(inlineVal) ?? true) : true;
+        enableDbo = inlineVal !== undefined ? (parseBoolLike(inlineVal) ?? true) : true;
         break;
       case "--no-enable-dbo":
-        useUbatching = false;
+        enableDbo = false;
         break;
+      case "--ubatch-size": {
+        const [v, ni] = readValue(flag, inlineVal, i);
+        i = ni;
+        if (v !== undefined) {
+          ubatchSize = parseIntegerFlag(flag, v, diagnostics, { min: 0 });
+        }
+        break;
+      }
       case "--distributed-executor-backend": {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
@@ -1045,16 +1101,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
         if (v !== undefined) {
-          const n = parseNumberLike(v);
-          if (n === undefined || n < 0) {
-            diagnostics.push({
-              code: "parse-invalid-number",
-              severity: "error",
-              flag,
-              message: `${flag} 需要非负数值，收到 '${v}'。`,
-            });
-          } else {
-            shutdownTimeout = n;
+          const parsedTimeout = parseIntegerFlag(flag, v, diagnostics, { min: 0 });
+          if (parsedTimeout !== undefined) {
+            shutdownTimeout = parsedTimeout;
           }
         }
         break;
@@ -1083,12 +1132,12 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
         if (v !== undefined) {
-          const floatMatch = /["']runtime_config_hot_reload["']\s*:\s*(-?\d+\.\d+)/.exec(v);
-          rawHotReloadFloatLiteral = floatMatch?.[1];
+          const floatMatch =
+            /["']runtime_config_hot_reload["']\s*:\s*(-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+))/.exec(v);
+          regularHotReloadFloatLiteral = floatMatch?.[1];
           const parsedObj = parseJsonObjectFlag(flag, v, diagnostics);
           if (parsedObj) {
-            const base: Record<string, unknown> = additionalConfig ?? {};
-            additionalConfig = { ...base, ...parsedObj };
+            regularAdditionalConfig = parsedObj;
           }
         }
         break;
@@ -1114,16 +1163,30 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       }
       default: {
         if (flag.startsWith("--additional-config.")) {
-          const dottedPath = flag.slice("--additional-config.".length);
+          let dottedPath = flag.slice("--additional-config.".length);
+          const isListAppend = dottedPath.endsWith("+");
+          if (isListAppend) dottedPath = dottedPath.slice(0, -1);
           const segments = dottedPath.split(".").filter((seg) => seg.length > 0);
           const [v, ni] = readValue(flag, inlineVal, i);
           i = ni;
           if (v !== undefined && segments.length > 0) {
-            if (!additionalConfig) additionalConfig = {};
-            if (segments.length === 1 && segments[0] === "runtime_config_hot_reload") {
-              rawHotReloadFloatLiteral = /^-?\d+\.\d+$/.test(v.trim()) ? v.trim() : undefined;
+            if (segments.some((seg) => FORBIDDEN_DOTTED_KEYS.has(seg))) {
+              diagnostics.push({
+                code: "parse-invalid-json",
+                severity: "error",
+                flag,
+                message: `非法配置键路径 '${dottedPath}'。`,
+              });
+              break;
             }
-            setDottedRecordValue(additionalConfig, segments, parseDottedScalarOrJson(v));
+            if (!dottedAdditionalConfig) dottedAdditionalConfig = {};
+            if (segments.length === 1 && segments[0] === "runtime_config_hot_reload") {
+              dottedHotReloadFloatLiteral = /^-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+)$/.test(v.trim())
+                ? v.trim()
+                : undefined;
+            }
+            const parsedVal = isListAppend ? v.split(",") : parseDottedScalarOrJson(v);
+            setDottedRecordValue(dottedAdditionalConfig, segments, parsedVal);
           }
           break;
         }
@@ -1220,6 +1283,17 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   if (enableChunkedPrefill !== undefined) couplingInput.enableChunkedPrefill = enableChunkedPrefill;
   if (performanceMode !== undefined) couplingInput.performanceMode = performanceMode;
   if (isLoraEnabled !== undefined) couplingInput.isLoraEnabled = isLoraEnabled;
+  const additionalConfig: Record<string, unknown> | null = dottedAdditionalConfig ?? regularAdditionalConfig;
+  const rawHotReloadFloatLiteral: string | undefined = dottedAdditionalConfig
+    ? dottedHotReloadFloatLiteral
+    : regularHotReloadFloatLiteral;
+  const useUbatching: boolean | undefined =
+    enableDbo === true || (ubatchSize !== undefined && ubatchSize > 1)
+      ? true
+      : enableDbo === false || ubatchSize !== undefined
+        ? false
+        : undefined;
+
   if (attentionBackend !== undefined) couplingInput.attentionBackend = attentionBackend;
   if (useSequenceParallelMoe !== undefined) couplingInput.useSequenceParallelMoe = useSequenceParallelMoe;
   if (useUbatching !== undefined) couplingInput.useUbatching = useUbatching;
@@ -1360,12 +1434,16 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         if (unknownQarKeys.length > 0) {
           couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
         }
-        const qEn = parseBoolLike(qarc.enable);
-        if (qEn !== undefined) couplingInput.quantizedAllReduceEnabled = qEn;
+        if (qarc.enable !== undefined) {
+          if (typeof qarc.enable === "boolean") {
+            couplingInput.quantizedAllReduceEnabled = qarc.enable;
+          } else {
+            couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.enable 必须为布尔值（收到 ${JSON.stringify(qarc.enable)}）`;
+          }
+        }
         if (qarc.min_numel !== undefined) {
-          const qMin = parseNumberLike(qarc.min_numel);
-          if (qMin !== undefined && Number.isInteger(qMin)) {
-            couplingInput.quantizedAllReduceMinNumel = qMin;
+          if (typeof qarc.min_numel === "number" && Number.isInteger(qarc.min_numel)) {
+            couplingInput.quantizedAllReduceMinNumel = qarc.min_numel;
           } else {
             couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.min_numel 必须为整数（收到 ${JSON.stringify(qarc.min_numel)}）`;
           }
@@ -1402,23 +1480,63 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
     const rawSe = additionalConfig.shared_engram;
     if (rawSe !== undefined && rawSe !== null) {
       couplingInput.sharedEngramConfigured = true;
-      if (isRecord(rawSe)) {
+      if (!isRecord(rawSe)) {
+        couplingInput.sharedEngramInvalidReason = `ValidationError: additional_config.shared_engram 必须为字典对象（收到 ${Array.isArray(rawSe) ? "list" : typeof rawSe}）`;
+      } else {
+        const ALLOWED_SE_KEYS = new Set([
+          "backend",
+          "endpoint",
+          "capacity",
+          "library_path",
+          "listen_port",
+          "local_comm_res",
+        ]);
+        const unknownSeKeys = Object.keys(rawSe)
+          .filter((k) => !ALLOWED_SE_KEYS.has(k))
+          .sort();
+        if (unknownSeKeys.length > 0) {
+          couplingInput.sharedEngramInvalidReason = `ValidationError: additional_config.shared_engram 未知子键将被 extra="forbid" 拒收：${unknownSeKeys.join("、")}`;
+        }
         if (rawSe.backend !== undefined) {
           couplingInput.sharedEngramBackend =
             typeof rawSe.backend === "string" ? rawSe.backend.trim() : String(rawSe.backend);
         }
-        if (typeof rawSe.endpoint === "string") {
-          couplingInput.sharedEngramEndpoint = rawSe.endpoint.trim();
+        if (rawSe.endpoint !== undefined) {
+          if (typeof rawSe.endpoint === "string") {
+            couplingInput.sharedEngramEndpoint = rawSe.endpoint.trim();
+          } else {
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.endpoint 必须为字符串（收到 ${JSON.stringify(rawSe.endpoint)}）`;
+          }
         }
-        const seCap = parseNumberLike(rawSe.capacity);
-        if (seCap !== undefined) couplingInput.sharedEngramCapacity = seCap;
-        if (typeof rawSe.library_path === "string" && rawSe.library_path.length > 0) {
-          couplingInput.sharedEngramLibraryPath = rawSe.library_path;
+        if (rawSe.capacity !== undefined && rawSe.capacity !== null) {
+          if (typeof rawSe.capacity === "number" && Number.isInteger(rawSe.capacity)) {
+            couplingInput.sharedEngramCapacity = rawSe.capacity;
+          } else {
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.capacity 必须为整数（收到 ${JSON.stringify(rawSe.capacity)}）`;
+          }
         }
-        const seLp = parseNumberLike(rawSe.listen_port);
-        if (seLp !== undefined) couplingInput.sharedEngramListenPort = seLp;
-        if (typeof rawSe.local_comm_res === "string" && rawSe.local_comm_res.length > 0) {
-          couplingInput.sharedEngramLocalCommRes = rawSe.local_comm_res;
+        if (rawSe.library_path !== undefined && rawSe.library_path !== null) {
+          if (typeof rawSe.library_path === "string") {
+            if (rawSe.library_path.length > 0) couplingInput.sharedEngramLibraryPath = rawSe.library_path;
+          } else {
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.library_path 必须为字符串`;
+          }
+        }
+        if (rawSe.listen_port !== undefined && rawSe.listen_port !== null) {
+          if (typeof rawSe.listen_port === "number" && Number.isInteger(rawSe.listen_port)) {
+            couplingInput.sharedEngramListenPort = rawSe.listen_port;
+          } else {
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.listen_port 必须为整数（收到 ${JSON.stringify(rawSe.listen_port)}）`;
+          }
+        }
+        if (rawSe.local_comm_res !== undefined && rawSe.local_comm_res !== null) {
+          if (typeof rawSe.local_comm_res === "string") {
+            if (rawSe.local_comm_res.length > 0) {
+              couplingInput.sharedEngramLocalCommRes = rawSe.local_comm_res;
+            }
+          } else {
+            couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.local_comm_res 必须为字符串`;
+          }
         }
       }
     }

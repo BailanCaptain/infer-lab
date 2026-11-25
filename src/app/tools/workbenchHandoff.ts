@@ -519,6 +519,15 @@ export function sanitizeDiagnosticText(raw: string): { sanitized: string; redact
     },
   );
 
+  // 6. IPv6 addresses (bracketed [2001:db8::1], full 8-hextet, or :: compressed hex; never matches HH:MM:SS timestamps or C++ a::b identifiers)
+  text = text.replace(
+    /\[(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}\]|\[[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4})*::[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4})*\]|(?<![A-Za-z0-9_:])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5}|::(?:ffff:)?[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})(?![A-Za-z0-9_:])/g,
+    (full) => {
+      redactionCount += 1;
+      return full.startsWith("[") && full.endsWith("]") ? "[<REDACTED_IP>]" : "<REDACTED_IP>";
+    },
+  );
+
   return { sanitized: text, redactionCount };
 }
 

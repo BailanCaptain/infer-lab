@@ -287,4 +287,64 @@ describe("Promoted Parameter Validation Rules (v0.30.0 vs main)", () => {
     expect(retiredMain.judgment).toBe("retired");
     expect(retiredMain.replacement).toContain("kv_pool_range_debug");
   });
+
+  it("enforces prototype-safe dotted CLI parsing, human_readable_int suffixes, scientific floats, and strict subkey schemas", async () => {
+    const { setDottedRecordValue } = await import("../doctor/cliParser");
+    const { runSingleConfigDoctor } = await import("../doctor/configDoctor");
+
+    // 1. Prototype-pollution & inherited-object write guard
+    const inheritedProto = Object.freeze({ options: Object.freeze({ existing: 1 }) });
+    const recordWithProto = Object.create(inheritedProto) as Record<string, unknown>;
+    expect(() => setDottedRecordValue(recordWithProto, ["options", "mode"], "fast")).not.toThrow();
+    expect(Object.hasOwn(recordWithProto, "options")).toBe(true);
+    expect(setDottedRecordValue(recordWithProto, ["__proto__", "polluted"], true)).toBe(false);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+
+    // 2. quantized_all_reduce_config.enable non-bool & shared_engram extra="forbid"
+    const badQarEnable = runSingleConfigDoctor(
+      "vllm serve Qwen/Qwen3-8B -tp 2 --additional-config.quantized_all_reduce_config.enable maybe",
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(badQarEnable.hasBlockers).toBe(true);
+
+    const badSeExtra = runSingleConfigDoctor(
+      'vllm serve /models/ds-v41 -tp 4 --additional-config \'{"shared_engram":{"backend":"a3","endpoint":"localhost:1234","unknown":1}}\'',
+      { mode: "full", hardwareFamily: "A3", version: "main" },
+    );
+    expect(badSeExtra.hasBlockers).toBe(true);
+
+    // 3. Scientific float 1e0 rejected on runtime_config_hot_reload; 1k accepted on min_numel
+    const sciFloat = runSingleConfigDoctor(
+      "vllm serve Qwen/Qwen3-8B --additional-config.runtime_config_hot_reload 1e0",
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(sciFloat.hasBlockers).toBe(true);
+
+    const humanInt = runSingleConfigDoctor(
+      "vllm serve Qwen/Qwen3-8B -tp 2 --additional-config.quantized_all_reduce_config.min_numel 1k",
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(humanInt.hasBlockers).toBe(false);
+
+    // 4. Dotted flags appended after regular --additional-config (ba15685a precedence)
+    const mixedOrder = runSingleConfigDoctor(
+      "vllm serve Qwen/Qwen3-8B --additional-config.runtime_config_hot_reload true --additional-config '{\"runtime_config_hot_reload\":3}'",
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(mixedOrder.hasBlockers).toBe(false);
+
+    // 5. Fractional --shutdown-timeout 0.5 rejected; --ubatch-size 2 triggers GDN warning
+    const fracShutdown = runSingleConfigDoctor("vllm serve Qwen/Qwen3-8B --shutdown-timeout 0.5", {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(fracShutdown.hasBlockers).toBe(true);
+
+    const gdnUbatch = runSingleConfigDoctor(
+      "vllm serve Qwen/Qwen3-Next-80B --dtype bfloat16 --mamba-cache-mode align --ubatch-size 2 --additional-config '{\"gdn_internal_prefill_checkpoints\":true}'",
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(gdnUbatch.warnings.some((w) => w.id === "d5-gdn-prefill-checkpoints-constraints")).toBe(true);
+  });
 });

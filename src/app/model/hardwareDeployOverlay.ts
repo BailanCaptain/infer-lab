@@ -205,6 +205,7 @@ export interface HardwareDeployCalculatorRoundTrip {
   readonly weightPrecision?: WeightPrecision | undefined;
   readonly kvCacheDtype?: KvCacheDtype | undefined;
   readonly weightNzMode?: 0 | 1 | 2 | undefined;
+  readonly dpLocal?: number | undefined;
   readonly pcp?: number | undefined;
   readonly dcp?: number | undefined;
   readonly maxModelLen?: number | undefined;
@@ -299,6 +300,7 @@ export function encodeHardwareDeployOverlay(payload: HardwareDeployOverlayPayloa
     if (c.weightPrecision) wire.pr = c.weightPrecision;
     if (c.kvCacheDtype && c.kvCacheDtype !== "auto") wire.kd = c.kvCacheDtype;
     if (c.weightNzMode !== undefined && c.weightNzMode !== 1) wire.nz = c.weightNzMode;
+    if (c.dpLocal !== undefined) wire.dl = c.dpLocal;
     if (c.pcp !== undefined && c.pcp !== 1) wire.pcp = c.pcp;
     if (c.dcp !== undefined && c.dcp !== 1) wire.dcp = c.dcp;
     if (c.maxModelLen !== undefined) wire.ml = Math.trunc(c.maxModelLen);
@@ -398,6 +400,11 @@ export function parseHardwareDeployOverlay(
   }
 
   const calc: Record<string, unknown> = {};
+  if (obj.dl !== undefined) {
+    const dl = parseBoundedInt(obj.dl, 1, dp);
+    if (dl === null || dp % dl !== 0 || dl * tp * pp * pcp > cardSpec.ranksPerNode) return null;
+    calc.dpLocal = dl;
+  }
   if (pcp !== 1) calc.pcp = pcp;
   if (dcp !== 1) calc.dcp = dcp;
   if (obj.sm !== undefined) {
@@ -516,11 +523,14 @@ export interface HardwareNodeSlotLayout {
 
 export function computeHardwareNodeSlotLayout(payload: HardwareDeployOverlayPayload): HardwareNodeSlotLayout {
   const mapping = CARD_TO_3D_HARDWARE_MAP[payload.cardId];
-  const ranksPerNode = mapping.ranksPerNode;
+  const pcp = payload.calc?.pcp ?? 1;
+  const ranksPerNode =
+    payload.calc?.dpLocal !== undefined
+      ? Math.min(mapping.ranksPerNode, payload.calc.dpLocal * payload.tp * payload.pp * pcp)
+      : mapping.ranksPerNode;
   const nodeCount = Math.max(1, Math.ceil(payload.totalRanks / ranksPerNode));
   const isMultiNode = payload.totalRanks > ranksPerNode;
   const localActiveRanks = Math.min(payload.totalRanks, ranksPerNode);
-  const pcp = payload.calc?.pcp ?? 1;
   const innerGroupSize = payload.tp * pcp;
   const replicaStride = innerGroupSize * payload.pp;
 
@@ -1195,11 +1205,15 @@ export function computeRankShardSummary(
   const pcp = payload.calc?.pcp ?? 1;
   const dcp = payload.calc?.dcp ?? 1;
 
-  const nodeCount = Math.max(1, Math.ceil(payload.totalRanks / mapping.ranksPerNode));
-  const isMultiNode = payload.totalRanks > mapping.ranksPerNode;
-  const nodeIndex = Math.floor(safeRank / mapping.ranksPerNode);
+  const effectiveRanksPerNode =
+    payload.calc?.dpLocal !== undefined
+      ? Math.min(mapping.ranksPerNode, payload.calc.dpLocal * tp * pp * pcp)
+      : mapping.ranksPerNode;
+  const nodeCount = Math.max(1, Math.ceil(payload.totalRanks / effectiveRanksPerNode));
+  const isMultiNode = payload.totalRanks > effectiveRanksPerNode;
+  const nodeIndex = Math.floor(safeRank / effectiveRanksPerNode);
   const isLocalNodeRank = nodeIndex === 0;
-  const localRank = safeRank % mapping.ranksPerNode;
+  const localRank = safeRank % effectiveRanksPerNode;
   const physicalSlotIndex = Math.floor(localRank / mapping.diesPerPhysicalSlot);
   const dieIndexInSlot: 0 | 1 = localRank % mapping.diesPerPhysicalSlot === 1 ? 1 : 0;
 
@@ -1591,8 +1605,8 @@ export function matchDeployPresetModelKey(
   if (/(?:^|[^a-z0-9])qwen3[-_.\s]?8b(?![0-9a-z])/.test(s)) return "qwen3-8b";
 
   if (
-    !/(?:^|[^a-z0-9])(?:qwen\d*|llama\d*|deepseek[-_.\s]?v[24])(?:$|[^a-z0-9])/.test(s) &&
-    /(?:^|[^a-z0-9])deepseek[-_.\s]?(?:v3(?:\.[12])?|r1)(?![0-9a-z])/.test(s)
+    !/(?:^|[^a-z0-9])(?:qwen\d*|llama\d*|deepseek[-_.\s]?(?:v[24]|v3\.2))(?![0-9a-z])/.test(s) &&
+    /(?:^|[^a-z0-9])deepseek[-_.\s]?(?:v3(?:\.1)?|r1)(?![0-9a-z.])/.test(s)
   ) {
     return "deepseek-v3-mla";
   }
@@ -1624,6 +1638,11 @@ export function buildHardwareDeployHrefFromCommand(
   if (parsed.rawDtype !== undefined && !ALLOWED_RAW_DTYPES.has(parsed.rawDtype.toLowerCase())) {
     return null;
   }
+  if (
+    /(?:^|\s)--(?:kv[-_]cache[-_]memory[-_]bytes|num[-_]gpu[-_]blocks[-_]override)(?:\s|=|$)/i.test(rawSource)
+  ) {
+    return null;
+  }
 
   const modelKey = matchDeployPresetModelKey(parsed.model);
   if (!modelKey) return null;
@@ -1653,7 +1672,8 @@ export function buildHardwareDeployHrefFromCommand(
     parsed.dataParallelSizeLocal !== undefined &&
     (parsed.dataParallelSizeLocal < 1 ||
       parsed.dataParallelSizeLocal > dp ||
-      dp % parsed.dataParallelSizeLocal !== 0)
+      dp % parsed.dataParallelSizeLocal !== 0 ||
+      parsed.dataParallelSizeLocal * tp * pp * pcp > CARD_TO_3D_HARDWARE_MAP[cardId].ranksPerNode)
   ) {
     return null;
   }
@@ -1815,6 +1835,7 @@ export function buildHardwareDeployHrefFromCommand(
         weightPrecision,
         kvCacheDtype,
         weightNzMode,
+        ...(parsed.dataParallelSizeLocal !== undefined ? { dpLocal: parsed.dataParallelSizeLocal } : {}),
         pcp,
         dcp,
         ...(ci.maxModelLen !== undefined ? { maxModelLen: ci.maxModelLen } : {}),

@@ -59,7 +59,7 @@ rawSources:
 ---
 ## 用途与配置入口
 
-在多卡[张量并行（TP）](../concepts/tensor-parallel.md)的大批量 Prefill 阶段，每一层线性层输出都要做一次跨卡 BF16 `All-Reduce`。当单次规约张量达到几十 MiB 时，Atlas A2 卡间 HCCS 链路带宽会成为明显瓶颈。
+在多卡[张量并行（TP）](../concepts/tensor-parallel.md)的大批量 Prefill 阶段，每一层行并行（row-parallel）线性层输出（如注意力 `o_proj` 与前馈层 `down_proj`，标准 Transformer 每层共两处规约点）都要做一次跨卡 BF16 `All-Reduce`。当单次规约张量达到几十 MiB 时，Atlas A2 卡间 HCCS 链路带宽会成为明显瓶颈。
 
 `quantized_all_reduce_config` 是 `main` 分支新增的 `--additional-config` 顶层子配置（对应 `QuantizedAllReduceConfig`，默认关闭）。开启后，TP 通信器会在满足门槛的 BF16 张量上改走对称逐最后一维通道（per-last-dim-channel）`int8` 量化规约：先将张量展平为 `[*, C]` 求长度为 `C` 的逐通道全局绝对值上界（一次极小开销的 FP32 `MAX` `All-Reduce` 同步缩放因子），再把主载荷量化成 `int8` 做整数求和并异地反量化回 BF16，使主规约载荷字节数减半：
 

@@ -201,6 +201,7 @@ export interface CouplingCheckInput {
   mambaCacheMode?: string;
   multistreamEngramOverlap?: boolean;
   sharedEngramConfigured?: boolean;
+  sharedEngramInvalidReason?: string;
   sharedEngramBackend?: string;
   sharedEngramEndpoint?: string;
   sharedEngramCapacity?: number;

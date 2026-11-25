@@ -6,6 +6,7 @@ import {
   buildHardwareDeployHrefFromCommand,
   canRestoreDeployModelOnReturn,
   computeEpExpertRange,
+  computeHardwareNodeSlotLayout,
   computePpLayerRange,
   computeRankShardSummary,
   DEPLOY_MODEL_DISPLAY_NAMES,
@@ -493,5 +494,37 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     expect(doctorBack.to).toBe("/tools?tab=doctor");
     expect(doctorBack.label).toBe("返回配置体检台");
     expect(doctorBack.secondary?.to).toContain("/tools?tab=calculator");
+
+    // 6. 拒绝 --kv-cache-memory-bytes 覆盖与 DeepSeek-V3.2 误映射；保留 --data-parallel-size-local 多机布局
+    expect(
+      buildHardwareDeployHrefFromCommand(
+        "vllm serve Qwen/Qwen3-30B-A3B -tp 4 --enable-expert-parallel --kv-cache-memory-bytes 1048576",
+        { hardwareFamily: "A2", version: "v0.30.0" },
+      ),
+    ).toBeNull();
+    expect(
+      buildHardwareDeployHrefFromCommand(
+        "vllm serve deepseek-ai/DeepSeek-V3.2 -tp 8 -pp 4 --enable-expert-parallel",
+        {
+          hardwareFamily: "A3",
+          version: "v0.30.0",
+        },
+      ),
+    ).toBeNull();
+
+    const dpLocalHref = buildHardwareDeployHrefFromCommand(
+      "vllm serve Qwen/Qwen3-30B-A3B -tp 4 --enable-expert-parallel --data-parallel-size 2 --data-parallel-size-local 1",
+      { hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(dpLocalHref).not.toBeNull();
+    const dpLocalDecoded = parseHardwareDeployOverlay(
+      new URLSearchParams(dpLocalHref!.slice("#/hardware?".length)).get("deploy"),
+    );
+    expect(dpLocalDecoded?.calc?.dpLocal).toBe(1);
+    const dpLocalLayout = computeHardwareNodeSlotLayout(dpLocalDecoded!);
+    expect(dpLocalLayout.totalRanks).toBe(8);
+    expect(dpLocalLayout.ranksPerNode).toBe(4);
+    expect(dpLocalLayout.nodeCount).toBe(2);
+    expect(dpLocalLayout.localActiveRanks).toBe(4);
   });
 });

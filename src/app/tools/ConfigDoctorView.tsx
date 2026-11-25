@@ -64,6 +64,9 @@ interface PendingDoctor3dReturn {
   readonly commandText: string;
   readonly hardwareFamily: AscendFamily;
   readonly version: Extract<RuleVersion, "v0.30.0" | "main">;
+  readonly fromVersion?: LegacyUpgradeFromVersion | undefined;
+  readonly crossNodeRoce: boolean;
+  readonly modelHint: ModelHintKey;
 }
 
 let pendingDoctor3dReturnSeq = 0;
@@ -939,13 +942,21 @@ export function ConfigDoctorView({
   const lastConsumedHandoffSeqRef = useRef<number>(0);
   const strictModePendingHandoffRef = useRef<ReturnType<typeof workbenchHandoffStore.consumeDoctor>>(null);
   const strictModePending3dReturnRef = useRef<PendingDoctor3dReturn | null>(null);
+  const initialMount3dActiveRef = useRef<boolean | null>(null);
   const handoffApplyingInCommitRef = useRef<boolean>(false);
   const restoringFromUrlInCommitRef = useRef<boolean>(false);
   handoffApplyingInCommitRef.current = false;
   restoringFromUrlInCommitRef.current = false;
 
   useEffect(() => {
-    if (embedded || !isDoctorRouteActive || hasExplicitDoctorQueryParams(searchParams)) return;
+    if (embedded) return;
+    if (initialMount3dActiveRef.current === null) {
+      initialMount3dActiveRef.current = isDoctorRouteActive;
+    } else if (initialMount3dActiveRef.current !== isDoctorRouteActive) {
+      // Tab switched after initial mount — never replay stale StrictMode 3D return snapshot!
+      strictModePending3dReturnRef.current = null;
+    }
+    if (!isDoctorRouteActive || hasExplicitDoctorQueryParams(searchParams)) return;
     const fresh3d = pendingDoctor3dReturn;
     const ret3d = fresh3d ?? strictModePending3dReturnRef.current;
     if (!ret3d) return;
@@ -958,6 +969,12 @@ export function ConfigDoctorView({
     setTopology("single");
     setHardwareFamily(ret3d.hardwareFamily);
     setVersion(ret3d.version);
+    setFromVersion(ret3d.fromVersion);
+    setCrossNodeRoce(ret3d.crossNodeRoce);
+    setModelHint(ret3d.modelHint);
+    if (ret3d.fromVersion || ret3d.crossNodeRoce || ret3d.modelHint !== "auto") {
+      setSecondaryOptionsOpen(true);
+    }
     setCommandText(ret3d.commandText);
     const matched = matchExactDoctorPresetId({
       topology: "single",
@@ -1335,6 +1352,7 @@ export function ConfigDoctorView({
   };
 
   const handleSingleCommandChange = (nextCommand: string) => {
+    strictModePending3dReturnRef.current = null;
     setCommandText(nextCommand);
     setIsSharedCommandFromUrl(false);
     setShareNotice(null);
@@ -2015,15 +2033,16 @@ export function ConfigDoctorView({
               data-testid="doctor-open-3d-sharding"
               href={doctorHardwareHref}
               onClick={() => {
-                if (!embedded) {
-                  pendingDoctor3dReturnSeq += 1;
-                  pendingDoctor3dReturn = {
-                    seq: pendingDoctor3dReturnSeq,
-                    commandText,
-                    hardwareFamily,
-                    version: effectiveVersion === "main" ? "main" : "v0.30.0",
-                  };
-                }
+                pendingDoctor3dReturnSeq += 1;
+                pendingDoctor3dReturn = {
+                  seq: pendingDoctor3dReturnSeq,
+                  commandText,
+                  hardwareFamily,
+                  version: effectiveVersion === "main" ? "main" : "v0.30.0",
+                  ...(effectiveMode === "full"
+                    ? { fromVersion, crossNodeRoce, modelHint }
+                    : { crossNodeRoce: false, modelHint: "auto" }),
+                };
               }}
             >
               在 3D 整机看权重切分 →

@@ -268,8 +268,16 @@ describe("Wiki-to-Calculator Automated Parity (v0.30.0 Core Concept Pages)", () 
     expect(extractExactInt(tokRow[1]!, q8Kv.bytesPerToken)).toBe(147_456);
     expect(extractExactInt(tokRow[2]!, q30Kv.bytesPerToken)).toBe(98_304);
     expect(extractMetricFloat(tokRow[3]!, /(\d+)\s*KiB\s*\/\s*卡/)).toBe(24);
-    expect(kvPage.body).toContain("TP = 8");
-    expect(kvPage.body).toContain("24 KiB/tok");
+    const tp8ReplicationLine = kvPage.body
+      .split("\n")
+      .find((line) => line.includes("边界与例外") && line.includes("TP = 8"));
+    expect(tp8ReplicationLine).toBeDefined();
+    expect(
+      extractMetricFloat(
+        tp8ReplicationLine!,
+        /`TP = 8`\s*下每卡仍驻留\s*`1`\s*个头（即\s*`(\d+)\s*KiB\/tok`）/,
+      ),
+    ).toBe(24);
 
     // 2. Qwen3-8B BF16 TP=1 on Atlas A2 64 GiB (u=0.92)
     const plan8B = evaluateDeployPlan({

@@ -8,6 +8,7 @@ aliases:
   - stair_config.placement_search_backtrack_limit
   - 摆放搜索回溯上限
   - 带约束 LPT 回溯预算
+  - LPT 专家放置
   - STAIR placement search backtrack limit
 origin: seed
 evidence: C

@@ -577,13 +577,18 @@ function parseDeployParam(raw){
   if(o.cg!==card.gib||typeof o.u!=='number'||!Number.isFinite(o.u)||o.u<0.1||o.u>0.99)return null;
   const okG=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=4096;
   if(!okG(o.w)||!okG(o.kv)||!okG(o.rt))return null;
-  const localRanks=Math.min(o.r,card.ranks);
+  let effRanksPerNode=card.ranks;
+  if(o.dl!==undefined){
+   if(!Number.isInteger(o.dl)||o.dl<1||o.dl>o.dp||o.dp%o.dl!==0||o.dl*o.tp*o.pp*pcp>card.ranks)return null;
+   effRanksPerNode=o.dl*o.tp*o.pp*pcp;
+  }
+  const localRanks=Math.min(o.r,effRanksPerNode);
   return {
    modelKey:o.m,modelName:mName,cardId:o.c,targetModel:card.model,
-   physicalSlots:card.slots,diesPerSlot:card.dies,ranksPerNode:card.ranks,
+   physicalSlots:card.slots,diesPerSlot:card.dies,ranksPerNode:effRanksPerNode,
    partPrefix:card.prefix,dieWord:card.dieWord,displaced:card.displaced,
    tp:o.tp,pp:o.pp,dp:o.dp,pcp,dcp,ep:Boolean(o.ep),
-   totalRanks:o.r,localRanks,nodeCount:Math.max(1,Math.ceil(o.r/card.ranks)),
+   totalRanks:o.r,localRanks,nodeCount:Math.max(1,Math.ceil(o.r/effRanksPerNode)),
    activePhysicalSlots:Math.ceil(localRanks/card.dies),
    cardGiB:card.gib,u:o.u,weightGiB:o.w,kvGiB:o.kv,runtimeGiB:o.rt,oomStatus:o.oom,
    headroomOverflow:Boolean(o.ho),

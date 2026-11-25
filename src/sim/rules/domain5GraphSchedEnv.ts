@@ -1268,6 +1268,9 @@ export const domain5Rules: readonly CouplingRule[] = [
       if (!isVersionSupported(this, version)) return null;
       if (!input.sharedEngramConfigured) return null;
       const errors: string[] = [];
+      if (input.sharedEngramInvalidReason) {
+        errors.push(input.sharedEngramInvalidReason);
+      }
       const tp = Math.max(1, input.tpSize ?? 1);
       const pp = Math.max(1, input.ppSize ?? 1);
       const dcp = Math.max(1, input.dcpSize ?? 1);

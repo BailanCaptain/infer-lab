@@ -242,7 +242,7 @@ describe("CompiledHastView direct HAST renderer", () => {
     });
   });
 
-  it("活代码块单命令门禁：普通围栏渲染复制按钮；仅唯一合法 vllm serve 围栏暴露「送去体检」，严格拒绝多命令与 <model> 占位符", () => {
+  it("活代码块单命令门禁：普通围栏渲染复制按钮；仅唯一合法 vllm serve 围栏暴露「送去体检」，严格拒绝多命令与 <model> 占位符", async () => {
     const singleServeCmd = [
       "# 单机四卡启动 Qwen3-30B-A3B",
       "export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3",
@@ -383,5 +383,24 @@ describe("CompiledHastView direct HAST renderer", () => {
     expect(html.match(/data-testid="wiki-code-3d-btn"/g)?.length).toBe(1);
     // Calc fence untouched
     expect(html).toContain('class="wiki-calc"');
+
+    // main-only param examples infer version="main" and IPv6 addresses are redacted in share links
+    const { inferFenceRuleVersion } = await import("./CompiledHastView");
+    const { sanitizeDiagnosticText } = await import("../tools/workbenchHandoff");
+    expect(
+      inferFenceRuleVersion(
+        'vllm serve /models/Qwen3-32B -tp 8 --additional-config \'{"quantized_all_reduce_config":{"enable":true}}\'',
+        "quantized-all-reduce-config-3cc69e492011",
+      ),
+    ).toBe("main");
+    const ipv6Check = sanitizeDiagnosticText(
+      "2026-11-26 10:12:35 c10::Error::Error --host 2001:db8::1 --endpoint [fe80::1]:29661",
+    );
+    expect(ipv6Check.sanitized).toContain("10:12:35");
+    expect(ipv6Check.sanitized).toContain("c10::Error::Error");
+    expect(ipv6Check.sanitized).not.toContain("2001:db8::1");
+    expect(ipv6Check.sanitized).not.toContain("fe80::1");
+    expect(ipv6Check.sanitized).toContain("<REDACTED_IP>");
+    expect(ipv6Check.sanitized).toContain("[<REDACTED_IP>]:29661");
   });
 });

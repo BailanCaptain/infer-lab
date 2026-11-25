@@ -1,0 +1,407 @@
+{
+  "id": "ws6-engineering-retrieval-v1",
+  "description": "62 real Ascend / vLLM engineering retrieval & negative-control cases evaluated against the live 193-page registry.json",
+  "cases": [
+    {
+      "id": "err-507015-bare",
+      "category": "error-trace",
+      "query": "507015",
+      "expectedAnyTop3": ["inference-troubleshooting", "acl-graph"]
+    },
+    {
+      "id": "err-507015-stream-sync",
+      "category": "error-trace",
+      "query": "RuntimeError: AclrtSynchronizeStreamWithTimeout, error code is 507015",
+      "expectedAnyTop3": ["inference-troubleshooting", "acl-graph", "cann-hccl"]
+    },
+    {
+      "id": "err-507034",
+      "category": "error-trace",
+      "query": "507034",
+      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl"]
+    },
+    {
+      "id": "err-507035",
+      "category": "error-trace",
+      "query": "507035",
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core"]
+    },
+    {
+      "id": "err-ei0006-exact",
+      "category": "exact-concept",
+      "query": "EI0006",
+      "expectedTop1": "inference-troubleshooting",
+      "expectedAnyTop3": ["inference-troubleshooting"]
+    },
+    {
+      "id": "err-ei0006-notify",
+      "category": "error-trace",
+      "query": "EI0006 Notify wait execute timeout",
+      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl"]
+    },
+    {
+      "id": "err-161002",
+      "category": "error-trace",
+      "query": "161002",
+      "expectedAnyTop3": ["ops-and-kernels", "inference-troubleshooting"]
+    },
+    {
+      "id": "err-107030",
+      "category": "error-trace",
+      "query": "107030",
+      "expectedAnyTop3": ["device-memory", "inference-troubleshooting"]
+    },
+    {
+      "id": "err-zmq-addr-in-use",
+      "category": "error-trace",
+      "query": "ZMQError: Address already in use",
+      "expectedAnyTop3": ["pd-disaggregation", "cluster-serving"]
+    },
+    {
+      "id": "err-megamoe-not-impl",
+      "category": "error-trace",
+      "query": "NotImplementedError MegaMoE",
+      "expectedAnyTop3": ["moe-comm-dispatch", "megamoe-shared-expert-fusion-5a99901d47e6"]
+    },
+    {
+      "id": "err-capture-model-oom-short",
+      "category": "error-trace",
+      "query": "capture_model OOM",
+      "expectedAnyTop3": ["inference-troubleshooting", "kv-cache-memory-profiling", "acl-graph"]
+    },
+    {
+      "id": "err-capture-model-oom-trace",
+      "category": "error-trace",
+      "query": "RuntimeError: NPU out of memory during capture_model",
+      "expectedAnyTop3": [
+        "acl-graph",
+        "inference-troubleshooting",
+        "npu-worker-lifecycle",
+        "kv-cache-memory-profiling"
+      ]
+    },
+    {
+      "id": "err-rfork-404",
+      "category": "error-trace",
+      "query": "RFork 404",
+      "expectedAnyTop3": ["rfork-troubleshooting", "rfork-lifecycle", "rfork"]
+    },
+    {
+      "id": "err-rfork-400-ttl",
+      "category": "error-trace",
+      "query": "RFork 400 TTL",
+      "expectedAnyTop3": ["rfork-troubleshooting", "rfork", "rfork-lifecycle"]
+    },
+    {
+      "id": "err-rfork-dirty-chunk",
+      "category": "error-trace",
+      "query": "RFork dirty chunk",
+      "expectedAnyTop3": ["rfork", "rfork-transfer", "rfork-troubleshooting"]
+    },
+    {
+      "id": "err-rfork-transfer-chunk",
+      "category": "error-trace",
+      "query": "Failed to transfer weights chunk",
+      "expectedAnyTop3": ["rfork-transfer", "rfork-troubleshooting", "rfork"]
+    },
+
+    {
+      "id": "param-shared-engram",
+      "category": "exact-param",
+      "query": "shared_engram",
+      "expectedTop1": "shared-engram-31bf0d820403",
+      "expectedAnyTop3": ["shared-engram-31bf0d820403", "engram-conditional-memory"]
+    },
+    {
+      "id": "param-quantized-allreduce",
+      "category": "exact-param",
+      "query": "quantized_all_reduce_config",
+      "expectedTop1": "quantized-all-reduce-config-3cc69e492011",
+      "expectedAnyTop3": ["quantized-all-reduce-config-3cc69e492011"]
+    },
+    {
+      "id": "param-multistream-engram",
+      "category": "exact-param",
+      "query": "multistream_engram_overlap",
+      "expectedTop1": "multistream-engram-overlap-29113aa3f8fc",
+      "expectedAnyTop3": ["multistream-engram-overlap-29113aa3f8fc"]
+    },
+    {
+      "id": "param-kv-pool-range-debug",
+      "category": "exact-param",
+      "query": "kv_pool_range_debug",
+      "expectedTop1": "kv-pool-range-debug-83e8b165addd",
+      "expectedAnyTop3": ["kv-pool-range-debug-83e8b165addd"]
+    },
+    {
+      "id": "param-runtime-config",
+      "category": "exact-param",
+      "query": "runtime_config",
+      "expectedTop1": "runtime-config-abb228bbf148",
+      "expectedAnyTop3": ["runtime-config-abb228bbf148", "inference-correctness-troubleshooting"]
+    },
+    {
+      "id": "param-runtime-config-hot-reload",
+      "category": "exact-param",
+      "query": "runtime_config_hot_reload",
+      "expectedTop1": "runtime-config-hot-reload-9c9ab794933a",
+      "expectedAnyTop3": ["runtime-config-hot-reload-9c9ab794933a"]
+    },
+    {
+      "id": "param-megamoe-shared-expert",
+      "category": "exact-param",
+      "query": "megamoe_shared_expert_fusion",
+      "expectedTop1": "megamoe-shared-expert-fusion-5a99901d47e6",
+      "expectedAnyTop3": ["megamoe-shared-expert-fusion-5a99901d47e6"]
+    },
+    {
+      "id": "param-gdn-prefill-checkpoints",
+      "category": "exact-param",
+      "query": "gdn_internal_prefill_checkpoints",
+      "expectedTop1": "gdn-internal-prefill-checkpoints-50f5ac80d583",
+      "expectedAnyTop3": ["gdn-internal-prefill-checkpoints-50f5ac80d583"]
+    },
+    {
+      "id": "param-enable-fused-mc2-3",
+      "category": "exact-param",
+      "query": "enable_fused_mc2=3",
+      "expectedTop1": "megamoe-shared-expert-fusion-5a99901d47e6",
+      "expectedAnyTop3": ["megamoe-shared-expert-fusion-5a99901d47e6", "moe-comm-dispatch"]
+    },
+    {
+      "id": "param-sfa-dcp-tmajor",
+      "category": "exact-param",
+      "query": "sfa_dcp_force_tmajor_restore",
+      "expectedTop1": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "expectedAnyTop3": ["sfa-dcp-force-tmajor-restore-6d9c266d3ece"]
+    },
+    {
+      "id": "param-weight-prefetch",
+      "category": "exact-param",
+      "query": "weight_prefetch_config",
+      "expectedTop1": "weight-prefetch-config",
+      "expectedAnyTop3": ["weight-prefetch-config"]
+    },
+    {
+      "id": "param-ascend-store-connector",
+      "category": "exact-concept",
+      "query": "AscendStoreConnector",
+      "expectedTop1": "kv-pool",
+      "expectedAnyTop3": ["kv-pool"]
+    },
+    {
+      "id": "param-c8-reshape-optim",
+      "category": "exact-param",
+      "query": "c8_enable_reshape_optim",
+      "expectedTop1": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "expectedAnyTop3": ["c8-enable-reshape-optim-8bd7e5f82c6c"]
+    },
+    {
+      "id": "param-enable-super-kernel",
+      "category": "exact-param",
+      "query": "enable_super_kernel",
+      "expectedTop1": "enable-super-kernel-ce990e186bfa",
+      "expectedAnyTop3": ["enable-super-kernel-ce990e186bfa"]
+    },
+    {
+      "id": "param-combine-quant-mode",
+      "category": "exact-param",
+      "query": "combine_quant_mode",
+      "expectedTop1": "combine-quant-mode-2a3f7cd47997",
+      "expectedAnyTop3": ["combine-quant-mode-2a3f7cd47997"]
+    },
+    {
+      "id": "param-use-layerwise",
+      "category": "exact-param",
+      "query": "use_layerwise",
+      "expectedTop1": "use-layerwise-b475778cd352",
+      "expectedAnyTop3": ["use-layerwise-b475778cd352"]
+    },
+    {
+      "id": "param-hccl-buffsize",
+      "category": "exact-concept",
+      "query": "HCCL_BUFFSIZE",
+      "expectedTop1": "hccl-buffer",
+      "expectedAnyTop3": ["hccl-buffer"]
+    },
+    {
+      "id": "concept-paged-attention",
+      "category": "exact-concept",
+      "query": "PagedAttention",
+      "expectedTop1": "paged-attention",
+      "expectedAnyTop3": ["paged-attention"]
+    },
+    {
+      "id": "concept-chunked-prefill",
+      "category": "exact-concept",
+      "query": "Chunked Prefill",
+      "expectedTop1": "chunked-prefill",
+      "expectedAnyTop3": ["chunked-prefill"]
+    },
+    {
+      "id": "concept-prefix-caching",
+      "category": "exact-concept",
+      "query": "Prefix Caching",
+      "expectedTop1": "prefix-caching",
+      "expectedAnyTop3": ["prefix-caching"]
+    },
+
+    {
+      "id": "arch-qwen3-30b-moe-router",
+      "category": "arch-deploy",
+      "query": "Qwen3-30B-A3B MoE router",
+      "expectedAnyTop3": ["moe", "expert-parallel"]
+    },
+    {
+      "id": "arch-qwen3-235b-a22b",
+      "category": "arch-deploy",
+      "query": "Qwen3-235B-A22B",
+      "expectedAnyTop3": ["rfork-official-guide", "quantization-methods", "prefetch-ratio"]
+    },
+    {
+      "id": "arch-mla-ckv-kr",
+      "category": "arch-deploy",
+      "query": "MLA c_KV k_R",
+      "expectedAnyTop3": ["mla"]
+    },
+    {
+      "id": "arch-gqa-kv-sharing",
+      "category": "arch-deploy",
+      "query": "GQA KV head sharing",
+      "expectedAnyTop3": ["gqa"]
+    },
+    {
+      "id": "arch-roofline-m200",
+      "category": "arch-deploy",
+      "query": "Roofline ridge M=200",
+      "expectedAnyTop3": ["roofline-and-metrics"]
+    },
+    {
+      "id": "arch-w8a8-m228",
+      "category": "arch-deploy",
+      "query": "W8A8 M=228",
+      "expectedAnyTop3": ["quantization", "roofline-and-metrics"]
+    },
+    {
+      "id": "arch-v030-migration",
+      "category": "arch-deploy",
+      "query": "v0.30.0 migration checklist",
+      "expectedAnyTop3": ["v030-release-baseline"]
+    },
+    {
+      "id": "arch-mooncake-pd",
+      "category": "arch-deploy",
+      "query": "Mooncake P/D connector",
+      "expectedAnyTop3": ["mooncake-connector", "pd-disaggregation"]
+    },
+    {
+      "id": "arch-eplb-rebalance",
+      "category": "arch-deploy",
+      "query": "EPLB rebalance",
+      "expectedAnyTop3": ["eplb"]
+    },
+    {
+      "id": "arch-spec-decoding",
+      "category": "arch-deploy",
+      "query": "SpecDecoding",
+      "expectedAnyTop3": ["speculative-decoding", "prepare-inputs-flow"]
+    },
+    {
+      "id": "arch-ipc-weight-transfer",
+      "category": "arch-deploy",
+      "query": "IPC 权重传输",
+      "expectedAnyTop3": ["vllm-ascend-for-rl", "rfork"]
+    },
+    {
+      "id": "arch-lpt-expert-placement",
+      "category": "arch-deploy",
+      "query": "LPT 专家放置",
+      "expectedAnyTop3": ["eplb", "placement-search-backtrack-limit-82b03cef98b0"]
+    },
+    {
+      "id": "arch-lpt-batch-job",
+      "category": "arch-deploy",
+      "query": "LPT 批作业调度",
+      "expectedAnyTop3": ["batch-job-aware-scheduler"]
+    },
+    {
+      "id": "arch-hccl-timeout-principle",
+      "category": "arch-deploy",
+      "query": "HCCL 超时原理",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "arch-910b3-measured",
+      "category": "arch-deploy",
+      "query": "Ascend 910B3 真机实测",
+      "expectedAnyTop3": ["ascend-910b3-measured-baseline"]
+    },
+    {
+      "id": "arch-aclgraph-full-decode",
+      "category": "arch-deploy",
+      "query": "ACLGraph FULL_DECODE_ONLY",
+      "expectedAnyTop3": ["acl-graph", "graph-mode-layer"]
+    },
+    {
+      "id": "arch-mrv2-buffers",
+      "category": "arch-deploy",
+      "query": "Model Runner V2 常驻设备缓冲",
+      "expectedAnyTop3": ["model-runner-v2"]
+    },
+    {
+      "id": "arch-msprobe-align",
+      "category": "arch-deploy",
+      "query": "msprobe 逐层精度对齐",
+      "expectedAnyTop3": ["msprobe-accuracy-debug", "inference-correctness-troubleshooting"]
+    },
+    {
+      "id": "arch-950-stars-ub",
+      "category": "arch-deploy",
+      "query": "Ascend 950 STARS UnifiedBus",
+      "expectedAnyTop3": ["ascend-950-execution-interconnect", "ascend-950-architecture"]
+    },
+    {
+      "id": "arch-310p-fractal-nz",
+      "category": "arch-deploy",
+      "query": "310P float16 FRACTAL_NZ",
+      "expectedAnyTop3": ["tensor-layout", "hardware-devices", "quantization"]
+    },
+
+    {
+      "id": "neg-unseen-param-999",
+      "category": "negative",
+      "query": "UnseenHallucinatedParam_999",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-quantum-kernel-404",
+      "category": "negative",
+      "query": "NonExistentQuantumAttentionKernel_404",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-fake-error-code",
+      "category": "negative",
+      "query": "FakeAscendErrorCode_999888777",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-imaginary-cli-flag",
+      "category": "negative",
+      "query": "--imaginary-hyperdrive-flag-xyz",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-warp-connector",
+      "category": "negative",
+      "query": "HallucinatedWarpDriveConnectorV9",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-irrelevant-recipe",
+      "category": "negative",
+      "query": "红烧狮子头八角桂皮炖煮火候",
+      "expectEmpty": true
+    }
+  ]
+}

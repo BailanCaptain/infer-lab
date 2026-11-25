@@ -2,8 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
-const EVIDENCE_DIR =
-  "C:/Users/-/.gemini/antigravity/brain/a61d2784-a8f8-4e8c-a1e1-14b600b1d2b5/browser_evidence/wave3";
+const EVIDENCE_DIR = join(process.cwd(), "test-results", "evidence", "wave3");
 mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 function attachErrorCollector(page: Page): string[] {
@@ -164,10 +163,20 @@ test("3. /#/tools?tab=calculator Mode A、Wave-4 异构架构解锁（MLA/KDA/CS
   // Mode A: Qwen3-30B-A3B + w8a8_dynamic + TP=4 + EP
   await calc.getByRole("button", { name: "Qwen3-30B-A3B" }).click();
   await calc.getByLabel("权重精度").selectOption("w8a8_dynamic");
+  const advDetails = calc.getByTestId("calc-advanced-controls");
+  if ((await advDetails.getAttribute("open")) === null) {
+    await advDetails.locator("summary").click();
+  }
   const epCheckbox = calc.getByLabel("开启专家并行 EP");
   if (!(await epCheckbox.isChecked())) {
     await epCheckbox.check();
   }
+
+  // Decluttered engineering drawer defaults to collapsed; expand to inspect 7 stages, HCCL box & Roofline
+  const engDetails = calc.getByTestId("calc-engineering-details");
+  await expect(engDetails).not.toHaveAttribute("open", "");
+  await calc.getByTestId("calc-engineering-summary").click();
+  await expect(engDetails).toHaveAttribute("open", "");
 
   // Stage 3 ~ 7.40 GiB & Stage 5 HCCL non-double-count
   await expect(calc.locator(".wt-calc-stages")).toContainText(/7\.\d{2}\s*GiB/);
@@ -191,7 +200,7 @@ test("3. /#/tools?tab=calculator Mode A、Wave-4 异构架构解锁（MLA/KDA/CS
   await calc.getByTestId("wave4-demo-deepseek-v3-mla").click();
   const wave4Banner = calc.getByTestId("wave4-arch-active");
   await expect(wave4Banner).toBeVisible();
-  await expect(wave4Banner).toContainText("Wave 4 异构注意力/记忆账本已激活");
+  await expect(wave4Banner).toContainText("异构架构专属账本已激活");
   await expect(wave4Banner).toContainText("MLA");
   await expect(wave4Banner).toContainText("1152 B/tok/层");
   await expect(calc.getByTestId("wave3-arch-intercept")).toHaveCount(0);
@@ -255,6 +264,13 @@ test("4. /#/tools?tab=doctor P/D 双实例联检、健康基线与问答助手�
   const doctor = page.getByTestId("config-doctor-view");
   await expect(doctor).toBeVisible();
   await expect(doctor).toHaveAttribute("data-mode", "full");
+
+  // Secondary options drawer defaults to collapsed and toggles cleanly
+  const secOptions = doctor.getByTestId("doctor-secondary-options");
+  await expect(secOptions).not.toHaveAttribute("open", "");
+  await doctor.getByTestId("doctor-secondary-summary").click();
+  await expect(secOptions).toHaveAttribute("open", "");
+  await doctor.getByTestId("doctor-secondary-summary").click();
 
   // Switch to P/D dual-instance mode and select pitfall preset
   await doctor.getByTestId("doctor-topology-pd").click();

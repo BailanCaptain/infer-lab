@@ -50,6 +50,8 @@ if (useDrafts) {
 }
 
 const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
+const allowUnclonedRepos =
+  process.argv.includes("--allow-uncloned") || process.env.CI === "true" || process.env.CI === "1";
 
 const deps = {
   repoRoots,
@@ -57,6 +59,7 @@ const deps = {
   diagrams,
   readRaw: (id: string, paths?: string[]): string => readPageRaw(wikiRoot, id, paths),
   readSnapshot: (path: string): string => readRawSnapshot(wikiRoot, path),
+  allowUnclonedRepos,
 };
 
 warmPageSources(pages, repoRoots, diagrams);
@@ -77,7 +80,9 @@ const standardByFile = new Map(standard.enforced.map((e) => [e.file, e]));
 for (const page of pages) {
   const audits = auditPage(page, deps);
   all.push(...audits);
-  const bad = audits.filter((a) => a.verdict !== "ok" && a.verdict !== "url");
+  const bad = audits.filter(
+    (a) => a.verdict !== "ok" && a.verdict !== "url" && a.verdict !== "uncloned-repo",
+  );
   const h2 = (page.body.match(/^## /gm) ?? []).length;
   console.log(
     `\n${page.file}  ${page.fm.title}  evidence=${page.fm.evidence}  章节=${page.fm.chapters.join(",") || "无"}  正文 ${page.body.length} 字 / ${h2} 节  来源 ${audits.length} 条${bad.length ? `  ✗ ${bad.length} 条有问题` : ""}`,
@@ -86,7 +91,7 @@ for (const page of pages) {
   const std = standardByFile.get(page.file);
   if (std) console.log(`  写作标准 ${formatStandard(std.measure, standardConfig, std.skip)}`);
   for (const a of audits) {
-    const mark = a.verdict === "ok" ? "✓" : a.verdict === "url" ? "·" : "✗";
+    const mark = a.verdict === "ok" ? "✓" : a.verdict === "url" || a.verdict === "uncloned-repo" ? "·" : "✗";
     const note = a.verdict === "ok" ? `文件 ${a.totalLines} 行` : a.verdict;
     console.log(
       `  ${mark} ${a.ref}  (${note})${a.inRaw ? "" : "  [raw 未定位同版本完整引用，摘录尚未验证]"}`,
@@ -97,7 +102,7 @@ for (const page of pages) {
 const s = summarize(all);
 console.log(`\n审计 ${pages.length} 页，来源 ${all.length} 条`);
 console.log(
-  `  行号有效 ${s.ok}，URL 未联网验证 ${s.url}，无效 commit ${s["invalid-commit"]}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 引用待核对 ${s.notInRaw}`,
+  `  行号有效 ${s.ok}，URL 未联网验证 ${s.url}${s["uncloned-repo"] ? `，未克隆仓库跳过 ${s["uncloned-repo"]}` : ""}，无效 commit ${s["invalid-commit"]}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 引用待核对 ${s.notInRaw}`,
 );
 const standardSummary = formatStandardAuditSummary(standard);
 console.log(standardSummary.summaryLine);

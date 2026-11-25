@@ -2,8 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
-const EVIDENCE_DIR =
-  "C:/Users/-/.gemini/antigravity/brain/a61d2784-a8f8-4e8c-a1e1-14b600b1d2b5/browser_evidence/wave4a";
+const EVIDENCE_DIR = join(process.cwd(), "test-results", "evidence", "wave4a");
 mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 function attachErrorCollector(page: Page): string[] {
@@ -236,7 +235,12 @@ test("4. /#/tools?tab=troubleshoot Panel A 首错判定 + /metrics + 问答联�
   await expect(verdict).toBeVisible();
   await expect(verdict).toContainText("Rank 3");
   await expect(verdict).toContainText("置信度: 高");
-  await expect(verdict).toContainText(/Rank\s*0|0、1、2|0,\s*1,\s*2/);
+  await expect(verdict).toContainText(/Rank\s*0|0\s*\/\s*1\s*\/\s*2|0、1、2|0,\s*1,\s*2/);
+  const collateralDetails = verdict.getByTestId("troubleshoot-collateral-details");
+  await expect(collateralDetails).not.toHaveAttribute("open", "");
+  await verdict.getByTestId("troubleshoot-collateral-summary").click();
+  await expect(collateralDetails).toHaveAttribute("open", "");
+  await expect(collateralDetails).toContainText("EI0006");
 
   // Switch to /metrics KV preemption storm preset -> verify metrics snapshot cards parse.
   await view.getByTestId("troubleshoot-fixture-metrics-kv-preemption").click();

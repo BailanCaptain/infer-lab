@@ -2,8 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
-const EVIDENCE_DIR =
-  "C:/Users/-/.gemini/antigravity/brain/a61d2784-a8f8-4e8c-a1e1-14b600b1d2b5/browser_evidence/wave4c";
+const EVIDENCE_DIR = join(process.cwd(), "test-results", "evidence", "wave4c");
 mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 function attachErrorCollector(page: Page): string[] {

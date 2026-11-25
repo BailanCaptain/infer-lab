@@ -22,7 +22,7 @@ export type DeployOverlayModelKey =
   | "custom-mla"
   | "custom-kda";
 
-export type DeployOverlayOomStatus = KvOomStatus | "headroom_overflow";
+export type DeployOverlayOomStatus = KvOomStatus | "headroom_overflow" | "headroom_risk";
 
 export type Ascend3dHardwareModelId = "atlas-800t-a2" | "atlas-800i-a3" | "atlas-800-3000" | "ascend-950dt";
 
@@ -166,6 +166,7 @@ const ALLOWED_OOM_STATUSES = new Set<DeployOverlayOomStatus>([
   "weights_plus_activation_exceed_budget",
   "non_kv_exceeds_budget",
   "headroom_overflow",
+  "headroom_risk",
 ]);
 
 const ALLOWED_PARALLEL_SIZES = new Set<number>([1, 2, 4, 8]);
@@ -220,6 +221,7 @@ export interface HardwareDeployOverlayPayload {
   readonly runtimeGiB: number;
   readonly oomStatus: DeployOverlayOomStatus;
   readonly headroomOverflow?: boolean | undefined;
+  readonly headroomRisk?: boolean | undefined;
   readonly calc?: HardwareDeployCalculatorRoundTrip | undefined;
 }
 
@@ -278,6 +280,7 @@ export function encodeHardwareDeployOverlay(payload: HardwareDeployOverlayPayloa
     rt: roundGiB(payload.runtimeGiB),
     oom: payload.oomStatus,
     ...(payload.headroomOverflow ? { ho: 1 } : {}),
+    ...(payload.headroomRisk ? { hr: 1 } : {}),
   };
   if (c) {
     if (c.subMode === "reconcile") wire.sm = "reconcile";
@@ -376,6 +379,12 @@ export function parseHardwareDeployOverlay(
     headroomOverflow = Boolean(obj.ho);
   }
 
+  let headroomRisk = oomStatus === "headroom_risk";
+  if (obj.hr !== undefined) {
+    if (obj.hr !== 0 && obj.hr !== 1 && typeof obj.hr !== "boolean") return null;
+    headroomRisk = Boolean(obj.hr);
+  }
+
   const calc: Record<string, unknown> = {};
   if (pcp !== 1) calc.pcp = pcp;
   if (dcp !== 1) calc.dcp = dcp;
@@ -453,6 +462,7 @@ export function parseHardwareDeployOverlay(
     runtimeGiB,
     oomStatus,
     ...(headroomOverflow ? { headroomOverflow: true } : {}),
+    ...(headroomRisk ? { headroomRisk: true } : {}),
     ...(Object.keys(calc).length > 0 ? { calc: calc as HardwareDeployCalculatorRoundTrip } : {}),
   };
 }

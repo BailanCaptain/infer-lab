@@ -1785,9 +1785,9 @@
     },
     {
       "path": "whole/viewer.js",
-      "bytes": 83527,
+      "bytes": 84322,
       "sourceSha256": "0d42479a8c5585f7cc2b9032bd7305257f053e6ac70e293f77216a4c8e758fff",
-      "sha256": "e51d8762239df65fbd1bf956443eb2c703b45540929812a1e0d71bf3592ac68d"
+      "sha256": "ea0feaadd7edd0f845c85b6ad55bac896ca4d6a858a17f6c0acb0504a0872465"
     }
   ]
 }

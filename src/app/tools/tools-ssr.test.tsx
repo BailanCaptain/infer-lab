@@ -711,5 +711,35 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
         expect(resolved.isLegacyBaseline).toBe(false);
       }
     }
+
+    // 6. Wave 1 P1-1: DeployCalculator 3D hardware link preserves headroomStatus === "risk" instead of flattening to "fits"
+    const { parseHardwareDeployOverlay } = await import("../model/hardwareDeployOverlay");
+    const riskHtml = await renderUrl(
+      "http://localhost/tools?tab=calculator&preset=qwen3-8b&card=a2-64g&tp=1&precision=bf16&maxLen=8192&cudagraph=FULL_AND_PIECEWISE&u=0.95",
+    );
+    const hwHrefMatch =
+      /data-testid="calc-open-3d-hardware"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*data-testid="calc-open-3d-hardware"/.exec(
+        riskHtml,
+      );
+    const rawHwHref = (hwHrefMatch?.[1] ?? hwHrefMatch?.[2] ?? "").replaceAll("&amp;", "&");
+    expect(rawHwHref.startsWith("#/hardware?")).toBe(true);
+    const hwQuery = new URLSearchParams(rawHwHref.slice("#/hardware?".length));
+    const riskOverlay = parseHardwareDeployOverlay(hwQuery.get("deploy"));
+    expect(riskOverlay).not.toBeNull();
+    expect(riskOverlay?.oomStatus).toBe("headroom_risk");
+    expect(riskOverlay?.headroomRisk).toBe(true);
+
+    // 7. Wave 1 Engram conflict UI: v0.30.0 + MRV2 + DP=2 + cpu_offload=false renders conflict warning rather than claiming 0 B HBM
+    const { WAVE4_DEMO_PRESETS } = await import("../../sim/modelspec/deployCalculator");
+    const engramNoOffloadJson = JSON.stringify({
+      ...WAVE4_DEMO_PRESETS.find((d) => d.id === "engram-conditional")?.config,
+      engram_cpu_offload: false,
+      engram_dp_shared_memory: false,
+    });
+    const engramConflictHtml = await renderUrl(
+      `http://localhost/tools?tab=calculator&version=v0.30.0&tp=2&dp=2&v2=1&customModel=${encodeURIComponent(engramNoOffloadJson)}`,
+    );
+    expect(engramConflictHtml).toContain("配置校验冲突");
+    expect(engramConflictHtml).not.toContain("单卡 NPU 权重 HBM 占用 <strong>0 B</strong>");
   });
 });

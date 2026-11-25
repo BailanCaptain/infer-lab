@@ -389,7 +389,8 @@ const DEPLOY_OOM_LABELS={
  weights_exceed_budget:'权重超出可用预算',
  weights_plus_activation_exceed_budget:'权重+激活超出预算',
  non_kv_exceeds_budget:'非 KV 固定项超预算',
- headroom_overflow:'录图穿透 1−u 裕度'
+ headroom_overflow:'录图穿透 1−u 裕度',
+ headroom_risk:'录图逼近 1−u 余量风险'
 };
 function parseDeployParam(raw){
  if(!raw||raw.length>1024||!/^[A-Za-z0-9_-]+$/.test(raw)||raw.length%4===1)return null;
@@ -420,7 +421,8 @@ function parseDeployParam(raw){
    totalRanks:o.r,localRanks,nodeCount:Math.max(1,Math.ceil(o.r/card.ranks)),
    activePhysicalSlots:Math.ceil(localRanks/card.dies),
    cardGiB:card.gib,u:o.u,weightGiB:o.w,kvGiB:o.kv,runtimeGiB:o.rt,oomStatus:o.oom,
-   headroomOverflow:Boolean(o.ho)
+   headroomOverflow:Boolean(o.ho),
+   headroomRisk:Boolean(o.hr)||o.oom==='headroom_risk'
   };
  }catch{return null;}
 }
@@ -984,11 +986,12 @@ function buildDeployOverlay(){
  const labelsHost=$('#deploy-label-tags')||$('#deploy-labels'),linesSvg=$('#deploy-label-lines');
  const C=deployPlan.cardGiB,u=deployPlan.u,budgetGiB=u*C;
  const usedGiB=deployPlan.weightGiB+deployPlan.kvGiB+deployPlan.runtimeGiB;
- const physOverflow=usedGiB>C+.005;
+ const explicitHeadroomRisk=(deployPlan.oomStatus==='headroom_risk'||Boolean(deployPlan.headroomRisk))&&!deployPlan.headroomOverflow&&deployPlan.oomStatus!=='headroom_overflow';
+ const physOverflow=!explicitHeadroomRisk&&usedGiB>C+.005;
  const hardBudgetOom=['weights_exceed_budget','weights_plus_activation_exceed_budget','non_kv_exceeds_budget','headroom_overflow'].includes(deployPlan.oomStatus);
  const budgetOverflow=!physOverflow&&(hardBudgetOom||Boolean(deployPlan.headroomOverflow)||deployPlan.weightGiB+deployPlan.kvGiB>budgetGiB+.02);
  const isOom=physOverflow||budgetOverflow;
- const isWarn=!isOom&&deployPlan.oomStatus!=='fits';
+ const isWarn=!isOom&&(deployPlan.oomStatus!=='fits'||explicitHeadroomRisk);
  const innerGroup=deployPlan.tp*deployPlan.pcp,repStride=innerGroup*deployPlan.pp;
  for(let slot=0;slot<deployPlan.physicalSlots;slot++){
   const entryItem=npuParts[slot];
@@ -1262,10 +1265,12 @@ function updateDeployBanner(){
  if(deployPlan.ep)topoParts.push('EP=开');
  const used=deployPlan.weightGiB+deployPlan.kvGiB+deployPlan.runtimeGiB;
  const headroom=Math.max(0,deployPlan.cardGiB-used);
- const physOver=used>deployPlan.cardGiB+.005;
+ const explicitHeadroomRisk=(deployPlan.oomStatus==='headroom_risk'||Boolean(deployPlan.headroomRisk))&&!deployPlan.headroomOverflow&&deployPlan.oomStatus!=='headroom_overflow';
+ const physOver=!explicitHeadroomRisk&&used>deployPlan.cardGiB+.005;
  const hardBudgetOom=['weights_exceed_budget','weights_plus_activation_exceed_budget','non_kv_exceeds_budget','headroom_overflow'].includes(deployPlan.oomStatus);
  const isOom=physOver||hardBudgetOom||Boolean(deployPlan.headroomOverflow)||deployPlan.weightGiB+deployPlan.kvGiB>deployPlan.u*deployPlan.cardGiB+.02;
  const hasAdmissionOrTightWarn=['insufficient_for_single_max_len_seq','tight_budget_oom_risk'].includes(deployPlan.oomStatus);
+ const hasHeadroomRisk=!isOom&&explicitHeadroomRisk;
  const head=document.createElement('div');head.className='deploy-banner-head';
  const title=document.createElement('div');title.className='deploy-banner-title';
  const pModel=document.createElement('span');pModel.className='deploy-pill';pModel.textContent=`${deployPlan.modelName} · ${topoParts.join(' · ')}`;
@@ -1289,6 +1294,11 @@ function updateDeployBanner(){
   const pWarn=document.createElement('span');pWarn.className='deploy-pill is-multinode';
   pWarn.textContent=`容量/准入告警：${DEPLOY_OOM_LABELS[deployPlan.oomStatus]}`;
   title.append(pWarn);
+ }
+ if(hasHeadroomRisk){
+  const pRisk=document.createElement('span');pRisk.className='deploy-pill is-multinode';
+  pRisk.textContent=`录图告警：${DEPLOY_OOM_LABELS.headroom_risk}`;
+  title.append(pRisk);
  }
  head.append(title);
  if(level!==2){

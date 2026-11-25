@@ -193,20 +193,20 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     order: 2,
     code: "CASE-02",
     title: "910B3 KV 划完后 FULL_AND_PIECEWISE 录图期 OOM",
-    subtitle: "源自真机实测 real-910b3-u090-aclgraph-oom [M] · 单卡 a2-64g Qwen/Qwen3-8B",
-    evidenceBadge: "M",
+    subtitle: "单卡 a2-64g Qwen/Qwen3-8B 预算改编题 [C]（内附 Qwen3-0.6B u=0.90 真机原栈 [M]）",
+    evidenceBadge: "C",
     topology: "single",
     hardwareFamily: "A2",
     cardId: "a2-64g",
     cardLabel: "Atlas A2 64G × 1 (910B3)",
     version: "v0.30.0",
     telemetryKind: "logs",
-    telemetryTitle: "KV 切分完成后 capture_model() FIA 算子 OOM（附 910B3 真机实测调用栈 [M]）",
+    telemetryTitle: "Qwen3-8B (u=0.95) 改编复现现场 [C] + 910B3 Qwen3-0.6B (u=0.90) 真机捕获调用栈 [M]",
     telemetryText: [
-      "# 当前单卡 Qwen/Qwen3-8B (u=0.95 + FULL_AND_PIECEWISE) 复现现场（机制同源 real-910b3-u090-aclgraph-oom [M]）：",
+      "# [C] 本关教学推演现场：单卡 Qwen/Qwen3-8B (u=0.95 + FULL_AND_PIECEWISE，机制同源真机标本)：",
       "(EngineCore pid=38102) INFO [model_runner_v1.py:4476] Loading model weights took 15.26 GiB",
       "(EngineCore pid=38102) INFO [worker.py:660] Available KV cache memory: 39.42 GiB (gpu_memory_utilization=0.95)",
-      "# 同源 Ascend 910B3 真机捕获调用栈标本（real-910b3-u090-aclgraph-oom [M]，Qwen3-0.6B u=0.90，OS 可见 60.96 GiB）：",
+      "# [M] 同源 Ascend 910B3 真机捕获调用栈标本（real-910b3-u090-aclgraph-oom，Qwen3-0.6B u=0.90，OS 可见 60.96 GiB）：",
       '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/worker/model_runner_v1.py", line 6613, in capture_model',
       "(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]     cuda_graph_size = GPUModelRunner.capture_model(self)",
       '(EngineCore pid=35805) ERROR 11-22 20:59:56 [core.py:1366]   File "/mnt/workspace/src/vllm_ascend-0.30.0/vllm_ascend/device/device_op.py", line 216, in npu_fused_infer_attention_score',
@@ -534,7 +534,7 @@ vllm serve Qwen/Qwen3-8B \\
         {
           id: "B",
           label:
-            "exitcode -9 / 137 且无 NPU OOM 栈指向宿主机/容器 cgroup DRAM 内存上限（OOMKilled）或 Docker 默认 64M /dev/shm（多卡需 --shm-size=16g）不足，而非乱砍 u；同时切卡变量须改为 ASCEND_RT_VISIBLE_DEVICES=0,1,2,3",
+            "exitcode -9 / 137 且无 NPU OOM 栈首要指向宿主机/容器层 SIGKILL（需结合同 PID/时间窗核实 OOMKilled / cgroup memory.events / dmesg 及 64M /dev/shm，先放宽容器 --memory 与 --shm-size=16g 而非乱砍 u）；同时切卡变量须改为 ASCEND_RT_VISIBLE_DEVICES=0,1,2,3",
         },
         {
           id: "C",
@@ -547,7 +547,7 @@ vllm serve Qwen/Qwen3-8B \\
       ],
       correctOptionId: "B",
       explanation:
-        "NPU HBM 不足会抛出 Python RuntimeError / OutOfMemoryError 与 ACL 错误码；子进程在加载分片期无栈猝死并报 -9 (137) 是操作系统内核 cgroup OOM Killer 强杀或 /dev/shm 耗尽铁证，乱砍 gpu_memory_utilization 毫无作用。同时昇腾切卡只认 ASCEND_RT_VISIBLE_DEVICES。",
+        "NPU HBM 不足通常会抛出 Python RuntimeError / OutOfMemoryError 与 ACL 错误码；子进程在加载分片期无栈猝死并报 -9 (137) 说明收到外部 SIGKILL，首要候选根因是容器 cgroup DRAM 触顶（OOMKilled）或 64M /dev/shm 不足（定论前须对齐同进程与同时间窗的 docker inspect OOMKilled / cgroup memory.events / dmesg 记录），乱砍 gpu_memory_utilization 无济于事。同时昇腾切卡只认 ASCEND_RT_VISIBLE_DEVICES。",
     },
     initialCommand: `docker run -d --name vllm-qwen30b --shm-size=64m --memory=32g quay.io/ascend/vllm-ascend:v0.30.0
 export CUDA_VISIBLE_DEVICES=0,1,2,3
@@ -575,15 +575,15 @@ vllm serve Qwen/Qwen3-30B-A3B \\
       "保留 Qwen/Qwen3-30B-A3B、TP=4、--enable-expert-parallel、--quantization ascend 与图模式",
     ],
     hints: [
-      "提示 1：区分主机 DRAM 与设备 NPU HBM！如果是 NPU HBM 爆了，PyTorch/CANN 会打印 OutOfMemoryError 栈，而不是内核直接发 SIGKILL (-9 / 137)。",
-      "提示 2：4 个 Worker 同时映射 safetensors 分片并建立多进程通信队列，第一行 docker run 的 --shm-size=64m 与 --memory=32g 才是容器层真凶（须改为 --shm-size=16g --memory=128g）。",
+      "提示 1：区分主机 DRAM 与设备 NPU HBM！如果是 NPU HBM 爆了，PyTorch/CANN 会打印 OutOfMemoryError 栈；无栈 exitcode -9 / 137 代表进程收到 SIGKILL，应优先核查容器内存与共享内存配置。",
+      "提示 2：4 个 Worker 并发映射 safetensors 分片并建立多进程队列时，第一行 docker run 的 --shm-size=64m 与 --memory=32g 极易触发共享内存不足或 cgroup OOM（线上排障应同步核对 docker inspect OOMKilled / memory.events / dmesg，并将容器参数调至 --shm-size=16g --memory=128g）。",
       "提示 3：把第一行改为 --shm-size=16g --memory=128g，把第二行 CUDA_VISIBLE_DEVICES=0,1,2,3 改为 ASCEND_RT_VISIBLE_DEVICES=0,1,2,3，保持 --gpu-memory-utilization 0.90。",
     ],
     debrief: {
       takeaway:
-        "遇到 exitcode -9 / 137 且无 NPU OOM 栈，先查 dmesg / cgroup memory.events / docker inspect OOMKilled 与 --shm-size=16g，切忌反射式缩减 NPU KV 预算；切卡环境变量只认 ASCEND_RT_VISIBLE_DEVICES。",
+        "遇到 exitcode -9 / 137 且无 NPU OOM 栈，先对齐同进程 PID 与时间窗核实 docker inspect OOMKilled、cgroup memory.events 与 dmesg，并排查 --shm-size=16g 与容器内存限额，切忌反射式缩减 NPU KV 预算；切卡环境变量只认 ASCEND_RT_VISIBLE_DEVICES。",
       rootCauseChain:
-        "4 个 Worker 并发读取 safetensors 分片与共享内存队列 → 触发容器 cgroup DRAM 上限被内核发 SIGKILL (137) 强杀；同时脚本误用 CUDA_VISIBLE_DEVICES，NPUPlatform 完全不读取该变量。",
+        "4 个 Worker 并发读取 safetensors 分片与共享内存队列时出现无栈 SIGKILL (137)，结合 --shm-size=64m 与 cgroup memory.max=32Gi 现场高度指向容器 cgroup DRAM 触顶或 /dev/shm 耗尽（须用同进程同时间窗的 OOMKilled / cgroup memory.events / dmesg 记录最终坐实）；同时脚本误用 CUDA_VISIBLE_DEVICES，NPUPlatform 完全不读取该变量。",
       sourceAnchors: [
         {
           ref: `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/v1/engine/utils.py#L262-L285`,

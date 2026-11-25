@@ -104,7 +104,7 @@ export interface ReconciliationItem {
 }
 
 export interface LogReconciliationReport {
-  overallStatus: "aligned" | "drift" | "oom-risk" | "incomplete";
+  overallStatus: "aligned" | "partial" | "drift" | "oom-risk" | "incomplete";
   hcclDoubleCounted: false;
   hcclAccountingNote: string;
   redundancyBufferMiB: number;
@@ -1426,6 +1426,8 @@ export function reconcileStartupLog(
   }
 
   // 6. Headroom safety (1 - u cushion after pre-startup occupancy, ACLGraph, and 150 MiB redundancy)
+  const graphEnabled = !plan.inputSummary.enforceEager && plan.inputSummary.cudagraphMode !== "NONE";
+  const hasStartupFreeSnapshot = parsed.initialFreeGiB !== null && parsed.totalDeviceGiB !== null;
   const predCushionLow = round2(usableHeadroomGiB - plan.stages[6].highBytes / GIB);
   const predCushionPoint = round2(usableHeadroomGiB - plan.stages[6].pointEstimateBytes / GIB);
   const predCushionHigh = round2(usableHeadroomGiB - plan.stages[6].lowBytes / GIB);
@@ -1448,38 +1450,59 @@ export function reconcileStartupLog(
   } else {
     const measuredGraph = parsed.aclGraphGiB ?? cgPoint;
     const netCushionGiB = round2(usableHeadroomGiB - measuredGraph - redundancyGiB);
-    const delta = round2(netCushionGiB - predCushionPoint);
-    const status: ReconciliationItemStatus =
-      netCushionGiB < 0
-        ? "oom-risk"
-        : netCushionGiB < 0.5
-          ? "below-interval"
-          : classifyRange(netCushionGiB, Math.max(0, predCushionLow), Math.max(0.5, predCushionHigh), 0.25);
-    const causes: string[] = [];
-    if (preOccupiedGiB > 0.2) {
-      causes.push(
-        `启动快照前同卡已有 ${preOccupiedGiB.toFixed(2)} GiB 被系统/其他进程占用，吃掉了部分 1−u 余量。`,
-      );
+    const lacksMeasuredInputsForPositiveCushion =
+      netCushionGiB >= 0 && (!hasStartupFreeSnapshot || (graphEnabled && parsed.aclGraphGiB === null));
+    if (lacksMeasuredInputsForPositiveCushion) {
+      headroomSafety = {
+        id: "headroomSafety",
+        title: "预算外 1−u 安全余量（扣录图与 150 MiB 裕度后）",
+        unit: "GiB",
+        predictedLow: predCushionLow,
+        predictedPoint: predCushionPoint,
+        predictedHigh: predCushionHigh,
+        measured: null,
+        delta: null,
+        deltaGiB: null,
+        status: "missing",
+        summary: !hasStartupFreeSnapshot
+          ? `缺少 Free memory on device 启动快照（未知启动前同卡占用与真实可用上限，仅按 0 占用上界估算约 +${netCushionGiB.toFixed(2)} GiB），无法闭环核验预算外 1−u 净余量。`
+          : "缺少 Graph capturing finished 录图实测行，无法闭环核验预算外 1−u 净余量。",
+        likelyRootCauses: [],
+      };
+    } else {
+      const delta = round2(netCushionGiB - predCushionPoint);
+      const status: ReconciliationItemStatus =
+        netCushionGiB < 0
+          ? "oom-risk"
+          : netCushionGiB < 0.5
+            ? "below-interval"
+            : classifyRange(netCushionGiB, Math.max(0, predCushionLow), Math.max(0.5, predCushionHigh), 0.25);
+      const causes: string[] = [];
+      if (preOccupiedGiB > 0.2) {
+        causes.push(
+          `启动快照前同卡已有 ${preOccupiedGiB.toFixed(2)} GiB 被系统/其他进程占用，吃掉了部分 1−u 余量。`,
+        );
+      }
+      if (status === "oom-risk" || status === "below-interval") {
+        causes.push(
+          "预算外净余量过薄：建议下调 --gpu-memory-utilization 或按 worker.py 建议的 --kv-cache-memory 显式锁定。",
+        );
+      }
+      headroomSafety = {
+        id: "headroomSafety",
+        title: "预算外 1−u 安全余量（扣录图与 150 MiB 裕度后）",
+        unit: "GiB",
+        predictedLow: predCushionLow,
+        predictedPoint: predCushionPoint,
+        predictedHigh: predCushionHigh,
+        measured: netCushionGiB,
+        delta,
+        deltaGiB: delta,
+        status,
+        summary: `净安全余量 ${netCushionGiB >= 0 ? "+" : ""}${netCushionGiB.toFixed(2)} GiB（1−u=${unbudgetedGiB.toFixed(2)} GiB − 启动前占用 ${preOccupiedGiB.toFixed(2)} GiB − 录图 ${measuredGraph.toFixed(2)} GiB − 150 MiB）。`,
+        likelyRootCauses: causes,
+      };
     }
-    if (status === "oom-risk" || status === "below-interval") {
-      causes.push(
-        "预算外净余量过薄：建议下调 --gpu-memory-utilization 或按 worker.py 建议的 --kv-cache-memory 显式锁定。",
-      );
-    }
-    headroomSafety = {
-      id: "headroomSafety",
-      title: "预算外 1−u 安全余量（扣录图与 150 MiB 裕度后）",
-      unit: "GiB",
-      predictedLow: predCushionLow,
-      predictedPoint: predCushionPoint,
-      predictedHigh: predCushionHigh,
-      measured: netCushionGiB,
-      delta,
-      deltaGiB: delta,
-      status,
-      summary: `净安全余量 ${netCushionGiB >= 0 ? "+" : ""}${netCushionGiB.toFixed(2)} GiB（1−u=${unbudgetedGiB.toFixed(2)} GiB − 启动前占用 ${preOccupiedGiB.toFixed(2)} GiB − 录图 ${measuredGraph.toFixed(2)} GiB − 150 MiB）。`,
-      likelyRootCauses: causes,
-    };
   }
 
   const items: ReconciliationItem[] = [
@@ -1504,13 +1527,18 @@ export function reconcileStartupLog(
   const hasDrift = measuredItems.some(
     (it) => it.status === "above-interval" || it.status === "below-interval",
   );
+  const requiredClosureItems = graphEnabled ? items : [weights, nonKvOverhead, availableKv, kvTokens];
+  const measuredRequired = requiredClosureItems.filter((it) => it.status !== "missing");
+  const missingRequired = requiredClosureItems.filter((it) => it.status === "missing");
   const overallStatus: LogReconciliationReport["overallStatus"] = hasOom
     ? "oom-risk"
     : measuredItems.length === 0
       ? "incomplete"
       : hasDrift
         ? "drift"
-        : "aligned";
+        : missingRequired.length > 0
+          ? "partial"
+          : "aligned";
 
   const hcclAccountingNote =
     `HCCL 不二次扣减守恒（vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/worker.py#L461-L634）：` +
@@ -1520,12 +1548,14 @@ export function reconcileStartupLog(
 
   const baseSummary =
     overallStatus === "aligned"
-      ? `实机日志 ${measuredItems.length}/6 项全部落在 7 级静态区间内，显存账目闭环（HCCL 未二次扣减）。`
-      : overallStatus === "oom-risk"
-        ? `检测到 OOM 风险或启动报错，请优先检查标红项与预算外 1−u 余量。`
-        : overallStatus === "incomplete"
-          ? "未从粘贴文本中提取到可对账的启动显存指标，请粘贴包含 Model loading / Available KV cache memory / Actual usage 的日志段。"
-          : `已对账 ${measuredItems.length} 项，部分指标偏离静态估算区间，请参考逐项根因提示。`;
+      ? `实机日志 ${measuredRequired.length}/${requiredClosureItems.length} 项全部落在 7 级静态区间内，显存账目闭环（HCCL 未二次扣减）。`
+      : overallStatus === "partial"
+        ? `已提取 ${measuredRequired.length}/${requiredClosureItems.length} 项且在预测区间内，但缺少关键账目（${missingRequired.map((it) => it.title).join("、")}），证据尚不完整，请补齐其余阶段启动日志后再核对全量账目。`
+        : overallStatus === "oom-risk"
+          ? `检测到 OOM 风险或启动报错，请优先检查标红项与预算外 1−u 余量。`
+          : overallStatus === "incomplete"
+            ? "未从粘贴文本中提取到可对账的启动显存指标，请粘贴包含 Model loading / Available KV cache memory / Actual usage 的日志段。"
+            : `已对账 ${measuredItems.length} 项，部分指标偏离静态估算区间，请参考逐项根因提示。`;
 
   const summary =
     parsed.crossRankNotes.length > 0 ? `${baseSummary} ${parsed.crossRankNotes.join(" ")}` : baseSummary;

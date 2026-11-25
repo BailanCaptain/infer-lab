@@ -533,7 +533,7 @@ function Landing({
         <div className="wt-landing-tools-head">
           <h2 className="wt-landing-tools-title">交互工程工作台</h2>
           <p className="wt-landing-tools-note">
-            四大源码级工程实验室，不改阅读路线即可随手算账、体检、排障与对拍
+            五大源码级工程实验室与实战闯关场，不改阅读路线即可随手算账、体检、排障、对拍与演练
           </p>
         </div>
         <div className="wt-landing-tools-grid">
@@ -556,7 +556,7 @@ function Landing({
               <ArrowRight size={14} aria-hidden="true" />
             </span>
             <span className="wt-landing-tool-card-desc">
-              单机与 P/D 分离双实例规则联检、静默改写与源码锚点
+              单机与 P/D 分离双实例规则联检、升级冲击波雷达与源码锚点
             </span>
           </Link>
           <Link
@@ -579,6 +579,15 @@ function Landing({
             </span>
             <span className="wt-landing-tool-card-desc">
               QuantMatmul + AddRMSNorm 泳道、910B vs 950 片上直通与跨组离群量化沙箱
+            </span>
+          </Link>
+          <Link className="wt-landing-tool-card" to="/tools?tab=wargame" data-testid="landing-tool-wargame">
+            <span className="wt-landing-tool-card-top">
+              <span>⑤ 生产故障演练场</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              6 关生产故障演练（含真机实测与源码还原案例）及启动命令判卷通关
             </span>
           </Link>
         </div>

@@ -4,7 +4,7 @@
 
 - **单入口开场首页（`/` 与 `/#/home`）**：服务器城市 3D 背景 + 「开始阅读」主入口，直达 `/#/wiki` 知识主站（`/#/archive/home` 保留历史兼容）。
 - **知识库主章节（`/#/wiki`）**：由 `src/content/wiki/toc.ts` 统一编排 `01..12` 共 12 个主题目录（185 篇正式页），覆盖模型结构、推理过程、KV Cache、调度、vLLM / vLLM-Ascend V1 架构、昇腾硬件、分布式并行、量化、投机解码、分离式部署与实机性能诊断。
-- **四套交互式工程工作台（`/#/tools`）**：部署计算器（`DeployCalculator`）、配置体检（`ConfigDoctor`）、故障排查工作台（`TroubleshootWorkbench`）与 AI Core 执行实验室（`AiCoreLab`），与知识页通过 `wiki-tool` 及 URL 深链双向互通。
+- **五套交互式工程工作台（`/#/tools`）**：部署计算器（`DeployCalculator`）、配置体检与升级雷达（`ConfigDoctor`）、故障排查工作台（`TroubleshootWorkbench`）、AI Core 执行实验室（`AiCoreLab`）与生产故障演练场（`IncidentWarGame`），与知识页内嵌 `wiki-tool`（含 6 模式交互公式尺 `FormulaRuler`）及 3D 整机部署透视通过 URL 深链双向互通。
 - **双层视觉与交互 3D**：静态图采用 Edition-A 暖矿物色系（`PLATE` 立体剖面/趣味微缩场景 + 因景制宜 `FIG` 机制矢量图）；17 篇核心概念页通过 `wiki-scene` 内嵌交互 3D 场景，模型与硬件 3D 探索作为辅助观察入口。
 
 ## 二、版本与标尺契约

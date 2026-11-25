@@ -721,5 +721,19 @@ describe("FormulaRulerView & targetMachineStore", () => {
         beforePlan.stages.map((s) => s.pointEstimateBytes),
       );
     }
+
+    // Wave 1 P2-6: FormulaRulerView and its local dependencies never import DeployCalculatorView chunk, and 5-workbench docs/landing stay aligned
+    for (const relSrc of [
+      "src/app/tools/FormulaRulerView.tsx",
+      "src/app/tools/targetMachineStore.ts",
+      "src/app/tools/workbenchHandoff.ts",
+    ]) {
+      const srcTxt = readFileSync(join(process.cwd(), relSrc), "utf8");
+      expect(srcTxt).not.toMatch(/from\s+["']\.\/DeployCalculatorView["']/);
+    }
+    for (const docRel of ["PLAN.md", "README.md", "HANDOFF.md", "DESIGN.md", "src/app/pages/WikiPage.tsx"]) {
+      const docTxt = readFileSync(join(process.cwd(), docRel), "utf8");
+      expect(docTxt).not.toMatch(/四套(?:交互式)?工程工作台|四大源码级工程实验室/);
+    }
   });
 });

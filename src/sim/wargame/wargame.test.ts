@@ -388,5 +388,22 @@ describe("Track 3B wargame scenarios & deterministic anti-cheat judge", () => {
         commandText: `${sc2.initialCommand.replace("0.95", "0.88")} --dtype float32`,
       }).passed,
     ).toBe(false);
+
+    // Wave 1 P1-4: Case 2 separates 0.6B [M] stack from 8B [C] adapted scenario; Case 5 avoids claiming 铁证 without kernel/cgroup OOM evidence
+    expect(sc2.evidenceBadge).toBe("C");
+    expect(sc2.telemetryText).toContain("Qwen3-0.6B");
+    expect(sc5.question.explanation).not.toContain("铁证");
+    expect(sc5.hints.join(" ")).not.toContain("真凶");
+    expect(sc5.debrief.rootCauseChain).toMatch(/dmesg|OOMKilled|memory\.events/);
+    const lowU5 = judgeWarGameSubmission({
+      scenarioId: "exit-137-cgroup-sigkill",
+      selectedOptionId: "B",
+      commandText: base5
+        .replace("--shm-size=64m", '--shm-size="16g"')
+        .replace("--memory=32g", '--memory="128g"')
+        .replace("--gpu-memory-utilization 0.90", "--gpu-memory-utilization 0.70"),
+    });
+    expect(lowU5.passed).toBe(false);
+    expect(lowU5.checks.map((c) => c.detail).join(" ")).not.toContain("137 属容器 DRAM/shm 问题");
   });
 });

@@ -1403,7 +1403,7 @@ function computeWeightsPerRank(params: {
   if (spec.engram?.enabled) {
     if (resolvedEngramCpuOffload) {
       notes.push(
-        spec.engram.dpSharedMemory
+        resolvedEngramDpSharedMemory
           ? `Engram 条件记忆（${spec.engram.layerIds.length} 层，cpu_offload=true, dp_shared_memory=true）：词表卸载至 Host DRAM / /dev/shm 节点共享，单卡 NPU 权重 HBM 占用 0 B，单节点需预留 ${(engramHostDramBytesPerNode / GIB).toFixed(2)} GiB 主机内存。`
           : `Engram 条件记忆（${spec.engram.layerIds.length} 层，cpu_offload=true, dp_shared_memory=false）：词表按进程私有卸载至 Host DRAM（按 ETP=${engramEtpSize} 切分），单卡 NPU 权重 HBM 占用 0 B，单节点需预留 ${(engramHostDramBytesPerNode / GIB).toFixed(2)} GiB 主机内存。`,
       );
@@ -2139,6 +2139,25 @@ interface MinCardsRecommendation {
   unsolvable: boolean;
 }
 
+function shouldAutoDeriveEngramDpSharedMemory(params: {
+  spec: ModelSpec;
+  version: RuleVersion;
+  engramCpuOffload: boolean;
+  useV2ModelRunner: boolean;
+  dpSize: number;
+  pcpSize: number;
+}): boolean {
+  // v0.30.0@c09d3e20 derives dp_shared_memory=True whenever MRV2 && (DP>1 || PCP>1) without checking cpu_offload;
+  // main@8d6180e2 (and rfork tracking main) requires cpu_offload=True before auto-deriving.
+  return Boolean(
+    params.spec.engram?.enabled &&
+      (params.version === "v0.30.0" || params.engramCpuOffload) &&
+      !params.spec.engram.dpSharedMemory &&
+      params.useV2ModelRunner &&
+      (params.dpSize > 1 || params.pcpSize > 1),
+  );
+}
+
 function recommendMinCards(params: {
   spec: ModelSpec;
   card: AscendCalcCardSpec;
@@ -2235,14 +2254,15 @@ function recommendMinCards(params: {
   ): boolean => {
     const pcp = 1;
     const epWorld = enableEp ? dp * tp * pcp : 1;
-    const candUseV2 = Boolean(useV2ModelRunner);
-    const candEngramDpSharedDerived = Boolean(
-      spec.engram?.enabled &&
-        engramCpuOffload &&
-        !spec.engram.dpSharedMemory &&
-        candUseV2 &&
-        (dp > 1 || pcp > 1),
-    );
+    const candUseV2 = version !== "v0.30.0" ? true : Boolean(useV2ModelRunner);
+    const candEngramDpSharedDerived = shouldAutoDeriveEngramDpSharedMemory({
+      spec,
+      version,
+      engramCpuOffload,
+      useV2ModelRunner: candUseV2,
+      dpSize: dp,
+      pcpSize: pcp,
+    });
     const candEngramDpShared = spec.engram?.enabled
       ? spec.engram.dpSharedMemory || candEngramDpSharedDerived
       : false;
@@ -2476,6 +2496,7 @@ function collectQ1Findings(params: {
   engramCpuOffload: boolean;
   engramDpSharedMemoryDerived: boolean;
   useV2ModelRunner: boolean;
+  userSpecifiedUseV2ModelRunner?: boolean;
   gpuMemoryUtilization: number;
   cudagraphMode: CudaGraphMode;
   enforceEager: boolean;
@@ -2509,6 +2530,7 @@ function collectQ1Findings(params: {
     engramCpuOffload,
     engramDpSharedMemoryDerived,
     useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner,
     gpuMemoryUtilization,
     cudagraphMode,
     enforceEager,
@@ -2526,7 +2548,21 @@ function collectQ1Findings(params: {
   const fullAttn = spec.layers.find((l) => l.attention.kind !== "linear_kda")?.attention ?? firstAttn;
   const moe = getMoeInfo(spec);
 
-  // 1. 310P BF16 blocker
+  // 1. 310P BF16 blocker & main MRV1-removed blocker
+  if (version !== "v0.30.0" && userSpecifiedUseV2ModelRunner && !useV2ModelRunner) {
+    blockers.push({
+      id: "calc-main-mrv1-removed",
+      severity: "error",
+      title: "main 基线已移除 Model Runner V1（禁止显式设 VLLM_USE_V2_MODEL_RUNNER=0）",
+      message:
+        "vllm-ascend@main (mrv2_utils.py) 已物理移除 Model Runner V1，显式传入 VLLM_USE_V2_MODEL_RUNNER=0 会直接抛出 ValueError: Model Runner V1 has been removed from vllm-ascend, so VLLM_USE_V2_MODEL_RUNNER=0 cannot be honored。",
+      remediation: "移除 VLLM_USE_V2_MODEL_RUNNER=0（恢复默认自动启用 MRV2），或切换回 v0.30.0 基线。",
+      sources: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/mrv2_utils.py#L28-L82`,
+        "wiki:model-runner-v2",
+      ],
+    });
+  }
   if (card.family === "310P" && weightPrecision === "bf16") {
     blockers.push({
       id: "calc-310p-no-bf16",
@@ -2767,16 +2803,52 @@ function collectQ1Findings(params: {
       sources: ["wiki:sparse-attention"],
     });
   }
-  if (spec.engram?.enabled && spec.engram.dpSharedMemory && !engramCpuOffload) {
+  if (engramDpSharedMemoryDerived) {
+    const isV030 = version === "v0.30.0";
+    silentRewrites.push({
+      id: "calc-engram-mrv2-auto-dp-shared",
+      title: "昇腾 MRV2 自动启用 Engram 节点内共享（dp_shared_memory=true）",
+      param: "engram_config.dp_shared_memory",
+      fromValue: "false",
+      toValue: "true",
+      message: !isV030
+        ? `AscendConfig.derive_and_validate 在 MRV2 + cpu_offload=true 且 DP×PCP=${dpSize * pcpSize} > 1 时自动置 dp_shared_memory=True，同机共享 1 份 Host DRAM 表。`
+        : engramCpuOffload
+          ? `v0.30.0 的 AscendConfig.derive_and_validate 在 MRV2 且 DP×PCP=${dpSize * pcpSize} > 1 时自动置 dp_shared_memory=True，同机共享 1 份 Host DRAM 表。`
+          : `v0.30.0 的 AscendConfig.derive_and_validate 未检查 cpu_offload，在 MRV2 且 DP×PCP=${dpSize * pcpSize} > 1 时仍自动把 dp_shared_memory 改写为 True，随后触发 cpu_offload=True 校验冲突（main 已补齐 cpu_offload 前提）。`,
+      sources: [
+        !isV030
+          ? `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L810-L818`
+          : `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L681-L689`,
+        "wiki:engram-conditional-memory",
+      ],
+    });
+  }
+  const effectiveQ1EngramDpShared = Boolean(
+    spec.engram?.enabled && (spec.engram.dpSharedMemory || engramDpSharedMemoryDerived),
+  );
+  if (effectiveQ1EngramDpShared && !engramCpuOffload) {
+    const v030WouldAutoDerive = version === "v0.30.0" && useV2ModelRunner && (dpSize > 1 || pcpSize > 1);
+    const explicitlyRequestedShare = Boolean(spec.engram?.dpSharedMemory);
     blockers.push({
       id: "calc-engram-dp-shared-requires-cpu-offload",
       severity: "error",
       title: "engram_dp_shared_memory=true 必须同时开启 engram_cpu_offload=true",
-      message:
-        "vllm/config/engram.py 与 embedding.py 校验：dp_shared_memory 通过 /dev/shm 在同节点共享 Host DRAM 词表，禁止在 cpu_offload=false（NPU HBM 常驻）时启用。",
-      remediation: "开启 engram_cpu_offload=true，或关闭 engram_dp_shared_memory。",
+      message: engramDpSharedMemoryDerived
+        ? "v0.30.0 在 MRV2 + DP/PCP>1 下未检查 cpu_offload 即把 dp_shared_memory 改写为 True，与 EngramConfig 的 dp_shared_memory requires cpu_offload=True 校验冲突报错阻断（main@8d6180e2 已修复该推导条件）。"
+        : "vllm/config/engram.py 与 embedding.py 校验：dp_shared_memory 通过 /dev/shm 在同节点共享 Host DRAM 词表，禁止在 cpu_offload=false（NPU HBM 常驻）时启用。",
+      remediation: v030WouldAutoDerive
+        ? explicitlyRequestedShare
+          ? pcpSize > 1
+            ? "开启 engram_cpu_offload=true，或切至 main 基线并同时将 engram_dp_shared_memory 设为 false（PCP>1 强制要求 MRV2，v0.30.0 下仅关闭 dp_shared_memory 仍会被自动改回 true）。"
+            : "开启 engram_cpu_offload=true，或同时将 engram_dp_shared_memory 设为 false 并关闭 MRV2（或切至 main 基线，v0.30.0 在 MRV2+DP>1 下仅关闭 dp_shared_memory 仍会被自动改回 true）。"
+          : pcpSize > 1
+            ? "开启 engram_cpu_offload=true，或切至 main 基线（PCP>1 强制要求 MRV2，v0.30.0 下关闭 dp_shared_memory 仍会被自动改回 true）。"
+            : "开启 engram_cpu_offload=true，或关闭 MRV2（VLLM_USE_V2_MODEL_RUNNER=0）/ 切至 main 基线（v0.30.0 在 MRV2+DP>1 下关闭 dp_shared_memory 仍会被自动改回 true）。"
+        : "开启 engram_cpu_offload=true，或关闭 engram_dp_shared_memory。",
       sources: [
         `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/engram.py#L51-L86`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L681-L689`,
         "wiki:engram-conditional-memory",
       ],
     });
@@ -2790,19 +2862,6 @@ function collectQ1Findings(params: {
       remediation: "将 DP 或 PCP 调整为 2 或更大，或关闭 engram_dp_shared_memory。",
       sources: [
         `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/engram.py#L51-L86`,
-        "wiki:engram-conditional-memory",
-      ],
-    });
-  } else if (engramDpSharedMemoryDerived) {
-    silentRewrites.push({
-      id: "calc-engram-mrv2-auto-dp-shared",
-      title: "昇腾 MRV2 自动启用 Engram 节点内共享（dp_shared_memory=true）",
-      param: "engram_config.dp_shared_memory",
-      fromValue: "false",
-      toValue: "true",
-      message: `AscendConfig.derive_and_validate 在 MRV2 + cpu_offload=true 且 DP×PCP=${dpSize * pcpSize} > 1 时自动置 dp_shared_memory=True，同机共享 1 份 Host DRAM 表。`,
-      sources: [
-        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L690-L698`,
         "wiki:engram-conditional-memory",
       ],
     });
@@ -3447,18 +3506,19 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const engramCpuOffload = spec.engram?.enabled
     ? (input.engramCpuOffload ?? spec.engram.cpuOffload ?? true)
     : false;
-  // AscendConfig.derive_and_validate: under explicit MRV2, cpu_offload=true & (DP>1 || PCP>1) derives dp_shared_memory=True
+  // AscendConfig.derive_and_validate: main@8d6180e2 checks cpu_offload=true; v0.30.0@c09d3e20 derives dp_shared_memory=True whenever MRV2 & (DP>1 || PCP>1)
   // Note: platform.py#L1650-L1657 does NOT implicitly enable MRV2 for PCP>1; PCP>1 without useV2ModelRunner triggers d4-pcp-requires-mrv2.
   const rawUseV2ModelRunner = input.useV2ModelRunner ?? input.enableModelRunnerV2;
   const userSpecifiedUseV2ModelRunner = rawUseV2ModelRunner !== undefined;
-  const useV2ModelRunner = Boolean(rawUseV2ModelRunner);
-  const engramDpSharedMemoryDerived = Boolean(
-    spec.engram?.enabled &&
-      engramCpuOffload &&
-      !spec.engram.dpSharedMemory &&
-      useV2ModelRunner &&
-      (dpSize > 1 || pcpSize > 1),
-  );
+  const useV2ModelRunner = rawUseV2ModelRunner ?? version !== "v0.30.0";
+  const engramDpSharedMemoryDerived = shouldAutoDeriveEngramDpSharedMemory({
+    spec,
+    version,
+    engramCpuOffload,
+    useV2ModelRunner,
+    dpSize,
+    pcpSize,
+  });
   const effectiveEngramDpSharedMemory = spec.engram?.enabled
     ? spec.engram.dpSharedMemory || engramDpSharedMemoryDerived
     : false;
@@ -3527,7 +3587,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       ...(spec.engram?.enabled
         ? {
             engramEnabled: true,
-            engramDpSharedMemory: effectiveEngramDpSharedMemory,
+            engramDpSharedMemory: engramCpuOffload && effectiveEngramDpSharedMemory,
             etpSize: w.engramEtpSize,
           }
         : {}),
@@ -3545,9 +3605,11 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   });
   if (spec.engram?.enabled) {
     nonTorch.notes.push(
-      effectiveEngramDpSharedMemory
+      engramCpuOffload && effectiveEngramDpSharedMemory
         ? `Engram 通信域（engram_dp_shared_memory=true${engramDpSharedMemoryDerived ? "，MRV2 自动推导" : ""}）：etp 建 HCCL 域（ETP=${w.engramEtpSize}），edp 走 Gloo + /dev/shm 共享内存，不额外消耗 HCCL edp 缓冲。`
-        : `Engram 通信域（engram_dp_shared_memory=false）：已将 etp (ETP=${w.engramEtpSize}) 与 edp 纳入 hcclAccounting 去重核算。`,
+        : effectiveEngramDpSharedMemory
+          ? `Engram 通信域（dp_shared_memory=true 与 cpu_offload=false 校验冲突，未进入 /dev/shm Gloo 共享）：按未卸载状态将 etp (ETP=${w.engramEtpSize}) 与 edp 纳入 hcclAccounting 去重核算。`
+          : `Engram 通信域（engram_dp_shared_memory=false）：已将 etp (ETP=${w.engramEtpSize}) 与 edp 纳入 hcclAccounting 去重核算。`,
     );
   }
 
@@ -3914,6 +3976,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     engramCpuOffload,
     engramDpSharedMemoryDerived,
     useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner,
     gpuMemoryUtilization,
     cudagraphMode,
     enforceEager,
@@ -3950,7 +4013,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     maxNumSeqs,
     numSpecTokens,
     engramCpuOffload,
-    useV2ModelRunner: Boolean(input.useV2ModelRunner),
+    useV2ModelRunner: version !== "v0.30.0" ? true : useV2ModelRunner,
     cudagraphMode,
     enforceEager,
     headroomStatus,
@@ -4080,14 +4143,15 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     const candHeadroom = totalHbmBytes - candRequested;
     const candHeadroomStatus: HeadroomStatus =
       stage7Low > candHeadroom ? "overflow" : stage7High > candHeadroom ? "risk" : "safe";
-    const candUseV2 = useV2ModelRunner;
-    const candEngramDerived = Boolean(
-      spec.engram?.enabled &&
-        engramCpuOffload &&
-        !spec.engram.dpSharedMemory &&
-        candUseV2 &&
-        (recDp > 1 || recPcp > 1),
-    );
+    const candUseV2 = version !== "v0.30.0" ? true : useV2ModelRunner;
+    const candEngramDerived = shouldAutoDeriveEngramDpSharedMemory({
+      spec,
+      version,
+      engramCpuOffload,
+      useV2ModelRunner: candUseV2,
+      dpSize: recDp,
+      pcpSize: recPcp,
+    });
     const candEngramShared = spec.engram?.enabled ? spec.engram.dpSharedMemory || candEngramDerived : false;
     const candQ1 = collectQ1Findings({
       spec,
@@ -4223,8 +4287,8 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     weightPrecision,
     kvCacheDtype,
     weightNzMode,
-    useV2ModelRunner,
-    userSpecifiedUseV2ModelRunner: input.useV2ModelRunner !== undefined,
+    useV2ModelRunner: version !== "v0.30.0" ? true : useV2ModelRunner,
+    userSpecifiedUseV2ModelRunner: version !== "v0.30.0" ? false : userSpecifiedUseV2ModelRunner,
     requestedBlockSize,
     userSpecifiedBlockSize,
     maxModelLen,

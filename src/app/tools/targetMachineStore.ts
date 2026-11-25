@@ -7,7 +7,7 @@ import {
 import { extractStructuralHfConfig, parseHfConfig } from "../../sim/modelspec/parseHfConfig";
 import { getPresetSpec, MODEL_PRESETS } from "../../sim/modelspec/presets";
 import type { ModelSpec } from "../../sim/modelspec/types";
-import { evaluateCalculatorModelGate } from "./DeployCalculatorView";
+import { evaluateCalculatorModelGate } from "./workbenchHandoff";
 
 export const TARGET_MACHINE_STORAGE_KEY = "infer-lab:target-machine:v1";
 export const MAX_CUSTOM_HF_CONFIG_BYTES = 64 * 1024;

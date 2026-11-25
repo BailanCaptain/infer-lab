@@ -634,7 +634,7 @@ function evaluateScenarioSpecificCheck(params: {
                 ? "须显式导出包含 4 张不重复卡号的 ASCEND_RT_VISIBLE_DEVICES（如 0,1,2,3）"
                 : "",
               !reasonableU
-                ? `当前 u=${effectiveU.toFixed(2)}（137 属容器 DRAM/shm 问题，不应乱砍或拉爆 u，保持 0.85~0.92）`
+                ? `当前 u=${effectiveU.toFixed(2)}（本关 exit 137 首要排查容器 DRAM/shm 限制而非 NPU HBM 预算，请将 u 保持在 0.85~0.92）`
                 : "",
             ]
               .filter(Boolean)

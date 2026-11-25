@@ -42,6 +42,7 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L345-L405'
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L57'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ops/triton/docs/engram.md#L1-L36'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L681-L689'
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L80-L137'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L25-L69'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L156-L215'
@@ -190,7 +191,7 @@ file: engram-fig-offload-sharing
    --engram-config '{"cpu_offload":true,"dp_shared_memory":true}'
    ```
 
-   在 `v0.30.0` 与 `main` 上，`cpu_offload` 缺省读取环境变量 `VLLM_PLE_CPU_OFFLOAD`（上游默认启用）；`dp_shared_memory` 要求 `cpu_offload=True`，且须具备 `DP > 1` 或 `PCP > 1`（`patch_engram_config.py` 将上游仅校验 `DP > 1` 的检查放宽为 `DP > 1` 或 `PCP > 1`，同时移除上游 CUDA-only 限制）。Model Runner V2 下，只要 `cpu_offload=True` 且 `DP > 1` 或 `PCP > 1`，`AscendConfig.derive_and_validate` 会自动开启 `dp_shared_memory`。
+   在 `v0.30.0` 与 `main` 上，`cpu_offload` 缺省读取环境变量 `VLLM_PLE_CPU_OFFLOAD`（上游默认启用）；`dp_shared_memory` 要求 `cpu_offload=True`，且须具备 `DP > 1` 或 `PCP > 1`（`patch_engram_config.py` 将上游仅校验 `DP > 1` 的检查放宽为 `DP > 1` 或 `PCP > 1`，同时移除上游 CUDA-only 限制）。Model Runner V2 且 `DP > 1` 或 `PCP > 1` 时，`v0.30.0` 的 `AscendConfig.derive_and_validate` 未检查 `cpu_offload` 即自动把 `dp_shared_memory` 置为 `True`（若同时设 `cpu_offload=false`，将与 `EngramConfig` 的 `dp_shared_memory requires cpu_offload=True` 约束冲突）；`main` 已补齐 `cpu_offload=True` 前提才触发自动开启。
 
 2. **跨实例共享池（仅 `main`）**
    - **A3（MemFabric BM GVA）**：先在独立监督进程启动 Owner，等待日志输出 `POOL_READY`（Owner 与消费实例须使用同一不可变 checkpoint，且消费端强制 Model Runner V2）：
@@ -246,8 +247,8 @@ file: engram-fig-offload-sharing
 | `HostUvaBuffer` / `SharedUvaBuffer`、`CHUNK_ROWS` 与 INT8 量化 | `vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L25-L69`、`#L156-L215`、`#L296-L360` |
 | `AscendEngram` 投影与门控融合 | `vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L57` |
 | Triton 算子职责与 A3/A5 硬件边界 | `vllm-ascend@c09d3e20:vllm_ascend/ops/triton/docs/engram.md#L1-L36` |
-| `SharedEngramConfig` 校验与 MRV2 自动共享推导 | `vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L457-L491`、`#L795-L819` |
+| `SharedEngramConfig` 校验与 MRV2 自动共享推导 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L681-L689`；`vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L457-L491`、`#L795-L819` |
 | RFork 宿主 Engram 表本地加载、豁免与释放 | `vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L1-L97` |
 | 跨实例共享用户指南（A3 MemFabric BM 与 A2/A5 HIXL RDMA） | `vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram.md#L1-L189`；`shared_engram_rdma.md#L1-L86` |
 
-**证据与边界索引：** 论文结构动机见 [S1]；上游配置与字段定义见 [C2]，昇腾补丁见 [C3]；`etp` / `edp` 建组与 Gloo 分支见 [C4][C11]；哈希计算、跨副本换行、分片查表与门控融合见 [C5][C6][C7][C8][C9]，Triton 算子硬件路由边界见 [S10]；`HostUvaBuffer`、`SharedUvaBuffer`、重载保护与 `SharedEngramConfig` 校验见 [C12][C13][C14][C15][C16][C17][C18]；RFork 宿主表协同见 [C19]；A3 4 机 824 GiB → 208 GiB 实测对照与 A2/A5 HIXL 数据路径及停服要求见 [S20][S21]。正文 $H=4, d=256, 10^8$ 行与 $4E \to E$ 为教学示意推导 [A][D]；本轮未在真实昇腾硬件上复跑端到端压测。
+**证据与边界索引：** 论文结构动机见 [S1]；上游配置与字段定义见 [C2]，昇腾补丁见 [C3]；`etp` / `edp` 建组与 Gloo 分支见 [C4][C12]；哈希计算、跨副本换行、分片查表与门控融合见 [C5][C6][C7][C8][C9]，Triton 算子硬件路由边界见 [S10]；MRV2 自动开启 `dp_shared_memory` 的 `v0.30.0` vs `main` 差异及 `HostUvaBuffer`、`SharedUvaBuffer`、重载保护与 `SharedEngramConfig` 校验见 [C11][C13][C14][C15][C16][C17][C18][C19]；RFork 宿主表协同见 [C20]；A3 4 机 824 GiB → 208 GiB 实测对照与 A2/A5 HIXL 数据路径及停服要求见 [S21][S22]。正文 $H=4, d=256, 10^8$ 行与 $4E \to E$ 为教学示意推导 [A][D]；本轮未在真实昇腾硬件上复跑端到端压测。

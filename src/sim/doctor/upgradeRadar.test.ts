@@ -313,5 +313,16 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
     expect(varRep.recommendedSingleCommand).toContain("export MODEL='$BASE/model'");
     expect(varRep.recommendedSingleCommand).toContain('vllm serve "$MODEL_DIR"');
     expect(varRep.recommendedSingleCommand).not.toContain("'$MODEL_DIR'");
+
+    // Wave 1 P2-5: dynamic_spec_config from v0.26.0rc -> main cites 2ed6cbba legacy source (never c09d3e20 as v0.26.0rc)
+    const dynSpecFrom026 = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"dynamic_spec_config":{"method":"dspark"}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const dynItem = dynSpecFrom026.items.find((i) => i.id === "radar-removed-key-dynamic-spec-config");
+    expect(dynItem).toBeDefined();
+    expect(dynItem?.sources.some((s) => s.startsWith("vllm-ascend@2ed6cbba:"))).toBe(true);
+    expect(dynItem?.sources.some((s) => s.startsWith("vllm-ascend@c09d3e20:"))).toBe(false);
+    expect(dynItem?.legacyBehavior).toContain(".get()");
   });
 });

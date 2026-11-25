@@ -15,7 +15,6 @@ import {
 import type { AttentionSpec, MlpSpec, ModelSpec } from "../../sim/modelspec/types";
 import { selectMoeCommMethod } from "../../sim/rules/moeComm";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
-import { serializeCustomModelForShare } from "./DeployCalculatorView";
 import {
   CUSTOM_INFERENCE_BADGE_TEXT,
   MAX_CUSTOM_HF_CONFIG_BYTES,
@@ -32,7 +31,7 @@ import {
   targetMachineStore,
   useTargetMachine,
 } from "./targetMachineStore";
-import { buildCalculatorQueryParams } from "./workbenchHandoff";
+import { buildCalculatorQueryParams, serializeCustomModelForShare } from "./workbenchHandoff";
 
 const MODE_LABELS: Readonly<Record<FormulaRulerMode, string>> = {
   "kv-token-bytes": "单词与分块 KV",

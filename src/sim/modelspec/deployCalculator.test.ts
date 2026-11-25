@@ -2289,4 +2289,123 @@ describe("Wave 7 Precision & Topology Regressions (A.1–A.5)", () => {
     const parsedCrossDp = parseAscendStartupLog(crossDpMismatch);
     expect(parsedCrossDp.kvCacheTokens).toBeNull();
   });
+
+  it("Wave 1 P1-3: Engram dp_shared_memory derivation & validation match upstream v0.30.0 (c09d3e20) vs main (8d6180e2)", () => {
+    const engramUnsharedModel = {
+      ...WAVE4_DEMO_PRESETS.find((d) => d.id === "engram-conditional")!.config,
+      engram_dp_shared_memory: false,
+    };
+    const v030NoOffload = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "v0.30.0",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+      engramCpuOffload: false,
+    });
+    expect(
+      v030NoOffload.fourQuestions.q1Fit.silentRewrites.some(
+        (r) => r.id === "calc-engram-mrv2-auto-dp-shared",
+      ),
+    ).toBe(true);
+    expect(
+      v030NoOffload.fourQuestions.q1Fit.blockers.some(
+        (b) => b.id === "calc-engram-dp-shared-requires-cpu-offload",
+      ),
+    ).toBe(true);
+
+    const mainNoOffload = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "main",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+      engramCpuOffload: false,
+    });
+    expect(
+      mainNoOffload.fourQuestions.q1Fit.silentRewrites.some(
+        (r) => r.id === "calc-engram-mrv2-auto-dp-shared",
+      ),
+    ).toBe(false);
+    expect(
+      mainNoOffload.fourQuestions.q1Fit.blockers.some(
+        (b) => b.id === "calc-engram-dp-shared-requires-cpu-offload",
+      ),
+    ).toBe(false);
+
+    // main defaults useV2ModelRunner=true when omitted (auto-deriving dp_shared_memory when cpu_offload=true), and blocks explicit useV2ModelRunner=false
+    const mainAutoMrv2 = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "main",
+      tpSize: 2,
+      dpSize: 2,
+      engramCpuOffload: true,
+    });
+    expect(mainAutoMrv2.wave4Arch.engram?.dpSharedMemory).toBe(true);
+    expect(mainAutoMrv2.stages[2].notes.join(" ")).toContain("dp_shared_memory=true");
+    expect(
+      mainAutoMrv2.fourQuestions.q1Fit.silentRewrites.some((r) => r.id === "calc-engram-mrv2-auto-dp-shared"),
+    ).toBe(true);
+
+    const mainExplicitV1 = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "main",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: false,
+    });
+    expect(mainExplicitV1.fourQuestions.q1Fit.blockers.some((b) => b.id === "calc-main-mrv1-removed")).toBe(
+      true,
+    );
+
+    // rfork tracks main@8d6180e2 and must NOT inherit v0.30.0's missing cpu_offload check
+    const rforkNoOffload = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "rfork",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+      engramCpuOffload: false,
+    });
+    expect(rforkNoOffload.wave4Arch.engram?.dpSharedMemory).toBe(false);
+    expect(rforkNoOffload.fourQuestions.q1Fit.blockers).toHaveLength(0);
+
+    // v0.30.0 remediation avoids circular blockers on explicit dp_shared_memory=true + DP=2 and on PCP=2
+    const v030ExplicitShareNoOffload = evaluateDeployPlan({
+      model: { ...engramUnsharedModel, engram_dp_shared_memory: true },
+      cardId: "a2-64g",
+      version: "v0.30.0",
+      tpSize: 2,
+      dpSize: 2,
+      useV2ModelRunner: true,
+      engramCpuOffload: false,
+    });
+    const shareBlocker = v030ExplicitShareNoOffload.fourQuestions.q1Fit.blockers.find(
+      (b) => b.id === "calc-engram-dp-shared-requires-cpu-offload",
+    );
+    expect(shareBlocker?.remediation).toContain("同时将 engram_dp_shared_memory 设为 false");
+    expect(shareBlocker?.remediation).toContain("自动改回 true");
+    expect(v030NoOffload.stages[4].notes.join(" ")).toContain("校验冲突，未进入 /dev/shm Gloo 共享");
+    expect(v030NoOffload.stages[4].pointEstimateBytes).toBe(mainNoOffload.stages[4].pointEstimateBytes);
+
+    const v030PcpNoOffload = evaluateDeployPlan({
+      model: engramUnsharedModel,
+      cardId: "a2-64g",
+      version: "v0.30.0",
+      tpSize: 2,
+      pcpSize: 2,
+      useV2ModelRunner: true,
+      engramCpuOffload: false,
+    });
+    const pcpBlocker = v030PcpNoOffload.fourQuestions.q1Fit.blockers.find(
+      (b) => b.id === "calc-engram-dp-shared-requires-cpu-offload",
+    );
+    expect(pcpBlocker?.remediation).toContain("PCP>1 强制要求 MRV2");
+    expect(pcpBlocker?.remediation).not.toContain("关闭 MRV2");
+  });
 });

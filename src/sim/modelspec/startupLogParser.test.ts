@@ -107,4 +107,81 @@ describe("startupLogParser P2 regressions", () => {
     expect(rec.byKey.kvTokens.predictedPoint).toBeGreaterThan(140_000);
     expect(rec.byKey.kvTokens.predictedPoint).toBeLessThan(165_000);
   });
+
+  it("Wave 1 P1-2: 1/6 partial weight-only log returns partial instead of aligned and never claims 显存账目闭环", () => {
+    const graphPlan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      gpuMemoryUtilization: 0.85,
+      cudagraphMode: "FULL_AND_PIECEWISE",
+    });
+    const oneLine = parseAscendStartupLog(
+      "(EngineCore pid=100) INFO [model_runner_v1.py:4476] Loading model weights took 15.29 GB",
+    );
+    const partialRec = reconcileStartupLog(graphPlan, oneLine);
+    expect(partialRec.overallStatus).toBe("partial");
+    expect(partialRec.summary).not.toContain("显存账目闭环");
+    expect(partialRec.summary).toContain("1/6");
+
+    // Eager mode (NONE) does not log Graph capturing finished, so 4/4 core budget items reach aligned
+    const eagerPlan = evaluateDeployPlan({
+      model: "Qwen3-8B",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      gpuMemoryUtilization: 0.85,
+      cudagraphMode: "NONE",
+      enforceEager: true,
+    });
+    const eagerW = (eagerPlan.stages[2].pointEstimateBytes / GIB).toFixed(2);
+    const eagerNonKv = (
+      (eagerPlan.stages[2].pointEstimateBytes +
+        eagerPlan.stages[3].pointEstimateBytes +
+        eagerPlan.stages[4].pointEstimateBytes) /
+      GIB
+    ).toFixed(2);
+    const eagerKv = (eagerPlan.stages[5].pointEstimateBytes / GIB).toFixed(2);
+    const eagerTok = eagerPlan.fourQuestions.q2Capacity.totalKvTokenSlotsPoint;
+    const eagerFourItems = parseAscendStartupLog(
+      [
+        `INFO [model_runner_v1.py:4476] Loading model weights took ${eagerW} GiB`,
+        `INFO [worker.py:658] Memory profiling takes 4.10 seconds. Total non KV cache memory: ${eagerNonKv} GiB`,
+        `INFO [worker.py:660] Available KV cache memory: ${eagerKv} GiB`,
+        `INFO [kv_cache_utils.py:1029] NPU KV cache size: ${eagerTok.toLocaleString("en-US")} tokens`,
+      ].join("\n"),
+    );
+    const eagerRec = reconcileStartupLog(eagerPlan, eagerFourItems);
+    expect(eagerRec.overallStatus).toBe("aligned");
+    expect(eagerRec.summary).toContain("4/4");
+
+    // Missing startup Free memory on device snapshot must return partial (5/6) rather than aligned (6/6), while pre-occupied 59.50/64.00 triggers oom-risk
+    const refPlan = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      weightPrecision: "bf16",
+      gpuMemoryUtilization: 0.92,
+      maxModelLen: 32768,
+      maxNumBatchedTokens: 2048,
+      cudagraphMode: "PIECEWISE",
+      cudagraphCaptureCount: 16,
+    });
+    const fiveLinesNoSnapshot = [
+      "INFO 11-18 10:12:04 [model_runner_v1.py:4476] Loading model weights took 15.2564 GB",
+      "DEBUG 11-18 10:12:15 [worker.py:659] Memory profiling takes 11.42 seconds. Total non KV cache memory: 18.00GiB; torch peak memory increase: 2.14GiB; total consumed (from mem_get_info): 15.86GiB; weights memory: 15.26GiB.",
+      "INFO 11-18 10:12:15 [worker.py:661] Available KV cache memory: 40.88 GiB",
+      "INFO 11-18 10:12:16 [kv_cache_utils.py:2396] NPU KV cache size: 297,472 tokens, Maximum concurrency for 32,768 tokens per request: 9.08x",
+      "INFO 11-18 10:12:35 [gpu_model_runner.py:6930] Graph capturing finished in 19 secs, took 1.28 GiB",
+    ];
+    const noSnapRec = reconcileStartupLog(refPlan, parseAscendStartupLog(fiveLinesNoSnapshot.join("\n")));
+    expect(noSnapRec.overallStatus).toBe("partial");
+    expect(noSnapRec.summary).toContain("5/6");
+    expect(noSnapRec.summary).not.toContain("显存账目闭环");
+
+    const preOccupiedLog = [
+      ...fiveLinesNoSnapshot,
+      "INFO 11-18 10:12:35 [worker.py:950] Free memory on device (59.50/64.00 GiB) on startup. Desired GPU memory utilization is (0.92, 58.88 GiB).",
+    ].join("\n");
+    const preOccupiedRec = reconcileStartupLog(refPlan, parseAscendStartupLog(preOccupiedLog));
+    expect(preOccupiedRec.overallStatus).toBe("oom-risk");
+  });
 });

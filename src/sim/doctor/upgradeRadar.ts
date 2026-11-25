@@ -415,12 +415,13 @@ const EXTRA_REMOVED_TOP_LEVEL_KEYS: Readonly<Record<string, RemovedJsonKeySpec>>
     title: "升级 main 时已删子配置 dynamic_spec_config 触发严格校验报错",
     legacyByFrom: {
       "v0.23.0": "v0.23.0 (2c59ff10) 逐键 .get() 忽略未知顶层键，不会阻断启动。",
-      "v0.26.0rc": "v0.26.0rc (2ed6cbba) 与 v0.30.0 仍支持或容忍 dynamic_spec_config。",
+      "v0.26.0rc":
+        "v0.26.0rc (2ed6cbba) 尚未引入 dynamic_spec_config，但 AscendConfig.__init__ 逐键 .get() 静默忽略该未知顶层键而不报错（v0.30.0 曾支持该子配置）。",
     },
     remediation: "升级至 main (8d6180e2) 时请从 --additional-config 删除 dynamic_spec_config。",
     legacySourcesByFrom: {
       "v0.23.0": ["vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L94"],
-      "v0.26.0rc": ["vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L628"],
+      "v0.26.0rc": ["vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L359"],
     },
     wikiPageIds: ["ascend-config-system"],
   },

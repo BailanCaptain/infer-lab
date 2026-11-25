@@ -18,7 +18,6 @@ import {
   type DeployPlanInput,
   type DeployPlanReport,
   evaluateDeployPlan,
-  evaluateWave3ModelGate,
   extractDoctorModelTraitsFromSpec,
   GIB,
   type KvCacheDtype,
@@ -30,7 +29,6 @@ import {
   type Wave4DemoPreset,
   type WeightPrecision,
 } from "../../sim/modelspec/deployCalculator";
-import { extractStructuralHfConfig } from "../../sim/modelspec/parseHfConfig";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
 import {
   type LogReconciliationReport,
@@ -55,12 +53,16 @@ import {
   cardIdToHardwareFamily,
   copyTextToClipboard,
   type DeployChatAnalysisPayload,
+  evaluateCalculatorModelGate,
   parseCalculatorQueryParams,
+  parseCustomModelParam,
   sanitizeDiagnosticText,
+  serializeCustomModelForShare,
   workbenchHandoffStore,
 } from "./workbenchHandoff";
 
-const MAX_SHARE_CUSTOM_MODEL_CHARS = 4096;
+export { evaluateCalculatorModelGate, parseCustomModelParam, serializeCustomModelForShare };
+
 const DEFAULT_MAX_MODEL_LEN = 32768;
 const DEFAULT_PREFILL_TOKENS = 512;
 const DEFAULT_DECODE_BATCH_SIZE = 16;
@@ -99,101 +101,11 @@ function normalizeCalcInt(value: number, min: number, fallback: number): number 
   return rounded >= min ? rounded : Math.max(min, fallback);
 }
 
-function hasNonFiniteNumber(value: unknown): boolean {
-  if (typeof value === "number") return !Number.isFinite(value);
-  if (Array.isArray(value)) return value.some(hasNonFiniteNumber);
-  if (value && typeof value === "object") {
-    return Object.values(value).some(hasNonFiniteNumber);
-  }
-  return false;
-}
-
-export function evaluateCalculatorModelGate(
-  modelInput: string,
-  useCustomJson: boolean,
-): Wave3ModelGateResult {
-  if (useCustomJson) {
-    const trimmed = modelInput.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      try {
-        const parsed: unknown = JSON.parse(trimmed);
-        if (hasNonFiniteNumber(parsed)) {
-          return {
-            ok: false,
-            error: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再估算显存与并行方案。",
-          };
-        }
-      } catch {
-        // Let evaluateWave3ModelGate report standard JSON syntax diagnostics.
-      }
-    }
-  }
-  return evaluateWave3ModelGate(modelInput);
-}
-
 export function parseV2ModelRunnerParam(params?: URLSearchParams): boolean | undefined {
   const raw = params?.get("v2")?.trim().toLowerCase();
   if (raw === "1" || raw === "true") return true;
   if (raw === "0" || raw === "false") return false;
   return undefined;
-}
-
-export function parseCustomModelParam(params?: URLSearchParams): string | null {
-  const raw = params?.get("customModel")?.trim();
-  if (!raw || raw.length > MAX_SHARE_CUSTOM_MODEL_CHARS || !raw.startsWith("{")) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    if (hasNonFiniteNumber(parsed)) return null;
-    const clean = extractStructuralHfConfig(parsed);
-    return JSON.stringify(clean, null, 2);
-  } catch {
-    return null;
-  }
-}
-
-export function serializeCustomModelForShare(
-  rawJson: string,
-): { ok: true; compact: string } | { ok: false; reason: string } {
-  const trimmed = rawJson.trim();
-  if (!trimmed.startsWith("{")) {
-    return { ok: false, reason: "自定义 config.json 格式无效，暂不支持生成参数链接。" };
-  }
-  try {
-    const parsed: unknown = JSON.parse(trimmed);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { ok: false, reason: "自定义 config.json 须为 JSON 对象，暂不支持生成参数链接。" };
-    }
-    if (hasNonFiniteNumber(parsed)) {
-      return {
-        ok: false,
-        reason: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再复制参数链接。",
-      };
-    }
-    let clean: Record<string, unknown>;
-    try {
-      clean = extractStructuralHfConfig(parsed);
-    } catch {
-      const rawLen = JSON.stringify(parsed).length;
-      if (rawLen > MAX_SHARE_CUSTOM_MODEL_CHARS) {
-        return {
-          ok: false,
-          reason: `自定义 config.json 压缩后为 ${rawLen} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
-        };
-      }
-      return { ok: false, reason: "自定义 config.json 缺少必要结构维度，请修正后再复制参数链接。" };
-    }
-    const compact = JSON.stringify(clean);
-    if (compact.length > MAX_SHARE_CUSTOM_MODEL_CHARS) {
-      return {
-        ok: false,
-        reason: `自定义 config.json 压缩后为 ${compact.length} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
-      };
-    }
-    return { ok: true, compact };
-  } catch {
-    return { ok: false, reason: "自定义 config.json 存在语法或结构错误，请修正后再复制参数链接。" };
-  }
 }
 
 function getCalculatorQuerySignature(params?: URLSearchParams): string {
@@ -537,16 +449,31 @@ function Wave4ArchActiveBanner({
         {arch.engram && (
           <div>
             <strong>Engram 条件记忆（{arch.engram.layerCount} 层）：</strong>
-            {arch.engram.dpSharedMemory ? (
+            {arch.engram.dpSharedMemory && !arch.engram.cpuOffload ? (
+              <>
+                配置校验冲突（<code>dp_shared_memory=true</code> 但 <code>cpu_offload=false</code>
+                ，启动期将抛 <code>ValueError</code> 阻断）：未卸载时词表按{" "}
+                <code>ETP={arch.engram.etpSize}</code> 计单卡常驻 HBM{" "}
+                <strong>{fmtGiB(arch.engram.npuWeightBytesPerRank)}</strong>（Host DRAM <strong>0 B</strong>
+                ）。
+              </>
+            ) : arch.engram.cpuOffload && arch.engram.dpSharedMemory ? (
               <>
                 已启用 <code>engram_dp_shared_memory=true</code>（Host DRAM / <code>/dev/shm</code>{" "}
                 卸载共享）：单卡 NPU 权重 HBM 占用 <strong>0 B</strong>，单节点需预留{" "}
                 <strong>{fmtGiB(arch.engram.hostDramBytesPerNode)}</strong> Host DRAM，Stage 5 中{" "}
                 <code>edp</code> 走 Gloo 通信不占 HCCL 显存。
               </>
+            ) : arch.engram.cpuOffload ? (
+              <>
+                已启用 <code>engram_cpu_offload=true</code>、<code>dp_shared_memory=false</code>
+                （进程私有 Host DRAM 卸载）：单卡 NPU 权重 HBM 占用 <strong>0 B</strong>，单节点需预留{" "}
+                <strong>{fmtGiB(arch.engram.hostDramBytesPerNode)}</strong> Host DRAM（按{" "}
+                <code>ETP={arch.engram.etpSize}</code> 切分）。
+              </>
             ) : (
               <>
-                <code>engram_dp_shared_memory=false</code>（NPU HBM 常驻）：按{" "}
+                <code>engram_cpu_offload=false</code>（NPU HBM 常驻）：按{" "}
                 <code>ETP={arch.engram.etpSize}</code> 切分，单卡常驻权重增加{" "}
                 <strong>{fmtGiB(arch.engram.npuWeightBytesPerRank)}</strong>，并已纳入 Stage 5 HCCL{" "}
                 <code>etp/edp</code> 域核算。
@@ -1828,7 +1755,15 @@ function ReconcileLogSection({
         className={`wt-summary-bar${recon.overallStatus === "aligned" ? " is-pass" : recon.overallStatus === "oom-risk" ? " is-blocked" : ""}`}
       >
         <div className="wt-summary-left">
-          <span className={recon.overallStatus === "oom-risk" ? "wt-blocked-banner" : "wt-pass-banner"}>
+          <span
+            className={
+              recon.overallStatus === "oom-risk"
+                ? "wt-blocked-banner"
+                : recon.overallStatus === "aligned"
+                  ? "wt-pass-banner"
+                  : "wt-warn-banner"
+            }
+          >
             {recon.summary}
           </span>
           <span className="wt-stat-pill">已提取行：{parsed.matchedLines.length}</span>
@@ -3011,7 +2946,13 @@ export function DeployCalculatorView({
 
     const rawOom = plan.fourQuestions.q2Capacity.oomStatus;
     const oomStatus: DeployOverlayOomStatus =
-      rawOom !== "fits" ? rawOom : plan.headroomStatus === "overflow" ? "headroom_overflow" : "fits";
+      rawOom !== "fits"
+        ? rawOom
+        : plan.headroomStatus === "overflow"
+          ? "headroom_overflow"
+          : plan.headroomStatus === "risk"
+            ? "headroom_risk"
+            : "fits";
 
     return buildHardwareDeployHref(
       {
@@ -3029,6 +2970,7 @@ export function DeployCalculatorView({
         runtimeGiB: (actBytes + nonTorchBytes + workspace310pBytes + aclBytes) / GIB,
         oomStatus,
         headroomOverflow: plan.headroomStatus === "overflow",
+        headroomRisk: plan.headroomStatus === "risk",
         calc: {
           subMode,
           weightPrecision: state.weightPrecision,

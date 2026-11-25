@@ -9,12 +9,15 @@ import {
   ASCEND_CALC_CARDS,
   type AscendCalcCardId,
   type DoctorModelTraitOverride,
+  evaluateWave3ModelGate,
   extractDoctorModelTraitsFromSpec,
   type KvCacheDtype,
   resolveDoctorModelTraits,
   WAVE4_DEMO_PRESETS,
+  type Wave3ModelGateResult,
   type WeightPrecision,
 } from "../../sim/modelspec/deployCalculator";
+import { extractStructuralHfConfig } from "../../sim/modelspec/parseHfConfig";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
 import { parseAscendStartupLog } from "../../sim/modelspec/startupLogParser";
 import type { AscendFamily, CudaGraphMode, RuleVersion } from "../../sim/rules";
@@ -1531,4 +1534,96 @@ export function buildTroubleshootChatAnalysis(rawInput: string): TroubleshootCha
     kind: "troubleshoot",
     rawInput: sanitized,
   };
+}
+
+export const MAX_SHARE_CUSTOM_MODEL_CHARS = 4096;
+
+export function hasNonFiniteNumber(value: unknown): boolean {
+  if (typeof value === "number") return !Number.isFinite(value);
+  if (Array.isArray(value)) return value.some(hasNonFiniteNumber);
+  if (value && typeof value === "object") {
+    return Object.values(value).some(hasNonFiniteNumber);
+  }
+  return false;
+}
+
+export function evaluateCalculatorModelGate(
+  modelInput: string,
+  useCustomJson: boolean,
+): Wave3ModelGateResult {
+  if (useCustomJson) {
+    const trimmed = modelInput.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+        if (hasNonFiniteNumber(parsed)) {
+          return {
+            ok: false,
+            error: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再估算显存与并行方案。",
+          };
+        }
+      } catch {
+        // Let evaluateWave3ModelGate report standard JSON syntax diagnostics.
+      }
+    }
+  }
+  return evaluateWave3ModelGate(modelInput);
+}
+
+export function parseCustomModelParam(params?: URLSearchParams): string | null {
+  const raw = params?.get("customModel")?.trim();
+  if (!raw || raw.length > MAX_SHARE_CUSTOM_MODEL_CHARS || !raw.startsWith("{")) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (hasNonFiniteNumber(parsed)) return null;
+    const clean = extractStructuralHfConfig(parsed);
+    return JSON.stringify(clean, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+export function serializeCustomModelForShare(
+  rawJson: string,
+): { ok: true; compact: string } | { ok: false; reason: string } {
+  const trimmed = rawJson.trim();
+  if (!trimmed.startsWith("{")) {
+    return { ok: false, reason: "自定义 config.json 格式无效，暂不支持生成参数链接。" };
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, reason: "自定义 config.json 须为 JSON 对象，暂不支持生成参数链接。" };
+    }
+    if (hasNonFiniteNumber(parsed)) {
+      return {
+        ok: false,
+        reason: "自定义 config.json 包含溢出或非有限数值（如 1e400），请修正后再复制参数链接。",
+      };
+    }
+    let clean: Record<string, unknown>;
+    try {
+      clean = extractStructuralHfConfig(parsed);
+    } catch {
+      const rawLen = JSON.stringify(parsed).length;
+      if (rawLen > MAX_SHARE_CUSTOM_MODEL_CHARS) {
+        return {
+          ok: false,
+          reason: `自定义 config.json 压缩后为 ${rawLen} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
+        };
+      }
+      return { ok: false, reason: "自定义 config.json 缺少必要结构维度，请修正后再复制参数链接。" };
+    }
+    const compact = JSON.stringify(clean);
+    if (compact.length > MAX_SHARE_CUSTOM_MODEL_CHARS) {
+      return {
+        ok: false,
+        reason: `自定义 config.json 压缩后为 ${compact.length} 字符，超过链接上限（${MAX_SHARE_CUSTOM_MODEL_CHARS} 字符），请直接分享 config.json 原文。`,
+      };
+    }
+    return { ok: true, compact };
+  } catch {
+    return { ok: false, reason: "自定义 config.json 存在语法或结构错误，请修正后再复制参数链接。" };
+  }
 }

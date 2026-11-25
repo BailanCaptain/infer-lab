@@ -8145,6 +8145,7 @@
         "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L345-L405",
         "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L57",
         "vllm-ascend@c09d3e20:vllm_ascend/ops/triton/docs/engram.md#L1-L36",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L681-L689",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L80-L137",
         "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L25-L69",
         "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L156-L215",

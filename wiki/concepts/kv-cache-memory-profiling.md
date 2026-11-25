@@ -29,7 +29,9 @@ aliases:
   - profile run
   - determine_available_memory
   - non_torch_increase
+  - non_torch
   - 非 torch 增量
+  - CacheConfig
 chapters:
   - '05'
 sources:
@@ -235,9 +237,9 @@ summary: 切换目标卡型、显存比例 u、模型与 TP 并行度，一行�
 | `Qwen3-30B-A3B` · `TP=4+EP=4` (`u=0.88`) | `14.27 GiB` | `0.20 GiB` | `0.45 GiB` | `38.73 GiB`（`1,692,032 tokens`） | **`2.30 GiB`** (`67s`) |
 | `Qwen3-30B-A3B` · `DP=2+TP=4+EP=8` (`u=0.88`) | `7.52 GiB` | `0.37 GiB` | `0.55 GiB` | `45.21 GiB`（`1,975,168`/DP，双 DP `3,950,336`） | **`2.64 GiB`** (`83s`) |
 
-读表时须留意两点实测边界：`non_torch` 从单卡 `0.03 GiB` 涨到多卡 `0.43 ~ 0.55 GiB` 是整体非 Torch 增量，已经包含了在 `profile_run` 窗口内具象化的通信与 CANN 上下文，绝不可全贴上 HCCL 标签、更不能在日志上二次扣除；另外同一配置在不同轮次或不同 rank 上存在约 `0.01 GiB` 级自然波动（例如 `DEBUG` 摘录中 `TP=2` 图显存为 `2.93 GiB`、`TP=4` 为 `47.35 GiB` KV / `0.44 GiB` `non_torch`，八卡 MoE 有 1 个 rank 报 `2.65 GiB` 图显存）。
+读表时须留意两点实测边界：`non_torch` 从单卡 `0.03 GiB` 涨到多卡 `0.43 ~ 0.55 GiB` 是整体非 Torch 增量，已经包含了在 `profile_run` 窗口内具象化的通信与 CANN 上下文，绝不可全贴上 HCCL 标签、更不能在日志上二次扣除。另外，同一配置在不同轮次或不同 rank 上存在约 `0.01 GiB` 级自然波动（例如 `DEBUG` 摘录中 `TP=2` 图显存为 `2.93 GiB`、`TP=4` 为 `47.35 GiB` KV / `0.44 GiB` `non_torch`，八卡 MoE 有 1 个 rank 报 `2.65 GiB` 图显存）。
 
-**第二，固定 `u` 扩大 TP 时，每卡 KV 池与 `ACLGraph` 图显存反而双双逆向增长。** 表面看单卡权重从 `15.29 GiB` 降到 `1.94 GiB` 应该越切越省显存，但自动预算会把腾出来的空间全数回填进每卡本地 KV 池（`36.29 → 49.27 GiB`），同时 `capture_model()` 前后设备空闲显存的差值（即 `NPU graph memory`）却从 **`2.59 GiB` 递增至 `3.21 GiB`**（`+0.62 GiB`）。一个直接相关的尺寸变化是：随着块数从 `2,064` 激增到 `22,421`，单层本地 K+V 视图从 `1.008 GiB` 扩至 `1.368 GiB`，`FIA` 捕获阶段按更大视图申请 workspace，与多卡集合任务、运行时资源和分配器保留共同进入捕获前后空闲显存差值（在缺少逐算子分配快照时，不能把多出的 `0.62 GiB` 单独归因给 HCCL 或 Slice 任一项）。更关键的是，固定 `u` 扩 TP 推高每卡本地 KV 池后，在普通 GQA 页交错非连续布局下，若线上 `FULL` 图重放与 Eager 相同的整池连续化拷贝，便会同步放大该项候选开销（详见 [FlashAttention 页](ascend-flash-attention.md#实测劣化剖析页交错-kv-布局为何在-fia-内部触发整池连续化) 与 [Tensor Parallel 页](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)，待线上 `FULL` 设备时间线验证）。
+**第二，固定 `u` 扩大 TP 时，每卡 KV 池与 `ACLGraph` 图显存反而双双逆向增长。** 表面看单卡权重从 `15.29 GiB` 降到 `1.94 GiB` 应该越切越省显存，但自动预算会把腾出来的空间全数回填进每卡本地 KV 池（`36.29 → 49.27 GiB`），同时 `capture_model()` 前后设备空闲显存的差值（即 `NPU graph memory`）却从 **`2.59 GiB` 递增至 `3.21 GiB`**（`+0.62 GiB`）。随着块数从 `2,064` 激增到 `22,421`，单层本地 K+V 视图从 `1.008 GiB` 扩至 `1.368 GiB`，`FIA` 捕获阶段按更大视图申请 workspace，与多卡集合任务、运行时资源和分配器保留共同进入捕获前后空闲显存差值；在缺少逐算子分配快照时，不能把多出的 `0.62 GiB` 单独归因给 HCCL 或 Slice 任一项。更关键的是，固定 `u` 扩 TP 推高每卡本地 KV 池后，在普通 GQA 页交错非连续布局下，若线上 `FULL` 图重放与 Eager 相同的整池连续化拷贝，便会同步放大该项候选开销（详见 [FlashAttention 页](ascend-flash-attention.md#实测劣化剖析页交错-kv-布局为何在-fia-内部触发整池连续化) 与 [Tensor Parallel 页](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)，待线上 `FULL` 设备时间线验证）。
 
 **第三，`Qwen3-0.6B` 在 `u=0.90` 触发捕获期 OOM，直观标出了 `1 − u` 余量生死线。** 小模型权重极轻，在 `u=0.90` 下预算几乎全部分给了 KV 池：910B3 真机日志显示 `profile_run()` 顺利通过并切出 **`53.47 GiB` KV（`500,480 tokens`，`max_model_len=4,096`，`122.19×`）**，35 档 `PIECEWISE` 图也全部捕获完成；但在切入 `FULL` Decode `1/35` 时，调用栈在 `device_op.py` 的 `FIA` 内尝试分配 **`1.98 GiB`** 而此时仅剩 **`1.71 GiB` free**（`allocated 54.62 GiB`、`reserved 58.75 GiB`），当场 OOM 退出。将水位降至 `u=0.82` 后，KV 池收敛至 `48.59 GiB`（`454,912 tokens`，`111.06×`），腾出足够预算外余量后录图耗时 `21 s`、占用 **`3.90 GiB`** 顺利就绪。这一标本明确证明：小模型设高 `u` 时不会死在 `profile_run()`，而是会因为切出的 KV 池过大挤压了 `1 − u` 预算外空间、在 `capture_model()` 的 `FIA` 捕获阶段爆显存（且不能拿 8B 的 `2.59 GiB` 去套 0.6B 的图显存）。
 

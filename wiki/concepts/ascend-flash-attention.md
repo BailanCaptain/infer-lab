@@ -31,6 +31,8 @@ aliases:
   - IFA
   - npu_attention_update
   - ScatterPaKvCache
+  - Slice
+  - aclnnContiguous_SliceAiCore_Slice
 chapters:
   - '04'
 order: 65

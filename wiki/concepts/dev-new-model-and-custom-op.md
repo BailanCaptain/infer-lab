@@ -15,6 +15,8 @@ aliases:
   - triton-ascend
   - AscendC 算子接入
   - HardwareProfile 能力门控
+  - HAS_TRITON
+  - RUNTIME_CUSTOM_OPS
 chapters:
   - '16'
   - '20'

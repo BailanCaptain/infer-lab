@@ -48,6 +48,7 @@ aliases:
   - min tokens
   - 最少输出 token 数
   - 最少输出数
+  - enable_reduce_sample
 chapters:
   - '05'
 sources:

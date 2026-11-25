@@ -63,6 +63,7 @@
 | slot | 槽位 | 按具体缓存布局定位待写入位置的编号。 | prepare-inputs-flow | 普通分页算例为物理块号乘块大小加偏移；LoRA 槽号是另一概念。 |
 | prefix caching | 前缀缓存、APC | 在兼容的模型与状态条件下，复用已计算的相同前缀。 | prefix-caching | 复用条件、块边界与混合状态支持需明确，不仅比较文本。 |
 | chunked prefill | 分块预填充 | 把尚未完成的提示词计算分配到多轮调度。 | chunked-prefill | 块大小由预算和实现约束决定。 |
+| LPT | Longest Processing Time first、最长任务优先 | 余额宽裕或摆放资源时，优先接纳预计输出更长的作业或按负载从重到轻放置副本的贪心策略。 | batch-job-aware-scheduler | 批作业感知调度器在空闲块宽裕时按 LPT 先接长作业；STAIR EPLB（`stair_config`）亦用带回溯约束的 LPT 摆放专家副本。 |
 | speculative decoding | 投机解码、推测解码 | 先生成候选 token，再由目标模型验证，并按算法接受或修正候选。 | speculative-decoding | 草稿来源不一定是独立小模型；有草稿和验证开销。 |
 | MTP | Multi-Token Prediction | 多 token 预测结构或目标；推理可使用模型配套模块生成投机草稿。 | speculative-decoding | GLM 配置的 MTP 层数与每轮草拟 token 数是不同量，统一依据主模型来源基线。 |
 | EAGLE | EAGLE-3、特征级投机草稿 | 复用主模型上层隐藏向量与前一步 token 嵌入，用轻量草稿头连续预测后续候选 token 的投机解码方法。 | speculative-decoding | 比独立小模型草稿更省显存且接受率通常更高；与模型自带的原生 MTP 模块是两种不同的草稿来源。 |
@@ -70,12 +71,15 @@
 | PD disaggregation | PD 分离、disaggregation、分离部署 | 把 prefill 与持续生成分配到不同执行组，通过传输相应历史状态衔接。 | pd-disaggregation | 执行组与物理服务器不必一一对应。 |
 | quantization | 量化、W8A8 | 以低精度格式及相应缩放表示数值，并配合量化、反量化或低精度算子计算。 | quantization | 分别说明权重、激活与缓存；误差和收益须验证。 |
 | graph mode | 图模式 | 捕获满足条件的设备操作序列并回放，以减少逐次提交开销。 | graph-mode-layer | 与编译优化分开；并非每次都捕获整个模型。 |
+| FX 图 | FX、torch.fx、FX 计算图 | `torch.compile` 捕获的算子级有向计算图表示，用于编译期图融合或按注意力边界切分子图。 | graph-mode-layer | 编译期改写 FX 图与运行时捕获回放 `ACL Graph` 分属不同阶段。 |
 | ACL Graph | ACLGraph、ACL 图 | 昇腾上实现图模式的那套机制。 | acl-graph | 统一「ACL Graph」两词分开；npugraph_ex、torchair 是另外的图路径，别混为一谈。 |
 | eager mode | eager 模式、单算子模式 | 按执行过程逐步提交算子，不复用该路径的捕获图。 | acl-graph | 不等于设备同步执行或没有算子内部融合。 |
 | operator | 算子、op | 对张量定义输入输出和运算语义的计算操作。 | ops-and-kernels | kernel 是具体设备实现，不作为算子的严格同义词。 |
 | 进程 | process | 由操作系统管理、具有独立地址空间的执行实体。 | engine-processes | 可以显式建立共享内存或其他通信机制。 |
+| fork / spawn | fork、spawn、子进程启动方式 | 操作系统创建子进程的两种方式：`fork` 复制分叉瞬间的父进程内存视图，`spawn` 启动全新独立的 Python 解释器重新加载模块与补丁。 | engine-processes | 已初始化 NPU 上下文后不能直接 `fork`；`vllm serve` 多进程 Worker 默认用 `spawn`。 |
 | ZMQ | ZeroMQ、进程间消息队列 | 轻量级异步消息通信库，vLLM V1 用它在前端 API server 与后端 EngineCore 进程之间收发请求与生成结果。 | engine-processes | 支持本机 IPC 套接字与跨网络 TCP 传输，承担控制面与请求流通信，不直接搬运大块 NPU 显存张量。 |
 | IPC / SHM | IPC、SHM、进程间通信、共享内存、POSIX 共享内存 | 同机不同进程交换数据的机制；其中共享内存（SHM）让多个进程直接映射同一块主机内存，免去序列化与反复拷贝。 | engine-processes | 同机 Worker 广播调度元数据、Engram 主机表多进程只读共享等常走 `/dev/shm`；容器启动须确认 `--shm-size` 充足。 |
+| RPC | 远程过程调用、Remote Procedure Call | 让另一进程执行指定函数并取回结果的跨进程调用机制；多进程执行器（`mp`）下，EngineCore 每步借此驱动各 Worker 执行前向与采样。 | request-call-chain | 单进程 `uni` 执行器在进程内直接调用；RPC 属于控制面指令调度，不同于设备侧 HCCL 张量集合通信。 |
 | Worker | worker、工作进程 | 负责设备初始化、模型执行与相关资源管理的执行角色。 | npu-worker-lifecycle | 角色不总是独立进程，须结合执行器部署说明。 |
 | rank | 全局 rank、组内 rank、DP rank、TP rank | 参与分布式执行的成员编号；编号的范围由全局或具体通信组决定。 | collective-communication | DP 编号和全局 worker 编号分开。 |
 
@@ -108,6 +112,7 @@
 | NPU | 昇腾芯片、device | 昇腾计算处理器；本库部署语境指软件可见的计算设备。 | hardware-devices | 软件设备、物理封装与板卡分别计数，不默认一一对应。 |
 | 卡 | 单卡、加速卡 | 一块板级加速硬件。 | hardware-devices | 数计算设备用 NPU；板卡与设备的映射按具体型号核对。 |
 | Atlas A2 / A3 | Atlas A2、Atlas A3 | 昇腾产品系列的称呼，具体规格还要看完整产品型号。 | hardware-devices | 不把 910B、A5 混作同义词；首次写全 Atlas A2 / Atlas A3。 |
+| 昇腾 310P 系列 | 310P、DUO、310P Duo、Atlas 300I DUO | 面向推理部署的昇腾 310P 设备族（框架设备族 `_310P`，常见并列产品型号包括 `Atlas 300I DUO` 与 `Atlas 200I Pro`，二者并非同义词），走专用 `NPUWorker310` 与兼容算子栈。 | hardware-devices | 不支持 `BF16` 与 `npugraph_ex`，须显式指定 `--dtype float16` 并配合专用镜像或量化权重；`Atlas 200I Pro` 的容器设备挂载见 `ascend-env-and-serve`。 |
 | 显存 | 设备内存、HBM | NPU 侧供计算使用的内存，常存权重、KV Cache 和临时结果。 | device-memory | HBM 是内存技术名，不是所有设备内存的同义词；实际预算见 kv-cache-memory-profiling。 |
 | 主机内存 | host memory、CPU 内存 | CPU 一侧的内存，和设备显存分别计算容量。 | device-memory | 不假定容量或速度关系；卸载过程见 kv-cache-cpu-offload。 |
 | UVA | Unified Virtual Addressing、统一虚拟编址、统一虚拟寻址、Host UVA | 把锁页注册后的主机内存与 NPU 显存编入同一套虚拟地址空间，让 NPU 核函数直接按统一指针读写主机侧缓冲。 | device-memory | 可省去部分显式拷贝（如 MRV2 请求状态表、Engram 主机卸载），但数据物理上仍在主机 DRAM，带宽与容量不计入 HBM。 |
@@ -116,6 +121,7 @@
 | Cube / Vector / Scalar | AIC、AIV、AI Cube、AI Vector | 分别承担矩阵、向量、标量计算的单元。 | ai-core | AIC/AIV 是分离模式下的核心称呼，和单元层级分开讲；不推定核数比例。 |
 | MTE | Memory Transfer Engine、数据搬运引擎、MTE1、MTE2、MTE3 | 昇腾 AI Core 内部专职在全局显存（GM）与各级片上缓存（L1、L0A/B、UB）之间异步搬运数据块的硬件单元。 | ai-core | 与 Cube / Vector 计算单元流水重叠执行；搬运耗时盖过计算耗时时，算子就会受限于访存或搬运等待。 |
 | CANN | 昇腾软件栈 | 承接上层计算框架、提供运行时、算子、图与通信等能力的软件体系。 | cann-hccl | 环境记录中将 CANN 与驱动、固件版本分别列出。 |
+| ACL（AscendCL） | ACL、AscendCL、Ascend Computing Language | CANN 面向应用与框架暴露的底层运行时接口，管理设备绑定、显存分配、流同步及算子与图任务下发。 | cann-hccl | 区别于上层图捕获回放机制 `ACL Graph`（两词分开，见 `acl-graph`）。 |
 | ATB | Ascend Transformer Boost、昇腾加速库 | 昇腾神经网络加速库（NNAL）中面向大模型推理的高性能融合算子与图加速组件。 | ops-and-kernels | 裸机部署须加载对应环境脚本（官方容器已内置）；Worker 冷启动收尾常做一次小矩阵 ATB 预热以避免首请求抖动。 |
 | HCCL | 集合通信库 | 组织昇腾设备在同机或跨机器收发、合并数据的软件库。 | cann-hccl | 首次写「HCCL（昇腾集合通信库）」；属于 CANN，不是物理链路。 |
 | HCCS | Huawei Cache Coherence System、昇腾片间高速互联 | 昇腾芯片及同机多卡（或超节点内）之间的高速直连物理链路，带宽远高于跨机以太网。 | hardware-devices | 张量并行每层频繁同步，通常优先放在 HCCS 互联域内；具体环路或全互联拓扑依机型（如 A2 / A3）核对。 |

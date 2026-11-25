@@ -32,6 +32,7 @@ aliases:
   - 中间宽度
   - intermediate_size
   - gate_up_proj
+  - gate_up
   - down_proj
   - input_layernorm
   - post_attention_layernorm

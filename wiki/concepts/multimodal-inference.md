@@ -98,7 +98,7 @@ file: multimodal-plate-cutaway
 
 ## 一张图怎样变成语言模型吃得下的 token 序列？
 
-前端处理器（MultiModal Processor，接入入口见 [API server 入口](api-server-entry.md)）收到图像、视频或音频后，并不等待 NPU 算完视觉网络才构造序列，而是先在 CPU 上解码、整理成模型可读的张量，再按分辨率与合并步幅算出精确的视觉 token 数量，直接在 `input_ids` 里展开等量的**占位 token（placeholder token）**，同时附带像素块张量与三维网格描述符 `image_grid_thw = (T, H, W)`。
+前端处理器（MultiModal Processor，接入入口见 [API server 入口](api-server-entry.md)）收到图像、视频或音频后，并不等待 NPU 算完视觉网络才构造序列。它先在 CPU 上解码、整理成模型可读的张量，再按分辨率与合并步幅算出精确的视觉 token 数量；随后直接在 `input_ids` 里展开等量的**占位 token（placeholder token）**，同时附带像素块张量与三维网格描述符 `image_grid_thw = (T, H, W)`。
 
 用最小位置示意看占位展开如何与语言序列对齐：设纯文本分为 $T_0, T_1$ 两个位置，图片 A 需要 `2` 个特征位置、图片 B 需要 `3` 个。按消息顺序展开后得到 `[T₀, A₀, A₁, T₁, B₀, B₁, B₂]` 共 `2 + 2 + 3 = 7` 个位置——A 占偏移 `1`、长度 `2`，B 占偏移 `4`、长度 `3`。
 

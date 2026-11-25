@@ -22,6 +22,7 @@ aliases:
   - num_redundant_experts
   - load_collection_phase
   - 冗余专家
+  - eplb_config
 chapters:
   - '14'
 order: 30
@@ -305,7 +306,7 @@ file: eplb-fig-mrv1-vs-mrv2-stair
 
 - **MRV1 路线（上文三段计数器）**：由 `DYNAMIC_EPLB=true` 与固定短周期三段计数器（`600` 步收集 / `50` 步 CPU 规划 / `L` 步逐层迁移）驱动，通过独立 `dynamic_eplb` HCCL 组搬运；一旦单轮重排幅度大，步末等待权重传完就可能放大推理毛刺。
 - **`v0.30.0` 主基线（MRV1 与 MRV2 互斥双轨并存）**：MRV2 改由上游 `--enable-eplb` 与 `AscendEPLBController` 驱动。平台补丁把默认策略切为 **`stair`（阶梯式渐进重均衡）**（指南默认 `window_size=1000`、`step_interval=3000`、`use_async=true`）：用更长的滑动窗口过滤瞬时抖动，按单轮限额渐进搬移权重并异步重叠前向；同时支持 `load_collection_phase` 按步过滤采集阶段（按整批是否含 prefill 判断，混合批整步归为 prefill，不做逐请求或逐 token 隔离），且草稿模型不再随目标模型自动注册。
-- **MRV2 HIXL 一致性协商**：未显式指定 `communicator` 时，初始化阶段全组检查直连数据面通信库 **HIXL**（Huawei Xfer Library）的绑定状态是否一致；全组齐备时用高速直连搬运专家权重，若任意 rank 不可用或绑定类别不同，全组安全回退至 CPU 通道 `Gloo` 并把未显式设定的 STAIR 单轮搬运限额收紧为 `1`（若用户显式指定了 `communicator`，源码则直接按指定值执行，跳过自动回退协商）。
+- **MRV2 HIXL 一致性协商**：未显式指定 `communicator` 时，初始化阶段全组检查直连数据面通信库 **HIXL**（Huawei Xfer Library）的绑定状态是否一致。全组齐备时走高速直连搬运专家权重；若任意 rank 不可用或绑定类别不同，全组安全回退至 CPU 通道 `Gloo`，并把未显式设定的 STAIR 单轮搬运限额收紧为 `1`。若用户显式指定了 `communicator`，源码则直接按指定值执行，跳过自动回退协商。
 - **`main` 分支（全面收敛至 MRV2）**：MRV1 正式退场，`AscendEPLBController` 成为唯一运行时路径（四版细节见文末[版本差异](#版本差异)）。
 
 ## 代价：多占的显存、搬运和等待

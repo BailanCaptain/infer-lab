@@ -352,7 +352,7 @@ file: acl-graph-fig-event-timeline
 file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 ```
 
-1. **为什么 `u = 0.90` 通过了试跑与分段图，却在 `FULL` 第 `1/35` 档触发 FIA 捕获期 OOM？** `Ascend 910B3` 物理标称 `64.00 GiB`，但 `acl.rt.get_mem_info` 暴露给操作系统的可见总容量为 **`60.96 GiB`**（相差 `3.04 GiB` 为底层预留，预算公式 `total × u` 以 `60.96 GiB` 为基数）。在 `Qwen3-0.6B`（`max_model_len = 4096`，默认 `FULL_AND_PIECEWISE` 共 35 档）下，设 `u = 0.90` 时 `profile_run()` 顺利通过并划出 **`53.47 GiB`** KV cache（`500,480 tokens`、`122.19×` 并发），随后 35 档 `PIECEWISE` 分段图也全部录完；直到进入 `FULL` Decode 第 `1/35` 档时，调用栈在 `device_op.py` 的 `npu_fused_infer_attention_score`（FIA）内申请 **`1.98 GiB`** 临时空间，而当时设备仅剩 **`1.71 GiB`** 空闲显存（`allocated = 54.62 GiB`、`reserved = 58.75 GiB`），当场触发捕获期 OOM。将 $u$ 下调至 **`0.82`**（KV `48.59 GiB`、`454,912 tokens`、`111.06×`）留足 $(1 - u)$ 余量后，全档捕获在 **`21 s`** 内以 **`3.90 GiB`** 图显存顺利通过——因此既不能把这次失败误判为 `profile_run()` 阶段越界，也不能把 `Qwen3-8B` 的 `2.59 GiB` 套作 `0.6B` 的图开销。
+1. **为什么 `u = 0.90` 通过了试跑与分段图，却在 `FULL` 第 `1/35` 档触发 FIA 捕获期 OOM？** `Ascend 910B3` 物理标称 `64.00 GiB`，但 `acl.rt.get_mem_info` 暴露给操作系统的可见总容量为 **`60.96 GiB`**（相差 `3.04 GiB` 为底层预留，预算公式 `total × u` 以 `60.96 GiB` 为基数）。在 `Qwen3-0.6B`（`max_model_len = 4096`，默认 `FULL_AND_PIECEWISE` 共 35 档）下，设 `u = 0.90` 时 `profile_run()` 顺利通过并划出 **`53.47 GiB`** KV cache（`500,480 tokens`、`122.19×` 并发），随后 35 档 `PIECEWISE` 分段图也全部录完。直到进入 `FULL` Decode 第 `1/35` 档时，调用栈在 `device_op.py` 的 `npu_fused_infer_attention_score`（FIA）内申请 **`1.98 GiB`** 临时空间，而当时设备仅剩 **`1.71 GiB`** 空闲显存（`allocated = 54.62 GiB`、`reserved = 58.75 GiB`），当场触发捕获期 OOM。将 $u$ 下调至 **`0.82`**（KV `48.59 GiB`、`454,912 tokens`、`111.06×`）留足 $(1 - u)$ 余量后，全档捕获在 **`21 s`** 内以 **`3.90 GiB`** 图显存顺利通过——因此既不能把这次失败误判为 `profile_run()` 阶段越界，也不能把 `Qwen3-8B` 的 `2.59 GiB` 套作 `0.6B` 的图开销。
 2. **为什么 `Qwen3-8B` 从 `TP=1` 扩到 `TP=2/4/8` 时单卡权重递减，图显存差值反而递增？** 固定 `u = 0.85`、`max_model_len = 32768` 的 `INFO` 干净态 rank 0 实测显示：
 
 | 并行度（`Qwen3-8B`，`u = 0.85`） | 单卡权重 | 每卡可用 KV | 每层本地 K+V 视图 | 捕获前后空闲差值（`INFO` 耗时） |
@@ -362,8 +362,8 @@ file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 | `TP=4` | `3.84 GiB` | `47.36 GiB` | `1.315 GiB` | **`3.10 GiB`**（`35 s`） |
 | `TP=8` | `1.94 GiB` | `49.27 GiB` | `1.368 GiB` | **`3.21 GiB`**（`36 s`） |
 
-日志中的“NPU graph memory”由上游 `gpu_model_runner.py` 按捕获前后设备空闲显存差（`start_free_gpu_memory - end_free_gpu_memory`）算出。固定 $u$ 扩 TP 时，权重切薄省出的空间被自动划回每卡本地 KV 池，每层本地 K+V 视图反从 **`1.008 GiB` 扩至 `1.368 GiB`**；捕获多档形状时，FIA 通过 `get_capture_resource` 接收更大的 KV 输入视图查询工作区，同时多 rank 集合通信图对象、运行时资源与缓存分配器保留量也会计入该差值（`DEBUG` rank 0 对应为 `2.59 / 2.93 / 3.10 / 3.21 GiB`，耗时 `28 / 40 / 40 / 43 s`）。由于缺少逐算子分配快照，`+0.62 GiB` 增量尚无法闭合拆解到单一算子，不能归因为纯 HCCL 或单一 Slice 开销。
-3. **关闭图模式与开启 `DEBUG` 校验的线上代价对照**：在 `2.4 GHz` 禁睿频 ARM Host 上，`Qwen3-30B-A3B` 从四卡混部 `ACLGraph` 切到双端 `--enforce-eager` 的八卡 `4P4D`（该组同时改变了拆池拓扑、图模式、前缀缓存、最大长度与 `u`，纯 Eager 独立份额尚待单变量拆解）时，`c=1` `TPOT` 从 `77.90 ms` 升至 `307.83 ms`（`3.952×`），48 层 MoE 逐算子发射与同步开销在持续解码期被显著放大。即便保持图模式开启，若误留 `VLLM_LOGGING_LEVEL=DEBUG`，每步回放前的 `data_ptr()` 遍历校验与 Worker 分配器读数日志也会增加 Host 开销（`Qwen3-8B` `TP=8` `c=1` 单样本对照下 `TTFT` 由 `139.07 ms` 升至 `193.98 ms`，`+39.48%`）。
+日志中的“NPU graph memory”由上游 `gpu_model_runner.py` 按捕获前后设备空闲显存差（`start_free_gpu_memory - end_free_gpu_memory`）算出。固定 $u$ 扩 TP 时，权重切薄省出的空间被自动划回每卡本地 KV 池，每层本地 K+V 视图反从 **`1.008 GiB` 扩至 `1.368 GiB`**。捕获多档形状时，FIA 通过 `get_capture_resource` 接收更大的 KV 输入视图查询工作区，同时多 rank 集合通信图对象、运行时资源与缓存分配器保留量也会计入该差值（`DEBUG` rank 0 对应为 `2.59 / 2.93 / 3.10 / 3.21 GiB`，耗时 `28 / 40 / 40 / 43 s`）。由于缺少逐算子分配快照，`+0.62 GiB` 增量尚无法闭合拆解到单一算子，不能归因为纯 HCCL 或单一 Slice 开销。
+3. **关闭图模式与开启 `DEBUG` 校验的线上代价对照**：在 `2.4 GHz` 禁睿频 ARM Host 上，`Qwen3-30B-A3B` 从四卡混部 `ACLGraph` 切到双端 `--enforce-eager` 的八卡 `4P4D`（该组同时改变了拆池拓扑、图模式、前缀缓存、最大长度与 `u`，纯 Eager 独立份额尚待单变量拆解）。切换后 `c=1` `TPOT` 从 `77.90 ms` 升至 `307.83 ms`（`3.952×`），48 层 MoE 逐算子发射与同步开销在持续解码期被显著放大。即便保持图模式开启，若误留 `VLLM_LOGGING_LEVEL=DEBUG`，每步回放前的 `data_ptr()` 遍历校验与 Worker 分配器读数日志也会增加 Host 开销（`Qwen3-8B` `TP=8` `c=1` 单样本对照下 `TTFT` 由 `139.07 ms` 升至 `193.98 ms`，`+39.48%`）。
 
 ## 放到 GLM 双机：只给整齐的 decode 步录 7 张图
 

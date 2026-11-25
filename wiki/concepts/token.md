@@ -44,6 +44,8 @@ aliases:
   - chat_template_kwargs
   - truncate_prompt_tokens
   - truncation_side
+  - eos_token_id
+  - bos_token_id
 chapters:
   - '02'
 order: 20

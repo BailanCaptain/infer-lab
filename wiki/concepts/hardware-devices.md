@@ -31,7 +31,10 @@ aliases:
   - Atlas 800T A2
   - Atlas 800I A2
   - Atlas 300I DUO
+  - DUO
   - 310P
+  - 310P Duo
+  - NPUWorker310
   - HardwareProfile
   - SOC_VERSION
 chapters:
@@ -98,7 +101,7 @@ rawSources:
     raw/sha256-9a71c5e275ab2ca3591da54fcaba5bb8a352680d097760b4adf5f7e8a6d65d13.md
 ---
 
-**NPU（神经网络处理器）是执行并行张量运算的计算裸片；加速板卡承载裸片、片旁显存与供电电路，服务器把主机 CPU、主机内存与多块加速模组收进同一机箱，机柜与超节点再把多台服务器和交换网络组织成集群。** 推理框架在代码里真正操作的并不是“物理板卡”，而是操作系统与昇腾运行时暴露出来的逻辑 **Device（可见设备）**——只有先认清这四级物理层级与软件 `Device` 的对应关系，[容器挂载与起服务清单](ascend-env-and-serve.md)里的 `/dev/davinci*` 映射、[Roofline 模型](roofline-and-metrics.md)里的带宽瓶颈以及多卡并行的通信代价才算得清账。
+**NPU（神经网络处理器）是执行并行张量运算的计算裸片；加速板卡承载裸片、片旁显存与供电电路，服务器把主机 CPU、主机内存与多块加速模组收进同一机箱，机柜与超节点再把多台服务器和交换网络组织成集群。** 推理框架在代码里真正操作的并不是“物理板卡”，而是操作系统与昇腾运行时暴露出来的逻辑 **Device（可见设备）**。先认清这四级物理层级与软件 `Device` 的对应关系，[容器挂载与起服务清单](ascend-env-and-serve.md)里的 `/dev/davinci*` 映射、[Roofline 模型](roofline-and-metrics.md)里的带宽瓶颈以及多卡并行的通信代价才算得清账。
 
 ## 一张“卡”、一颗裸片与一台服务器有什么区别？
 
@@ -145,7 +148,7 @@ $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qqu
 这里有两条极易踩坑的硬件记账铁律：
 
 1. **主机内存与邻卡显存不能自动拼成免费地址池**：主机 DRAM 再大，输入张量也须经 PCIe 拷入目标设备显存才能计算。启动时引擎先绑定设备并加载本卡权重，跑一次 `profile_run()` 实测非缓存峰值，再把 `gpu_memory_utilization` 预算内的剩余本卡显存切给状态块池（完整 7 级冷启动账见 [Worker 生命周期](npu-worker-lifecycle.md)与 [KV Cache 显存划定](kv-cache-memory-profiling.md)）。
-2. **严格区分十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：白皮书标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学算例显式设定为 `64 GiB` 整，现场实测与教学设定必须分开记。同时操作系统与驱动会扣留系统预留内存，初始化后调 `aclrtGetMemInfo`（CANN 运行时查询显存余量的接口）或 `torch.npu.mem_get_info(device_id)` 查到的总量**已扣除系统预留**（例如单卡与八卡 `Ascend 910B3` 真机标称 `64.00 GiB`，但运行时 OS 可见总量固定为 **`60.96 GiB`**，相差的 `3.04 GiB` 为底层预留，详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)），不能拿宣传册标称值硬减权重来猜剩余空间。
+2. **严格区分十进制 `GB`、教学二进制 `GiB` 与运行时可见总量**：白皮书标的 `64 GB` 采用十进制（$64 \times 10^9\text{ B} \approx 59.60\text{ GiB}$），而部分教学算例显式设定为 `64 GiB` 整，现场实测与教学设定必须分开记。同时操作系统与驱动会扣留系统预留内存，初始化后调 `aclrtGetMemInfo`（CANN 运行时查询显存余量的接口）或 `torch.npu.mem_get_info(device_id)` 查到的总量**已扣除系统预留**，不能拿宣传册标称值硬减权重来猜剩余空间。例如单卡与八卡 `Ascend 910B3` 真机标称 `64.00 GiB`，但运行时 OS 可见总量固定为 **`60.96 GiB`**，相差的 `3.04 GiB` 即为底层预留（详见[Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。
 
 ## 为什么多几张卡还会多出等待：机内 HCCS/UB 与跨机 RoCE
 
@@ -208,7 +211,7 @@ file: hardware-fig-tp-hccs-vs-ep-roce
 file: hardware-fig-myths
 ```
 
-结合上图，现场排障时尤其要守住两条纪律：**第一，“卡”是口语简称，`Device` 才是软件分配显存和提交算子的最小边界**——在 Atlas A3 双裸片服务器上，单张物理卡对应两个逻辑 `Device`，漏挂配对节点会破坏拓扑；**第二，不要拿单向/聚合带宽峰值或两台 DP 机器的总内存去推算单请求表现**——多链路聚合、单端口线速和应用有效吞吐分属三层，且在开启跨机 `EP` 的部署中，两台 DP 机器合起来才持有一份完整的路由专家集合。
+结合上图，现场排障时尤其要守住两条纪律：**第一，“卡”是口语简称，`Device` 才是软件分配显存和提交算子的最小边界**——在 Atlas A3 双裸片服务器上，单张物理卡对应两个逻辑 `Device`，漏挂配对节点会破坏拓扑。**第二，不要拿单向/聚合带宽峰值或两台 DP 机器的总内存去推算单请求表现**——多链路聚合、单端口线速和应用有效吞吐分属三层，且在开启跨机 `EP` 的部署中，两台 DP 机器合起来才持有一份完整的路由专家集合。
 
 ## 对照源码
 

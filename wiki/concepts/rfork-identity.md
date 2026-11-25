@@ -21,6 +21,9 @@ aliases:
   - RFork 结构摘要
   - sharded_dp_rank
   - model_deploy_strategy_name
+  - seed_key
+  - seed key
+  - 匹配键
 chapters: []
 order: 40
 sources:

@@ -19,6 +19,9 @@ aliases:
   - batch_job_sched_config
   - job_name
   - EWMA
+  - LPT
+  - Longest Processing Time first
+  - 最长任务优先
 chapters:
   - '12'
 order: 40

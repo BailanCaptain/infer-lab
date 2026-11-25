@@ -19,6 +19,8 @@ aliases:
   - absorb
   - decoupled RoPE
   - 稀疏 MLA
+  - kv_b_proj
+  - q_b_proj
 chapters:
   - '04'
 order: 30

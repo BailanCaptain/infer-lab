@@ -96,7 +96,7 @@ file: cluster-fig-routing-and-probes
 
 ## KV 缓存与前缀感知路由：别让轮询毁掉前缀命中率
 
-如果只是一段全流量共用的热系统提示词、且已在全部 `N` 个副本上常驻，普通轮询照样能命中。但面对**会话级多轮对话前缀、冷启动尚未铺满的前缀，或显存紧张频繁驱逐下的差异化前缀**时，纯轮询（Round-Robin）或按连接数路由的七层代理会把同一会话的后续轮次随机散射到 `N` 个副本上，单副本上的 [自动前缀缓存（Prefix Caching）](prefix-caching.md) 有效命中率近似除以 `N`，引发大量重复 Prefill 计算并推高 **TTFT**（首字时延）。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
+如果只是一段全流量共用的热系统提示词、且已在全部 `N` 个副本上常驻，普通轮询照样能命中。但面对**会话级多轮对话前缀、冷启动尚未铺满的前缀，或显存紧张频繁驱逐下的差异化前缀**时，纯轮询（Round-Robin）或按连接数路由的七层代理会把同一会话的后续轮次随机散射到 `N` 个副本上。这会让单副本上的 [自动前缀缓存（Prefix Caching）](prefix-caching.md) 有效命中率近似除以 `N`，引发大量重复 Prefill 计算并推高 **TTFT**（首字时延）。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
 
 1. **实时负载探测（`GET /load`）**：vLLM API Server 内置 `/load` 端点，返回 `{"server_load": ...}`。**注意配套开关 `--enable-server-load-tracking`（`enable_server_load_tracking`）默认是 `False`，不显式开启时 `server_load` 恒为 `0`**；开启后它会统计接入负载计数的推理接口（`/v1/chat/completions`、`/v1/completions`、`/v1/responses` 等）上当前所有在途请求数，直到流式输出完整结束才归还（涵盖排队与吐字全阶段）。网关在前缀命中打平或冷请求到来时，优先挑选 `server_load` 最低的副本。
 2. **基于 `KVEventsConfig` 的精确块事件广播**：前缀哈希路由最怕“路由器以为某副本还留着 KV 块，其实早被 **LRU**（最近最少使用淘汰策略）驱逐了”。vLLM 在 `enable_kv_cache_events=True` 时，默认通过 **ZMQ**（轻量跨进程消息总线 ZeroMQ）发布块事件（端点 `tcp://*:5557`，支持 `replay_endpoint` 与 `buffer_steps=10_000` 断线重放）。引擎将内部 KV 块的写入与驱逐事件实时推送给集群路由器或全局 KV 索引器，实现**真正感知实时 KV 驻留位置的路由**。

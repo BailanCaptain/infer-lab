@@ -25,6 +25,9 @@ aliases:
   - GLM
   - GLM5.3-Flash
   - GLM-5.3
+  - Glm5NextForCausalLM
+  - Glm5NextForConditionalGeneration
+  - Glm5NextMTP
 chapters:
   - '00'
 order: 5

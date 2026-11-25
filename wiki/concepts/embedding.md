@@ -14,6 +14,7 @@ aliases:
   - embedding 表
   - 词嵌入表
   - embedding lookup
+  - embed_tokens
 chapters:
   - '01'
 order: 30

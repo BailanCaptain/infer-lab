@@ -42,6 +42,12 @@ aliases:
   - value
   - output-projection
   - multi-head
+  - QK
+  - q_proj
+  - k_proj
+  - v_proj
+  - q_norm
+  - k_norm
 chapters:
   - '02'
 order: 60

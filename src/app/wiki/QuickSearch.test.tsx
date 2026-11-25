@@ -386,4 +386,93 @@ describe("Wiki 快捷搜索状态机与视图（Task 751 第 2 短轮）", () =>
     ).toBe(true);
     expect(closed).toBe(1);
   });
+
+  it("WS2: 对明确报错特征码、CLI 参数与预设模型提供 1–2 条带「工具/3D」徽章的可点选直达项，绝不自动强跳", async () => {
+    const { createQuickSearchController, matchQuickSearchActionItems, QuickSearchDialog } = QuickSearchModule;
+    const navigated: string[] = [];
+
+    for (const q of [
+      "507015",
+      "EI0006",
+      "HCCL",
+      "OOM",
+      "ACLGraph",
+      "--gpu-memory-utilization",
+      "--tensor-parallel-size",
+      "--max-num-batched-tokens",
+      "vllm serve",
+      "Qwen3-8B",
+      "Qwen3-32B",
+      "Qwen3-30B-A3B",
+      "Qwen3-235B-A22B",
+      "DeepSeek-V3",
+    ]) {
+      const actions = matchQuickSearchActionItems(q);
+      expect(actions.length, q).toBeGreaterThanOrEqual(1);
+      expect(actions.length, q).toBeLessThanOrEqual(2);
+      for (const item of actions) {
+        expect(["工具", "3D"]).toContain(item.typeLabel);
+        expect(item.route).toMatch(/^\/(?:tools|hardware|model)/);
+      }
+    }
+
+    const ctl = createQuickSearchController({
+      search: async (q) =>
+        q === "--gpu-memory-utilization"
+          ? [
+              {
+                id: "gpu-memory-utilization",
+                title: "gpu_memory_utilization",
+                summary: "显存预算比例参数。",
+                evidence: "C",
+                score: 20,
+                how: "exact",
+              },
+            ]
+          : [],
+      getPages: () => [{ id: "gpu-memory-utilization", type: "param" }],
+      onNavigate: (target) => navigated.push(target),
+    });
+
+    ctl.openSearch();
+    // 1. 输入 EI0006：仅展示候选列表，绝不自动跳转
+    await ctl.setQuery("EI0006");
+    expect(navigated).toEqual([]);
+    expect(ctl.getState().open).toBe(true);
+    expect(ctl.getState().items[0]?.typeLabel).toBe("工具");
+    expect(ctl.getState().items[0]?.route).toContain("/tools?tab=troubleshoot");
+
+    const html = renderToStaticMarkup(
+      createElement(QuickSearchDialog, {
+        state: ctl.getState(),
+        onQueryChange: () => {},
+        onSelectIndex: () => {},
+        onPickItem: () => {},
+        onRetry: () => {},
+        onClose: () => {},
+        onInputKeyDown: () => {},
+      }),
+    );
+    expect(html).toContain('data-testid="wiki-quick-search-action-badge"');
+
+    // 用户显式按 Enter 后才跳转至目标工具路由
+    const prevent = vi.fn();
+    expect(ctl.handleKeyDown({ key: "Enter", preventDefault: prevent })).toBe(true);
+    expect(navigated).toEqual(["/tools?tab=troubleshoot&fixture=multi-rank-hccl-rank3-fault"]);
+    expect(ctl.getState().open).toBe(false);
+
+    // 2. 精确命中参数页（--gpu-memory-utilization）时：参数页保持第 0 项，工具动作项紧随第 1 项
+    ctl.openSearch();
+    await ctl.setQuery("--gpu-memory-utilization");
+    expect(ctl.getState().items.map((x) => `${x.typeLabel}:${x.route ?? x.id}`)).toEqual([
+      "参数:gpu-memory-utilization",
+      "工具:/tools?tab=calculator",
+    ]);
+
+    // 3. 预设模型 Qwen3-235B-A22B 提供算账台（工具）与 3D 硬件分片（3D）双入口
+    await ctl.setQuery("Qwen3-235B-A22B");
+    expect(ctl.getState().items.map((x) => x.typeLabel)).toEqual(["工具", "3D"]);
+    ctl.pickItem(1);
+    expect(navigated.at(-1)).toMatch(/^\/hardware\?vendor=ascend&model=atlas-800i-a3&level=2&deploy=/);
+  });
 });

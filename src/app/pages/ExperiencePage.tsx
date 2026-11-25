@@ -1,4 +1,4 @@
-import { ArrowLeft, Box, Layers, Network, Play, RotateCw } from "lucide-react";
+import { ArrowLeft, BookOpen, Box, Layers, Network, Play, RotateCw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { findChapter } from "../../content/chapters";
@@ -16,6 +16,7 @@ import {
   parseLegacyGlmSegment,
   type QwenVariant,
   resolveExperienceBackTarget,
+  resolveExperienceWikiContextLink,
   resolveInPlaceVariantSync,
   resolveModelEdition,
   resolveQwenVariant,
@@ -153,6 +154,7 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const frameTitle = `${title} · ${viewTitle}`;
   const base = id ? `/chapters/${id}` : `/${kind}`;
   const backTarget = resolveExperienceBackTarget(params, chapter);
+  const wikiContextLink = resolveExperienceWikiContextLink({ kind, params, backTarget });
 
   const [reloadNonce, setReloadNonce] = useState(0);
   const baseIdentity = `${kind}:${edition}:${viewId}:${reloadNonce}`;
@@ -434,19 +436,31 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
       <main className={`experience-page experience-${kind}`} id="main-content" tabIndex={-1}>
         <header className="experience-toolbar">
           <div className="experience-heading">
-            <Link to={backTarget.to} data-testid="experience-back-link">
-              <ArrowLeft size={14} />
-              {backTarget.label}
-            </Link>
-            {backTarget.secondary && (
-              <Link
-                to={backTarget.secondary.to}
-                data-testid="experience-back-secondary"
-                style={{ fontSize: 13, color: "var(--color-ink-muted)" }}
-              >
-                {backTarget.secondary.label}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px" }}>
+              <Link to={backTarget.to} data-testid="experience-back-link">
+                <ArrowLeft size={14} />
+                {backTarget.label}
               </Link>
-            )}
+              {backTarget.secondary && (
+                <Link
+                  to={backTarget.secondary.to}
+                  data-testid="experience-back-secondary"
+                  style={{ fontSize: 13, color: "var(--color-ink-muted)" }}
+                >
+                  {backTarget.secondary.label}
+                </Link>
+              )}
+              {wikiContextLink && (
+                <Link
+                  to={wikiContextLink.to}
+                  data-testid="experience-wiki-context-link"
+                  style={{ fontSize: 13, color: "var(--color-reader-accent, var(--color-accent))" }}
+                >
+                  <BookOpen size={13} aria-hidden="true" />
+                  <span>{wikiContextLink.label}</span>
+                </Link>
+              )}
+            </div>
             <h1>{id && chapter ? chapter.title : kind === "model" ? "模型探索" : "硬件探索"}</h1>
           </div>
           {!isReady && outgoing && !isTimedOut && (

@@ -188,6 +188,7 @@ const STOPWORDS = new Set([
   "LPT",
   "IPC",
   "EADDRINUSE",
+  "dict",
   "sources",
   "apply",
   "down",

@@ -367,6 +367,11 @@
           "note": "若 Eager 模式正常、开启 ACL Graph 后异常，需按本页切换到 AclGraphDumper 捕图侧张量"
         },
         {
+          "from": "multistream-engram-overlap-29113aa3f8fc",
+          "kind": "enables",
+          "note": "辅助流重叠只在 CUDAGraphMode.NONE 与 FULL 下启用，FULL 图通过外部事件在消费层前同步"
+        },
+        {
           "from": "npugraph-ex",
           "kind": "enables",
           "note": "编译图融合位于 ACLGraph 分档捕获之前，且仅在 FULL / FULL_DECODE_ONLY 纯整图档位保持开启"
@@ -979,7 +984,9 @@
         "Ascend 910B3",
         "910B3 实测",
         "910B3 基准",
-        "CANNLab 910B3"
+        "CANNLab 910B3",
+        "MatMulV3",
+        "QuantBatchMatmulV3"
       ],
       "chapters": [
         "10",
@@ -1176,6 +1183,16 @@
           "from": "ascend-950-execution-interconnect",
           "kind": "enables",
           "note": "先认识 950 的计算和存储资源，再追踪任务怎样交给它们"
+        },
+        {
+          "from": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "enables",
+          "note": "严格依赖 CANN_MEGAMOE_SHARED_EXPERT_FUSION 与 MXFP 硬件能力，仅 Atlas A5（Ascend 950）支持"
+        },
+        {
+          "from": "multistream-engram-overlap-29113aa3f8fc",
+          "kind": "enables",
+          "note": "默认值按硬件画像自动分支，仅 FP8_OPTIMIZED 家族（Atlas A5 / Ascend 950）默认开启"
         }
       ]
     },
@@ -1467,9 +1484,19 @@
           "note": "该子键曾嵌在 additional_config.sparse_kv_offload_config 下，v0.30.0 移除后保留旧键会触发严格配置校验报错"
         },
         {
+          "from": "gdn-internal-prefill-checkpoints-50f5ac80d583",
+          "kind": "enables",
+          "note": "作为 AscendConfig 顶层布尔键配置，不满足层能力门槛时在层初始化阶段静默保持关闭"
+        },
+        {
           "from": "inference-troubleshooting",
           "kind": "enables",
           "note": "核对实际生效值，判断升级或配置是否改变路径"
+        },
+        {
+          "from": "kv-pool-range-debug-83e8b165addd",
+          "kind": "enables",
+          "note": "main 分支将原本挂在 envs.py 的环境变量正式迁入 additional_config 统一受管字段"
         },
         {
           "from": "kvpp-config-0445bd352140",
@@ -1490,6 +1517,16 @@
           "from": "load-window-bins-cc21068b082d",
           "kind": "enables",
           "note": "load_window_bins 必须放在 additional_config.eplb_config.stair_config 层级中，其配置方式依赖 AscendConfig 的分层解析机制。"
+        },
+        {
+          "from": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "enables",
+          "note": "源码注释标明它是从 enable_fused_mc2=3 派生的内部字段，用户应配置 enable_fused_mc2 而非手写本键"
+        },
+        {
+          "from": "multistream-engram-overlap-29113aa3f8fc",
+          "kind": "enables",
+          "note": "作为 additional_config 顶层布尔键由 AscendConfig 解析，显式传值优先于硬件默认策略"
         },
         {
           "from": "multistream-overlap-gate",
@@ -1527,6 +1564,11 @@
           "note": "它是 additional_config 下的一个嵌套 dict，v0.26–v0.30.0 推荐放进 scheduler_config、顶层写法打弃用告警，main 已移除并交由 extra=\"forbid\" 校验"
         },
         {
+          "from": "quantized-all-reduce-config-3cc69e492011",
+          "kind": "enables",
+          "note": "对应 QuantizedAllReduceConfig 子配置类，包含解析期 TP 上限校验与运行期设备类型校验"
+        },
+        {
           "from": "rank-transfer-limit-99529b37d91d",
           "kind": "enables",
           "note": "该参数嵌套在 AscendConfig 的 EPLB 子配置中；钉住版本不认识此键时启动失败，依赖 EPLB 子配置拒绝未知键的校验机制。"
@@ -1562,9 +1604,24 @@
           "note": "RFork 参数走 --model-loader-extra-config 而非昇腾 --additional-config，两者入口隔离"
         },
         {
+          "from": "runtime-config-abb228bbf148",
+          "kind": "enables",
+          "note": "由 init_ascend_config 在构造 AscendConfig 前从 additional_config 剥离并解析为 RuntimeConfig 实例"
+        },
+        {
+          "from": "runtime-config-hot-reload-9c9ab794933a",
+          "kind": "enables",
+          "note": "仅允许在启动时通过 additional_config 传入 bool 或 0/1，运行期无法从 JSON 内部反向开启"
+        },
+        {
           "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
           "kind": "enables",
           "note": "与同批的 enable_dsa_cp 不同，这个读取函数没有 lru_cache，每次走到都现读一次配置单例"
+        },
+        {
+          "from": "shared-engram-31bf0d820403",
+          "kind": "enables",
+          "note": "对应 SharedEngramConfig 子配置类并开启 extra=\"forbid\"，六个子键按后端分支做严格组合校验"
         },
         {
           "from": "stair-config-cca9e594a052",
@@ -1789,7 +1846,9 @@
         "PFA",
         "IFA",
         "npu_attention_update",
-        "ScatterPaKvCache"
+        "ScatterPaKvCache",
+        "Slice",
+        "aclnnContiguous_SliceAiCore_Slice"
       ],
       "chapters": [
         "04"
@@ -2786,7 +2845,13 @@
         "key",
         "value",
         "output-projection",
-        "multi-head"
+        "multi-head",
+        "QK",
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "q_norm",
+        "k_norm"
       ],
       "chapters": [
         "02"
@@ -3247,7 +3312,10 @@
         "JobDecodeEstimator",
         "batch_job_sched_config",
         "job_name",
-        "EWMA"
+        "EWMA",
+        "LPT 调度",
+        "Longest Processing Time first",
+        "最长任务优先"
       ],
       "chapters": [
         "12"
@@ -3787,7 +3855,10 @@
         "TorchNPU",
         "Triton Ascend",
         "Gloo",
-        "通信域"
+        "通信域",
+        "ACL",
+        "AscendCL",
+        "Ascend Computing Language"
       ],
       "chapters": [
         "07",
@@ -4518,6 +4589,16 @@
           "from": "pipeline-parallel",
           "kind": "enables",
           "note": "区分段间点对点收发与段内 TP 组的 All-Gather 合并"
+        },
+        {
+          "from": "quantized-all-reduce-config-3cc69e492011",
+          "kind": "enables",
+          "note": "TP 组内 All-Reduce 的通信原语与带宽瓶颈在那一页讲，本页聚焦对称 int8 量化压缩规约配置"
+        },
+        {
+          "from": "runtime-config-hot-reload-9c9ab794933a",
+          "kind": "enables",
+          "note": "末级 PP 的多卡 TP 组通过后台总线广播热更新结果以保证同波次各卡行为一致，其余进程走本地文件轮询"
         },
         {
           "from": "sequence-parallel",
@@ -5981,7 +6062,9 @@
         "vllm_ascend_C",
         "triton-ascend",
         "AscendC 算子接入",
-        "HardwareProfile 能力门控"
+        "HardwareProfile 能力门控",
+        "HAS_TRITON",
+        "RUNTIME_CUSTOM_OPS"
       ],
       "chapters": [
         "16",
@@ -6824,7 +6907,8 @@
         "嵌入层",
         "embedding 表",
         "词嵌入表",
-        "embedding lookup"
+        "embedding lookup",
+        "embed_tokens"
       ],
       "chapters": [
         "01"
@@ -7843,7 +7927,17 @@
         "HCCL_OP_EXPANSION_MODE",
         "TP_SOCKET_IFNAME",
         "SharedAdmissionStats",
-        "fork vs spawn"
+        "fork vs spawn",
+        "fork",
+        "spawn",
+        "ZMQ",
+        "ZeroMQ",
+        "进程间消息队列",
+        "ZMQ IPC",
+        "SHM",
+        "进程间通信",
+        "共享内存",
+        "POSIX 共享内存"
       ],
       "chapters": [
         "10"
@@ -8209,7 +8303,18 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "concepts/engram-conditional-memory.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "multistream-engram-overlap-29113aa3f8fc",
+          "kind": "enables",
+          "note": "Engram 条件记忆的 n-gram 哈希、主机内存卸载与门控注入机制在那一页讲，本页聚焦辅助流重叠开关"
+        },
+        {
+          "from": "shared-engram-31bf0d820403",
+          "kind": "enables",
+          "note": "单实例 Engram 主机内存卸载与门控前向原理见那一页，本页聚焦多实例共享词表池客户端配置"
+        }
+      ]
     },
     {
       "id": "epd-disaggregation",
@@ -8333,7 +8438,8 @@
         "log2phy",
         "num_redundant_experts",
         "load_collection_phase",
-        "冗余专家"
+        "冗余专家",
+        "eplb_config"
       ],
       "chapters": [
         "14"
@@ -8744,6 +8850,11 @@
           "note": "MoE 模型同时开启 LoRA 与 EP（ep_size > 1）时，因融合 MC2 无法插入低秩旁路，v0.26 起会强制切换至 ALLTOALL 通信。"
         },
         {
+          "from": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "enables",
+          "note": "TP > 1 时融合算子不做跨卡规约，要求搭配 enable_shared_expert_dp 复制共享专家权重"
+        },
+        {
           "from": "moe-comm-dispatch",
           "kind": "enables",
           "note": "先掌握专家并行中路由专家跨卡分散与 Dispatch/Combine 的基本逻辑，再看不同硬件与批长下的选路状态机"
@@ -9131,6 +9242,66 @@
       "backlinks": []
     },
     {
+      "id": "gdn-internal-prefill-checkpoints-50f5ac80d583",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "64-token 检查点导出与生效门槛",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "gdn_internal_prefill_checkpoints",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的门控增量网络（GDN）线性注意力 Prefill 内部检查点开关（默认 false）：设为 true 且满足 mamba_cache_mode=\"align\"、BF16、PCP=1、head_dim=128 等条件时，以 64 token 对齐切走 Triton 分块算子导出 FP32 中间递推状态以提升前缀缓存复用率。",
+      "aliases": [
+        "additional_config.gdn_internal_prefill_checkpoints",
+        "GDN 内部检查点",
+        "GDN Prefill Checkpoints"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L741",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/gdn_checkpoint.py#L1-L100",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/configuration/additional_config.md#L332-L360"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "linear-attention",
+          "kind": "builds-on",
+          "note": "线性注意力按递推状态推进历史上下文，中间块缺少快照时无法像标准 KV 那样任意块边界复用前缀"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "导出的块起点递推状态按 64 token 对齐交给前缀缓存规划器复用，减少长提示重复重算"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "作为 AscendConfig 顶层布尔键配置，不满足层能力门槛时在层初始化阶段静默保持关闭"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/gdn-internal-prefill-checkpoints-50f5ac80d583.md",
+      "backlinks": []
+    },
+    {
       "id": "glm-5-3-flash",
       "title": "认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来",
       "type": "concept",
@@ -9154,7 +9325,10 @@
         "lightning indexer",
         "GLM",
         "GLM5.3-Flash",
-        "GLM-5.3"
+        "GLM-5.3",
+        "Glm5NextForCausalLM",
+        "Glm5NextForConditionalGeneration",
+        "Glm5NextMTP"
       ],
       "chapters": [
         "00"
@@ -9780,7 +9954,11 @@
         "max_cudagraph_capture_size",
         "max-cudagraph-capture-size",
         "enforce_eager",
-        "enforce-eager"
+        "enforce-eager",
+        "FX",
+        "FX 图",
+        "FX 计算图",
+        "torch.fx"
       ],
       "chapters": [
         "16"
@@ -9974,7 +10152,10 @@
         "Atlas 800T A2",
         "Atlas 800I A2",
         "Atlas 300I DUO",
+        "DUO",
         "310P",
+        "310P Duo",
+        "NPUWorker310",
         "HardwareProfile",
         "SOC_VERSION"
       ],
@@ -10292,7 +10473,8 @@
         "模型目录结构",
         "tie_word_embeddings",
         "architectures",
-        "model_type"
+        "model_type",
+        "vocab_size"
       ],
       "chapters": [
         "01"
@@ -11935,7 +12117,9 @@
         "profile run",
         "determine_available_memory",
         "non_torch_increase",
-        "非 torch 增量"
+        "non_torch",
+        "非 torch 增量",
+        "CacheConfig"
       ],
       "chapters": [
         "05"
@@ -12413,6 +12597,7 @@
         "KV Cache 声明",
         "按层 KV 规格声明",
         "AttentionSpec",
+        "FullAttentionSpec",
         "MLAAttentionSpec",
         "MambaSpec",
         "缓存组",
@@ -12915,6 +13100,70 @@
           "note": "把外部 KV 池的整趟前向搬运细化为逐层流水预取与回写，并支持多层轮用共享物理槽以压缩显存占位"
         }
       ]
+    },
+    {
+      "id": "kv-pool-range-debug-83e8b165addd",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "三类审计日志事件与版本迁移",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "kv_pool_range_debug",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支用于替代旧环境变量 VLLM_ASCEND_KVPOOL_RANGE_DEBUG 的 KV Pool 审计日志开关（默认 false）：设为 true 后对 Mooncake 后端整键读写及分层 KV 传输的逐层区间与提交动作输出 [KVPOOL_RANGE_DEBUG] JSON 日志。",
+      "aliases": [
+        "additional_config.kv_pool_range_debug",
+        "VLLM_ASCEND_KVPOOL_RANGE_DEBUG",
+        "KVPOOL_RANGE_DEBUG",
+        "KV Pool 区间调试日志"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L670",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L46-L62",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise/kv_transfer.py#L34-L88",
+        "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L83-L86",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L43-L59",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L47-L102",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/configuration/additional_config.md#L60"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "mooncake-connector",
+          "kind": "builds-on",
+          "note": "整键读写事件埋在 Mooncake 后端，分层区间与提交事件埋在 Layerwise KV 传输层"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "用于联调跨实例 KV 池读写偏移、长度与提交时序，正常线上流量应保持关闭"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "main 分支将原本挂在 envs.py 的环境变量正式迁入 additional_config 统一受管字段"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/kv-pool-range-debug-83e8b165addd.md",
+      "backlinks": []
     },
     {
       "id": "kvpp",
@@ -13818,6 +14067,11 @@
           "from": "attention-cost",
           "kind": "enables",
           "note": "KDA 固定状态的递推、卷积状态，以及每条请求分配 85 MiB 缓存页的来历"
+        },
+        {
+          "from": "gdn-internal-prefill-checkpoints-50f5ac80d583",
+          "kind": "enables",
+          "note": "线性注意力按递推状态推进历史上下文，中间块缺少快照时无法像标准 KV 那样任意块边界复用前缀"
         },
         {
           "from": "kv-cache-spec",
@@ -14828,6 +15082,72 @@
       ]
     },
     {
+      "id": "megamoe-shared-expert-fusion-5a99901d47e6",
+      "legacyAnchors": {
+        "一句话": "用途与正确配置入口",
+        "为什么存在": "派生链路与五道融合准入门槛",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "megamoe_shared_expert_fusion",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的 AscendConfig 内部派生布尔标志（默认 false）：由用户设置 enable_fused_mc2=3 自动推导置真，指示 Atlas A5 的 CANN MegaMoE 融合算子将共享专家一并并入算子内部执行，而非单独跑共享专家前向。",
+      "aliases": [
+        "additional_config.megamoe_shared_expert_fusion",
+        "MegaMoE 共享专家融合",
+        "enable_fused_mc2=3"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L708",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L769-L785",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1100-L1128",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L180-L269",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L646-L660",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "moe-comm-dispatch",
+          "kind": "builds-on",
+          "note": "enable_fused_mc2 各档位与 MoE 分发组合算子路由逻辑在那一页讲，本标志对应档位 3 的共享专家并入行为"
+        },
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "TP > 1 时融合算子不做跨卡规约，要求搭配 enable_shared_expert_dp 复制共享专家权重"
+        },
+        {
+          "to": "ascend-950-architecture",
+          "kind": "builds-on",
+          "note": "严格依赖 CANN_MEGAMOE_SHARED_EXPERT_FUSION 与 MXFP 硬件能力，仅 Atlas A5（Ascend 950）支持"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "源码注释标明它是从 enable_fused_mc2=3 派生的内部字段，用户应配置 enable_fused_mc2 而非手写本键"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/megamoe-shared-expert-fusion-5a99901d47e6.md",
+      "backlinks": []
+    },
+    {
       "id": "mla",
       "title": "MLA：历史压成一条潜向量，用时再展开",
       "type": "concept",
@@ -14845,7 +15165,9 @@
         "矩阵吸收",
         "absorb",
         "decoupled RoPE",
-        "稀疏 MLA"
+        "稀疏 MLA",
+        "kv_b_proj",
+        "q_b_proj"
       ],
       "chapters": [
         "04"
@@ -15034,6 +15356,7 @@
         "中间宽度",
         "intermediate_size",
         "gate_up_proj",
+        "gate_up",
         "down_proj",
         "input_layernorm",
         "post_attention_layernorm",
@@ -15262,6 +15585,11 @@
           "from": "msprobe-accuracy-debug",
           "kind": "enables",
           "note": "MRV1 与 MRV2 在 load_model 与 sample_tokens/pool 均内建了等价的 msprobe 启停钩子"
+        },
+        {
+          "from": "shared-engram-31bf0d820403",
+          "kind": "enables",
+          "note": "backend=\"a3\" 强制要求开启 Model Runner V2，否则在 AscendConfig 校验阶段直接报错"
         },
         {
           "from": "stair-config-cca9e594a052",
@@ -15604,7 +15932,13 @@
       "contradicts": [],
       "updated": "2026-11-24",
       "file": "concepts/moe-comm-dispatch.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "enables",
+          "note": "enable_fused_mc2 各档位与 MoE 分发组合算子路由逻辑在那一页讲，本标志对应档位 3 的共享专家并入行为"
+        }
+      ]
     },
     {
       "id": "mooncake-connector",
@@ -15867,6 +16201,11 @@
           "note": "AscendStore 的 Mooncake 后端在 A2 上复用底层 TransferEngine，但改按内容指纹存取而非 P/D 点对点配对"
         },
         {
+          "from": "kv-pool-range-debug-83e8b165addd",
+          "kind": "enables",
+          "note": "整键读写事件埋在 Mooncake 后端，分层区间与提交事件埋在 Layerwise KV 传输层"
+        },
+        {
           "from": "recompute-scheduler",
           "kind": "enables",
           "note": "退回 P 重做 prefill 后须经连接器重新完成 P→D 状态交接"
@@ -15960,7 +16299,13 @@
       "contradicts": [],
       "updated": "2026-11-24",
       "file": "concepts/msprobe-accuracy-debug.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "runtime-config-abb228bbf148",
+          "kind": "enables",
+          "note": "在线异常检测与手动水位线 KV/张量 dump 用于线上定位偶发精度或数值异常，离线算子比对见那一页"
+        }
+      ]
     },
     {
       "id": "multimodal-inference",
@@ -16072,6 +16417,76 @@
           "note": "掌握单实例内 ViT 视觉编码、占位覆写与编码缓存概念，才能看懂跨进程 EC 缓存交接在传什么"
         }
       ]
+    },
+    {
+      "id": "multistream-engram-overlap-29113aa3f8fc",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "辅助流重叠机制与图模式边界",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "multistream_engram_overlap",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制 Engram 模型是否在辅助流异步重叠哈希、查表与跨卡交换：Atlas A5 默认 true，A2 / A3 / 310P 默认 false；单步图模式为 NONE 或 FULL（含 FULL_DECODE_ONLY）时生效，PIECEWISE 分段步回退串行。",
+      "aliases": [
+        "additional_config.multistream_engram_overlap",
+        "Engram 多流重叠",
+        "Engram 辅助流重叠"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L570",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L567-L575",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/model.py#L1068-L1105",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/model.py#L1243-L1302",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/model.py#L1418-L1455",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L658-L666",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/model.py#L1140-L1150",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/model.py#L1531-L1560",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L403-L413"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "engram-conditional-memory",
+          "kind": "builds-on",
+          "note": "Engram 条件记忆的 n-gram 哈希、主机内存卸载与门控注入机制在那一页讲，本页聚焦辅助流重叠开关"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "辅助流重叠只在 CUDAGraphMode.NONE 与 FULL 下启用，FULL 图通过外部事件在消费层前同步"
+        },
+        {
+          "to": "ascend-950-architecture",
+          "kind": "builds-on",
+          "note": "默认值按硬件画像自动分支，仅 FP8_OPTIMIZED 家族（Atlas A5 / Ascend 950）默认开启"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "作为 additional_config 顶层布尔键由 AscendConfig 解析，显式传值优先于硬件默认策略"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/multistream-engram-overlap-29113aa3f8fc.md",
+      "backlinks": []
     },
     {
       "id": "multistream-overlap-gate",
@@ -17708,6 +18123,11 @@
           "note": "前序段落算出的 KV 按分页块留在显存，后续分块直接跨段读取而无需事后拼接结果"
         },
         {
+          "from": "gdn-internal-prefill-checkpoints-50f5ac80d583",
+          "kind": "enables",
+          "note": "导出的块起点递推状态按 64 token 对齐交给前缀缓存规划器复用，减少长提示重复重算"
+        },
+        {
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
           "note": "设备侧分页块按多页拼成主机段（chunk）做异步 DMA 双向搬运"
@@ -17766,6 +18186,7 @@
         "kv_role",
         "kv_producer",
         "kv_consumer",
+        "kv_both",
         "prefill_tp_size",
         "decode_tp_size",
         "kv_transfer_params",
@@ -18025,6 +18446,11 @@
           "from": "kv-pool",
           "kind": "enables",
           "note": "PD 分离部署下 KV Pool 默认只服务 P 侧复用前缀，D 侧需显式开启才参与读写"
+        },
+        {
+          "from": "kv-pool-range-debug-83e8b165addd",
+          "kind": "enables",
+          "note": "用于联调跨实例 KV 池读写偏移、长度与提交时序，正常线上流量应保持关闭"
         },
         {
           "from": "layer-sharding",
@@ -19208,7 +19634,10 @@
         "持久批次",
         "persistent batch",
         "注意力元数据",
-        "attention metadata"
+        "attention metadata",
+        "DecodeOnly",
+        "SpecDecoding",
+        "AscendAttentionState"
       ],
       "chapters": [
         "09"
@@ -19535,7 +19964,8 @@
         "W4A4_MXFP4",
         "pertoken_scale",
         "deq_scale",
-        "quant_mode"
+        "quant_mode",
+        "model_dtype"
       ],
       "chapters": [
         "11"
@@ -19963,6 +20393,77 @@
           "note": "查阅 W8A8_MIX、W8A8_DYNAMIC、MXFP8 与原生分块 FP8 的量化权重格式差异"
         }
       ]
+    },
+    {
+      "id": "quantized-all-reduce-config-3cc69e492011",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "子键说明与生效门槛",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "quantized_all_reduce_config",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的张量并行低精度规约配置（QuantizedAllReduceConfig），在 Atlas A2、TP <= 8 场景下按最后一维通道做全局 amax 对齐并将大张量 BF16 All-Reduce 压缩为对称 int8 载荷传输以削减 HCCS 跨芯片流量，折入 enable 与 min_numel 两个子键。",
+      "aliases": [
+        "QuantizedAllReduceConfig",
+        "QuantizedAllReduce",
+        "additional_config.quantized_all_reduce_config",
+        "quantized_all_reduce_config.enable",
+        "quantized_all_reduce_config.min_numel",
+        "量化 AllReduce 配置"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L727",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L413-L454",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L873-L885",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L2047",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/npu_communicator.py#L74-L90",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/quantized_all_reduce.py#L30-L132",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "collective-communication",
+          "kind": "builds-on",
+          "note": "TP 组内 All-Reduce 的通信原语与带宽瓶颈在那一页讲，本页聚焦对称 int8 量化压缩规约配置"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "仅挂载在 TP 通信组（world_size <= 8）的 all_reduce 上，大批量 Prefill 跨卡规约时触发"
+        },
+        {
+          "to": "sequence-parallel",
+          "kind": "builds-on",
+          "note": "同时开启 FlashComm1 与序列并行时会把 All-Reduce 拆成 ReduceScatter + AllGather，本开关会自动告警关闭"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "对应 QuantizedAllReduceConfig 子配置类，包含解析期 TP 上限校验与运行期设备类型校验"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/quantized-all-reduce-config-3cc69e492011.md",
+      "backlinks": []
     },
     {
       "id": "rank-transfer-limit-99529b37d91d",
@@ -20906,6 +21407,9 @@
         "LLM.collective_rpc",
         "LLM.apply_model",
         "ZMQ 通道",
+        "RPC",
+        "远程过程调用",
+        "Remote Procedure Call",
         "RPC 超时"
       ],
       "chapters": [
@@ -21795,7 +22299,10 @@
         "structural_digest",
         "RFork 结构摘要",
         "sharded_dp_rank",
-        "model_deploy_strategy_name"
+        "model_deploy_strategy_name",
+        "seed_key",
+        "seed key",
+        "匹配键"
       ],
       "chapters": [],
       "order": 40,
@@ -22900,6 +23407,139 @@
       ]
     },
     {
+      "id": "runtime-config-abb228bbf148",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "关联路径键与六大配置分区",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "runtime_config",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的 Runtime Guard 在线控制面启动覆盖字典（additional_config.runtime_config），在进程启动时叠加到默认配置并覆写 runtime_config.json，统一管理异常检测器、水位线 dump、动态日志级别、指标粒度与事故报告；配套路径键 runtime_config_path 一并折入本页。",
+      "aliases": [
+        "RuntimeConfig",
+        "Runtime Guard 配置",
+        "additional_config.runtime_config",
+        "runtime_config_path",
+        "additional_config.runtime_config_path",
+        "runtime_config.json"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L700",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L697-L701",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1960-L1970",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L2035-L2040",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/__init__.py#L35-L108",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/config.py#L471-L565",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L565-L610",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/configuration/runtime_config.md#L1-L46",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/runtime_guard.md#L11-L58"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "msprobe-accuracy-debug",
+          "kind": "builds-on",
+          "note": "在线异常检测与手动水位线 KV/张量 dump 用于线上定位偶发精度或数值异常，离线算子比对见那一页"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "由 init_ascend_config 在构造 AscendConfig 前从 additional_config 剥离并解析为 RuntimeConfig 实例"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/runtime-config-abb228bbf148.md",
+      "backlinks": [
+        {
+          "from": "runtime-config-hot-reload-9c9ab794933a",
+          "kind": "enables",
+          "note": "热重载监听的目标文件与六大配置分区 schema 均由 runtime_config 与 runtime_config_path 定义"
+        }
+      ]
+    },
+    {
+      "id": "runtime-config-hot-reload-9c9ab794933a",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "同步拓扑与防撕裂机制",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "runtime_config_hot_reload",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的 Runtime Guard 仅启动期热重载开关（默认 false）：设为 true（或 1）后以固定 3.0 秒周期监听 runtime_config.json 变更，并在末级 PP 的 TP 组内通过步进总线同步，无需重启即可动态切换日志、指标、检测器与手动 dump。",
+      "aliases": [
+        "additional_config.runtime_config_hot_reload",
+        "RuntimeConfig 热重载",
+        "runtime_config 热更新"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L698",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/__init__.py#L46-L77",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/_defaults.py#L26-L55",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/config.py#L510-L565",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/config.py#L1085-L1205",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/dist.py#L100-L145",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L565-L610",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/runtime_guard.md#L30-L125"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "runtime-config-abb228bbf148",
+          "kind": "builds-on",
+          "note": "热重载监听的目标文件与六大配置分区 schema 均由 runtime_config 与 runtime_config_path 定义"
+        },
+        {
+          "to": "collective-communication",
+          "kind": "builds-on",
+          "note": "末级 PP 的多卡 TP 组通过后台总线广播热更新结果以保证同波次各卡行为一致，其余进程走本地文件轮询"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "仅允许在启动时通过 additional_config 传入 bool 或 0/1，运行期无法从 JSON 内部反向开启"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/runtime-config-hot-reload-9c9ab794933a.md",
+      "backlinks": []
+    },
+    {
       "id": "sampling",
       "legacyAnchors": {
         "beam-search为什么同时保留几条没写完的候选": "高阶采样、Beam、Logprobs 与生成式评分延伸导览",
@@ -22947,7 +23587,8 @@
         "min_tokens",
         "min tokens",
         "最少输出 token 数",
-        "最少输出数"
+        "最少输出数",
+        "enable_reduce_sample"
       ],
       "chapters": [
         "05"
@@ -23325,6 +23966,11 @@
           "from": "multistream-overlap-gate",
           "kind": "enables",
           "note": "FlashComm3 门控多流重叠要求开启序列并行（FlashComm1 或编译 pass 版 SP）才走 EP 收集与 quant_stream 分支"
+        },
+        {
+          "from": "quantized-all-reduce-config-3cc69e492011",
+          "kind": "enables",
+          "note": "同时开启 FlashComm1 与序列并行时会把 All-Reduce 拆成 ReduceScatter + AllGather，本开关会自动告警关闭"
         }
       ]
     },
@@ -23466,6 +24112,78 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "backlinks": []
+    },
+    {
+      "id": "shared-engram-31bf0d820403",
+      "legacyAnchors": {
+        "一句话": "用途与配置入口",
+        "为什么存在": "六个子键说明与两套后端路径",
+        "开了的代价": "代价与互斥边界"
+      },
+      "title": "shared_engram",
+      "type": "param",
+      "origin": "seed",
+      "summary": "main 分支新增的跨实例共享主机 Engram 词表池配置（SharedEngramConfig），支持 Atlas A3（MemFabric BM 共享主机内存）与 Atlas A2 / A5（HIXL RDMA / UB 按需拉取选中行）两类后端，折入 backend、endpoint、capacity 等六个子键。",
+      "aliases": [
+        "SharedEngramConfig",
+        "additional_config.shared_engram",
+        "shared_engram.backend",
+        "shared_engram.endpoint",
+        "shared_engram.capacity",
+        "shared_engram.library_path",
+        "shared_engram.listen_port",
+        "shared_engram.local_comm_res",
+        "共享 Engram 配置"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L656",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L457-L491",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L797-L809",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/model.py#L1056-L1095",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L565-L585",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram.md#L34-L96",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram_rdma.md#L40-L72",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/parallel.py#L26-L28",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/shared_rdma.py#L41-L49",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2092-L2102"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md"
+      ],
+      "relations": [
+        {
+          "to": "engram-conditional-memory",
+          "kind": "builds-on",
+          "note": "单实例 Engram 主机内存卸载与门控前向原理见那一页，本页聚焦多实例共享词表池客户端配置"
+        },
+        {
+          "to": "model-runner-v2",
+          "kind": "builds-on",
+          "note": "backend=\"a3\" 强制要求开启 Model Runner V2，否则在 AscendConfig 校验阶段直接报错"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "对应 SharedEngramConfig 子配置类并开启 extra=\"forbid\"，六个子键按后端分支做严格组合校验"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-26",
+      "file": "params/shared-engram-31bf0d820403.md",
       "backlinks": []
     },
     {
@@ -25512,6 +26230,11 @@
           "note": "对比层内按列/行切分与层间按段切分，以及段内叠加 TP 时的切片交接"
         },
         {
+          "from": "quantized-all-reduce-config-3cc69e492011",
+          "kind": "enables",
+          "note": "仅挂载在 TP 通信组（world_size <= 8）的 all_reduce 上，大批量 Prefill 跨卡规约时触发"
+        },
+        {
           "from": "rfork-identity",
           "kind": "enables",
           "note": "钥匙里的 TP 编号对应的就是 TP 把矩阵切成的那一份"
@@ -25577,7 +26300,9 @@
         "continue_final_message",
         "chat_template_kwargs",
         "truncate_prompt_tokens",
-        "truncation_side"
+        "truncation_side",
+        "eos_token_id",
+        "bos_token_id"
       ],
       "chapters": [
         "02"

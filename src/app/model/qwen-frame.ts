@@ -116,8 +116,26 @@ export function resolveExperienceBackTarget(
   const deployOverlay = parseHardwareDeployOverlay(params.get("deploy"));
   if (deployOverlay) {
     const exactModelRestored = canRestoreDeployModelOnReturn(deployOverlay, params);
+    const calcReturnTo = buildCalculatorReturnToFromDeploy(deployOverlay, params);
+    if (params.get("fromTools") === "doctor") {
+      const doctorQuery = new URLSearchParams();
+      doctorQuery.set("tab", "doctor");
+      if (fromPageRaw && /^[a-z0-9][a-z0-9-_]{0,127}$/i.test(fromPageRaw)) {
+        doctorQuery.set("fromPage", fromPageRaw);
+        const anchor = sanitizeAnchor(params.get("fromAnchor"));
+        if (anchor) doctorQuery.set("fromAnchor", anchor);
+      }
+      return {
+        to: `/tools?${doctorQuery.toString()}`,
+        label: "返回配置体检台",
+        secondary: wikiTarget ?? {
+          to: calcReturnTo,
+          label: "去部署算账台微调",
+        },
+      };
+    }
     return {
-      to: buildCalculatorReturnToFromDeploy(deployOverlay, params),
+      to: calcReturnTo,
       label: exactModelRestored ? "返回部署算账台微调" : "返回部署算账台（超长自定义模型需重新粘贴）",
       ...(wikiTarget ? { secondary: wikiTarget } : {}),
     };

@@ -19,13 +19,29 @@ import {
 import { decodeXmlEntities, sanitizeDiagram } from "./diagram-sanitize";
 import {
   ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256,
+  ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
   CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256,
+  CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  EPLB_CYCLE_APPROVED_SHA256,
+  GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
+  MLA_INTUITION_APPROVED_SHA256,
+  MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
+  MOONCAKE_CONNECTOR_APPROVED_SHA256,
+  PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
   PREFIX_CACHING_APPROVED_SHA256,
   QUANTIZATION_INTUITION_APPROVED_SHA256,
+  REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
   RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256,
+  RFORK_TROUBLESHOOTING_APPROVED_SHA256,
+  ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
   registeredInteractiveDiagramIds,
   resolveInteractiveDiagram,
+  SPECULATIVE_DECODING_APPROVED_SHA256,
   sha256Hex,
+  TOKEN_BPE_APPROVED_SHA256,
+  V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
+  WORKER_LIFECYCLE_APPROVED_SHA256,
 } from "./interactive-diagrams";
 import { PREFIX_CACHING_STEPS, PrefixCachingInteractive } from "./PrefixCachingInteractive";
 import { RFORK_SCENARIOS, RforkFallbackInteractive } from "./RforkFallbackInteractive";
@@ -197,6 +213,22 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       "chunked-prefill-fig-budget-game",
       "acl-graph-fig-mode-budget",
       "rfork-fig-route-and-fallback",
+      "request-fig-causal-kv-mlp",
+      "token-bpe",
+      "gqa-fig-shared-kv-cost-split",
+      "moe-router-calc-qwen3",
+      "continuous-batching-two-queues-trace",
+      "paged-attention-fig-waste-vs-paging",
+      "mla-intuition",
+      "speculative-decoding",
+      "roofline-matmul-intensity",
+      "ascend-fa-hbm-vs-tiling",
+      "eplb-cycle",
+      "mooncake-connector",
+      "worker-lifecycle",
+      "mem-prof-fig-qwen3-waterfall",
+      "v030-mig-fig-checklist",
+      "rfork-troubleshooting",
     ]);
   });
 
@@ -294,13 +326,32 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
     expect(dualHtml).not.toContain('id="quantization-intuition-ah-ink"');
   });
 
-  it("全部 5 张已注册图逐一读取真实 SVG（CRLF→LF 归一）：正式态命中、审阅态返回 null、1 字节改动严格回退静态 SVG", () => {
+  it("全部 21 张已注册图逐一读取真实 SVG（CRLF→LF 归一）：正式态命中、审阅态返回 null、1 字节改动严格回退静态 SVG", () => {
     const cases = [
       { id: "quantization-intuition", sha: QUANTIZATION_INTUITION_APPROVED_SHA256 },
       { id: "prefix-caching", sha: PREFIX_CACHING_APPROVED_SHA256 },
       { id: "chunked-prefill-fig-budget-game", sha: CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256 },
       { id: "acl-graph-fig-mode-budget", sha: ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256 },
       { id: "rfork-fig-route-and-fallback", sha: RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 },
+      { id: "request-fig-causal-kv-mlp", sha: REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256 },
+      { id: "token-bpe", sha: TOKEN_BPE_APPROVED_SHA256 },
+      { id: "gqa-fig-shared-kv-cost-split", sha: GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256 },
+      { id: "moe-router-calc-qwen3", sha: MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256 },
+      {
+        id: "continuous-batching-two-queues-trace",
+        sha: CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+      },
+      { id: "paged-attention-fig-waste-vs-paging", sha: PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256 },
+      { id: "mla-intuition", sha: MLA_INTUITION_APPROVED_SHA256 },
+      { id: "speculative-decoding", sha: SPECULATIVE_DECODING_APPROVED_SHA256 },
+      { id: "roofline-matmul-intensity", sha: ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256 },
+      { id: "ascend-fa-hbm-vs-tiling", sha: ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256 },
+      { id: "eplb-cycle", sha: EPLB_CYCLE_APPROVED_SHA256 },
+      { id: "mooncake-connector", sha: MOONCAKE_CONNECTOR_APPROVED_SHA256 },
+      { id: "worker-lifecycle", sha: WORKER_LIFECYCLE_APPROVED_SHA256 },
+      { id: "mem-prof-fig-qwen3-waterfall", sha: MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256 },
+      { id: "v030-mig-fig-checklist", sha: V030_MIG_FIG_CHECKLIST_APPROVED_SHA256 },
+      { id: "rfork-troubleshooting", sha: RFORK_TROUBLESHOOTING_APPROVED_SHA256 },
     ] as const;
 
     for (const item of cases) {

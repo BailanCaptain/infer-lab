@@ -835,7 +835,7 @@ describe("qwen-frame 路由与状态解析", () => {
         createElement(DeployCalculatorView, { mode, embedded: mode !== "full" }),
       );
       expect(html).toContain('data-testid="calc-open-3d-hardware"');
-      expect(html).toContain("在 3D 整机中透视此方案 →");
+      expect(html).toContain("在 3D 整机中透视此方案 (TP=1) →");
     }
 
     const href = buildHardwareDeployHref(

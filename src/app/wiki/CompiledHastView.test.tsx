@@ -339,11 +339,16 @@ describe("CompiledHastView direct HAST renderer", () => {
     );
     expect(preWhitespaceHtml).toContain('data-testid="wiki-code-copy-btn"');
     expect(preWhitespaceHtml).toContain('data-testid="wiki-code-doctor-btn"');
+    expect(preWhitespaceHtml).toContain('data-testid="wiki-code-3d-btn"');
 
-    // Render full markdown mixing single-serve, multi-serve, placeholder, and calc fences
+    // Render full markdown mixing implicit-quant single-serve, unambiguous single-serve, multi-serve, placeholder, and calc fences
     const mixedMd = [
       "```bash",
       singleServeCmd,
+      "```",
+      "",
+      "```bash",
+      "vllm serve Qwen/Qwen3-8B --tensor-parallel-size 2",
       "```",
       "",
       "```bash",
@@ -372,9 +377,10 @@ describe("CompiledHastView direct HAST renderer", () => {
       ),
     );
 
-    // 3 fallback code blocks -> 3 copy buttons, but ONLY 1 doctor handoff button!
-    expect(html.match(/data-testid="wiki-code-copy-btn"/g)?.length).toBe(3);
-    expect(html.match(/data-testid="wiki-code-doctor-btn"/g)?.length).toBe(1);
+    // 4 fallback code blocks -> 4 copy buttons, 2 doctor handoff buttons, and ONLY 1 3D sharding button (implicit -W8A8 without --quantization goes to Doctor only!)
+    expect(html.match(/data-testid="wiki-code-copy-btn"/g)?.length).toBe(4);
+    expect(html.match(/data-testid="wiki-code-doctor-btn"/g)?.length).toBe(2);
+    expect(html.match(/data-testid="wiki-code-3d-btn"/g)?.length).toBe(1);
     // Calc fence untouched
     expect(html).toContain('class="wiki-calc"');
   });

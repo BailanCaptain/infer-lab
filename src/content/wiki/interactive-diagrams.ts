@@ -1,12 +1,61 @@
 import type { ComponentType } from "react";
 import { AclGraphModeInteractive } from "./AclGraphModeInteractive";
+import {
+  ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
+  AscendFaTilingInteractive,
+} from "./AscendFaTilingInteractive";
 import { ChunkedPrefillInteractive } from "./ChunkedPrefillInteractive";
+import {
+  CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  ContinuousBatchingTraceInteractive,
+} from "./ContinuousBatchingTraceInteractive";
+import { EPLB_CYCLE_APPROVED_SHA256, EplbCycleInteractive } from "./EplbCycleInteractive";
+import {
+  GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  GqaSharedKvInteractive,
+} from "./GqaSharedKvInteractive";
+import {
+  MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
+  MemProfWaterfallInteractive,
+} from "./MemProfWaterfallInteractive";
+import { MLA_INTUITION_APPROVED_SHA256, MlaIntuitionInteractive } from "./MlaIntuitionInteractive";
+import { MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256, MoeRouterCalcInteractive } from "./MoeRouterCalcInteractive";
+import {
+  MOONCAKE_CONNECTOR_APPROVED_SHA256,
+  MooncakeConnectorInteractive,
+} from "./MooncakeConnectorInteractive";
+import {
+  PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
+  PagedAttentionWasteInteractive,
+} from "./PagedAttentionWasteInteractive";
 import { PrefixCachingInteractive } from "./PrefixCachingInteractive";
 import {
   type InteractiveDiagramProps,
   QuantizationIntuitionInteractive,
 } from "./QuantizationIntuitionInteractive";
+import {
+  REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
+  RequestCausalKvMlpInteractive,
+} from "./RequestCausalKvMlpInteractive";
 import { RforkFallbackInteractive } from "./RforkFallbackInteractive";
+import {
+  RFORK_TROUBLESHOOTING_APPROVED_SHA256,
+  RforkTroubleshootingInteractive,
+} from "./RforkTroubleshootingInteractive";
+import {
+  ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
+  RooflineMatmulInteractive,
+} from "./RooflineMatmulInteractive";
+import {
+  SPECULATIVE_DECODING_APPROVED_SHA256,
+  SpeculativeDecodingInteractive,
+} from "./SpeculativeDecodingInteractive";
+import { TOKEN_BPE_APPROVED_SHA256, TokenBpeInteractive } from "./TokenBpeInteractive";
+import {
+  V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
+  V030MigChecklistInteractive,
+} from "./V030MigChecklistInteractive";
+import { WORKER_LIFECYCLE_APPROVED_SHA256, WorkerLifecycleInteractive } from "./WorkerLifecycleInteractive";
 
 const K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,
@@ -109,6 +158,25 @@ export const ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256 =
 export const RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 =
   "8a818887ca8c5672463f32616905f804ab4a8344dc016e00d03c75e51d07b73d";
 
+export {
+  ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
+  CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  EPLB_CYCLE_APPROVED_SHA256,
+  GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
+  MLA_INTUITION_APPROVED_SHA256,
+  MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
+  MOONCAKE_CONNECTOR_APPROVED_SHA256,
+  PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
+  REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
+  RFORK_TROUBLESHOOTING_APPROVED_SHA256,
+  ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
+  SPECULATIVE_DECODING_APPROVED_SHA256,
+  TOKEN_BPE_APPROVED_SHA256,
+  V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
+  WORKER_LIFECYCLE_APPROVED_SHA256,
+};
+
 /**
  * 人工代码审查的编译期静态白名单注册表：
  * 仅允许显式静态 import 的组件，绝不接受外部模块路径、动态 import 或任意组件字符串。
@@ -152,6 +220,134 @@ const INTERACTIVE_2D_REGISTRY: ReadonlyMap<string, InteractiveDiagramRegistratio
       id: "rfork-fig-route-and-fallback",
       approvedSvgSha256: RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256,
       Component: RforkFallbackInteractive,
+    },
+  ],
+  [
+    "request-fig-causal-kv-mlp",
+    {
+      id: "request-fig-causal-kv-mlp",
+      approvedSvgSha256: REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
+      Component: RequestCausalKvMlpInteractive,
+    },
+  ],
+  [
+    "token-bpe",
+    {
+      id: "token-bpe",
+      approvedSvgSha256: TOKEN_BPE_APPROVED_SHA256,
+      Component: TokenBpeInteractive,
+    },
+  ],
+  [
+    "gqa-fig-shared-kv-cost-split",
+    {
+      id: "gqa-fig-shared-kv-cost-split",
+      approvedSvgSha256: GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+      Component: GqaSharedKvInteractive,
+    },
+  ],
+  [
+    "moe-router-calc-qwen3",
+    {
+      id: "moe-router-calc-qwen3",
+      approvedSvgSha256: MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
+      Component: MoeRouterCalcInteractive,
+    },
+  ],
+  [
+    "continuous-batching-two-queues-trace",
+    {
+      id: "continuous-batching-two-queues-trace",
+      approvedSvgSha256: CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+      Component: ContinuousBatchingTraceInteractive,
+    },
+  ],
+  [
+    "paged-attention-fig-waste-vs-paging",
+    {
+      id: "paged-attention-fig-waste-vs-paging",
+      approvedSvgSha256: PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
+      Component: PagedAttentionWasteInteractive,
+    },
+  ],
+  [
+    "mla-intuition",
+    {
+      id: "mla-intuition",
+      approvedSvgSha256: MLA_INTUITION_APPROVED_SHA256,
+      Component: MlaIntuitionInteractive,
+    },
+  ],
+  [
+    "speculative-decoding",
+    {
+      id: "speculative-decoding",
+      approvedSvgSha256: SPECULATIVE_DECODING_APPROVED_SHA256,
+      Component: SpeculativeDecodingInteractive,
+    },
+  ],
+  [
+    "roofline-matmul-intensity",
+    {
+      id: "roofline-matmul-intensity",
+      approvedSvgSha256: ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
+      Component: RooflineMatmulInteractive,
+    },
+  ],
+  [
+    "ascend-fa-hbm-vs-tiling",
+    {
+      id: "ascend-fa-hbm-vs-tiling",
+      approvedSvgSha256: ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
+      Component: AscendFaTilingInteractive,
+    },
+  ],
+  [
+    "eplb-cycle",
+    {
+      id: "eplb-cycle",
+      approvedSvgSha256: EPLB_CYCLE_APPROVED_SHA256,
+      Component: EplbCycleInteractive,
+    },
+  ],
+  [
+    "mooncake-connector",
+    {
+      id: "mooncake-connector",
+      approvedSvgSha256: MOONCAKE_CONNECTOR_APPROVED_SHA256,
+      Component: MooncakeConnectorInteractive,
+    },
+  ],
+  [
+    "worker-lifecycle",
+    {
+      id: "worker-lifecycle",
+      approvedSvgSha256: WORKER_LIFECYCLE_APPROVED_SHA256,
+      Component: WorkerLifecycleInteractive,
+    },
+  ],
+  [
+    "mem-prof-fig-qwen3-waterfall",
+    {
+      id: "mem-prof-fig-qwen3-waterfall",
+      approvedSvgSha256: MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
+      Component: MemProfWaterfallInteractive,
+    },
+  ],
+  [
+    "v030-mig-fig-checklist",
+    {
+      id: "v030-mig-fig-checklist",
+      approvedSvgSha256: V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
+      Component: V030MigChecklistInteractive,
+    },
+  ],
+  [
+    "rfork-troubleshooting",
+    {
+      id: "rfork-troubleshooting",
+      approvedSvgSha256: RFORK_TROUBLESHOOTING_APPROVED_SHA256,
+      Component: RforkTroubleshootingInteractive,
     },
   ],
 ]);

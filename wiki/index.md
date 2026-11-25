@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 185 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 193 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘与逐项/归约运算出发，拆解昇腾 AI Core 内 Cube、Vector、Scalar 三类执行单元与各级片上缓冲（L1、L0A/L0B/L0C、UB）及搬运引擎（MTE、FixPipe）的分工；对照三级流水重叠与双缓冲条件，辨析 910B（A2/A3）AIC/AIV 经核外 GM 交接与昇腾 950（A5）L0C→UB 片上直通的架构差异。 `04`
@@ -165,20 +165,28 @@
 - [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — ascend_compilation_config 中的 Super Kernel 优化开关：在编译与 ACL Graph 捕获时提交优化选项与 scope，把符合条件的静态子 kernel 合并。v0.26 维护快照、v0.30.0 及 main 可用，省略时跟随 enable_static_kernel；实际生效还受图模式与硬件能力限制。 `16`
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 旧版 ascend_compilation_config 开关：将 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成单算子；因与序列并行争抢子图而官方默认关闭（v0.23.0 实际注册逻辑存在默认值分裂），自 v0.25.1rc1 起已整体移除，v0.26 静默吞掉、v0.30.0 与 main 严格校验直接报错。 `13`
 - [fused_op_type](params/fused-op-type-fc0f5fcd7be0.md) — 曾用于切换 Sparse KV Offload decode 路径的子键（none 走四步、fused_copy_sfa 走 LIM + Copy-SFA）。仅见于 v0.30.0rc2 等过渡快照；v0.30.0 与 main 已移除该键并默认启用融合路径，传入旧键会报错。
+- [gdn_internal_prefill_checkpoints](params/gdn-internal-prefill-checkpoints-50f5ac80d583.md) — main 分支新增的门控增量网络（GDN）线性注意力 Prefill 内部检查点开关（默认 false）：设为 true 且满足 mamba_cache_mode="align"、BF16、PCP=1、head_dim=128 等条件时，以 64 token 对齐切走 Triton 分块算子导出 FP32 中间递推状态以提升前缀缓存复用率。
+- [kv_pool_range_debug](params/kv-pool-range-debug-83e8b165addd.md) — main 分支用于替代旧环境变量 VLLM_ASCEND_KVPOOL_RANGE_DEBUG 的 KV Pool 审计日志开关（默认 false）：设为 true 后对 Mooncake 后端整键读写及分层 KV 传输的逐层区间与提交动作输出 [KVPOOL_RANGE_DEBUG] JSON 日志。
 - [kvpp_config](params/kvpp-config-0445bd352140.md) — AscendConfig 上的冻结 KVPP 派生子配置，仅含 size 字段，由 enable_kvpp 与 TP×PCP 自动算出而非用户输入；直接写进 additional_config 会被静默剔除，v0.30.0 与 main 均支持。 `11`
 - [layer_sharding](params/layer-sharding.md) — v0.23.0 的层间权重分片列表，将同构 Linear 按层号轮流常驻在组内 rank i % K，其余卡前向异步 broadcast 取回；仅限 P 节点，v0.24.0rc 起已删，v0.26 忽略、v0.30.0 与 main 拒收。 `13`
 - [load_risk_quantile](params/load-risk-quantile-d89a080ba048.md) — STAIR 评估专家与卡负载风险时所用的单侧标准正态分位数：把负载记为均值 + z × 标准差（卡级风险计入同卡专家协方差），默认 0.75（z ≈ 0.674），合法范围 (0.5, 1)。只影响候选生成（副本数与摆放），不影响门槛和最终优胜筛选。v0.30.0 与 main 已接入 MRv2。
 - [load_window_bins](params/load-window-bins-cc21068b082d.md) — STAIR 在分析上游 EPLB 负载窗口前按时间顺序压缩的最多分段数：默认 64，合法范围 2–256。每段保留段均负载与步数权重，后续均衡度、p95 峰均比、方差与协方差均基于压缩后的分段计算。v0.30.0 与 main 已在 MRv2 STAIR 中实际读取。
+- [megamoe_shared_expert_fusion](params/megamoe-shared-expert-fusion-5a99901d47e6.md) — main 分支新增的 AscendConfig 内部派生布尔标志（默认 false）：由用户设置 enable_fused_mc2=3 自动推导置真，指示 Atlas A5 的 CANN MegaMoE 融合算子将共享专家一并并入算子内部执行，而非单独跑共享专家前向。
+- [multistream_engram_overlap](params/multistream-engram-overlap-29113aa3f8fc.md) — 控制 Engram 模型是否在辅助流异步重叠哈希、查表与跨卡交换：Atlas A5 默认 true，A2 / A3 / 310P 默认 false；单步图模式为 NONE 或 FULL（含 FULL_DECODE_ONLY）时生效，PIECEWISE 分段步回退串行。
 - [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控多流重叠开关，把 MoE 共享专家前向与 select_experts 路由放到副流，与 prepare 阶段的动态量化及 EP All-Gather 并行；v0.24.0rc 起整套实现已删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（发现 vLLM-Omni 时告警并过滤）。 `14`
 - [placement_search_backtrack_limit](params/placement-search-backtrack-limit-82b03cef98b0.md) — STAIR 用带约束 LPT 为单个候选摆放专家副本时允许接受替代可行分支的回溯预算上限：默认 32，合法范围 0–64，每个候选单独计数；设为 0 只禁止接受替代可行选择，仍会执行首个可行选择及跳过来源不可行的试放。v0.30.0 与 main 已接入 MRv2。
 - [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn、moe、mlp 三组共五个权重分别指定「预取权重前百分之几」；仅在 v0.23.0 维护分支可用，v0.24.0rc 起随整个 weight prefetch 特性一起删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（Omni 环境告警过滤），没有等价替代键。 `19`
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 动态切块配置（CPP）：启动期实测 prefill 延迟曲线，运行时按前缀长度反解每步 token 切块大小以缓解 PP 流水等待。默认关闭，要求 PP>1 且互斥 balance scheduling，v0.30.0 仍支持，main 已于 PR #21310 移除。 `12 13`
+- [quantized_all_reduce_config](params/quantized-all-reduce-config-3cc69e492011.md) — main 分支新增的张量并行低精度规约配置（QuantizedAllReduceConfig），在 Atlas A2、TP <= 8 场景下按最后一维通道做全局 amax 对齐并将大张量 BF16 All-Reduce 压缩为对称 int8 载荷传输以削减 HCCS 跨芯片流量，折入 enable 与 min_numel 两个子键。
 - [rank_transfer_limit](params/rank-transfer-limit-99529b37d91d.md) — STAIR 单层一轮规划里每张卡换入专家与充当搬运来源的次数上限（两方向分别计数），同时截断一轮副本数调整步数。v0.30.0 与 main 声明默认 -1（不限），合法值为 -1 或正整数；未显式指定通信器而自动回退 torch_gloo 时，未显式填写的限额会自动收紧为 1。
 - [relative_balance_threshold](params/relative-balance-threshold-bcbc40e7dc87.md) — STAIR 判断某层是否重新规划的相对滞回门槛：当前平衡度 ÷ 上次提交摆法时预测的平衡度 ≤ 本值（默认 0.95，合法范围 (0, 1]）即放行该层，与绝对门槛为“或”关系；从未提交过或锚点为空/NaN 的非零负载层直接放行。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
 - [replica_search_beam_size](params/replica-search-beam-size-6556d1650a62.md) — STAIR 副本数搜索的束宽：每段展开后保留的最多候选状态数、最终生成的目标副本数上限，以及真正进入带约束 LPT 摆放的候选上限；默认 64，合法范围 1–128。注意设为 1 时唯一位置会被强制保留的“份数不变”占满，等于关闭副本数调整。v0.30.0 与 main 已接入 MRv2。
 - [replica_search_num_stages](params/replica-search-num-stages-e4b10925ff97.md) — STAIR 分阶段副本数搜索把按风险降序排列的专家切成的阶段组数：前面各组逐段探索额外副本预算，最后一组贪心补齐；默认 4，合法范围 1–8，实际组数取配置值与专家数的较小者，设为 1 时目标退化为纯贪心。v0.30.0 与 main 已接入 MRv2。
 - [replica_search_radius](params/replica-search-radius-cd3118b5aae5.md) — STAIR 分阶段副本数搜索中每段的预算试探半径：以贪心分配给该组的额外副本位个数为中心，向少与多两侧各试至多本值个取值并按可行区间裁剪；默认 8，合法范围 0–32，设为 0 只试贪心中心预算（不关闭 EPLB）。v0.30.0 与 main 已接入 MRv2。
+- [runtime_config](params/runtime-config-abb228bbf148.md) — main 分支新增的 Runtime Guard 在线控制面启动覆盖字典（additional_config.runtime_config），在进程启动时叠加到默认配置并覆写 runtime_config.json，统一管理异常检测器、水位线 dump、动态日志级别、指标粒度与事故报告；配套路径键 runtime_config_path 一并折入本页。
+- [runtime_config_hot_reload](params/runtime-config-hot-reload-9c9ab794933a.md) — main 分支新增的 Runtime Guard 仅启动期热重载开关（默认 false）：设为 true（或 1）后以固定 3.0 秒周期监听 runtime_config.json 变更，并在末级 PP 的 TP 组内通过步进总线同步，无需重启即可动态切换日志、指标、检测器与手动 dump。
 - [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — SFA-DCP 解码路径上 query gather 后的布局对照/回退开关：默认 false 保留 strided view，设 true 在恢复视图尚不连续时强制调用 .contiguous() 还原 t-major 连续存储。v0.30.0 与 main 保留，v0.23.0 与 v0.26.0rc 静默忽略；含 prefill 批次或开启 DSA-CP 时不生效。 `15`
+- [shared_engram](params/shared-engram-31bf0d820403.md) — main 分支新增的跨实例共享主机 Engram 词表池配置（SharedEngramConfig），支持 Atlas A3（MemFabric BM 共享主机内存）与 Atlas A2 / A5（HIXL RDMA / UB 按需拉取选中行）两类后端，折入 backend、endpoint、capacity 等六个子键。
 - [size](params/size-40a1c2ca47b8.md) — KVPPConfig 唯一字段：KVPP 将单个 PP stage 上的层缓存划分给多少张卡，int 类型、默认 1（关闭），开启 enable_kvpp 后按 TP × PCP 自动推导且对象冻结，用户不能直接写入。v0.23.0 与 v0.26.0rc 无此字段，v0.30.0 与 main 保留并由 PCP × TP 组内 rank 判定层归属。 `11`
 - [stair_config](params/stair-config-cca9e594a052.md) — additional_config.eplb_config 下给 MRv2 STAIR（StairEplbPolicy）调参的嵌套字典，十个数值键分管负载窗口压缩、滞回重排门槛、风险分位数、副本数搜索、搬运上限与有界回溯。v0.30.0 与 main 已接入 MRv2 并默认启用 stair 策略，未指定通信器回退 Gloo 时自动收紧未显式配置的搬运限额。
 - [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — Sparse KV Offload 的融合重叠 decode 开关，位于 additional_config.sparse_kv_offload_config，默认 false；开启后把未命中 KV 的 H2D 搬运与 SFA 注意力计算放进同一流水线，并更新设备侧选择缓存。v0.23/v0.26 无此键，v0.30.0 与 main 上开启时自动切离默认的 Copy-SFA 路径。 `11`

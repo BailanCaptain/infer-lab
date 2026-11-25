@@ -481,5 +481,17 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     // 4. 多机节点切换器已接入 whole/viewer.js，确保任意远端节点 Rank（如 16..31）均可检视
     expect(viewerSrc).toContain("deploy-node-selector");
     expect(viewerSrc).toContain("selectDeployNode");
+
+    // 5. 从配置体检台跳转（fromTools=doctor）时，顶栏主返回指向配置体检台，旁侧保留算账台或原知识页入口
+    const doctorHref = buildHardwareDeployHrefFromCommand("vllm serve Qwen/Qwen3-8B -tp 2", {
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(doctorHref).not.toBeNull();
+    const doctorParams = new URLSearchParams(`${doctorHref!.slice("#/hardware?".length)}&fromTools=doctor`);
+    const doctorBack = resolveExperienceBackTarget(doctorParams, null);
+    expect(doctorBack.to).toBe("/tools?tab=doctor");
+    expect(doctorBack.label).toBe("返回配置体检台");
+    expect(doctorBack.secondary?.to).toContain("/tools?tab=calculator");
   });
 });

@@ -35,6 +35,7 @@ import type {
   RuleJudgment,
   RuleVersion,
 } from "../../sim/rules";
+import { buildHardwareDeployHrefFromCommand } from "../model/hardwareDeployOverlay";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById, ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
@@ -57,6 +58,16 @@ import {
 type DoctorTopology = "single" | "pd";
 type ModelHintKey = DoctorModelHintKey;
 type FindingFilter = "all" | RuleJudgment;
+
+interface PendingDoctor3dReturn {
+  readonly seq: number;
+  readonly commandText: string;
+  readonly hardwareFamily: AscendFamily;
+  readonly version: Extract<RuleVersion, "v0.30.0" | "main">;
+}
+
+let pendingDoctor3dReturnSeq = 0;
+let pendingDoctor3dReturn: PendingDoctor3dReturn | null = null;
 
 export function extractNormalizedCliModel(commandText: string): string | null {
   const raw = parseVllmServeCommand(commandText).model?.trim();
@@ -927,10 +938,35 @@ export function ConfigDoctorView({
   const skipNextUrlRestoreRef = useRef<boolean>(false);
   const lastConsumedHandoffSeqRef = useRef<number>(0);
   const strictModePendingHandoffRef = useRef<ReturnType<typeof workbenchHandoffStore.consumeDoctor>>(null);
+  const strictModePending3dReturnRef = useRef<PendingDoctor3dReturn | null>(null);
   const handoffApplyingInCommitRef = useRef<boolean>(false);
   const restoringFromUrlInCommitRef = useRef<boolean>(false);
   handoffApplyingInCommitRef.current = false;
   restoringFromUrlInCommitRef.current = false;
+
+  useEffect(() => {
+    if (embedded || !isDoctorRouteActive || hasExplicitDoctorQueryParams(searchParams)) return;
+    const fresh3d = pendingDoctor3dReturn;
+    const ret3d = fresh3d ?? strictModePending3dReturnRef.current;
+    if (!ret3d) return;
+    if (fresh3d) {
+      pendingDoctor3dReturn = null;
+      strictModePending3dReturnRef.current = fresh3d;
+    }
+    handoffApplyingInCommitRef.current = true;
+    skipNextUrlRestoreRef.current = true;
+    setTopology("single");
+    setHardwareFamily(ret3d.hardwareFamily);
+    setVersion(ret3d.version);
+    setCommandText(ret3d.commandText);
+    const matched = matchExactDoctorPresetId({
+      topology: "single",
+      commandText: ret3d.commandText,
+      prefillCommandText: "",
+      decodeCommandText: "",
+    });
+    setActivePresetId(matched ?? "");
+  }, [embedded, isDoctorRouteActive, searchParams]);
 
   useEffect(() => {
     if (embedded) return;
@@ -1239,6 +1275,18 @@ export function ConfigDoctorView({
     effectiveTopology === "pd" ? (pdReport?.silentRewrites ?? []) : (singleReport?.silentRewrites ?? []);
   const warnings = effectiveTopology === "pd" ? (pdReport?.warnings ?? []) : (singleReport?.warnings ?? []);
   const unknowns = effectiveTopology === "pd" ? (pdReport?.unknowns ?? []) : (singleReport?.unknowns ?? []);
+
+  const doctorHardwareHref = useMemo(() => {
+    if (effectiveTopology !== "single" || errors.length > 0) return null;
+    const ver: Extract<RuleVersion, "v0.30.0" | "main"> = effectiveVersion === "main" ? "main" : "v0.30.0";
+    const baseHref = buildHardwareDeployHrefFromCommand(commandText, {
+      hardwareFamily,
+      version: ver,
+      ...(searchParams ? { preserveParams: searchParams } : {}),
+    });
+    if (!baseHref) return null;
+    return `${baseHref}&fromTools=doctor`;
+  }, [effectiveTopology, errors.length, effectiveVersion, commandText, hardwareFamily, searchParams]);
 
   const visibleFindings = useMemo(() => {
     if (findingFilter === "all") return allFindings;
@@ -1960,16 +2008,38 @@ export function ConfigDoctorView({
           <span className="wt-stat-pill is-warn">风险提示 {warnings.length}</span>
           <span className="wt-stat-pill is-unknown">待核变量 [I] {unknowns.length}</span>
         </div>
-        {embedded && assistant && (
-          <button
-            type="button"
-            className="wt-assistant-btn"
-            data-testid="doctor-ask-assistant"
-            onClick={handleAskAssistant}
-          >
-            送入问答助手深究
-          </button>
-        )}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          {doctorHardwareHref && (
+            <a
+              className="wt-assistant-btn"
+              data-testid="doctor-open-3d-sharding"
+              href={doctorHardwareHref}
+              onClick={() => {
+                if (!embedded) {
+                  pendingDoctor3dReturnSeq += 1;
+                  pendingDoctor3dReturn = {
+                    seq: pendingDoctor3dReturnSeq,
+                    commandText,
+                    hardwareFamily,
+                    version: effectiveVersion === "main" ? "main" : "v0.30.0",
+                  };
+                }
+              }}
+            >
+              在 3D 整机看权重切分 →
+            </a>
+          )}
+          {embedded && assistant && (
+            <button
+              type="button"
+              className="wt-assistant-btn"
+              data-testid="doctor-ask-assistant"
+              onClick={handleAskAssistant}
+            >
+              送入问答助手深究
+            </button>
+          )}
+        </div>
       </div>
 
       {effectiveMode === "minimal" &&

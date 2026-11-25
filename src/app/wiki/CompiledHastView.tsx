@@ -29,6 +29,7 @@ import { EVIDENCE_LEVELS_INFO, EvidenceBadge } from "../../content/wiki/Term";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { parseVllmServeCommand } from "../../sim/doctor/cliParser";
 import type { AscendFamily } from "../../sim/rules";
+import { buildHardwareDeployHrefFromCommand } from "../model/hardwareDeployOverlay";
 import { appendFromPageToExperienceRoute } from "../model/qwen-frame";
 import { copyTextToClipboard, workbenchHandoffStore } from "../tools/workbenchHandoff";
 import { isSceneLessonId, sceneAnchorIds } from "./scene-lessons";
@@ -614,6 +615,17 @@ function WikiFallbackCodeFence({
   const langCls = rawClasses.find((c): c is string => typeof c === "string" && c.startsWith("language-"));
   const fenceLang = langCls ? langCls.slice("language-".length).toLowerCase() : null;
   const doctorCommand = rawText ? extractSingleVllmServeFenceCommand(rawText, fenceLang) : null;
+  const preserveParams =
+    pageId && /^[a-z0-9][a-z0-9-_]{0,127}$/i.test(pageId)
+      ? new URLSearchParams({ fromPage: pageId })
+      : undefined;
+  const hardwareHref = doctorCommand
+    ? buildHardwareDeployHrefFromCommand(doctorCommand, {
+        hardwareFamily: inferFenceHardwareFamily(doctorCommand),
+        version: "v0.30.0",
+        ...(preserveParams ? { preserveParams } : {}),
+      })
+    : null;
 
   const handleCopy = () => {
     void copyTextToClipboard(rawText).then((ok) => {
@@ -628,6 +640,20 @@ function WikiFallbackCodeFence({
     <div className="wt-wiki-codeblock" data-testid="wiki-code-fence">
       {rawText.length > 0 && (
         <div className="wt-code-fence-toolbar" data-testid="wiki-code-fence-toolbar">
+          {hardwareHref !== null &&
+            (inRouter ? (
+              <Link
+                className="wt-code-fence-btn"
+                data-testid="wiki-code-3d-btn"
+                to={hardwareHref.startsWith("#") ? hardwareHref.slice(1) : hardwareHref}
+              >
+                看 3D 切分 →
+              </Link>
+            ) : (
+              <a className="wt-code-fence-btn" data-testid="wiki-code-3d-btn" href={hardwareHref}>
+                看 3D 切分 →
+              </a>
+            ))}
           {doctorCommand !== null &&
             (inRouter ? (
               <WikiFenceDoctorRouterButton commandText={doctorCommand} pageId={pageId} />

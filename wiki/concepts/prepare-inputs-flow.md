@@ -22,6 +22,7 @@ aliases:
   - 注意力元数据
   - attention metadata
   - DecodeOnly
+  - SpecDecoding
   - AscendAttentionState
 chapters:
   - 09

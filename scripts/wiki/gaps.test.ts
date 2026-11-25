@@ -111,7 +111,7 @@ describe("findGaps", () => {
   it("通用 HTTP/OS/日志/状态枚举与泛化英文词不当概念", () => {
     const genericNoise = [
       "HTTP HTTPS CLI SDK INFO DEBUG WARN FULL NONE FLOAT `STANDARD` MAX SUM POST GET",
-      "OS PID IP TCP UTF FAQ README PDF SSD DRAM CUDA NVIDIA ARM HF EOS BPE TTL LRU FCFS GPT LM",
+      "OS PID IP TCP UTF FAQ README PDF SSD DRAM CUDA NVIDIA ARM HF EOS BPE TTL LRU FCFS LPT IPC GPT LM",
       "`RETRYABLE` `REJECTED` `REGISTERED` `RELEASED` `PREEMPTED` `COMPATIBILITY`",
       "`sources` `auto` `unknown` `apply` `break` `down` `free` `all` `full` `length` `model` `weights` `linear` `align`",
       "`vllm_omni` `Qwen3` `o_proj` `oproj` `process_weights_after_loading`",

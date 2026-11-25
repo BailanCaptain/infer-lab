@@ -185,6 +185,8 @@ const STOPWORDS = new Set([
   "LIFO",
   "FIFO",
   "FCFS",
+  "LPT",
+  "IPC",
   "EADDRINUSE",
   "sources",
   "apply",

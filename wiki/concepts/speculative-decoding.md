@@ -9,7 +9,6 @@ summary: >-
 aliases:
   - Speculative Decoding
   - speculative decoding
-  - SpecDecoding
   - 投机解码
   - 推测解码
   - MTP

@@ -63,7 +63,7 @@
 | slot | 槽位 | 按具体缓存布局定位待写入位置的编号。 | prepare-inputs-flow | 普通分页算例为物理块号乘块大小加偏移；LoRA 槽号是另一概念。 |
 | prefix caching | 前缀缓存、APC | 在兼容的模型与状态条件下，复用已计算的相同前缀。 | prefix-caching | 复用条件、块边界与混合状态支持需明确，不仅比较文本。 |
 | chunked prefill | 分块预填充 | 把尚未完成的提示词计算分配到多轮调度。 | chunked-prefill | 块大小由预算和实现约束决定。 |
-| LPT | Longest Processing Time first、最长任务优先 | 余额宽裕或摆放资源时，优先接纳预计输出更长的作业或按负载从重到轻放置副本的贪心策略。 | batch-job-aware-scheduler | 批作业感知调度器在空闲块宽裕时按 LPT 先接长作业；STAIR EPLB（`stair_config`）亦用带回溯约束的 LPT 摆放专家副本。 |
+| LPT 调度 | Longest Processing Time first、最长任务优先 | 余额宽裕或摆放资源时，优先接纳预计输出更长的作业或按负载从重到轻放置副本的贪心策略。 | batch-job-aware-scheduler | 批作业感知调度器在空闲块宽裕时按 LPT 先接长作业；STAIR EPLB（`stair_config`）亦用带回溯约束的 LPT 摆放专家副本，故裸缩写 `LPT` 不绑单一页面。 |
 | speculative decoding | 投机解码、推测解码 | 先生成候选 token，再由目标模型验证，并按算法接受或修正候选。 | speculative-decoding | 草稿来源不一定是独立小模型；有草稿和验证开销。 |
 | MTP | Multi-Token Prediction | 多 token 预测结构或目标；推理可使用模型配套模块生成投机草稿。 | speculative-decoding | GLM 配置的 MTP 层数与每轮草拟 token 数是不同量，统一依据主模型来源基线。 |
 | EAGLE | EAGLE-3、特征级投机草稿 | 复用主模型上层隐藏向量与前一步 token 嵌入，用轻量草稿头连续预测后续候选 token 的投机解码方法。 | speculative-decoding | 比独立小模型草稿更省显存且接受率通常更高；与模型自带的原生 MTP 模块是两种不同的草稿来源。 |
@@ -78,7 +78,7 @@
 | 进程 | process | 由操作系统管理、具有独立地址空间的执行实体。 | engine-processes | 可以显式建立共享内存或其他通信机制。 |
 | fork / spawn | fork、spawn、子进程启动方式 | 操作系统创建子进程的两种方式：`fork` 复制分叉瞬间的父进程内存视图，`spawn` 启动全新独立的 Python 解释器重新加载模块与补丁。 | engine-processes | 已初始化 NPU 上下文后不能直接 `fork`；`vllm serve` 多进程 Worker 默认用 `spawn`。 |
 | ZMQ | ZeroMQ、进程间消息队列 | 轻量级异步消息通信库，vLLM V1 用它在前端 API server 与后端 EngineCore 进程之间收发请求与生成结果。 | engine-processes | 支持本机 IPC 套接字与跨网络 TCP 传输，承担控制面与请求流通信，不直接搬运大块 NPU 显存张量。 |
-| IPC / SHM | IPC、SHM、进程间通信、共享内存、POSIX 共享内存 | 同机不同进程交换数据的机制；其中共享内存（SHM）让多个进程直接映射同一块主机内存，免去序列化与反复拷贝。 | engine-processes | 同机 Worker 广播调度元数据、Engram 主机表多进程只读共享等常走 `/dev/shm`；容器启动须确认 `--shm-size` 充足。 |
+| ZMQ IPC / SHM | ZMQ IPC、SHM、进程间通信、共享内存、POSIX 共享内存 | 同机不同进程交换数据的机制；其中共享内存（SHM）让多个进程直接映射同一块主机内存，免去序列化与反复拷贝。 | engine-processes | 同机 Worker 广播调度元数据、Engram 主机表多进程只读共享等常走 `/dev/shm`（容器须确认 `--shm-size`）；RL 同机权重直传另有设备显存 IPC 路径（见 `vllm-ascend-for-rl`）。 |
 | RPC | 远程过程调用、Remote Procedure Call | 让另一进程执行指定函数并取回结果的跨进程调用机制；多进程执行器（`mp`）下，EngineCore 每步借此驱动各 Worker 执行前向与采样。 | request-call-chain | 单进程 `uni` 执行器在进程内直接调用；RPC 属于控制面指令调度，不同于设备侧 HCCL 张量集合通信。 |
 | Worker | worker、工作进程 | 负责设备初始化、模型执行与相关资源管理的执行角色。 | npu-worker-lifecycle | 角色不总是独立进程，须结合执行器部署说明。 |
 | rank | 全局 rank、组内 rank、DP rank、TP rank | 参与分布式执行的成员编号；编号的范围由全局或具体通信组决定。 | collective-communication | DP 编号和全局 worker 编号分开。 |

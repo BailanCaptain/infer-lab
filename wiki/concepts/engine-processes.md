@@ -55,7 +55,7 @@ aliases:
   - ZMQ
   - ZeroMQ
   - 进程间消息队列
-  - IPC
+  - ZMQ IPC
   - SHM
   - 进程间通信
   - 共享内存

@@ -19,7 +19,7 @@ aliases:
   - batch_job_sched_config
   - job_name
   - EWMA
-  - LPT
+  - LPT 调度
   - Longest Processing Time first
   - 最长任务优先
 chapters:

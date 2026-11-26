@@ -123,7 +123,7 @@ $$N_{4\text{KiB}} = \frac{1\text{ GiB}}{4\text{ KiB}} = 262,144\text{ 页}, \qqu
 
 ### Mooncake / Ascend Store 的锁页内存注册三要素
 
-在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支：默认复用全局引擎 `global_te.register_buffer()` 时，底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`；启用独立引擎走 `store.register_buffer()` 时，返回非零仅打印错误日志而不抛异常；而开启 `ASCEND_ENABLE_USE_FABRIC_MEM`（仅限 Atlas 800I/T A3 统一内存寻址直传）且未开独立引擎时，此处跳过显式注册。代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置要求显式填写并按 **`1 GiB` 对齐**）。排查此类池化故障时，必须同时紧盯异常与错误日志，并把三件事分开核验：**虚拟地址与段大小是否按 `1 GiB` 对齐、锁页注册（`register_memory` + `memlock`）是否成功、以及底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**——Python 胶水层只负责发起地址段注册，底层是否真正落到静态大页取决于外部存储守护进程与宿主机池配置。
+在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支：默认复用全局引擎 `global_te.register_buffer()` 时，底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`；启用独立引擎走 `store.register_buffer()` 时，返回非零仅打印错误日志而不抛异常；而开启 `ASCEND_ENABLE_USE_FABRIC_MEM`（仅限 Atlas 800I/T A3 统一内存寻址直传）且未开独立引擎时，此处跳过显式注册。代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置表要求显式配置 `global_segment_size` 并按 **`1 GiB` 对齐**；而 Worker 注册阶段则直接收集各 KV 张量真实的 `data_ptr()` 与区域字节长度传入后端）。排查此类池化故障时，必须同时紧盯异常与错误日志，并把三件事分开核验：**池容量参数 `global_segment_size` 是否按 `1 GiB` 对齐、各缓存区的锁页注册（`register_memory` + `memlock`）是否返回成功、以及外部池守护进程底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**。
 
 ### 为什么不能只看 `npu-smi info` 的 `Hugepages-Usage`？
 

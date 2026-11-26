@@ -253,7 +253,7 @@ file: token-fig-detokenizer-vocab-bounds
 
 $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab\_size} - 1)$$
 
-任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界（注意区分：请求入口 `prompt_token_ids` 取分词器与模型词表的较大上界，而采样参数里的候选白名单 `allowed_token_ids` 在绑定分词器时按 `tokenizer.max_token_id` 校验）。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ（ZeroMQ，进程间高速消息通信库）发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
+任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界（注意区分：请求入口 `prompt_token_ids` 取分词器与模型词表的较大上界，而采样参数里的候选白名单 `allowed_token_ids` 在 `v0.30.0 / main` 按 `model_config.get_vocab_size()` 校验、`v0.23.0 / v0.26.0rc` 带分词器时则按 `len(tokenizer)` 校验）。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ（ZeroMQ，进程间高速消息通信库）发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
 
 ### DeepSeek Recipe：控制标记与用户文字怎样分开
 

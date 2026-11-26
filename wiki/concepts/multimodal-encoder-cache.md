@@ -98,7 +98,7 @@ $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4
 |---|---|---|
 | **缓存内容与寻址键** | 语言主干各层注意力 K/V 块；**必须从序列位置 `0` 起连续按块链式哈希** | ViT 投影后的 `[N_vis, D_llm]` 视觉嵌入；**按单张媒体独立 `mm_hash` 寻址，与前后文位置完全无关** |
 | **场景 1：前序提示词变动的多轮/RAG** | 第 2 轮在图片前改了系统提示词或插入新检索文档，从头连续前缀链当场断裂，图片及后文 KV 块 **100% 失配** | `check_and_update_cache()` 仍直接命中该图的 `mm_hash`，**完全省去 $O(s^2)$ ViT 重算**，仅需重跑语言层 Prefill |
-| **场景 2：显存不足触发抢占重算** | `_preempt_request()` 释放被抢占请求的 KV 块并将 `num_computed_tokens` 归零；若未开 APC 或块被覆盖，恢复时须重算语言层 | `_preempt_request()` 对编码器仅调用 `free(request)` 将引用计数减 1 并移入 `freeable` 候选表，**物理视觉特征仍留池内**，请求恢复时零成本取回 |
+| **场景 2：显存不足触发抢占重算** | `_preempt_request()` 释放被抢占请求的 KV 块并将 `num_computed_tokens` 归零；若未开 APC 或块被覆盖，恢复时须重算语言层 | `_preempt_request()` 对编码器仅调用 `free(request)` 将引用计数减 1 并移入 `freeable` 候选表，**未被新媒体挤出前物理特征仍留池内**，请求恢复时原地免重算取回 |
 | **场景 3：[Chunked Prefill](chunked-prefill.md) 跨步切分** | 尚未算完的视觉区段还没有完整 KV 块 | ViT 采用双向注意力须整图一次算完，编码缓存通过引用计数跨多个调度步锁住该图特征，供后续分块继续消费（若设 `disable_chunked_mm_input` 则回退至整图边界前） |
 
 反过来，如果某轮对话从第 `0` 个 token 到图片末尾与历史前缀一字不差、且 `APC` 已经命中了覆盖整张图片占位区间的 KV 块（即 `start_pos + num_encoder_tokens <= num_computed_tokens`），调度器扫未计算窗口时直接跨过该图，此时连 `EncoderCacheManager` 都无需读取，ViT 和语言层 Prefill 双双跳过。

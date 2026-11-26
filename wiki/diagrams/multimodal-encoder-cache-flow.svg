@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="多模态 EncoderCacheManager 独立于文本 Prefix Caching 的跨轮与抢占复用机制及 EncoderAclGraphManager 图回放流程">
   <title>多模态视觉特征独立缓存复用与 ViT 分块图回放链路</title>
-  <desc>上半部对比文本 KV Prefix Caching（从位置 0 连续块链式哈希，前文改动或抢占释放 KV 即失效）与 EncoderCacheManager（按单张媒体 mm_hash 独立索引，前文变动或抢占重算时仍直接命中并跳过 ViT 编码）；下半部展示 ViT 升序预算装箱、EncoderAclGraphManager 侧流更新回放与 ModelSlim/msprobe 工具链。</desc>
+  <desc>上半部对比文本 KV Prefix Caching（从位置 0 连续块链式哈希，前文改动断链，抢占释放后若未开 APC 或块被驱逐须重跑语言层）与 EncoderCacheManager（按单张媒体 mm_hash 独立索引，前文变动或未被挤出时仍直接命中并跳过 ViT 编码）；下半部展示 ViT 升序预算装箱、EncoderAclGraphManager 侧流更新回放与 ModelSlim/msprobe 工具链。</desc>
   <defs>
     <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
       <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />

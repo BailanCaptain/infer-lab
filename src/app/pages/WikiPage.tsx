@@ -421,7 +421,7 @@ export function WikiPage() {
                 {query && (
                   <div className="wiki-toc-search-meta">
                     <small role="status">
-                      {matchingIds.size ? `${matchingIds.size} 个匹配页面` : "目录标题中无直接匹配"}
+                      {matchingIds.size ? `${matchingIds.size} 个匹配页面` : "没有匹配的页面"}
                     </small>
                     <button
                       type="button"

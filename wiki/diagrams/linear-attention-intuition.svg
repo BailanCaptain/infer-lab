@@ -42,7 +42,7 @@
 
 <!-- O(t^2) Lower-Triangular Score Matrix (Center) -->
 <rect x="268" y="68" width="298" height="144" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
-<text x="417" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">先算 softmax(QKᵀ) 下三角分数表 O(t²)</text>
+<text x="417" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">耦合 softmax(QKᵀ) 下三角交互 O(t²)</text>
 <g stroke="#d8d8cf" stroke-width="1">
   <rect x="286" y="100" width="96" height="96" fill="#ece9df"/>
 </g>
@@ -54,9 +54,9 @@
   <rect x="286" y="176.8" width="96" height="19.2" fill="#e89a8d"/>
 </g>
 <text x="394" y="124" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">(softmax(qₜK₁:ₜᵀ)) V₁:ₜ</text>
-<text x="394" y="149" font-size="12.5" fill="#4d5652">非线性归一化必须等 t 个</text>
-<text x="394" y="170" font-size="12.5" fill="#4d5652">打分全部凑齐才能加权 V</text>
-<text x="394" y="193" font-size="12" font-weight="700" fill="#b54237">✗ 无法交换括号顺序</text>
+<text x="394" y="149" font-size="12" fill="#4d5652">在线分块可免存整表，但 qₜ</text>
+<text x="394" y="170" font-size="12" fill="#4d5652">仍须扫遍 1..t 全部历史 K、V</text>
+<text x="394" y="193" font-size="12" font-weight="700" fill="#b54237">✗ 无法预缩并成定长状态</text>
 <!-- Top Right Bottleneck Card -->
 <rect x="588" y="68" width="284" height="144" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
 <text x="730" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">长序列计算与访存瓶颈</text>

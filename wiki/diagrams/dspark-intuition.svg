@@ -47,7 +47,7 @@
 
 <!-- DFlash Step C: Fixed Full-Length Verification -->
 <rect x="28" y="266" width="396" height="118" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="226" y="289" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">③ 固定送满 1+K=5 个位置进主模型验证</text>
+<text x="226" y="289" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">③ 固定预算基线：送满 1+K=5 个位置验证</text>
 <g stroke-width="1.2">
   <rect x="38" y="302" width="66" height="38" rx="5" fill="#dce4fc" stroke="#4c65b6"/>
   <rect x="112" y="302" width="66" height="38" rx="5" fill="#ddf4ef" stroke="#087f73"/>
@@ -67,7 +67,7 @@
 <text x="226" y="422" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">DFlash 机制得失</text>
 <text x="42" y="448" font-size="12.5" fill="#4d5652">• 优点：草稿主干 1 次前向并行吐出整块 K 个候选</text>
 <text x="42" y="473" font-size="12.5" fill="#8f3229">• 痛点 1：块内独立采样，相邻词缺乏局部连贯修正</text>
-<text x="42" y="498" font-size="12.5" fill="#8f3229">• 痛点 2：无论把握高低一律送满 K 词，验证性价比低</text>
+<text x="42" y="498" font-size="12" fill="#8f3229">• 痛点 2：固定预算下送满 K 词（MRV1 可另挂动态截断）</text>
 <g fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#ds-red)">
   <line x1="226" y1="134" x2="226" y2="148"/>
   <line x1="226" y1="250" x2="226" y2="264"/>

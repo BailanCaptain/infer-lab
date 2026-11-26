@@ -82,15 +82,15 @@
 <text x="76" y="329" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">compact</text>
 <text x="76" y="351" text-anchor="middle" font-size="12" fill="#065f56">物理裁行态</text>
 <rect x="142" y="304" width="54" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
-<rect x="202" y="304" width="54" height="44" rx="5" fill="#ece9df" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 3"/>
+<rect x="202" y="304" width="54" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
 <rect x="262" y="304" width="54" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
 <rect x="322" y="304" width="54" height="44" rx="5" fill="#b8efe4" stroke="#087f73" stroke-width="1.2"/>
 <rect x="382" y="304" width="54" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
 <g font-size="12.5" font-weight="700" text-anchor="middle">
-  <text x="169" y="331" fill="#66716d">5 裁</text><text x="229" y="331" fill="#936300">6 占</text>
+  <text x="169" y="331" fill="#66716d">5 裁</text><text x="229" y="331" fill="#66716d">6 裁</text>
   <text x="289" y="331" fill="#065f56">7</text><text x="349" y="331" fill="#065f56">8*</text><text x="409" y="331" fill="#065f56">9</text>
 </g>
-<text x="289" y="368" text-anchor="middle" font-size="12" fill="#065f56">裁除前部行（早期块仅留末行占位不入环）</text>
+<text x="289" y="368" text-anchor="middle" font-size="12" fill="#065f56">本块裁去 5、6 仅算 7..9（全 &lt;7 的前序块留末行占位）</text>
 <line x1="444" y1="326" x2="484" y2="326" stroke="#087f73" stroke-width="1.6" marker-end="url(#sf-teal)"/>
 <rect x="492" y="304" width="58" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
 <rect x="558" y="304" width="58" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>

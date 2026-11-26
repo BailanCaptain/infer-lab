@@ -58,7 +58,7 @@ const evalSuiteSchema = z.object({
   cases: z.array(evalCaseSchema).min(55),
 });
 
-describe("engineering-eval-suite（193 页真实知识库工程检索与负例基准）", () => {
+describe("engineering-eval-suite（196 页真实知识库工程检索与负例基准）", () => {
   const root = process.cwd();
   const registry = registrySchema.parse(
     JSON.parse(readFileSync(join(root, "src/content/wiki/registry.json"), "utf8")),
@@ -164,26 +164,31 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
       expect(retrieve(code, cleanIndex, { limit: 5 })).toEqual([]);
     }
 
-    // Param displayTitle parity check ("size" Top-3 matches production snapshot build including kvpp-config & kv-cache-spec across both loadAgentWiki and MCP createCachedAgentWikiLoader)
+    // Param displayTitle parity check ("size" Top-4 matches production snapshot build including kvpp-config, paged-attention & kv-cache-spec across both loadAgentWiki and MCP createCachedAgentWikiLoader)
     const cachedMcpWiki = createCachedAgentWikiLoader(root)();
-    const sizeTop3 = retrieve("size", browserIndex, { limit: 5 })
-      .slice(0, 3)
+    const sizeTop4 = retrieve("size", browserIndex, { limit: 6 })
+      .slice(0, 4)
       .map((h) => h.id);
-    expect(sizeTop3).toEqual(["size-40a1c2ca47b8", "kvpp-config-0445bd352140", "kv-cache-spec"]);
+    expect(sizeTop4).toEqual([
+      "size-40a1c2ca47b8",
+      "kvpp-config-0445bd352140",
+      "paged-attention",
+      "kv-cache-spec",
+    ]);
     expect(
       agentWiki
-        .search("size", 5)
+        .search("size", 6)
         .filter((h) => h.how !== "related")
-        .slice(0, 3)
+        .slice(0, 4)
         .map((h) => h.id),
-    ).toEqual(sizeTop3);
+    ).toEqual(sizeTop4);
     expect(
       cachedMcpWiki
-        .search("size", 5)
+        .search("size", 6)
         .filter((h) => h.how !== "related")
-        .slice(0, 3)
+        .slice(0, 4)
         .map((h) => h.id),
-    ).toEqual(sizeTop3);
+    ).toEqual(sizeTop4);
 
     // Empty body never falls back to indexing YAML frontmatter comments in loadAgentWiki or createCachedAgentWikiLoader
     const tmpRoot = mkdtempSync(join(tmpdir(), "wiki-empty-body-"));

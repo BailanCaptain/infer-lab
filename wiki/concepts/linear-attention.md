@@ -122,7 +122,7 @@ rawSources:
 
 **Linear Attention（线性注意力）去掉逐位置的 Softmax 指数耦合，改用可分离特征映射并利用矩阵乘法结合律，把任意长度的历史压缩进一个固定形状的状态矩阵**：每来一个新 token，先用它的键值改写状态，再用当前查询一次读出本层输出，从此单步生成不再随上下文变长而重扫整段 [KV cache](kv-cache.md)。
 
-在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以昂贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 把当前查询 $Q_t$ 和每一个历史键 $K_i$ 锁在了同一个括号里：必须先把 $Q_t$ 与全部 $t$ 个历史键逐一算出分数并凑齐归一化分母，才能去乘 $V_{1:t}$。这迫使计算顺序锁死为 $(Q K^\top) V$——整段长度为 $n$ 的提示词需要 $O(n^2)$ 次打分，生成阶段每走一步也要从显存重读全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
+在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以随上下文拉长而变贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 与全局归一化分母把当前查询 $Q_t$ 和每一个历史键 $K_i$ 耦合在一起：即便 [FlashAttention](ascend-flash-attention.md) 利用在线 Softmax 分块递推重标定、无须在显存中物化整张 $n \times n$ 分数表，数学上仍无法把 $K_{1:t}$ 与 $V_{1:t}$ 预先缩并成与 $Q_t$ 无关的定长矩阵——整段长度为 $n$ 的提示词总计算量仍为 $O(n^2 d)$，生成阶段每走一步仍须从显存扫描全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
 
 Katharopoulos 等人提出的核特征映射拆开了这把锁：把不可拆分的 $\exp(Q_t K_i^\top)$ 替换为对 $Q_t$、$K_i$ 各自独立作用的特征映射内积 $\phi(Q_t)\phi(K_i)^\top$。一旦去掉跨位置套在外层的 Softmax，矩阵乘法结合律允许直接交换括号顺序：
 
@@ -141,7 +141,7 @@ file: linear-attention-intuition
 
 名字里的「线性」指序列长度 $n$ 的时间复杂度从 $O(n^2)$ 降为 $O(n)$（单步生成访存从 $O(t)$ 降为 $O(1)$），既不代表层内没有非线性激活与门控，也不代表输出数值与 Softmax 注意力等价。省下带宽的同时也付出了信息论代价：
 
-| 对比维度 | 标准 Softmax 注意力 $(Q K^\top) V$ | 线性注意力定长状态 $\phi(Q_t) S_t$ |
+| 对比维度 | 标准 Softmax 注意力 $\operatorname{softmax}(Q K^\top / \sqrt{d_k}) V$ | 线性注意力定长状态 $\phi(Q_t) S_t^\top$（列读出 $S_t \phi(q_t)$） |
 |---|---|---|
 | 生成一步读多少历史 | 全部 $t$ 个可见位置的 K、V（随长度线性膨胀） | 仅读本请求固定形状的状态矩阵 $S_{t-1}$ |
 | 处理 $n$ 个 token 的总计算量 | $O(n^2 d)$ | $O(n d_k d_v)$（宽度固定时随 $n$ 线性增长） |

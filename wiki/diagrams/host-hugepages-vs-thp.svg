@@ -90,7 +90,7 @@
   <rect x="238" y="378" width="206" height="108" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4" />
   <text x="341" y="401" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#3a4f93">--shm-size (/dev/shm)</text>
   <text x="341" y="423" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">容器内 POSIX 共享内存</text>
-  <text x="341" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">默认 64 MiB 超限即报 Bus error</text>
+  <text x="341" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">64 MiB 超限报 SIGBUS / ENOSPC</text>
   <text x="341" y="466" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#3a4f93">多卡设 16g；大池 64g~500g</text>
 
   <!-- Gate 3 -->

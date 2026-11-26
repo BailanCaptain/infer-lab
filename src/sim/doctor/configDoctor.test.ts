@@ -911,6 +911,78 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     expect(rforkPrefillMc2StringOff.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(false);
     expect(rforkPrefillMc2StringOff.effectiveInput.enablePrefillMc2).toBe(true);
 
+    const dynSpecTypoV030 = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"dynamic_spec_config":{"methd":"dspark"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(dynSpecTypoV030.hasBlockers).toBe(true);
+
+    const kvTraceTypoMain = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"kv_trace":{"enabld":true}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(kvTraceTypoMain.hasBlockers).toBe(true);
+
+    const sparseFusedOpV030 = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"sparse_kv_offload_config":{"enabled":false,"fused_op_type":"fused_copy_sfa"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(sparseFusedOpV030.hasBlockers).toBe(true);
+
+    const omniTopLevelProfMain = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"profiling_chunk_config":{"enabled":false}}'`,
+      {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+        modelTraitOverride: { vllmOmniAvailable: true },
+      },
+    );
+    expect(omniTopLevelProfMain.hasBlockers).toBe(false);
+    expect(omniTopLevelProfMain.warnings.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const omniMainKeyInvalidValOnV030 = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"kv_pool_range_debug":"typo"}'`,
+      {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+        modelTraitOverride: { vllmOmniAvailable: true },
+      },
+    );
+    expect(omniMainKeyInvalidValOnV030.hasBlockers).toBe(false);
+
+    const fuseNormQuantBadBool = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"ascend_compilation_config":{"fuse_norm_quant":2}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(fuseNormQuantBadBool.hasBlockers).toBe(true);
+
+    const emptyVarThenSideEffect = runSingleConfigDoctor(
+      `BATCH= X=\${BATCH:=on}\nVLLM_BATCH_INVARIANT=\${BATCH:-1} vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(emptyVarThenSideEffect.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
+    const cmdArgsExpandBeforePrefixSideEffects = runSingleConfigDoctor(
+      `A=0 X=\${BATCH:=1} vllm serve Qwen/Qwen3-8B -tp \${BATCH:-2}`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(cmdArgsExpandBeforePrefixSideEffects.effectiveInput.tpSize).toBe(2);
+
+    const firstAssignWordExpandedOnce = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=\${BATCH:+on}\${BATCH:=1} vllm serve Qwen/Qwen3-8B`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(firstAssignWordExpandedOnce.hasBlockers).toBe(false);
+    expect(firstAssignWordExpandedOnce.effectiveInput.vllmBatchInvariant).toBe(true);
+
+    const groupedSetEoAllexport = runSingleConfigDoctor(
+      `set -eo allexport\nVLLM_BATCH_INVARIANT=on\nset +eo allexport\nvllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(groupedSetEoAllexport.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },

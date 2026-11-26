@@ -7,15 +7,21 @@ import type {
   RuleVersion,
 } from "../rules/types";
 import {
+  ASCEND_SUBCONFIG_FIELD_TYPES,
+  ASCEND_TOP_LEVEL_FIELD_TYPES,
+  type AscendFieldPrimitiveSpec,
   MAIN_ONLY_TOP_LEVEL_KEYS,
   type UpgradeTargetVersion,
   VALID_ASCEND_COMPILATION_KEYS,
   VALID_ASCEND_FUSION_KEYS,
   VALID_ASCEND_WARMUP_KEYS,
   VALID_BATCH_JOB_SCHED_KEYS,
+  VALID_DYNAMIC_SPEC_KEYS,
   VALID_DYNTRA_LB_KEYS,
   VALID_EPLB_KEYS,
   VALID_FINEGRAINED_TP_KEYS_BY_TARGET,
+  VALID_KV_TRACE_KEYS,
+  VALID_KVPP_KEYS,
   VALID_PROFILING_CHUNK_KEYS,
   VALID_REJECTION_SAMPLER_KEYS,
   VALID_RL_KEYS,
@@ -1079,108 +1085,189 @@ function findServeTokens(statements: readonly ShellStatement[]): {
   for (const stmt of statements) {
     const rawWords = stmt.rawWords;
     if (rawWords.length === 0) continue;
-    const firstExpanded = expandShellWord(rawWords[0] ?? "", shellVars, setShellVar);
 
-    if (firstExpanded === "set" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
-      const setArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
-      for (let i = 0; i < setArgs.length; i += 1) {
-        const arg = setArgs[i] ?? "";
-        if (arg === "--") break;
-        if (arg === "-o" && i + 1 < setArgs.length) {
-          if (setArgs[i + 1] === "allexport") allExport = true;
-          i += 1;
-          continue;
-        }
-        if (arg === "+o" && i + 1 < setArgs.length) {
-          if (setArgs[i + 1] === "allexport") allExport = false;
-          i += 1;
-          continue;
-        }
-        if (/^-[A-Za-z]+$/.test(arg) && arg.includes("a")) {
-          allExport = true;
-          continue;
-        }
-        if (/^\+[A-Za-z]+$/.test(arg) && arg.includes("a")) {
-          allExport = false;
-        }
-      }
-      shellPreamble.push(stmt.raw);
-      continue;
-    }
-
-    if (firstExpanded === "export" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
-      // POSIX: expand all export arguments BEFORE applying export assignments
-      const expandedArgs = rawWords.slice(1).map((rw) => ({
-        rw,
-        expanded: expandShellWord(rw, shellVars, setShellVar),
-      }));
-      let removeExport = false;
-      for (let i = 0; i < expandedArgs.length; i += 1) {
-        const { rw, expanded } = expandedArgs[i]!;
-        if (i === 0 && expanded === "-n") {
-          removeExport = true;
-          continue;
-        }
-        if (expanded === "-p" || expanded === "--") continue;
-        const assignMatch = ENV_ASSIGN_RE.exec(expanded);
-        if (assignMatch?.[1] && (RAW_SHELL_ASSIGN_RE.test(rw) || assignMatch[1].length > 0)) {
-          const name = assignMatch[1];
-          shellVars[name] = assignMatch[2] ?? "";
-          if (removeExport) exportedNames.delete(name);
-          else exportedNames.add(name);
-          continue;
-        }
-        if (VALID_IDENT_RE.test(expanded)) {
-          if (removeExport) exportedNames.delete(expanded);
-          else exportedNames.add(expanded);
-        }
-      }
-      continue;
-    }
-
-    if (firstExpanded === "unset" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
-      const unsetArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
-      for (const expanded of unsetArgs) {
-        if (expanded === "-v" || expanded === "-f" || expanded === "--") continue;
-        if (VALID_IDENT_RE.test(expanded)) {
-          delete shellVars[expanded];
-          exportedNames.delete(expanded);
-        }
-      }
-      continue;
-    }
-
-    // POSIX simple-command prefix variable assignments (must have unquoted NAME= before command word)
+    // POSIX §2.9.1: identify leading unquoted ASSIGNMENT_WORDs purely lexically BEFORE any word expansion
     let idx = 0;
-    const assignEnv: Record<string, string> = { ...shellVars };
-    const onPrefixSideEffect = (k: string, v: string): void => {
-      assignEnv[k] = v;
-      setShellVar(k, v);
-    };
-    const prefixAssigns: Array<[string, string]> = [];
-    while (idx < rawWords.length) {
-      const rw = rawWords[idx] ?? "";
-      const m = RAW_SHELL_ASSIGN_RE.exec(rw);
-      if (!m?.[1]) break;
-      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect);
-      assignEnv[m[1]] = val;
-      prefixAssigns.push([m[1], val]);
+    while (idx < rawWords.length && RAW_SHELL_ASSIGN_RE.test(rawWords[idx] ?? "")) {
       idx += 1;
     }
 
-    if (idx === rawWords.length) {
-      // Standalone shell variable assignment(s): updates shellVars; exported if allExport or already exported
-      for (const [k, v] of prefixAssigns) {
-        setShellVar(k, v);
+    if (idx === 0) {
+      const firstExpanded = expandShellWord(rawWords[0] ?? "", shellVars, setShellVar);
+
+      if (firstExpanded === "set") {
+        const setArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
+        for (let i = 0; i < setArgs.length; i += 1) {
+          const arg = setArgs[i] ?? "";
+          if (arg === "--") break;
+          if (/^[-+][A-Za-z]+$/.test(arg)) {
+            const enable = arg[0] === "-";
+            for (let cIdx = 1; cIdx < arg.length; cIdx += 1) {
+              const ch = arg[cIdx];
+              if (ch === "a") {
+                allExport = enable;
+              } else if (ch === "o") {
+                if (i + 1 < setArgs.length) {
+                  if (setArgs[i + 1] === "allexport") allExport = enable;
+                  i += 1;
+                }
+              }
+            }
+          }
+        }
+        shellPreamble.push(stmt.raw);
+        continue;
+      }
+
+      if (firstExpanded === "export") {
+        // POSIX: expand all export arguments BEFORE applying export assignments
+        const expandedArgs = rawWords.slice(1).map((rw) => ({
+          rw,
+          expanded: expandShellWord(rw, shellVars, setShellVar),
+        }));
+        let removeExport = false;
+        for (let i = 0; i < expandedArgs.length; i += 1) {
+          const { rw, expanded } = expandedArgs[i]!;
+          if (i === 0 && expanded === "-n") {
+            removeExport = true;
+            continue;
+          }
+          if (expanded === "-p" || expanded === "--") continue;
+          const assignMatch = ENV_ASSIGN_RE.exec(expanded);
+          if (assignMatch?.[1] && (RAW_SHELL_ASSIGN_RE.test(rw) || assignMatch[1].length > 0)) {
+            const name = assignMatch[1];
+            shellVars[name] = assignMatch[2] ?? "";
+            if (removeExport) exportedNames.delete(name);
+            else exportedNames.add(name);
+            continue;
+          }
+          if (VALID_IDENT_RE.test(expanded)) {
+            if (removeExport) exportedNames.delete(expanded);
+            else exportedNames.add(expanded);
+          }
+        }
+        continue;
+      }
+
+      if (firstExpanded === "unset") {
+        const unsetArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
+        for (const expanded of unsetArgs) {
+          if (expanded === "-v" || expanded === "-f" || expanded === "--") continue;
+          if (VALID_IDENT_RE.test(expanded)) {
+            delete shellVars[expanded];
+            exportedNames.delete(expanded);
+          }
+        }
+        continue;
+      }
+
+      // Otherwise firstExpanded was already expanded once; expand only rawWords.slice(1)
+      const expandedWords = [
+        firstExpanded,
+        ...rawWords.slice(1).map((w) => expandShellWord(w, shellVars, setShellVar)),
+      ];
+      const childEnv = buildExportedSnapshot(shellVars, exportedNames);
+
+      // Unwrap nohup / setsid / env [OPTION]... [NAME=VALUE]...
+      let wIdx = 0;
+      while (wIdx < expandedWords.length) {
+        const w = expandedWords[wIdx] ?? "";
+        if (w === "nohup" || w === "setsid") {
+          wIdx += 1;
+          continue;
+        }
+        if (w === "env") {
+          wIdx += 1;
+          let parsingEnvOpts = true;
+          while (wIdx < expandedWords.length) {
+            const ew = expandedWords[wIdx] ?? "";
+            if (parsingEnvOpts && (ew === "-i" || ew === "--ignore-environment" || ew === "-")) {
+              for (const k of Object.keys(childEnv)) delete childEnv[k];
+              wIdx += 1;
+              continue;
+            }
+            if (parsingEnvOpts && ew === "-u" && wIdx + 1 < expandedWords.length) {
+              delete childEnv[expandedWords[wIdx + 1] ?? ""];
+              wIdx += 2;
+              continue;
+            }
+            if (parsingEnvOpts && ew.startsWith("--unset=")) {
+              delete childEnv[ew.slice("--unset=".length)];
+              wIdx += 1;
+              continue;
+            }
+            if (parsingEnvOpts && ew === "--") {
+              parsingEnvOpts = false;
+              wIdx += 1;
+              continue;
+            }
+            const em = ENV_ASSIGN_RE.exec(ew);
+            if (em?.[1]) {
+              childEnv[em[1]] = em[2] ?? "";
+              wIdx += 1;
+              continue;
+            }
+            break;
+          }
+          continue;
+        }
+        break;
+      }
+
+      const rest = stripShellRedirections(expandedWords.slice(wIdx));
+      const head = rest[0] ?? "";
+      const second = rest[1] ?? "";
+      const isVllmServe = head === "vllm" && second === "serve";
+      const isPythonApiServer =
+        (head === "python" || head === "python3") &&
+        second === "-m" &&
+        (rest[2] === "vllm.entrypoints.openai.api_server" || rest[2] === "vllm.entrypoints.cli.main");
+      const isBareFlags = head.startsWith("-");
+
+      if (isVllmServe || isPythonApiServer || isBareFlags) {
+        matchedEnvVars = childEnv;
+        if (isVllmServe) {
+          serveTokens = rest.slice(2);
+        } else if (isPythonApiServer) {
+          serveTokens =
+            rest[2] === "vllm.entrypoints.cli.main" && rest[3] === "serve" ? rest.slice(4) : rest.slice(3);
+        } else {
+          serveTokens = rest;
+        }
+      } else {
+        shellPreamble.push(stmt.raw);
       }
       continue;
     }
 
-    // Command word and arguments expand against shellVars (prior to prefix assignments)
+    if (idx === rawWords.length) {
+      // Standalone variable assignment(s): evaluate & commit left-to-right directly on shellVars
+      for (let i = 0; i < rawWords.length; i += 1) {
+        const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
+        if (!m?.[1]) continue;
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        setShellVar(m[1], val);
+      }
+      continue;
+    }
+
+    // POSIX §2.9.1 with prefix assignments + command:
+    // Step 1: Expand command word & arguments FIRST against shellVars (before prefix assignments!)
     const expandedWords = rawWords.slice(idx).map((w) => expandShellWord(w, shellVars, setShellVar));
+    // Step 2: Expand prefix assignments left-to-right into childEnv (side effects via := persist in shellVars)
+    const assignEnv: Record<string, string> = { ...shellVars };
     const childEnv = buildExportedSnapshot(shellVars, exportedNames);
-    for (const [k, v] of prefixAssigns) {
-      childEnv[k] = v;
+    const onPrefixSideEffect = (k: string, v: string): void => {
+      assignEnv[k] = v;
+      setShellVar(k, v);
+      if (exportedNames.has(k)) childEnv[k] = v;
+    };
+    for (let i = 0; i < idx; i += 1) {
+      const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
+      if (!m?.[1]) continue;
+      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect);
+      assignEnv[m[1]] = val;
+      childEnv[m[1]] = val;
     }
 
     // Unwrap nohup / setsid / env [OPTION]... [NAME=VALUE]...
@@ -1259,6 +1346,67 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     envVars: matchedEnvVars ?? buildExportedSnapshot(shellVars, exportedNames),
     shellPreamble,
   };
+}
+
+function isValidPydanticFloat(val: unknown): boolean {
+  if (typeof val === "number") return Number.isFinite(val);
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed.length === 0) return false;
+    return Number.isFinite(Number(trimmed));
+  }
+  return false;
+}
+
+function matchesAscendFieldPrimitive(val: unknown, spec: AscendFieldPrimitiveSpec): boolean {
+  switch (spec) {
+    case "bool":
+      return parsePydanticLaxBool(val) !== undefined;
+    case "strictBool":
+      return typeof val === "boolean";
+    case "optBool":
+      return val === null || parsePydanticLaxBool(val) !== undefined;
+    case "int":
+      return parsePydanticLaxInt(val) !== undefined;
+    case "optInt":
+      return val === null || parsePydanticLaxInt(val) !== undefined;
+    case "float":
+      return isValidPydanticFloat(val);
+    case "str":
+      return typeof val === "string";
+    case "optStr":
+      return val === null || typeof val === "string";
+    case "list":
+      return Array.isArray(val);
+    case "dict":
+      return isRecord(val);
+    default:
+      return (spec as readonly unknown[]).includes(val);
+  }
+}
+
+function validateRecordFieldTypes(
+  record: Record<string, unknown>,
+  flagPath: string,
+  specs: Readonly<Record<string, AscendFieldPrimitiveSpec>>,
+  diagnostics: CliParseDiagnostic[],
+): void {
+  for (const [k, spec] of Object.entries(specs)) {
+    if (!Object.hasOwn(record, k) || record[k] === undefined) continue;
+    const fullFlag = `${flagPath}.${k}`;
+    if (diagnostics.some((d) => d.flag === fullFlag)) continue;
+    const val = record[k];
+    if (!matchesAscendFieldPrimitive(val, spec)) {
+      const expectedDesc = Array.isArray(spec) ? `枚举值 ${JSON.stringify(spec)}` : String(spec);
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: fullFlag,
+        message: `ValidationError: ${fullFlag} 字段类型或枚举值非法（期望 ${expectedDesc}，收到 ${JSON.stringify(val)}）。`,
+        remediation: `请按上游 AscendConfig 字段类型修正 ${fullFlag}。`,
+      });
+    }
+  }
 }
 
 function validateSubConfigKeys(
@@ -1906,10 +2054,31 @@ export function parseVllmServeCommand(
 
   // Extract --additional-config fields
   if (additionalConfig) {
+    const presentMainOnly = MAIN_ONLY_TOP_LEVEL_KEYS.filter((k) => Object.hasOwn(additionalConfig, k));
+    if (presentMainOnly.length > 0) {
+      couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
+    }
+
+    let effectiveAdditional: Readonly<Record<string, unknown>> = additionalConfig;
     if (!isRfork) {
-      const validTopKeys = VALID_TOP_LEVEL_KEYS_BY_TARGET[targetSchemaVersion];
+      const hasExplicitTarget = options?.version !== undefined;
+      const validTopKeys = hasExplicitTarget
+        ? VALID_TOP_LEVEL_KEYS_BY_TARGET[targetSchemaVersion]
+        : new Set([...VALID_TOP_LEVEL_KEYS_BY_TARGET["v0.30.0"], ...VALID_TOP_LEVEL_KEYS_BY_TARGET.main]);
+      if (
+        version === "main" &&
+        !vllmOmniAvailable &&
+        Object.hasOwn(additionalConfig, "profiling_chunk_config") &&
+        additionalConfig.profiling_chunk_config !== undefined
+      ) {
+        couplingInput.profilingChunkConfigured = true;
+      }
       const ruleHandledTopKeys = new Set<string>(
-        version === "v0.30.0" ? MAIN_ONLY_TOP_LEVEL_KEYS : ["profiling_chunk_config"],
+        version === "v0.30.0"
+          ? MAIN_ONLY_TOP_LEVEL_KEYS
+          : vllmOmniAvailable
+            ? []
+            : ["profiling_chunk_config"],
       );
       const unknownTopKeys = Object.keys(additionalConfig)
         .filter((k) => !validTopKeys.has(k) && !ruleHandledTopKeys.has(k))
@@ -1925,14 +2094,28 @@ export function parseVllmServeCommand(
           remediation: `请从 --additional-config 顶层移除或修正键名：${unknownTopKeys.join("、")}。`,
         });
       }
+      if (hasExplicitTarget) {
+        const filtered: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(additionalConfig)) {
+          if (validTopKeys.has(k)) {
+            defineOwnRecordField(filtered, k, v);
+          }
+        }
+        effectiveAdditional = filtered;
+      }
       for (const [subName, subValidKeys] of [
         ["ascend_fusion_config", VALID_ASCEND_FUSION_KEYS],
         ["ascend_warmup_config", VALID_ASCEND_WARMUP_KEYS],
         ["eplb_config", VALID_EPLB_KEYS],
         ["rejection_sampler_config", VALID_REJECTION_SAMPLER_KEYS],
+        ["dynamic_spec_config", VALID_DYNAMIC_SPEC_KEYS],
+        ["kv_trace", VALID_KV_TRACE_KEYS],
+        ["kvpp_config", VALID_KVPP_KEYS],
       ] as const) {
-        if (!Object.hasOwn(additionalConfig, subName) || additionalConfig[subName] === undefined) continue;
-        const subVal = additionalConfig[subName];
+        if (!Object.hasOwn(effectiveAdditional, subName) || effectiveAdditional[subName] === undefined) {
+          continue;
+        }
+        const subVal = effectiveAdditional[subName];
         if (!isRecord(subVal)) {
           diagnostics.push({
             code: "parse-invalid-json-type",
@@ -1968,19 +2151,19 @@ export function parseVllmServeCommand(
     }
 
     if (
-      Object.hasOwn(additionalConfig, "ascend_compilation_config") &&
-      additionalConfig.ascend_compilation_config !== undefined &&
-      !isRecord(additionalConfig.ascend_compilation_config)
+      Object.hasOwn(effectiveAdditional, "ascend_compilation_config") &&
+      effectiveAdditional.ascend_compilation_config !== undefined &&
+      !isRecord(effectiveAdditional.ascend_compilation_config)
     ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "additional_config.ascend_compilation_config",
-        message: `ValidationError: additional_config.ascend_compilation_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.ascend_compilation_config)}。`,
+        message: `ValidationError: additional_config.ascend_compilation_config 需要 JSON 对象，收到 ${JSON.stringify(effectiveAdditional.ascend_compilation_config)}。`,
       });
     }
-    const acc = isRecord(additionalConfig.ascend_compilation_config)
-      ? additionalConfig.ascend_compilation_config
+    const acc = isRecord(effectiveAdditional.ascend_compilation_config)
+      ? effectiveAdditional.ascend_compilation_config
       : null;
     if (acc) {
       if (!isRfork) {
@@ -2018,19 +2201,21 @@ export function parseVllmServeCommand(
     }
 
     if (
-      Object.hasOwn(additionalConfig, "scheduler_config") &&
-      additionalConfig.scheduler_config !== undefined &&
-      additionalConfig.scheduler_config !== null &&
-      !isRecord(additionalConfig.scheduler_config)
+      Object.hasOwn(effectiveAdditional, "scheduler_config") &&
+      effectiveAdditional.scheduler_config !== undefined &&
+      effectiveAdditional.scheduler_config !== null &&
+      !isRecord(effectiveAdditional.scheduler_config)
     ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "additional_config.scheduler_config",
-        message: `ValueError: additional_config.scheduler_config 必须为字典对象，收到 ${JSON.stringify(additionalConfig.scheduler_config)}。`,
+        message: `ValueError: additional_config.scheduler_config 必须为字典对象，收到 ${JSON.stringify(effectiveAdditional.scheduler_config)}。`,
       });
     }
-    const sched = isRecord(additionalConfig.scheduler_config) ? additionalConfig.scheduler_config : null;
+    const sched = isRecord(effectiveAdditional.scheduler_config)
+      ? effectiveAdditional.scheduler_config
+      : null;
     if (sched && !isRfork) {
       validateSubConfigKeys(
         sched,
@@ -2046,8 +2231,11 @@ export function parseVllmServeCommand(
       if (sched && Object.hasOwn(sched, key)) {
         return { holder: sched, flagPath: `additional_config.scheduler_config.${key}` };
       }
-      if (Object.hasOwn(additionalConfig, key)) {
-        return { holder: additionalConfig, flagPath: `additional_config.${key}` };
+      if (Object.hasOwn(effectiveAdditional, key)) {
+        return {
+          holder: effectiveAdditional as Record<string, unknown>,
+          flagPath: `additional_config.${key}`,
+        };
       }
       return null;
     };
@@ -2147,7 +2335,7 @@ export function parseVllmServeCommand(
     }
 
     const fc1 = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "enable_flashcomm1",
       "additional_config.enable_flashcomm1",
       diagnostics,
@@ -2155,14 +2343,14 @@ export function parseVllmServeCommand(
     );
     if (fc1 !== undefined) couplingInput.enableFlashcomm1 = fc1;
     const dsaCp = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "enable_dsa_cp",
       "additional_config.enable_dsa_cp",
       diagnostics,
       isRfork,
     );
     if (dsaCp !== undefined) couplingInput.enableDsaCp = dsaCp;
-    const fusedMc2 = parseNumberLike(additionalConfig.enable_fused_mc2);
+    const fusedMc2 = parsePydanticLaxInt(effectiveAdditional.enable_fused_mc2);
     if (fusedMc2 === 0 || fusedMc2 === 1 || fusedMc2 === 2 || fusedMc2 === 3) {
       couplingInput.enableFusedMc2 = fusedMc2;
     } else if (fusedMc2 !== undefined) {
@@ -2174,17 +2362,17 @@ export function parseVllmServeCommand(
       });
     }
     const prefillMc2 = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "enable_prefill_mc2",
       "additional_config.enable_prefill_mc2",
       diagnostics,
       isRfork,
     );
     if (prefillMc2 !== undefined) couplingInput.enablePrefillMc2 = prefillMc2;
-    const nzMode = parseNumberLike(additionalConfig.weight_nz_mode);
+    const nzMode = parseNumberLike(effectiveAdditional.weight_nz_mode);
     if (nzMode !== undefined) couplingInput.weightNzMode = nzMode;
     const sparseSfaC8 = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "enable_sparse_sfa_c8",
       "additional_config.enable_sparse_sfa_c8",
       diagnostics,
@@ -2192,47 +2380,50 @@ export function parseVllmServeCommand(
     );
     if (sparseSfaC8 !== undefined) couplingInput.enableSparseSfaC8 = sparseSfaC8;
 
-    if (isRecord(additionalConfig.rl_config)) {
+    if (isRecord(effectiveAdditional.rl_config)) {
       if (!isRfork) {
         validateSubConfigKeys(
-          additionalConfig.rl_config,
+          effectiveAdditional.rl_config,
           "additional_config.rl_config",
           VALID_RL_KEYS,
           diagnostics,
         );
       }
       const rlEn = parseAscendBoolField(
-        additionalConfig.rl_config,
+        effectiveAdditional.rl_config,
         "enabled",
         "additional_config.rl_config.enabled",
         diagnostics,
         isRfork,
       );
       if (rlEn !== undefined) couplingInput.rlEnabled = rlEn;
-      const rlConsKey = Object.hasOwn(additionalConfig.rl_config, "enable_training_consistency")
+      const rlConsKey = Object.hasOwn(effectiveAdditional.rl_config, "enable_training_consistency")
         ? "enable_training_consistency"
         : isRfork
           ? "training_consistency"
           : "enable_training_consistency";
       const rlCons = parseAscendBoolField(
-        additionalConfig.rl_config,
+        effectiveAdditional.rl_config,
         rlConsKey,
         `additional_config.rl_config.${rlConsKey}`,
         diagnostics,
         isRfork,
       );
       if (rlCons !== undefined) couplingInput.rlTrainingConsistency = rlCons;
-    } else if (Object.hasOwn(additionalConfig, "rl_config") && additionalConfig.rl_config !== undefined) {
+    } else if (
+      Object.hasOwn(effectiveAdditional, "rl_config") &&
+      effectiveAdditional.rl_config !== undefined
+    ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "additional_config.rl_config",
-        message: `ValidationError: additional_config.rl_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.rl_config)}。`,
+        message: `ValidationError: additional_config.rl_config 需要 JSON 对象，收到 ${JSON.stringify(effectiveAdditional.rl_config)}。`,
       });
     }
     if (
       parseEnabledSubConfig(
-        additionalConfig,
+        effectiveAdditional,
         "xlite_graph_config",
         "additional_config.xlite_graph_config",
         diagnostics,
@@ -2242,7 +2433,7 @@ export function parseVllmServeCommand(
     ) {
       couplingInput.xliteEnabled = true;
     }
-    const qarc = additionalConfig.quantized_all_reduce_config;
+    const qarc = effectiveAdditional.quantized_all_reduce_config;
     if (qarc !== undefined && qarc !== null) {
       if (!isRecord(qarc)) {
         couplingInput.quantizedAllReduceInvalidReason = `TypeError / ValidationError: additional_config.quantized_all_reduce_config 必须为字典对象（仅含 enable 与 min_numel），不能传 ${Array.isArray(qarc) ? "list" : typeof qarc}`;
@@ -2272,13 +2463,8 @@ export function parseVllmServeCommand(
       }
     }
 
-    const presentMainOnly = MAIN_ONLY_TOP_LEVEL_KEYS.filter((k) => Object.hasOwn(additionalConfig, k));
-    if (presentMainOnly.length > 0) {
-      couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
-    }
-
     const sedp = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "enable_shared_expert_dp",
       "additional_config.enable_shared_expert_dp",
       diagnostics,
@@ -2286,7 +2472,7 @@ export function parseVllmServeCommand(
     );
     if (sedp !== undefined) couplingInput.enableSharedExpertDp = sedp;
     const mmSef = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "megamoe_shared_expert_fusion",
       "additional_config.megamoe_shared_expert_fusion",
       diagnostics,
@@ -2294,7 +2480,7 @@ export function parseVllmServeCommand(
     );
     if (mmSef !== undefined) couplingInput.megamoeSharedExpertFusion = mmSef;
     const meo = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "multistream_engram_overlap",
       "additional_config.multistream_engram_overlap",
       diagnostics,
@@ -2302,7 +2488,7 @@ export function parseVllmServeCommand(
     );
     if (meo !== undefined) couplingInput.multistreamEngramOverlap = meo;
     const gdnCp = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "gdn_internal_prefill_checkpoints",
       "additional_config.gdn_internal_prefill_checkpoints",
       diagnostics,
@@ -2310,7 +2496,7 @@ export function parseVllmServeCommand(
     );
     if (gdnCp !== undefined) couplingInput.gdnInternalPrefillCheckpoints = gdnCp;
     const kvDbg = parseAscendBoolField(
-      additionalConfig,
+      effectiveAdditional,
       "kv_pool_range_debug",
       "additional_config.kv_pool_range_debug",
       diagnostics,
@@ -2318,7 +2504,7 @@ export function parseVllmServeCommand(
     );
     if (kvDbg !== undefined) couplingInput.kvPoolRangeDebug = kvDbg;
 
-    const rawSe = additionalConfig.shared_engram;
+    const rawSe = effectiveAdditional.shared_engram;
     if (rawSe !== undefined && rawSe !== null) {
       couplingInput.sharedEngramConfigured = true;
       if (!isRecord(rawSe)) {
@@ -2388,7 +2574,7 @@ export function parseVllmServeCommand(
       }
     }
 
-    const rawRc = additionalConfig.runtime_config;
+    const rawRc = effectiveAdditional.runtime_config;
     if (rawRc !== undefined && rawRc !== null) {
       if (isRecord(rawRc)) {
         couplingInput.runtimeConfigConfigured = true;
@@ -2408,7 +2594,7 @@ export function parseVllmServeCommand(
         couplingInput.runtimeConfigInvalidType = Array.isArray(rawRc) ? "list" : typeof rawRc;
       }
     }
-    const rawRcp = additionalConfig.runtime_config_path;
+    const rawRcp = effectiveAdditional.runtime_config_path;
     if (rawRcp !== undefined && rawRcp !== null) {
       if (typeof rawRcp === "string") {
         couplingInput.runtimeConfigPathConfigured = true;
@@ -2416,8 +2602,11 @@ export function parseVllmServeCommand(
         couplingInput.runtimeConfigPathInvalidType = Array.isArray(rawRcp) ? "list" : typeof rawRcp;
       }
     }
-    const rawHr = additionalConfig.runtime_config_hot_reload;
-    if (rawHotReloadFloatLiteral !== undefined) {
+    const rawHr = effectiveAdditional.runtime_config_hot_reload;
+    if (
+      rawHotReloadFloatLiteral !== undefined &&
+      Object.hasOwn(effectiveAdditional, "runtime_config_hot_reload")
+    ) {
       couplingInput.runtimeConfigHotReloadInvalidValue = rawHotReloadFloatLiteral;
     } else if (rawHr !== undefined && rawHr !== null) {
       if (typeof rawHr === "boolean") {
@@ -2428,47 +2617,47 @@ export function parseVllmServeCommand(
         couplingInput.runtimeConfigHotReloadInvalidValue = rawHr;
       }
     }
-    if (isRecord(additionalConfig.finegrained_tp_config)) {
+    if (isRecord(effectiveAdditional.finegrained_tp_config)) {
       if (!isRfork) {
         validateSubConfigKeys(
-          additionalConfig.finegrained_tp_config,
+          effectiveAdditional.finegrained_tp_config,
           "additional_config.finegrained_tp_config",
           VALID_FINEGRAINED_TP_KEYS_BY_TARGET[targetSchemaVersion],
           diagnostics,
         );
       }
-      const oproj = parseNumberLike(additionalConfig.finegrained_tp_config.oproj_tensor_parallel_size);
+      const oproj = parseNumberLike(effectiveAdditional.finegrained_tp_config.oproj_tensor_parallel_size);
       if (oproj !== undefined) couplingInput.oprojTensorParallelSize = oproj;
-      const mlp = parseNumberLike(additionalConfig.finegrained_tp_config.mlp_tensor_parallel_size);
+      const mlp = parseNumberLike(effectiveAdditional.finegrained_tp_config.mlp_tensor_parallel_size);
       if (mlp !== undefined) couplingInput.mlpTensorParallelSize = mlp;
-      const emb = parseNumberLike(additionalConfig.finegrained_tp_config.embedding_tensor_parallel_size);
+      const emb = parseNumberLike(effectiveAdditional.finegrained_tp_config.embedding_tensor_parallel_size);
       if (emb !== undefined) couplingInput.embeddingTensorParallelSize = emb;
     } else if (
-      Object.hasOwn(additionalConfig, "finegrained_tp_config") &&
-      additionalConfig.finegrained_tp_config !== undefined
+      Object.hasOwn(effectiveAdditional, "finegrained_tp_config") &&
+      effectiveAdditional.finegrained_tp_config !== undefined
     ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "additional_config.finegrained_tp_config",
-        message: `ValidationError: additional_config.finegrained_tp_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.finegrained_tp_config)}。`,
+        message: `ValidationError: additional_config.finegrained_tp_config 需要 JSON 对象，收到 ${JSON.stringify(effectiveAdditional.finegrained_tp_config)}。`,
       });
     }
-    if (isRecord(additionalConfig.sparse_kv_offload_config)) {
+    if (isRecord(effectiveAdditional.sparse_kv_offload_config)) {
       const keep = parseAscendBoolField(
-        additionalConfig.sparse_kv_offload_config,
+        effectiveAdditional.sparse_kv_offload_config,
         "keep_device_kv_cache",
         "additional_config.sparse_kv_offload_config.keep_device_kv_cache",
         diagnostics,
         isRfork,
       );
       if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
-      const topkBuf = parseNumberLike(additionalConfig.sparse_kv_offload_config.topk_buffer_size);
+      const topkBuf = parseNumberLike(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size);
       if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;
     }
     if (
       parseEnabledSubConfig(
-        additionalConfig,
+        effectiveAdditional,
         "sparse_kv_offload_config",
         "additional_config.sparse_kv_offload_config",
         diagnostics,
@@ -2477,6 +2666,61 @@ export function parseVllmServeCommand(
       )
     ) {
       couplingInput.sparseKvOffloadEnabled = true;
+    }
+
+    // Complete AST-derived field type validation across AscendConfig and all @config sub-configs
+    if (!isRfork) {
+      validateRecordFieldTypes(
+        effectiveAdditional as Record<string, unknown>,
+        "additional_config",
+        ASCEND_TOP_LEVEL_FIELD_TYPES,
+        diagnostics,
+      );
+      for (const [subName, fieldSpecs] of Object.entries(ASCEND_SUBCONFIG_FIELD_TYPES)) {
+        if (subName === "stair_config") {
+          const eplb = effectiveAdditional.eplb_config;
+          if (isRecord(eplb) && isRecord(eplb.stair_config)) {
+            validateRecordFieldTypes(
+              eplb.stair_config,
+              "additional_config.eplb_config.stair_config",
+              fieldSpecs,
+              diagnostics,
+            );
+          }
+          continue;
+        }
+        if (subName === "dyntra_lb_config") {
+          if (sched && isRecord(sched.dyntra_lb_config)) {
+            validateRecordFieldTypes(
+              sched.dyntra_lb_config,
+              "additional_config.scheduler_config.dyntra_lb_config",
+              fieldSpecs,
+              diagnostics,
+            );
+          }
+          continue;
+        }
+        if (
+          subName === "profiling_chunk_config" ||
+          subName === "batch_job_sched_config" ||
+          subName === "short_request_first_config"
+        ) {
+          const entry = resolveSchedHolder(subName);
+          if (entry && isRecord(entry.holder[subName])) {
+            validateRecordFieldTypes(
+              entry.holder[subName] as Record<string, unknown>,
+              entry.flagPath,
+              fieldSpecs,
+              diagnostics,
+            );
+          }
+          continue;
+        }
+        const subRec = effectiveAdditional[subName];
+        if (isRecord(subRec)) {
+          validateRecordFieldTypes(subRec, `additional_config.${subName}`, fieldSpecs, diagnostics);
+        }
+      }
     }
   }
 

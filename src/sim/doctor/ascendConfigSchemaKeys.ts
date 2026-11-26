@@ -178,7 +178,6 @@ export const VALID_SPARSE_KV_OFFLOAD_KEYS_BY_TARGET: Readonly<
     "dram_size_per_dp_GB",
     "keep_device_kv_cache",
     "use_fused_overlap",
-    "fused_op_type",
   ]),
   main: new Set([
     "enabled",
@@ -226,11 +225,7 @@ export const VALID_DYNTRA_LB_KEYS: ReadonlySet<string> = new Set([
 
 export const VALID_DYNAMIC_SPEC_KEYS: ReadonlySet<string> = new Set(["method", "method_params"]);
 export const VALID_KVPP_KEYS: ReadonlySet<string> = new Set(["size"]);
-export const VALID_QUANTIZED_ALL_REDUCE_KEYS: ReadonlySet<string> = new Set([
-  "enable",
-  "min_numel",
-  "quant_dtype",
-]);
+export const VALID_QUANTIZED_ALL_REDUCE_KEYS: ReadonlySet<string> = new Set(["enable", "min_numel"]);
 export const VALID_SHARED_ENGRAM_KEYS: ReadonlySet<string> = new Set([
   "backend",
   "endpoint",
@@ -257,4 +252,193 @@ export const VALID_SCHEDULER_KEYS_BY_TARGET: Readonly<Record<UpgradeTargetVersio
     "batch_job_sched_config",
     "dyntra_lb_config",
   ]),
+};
+
+export type AscendFieldPrimitiveSpec =
+  | "bool"
+  | "strictBool"
+  | "optBool"
+  | "int"
+  | "optInt"
+  | "float"
+  | "str"
+  | "optStr"
+  | "list"
+  | "dict"
+  | readonly (string | number)[];
+
+/**
+ * Complete AST-derived scalar/collection field type specifications for AscendConfig
+ * and all @config sub-configs across pinned v0.30.0 (c09d3e20) and main (8d6180e2).
+ * Keys validated by dedicated rich rules (quantized_all_reduce_config, shared_engram,
+ * runtime_config, runtime_config_path, runtime_config_hot_reload) are handled there.
+ */
+export const ASCEND_TOP_LEVEL_FIELD_TYPES: Readonly<Record<string, AscendFieldPrimitiveSpec>> = {
+  refresh: "bool",
+  enable_cpu_binding: "bool",
+  multistream_dsv4_dsa_overlap: "bool",
+  multistream_engram_overlap: "bool",
+  enable_prefill_mc2: "bool",
+  multistream_overlap_shared_expert: "bool",
+  enable_kv_nz: "bool",
+  enable_mc2_hierarchy_comm: "bool",
+  enable_dsa_cp: "bool",
+  sfa_dcp_force_tmajor_restore: "bool",
+  enable_force_eplb: "bool",
+  enable_pcp_o_proj_weight_sharding: "bool",
+  enable_pcp_embedding_lmhead_weight_sharding: "bool",
+  draft_window_size: "optInt",
+  mix_placement: "bool",
+  combine_quant_mode: [0, 2, 3, 4],
+  pa_shape_list: "list",
+  mega_moe_max_tokens: "int",
+  ascend_log_path: "str",
+  dump_config_path: "optStr",
+  dump_config: "dict",
+  mc2_comm_alg: ["", "fullmesh", "hierarchy", "fullmesh_v2"],
+  enable_fused_mc2: "int",
+  enable_mlapo: "bool",
+  mlapo_keep_prefill_weights: "bool",
+  msmonitor_use_daemon: "bool",
+  enable_transpose_kv_cache_by_block: "bool",
+  weight_nz_mode: "int",
+  enable_shared_expert_dp: "bool",
+  enable_sparse_sfa_c8: "bool",
+  enable_sparse_li_c8: "bool",
+  enable_sparse_li_c4: "bool",
+  enable_sparse_sfa_turboquant: "bool",
+  enable_sp_by_pass: "bool",
+  pd_tp_ratio: "int",
+  pd_head_ratio: "int",
+  num_head_replica: "int",
+  enable_flashcomm1: "bool",
+  enable_kvpp: "bool",
+  enable_balance_scheduling: "bool",
+  recompute_scheduler_enable: "bool",
+  kv_pool_range_debug: "bool",
+  megamoe_shared_expert_fusion: "bool",
+  gdn_internal_prefill_checkpoints: "bool",
+  runtime_report_dir: "optStr",
+  runtime_dump_dir: "optStr",
+  gdn_prefill_backend: "optStr",
+  kda_prefill_backend: "optStr",
+};
+
+export const ASCEND_SUBCONFIG_FIELD_TYPES: Readonly<
+  Record<string, Readonly<Record<string, AscendFieldPrimitiveSpec>>>
+> = {
+  ascend_compilation_config: {
+    enable_npugraph_ex: "bool",
+    enable_static_kernel: "bool",
+    enable_super_kernel: "bool",
+    fuse_norm_quant: "bool",
+    fuse_qknorm_rope: "bool",
+    fuse_muls_add: "bool",
+  },
+  ascend_fusion_config: {
+    fusion_ops_gmmswigluquant: "bool",
+  },
+  ascend_warmup_config: {
+    enable_early_kernel_warmup: "bool",
+    enable_early_nz_warmup: "bool",
+  },
+  eplb_config: {
+    dynamic_eplb: "bool",
+    expert_map_path: "optStr",
+    expert_heat_collection_interval: "int",
+    algorithm_execution_interval: "int",
+    expert_map_record_path: "optStr",
+    num_redundant_experts: "int",
+    eplb_policy_type: "int",
+    eplb_heat_collection_stage: "str",
+    load_collection_phase: "str",
+  },
+  stair_config: {
+    load_window_bins: "int",
+    load_risk_quantile: "float",
+    relative_balance_threshold: "float",
+    absolute_balance_threshold: "float",
+    rank_transfer_limit: "int",
+    cross_node_transfer_limit: "int",
+    replica_search_num_stages: "int",
+    replica_search_radius: "int",
+    replica_search_beam_size: "int",
+    placement_search_backtrack_limit: "int",
+  },
+  rejection_sampler_config: {
+    enable_block_verify: "bool",
+    enable_entropy_verify: "bool",
+    posterior_threshold: "float",
+    posterior_alpha: "float",
+  },
+  rl_config: {
+    enabled: "bool",
+    sleep_mode_extra_cleanup: "bool",
+    enable_training_consistency: "bool",
+    enable_batch_invariant: "bool",
+  },
+  xlite_graph_config: {
+    enabled: "bool",
+    full_mode: "bool",
+  },
+  finegrained_tp_config: {
+    oproj_tensor_parallel_size: "int",
+    lmhead_tensor_parallel_size: "int",
+    embedding_tensor_parallel_size: "int",
+    mlp_tensor_parallel_size: "int",
+    qkv_iproj_tensor_parallel_size: "int",
+  },
+  dynamic_spec_config: {
+    method: "optStr",
+    method_params: "dict",
+  },
+  kv_trace: {
+    enabled: "strictBool",
+    action: ["log", "raise"],
+  },
+  kvpp_config: {
+    size: "int",
+  },
+  sparse_kv_offload_config: {
+    enabled: "bool",
+    topk_buffer_size: "int",
+    dram_size_per_dp_GB: "int",
+    keep_device_kv_cache: "bool",
+    use_fused_overlap: "bool",
+    store_port_base: "int",
+  },
+  profiling_chunk_config: {
+    enabled: "bool",
+    smooth_factor: "float",
+    min_chunk: "int",
+    need_timing: "optBool",
+    max_fit_chunk: "int",
+  },
+  batch_job_sched_config: {
+    enabled: "bool",
+    max_jobs: "int",
+    reserve_margin_blocks: "int",
+    reserve_max_blocks: "int",
+    low_available_tokens_threshold: "int",
+    short_decode_token_threshold: "int",
+  },
+  short_request_first_config: {
+    enabled: "bool",
+    threshold: "int",
+    long_max_wait_ms: "float",
+  },
+  dyntra_lb_config: {
+    enabled: "bool",
+    enable_diagnostics: "bool",
+    mode: ["static", "dynamic"],
+    start_step: "int",
+    end_step: "int",
+    bubble_threshold: "float",
+    long_req_block_threshold: "int",
+    dynamic_max_step: "int",
+  },
+  scheduler_config: {
+    enable_balance_scheduling: "bool",
+    recompute_scheduler_enable: "bool",
+  },
 };

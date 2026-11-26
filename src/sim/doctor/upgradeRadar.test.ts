@@ -244,13 +244,30 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
       eplb_config: { dynamic_eplb: false, stair_config: { load_window_bins: 64 } },
       xlite_graph_config: { enabled: true, full_mode: false },
       finegrained_tp_config: { qkv_iproj_tensor_parallel_size: 2 },
-      quantized_all_reduce_config: { enable: true, quant_dtype: "int8" },
+      quantized_all_reduce_config: { enable: true, min_numel: 32768 },
     })}'`;
     const validRep = analyzeSingleUpgradeRadar(validMainNestedCmd, {
       fromVersion: "v0.26.0rc",
       toVersion: "main",
     });
     expect(validRep.counts.total).toBe(0);
+
+    // Removed subkeys (quant_dtype on main@8d6180e2, fused_op_type on v0.30.0@c09d3e20) are rejected
+    const badQarMain = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-30B-A3B --additional-config '{"quantized_all_reduce_config":{"enable":true,"quant_dtype":"int8"}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(badQarMain.items.map((i) => i.id)).toContain(
+      "radar-unknown-subkey-quantized_all_reduce_config-quant_dtype",
+    );
+
+    const badSparseV030 = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-30B-A3B --additional-config '{"sparse_kv_offload_config":{"enabled":true,"fused_op_type":"fused_copy_sfa"}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "v0.30.0" },
+    );
+    expect(badSparseV030.items.map((i) => i.id)).toContain(
+      "radar-unknown-subkey-sparse_kv_offload_config-fused_op_type",
+    );
   });
 
   it("generates recommendedSingleCommand and recommendedPdCommands that re-validate with zero shockwave items", () => {

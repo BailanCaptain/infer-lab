@@ -2,16 +2,26 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
+import { createEvidenceViewController } from "../../content/wiki/evidence-schema";
 import { ensurePage, getPage, getReaderState, retrieve } from "../../content/wiki/index";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
 import { createReaderStore } from "../../content/wiki/reader-store";
 import { buildIndex, serializeSearchIndex } from "../../content/wiki/retrieve";
 import { buildToc } from "../../content/wiki/toc";
-import { createQuickSearchController } from "../wiki/QuickSearch";
+import { buildContextualStarters, ChatPane, createChatController } from "../wiki/ChatDrawer";
+import { EvidencePane } from "../wiki/EvidencePane";
+import {
+  createQuickSearchController,
+  OPEN_QUICK_SEARCH_EVENT,
+  QuickSearchDialog,
+  requestOpenQuickSearch,
+} from "../wiki/QuickSearch";
 import { isPlainPrimaryLinkClick, WikiContentLink } from "../wiki/WikiLink";
+import { WikiPanel } from "../wiki/WikiPanel";
 import {
   Article,
   canonicalWikiRedirectTarget,
+  computeTocScrollTopAfterActivate,
   MissingPage,
   PrerequisiteBar,
   resolveDirectoryDrawerState,
@@ -221,5 +231,244 @@ describe("a route whose page is not in the reader snapshot", () => {
     );
     expect(linkHtml).toContain('href="/wiki/size-40a1c2ca47b8"');
     expect(linkHtml).toContain('title="KVPPConfig.size"');
+  });
+
+  it("computeTocScrollTopAfterActivate 在条目已处于可视区时保持零位移，仅对上方/下方越界条目平移目录 scrollTop", () => {
+    // 已在可视区内（哪怕靠近顶/底边缘）：严格保持原 scrollTop，点击目录绝不跳回顶部或抖动
+    expect(
+      computeTocScrollTopAfterActivate({
+        scrollTop: 520,
+        navTop: 80,
+        navBottom: 880,
+        itemTop: 84,
+        itemBottom: 120,
+      }),
+    ).toBe(520);
+    expect(
+      computeTocScrollTopAfterActivate({
+        scrollTop: 520,
+        navTop: 80,
+        navBottom: 880,
+        itemTop: 840,
+        itemBottom: 878,
+      }),
+    ).toBe(520);
+
+    // 外部跳到目录下方远处条目：向下平移至底边距 padding=24
+    expect(
+      computeTocScrollTopAfterActivate({
+        scrollTop: 0,
+        navTop: 80,
+        navBottom: 880,
+        itemTop: 1200,
+        itemBottom: 1236,
+      }),
+    ).toBe(380);
+
+    // 外部跳到目录上方未显示条目：向上拉回且不小于 0
+    expect(
+      computeTocScrollTopAfterActivate({
+        scrollTop: 400,
+        navTop: 80,
+        navBottom: 880,
+        itemTop: 20,
+        itemBottom: 56,
+      }),
+    ).toBe(316);
+    expect(
+      computeTocScrollTopAfterActivate({
+        scrollTop: 10,
+        navTop: 80,
+        navBottom: 880,
+        itemTop: 20,
+        itemBottom: 56,
+      }),
+    ).toBe(0);
+  });
+
+  it("QuickSearch 支持带初始查询词一键打开（搜全文联动），且工具/3D 徽章使用语义类而非裸 hex", async () => {
+    const controller = createQuickSearchController({
+      search: (q, opts) => retrieve(q, opts),
+      getPages: () => getReaderState().pages,
+      onNavigate: () => {},
+    });
+    controller.openSearch("EI0006");
+    expect(controller.getState().open).toBe(true);
+    expect(controller.getState().query).toBe("EI0006");
+    await vi.waitFor(() => expect(controller.getState().status).toBe("ready"));
+    expect(controller.getState().items.length).toBeGreaterThan(0);
+
+    const dialogHtml = renderToStaticMarkup(
+      createElement(QuickSearchDialog, {
+        state: controller.getState(),
+        onQueryChange: () => {},
+        onSelectIndex: () => {},
+        onPickItem: () => {},
+        onRetry: () => {},
+        onClose: () => {},
+        onInputKeyDown: () => {},
+      }),
+    );
+    expect(dialogHtml).toContain("wiki-quick-search-type is-tool");
+    expect(dialogHtml).not.toContain("#ddf4ef");
+    expect(dialogHtml).not.toContain("#e85b32");
+
+    if (typeof window !== "undefined") {
+      let receivedQuery = "";
+      const onOpen = (ev: Event) => {
+        receivedQuery = (ev as CustomEvent<{ query?: string }>).detail?.query ?? "";
+      };
+      window.addEventListener(OPEN_QUICK_SEARCH_EVENT, onOpen);
+      try {
+        requestOpenQuickSearch({ query: "RoPE" });
+        expect(receivedQuery).toBe("RoPE");
+      } finally {
+        window.removeEventListener(OPEN_QUICK_SEARCH_EVENT, onOpen);
+      }
+    }
+  });
+
+  it("Article 切页过渡保留外框标记，WikiPanel 合并在线刷新按钮并次级化维护页签，ChatPane 动态追问与新对话清空闭环", async () => {
+    await ensurePage("quantization");
+    const quant = getPage("quantization")!;
+    const transitioningHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(Article, {
+          page: quant.fm,
+          body: "",
+          compiled: quant.compiled,
+          diagrams: getReaderState().diagrams,
+          isTransitioning: true,
+        }),
+      ),
+    );
+    expect(transitioningHtml).toContain('data-transitioning="true"');
+
+    // 按当前阅读页类型动态派生 3 条追问胶囊
+    const conceptStarters = buildContextualStarters(quant.fm);
+    expect(conceptStarters).toHaveLength(3);
+    expect(conceptStarters[0]).toContain(pageDisplayTitle(quant.fm).split(/[：:]/)[0]!);
+
+    await ensurePage("size-40a1c2ca47b8");
+    const paramEntry = getPage("size-40a1c2ca47b8")!.fm;
+    const paramStarters = buildContextualStarters(paramEntry);
+    expect(paramStarters).toHaveLength(3);
+    expect(paramStarters[0]).toContain("KVPPConfig.size");
+
+    // chatController.clear() 清空消息、会话与挂起附件，保留输入框未发草稿且隔离在途流
+    const memory = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => memory.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        memory.set(k, v);
+      },
+    };
+    const chatCtl = createChatController({
+      storage,
+      getBackendAvailability: () => "online",
+      fetchImpl: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(c) {
+              const enc = new TextEncoder();
+              c.enqueue(
+                enc.encode(
+                  'event: model\ndata: {"answeredBy":"gpt-5.4","provider":"codex","switched":false,"switches":[]}\n\n',
+                ),
+              );
+              c.enqueue(enc.encode('event: text\ndata: {"text":"量化通过降低权重位宽减少带宽压力。"}\n\n'));
+              c.enqueue(
+                enc.encode(
+                  `event: quality\ndata: {"status":"checked","decision":{"satisfied":true,"classification":"grounded","reason":"材料一致"}}\n\n`,
+                ),
+              );
+              c.enqueue(
+                enc.encode(`event: done\ndata: {"sessionId":"sid-q","answerId":"${"d".repeat(64)}"}\n\n`),
+              );
+              c.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        ),
+    });
+
+    await chatCtl.send("解释量化");
+    chatCtl.setInput("下一问未发草稿");
+
+    const onlinePanelHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(WikiPanel, {
+          revision: "abcdef1234567890",
+          mode: "local",
+          backendAvailable: "online",
+          currentId: "quantization",
+          chat: chatCtl.getState(),
+          layout: "chat",
+          onLayout: () => {},
+          onRefresh: async () => false,
+        }),
+      ),
+    );
+    expect(onlinePanelHtml).toContain('data-testid="wiki-refresh-btn"');
+    expect(onlinePanelHtml).not.toContain('class="wiki-panel-status"');
+    expect(onlinePanelHtml).toContain('data-tier="reader"');
+    expect(onlinePanelHtml).toContain('data-tier="authoring"');
+
+    const chatHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(ChatPane, {
+          id: "wiki-panel-chat",
+          chat: chatCtl.getState(),
+          backendAvailable: "online",
+          currentId: "quantization",
+          hidden: false,
+          onReview: () => {},
+        }),
+      ),
+    );
+    expect(chatHtml).toContain('data-testid="chat-context-pill"');
+    expect(chatHtml).toContain("当前阅读：");
+    expect(chatHtml).toContain('data-testid="chat-clear"');
+    expect(chatHtml).not.toContain("Codex 账户额度");
+    expect(chatHtml).toContain("作答模型 gpt-5.4");
+    expect(chatHtml).toContain('data-testid="chat-copy-reply"');
+    expect(chatHtml).toContain("存进 Wiki");
+    expect(chatHtml).toContain("wiki-chat-quality-ok");
+    expect(chatHtml).toContain('data-testid="chat-followups"');
+
+    chatCtl.clear();
+    expect(chatCtl.getState().msgs).toEqual([]);
+    expect(chatCtl.getState().input).toBe("下一问未发草稿");
+
+    // EvidencePane 加载骨架态与空态微排版校验
+    let releaseEvidence!: () => void;
+    const evCtl = createEvidenceViewController({
+      loadPageEvidence: () =>
+        new Promise((resolve) => {
+          releaseEvidence = () =>
+            resolve({
+              version: 1,
+              revision: "a".repeat(64),
+              pageId: "quantization",
+              pageSources: [],
+              diagrams: [],
+              entries: {},
+            });
+        }),
+    });
+    const pendingOpen = evCtl.openForSource("quantization", "a".repeat(64), 0);
+    const evLoadingHtml = renderToStaticMarkup(
+      createElement(EvidencePane, { id: "wiki-panel-evidence", hidden: false, controller: evCtl }),
+    );
+    expect(evLoadingHtml).toContain('data-testid="evidence-loading"');
+    expect(evLoadingHtml).toContain("正在读取当前页面的离线证据摘录");
+    releaseEvidence();
+    await pendingOpen;
   });
 });

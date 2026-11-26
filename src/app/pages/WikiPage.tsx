@@ -38,6 +38,7 @@ import {
   hrefOfSource,
 } from "../wiki/CompiledHastView";
 import { hasPageToc, type PageHeading, PageTocFab, PageTocSide, readHeadings } from "../wiki/PageToc";
+import { requestOpenQuickSearch } from "../wiki/QuickSearch";
 import { ReaderResizeHandle } from "../wiki/ReaderResizeHandle";
 import { markPageRead } from "../wiki/readingProgressStore";
 import { WikiCausalGraphView, WikiViewSwitch } from "../wiki/WikiCausalGraphView";
@@ -131,6 +132,33 @@ export function resolveDirectoryDrawerState(
   return { desktop: nextDesktop, directoryOpen: false };
 }
 
+/**
+ * 左侧目录激活项滚动计算：
+ * - 条目已在目录容器可视区内时严格保持原 `scrollTop`（零位移，点击目录切页绝不跳回顶部或抖动）；
+ * - 外部路由跳转到目录外远处条目时，仅调整目录自身 `scrollTop` 滚入可视区，绝不调用会污染 `window` 的 `scrollIntoView`。
+ */
+export function computeTocScrollTopAfterActivate(params: {
+  scrollTop: number;
+  navTop: number;
+  navBottom: number;
+  itemTop: number;
+  itemBottom: number;
+  padding?: number;
+}): number {
+  const { scrollTop, navTop, navBottom, itemTop, itemBottom } = params;
+  const navHeight = navBottom - navTop;
+  const itemHeight = itemBottom - itemTop;
+  if (navHeight <= 0) return scrollTop;
+  if (itemTop >= navTop && itemBottom <= navBottom) {
+    return scrollTop;
+  }
+  const pad = Math.min(params.padding ?? 24, Math.max(0, (navHeight - itemHeight) / 2));
+  if (itemTop < navTop) {
+    return Math.max(0, scrollTop - (navTop + pad - itemTop));
+  }
+  return Math.max(0, scrollTop + (itemBottom - (navBottom - pad)));
+}
+
 export function WikiPage() {
   const { id } = useParams();
   const location = useLocation();
@@ -204,8 +232,17 @@ export function WikiPage() {
       )
       .map((p) => p.id),
   );
-  const page = activeId ? getPage(activeId) : undefined;
+  const rawPage = activeId ? getPage(activeId) : undefined;
   const knownPage = Boolean(canonicalId);
+  const lastLoadedPageRef = useRef<typeof rawPage>(undefined);
+  if (!id || !knownPage) {
+    lastLoadedPageRef.current = undefined;
+  } else if (rawPage) {
+    lastLoadedPageRef.current = rawPage;
+  }
+  const isTransitioningPage = Boolean(id && !rawPage && knownPage && !pageError && lastLoadedPageRef.current);
+  const page = rawPage ?? (isTransitioningPage ? lastLoadedPageRef.current : undefined);
+  const displayPageId = page?.fm.id ?? activeId;
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const isGraphView = !id && searchParams.get("view") === "graph";
   const graphFocusParam = searchParams.get("focus") ?? undefined;
@@ -216,14 +253,14 @@ export function WikiPage() {
       : undefined;
   const autoMarkedRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!canonicalId || page?.fm.id !== canonicalId) {
+    if (!canonicalId || rawPage?.fm.id !== canonicalId) {
       if (!id) autoMarkedRef.current = undefined;
       return;
     }
     if (autoMarkedRef.current === canonicalId) return;
     autoMarkedRef.current = canonicalId;
     markPageRead(canonicalId, pages, skipped);
-  }, [id, canonicalId, page?.fm.id, pages, skipped]);
+  }, [id, canonicalId, rawPage?.fm.id, pages, skipped]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new snapshot must retry the external page loader.
   useEffect(() => {
     setPageError("");
@@ -236,16 +273,29 @@ export function WikiPage() {
       live = false;
     };
   }, [activeId, revision]);
+  const prefetchPage = useCallback((targetId: string | undefined) => {
+    if (!targetId) return;
+    void ensurePage(targetId).catch(() => {});
+  }, []);
+  const prewarmCurrentEvidence = useCallback(() => {
+    if (!activeId) return;
+    void ensurePageEvidence(activeId).catch(() => {});
+  }, [activeId]);
   const activePart = toc.find((part) =>
-    part.sections.some((section) => section.pages.some((p) => p.id === activeId)),
+    part.sections.some((section) => section.pages.some((p) => p.id === displayPageId)),
   );
-  const activeSection = activePart?.sections.find((section) => section.pages.some((p) => p.id === activeId));
+  const activeSection = activePart?.sections.find((section) =>
+    section.pages.some((p) => p.id === displayPageId),
+  );
   const orderedPages = toc.flatMap((part) => part.sections.flatMap((section) => section.pages));
-  const currentIndex = orderedPages.findIndex((p) => p.id === activeId);
+  const currentIndex = orderedPages.findIndex((p) => p.id === displayPageId);
 
   // 左侧目录各分组的展开状态放在这一层：换页不重挂目录，读者手动展开/收起的分组都保留。
   // 每换到一页（或目录数据到位），当前页所在分组补成展开；首页展开「指南」。
-  const autoGroup = activePart?.id ?? (activeId ? undefined : "guide");
+  const tocActivePart = toc.find((part) =>
+    part.sections.some((section) => section.pages.some((p) => p.id === activeId)),
+  );
+  const autoGroup = tocActivePart?.id ?? (activeId ? undefined : "guide");
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
   const [autoOpenedFor, setAutoOpenedFor] = useState<string>();
   const autoKey = `${activeId ?? ""}|${autoGroup ?? ""}`;
@@ -263,17 +313,47 @@ export function WikiPage() {
       return next;
     });
 
-  // 换页后：目录里的当前项滚进目录的可视范围，焦点移到正文（首次进入不抢焦点）
+  // 换页后：仅当目录激活项不在目录容器可视范围时调整目录自身 scrollTop（严禁调用 Element.scrollIntoView
+  // 污染 window 滚动或重置用户在左栏内的当前滚动位置），焦点移到正文（首次进入不抢焦点）
   const tocNav = useRef<HTMLElement>(null);
+  const tocPinnedScrollRef = useRef<{ readonly targetId: string; readonly scrollTop: number } | null>(null);
   const shownId = useRef(activeId);
-  useEffect(() => {
-    tocNav.current?.querySelector(".wiki-toc a.is-active")?.scrollIntoView({ block: "nearest" });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tocActivePart?.id 确保目录分组首次挂载展开后亦同步校正可视范围
+  useLayoutEffect(() => {
+    const nav = tocNav.current;
+    const pinned = tocPinnedScrollRef.current;
+    tocPinnedScrollRef.current = null;
+    if (nav) {
+      if (pinned && pinned.targetId === activeId) {
+        nav.scrollTop = pinned.scrollTop;
+      } else {
+        const activeLink = nav.querySelector<HTMLElement>(".wiki-toc-group a.is-active");
+        if (activeLink) {
+          const navRect = nav.getBoundingClientRect();
+          const linkRect = activeLink.getBoundingClientRect();
+          const nextScrollTop = computeTocScrollTopAfterActivate({
+            scrollTop: nav.scrollTop,
+            navTop: navRect.top,
+            navBottom: navRect.bottom,
+            itemTop: linkRect.top,
+            itemBottom: linkRect.bottom,
+          });
+          if (nextScrollTop !== nav.scrollTop) {
+            nav.scrollTop = nextScrollTop;
+          }
+        }
+      }
+    }
     if (shownId.current === activeId) return;
     shownId.current = activeId;
     document.getElementById("main-content")?.focus({ preventScroll: true });
-  }, [activeId]);
+  }, [activeId, tocActivePart?.id]);
 
-  const activeDisplayTitle = page ? pageDisplayTitle(page.fm) : undefined;
+  const activeDisplayTitle = rawPage
+    ? pageDisplayTitle(rawPage.fm)
+    : page
+      ? pageDisplayTitle(page.fm)
+      : undefined;
   useEffect(() => {
     document.title = `${activeDisplayTitle ?? "大模型推理"} · AI Infra`;
   }, [activeDisplayTitle]);
@@ -293,7 +373,7 @@ export function WikiPage() {
             主题目录
             <ChevronDown size={15} aria-hidden="true" />
           </summary>
-          <nav ref={tocNav} className="wiki-toc" data-testid="wiki-toc" aria-label="知识库目录">
+          <div className="reader-directory-body">
             <div className="wiki-toc-head">
               <Link className="reader-overview" to="/wiki" onClick={() => setDirectoryOpen(false)}>
                 全部主题 <span>{pages.length} 篇</span>
@@ -307,87 +387,138 @@ export function WikiPage() {
                 onNavigate={() => setDirectoryOpen(false)}
               />
             </div>
-            <div className="wiki-toc-search">
-              <label className="reader-search">
-                <Search size={15} aria-hidden="true" />
-                <input
-                  type="search"
-                  aria-label="搜索知识库目录"
-                  placeholder="搜索概念、别名或参数"
-                  value={directoryQuery}
-                  onChange={(event) => setDirectoryQuery(event.target.value)}
-                />
-              </label>
-              {directoryQuery && (
-                <button type="button" onClick={() => setDirectoryQuery("")}>
-                  清除搜索
-                </button>
-              )}
-              {query && (
-                <small role="status">
-                  {matchingIds.size ? `${matchingIds.size} 个匹配页面` : "没有匹配的页面，可换个名称搜索。"}
+            <nav ref={tocNav} className="wiki-toc" data-testid="wiki-toc" aria-label="知识库目录">
+              <div className="wiki-toc-search">
+                <label className="reader-search">
+                  <Search size={15} aria-hidden="true" />
+                  <input
+                    type="search"
+                    aria-label="搜索知识库目录"
+                    placeholder="搜索概念、别名或参数"
+                    value={directoryQuery}
+                    onChange={(event) => setDirectoryQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        !event.nativeEvent.isComposing &&
+                        directoryQuery.trim() &&
+                        matchingIds.size === 0
+                      ) {
+                        event.preventDefault();
+                        requestOpenQuickSearch({
+                          query: directoryQuery.trim(),
+                          origin: event.currentTarget,
+                        });
+                      }
+                    }}
+                  />
+                </label>
+                {directoryQuery && (
+                  <button type="button" onClick={() => setDirectoryQuery("")}>
+                    清除搜索
+                  </button>
+                )}
+                {query && (
+                  <div className="wiki-toc-search-meta">
+                    <small role="status">
+                      {matchingIds.size ? `${matchingIds.size} 个匹配页面` : "目录标题中无直接匹配"}
+                    </small>
+                    <button
+                      type="button"
+                      className="wiki-toc-fullsearch-btn"
+                      data-testid="wiki-toc-open-fullsearch"
+                      onClick={(event) => {
+                        requestOpenQuickSearch({
+                          query: directoryQuery.trim(),
+                          origin: event.currentTarget,
+                        });
+                      }}
+                    >
+                      搜全文 ↗
+                    </button>
+                  </div>
+                )}
+              </div>
+              {toc.map((part, i) => {
+                const sections = part.sections
+                  .map((section) => ({
+                    ...section,
+                    pages: section.pages.filter((p) => matchingIds.has(p.id)),
+                  }))
+                  .filter((section) => section.pages.length);
+                const count = sections.reduce((n, s) => n + s.pages.length, 0);
+                if (!count) return null;
+                const body = sections.map((section) => (
+                  <section key={section.title} className="wiki-toc-group">
+                    {section.title && <h3 className="wiki-toc-section">{section.title}</h3>}
+                    <ul>
+                      {section.pages.map((p) => (
+                        <li key={p.id}>
+                          <Link
+                            className={p.id === activeId ? "is-active" : undefined}
+                            aria-current={p.id === activeId ? "page" : undefined}
+                            to={`/wiki/${p.id}`}
+                            onMouseEnter={() => prefetchPage(p.id)}
+                            onFocus={() => prefetchPage(p.id)}
+                            onPointerDown={(event) => {
+                              if (
+                                event.button === 0 &&
+                                !event.metaKey &&
+                                !event.ctrlKey &&
+                                !event.shiftKey &&
+                                !event.altKey &&
+                                tocNav.current
+                              ) {
+                                tocPinnedScrollRef.current = {
+                                  targetId: p.id,
+                                  scrollTop: tocNav.current.scrollTop,
+                                };
+                              }
+                            }}
+                            onClick={() => setDirectoryOpen(false)}
+                          >
+                            {pageDisplayTitle(p)}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ));
+                const head = (
+                  <>
+                    <span className="wiki-toc-chapter">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="wiki-toc-title">{part.title}</span>
+                    <small className="wiki-toc-count">{count}</small>
+                  </>
+                );
+                return (
+                  <details
+                    // 搜索时全部展开；进出搜索重挂一次，让 DOM 回到受控的展开状态
+                    key={`${part.id}-${!!query}`}
+                    className="wiki-toc-part"
+                    data-testid={`toc-${part.id}`}
+                    open={!!query || expandedGroups.has(part.id)}
+                    onToggle={(event) => {
+                      if (!query) setGroupOpen(part.id, event.currentTarget.open);
+                    }}
+                  >
+                    <summary className="wiki-toc-part-head" title={part.blurb}>
+                      {head}
+                    </summary>
+                    {body}
+                  </details>
+                );
+              })}
+              <details className="reader-build-info">
+                <summary>内容与版本</summary>
+                <small data-testid="reader-version" title={revision}>
+                  {`${mode === "build" ? "构建版本" : "知识版本"} ${revision.slice(0, 12)}`}
                 </small>
-              )}
-            </div>
-            {toc.map((part, i) => {
-              const sections = part.sections
-                .map((section) => ({ ...section, pages: section.pages.filter((p) => matchingIds.has(p.id)) }))
-                .filter((section) => section.pages.length);
-              const count = sections.reduce((n, s) => n + s.pages.length, 0);
-              if (!count) return null;
-              const body = sections.map((section) => (
-                <section key={section.title} className="wiki-toc-group">
-                  {section.title && <h3 className="wiki-toc-section">{section.title}</h3>}
-                  <ul>
-                    {section.pages.map((p) => (
-                      <li key={p.id}>
-                        <Link
-                          className={p.id === activeId ? "is-active" : undefined}
-                          aria-current={p.id === activeId ? "page" : undefined}
-                          to={`/wiki/${p.id}`}
-                          onClick={() => setDirectoryOpen(false)}
-                        >
-                          {pageDisplayTitle(p)}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ));
-              const head = (
-                <>
-                  <span className="wiki-toc-chapter">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="wiki-toc-title">{part.title}</span>
-                  <small className="wiki-toc-count">{count}</small>
-                </>
-              );
-              return (
-                <details
-                  // 搜索时全部展开；进出搜索重挂一次，让 DOM 回到受控的展开状态
-                  key={`${part.id}-${!!query}`}
-                  className="wiki-toc-part"
-                  data-testid={`toc-${part.id}`}
-                  open={!!query || expandedGroups.has(part.id)}
-                  onToggle={(event) => {
-                    if (!query) setGroupOpen(part.id, event.currentTarget.open);
-                  }}
-                >
-                  <summary className="wiki-toc-part-head" title={part.blurb}>
-                    {head}
-                  </summary>
-                  {body}
-                </details>
-              );
-            })}
-            <details className="reader-build-info">
-              <summary>内容与版本</summary>
-              <small data-testid="reader-version" title={revision}>
-                {`${mode === "build" ? "构建版本" : "知识版本"} ${revision.slice(0, 12)}`}
-              </small>
-              <p>结论的适用版本与来源列在各篇正文中。</p>
-              {snapshotError && <small role="status">{snapshotError}</small>}
-            </details>
-          </nav>
+                <p>结论的适用版本与来源列在各篇正文中。</p>
+                {snapshotError && <small role="status">{snapshotError}</small>}
+              </details>
+            </nav>
+          </div>
           <ReaderResizeHandle side="directory" />
         </details>
 
@@ -399,11 +530,12 @@ export function WikiPage() {
               toc={toc}
               focusId={graphFocusParam}
               mode={graphModeParam}
+              onPrefetchPage={prefetchPage}
             />
           )}
           {!id && isGraphView && <WikiCausalGraphView initialFocusParam={graphFocusParam} />}
           {id && !page && !knownPage && <MissingPage id={id} skipped={skipped} />}
-          {id && !page && knownPage && (
+          {id && (!page || pageError) && knownPage && (
             <p className="reader-loading" role="status">
               {pageError || "正在载入正文…"}
               {/* A failed module import is cached by the browser until the document reloads. */}
@@ -414,7 +546,7 @@ export function WikiPage() {
               )}
             </p>
           )}
-          {page && (
+          {page && !pageError && (
             <>
               <nav className="reader-breadcrumb" aria-label="当前位置">
                 <Link to="/wiki">主章节</Link>
@@ -435,12 +567,18 @@ export function WikiPage() {
                 body={page.body}
                 compiled={page.compiled}
                 diagrams={diagrams}
+                isTransitioning={isTransitioningPage}
+                onPrewarmEvidence={prewarmCurrentEvidence}
                 onOpenSource={openSourceEvidence}
                 onOpenDiagram={openDiagramEvidence}
               />
               <nav className="reader-pagination" aria-label="章节翻页">
                 {orderedPages[currentIndex - 1] ? (
-                  <Link to={`/wiki/${orderedPages[currentIndex - 1]!.id}`}>
+                  <Link
+                    to={`/wiki/${orderedPages[currentIndex - 1]!.id}`}
+                    onMouseEnter={() => prefetchPage(orderedPages[currentIndex - 1]!.id)}
+                    onFocus={() => prefetchPage(orderedPages[currentIndex - 1]!.id)}
+                  >
                     <small>
                       <ArrowLeft size={14} /> 上一节
                     </small>
@@ -450,7 +588,11 @@ export function WikiPage() {
                   <span />
                 )}
                 {orderedPages[currentIndex + 1] && (
-                  <Link to={`/wiki/${orderedPages[currentIndex + 1]!.id}`}>
+                  <Link
+                    to={`/wiki/${orderedPages[currentIndex + 1]!.id}`}
+                    onMouseEnter={() => prefetchPage(orderedPages[currentIndex + 1]!.id)}
+                    onFocus={() => prefetchPage(orderedPages[currentIndex + 1]!.id)}
+                  >
                     <small>
                       下一节 <ArrowRight size={14} />
                     </small>
@@ -495,12 +637,14 @@ function Landing({
   toc,
   focusId,
   mode,
+  onPrefetchPage,
 }: {
   count: number;
   guide: RegistryEntry | undefined;
   toc: TocPart<RegistryEntry>[];
   focusId?: string | undefined;
   mode?: "core-26" | "all" | "params" | undefined;
+  onPrefetchPage?: ((id: string) => void) | undefined;
 }) {
   return (
     <div className="wiki-landing">
@@ -522,7 +666,12 @@ function Landing({
             <span className="eyebrow">START HERE</span>
             <h2>第一次来，从阅读指南开始</h2>
           </div>
-          <Link className="wiki-start-link" to={`/wiki/${GUIDE_ID}`}>
+          <Link
+            className="wiki-start-link"
+            to={`/wiki/${GUIDE_ID}`}
+            onMouseEnter={() => onPrefetchPage?.(GUIDE_ID)}
+            onFocus={() => onPrefetchPage?.(GUIDE_ID)}
+          >
             {pageDisplayTitle(guide)} <ArrowRight size={14} />
           </Link>
           <p>{guide.summary}</p>
@@ -607,7 +756,11 @@ function Landing({
               <ul>
                 {entries.slice(0, 4).map((entry) => (
                   <li key={entry.id}>
-                    <Link to={`/wiki/${entry.id}`}>
+                    <Link
+                      to={`/wiki/${entry.id}`}
+                      onMouseEnter={() => onPrefetchPage?.(entry.id)}
+                      onFocus={() => onPrefetchPage?.(entry.id)}
+                    >
                       {pageDisplayTitle(entry)}
                       <ArrowRight size={13} aria-hidden="true" />
                     </Link>
@@ -622,7 +775,11 @@ function Landing({
                   <ul>
                     {entries.slice(4).map((entry) => (
                       <li key={entry.id}>
-                        <Link to={`/wiki/${entry.id}`}>
+                        <Link
+                          to={`/wiki/${entry.id}`}
+                          onMouseEnter={() => onPrefetchPage?.(entry.id)}
+                          onFocus={() => onPrefetchPage?.(entry.id)}
+                        >
                           {pageDisplayTitle(entry)}
                           <ArrowRight size={13} aria-hidden="true" />
                         </Link>
@@ -648,6 +805,8 @@ export const Article = memo(function Article({
   body,
   compiled,
   diagrams,
+  isTransitioning = false,
+  onPrewarmEvidence,
   onOpenSource,
   onOpenDiagram,
 }: {
@@ -656,6 +815,8 @@ export const Article = memo(function Article({
   compiled?: CompiledNode | undefined;
   /** 图跟着同一份知识快照传下来，不另起一次订阅 */
   diagrams: Map<string, string>;
+  isTransitioning?: boolean | undefined;
+  onPrewarmEvidence?: (() => void) | undefined;
   onOpenSource?: ((sourceIndex: number, trigger: HTMLElement | null) => void) | undefined;
   onOpenDiagram?: ((diagramId: string, trigger: HTMLElement | null) => void) | undefined;
 }) {
@@ -690,16 +851,31 @@ export const Article = memo(function Article({
     const el = bodyRef.current;
     setHeadings(el && hasContent ? readHeadings(el) : []);
   }, [body, compiled, hasContent, fallbackCommitSeq]);
-  // 页内查找命中默认收起的「对照源码」等折叠区内部节点时，响应 beforematch 自动展开
+  // 页内查找命中默认收起的「对照源码」等折叠区内部节点时，响应 beforematch 自动展开；
+  // 展开「对照源码」或「查看来源」折叠区时提前预热本页离线证据包，点按 [C1] 等角标零等待秒开。
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
     const onBeforeMatch = (event: Event) => {
       if (event.target instanceof Element) expandAncestorDetails(event.target);
     };
+    const onToggle = (event: Event) => {
+      if (
+        event.target instanceof HTMLDetailsElement &&
+        event.target.open &&
+        (event.target.classList.contains("wiki-source-check") ||
+          event.target.classList.contains("wiki-sources"))
+      ) {
+        onPrewarmEvidence?.();
+      }
+    };
     el.addEventListener("beforematch", onBeforeMatch);
-    return () => el.removeEventListener("beforematch", onBeforeMatch);
-  }, []);
+    el.addEventListener("toggle", onToggle, true);
+    return () => {
+      el.removeEventListener("beforematch", onBeforeMatch);
+      el.removeEventListener("toggle", onToggle, true);
+    };
+  }, [onPrewarmEvidence]);
   // 整页的算式块标签栏对齐（CalcBlock.tsx）：换页、正文变宽变窄、字体就绪后各量一次
   // biome-ignore lint/correctness/useExhaustiveDependencies: body、compiled 与 fallbackCommitSeq 变化均代表正文 DOM 更新，需重对算式标签宽度
   useLayoutEffect(() => {
@@ -820,7 +996,11 @@ export const Article = memo(function Article({
         </DiagramPageContext.Provider>
 
         <WhatsNext page={page} />
-        <details className="wiki-sources" data-testid="wiki-sources">
+        <details
+          className="wiki-sources"
+          data-testid="wiki-sources"
+          onMouseEnter={() => onPrewarmEvidence?.()}
+        >
           <summary>查看来源（{page.sources.length}）</summary>
           <p>来源供你核对原文；有来源不代表本页结论已经验证。</p>
           <ol>
@@ -871,7 +1051,7 @@ export const Article = memo(function Article({
   // 正文与右侧导航并排；放不下时（wiki.css 的容器查询）导航收起、改用右下角按钮。
   // 外框短页也套着：长短页结构相同，量完标题后加上导航时正文不会被卸载重挂
   return (
-    <div className="wiki-reading-frame">
+    <div className="wiki-reading-frame" data-transitioning={isTransitioning || undefined}>
       <div className="wiki-reading" data-page-toc={withToc || undefined}>
         {article}
         {withToc && <PageTocSide {...tocProps} />}

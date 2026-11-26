@@ -215,22 +215,32 @@
   display: none;
 }
 
+.reader-directory-body {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--reader-header-height));
+  min-width: 0;
+}
+
 .knowledge-reader .wiki-toc {
   position: static;
+  flex: 1;
+  min-height: 0;
   gap: 0;
-  /* details 的匿名内容盒不会传递百分比高度，直接按视口限制滚动区域。 */
-  height: calc(100dvh - var(--reader-header-height));
+  /* 由外层 .reader-directory-body 限高，顶栏常驻，目录区独立滚动。 */
+  height: auto;
   overscroll-behavior-y: contain;
-  /* 换页后当前项滚进来时（scrollIntoView nearest）不贴着目录边缘 */
+  /* 换页后当前项滚进来时不贴着目录边缘 */
   scroll-padding-block: 24px;
-  padding: 22px 12px 32px;
+  padding: 6px 12px 32px;
   color: var(--color-ink);
   background: transparent;
   scrollbar-width: thin;
 }
 
 .knowledge-reader .wiki-toc-head {
-  padding: 0;
+  flex-shrink: 0;
+  padding: 18px 12px 4px;
   border: 0;
 }
 
@@ -238,7 +248,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 8px 18px;
+  padding: 0 8px 12px;
   color: var(--color-ink);
   font-size: var(--text-body);
   font-weight: 600;
@@ -283,6 +293,23 @@
 
 .knowledge-reader .wiki-toc-search :is(button, small) {
   color: var(--color-ink-muted);
+}
+
+.knowledge-reader .wiki-toc-search .wiki-toc-fullsearch-btn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 36%, var(--color-line));
+  background: var(--color-surface-elevated);
+  color: var(--color-accent);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.knowledge-reader .wiki-toc-search .wiki-toc-fullsearch-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .knowledge-reader .wiki-toc-part {
@@ -806,10 +833,19 @@
     transform: rotate(180deg);
   }
 
+  .reader-directory-body {
+    height: auto;
+    max-height: 68dvh;
+  }
+
+  .knowledge-reader .wiki-toc-head {
+    padding: 8px 12px 2px;
+  }
+
   .knowledge-reader .wiki-toc {
     height: auto;
-    max-height: 65dvh;
-    padding-top: 12px;
+    max-height: none;
+    padding-top: 6px;
   }
 
   .knowledge-reader .wiki-main {
@@ -1206,6 +1242,18 @@
   color: var(--color-ink-muted);
   font-size: var(--text-micro);
   font-weight: 500;
+}
+
+.wiki-quick-search-type.is-tool {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-weight: 600;
+}
+
+.wiki-quick-search-type.is-3d {
+  background: var(--color-token-soft);
+  color: var(--color-token);
+  font-weight: 600;
 }
 
 .wiki-quick-search-ev {

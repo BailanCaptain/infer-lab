@@ -1732,6 +1732,13 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       }).parsed.envVars.VLLM_ASCEND_ENABLE_NZ,
     ).toBe("2");
     expect(
+      runSingleConfigDoctor(`test -n '$X' || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve /m`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).parsed.envVars.VLLM_ASCEND_ENABLE_NZ,
+    ).toBeUndefined();
+    expect(
       runSingleConfigDoctor(`vllm serve /models/DeepSeek-V4-Flash/DeepSeek-V4-Pro`, {
         mode: "full",
         hardwareFamily: "A3",

@@ -1860,12 +1860,55 @@ function buildExportedSnapshot(
   return out;
 }
 
-function evalStaticTestCommand(words: readonly string[]): 0 | 1 | null {
+function hasUnresolvedShellExpansion(
+  rawWord: string,
+  env: Readonly<Record<string, string>>,
+  unsetNames: ReadonlySet<string>,
+): boolean {
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < rawWord.length; i += 1) {
+    const ch = rawWord[i] ?? "";
+    if (quote === "'") {
+      if (ch === "'") quote = null;
+      continue;
+    }
+    if (ch === "\\" && i + 1 < rawWord.length) {
+      i += 1;
+      continue;
+    }
+    if (quote === '"') {
+      if (ch === '"') {
+        quote = null;
+        continue;
+      }
+    } else if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (ch === "$") {
+      if (rawWord[i + 1] === "{") {
+        const m = /^\$\{([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i));
+        if (m?.[1] && !Object.hasOwn(env, m[1]) && !unsetNames.has(m[1])) return true;
+      } else {
+        const m = /^\$([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i));
+        if (m?.[1] && !Object.hasOwn(env, m[1]) && !unsetNames.has(m[1])) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function evalStaticTestCommand(
+  words: readonly string[],
+  rawArgs: readonly string[],
+  env: Readonly<Record<string, string>>,
+  unsetNames: ReadonlySet<string>,
+): 0 | 1 | null {
   const cmd = words[0];
   if (cmd !== "test" && cmd !== "[") return null;
   if (cmd === "[" && words[words.length - 1] !== "]") return 1;
+  if (rawArgs.some((rw) => hasUnresolvedShellExpansion(rw, env, unsetNames))) return null;
   const args = cmd === "[" ? words.slice(1, -1) : words.slice(1);
-  if (args.some((a) => /\$(?:[A-Za-z_][A-Za-z0-9_]*|\{)/.test(a))) return null;
   if (args.length === 0) return 1;
   if (args.length === 1) return args[0]!.length > 0 ? 0 : 1;
   if (args.length === 2) {
@@ -2230,7 +2273,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           ? 1
           : firstCmd === "true" || firstCmd === ":"
             ? 0
-            : evalStaticTestCommand(expandedWords),
+            : evalStaticTestCommand(expandedWords, rawWords.slice(idx + 1), curVars, curUnset),
       );
     }
   }

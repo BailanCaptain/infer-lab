@@ -153,7 +153,9 @@ rawSources:
 
 开启 PCP（`prefill_context_parallel_size > 1`，预填充上下文并行，见 [Context Parallel](../concepts/context-parallel.md)）后，[embedding](../concepts/embedding.md)（首层词表查表）与 [LM Head](../concepts/lm-head.md)（末层词表投影）通常是「词表 × hidden」的大矩阵；传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片。
 
-`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 **`True`**）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。常规 PCP 部署保持默认 `true` 即可；**何时必须手动设为 `false`**：当你要同时配置同模块的[细粒度 TP](../concepts/fine-grained-tp.md)（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）或在 `main` 上同时开启 `enable_batch_sharded_sampling` 时，必须显式传 `false` 避开构建期 `ValueError`（以下以 `Qwen/Qwen3-8B` 展示关掉本键以让路 `lmhead_tensor_parallel_size` 的配置形式，本工作区无 NPU 实机执行验证）：
+`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 **`True`**）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。
+
+常规 PCP 部署保持默认 `true` 即可。**何时必须手动设为 `false`**：当需要同时配置同模块的[细粒度 TP](../concepts/fine-grained-tp.md)（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`），或在 `main` 上同时开启 `enable_batch_sharded_sampling` 时，必须显式传 `false` 避开构建期 `ValueError`（以下以 `Qwen/Qwen3-8B` 展示关掉本键以让路 `lmhead_tensor_parallel_size` 的配置形式，本工作区无 NPU 实机执行验证）：
 
 ```bash
 VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-8B \

@@ -387,6 +387,8 @@ file: glm-two-node-startup
 5. **prefix caching（复用相同前缀的 KV）关着。** 相同前缀不会被复用，每条请求的提示词都要重算。见 [prefix caching](prefix-caching.md)。
 6. **MTP 同时影响权重、KV 和每步 token 数。** 前两项见本页的权重表与每块字节算式；每请求每步从 1 个变成 4 个 token，还会影响图尺寸、token 预算和 MC2 的 128 门槛。见 [speculative decoding](speculative-decoding.md)。
 
+此外，这套固定在线配方未开启若干高阶运维与训练协同特性；若在工程改造中叠加它们，需提前避开四类耦合约束：启用 [Sleep Mode](sleep-mode.md#复杂异构与多机边界对照glm-双机若改同卡轮训会撞上什么) 须先清除启动脚本里的 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True` 并跨两机统一协调 16 卡休眠；接入 [RL 权重更新](vllm-ascend-for-rl.md#复杂异构与多机边界对照glm-双机接入-rl-rollout-的四道关卡) 或 [批不变性](batch-invariance.md#复杂异构实战对照glm-双机混批跨度与三处算子覆盖边界) 会受限于 `FA3` 不支持稀疏 MLA 以及 34 层 KDA / `mHC` 的算子覆盖范围；挂接 [LoRA](lora.md#复杂异构实战对照glm-双机-ep16-与量化下的-lora-边界) 在 `EP > 1` 下会把 MoE 通信强制改道至 `ALLTOALL`；改用 [Netloader](netloader-guide.md#复杂异构与多机边界对照ep16-异构分片与-mtp-草稿通道限制) 扩容时，两机因 `EP16` 专家分片不同不能互指供方，且须单独留意 MTP 草稿通道的端口偏移与缓存策略。
+
 沿着请求本身往下走，看 [一条请求的全过程](one-request.md)；多条请求同时进来时的样子，看 [并发请求](concurrent-requests.md)。
 
 ## 活跃食谱增量对照：v0.30.0 与 main 变了什么

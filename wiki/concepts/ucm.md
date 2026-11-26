@@ -5,9 +5,7 @@ type: feature
 legacyAnchors:
   放到-glm-双机这套部署没有开-ucm: 复杂异构实战对照：GLM 双机为何未启用与接入边界
 summary: >-
-  UCM（Unified Cache Manager）是经 KV connector 接进 vLLM 的外部缓存软件包：把算过的前缀 KV
-  从显存存到本机内存、再落到共享存储，按官方文档换实例或重启后也能取回，省掉重复的 prefill。讲清它和 KV Pool、LMCache 的分工，PD
-  分离时的两种数据流，以及 GLM 双机为什么没开、开了还缺什么。
+  UCM（Unified Cache Manager）是经 KV connector 接入 vLLM 的三层前缀缓存系统：将算好的前缀 KV 从显存逐级延伸至本机内存快取与共享持久存储，支持跨实例与跨重启复用；讲清它与 AscendStore KV Pool、LMCache 的分工，集中式与 P2P 两种 PD 站位，以及混合模型的 SupportsHMA 与 KDA 对齐边界。
 aliases:
   - UCM
   - Unified Cache Manager
@@ -191,11 +189,9 @@ origin: direct
 
 ## UCM 是什么？
 
-**UCM（Unified Cache Manager，统一缓存管理）是经 KV connector 接入推理引擎的外部缓存软件包。它可以把算过的前缀 KV 从显存存到主机内存，再写入文件存储；兼容的实例读到已保存的前缀，就能省掉对应的 prefill，也就是处理这段输入的计算。** 本页先讲官方常用的三层文件存储配置，跨机器复用时，第 3 层需要真正共享。
+单靠计算卡显存里的内置 [前缀缓存（prefix caching）](prefix-caching.md)，算好的长提示词既跨不出单台实例，引擎一重启也会瞬间清零；而纯内存池虽然能跨实例共享，容量又受集群 DRAM 上限约束。**UCM（Unified Cache Manager，统一缓存管理器）是通过 vLLM `KV connector` 接口接入的三层外部缓存系统：把算好的前缀 [KV cache](kv-cache.md) 从卡上显存延伸到本机内存快取，再异步落入共享文件或分布式存储（如 NFS、3FS），让任意挂载了同一后端的兼容实例——甚至重启后的新引擎进程——都能取回历史前缀、跳过重复的 Prefill 计算。**
 
-先认三个前置词。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史，后面每一步都要回头读它。[prefix caching](prefix-caching.md) 让开头相同的请求在同一个实例的显存里直接复用这份历史。KV connector 是 vLLM 留给外部存储的插口：调度时它回答「外面还能多提供几个位置」，执行时它把数据搬进搬出。[KV Pool](kv-pool.md#kv-pool-是什么) 也用这个插口，UCM 在插口后面选择自己的加载和保存实现。
-
-名字里的「统一」说的是存取接口：vLLM 经 UCMConnector 提供缓存布局和设备地址，UCM 管外部数据的位置、搬运和淘汰；模型执行和设备缓存块的分配仍归引擎。代价是取回数据要时间，保存还占主机内存、存储容量与写带宽；只有这些开销比重算更划算时，复用才有收益。
+它与 [AscendStore KV Pool](kv-pool.md#kv-pool-是什么)、[LMCache](lmcache.md) 插在同一个 vLLM `KV connector` 接口上：调度阶段回答“在本地显存命中之外，外部还能接着补多少个位置”，执行阶段通过 `UCMConnector` 把外部数据搬进引擎刚分好的显存块，并将新算出的完整块异步写出。模型前向与显存块分配依然完全归 vLLM 掌管，UCM 专注管理显存之外的多级缓存编排、持久化与淘汰——当然，跨介质读取耗时、主机内存与存储写带宽都得算进成本账，只有“取回时间 < 重算时间”的长前缀场景才真正划算。
 
 ```wiki-diagram
 file: ucm-intuition

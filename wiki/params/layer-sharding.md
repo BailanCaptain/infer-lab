@@ -13,7 +13,8 @@ aliases:
   - ShardedCPRowParallelOp
 legacyAnchors:
   一句话: 它曾如何按层轮放权重，为什么 v0.24 起已删除？
-  为什么存在: 层间广播机制、通信组构造与与 PP/TP 的区别
+  为什么存在: 层间广播机制、通信组构造与 PP/TP 的区别
+  层间广播机制通信组构造与与-pptp-的区别: 层间广播机制、通信组构造与 PP/TP 的区别
   开了的代价: 显存与通信账、冲突边界及向新权重切换机制的迁移
 chapters:
   - '13'
@@ -118,9 +119,9 @@ rawSources:
 
 ## 它曾如何按层轮放权重，为什么 v0.24 起已删除？
 
-**这是一个自 `v0.24.0rc`（PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953)）起已彻底移除的历史层间权重轮放列表：在 `v0.30.0` 与 `main` 中切勿配置，旧脚本残留 `"layer_sharding"` 通常会直接触发 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）；若在 `v0.30.0` / `main` 开启 PCP 需要切分输出投影权重，应看默认开启的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)（切同一层 PCP 域，而非按层号轮放）。**
+`layer_sharding` 是自 `v0.24.0rc`（PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953)）起已彻底移除的历史层间权重轮放列表。**在 `v0.30.0` 与 `main` 中切勿配置该键**：旧脚本残留 `"layer_sharding"` 通常会直接触发 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）；若在 `v0.30.0` / `main` 开启 PCP 需要切分输出投影权重，应改看默认开启的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)（切同一层的 PCP 域，而非按层号轮放）。
 
-在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。在历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，`layer_sharding` 是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，无子键，`prefetch_step` 写死为 `1`），把几十层轮流分给独立通信组里的 `K` 张卡保管：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时换成单元素占位张量，前向时提前一层通过异步 Broadcast 取回，且强限定于旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
+在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。在历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，`layer_sharding` 是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，无子键，`prefetch_step` 写死为 `1`）。它把几十层轮流分给独立通信组里的 `K` 张卡保管：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时换成单元素占位张量，前向时提前一层通过异步 Broadcast 取回；该特性强限定于旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
 
 ## 事实表
 
@@ -134,7 +135,7 @@ rawSources:
 | 归属与常驻缓冲 | 第 `i` 层落在组内 `rank i % K`；每个连续层 series 额外常驻 `2` 份整层窗口 | 等大层的最重卡预算为 `ceil(层数 / K) × 单层 + 2 × 单层`，且登记层号必须连续、至少 `3` 层 |
 | 旧版耦合约束 | 配 FlashComm2 时列表只能严格等于 `["o_proj"]`；配 RFork 时告警并退回默认 loader | 想同时切 `q_b_proj` 在 `v0.23` 只能走 DSA-CP 路径（`v0.26` 起 FlashComm2 也已删除） |
 
-## 层间广播机制、通信组构造与与 PP/TP 的区别
+## 层间广播机制、通信组构造与 PP/TP 的区别
 
 在深层模型（如 61 层的 DeepSeek-V3/R1）中，旧 FlashComm2 或 DSA-CP 路径在执行投影时需要完整权重；如果每张卡把所有 61 层完整常驻，就会积累 61 份冗余显存。`layer_sharding` 的思路是在维度上与 TP、PP 正交：
 - **与 TP 的区别**：TP 切层内（把单个矩阵切给多张卡），`layer_sharding` 切层间（把多层的完整矩阵轮流存到不同卡）。

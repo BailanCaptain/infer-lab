@@ -265,13 +265,19 @@ export type AscendFieldPrimitiveSpec =
   | "optStr"
   | "list"
   | "dict"
+  | "optDict"
+  | { readonly intEnum: readonly number[] }
+  | { readonly optStrEnum: readonly string[] }
   | readonly (string | number)[];
 
 /**
  * Complete AST-derived scalar/collection field type specifications for AscendConfig
  * and all @config sub-configs across pinned v0.30.0 (c09d3e20) and main (8d6180e2).
- * Keys validated by dedicated rich rules (quantized_all_reduce_config, shared_engram,
- * runtime_config, runtime_config_path, runtime_config_hot_reload) are handled there.
+ * Pure-derived / factory-discarded _NON_USER_INPUT_KEYS (pd_tp_ratio, pd_head_ratio,
+ * num_head_replica, enable_sp_by_pass, enable_sparse_li_c4, enable_sparse_sfa_turboquant,
+ * kvpp_config, gdn_prefill_backend, kda_prefill_backend) and SchedulerConfig-resolved
+ * legacy keys (enable_balance_scheduling, recompute_scheduler_enable) are omitted here
+ * so factory-discarded values never trigger false blockers.
  */
 export const ASCEND_TOP_LEVEL_FIELD_TYPES: Readonly<Record<string, AscendFieldPrimitiveSpec>> = {
   refresh: "bool",
@@ -294,34 +300,24 @@ export const ASCEND_TOP_LEVEL_FIELD_TYPES: Readonly<Record<string, AscendFieldPr
   mega_moe_max_tokens: "int",
   ascend_log_path: "str",
   dump_config_path: "optStr",
-  dump_config: "dict",
+  dump_config: "optDict",
   mc2_comm_alg: ["", "fullmesh", "hierarchy", "fullmesh_v2"],
   enable_fused_mc2: "int",
   enable_mlapo: "bool",
   mlapo_keep_prefill_weights: "bool",
   msmonitor_use_daemon: "bool",
   enable_transpose_kv_cache_by_block: "bool",
-  weight_nz_mode: "int",
+  weight_nz_mode: { intEnum: [0, 1, 2] },
   enable_shared_expert_dp: "bool",
   enable_sparse_sfa_c8: "bool",
   enable_sparse_li_c8: "bool",
-  enable_sparse_li_c4: "bool",
-  enable_sparse_sfa_turboquant: "bool",
-  enable_sp_by_pass: "bool",
-  pd_tp_ratio: "int",
-  pd_head_ratio: "int",
-  num_head_replica: "int",
   enable_flashcomm1: "bool",
   enable_kvpp: "bool",
-  enable_balance_scheduling: "bool",
-  recompute_scheduler_enable: "bool",
   kv_pool_range_debug: "bool",
   megamoe_shared_expert_fusion: "bool",
   gdn_internal_prefill_checkpoints: "bool",
   runtime_report_dir: "optStr",
   runtime_dump_dir: "optStr",
-  gdn_prefill_backend: "optStr",
-  kda_prefill_backend: "optStr",
 };
 
 export const ASCEND_SUBCONFIG_FIELD_TYPES: Readonly<
@@ -349,9 +345,9 @@ export const ASCEND_SUBCONFIG_FIELD_TYPES: Readonly<
     algorithm_execution_interval: "int",
     expert_map_record_path: "optStr",
     num_redundant_experts: "int",
-    eplb_policy_type: "int",
-    eplb_heat_collection_stage: "str",
-    load_collection_phase: "str",
+    eplb_policy_type: { intEnum: [0, 1, 2, 3] },
+    eplb_heat_collection_stage: ["all", "prefill", "decode"],
+    load_collection_phase: ["all", "prefill", "decode"],
   },
   stair_config: {
     load_window_bins: "int",
@@ -389,15 +385,12 @@ export const ASCEND_SUBCONFIG_FIELD_TYPES: Readonly<
     qkv_iproj_tensor_parallel_size: "int",
   },
   dynamic_spec_config: {
-    method: "optStr",
+    method: { optStrEnum: ["dspark", "dflash"] },
     method_params: "dict",
   },
   kv_trace: {
     enabled: "strictBool",
     action: ["log", "raise"],
-  },
-  kvpp_config: {
-    size: "int",
   },
   sparse_kv_offload_config: {
     enabled: "bool",

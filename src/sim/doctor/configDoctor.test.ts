@@ -1013,4 +1013,124 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     expect(gdnUbatchWarn?.message).toContain("--ubatch-size=2");
     expect(gdnUbatchWarn?.message).not.toContain("已开启 --enable-dbo");
   });
+
+  it("enforces @model_validator enum/range constraints, factory-discarded key exemptions, Pydantic lax coercion, and POSIX IFS/special-builtin rules", () => {
+    // 1. @model_validator enum & range constraints across AscendConfig and @config sub-configs
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"dynamic_spec_config":{"method":"dsparkk"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"eplb_config":{"load_collection_phase":"both"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"weight_nz_mode":3}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"rejection_sampler_config":{"enable_block_verify":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"eplb_config":{"stair_config":{"load_window_bins":1}}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 2. Factory-discarded _NON_USER_INPUT_KEYS & overridden legacy scheduler keys do not trigger false blockers
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_balance_scheduling":"typo","scheduler_config":{"enable_balance_scheduling":false}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"pd_tp_ratio":"auto"}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"kvpp_config":{"bad":1}}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(false);
+
+    // 3. dump_config: null is accepted as None, while quantized_all_reduce_config: null fails on main
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"dump_config":null}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"quantized_all_reduce_config":null}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 4. Pydantic lax float/int coercion: hex string rejected, underscored decimal accepted, bool->int coerced
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"short_request_first_config":{"long_max_wait_ms":"0x10"}}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"short_request_first_config":{"long_max_wait_ms":"1_000"}}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).hasBlockers,
+    ).toBe(false);
+    const boolWeightNz = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"weight_nz_mode":false}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(boolWeightNz.hasBlockers).toBe(false);
+    expect(boolWeightNz.effectiveInput.weightNzMode).toBe(0);
+
+    // 5. POSIX §2.6.5 IFS field splitting on unquoted expansions even with prefix assignments
+    const ifsSplitWithPrefix = runSingleConfigDoctor(
+      `TP_ARGS='-tp 4'\nA=0 vllm serve Qwen/Qwen3-8B $TP_ARGS`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(ifsSplitWithPrefix.effectiveInput.tpSize).toBe(4);
+
+    // 6. Prefix side-effect ${VAR:=val} updates already-staged childEnv entries
+    const prefixSideEffectOverwritesEmpty = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT= X=\${VLLM_BATCH_INVARIANT:=1} vllm serve Qwen/Qwen3-8B`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(prefixSideEffectOverwritesEmpty.hasBlockers).toBe(false);
+    expect(prefixSideEffectOverwritesEmpty.effectiveInput.vllmBatchInvariant).toBe(true);
+
+    // 7. POSIX §2.14 `set` stops option scanning at first positional operand and runs even with prefix assignments
+    const setPositionalOperandNotFlag = runSingleConfigDoctor(
+      `set hello -eo allexport\nVLLM_BATCH_INVARIANT=on\nvllm serve Qwen/Qwen3-8B`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(setPositionalOperandNotFlag.hasBlockers).toBe(false);
+
+    const setWithPrefixAssignment = runSingleConfigDoctor(
+      `A=1 set -eo allexport\nVLLM_BATCH_INVARIANT=on\nvllm serve Qwen/Qwen3-8B`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(setWithPrefixAssignment.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+  });
 });

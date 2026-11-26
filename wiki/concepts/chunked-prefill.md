@@ -189,7 +189,7 @@ $$\Delta n = \min(\text{应算总位置数} - \text{已算位置数},\ \text{剩
 | **第 2 步**（留在 `running` 续跑） | 已算 `6`，还差 $14 - 6 = 8$ | $\min(14 - 6,\ 8 - 2) = 6$（算位置 `6–11`） | 已算推至 `12`；整步用满 `8` |
 | **第 3 步**（在 `running` 收尾） | 已算 `12`，还差 $14 - 12 = 2$ | $\min(14 - 12,\ 8 - 2) = 2$（算位置 `12–13`） | 已算推至 `14` 选出 `y₀`；整步只用 `4`，余下 `4` 可排别的新请求或空着 |
 
-下面的精简伪代码省略了前缀缓存命中、异步输出占位与借块回退，集中展示 `running` 先续跑、`waiting` 后接纳的截断顺序差异，以及「步前生成计划、步末统一前推已算数」的记账时机（`num_tokens_with_spec` 含已生成词与草稿候选，无草稿时等于 `num_tokens`）：
+下面的精简伪代码省略了前缀缓存命中、异步输出占位与借块回退，集中展示 `running` 先续跑、`waiting` 后接纳的截断顺序差异，以及「排批前按旧起点切段、排批收尾时（模型前向开始前）统一前推调度已算数」的记账时机（`num_tokens_with_spec` 含已生成词与草稿候选，无草稿时等于 `num_tokens`）：
 
 ```python
 scheduled = []  # (req, 步前已算位置, 本步排入位置数)
@@ -211,7 +211,7 @@ for req in waiting:  # 2. 再用剩余 token_budget 接纳 waiting 新请求
     token_budget -= n
     scheduled.append((req, req.num_computed_tokens, n))
 
-for req, _, n in scheduled:  # 3. 统一在步末前推已算数（_update_after_schedule）
+for req, _, n in scheduled:  # 3. 排批收尾时（_update_after_schedule）统一前推已算数
     req.num_computed_tokens += n
     req.is_prefill_chunk = req.num_computed_tokens < req.num_tokens
 ```

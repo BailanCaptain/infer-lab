@@ -189,7 +189,7 @@ file: kv-cache-sparse-offload
 
 ## 一步里搬几行：命中、缺失、换出（示意数）
 
-设一层里的历史有 8 个位置，每个位置一行；一行 1 KiB（示意数）。热缓冲给这个查询在这一层留了 4 个槽——槽是按「查询行」分的，一排槽跟着一个查询走，不同请求不共用同一排。上一步之后，槽里装着位置 0、2、4、6，最久没用的排在前面：0、4、2、6。这一步 indexer 选中 3 个位置：2、5、6。
+设一层里的历史有 8 个位置，每个位置一行；一行 1 KiB（示意数，本节以基础 LRU 热槽表机制演示命中与换出；`v0.30.0 / main` 默认融合 LIM + Copy-SFA 路径的自动槽宽见下节）。热缓冲给这个查询在这一层留了 4 个槽——槽是按「查询行」分的，一排槽跟着一个查询走，不同请求不共用同一排。上一步之后，槽里装着位置 0、2、4、6，最久没用的排在前面：0、4、2、6。这一步 indexer 选中 3 个位置：2、5、6。
 
 1. **查表。** 2 在槽里、6 在槽里，都算命中，直接用；5 不在，记成缺失 1 行。
 2. **挑槽。** 能腾的只有这一步没被选中的槽：装 0 的和装 4 的。按最久没用先换的顺序，5 装进原来放 0 的那个槽。
@@ -349,7 +349,7 @@ $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 51
 | 开了 context parallel | `ValueError: Sparse KV offload don't support context parallel now.` |
 | 开了 pipeline parallel | `ValueError: Sparse KV offload don't support pipeline parallel now.` |
 | 没配 KV 传输、或本实例不是 kv consumer（且 `keep_device_kv_cache` 为假） | `AssertionError: Sparse KV offload is only supported in PD disaggregate scenario and can only be used in D node.` |
-| 用了 Model Runner V2 | `ValueError: Sparse KV offload doesn't support model_runner_v2 now.` |
+| 旧版（`v0.26.0rc`）启用了 Model Runner V2（`v0.30.0 / main` 已放开支持，DSpark 强制要求 MRV2） | `ValueError: Sparse KV offload doesn't support model_runner_v2 now.` |
 | 热槽数小于 `index_topk` | `ValueError: sparse_kv_offload_config.topk_buffer_size must be >= topk` |
 
 再往后是建对象和分配内存时的检查：热槽数不能被块大小整除 → `ValueError: … must be divisible by block_size` [C5]；主 cache 同时开着 sparse SFA C8 量化 → `NotImplementedError`，报文里写明 indexer 那份 C8 不受影响 [C2]；缓存规格里没有「放在主机」的层、或全部都在主机 → `ValueError`，因为设备侧至少要留 indexer；各缓存组的块大小不一致 → `ValueError: Sparse KV offload memory planning requires one shared block size`，GLM 这类多组混合缓存卡在这里（按代码推断，未实跑）[I][C10]。运行中还有两条：一步的行数超过预留的工作区、metadata 里缺请求编号映射，都直接抛错 [C8]。

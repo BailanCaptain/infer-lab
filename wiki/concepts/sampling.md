@@ -251,7 +251,7 @@ vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`mi
 
 ## 什么时候停下来？
 
-**每出一个 token，引擎都检查一遍要不要停。** 在标准 `v0.30.0` 与本页固定 GLM 基线中，输出还没到 `min_tokens` 时先跳过判停。达到 `min_tokens` 后，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`，命中即正常结束（`finish_reason = "stop"`）。若未命中，再检查长度：输出数达到 `max_tokens` 或总长到达模型上限，即截断结束（`finish_reason = "length"`）。
+**每出一个 token，引擎都检查一遍要不要停，但“不让提前停”主要由采样屏蔽与引擎判停两步配合完成。** 采样阶段未达 `min_tokens` 时会先把停止编号屏蔽掉（见下节）；到了引擎侧 `check_stop`：在 `v0.30.0` 主基线与 `main` 中，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`（命中记 `finish_reason = "stop"`），再检查是否达到 `max_tokens` 或模型总长上限（命中记 `finish_reason = "length"`），最后用 `min_tokens` 门槛控制后续重复检测；而在历史 `v0.23.0 / v0.26.0rc` 与本页固定 GLM 基线中，引擎在输出尚未达到 `min_tokens` 时会先在判停入口直接跳过。
 
 结束 token（EOS）和普通词一样参与打分与采样；模型生成配置里列出的其他结束编号也并进停止 token 集合。请求设 `ignore_eos = true` 只关闭自动 EOS 判停，手工指定的 `stop_token_ids`、`stop` 字符串与长度上限仍有效（详见[请求收尾](request-teardown.md#停止文字停止编号和忽略-eos-怎样配合)）。举例：提示词「我 喜欢」，`max_tokens = 3`，输出「猫」「。」「我」，第 3 枚一追加即以 `length` 截断，接口返回输出「猫。我」。
 

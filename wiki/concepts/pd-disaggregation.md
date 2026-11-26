@@ -701,7 +701,7 @@ NIXL 的输入边界：D 计算命中数见来源 111–114，交接字典见既
 **待核。**
 
 - 待核：钉住版本上 GLM 走 PD 会不会在更早一步就报错。EngineCore 在 KV 初始化后把 `cache_config.block_size` 改成各组块大小的最小值（`vllm@0fc695fc:vllm/v1/engine/core.py#L279-L284`，GLM 取到 4），连接器调度侧的 `block_size` 取自这个字段，会以 `remote_block_size=4` 发给 D；D 端断言 `remote_block_size` 能被 kernel 块大小整除（`mooncake_connector.py#L2602-L2604`）。这条断言会不会先失败，只做了静态阅读，缺实际运行。
-- main 的 `MooncakeConnectorV2` 使用 `MooncakePullConnector`，调度侧按截断后的提示词长度和每组自己的逻辑块大小选块，不乘压缩比。在本页 N>1、PCP=DCP=1 的 GLM 算例中，full 组的数量是 ⌈(N−1) ÷ 640⌉，修正了 V1 的这处少传。D 的层匹配、实际网络读、完成汇合和 P 释放链已进一步核到消费者，见[Mooncake V2](mooncake-connector.md#v2-的接收完成是否代表读成功)；同时确认该 main 多组失败的上报缺口。剩余的是对应安装组合的设备恢复、错误处理和端到端验证，不能把局部块数修正当作整条请求已正确。
+- `v0.30.0` 与 `main` 的 `MooncakeConnectorV2` 使用 `MooncakePullConnector`（`main` 另支持按 `use_layerwise` 切 `MooncakePushConnector`），调度侧按截断后的提示词长度和每组自己的逻辑块大小选块，不乘压缩比。在本页 N>1、PCP=DCP=1 的 GLM 算例中，full 组的数量是 ⌈(N−1) ÷ 640⌉，修正了旧 V1 的少传。D 的层匹配、实际网络读、完成汇合和 P 释放链见[Mooncake V2](mooncake-connector.md#v2-的接收完成是否代表读成功)：早期开发主干（`baa023ad`）曾存在多组拉取失败未进入请求失败集合的缺口，而 `v0.30.0 (c09d3e20)` 与当前 `main (8d6180e2)` 均已通过 `get_transfer_results` 按请求分离上报 `failed_recving` 并交 `kv_load_failure_policy` 处理。剩余待核的是对应安装组合的设备恢复与端到端双机实测。
 - KDA 调度元数据含 MTP 候选槽，不代表全部槽都传输：固定 V1 从远端块表的 `len − num_speculative_blocks − 1` 位置选择当前状态，写入本地首槽，再逐层列出状态张量地址。实际字节推导见 [Mooncake 连接器](mooncake-connector.md)；端到端传输量仍缺 D 端日志实测。
 - 待核：GLM-5.3-Flash 在 PD 下的端到端实测（首 token 延迟、生成间隔、吞吐、传输耗时），缺官方或本地测量。
 - 待核：`MooncakeHybridConnector` 与 V1 在 GLM 上该选哪个，缺官方说明。

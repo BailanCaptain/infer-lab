@@ -194,7 +194,7 @@ cmake --build tools/ai_qos/build -j
 cmake --install tools/ai_qos/build
 ```
 
-其中头文件名为 dsmi_common_interface.h，库名为 libdrvdsmi_host.so；CMake 还要求 Python 开发模块与 pybind11。容器必须能看到这些文件。扩展导入成功后，再运行下列两种配置之一；manual 示例只改 SDMA 的主机搬运等级，其余仍取默认值：
+其中头文件名为 dsmi_common_interface.h，库名为 libdrvdsmi_host.so；CMake 还要求 Python 开发模块与 pybind11。容器必须能看到这些文件。扩展导入成功后，再运行下列两种配置之一（注意 `v0.30.0 / main` 的 `--SDMA` 统一控制整条 SDMA 键，而历史五键的 `--SDMA_H2D` 仅改主机搬运键）：
 
 ```bash
 # v0.30.0 主基线（c09d3e20）与 main（8d6180e2）：模块入口 + 三键（旧五键会触发 argparse 报错）
@@ -237,6 +237,10 @@ file: ai-qos-flow
 恢复使用下面的命令；它同样只完成端点操作和交换机命令生成：
 
 ```bash
+# v0.30.0 主基线与 main：
+python -m tools.ai_qos unset
+
+# 历史固定快照（db701c1f）、v0.23.0 与 v0.26.0rc：
 python tools/ai_qos.py unset
 ```
 

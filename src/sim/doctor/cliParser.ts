@@ -448,10 +448,14 @@ function expandDollarExpression(
   singleQuotesAreLiteral: boolean,
   depth: number,
   unsetNames?: ReadonlySet<string>,
+  unresolved?: { hit: boolean },
 ): string {
   const inner = rawExpr.slice(2, -1);
   const paramMatch = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
-  if (!paramMatch?.[1]) return rawExpr;
+  if (!paramMatch?.[1]) {
+    if (unresolved) unresolved.hit = true;
+    return rawExpr;
+  }
   const key = paramMatch[1];
   const op = paramMatch[2];
   const fallbackRaw = paramMatch[3] ?? "";
@@ -460,7 +464,9 @@ function expandDollarExpression(
   const isNonEmpty = isSet && currentVal.length > 0;
   if (!op) {
     if (isSet) return currentVal;
-    return unsetNames?.has(key) ? "" : rawExpr;
+    if (unsetNames?.has(key)) return "";
+    if (unresolved) unresolved.hit = true;
+    return rawExpr;
   }
   if (op === ":-" || op === ":=") {
     if (isNonEmpty) return currentVal;
@@ -471,6 +477,7 @@ function expandDollarExpression(
       singleQuotesAreLiteral,
       depth + 1,
       unsetNames,
+      unresolved,
     );
     if (op === ":=") {
       env[key] = expanded;
@@ -487,6 +494,7 @@ function expandDollarExpression(
       singleQuotesAreLiteral,
       depth + 1,
       unsetNames,
+      unresolved,
     );
     if (op === "=") {
       env[key] = expanded;
@@ -496,14 +504,31 @@ function expandDollarExpression(
   }
   if (op === ":+") {
     return isNonEmpty
-      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1, unsetNames)
+      ? expandShellWord(
+          fallbackRaw,
+          env,
+          onAssignSideEffect,
+          singleQuotesAreLiteral,
+          depth + 1,
+          unsetNames,
+          unresolved,
+        )
       : "";
   }
   if (op === "+") {
     return isSet
-      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1, unsetNames)
+      ? expandShellWord(
+          fallbackRaw,
+          env,
+          onAssignSideEffect,
+          singleQuotesAreLiteral,
+          depth + 1,
+          unsetNames,
+          unresolved,
+        )
       : "";
   }
+  if (unresolved) unresolved.hit = true;
   return rawExpr;
 }
 
@@ -514,6 +539,7 @@ function expandShellWord(
   singleQuotesAreLiteral = false,
   depth = 0,
   unsetNames?: ReadonlySet<string>,
+  unresolved?: { hit: boolean },
 ): string {
   if (depth > 8) return rawWord;
   let out = "";
@@ -553,6 +579,7 @@ function expandShellWord(
               true,
               depth,
               unsetNames,
+              unresolved,
             );
             i = endIdx;
             continue;
@@ -562,7 +589,12 @@ function expandShellWord(
           const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
           if (simpleMatch?.[1]) {
             const key = simpleMatch[1];
-            out += Object.hasOwn(env, key) ? (env[key] ?? "") : unsetNames?.has(key) ? "" : `$${key}`;
+            if (Object.hasOwn(env, key)) {
+              out += env[key] ?? "";
+            } else if (!unsetNames?.has(key)) {
+              if (unresolved) unresolved.hit = true;
+              out += `$${key}`;
+            }
             i += 1 + key.length;
             continue;
           }
@@ -592,6 +624,7 @@ function expandShellWord(
           singleQuotesAreLiteral,
           depth,
           unsetNames,
+          unresolved,
         );
         i = endIdx;
         continue;
@@ -602,7 +635,12 @@ function expandShellWord(
       const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
       if (simpleMatch?.[1]) {
         const key = simpleMatch[1];
-        out += Object.hasOwn(env, key) ? (env[key] ?? "") : unsetNames?.has(key) ? "" : `$${key}`;
+        if (Object.hasOwn(env, key)) {
+          out += env[key] ?? "";
+        } else if (!unsetNames?.has(key)) {
+          if (unresolved) unresolved.hit = true;
+          out += `$${key}`;
+        }
         i += 1 + key.length;
         continue;
       }
@@ -627,6 +665,7 @@ function expandWordSegments(
   unsetNames: ReadonlySet<string> | undefined,
   inUnquotedFallback: boolean,
   depth: number,
+  unresolved?: { hit: boolean },
 ): ShellWordSegment[] {
   if (depth > 8) return [{ text: rawWord, splittable: false }];
   const segs: ShellWordSegment[] = [];
@@ -673,6 +712,7 @@ function expandWordSegments(
         false,
         depth,
         unsetNames,
+        unresolved,
       );
       segs.push({ text: expanded, splittable: false });
       i = sliceEnd;
@@ -692,6 +732,7 @@ function expandWordSegments(
         const inner = rawExpr.slice(2, -1);
         const pm = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
         if (!pm?.[1]) {
+          if (unresolved) unresolved.hit = true;
           segs.push({ text: rawExpr, splittable: false });
         } else {
           const key = pm[1];
@@ -702,14 +743,25 @@ function expandWordSegments(
           const isNonEmpty = isSet && curVal.length > 0;
           if (!op) {
             if (isSet) segs.push({ text: curVal, splittable: true });
-            else if (!unsetNames?.has(key)) segs.push({ text: rawExpr, splittable: false });
+            else if (!unsetNames?.has(key)) {
+              if (unresolved) unresolved.hit = true;
+              segs.push({ text: rawExpr, splittable: false });
+            }
           } else if (op === ":-" || op === "-") {
             const useCurrent = op === ":-" ? isNonEmpty : isSet;
             if (useCurrent) {
               segs.push({ text: curVal, splittable: true });
             } else {
               segs.push(
-                ...expandWordSegments(fallbackRaw, env, onAssignSideEffect, unsetNames, true, depth + 1),
+                ...expandWordSegments(
+                  fallbackRaw,
+                  env,
+                  onAssignSideEffect,
+                  unsetNames,
+                  true,
+                  depth + 1,
+                  unresolved,
+                ),
               );
             }
           } else if (op === ":=" || op === "=") {
@@ -724,6 +776,7 @@ function expandWordSegments(
                 false,
                 depth + 1,
                 unsetNames,
+                unresolved,
               );
               env[key] = assigned;
               onAssignSideEffect?.(key, assigned);
@@ -733,7 +786,15 @@ function expandWordSegments(
             const active = op === ":+" ? isNonEmpty : isSet;
             if (active) {
               segs.push(
-                ...expandWordSegments(fallbackRaw, env, onAssignSideEffect, unsetNames, true, depth + 1),
+                ...expandWordSegments(
+                  fallbackRaw,
+                  env,
+                  onAssignSideEffect,
+                  unsetNames,
+                  true,
+                  depth + 1,
+                  unresolved,
+                ),
               );
             }
           }
@@ -750,6 +811,7 @@ function expandWordSegments(
         if (Object.hasOwn(env, key)) {
           segs.push({ text: env[key] ?? "", splittable: true });
         } else if (!unsetNames?.has(key)) {
+          if (unresolved) unresolved.hit = true;
           segs.push({ text: `$${key}`, splittable: false });
         }
         i += 1 + key.length;
@@ -818,8 +880,9 @@ function expandShellWordToFields(
   env: Record<string, string>,
   onAssignSideEffect?: (key: string, val: string) => void,
   unsetNames?: ReadonlySet<string>,
+  unresolved?: { hit: boolean },
 ): string[] {
-  const segs = expandWordSegments(rawWord, env, onAssignSideEffect, unsetNames, false, 0);
+  const segs = expandWordSegments(rawWord, env, onAssignSideEffect, unsetNames, false, 0, unresolved);
   const ifs = Object.hasOwn(env, "IFS") ? env.IFS : undefined;
   return splitSegmentsByIfs(segs, ifs);
 }
@@ -1860,54 +1923,11 @@ function buildExportedSnapshot(
   return out;
 }
 
-function hasUnresolvedShellExpansion(
-  rawWord: string,
-  env: Readonly<Record<string, string>>,
-  unsetNames: ReadonlySet<string>,
-): boolean {
-  let quote: "'" | '"' | null = null;
-  for (let i = 0; i < rawWord.length; i += 1) {
-    const ch = rawWord[i] ?? "";
-    if (quote === "'") {
-      if (ch === "'") quote = null;
-      continue;
-    }
-    if (ch === "\\" && i + 1 < rawWord.length) {
-      i += 1;
-      continue;
-    }
-    if (quote === '"') {
-      if (ch === '"') {
-        quote = null;
-        continue;
-      }
-    } else if (ch === "'" || ch === '"') {
-      quote = ch;
-      continue;
-    }
-    if (ch === "$") {
-      if (rawWord[i + 1] === "{") {
-        const m = /^\$\{([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i));
-        if (m?.[1] && !Object.hasOwn(env, m[1]) && !unsetNames.has(m[1])) return true;
-      } else {
-        const m = /^\$([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i));
-        if (m?.[1] && !Object.hasOwn(env, m[1]) && !unsetNames.has(m[1])) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function evalStaticTestCommand(
-  words: readonly string[],
-  rawArgs: readonly string[],
-  env: Readonly<Record<string, string>>,
-  unsetNames: ReadonlySet<string>,
-): 0 | 1 | null {
+function evalStaticTestCommand(words: readonly string[], hasUnresolvedExpansion: boolean): 0 | 1 | null {
   const cmd = words[0];
   if (cmd !== "test" && cmd !== "[") return null;
   if (cmd === "[" && words[words.length - 1] !== "]") return 1;
-  if (rawArgs.some((rw) => hasUnresolvedShellExpansion(rw, env, unsetNames))) return null;
+  if (hasUnresolvedExpansion) return null;
   const args = cmd === "[" ? words.slice(1, -1) : words.slice(1);
   if (args.length === 0) return 1;
   if (args.length === 1) return args[0]!.length > 0 ? 0 : 1;
@@ -2081,9 +2101,12 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
 
     // POSIX §2.9.1 Step 1: Expand command word & arguments FIRST against curVars (with IFS field splitting!)
+    const argUnresolved = { hit: false };
     const expandedWords: string[] = [
       ...cmdFields,
-      ...rawWords.slice(idx + 1).flatMap((w) => expandShellWordToFields(w, curVars, setCurVar, curUnset)),
+      ...rawWords
+        .slice(idx + 1)
+        .flatMap((w) => expandShellWordToFields(w, curVars, setCurVar, curUnset, argUnresolved)),
     ];
 
     if (expandedWords.length === 0) {
@@ -2273,7 +2296,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           ? 1
           : firstCmd === "true" || firstCmd === ":"
             ? 0
-            : evalStaticTestCommand(expandedWords, rawWords.slice(idx + 1), curVars, curUnset),
+            : evalStaticTestCommand(expandedWords, argUnresolved.hit),
       );
     }
   }

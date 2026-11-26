@@ -6,6 +6,26 @@ import type {
   ModelDtype,
   RuleVersion,
 } from "../rules/types";
+import {
+  MAIN_ONLY_TOP_LEVEL_KEYS,
+  type UpgradeTargetVersion,
+  VALID_ASCEND_COMPILATION_KEYS,
+  VALID_ASCEND_FUSION_KEYS,
+  VALID_ASCEND_WARMUP_KEYS,
+  VALID_BATCH_JOB_SCHED_KEYS,
+  VALID_DYNTRA_LB_KEYS,
+  VALID_EPLB_KEYS,
+  VALID_FINEGRAINED_TP_KEYS_BY_TARGET,
+  VALID_PROFILING_CHUNK_KEYS,
+  VALID_REJECTION_SAMPLER_KEYS,
+  VALID_RL_KEYS,
+  VALID_SCHEDULER_KEYS_BY_TARGET,
+  VALID_SHORT_REQUEST_FIRST_KEYS,
+  VALID_SPARSE_KV_OFFLOAD_KEYS_BY_TARGET,
+  VALID_STAIR_KEYS,
+  VALID_TOP_LEVEL_KEYS_BY_TARGET,
+  VALID_XLITE_GRAPH_KEYS,
+} from "./ascendConfigSchemaKeys";
 
 export interface CliParseDiagnostic {
   code:
@@ -312,7 +332,8 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
 function expandDollarExpression(
   rawExpr: string,
   env: Record<string, string>,
-  inDoubleQuotes: boolean,
+  onAssignSideEffect: ((key: string, val: string) => void) | undefined,
+  singleQuotesAreLiteral: boolean,
   depth: number,
 ): string {
   const inner = rawExpr.slice(2, -1);
@@ -329,21 +350,31 @@ function expandDollarExpression(
   }
   if (op === ":-" || op === ":=") {
     if (isNonEmpty) return currentVal;
-    const expanded = expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1);
-    if (op === ":=") env[key] = expanded;
+    const expanded = expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1);
+    if (op === ":=") {
+      env[key] = expanded;
+      onAssignSideEffect?.(key, expanded);
+    }
     return expanded;
   }
   if (op === "-" || op === "=") {
     if (isSet) return currentVal;
-    const expanded = expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1);
-    if (op === "=") env[key] = expanded;
+    const expanded = expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1);
+    if (op === "=") {
+      env[key] = expanded;
+      onAssignSideEffect?.(key, expanded);
+    }
     return expanded;
   }
   if (op === ":+") {
-    return isNonEmpty ? expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1) : "";
+    return isNonEmpty
+      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1)
+      : "";
   }
   if (op === "+") {
-    return isSet ? expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1) : "";
+    return isSet
+      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1)
+      : "";
   }
   return rawExpr;
 }
@@ -351,7 +382,8 @@ function expandDollarExpression(
 function expandShellWord(
   rawWord: string,
   env: Record<string, string>,
-  inDoubleQuotes = false,
+  onAssignSideEffect?: (key: string, val: string) => void,
+  singleQuotesAreLiteral = false,
   depth = 0,
 ): string {
   if (depth > 8) return rawWord;
@@ -362,7 +394,7 @@ function expandShellWord(
     const ch = rawWord[i] ?? "";
     const next = rawWord[i + 1] ?? "";
 
-    if (!inDoubleQuotes && ch === "'") {
+    if (!singleQuotesAreLiteral && ch === "'") {
       i += 1;
       while (i < rawWord.length && rawWord[i] !== "'") {
         out += rawWord[i] ?? "";
@@ -372,7 +404,7 @@ function expandShellWord(
       continue;
     }
 
-    if (!inDoubleQuotes && ch === '"') {
+    if (ch === '"') {
       i += 1;
       while (i < rawWord.length && rawWord[i] !== '"') {
         const dc = rawWord[i] ?? "";
@@ -385,7 +417,7 @@ function expandShellWord(
         if (dc === "$" && dnext === "{") {
           const endIdx = findClosingDollarBrace(rawWord, i + 2);
           if (endIdx !== -1) {
-            out += expandDollarExpression(rawWord.slice(i, endIdx), env, true, depth);
+            out += expandDollarExpression(rawWord.slice(i, endIdx), env, onAssignSideEffect, true, depth);
             i = endIdx;
             continue;
           }
@@ -407,7 +439,7 @@ function expandShellWord(
     }
 
     if (ch === "\\" && i + 1 < rawWord.length) {
-      if (!inDoubleQuotes || next === '"' || next === "\\" || next === "$" || next === "`") {
+      if (!singleQuotesAreLiteral || next === '"' || next === "\\" || next === "$" || next === "`") {
         out += next;
         i += 2;
         continue;
@@ -417,7 +449,13 @@ function expandShellWord(
     if (ch === "$" && next === "{") {
       const endIdx = findClosingDollarBrace(rawWord, i + 2);
       if (endIdx !== -1) {
-        out += expandDollarExpression(rawWord.slice(i, endIdx), env, inDoubleQuotes, depth);
+        out += expandDollarExpression(
+          rawWord.slice(i, endIdx),
+          env,
+          onAssignSideEffect,
+          singleQuotesAreLiteral,
+          depth,
+        );
         i = endIdx;
         continue;
       }
@@ -1028,38 +1066,66 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 } {
   const shellVars: Record<string, string> = {};
   const exportedNames = new Set<string>();
+  let allExport = false;
   let matchedEnvVars: Record<string, string> | null = null;
   const shellPreamble: string[] = [];
   let serveTokens: string[] = [];
 
+  const setShellVar = (name: string, val: string): void => {
+    shellVars[name] = val;
+    if (allExport) exportedNames.add(name);
+  };
+
   for (const stmt of statements) {
     const rawWords = stmt.rawWords;
     if (rawWords.length === 0) continue;
-    const firstExpanded = expandShellWord(rawWords[0] ?? "", shellVars);
+    const firstExpanded = expandShellWord(rawWords[0] ?? "", shellVars, setShellVar);
+
+    if (firstExpanded === "set" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
+      const setArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
+      for (let i = 0; i < setArgs.length; i += 1) {
+        const arg = setArgs[i] ?? "";
+        if (arg === "--") break;
+        if (arg === "-o" && i + 1 < setArgs.length) {
+          if (setArgs[i + 1] === "allexport") allExport = true;
+          i += 1;
+          continue;
+        }
+        if (arg === "+o" && i + 1 < setArgs.length) {
+          if (setArgs[i + 1] === "allexport") allExport = false;
+          i += 1;
+          continue;
+        }
+        if (/^-[A-Za-z]+$/.test(arg) && arg.includes("a")) {
+          allExport = true;
+          continue;
+        }
+        if (/^\+[A-Za-z]+$/.test(arg) && arg.includes("a")) {
+          allExport = false;
+        }
+      }
+      shellPreamble.push(stmt.raw);
+      continue;
+    }
 
     if (firstExpanded === "export" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
+      // POSIX: expand all export arguments BEFORE applying export assignments
+      const expandedArgs = rawWords.slice(1).map((rw) => ({
+        rw,
+        expanded: expandShellWord(rw, shellVars, setShellVar),
+      }));
       let removeExport = false;
-      for (let i = 1; i < rawWords.length; i += 1) {
-        const rw = rawWords[i] ?? "";
-        const expanded = expandShellWord(rw, shellVars);
-        if (i === 1 && expanded === "-n") {
+      for (let i = 0; i < expandedArgs.length; i += 1) {
+        const { rw, expanded } = expandedArgs[i]!;
+        if (i === 0 && expanded === "-n") {
           removeExport = true;
           continue;
         }
         if (expanded === "-p" || expanded === "--") continue;
-        const rawAssign = RAW_SHELL_ASSIGN_RE.exec(rw);
-        if (rawAssign?.[1]) {
-          const name = rawAssign[1];
-          const val = expandShellWord(rawAssign[2] ?? "", shellVars);
-          shellVars[name] = val;
-          if (removeExport) exportedNames.delete(name);
-          else exportedNames.add(name);
-          continue;
-        }
-        const quotedAssign = ENV_ASSIGN_RE.exec(expanded);
-        if (quotedAssign?.[1]) {
-          const name = quotedAssign[1];
-          shellVars[name] = quotedAssign[2] ?? "";
+        const assignMatch = ENV_ASSIGN_RE.exec(expanded);
+        if (assignMatch?.[1] && (RAW_SHELL_ASSIGN_RE.test(rw) || assignMatch[1].length > 0)) {
+          const name = assignMatch[1];
+          shellVars[name] = assignMatch[2] ?? "";
           if (removeExport) exportedNames.delete(name);
           else exportedNames.add(name);
           continue;
@@ -1073,8 +1139,8 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
 
     if (firstExpanded === "unset" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
-      for (let i = 1; i < rawWords.length; i += 1) {
-        const expanded = expandShellWord(rawWords[i] ?? "", shellVars);
+      const unsetArgs = rawWords.slice(1).map((rw) => expandShellWord(rw, shellVars, setShellVar));
+      for (const expanded of unsetArgs) {
         if (expanded === "-v" || expanded === "-f" || expanded === "--") continue;
         if (VALID_IDENT_RE.test(expanded)) {
           delete shellVars[expanded];
@@ -1087,27 +1153,31 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     // POSIX simple-command prefix variable assignments (must have unquoted NAME= before command word)
     let idx = 0;
     const assignEnv: Record<string, string> = { ...shellVars };
+    const onPrefixSideEffect = (k: string, v: string): void => {
+      assignEnv[k] = v;
+      setShellVar(k, v);
+    };
     const prefixAssigns: Array<[string, string]> = [];
     while (idx < rawWords.length) {
       const rw = rawWords[idx] ?? "";
       const m = RAW_SHELL_ASSIGN_RE.exec(rw);
       if (!m?.[1]) break;
-      const val = expandShellWord(m[2] ?? "", assignEnv);
+      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect);
       assignEnv[m[1]] = val;
       prefixAssigns.push([m[1], val]);
       idx += 1;
     }
 
     if (idx === rawWords.length) {
-      // Standalone shell variable assignment(s): updates shellVars; only exported if already marked export
+      // Standalone shell variable assignment(s): updates shellVars; exported if allExport or already exported
       for (const [k, v] of prefixAssigns) {
-        shellVars[k] = v;
+        setShellVar(k, v);
       }
       continue;
     }
 
     // Command word and arguments expand against shellVars (prior to prefix assignments)
-    const expandedWords = rawWords.slice(idx).map((w) => expandShellWord(w, shellVars));
+    const expandedWords = rawWords.slice(idx).map((w) => expandShellWord(w, shellVars, setShellVar));
     const childEnv = buildExportedSnapshot(shellVars, exportedNames);
     for (const [k, v] of prefixAssigns) {
       childEnv[k] = v;
@@ -1191,13 +1261,38 @@ function findServeTokens(statements: readonly ShellStatement[]): {
   };
 }
 
+function validateSubConfigKeys(
+  record: Record<string, unknown>,
+  flagPath: string,
+  allowedKeys: ReadonlySet<string>,
+  diagnostics: CliParseDiagnostic[],
+  exemptKeys?: ReadonlySet<string>,
+): void {
+  const unknown = Object.keys(record)
+    .filter((k) => !allowedKeys.has(k) && !exemptKeys?.has(k))
+    .sort();
+  if (unknown.length > 0) {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: `${flagPath}.${unknown[0]}`,
+      message: `ValidationError: ${flagPath} 包含未知子键（Pydantic extra="forbid" 拒收）：${unknown.join("、")}。`,
+      remediation: `请从 ${flagPath} 中移除或修正拼写错误的子键：${unknown.join("、")}。`,
+    });
+  }
+}
+
 function parseEnabledSubConfig(
   holder: Record<string, unknown>,
   key: string,
   flagPath: string,
   diagnostics: CliParseDiagnostic[],
   isRfork: boolean,
-  opts: { allowNullOnRfork?: boolean } = {},
+  opts: {
+    allowNullOnRfork?: boolean;
+    allowedSubKeys?: ReadonlySet<string>;
+    enforceSubKeysOnRfork?: boolean;
+  } = {},
 ): boolean {
   if (!Object.hasOwn(holder, key) || holder[key] === undefined) return false;
   const val = holder[key];
@@ -1214,14 +1309,8 @@ function parseEnabledSubConfig(
     });
     return false;
   }
-  if (!isRfork && Object.hasOwn(val, "enable")) {
-    diagnostics.push({
-      code: "parse-invalid-json-type",
-      severity: "error",
-      flag: `${flagPath}.enable`,
-      message: `ValidationError: ${flagPath}.enable 为未知子键（Pydantic extra="forbid" 拒收；该子配置开关字段名为 enabled）。`,
-      remediation: `请将 ${flagPath}.enable 改为 ${flagPath}.enabled。`,
-    });
+  if (opts.allowedSubKeys && (!isRfork || opts.enforceSubKeysOnRfork)) {
+    validateSubConfigKeys(val, flagPath, opts.allowedSubKeys, diagnostics);
   }
   if (!Object.hasOwn(val, "enabled") || val.enabled === undefined) return false;
   if (isRfork) {
@@ -1232,6 +1321,7 @@ function parseEnabledSubConfig(
 
 export interface ParseVllmServeOptions {
   version?: RuleVersion;
+  vllmOmniAvailable?: boolean;
 }
 
 export function parseVllmServeCommand(
@@ -1240,6 +1330,8 @@ export function parseVllmServeCommand(
 ): ParsedVllmServeCommand {
   const version: RuleVersion = options?.version ?? "v0.30.0";
   const isRfork = version === "rfork";
+  const targetSchemaVersion: UpgradeTargetVersion = version === "main" ? "main" : "v0.30.0";
+  const vllmOmniAvailable = options?.vllmOmniAvailable === true;
   const diagnostics: CliParseDiagnostic[] = [];
   const normalized = normalizeContinuations(rawText);
   const rawStmts = splitStatements(normalized);
@@ -1814,6 +1906,67 @@ export function parseVllmServeCommand(
 
   // Extract --additional-config fields
   if (additionalConfig) {
+    if (!isRfork) {
+      const validTopKeys = VALID_TOP_LEVEL_KEYS_BY_TARGET[targetSchemaVersion];
+      const ruleHandledTopKeys = new Set<string>(
+        version === "v0.30.0" ? MAIN_ONLY_TOP_LEVEL_KEYS : ["profiling_chunk_config"],
+      );
+      const unknownTopKeys = Object.keys(additionalConfig)
+        .filter((k) => !validTopKeys.has(k) && !ruleHandledTopKeys.has(k))
+        .sort();
+      if (unknownTopKeys.length > 0) {
+        diagnostics.push({
+          code: "parse-invalid-json-type",
+          severity: vllmOmniAvailable ? "warn" : "error",
+          flag: `additional_config.${unknownTopKeys[0]}`,
+          message: vllmOmniAvailable
+            ? `当前环境检测到 vllm_omni：init_ascend_config 会打印告警并从 AscendConfig 剥离未知顶层键（对应特性在 vLLM-Ascend 中不生效）：${unknownTopKeys.join("、")}。`
+            : `ValidationError: additional_config 包含未知顶层键（Pydantic extra="forbid" 拒收）：${unknownTopKeys.join("、")}。`,
+          remediation: `请从 --additional-config 顶层移除或修正键名：${unknownTopKeys.join("、")}。`,
+        });
+      }
+      for (const [subName, subValidKeys] of [
+        ["ascend_fusion_config", VALID_ASCEND_FUSION_KEYS],
+        ["ascend_warmup_config", VALID_ASCEND_WARMUP_KEYS],
+        ["eplb_config", VALID_EPLB_KEYS],
+        ["rejection_sampler_config", VALID_REJECTION_SAMPLER_KEYS],
+      ] as const) {
+        if (!Object.hasOwn(additionalConfig, subName) || additionalConfig[subName] === undefined) continue;
+        const subVal = additionalConfig[subName];
+        if (!isRecord(subVal)) {
+          diagnostics.push({
+            code: "parse-invalid-json-type",
+            severity: "error",
+            flag: `additional_config.${subName}`,
+            message: `ValidationError: additional_config.${subName} 需要 JSON 对象，收到 ${JSON.stringify(subVal)}。`,
+          });
+        } else {
+          validateSubConfigKeys(subVal, `additional_config.${subName}`, subValidKeys, diagnostics);
+          if (
+            subName === "eplb_config" &&
+            Object.hasOwn(subVal, "stair_config") &&
+            subVal.stair_config !== undefined
+          ) {
+            if (!isRecord(subVal.stair_config)) {
+              diagnostics.push({
+                code: "parse-invalid-json-type",
+                severity: "error",
+                flag: "additional_config.eplb_config.stair_config",
+                message: `ValidationError: additional_config.eplb_config.stair_config 需要 JSON 对象，收到 ${JSON.stringify(subVal.stair_config)}。`,
+              });
+            } else {
+              validateSubConfigKeys(
+                subVal.stair_config,
+                "additional_config.eplb_config.stair_config",
+                VALID_STAIR_KEYS,
+                diagnostics,
+              );
+            }
+          }
+        }
+      }
+    }
+
     if (
       Object.hasOwn(additionalConfig, "ascend_compilation_config") &&
       additionalConfig.ascend_compilation_config !== undefined &&
@@ -1830,6 +1983,14 @@ export function parseVllmServeCommand(
       ? additionalConfig.ascend_compilation_config
       : null;
     if (acc) {
+      if (!isRfork) {
+        validateSubConfigKeys(
+          acc,
+          "additional_config.ascend_compilation_config",
+          VALID_ASCEND_COMPILATION_KEYS,
+          diagnostics,
+        );
+      }
       const npugraph = parseAscendBoolField(
         acc,
         "enable_npugraph_ex",
@@ -1869,19 +2030,16 @@ export function parseVllmServeCommand(
         message: `ValueError: additional_config.scheduler_config 必须为字典对象，收到 ${JSON.stringify(additionalConfig.scheduler_config)}。`,
       });
     }
-    if (
-      !isRfork &&
-      Object.hasOwn(additionalConfig, "ascend_scheduler_config") &&
-      additionalConfig.ascend_scheduler_config !== undefined
-    ) {
-      diagnostics.push({
-        code: "parse-invalid-json-type",
-        severity: "error",
-        flag: "additional_config.ascend_scheduler_config",
-        message: `ValidationError: additional_config.ascend_scheduler_config 已在 v0.30.0 / main 移除（extra="forbid"），请改用 additional_config.scheduler_config。`,
-      });
-    }
     const sched = isRecord(additionalConfig.scheduler_config) ? additionalConfig.scheduler_config : null;
+    if (sched && !isRfork) {
+      validateSubConfigKeys(
+        sched,
+        "additional_config.scheduler_config",
+        VALID_SCHEDULER_KEYS_BY_TARGET[targetSchemaVersion],
+        diagnostics,
+        version === "main" ? new Set(["profiling_chunk_config"]) : undefined,
+      );
+    }
     const resolveSchedHolder = (
       key: string,
     ): { holder: Record<string, unknown>; flagPath: string } | null => {
@@ -1929,7 +2087,7 @@ export function parseVllmServeCommand(
           profChunkEntry.flagPath,
           diagnostics,
           isRfork,
-          { allowNullOnRfork: true },
+          { allowNullOnRfork: true, allowedSubKeys: VALID_PROFILING_CHUNK_KEYS },
         )
       ) {
         couplingInput.profilingChunkEnabled = true;
@@ -1949,7 +2107,7 @@ export function parseVllmServeCommand(
         batchJobEntry.flagPath,
         diagnostics,
         isRfork,
-        { allowNullOnRfork: true },
+        { allowNullOnRfork: true, allowedSubKeys: VALID_BATCH_JOB_SCHED_KEYS },
       )
     ) {
       couplingInput.batchJobSchedEnabled = true;
@@ -1964,25 +2122,16 @@ export function parseVllmServeCommand(
         srfEntry.flagPath,
         diagnostics,
         isRfork,
-        { allowNullOnRfork: true },
+        {
+          allowNullOnRfork: true,
+          allowedSubKeys: VALID_SHORT_REQUEST_FIRST_KEYS,
+          enforceSubKeysOnRfork: true,
+        },
       )
     ) {
       couplingInput.shortRequestFirstEnabled = true;
     }
 
-    if (
-      !isRfork &&
-      Object.hasOwn(additionalConfig, "dyntra_lb_config") &&
-      additionalConfig.dyntra_lb_config !== undefined
-    ) {
-      diagnostics.push({
-        code: "parse-invalid-json-type",
-        severity: "error",
-        flag: "additional_config.dyntra_lb_config",
-        message: `ValidationError: additional_config.dyntra_lb_config 为未知顶层键（extra="forbid"）；上游仅从 additional_config.scheduler_config.dyntra_lb_config 读取。`,
-        remediation: "请将 dyntra_lb_config 移入 additional_config.scheduler_config 下。",
-      });
-    }
     if (
       sched &&
       parseEnabledSubConfig(
@@ -1991,23 +2140,26 @@ export function parseVllmServeCommand(
         "additional_config.scheduler_config.dyntra_lb_config",
         diagnostics,
         isRfork,
+        { allowedSubKeys: VALID_DYNTRA_LB_KEYS },
       )
     ) {
       couplingInput.dyntraLbEnabled = true;
     }
 
-    const fc1 = parsePydanticBoolField(
+    const fc1 = parseAscendBoolField(
       additionalConfig,
       "enable_flashcomm1",
       "additional_config.enable_flashcomm1",
       diagnostics,
+      isRfork,
     );
     if (fc1 !== undefined) couplingInput.enableFlashcomm1 = fc1;
-    const dsaCp = parsePydanticBoolField(
+    const dsaCp = parseAscendBoolField(
       additionalConfig,
       "enable_dsa_cp",
       "additional_config.enable_dsa_cp",
       diagnostics,
+      isRfork,
     );
     if (dsaCp !== undefined) couplingInput.enableDsaCp = dsaCp;
     const fusedMc2 = parseNumberLike(additionalConfig.enable_fused_mc2);
@@ -2021,39 +2173,53 @@ export function parseVllmServeCommand(
         message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
       });
     }
-    const prefillMc2 = parsePydanticBoolField(
+    const prefillMc2 = parseAscendBoolField(
       additionalConfig,
       "enable_prefill_mc2",
       "additional_config.enable_prefill_mc2",
       diagnostics,
+      isRfork,
     );
     if (prefillMc2 !== undefined) couplingInput.enablePrefillMc2 = prefillMc2;
     const nzMode = parseNumberLike(additionalConfig.weight_nz_mode);
     if (nzMode !== undefined) couplingInput.weightNzMode = nzMode;
-    const sparseSfaC8 = parsePydanticBoolField(
+    const sparseSfaC8 = parseAscendBoolField(
       additionalConfig,
       "enable_sparse_sfa_c8",
       "additional_config.enable_sparse_sfa_c8",
       diagnostics,
+      isRfork,
     );
     if (sparseSfaC8 !== undefined) couplingInput.enableSparseSfaC8 = sparseSfaC8;
 
     if (isRecord(additionalConfig.rl_config)) {
-      const rlEn = parsePydanticBoolField(
+      if (!isRfork) {
+        validateSubConfigKeys(
+          additionalConfig.rl_config,
+          "additional_config.rl_config",
+          VALID_RL_KEYS,
+          diagnostics,
+        );
+      }
+      const rlEn = parseAscendBoolField(
         additionalConfig.rl_config,
         "enabled",
         "additional_config.rl_config.enabled",
         diagnostics,
+        isRfork,
       );
       if (rlEn !== undefined) couplingInput.rlEnabled = rlEn;
       const rlConsKey = Object.hasOwn(additionalConfig.rl_config, "enable_training_consistency")
         ? "enable_training_consistency"
-        : "training_consistency";
-      const rlCons = parsePydanticBoolField(
+        : isRfork
+          ? "training_consistency"
+          : "enable_training_consistency";
+      const rlCons = parseAscendBoolField(
         additionalConfig.rl_config,
         rlConsKey,
         `additional_config.rl_config.${rlConsKey}`,
         diagnostics,
+        isRfork,
       );
       if (rlCons !== undefined) couplingInput.rlTrainingConsistency = rlCons;
     } else if (Object.hasOwn(additionalConfig, "rl_config") && additionalConfig.rl_config !== undefined) {
@@ -2071,6 +2237,7 @@ export function parseVllmServeCommand(
         "additional_config.xlite_graph_config",
         diagnostics,
         isRfork,
+        { allowedSubKeys: VALID_XLITE_GRAPH_KEYS },
       )
     ) {
       couplingInput.xliteEnabled = true;
@@ -2105,54 +2272,49 @@ export function parseVllmServeCommand(
       }
     }
 
-    const MAIN_ONLY_ADDITIONAL_KEYS = [
-      "shared_engram",
-      "quantized_all_reduce_config",
-      "runtime_config",
-      "runtime_config_hot_reload",
-      "runtime_config_path",
-      "gdn_internal_prefill_checkpoints",
-      "kv_pool_range_debug",
-      "megamoe_shared_expert_fusion",
-    ] as const;
-    const presentMainOnly = MAIN_ONLY_ADDITIONAL_KEYS.filter((k) => Object.hasOwn(additionalConfig, k));
+    const presentMainOnly = MAIN_ONLY_TOP_LEVEL_KEYS.filter((k) => Object.hasOwn(additionalConfig, k));
     if (presentMainOnly.length > 0) {
       couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
     }
 
-    const sedp = parsePydanticBoolField(
+    const sedp = parseAscendBoolField(
       additionalConfig,
       "enable_shared_expert_dp",
       "additional_config.enable_shared_expert_dp",
       diagnostics,
+      isRfork,
     );
     if (sedp !== undefined) couplingInput.enableSharedExpertDp = sedp;
-    const mmSef = parsePydanticBoolField(
+    const mmSef = parseAscendBoolField(
       additionalConfig,
       "megamoe_shared_expert_fusion",
       "additional_config.megamoe_shared_expert_fusion",
       diagnostics,
+      isRfork,
     );
     if (mmSef !== undefined) couplingInput.megamoeSharedExpertFusion = mmSef;
-    const meo = parsePydanticBoolField(
+    const meo = parseAscendBoolField(
       additionalConfig,
       "multistream_engram_overlap",
       "additional_config.multistream_engram_overlap",
       diagnostics,
+      isRfork,
     );
     if (meo !== undefined) couplingInput.multistreamEngramOverlap = meo;
-    const gdnCp = parsePydanticBoolField(
+    const gdnCp = parseAscendBoolField(
       additionalConfig,
       "gdn_internal_prefill_checkpoints",
       "additional_config.gdn_internal_prefill_checkpoints",
       diagnostics,
+      isRfork,
     );
     if (gdnCp !== undefined) couplingInput.gdnInternalPrefillCheckpoints = gdnCp;
-    const kvDbg = parsePydanticBoolField(
+    const kvDbg = parseAscendBoolField(
       additionalConfig,
       "kv_pool_range_debug",
       "additional_config.kv_pool_range_debug",
       diagnostics,
+      isRfork,
     );
     if (kvDbg !== undefined) couplingInput.kvPoolRangeDebug = kvDbg;
 
@@ -2267,6 +2429,14 @@ export function parseVllmServeCommand(
       }
     }
     if (isRecord(additionalConfig.finegrained_tp_config)) {
+      if (!isRfork) {
+        validateSubConfigKeys(
+          additionalConfig.finegrained_tp_config,
+          "additional_config.finegrained_tp_config",
+          VALID_FINEGRAINED_TP_KEYS_BY_TARGET[targetSchemaVersion],
+          diagnostics,
+        );
+      }
       const oproj = parseNumberLike(additionalConfig.finegrained_tp_config.oproj_tensor_parallel_size);
       if (oproj !== undefined) couplingInput.oprojTensorParallelSize = oproj;
       const mlp = parseNumberLike(additionalConfig.finegrained_tp_config.mlp_tensor_parallel_size);
@@ -2303,6 +2473,7 @@ export function parseVllmServeCommand(
         "additional_config.sparse_kv_offload_config",
         diagnostics,
         isRfork,
+        { allowedSubKeys: VALID_SPARSE_KV_OFFLOAD_KEYS_BY_TARGET[targetSchemaVersion] },
       )
     ) {
       couplingInput.sparseKvOffloadEnabled = true;

@@ -851,6 +851,66 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(laterExportMarksPriorShellVar.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
 
+    const setAllexportWindow = runSingleConfigDoctor(
+      `set -a\nVLLM_BATCH_INVARIANT=on\nset +a\nvllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(setAllexportWindow.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
+    const doubleQuotedFallbackInsideDoubleQuotes = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT="\${BATCH:-"1"}" vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(doubleQuotedFallbackInsideDoubleQuotes.errors.some((f) => f.id === "parse-invalid-number")).toBe(
+      false,
+    );
+    expect(doubleQuotedFallbackInsideDoubleQuotes.effectiveInput.vllmBatchInvariant).toBe(true);
+
+    const multiVarExportOrder = runSingleConfigDoctor(
+      `export BATCH=on VLLM_BATCH_INVARIANT=\${BATCH:-1}\nvllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(multiVarExportOrder.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(multiVarExportOrder.effectiveInput.vllmBatchInvariant).toBe(true);
+
+    const assignDefaultSideEffectPersists = runSingleConfigDoctor(
+      `A=0 X=\${BATCH:=on}\nVLLM_BATCH_INVARIANT=\${BATCH:-1} vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(assignDefaultSideEffectPersists.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
+    const profArbitraryTypoSubkey = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -pp 2 --additional-config '{"scheduler_config":{"profiling_chunk_config":{"enabld":true}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(profArbitraryTypoSubkey.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const topLevelDyntraWithOmni = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"dyntra_lb_config":{}}'`,
+      {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+        modelTraitOverride: { vllmOmniAvailable: true },
+      },
+    );
+    expect(topLevelDyntraWithOmni.hasBlockers).toBe(false);
+    expect(topLevelDyntraWithOmni.warnings.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const rforkPrefillMc2Truthiness = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_prefill_mc2":2}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(rforkPrefillMc2Truthiness.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(false);
+    expect(rforkPrefillMc2Truthiness.effectiveInput.enablePrefillMc2).toBe(true);
+
+    const rforkPrefillMc2StringOff = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_prefill_mc2":"off"}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(rforkPrefillMc2StringOff.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(false);
+    expect(rforkPrefillMc2StringOff.effectiveInput.enablePrefillMc2).toBe(true);
+
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },

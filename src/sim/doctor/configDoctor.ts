@@ -728,7 +728,10 @@ export function runSingleConfigDoctor(
   opts: SingleDoctorOptions,
 ): SingleConfigDoctorReport {
   const version = opts.version ?? DEFAULT_RULE_VERSION;
-  const parsed = parseVllmServeCommand(commandText, { version });
+  const vllmOmniAvailable =
+    opts.modelTraitOverride?.vllmOmniAvailable === true ||
+    opts.modelTraitOverride?.envFacts?.vllmOmniAvailable === true;
+  const parsed = parseVllmServeCommand(commandText, { version, vllmOmniAvailable });
   const rawKvAudit = auditRawKvTransferRole(parsed.kvTransferConfig);
 
   // Preserve strict case-sensitive kv_role literal from raw JSON before merging overrides
@@ -907,8 +910,20 @@ export function runPdConfigDoctor(
   const prefillHardwareFamily = opts.hardwareFamily;
   const decodeHardwareFamily = opts.decodeHardwareFamily ?? opts.hardwareFamily;
 
-  const parsedP = parseVllmServeCommand(prefillCommandText, { version });
-  const parsedD = parseVllmServeCommand(decodeCommandText, { version });
+  const pOmni = Boolean(
+    opts.prefillTraitOverride?.vllmOmniAvailable ||
+      opts.prefillTraitOverride?.envFacts?.vllmOmniAvailable ||
+      opts.modelTraitOverride?.vllmOmniAvailable ||
+      opts.modelTraitOverride?.envFacts?.vllmOmniAvailable,
+  );
+  const dOmni = Boolean(
+    opts.decodeTraitOverride?.vllmOmniAvailable ||
+      opts.decodeTraitOverride?.envFacts?.vllmOmniAvailable ||
+      opts.modelTraitOverride?.vllmOmniAvailable ||
+      opts.modelTraitOverride?.envFacts?.vllmOmniAvailable,
+  );
+  const parsedP = parseVllmServeCommand(prefillCommandText, { version, vllmOmniAvailable: pOmni });
+  const parsedD = parseVllmServeCommand(decodeCommandText, { version, vllmOmniAvailable: dOmni });
   const pRawKvAudit = auditRawKvTransferRole(parsedP.kvTransferConfig);
   const dRawKvAudit = auditRawKvTransferRole(parsedD.kvTransferConfig);
 

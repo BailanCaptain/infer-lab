@@ -670,6 +670,33 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(qarInvalidStr.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
 
+    const qarWhitespaceBool = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":" on "}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarWhitespaceBool.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(true);
+
+    const qarUnderscoreAndDotZeroInt = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":true,"min_numel":"32_768"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarUnderscoreAndDotZeroInt.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
+    expect(qarUnderscoreAndDotZeroInt.effectiveInput.quantizedAllReduceMinNumel).toBe(32768);
+
+    const qarDotZeroInt = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":true,"min_numel":"32768.0"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarDotZeroInt.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
+    expect(qarDotZeroInt.effectiveInput.quantizedAllReduceMinNumel).toBe(32768);
+
+    const envV2OnInvalid = runSingleConfigDoctor(
+      `VLLM_USE_V2_MODEL_RUNNER=on vllm serve Qwen/Qwen3-8B -tp 2 --prefill-context-parallel-size 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(envV2OnInvalid.effectiveInput.useV2ModelRunner).toBeUndefined();
+    expect(envV2OnInvalid.errors.some((f) => f.id === "d4-pcp-requires-mrv2")).toBe(true);
+
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },

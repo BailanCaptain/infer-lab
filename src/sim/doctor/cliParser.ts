@@ -347,26 +347,27 @@ function parseBoolLike(val: unknown): boolean | undefined {
   if (typeof val === "number") return val !== 0;
   if (typeof val === "string") {
     const lower = val.trim().toLowerCase();
-    if (
-      lower === "1" ||
-      lower === "true" ||
-      lower === "t" ||
-      lower === "yes" ||
-      lower === "y" ||
-      lower === "on"
-    ) {
-      return true;
-    }
-    if (
-      lower === "0" ||
-      lower === "false" ||
-      lower === "f" ||
-      lower === "no" ||
-      lower === "n" ||
-      lower === "off"
-    ) {
-      return false;
-    }
+    if (lower === "1" || lower === "true") return true;
+    if (lower === "0" || lower === "false") return false;
+  }
+  return undefined;
+}
+
+function parseEnvIntBool(raw: string | undefined): boolean | undefined {
+  if (raw === undefined) return undefined;
+  const trimmed = raw.trim();
+  if (!/^[+-]?\d+$/.test(trimmed)) return undefined;
+  const n = Number.parseInt(trimmed, 10);
+  return Number.isSafeInteger(n) ? n !== 0 : undefined;
+}
+
+function parsePydanticLaxBool(val: unknown): boolean | undefined {
+  if (typeof val === "boolean") return val;
+  if (val === 0) return false;
+  if (val === 1) return true;
+  if (typeof val === "string") {
+    if (/^(?:1|true|t|yes|y|on)$/i.test(val)) return true;
+    if (/^(?:0|false|f|no|n|off)$/i.test(val)) return false;
   }
   return undefined;
 }
@@ -375,8 +376,9 @@ function parsePydanticLaxInt(val: unknown): number | undefined {
   if (typeof val === "number" && Number.isSafeInteger(val)) return val;
   if (typeof val === "string") {
     const trimmed = val.trim();
-    if (/^[+-]?\d+$/.test(trimmed)) {
-      const n = Number(trimmed);
+    if (/^[+-]?\d(?:_?\d)*(?:\.0+)?$/.test(trimmed)) {
+      const normalized = trimmed.replace(/_/g, "").replace(/\.0+$/, "");
+      const n = Number(normalized);
       if (Number.isSafeInteger(n)) return n;
     }
   }
@@ -1340,13 +1342,13 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   couplingInput.shutdownTimeout = shutdownTimeout ?? 0;
   if (mambaCacheMode !== undefined) couplingInput.mambaCacheMode = mambaCacheMode;
 
-  // Env-driven coupling fields
+  // Env-driven coupling fields (vllm/envs.py uses bool(int(val)) for VLLM_USE_V2_MODEL_RUNNER & VLLM_BATCH_INVARIANT)
   if (Object.hasOwn(envVars, "VLLM_USE_V2_MODEL_RUNNER")) {
-    const b = parseBoolLike(envVars.VLLM_USE_V2_MODEL_RUNNER);
+    const b = parseEnvIntBool(envVars.VLLM_USE_V2_MODEL_RUNNER);
     if (b !== undefined) couplingInput.useV2ModelRunner = b;
   }
   if (Object.hasOwn(envVars, "VLLM_BATCH_INVARIANT")) {
-    const b = parseBoolLike(envVars.VLLM_BATCH_INVARIANT);
+    const b = parseEnvIntBool(envVars.VLLM_BATCH_INVARIANT);
     if (b !== undefined) couplingInput.vllmBatchInvariant = b;
   }
   if (Object.hasOwn(envVars, "PYTORCH_NPU_ALLOC_CONF")) {
@@ -1473,14 +1475,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
         }
         if (qarc.enable !== undefined) {
-          const qEn =
-            typeof qarc.enable === "boolean"
-              ? qarc.enable
-              : qarc.enable === 0 || qarc.enable === 1
-                ? qarc.enable === 1
-                : typeof qarc.enable === "string"
-                  ? parseBoolLike(qarc.enable)
-                  : undefined;
+          const qEn = parsePydanticLaxBool(qarc.enable);
           if (qEn !== undefined) {
             couplingInput.quantizedAllReduceEnabled = qEn;
           } else {

@@ -296,22 +296,19 @@ export function buildCalculatorQueryParams(
   if (input.dpSize !== undefined && ALLOWED_PARALLEL_SIZES.has(input.dpSize)) {
     next.set("dp", String(input.dpSize));
     const explicitDl = input.dpLocalSize;
+    const maxNodeRanks = input.cardId === "a3-die64g" ? 16 : 8;
+    const effTp = input.tpSize ?? 1;
+    const effPp = input.ppSize ?? 1;
+    const effPcp = input.pcpSize ?? 1;
     if (
       explicitDl !== undefined &&
       Number.isSafeInteger(explicitDl) &&
       explicitDl >= 1 &&
       explicitDl <= input.dpSize &&
-      input.dpSize % explicitDl === 0
+      input.dpSize % explicitDl === 0 &&
+      explicitDl * effTp * effPp * effPcp <= maxNodeRanks
     ) {
       next.set("dpLocal", String(explicitDl));
-    } else if (explicitDl === undefined) {
-      const rawDl = preserve?.get("dpLocal")?.trim();
-      if (rawDl && /^\d+$/.test(rawDl)) {
-        const dl = Number(rawDl);
-        if (Number.isSafeInteger(dl) && dl >= 1 && dl <= input.dpSize && input.dpSize % dl === 0) {
-          next.set("dpLocal", String(dl));
-        }
-      }
     }
   }
   if (input.pcpSize !== undefined && ALLOWED_PARALLEL_SIZES.has(input.pcpSize)) {

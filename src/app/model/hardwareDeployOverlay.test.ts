@@ -546,20 +546,9 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     const calcReturnUrl = buildCalculatorReturnToFromDeploy(dpLocalDecoded!);
     const calcReturnParams = new URLSearchParams(calcReturnUrl.slice("/tools?".length));
     expect(calcReturnParams.get("dpLocal")).toBe("1");
-    const rebuilt3dHref = buildHardwareDeployHref(
-      {
-        ...dpLocalDecoded!,
-        calc: { ...dpLocalDecoded!.calc, dpLocal: undefined },
-      },
-      calcReturnParams,
-    );
-    const rebuiltDecoded = parseHardwareDeployOverlay(
-      new URLSearchParams(rebuilt3dHref.slice("#/hardware?".length)).get("deploy"),
-    );
-    expect(rebuiltDecoded?.calc?.dpLocal).toBe(1);
-    expect(computeHardwareNodeSlotLayout(rebuiltDecoded!).nodeCount).toBe(2);
 
-    // 8. 算账台可复制/交接启动命令同样保留 --data-parallel-size-local，确保 3D -> 算账台 -> 体检台 -> 3D 节点数一致
+    // 8. 算账台可复制/交接启动命令同样保留 --data-parallel-size-local，确保 3D -> 算账台 -> 体检台 -> 3D 节点数一致；
+    //    切换模板清空 dpLocal 时不再从旧 URL 回填，且扩 TP 超过单机上限时自动清除失效 dpLocal
     const parsedCalcReturn = parseCalculatorQueryParams(calcReturnParams);
     expect(parsedCalcReturn.dpLocalSize).toBe(1);
     const calcPlan = evaluateDeployPlan({
@@ -570,6 +559,20 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
       ...(parsedCalcReturn.dpLocalSize !== undefined ? { dpLocalSize: parsedCalcReturn.dpLocalSize } : {}),
       enableEp: Boolean(parsedCalcReturn.enableEp),
     });
+    expect(calcPlan.inputSummary.dpLocalSize).toBe(1);
+    const rebuilt3dHref = buildHardwareDeployHref(
+      {
+        ...dpLocalDecoded!,
+        calc: { ...dpLocalDecoded!.calc, dpLocal: calcPlan.inputSummary.dpLocalSize },
+      },
+      calcReturnParams,
+    );
+    const rebuiltDecoded = parseHardwareDeployOverlay(
+      new URLSearchParams(rebuilt3dHref.slice("#/hardware?".length)).get("deploy"),
+    );
+    expect(rebuiltDecoded?.calc?.dpLocal).toBe(1);
+    expect(computeHardwareNodeSlotLayout(rebuiltDecoded!).nodeCount).toBe(2);
+
     const calcCli = buildCurrentPlanCliHint(calcPlan);
     expect(calcCli).toContain("--data-parallel-size-local 1");
     const doctor3dHref = buildHardwareDeployHrefFromCommand(calcCli, {
@@ -581,5 +584,31 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
       new URLSearchParams(doctor3dHref!.slice("#/hardware?".length)).get("deploy"),
     );
     expect(computeHardwareNodeSlotLayout(doctor3dDecoded!).nodeCount).toBe(2);
+
+    // Template reset clears dpLocal -> neither 3D href nor CLI resurrects stale dpLocal=1 from calcReturnParams
+    const reset3dHref = buildHardwareDeployHref(
+      {
+        ...dpLocalDecoded!,
+        calc: { ...dpLocalDecoded!.calc, dpLocal: undefined },
+      },
+      calcReturnParams,
+    );
+    const resetDecoded = parseHardwareDeployOverlay(
+      new URLSearchParams(reset3dHref.slice("#/hardware?".length)).get("deploy"),
+    );
+    expect(resetDecoded?.calc?.dpLocal).toBeUndefined();
+    expect(computeHardwareNodeSlotLayout(resetDecoded!).nodeCount).toBe(1);
+
+    // Raising TP from 2 to 8 on A2 (8 ranks/node) invalidates dpLocal=2 (16 ranks/node) cleanly
+    const overNodePlan = evaluateDeployPlan({
+      model: "qwen3-30b-a3b",
+      cardId: "a2-64g",
+      tpSize: 8,
+      dpSize: 4,
+      dpLocalSize: 2,
+      enableEp: true,
+    });
+    expect(overNodePlan.inputSummary.dpLocalSize).toBeUndefined();
+    expect(buildCurrentPlanCliHint(overNodePlan)).not.toContain("--data-parallel-size-local");
   });
 });

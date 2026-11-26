@@ -1242,8 +1242,19 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
       expect(parseDoctorQueryParams(upperIpv6Share.params).sharedCommand).toContain("--host <REDACTED_IP>");
     }
 
-    // dpLocal preserved across Calculator query rebuilds when valid for dpSize
-    const preservedDpLocal = buildCalculatorQueryParams(
+    // dpLocal written only from explicit valid dpLocalSize (never resurrected from stale preserve URL, nor exceeding ranksPerNode)
+    const explicitDpLocal = buildCalculatorQueryParams({
+      subMode: "static",
+      presetId: "qwen3-30b-a3b",
+      cardId: "a2-64g",
+      tpSize: 4,
+      dpSize: 2,
+      dpLocalSize: 1,
+      enableEp: true,
+    });
+    expect(explicitDpLocal.get("dpLocal")).toBe("1");
+
+    const clearedDpLocal = buildCalculatorQueryParams(
       {
         subMode: "static",
         presetId: "qwen3-30b-a3b",
@@ -1254,6 +1265,17 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
       },
       new URLSearchParams("dpLocal=1"),
     );
-    expect(preservedDpLocal.get("dpLocal")).toBe("1");
+    expect(clearedDpLocal.get("dpLocal")).toBeNull();
+
+    const overNodeDpLocal = buildCalculatorQueryParams({
+      subMode: "static",
+      presetId: "qwen3-30b-a3b",
+      cardId: "a2-64g",
+      tpSize: 8,
+      dpSize: 4,
+      dpLocalSize: 2,
+      enableEp: true,
+    });
+    expect(overNodeDpLocal.get("dpLocal")).toBeNull();
   });
 });

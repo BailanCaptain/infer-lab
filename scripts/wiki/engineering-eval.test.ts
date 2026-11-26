@@ -10,7 +10,7 @@ import {
   serializeSearchIndex,
 } from "../../src/content/wiki/retrieve";
 import { registrySchema } from "../../src/content/wiki/schema";
-import { loadAgentWiki } from "./agent-access";
+import { createCachedAgentWikiLoader, loadAgentWiki } from "./agent-access";
 import { loadPages } from "./pages";
 
 const evalCaseSchema = z
@@ -156,13 +156,21 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
       expect(retrieve(code, cleanIndex, { limit: 5 })).toEqual([]);
     }
 
-    // Param displayTitle parity check ("size" Top-3 matches production snapshot build including kv-cache-spec)
+    // Param displayTitle parity check ("size" Top-3 matches production snapshot build including kvpp-config & kv-cache-spec across both loadAgentWiki and MCP createCachedAgentWikiLoader)
+    const cachedMcpWiki = createCachedAgentWikiLoader(root)();
     const sizeTop3 = retrieve("size", browserIndex, { limit: 5 })
       .slice(0, 3)
       .map((h) => h.id);
-    expect(sizeTop3).toContain("kv-cache-spec");
+    expect(sizeTop3).toEqual(["size-40a1c2ca47b8", "kvpp-config-0445bd352140", "kv-cache-spec"]);
     expect(
       agentWiki
+        .search("size", 5)
+        .filter((h) => h.how !== "related")
+        .slice(0, 3)
+        .map((h) => h.id),
+    ).toEqual(sizeTop3);
+    expect(
+      cachedMcpWiki
         .search("size", 5)
         .filter((h) => h.how !== "related")
         .slice(0, 3)

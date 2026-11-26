@@ -248,8 +248,10 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
       let wireCount = 0;
       for (const path of host.querySelectorAll<SVGPathElement>(".attention-workbench-wires path")) {
         if (Number(getComputedStyle(path).opacity) < 0.1) continue;
+        const totalLen = path.getTotalLength();
+        if (totalLen <= 1) continue;
         wireCount += 1;
-        for (let d = 0; d < path.getTotalLength(); d += 2) {
+        for (let d = 0; d < totalLen; d += 2) {
           const p = path.getPointAtLength(d);
           for (const { rect, name } of labels) {
             if (
@@ -266,7 +268,7 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
       return { hits: foundHits, visibleWires: wireCount };
     });
     if (requireVisibleWires) {
-      expect(visibleWires, `visible wires at ${tag}`).toBeGreaterThan(0);
+      expect(visibleWires, `visible non-empty wires at ${tag}`).toBeGreaterThan(0);
     }
     expect(hits, `wire intersection at ${tag}`).toEqual([]);
     const overlapping = await attn.locator(".layer-label").evaluateAll((nodes) => {
@@ -282,7 +284,7 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
 
   for (const progress of [0.15, 0.425, 0.61, 0.975]) {
     await attn.getByRole("slider").fill(String(progress));
-    await checkAttentionWireAndLabelGeometry(`progress ${progress}`, progress < 0.9);
+    await checkAttentionWireAndLabelGeometry(`progress ${progress}`, true);
   }
   await attn.getByRole("slider").fill("0.747");
   const attnSceneBox = (await attn.locator(".layer-scene").boundingBox())!;

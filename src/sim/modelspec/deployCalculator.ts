@@ -251,6 +251,11 @@ export function getAscendCalcCard(cardId: AscendCalcCardId): AscendCalcCardSpec 
   return card;
 }
 
+/** 单物理节点最大逻辑 NPU Rank 数（Atlas 800I A3 为 8 卡 × 2 Die = 16，其余机型均为 8）。 */
+export function getCardMaxRanksPerNode(cardId: AscendCalcCardId): number {
+  return cardId === "a3-die64g" ? 16 : 8;
+}
+
 export type Wave3ModelGateResult =
   | {
       ok: true;
@@ -3476,12 +3481,17 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const enableEp = Boolean(input.enableEp && moe.isMoe);
   const epWorldSize = enableEp ? dpSize * tpSize * pcpSize : 1;
   const worldSize = tpSize * ppSize * dpSize * pcpSize;
+  const maxRanksPerNode = getCardMaxRanksPerNode(card.id);
   const rawDpLocal =
     input.dpLocalSize !== undefined && Number.isSafeInteger(input.dpLocalSize)
       ? input.dpLocalSize
       : undefined;
   const dpLocalSize =
-    rawDpLocal !== undefined && rawDpLocal >= 1 && rawDpLocal <= dpSize && dpSize % rawDpLocal === 0
+    rawDpLocal !== undefined &&
+    rawDpLocal >= 1 &&
+    rawDpLocal <= dpSize &&
+    dpSize % rawDpLocal === 0 &&
+    rawDpLocal * tpSize * ppSize * pcpSize <= maxRanksPerNode
       ? rawDpLocal
       : undefined;
 

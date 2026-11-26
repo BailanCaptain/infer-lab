@@ -110,25 +110,29 @@ export function makeAgentWiki(pages: AgentPage[]): AgentWiki {
 
 export type AgentWikiSource = AgentWiki | (() => AgentWiki);
 
-/** 从磁盘上的派生物建：registry.json 给元数据，页面文件给完整文本，检索索引与浏览器端保持一致（剥离 YAML frontmatter） */
-export function loadAgentWiki(root: string): AgentWiki {
-  const registry = registrySchema.parse(
+function readAgentPagesFromDisk(
+  root: string,
+  registry = registrySchema.parse(
     JSON.parse(readFileSync(join(root, "src/content/wiki/registry.json"), "utf8")),
-  );
+  ),
+): AgentPage[] {
   const bodyByFile = new Map(loadPages(join(root, "wiki")).pages.map((p) => [p.file, p.body.trim()]));
-  return makeAgentWiki(
-    registry.pages.map((page) => {
-      const rawText = readFileSync(join(root, "wiki", page.file), "utf8");
-      const body = bodyByFile.get(page.file) ?? "";
-      const derived = deriveParamDisplayTitle(page, body);
-      return {
-        ...page,
-        ...(derived !== page.title ? { displayTitle: derived } : {}),
-        text: rawText,
-        indexText: body || rawText,
-      };
-    }),
-  );
+  return registry.pages.map((page) => {
+    const rawText = readFileSync(join(root, "wiki", page.file), "utf8");
+    const body = bodyByFile.get(page.file) ?? "";
+    const derived = deriveParamDisplayTitle(page, body);
+    return {
+      ...page,
+      ...(derived !== page.title ? { displayTitle: derived } : {}),
+      text: rawText,
+      indexText: body || rawText,
+    };
+  });
+}
+
+/** 从磁盘上的派生物建：registry.json 给元数据，页面文件给完整文本，检索索引与浏览器端保持一致（剥离 YAML frontmatter + 派生参数 displayTitle） */
+export function loadAgentWiki(root: string): AgentWiki {
+  return makeAgentWiki(readAgentPagesFromDisk(root));
 }
 
 /** 按 registry.json 与各页面正文 mtime+size 惰性加载缓存：纯 initialize / tools/list / sim 工具调用零全库文件 I/O */
@@ -154,9 +158,7 @@ export function createCachedAgentWikiLoader(root: string): () => AgentWiki {
     }
     const registry = registrySchema.parse(JSON.parse(readFileSync(regPath, "utf8")));
     const files = registry.pages.map((p) => p.file);
-    const wiki = makeAgentWiki(
-      registry.pages.map((page) => ({ ...page, text: readFileSync(join(root, "wiki", page.file), "utf8") })),
-    );
+    const wiki = makeAgentWiki(readAgentPagesFromDisk(root, registry));
     cached = { stamp: computeStamp(files), files, wiki };
     return wiki;
   };

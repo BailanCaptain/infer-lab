@@ -20,6 +20,7 @@ import {
   evaluateDeployPlan,
   extractDoctorModelTraitsFromSpec,
   GIB,
+  getCardMaxRanksPerNode,
   type KvCacheDtype,
   MIB,
   type RooflineAnalysis,
@@ -2917,17 +2918,31 @@ function buildCalcStateFromQuery(
   wave4Demo?: Wave4DemoPreset,
   useV2ModelRunner?: boolean | undefined,
 ): CalcState {
+  const cardId = query.cardId ?? "a2-64g";
+  const tpSize = query.tpSize ?? wave4Demo?.recommendedTp ?? 1;
+  const ppSize = query.ppSize ?? wave4Demo?.recommendedPp ?? 1;
+  const dpSize = query.dpSize ?? wave4Demo?.recommendedDp ?? 1;
+  const pcpSize = query.pcpSize ?? 1;
+  const rawDl = query.dpLocalSize;
+  const dpLocalSize =
+    rawDl !== undefined &&
+    rawDl >= 1 &&
+    rawDl <= dpSize &&
+    dpSize % rawDl === 0 &&
+    rawDl * tpSize * ppSize * pcpSize <= getCardMaxRanksPerNode(cardId)
+      ? rawDl
+      : undefined;
   return {
     version: query.version ?? "v0.30.0",
-    cardId: query.cardId ?? "a2-64g",
+    cardId,
     weightPrecision: query.weightPrecision ?? wave4Demo?.recommendedPrecision ?? "bf16",
     kvCacheDtype: query.kvCacheDtype ?? "auto",
     weightNzMode: query.weightNzMode ?? 1,
-    tpSize: query.tpSize ?? wave4Demo?.recommendedTp ?? 1,
-    ppSize: query.ppSize ?? wave4Demo?.recommendedPp ?? 1,
-    dpSize: query.dpSize ?? wave4Demo?.recommendedDp ?? 1,
-    dpLocalSize: query.dpLocalSize,
-    pcpSize: query.pcpSize ?? 1,
+    tpSize,
+    ppSize,
+    dpSize,
+    dpLocalSize,
+    pcpSize,
     dcpSize: query.dcpSize ?? 1,
     enableEp: query.enableEp ?? wave4Demo?.recommendedEnableEp ?? false,
     gpuMemoryUtilization: query.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
@@ -3176,10 +3191,11 @@ export function DeployCalculatorView({
     setState((prev) => {
       const next: CalcState = { ...prev, ...patch };
       if (
-        patch.dpSize !== undefined &&
-        patch.dpLocalSize === undefined &&
         next.dpLocalSize !== undefined &&
-        (next.dpLocalSize > next.dpSize || next.dpSize % next.dpLocalSize !== 0)
+        (next.dpLocalSize < 1 ||
+          next.dpLocalSize > next.dpSize ||
+          next.dpSize % next.dpLocalSize !== 0 ||
+          next.dpLocalSize * next.tpSize * next.ppSize * next.pcpSize > getCardMaxRanksPerNode(next.cardId))
       ) {
         next.dpLocalSize = undefined;
       }
@@ -3619,7 +3635,7 @@ export function DeployCalculatorView({
           weightPrecision: state.weightPrecision,
           kvCacheDtype: state.kvCacheDtype,
           weightNzMode: state.weightNzMode,
-          ...(state.dpLocalSize !== undefined ? { dpLocal: state.dpLocalSize } : {}),
+          ...(plan.inputSummary.dpLocalSize !== undefined ? { dpLocal: plan.inputSummary.dpLocalSize } : {}),
           pcp: state.pcpSize,
           dcp: state.dcpSize,
           maxModelLen: state.maxModelLen,

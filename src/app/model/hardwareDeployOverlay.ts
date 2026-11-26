@@ -659,30 +659,7 @@ export function buildHardwareDeployHref(
   customModelCompact?: string | null,
 ): string {
   const mapping = CARD_TO_3D_HARDWARE_MAP[payload.cardId];
-  let effectivePayload = payload;
-  if (payload.calc?.dpLocal === undefined && preserveParams?.has("dpLocal")) {
-    const rawDl = preserveParams.get("dpLocal")?.trim();
-    if (rawDl && /^\d+$/.test(rawDl)) {
-      const dl = Number(rawDl);
-      const pcp = payload.calc?.pcp ?? 1;
-      if (
-        Number.isSafeInteger(dl) &&
-        dl >= 1 &&
-        dl <= payload.dp &&
-        payload.dp % dl === 0 &&
-        dl * payload.tp * payload.pp * pcp <= mapping.ranksPerNode
-      ) {
-        effectivePayload = {
-          ...payload,
-          calc: {
-            ...payload.calc,
-            dpLocal: dl,
-          },
-        };
-      }
-    }
-  }
-  const encoded = encodeHardwareDeployOverlay(effectivePayload);
+  const encoded = encodeHardwareDeployOverlay(payload);
   const next = new URLSearchParams();
   next.set("vendor", "ascend");
   next.set("model", mapping.hardwareModel);

@@ -6,8 +6,8 @@
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 拆解昇腾 AI Core 内 Cube、Vector、Scalar 单元与各级片上缓冲（L1、L0A/B/C、UB）及搬运引擎（MTE、FixPipe）的分工；结合 Qwen3-8B 真机算子实测剖析流水重叠与量化开销，对比 910B 经核外 GM 交接与昇腾 950 片上直通差异。 `04`
 - [AISBench 与 EvalScope 实战：压测模式、指标口径对齐与精度基线评测](concepts/aisbench-and-evalscope.md) — 系统拆解在昇腾 vLLM Ascend 上使用 AISBench 与 EvalScope 开展性能压测和数据集精度评测的完整规范，厘清固定并发与到达率模式差异、冷启动预热与前缀缓存污染剔除、客户端与服务端 Prometheus /metrics 的 TTFT/TPOT/ITL 口径对齐，以及推理模型思维链剥离与长度截断避坑要点。 `19`
 - [API server 入口：一个 HTTP 请求怎样变成引擎里的请求](concepts/api-server-entry.md) — vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、独立 CPU renderer、工具解析插件，以及 GLM 双机上 node0 一个前端接全部请求。 `10`
-- [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md) — 沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。 `07 19`
-- [昇腾 950：两张卡怎样接着把工作做完](concepts/ascend-950-execution-interconnect.md) — 沿两张卡的部分结果走过本地计算、交换求和和下一段计算，理解 STARS 2.0 如何安排设备任务、CCU 如何承担通信，以及 URMA、UB Memory 和 UBoE 分别改变哪一段交接；用一组时间记录区分下发开销、参与者迟到与传输等待。 `16`
+- [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md) — 从 Atlas A2/A3 分离核绕行主存、离散切片搬运与 FP8 反量化的痛点出发，顺着矩阵结果交给向量计算的小例，讲清昇腾 950 的 CV 片上直通、NDDMA 多维搬运、Buffer ID 同步、SIMD+SIMT 与原生 MXFP8/MXFP4。 `07 19`
+- [昇腾 950：两张卡怎样接着把工作做完](concepts/ascend-950-execution-interconnect.md) — 从 Atlas A2/A3 多卡解码下发气泡、集合通信抢占向量核及机内机间协议割裂的痛点出发，顺着两卡求和实例讲清昇腾 950 的 STARS 2.0 硬件调度、CCU 专用通信卸载与 Unified Bus 2.0（URMA / UB Memory / UBoE）。 `16`
 - [容器镜像、核心环境变量与 vllm serve 最小起服务清单](concepts/ascend-env-and-serve.md) — 锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。 `01`
 - [FlashAttention 与昇腾注意力算子族：片上 Tiling、Online Softmax 与 FA / FIA / PA / FA3 选路](concepts/ascend-flash-attention.md) — 标准注意力若把整张 N×N 分数表写回 HBM，单层中间张量在 32K 长度下就会暴涨到数十 GiB。本页从 Qwen3-8B 访存账出发，拆解片上分块（Tiling）与 Online Softmax 动态重标定怎样做到零近似、零 N×N 落盘，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 FA3 绑定 PIECEWISE 图模式的根因。 `04`
 - [新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型](concepts/ascend-model-onboarding.md) — 在昇腾上跑通一个新模型，先锁死 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维配套，再从 v0.30.0 的 25 篇活跃模型食谱（剔除 27 篇停服桩，注意 GLM5.md 中 GLM-5 停服而 GLM-5.1 活跃）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。 `01`
@@ -22,7 +22,7 @@
 - [Continuous Batching（连续批处理）](concepts/continuous-batching.md) — 摒弃整批对齐补零与慢请求锁死，按单步迭代动态挑选请求、一维无填充拼接 token，并在每步末尾对完结请求即退即释块；配合 waiting 与 running 两队列、三道预算闸门及 LIFO 抢占重算，撑起高吞吐低延迟在线服务。 `03`
 - [vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动](concepts/core-cli-params.md) — 打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上 max-num-batched-tokens 早退回落 2048 的 6 分支决策树与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。 `06`
 - [DeepSeek 生产实践：一条请求怎样走过整套服务](concepts/deepseek-serving-case.md) — 从长输入干扰已有回答出发，推演为什么把 E/P/D 分开、要交接哪些状态以及何时得不偿失；再沿带图长文的追问拆开缓存就绪与计算等待，对照 DeepInfer 的实际发布边界。 `19`
-- [DeepSeek-V4.1-Flash：长历史怎样少存、少重算](concepts/deepseek-v4-1-flash.md) — 同一份长文，哪些计算可以省、哪些历史必须留下？先用四层模型走一遍，再区分少存、少读和跨层共享，最后核对实际配置与缓存大小。 `19`
+- [DeepSeek-V4.1-Flash：长历史怎样少存、少重算](concepts/deepseek-v4-1-flash.md) — 为什么 40 层模型读长文不必把长历史算 40 遍、存 40 份？顺着 CED / YOCO 跨层 KV 共享与后半层边界压缩走一遍，分清少算、少存与少读，再核对 V4.1-Flash 的真实配置与三笔内存账。 `19`
 - [新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径](concepts/dev-new-model-and-custom-op.md) — 串通新 HuggingFace 模型接入 vLLM Ascend 的架构注册、WeightsMapper、@register_scheme 量化注册与 OOT 分发，对比 torch_npu、AscendC 与 Triton-Ascend 三条算子路径及 950/310P 能力门控。 `16 20`
 - [主机内存与显存：数据现在放在哪](concepts/device-memory.md) — CPU 一侧的主机内存和 NPU 一侧的设备内存要分别计算。模型能放进主机，不代表设备有足够空间直接执行。 `07 09`
 - [DP 请求路由：新请求派给哪一个 DP 组](concepts/dp-request-routing.md) — 开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。 `13`
@@ -46,7 +46,7 @@
 - [KV cache 规格：每层的状态怎样换算成页、编进缓存组](concepts/kv-cache-spec.md) — KV cache 规格（KVCacheSpec）是每个要存状态的层交给缓存管理器的说明：一块覆盖多少个位置、每个位置或每份状态占多少字节。管理器据此算出一页多大，再把能共用块号清单、管理方式兼容的层编成缓存组。GLM 的四类状态被对齐成两档页、编成 5 个组；本页也是 block_size 五种含义的唯一出处。 `11`
 - [层与隐藏表示：hidden 如何沿残差流穿过每一层](concepts/layers-and-hidden.md) — hidden 是模型为每个输入位置维护、逐层改写的向量。本文先以 Qwen3-8B 的 36 层同构 Transformer（单条 [T, 4096] 残差流、每层 2 次 Pre-RMSNorm + 2 次残差相加）讲清主干，再对照历史 GLM-5.3-Flash 的 45 层 KDA/MLA 交替与 mHC 四流残差。 `03`
 - [阅读指南：这个知识库讲什么，按什么顺序读](concepts/learning-guide.md) — 知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」五套交互工作台。 `00`
-- [KDA：用一个固定大小的状态代替逐位置历史](concepts/linear-attention.md) — linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta 规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与 decode 两条执行路径差在哪。 `04`
+- [线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史](concepts/linear-attention.md) — 线性注意力去掉逐位置 Softmax，靠核映射与矩阵乘法结合律把历史压进定长状态矩阵，并在 Prefill 走分块并行、Decode 走逐词递推。本页用同一套二维算例推演纯累加、DeltaNet 误差擦写、Qwen3-Next 的 Gated DeltaNet 到 KDA，并核对双状态规格与 GLM 块号账。 `04`
 - [lm_head：把最后的隐藏向量变成每个 token 的分数](concepts/lm-head.md) — lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照 GLM 双机 TP8 与 MTP 共享输出头。 `03`
 - [BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样](concepts/low-precision-formats.md) — 从 FP32、FP16、BF16 与 INT8 出发，拆解 FP8、HiF8、NF4、MXFP8、MXFP4 与 NVFP4 的位域分配和块级缩放；区分权重文件精度、加载后 HBM 驻留格式与 Cube 实际计算类型，对照 vllm-ascend v0.30.0 下 A2/A3、310P 与 Ascend 950 的四族选路边界。 `04`
 - [矩阵乘与权重：从输入向量到输出表示](concepts/matmul-and-weights.md) — 权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数与一批 token 怎么算，再分清参数量、计算量、容量与访存，最后落到标准 Qwen3-8B 单层七投影与 GLM 双机 MoE 边界。 `02`
@@ -74,7 +74,7 @@
 - [RoPE：把位置变成旋转，让注意力分数只看相隔多远](concepts/rope.md) — RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数与 YaRN 等缩放决定可覆盖的长度范围。本文先以 Qwen3-8B（128 维拆 64 对、rope_theta = 1,000,000）讲清标准旋转与写缓存边界，再在文末对照历史 GLM-5.3-Flash 的零维 NoPE 特例。 `04`
 - [Sampling：从词表分数里定下一个 token](concepts/sampling.md) — 模型给词表里每个词打完分，sampling（采样）按请求设置从中定下一个 token。本页先用 6 词小例手算 temperature、softmax、top-k、top-p 与指数噪声抽取，走通标准 Qwen3-8B（[B, 151936]）单 token 采样与参数优先级，再落到历史 GLM 双机 8 卡同步采样与 MTP 候选验证。 `05`
 - [高阶采样、惩罚项、Beam Search 与 Logprobs：vLLM V1 采样流水线与昇腾快慢路径](concepts/sampling-advanced.md) — 本页讲清 vLLM V1 Sampler 的 9 步严格顺序、白名单/禁词/偏置、三类重复惩罚、自定义 LogitsProcessor、Top-k/Top-p/min_p 重归一差异、思考预算、四模式 Logprobs 与外置 Beam Search，以及 vllm-ascend v0.30.0 昇腾快慢路径分流与 MRV2 演进。 `05`
-- [稀疏注意力：先挑位置，再只读这些位置](concepts/sparse-attention.md) — 稀疏注意力让每个查询只在因果范围内挑出的少量历史位置上做 attention；GLM 用 indexer 按 4 个位置一池打分，每个查询最多读 2051 个位置，没选中的历史仍须全部保留。 `04`
+- [稀疏注意力：先挑位置，再只读这些位置](concepts/sparse-attention.md) — 稀疏注意力先在因果历史中挑出少量关键位置（如 DSA 用轻量 indexer 选 top-k），再只对入围位置做打分、重归一化与汇合，把主注意力开销压到 O(Lk)；落选历史仍须留在缓存中备选。本页先讲通用机制与跨层 IndexCache，再核对 GLM KPool 按池挑选算例。 `04`
 - [流式输出：token 编号怎样变成一段段推给客户端的文字](concepts/streaming-output.md) — 流式输出让客户端边生成边看到文字：引擎每步交回新 token 编号，前端增量反分词补齐字节、还原新增文字并查过停止字符串，再包成 SSE 片段推出。前半先讲标准单流反分词、扣字与 SSE 帧推送主干及边界，后半对照 GLM 双机思考标签与 MTP 多词流式实战。 `09`
 - [ND 与 NZ：张量的数值没变，内存里怎样重新排列](concepts/tensor-layout.md) — ND 是 N-Dimension，NZ 按块间大 N、块内小 z 的遍历形状命名；用同一张矩阵演示分块重排、补齐和地址变化，再区分 shape、stride、dtype、量化打包与设备格式，核对昇腾权重和 KV cache 的布局边界。 `07 11`
 - [Token 与分词：从文本消息、chat_template 到模型编号序列](concepts/token.md) — Token 是模型用整数编号表示的文本基本单元。本页从子词权衡与字节级 BPE 合并讲起，串联 chat_template 渲染、增量反分词与 Qwen3-8B 的 151936 词表校验，并对照特殊标记区间与 GLM 入口边界。 `02`
@@ -93,43 +93,43 @@
 - [Ascend 配置：三个地方能写，哪个值真的生效](concepts/ascend-config-system.md) — 昇腾开关分散在三个入口——命令行通用参数、--additional-config JSON 与环境变量。本页先以 v0.30.0 主基线的 Pydantic 严格解析链路和 Qwen3 常用配置讲清合并、校验与改写机制，再对照 GLM 双机案例与四版本差异。 `10`
 - [Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类](concepts/ascend-patch-system.md) — patch 是 vllm-ascend 在进程内把上游模块中的名字改指向昇腾实现的机制。本页先按 v0.30.0 主基线讲清 platform/worker 两类补丁的注入时机、去重与边界条件，再以 GLM 双机案例对照导入与实际调用，并汇总四版本入口与清单演进。 `10`
 - [Async scheduling：趁卡在算，先把下一步排好](concepts/async-scheduling.md) — 异步调度让 CPU 在 NPU 算这一步时就排好下一步：调度器用输出占位记下还没回来的 token，Worker 在卡上补真值，结果回来再销账。讲清收益与代价、投机解码下先按全接受排再改正、在途结果怎样收尾、换调度器的特性为何要备异步版，以及 GLM 双机上 R1 每一步的占位账。 `12`
-- [Balance Scheduling：一组顶满，各组一起停收新请求](concepts/balance-scheduling.md) — MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。 `12`
-- [批不变性：相同输入为何会随同批请求改变结果](concepts/batch-invariance.md) — 同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及 GLM 双机上的启用状态与缺口。 `16`
+- [Balance Scheduling：一组顶满，各组一起停收新请求](concepts/balance-scheduling.md) — MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及双机 DP2 场景下的闸门与宽度对齐边界。 `12`
+- [批不变性：相同输入为何会随同批请求改变结果](concepts/batch-invariance.md) — 同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及混合线性注意力与自定义扩展算子在异构模型上的覆盖边界。 `16`
 - [Batch-Job-Aware Scheduler：先给正在生成的请求留块，再按作业接新请求](concepts/batch-job-aware-scheduler.md) — vllm-ascend 为离线批处理准备的调度器：接新请求前先估计 running 下一步要借几块 KV 块并扣下来，只拿余额接新请求；waiting 按作业分桶，用已自然结束请求的输出长度估计决定先接哪个作业，桶内挑放得进预算的最长提示词。只改 waiting 一段，不防饿死；GLM 双机钉住的镜像里没有它。 `12`
 - [Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住](concepts/chunked-prefill.md) — Chunked prefill 让调度器在一条长提示词装不下本步剩余预算时，只排预算容得下的那一段、下一步从断点续算，历史与递推状态跨段延续，仅最后一段产出首个输出 token；它保护同批 decode 请求不被长提示词卡住，代价是长请求首字更晚与前缀历史重复读取。 `03`
 - [上下文并行（CP）：怎样分位置，又怎样算完整 attention](concepts/context-parallel.md) — 长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整 attention，再对照 v0.30.0 的 Ascend PCP/DCP 路径、Qwen3 头数约束与 GLM 支持边界。 `15`
 - [CPU 绑核：线程亲和性与 NUMA 局部性](concepts/cpu-binding.md) — 模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA 节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM 双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。 `16`
 - [Data parallel：请求怎样分进两组，空闲的组为什么陪跑](concepts/data-parallel.md) — DP 把请求分给不同执行组独立排队调度。标准稠密模型（如 Qwen3-8B DP=2）各组自持完整权重、零跨组通信且无需陪跑；MoE 模型（如 Qwen3-30B-A3B 多组扩展与 GLM 双机）的路由专家跨全部组只放一份，才触发宽度对齐与空闲组 dummy batch 陪跑。 `04`
-- [DSpark：先猜几个，再决定值得验证几个](concepts/dspark.md) — 用两条请求的候选概率算出怎样分配验证预算，再加入实际每轮耗时判断收益；解释半自回归草稿、置信度累乘、CPU/设备异步分工，以及接受率高却不更快时的排查方法。 `19`
+- [DFlash 到 DSpark：从块扩散并行起草到马尔可夫修正与动态验证预算](concepts/dspark.md) — DFlash 靠块扩散一次前向并行吐出整块 K 个候选词，但词间缺乏自回归依赖导致尾部接受率陡降；DSpark 在块并行主干上叠轻量马尔可夫头恢复局部连贯性，并用置信度驱动动态验证预算砍掉低收益尾部批改。 `19`
 - [动态分块流水线：按预计耗时切 prefill 块](concepts/dynamic-chunked-pp.md) — 开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；以 Qwen3-8B 等标准稠密因果模型与 GLM 混合注意力对比讲清等长块变慢原因、二次曲线反解、开机试跑及 main 移除边界。 `13`
-- [DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组](concepts/dyntra-lb.md) — vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling 的分工、计划怎样算、何时生效，以及本部署为何没开。 `12`
+- [DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组](concepts/dyntra-lb.md) — vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求、暂停不还 KV，讲清与 EPLB、Balance Scheduling 的分工及多缓存组块尺边界。 `12`
 - [EPD 分离（多模态编码器 / Prefill / Decode 三池解耦）：ECConnector 缓存交接与独立扩缩](concepts/epd-disaggregation.md) — EPD 分离把多模态视觉编码器拆为独立 E 节点池，经 ECConnector（ECExampleConnector / v0.30.0 ECMemcacheConnector / main AscendECMooncakeConnector）跨进程交接编码缓存，并与 MooncakeLayerwise PD 分离组成独立扩缩的 E/P/D 三池集群。 `18`
-- [EPLB：按实测热度调整专家放在哪张卡](concepts/eplb.md) — EPLB 在推理中统计每个专家接到的 token–expert 配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；本部署未启用，只给开启条件与估算。 `14`
+- [EPLB：按实测热度调整专家放在哪张卡](concepts/eplb.md) — EPLB 在推理中统计每个专家接到的 token–expert 配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；结合双机 EP16 核算冗余专家整除约束与接收区显存开销。 `14`
 - [Expert parallel：16 张卡怎样分专家、发 token、收结果](concepts/expert-parallel.md) — EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先用 4 卡示意与标准 Qwen3-30B-A3B EP=4（128 选 8、0 共享专家）讲清主干流程，再对照 GLM 双机 EP16、共享专家、MC2/AllGather 切换与多请求负载。 `04`
 - [细粒度 TP：为特定模块选择分片组](concepts/fine-grained-tp.md) — 细粒度 TP 让词表嵌入、lm_head、attention 输出投影与稠密 MLP 沿 DP 方向把服务不同请求的卡编成一组、合存一份权重，代价是进出该层需收集输入与送回结果；以 Qwen3-30B-A3B D 节点与 GLM 双机反例对照收益与边界。 `13`
 - [我们的部署：两台机器 16 张卡上的 GLM-5.3-Flash](concepts/glm-5-3-flash-two-node.md) — 官方双机配置下 16 张卡各放了什么、启动时按什么顺序做完哪几件事、关键参数分别管住主线的哪一步，以及这套部署给后面各章留下的后果。 `13`
 - [graph mode：录一次执行次序，之后整串回放](concepts/graph-mode-layer.md) — 从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与 GLM 双机 FULL_DECODE_ONLY 7 档尺寸对照，讲清编译改写、捕获、五条回放判据与缓冲原地更新。 `16`
-- [KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存](concepts/kv-cache-cpu-offload.md) — 把可保存的KV状态复制到主机，后续命中时搬回设备以减少重算。用普通整段路径说明页、段、带宽和异步等待，再区分新版部分尾状态、私有锁页与共享mmap。GLM主线未开，释放的池容量也不能当成实际恢复字节。 `11`
-- [Layerwise KV offload：KV cache 一层一层搬，边算边搬](concepts/kv-cache-layerwise-offload.md) — 把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。 讲清重叠条件、能省多少等待（示意数）、每层什么时候要等、共享槽怎样省显存，以及 GLM 双机主线为什么没开。 `11 18`
-- [KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回](concepts/kv-cache-quantization.md) — KV cache 量化降低历史 k、v（MLA 模型是潜向量）的存储精度；本页以 INT8 C8 为例，演示写入压缩和读取时的缩放。相对 16 位缓存，元素载荷约减半，代价是量化误差留在缓存里。再区分元素与整卡容量、decode 与 prefill、FP8 与 KIVI，以及 Ascend 上的三条实现；固定 GLM 双机部署没有开它。 `11`
+- [KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存](concepts/kv-cache-cpu-offload.md) — 把可保存的 KV 状态复制到主机内存，后续命中时异步搬回设备显存以减少重算。先用整段路径讲清页、段、带宽与双流同步等待，再区分新版部分尾状态、私有锁页与共享 mmap，最后核算多缓存组模型的容量口径边界。 `11`
+- [Layerwise KV offload：KV cache 一层一层搬，边算边搬](concepts/kv-cache-layerwise-offload.md) — 把 KV cache 在显存和外部存储之间的搬运从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。讲清重叠条件、省等上界（示意数）、共享槽保护，以及异构混合层的单层载荷核算。 `11 18`
+- [KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回](concepts/kv-cache-quantization.md) — KV cache 量化降低历史 k、v（或 MLA 潜向量）的存储位宽；本页以 INT8 C8 为例演示写入压缩与读取缩放，区分元素载荷与整卡容量、decode 与 prefill 分路，并对照昇腾 C8 / MXFP8 / FA 量化 / TurboQuant 路径及混合缓存定块对齐边界。 `11`
 - [Sparse KV offload：历史放主机，每步只搬这次要读的几行](concepts/kv-cache-sparse-offload.md) — 主 attention 的完整历史放在主机内存，设备上只留 indexer cache 和一小块热缓冲；每步 sparse attention 选完位置，只把热缓冲里缺的行搬回来。讲清它与 CPU offload、抢占换出在存的对象、粒度、取回条件上的区别，一步里的顺序与代价，以及它只支持 Atlas A3、GLM 双机（A2）为什么用不上。 `11`
-- [KV Pool：把算过的开头存进外部池，别的实例也能取回](concepts/kv-pool.md) — KV Pool（外部 KV 池）让推理实例经 KV connector 把算完的整段 KV 存进主机内存、SSD 或别的节点拼成的共享存储；开头相同的请求先看本地 prefix caching 命中几段，池只补多出来的整段。讲一次查询怎样取整相减、查到后的搬运与写回、记录的名字，以及和抢占换出的区别；GLM 双机没有开它。 `11`
+- [KV Pool：把算过的开头存进外部池，别的实例也能取回](concepts/kv-pool.md) — KV Pool（外部 KV 池）经 KV connector 把已算完的整段 KV 存入主机内存、SSD 或跨节点共享池；开头相同的请求先看本地 prefix caching 命中几段，池只补多出的整段。讲清查询取整、搬运与键命名规则，以及混合模型的多组段长边界。 `11`
 - [KVPP：KV cache 按层分给各卡常驻，算到时整层广播](concepts/kvpp.md) — TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2 个暂存区，算到某层时由常驻卡提前一层整层广播。对照 GQA（如 Qwen3-8B）为何无需 KVPP，讲清分法、容量账、广播与等待，以及 v0.30.0 与 main 的非混合 MLA 支持边界。 `13`
 - [大规模 EP：请求路由、专家域与跨机通信](concepts/large-scale-ep.md) — 从单个专家组扩展到多服务器，区分外部请求路由、组内专家通信和 P/D 状态传输，并解释服务端点与进程的区别。 `14`
-- [LMCache：接在引擎外面的一层 KV 缓存](concepts/lmcache.md) — LMCache 是装在推理引擎外面的一层 KV cache 缓存，经 vLLM 的 KV connector 插口对接：引擎管调度和显存，它管外部数据并回答能提供到第几个位置。本页讲这条交接边界、按 chunk 取整的账、和 AscendStore 版 KV Pool 的区别，以及 GLM 双机上为什么没开。 `11`
-- [LoRA：低秩更新与多适配器推理](concepts/lora.md) — LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，最后核实本部署没有启用。 `17`
-- [Mooncake 连接器：先对好块号，再按层搬历史状态](concepts/mooncake-connector.md) — vLLM 的 KV connector 在昇腾上的 Mooncake 实现：调度器那一半记账（远端能补几个位置、押哪些块），worker 那一半把块号换成显存地址，用 Mooncake 传输引擎在 P、D 之间直接读写；V1 整批拉，Layerwise 逐层推。官方双机没有开。 `18`
-- [Netloader Guide：新实例怎样从已有 NPU 接过权重](concepts/netloader-guide.md) — Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退，以及 GLM 双机未启用的事实和 main 的布局传输变化。 `19`
+- [LMCache：接在引擎外面的一层 KV 缓存](concepts/lmcache.md) — 当显存里的前缀缓存被挤出或请求落到其他实例时，LMCache 通过 vLLM 的 KV connector 接口从主机内存、本地磁盘或远端存储找回已算好的 KV 块；讲清引擎与外部包的交接边界、按整 chunk 取整的命中账、与 AscendStore KV Pool 的差异及混合模型 SupportsHMA 约束。 `11`
+- [LoRA：低秩更新与多适配器推理](concepts/lora.md) — LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，以及 MoE 专家并行与量化模型挂接适配器时的通信和容量边界。 `17`
+- [Mooncake 连接器：先对好块号，再按层搬历史状态](concepts/mooncake-connector.md) — 从 P/D 两套独立块池无法共享块号出发，讲清昇腾 Mooncake 连接器如何由调度侧管账押块、由 worker 侧换算显存地址并驱动 TransferEngine 直传 KV 状态；对照 V1 整批拉、Layerwise 逐层推、V2/D2RH 演进与 910B3 真机实测边界。 `18`
+- [Netloader Guide：新实例怎样从已有 NPU 接过权重](concepts/netloader-guide.md) — Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退、v0.30.0 / main 的推理布局直传，以及跨机 EP 与 MTP 草稿模型的加载边界。 `19`
 - [NPUPlatform：配置校验与设备实现选择](concepts/npu-platform.md) — 昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认 token 预算怎么定」的唯一推导处。 `10`
 - [NPUWorker 启动：一张卡按什么顺序准备好接请求](concepts/npu-worker-lifecycle.md) — 每张可见 NPU 对应一个 NPUWorker（310P 为 NPUWorker310）。冷启动按严格依赖依次完成打补丁与算子注册、绑卡拍快照与建 HCCL 通信组、解析架构并加载分形权重、试跑量测 KV 预算、按 EngineCore 全局最小块数建缓存池，最后跑完 7 类预热机制并捕获 ACLGraph 图池。 `05`
 - [编译图融合：把相邻两步合成一个算子，再分档复用执行](concepts/npugraph-ex.md) — 从中间张量的一写一读讲清编译期融合，列出四条本地融合规则与各自命中条件（以 Qwen3-8B / Qwen3-30B-A3B 的 QKNorm+RoPE、残差归一化量化与 GLM 双机 MTP 验证边界对照），并区分 npugraph_ex 后端、static kernel、编译缓存与分档捕获的职责。 `16`
 - [算子与 kernel：从数学语义到设备实现](concepts/ops-and-kernels.md) — 模型里的一次运算怎样经框架替换表、量化方法或注意力后端落到 torch_npu 与自编译扩展，再经 CANN 下发成设备 kernel。本页先以 v0.30.0 标准 Qwen3 走通 CustomOp、ACLGraph 与 npugraph_ex 执行路径选择，再解释上游 IR 优先级与原地复用，最后沿历史 GLM 双机列出逐站算子。 `16`
 - [PD 分离：prefill 与 decode 分给两组实例时怎样交接历史](concepts/pd-disaggregation.md) — 把一条请求的 prefill 与 decode 交给 P、D 两套独立实例，中间由连接器跨实例交接历史状态。本页先走通标准单组 KV（如 Qwen3-8B）的 P→D 拉取、完成信号、押块与 NIXL 租约，再解释混合模型（如历史 GLM 5 组状态）为何把最后一个 token 留给 D 计算。 `18`
-- [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md) — 把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及 GLM 双机为什么没开 PP。 `04`
+- [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md) — 把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及异构混合模型的多路残差交接边界。 `04`
 - [插件发现与模型注册](concepts/platform-plugin-registration.md) — 昇腾包通过入口点清单接入 vLLM；入口须被允许加载并成功执行，设备可用性另行检查。vLLM 在相应进程的初始化入口按组名加载——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现；次数取决于启动方式与进程内防重状态。 `10`
-- [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md) — 通过输入指纹找到可复用的前缀块，后来的请求共享命中块，省去相应的prefill计算。固定旧GLM镜像默认关，显式打开走align，公共恢复边界按640对齐；新版的默认值与部分尾块能力须分别确认。 `11`
+- [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md) — 通过链式块指纹复用相同开头已算好的 KV 块，省去重复的 prefill 计算；对比 vLLM 整块哈希与 RadixAttention 基数树差异，并拆解混合注意力模型的多缓存组对齐边界。 `11`
 - [W8A8 与 Ascend 量化：怎样压到 8 位、按层与硬件怎么选路](concepts/quantization.md) — 量化把权重和激活换成较少位数并保留缩放系数。本页先讲清缩放、零点、舍入、截断与反量化，以及 W8A8 矩阵乘的四步计算，再按 vllm-ascend v0.30.0 基线结合 Qwen3-8B 与 Qwen3-30B-A3B 说明显存节省、动态/静态/PD 混合（W8A8_MIX）与原生 block-wise FP8 在不同昇腾硬件上的选路差异。 `11`
-- [Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回](concepts/recompute-cpu-offload.md) — vllm-ascend 给 PD 分离 D 节点配的连接器：RecomputeScheduler 让出一条请求前先问它，主机块够就把这条的全部 KV 块同步拷到主机，重新排上时在前向前搬回，完成通知后再调度；旧版保存失败则交代理退回 P。讲清两条恢复路径的取舍（示意数）、和 CPU 备份、KV Pool 的区别；新版失败路径需按并行设置区分。GLM 双机主线不拆 P/D，没有启用。 `11 12`
+- [Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回](concepts/recompute-cpu-offload.md) — PD 分离 D 节点在 RecomputeScheduler 让出请求前优先将全部 KV 块同步拷往主机 DRAM，重新排上时在前向前搬回；失败则退回 P 重算（细粒度 TP 例外）。讲清恢复取舍、与 CPU 备份及 KV Pool 的区别，以及多缓存组预算核算。 `11 12`
 - [RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算](concepts/recompute-scheduler.md) — PD 分离的 D 节点续块失败时，优先把被抢占请求的状态保存到主机内存，稍后恢复；无法保存时发 recomputed 结束帧，由代理重投 P 节点重做 prefill。客户端结束、引擎收尾与状态保存是不同步骤；v0.30.0 与 main 启用细粒度 TP 时保存失败直接中止。 `12`
 - [RFork：权重远端复用机制与排错总览](concepts/rfork.md) — 新实例启动时可按地址读取兼容来源显存中的权重；借不到或读取失败时，停止 seed 服务并安全清理登记内存后可退回默认加载。本页是社区上游 vllm-ascend main（8d6180e2）RFork 专题的入口：借的步骤、四种「成功」、GLM 双机推演和全章唯一的四版本对照。
 - [RFork 配置：四类端口、各项超时与可复制的启动示例](concepts/rfork-config.md) — 想让第二个实例从已有实例借权重，启动命令里要多写什么。这页讲上游 main（8d6180e2）RFork 的十三项客户端设置和四类端口：配置错误何时中止启动、未知键为何告警；双槽固定端口与 EADDRINUSE 动态回退；单次超时、快慢重试与可选续租各管什么；GLM 双机每台开多少端口、默认租约够不够，以及怎样验收。
@@ -142,13 +142,13 @@
 - [RFork 排错：从第一条异常还原版本、阶段与资源状态](concepts/rfork-troubleshooting.md) — RFork 出错时从哪查起：借租约前登记显存失败写 destination registration failed.，借到来源后的取清单、核清单、分批读三步失败共用 transfer failed.，缺必填配置抛 RForkConfigurationError 直接中止。按六类现象列出证据、候选原因与排查步骤；示例 Planner 的 400 来自请求头解析失败，到期回 404。
 - [序列并行（SP）：让局部激活按 token 分片](concepts/sequence-parallel.md) — Megatron SP 配合 TP，让归一化、残差等区域按 token 分工；沿同一组数看清部分和怎样归约、每卡怎样计算、何时收集并交给下一次投影，并区分 Ulysses、CP 与 Ascend FlashComm1。 `15`
 - [短请求优先：等待顺序与长请求公平性](concepts/short-request-first.md) — 等待的新请求按提示词长短分进短、长两条车道，每步用剩余预算接纳新请求时先取短的；被抢占或算过一部分的请求排在最前，长请求达到等待门槛可提升候选优先级，但不保证时限。它只改从哪条队里拿下一个，不改预算和切分；本部署钉住的代码里没有它，v0.26 起才有。 `12`
-- [Sleep Mode：暂停推理时怎样把显存让给训练](concepts/sleep-mode.md) — Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV cache。说明唤醒顺序、请求处理、GLM 双机未启用的原因与版本差异。 `19`
+- [Sleep Mode：暂停推理时怎样把显存让给训练](concepts/sleep-mode.md) — Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV cache。说明唤醒顺序、请求处理、Ascend 910B3 实测账本、多机 EP 协同休眠边界与版本差异。 `19`
 - [Speculative decoding：先猜几个 token，再让主模型一次验完](concepts/speculative-decoding.md) — Speculative decoding（投机解码）先用便宜的办法猜出后面几个 token，再让主模型一次前向验证：猜对几个就多出几个，第一个猜错处换成主模型自己的答案。讲清接受规则、被拒位置的收场、为什么也可能变慢，以及 GLM 双机上 MTP 每步猜 3 个的做法与版本差异。 `17`
 - [结构化输出：文法怎样在采样前屏蔽不合法的 token](concepts/structured-output.md) — 结构化输出在打分和采样之间加一道关卡：文法状态算出下一步允许的 token，其余候选的 logits 改成 −∞ 再采样。先看这个过程，再沿 GLM 双机看 bitmask 在哪个进程、哪一步算出，怎样作用到 logits，以及它和 MTP 草稿、思考阶段的配合。 `17`
 - [SWA bounded replay：历史窗口丢了，为什么只重算一小段](concepts/swa-bounded-replay.md) — 用窗口为三个位置的小例子推演回放为何近似，分清 encoder 缺失恢复与 decoder 窗口准备、128/134/140 的不同口径，以及 mask/compact 一致不能证明与完整重算一致。 `19`
 - [Tensor Parallel：一台机器的 8 张卡怎样合算一层](concepts/tensor-parallel.md) — 把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。先用标准 Qwen3-8B TP=2 与 Qwen3-30B-A3B KV 复制拐点讲清通用规律，再对照 GLM 双机 TP8 通信与显存账。 `04`
-- [UCM：把算过的前缀分三层存到显存之外](concepts/ucm.md) — UCM（Unified Cache Manager）是经 KV connector 接进 vLLM 的外部缓存软件包：把算过的前缀 KV 从显存存到本机内存、再落到共享存储，按官方文档换实例或重启后也能取回，省掉重复的 prefill。讲清它和 KV Pool、LMCache 的分工，PD 分离时的两种数据流，以及 GLM 双机为什么没开、开了还缺什么。 `11`
-- [vLLM-Ascend for RL：生成样本后，怎样安全换上新权重](concepts/vllm-ascend-for-rl.md) — RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并区分 main 的统一配置与 GLM 固定版本。 `19`
+- [UCM：把算过的前缀分三层存到显存之外](concepts/ucm.md) — UCM（Unified Cache Manager）是经 KV connector 接入 vLLM 的三层前缀缓存系统：将算好的前缀 KV 从显存逐级延伸至本机内存快取与共享持久存储，支持跨实例与跨重启复用；讲清它与 AscendStore KV Pool、LMCache 的分工，集中式与 P2P 两种 PD 站位，以及混合模型的 SupportsHMA 与 KDA 对齐边界。 `11`
+- [vLLM-Ascend for RL：生成样本后，怎样安全换上新权重](concepts/vllm-ascend-for-rl.md) — RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并对比 v0.30.0 / main 统一 rl_config 与多机异构 MoE 接入边界。 `19`
 
 ## 参数（param）
 - [absolute_balance_threshold](params/absolute-balance-threshold-71578a0c428d.md) — STAIR 判断某层是否重新规划的绝对滞回门槛：当前均衡度（平均峰均比的倒数）跌至本值（默认 0.90，约合峰均比 1.11，合法范围 (0, 1]）及以下即放行该层进入规划，与相对门槛为“或”关系。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
@@ -319,7 +319,7 @@
 - [昇腾多实例集群部署与路由：DP 外部拉起、前缀感知分发与优雅摘流](concepts/cluster-serving.md)
 - [DeepSeek 生产实践：一条请求怎样走过整套服务](concepts/deepseek-serving-case.md)
 - [DeepSeek-V4.1-Flash：长历史怎样少存、少重算](concepts/deepseek-v4-1-flash.md)
-- [DSpark：先猜几个，再决定值得验证几个](concepts/dspark.md)
+- [DFlash 到 DSpark：从块扩散并行起草到马尔可夫修正与动态验证预算](concepts/dspark.md)
 - [enable_async_exponential](params/enable-async-exponential.md)
 - [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md)
 - [推理测量：怎样知道服务真的变快了](concepts/inference-benchmarking.md)
@@ -386,7 +386,7 @@
 - [Data parallel：请求怎样分进两组，空闲的组为什么陪跑](concepts/data-parallel.md)
 - [Expert parallel：16 张卡怎样分专家、发 token、收结果](concepts/expert-parallel.md)
 - [昇腾四族硬件体系：NPU、板卡、服务器与超节点](concepts/hardware-devices.md)
-- [KDA：用一个固定大小的状态代替逐位置历史](concepts/linear-attention.md)
+- [线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史](concepts/linear-attention.md)
 - [BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样](concepts/low-precision-formats.md)
 - [MLA：历史压成一条潜向量，用时再展开](concepts/mla.md)
 - [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md)

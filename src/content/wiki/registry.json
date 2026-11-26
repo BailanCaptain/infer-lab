@@ -1108,7 +1108,7 @@
       "title": "昇腾 950：一块数据怎样少绕路、少等候",
       "type": "concept",
       "origin": "direct",
-      "summary": "沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。",
+      "summary": "从 Atlas A2/A3 分离核绕行主存、离散切片搬运与 FP8 反量化的痛点出发，顺着矩阵结果交给向量计算的小例，讲清昇腾 950 的 CV 片上直通、NDDMA 多维搬运、Buffer ID 同步、SIMD+SIMT 与原生 MXFP8/MXFP4。",
       "aliases": [
         "Ascend 950",
         "Ascend950",
@@ -1208,7 +1208,7 @@
       "title": "昇腾 950：两张卡怎样接着把工作做完",
       "type": "concept",
       "origin": "direct",
-      "summary": "沿两张卡的部分结果走过本地计算、交换求和和下一段计算，理解 STARS 2.0 如何安排设备任务、CCU 如何承担通信，以及 URMA、UB Memory 和 UBoE 分别改变哪一段交接；用一组时间记录区分下发开销、参与者迟到与传输等待。",
+      "summary": "从 Atlas A2/A3 多卡解码下发气泡、集合通信抢占向量核及机内机间协议割裂的痛点出发，顺着两卡求和实例讲清昇腾 950 的 STARS 2.0 硬件调度、CCU 专用通信卸载与 Unified Bus 2.0（URMA / UB Memory / UBoE）。",
       "aliases": [
         "STARS2.0",
         "STARS 2.0",
@@ -3021,10 +3021,13 @@
     },
     {
       "id": "balance-scheduling",
+      "legacyAnchors": {
+        "放到-glm-双机本部署没开开了会怎样": "异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界"
+      },
       "title": "Balance Scheduling：一组顶满，各组一起停收新请求",
       "type": "feature",
       "origin": "gap",
-      "summary": "MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。",
+      "summary": "MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及双机 DP2 场景下的闸门与宽度对齐边界。",
       "aliases": [
         "Balance Scheduling",
         "均衡调度",
@@ -3162,10 +3165,13 @@
     },
     {
       "id": "batch-invariance",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署没有开它": "复杂异构实战对照：GLM 双机混批跨度与三处算子覆盖边界"
+      },
       "title": "批不变性：相同输入为何会随同批请求改变结果",
       "type": "feature",
       "origin": "direct",
-      "summary": "同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及 GLM 双机上的启用状态与缺口。",
+      "summary": "同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及混合线性注意力与自定义扩展算子在异构模型上的覆盖边界。",
       "aliases": [
         "Batch Invariance",
         "批不变",
@@ -4933,6 +4939,9 @@
     },
     {
       "id": "context-parallel",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署开了-cp-吗": "异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛"
+      },
       "title": "上下文并行（CP）：怎样分位置，又怎样算完整 attention",
       "type": "feature",
       "origin": "direct",
@@ -5977,11 +5986,15 @@
       "title": "DeepSeek-V4.1-Flash：长历史怎样少存、少重算",
       "type": "concept",
       "origin": "direct",
-      "summary": "同一份长文，哪些计算可以省、哪些历史必须留下？先用四层模型走一遍，再区分少存、少读和跨层共享，最后核对实际配置与缓存大小。",
+      "summary": "为什么 40 层模型读长文不必把长历史算 40 遍、存 40 份？顺着 CED / YOCO 跨层 KV 共享与后半层边界压缩走一遍，分清少算、少存与少读，再核对 V4.1-Flash 的真实配置与三笔内存账。",
       "aliases": [
         "DeepSeek V4.1 Flash",
         "CED",
         "Causal Encoder Decoder",
+        "YOCO 跨层共享",
+        "You Only Cache Once",
+        "compact_yoco_boundary",
+        "is_yoco_consumer_layer",
         "CSA2",
         "Hierarchical Sparse Indexer",
         "DeepSeek 状态布局",
@@ -6540,17 +6553,27 @@
     },
     {
       "id": "dspark",
-      "title": "DSpark：先猜几个，再决定值得验证几个",
+      "legacyAnchors": {
+        "猜得更多为什么不一定都值得验证": "主模型批改机制与保底修正词：为什么不是猜得越多越值得验",
+        "草稿为什么既能并行又要做一点串行修正": "从 DFlash 到 DSpark：块扩散并行起草怎样补上局部连贯性",
+        "两条请求怎样分三个验证名额": "置信度累乘与动态验证预算：怎样把名额留给高存活前缀",
+        "选得更多为什么实际吞吐可能更低": "算清整轮耗时盈亏账：为什么全验反而拉低每秒有效产出",
+        "放回-glm-双机能借用什么": "常见误解"
+      },
+      "title": "DFlash 到 DSpark：从块扩散并行起草到马尔可夫修正与动态验证预算",
       "type": "feature",
       "origin": "direct",
-      "summary": "用两条请求的候选概率算出怎样分配验证预算，再加入实际每轮耗时判断收益；解释半自回归草稿、置信度累乘、CPU/设备异步分工，以及接受率高却不更快时的排查方法。",
+      "summary": "DFlash 靠块扩散一次前向并行吐出整块 K 个候选词，但词间缺乏自回归依赖导致尾部接受率陡降；DSpark 在块并行主干上叠轻量马尔可夫头恢复局部连贯性，并用置信度驱动动态验证预算砍掉低收益尾部批改。",
       "aliases": [
         "DSpark",
+        "DFlash",
+        "dflash",
+        "块扩散草稿",
+        "DFlash2",
         "Confidence Scheduled Verification",
         "置信度调度",
         "变长验证",
         "可变验证长度",
-        "DFlash",
         "MTP varlen",
         "confidence head"
       ],
@@ -6576,11 +6599,26 @@
         "vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/llm_base_proposer.py#L416-L453",
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/worker.py#L191-L258",
         "vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/utils.py#L26-L112",
-        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L952-L959",
-        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1295-L1319",
-        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/dspark.py#L143-L175",
-        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/dspark.py#L151-L180",
-        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/dspark/speculator.py#L60-L90"
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L949-L959",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1294-L1318",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/dspark.py#L143-L179",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/dspark.py#L151-L185",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/dspark/speculator.py#L60-L95",
+        "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/dflash_proposer.py#L15-L38",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/v2/spec_decode/dspark/speculator.py#L35-L57",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/__init__.py#L50-L70",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/spec_decode/__init__.py#L46-L63",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/utils.py#L278-L342",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/utils.py#L500-L635",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/qwen3_dflash2.py#L156-L221",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/speculative_decoding.md#L710-L767",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/__init__.py#L62-L85",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/lilicorr/speculator.py#L16-L48",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_dflash.py#L582-L653",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_dspark.py#L164-L230",
+        "vllm@ced6857a:vllm/v1/worker/gpu/spec_decode/adaptive_verification.py#L252-L348",
+        "vllm@ced6857a:vllm/config/speculative.py#L1447-L1525",
+        "vllm@ba15685a:vllm/model_executor/models/lilicorr.py#L336-L417"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -6608,7 +6646,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-26",
+      "updated": "2026-11-27",
       "file": "concepts/dspark.md",
       "backlinks": []
     },
@@ -6747,7 +6785,7 @@
       "title": "DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组",
       "type": "feature",
       "origin": "gap",
-      "summary": "vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling 的分工、计划怎样算、何时生效，以及本部署为何没开。",
+      "summary": "vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求、暂停不还 KV，讲清与 EPLB、Balance Scheduling 的分工及多缓存组块尺边界。",
       "aliases": [
         "DyntraLB",
         "DynTra",
@@ -8421,10 +8459,13 @@
     },
     {
       "id": "eplb",
+      "legacyAnchors": {
+        "放到-glm-双机本部署没开-eplb": "异构双机 EP16 对照：静态摆法与开启冗余专家的显存估算"
+      },
       "title": "EPLB：按实测热度调整专家放在哪张卡",
       "type": "feature",
       "origin": "gap",
-      "summary": "EPLB 在推理中统计每个专家接到的 token–expert 配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；本部署未启用，只给开启条件与估算。",
+      "summary": "EPLB 在推理中统计每个专家接到的 token–expert 配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；结合双机 EP16 核算冗余专家整除约束与接收区显存开销。",
       "aliases": [
         "EPLB",
         "Expert Parallelism Load Balancer",
@@ -11748,10 +11789,13 @@
     },
     {
       "id": "kv-cache-cpu-offload",
+      "legacyAnchors": {
+        "放到-glm-双机主线没开它开了要搬多少": "异构混合模型边界：多缓存组抢占容量与旧版接口门槛（GLM 双机对照）"
+      },
       "title": "KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存",
       "type": "feature",
       "origin": "gap",
-      "summary": "把可保存的KV状态复制到主机，后续命中时搬回设备以减少重算。用普通整段路径说明页、段、带宽和异步等待，再区分新版部分尾状态、私有锁页与共享mmap。GLM主线未开，释放的池容量也不能当成实际恢复字节。",
+      "summary": "把可保存的 KV 状态复制到主机内存，后续命中时异步搬回设备显存以减少重算。先用整段路径讲清页、段、带宽与双流同步等待，再区分新版部分尾状态、私有锁页与共享 mmap，最后核算多缓存组模型的容量口径边界。",
       "aliases": [
         "KV Cache CPU Offload",
         "CPU Offloading",
@@ -11928,10 +11972,13 @@
     },
     {
       "id": "kv-cache-layerwise-offload",
+      "legacyAnchors": {
+        "放到-glm-双机主线没开开了一层要搬多少": "异构层逐层载荷核算：12 层稀疏 MLA 与 34 层 KDA 状态口径"
+      },
       "title": "Layerwise KV offload：KV cache 一层一层搬，边算边搬",
       "type": "feature",
       "origin": "direct",
-      "summary": "把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。 讲清重叠条件、能省多少等待（示意数）、每层什么时候要等、共享槽怎样省显存，以及 GLM 双机主线为什么没开。",
+      "summary": "把 KV cache 在显存和外部存储之间的搬运从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。讲清重叠条件、省等上界（示意数）、共享槽保护，以及异构混合层的单层载荷核算。",
       "aliases": [
         "Layerwise KV Offload",
         "Layerwise KV Pool",
@@ -12272,10 +12319,13 @@
     },
     {
       "id": "kv-cache-quantization",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署没有开-kv-cache-量化": "异构混合缓存定块边界：为什么潜向量压窄后块数不直接翻倍"
+      },
       "title": "KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回",
       "type": "feature",
       "origin": "direct",
-      "summary": "KV cache 量化降低历史 k、v（MLA 模型是潜向量）的存储精度；本页以 INT8 C8 为例，演示写入压缩和读取时的缩放。相对 16 位缓存，元素载荷约减半，代价是量化误差留在缓存里。再区分元素与整卡容量、decode 与 prefill、FP8 与 KIVI，以及 Ascend 上的三条实现；固定 GLM 双机部署没有开它。",
+      "summary": "KV cache 量化降低历史 k、v（或 MLA 潜向量）的存储位宽；本页以 INT8 C8 为例演示写入压缩与读取缩放，区分元素载荷与整卡容量、decode 与 prefill 分路，并对照昇腾 C8 / MXFP8 / FA 量化 / TurboQuant 路径及混合缓存定块对齐边界。",
       "aliases": [
         "KV Cache Quantization",
         "KV cache quantization",
@@ -12862,10 +12912,13 @@
     },
     {
       "id": "kv-pool",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署没有开-kv-pool": "异构多缓存组段长推演与跨卡键命名规则"
+      },
       "title": "KV Pool：把算过的开头存进外部池，别的实例也能取回",
       "type": "feature",
       "origin": "direct",
-      "summary": "KV Pool（外部 KV 池）让推理实例经 KV connector 把算完的整段 KV 存进主机内存、SSD 或别的节点拼成的共享存储；开头相同的请求先看本地 prefix caching 命中几段，池只补多出来的整段。讲一次查询怎样取整相减、查到后的搬运与写回、记录的名字，以及和抢占换出的区别；GLM 双机没有开它。",
+      "summary": "KV Pool（外部 KV 池）经 KV connector 把已算完的整段 KV 存入主机内存、SSD 或跨节点共享池；开头相同的请求先看本地 prefix caching 命中几段，池只补多出的整段。讲清查询取整、搬运与键命名规则，以及混合模型的多组段长边界。",
       "aliases": [
         "KV Pool",
         "KV 池",
@@ -13614,7 +13667,8 @@
       "id": "layer-sharding",
       "legacyAnchors": {
         "一句话": "它曾如何按层轮放权重，为什么 v0.24 起已删除？",
-        "为什么存在": "层间广播机制、通信组构造与与 PP/TP 的区别",
+        "为什么存在": "层间广播机制、通信组构造与 PP/TP 的区别",
+        "层间广播机制通信组构造与与-pptp-的区别": "层间广播机制、通信组构造与 PP/TP 的区别",
         "开了的代价": "显存与通信账、冲突边界及向新权重切换机制的迁移"
       },
       "title": "layer_sharding",
@@ -13845,7 +13899,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/layers-and-hidden.md",
       "backlinks": [
         {
@@ -13937,10 +13991,15 @@
     },
     {
       "id": "linear-attention",
-      "title": "KDA：用一个固定大小的状态代替逐位置历史",
+      "legacyAnchors": {
+        "kda-是什么历史怎样装进一个固定大小的状态": "为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？",
+        "为什么去掉-softmax-就能从平方降到线性": "为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？",
+        "只做累加会写坏状态delta-规则遗忘门按通道衰减": "四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA"
+      },
+      "title": "线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史",
       "type": "concept",
       "origin": "gap",
-      "summary": "linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta 规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与 decode 两条执行路径差在哪。",
+      "summary": "线性注意力去掉逐位置 Softmax，靠核映射与矩阵乘法结合律把历史压进定长状态矩阵，并在 Prefill 走分块并行、Decode 走逐词递推。本页用同一套二维算例推演纯累加、DeltaNet 误差擦写、Qwen3-Next 的 Gated DeltaNet 到 KDA，并核对双状态规格与 GLM 块号账。",
       "aliases": [
         "线性注意力",
         "Linear Attention",
@@ -13948,11 +14007,14 @@
         "Kimi Delta Attention",
         "GDN",
         "Gated DeltaNet",
+        "门控增量法则",
+        "AscendGatedDeltaNet",
         "DeltaNet",
         "递推状态",
         "recurrent state",
         "矩阵状态",
-        "chunked 计算"
+        "chunked 计算",
+        "Chunkwise 并行"
       ],
       "chapters": [
         "04"
@@ -13995,7 +14057,22 @@
         "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L107-L190",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L211-L310",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L62",
-        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/recoverssm_config.py#L13-L44"
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/recoverssm_config.py#L13-L44",
+        "vllm@ced6857a:vllm/model_executor/layers/lightning_attn.py#L653-L675",
+        "vllm@ced6857a:vllm/third_party/flash_linear_attention/ops/fused_recurrent.py#L122-L149",
+        "vllm@ced6857a:vllm/third_party/flash_linear_attention/ops/chunk.py#L23-L84",
+        "vllm@ced6857a:vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py#L127-L150",
+        "vllm@ced6857a:vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py#L2007-L2045",
+        "vllm@ced6857a:vllm/transformers_utils/configs/qwen3_next.py#L198-L218",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_next.py#L485-L502",
+        "vllm@ced6857a:vllm/model_executor/layers/mamba/mamba_utils.py#L98-L149",
+        "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L993-L1063",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/gdn.py#L331-L446",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/gdn.py#L333-L450",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/gdn.py#L706-L875",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/gdn.py#L729-L782",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/kda.py#L9-L99",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L145-L176"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -14042,7 +14119,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/linear-attention.md",
       "backlinks": [
         {
@@ -14259,7 +14336,7 @@
       "title": "LMCache：接在引擎外面的一层 KV 缓存",
       "type": "feature",
       "origin": "direct",
-      "summary": "LMCache 是装在推理引擎外面的一层 KV cache 缓存，经 vLLM 的 KV connector 插口对接：引擎管调度和显存，它管外部数据并回答能提供到第几个位置。本页讲这条交接边界、按 chunk 取整的账、和 AscendStore 版 KV Pool 的区别，以及 GLM 双机上为什么没开。",
+      "summary": "当显存里的前缀缓存被挤出或请求落到其他实例时，LMCache 通过 vLLM 的 KV connector 接口从主机内存、本地磁盘或远端存储找回已算好的 KV 块；讲清引擎与外部包的交接边界、按整 chunk 取整的命中账、与 AscendStore KV Pool 的差异及混合模型 SupportsHMA 约束。",
       "aliases": [
         "LMCache",
         "LMCacheAscendConnector",
@@ -14571,10 +14648,13 @@
     },
     {
       "id": "lora",
+      "legacyAnchors": {
+        "本部署有没有开": "复杂异构实战对照：GLM 双机 EP16 与量化下的 LoRA 边界"
+      },
       "title": "LoRA：低秩更新与多适配器推理",
       "type": "feature",
       "origin": "gap",
-      "summary": "LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，最后核实本部署没有启用。",
+      "summary": "LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，以及 MoE 专家并行与量化模型挂接适配器时的通信和容量边界。",
       "aliases": [
         "LoRA",
         "LoRA 适配器",
@@ -15955,7 +16035,7 @@
       "title": "Mooncake 连接器：先对好块号，再按层搬历史状态",
       "type": "feature",
       "origin": "gap",
-      "summary": "vLLM 的 KV connector 在昇腾上的 Mooncake 实现：调度器那一半记账（远端能补几个位置、押哪些块），worker 那一半把块号换成显存地址，用 Mooncake 传输引擎在 P、D 之间直接读写；V1 整批拉，Layerwise 逐层推。官方双机没有开。",
+      "summary": "从 P/D 两套独立块池无法共享块号出发，讲清昇腾 Mooncake 连接器如何由调度侧管账押块、由 worker 侧换算显存地址并驱动 TransferEngine 直传 KV 状态；对照 V1 整批拉、Layerwise 逐层推、V2/D2RH 演进与 910B3 真机实测边界。",
       "aliases": [
         "Mooncake 连接器",
         "Mooncake Connector",
@@ -16611,10 +16691,13 @@
     },
     {
       "id": "netloader-guide",
+      "legacyAnchors": {
+        "glm-双机这套部署会走-netloader-吗": "复杂异构与多机边界对照：EP16 异构分片与 MTP 草稿通道限制"
+      },
       "title": "Netloader Guide：新实例怎样从已有 NPU 接过权重",
       "type": "feature",
       "origin": "gap",
-      "summary": "Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退，以及 GLM 双机未启用的事实和 main 的布局传输变化。",
+      "summary": "Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退、v0.30.0 / main 的推理布局直传，以及跨机 EP 与 MTP 草稿模型的加载边界。",
       "aliases": [
         "NetLoader",
         "Netloader Guide",
@@ -18499,10 +18582,13 @@
     },
     {
       "id": "pipeline-parallel",
+      "legacyAnchors": {
+        "glm-双机为什么没用-pp": "异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接"
+      },
       "title": "流水线并行（PP）：层分段、状态交接与气泡",
       "type": "feature",
       "origin": "gap",
-      "summary": "把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及 GLM 双机为什么没开 PP。",
+      "summary": "把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及异构混合模型的多路残差交接边界。",
       "aliases": [
         "Pipeline Parallel",
         "流水线并行",
@@ -19410,10 +19496,13 @@
     },
     {
       "id": "prefix-caching",
+      "legacyAnchors": {
+        "glm-双机上它开着吗": "异构混合模型边界：KDA 与稀疏 MLA 多组对齐（GLM 双机对照）"
+      },
       "title": "Prefix caching：相同的开头只算一次，靠什么认",
       "type": "feature",
       "origin": "direct",
-      "summary": "通过输入指纹找到可复用的前缀块，后来的请求共享命中块，省去相应的prefill计算。固定旧GLM镜像默认关，显式打开走align，公共恢复边界按640对齐；新版的默认值与部分尾块能力须分别确认。",
+      "summary": "通过链式块指纹复用相同开头已算好的 KV 块，省去重复的 prefill 计算；对比 vLLM 整块哈希与 RadixAttention 基数树差异，并拆解混合注意力模型的多缓存组对齐边界。",
       "aliases": [
         "Prefix Caching",
         "前缀缓存",
@@ -20706,10 +20795,13 @@
     },
     {
       "id": "recompute-cpu-offload",
+      "legacyAnchors": {
+        "放到-glm-双机主线不启用它": "1P1D 改造预算核算：每卡 127 个主机块与混合状态边界"
+      },
       "title": "Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回",
       "type": "feature",
       "origin": "gap",
-      "summary": "vllm-ascend 给 PD 分离 D 节点配的连接器：RecomputeScheduler 让出一条请求前先问它，主机块够就把这条的全部 KV 块同步拷到主机，重新排上时在前向前搬回，完成通知后再调度；旧版保存失败则交代理退回 P。讲清两条恢复路径的取舍（示意数）、和 CPU 备份、KV Pool 的区别；新版失败路径需按并行设置区分。GLM 双机主线不拆 P/D，没有启用。",
+      "summary": "PD 分离 D 节点在 RecomputeScheduler 让出请求前优先将全部 KV 块同步拷往主机 DRAM，重新排上时在前向前搬回；失败则退回 P 重算（细粒度 TP 例外）。讲清恢复取舍、与 CPU 备份及 KV Pool 的区别，以及多缓存组预算核算。",
       "aliases": [
         "Recompute CPU Offload",
         "Preempt Offload",
@@ -20861,6 +20953,9 @@
     },
     {
       "id": "recompute-scheduler",
+      "legacyAnchors": {
+        "放到-glm-双机主线不启用它": "混部与 1P1D 边界：多状态组释放与 D 端重算分流"
+      },
       "title": "RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算",
       "type": "feature",
       "origin": "gap",
@@ -23832,6 +23927,9 @@
     },
     {
       "id": "sequence-parallel",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署开了-sp-吗": "异构混合模型边界：GLM 双机三路开关与四路残差行切"
+      },
       "title": "序列并行（SP）：让局部激活按 token 分片",
       "type": "feature",
       "origin": "direct",
@@ -24429,10 +24527,13 @@
     },
     {
       "id": "sleep-mode",
+      "legacyAnchors": {
+        "glm-双机中的一个-token-会遇到睡眠吗": "复杂异构与多机边界对照：GLM 双机若改同卡轮训会撞上什么"
+      },
       "title": "Sleep Mode：暂停推理时怎样把显存让给训练",
       "type": "feature",
       "origin": "gap",
-      "summary": "Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV cache。说明唤醒顺序、请求处理、GLM 双机未启用的原因与版本差异。",
+      "summary": "Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV cache。说明唤醒顺序、请求处理、Ascend 910B3 实测账本、多机 EP 协同休眠边界与版本差异。",
       "aliases": [
         "Sleep Mode",
         "Sleep Mode Guide",
@@ -24593,7 +24694,7 @@
       "title": "稀疏注意力：先挑位置，再只读这些位置",
       "type": "concept",
       "origin": "gap",
-      "summary": "稀疏注意力让每个查询只在因果范围内挑出的少量历史位置上做 attention；GLM 用 indexer 按 4 个位置一池打分，每个查询最多读 2051 个位置，没选中的历史仍须全部保留。",
+      "summary": "稀疏注意力先在因果历史中挑出少量关键位置（如 DSA 用轻量 indexer 选 top-k），再只对入围位置做打分、重归一化与汇合，把主注意力开销压到 O(Lk)；落选历史仍须留在缓存中备选。本页先讲通用机制与跨层 IndexCache，再核对 GLM KPool 按池挑选算例。",
       "aliases": [
         "稀疏注意力",
         "Sparse Attention",
@@ -24729,7 +24830,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/sparse-attention.md",
       "backlinks": [
         {
@@ -25809,6 +25910,9 @@
     },
     {
       "id": "swa-bounded-replay",
+      "legacyAnchors": {
+        "放回-glm-双机不能直接套哪一步": "常见误解"
+      },
       "title": "SWA bounded replay：历史窗口丢了，为什么只重算一小段",
       "type": "feature",
       "origin": "direct",
@@ -25889,7 +25993,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-26",
+      "updated": "2026-11-27",
       "file": "concepts/swa-bounded-replay.md",
       "backlinks": [
         {
@@ -26462,7 +26566,7 @@
       "title": "UCM：把算过的前缀分三层存到显存之外",
       "type": "feature",
       "origin": "direct",
-      "summary": "UCM（Unified Cache Manager）是经 KV connector 接进 vLLM 的外部缓存软件包：把算过的前缀 KV 从显存存到本机内存、再落到共享存储，按官方文档换实例或重启后也能取回，省掉重复的 prefill。讲清它和 KV Pool、LMCache 的分工，PD 分离时的两种数据流，以及 GLM 双机为什么没开、开了还缺什么。",
+      "summary": "UCM（Unified Cache Manager）是经 KV connector 接入 vLLM 的三层前缀缓存系统：将算好的前缀 KV 从显存逐级延伸至本机内存快取与共享持久存储，支持跨实例与跨重启复用；讲清它与 AscendStore KV Pool、LMCache 的分工，集中式与 P2P 两种 PD 站位，以及混合模型的 SupportsHMA 与 KDA 对齐边界。",
       "aliases": [
         "UCM",
         "Unified Cache Manager",
@@ -27107,10 +27211,13 @@
     },
     {
       "id": "vllm-ascend-for-rl",
+      "legacyAnchors": {
+        "glm-双机的一条请求会走进-rl-更新吗": "复杂异构与多机边界对照：GLM 双机接入 RL Rollout 的四道关卡"
+      },
       "title": "vLLM-Ascend for RL：生成样本后，怎样安全换上新权重",
       "type": "feature",
       "origin": "gap",
-      "summary": "RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并区分 main 的统一配置与 GLM 固定版本。",
+      "summary": "RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并对比 v0.30.0 / main 统一 rl_config 与多机异构 MoE 接入边界。",
       "aliases": [
         "RL",
         "Reinforcement Learning",

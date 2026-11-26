@@ -120,20 +120,20 @@ rawSources:
 
 ## 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
 
-**Linear Attention（线性注意力）去掉逐位置的 Softmax 指数耦合，改用可分离特征映射并利用矩阵乘法结合律，把任意长度的历史压缩进一个固定形状的状态矩阵 $S_t \in \mathbb{R}^{d_k \times d_v}$**：每来一个新 token，先用它的键值改写状态 $S_t$，再用当前查询从 $S_t$ 一次读出本层输出，从此单步生成不再随上下文变长而重扫整段 [KV cache](kv-cache.md)。
+**Linear Attention（线性注意力）去掉逐位置的 Softmax 指数耦合，改用可分离特征映射并利用矩阵乘法结合律，把任意长度的历史压缩进一个固定形状的状态矩阵**：每来一个新 token，先用它的键值改写状态，再用当前查询一次读出本层输出，从此单步生成不再随上下文变长而重扫整段 [KV cache](kv-cache.md)。
 
 在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以昂贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 把当前查询 $Q_t$ 和每一个历史键 $K_i$ 锁在了同一个括号里：必须先把 $Q_t$ 与全部 $t$ 个历史键逐一算出分数并凑齐归一化分母，才能去乘 $V_{1:t}$。这迫使计算顺序锁死为 $(Q K^\top) V$——整段长度为 $n$ 的提示词需要 $O(n^2)$ 次打分，生成阶段每走一步也要从显存重读全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
 
 Katharopoulos 等人提出的核特征映射拆开了这把锁：把不可拆分的 $\exp(Q_t K_i^\top)$ 替换为对 $Q_t$、$K_i$ 各自独立作用的特征映射内积 $\phi(Q_t)\phi(K_i)^\top$。一旦去掉跨位置套在外层的 Softmax，矩阵乘法结合律允许直接交换括号顺序：
 
-$$\sum_{i=1}^{t} \big(\phi(Q_t)\phi(K_i)^\top\big) V_i = \phi(Q_t) \left(\sum_{i=1}^{t} \phi(K_i)^\top V_i\right) = \phi(Q_t) S_t, \quad S_t = S_{t-1} + \phi(K_t)^\top V_t$$
+$$\sum_{i=1}^{t} \big(\phi(Q_t)\phi(K_i)^\top\big) V_i = \phi(Q_t) \left(\sum_{i=1}^{t} \phi(K_i)^\top V_i\right) = \phi(Q_t) \tilde{S}_t, \quad \tilde{S}_t = \tilde{S}_{t-1} + \phi(K_t)^\top V_t \in \mathbb{R}^{d_k \times d_v}$$
 
-早期核线性注意力还会同步累加键特征向量 $z_t = z_{t-1} + \phi(K_t)^\top$ 作分母 $\phi(Q_t) z_t$；现代工业模型（如 `Qwen3-Next` 的 Gated DeltaNet 与 `Kimi Linear` / `GLM-5.3-Flash` 的 KDA）省去显式分母，改在 $Q_t, K_t$ 过短卷积后直接做 L2 归一化，并在读出端接 RMSNorm 稳定尺度。
+（配图与 vLLM 内核实现常取其转置的 value-first 形式 $S_t = \tilde{S}_t^\top = \sum_{i=1}^{t} v_i \phi(k_i)^\top \in \mathbb{R}^{d_v \times d_k}$，列向量读出写为 $o_t = S_t \phi(q_t)$，二者仅差一次行列转置。）早期核线性注意力还会同步累加键特征向量作分母；现代工业模型（如 `Qwen3-Next` 的 Gated DeltaNet 与 `Kimi Linear` / `GLM-5.3-Flash` 的 KDA）省去显式分母，改在 $Q_t, K_t$ 过短卷积后直接做 L2 归一化，并在读出端接 RMSNorm 稳定尺度。
 
 用一个 $d_k = 2, d_v = 2$ 的极简算例（示意数）就能看清括号重排如何消掉逐词历史：设位置 1 的 $\phi(K_1) = (1, 0),\; V_1 = (2, 1)$，位置 2 的 $\phi(K_2) = (0, 1),\; V_2 = (0, 3)$，当前查询 $\phi(Q_2) = (1, 0.5)$：
 
 - **按位置扫描 $(\phi(Q_2)\phi(K_{1:2})^\top) V_{1:2}$**：先逐个打分得 $(1,\; 0.5)$，再加权求和 $1 \cdot (2, 1) + 0.5 \cdot (0, 3) = (2,\; 2.5)$，必须把两份历史都留在显存里；
-- **合成矩阵状态 $\phi(Q_2) S_2$**：先把外积叠进 $2 \times 2$ 状态 $S_2 = \begin{bmatrix}1\\0\end{bmatrix}\begin{bmatrix}2 & 1\end{bmatrix} + \begin{bmatrix}0\\1\end{bmatrix}\begin{bmatrix}0 & 3\end{bmatrix} = \begin{bmatrix}2 & 1\\0 & 3\end{bmatrix}$，再用查询一次乘出 $\begin{bmatrix}1 & 0.5\end{bmatrix}\begin{bmatrix}2 & 1\\0 & 3\end{bmatrix} = (2,\; 2.5)$。结果完全一致，但哪怕后续写到 13 万个 token，保留下来的依然只是这一个 $d_k \times d_v$ 矩阵。
+- **合成定长矩阵状态**：按配图 value-first 形式叠入 $2 \times 2$ 状态 $S_2 = \begin{bmatrix}2\\1\end{bmatrix}\begin{bmatrix}1 & 0\end{bmatrix} + \begin{bmatrix}0\\3\end{bmatrix}\begin{bmatrix}0 & 1\end{bmatrix} = \begin{bmatrix}2 & 0\\1 & 3\end{bmatrix}$，再用列向量查询一次乘出 $S_2 \phi(q_2) = \begin{bmatrix}2 & 0\\1 & 3\end{bmatrix}\begin{bmatrix}1\\0.5\end{bmatrix} = (2,\; 2.5)^\top$（行向量写法 $\phi(Q_2)\tilde{S}_2$ 同得 $(2,\; 2.5)$）。结果完全一致，但哪怕后续写到 13 万个 token，保留下来的依然只是这一个 $d_v \times d_k$ 矩阵。
 
 ```wiki-diagram
 file: linear-attention-intuition
@@ -150,49 +150,43 @@ file: linear-attention-intuition
 
 ## 四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA
 
-把历史压成定长矩阵 $S_t \in \mathbb{R}^{d_k \times d_v}$ 后（下文统一采用与配图一致的 `[d_k, d_v]` 数学布局，$q_t, k_t \in \mathbb{R}^{d_k}$、$v_t \in \mathbb{R}^{d_v}$ 记为列向量），真正的难点在于**有限格子怎么写才不会串味饱和**。沿着同一套二维算例（初始 $S_0 = 0$，先后对同一个键 $k = (1, 0)^\top$ 写入旧值 $v_1 = (2, 0)^\top$ 与新值 $v_2 = (5, 0)^\top$），四代递推规则的因果演进一目了然：
+在 vLLM 源码与配图中，单头状态通常存为 value-first 布局 $S_t = \tilde{S}_t^\top \in \mathbb{R}^{d_v \times d_k}$（行对应 value 维、列对应 key 特征通道；列向量 $q_t, k_t \in \mathbb{R}^{d_k}$、$v_t \in \mathbb{R}^{d_v}$，纯外积记为 $v_t k_t^\top$，读出为 $o_t = S_t q_t$）。把历史压成定长矩阵后，真正的难点在于**有限格子怎么写才不会串味饱和**。沿着同一套二维算例（初始 $S_0 = 0$，先后对同一个键 $k = (1, 0)^\top$ 写入旧值 $v_1 = (2, 0)^\top$ 与新值 $v_2 = (5, 0)^\top$），四代递推规则的因果演进一目了然：
 
-1. **纯累加式与固定斜率衰减（易饱和串味）**：最朴素的核线性注意力直接累加外积 $S_t = \lambda S_{t-1} + k_t v_t^\top$（普通加法取 $\lambda = 1$；Lightning Attention 按头固定斜率取 $\lambda = e^{-\text{slope}_h}$）。在算例中取 $\lambda = 1$，位置 1 写完首行为 $(2, 0)$，位置 2 想把同一个键改写成 $(5, 0)$，结果却叠成 $(2, 0) + (5, 0) = (7, 0)$——旧关联擦不掉，相近键反复写入会互相串味并撑爆数值范围。
-2. **DeltaNet（按预测误差擦写修正）**：Schlag 等人与 Yang 等人把注意力视作快速权重（fast weights）存储器，写入前先用当前键探出旧状态「以为的值」$\hat{v}_t = S_{t-1}^\top k_t$，再只把预测误差 $e_t = v_t - \hat{v}_t$ 按强度 $\beta_t \in (0, 1]$ 写进去：$S_t = S_{t-1} + \beta_t k_t e_t^\top$。回到算例取 $\beta_t = 1$：位置 2 先读出 $\hat{v}_2 = (2, 0)^\top$，算出差值 $e_2 = (5, 0)^\top - (2, 0)^\top = (3, 0)^\top$，更新后首行恰好变成 $(2, 0) + (3, 0) = (5, 0)$，精准覆写旧值且不污染正交的第 2 行通道。
-3. **Gated DeltaNet（`Qwen3-Next` 主力：每头标量遗忘门 + 误差擦写）**：DeltaNet 只能覆写当前命中的键 $k_t$；一旦上下文切换话题，不再访问的旧键仍占满状态容量。Gated DeltaNet 在误差修正前先给整头旧状态乘一个随输入变化的标量衰减门 $\alpha_{t,h} = e^{g_{t,h}} \in (0, 1)$：
-   $$\bar{S}_t = \alpha_{t,h} S_{t-1}, \quad e_t = v_t - \bar{S}_t^\top k_t, \quad S_t = \bar{S}_t + \beta_t k_t e_t^\top, \quad o_t = S_t^\top (q_t \cdot \text{scale})$$
-   在 `Qwen3-Next` 中，默认每 4 层排 3 层 `QwenGatedDeltaNetAttention`（昇腾对应 `AscendGatedDeltaNetAttention`）配 1 层全注意力（默认 `key_heads=16, value_heads=32, head_dim=128`、短卷积宽 `4`，$g = -e^{A_{\log}}\operatorname{softplus}(a + dt_{\text{bias}})$，$\beta = \sigma(b)$）。若算例第 2 行存着旧话题 $(0, 4)$、本步取 $\alpha_{t,h} = 0.5, \beta_t = 1$，衰减门先把背景旧话题减半腾出容量，误差项再把当前键首行精准写到 $(5, 0)$。
-4. **KDA（Kimi Linear / GLM 进阶：按 key 通道独立的对角衰减）**：标量门迫使同一头的 128 个键通道同速遗忘。**KDA（Kimi Delta Attention）** 将标量 $\alpha_{t,h}$ 细化为对角矩阵 $D_t = \operatorname{diag}(\alpha_{t,h,:})$，令 $\bar{S}_t = D_t S_{t-1}$，允许同一头内部分通道取 $\alpha_{t,0} \approx 1$ 留住长程锚点、另一批通道取较小 $\alpha_{t,1}$ 快速清掉局部语法（`Kimi Linear` 同样采用 3 层 KDA 配 1 层全注意力的混合比例）。
+1. **纯累加式与固定斜率衰减（易饱和串味）**：最朴素的核线性注意力直接盲加外积 $S_t = \lambda S_{t-1} + v_t k_t^\top$（普通加法取 $\lambda = 1$；Lightning Attention 按头固定斜率取 $\lambda = e^{-\text{slope}_h}$）。在算例中取 $\lambda = 1$，位置 1 写完第 1 列为 $(2, 0)^\top$，位置 2 想把同一个键改写成 $(5, 0)^\top$，结果却叠成 $(2, 0)^\top + (5, 0)^\top = (7, 0)^\top$——旧关联擦不掉，相近键反复写入会互相串味并撑爆数值范围。
+2. **DeltaNet（按预测误差擦写修正）**：Schlag 等人与 Yang 等人把注意力视作快速权重（fast weights）存储器，写入前先用当前键探出旧状态「以为的值」$\hat{v}_t = S_{t-1} k_t$，再只把预测误差 $e_t = v_t - S_{t-1} k_t$ 按强度 $\beta_t \in (0, 1]$ 定向擦写当前键列：$S_t = S_{t-1} + \beta_t e_t k_t^\top$。回到算例取 $\beta_t = 1$：位置 2 先读出 $\hat{v}_2 = (2, 0)^\top$，算出差值 $e_2 = (5, 0)^\top - (2, 0)^\top = (3, 0)^\top$，更新后第 1 列恰好变成 $(5, 0)^\top$，精准覆写旧值且不污染正交的第 2 列通道。
+3. **Gated DeltaNet（`Qwen3-Next` 主力：每头标量遗忘门 + 误差擦写）**：DeltaNet 只能覆写当前命中的键列 $k_t$；一旦上下文切换话题，不再访问的旧键列仍占满状态容量。Gated DeltaNet 在误差修正前先给整头旧状态乘一个随输入变化的标量衰减门 $\alpha_{t,h} = e^{g_{t,h}} \in (0, 1)$：
+   $$\bar{S}_t = \alpha_{t,h} S_{t-1}, \quad e_t = v_t - \bar{S}_t k_t, \quad S_t = \bar{S}_t + \beta_t e_t k_t^\top, \quad o_t = S_t (q_t \cdot \text{scale})$$
+   在 `Qwen3-Next` 中，默认每 4 层排 3 层 `QwenGatedDeltaNetAttention`（昇腾对应 `AscendGatedDeltaNetAttention`）配 1 层全注意力（默认 `key_heads=16, value_heads=32, head_dim=128`、短卷积宽 `4`，$g = -e^{A_{\log}}\operatorname{softplus}(a + dt_{\text{bias}})$，$\beta = \sigma(b)$）。若算例第 2 列存着旧话题 $(0, 4)^\top$、本步取 $\alpha_{t,h} = 0.5, \beta_t = 1$，衰减门先把背景旧话题减半腾出容量，误差项再把当前键第 1 列精准写到 $(5, 0)^\top$。
+4. **KDA（Kimi Linear / GLM 进阶：按 key 通道独立的对角衰减）**：标量门迫使同一头的 128 个键通道同速冲淡。**KDA（Kimi Delta Attention）** 将标量衰减升级为右乘对角矩阵 $D_t = \operatorname{diag}(\alpha_{t,h,:})$，令 $\bar{S}_t = S_{t-1} D_t$，对不同 key 特征列独立控制遗忘快慢——部分列取 $\alpha_{t,0} \approx 1$ 留住长程锚点，另一批列取较小 $\alpha_{t,1}$ 快速清掉局部语法（`Kimi Linear` 同样采用 3 层 KDA 配 1 层全注意力的混合比例）。
 
 ```wiki-diagram
 file: kda-evolution
 ```
 
-| 递推代际 | 单步状态更新（`[d_k, d_v]` 数学布局） | 解决的核心痛点 | 典型模型与算子入口 |
+| 递推代际 | 单步状态更新（$S_t \in \mathbb{R}^{d_v \times d_k}$ 布局） | 解决的核心痛点 | 典型模型与算子入口 |
 |---|---|---|---|
-| 纯累加 / Lightning | $S_t = \lambda S_{t-1} + k_t v_t^\top$ | 消除 $O(t)$ KV 增长，但同键覆写易串味 | TransNormerLLM / `lightning_attn` |
-| DeltaNet | $S_t = S_{t-1} + \beta_t k_t (v_t - S_{t-1}^\top k_t)^\top$ | 按预测误差精准擦写当前键关联 | DeltaNet（快速权重） |
-| Gated DeltaNet（GDN） | $\bar{S}_t = \alpha_{t,h} S_{t-1},\; S_t = \bar{S}_t + \beta_t k_t (v_t - \bar{S}_t^\top k_t)^\top$ | 每头标量门主动清空过期背景，配合误差覆写 | `Qwen3-Next`（`chunk` / `fused_recurrent_gated_delta_rule`） |
-| KDA | $\bar{S}_t = \operatorname{diag}(\alpha_{t,h,:}) S_{t-1},\; S_t = \bar{S}_t + \beta_t k_t (v_t - \bar{S}_t^\top k_t)^\top$ | 同一头内不同 key 通道按各自半衰期独立遗忘 | `Kimi Linear`、`GLM-5.3-Flash`（`chunk_kda` / `recurrent_kda`） |
+| 纯累加 / Lightning | $S_t = \lambda S_{t-1} + v_t k_t^\top$ | 消除 $O(t)$ KV 增长，但同键覆写易串味 | TransNormerLLM / `lightning_attn` |
+| DeltaNet | $S_t = S_{t-1} + \beta_t (v_t - S_{t-1} k_t) k_t^\top$ | 按预测误差精准擦写当前键列 | DeltaNet（快速权重） |
+| Gated DeltaNet（GDN） | $\bar{S}_t = \alpha_{t,h} S_{t-1},\; S_t = \bar{S}_t + \beta_t (v_t - \bar{S}_t k_t) k_t^\top$ | 每头标量门同速冲淡过期背景，配合误差覆写 | `Qwen3-Next`（`chunk` / `fused_recurrent_gated_delta_rule`） |
+| KDA | $\bar{S}_t = S_{t-1}\operatorname{diag}(\alpha_{t,h,:}),\; S_t = \bar{S}_t + \beta_t (v_t - \bar{S}_t k_t) k_t^\top$ | 同一头内不同 key 特征列按各自半衰期独立遗忘 | `Kimi Linear`、`GLM-5.3-Flash`（`chunk_kda` / `recurrent_kda`） |
 
 压缩长上下文还有另外两条正交路线：[MLA](mla.md) 压缩每个位置的 KV 潜向量，[稀疏注意力](sparse-attention.md)只挑 top-k 历史块精算。现代长文本模型常以「3 层线性注意力（GDN 或 KDA）+ 1 层全注意力/稀疏 MLA」混排，兼顾常数级状态开销与精确大海捞针召回。
 
 ## KDA 一步完整的更新和读出
 
-Gated DeltaNet 与 KDA 共享完全相同的五步递推骨架，唯一区别在于第一步衰减因子 $D$ 取标量门 $\alpha_{t,h} I$（GDN）还是对角矩阵 $\operatorname{diag}(\alpha_{t,h,:})$（KDA）。沿用 `S ∈ ℝ^{d_k × d_v}` 数学布局与列向量 $q, k, v$（省略批次、头下标与缩放），单步计算依次为：
+Gated DeltaNet 与 KDA 共享完全相同的五步递推骨架，唯一区别在于第一步衰减因子 $D$ 取标量门 $\alpha_{t,h} I$（GDN）还是对角矩阵 $\operatorname{diag}(\alpha_{t,h,:})$（KDA）。沿用 $S_t \in \mathbb{R}^{d_v \times d_k}$ 布局与列向量 $q, k, v$（省略批次、头下标与缩放），单步计算依次为：
 
-$$\bar{S} = D S_{t-1}, \quad \hat{v} = \bar{S}^\top k, \quad e = v - \hat{v}, \quad S_t = \bar{S} + \beta k e^\top, \quad o = S_t^\top q$$
+$$\bar{S} = S_{t-1} D, \quad \hat{v} = \bar{S} k, \quad e = v - \hat{v}, \quad S_t = \bar{S} + \beta e k^\top, \quad o = S_t q$$
 
-把 $e = v - \bar{S}^\top k$ 代入第四步即可合并成论文常见的快速权重形式 $S_t = (I - \beta k k^\top) D S_{t-1} + \beta k v^\top$，两者在数学上完全等价。上游 FLA 与昇腾内核实现多按 value-first 存储布局 `[H_v/TP, d_v, d_k]` 排布状态矩阵（即上式的转置 $S_{\text{mem}} = S^\top$），对应递推写为 $\bar{S}_{\text{mem}} = S_{\text{mem},t-1} D$、$r_t = \beta(v - \bar{S}_{\text{mem}} k)$、$S_{\text{mem},t} = \bar{S}_{\text{mem}} + r_t k^\top$、$o = S_{\text{mem},t} q$。
-
-```wiki-diagram
-file: linear-attention-state
-```
-
-真实一层先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度 $\beta$ 和衰减门，对 `q`、`k`、`v` 过核宽为 `4` 的因果短卷积（`conv1d`）捕获局部相邻词特征，再对 `q`、`k` 做 L2 归一化，保证收缩算子 $(I - \beta k k^\top)$ 不会放大状态范数；读出结果经输出门、RMSNorm 与行并行投影回到隐藏维度。在二维上走一遍五步（示意数：取 $S_{t-1} = I$、$D = \operatorname{diag}(0.5, 1)$、$k = q = (1, 0)^\top$、$v = (3, 2)^\top$、$\beta = 0.5$）：
+把 $e = v - \bar{S} k$ 代入第四步即可合并成 $S_t = S_{t-1} D (I - \beta k k^\top) + \beta v k^\top$（若论文按转置的 `[d_k, d_v]` 布局书写，则等价记作 $S_t' = (I - \beta k k^\top) D S_{t-1}' + \beta k v^\top,\; o = S_t'^\top q$）。真实一层先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度 $\beta$ 和衰减门，对 `q`、`k`、`v` 过核宽为 `4` 的因果短卷积（`conv1d`）捕获局部相邻词特征，再对 `q`、`k` 做 L2 归一化，保证收缩算子 $(I - \beta k k^\top)$ 不会放大状态范数；读出结果经输出门、RMSNorm 与行并行投影回到隐藏维度。在二维上走一遍五步（示意数：取 $S_{t-1} = I$、$D = \operatorname{diag}(0.5, 1)$、$k = q = (1, 0)^\top$、$v = (3, 2)^\top$、$\beta = 0.5$）：
 
 | 步骤 | 算式 | 结果 |
 |---|---|---|
-| 1. 衰减 $\bar{S}$ | $D S_{t-1} = \operatorname{diag}(0.5, 1) \cdot I$ | $\begin{bmatrix}0.5 & 0 \\ 0 & 1\end{bmatrix}$ |
-| 2. 预测 $\hat{v}$ | $\bar{S}^\top k$ | $(0.5,\; 0)^\top$ |
+| 1. 衰减 $\bar{S}$ | $S_{t-1} D = I \cdot \operatorname{diag}(0.5, 1)$ | $\begin{bmatrix}0.5 & 0 \\ 0 & 1\end{bmatrix}$ |
+| 2. 预测 $\hat{v}$ | $\bar{S} k$ | $(0.5,\; 0)^\top$ |
 | 3. 误差 $e$ | $v - \hat{v} = (3, 2)^\top - (0.5, 0)^\top$ | $(2.5,\; 2)^\top$ |
-| 4. 更新 $S_t$ | $\bar{S} + 0.5\, k e^\top$ | $\begin{bmatrix}1.75 & 1 \\ 0 & 1\end{bmatrix}$ |
-| 5. 读出 $o$ | $S_t^\top q$ | $(1.75,\; 1)^\top$ |
+| 4. 更新 $S_t$ | $\bar{S} + 0.5\, e k^\top$ | $\begin{bmatrix}1.75 & 0 \\ 1 & 1\end{bmatrix}$ |
+| 5. 读出 $o$ | $S_t q$ | $(1.75,\; 1)^\top$ |
 
 每步改写的只是当前请求独享的状态槽，模型投影权重保持不变；状态一旦被原地覆写或随抢占回收，就无法像逐词 KV 那样局部回退，只能从头或最近检查点重算。想在三维空间里观察张量流向，可打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。
 
@@ -201,10 +195,14 @@ file: linear-attention-state
 **同一套门控增量递推在引擎里拆成两条硬件路径：Prefill 走分块并行（Chunkwise）吃满 [AI Core](ai-core.md) 的 Cube 矩阵核，Decode 走逐词递推（Recurrent）压低 HBM 访存带宽。**
 
 ```wiki-diagram
-file: linear-attention-flow
+file: linear-attention-state
 ```
 
-如果把 4,096 个提示词按 $t = 1 \dots 4096$ 串行递推，4,096 次微小的矩阵乘向量会让 Cube 单元长期饥饿。**Chunkwise 并行**（如 `ChunkGatedDeltaRule`、昇腾 `fla_npu` / `npu_chunk_gated_delta_rule` 与段长 $C=64$ 的 `chunk_kda_fwd`）把输入序列切成固定长度的小段：段内先做门值累加、段内键交互矩阵与下三角求解，一次性用高密度矩阵乘算出整段 64 个位置的输出与段末状态增量；段与段之间再把前一段算出的状态传给下一段作初值。它只利用结合律重排计算顺序，与逐词递推在数学上等价（仅差浮点累加顺序），[分块预填充](chunked-prefill.md#历史状态必须跨段延续)跨轮续算时同样直接读取上一轮留下的状态。
+如果把 4,096 个提示词按 $t = 1 \dots 4096$ 串行递推，4,096 次微小的矩阵乘向量会让 Cube 单元长期饥饿。**Chunkwise 并行**（如 `ChunkGatedDeltaRule`、昇腾 `fla_npu` / `npu_chunk_gated_delta_rule` 与段长 $C=64$ 的 `chunk_kda_fwd`）把输入序列切成固定长度的小段：段内先做门值累加、段内键交互矩阵与下三角求解，一次性用高密度矩阵乘算出整段 64 个位置的输出与段末状态增量；段与段之间再把前一段算出的状态 $S_0 \to S_1 \to S_2$ 按序传给下一段作初值，并在段末写回最终状态与短卷积尾窗。它只利用结合律重排计算顺序，与逐词递推在数学上等价（仅差浮点累加顺序），[分块预填充](chunked-prefill.md#历史状态必须跨段延续)跨轮续算时同样直接读取上一轮留下的状态。
+
+```wiki-diagram
+file: linear-attention-flow
+```
 
 **Decode 逐词递推**（每步仅推进 1 个位置，或[投机解码](speculative-decoding.md)验证 $1 + K$ 个位置，对应 `fused_recurrent_gated_delta_rule` / `recurrent_gated_delta_rule` 与 `recurrent_kda`）则完全不必拼段内大矩阵：算子把本请求的状态从 HBM 读入片上缓存，融合完成归一化、门控衰减、误差写入与查询读出后再写回，单步访存恒为 $O(d_k d_v)$。同一批次混有 Prefill 与 Decode 请求时，实现先按请求阶段拆行分流，算完再按原行序拼回输出。
 

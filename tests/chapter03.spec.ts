@@ -237,17 +237,18 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
   const summaryMatrix = attn.locator('[data-matrix="汇总内容"]');
   const outputMatrix = attn.locator('[data-matrix="注意力 ΔA"]');
   expect((await outputMatrix.boundingBox())!.y - (await summaryMatrix.boundingBox())!.y).toBeGreaterThan(25);
-  for (const progress of [0.15, 0.425, 0.61, 0.975]) {
-    await attn.getByRole("slider").fill(String(progress));
-    const wireHits = await attn.locator(".layer-scene").evaluate((host) => {
+  const checkAttentionWireAndLabelGeometry = async (tag: string, requireVisibleWires = true) => {
+    const { hits, visibleWires } = await attn.locator(".layer-scene").evaluate((host) => {
       const frame = host.getBoundingClientRect();
       const labels = Array.from(host.querySelectorAll(".layer-label")).map((label) => ({
         rect: label.getBoundingClientRect(),
         name: label.textContent,
       }));
-      const hits: string[] = [];
+      const foundHits: string[] = [];
+      let wireCount = 0;
       for (const path of host.querySelectorAll<SVGPathElement>(".attention-workbench-wires path")) {
         if (Number(getComputedStyle(path).opacity) < 0.1) continue;
+        wireCount += 1;
         for (let d = 0; d < path.getTotalLength(); d += 2) {
           const p = path.getPointAtLength(d);
           for (const { rect, name } of labels) {
@@ -257,14 +258,17 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
               p.y + frame.y > rect.top &&
               p.y + frame.y < rect.bottom
             ) {
-              hits.push(name ?? "");
+              foundHits.push(name ?? "");
             }
           }
         }
       }
-      return hits;
+      return { hits: foundHits, visibleWires: wireCount };
     });
-    expect(wireHits, `wire intersection at progress ${progress}`).toEqual([]);
+    if (requireVisibleWires) {
+      expect(visibleWires, `visible wires at ${tag}`).toBeGreaterThan(0);
+    }
+    expect(hits, `wire intersection at ${tag}`).toEqual([]);
     const overlapping = await attn.locator(".layer-label").evaluateAll((nodes) => {
       const boxes = nodes.map((node) => node.getBoundingClientRect());
       return boxes.some((a, i) =>
@@ -273,7 +277,12 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
           .some((b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top),
       );
     });
-    expect(overlapping, `label overlap at progress ${progress}`).toBe(false);
+    expect(overlapping, `label overlap at ${tag}`).toBe(false);
+  };
+
+  for (const progress of [0.15, 0.425, 0.61, 0.975]) {
+    await attn.getByRole("slider").fill(String(progress));
+    await checkAttentionWireAndLabelGeometry(`progress ${progress}`, progress < 0.9);
   }
   await attn.getByRole("slider").fill("0.747");
   const attnSceneBox = (await attn.locator(".layer-scene").boundingBox())!;
@@ -285,15 +294,7 @@ test("3. /#/chapters/03 局部 3D 场景（母版材质、整列运算、标签�
     { steps: 6 },
   );
   await page.mouse.up();
-  const rotatedOverlaps = await attn.locator(".layer-label").evaluateAll((labels) => {
-    const boxes = labels.map((label) => label.getBoundingClientRect());
-    return boxes.flatMap((a, i) =>
-      boxes
-        .slice(i + 1)
-        .filter((b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top),
-    );
-  });
-  expect(rotatedOverlaps).toEqual([]);
+  await checkAttentionWireAndLabelGeometry("rotated 0.747", true);
 
   // 注意力 3D 原位乘比例、求和、投影与核对面板一致性
   await attn.locator(".layer-scene").scrollIntoViewIfNeeded();

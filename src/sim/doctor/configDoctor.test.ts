@@ -641,13 +641,28 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(gdnDbo.warnings.some((f) => f.id === "d5-gdn-prefill-checkpoints-constraints")).toBe(true);
 
-    // 7. Non-strict Pydantic bool on quantized_all_reduce_config.enable, shared_engram nullability, fractional binary suffix "1.5K", and --ubatch-size message
+    // 7. Non-strict Pydantic bool ("on"/"NO"/1) on quantized_all_reduce_config.enable, lax int ("65536") & nullability on shared_engram, fractional binary suffix "1.5K", and --ubatch-size message
     const qarIntBool = runSingleConfigDoctor(
-      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":1,"min_numel":32768}}'`,
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":"on","min_numel":"32768"}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },
     );
     expect(qarIntBool.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
     expect(qarIntBool.effectiveInput.quantizedAllReduceEnabled).toBe(true);
+    expect(qarIntBool.effectiveInput.quantizedAllReduceMinNumel).toBe(32768);
+
+    const qarNoBool = runSingleConfigDoctor(
+      `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":"NO"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(qarNoBool.errors.some((f) => f.id === "d1-quantized-ar-constraints")).toBe(false);
+    expect(qarNoBool.effectiveInput.quantizedAllReduceEnabled).toBe(false);
+
+    const seStrCap = runSingleConfigDoctor(
+      `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":"65536"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(seStrCap.errors.some((f) => f.id === "d5-shared-engram-constraints")).toBe(false);
+    expect(seStrCap.effectiveInput.sharedEngramCapacity).toBe(65536);
 
     const qarInvalidStr = runSingleConfigDoctor(
       `vllm serve /models/Qwen3-32B -tp 4 --additional-config '{"quantized_all_reduce_config":{"enable":"maybe"}}'`,

@@ -1222,13 +1222,25 @@ describe("workbenchHandoff 跨工具交接、白名单参数与脱敏快照", ()
       expect(chatPayload?.model).toBe(presetId);
     }
 
-    // IPv6 precision: C++ a::b / HH:MM:SS preserved; trailing 2001:db8:: & [2001:db8::] redacted
+    // IPv6 precision: C++ a::b / HH:MM:SS / [12:34:56] preserved; uppercase FD00::1 / trailing 2001:db8:: & [2001:db8::] redacted
     const ipv6Precision = sanitizeDiagnosticText(
-      "12:34:56 a::b a::b::c std::bad_alloc c10::Error 2001:db8:: 2001:db8::1 fe80::1 ::1 [2001:db8::]:8000",
+      "12:34:56 [12:34:56] a::b a::b::c std::bad_alloc c10::Error FD00::1 FE80::1 2001:db8:: 2001:db8::1 fe80::1 ::1 [2001:db8::]:8000",
     );
     expect(ipv6Precision.sanitized).toBe(
-      "12:34:56 a::b a::b::c std::bad_alloc c10::Error <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> [<REDACTED_IP>]:8000",
+      "12:34:56 [12:34:56] a::b a::b::c std::bad_alloc c10::Error <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> <REDACTED_IP> [<REDACTED_IP>]:8000",
     );
+    const upperIpv6Share = buildDoctorShareLink({
+      topology: "single",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+      modelHint: "auto",
+      commandText: "vllm serve Qwen/Qwen3-8B --host FD00::1 -tp 2",
+    });
+    expect(upperIpv6Share.ok).toBe(true);
+    if (upperIpv6Share.ok) {
+      expect(upperIpv6Share.redactionCount).toBe(1);
+      expect(parseDoctorQueryParams(upperIpv6Share.params).sharedCommand).toContain("--host <REDACTED_IP>");
+    }
 
     // dpLocal preserved across Calculator query rebuilds when valid for dpSize
     const preservedDpLocal = buildCalculatorQueryParams(

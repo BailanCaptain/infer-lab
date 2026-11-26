@@ -79,6 +79,7 @@ const CALCULATOR_SHARE_QUERY_KEYS = [
   "tp",
   "pp",
   "dp",
+  "dpLocal",
   "pcp",
   "dcp",
   "ep",
@@ -128,6 +129,7 @@ export function hasAdvancedQueryOverrides(
   return Boolean(
     (q.ppSize !== undefined && q.ppSize !== 1) ||
       (q.dpSize !== undefined && q.dpSize !== 1) ||
+      (q.dpLocalSize !== undefined && q.dpLocalSize !== (q.dpSize ?? 1)) ||
       (q.pcpSize !== undefined && q.pcpSize !== 1) ||
       (q.dcpSize !== undefined && q.dcpSize !== 1) ||
       (q.kvCacheDtype !== undefined && q.kvCacheDtype !== "auto") ||
@@ -1200,6 +1202,7 @@ export interface CalcState {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  dpLocalSize?: number | undefined;
   pcpSize: number;
   dcpSize: number;
   enableEp: boolean;
@@ -2923,6 +2926,7 @@ function buildCalcStateFromQuery(
     tpSize: query.tpSize ?? wave4Demo?.recommendedTp ?? 1,
     ppSize: query.ppSize ?? wave4Demo?.recommendedPp ?? 1,
     dpSize: query.dpSize ?? wave4Demo?.recommendedDp ?? 1,
+    dpLocalSize: query.dpLocalSize,
     pcpSize: query.pcpSize ?? 1,
     dcpSize: query.dcpSize ?? 1,
     enableEp: query.enableEp ?? wave4Demo?.recommendedEnableEp ?? false,
@@ -3171,6 +3175,14 @@ export function DeployCalculatorView({
     markLocalEdit();
     setState((prev) => {
       const next: CalcState = { ...prev, ...patch };
+      if (
+        patch.dpSize !== undefined &&
+        patch.dpLocalSize === undefined &&
+        next.dpLocalSize !== undefined &&
+        (next.dpLocalSize > next.dpSize || next.dpSize % next.dpLocalSize !== 0)
+      ) {
+        next.dpLocalSize = undefined;
+      }
       if (patch.maxModelLen !== undefined) {
         next.maxModelLen = normalizeCalcInt(patch.maxModelLen, 512, prev.maxModelLen);
       }
@@ -3211,6 +3223,7 @@ export function DeployCalculatorView({
       tpSize: state.tpSize,
       ppSize: state.ppSize,
       dpSize: state.dpSize,
+      ...(state.dpLocalSize !== undefined ? { dpLocalSize: state.dpLocalSize } : {}),
       pcpSize: state.pcpSize,
       dcpSize: state.dcpSize,
       enableEp: state.enableEp,
@@ -3288,6 +3301,7 @@ export function DeployCalculatorView({
       tpSize: rec.tpSize ?? 1,
       ppSize: rec.ppSize ?? 1,
       dpSize: rec.dpSize ?? 1,
+      dpLocalSize: undefined,
       pcpSize: rec.pcpSize ?? 1,
       dcpSize: rec.dcpSize ?? 1,
       enableEp: Boolean(rec.enableEp),
@@ -3311,6 +3325,7 @@ export function DeployCalculatorView({
       tpSize: 1,
       ppSize: 1,
       dpSize: 1,
+      dpLocalSize: undefined,
       pcpSize: 1,
       dcpSize: 1,
       enableEp: false,
@@ -3330,6 +3345,7 @@ export function DeployCalculatorView({
       tpSize: demo.recommendedTp,
       ppSize: demo.recommendedPp,
       dpSize: demo.recommendedDp,
+      dpLocalSize: undefined,
       pcpSize: 1,
       dcpSize: 1,
       enableEp: demo.recommendedEnableEp,
@@ -3396,6 +3412,7 @@ export function DeployCalculatorView({
       state.tpSize === 1 &&
       state.ppSize === 1 &&
       state.dpSize === 1 &&
+      state.dpLocalSize === undefined &&
       state.pcpSize === 1 &&
       state.dcpSize === 1 &&
       !state.enableEp &&
@@ -3428,6 +3445,7 @@ export function DeployCalculatorView({
           tpSize: state.tpSize,
           ppSize: state.ppSize,
           dpSize: state.dpSize,
+          dpLocalSize: state.dpLocalSize,
           pcpSize: state.pcpSize,
           dcpSize: state.dcpSize,
           enableEp: state.enableEp,
@@ -3495,6 +3513,7 @@ export function DeployCalculatorView({
         tpSize: state.tpSize,
         ppSize: state.ppSize,
         dpSize: state.dpSize,
+        dpLocalSize: state.dpLocalSize,
         pcpSize: state.pcpSize,
         dcpSize: state.dcpSize,
         enableEp: state.enableEp,
@@ -3600,6 +3619,7 @@ export function DeployCalculatorView({
           weightPrecision: state.weightPrecision,
           kvCacheDtype: state.kvCacheDtype,
           weightNzMode: state.weightNzMode,
+          ...(state.dpLocalSize !== undefined ? { dpLocal: state.dpLocalSize } : {}),
           pcp: state.pcpSize,
           dcp: state.dcpSize,
           maxModelLen: state.maxModelLen,

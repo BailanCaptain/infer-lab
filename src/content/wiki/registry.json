@@ -11427,7 +11427,7 @@
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120",
         "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
-        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/aclcppdevg_000537.html",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1345.html",
         "vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453",
         "vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606",
         "vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552"

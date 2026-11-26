@@ -9,6 +9,7 @@ import {
   TOOL_EVIDENCE_LIMITS,
   troubleshootAnalysisInputSchema,
 } from "../../server/tool-evidence";
+import { deriveParamDisplayTitle } from "../../src/content/wiki/param-display";
 import { buildIndex, retrieve } from "../../src/content/wiki/retrieve";
 import { type RegistryEntry, registrySchema } from "../../src/content/wiki/schema";
 import { runPdConfigDoctor, runSingleConfigDoctor } from "../../src/sim/doctor/configDoctor";
@@ -118,10 +119,13 @@ export function loadAgentWiki(root: string): AgentWiki {
   return makeAgentWiki(
     registry.pages.map((page) => {
       const rawText = readFileSync(join(root, "wiki", page.file), "utf8");
+      const body = bodyByFile.get(page.file) ?? "";
+      const derived = deriveParamDisplayTitle(page, body);
       return {
         ...page,
+        ...(derived !== page.title ? { displayTitle: derived } : {}),
         text: rawText,
-        indexText: bodyByFile.get(page.file) ?? rawText,
+        indexText: body || rawText,
       };
     }),
   );

@@ -287,6 +287,7 @@ export interface DeployPlanInput {
   tpSize?: number;
   ppSize?: number;
   dpSize?: number;
+  dpLocalSize?: number;
   pcpSize?: number;
   dcpSize?: number;
   enableEp?: boolean;
@@ -472,6 +473,7 @@ export interface DeployPlanReport {
     tpSize: number;
     ppSize: number;
     dpSize: number;
+    dpLocalSize?: number | undefined;
     pcpSize: number;
     dcpSize: number;
     enableEp: boolean;
@@ -3130,6 +3132,7 @@ function buildServeCliCommand(params: {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  dpLocalSize?: number | undefined;
   pcpSize: number;
   dcpSize: number;
   enableEp: boolean;
@@ -3156,6 +3159,7 @@ function buildServeCliCommand(params: {
     tpSize,
     ppSize,
     dpSize,
+    dpLocalSize,
     pcpSize,
     dcpSize,
     enableEp,
@@ -3212,6 +3216,13 @@ function buildServeCliCommand(params: {
     `-tp ${tpSize}`,
     ppSize > 1 ? `-pp ${ppSize}` : "",
     dpSize > 1 ? `-dp ${dpSize}` : "",
+    dpSize > 1 &&
+    dpLocalSize !== undefined &&
+    dpLocalSize >= 1 &&
+    dpLocalSize < dpSize &&
+    dpSize % dpLocalSize === 0
+      ? `--data-parallel-size-local ${dpLocalSize}`
+      : "",
     pcpSize > 1 ? `--prefill-context-parallel-size ${pcpSize}` : "",
     dcpSize > 1 ? `--decode-context-parallel-size ${dcpSize}` : "",
     enableEp ? "--enable-expert-parallel" : "",
@@ -3246,6 +3257,7 @@ export function buildCurrentPlanCliHint(plan: DeployPlanReport): string {
     tpSize: s.tpSize,
     ppSize: s.ppSize,
     dpSize: s.dpSize,
+    dpLocalSize: s.dpLocalSize,
     pcpSize: s.pcpSize,
     dcpSize: s.dcpSize,
     enableEp: s.requestedEnableEp ?? s.enableEp,
@@ -3464,6 +3476,14 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const enableEp = Boolean(input.enableEp && moe.isMoe);
   const epWorldSize = enableEp ? dpSize * tpSize * pcpSize : 1;
   const worldSize = tpSize * ppSize * dpSize * pcpSize;
+  const rawDpLocal =
+    input.dpLocalSize !== undefined && Number.isSafeInteger(input.dpLocalSize)
+      ? input.dpLocalSize
+      : undefined;
+  const dpLocalSize =
+    rawDpLocal !== undefined && rawDpLocal >= 1 && rawDpLocal <= dpSize && dpSize % rawDpLocal === 0
+      ? rawDpLocal
+      : undefined;
 
   const gpuMemoryUtilization = Math.min(
     0.99,
@@ -4488,6 +4508,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       tpSize,
       ppSize,
       dpSize,
+      ...(dpLocalSize !== undefined ? { dpLocalSize } : {}),
       pcpSize,
       dcpSize,
       enableEp,

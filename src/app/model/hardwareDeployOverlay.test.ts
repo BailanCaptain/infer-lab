@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { buildCurrentPlanCliHint, evaluateDeployPlan } from "../../sim/modelspec/deployCalculator";
+import { parseCalculatorQueryParams } from "../tools/workbenchHandoff";
 import {
   buildCalculatorReturnToFromDeploy,
   buildHardwareDeployHref,
@@ -556,5 +558,28 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     );
     expect(rebuiltDecoded?.calc?.dpLocal).toBe(1);
     expect(computeHardwareNodeSlotLayout(rebuiltDecoded!).nodeCount).toBe(2);
+
+    // 8. 算账台可复制/交接启动命令同样保留 --data-parallel-size-local，确保 3D -> 算账台 -> 体检台 -> 3D 节点数一致
+    const parsedCalcReturn = parseCalculatorQueryParams(calcReturnParams);
+    expect(parsedCalcReturn.dpLocalSize).toBe(1);
+    const calcPlan = evaluateDeployPlan({
+      model: "qwen3-30b-a3b",
+      cardId: "a2-64g",
+      tpSize: parsedCalcReturn.tpSize ?? 4,
+      dpSize: parsedCalcReturn.dpSize ?? 2,
+      ...(parsedCalcReturn.dpLocalSize !== undefined ? { dpLocalSize: parsedCalcReturn.dpLocalSize } : {}),
+      enableEp: Boolean(parsedCalcReturn.enableEp),
+    });
+    const calcCli = buildCurrentPlanCliHint(calcPlan);
+    expect(calcCli).toContain("--data-parallel-size-local 1");
+    const doctor3dHref = buildHardwareDeployHrefFromCommand(calcCli, {
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(doctor3dHref).not.toBeNull();
+    const doctor3dDecoded = parseHardwareDeployOverlay(
+      new URLSearchParams(doctor3dHref!.slice("#/hardware?".length)).get("deploy"),
+    );
+    expect(computeHardwareNodeSlotLayout(doctor3dDecoded!).nodeCount).toBe(2);
   });
 });

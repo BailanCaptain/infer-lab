@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { deriveParamDisplayTitle } from "../../src/content/wiki/param-display";
 import {
   buildIndex,
   deserializeSearchIndex,
@@ -55,10 +56,15 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
     JSON.parse(readFileSync(join(root, "src/content/wiki/registry.json"), "utf8")),
   );
   const bodyByFile = new Map(loadPages(join(root, "wiki")).pages.map((p) => [p.file, p.body.trim()]));
-  const pages = registry.pages.map((page) => ({
-    ...page,
-    text: bodyByFile.get(page.file) ?? "",
-  }));
+  const pages = registry.pages.map((page) => {
+    const body = bodyByFile.get(page.file) ?? "";
+    const derived = deriveParamDisplayTitle(page, body);
+    return {
+      ...page,
+      ...(derived !== page.title ? { displayTitle: derived } : {}),
+      text: body,
+    };
+  });
   const fullIndex = buildIndex(pages);
   const browserIndex = deserializeSearchIndex(serializeSearchIndex(fullIndex, "e".repeat(64)));
   const agentWiki = loadAgentWiki(root);
@@ -98,8 +104,11 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
       const browserHits = retrieve(c.query, browserIndex, { limit: 5 });
       expect(browserHits, `serialized parity for ${c.id}`).toEqual(hits);
 
-      const agentHits = agentWiki.search(c.query, 5);
-      expect(agentHits[0]?.id, `agentWiki parity for ${c.id}`).toBe(hits[0]?.id);
+      const agentHits = agentWiki.search(c.query, 5).filter((h) => h.how !== "related");
+      expect(
+        agentHits.map((h) => h.id),
+        `agentWiki direct-hit parity for ${c.id}`,
+      ).toEqual(hits.map((h) => h.id));
 
       const top3Ids = hits.slice(0, 3).map((h) => h.id);
       if (c.expectedTop1 && hits[0]?.id !== c.expectedTop1) {
@@ -146,5 +155,18 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
     for (const code of ["507015", "507034", "507035", "161002", "107030"]) {
       expect(retrieve(code, cleanIndex, { limit: 5 })).toEqual([]);
     }
+
+    // Param displayTitle parity check ("size" Top-3 matches production snapshot build including kv-cache-spec)
+    const sizeTop3 = retrieve("size", browserIndex, { limit: 5 })
+      .slice(0, 3)
+      .map((h) => h.id);
+    expect(sizeTop3).toContain("kv-cache-spec");
+    expect(
+      agentWiki
+        .search("size", 5)
+        .filter((h) => h.how !== "related")
+        .slice(0, 3)
+        .map((h) => h.id),
+    ).toEqual(sizeTop3);
   });
 });

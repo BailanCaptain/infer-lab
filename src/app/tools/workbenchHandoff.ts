@@ -148,6 +148,7 @@ export interface CalculatorQueryOverrides {
   tpSize?: number | undefined;
   ppSize?: number | undefined;
   dpSize?: number | undefined;
+  dpLocalSize?: number | undefined;
   pcpSize?: number | undefined;
   dcpSize?: number | undefined;
   enableEp?: boolean | undefined;
@@ -209,6 +210,10 @@ export function parseCalculatorQueryParams(params: URLSearchParams): CalculatorQ
   if (pp !== undefined) out.ppSize = pp;
   const dp = parseParallel("dp");
   if (dp !== undefined) out.dpSize = dp;
+  const dpLocal = parseParallel("dpLocal");
+  if (dpLocal !== undefined && (dp === undefined || (dpLocal <= dp && dp % dpLocal === 0))) {
+    out.dpLocalSize = dpLocal;
+  }
   const pcp = parseParallel("pcp");
   if (pcp !== undefined) out.pcpSize = pcp;
   const dcp = parseParallel("dcp");
@@ -290,11 +295,22 @@ export function buildCalculatorQueryParams(
   }
   if (input.dpSize !== undefined && ALLOWED_PARALLEL_SIZES.has(input.dpSize)) {
     next.set("dp", String(input.dpSize));
-    const rawDl = preserve?.get("dpLocal")?.trim();
-    if (rawDl && /^\d+$/.test(rawDl)) {
-      const dl = Number(rawDl);
-      if (Number.isSafeInteger(dl) && dl >= 1 && dl <= input.dpSize && input.dpSize % dl === 0) {
-        next.set("dpLocal", String(dl));
+    const explicitDl = input.dpLocalSize;
+    if (
+      explicitDl !== undefined &&
+      Number.isSafeInteger(explicitDl) &&
+      explicitDl >= 1 &&
+      explicitDl <= input.dpSize &&
+      input.dpSize % explicitDl === 0
+    ) {
+      next.set("dpLocal", String(explicitDl));
+    } else if (explicitDl === undefined) {
+      const rawDl = preserve?.get("dpLocal")?.trim();
+      if (rawDl && /^\d+$/.test(rawDl)) {
+        const dl = Number(rawDl);
+        if (Number.isSafeInteger(dl) && dl >= 1 && dl <= input.dpSize && input.dpSize % dl === 0) {
+          next.set("dpLocal", String(dl));
+        }
       }
     }
   }
@@ -526,9 +542,9 @@ export function sanitizeDiagnosticText(raw: string): { sanitized: string; redact
     },
   );
 
-  // 6. IPv6 addresses (bracketed [2001:db8::1]/[2001:db8::], full 8-hextet, or :: compressed hex; never matches HH:MM:SS timestamps or C++ a::b identifiers)
+  // 6. IPv6 addresses (bracketed [2001:db8::1]/[2001:db8::], full 8-hextet, or :: compressed hex; never matches [12:34:56] timestamps or C++ a::b identifiers)
   text = text.replace(
-    /\[(?:(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}|(?=[^\]]*[0-9a-fA-F])(?:[0-9a-fA-F]{1,4}:){1,6}:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})?|::(?:ffff:(?:<REDACTED_IP>|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})?)|(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,6})?))(?:%[A-Za-z0-9_.-]+)?\]|(?<![A-Za-z0-9_:])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){2,6}:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,4})?|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,5}|(?:fe[89abAB][0-9a-fA-F]|f[cdCD][0-9a-fA-F]{2}|ff[0-9a-fA-F]{2}|[23][0-9a-fA-F]{3})::(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,5})?)(?![A-Za-z0-9_:])|(?<=^|[\s='"([,])::(?:ffff:(?:<REDACTED_IP>|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})?)|[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){0,6})(?![A-Za-z0-9_:])/g,
+    /\[(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?=[^\]]*[0-9a-f])(?:[0-9a-f]{1,4}:){1,6}:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?|::(?:ffff:(?:<REDACTED_IP>|[0-9a-f]{1,4}(?::[0-9a-f]{1,4})?)|(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?))(?:%[A-Za-z0-9_.-]+)?\]|(?<![A-Za-z0-9_:])(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:){2,6}:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,4})?|[0-9a-f]{1,4}::[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){1,5}|(?:fe[89ab][0-9a-f]|f[cd][0-9a-f]{2}|ff[0-9a-f]{2}|[23][0-9a-f]{3})::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?)(?![A-Za-z0-9_:])|(?<=^|[\s='"([,])::(?:ffff:(?:<REDACTED_IP>|[0-9a-f]{1,4}(?::[0-9a-f]{1,4})?)|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})(?![A-Za-z0-9_:])/gi,
     (full) => {
       redactionCount += 1;
       return full.startsWith("[") && full.endsWith("]") ? "[<REDACTED_IP>]" : "<REDACTED_IP>";

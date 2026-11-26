@@ -68,7 +68,7 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L879-L884'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L110-L120'
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
-  - 'https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/aclcppdevg_000537.html'
+  - 'https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1345.html'
   - 'vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453'
   - 'vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606'
   - 'vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552'
@@ -294,13 +294,13 @@ file: troubleshooting-fig-first-fault
 
 外层 Python 日志常只停在 `AclrtSynchronizeStreamWithTimeout` 或 `synchronize stream failed`，真正区分硬件执行异常、算子入参越界与图捕获限制的线索藏在数字 `aclError` 与 `plog` 中：
 
-| 数字错误码与常见外层报错 | 所属层级与物理含义 | 首取证据与下一步分流 |
+| 数字错误码与常见外层报错 | 官方 `aclError` 定义与常见现场诱因 | 首取证据与下一步分流 |
 | --- | --- | --- |
-| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | Runtime 汇报 **AI Core 执行异常**，常见于核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
-| **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | Runtime 汇报 **Vector Core（AIV）执行超时**，向量核任务超最大等待阈值或死锁未归还事件 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
-| **`507035`**（`vector core exception` / `aicore VEC 507035`） | Runtime 汇报 **Vector Core（AIV）执行异常**，常见于向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
+| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | 官方定义为 **AI Core 执行异常**；现场常见诱因包括核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
+| **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | 官方定义为 **Vector Core（AIV）执行超时**；现场常见诱因包括超长序列单步计算超阈值或核内同步未释放 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
+| **`507035`**（`vector core exception` / `aicore VEC 507035`） | 官方定义为 **Vector Core（AIV）执行异常**；现场常见诱因包括向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
 | **`161002`**（`ACLNN_ERR_PARAM_INVALID`） | `aclnn` 二段式算子接口**参数校验失败**，即输入输出 `dtype`、数据格式、维度或步长违反算子约束 | 查紧邻报错的 `aclGetRecentErrMsg` 明细核对张量形状与量化 Scale 类型，转 [算子与 kernel](ops-and-kernels.md) |
-| **`107030`**（`ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT`） | Runtime **图捕获模式不支持当前操作**，捕获流内夹杂受限同步或 `rtMemcpy`（部分算子仅打 `plog` 不影响推理） | 先核对服务是否实际中断；若捕获失败则用 `--enforce-eager` 对照并转 [ACL Graph](acl-graph.md) 与 [设备内存](device-memory.md) |
+| **`107030`**（`ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT`） | 官方定义为**当前捕获模式不支持该操作**；现场多因图捕获流内夹杂受限同步或 `rtMemcpy`（部分算子仅打 `plog` 不影响推理） | 先核对服务是否实际中断；若捕获失败则用 `--enforce-eager` 对照并转 [ACL Graph](acl-graph.md) 与 [设备内存](device-memory.md) |
 
 ## 证据不足时，下一步应该有多具体
 

@@ -347,8 +347,38 @@ function parseBoolLike(val: unknown): boolean | undefined {
   if (typeof val === "number") return val !== 0;
   if (typeof val === "string") {
     const lower = val.trim().toLowerCase();
-    if (lower === "1" || lower === "true") return true;
-    if (lower === "0" || lower === "false") return false;
+    if (
+      lower === "1" ||
+      lower === "true" ||
+      lower === "t" ||
+      lower === "yes" ||
+      lower === "y" ||
+      lower === "on"
+    ) {
+      return true;
+    }
+    if (
+      lower === "0" ||
+      lower === "false" ||
+      lower === "f" ||
+      lower === "no" ||
+      lower === "n" ||
+      lower === "off"
+    ) {
+      return false;
+    }
+  }
+  return undefined;
+}
+
+function parsePydanticLaxInt(val: unknown): number | undefined {
+  if (typeof val === "number" && Number.isSafeInteger(val)) return val;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (/^[+-]?\d+$/.test(trimmed)) {
+      const n = Number(trimmed);
+      if (Number.isSafeInteger(n)) return n;
+    }
   }
   return undefined;
 }
@@ -1458,8 +1488,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           }
         }
         if (qarc.min_numel !== undefined) {
-          if (typeof qarc.min_numel === "number" && Number.isInteger(qarc.min_numel)) {
-            couplingInput.quantizedAllReduceMinNumel = qarc.min_numel;
+          const minNumel = parsePydanticLaxInt(qarc.min_numel);
+          if (minNumel !== undefined) {
+            couplingInput.quantizedAllReduceMinNumel = minNumel;
           } else {
             couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.min_numel 必须为整数（收到 ${JSON.stringify(qarc.min_numel)}）`;
           }
@@ -1529,8 +1560,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           }
         }
         if (rawSe.capacity !== undefined) {
-          if (typeof rawSe.capacity === "number" && Number.isInteger(rawSe.capacity)) {
-            couplingInput.sharedEngramCapacity = rawSe.capacity;
+          const seCap = parsePydanticLaxInt(rawSe.capacity);
+          if (seCap !== undefined) {
+            couplingInput.sharedEngramCapacity = seCap;
           } else {
             couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.capacity 必须为整数（不能为 null；省略该字段才使用默认值 65536，收到 ${JSON.stringify(rawSe.capacity)}）`;
           }
@@ -1543,8 +1575,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           }
         }
         if (rawSe.listen_port !== undefined && rawSe.listen_port !== null) {
-          if (typeof rawSe.listen_port === "number" && Number.isInteger(rawSe.listen_port)) {
-            couplingInput.sharedEngramListenPort = rawSe.listen_port;
+          const seLp = parsePydanticLaxInt(rawSe.listen_port);
+          if (seLp !== undefined) {
+            couplingInput.sharedEngramListenPort = seLp;
           } else {
             couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.listen_port 必须为整数（收到 ${JSON.stringify(rawSe.listen_port)}）`;
           }

@@ -56,6 +56,7 @@ export interface InferredModelHints {
   hasRoutedExpertHiddenSize?: boolean | undefined;
   useMla?: boolean | undefined;
   usesSfaSparse?: boolean | undefined;
+  hasCompressRatios?: boolean | undefined;
   indexTopk?: number | undefined;
   linearNumHeads?: number | undefined;
   isQwen35Dense?: boolean | undefined;
@@ -729,6 +730,132 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+const UNSAFE_JSON_INTS = new WeakMap<object, Map<string, bigint>>();
+
+function setUnsafeJsonInt(holder: object, key: string, value: bigint | undefined): void {
+  let map = UNSAFE_JSON_INTS.get(holder);
+  if (value === undefined) {
+    map?.delete(key);
+    return;
+  }
+  if (!map) {
+    map = new Map<string, bigint>();
+    UNSAFE_JSON_INTS.set(holder, map);
+  }
+  map.set(key, value);
+}
+
+function getUnsafeJsonInt(holder: object, key: string): bigint | undefined {
+  return UNSAFE_JSON_INTS.get(holder)?.get(key);
+}
+
+function recordUnsafeJsonInts(rawJson: string, root: unknown): void {
+  let i = 0;
+  const skipWs = (): void => {
+    while (i < rawJson.length && /\s/.test(rawJson[i]!)) i += 1;
+  };
+  const readJsonString = (): string => {
+    const start = i;
+    i += 1;
+    while (i < rawJson.length) {
+      const c = rawJson[i]!;
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        i += 1;
+        break;
+      }
+      i += 1;
+    }
+    return JSON.parse(rawJson.slice(start, i)) as string;
+  };
+  const walk = (holder: Record<string, unknown> | null, propKey: string | null, val: unknown): void => {
+    skipWs();
+    if (i >= rawJson.length) return;
+    const ch = rawJson[i]!;
+    if (ch === "{") {
+      i += 1;
+      skipWs();
+      if (rawJson[i] === "}") {
+        i += 1;
+        return;
+      }
+      while (i < rawJson.length) {
+        skipWs();
+        if (rawJson[i] !== '"') break;
+        const k = readJsonString();
+        skipWs();
+        if (rawJson[i] === ":") i += 1;
+        walk(isRecord(val) ? val : null, k, isRecord(val) && Object.hasOwn(val, k) ? val[k] : undefined);
+        skipWs();
+        if (rawJson[i] === ",") {
+          i += 1;
+          continue;
+        }
+        if (rawJson[i] === "}") {
+          i += 1;
+        }
+        break;
+      }
+      return;
+    }
+    if (ch === "[") {
+      i += 1;
+      skipWs();
+      if (rawJson[i] === "]") {
+        i += 1;
+        return;
+      }
+      let arrIdx = 0;
+      while (i < rawJson.length) {
+        walk(null, null, Array.isArray(val) ? val[arrIdx] : undefined);
+        arrIdx += 1;
+        skipWs();
+        if (rawJson[i] === ",") {
+          i += 1;
+          continue;
+        }
+        if (rawJson[i] === "]") {
+          i += 1;
+        }
+        break;
+      }
+      return;
+    }
+    if (ch === '"') {
+      readJsonString();
+      if (holder && propKey !== null) setUnsafeJsonInt(holder, propKey, undefined);
+      return;
+    }
+    const start = i;
+    while (i < rawJson.length && !/[\s,}\]]/.test(rawJson[i]!)) i += 1;
+    const lit = rawJson.slice(start, i);
+    if (holder && propKey !== null) {
+      if (/^-?\d+$/.test(lit)) {
+        try {
+          const bi = BigInt(lit);
+          if (bi > 9007199254740991n || bi < -9007199254740991n) {
+            setUnsafeJsonInt(holder, propKey, bi);
+          } else {
+            setUnsafeJsonInt(holder, propKey, undefined);
+          }
+        } catch {
+          setUnsafeJsonInt(holder, propKey, undefined);
+        }
+      } else {
+        setUnsafeJsonInt(holder, propKey, undefined);
+      }
+    }
+  };
+  try {
+    walk(null, null, root);
+  } catch {
+    // Ignore scanner errors; JSON.parse already validated syntax
+  }
+}
+
 function parseJsonObjectFlag(
   flag: string,
   rawValue: string,
@@ -746,6 +873,7 @@ function parseJsonObjectFlag(
       });
       return null;
     }
+    recordUnsafeJsonInts(rawValue, parsed);
     return parsed;
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -784,8 +912,8 @@ function parseIntegerFlag(
     num = parseHumanReadableInt(trimmed);
   }
   if (num === undefined) {
-    if (/^[+-]?\d+$/.test(trimmed)) {
-      num = Number.parseInt(trimmed, 10);
+    if (/^[+-]?\d(?:_?\d)*$/.test(trimmed)) {
+      num = Number.parseInt(trimmed.replace(/_/g, ""), 10);
     } else {
       diagnostics.push({
         code: "parse-invalid-number",
@@ -1197,11 +1325,27 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.modelType = "qwen3_5";
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
+  } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash/.test(s)) {
+    hints.matchedPresetName = "DeepSeek-V4-Flash";
+    hints.isMoe = true;
+    hints.useMla = true;
+    hints.usesSfaSparse = false;
+    hints.hasCompressRatios = true;
+    hints.indexTopk = 1024;
+    hints.modelType = "deepseek_v4";
+    hints.numExperts = 256;
+    hints.numExpertsPerTok = 8;
+    hints.numAttentionHeads = 64;
+    hints.headDim = 512;
+    hints.kvLoraRank = 512;
+    hints.qkRopeHeadDim = 64;
+    hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4/.test(s)) {
     hints.matchedPresetName = "DeepSeek-V4";
     hints.isMoe = true;
     hints.useMla = true;
     hints.usesSfaSparse = true;
+    hints.indexTopk = 2048;
     hints.modelType = "deepseek_v4";
     hints.numExperts = 256;
     hints.numExpertsPerTok = 8;
@@ -1214,7 +1358,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "DeepSeek-V3.2";
     hints.isMoe = true;
     hints.useMla = true;
-    hints.usesSfaSparse = false;
+    hints.usesSfaSparse = true;
     hints.indexTopk = 2048;
     hints.modelType = "deepseek_v32";
     hints.numExperts = 256;
@@ -1238,6 +1382,9 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "GLM-5.3-Flash";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.usesSfaSparse = false;
+    hints.indexTopk = 2048;
+    hints.numExperts = 288;
     hints.modelType = "glm5_next";
     hints.linearNumHeads = 64;
     hints.defaultModelDtype = "bfloat16";
@@ -1245,6 +1392,9 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "GLM-5-MoE";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.usesSfaSparse = true;
+    hints.indexTopk = 2048;
+    hints.numExperts = 256;
     hints.modelType = "glm5";
     hints.defaultModelDtype = "bfloat16";
   } else if (/glm[-_.]?4\.7[-_.]?flash/.test(s)) {
@@ -1265,12 +1415,19 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.modelType = "kimi_k3";
     hints.hasRoutedExpertHiddenSize = true;
     hints.defaultModelDtype = "bfloat16";
+  } else if (/llama[-_.]?4/.test(s)) {
+    hints.matchedPresetName = "Llama-4-MoE";
+    hints.isMoe = true;
+    hints.useMla = false;
+    hints.modelType = "llama4";
+    if (/maverick|128e/.test(s)) hints.numExperts = 128;
+    else if (/scout|16e/.test(s)) hints.numExperts = 16;
   } else if (/mixtral/.test(s)) {
     hints.isMoe = true;
     hints.useMla = false;
     hints.modelType = "mixtral";
   } else if (/(?:llama|mistral|gemma|internlm|yi)/.test(s)) {
-    hints.isMoe = false;
+    hints.isMoe = /moe|-\d+e(?:$|\b|[-_.])/.test(s);
     hints.useMla = false;
   }
 
@@ -1404,9 +1561,10 @@ function normalizeCliFlag(rawFlag: string): string {
 const FORBIDDEN_DOTTED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function parseHumanReadableInt(raw: string): number | undefined {
-  const m = /^(\d+(?:\.\d+)?)([kKmMgGtT])$/.exec(raw.trim());
+  const m = /^(\d(?:_?\d)*(?:\.\d(?:_?\d)*)?)([kKmMgGtT])$/.exec(raw.trim());
   if (!m?.[1] || !m[2]) return undefined;
-  const num = Number(m[1]);
+  const digits = m[1].replace(/_/g, "");
+  const num = Number(digits);
   if (!Number.isFinite(num)) return undefined;
   const decimalMult: Readonly<Record<string, number>> = {
     k: 1e3,
@@ -1424,19 +1582,32 @@ function parseHumanReadableInt(raw: string): number | undefined {
     return Math.trunc(num * decimalMult[m[2]]!);
   }
   if (Object.hasOwn(binaryMult, m[2])) {
-    if (m[1].includes(".")) return undefined;
-    return Number.parseInt(m[1], 10) * binaryMult[m[2]]!;
+    if (digits.includes(".")) return undefined;
+    return Number.parseInt(digits, 10) * binaryMult[m[2]]!;
   }
   return undefined;
 }
 
-function parseDottedScalarOrJson(raw: string): unknown {
+function parseDottedScalarOrJson(raw: string): { value: unknown; unsafeInt?: bigint | undefined } {
   const trimmed = raw.trim();
   try {
-    return JSON.parse(trimmed);
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (isRecord(parsed)) {
+      recordUnsafeJsonInts(trimmed, parsed);
+    } else if (/^-?\d+$/.test(trimmed)) {
+      try {
+        const bi = BigInt(trimmed);
+        if (bi > 9007199254740991n || bi < -9007199254740991n) {
+          return { value: parsed, unsafeInt: bi };
+        }
+      } catch {
+        // Ignore BigInt overflow
+      }
+    }
+    return { value: parsed };
   } catch {
     const hr = parseHumanReadableInt(trimmed);
-    return hr !== undefined ? hr : raw;
+    return { value: hr !== undefined ? hr : raw };
   }
 }
 
@@ -1457,6 +1628,7 @@ export function setDottedRecordValue(
   target: Record<string, unknown>,
   pathSegments: readonly string[],
   value: unknown,
+  unsafeLeafInt?: bigint | undefined,
 ): boolean {
   if (pathSegments.length === 0 || pathSegments.some((seg) => FORBIDDEN_DOTTED_KEYS.has(seg))) {
     return false;
@@ -1477,12 +1649,14 @@ export function setDottedRecordValue(
   const prevLeaf = Object.hasOwn(cursor, leaf) ? cursor[leaf] : undefined;
   if (Array.isArray(prevLeaf) && Array.isArray(value)) {
     defineOwnRecordField(cursor, leaf, [...prevLeaf, ...value]);
+    setUnsafeJsonInt(cursor, leaf, undefined);
   } else if (isRecord(prevLeaf) && isRecord(value)) {
     for (const [k, v] of Object.entries(value)) {
-      setDottedRecordValue(prevLeaf, [k], v);
+      setDottedRecordValue(prevLeaf, [k], v, getUnsafeJsonInt(value, k));
     }
   } else {
     defineOwnRecordField(cursor, leaf, value);
+    setUnsafeJsonInt(cursor, leaf, unsafeLeafInt);
   }
   return true;
 }
@@ -1860,6 +2034,19 @@ function pushRangeError(
   });
 }
 
+function readPydanticLaxBigIntField(holder: Record<string, unknown>, key: string): bigint | undefined {
+  const exact = getUnsafeJsonInt(holder, key);
+  if (exact !== undefined) return exact;
+  return parsePydanticLaxBigInt(holder[key]);
+}
+
+function readPydanticNoBoolBigIntField(holder: Record<string, unknown>, key: string): bigint | undefined {
+  if (typeof holder[key] === "boolean") return undefined;
+  const exact = getUnsafeJsonInt(holder, key);
+  if (exact !== undefined) return exact;
+  return parsePydanticNoBoolBigInt(holder[key]);
+}
+
 function readRforkIntField(
   holder: Record<string, unknown>,
   key: string,
@@ -1867,6 +2054,8 @@ function readRforkIntField(
   diagnostics: CliParseDiagnostic[],
 ): bigint | undefined {
   if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
+  const exact = getUnsafeJsonInt(holder, key);
+  if (exact !== undefined) return exact;
   const parsed = parsePythonBuiltinBigInt(holder[key]);
   if (parsed === "invalid") {
     const fullFlag = `${flagPath}.${key}`;
@@ -1962,7 +2151,10 @@ function validateAscendModelValidatorRanges(
         message: `ValueError: additional_config.mega_moe_max_tokens 必须为整数，收到 ${rawMegaFloatLiteral ?? JSON.stringify(rawMega)}。`,
       });
     } else {
-      const megaMax = parsePydanticLaxBigInt(rawMega);
+      const megaMax = readPydanticLaxBigIntField(
+        effectiveAdditional as Record<string, unknown>,
+        "mega_moe_max_tokens",
+      );
       if (megaMax !== undefined && (version === "main" ? megaMax < 0n : megaMax <= 0n)) {
         pushRangeError(
           diagnostics,
@@ -2061,7 +2253,7 @@ function validateAscendModelValidatorRanges(
         });
         continue;
       }
-      const n = parsePydanticLaxBigInt(eplb[k]);
+      const n = readPydanticLaxBigIntField(eplb, k);
       if (n !== undefined && n < 0n) {
         pushRangeError(diagnostics, `additional_config.eplb_config.${k}`, ">= 0", n);
       }
@@ -2085,7 +2277,7 @@ function validateAscendModelValidatorRanges(
     const stair = !isRfork ? eplb.stair_config : undefined;
     if (isRecord(stair)) {
       const sBase = "additional_config.eplb_config.stair_config";
-      const bins = parsePydanticNoBoolBigInt(stair.load_window_bins);
+      const bins = readPydanticNoBoolBigIntField(stair, "load_window_bins");
       if (bins !== undefined && (bins < 2n || bins > 256n)) {
         pushRangeError(diagnostics, `${sBase}.load_window_bins`, "2 <= x <= 256", bins);
       }
@@ -2099,27 +2291,27 @@ function validateAscendModelValidatorRanges(
           pushRangeError(diagnostics, `${sBase}.${tk}`, "0 < x <= 1", tv);
         }
       }
-      const rtl = parsePydanticNoBoolBigInt(stair.rank_transfer_limit);
+      const rtl = readPydanticNoBoolBigIntField(stair, "rank_transfer_limit");
       if (rtl !== undefined && rtl !== -1n && rtl < 1n) {
         pushRangeError(diagnostics, `${sBase}.rank_transfer_limit`, "-1 或 >= 1", rtl);
       }
-      const cntl = parsePydanticNoBoolBigInt(stair.cross_node_transfer_limit);
+      const cntl = readPydanticNoBoolBigIntField(stair, "cross_node_transfer_limit");
       if (cntl !== undefined && cntl < -1n) {
         pushRangeError(diagnostics, `${sBase}.cross_node_transfer_limit`, ">= -1", cntl);
       }
-      const stages = parsePydanticNoBoolBigInt(stair.replica_search_num_stages);
+      const stages = readPydanticNoBoolBigIntField(stair, "replica_search_num_stages");
       if (stages !== undefined && (stages < 1n || stages > 8n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_num_stages`, "1 <= x <= 8", stages);
       }
-      const radius = parsePydanticNoBoolBigInt(stair.replica_search_radius);
+      const radius = readPydanticNoBoolBigIntField(stair, "replica_search_radius");
       if (radius !== undefined && (radius < 0n || radius > 32n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_radius`, "0 <= x <= 32", radius);
       }
-      const beam = parsePydanticNoBoolBigInt(stair.replica_search_beam_size);
+      const beam = readPydanticNoBoolBigIntField(stair, "replica_search_beam_size");
       if (beam !== undefined && (beam < 1n || beam > 128n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_beam_size`, "1 <= x <= 128", beam);
       }
-      const bt = parsePydanticNoBoolBigInt(stair.placement_search_backtrack_limit);
+      const bt = readPydanticNoBoolBigIntField(stair, "placement_search_backtrack_limit");
       if (bt !== undefined && (bt < 0n || bt > 64n)) {
         pushRangeError(diagnostics, `${sBase}.placement_search_backtrack_limit`, "0 <= x <= 64", bt);
       }
@@ -2194,7 +2386,7 @@ function validateAscendModelValidatorRanges(
       "mlp_tensor_parallel_size",
       "qkv_iproj_tensor_parallel_size",
     ] as const) {
-      const n = parsePydanticLaxBigInt(fgtp[k]);
+      const n = readPydanticLaxBigIntField(fgtp, k);
       if (n !== undefined && n < 0n) {
         pushRangeError(diagnostics, `additional_config.finegrained_tp_config.${k}`, ">= 0", n);
       }
@@ -2216,13 +2408,13 @@ function validateAscendModelValidatorRanges(
       }
       const mc = isRfork
         ? readRforkIntField(prof, "min_chunk", profEntry.flagPath, diagnostics)
-        : parsePydanticLaxBigInt(prof.min_chunk);
+        : readPydanticLaxBigIntField(prof, "min_chunk");
       if (mc !== undefined && mc <= 0n) {
         pushRangeError(diagnostics, `${profEntry.flagPath}.min_chunk`, "> 0", mc);
       }
       const mfc = isRfork
         ? readRforkIntField(prof, "max_fit_chunk", profEntry.flagPath, diagnostics)
-        : parsePydanticLaxBigInt(prof.max_fit_chunk);
+        : readPydanticLaxBigIntField(prof, "max_fit_chunk");
       if (mfc !== undefined && mfc <= 5n) {
         pushRangeError(diagnostics, `${profEntry.flagPath}.max_fit_chunk`, "> 5", mfc);
       }
@@ -2238,7 +2430,7 @@ function validateAscendModelValidatorRanges(
     for (const k of ["max_jobs", "reserve_margin_blocks"] as const) {
       const n = isRfork
         ? readRforkIntField(bjs, k, bjsEntry.flagPath, diagnostics)
-        : parsePydanticLaxBigInt(bjs[k]);
+        : readPydanticLaxBigIntField(bjs, k);
       if (n !== undefined && n < 0n) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, ">= 0", n);
     }
     for (const k of [
@@ -2248,7 +2440,7 @@ function validateAscendModelValidatorRanges(
     ] as const) {
       const n = isRfork
         ? readRforkIntField(bjs, k, bjsEntry.flagPath, diagnostics)
-        : parsePydanticLaxBigInt(bjs[k]);
+        : readPydanticLaxBigIntField(bjs, k);
       if (n !== undefined && n <= 0n) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, "> 0", n);
     }
   }
@@ -2261,7 +2453,7 @@ function validateAscendModelValidatorRanges(
   if (srfEntry && srf && (!isRfork || pythonTruthiness(srf))) {
     const th = isRfork
       ? readRforkIntField(srf, "threshold", srfEntry.flagPath, diagnostics)
-      : parsePydanticLaxBigInt(srf.threshold);
+      : readPydanticLaxBigIntField(srf, "threshold");
     if (th !== undefined && th < 0n)
       pushRangeError(diagnostics, `${srfEntry.flagPath}.threshold`, ">= 0", th);
     const mw = isRfork
@@ -2274,9 +2466,9 @@ function validateAscendModelValidatorRanges(
   const dlb = !isRfork && sched && isRecord(sched.dyntra_lb_config) ? sched.dyntra_lb_config : null;
   if (dlb) {
     const dBase = "additional_config.scheduler_config.dyntra_lb_config";
-    const ss = parsePydanticLaxBigInt(dlb.start_step);
+    const ss = readPydanticLaxBigIntField(dlb, "start_step");
     if (ss !== undefined && ss < 0n) pushRangeError(diagnostics, `${dBase}.start_step`, ">= 0", ss);
-    const es = parsePydanticLaxBigInt(dlb.end_step);
+    const es = readPydanticLaxBigIntField(dlb, "end_step");
     const effStart = ss ?? 250n;
     if (es !== undefined && es < -1n) {
       pushRangeError(diagnostics, `${dBase}.end_step`, "-1 或 >= 0", es);
@@ -2285,10 +2477,10 @@ function validateAscendModelValidatorRanges(
     }
     const bt = parsePydanticLaxFloat(dlb.bubble_threshold);
     if (bt !== undefined && bt <= 0) pushRangeError(diagnostics, `${dBase}.bubble_threshold`, "> 0", bt);
-    const lr = parsePydanticLaxBigInt(dlb.long_req_block_threshold);
+    const lr = readPydanticLaxBigIntField(dlb, "long_req_block_threshold");
     if (lr !== undefined && lr <= 0n)
       pushRangeError(diagnostics, `${dBase}.long_req_block_threshold`, "> 0", lr);
-    const dm = parsePydanticLaxBigInt(dlb.dynamic_max_step);
+    const dm = readPydanticLaxBigIntField(dlb, "dynamic_max_step");
     if (dm !== undefined && dm <= 0n) pushRangeError(diagnostics, `${dBase}.dynamic_max_step`, "> 0", dm);
   }
 
@@ -2297,17 +2489,19 @@ function validateAscendModelValidatorRanges(
     const sBase = "additional_config.sparse_kv_offload_config";
     const tbs = isRfork
       ? readRforkIntField(skv, "topk_buffer_size", sBase, diagnostics)
-      : parsePydanticLaxBigInt(skv.topk_buffer_size);
+      : readPydanticLaxBigIntField(skv, "topk_buffer_size");
     if (tbs !== undefined && (isRfork ? tbs <= 0n : tbs !== -1n && tbs <= 0n)) {
       pushRangeError(diagnostics, `${sBase}.topk_buffer_size`, isRfork ? "> 0" : "-1 或 > 0", tbs);
     }
-    if (!isRfork) {
-      const dram = parsePydanticLaxBigInt(skv.dram_size_per_dp_GB);
+    if (isRfork) {
+      readRforkIntField(skv, "dram_size_per_dp_GB", sBase, diagnostics);
+    } else {
+      const dram = readPydanticLaxBigIntField(skv, "dram_size_per_dp_GB");
       if (dram !== undefined && dram <= 0n) {
         pushRangeError(diagnostics, `${sBase}.dram_size_per_dp_GB`, "> 0", dram);
       }
       if (version === "main") {
-        const spb = parsePydanticLaxBigInt(skv.store_port_base);
+        const spb = readPydanticLaxBigIntField(skv, "store_port_base");
         if (spb !== undefined && (spb < 1n || spb > 65535n)) {
           pushRangeError(diagnostics, `${sBase}.store_port_base`, "1 <= x <= 65535", spb);
         }
@@ -2779,8 +2973,17 @@ export function parseVllmServeCommand(
             if (segments.length === 1 && segments[0] === "mega_moe_max_tokens") {
               dottedMegaFloatLiteral = floatLit;
             }
-            const parsedVal = isListAppend ? v.split(",") : parseDottedScalarOrJson(v);
-            setDottedRecordValue(dottedAdditionalConfig, segments, parsedVal);
+            if (isListAppend) {
+              setDottedRecordValue(dottedAdditionalConfig, segments, v.split(","));
+            } else {
+              const parsedScalar = parseDottedScalarOrJson(v);
+              setDottedRecordValue(
+                dottedAdditionalConfig,
+                segments,
+                parsedScalar.value,
+                parsedScalar.unsafeInt,
+              );
+            }
           }
           break;
         }
@@ -2837,6 +3040,8 @@ export function parseVllmServeCommand(
   }
   if (inferredHints.useMla !== undefined) couplingInput.useMla = inferredHints.useMla;
   if (inferredHints.usesSfaSparse !== undefined) couplingInput.usesSfaSparse = inferredHints.usesSfaSparse;
+  if (inferredHints.hasCompressRatios !== undefined)
+    couplingInput.hasCompressRatios = inferredHints.hasCompressRatios;
   if (inferredHints.indexTopk !== undefined) couplingInput.indexTopk = inferredHints.indexTopk;
   if (inferredHints.linearNumHeads !== undefined) couplingInput.linearNumHeads = inferredHints.linearNumHeads;
   if (inferredHints.isQwen35Dense !== undefined) couplingInput.isQwen35Dense = inferredHints.isQwen35Dense;
@@ -2879,29 +3084,15 @@ export function parseVllmServeCommand(
   if (enableChunkedPrefill !== undefined) couplingInput.enableChunkedPrefill = enableChunkedPrefill;
   if (performanceMode !== undefined) couplingInput.performanceMode = performanceMode;
   if (isLoraEnabled !== undefined) couplingInput.isLoraEnabled = isLoraEnabled;
-  const additionalConfig: Record<string, unknown> | null = (() => {
-    if (!regularAdditionalConfig && !dottedAdditionalConfig) return null;
-    const merged: Record<string, unknown> = {};
-    if (regularAdditionalConfig) {
-      for (const [k, v] of Object.entries(regularAdditionalConfig)) {
-        setDottedRecordValue(merged, [k], v);
-      }
-    }
-    if (dottedAdditionalConfig) {
-      for (const [k, v] of Object.entries(dottedAdditionalConfig)) {
-        setDottedRecordValue(merged, [k], v);
-      }
-    }
-    return merged;
-  })();
-  const rawHotReloadFloatLiteral: string | undefined =
-    dottedAdditionalConfig && Object.hasOwn(dottedAdditionalConfig, "runtime_config_hot_reload")
-      ? dottedHotReloadFloatLiteral
-      : regularHotReloadFloatLiteral;
-  const rawMegaFloatLiteral: string | undefined =
-    dottedAdditionalConfig && Object.hasOwn(dottedAdditionalConfig, "mega_moe_max_tokens")
-      ? dottedMegaFloatLiteral
-      : regularMegaFloatLiteral;
+  // Upstream vllm FlexibleArgumentParser appends merged dotted --additional-config.<path> JSON at the end
+  // of processed_args, so any dotted --additional-config.<path> replaces earlier --additional-config JSON.
+  const additionalConfig: Record<string, unknown> | null = dottedAdditionalConfig ?? regularAdditionalConfig;
+  const rawHotReloadFloatLiteral: string | undefined = dottedAdditionalConfig
+    ? dottedHotReloadFloatLiteral
+    : regularHotReloadFloatLiteral;
+  const rawMegaFloatLiteral: string | undefined = dottedAdditionalConfig
+    ? dottedMegaFloatLiteral
+    : regularMegaFloatLiteral;
   const useUbatching: boolean | undefined =
     enableDbo === true || (ubatchSize !== undefined && ubatchSize > 1)
       ? true
@@ -2949,6 +3140,31 @@ export function parseVllmServeCommand(
     : /^(?:1|true)$/i.test((envVars.VLLM_ASCEND_ENABLE_FLASHCOMM1 ?? "").trim());
   if (envFc1Enabled) {
     couplingInput.enableFlashcomm1 = true;
+  }
+  if (isRfork && Object.hasOwn(envVars, "VLLM_ASCEND_ENABLE_FUSED_MC2")) {
+    const rawEnvFused = parsePythonBuiltinBigInt(envVars.VLLM_ASCEND_ENABLE_FUSED_MC2);
+    if (rawEnvFused === 0n || rawEnvFused === 1n) {
+      couplingInput.enableFusedMc2 = Number(rawEnvFused) as 0 | 1;
+    } else if (rawEnvFused === "invalid") {
+      diagnostics.push({
+        code: "parse-invalid-number",
+        severity: "error",
+        flag: "VLLM_ASCEND_ENABLE_FUSED_MC2",
+        message: `ValueError: VLLM_ASCEND_ENABLE_FUSED_MC2='${envVars.VLLM_ASCEND_ENABLE_FUSED_MC2 ?? ""}' 在 rfork 中必须为整数。`,
+      });
+    } else if (
+      rawEnvFused !== undefined &&
+      (!additionalConfig ||
+        !Object.hasOwn(additionalConfig, "enable_fused_mc2") ||
+        additionalConfig.enable_fused_mc2 === undefined)
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-range",
+        severity: "error",
+        flag: "VLLM_ASCEND_ENABLE_FUSED_MC2",
+        message: `AssertionError: VLLM_ASCEND_ENABLE_FUSED_MC2 在 rfork 中仅允许 0 或 1（收到 ${rawEnvFused.toString()}）。`,
+      });
+    }
   }
 
   // Extract --compilation-config fields
@@ -3040,6 +3256,7 @@ export function parseVllmServeCommand(
         for (const [k, v] of Object.entries(additionalConfig)) {
           if (validTopKeys.has(k)) {
             defineOwnRecordField(filtered, k, v);
+            setUnsafeJsonInt(filtered, k, getUnsafeJsonInt(additionalConfig, k));
           }
         }
         effectiveAdditional = filtered;

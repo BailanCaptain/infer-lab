@@ -598,41 +598,60 @@ export const domain4Rules: readonly CouplingRule[] = [
     title: "sparse_kv_offload_config 的 D 节点与拓扑互斥约束",
     judgment: "error",
     evidenceLevel: "C",
-    versions: ["v0.30.0", "main"],
+    versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1012-L1017`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L1724-L1772`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L1821-L1867`,
+      `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L1030-L1076`,
     ],
     description:
-      "sparse_kv_offload_config（默认 keep_device_kv_cache=False）仅限 D 节点（kv_consumer），且拒绝 Ascend 950、PP>1、PCP*DCP>1、PreemptOffloadConnector、compress_ratios、非稀疏模型、未开 MRV2 的 DSpark、topk_buffer_size < topk 及打包 SFA C8/TQ4。",
+      "sparse_kv_offload_config（默认 keep_device_kv_cache=False）仅限 D 节点（is_kv_consumer），且拒绝 Ascend 950、PP>1、PCP*DCP>1、PreemptOffloadConnector、compress_ratios、非稀疏模型、未开 MRV2 的 DSpark（或 rfork 上的 MRV2）、topk_buffer_size < topk 及打包 SFA C8/TQ4。",
     rationale: "稀疏 KV 卸载会改变设备端缓存驻留并依赖 D 节点专属远端 KV 暂存。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.sparseKvOffloadEnabled) return null;
       const errors: string[] = [];
-      if (input.hardwareFamily === "A5") errors.push("不支持 Ascend 950 (A5)");
-      if (input.hasPreemptOffloadConnector) errors.push("与 PreemptOffloadConnector 互斥");
+      const hasKvConnector = input.usageContext === "vllm_serve" ? Boolean(input.kvConnector) : true;
+      const isKvConsumer = hasKvConnector && (input.kvRole === "kv_consumer" || input.kvRole === "kv_both");
+      if (version !== "rfork" && input.hardwareFamily === "A5") errors.push("不支持 Ascend 950 (A5)");
+      if (version !== "rfork" && input.hasPreemptOffloadConnector) {
+        errors.push("与 PreemptOffloadConnector 互斥");
+      }
       if (input.hasCompressRatios) errors.push("与 compress_ratios 互斥");
       if (input.indexTopk === undefined && !input.usesSfaSparse) {
         errors.push("要求具备 index_topk 的稀疏注意力模型");
       }
       if ((input.pcpSize ?? 1) * (input.dcpSize ?? 1) > 1) errors.push("与 PCP/DCP > 1 互斥");
       if ((input.ppSize ?? 1) > 1) errors.push("与 PP > 1 互斥");
-      if (!input.keepDeviceKvCache && input.kvRole !== "kv_consumer") {
-        errors.push("默认 keep_device_kv_cache=False 仅支持 PD D 节点（kv_role='kv_consumer'）");
+      if (!input.keepDeviceKvCache && !isKvConsumer) {
+        errors.push(
+          "默认 keep_device_kv_cache=False 仅支持已配置连接器的 PD 消费节点（kv_role='kv_consumer' 或 'kv_both'）",
+        );
       }
-      if (input.speculativeMethod === "dspark" && !input.useV2ModelRunner) {
+      if (version === "rfork") {
+        if (input.useV2ModelRunner) {
+          errors.push("rfork 稀疏 KV 卸载暂不支持 VLLM_USE_V2_MODEL_RUNNER=1");
+        }
+      } else if (input.speculativeMethod === "dspark" && !input.useV2ModelRunner) {
         errors.push("稀疏 KV 卸载配合 DSpark 投机解码要求 use_v2_model_runner=True");
       }
+      const effectiveTopkBufferSize =
+        version !== "rfork" && input.topkBufferSize === -1
+          ? (1 + (input.numSpecTokens ?? 0)) * 2048
+          : input.topkBufferSize;
       if (
-        input.topkBufferSize !== undefined &&
+        effectiveTopkBufferSize !== undefined &&
         input.indexTopk !== undefined &&
-        input.topkBufferSize < input.indexTopk
+        effectiveTopkBufferSize < input.indexTopk
       ) {
-        errors.push(`topk_buffer_size (${input.topkBufferSize}) 必须 >= index_topk (${input.indexTopk})`);
+        errors.push(`topk_buffer_size (${effectiveTopkBufferSize}) 必须 >= index_topk (${input.indexTopk})`);
       }
-      if (input.usesSfaSparse && (input.enableSparseSfaC8 || input.cacheDtype === "turboquant_4bit_nc")) {
+      if (
+        version !== "rfork" &&
+        input.usesSfaSparse &&
+        (input.enableSparseSfaC8 || input.cacheDtype === "turboquant_4bit_nc")
+      ) {
         errors.push("与打包 SFA C8 或 TurboQuant 4-bit 缓存互斥");
       }
       if (errors.length === 0) return null;
@@ -671,7 +690,7 @@ export const domain4Rules: readonly CouplingRule[] = [
       const isKvConsumer = hasKvConnector && (input.kvRole === "kv_consumer" || input.kvRole === "kv_both");
 
       if (input.enableKvNz === true) {
-        if (input.useMla === false || input.usesSfaSparse === true || input.indexTopk !== undefined) {
+        if (input.useMla === false || input.usesSfaSparse === true) {
           errors.push("RuntimeError: enable_kv_nz 仅支持非稀疏 MLA 模型");
         }
         if (!isKvConsumer) {

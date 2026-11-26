@@ -426,7 +426,7 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
     ).toBeUndefined();
 
     const dottedFallbackRep = analyzeSingleUpgradeRadar(
-      `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_balance_scheduling":true}' --additional-config.weight_nz_mode \${NZ:-1}`,
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_balance_scheduling":true}' --additional-config.weight_nz_mode \${NZ:-1} --enforce-eager`,
       { fromVersion: "v0.26.0rc", toVersion: "main" },
     );
     expect(dottedFallbackRep.recommendedSingleCommand).toContain(
@@ -435,7 +435,56 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
     const parsedRecon = parseVllmServeCommand(`NZ=2; ${dottedFallbackRep.recommendedSingleCommand!}`, {
       version: "main",
     });
-    expect(parsedRecon.couplingInput.enableBalanceScheduling).toBe(true);
     expect(parsedRecon.couplingInput.weightNzMode).toBe(2);
+
+    // 6. Comment newline boundary, && guard, trailing assignment, command-local prefix assignment, in-place ${NZ:=2}, and invalid dotted paths/subkeys
+    const commentRep = analyzeSingleUpgradeRadar(
+      `export TP=2 # ranks\nvllm serve Qwen/Qwen3-8B -tp $TP --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const parsedComment = parseVllmServeCommand(commentRep.recommendedSingleCommand!, { version: "main" });
+    expect(parsedComment.model).toBe("Qwen/Qwen3-8B");
+    expect(parsedComment.couplingInput.tpSize).toBe(2);
+
+    const andGuardRep = analyzeSingleUpgradeRadar(`false && vllm serve Qwen/Qwen3-8B --enforce-eager`, {
+      fromVersion: "v0.26.0rc",
+      toVersion: "main",
+    });
+    expect(andGuardRep.recommendedSingleCommand).toMatch(/^false && vllm serve Qwen\/Qwen3-8B/);
+
+    const trailingAssignRep = analyzeSingleUpgradeRadar(
+      `TP=2; vllm serve Qwen/Qwen3-8B -tp $TP --enforce-eager; TP=8`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(parseVllmServeCommand(trailingAssignRep.recommendedSingleCommand!).couplingInput.tpSize).toBe(2);
+    expect(trailingAssignRep.recommendedSingleCommand).toMatch(/;\s*TP=8$/);
+
+    const localPrefixRep = analyzeSingleUpgradeRadar(
+      `TP=2; TP=8 vllm serve Qwen/Qwen3-8B -tp $TP --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(parseVllmServeCommand(localPrefixRep.recommendedSingleCommand!).couplingInput.tpSize).toBe(2);
+
+    const inPlaceDottedSideEffectRep = analyzeSingleUpgradeRadar(
+      `unset NZ; vllm serve Qwen/Qwen3-8B --additional-config.weight_nz_mode \${NZ:=2} -tp \${NZ:-1} --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(
+      parseVllmServeCommand(inPlaceDottedSideEffectRep.recommendedSingleCommand!).couplingInput.tpSize,
+    ).toBe(2);
+
+    for (const invalidDottedCmd of [
+      `vllm serve Qwen/Qwen3-8B --additional-config.weight_nz_mode.typo 1 --enforce-eager`,
+      `vllm serve Qwen/Qwen3-8B --additional-config.scheduler_config '{"typo":1}' --enforce-eager`,
+    ]) {
+      const rep = analyzeSingleUpgradeRadar(invalidDottedCmd, {
+        fromVersion: "v0.26.0rc",
+        toVersion: "main",
+      });
+      expect(rep.recommendedSingleCommand).toBeDefined();
+      expect(
+        parseVllmServeCommand(rep.recommendedSingleCommand!, { version: "main" }).parseDiagnostics,
+      ).toEqual([]);
+    }
   });
 });

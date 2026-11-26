@@ -1394,11 +1394,22 @@ function buildRecommendedCommand(
     if (isPlainObject(existing)) return existing;
     const created: Record<string, unknown> = {};
     parent[key] = created;
+    copyUnsafeJsonInt({}, parent, key);
     return created;
   };
 
   let allexportActive = false;
   let preambleExitStatus: 0 | 1 | null = 0;
+  const combinePreambleExit = (
+    conj: "" | "&&" | "||",
+    term: "" | "\n" | ";" | "&",
+    stmtStatus: 0 | 1 | null,
+  ): 0 | 1 | null => {
+    if (term === "&") return 0;
+    if (conj === "&&" && preambleExitStatus === null) return stmtStatus === 1 ? 1 : null;
+    if (conj === "||" && preambleExitStatus === null) return stmtStatus === 0 ? 0 : null;
+    return stmtStatus;
+  };
   const pushDemotedLocal = (
     assignsRaw: string,
     conj: "" | "&&" | "||",
@@ -1460,7 +1471,7 @@ function buildRecommendedCommand(
       } else if (inAndOrList) {
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
-      preambleExitStatus = 0;
+      preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, 0);
     } else if (stmt.kind === "assign") {
       const keptAssigns = stmt.tokens.filter((tok) => {
         const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
@@ -1475,7 +1486,7 @@ function buildRecommendedCommand(
       } else if (inAndOrList) {
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
-      preambleExitStatus = 0;
+      preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, 0);
     } else {
       const headCmd = stmt.tokens[0]?.value ?? "";
       if (headCmd === "set") {
@@ -1495,13 +1506,13 @@ function buildRecommendedCommand(
           }
           break;
         }
-        preambleExitStatus = 0;
+        preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, 0);
       } else if (headCmd === "false") {
-        preambleExitStatus = stmt.terminator === "&" ? 0 : 1;
+        preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, 1);
       } else if (headCmd === "true" || headCmd === ":" || headCmd === "unset") {
-        preambleExitStatus = 0;
+        preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, 0);
       } else {
-        preambleExitStatus = stmt.terminator === "&" ? 0 : null;
+        preambleExitStatus = combinePreambleExit(stmt.leadingConj, stmt.terminator, null);
       }
       preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: stmt.rawStmt });
     }

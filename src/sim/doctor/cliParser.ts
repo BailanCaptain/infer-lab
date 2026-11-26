@@ -1473,9 +1473,19 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?(?:flash|pro)/.test(s)) {
-    const isV4Pro =
-      /deepseek[-_.]?v4(?:\.\d+)?[-_.]?pro(?:$|[-_./])/.test(s) &&
-      !/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash(?:$|[-_./])/.test(s);
+    const pathSegs = s.split(/[\\/]+/).filter((seg) => seg.length > 0);
+    let isV4Pro = false;
+    for (let idx = pathSegs.length - 1; idx >= 0; idx -= 1) {
+      const seg = pathSegs[idx]!;
+      if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?pro(?:$|[-_.])/.test(seg)) {
+        isV4Pro = true;
+        break;
+      }
+      if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash(?:$|[-_.])/.test(seg)) {
+        isV4Pro = false;
+        break;
+      }
+    }
     hints.matchedPresetName = isV4Pro ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
     hints.isMoe = true;
     hints.useMla = true;
@@ -1853,7 +1863,9 @@ function buildExportedSnapshot(
 function evalStaticTestCommand(words: readonly string[]): 0 | 1 | null {
   const cmd = words[0];
   if (cmd !== "test" && cmd !== "[") return null;
-  const args = cmd === "[" && words[words.length - 1] === "]" ? words.slice(1, -1) : words.slice(1);
+  if (cmd === "[" && words[words.length - 1] !== "]") return 1;
+  const args = cmd === "[" ? words.slice(1, -1) : words.slice(1);
+  if (args.some((a) => /\$(?:[A-Za-z_][A-Za-z0-9_]*|\{)/.test(a))) return null;
   if (args.length === 0) return 1;
   if (args.length === 1) return args[0]!.length > 0 ? 0 : 1;
   if (args.length === 2) {

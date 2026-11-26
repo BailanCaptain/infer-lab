@@ -758,5 +758,29 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
       { fromVersion: "v0.26.0rc", toVersion: "main" },
     );
     expect(mergedArrBigIntRep.recommendedSingleCommand).toContain("9007199254740993");
+
+    // 3-valued logic: `test -z x && true || export ...` stays reachable and gets cleaned
+    const threeValuedAndOrRep = analyzeSingleUpgradeRadar(
+      `test -z x && true || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve /m`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(
+      analyzeSingleUpgradeRadar(threeValuedAndOrRep.recommendedSingleCommand!, {
+        fromVersion: "v0.26.0rc",
+        toVersion: "main",
+      }).items,
+    ).toEqual([]);
+
+    // Replacing BigInt scalar scheduler_config with synthesized dict clears stale UNSAFE_JSON_INTS
+    const migratedOverBigIntSchedRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.enable_balance_scheduling true --additional-config.scheduler_config 9007199254740993`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const parsedMigratedOverBigInt = parseVllmServeCommand(
+      migratedOverBigIntSchedRep.recommendedSingleCommand!,
+      { version: "main" },
+    );
+    expect(parsedMigratedOverBigInt.parseDiagnostics).toEqual([]);
+    expect(parsedMigratedOverBigInt.couplingInput.enableBalanceScheduling).toBe(true);
   });
 });

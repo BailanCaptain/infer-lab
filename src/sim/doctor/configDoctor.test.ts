@@ -1711,11 +1711,32 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(proSnapshotPath.effectiveInput.numExperts).toBe(384);
 
-    // Static test -n / -z evaluation skips unreachable || export branch
+    // Static test -n / -z evaluation skips unreachable || export branch, but preserves unset $X & malformed `[`
     const testNonEmptyOrExport = runSingleConfigDoctor(
       `MODEL=/m; test -n "$MODEL" || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve "$MODEL"`,
       { mode: "full", hardwareFamily: "A2", version: "main" },
     );
     expect(testNonEmptyOrExport.parsed.envVars.VLLM_ASCEND_ENABLE_NZ).toBeUndefined();
+    expect(
+      runSingleConfigDoctor(`test -n "$UNSET_IN_SCRIPT" || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve /m`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).parsed.envVars.VLLM_ASCEND_ENABLE_NZ,
+    ).toBe("2");
+    expect(
+      runSingleConfigDoctor(`[ -n x || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve /m`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).parsed.envVars.VLLM_ASCEND_ENABLE_NZ,
+    ).toBe("2");
+    expect(
+      runSingleConfigDoctor(`vllm serve /models/DeepSeek-V4-Flash/DeepSeek-V4-Pro`, {
+        mode: "full",
+        hardwareFamily: "A3",
+        version: "main",
+      }).effectiveInput.numExperts,
+    ).toBe(384);
   });
 });

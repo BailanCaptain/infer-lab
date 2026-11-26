@@ -204,8 +204,17 @@ export function resolveActiveEvidence(state: EvidenceViewState): {
   };
 }
 
+/** 控制器内证据包缓存上限（按最近使用淘汰）；跨 revision 的旧包随使用自然淘汰。 */
+const MAX_CONTROLLER_PACKS = 32;
+
+/**
+ * 证据面板视图控制器。按 (revision, pageId) 缓存已校验的证据包并合并同键在途请求：
+ * hover 预热、点击、切 pin、关闭重开共享一次请求；失败的任务立即移除，retry 会重新请求。
+ * loader 收到 (pageId, revision)；只接受 pageId 的旧 loader（如跟随最新版本的 store）同样兼容，
+ * 返回包的 revision 以实际返回为准写入状态与缓存键。
+ */
 export function createEvidenceViewController(deps: {
-  loadPageEvidence: (pageId: string) => Promise<ReaderPageEvidence>;
+  loadPageEvidence: (pageId: string, revision: string) => Promise<ReaderPageEvidence>;
 }) {
   let state: EvidenceViewState = {
     open: false,
@@ -222,28 +231,80 @@ export function createEvidenceViewController(deps: {
     for (const listener of listeners) listener();
   };
 
+  const packKey = (revision: string, pageId: string) => `${revision}\n${pageId}`;
+  const readyPacks = new Map<string, ReaderPageEvidence>();
+  const inflight = new Map<string, Promise<ReaderPageEvidence>>();
+
+  const remember = (requestedPageId: string, pack: ReaderPageEvidence) => {
+    for (const id of new Set([requestedPageId, pack.pageId])) {
+      const key = packKey(pack.revision, id);
+      readyPacks.delete(key);
+      readyPacks.set(key, pack);
+    }
+    while (readyPacks.size > MAX_CONTROLLER_PACKS) readyPacks.delete(readyPacks.keys().next().value!);
+  };
+
+  const peek = (pageId: string, revision: string): ReaderPageEvidence | undefined => {
+    const key = packKey(revision, pageId);
+    const hit = readyPacks.get(key);
+    if (hit) {
+      readyPacks.delete(key);
+      readyPacks.set(key, hit);
+    }
+    return hit;
+  };
+
+  const load = (pageId: string, revision: string): Promise<ReaderPageEvidence> => {
+    const key = packKey(revision, pageId);
+    const existing = inflight.get(key);
+    if (existing) return existing;
+    let request: Promise<ReaderPageEvidence>;
+    try {
+      request = Promise.resolve(deps.loadPageEvidence(pageId, revision));
+    } catch (error) {
+      request = Promise.reject(error);
+    }
+    const task = request.then((input) => {
+      const parsed = readerPageEvidenceSchema.parse(input);
+      remember(pageId, parsed);
+      return parsed;
+    });
+    inflight.set(key, task);
+    const cleanup = () => {
+      // 只删除仍指向本任务的登记，旧任务不能删掉 retry 发起的新任务。
+      if (inflight.get(key) === task) inflight.delete(key);
+    };
+    task.then(cleanup, cleanup);
+    return task;
+  };
+
   const openTarget = async (pageId: string, revision: string, target: EvidenceTarget): Promise<void> => {
-    if (
-      state.status === "ready" &&
-      state.pack &&
-      state.pageId === pageId &&
-      state.revision === revision &&
-      state.pack.revision === revision
-    ) {
-      state = { ...state, open: true, target, error: undefined };
+    // 缓存命中也递增序号：让更早发起、尚未返回的打开请求全部失效。
+    const seq = ++requestSeq;
+    const cached = peek(pageId, revision);
+    if (cached) {
+      state = {
+        open: true,
+        pageId,
+        revision: cached.revision,
+        target,
+        status: "ready",
+        pack: cached,
+        error: undefined,
+      };
       notify();
       return;
     }
-    const seq = ++requestSeq;
     state = { open: true, pageId, revision, target, status: "loading", pack: undefined, error: undefined };
     notify();
     try {
-      const loaded = readerPageEvidenceSchema.parse(await deps.loadPageEvidence(pageId));
-      if (seq !== requestSeq) return;
+      const loaded = await load(pageId, revision);
+      if (seq !== requestSeq || !state.open) return;
+      // 保留加载期间用户最后选择的 pin / source（state.target）。
       state = { ...state, revision: loaded.revision, status: "ready", pack: loaded, error: undefined };
       notify();
     } catch (error) {
-      if (seq !== requestSeq) return;
+      if (seq !== requestSeq || !state.open) return;
       state = {
         ...state,
         status: "error",
@@ -261,6 +322,14 @@ export function createEvidenceViewController(deps: {
       return () => {
         listeners.delete(listener);
       };
+    },
+    /** 预热（如 hover）：只填缓存，不改变面板状态；失败静默，留给真正打开时重试。 */
+    prefetch(pageId: string, revision: string): Promise<void> {
+      if (peek(pageId, revision)) return Promise.resolve();
+      return load(pageId, revision).then(
+        () => undefined,
+        () => undefined,
+      );
     },
     openForSource: (pageId: string, revision: string, sourceIndex: number) =>
       openTarget(pageId, revision, { kind: "source", sourceIndex }),

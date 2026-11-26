@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { buildPageEvidenceFromLocked } from "../scripts/wiki/evidence";
+import { getPageEvidenceCached } from "../scripts/wiki/evidence";
 import { checkLocalReader, HttpError, parseWikiUrl, send } from "./http";
 import { readLockedEvidenceSnapshot } from "./snapshot";
 
@@ -39,7 +39,14 @@ export async function handleEvidence(
     send(res, 409, { error: "证据版本已过期，请刷新知识库。", revision: locked.revision });
     return true;
   }
-  const pack = buildPageEvidenceFromLocked(root, locked, page);
+  // 先校验锁定版本（旧 revision 即使缓存里有也返回 409），再走非阻塞的 (revision, page) 缓存构建。
+  let pack: Awaited<ReturnType<typeof getPageEvidenceCached>>;
+  try {
+    pack = await getPageEvidenceCached(root, locked, page);
+  } catch (error) {
+    send(res, 503, { error: String(error) });
+    return true;
+  }
   if (!pack) {
     send(res, 404, { error: "未找到对应知识库页面。" });
     return true;

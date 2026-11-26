@@ -10,9 +10,9 @@ import {
 import { packCompiledNode } from "../../src/content/wiki/hast-pack";
 import { extractReaderGraph } from "../../src/content/wiki/schema";
 import { DIAGRAM_DIR, diagramRefs } from "./diagrams";
-import { buildAllLockedEvidence, buildPageEvidenceFromLocked } from "./evidence";
+import { buildAllLockedEvidence, getPageEvidenceCached, publishedRawPathsAsync } from "./evidence";
 import { PAGE_DIRS } from "./pages";
-import { collectSnapshotPublishedRawPaths, emitStaticRawSnapshots, serveWikiRawPage } from "./raw-viewer";
+import { emitStaticRawSnapshots, serveWikiRawPage } from "./raw-viewer";
 
 /** dev 下 wiki 文件变了：页面收到后就地刷新快照，刷不到才整页重载（WikiPage 里监听同名事件） */
 const WIKI_CHANGED = "wiki:changed";
@@ -41,7 +41,6 @@ export function wikiReaderPlugin(): Plugin {
       graph: string;
       graphJson: string;
       lockedEvidence: LockedEvidenceSnapshot;
-      evidenceJsonCache: Map<string, string>;
     }
   >();
   return {
@@ -83,19 +82,16 @@ export function wikiReaderPlugin(): Plugin {
         const [revision, page] = id.slice(evidencePrefix.length + 1).split("/");
         const entry = revisions.get(revision!);
         if (!entry) throw new Error("知识库版本已更新，请刷新页面。");
-        let json = entry.evidenceJsonCache.get(page!);
-        if (!json) {
-          const pack = buildPageEvidenceFromLocked(root, entry.lockedEvidence, page!);
-          if (!pack) throw new Error("未找到对应知识库页面。");
-          json = JSON.stringify(pack);
-          entry.evidenceJsonCache.set(page!, json);
-        }
-        return `export default JSON.parse(${JSON.stringify(json)});`;
+        // 与 HTTP 中间件共用同一个进程内异步缓存服务（同键在途去重，不阻塞事件循环）。
+        const pack = await getPageEvidenceCached(root, entry.lockedEvidence, page!);
+        if (!pack) throw new Error("未找到对应知识库页面。");
+        return `export default JSON.parse(${JSON.stringify(JSON.stringify(pack))});`;
       }
       if (id !== resolvedId) return;
       const { reader: snapshot, locked } = await readReaderSnapshotWithEvidenceLock(root);
       lockedEvidenceSnapshot = locked;
-      lockedPublishedRawPaths = collectSnapshotPublishedRawPaths(snapshot);
+      // 同一把锁读出的 reader 与 evidence 快照共享 pageTexts；分片异步计算并预热证据白名单缓存。
+      lockedPublishedRawPaths = await publishedRawPathsAsync(root, locked);
       const texts = new Map(snapshot.pageTexts.map((page) => [page.file, page]));
       const modules = new Map<string, string>();
       const loaders = snapshot.registry.pages.map((page) => {
@@ -139,7 +135,6 @@ export function wikiReaderPlugin(): Plugin {
         graph: `export default JSON.parse(${JSON.stringify(graphPayload)});`,
         graphJson: graphPayload,
         lockedEvidence: locked,
-        evidenceJsonCache: new Map(),
       });
       // Retain the previous dev generation for imports already in flight.
       while (revisions.size > 2) revisions.delete(revisions.keys().next().value!);
@@ -185,16 +180,21 @@ export function wikiReaderPlugin(): Plugin {
             return;
           }
           const entry = revisions.get(m[1]!);
-          let json = entry?.evidenceJsonCache.get(m[2]!);
-          if (!json) {
+          let json: string | undefined;
+          try {
+            // 允许读取仍保留的锁定旧版本；取不到该版本时落到下方 404。
             const locked = entry?.lockedEvidence ?? (await readLockedEvidenceSnapshot(root));
             if (locked.revision === m[1]) {
-              const pack = buildPageEvidenceFromLocked(root, locked, m[2]!);
-              if (pack) {
-                json = JSON.stringify(pack);
-                entry?.evidenceJsonCache.set(m[2]!, json);
-              }
+              const pack = await getPageEvidenceCached(root, locked, m[2]!);
+              if (pack) json = JSON.stringify(pack);
             }
+          } catch {
+            res.writeHead(503, {
+              "content-type": "text/plain; charset=utf-8",
+              "x-content-type-options": "nosniff",
+            });
+            res.end("知识库快照或证据资料暂不可用，请稍后重试。");
+            return;
           }
           if (!json) {
             res.writeHead(404, {
@@ -269,7 +269,7 @@ export function wikiReaderPlugin(): Plugin {
         }
         try {
           const snapshot = await readReaderSnapshot(root);
-          const published = collectSnapshotPublishedRawPaths(snapshot);
+          const published = await publishedRawPathsAsync(root, snapshot);
           if (!serveWikiRawPage(req.method, url, res, wiki, published)) next();
         } catch {
           res.writeHead(503, { "content-type": "text/plain; charset=utf-8" });
@@ -306,7 +306,7 @@ export function wikiReaderPlugin(): Plugin {
         lockedPublishedRawPaths && lockedSearchIndex && lockedGraph
           ? undefined
           : await readReaderSnapshot(root);
-      const published = lockedPublishedRawPaths ?? collectSnapshotPublishedRawPaths(snapshot!);
+      const published = lockedPublishedRawPaths ?? (await publishedRawPathsAsync(root, snapshot!));
       const searchEntry = lockedSearchIndex ?? {
         revision: snapshot!.revision,
         json: JSON.stringify(snapshot!.searchIndex),

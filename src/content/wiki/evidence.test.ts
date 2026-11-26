@@ -253,3 +253,94 @@ describe("前端证据状态机与 reader-store 按需缓存（Task 045 · 00085
     );
   });
 });
+
+describe("证据视图控制器的 (revision, pageId) 缓存与在途去重", () => {
+  const revA = "a".repeat(64);
+  const revB = "b".repeat(64);
+  const mkPack = (revision: string, pageId: string): ReaderPageEvidence =>
+    readerPageEvidenceSchema.parse({
+      version: 1,
+      revision,
+      pageId,
+      pageSources: ["https://example.com/doc"],
+      diagrams: [],
+      entries: {
+        "https://example.com/doc": {
+          ref: "https://example.com/doc",
+          kind: "url",
+          status: "external",
+          externalHref: "https://example.com/doc",
+        },
+      },
+    });
+
+  it("预热与点击共享一次请求；关闭重开、切 source 不重复加载；loader 收到 (pageId, revision)", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const loader = vi.fn(async (pageId: string, revision: string) => {
+      await gate;
+      return mkPack(revision, pageId);
+    });
+    const ctl = createEvidenceViewController({ loadPageEvidence: loader });
+    const warm = ctl.prefetch("page-a", revA);
+    const open = ctl.openForSource("page-a", revA, 0);
+    expect(ctl.getState().status).toBe("loading");
+    ctl.selectSource(0);
+    release();
+    await Promise.all([warm, open]);
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(loader).toHaveBeenCalledWith("page-a", revA);
+    expect(ctl.getState()).toMatchObject({ open: true, status: "ready", revision: revA });
+
+    ctl.close();
+    expect(ctl.getState().open).toBe(false);
+    await ctl.openForRef("page-a", revA, "https://example.com/doc");
+    expect(ctl.getState()).toMatchObject({ open: true, status: "ready" });
+    expect(resolveActiveEvidence(ctl.getState()).entry).toMatchObject({ kind: "url" });
+    expect(loader).toHaveBeenCalledTimes(1);
+
+    // 新 revision 是另一个缓存键，需要重新加载
+    await ctl.openForSource("page-a", revB, 0);
+    expect(ctl.getState()).toMatchObject({ status: "ready", revision: revB });
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("A 慢 B 快、关闭后晚到的结果都不覆盖当前状态；失败不缓存，retry 重新请求", async () => {
+    const resolvers = new Map<string, (p: ReaderPageEvidence) => void>();
+    let failNext = true;
+    const loader = vi.fn((pageId: string, revision: string) => {
+      if (pageId === "page-c" && failNext) {
+        failNext = false;
+        return Promise.reject(new Error("暂时失败"));
+      }
+      if (pageId === "page-b" || pageId === "page-c") return Promise.resolve(mkPack(revision, pageId));
+      return new Promise<ReaderPageEvidence>((r) => resolvers.set(pageId, r));
+    });
+    const ctl = createEvidenceViewController({ loadPageEvidence: loader });
+    const slowA = ctl.openForSource("page-a", revA, 0);
+    await ctl.openForSource("page-b", revA, 0);
+    resolvers.get("page-a")!(mkPack(revA, "page-a"));
+    await slowA;
+    expect(ctl.getState()).toMatchObject({ pageId: "page-b", status: "ready" });
+    expect(ctl.getState().pack?.pageId).toBe("page-b");
+
+    const lateD = ctl.openForSource("page-d", revA, 0);
+    ctl.close();
+    resolvers.get("page-d")!(mkPack(revA, "page-d"));
+    await lateD;
+    expect(ctl.getState()).toMatchObject({ open: false, status: "idle" });
+    // 晚到的结果仍进入缓存，重开时直接就绪且不再请求
+    const calls = loader.mock.calls.length;
+    await ctl.openForSource("page-d", revA, 0);
+    expect(ctl.getState()).toMatchObject({ open: true, status: "ready", pageId: "page-d" });
+    expect(loader.mock.calls.length).toBe(calls);
+
+    await ctl.openForSource("page-c", revA, 0);
+    expect(ctl.getState()).toMatchObject({ status: "error", error: "暂时失败" });
+    await ctl.retry();
+    expect(ctl.getState()).toMatchObject({ status: "ready", pageId: "page-c" });
+    expect(loader.mock.calls.filter(([id]) => id === "page-c")).toHaveLength(2);
+  });
+});

@@ -851,3 +851,255 @@ describe("retrieve · 口语化症状查询召回与参数/报错无回退", () 
     );
   });
 });
+
+describe("retrieve · 名称词首、单复合标识符、超长复合词与定向术语扩展（2026-11 检索加固）", () => {
+  const mk = (p: Partial<PageIndex> & { id: string; title: string }): PageIndex => ({
+    aliases: [],
+    summary: "",
+    chapters: ["01"],
+    evidence: "C",
+    related: [],
+    text: "",
+    ...p,
+  });
+  const fixture: PageIndex[] = [
+    mk({
+      id: "dspark",
+      title: "DSpark：块扩散草稿与置信度校验",
+      aliases: ["DFlash"],
+      summary: "块扩散草稿模型一次产出整块候选 token。",
+      text: "## 参数\n`initial_verify_budget_per_req` 控制每个请求首轮校验预算。\nDFlash 与 DSpark 的置信度来源不同。",
+    }),
+    mk({
+      id: "chunked-prefill",
+      title: "Chunked Prefill",
+      aliases: ["分块预填充"],
+      summary: "把长请求的预填充切成小段。",
+      text: "initial chunk 先跑，verify 阶段消耗 token budget，每个 req 轮流执行；req 越多 budget 越紧。",
+    }),
+    mk({ id: "mooncake-connector", title: "Mooncake Connector", summary: "KV 跨机传输连接器。" }),
+    mk({ id: "kv-pool", title: "KV Pool", aliases: ["Mooncake Store 池化"], text: "基于 mooncake 的池化。" }),
+    mk({
+      id: "ascend-model-onboarding",
+      title: "新模型接入",
+      summary: "接入 Kimi Moonlight 等新模型。",
+      text: "moon moon moon 接入流程。",
+    }),
+    mk({
+      id: "speculative-decoding",
+      title: "Speculative Decoding",
+      aliases: ["投机解码"],
+      text: "draft 与 verify。",
+    }),
+    mk({ id: "kv-cache-spec", title: "KV Cache Spec", text: "每层 spec 描述 KV 形状。" }),
+    mk({ id: "lmcache", title: "LMCache", aliases: ["chunk"], text: "按 chunk 存 KV。" }),
+    mk({
+      id: "ascend-env-and-serve",
+      title: "昇腾环境变量与拉起服务",
+      text: "Dockerfile 中设置 `TASK_QUEUE_ENABLE=1` 打开算子异步下发队列。",
+    }),
+    mk({ id: "task-scheduler", title: "任务调度", text: "task queue 与 enable 开关。" }),
+    mk({
+      id: "cpu-binding",
+      title: "CPU 绑核",
+      aliases: ["cpu_binding"],
+      text: "Worker 线程亲和到 NUMA 节点。",
+    }),
+    mk({
+      id: "engram-conditional-memory",
+      title: "Engram 条件记忆",
+      text: "共享内存段尝试 `madvise(MADV_HUGEPAGE)` 申请透明大页。",
+    }),
+    mk({ id: "kv-cache-spec-pages", title: "KV 物理页", text: "KV 块是大页还是小页取决于 block_size。" }),
+    mk({ id: "npu", title: "NPU", text: "昇腾 NPU 硬件。" }),
+    mk({
+      id: "device-memory",
+      title: "设备显存",
+      text: "报错 out of memory during capture_model 时先看图捕获显存。",
+    }),
+    mk({ id: "api", title: "API", text: "接口总览。" }),
+    mk({ id: "maxwell", title: "Max Throughput", aliases: ["num-blocks", "get-config", "llm-engine"] }),
+    mk({
+      id: "alpha-page",
+      title: "Alpha",
+      text: "开关 alpha_beta_gamma_v1 只在 A 页出现。",
+    }),
+    mk({ id: "beta-page", title: "Beta", text: "alpha beta gamma v2 是另一个版本。" }),
+  ];
+  const fullIdx = buildIndex(fixture);
+  const browserIdx = deserializeSearchIndex(
+    JSON.parse(JSON.stringify(serializeSearchIndex(fullIdx, "d".repeat(64)))),
+  );
+  const ids = (q: string, limit = 50) => retrieve(q, fullIdx, { limit }).map((h) => h.id);
+
+  it("≥3 字母的完整短查询按名称词首高分命中：DSP / dspa / dfl → dspark，moon / spec / chunk 首位正确", () => {
+    for (const q of ["DSP", "dsp", "dspa", "Dspa", "dfl"]) {
+      const hits = retrieve(q, fullIdx);
+      expect(hits[0], q).toMatchObject({ id: "dspark", how: "fuzzy" });
+    }
+    expect(ids("moon")[0]).toBe("mooncake-connector");
+    expect(ids("spec")[0]).toBe("speculative-decoding");
+    const chunk = retrieve("chunk", fullIdx);
+    expect(chunk[0]).toMatchObject({ id: "lmcache", how: "exact" });
+    expect(chunk[1]?.id).toBe("chunked-prefill");
+  });
+
+  it("泛化短词（npu/api/max/num/get/llm）永不获得名称或词首奖励，长句与异常堆栈不被短名称劫持", () => {
+    for (const q of ["npu", "api", "max", "num", "get", "llm"]) {
+      expect(
+        retrieve(q, fullIdx).filter((h) => h.how === "fuzzy"),
+        q,
+      ).toEqual([]);
+    }
+    for (const q of [
+      "NPU out of memory during capture_model",
+      "api server 报错 out of memory during capture_model",
+      "Traceback: File npu/api/max.py, line 3, in get_num: out of memory during capture_model",
+    ]) {
+      expect(retrieve(q, fullIdx)[0]?.id, q).toBe("device-memory");
+    }
+    // 小库里 canonical ID 恰为泛化词，长句中的同名词也不额外加名称分
+    expect(retrieve("npu 上 out of memory during capture_model", fullIdx)[0]?.id).toBe("device-memory");
+  });
+
+  it("单复合标识符只返回完整词所在页：干扰页正文命中 4/5 子词也不返回；自然语言仍走 BM25", () => {
+    expect(ids("initial_verify_budget_per_req", 100)).toEqual(["dspark"]);
+    expect(ids("initial-verify-budget-per-req", 100)).toEqual(["dspark"]);
+    expect(ids("--initial-verify-budget-per-req", 100)).toEqual(["dspark"]);
+    expect(ids("initial verify budget per req 怎么调", 100)).toEqual(
+      expect.arrayContaining(["dspark", "chunked-prefill"]),
+    );
+  });
+
+  it("完整词缺席时按同字段高覆盖回退：最高 IDF 词与全部带数字的组成词必须命中", () => {
+    expect(ids("verify_budget_per_req", 100)).toEqual(["dspark"]);
+    expect(ids("alpha_beta_gamma_v1", 100)).toEqual(["alpha-page"]);
+    expect(ids("gamma_alpha_beta_v1", 100)).toEqual(["alpha-page"]);
+  });
+
+  it("多段压平词上限 96：32/33/96 字符保留完整词，97 字符不产出，单段超长串仍是一个词", () => {
+    const joinedOf = (a: number, b: number) => `${"a".repeat(a)}_${"b".repeat(b)}`;
+    for (const [a, b] of [
+      [16, 16],
+      [16, 17],
+      [48, 48],
+    ] as const) {
+      expect(terms(joinedOf(a, b))).toContain(`${"a".repeat(a)}${"b".repeat(b)}`);
+    }
+    expect(terms(joinedOf(48, 49))).toEqual(["a".repeat(48), "b".repeat(49)]);
+    expect(terms("x".repeat(200))).toEqual(["x".repeat(200)]);
+    const longEnv = "VLLM_ASCEND_ENABLE_PREFETCH_MLP_GATE_UP_WEIGHT_LAYERWISE_ASYNC";
+    const longIdx = buildIndex([
+      mk({ id: "env-page", title: "环境变量", text: `设置 \`${longEnv}=1\` 打开逐层预取。` }),
+      mk({ id: "other-page", title: "其他", text: "enable prefetch mlp gate up weight 的泛泛介绍。" }),
+    ]);
+    expect(retrieve(longEnv, longIdx, { limit: 10 }).map((h) => h.id)).toEqual(["env-page"]);
+  });
+
+  it("定向术语扩展只查完整键：二级流水 / 块扩散 / 绑核 / 透明大页 可导航，且不注入 task/queue/enable 子词噪声", () => {
+    expect(ids("二级流水是什么")[0]).toBe("ascend-env-and-serve");
+    expect(ids("二级流水是什么")).not.toContain("task-scheduler");
+    expect(ids("块扩散")[0]).toBe("dspark");
+    expect(ids("绑核怎么配")[0]).toBe("cpu-binding");
+    expect(ids("透明大页")[0]).toBe("engram-conditional-memory");
+    // 静态大页没有对应内容时，不把透明大页页面映射为答案：其分数只来自与裸「大页」相同的普通二元词
+    const engramScore = (q: string) =>
+      retrieve(q, fullIdx, { limit: 50 }).find((h) => h.id === "engram-conditional-memory")?.score;
+    expect(engramScore("静态大页怎么配")).toBe(engramScore("大页怎么配"));
+    expect(engramScore("透明大页")).toBeGreaterThan(engramScore("大页怎么配") ?? 0);
+    // 原始异常堆栈不触发新增扩展
+    const trace = "Traceback (most recent call last): RuntimeError: 二级流水 failed at pipeline stage 42";
+    expect(retrieve(trace, fullIdx).map((h) => h.id)).not.toContain("ascend-env-and-serve");
+  });
+
+  it("独立复核回归：等价别名、全角横线、--驼峰 / __dunder__、版本号、扩展正则边界与多行 traceback", () => {
+    const reg = buildIndex([
+      mk({ id: "triton-ascend", title: "Triton Ascend 开发", text: "triton ascend 自定义算子。" }),
+      mk({ id: "cann-hccl", title: "CANN 与 HCCL", aliases: ["Triton Ascend"], text: "算子编译栈。" }),
+      mk({ id: "dispatch-whole", title: "调度 A", text: "注册 torchdispatch 钩子。" }),
+      mk({ id: "dispatch-split", title: "调度 B", text: "torch 的 dispatch 机制。" }),
+      mk({ id: "dunder", title: "Dunder", text: "实现 `__torch_dispatch__` 拦截。" }),
+      mk({ id: "basics-only", title: "基础", text: "torch 基础。" }),
+      mk({ id: "cache-v1", title: "缓存一", text: "enable cache v1 的说明。" }),
+      mk({ id: "cache-v2", title: "缓存二", text: "enable cache v2 的说明。" }),
+      mk({ id: "engine-tiers", title: "引擎档位", text: "engine_level_1 与 engine_level_2 两档。" }),
+      mk({ id: "chunked-cli", title: "分块开关", text: "启动参数 `--enable-chunked-prefill`。" }),
+      mk({ id: "chunked-prose", title: "分块介绍", text: "enable chunked prefill 的原理。" }),
+      mk({ id: "dflash-owner", title: "草稿方法", aliases: ["DFlash"], text: "DFlash 用块扩散生成草稿。" }),
+      mk({ id: "block-basics", title: "块", text: "block 是 KV 的分配单位。" }),
+      mk({ id: "queue-env", title: "环境变量", text: "`TASK_QUEUE_ENABLE=1` 打开下发队列。" }),
+      mk({ id: "multitask", title: "多任务", text: "multitask queueing latency 观测。" }),
+      mk({ id: "static-hp", title: "静态页", text: "设置 nr_hugepages 预留。" }),
+      mk({ id: "thp", title: "透明页", text: "调用 madv_hugepage 申请。" }),
+    ]);
+    const regIds = (q: string) => retrieve(q, reg, { limit: 50 }).map((h) => h.id);
+    // 精确命中一页时，名称压平后等价（Triton Ascend）的另一页仍保留
+    expect(regIds("triton-ascend")).toEqual(expect.arrayContaining(["triton-ascend", "cann-hccl"]));
+    // U+FF0D 全角横线与 ASCII 横线返回同一完整词页
+    expect(regIds("torch－dispatch")).toEqual(regIds("torch-dispatch"));
+    expect(regIds("torch-dispatch")).toContain("dispatch-whole");
+    expect(regIds("torch-dispatch")).not.toContain("dispatch-split");
+    expect(regIds("torch\u2212dispatch")).toEqual(regIds("torch-dispatch"));
+    // `--驼峰` 与 `__dunder__` 同样只返回完整词所在页
+    expect(regIds("--enableChunkedPrefill")).toEqual(regIds("--enable-chunked-prefill"));
+    expect(regIds("--enable-chunked-prefill")).toEqual(["chunked-cli"]);
+    expect([...regIds("__torch_dispatch__")].sort()).toEqual(["dispatch-whole", "dunder"]);
+    expect(regIds("__torch_dispatch__")).not.toContain("basics-only");
+    // 不存在的版本号不拿别的版本凑数
+    expect(regIds("enable_cache_v3")).toEqual([]);
+    expect(regIds("engine_level_3")).toEqual([]);
+    // 规则列出的英文写法在复合形式下也能走到扩展；子串（multitask queueing）不触发
+    for (const q of ["block diffusion", "block-diffusion", "block_diffusion"])
+      expect(regIds(q), q).toContain("dflash-owner");
+    expect(regIds("multitask queueing latency")).not.toContain("queue-env");
+    // 透明大页（含「大页内存」字样）不触发静态大页规则
+    const thp = retrieve("透明大页内存", reg, { limit: 50 });
+    expect(thp[0]?.id).toBe("thp");
+    expect(thp.map((h) => h.id)).not.toContain("static-hp");
+    // 多行 Python traceback 不触发新增扩展
+    const trace =
+      'Traceback (most recent call last):\n  File "/srv/worker.py", line 17, in run\nValueError: 二级流水';
+    expect(regIds(trace)).not.toContain("queue-env");
+    // 两端一致
+    const regBrowser = deserializeSearchIndex(
+      JSON.parse(JSON.stringify(serializeSearchIndex(reg, "f".repeat(64)))),
+    );
+    for (const q of [
+      "triton-ascend",
+      "torch－dispatch",
+      "--enableChunkedPrefill",
+      "__torch_dispatch__",
+      "enable_cache_v3",
+      "block_diffusion",
+      "透明大页内存",
+      trace,
+    ]) {
+      expect(retrieve(q, regBrowser, { limit: 50 }), q).toEqual(retrieve(q, reg, { limit: 50 }));
+    }
+  });
+
+  it("构建索引与 JSON 往返还原索引对全部新增查询返回逐字段相同的 Hit[]", () => {
+    for (const q of [
+      "DSP",
+      "dspa",
+      "dfl",
+      "moon",
+      "spec",
+      "chunk",
+      "npu",
+      "initial_verify_budget_per_req",
+      "verify_budget_per_req",
+      "gamma_alpha_beta_v1",
+      "initial verify budget per req 怎么调",
+      "二级流水是什么",
+      "块扩散",
+      "绑核怎么配",
+      "透明大页",
+      "NPU out of memory during capture_model",
+    ]) {
+      expect(retrieve(q, browserIdx, { limit: 50, expand: true }), q).toEqual(
+        retrieve(q, fullIdx, { limit: 50, expand: true }),
+      );
+    }
+  });
+});

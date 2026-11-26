@@ -3,7 +3,14 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildLockedPageEvidence, buildPageEvidenceFromLocked } from "../scripts/wiki/evidence";
+import {
+  buildLockedPageEvidence,
+  buildPageEvidenceFromLocked,
+  buildPageEvidenceFromLockedAsync,
+  clearEvidenceCaches,
+  getPageEvidenceCached,
+} from "../scripts/wiki/evidence";
+import { clearBlobCache, gitStats } from "../scripts/wiki/git";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { wikiReaderPlugin } from "../scripts/wiki/reader-plugin";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
@@ -125,6 +132,12 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
       extraProbeRefs: [tamperedRawRef, unpublishedRawRef],
     });
     const parsed = readerPageEvidenceSchema.parse(pack);
+    // 非阻塞异步构建与同步构建逐字段一致（含 invalid-commit / missing-file / unknown-repo / 篡改 / 未发布）
+    expect(
+      await buildPageEvidenceFromLockedAsync(f.root, locked, "quant-sample", {
+        extraProbeRefs: [tamperedRawRef, unpublishedRawRef],
+      }),
+    ).toEqual(pack);
     expect(parsed.revision).toBe(snap.revision);
     expect(parsed.pageId).toBe("quant-sample");
 
@@ -208,6 +221,11 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
     });
 
     f.write(`wiki/${tamperedRawPath}`, "原始未篡改第一行\n第二行\n");
+    // 含 invalid-commit / unknown-repo 的包依赖可在同一 revision 下变化，只共享在途任务、不长期缓存
+    const volatileA = await getPageEvidenceCached(f.root, locked, "quant-sample");
+    const volatileB = await getPageEvidenceCached(f.root, locked, "quant-sample");
+    expect(volatileA).toEqual(volatileB);
+    expect(volatileA).not.toBe(volatileB);
     const srv = createServer((req, res) => void dispatchWikiRequest(req, res, f.root));
     srv.listen(0, "127.0.0.1");
     await once(srv, "listening");
@@ -240,6 +258,10 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
     const repoRoot = resolve(import.meta.dirname, "..");
     const pack = await buildLockedPageEvidence(repoRoot, "quantization");
     const parsed = readerPageEvidenceSchema.parse(pack);
+    // 真实库上异步构建（buildLockedPageEvidence）与同步构建结果完全一致
+    expect(pack).toEqual(
+      buildPageEvidenceFromLocked(repoRoot, await readLockedEvidenceSnapshot(repoRoot), "quantization"),
+    );
     const totalPins = parsed.diagrams.reduce((n, d) => n + d.pins.length, 0);
     expect(parsed.pageSources).toHaveLength(55);
     expect(totalPins).toBe(35);
@@ -464,4 +486,118 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
     expect(emitted.entries[goodRepoRef]?.status).toBe("ok");
     expect(emitted.entries[zeroStartRef]).toMatchObject({ status: "unavailable", reason: "out-of-range" });
   }, 20_000);
+});
+
+describe("在线证据非阻塞构建与 (revision, page) 缓存", () => {
+  it("同键并发只构建一次且心跳不断；热命中零进程；raw 锁后篡改命中缓存仍判 tampered；HTTP 旧 revision 409", async () => {
+    const f = wikiFixture();
+    fixtures.push(f);
+    f.write("wiki/HANDBOOK.md", handbookFixture());
+    f.write("repo/src/a.py", "alpha = 1\nbeta = 2\ngamma = 3\n");
+    const commit = f.commit("pin a.py");
+    f.write(
+      "wiki/seeds/local.yaml",
+      `${[
+        "repos:",
+        "  vllm:",
+        "    url: https://github.com/vllm-project/vllm.git",
+        "    path: ./repo",
+        "    refs:",
+        `      main: ${commit}`,
+        "features: []",
+      ].join("\n")}\n`,
+    );
+    const rawText = "缓存原文第一行\n缓存原文第二行\n";
+    const rawPath = saveRawSnapshot(join(f.root, "wiki"), rawText);
+    const repoRef = `vllm@${commit.slice(0, 8)}:src/a.py#L1-L2`;
+    const missingRef = `vllm@${commit.slice(0, 8)}:src/none.py#L1-L2`;
+    const rawRef = `raw:${rawPath.slice("raw/".length)}#L1-L1`;
+    f.write(
+      "wiki/concepts/cache-sample.md",
+      `${[
+        "---",
+        "id: cache-sample",
+        "legacyIds: [old-cache-sample]",
+        "title: 缓存样本",
+        "type: concept",
+        "summary: 在线证据缓存核验。",
+        "sources:",
+        ...[repoRef, missingRef, rawRef].map((s) => `  - "${s}"`),
+        "evidence: C",
+        `rawSources: ["${rawPath}"]`,
+        "updated: '2026-11-16'",
+        "---",
+        "正文 [C1] [C3]。",
+      ].join("\n")}\n`,
+    );
+    const locked = await readLockedEvidenceSnapshot(f.root);
+    clearEvidenceCaches();
+    clearBlobCache();
+
+    let ticks = 0;
+    const timer = setInterval(() => ticks++, 1);
+    const spawns0 = gitStats.spawns;
+    let packs: Awaited<ReturnType<typeof getPageEvidenceCached>>[];
+    try {
+      packs = await Promise.all([
+        getPageEvidenceCached(f.root, locked, "cache-sample"),
+        getPageEvidenceCached(f.root, locked, "old-cache-sample"),
+        getPageEvidenceCached(f.root, locked, "cache-sample"),
+      ]);
+    } finally {
+      clearInterval(timer);
+    }
+    expect(ticks).toBeGreaterThan(0);
+    // legacy 与 canonical 同键，三个并发请求拿到同一次构建的同一个对象
+    expect(packs[1]).toBe(packs[0]);
+    expect(packs[2]).toBe(packs[0]);
+    // 冷构建：rev-parse + 一次 batch-check（+ missing 路径一次 ls-tree 复核）+ 一次 batch
+    expect(gitStats.spawns - spawns0).toBeLessThanOrEqual(4);
+    const pack = readerPageEvidenceSchema.parse(packs[0]);
+    expect(pack.entries[repoRef]).toMatchObject({
+      status: "ok",
+      lines: [
+        { number: 1, text: "alpha = 1" },
+        { number: 2, text: "beta = 2" },
+      ],
+    });
+    expect(pack.entries[missingRef]).toMatchObject({ status: "unavailable", reason: "missing-file" });
+    expect(pack.entries[rawRef]).toMatchObject({
+      status: "ok",
+      lines: [{ number: 1, text: "缓存原文第一行" }],
+    });
+    expect(pack).toEqual(buildPageEvidenceFromLocked(f.root, locked, "cache-sample"));
+
+    const warm = gitStats.spawns;
+    expect(await getPageEvidenceCached(f.root, locked, "old-cache-sample")).toBe(packs[0]);
+    expect(gitStats.spawns).toBe(warm);
+
+    f.write(`wiki/${rawPath}`, "锁定后伪造的内容\n第二行\n");
+    const tampered = await getPageEvidenceCached(f.root, locked, "cache-sample");
+    expect(tampered?.entries[rawRef]).toMatchObject({ status: "unavailable", reason: "tampered-raw" });
+    expect(tampered?.entries[repoRef]).toMatchObject({ status: "ok" });
+    f.write(`wiki/${rawPath}`, rawText);
+    expect((await getPageEvidenceCached(f.root, locked, "cache-sample"))?.entries[rawRef]).toMatchObject({
+      status: "ok",
+    });
+
+    const srv = createServer((req, res) => void dispatchWikiRequest(req, res, f.root));
+    srv.listen(0, "127.0.0.1");
+    await once(srv, "listening");
+    const port = (srv.address() as { port: number }).port;
+    const url = (page: string, revision: string) =>
+      `http://127.0.0.1:${port}/api/wiki/evidence?page=${page}&revision=${revision}`;
+    try {
+      const ok = await fetch(url("old-cache-sample", locked.revision));
+      expect(ok.status).toBe(200);
+      expect(ok.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(readerPageEvidenceSchema.parse(await ok.json())).toEqual(pack);
+      expect((await fetch(url("cache-sample", "e".repeat(64)))).status).toBe(409);
+      expect((await fetch(url("no-such-page", locked.revision))).status).toBe(404);
+      expect((await fetch(url("cache-sample", "short"))).status).toBe(400);
+      expect((await fetch(url("cache-sample", locked.revision), { method: "POST" })).status).toBe(405);
+    } finally {
+      await new Promise((r) => srv.close(r));
+    }
+  }, 30_000);
 });

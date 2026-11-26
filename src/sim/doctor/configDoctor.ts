@@ -288,6 +288,10 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   ],
 
   // Domain 5: Graph, Schedulers, RL & Env
+  "d5-fused-mc2-clears-overlap-shared-expert": [
+    { pageId: "ascend-config-system" },
+    { pageId: "ascend-env-and-serve" },
+  ],
   "d5-fa3-full-decode-only-error": [
     { pageId: "ascend-flash-attention" },
     { pageId: "acl-graph" },
@@ -826,6 +830,9 @@ export function runSingleConfigDoctor(
     for (const m of fullEval.matches) {
       if (rawKvAudit.invalidRoleValue !== undefined && m.ruleId === "d4-kv-connector-missing-kv-role") {
         continue;
+      }
+      if (m.ruleId === "d5-fused-mc2-clears-overlap-shared-expert") {
+        effectiveInput.multistreamOverlapSharedExpert = false;
       }
       findings.push(ruleMatchToFinding(m, "single", opts.resolveDeepLink));
     }

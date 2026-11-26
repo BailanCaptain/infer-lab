@@ -114,8 +114,63 @@ interface ShellStatement {
   raw: string;
 }
 
-function normalizeContinuations(input: string): string {
-  return input.replace(/\r\n/g, "\n").replace(/\\[ \t]*\n/g, " ");
+export function normalizeShellContinuations(input: string): string {
+  const lf = input.replace(/\r\n/g, "\n");
+  let out = "";
+  let quote: "'" | '"' | null = null;
+  let inComment = false;
+  let i = 0;
+  while (i < lf.length) {
+    const ch = lf[i] ?? "";
+    if (inComment) {
+      out += ch;
+      if (ch === "\n") inComment = false;
+      i += 1;
+      continue;
+    }
+    if (quote === "'") {
+      out += ch;
+      if (ch === "'") quote = null;
+      i += 1;
+      continue;
+    }
+    if (ch === "\\") {
+      let j = i + 1;
+      while (j < lf.length && (lf[j] === " " || lf[j] === "\t")) j += 1;
+      if (j < lf.length && lf[j] === "\n") {
+        out += quote === '"' ? "" : " ";
+        i = j + 1;
+        continue;
+      }
+      if (i + 1 < lf.length) {
+        out += ch + lf[i + 1]!;
+        i += 2;
+        continue;
+      }
+    }
+    if (quote === '"') {
+      out += ch;
+      if (ch === '"') quote = null;
+      i += 1;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      out += ch;
+      i += 1;
+      continue;
+    }
+    const prev = out[out.length - 1] ?? "";
+    if (ch === "#" && (out.length === 0 || /[\s;&|()]/.test(prev))) {
+      inComment = true;
+      out += ch;
+      i += 1;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
 }
 
 /**
@@ -235,10 +290,17 @@ function splitStatements(text: string): string[] {
       i += 1;
       continue;
     }
-    if (ch === "&" && next === "&") {
+    if ((ch === "&" && next === "&") || (ch === "|" && next === "|")) {
       if (cur.trim().length > 0) out.push(cur.trim());
       cur = "";
       i += 2;
+      continue;
+    }
+    const prev = cur[cur.length - 1] ?? "";
+    if (ch === "&" && next !== "&" && next !== ">" && prev !== ">" && prev !== "<") {
+      if (cur.trim().length > 0) out.push(cur.trim());
+      cur = "";
+      i += 1;
       continue;
     }
     cur += ch;
@@ -747,6 +809,44 @@ function setUnsafeJsonInt(holder: object, key: string, value: bigint | undefined
 
 function getUnsafeJsonInt(holder: object, key: string): bigint | undefined {
   return UNSAFE_JSON_INTS.get(holder)?.get(key);
+}
+
+export function copyUnsafeJsonInt(src: object, dst: object, key: string): void {
+  setUnsafeJsonInt(dst, key, getUnsafeJsonInt(src, key));
+}
+
+export function cloneRecordWithUnsafeInts(src: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const cloneVal = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(cloneVal);
+    if (isRecord(v)) return cloneRecordWithUnsafeInts(v);
+    return v;
+  };
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(src)) {
+    defineOwnRecordField(out, k, cloneVal(v));
+    copyUnsafeJsonInt(src, out, k);
+  }
+  return out;
+}
+
+export function stringifyJsonWithUnsafeInts(value: unknown, exactOverride?: bigint | undefined): string {
+  if (exactOverride !== undefined) return exactOverride.toString();
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "boolean" || typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "number") return Number.isFinite(value) ? JSON.stringify(value) : "null";
+  if (typeof value === "bigint") return value.toString();
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stringifyJsonWithUnsafeInts(item)).join(",")}]`;
+  }
+  if (isRecord(value)) {
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(value)) {
+      if (v === undefined) continue;
+      parts.push(`${JSON.stringify(k)}:${stringifyJsonWithUnsafeInts(v, getUnsafeJsonInt(value, k))}`);
+    }
+    return `{${parts.join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function recordUnsafeJsonInts(rawJson: string, root: unknown): void {
@@ -1325,7 +1425,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.modelType = "qwen3_5";
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
-  } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash/.test(s)) {
+  } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?(?:flash|pro)/.test(s)) {
     hints.matchedPresetName = "DeepSeek-V4-Flash";
     hints.isMoe = true;
     hints.useMla = true;
@@ -1422,6 +1522,11 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.modelType = "llama4";
     if (/maverick|128e/.test(s)) hints.numExperts = 128;
     else if (/scout|16e/.test(s)) hints.numExperts = 16;
+  } else if (/minimax[-_.]?m3/.test(s)) {
+    hints.matchedPresetName = "MiniMax-M3";
+    hints.isMoe = true;
+    hints.useMla = false;
+    hints.modelType = "minimax_m3";
   } else if (/mixtral/.test(s)) {
     hints.isMoe = true;
     hints.useMla = false;
@@ -1561,9 +1666,9 @@ function normalizeCliFlag(rawFlag: string): string {
 const FORBIDDEN_DOTTED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function parseHumanReadableInt(raw: string): number | undefined {
-  const m = /^(\d(?:_?\d)*(?:\.\d(?:_?\d)*)?)([kKmMgGtT])$/.exec(raw.trim());
+  const m = /^(\d+(?:\.\d+)?)([kKmMgGtT])$/.exec(raw.trim());
   if (!m?.[1] || !m[2]) return undefined;
-  const digits = m[1].replace(/_/g, "");
+  const digits = m[1];
   const num = Number(digits);
   if (!Number.isFinite(num)) return undefined;
   const decimalMult: Readonly<Record<string, number>> = {
@@ -2586,7 +2691,7 @@ export function parseVllmServeCommand(
   const targetSchemaVersion: UpgradeTargetVersion = version === "main" ? "main" : "v0.30.0";
   const vllmOmniAvailable = options?.vllmOmniAvailable === true;
   const diagnostics: CliParseDiagnostic[] = [];
-  const normalized = normalizeContinuations(rawText);
+  const normalized = normalizeShellContinuations(rawText);
   const rawStmts = splitStatements(normalized);
   const statements = rawStmts.map((s) => tokenizeStatement(s, diagnostics));
   const { serveTokens, envVars, shellPreamble } = findServeTokens(statements);
@@ -2950,7 +3055,7 @@ export function parseVllmServeCommand(
           let dottedPath = flag.slice("--additional-config.".length);
           const isListAppend = dottedPath.endsWith("+");
           if (isListAppend) dottedPath = dottedPath.slice(0, -1);
-          const segments = dottedPath.split(".").filter((seg) => seg.length > 0);
+          const segments = dottedPath.length > 0 ? dottedPath.split(".") : [];
           const [v, ni] = readValue(flag, inlineVal, i);
           i = ni;
           if (v !== undefined && segments.length > 0) {
@@ -3039,7 +3144,10 @@ export function parseVllmServeCommand(
     couplingInput.hasRoutedExpertHiddenSize = inferredHints.hasRoutedExpertHiddenSize;
   }
   if (inferredHints.useMla !== undefined) couplingInput.useMla = inferredHints.useMla;
-  if (inferredHints.usesSfaSparse !== undefined) couplingInput.usesSfaSparse = inferredHints.usesSfaSparse;
+  if (inferredHints.usesSfaSparse !== undefined) {
+    couplingInput.usesSfaSparse =
+      isRfork && inferredHints.modelType === "glm5_next" ? true : inferredHints.usesSfaSparse;
+  }
   if (inferredHints.hasCompressRatios !== undefined)
     couplingInput.hasCompressRatios = inferredHints.hasCompressRatios;
   if (inferredHints.indexTopk !== undefined) couplingInput.indexTopk = inferredHints.indexTopk;
@@ -3516,16 +3624,38 @@ export function parseVllmServeCommand(
       isRfork,
     );
     if (dsaCp !== undefined) couplingInput.enableDsaCp = dsaCp;
-    const fusedMc2 = parsePydanticLaxInt(effectiveAdditional.enable_fused_mc2);
-    if (fusedMc2 === 0 || fusedMc2 === 1 || fusedMc2 === 2 || fusedMc2 === 3) {
-      couplingInput.enableFusedMc2 = fusedMc2;
-    } else if (fusedMc2 !== undefined) {
-      diagnostics.push({
-        code: "parse-invalid-range",
-        severity: "error",
-        flag: "additional_config.enable_fused_mc2",
-        message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
-      });
+    if (
+      Object.hasOwn(effectiveAdditional, "enable_fused_mc2") &&
+      effectiveAdditional.enable_fused_mc2 !== undefined
+    ) {
+      const rawFm = effectiveAdditional.enable_fused_mc2;
+      if (isRfork) {
+        const rfFm =
+          typeof rawFm === "boolean" ? (rawFm ? 1 : 0) : rawFm === 0 || rawFm === 1 ? rawFm : undefined;
+        if (rfFm !== undefined) {
+          couplingInput.enableFusedMc2 = rfFm;
+        } else {
+          delete couplingInput.enableFusedMc2;
+          diagnostics.push({
+            code: "parse-invalid-range",
+            severity: "error",
+            flag: "additional_config.enable_fused_mc2",
+            message: `AssertionError: additional_config.enable_fused_mc2 在 rfork 中仅允许整数 0 或 1，收到 ${JSON.stringify(rawFm)}。`,
+          });
+        }
+      } else {
+        const fusedMc2 = parsePydanticLaxInt(rawFm);
+        if (fusedMc2 === 0 || fusedMc2 === 1 || fusedMc2 === 2 || fusedMc2 === 3) {
+          couplingInput.enableFusedMc2 = fusedMc2;
+        } else if (fusedMc2 !== undefined) {
+          diagnostics.push({
+            code: "parse-invalid-range",
+            severity: "error",
+            flag: "additional_config.enable_fused_mc2",
+            message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
+          });
+        }
+      }
     }
     const prefillMc2 = parseAscendBoolField(
       effectiveAdditional,

@@ -334,6 +334,17 @@ export const DEPRECATED_FALLBACK_ENV_SPECS: Readonly<Record<string, DeprecatedFa
     replacement: `--additional-config '{"enable_flashcomm1": true}'`,
     note: "VLLM_ASCEND_ENABLE_FLASHCOMM1 已于 v0.30.0 从 vllm_ascend/envs.py 移除，但在 ascend_config.py 与 utils.py 中仍保留 os.getenv 兼容兜底；建议迁移至 additional_config.enable_flashcomm1。",
   },
+  VLLM_ASCEND_ENABLE_FUSED_MC2: {
+    versions: ["rfork"],
+    sourcesByVersion: {
+      rfork: [
+        `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/envs.py#L96`,
+        `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L179-L185`,
+      ],
+    },
+    replacement: `--additional-config '{"enable_fused_mc2": 1}'`,
+    note: "rfork 下 VLLM_ASCEND_ENABLE_FUSED_MC2 由 vllm_ascend/envs.py 与 AscendConfig._get_config_value 读取作为兼容兜底，建议迁移至 additional_config.enable_fused_mc2。",
+  },
 };
 
 export const DOCS_ONLY_UNKNOWN_HCCL_VARS: readonly string[] = [
@@ -484,6 +495,38 @@ export function classifyEnvVar(
 }
 
 export const domain5Rules: readonly CouplingRule[] = [
+  {
+    id: "d5-fused-mc2-clears-overlap-shared-expert",
+    domain: "graph-sched-env",
+    title: "enable_fused_mc2=1 时静默关闭 multistream_overlap_shared_expert",
+    judgment: "silent-rewrite",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L850-L854`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L919-L923`,
+      `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L194-L199`,
+    ],
+    description:
+      "当 enable_fused_mc2 == 1（或 rfork 下 VLLM_ASCEND_ENABLE_FUSED_MC2=1）且 multistream_overlap_shared_expert=True 时，AscendConfig 打印告警并将 multistream_overlap_shared_expert 静默改写为 False。",
+    rationale: "Fused MC2 融合通信与多流共享专家掩盖不能同时开启。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.enableFusedMc2 !== 1 || input.multistreamOverlapSharedExpert !== true) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message:
+          "enable_fused_mc2=1 与 multistream_overlap_shared_expert=True 冲突，AscendConfig 已将 multistream_overlap_shared_expert 静默改写为 False。",
+        effectiveMutation: { multistreamOverlapSharedExpert: false },
+      };
+    },
+  },
   {
     id: "d5-fa3-full-decode-only-error",
     domain: "graph-sched-env",

@@ -636,21 +636,15 @@ export const domain4Rules: readonly CouplingRule[] = [
       } else if (input.speculativeMethod === "dspark" && !input.useV2ModelRunner) {
         errors.push("稀疏 KV 卸载配合 DSpark 投机解码要求 use_v2_model_runner=True");
       }
+      const rawTopkBuf = input.topkBufferSize ?? (version === "rfork" ? 4096 : -1);
       const effectiveTopkBufferSize =
-        version !== "rfork" && input.topkBufferSize === -1
-          ? (1 + (input.numSpecTokens ?? 0)) * 2048
-          : input.topkBufferSize;
-      if (
-        effectiveTopkBufferSize !== undefined &&
-        input.indexTopk !== undefined &&
-        effectiveTopkBufferSize < input.indexTopk
-      ) {
+        version !== "rfork" && rawTopkBuf === -1 ? (1 + (input.numSpecTokens ?? 0)) * 2048 : rawTopkBuf;
+      if (input.indexTopk !== undefined && effectiveTopkBufferSize < input.indexTopk) {
         errors.push(`topk_buffer_size (${effectiveTopkBufferSize}) 必须 >= index_topk (${input.indexTopk})`);
       }
       if (
-        version !== "rfork" &&
         input.usesSfaSparse &&
-        (input.enableSparseSfaC8 || input.cacheDtype === "turboquant_4bit_nc")
+        (input.enableSparseSfaC8 || (version !== "rfork" && input.cacheDtype === "turboquant_4bit_nc"))
       ) {
         errors.push("与打包 SFA C8 或 TurboQuant 4-bit 缓存互斥");
       }
@@ -774,11 +768,17 @@ export const domain4Rules: readonly CouplingRule[] = [
         rawSedp && input.enableExpertParallel === true && (input.tpSize ?? 1) > 1,
       );
       const effectiveOverlapSharedExpert = Boolean(
-        input.multistreamOverlapSharedExpert === true && (input.enableFusedMc2 ?? 0) === 0,
+        input.multistreamOverlapSharedExpert === true && input.enableFusedMc2 !== 1,
       );
       if (input.mixPlacement === true && (effectiveSharedExpertDp || effectiveOverlapSharedExpert)) {
         errors.push(
           "ValueError: mix_placement 不支持与生效的 enable_shared_expert_dp 或 multistream_overlap_shared_expert 同时开启",
+        );
+      }
+
+      if (version === "rfork" && input.enableFusedMc2 === 1 && input.modelType === "minimax_m3") {
+        errors.push(
+          "AssertionError: MiniMax M3 在 rfork 下不支持 enable_fused_mc2=1（请设为 0 或取消 VLLM_ASCEND_ENABLE_FUSED_MC2）",
         );
       }
 

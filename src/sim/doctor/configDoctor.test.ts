@@ -1550,12 +1550,76 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       ).hasBlockers,
     ).toBe(false);
 
-    // rfork VLLM_ASCEND_ENABLE_FUSED_MC2=1 clears multistream_overlap_shared_expert before mix_placement check
+    // rfork VLLM_ASCEND_ENABLE_FUSED_MC2=1 clears multistream_overlap_shared_expert, classifies env as deprecated-fallback, and rejects null/2/'1'/MiniMax-M3
+    const rfFusedMix = runSingleConfigDoctor(
+      `VLLM_ASCEND_ENABLE_FUSED_MC2=1 vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"mix_placement":true,"multistream_overlap_shared_expert":true}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(rfFusedMix.hasBlockers).toBe(false);
+    expect(rfFusedMix.effectiveInput.multistreamOverlapSharedExpert).toBe(false);
+    expect(
+      rfFusedMix.envClassifications.find((e) => e.name === "VLLM_ASCEND_ENABLE_FUSED_MC2")?.judgment,
+    ).toBe("deprecated-fallback");
+
+    for (const badOverride of ["null", "2", '"1"']) {
+      expect(
+        runSingleConfigDoctor(
+          `VLLM_ASCEND_ENABLE_FUSED_MC2=1 vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"enable_fused_mc2":${badOverride}}'`,
+          { mode: "full", hardwareFamily: "A2", version: "rfork" },
+        ).hasBlockers,
+      ).toBe(true);
+    }
+    expect(
+      runSingleConfigDoctor(`VLLM_ASCEND_ENABLE_FUSED_MC2=1 vllm serve MiniMax/MiniMax-M3 -tp 2`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "rfork",
+      }).hasBlockers,
+    ).toBe(true);
+
+    // Underscore in suffixed int rejected (1_0k), empty dotted segment rejected, DeepSeek-V4-Pro compress_ratios, GLM-5.3-Flash rfork kv_nz, rfork SFA C8 + offload, omitted topk_buffer_size default
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --max-model-len 1_0k`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(true);
     expect(
       runSingleConfigDoctor(
-        `VLLM_ASCEND_ENABLE_FUSED_MC2=1 vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"mix_placement":true,"multistream_overlap_shared_expert":true}'`,
-        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+        `vllm serve Qwen/Qwen3-8B --additional-config.scheduler_config..enable_balance_scheduling true`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V4-Pro --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"enable_kv_nz":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
       ).hasBlockers,
     ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V4-Pro --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"sparse_kv_offload_config":{"enabled":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve zai-org/GLM-5.3-Flash --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"enable_kv_nz":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3.2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"sparse_kv_offload_config":{"enabled":true},"enable_sparse_sfa_c8":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3.2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"sparse_kv_offload_config":{"enabled":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork", modelTraitOverride: { indexTopk: 8192 } },
+      ).hasBlockers,
+    ).toBe(true);
   });
 });

@@ -23,7 +23,14 @@ import {
   VALID_TOP_LEVEL_KEYS_BY_TARGET,
   VALID_XLITE_GRAPH_KEYS,
 } from "./ascendConfigSchemaKeys";
-import { type ParsedVllmServeCommand, parseVllmServeCommand } from "./cliParser";
+import {
+  cloneRecordWithUnsafeInts,
+  copyUnsafeJsonInt,
+  normalizeShellContinuations,
+  type ParsedVllmServeCommand,
+  parseVllmServeCommand,
+  stringifyJsonWithUnsafeInts,
+} from "./cliParser";
 
 export type UpgradeFromVersion = "v0.23.0" | "v0.26.0rc";
 export {
@@ -981,15 +988,17 @@ function quoteShellArg(arg: string): string {
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }
 
+type ShellListOp = "" | "\n" | ";" | "&&" | "||" | "&";
+
 interface PreambleStatement {
-  readonly leadingOp: "" | "\n" | ";" | "&&" | "||";
+  readonly leadingOp: ShellListOp;
   readonly kind: "export" | "assign" | "other";
   readonly rawStmt: string;
   readonly tokens: readonly RawShellToken[];
 }
 
 interface TrailingStatement {
-  readonly leadingOp: "\n" | ";" | "&&" | "||";
+  readonly leadingOp: Exclude<ShellListOp, "">;
   readonly rawStmt: string;
 }
 
@@ -997,23 +1006,27 @@ function tokenizeFirstServeCommand(rawText: string): {
   prefix: readonly string[];
   serveArgs: readonly RawShellToken[];
   preambleStmts: readonly PreambleStatement[];
-  serveLeadingOp: "" | "\n" | ";" | "&&" | "||";
+  serveLeadingOp: ShellListOp;
   servePrefixAssigns: readonly RawShellToken[];
+  serveLaunchWrapperTokens: readonly RawShellToken[];
   serveEnvWrapperTokens: readonly RawShellToken[];
+  serveBackgroundAmpersand: boolean;
   trailingStmts: readonly TrailingStatement[];
 } {
-  const normalized = rawText.replace(/\r\n/g, "\n").replace(/\\[ \t]*\n/g, " ");
-  const stmts: { leadingOp: "" | "\n" | ";" | "&&" | "||"; rawStmt: string }[] = [];
+  const normalized = normalizeShellContinuations(rawText);
+  const stmts: { leadingOp: ShellListOp; rawStmt: string }[] = [];
   let cur = "";
-  let pendingOp: "" | "\n" | ";" | "&&" | "||" = "";
+  let pendingOp: ShellListOp = "";
+  let trailingFinalAmpersand = false;
   let quote: "'" | '"' | null = null;
-  const flushStmt = (nextOp: "\n" | ";" | "&&" | "||"): void => {
+  const flushStmt = (nextOp: Exclude<ShellListOp, "">): void => {
     if (cur.trim().length > 0) {
       stmts.push({ leadingOp: stmts.length === 0 ? "" : pendingOp, rawStmt: cur.trim() });
       cur = "";
       pendingOp = nextOp;
+      trailingFinalAmpersand = nextOp === "&";
     } else if (nextOp !== "\n" || pendingOp === "") {
-      pendingOp = nextOp;
+      if (pendingOp !== "&") pendingOp = nextOp;
     }
   };
   for (let i = 0; i < normalized.length; i += 1) {
@@ -1062,10 +1075,17 @@ function tokenizeFirstServeCommand(rawText: string): {
       i += 1;
       continue;
     }
+    const prev = cur[cur.length - 1] ?? "";
+    if (ch === "&" && next !== "&" && next !== ">" && prev !== ">" && prev !== "<") {
+      flushStmt("&");
+      continue;
+    }
+    if (!/\s/.test(ch)) trailingFinalAmpersand = false;
     cur += ch;
   }
   if (cur.trim().length > 0) {
     stmts.push({ leadingOp: stmts.length === 0 ? "" : pendingOp, rawStmt: cur.trim() });
+    trailingFinalAmpersand = false;
   }
 
   const tokenizeOne = (stmt: string): RawShellToken[] => {
@@ -1128,36 +1148,27 @@ function tokenizeFirstServeCommand(rawText: string): {
     return tokens;
   };
 
-  let prefix: string[] = ["vllm", "serve"];
-  let serveArgs: RawShellToken[] = [];
-  let serveLeadingOp: "" | "\n" | ";" | "&&" | "||" = "";
-  let servePrefixAssigns: RawShellToken[] = [];
-  let serveEnvWrapperTokens: RawShellToken[] = [];
-  let foundServe = false;
-  const preambleStmts: PreambleStatement[] = [];
-  const trailingStmts: TrailingStatement[] = [];
+  interface CandidateServeMatch {
+    stmtIdx: number;
+    prefix: string[];
+    serveArgs: RawShellToken[];
+    leadingOp: ShellListOp;
+    prefixAssigns: RawShellToken[];
+    launchWrappers: RawShellToken[];
+    envWrapper: RawShellToken[];
+  }
+  const tokenizedStmts = stmts.map((seg) => ({ ...seg, tokens: tokenizeOne(seg.rawStmt) }));
+  let lastMatch: CandidateServeMatch | null = null;
 
-  for (const seg of stmts) {
-    const stmt = seg.rawStmt;
-    if (foundServe) {
-      trailingStmts.push({
-        leadingOp: seg.leadingOp === "" ? ";" : seg.leadingOp,
-        rawStmt: stmt,
-      });
-      continue;
-    }
-    const tokens = tokenizeOne(stmt);
-    if (tokens.length === 0) continue;
-    if (tokens[0]?.value === "export") {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "export", rawStmt: stmt, tokens });
-      continue;
-    }
-    if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "assign", rawStmt: stmt, tokens });
-      continue;
-    }
+  for (let sIdx = 0; sIdx < tokenizedStmts.length; sIdx += 1) {
+    const seg = tokenizedStmts[sIdx]!;
+    const tokens = seg.tokens;
+    if (tokens.length === 0 || tokens[0]?.value === "export") continue;
+    if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) continue;
+
     let idx = 0;
     const stmtPrefixAssigns: RawShellToken[] = [];
+    const stmtLaunchWrappers: RawShellToken[] = [];
     const stmtEnvWrapper: RawShellToken[] = [];
     while (idx < tokens.length) {
       const entry = tokens[idx]!;
@@ -1168,6 +1179,7 @@ function tokenizeFirstServeCommand(rawText: string): {
         continue;
       }
       if (t === "nohup" || t === "setsid") {
+        stmtLaunchWrappers.push(entry);
         idx += 1;
         continue;
       }
@@ -1213,47 +1225,88 @@ function tokenizeFirstServeCommand(rawText: string): {
     const h = rest[0]?.value ?? "";
     const s = rest[1]?.value ?? "";
     if (h === "vllm" && s === "serve") {
-      prefix = ["vllm", "serve"];
-      serveArgs = rest.slice(2);
-      serveLeadingOp = seg.leadingOp;
-      servePrefixAssigns = stmtPrefixAssigns;
-      serveEnvWrapperTokens = stmtEnvWrapper;
-      foundServe = true;
+      lastMatch = {
+        stmtIdx: sIdx,
+        prefix: ["vllm", "serve"],
+        serveArgs: rest.slice(2),
+        leadingOp: seg.leadingOp,
+        prefixAssigns: stmtPrefixAssigns,
+        launchWrappers: stmtLaunchWrappers,
+        envWrapper: stmtEnvWrapper,
+      };
     } else if (
       (h === "python" || h === "python3") &&
       s === "-m" &&
       (rest[2]?.value === "vllm.entrypoints.openai.api_server" ||
         rest[2]?.value === "vllm.entrypoints.cli.main")
     ) {
-      if (rest[2]?.value === "vllm.entrypoints.cli.main" && rest[3]?.value === "serve") {
-        prefix = [h, "-m", rest[2].value, "serve"];
-        serveArgs = rest.slice(4);
-      } else {
-        prefix = [h, "-m", rest[2]!.value];
-        serveArgs = rest.slice(3);
-      }
-      serveLeadingOp = seg.leadingOp;
-      servePrefixAssigns = stmtPrefixAssigns;
-      serveEnvWrapperTokens = stmtEnvWrapper;
-      foundServe = true;
+      const pfx =
+        rest[2]?.value === "vllm.entrypoints.cli.main" && rest[3]?.value === "serve"
+          ? [h, "-m", rest[2].value, "serve"]
+          : [h, "-m", rest[2]!.value];
+      const args =
+        rest[2]?.value === "vllm.entrypoints.cli.main" && rest[3]?.value === "serve"
+          ? rest.slice(4)
+          : rest.slice(3);
+      lastMatch = {
+        stmtIdx: sIdx,
+        prefix: pfx,
+        serveArgs: args,
+        leadingOp: seg.leadingOp,
+        prefixAssigns: stmtPrefixAssigns,
+        launchWrappers: stmtLaunchWrappers,
+        envWrapper: stmtEnvWrapper,
+      };
     } else if (h.startsWith("-")) {
-      prefix = ["vllm", "serve"];
-      serveArgs = rest;
-      serveLeadingOp = seg.leadingOp;
-      servePrefixAssigns = stmtPrefixAssigns;
-      serveEnvWrapperTokens = stmtEnvWrapper;
-      foundServe = true;
-    } else {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "other", rawStmt: stmt, tokens });
+      lastMatch = {
+        stmtIdx: sIdx,
+        prefix: ["vllm", "serve"],
+        serveArgs: rest,
+        leadingOp: seg.leadingOp,
+        prefixAssigns: stmtPrefixAssigns,
+        launchWrappers: stmtLaunchWrappers,
+        envWrapper: stmtEnvWrapper,
+      };
     }
   }
+
+  const preambleStmts: PreambleStatement[] = [];
+  const trailingStmts: TrailingStatement[] = [];
+  const targetIdx = lastMatch?.stmtIdx ?? tokenizedStmts.length;
+
+  for (let sIdx = 0; sIdx < tokenizedStmts.length; sIdx += 1) {
+    if (sIdx === targetIdx) continue;
+    const seg = tokenizedStmts[sIdx]!;
+    if (sIdx > targetIdx) {
+      trailingStmts.push({
+        leadingOp: seg.leadingOp === "" ? ";" : seg.leadingOp,
+        rawStmt: seg.rawStmt,
+      });
+      continue;
+    }
+    const tokens = seg.tokens;
+    if (tokens.length === 0) continue;
+    if (tokens[0]?.value === "export") {
+      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "export", rawStmt: seg.rawStmt, tokens });
+    } else if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) {
+      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "assign", rawStmt: seg.rawStmt, tokens });
+    } else {
+      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "other", rawStmt: seg.rawStmt, tokens });
+    }
+  }
+
+  const nextAfterServe = lastMatch ? tokenizedStmts[lastMatch.stmtIdx + 1] : undefined;
+  const serveBackgroundAmpersand = Boolean(lastMatch && !nextAfterServe && trailingFinalAmpersand);
+
   return {
-    prefix,
-    serveArgs,
+    prefix: lastMatch?.prefix ?? ["vllm", "serve"],
+    serveArgs: lastMatch?.serveArgs ?? [],
     preambleStmts,
-    serveLeadingOp,
-    servePrefixAssigns,
-    serveEnvWrapperTokens,
+    serveLeadingOp: lastMatch?.leadingOp ?? "",
+    servePrefixAssigns: lastMatch?.prefixAssigns ?? [],
+    serveLaunchWrapperTokens: lastMatch?.launchWrappers ?? [],
+    serveEnvWrapperTokens: lastMatch?.envWrapper ?? [],
+    serveBackgroundAmpersand,
     trailingStmts,
   };
 }
@@ -1262,15 +1315,20 @@ function cleanNestedObjectKeys(
   obj: Record<string, unknown>,
   validKeys: ReadonlySet<string>,
   nestedValidators?: Readonly<Record<string, ReadonlySet<string>>>,
+  flagPrefix?: string,
+  invalidFlags?: ReadonlySet<string>,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
     if (!validKeys.has(k)) continue;
+    const childFlag = flagPrefix ? `${flagPrefix}.${k}` : undefined;
     if (nestedValidators?.[k] && isPlainObject(v)) {
-      const cleanedChild = cleanNestedObjectKeys(v, nestedValidators[k]!);
+      const cleanedChild = cleanNestedObjectKeys(v, nestedValidators[k]!, undefined, childFlag, invalidFlags);
       if (Object.keys(cleanedChild).length > 0) out[k] = cleanedChild;
     } else {
+      if (childFlag && invalidFlags?.has(childFlag)) continue;
       out[k] = v;
+      copyUnsafeJsonInt(obj, out, k);
     }
   }
   return out;
@@ -1282,7 +1340,7 @@ function buildRecommendedCommand(
   toVersion: UpgradeTargetVersion,
 ): string {
   const itemIds = new Set(items.map((i) => i.id));
-  const preamblePieces: { leadingOp: "" | "\n" | ";" | "&&" | "||"; text: string }[] = [];
+  const preamblePieces: { leadingOp: ShellListOp; text: string }[] = [];
   const removeEnvFc1 = itemIds.has("radar-flashcomm1-precedence-inversion");
   const {
     prefix,
@@ -1290,7 +1348,9 @@ function buildRecommendedCommand(
     preambleStmts,
     serveLeadingOp,
     servePrefixAssigns,
+    serveLaunchWrapperTokens,
     serveEnvWrapperTokens,
+    serveBackgroundAmpersand,
     trailingStmts,
   } = tokenizeFirstServeCommand(parsed.rawText);
 
@@ -1299,7 +1359,7 @@ function buildRecommendedCommand(
     Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, name);
 
   const nextAdditional: Record<string, unknown> = parsed.additionalConfig
-    ? (JSON.parse(JSON.stringify(parsed.additionalConfig)) as Record<string, unknown>)
+    ? cloneRecordWithUnsafeInts(parsed.additionalConfig)
     : {};
 
   const ensureSubDict = (parent: Record<string, unknown>, key: string): Record<string, unknown> => {
@@ -1310,9 +1370,12 @@ function buildRecommendedCommand(
     return created;
   };
 
-  let carryOp: "" | "\n" | ";" | "&&" | "||" = "";
-  for (const stmt of preambleStmts) {
-    const effOp = preamblePieces.length === 0 ? "" : carryOp || stmt.leadingOp;
+  for (let pIdx = 0; pIdx < preambleStmts.length; pIdx += 1) {
+    const stmt = preambleStmts[pIdx]!;
+    const nextOp = pIdx + 1 < preambleStmts.length ? preambleStmts[pIdx + 1]!.leadingOp : serveLeadingOp;
+    const effOp: ShellListOp = preamblePieces.length === 0 ? "" : stmt.leadingOp;
+    const inAndOrList =
+      stmt.leadingOp === "&&" || stmt.leadingOp === "||" || nextOp === "&&" || nextOp === "||";
     if (stmt.kind === "export") {
       const keptArgs: string[] = [];
       for (let k = 1; k < stmt.tokens.length; k += 1) {
@@ -1324,9 +1387,8 @@ function buildRecommendedCommand(
       }
       if (keptArgs.length > 0) {
         preamblePieces.push({ leadingOp: effOp, text: `export ${keptArgs.join(" ")}` });
-        carryOp = "";
-      } else if (stmt.leadingOp === "&&" || stmt.leadingOp === "||") {
-        carryOp = stmt.leadingOp;
+      } else if (inAndOrList) {
+        preamblePieces.push({ leadingOp: effOp, text: ":" });
       }
     } else if (stmt.kind === "assign") {
       const keptAssigns = stmt.tokens.filter((tok) => {
@@ -1335,13 +1397,11 @@ function buildRecommendedCommand(
       });
       if (keptAssigns.length > 0) {
         preamblePieces.push({ leadingOp: effOp, text: keptAssigns.map((t) => t.raw).join(" ") });
-        carryOp = "";
-      } else if (stmt.leadingOp === "&&" || stmt.leadingOp === "||") {
-        carryOp = stmt.leadingOp;
+      } else if (inAndOrList) {
+        preamblePieces.push({ leadingOp: effOp, text: ":" });
       }
     } else {
       preamblePieces.push({ leadingOp: effOp, text: stmt.rawStmt });
-      carryOp = "";
     }
   }
 
@@ -1397,12 +1457,16 @@ function buildRecommendedCommand(
     keptEnvWrapper.length = 0;
   }
 
+  const migratedNestedPairs: { parent: string; child: string; value: unknown }[] = [];
+
   // Migrate enable_sleep_mode_extra_cleanup -> rl_config.sleep_mode_extra_cleanup
   if (Object.hasOwn(nextAdditional, "enable_sleep_mode_extra_cleanup")) {
     const val = nextAdditional.enable_sleep_mode_extra_cleanup;
     const rl = ensureSubDict(nextAdditional, "rl_config");
     if (!Object.hasOwn(rl, "sleep_mode_extra_cleanup")) {
-      rl.sleep_mode_extra_cleanup = typeof val === "boolean" ? val : Boolean(val);
+      const coerced = typeof val === "boolean" ? val : Boolean(val);
+      rl.sleep_mode_extra_cleanup = coerced;
+      migratedNestedPairs.push({ parent: "rl_config", child: "sleep_mode_extra_cleanup", value: coerced });
     }
     delete nextAdditional.enable_sleep_mode_extra_cleanup;
   }
@@ -1428,6 +1492,7 @@ function buildRecommendedCommand(
     const sched = ensureSubDict(nextAdditional, "scheduler_config");
     if (!Object.hasOwn(sched, sKey)) {
       sched[sKey] = nextAdditional[sKey];
+      migratedNestedPairs.push({ parent: "scheduler_config", child: sKey, value: nextAdditional[sKey] });
     }
     delete nextAdditional[sKey];
   }
@@ -1443,7 +1508,15 @@ function buildRecommendedCommand(
     }
   }
 
-  // Clean unknown nested sub-config keys
+  // Reconstruct CLI tokens preserving existing flags, left-to-right shell expansion order, and original quoting
+  const targetParsed = parseVllmServeCommand(parsed.rawText, { version: toVersion });
+  const invalidTargetAdditionalFlags = new Set<string>(
+    targetParsed.parseDiagnostics
+      .map((d) => d.flag)
+      .filter((f): f is string => Boolean(f?.startsWith("additional_config"))),
+  );
+
+  // Clean unknown or type-invalid nested sub-config keys
   const nestedSchemaMap: Record<
     string,
     { validKeys: ReadonlySet<string>; childValidators?: Readonly<Record<string, ReadonlySet<string>>> }
@@ -1477,8 +1550,17 @@ function buildRecommendedCommand(
   };
   for (const [subKey, schema] of Object.entries(nestedSchemaMap)) {
     const rawSub = nextAdditional[subKey];
-    if (!isPlainObject(rawSub)) continue;
-    const cleaned = cleanNestedObjectKeys(rawSub, schema.validKeys, schema.childValidators);
+    if (!isPlainObject(rawSub)) {
+      if (invalidTargetAdditionalFlags.has(`additional_config.${subKey}`)) delete nextAdditional[subKey];
+      continue;
+    }
+    const cleaned = cleanNestedObjectKeys(
+      rawSub,
+      schema.validKeys,
+      schema.childValidators,
+      `additional_config.${subKey}`,
+      invalidTargetAdditionalFlags,
+    );
     if (Object.keys(cleaned).length === 0) {
       delete nextAdditional[subKey];
     } else {
@@ -1494,7 +1576,7 @@ function buildRecommendedCommand(
   // Rewrite compilation_config when --enforce-eager or cudagraph_mode="NONE" triggered
   const hasEagerBypass = itemIds.has("radar-legacy-eager-disables-aclgraph");
   const nextCompilation: Record<string, unknown> | null = parsed.compilationConfig
-    ? (JSON.parse(JSON.stringify(parsed.compilationConfig)) as Record<string, unknown>)
+    ? cloneRecordWithUnsafeInts(parsed.compilationConfig)
     : hasEagerBypass
       ? {}
       : null;
@@ -1502,13 +1584,6 @@ function buildRecommendedCommand(
     nextCompilation.cudagraph_mode = "FULL_DECODE_ONLY";
   }
 
-  // Reconstruct CLI tokens preserving existing flags, left-to-right shell expansion order, and original quoting
-  const targetParsed = parseVllmServeCommand(parsed.rawText, { version: toVersion });
-  const invalidTargetAdditionalFlags = new Set<string>(
-    targetParsed.parseDiagnostics
-      .map((d) => d.flag)
-      .filter((f): f is string => Boolean(f?.startsWith("additional_config"))),
-  );
   for (const k of Object.keys(nextAdditional)) {
     if (!Object.hasOwn(nestedSchemaMap, k) && invalidTargetAdditionalFlags.has(`additional_config.${k}`)) {
       delete nextAdditional[k];
@@ -1579,6 +1654,8 @@ function buildRecommendedCommand(
     }
   };
 
+  const postPreservedMigratedTokens: RawShellToken[] = [];
+
   // Pre-scan dotted --additional-config.<path> flags so valid target flags stay in-place in serveArgs
   for (let i = 0; i < serveArgs.length; i += 1) {
     const entry = serveArgs[i]!;
@@ -1598,25 +1675,38 @@ function buildRecommendedCommand(
     const flagIdx = i;
     let dottedPath = normFlag.slice("--additional-config.".length);
     if (dottedPath.endsWith("+")) dottedPath = dottedPath.slice(0, -1);
-    const segs = dottedPath.split(".").filter((s) => s.length > 0);
+    const segs = dottedPath.length > 0 ? dottedPath.split(".") : [];
     const valTok = eqIdx < 0 && i + 1 < serveArgs.length ? serveArgs[i + 1] : undefined;
     if (eqIdx < 0 && valTok) i += 1;
     if (isPreservableDottedFlag(segs)) {
       preservedDottedStartIndices.add(flagIdx);
+      if (segs.length === 1) {
+        for (const mp of migratedNestedPairs) {
+          if (mp.parent === segs[0]) {
+            postPreservedMigratedTokens.push(
+              mkSynthToken(`--additional-config.${mp.parent}.${mp.child}`),
+              mkSynthToken(stringifyJsonWithUnsafeInts(mp.value)),
+            );
+          }
+        }
+      }
       deletePathFromAdditional(nextAdditional, segs);
     }
   }
 
   const synthAdditionalTokens: RawShellToken[] = [];
   if (Object.keys(nextAdditional).length > 0) {
-    if (preservedDottedStartIndices.size === 0) {
+    if (preservedDottedStartIndices.size === 0 && postPreservedMigratedTokens.length === 0) {
       synthAdditionalTokens.push(
         mkSynthToken("--additional-config"),
-        mkSynthToken(JSON.stringify(nextAdditional)),
+        mkSynthToken(stringifyJsonWithUnsafeInts(nextAdditional)),
       );
     } else {
       for (const [k, v] of Object.entries(nextAdditional)) {
-        synthAdditionalTokens.push(mkSynthToken(`--additional-config.${k}`), mkSynthToken(JSON.stringify(v)));
+        synthAdditionalTokens.push(
+          mkSynthToken(`--additional-config.${k}`),
+          mkSynthToken(stringifyJsonWithUnsafeInts(v)),
+        );
       }
     }
   }
@@ -1666,7 +1756,7 @@ function buildRecommendedCommand(
       if (hasNextCompilation) {
         rewrittenArgs.push(
           mkSynthToken("--compilation-config"),
-          mkSynthToken(JSON.stringify(nextCompilation)),
+          mkSynthToken(stringifyJsonWithUnsafeInts(nextCompilation)),
         );
       }
       continue;
@@ -1675,15 +1765,22 @@ function buildRecommendedCommand(
   }
 
   if (!sawCompilationFlag && hasNextCompilation) {
-    rewrittenArgs.push(mkSynthToken("--compilation-config"), mkSynthToken(JSON.stringify(nextCompilation)));
+    rewrittenArgs.push(
+      mkSynthToken("--compilation-config"),
+      mkSynthToken(stringifyJsonWithUnsafeInts(nextCompilation)),
+    );
   }
   if (!emittedSynthAdditional && synthAdditionalTokens.length > 0) {
     rewrittenArgs.push(...synthAdditionalTokens);
   }
+  if (postPreservedMigratedTokens.length > 0) {
+    rewrittenArgs.push(...postPreservedMigratedTokens);
+  }
 
   // Group --flag value pairs onto readable continuation lines when there are multiple flags
   const segments: string[] = [];
-  const headParts = [...keptServePrefixAssigns, ...keptEnvWrapper, ...prefix];
+  const keptLaunchWrappers = serveLaunchWrapperTokens.map((t) => t.raw);
+  const headParts = [...keptServePrefixAssigns, ...keptLaunchWrappers, ...keptEnvWrapper, ...prefix];
   let idx = 0;
   if (rewrittenArgs[0] && !rewrittenArgs[0].value.startsWith("-")) {
     headParts.push(rewrittenArgs[0].raw);
@@ -1707,10 +1804,14 @@ function buildRecommendedCommand(
     }
   }
 
-  const serveCmd = segments.length > 2 ? segments.join(" \\\n") : segments.map((s) => s.trim()).join(" ");
-  const formatJoiner = (op: "" | "\n" | ";" | "&&" | "||"): string => {
+  let serveCmd = segments.length > 2 ? segments.join(" \\\n") : segments.map((s) => s.trim()).join(" ");
+  if (serveBackgroundAmpersand) {
+    serveCmd += " &";
+  }
+  const formatJoiner = (op: ShellListOp): string => {
     if (op === "&&") return " && ";
     if (op === "||") return " || ";
+    if (op === "&") return " & ";
     if (op === ";") return "; ";
     if (op === "\n") return "\n";
     return "";
@@ -1719,7 +1820,7 @@ function buildRecommendedCommand(
   for (const piece of preamblePieces) {
     out += `${formatJoiner(piece.leadingOp)}${piece.text}`;
   }
-  const effServeOp = preamblePieces.length === 0 ? "" : carryOp || serveLeadingOp || "\n";
+  const effServeOp: ShellListOp = preamblePieces.length === 0 ? "" : serveLeadingOp || "\n";
   out += `${formatJoiner(effServeOp)}${serveCmd}`;
   for (const ts of trailingStmts) {
     out += `${formatJoiner(ts.leadingOp)}${ts.rawStmt}`;

@@ -1,19 +1,101 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 280" width="840" height="280" role="img" aria-label="continuous batching 发生在每一步的边界：第 2 站重新调度，第 3 站重拼输入，结束请求归还的名额与 KV 块随即复用。">
-  <title>continuous batching 发生在每一步的边界：第 2 站重新调度，第 3 站重拼输入，结束请求归还的名额与 KV 块随即复用。</title>
-  <defs><marker id="concurrent-request-batching-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M250 135 L305 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
-  <path d="M535 135 L590 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
-  <path d="M705 58 L705 90" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
-  <rect x="20" y="90" width="230" height="90" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="135" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步一起计算</text>
-  <text x="135" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">算提示词的 + 生成输出的</text>
-  <rect x="305" y="90" width="230" height="90" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="420" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">步末更新各请求</text>
-  <text x="420" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">结束的退出 · 归还 KV 块</text>
-  <rect x="590" y="90" width="230" height="90" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="705" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一步重新组批</text>
-  <text x="705" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">未结束的继续 + 新请求加入</text>
-  <rect x="590" y="14" width="230" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="705" y="41" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等待中的新请求</text>
-  <text x="420" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">批次成员和输入长度每步可变；各请求的历史与输出仍各自独立</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="Continuous Batching 步间动态重拼输入张量与分页 KV 块池回收复用" font-family="var(--font-sans)">
+<title>Continuous Batching 步间边界机制：拼合输入前向 → 退场回收 KV 块 → 新请求即刻入批</title>
+<desc>展示第 k 步多请求首尾拼接输入张量与独立分页 KV 块池，步末经 _free_request 释放完成请求块并由 schedule 准入新请求在第 k+1 步即刻复用。</desc>
+<defs>
+  <marker id="cb-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#66716d"/>
+  </marker>
+  <marker id="cb-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+</defs>
+
+<text x="18" y="31" font-size="16" font-weight="700" fill="#17211f">Continuous Batching 步间动态重组：按步重拼混合输入张量，退场 KV 块下一步即刻复用</text>
+
+<!-- Column 1: Step k Forward Batch -->
+<rect x="14" y="46" width="276" height="346" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="70" r="11" fill="#087f73"/>
+<text x="36" y="74.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="75" font-size="14.5" font-weight="700" fill="#17211f">第 k 步：拼合输入与块池</text>
+<line x1="28" y1="90" x2="276" y2="90" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<text x="152" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4d5652">首尾拼接本步输入张量（附起止边界）</text>
+<rect x="28" y="122" width="248" height="38" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="152" y="145.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">Req A（Decode · 本步命中结束）</text>
+<rect x="28" y="166" width="248" height="38" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="152" y="189.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">Req B（Decode · 持续生成中）</text>
+<rect x="28" y="210" width="248" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="152" y="230" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">Req C（Prefill · 算提示词分块）</text>
+<text x="152" y="248" text-anchor="middle" font-size="12" fill="#4d5652">共用同一份权重做一次批量前向</text>
+
+<rect x="28" y="272" width="248" height="106" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="152" y="294" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">共享 KV 块池（按各自块表隔离）</text>
+<g stroke-width="1.1" font-size="12" font-weight="700" text-anchor="middle">
+  <rect x="38" y="306" width="34" height="30" rx="4" fill="#fae1d8" stroke="#b54237"/><text x="55" y="325.5" fill="#8f3229">A₀</text>
+  <rect x="77" y="306" width="34" height="30" rx="4" fill="#fae1d8" stroke="#b54237"/><text x="94" y="325.5" fill="#8f3229">A₁</text>
+  <rect x="116" y="306" width="34" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6"/><text x="133" y="325.5" fill="#3a4f93">B₀</text>
+  <rect x="155" y="306" width="34" height="30" rx="4" fill="#fff4cf" stroke="#c78300"/><text x="172" y="325.5" fill="#936300">C₀</text>
+  <rect x="194" y="306" width="34" height="30" rx="4" fill="#fff4cf" stroke="#c78300"/><text x="211" y="325.5" fill="#936300">C₁</text>
+  <rect x="233" y="306" width="34" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/><text x="250" y="325.5" fill="#66716d">空</text>
+</g>
+<text x="152" y="362" text-anchor="middle" font-size="12" fill="#4d5652">仅剩余 1 个空闲块，新请求 D 暂排队</text>
+<!-- Column 2: Step-End Settlement & Reschedule -->
+<rect x="312" y="46" width="276" height="346" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="334" cy="70" r="11" fill="#4c65b6"/>
+<text x="334" y="74.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="352" y="75" font-size="14.5" font-weight="700" fill="#17211f">步末结算与第 2 站重调度</text>
+<line x1="326" y1="90" x2="574" y2="90" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<rect x="326" y="104" width="248" height="80" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="450" y="127" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">① 结束退场（_free_request）</text>
+<text x="450" y="150" text-anchor="middle" font-size="12" fill="#8f3229">Req A 采样命中停止条件退出</text>
+<text x="450" y="171" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">立即释放物理块 A₀、A₁ 回池</text>
+
+<rect x="326" y="196" width="248" height="80" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="450" y="219" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">② 在跑请求各自更新边界</text>
+<text x="450" y="242" text-anchor="middle" font-size="12" fill="#17211f">Req B、C 各自推进采样与接受</text>
+<text x="450" y="263" text-anchor="middle" font-size="12" fill="#065f56">保留块表，优先分配下一步预算</text>
+
+<rect x="326" y="288" width="248" height="90" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="450" y="312" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">③ 等待队列准入（schedule）</text>
+<text x="450" y="336" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">Waiting 新请求 Req D 获批进场</text>
+<text x="450" y="358" text-anchor="middle" font-size="12" fill="#4d5652">直接领用刚腾出的空闲块与剩余预算</text>
+
+<!-- Column 3: Step k+1 Re-batched Forward -->
+<rect x="610" y="46" width="276" height="346" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="632" cy="70" r="11" fill="#c78300"/>
+<text x="632" y="74.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+<text x="650" y="75" font-size="14.5" font-weight="700" fill="#17211f">第 k+1 步：新批次即刻起跑</text>
+<line x1="624" y1="90" x2="872" y2="90" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<text x="748" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4d5652">第 3 站重拼张量（成员与形状可变）</text>
+<rect x="624" y="122" width="248" height="38" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="748" y="145.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">Req B（Decode · 继续生成）</text>
+<rect x="624" y="166" width="248" height="38" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="748" y="189.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">Req C（转入 Decode 续算）</text>
+<rect x="624" y="210" width="248" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="748" y="230" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">Req D（新加入 Prefill · 零空等）</text>
+<text x="748" y="248" text-anchor="middle" font-size="12" fill="#4d5652">用满本步剩余 token 预算</text>
+
+<rect x="624" y="272" width="248" height="106" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="748" y="294" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">更新后 KV 块池（退场块即刻复用）</text>
+<g stroke-width="1.1" font-size="12" font-weight="700" text-anchor="middle">
+  <rect x="634" y="306" width="34" height="30" rx="4" fill="#fff4cf" stroke="#c78300"/><text x="651" y="325.5" fill="#936300">D₀</text>
+  <rect x="673" y="306" width="34" height="30" rx="4" fill="#fff4cf" stroke="#c78300"/><text x="690" y="325.5" fill="#936300">D₁</text>
+  <rect x="712" y="306" width="34" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6"/><text x="729" y="325.5" fill="#3a4f93">B₀</text>
+  <rect x="751" y="306" width="34" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6"/><text x="768" y="325.5" fill="#3a4f93">C₀</text>
+  <rect x="790" y="306" width="34" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6"/><text x="807" y="325.5" fill="#3a4f93">C₁</text>
+  <rect x="829" y="306" width="34" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6"/><text x="846" y="325.5" fill="#3a4f93">B₁</text>
+</g>
+<text x="748" y="362" text-anchor="middle" font-size="12" fill="#065f56">原 A₀、A₁ 已无缝分给新请求 D</text>
+
+<g fill="none" stroke="#66716d" stroke-width="1.8" marker-end="url(#cb-ctrl)">
+  <line x1="290" y1="218" x2="310" y2="218"/>
+  <line x1="588" y1="218" x2="608" y2="218"/>
+</g>
+
+<!-- Bottom Invariant Strip -->
+<rect x="14" y="404" width="872" height="52" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="450" y="426" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">核心不变量：同一步共享同一份模型权重做批量前向；但各请求的起止位置、分页块表与停止条件全程独立</text>
+<text x="450" y="446" text-anchor="middle" font-size="12" fill="#66716d">告别静态批处理“整批等最长请求跑完”的尾部陪跑空泡</text>
 </svg>

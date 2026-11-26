@@ -1,158 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 530" width="900" height="530" role="img" aria-label="同一层的 KV cache，3 个位置、4 个查询头、每头 2 个数（示意）。每张小表是一组 K、V：左两列是 K，右两列是 V，一行对应一个位置，表下写着读它的查询头。三栏的查询头都是 4 个，只有组数不同：MHA 4 组、GQA 2 组、MQA 1 组，要存的格子数跟着从 48 降到 24、12。">
-  <title>同一层的 KV cache，3 个位置、4 个查询头、每头 2 个数（示意）。每张小表是一组 K、V：左两列是 K，右两列是 V，一行对应一个位置，表下写着读它的查询头。三栏的查询头都是 4 个，只有组数不同：MHA 4 组、GQA 2 组、MQA 1 组，要存的格子数跟着从 48 降到 24、12。</title>
-  <defs></defs>
-  <rect x="24" y="36" width="852" height="132" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">MHA：4 组 K、V</text>
-  <rect x="24" y="206" width="852" height="132" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">GQA：2 组 K、V</text>
-  <rect x="24" y="376" width="852" height="132" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="40" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">MQA：1 组 K、V</text>
-  <rect x="110" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M138 66v72M166 66v72M194 66v72M110 90h112M110 114h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="110" y="66" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="100" y="82.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 0</text>
-  <text x="100" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 1</text>
-  <text x="100" y="130.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 2</text>
-  <text x="124" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="152" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="180" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="208" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="166" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₀ 读</text>
-  <rect x="236" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="236" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="236" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M264 66v72M292 66v72M320 66v72M236 90h112M236 114h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="236" y="66" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="250" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="278" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="306" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="334" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="292" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₁ 读</text>
-  <rect x="362" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="390" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="418" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="446" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="362" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="390" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="418" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="446" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="362" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="390" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="418" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="446" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M390 66v72M418 66v72M446 66v72M362 90h112M362 114h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="362" y="66" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="376" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="404" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="432" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="460" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="418" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₂ 读</text>
-  <rect x="488" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="516" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="544" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="572" y="66" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="488" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="516" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="544" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="572" y="90" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="488" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="516" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="544" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="572" y="114" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M516 66v72M544 66v72M572 66v72M488 90h112M488 114h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="488" y="66" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="502" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="530" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="558" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="586" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="544" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₃ 读</text>
-  <rect x="110" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M138 236v72M166 236v72M194 236v72M110 260h112M110 284h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="110" y="236" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="100" y="252.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 0</text>
-  <text x="100" y="276.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 1</text>
-  <text x="100" y="300.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 2</text>
-  <text x="124" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="152" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="180" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="208" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="166" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₀、Q₁ 共读</text>
-  <rect x="236" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="236" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="236" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="260" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="236" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="264" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="292" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="320" y="284" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M264 236v72M292 236v72M320 236v72M236 260h112M236 284h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="236" y="236" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="250" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="278" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="306" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="334" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="292" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₂、Q₃ 共读</text>
-  <rect x="110" y="406" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="406" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="406" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="406" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="430" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="430" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="430" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="430" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="110" y="454" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="138" y="454" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="166" y="454" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="194" y="454" width="28" height="24" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M138 406v72M166 406v72M194 406v72M110 430h112M110 454h112" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="110" y="406" width="112" height="72" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="100" y="422.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 0</text>
-  <text x="100" y="446.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 1</text>
-  <text x="100" y="470.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置 2</text>
-  <text x="124" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="152" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K</text>
-  <text x="180" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="208" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">V</text>
-  <text x="166" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Q₀–Q₃ 共读</text>
-  <text x="644" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每个位置 16 个数</text>
-  <text x="644" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">3 个位置共 48 个数</text>
-  <text x="644" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每个位置 8 个数</text>
-  <text x="644" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">3 个位置共 24 个，MHA 的 1/2</text>
-  <text x="644" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每个位置 4 个数</text>
-  <text x="644" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">3 个位置共 12 个，MHA 的 1/4</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="MHA、GQA 与 MQA 三种注意力头分组的 KV cache 结构与容量比例对比" font-family="var(--font-sans)">
+<title>MHA vs GQA vs MQA：4 个查询头共读不同数量 KV 组的缓存压缩比</title>
+<desc>3 个位置、4 个查询头 Q0..Q3、每头 2 维示意：对比 MHA(4 组 48 格)、GQA(2 组 24 格) 与 MQA(1 组 12 格) 的 KV 表结构、共读连线与容量条。</desc>
+<defs>
+  <marker id="gq-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+</defs>
+
+<text x="18" y="32" font-size="16" font-weight="700" fill="#17211f">同一层 KV Cache 容量对照：查询头恒为 4 个（Q₀..Q₃），缓存体积仅随 KV 组数 n_kv 缩放</text>
+
+<!-- Tier 1: MHA (4 KV Groups) -->
+<rect x="14" y="46" width="872" height="152" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="69" r="11" fill="#b54237"/>
+<text x="36" y="73.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="74" font-size="14.5" font-weight="700" fill="#17211f">MHA（4Q : 4KV，一对一专属）：每头独立存一份 [3 位置 × (2K + 2V)]</text>
+<g font-size="12" fill="#66716d" text-anchor="end">
+  <text x="72" y="109">词 0</text><text x="72" y="129">词 1</text><text x="72" y="149">词 2</text>
+</g>
+<g stroke="#4c65b6" stroke-width="1.1">
+  <rect x="82" y="92" width="52" height="62" rx="4" fill="#dce4fc"/><rect x="136" y="92" width="52" height="62" rx="4" fill="#e8edff"/>
+  <rect x="206" y="92" width="52" height="62" rx="4" fill="#dce4fc"/><rect x="260" y="92" width="52" height="62" rx="4" fill="#e8edff"/>
+  <rect x="330" y="92" width="52" height="62" rx="4" fill="#dce4fc"/><rect x="384" y="92" width="52" height="62" rx="4" fill="#e8edff"/>
+  <rect x="454" y="92" width="52" height="62" rx="4" fill="#dce4fc"/><rect x="508" y="92" width="52" height="62" rx="4" fill="#e8edff"/>
+</g>
+<path d="M82 113h106M82 134h106M206 113h106M206 134h106M330 113h106M330 134h106M454 113h106M454 134h106" stroke="#ffffff" stroke-width="1.2"/>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#3a4f93">
+  <text x="108" y="110">K₀</text><text x="162" y="110">V₀</text>
+  <text x="232" y="110">K₁</text><text x="286" y="110">V₁</text>
+  <text x="356" y="110">K₂</text><text x="410" y="110">V₂</text>
+  <text x="480" y="110">K₃</text><text x="534" y="110">V₃</text>
+</g>
+<g font-size="12.5" font-weight="700" text-anchor="middle" fill="#065f56">
+  <text x="135" y="178">↑ Q₀ 独读</text>
+  <text x="259" y="178">↑ Q₁ 独读</text>
+  <text x="383" y="178">↑ Q₂ 独读</text>
+  <text x="507" y="178">↑ Q₃ 独读</text>
+</g>
+<rect x="584" y="88" width="286" height="94" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="598" y="112" font-size="13" font-weight="700" fill="#8f3229">单位置 16 个数 · 3 位置共 48 格</text>
+<rect x="598" y="124" width="240" height="18" rx="4" fill="#d88c82" stroke="#b54237" stroke-width="1"/>
+<text x="598" y="164" font-size="12" fill="#4d5652">容量 100%（长上下文显存与带宽开销最大）</text>
+<!-- Tier 2: GQA (2 KV Groups) -->
+<rect x="14" y="210" width="872" height="152" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<circle cx="36" cy="233" r="11" fill="#087f73"/>
+<text x="36" y="237.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="238" font-size="14.5" font-weight="700" fill="#17211f">GQA（4Q : 2KV，分组共享）：每 2 个查询头共读同一组 K/V，各自算出不同注意力权重</text>
+<g font-size="12" fill="#66716d" text-anchor="end">
+  <text x="72" y="273">词 0</text><text x="72" y="293">词 1</text><text x="72" y="313">词 2</text>
+</g>
+<g stroke="#087f73" stroke-width="1.2">
+  <rect x="82" y="256" width="52" height="62" rx="4" fill="#b8efe4"/><rect x="136" y="256" width="52" height="62" rx="4" fill="#ddf4ef"/>
+  <rect x="206" y="256" width="52" height="62" rx="4" fill="#b8efe4"/><rect x="260" y="256" width="52" height="62" rx="4" fill="#ddf4ef"/>
+</g>
+<path d="M82 277h106M82 298h106M206 277h106M206 298h106" stroke="#ffffff" stroke-width="1.2"/>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#065f56">
+  <text x="108" y="274">K₀</text><text x="162" y="274">V₀</text>
+  <text x="232" y="274">K₁</text><text x="286" y="274">V₁</text>
+</g>
+<text x="135" y="342" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">↑ Q₀、Q₁ 共读</text>
+<text x="259" y="342" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">↑ Q₂、Q₃ 共读</text>
+<rect x="330" y="256" width="230" height="62" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="445" y="284" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">已省去 2 组 KV 存储</text>
+<text x="445" y="305" text-anchor="middle" font-size="12" fill="#66716d">Q 打分与加权次数仍保持不变</text>
+<rect x="584" y="252" width="286" height="94" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="598" y="276" font-size="13" font-weight="700" fill="#065f56">单位置 8 个数 · 3 位置共 24 格</text>
+<rect x="598" y="288" width="240" height="18" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1" stroke-dasharray="4 3"/>
+<rect x="598" y="288" width="120" height="18" rx="4" fill="#087f73"/>
+<text x="598" y="328" font-size="12" fill="#065f56">容量 50%（Qwen3-8B 4:1 / 30B 8:1）</text>
+
+<!-- Tier 3: MQA (1 KV Group) -->
+<rect x="14" y="374" width="872" height="152" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="397" r="11" fill="#4c65b6"/>
+<text x="36" y="401.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+<text x="54" y="402" font-size="14.5" font-weight="700" fill="#17211f">MQA（4Q : 1KV，全员共享）：全部 4 个查询头共读唯 1 组 K/V</text>
+<g font-size="12" fill="#66716d" text-anchor="end">
+  <text x="72" y="437">词 0</text><text x="72" y="457">词 1</text><text x="72" y="477">词 2</text>
+</g>
+<g stroke="#4c65b6" stroke-width="1.2">
+  <rect x="82" y="420" width="52" height="62" rx="4" fill="#dce4fc"/><rect x="136" y="420" width="52" height="62" rx="4" fill="#e8edff"/>
+</g>
+<path d="M82 441h106M82 462h106" stroke="#ffffff" stroke-width="1.2"/>
+<text x="108" y="438" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">K₀</text>
+<text x="162" y="438" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">V₀</text>
+<text x="135" y="506" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">↑ Q₀..Q₃ 四头共读</text>
+<rect x="206" y="420" width="354" height="62" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="383" y="448" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">已省去 3 组 KV · 单位置公式与 n_q 无关</text>
+<text x="383" y="469" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">KV_bytes = n_kv × (d_k + d_v) × bytes</text>
+<rect x="584" y="416" width="286" height="94" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="598" y="440" font-size="13" font-weight="700" fill="#3a4f93">单位置 4 个数 · 3 位置共 12 格</text>
+<rect x="598" y="452" width="240" height="18" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1" stroke-dasharray="4 3"/>
+<rect x="598" y="452" width="60" height="18" rx="4" fill="#4c65b6"/>
+<text x="598" y="492" font-size="12" fill="#3a4f93">容量 25%（极致省显存，独立 V 子空间最少）</text>
 </svg>

@@ -1,36 +1,6 @@
-layout: figure
+mode: native-svg
 id: linear-attention-intuition
-caption: 通用示意图，只画原理。上半是标准 attention：历史每个位置都留着自己的 k、v，当前位置逐个打分。下半是 linear attention：同一段历史先压进一个大小固定的状态，当前 token 先用 k、v 更新状态，再用 q 从状态里读出本层输出，状态留给下一个位置。格子只表示状态有固定的行列，不代表数值。
-size: [880, 440]
-frames:
-  - { at: [24, 36], size: [832, 124], label: 对照：标准 attention 每个位置都要留住 }
-  - { at: [24, 196], size: [832, 216], label: linear attention：先压进一个固定大小的状态，再更新、再读出 }
-rows:
-  - { at: [56, 84], count: 6, w: 28, h: 28, gap: 6, tone: kv }
-  - { at: [56, 244], count: 6, w: 28, h: 28, gap: 6, tone: kv }
-matrices:
-  - { at: [300, 216], w: 84, h: 84, rows: 4, cols: 4, tone: kv, label: 状态（大小固定） }
-  - { at: [532, 216], w: 84, h: 84, rows: 4, cols: 4, tone: kv, label: 更新后的状态 }
-items:
-  - { at: [310, 74], size: [150, 48], text: 当前 q 逐个打分, tone: token }
-  - { at: [412, 234], size: [100, 48], text: ① 更新, sub: 用 k、v 改写, tone: control }
-  - { at: [644, 234], size: [100, 48], text: ② 读出, sub: 用 q 取结果, tone: control }
-  - { at: [390, 330], size: [148, 44], text: 当前 token 的 k、v, tone: token }
-  - { at: [622, 330], size: [140, 44], text: 当前 token 的 q, tone: token }
-  - { at: [772, 236], size: [76, 44], text: 本层输出, tone: token }
-links:
-  - { from: [254, 98], to: [310, 98], tone: kv }
-  - { from: [254, 258], to: [300, 258], tone: kv }
-  - { from: [384, 258], to: [412, 258], tone: kv }
-  - { from: [512, 258], to: [532, 258], tone: kv }
-  - { from: [616, 258], to: [644, 258], tone: kv }
-  - { from: [744, 258], to: [772, 258], tone: kv }
-  - { from: [464, 330], to: [464, 284], tone: token }
-  - { from: [692, 330], to: [692, 284], tone: token }
-  - { from: [574, 332], to: [342, 332], via: [[574, 386], [342, 386]], tone: kv, dashed: true }
-texts:
-  - { at: [56, 70], text: 历史位置 0 … 5, size: 12 }
-  - { at: [480, 92], text: 位置越多，要存的和要读的越多, size: 13, strong: true }
-  - { at: [56, 230], text: 同一段历史, size: 12, strong: true }
-  - { at: [258, 246], text: 压进, size: 12 }
-  - { at: [376, 404], text: 更新后的状态留给下一个位置接着用, size: 12 }
+caption: >-
+  标准 Softmax 注意力与线性注意力的核心机制对照：上半区因非线性 softmax(QKᵀ) 锁死运算顺序，必须先逐位置算出下三角分数表（Prefill O(t²)）并在 Decode 每步重读不断膨胀的全部历史 KV；下半区用核映射去掉逐位置 Softmax，借矩阵乘法结合律重打括号，将任意长历史压缩进固定形状矩阵状态 Sₜ ∈ ℝ^(dᵥ×dₖ)，每步仅原地更新并读出该定长状态。
+size: [900, 500]
+pins: []

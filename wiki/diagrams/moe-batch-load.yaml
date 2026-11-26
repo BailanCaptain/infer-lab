@@ -1,40 +1,6 @@
-layout: figure
+mode: native-svg
 id: moe-batch-load
-caption: 4 个 token 各选 2 个专家，共 8 个配对、覆盖 5 个专家。各专家把收到的行批量送入自己的投影和激活。卡 A 的专家共算 6 行，卡 B 共算 2 行；下方时间条是假设逐行成本相同且线性、忽略通信和固定开销的示意。实际利用率和重叠会改变耗时，不能直接由行数推出时间比例。
-size: [900, 400]
-frames:
-  - { label: 卡 A · 专家 1–3, at: [204, 80], size: [312, 196] }
-  - { label: 卡 B · 专家 4–6, at: [540, 80], size: [312, 196] }
-items:
-  - { at: [216, 96], size: [84, 44], text: 专家 1, sub: 收到 1 行, tone: weight }
-  - { at: [316, 96], size: [84, 44], text: 专家 2, sub: 收到 4 行, tone: weight }
-  - { at: [416, 96], size: [84, 44], text: 专家 3, sub: 收到 1 行, tone: weight }
-  - { at: [552, 96], size: [84, 44], text: 专家 4, sub: 收到 1 行, tone: weight }
-  - { at: [652, 96], size: [84, 44], text: 专家 5, sub: 收到 1 行, tone: weight }
-  - { at: [752, 96], size: [84, 44], text: 专家 6, sub: 收到 0 行, tone: weight, style: faded }
-grids:
-  - { at: [60, 130], rows: 4, cols: 4, cell: [18, 24], tone: token, style: faded, rowLabels: [我, 吃, 了, 苹果], label: 这一批 · 4 行 }
-  - { at: [232, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [我] }
-  - { at: [332, 160], rows: 4, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [我, 吃, 了, 苹果] }
-  - { at: [432, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [了] }
-  - { at: [580, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [苹果] }
-  - { at: [668, 160], rows: 1, cols: 4, cell: [16, 22], tone: token, style: solid, rowLabels: [吃] }
-links:
-  - { from: [150, 178], to: [196, 178], tone: token }
-bars:
-  - at: [250, 310]
-    h: 26
-    scale: 36
-    segments:
-      - { value: 6, tone: token, text: 6 行 }
-  - at: [250, 350]
-    h: 26
-    scale: 36
-    segments:
-      - { value: 2, tone: token, text: 2 行 }
-      - { value: 4, tone: ink, style: hatch, text: 空等 }
-texts:
-  - { at: [24, 28], text: 4 个 token 各选 2 个专家，按专家归拢（示意）, strong: true }
-  - { at: [240, 328], text: 卡 A, anchor: end }
-  - { at: [240, 368], text: 卡 B, anchor: end }
-  - { at: [500, 328], text: 这一层要等最慢的卡算完, size: 12.5 }
+caption: >-
+  稀疏 MoE 批内专家归拢与跨卡负载倾斜示意：4 个 token（「我」「吃」「了」「苹果」）各选 top-2 专家，共产生 8 次配对并覆盖 5 个专家（绝非整批只用 2 个专家）；按专家归拢后卡 A（专家 1–3）因热点专家 2 聚集需算 6 行，卡 B（专家 4–6）仅算 2 行并在 Combine 同步点等待慢卡（底部为线性等成本教学示意）。
+size: [900, 470]
+pins: []

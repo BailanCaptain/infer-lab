@@ -1,30 +1,6 @@
-layout: figure
+mode: native-svg
 id: swa-replay-state
-caption: 保存对象示意。格内 7/8/9 是历史位置，不是 token ID；回放会取回这些位置的 token 输入。全局历史命中后仍可读取，缺少的是各层近期窗口。重新计算得到近似窗口，随后处理新输入或继续生成。
-size: [820, 376]
-frames:
-  - { at: [20, 42], size: [780, 136], label: 追问到来：全局历史在，逐层窗口已回收 }
-  - { at: [20, 218], size: [780, 138], label: 恢复：从末尾几个位置重新算出窗口 }
-grids:
-  - { at: [70, 80], rows: 1, cols: 8, cell: [38, 32], tone: kv, style: solid, label: 已保存的 block KV }
-  - { at: [560, 80], rows: 2, cols: 3, cell: [48, 30], tone: kv, style: empty, rowLabels: ['层 1', '层 2'] }
-  - at: [70, 266]
-    rows: 1
-    cols: 3
-    cell: [48, 32]
-    tone: token
-    style: solid
-    cells:
-      - { at: [0, 0], text: '7' }
-      - { at: [0, 1], text: '8' }
-      - { at: [0, 2], text: '9' }
-    label: 历史位置：取回各位置的输入
-  - { at: [560, 256], rows: 2, cols: 3, cell: [48, 30], tone: kv, style: faded, rowLabels: ['层 1', '层 2'] }
-items:
-  - { at: [298, 256], size: [174, 60], text: 重新逐层计算, sub: 仍可读已有全局 KV, tone: weight, style: faded }
-links:
-  - { from: [218, 282], to: [294, 282], tone: token }
-  - { from: [476, 282], to: [556, 282], tone: kv }
-texts:
-  - { at: [560, 160], text: 窗口缺失，不能直接续算, size: 14 }
-  - { at: [560, 340], text: 近似窗口：下一节算出差别, size: 14 }
+caption: >-
+  SWA 有界回放的状态保存与恢复对象（窗口长 W=3 示意，格内 0..9 为历史位置编号而非 token ID）：上半区追问到达时，跨层共享的全局分页 block KV 仍在，但各层近期 SWA 滑窗环已被回收；下半区仅取回末尾位置 7、8、9 的原输入，在继续读取已有全局 block KV 的前提下重建各层近似滑窗状态，随后无缝衔接新输入。
+size: [900, 450]
+pins: []

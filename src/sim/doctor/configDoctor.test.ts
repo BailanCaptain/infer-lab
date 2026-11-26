@@ -777,6 +777,80 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       ),
     ).toBe(true);
 
+    const passConfigSpNull = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -tp 2 --compilation-config '{"pass_config":{"enable_sp":null}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(passConfigSpNull.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(false);
+
+    const passConfigNullItself = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -tp 2 --compilation-config '{"pass_config":null}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(passConfigNullItself.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const rforkProfStringOff = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"profiling_chunk_config":{"enabled":"off"}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(rforkProfStringOff.errors.some((f) => f.id === "d2-cpp-requires-pp-gt-1")).toBe(true);
+
+    const v030SparseKvScalar = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"sparse_kv_offload_config":"off"}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(v030SparseKvScalar.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const v030ProfWrongEnableKey = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -pp 2 --additional-config '{"scheduler_config":{"profiling_chunk_config":{"enable":true}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(v030ProfWrongEnableKey.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+    expect(v030ProfWrongEnableKey.effectiveInput.profilingChunkEnabled).toBeUndefined();
+
+    const v030TopLevelDyntra = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"dyntra_lb_config":{}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(v030TopLevelDyntra.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const envQuotedAssignWrapper = runSingleConfigDoctor(
+      `env 'VLLM_USE_V2_MODEL_RUNNER=on' vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(envQuotedAssignWrapper.parsed.model).toBe("Qwen/Qwen3-8B");
+    expect(envQuotedAssignWrapper.effectiveInput.tpSize).toBe(2);
+    expect(
+      envQuotedAssignWrapper.errors.some((f) => f.message.includes("VLLM_USE_V2_MODEL_RUNNER='on'")),
+    ).toBe(true);
+
+    const quotedFallbackInBrace = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=\${BATCH:-'1'} vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(quotedFallbackInBrace.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(quotedFallbackInBrace.effectiveInput.vllmBatchInvariant).toBe(true);
+
+    const chainedInlinePrefix = runSingleConfigDoctor(
+      `BATCH=0 VLLM_BATCH_INVARIANT=\${BATCH:-1} vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(chainedInlinePrefix.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(chainedInlinePrefix.effectiveInput.vllmBatchInvariant).toBe(false);
+
+    const unexportedStandaloneVar = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=on\nvllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(unexportedStandaloneVar.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(unexportedStandaloneVar.effectiveInput.vllmBatchInvariant).toBeUndefined();
+
+    const laterExportMarksPriorShellVar = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=on\nexport VLLM_BATCH_INVARIANT\nvllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(laterExportMarksPriorShellVar.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },

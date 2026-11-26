@@ -739,8 +739,10 @@ export function judgeWarGameSubmission(submission: WarGameSubmission): WarGameJu
 
   // ② CLI 非空、合法语法与零 unknownFlags 校验
   const targetVer: UpgradeTargetVersion = scenario.version === "main" ? "main" : "v0.30.0";
-  const parsedP = parseVllmServeCommand(submission.commandText);
-  const parsedD = isPd ? parseVllmServeCommand(submission.decodeCommandText ?? "") : null;
+  const parsedP = parseVllmServeCommand(submission.commandText, { version: scenario.version });
+  const parsedD = isPd
+    ? parseVllmServeCommand(submission.decodeCommandText ?? "", { version: scenario.version })
+    : null;
   const syntaxIssues = [
     ...auditSingleCommandSyntax(parsedP, targetVer, isPd ? "Prefill 端" : ""),
     ...(parsedD ? auditSingleCommandSyntax(parsedD, targetVer, "Decode 端") : []),

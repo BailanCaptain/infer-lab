@@ -1,4 +1,11 @@
-import type { ActivationScheme, CouplingCheckInput, CudaGraphMode, KvRole, ModelDtype } from "../rules/types";
+import type {
+  ActivationScheme,
+  CouplingCheckInput,
+  CudaGraphMode,
+  KvRole,
+  ModelDtype,
+  RuleVersion,
+} from "../rules/types";
 
 export interface CliParseDiagnostic {
   code:
@@ -73,19 +80,64 @@ export interface ParsedVllmServeCommand {
   requiredLocalRanks: number;
 }
 
-interface TokenSegment {
-  text: string;
-  literal: boolean;
-}
-
 interface ShellStatement {
-  tokens: string[];
-  tokenSegments: TokenSegment[][];
+  rawWords: string[];
   raw: string;
 }
 
 function normalizeContinuations(input: string): string {
   return input.replace(/\r\n/g, "\n").replace(/\\[ \t]*\n/g, " ");
+}
+
+/**
+ * Given `str` immediately after `${` (`startIdx` points to the first char inside `${`),
+ * returns the index immediately after the matching `}`, or `-1` if unclosed.
+ */
+function findClosingDollarBrace(str: string, startIdx: number): number {
+  let j = startIdx;
+  while (j < str.length) {
+    const c = str[j] ?? "";
+    if (c === "}") return j + 1;
+    if (c === "'") {
+      j += 1;
+      while (j < str.length && str[j] !== "'") j += 1;
+      if (j >= str.length) return -1;
+      j += 1;
+      continue;
+    }
+    if (c === '"') {
+      j += 1;
+      while (j < str.length && str[j] !== '"') {
+        const dc = str[j] ?? "";
+        if (dc === "\\" && j + 1 < str.length) {
+          j += 2;
+          continue;
+        }
+        if (dc === "$" && str[j + 1] === "{") {
+          const nestedEnd = findClosingDollarBrace(str, j + 2);
+          if (nestedEnd === -1) return -1;
+          j = nestedEnd;
+          continue;
+        }
+        j += 1;
+      }
+      if (j >= str.length) return -1;
+      j += 1;
+      continue;
+    }
+    if (c === "\\" && j + 1 < str.length) {
+      j += 2;
+      continue;
+    }
+    if (c === "$" && str[j + 1] === "{") {
+      const nestedEnd = findClosingDollarBrace(str, j + 2);
+      if (nestedEnd === -1) return -1;
+      j = nestedEnd;
+      continue;
+    }
+    j += 1;
+  }
+  return -1;
 }
 
 function splitStatements(text: string): string[] {
@@ -111,6 +163,14 @@ function splitStatements(text: string): string[] {
         i += 2;
         continue;
       }
+      if (ch === "$" && next === "{") {
+        const endIdx = findClosingDollarBrace(text, i + 2);
+        if (endIdx !== -1) {
+          cur += text.slice(i, endIdx);
+          i = endIdx;
+          continue;
+        }
+      }
       cur += ch;
       if (ch === '"') quote = null;
       i += 1;
@@ -121,6 +181,14 @@ function splitStatements(text: string): string[] {
       cur += ch + next;
       i += 2;
       continue;
+    }
+    if (ch === "$" && next === "{") {
+      const endIdx = findClosingDollarBrace(text, i + 2);
+      if (endIdx !== -1) {
+        cur += text.slice(i, endIdx);
+        i = endIdx;
+        continue;
+      }
     }
     if (ch === "'" || ch === '"') {
       quote = ch;
@@ -153,65 +221,46 @@ function splitStatements(text: string): string[] {
 }
 
 function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): ShellStatement {
-  const tokens: string[] = [];
-  const tokenSegments: TokenSegment[][] = [];
+  const rawWords: string[] = [];
   let cur = "";
-  let curSegs: TokenSegment[] = [];
-  let hasToken = false;
   let quote: "'" | '"' | null = null;
   let i = 0;
-
-  const appendChar = (ch: string, literal: boolean): void => {
-    cur += ch;
-    const prev = curSegs[curSegs.length - 1];
-    if (prev && prev.literal === literal) {
-      prev.text += ch;
-    } else {
-      curSegs.push({ text: ch, literal });
-    }
-  };
-
-  const flushToken = (): void => {
-    tokens.push(cur);
-    tokenSegments.push(curSegs.length > 0 ? curSegs : [{ text: "", literal: true }]);
-    cur = "";
-    curSegs = [];
-    hasToken = false;
-  };
 
   while (i < stmt.length) {
     const ch = stmt[i] ?? "";
     const next = stmt[i + 1] ?? "";
 
     if (quote === "'") {
-      if (ch === "'") {
-        quote = null;
-      } else {
-        appendChar(ch, true);
-      }
+      cur += ch;
+      if (ch === "'") quote = null;
       i += 1;
       continue;
     }
 
     if (quote === '"') {
-      if (ch === '"') {
-        quote = null;
-        i += 1;
-        continue;
-      }
-      if (ch === "\\" && (next === '"' || next === "\\" || next === "$" || next === "`")) {
-        appendChar(next, true);
+      if (ch === "\\" && i + 1 < stmt.length) {
+        cur += ch + next;
         i += 2;
         continue;
       }
-      appendChar(ch, false);
+      if (ch === "$" && next === "{") {
+        const endIdx = findClosingDollarBrace(stmt, i + 2);
+        if (endIdx !== -1) {
+          cur += stmt.slice(i, endIdx);
+          i = endIdx;
+          continue;
+        }
+      }
+      cur += ch;
+      if (ch === '"') quote = null;
       i += 1;
       continue;
     }
 
     if (/\s/.test(ch)) {
-      if (hasToken) {
-        flushToken();
+      if (cur.length > 0) {
+        rawWords.push(cur);
+        cur = "";
       }
       i += 1;
       continue;
@@ -219,20 +268,27 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
 
     if (ch === "'" || ch === '"') {
       quote = ch;
-      hasToken = true;
+      cur += ch;
       i += 1;
       continue;
     }
 
     if (ch === "\\" && i + 1 < stmt.length) {
-      appendChar(next, true);
-      hasToken = true;
+      cur += ch + next;
       i += 2;
       continue;
     }
 
-    appendChar(ch, false);
-    hasToken = true;
+    if (ch === "$" && next === "{") {
+      const endIdx = findClosingDollarBrace(stmt, i + 2);
+      if (endIdx !== -1) {
+        cur += stmt.slice(i, endIdx);
+        i = endIdx;
+        continue;
+      }
+    }
+
+    cur += ch;
     i += 1;
   }
 
@@ -245,137 +301,147 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
     });
   }
 
-  if (hasToken) flushToken();
-  // Strip trailing shell background '&' token
-  while (
-    tokens.length > 0 &&
-    tokens[tokens.length - 1] === "&" &&
-    tokenSegments[tokenSegments.length - 1]?.every((s) => !s.literal)
-  ) {
-    tokens.pop();
-    tokenSegments.pop();
+  if (cur.length > 0) rawWords.push(cur);
+  // Strip trailing unquoted shell background '&' token
+  while (rawWords.length > 0 && rawWords[rawWords.length - 1] === "&") {
+    rawWords.pop();
   }
-  return { tokens, tokenSegments, raw: stmt };
+  return { rawWords, raw: stmt };
 }
 
-function expandKnownVars(value: string, env: Record<string, string>, depth = 0): string {
-  if (depth > 8 || !value.includes("$")) return value;
+function expandDollarExpression(
+  rawExpr: string,
+  env: Record<string, string>,
+  inDoubleQuotes: boolean,
+  depth: number,
+): string {
+  const inner = rawExpr.slice(2, -1);
+  const paramMatch = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
+  if (!paramMatch?.[1]) return rawExpr;
+  const key = paramMatch[1];
+  const op = paramMatch[2];
+  const fallbackRaw = paramMatch[3] ?? "";
+  const isSet = Object.hasOwn(env, key);
+  const currentVal = isSet ? (env[key] ?? "") : "";
+  const isNonEmpty = isSet && currentVal.length > 0;
+  if (!op) {
+    return isSet ? currentVal : rawExpr;
+  }
+  if (op === ":-" || op === ":=") {
+    if (isNonEmpty) return currentVal;
+    const expanded = expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1);
+    if (op === ":=") env[key] = expanded;
+    return expanded;
+  }
+  if (op === "-" || op === "=") {
+    if (isSet) return currentVal;
+    const expanded = expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1);
+    if (op === "=") env[key] = expanded;
+    return expanded;
+  }
+  if (op === ":+") {
+    return isNonEmpty ? expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1) : "";
+  }
+  if (op === "+") {
+    return isSet ? expandShellWord(fallbackRaw, env, inDoubleQuotes, depth + 1) : "";
+  }
+  return rawExpr;
+}
+
+function expandShellWord(
+  rawWord: string,
+  env: Record<string, string>,
+  inDoubleQuotes = false,
+  depth = 0,
+): string {
+  if (depth > 8) return rawWord;
   let out = "";
   let i = 0;
-  while (i < value.length) {
-    const ch = value[i] ?? "";
-    if (ch !== "$") {
-      out += ch;
+
+  while (i < rawWord.length) {
+    const ch = rawWord[i] ?? "";
+    const next = rawWord[i + 1] ?? "";
+
+    if (!inDoubleQuotes && ch === "'") {
       i += 1;
+      while (i < rawWord.length && rawWord[i] !== "'") {
+        out += rawWord[i] ?? "";
+        i += 1;
+      }
+      if (i < rawWord.length) i += 1;
       continue;
     }
-    const next = value[i + 1] ?? "";
-    if (next === "{") {
-      let braceDepth = 1;
-      let j = i + 2;
-      while (j < value.length && braceDepth > 0) {
-        const c = value[j] ?? "";
-        if (c === "\\" && j + 1 < value.length) {
-          j += 2;
+
+    if (!inDoubleQuotes && ch === '"') {
+      i += 1;
+      while (i < rawWord.length && rawWord[i] !== '"') {
+        const dc = rawWord[i] ?? "";
+        const dnext = rawWord[i + 1] ?? "";
+        if (dc === "\\" && (dnext === '"' || dnext === "\\" || dnext === "$" || dnext === "`")) {
+          out += dnext;
+          i += 2;
           continue;
         }
-        if (c === "{") braceDepth += 1;
-        else if (c === "}") braceDepth -= 1;
-        j += 1;
-      }
-      if (braceDepth === 0) {
-        const inner = value.slice(i + 2, j - 1);
-        const paramMatch = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
-        if (paramMatch?.[1]) {
-          const key = paramMatch[1];
-          const op = paramMatch[2];
-          const fallbackRaw = paramMatch[3] ?? "";
-          const isSet = Object.hasOwn(env, key);
-          const currentVal = isSet ? (env[key] ?? "") : "";
-          const isNonEmpty = isSet && currentVal.length > 0;
-          if (!op) {
-            out += isSet ? currentVal : value.slice(i, j);
-          } else if (op === ":-" || op === ":=") {
-            if (isNonEmpty) {
-              out += currentVal;
-            } else {
-              const expanded = expandKnownVars(fallbackRaw, env, depth + 1);
-              if (op === ":=") env[key] = expanded;
-              out += expanded;
-            }
-          } else if (op === "-" || op === "=") {
-            if (isSet) {
-              out += currentVal;
-            } else {
-              const expanded = expandKnownVars(fallbackRaw, env, depth + 1);
-              if (op === "=") env[key] = expanded;
-              out += expanded;
-            }
-          } else if (op === ":+") {
-            out += isNonEmpty ? expandKnownVars(fallbackRaw, env, depth + 1) : "";
-          } else if (op === "+") {
-            out += isSet ? expandKnownVars(fallbackRaw, env, depth + 1) : "";
+        if (dc === "$" && dnext === "{") {
+          const endIdx = findClosingDollarBrace(rawWord, i + 2);
+          if (endIdx !== -1) {
+            out += expandDollarExpression(rawWord.slice(i, endIdx), env, true, depth);
+            i = endIdx;
+            continue;
           }
-          i = j;
-          continue;
         }
+        if (dc === "$") {
+          const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
+          if (simpleMatch?.[1]) {
+            const key = simpleMatch[1];
+            out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
+            i += 1 + key.length;
+            continue;
+          }
+        }
+        out += dc;
+        i += 1;
       }
-      out += ch;
-      i += 1;
+      if (i < rawWord.length) i += 1;
       continue;
     }
-    const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(value.slice(i + 1));
-    if (simpleMatch?.[1]) {
-      const key = simpleMatch[1];
-      out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
-      i += 1 + key.length;
-      continue;
+
+    if (ch === "\\" && i + 1 < rawWord.length) {
+      if (!inDoubleQuotes || next === '"' || next === "\\" || next === "$" || next === "`") {
+        out += next;
+        i += 2;
+        continue;
+      }
     }
+
+    if (ch === "$" && next === "{") {
+      const endIdx = findClosingDollarBrace(rawWord, i + 2);
+      if (endIdx !== -1) {
+        out += expandDollarExpression(rawWord.slice(i, endIdx), env, inDoubleQuotes, depth);
+        i = endIdx;
+        continue;
+      }
+    }
+
+    if (ch === "$") {
+      const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
+      if (simpleMatch?.[1]) {
+        const key = simpleMatch[1];
+        out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
+        i += 1 + key.length;
+        continue;
+      }
+    }
+
     out += ch;
     i += 1;
   }
+
   return out;
 }
 
-function expandTokenSegments(
-  segments: readonly TokenSegment[] | undefined,
-  fallback: string,
-  env: Record<string, string>,
-): string {
-  if (!segments || segments.length === 0) return expandKnownVars(fallback, env);
-  return segments.map((seg) => (seg.literal ? seg.text : expandKnownVars(seg.text, env))).join("");
-}
-
-function parseEnvAssignmentSegments(
-  segments: readonly TokenSegment[] | undefined,
-  rawTok: string,
-  env: Record<string, string>,
-): [string, string] | null {
-  const m = ENV_ASSIGN_RE.exec(rawTok);
-  if (!m?.[1]) return null;
-  const prefixLen = m[1].length + 1; // "KEY="
-  if (!segments || segments.length === 0) {
-    return [m[1], expandKnownVars(m[2] ?? "", env)];
-  }
-  let consumed = 0;
-  const valSegs: TokenSegment[] = [];
-  for (const seg of segments) {
-    const nextConsumed = consumed + seg.text.length;
-    if (nextConsumed <= prefixLen) {
-      // Prefix KEY= must not be quoted inside variable name? Actually bash allows FOO='bar', where FOO= is literal=false and 'bar' is literal=true
-      if (seg.literal && consumed < m[1].length) return null;
-    } else if (consumed < prefixLen) {
-      if (seg.literal && consumed < m[1].length) return null;
-      const offset = prefixLen - consumed;
-      valSegs.push({ text: seg.text.slice(offset), literal: seg.literal });
-    } else {
-      valSegs.push(seg);
-    }
-    consumed = nextConsumed;
-  }
-  const expandedVal = valSegs.map((s) => (s.literal ? s.text : expandKnownVars(s.text, env))).join("");
-  return [m[1], expandedVal];
-}
+const RAW_SHELL_ASSIGN_RE = /^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/;
+const VALID_IDENT_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 const ENV_ASSIGN_RE = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
 
@@ -516,14 +582,26 @@ function parsePydanticLaxBool(val: unknown): boolean | undefined {
   return undefined;
 }
 
+function pythonTruthiness(val: unknown): boolean {
+  if (val === undefined || val === null || val === false || val === 0 || val === "") return false;
+  if (typeof val === "boolean") return val;
+  if (typeof val === "number") return val !== 0 && !Number.isNaN(val);
+  if (typeof val === "string") return val.length > 0;
+  if (Array.isArray(val)) return val.length > 0;
+  if (isRecord(val)) return Object.keys(val).length > 0;
+  return Boolean(val);
+}
+
 function parsePydanticBoolField(
   holder: Record<string, unknown>,
   key: string,
   flagPath: string,
   diagnostics: CliParseDiagnostic[],
+  opts: { allowNull?: boolean } = {},
 ): boolean | undefined {
   if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
   const raw = holder[key];
+  if (raw === null && opts.allowNull) return undefined;
   const parsed = parsePydanticLaxBool(raw);
   if (parsed !== undefined) return parsed;
   diagnostics.push({
@@ -534,6 +612,18 @@ function parsePydanticBoolField(
     remediation: `请将 ${flagPath} 设为 true 或 false。`,
   });
   return undefined;
+}
+
+function parseAscendBoolField(
+  holder: Record<string, unknown>,
+  key: string,
+  flagPath: string,
+  diagnostics: CliParseDiagnostic[],
+  isRfork: boolean,
+): boolean | undefined {
+  if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
+  if (isRfork) return pythonTruthiness(holder[key]);
+  return parsePydanticBoolField(holder, key, flagPath, diagnostics);
 }
 
 function parsePydanticLaxInt(val: unknown): number | undefined {
@@ -918,62 +1008,158 @@ export function setDottedRecordValue(
   return true;
 }
 
+function buildExportedSnapshot(
+  shellVars: Readonly<Record<string, string>>,
+  exportedNames: ReadonlySet<string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const name of exportedNames) {
+    if (Object.hasOwn(shellVars, name) && shellVars[name] !== undefined) {
+      out[name] = shellVars[name]!;
+    }
+  }
+  return out;
+}
+
 function findServeTokens(statements: readonly ShellStatement[]): {
   serveTokens: string[];
   envVars: Record<string, string>;
   shellPreamble: string[];
 } {
-  const shellEnv: Record<string, string> = {};
+  const shellVars: Record<string, string> = {};
+  const exportedNames = new Set<string>();
   let matchedEnvVars: Record<string, string> | null = null;
   const shellPreamble: string[] = [];
   let serveTokens: string[] = [];
 
   for (const stmt of statements) {
-    const tokens = stmt.tokens;
-    const segs = stmt.tokenSegments;
-    if (tokens.length === 0) continue;
-    const first = tokens[0] ?? "";
+    const rawWords = stmt.rawWords;
+    if (rawWords.length === 0) continue;
+    const firstExpanded = expandShellWord(rawWords[0] ?? "", shellVars);
 
-    if (first === "export") {
-      for (let i = 1; i < tokens.length; i += 1) {
-        const tok = tokens[i] ?? "";
-        const assigned = parseEnvAssignmentSegments(segs[i], tok, shellEnv);
-        if (assigned) {
-          shellEnv[assigned[0]] = assigned[1];
+    if (firstExpanded === "export" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
+      let removeExport = false;
+      for (let i = 1; i < rawWords.length; i += 1) {
+        const rw = rawWords[i] ?? "";
+        const expanded = expandShellWord(rw, shellVars);
+        if (i === 1 && expanded === "-n") {
+          removeExport = true;
+          continue;
+        }
+        if (expanded === "-p" || expanded === "--") continue;
+        const rawAssign = RAW_SHELL_ASSIGN_RE.exec(rw);
+        if (rawAssign?.[1]) {
+          const name = rawAssign[1];
+          const val = expandShellWord(rawAssign[2] ?? "", shellVars);
+          shellVars[name] = val;
+          if (removeExport) exportedNames.delete(name);
+          else exportedNames.add(name);
+          continue;
+        }
+        const quotedAssign = ENV_ASSIGN_RE.exec(expanded);
+        if (quotedAssign?.[1]) {
+          const name = quotedAssign[1];
+          shellVars[name] = quotedAssign[2] ?? "";
+          if (removeExport) exportedNames.delete(name);
+          else exportedNames.add(name);
+          continue;
+        }
+        if (VALID_IDENT_RE.test(expanded)) {
+          if (removeExport) exportedNames.delete(expanded);
+          else exportedNames.add(expanded);
         }
       }
       continue;
     }
 
-    // Consume leading inline KEY=VAL assignments and shell wrappers (nohup, env, setsid)
+    if (firstExpanded === "unset" && !RAW_SHELL_ASSIGN_RE.test(rawWords[0] ?? "")) {
+      for (let i = 1; i < rawWords.length; i += 1) {
+        const expanded = expandShellWord(rawWords[i] ?? "", shellVars);
+        if (expanded === "-v" || expanded === "-f" || expanded === "--") continue;
+        if (VALID_IDENT_RE.test(expanded)) {
+          delete shellVars[expanded];
+          exportedNames.delete(expanded);
+        }
+      }
+      continue;
+    }
+
+    // POSIX simple-command prefix variable assignments (must have unquoted NAME= before command word)
     let idx = 0;
-    const inlineEnvs: Array<[string, string]> = [];
-    while (idx < tokens.length) {
-      const tok = tokens[idx] ?? "";
-      const assigned = parseEnvAssignmentSegments(segs[idx], tok, shellEnv);
-      if (assigned) {
-        inlineEnvs.push(assigned);
-        idx += 1;
+    const assignEnv: Record<string, string> = { ...shellVars };
+    const prefixAssigns: Array<[string, string]> = [];
+    while (idx < rawWords.length) {
+      const rw = rawWords[idx] ?? "";
+      const m = RAW_SHELL_ASSIGN_RE.exec(rw);
+      if (!m?.[1]) break;
+      const val = expandShellWord(m[2] ?? "", assignEnv);
+      assignEnv[m[1]] = val;
+      prefixAssigns.push([m[1], val]);
+      idx += 1;
+    }
+
+    if (idx === rawWords.length) {
+      // Standalone shell variable assignment(s): updates shellVars; only exported if already marked export
+      for (const [k, v] of prefixAssigns) {
+        shellVars[k] = v;
+      }
+      continue;
+    }
+
+    // Command word and arguments expand against shellVars (prior to prefix assignments)
+    const expandedWords = rawWords.slice(idx).map((w) => expandShellWord(w, shellVars));
+    const childEnv = buildExportedSnapshot(shellVars, exportedNames);
+    for (const [k, v] of prefixAssigns) {
+      childEnv[k] = v;
+    }
+
+    // Unwrap nohup / setsid / env [OPTION]... [NAME=VALUE]...
+    let wIdx = 0;
+    while (wIdx < expandedWords.length) {
+      const w = expandedWords[wIdx] ?? "";
+      if (w === "nohup" || w === "setsid") {
+        wIdx += 1;
         continue;
       }
-      if (tok === "nohup" || tok === "env" || tok === "setsid") {
-        idx += 1;
+      if (w === "env") {
+        wIdx += 1;
+        let parsingEnvOpts = true;
+        while (wIdx < expandedWords.length) {
+          const ew = expandedWords[wIdx] ?? "";
+          if (parsingEnvOpts && (ew === "-i" || ew === "--ignore-environment" || ew === "-")) {
+            for (const k of Object.keys(childEnv)) delete childEnv[k];
+            wIdx += 1;
+            continue;
+          }
+          if (parsingEnvOpts && ew === "-u" && wIdx + 1 < expandedWords.length) {
+            delete childEnv[expandedWords[wIdx + 1] ?? ""];
+            wIdx += 2;
+            continue;
+          }
+          if (parsingEnvOpts && ew.startsWith("--unset=")) {
+            delete childEnv[ew.slice("--unset=".length)];
+            wIdx += 1;
+            continue;
+          }
+          if (parsingEnvOpts && ew === "--") {
+            parsingEnvOpts = false;
+            wIdx += 1;
+            continue;
+          }
+          const em = ENV_ASSIGN_RE.exec(ew);
+          if (em?.[1]) {
+            childEnv[em[1]] = em[2] ?? "";
+            wIdx += 1;
+            continue;
+          }
+          break;
+        }
         continue;
       }
       break;
     }
 
-    if (idx === tokens.length) {
-      // Pure assignment statement (e.g. MODEL=/path)
-      for (const [k, v] of inlineEnvs) shellEnv[k] = v;
-      continue;
-    }
-
-    const expandedArgs: string[] = [];
-    for (let i = idx; i < tokens.length; i += 1) {
-      expandedArgs.push(expandTokenSegments(segs[i], tokens[i] ?? "", shellEnv));
-    }
-    const rest = stripShellRedirections(expandedArgs);
+    const rest = stripShellRedirections(expandedWords.slice(wIdx));
     const head = rest[0] ?? "";
     const second = rest[1] ?? "";
     const isVllmServe = head === "vllm" && second === "serve";
@@ -984,9 +1170,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     const isBareFlags = head.startsWith("-");
 
     if (isVllmServe || isPythonApiServer || isBareFlags) {
-      const snapshotEnv: Record<string, string> = { ...shellEnv };
-      for (const [k, v] of inlineEnvs) snapshotEnv[k] = v;
-      matchedEnvVars = snapshotEnv;
+      matchedEnvVars = childEnv;
       if (isVllmServe) {
         serveTokens = rest.slice(2);
       } else if (isPythonApiServer) {
@@ -1000,7 +1184,11 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
   }
 
-  return { serveTokens, envVars: matchedEnvVars ?? shellEnv, shellPreamble };
+  return {
+    serveTokens,
+    envVars: matchedEnvVars ?? buildExportedSnapshot(shellVars, exportedNames),
+    shellPreamble,
+  };
 }
 
 function parseEnabledSubConfig(
@@ -1008,27 +1196,50 @@ function parseEnabledSubConfig(
   key: string,
   flagPath: string,
   diagnostics: CliParseDiagnostic[],
+  isRfork: boolean,
+  opts: { allowNullOnRfork?: boolean } = {},
 ): boolean {
   if (!Object.hasOwn(holder, key) || holder[key] === undefined) return false;
   const val = holder[key];
-  if (isRecord(val)) {
-    const enKey = Object.hasOwn(val, "enabled") ? "enabled" : Object.hasOwn(val, "enable") ? "enable" : null;
-    if (enKey === null) return false;
-    return parsePydanticBoolField(val, enKey, `${flagPath}.${enKey}`, diagnostics) === true;
+  if (isRfork && val === null && opts.allowNullOnRfork) {
+    return false;
   }
-  const scalar = parsePydanticLaxBool(val);
-  if (scalar !== undefined) return scalar;
-  diagnostics.push({
-    code: "parse-invalid-json-type",
-    severity: "error",
-    flag: flagPath,
-    message: `ValidationError: ${flagPath} 需要 JSON 子配置对象（例如 '{"enabled":true}'），收到 ${JSON.stringify(val)}。`,
-    remediation: `请使用合法的 JSON 对象传给 ${flagPath}。`,
-  });
-  return false;
+  if (!isRecord(val)) {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: flagPath,
+      message: `ValidationError: ${flagPath} 需要 JSON 子配置对象（例如 '{"enabled":true}'），收到 ${JSON.stringify(val)}。`,
+      remediation: `请使用合法的 JSON 对象传给 ${flagPath}。`,
+    });
+    return false;
+  }
+  if (!isRfork && Object.hasOwn(val, "enable")) {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: `${flagPath}.enable`,
+      message: `ValidationError: ${flagPath}.enable 为未知子键（Pydantic extra="forbid" 拒收；该子配置开关字段名为 enabled）。`,
+      remediation: `请将 ${flagPath}.enable 改为 ${flagPath}.enabled。`,
+    });
+  }
+  if (!Object.hasOwn(val, "enabled") || val.enabled === undefined) return false;
+  if (isRfork) {
+    return pythonTruthiness(val.enabled);
+  }
+  return parsePydanticBoolField(val, "enabled", `${flagPath}.enabled`, diagnostics) === true;
 }
 
-export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
+export interface ParseVllmServeOptions {
+  version?: RuleVersion;
+}
+
+export function parseVllmServeCommand(
+  rawText: string,
+  options?: ParseVllmServeOptions,
+): ParsedVllmServeCommand {
+  const version: RuleVersion = options?.version ?? "v0.30.0";
+  const isRfork = version === "rfork";
   const diagnostics: CliParseDiagnostic[] = [];
   const normalized = normalizeContinuations(rawText);
   const rawStmts = splitStatements(normalized);
@@ -1585,18 +1796,18 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         "enable_sp",
         "compilation_config.pass_config.enable_sp",
         diagnostics,
+        { allowNull: true },
       );
       if (sp !== undefined) couplingInput.enableSp = sp;
     } else if (
       Object.hasOwn(compilationConfig, "pass_config") &&
-      compilationConfig.pass_config !== undefined &&
-      compilationConfig.pass_config !== null
+      compilationConfig.pass_config !== undefined
     ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "compilation_config.pass_config",
-        message: `ValidationError: compilation_config.pass_config 需要 JSON 对象，收到 ${JSON.stringify(compilationConfig.pass_config)}。`,
+        message: `ValidationError: compilation_config.pass_config 需要 PassConfig JSON 对象（不允许传 null），收到 ${JSON.stringify(compilationConfig.pass_config)}。`,
       });
     }
   }
@@ -1619,25 +1830,28 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       ? additionalConfig.ascend_compilation_config
       : null;
     if (acc) {
-      const npugraph = parsePydanticBoolField(
+      const npugraph = parseAscendBoolField(
         acc,
         "enable_npugraph_ex",
         "additional_config.ascend_compilation_config.enable_npugraph_ex",
         diagnostics,
+        isRfork,
       );
       if (npugraph !== undefined) couplingInput.enableNpugraphEx = npugraph;
-      const staticK = parsePydanticBoolField(
+      const staticK = parseAscendBoolField(
         acc,
         "enable_static_kernel",
         "additional_config.ascend_compilation_config.enable_static_kernel",
         diagnostics,
+        isRfork,
       );
       if (staticK !== undefined) couplingInput.enableStaticKernel = staticK;
-      const superK = parsePydanticBoolField(
+      const superK = parseAscendBoolField(
         acc,
         "enable_super_kernel",
         "additional_config.ascend_compilation_config.enable_super_kernel",
         diagnostics,
+        isRfork,
       );
       if (superK !== undefined) couplingInput.enableSuperKernel = superK;
     }
@@ -1655,17 +1869,24 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         message: `ValueError: additional_config.scheduler_config 必须为字典对象，收到 ${JSON.stringify(additionalConfig.scheduler_config)}。`,
       });
     }
-    const schedKey = isRecord(additionalConfig.scheduler_config)
-      ? "scheduler_config"
-      : isRecord(additionalConfig.ascend_scheduler_config)
-        ? "ascend_scheduler_config"
-        : null;
-    const sched = schedKey ? (additionalConfig[schedKey] as Record<string, unknown>) : null;
+    if (
+      !isRfork &&
+      Object.hasOwn(additionalConfig, "ascend_scheduler_config") &&
+      additionalConfig.ascend_scheduler_config !== undefined
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.ascend_scheduler_config",
+        message: `ValidationError: additional_config.ascend_scheduler_config 已在 v0.30.0 / main 移除（extra="forbid"），请改用 additional_config.scheduler_config。`,
+      });
+    }
+    const sched = isRecord(additionalConfig.scheduler_config) ? additionalConfig.scheduler_config : null;
     const resolveSchedHolder = (
       key: string,
     ): { holder: Record<string, unknown>; flagPath: string } | null => {
       if (sched && Object.hasOwn(sched, key)) {
-        return { holder: sched, flagPath: `additional_config.${schedKey}.${key}` };
+        return { holder: sched, flagPath: `additional_config.scheduler_config.${key}` };
       }
       if (Object.hasOwn(additionalConfig, key)) {
         return { holder: additionalConfig, flagPath: `additional_config.${key}` };
@@ -1675,22 +1896,24 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
 
     const recomputeEntry = resolveSchedHolder("recompute_scheduler_enable");
     if (recomputeEntry) {
-      const recompute = parsePydanticBoolField(
+      const recompute = parseAscendBoolField(
         recomputeEntry.holder,
         "recompute_scheduler_enable",
         recomputeEntry.flagPath,
         diagnostics,
+        isRfork,
       );
       if (recompute !== undefined) couplingInput.recomputeSchedulerEnable = recompute;
     }
 
     const balSchedEntry = resolveSchedHolder("enable_balance_scheduling");
     if (balSchedEntry) {
-      const balSched = parsePydanticBoolField(
+      const balSched = parseAscendBoolField(
         balSchedEntry.holder,
         "enable_balance_scheduling",
         balSchedEntry.flagPath,
         diagnostics,
+        isRfork,
       );
       if (balSched !== undefined) couplingInput.enableBalanceScheduling = balSched;
     }
@@ -1705,6 +1928,8 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
           "profiling_chunk_config",
           profChunkEntry.flagPath,
           diagnostics,
+          isRfork,
+          { allowNullOnRfork: true },
         )
       ) {
         couplingInput.profilingChunkEnabled = true;
@@ -1723,6 +1948,8 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         "batch_job_sched_config",
         batchJobEntry.flagPath,
         diagnostics,
+        isRfork,
+        { allowNullOnRfork: true },
       )
     ) {
       couplingInput.batchJobSchedEnabled = true;
@@ -1731,15 +1958,40 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
     const srfEntry = resolveSchedHolder("short_request_first_config");
     if (
       srfEntry &&
-      parseEnabledSubConfig(srfEntry.holder, "short_request_first_config", srfEntry.flagPath, diagnostics)
+      parseEnabledSubConfig(
+        srfEntry.holder,
+        "short_request_first_config",
+        srfEntry.flagPath,
+        diagnostics,
+        isRfork,
+        { allowNullOnRfork: true },
+      )
     ) {
       couplingInput.shortRequestFirstEnabled = true;
     }
 
-    const dyntraEntry = resolveSchedHolder("dyntra_lb_config");
     if (
-      dyntraEntry &&
-      parseEnabledSubConfig(dyntraEntry.holder, "dyntra_lb_config", dyntraEntry.flagPath, diagnostics)
+      !isRfork &&
+      Object.hasOwn(additionalConfig, "dyntra_lb_config") &&
+      additionalConfig.dyntra_lb_config !== undefined
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.dyntra_lb_config",
+        message: `ValidationError: additional_config.dyntra_lb_config 为未知顶层键（extra="forbid"）；上游仅从 additional_config.scheduler_config.dyntra_lb_config 读取。`,
+        remediation: "请将 dyntra_lb_config 移入 additional_config.scheduler_config 下。",
+      });
+    }
+    if (
+      sched &&
+      parseEnabledSubConfig(
+        sched,
+        "dyntra_lb_config",
+        "additional_config.scheduler_config.dyntra_lb_config",
+        diagnostics,
+        isRfork,
+      )
     ) {
       couplingInput.dyntraLbEnabled = true;
     }
@@ -1818,6 +2070,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         "xlite_graph_config",
         "additional_config.xlite_graph_config",
         diagnostics,
+        isRfork,
       )
     ) {
       couplingInput.xliteEnabled = true;
@@ -2032,11 +2285,12 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       });
     }
     if (isRecord(additionalConfig.sparse_kv_offload_config)) {
-      const keep = parsePydanticBoolField(
+      const keep = parseAscendBoolField(
         additionalConfig.sparse_kv_offload_config,
         "keep_device_kv_cache",
         "additional_config.sparse_kv_offload_config.keep_device_kv_cache",
         diagnostics,
+        isRfork,
       );
       if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
       const topkBuf = parseNumberLike(additionalConfig.sparse_kv_offload_config.topk_buffer_size);
@@ -2048,6 +2302,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         "sparse_kv_offload_config",
         "additional_config.sparse_kv_offload_config",
         diagnostics,
+        isRfork,
       )
     ) {
       couplingInput.sparseKvOffloadEnabled = true;

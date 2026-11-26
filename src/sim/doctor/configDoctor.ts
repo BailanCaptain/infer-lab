@@ -728,7 +728,7 @@ export function runSingleConfigDoctor(
   opts: SingleDoctorOptions,
 ): SingleConfigDoctorReport {
   const version = opts.version ?? DEFAULT_RULE_VERSION;
-  const parsed = parseVllmServeCommand(commandText);
+  const parsed = parseVllmServeCommand(commandText, { version });
   const rawKvAudit = auditRawKvTransferRole(parsed.kvTransferConfig);
 
   // Preserve strict case-sensitive kv_role literal from raw JSON before merging overrides
@@ -907,8 +907,8 @@ export function runPdConfigDoctor(
   const prefillHardwareFamily = opts.hardwareFamily;
   const decodeHardwareFamily = opts.decodeHardwareFamily ?? opts.hardwareFamily;
 
-  const parsedP = parseVllmServeCommand(prefillCommandText);
-  const parsedD = parseVllmServeCommand(decodeCommandText);
+  const parsedP = parseVllmServeCommand(prefillCommandText, { version });
+  const parsedD = parseVllmServeCommand(decodeCommandText, { version });
   const pRawKvAudit = auditRawKvTransferRole(parsedP.kvTransferConfig);
   const dRawKvAudit = auditRawKvTransferRole(parsedD.kvTransferConfig);
 

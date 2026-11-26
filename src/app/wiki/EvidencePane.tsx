@@ -59,7 +59,7 @@ function kindLabelOf(entry: EvidenceEntry): string {
 }
 
 function CopyRefButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   return (
     <button
       type="button"
@@ -67,16 +67,22 @@ function CopyRefButton({ value }: { value: string }) {
       data-testid="evidence-copy-ref"
       title="复制文件路径引用"
       onClick={() => {
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          void navigator.clipboard.writeText(value).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          });
+        const mark = (next: "ok" | "err") => {
+          setStatus(next);
+          setTimeout(() => setStatus("idle"), 1600);
+        };
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          void navigator.clipboard.writeText(value).then(
+            () => mark("ok"),
+            () => mark("err"),
+          );
+          return;
         }
+        mark("err");
       }}
     >
-      {copied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
-      <span>{copied ? "已复制" : "复制路径"}</span>
+      {status === "ok" ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+      <span>{status === "ok" ? "已复制" : status === "err" ? "复制受限" : "复制路径"}</span>
     </button>
   );
 }

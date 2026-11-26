@@ -429,7 +429,7 @@ export function WorkerLifecycleInteractive({
                     {`阶段 ${st}`}
                   </text>
                   <text x={sx + 70} y="168" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {["绑卡建流", "HCCL栅栏", "载入权重", "假跑探峰", "划池录图"][idx]}
+                    {["算子补丁", "绑卡栅栏1", "载入权重", "试跑栅栏2", "切池录图"][idx]}
                   </text>
                   {idx < 4 && (
                     <line

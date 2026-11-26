@@ -414,7 +414,7 @@ export function EngramLookupFlowInteractive({
                 setStep(1);
               }}
             >
-              含图截断 (-1)
+              跨图边界截断
             </button>
           </fieldset>
         </>
@@ -541,7 +541,7 @@ export function EngramLookupFlowInteractive({
               );
             })}
             <text x="128" y="92" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              {windowKind === "mm-boundary" ? "遇图占位填 -1 阻断串味" : "2/3-gram 滑窗拼短语"}
+              {windowKind === "mm-boundary" ? "跨图前文换 pad 阻断串味" : "2/3-gram 滑窗拼短语"}
             </text>
             <rect x="22" y="106" width="212" height="28" rx="6" fill="#ffffff" stroke="#d8d8cf" />
             <text
@@ -552,7 +552,7 @@ export function EngramLookupFlowInteractive({
               fontWeight="700"
               fill={windowKind === "mm-boundary" ? "#b54237" : "#17211f"}
             >
-              {windowKind === "mm-boundary" ? "H₀ → -1 (跳过查表)" : "H₀ → 行号 482"}
+              {windowKind === "mm-boundary" ? "图位填-1·图后词配pad哈希" : "H₀ → 行号 482"}
             </text>
             <rect x="22" y="140" width="212" height="28" rx="6" fill="#ffffff" stroke="#d8d8cf" />
             <text x="128" y="159" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
@@ -732,8 +732,8 @@ export function EngramLookupFlowInteractive({
             </div>
             <div className="wiki-edu-note-card">
               <strong>短语窗截断机制</strong>：纯文本窗口把当前词与前邻词拼成 2/3-gram 算 4
-              头行号；一旦窗口滑过图片占位符，硬件/算子立即把该头哈希置为 <strong>-1 跳过查表</strong>
-              ，杜绝图像特征被误当作文本词元查表串味。
+              头行号；图片占位槽位自身填 <strong>-1</strong>{" "}
+              跳过查表，而紧跟图片之后的文本词遇到跨图边界时，算子把被阻断的前文替换为填充编号重算有效哈希，杜绝图像特征串味。
             </div>
           </div>
 

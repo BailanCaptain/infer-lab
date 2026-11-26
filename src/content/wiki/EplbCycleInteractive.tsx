@@ -531,14 +531,22 @@ export function EplbCycleInteractive({
               {`卡 0 · 负载 ${spec.card0LoadPct}%`}
             </text>
             <text x="180" y="144" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {step === 1 ? "网红 E₀ 堵满 7 对 + E₁ 1 对" : "E₀ 主本(3.5对) + 冷门专家 = 50%"}
+              {step === 1
+                ? "热门 E₀(8对) + E₁(8对) = 16对"
+                : step === 4
+                  ? "E₀ 暴涨独占 12对 + E₂ 2对 = 14对"
+                  : step === 5
+                    ? "E₀ 主本分担 6对 + 冷门 = 10对"
+                    : "保留 E₀(8对) + 迁入 E₂(2对) = 10对"}
             </text>
             <text x="180" y="178" textAnchor="middle" fontSize="12" fill="#66716d">
               {step === 2
-                ? "后台守护线程快照计数"
+                ? "后台子进程规划对调 E₁ ↔ E₂"
                 : step === 3
-                  ? "准备发往卡1建立冗余副本"
-                  : "无停机持续前向"}
+                  ? "逐层发出 E₁ · 接收区拷入 E₂"
+                  : step === 4
+                    ? "单专家超均值10对 · 纯换位失灵"
+                    : "无停机持续前向"}
             </text>
 
             {step === 3 && (
@@ -559,14 +567,20 @@ export function EplbCycleInteractive({
               {`卡 1 · 负载 ${spec.card1LoadPct}%`}
             </text>
             <text x="640" y="144" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {step <= 2 ? "仅冷门 E₂+E₃ (2 对 · 空等 AllToAll)" : "新增冗余 E₀' 副本承接分流 → 50%"}
+              {step === 1
+                ? "仅冷门 E₂(2对)+E₃(2对) = 4对"
+                : step === 4
+                  ? "仅分到 6 对 · 被迫等卡0"
+                  : step === 5
+                    ? "新增冗余 E₀' 分担 6对 → 10对均衡"
+                    : "迁入 E₁(8对) + 保留 E₃(2对) = 10对"}
             </text>
             <text x="640" y="178" textAnchor="middle" fontSize="12" fill="#66716d">
               {step === 3
-                ? "影子缓冲异步拷入 E₀ 权重"
-                : step >= 4
-                  ? "原子切换映射表 · 抹平木桶短板"
-                  : "80% 时间空转等卡0"}
+                ? "逐层互传权重 · 步末原子切表"
+                : step === 5
+                  ? "log2phy 双槽分流 · 峰均比回到 1.0"
+                  : "冷门卡同步点空等热门卡"}
             </text>
           </svg>
         </div>

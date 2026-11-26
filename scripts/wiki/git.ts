@@ -388,7 +388,8 @@ const pathNeedsLiteralCheck = (path: string) =>
   /[\r\n\0]/.test(path);
 
 const isUnsupportedBatchCheck = (run: GitRun) =>
-  run.status === 129 || /unknown (?:switch|option|cat-file format)|invalid.*format/i.test(run.stderr);
+  run.status === 129 ||
+  /unknown (?:switch|option|cat-file format|format element)|invalid.*format/i.test(run.stderr);
 
 type PathProbe = { kind: "regular"; oid: string } | { kind: "missing-file" } | { kind: "verify" };
 
@@ -412,12 +413,13 @@ async function fastProbe(
     16 << 20,
   );
   if (run.status !== 0) {
-    if (fastProbeSupported === undefined && isUnsupportedBatchCheck(run)) {
+    if (fastProbeSupported !== true && isUnsupportedBatchCheck(run)) {
       fastProbeSupported = false;
       return undefined;
     }
     throw new GitError(run.status, `git cat-file --batch-check 失败：${run.stderr.trim()}`);
   }
+  fastProbeSupported = true;
   const lines = run.stdout.toString("utf8").split(SEP);
   if (lines.length !== inputs.length + 1 || lines[inputs.length] !== "") {
     throw new GitError(null, `git cat-file --batch-check 响应数量不符：期望 ${inputs.length}`);

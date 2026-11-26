@@ -259,23 +259,29 @@ export function buildContextualStarters(
 }
 
 function CopyReplyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   return (
     <button
       type="button"
       className="wiki-chat-copy-reply"
       data-testid="chat-copy-reply"
       onClick={() => {
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          void navigator.clipboard.writeText(text).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1800);
-          });
+        const mark = (next: "ok" | "err") => {
+          setStatus(next);
+          setTimeout(() => setStatus("idle"), 1800);
+        };
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          void navigator.clipboard.writeText(text).then(
+            () => mark("ok"),
+            () => mark("err"),
+          );
+          return;
         }
+        mark("err");
       }}
     >
-      {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-      <span>{copied ? "已复制" : "复制回答"}</span>
+      {status === "ok" ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+      <span>{status === "ok" ? "已复制" : status === "err" ? "复制受限" : "复制回答"}</span>
     </button>
   );
 }

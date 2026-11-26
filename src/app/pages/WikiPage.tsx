@@ -180,37 +180,48 @@ export function WikiPage() {
     () => createEvidenceViewController({ loadPageEvidence: ensurePageEvidence }),
     [],
   );
+  const [directoryQuery, setDirectoryQuery] = useState("");
+  const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [pageError, setPageError] = useState("");
+  const rawPage = activeId ? getPage(activeId) : undefined;
+  const knownPage = Boolean(canonicalId);
+  const lastLoadedPageRef = useRef<typeof rawPage>(undefined);
+  if (!id || !knownPage) {
+    lastLoadedPageRef.current = undefined;
+  } else if (rawPage) {
+    lastLoadedPageRef.current = rawPage;
+  }
+  const isTransitioningPage = Boolean(id && !rawPage && knownPage && !pageError && lastLoadedPageRef.current);
+  const page = rawPage ?? (isTransitioningPage ? lastLoadedPageRef.current : undefined);
+  const displayPageId = page?.fm.id ?? activeId;
   useEffect(() => {
-    evidenceController.syncContext(activeId, revision);
-  }, [activeId, revision, evidenceController]);
+    evidenceController.syncContext(displayPageId, revision);
+  }, [displayPageId, revision, evidenceController]);
   const openSourceEvidence = useCallback(
     (sourceIndex: number, trigger: HTMLElement | null) => {
-      if (!activeId) return;
+      if (!displayPageId) return;
       openEvidence(trigger);
-      void evidenceController.openForSource(activeId, revision, sourceIndex);
+      void evidenceController.openForSource(displayPageId, revision, sourceIndex);
     },
-    [activeId, revision, evidenceController, openEvidence],
+    [displayPageId, revision, evidenceController, openEvidence],
   );
   const openDiagramRef = useRef<(diagramId: string, trigger: HTMLElement | null) => void>(() => {});
   openDiagramRef.current = (diagramId: string, trigger: HTMLElement | null) => {
-    if (!activeId) return;
+    if (!displayPageId) return;
     openEvidence(trigger);
-    void evidenceController.openForDiagram(activeId, revision, diagramId, 0);
+    void evidenceController.openForDiagram(displayPageId, revision, diagramId, 0);
   };
   const openDiagramEvidence = useCallback((diagramId: string, trigger: HTMLElement | null) => {
     openDiagramRef.current(diagramId, trigger);
   }, []);
-  const [directoryQuery, setDirectoryQuery] = useState("");
-  const [directoryOpen, setDirectoryOpen] = useState(false);
-  const [pageError, setPageError] = useState("");
   useLayoutEffect(
     () =>
       registerWikiHost({
-        currentId: activeId,
+        currentId: displayPageId,
         evidenceController,
         onQuickSearchNavigate: () => setDirectoryOpen(false),
       }),
-    [activeId, evidenceController, registerWikiHost],
+    [displayPageId, evidenceController, registerWikiHost],
   );
   const desktop = useSyncExternalStore(subscribeDirectory, desktopDirectory, () => true);
   const [prevDesktop, setPrevDesktop] = useState(desktop);
@@ -232,17 +243,6 @@ export function WikiPage() {
       )
       .map((p) => p.id),
   );
-  const rawPage = activeId ? getPage(activeId) : undefined;
-  const knownPage = Boolean(canonicalId);
-  const lastLoadedPageRef = useRef<typeof rawPage>(undefined);
-  if (!id || !knownPage) {
-    lastLoadedPageRef.current = undefined;
-  } else if (rawPage) {
-    lastLoadedPageRef.current = rawPage;
-  }
-  const isTransitioningPage = Boolean(id && !rawPage && knownPage && !pageError && lastLoadedPageRef.current);
-  const page = rawPage ?? (isTransitioningPage ? lastLoadedPageRef.current : undefined);
-  const displayPageId = page?.fm.id ?? activeId;
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const isGraphView = !id && searchParams.get("view") === "graph";
   const graphFocusParam = searchParams.get("focus") ?? undefined;

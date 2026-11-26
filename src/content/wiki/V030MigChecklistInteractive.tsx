@@ -348,7 +348,15 @@ export function V030MigChecklistInteractive({
               旧版习惯写法
             </text>
             <text x="134" y="63" textAnchor="middle" fontSize="12" fill="#17211f">
-              {["混配旧环境变量", "默认旧版加载", "沿用旧连接器名", "漏对权重精度", "手调默认开关"][step - 1]}
+              {
+                [
+                  "继续设5个旧变量",
+                  "给MoE标W8A8_MIX",
+                  "误认默认留白0.90",
+                  "A2/A3直载分块FP8",
+                  "硬写MRV2=0锁死",
+                ][step - 1]
+              }
             </text>
 
             <line
@@ -400,11 +408,11 @@ export function V030MigChecklistInteractive({
             <text x="134" y="139" textAnchor="middle" fontSize="12" fill="#17211f">
               {
                 [
-                  "迁入附加配置字典",
-                  "核对MRV2与启动项",
-                  "改用V2或拉推新名",
-                  "对齐真实模型精度",
-                  "按新基线精简参数",
+                  "全迁附加配置字典",
+                  "MoE改W8A8_DYNAMIC",
+                  "显式传比例≤0.90",
+                  "换W8A8或原浮点",
+                  "按需设=1清光=0",
                 ][step - 1]
               }
             </text>

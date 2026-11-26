@@ -662,8 +662,14 @@ function singleCompoundQuery(
   const core = raw.replace(/^(?:--?|_+)/, "").replace(/_+$/, "");
   let segments: string[];
   if (/^[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)+$/.test(core)) segments = core.split(/[_-]/);
-  else if (/^[A-Za-z0-9]+$/.test(core) && splitAsciiSegment(core).length > 1) segments = [core];
-  else return undefined;
+  else if (/^[A-Za-z0-9]+$/.test(core) && splitAsciiSegment(core).length > 1) {
+    segments = core
+      .replace(/([a-z]{2})([A-Z])/g, "$1 $2")
+      .replace(/([A-Z])([A-Z][a-z]{2})/g, "$1 $2")
+      .replace(/([A-Z][a-z])([A-Z][a-z]{2})/g, "$1 $2")
+      .split(" ")
+      .filter(Boolean);
+  } else return undefined;
   const whole = segments.join("").toLowerCase();
   const parts = [...new Set(terms(core))].filter((t) => t !== whole);
   const unverifiableDigits = segments.some((s) => /\d/.test(s) && !parts.includes(s.toLowerCase()));

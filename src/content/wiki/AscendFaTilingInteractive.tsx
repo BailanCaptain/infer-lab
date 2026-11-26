@@ -497,7 +497,7 @@ export function AscendFaTilingInteractive({
               />
             )}
             <text x="623" y="198" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              {step === 3 ? "新最大值 m=5 到来：旧分子分母同乘 e^(2−5) 重标定" : spec.wireLabel}
+              {step === 3 ? "新最大值 m=4 到来：旧分子分母同乘 e^(2−4) 重标定" : spec.wireLabel}
             </text>
           </svg>
         </div>

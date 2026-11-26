@@ -493,7 +493,11 @@ export function MooncakeConnectorInteractive({
               P 实例显存池 (基址 5000K)
             </text>
             <text x="138" y="50" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 3 ? "收齐回执 · 释放 #7, #12" : "源块 #7(5448K) · #12(5768K)"}
+              {step === 3
+                ? "收齐回执 · 释放 #7, #12"
+                : tpMode === "asym-tp4-tp2"
+                  ? "半块 #7(5224K) · #12(5384K)"
+                  : "源块 #7(5448K) · #12(5768K)"}
             </text>
 
             {[0, 1, 2].map((ly) => {
@@ -556,7 +560,9 @@ export function MooncakeConnectorInteractive({
               <>
                 <rect x="296" y="44" width="248" height="32" rx="6" fill="#ffffff" stroke="#9a4b86" />
                 <text x="420" y="65" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                  P#7[5448K]↦D#3[1192K] · #12↦#5
+                  {tpMode === "asym-tp4-tp2"
+                    ? "2卡×32K：P#7[5224K]↦D#3[1192K]"
+                    : "P#7[5448K]↦D#3[1192K] · #12↦#5"}
                 </text>
                 {spec.wireKind === "handshake" && (
                   <>

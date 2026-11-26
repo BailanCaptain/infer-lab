@@ -1045,8 +1045,11 @@ describe("retrieve · 名称词首、单复合标识符、超长复合词与定�
     expect(regIds("--enable-chunked-prefill")).toEqual(["chunked-cli"]);
     expect([...regIds("__torch_dispatch__")].sort()).toEqual(["dispatch-whole", "dunder"]);
     expect(regIds("__torch_dispatch__")).not.toContain("basics-only");
-    // 不存在的版本号不拿别的版本凑数
+    // 不存在的版本号不拿别的版本凑数；带数字段驼峰与下划线一致召回已存在版本
+    expect(regIds("enable_cache_v1")).toEqual(["cache-v1"]);
+    expect(regIds("EnableCacheV1")).toEqual(["cache-v1"]);
     expect(regIds("enable_cache_v3")).toEqual([]);
+    expect(regIds("EnableCacheV3")).toEqual([]);
     expect(regIds("engine_level_3")).toEqual([]);
     // 规则列出的英文写法在复合形式下也能走到扩展；子串（multitask queueing）不触发
     for (const q of ["block diffusion", "block-diffusion", "block_diffusion"])

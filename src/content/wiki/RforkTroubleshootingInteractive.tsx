@@ -339,18 +339,18 @@ export function RforkTroubleshootingInteractive({
               width="236"
               height="104"
               rx="9"
-              fill={step === 1 ? "#fff0e9" : "#ddf4ef"}
-              stroke={step === 1 ? "#b54237" : "#087f73"}
+              fill={step <= 3 ? "#fbfaf6" : "#ddf4ef"}
+              stroke={step <= 3 ? "#d8d8cf" : "#087f73"}
               strokeWidth="1.7"
             />
             <text x="134" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
               Seed 源实例
             </text>
             <text x="134" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step === 1 ? "✗ 注册权重指纹失败" : "✓ 已注册 RDMA 源内存"}
+              {step <= 2 ? "尚未进入跨实例拉取" : step === 3 ? "无可用源或键未匹配" : "✓ 已借出 12 批源权重"}
             </text>
             <text x="134" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              12 批权重分块待拉取
+              {step === 5 ? "推理不受归还状态影响" : "提供 RDMA 只读源张量"}
             </text>
 
             <line
@@ -358,9 +358,9 @@ export function RforkTroubleshootingInteractive({
               y1="52"
               x2="296"
               y2="52"
-              stroke={step <= 2 ? "#b54237" : "#087f73"}
+              stroke={step === 3 ? "#b54237" : "#087f73"}
               strokeWidth="2"
-              markerEnd={`url(#${step <= 2 ? mRed : mTeal})`}
+              markerEnd={`url(#${step === 3 ? mRed : mTeal})`}
             />
 
             <rect
@@ -369,22 +369,24 @@ export function RforkTroubleshootingInteractive({
               width="236"
               height="104"
               rx="9"
-              fill={step === 2 ? "#fff0e9" : step === 5 ? "#fff4cf" : "#fbfaf6"}
-              stroke={step === 2 ? "#b54237" : step === 5 ? "#c78300" : "#087f73"}
+              fill={step === 3 ? "#fff0e9" : step === 5 ? "#fff4cf" : "#fbfaf6"}
+              stroke={step === 3 ? "#b54237" : step === 5 ? "#c78300" : "#d8d8cf"}
               strokeWidth="1.7"
             />
             <text x="420" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
               Pool 租约协调池
             </text>
             <text x="420" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step === 2
-                ? "✗ 无可用源或签名不合"
-                : step === 5
-                  ? "⚠ 归还租约 404 / 400"
-                  : "✓ 签发 60s 读取租约"}
+              {step <= 2
+                ? "0 租约借入（借前已停）"
+                : step === 3
+                  ? "✗ 申请未命中 · 不打汇总"
+                  : step === 4
+                    ? "✓ 已签发 60s 读取租约"
+                    : "⚠ 归还租约 404 / 400"}
             </text>
             <text x="420" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              管理源寻址与并发租期
+              {step === 5 ? "404清租发源 · 400禁发源" : "管理源寻址与并发租期"}
             </text>
 
             <line
@@ -392,9 +394,9 @@ export function RforkTroubleshootingInteractive({
               y1="52"
               x2="582"
               y2="52"
-              stroke={step === 3 || step === 4 ? "#b54237" : "#087f73"}
+              stroke={step === 4 ? "#b54237" : "#087f73"}
               strokeWidth="2"
-              markerEnd={`url(#${step === 3 || step === 4 ? mRed : mTeal})`}
+              markerEnd={`url(#${step === 4 ? mRed : mTeal})`}
             />
 
             <rect
@@ -403,22 +405,26 @@ export function RforkTroubleshootingInteractive({
               width="236"
               height="104"
               rx="9"
-              fill={step === 3 || step === 4 ? "#fff0e9" : "#ddf4ef"}
-              stroke={step === 3 || step === 4 ? "#b54237" : "#087f73"}
+              fill={step === 1 || step === 2 || step === 4 ? "#fff0e9" : "#ddf4ef"}
+              stroke={step === 1 || step === 2 || step === 4 ? "#b54237" : "#087f73"}
               strokeWidth="1.7"
             />
             <text x="706" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
               Target 目标新实例
             </text>
             <text x="706" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step === 3
-                ? "✗ 首包前握手即断"
-                : step === 4
-                  ? "✗ 第 7/12 批中断·停服注销"
-                  : "✓ 全批写齐·回退/起服安全"}
+              {step === 1
+                ? "✗ 缺必填配置 · 直接中止"
+                : step === 2
+                  ? "✗ 借租前目的显存登记败"
+                  : step === 3
+                    ? "静默转本地磁盘加载"
+                    : step === 4
+                      ? "✗ 第 7/12 批断·停服注销"
+                      : "✓ 权重全齐 · 正常起服"}
             </text>
             <text x="706" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 4 ? "脏缓冲须重新磁盘覆盖" : "尾行统一报回退属表象"}
+              {step === 1 ? "无回退汇总日志" : step === 4 ? "过双门后重读硬盘覆盖" : "按阶段定位真实首错"}
             </text>
 
             <text x="420" y="154" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">

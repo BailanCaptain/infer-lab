@@ -2,6 +2,8 @@
 id: sequence-parallel
 title: 序列并行（SP）：让局部激活按 token 分片
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署开了-sp-吗: 异构混合模型边界：GLM 双机三路开关与四路残差行切
 summary: >-
   Megatron SP 配合 TP，让归一化、残差等区域按 token 分工；沿同一组数看清部分和怎样归约、每卡怎样计算、何时收集并交给下一次投影，并区分
   Ulysses、CP 与 Ascend FlashComm1。
@@ -297,7 +299,7 @@ file: sequence-parallel-fig-rs-ag-pcp
 - **走 AllGather 时**（如 token 数超 MC2 容量）：在 DP2、FlashComm1 生效且门控多流关闭的分支，MoE 入口在 EP 组收集 token 行与路由分数；走 W8A8 时先动态量化为 INT8 连同逐 token 尺度一起收集（无 DP metadata 时走 TP 组；开多流另有收集顺序）。INT8 仅减小此次激活载荷，推不出整层通信量减半。
 - **走 MC2 时**：普通路径由入口按 TP 切分完整 token 行再派发；FlashComm1 生效后调用者将 `replace_allreduce` 置真，各卡已持有各自的行，跳过补齐切分与 EP All-Gather。
 
-## 放到 GLM 双机：这套部署开了 SP 吗？
+## 异构混合模型边界：GLM 双机三路开关与四路残差行切
 
 部署是两台 Atlas 800 A2、每台 8 卡，TP8、DP2、EP16，W8A8 量化，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
 
@@ -341,7 +343,7 @@ $$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
 - **「开了 SP，每张卡的显存就除以 N。」** 标准区域的激活按行减少，KV cache、权重和其他缓冲要另算；固定 Ascend 的共享专家还会从 TP 切片变成每卡一整份权重。
 - **「W8A8 下 SP 的通信量减半。」** 只有 MoE 走 AllGather 时，入口那次收集的激活载荷从 BF16 变成 INT8（走 MC2 时入口根本不做这次收集）；路由分数和逐 token 尺度照样要传，行投影出口的 Reduce-Scatter 输出仍是 BF16。
 - **「只有残差和归一化能逐 token 计算。」** 线性投影、MLP 也逐 token 独立；本页在投影入口收集行，是为了配合各卡已有的 TP 权重分片。跨位置依赖出现在 attention 的评分和加权汇合。
-- **「GLM 双机开了 FlashComm1。」** 本页固定基线的三条路关闭；额外配置可能改变它，见[上一节](#放到-glm-双机这套部署开了-sp-吗)。
+- **「GLM 双机开了 FlashComm1。」** 本页固定基线的三条路关闭；额外配置可能改变它，见[上一节](#异构混合模型边界glm-双机三路开关与四路残差行切)。
 
 ## 对照源码
 

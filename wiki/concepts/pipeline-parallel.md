@@ -2,8 +2,10 @@
 id: pipeline-parallel
 title: 流水线并行（PP）：层分段、状态交接与气泡
 type: feature
+legacyAnchors:
+  glm-双机为什么没用-pp: 异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接
 summary: >-
-  把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及 GLM 双机为什么没开 PP。
+  把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及异构混合模型的多路残差交接边界。
 aliases:
   - Pipeline Parallel
   - 流水线并行
@@ -275,7 +277,7 @@ file: pp-fig-handover-tp-slice
 
 多机拉起有 `mp`（`multiprocessing`，Python 多进程分布式后端）与 `ray`（分布式集群调度框架）两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的命令，靠同一组 `--master-addr` / `--master-port` 会合。`ray` 则先组建集群并确认 NPU 入池，再在 head 节点只提交一次 `vllm serve`（切忌把 `mp` 两份命令原样提交两次给 Ray）。在 [PD 分离](pd-disaggregation.md)场景中，P 实例可由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例必须保持 `PP = 1`（完整设备账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)）。
 
-## GLM 双机为什么没用 PP？
+## 异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接
 
 上面讲完通用 `v0.30.0` 多段 PP 机制后，这里单独隔离本站 `09 旗舰异构模型全案` 的历史绑定案例（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。结论很直接：**该双机方案没有开 PP（`PP = 1`）**，而是机内 TP8 + 双机 DP2，MoE 路由专家走跨机 EP16（[DP](data-parallel.md) 分请求，[EP](expert-parallel.md) 把 288 个专家分到 16 卡，单个 DP 组不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP 会怎样分层、分界交什么」，未经真实双机 PP 实测，主线吞吐/时延也不能直接套用。
 

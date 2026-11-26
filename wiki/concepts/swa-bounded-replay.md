@@ -3,6 +3,8 @@ id: swa-bounded-replay
 title: "SWA bounded replay：历史窗口丢了，为什么只重算一小段"
 type: feature
 origin: direct
+legacyAnchors:
+  放回-glm-双机不能直接套哪一步: 常见误解
 summary: 用窗口为三个位置的小例子推演回放为何近似，分清 encoder 缺失恢复与 decoder 窗口准备、128/134/140 的不同口径，以及 mask/compact 一致不能证明与完整重算一致。
 aliases: [SWA, Sliding Window Attention, SWA Bounded Replay, 有界回放, 滑窗重算, 滑动窗口回放, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
 chapters: ["19"]
@@ -40,10 +42,10 @@ verified:
   - main
 evidence: I
 contradicts: []
-updated: '2026-11-26'
+updated: '2026-11-27'
 ---
 
-**SWA bounded replay（滑动窗口注意力有界回放，其中 SWA 即 Sliding Window Attention）是指：在缺少近期滑窗状态时，只重新计算末尾一段有限长度的历史，用较少工作恢复一个可继续生成的近似状态。** “有界”指重新处理的历史长度被限制了；“近似”意味着它不保证与完整历史重算得到相同的中间数值。
+**SWA bounded replay（滑动窗口注意力有界回放）在近期滑窗状态缺失时，只重新计算已命中前缀末尾一段固定长度的 token，用常数级有界开销恢复可继续生成的近似窗口状态。** 其中 SWA（Sliding Window Attention）指每层只回看最近固定窗口的注意力；“有界”代表重算长度封顶，代价是多层窗口边界外的信息截断会使恢复结果与从头完整重算存在数值近似。
 
 ## 长历史还在，为什么仍不能直接继续回答
 
@@ -162,10 +164,6 @@ file: swa-replay-flow
 
 验收分两层：先证明同一截断语义下的实现一致，再评估截断相对完整前向的质量与收益。**mask/compact 等价不等于回放与完整重算等价。** 若业务不接受这份近似，应选完整路径，并重新测量其延迟与容量代价。
 
-## 放回 GLM 双机，不能直接套哪一步
-
-[固定 GLM 双机](glm-5-3-flash-two-node.md#部署前提)有自己的 KDA 与稀疏 MLA 状态；它们的恢复条件应分别查[KV cache](kv-cache.md)及模型主线。这里可以复用“保存了什么、缺了什么、恢复后是否精确”的分析顺序，不能给 GLM 任意加一个“只重算最后 128 个”规则。
-
 ## 常见误解
 
 - **“窗口短，恢复一定精确又便宜。”** 多层依赖会向前扩展；有界回放明确接受截断近似。
@@ -181,7 +179,7 @@ file: swa-replay-flow
 
 两个实验都从固定 DeepInfer 仓库根目录运行，并使用这份源码编译的扩展。L1 对照入口为 `python examples/yoco/yoco_equiv.py mask-compact --keep-tokens 140 --window 128`；它不加载权重，但准备元数据使用锁页内存，仍须一张可见设备，固定脚本用 `CUDA_VISIBLE_DEVICES` 指定。它检查可见 key、位置、存储槽位和压缩 key 区间，不是纯 CPU 的字符串比较。
 
-L2 用 `examples/yoco/run_yoco_equiv_l2.sh --model_name /path/to/compatible-v41-hf`，官方默认方案使用8个设备及兼容的 V4.1 HF YoCo checkpoint。调整 `--ep`、`--cp` 时，CP数须能整除EP数；两次运行除截断模式外，所有 `DEEPINFER_*` 环境变量都应相同，再比较固定轨迹的 logprob 与 top-K。MTP对照只支持配套的 DFlash+YoCo checkpoint；confidence 随每轮末token输出且滞后一轮，首轮为空、最后一次前向的confidence未进入输出，不能声称它覆盖了全部轮次。完整步骤见[固定版本的等价性实验指南](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md)。本站没有这些设备实验的运行结果。
+L2 用 `examples/yoco/run_yoco_equiv_l2.sh --model_name /path/to/compatible-v41-hf`，官方默认方案使用 8 个设备及兼容的 V4.1 HF YoCo checkpoint。调整 `--ep`、`--cp` 时，CP 数须能整除 EP 数；两次运行除截断模式外，所有 `DEEPINFER_*` 环境变量都应相同，再比较固定轨迹的 logprob 与 top-K。MTP 对照只支持配套的 DFlash+YoCo checkpoint；confidence 随每轮末 token 输出且滞后一轮，首轮为空、最后一次前向的 confidence 未进入输出，不能声称它覆盖了全部轮次。完整步骤见[固定版本的等价性实验指南](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md)。本站没有这些设备实验的运行结果。
 
 ### 会报什么错
 

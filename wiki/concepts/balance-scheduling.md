@@ -2,9 +2,10 @@
 id: balance-scheduling
 title: Balance Scheduling：一组顶满，各组一起停收新请求
 type: feature
+legacyAnchors:
+  放到-glm-双机本部署没开开了会怎样: 异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界
 summary: >-
-  MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳
-  waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。
+  MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及双机 DP2 场景下的闸门与宽度对齐边界。
 aliases:
   - Balance Scheduling
   - 均衡调度
@@ -211,7 +212,7 @@ file: balance-scheduling-fig-gate-vs-width
 
 ## 复杂异构实战对照：GLM 双机部署下的表现与边界
 
-### 放到 GLM 双机：本部署没开，开了会怎样
+### 异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界
 
 **官方 GLM 双机教程没有打开 Balance Scheduling，本部署每一步的调度沿用上游原版规则。** 假如打开，两台机器各一个 DP 组、每组上限 32 条，闸门只在某一组 running 跑满 32 条时落下；主线场景 M 里它不会落。
 

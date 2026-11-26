@@ -3,8 +3,7 @@ id: sparse-attention
 title: 稀疏注意力：先挑位置，再只读这些位置
 type: concept
 summary: >-
-  稀疏注意力让每个查询只在因果范围内挑出的少量历史位置上做 attention；GLM 用 indexer 按 4 个位置一池打分，每个查询最多读 2051
-  个位置，没选中的历史仍须全部保留。
+  稀疏注意力先在因果历史中挑出少量关键位置（如 DSA 用轻量 indexer 选 top-k），再只对入围位置做打分、重归一化与汇合，把主注意力开销压到 O(Lk)；落选历史仍须留在缓存中备选。本页先讲通用机制与跨层 IndexCache，再核对 GLM KPool 按池挑选算例。
 aliases:
   - 稀疏注意力
   - Sparse Attention
@@ -124,7 +123,7 @@ relations:
     kind: alternative-to
     note: 滑动窗口注意力按固定近期窗口丢弃远端历史；内容稀疏注意力保留全历史并允许跨长距离按内容召回
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: gap
 rawSources:
   - >-
@@ -135,27 +134,21 @@ rawSources:
 
 ## 每个查询都要把全部历史读一遍吗？
 
-[attention](attention-qkv.md) 里，当前位置用自己的 **query（查询向量）** 去和每个历史位置的 **key（键向量）** 打分，softmax 把这排分数换成加起来等于 1 的权重，再按权重把各位置的 **value（值向量）** 加起来。普通的 **dense attention（密集注意力）** 对因果范围内的每个位置都做一遍，因果范围就是当前位置和它之前的全部位置：历史有多长，就要读多少份 K/V、打多少个分。
+在标准 [attention](attention-qkv.md)（如 `Qwen3-8B` / `Qwen3-30B-A3B` 采用的密集因果注意力）中，当前位置的 **query（查询向量）** 要与因果范围内每一个历史位置的 **key（键向量）** 逐一打分，经 Softmax 归一化后再加权汇合 **value（值向量）**：上下文拉长到几万甚至十几万 token 时，每生成一个新词都要把整段历史 K/V 重读一遍。
 
-**sparse attention（稀疏注意力）让每个查询先从因果范围里挑出一小部分位置，再只在这些位置上打分、做 softmax、汇合 V；没挑中的位置这一次不参与计算。**
+**Sparse attention（稀疏注意力）把「找相关位置」和「精算注意力」拆成两步：每个查询先从因果历史里挑出一小批候选位置，再只在这些入围位置上打分、做 Softmax 并汇合 V；落选位置本步直接跳过主注意力计算。**
 
-挑哪些位置由模型决定。GLM-5.3-Flash 沿用 DeepSeek-V3.2 的 **DSA**（DeepSeek Sparse Attention）：先用轻量的 **lightning indexer**（下文称 indexer）给每个历史位置粗打分并挑出前 k 个（**top-k**），再让主 attention 只读这 k 个位置。
-
-这样能省下主 attention 的读取与计算，代价是增加位置选择开销，且未来可能被重新选中的历史仍须留在缓存里。
+主流按内容挑选路线以 DeepSeek-V3.2 的 **DSA（DeepSeek Sparse Attention）** 为代表：先用一个头数少、维度窄的轻量打分器 **lightning indexer**（下文简称 indexer）快速扫过历史并挑出前 $k$ 个高分位置（**top-$k$**，如 $k = 2048$），再交由昇腾稀疏融合注意力算子 **SFA（Sparse FlashAttention）** 只取这 $k$ 个位置完成主注意力（后文例外 B 算例中的 `GLM-5.3-Flash` 则在此基础上改为 4 个位置压成一池再选池）。
 
 ```wiki-diagram
 file: sparse-attention-intuition
 ```
 
-图里用 12 个历史位置、`k = 4` 示意：indexer 给全部历史打分，主 attention 只读深色前 4 格并只在这 4 项间做 softmax；虚线落选格仍留在缓存中，供后续查询重新挑选。
-
-把「挑位置」和「算主 attention」拆开后，还可叠加索引复用：开启复用时本层直接读缓冲里的位置清单以跳过 top-k，但通常仍须更新 indexer 历史 key（跨层复用与 GLM 边界见[IndexCache 一节](#相邻层能否沿用同一份位置清单indexcache)）。
+图里用 12 个历史位置、`k = 4` 示意：indexer 给全部历史粗打分，主 attention 只读深色前 4 格并只在这 4 项间做 Softmax；虚线落选格仍留在缓存中，供后续查询重新挑选。把「挑位置」和「算主 attention」拆开后，相邻层还可直接复用同一份位置清单跳过 top-$k$（详见后文 [IndexCache 一节](#相邻层能否沿用同一份位置清单indexcache)）。
 
 ## 为什么能省，代价在哪？
 
-先看密集 attention 要做多少工作。以没有缓存前缀、整段处理 n 个提示词位置为例，第 0 行只能看自己，第 1 行看前两个，形成下三角，共 n(n+1)/2 个「查询–键」位置对；prefill 也可以分块，不能把整段一次处理当成定义。Decode 的每个新查询要考虑可见历史，单查询工作量随长度 L 增长。若每个查询只选 k 个位置，主 attention 对 L 个查询的工作量降到 L×k 量级；DeepSeek-V3.2 报告给出 O(L²) 到 O(Lk) 的核心 attention 换算，其中 k 远小于 L。
-
-落到 GLM，k 对应 2048 个位置，另加最多 3 个「尾部」位置；历史要多长才真正开始挑、最长时只读几分之一，见[后文](#稀疏什么时候才真的起作用)。
+先看密集 attention 的工作量：无前缀缓存整段处理 $n$ 个提示词位置时，因果下三角共有 $n(n+1)/2$ 个「查询–键」对（分块预填充总对数相同）；Decode 每步单查询工作量随可见历史长度 $L$ 线性增长。若每个查询最多只挑 $k$ 个位置（$k \ll L$），$L$ 个查询在主 attention 上的核心计算量就从 $O(L^2)$ 压到 $O(Lk)$（后文 GLM 算例中 $k = 2048$ 另加至多 3 个尾部位置，触发阈值与省读比例见[稀疏什么时候才真的起作用](#稀疏什么时候才真的起作用)）。
 
 本页重点的 DSA 按内容选择，为此付出三笔代价：
 
@@ -175,13 +168,9 @@ file: sparse-attention-intuition
 
 ## 在允许的历史里再挑一次：公式与掩码
 
-稀疏 attention 给每个查询位置 t 定一个位置集合 J(t)，只让集合里的位置参与主 attention。打分、softmax、汇合的形式都不变，只是求和范围从「因果范围内全部位置」换成 J(t)：
+稀疏 attention 给每个查询位置 $t$ 选定一个因果子集 $J(t)$，只在集合内打分、重归一化并汇合：
 
-```text
-对 j ∈ J(t)：sⱼ = qₜ · kⱼ / √dₖ
-pⱼ = exp(sⱼ) / Σ_{u∈J(t)} exp(sᵤ)
-oₜ = Σ_{j∈J(t)} pⱼ vⱼ
-```
+$$s_j = \frac{q_t \cdot k_j}{\sqrt{d_k}} \;\;(j \in J(t)), \qquad p_j = \frac{\exp(s_j)}{\sum_{u \in J(t)} \exp(s_u)}, \qquad o_t = \sum_{j \in J(t)} p_j v_j$$
 
 softmax 的分母也只包含 $J(t)$，所以限制位置通常会改变输出。这和「先算完密集 attention、再把几项结果删掉」不一样：删掉以后剩下的权重加起来不到 1，稀疏 attention 则在选中的位置之间重新归一化。看一个 4 个位置的教学例子，分数为 $[\ln 2,\; 0,\; 0,\; 0]$，只保留位置 0 和 3：
 
@@ -213,15 +202,11 @@ file: dense-sparse-attention
 
 早期的 Sparse Transformer 展示了结构化的稀疏分解和对应的内核，是「改变连接方式」这条思路的原始研究之一。这三类只是概念上的对照，不是每个模型都依次走过的版本路线。GLM 用的是第三类。
 
-**DSA 的 indexer 怎样打分。** indexer 有自己的几个小 query 头、一条所有头共用的小 key，以及每个头一个权重。对当前查询 t 和历史位置 s：
+**DSA 的 indexer 怎样打分。** indexer 拥有若干窄维度小 query 头、一条所有头共用的小 key，以及每个头一个正权重 $w_{t,j}$。对当前查询 $t$ 与历史位置 $s$：
 
-```text
-I(t, s) = Σⱼ wₜ,ⱼ · ReLU(qₜ,ⱼ · kₛ)
-```
+$$I(t, s) = \sum_{j} w_{t,j}\,\operatorname{ReLU}(q_{t,j} \cdot k_s)$$
 
-j 遍历 indexer 的各个头；ReLU 把负数置零；wₜ,ⱼ 决定每个头的分数占多少。top-k 按 I 取，DeepSeek-V3.2 取 k = 2048。这些分数只用来排序，不进入主 attention 的 softmax；主 attention 用自己的 Q、K 重新打分。
-
-DSA 建在 [MLA](mla.md) 上：每个位置只存一条潜向量，所有查询头读的都是这一条，报告称之为 MLA 的 MQA 模式（多个 query 头共用同一份 K/V）。因此一次选择由全部头共用。
+其中 $\operatorname{ReLU}$ 将负点积置零，按 $I(t, s)$ 取出前 $k$ 个位置（DeepSeek-V3.2 取 $k = 2048$）。注意 $I(t, s)$ 只负责挑出位置编号，不参与主 attention 的 Softmax；主 attention 随后在自身潜向量上重新打分。DSA 通常叠加在 [MLA](mla.md) 之上（每个历史位置压成一条共享潜向量，即 MLA 的 MQA 读模式），因此一份 top-$k$ 清单由全部查询头共享。
 
 **GLM 在 DSA 上主要改了三处**：按池选，相邻 4 个位置的 indexer key 压成一条池 key（**kpool**），原版逐个位置挑；打分不做 ReLU，直接对带符号的点积加权求和；还没凑满一池的最新位置叫**尾部**，不打分、直接补进清单。压池门控和完整五步见[模型页的稀疏 MLA](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读)。
 

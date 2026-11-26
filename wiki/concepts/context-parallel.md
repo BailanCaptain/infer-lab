@@ -2,6 +2,8 @@
 id: context-parallel
 title: 上下文并行（CP）：怎样分位置，又怎样算完整 attention
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署开了-cp-吗: 异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛
 summary: >-
   长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整
   attention，再对照 v0.30.0 的 Ascend PCP/DCP 路径、Qwen3 头数约束与 GLM 支持边界。
@@ -371,7 +373,7 @@ file: context-parallel-fig-interleave-slots
 
 还有一点常被想当然：**不能把一张卡上的所有缓存统一除以 DCP 的卡数。** 按位置切的只是那部分随长度增长的历史；稀疏路径的索引状态、别的 attention 形式的状态（比如 [KDA](linear-attention.md) 那种固定大小的递推状态）以及临时缓冲，各有各的复制或分片方式，有的反而是每张卡各留一整份。
 
-## 放到 GLM 双机：这套部署开了 CP 吗？
+## 异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛
 
 部署是两台 Atlas 800 A2、每台 8 卡，TP8、DP2、EP16，W8A8 量化，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
 

@@ -2,10 +2,10 @@
 id: recompute-cpu-offload
 title: Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回
 type: feature
+legacyAnchors:
+  放到-glm-双机主线不启用它: 1P1D 改造预算核算：每卡 127 个主机块与混合状态边界
 summary: >-
-  vllm-ascend 给 PD 分离 D 节点配的连接器：RecomputeScheduler 让出一条请求前先问它，主机块够就把这条的全部 KV
-  块同步拷到主机，重新排上时在前向前搬回，完成通知后再调度；旧版保存失败则交代理退回 P。讲清两条恢复路径的取舍（示意数）、和 CPU 备份、KV Pool
-  的区别；新版失败路径需按并行设置区分。GLM 双机主线不拆 P/D，没有启用。
+  PD 分离 D 节点在 RecomputeScheduler 让出请求前优先将全部 KV 块同步拷往主机 DRAM，重新排上时在前向前搬回；失败则退回 P 重算（细粒度 TP 例外）。讲清恢复取舍、与 CPU 备份及 KV Pool 的区别，以及多缓存组预算核算。
 aliases:
   - Recompute CPU Offload
   - Preempt Offload
@@ -309,7 +309,7 @@ file: recompute-cpu-offload-fig-cost-comparison
 
 ## 复杂异构实战对照：GLM 双机为何未启用与预算对照
 
-### 放到 GLM 双机：主线不启用它
+### 1P1D 改造预算核算：每卡 127 个主机块与混合状态边界
 
 前面用通用单组 KV 模型（4 位置/块）推完了换出换回的时序与容量账。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机主线](glm-5-3-flash-two-node.md#部署前提)：两台机器合起来是一套 P、D 不分的服务，没配 KV 传输，`RecomputeScheduler` 开关默认关闭；本连接器只能跟着 `RecomputeScheduler` 使用，因此主线上不起作用，抢占仍走上游路线（还掉全部块，排回本机从头重算）。
 

@@ -2,10 +2,10 @@
 id: kv-pool
 title: KV Pool：把算过的开头存进外部池，别的实例也能取回
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署没有开-kv-pool: 异构多缓存组段长推演与跨卡键命名规则
 summary: >-
-  KV Pool（外部 KV 池）让推理实例经 KV connector 把算完的整段 KV 存进主机内存、SSD
-  或别的节点拼成的共享存储；开头相同的请求先看本地 prefix caching
-  命中几段，池只补多出来的整段。讲一次查询怎样取整相减、查到后的搬运与写回、记录的名字，以及和抢占换出的区别；GLM 双机没有开它。
+  KV Pool（外部 KV 池）经 KV connector 把已算完的整段 KV 存入主机内存、SSD 或跨节点共享池；开头相同的请求先看本地 prefix caching 命中几段，池只补多出的整段。讲清查询取整、搬运与键命名规则，以及混合模型的多组段长边界。
 aliases:
   - KV Pool
   - KV 池
@@ -424,7 +424,7 @@ Mooncake 自己的新 SDK 文档还使用“嵌入 Real Client”和“独立 Re
 
 ## 复杂异构实战对照：GLM 双机为何未启用与段长推演
 
-### 放到 GLM 双机：这套部署没有开 KV Pool
+### 异构多缓存组段长推演与跨卡键命名规则
 
 前面用单一缓存组模型（段长 = 块长）走通了 KV Pool 的查询取整、搬运与键命名规则。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)。它的启动参数没有配置 KV 传输，且作为混合模型默认关闭 prefix caching（见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），因此 KV Pool 未启用。本节照镜像源码推演「假如打开」会怎样：无实跑，无吞吐、时延或命中率实测，出现的字节数均为部署页块字节。
 

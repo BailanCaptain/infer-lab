@@ -5,9 +5,7 @@ type: feature
 legacyAnchors:
   放到-glm-双机本部署没开也开不了: 复杂异构实战对照：GLM 双机为何未启用与块尺偏差
 summary: >-
-  vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV
-  块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling
-  的分工、计划怎样算、何时生效，以及本部署为何没开。
+  vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求、暂停不还 KV，讲清与 EPLB、Balance Scheduling 的分工及多缓存组块尺边界。
 aliases:
   - DyntraLB
   - DynTra

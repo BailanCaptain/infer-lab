@@ -152,6 +152,7 @@ export interface CouplingCheckInput {
   enablePrefillMc2?: boolean;
   enableFusedMc2?: 0 | 1 | 2 | 3;
   isDecodeOnlyNode?: boolean;
+  profilingChunkConfigured?: boolean;
   profilingChunkEnabled?: boolean;
   profilingMinChunk?: number;
   enableBalanceScheduling?: boolean;

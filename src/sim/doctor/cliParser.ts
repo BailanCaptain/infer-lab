@@ -73,8 +73,14 @@ export interface ParsedVllmServeCommand {
   requiredLocalRanks: number;
 }
 
+interface TokenSegment {
+  text: string;
+  literal: boolean;
+}
+
 interface ShellStatement {
   tokens: string[];
+  tokenSegments: TokenSegment[][];
   raw: string;
 }
 
@@ -148,10 +154,30 @@ function splitStatements(text: string): string[] {
 
 function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): ShellStatement {
   const tokens: string[] = [];
+  const tokenSegments: TokenSegment[][] = [];
   let cur = "";
+  let curSegs: TokenSegment[] = [];
   let hasToken = false;
   let quote: "'" | '"' | null = null;
   let i = 0;
+
+  const appendChar = (ch: string, literal: boolean): void => {
+    cur += ch;
+    const prev = curSegs[curSegs.length - 1];
+    if (prev && prev.literal === literal) {
+      prev.text += ch;
+    } else {
+      curSegs.push({ text: ch, literal });
+    }
+  };
+
+  const flushToken = (): void => {
+    tokens.push(cur);
+    tokenSegments.push(curSegs.length > 0 ? curSegs : [{ text: "", literal: true }]);
+    cur = "";
+    curSegs = [];
+    hasToken = false;
+  };
 
   while (i < stmt.length) {
     const ch = stmt[i] ?? "";
@@ -161,7 +187,7 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
       if (ch === "'") {
         quote = null;
       } else {
-        cur += ch;
+        appendChar(ch, true);
       }
       i += 1;
       continue;
@@ -174,20 +200,18 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
         continue;
       }
       if (ch === "\\" && (next === '"' || next === "\\" || next === "$" || next === "`")) {
-        cur += next;
+        appendChar(next, true);
         i += 2;
         continue;
       }
-      cur += ch;
+      appendChar(ch, false);
       i += 1;
       continue;
     }
 
     if (/\s/.test(ch)) {
       if (hasToken) {
-        tokens.push(cur);
-        cur = "";
-        hasToken = false;
+        flushToken();
       }
       i += 1;
       continue;
@@ -201,13 +225,13 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
     }
 
     if (ch === "\\" && i + 1 < stmt.length) {
-      cur += next;
+      appendChar(next, true);
       hasToken = true;
       i += 2;
       continue;
     }
 
-    cur += ch;
+    appendChar(ch, false);
     hasToken = true;
     i += 1;
   }
@@ -221,19 +245,136 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
     });
   }
 
-  if (hasToken) tokens.push(cur);
+  if (hasToken) flushToken();
   // Strip trailing shell background '&' token
-  while (tokens.length > 0 && tokens[tokens.length - 1] === "&") {
+  while (
+    tokens.length > 0 &&
+    tokens[tokens.length - 1] === "&" &&
+    tokenSegments[tokenSegments.length - 1]?.every((s) => !s.literal)
+  ) {
     tokens.pop();
+    tokenSegments.pop();
   }
-  return { tokens, raw: stmt };
+  return { tokens, tokenSegments, raw: stmt };
 }
 
-function expandKnownVars(value: string, env: Record<string, string>): string {
-  return value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g, (m, a, b) => {
-    const key = String(a ?? b ?? "");
-    return Object.hasOwn(env, key) ? (env[key] ?? "") : m;
-  });
+function expandKnownVars(value: string, env: Record<string, string>, depth = 0): string {
+  if (depth > 8 || !value.includes("$")) return value;
+  let out = "";
+  let i = 0;
+  while (i < value.length) {
+    const ch = value[i] ?? "";
+    if (ch !== "$") {
+      out += ch;
+      i += 1;
+      continue;
+    }
+    const next = value[i + 1] ?? "";
+    if (next === "{") {
+      let braceDepth = 1;
+      let j = i + 2;
+      while (j < value.length && braceDepth > 0) {
+        const c = value[j] ?? "";
+        if (c === "\\" && j + 1 < value.length) {
+          j += 2;
+          continue;
+        }
+        if (c === "{") braceDepth += 1;
+        else if (c === "}") braceDepth -= 1;
+        j += 1;
+      }
+      if (braceDepth === 0) {
+        const inner = value.slice(i + 2, j - 1);
+        const paramMatch = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
+        if (paramMatch?.[1]) {
+          const key = paramMatch[1];
+          const op = paramMatch[2];
+          const fallbackRaw = paramMatch[3] ?? "";
+          const isSet = Object.hasOwn(env, key);
+          const currentVal = isSet ? (env[key] ?? "") : "";
+          const isNonEmpty = isSet && currentVal.length > 0;
+          if (!op) {
+            out += isSet ? currentVal : value.slice(i, j);
+          } else if (op === ":-" || op === ":=") {
+            if (isNonEmpty) {
+              out += currentVal;
+            } else {
+              const expanded = expandKnownVars(fallbackRaw, env, depth + 1);
+              if (op === ":=") env[key] = expanded;
+              out += expanded;
+            }
+          } else if (op === "-" || op === "=") {
+            if (isSet) {
+              out += currentVal;
+            } else {
+              const expanded = expandKnownVars(fallbackRaw, env, depth + 1);
+              if (op === "=") env[key] = expanded;
+              out += expanded;
+            }
+          } else if (op === ":+") {
+            out += isNonEmpty ? expandKnownVars(fallbackRaw, env, depth + 1) : "";
+          } else if (op === "+") {
+            out += isSet ? expandKnownVars(fallbackRaw, env, depth + 1) : "";
+          }
+          i = j;
+          continue;
+        }
+      }
+      out += ch;
+      i += 1;
+      continue;
+    }
+    const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(value.slice(i + 1));
+    if (simpleMatch?.[1]) {
+      const key = simpleMatch[1];
+      out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
+      i += 1 + key.length;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+function expandTokenSegments(
+  segments: readonly TokenSegment[] | undefined,
+  fallback: string,
+  env: Record<string, string>,
+): string {
+  if (!segments || segments.length === 0) return expandKnownVars(fallback, env);
+  return segments.map((seg) => (seg.literal ? seg.text : expandKnownVars(seg.text, env))).join("");
+}
+
+function parseEnvAssignmentSegments(
+  segments: readonly TokenSegment[] | undefined,
+  rawTok: string,
+  env: Record<string, string>,
+): [string, string] | null {
+  const m = ENV_ASSIGN_RE.exec(rawTok);
+  if (!m?.[1]) return null;
+  const prefixLen = m[1].length + 1; // "KEY="
+  if (!segments || segments.length === 0) {
+    return [m[1], expandKnownVars(m[2] ?? "", env)];
+  }
+  let consumed = 0;
+  const valSegs: TokenSegment[] = [];
+  for (const seg of segments) {
+    const nextConsumed = consumed + seg.text.length;
+    if (nextConsumed <= prefixLen) {
+      // Prefix KEY= must not be quoted inside variable name? Actually bash allows FOO='bar', where FOO= is literal=false and 'bar' is literal=true
+      if (seg.literal && consumed < m[1].length) return null;
+    } else if (consumed < prefixLen) {
+      if (seg.literal && consumed < m[1].length) return null;
+      const offset = prefixLen - consumed;
+      valSegs.push({ text: seg.text.slice(offset), literal: seg.literal });
+    } else {
+      valSegs.push(seg);
+    }
+    consumed = nextConsumed;
+  }
+  const expandedVal = valSegs.map((s) => (s.literal ? s.text : expandKnownVars(s.text, env))).join("");
+  return [m[1], expandedVal];
 }
 
 const ENV_ASSIGN_RE = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
@@ -356,9 +497,12 @@ function parseBoolLike(val: unknown): boolean | undefined {
 function parseEnvIntBool(raw: string | undefined): boolean | undefined {
   if (raw === undefined) return undefined;
   const trimmed = raw.trim();
-  if (!/^[+-]?\d+$/.test(trimmed)) return undefined;
-  const n = Number.parseInt(trimmed, 10);
-  return Number.isSafeInteger(n) ? n !== 0 : undefined;
+  if (!/^[+-]?\d(?:_?\d)*$/.test(trimmed)) return undefined;
+  try {
+    return BigInt(trimmed.replace(/_/g, "")) !== 0n;
+  } catch {
+    return undefined;
+  }
 }
 
 function parsePydanticLaxBool(val: unknown): boolean | undefined {
@@ -369,6 +513,26 @@ function parsePydanticLaxBool(val: unknown): boolean | undefined {
     if (/^(?:1|true|t|yes|y|on)$/i.test(val)) return true;
     if (/^(?:0|false|f|no|n|off)$/i.test(val)) return false;
   }
+  return undefined;
+}
+
+function parsePydanticBoolField(
+  holder: Record<string, unknown>,
+  key: string,
+  flagPath: string,
+  diagnostics: CliParseDiagnostic[],
+): boolean | undefined {
+  if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
+  const raw = holder[key];
+  const parsed = parsePydanticLaxBool(raw);
+  if (parsed !== undefined) return parsed;
+  diagnostics.push({
+    code: "parse-invalid-json-type",
+    severity: "error",
+    flag: flagPath,
+    message: `ValidationError: ${flagPath} 需要布尔值（Pydantic 仅接受 true/false、0/1 或 'true'/'false'/'on'/'off'/'yes'/'no'），收到 ${JSON.stringify(raw)}。`,
+    remediation: `请将 ${flagPath} 设为 true 或 false。`,
+  });
   return undefined;
 }
 
@@ -759,21 +923,23 @@ function findServeTokens(statements: readonly ShellStatement[]): {
   envVars: Record<string, string>;
   shellPreamble: string[];
 } {
-  const envVars: Record<string, string> = {};
+  const shellEnv: Record<string, string> = {};
+  let matchedEnvVars: Record<string, string> | null = null;
   const shellPreamble: string[] = [];
   let serveTokens: string[] = [];
 
   for (const stmt of statements) {
     const tokens = stmt.tokens;
+    const segs = stmt.tokenSegments;
     if (tokens.length === 0) continue;
     const first = tokens[0] ?? "";
 
     if (first === "export") {
       for (let i = 1; i < tokens.length; i += 1) {
         const tok = tokens[i] ?? "";
-        const m = ENV_ASSIGN_RE.exec(tok);
-        if (m?.[1]) {
-          envVars[m[1]] = expandKnownVars(m[2] ?? "", envVars);
+        const assigned = parseEnvAssignmentSegments(segs[i], tok, shellEnv);
+        if (assigned) {
+          shellEnv[assigned[0]] = assigned[1];
         }
       }
       continue;
@@ -784,9 +950,9 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     const inlineEnvs: Array<[string, string]> = [];
     while (idx < tokens.length) {
       const tok = tokens[idx] ?? "";
-      const m = ENV_ASSIGN_RE.exec(tok);
-      if (m?.[1]) {
-        inlineEnvs.push([m[1], expandKnownVars(m[2] ?? "", envVars)]);
+      const assigned = parseEnvAssignmentSegments(segs[idx], tok, shellEnv);
+      if (assigned) {
+        inlineEnvs.push(assigned);
         idx += 1;
         continue;
       }
@@ -799,11 +965,15 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 
     if (idx === tokens.length) {
       // Pure assignment statement (e.g. MODEL=/path)
-      for (const [k, v] of inlineEnvs) envVars[k] = v;
+      for (const [k, v] of inlineEnvs) shellEnv[k] = v;
       continue;
     }
 
-    const rest = stripShellRedirections(tokens.slice(idx).map((t) => expandKnownVars(t, envVars)));
+    const expandedArgs: string[] = [];
+    for (let i = idx; i < tokens.length; i += 1) {
+      expandedArgs.push(expandTokenSegments(segs[i], tokens[i] ?? "", shellEnv));
+    }
+    const rest = stripShellRedirections(expandedArgs);
     const head = rest[0] ?? "";
     const second = rest[1] ?? "";
     const isVllmServe = head === "vllm" && second === "serve";
@@ -814,7 +984,9 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     const isBareFlags = head.startsWith("-");
 
     if (isVllmServe || isPythonApiServer || isBareFlags) {
-      for (const [k, v] of inlineEnvs) envVars[k] = v;
+      const snapshotEnv: Record<string, string> = { ...shellEnv };
+      for (const [k, v] of inlineEnvs) snapshotEnv[k] = v;
+      matchedEnvVars = snapshotEnv;
       if (isVllmServe) {
         serveTokens = rest.slice(2);
       } else if (isPythonApiServer) {
@@ -828,16 +1000,31 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
   }
 
-  return { serveTokens, envVars, shellPreamble };
+  return { serveTokens, envVars: matchedEnvVars ?? shellEnv, shellPreamble };
 }
 
-function isEnabledSubConfig(val: unknown): boolean {
+function parseEnabledSubConfig(
+  holder: Record<string, unknown>,
+  key: string,
+  flagPath: string,
+  diagnostics: CliParseDiagnostic[],
+): boolean {
+  if (!Object.hasOwn(holder, key) || holder[key] === undefined) return false;
+  const val = holder[key];
+  if (isRecord(val)) {
+    const enKey = Object.hasOwn(val, "enabled") ? "enabled" : Object.hasOwn(val, "enable") ? "enable" : null;
+    if (enKey === null) return false;
+    return parsePydanticBoolField(val, enKey, `${flagPath}.${enKey}`, diagnostics) === true;
+  }
   const scalar = parsePydanticLaxBool(val);
   if (scalar !== undefined) return scalar;
-  if (isRecord(val)) {
-    const explicit = parsePydanticLaxBool(val.enabled ?? val.enable);
-    return explicit !== undefined ? explicit : Object.keys(val).length > 0;
-  }
+  diagnostics.push({
+    code: "parse-invalid-json-type",
+    severity: "error",
+    flag: flagPath,
+    message: `ValidationError: ${flagPath} 需要 JSON 子配置对象（例如 '{"enabled":true}'），收到 ${JSON.stringify(val)}。`,
+    remediation: `请使用合法的 JSON 对象传给 ${flagPath}。`,
+  });
   return false;
 }
 
@@ -1393,61 +1580,183 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       );
     }
     if (isRecord(compilationConfig.pass_config)) {
-      const sp = parsePydanticLaxBool(compilationConfig.pass_config.enable_sp);
+      const sp = parsePydanticBoolField(
+        compilationConfig.pass_config,
+        "enable_sp",
+        "compilation_config.pass_config.enable_sp",
+        diagnostics,
+      );
       if (sp !== undefined) couplingInput.enableSp = sp;
+    } else if (
+      Object.hasOwn(compilationConfig, "pass_config") &&
+      compilationConfig.pass_config !== undefined &&
+      compilationConfig.pass_config !== null
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "compilation_config.pass_config",
+        message: `ValidationError: compilation_config.pass_config 需要 JSON 对象，收到 ${JSON.stringify(compilationConfig.pass_config)}。`,
+      });
     }
   }
 
   // Extract --additional-config fields
   if (additionalConfig) {
+    if (
+      Object.hasOwn(additionalConfig, "ascend_compilation_config") &&
+      additionalConfig.ascend_compilation_config !== undefined &&
+      !isRecord(additionalConfig.ascend_compilation_config)
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.ascend_compilation_config",
+        message: `ValidationError: additional_config.ascend_compilation_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.ascend_compilation_config)}。`,
+      });
+    }
     const acc = isRecord(additionalConfig.ascend_compilation_config)
       ? additionalConfig.ascend_compilation_config
       : null;
     if (acc) {
-      const npugraph = parsePydanticLaxBool(acc.enable_npugraph_ex);
+      const npugraph = parsePydanticBoolField(
+        acc,
+        "enable_npugraph_ex",
+        "additional_config.ascend_compilation_config.enable_npugraph_ex",
+        diagnostics,
+      );
       if (npugraph !== undefined) couplingInput.enableNpugraphEx = npugraph;
-      const staticK = parsePydanticLaxBool(acc.enable_static_kernel);
+      const staticK = parsePydanticBoolField(
+        acc,
+        "enable_static_kernel",
+        "additional_config.ascend_compilation_config.enable_static_kernel",
+        diagnostics,
+      );
       if (staticK !== undefined) couplingInput.enableStaticKernel = staticK;
-      const superK = parsePydanticLaxBool(acc.enable_super_kernel);
+      const superK = parsePydanticBoolField(
+        acc,
+        "enable_super_kernel",
+        "additional_config.ascend_compilation_config.enable_super_kernel",
+        diagnostics,
+      );
       if (superK !== undefined) couplingInput.enableSuperKernel = superK;
     }
-    const sched =
-      (isRecord(additionalConfig.scheduler_config) ? additionalConfig.scheduler_config : null) ??
-      (isRecord(additionalConfig.ascend_scheduler_config) ? additionalConfig.ascend_scheduler_config : null);
 
-    const recompute = parsePydanticLaxBool(
-      additionalConfig.recompute_scheduler_enable ?? sched?.recompute_scheduler_enable,
-    );
-    if (recompute !== undefined) couplingInput.recomputeSchedulerEnable = recompute;
+    if (
+      Object.hasOwn(additionalConfig, "scheduler_config") &&
+      additionalConfig.scheduler_config !== undefined &&
+      additionalConfig.scheduler_config !== null &&
+      !isRecord(additionalConfig.scheduler_config)
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.scheduler_config",
+        message: `ValueError: additional_config.scheduler_config 必须为字典对象，收到 ${JSON.stringify(additionalConfig.scheduler_config)}。`,
+      });
+    }
+    const schedKey = isRecord(additionalConfig.scheduler_config)
+      ? "scheduler_config"
+      : isRecord(additionalConfig.ascend_scheduler_config)
+        ? "ascend_scheduler_config"
+        : null;
+    const sched = schedKey ? (additionalConfig[schedKey] as Record<string, unknown>) : null;
+    const resolveSchedHolder = (
+      key: string,
+    ): { holder: Record<string, unknown>; flagPath: string } | null => {
+      if (sched && Object.hasOwn(sched, key)) {
+        return { holder: sched, flagPath: `additional_config.${schedKey}.${key}` };
+      }
+      if (Object.hasOwn(additionalConfig, key)) {
+        return { holder: additionalConfig, flagPath: `additional_config.${key}` };
+      }
+      return null;
+    };
 
-    const balSched = parsePydanticLaxBool(
-      additionalConfig.enable_balance_scheduling ?? sched?.enable_balance_scheduling,
-    );
-    if (balSched !== undefined) couplingInput.enableBalanceScheduling = balSched;
+    const recomputeEntry = resolveSchedHolder("recompute_scheduler_enable");
+    if (recomputeEntry) {
+      const recompute = parsePydanticBoolField(
+        recomputeEntry.holder,
+        "recompute_scheduler_enable",
+        recomputeEntry.flagPath,
+        diagnostics,
+      );
+      if (recompute !== undefined) couplingInput.recomputeSchedulerEnable = recompute;
+    }
 
-    const profChunk = additionalConfig.profiling_chunk_config ?? sched?.profiling_chunk_config;
-    if (isEnabledSubConfig(profChunk)) {
-      couplingInput.profilingChunkEnabled = true;
-      if (isRecord(profChunk)) {
-        const minChunk = parseNumberLike(profChunk.min_chunk);
-        if (minChunk !== undefined) couplingInput.profilingMinChunk = minChunk;
+    const balSchedEntry = resolveSchedHolder("enable_balance_scheduling");
+    if (balSchedEntry) {
+      const balSched = parsePydanticBoolField(
+        balSchedEntry.holder,
+        "enable_balance_scheduling",
+        balSchedEntry.flagPath,
+        diagnostics,
+      );
+      if (balSched !== undefined) couplingInput.enableBalanceScheduling = balSched;
+    }
+
+    const profChunkEntry = resolveSchedHolder("profiling_chunk_config");
+    if (profChunkEntry && profChunkEntry.holder.profiling_chunk_config !== undefined) {
+      couplingInput.profilingChunkConfigured = true;
+      const rawProfChunk = profChunkEntry.holder.profiling_chunk_config;
+      if (
+        parseEnabledSubConfig(
+          profChunkEntry.holder,
+          "profiling_chunk_config",
+          profChunkEntry.flagPath,
+          diagnostics,
+        )
+      ) {
+        couplingInput.profilingChunkEnabled = true;
+        if (isRecord(rawProfChunk)) {
+          const minChunk = parseNumberLike(rawProfChunk.min_chunk);
+          if (minChunk !== undefined) couplingInput.profilingMinChunk = minChunk;
+        }
       }
     }
-    if (isEnabledSubConfig(additionalConfig.batch_job_sched_config ?? sched?.batch_job_sched_config)) {
+
+    const batchJobEntry = resolveSchedHolder("batch_job_sched_config");
+    if (
+      batchJobEntry &&
+      parseEnabledSubConfig(
+        batchJobEntry.holder,
+        "batch_job_sched_config",
+        batchJobEntry.flagPath,
+        diagnostics,
+      )
+    ) {
       couplingInput.batchJobSchedEnabled = true;
     }
+
+    const srfEntry = resolveSchedHolder("short_request_first_config");
     if (
-      isEnabledSubConfig(additionalConfig.short_request_first_config ?? sched?.short_request_first_config)
+      srfEntry &&
+      parseEnabledSubConfig(srfEntry.holder, "short_request_first_config", srfEntry.flagPath, diagnostics)
     ) {
       couplingInput.shortRequestFirstEnabled = true;
     }
-    if (isEnabledSubConfig(additionalConfig.dyntra_lb_config ?? sched?.dyntra_lb_config)) {
+
+    const dyntraEntry = resolveSchedHolder("dyntra_lb_config");
+    if (
+      dyntraEntry &&
+      parseEnabledSubConfig(dyntraEntry.holder, "dyntra_lb_config", dyntraEntry.flagPath, diagnostics)
+    ) {
       couplingInput.dyntraLbEnabled = true;
     }
 
-    const fc1 = parsePydanticLaxBool(additionalConfig.enable_flashcomm1);
+    const fc1 = parsePydanticBoolField(
+      additionalConfig,
+      "enable_flashcomm1",
+      "additional_config.enable_flashcomm1",
+      diagnostics,
+    );
     if (fc1 !== undefined) couplingInput.enableFlashcomm1 = fc1;
-    const dsaCp = parsePydanticLaxBool(additionalConfig.enable_dsa_cp);
+    const dsaCp = parsePydanticBoolField(
+      additionalConfig,
+      "enable_dsa_cp",
+      "additional_config.enable_dsa_cp",
+      diagnostics,
+    );
     if (dsaCp !== undefined) couplingInput.enableDsaCp = dsaCp;
     const fusedMc2 = parseNumberLike(additionalConfig.enable_fused_mc2);
     if (fusedMc2 === 0 || fusedMc2 === 1 || fusedMc2 === 2 || fusedMc2 === 3) {
@@ -1460,20 +1769,57 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
       });
     }
-    const prefillMc2 = parsePydanticLaxBool(additionalConfig.enable_prefill_mc2);
+    const prefillMc2 = parsePydanticBoolField(
+      additionalConfig,
+      "enable_prefill_mc2",
+      "additional_config.enable_prefill_mc2",
+      diagnostics,
+    );
     if (prefillMc2 !== undefined) couplingInput.enablePrefillMc2 = prefillMc2;
     const nzMode = parseNumberLike(additionalConfig.weight_nz_mode);
     if (nzMode !== undefined) couplingInput.weightNzMode = nzMode;
-    const sparseSfaC8 = parsePydanticLaxBool(additionalConfig.enable_sparse_sfa_c8);
+    const sparseSfaC8 = parsePydanticBoolField(
+      additionalConfig,
+      "enable_sparse_sfa_c8",
+      "additional_config.enable_sparse_sfa_c8",
+      diagnostics,
+    );
     if (sparseSfaC8 !== undefined) couplingInput.enableSparseSfaC8 = sparseSfaC8;
 
     if (isRecord(additionalConfig.rl_config)) {
-      const rlEn = parsePydanticLaxBool(additionalConfig.rl_config.enabled);
+      const rlEn = parsePydanticBoolField(
+        additionalConfig.rl_config,
+        "enabled",
+        "additional_config.rl_config.enabled",
+        diagnostics,
+      );
       if (rlEn !== undefined) couplingInput.rlEnabled = rlEn;
-      const rlCons = parsePydanticLaxBool(additionalConfig.rl_config.training_consistency);
+      const rlConsKey = Object.hasOwn(additionalConfig.rl_config, "enable_training_consistency")
+        ? "enable_training_consistency"
+        : "training_consistency";
+      const rlCons = parsePydanticBoolField(
+        additionalConfig.rl_config,
+        rlConsKey,
+        `additional_config.rl_config.${rlConsKey}`,
+        diagnostics,
+      );
       if (rlCons !== undefined) couplingInput.rlTrainingConsistency = rlCons;
+    } else if (Object.hasOwn(additionalConfig, "rl_config") && additionalConfig.rl_config !== undefined) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.rl_config",
+        message: `ValidationError: additional_config.rl_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.rl_config)}。`,
+      });
     }
-    if (isEnabledSubConfig(additionalConfig.xlite_graph_config)) {
+    if (
+      parseEnabledSubConfig(
+        additionalConfig,
+        "xlite_graph_config",
+        "additional_config.xlite_graph_config",
+        diagnostics,
+      )
+    ) {
       couplingInput.xliteEnabled = true;
     }
     const qarc = additionalConfig.quantized_all_reduce_config;
@@ -1521,15 +1867,40 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
     }
 
-    const sedp = parsePydanticLaxBool(additionalConfig.enable_shared_expert_dp);
+    const sedp = parsePydanticBoolField(
+      additionalConfig,
+      "enable_shared_expert_dp",
+      "additional_config.enable_shared_expert_dp",
+      diagnostics,
+    );
     if (sedp !== undefined) couplingInput.enableSharedExpertDp = sedp;
-    const mmSef = parsePydanticLaxBool(additionalConfig.megamoe_shared_expert_fusion);
+    const mmSef = parsePydanticBoolField(
+      additionalConfig,
+      "megamoe_shared_expert_fusion",
+      "additional_config.megamoe_shared_expert_fusion",
+      diagnostics,
+    );
     if (mmSef !== undefined) couplingInput.megamoeSharedExpertFusion = mmSef;
-    const meo = parsePydanticLaxBool(additionalConfig.multistream_engram_overlap);
+    const meo = parsePydanticBoolField(
+      additionalConfig,
+      "multistream_engram_overlap",
+      "additional_config.multistream_engram_overlap",
+      diagnostics,
+    );
     if (meo !== undefined) couplingInput.multistreamEngramOverlap = meo;
-    const gdnCp = parsePydanticLaxBool(additionalConfig.gdn_internal_prefill_checkpoints);
+    const gdnCp = parsePydanticBoolField(
+      additionalConfig,
+      "gdn_internal_prefill_checkpoints",
+      "additional_config.gdn_internal_prefill_checkpoints",
+      diagnostics,
+    );
     if (gdnCp !== undefined) couplingInput.gdnInternalPrefillCheckpoints = gdnCp;
-    const kvDbg = parsePydanticLaxBool(additionalConfig.kv_pool_range_debug);
+    const kvDbg = parsePydanticBoolField(
+      additionalConfig,
+      "kv_pool_range_debug",
+      "additional_config.kv_pool_range_debug",
+      diagnostics,
+    );
     if (kvDbg !== undefined) couplingInput.kvPoolRangeDebug = kvDbg;
 
     const rawSe = additionalConfig.shared_engram;
@@ -1649,15 +2020,37 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       if (mlp !== undefined) couplingInput.mlpTensorParallelSize = mlp;
       const emb = parseNumberLike(additionalConfig.finegrained_tp_config.embedding_tensor_parallel_size);
       if (emb !== undefined) couplingInput.embeddingTensorParallelSize = emb;
+    } else if (
+      Object.hasOwn(additionalConfig, "finegrained_tp_config") &&
+      additionalConfig.finegrained_tp_config !== undefined
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.finegrained_tp_config",
+        message: `ValidationError: additional_config.finegrained_tp_config 需要 JSON 对象，收到 ${JSON.stringify(additionalConfig.finegrained_tp_config)}。`,
+      });
     }
-    if (isEnabledSubConfig(additionalConfig.sparse_kv_offload_config)) {
+    if (isRecord(additionalConfig.sparse_kv_offload_config)) {
+      const keep = parsePydanticBoolField(
+        additionalConfig.sparse_kv_offload_config,
+        "keep_device_kv_cache",
+        "additional_config.sparse_kv_offload_config.keep_device_kv_cache",
+        diagnostics,
+      );
+      if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
+      const topkBuf = parseNumberLike(additionalConfig.sparse_kv_offload_config.topk_buffer_size);
+      if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;
+    }
+    if (
+      parseEnabledSubConfig(
+        additionalConfig,
+        "sparse_kv_offload_config",
+        "additional_config.sparse_kv_offload_config",
+        diagnostics,
+      )
+    ) {
       couplingInput.sparseKvOffloadEnabled = true;
-      if (isRecord(additionalConfig.sparse_kv_offload_config)) {
-        const keep = parsePydanticLaxBool(additionalConfig.sparse_kv_offload_config.keep_device_kv_cache);
-        if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
-        const topkBuf = parseNumberLike(additionalConfig.sparse_kv_offload_config.topk_buffer_size);
-        if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;
-      }
     }
   }
 

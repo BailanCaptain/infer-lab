@@ -715,6 +715,68 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(superKernelOn.errors.some((f) => f.id === "d5-solo-super-or-static-kernel-error")).toBe(true);
 
+    const superKernelInvalidInt = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"ascend_compilation_config":{"enable_super_kernel":2,"enable_static_kernel":false}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(superKernelInvalidInt.errors.some((f) => f.id === "parse-invalid-json-type")).toBe(true);
+
+    const rlTrainCons = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' --additional-config '{"rl_config":{"enabled":"on","enable_training_consistency":"yes"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(rlTrainCons.errors.some((f) => f.id === "d5-fa3-full-decode-only-error")).toBe(true);
+
+    const profOmittedEnabledV030 = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"profiling_chunk_config":{"min_chunk":512}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(profOmittedEnabledV030.errors.some((f) => f.id === "d2-cpp-requires-pp-gt-1")).toBe(false);
+
+    const profOmittedEnabledMain = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"profiling_chunk_config":{"min_chunk":512}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(profOmittedEnabledMain.errors.some((f) => f.id === "d2-cpp-removed-in-main")).toBe(true);
+
+    const nestedSchedPrecedence = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -pp 2 --additional-config '{"enable_balance_scheduling":"off","scheduler_config":{"enable_balance_scheduling":"on","profiling_chunk_config":{"enabled":true}}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(nestedSchedPrecedence.errors.some((f) => f.id === "d2-cpp-balance-mutex")).toBe(true);
+
+    const pyIntUnderscoreAndBig = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=1_0 VLLM_USE_V2_MODEL_RUNNER=9007199254740992 vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(pyIntUnderscoreAndBig.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(pyIntUnderscoreAndBig.effectiveInput.vllmBatchInvariant).toBe(true);
+    expect(pyIntUnderscoreAndBig.effectiveInput.useV2ModelRunner).toBe(true);
+
+    const shellDefaultExpand = runSingleConfigDoctor(
+      `BATCH=0\nVLLM_BATCH_INVARIANT=\${BATCH:-0} VLLM_USE_V2_MODEL_RUNNER=\${UNSET_MRV2:-1} vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(shellDefaultExpand.errors.some((f) => f.id === "parse-invalid-number")).toBe(false);
+    expect(shellDefaultExpand.effectiveInput.vllmBatchInvariant).toBe(false);
+    expect(shellDefaultExpand.effectiveInput.useV2ModelRunner).toBe(true);
+
+    const singleQuotedLiteralEnv = runSingleConfigDoctor(
+      `BATCH=0\nVLLM_BATCH_INVARIANT='\${BATCH:-0}' vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(singleQuotedLiteralEnv.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+
+    const trailingExportDoesNotMaskServeEnv = runSingleConfigDoctor(
+      `VLLM_USE_V2_MODEL_RUNNER=on vllm serve Qwen/Qwen3-8B -tp 2\nexport VLLM_USE_V2_MODEL_RUNNER=0`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(
+      trailingExportDoesNotMaskServeEnv.errors.some((f) =>
+        f.message.includes("VLLM_USE_V2_MODEL_RUNNER='on'"),
+      ),
+    ).toBe(true);
+
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,
       { mode: "full", hardwareFamily: "A2", version: "main" },

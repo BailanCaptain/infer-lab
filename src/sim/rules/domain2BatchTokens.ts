@@ -506,7 +506,7 @@ export const domain2Rules: readonly CouplingRule[] = [
     rationale: "在 main 上继续配置 profiling_chunk_config 会因字段与调度器类已删除而报错。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
-      if (!input.profilingChunkEnabled) return null;
+      if (!input.profilingChunkEnabled && !input.profilingChunkConfigured) return null;
       return {
         ruleId: this.id,
         domain: this.domain,

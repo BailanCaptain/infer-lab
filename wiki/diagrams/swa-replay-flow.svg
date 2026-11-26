@@ -1,54 +1,109 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 396" width="850" height="396" role="img" aria-label="第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。">
-  <title>第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。</title>
-  <defs><marker id="swa-replay-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <path d="M394 133 L570 133" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
-  <path d="M394 191 L570 191" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
-  <path d="M394 249 L570 249" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
-  <rect x="150" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="198" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="246" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="294" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="342" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="150" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="198" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="246" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="294" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="342" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="150" y="220" width="48" height="58" fill="none"/>
-  <rect x="153" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="198" y="220" width="48" height="58" fill="none"/>
-  <rect x="201" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="246" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="294" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="342" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M198 104v174M246 104v174M294 104v174M342 104v174M150 162h240M150 220h240" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="150" y="104" width="240" height="174" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="140" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">off</text>
-  <text x="140" y="195.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">mask</text>
-  <text x="140" y="253.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">compact</text>
-  <text x="174" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
-  <text x="222" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="270" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="318" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="366" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
-  <rect x="574" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="632" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="690" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="574" y="162" width="58" height="58" fill="none"/>
-  <rect x="577" y="165" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="632" y="162" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="690" y="162" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="574" y="220" width="58" height="58" fill="none"/>
-  <rect x="577" y="223" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="632" y="220" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="690" y="220" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
-  <path d="M632 104v174M690 104v174M574 162h174M574 220h174" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="574" y="104" width="174" height="174" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="603" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="661" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="719" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="150" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">后半实际处理的输入位置</text>
-  <text x="574" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">位置 8 可见的 SWA key</text>
-  <text x="150" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">mask 留着所有输入行；compact 移除前部行</text>
-  <text x="150" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">先比较 mask/compact 的位置、槽位和数值，再与 off 比较截断影响</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="SWA 后半层三种截断模式对照：off、mask 与 compact" font-family="var(--font-sans)">
+<title>SWA 后半层三种截断模式对照：off vs mask vs compact</title>
+<desc>输入尾段位置 5..9、窗口 W=3、回放起点 7，观察位置 8：对比 off、mask 与 compact 的实际送入行数、可见 SWA key 及两步定位法则。</desc>
+<defs>
+  <marker id="sf-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+  <marker id="sf-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="sf-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+</defs>
+
+<text x="18" y="34" font-size="16" font-weight="700" fill="#17211f">后半层三种截断模式对照：尾段位置 5..9（窗口 W=3，回放起点 7，观察位置 8）</text>
+<g font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">
+  <text x="76" y="60">截断模式</text>
+  <text x="292" y="60">送入后半层的输入位置行</text>
+  <text x="588" y="60">位置 8 可见的 SWA Key</text>
+  <text x="790" y="60">开销与诊断用途</text>
+</g>
+
+<!-- Row 1: off -->
+<rect x="14" y="70" width="872" height="96" rx="9" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<rect x="26" y="88" width="100" height="60" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="76" y="113" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">off</text>
+<text x="76" y="135" text-anchor="middle" font-size="12" fill="#3a4f93">不截断基线</text>
+<g fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2">
+  <rect x="142" y="88" width="54" height="44" rx="5"/>
+  <rect x="202" y="88" width="54" height="44" rx="5"/>
+  <rect x="262" y="88" width="54" height="44" rx="5"/>
+  <rect x="322" y="88" width="54" height="44" rx="5" fill="#b5c6f7"/>
+  <rect x="382" y="88" width="54" height="44" rx="5"/>
+</g>
+<g font-size="13" font-weight="700" text-anchor="middle" fill="#3a4f93">
+  <text x="169" y="115">5</text><text x="229" y="115">6</text><text x="289" y="115">7</text><text x="349" y="115">8*</text><text x="409" y="115">9</text>
+</g>
+<text x="289" y="152" text-anchor="middle" font-size="12" fill="#4d5652">全部 5 行均进入后半层前向计算</text>
+<line x1="444" y1="110" x2="484" y2="110" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#sf-indigo)"/>
+<g fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2">
+  <rect x="492" y="88" width="58" height="44" rx="5"/>
+  <rect x="558" y="88" width="58" height="44" rx="5"/>
+  <rect x="624" y="88" width="58" height="44" rx="5"/>
+</g>
+<g font-size="12.5" font-weight="700" text-anchor="middle" fill="#3a4f93">
+  <text x="521" y="115">6 ✓</text><text x="587" y="115">7 ✓</text><text x="653" y="115">8 ✓</text>
+</g>
+<text x="587" y="152" text-anchor="middle" font-size="12" fill="#3a4f93">可读完整 3 格窗口 (6, 7, 8)</text>
+<text x="790" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">完整无损参考基准</text>
+<text x="790" y="132" text-anchor="middle" font-size="12" fill="#66716d">算力随提示词全长增加</text>
+<!-- Row 2: mask -->
+<rect x="14" y="178" width="872" height="96" rx="9" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<rect x="26" y="196" width="100" height="60" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="76" y="221" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">mask</text>
+<text x="76" y="243" text-anchor="middle" font-size="12" fill="#936300">保行仅掩码</text>
+<g fill="#fff4cf" stroke="#c78300" stroke-width="1.2">
+  <rect x="142" y="196" width="54" height="44" rx="5"/>
+  <rect x="202" y="196" width="54" height="44" rx="5"/>
+  <rect x="262" y="196" width="54" height="44" rx="5"/>
+  <rect x="322" y="196" width="54" height="44" rx="5" fill="#fde598"/>
+  <rect x="382" y="196" width="54" height="44" rx="5"/>
+</g>
+<g font-size="13" font-weight="700" text-anchor="middle" fill="#936300">
+  <text x="169" y="223">5</text><text x="229" y="223">6</text><text x="289" y="223">7</text><text x="349" y="223">8*</text><text x="409" y="223">9</text>
+</g>
+<text x="289" y="260" text-anchor="middle" font-size="12" fill="#936300">仍送入全部 5 行，隔离数据搬运变量</text>
+<line x1="444" y1="218" x2="484" y2="218" stroke="#c78300" stroke-width="1.6" marker-end="url(#sf-amber)"/>
+<rect x="492" y="196" width="58" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+<rect x="558" y="196" width="58" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<rect x="624" y="196" width="58" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<g font-size="12.5" font-weight="700" text-anchor="middle">
+  <text x="521" y="223" fill="#66716d">6 ✗</text><text x="587" y="223" fill="#936300">7 ✓</text><text x="653" y="223" fill="#936300">8 ✓</text>
+</g>
+<text x="587" y="260" text-anchor="middle" font-size="12" fill="#936300">掩去 &lt;7，仅见 (7, 8)</text>
+<text x="790" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">数值等价性排查态</text>
+<text x="790" y="240" text-anchor="middle" font-size="12" fill="#66716d">不省算力，专验可见域</text>
+
+<!-- Row 3: compact -->
+<rect x="14" y="286" width="872" height="96" rx="9" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<rect x="26" y="304" width="100" height="60" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="76" y="329" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">compact</text>
+<text x="76" y="351" text-anchor="middle" font-size="12" fill="#065f56">物理裁行态</text>
+<rect x="142" y="304" width="54" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+<rect x="202" y="304" width="54" height="44" rx="5" fill="#ece9df" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 3"/>
+<rect x="262" y="304" width="54" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<rect x="322" y="304" width="54" height="44" rx="5" fill="#b8efe4" stroke="#087f73" stroke-width="1.2"/>
+<rect x="382" y="304" width="54" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<g font-size="12.5" font-weight="700" text-anchor="middle">
+  <text x="169" y="331" fill="#66716d">5 裁</text><text x="229" y="331" fill="#936300">6 占</text>
+  <text x="289" y="331" fill="#065f56">7</text><text x="349" y="331" fill="#065f56">8*</text><text x="409" y="331" fill="#065f56">9</text>
+</g>
+<text x="289" y="368" text-anchor="middle" font-size="12" fill="#065f56">裁除前部行（早期块仅留末行占位不入环）</text>
+<line x1="444" y1="326" x2="484" y2="326" stroke="#087f73" stroke-width="1.6" marker-end="url(#sf-teal)"/>
+<rect x="492" y="304" width="58" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+<rect x="558" y="304" width="58" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<rect x="624" y="304" width="58" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<g font-size="12.5" font-weight="700" text-anchor="middle">
+  <text x="521" y="331" fill="#66716d">6 ✗</text><text x="587" y="331" fill="#065f56">7 ✓</text><text x="653" y="331" fill="#065f56">8 ✓</text>
+</g>
+<text x="587" y="368" text-anchor="middle" font-size="12" fill="#065f56">保留区间与 mask 完全一致</text>
+<text x="790" y="324" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">生产加速态</text>
+<text x="790" y="348" text-anchor="middle" font-size="12" fill="#065f56">真省后半层输入行数</text>
+
+<!-- Bottom Two-Step Diagnostic Rule Bar -->
+<rect x="14" y="394" width="872" height="54" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="450" y="416" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">两层验收法则：先验 mask == compact（排查裁行、CP 切分与槽位实现错误），再比 compact vs off（评估窗口截断近似度）</text>
+<text x="450" y="437" text-anchor="middle" font-size="12" fill="#66716d">注：mask 与 compact 数值一致只证明同一截断语义下实现无误，不代表有界回放与完整不截断计算（off）数值完全相同</text>
 </svg>

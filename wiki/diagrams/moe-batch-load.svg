@@ -1,110 +1,100 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="4 个 token 各选 2 个专家，共 8 个配对、覆盖 5 个专家。各专家把收到的行批量送入自己的投影和激活。卡 A 的专家共算 6 行，卡 B 共算 2 行；下方时间条是假设逐行成本相同且线性、忽略通信和固定开销的示意。实际利用率和重叠会改变耗时，不能直接由行数推出时间比例。">
-  <title>4 个 token 各选 2 个专家，共 8 个配对、覆盖 5 个专家。各专家把收到的行批量送入自己的投影和激活。卡 A 的专家共算 6 行，卡 B 共算 2 行；下方时间条是假设逐行成本相同且线性、忽略通信和固定开销的示意。实际利用率和重叠会改变耗时，不能直接由行数推出时间比例。</title>
-  <defs><marker id="moe-batch-load-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><pattern id="moe-batch-load-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-control-soft, #f1efe8)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <rect x="204" y="80" width="312" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="220" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 A · 专家 1–3</text>
-  <rect x="540" y="80" width="312" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="556" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 B · 专家 4–6</text>
-  <path d="M150 178 L196 178" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#moe-batch-load-ah-token)"/>
-  <rect x="250" y="310" width="216" height="26" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="266" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">6 行</text>
-  <rect x="250" y="350" width="72" height="26" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="266" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">2 行</text>
-  <rect x="322" y="350" width="144" height="26" rx="4" fill="url(#moe-batch-load-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <text x="338" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">空等</text>
-  <rect x="60" y="130" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="78" y="130" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="96" y="130" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="114" y="130" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="60" y="154" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="78" y="154" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="96" y="154" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="114" y="154" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="60" y="178" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="78" y="178" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="96" y="178" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="114" y="178" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="60" y="202" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="78" y="202" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="96" y="202" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <rect x="114" y="202" width="18" height="24" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
-  <path d="M78 130v96M96 130v96M114 130v96M60 154h72M60 178h72M60 202h72" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="60" y="130" width="72" height="96" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="50" y="146.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">我</text>
-  <text x="50" y="170.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">吃</text>
-  <text x="50" y="194.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">了</text>
-  <text x="50" y="218.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">苹果</text>
-  <text x="96" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">这一批 · 4 行</text>
-  <rect x="232" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="248" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="264" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="280" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M248 160v22M264 160v22M280 160v22" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="232" y="160" width="64" height="22" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="222" y="175.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">我</text>
-  <rect x="332" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="348" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="364" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="380" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="332" y="182" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="348" y="182" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="364" y="182" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="380" y="182" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="332" y="204" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="348" y="204" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="364" y="204" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="380" y="204" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="332" y="226" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="348" y="226" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="364" y="226" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="380" y="226" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M348 160v88M364 160v88M380 160v88M332 182h64M332 204h64M332 226h64" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="332" y="160" width="64" height="88" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="322" y="175.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">我</text>
-  <text x="322" y="197.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">吃</text>
-  <text x="322" y="219.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">了</text>
-  <text x="322" y="241.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">苹果</text>
-  <rect x="432" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="448" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="464" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="480" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M448 160v22M464 160v22M480 160v22" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="432" y="160" width="64" height="22" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="422" y="175.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">了</text>
-  <rect x="580" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="596" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="612" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="628" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M596 160v22M612 160v22M628 160v22" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="580" y="160" width="64" height="22" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="570" y="175.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">苹果</text>
-  <rect x="668" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="684" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="700" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <rect x="716" y="160" width="16" height="22" fill="var(--color-token-soft, #ddf4ef)"/>
-  <path d="M684 160v22M700 160v22M716 160v22" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="668" y="160" width="64" height="22" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="658" y="175.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">吃</text>
-  <rect x="216" y="96" width="84" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="258" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家 1</text>
-  <text x="258" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 1 行</text>
-  <rect x="316" y="96" width="84" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="358" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家 2</text>
-  <text x="358" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 4 行</text>
-  <rect x="416" y="96" width="84" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="458" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家 3</text>
-  <text x="458" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 1 行</text>
-  <rect x="552" y="96" width="84" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="594" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家 4</text>
-  <text x="594" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 1 行</text>
-  <rect x="652" y="96" width="84" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="694" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家 5</text>
-  <text x="694" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 1 行</text>
-  <rect x="752" y="96" width="84" height="44" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="794" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 6</text>
-  <text x="794" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">收到 0 行</text>
-  <text x="24" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">4 个 token 各选 2 个专家，按专家归拢（示意）</text>
-  <text x="240" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">卡 A</text>
-  <text x="240" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">卡 B</text>
-  <text x="500" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">这一层要等最慢的卡算完</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="稀疏 MoE 批内专家归拢与跨卡负载不均木桶等待" font-family="var(--font-sans)">
+<title>MoE 批内专家归拢与跨卡负载不均：4 个 token 选 top-2 覆盖 5 个专家</title>
+<desc>4 个 token 各选 2 个专家共 8 次配对：卡 A 的专家 1-3 共收到 6 行（其中专家 2 聚集 4 行），卡 B 的专家 4-6 仅收到 2 行，底部时间条展示同步等待。</desc>
+<defs>
+  <marker id="mb-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+</defs>
+
+<text x="18" y="32" font-size="16" font-weight="700" fill="#17211f">稀疏 MoE 批内按专家归拢：4 个 token 各选 top-2 = 8 次配对（覆盖 5 个专家，冷热倾斜）</text>
+
+<!-- Left: Batch of 4 Tokens -->
+<rect x="14" y="48" width="182" height="252" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="105" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">本批输入 · 4 行</text>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.2">
+  <rect x="26" y="86" width="158" height="36" rx="5"/>
+  <rect x="26" y="130" width="158" height="36" rx="5"/>
+  <rect x="26" y="174" width="158" height="36" rx="5"/>
+  <rect x="26" y="218" width="158" height="36" rx="5"/>
+</g>
+<g font-size="12.5" font-weight="700" text-anchor="middle" fill="#065f56">
+  <text x="105" y="108.5">「我」 → E1, E2</text>
+  <text x="105" y="152.5">「吃」 → E2, E5</text>
+  <text x="105" y="196.5">「了」 → E2, E3</text>
+  <text x="105" y="240.5">「苹果」→ E2, E4</text>
+</g>
+<text x="105" y="282" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">单词选 2 ≠ 整批只用 2</text>
+
+<line x1="196" y1="174" x2="216" y2="174" stroke="#087f73" stroke-width="1.8" marker-end="url(#mb-teal)"/>
+
+<!-- Card A: Experts 1..3 (Total 6 Rows, Hot Expert 2) -->
+<rect x="218" y="48" width="326" height="252" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="381" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">卡 A · 专家 1–3（共收到 6 行）</text>
+
+<rect x="230" y="86" width="94" height="198" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="277" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">专家 E1</text>
+<text x="277" y="126" text-anchor="middle" font-size="12" fill="#4d5652">收到 1 行</text>
+<rect x="242" y="138" width="70" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="277" y="156.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">我</text>
+
+<rect x="334" y="86" width="94" height="198" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+<text x="381" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">E2 热点!</text>
+<text x="381" y="126" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">收到 4 行</text>
+<g fill="#ffffff" stroke="#b54237" stroke-width="1.1">
+  <rect x="346" y="136" width="70" height="26" rx="4"/>
+  <rect x="346" y="166" width="70" height="26" rx="4"/>
+  <rect x="346" y="196" width="70" height="26" rx="4"/>
+  <rect x="346" y="226" width="70" height="26" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#8f3229">
+  <text x="381" y="153.5">我</text><text x="381" y="183.5">吃</text><text x="381" y="213.5">了</text><text x="381" y="243.5">苹果</text>
+</g>
+<text x="381" y="272" text-anchor="middle" font-size="12" fill="#8f3229">批量矩阵乘</text>
+
+<rect x="438" y="86" width="94" height="198" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="485" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">专家 E3</text>
+<text x="485" y="126" text-anchor="middle" font-size="12" fill="#4d5652">收到 1 行</text>
+<rect x="450" y="138" width="70" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="485" y="156.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">了</text>
+<!-- Card B: Experts 4..6 (Total 2 Rows, Expert 6 Idle) -->
+<rect x="560" y="48" width="326" height="252" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="723" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">卡 B · 专家 4–6（仅收到 2 行）</text>
+
+<rect x="572" y="86" width="94" height="198" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="619" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">专家 E4</text>
+<text x="619" y="126" text-anchor="middle" font-size="12" fill="#4d5652">收到 1 行</text>
+<rect x="584" y="138" width="70" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="619" y="156.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">苹果</text>
+
+<rect x="676" y="86" width="94" height="198" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="723" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">专家 E5</text>
+<text x="723" y="126" text-anchor="middle" font-size="12" fill="#4d5652">收到 1 行</text>
+<rect x="688" y="138" width="70" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="723" y="156.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">吃</text>
+
+<rect x="780" y="86" width="94" height="198" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="827" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#66716d">专家 E6</text>
+<text x="827" y="126" text-anchor="middle" font-size="12" fill="#66716d">收到 0 行</text>
+<text x="827" y="186" text-anchor="middle" font-size="12" fill="#66716d">本批轮空</text>
+
+<!-- Bottom Synchronization & Straggler Timeline -->
+<rect x="14" y="316" width="872" height="140" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<text x="28" y="340" font-size="13.5" font-weight="700" fill="#17211f">跨卡同步点等待示意（假设逐行线性等成本、忽略通信与固定开销）</text>
+
+<text x="74" y="375" text-anchor="end" font-size="13" font-weight="700" fill="#936300">卡 A</text>
+<rect x="86" y="356" width="420" height="28" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="296" y="374.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">连续计算 6 行（热点专家 E2 决定慢卡尾延迟）</text>
+
+<text x="74" y="417" text-anchor="end" font-size="13" font-weight="700" fill="#3a4f93">卡 B</text>
+<rect x="86" y="398" width="138" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="155" y="416.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">计算 2 行</text>
+<rect x="228" y="398" width="278" height="28" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="367" y="416.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">✗ 空等慢卡 A 完成剩余 4 行</text>
+
+<line x1="514" y1="350" x2="514" y2="434" stroke="#9a4b86" stroke-width="2.2" stroke-dasharray="4 3"/>
+<rect x="530" y="352" width="342" height="88" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="544" y="375" font-size="13" font-weight="700" fill="#7a3a6a">Combine 回收同步屏障</text>
+<text x="544" y="399" font-size="12" fill="#4d5652">• 训练期压平：aux loss / 路由校正偏置</text>
+<text x="544" y="421" font-size="12" font-weight="700" fill="#7a3a6a">• 推理期治理：EPLB 搬动或复制热点专家</text>
 </svg>

@@ -1,26 +1,6 @@
-layout: figure
+mode: native-svg
 id: gqa-cache
-caption: 同一层的 KV cache，3 个位置、4 个查询头、每头 2 个数（示意）。每张小表是一组 K、V：左两列是 K，右两列是 V，一行对应一个位置，表下写着读它的查询头。三栏的查询头都是 4 个，只有组数不同：MHA 4 组、GQA 2 组、MQA 1 组，要存的格子数跟着从 48 降到 24、12。
-size: [900, 530]
-frames:
-  - { at: [24, 36], size: [852, 132], label: MHA：4 组 K、V }
-  - { at: [24, 206], size: [852, 132], label: GQA：2 组 K、V }
-  - { at: [24, 376], size: [852, 132], label: MQA：1 组 K、V }
-texts:
-  - { at: [644, 94], text: 每个位置 16 个数, strong: true }
-  - { at: [644, 118], text: 3 个位置共 48 个数 }
-  - { at: [644, 264], text: 每个位置 8 个数, strong: true }
-  - { at: [644, 288], text: 3 个位置共 24 个，MHA 的 1/2 }
-  - { at: [644, 434], text: 每个位置 4 个数, strong: true }
-  - { at: [644, 458], text: 3 个位置共 12 个，MHA 的 1/4 }
-grids:
-  # MHA：4 组，每组只给 1 个查询头读
-  - { at: [110, 66], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, rowLabels: [位置 0, 位置 1, 位置 2], colLabels: [K, K, V, V], label: Q₀ 读 }
-  - { at: [236, 66], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, colLabels: [K, K, V, V], label: Q₁ 读 }
-  - { at: [362, 66], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, colLabels: [K, K, V, V], label: Q₂ 读 }
-  - { at: [488, 66], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, colLabels: [K, K, V, V], label: Q₃ 读 }
-  # GQA：2 组，每组 2 个查询头共读
-  - { at: [110, 236], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, rowLabels: [位置 0, 位置 1, 位置 2], colLabels: [K, K, V, V], label: Q₀、Q₁ 共读 }
-  - { at: [236, 236], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, colLabels: [K, K, V, V], label: Q₂、Q₃ 共读 }
-  # MQA：1 组，4 个查询头共读
-  - { at: [110, 406], rows: 3, cols: 4, cell: [28, 24], tone: kv, style: solid, rowLabels: [位置 0, 位置 1, 位置 2], colLabels: [K, K, V, V], label: Q₀–Q₃ 共读 }
+caption: >-
+  同一层在 MHA、GQA 与 MQA 下的 KV cache 物理体积与查询头共读映射对照（示意：3 个历史位置、4 个查询头 Q₀..Q₃、单头宽度 d_h=2）：查询头始终保持 4 个不变，仅将 KV 组数从 4 组依次压到 2 组、1 组，缓存总格数随之按 48 → 24（1/2）→ 12（1/4）等比缩减，单词容量公式只取决于 n_kv 而与 n_q 无关。
+size: [900, 540]
+pins: []

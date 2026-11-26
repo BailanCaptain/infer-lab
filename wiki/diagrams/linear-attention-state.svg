@@ -1,50 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="单头 KDA 的数学递推：按 key 通道衰减旧状态，用当前键和值预测误差修正，再以查询读出；图中采用 [K,V] 数学布局，省略批次、缩放和外层投影">
-  <title>单头 KDA 的数学递推：按 key 通道衰减旧状态，用当前键和值预测误差修正，再以查询读出；图中采用 [K,V] 数学布局，省略批次、缩放和外层投影</title>
-  <defs><marker id="linear-attention-state-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="linear-attention-state-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="linear-attention-state-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <path d="M140 160 L215 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M330 160 L390 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M490 194 L522 194 L522 268 L460 268 L460 300" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M490 160 L635 160 L635 330" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M330 329 L385 329" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
-  <path d="M460 360 L460 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
-  <path d="M350 454 L385 454" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
-  <path d="M535 454 L570 454" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
-  <path d="M632 425 L635 370" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-control)"/>
-  <path d="M655 350 L730 350" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M830 350 L865 350 L865 530 L780 530 L780 545" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M780 505 L780 545" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
-  <path d="M830 320 L870 320 L870 42 L90 42 L90 110" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <rect x="40" y="110" width="100" height="100" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M65 110v100M90 110v100M115 110v100M40 135h100M40 160h100M40 185h100" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="90" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Sₜ₋₁</text>
-  <text x="90" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[dₖ, dᵥ]</text>
-  <rect x="390" y="110" width="100" height="100" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M415 110v100M440 110v100M465 110v100M390 135h100M390 160h100M390 185h100" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="440" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">S̄ = D Sₜ₋₁</text>
-  <rect x="730" y="300" width="100" height="100" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M755 300v100M780 300v100M805 300v100M730 325h100M730 350h100M730 375h100" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="780" y="420" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">Sₜ</text>
-  <rect x="730" y="545" width="100" height="28" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <path d="M755 545v28M780 545v28M805 545v28" stroke="var(--color-token, #087f73)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="780" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输出 o</text>
-  <text x="780" y="613" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">Sₜᵀ q</text>
-  <rect x="215" y="130" width="115" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="272.5" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">通道衰减 D</text>
-  <rect x="385" y="300" width="150" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="460" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">预测 v̂ = S̄ᵀ k</text>
-  <rect x="210" y="425" width="140" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="280" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">当前值 v</text>
-  <rect x="385" y="425" width="150" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="460" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">误差 e = v − v̂</text>
-  <rect x="570" y="425" width="125" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="632.5" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">β k eᵀ</text>
-  <text x="632.5" y="469" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">外积更新</text>
-  <rect x="730" y="455" width="100" height="50" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="780" y="485" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">查询 q</text>
-  <rect x="210" y="300" width="120" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="270" y="334" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">当前键 k</text>
-  <circle cx="635" cy="350" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="635" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text>
-  <text x="450" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">写回请求状态，供下个位置继续使用</text>
-  <text x="450" y="623" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Q/K/V 由投影与短卷积产生；短卷积另有历史缓存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="线性注意力 Chunkwise 分块并行状态传递对比 Decode 单步原地递推更新" font-family="var(--font-sans)">
+<title>线性注意力双执行态：Prefill Chunkwise 块内并行+块间传状态 vs Decode 原地递推</title>
+<desc>上半展示 Prefill 阶段按 C=64 分块做块内并行矩阵乘、块间串行传递 S_k 状态；下半展示 Decode 阶段单步读取短卷积缓存与 S_{t-1}，经衰减与预测误差外积原地更新 S_t。</desc>
+<defs>
+  <marker id="ls-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="ls-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+  <marker id="ls-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="ls-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+</defs>
+
+<!-- Top Panel: Prefill Chunkwise Parallel + Inter-Chunk State Passing -->
+<rect x="14" y="12" width="872" height="248" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="36" r="11" fill="#c78300"/>
+<text x="36" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="41" font-size="16" font-weight="700" fill="#17211f">Prefill 阶段 · Chunkwise 块内并行 + 块间状态传递（段长 C=64，吃满 Cube 矩阵核）</text>
+<line x1="28" y1="56" x2="872" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<!-- Initial S_0 pill -->
+<rect x="26" y="116" width="70" height="68" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="61" y="144" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₀</text>
+<text x="61" y="166" text-anchor="middle" font-size="12" fill="#4d5652">零或续算</text>
+
+<!-- Chunk 0 Box -->
+<rect x="118" y="70" width="256" height="174" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="246" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Chunk 0（词 1..64 块内并行）</text>
+<rect x="132" y="104" width="108" height="68" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+<text x="186" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">块内 Cube 乘加</text>
+<text x="186" y="148" text-anchor="middle" font-size="12" fill="#4d5652">门累加 + K₀K₀ᵀ</text>
+<text x="186" y="165" text-anchor="middle" font-size="12" fill="#4d5652">下三角并行求解</text>
+<rect x="252" y="104" width="108" height="68" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="306" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">块间合成输出</text>
+<text x="306" y="148" text-anchor="middle" font-size="12" fill="#4d5652">跨块项 S₀Q₀</text>
+<text x="306" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₀ [64×dᵥ]</text>
+<rect x="132" y="184" width="228" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+<text x="246" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₀, K₀, V₀ [64×d]（经短卷积）</text>
+<text x="246" y="222" text-anchor="middle" font-size="12" fill="#4d5652">导出块末状态 S₁ ∈ ℝ^(dᵥ×dₖ)</text>
+
+<!-- Inter-chunk S_1 State Badge -->
+<rect x="396" y="116" width="74" height="68" rx="7" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="433" y="142" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₁</text>
+<text x="433" y="162" text-anchor="middle" font-size="12" fill="#3a4f93">[dᵥ, dₖ]</text>
+<text x="433" y="178" text-anchor="middle" font-size="12" fill="#66716d">块间传递</text>
+<!-- Chunk 1 Box -->
+<rect x="492" y="70" width="208" height="174" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="596" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Chunk 1（词 65..128）</text>
+<rect x="504" y="104" width="184" height="68" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+<text x="596" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">跨块 S₁Q₁ + 块内并行</text>
+<text x="596" y="148" text-anchor="middle" font-size="12" fill="#4d5652">同样走 Cube 矩阵乘</text>
+<text x="596" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₁ [64×dᵥ]</text>
+<rect x="504" y="184" width="184" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+<text x="596" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₁, K₁, V₁ [64×d]</text>
+<text x="596" y="222" text-anchor="middle" font-size="12" fill="#4d5652">导出块末状态 S₂</text>
+
+<!-- Commit State Slot Box -->
+<rect x="722" y="70" width="150" height="174" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="797" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">落盘请求状态槽</text>
+<text x="797" y="118" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">① 终态 S_final</text>
+<text x="797" y="138" text-anchor="middle" font-size="12" fill="#4d5652">定长矩阵 [dᵥ, dₖ]</text>
+<text x="797" y="164" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">② 短卷积尾窗</text>
+<text x="797" y="184" text-anchor="middle" font-size="12" fill="#4d5652">留最近 w−1 词</text>
+<text x="797" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">数学等价逐词递推</text>
+<text x="797" y="231" text-anchor="middle" font-size="12" fill="#66716d">供 Decode 续算</text>
+<g fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#ls-indigo)">
+  <line x1="96" y1="150" x2="116" y2="150"/>
+  <line x1="374" y1="150" x2="394" y2="150"/>
+  <line x1="470" y1="150" x2="490" y2="150"/>
+  <line x1="700" y1="150" x2="720" y2="150"/>
+</g>
+
+<!-- Bottom Panel: Decode Single-Step In-Place Recurrent Update -->
+<rect x="14" y="276" width="872" height="252" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="300" r="11" fill="#087f73"/>
+<text x="36" y="304.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="305" font-size="16" font-weight="700" fill="#17211f">Decode 阶段 · Recurrent 单步原地递推更新 Sₜ（每步 1 词，零历史重扫省带宽）</text>
+<line x1="28" y1="320" x2="872" y2="320" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<!-- Stage 1: Short Conv + Projection -->
+<rect x="28" y="332" width="186" height="146" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="121" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">① 投影 + 短卷积缓存</text>
+<text x="121" y="381" text-anchor="middle" font-size="12" fill="#17211f">hₜ → q, k, v, αₜ, βₜ</text>
+<text x="121" y="405" text-anchor="middle" font-size="12" fill="#7a3a6a">滑动更新 Conv [w−1+K]</text>
+<text x="121" y="429" text-anchor="middle" font-size="12" fill="#4d5652">qₜ, kₜ 经 L2 归一化</text>
+<text x="121" y="455" text-anchor="middle" font-size="12" fill="#66716d">稳定递推算子谱范数</text>
+
+<!-- Stage 2: Load S_{t-1} & Decay -->
+<rect x="236" y="332" width="190" height="146" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="331" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">② 读槽位 Sₜ₋₁ 并衰减</text>
+<g stroke-width="1.1">
+  <rect x="282" y="368" width="22" height="50" rx="2" fill="#f2f4fc" stroke="#9fb0e8"/>
+  <rect x="308" y="368" width="22" height="50" rx="2" fill="#b8efe4" stroke="#087f73"/>
+  <rect x="334" y="368" width="22" height="50" rx="2" fill="#dfe6fb" stroke="#9fb0e8"/>
+  <rect x="360" y="368" width="22" height="50" rx="2" fill="#6c82cc" stroke="#3a4f93"/>
+</g>
+<path d="M282 384.5h100M282 401h100" stroke="#ffffff" stroke-width="1.2"/>
+<text x="331" y="439" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#936300">GDN: S̄ₜ = αₜSₜ₋₁</text>
+<text x="331" y="460" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">KDA: S̄ₜ = Sₜ₋₁diag(αₜ)</text>
+<!-- Stage 3: Prediction Error In-Place Writeback -->
+<rect x="448" y="332" width="216" height="146" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="556" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">③ 预测误差外积原地更新</text>
+<text x="556" y="381" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#17211f">预测：v̂ₜ = S̄ₜkₜ</text>
+<text x="556" y="405" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#065f56">残差：eₜ = vₜ − v̂ₜ</text>
+<text x="556" y="429" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">写回：Sₜ = S̄ₜ + βₜeₜkₜᵀ</text>
+<text x="556" y="456" text-anchor="middle" font-size="12" fill="#065f56">原地覆写槽位（投机留 1+K 页）</text>
+
+<!-- Stage 4: Readout & Output -->
+<rect x="686" y="332" width="186" height="146" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+<text x="779" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">④ 当前词查询读出</text>
+<text x="779" y="383" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">oₜ = Sₜqₜ</text>
+<text x="779" y="410" text-anchor="middle" font-size="12" fill="#4d5652">输出门控 RMSNorm + o_proj</text>
+<text x="779" y="434" text-anchor="middle" font-size="12" fill="#7a3a6a">TP 组内一次 All-Reduce</text>
+<text x="779" y="458" text-anchor="middle" font-size="12" font-weight="700" fill="#087f73">访存恒定 O(dᵥdₖ) 不随 t 涨</text>
+
+<g fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#ls-teal)">
+  <line x1="214" y1="405" x2="234" y2="405"/>
+  <line x1="426" y1="405" x2="446" y2="405"/>
+  <line x1="664" y1="405" x2="684" y2="405"/>
+</g>
+<path d="M556 478v16H331v-14" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ls-indigo)"/>
+<text x="444" y="514" text-anchor="middle" font-size="12" font-weight="600" fill="#3a4f93">↻ Sₜ 原地写回该请求状态槽，供 t+1 步继续递推</text>
 </svg>

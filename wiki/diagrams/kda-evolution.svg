@@ -1,31 +1,191 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="四种递推形式的机制对照：都维护一个矩阵状态。累加式直接加入新的键值关联；DeltaNet 改成按当前键的预测误差修正，误差用写入前的状态算；Gated DeltaNet 在修正前先按每头一个系数衰减旧状态；KDA 把衰减细化到每个 key 通道。格子表示状态通道，不是测量值。">
-  <title>四种递推形式的机制对照：都维护一个矩阵状态。累加式直接加入新的键值关联；DeltaNet 改成按当前键的预测误差修正，误差用写入前的状态算；Gated DeltaNet 在修正前先按每头一个系数衰减旧状态；KDA 把衰减细化到每个 key 通道。格子表示状态通道，不是测量值。</title>
-  <defs><marker id="kda-evolution-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <path d="M190 210 L250 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
-  <path d="M405 210 L465 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
-  <path d="M620 210 L680 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
-  <rect x="60" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M88.8 150v115M117.5 150v115M146.3 150v115M60 178.8h115M60 207.5h115M60 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="117.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
-  <text x="117.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
-  <rect x="275" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M303.8 150v115M332.5 150v115M361.3 150v115M275 178.8h115M275 207.5h115M275 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="332.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
-  <text x="332.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
-  <rect x="490" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M518.8 150v115M547.5 150v115M576.3 150v115M490 178.8h115M490 207.5h115M490 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="547.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">α S</text>
-  <text x="547.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">所有行乘同一 α</text>
-  <rect x="705" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <path d="M733.8 150v115M762.5 150v115M791.3 150v115M705 178.8h115M705 207.5h115M705 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="762.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">D S</text>
-  <text x="762.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">各行乘 α₁…α₄</text>
-  <text x="117" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">累加式</text>
-  <text x="332" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">DeltaNet</text>
-  <text x="547" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Gated DeltaNet</text>
-  <text x="762" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">KDA</text>
-  <text x="117" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ k vᵀ</text>
-  <text x="332" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
-  <text x="547" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
-  <text x="762" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="四种递推状态更新机制对照：累加式、DeltaNet、Gated DeltaNet 与 KDA" font-family="var(--font-sans)">
+<title>四种线性注意力状态递推演化对照：累加式 → DeltaNet → Gated DeltaNet → KDA</title>
+<desc>对比单头状态矩阵 S_t 在累加式、DeltaNet、Gated DeltaNet 与 KDA 四种法则下的输入门控、矩阵列衰减深浅与预测误差回路。</desc>
+<defs>
+  <marker id="arr-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#66716d"/>
+  </marker>
+  <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+  <marker id="arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
+  </marker>
+</defs>
+<g stroke="#d8d8cf" stroke-width="1.3">
+  <rect x="10" y="12" width="206" height="516" rx="10" fill="#fbfaf6"/>
+  <rect x="234" y="12" width="206" height="516" rx="10" fill="#fbfaf6"/>
+  <rect x="458" y="12" width="206" height="516" rx="10" fill="#fbfaf6"/>
+  <rect x="682" y="12" width="206" height="516" rx="10" fill="#fbfaf6"/>
+  <line x1="22" y1="74" x2="204" y2="74"/>
+  <line x1="246" y1="74" x2="428" y2="74"/>
+  <line x1="470" y1="74" x2="652" y2="74"/>
+  <line x1="694" y1="74" x2="876" y2="74"/>
+</g>
+<g stroke="#66716d" stroke-width="1.8" fill="none" marker-end="url(#arr-ctrl)">
+  <line x1="217" y1="226" x2="232" y2="226"/>
+  <line x1="441" y1="226" x2="456" y2="226"/>
+  <line x1="665" y1="226" x2="680" y2="226"/>
+</g>
+<circle cx="32" cy="34" r="11" fill="#b54237"/>
+<circle cx="256" cy="34" r="11" fill="#4c65b6"/>
+<circle cx="480" cy="34" r="11" fill="#c78300"/>
+<circle cx="704" cy="34" r="11" fill="#087f73"/>
+<g font-weight="700">
+  <text x="32" y="38.5" text-anchor="middle" font-size="12.5" fill="#ffffff">1</text>
+  <text x="50" y="39" font-size="15.5" fill="#17211f">累加式注意力</text>
+  <text x="256" y="38.5" text-anchor="middle" font-size="12.5" fill="#ffffff">2</text>
+  <text x="274" y="39" font-size="15.5" fill="#17211f">DeltaNet</text>
+  <text x="480" y="38.5" text-anchor="middle" font-size="12.5" fill="#ffffff">3</text>
+  <text x="498" y="39" font-size="15.5" fill="#17211f">Gated DeltaNet</text>
+  <text x="704" y="38.5" text-anchor="middle" font-size="12.5" fill="#ffffff">4</text>
+  <text x="722" y="39" font-size="15.5" fill="#17211f">KDA 通道门控</text>
+</g>
+<text x="22" y="62" font-size="12.5" fill="#8f3229">直接盲加外积 · 无遗忘门</text>
+<text x="246" y="62" font-size="12.5" fill="#3a4f93">读预测误差 · 定向擦写键列</text>
+<text x="470" y="62" font-size="12.5" fill="#936300">每头标量 αₜ · 整块同速冲淡</text>
+<text x="694" y="62" font-size="12.5" fill="#065f56">对角 diag(αₜ) · 按列独立遗忘</text>
+<g stroke-width="1.2">
+  <rect x="22" y="84" width="78" height="28" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="106" y="84" width="98" height="28" rx="6" fill="#ece9df" stroke="#d8d8cf"/>
+  <rect x="246" y="84" width="78" height="28" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="330" y="84" width="98" height="28" rx="6" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="470" y="84" width="88" height="28" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="564" y="84" width="88" height="28" rx="6" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="694" y="84" width="88" height="28" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="788" y="84" width="88" height="28" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<g font-size="12.5" font-weight="600" text-anchor="middle">
+  <text x="61" y="102.5" fill="#065f56">输入 kₜ, vₜ</text>
+  <text x="155" y="102.5" fill="#66716d">无衰减门</text>
+  <text x="285" y="102.5" fill="#065f56">输入 kₜ, vₜ</text>
+  <text x="379" y="102.5" fill="#936300">写入门 βₜ</text>
+  <text x="514" y="102.5" fill="#065f56">kₜ, vₜ, βₜ</text>
+  <text x="608" y="102.5" fill="#936300">标量 αₜ</text>
+  <text x="738" y="102.5" fill="#065f56">kₜ, vₜ, βₜ</text>
+  <text x="832" y="102.5" fill="#7a3a6a">向量 α₁..₄</text>
+</g>
+<g font-size="12.5" font-weight="700" text-anchor="middle" fill="#17211f">
+  <text x="113" y="138">状态 Sₜ（旧记忆无损堆叠）</text>
+  <text x="337" y="138">状态 Sₜ（定向擦写当前键列）</text>
+  <text x="561" y="138">衰减态 αₜSₜ₋₁（全列同变淡）</text>
+  <text x="785" y="138">Sₜ₋₁diag(αₜ)（各列独立深浅）</text>
+</g>
+<g font-size="12" font-family="var(--font-mono)" font-weight="700" text-anchor="middle">
+  <text x="113" y="161" fill="#b54237">无遗忘 · 反复叠加过载</text>
+  <text x="337" y="161" fill="#3a4f93">旧列不变 · 修 k₂ 列</text>
+  <text x="516" y="161" fill="#936300">×αₜ</text>
+  <text x="549" y="161" fill="#936300">×αₜ</text>
+  <text x="582" y="161" fill="#936300">×αₜ</text>
+  <text x="615" y="161" fill="#936300">×αₜ</text>
+  <text x="740" y="161" fill="#7a3a6a">.20</text>
+  <text x="773" y="161" fill="#065f56">.90</text>
+  <text x="806" y="161" fill="#7a3a6a">.30</text>
+  <text x="839" y="161" fill="#3a4f93">.95</text>
+</g>
+<!-- Col 1 Matrix (Overloaded) -->
+<g stroke-width="1.3">
+  <rect x="54" y="170" width="28" height="84" rx="3" fill="#6c82cc" stroke="#4c65b6"/>
+  <rect x="87" y="170" width="28" height="84" rx="3" fill="#f3b8ae" stroke="#b54237"/>
+  <rect x="120" y="170" width="28" height="84" rx="3" fill="#6c82cc" stroke="#4c65b6"/>
+  <rect x="153" y="170" width="28" height="84" rx="3" fill="#566ec0" stroke="#4c65b6"/>
+  <!-- Col 2 Matrix (DeltaNet: untouched indigo cols + targeted teal k2 col) -->
+  <rect x="278" y="170" width="28" height="84" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
+  <rect x="311" y="170" width="28" height="84" rx="3" fill="#b8efe4" stroke="#087f73"/>
+  <rect x="344" y="170" width="28" height="84" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
+  <rect x="377" y="170" width="28" height="84" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
+  <!-- Col 3 Matrix (GDN: all cols uniformly faded by scalar alpha_t + k2 update) -->
+  <rect x="502" y="170" width="28" height="84" rx="3" fill="#e8edff" stroke="#8ea0df"/>
+  <rect x="535" y="170" width="28" height="84" rx="3" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="568" y="170" width="28" height="84" rx="3" fill="#e8edff" stroke="#8ea0df"/>
+  <rect x="601" y="170" width="28" height="84" rx="3" fill="#e8edff" stroke="#8ea0df"/>
+  <!-- Col 4 Matrix (KDA: independent per-key-channel column decay shades) -->
+  <rect x="726" y="170" width="28" height="84" rx="3" fill="#f2f4fc" stroke="#b8c3ea"/>
+  <rect x="759" y="170" width="28" height="84" rx="3" fill="#b8efe4" stroke="#087f73"/>
+  <rect x="792" y="170" width="28" height="84" rx="3" fill="#dfe6fb" stroke="#9fb0e8"/>
+  <rect x="825" y="170" width="28" height="84" rx="3" fill="#6c82cc" stroke="#3a4f93"/>
+</g>
+<!-- 4x4 Row Grid Dividers across all 16 columns -->
+<g stroke="#fbfaf6" stroke-width="1.4">
+  <path d="M54 191h127M54 212h127M54 233h127"/>
+  <path d="M278 191h127M278 212h127M278 233h127"/>
+  <path d="M502 191h127M502 212h127M502 233h127"/>
+  <path d="M726 191h127M726 212h127M726 233h127"/>
+</g>
+<g font-size="12" fill="#66716d" text-anchor="middle">
+  <text x="31" y="216">dᵥ</text>
+  <text x="255" y="216">dᵥ</text>
+  <text x="479" y="216">dᵥ</text>
+  <text x="703" y="216">dᵥ</text>
+  <text x="117" y="272">dₖ 键通道</text>
+  <text x="341" y="272">dₖ 键通道</text>
+  <text x="565" y="272">dₖ 键通道</text>
+  <text x="789" y="272">dₖ 键通道</text>
+</g>
+<!-- Read/Write Feedback Loop Arrows between Matrix and Error Circuit -->
+<g fill="none" stroke-width="1.6">
+  <line x1="101" y1="112" x2="101" y2="124" stroke="#b54237" marker-end="url(#arr-red)"/>
+  <line x1="292" y1="256" x2="292" y2="298" stroke="#087f73" marker-end="url(#arr-teal)"/>
+  <line x1="388" y1="300" x2="388" y2="258" stroke="#087f73" marker-end="url(#arr-teal)"/>
+  <line x1="516" y1="256" x2="516" y2="298" stroke="#c78300" marker-end="url(#arr-amber)"/>
+  <line x1="612" y1="300" x2="612" y2="258" stroke="#087f73" marker-end="url(#arr-teal)"/>
+  <line x1="740" y1="256" x2="740" y2="298" stroke="#9a4b86" marker-end="url(#arr-plum)"/>
+  <line x1="836" y1="300" x2="836" y2="258" stroke="#087f73" marker-end="url(#arr-teal)"/>
+</g>
+<!-- Feedback Error Circuit Cards -->
+<rect x="20" y="302" width="186" height="92" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="5 3"/>
+<rect x="244" y="302" width="186" height="92" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<rect x="468" y="302" width="186" height="92" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<rect x="692" y="302" width="186" height="92" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<g text-anchor="middle">
+  <text x="113" y="326" font-size="13.5" font-weight="700" fill="#8f3229">✗ 无预测误差回路</text>
+  <text x="113" y="351" font-size="12.5" fill="#8f3229">不读旧状态直接叠 vₜkₜᵀ</text>
+  <text x="113" y="375" font-size="12.5" fill="#b54237">相似键重复写 → 饱和串味</text>
+
+  <text x="337" y="326" font-size="13.5" font-weight="700" fill="#065f56">↻ 预测误差回路</text>
+  <text x="337" y="351" font-size="12.5" fill="#17211f">探针读出 v̂ₜ = Sₜ₋₁kₜ</text>
+  <text x="337" y="375" font-size="12.5" fill="#065f56">按 eₜ = vₜ − v̂ₜ 定向擦写</text>
+
+  <text x="561" y="326" font-size="13.5" font-weight="700" fill="#936300">↻ 整块冲淡 + 误差回路</text>
+  <text x="561" y="351" font-size="12.5" fill="#17211f">全矩阵同乘每头标量 αₜ</text>
+  <text x="561" y="375" font-size="12.5" fill="#936300">误差 eₜ = vₜ − αₜSₜ₋₁kₜ</text>
+
+  <text x="785" y="326" font-size="13.5" font-weight="700" fill="#7a3a6a">↻ 通道衰减 + 误差回路</text>
+  <text x="785" y="351" font-size="12.5" fill="#17211f">第 i 键列独立乘 αₜ,ᵢ</text>
+  <text x="785" y="375" font-size="12.5" fill="#7a3a6a">误差 eₜ = vₜ − S̄ₜkₜ</text>
+</g>
+<!-- Recurrence Formula & Architecture Summary Cards -->
+<g fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3">
+  <rect x="20" y="406" width="186" height="110" rx="8"/>
+  <rect x="244" y="406" width="186" height="110" rx="8"/>
+  <rect x="468" y="406" width="186" height="110" rx="8"/>
+  <rect x="692" y="406" width="186" height="110" rx="8"/>
+</g>
+<g text-anchor="middle">
+  <text x="113" y="430" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#17211f">Sₜ = Sₜ₋₁ + vₜkₜᵀ</text>
+  <text x="113" y="454" font-family="var(--font-mono)" font-size="12.5" fill="#4d5652">oₜ = Sₜqₜ</text>
+  <text x="113" y="481" font-size="12.5" font-weight="700" fill="#b54237">记忆容量随步数迅速饱和</text>
+  <text x="113" y="503" font-size="12" fill="#66716d">朴素核线性注意力基线</text>
+
+  <text x="337" y="430" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">eₜ = vₜ − Sₜ₋₁kₜ</text>
+  <text x="337" y="454" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#17211f">Sₜ = Sₜ₋₁ + βₜeₜkₜᵀ</text>
+  <text x="337" y="481" font-size="12.5" font-weight="700" fill="#3a4f93">同键重复写零冗余不溢出</text>
+  <text x="337" y="503" font-size="12" fill="#66716d">缺显式遗忘，远古噪声常驻</text>
+
+  <text x="561" y="430" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">S̄ₜ = αₜSₜ₋₁  (标量 αₜ)</text>
+  <text x="561" y="454" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">Sₜ = S̄ₜ + βₜeₜkₜᵀ</text>
+  <text x="561" y="481" font-size="12.5" font-weight="700" fill="#936300">每头 1 个系数平滑遗忘</text>
+  <text x="561" y="503" font-size="12" fill="#66716d">代表：Qwen3-Next (GDN)</text>
+
+  <text x="785" y="430" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#065f56">S̄ₜ = Sₜ₋₁diag(αₜ)</text>
+  <text x="785" y="454" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">Sₜ = S̄ₜ + βₜeₜkₜᵀ</text>
+  <text x="785" y="481" font-size="12.5" font-weight="700" fill="#065f56">高频列快忘 · 长程列常驻</text>
+  <text x="785" y="503" font-size="12" fill="#66716d">代表：Kimi Linear / GLM</text>
+</g>
 </svg>

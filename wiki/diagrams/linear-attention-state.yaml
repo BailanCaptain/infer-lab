@@ -1,38 +1,6 @@
-layout: figure
+mode: native-svg
 id: linear-attention-state
-caption: 单头 KDA 的数学递推：按 key 通道衰减旧状态，用当前键和值预测误差修正，再以查询读出；图中采用 [K,V] 数学布局，省略批次、缩放和外层投影
-size: [900, 660]
-matrices:
-  - { at: [40, 110], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'Sₜ₋₁', dims: '[dₖ, dᵥ]' }
-  - { at: [390, 110], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'S̄ = D Sₜ₋₁' }
-  - { at: [730, 300], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'Sₜ' }
-  - { at: [730, 545], w: 100, h: 28, rows: 1, cols: 4, tone: token, label: 输出 o, dims: 'Sₜᵀ q' }
-items:
-  - { at: [215, 130], size: [115, 60], text: 通道衰减 D, tone: control }
-  - { at: [385, 300], size: [150, 60], text: 预测 v̂ = S̄ᵀ k, tone: control }
-  - { at: [210, 425], size: [140, 58], text: 当前值 v, tone: token }
-  - { at: [385, 425], size: [150, 58], text: 误差 e = v − v̂, tone: token }
-  - { at: [570, 425], size: [125, 58], text: 'β k eᵀ', sub: 外积更新, tone: control }
-  - { at: [730, 455], size: [100, 50], text: 查询 q, tone: token }
-  - { at: [210, 300], size: [120, 58], text: 当前键 k, tone: token }
-nodes:
-  - { at: [635, 350], r: 20, text: '+' }
-links:
-  - { from: [140, 160], to: [215, 160], tone: kv }
-  - { from: [330, 160], to: [390, 160], tone: kv }
-  - { from: [490, 194], to: [460, 300], via: [[522, 194], [522, 268], [460, 268]], tone: kv }
-  - { from: [490, 160], to: [635, 330], via: [[635, 160]], tone: kv }
-  - { from: [330, 329], to: [385, 329], tone: token }
-  - { from: [460, 360], to: [460, 425], tone: token }
-  - { from: [350, 454], to: [385, 454], tone: token }
-  - { from: [535, 454], to: [570, 454], tone: token }
-  - { from: [632, 425], to: [635, 370], tone: control }
-  - { from: [655, 350], to: [730, 350], tone: kv }
-  - { from: [830, 350], to: [780, 545], via: [[865, 350], [865, 530], [780, 530]], tone: kv }
-  - { from: [780, 505], to: [780, 545], tone: token }
-  - { from: [830, 320], to: [90, 110], via: [[870, 320], [870, 42], [90, 42]], tone: kv, dashed: true }
-texts:
-  - { at: [450, 28], text: 写回请求状态，供下个位置继续使用, anchor: middle, size: 13 }
-  - { at: [450, 623], text: Q/K/V 由投影与短卷积产生；短卷积另有历史缓存, anchor: middle, size: 13 }
-
-
+caption: >-
+  线性注意力的双执行态与状态传递数据流：上半区 Prefill 采用 Chunkwise 分块算法（如段长 C=64），块内将逐词递推重排为矩阵乘法吃满 Cube 核，块间仅按序传递定长状态矩阵 S₀ → S₁ → S₂ 并落盘最终 S_final 与短卷积尾窗；下半区 Decode 单步直接从请求槽位读取 Sₜ₋₁ 与短卷积缓存，经衰减、预测误差外积修正原地覆写 Sₜ 并读出 oₜ。
+size: [900, 540]
+pins: []

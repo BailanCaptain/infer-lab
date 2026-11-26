@@ -1,15 +1,6 @@
-layout: figure
+mode: native-svg
 id: deepseek-model-flow
-caption: 从模型加载走到第 3–5 站执行。分别检查配置、状态所有者和实际输入布局，不把“有模型名字”当成优化已经生效。
-size: [610, 460]
-items:
-  - { at: [30, 20], size: [550, 64], text: 加载配置：确认层数与共享来源, sub: load_hf_model_config：配置和权重必须匹配, tone: control, style: faded }
-  - { at: [30, 128], size: [550, 64], text: 分配历史：来源层拥有 KV，使用层引用它, sub: KVCache：逐层窗口与压缩中间态另记, tone: kv, style: faded }
-  - { at: [30, 236], size: [550, 64], text: 第 3–5 站：在后半边界核对实际位置, sub: compact_yoco_boundary：教学例 0–99 → 96–99, tone: weight, style: faded }
-  - { at: [20, 350], size: [275, 80], text: Prefill：100 行 → 4 行, sub: 行数缩短，再看设备耗时是否下降, tone: token, style: solid }
-  - { at: [315, 350], size: [275, 80], text: Decode：新位置走完全部层, sub: 继续读取共享历史和各层窗口, tone: token, style: faded }
-links:
-  - { from: [305, 84], to: [305, 128] }
-  - { from: [305, 192], to: [305, 236] }
-  - { from: [155, 300], to: [155, 350] }
-  - { from: [450, 300], to: [450, 350] }
+caption: >-
+  DeepSeek-V4.1-Flash 从配置加载到第 3–5 站执行的三道核验关卡：① 配置加载阶段核实 40 层 CED 主干与 4 个主 KV 来源层（2/8/14/20）映射；② 缓存分配阶段拆开跨层共享分页 Block KV 与每请求独立 State Cache（SWA 环、压缩中间态与回退槽）；③ 执行阶段在 compact_yoco_boundary 核对 Prefill 后半输入是否由 0..99（100 行）收紧为 96..99（4 行），并区分 Decode 全层路径。
+size: [900, 490]
+pins: []

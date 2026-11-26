@@ -1,23 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 610 460" width="610" height="460" role="img" aria-label="从模型加载走到第 3–5 站执行。分别检查配置、状态所有者和实际输入布局，不把“有模型名字”当成优化已经生效。">
-  <title>从模型加载走到第 3–5 站执行。分别检查配置、状态所有者和实际输入布局，不把“有模型名字”当成优化已经生效。</title>
-  <defs><marker id="deepseek-model-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M305 84 L305 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#deepseek-model-flow-ah-ink)"/>
-  <path d="M305 192 L305 236" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#deepseek-model-flow-ah-ink)"/>
-  <path d="M155 300 L155 350" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#deepseek-model-flow-ah-ink)"/>
-  <path d="M450 300 L450 350" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#deepseek-model-flow-ah-ink)"/>
-  <rect x="30" y="20" width="550" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="305" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">加载配置：确认层数与共享来源</text>
-  <text x="305" y="67" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">load_hf_model_config：配置和权重必须匹配</text>
-  <rect x="30" y="128" width="550" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="305" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">分配历史：来源层拥有 KV，使用层引用它</text>
-  <text x="305" y="175" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">KVCache：逐层窗口与压缩中间态另记</text>
-  <rect x="30" y="236" width="550" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="305" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">第 3–5 站：在后半边界核对实际位置</text>
-  <text x="305" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">compact_yoco_boundary：教学例 0–99 → 96–99</text>
-  <rect x="20" y="350" width="275" height="80" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="157.5" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Prefill：100 行 → 4 行</text>
-  <text x="157.5" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">行数缩短，再看设备耗时是否下降</text>
-  <rect x="315" y="350" width="275" height="80" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="452.5" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">Decode：新位置走完全部层</text>
-  <text x="452.5" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">继续读取共享历史和各层窗口</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="DeepSeek-V4.1-Flash 三道优化生效核验关卡：配置来源映射、双轨缓存分账与后半边界截断" font-family="var(--font-sans)">
+<title>DeepSeek-V4.1-Flash 优化生效三道核验关卡：配置映射 → 缓存分账 → 后半边界截断</title>
+<desc>依次核对 load_hf_model_config 共享来源层映射、Block KV 与 State Cache 所有权分账，以及 compact_yoco_boundary 的 Prefill 100 行缩为 4 行与 Decode 全层执行。</desc>
+<defs>
+  <marker id="dm-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#66716d"/>
+  </marker>
+  <marker id="dm-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+</defs>
+
+<text x="18" y="32" font-size="16" font-weight="700" fill="#17211f">DeepSeek-V4.1-Flash 三道生效核验关卡（不把“模型名一致”当成优化已开启）</text>
+
+<!-- Checkpoint 1: Config & Shared KV Source Map -->
+<rect x="14" y="46" width="872" height="114" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="69" r="11" fill="#c78300"/>
+<text x="36" y="73.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="74" font-size="14.5" font-weight="700" fill="#17211f">关卡 ① 加载配置与跨层来源映射（load_hf_model_config）</text>
+<rect x="28" y="88" width="444" height="58" rx="7" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+<g font-size="12" font-weight="700" text-anchor="middle">
+  <rect x="40" y="98" width="86" height="36" rx="4" fill="#ece9df" stroke="#d8d8cf"/>
+  <text x="83" y="120.5" fill="#4d5652">L0..1 仅SWA</text>
+  <rect x="134" y="98" width="154" height="36" rx="4" fill="#fff4cf" stroke="#c78300"/>
+  <text x="211" y="120.5" fill="#936300">前半源 L2 · L8 · L14 (2×压)</text>
+  <rect x="296" y="98" width="164" height="36" rx="4" fill="#dce4fc" stroke="#4c65b6"/>
+  <text x="378" y="120.5" fill="#3a4f93">后半源 L20 → L21..39 共享</text>
+</g>
+<rect x="490" y="88" width="382" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="504" y="111" font-size="12.5" font-weight="700" fill="#936300">核验点：确认 40 层前后分界与 _source_map 映射</text>
+<text x="504" y="133" font-size="12" fill="#4d5652">检查 dtype、KV 头数=1、量化与缩放格式严格匹配权重</text>
+
+<!-- Checkpoint 2: Dual-Track Memory Ownership -->
+<rect x="14" y="176" width="872" height="122" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="199" r="11" fill="#4c65b6"/>
+<text x="36" y="203.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="204" font-size="14.5" font-weight="700" fill="#17211f">关卡 ② 显存双轨所有权分账：来源层持有全局 KV，每请求独占运行态</text>
+<rect x="28" y="218" width="414" height="66" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="42" y="241" font-size="12.5" font-weight="700" fill="#3a4f93">分页全局 Block KV（仅 4 个来源层分配）</text>
+<text x="42" y="264" font-size="12" fill="#4d5652">主 KV 288B + 索引 K 68B；消费层按指针引用不重复落盘</text>
+<rect x="460" y="218" width="412" height="66" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="474" y="241" font-size="12.5" font-weight="700" fill="#7a3a6a">每请求独占 State Cache（不跨请求共享）</text>
+<text x="474" y="264" font-size="12" fill="#4d5652">各层 SWA 滑窗环 + 压缩中间态 + 投机回退槽（另核页对齐）</text>
+<!-- Checkpoint 3: YOCO Boundary Compaction & Execution -->
+<rect x="14" y="314" width="872" height="162" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<circle cx="36" cy="337" r="11" fill="#087f73"/>
+<text x="36" y="341.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+<text x="54" y="342" font-size="14.5" font-weight="700" fill="#17211f">关卡 ③ 第 3–5 站后半边界截断核验（compact_yoco_boundary）与双阶段执行</text>
+
+<rect x="28" y="356" width="486" height="106" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="42" y="378" font-size="13" font-weight="700" fill="#065f56">Prefill 后半边界行数核对（100 位置教学例）</text>
+<rect x="42" y="390" width="156" height="30" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+<text x="120" y="409.5" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">前半 0..99 (100 行)</text>
+<line x1="200" y1="405" x2="222" y2="405" stroke="#087f73" stroke-width="1.6" marker-end="url(#dm-teal)"/>
+<rect x="226" y="390" width="154" height="30" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="303" y="409.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">后半 96..99 (仅 4 行)</text>
+<rect x="388" y="390" width="112" height="30" rx="5" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="444" y="409.5" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">+ 读共享 KV</text>
+<text x="42" y="446" font-size="12" font-weight="600" fill="#8f3229">排错：后半仍 100 行 = 截断未生效；错记成 0..3 = 位置映射异常</text>
+
+<rect x="530" y="356" width="342" height="106" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="544" y="378" font-size="13" font-weight="700" fill="#065f56">Decode 逐词路径与端到端耗时归因</text>
+<text x="544" y="403" font-size="12.5" fill="#17211f">• Decode 新位置：仍走完全部 40 层</text>
+<text x="544" y="425" font-size="12" fill="#4d5652">• 同时读取共享全局 KV 与各层 SWA 滑窗</text>
+<text x="544" y="447" font-size="12" fill="#66716d">• 后半变快但首字不降 → 查交接与排队</text>
+
+<g fill="none" stroke="#66716d" stroke-width="1.7" marker-end="url(#dm-ctrl)">
+  <line x1="450" y1="160" x2="450" y2="174"/>
+  <line x1="450" y1="298" x2="450" y2="312"/>
+</g>
 </svg>

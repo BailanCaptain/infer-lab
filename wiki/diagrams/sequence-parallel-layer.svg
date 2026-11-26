@@ -1,78 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 600" width="880" height="600" role="img" aria-label="常规子层的前向边界。SP 区域保留完整的 token 行；All-Gather 后由 TP 权重分片计算各自通道，行切投影的部分和经 Reduce-Scatter 合并并重新分行。相同边界在 attention 和 MLP 后各出现一次。">
-  <title>常规子层的前向边界。SP 区域保留完整的 token 行；All-Gather 后由 TP 权重分片计算各自通道，行切投影的部分和经 Reduce-Scatter 合并并重新分行。相同边界在 attention 和 MLP 后各出现一次。</title>
-  <defs><marker id="sequence-parallel-layer-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <rect x="20" y="55" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 子层入口：残差与 RMSNorm，按 token 行分工</text>
-  <rect x="20" y="240" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② TP 区域：列切投影 → attention 或逐通道激活 → 行切投影</text>
-  <rect x="20" y="425" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ 下一子层入口：收到完整行，继续本地计算</text>
-  <path d="M840 175 L840 240" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-layer-ah-comm)"/>
-  <path d="M840 360 L840 425" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-layer-ah-comm)"/>
-  <rect x="70" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="70" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M96 95v44M122 95v44M70 117h78" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="70" y="95" width="78" height="44" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="109" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0 · token 0、1</text>
-  <rect x="505" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="95" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="505" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="117" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M531 95v44M557 95v44M505 117h78" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="505" y="95" width="78" height="44" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="544" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1 · token 2、3</text>
-  <rect x="70" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="70" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M96 280v44M122 280v44M70 302h78" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="70" y="280" width="78" height="44" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="109" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">卡 0 · 权重分片 0</text>
-  <rect x="505" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="280" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="505" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="302" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M531 280v44M557 280v44M505 302h78" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="505" y="280" width="78" height="44" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="544" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">卡 1 · 权重分片 1</text>
-  <rect x="70" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="70" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="96" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M96 465v44M122 465v44M70 487h78" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="70" y="465" width="78" height="44" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="109" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0 · token 0、1</text>
-  <rect x="505" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="465" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="505" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="531" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="557" y="487" width="26" height="22" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M531 465v44M557 465v44M505 487h78" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="505" y="465" width="78" height="44" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="544" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1 · token 2、3</text>
-  <text x="25" y="14" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">请求的逐层前向 · 同一组 TP2 设备</text>
-  <text x="200" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">2 行 × 完整 H 维</text>
-  <text x="635" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">2 行 × 完整 H 维</text>
-  <text x="440" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">All-Gather：两卡都取得 4 行输入</text>
-  <text x="200" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">处理全部 4 行</text>
-  <text x="200" y="319" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">出口得到 H 维部分和</text>
-  <text x="635" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">处理全部 4 行</text>
-  <text x="635" y="319" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">出口得到 H 维部分和</text>
-  <text x="440" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">Reduce-Scatter：贡献相加，再把结果分成两份行</text>
-  <text x="200" y="483" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">本卡行的数值已加齐</text>
-  <text x="635" y="483" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">本卡行的数值已加齐</text>
-  <text x="440" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">图中网格仅表示归属；矩阵维度与完整计算见正文</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="序列并行 SP 与张量并行 TP 在单子层前向中的行切与通道切转换" font-family="var(--font-sans)">
+<title>Megatron SP + TP 单子层前向：行切 RMSNorm → All-Gather → TP 通道切 → Reduce-Scatter</title>
+<desc>TP2 两张卡处理 4 个 token：SP 区每卡持 2 行完整 H 维做残差与 RMSNorm，经 All-Gather 收齐 4 行做列切/行切投影得部分和，再经 Reduce-Scatter 相加并重按行切。</desc>
+<defs>
+  <marker id="sp-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+  <marker id="sp-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+</defs>
+
+<text x="18" y="31" font-size="16" font-weight="700" fill="#17211f">单子层前向切分转换（TP2 · 4 个 token · 隐藏宽 H；Attention 与 MLP 各重复一轮）</text>
+
+<!-- Band 1: SP Entry (Row-Sharded, Full H) -->
+<rect x="14" y="44" width="872" height="118" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="30" y="67" font-size="14" font-weight="700" fill="#065f56">① 子层入口（SP 区 · 按 token 行切）：每行保留完整 H 维，本卡无通信完成残差 + RMSNorm</text>
+
+<rect x="28" y="78" width="406" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="42" y="101" font-size="13" font-weight="700" fill="#065f56">卡 0：仅持 token 0、1（[2 × H]）</text>
+<rect x="42" y="111" width="166" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="125" y="129.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">t₀, t₁ × 完整 H 列</text>
+<rect x="222" y="111" width="198" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="321" y="129.5" text-anchor="middle" font-size="12" fill="#17211f">本地残差相加 + RMSNorm</text>
+
+<rect x="466" y="78" width="406" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="480" y="101" font-size="13" font-weight="700" fill="#065f56">卡 1：仅持 token 2、3（[2 × H]）</text>
+<rect x="480" y="111" width="166" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="563" y="129.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">t₂, t₃ × 完整 H 列</text>
+<rect x="660" y="111" width="198" height="28" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="759" y="129.5" text-anchor="middle" font-size="12" fill="#17211f">本地残差相加 + RMSNorm</text>
+
+<!-- Collective 1: All-Gather -->
+<rect x="140" y="172" width="620" height="40" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="450" y="196.5" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">All-Gather（沿行拼齐）：卡 0 发 t₀,t₁、卡 1 发 t₂,t₃ → 两卡均集齐 [4 × H] 归一化输入</text>
+<g fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#sp-plum)">
+  <line x1="231" y1="162" x2="231" y2="170"/>
+  <line x1="669" y1="162" x2="669" y2="170"/>
+  <line x1="231" y1="212" x2="231" y2="222"/>
+  <line x1="669" y1="212" x2="669" y2="222"/>
+</g>
+<!-- Band 2: TP Region (Channel/Head-Sharded, All 4 Rows) -->
+<rect x="14" y="224" width="872" height="144" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="30" y="247" font-size="13.5" font-weight="700" fill="#936300">② TP 内部区域（按头/通道切分）：两卡处理全部 4 行，先列切投影 → 本地激活 → 行切得部分和</text>
+
+<rect x="28" y="258" width="406" height="96" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="42" y="280" font-size="13" font-weight="700" fill="#936300">卡 0 · 权重分片 0（头/通道前半）</text>
+<g fill="#ffffff" stroke="#c78300" stroke-width="1.1">
+  <rect x="42" y="290" width="116" height="32" rx="4"/>
+  <rect x="168" y="290" width="116" height="32" rx="4"/>
+  <rect x="294" y="290" width="126" height="32" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#936300">
+  <text x="100" y="310.5">列切 W_col⁰</text>
+  <text x="226" y="310.5">头/通道激活</text>
+  <text x="357" y="310.5">行切 → 部分和 P⁰</text>
+</g>
+<text x="231" y="343" text-anchor="middle" font-size="12" fill="#4d5652">算出全部 4 行的 H 维部分和 P⁰ [4 × H]</text>
+
+<rect x="466" y="258" width="406" height="96" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="480" y="280" font-size="13" font-weight="700" fill="#936300">卡 1 · 权重分片 1（头/通道后半）</text>
+<g fill="#ffffff" stroke="#c78300" stroke-width="1.1">
+  <rect x="480" y="290" width="116" height="32" rx="4"/>
+  <rect x="606" y="290" width="116" height="32" rx="4"/>
+  <rect x="732" y="290" width="126" height="32" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#936300">
+  <text x="538" y="310.5">列切 W_col¹</text>
+  <text x="664" y="310.5">头/通道激活</text>
+  <text x="795" y="310.5">行切 → 部分和 P¹</text>
+</g>
+<text x="669" y="343" text-anchor="middle" font-size="12" fill="#4d5652">算出全部 4 行的 H 维部分和 P¹ [4 × H]</text>
+
+<!-- Collective 2: Reduce-Scatter -->
+<rect x="108" y="378" width="684" height="40" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="450" y="402.5" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">Reduce-Scatter（求和并重按行切）：P⁰ + P¹ 相加，前 2 行归卡 0，后 2 行归卡 1</text>
+<g fill="none" stroke="#9a4b86" stroke-width="1.6" marker-end="url(#sp-plum)">
+  <line x1="231" y1="368" x2="231" y2="376"/>
+  <line x1="669" y1="368" x2="669" y2="376"/>
+  <line x1="231" y1="418" x2="231" y2="428"/>
+  <line x1="669" y1="418" x2="669" y2="428"/>
+</g>
+
+<!-- Band 3: Next Sublayer SP Entry -->
+<rect x="14" y="430" width="872" height="118" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="30" y="453" font-size="13.5" font-weight="700" fill="#065f56">③ 下一子层入口（回到 SP 区）：本卡行数值已加齐，无缝对接本卡残差与下一轮 RMSNorm</text>
+
+<rect x="28" y="464" width="282" height="70" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="169" y="490" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">卡 0：t₀, t₁ 完整和 [2 × H]</text>
+<text x="169" y="514" text-anchor="middle" font-size="12" fill="#4d5652">与卡 0 的 t₀, t₁ 残差严格对齐</text>
+
+<rect x="326" y="464" width="282" height="70" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="467" y="490" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">卡 1：t₂, t₃ 完整和 [2 × H]</text>
+<text x="467" y="514" text-anchor="middle" font-size="12" fill="#4d5652">与卡 1 的 t₂, t₃ 残差严格对齐</text>
+
+<rect x="624" y="464" width="248" height="70" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="748" y="489" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">总发送量：RS + AG = All-Reduce</text>
+<text x="748" y="514" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">净省 SP 区激活显存与计算 (1/TP)</text>
 </svg>

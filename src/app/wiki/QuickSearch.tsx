@@ -64,6 +64,18 @@ export interface QuickSearchDeps {
   limit?: number;
 }
 
+export const OPEN_QUICK_SEARCH_EVENT = "wiki:open-quick-search";
+
+export interface OpenQuickSearchDetail {
+  query?: string | undefined;
+  origin?: HTMLElement | null | undefined;
+}
+
+export function requestOpenQuickSearch(detail: OpenQuickSearchDetail = {}): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<OpenQuickSearchDetail>(OPEN_QUICK_SEARCH_EVENT, { detail }));
+}
+
 export function isQuickSearchShortcut(event: {
   key: string;
   metaKey: boolean;
@@ -520,9 +532,13 @@ export function createQuickSearchController(deps: QuickSearchDeps) {
     }
   };
 
-  const openSearch = () => {
+  const openSearch = (initialQuery = "") => {
     requestSeq++;
-    emit({ open: true, query: "", status: "idle", items: [], selectedIndex: 0, error: "" });
+    const trimmed = initialQuery.trim();
+    emit({ open: true, query: initialQuery, status: "idle", items: [], selectedIndex: 0, error: "" });
+    if (trimmed) {
+      void runQuery(initialQuery);
+    }
   };
 
   const closeSearch = ({ restoreFocus = true }: { restoreFocus?: boolean } = {}) => {
@@ -754,26 +770,13 @@ export function QuickSearchDialog({
                       <strong className="wiki-quick-search-title">{item.title}</strong>
                       <span className="wiki-quick-search-badges">
                         <span
-                          className="wiki-quick-search-type"
+                          className={`wiki-quick-search-type${
+                            item.type === "tool" ? " is-tool" : item.type === "3d" ? " is-3d" : ""
+                          }`}
                           data-testid={
                             item.type === "tool" || item.type === "3d"
                               ? "wiki-quick-search-action-badge"
                               : undefined
-                          }
-                          style={
-                            item.type === "tool"
-                              ? {
-                                  background: "var(--color-accent-soft, #fff0e9)",
-                                  color: "var(--color-accent, #e85b32)",
-                                  fontWeight: 600,
-                                }
-                              : item.type === "3d"
-                                ? {
-                                    background: "#ddf4ef",
-                                    color: "#065f56",
-                                    fontWeight: 600,
-                                  }
-                                : undefined
                           }
                         >
                           {item.typeLabel}
@@ -865,11 +868,11 @@ export function WikiQuickSearch({
     setHeaderSlot(slot ?? document.getElementById("reader-quick-search-slot"));
   }, [slot]);
 
-  const openFromTrigger = (origin?: HTMLElement | null) => {
+  const openFromTrigger = (origin?: HTMLElement | null, initialQuery = "") => {
     returnFocusRef.current =
       origin ??
       (document.activeElement instanceof HTMLElement ? document.activeElement : triggerBtnRef.current);
-    controller.openSearch();
+    controller.openSearch(initialQuery);
   };
 
   useEffect(() => {
@@ -900,8 +903,16 @@ export function WikiQuickSearch({
         });
       }
     };
+    const onOpenCustom = (event: Event) => {
+      const detail = (event as CustomEvent<OpenQuickSearchDetail>).detail;
+      openFromTrigger(detail?.origin ?? null, typeof detail?.query === "string" ? detail.query.trim() : "");
+    };
     window.addEventListener("keydown", onWindowKeyDown);
-    return () => window.removeEventListener("keydown", onWindowKeyDown);
+    window.addEventListener(OPEN_QUICK_SEARCH_EVENT, onOpenCustom);
+    return () => {
+      window.removeEventListener("keydown", onWindowKeyDown);
+      window.removeEventListener(OPEN_QUICK_SEARCH_EVENT, onOpenCustom);
+    };
   });
 
   useEffect(() => {

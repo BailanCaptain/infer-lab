@@ -25,22 +25,47 @@ import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import type { ReviewSummary } from "./ReviewPane";
 import { tabIndexAfterKey } from "./tablist";
 
-const ChatPane = lazy(async () => ({ default: (await import("./ChatDrawer")).ChatPane }));
-const EvidencePane = lazy(async () => ({ default: (await import("./EvidencePane")).EvidencePane }));
+const loadChatPane = async () => ({ default: (await import("./ChatDrawer")).ChatPane });
+const loadEvidencePane = async () => ({ default: (await import("./EvidencePane")).EvidencePane });
+const ChatPane = lazy(loadChatPane);
+const EvidencePane = lazy(loadEvidencePane);
 const DropPane = lazy(async () => ({ default: (await import("./DropPane")).DropPane }));
 const ReviewPane = lazy(async () => ({ default: (await import("./ReviewPane")).ReviewPane }));
 const StatusPane = lazy(async () => ({ default: (await import("./StatusPane")).StatusPane }));
 
 export type WikiPanelTab = "chat" | "evidence" | "drop" | "review" | "status";
-const TABS: { id: WikiPanelTab; label: string; backendOnly?: boolean }[] = [
+const TABS: { id: WikiPanelTab; label: string; backendOnly?: boolean; authoring?: boolean }[] = [
   { id: "chat", label: "问答" },
   { id: "evidence", label: "证据" },
-  { id: "drop", label: "Drop", backendOnly: true },
-  { id: "review", label: "审阅", backendOnly: true },
-  { id: "status", label: "状态", backendOnly: true },
+  { id: "drop", label: "Drop", backendOnly: true, authoring: true },
+  { id: "review", label: "审阅", backendOnly: true, authoring: true },
+  { id: "status", label: "状态", backendOnly: true, authoring: true },
 ];
 const tabIdOf = (tab: WikiPanelTab) => `wiki-panel-tab-${tab}`;
 const panelIdOf = (tab: WikiPanelTab) => `wiki-panel-${tab}`;
+
+function PanelSkeleton({ id, hidden, label }: { id: string; hidden: boolean; label: string }) {
+  return (
+    <div
+      id={id}
+      role="tabpanel"
+      aria-label={label}
+      hidden={hidden}
+      className="wiki-panel-skeleton"
+      data-testid={`${id}-loading`}
+    >
+      <div className="wiki-panel-skeleton-card">
+        <div className="wiki-panel-skeleton-bar is-short" />
+        <div className="wiki-panel-skeleton-bar" />
+        <div className="wiki-panel-skeleton-bar is-mid" />
+      </div>
+      <div className="wiki-panel-skeleton-card">
+        <div className="wiki-panel-skeleton-bar is-mid" />
+        <div className="wiki-panel-skeleton-bar" />
+      </div>
+    </div>
+  );
+}
 
 export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
   return tab === "chat";
@@ -175,9 +200,23 @@ function WikiPanelView({
     }
   }, [loadReviews, onRefresh]);
 
-  // 待审数要挂在入口上，所以面板没打开也要先取一次
+  // 待审数要挂在入口上，所以面板没打开也要先取一次；浏览器空闲时提前预热问答与证据分片，消除首开闪白
   useEffect(() => {
     void loadReviews();
+    const warmReaderPanes = () => {
+      void loadChatPane().catch(() => {});
+      void loadEvidencePane().catch(() => {});
+    };
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (typeof win.requestIdleCallback === "function") {
+      const idleId = win.requestIdleCallback(warmReaderPanes, { timeout: 600 });
+      return () => win.cancelIdleCallback?.(idleId);
+    }
+    const timer = setTimeout(warmReaderPanes, 140);
+    return () => clearTimeout(timer);
   }, [loadReviews]);
   useEffect(() => {
     if (open && tab === "review" && !isBackendUnavailable) void loadReviews();
@@ -286,6 +325,7 @@ function WikiPanelView({
               type="button"
               role="tab"
               id={tabIdOf(t.id)}
+              data-tier={t.authoring ? "authoring" : "reader"}
               aria-controls={panelIdOf(t.id)}
               aria-selected={tab === t.id}
               tabIndex={tab === t.id ? 0 : -1}
@@ -296,64 +336,72 @@ function WikiPanelView({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="wiki-panel-icon"
-          aria-label="关闭"
-          data-testid="chat-close"
-          onClick={() => {
-            if (shouldStopChatOnPanelClose(tab)) chat.stop();
-            if (tab === "evidence") activeEvidence.close();
-            closePanel();
-          }}
-        >
-          <X size={15} />
-        </button>
-      </header>
-
-      <div className="wiki-panel-status">
-        <span title={revision}>
-          {mode === "build" ? "构建版本" : "知识版本"} <code>{revision.slice(0, 12)}</code>
-        </span>
-        {isOffline ? (
-          <span className="wiki-static-mode-pill" data-testid="wiki-static-mode-pill">
-            纯静态离线浏览
-          </span>
-        ) : isServiceDown ? (
-          <span className="wiki-service-down-actions" data-testid="wiki-service-down-banner">
-            <span className="wiki-static-mode-pill" data-testid="wiki-service-down-pill">
-              问答服务未启动
-            </span>
+        <div className="wiki-panel-head-actions">
+          {!isBackendUnavailable && (
             <button
               type="button"
-              data-testid="wiki-reconnect-btn"
-              disabled={reconnecting}
-              onClick={() => void handleReconnect()}
+              className="wiki-panel-icon"
+              aria-label="刷新知识库"
+              data-testid="wiki-refresh-btn"
+              title={`${mode === "build" ? "构建版本" : "知识版本"} ${revision.slice(0, 12)} · 点击刷新知识库`}
+              disabled={refreshing}
+              onClick={() => {
+                setRefreshing(true);
+                void onRefresh()
+                  .catch(() => false)
+                  .finally(() => setRefreshing(false));
+                void loadReviews(true);
+              }}
             >
-              <RefreshCw size={12} className={reconnecting ? "is-spinning" : undefined} />
-              重新连接
+              <RefreshCw size={14} className={refreshing ? "is-spinning" : undefined} />
             </button>
-          </span>
-        ) : (
+          )}
           <button
             type="button"
-            disabled={refreshing}
+            className="wiki-panel-icon"
+            aria-label="关闭"
+            data-testid="chat-close"
             onClick={() => {
-              setRefreshing(true);
-              void onRefresh()
-                .catch(() => false)
-                .finally(() => setRefreshing(false));
-              void loadReviews(true);
+              if (shouldStopChatOnPanelClose(tab)) chat.stop();
+              if (tab === "evidence") activeEvidence.close();
+              closePanel();
             }}
           >
-            <RefreshCw size={12} className={refreshing ? "is-spinning" : undefined} />
-            刷新知识库
+            <X size={15} />
           </button>
-        )}
-      </div>
+        </div>
+      </header>
+
+      {(isOffline || isServiceDown) && (
+        <div className="wiki-panel-status">
+          <span title={revision}>
+            {mode === "build" ? "构建版本" : "知识版本"} <code>{revision.slice(0, 12)}</code>
+          </span>
+          {isOffline ? (
+            <span className="wiki-static-mode-pill" data-testid="wiki-static-mode-pill">
+              纯静态离线浏览
+            </span>
+          ) : (
+            <span className="wiki-service-down-actions" data-testid="wiki-service-down-banner">
+              <span className="wiki-static-mode-pill" data-testid="wiki-service-down-pill">
+                问答服务未启动
+              </span>
+              <button
+                type="button"
+                data-testid="wiki-reconnect-btn"
+                disabled={reconnecting}
+                onClick={() => void handleReconnect()}
+              >
+                <RefreshCw size={12} className={reconnecting ? "is-spinning" : undefined} />
+                重新连接
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {openedTabs.has("chat") ? (
-        <Suspense fallback={<div id={panelIdOf("chat")} role="tabpanel" hidden={tab !== "chat"} />}>
+        <Suspense fallback={<PanelSkeleton id={panelIdOf("chat")} label="问答" hidden={tab !== "chat"} />}>
           <ChatPane
             id={panelIdOf("chat")}
             chat={chat}
@@ -367,7 +415,9 @@ function WikiPanelView({
         <div id={panelIdOf("chat")} role="tabpanel" hidden />
       )}
       {openedTabs.has("evidence") ? (
-        <Suspense fallback={<div id={panelIdOf("evidence")} role="tabpanel" hidden={tab !== "evidence"} />}>
+        <Suspense
+          fallback={<PanelSkeleton id={panelIdOf("evidence")} label="证据" hidden={tab !== "evidence"} />}
+        >
           <EvidencePane id={panelIdOf("evidence")} hidden={tab !== "evidence"} controller={activeEvidence} />
         </Suspense>
       ) : (
@@ -375,7 +425,9 @@ function WikiPanelView({
       )}
       {!isBackendUnavailable &&
         (openedTabs.has("drop") ? (
-          <Suspense fallback={<div id={panelIdOf("drop")} role="tabpanel" hidden={tab !== "drop"} />}>
+          <Suspense
+            fallback={<PanelSkeleton id={panelIdOf("drop")} label="Drop 资料" hidden={tab !== "drop"} />}
+          >
             <DropPane
               id={panelIdOf("drop")}
               backendAvailable={effectiveBackend}
@@ -388,7 +440,9 @@ function WikiPanelView({
         ))}
       {!isBackendUnavailable &&
         (openedTabs.has("review") ? (
-          <Suspense fallback={<div id={panelIdOf("review")} role="tabpanel" hidden={tab !== "review"} />}>
+          <Suspense
+            fallback={<PanelSkeleton id={panelIdOf("review")} label="审阅" hidden={tab !== "review"} />}
+          >
             <ReviewPane
               id={panelIdOf("review")}
               hidden={tab !== "review"}
@@ -409,7 +463,9 @@ function WikiPanelView({
         ))}
       {!isBackendUnavailable &&
         (openedTabs.has("status") ? (
-          <Suspense fallback={<div id={panelIdOf("status")} role="tabpanel" hidden={tab !== "status"} />}>
+          <Suspense
+            fallback={<PanelSkeleton id={panelIdOf("status")} label="状态" hidden={tab !== "status"} />}
+          >
             <StatusPane
               id={panelIdOf("status")}
               hidden={tab !== "status"}

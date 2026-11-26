@@ -1,6 +1,8 @@
-import { ArrowUp, BookOpen, Check, Copy, Square, X } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { ArrowUp, BookOpen, Check, Copy, RotateCcw, Sparkles, Square, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { QUALITY_LABELS } from "../../content/wiki/answer-quality";
+import { findByAlias } from "../../content/wiki/index";
+import { pageDisplayTitle } from "../../content/wiki/param-display";
 import { AnswerSave } from "./AnswerSave";
 import {
   type BackendAvailability,
@@ -213,8 +215,70 @@ function PendingAttachmentCard({
   );
 }
 
-/** 引导新读者的三个问题：一个名词、一组对比、一个具体时刻 */
-const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "序列并行省下了哪些显存"];
+/** 引导新读者的三个默认问题：一个核心机制、一组瓶颈对比、一个实战排障 */
+export const DEFAULT_STARTERS: readonly string[] = [
+  "KV Cache 是什么，为什么 decode 阶段最吃显存带宽？",
+  "Prefill 和 Decode 在昇腾 NPU 上各自受限于什么？",
+  "遇到 NPU OOM 或 HCCL EI0006 超时该按什么顺序排查？",
+];
+
+function buildContextualPool(
+  entry?: (Parameters<typeof pageDisplayTitle>[0] & { type?: string | undefined }) | undefined,
+): readonly string[] {
+  if (!entry) return DEFAULT_STARTERS;
+  const fullTitle = pageDisplayTitle(entry);
+  if (entry.type === "param") {
+    return [
+      `${fullTitle} 的默认行为与调参边界是什么？`,
+      `在昇腾上调整 ${fullTitle} 会怎样影响显存与吞吐？`,
+      `${fullTitle} 与哪些启动参数存在耦合或互斥风险？`,
+      `线上排查时怎样确认 ${fullTitle} 已按预期生效？`,
+    ];
+  }
+  const shortTitle = fullTitle.split(/[：:]/)[0]?.trim() || fullTitle;
+  if (entry.type === "feature") {
+    return [
+      `用通俗的话讲清「${shortTitle}」省下了什么开销、有什么代价`,
+      `在昇腾部署中开启「${shortTitle}」有哪些前置条件或版本限制？`,
+      `如果「${shortTitle}」触发回退或性能退化，线上该先查哪里？`,
+      `「${shortTitle}」与相邻调度或缓存特性叠加时要注意什么？`,
+    ];
+  }
+  return [
+    `用通俗的话总结「${shortTitle}」的核心机制与算账逻辑`,
+    `「${shortTitle}」在 vLLM 与昇腾源码里是怎么落地的？`,
+    `围绕「${shortTitle}」，实际部署最容易踩的坑有哪些？`,
+    `「${shortTitle}」和它的上下游机制是怎么协同配合的？`,
+  ];
+}
+
+export function buildContextualStarters(
+  entry?: (Parameters<typeof pageDisplayTitle>[0] & { type?: string | undefined }) | undefined,
+): readonly string[] {
+  return buildContextualPool(entry).slice(0, 3);
+}
+
+function CopyReplyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="wiki-chat-copy-reply"
+      data-testid="chat-copy-reply"
+      onClick={() => {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          void navigator.clipboard.writeText(text).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          });
+        }
+      }}
+    >
+      {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+      <span>{copied ? "已复制" : "复制回答"}</span>
+    </button>
+  );
+}
 
 export function ChatPane({
   id,
@@ -248,11 +312,29 @@ export function ChatPane({
     pendingAttachment,
     setPendingAttachment,
     retryFailedMessage,
+    clear,
     busy,
     send,
     stop,
     storageError,
   } = chat;
+  const currentEntry = useMemo(() => (currentId ? findByAlias(currentId) : undefined), [currentId]);
+  const currentTitle = currentEntry ? pageDisplayTitle(currentEntry) : undefined;
+  const shortCurrentTitle = currentTitle ? currentTitle.split(/[：:]/)[0]?.trim() || currentTitle : undefined;
+  const starters = useMemo(() => buildContextualStarters(currentEntry), [currentEntry]);
+  const followups = useMemo(() => {
+    const asked = new Set(msgs.filter((m) => m.role === "user").map((m) => m.text.trim()));
+    const pool = [...buildContextualPool(currentEntry), ...DEFAULT_STARTERS];
+    const fresh = pool.filter((q, idx) => pool.indexOf(q) === idx && !asked.has(q));
+    return (fresh.length >= 3 ? fresh : pool).slice(0, 3);
+  }, [currentEntry, msgs]);
+  const showFollowupPills =
+    Boolean(currentEntry) &&
+    msgs.length > 0 &&
+    !busy &&
+    !isBackendUnavailable &&
+    msgs.at(-1)?.role === "agent" &&
+    msgs.at(-1)?.status === "complete";
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   useEffect(() => {
@@ -262,10 +344,30 @@ export function ChatPane({
   return (
     <div id={id} className="wiki-chat" role="tabpanel" aria-label="问答" hidden={hidden}>
       <div className="wiki-chat-heading">
-        <span>
-          <BookOpen size={16} /> 知识库问答
+        <span
+          className="wiki-chat-context-pill"
+          data-testid="chat-context-pill"
+          title={currentTitle ?? "全站知识库检索与问答"}
+        >
+          <BookOpen size={13} aria-hidden="true" />
+          <span>{shortCurrentTitle ? `当前阅读：${shortCurrentTitle}` : "全库知识问答"}</span>
         </span>
-        <small role="status">{storageError || "对话保存在此浏览器"}</small>
+        <div className="wiki-chat-heading-actions">
+          {storageError && <small role="status">{storageError}</small>}
+          {msgs.length > 0 && clear && (
+            <button
+              type="button"
+              className="wiki-chat-clear-btn"
+              data-testid="chat-clear"
+              disabled={busy}
+              title="清空当前对话记录并开启新话题"
+              onClick={() => clear()}
+            >
+              <RotateCcw size={12} aria-hidden="true" />
+              <span>新对话</span>
+            </button>
+          )}
+        </div>
       </div>
       {isOffline && (
         <p className="wiki-chat-offline-banner" role="status" data-testid="chat-static-offline-notice">
@@ -288,16 +390,20 @@ export function ChatPane({
       >
         {msgs.length === 0 && (
           <div className="wiki-chat-empty">
-            <span className="wiki-chat-eyebrow">从一个问题开始</span>
+            <span className="wiki-chat-eyebrow">
+              <Sparkles size={13} aria-hidden="true" /> 对照源码与已核实词条
+            </span>
             <strong>
-              把概念问清楚，
+              把机制问透彻，
               <br />
-              把报错查明白。
+              把报错查到底。
             </strong>
-            <p className="wiki-chat-hint">查知识库、对照来源，也可以贴出异常，追踪 GitHub 上的相关讨论。</p>
+            <p className="wiki-chat-hint">
+              每一条结论均对照已核实页面与固定版本源码；也可直接粘贴异常堆栈，自动关联社区讨论。
+            </p>
             {!isBackendUnavailable && (
-              <ul>
-                {STARTERS.map((q) => (
+              <ul data-testid="chat-starter-list">
+                {starters.map((q) => (
                   <li key={q}>
                     <button type="button" disabled={busy} onClick={() => void send(q)}>
                       {q}
@@ -330,11 +436,6 @@ export function ChatPane({
                     {m.model.answeredBy
                       ? `作答模型 ${m.model.answeredBy}`
                       : `请求模型 ${m.model.requested}（CLI 未返回实际模型回执）`}
-                    {m.model.provider === "codex"
-                      ? " · Codex 账户额度"
-                      : m.model.provider && m.model.provider !== "claude"
-                        ? ` · ${m.model.provider}`
-                        : null}
                   </p>
                 )}
               </details>
@@ -412,7 +513,7 @@ export function ChatPane({
                   m.quality.status === "unavailable" ||
                   (m.quality.status === "checked" && m.quality.decision.satisfied !== true)
                     ? "wiki-chat-uncited"
-                    : "wiki-chat-reading"
+                    : "wiki-chat-reading wiki-chat-quality-ok"
                 }
                 data-testid="chat-quality"
               >
@@ -420,10 +521,17 @@ export function ChatPane({
                   ? "正在独立核对回答与知识库材料…"
                   : m.quality.status === "unavailable"
                     ? "独立核对未完成，本回答尚未经质量判定。"
-                    : `独立核对：${QUALITY_LABELS[m.quality.decision.classification]}。${m.quality.decision.reason}（模型判断，仅限所查材料）`}
+                    : `独立核对：${QUALITY_LABELS[m.quality.decision.classification] ?? "已完成核对"}。${m.quality.decision.reason}（模型判断，仅限所查材料）`}
               </p>
             )}
-            {!isBackendUnavailable && m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}
+            {m.role === "agent" && (m.status === "complete" || Boolean(m.answerId)) && (
+              <div className="wiki-chat-msg-actions" data-testid="chat-msg-actions">
+                {m.text && <CopyReplyButton text={m.text} />}
+                {!isBackendUnavailable && m.answerId && (
+                  <AnswerSave answerId={m.answerId} onReview={onReview} />
+                )}
+              </div>
+            )}
             {!!m.related?.length && (
               <nav data-testid="chat-related" aria-label="接着可以看">
                 <strong>接着可以看</strong>
@@ -441,6 +549,20 @@ export function ChatPane({
             )}
           </div>
         ))}
+        {showFollowupPills && (
+          <div className="wiki-chat-followups" data-testid="chat-followups">
+            <span className="wiki-chat-followups-label">
+              <Sparkles size={12} aria-hidden="true" /> 追问当前篇章
+            </span>
+            <div className="wiki-chat-followups-list">
+              {followups.map((q) => (
+                <button key={q} type="button" disabled={busy} onClick={() => void send(q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {pendingAttachment && (

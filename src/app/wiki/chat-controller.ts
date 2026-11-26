@@ -217,6 +217,7 @@ export interface ChatState {
   pendingAttachment?: PendingChatAttachment | null | undefined;
   setPendingAttachment?: ((attachment: PendingChatAttachment | null) => void) | undefined;
   retryFailedMessage?: ((key: string) => Promise<void>) | undefined;
+  clear?: (() => void) | undefined;
   busy: boolean;
   send: (preset?: string) => Promise<void>;
   stop: () => void;
@@ -280,6 +281,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     pendingAttachment,
     setPendingAttachment,
     retryFailedMessage,
+    clear,
     busy,
     send,
     stop,
@@ -294,6 +296,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
       pendingAttachment,
       setPendingAttachment,
       retryFailedMessage,
+      clear,
       busy,
       send,
       stop,
@@ -366,6 +369,25 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     syncSnapshot();
     notify();
     turn.abort.abort();
+  }
+
+  function clear() {
+    latestTurnId += 1;
+    const turn = activeTurn;
+    if (turn) {
+      turn.settled = true;
+      activeTurn = null;
+      busy = false;
+      turn.abort.abort();
+    }
+    msgs = [];
+    sessionId = undefined;
+    ephemeralQuestion = "";
+    pendingAttachment = null;
+    dirty = true;
+    syncSnapshot();
+    flushSave();
+    notify();
   }
 
   async function retryFailedMessage(key: string): Promise<void> {
@@ -785,6 +807,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     setInput,
     setPendingAttachment,
     retryFailedMessage,
+    clear,
     send,
     stop,
     flush,

@@ -1,5 +1,5 @@
-import { AlertCircle, ExternalLink, FileCode2, FileText, RefreshCw } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { AlertCircle, Check, Copy, ExternalLink, FileCode2, FileText, RefreshCw } from "lucide-react";
+import { useState, useSyncExternalStore } from "react";
 import {
   type createEvidenceViewController,
   type EvidenceEntry,
@@ -58,6 +58,29 @@ function kindLabelOf(entry: EvidenceEntry): string {
   return "外部参考链接";
 }
 
+function CopyRefButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="wiki-evpane-copy"
+      data-testid="evidence-copy-ref"
+      title="复制文件路径引用"
+      onClick={() => {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          void navigator.clipboard.writeText(value).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1600);
+          });
+        }
+      }}
+    >
+      {copied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+      <span>{copied ? "已复制" : "复制路径"}</span>
+    </button>
+  );
+}
+
 export function EvidencePane({
   id,
   hidden,
@@ -85,7 +108,8 @@ export function EvidencePane({
     >
       <div className="wiki-evpane-bar">
         <span className="wiki-evpane-title">
-          <FileCode2 size={16} aria-hidden="true" /> 离线源码与原文证据
+          <FileCode2 size={14} aria-hidden="true" />
+          <span>离线源码与原文证据</span>
         </span>
         {sourceNumber !== undefined && totalSources > 0 && (
           <span className="wiki-evpane-counter" data-testid="evidence-source-index">
@@ -105,16 +129,35 @@ export function EvidencePane({
             <span className="eyebrow">OFFLINE EVIDENCE</span>
             <strong className="wiki-evpane-empty-title">点按角标或来源列表，就地核对固定源码</strong>
             <p className="wiki-evpane-empty-hint">
-              点击正文中的编号角标（如
-              [C1]、[S1]）或文末「查看来源」条目，在此查看对应固定版本的真实行号摘录或已存原文快照。
+              点击正文中的编号角标（如 <code>[C1]</code>、<code>[S1]</code>
+              ）、配图右下角「对照源码」或文末「查看来源」条目，即可在此核对固定提交的真实行号摘录或已存原文快照。
             </p>
+            <div className="wiki-evpane-empty-ways" aria-hidden="true">
+              <span>
+                <code>[C1]</code> 正文与算式角标
+              </span>
+              <span>
+                <code>对照源码</code> 配图符号锚点
+              </span>
+            </div>
           </div>
         )}
 
         {state.status === "loading" && state.target && (
-          <p className="wiki-evpane-loading" role="status" data-testid="evidence-loading">
-            正在读取当前页面的离线证据摘录…
-          </p>
+          <div className="wiki-evpane-loading" role="status" data-testid="evidence-loading">
+            <span className="wiki-evpane-loading-label">正在读取当前页面的离线证据摘录…</span>
+            <div className="wiki-evpane-loading-box" aria-hidden="true">
+              <div className="wiki-evpane-loading-head">
+                <span className="wiki-panel-skeleton-bar is-short" />
+                <span className="wiki-panel-skeleton-bar is-mid" />
+              </div>
+              <div className="wiki-evpane-loading-lines">
+                <span className="wiki-panel-skeleton-bar" />
+                <span className="wiki-panel-skeleton-bar is-mid" />
+                <span className="wiki-panel-skeleton-bar" />
+              </div>
+            </div>
+          </div>
         )}
 
         {state.status === "error" && (
@@ -185,54 +228,63 @@ export function EvidencePane({
               </div>
             )}
 
-            <div className="wiki-evpane-meta">
-              <div className="wiki-evpane-badges">
-                <span className="wiki-evpane-kind">{kindLabelOf(entry)}</span>
-                {entry.kind === "repo" && (
-                  <span className="wiki-evpane-commit">
-                    {entry.repo}@{entry.commit.slice(0, 8)}
+            <div
+              className={`wiki-evpane-frame${
+                (entry.kind === "repo" || entry.kind === "raw") && entry.status === "ok" ? " has-code" : ""
+              }`}
+            >
+              <div className="wiki-evpane-meta">
+                <div className="wiki-evpane-badges">
+                  <span className={`wiki-evpane-kind is-${entry.kind}`}>{kindLabelOf(entry)}</span>
+                  {entry.kind === "repo" && (
+                    <span className="wiki-evpane-commit">
+                      {entry.repo}@{entry.commit.slice(0, 8)}
+                    </span>
+                  )}
+                  {entry.kind === "repo" &&
+                    (entry.versionRefs.length > 0 ? (
+                      entry.versionRefs.map((ver) => (
+                        <span key={ver} className="wiki-evpane-ver" data-testid="evidence-version">
+                          {ver}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="wiki-evpane-ver is-muted">固定提交</span>
+                    ))}
+                </div>
+                {active.selectedPin && (
+                  <span className="wiki-evpane-symbols" data-testid="evidence-pin-symbols">
+                    定位符号：{active.selectedPin.symbols.join("、")}
                   </span>
                 )}
-                {entry.kind === "repo" &&
-                  (entry.versionRefs.length > 0 ? (
-                    entry.versionRefs.map((ver) => (
-                      <span key={ver} className="wiki-evpane-ver" data-testid="evidence-version">
-                        {ver}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="wiki-evpane-ver is-muted">固定提交</span>
-                  ))}
+                <div className="wiki-evpane-path-row">
+                  <code className="wiki-evpane-path">
+                    {entry.kind === "repo"
+                      ? entry.path
+                      : entry.kind === "raw"
+                        ? (entry.path ?? entry.ref)
+                        : entry.externalHref}
+                  </code>
+                  {entry.kind !== "url" && <CopyRefButton value={entry.ref} />}
+                </div>
+                {rangeSummary && (
+                  <span className="wiki-evpane-range" data-testid="evidence-range">
+                    {rangeSummary}
+                  </span>
+                )}
               </div>
-              {active.selectedPin && (
-                <span className="wiki-evpane-symbols" data-testid="evidence-pin-symbols">
-                  定位符号：{active.selectedPin.symbols.join("、")}
-                </span>
-              )}
-              <code className="wiki-evpane-path">
-                {entry.kind === "repo"
-                  ? entry.path
-                  : entry.kind === "raw"
-                    ? (entry.path ?? entry.ref)
-                    : entry.externalHref}
-              </code>
-              {rangeSummary && (
-                <span className="wiki-evpane-range" data-testid="evidence-range">
-                  {rangeSummary}
-                </span>
+
+              {(entry.kind === "repo" || entry.kind === "raw") && entry.status === "ok" && (
+                <div className="wiki-evpane-codebox" data-testid="evidence-lines">
+                  {entry.lines.map((line) => (
+                    <div key={line.number} className="wiki-evpane-row" data-line={line.number}>
+                      <span className="wiki-evpane-ln">{line.number}</span>
+                      <span className="wiki-evpane-code">{line.text}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-
-            {(entry.kind === "repo" || entry.kind === "raw") && entry.status === "ok" && (
-              <div className="wiki-evpane-codebox" data-testid="evidence-lines">
-                {entry.lines.map((line) => (
-                  <div key={line.number} className="wiki-evpane-row" data-line={line.number}>
-                    <span className="wiki-evpane-ln">{line.number}</span>
-                    <span className="wiki-evpane-code">{line.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {entry.kind === "url" && (
               <div className="wiki-evpane-card" data-testid="evidence-external">

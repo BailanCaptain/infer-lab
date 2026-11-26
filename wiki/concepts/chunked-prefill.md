@@ -132,7 +132,7 @@ prefill 是处理提示词、建立后续计算所需历史的阶段，可以经
 file: chunked-prefill-plate-tollbooth
 ```
 
-下面用与后文冻结 3D 场景绑定的示意数走一遍。假设每步最多算 `8` 个位置。`A`、`B` 两条请求已经在生成回答，每步各算 `1` 个位置；这时来了一条新请求 `C`，提示词有 `14` 个 token，占位置 `0–13`。
+下面用一组便于手算的示意数走一遍。假设每步最多算 `8` 个位置。`A`、`B` 两条请求已经在生成回答，每步各算 `1` 个位置；这时来了一条新请求 `C`，提示词有 `14` 个 token，占位置 `0–13`。
 
 ```wiki-diagram
 file: chunked-prefill
@@ -226,12 +226,6 @@ file: chunked-prefill-flow
 2. **第 3 站 准备输入。** 执行侧按**本步开始前的已算数**编位置号，而不用调度器刚推到的步末值（第 2 段编 `6..11`，不从 `0` 重来），并查 [block table](block-table.md) 算出写入槽位。本例各 prefill 段长度均大于 `1`，混批或续段整批贴 `ChunkedPrefill` 执行标签，表示「已有部分历史在缓存里」（拼批见[输入准备](prepare-inputs-flow.md)）。
 3. **第 4 站 前向。** 普通注意力读前面各段存下的历史与本段新算的 K、V；线性注意力从上一段留下的状态接着推；本段新增历史写进槽位指定的地址。
 4. **第 5 站 采样。** 每条请求都在自己本步最后一个位置选一个 token。`C` 的提示词还没算完时，这个 token 丢掉，下一步回到调度续排；算完了，选出的就是第一个输出 token `y₀`，下一步起 `C` 按 decode 排。
-
-下面把 A、B、C 放到同一条调度时间轴上。虚线浅色格是已排入的计划，实色格是执行完成的位置；下方保留 C 已建立的历史。列宽只划分调度步，不表示每步耗时相等。
-
-```wiki-scene
-inference-mechanism:7
-```
 
 ## 历史状态必须跨段延续
 
@@ -396,7 +390,7 @@ DP 节拍门控有两层触发条件：第一层在引擎侧，只有 `prefill_s
 | 混合模型 `align` 对齐切分与普通注意力块长 `128` 刷新 | 上游 `_mamba_block_aligned_split`、GLM 补丁 `patch_glm5_next_mamba_scheduler.py` / `patch_mamba_config.py`（来源 11–13、21、29）与 `vllm_ascend/utils.py#L1482-L1553`（来源 31、68） |
 | 位置号、执行标签与未完段采样丢弃/RNG 回拨 | MRV1 `vllm_ascend/worker/model_runner_v1.py`（`c09d3e20#L1479-L1488`、`#L1706-L1734`；`db701c1f#L858-L2731`）及 `main` MRV2 `worker/v2/attn_utils.py#L719-L750`（来源 14–17、48–51、66–67、76） |
 | GLM KDA 跨段接状态、稀疏 MLA 清单与五缓存组借块 | `kimi_kda.py`（`#L38`、`#L398-L474`）、`indexer_kpool_mla_v1.py#L477-L498` 与 `single_type_kv_cache_manager.py`（来源 18–19、39、52–55） |
-| 概念出处与教学算例设定 | SARATHI 论文提出将长 prefill 切块与 decode 同批混跑 [S30]；首屏每步预算 `8`（`A/B` 各 `1`、`C` `14 → 6, 6, 2`）为配合冻结 3D 时间轴的教学人为设定 [A] |
+| 概念出处与教学算例设定 | SARATHI 论文提出将长 prefill 切块与 decode 同批混跑 [S30]；首屏每步预算 `8`（`A/B` 各 `1`、`C` `14 → 6, 6, 2`）为教学人为设定 [A] |
 
 **待核。**
 

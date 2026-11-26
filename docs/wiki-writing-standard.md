@@ -5,7 +5,7 @@
 **三级版本基线契约：**
 1. **全站默认主基线**：`vllm-ascend@c09d3e20`（`v0.30.0` 正式版）+ 配套 `vllm@ced6857a`；教学标准标尺采用 `Qwen3-8B`（Dense GQA）与 `Qwen3-30B-A3B`（MoE），不把未修复的 `v0.30.0rc2` 或停服模型混入主基线。
 2. **显式例外 A（`RFork` 专题 10 篇）**：已完成主基线重锚，统一钉在社区上游 `vllm-project/vllm-ascend` `main`（`8d6180e2`，见 `wiki/seeds/vllm-ascend.yaml`）；历史独立工作版快照与原补丁留档于仓库根 `rfork/`（`rfork/archived-seed.yaml`），不混套 `v0.30.0` 正式版默认行为。
-3. **显式例外 B（历史 GLM-5.3-Flash 绑定算例：第 7 章 4 篇 GLM 页 + 17 篇含 `wiki-scene` 页中引自 `docs/mainline/01-03` 的绑定算例）**：继续保持原审定钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`（双机 2×A2×8 TP8/DP2/EP16 W8A8，教程 `0576b647`、模型配置 `690b7052`，详情见 [glm-5-3-flash-two-node「部署前提」](../wiki/concepts/glm-5-3-flash-two-node.md#部署前提)）；**严禁将新版本支持范围、默认值或 Qwen3 数字混入既有 3D 绑定算例，也不得将旧 GLM 算例套回 `v0.30.0` 主基线页**；并在 `glm-5-3-flash-two-node` 另设增量对照节对照 `vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md`。
+3. **显式例外 B（历史 GLM-5.3-Flash 绑定算例：第 7 章 4 篇 GLM 页 + 14 篇含 `wiki-scene` 页中引自 `docs/mainline/01-03` 的绑定算例）**：继续保持原审定钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`（双机 2×A2×8 TP8/DP2/EP16 W8A8，教程 `0576b647`、模型配置 `690b7052`，详情见 [glm-5-3-flash-two-node「部署前提」](../wiki/concepts/glm-5-3-flash-two-node.md#部署前提)）；**严禁将新版本支持范围、默认值或 Qwen3 数字混入既有 3D 绑定算例，也不得将旧 GLM 算例套回 `v0.30.0` 主基线页**；并在 `glm-5-3-flash-two-node` 另设增量对照节对照 `vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md`。
 
 ## 写给谁，先讲什么
 
@@ -13,7 +13,7 @@
 
 先建立直觉，再沿请求逐步推演每卡形状、通信次数、字节数和显存。标准主基线部署数字（`Qwen3-8B` / `Qwen3-30B-A3B`）或例外 B 绑定算例数字在原理讲清后出现；通用示意图可以简化卡数，数值例子必须明确标为「示意」，公式和机制仍须正确，不得把示意数当成实测。不要反复铺陈部署前提，也不要把维护者的编排理由写进教学正文。
 
-`docs/mainline/` 下三份主线底稿（[部署、入口与调度](mainline/01-deploy-entry-schedule.md)、[逐层前向](mainline/02-forward.md)、[采样与 decode](mainline/03-sample-decode.md)）仅作为**例外 B（第 7 章 4 篇 GLM 案例与 17 篇含 `wiki-scene` 历史绑定算例）的专用事实底稿归档**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`）；标准 `v0.30.0` 主基线页面直接以 `vllm-ascend@c09d3e20`、`vllm@ced6857a` 源码、官方文档及 `src/sim/modelspec/` 单真源为准，不从 `docs/mainline/01-03` 搬运 GLM 数字。读者页的 sources 直接指向钉住 commit 的源码、官方文档或论文，不以底稿代替原始证据。
+`docs/mainline/` 下三份主线底稿（[部署、入口与调度](mainline/01-deploy-entry-schedule.md)、[逐层前向](mainline/02-forward.md)、[采样与 decode](mainline/03-sample-decode.md)）仅作为**例外 B（第 7 章 4 篇 GLM 案例与 14 篇含 `wiki-scene` 历史绑定算例）的专用事实底稿归档**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`）；标准 `v0.30.0` 主基线页面直接以 `vllm-ascend@c09d3e20`、`vllm@ced6857a` 源码、官方文档及 `src/sim/modelspec/` 单真源为准，不从 `docs/mainline/01-03` 搬运 GLM 数字。读者页的 sources 直接指向钉住 commit 的源码、官方文档或论文，不以底稿代替原始证据。
 
 ## 基础讲法：反八股自适应与从理解到演算
 
@@ -27,7 +27,7 @@
    - **层二 · 因景制宜的分节机制矢量图（`FIG`：`mode: "native-svg"` 或 `layout: "figure"`）**：根据机制本质选择最匹配的图形态——**① 时序、并发、进程生命周期与流水线气泡用多泳道时间轴或地址空间分叉树；② 矩阵乘法、张量切分、块表寻址与量化缩放用带真实行列格线的比例张量图；③ 显存账单、耗时退化、通信税与容量水位用严格按数值比例绘制的瀑布条/堆叠尺/Roofline 坐标曲线；④ 硬件互联与端口归属用芯片/板卡/链路拓扑图；⑤ 路由回退与故障分诊用开放式状态跃迁或漏斗分流图**。**先评估再动手：存量图若已把结构或流程讲明白则保留，绝不为改而改；重画或新增时严禁把时序、比例或矩阵偷懒画成“外层彩色大框套三张同尺寸白底文字卡”的新八股**。画布宽度推荐 `860–900px`（硬上限 `width <= 900`），严禁画整幅外层底框；**图内字号严格对齐 `DESIGN.md`：分栏标题 `16px`、主标签 `14–15px`、辅助说明/等宽标识 `≥12.5px`、角标/刻度等次要短标记允许 `12px`（严禁 `< 12px`，由 `pnpm wiki:svg-geometry` 守护）**；**配色严格复用全站 `src/design/tokens.css` 暖纸矿物语义色系**（墨色 `#17211f` / 次级灰 `#66716d` / 暖沉底 `#ece9df` / 暖分隔线 `#d8d8cf`、Token 青 `#087f73` / `#ddf4ef`、权重琥珀 `#c78300` / `#fff4cf`、KV 靛蓝 `#4c65b6` / `#e8edff`、通信梅紫 `#9a4b86` / `#f7e7f2`、错误陶红 `#b54237` / `#fff0e9`，严禁混用高饱和冷调 Tailwind 色）；
    - **流程、架构与系统导览页（写法 1 + 2D 图）**：不编造假小数向量做重复乘加刷屏（如连抄 6 遍或 12 遍点积）；直接用 **2D 数据流/分格图 + 真实张量形状流转 + 极简一行结果对照表**讲清机制，细粒度算术留给对应算子专页；
    - **算子数值与工程算账页（写法 3 + 2D 比例图）**：**全面停用灰底 ```` ```calc ```` 围栏框**（由 `wiki:lint` `stage2-no-calc` 硬门禁守护）；参数量、显存账、压缩比与数值算例统一采用 **「2D 构成/比例对比图 + 清爽 Markdown 表格 + 单行标准 KaTeX 公式（行内 `$...$` 或块级 `$$...$$`）」**，多字母算子/函数名使用 `\text{clamp}`、`\text{round}` 等正体，负号使用标准 ASCII `-`，同一类算式最多示范 1 次，严禁重复刷屏；
-   - **严禁用 ASCII 字符树（`├─►` / `└──`）代替正式 2D 图**：凡决策树、模块分流、目录映射与多卡协同（TP/DP/EP/CP），一律画成正式 `wiki-diagram` 2D 矢量图；既有 17 篇 `wiki-scene` 保留已认可整体布局及与其绑定的算例数字，新建或修改教学 3D 遵守 [教学 3D 标准](3d-teaching-standard.md)；
+   - **严禁用 ASCII 字符树（`├─►` / `└──`）代替正式 2D 图**：凡决策树、模块分流、目录映射与多卡协同（TP/DP/EP/CP），一律画成正式 `wiki-diagram` 2D 矢量图；既有 14 篇 `wiki-scene` 保留已认可整体布局及与其绑定的算例数字，新建或修改教学 3D 遵守 [教学 3D 标准](3d-teaching-standard.md)；
    - **配置参数与排障诊断**：直接给判据表、现象→最小首取证据→区分实验与下一站机制页结构及取证命令。
 3. **底线三（单页入口自洽 + 共用数字回链单一出处表）**：每页能独立进入，入门算例在页内 30 秒立住，可用 2–3 句白话交代背景数字；前置概念首次出现须就地用一句话解释，链接放在实际用到概念之处。**凡引用跨页共用推导值，仍须回链下方「单一出处表」，严禁各页私自重推漂移。**
 4. **底线四 + 保真铁律（自然语言条件留主干，机器标记与四版本矩阵入文末折叠核验区）**：
@@ -73,7 +73,7 @@
 - **公式与算账排版（1+3 准则，停用新增 `calc` 灰底框）：** 二阶段换轨页面（`verified` 含 `releases/v0.30.0`）统一用 **2D 视觉图 + 清爽 Markdown 表格 + 标准 KaTeX 公式（`$...$` / `$$...$$`）** 呈现参数、显存、带宽账单与数值算式，停用灰底 ```` ```calc ```` 围栏（由 `wiki:lint` `stage2-no-calc` 拦截；尚未换轨的历史存量页仍兼容 [算式格式](wiki-calc-syntax.md)）。
 - **位置与密度指标作为诊断提示而非一刀切硬门禁：** 首图位置（`diagram-first`）、小节 `calc` 密度（`calc-density`）、表格与 `calc` 邻接（`stacked-blocks`）作为可读性提示供写手与审阅者参考，不再作为写管线或批准的一刀切拦截项。排版服务于前两屏理解与真实演算推演：既不靠拆空洞小标题绕过提示，也不为迎合位置规则在算例前硬塞空洞图；密集账单可汇总、后置或链接唯一出处。
 - **2D 视觉优先（能用图就用图，严禁凑数空框与 ASCII 树）：** 凡空间切分、多步状态流转、决策树分流、模型目录/结构解剖、显存/通信比例对比与跨卡拓扑，优先配高信息密度 2D 图（尤其是 `mode: "native-svg"` 定制矢量图与增强后的 `layout: "figure"` 规格图），严禁用代码块里的 ASCII 树（`├─►`）敷衍代替；旧 2D 图若只画空洞方框或未能把核心机制讲清，应按教学需要重画。
-- **2D 图与 3D 场景规则：** 2D 静态图画布宽度 ≤900px，在既有桌面阅读列（`--wiki-measure: 1200px`）内按 `1:1` 舒适展示，超宽时由 `.wiki-diagram-scroll` 横向滚动兜底，不靠把字号缩到失真或强压到旧 `760px` 窄栏。静态图使用 `wiki-diagram` 围栏，支持两条已验收通道：① **`layout: figure` 规格图**（手写 `wiki/diagrams/<id>.yaml` 经 `pnpm wiki:diagrams` 确定性生成 `<id>.svg`，支持 `links[].bend` 单参数法向弧线［与 `curve` / 非空 `via` 互斥］，以及仅在 `texts[].font`、`items[].font`、`sketches[].shapes[kind="text"].font` 上支持的 `font: "sans" | "mono"` 等宽代码字体，保留越界/碰撞几何硬检查与 `sketches` 提示）；② **手写原生 `.svg` + 同名伴生 `wiki/diagrams/<id>.yaml`（`mode: "native-svg"`）**（伴生 YAML 声明 `id`、`caption`、`size: [width, height]`［两维正数且 `width <= 900`，不限制高度，如 `[600, 1200]` 合法］与 `pins`，同名 `<id>.svg` 经严格 XML 1.0 解析、内部 `#id` 引用完整性与 `diagram-sanitize.ts` 正向属性值语法白名单校验，CLI 保留原始 `.svg` 字节不作派生覆盖重绘）。正式阅读页（`WikiDiagram.tsx`）与 `ReviewPane` 浏览器预览共享 `diagram-sanitize.ts` 正向白名单清洗；图 `pins` 源码符号由 AC11 `diagram-symbol` 对固定 `commit` blob 核验，右栏 `WikiPanel` 离线证据面板按精确 `pin` 与 `raw:` 快照提供离线源码/原文对照（无本地快照时诚实提供外链）。**现有 3D 动画与 `wiki-scene` 默认保留绑定算例数字**（经用户确认退役为静态 2D 的冗余场景如 `quantization.md` 的 `inference-mechanism:5` 与 `ai-core.md` 的 `inference-mechanism:3` 除外；正文与 2D 图可重写重画），后续触碰教学 3D 时遵守 [教学 3D 标准](3d-teaching-standard.md)。不得用脚本批量生成或改写正文与图的内容。
+- **2D 图与 3D 场景规则：** 2D 静态图画布宽度 ≤900px，在既有桌面阅读列（`--wiki-measure: 1200px`）内按 `1:1` 舒适展示，超宽时由 `.wiki-diagram-scroll` 横向滚动兜底，不靠把字号缩到失真或强压到旧 `760px` 窄栏。静态图使用 `wiki-diagram` 围栏，支持两条已验收通道：① **`layout: figure` 规格图**（手写 `wiki/diagrams/<id>.yaml` 经 `pnpm wiki:diagrams` 确定性生成 `<id>.svg`，支持 `links[].bend` 单参数法向弧线［与 `curve` / 非空 `via` 互斥］，以及仅在 `texts[].font`、`items[].font`、`sketches[].shapes[kind="text"].font` 上支持的 `font: "sans" | "mono"` 等宽代码字体，保留越界/碰撞几何硬检查与 `sketches` 提示）；② **手写原生 `.svg` + 同名伴生 `wiki/diagrams/<id>.yaml`（`mode: "native-svg"`）**（伴生 YAML 声明 `id`、`caption`、`size: [width, height]`［两维正数且 `width <= 900`，不限制高度，如 `[600, 1200]` 合法］与 `pins`，同名 `<id>.svg` 经严格 XML 1.0 解析、内部 `#id` 引用完整性与 `diagram-sanitize.ts` 正向属性值语法白名单校验，CLI 保留原始 `.svg` 字节不作派生覆盖重绘）。正式阅读页（`WikiDiagram.tsx`）与 `ReviewPane` 浏览器预览共享 `diagram-sanitize.ts` 正向白名单清洗；图 `pins` 源码符号由 AC11 `diagram-symbol` 对固定 `commit` blob 核验，右栏 `WikiPanel` 离线证据面板按精确 `pin` 与 `raw:` 快照提供离线源码/原文对照（无本地快照时诚实提供外链）。**现有 3D 动画与 `wiki-scene` 默认保留绑定算例数字**（经用户确认退役为 2D 图/沙箱的冗余场景如 `quantization.md` 的 `inference-mechanism:5`、`ai-core.md` 的 `inference-mechanism:3`、`matmul-and-weights.md` 与 `glm-5-3-flash.md` 的 `model-compute:1`、`tensor-layout.md` 的 `inference-mechanism:4`、`chunked-prefill.md` 的 `inference-mechanism:7`、`context-parallel.md` 的 `parallel-mechanism:4` 除外；正文与 2D 图可重写重画），后续触碰教学 3D 时遵守 [教学 3D 标准](3d-teaching-standard.md)。不得用脚本批量生成或改写正文与图的内容。
 - **文末 `## 对照源码` 核验区（阅读页默认折叠，搜索与锚点命中自动展开）：** `## 对照源码` 放在全文最后，其后不再新增 H2。其下推荐小节为 **怎么开 / 会报什么错 / 开销和什么时候别开 / 版本差异 / 源码位置**，按页面体裁选用或合并，**不再强制固定 5 个 H3 精确名称与顺序**；但凡涉及跨版本差异、源码锚点与可点击来源索引，必须在此区域集中落盘。来源索引和待核留在页末源码区，不另起 H2。
 - 学习正文只呈现当前解释及必要的自然语言版本/硬件边界，不附机器修订历史、旧原文、修订哈希或“来源仍须人审”等审计记录。修订分类、理由、旧结论、替代结论和依据保留在维护工作流的决策与审阅记录中；发布仍校验原文匹配和来源，但不把记录复制到正式页。旧待审提案含历史尾注时须重新整合，不得直接发布。
 - 参数扫描（含配置类字段与 Python `__init__` 构造函数签名参数）只证明静态字段或入参存在。新发现进入草稿，补齐用途、配置入口、运行时行为、代价和支持边界并审阅后才能成为正式参数页；只有“正文待补”的骨架不能进入目录、检索或问答。全站检查须逐页读正文并核对官方文档的关联入口，下载数量、来源数量和关键词命中数不代表阅读或覆盖完成。
@@ -91,7 +91,7 @@ vLLM、Ascend 以及论文里有固定名字的机制、组件、特性使用英
 
 ## 单一出处表
 
-同一段推导只允许在一页里写，其他页只能写结论并链接过去，不能重算。以下六项属于**例外 B（GLM-5.3-Flash 绑定算例与 17 篇含 `wiki-scene` 历史标尺）的唯一出处**；`v0.30.0` 主基线页面的 `Qwen3-8B / Qwen3-30B-A3B` 算例与 7 级显存/冷启动口径统一引用 `src/sim/modelspec/`、`npu-worker-lifecycle`、`kv-cache-memory-profiling` 与 `request-overview`，严禁跨标尺混算。
+同一段推导只允许在一页里写，其他页只能写结论并链接过去，不能重算。以下六项属于**例外 B（GLM-5.3-Flash 绑定算例与 14 篇含 `wiki-scene` 历史标尺）的唯一出处**；`v0.30.0` 主基线页面的 `Qwen3-8B / Qwen3-30B-A3B` 算例与 7 级显存/冷启动口径统一引用 `src/sim/modelspec/`、`npu-worker-lifecycle`、`kv-cache-memory-profiling` 与 `request-overview`，严禁跨标尺混算。
 
 | 推导 | 唯一出处 |
 |---|---|
@@ -125,7 +125,7 @@ vLLM、Ascend 以及论文里有固定名字的机制、组件、特性使用英
 
 流程遵循 **前置评估提炼 → 按需改写与配图 → 双路独立审查（教学可读性审查 + 源码事实核验） → 闭环修订**：
 1. **前置评估提炼：** 深改前先通读现有正文、既有 2D 图与一手参考材料，明确：① 读者核心问题与讲解主线；② **现有正文与 2D 图中已经讲得清楚、必须原样保留的好段落、好算例与好图（严禁一刀切盲目重绘重写）**；③ 存在黑话突袭、逻辑跳跃、漏讲因果或套框堆字讲不清机制的部分；④ 旧版事实与成立条件去向清单。
-2. **按需改写与因景配图：** 依据一手源码/论文/官方文档组织正文，保留既有好段落、好 2D 图、既有 17 篇 `wiki-scene` 及绑定算例数字；对确有认知短板的图按场景选用泳道时间轴、比例张量格网、真实比例瀑布条、硬件端口拓扑、开放状态机或趣味微缩场景/立体剖面 `PLATE`，并编织好跨页互链与 `relations` 图谱关系。
+2. **按需改写与因景配图：** 依据一手源码/论文/官方文档组织正文，保留既有好段落、好 2D 图、既有 14 篇 `wiki-scene` 及绑定算例数字；对确有认知短板的图按场景选用泳道时间轴、比例张量格网、真实比例瀑布条、硬件端口拓扑、开放状态机或趣味微缩场景/立体剖面 `PLATE`，并编织好跨页互链与 `relations` 图谱关系。
 3. **双路独立审查：** 改写完成后分别进行**教学可读性审阅（对照旧稿检查是否去除了黑话与跳跃、好段好图是否保留、初学者读完前两屏能否白话复述并换数推导）**与**独立事实性核验（对照固定 commit 源码、官方文档与论文逐条核实定义、切分维度、算式、默认行为与三出口守恒）**。存在 P1/P2 问题必须在当前轮闭环修复。
 
 审查清单：
@@ -155,4 +155,4 @@ vLLM、Ascend 以及论文里有固定名字的机制、组件、特性使用英
 
 ## 整理依据
 
-- **2026-11 Stage 2 终态基线：** 全站共 `193` 篇正式页（`src/content/wiki/toc.ts` 12 个主题目录），确立三级版本基线契约（`v0.30.0 c09d3e20 + ced6857a` 主基线、`RFork` `main 8d6180e2` 主线重锚、例外 B 既有 17 篇 `wiki-scene` 与第 7 章 GLM 算例）、Edition-A 双层视觉教学体系（含立体拆解剖面、趣味微缩场景破冰图与因景制宜机制矢量图）、正文零角标 + 文末 `## 对照源码` 折叠核验区，以及 Chromium SVG 渲染几何门禁。
+- **2026-11 Stage 2 终态基线：** 全站共 `193` 篇正式页（`src/content/wiki/toc.ts` 12 个主题目录），确立三级版本基线契约（`v0.30.0 c09d3e20 + ced6857a` 主基线、`RFork` `main 8d6180e2` 主线重锚、例外 B 既有 14 篇 `wiki-scene` 与第 7 章 GLM 算例）、Edition-A 双层视觉教学体系（含立体拆解剖面、趣味微缩场景破冰图与因景制宜机制矢量图）、正文零角标 + 文末 `## 对照源码` 折叠核验区，以及 Chromium SVG 渲染几何门禁。

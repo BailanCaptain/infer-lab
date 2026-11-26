@@ -5,7 +5,7 @@ const evidence = process.env.WIKI_SCENE_EVIDENCE_DIR
   ? `${process.env.WIKI_SCENE_EVIDENCE_DIR}/inference`
   : "tools/wiki-runtime/inference-scenes-2026-11-10";
 const scenes = [
-  { page: "attention-qkv", seconds: 64, phases: 6, result: "25,15,12.5,7.5" },
+  { page: "attention-qkv", seconds: 44, phases: 4, result: "25,15,12.5,7.5" },
   { page: "block-table", seconds: 18, phases: 6, result: "slot=10;refs=0,0,0" },
   { page: "pd-disaggregation", seconds: 52, phases: 6, result: "P=released;D=ready" },
 ];

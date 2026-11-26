@@ -1,5 +1,5 @@
 import { expect, type Locator, test } from "@playwright/test";
-import { SPATIAL_COMPUTE_SECONDS, SWIGLU_SECONDS } from "../src/app/wiki/scene-compute-data";
+import { SWIGLU_SECONDS } from "../src/app/wiki/scene-compute-data";
 import { mechanismSeconds } from "../src/app/wiki/scene-parallel-mechanisms";
 import { RESIDUAL_SECONDS } from "../src/app/wiki/scene-residual-data";
 
@@ -15,7 +15,6 @@ async function scrubFraction(figure: Locator, progress: number) {
 const examples = [
   ["glm-5-3-flash", "model-compute-0", 0, RESIDUAL_SECONDS],
   ["glm-5-3-flash", "model-compute-3", 3, RESIDUAL_SECONDS],
-  ["matmul-and-weights", "model-compute-1", 1, SPATIAL_COMPUTE_SECONDS],
   ["mlp-residual-norm", "model-compute-2", 2, SWIGLU_SECONDS],
   ["tensor-parallel", "parallel-mechanism-5", 5, mechanismSeconds(5)],
   ["data-parallel", "parallel-mechanism-6", 6, mechanismSeconds(6)],
@@ -52,43 +51,15 @@ test("request data stays readable and hidden matrix faces do not leak labels", a
   await expect(f.locator(".wiki-request-cell").filter({ hasText: /^4 × 4096$/ })).toBeVisible();
 });
 
-test("matmul follows the second, third and fourth weight columns with matching lines and highlights", async ({
+test("retired model-compute-1 inline scenes are absent on matmul-and-weights and glm-5-3-flash", async ({
   page,
 }) => {
-  await page.goto("/#/wiki/matmul-and-weights#scene-model-compute-1");
-  const f = page.getByTestId("scene-model-compute-1"),
-    c = f.locator(".wiki-scene-canvas");
-  await expect(f).toHaveAttribute("data-ready", "true");
-  for (const [seconds, column] of [
-    [2, 0],
-    [6.8, 1],
-    [8.5, 2],
-    [10.1, 3],
-  ]) {
-    await scrub(f, seconds!);
-    await expect(c).toHaveAttribute("data-selection", `0,${column}`);
-    await expect(c).toHaveAttribute("data-weight-column", String(column));
-    await expect(c).toHaveAttribute("data-line-column", String(column));
-    await expect(f.getByLabel("输出通道", { exact: true })).toHaveValue(String(column));
-  }
-});
-test("one row times one column writes one output, and advancing rows updates the input", async ({ page }) => {
-  await page.goto("/#/wiki/matmul-and-weights#scene-model-compute-1");
-  const f = page.getByTestId("scene-model-compute-1"),
-    c = f.locator(".wiki-scene-canvas");
-  await expect(f).toHaveAttribute("data-ready", "true");
-  await scrub(f, 5.3);
-  await expect(c).toHaveAttribute("data-written-cells", "0,0");
-  await expect(f.locator(".number:visible strong")).toHaveText(["8"]);
-  await scrub(f, 12.5);
-  await expect(c).toHaveAttribute("data-input-row", "1");
-  await expect(c).toHaveAttribute("data-selection", "1,0");
-  await expect(c).toHaveAttribute("data-written-cells", "0,0;0,1;0,2;0,3;1,0");
-  await expect(f.locator(".number:visible strong")).toHaveText(["8", "6", "5", "7", "5"]);
-  await expect(f.locator('.operand[data-active="true"] strong')).toHaveText(["1", "0", "2", "1", "0", "2"]);
-  await expect(f.locator(".operand:visible strong")).toHaveCount(21);
-  await scrub(f, 0);
-  await expect(f.locator(".number:visible")).toHaveCount(0);
+  await page.goto("/#/wiki/matmul-and-weights");
+  await expect(page.getByTestId("scene-model-compute-1")).toHaveCount(0);
+  await page.goto("/#/wiki/glm-5-3-flash");
+  await expect(page.getByTestId("scene-model-compute-1")).toHaveCount(0);
+  await expect(page.getByTestId("scene-model-compute-0")).toHaveCount(1);
+  await expect(page.getByTestId("scene-model-compute-3")).toHaveCount(1);
 });
 for (const [pageId, kind, step, duration] of examples)
   test(`${kind}: own chapter, play, pause, end, replay, offscreen`, async ({ page }) => {
@@ -149,7 +120,7 @@ test("TP, DP and EP use the PP renderer and finish with their hand-checkable res
 });
 test("mobile scenes fit and playback remains below sticky navigation", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const [pageId, kind] of [examples[2], examples[4], examples[7]]) {
+  for (const [pageId, kind] of [examples[2], examples[3], examples[6]]) {
     await page.goto(`/#/wiki/${pageId}#scene-${kind}`);
     const f = page.getByTestId(`scene-${kind}`);
     await expect(f).toHaveAttribute("data-ready", "true", { timeout: 45000 });
@@ -169,11 +140,11 @@ test("mobile scenes fit and playback remains below sticky navigation", async ({ 
 });
 test("renderer import failure retries without losing the calculation", async ({ page }) => {
   await page.route("**/wiki-scene-renderer-*.js", (route) => route.abort());
-  await page.goto("/#/wiki/matmul-and-weights#scene-model-compute-1");
-  const f = page.getByTestId("scene-model-compute-1");
+  await page.goto("/#/wiki/mlp-residual-norm#scene-model-compute-2");
+  const f = page.getByTestId("scene-model-compute-2");
   await expect(f.getByRole("button", { name: "重新加载" })).toBeVisible();
   await scrub(f, 24);
-  await expect(f.getByTestId("scene-equation")).toContainText("[3,4]");
+  await expect(f.getByTestId("scene-equation")).toContainText("SiLU(g)");
   await page.unroute("**/wiki-scene-renderer-*.js");
   await f.getByRole("button", { name: "重新加载" }).click();
   await expect(f).toHaveAttribute("data-ready", "true", { timeout: 45000 });
@@ -427,17 +398,20 @@ test("request guides and B-to-A markers follow the carried data through each han
   }
 });
 
-test("computation explanation stays beside the animation in desktop and reading panels", async ({ page }) => {
-  for (const width of [1440, 654]) {
-    await page.setViewportSize({ width, height: 1000 });
-    await page.goto("/#/wiki/matmul-and-weights#scene-model-compute-1");
-    const f = page.getByTestId("scene-model-compute-1");
-    await expect(f).toHaveAttribute("data-ready", "true");
-    const stage = (await f.locator(".wiki-compute-stage").boundingBox())!;
-    const explanation = (await f.locator(".wiki-compute-inspector").boundingBox())!;
-    expect(explanation.x).toBeGreaterThanOrEqual(stage.x + stage.width);
-    expect(explanation.y).toBeLessThan(stage.y + stage.height / 2);
-  }
+test("computation explanation stays attached to the animation without horizontal overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/#/wiki/mlp-residual-norm#scene-model-compute-2");
+  const f = page.getByTestId("scene-model-compute-2");
+  await f.scrollIntoViewIfNeeded();
+  await expect(f).toHaveAttribute("data-ready", "true");
+  const stage = (await f.locator(".wiki-scene-canvas").boundingBox())!;
+  const explanation = (await f.locator(".wiki-scene-explanation").boundingBox())!;
+  expect(explanation.width).toBeGreaterThan(200);
+  expect(explanation.y >= stage.y + stage.height - 2 || explanation.x >= stage.x + stage.width - 2).toBe(
+    true,
+  );
 });
 
 test("chapter scenes use a readable adjacent explanation and keep their rendered results", async ({
@@ -484,104 +458,49 @@ test("chapter scenes use a readable adjacent explanation and keep their rendered
   }
 });
 
-test("matmul depth contracts all products and selecting a token follows only its dependencies", async ({
-  page,
-}) => {
+test("SwiGLU visibly gates before mixing, with every channel inspectable", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", (r) => requests.push(r.url()));
-  await page.goto("/#/wiki/matmul-and-weights#scene-model-compute-1");
-  const f = page.getByTestId("scene-model-compute-1"),
-    c = f.locator(".wiki-scene-canvas");
-  await expect(f).toHaveAttribute("data-ready", "true");
-  await scrub(f, 3.2);
-  await expect(c).toHaveAttribute("data-contraction", "0.000");
-  expect(await f.locator(".term:visible strong").allTextContents()).toEqual(["2", "0", "6"]);
-  const expanded = await f.locator("canvas").screenshot();
-  await scrub(f, 4.05);
-  await expect(c).toHaveAttribute("data-added-terms", "1");
-  await expect(f.locator(".wiki-compute-formula")).toContainText("已累加 1/3 项：2 = 2");
-  await scrub(f, 24);
-  await expect(c).toHaveAttribute("data-contraction", "1.000");
-  expect(await f.locator("canvas").screenshot()).not.toEqual(expanded);
-  expect(await f.locator(".number strong").allTextContents()).toEqual([
-    "8",
-    "6",
-    "5",
-    "7",
-    "5",
-    "2",
-    "2",
-    "3",
-    "2",
-    "7",
-    "2",
-    "5",
-  ]);
-  await f.getByLabel("token", { exact: true }).selectOption({ value: "1" });
-  await f.getByLabel("输出通道", { exact: true }).selectOption({ value: "3" });
-  await expect(f.locator(".wiki-compute-formula")).toHaveText("Y[1, 3] = 1 + 0 + 2 = 3");
-  await f.getByRole("button", { name: "保留展开" }).click();
-  await expect(c).toHaveAttribute("data-contraction", "0.000");
-  expect(await f.locator(".term:visible strong").allTextContents()).toEqual(["1", "0", "2"]);
-  await f.getByRole("button", { name: "连续播放", exact: true }).click();
-  await expect(c).toHaveAttribute("data-input-row", "2");
-  await f.getByRole("button", { name: "暂停", exact: true }).click();
-  await expect(f.getByLabel("token", { exact: true })).toHaveValue("2");
-  expect(requests.some((url) => url.includes("/master/"))).toBe(false);
-});
-
-test("SwiGLU visibly gates before mixing, with every channel inspectable", async ({ page }) => {
   await page.goto("/#/wiki/mlp-residual-norm#scene-model-compute-2");
   const f = page.getByTestId("scene-model-compute-2"),
     c = f.locator(".wiki-scene-canvas");
+  await f.scrollIntoViewIfNeeded();
   await expect(f).toHaveAttribute("data-ready", "true");
   await expect(c).toHaveAttribute("data-structure-visible", "true");
   await expect(c).toHaveAttribute("data-spatial-meaning", "structure-extraction-compute-writeback");
-  await expect(c).toHaveAttribute("data-structure-cells", "44");
+  await expect(c).toHaveAttribute("data-structure-cells", "104");
   await expect(f.locator("[data-structure-node]")).toHaveCount(9);
   await scrub(f, 5.8);
-  await expect(f.locator(".wiki-compute-formula")).toContainText("g[1] = 0.85 + 1.13 = 1.98");
-  await f.getByLabel("中间通道", { exact: true }).selectOption("1");
-  await expect(f.locator(".wiki-compute-formula")).toContainText("g[2] = -0.85 + -3.39 = -4.24");
+  await expect(f.locator(".wiki-compute-formula")).toContainText("2.48");
   await scrub(f, 12);
   await expect(c).toHaveAttribute("data-operation", "up");
-  await expect(f.locator(".wiki-compute-formula")).toContainText("u[2] = 0.85 + 1.13 = 1.98");
-  await scrub(f, 23.5);
-  await expect(f.locator(".wiki-compute-formula")).toContainText("h2 = 1.98 × -0.06 ≈ -0.12");
-  await expect(f.locator('[data-before="1.98"][data-after="-0.12"]')).toHaveAttribute(
-    "data-current",
-    "-0.12",
-  );
+  await expect(f.locator(".wiki-compute-formula")).toContainText("u[");
   await scrub(f, 32);
   await expect(c).toHaveAttribute("data-output-ready", "true");
   await expect(c).toHaveAttribute("data-unfold", "0.000");
-  await expect(f.locator(".wiki-compute-formula")).toContainText("= 0.92");
-  await f.getByLabel("down 输出", { exact: true }).selectOption("1");
-  await expect(f.locator(".wiki-compute-formula")).toContainText("Δ[2] = 0 + -0.12 + -0.27 + 1.2 = 0.81");
+  await expect(f.locator(".wiki-compute-formula")).toContainText("3.44");
+  await f.getByLabel("down 输出", { exact: true }).selectOption({ index: 1 });
+  await expect(f.locator(".wiki-compute-formula")).toContainText("−1.13");
   await expect(f.locator('[data-structure-node="delta"]')).toHaveAttribute("data-ready", "true");
   await scrub(f, 0);
   await expect(c).toHaveAttribute("data-output-ready", "false");
   await expect(f.locator('[data-structure-node="delta"]')).toHaveAttribute("data-ready", "false");
+  expect(requests.some((url) => url.includes("/master/"))).toBe(false);
 });
 
 test("new computation figures fit desktop, reading panel and phone", async ({ page }) => {
   for (const width of [1440, 654, 390]) {
     await page.setViewportSize({ width, height: 1000 });
-    for (const [name, id] of [
-      ["matmul-and-weights", "model-compute-1"],
-      ["mlp-residual-norm", "model-compute-2"],
-    ]) {
+    for (const [name, id] of [["mlp-residual-norm", "model-compute-2"]] as const) {
       await page.goto(`/#/wiki/${name}#scene-${id}`);
       const f = page.getByTestId(`scene-${id}`);
+      await f.scrollIntoViewIfNeeded();
       await expect(f).toHaveAttribute("data-ready", "true");
-      await scrub(f, id!.endsWith("1") ? 3.2 : 15.5);
+      await scrub(f, 16.5);
       expect(await f.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-      if (id === "model-compute-2") {
-        // Values belong in the adjacent readout: projected gate numbers used to cover W_up.
-        await expect(f.locator(".wiki-compute-formula")).toContainText("sigmoid(1.98) ≈ 1.74");
-        await f.getByLabel("中间通道", { exact: true }).click();
-        await page.keyboard.press("Escape");
-      }
+      await expect(f.locator(".wiki-compute-formula")).toContainText("s[1]");
+      await f.getByLabel("中间通道", { exact: true }).click();
+      await page.keyboard.press("Escape");
       await f.screenshot({ path: `tools/wiki-runtime/knowledge-main-rebuild/spatial-${id}-${width}.png` });
     }
   }

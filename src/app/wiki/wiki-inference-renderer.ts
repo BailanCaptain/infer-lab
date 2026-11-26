@@ -3,11 +3,8 @@ import { INK, type InferenceKit, inferenceSceneKit, V, type Values } from "./inf
 import { span } from "./scene-easing";
 import {
   ATTENTION,
-  ATTENTION_GROUPS,
   ATTENTION_OUTPUT,
   ATTENTION_TOTAL,
-  attentionMerge,
-  attentionSum,
   CORE_OUTPUT,
   CORE_PRODUCT,
   CORE_W,
@@ -37,14 +34,6 @@ function attentionScene(k: InferenceKit) {
     [1.16, 0.58, 0.58, 0.58],
   );
   const vals = k.matrix("V · 取回的内容", ATTENTION.values, V(-1.4, -1.5), INK.blue, 0.58);
-  const splitK = ATTENTION.keys.map((r, i) =>
-    k.matrix("", [r], keys.rowPoint(i), INK.gold, 0.58, [`位置${i}`], [1.16, 0.58, 0.58, 0.58]),
-  );
-  const splitV = ATTENTION.values.map((r, i) => k.matrix("", [r], vals.rowPoint(i), INK.blue, 0.58));
-  const splitTitles = [
-    k.label("卡 0 · K 与 V", V(-3.8, 1.8), "name"),
-    k.label("卡 1 · K 与 V", V(3.8, 1.8), "name"),
-  ];
   const weights = k.matrix(
     "原始份数",
     ATTENTION.mass.map((x) => [x]),
@@ -55,121 +44,37 @@ function attentionScene(k: InferenceKit) {
     [1.1],
   );
   const total = k.matrix("总份数", [[8]], V(4.7, 0.25), INK.violet, 0.85);
-  const out = k.matrix("完整计算 O · 保留对照", [ATTENTION_OUTPUT], V(-3.8, -6.55), INK.green, 0.94);
+  const out = k.matrix("注意力输出 O · 4 通道", [ATTENTION_OUTPUT], V(-3.8, -6.55), INK.green, 0.94);
   out.titlePoint.y = -0.76;
-  const mergedOut = k.matrix("卡 0 合并结果 O · 4 通道", blank(1, 4), V(3.8, -6.55), INK.green, 0.94);
-  mergedOut.titlePoint.y = -0.76;
-  const incoming = k.matrix("卡 0 接收 · 待合并", blank(1, 4), V(3.8, -5.05), INK.green, 0.94);
+  const incoming = k.matrix("当前行 × 占比", blank(1, 4), V(3.8, -5.05), INK.green, 0.94);
   incoming.titlePoint.set(0, -0.76, 0.3);
   const sumIntake = k.matrix("本行已到达", blank(1, 4), V(-3.8, -5.05), INK.green, 0.94);
   sumIntake.titlePoint.set(0, -0.76, 0.3);
-  const local = [0, 1].map((i) =>
-    k.matrix(
-      `卡 ${i} 局部 O${i ? "₁" : "₀"}`,
-      [attentionSum(ATTENTION_GROUPS[i]!, true)],
-      V(i ? 3.25 : -4.35, -3.65),
-      i ? INK.gold : INK.blue,
-      1.0,
-    ),
-  );
-  const localZ = [0, 1].map((i) =>
-    k.matrix(`Z${i ? "₁" : "₀"}`, [[i ? 6 : 2]], V(i ? 5.95 : -1.65, -3.65), INK.violet, 0.72),
-  );
-  const shares = [0, 1].map((i) =>
-    k.label(
-      i ? "份额 Z₁/Z = 6/8" : "份额 Z₀/Z = 2/8",
-      V(i ? 3.8 : -3.8, -4.42),
-      "subhead",
-      local[i]!.group.parent!,
-    ),
-  );
   let focusChannel = 0;
   let lastP = 0;
-  [out, mergedOut].forEach((m) => {
-    m.cells.forEach((cell, c) => {
-      k.pick(cell, () => {
-        focusChannel = c;
-        step(lastP);
-        k.render();
-      });
+  out.cells.forEach((cell, c) => {
+    k.pick(cell, () => {
+      focusChannel = c;
+      step(lastP);
+      k.render();
     });
   });
   const equation = k.label("同一位置的 K、V 在同一行", V(0, -8.15), "equation");
   const contribution = k.transfer([ATTENTION_OUTPUT], INK.green, 1.05);
   const readLine = k.wire([V(0, 0), V(0, 0)], INK.green);
   const readBead = k.box(V(0, 0), V(0.15, 0.15, 0.15), INK.green);
-  const merges = [
-    k.transfer([ATTENTION_OUTPUT], INK.blue, 1.05),
-    k.transfer([ATTENTION_OUTPUT], INK.gold, 1.05),
-  ];
   const match = k.wire([V(0, 0), V(0, 0)], INK.gold);
-  const overview = k.label("完整逻辑视图 · 历史仍归两卡", V(0, 8.15), "region");
-  const owners = [k.ownership(0, V(-3.8, 2.2), "卡 0"), k.ownership(1, V(3.8, 2.2), "卡 1")];
-  const queryMeaning = k.label("同一个 Q · 分别查询两块历史", V(0, 1.65), "status");
-  const deviceLink = k.hardwareTransfer();
-  k.memory(0, [
-    { source: keys, rows: ATTENTION_GROUPS[0]! },
-    { source: vals, rows: ATTENTION_GROUPS[0]! },
-    q,
-    mergedOut,
-  ]);
-  k.memory(1, [
-    { source: keys, rows: ATTENTION_GROUPS[1]! },
-    { source: vals, rows: ATTENTION_GROUPS[1]! },
-    q,
-  ]);
+  const overview = k.label("单头注意力逻辑展开 · 位置 7 查询历史 0..7", V(0, 8.15), "region");
+  const singleOwner = k.ownership(0, V(-4.8, 1.35), "本卡 NPU 0");
+  k.memory(0, [q, keys, vals, weights, out]);
   const step = (p: number) => {
     lastP = p;
-    const f = inferenceFrame(0, p),
-      split = f.phase >= 4;
-    const merge = attentionMerge(p);
-    const receiving = f.local < 0.5 ? 0 : 1;
-    q.group.position.lerpVectors(V(-1.4, 2), V(0, 2.75), f.phase < 4 ? 0 : f.phase > 4 ? 1 : f.travel);
-    queryMeaning.style.visibility = split && (f.phase > 4 || f.landed) ? "visible" : "hidden";
-    deviceLink(1, 0, merge.travels[1]!, merge.enabled && f.local >= 0.5 && merge.added < 2, INK.gold);
-    k.compute(0, merge.enabled && merge.added < 2);
-    k.compute(1, false);
+    const f = inferenceFrame(0, p);
     const row = Math.min(7, Math.floor(f.local * 8));
-    keys.group.visible = vals.group.visible = weights.group.visible = total.group.visible = !split;
-    overview.textContent = split ? "两卡布局对照 · 同一查询与结果" : "完整逻辑视图 · 历史仍归两卡";
-    owners.forEach((o) => {
-      o.line.visible = split;
-      o.caption.style.visibility = "visible";
-    });
-    splitTitles.forEach((title) => {
-      title.style.visibility = split && (f.phase > 4 || f.landed) ? "visible" : "hidden";
-    });
-    for (let i = 0; i < 8; i++) {
-      const t = f.phase > 4 ? 1 : f.travel,
-        card = i % 2,
-        r = Math.floor(i / 2);
-      const destK = V(card ? 1.95 : -5.15, 0.75 - r * 0.65);
-      const destV = V(card ? 5.15 : -2.0, 0.75 - r * 0.65);
-      const fromK = keys.rowPoint(i),
-        fromV = vals.rowPoint(i);
-      const horizontal = span(t, 0, 0.5),
-        vertical = span(t, 0.5, 1);
-      splitK[i]!.group.visible = splitV[i]!.group.visible = split;
-      splitK[i]!.group.position.set(
-        fromK.x + (destK.x - fromK.x) * horizontal,
-        fromK.y + (destK.y - fromK.y) * vertical,
-        fromK.z,
-      );
-      splitV[i]!.group.position.set(
-        fromV.x + (destV.x - fromV.x) * horizontal,
-        fromV.y + (destV.y - fromV.y) * vertical,
-        fromV.z,
-      );
-      splitK[i]!.names[0]!.style.visibility = "visible";
-      splitV[i]!.write([ATTENTION.values[i]!], { color: INK.blue });
-    }
-    local.forEach((m, i) => {
-      const show = split && (f.phase > 4 || f.settled);
-      m.group.visible = show;
-      localZ[i]!.group.visible = show;
-      localZ[i]!.write([[i ? 6 : 2]], { color: INK.violet });
-      shares[i]!.style.visibility = show ? "visible" : "hidden";
-    });
+    q.group.position.set(-1.4, 2, 0);
+    overview.textContent = "单头注意力逻辑展开 · 位置 7 查询历史 0..7";
+    singleOwner.line.visible = true;
+    singleOwner.caption.style.visibility = "visible";
     keys.write(ATTENTION.keys, { focus: f.phase === 1 ? row : undefined });
     vals.write(ATTENTION.values, { focus: f.phase === 3 ? row : undefined });
     weights.title.textContent = f.phase >= 2 ? "占比 · 总和 1" : "原始份数";
@@ -182,41 +87,22 @@ function attentionScene(k: InferenceKit) {
     total.write([[f.phase >= 2 ? ATTENTION_TOTAL : ""]]);
     const rowLocal = f.local * 8 - row;
     const weighted = ATTENTION.values[row]!.map((x) => (x * ATTENTION.mass[row]!) / ATTENTION_TOTAL);
-    incoming.write([
-      f.phase === 3 && rowLocal >= 0.2
-        ? weighted
-        : merge.enabled && merge.travels[receiving] === 1 && merge.added === receiving
-          ? attentionSum(ATTENTION_GROUPS[receiving]!).map((x) => x / ATTENTION_TOTAL)
-          : ["", "", "", ""],
-    ]);
-    incoming.title.textContent = f.phase === 3 ? "当前行 × 占比" : "卡 0 接收 · 待合并";
+    incoming.group.visible = f.phase === 3;
+    incoming.title.textContent = "当前行 × 占比";
+    incoming.write([f.phase === 3 && rowLocal >= 0.2 ? weighted : ["", "", "", ""]]);
     sumIntake.group.visible = f.phase === 3;
     sumIntake.write([rowLocal >= 0.65 ? weighted : ["", "", "", ""]]);
     const arrived = rowLocal >= 0.78;
     const written = f.phase > 3 ? 8 : f.phase === 3 ? row + Number(arrived) : 0;
+    k.compute(0, f.phase === 1 || (f.phase === 3 && written < 8));
     const sum = Array.from({ length: 4 }, (_, c) =>
       ATTENTION.values
         .slice(0, written)
         .reduce((s, v, i) => s + (v[c]! * ATTENTION.mass[i]!) / ATTENTION_TOTAL, 0),
     );
     out.write([written ? sum : ["", "", "", ""]], {
-      focusCell: f.phase >= 4 ? focusChannel : undefined,
+      focusCell: written === 8 ? focusChannel : undefined,
     });
-    mergedOut.write(
-      [
-        f.phase === 5
-          ? merge.added === 2
-            ? ATTENTION_OUTPUT
-            : merge.added === 1
-              ? attentionSum(ATTENTION_GROUPS[0]!).map((x) => x / ATTENTION_TOTAL)
-              : ["", "", "", ""]
-          : ["", "", "", ""],
-      ],
-      {
-        focusCell: f.phase === 5 && merge.added === 2 ? focusChannel : undefined,
-        receivingCells: f.phase === 5 && merge.added < 2 ? [0, 1, 2, 3] : [],
-      },
-    );
     contribution(
       incoming.group.position.clone(),
       sumIntake.group.position.clone(),
@@ -241,45 +127,14 @@ function attentionScene(k: InferenceKit) {
       const points = [a, V(-3.25, a.y, 0.3), V(-3.25, b.y, 0.3), b];
       setWidePolylinePoints(match, points);
     }
-    for (let i = 0; i < 2; i++) {
-      const group = ATTENTION_GROUPS[i]!,
-        z = group.reduce((s, j) => s + ATTENTION.mass[j]!, 0);
-      local[i]!.write([
-        f.phase === 5 && f.local >= (i ? 0.5 : 0.15)
-          ? attentionSum(group).map((x) => x / ATTENTION_TOTAL)
-          : attentionSum(group, true),
-      ]);
-      local[i]!.title.textContent =
-        f.phase === 5 && f.local >= (i ? 0.5 : 0.15) ? `卡 ${i} · 已乘 ${z}/8` : `卡 ${i} · 平均值`;
-      merges[i]!(
-        local[i]!.group.position.clone(),
-        incoming.group.position.clone(),
-        merge.travels[i]!,
-        f.phase === 5 && f.local >= (i ? 0.5 : 0.15) && merge.added <= i,
-        [attentionSum(group).map((x) => x / ATTENTION_TOTAL)],
-      );
-    }
-    const o0 = numberText(attentionSum(ATTENTION_GROUPS[0]!, true)[focusChannel]!);
-    const o1 = numberText(attentionSum(ATTENTION_GROUPS[1]!, true)[focusChannel]!);
     const oFull = numberText(ATTENTION_OUTPUT[focusChannel]!);
-    const naive = numberText(
-      (attentionSum(ATTENTION_GROUPS[0]!, true)[focusChannel]! +
-        attentionSum(ATTENTION_GROUPS[1]!, true)[focusChannel]!) /
-        2,
-    );
     equation.textContent = [
       "Q 找谁 · K 管匹配 · V 给内容",
       "Q·K ÷ √4 → exp → 非负份数",
       "总份数 Z = 8：0.5÷8 = 1/16；1.5÷8 = 3/16",
       written === 8
-        ? "整表结果 O = [25, 15, 12.5, 7.5]（点击底部任一通道可核对）"
+        ? `通道 ${focusChannel} 输出 = ${oFull} · 整表 O = [25, 15, 12.5, 7.5]（点击任一通道切换）`
         : "同列相加，得到一行四通道上下文",
-      f.settled
-        ? `通道 ${focusChannel}：O₀=${o0} (Z₀=2)，O₁=${o1} (Z₁=6) · 直接平分会错算为 ${naive}`
-        : "偶数位置归卡 0，奇数位置归卡 1 · 落稳后各自算局部平均",
-      f.settled
-        ? `通道 ${focusChannel}：(2×${o0} + 6×${o1}) ÷ 8 = ${oFull}  ✓ 合并 O = [25, 15, 12.5, 7.5]`
-        : `通道 ${focusChannel}：先按 2/8、6/8 缩放局部 Oᵢ，再按通道相加`,
     ][f.phase]!;
   };
   return step;

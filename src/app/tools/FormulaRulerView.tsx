@@ -1,5 +1,13 @@
 import "../../design/tools.css";
-import { type ChangeEvent, type CSSProperties, type DragEvent, useId, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type CSSProperties,
+  type DragEvent,
+  useContext,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import { type FormulaRulerMode, KNOWN_WIKI_TOOLS, type WikiToolSpec } from "../../content/wiki/toolFence";
 import { fmtBytes } from "../../sim/modelspec/analyze";
 import {
@@ -15,8 +23,10 @@ import {
 import type { AttentionSpec, MlpSpec, ModelSpec } from "../../sim/modelspec/types";
 import { selectMoeCommMethod } from "../../sim/rules/moeComm";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
+import { DiagramPageContext } from "../wiki/page-context";
 import {
   CUSTOM_INFERENCE_BADGE_TEXT,
+  getPageTargetMachineStore,
   MAX_CUSTOM_HF_CONFIG_BYTES,
   RULER_MAX_LEN_OPTIONS,
   RULER_MODEL_PRESETS,
@@ -1094,9 +1104,13 @@ export function FormulaRulerView({
   customDrawerOpen,
   onCustomDrawerOpenChange,
 }: FormulaRulerViewProps) {
-  const activeStore = store ?? targetMachineStore;
-  const state = useTargetMachine(activeStore);
+  const diagramPageId = useContext(DiagramPageContext);
   const assistant = useOptionalWikiAssistant();
+  const hostPageSlug =
+    fromPage?.trim() || diagramPageId.trim() || assistant?.wikiHost?.currentId?.trim() || "";
+  const activeStore =
+    store ?? (embedded && hostPageSlug ? getPageTargetMachineStore(hostPageSlug) : targetMachineStore);
+  const state = useTargetMachine(activeStore);
   const [localDrawerOpen, setLocalDrawerOpen] = useState(() => state.modelMode === "custom");
   const [dragActive, setDragActive] = useState(false);
   const fileInputId = useId();
@@ -1135,7 +1149,11 @@ export function FormulaRulerView({
     ],
   );
 
-  const resolvedFromPage = resolveFromPageSlug(fromPage, assistant?.wikiHost?.currentId, mode);
+  const resolvedFromPage = resolveFromPageSlug(
+    fromPage,
+    diagramPageId.trim() || assistant?.wikiHost?.currentId,
+    mode,
+  );
 
   const calculatorLink = useMemo(() => {
     const preserve = new URLSearchParams();

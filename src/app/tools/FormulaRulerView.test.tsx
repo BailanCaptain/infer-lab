@@ -9,18 +9,22 @@ import {
   parseWikiToolFence,
 } from "../../content/wiki/toolFence";
 import { evaluateDeployPlan } from "../../sim/modelspec/deployCalculator";
+import { DiagramPageContext } from "../wiki/page-context";
 import { WikiToolBlock } from "../wiki/WikiToolBlock";
 import { FormulaRulerView, nextCustomDrawerOpen } from "./FormulaRulerView";
 import {
   CUSTOM_INFERENCE_BADGE_TEXT,
   createTargetMachineStore,
+  getPageTargetMachineStore,
   MAX_CUSTOM_HF_CONFIG_BYTES,
+  resetAllPageTargetMachineStores,
   TARGET_MACHINE_STORAGE_KEY,
   targetMachineStore,
 } from "./targetMachineStore";
 
 afterEach(() => {
   targetMachineStore.resetToBaseline();
+  resetAllPageTargetMachineStores();
 });
 
 describe("FormulaRulerView & targetMachineStore", () => {
@@ -735,5 +739,35 @@ describe("FormulaRulerView & targetMachineStore", () => {
       const docTxt = readFileSync(join(process.cwd(), docRel), "utf8");
       expect(docTxt).not.toMatch(/四套(?:交互式)?工程工作台|四大源码级工程实验室/);
     }
+  });
+
+  it("scopes embedded Wiki FormulaRulerView state per page so tuning TP=8 on tensor-parallel never pollutes kv-cache or gqa", () => {
+    const tpPageStore = getPageTargetMachineStore("tensor-parallel");
+    tpPageStore.setPreset("qwen3-30b-a3b");
+    tpPageStore.setTpSize(8);
+
+    const tpEmbeddedHtml = renderToStaticMarkup(
+      createElement(
+        DiagramPageContext.Provider,
+        { value: "tensor-parallel" },
+        createElement(WikiToolBlock, { source: "tool: formula-ruler\nmode: tp-shard-comm\nmodel: qwen3-8b" }),
+      ),
+    );
+    expect(tpEmbeddedHtml).toContain('data-deviated="true"');
+    expect(tpEmbeddedHtml).toContain("preset=qwen3-30b-a3b");
+    expect(tpEmbeddedHtml).toContain("tp=8");
+
+    const kvEmbeddedHtml = renderToStaticMarkup(
+      createElement(
+        DiagramPageContext.Provider,
+        { value: "kv-cache" },
+        createElement(WikiToolBlock, {
+          source: "tool: formula-ruler\nmode: kv-token-bytes\nmodel: qwen3-8b",
+        }),
+      ),
+    );
+    expect(kvEmbeddedHtml).toContain('data-deviated="false"');
+    expect(kvEmbeddedHtml).toContain("18.000 MiB");
+    expect(kvEmbeddedHtml).not.toContain("preset=qwen3-30b-a3b");
   });
 });

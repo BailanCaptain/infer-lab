@@ -4,7 +4,6 @@ const evidence = "tools/wiki-runtime/ep-sp-finish-2026-11-10";
 const scenes = [
   ["sequence-parallel", 1, "1.8,3.1999999999999997;3,3.1999999999999997;3,4;2.6,3.8400000000000003"],
   ["context-parallel", 2, "o0,o1,o6,o7|o2,o3,o4,o5"],
-  ["context-parallel", 4, "q7=25"],
   ["context-parallel", 3, "25,15,12.5,7.5"],
   ["data-parallel", 6, "A:好的,B:缓存"],
   ["expert-parallel", 7, "routed=2.4,1.7,1.75,1.75;out=3.4,1.7,2.75,1.75"],
@@ -56,13 +55,16 @@ for (const [pageId, kind, result] of scenes)
     expect(errors).toEqual([]);
   });
 
-test("EP, SP and Ring decimal columns remain separate at desktop widths", async ({ page }) => {
+test("EP and SP decimal columns remain separate at desktop widths, and context-parallel omits Ring 3D", async ({
+  page,
+}) => {
+  await page.goto("/#/wiki/context-parallel");
+  await expect(page.getByTestId("scene-parallel-mechanism-4")).toHaveCount(0);
   for (const width of [1600, 1100]) {
     await page.setViewportSize({ width, height: 1100 });
     for (const [pageId, kind] of [
       ["expert-parallel", 7],
       ["sequence-parallel", 1],
-      ["context-parallel", 4],
     ] as const) {
       await page.goto(`/#/wiki/${pageId}#scene-parallel-mechanism-${kind}`);
       const f = page.getByTestId(`scene-parallel-mechanism-${kind}`);

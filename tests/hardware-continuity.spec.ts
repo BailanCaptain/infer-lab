@@ -17,17 +17,19 @@ test.beforeAll(() => {
   mkdirSync(evidence, { recursive: true });
 });
 
-test("Attention keeps its query and completed reference through the layout comparison", async ({ page }) => {
+test("Attention keeps its query and completed output legible without multi-card merge noise", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1600, height: 1300 });
   await page.goto("/#/wiki/attention-qkv");
   const f = page.getByTestId("scene-inference-mechanism-0");
   await f.scrollIntoViewIfNeeded();
   await expect(f).toHaveAttribute("data-ready", "true");
-  const reference = f.locator('[data-tensor="完整计算 O · 保留对照"]');
+  const reference = f.locator('[data-tensor="注意力输出 O · 4 通道"]');
   const query = f.locator('[data-tensor="Q7 · 查询 / 4 通道"]');
-  await seek(f, 3.99 / 6);
+  await seek(f, 0.994);
   const before = await reference.first().boundingBox();
-  for (const p of [4 / 6, 4.2 / 6, 4.4 / 6, 4.8 / 6, 5 / 6, 5.5 / 6, 1]) {
+  for (const p of [0.994, 0.998, 1]) {
     await seek(f, p);
     await expect(reference).toHaveText(["25", "15", "12.5", "7.5"]);
     for (const cell of await reference.all()) await expect(cell).toBeVisible();
@@ -39,7 +41,7 @@ test("Attention keeps its query and completed reference through the layout compa
       .locator(".wiki-scene-canvas")
       .screenshot({ path: `${evidence}/attention-continuity-${p.toFixed(3)}.png` });
   }
-  await expect(f.locator('[data-tensor="卡 0 合并结果 O · 4 通道"]')).toHaveText(["25", "15", "12.5", "7.5"]);
+  await expect(f.getByText("卡 0 合并结果 O · 4 通道", { exact: true })).toBeHidden();
   for (const width of [1600, 1100]) {
     await page.setViewportSize({ width, height: 1300 });
     for (const expanded of [false, true]) {
@@ -47,12 +49,11 @@ test("Attention keeps its query and completed reference through the layout compa
       const canvas = f.locator(".wiki-scene-canvas");
       await canvas.screenshot({ path: `${evidence}/attention-result-${width}-${expanded}.png` });
       const formula = (await f.locator(".wiki-inference-label.equation").boundingBox())!;
-      for (const text of ["完整计算 O · 保留对照", "卡 0 合并结果 O · 4 通道"]) {
-        const title = (await f.getByText(text, { exact: true }).boundingBox())!;
-        expect(title.y + title.height + 2, `${width}: formula must not cover ${text}`).toBeLessThanOrEqual(
-          formula.y,
-        );
-      }
+      const title = (await f.getByText("注意力输出 O · 4 通道", { exact: true }).boundingBox())!;
+      expect(
+        title.y + title.height + 2,
+        `${width}: formula must not cover 注意力输出 O · 4 通道`,
+      ).toBeLessThanOrEqual(formula.y);
       const bounds = (await canvas.boundingBox())!;
       expect(formula.y + formula.height).toBeLessThanOrEqual(bounds.y + bounds.height);
       if (expanded) await f.getByRole("button", { name: "退出放大观看" }).click();
@@ -67,7 +68,6 @@ test("hardware contents change with each lesson and rewind to their original sta
     [0, "attention-qkv"],
     [1, "block-table"],
     [2, "pd-disaggregation"],
-    [4, "tensor-layout"],
     [6, "kv-cache-cpu-offload"],
     [7, "collective-communication"],
   ] as const;
@@ -121,7 +121,7 @@ test("all moving labels stay readable during the original four lessons", async (
         await page.mouse.move(b.x + b.width * 0.7, b.y + b.height * 0.53, { steps: 12 });
         await page.mouse.up();
       }
-      const phases = kind === 3 ? 8 : 6;
+      const phases = kind === 0 ? 4 : kind === 3 ? 8 : 6;
       for (let phase = 0; phase < phases; phase++)
         for (const local of [0.18, 0.28, 0.38, 0.46, 0.54, 0.6, 0.69, 0.85, 0.99]) {
           await seek(f, (phase + local) / phases);

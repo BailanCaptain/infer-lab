@@ -773,22 +773,24 @@ export const Article = memo(function Article({
               已核对 {versionOrder(page.verified).map(versionLabel).join(" · ")}
             </span>
           )}
-          <span
-            className={`wiki-chip wiki-origin is-${page.origin}`}
-            data-testid="wiki-origin"
-            title="生产入口，与事实证据等级分开记录"
-          >
-            {
+          {page.type === "source" && (
+            <span
+              className={`wiki-chip wiki-origin is-${page.origin}`}
+              data-testid="wiki-origin"
+              title="生产入口，与事实证据等级分开记录"
+            >
               {
-                seed: "源码提取",
-                drop: "资料投喂",
-                chat: "问答沉淀",
-                pr: "PR 整理",
-                gap: "缺口补充",
-                direct: "直接撰写",
-              }[page.origin]
-            }
-          </span>
+                {
+                  seed: "源码提取",
+                  drop: "资料投喂",
+                  chat: "问答沉淀",
+                  pr: "PR 整理",
+                  gap: "缺口补充",
+                  direct: "直接撰写",
+                }[page.origin]
+              }
+            </span>
+          )}
           <span className="wiki-updated">更新于 {page.updated}</span>
           <Link
             className="wiki-chip wiki-article-graph-link"

@@ -10,6 +10,7 @@ import type { ModelSpec } from "../../sim/modelspec/types";
 import { evaluateCalculatorModelGate } from "./workbenchHandoff";
 
 export const TARGET_MACHINE_STORAGE_KEY = "infer-lab:target-machine:v1";
+export const TARGET_MACHINE_PAGE_STORAGE_PREFIX = "infer-lab:target-machine:page:";
 export const MAX_CUSTOM_HF_CONFIG_BYTES = 64 * 1024;
 export const CUSTOM_INFERENCE_BADGE_TEXT = "自定义推演态（静态推导，非实测）";
 export const DEFAULT_RULER_BASELINE_MODEL = "qwen3-8b";
@@ -234,10 +235,13 @@ function clampGpuUtil(u: number): number {
   return Number(Math.min(0.98, Math.max(0.5, u)).toFixed(2));
 }
 
-function hydrateStateFromStorage(storage: StorageLike | null): TargetMachineState {
+function hydrateStateFromStorage(
+  storage: StorageLike | null,
+  storageKey: string = TARGET_MACHINE_STORAGE_KEY,
+): TargetMachineState {
   if (!storage) return DEFAULT_TARGET_MACHINE_STATE;
   try {
-    const raw = storage.getItem(TARGET_MACHINE_STORAGE_KEY);
+    const raw = storage.getItem(storageKey);
     if (!raw) return DEFAULT_TARGET_MACHINE_STATE;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -279,7 +283,7 @@ function hydrateStateFromStorage(storage: StorageLike | null): TargetMachineStat
           enableEp,
         };
         if (obj.customJsonText !== undefined || persistedCustomJson !== checked.normalizedJson) {
-          persistStateToStorage(storage, hydratedCustom);
+          persistStateToStorage(storage, hydratedCustom, storageKey);
         }
         return hydratedCustom;
       }
@@ -300,7 +304,7 @@ function hydrateStateFromStorage(storage: StorageLike | null): TargetMachineStat
       enableEp,
     };
     if (obj.customJsonText !== undefined || obj.validatedCustomJsonText !== undefined) {
-      persistStateToStorage(storage, hydratedPreset);
+      persistStateToStorage(storage, hydratedPreset, storageKey);
     }
     return hydratedPreset;
   } catch {
@@ -308,7 +312,11 @@ function hydrateStateFromStorage(storage: StorageLike | null): TargetMachineStat
   }
 }
 
-function persistStateToStorage(storage: StorageLike | null, state: TargetMachineState): void {
+function persistStateToStorage(
+  storage: StorageLike | null,
+  state: TargetMachineState,
+  storageKey: string = TARGET_MACHINE_STORAGE_KEY,
+): void {
   if (!storage) return;
   try {
     const hasValidCustom =
@@ -325,7 +333,7 @@ function persistStateToStorage(storage: StorageLike | null, state: TargetMachine
       gpuMemoryUtilization: state.gpuMemoryUtilization,
       enableEp: state.enableEp,
     };
-    storage.setItem(TARGET_MACHINE_STORAGE_KEY, JSON.stringify(payload));
+    storage.setItem(storageKey, JSON.stringify(payload));
   } catch {
     // Ignore SecurityError / QuotaExceededError in privacy or sandboxed browser modes.
   }
@@ -345,9 +353,12 @@ export interface TargetMachineStore {
   resetToBaseline: () => void;
 }
 
-export function createTargetMachineStore(customStorage?: StorageLike | null): TargetMachineStore {
+export function createTargetMachineStore(
+  customStorage?: StorageLike | null,
+  storageKey: string = TARGET_MACHINE_STORAGE_KEY,
+): TargetMachineStore {
   const storage = customStorage === undefined ? getDefaultBrowserStorage() : customStorage;
-  let state: TargetMachineState = hydrateStateFromStorage(storage);
+  let state: TargetMachineState = hydrateStateFromStorage(storage, storageKey);
   const listeners = new Set<() => void>();
 
   const emit = () => {
@@ -356,15 +367,15 @@ export function createTargetMachineStore(customStorage?: StorageLike | null): Ta
 
   const commit = (next: TargetMachineState, persist = true) => {
     state = next;
-    if (persist) persistStateToStorage(storage, state);
+    if (persist) persistStateToStorage(storage, state, storageKey);
     emit();
   };
 
   if (customStorage === undefined && typeof window !== "undefined") {
     try {
       window.addEventListener("storage", (e) => {
-        if (e.key === TARGET_MACHINE_STORAGE_KEY) {
-          state = hydrateStateFromStorage(getDefaultBrowserStorage());
+        if (e.key === storageKey) {
+          state = hydrateStateFromStorage(getDefaultBrowserStorage(), storageKey);
           emit();
         }
       });
@@ -442,7 +453,7 @@ export function createTargetMachineStore(customStorage?: StorageLike | null): Ta
     resetToBaseline: () => {
       state = { ...DEFAULT_TARGET_MACHINE_STATE };
       try {
-        storage?.removeItem(TARGET_MACHINE_STORAGE_KEY);
+        storage?.removeItem(storageKey);
       } catch {
         // Ignore privacy mode exceptions.
       }
@@ -452,6 +463,32 @@ export function createTargetMachineStore(customStorage?: StorageLike | null): Ta
 }
 
 export const targetMachineStore: TargetMachineStore = createTargetMachineStore();
+
+const pageStoreCache = new Map<string, TargetMachineStore>();
+
+export function getPageTargetMachineStore(
+  pageSlug: string,
+  customStorage?: StorageLike | null,
+): TargetMachineStore {
+  const slug = pageSlug.trim();
+  if (!slug) return targetMachineStore;
+  const key = `${TARGET_MACHINE_PAGE_STORAGE_PREFIX}${slug}`;
+  if (customStorage !== undefined) {
+    return createTargetMachineStore(customStorage, key);
+  }
+  const existing = pageStoreCache.get(slug);
+  if (existing) return existing;
+  const created = createTargetMachineStore(undefined, key);
+  pageStoreCache.set(slug, created);
+  return created;
+}
+
+export function resetAllPageTargetMachineStores(): void {
+  for (const store of pageStoreCache.values()) {
+    store.resetToBaseline();
+  }
+  pageStoreCache.clear();
+}
 
 export function useTargetMachine(store: TargetMachineStore = targetMachineStore): TargetMachineState {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);

@@ -4,11 +4,7 @@ import { expect, type Locator, test } from "@playwright/test";
 const evidence = process.env.WIKI_SCENE_EVIDENCE_DIR
   ? `${process.env.WIKI_SCENE_EVIDENCE_DIR}/optimization`
   : "tools/wiki-runtime/optimization-2026-11-10";
-const scenes = [
-  { kind: 4, page: "tensor-layout", phases: 7, result: "1,2,5,6,9,10,13,14,3,4,7,8,11,12,15,16" },
-  { kind: 6, page: "kv-cache-cpu-offload", phases: 8, result: "host=ready;gpu=9,10;next=4" },
-  { kind: 7, page: "chunked-prefill", phases: 6, result: "6,6,2,1;prefix=14;first=y0" },
-];
+const scenes = [{ kind: 6, page: "kv-cache-cpu-offload", phases: 8, result: "host=ready;gpu=9,10;next=4" }];
 async function seek(f: Locator, p: number) {
   await f.getByRole("slider").evaluate((node, progress) => {
     const input = node as HTMLInputElement;
@@ -130,9 +126,11 @@ for (const scene of scenes) {
     expect(errors).toEqual([]);
   });
 }
-test("offload and scheduling separate data arrival, completion and planned work", async ({ page }) => {
+test("offload separates data arrival and completion, while tensor-layout and chunked-prefill use 2D sandboxes", async ({
+  page,
+}) => {
   await page.goto("/#/wiki/kv-cache-cpu-offload");
-  let f = page.getByTestId("scene-inference-mechanism-6");
+  const f = page.getByTestId("scene-inference-mechanism-6");
   await f.scrollIntoViewIfNeeded();
   await expect(f).toHaveAttribute("data-ready", "true");
   const ledger = f.locator(".wiki-inference-ledger");
@@ -147,26 +145,19 @@ test("offload and scheduling separate data arrival, completion and planned work"
   await expect(ledger).toContainText("完成通知已到达");
   const cols = f.locator(".wiki-inference-label.status");
   await expect(cols.filter({ hasText: /^K₀$/ })).toHaveCount(4);
+
+  await page.goto("/#/wiki/tensor-layout");
+  await expect(page.getByTestId("scene-inference-mechanism-4")).toHaveCount(0);
+  await expect(page.locator('figure.wiki-diagram[data-diagram="tensor-layout-intuition"]')).toBeVisible();
+
   await page.goto("/#/wiki/chunked-prefill");
-  f = page.getByTestId("scene-inference-mechanism-7");
-  await f.scrollIntoViewIfNeeded();
-  await expect(f).toHaveAttribute("data-ready", "true");
-  await seek(f, 1.3 / 6);
-  await expect(f.locator(".wiki-inference-ledger")).toContainText("0 / 14");
-  await expect(f.locator(".wiki-schedule-svg")).toContainText("已排，待执行");
-  await seek(f, 1.75 / 6);
-  await expect(f.locator(".wiki-inference-ledger")).toContainText("6 / 14");
-  await seek(f, 3.69 / 6);
-  await expect(f.locator(".wiki-schedule-svg")).not.toContainText("y₀ 已交付");
-  await seek(f, 3.71 / 6);
-  await expect(f.locator(".wiki-schedule-svg")).toContainText("y₀ 已交付");
+  await expect(page.getByTestId("scene-inference-mechanism-7")).toHaveCount(0);
+  await expect(page.locator('figure.wiki-diagram[data-diagram="chunked-prefill"]')).toBeVisible();
 });
 
-test("rendered final matrices preserve every element of the page examples", async ({ page }) => {
-  const matrix = Array.from({ length: 16 }, (_, i) => i + 1);
+test("rendered final matrices preserve every element of the offload page example", async ({ page }) => {
   const kv = [0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6];
   const values: Record<number, number[]> = {
-    4: [...matrix, ...matrix, 1, 2, 5, 6, 9, 10, 13, 14, 3, 4, 7, 8, 11, 12, 15, 16],
     6: [...kv, ...kv, 4, 5, 6, 7],
   };
   for (const scene of scenes) {
@@ -175,14 +166,8 @@ test("rendered final matrices preserve every element of the page examples", asyn
     await f.scrollIntoViewIfNeeded();
     await expect(f).toHaveAttribute("data-ready", "true");
     await seek(f, 1);
-    if (scene.kind in values) {
-      await expect(f.locator(".wiki-inference-label.value:visible")).toHaveText(
-        values[scene.kind]!.map(String),
-      );
-    } else {
-      await expect(f.locator(".schedule-value")).toHaveText(
-        [1, 1, 6, 1, 1, 6, 1, 1, 2, 1, 1, 1].map((n) => `${n} 个位置`),
-      );
-    }
+    await expect(f.locator(".wiki-inference-label.value:visible")).toHaveText(
+      values[scene.kind]!.map(String),
+    );
   }
 });

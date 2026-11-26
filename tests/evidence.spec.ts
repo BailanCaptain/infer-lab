@@ -6,7 +6,10 @@ import { expect, test } from "@playwright/test";
 test.describe("证据等级要看得懂", () => {
   test("知识库首页给出七档图例", async ({ page }) => {
     await page.goto("/#/wiki");
+    const summary = page.locator("details.reader-evidence-guide > summary");
+    await summary.waitFor({ state: "visible" });
     const legend = page.getByTestId("evidence-legend");
+    if (!(await legend.isVisible())) await summary.click();
     await expect(legend).toBeVisible();
     for (const word of ["官方文档", "源码实证", "推导", "教学假设", "推断", "实测", "有冲突"]) {
       await expect(legend).toContainText(word);
@@ -25,5 +28,21 @@ test.describe("证据等级要看得懂", () => {
     const badge = page.getByRole("tooltip").locator(".wiki-evidence");
     await expect(badge).toBeVisible();
     await expect(badge).toHaveAttribute("title", /源码|文档|推导|假设|推断|实测|冲突/);
+  });
+
+  test("概念页页头不暴露内部生产入口标签，且内嵌公式标尺按页隔离状态", async ({ page }) => {
+    await page.goto("/#/wiki/mlp-residual-norm");
+    await expect(page.getByTestId("wiki-origin")).toHaveCount(0);
+
+    await page.goto("/#/wiki/tensor-parallel");
+    const tpRuler = page.getByTestId("formula-ruler-view");
+    await tpRuler.scrollIntoViewIfNeeded();
+    await tpRuler.getByTestId("ruler-tp-select").selectOption("8");
+    await expect(tpRuler).toHaveAttribute("data-deviated", "true");
+
+    await page.goto("/#/wiki/kv-cache");
+    const kvRuler = page.getByTestId("formula-ruler-view");
+    await kvRuler.scrollIntoViewIfNeeded();
+    await expect(kvRuler).toHaveAttribute("data-deviated", "false");
   });
 });

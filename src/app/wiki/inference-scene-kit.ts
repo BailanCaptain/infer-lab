@@ -35,7 +35,7 @@ export async function inferenceSceneKit(
   host: HTMLDivElement,
   kind: number,
   signal: AbortSignal,
-  hardwareKind = kind === 2 ? 10 : kind === 0 ? 1 : 9,
+  hardwareKind = kind === 2 ? 10 : kind === 0 ? 8 : 9,
 ) {
   const hardware = await parallelHardware(hardwareKind, signal);
   if (!hardware) return null;

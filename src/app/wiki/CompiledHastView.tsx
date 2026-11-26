@@ -32,13 +32,14 @@ import type { AscendFamily, RuleVersion } from "../../sim/rules";
 import { buildHardwareDeployHrefFromCommand } from "../model/hardwareDeployOverlay";
 import { appendFromPageToExperienceRoute } from "../model/qwen-frame";
 import { copyTextToClipboard, workbenchHandoffStore } from "../tools/workbenchHandoff";
+import { DiagramPageContext } from "./page-context";
 import { isSceneLessonId, sceneAnchorIds } from "./scene-lessons";
 import { isPlainPrimaryLinkClick, scrollToWikiFragment, WikiContentLink } from "./WikiLink";
 import { WikiScene } from "./WikiScene";
 import { WikiToolBlock } from "./WikiToolBlock";
 
+export { DiagramPageContext };
 export const DiagramSnapshot = createContext(new Map<string, string>());
-export const DiagramPageContext = createContext("");
 export const DiagramEvidenceContext = createContext<
   ((diagramId: string, trigger: HTMLElement | null) => void) | undefined
 >(undefined);

@@ -112,7 +112,7 @@ relations:
       固定 db701c1f 与 v0.30.0 中，Balance Scheduling 与动态切块配置不能同时启用；同开会在配置校验时报
       ValueError。具体配置入口及环境变量兜底仍按两页的版本条件核对。
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -243,39 +243,37 @@ $$\max(12,\, 7) = 12 < 32 \quad \Longrightarrow \quad \text{闸门不落}$$
 - **「关掉开关就等于没装。」** 调度器类在插件加载时就被换掉了，关着只是一上来就交回上游原版。v0.26 上 BalanceScheduler 的父类是 vllm-ascend 自己的另一个调度器，那一版关着时走的也不是纯上游（见页末「版本差异」）。
 - **「闸门看的是此刻的实时条数。」** 看的是上一步末尾交换来的计数表。
 - **「打开它就能省掉场景 M 那种宽度对齐浪费。」** 不能。那是宽度对齐按 token 数产生的浪费；闸门只看条数，只在顶满时落下。
-- **「设一个环境变量就能开。」** v0.23 和 v0.26 可以，但已标注将淘汰；main 上已经删掉，设了服务照常启动，闸门却不会打开。
+- **「设一个环境变量就能开。」** `v0.23.0` 和 `v0.26.0rc` 可以，但已标注将淘汰；`v0.30.0` 与 `main` 上已经删掉，设了服务照常启动，闸门却不会打开。
 
 ## 对照源码
 
 ### 怎么开
 
-- 开关名 `enable_balance_scheduling`，默认 `false`。v0.23 维护分支和本部署镜像 db701c1f 写在 additional-config 顶层：`--additional-config '{"enable_balance_scheduling": true}'`。v0.26 和 main 推荐写在 `scheduler_config` 下：`'{"scheduler_config": {"enable_balance_scheduling": true}}'`；顶层写法仍认，但会打 deprecation 警告，两处都写时以 `scheduler_config` 为准。
-- 环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING=1`：v0.23、db701c1f、v0.26 认，源码注释标着将在后续版本删除；main 已删除。v0.23 和 db701c1f 的补丁判断开关时依次看 AscendConfig、additional-config、环境变量；AscendConfig 自己也是先看 additional-config，没有才退到环境变量。
+- 开关名 `enable_balance_scheduling`，默认 `false`。`v0.23.0` 维护分支和本部署镜像 `db701c1f` 写在 `additional-config` 顶层：`--additional-config '{"enable_balance_scheduling": true}'`。`v0.26.0rc`、`v0.30.0` 和 `main` 推荐写在 `scheduler_config` 下：`'{"scheduler_config": {"enable_balance_scheduling": true}}'`；顶层写法仍认，但会打 deprecation 警告，两处都写时以 `scheduler_config` 为准。
+- 环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING=1`：`v0.23.0`、`db701c1f`、`v0.26.0rc` 认，源码注释标着将在后续版本删除；`v0.30.0` 与 `main` 已删除。`v0.23.0` 和 `db701c1f` 的补丁判断开关时依次看 `AscendConfig`、`additional-config`、环境变量；`AscendConfig` 自己也是先看 `additional-config`，没有才退到环境变量。
 - 生效前提：`--data-parallel-size` 大于 1；模型是 MoE；PD 混部（不配 `kv_transfer_config`，或 `kv_role` 为 `kv_both`）。
-- 闸门比的 `max_num_running_reqs` 就是 `--max-num-seqs`，调它会同时改变单组并发和全局落闸的触发点。GLM-5.3-Flash 双机教程取 32，没有写 additional-config。
-- 显式指定了调度器类（`scheduler_cls`，如重算调度、动态批、分块性能采集用的那几种）的部署不经过 BalanceScheduler。
-- 参照：所列 main 分支 GLM-5.3（不是 Flash）的 DP8 多机教程片段在 additional-config 里打开了它。
+- 闸门比的 `max_num_running_reqs` 就是 `--max-num-seqs`，调它会同时改变单组并发和全局落闸的触发点。GLM-5.3-Flash 双机教程取 32，没有写 `additional-config`。
+- 显式指定了调度器类（`scheduler_cls`，如重算调度、动态批、分块性能采集用的那几种）的部署不经过 `BalanceScheduler`。
+- 参照：所列开发主线 GLM-5.3（不是 Flash）的 DP8 多机教程片段在 `additional-config` 里打开了它。
 
 ### 会报什么错
 
-- 与 `profiling_chunk_config` 同开：`ValueError: profiling_chunk_config and balance scheduling (enable_balance_scheduling) cannot be enabled at the same time. Please disable one of them.`，三个分支和 db701c1f 都有。
+- 与 `profiling_chunk_config` 同开：`ValueError: profiling_chunk_config and balance scheduling (enable_balance_scheduling) cannot be enabled at the same time. Please disable one of them.`（`v0.23.0`、`db701c1f`、`v0.26.0rc`、`v0.30.0` 均有；`main` 已移除 `profiling_chunk_config`）。
 - PD 分离角色：配了 `kv_transfer_config` 且 `kv_role` 不是 `kv_both` 时报 `ValueError: enable_balance_scheduling only supports PD-mixed mode (kv_role='kv_both' or no kv_transfer_config), and is not supported in PD-disaggregated mode (kv_role='kv_producer'/'kv_consumer').`
-- main 上与 DyntraLB 同开：`ValueError: DyntraLB cannot be used with enable_balance_scheduling.`
-- v0.23 与 db701c1f：dense 模型、DP 大于 1 再打开开关，启动时撞断言 `DPEngineCoreProc should only be used for MoE models`。补丁版入口函数只看 DP 大于 1 就建 `BalanceDPEngineCoreProc`，它的父类构造时断言模型是 MoE。v0.26 起改成开关打开时才把模块里的 `DPEngineCoreProc` 换成 `BalanceDPEngineCoreProc`，要不要建 DP 进程交回上游判断，dense 模型于是不报错也不生效。
+- `v0.30.0` 与 `main` 上与 `DyntraLB` 同开：`ValueError: DyntraLB cannot be used with enable_balance_scheduling.`
+- `v0.23.0` 与 `db701c1f`：dense 模型、DP 大于 1 再打开开关，启动时撞断言 `DPEngineCoreProc should only be used for MoE models`。补丁版入口函数只看 DP 大于 1 就建 `BalanceDPEngineCoreProc`，它的父类构造时断言模型是 MoE。`v0.26.0rc` 起（含 `v0.30.0` 与 `main`）改成开关打开时才把模块里的 `DPEngineCoreProc` 换成 `BalanceDPEngineCoreProc`，要不要建 DP 进程交回上游判断，dense 模型于是不报错也不生效。
 
 ### 开销和什么时候别开
 
 - **空着的名额。** 落闸期间其余组的空位不接新请求（上文四组示意里是 14 个），新请求排队变长，拿到第一个 token 更晚。
 - **每步一次 All-Gather。** 每组交一个 int32，走 DP 组的 CPU gloo 通道；GLM 双机上两个 EngineCore 分在两台机器，这次交换跨机。挂载点那次「全局还有没有活」的 All-Reduce 每 32 步才真做一次，但这个函数每个非空转的圈都会调用，挂在它后面的 All-Gather 仍是每步一次。
-- **抄件漂移。** 为了在接纳循环里插进那两行，BalanceScheduler 的 `schedule()` 是上游 `schedule()` 的整段副本，设计文档记为约 520 行，三个分支上都还在；v0.23 和 db701c1f 还整段抄了引擎主循环 `run_busy_loop` 和入口 `run_engine_core`（v0.23 这份补丁共 745 行，绝大部分是上游原文），v0.26 起引擎侧只剩一个钩子。上游改了这些函数，副本不会跟着变，设计文档记录过旧副本已经和上游漂开。
+- **抄件漂移。** 为了在接纳循环里插进那两行，`BalanceScheduler` 的 `schedule()` 是上游 `schedule()` 的整段副本，设计文档记为约 520 行，四个版本上都还在；`v0.23.0` 和 `db701c1f` 还整段抄了引擎主循环 `run_busy_loop` 和入口 `run_engine_core`（`v0.23.0` 这份补丁共 745 行，绝大部分是上游原文），`v0.26.0rc` 起引擎侧只剩一个钩子。上游改了这些函数，副本不会跟着变，设计文档记录过旧副本已经和上游漂开。
 - **怎样判断它有没有用。** 只看吞吐不够，要分别看新请求的排队时间、各组 running 条数、每步耗时和整体吞吐：闸门换来的是顶满那组更快排空，付出的是别的组空着名额。
-- **别开的场景。** DP=1（不起作用）；dense 模型（v0.23 和 db701c1f 起不来，之后不生效）；PD 分离的 prefill 或 decode 实例（直接报错）；负载不均主要来自请求长短而不是条数时，它帮不上。
+- **别开的场景。** DP=1（不起作用）；dense 模型（`v0.23.0` 和 `db701c1f` 起不来，之后不生效）；PD 分离的 prefill 或 decode 实例（直接报错）；负载不均主要来自请求长短而不是条数时，它帮不上。
 
 ### 版本差异
 
-**v0.30.0rc2 保留已钉 main 的条件式接线。** 只有 Ascend scheduler_config 启用相应配置，才把 DPEngineCoreProc 换成 BalanceDPEngineCoreProc；DyntraLB 的优先分支及两者互斥检查仍在。默认 Scheduler 正常排批不等于开启这套 Balance 调度，历史文档里的环境变量也不能自动当成 rc2 的有效配置入口。
-
-闸门语义在四版本正式钉点上一致：读上一步末尾的计数表，最大值等于上限就停收；差异都在外围接线与互斥组合。四版本钉点为 `v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；本部署 GLM 固定镜像 `db701c1f` 与 `v0.23.0` 行为一致。
+闸门语义在四版本正式钉点上一致：读上一步末尾的计数表，最大值等于上限就停收；差异都在外围接线与互斥组合。在 `v0.30.0` 主基线与 `main` 中，只有 `AscendConfig` 的 `scheduler_config.enable_balance_scheduling` 显式开启时，才在 `patch_engine_core.py` 里把 `DPEngineCoreProc` 条件替换为 `BalanceDPEngineCoreProc`，且 `DyntraLB` 分支优先并与之互斥；默认 `Scheduler` 正常排批不等于开启均衡调度，历史文档里的环境变量也不能当成 `v0.30.0` / `main` 的有效入口。四版本钉点为 `v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；本部署 GLM 固定镜像 `db701c1f` 与 `v0.23.0` 行为一致。
 
 | 核对项 | `v0.23.0`（`2c59ff10` / `db701c1f`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
@@ -285,7 +283,7 @@ $$\max(12,\, 7) = 12 < 32 \quad \Longrightarrow \quad \text{闸门不落}$$
 | `BalanceScheduler` 父类 | 上游 `Scheduler` | `KVDeliveryScheduler` | 上游 `Scheduler` | 上游 `Scheduler` |
 | 互斥与部署限制 | PD 混部；与 `profiling_chunk_config` 互斥 | 同 `v0.23.0` | PD 混部（`platform.py#L1036-L1045`）；与 `profiling_chunk_config`（`ascend_config.py#L731-L736`）、`DyntraLB`（`platform.py#L1095-L1096`）互斥 | PD 混部（`platform.py#L1221-L1232`）；与 `DyntraLB` 互斥（`profiling_chunk_config` 已在 `main` 移除） |
 
-靠环境变量打开它的部署升到 main 会静默失效：服务照起，闸门不会打开。main 的配置文档前后不一，开头的迁移表仍列着这个环境变量对应 `scheduler_config.enable_balance_scheduling`，同一文件的参数表却写明它已不再支持，以代码为准。
+靠环境变量打开它的部署升到 `v0.30.0` 或 `main` 会静默失效：服务照起，闸门不会打开。早期配置文档前后不一（开头的迁移表仍列着该环境变量对应 `scheduler_config.enable_balance_scheduling`，同一文件的参数表却写明它已不再支持），以代码为准。
 
 ### 源码位置
 
@@ -318,4 +316,4 @@ $$\max(12,\, 7) = 12 < 32 \quad \Longrightarrow \quad \text{闸门不落}$$
 
 固定 db701c1f 的共同闸门只是准入检查之一：调度暂停、本轮发生抢占或本地名额不足时，仍不能接纳等待请求。这些条件不表示本页 GLM 双机配方已启用均衡调度，其他分支按版本表判断。等待队列循环见来源 2。
 
-CPU DP 通信组明确使用 gloo（来源 33）；v0.26 的环境变量值由配置构造传入通用回退函数（来源 34）。v0.23、v0.26、main、rc2 的实际准入分支分别见来源 35–38，均比较上一轮计数的最大值与本组上限是否相等。
+CPU DP 通信组明确使用 gloo（来源 33）；`v0.26.0rc` 的环境变量值由配置构造传入通用回退函数（来源 34）。`v0.23.0`、`v0.26.0rc`、`v0.30.0`（及历史 `baa023ad` / `7d825229` 快照）与 `main` 的实际准入分支见来源 35–39、43，均比较上一轮计数的最大值与本组上限是否相等。

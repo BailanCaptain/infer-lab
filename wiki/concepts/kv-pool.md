@@ -230,7 +230,7 @@ relations:
     kind: alternative-to
     note: AscendStore 侧重多节点内存/SSD 拼成共享 KV 池；UCM 经薄转发外壳接入独立三层存储（显存→本机内存→共享文件/3FS/DramPool），支持持久化与集中式 PD 交接
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: direct
 ---
 
@@ -311,7 +311,7 @@ file: kv-pool
 - **全中也要留一个位置。** 池如果命中了请求当前的全部位置，就少报一个：最后一个位置必须真算一次，才能得到下一个 token 的输出。例如尚未生成的新请求恰好 20 个位置、池命中 20、本地命中 8，调度上报的外部命中是 19 − 8 = 11 个位置。恢复的请求若已经生成过 token，仅命中全部 prompt 并不等于命中整个请求；源码比较的是包含生成部分的当前总长度。
 - **池不比本地多，就不搬。** 池命中数不超过本地命中数时，要搬的是 0，这一次就当池没命中。
 - **本地命中是 0 也照样查。** 起点从 0 开始，池命中多少就搬多少。所以 KV Pool 并不要求本地 prefix caching 真的命中过；它要求的是各缓存组都能在段边界上接着算，混合模型在这一点上另有条件，见后文实战对照。
-- **位置数不等于字节数。** 12 个位置是逻辑上的量；真正搬的是各组、各层对应块的有效数据。普通注意力按位置追加 K/V 时，可以用每位置字节数乘段长；KDA 这类递推状态则在边界保留一份定长状态，不能照此乘。总量须逐组相加，还要区分调度上报的位置数、按整块读取的长度和物理页填充，见 [KV 规格](kv-cache-spec.md)。
+- **位置数不等于字节数。** 12 个位置是逻辑上的量；真正搬的是各组、各层对应块的有效数据。拿 `v0.30.0` 标准同构模型 **`Qwen3-8B`**（36 层 GQA，8 个 KV 头、头宽 128，BF16 每数 2 B）算一笔实数：全模型只有一个缓存组，段长直接等于块长（默认 `128` 个位置），单 token 跨 36 层共 $36 \times 2 \times 8 \times 128 \times 2\text{ B} = 144\text{ KiB}$。一整块（128 个位置）在单卡 `TP=1` 上是 **$18\text{ MiB}$**，在 `TP=4` 上每张卡各管 2 个 KV 头、每块 **$4.5\text{ MiB}$**；若外部池多命中 4,096 个位置（32 块），每张 `TP=4` 卡搬回 $32 \times 4.5\text{ MiB} = 144\text{ MiB}$。而 KDA 这类递推状态在边界只留定长状态，不能照此相乘；总量须逐组相加，见 [KV 规格](kv-cache-spec.md)。
 
 ## 查到以后：分配、搬运、使用、写回
 
@@ -426,7 +426,7 @@ Mooncake 自己的新 SDK 文档还使用“嵌入 Real Client”和“独立 Re
 
 ### 放到 GLM 双机：这套部署没有开 KV Pool
 
-前面用单一缓存组模型（段长 = 块长）走通了 KV Pool 的查询取整、搬运与键命名规则。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)：它的启动参数里没有 KV 传输配置，prefix caching 也关着（GLM 是混合模型，vLLM 默认判它不支持，见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），因此 KV Pool 未启用。本节照镜像源码推演「假如打开」会怎样：无实跑，无吞吐、时延或命中率实测，出现的字节数均为部署页块字节。
+前面用单一缓存组模型（段长 = 块长）走通了 KV Pool 的查询取整、搬运与键命名规则。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)。它的启动参数没有配置 KV 传输，且作为混合模型默认关闭 prefix caching（见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），因此 KV Pool 未启用。本节照镜像源码推演「假如打开」会怎样：无实跑，无吞吐、时延或命中率实测，出现的字节数均为部署页块字节。
 
 #### 只加 KV Pool、不开 prefix caching：短于最长长度的 prompt 不会查询
 
@@ -527,7 +527,7 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 - `ValueError: Unsupported KV pool backend: <name>`：`backend` 写错，启动即报，不会静默退回默认值。
 - `AssertionError: mamba_cache_mode only support 'align' when kv_transfer enabled now!`：混合模型上手动把 `mamba_cache_mode` 设成 align 以外的值。
 - `ValueError: Invalid hash_block_size=...`：GLM 上显式给的 hash block size 除不尽某个缓存组的块长。
-- 固定旧基线没设 `PYTHONHASHSEED`：初始化的根指纹使用随机字节，独立实例无法稳定复用；使用 CBOR 哈希函数时还会打印不可复现的警告。这不是启动错误。rc2/main 只对缺省随机的 xxhash 系列发出对应警告，SHA-256 系列的默认值已确定，不能把旧版报错判断照搬过去；也不能由没有警告推断模型与缓存身份兼容。
+- 固定旧基线没设 `PYTHONHASHSEED`：初始化的根指纹使用随机字节，独立实例无法稳定复用；使用 CBOR 哈希函数时还会打印不可复现的警告。这不是启动错误。`v0.30.0` 与 `main` 只对缺省随机的 xxhash 系列发出对应警告，SHA-256 系列的默认值已确定，不能把旧版报错判断照搬过去；也不能由没有警告推断模型与缓存身份兼容。
 - 搬运失败：固定镜像的同步加载分支只为单缓存组请求登记无效块，经 `get_block_ids_with_load_errors` 上报；采用默认 `fail` 策略时，请求以错误结束。多缓存组若出现失败块，会记录错误并跳过无效块回退；文档也明确表示，混合注意力模型尚不支持加载失败后重算。
 - 旧逐层路径打印 `Layerwise ... load wait timed out`：v0.23 和固定 GLM 镜像中是等 10 秒未完成后继续返回，不能据此认为该层已加载成功；v0.26 起的 `load not done, keep waiting` 路径会继续等并检查后台异常，两种日志对应的控制流不同。
 - `v0.30.0` 与 `main` 上：`qos_priority` 必须是 `0–4` 的整数，否则启动时 `ValueError`；Mooncake 逐层路径在早期快照 `baa023ad` 会对 `PP`/`PCP`/`DCP > 1` 或混合递推状态报 `ValueError`，到了 `v0.30.0`（`c09d3e20`）已支持 `PP > 1`（要求每阶段覆盖各缓存组）与混合递推状态，仅拒绝 `PCP > 1` / `DCP > 1` 与 P/D TP 不一致；`main`（`8d6180e2`）进一步支持互斥的 `PCP` 或 `DCP`（禁止两者同开或叠加 `enable_kvpp`，`DCP > 1` 另要求 `put_step >= dcp_size` 且拒 SWA/非 align Mamba）；非逐层时，混合缓存布局遇到两端 TP 不一致仍抛 `NotImplementedError`（strided I/O 只假设一个稠密的 KV 组）。
@@ -586,10 +586,10 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 - GLM 上段长 133,120 / 640 与 R1 可查长度为 0，是把源码规则代入部署页的块长推出来的。[D] 部署没开 KV connector 和 prefix caching，见[部署页 · 怎么开](glm-5-3-flash-two-node.md#怎么开)；每卡 8,355,840 B 引自[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)；KDA 每卡 8 个头引自主线底稿的 KDA 一节。[D]
 - 被抢占请求查池最多补回 prompt 的整段，是由查询只取 prompt 长度推出的。[I] 版本表各项对照第 30–37、41、42 项来源。
 - vLLM 处理无效块的函数只按一个缓存组取块号，对照第 22 项来源；Ascend 固定同步路径对多组跳过失败块上报见第 13、48 项，平台禁止混合模型的 recompute 策略见第 58 项。
-- rc2 的普通键与 TP 子键、保存角色、按释放请求等待和 align 条件见第 59–64 项；PP 命名空间与组校验见扩展后的第 51 项。v0.26 仍在本步等待的完整实现见第 65 项。
+- `v0.30.0`（及 `7d825229` 快照）的普通键与 TP 子键、保存角色、按释放请求等待和 align 条件见第 59–64 项；PP 命名空间与组校验见扩展后的第 51 项。`v0.26.0rc` 仍在本步等待的完整实现见第 65 项。
 - 逐层加载的等待和超时差异见第 66–70 项；等待函数返回与成功加载不能在旧版画等号。
-- 上游 MooncakeStore 两种 mode、每 rank 资源与普通 setup 调用见 71–76；4 rank × 8 GiB / 1 GiB 是教学设定，不是实测。三处 SSD 配置与 vLLM 的预算分支见 77–81，按 key 分批和单 key 超预算失败见 82–83。异步检查的实际执行位置与角色查询见 84–89，旧版与 rc2 模型/并行校验见 90–92；这些不是前文 AscendStore 的默认行为。
-- Ascend rc2 的 SDK 参数检查、NPU/协议条件、贡献内存与每 rank SSD 目录见 93–95；根种子的四版变化见 96–99，上游 Store 从块指纹拼键见 100–102。Mooncake 依赖只限定最低版本见 103；后续 SDK 的 Real Client / DummyClient、文件存储与 master 启用条件见 104–109，不将该快照当成旧 vLLM 的安装锁定。
+- 上游 MooncakeStore 两种 mode、每 rank 资源与普通 setup 调用见 71–76；4 rank × 8 GiB / 1 GiB 是教学设定，不是实测。三处 SSD 配置与 vLLM 的预算分支见 77–81，按 key 分批和单 key 超预算失败见 82–83。异步检查的实际执行位置与角色查询见 84–89，旧版与 `v0.30.0` 模型/并行校验见 90–92；这些不是前文 AscendStore 的默认行为。
+- Ascend `v0.30.0`（及 `7d825229` 快照）的 SDK 参数检查、NPU/协议条件、贡献内存与每 rank SSD 目录见 93–95；根种子的四版变化见 96–99，上游 Store 从块指纹拼键见 100–102。Mooncake 依赖只限定最低版本见 103；后续 SDK 的 Real Client / DummyClient、文件存储与 master 启用条件见 104–109，不将该快照当成旧 vLLM 的安装锁定。
 
 **实测边界：**
 

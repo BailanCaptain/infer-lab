@@ -461,6 +461,33 @@ describe("Mode B：parseAscendStartupLog 与 reconcileStartupLog", () => {
       expect(rec.hcclDoubleCounted).toBe(false);
       expect(rec.byKey.weights.status).toBe("within-interval");
       expect(rec.byKey.availableKv.likelyRootCauses.join(" ")).toContain("60.96 GiB");
+      expect(rec.overallStatus).toBe("aligned");
+    }
+
+    // Small model (Qwen3-0.6B) with u=0.90 + FULL graph on A2-64G triggers Stage 7 headroom risk warning
+    const smallFullRisk = evaluateDeployPlan({
+      model: "qwen3-0.6b",
+      cardId: "a2-64g",
+      gpuMemoryUtilization: 0.9,
+      cudagraphMode: "FULL",
+    });
+    expect(smallFullRisk.headroomStatus).toBe("risk");
+    expect(smallFullRisk.fourQuestions.q1Fit.warnings.some((w) => w.id === "calc-stage7-headroom-risk")).toBe(
+      true,
+    );
+
+    // Hybrid multi-group KV model (kvBytesPerBlock === 0) with Desired GPU memory utilization in log must NOT collapse kvTokens to 0
+    const hybridRef = SAMPLE_ASCEND_STARTUP_LOGS.find(
+      (tpl) => tpl.isReferenceTemplate && tpl.id !== "ref-qwen3-8b-a2-tp1",
+    );
+    if (hybridRef) {
+      const hybridPlan = evaluateDeployPlan(hybridRef.recommendedPlanInput);
+      const hybridParsedWithBudget = parseAscendStartupLog(
+        `${hybridRef.logText}\nINFO [worker.py:950] Free memory on device (63.60/64.00 GiB) on startup. Desired GPU memory utilization is (0.92, 58.88 GiB).`,
+      );
+      const hybridRec = reconcileStartupLog(hybridPlan, hybridParsedWithBudget);
+      expect(hybridRec.byKey.kvTokens.predictedPoint).toBeGreaterThan(100_000);
+      expect(hybridRec.byKey.kvTokens.status).toBe("within-interval");
     }
 
     const tp2 = parseAscendStartupLog(
@@ -2407,5 +2434,151 @@ describe("Wave 7 Precision & Topology Regressions (A.1–A.5)", () => {
     );
     expect(pcpBlocker?.remediation).toContain("PCP>1 强制要求 MRV2");
     expect(pcpBlocker?.remediation).not.toContain("关闭 MRV2");
+  });
+
+  it("Round-2 Polish: reconciles heterogeneous PP=2 KDA+GQA KV tokens per stage, preserves large-T activation floor, and honors expandable_segments:False", () => {
+    // 1. Heterogeneous 4 KDA + 4 GQA under PP=2: Stage 0 is pure KDA (kvBytesPerBlock=0), Stage 1 is pure GQA
+    const hybridPp2Config = {
+      model_type: "qwen3_next",
+      hidden_size: 2048,
+      intermediate_size: 5504,
+      num_hidden_layers: 8,
+      num_attention_heads: 16,
+      num_key_value_heads: 4,
+      head_dim: 128,
+      vocab_size: 151936,
+      layer_types: [
+        "linear_attention",
+        "linear_attention",
+        "linear_attention",
+        "linear_attention",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+        "full_attention",
+      ],
+      linear_num_key_heads: 16,
+      linear_key_head_dim: 128,
+      linear_num_value_heads: 16,
+      linear_value_head_dim: 128,
+      linear_conv_kernel_dim: 4,
+    };
+    const pp2Plan58 = evaluateDeployPlan({
+      model: hybridPp2Config,
+      cardId: "a2-64g",
+      tpSize: 1,
+      ppSize: 2,
+      gpuMemoryUtilization: 0.92,
+      maxModelLen: 32768,
+    });
+    // Exact ground truth when requested_memory = 56.08 GiB (= 60.96 * 0.92 -> u ≈ 0.87625 on 64 GiB card)
+    const exact56Plan = evaluateDeployPlan({
+      model: hybridPp2Config,
+      cardId: "a2-64g",
+      tpSize: 1,
+      ppSize: 2,
+      gpuMemoryUtilization: 56.08 / 64,
+      maxModelLen: 32768,
+    });
+    const pagedStage1 = pp2Plan58.fourQuestions.q2Capacity.ppStageSlices?.find((s) => s.kvBytesPerBlock > 0);
+    expect(pagedStage1).toBeDefined();
+    const expectedPointTokensAt56 = Math.floor(
+      (exact56Plan.fourQuestions.q2Capacity.totalKvTokenSlotsPoint /
+        (pp2Plan58.fourQuestions.q2Capacity.effectiveBlockSize *
+          Math.ceil(32768 / pp2Plan58.fourQuestions.q2Capacity.effectiveBlockSize))) *
+        32768,
+    );
+    const parsedShiftedBudget = parseAscendStartupLog(
+      [
+        "INFO [worker.py:950] Free memory on device (60.58/60.96 GiB) on startup. Desired GPU memory utilization is (0.92, 56.08 GiB).",
+        `INFO [kv_cache_utils.py:2396] NPU KV cache size: ${expectedPointTokensAt56.toLocaleString("en-US")} tokens, Maximum concurrency for 32,768 tokens per request: 10.0x`,
+      ].join("\n"),
+    );
+    const recHybrid = reconcileStartupLog(pp2Plan58, parsedShiftedBudget);
+    expect(recHybrid.byKey.kvTokens.predictedPoint).toBe(expectedPointTokensAt56);
+    expect(recHybrid.byKey.kvTokens.status).toBe("within-interval");
+
+    // 2. Large maxNumBatchedTokens=65536 must NOT collapse predicted nonKvOverhead low down to 15.46 GiB
+    const largeBatchPlan = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      tpSize: 1,
+      gpuMemoryUtilization: 0.85,
+      maxModelLen: 65536,
+      maxNumBatchedTokens: 65536,
+    });
+    const realTp1Log = SAMPLE_ASCEND_STARTUP_LOGS.find((t) => t.id === "real-910b3-qwen3-8b-tp1")!;
+    const recLargeBatchMismatch = reconcileStartupLog(
+      largeBatchPlan,
+      parseAscendStartupLog(realTp1Log.logText),
+    );
+    expect(recLargeBatchMismatch.byKey.nonKvOverhead.predictedLow).toBeGreaterThan(18.5);
+    expect(recLargeBatchMismatch.byKey.nonKvOverhead.status).toBe("below-interval");
+
+    // 3. Explicit expandable_segments:False disables the expandable_segments tight floor
+    const normalTp1Plan = evaluateDeployPlan(realTp1Log.recommendedPlanInput);
+    const parsedDisabledExpand = parseAscendStartupLog(
+      `INFO [env] PYTORCH_NPU_ALLOC_CONF=expandable_segments:False\n${realTp1Log.logText}`,
+    );
+    expect(parsedDisabledExpand.expandableSegmentsDisabled).toBe(true);
+    const recDisabledExpand = reconcileStartupLog(normalTp1Plan, parsedDisabledExpand);
+    expect(recDisabledExpand.byKey.nonKvOverhead.predictedLow).toBeGreaterThan(16.0);
+
+    // 4. 950dt-128g card label explicitly clarifies whitepaper 144 GB high-spec simulated tier
+    const card950 = ASCEND_CALC_CARDS.find((c) => c.id === "950dt-128g")!;
+    expect(card950.name).toContain("144 GB");
+    expect(card950.specNote).toContain("134.11 GiB");
+
+    // 5. Multi-rank allocator isolation: DP1 expandable_segments:False must NOT pollute selected Worker_DP0_TP0
+    const mixedDpLog = [
+      "(Worker_DP0_TP0 pid=1001) INFO [env] PYTORCH_NPU_ALLOC_CONF=expandable_segments:True",
+      "(Worker_DP0_TP0 pid=1001) INFO [model_runner_v1.py:4476] Loading model weights took 15.2859 GB",
+      "(Worker_DP0_TP0 pid=1001) DEBUG [worker.py:659] Memory profiling takes 49.0 seconds. Total non KV cache memory: 15.50GiB; torch peak memory increase: 0.2GiB; total consumed (from mem_get_info): 15.35GiB; weights memory: 15.29GiB.",
+      "(Worker_DP1_TP0 pid=1002) INFO [env] PYTORCH_NPU_ALLOC_CONF=expandable_segments:False",
+      "(Worker_DP1_TP0 pid=1002) DEBUG [worker.py:659] Memory profiling takes 49.0 seconds. Total non KV cache memory: 18.10GiB; torch peak memory increase: 2.1GiB; total consumed (from mem_get_info): 16.0GiB; weights memory: 15.29GiB.",
+    ].join("\n");
+    const parsedDp0 = parseAscendStartupLog(mixedDpLog, { targetRank: "Worker_DP0_TP0" });
+    expect(parsedDp0.expandableSegmentsDisabled).toBe(false);
+    expect(reconcileStartupLog(normalTp1Plan, parsedDp0).byKey.nonKvOverhead.status).toBe("within-interval");
+    const parsedDp1 = parseAscendStartupLog(mixedDpLog, { targetRank: "Worker_DP1_TP0" });
+    expect(parsedDp1.expandableSegmentsDisabled).toBe(true);
+
+    // EngineCore_DP0 logging expandable_segments:False without token metrics still propagates to Worker_DP0_TP0
+    const engineOnlyExpandLog = [
+      "(EngineCore_DP0 pid=2000) INFO [env] PYTORCH_NPU_ALLOC_CONF=expandable_segments:False",
+      "(Worker_DP0_TP0 pid=2001) INFO [model_runner_v1.py:4476] Loading model weights took 15.2859 GB",
+      "(Worker_DP0_TP0 pid=2001) DEBUG [worker.py:659] Memory profiling takes 49.0 seconds. Total non KV cache memory: 15.52GiB; torch peak memory increase: 0.2GiB; total consumed (from mem_get_info): 15.35GiB; weights memory: 15.29GiB.",
+    ].join("\n");
+    const parsedEngProp = parseAscendStartupLog(engineOnlyExpandLog);
+    expect(parsedEngProp.expandableSegmentsDisabled).toBe(true);
+    expect(reconcileStartupLog(normalTp1Plan, parsedEngProp).byKey.nonKvOverhead.status).toBe(
+      "below-interval",
+    );
+
+    // 6. Upward budget shift from clamped u=0.26 to measured u=0.35 matches fresh u=0.35 point estimate (no zero-clamp bias)
+    const clampedPlan26 = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      tpSize: 1,
+      gpuMemoryUtilization: 0.26,
+      maxModelLen: 4096,
+    });
+    const freshPlan35 = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "a2-64g",
+      tpSize: 1,
+      gpuMemoryUtilization: 0.35,
+      maxModelLen: 4096,
+    });
+    const freshKvGiB = Number((freshPlan35.fourQuestions.q2Capacity.kvPoolPointBytes / GIB).toFixed(2));
+    const parsedShift35 = parseAscendStartupLog(
+      [
+        "INFO [worker.py:950] Free memory on device (63.00/64.00 GiB) on startup. Desired GPU memory utilization is (0.35, 22.40 GiB).",
+        `INFO [worker.py:661] Available KV cache memory: ${freshKvGiB.toFixed(2)} GiB`,
+      ].join("\n"),
+    );
+    const recShift35 = reconcileStartupLog(clampedPlan26, parsedShift35);
+    expect(recShift35.byKey.availableKv.predictedPoint).toBe(freshKvGiB);
+    expect(recShift35.byKey.availableKv.status).toBe("within-interval");
   });
 });

@@ -248,7 +248,15 @@ $$\text{KV}_{\text{token}} = 2 \times L \times n_{\text{kv}} \times d_h \times \
 | 单层每 token BF16 KV cache | `4,096 B`（`2 × 8 × 128 × 2 B`） | `2,048 B`（`2 × 4 × 128 × 2 B`） |
 | 全模型每 token BF16 KV cache | **`144.0 KiB`**（`36` 层） | **`96.0 KiB`**（`48` 层） |
 
-有了这两组数字，启动前就能心里有底：哪怕不计激活与框架缓冲（详细试跑扣减见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡跑 BF16 `Qwen3-30B-A3B` 加载期就会直接 OOM（显存溢出，Out of Memory）；而跑 BF16 `Qwen3-8B` 扣完 `15.26 GiB` 权重后仍能腾出可观显存给 KV cache。下面可用快速初筛台直接对照卡数门槛：
+有了这两组数字，启动前就能先做一次并行选型初筛（完整通信与切分推导见 05 组 [张量并行 TP](tensor-parallel.md)、[数据并行 DP](data-parallel.md) 与 [专家并行 EP](expert-parallel.md)）：
+
+| 你的权重账与部署场景 | 推荐优先试的并行组合 | 背后的显存与通信原因 |
+| --- | --- | --- |
+| **单卡装得下且余量充足**（如 `64G` 卡跑 `Qwen3-8B` BF16 `15.26 GiB`） | **单卡 `TP=1`**；多卡扩吞吐优先跑多副本 **`DP`** 而非盲拉 `TP=8` | 单卡零跨卡通信；小模型盲目拉高 `TP` 会引入每层 `All-Reduce` 延迟甚至负扩展 |
+| **单卡装不下稠密模型**（如 `32G` 卡跑 `32B` 稠密权重） | 机内最小够装的 **`TP=2` 或 `TP=4`**（走机内高速互联） | 按卡数均摊权重与 `KV` 头（注意 `TP > n_kv` 时 `KV` 头会触发跨卡复制，不再省 `KV`） |
+| **稀疏混合专家模型**（如 `Qwen3-30B-A3B` BF16 `56.87 GiB`） | 多卡开启 **`--enable-expert-parallel`**（如 `TP=4+EP=4` 或 `DP=2+TP=4+EP=8`） | 路由专家按 `EP` 整份分摊到各卡，注意力层按 `DP × TP` 分组独立服务并发请求 |
+
+下面可用快速初筛台直接对照卡数门槛：
 
 ```wiki-tool
 tool: deploy-calculator
@@ -266,10 +274,10 @@ model: Qwen3-8B
 file: hf-fig-four-hidden-traps
 ```
 
-1. **`chat_template` 四级回落链**：`resolve_chat_template` 依次检查 `--chat-template` → `AutoProcessor`（未传且未开工具调用时）→ `AutoTokenizer`（读 `tokenizer_config.json` 或独立 `chat_template.jinja`）→ `vllm` 内置模型名回落模板。若四级全为空（常见于裸预训练目录），服务能正常启动，但一收到对话补全请求就会触发模板解析失败。
-2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里 `max_position_embeddings` 为 `40960`，`_get_and_verify_max_len` 仍会与 `tokenizer_config.json` 的 `model_max_length` 取较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。打包目录误填 `4096` 或 `8192` 会悄悄压低默认上限；若显式传更大的 `--max-model-len`，引擎仍会校验 `hf_config` / 衍生上限，须修正该字段，或在超限场景配合 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 放行，否则仍抛 `ValueError`。
-3. **`model.safetensors.index.json` 缺片与混合文件去重**：多片切分目录加载时，框架将 `weight_map` 记录的分片清单与磁盘扫描结果求差集；只要缺一片（如断点续传中断）立刻抛 `FileNotFoundError`。当仓库混放 `consolidated*.safetensors` 合并文件与分片文件时，vLLM 也正靠 `index.json` 剔除未入索引的重复文件避免双倍加载，切勿随意删掉索引。
-4. **`generation_config.json` 静音改写默认采样参数与追加停词**：`try_get_generation_config` 读取该文件（缺失时回落 `config.json` 提取生成字段），其中的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 会在请求未显式传参时生效（可通过请求体覆写或传 `--generation-config vllm` 切回框架默认）。而其中列出的额外 `eos_token_id` 在 `ignore_eos=False` 时会与请求 `stop_token_ids` **取并集**，单靠传入 `stop_token_ids` 无法屏蔽，须显式设 `ignore_eos=True` 或 `--generation-config vllm`（采样链路见 [sampling](sampling.md)）。
+1. **`chat_template` 四级回落链**：`resolve_chat_template` 依次检查 `--chat-template` → `AutoProcessor`（未传且未开工具调用时）→ `AutoTokenizer`（读 `tokenizer_config.json` 或独立 `chat_template.jinja`）→ `vllm` 内置模型名回落模板。若四级全为空（常见于裸预训练目录），服务虽能启动，但收到对话补全请求时就会报模板解析失败。
+2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里 `max_position_embeddings` 为 `40960`，`_get_and_verify_max_len` 仍会和 `tokenizer_config.json` 的 `model_max_length` 取较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。打包目录若误填成 `4096` 或 `8192`，就会悄悄压低默认上限；显式传更大的 `--max-model-len` 时，还须修正该字段，或在确认安全时配 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 放行，否则会抛 `ValueError`。
+3. **`model.safetensors.index.json` 缺片与混合文件去重**：多片切分目录加载时，框架拿 `weight_map` 的分片清单与磁盘文件求差集；只要缺一片（如断点续传中断）立刻抛 `FileNotFoundError`。若目录里混放了 `consolidated*.safetensors` 合并文件与分片文件，vLLM 也靠 `index.json` 剔除未入索引的重复文件，切勿随手删掉索引。
+4. **`generation_config.json` 静音改写采样与追加停词**：`try_get_generation_config` 读取该文件（缺失时回落 `config.json`）。其中的 `temperature`、`top_p`、`top_k`、`repetition_penalty` 会在请求未传参时生效，可在请求体覆写或传 `--generation-config vllm` 切回框架默认。而文件里列出的额外 `eos_token_id` 在 `ignore_eos=False` 时会与请求 `stop_token_ids` **取并集**；单靠传 `stop_token_ids` 屏蔽不掉，须显式设 `ignore_eos=True` 或 `--generation-config vllm`（详见 [sampling](sampling.md)）。
 
 ## 对照源码
 

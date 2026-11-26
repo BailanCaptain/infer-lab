@@ -190,15 +190,15 @@ file: ascend-fa-fig-piecewise-vs-fullgraph
 
 在 `v0.30.0` 中启用 `FA3`，有三条刚性约束必须同时对齐：
 
-1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把用户手工传入的 `attention_config.backend` 重置为 `None`。触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP`，且 `--additional-config` 同时设置 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
-2. **模型与精度边界严格**：仅支持 `Atlas A2 / A3` 上的密集 MHA / GQA（`FP16` / `BF16`，固定分页块大小 `128`，已在 `Qwen3-8B` 与 `Qwen3-30B-A3B` 验证）。MLA / SFA（稀疏闪电注意力，Sparse Flash Attention）、滑动窗口（`sliding_window`）、ALiBi（线性位置偏置）、Softcapping（注意力分数软截断）与 `FP8` 量化注意力均不支持——其中 MLA/SFA 与滑窗直接抛 `ValueError`，核内不支持 RoPE 则自动回退到核外 PyTorch 原生 RoPE。
-3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数（tiling）在 **Host CPU 侧**计算，`AscendFAImpl` 前向还会对序列长度做 `.npu()` 搬运并在宿主侧求最大值。由于没有接入全图捕获任务注册（`register_task`），它**无法被录进 [ACL Graph](acl-graph.md) 整图回放**。只有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力列入分段切点（`splitting_ops`）留在图外逐次调用，而把前后的线性投影与归一化子图照常录进 ACL Graph 加速。
+1. **配置入口看 `rl_config`，不看 `--attention-backend`**：`NPUPlatform` 在配置检查阶段会把手工传入的 `attention_config.backend` 重置为 `None`。触发 `_validate_fa3_backend` 的唯一条件是未开启 `PCP`，且 `--additional-config` 同时设置 `rl_config.enabled: true` 与 `rl_config.enable_training_consistency: true`。
+2. **模型与精度边界严格**：仅支持 `Atlas A2 / A3` 上的密集 MHA / GQA（`FP16` / `BF16`，固定块大小 `128`，已在 `Qwen3-8B` 与 `Qwen3-30B-A3B` 验证）。MLA / SFA（稀疏闪电注意力）、滑动窗口（`sliding_window`）、ALiBi（线性位置偏置）、Softcapping（分数软截断）与 `FP8` 注意力均不支持。其中 MLA/SFA 与滑窗直接抛 `ValueError`，核内不支持 RoPE 则自动回退到核外 PyTorch 原生 RoPE。
+3. **图模式只支持 `PIECEWISE`（或关闭图捕获），严禁全图模式**：`flash_attn_with_kvcache` 的分块参数在 **Host CPU 侧**计算，前向还会对序列长度做 `.npu()` 搬运并在宿主侧求最大值。由于未接入全图捕获任务注册（`register_task`），它**无法录进 [ACL Graph](acl-graph.md) 整图回放**。只有显式指定 `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`，编译层才会把注意力列入切点（`splitting_ops`）留在图外调用，把前后线性层与归一化录进子图加速。
 
-> **边界与例外（`FA3` 不会自动降级全图模式）**：`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会替你自动降级。若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 当场抛出 `ValueError`；若保留含全图路径的模式，运行期捕获也会因 Host 侧 tiling 失败。
+> **边界与例外（`FA3` 不会自动降级全图模式）**：`AscendFABackend` 复用了声明 `AttentionCGSupport.ALWAYS` 的通用元数据构建器，框架不会自动降级。若配成 `FULL_DECODE_ONLY`（且未开 `enforce_eager`），`AscendFAImpl.__init__` 当场抛出 `ValueError`；保留含全图路径的模式也会在运行期因 Host 侧分块而捕获失败。
 
 ## 实测劣化剖析：页交错 KV 布局为何在 FIA 内部触发整池连续化？
 
-前面讲清了片上分块怎样免去 $N \times N$ 分数表落盘，但在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，完整档案见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）的真机采集里，普通 GQA 模型在 Eager Decode 下却暴露出一笔远超注意力计算本身的隐性 HBM 搬运税——根源正是 **KV 池按页交错排布的非连续视图** 与 **`FIA` 算子内部前置连续化** 撞在了一起：
+前面讲清了片上分块怎样免去 $N \times N$ 分数表落盘。但在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，详见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）真机采集里，普通 GQA 模型在 Eager Decode 下却暴露出一笔远超注意力计算本身的隐性 HBM 搬运税。根源正是 **KV 池按页交错排布的非连续视图** 与 **`FIA` 算子内部前置连续化** 撞在了一起：
 
 ```wiki-diagram
 file: afa-fig-kv-interleaved-contiguous-tax
@@ -206,8 +206,8 @@ file: afa-fig-kv-interleaved-contiguous-tax
 
 顺着上图从分配器到设备 kernel 逐环对账，可以看到完整因果链：
 
-1. **分配端：页交错步长 `(H, 2H)` 让 `K / V` 独立视图跨页非连续。** `AscendAttentionBackend.get_kv_cache_shape` 声明的逻辑形状是 `[2, num_blocks, block_size, kv_heads, head_dim]`。满足条件的普通 GQA 层在 `NPUModelRunner` 中分配单块共享显存，再用 `torch.as_strided` 将前两维步长设为 `(H, 2H)`（单页跨度 $H = \text{block\_size} \times \text{kv\_heads} \times \text{head\_dim}$），物理上每一页 $K$ 紧跟同页 $V$。单独取出 `kv_cache[0]`（$K$）或 `kv_cache[1]`（$V$）后，每跳下一页都要跨过对侧的 $H$ 个元素，跨页不连续。线上 `Qwen3-8B` DEBUG 日志直接印证：`shape=(2, 2064, 128, 8, 128)`、`stride=(131072, 262144, 1024, 128, 1)`、`k_contiguous=False`、`v_contiguous=False`。
-2. **执行端：Decode 阶段 `FIA` 内部按整池形状触发 2× 大 `Slice`。** 写入端先用 `ScatterPaKvCache` 按 `slot_mapping` 写入新 token；读取端 `DecodeOnly` 通过 `_get_kv_cache_view` 将整池视图压成 `[num_blocks, block_size, kv_heads * head_dim]`，连同 `block_table` 交给 `FIA`。虽然 `DeviceOperator` 的 Python 封装只在 `block_table is None` 时显式调用 `.contiguous()`，但两份 Eager Profiler 轨迹（逐条关联 `connection_id` 与 Host `Node@launch`）坐实：**有块表的 Decode 在 `aclnnInnerFusedInferAttentionScore` 内部调用了 `aclnnContiguous`（设备核 `aclnnContiguous_SliceAiCore_Slice`）**，设备顺序为 `ScatterPaKvCache → 大 Slice → 大 Slice → FusedInferAttentionScore`。块表只限制了后续注意力计算要读的有效历史，前置连续化仍无视命中块数、按整池形状把全部已分配物理块完整复制一遍（`aiv_mte2_ratio` 搬入引擎活跃占比达 `0.985 ~ 0.993`、`aiv_vec_ratio` 向量计算占比为 `0`，纯 HBM 搬运）；首个无块表 Prefill 步则未触发。
+1. **分配端：页交错步长 `(H, 2H)` 让 `K / V` 独立视图跨页非连续。** `AscendAttentionBackend.get_kv_cache_shape` 声明的逻辑形状是 `[2, num_blocks, block_size, kv_heads, head_dim]`。普通 GQA 层在 `NPUModelRunner` 中分配单块共享显存，再用 `torch.as_strided` 将前两维步长设为 `(H, 2H)`（单页跨度 $H = \text{block\_size} \times \text{kv\_heads} \times \text{head\_dim}$），物理上每一页 $K$ 紧跟同页 $V$。单独取出 `kv_cache[0]`（$K$）或 `kv_cache[1]`（$V$）后，每跳下一页都要跨过对侧的 $H$ 个元素，跨页不连续。线上 `Qwen3-8B` DEBUG 日志直接印证：`shape=(2, 2064, 128, 8, 128)`、`stride=(131072, 262144, 1024, 128, 1)`、`k_contiguous=False`、`v_contiguous=False`。
+2. **执行端：Decode 阶段 `FIA` 内部按整池形状触发 2× 大 `Slice`。** 写入端先用 `ScatterPaKvCache` 按 `slot_mapping` 写入新 token；读取端 `DecodeOnly` 通过 `_get_kv_cache_view` 将整池视图压成 `[num_blocks, block_size, kv_heads * head_dim]`，连同 `block_table` 交给 `FIA`。虽然 Python 封装只在 `block_table is None` 时显式调用 `.contiguous()`，但两份 Eager Profiler 轨迹（关联 `connection_id` 与 Host `Node@launch`）坐实：**有块表的 Decode 在 `aclnnInnerFusedInferAttentionScore` 内部调用了 `aclnnContiguous`（设备核 `aclnnContiguous_SliceAiCore_Slice`）**。设备执行顺序为 `ScatterPaKvCache → 大 Slice → 大 Slice → FusedInferAttentionScore`。块表只限制了后续注意力要读的有效历史，前置连续化仍无视命中块数、按整池形状把全部物理块复制一遍（`aiv_mte2_ratio` 达 `0.985 ~ 0.993`、`aiv_vec_ratio` 为 `0`，纯 HBM 搬运）；首个无块表 Prefill 步则未触发。
 
 两份 Eager 三步轨迹（1 步 Prefill + 2 步单 token Decode）将这笔搬运税精确钉死在设备级恒等式上：
 
@@ -218,13 +218,13 @@ file: afa-fig-kv-interleaved-contiguous-tax
 | `FIA` 真实计算核（3 步合计） vs 整池 `Slice` 归属 | `108` 次 `FIA` 核仅 **`2.356 ms`**（占父算子 `94.666 ms` 的 `2.5%`）；大 `Slice` 占 `97.5%` | `6` 次 `FIA` 核仅 **`0.145 ms`**（父算子 `108.648 ms` 中大 `Slice` 占 `108.503 ms`） |
 | 整池大 `Slice` 占 `op_statistic` 全部设备算子时间（全部 `Slice` 含小 `Slice`） | **`62.220%`**（`92,310.60 / 148,361.38 µs`；全部 290 次 `Slice` 含 146 次小 `Slice` 占 `62.463%`） | **`95.990%`**（`108,502.88 / 113,035.98 µs`；全部 18 次 `Slice` 占 `96.012%`；单视图 `8.074 GiB` 为 `8B` `0.410 GiB` 的 `19.71×`） |
 
-2 层裁剪 MoE 之所以单次 `Slice` 高达 `13.67 ms`、大 `Slice` 占到设备算子总时间的 `95.990%`（全部 `Slice` 含小 `Slice` 为 `96.012%`），是因为空闲显存全部分给仅 2 层后每层物理池暴涨至 `66,139` 块——这直接证明**整池连续化的搬运字节数与已分配总物理块数呈线性正比**（因此该 96% 级占比不能误当作 48 层真权重 MoE 的路由开销）。
+2 层裁剪 MoE 之所以单次 `Slice` 高达 `13.67 ms`、大 `Slice` 占到设备算子总时间的 `95.990%`（全部 `Slice` 含小 `Slice` 为 `96.012%`），是因为空闲显存全部分给仅 2 层后每层物理池暴涨至 `66,139` 块。这直接证明**整池连续化的搬运字节数与已分配总物理块数呈线性正比**（因此该 96% 级占比不能误当作 48 层真权重 MoE 的路由开销）。
 
 这一机制与线上观测相互印证，同时也必须严格区分**已实测事实**与**待验证条件假设**：
 
-- **固定 `TP=1` 提升并发时的批内摊销现象与条件解释：** 线上 `Qwen3-8B` `TP=1`（`u=0.85`，运行期实测 KV 使用率仅 `0.8%`）从 `c=1` 提到 `c=16` 时，单请求 `TPOT` 仅从 `78.54 ms` 微增至 `80.77 ms`（**`+2.23 ms / +2.84%`**），整批吞吐却从 `12.73` 跃升至 **`195.28 tok/s`（`15.3×`）**。批内各并发请求会共享权重读取及步级固定开销；**若**线上 `FULL` 图确实重放了与 Eager 相同的整池 KV 连续化（待线上设备时间线验证的条件假设），该整池复制同样按步按层执行一次并在批内摊销，这与上述近乎平坦的 `TPOT` 平台期相吻合。
-- **线上 `FULL` 图的强条件假设边界：** 线上服务日志确认单请求 Decode 实际运行的是 `FULL` 图（`npu_fused_infer_attention_score.out` 在 `graph_task_group` 内捕获并重放），排除了“每层注意力因分段图退回 Host”的旧猜测。**若**图内重放同等整池连续化且保持 Eager 有效带宽（`1.372 TB/s`），按线上 `2,064` 块（`36.28 GiB`）条件外推每步约 **`56.77 ms`**（相当于实测 `78.54 ms` TPOT 的 `72.3%`）；在固定 `u=0.85` 扩 `TP=1→8` 时，权重腾出的显存自动回填 KV 池，使每卡本地池反从 `36.28` 涨至 `49.27 GiB`、条件外推复制耗时从 `56.77` 增至 `77.09 ms`，与负 TP 扩展趋势相吻合（详见 [Tensor Parallel 负扩展剖析](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)）。必须强调：因当前采集包缺少同配置 `FULL` 回放的设备 kernel 时间线，线上 `FULL` 是否触发整池拷贝、批内整池拷贝是否实际发生以及 `56.77 → 77.09 ms` 的时延份额均属于**待线上设备时间线验证的条件假设**，不能写成已测得的线上定论。
-- **版本边界与连续布局对照：** 固定 `main`（`8d6180e2`）对普通非 PA 注意力层依然保留单块共享显存与页步长 `as_strided` 视图，不能推定升级到该提交即可自动消除拷贝税。源码中存在连续 K/V 分配分支（`requires_contiguous_pa_kv_cache`），但对 128 维头的普通层须同时满足 `A2/A3` 硬件、无投机解码、`FULL_DECODE_ONLY` 与匹配批长的 `pa_shape_list`（默认为空），单改图模式不会自动切到连续 `PA` 布局。
+- **固定 `TP=1` 提升并发时的批内摊销现象与条件解释：** 线上 `Qwen3-8B` `TP=1`（`u=0.85`，运行期实测 KV 使用率仅 `0.8%`）从 `c=1` 提到 `c=16` 时，单请求 `TPOT` 仅从 `78.54 ms` 微增至 `80.77 ms`（**`+2.23 ms / +2.84%`**），整批吞吐却从 `12.73` 跃升至 **`195.28 tok/s`（`15.3×`）**。批内各并发请求会共享权重读取及步级固定开销。**若**线上 `FULL` 图确实重放了与 Eager 相同的整池 KV 连续化（待线上设备时间线验证的条件假设），该整池复制同样按步按层执行一次并在批内摊销，与上述近乎平坦的 `TPOT` 平台期吻合。
+- **线上 `FULL` 图的强条件假设边界：** 线上服务日志确认单请求 Decode 实际运行的是 `FULL` 图（`npu_fused_infer_attention_score.out` 在 `graph_task_group` 内捕获并重放），排除了“每层注意力因分段图退回 Host”的旧猜测。**若**图内重放同等整池连续化且保持 Eager 有效带宽（`1.372 TB/s`），按线上 `2,064` 块（`36.28 GiB`）条件外推每步约 **`56.77 ms`**（相当于实测 `78.54 ms` TPOT 的 `72.3%`）。固定 `u=0.85` 扩 `TP=1→8` 时，权重腾出的显存回填 KV 池，使每卡本地池从 `36.28` 涨至 `49.27 GiB`、条件外推复制耗时从 `56.77` 增至 `77.09 ms`，与负 TP 扩展趋势吻合（详见 [Tensor Parallel 负扩展剖析](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)）。必须强调：因当前采集包缺少同配置 `FULL` 回放的设备 kernel 时间线，线上 `FULL` 是否触发整池拷贝、批内整池拷贝是否实际发生以及 `56.77 → 77.09 ms` 的时延份额均属于**待线上设备时间线验证的条件假设**，不能写成已测得的线上定论。
+- **版本边界与连续布局对照：** 固定 `main`（`8d6180e2`）对普通非 PA 注意力层依然保留单块共享显存与页步长 `as_strided` 视图，不能推定升级到该提交即可自动消除拷贝税。源码中虽有连续 K/V 分配分支（`requires_contiguous_pa_kv_cache`），但对 128 维头的普通层须同时满足 `A2/A3` 硬件、无投机解码、`FULL_DECODE_ONLY` 与匹配批长的 `pa_shape_list`（默认为空），单改图模式不会自动切到连续 `PA` 布局。
 
 ## 常见误解
 

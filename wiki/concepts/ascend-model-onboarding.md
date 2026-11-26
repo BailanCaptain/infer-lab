@@ -20,6 +20,8 @@ aliases:
   - Discontinued Models
   - 权重选型
   - ModelRegistry
+  - 昇腾支持哪些模型
+  - 新模型怎么上线
 chapters:
   - '01'
 order: 3
@@ -182,6 +184,8 @@ file: onboarding-fig-recipes-funnel
 | `Hy4-preview.md` | `Hy4-preview`（实验支持 `🔵`，770B/49B MoE） | **仅 Atlas A3**（`W8A8` + `--quantization ascend`）；A2 不支持 | **需专属镜像 / 代码未进 `v0.30.0` 正式包**（原文写 `supporting code has not yet been merged`，仅支持 `vllm-ascend:hy4-a3`，暂不支持源码安装） |
 | `Kimi-K3.md` | `Kimi-K3`（KDA + MLA + LatentMoE + MoonViT） | `v0.30.0` 验证支持 950DT、A3、A2（`W4A8`，支持 DSpark） | `v0.30.0` 正式标准镜像 |
 
+> **表内架构与权重量化代号速查**：`W8A8SC-310` 指面向 `310P` 的权重稀疏压缩量化包；`KDA` 为每步只维护定长状态的门控线性注意力；`QSA` 与 `CSA2` 均为只挑选高相关历史位置的稀疏注意力变体；`CED` 为前半层生成全局共享 KV、后半层复用的跨层编解码结构；`LatentMoE` 指先压入低维潜空间再进路由专家的混合专家层。
+
 #### 2. 多模态视觉（VLM）、语音（ASR）与嵌入（Embedding）模型（9 篇）
 
 > 多模态视觉语言模型（VLM）的图像/视频预处理与跨模态合并详见 [多模态推理](multimodal-inference.md)；语音转写（ASR）与非自回归嵌入（Embedding）池化路径详见 [Pooling 与非自回归推理](pooling-and-non-ar.md)。
@@ -208,9 +212,9 @@ file: onboarding-model-registry-routing
 
 把这三条路径分清，就能解释为什么“有的新模型一发布就能直接跑，有的却必须等 `vllm-ascend` 发新版本”：
 
-- **路径 A（上游 `vllm` 原生内置）**：`Qwen3-8B`（`Qwen3ForCausalLM`）与 `Qwen3-30B-A3B`（`Qwen3MoeForCausalLM`）的模型定义已在上游 `_TEXT_GENERATION_MODELS` 中，`vllm_ascend/models/` 无需重写同名类。它们能在昇腾直接跑，靠的是 `NPUPlatform` 在插件发现阶段接入注意力后端、自定义算子与平台契约（见 [插件发现与模型注册](platform-plugin-registration.md)、[NPUPlatform](npu-platform.md) 与 [vLLM 平台接口](vllm-platform-interface.md)）。
-- **路径 B（`vllm-ascend` 专有注册或覆写）**：`setup.py` 通过 `ascend_model = vllm_ascend:register_model` 向 `ModelRegistry` 注册了 `29` 个架构名。一方面接入上游尚未内置或高度定制的昇腾实现（如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 及草稿模型）；另一方面**故意覆写上游同名条目**，例如把 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration` 替换为 NPU 执行图像 resize/patchify 与归一化的实现。
-- **路径 C（`transformers` 回退与配置微调）**：若架构名不在两仓注册表中且处于常规生成路径，默认 `--model-impl auto` 会经 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可传 `--model-impl transformers` 强制指定）。仓库带 `auto_map` 自定义建模文件时须加 `--trust-remote-code`；若兼容变体只是换了架构名，可用 `--hf-overrides '{"architectures":["..."]}'` 运行时改名验证。
+- **路径 A（上游 `vllm` 原生内置）**：`Qwen3-8B`（`Qwen3ForCausalLM`）与 `Qwen3-30B-A3B`（`Qwen3MoeForCausalLM`）的模型类已在上游 `_TEXT_GENERATION_MODELS` 中，`vllm_ascend/models/` 无需重写同名类。它们能在昇腾直接跑，靠的是 `NPUPlatform` 在插件发现期自动接入昇腾注意力后端、自定义算子与平台契约（见 [插件发现与模型注册](platform-plugin-registration.md)、[NPUPlatform](npu-platform.md) 与 [vLLM 平台接口](vllm-platform-interface.md)）。
+- **路径 B（`vllm-ascend` 专有注册或覆写）**：`setup.py` 通过 `ascend_model = vllm_ascend:register_model` 向 `ModelRegistry` 注册了 `29` 个架构名。一类是上游尚未内置或高度定制的昇腾实现（如 `DeepseekV4*`、`DeepseekV41*`、`Glm5Next*`、`KimiLinearForCausalLM`、`KimiK3*`、`MiniMaxM3Sparse*`、`Gemma4ForConditionalGeneration` 及草稿模型）。另一类是**主动覆写上游同名条目**，例如把 `Qwen3_5ForConditionalGeneration` 与 `Qwen3_5MoeForConditionalGeneration` 替换为在 NPU 上做图像缩放、切块与归一化的实现。
+- **路径 C（`transformers` 回退与配置微调）**：若架构名不在两仓注册表中且走常规生成路径，默认 `--model-impl auto` 会经 `_try_resolve_transformers` 回退到 HuggingFace `transformers` 后端（也可传 `--model-impl transformers` 强制指定）。仓库带 `auto_map` 自定义建模文件时须加 `--trust-remote-code`；若兼容变体只是改了架构名，可用 `--hf-overrides '{"architectures":["..."]}'` 在内存中改名验证。
 
 ## 第四关：权重格式怎么选？不同卡型在加载期会做什么转换
 
@@ -235,11 +239,11 @@ file: onboarding-plate-weight-fork
 
 越来越多开源模型直接以原生分块 `FP8`（每块权重存成 1 字节 `float8_e4m3fn` 配一个 `float32` 块缩放系数）发布。初学者常误以为磁盘文件只有 `BF16` 一半大，放到 **Atlas A2 / A3** 上也能省一半 **显存（HBM）**。在 `v0.30.0` 里这是危险误判，源码按硬件代际分成了三条路：
 
-- **在 `Ascend 950（is_950() 为真）` 上**：`fp8_block.py` 在加载后处理（`process_weights_after_loading`）会先解出分块权重，再在线重分组量化为 **MXFP8**（每元素仍占 `1` 字节，配 `E8M0` 微缩放系数，走原生 `FP8` 矩阵乘）。只有两处局部回退 `model_dtype`（通常 `BF16`）：一是被注意力后端吸收的 MLA `kv_b_proj` 层，二是输入维 `in_features` 不能被 `32` 整除的线性层。
-- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：`fp8_block.py` 调用 `resolve_block_scales()`，在加载期把分块 `FP8` 权重**静默反量化回 `model_dtype`（通常 `BF16`）**，再走 `BF16` 矩阵乘。计算结果等价，但驻留显存权重直接翻倍到约 **2 字节/参数**。
-- **在 `Atlas 300I DUO（310P）` 上**：硬件能力档案将 `quantization_backend_family` 设为 `COMPATIBILITY`，`NPUPlatform` 只导入 `AscendModelSlimConfig310` 而**不注册 `AscendFp8Config`**，不支持加载原生 `FP8`。在 `310P` 上应选浮点权重配 `--dtype float16`，或专用 `W8A8-310P` 量化权重。
+- **在 `Ascend 950（is_950() 为真）` 上**：`fp8_block.py` 在加载后处理（`process_weights_after_loading`）先解出分块权重，再在线重组为 **MXFP8**（每元素仍占 `1` 字节，配 `E8M0` 微缩放系数，走原生 `FP8` 矩阵乘）。只有两处局部回退 `model_dtype`（通常 `BF16`）：一是被注意力后端吸收的 MLA `kv_b_proj` 层，二是输入维 `in_features` 不能被 `32` 整除的线性层。
+- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：`fp8_block.py` 调用 `resolve_block_scales()`，在加载期把分块 `FP8` 权重**静默反量化回 `model_dtype`（通常 `BF16`）**，再走 `BF16` 矩阵乘。计算结果等价，但卡上驻留权重直接翻倍到约 **2 字节/参数**。
+- **在 `Atlas 300I DUO（310P）` 上**：硬件档案将量化后端族设为 `COMPATIBILITY`，`NPUPlatform` 只导入 `AscendModelSlimConfig310` 而**不注册 `AscendFp8Config`**，不支持加载原生 `FP8`。在 `310P` 上应选浮点权重配 `--dtype float16`，或专用 `W8A8-310P` 量化权重。
 
-举个最小示意账（仅作容量估算示意，不含 KV cache（保存历史位置中间表示的缓存）、图模式工作区与分段冗余）：一份磁盘约 30 GB 的 30B 级原生分块 `FP8` 权重，放到 `950DT` 上重排成 `MXFP8` 后驻留权重仍接近 30 GB（1 字节/参数加少量缩放系数）。放到 `Atlas A2 / A3` 加载后则会膨胀到约 60 GB（2 字节/参数）；若总可用显存未按 `BF16` 翻倍预留，显存探测阶段就会直接溢出失败。
+举个最小示意账（仅看纯权重容量，不含 KV cache、图工作区与分段冗余）：一份磁盘约 `30 GB` 的 30B 级原生分块 `FP8` 权重，放到 `950DT` 上重排成 `MXFP8` 后驻留仍接近 `30 GB`。但放到 `Atlas A2 / A3` 加载后会膨胀到约 `60 GB`；若总可用显存未按翻倍预留，显存探测阶段就会直接溢出失败。
 
 ## 拿 `Qwen3-8B` / `Qwen3-30B-A3B` 走一遍最小上线检查单
 

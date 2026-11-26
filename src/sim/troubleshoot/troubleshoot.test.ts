@@ -48,6 +48,10 @@ const REGISTERED_DEEPLINK_PAGE_IDS = new Set([
   "kv-cache-quantization",
   "cann-hccl",
   "moe",
+  "sleep-mode",
+  "tensor-layout",
+  "inference-performance-troubleshooting",
+  "ascend-910b3-measured-baseline",
 ]);
 
 describe("Panel A — Multi-Rank First-Fault Rank & Rule Diagnostics", () => {
@@ -169,10 +173,18 @@ describe("Panel A — Multi-Rank First-Fault Rank & Rule Diagnostics", () => {
     const sleepNz = analyzeTroubleshootInput(getTroubleshootFixture("real-910b3-sleep-nz-wakeup").content);
     expect(sleepNz.findings.map((f) => f.ruleId)).toContain("sleep-mode-fractal-nz-wakeup");
     const sleepFinding = sleepNz.findings.find((f) => f.ruleId === "sleep-mode-fractal-nz-wakeup");
+    expect(sleepFinding?.wikiPageIds[0]).toBe("sleep-mode");
+    expect(sleepFinding?.wikiPageIds).toContain("tensor-layout");
     expect(sleepFinding?.mechanism).toContain("utils.py#L373-L386");
     expect(sleepFinding?.mechanism).toContain("并不转 NZ");
     expect(sleepFinding?.sources).toContain("vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L279-L286");
     expect(sleepFinding?.sources).toContain("vllm-ascend@c09d3e20:vllm_ascend/utils.py#L373-L386");
+
+    // Client-side Exception wrapper from measure_sleep_mode.py also matches sleep-mode-fractal-nz-wakeup
+    const clientWakeErr = analyzeTroubleshootInput(
+      "Exception: Call to wake_up method failed: FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios.",
+    );
+    expect(clientWakeErr.findings.map((f) => f.ruleId)).toContain("sleep-mode-fractal-nz-wakeup");
 
     const pdFixture = getTroubleshootFixture("real-910b3-pd-mooncake-config");
     expect(pdFixture.summary).toContain("双故障组合诊断样例");
@@ -217,9 +229,67 @@ describe("Panel A — Multi-Rank First-Fault Rank & Rule Diagnostics", () => {
       "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L571-L586",
     );
 
-    // ASCII hyphen variant also triggers soc-310p-or-c8-compat without false positives
+    // ASCII hyphen variant and stripped-backtick variant also trigger soc-310p-or-c8-compat pointing to kv-cache-quantization / quantization
+    expect(err3Report.findings[0]?.wikiPageIds.slice(0, 2)).toEqual([
+      "kv-cache-quantization",
+      "quantization",
+    ]);
     const asciiErr3 = analyzeTroubleshootInput(err3Fixture.content.replaceAll("\u2011", "-"));
     expect(asciiErr3.findings.map((f) => f.ruleId)).toEqual(["soc-310p-or-c8-compat"]);
+    const strippedBacktickErr3 = analyzeTroubleshootInput(
+      "ValueError: KV quantization is configured via --kv-cache-dtype upon service startup, and the corresponding quantized weights are required.",
+    );
+    expect(strippedBacktickErr3.findings.map((f) => f.ruleId)).toEqual(["soc-310p-or-c8-compat"]);
+  });
+
+  it("diagnoses 910B3 Mooncake ADXL endpoint fallback warnings and VLLM_LOGGING_LEVEL=DEBUG hot-path TTFT tax without hijacking first-fault rank", () => {
+    const adxlFixture = getTroubleshootFixture("real-910b3-mooncake-adxl-fallback");
+    const adxlReport = analyzeTroubleshootInput(adxlFixture.content);
+    expect(adxlReport.findings.map((f) => f.ruleId)).toEqual(["mooncake-adxl-endpoint-fallback"]);
+    expect(adxlReport.firstFaultVerdict.rank).toBeNull();
+    const adxlFinding = adxlReport.findings[0]!;
+    expect(adxlFinding.severity).toBe("warn");
+    expect(adxlFinding.wikiPageIds).toContain("mooncake-connector");
+    expect(adxlFinding.wikiPageIds).toContain("pd-disaggregation");
+    expect(adxlFinding.summary).toContain("命中 4 行");
+    expect(adxlFinding.sources).toContain(
+      "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058",
+    );
+
+    const debugFixture = getTroubleshootFixture("real-910b3-debug-logging-ttft");
+    const debugReport = analyzeTroubleshootInput(debugFixture.content);
+    expect(debugReport.findings.map((f) => f.ruleId)).toEqual(["debug-logging-hotpath-overhead"]);
+    expect(debugReport.firstFaultVerdict.rank).toBeNull();
+    const debugFinding = debugReport.findings[0]!;
+    expect(debugFinding.severity).toBe("warn");
+    expect(debugFinding.wikiPageIds[0]).toBe("inference-performance-troubleshooting");
+    expect(debugFinding.sources).toContain("vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778");
+    expect(debugFinding.sources).toContain(
+      "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L275-L282",
+    );
+
+    // Healthy INFO warmup summary (without DEBUG colons) and benchmark note "without VLLM_LOGGING_LEVEL=DEBUG" must NOT false-positive
+    const healthyWarmupSummary = [
+      "(Worker_TP0 pid=35438) INFO 11-23 02:25:38 [worker.py:950] After warmup: torch reserved memory 54.21 GiB, torch allocated memory 51.22 GiB.",
+      '{"note": "Clean production latency without VLLM_LOGGING_LEVEL=DEBUG per-step overhead"}',
+    ].join("\n");
+    expect(analyzeTroubleshootInput(healthyWarmupSummary).findings).toEqual([]);
+
+    // When mixed with a real crash on Rank 3, Rank 0 DEBUG hot-path or ADXL warning never steals First-Fault Rank
+    const mixedWarnAndCrash = [
+      "(Worker_TP0 pid=35438) DEBUG 11-23 02:25:45 [worker.py:768] torch reserved memory: 54.21 GiB, torch allocated memory: 51.22 GiB",
+      "W1123 02:25:46.100000 7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+      "(Worker_TP3 pid=35441) ERROR 11-23 02:25:47 [worker.py:510] RuntimeError: NPU out of memory. Tried to allocate 1.80 GiB on NPU 3",
+    ].join("\n");
+    const mixedReport = analyzeTroubleshootInput(mixedWarnAndCrash);
+    expect(mixedReport.firstFaultVerdict.rank).toBe(3);
+    expect(mixedReport.findings.map((f) => f.ruleId)).toEqual(
+      expect.arrayContaining([
+        "oom-stage-split",
+        "mooncake-adxl-endpoint-fallback",
+        "debug-logging-hotpath-overhead",
+      ]),
+    );
   });
 
   it("P2-5 & P2-6(b): scopes OOM stage to same-process stack, ignores healthy weight_nz_mode=0, prioritizes explicit HCCL fault codes over config exclusion, and restores line numbers across omission markers", () => {

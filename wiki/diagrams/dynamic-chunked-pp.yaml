@@ -590,6 +590,16 @@
       ]
     }
   ],
+  "pins": [
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205",
+      "symbols": ["fit_chunk", "nnls", "quadratic_chunk_a", "linear_chunk_b", "constant_chunk_c"]
+    },
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1407",
+      "symbols": ["ProfilingChunkAsyncScheduler", "ProfilingChunkScheduler"]
+    }
+  ],
   "layout": "figure",
   "id": "dynamic-chunked-pp"
 }

@@ -2,7 +2,6 @@
 id: enable-super-kernel-ce990e186bfa
 legacyAnchors:
   一句话: 它优化什么，和前两级开关是什么关系？
-  事实表: 对照源码
   为什么存在: 在哪两步生效，为什么写了 true 却没开？
   开了的代价: 启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？
 title: enable_super_kernel
@@ -138,11 +137,11 @@ rawSources:
 ---
 ## 它优化什么，和前两级开关是什么关系？
 
-`enable_super_kernel` 是 [AscendConfig](../concepts/ascend-config-system.md) 下 `ascend_compilation_config` 中的第三级图编译优化开关（[kernel](../concepts/ops-and-kernels.md) 指一个算子在设备上运行的程序）。前两级先把计算图交给昇腾图编译器，再按固定批次形状把算子编译成静态二进制。
+`enable_super_kernel` 是 `--additional-config` 下 `ascend_compilation_config` 子字典中的**第三级图编译优化开关**（[kernel](../concepts/ops-and-kernels.md) 指算子在 NPU 上执行的底层程序）。当你在 Atlas A2 / A3 等支持 `NPUGRAPH_EX` 的设备上跑 `FULL` 或 `FULL_DECODE_ONLY` 整图模式、并且愿意承受静态算子预编译带来的启动等待以进一步压低 Decode 逐算子下发开销时，才会用到这一级；若追求快速拉起服务，或使用默认 `FULL_AND_PIECEWISE` 分段图模式，则不要开启 `enable_static_kernel` 与本开关。
 
-开启 `enable_super_kernel` 后，底层会在已编译的静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为一个更大的 Super Kernel 并按依赖关系自动插入内部同步，目的是减少逐个算子下发和调度的等待开销。不兼容的算子会把融合范围截成多段，它不保证整张网最终只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
+在前两级先把计算图交给昇腾图编译器（`enable_npugraph_ex`）、再按固定批次形状预编译静态算子二进制（`enable_static_kernel`）之后，开启 `enable_super_kernel` 会在静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为更大的 Super Kernel 并按依赖自动插入内部同步。不兼容的算子会把融合范围截成多段，它不保证整张网只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
 
-它是**跟随式开关**：配置里只开 `enable_static_kernel` 而省略 `enable_super_kernel` 时，它会自动跟随变为 `true`。同时开启它硬性要求同时开启 `enable_static_kernel`（后者又要求开启 `enable_npugraph_ex`）。三级开关的层次关系如下：
+最容易踩坑的是它的**省略跟随规则**：配置里只写 `"enable_static_kernel": true` 而省略 `enable_super_kernel` 时，它会自动跟随变为 `true`；同时开启它硬性要求 `enable_static_kernel` 为真（后者又要求 `enable_npugraph_ex` 为真）。三级开关的层次关系如下：
 
 | 级别与配置键 | 做什么 | 默认行为与依赖 |
 | --- | --- | --- |
@@ -150,13 +149,26 @@ rawSources:
 | 第二级：`enable_static_kernel` | 图捕获时按固定批次形状预编译静态算子二进制 | 默认 `false`；开启时要求 `enable_npugraph_ex` 为真 |
 | 第三级：`enable_super_kernel` | 在静态算子二进制上合并符合条件的子 kernel 并插入同步 | 省略时跟随 `enable_static_kernel`；开启时要求 `enable_static_kernel` 为真 |
 
-如果只想开启静态算子、单独关掉 Super Kernel，必须在 JSON 里显式写布尔值 `"enable_super_kernel": false`（若省略这一项，它会跟随 `enable_static_kernel` 自动变为 `true`，见[线上配置文档](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)）。下面给出在官方示例基础上补齐图模式的**配置形式示例**（实际可用仍需对应版本、模型图模式与支持 `NPUGRAPH_EX` 的硬件配合，本工作区无 NPU 实机执行验证）：
+如果只想开启静态算子、单独关掉 Super Kernel 做排障或耗时对照，必须在 JSON 里显式写布尔值 `"enable_super_kernel": false`（见[线上配置文档](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)）。下面以 `v0.30.0` 主线标准模型 `Qwen/Qwen3-8B` 给出补齐整图模式的**配置形式示例**（实际可用仍需对应版本、模型图模式与支持 `NPUGRAPH_EX` 的硬件配合，本工作区无 NPU 实机执行验证）：
 
 ```bash
-vllm serve Qwen/Qwen2-7B-Instruct \
+vllm serve Qwen/Qwen3-8B \
   --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \
   --additional-config '{"ascend_compilation_config":{"enable_npugraph_ex":true, "enable_static_kernel":true, "enable_super_kernel":false}}'
 ```
+
+## 事实表
+
+启动前可按以下核心事实快速核对本开关的生效门槛与跨版本差异：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 配置路径与类型 | `additional_config["ascend_compilation_config"]["enable_super_kernel"]`（`bool`） | 嵌套在 `ascend_compilation_config` 内；写在顶层会被 `v0.30.0` 严格校验直接拒收 |
+| 默认值与 `null` 行为 | 静态默认 `False`，省略且传了 `enable_static_kernel` 时自动跟随其值 | `v0.30.0` / `main` 显式传 `null` 会报错（`v0.26` 传 `null` 仍跟随）；字符串 `"false"` 在 `v0.30.0` 宽松转 `False`（`v0.26` 非空判真） |
+| 硬前置条件 | `enable_npugraph_ex=true` + `enable_static_kernel=true` + 整图捕获（`FULL` / `FULL_DECODE_ONLY`） | 缺 `enable_static_kernel` 直接触发断言报错；`NONE` 或默认 `FULL_AND_PIECEWISE` 会将三级开关全写回 `False` |
+| 硬件能力门槛 | 需硬件画像具备 `HardwareCapability.NPUGRAPH_EX`（如 Atlas A2 / A3） | 310P 等不支持硬件打印 `current hardware profile` 告警并将三级开关自动降级为 `False` |
+| 启动与缓存代价 | 强绑定 `enable_static_kernel` 的分钟级预编译，且参与编译缓存 SHA-256 哈希 | 切换本开关会改变缓存键；单独测 Super Kernel 增量必须固定 `enable_static_kernel=true` 对照 |
+| 版本可用性 | `v0.26.0rc`（维护快照）、`v0.30.0`、`main` 有；`v0.23.0` 与早期 `v0.26.0rc1`/`v0.27.1rc1` 标签无 | `v0.23.0` 与 GLM 镜像 `db701c1f` 经 `**kwargs` 静默忽略，不会生效 |
 
 ## 在哪两步生效，为什么写了 true 却没开？
 
@@ -183,7 +195,7 @@ file: param-enable-super-kernel
 
 ## 启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？
 
-- **启动编译耗时要分清 `static_kernel` 与 `super_kernel` 的归属**：有效开启 `enable_super_kernel` 必须同时开启 `enable_static_kernel`。官方文档提示启动图捕获阶段可能因算子数量与模型复杂度多花**几分钟到几十分钟**，这段时间描述的是 `enable_static_kernel` 按批次形状编译静态算子二进制的开销，不能算成 `enable_super_kernel` 单独增加的耗时，也不是任何模型的固定保证值。要测量 Super Kernel 自己的真实增量，必须固定 `enable_static_kernel=true`、只切换 `enable_super_kernel`，对比启动耗时、实际融合数量与吞吐时延；本仓库尚无这组设备实测对照。
+- **启动编译耗时要分清 `static_kernel` 与 `super_kernel` 的归属**：有效开启 `enable_super_kernel` 必须同时开启 `enable_static_kernel`。官方文档提示启动图捕获阶段的静态编译耗时随算子数量与模型复杂度增长，常见为**几分钟到几十分钟**，这段时间描述的是 `enable_static_kernel` 按批次形状编译静态算子二进制的开销，不能算成 `enable_super_kernel` 单独增加的耗时，也不是任何模型的固定保证值。要测量 Super Kernel 自己的真实增量，必须固定 `enable_static_kernel=true`、只切换 `enable_super_kernel`，对比启动耗时、实际融合数量与吞吐时延；本仓库尚无这组设备实测对照。
 - **切换开关会改变编译缓存键**：`AscendCompiler.compute_hash` 把 `torch_npu_version` 与 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel` 一起算进缓存键（取 SHA-256 前 10 位）。开启与关闭对应不同的缓存键，不能直接共用同一份缓存条目；但如果目标缓存键下已有可用缓存，是否命中由后续缓存读取逻辑决定——切换开关不等于清空已有缓存，也不代表每次切换都必须重跑完整编译时间。
 - **放到固定 GLM 双机部署：当前镜像没有这个键**：固定双机镜像 `db701c1f` 的 `AscendCompilationConfig.__init__` 没有 `enable_super_kernel` 参数，写进 JSON 只会被未使用的 `**kwargs` 静默收下，不会启用该功能。即使升级到包含该键的新版本，也还须逐项核对 GLM 专用模型实现、量化、runner、配套 `CANN`/`torch_npu`、图模式与算子支持，不能认为“只要换版本再打开 `enable_static_kernel` 就一定能跑”；固定教程里的 `FULL_DECODE_ONLY` 只说明其配置写法避开了上面的 piecewise 关闭分支，不构成升级后的兼容性证明，也不能把主线局部算子融合的数字当成这项优化的收益。
 

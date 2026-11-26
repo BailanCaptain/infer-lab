@@ -2,7 +2,6 @@
 id: sfa-dcp-force-tmajor-restore-6d9c266d3ece
 legacyAnchors:
   一句话: 它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化
-  事实表: 对照源码
   为什么存在: 为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？
   开了的代价: 额外复制量怎么算、PCP+DCP 与 GLM 双机边界
   源码位置: 对照源码
@@ -183,16 +182,38 @@ rawSources:
 ---
 ## 它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化
 
-`sfa_dcp_force_tmajor_restore` 是一个**布局对照 / 回退开关**（`bool`，默认 `False`），不是开启 DCP（decode context parallel，解码期上下文并行；历史位置如何分卡存储见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）的开关。
+`sfa_dcp_force_tmajor_restore` 是 `--additional-config` 顶层的**张量布局对照 / 回退开关**（`bool`，默认 `False`，`v0.30.0` 与 `main` 可用），**不是**开启 DCP（decode context parallel，解码期上下文并行；历史位置如何分卡存储见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）的主开关。常规线上服务**保持默认 `false` 不要改动**；只有当你在支持 LightningIndexer 的 [SFA（稀疏注意力）](../concepts/sparse-attention.md) 模型（如 DeepSeek-V3.2，不含普通稠密 `Qwen3-8B` 或带 `index_kpool` 的 GLM）上启用 `--decode-context-parallel-size > 1`，需要排查纯 Decode 阶段跨步张量视图（strided view）是否引发精度偏差或 kernel 退化时，才临时设为 `true` 做对照实验（以下仅展示配置形式，本工作区无 NPU 实机执行验证）：
 
-在 [SFA（稀疏注意力）](../concepts/sparse-attention.md)-DCP 的普通解码 query 汇聚路径中，通信缓冲以 head 为第一维（head-major），而注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。汇聚收回后转回 t-major 有两条分支：
+```bash
+vllm serve /models/DeepSeek-V3.2 \
+  --tensor-parallel-size 8 \
+  --decode-context-parallel-size 2 \
+  --additional-config '{"sfa_dcp_force_tmajor_restore": true}'
+```
 
-- **默认 `false`（优化路径）**：消费处将开关取反传入 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 得到共享原存储的 strided view（带跨步的非连续张量视图，也可能恰好连续），直接交给 `torch.split` 拆成 `ql_nope` 与 `q_pe`，两步均不复制数据。
+先抓一句话物理直觉：**跨多张卡切分历史 KV 时，拼回查询头之后默认只改维度步长（视图重排）而不真正搬动内存；只有怀疑这种非连续视图在特定算子上引起精度或性能异常时，才打开本开关强制重排出一份连续内存做对照。**
+
+在 SFA-DCP 的普通解码 query 汇聚路径中，通信缓冲以 head 为第一维（head-major），而注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。汇聚收回后转回 t-major 有两条分支：
+
+- **默认 `false`（优化路径）**：消费处将开关取反传入 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 得到共享原存储的 strided view（通常为带跨步的非连续张量视图；单 token 等退化形状下步长天然连续），直接交给 `torch.split` 拆成不带旋转位置分量的 `ql_nope` 与带旋转分量的 `q_pe`，两步均不复制数据。
 - **设为 `true`（对照 / 回退路径）**：`keep_view=False`，在 `restore_perm` 非空时紧跟一次 `.contiguous()`，要求恢复后的整体张量以 `[T, H, D]` 连续存储。按 PyTorch 契约，**只有恢复视图尚不连续时才会真正分配并复制数据**；若视图本来已连续，`.contiguous()` 直接返回原张量。
 
-引入它的 PR #15970（2026-09-16，“Optimize the DCP decode query-gather layout path”）指出：交给 `npu_sparse_flash_attention` 的 query 片段经 `torch.split` 后本来就可能是带跨步视图（沿最后一维切分不保证各片段连续，即使整块缓冲连续亦然），旧写法的 `permute + contiguous` 只是顺带物化了底层 t-major 存储；本开关把那次物化保留为可选项，专供精度或性能对照实验。
+引入它的 PR #15970（2026-09-16，“Optimize the DCP decode query-gather layout path”）指出：交给 `npu_sparse_flash_attention` 的 query 片段经 `torch.split` 沿最后一维切分后本身即为带跨步视图（即使整块缓冲连续，沿最后一维拆分后的子张量也不连续），旧写法的 `permute + contiguous` 只是顺带物化了底层 t-major 存储；本开关把那次物化保留为可选项，专供精度或性能对照实验。
 
 **版本存在范围**：`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 均无此键、`enable_sfa_dcp_force_tmajor_restore()` 及 `ops/triton/query_gather_prep.py`，旧 [AscendConfig](../concepts/ascend-config-system.md) 逐键 `.get()` 静默忽略。`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）均保留此键（默认 `False`），且 `AscendConfig` 示例 docstring 收录了它（`main` 在 `kv_cache[0]` 为 `int8`/`fp8` 量化类型时改走 `_finish_dcp_packed_gather`，其余走 `_finish_dcp_gather`，两条分支都继续传入 `keep_view=not enable_sfa_dcp_force_tmajor_restore()`）；拼写错误在两版会被严格校验拒收（仅可发现 `vllm_omni` 时告警过滤未知顶层键）。
+
+## 事实表
+
+做 SFA-DCP 布局排障或对照实验前，先核对以下生效前提与绕过边界：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 配置路径与默认 | `additional_config["sfa_dcp_force_tmajor_restore"]`（`bool = False`） | 默认省去 query gather 后的 `.contiguous()` 拷贝；设 `true` 强制恢复连续 t-major 存储 |
+| 生效模型与并行条件 | 须命中 `AscendSFADCPImpl`（非 kpool 的 SFA 稀疏模型 + `DCP > 1`） | 普通稠密/GQA 模型（如 `Qwen3-8B`）、`DCP=1` 或带 `index_kpool` 的 GLM 均不会读取本键 |
+| 批次阶段限制 | 仅纯 Decode 步（`_has_prefill` 为假）进入该分支 | 混入 prefill 的批次走「汇聚完整 KV、query 留本地」路径并写死 `.contiguous()`，本键不参与 |
+| 与 `enable_dsa_cp` 关系 | 开启 DSA-CP 时沿第 0 维汇聚（`restore_perm = None`），自动跳过本键 | 同时开 DSA-CP 时设 `true` 也不会执行 `permute` 或 `.contiguous()`，且无冲突告警 |
+| 实际复制触发条件 | 仅当 `permute` 后视图非连续（如多 token `T > 1`）时分配并复制 $T \times G \times H \times D$ 元素 | 单 token（`T = 1`）等已连续形状下，`.contiguous()` 直接返回原张量、零额外拷贝 |
+| 版本可用性 | `v0.30.0`、`v0.30.0rc2`、`main` 支持；`v0.23.0`、`v0.26.0rc` 静默忽略 | `main` 新增量化 KV 的 `_finish_dcp_packed_gather` 分支，同样受本开关控制 |
 
 ## 为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？
 

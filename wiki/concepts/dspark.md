@@ -40,7 +40,7 @@ verified:
   - main
 evidence: I
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-26'
 ---
 
 **DSpark 用便宜的草稿计算猜出后续 token，再根据“这些猜测被接受的机会”和“验证要花多久”，决定每条请求这轮验证多长。** 目标是让主模型的每份计算换来更多实际输出；草稿猜得多，不代表全部验证最划算。
@@ -173,7 +173,7 @@ DeepInfer（DeepSeek 开源的参考推理引擎）的分工是：CPU 先根据�
 | Ascend V1 confidence / V2 adaptive | 所支持草稿提供的置信度，具体策略各自实现 | 可逐请求不同 |
 | 按批大小选择 K | 当前并发落在哪个配置区间 | 同一批共用 K |
 
-Ascend V1 的 DSpark 路径要求置信头，文档当前只支持 Qwen 系列草稿；DFlash 则用草稿分布的最大概率作置信代理，不额外挂置信头。V2 的 adaptive verification 要求带置信头的 DSpark，并存在[流水线并行](pipeline-parallel.md)、[上下文并行](context-parallel.md)、图模式与 [LoRA](lora.md) 限制（方法名相同不代表自动满足，开关与边界集中在页末）。
+Ascend V1 的 DSpark 路径要求草稿模型带置信头（`v0.30.0` 已注册 `Qwen3DSparkModel` 等实现，文档当前只支持 Qwen3 等 Qwen 系列草稿）；DFlash 则用草稿分布的最大概率作置信代理，不额外挂置信头。V2 的自适应验证（`adaptive verification`）同样要求带置信头的 DSpark，并受限于[流水线并行](pipeline-parallel.md)、[上下文并行](context-parallel.md)、图模式与 [LoRA](lora.md) 组合（方法名相同不代表自动满足，开关与边界集中在页末）。
 
 ## 对话变长后，还可以只限制草稿读的历史
 

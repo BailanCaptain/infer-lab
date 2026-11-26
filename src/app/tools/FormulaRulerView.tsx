@@ -1417,7 +1417,11 @@ export function FormulaRulerView({
             {RULER_U_OPTIONS.map((uVal) => (
               <option key={uVal} value={uVal.toFixed(2)}>
                 u = {uVal.toFixed(2)}
-                {Math.abs(uVal - 0.9) < 1e-6 ? " (默认)" : ""}
+                {Math.abs(uVal - 0.92) < 1e-6
+                  ? " (源码默认)"
+                  : Math.abs(uVal - 0.9) < 1e-6
+                    ? " (稳妥推荐)"
+                    : ""}
               </option>
             ))}
           </select>

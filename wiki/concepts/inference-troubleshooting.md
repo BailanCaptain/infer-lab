@@ -49,8 +49,8 @@ sources:
   - 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L508-L572'
   - 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L828'
   - >-
-    https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html
-  - 'https://docs.vllm.ai/projects/ascend/en/main/faqs.html'
+    https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html
+  - 'https://docs.vllm.ai/projects/ascend/en/latest/faqs.html'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L545'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L489-L530'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L680'

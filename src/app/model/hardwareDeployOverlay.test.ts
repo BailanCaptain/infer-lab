@@ -610,5 +610,36 @@ describe("WS2: 新增预设模型键、单卡权重/KV切分透视与单命令�
     });
     expect(overNodePlan.inputSummary.dpLocalSize).toBeUndefined();
     expect(buildCurrentPlanCliHint(overNodePlan)).not.toContain("--data-parallel-size-local");
+
+    // Backward compatibility: legacy 950dt-128g URLs carrying cg=128 still decode cleanly alongside cg=144
+    const updated950Encoded = encodeHardwareDeployOverlay({
+      modelKey: "qwen3-8b",
+      cardId: "950dt-128g",
+      tp: 4,
+      pp: 1,
+      dp: 1,
+      ep: false,
+      totalRanks: 4,
+      cardGiB: 144,
+      u: 0.9,
+      weightGiB: 4.0,
+      kvGiB: 120.0,
+      runtimeGiB: 2.0,
+      oomStatus: "fits",
+    });
+    const updated950 = parseHardwareDeployOverlay(updated950Encoded);
+    expect(updated950?.cardId).toBe("950dt-128g");
+    expect(updated950?.cardGiB).toBe(144);
+    const legacy950Wire = Buffer.from(
+      JSON.stringify({
+        ...JSON.parse(Buffer.from(updated950Encoded, "base64url").toString("utf8")),
+        cg: 128,
+      }),
+      "utf8",
+    ).toString("base64url");
+    const legacy950 = parseHardwareDeployOverlay(legacy950Wire);
+    expect(legacy950?.cardId).toBe("950dt-128g");
+    expect(legacy950?.cardGiB).toBe(128);
+    expect(parseHardwareDeployOverlay(encodeHardwareDeployOverlay(legacy950!))?.cardGiB).toBe(128);
   });
 });

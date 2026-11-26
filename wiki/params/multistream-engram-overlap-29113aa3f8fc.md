@@ -90,7 +90,7 @@ vllm serve /models/DeepSeek-V4.1-Flash \
 
 ## 代价与互斥边界
 
-- **多流并发与带宽争用**：开启后辅助流会额外持有常驻缓冲与跨流事件句柄，并在前序层执行期间并发发起 H2D 卸载拷贝或组内通信。在大批量 Prefill 场景下，主流 Cube / HBM 与互联带宽本身已接近饱和，并发争用反而可能拉长关键路径——官方 DeepSeek-V4.1-Flash P/D 分离教程因此在 Prefill 实例显式传 `"multistream_engram_overlap": false`。
+- **多流并发与带宽争用**：开启后辅助流会额外持有常驻缓冲与跨流事件句柄，并在前序层执行期间并发发起 H2D 卸载拷贝或组内通信。在大批量 Prefill 场景下，主流 Cube / HBM 与互联带宽本身已接近饱和，辅助流并发争用会挤占主计算带宽并拉长关键路径——官方 DeepSeek-V4.1-Flash P/D 分离教程因此在 Prefill 实例显式传 `"multistream_engram_overlap": false`。
 - **硬件默认差异带来的排查盲区**：同一条不带 `--additional-config` 的启动命令，在 Atlas A5 上默认跑多流重叠，在 Atlas A2 / A3 上默认跑主流串行。做跨机型精度比对或耗剖析（Profiling）时，务必在启动参数中显式固定该布尔值，避免把默认策略差异误判成算子退化。
 - **旧版兼容性**：`v0.23.0` 与 `v0.26.0rc` 的 `AscendConfig` 采用手工逐键 `.get()`，尚无此属性，写入会被静默忽略；`v0.30.0` 与 `main` 均已纳入严格 schema 校验。
 

@@ -2,7 +2,6 @@
 id: enable-matmul-allreduce
 legacyAnchors:
   一句话: 它曾经融合什么，为什么自 v0.25.1rc1 起被移除？
-  事实表: 对照源码
   为什么存在: 为什么能藏住通信延迟，以及旧版的派发次序陷阱
   开了的代价: 量化不兼容、GLM 双机推演与升级后的配置清理
 title: enable_matmul_allreduce
@@ -99,22 +98,27 @@ rawSources:
 
 ## 它曾经融合什么，为什么自 v0.25.1rc1 起被移除？
 
-在仍支持此键的旧版本（`v0.23.0` 与 `v0.24.0rc1`）里，当 `TP > 1` 且该层负责归约（`reduce_results and tp_size > 1`）时，`RowParallelLinear` 普通路径先做本 rank 矩阵乘，再调用 All-Reduce 合齐部分和。
+**这是一个自 `v0.25.1rc1`（PR #12119）起已整体移除的历史通算融合开关：在 `v0.30.0` 与 `main` 中切勿配置，残留 `additional_config["enable_matmul_allreduce"]` 通常会被严格校验直接拒收报错（仅装有 `vllm_omni` 时打告警并过滤未知顶层键），而残留环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 无人读取、一律静默失效。**
 
-开启 `enable_matmul_allreduce`（默认 `False`）后，符合条件的这一对操作会被替换为昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，争取让通信与计算重叠。融合保持目标运算语义，但实际精度、耗时与支持范围取决于具体算子与输入；`TP = 1` 时前提不成立，自动落回普通 `quant_method.apply`。旧版官方说明常把 A2、eager 列为受益场景（且 `v0.10.0rc1` 发布说明曾把它描述为 prefill 优化），但源码并不要求 eager，也不按请求阶段过滤，满足前提的 decode 同样会进入融合调用。
+在仍支持此键的旧版本（`v0.23.0` 与 `v0.24.0rc1`）里，当 `TP > 1` 且该层负责归约（`reduce_results and tp_size > 1`）时，`RowParallelLinear` 普通路径先做本 rank 矩阵乘，再调用 All-Reduce 合齐部分和。开启 `enable_matmul_allreduce`（默认 `False`）后，符合条件的这一对操作会被替换为昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，争取让通信与计算重叠（`TP = 1` 时前提不成立，自动落回普通 `quant_method.apply`）。旧版官方说明常把 A2、eager 列为受益场景（`v0.10.0rc1` 发布说明曾把它描述为 prefill 优化），但源码并不要求 eager，也不按请求阶段过滤，满足前提的 decode 同样会进入融合调用。
 
-**自 `v0.25.1rc1` 起（PR #12119），该开关连同环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE`、包装类 `MatmulAllreduceRowParallelOp` 及同族编译期融合 [fuse_allreduce_rms](fuse-allreduce-rms.md) 一并删除。** 升级后保留旧键的行为按版本分叉：
+旧键与包装类 `MatmulAllreduceRowParallelOp`、同族编译期融合 [fuse_allreduce_rms](fuse-allreduce-rms.md) 同批退场，方向是将 TP 通信优化收拢并交回上游，不代表新版完全没有通算融合能力。
 
-| 版本 | 残留 `additional_config["enable_matmul_allreduce"]` 的后果 | 残留环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` |
+## 事实表
+
+清理旧启动脚本或核对历史分支行为时，可速查下表：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| `v0.26.0rc` | [AscendConfig](../concepts/ascend-config-system.md) 仍逐键 `.get()`，顶层旧键静默忽略（能启动但无融合效果） | 无人读取，静默忽略 |
-| `v0.30.0` / `main` | `AscendConfig` 采用 `ConfigDict(extra="forbid")`，且本键不在 `_NON_USER_INPUT_KEYS` 豁免名单（同批下线的 `enable_flashcomm1` 有废弃告警与剥离，本键没有），通常直接启动失败；仅环境装有 `vllm_omni`（`importlib.util.find_spec("vllm_omni")` 非空）时只打 warning 并过滤未知顶层键 | 无人读取，一律静默忽略 |
-
-旧键移除只代表昇腾侧旧行并行包装下线（与 FlashComm2、multistream overlap gate、weight prefetch 等同批退场，方向是将 TP 通信优化交回上游），不代表新版完全没有通算融合能力。
+| 历史配置入口 | `additional_config["enable_matmul_allreduce"]`（优先）或环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` | 旧版 JSON 原值返回不转类型；环境变量默认 `"0"` 按 `bool(int(...))` 解析，传 `"true"` 报 `ValueError` |
+| 当前版本状态 | 自 `v0.25.1rc1`（PR #12119）起整体删除 | `v0.30.0` 与 `main` 不豁免该 JSON 键，常规环境直接启动报错（`vllm_omni` 告警过滤）；环境变量静默忽略 |
+| `v0.26.0rc` 过渡行为 | [AscendConfig](../concepts/ascend-config-system.md) 逐键 `.get()` 静默忽略 | 启动成功只代表未拦截未知键，融合算子并未运行 |
+| 历史生效前提 | `v0.23.0` 下 `reduce_results and tp_size > 1` 且为未量化浮点权重 | 融合分支直接调 `self.layer.weight.t()` 绕过 `quant_method.apply`，W8A8 等量化层缺少反量化参数且形状转置不匹配 |
+| 派发截断与互斥 | `_get_row_parallel_op` 排第五且无 prefix 过滤；`VLLM_BATCH_INVARIANT=1` 强制将其改回 `False` | 开启后 `o_proj` 与 `mlp.down_proj` 均被抢占，排在后面的 `flashcomm2` / `enable_sp` 行并行分支走不到且无告警 |
 
 ## 为什么能藏住通信延迟，以及旧版的派发次序陷阱
 
-张量并行把 `RowParallelLinear` 的权重沿输入维切分，各 rank 只算出部分和，必须归约相加才能得到完整输出（见[TP 两种切法](../concepts/tensor-parallel.md#两种切法各算一遍拼起来还是加起来)）。普通路径里矩阵乘（主要占 Cube 单元）与 HCCL All-Reduce（主要占互联链路）串行执行，两者存在交叠空间（也可能争用显存带宽，不能视为互不影响）。
+张量并行把 `RowParallelLinear` 的权重沿输入维切分，各 rank 只算出部分和，必须归约相加才能得到完整输出（见[TP 两种切法](../concepts/tensor-parallel.md#两种切法各算一遍拼起来还是加起来)）。普通路径里矩阵乘（主要占 Cube 单元）与 HCCL All-Reduce（主要占互联链路）串行执行，两者存在交叠空间（并发执行时仍共享片上与 HBM 显存带宽，并非完全无争用）。
 
 昇腾 MC2 算子族将通算流水化（如 `AllGatherMatMul`、`MatMulReduceScatter`、`MatMulAllReduce`，昇腾技术文章给出 GPT-3 整网约 10% 的参考量级）。开启 `enable_matmul_allreduce` 后，`_get_row_parallel_op` 返回 `MatmulAllreduceRowParallelOp`，在 `apply_impl` 中直接调 `torch_npu.npu_mm_all_reduce_base(input_parallel, weight.t(), hcomm_info, bias=bias_)`。其中 `bias` 是线性变换额外相加的偏置向量：仅在 TP rank 为 0 且未要求延后添加时传入当前计算，其他 rank 传入空值；要求延后添加时作为第二个返回值交给调用方。
 
@@ -139,13 +143,13 @@ file: enable-matmul-allreduce
 
 ```bash
 export HCCL_BUFFSIZE=500          # 所引旧版门禁用例的设置，不是所有负载的必需值
-vllm serve <未量化的 BF16 模型> \
+vllm serve Qwen/Qwen3-8B \
   --tensor-parallel-size 2 \
   --enforce-eager \
   --additional-config '{"enable_matmul_allreduce": true}'
 ```
 
-示例使用未量化 BF16 模型、`--tensor-parallel-size 2`（触发 `tp_size > 1` 下限）与 `--enforce-eager`（避开图模式同族融合 [fuse_allreduce_rms](fuse-allreduce-rms.md)）；所引旧门禁用例仅在 `Ascend910B`（A2）上运行，不能证明 A3/950 的兼容性或收益。
+示例仅对应仍保留该键的 `v0.23.0` 历史分支（本工作区无 NPU 实机执行验证）：选用未量化 BF16 模型 `Qwen/Qwen3-8B`、`--tensor-parallel-size 2`（触发 `tp_size > 1` 下限）与 `--enforce-eager`（避开图模式同族融合 [fuse_allreduce_rms](fuse-allreduce-rms.md)）；所引旧门禁用例仅在 `Ascend910B`（A2）上运行，不能证明 A3/950 的兼容性或收益。
 
 **为什么不能直接用于 W8A8 等量化路径**：融合分支直接把 `self.layer.weight.t()` 交给 `npu_mm_all_reduce_base`，完全绕过 `quant_method.apply`（仅当 `reduce_results` 或 `tp_size > 1` 不满足时才回退量化路径），不会自动带上反量化参数，也无法适配已改变权重排布的量化后端。
 
@@ -153,7 +157,7 @@ vllm serve <未量化的 BF16 模型> \
 
 1. **权重转置与缺反量化参数**：W8A8 动态量化在加载后已将 `int8` 权重转为「输入 × 输出」，融合分支再调 `.t()` 又翻回「输出 × 输入」——以稠密 MLP `down_proj`（每卡输入 1536、输出 4096）为例，形状必然不匹配，且传入 `int8` 张量缺少任何反量化参数。
 2. **各层量化分布**：两版已核快照的稠密 MLP 均为 `int8`，KDA 投影按 BF16 加载，MLA `o_proj` 在 `9e55cbc8` 为浮点、`3121f187` 改为 `int8`（见[部署页](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)）。
-3. **最早冲突点与 KDA 载荷口径**：最早冲突落在第 0 层稠密 MLP `down_proj`（前 3 层 attention 为 KDA、MLP 为 `int8`），启动 profile 首次执行到此处即不匹配（确切报错原文与是否存在更早硬件限制仍待真机验证）。仅看 KDA 层形状：R1 每次归约输入载荷为 `32,768 B`（$4 \times 4096 \times 2\text{ B}$），场景 M 的 DP0 一步 `6,048` 行载荷为 `47.25 MiB`（沿用每块 512 行教学示意分别约 1 块与 12 块，不构成实际 eager 切块或调优门槛）。
+3. **最早冲突点与 KDA 载荷口径**：最早冲突落在第 0 层稠密 MLP `down_proj`（前 3 层 attention 为 KDA、MLP 为 `int8`），启动 profile 首次执行到此处即发生形状与参数不匹配（本工作区无双机 NPU 采集现场堆栈，仅作静态源码推演）。仅看 KDA 层形状：R1 每次归约输入载荷为 `32,768 B`（$4 \times 4096 \times 2\text{ B}$），场景 M 的 DP0 一步 `6,048` 行载荷为 `47.25 MiB`（沿用每块 512 行教学示意分别约 1 块与 12 块，不构成实际 eager 切块或调优门槛）。
 
 **升级到 `v0.30.0` / `main` 时的配置清理**：这两版的 `_get_row_parallel_op` 只保留 `wo_b`、`down_proj`、`o_proj` 三条细粒度 TP 分支；旧键既不在 `AscendConfig` 也不在 `_NON_USER_INPUT_KEYS` 豁免名单，必须从 `--additional-config` 与环境变量中删除。注意官方文档的环境变量迁移表虽已删去 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE`（从 9 行减为 7 行），但代码已废弃剥离的 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍留在旧表里，排查时以代码为准。
 

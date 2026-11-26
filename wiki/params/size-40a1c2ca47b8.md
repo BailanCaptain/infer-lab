@@ -2,7 +2,6 @@
 id: size-40a1c2ca47b8
 legacyAnchors:
   一句话: size 是什么，由谁算出、为什么不能手写？
-  事实表: 对照源码
   为什么存在: 建组、分层归属和显存放大上限怎么算？
   开了的代价: 调 TP/PCP 时的通信与余数代价，以及 GLM 双机边界
 title: size
@@ -122,6 +121,18 @@ rawSources:
 - 如果直接往 `additional_config` 塞 `{"kvpp_config": {"size": 4}}`，工厂函数在构造配置时会把它剔除，无法覆盖真实拓扑（入口规则见 [`kvpp_config`](kvpp-config-0445bd352140.md)）。它划分的是单个 DP 副本、单个 PP stage 内的 `TP × PCP` 复制域，不是 DP 数，也不是 PP stage 数。
 
 **版本存在范围**：`v0.23.0`、`v0.26.0rc`（以及 `v0.27.1rc` 与 GLM 固定镜像 `db701c1f`）均无 `KVPPConfig` 与 KVPP 实现，传入 `enable_kvpp` 会被静默忽略。`v0.28.0rc` / `v0.29.0rc`、`v0.30.0` 及 `main` 均保留 `KVPPConfig.size` 与 `TP × PCP` 派生规则，其中 `v0.30.0` 与 `main` 修正了 `PCP > 1` 时的 owner 编号算法，并将执行模式限制从早期 `main`（`baa023ad`）的仅 `enforce-eager` 放宽为 `enforce-eager` 或 `PIECEWISE`（仍要求 `DCP = 1`、模型为非 hybrid MLA，完整连接器与 MTP 约束见 [KVPP 配置页](kvpp-config-0445bd352140.md)）。
+
+## 事实表
+
+理解 `kvpp_config.size` 的派生来源、分层归属与容量天花板时，速查下表：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 字段身份与默认 | `KVPPConfig.size`（冻结只读 `int = 1`）；用户入口为 `additional_config["enable_kvpp"]` | 不能在命令行手写 `{"kvpp_config": {"size": ...}}`，外层 `kvpp_config` 会被工厂直接静默剔除 |
+| 派生计算公式 | `enable_kvpp` 为假时 `1`；为真时 `tensor_parallel_size × prefill_context_parallel_size` | 划分域仅限单个 DP 副本、单个 PP stage 内的 `TP × PCP`；单卡 `TP=PCP=1` 时仍为 `1` |
+| 层归属规则 | `divmod(非 MTP 层索引数, size)` 连续切段；`owner = pcp_rank × TP + tp_rank` | 余数层分给前 `remainder` 张卡，全组可用块数由拿层最多的卡决定；MTP 层不参与划分、每卡各留一份 |
+| 容量放大天花板 | 每卡除常驻层外固定保留 `2` 层 scratch 缓冲，理想放大比 $\dfrac{L}{\lceil L / \text{size} \rceil + 2} \le \dfrac{L}{3}$ | `size` 是分母而非容量放大倍数；60 层模型卡数再多放大比也跨不过 `20×` |
+| 模型与运行前提 | `size > 1` 时要求非混合 MLA、`DCP = 1`、`--enforce-eager` 或 `PIECEWISE` | `v0.30.0` 与 `main` 支持；`v0.23.0` / `v0.26.0rc` 无此机制 |
 
 ## 建组、分层归属和显存放大上限怎么算？
 

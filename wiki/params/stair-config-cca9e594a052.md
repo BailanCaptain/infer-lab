@@ -33,7 +33,6 @@ verified:
 updated: 2026-11-19T00:00:00.000Z
 legacyAnchors:
   一句话: 它管什么十个旋钮如何配合
-  事实表: 它管什么十个旋钮如何配合
   为什么存在: 一轮规划怎么走与-mrv1--mrv2-边界
   开了的代价: 代价通信器回退陷阱与放到-glm-双机
 sources:
@@ -121,7 +120,33 @@ rawSources:
 2. **双门滞回防抖**：避免轻微负载抖动就反复搬运权重；
 3. **搬运限流与有界回溯**：约束单轮每卡与跨节点的搬运上限。
 
-`stair_config` 就是 `additional_config["eplb_config"]` 下专门调节这套规划器的 10 项参数字典（对应不可变配置类 `StairConfig`，`frozen=True`）。不传 `stair_config` 时十个键全部取默认值，只传部分子键时其余自动取默认；所有数值字段均拒绝布尔值（传入 `true`/`false` 抛出 `STAIR numeric fields must not be booleans`），越界值在构造配置时即抛 `ValueError`：
+`stair_config` 就是 `additional_config["eplb_config"]` 下专门调节这套规划器的 10 项参数字典（对应不可变配置类 `StairConfig`，`frozen=True`）。**一线调优建议：开启 MRv2 动态 EPLB 时先不传 `stair_config`、直接跑默认参数即可**；只有观察到重排过于频繁、跨机权重拷贝挤占网络带宽、或 CPU 规划耗时偏高时，再针对性覆写其中一两个子键（以下以 `Qwen/Qwen3-30B-A3B` 展示 `v0.30.0` 下的配置形式，`v0.30.0` 启用 V2 EPLB 须导出 `VLLM_USE_V2_MODEL_RUNNER=1`，本工作区无 NPU 实机执行验证）：
+
+```bash
+VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-30B-A3B \
+  --tensor-parallel-size 4 \
+  --enable-expert-parallel \
+  --enable-eplb \
+  --eplb-config '{"num_redundant_experts": 4}' \
+  --additional-config '{"eplb_config": {"stair_config": {"relative_balance_threshold": 0.93, "cross_node_transfer_limit": 0}}}'
+```
+
+## 事实表
+
+启用或排障 `stair_config` 前，先核对以下整体生效门槛与自动回退规则：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 配置路径与默认 | `additional_config["eplb_config"]["stair_config"]`（`StairConfig`） | 省略时 10 个子键全取默认值；只传部分子键时其余子键自动补默认 |
+| 生效前提 | [Model Runner V2](../concepts/model-runner-v2.md) + `--enable-eplb` + `policy="stair"`（默认已是 `stair`） | `v0.30.0` 在默认 MRV1 下传入 `stair_config` 会直接抛 `ValueError`；显式选 `policy="default"` 则忽略本字典 |
+| 类型与越界校验 | 10 个数值键均严禁布尔值，越界立即抛 `ValueError` | 传 `true`/`false` 报 `STAIR numeric fields must not be booleans`；`v0.30.0` 拼错子键名报错，`main` 告警过滤未知子键 |
+| Gloo 通信回退收紧 | 未显式指定 `communicator` 且 **HIXL**（昇腾高速单边内存直传库）共识失败、退回慢速 CPU `torch_gloo` 通信时触发 | 系统仅将**未显式配置**的 `rank_transfer_limit` 与 `cross_node_transfer_limit` 从 `-1` 自动限流收紧为每步只搬 `1` 个专家 |
+| 跨功能硬互斥 | 动态 EPLB 与权重 offload/prefetch、elastic EP 或 `enable_force_eplb` 互斥 | 同开在启动校验期直接报错；同步 EPLB 模式会被自动改写为异步模式 |
+| 版本可用性 | `v0.30.0`、`v0.30.0rc2`、`main` 支持；`v0.23.0`、`v0.26.0rc` 无 | 旧分支与 GLM 固定镜像 `db701c1f` 写入会报 `Config has no attribute 'stair_config'` |
+
+## 十个子键分工与范围一览
+
+十个子键的分工、声明默认值与合法取值范围一览如下：
 
 | 子键 | 所属步骤 | 声明默认（v0.30.0 / main） | 合法范围 | 一句话作用 |
 | --- | --- | --- | --- | --- |

@@ -1760,4 +1760,52 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       }).effectiveInput.numExperts,
     ).toBe(384);
   });
+
+  it("Wave 2 Polish: flags --enable-sleep-mode without weight_nz_mode=0 and VLLM_LOGGING_LEVEL=DEBUG latency penalty", () => {
+    const badSleepAndDebug = runSingleConfigDoctor(
+      "VLLM_LOGGING_LEVEL=DEBUG vllm serve Qwen/Qwen3-8B --enable-sleep-mode",
+      { mode: "minimal", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(badSleepAndDebug.errors.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(true);
+    expect(badSleepAndDebug.warnings.some((f) => f.id === "env-debug-logging-latency")).toBe(true);
+
+    const okSleepExplicitNz0 = runSingleConfigDoctor(
+      `VLLM_LOGGING_LEVEL=INFO vllm serve Qwen/Qwen3-8B --enable-sleep-mode --additional-config '{"weight_nz_mode":0}'`,
+      { mode: "minimal", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(okSleepExplicitNz0.errors.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(false);
+    expect(okSleepExplicitNz0.warnings.some((f) => f.id === "env-debug-logging-latency")).toBe(false);
+
+    const okSleepViaRl = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --enable-sleep-mode --additional-config '{"rl_config":{"enabled":true}}'`,
+      { mode: "full", hardwareFamily: "A3", version: "v0.30.0" },
+    );
+    expect(okSleepViaRl.errors.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(false);
+
+    // VLLM_BATCH_INVARIANT=1 forces weight_nz_mode=0 upstream (batch_invariant.py#L102-L109)
+    const okSleepBatchInvariant = runSingleConfigDoctor(
+      "VLLM_BATCH_INVARIANT=1 vllm serve Qwen/Qwen3-8B --enable-sleep-mode",
+      { mode: "minimal", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(okSleepBatchInvariant.errors.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(
+      false,
+    );
+
+    // Ascend 310P with explicit weight_nz_mode=0 emits a layout policy warn (not a false wake_up ValueError)
+    const warn310pSleep = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-0.6B --enable-sleep-mode --additional-config '{"weight_nz_mode":0}'`,
+      { mode: "minimal", hardwareFamily: "310P", version: "v0.30.0" },
+    );
+    expect(warn310pSleep.errors.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(false);
+    expect(warn310pSleep.warnings.some((f) => f.id === "d5-sleep-mode-requires-nz-disabled")).toBe(true);
+
+    // DEBUG + --enforce-eager omits ACLGraph data_ptr() replay claim
+    const debugEager = runSingleConfigDoctor(
+      "VLLM_LOGGING_LEVEL=DEBUG vllm serve Qwen/Qwen3-8B --enforce-eager",
+      { mode: "minimal", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    const debugFinding = debugEager.warnings.find((f) => f.id === "env-debug-logging-latency");
+    expect(debugFinding?.message).toContain("当前已关闭图回放");
+    expect(debugFinding?.message).not.toContain("data_ptr()");
+  });
 });

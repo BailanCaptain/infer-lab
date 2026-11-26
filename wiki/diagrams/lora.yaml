@@ -381,5 +381,22 @@
         525
       ]
     }
+  ],
+  "pins": [
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L16-L70",
+      "symbols": [
+        "PunicaWrapperNPU",
+        "LORA_CUSTOM_OPS",
+        "max_loras"
+      ]
+    },
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/lora/lora_ops.py#L30-L70",
+      "symbols": [
+        "bgmv_shrink",
+        "bgmv_expand"
+      ]
+    }
   ]
 }

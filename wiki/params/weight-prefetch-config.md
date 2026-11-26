@@ -13,7 +13,6 @@ aliases:
   - WeightPrefetchConfig
 legacyAnchors:
   一句话: 它曾做什么，为什么 v0.24 起已删除？
-  事实表: 它曾做什么，为什么 v0.24 起已删除？
   为什么存在: 四类比例钩子、MLA 独立预取与切流同步
   开了的代价: 触发门槛、代价与 GLM 双机逐项推演
 chapters:
@@ -139,14 +138,11 @@ rawSources:
 
 ## 它曾做什么，为什么 v0.24 起已删除？
 
-执行线性层矩阵乘之前，NPU 必须先把权重从容量大但相对较慢的 **HBM（高带宽显存）** 搬进片上更快的 **L2 cache（二级缓存）**；若等矩阵乘开算再现搬，Cube 计算单元就会在数据路上空等。`weight_prefetch_config` 曾试图趁前一个轻量向量算子（quantize、MoE gating `top_k`、RMSNorm、SwiGLU）运行的空档，在一条独立 NPU stream 上提前把下一个 linear 层权重搬进 L2 cache，以降低 linear 计算期间的 MTE 占用、间接提高 Cube 效率（计算与数据搬运分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)，各模块比例规则见 [prefetch_ratio](prefetch-ratio.md)）。
+**这是一个自 `v0.24.0rc`（PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949)）起已连同 `ops/weight_prefetch.py` 彻底删除、且在 `v0.30.0` 与 `main` 中没有等价替代参数的历史 HBM→L2 权重预取子配置：升级时必须从 `--additional-config`（包括上游部分残留教程命令行）中删除 `"weight_prefetch_config"`，否则常规进程会直接触发 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）。**
 
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**该配置及其整个 HBM→L2 权重预取模块在 `v0.30.0` 与 `main` 中均已彻底移除，且没有等价替代参数。** 它早先由 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP` 统一而来，在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 连同 `vllm_ascend/ops/weight_prefetch.py` 一起删除。
+执行线性层矩阵乘之前，NPU 必须先把权重从容量大但相对较慢的 **HBM（高带宽显存）** 搬进片上更快的 **L2 cache（二级缓存）**；若等矩阵乘开算再现搬，Cube 计算单元就会在数据路上空等。在历史 **`v0.23.0`（`2c59ff10`）** 中，`weight_prefetch_config`（默认 `{}` 关闭，须写 `{"enabled": true}` 开启，仅面向高吞吐场景）曾趁前一个轻量向量算子（quantize、MoE gating `top_k`、RMSNorm、SwiGLU）运行的空档，在独立 NPU stream 上提前把下一个 linear 层权重搬进 L2 cache（计算与数据搬运分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)，各模块比例规则见 [prefetch_ratio](prefetch-ratio.md)）。
 
-- **升级报错与忽略行为**：升级到 `v0.30.0` / `main` 时若仍将其留在 `--additional-config`，普通 Ascend 进程会按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（`v0.26.0rc` 静默忽略，发现 `vllm_omni` 时告警过滤）。
-- **历史 `v0.23.0`（`2c59ff10`）默认态**：默认 `{}`（关闭），须显式写 `{"enabled": true}` 才启用，且仅面向高吞吐场景（低延迟优先场景上游建议不要开启）。
-
-升级清理时须从启动命令中删掉该键，并注意不要与三类近名特性混淆：
+升级清理时注意不要与以下三类近名特性混淆：
 
 | 近名特性 / 参数 | 实际搬运或作用对象 | 是否为本页 HBM→L2 预取的替代？ |
 | --- | --- | --- |
@@ -154,16 +150,19 @@ rawSources:
 | `--safetensors-load-strategy prefetch` | 启动阶段从磁盘预读 safetensors 文件 | **否**（冷启动磁盘加载） |
 | `v0.30.0` / `main` 的 kernel/NZ warmup 或 KV cache prefetch | 算子格式预热或 KV 缓存预取 | **否**（无等价替代参数） |
 
-在仍保留该特性的历史 `v0.23.0` 上，其核心配置与触发边界如下：
+## 事实表
 
-| 核心维度 | `v0.23.0` 行为 | 说明 |
+下表汇总该历史子配置在 `v0.23.0` 的核心触发规则及跨版本迁移现状：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 字段与默认 | `dict`，默认 `{}`；`enabled` 默认 `False` | 只写 `"weight_prefetch_config": {}` 等于关闭；子键 `prefetch_ratio` 规则见 [prefetch_ratio](prefetch-ratio.md) |
-| 预取目标与尺寸限制 | 目标为 L2 cache；Python 封装无权重副本；MLP 正字节请求在 Python 侧截断到 18 MiB | `attn` / `moe` 无此 Python 截断；零字节在公共封装中转为整块请求，后端是否统一截断仍待核 |
-| 方向相反的 token 门槛 | MoE：`select_experts` 入口行数 `>= 96`；MLP：补齐后的 `num_tokens < 500` 且层索引非空 | 门槛仅是必要条件：MoE 还须取到权重，MLP `gate_up` 还须走自定义行并行算子，`down` 从激活算子进入 |
-| `attn` 路径与 `mlp`/`moe` 互斥 | `attn` 仅在静态 W8A8 `apply`、输入非 int8 且类名精确匹配 `AscendQKVParallelLinear` / `AscendRowParallelLinear` 时触发；`mlp` 与 `moe` 依模型是否 MoE 互斥 | `attn` 不看 token 门槛且按类名而非层语义路由（`o` 可能覆盖 MLP `down_proj`）；构造时两组比例都过滤，执行时至多开一组 |
-| MLA / SFA 独立预取 | 到达调用点只看 `enabled`，不读 `prefetch_ratio`、无 token 门槛；融合 QKV 整块预取，`o_proj` 最多请求 16 MiB（静态 W8A8 时跳过） | 普通 MLA 与稀疏 MLA 均有；SFA 缺 attention metadata 时提前返回 |
-| 越界或零 ratio | 越界值静默丢弃；过滤后整组全零或为空则关闭该组 | 组仍开启时单项缺失或为零会回填为整块请求；缺整个模块或给空 dict 则回填默认值（详见 [prefetch_ratio](prefetch-ratio.md)） |
+| 历史配置路径 | `additional_config["weight_prefetch_config"]`（`dict = {}`，`enabled` 默认 `False`） | 只写 `{}` 或错写成 `{"enable": true}` 均等于关闭；子键比例见 [prefetch_ratio](prefetch-ratio.md) |
+| `v0.30.0` / `main` 现状 | 已自 `v0.24.0rc`（PR #11949）彻底移除，无等价替代键 | `v0.30.0` / `main` 残留该键直接报错（`vllm_omni` 告警过滤）；`v0.26.0rc` 静默忽略 |
+| 预取目标与截断 | 片上 L2 cache（Python 侧不建权重副本）；MLP 正字节请求在 Python 侧截断到 `18 MiB` | `attn` / `moe` 在 Python 侧无 18 MiB 截断；零字节在公共封装中转为整块请求 |
+| 相反的 token 门槛 | MoE：`select_experts` 入口行数 `>= 96`；MLP：补齐后的 `num_tokens < 500` 且层索引非空 | MoE 还须取到 `w13_weight`；MLP `gate_up` 还须走自定义行并行算子，`down` 从激活算子进入 |
+| `attn` 路径与模块互斥 | `attn` 仅在静态 W8A8 `apply`、输入非 `int8` 且类名精确匹配时触发；`mlp` 与 `moe` 按模型类型互斥 | 动态 W8A8 或浮点模型不进 `attn` 比例预取；`o` 按类名匹配而非层名路由 |
+| MLA / SFA 独立预取 | 到达调用点只看 `enabled`，不读 `prefetch_ratio`、无 token 门槛 | 融合 QKV 整块预取，`o_proj` 最多请求 `16 MiB`（静态 W8A8 时跳过，缺 metadata 时提前返回） |
+| 越界或零 ratio | 越界值静默丢弃；过滤后整组全零或为空则关闭该组 | 组仍开启时单项漏写或写 `0` 会回填为整块权重请求，不能把 `0` 当单项关闭开关 |
 
 ## 四类比例钩子、MLA 独立预取与切流同步
 
@@ -190,7 +189,7 @@ file: param-weight-prefetch-hooks
 **代价与验证方法（均无本仓实测对照）**：用 vector 计算掩盖预取流水会反过来与计算争用 MTE 与 L2 带宽，因此低延迟优先或低并发场景建议调小 ratio 或关闭。封装虽不创建权重副本，但新增 stream、同步与缓存竞争仍是真实成本。官方建议通过 profiling 检查独立 stream 上的 CMO 操作是否落在并行 vector 算子（如 SwiGLU）窗口内且不晚于其结束，再对比端到端执行时间。
 
 **触发门槛边界**：
-- **MLP 路径**：要求非 MoE 模型、有效层索引且上下文行数 `< 500`（该行数由 runner 传入，可能经过图尺寸补齐而非原始请求 token 总数）。因此短 prefill、混批和 decode 都可能通过，长 prefill 仅被挡在 MLP 两路外。
+- **MLP 路径**：要求非 MoE 模型、有效层索引且上下文行数 `< 500`（该行数由 runner 传入，在图模式下为按图档位补齐后的行数而非原始请求 token 总数）。因此补齐后满足 `< 500` 的短 prefill、混批和 decode 均会通过，仅超过该阈值的长 prefill 被挡在 MLP 两路外。
 - **MoE 路径**：要求选专家入口行数 `>= 96`、存在模型实例、正层索引且取到 `w13_weight`（开启多流 gate 等配置会改变选专家与 prepare 顺序，不可照搬固定调度行数）。
 
 以旧稠密模型 Qwen3-0.6B（28 层、单卡 TP1、bf16 每元素 2 B，hidden=1024、MLP 中间维 3072、Q 16 头、K/V 各 8 头、每头 128 维，按「输出维 × 输入维」计算 $\text{字节数} = \text{out} \times \text{in} \times 2\,\text{B}$）为例：

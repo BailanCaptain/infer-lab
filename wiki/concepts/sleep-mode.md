@@ -134,6 +134,11 @@ rawSources:
 file: sleep-mode-intuition
 ```
 
+上线前先盯住 `v0.30.0` 主基线的两条必配门槛（漏掉任意一条都会报错）：
+
+- **清空可扩展分配段**：运行环境不能带 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`（启动前 `unset PYTORCH_NPU_ALLOC_CONF`），否则初始化睡眠专用内存池时直接触发断言失败。
+- **关闭 `FRACTAL_NZ` 配置守卫**：须显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 清零的 `rl_config.enabled`），否则 `wake_up()` 唤醒时直接抛 `ValueError: FRACTAL_NZ mode is enabled`。
+
 想象同一张 NPU（昇腾计算卡）轮流做两件事：先生成一批回答，再用这些回答训练模型。生成结束后，推理进程暂时没有工作，但权重和缓存仍占显存。Sleep Mode 把可释放的那部分让给训练；训练结束、让回空间后，推理侧再唤醒。
 
 这发生在[请求调用链的调度与 Worker 执行之间](../concepts/request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。EngineCore 是掌管请求调度的引擎核心，Worker 是实际管理一张计算卡并执行模型的进程。Sleep Mode 切换的是引擎状态，不是在每一层计算中新增一种算子。
@@ -249,17 +254,16 @@ file: sleep-mode-fig-levels-and-wakeup
 
 上述旧版本编译设置为 `COMPILE_CUSTOM_KERNELS=1`，仅适用于低于 v0.12.0rc1 的版本；其他版本的完整安装要求仍以对应安装指南为准。
 
-以下是按钉住接口修正过的**小模型 level 1 验证流程**，在 Linux 昇腾环境执行；它不是 GLM 双机命令。先保证现有请求结束，并移除环境中与内存池冲突的分配选项。旧版环境变量和显式布局配置都关闭 NZ；NZ 是面向 NPU 矩阵乘优化的 FRACTAL_NZ 权重存储布局，钉住的唤醒路径要求它关闭。
+以下是对齐 `v0.30.0` 主基线（`c09d3e20`，与上文单卡 `Ascend 910B3` `Qwen3-8B` 实测口径一致）的 **Level 1 休眠与唤醒验证流程**，在 Linux 昇腾环境执行；它不是 GLM 双机命令。启动前先确保无在途请求、清除与睡眠内存池冲突的 `PYTORCH_NPU_ALLOC_CONF`，并通过 `weight_nz_mode=0` 关闭 `FRACTAL_NZ` 唤醒守卫（若在旧版 `v0.23.0` / `v0.26.0rc` 或 `db701c1f` 镜像上运行，唤醒守卫还读取环境变量，需额外补设 `export VLLM_ASCEND_ENABLE_NZ=0`；上游早期 `< 1 GiB` 入门冒烟文档则以 `Qwen/Qwen2.5-0.5B-Instruct` 演示同一组端点）：
 
 ```bash
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export VLLM_SERVER_DEV_MODE=1
-export VLLM_ASCEND_ENABLE_NZ=0
 unset PYTORCH_NPU_ALLOC_CONF
-vllm serve Qwen/Qwen2.5-0.5B-Instruct \
-  --enable-sleep-mode --additional-config '{"weight_nz_mode":0}'
+vllm serve Qwen/Qwen3-8B \
+  --enable-sleep-mode --additional-config '{"weight_nz_mode": 0}'
 
-# 在另一终端执行；只在本地开发环境开放这些管理接口
+# 在另一终端执行；只在受控本地/训练网络开放这些管理接口
 curl -X POST 'http://127.0.0.1:8000/sleep?level=1'
 curl 'http://127.0.0.1:8000/is_sleeping'
 curl -X POST 'http://127.0.0.1:8000/wake_up'

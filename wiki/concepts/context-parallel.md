@@ -4,7 +4,7 @@ title: 上下文并行（CP）：怎样分位置，又怎样算完整 attention
 type: feature
 summary: >-
   长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整
-  attention，再对照 Ascend PCP/DCP 与 GLM 的支持边界。
+  attention，再对照 v0.30.0 的 Ascend PCP/DCP 路径、Qwen3 头数约束与 GLM 支持边界。
 aliases:
   - Context Parallel
   - 上下文并行
@@ -134,7 +134,7 @@ relations:
     kind: alternative-to
     note: Megatron SP 在 TP 组内按 token 切分归一化与残差激活，attention 前须收齐；CP 则沿序列位置跨卡切分 attention 计算或 KV 历史，两者正交可叠加
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: direct
 ---
 
@@ -289,7 +289,7 @@ file: context-parallel-ulysses
 
 现在每卡能独立完成自己两个头的完整 attention，并按原始位置应用因果掩码。输出再做一次反向的 All-to-All：卡 0 收回位置 0～3 的头 2、3，卡 1 收回位置 4～7 的头 0、1，恢复 [4, 4, d] 的位置分片，继续本卡这些位置的后续计算。交换的是激活，不需要在这里移动模型权重。
 
-基本的均分方案要求头数能被并行度整除；GQA 的多个 Q 头共享较少的 KV 头，实际实现还可能受到 KV 头数约束；而 [MLA](mla.md) 把全部头的历史压成 **1 条共用潜向量**，按头重排时直接撞上“单潜头无法跨卡切分”的墙壁。Ring 按 K/V 位置块轮换，Ulysses 按头重排，两者也能在不同子组组合；Megatron 的层次 CP 就提供组内 All-to-All、组间 Ring 的方式。具体约束取决于后端及 TP 分片，不能只看序列长度选卡数。
+基本的均分方案要求头数能被并行度整除。[GQA](gqa.md) 的多个 Q 头共享较少的 KV 头，实际实现还会受 KV 头数约束：例如标准稠密模型 `Qwen3-8B` 有 32 个 Q 头、8 个 KV 头，不做 KV 头复制时按头均分最多切到 8 路；MoE 模型 `Qwen3-30B-A3B` 有 32 个 Q 头、4 个 KV 头，不复制 KV 头时上限只有 4 路。而 [MLA](mla.md) 把全部头的历史压成 **1 条共用潜向量**，按头重排时直接撞上“单潜头无法跨卡切分”的墙壁。Ring 按 K/V 位置块轮换，Ulysses 按头重排，两者也能在不同子组组合；Megatron 的层次 CP 就提供组内 All-to-All、组间 Ring 的方式。具体约束取决于后端及 TP 分片，不能只看序列长度选卡数。
 
 ## CP、SP 和 chunked prefill 分别改变什么？
 
@@ -305,7 +305,12 @@ file: context-parallel-ulysses
 
 ## Ascend 的 PCP 与 DCP 分别走哪条计算路径？
 
-以下落到本库固定的旧 GLM 执行侧实现。PCP（prefill context parallel）增加执行设备的一个并行维度，分担 prefill 查询；该实现的 DCP（decode context parallel）复用 TP 组已有设备，把重复的 KV 历史分存，供 decode 等路径联合读取。后续版本的 DCP 还可包含 PCP 维度，下文单独比较；不要把这一段的 TP 内分组规则套到所有版本。
+落到 `v0.30.0` 主基线（及 `main`）的昇腾执行侧实现，上下文并行拆成两个职责不同的开关：
+
+- **PCP（Prefill Context Parallel，前缀上下文并行）**：在 TP 与 PP 之外新增一个并行维度（单 DP 组设备数 `= PP × TP × PCP`），主要让多组卡分担长 prompt 的 prefill 查询位置。
+- **DCP（Decode Context Parallel，解码上下文并行）**：复用已有并行组设备，不额外加卡，把原本逐卡重复保存的 KV 历史按位置交错分存到多张卡上，供 decode 与分块 prefill 联合读取。
+
+在 `v0.30.0` 中，DCP 的公共元数据与通信逻辑通过 `common_cp.py` 的混入类（mixin）复用 V1 注意力后端，GQA、MLA 与稀疏 SFA 只覆盖各自有差异的阶段。不同模型架构能开多大的 DCP，取决于手头本来有没有重复的 KV 历史：以 GQA 模型为例，`Qwen3-8B`（8 个 KV 头）在 `TP=8` 时每张卡恰好分到 1 个不同 KV 头、没有重复副本，`PCP=1` 时 `DCP` 上限为 $8 \div 8 = 1$；`Qwen3-30B-A3B`（4 个 KV 头）在 `TP=8` 时每对卡复制同一份 KV 头，`PCP=1` 时 `DCP` 可取 `2`（若 GQA 同时开启 `PCP > 1` 与 `DCP > 1`，`v0.30.0` 要求 `PCP == DCP`）。而稀疏 SFA 复制索引路径每张卡都保存相同的主潜向量，因此 `v0.30.0` 允许 `DCP` 取 `PCP` 或 `TP × PCP`（早期 `v0.23.0` 与 GLM 专用镜像 `db701c1f` 则只在单个 TP 组内部拆 DCP，见文末[版本差异](#版本差异)）。
 
 | 这一轮在做什么 | 主要交换什么 | 后续怎么计算 |
 |---|---|---|
@@ -320,7 +325,7 @@ MLA 是把 K/V 压缩后缓存的 attention 形式，见 [MLA](mla.md)；GQA 是
 file: context-parallel-paths
 ```
 
-走局部结果路径时，固定实现把 O 和 LSE 拼在一起：DCP 轴做 All-to-All，PCP 轴再按需 All-Gather，然后按[局部结果合并公式](#每张卡只有一段历史结果怎么合成一份)更新。下面的 3D 对应这个“查询读取分存历史、合并输出”的路径，图里的局部结果和 LSE 应一起理解。
+走局部结果路径时，Ascend 实现把局部输出 O 和归一化对数统计量 LSE 拼在一起：DCP 轴做 All-to-All，PCP 轴再按需 All-Gather，然后按[局部结果合并公式](#每张卡只有一段历史结果怎么合成一份)更新。下面的 3D 对应这个“查询读取分存历史、合并输出”的路径，图里的局部结果和 LSE 应一起理解。
 
 下面另取一组**两卡交错分存的四通道示意数据**，沿用前例的首通道局部结果 10、30 和归一化量 2、6。偶数位置 0、2、4、6 的 V 首通道为 4、8、12、16，奇数位置 1、3、5、7 为 24、28、32、36；它与前面 Ring 的位置分组及位置对应数值不同。若首通道为 v，整行 V 取 `[v,40−v,v/2,20−v/2]`。同一个 Q=`[2,0,0,0]` 读取两卡的 K：偶数行取 `[ln(0.5),0,1,−1]`，奇数行取 `[ln(1.5),0,1,−1]`，因此 Q·K/√4 的指数分别为 0.5、1.5，四行累计得到 Z₀=2、Z₁=6。
 
@@ -358,11 +363,11 @@ file: context-parallel-fig-interleave-slots
 | 卡 0（偶数槽） | `0, 2, 4, 6` | `[0] → pos 0`, `[1] → pos 2`, `[2] → pos 4`, `[3] → pos 6` |
 | 卡 1（奇数槽） | `1, 3, 5, 7` | `[0] → pos 1`, `[1] → pos 3`, `[2] → pos 5`, `[3] → pos 7` |
 
-在固定旧实现中，PCP 与 DCP 同开时参与分存的组大小为 `PCP × DCP`：[块表](block-table.md)把各卡本地块拼成一个大小为 `本地块大小 × PCP × DCP` 的“虚拟块”，再按轮换粒度确定持有者和本地偏移；不归本卡的位置填 `−1` 跳过写入，此前取得 K/V 的计算路径要保证持有者能写入自己的部分。
+在 `v0.30.0` 主基线与 `main` 中，[块表](block-table.md)把同一个 DCP 缓存组内各卡的本地块拼成虚拟块，大小固定按 `physical_block_size × dcp_world_size` 计算，再按轮换粒度确定持有者和本地偏移；不归本卡的位置填 `−1` 跳过写入，此前取得 K/V 的计算路径要保证持有者能写入自己的部分。
 
-**升级后的关键变化是：DCP 的组大小可能已经包含 PCP，不能再乘一次。** 例如在 `v0.30.0` 主基线与 `main` 中，特定稀疏复制索引路径允许 `TP = 2`、`PCP = 2`、`DCP = 4`（总卡数 $2 \times 2 = 4$，DCP 复用全部 4 张已有设备）。假设每个本地块装 `16` 个位置（示意），虚拟块是 $16 \times 4 = 64$ 个位置；再乘 `PCP = 2` 得到 `128` 就重复计数了。究竟哪些 rank 属于同一个缓存组，应读该版本实际建组与块表，不能从两个参数的名字推断。
+**为什么不能再额外乘一次 PCP？因为 `v0.30.0` 的 `dcp_world_size` 可能已经包含 PCP 维度。** 例如稀疏复制索引路径允许 `TP = 2`、`PCP = 2`、`DCP = 4`（总卡数 $2 \times 2 = 4$，DCP 复用全部 4 张设备）。假设每个本地物理块装 `16` 个位置（示意），虚拟块就是 $16 \times 4 = 64$ 个位置；若照抄早期 `v0.23.0` / `db701c1f`（当时 DCP 只在 TP 内切分、不含 PCP）的 `本地块大小 × PCP × DCP` 公式，再乘一次 `PCP = 2` 算出 `128` 就重复计数了。究竟哪些 rank 属于同一个缓存组，必须读对应版本的建组与块表代码。
 
-轮换粒度也可以增大为一整块。需要整块传输 KV 的场景（如 [PD 分离](pd-disaggregation.md)和 KV 池）须按传输要求设置；固定版本的稀疏 CP 路径也要求粒度等于块大小。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与上表的教学布局分别说明。
+轮换粒度（`cp_kv_cache_interleave_size`）必须能整除本地块大小，也可以直接设为一整块。需要整块传输 KV 的场景（如 [PD 分离](pd-disaggregation.md)和 KV 池）须设为整块大小；早期稀疏 CP 路径也强制粒度等于块大小，而 `v0.30.0` 稀疏复制索引路径放宽为整除块大小即可。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与上表的教学布局分别说明。
 
 ## 复用 TP 的卡，为什么还要建通信组？
 
@@ -414,9 +419,9 @@ file: context-parallel-fig-interleave-slots
 
 ### 怎么开
 
-两个开关分别管两条路：`--prefill-context-parallel-size`（PCP）和 `--decode-context-parallel-size`（DCP），上游默认都是 1 [C15][C16]；轮换粒度是 `--cp-kv-cache-interleave-size`，默认同样是 1。PCP 要额外的卡：一个 DP 执行组的设备数按 pipeline × tensor × pcp 算 [C17]。以下两段是固定旧实现的配置约束：DCP 不改总卡数，只把一个 TP 组拆成 tp ÷ dcp 个 DCP 组，所以 dcp 不能超过 tp，而且要能整除 [C7]；rc2 的组合约束按下方「版本差异」选择，不能同时套用。
+两个开关分别管两条路：`--prefill-context-parallel-size`（PCP）和 `--decode-context-parallel-size`（DCP），上游默认都是 1 [C15][C16]；轮换粒度是 `--cp-kv-cache-interleave-size`，默认同样是 1，且在 `v0.30.0` / `main` 中须整除 `block_size`。PCP 要额外的卡：一个 DP 执行组的设备数按 `pipeline × tensor × pcp` 算 [C17]，且在 `v0.30.0` 主基线与 `main` 上开启 `PCP > 1` 必须使用 Model Runner V2。
 
-DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 0；GQA 类把 tp 换成 tp ÷ kv 头数，再套同样两条，依据是下文官方 CP 用户指南的约束与实测说明。稀疏路径另有一套：dcp == tp，而且轮换粒度要等于块大小 [S23]。要做 KV 传输（PD 分离、KV 池）时，粒度同样必须等于块大小。
+DCP 不额外增加总卡数，但合法取值随版本与注意力架构区分：在 `v0.30.0` 主基线与 `main` 中，稀疏 SFA 复制索引路径允许 `dcp ∈ {pcp, tp × pcp}`；普通 MLA 要求 `(tp × pcp) ≥ dcp` 且整除；GQA/MQA 在 `PCP = 1` 时要求 `(tp ÷ kv 头数) ≥ dcp` 且整除，同时开启 `PCP > 1` 与 `DCP > 1` 时要求 `pcp == dcp` [C28][C29]（而早期 `v0.23.0` 与固定 GLM 镜像 `db701c1f` 只把单个 TP 组拆成 `tp ÷ dcp` 个 DCP 组，要求 `dcp ≤ tp` 且整除 [C7]，稀疏路径在 `PCP = 1` 下要求 `dcp == tp` 且轮换粒度等于块大小 [S23]，两套代际规则不能混套）。要做整块 KV 传输（PD 分离、KV 池）时，轮换粒度同样必须等于块大小。
 
 ### 会报什么错
 
@@ -424,8 +429,8 @@ DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 
 - **GLM 的 KDA prefill 遇上 PCP**：固定版本抛 NotImplementedError，信息是 `Kimi KDA prefill does not yet support PCP.`。
 - **稀疏路径的 DCP 不等于 TP**：抛 AssertionError，信息写明只支持 dcp_size 等于 tp_size [C10]。
 - **轮换粒度和块大小不一致**：稀疏路径下不报错，只打一条 warning，随后把粒度就地改成块大小；日志可用来核对最终生效的配置。
-- **开着前缀缓存的混合模型**：上游协调器里有 `assert dcp_world_size == 1, "DCP not support hybrid attn now."`，PCP 同样一条；这个协调器只在开前缀缓存、且 KV cache 分成多组时才用 [C11][C12]。
-- **给 GLM KPool 开 CP**：`v0.30.0` 主基线直接抛 `NotImplementedError("GLM-Next KPool indexing does not support PCP or DCP.")` [C57]；`main`（`8d6180e2`）已为 KPool 新增 PCP 支持，仅在 `DCP > 1` 时抛 `NotImplementedError("GLM-Next KPool indexing does not support DCP.")` [C60]。
+- **开着前缀缓存的混合模型**：上游协调器里有 `assert dcp_world_size == 1, "DCP not support hybrid attn now."`，PCP 同样一条；这个协调器只在开前缀缓存、且 KV cache 分成多组时才用（来源 11–12）[C11]。
+- **给 GLM KPool 开 CP**：`v0.30.0` 主基线直接抛 `NotImplementedError("GLM-Next KPool indexing does not support PCP or DCP.")`（来源 57）；`main`（`8d6180e2`）已为 KPool 新增 PCP 支持，仅在 `DCP > 1` 时抛 `NotImplementedError("GLM-Next KPool indexing does not support DCP.")`（来源 60）。
 - **投机解码的草稿模型加 DCP**：另有一组按草稿模型的 TP 和 KV 头数算出的上限，见 [Ascend 平台校验](npu-platform.md)。
 
 ### 开销和什么时候别开
@@ -438,32 +443,24 @@ DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 
 
 ### 版本差异
 
-**v0.30.0rc2：先区分执行器、后端与模型。** 以下采用[固定 rc2 基线](../sources/v030rc2-baseline.md)。rc2 设计文档写着“PCP 不支持”，但同一提交的平台代码只在没有启用 Model Runner V2 时拒绝 PCP；V2 已有 PCP 管理器。它仍拒绝 encoder-decoder、多模态输入和 LoRA，投机方法限 MTP、Eagle3、DSpark；PCP 配 DP 或稀疏 MLA 时只允许 eager 或 FULL_DECODE_ONLY。故这份设计说明不能作为“rc2 所有执行器都不支持 PCP”的证据。
-
-| 对照项 | v0.30.0rc2 的行为 | 对使用者意味着什么 |
-|---|---|---|
-| PCP 与 DCP 的组合 | SFA 复制索引路径允许 DCP=PCP 或 DCP=TP×PCP；GQA/MQA 同时开启两者时要求 PCP=DCP | 旧版本只在 TP 内拆 DCP 的拓扑说明不能覆盖 rc2 的全部组合 |
-| 缓存交错布局 | 虚拟块按 block_size×DCP 计，不再把 PCP 额外乘入；轮换粒度须整除块大小 | PCP 的计算分工和 DCP 的缓存持有者要分别追踪，不能照抄前文固定实现的 PCP×DCP 槽位公式 |
-| 后端结构 | DCP 的公共 metadata/通信能力通过 mixin 复用 V1 后端；GQA、MLA、SFA 只覆盖有差异的阶段 | 同时查普通后端与 DCP 专用实现，不能只读 context_parallel 目录 |
-| SFA 与硬件 | 复制索引保留完整索引缓存，主 SFA KV 分片；C8 组合还检查硬件能力 | 索引缓存、主 KV 和临时通信缓冲不能统一除以 DCP 大小 |
-| GLM-5.3-Flash KPool | KPool 后端仍明确拒绝 PCP>1 或 DCP>1 | 通用 PCP/DCP 能力不等于本站 GLM 模型可以开 CP；旧双机算例继续按 PCP=DCP=1 解释 |
-| GLM 的实验性 DSA-CP | 只分担 SFA 查询位置；主 KV、索引池和尾缓存仍复制，KDA 沿用 TP，并保持 PCP=DCP=1 | 这是独立的 SFA-only 路径，不能把它写成 PCP 或 DCP 已支持 GLM，也不能用它宣称 KV 按 DCP 缩小 |
-
-以上分别核对 rc2 的 platform.py、V2 pcp_manager.py、block_table.py、common_cp.py 和 indexer_kpool.py。旧版与固定 GLM 镜像的行为继续见下表；rc2 不替换它们的来源与实测条件。
-
-按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；本文例外 B 固定 GLM 镜像 `db701c1f` 的旧路径与上表 `v0.30.0rc2` 说明一并保留对照（GLM `db701c1f` 中 KDA prefill 遇 PCP 抛 `NotImplementedError` [C8]，KPool 专用后端固定选普通实现、未接入 SFA 的 CP 分派且独立 `enable_dsa_cp` 被拒，稀疏 DCP 判定见 [C9]）。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`，与发布前候选快照 `7d825229` 同构）与 `main`（`8d6180e2`）；例外 B 固定 GLM 镜像 `db701c1f` 的旧路径一并对照（`db701c1f` 中 KDA prefill 遇 PCP 抛 `NotImplementedError` [C8]，KPool 专用后端固定选普通实现、未接入 SFA 的 CP 分派且独立 `enable_dsa_cp` 被拒，稀疏 DCP 判定见 [C9]）。
 
 | 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
 | 开关函数 | `enable_cp()` 统一判定 [C18] | 只剩 `enable_dcp()` | `enable_dcp()` 与 `enable_pcp()` 分开（`attention/utils.py#L320-L329`）[C20] | 移除旧 `attention/utils.py` 封装，新增 PCP 权重切分开关（`enable_pcp_o_proj_weight_sharding` / `enable_pcp_embedding_lmhead_weight_sharding`） |
-| PCP 执行器门槛与投机/图限制 | 仅在 `dp > 1` 时拦 PCP | 非 V2 模型执行器直接报 `ValueError` [C19] | **PCP 强制要求 MRV2**（`platform.py#L1652-L1657`）；`v2/pcp_manager.py#L225-L250` 拒 encoder-decoder、LoRA 与 `FULL` 图，投机限 `mtp / eagle3 / dspark` [C21] | PCP 仍要求 MRV2（`platform.py#L2107-L2112`）；`v2/pcp_manager.py#L225-L248` 投机白名单扩至 `mtp / eagle3 / dspark / dflash` |
-| 稀疏路径 DCP 判定与取值 | 稀疏、DCP > 1 且 PCP = 1，要求 `dcp == tp` 且粒度 = 块大小 [C50][C51] | 去掉 `PCP = 1` 条件 [C26]；走复制索引时不再强制粒度 = 块大小 [C27] | 稀疏复制索引允许 `dcp ∈ {pcp, tp × pcp}`（`platform.py#L1674-L1685`）；GQA/MQA 同时开 PCP+DCP 要求 `pcp == dcp`（`platform.py#L1688-L1702`）[C28][C29] | 延续上述取值；**非 MLA/SFA 的 GQA 模型 DCP 进入弃用日落告警**（RFC #21305，`platform.py#L2163-L2173`） |
-| 缓存交错虚拟块公式 | `block_size × PCP × DCP` | 过渡 | `physical_block_size × dcp_world_size`，不再重复乘 PCP（`worker/block_table.py#L268-L275`） | 同 `v0.30.0` |
-| GLM KPool 索引器与 CP | 分支无 GLM 代码 | 分支无 GLM 代码 | `indexer_kpool.py#L498-L499` 明确拒绝 `PCP > 1` 或 `DCP > 1` | **KPool 已新增 PCP 支持**（`indexer_kpool.py#L885-L899`），`__init__` 仅拒绝 `DCP > 1`（`indexer_kpool.py#L789-L790`） |
+| PCP 执行器门槛与投机/图限制 | 仅在 `dp > 1` 时拦 PCP | 非 V2 模型执行器直接报 `ValueError` [C19] | **PCP 强制要求 MRV2**（`platform.py#L1652-L1657`）；`v2/pcp_manager.py#L225-L250` 拒 encoder-decoder、多模态输入、LoRA 与 `FULL` 图（配 DP 或稀疏 MLA 时仅放行 `eager` 或 `FULL_DECODE_ONLY`），投机限 `mtp / eagle3 / dspark` [C21] | PCP 仍要求 MRV2（`platform.py#L2107-L2112`）；`v2/pcp_manager.py#L225-L248` 投机白名单扩至 `mtp / eagle3 / dspark / dflash` |
+| 稀疏路径 DCP 判定与取值 | 稀疏、DCP > 1 且 PCP = 1，要求 `dcp == tp` 且粒度 = 块大小（来源 50–51）[C50] | 去掉 `PCP = 1` 条件 [C26]；走复制索引时不再强制粒度 = 块大小 [C27] | 稀疏复制索引允许 `dcp ∈ {pcp, tp × pcp}`（`platform.py#L1674-L1685`）；GQA/MQA 同时开 PCP+DCP 要求 `pcp == dcp`（`platform.py#L1688-L1702`，来源 28–29）[C28] | 延续上述取值；**非 MLA/SFA 的 GQA 模型 DCP 进入弃用日落告警**（RFC #21305，`platform.py#L2163-L2173`） |
+| 缓存交错虚拟块与粒度 | `block_size × PCP × DCP` | 过渡 | `physical_block_size × dcp_world_size`，不再重复乘 PCP（`worker/block_table.py#L268-L275`）；轮换粒度须整除块大小 | 同 `v0.30.0` |
+| 后端复用与 SFA/C8 边界 | 独立 CP 实现 | 过渡 | `common_cp.py` 通过 mixin 复用 V1 后端公共 metadata/通信，GQA/MLA/SFA 只覆盖差异阶段；SFA 复制索引保留完整索引缓存并切分主 KV，叠加 C8 量化时另做硬件能力检查（`sfa_cp.py`） | 延续 mixin 结构与 SFA/C8 校验 |
+| GLM KPool 索引器与 CP | 分支无 GLM 代码 | 分支无 GLM 代码 | `indexer_kpool.py#L498-L499` 明确拒绝 `PCP > 1` 或 `DCP > 1` [C57] | **KPool 已新增 PCP 支持**（`indexer_kpool.py#L885-L899`），`__init__` 仅拒绝 `DCP > 1`（`indexer_kpool.py#L789-L790`）[C60] |
+
+核对 `v0.30.0`（及 `7d825229` 候选快照）源码与配套文档时，还需留意三项细节：
+
+- **设计文档与平台代码口径差异**：`v0.30.0` 周期的 `Design_Documents/context_parallel.md` 仍残留旧句“PCP 不支持”，但同提交 `platform.py` 只在未启用 Model Runner V2 时拒绝 PCP，MRV2 已内置 `AscendPCPManager`（`worker/v2/pcp_manager.py`）；不能拿该设计文档断定 `v0.30.0` 所有执行器都不支持 PCP。
+- **索引、主 KV 与通信缓冲分开记账**：SFA 复制索引路径在每张卡保留完整索引缓存，只切分主 SFA KV，不能把索引缓存、主 KV 与临时通信缓冲统一除以 DCP 大小；排查代码时也须同时读 V1 普通后端与 `context_parallel/` 目录下的 mixin 覆盖方法。
+- **GLM 实验性 `DSA-CP` 不是通用 PCP/DCP**：`additional_config` 中的 `enable_dsa_cp` 是需要搭配 SP 显式开启的独立实验开关，不会由 `PCP` / `DCP` 大小自动触发。旧 `db701c1f` 的 KPool 构造函数直接拒绝该开关；`v0.30.0` 周期 GLM 教程记录的实验性 `DSA-CP` 仅分担 SFA 查询位置，主 KV、KPool 索引池与尾缓存仍保持复制，KDA 沿用 TP，且 `PCP = DCP = 1`，不能将其混同为“GLM 已支持 DCP 缩减 KV”。
 
 表中的 `main` 指 `sources` 钉住的提交 `8d6180e2`，不代表持续变化的分支最新状态。跨版本配置需要同时核对执行器、模型和 attention 后端；满足一条平台条件，不等于整个组合已经受支持。
-
-固定版本的 `enable_dsa_cp` 是独立的 `additional_config` 开关，并要求 SP；它不是由 PCP/DCP 的大小自动开启。旧 KPool 构造函数对该功能抛错，不能把这条错误当成普通 DCP 参数的直接校验。rc2 的 GLM 实验性 DSA-CP 是后续另一条实现路径，条件见上表。
 
 ### 源码位置
 

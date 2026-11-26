@@ -33,6 +33,8 @@ aliases:
   - ECCPUConnector
   - KV 租约
   - 双向 KV 传输
+  - 预填充与解码分离
+  - 两拨卡分离
 chapters:
   - '18'
 order: 10

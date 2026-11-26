@@ -5,8 +5,8 @@ type: concept
 legacyAnchors:
   放到-glm-双机请求到来前平台先做什么: 复杂异构实战对照：GLM 双机启动时的平台问答
 summary: >-
-  Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿 A0 启动分清平台、Worker 与模型的职责，以及主机内存、设备显存和 token
-  预算的边界。
+  Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿服务启动全流程分清平台、Worker 与模型的职责，并以 Qwen3-8B
+  标准单机与 GLM 双机对照说明主机内存、设备显存和 token 预算的边界。
 aliases:
   - Platform
   - current_platform
@@ -100,7 +100,7 @@ relations:
     kind: builds-on
     note: 分清主机内存与设备显存的账目边界，理解设备总内存查询与运行时显存画像的分工
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -181,9 +181,11 @@ file: vllm-platform-interface-fig-contract
 - **上游回退行为**：上游捕获异常后写入的容量占位值只供默认档位选择，不表示卡没有显存。查询失败后如何选回退档、后续受哪些参数收窄，见 [NPUPlatform 页](npu-platform.md#默认预算为何不能只看一个数字)。
 - **`v0.30.0` 与 `main` 守卫式查询**：改为设备未初始化前仍抛不支持异常，初始化后才读 `torch.npu.mem_get_info`（见[版本差异](#版本差异)），不能倒套到固定旧镜像。真正的 KV 容量仍在 Worker 环境就绪、权重加载后，按占用测量与缓存规格确定。
 
+拿 `v0.30.0` 单机启动标准稠密模型 **`Qwen3-8B`**（36 层 GQA，BF16）串一遍常规平台问答：`current_platform` 懒加载选中唯一外部候选 `NPUPlatform`（`device_type = "npu"`），再由 `pre_register_and_update` 打上全局补丁并注册昇腾量化项。随后 `check_and_update_config` 校验并行与图配置，按 `HardwareProfile.default_worker_cls` 选定 `NPUWorker`；模型建层时 36 层全部通过 `get_attn_backend_cls` 落到统一的 `AscendAttentionBackend`，无需任何模型私有的层绑定。
+
 ## 复杂异构实战对照：GLM 双机启动时的平台问答
 
-**平台在 A0 确定执行所需的设备适配，后续组件才把它落实成可接收请求的服务。** 本节挂靠 **A0：服务接请求以前的[部署启动](glm-5-3-flash-two-node.md#启动时发生了什么)**。[官方双机部署](glm-5-3-flash-two-node.md#部署前提)用两台 A2、每台 8 卡；卡如何分组、每卡放什么以及完整显存与块数账仍见[部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，这里沿启动时序核对平台问答。
+**平台在服务接请求前的启动阶段确定设备适配，后续组件才把它落实成可接收请求的服务。** 本节挂靠服务接请求以前的[部署启动](glm-5-3-flash-two-node.md#启动时发生了什么)。[官方双机部署](glm-5-3-flash-two-node.md#部署前提)用两台 A2、每台 8 卡；卡如何分组、每卡放什么以及完整显存与块数账仍见[部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，这里沿启动时序核对平台问答。
 
 ### 先确定平台，再准备配置
 

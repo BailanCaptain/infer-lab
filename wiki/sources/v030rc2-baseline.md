@@ -3,8 +3,8 @@ id: v030rc2-baseline
 title: v0.30.0rc2 的版本基线与阅读边界
 type: source
 summary: >-
-  固定用户指定的 Ascend rc2 分支及配套 vLLM，区分 PCP、DCP、DSA-CP、执行器和 GLM 教学基线，避免把正式版或浮动 main
-  的行为混入对照。
+  归档历史 v0.30.0rc2（7d825229）快照及配套 vLLM（ced6857a）的阅读边界，区分 PCP、DCP、DSA-CP、执行器与 GLM
+  例外基线；当前全站默认主基线已升级为 v0.30.0 正式版（c09d3e20）。
 aliases:
   - v0.30.0rc2
   - '0.30'
@@ -72,7 +72,7 @@ rawSources:
 
 `ced6857a` 是 `9ed533eb` 之后的 CPU 镜像构建修复提交，仅为 `Dockerfile` 增加 SLEEF 子模块获取兜底，未改执行代码（完整固定值以 seeds 为准）。Ascend 的 `rc2` 发布说明称这次 RC 更新主要修复 Docker 构建所用的 CANN 版本，不能把“rc1 到 rc2 没有业务代码变化”解释成“0.26 到 rc2 没有变化”。[S1]
 
-这组基线不包含后来 Ascend [`v0.30.0` 正式版](../concepts/v030-release-baseline.md)的修复。旧的 v0.23、v0.26 和 `main` 快照继续保留；GLM 双机教学仍按其[来源基线](glm-5-3-flash-baseline.md)解释已有形状、通信与容量算例。RFork 是独立工作版，不随社区版本升级。
+这组历史快照不包含后来 Ascend [`v0.30.0` 正式版（`c09d3e20`，当前全站默认主基线）](../concepts/v030-release-baseline.md)的修复与生产迁移清单。旧的 `v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）和早期 `main`（`baa023ad`）历史对照继续保留各自提交边界；GLM 双机案例属显式例外 B，仍按其[来源基线](glm-5-3-flash-baseline.md)（`vllm@0fc695fc` + `vllm-ascend@db701c1f`）解释冻结 3D 形状、通信与容量算例；RFork 10 篇专题属显式例外 A，已对齐上游 `vllm-ascend` `main`（`8d6180e2`）正式实现（早期 `rfork` 分支归档于对应专题演进段落）。
 
 ## 为什么不能只照 CP 设计文档的一句话判断支持范围
 

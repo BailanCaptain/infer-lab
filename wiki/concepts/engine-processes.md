@@ -267,7 +267,7 @@ relations:
     kind: builds-on
     note: 动态 EPLB 会让每个 Worker 再带两个子进程，这正是需要改 Worker 启动方式的原因；EPLB 本身在那一页
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -287,7 +287,7 @@ rawSources:
 
 因此不能把「三类角色」直接等同于「三类独立进程」。例如单进程执行器会让 Worker 住在 EngineCore 进程内，但单凭这一点也推不出 API server 与 EngineCore 在同一个进程里。以常见的单机 `Qwen3-8B` 部署为例：单卡 `vllm serve` 是 2 个进程（1 个 API server + 1 个内置 Worker 的 EngineCore）；单机 TP4 则是 6 个进程（1 个 API server + 1 个 EngineCore + 4 个独立 Worker）。
 
-**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到；进程间交换数据必须走显式通道，例如 **ZMQ**（ZeroMQ，轻量跨进程消息库）的 **IPC**（Inter-Process Communication，本机进程间通信）/TCP 套接字，或划出一块多进程共同读写的 **SHM**（Shared Memory，共享内存）队列。
+**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到。跨进程交换数据必须走显式通道，例如 **ZMQ**（ZeroMQ，轻量跨进程消息库）的 **IPC**（Inter-Process Communication，本机进程间通信）/TCP 套接字，或一块多进程共同读写的 **SHM**（Shared Memory，共享内存）队列。
 
 ```wiki-diagram
 file: engine-processes
@@ -362,16 +362,16 @@ file: engine-processes-fig-ipc-spawn
 
 这里的「整个服务的卡数」要把所有 DP 组算在一起，不是一个 EngineCore 管几张卡。按上述默认选择规则，DP2 × TP1 这种每组只有一张卡的部署，也还是给每个 EngineCore 起一个 Worker 子进程；只有整个服务就一张卡，才默认用单进程 executor。显式指定执行器时，则按所选执行器判断。
 
-官方双机部署落在第二条：
+把常见单机拓扑与后文双机 MoE 部署代入同一套卡数公式对照（PP 是流水线并行，PCP 是 prefill 上下文并行，以下均未开启、取 `1`）：
 
-$$\text{world\_size} = \text{PP } 1 \times \text{TP } 8 \times \text{PCP } 1 = 8, \qquad \text{world\_size\_across\_dp} = 8 \times \text{DP } 2 = 16$$
+$$\text{world\_size} = \text{PP} \times \text{TP} \times \text{PCP}, \qquad \text{world\_size\_across\_dp} = \text{world\_size} \times \text{DP}$$
 
-| 维度（双机 GLM 部署） | 计算式 | 结果与执行器选择 |
-|---|---|---|
-| 一组内的卡数（`world_size`） | $\text{PP } 1 \times \text{TP } 8 \times \text{PCP } 1$ | **8 张卡**（本机起 8 个 Worker 进程） |
-| 整个服务的卡数（`world_size_across_dp`） | $8 \times \text{DP } 2$ | **16 张卡**（$> 1$ 且未指定执行器，默认选多进程执行器 `mp`） |
-
-PP 是流水线并行，PCP 是 prefill 阶段的上下文并行，这套部署都没开，取 1。
+| 部署拓扑 | 单组卡数（`world_size`） | 全服务卡数（`world_size_across_dp`） | 默认执行器与 Worker 进程数 |
+|---|---|---|---|
+| 单机 `Qwen3-8B`（`TP=1, DP=1`） | $1 \times 1 \times 1 = 1$ | $1 \times 1 = 1$ | **`uni`**（Worker 住在 EngineCore 进程内，0 个独立子进程） |
+| 单机 `Qwen3-8B`（`TP=4, DP=1`） | $1 \times 4 \times 1 = 4$ | $4 \times 1 = 4$ | **`mp`**（1 个 EngineCore 拉起 4 个 Worker 子进程） |
+| 单机 `Qwen3-30B-A3B`（`TP=4, DP=2, EP=8`） | $1 \times 4 \times 1 = 4$ | $4 \times 2 = 8$ | **`mp`**（2 个 EngineCore 各拉起 4 个 Worker，共 8 个子进程） |
+| 双机 GLM 部署（`TP=8, DP=2, EP=16`） | $1 \times 8 \times 1 = 8$ | $8 \times 2 = 16$ | **`mp`**（两台机器各起 1 个 EngineCore + 8 个 Worker，共 16 个子进程） |
 
 反过来，进程最少的几种情形是：
 
@@ -403,7 +403,7 @@ vLLM 拉起 EngineCore 和 Worker 共用环境变量 `VLLM_WORKER_MULTIPROC_METH
 
 | 进程 | 在哪一刻打 | 打什么 |
 |---|---|---|
-| API server（node1 上是启动进程） | 解析命令行参数时：先加载通用插件，再调用平台准备钩子 | 全局补丁 |
+| API server（或 `--headless` 节点的启动进程） | 解析命令行参数时：先加载通用插件，再调用平台准备钩子 | 全局补丁 |
 | EngineCore | 初始化时，vLLM 在这个进程里再加载一次通用插件 | 全局补丁，本进程已经打过就跳过 |
 | Worker | 昇腾 Worker 的构造函数一开始 | Worker 补丁；随后登记昇腾算子、建本进程的 Ascend 配置 |
 
@@ -458,7 +458,7 @@ file: engine-processes-startup
 
 | 调用栈特征 | 所在进程 | 代码归属与排查方向 |
 |---|---|---|
-| 参数校验报错（如并行组合不合法） | API server 或 node1 启动进程 | 查 [NPU 平台](npu-platform.md) 前置校验组 |
+| 参数校验报错（如并行组合不合法） | API server 或 `--headless` 节点的启动进程 | 查 [NPU 平台](npu-platform.md) 前置校验组 |
 | `Scheduler`、KV 块管理、清单构造 | EngineCore 进程 | 主体是上游代码，昇腾仅经全局补丁介入 |
 | 模型前向、注意力、昇腾算子 | Worker（`mp` 独立子进程；`uni` 在执行器同进程） | 大多是 `vllm-ascend` 代码，不可只凭卡数猜进程归属 |
 
@@ -589,7 +589,7 @@ AIV 只支持文档列出的对称组网推理路径，不支持多个 AIV 通�
 
 **Ascend 配置缓存**：模块变量 `_ASCEND_CONFIG`；`init_ascend_config` 在 `NPUPlatform.check_and_update_config` 里调用（由 `VllmConfig.__post_init__` 触发，发生在建总配置的进程里），也在 `NPUWorker.__init__` 里调用；同一个 `vllm_config` 对象、没有 `refresh` 时复用缓存 [C33]。
 
-固定 GLM 的 EngineCore 还有一次进程内初始化：正常退出启动握手的上下文后，重新执行配置的 post_init，经平台检查建立或刷新本进程的 Ascend 配置。它发生在 EngineCore、Scheduler 和收发线程构造之后，不能说这些对象构造前已经完成，更不是 spawn 继承了父进程缓存。旧 Balance 入口在更早读取不到缓存时，会回退读取 additional_config 与环境；rc2 的初始化位置则提前到 EngineCore 入口包装函数中，见下面的版本表。
+固定 GLM 的 EngineCore 还有一次进程内初始化：正常退出启动握手的上下文后，重新执行配置的 `post_init`，经平台检查建立或刷新本进程的 Ascend 配置。它发生在 EngineCore、Scheduler 和收发线程构造之后，不能说这些对象构造前已经完成，更不是 `spawn` 继承了父进程缓存。旧 Balance 入口在更早读取不到缓存时，会回退读取 `additional_config` 与环境；`v0.30.0` 与 `main` 的初始化位置已提前到 `patch_engine_core.py` 的 EngineCore 入口包装函数中，见下面的版本表。
 
 **EngineCore 里换掉的调度代码**：`patch/platform/__init__.py` 无条件导入 `patch_balance_schedule` [C34]；它在模块末尾 `EngineCoreProc.run_engine_core = run_engine_core`、`vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler`，新入口在 `_balance_scheduling_enabled` 为假时调回原版 [C37]。`get_scheduler_cls` 在调用时刻才 `from vllm.v1.core.sched.scheduler import Scheduler`，未开异步调度时拿到的是替换后的类；开了异步调度返回 `AsyncScheduler`。
 

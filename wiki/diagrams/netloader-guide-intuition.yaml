@@ -1,23 +1,13 @@
-layout: figure
+mode: native-svg
 id: netloader-guide-intuition
-caption: 两个实例各用一张卡。旧实例先从存储装好权重；新实例先建立相同模型的空位，再从旧卡接收权重。复制完成后两边各自持有权重，新实例继续完成启动。紫色箭头搬的是权重，不是请求或计算结果。
-size: [880, 410]
-frames:
-  - { label: 先有一份可用权重, at: [12, 30], size: [856, 100] }
-  - { label: 新实例启动：向旧实例取同一份权重, at: [12, 165], size: [856, 105] }
-  - { label: 接收完成：两边各有自己的权重, at: [12, 305], size: [856, 90] }
-items:
-  - { at: [48, 59], size: [210, 46], text: 存储里的模型文件, tone: weight, style: faded }
-  - { at: [565, 59], size: [250, 46], text: 旧实例 · 卡上的权重, tone: weight }
-  - { at: [48, 197], size: [250, 46], text: 旧实例 · 卡上的权重, tone: weight }
-  - { at: [565, 197], size: [250, 46], text: 新实例 · 等待填入的空位, tone: weight, style: faded }
-  - { at: [48, 332], size: [250, 46], text: 旧实例 · 保留权重, tone: weight }
-  - { at: [565, 332], size: [250, 46], text: 新实例 · 收到权重, tone: weight }
-links:
-  - { from: [258, 82], to: [565, 82], tone: weight }
-  - { from: [298, 220], to: [565, 220], tone: comm }
-  - { from: [298, 238], to: [298, 355], via: [[490, 285], [490, 355]], tone: control, dashed: true }
-  - { from: [690, 243], to: [690, 332], tone: comm }
-texts:
-  - { at: [411, 69], text: 先加载, anchor: middle, size: 14 }
-  - { at: [431, 207], text: 卡间直接发送 → 接收, anchor: middle, size: 14, tone: comm }
+caption: >-
+  NetLoader 启动期卡间点对点权重交接三阶段：阶段 ① 供方实例从磁盘加载模型分片并监听 LISTEN_PORT；阶段 ② 新实例启动时建同形状空位，经 TCP 握手后建 2 进程临时 HCCL 组从供方 NPU 直接复制权重（v0.30.0 默认传输后处理推理布局）；阶段 ③ 双方各自持有独立显存副本，新实例继续 KV Cache 分配与预热，传输失败则经 disk_fallback_loader_extra_config 回退读盘。
+size: [900, 440]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/netloader/netloader.py#L102-L175'
+    symbols:
+      - ModelNetLoaderElastic
+      - INT8_CACHE
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/netloader/netloader.py#L741-L765'
+    symbols:
+      - disk_fallback_loader_extra_config

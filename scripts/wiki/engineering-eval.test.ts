@@ -17,7 +17,14 @@ import { loadPages } from "./pages";
 const evalCaseSchema = z
   .object({
     id: z.string().min(1),
-    category: z.enum(["error-trace", "exact-param", "exact-concept", "arch-deploy", "negative"]),
+    category: z.enum([
+      "error-trace",
+      "exact-param",
+      "exact-concept",
+      "arch-deploy",
+      "colloquial",
+      "negative",
+    ]),
     query: z.string().min(1),
     expectedTop1: z.string().min(1).optional(),
     expectedAnyTop3: z.array(z.string().min(1)).min(1).optional(),
@@ -74,14 +81,14 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
     JSON.parse(readFileSync(new URL("./engineering-eval-suite.json", import.meta.url), "utf8")),
   );
 
-  it("真实 registry.json 包含 193 篇正式页面（含 41 篇正式参数页），基准集含 55+ 条正向查询与负例对照", () => {
+  it("真实 registry.json 包含 193 篇正式页面（含 41 篇正式参数页），基准集含 80+ 条正向工程与白话查询及负例对照", () => {
     expect(registry.pages.length).toBeGreaterThanOrEqual(193);
     expect(registry.pages.filter((p) => p.type === "param").length).toBeGreaterThanOrEqual(41);
 
     const knownIds = new Set(registry.pages.map((p) => p.id));
     const positives = suite.cases.filter((c) => !c.expectEmpty);
     const negatives = suite.cases.filter((c) => c.expectEmpty);
-    expect(positives.length).toBeGreaterThanOrEqual(55);
+    expect(positives.length).toBeGreaterThanOrEqual(80);
     expect(negatives.length).toBeGreaterThanOrEqual(5);
 
     for (const c of positives) {

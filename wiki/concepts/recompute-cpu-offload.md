@@ -127,7 +127,7 @@ relations:
     kind: alternative-to
     note: 池按内容指纹存前缀段，谁的开头对上谁能取；换出只存被抢占的这一条，只有它恢复时取回
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -216,7 +216,7 @@ file: recompute-cpu-offload-fig-preempt-swap
 
 要存几块：已算位置数 ÷ 每块位置数，向上取整。A 是 ceil(9 ÷ 4) = 3 块。第 3 块只有 1 格有效，也整块拷过去；另外 3 格照样是空的，不会因此变成「已算」，恢复时只把前 9 个位置当作已算。
 
-一块的字节，要把这个块号在所有缓存张量里占的空间加起来。沿用 [KV cache 页的示意模型](kv-cache.md#存一份要多少从一个位置一层往上乘)，每个位置 32 层共 128 KiB，一块 4 个位置就是 512 KiB，A 的 3 块是 1.5 MiB：存一趟 1.5 MiB，搬回再一趟 1.5 MiB。
+一块的字节，要把这个块号在所有缓存张量里占的空间加起来。沿用 [KV cache 页的示意模型](kv-cache.md#存一份要多少从一个位置一层往上乘)，每个位置 32 层共 128 KiB，一块 4 个位置就是 512 KiB，A 的 3 块是 1.5 MiB：存一趟 1.5 MiB，搬回再一趟 1.5 MiB。若换成 `v0.30.0` 标准模型 **`Qwen3-8B`**（36 层 GQA，每个位置 `144 KiB`、默认每块 `128` 个位置），单卡 `TP=1` 一块就是 **$18\text{ MiB}$**，`TP=4` 每卡一块 **$4.5\text{ MiB}$**；一条已生成到 4,096 个位置（32 块）的请求被抢占时，`TP=4` 每张卡同步拷出 `144 MiB`，排回来再同步拷回 `144 MiB`。
 
 主机预算可以直接写每张卡的预算（推荐），也可以写一个模型并行实例的预算、按其中的卡数平分；都不写时，v0.23、v0.26 和 GLM 快照按该实例 8 GiB 平分，`v0.30.0` / `main` 则按主机与显存块数比例配置。这里的卡数是 TP × PP × PCP，也就是[张量并行](tensor-parallel.md)、[流水线并行](pipeline-parallel.md)和 prefill 阶段的 [context parallel](context-parallel.md) 三者的份数相乘，不含 DP。
 
@@ -349,7 +349,7 @@ $$B_{\text{usable,GLM}} = \left\lfloor \frac{1{,}024\text{ MiB}}{7.969\text{ MiB
 
 ### 怎么开
 
-下面是 v0.23/GLM 快照的选项片段，省略号须用实际 P/D 地址与并行设置替换，不能原样作为 JSON 执行。完整配置对照[旧版指南](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/docs/source/user_guide/feature_guide/recompute_cpu_offload.md)或[rc2 指南](https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/preempt_offload_connector.md)，并保留下文指出的预算和失败分支区别。
+下面是 `v0.23.0` / GLM 快照的选项片段，省略号须用实际 P/D 地址与并行设置替换，不能原样作为 JSON 执行。完整配置对照[旧版指南](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/docs/source/user_guide/feature_guide/recompute_cpu_offload.md)或 [`v0.30.0` 周期指南](https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/preempt_offload_connector.md)，并保留下文指出的预算和失败分支区别。
 
 ```bash
 # 只写在 D 节点上；P 节点照常只配 MooncakeConnectorV1（kv_producer）
@@ -361,7 +361,7 @@ $$B_{\text{usable,GLM}} = \left\lfloor \frac{1{,}024\text{ MiB}}{7.969\text{ MiB
     {"kv_connector": "RecomputeCPUOffloadConnector", "kv_role": "kv_consumer",
      "kv_connector_extra_config": {"cpu_bytes_to_use_per_rank": 17179869184}}
   ]}}'
-# rc2 / main：连接器名改成 PreemptOffloadConnector，调度开关写法见下方链接
+# v0.30.0 / main：连接器名改成 PreemptOffloadConnector，调度开关写法见下方链接
 ```
 
 - 两样都要：`recompute_scheduler_enable`（只在 D 上开，各版本写法见 [RecomputeScheduler 的「怎么开」](recompute-scheduler.md#怎么开)）加本连接器。D 上既要从 P 收 KV、又要换出，所以用 `MultiConnector` 把两个连接器串起来；昇腾把注册表里的 `MultiConnector` 换成 `AscendMultiConnector`（登记位置见来源 13），它把 `update_state_before_preempt` 逐个转给子连接器，有一个答「能」就算能 [C12]。
@@ -369,18 +369,18 @@ $$B_{\text{usable,GLM}} = \left\lfloor \frac{1{,}024\text{ MiB}}{7.969\text{ MiB
 - 共用开关 `enable_offload_prefix_caching`：连接器读配置时默认 `False`，不是布尔值就 `ValueError` [C2]；manager 构造参数的默认值写的是 `True`，但连接器总是把配置值显式传进去 [C3]，所以实际默认关。官方标为实验性。
 - 主机块数 [C4]：`max(1, num_gpu_blocks * cpu_capacity_bytes // gpu_total_bytes)`，`gpu_total_bytes` 是所有带 `shared_by` 的显存 KV 张量之和，等价于「预算 ÷ 每块字节」；worker 端按同一块数开 `pin_memory=True` 的 CPU 张量 [C8]。
 - 容器：官方建议 A3 上每卡 16 GiB 时给 Docker `--shm-size=1024g`，给小了启动阶段会出问题。
-- 验证入口：旧版日志中的 `Recompute preemption offload enabled for request` 表示选中了保存路径，`Created recompute offload state for request` 表示建好了记录，`Prepared recompute offload H2D load for request` 只表示搬回映射已准备；rc2/main 后两条名称改为 preempt offload。它们不能单独证明恢复完成。
+- 验证入口：旧版日志中的 `Recompute preemption offload enabled for request` 表示选中了保存路径，`Created recompute offload state for request` 表示建好了记录，`Prepared recompute offload H2D load for request` 只表示搬回映射已准备；`v0.30.0` 与 `main` 后两条名称改为 `preempt offload`。它们不能单独证明恢复完成。
 - 继续按同一 request ID 核保存事件是否集齐、搬回的 `finished_recving` 是否到达、请求是否退出等待并继续生成；再比较同一模型/输入/采样配置的质量和单步停顿。测试环境可降低设备缓存预算以制造抢占，但应分别覆盖有足够主机块、不足整条、取消、未满尾块、滑窗及投机场景。官方 RFC 的 DeepSeek-V4 自测与拟议的异步改进不等于本站对 GLM 或所有混合状态完成验证。
 
 ### 会报什么错
 
 - **RecomputeScheduler 不在 D 上**：启动 `ValueError`，P 上只打 warning 就地关掉，见 [RecomputeScheduler 的「会报什么错」](recompute-scheduler.md#会报什么错)。
-- **DCP 或 PCP 不是 1**：manager 构造时 `assert dcp_world_size == 1 and pcp_world_size == 1` 失败。
+- **DCP 或 PCP 不是 1**：manager 构造时 `assert dcp_world_size == 1 and pcp_world_size == 1` 失败（`main` 已解除该断言）。
 - **共用开关不是布尔值**：`ValueError: enable_offload_prefix_caching must be a boolean`。
-- **rc2/main 的容量参数无效**：实际每 rank 字节须为正；比例须为正且有限。即使设置了优先级更高的字节参数，比例仍先检查，不能用0、负数或无穷值当作“关闭比例”。比例或字节只够分出一个 null block 时，也没有可供普通请求使用的块。
-- **旧版主机块不够：连接器返回失败**。`_create_preempt_state` 发现需要的块数大于空闲块数，打 warning「Skip recompute offload for request %s: CPU cache has %d free blocks, but %d new blocks are required.」并返回 `False` [C6]；旧调度器再打 info「Recompute preemption falls back without offload for request %s ...」，发退回 P 的标记 [C1]。已算位置为 0 时直接返回 `False`，不打日志。rc2 的细粒度 TP 失败会中止，不能照这条旧流程判断结果。
+- **`v0.30.0` / `main` 的容量参数无效**：实际每 rank 字节须为正；比例须为正且有限。即使设置了优先级更高的字节参数，比例仍先检查，不能用 0、负数或无穷值当作“关闭比例”。比例或字节只够分出一个 null block 时，也没有可供普通请求使用的块。
+- **旧版主机块不够：连接器返回失败**。`_create_preempt_state` 发现需要的块数大于空闲块数，打 warning「Skip recompute offload for request %s: CPU cache has %d free blocks, but %d new blocks are required.」并返回 `False` [C6]；旧调度器再打 info「Recompute preemption falls back without offload for request %s ...」，发退回 P 的标记 [C1]。已算位置为 0 时直接返回 `False`，不打日志。`v0.30.0` 与 `main` 的细粒度 TP 失败会中止，不能照这条旧流程判断结果。
 - **搬回准备失败**：分好显存块以后建不出「主机块 → 新显存块」的对照，`update_state_after_alloc` 抛 `RuntimeError: Failed to prepare recompute H2D load after KV block allocation`。
-- **rc2的状态布局不符合约束**：环形组不是单个有效块、Mamba恢复的源或目标块无效，会在准备映射时抛错；卷积状态须符合规格中的二维形状且每块一行物理缓存。缺少已注册的卷积张量、偏移越界或可恢复历史长度非正，也会抛错，不能仅把主机预算加大来处理。
+- **`v0.30.0` / `main` 的状态布局不符合约束**：环形组不是单个有效块、Mamba 恢复的源或目标块无效，会在准备映射时抛错；卷积状态须符合规格中的二维形状且每块一行物理缓存。缺少已注册的卷积张量、偏移越界或可恢复历史长度非正，也会抛错，不能仅把主机预算加大来处理。
 - **main 上写旧名**：该注册入口的配置名是 `PreemptOffloadConnector`，对应实现类 `PreemptOffloadConnectorV1` [C25]；启动参数使用配置名，不能把旧的 `RecomputeCPUOffloadConnector` 当成这一入口 [!]。
 - **只配连接器、没开 RecomputeScheduler**：不报错，也不生效，走普通重算 [S15]。
 - **官方已知限制**：Qwen3.5 配异步调度尚未完全支持，用它时要关掉异步调度。

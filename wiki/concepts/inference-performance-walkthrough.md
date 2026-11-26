@@ -31,7 +31,7 @@ sources:
   - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426'
   - 'vllm@0fc695fc:docs/configuration/optimization.md#L41-L62'
   - >-
-    https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html
+    https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html
   - 'vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L200'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2050-L2110'
   - 'vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L663'
@@ -184,7 +184,7 @@ $$\Delta \text{ITL}_{\max} = 240 - \max(50, 60, 120, 80) = 120\text{ ms}, \qquad
 | B 中 N 的首字等待（TTFT） | $690 - 400$ | **290 ms** |
 | N 多等的首字时间 | $290 - 250$ | **增加 40 ms** |
 
-三项证据连上了：N 每步处理的内容变少，D 所在步变短，D 的长停顿也缩短。这支持采用 B 缓解**这类负载下**的中途停顿。它没有说明“输入减到三分之一，任何设备就会快三倍”：执行效率、准备次数和路径都可能变化，[性能分析](inference-performance-analysis.md)会接着拆解这笔成本。
+三项证据连上了：N 每步处理的内容变少，D 所在步变短，D 的长停顿也缩短。这支持采用 B 缓解**这类负载下**的中途停顿。它没有说明“输入减到三分之一，任何设备就会快三倍”：算子利用率、主机准备次数和通信路径都会随之改变，[性能分析](inference-performance-analysis.md)会接着拆解这笔成本。
 
 实际记录不符合这张表时，判断也要随之改变：
 
@@ -198,9 +198,9 @@ $$\Delta \text{ITL}_{\max} = 240 - \max(50, 60, 120, 80) = 120\text{ ms}, \qquad
 
 ### D 不停了，是否就算优化成功
 
-还要看 N 和其他请求付出了什么代价。N 的提示词分成更多步骤以后，首个 token 可能更晚出现；调度和输入准备要多做几次，需要访问前面各段的注意力计算还会重复读取那些历史数据。每步工作变少，执行效率却未必更高。
+还要看 N 和其他请求付出了什么代价。N 的提示词分成更多步骤以后，首个 token 往往更晚出现；调度和输入准备要多做几次，需要访问前面各段的注意力计算还会重复读取那些历史数据。每步工作变少，单步硬件利用率却未必更高。
 
-**吞吐**衡量一段时间内服务完成的总工作量，例如每秒输出多少 token。它与单个用户的等待不同：同一步多处理一些请求，整机总产出可能更高，每个人却可能等得更久。因此，实验开始前就要定目标，例如“减少回答中途的长停顿，同时让新请求的首字等待保持在可接受范围”。
+**吞吐**衡量一段时间内服务完成的总工作量，例如每秒输出多少 token。它与单个用户的等待不同：同一步多处理一些请求，整机总产出会更高，单条请求却要等得更久。因此，实验开始前就要定目标，例如“减少回答中途的长停顿，同时让新请求的首字等待保持在可接受范围”。
 
 在这个例子里，假如约定一份 **SLO（服务等级目标）**：“首字不超过 350 ms，单次输出间隔不超过 150 ms”，D 从不达标变成达标，N 的首字也仍在限制内，B 值得进入更大负载的验证。若业务要求 N 在 270 ms 内出首字，B 就违反了目标：不能只拿 D 的改善宣布成功。
 
@@ -208,7 +208,7 @@ $$\Delta \text{ITL}_{\max} = 240 - \max(50, 60, 120, 80) = 120\text{ ms}, \qquad
 
 判断 A、B 时，至少保留下面几类结果。长输入和短输入分别统计，才能看出改善落在谁身上、代价又由谁承担。
 
-表中的“有效输入数”只数真实要处理的位置，“实际执行尺寸”还可能包含额外补入的空位。有些执行方式需要匹配预先记录好的计算形状，就会把输入补大；因此同样的有效输入数不一定对应同样的执行量。补齐的具体过程复用[多请求中的图尺寸示例](concurrent-requests.md#先补到自己这组的图尺寸)。
+表中的“有效输入数”只数真实要处理的位置，“实际执行尺寸”还会包含为对齐图档位而额外补入的空位。执行图模式需要匹配预先捕获好的计算形状，就会把输入补大；因此同样的有效输入数不一定对应同样的执行量。补齐的具体过程复用[多请求中的图尺寸示例](concurrent-requests.md#先补到自己这组的图尺寸)。
 
 | 要判断的问题 | A、B 都要留下的数据 |
 | --- | --- |
@@ -378,7 +378,7 @@ file: inference-performance-walkthrough-fig-glm-dp-bars
 | Ascend `ModelRunner` 准备执行 | 关联 rank、有效输入数、补齐后尺寸和实际图模式 | 固定版有 `Running batch with cudagraph_mode` 的 DEBUG 日志，能辅助核对执行形状；它不给完整请求映射或设备完成时刻 |
 | `OutputProcessor` 接到引擎结果 | `engine_core_output.request_id`、`new_token_ids` 与输出队列交接；继续关联前端发送和客户端接收 | 解码、入队、生成 SSE、客户端收到是不同事件；入队不能写成客户端收到 |
 
-3. **设备执行仍有疑点时，才采短窗口。** 若已有证据把等待定位在排队或返回，沿那一段继续查；需要补设备执行证据时，才用下面的采集入口。服务函数级路径用服务 profiler，设备算子时间用 Ascend PyTorch Profiler；两者配置不同。当前官方滚动指南的 Torch 路径使用启动参数 `--profiler-config`，配置 `profiler` 为 `torch` 及输出目录 `torch_profiler_dir`，再通过下面的 HTTP 端点控制窗口。先在现场安装版的帮助与同版文档中确认支持，不能把这套入口直接当作固定 GLM 镜像的已验证能力。[S7]
+3. **设备执行仍有疑点时，才采短窗口。** 若已有证据把等待定位在排队或返回，沿那一段继续查；需要补设备执行证据时，才用下面的采集入口。服务函数级路径用服务 profiler，设备算子时间用 Ascend PyTorch Profiler；两者配置不同。在 `v0.30.0` 主基线及当前官方指南中，Torch 路径在启动时传入 `--profiler-config '{"profiler": "torch", "torch_profiler_dir": "./prof_out"}'`（以隔离环境的 `vllm serve Qwen/Qwen3-8B` 为例，同时须设 `VLLM_SERVER_DEV_MODE=1` 开放管理端点），再通过下面的 HTTP 端点控制采集窗口。先在现场安装版的帮助与同版文档中确认支持，不能把这套入口直接当作固定 GLM 镜像的已验证能力。[S7]
 
 ```bash
 # 仅供已按对应版本指南启用 profiler 的隔离服务使用；替换为实际地址。

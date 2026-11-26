@@ -2,7 +2,6 @@
 id: enable-async-exponential
 legacyAnchors:
   一句话: 它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？
-  事实表: 对照源码
   为什么存在: 为什么叫 exponential 而不是 softmax，以及副流重叠的取舍
   开了的代价: 历史版本的六项代价、GLM 双机 MTP 形状冲突与升级清理
 title: enable_async_exponential
@@ -85,17 +84,24 @@ rawSources:
 
 ## 它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？
 
-`enable_async_exponential` 曾是 `additional_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下的布尔开关，改的只有一个**执行时机**：随机采样所需的指数分布随机数 $q \sim \text{Exp}(1)$ 默认在 softmax 算完后才现填；开启后，会在 [NPUModelRunner](../concepts/npu-model-runner.md) 本步 model forward 开始之前提交到副流（独立 NPU stream）`global_stream()` 预先填充，争取把生成耗时藏进模型各层前向里。
+**这是一个自 `v0.25.1rc1`（PR #12306）起已彻底移除的历史采样优化开关（`v0.23.0` 发版当天即列入官方待废弃清单）：新部署切勿使用，升级到 `v0.30.0` 或 `main` 后若保留 `"enable_async_exponential"`，常规环境会直接触发 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤）。**
 
-它在 `v0.23.0` 默认 `False`，且发版当天就已列入官方 Ready to Deprecate 待废弃清单——**新部署不要依赖它**。
+在 `v0.23.0` 中，它是 `additional_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下的布尔开关（默认 `False`），改的只有一个**执行时机**：随机采样所需的指数分布随机数 $q \sim \text{Exp}(1)$ 默认在 softmax 算完后才现填；开启后，会在 [NPUModelRunner](../concepts/npu-model-runner.md) 本步 model forward 开始之前提交到副流（独立 NPU stream）`global_stream()` 预先填充，争取把生成耗时藏进模型各层前向里。
 
-**自 `v0.25.1rc1` 起（PR #12306），该开关连同 `do_async_exponential`、`set_q_event` 与 `async_exponential_event` 事件对象一并删除**（同批待废弃下线的还有 layer sharding、FlashComm2、multistream-overlap gate、Hamming sparse、matmul all-reduce 融合、weight prefetch 与 dynamic-batch SLO）。升级后保留旧键的行为按版本分叉：
+PR #12306 将该开关连同 `do_async_exponential`、`set_q_event` 与 `async_exponential_event` 事件对象一并删除（同批下线的还有 layer sharding、FlashComm2、multistream-overlap gate、matmul all-reduce 融合与 weight prefetch）。
 
-| 版本 | 残留 `enable_async_exponential` 的行为 | 采样路径现状 |
+## 事实表
+
+核对旧版采样脚本与跨版本升级影响时，直接查看下表：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| `v0.26.0rc` | `AscendConfig` 仍为普通类逐键 `.get()`，未知顶层键静默忽略（能启动但无异步重叠） | 同步 `random_sample` 补上 `q.record_stream(torch.npu.current_stream())` |
-| `v0.30.0` | `AscendConfig` 启用 `extra="forbid"` 且不豁免本键，通常直接报错；仅环境可发现 `vllm_omni` 时告警过滤未知顶层键 | `vllm_ascend/sample/sampler.py` 仅保留同步 `random_sample` |
-| `main` | 同 `v0.30.0` | MRV1 采样器整体退役（仅 `310p/worker/v2` 等路径保留同步 `random_sample`） |
+| 历史配置路径 | `additional_config["enable_async_exponential"]`（`bool = False`） | 仅在 `v0.23.0` / `v0.24.0rc` 存在且已标 Ready to Deprecate |
+| `v0.30.0` / `main` 现状 | 已彻底移除；`v0.30.0` 保留同步 `random_sample`，`main` 退役 MRV1 `sampler.py` | 升级后必须从 `additional_config` 删除该键，否则除 `vllm_omni` 告警过滤外直接报错（`v0.26.0rc` 静默忽略） |
+| 优化目标与常见误解 | 提前在 `global_stream()` 生成采样用的 $q \sim \text{Exp}(1)$ | 名字里的 `exponential` 指随机数分布，**不是** `softmax` 里的 `exp` |
+| 模型收益分化 | 历史 PR #4501 中稠密 32B 正收益，但 `Qwen3-30B` MoE 反而变慢 | MoE 无论是否开启 EP 均出现吞吐下降，上游因此保持默认关闭 |
+| 静默失效与白做分配 | `VLLM_BATCH_INVARIANT=1` 静默将其置回 `False`；全 greedy 或 `enable_reduce_sample` 步不消费预填的 `q` | 开启批不变性时本项无声失效；贪心或归约采样下白占 `(batch, vocab_size)` `fp32` 显存 |
+| 同步与 MTP 风险 | 取用前调 `Event.synchronize()` 阻塞 host 线程；MTP 多候选行与 1 行 bonus 不切片直接相除 | 会拖慢异步调度主机侧流水，且在旧版 MTP 随机采样下存在形状不匹配风险 |
 
 ## 为什么叫 exponential 而不是 softmax，以及副流重叠的取舍
 
@@ -103,7 +109,7 @@ rawSources:
 
 **名字里的 `exponential` 指的是 `q.exponential_()` 抽指数分布随机数，不是前一行 `logits.softmax(dim=-1, dtype=torch.float32)` 里的 `exp`**——这是该参数最容易被误解之处。
 
-因为 `q.exponential_()` 在 NPU 上不便宜（源码注释点明它可能落到 AI CPU 执行），同步路径把它夹在 softmax 与 argmax 之间会让主流干等。异步开关把填充起点前移到 forward 之前：
+因为 `q.exponential_()` 在 NPU 上开销可观（源码注释点明该算子在部分场景落到 AI CPU 执行），同步路径把它夹在 softmax 与 argmax 之间会让主流干等。异步开关把填充起点前移到 forward 之前：
 
 ```wiki-diagram
 file: enable-async-exponential
@@ -119,7 +125,7 @@ file: enable-async-exponential
 | A3 · `Qwen2.5-32B` / `Qwen3-32B` | 约 `+7%` / `+13.3%` | 稠密模型见正收益 |
 | `Qwen3-30B`（MoE，开 EP / 不开 EP） | 约 `868 → 803 tok/s` / `-0.8%` | 无论是否开 EP 均变慢（PR 未说明原因），默认值因此保持 `False` |
 
-精度上，只要 `q` 形状与采样行对应且元素独立服从 $\text{Exp}(1)$，目标概率分布相同；但异步路径在 forward 前无条件预生成，抽取次数、行数与随机操作顺序可能与同步路径不同，同一 seed 不能保证逐 token 位级复现（且与 `VLLM_BATCH_INVARIANT` 互斥）。
+精度上，只要 `q` 形状与采样行对应且元素独立服从 $\text{Exp}(1)$，目标概率分布相同；但异步路径在 forward 前无条件预生成，抽取次数、行数与随机数消费顺序与同步路径不同，同一 seed 下不保证逐 token 位级一致（且与 `VLLM_BATCH_INVARIANT` 互斥）。
 
 ## 历史版本的六项代价、GLM 双机 MTP 形状冲突与升级清理
 

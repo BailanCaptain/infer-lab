@@ -93,13 +93,14 @@ const router = createHashRouter([
         path: "*",
         lazy: async () => ({ Component: (await import("./pages/CoursePage")).NotFoundPage }),
       },
-      {
-        path: "dev/spike-c",
-        lazy: async () => ({ Component: (await import("./pages/dev/SpikeCPage")).SpikeCPage }),
-      },
-      // 样式试样只给开发时挑方案用：构建里 DEV 是 false，整段被摇掉
+      // 开发试验路由与样式试样只在本地 DEV 开启：生产构建里 DEV 是 false，整段被摇掉
       ...(import.meta.env.DEV
         ? [
+            {
+              path: "dev/spike-c",
+              HydrateFallback: () => null,
+              lazy: async () => ({ Component: (await import("./pages/dev/SpikeCPage")).SpikeCPage }),
+            },
             {
               path: "dev/wiki-specimen",
               HydrateFallback: () => null,

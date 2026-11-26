@@ -2,7 +2,6 @@
 id: fuse-allreduce-rms
 legacyAnchors:
   一句话: 它曾经融合什么，为什么被删除？
-  事实表: 对照源码
   为什么存在: 为什么和序列并行冲突，v0.23.0 的默认值为什么是分裂的？
   开了的代价: 升级报错、编译分区代价，以及 GLM 双机为什么配不上？
 title: fuse_allreduce_rms
@@ -108,22 +107,28 @@ rawSources:
 
 ## 它曾经融合什么，为什么被删除？
 
-`fuse_allreduce_rms` 曾是 [AscendConfig](../concepts/ascend-config-system.md) 中 `ascend_compilation_config` 下的布尔开关。开启后，`torch.compile` 会在 `GraphFusionPassManager` 中多注册一个 `MatmulAllReduceAddRMSNormPass`，把计算图中连续出现的 `matmul → AllReduce → 加残差 → RMSNorm` 子图模式（pattern）替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather）。
+**这是一个自 `v0.25.1rc1`（PR #12119）起已彻底移除的历史编译融合开关：在当前的 `v0.30.0` 与 `main` 中切勿配置，旧脚本若在 `ascend_compilation_config` 里残留 `fuse_allreduce_rms` 会直接触发启动校验报错（即使环境装有 `vllm_omni` 也不会豁免嵌套子键）。**
 
-它属于 `npugraph_ex` 算子级融合规则中的一条；其余保留规则的适用条件见 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)。
+在仍保留此键的 `v0.23.0` 与 `v0.24.0rc` 上，它曾是 [AscendConfig](../concepts/ascend-config-system.md) 中 `ascend_compilation_config` 下的布尔开关。开启后，`torch.compile` 会在 `GraphFusionPassManager` 中注册 `MatmulAllReduceAddRMSNormPass`，把计算图中连续出现的 `matmul → AllReduce → 加残差 → RMSNorm` 四步子图模式（pattern）替换为单算子 `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm`（内部将 AllReduce 拆为 ReduceScatter + AllGather；其余保留至今的融合规则见 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)）。
 
-即使在仍保留此键的 `v0.23.0` 与 `v0.24.0rc` 上，设为 `true` 也**不等于必然生效**。触发替换必须同时满足三项条件：
+即便在 `v0.23.0` 上设为 `true`，也必须同时满足三道门槛才会真正改写计算图：
 
-- 存在多卡 TP AllReduce（单卡 TP=1 无从匹配 pattern）；
+- 存在多卡 TP AllReduce（单卡 `TP=1` 无从匹配 pattern）；
 - 编译区间满足 `compile_range.start > 512`（小于等于 512 的区间不会改写）；
-- 经过注册该 pass 的编译流程，且图里完整出现中间层或末层两种 pattern（末层少一路 residual 输出，因此单独注册一个 pattern）。开启图捕获或把参数设为 `true` 本身都不能证明融合已发生。
+- 经过注册该 pass 的编译流程，且图里完整出现中间层或末层两种 pattern（末层少一路 residual 输出，单独注册一个 pattern）。开启图捕获或把参数设为 `true` 本身都不能证明融合已发生。
 
-**自 `v0.25.1rc1` 起（PR #12119），该开关与 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 一并删除**，对应的 `allreduce_rmsnorm_fusion_pass.py` 与官方参数表条目也同步移除。升级后保留该嵌套键的后果按版本分叉：
+## 事实表
 
-| 版本 | 保留 `ascend_compilation_config.fuse_allreduce_rms` 的后果 | 替代与现存融合说明 |
+跨版本迁移或查阅旧配置模板时，直接核对下表：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| `v0.26.0rc` | `AscendCompilationConfig.__init__` 仍带 `**kwargs`，旧键被静默吞掉，既不报错也不生效 | 旧融合已下线，不能以「未报错」判断仍生效 |
-| `v0.30.0` / `main` | `AscendCompilationConfig` 迁至 `@config(extra="forbid")`，启动校验直接报错；`vllm_omni` 的未知顶层键过滤**不会放过嵌套子键** | 仅代表这条旧入口下线，并非缺少通算或归一化融合（例如 `main` 在 `enable_sp` 且硬件支持时注册了 `MatmulReduceScatterFusionPass`） |
+| 历史配置路径 | `additional_config["ascend_compilation_config"]["fuse_allreduce_rms"]` | 曾是嵌套子键；写在顶层在旧版也不会传给子配置 |
+| 当前版本状态 | 自 `v0.25.1rc1`（PR #12119）起与 `enable_matmul_allreduce` 同批删除 | `v0.30.0` 与 `main` 开启 `@config(extra="forbid")`，残留该嵌套子键直接启动失败（`vllm_omni` 仅豁免顶层未知键） |
+| `v0.26.0rc` 过渡行为 | `AscendCompilationConfig.__init__` 含 `**kwargs` 静默吞掉 | `v0.26` 没报错只因未拦截未知子键，旧融合 pass 早已下线 |
+| `v0.23.0` 默认值分裂 | 类型化字段与文档默认 `False`，但 `GraphFusionPassManager.configure` 读原始字典缺省 `True` | `v0.23.0` 不写此键仍会注册该 pass，但因类型化字段为 `False` 不主动向编译区间插入 `512` 切分点 |
+| 历史生效门槛 | `TP > 1`、`compile_range.start > 512`、完整命中未量化 `matmul + AR + Add + RMSNorm` | 小批量区间（`<= 512`）、W8A8 量化线性层或 mHC 残差结构均不会命中 |
+| 冲突与现存替代 | 在 `v0.23.0` 排在序列并行（SP）pass 之前，会抢先吃掉同一段 `AR + RMSNorm` 子图 | 旧入口下线不等于新版无通算融合（如 `main` 在 `enable_sp` 且硬件支持时注册 `MatmulReduceScatterFusionPass`） |
 
 ## 为什么和序列并行冲突，v0.23.0 的默认值为什么是分裂的？
 
@@ -160,7 +165,7 @@ file: fuse-allreduce-rms
 
 一个 1024 token、BF16 的 chunk 在每处传递 $1024 \times 1024 \times 2\text{ B} = 2\text{ MiB}$ 逻辑张量；示意按 512 行切分时为两块，实际块长仍由 tiling 决定。小于等于 512 的编译区间不会被此 pass 改写；大批量 decode 或 prefill 是否命中，应按各自区间与实际图检查，不能只按阶段名判断收益。
 
-在仍支持的 `v0.23.0` 上显式开启时，键必须嵌在 `ascend_compilation_config` 里（写在 `additional_config` 顶层不会传给子配置，而缺省为 `True` 的旧 manager 甚至仍可能默默注册该 pass）：
+在仍支持的 `v0.23.0` 上显式开启时，键必须嵌在 `ascend_compilation_config` 里（写在 `additional_config` 顶层不会传给子配置，而旧 manager 读取原始嵌套字典缺省为 `True`，在未显式传 `false` 时仍会注册该 pass）：
 
 ```bash
 vllm serve Qwen/Qwen3-0.6B \
@@ -171,7 +176,7 @@ vllm serve Qwen/Qwen3-0.6B \
 开启或升级迁移时主要面临三项代价与边界：
 
 - **抢先替换 SP 候选子图**：在 `v0.23.0` 同时开启 `compilation_config.pass_config.enable_sp` 时，SP 两个 pass 虽仍注册，但已被融合 pass 替换的节点不再可用；需要保留该处 SP 改写时应关闭本开关，并核对编译日志或图命中结果。
-- **可能增加编译分区**：开启该字段会把 `512` 加入 `compile_ranges_endpoints` 切分点；若原来没有这一边界且两侧区间都实际编译，可能增加编译开销与缓存条目，但不能据此断言耗时或条目数必然增加固定值。
+- **增加编译区间切分点**：开启该字段会把 `512` 加入 `compile_ranges_endpoints` 切分点；当原有编译区间不含这一边界且切分后两侧区间都触发实际编译时，会相应增加编译轮次与缓存条目（具体增量取决于原有区间配置，不能据此断言固定常数增量）。
 - **升级后必须删掉该嵌套键**：`v0.26.0rc` 虽因 `**kwargs` 静默吞掉而「能启动」，但融合并未生效；`v0.30.0` 与 `main` 的 `AscendCompilationConfig` 仅保留 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel`、`fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 六个字段并开启 `extra="forbid"`，残留该嵌套键会直接启动失败——即便环境里装有 `vllm_omni`，其未知键警告剔除只作用于顶层 `additional_config`，不会放过嵌套在 `ascend_compilation_config` 里的无效子键。
 
 **放到 GLM 双机部署（历史例外 B 算例，源码推断、尚未真机 dump 图确认）**：固定 TP8 部署下，R1 纯文本主干一次前向有 91 次 TP All-Reduce（不含视觉塔与 MTP，拆分见[逐层通信清单](../concepts/one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)），但逐类核对后都配不上该 pattern：

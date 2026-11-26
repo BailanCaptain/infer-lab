@@ -1576,6 +1576,62 @@ export const domain5Rules: readonly CouplingRule[] = [
       };
     },
   },
+  {
+    id: "d5-sleep-mode-requires-nz-disabled",
+    domain: "graph-sched-env",
+    title: "--enable-sleep-mode 唤醒要求生效 weight_nz_mode=0（关闭 FRACTAL_NZ）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/worker.py#L279-L299`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L645-L660`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/batch_invariant.py#L102-L109`,
+    ],
+    description:
+      "NPUWorker.wake_up() / _check_nz_disabled() 读取 get_ascend_config().weight_nz_mode，非 0 时直接抛 ValueError；v0.30.0 默认 weight_nz_mode=1，除非显式传 weight_nz_mode=0、启用 rl_config.enabled=true，或由 VLLM_BATCH_INVARIANT 在运行期将 weight_nz_mode 覆写为 0，否则唤醒阶段必然报错阻断。",
+    rationale:
+      "CaMemAllocator 睡眠池挂起与重载权重时，FRACTAL_NZ 格式会导致参数还原精度错乱，源码唤醒守卫强制拦截。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.enableSleepMode !== true) return null;
+      const effectiveNzMode =
+        input.rlEnabled === true || input.vllmBatchInvariant === true ? 0 : (input.weightNzMode ?? 1);
+      if (effectiveNzMode === 0) {
+        if (input.hardwareFamily === "310P") {
+          return {
+            ruleId: this.id,
+            domain: this.domain,
+            title: "Atlas 300I DUO (310P) 硬件档案 FORCE_NZ 与 --enable-sleep-mode 存在布局冲突风险",
+            version,
+            judgment: "warn",
+            evidenceLevel: "C",
+            sources: [
+              ...this.sources,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L317`,
+            ],
+            message:
+              input.weightNzMode === 0
+                ? "已显式将 weight_nz_mode 置为 0（可通过 wake_up() 配置值守卫），但 310P 硬件档案启用 WeightLayoutPolicy.FORCE_NZ 优先于 weight_nz_mode=0 转换普通权重布局，睡眠挂起/唤醒尚未验证可靠性。"
+                : "当前配置（如 VLLM_BATCH_INVARIANT 或 rl_config）已将生效 weight_nz_mode 覆写为 0（可通过 wake_up() 配置值守卫），但 310P 硬件档案启用 WeightLayoutPolicy.FORCE_NZ 仍会转换普通权重布局，睡眠挂起/唤醒尚未验证可靠性。",
+            remediation: "建议在 310P 上避免开启 --enable-sleep-mode，或在真机实测唤醒前后输出精度后再投产。",
+          };
+        }
+        return null;
+      }
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "error",
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `ValueError: 已开启 --enable-sleep-mode，但当前生效 weight_nz_mode=${effectiveNzMode}（默认值为 1）；调用 wake_up() 时将触发 "FRACTAL_NZ mode is enabled... Please set weight_nz_mode=0 via --additional-config" 报错。`,
+        remediation: `请追加 --additional-config '{"weight_nz_mode":0}'（或在 RL 场景启用 '{"rl_config":{"enabled":true}}' 自动关闭 NZ）。`,
+      };
+    },
+  },
 ];
 
 export function evaluateDomain5Rules(

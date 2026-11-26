@@ -1,45 +1,8 @@
-{
-  "layout": "figure",
-  "id": "npugraph-ex",
-  "caption": "同一段「乘系数再相加」：不融合时中间结果要写进显存再读回，融合实现可以让它留在算子内部。4 行 8 列、每个数 2 字节是教学示意。",
-  "size": [900, 540],
-  "frames": [
-    {"at": [336, 56], "size": [214, 126], "label": "设备显存"},
-    {"at": [330, 266], "size": [250, 200], "label": "一个融合算子"}
-  ],
-  "items": [
-    {"at": [220, 86], "size": [96, 44], "text": "× 系数", "tone": "weight"},
-    {"at": [570, 86], "size": [96, 44], "text": "＋ y", "tone": "weight"},
-    {"at": [352, 300], "size": [206, 56], "text": "乘完直接加", "tone": "weight"}
-  ],
-  "grids": [
-    {"at": [40, 68], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"},
-    {"at": [352, 76], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"},
-    {"at": [700, 68], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"},
-    {"at": [40, 278], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"},
-    {"at": [40, 384], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"},
-    {"at": [700, 330], "rows": 4, "cols": 8, "cell": [20, 17], "tone": "token", "style": "solid"}
-  ],
-  "links": [
-    {"from": [200, 108], "to": [220, 108]},
-    {"from": [316, 108], "to": [336, 108]},
-    {"from": [550, 108], "to": [570, 108]},
-    {"from": [666, 108], "to": [700, 108]},
-    {"from": [200, 312], "to": [330, 322]},
-    {"from": [200, 418], "to": [330, 400]},
-    {"from": [580, 360], "to": [700, 364]}
-  ],
-  "texts": [
-    {"at": [40, 40], "text": "不融合：中间结果进显存，再整块读回来", "strong": true},
-    {"at": [443, 202], "text": "中间结果 64 B", "anchor": "middle"},
-    {"at": [443, 232], "text": "写出 64 B + 读回 64 B = 128 B", "anchor": "middle"},
-    {"at": [760, 156], "text": "结果", "anchor": "middle"},
-    {"at": [40, 258], "text": "融合：中间结果不出算子", "strong": true},
-    {"at": [120, 366], "text": "x", "anchor": "middle"},
-    {"at": [120, 472], "text": "y", "anchor": "middle"},
-    {"at": [455, 392], "text": "这块 64 B 不再往返", "anchor": "middle"}
-  ],
-  "pins": [
-    {"source": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L105", "symbols": ["MulsAddPattern", "muls_add"]}
-  ]
-}
+mode: native-svg
+id: npugraph-ex
+caption: >-
+  同一段「乘系数再相加（x × scale + y）」在融合前后的访存与下发对比（以 4×8 BF16 = 64 B 为教学算例）：不融合时两次独立下发算子，中间结果 temp 要写出 64 B 再读回 64 B（共 128 B 额外显存往返）；经 MulsAddFusionPass 替换为单算子 muls_add 后，中间结果留驻 AI Core 片上 UB 直接累加 y，省去 1 次启动与 128 B 中间往返。
+size: [900, 500]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L108
+    symbols: [MulsAddPattern, muls_add]

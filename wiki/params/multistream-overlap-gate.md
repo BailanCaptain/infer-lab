@@ -13,7 +13,6 @@ aliases:
   - FlashCommon3Context
 legacyAnchors:
   一句话: 它曾做什么，为什么 v0.24 起已移除？
-  事实表: 它曾做什么，为什么 v0.24 起已移除？
   为什么存在: 在 v0.23.0 里怎么跨流重叠，消费条件是什么？
   开了的代价: 旧部署的风险、迁移清理与 GLM 双机推演
 chapters:
@@ -107,13 +106,9 @@ rawSources:
 
 ## 它曾做什么，为什么 v0.24 起已移除？
 
-推理走到 MoE（混合专家）层时，NPU 既要把本地隐藏态量化并跨卡汇总（`prepare` 准备阶段），又要算每个 token 必经的**共享专家前向**（含 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）和给每个 token 挑专家的 **`select_experts` 路由**（见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）。
+**这是一个自 `v0.24.0rc`（PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956)）起已整套移除的历史 FlashComm3 多流门控开关：升级到 `v0.30.0` 或 `main` 时必须从 `--additional-config` 中删掉 `multistream_overlap_gate`（残留会触发 `extra="forbid"` 启动报错，仅装有 `vllm_omni` 时告警过滤），同时注意不要把至今仍保留的 `multistream_overlap_shared_expert` 误当废弃项一并删掉。**
 
-`multistream_overlap_gate`（上游称 **FlashComm3 multistream-overlap gate**）的思路是把这两段工作拆到不同的 NPU **stream（流）**上并行跑：同一条流中的任务按顺序执行，不同流上的任务可以在设备上重叠运行；一条流停下来等另一条流完成再继续称为 **join（汇合）**——汇合之后才能安全读取对方的输出。
-
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**该开关和整套 FlashComm3 多流门控实现在 `v0.30.0` 与 `main` 中均已删除。** 它在 `v0.23.0` 发版时即被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) 整套移除（连同 `flash_common3_context.py`、`fc3_quant_x` 通信组与 `fc3_all_gather_and_maybe_unpad_impl` 一起删除），`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留。若从旧版迁移时把它残留在 `--additional-config` 里，`v0.30.0` 与 `main` 的普通进程会直接被 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 拒收（发现 `vllm_omni` 时告警过滤），升级时应直接删掉此键。
-
-在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 中，它是默认 `False` 的布尔开关：开启后把共享专家前向与 `select_experts` 路由整体搬到副流 `gate_stream` 上，让它们与主线里的「动态量化 + EP All-Gather 隐藏态」并行执行。迁移时不要把它和至今仍在 `v0.30.0` / `main` 中保留的 `multistream_overlap_shared_expert` 混为一谈：
+推理走到 MoE（混合专家）层时，NPU 既要把本地隐藏态量化并跨卡汇总（`prepare` 准备阶段），又要算每个 token 必经的**共享专家前向**（含 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）和给每个 token 挑专家的 **`select_experts` 路由**（见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）。在历史 **`v0.23.0`（`2c59ff10`）** 中，`multistream_overlap_gate`（默认 `False`）把共享专家前向与 `select_experts` 路由搬到副流 `gate_stream` 上，让它们与主线里的「动态量化 + EP All-Gather 隐藏态」在不同 NPU **stream（流）**上并行重叠运行，在硬汇合点（**join**）之后再读取对方输出。迁移时请区分这两个名字相似的开关：
 
 | 对比维度 | `multistream_overlap_gate`（历史开关） | `multistream_overlap_shared_expert`（现存开关） |
 | --- | --- | --- |
@@ -121,7 +116,19 @@ rawSources:
 | 搬到副流的计算 | 共享专家前向（含 TP All-Reduce）+ `select_experts` 路由 | 仅共享专家计算（移至 `shared_experts_calculation_stream()`） |
 | 升级后留着旧键 | `v0.26.0rc` 静默忽略；`v0.30.0`/`main` 通常拒收（发现 `vllm_omni` 时告警过滤） | 正常字段；但 `enable_fused_mc2 == 1` 时会被自动告警关闭 |
 
-在 `v0.23.0` 上若同时开启这两个开关，共享专家由 `gate_stream` 接管，取结果时直接读取 `fc3_context.shared_out`，`_forward_shared_experts` 里的 `multistream_overlap_shared_expert` 分支会沦为死代码。升级后被删除的只是 gate 开关，不要把 `multistream_overlap_shared_expert` 一并误当废弃项删掉。
+在 `v0.23.0` 上若同时开启这两个开关，共享专家由 `gate_stream` 接管，取结果时直接读取 `fc3_context.shared_out`，`_forward_shared_experts` 里的 `multistream_overlap_shared_expert` 分支会沦为死代码。
+
+## 事实表
+
+核对旧版 FlashComm3 脚本清理与历史生效边界时，可速查下表：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 历史配置路径 | `additional_config["multistream_overlap_gate"]`（`bool = False`） | `v0.23.0` 发版即标 Ready to Deprecate；`v0.24.0rc` 起连同 `flash_common3_context.py` 整套移除 |
+| `v0.30.0` / `main` 现状 | 已删除，普通进程触发 `extra="forbid"` 启动报错（`vllm_omni` 告警过滤） | 升级须删除该键；`v0.26.0rc` 虽静默忽略但同样无重叠效果 |
+| 历史量化与 SP 门槛 | 仅 `w8a8_dynamic` / `w8a8_mxfp8` 消费预路由结果，且须开序列并行（FlashComm1 或 pass 版 SP） | 未量化 BF16 MoE 无接收端；未开 SP 时 `quant_stream` 不执行且多卡易发生行数失配 |
+| 模型与 LoRA 硬约束 | 无共享专家的 MoE 触发 `assert fc3_context is not None`；与 MoE LoRA v1 互斥抛 `AssertionError` | 均无自动降级，旧版 `v0.23` 不可在无共享专家或 MoE LoRA 下开启 |
+| 现存近名开关 | `multistream_overlap_shared_expert` 在 `v0.30.0` 与 `main` 仍有效 | 仅把共享专家移至副流，不是本键的同义别名，且与 `enable_fused_mc2 == 1` 互斥 |
 
 ## 在 v0.23.0 里怎么跨流重叠，消费条件是什么？
 

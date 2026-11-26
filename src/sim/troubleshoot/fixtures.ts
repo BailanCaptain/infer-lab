@@ -235,6 +235,36 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
       "(APIServer pid=67670) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}",
     ].join("\n"),
   },
+  {
+    id: "real-910b3-mooncake-adxl-fallback",
+    label: "910B3 实测：Mooncake ADXL 端点回退刷屏 [M]",
+    kind: "logs",
+    summary:
+      "8×Ascend 910B3 真机捕获（Qwen3-8B 2P2D D 端日志）：跨实例拉取 216 段离散 KV 时，transfer_executor_base.cpp:64 因 Dest buffer device_id=1 >= endpoint count 1 连续刷出 4,991 行回退告警（30B 4P4D 达 19,941 行），放大首字延迟。",
+    expectedRuleIds: ["mooncake-adxl-endpoint-fallback"],
+    content: [
+      "(Worker_TP0 pid=5153) INFO 11-23 07:24:02 [mooncake_connector.py:1053] KV cache transfer for request cmpl-65d5fa5d-e37e-41e6-8210-691266996be8-0-9888c32d took 207.49 ms. local_ip 192.168.88.208 local_device_id 0 remote_session_id 192.168.88.208:16506",
+      "(Worker_TP1 pid=5155) INFO 11-23 07:24:02 [mooncake_connector.py:1053] KV cache transfer for request cmpl-65d5fa5d-e37e-41e6-8210-691266996be8-0-9888c32d took 346.74 ms. local_ip 192.168.88.208 local_device_id 1 remote_session_id 192.168.88.208:16889",
+      "W1123 07:23:51.968192  7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+      "W1123 07:23:51.968256  7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+      "W1123 07:23:51.968266  7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+      "W1123 07:24:46.036317  7385 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+    ].join("\n"),
+  },
+  {
+    id: "real-910b3-debug-logging-ttft",
+    label: "910B3 实测：DEBUG 日志热路径拖慢 TTFT [M]",
+    kind: "logs",
+    summary:
+      "Ascend 910B3 真机捕获：误留 VLLM_LOGGING_LEVEL=DEBUG 触发 worker.py 每步 execute_model() 读取缓存分配器打日志（TP=8 达 3,312 行）及 acl_graph.py 回放前 data_ptr() 校验，使 Qwen3-8B TP=8 (c=1) TTFT 从 139.07 ms 升至 193.98 ms（+39.48%）。",
+    expectedRuleIds: ["debug-logging-hotpath-overhead"],
+    content: [
+      "export VLLM_LOGGING_LEVEL=DEBUG",
+      "(Worker_TP0 pid=35438) DEBUG 11-23 02:25:45 [worker.py:768] torch reserved memory: 54.21 GiB, torch allocated memory: 51.22 GiB",
+      "(Worker_TP1 pid=35439) DEBUG 11-23 02:25:45 [worker.py:768] torch reserved memory: 54.21 GiB, torch allocated memory: 51.22 GiB",
+      "(EngineCore pid=40516) DEBUG 11-22 21:38:20 [model_runner_v1.py:2392] Running batch with cudagraph_mode: FULL, batch_descriptor: BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0), should_ubatch: False, num_tokens_across_dp: None",
+    ].join("\n"),
+  },
 ];
 
 export function getTroubleshootFixture(id: string | undefined): TroubleshootFixture {

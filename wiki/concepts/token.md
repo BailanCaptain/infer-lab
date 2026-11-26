@@ -6,7 +6,7 @@ legacyAnchors:
   编号要落在-154880-行之内: GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转
   r1-在入口拿到了什么: GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转
   再交给某一个引擎等待调度: GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转
-title: Token、分词与 chat_template：从文本消息到模型编号序列
+title: Token 与分词：从文本消息、chat_template 到模型编号序列
 type: concept
 origin: gap
 summary: >-

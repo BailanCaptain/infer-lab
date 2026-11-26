@@ -164,6 +164,7 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   "parse-invalid-vllm-port": [{ pageId: "ascend-env-and-serve" }],
   "env-visible-devices-mismatch": [{ pageId: "ascend-env-and-serve" }, { pageId: "tensor-parallel" }],
   "env-wrong-visibility-var": [{ pageId: "ascend-env-and-serve" }, { pageId: "hardware-devices" }],
+  "env-debug-logging-latency": [{ pageId: "ascend-910b3-measured-baseline" }, { pageId: "core-cli-params" }],
   "doc-high-gpu-mem-util": [
     { pageId: "kv-cache-memory-profiling" },
     { pageId: "core-cli-params" },
@@ -342,6 +343,11 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
   ],
   "d5-gdn-prefill-checkpoints-constraints": [{ pageId: "linear-attention" }, { pageId: "paged-attention" }],
   "d5-runtime-config-constraints": [{ pageId: "ascend-config-system" }, { pageId: "msprobe-accuracy-debug" }],
+  "d5-sleep-mode-requires-nz-disabled": [
+    { pageId: "sleep-mode" },
+    { pageId: "vllm-ascend-for-rl" },
+    { pageId: "tensor-layout" },
+  ],
 
   // Cross-instance P/D consistency diagnostics
   "pd-missing-kv-transfer-config": [{ pageId: "pd-disaggregation" }, { pageId: "mooncake-connector" }],
@@ -573,6 +579,7 @@ const MINIMAL_ALLOWED_RULE_IDS: ReadonlySet<string> = new Set([
   "d5-retired-ascend-env-var",
   "d5-deprecated-flashcomm1-env-fallback",
   "d5-main-only-additional-config-keys",
+  "d5-sleep-mode-requires-nz-disabled",
 ]);
 
 function evaluateCommonCliAndEnvFindings(
@@ -695,6 +702,32 @@ function evaluateCommonCliAndEnvFindings(
       message: "Ascend 310P 不具备 NPUGRAPH_EX 能力，启动时会告警并静默将 enable_npugraph_ex 置为 False。",
       remediation: `建议显式传入 --additional-config '{"ascend_compilation_config":{"enable_npugraph_ex":false}}'。`,
       effectiveMutation: { enableNpugraphEx: false },
+      wikiRefs,
+      deepLinks,
+    });
+  }
+
+  // 6. VLLM_LOGGING_LEVEL=DEBUG hot-path latency degradation warning
+  if (parsed.envVars.VLLM_LOGGING_LEVEL?.trim().toUpperCase() === "DEBUG") {
+    const { wikiRefs, deepLinks } = resolveWikiRefs("env-debug-logging-latency", resolver);
+    const graphReplayDisabled = parsed.enforceEager || input.cudagraphMode === "NONE";
+    findings.push({
+      id: "env-debug-logging-latency",
+      scope,
+      category: "env",
+      title: "生产/压测开启 VLLM_LOGGING_LEVEL=DEBUG 会显著拖慢热路径时延",
+      judgment: "warn",
+      evidenceLevel: "C",
+      sources: [
+        `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L834`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/compilation/acl_graph.py#L275-L282`,
+        "wiki:ascend-910b3-measured-baseline",
+      ],
+      message: graphReplayDisabled
+        ? "检测到 VLLM_LOGGING_LEVEL=DEBUG（当前已关闭图回放）：开启 DEBUG 后每步额外查询 NPU 显存分配器并刷写大量日志，显著拖慢 CPU 调度与日志 I/O。"
+        : "检测到 VLLM_LOGGING_LEVEL=DEBUG：开启 DEBUG 后每步额外查询 NPU 显存分配器、在 ACLGraph 回放中逐张量校验 data_ptr() 并刷写大量日志（Ascend 910B3 TP=8 真机实测 TTFT 恶化 +39.48%）。",
+      remediation:
+        "线上生产与性能压测请改设 VLLM_LOGGING_LEVEL=INFO（或移除该变量），仅在短时取证时开启 DEBUG。",
       wikiRefs,
       deepLinks,
     });

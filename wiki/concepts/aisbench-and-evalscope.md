@@ -93,7 +93,7 @@ file: aisbench-fig-metrics-alignment
 | **TPOT**（单输出词均值） | 对输出词数 $N_{\text{out}} > 1$ 的请求：$\text{TPOT} = \frac{\text{E2E} - \text{TTFT}}{N_{\text{out}} - 1}$ | `vllm:request_time_per_output_token_seconds`：按完成请求记录 $\frac{\text{decode\_time}}{N_{\text{gen}} - 1} = \frac{\text{last\_token\_ts} - \text{first\_token\_ts}}{N_{\text{gen}} - 1}$（止于末次引擎出词事件，不含 SSE 回传） | 若客户端流式接口把多个 token 打包进同一个 SSE chunk，或按本地分词器对文本重算 $N_{\text{out}}$，会与引擎内部 `num_generation_tokens` 产生 1~数个 token 的分母偏移 |
 | **ITL**（相邻词间隔） | 流式返回相邻两个非空 SSE chunk 到达时刻的差值列表 | `vllm:inter_token_latency_seconds`：引擎每次迭代产生新 token 之间的实际间隔 | 网络抖动或代理缓冲（如 Nginx 未关闭 `proxy_buffering`）会把连续多个 token 攒在一起吐给客户端，造成客户端出现“先长停顿后 0 ms 连发”的假毛刺 |
 
-**预热与污染剔除铁律**：无论用哪套工具测性能，正式采样前都须先打一轮小批量预热请求并丢弃其数据。即便启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求仍可能触发 **ATB**（Ascend Transformer Boost，昇腾 Transformer 加速库）矩阵乘缓存写入、首轮动态形状分支或网络长连接建连。同时，若服务端开启了自动前缀缓存（[Prefix Caching](prefix-caching.md)），压测须使用多样化输入或显式加随机前缀，避免重复 prompt 命中 99% KV 复用虚高 TTFT 与吞吐。跨拓扑做横向对比时，还须保持接口类型、输入长度分布与汇总统计量一致——例如 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 就明确区分了单卡 `/v1/chat/completions`（`24 ~ 40` prompt tokens，中位数）与八卡 `/v1/completions`（`262` prompt tokens，均值）的口径边界：两者可对照稳态 `TPOT`，但 `TTFT` 受输入长度影响不可混作单变量 A/B。
+**预热与污染剔除铁律**：无论用哪套工具测性能，正式采样前都须先打一轮小批量预热请求并丢弃其数据。即便启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求往往还会触发 **ATB**（Ascend Transformer Boost，昇腾 Transformer 加速库）矩阵乘缓存写入、首轮动态形状分支或网络长连接建连。同时，若服务端开启了自动前缀缓存（[Prefix Caching](prefix-caching.md)），压测须使用多样化输入或显式加随机前缀，避免重复 prompt 命中 99% KV 复用虚高 TTFT 与吞吐。跨拓扑做横向对比时，还须保持接口类型、输入长度分布与汇总统计量一致——例如 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 就明确区分了单卡 `/v1/chat/completions`（`24 ~ 40` prompt tokens，中位数）与八卡 `/v1/completions`（`262` prompt tokens，均值）的口径边界：两者可对照稳态 `TPOT`，但 `TTFT` 受输入长度影响不可混作单变量 A/B。
 
 ## 数据集精度基线与四类高频掉点陷阱
 
@@ -104,7 +104,7 @@ file: aisbench-fig-accuracy-pitfalls
 ```
 
 1. **上下文截断导致思维链未写完**：官方 AISBench 指南明确提示，评测服务端的 `--max-model-len` 建议大于 **`35000`**，且客户端配置的 `max_out_len`（通常 `32768`）加上输入长度必须小于 `--max-model-len`。对于 `MATH-500`、`AIME 2024`、`GPQA` 等长 CoT（思维链）推理题，一旦 `max_out_len` 给成 `1024` 或 `2048`，模型还在推导就被强行截断，永远提取不到最终答案框。
-2. **未剥离推理标签导致正则判错**：像 `Qwen3` 思考模式或 `DeepSeek` 推理模型会先输出 `<think>...</think>` 再给答案。AISBench 模板里专门配置了 `pred_postprocessor=dict(type=extract_non_reasoning_content)`，如果省略该后处理器，答题正则可能误抓思维链中间试错数字导致误判。
+2. **未剥离推理标签导致正则判错**：像 `Qwen3` 思考模式或 `DeepSeek` 推理模型会先输出 `<think>...</think>` 再给答案。AISBench 模板里专门配置了 `pred_postprocessor=dict(type=extract_non_reasoning_content)`，一旦省略该后处理器，答题正则就会误抓思维链中间的试错数字导致判错。
 3. **采样超参未固定导致跨次波动**：跑基线对照时若保持默认高温与随机 `seed=None`，在 `AIME 2024`（仅 30 题）这类小样本集上单次波动就能达到 ±5~10 个百分点。做工程回归（如验证量化或升级）应优先锁定 `temperature=0`（贪婪解码）或固定多组 `seed` 取平均；仅在对齐模型官方论文公开榜单时再恢复模型推荐采样参数（如 `temperature=0.6, top_p=0.95`）。
 4. **网络镜像变量混用**：`VLLM_USE_MODELSCOPE=True` 只控制 vLLM 加载模型与分词器，**不会**把 HuggingFace 数据集下载自动转向镜像；通过 `huggingface_hub` / `datasets` 拉取评测集时需设置 `HF_ENDPOINT`，而 `wget` 静态链接则需手动替换源地址。
 

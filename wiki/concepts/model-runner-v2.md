@@ -63,14 +63,14 @@ relations:
     kind: builds-on
     note: 专家负载均衡策略与搬迁参数见该页，本页划清 MRV1 环境变量控面与 MRV2 上游控制面的互斥边界
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-26'
 ---
 
-**Model Runner V2（简称 MRV2）**是 vLLM 与 vLLM Ascend 新一代单卡执行器，用来替代长期把所有职责塞在一个大文件里的第一代执行器（Model Runner V1，简称 MRV1）。每一步推理里，执行器都要把调度器发来的“本轮算哪些请求、各算几个 token”翻译成 NPU 上的张量、跑完前向并采样出新 token；当并发拉高、单步时间压到毫秒级时，旧版每步在 CPU 上反复重排整张请求表再同步拷给 NPU 的开销，很容易超过设备本身的计算时间。MRV2 的核心思路是**“状态常驻、缓冲预留、横切拆分”**：把输入缓冲和块表映射直接常驻在 NPU 侧，只每步送入少量变更索引，同时把上下文并行、专家负载均衡与投机解码拆成边界清晰的独立模块。
+**Model Runner V2（简称 MRV2）**是 vLLM 与 vLLM Ascend 新一代单卡执行器，用来替代长期把所有职责塞在一个大文件里的第一代执行器（Model Runner V1，简称 MRV1）。每一步推理里，执行器都要把调度器发来的“本轮算哪些请求、各算几个 token”翻译成 NPU 上的张量、跑完前向并采样出新 token。当并发拉高、单步时间压到毫秒级时，旧版每步在 CPU 上反复重排整张请求表再同步拷给 NPU 的开销，很容易超过设备本身的计算时间。MRV2 的核心思路是**“状态常驻、缓冲预留、横切拆分”**：把输入缓冲和块表映射直接常驻在 NPU 侧，每步只送入少量变更索引，同时把上下文并行、专家负载均衡与投机解码拆成边界清晰的独立模块。
 
-以一轮 **4 条并发请求各解 1 个 token 的示意 decode 步**来体会差别。在旧版 MRV1 里，CPU 先维护大表增删改，再把这 4 条请求的输入编号、位置编码和整批块表重新打包成连续数组拷贝到 NPU。而在 MRV2 里，输入张量与块表缓冲在启动时已常驻 NPU，CPU 每步只需异步写入 4 个槽位索引，由设备侧轻量核就地填好有效区间，随后沿固定显存地址回放图。
+以单机 `TP=4` 跑 **`Qwen3-8B`** 时一轮 **4 条并发请求各解 1 个 token 的 decode 步**来体会差别。在旧版 MRV1 里，CPU 先维护大表增删改，再把这 4 条请求的输入编号、位置编码和整批块表重新打包成连续数组拷贝到 NPU。而在 MRV2 里，输入张量与块表缓冲在启动时已常驻 NPU，CPU 每步只需异步写入 4 个槽位索引，由设备侧轻量核就地填好有效区间，随后沿固定显存地址回放图。
 
-在 `vLLM Ascend v0.30.0` 主基线上，MRV1 仍是默认执行器，MRV2 需通过环境变量 `VLLM_USE_V2_MODEL_RUNNER=1` 按需开启。但 PCP 上下文并行、DeepSeek V4.1（Ascend 950/A5）、路由专家回传与 CPP 异步调度等新特性已强制要求 MRV2。社区 `main` 分支则彻底删除了旧版执行器，统一收口到 MRV2 模块目录。
+在 `vLLM Ascend v0.30.0` 主基线上，MRV1 仍是默认执行器，MRV2 需通过环境变量 `VLLM_USE_V2_MODEL_RUNNER=1` 按需开启。但为 **`Qwen3-30B-A3B`** 开启新控面 EPLB（`--enable-eplb` 配 `stair`）、开启 PCP 上下文并行、运行 DeepSeek V4.1（Ascend 950/A5）、开启路由专家回传以及同时启用 CPP 与异步调度等新特性，已强制要求 MRV2。社区 `main` 分支则彻底删除了旧版执行器，统一收口到 MRV2 模块目录。
 
 ## 为什么需要从 MRV1 演进到 MRV2？
 
@@ -87,10 +87,10 @@ file: mrv2-fig-v1-vs-v2
 | 对比维度 | MRV1（单体版） | MRV2（`worker/v2/`）与工程收益 |
 |---|---|---|
 | 代码组织与对齐 | 单体大类，大量方法整段复制自上游 V1 并做昇腾改写 | 拆分为 `states`、`input_batch`、`block_table`、`pcp_manager`、`eplb`、`aclgraph_utils`、`spec_decode` 等子模块薄继承上游 V2，免去重复维护主干 |
-| 请求状态存放 | CPU 侧 `NPUInputBatch` 维护全量请求元数据与历史 token | `AscendRequestState` 将大词表 `all_token_ids` 放进 **UVA**（统一虚拟地址映射主机内存），并以 `torch.from_numpy` 零拷贝共享长度缓冲，省显存且免重复拷贝 |
+| 请求状态存放 | CPU 侧 `NPUInputBatch` 维护全量请求元数据与历史 token | `AscendRequestState` 将大词表 `all_token_ids` 放进 **UVA**（统一虚拟寻址，让 NPU 按虚拟地址零拷贝直读锁页主机内存），并以 `torch.from_numpy` 零拷贝共享长度缓冲，省显存且免重复拷贝 |
 | 输入缓冲与块表 | 每步在 CPU 整理 NumPy 数组再整体 **H2D**（Host-to-Device，主机到设备）拷贝 | `AscendInputBuffers` 在 NPU 预分配常驻缓冲，`AscendBlockTables` 用 **Triton** 核直接在设备侧算 `slot_mapping`，压低 CPU 准备耗时并契合固定地址图回放 |
 | KV Cache 组织 | 按层/按注意力类型各自分配，混合模型复用困难 | 开启标准化共享 KV 底板（`shared_kv_backing`），保留上游共享页池并按昇腾连续 K/V 与 2 MiB 对齐切出视图，消除混合状态模型碎片 |
-| 扩展能力边界 | 仅留旧 `DYNAMIC_EPLB`；不支持 PCP、路由专家回传与 CPP 异步 | 原生接入 `AscendPCPManager`、`AscendEPLBController`、统一 `spec_decode` 族与标准 `kv_connector`，承接新模型与高阶并行主干 |
+| 扩展能力边界 | 仅留旧 `DYNAMIC_EPLB`；不支持 PCP、路由专家回传与动态分块流水并行异步 | 原生接入 `AscendPCPManager`、`AscendEPLBController`、统一 `spec_decode` 族与标准 `kv_connector`，承接新模型与高阶并行主干 |
 
 ## 常驻设备缓冲与异步调度怎样配合？
 
@@ -100,7 +100,7 @@ MRV2 能压低每步 CPU 开销并天然契合 [ACL Graph](acl-graph.md) 录图�
 
 - **为 FIA `FULL` 图模式预留双尾位**：`AscendInputBuffers` 删掉基类长度为 `max_num_reqs + 1` 的 `query_start_loc`，重分配为 `max_num_reqs + 2`。多出的 1 格专门给 **FIA**（Fused Infer Attention，昇腾融合注意力算子）在完整图模式下的尾端 padding 留出安全越界槽位。
 - **零拷贝 CPU 视图桥接昇腾注意力后端**：当前昇腾注意力元数据构造仍需在 CPU 读取序列长度与已算 token 数。因此 `AscendInputBuffers` 分配 `seq_lens_cpu` 并以 `.numpy()` 共享内存暴露 `seq_lens_np`；`AscendRequestState` 则用 `torch.from_numpy` 包装 `num_computed_tokens_np` 共享底层缓冲，避免二次复制。
-- **与 [异步调度](async-scheduling.md) 协同**：开启异步调度时，调度器不等上一轮采样结果完全回 CPU 就先排下一轮；MRV2 用 `async_tensor_h2d` 异步拷贝请求映射索引 `idx_mapping`，并在 `prepare_inputs` 结合 `BatchExecutionDescriptor` 对齐图档位与草稿数。在 `v0.30.0` 上，同时开启 **CPP**（动态分块流水线 `profiling_chunk_config`）与 `async_scheduling` 时，MRV1 无法提供同等异步采样与跨段广播保证，平台校验会直接拦截并要求切换 MRV2。
+- **与 [异步调度](async-scheduling.md) 协同**：开启异步调度时，调度器不等上一轮采样结果完全回 CPU 就先排下一轮；MRV2 用 `async_tensor_h2d` 异步拷贝请求映射索引 `idx_mapping`，并在 `prepare_inputs` 结合 `BatchExecutionDescriptor` 对齐图档位与草稿数。在 `v0.30.0` 上，同时开启动态分块流水并行（`profiling_chunk_config`，见 [Dynamic Chunked PP](dynamic-chunked-pp.md)）与 `async_scheduling` 时，MRV1 无法提供同等异步采样与跨段广播保证，平台校验会直接拦截并要求切换 MRV2。
 
 ## PCP 与 EPLB 如何在 MRV2 中边界清晰地集成？
 
@@ -166,7 +166,7 @@ grep -E "npu model runner v2|Model Runner V2" serve.log
 
 - **核验开关与实例化入口**：`NPUWorker.__init__` 缓存 `self.vllm_config.use_v2_model_runner`（来源 1），随后在 `init_device()` 分支导入 `vllm_ascend.worker.v2.model_runner.NPUModelRunner` 并打印 `npu model runner v2 is in developing` 日志[C2]。在 `v0.30.0` 上，该属性被 `patch_use_v2_model_runner.py` 覆写为纯环境变量控制（未设置时返回 `False`）[C3]，覆盖了上游 vLLM 依据 `HAS_TRITON` 自动返回 `True` 的逻辑[C17]（官方发布说明亦明确 `v0.30.0` 默认 V1、下一版切换 V2[S16]）。
 - **核验常驻缓冲与状态零拷贝**：`AscendInputBuffers` 继承上游 `InputBuffers`（来源 18）并将 `query_start_loc` 扩至 `max_num_reqs + 2` 同时维护共享内存的 `seq_lens_cpu` / `seq_lens_np`[C7]；`AscendRequestState` 继承上游 UVA 承载的 `RequestState`（来源 19）并以 `torch.from_numpy` 零拷贝暴露 `num_computed_tokens_cpu`[C8]；`AscendBlockTables` 接入 Triton `_compute_slot_mappings_kernel`（来源 9）。
-- **核验 PCP 与 EPLB 边界**：`AscendPCPManager` 通过 `AscendPCPAttentionContext` 维护全局与局部批映射（来源 10），并在非末段 PP 的 `sample_tokens()` 前切回 `pcp_manager.global_batch`[C5]；`AscendEPLBController` 复用上游控制面与 HIXL/Gloo 异步搬迁并按 `load_collection_phase` 做批级过滤（来源 11）[S15]；同时 `platform.py` 在启动校验期拦截 MRV1 下的 PCP、R3、DeepSeek V4.1 A5、CPP 异步以及 MRV2 下的旧 EPLB 环境变量[C12]（来源 13–14）。具体单步 CPU 准备耗时降幅随模型与并发形态而异，须以同配置实机 profiling 对照确认[I]。
+- **核验 PCP 与 EPLB 边界**：`AscendPCPManager` 通过 `AscendPCPAttentionContext` 维护全局与局部批映射（来源 10），并在非末段 PP 的 `sample_tokens()` 前切回 `pcp_manager.global_batch`[C5]；`AscendEPLBController` 复用上游控制面与 HIXL/Gloo 异步搬迁并按 `load_collection_phase` 做批级过滤（来源 11）[S15]；同时 `platform.py` 在启动校验期拦截 MRV1 下的 PCP、路由专家回传（`--enable-return-routed-experts`，内部简称 R3）、DeepSeek V4.1 A5、动态分块流水并行配异步调度以及 MRV2 下的旧 EPLB 环境变量[C12]（来源 13–14）。具体单步 CPU 准备耗时降幅随模型与并发形态而异，须以同配置实机 profiling 对照确认[I]。
 
 ### 会报什么错
 

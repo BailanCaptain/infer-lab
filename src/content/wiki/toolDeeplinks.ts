@@ -151,6 +151,8 @@ export const TOOL_DEEPLINK_MANIFEST: readonly ToolDeepLinkManifestEntry[] = [
   { pageId: "inference-correctness-troubleshooting", tool: "troubleshoot-workbench" },
   { pageId: "inference-benchmarking", tool: "troubleshoot-workbench" },
   { pageId: "request-call-chain", tool: "troubleshoot-workbench" },
+  { pageId: "sleep-mode", tool: "troubleshoot-workbench" },
+  { pageId: "ascend-910b3-measured-baseline", tool: "troubleshoot-workbench" },
   { pageId: "rfork", tool: "shared" },
 ];
 

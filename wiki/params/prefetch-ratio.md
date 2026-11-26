@@ -12,7 +12,6 @@ aliases:
   - weight_prefetch_config.prefetch_ratio
 legacyAnchors:
   一句话: 这组比例控制什么，为什么 v0.24 起已删除？
-  事实表: 这组比例控制什么，为什么 v0.24 起已删除？
   为什么存在: 比例怎样换算成预取字节数，哪些路径不归它管？
   开了的代价: 调参陷阱、版本清理与 GLM 双机推演
 chapters:
@@ -102,28 +101,26 @@ rawSources:
 
 ## 这组比例控制什么，为什么 v0.24 起已删除？
 
-提前把权重从 HBM（高带宽显存）搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与 MTE（AI Core 数据搬运引擎），拖慢正在运行的向量算子。`prefetch_ratio` 曾作为 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套字典，按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」（最终请求尺寸还受取整、分组开关和路径规则影响）。
+**这是已随父配置 [weight_prefetch_config](weight-prefetch-config.md) 在 `v0.24.0rc`（PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949)）一并删除、在 `v0.30.0` 与 `main` 中没有等价替代键的历史权重预取比例字典：升级时须连同外层 `weight_prefetch_config` 一起从 `--additional-config` 删除（残留会触发 `extra="forbid"` 拒收，仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略；挪到顶层同样无效）。**
 
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`prefetch_ratio` 已随父配置 `weight_prefetch_config` 整体移除，且没有等价替代键**。它在 `v0.23.0` 发布说明中就已列入待废弃清单，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 彻底删除：
+提前把权重从 HBM（高带宽显存）搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与 MTE（AI Core 数据搬运引擎），拖慢正在运行的向量算子。在历史 **`v0.23.0`（`2c59ff10`）** 维护分支中，`prefetch_ratio` 按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」，默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`（官方定性报告该默认值在 `Qwen3-235B-A22B-W8A8` `--max-num-seqs 144` 与 `Qwen3-32B-W8A8` `--max-num-seqs 72` 下表现良好，调参前应先抓 profiling，不能因模型或并发上限相近就直接套用）。
 
-- 升级到 `v0.30.0` / `main` 后若旧命令残留此键，通常按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 拒收（装有 `vllm_omni` 时告警过滤）；
-- `v0.26.0rc` 的普通配置类逐键 `.get()` 静默忽略（但不代表整条启动命令一定通过）；
-- 把子键移到顶层同样无效，其他 KV/pool 预取机制也不沿用这组比例。
+## 事实表
 
-在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护分支中，`prefetch_ratio` 的默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`。官方定性报告这套默认值在 `Qwen3-235B-A22B-W8A8`（`--max-num-seqs 144`）与 `Qwen3-32B-W8A8`（`--max-num-seqs 72`）两档并发上限下表现良好（`max-num-seqs` 只是并发上限，不代表运行时始终满载，也没有给出默认值的数学推导；调参前应先抓 profiling，不能因模型或并发相近就套用）。
+核对 `v0.23.0` 历史比例换算规则与零值陷阱时，可速查下表：
 
-| 配置规则 | `v0.23.0` 行为 | 说明 |
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 覆盖方式与取值范围 | 只要传了 `prefetch_ratio` 就**整体替换**默认字典，不做逐键合并；有效范围 `0 <= r <= 1`，越界值静默丢弃 | 写 `1.2` 或 `-0.5` 不报错，被丢弃后等同于缺项 |
-| 整组关闭与缺项/零值回填 | 过滤后整组剩余值全为 0 或为空时，该组 `enable` 置 `False`；组仍启用时，某项缺失或乘积取整为 0 会在公共包装中改写成**整块权重** | 传入空 dict 或漏写整组会先回填该组默认值；写 `0` 不是单项关闭开关 |
-| 单次预取上限 | `mlp` 两项正字节请求在 Python 侧截断到 18 MiB；`attn` / `moe` 在 Python 侧不截断 | `mlp` 两个正比例若均满足 `ratio × 单卡字节 >= 18 MiB`，请求尺寸相同；后端是否另有上限待核 |
-| `attn.qkv` / `attn.o` 生效条件 | 静态 W8A8 `apply`、输入非 int8，且层类名精确等于 `AscendQKVParallelLinear` / `AscendRowParallelLinear`（无 token 门槛） | 非静态 W8A8 模型改这两项无效；`o` 按类名匹配，可能覆盖 MLP `down_proj` |
-| `moe.gate_up` 生效条件 | MoE 模型、入口行数 `>= 96`，且有模型实例、上下文层索引 `> 0` 并取到 `w13_weight` | `>= 96` 非充分条件：取不到权重时一次都不发 |
-| `mlp.gate_up` / `mlp.down` 生效条件 | 稠密模型、层索引有效且 `num_tokens < 500`；`gate_up` 须走自定义行并行 `apply`，`down` 走带钩子 SwiGLU（不要求 SP） | MoE 与稠密模型互斥；相关开关全关的单卡 dense 默认无 `gate_up` 入口 |
+| 历史路径与当前状态 | `additional_config["weight_prefetch_config"]["prefetch_ratio"]`；`v0.24.0rc` 起已删 | `v0.30.0` 与 `main` 无此特性，升级须随父配置删除；其他 KV/pool 预取不复用这组比例 |
+| 覆盖方式与取值范围 | 传入即**整体替换**默认字典（不做逐键合并）；有效范围 `0 <= r <= 1`，越界静默丢弃 | 写 `1.2` 或 `-0.5` 不报错，被丢弃后等同于缺项 |
+| 整组关闭与写 `0` 陷阱 | 过滤后整组剩余值全为 `0` 或为空时关闭该组；组仍启用时某项缺失或乘积取整为 `0` 会被改写成**整块权重** | 传入空 dict 或漏写整组会先回填该组默认值；非空组里单项写 `0` 反成整块请求，不是关闭开关 |
+| 单次预取上限 | `mlp` 两项正字节请求在 Python 侧截断到 `18 MiB`；`attn` / `moe` 在 Python 侧不截断 | `mlp` 两个正比例只要乘积均 `>= 18 MiB`，最终提交的请求尺寸相同 |
+| `attn` 与 `moe` 生效条件 | `attn` 仅限静态 W8A8 `apply`、输入非 `int8` 且类名精确匹配；`moe.gate_up` 要求行数 `>= 96`、层索引 `> 0` 且取到 `w13_weight` | 非静态 W8A8 改 `attn` 无效；MLA / SFA 两条独立预取路径也不受这五个比例控制 |
+| `mlp` 生效条件 | 稠密模型、层索引有效且补齐后 `num_tokens < 500`（`gate_up` 需走自定义行并行，`down` 走 SwiGLU） | MoE 与稠密模型互斥；普通开关全关的单卡稠密模型默认不进 `gate_up` 预取 |
 
 ## 比例怎样换算成预取字节数，哪些路径不归它管？
 
-权重预取的整体触发机制见 [weight_prefetch_config](weight-prefetch-config.md)，本页的比例专门控制**提交的预取请求字节数**。请求偏小可能留下更多后续搬运，请求偏大则可能与并行 vector 计算争用 MTE 和 L2 带宽，快慢必须结合负载实测判断（硬件执行分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）。
+权重预取的整体触发机制见 [weight_prefetch_config](weight-prefetch-config.md)，本页的比例专门控制**提交的预取请求字节数**。请求比例偏小会留下更多未预取字节到矩阵乘阶段现搬，请求比例偏大则会加剧与并行 vector 计算对 MTE 和 L2 带宽的争用，快慢必须结合负载实测判断（硬件执行分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）。
 
 换算流程先按 `int(ratio × 本地权重字节数)` 取整：若进入 `mlp` 两项且结果为正，Python 侧再截断到 18 MiB（`attn` / `moe` 无此 Python 截断）；若结果为 0 且所在组仍处于启用状态，公共包装 `maybe_npu_prefetch` 会把 `max_size <= 0` 改写成整块权重大小。因此比例与请求字节数并非在所有取值上都呈线性关系。
 
@@ -137,7 +134,7 @@ file: prefetch-ratio
 
 ## 调参陷阱、版本清理与 GLM 双机推演
 
-本页数据均为配置值与按权重字节推导出的请求尺寸，不含同负载实测对照（GLM 双机主线的吞吐时延来自预取关闭态）。调参方向上：调大比例可能增加预取与 vector 计算对 MTE、L2 的争用（官方建议抓 profiling 确认独立流上的 CMO 操作落在对应 vector 算子窗口内且不晚于其结束，并对比完整执行时间，低延迟优先场景建议关闭）；调小比例可能减少资源竞争（低并发下建议调小或关闭，但不证明所有低并发场景都无收益）。
+本页数据均为配置值与按权重字节推导出的请求尺寸，不含同负载实测对照（GLM 双机主线的吞吐时延来自预取关闭态）。调参方向上：调大比例会增加预取流与 vector 计算对 MTE、L2 的带宽争用（官方建议抓 profiling 确认独立流上的 CMO 操作落在对应 vector 算子窗口内且不晚于其结束，并对比完整执行时间，低延迟优先场景建议关闭）；调小比例可减轻片上资源竞争（低并发下建议调小或关闭，但不证明所有低并发场景都无收益）。
 
 以 [weight_prefetch_config 页的 Qwen3-0.6B 单卡 bf16 记录](weight-prefetch-config.md#开了的代价)为例：只开父开关、其余默认关闭时，五项中只有 `mlp.down`（6 MiB）发起比例预取，正比例乘积大于 0 时按乘积取整提交、不触及 18 MiB 上限；若比例过小致取整为 0 且组仍启用，反而请求整块 6 MiB。
 

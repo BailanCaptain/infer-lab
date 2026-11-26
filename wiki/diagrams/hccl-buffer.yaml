@@ -29,5 +29,5 @@ links:
 texts:
   - { at: [450, 26], text: 示意：三个独立底层通信域，各画出整套缓冲, anchor: middle, strong: true }
 pins:
-  - source: vllm-ascend@db701c1f:vllm_ascend/utils.py#L1118-L1149
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1241-L1289
     symbols: [create_hccl_pg_options, get_hccl_config_for_pg_options]

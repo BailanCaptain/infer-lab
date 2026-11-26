@@ -1,24 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 540" width="820" height="540" role="img" aria-label="第 4 站的取证路线。硬件规格只能提出候选，实际算子与 kernel 说明有没有采用它，执行记录才能说明该路径是否少花时间。图中的两条结果分支分别通向正确性定位或端到端性能验收。">
-  <title>第 4 站的取证路线。硬件规格只能提出候选，实际算子与 kernel 说明有没有采用它，执行记录才能说明该路径是否少花时间。图中的两条结果分支分别通向正确性定位或端到端性能验收。</title>
-  <defs><marker id="ascend-950-observe-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="ascend-950-observe-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="ascend-950-observe-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <path d="M410 84 L410 122" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ascend-950-observe-ah-ink)"/>
-  <path d="M410 190 L410 228" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ascend-950-observe-ah-ink)"/>
-  <path d="M245 296 L245 329 L200 329 L200 361" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#ascend-950-observe-ah-danger)"/>
-  <path d="M575 296 L575 329 L620 329 L620 361" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-observe-ah-token)"/>
-  <rect x="65" y="20" width="690" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="410" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">确认产品与软件：具体型号、驱动、CANN、框架、模型</text>
-  <text x="410" y="67" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">记录输入形状与精度，保持对照条件一致</text>
-  <rect x="65" y="126" width="690" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="410" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">第 4 站：实际算子 → kernel → 分块与数据通路</text>
-  <text x="410" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只有规格支持，还不能说明走了 CV 或 NDDMA</text>
-  <rect x="65" y="232" width="690" height="64" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="410" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">对照同一块：数值、搬运、计算与同步等待</text>
-  <text x="410" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">同时看有效数据与真实事务，保存首次分歧</text>
-  <rect x="20" y="365" width="360" height="78" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="200" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">结果不同</text>
-  <text x="200" y="419" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">先查坐标、格式与缓冲使用次序</text>
-  <rect x="440" y="365" width="360" height="78" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="620" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结果一致，设备时间下降</text>
-  <text x="620" y="419" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">再看它是否减少请求关键路径等待</text>
-  <text x="20" y="493" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">单算子变快而请求不变：继续找其他等待，不把核内收益直接当成服务收益。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 456" width="860" height="456" role="img" aria-label="昇腾 950 第 4 站取证漏斗：白皮书能力、算子轨迹与双分支收口" font-family="var(--font-sans)">
+<title>昇腾 950 第 4 站取证漏斗：硬件规格、算子轨迹与服务收益</title>
+<desc>从确认软硬件基线到核查实际 kernel 与 12 us 降为 9 us 的同块对照，再分流至正确性定位或关键路径性能验收</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="828" height="68" rx="9" fill="#f3f2ea" stroke="#c5c6bc"/>
+<rect x="16" y="152" width="828" height="144" rx="9" fill="#fcfbf7" stroke="#c78300"/>
+<rect x="34" y="194" width="366" height="88" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="420" y="194" width="406" height="88" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="330" width="396" height="110" rx="9" fill="#fff0e9" stroke="#b54237"/>
+<rect x="448" y="330" width="396" height="110" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<rect x="496" y="232" width="200" height="16" rx="4" fill="#b8bcb5"/>
+<rect x="496" y="256" width="150" height="16" rx="4" fill="#087f73"/>
+<path d="M430 132v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M260 296v16H214v16m-4-5l4 5 4-5" fill="none" stroke="#b54237" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M600 296v16h46v16m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="26" font-size="16" fill="#17211f">昇腾 950 第 4 站取证漏斗：把白皮书规格变成可验证证据</text>
+<text x="34" y="91" font-size="14" fill="#17211f">① 固定软硬件基线：具体 950PR/DT 档位 · 驱动与 CANN · 框架提交 · 输入形状与精度</text>
+<text x="34" y="178" font-size="14" fill="#936300">② 第 4 站算子与 Kernel 轨迹对照：确认真实通路、访存事务与单段耗时</text>
+<text x="50" y="218" font-size="13.5" fill="#936300">核内通路与事务核查</text>
+<text x="436" y="218" font-size="13.5" fill="#3a4f93">同输入教学观测：12 μs → 9 μs</text>
+<text x="34" y="356" font-size="14" fill="#8f3229">分支 A · 结果数值不同 → 正确性定位</text>
+<text x="466" y="356" font-size="14" fill="#065f56">分支 B · 结果一致且设备变快 → 关键路径验收</text>
+</g>
+<g font-size="13" fill="#17211f">
+<text x="34" y="115" fill="#4d5652">白皮书支持 CV 直通、NDDMA 与 Buffer ID 只提出候选，不代表当前算子已采用该路径</text>
+<text x="50" y="241" font-size="12.5">• 查 Trace 是否真走 L0C→UB 直通或 NDDMA</text>
+<text x="50" y="263" font-size="12.5">• 区分逻辑字节（8192 B）与外部 HBM 事务</text>
+<text x="436" y="244" font-size="12.5">原实现</text>
+<text x="706" y="244" font-size="12.5">12 μs</text>
+<text x="436" y="268" font-size="12.5">新通路</text>
+<text x="656" y="268" font-size="12.5" fill="#065f56" font-weight="700">9 μs（省 3 μs）</text>
+<text x="34" y="380">• 填坐标特征值，核对 NDDMA 源/目标步长</text>
+<text x="34" y="402">• 对照串行与重叠，查 Buffer ID 取得/释放次序</text>
+<text x="466" y="380">• 检查该段耗时在 Trace 中是否挡住后续计算</text>
+<text x="466" y="402">• 若请求 TTFT / TPOT 未变，继续查排队与通信</text>
+</g>
+<g font-size="12.5" fill="#4d5652">
+<text x="16" y="47">先确认算子实际走了哪条通路，再看同一分块的数值与关键路径等待，不拿核内缩短直接当服务提速</text>
+<text x="34" y="424" fill="#8f3229">• 核对随路转换的元素位域、scale 与首次分歧</text>
+<text x="466" y="424" fill="#065f56" font-weight="600">✓ 只有缩短请求关键路径才构成端到端收益</text>
+</g>
 </svg>

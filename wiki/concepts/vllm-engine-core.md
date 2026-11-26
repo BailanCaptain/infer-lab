@@ -4,8 +4,8 @@ title: EngineCore：vLLM 里一圈一圈推着请求往前走的循环
 type: concept
 summary: >-
   EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 →
-  按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；它默认单独占一个进程，让前端收发和后端计算互不阻塞。本页讲一圈的顺序、一圈交回几个
-  token、空闲与取消、批次队列，以及 GLM 双机上两个 EngineCore 怎样逐圈推进 R1。
+  按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与 GLM 双机双
+  EngineCore 对照讲清一圈顺序、产出 token 数、空闲与取消及异步批次队列。
 aliases:
   - busy loop
   - 忙循环
@@ -100,7 +100,7 @@ relations:
     kind: builds-on
     note: 长提示词拆段与 decode 混排进同一循环圈，决定了「转一圈未必交回新 token」
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -237,6 +237,8 @@ file: vllm-engine-core-fig-queue-loop
 因此，不开 PP 时，异步调度下 EngineCore 最多领先 Worker **一步**（两步调用怎样对上批次，见[一步之内：EngineCore 给 worker 发两次调用](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)）。
 
 代价落在记账上：排下一批时前一批新 token 尚未回来，调度器只能先记占位，等结果回来再对账；依赖前一批 token 的结构化输出表也要推迟到前一批更新后再发（详见[异步调度](async-scheduling.md)）。此外，当前固定上游代码明确提示，旧一代 model runner 对“异步调度 + 流水线并行”同开的支持并不完整，不能只凭并发批数就推定该组合已跑通（逐项并发条件见页末[怎么开](#怎么开)，判定与日志见[会报什么错](#会报什么错)）。
+
+以 `v0.30.0` 单机标准部署 **`Qwen3-8B`**（`TP=4, DP=1, PP=1`，不开投机解码）为例：整个服务只有 **1 个 `EngineCore` 进程**统管 4 个 Worker，不存在跨 DP 空闲组陪跑；异步调度默认自动开启（V1 runner 下 `batch_queue = 2`），稳态纯 decode 期间 `EngineCore` 趁 4 张卡算第 `k` 步时提前排好第 `k+1` 步（每条在跑请求记 `1` 个输出占位），每转一圈向每条 decode 请求稳定交回 `1` 个新 token。下面再看跨机双 DP + 投机解码叠加后的复杂形态。
 
 ## 复杂异构实战对照：GLM 双机中的双 EngineCore 与异步批次队列
 

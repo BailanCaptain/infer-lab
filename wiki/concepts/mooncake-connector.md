@@ -25,6 +25,8 @@ aliases:
   - kv_connector_extra_config
   - Mooncake TransferEngine
   - 逐层推 KV
+  - Dest buffer device_id
+  - transfer_executor_base.cpp
 chapters:
   - '18'
 order: 20

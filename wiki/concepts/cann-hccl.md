@@ -24,6 +24,7 @@ aliases:
   - TorchNPU
   - Triton Ascend
   - Gloo
+  - torch_gloo
   - 通信域
   - ACL
   - AscendCL

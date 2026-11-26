@@ -12,7 +12,6 @@ aliases:
   - HcclSleepWakeupManager
 legacyAnchors:
   一句话: 它额外清理什么，两代配置入口怎么迁？
-  事实表: 它额外清理什么，两代配置入口怎么迁？
   为什么存在: 休眠与唤醒的清理次序及 HCCL 生命周期锚点
   开了的代价: 唤醒代价、常见踩坑、日志定位与启动命令
 chapters:
@@ -131,7 +130,7 @@ rawSources:
 
 ## 它额外清理什么，两代配置入口怎么迁？
 
-在同卡（same-device）强化学习后训练工作流里，同一张 NPU 需要在自回归生成与模型训练之间交替运行，因此推理引擎在进入训练阶段前必须通过 sleep mode 尽可能让出显存（整体流程见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)）。
+在同卡（same-device）强化学习后训练工作流里，同一张 NPU 需要在自回归生成与模型训练之间交替运行，因此推理引擎在进入训练阶段前必须通过 sleep mode 最大限度腾出设备显存（整体流程见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)）。**在当前的 `v0.30.0` 与 `main` 中，旧顶层键 `enable_sleep_mode_extra_cleanup` 已迁入 `rl_config` 子字典：同卡 RL 需极致腾显存时应配 `{"rl_config": {"enabled": true, "sleep_mode_extra_cleanup": true}}`，而异卡 RL 或追求快速唤醒的普通服务应保持默认关闭（`false`），且切勿在 `v0.30.0` / `main` 中继续传旧顶层键名。**
 
 基本 sleep mode（基于 `CaMemAllocator`）只释放可睡眠内存池中的分配（level 1 将权重备份到 CPU、丢弃旧 KV；level 2 丢弃权重池内容、仅留运行期持久 buffer），而池外的 **HCCL 设备侧通信组缓冲**与 **ACL 图的 attention workspace** 仍会残留显存。开启本开关后，sleep 时会尝试进一步释放 HCCL 设备侧通信组（保留 `cpu_group`）并清空 ACL 图工作区、作废已捕获的图；唤醒时再重建设备侧通信域并按标签重捕获图。
 
@@ -147,9 +146,21 @@ rawSources:
 
 **GLM 双机与历史 PR 显存数字的边界**：本站固定 GLM 双机在线推理流程未开启睡眠或额外清理（启动命令见 [Worker 启动](../concepts/npu-worker-lifecycle.md#怎么开)），没有同卡训练交替阶段。公开的 [PR #9585](https://github.com/vllm-project/vllm-ascend/pull/9585) 作者报告过开启 EP 时睡后占用从约 3.2 GB 降至约 0.7 GB、未开 EP 时从约 1.26 GB 降至约 0.72 GB（原单位 GB），但该报告未给全模型硬件条件且包含 rotary cache 清理，不能把总差值直接归因于本页两项动作或套用到 GLM 双机；官方参数表入口见 [v0.23.0](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html) 与 [latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)。
 
+## 事实表
+
+配置同卡 RL 睡眠额外清理或升级旧脚本时，先核对以下入口与唤醒规则：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| `v0.30.0` / `main` 入口 | `additional_config["rl_config"]["sleep_mode_extra_cleanup"]`（`bool = False`） | 必须与 `rl_config.enabled: true` **同时为真**才生效；继续写旧顶层键名会被 `extra="forbid"` 拒收 |
+| `v0.23.0` / `v0.26.0rc` 入口 | `additional_config["enable_sleep_mode_extra_cleanup"]`（`bool = False`） | 旧版 `.get()` 不转字符串，写 `"false"` 会反向判真；且需手工设 `weight_nz_mode: 0` |
+| 额外释放对象 | HCCL 设备侧业务通信组（保留 `cpu_group`）+ ACL 图 attention workspace | 多卡下 `v0.30.0`/`main` 先建跨休眠 HCCL lifecycle anchor 保活控制面，再拆业务组 |
+| 分标签唤醒与重录图 | 仅 `wake_up(tags=None)` 或 `tags` 含 `"kv_cache"` 时重调 `capture_model()` | `tags=["weights"]` 或 `tags=[]` 均跳过录图；切勿在权重未灌入就绪前提前传 `"kv_cache"` |
+| 唤醒时延代价 | 每次唤醒需重建设备侧 HCCL 通信域并重新捕获 ACL 图 | 唤醒速度优先或异卡训练/推理分离场景应保持关闭 |
+
 ## 休眠与唤醒的清理次序及 HCCL 生命周期锚点
 
-清理发生在 `CaMemAllocator` 释放内存映射**之前**；唤醒时分配器先按 `tags` 重新映射设备内存并仅对有 CPU 备份的部分拷回数据（旧 KV 无备份只恢复空间，level 2 权重仍须外部灌入），随后再执行通信域恢复、刷新 MoE token dispatcher 句柄并按 `tags` 决定是否重捕获 ACL 图。注意 `CaMemAllocator` 首次构造时会拒绝 `expandable_segments:True`（旧平台未启睡眠时可能注入它，正常开启专用池会在权重分配阶段暴露该冲突）。
+清理发生在 `CaMemAllocator` 释放内存映射**之前**；唤醒时分配器先按 `tags` 重新映射设备内存并仅对有 CPU 备份的部分拷回数据（旧 KV 无备份只恢复空间，level 2 权重仍须外部灌入），随后再执行通信域恢复、刷新 MoE token dispatcher 句柄并按 `tags` 决定是否重捕获 ACL 图。注意 `CaMemAllocator` 首次构造时会拒绝 `expandable_segments:True`（旧平台在未启用睡眠分支时会默认注入该项，正常开启睡眠专用内存池会在权重分配阶段直接暴露该冲突）。
 
 ```wiki-diagram
 file: enable-sleep-mode-extra-cleanup
@@ -170,17 +181,17 @@ file: enable-sleep-mode-extra-cleanup
 - **新版必须同时写两个键**：`v0.30.0` 与 `main` 上 `rl_config.enabled` 与 `rl_config.sleep_mode_extra_cleanup` 是与关系，漏写 `enabled: true` 不会调用清理管理器（单测里的 `enabled=False` + 子键 `True` 组合仅测权重布局与分配器，不代表启用额外清理）。同时若把旧顶层键留在 `v0.30.0`/`main` 里，普通环境会直接被 `extra="forbid"` 拒收；若装有 `vllm_omni`，旧顶层键只会告警过滤并静默失效。
 - **分标签唤醒与空列表语义**：仅当 `tags` 为 `None` 或包含 `"kv_cache"` 时才会调用 `capture_model()`；`wake_up(tags=["weights"])` 与 `tags=[]`（空列表不等同于 `None`）都会跳过图捕获。按 `weights` → 灌入新权重 → `kv_cache` 两段式唤醒时，图只在第二步捕获；但若重复传 `None` 或含 `"kv_cache"`，管理器会再次执行 `capture_model()`，没有「每轮只捕获一次」的额外守卫，切勿在权重未就绪前提前进入捕获阶段。
 - **eager 模式与异常传播**：未开启 ACL 图时会跳过图清理与重捕获，是否拆除 HCCL 取决于分布式初始化状态（以及新版 anchor / MoE 拆卸准备是否成功）。在旧版（`v0.23` / `v0.26` / 早期 `baa023ad`）里清理与恢复没有外层 `try/except`，中途报错会直接冒给 `sleep()` / `wake_up()` 调用方；新版则在 anchor 初始化失败时记告警并跳过本轮 HCCL 清理。
-- **旧版字符串坑与 DeepSeek-V4 风险提示**：`v0.23` 与 `v0.26` 切勿用字符串 `"false"` 传值（会反向判真）；且 `v0.26` 发布说明记录了 DeepSeek-V4 开启额外清理后可能在唤醒后无法恢复的已知问题（#15648），对应版本应避免在 DeepSeek-V4 上开启（后续版本须单独核对修复范围）。
+- **旧版字符串坑与 DeepSeek-V4 风险提示**：`v0.23` 与 `v0.26` 切勿用字符串 `"false"` 传值（会反向判真）；且 `v0.26` 发布说明记录了 DeepSeek-V4 开启额外清理后在唤醒阶段无法恢复的已知缺陷（#15648），对应版本应避免在 DeepSeek-V4 上开启（后续版本须单独核对修复范围）。
 - **日志观测口径**：日志里的 GiB 是整张卡清理前后空闲显存的差值（受同期其他进程分配影响，并非单个通信组精确归因）：
   - `Sleep mode released HCCL and attention workspace memory: %.3f GiB.`（清理结束时记录整卡空闲显存变化）
   - `Destroyed %d HCCL process groups for sleep mode.`（正常完成且至少拆掉一个组时打印；缺行不直接等于零释放）
   - `Restored %d HCCL process groups after sleep mode.`（唤醒时打印，即使恢复数为 0 也会打）
 
-**启动命令示例**（`v0.30.0` 与 `main` 同卡 RL 写法，本工作区未实机运行，照搬前须核对模型与环境）：
+**启动命令示例**（`v0.30.0` 与 `main` 同卡 RL 写法，以主基线标准模型 `Qwen/Qwen3-8B` 为例，本工作区未实机运行，照搬前须核对模型与单卡显存容量）：
 
 ```bash
 VLLM_WORKER_MULTIPROC_METHOD=spawn \
-vllm serve Qwen/Qwen3-0.6B \
+vllm serve Qwen/Qwen3-8B \
     --enable-sleep-mode \
     --additional-config '{"rl_config": {"enabled": true, "sleep_mode_extra_cleanup": true}}'
 ```

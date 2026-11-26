@@ -123,7 +123,7 @@ relations:
     kind: alternative-to
     note: DyntraLB 暂停请求但保留全部 KV 块以平衡组间注意力负载，不腾显存；本调度器在显存真不够续块时收回全部 KV 块，二者在 v0.30.0/main 可组合成专用调度器类
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -176,6 +176,8 @@ $$N_{\text{steps}} = \frac{6{,}400}{64 - 60} = 1{,}600\text{ 步}$$
 | 其余 15 条 decode 占用 | $15 \times (1 + 3)$ | **60** |
 | 每步剩余可用额度 | $64 - 60$ | **4 个位置/步** |
 | 重做 6,400 个位置所需步数 | $6{,}400 \div 4$ | **1,600 步** |
+
+不开投机解码的标准模型（如 `Qwen3-8B` 或 `Qwen3-30B-A3B` 的 PD 分离 D 节点，单请求每步占 `1` 个位置）比例完全相同：设 `max_num_seqs = max_num_batched_tokens = 64`、已有 60 条 decode 在跑，每步只剩 4 个位置余量，重做 6,400 个位置照样要拖满 1,600 步。区别在于 `Qwen3` 全层共享单一 GQA 缓存组，搭配 `PreemptOffloadConnector` 时可直接整块换出恢复，不会碰到后文混合模型的状态对齐门槛。
 
 退回 P 也不是免费的：
 
@@ -284,7 +286,7 @@ file: recompute-scheduler-flow
 --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_consumer", ...}'
 # v0.23 / GLM 快照：顶层键
 --additional-config '{"recompute_scheduler_enable": true}'
-# v0.26 / rc2 / main：写进 scheduler_config（顶层写法仍认，已标弃用）
+# v0.26.0rc / v0.30.0 / main：写进 scheduler_config（顶层写法仍认，已标弃用）
 --additional-config '{"scheduler_config": {"recompute_scheduler_enable": true}}'
 ```
 
@@ -302,16 +304,16 @@ file: recompute-scheduler-flow
 
 - **启动报错**：没有kv_transfer_config，或角色既非kv_producer也非kv_consumer，报`ValueError: recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes ...`。producer先走下一条警告关闭分支，不落入这条报错。
 - **不报错、就地关掉**：P 节点上只打 warning「recompute_scheduler_enable is ignored on PD-disaggregated P nodes」。官方参数表写的是启动失败 [S12]，与代码不一致 [!]。
-- **旧GLM镜像的启动断言**：`finegrained_tp_config` 的 `oproj_tensor_parallel_size` 或 `embedding_tensor_parallel_size` 大于0而没开本调度器，触发AssertionError；信息说跨DP的HCCL集合通信需要各DP rank的num_tokens一致[C9]。rc2把依赖对象改为oproj/mlp，大于0要求本开关，大于1另有下述连接器要求。
+- **旧GLM镜像的启动断言**：`finegrained_tp_config` 的 `oproj_tensor_parallel_size` 或 `embedding_tensor_parallel_size` 大于0而没开本调度器，触发AssertionError；信息说跨DP的HCCL集合通信需要各DP rank的num_tokens一致[C9]。`v0.30.0` 与 `main` 把依赖对象改为 `oproj` / `mlp`，大于 0 要求本开关，大于 1 另有下述连接器要求。
 - **运行时只有日志**：退回 P 的那一路先打一条 info「Recompute preemption falls back without offload for request %s, computed_tokens=%d.」，收尾发帧时再打一条 warning「[RecomputeScheduler] Recompute triggered for request %s.」；存走的那一路打 info「Recompute preemption offload enabled ...」。客户端收到的是正常结束，没有错误码。
 - **名字相近、与本页无关**：混合模型把 `kv_load_failure_policy` 设成 `recompute` → `AssertionError: Hybrid models do not support recompute mode kv load failure policy now.` [C11]。
-- **rc2细粒度TP还有连接器要求**：oproj或mlp实际并行尺寸大于1时，启动配置还必须包含PreemptOffloadConnector；没有时断言失败。运行时保存失败则直接abort，不发recomputed供代理退P，不能用普通退回路径兜底（来源42、45、53）。
+- **`v0.30.0` / `main` 细粒度 TP 还有连接器要求**：`oproj` 或 `mlp` 实际并行尺寸大于 1 时，启动配置还必须包含 `PreemptOffloadConnector`；没有时断言失败。运行时保存失败则直接 abort，不发 `recomputed` 供代理退 P，不能用普通退回路径兜底（来源 42、45、53）。
 
 ### 开销和什么时候别开
 
 - 代价：无可复用缓存时P重算“问题 + 已生成”全长，再交接所需状态；实际重算和传输量要扣可用命中。保存路线的模型支持、容量和速度见[Recompute CPU Offload](recompute-cpu-offload.md)，不由主机内存够用单独保证。
 - 必须挂一个认 `stop_reason="recomputed"` 的代理，官方示例是 `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py`。直连 D 的调用方会把这一帧当成正常结束：输出截断，`finish_reason` 却是 `stop` [D]。
-- 旧示例聊天请求接在 `messages[0]` 后面，多轮或system场景会改错续接位置（来源4）。v0.26按token编号续接并检查历史（来源18）；rc2/main仍按文本拼接，列表content追加文本片段（来源26、47）。保存token历史也不是全部请求语义、采样结果一致性的保证。
+- 旧示例聊天请求接在 `messages[0]` 后面，多轮或system场景会改错续接位置（来源4）。`v0.26.0rc` 按token编号续接并检查历史（来源18）；`v0.30.0` 与 `main` 仍按文本拼接，列表content追加文本片段（来源26、47）。保存token历史也不是全部请求语义、采样结果一致性的保证。
 - 同时开别的调度器变体会让它悄悄失效 [C10]：GLM 快照的平台先按本开关换好 `scheduler_config`，紧接着 `SLO_limits_for_dynamic_batch != -1` 或 `profiling_chunk_config.enabled` 会直接改写 `scheduler_cls`，两者之间没有互斥校验，也没有 warning。`v0.26.0rc` 与 `v0.30.0 (c09d3e20)` 上 `profiling_chunk_config.enabled`、`batch_job_sched_config.enabled` 按序排在后面，开启即静默覆写 `scheduler_cls`；`main (8d6180e2)` 移除了 `profiling_chunk_config`，只剩 `batch_job_sched_config.enabled` 仍排在后面静默覆写。DyntraLB 是例外，会和本调度器组合成专门的 4 个类，不再互相覆盖 [C29]。
 - 不拆 P/D 的部署（包括 GLM 双机主线）不要开：启动直接 `ValueError`。
 

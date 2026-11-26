@@ -94,7 +94,7 @@ updated: '2026-11-24'
 
 - **批预算反噬显存池**：单独调大 `--max-num-batched-tokens` 想降首字时延，会推高启动试跑的激活峰值，导致 **KV cache**（保存前文键值表示以避免重复计算的显存池）缩水。
 - **水位拉满导致录图 OOM**：把 `--gpu-memory-utilization` 拉到 `0.98` 想多切块，却会在切完 KV 之后的 **ACL Graph**（昇腾图模式，预先捕获算子序列再按固定尺寸回放以省去逐算子下发开销）录图阶段直接显存溢出。
-- **跨子系统组合被静默改写**：同时开启 `PIECEWISE` 图模式与 `enable_super_kernel` 时，进程不会报错，却会把融合开关静默刷回 `False`。
+- **跨子系统组合被静默改写**：同时开启 `PIECEWISE`（在注意力算子边界分段编译的图模式）与 `enable_super_kernel`（把相邻静态算子融合成单个大内核的下沉开关）时，进程不会报错，却会把融合开关静默刷回 `False`。
 
 本文以 `vLLM Ascend v0.30.0` 配对上游 `vLLM v0.30.0` 为标准主基线，以 `Qwen3-8B`（Dense GQA，多个查询头共享一组键值头的密集模型）和 `Qwen3-30B-A3B`（MoE，每个输入 token 仅路由激活部分专家的混合专家模型）为标尺。下文依次串通四大旋钮的显存联动、`--max-num-batched-tokens` 的 6 分支求值树，以及跨子系统的静默改写与硬互斥红线。
 
@@ -119,11 +119,11 @@ $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\tex
 | `--max-num-seqs` | 昇腾 `vllm serve` 默认落入 **`256`**（按每个 **DP** 数据并行副本独立计数；API 进程级总排队阀门另用 `--max-num-queued-reqs`） | 单步最多并发拼入多少条序列，同时决定采样张量上界与默认图捕获档位 | 在 **chunked prefill**（分块预填充，把长提示词拆成多轮与解码混跑，见 [Chunked Prefill](chunked-prefill.md)）中，每条在跑 **decode**（逐词生成）请求每步先扣 `1` 个 token（开启投机解码草拟 $K$ 词则扣 $1 + K$ 个），高并发会压缩留给新请求 **prefill**（预填充）的剩余额度 |
 | `--max-num-batched-tokens` | 昇腾 `vllm serve` 默认回落 **`2048`**（离线 `LLM` 类默认 `8192`） | 单步所有请求合计调度的 token 总上限 $B_{\text{tokens}}$，并直接决定 `profile_run()` 假输入总 token 数 | 调大能让长提示词少切几刀、显著降低 TTFT 并提高矩阵乘算术强度；但会直接推高试跑激活与算子工作区峰值 $M_{\text{act}}(B_{\text{tokens}})$，等量扣减可用 KV 池 $M_{\text{KV}}$ |
 
-看一组单卡 **64 GiB** 运行 `Qwen3-8B`（`BF16`）的容量联动示意（仅作算账关系示意，真实读数随版本与图模式变化，以启动日志 `Actual usage` 为准）：
+看一组单卡标称 **64 GiB** 运行 `Qwen3-8B`（`BF16`）的容量联动示意（仅作算账关系示意；`910B3` 真机 OS 可见为 `60.96 GiB`、实测权重 `15.29 GiB`，上线请以日志 `Actual usage` 为准）：
 
-- **固定底座**：设驻留权重 $M_{\text{weights}} = 16.5\text{ GiB}$，非 Torch 增量 $M_{\text{non-torch}} = 1.5\text{ GiB}$。该增量已包含 **HCCL**（昇腾集合通信库）按共享域去重后的通信缓冲，启动建议值另留 `150 MiB` 安全裕度。
-- **默认批预算（$u = 0.92, B_{\text{tokens}} = 2048$）**：预算池为 `58.88 GiB`（预算外留 `5.12 GiB` 给录图）。若试跑激活峰值 $M_{\text{act}} = 1.88\text{ GiB}$，可用 KV 池为 $58.88 - 16.5 - 1.88 - 1.5 = \mathbf{39.0\text{ GiB}}$。
-- **猛拉批预算（$B_{\text{tokens}} = 16384$）**：若试跑激活峰值涨到 $6.38\text{ GiB}$，哪怕一条请求还没接，可用 KV 池也会立刻缩水到 **`34.5 GiB`**。
+- **固定底座**：按静态张量核算驻留权重 $M_{\text{weights}} = 15.26\text{ GiB}$，设非 Torch 增量 $M_{\text{non-torch}} = 1.50\text{ GiB}$。该增量已包含 **HCCL**（昇腾集合通信库）按共享域去重后的通信缓冲，启动建议值另留 `150 MiB` 安全裕度。
+- **默认批预算（$u = 0.92, B_{\text{tokens}} = 2048$）**：按标称 64 GiB 计预算池为 `58.88 GiB`（预算外留 `5.12 GiB` 给录图）。若试跑激活峰值 $M_{\text{act}} = 1.88\text{ GiB}$，可用 KV 池为 $58.88 - 15.26 - 1.88 - 1.50 = \mathbf{40.24\text{ GiB}}$。
+- **猛拉批预算（$B_{\text{tokens}} = 16384$）**：若试跑激活峰值涨到 $6.38\text{ GiB}$，哪怕一条请求还没接，可用 KV 池也会立刻缩水到 **`35.74 GiB`**。
 
 ## 为什么昇腾在线服务默认批预算是 2048？拆解 6 分支求值与 SP+PCP 静默取整
 
@@ -201,7 +201,7 @@ file: core-cli-graph-sched-matrix
 |---|---|---|
 | **`MooncakeConnectorV1` 并行约束** | D 节点（`kv_consumer`）强制要求 **`PP_D == 1`** 且 **`PCP_D == 1`**；任一实例禁止 `PP > 1` 与 `PCP > 1` 同开；跨实例头分片拉取要求 **`TP_P % TP_D == 0`** | D 节点保持单段流水（靠大 `DP + EP` 扩吞吐），并将 P 端 `TP_P` 设为 D 端 `TP_D` 的整数倍 |
 | **`Mooncake + GQA + C8` 量化冲突** | `MooncakeConnector` / `V1` / `V2` 在 GQA 模型上开启 `enable_c8_quant=True` 直接抛 `ValueError`（P 端存 `bf16`、D 端分 `int8`，裸传会把 `bf16` 字节误读为 `int8`） | 改用传输前逐层量化的 **`MooncakeLayerwiseConnector`**，或关闭 C8 KV 量化；另注意 P 动 D 静混合权重量化注册名为 `W8A8_MIX`（非 `W8A8_PDMIX`），`cache_dtype="mxfp8"` 要求 `block_size` 为 `512` 倍数（自动选块静默改 `512`，手传非倍数抛 `ValueError`） |
-| **`PCP` / `DCP` 与 `MRV2` 门禁** | `PCP > 1` 必须显式设置环境变量 `VLLM_USE_V2_MODEL_RUNNER=1`（不会静默自动开启，漏设直接抛 `ValueError`）；`PCP=1` 时须 `TP % DCP == 0`，`PCP > 1` 时 `DCP` 只能取 `{1, PCP, TP*PCP}`；对 GQA 模型，只要 `DCP > 1` 即要求 `TP > num_kv_heads`，叠开 `PCP > 1` 且 `DCP > 1` 时还须满足 `PCP == DCP` | 开启上下文并行前先导出 `VLLM_USE_V2_MODEL_RUNNER=1`，并核对 KV 头整除关系（Ulysses / Ring 仅为架构对照路线，仓内零启动开关） |
+| **`PCP` / `DCP` 与 `MRV2`（[Model Runner V2](model-runner-v2.md)，新一代常驻缓冲模型执行器）门禁** | `PCP > 1` 必须显式设置环境变量 `VLLM_USE_V2_MODEL_RUNNER=1`（不会静默自动开启，漏设直接抛 `ValueError`）；`PCP=1` 时须 `TP % DCP == 0`，`PCP > 1` 时 `DCP` 只能取 `{1, PCP, TP*PCP}`；对 GQA 模型，只要 `DCP > 1` 即要求 `TP > num_kv_heads`，叠开 `PCP > 1` 且 `DCP > 1` 时还须满足 `PCP == DCP` | 开启上下文并行前先导出 `VLLM_USE_V2_MODEL_RUNNER=1`，并核对 KV 头整除关系（Ulysses / Ring 仅为架构对照路线，仓内零启动开关） |
 | **跨机 RoCE MoE 与原生 `FP8`** | 跨机 RoCE 部署 **MoE**（带 **EP** 专家并行）严禁同时开 **`PP > 1` 与 `DP > 1`**（`MoeDistributeDispatch` 不支持，且**无 Python 启动期断言拦截**，会在运行时卡死或报错）；原生分块 `FP8` 在 `950DT` 重排为 `MXFP8`（约 `1 B`/参数），在 `A2/A3` 静默反量化回 `BF16`（翻倍至约 `2 B`/参数），`310P` 不支持 | 跨机 RoCE MoE 固定 `PP=1` 或 `DP=1`；A2/A3 优先选用 ModelSlim `W8A8` / `W4A8`（`--quantization ascend`） |
 
 准备上线命令或双实例脚本时，可直接将参数粘入下方联检工作台，对照 `v0.30.0` 同源规则库一键核出静默改写项、硬报错与待核环境变量：
@@ -233,10 +233,11 @@ file: core-cli-myths-vs-truth
 上线调优与自检实际生效值时，可对照以下标准启动模板与日志取证命令：
 
 ```bash
-# 1. Atlas A2/A3 四卡调优 Qwen3-30B-A3B：显式拉高批预算 + 开启完整 Decode 图与三级融合
+# 1. Atlas A2/A3 四卡生产调优 Qwen3-30B-A3B：显式拉高批预算 + 开启完整 Decode 图与三级融合
 export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
-export VLLM_LOGGING_LEVEL=DEBUG
+# 生产与压测保持 INFO！切勿常驻 DEBUG（910B3 TP=8 实测开启 DEBUG 会每步查询分配器与校验指针，导致 TTFT 恶化 +39.48%）；仅排障核对默认求值树时短时改 DEBUG
+export VLLM_LOGGING_LEVEL=INFO
 vllm serve /path/to/Qwen3-30B-A3B-W8A8 \
     --served-model-name qwen3-30b-a3b \
     --tensor-parallel-size 4 \

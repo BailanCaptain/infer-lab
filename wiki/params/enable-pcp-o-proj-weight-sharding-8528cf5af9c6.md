@@ -14,7 +14,6 @@ aliases:
   - enable_pcp_o_proj_weight_sharding
 legacyAnchors:
   一句话: 它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？
-  事实表: 它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？
   为什么存在: 加载期缩片、prefill gather 与 decode all-reduce 的分工
   开了的代价: 通信代价、硬约束回退机制与版本与 GLM 边界
 chapters:
@@ -176,15 +175,20 @@ rawSources:
 
 **与旧 `layer_sharding` 及旧 DSA-CP 的区别**：
 - [layer_sharding](layer-sharding.md)（已于 `v0.24` 移除）是按层号轮流把不同层的整份权重存到不同卡上，并接收自定义层名列表；本键则是**把同一层的输出投影沿 PCP 域切分**，不接受任意层名列表（此外细粒度 TP 也会影响投影分工，本键并非投影权重配置的唯一选项）。
-- `v0.30.0` 与 `main` 均把本键默认设为 `True`（早期 `baa023ad` 静态默认 `False`），并将适用范围从 **SFA-PCP**（稀疏注意力路径的 PCP 后端）的 `o_proj` 扩展到了 **DSA-PCP**（DeepSeek 稀疏注意力路径的 PCP 后端）的两级输出投影（`wo_a` / `wo_b`）。注意这里的 **DSA-PCP** 是 PCP 后端，**不是**由 `enable_dsa_cp` 控制的旧 DSA-CP（旧 DSA-CP 由 `enable_dsa_cp_full_o_proj()` 决定，判据是有无 KV 池化及是否 producer/kv_both，不消费本键）。
+- `v0.30.0` 与 `main` 均把本键默认设为 **`True`**（早期 `baa023ad` 静态默认 `False`），并将适用范围从 **SFA-PCP**（稀疏注意力路径的 PCP 后端）的 `o_proj` 扩展到了 **DSA-PCP**（DeepSeek 稀疏注意力路径的 PCP 后端）的两级输出投影（`wo_a` / `wo_b`）。常规长序列 PCP 部署保持默认 `true` 即可省下可观的输出投影显存；仅在小批量短序列 prefill 极其频繁、每次固定整层权重 All-Gather 开销难以摊薄或做排障对照时，才显式传 `false` 关闭。注意这里的 **DSA-PCP** 是 PCP 后端，**不是**由 `enable_dsa_cp` 控制的旧 DSA-CP（旧 DSA-CP 由 `enable_dsa_cp_full_o_proj()` 决定，不消费本键）。
 
-| 关键维度 | `v0.30.0` / `main` 行为 | 说明 |
+## 事实表
+
+在 `v0.30.0` / `main` 开启 `PCP > 1` 前，可按以下维度核对本开关的生效范围、显存净省与回退行为：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 类型、默认与缓存读取 | `bool`，默认 `True`（pydantic 宽松转换覆盖 `"true"`，建议写 JSON 布尔值）；读取函数缓存结果 | 正常配置工厂发布新单例或清理配置时会清缓存；直接修改旧对象不清缓存，且清缓存不会重切已加载权重，**不可运行时热切换** |
-| 生效前提 | 模型走 SFA-PCP 或 DSA-PCP、`PCP > 1` 且使用 [V2 model runner](../concepts/model-runner-v2.md) | 早期 `baa023ad` 仅覆盖 `AscendSFAPCPImpl` 及其 PCP+DCP 组合类（且 `enable_dsa_cp` 为假）；`v0.23`/`v0.26` 无此键与 `weight_switch` 目录 |
-| 常驻量与缓冲池复用 | 常驻 `1/pcp_size`；完整 gather 缓冲挂在 `o_proj_full_pools`，按方法类名、pool key、属性名、device、dtype、dim、shape 键复用 | 单一同构权重的示意净省约为 `(1 - 1/PCP) × 每层 × 层数 - 1 份全量`；不同池键或量化辅助张量另计缓冲，不能统一只扣一份 |
-| prefill / decode 分叉 | `attn_state` 非 `DecodeOnly` / `SpecDecoding` 时 gather 完整权重；decode 走本地片 + PCP All-Reduce | decode 少一次权重 All-Gather、多一次组内输出 All-Reduce |
-| 版本与未知键处理 | PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 引入；`v0.23`/`v0.26` 忽略；`v0.30.0`/`main` 严格校验拼写（`vllm_omni` 仅过滤未知顶层键） | 官方参数表见 [latest additional_config](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html) |
+| 配置路径与默认 | `additional_config["enable_pcp_o_proj_weight_sharding"]`（`bool = True`） | `v0.30.0` 与 `main` 默认开启；读取函数缓存结果，已加载权重不支持运行期热切换 |
+| 生效模型与运行前提 | SFA-PCP 或 DSA-PCP 模型、`PCP > 1` 且启用 [Model Runner V2](../concepts/model-runner-v2.md) | 普通稠密/GQA 模型、`PCP = 1` 或旧 `enable_dsa_cp` 路径均不进入本逻辑 |
+| 常驻显存与复用池 | 每卡仅常驻 `1 / pcp_size` 分片，完整 gather 缓冲挂在 `o_proj_full_pools` 按规格复用 | 同构层示意净省约为 `(1 - 1/PCP) × 单层 × 层数 - 1 份全量缓冲`（不同规格池键另计） |
+| prefill / decode 分叉 | prefill 临时在 PCP 组内 All-Gather 完整权重；decode 算本地片再做 PCP All-Reduce | 小批频繁 prefill 需反复搬运固定大小权重；decode 则只归约与 token 数成正比的输出向量 |
+| 整除与量化回退 | 要求本地分区输入维（或组数）可被 `pcp_size` 整除且量化方法支持 `WeightSwitchMixin` | `v0.30.0` 与 `main` 在前置条件不满足时打印告警并自动回退为未切分权重（早期 `baa023ad` 直接抛错） |
+| 历史版本行为 | PR #14814 引入；`v0.23.0`、`v0.26.0rc` 与 GLM `db701c1f` 均无此键 | 旧分支静默忽略；`v0.30.0` / `main` 严格校验键名拼写 |
 
 ## 加载期缩片、prefill gather 与 decode all-reduce 的分工
 

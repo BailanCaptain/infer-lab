@@ -4,8 +4,8 @@ title: KVPP：KV cache 按层分给各卡常驻，算到时整层广播
 type: feature
 summary: >-
   TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2
-  个暂存区，算到某层时由常驻卡提前一层整层广播。讲清分法、容量账、广播与等待、能和谁一起开；已钉 main 与 rc2 都有此实现，只接受非混合 MLA
-  模型，GLM 双机没有开也开不了，GLM 段只做变体推导。
+  个暂存区，算到某层时由常驻卡提前一层整层广播。对照 GQA（如 Qwen3-8B）为何无需 KVPP，讲清分法、容量账、广播与等待，以及
+  v0.30.0 与 main 的非混合 MLA 支持边界。
 aliases:
   - KVPP
   - KV Pipeline Parallelism
@@ -123,7 +123,7 @@ relations:
     kind: conflicts-with
     note: 仅针对 CP 中的 DCP：DCP 将同层历史按位置分存，KVPP 按层常驻并广播；当前实现明确禁止两者同开。此限制不适用于满足条件的 PCP。
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -158,11 +158,11 @@ file: kvpp
 
 接着上面的例子算一下（示意数）：每张卡给 KV cache 留 48 MiB。KV cache 按块存放，一块装固定个数的位置（见 [KV cache 按块存放](kv-cache.md#缓存按块存放一个位置的-kv-写进哪一格)）；一个块号要在 8 层上各占一格，假设每层每块 1 MiB，一个块号就是 8 MiB，每张卡只能分出 48 ÷ 8 = 6 块。4 张卡一共拿出了 192 MiB，装的却只是同样的 6 块历史。块用完以后，调度器只能少接请求，或者把正在跑的请求挤出去、以后再重算。
 
-不是所有 attention 都会这样复制。[GQA](gqa.md) 有好几个 KV 头，TP 可以把不同的头分给不同的卡，每张卡存的是不同的东西，只有 KV 头不够分时才会复制（见 [GQA 页](gqa.md#张量并行时kv-头不够分就要复制)）。MLA 只有一条共用的潜向量，TP 开到几，就复制几份。固定 main 用户指南将 KVPP 的适用模型限定为非混合 MLA/SFA 模型。不过 MLA 也不是非复制不可，这取决于实现和并行配置：下表里的 DCP 就是把 MLA 的历史按位置分到各卡的另一条路，所以 KVPP 和 DCP 不能同开。
+不是所有 attention 都会这样复制。[GQA](gqa.md) 有好几个 KV 头，TP 可以把不同的头分给不同的卡，每张卡存的是不同的东西：例如标准稠密模型 `Qwen3-8B` 有 8 个 KV 头，开到 `TP ≤ 8` 时每张卡分走不同 KV 头、零重复；MoE 模型 `Qwen3-30B-A3B` 有 4 个 KV 头，`TP=4` 时同样零重复，只有 `TP=8` 头不够分时才两两复制一份（见 [GQA 页](gqa.md#张量并行时kv-头不够分就要复制)），都不属于 KVPP 的目标对象。而 [MLA](mla.md) 只有 1 条共用的潜向量，TP 开到几就复制几份，因此 `v0.30.0` 与 `main` 将 KVPP 的适用模型限定为非混合 MLA/SFA 模型。不过 MLA 也不是非走 KVPP 不可：下表里的 DCP 是把同一层 MLA 历史按序列位置分存到各卡的另一条路，所以 KVPP 和 DCP 不能同开。
 
 **代价是通信，而且是整层的通信。** 常驻卡每次发的是这一层已经分配出去的全部块，不管这一步真正在跑的请求用了其中几块。能装的块多了几倍，每层要搬的字节就跟着多几倍，这是同一件事的两面，具体数在「历史怎样到位」一节演算。
 
-除了通信，还有三笔账：每张卡要多留 2 个暂存区的显存；每层计算前可能要等广播到位；在 `v0.30.0` 主基线与 `main` 上，执行模式只接受 `eager`（算子逐个下发）或 `PIECEWISE` 分段图模式，不支持全图回放（早期开发快照 `baa023ad` 仅支持 `eager`，见 [ACL Graph](acl-graph.md)）。所以它换来的是容量，不是速度：官方在另一个模型上测到能装的 token 多了五六倍，同时长输入的首 token 时间变长、prefill 吞吐下降，数字和测试条件见文末「开销和什么时候别开」。
+除了通信，还有三笔账：每张卡要多留 2 个暂存区的显存；每层计算前可能要等广播到位；在 `v0.30.0` 主基线与 `main` 上，执行模式只接受 `eager`（算子逐个下发）或 `PIECEWISE` 分段图模式，不支持 `FULL` 全图回放（见 [ACL Graph](acl-graph.md)，更早快照演进见文末[版本差异](#版本差异)）。所以它换来的是容量，不是速度：官方在非混合 SFA 模型上测到能装的 token 多了五六倍，同时长输入的首 token 时间变长、prefill 吞吐下降，数字和测试条件见文末「开销和什么时候别开」。
 
 KVPP 和几种名字相近的做法，改的东西不同：
 
@@ -238,7 +238,7 @@ file: kvpp-fig-layer-residency
 
 ## 能和 PP、PCP、PD 分离、KV 卸载一起开吗？
 
-**通信组只在一个 DP 请求执行组、一个 PP 段之内（组大小为 `TP × PCP`），不跨 DP 或 PP；与 DCP 严格互斥，且限定非混合 MLA 模型。** 在 **`v0.30.0` 主基线与 `main`** 上，执行模式支持 `eager` 或 `PIECEWISE` 图模式，支持通过 `MultiConnector` 组合连接器，`main` 还新增了 `MooncakePushConnector`（同样拒绝 `kv_consumer`）并明确禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开（早期快照 `baa023ad` 仅支持 `eager` 与单连接器，差异见文末[版本差异](#版本差异)）。
+**通信组只在一个 DP 请求执行组、一个 PP 段之内（组大小为 `TP × PCP`），不跨 DP 或 PP；与 DCP 严格互斥，且限定非混合 MLA 模型。** 在 **`v0.30.0` 主基线与 `main`** 上，执行模式支持 `eager` 或 `PIECEWISE` 图模式，支持通过 `MultiConnector` 组合连接器，`main` 还新增了 `MooncakePushConnector`（同样拒绝 `kv_consumer`）并明确禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开（各版连接器与图模式差异见文末[版本差异](#版本差异)）。
 
 先认几个词：PCP（prefill 上下文并行）把一条长 prompt 的位置分给几组卡一起算 prefill，DCP 把 decode 时的历史按位置分到几张卡上，两者见 [上下文并行](context-parallel.md)；Model Runner V2 是 vllm-ascend 新版的 model runner（每步准备输入、执行前向的组件，见 [NPU model runner](npu-model-runner.md)）；PD 分离是把 prefill 和 decode 交给两套实例，中间由连接器交接历史。`v0.30.0` 主基线与 `main` 的组合边界如下：
 
@@ -248,7 +248,7 @@ file: kvpp-fig-layer-residency
 | [DP（数据并行）](data-parallel.md) | 能 | 每个 DP 请求执行组分别建组，不跨 DP；这不表示专家权重一定完整复制 |
 | PCP | 能，要新版 model runner | 组大小为 `size = TP × PCP`（与 `TP` 联合划定复制域）；`PCP > 1` 须配 Model Runner V2 |
 | DCP | 不能 | 启动报错（`KVPP and DCP cannot be enabled at the same time.`） |
-| 图模式 | 仅支持 `eager` 或 `PIECEWISE` | 不支持 `FULL` 全图模式（早期快照 `baa023ad` 仅支持 `eager`） |
+| 图模式 | 仅支持 `eager` 或 `PIECEWISE` | 不支持 `FULL` 全图模式（各版演进见[版本差异](#版本差异)） |
 | MTP / DSpark 投机解码 | 只能固定步数 | MTP 层不参与划分，每卡各留一份；拒绝按 batch 动态步数与自适应验证 |
 | [PD 分离](pd-disaggregation.md) | 能（支持 `MultiConnector`） | `v0.30.0` 用 `MooncakeConnectorV2`，`main` 另支持 `MooncakePushConnector`；只在 prefill 实例上开，decode 实例（`kv_consumer`）必须关 |
 | [外部 KV 池](kv-pool.md) | 能（支持 `MultiConnector`） | 用 `AscendStoreConnector`；`main` 明确拒绝 Mooncake 逐层 CP 与 `enable_kvpp` 同开；每卡只存常驻层和自己的 MTP 缓存，完整配置见下文 |

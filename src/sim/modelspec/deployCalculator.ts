@@ -222,12 +222,12 @@ export const ASCEND_CALC_CARDS: readonly AscendCalcCardSpec[] = [
   },
   {
     id: "950dt-128g",
-    name: "Ascend 950DT (A5 · 128 GiB 参考档)",
-    shortName: "Ascend 950DT 128G",
+    name: "Ascend 950DT (A5 · 白皮书 144 GB 高配模拟档)",
+    shortName: "Ascend 950DT 144G",
     family: "A5",
-    hbmGiB: 128,
+    hbmGiB: 144,
     diesPerPhysicalCard: 1,
-    physicalCardHbmGiB: 128,
+    physicalCardHbmGiB: 144,
     peakBf16Tflops: 486,
     peakFp16Tflops: 486,
     peakInt8Tops: 972,
@@ -240,7 +240,7 @@ export const ASCEND_CALC_CARDS: readonly AscendCalcCardSpec[] = [
     halvesKvForWorkspace: false,
     interconnectNote: "Unified Bus 高速互联；原生支持 FP8 / MXFP8 / MXFP4 与 L0C→UB CV 融合",
     specNote:
-      "Cube BF16 峰值 486 TFLOPS、带宽 4.0 TB/s（脊点 121.5 FLOP/B，取自昇腾 950 白皮书高配档；128 GiB 为算账台参考容量档）",
+      "Cube BF16 峰值 486 TFLOPS、带宽 4.0 TB/s（脊点 121.5 FLOP/B）；《昇腾 950 NPU 架构白皮书》表 3-1 标称 950DT 高速内存 144 / 96 GB（4 栈，区别于 950PR 128 / 112 GB），此处按 144 GiB 容量作架构推演假设（若按十进制 GB 折算约为 134.11 GiB，实机以 OS 可见为准）",
     sources: ["wiki:ascend-950-architecture", "wiki:roofline-and-metrics"],
   },
 ];
@@ -401,6 +401,19 @@ export interface RooflineAnalysis {
   notes: readonly string[];
 }
 
+export interface PpStageCapacitySlice {
+  stageIndex: number;
+  isBottleneck: boolean;
+  wLowBytes: number;
+  wPointBytes: number;
+  wHighBytes: number;
+  kvPoolLowBytes: number;
+  kvPoolPointBytes: number;
+  kvPoolHighBytes: number;
+  fixedLinearStateBytes: number;
+  kvBytesPerBlock: number;
+}
+
 export interface FourQuestionsReport {
   q1Fit: {
     verdict: "pass" | "warn" | "blocked";
@@ -434,6 +447,7 @@ export interface FourQuestionsReport {
     blocksPerMaxSeq: number;
     maxConcurrencyRange: readonly [number, number];
     maxConcurrencyPoint: number;
+    ppStageSlices?: readonly PpStageCapacitySlice[];
     summary: string;
   };
   q3Roofline: {
@@ -1782,14 +1796,17 @@ function computeAclGraphRange(params: {
     FULL_AND_PIECEWISE: 1.4,
   };
   const effectiveCount = Math.max(1, cudagraphCaptureCount);
-  const layerScale = Math.max(0.65, spec.numLayers / 36);
+  const isFullCapture = cudagraphMode === "FULL" || cudagraphMode === "FULL_AND_PIECEWISE";
+  const layerScale = Math.max(isFullCapture ? 0.85 : 0.65, spec.numLayers / 36);
   const moeScale = isMoe ? 1.25 : 1.0;
   const perGraphLowMiB = 38 * modeMultiplier[cudagraphMode] * layerScale * moeScale;
   const perGraphHighMiB = 115 * modeMultiplier[cudagraphMode] * layerScale * moeScale;
+  // FULL / FULL_AND_PIECEWISE capture on Ascend allocates FIA workspace (~1.98 GiB) + allocator split reserve during capture_model()
+  const fullCaptureTransientHighMiB = isFullCapture && card.family !== "310P" ? 3100 : 0;
 
   const lowBytes = Math.round((200 + effectiveCount * perGraphLowMiB) * MIB);
-  const highBytes = Math.round((400 + effectiveCount * perGraphHighMiB) * MIB);
-  const pointBytes = Math.round(lowBytes * 0.55 + highBytes * 0.45);
+  const highBytes = Math.round((400 + fullCaptureTransientHighMiB + effectiveCount * perGraphHighMiB) * MIB);
+  const pointBytes = Math.round(lowBytes * 0.65 + (highBytes - fullCaptureTransientHighMiB * MIB) * 0.35);
 
   const notes = [
     `ACLGraph (${cudagraphMode}, 录制 ${effectiveCount} 档尺寸) 在切完 KV 池之后执行 capture_model()，由第 2 级预算外 1−u 余量支付，不扣减 KV 池预算。`,
@@ -3734,7 +3751,21 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
 
   const allStageCaps = bottleneckPp.allStages.map((st) => ({
     stage: st.stage,
+    w: st.w,
+    kvState: st.kvState,
     cap: evaluateStageCapacity(st.w, st.kvState),
+  }));
+  const ppStageSlices: PpStageCapacitySlice[] = allStageCaps.map((entry) => ({
+    stageIndex: entry.stage.stageIndex,
+    isBottleneck: entry.stage.stageIndex === bottleneckPp.stage.stageIndex,
+    wLowBytes: entry.w.lowBytes,
+    wPointBytes: entry.w.pointBytes,
+    wHighBytes: entry.w.highBytes,
+    kvPoolLowBytes: entry.cap.sKvPoolLow,
+    kvPoolPointBytes: entry.cap.sKvPoolPoint,
+    kvPoolHighBytes: entry.cap.sKvPoolHigh,
+    fixedLinearStateBytes: entry.kvState.totalFixedLinearStateBytes,
+    kvBytesPerBlock: entry.cap.sKvBytesPerBlock,
   }));
   const primaryCap =
     allStageCaps.find((entry) => entry.stage.stageIndex === bottleneckPp.stage.stageIndex)?.cap ??
@@ -4468,6 +4499,7 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
       blocksPerMaxSeq,
       maxConcurrencyRange: [maxConcLow, maxConcHigh],
       maxConcurrencyPoint: maxConcPoint,
+      ppStageSlices,
       summary: q2Summary,
     },
     q3Roofline: (() => {

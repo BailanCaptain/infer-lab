@@ -32,7 +32,7 @@ texts:
   - { at: [693, 324], text: 新 token, anchor: middle, size: 12 }
   - { at: [264, 346], text: 没有请求要算时，停在 ① 等消息，不空转, size: 12.5, note: true }
 pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1262
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1435
     symbols: [run_busy_loop, _process_input_queue, _process_engine_step]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L584-L710
     symbols: [schedule, execute_model, update_from_output]

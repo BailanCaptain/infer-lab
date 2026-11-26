@@ -108,7 +108,7 @@ vllm serve /models/DeepSeek-V4.1-Flash \
 ## 代价与互斥边界
 
 - **外部 Owner 进程强依赖**：消费者不再本地独立持有完整词表，一旦 `vllm_ascend.shared_engram` Owner 不可达或网卡/UB 链路中断，实例启动与推理会失败；回退本地模式需去掉 `shared_engram` 重启消费者。
-- **`capacity` 缓冲下限与 `262144` 硬上限权衡**：在 `"a2"` / `"a5"` 路径下，`capacity` 并非截断单步 token 数的上限开关——`capacity_for_batch` 会按本步最大可能需求行数 `required = max_tokens * (heads // tp_size)` 取 `max(65536, capacity, required)` 自动扩容，只有当计算出的行数突破协议硬上限 `MAX_ROWS = 262144` 时才会在初始化阶段直接抛 `ValueError`；显式调大 `capacity` 会提前按行宽线性增加每卡常驻接收缓冲占用。
+- **`capacity` 缓冲下限与 `262144` 硬上限权衡**：在 `"a2"` / `"a5"` 路径下，`capacity` 并非截断单步 token 数的上限开关——`capacity_for_batch` 会按本步最大理论需求行数 `required = max_tokens * (heads // tp_size)` 取 `max(65536, capacity, required)` 自动扩容，只有当计算出的行数突破协议硬上限 `MAX_ROWS = 262144` 时才会在初始化阶段直接抛 `ValueError`；显式调大 `capacity` 会提前按行宽线性增加每卡常驻接收缓冲占用。
 - **版本迁移陷阱**：`v0.30.0` 虽已支持本地 Engram 与 `multistream_engram_overlap`，但尚无 `shared_engram`；把 `main` 的共享池脚本原样搬回标准 `v0.30.0` 环境会在构造 `AscendConfig` 时因未知字段直接报错。
 
 ## 对照源码

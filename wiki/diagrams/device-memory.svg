@@ -1,21 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 290" width="860" height="290" role="img" aria-label="同一段权重 W 从主机复制到一张卡；两份数据各占本侧容量，复制不等于释放源数据">
-  <title>同一段权重 W 从主机复制到一张卡；两份数据各占本侧容量，复制不等于释放源数据</title>
-  <defs><marker id="device-memory-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="device-memory-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <rect x="35" y="65" width="270" height="160" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="51" y="53" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">主机内存 · CPU 一侧</text>
-  <rect x="475" y="65" width="270" height="160" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="491" y="53" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">设备内存 · 一张卡</text>
-  <path d="M305 150 L475 150" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#device-memory-ah-comm)"/>
-  <path d="M745 150 L817 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#device-memory-ah-weight)"/>
-  <rect x="100" y="115" width="140" height="65" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <path d="M128 115v65M156 115v65M184 115v65M212 115v65M100 136.7h140M100 158.3h140" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="170" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">权重 W</text>
-  <rect x="540" y="115" width="140" height="65" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <path d="M568 115v65M596 115v65M624 115v65M652 115v65M540 136.7h140M540 158.3h140" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="610" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">权重 W</text>
-  <text x="390" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="#7a3a6a" text-anchor="middle">复制</text>
-  <text x="825" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU</text>
-  <text x="825" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">计算</text>
-  <text x="170" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">主机账：源数据</text>
-  <text x="610" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">设备账：本地副本</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 386" width="880" height="386" role="img" aria-label="主机内存与设备显存双账边界：本卡权重分片一次 H2D 复制与 UVA 边界" font-family="var(--font-sans)">
+<title>主机内存与本卡显存双账边界：权重分片一次复制与独立容量预算</title>
+<desc>两侧 5x3 网格均表示已选出的本卡权重分片 W，加载期经一次 H2D 复制进 HBM，复制不自动释放主机源数据；右侧展示 HBM 水位与 UVA 边界</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="336" height="304" rx="9" fill="#fcfbf7" stroke="#4c65b6"/>
+<rect x="32" y="100" width="304" height="38" rx="6" fill="#f3f2ea" stroke="#c5c6bc"/>
+<rect x="32" y="150" width="304" height="110" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="32" y="272" width="304" height="82" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-dasharray="5 3"/>
+<rect x="488" y="64" width="376" height="304" rx="9" fill="#fcfbf7" stroke="#087f73"/>
+<rect x="504" y="122" width="256" height="96" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="504" y="228" width="256" height="36" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="504" y="270" width="256" height="42" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="504" y="318" width="256" height="36" rx="6" fill="#f3f2ea" stroke="#b8bcb5"/>
+<rect x="776" y="136" width="74" height="180" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<g fill="#fde69e" stroke="#c78300" stroke-width="1">
+<rect x="48" y="168" width="95" height="57" rx="3"/>
+<path d="M67 168v57M86 168v57M105 168v57M124 168v57M48 187h95M48 206h95"/>
+<rect x="518" y="140" width="95" height="57" rx="3"/>
+<path d="M537 140v57M556 140v57M575 140v57M594 140v57M518 159h95M518 178h95"/>
+</g>
+<path d="M354 198h130m-6-5l6 5-6 5" fill="none" stroke="#9a4b86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M354 313h130m-6-5l6 5-6 5" fill="none" stroke="#4c65b6" stroke-width="1.6" stroke-dasharray="5 3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M760 170h14m-4-4l4 4-4 4M760 291h14m-4-4l4 4-4 4" fill="none" stroke="#087f73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="26" font-size="16" fill="#17211f">主机内存与本卡显存双账边界：权重分片一次复制，两边各自记账</text>
+<text x="32" y="88" font-size="14" fill="#17211f">主机内存 · CPU 侧（容器 cgroup 限额）</text>
+<text x="158" y="185" font-size="13.5" fill="#936300">本卡权重分片 W</text>
+<text x="46" y="295" font-size="13" fill="#3a4f93">可选锁页区：Host UVA / KV CPU 卸载</text>
+<text x="504" y="88" font-size="14" fill="#17211f">设备内存 · 单张卡 HBM（独立容量账）</text>
+<text x="624" y="156" font-size="13.5" fill="#936300">权重 W 副本</text>
+<text x="632" y="296" text-anchor="middle" font-size="13" fill="#065f56">物理 KV 缓存块池（吃满剩余预算）</text>
+<text x="813" y="204" text-anchor="middle" font-size="13.5" fill="#065f56">NPU</text>
+<text x="813" y="226" text-anchor="middle" font-size="13" fill="#065f56">计算核</text>
+</g>
+<g font-size="13" fill="#17211f">
+<text x="184" y="124" text-anchor="middle">.safetensors 页缓存 + 请求队列与块号表</text>
+<text x="158" y="208">CPU 源张量（复制源）</text>
+<text x="46" y="317" font-size="12.5">设备可经链路按虚拟地址远端读取</text>
+<text x="624" y="178" font-size="12.5">常驻本卡 HBM</text>
+<text x="632" y="251" text-anchor="middle" font-size="12.5" fill="#7a3a6a">试跑激活峰值 + non_torch 缓冲</text>
+<text x="632" y="341" text-anchor="middle" font-size="12.5" fill="#4d5652">预算外 1-u 余量（承接 ACLGraph）</text>
+<text x="813" y="252" text-anchor="middle" font-size="12">高带宽</text>
+<text x="813" y="270" text-anchor="middle" font-size="12">本地读</text>
+</g>
+<g font-size="12.5" fill="#4d5652">
+<text x="16" y="47">两侧相同 5×3 网格均表示本卡分片 W；复制不自动释放源数据，地址可访问也不等于搬入 HBM</text>
+<text x="95" y="244" text-anchor="middle" fill="#936300">5×3 分片源</text>
+<text x="158" y="231">未释放仍计主机账</text>
+<text x="46" y="339" fill="#8f3229" font-weight="600">✗ 物理仍在主机，不计入右侧 HBM</text>
+<text x="504" y="108">910B3 OS 可见 60.96 GiB（标称 64 GiB）</text>
+<text x="624" y="199">8B 约 15.3 GiB</text>
+<text x="420" y="168" text-anchor="middle" fill="#7a3a6a" font-weight="700">加载期复制</text>
+<text x="420" y="187" text-anchor="middle" fill="#7a3a6a">一次 H2D</text>
+<text x="420" y="220" text-anchor="middle" fill="#065f56" font-weight="600">稳态推理</text>
+<text x="420" y="239" text-anchor="middle" fill="#065f56">权重 H2D = 0</text>
+<text x="420" y="303" text-anchor="middle" fill="#3a4f93">按需换入 / 直读</text>
+</g>
 </svg>

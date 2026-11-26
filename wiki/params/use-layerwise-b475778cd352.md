@@ -14,7 +14,6 @@ aliases:
   - AscendStoreConnector use_layerwise
 legacyAnchors:
   一句话: 它配在哪里，四处同名键怎么区分？
-  事实表: 它配在哪里，四处同名键怎么区分？
   为什么存在: 开启后牵动的三类分叉与后端协议
   开了的代价: 图模式改写、拓扑与混合缓存约束及 GLM 双机说明
 chapters:
@@ -173,15 +172,27 @@ rawSources:
 
 连接器、SFA P2P 与 Yuanrong 这三处入口均不经 `AscendConfig` 的未知键校验，拼错键名会使该入口静默回落默认值（后续是否报错取决于执行路径）；UCM 配置文件由外部包解析，不能套用这里的结论。
 
+## 事实表
+
+启用 `AscendStoreConnector` 逐层 KV 传输前，先核对配置位置、字符串布尔陷阱、图模式覆写与并行拓扑限制：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 公共配置入口与默认 | `--kv-transfer-config` 内的 `kv_connector_extra_config["use_layerwise"]`（默认 `false`） | **不在 `additional_config` 里**；用 `.get()` 取原值无强转，JSON 写字符串 `"false"` 会被判为真！ |
+| Yuanrong 同名同步要求 | `YR_CONFIG_PATH` JSON 内的 `YuanrongConfig.use_layerwise`（文末自动生成区钉点） | 使用 Yuanrong 后端时须与 `kv_connector_extra_config` 中的值保持一致，代码不会自动互检 |
+| 图模式强制改写 | 开启后将含整图的 `cudagraph_mode`（如 `FULL_DECODE_ONLY`）自动覆写为 `PIECEWISE` | 逐层异步等待/存出无法录进整图；若同时传了 `--enforce-eager` 则最终落为 `NONE` |
+| 并行拓扑与角色限制 | Mooncake `block_key` 仅支持纯 TP（`PP/PCP/DCP > 1` 报错）；KV 池 + PCP 仅支持 `false` | `main` 还禁止 `kv_consumer` 在仅存 decode 缓存且未开 `consumer_is_to_put` 时启用逐层模式 |
+| 后端数据面门槛（`main`） | 构造期强制校验 `backend_class.layerwise_data_plane in ("block_key", "gva")` | `main` 上未登记这两种逐层数据面的后端开启 `use_layerwise: true` 会直接抛 `ValueError` |
+
 ## 开启后牵动的三类分叉与后端协议
 
 ```wiki-diagram
 file: param-use-layerwise
 ```
 
-关闭 `use_layerwise` 时，连接器不在每层计算前后分别等待和提交单层 KV（仍可能使用发送线程或可选异步接收线程，不能简单视为完全串行）。开启后，调度与后端出现三类核心分叉：
+关闭 `use_layerwise` 时，连接器不在每层计算前后分别等待和提交单层 KV（后台仍按配置启用发送线程或可选异步接收线程，并非完全单线程串行）。开启后，调度与后端出现三类核心分叉：
 
-1. **外部命中查询起点与强制加载**：非逐层模式从 `num_computed_tokens // block_size` 开始查外部命中，逐层模式直接从块 0 起步。且逐层模式下即使本轮无需新增分配也可能仍须加载池中数据——`v0.23.0` 检查外部命中 token 数 `> 0`，`v0.26.0rc` 之后改为检查 `store_skip_tokens > 0`，升级排查需核对对应字段。
+1. **外部命中查询起点与强制加载**：非逐层模式从 `num_computed_tokens // block_size` 开始查外部命中，逐层模式直接从块 0 起步。且逐层模式下即使本轮无需新增块分配，只要存在外部池命中就仍须触发池数据加载——`v0.23.0` 检查外部命中 token 数 `> 0`，`v0.26.0rc` 之后改为检查 `store_skip_tokens > 0`，升级排查需核对对应字段。
 2. **调度侧异步加载标志变为 `False`**：调度器返回 `need_to_allocate, self.load_async and not self.use_layerwise`（在 `main` 拆分出的 `LayerwiseKVPoolScheduler` 中更是直接置 `self.load_async = False`）。这表示调度侧不走整批异步加载标志（不会修改 `load_async` 配置值，也不能仅凭该标志判断底层后端是否使用后台线程）。
 3. **后端逐层协议与数据面演化**：传统 per-layer key 把层号写进 key；[Mooncake](../concepts/mooncake-connector.md) 的 `block_key` 路径把各层放在同一 block/rank 对象的不同字节范围内逐层写入，使远端对象数从 `块数 × 层数 × 存储 rank 数` 降到 `块数 × 存储 rank 数`（不减少 KV 总有效载荷）。各版本的数据面分流如下：
 

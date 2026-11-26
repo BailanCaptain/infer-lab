@@ -70,7 +70,7 @@ updated: '2026-11-18'
 
 ## 第一步：容器怎么挂设备、驱动与缓存？
 
-官方预构建镜像 `quay.io/ascend/vllm-ascend` 按硬件族分标签（`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT，另有 `-openeuler` 变体），内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`（昇腾神经网络加速库，含 ATB 算子库）、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核态驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
+官方预构建镜像 `quay.io/ascend/vllm-ascend` 按硬件族分标签：`v0.30.0` 对应 A2，`-a3` 对应 A3，`-310p` 对应 300I DUO / 200I Pro，`-a5` 对应 950DT（另有 `-openeuler` 变体）。镜像已内置用户态 **CANN `9.2.1`**、NNAL `9.2.0`（含 ATB 算子加速库）、`torch_npu` 与 `vllm`。由于 Linux 容器不含宿主机内核驱动，`docker run` 必须通过 `--device` 和 `-v` 接入 NPU 设备节点、驱动库与权重缓存，并用双层机制隔离空闲卡：
 
 ```wiki-diagram
 file: env-serve-container-mounts
@@ -147,10 +147,10 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 
 `v0.30.0` 的 `vllm_ascend/envs.py` 共保留 **14 项**变量（**8 项编译期** + **6 项运行期**；`main` 精简为 **12 项**）。8 项编译期开关含 `MAX_JOBS`、`SOC_VERSION`、`COMPILE_CUSTOM_KERNELS` 及传给 CMake 的 `VLLM_ASCEND_ENABLE_BATCH_MEMCPY` 等；6 项运行期变量里最常见的是 **`VLLM_VERSION`**、`ASCEND_HOME_PATH` 与 `HCCL_SO_PATH`。其中 `VLLM_VERSION` 仅在源码安装了非标准版本号触发 `InvalidVersion` 时才需手设 `0.30.0`（官方 `+empty` 后缀会自动剥离）。
 
-通信侧 **HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项有两项：`HCCL_BUFFSIZE`（通算融合算子 [MC2](expert-parallel.md#mc2-还是-allgather) 的 tiling 通信域缓冲 MB 数，多卡 MoE 常设 `256` 或 `1024`）与 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，在 Vector 核展开以配合图捕获）。
+通信侧 **HCCL**（详见 [CANN 与 HCCL](cann-hccl.md)）在仓内 C++/Python 有真实读取点的常用项有两项。一项是 `HCCL_BUFFSIZE`，决定通算融合算子 [MC2](expert-parallel.md#mc2-还是-allgather) 的通信缓冲 MB 数（多卡 MoE 常设 `256` 或 `1024`）。另一项是 `HCCL_OP_EXPANSION_MODE`（如 `"AIV"`，把通信控制放在向量核展开以配合图捕获）。
 
-> **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除且仓内 `0` 处读取，统一迁入 `--additional-config`（三路优先级见 [Ascend 配置体系](ascend-config-system.md)）。
-> 例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）的转换策略时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**，须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但同样建议改配 `additional_config.enable_flashcomm1`。
+> **升级 `v0.30.0` 配置陷阱（旧环境变量已下线）**：`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 已从 `envs.py` 删除，仓内 `0` 处读取，统一迁入 `--additional-config`（详见 [Ascend 配置体系](ascend-config-system.md)）。
+> 例如调整权重向 **NZ**（`FRACTAL_NZ` 分块布局，见 [张量存储布局](tensor-layout.md)）转换时，写 `export VLLM_ASCEND_ENABLE_NZ=0` 不报错但**完全无效**。必须改传 `--additional-config '{"weight_nz_mode": 0}'`（默认 `1` 仅量化权重转 NZ，`2` 浮点尽量转 NZ）。仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留 `os.getenv` 兼容回退，但也建议改配 `additional_config.enable_flashcomm1`。
 
 ### 4. 无仓内读取点的底层变量与祖传脚本甄别（诚实标 `unknown`）
 
@@ -249,6 +249,16 @@ curl --fail http://localhost:8000/v1/chat/completions \
 ```
 
 验证完毕需要停掉前台服务时，按 `Ctrl+C`（后台服务先核准自己启动的进程 PID 再发 `kill -2 <PID>`）触发 `SIGINT` 优雅关闭，让框架正常销毁通信组并释放 `/dev/davinci*` 上下文；不要一上来直接 `kill -9`，否则极易残留僵尸子进程占死 NPU 显存。
+
+### 3. 从单机扩到双机：主从节点最小增补参数（`v0.30.0`）
+
+当超大 MoE 模型单机 8 卡装不下全部专家、需扩到两台 8 卡机器组 `DP=2 × TP=8 = 16 卡（EP16）` 时，无需重写整套逻辑——先在两台机器上把可见卡与张量并行均扩满本机 8 卡（`export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7`、`--tensor-parallel-size 8 --enable-expert-parallel`），再按主从角色补齐以下四项跨机参数（完整跨机进程分工与波次对齐见 [Data Parallel](data-parallel.md) 与 [进程分工](engine-processes.md)）：
+
+| 跨机增补项 | 主节点（`node0`，对外接 HTTP） | 副节点（`node1`，仅跑后台引擎） | 作用与踩坑红线 |
+| --- | --- | --- | --- |
+| 宿主机通信网口变量 | `export HCCL_IF_IP=<node0_IP>` + `export GLOO_SOCKET_IFNAME=<网卡名>` | `export HCCL_IF_IP=<node1_IP>` + `export GLOO_SOCKET_IFNAME=<网卡名>` | 锁定跨机控制面握手 IP 与 CPU `Gloo` 同步网卡，防止容器绑错虚拟网桥导致启动卡死 |
+| 全局、本机与起始 DP 组号 | `--data-parallel-size 2 --data-parallel-size-local 1`（默认从 `0` 起） | `-dp 2 -dpl 1 --data-parallel-start-rank 1` | 声明全局共 2 组、每台起 1 个本地 `EngineCore`，且副节点显式从 `DP1` 起步；漏传 `-dpl 1` 会在单机硬起两组，漏传 `--data-parallel-start-rank 1` 两台都会抢 `DP0` |
+| 主节点协调地址与角色 | `--data-parallel-address <node0_IP> --data-parallel-rpc-port 13389` | 同左，并追加 **`--headless`** | 副节点加 `--headless` 后不启动前端 HTTP 服务，统一由 `node0:8000` 接请求并分发；**注意跨机 RoCE 跑 MoE 严禁同时开 `PP > 1` 与 `DP > 1`** |
 
 ## 常见误解
 

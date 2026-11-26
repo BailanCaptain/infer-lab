@@ -32,6 +32,8 @@ aliases:
   - non_torch
   - 非 torch 增量
   - CacheConfig
+  - total_npu_memory
+  - 60.96 GiB
 chapters:
   - '05'
 sources:

@@ -80,7 +80,7 @@ vllm serve /models/Qwen3-Next-80B-A3B \
 
 - **AscendC `FwdH` 切 Triton 算子的单趟算力权衡**：开启后 Prefill 主递推从融合 AscendC `FwdH` 切换到带中间快照写出的 Triton 分块核。在长公共前缀频繁命中的多轮对话/Agent 场景能省掉大段重复 Prefill；但在几乎零前缀复用的纯随机短请求负载下，只会多出算子切换与快照导出开销，应保持默认 `false`。
 - **FP32 工作区显存占用**：虽然同流各 GDN 层共享同一块 `float32` scratch，但它的第一维与 `max_num_seqs` 成正比——单槽位即占 `(num_v_heads / TP) × 128 × 128 × 4` 字节。若把 `--max-num-seqs` 盲目拉得很大，这块工作区会直接挤占可用于分配 KV 块的显存预算。
-- **P/D 分离下自动失效**：由于昇腾侧连接器切分规则可能与上游 Worker 检查点规划器的页边界不一致，只要配置了 `--kv-transfer-config`，源码都会主动告警并退回原有调度。
+- **P/D 分离下自动失效**：由于昇腾侧连接器切分规则与上游 Worker 检查点规划器的页边界未做统一对齐，只要配置了 `--kv-transfer-config`，源码都会主动告警并退回原有调度。
 
 ## 对照源码
 

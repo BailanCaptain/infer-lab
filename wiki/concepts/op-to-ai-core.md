@@ -3,8 +3,8 @@ id: op-to-ai-core
 title: 从算子到 AI Core：分工、融合与分块
 type: concept
 summary: >-
-  在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm
-  路径和可选残差融合分支对照说明。
+  逐层前向中，算子怎样拆成矩阵（Cube）与向量（Vector）执行段、Host 怎样做分块规划（tiling）、设备怎样搬入计算并写回；以
+  Qwen3-8B 标准残差融合 RMSNorm 与 GLM 双机 mHC 单参路径对照说明。
 aliases:
   - 算子链路
   - AscendRMSNorm
@@ -94,12 +94,12 @@ relations:
     note: 矩阵乘与向量算子在片上分块搬运时受张量排布与对齐约束
   - to: prepare-inputs-flow
     kind: builds-on
-    note: 往前追踪 A3 的块表、槽位和注意力元数据
+    note: 往前追踪准备输入阶段的块表、槽位和注意力元数据
   - to: ai-core
     kind: builds-on
     note: 算子执行段的分工、分块与交接建立在 AI Core 的计算单元和存储搬运机制之上。
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -124,7 +124,7 @@ file: op-to-aicore-plate-cutaway
 file: op-to-ai-core-intuition
 ```
 
-图中的箭头表示前一段产出的数据要交给后一段。矩阵与向量单元怎样组织、数据经过哪些存储，见 [AI Core](ai-core.md)。本页挂靠主线 [A4：逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)，接下来追踪执行段之间怎样交接。
+图中的箭头表示前一段产出的数据要交给后一段。矩阵与向量单元怎样组织、数据经过哪些存储，见 [AI Core](ai-core.md)。本页挂靠单请求主线的[逐层前向阶段](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)（主线第 4 站），接下来追踪执行段之间怎样交接。
 
 ## 为什么要分块和融合，代价在哪？
 
@@ -134,7 +134,7 @@ file: op-to-ai-core-intuition
 
 不过，融合仍要保存后续计算需要的结果。仓库中的残差融合扩展实际分配 **3 份输出张量**：归一化结果、每行的缩放统计量、更新后的残差；第三份在搬入并相加后就写回全局内存。因此省多少访问，要逐个张量看它还会不会被使用。融合也会增加片上临时空间压力，可能改变分块。
 
-这与把工作分给多张卡是两个层次：本页的分块、搬运与等待发生在设备执行内部。跨卡通信在模型需要合并各卡结果时发生，次数由模型与并行方案决定，见 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。
+这与把工作分给多张卡是两个层次：本页的分块、搬运与等待发生在设备执行内部。跨卡通信在模型需要合并各卡结果时发生，次数由模型与并行方案决定，见[逐层前向主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。
 
 ## 融合分支改变的是执行组织
 
@@ -174,7 +174,7 @@ $$s = x + \text{residual} = [2, 2], \qquad r = \frac{1}{\sqrt{(2^2 + 2^2)/2}} = 
 file: op-to-ai-core-fig-execution-pipe
 ```
 
-Python 调用先进入 C++ 适配层，预分配三份输出（`y`、`rstd` 与更新后残差 `s`），再经 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)`（**aclnn** 即 AscendCL Neural Network，CANN 单算子 C 接口）交由 **CANN**（昇腾算子与运行时软件栈）衔接主机侧 **AscendC** `op_host` 规划与设备侧 `op_kernel` 执行。
+Python 调用先进入 C++ 适配层，预分配三份输出（`y`、`rstd` 与更新后残差 `s`）。随后经 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)`（**aclnn** 即 AscendCL Neural Network，CANN 单算子 C 接口）交由 **CANN**（昇腾算子与运行时软件栈），把主机侧 **AscendC** `op_host` 规划与设备侧 `op_kernel` 执行衔接起来。
 
 主机 tiling 读取可用向量核数与片上 **UB**（Unified Buffer，向量核片上统一缓存）容量，按行数、行宽、FP16/FP32/BF16 精度和是否有 bias 挑模板（普通、沿宽拆分、合并多行等），生成每核范围与临时空间参数。分块阈值随精度和偏置改变，元素总数相同也须重挑模板。无编译对象时查平台、有编译对象时读其记录；UB 容量须先扣预留空间，剩余部分才分给数据块。
 
@@ -190,7 +190,12 @@ $$\text{former} = \lceil 10 \div 4 \rceil = 3\text{ 行}, \qquad \text{used\_cor
 
 **每核分几行与每轮搬几行是两次划分。** 每轮搬入行数还看行宽、精度、偏置与 UB 余量；普通模板按范围循环，末轮只算余行。设备入口读主机编码的 **tiling key** 跳进对应模板；源码阈值仅是该实现的空间安排，不是整颗 NPU 的固定内存上限，读 key 应对照模板而非背编码。
 
-另须区分 A3 准备输入的缓存块：block table（历史缓存块表）与 slot mapping（新槽位映射）用于注意力读写 KV cache，构造见[准备输入](prepare-inputs-flow.md)；本节 tiling 只划当前算子的计算任务，不动缓存块。
+另须区分前一步[准备输入阶段](prepare-inputs-flow.md)（主线第 3 站）构造的缓存寻址表：block table（历史缓存块表）与 slot mapping（新槽位映射）专门交给注意力算子读写 KV cache；本节 tiling 只划当前算子的片上计算任务，不动缓存块。
+
+拿 `v0.30.0` 标准稠密模型 **`Qwen3-8B`**（36 层，`hidden_size = 4,096`、`intermediate_size = 12,288`，BF16 每个数 `2 B`）走一遍标准单层交接：
+
+- **残差融合归一化（Vector）**：注意力输出回到主干后，`post_attention_layernorm(x, residual)` 同时传入当前输出 `x` 与残差 `residual`，直接命中上图 `AscendRMSNorm` 的带残差分支 `npu_add_rms_norm_bias`。单 token 一行 `[1, 4096]` BF16 占 $4{,}096 \times 2\text{ B} = 8\text{ KiB}$：融合算子在片上 UB 相加并写回更新后残差 `s`，省去了未融合时中间和张量的 `8 KiB + 8 KiB = 16 KiB` 显存往返。
+- **门控前馈网络（Cube → Vector → Cube）**：归一化输出 `y` 送进 `gate_up_proj`，先由 **Cube** 单元完成矩阵乘得到两路拼接特征（单卡 `TP=1` 时每行 `[1, 24576]`）。紧接着由 **Vector** 单元执行 `SwiGLU` 门控激活压回 `[1, 12288]`，最后再交 **Cube** 跑 `down_proj` 回到 `[1, 4096]` 供下一层继续融合残差。
 
 ## 设备侧：搬入、归约、缩放、写回
 
@@ -212,7 +217,7 @@ $$\text{former} = \lceil 10 \div 4 \rceil = 3\text{ 行}, \qquad \text{used\_cor
 
 **与单路残差不同，GLM 用 mHC 管理多路残差：进子层前先把多路残差混成单输入，再走不带 residual 的 RMSNorm**（结构见[层与隐藏表示](layers-and-hidden.md)）。沿用[双机部署前提](glm-5-3-flash-two-node.md#部署前提)：2 台 A2 各 8 卡、TP8/DP2/EP16、W8A8（适用层用 8 位整数，归一化保持自身精度）。
 
-跟随[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 4 token，教学设定）：A3 备好 token、位置、块表、槽位与注意力元数据；A4 注意力用寻址信息，归一化直读当前层张量（见[准备输入页](prepare-inputs-flow.md)与 [ops-and-kernels](ops-and-kernels.md)）。
+跟随[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 4 token，教学设定）：[准备输入阶段](prepare-inputs-flow.md)备好 token、位置、块表、槽位与注意力元数据；进入[逐层前向](ops-and-kernels.md)后，注意力用寻址信息读写缓存，归一化直读当前层张量。
 
 **每个解码层在输入与注意力后各有一处 RMSNorm。** 两处都先经 `hc_pre` 得到输入，再单参调归一化。设备分派进 `AscendRMSNorm.forward_oot`：无 residual 分支直调 `torch_npu` RMSNorm，有 bias 再补加偏置。下图把实际路径与带 residual 融合扩展放在同一分叉处对照（C++ 输出 `y`、`rstd` 为归一化结果与缩放统计量）：
 
@@ -241,7 +246,7 @@ $$M_{\text{row}} = 4096 \times 2\text{ B} = 8{,}192\text{ B} = 8\text{ KiB}, \qq
 | 单行张量大小 | $4096 \times 2\text{ B} = 8{,}192\text{ B}$ | **8 KiB** |
 | 写出 + 读回一次往返 | $8\text{ KiB} + 8\text{ KiB}$ | **16 KiB** |
 
-16 KiB 的统计范围仅为这一份中间张量的逻辑读写；其他输入输出另计，总线访问还受缓存命中和访问合并影响。只有相应的写出与重读都被消除，这笔逻辑流量才会省下；残差融合扩展仍须写回更新后的残差。R1 整批的形状、字节和通信次数仍以 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为唯一出处。
+16 KiB 的统计范围仅为这一份中间张量的逻辑读写；其他输入输出另计，总线访问还受缓存命中和访问合并影响。只有相应的写出与重读都被消除，这笔逻辑流量才会省下；残差融合扩展仍须写回更新后的残差。R1 整批的形状、字节和通信次数仍以[逐层前向主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为唯一出处。
 
 同样的“中间结果是否写出再读”问题也用于比较[昇腾 950 的计算与搬运](ascend-950-architecture.md)。先用本页辨认实际 kernel 和中间张量，再查目标硬件能提供哪种交接路径；有硬件路径不代表当前算子已经采用。
 
@@ -250,7 +255,7 @@ $$M_{\text{row}} = 4096 \times 2\text{ B} = 8{,}192\text{ B} = 8\text{ KiB}, \qq
 - **运行在 NPU 就一定用 Cube？** RMSNorm 的主体是向量归约和缩放；矩阵乘与激活融合才涉及矩阵、向量两类执行段。判断分工要看运算和具体模板。
 - **模型有残差，就会调用残差融合归一化？** GLM mHC 在归一化之前已混合出子层输入，实际只传一个张量；有没有 residual 实参才是此处的分支条件。
 - **融合后所有中间结果都留在片上？** 需要交给后续层的残差仍会写回；局部空间不足时也需要分块搬运。
-- **tiling 是再给请求分配一次 KV 块？** 前者安排当前算子的工作，后者安排历史缓存位置；A3 的块表与槽位交给注意力使用。
+- **tiling 是再给请求分配一次 KV 块？** 前者安排当前算子的工作，后者安排历史缓存位置；准备输入阶段构造的块表与槽位只交给注意力使用。
 - **两个 RMSNorm 乘层数，就是前向的 kernel 总数？** 子层之外还有归一化和状态处理，一次算子调用也可能拆成多个 kernel；真实启动次数需要设备 profiling，即记录设备上实际执行事件的性能分析。
 
 ## 对照源码

@@ -19,6 +19,8 @@ aliases:
   - ragged batching
   - FCFS
   - First-Come First-Served
+  - 凑批
+  - 动态攒批
 chapters:
   - '03'
 sources:

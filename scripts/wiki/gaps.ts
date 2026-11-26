@@ -207,6 +207,7 @@ const STOPWORDS = new Set([
   "content",
   "choices",
   "high",
+  "communicator",
   "AI",
   "LLM",
   "LM",
@@ -233,8 +234,8 @@ const FILE_NAME_RE =
 const DUNDER_OR_PRIVATE_RE = /^_[A-Za-z0-9_.]*$/;
 /** 模块/类成员访问片段（如 Scheduler.schedule、NPUWorker.__init__、PassConfig.enable_sp） */
 const DOTTED_SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_.]*$/;
-/** 并行组编号实例（如 DP0、DP1、TP8、EP16），对应并行机制已有专页 */
-const RANK_LABEL_RE = /^(?:DP|TP|PP|EP|CP|SP)\d+$/i;
+/** 并行组或示例机器编号实例（如 DP0、DP1、TP8、EP16、node0、node1），对应并行/多机机制已有专页 */
+const RANK_LABEL_RE = /^(?:DP|TP|PP|EP|CP|SP|node)\d+$/i;
 
 const NON_PROSE_H2_RE = /^##\s+(?:对照源码|版本谱系|参数定义（自动生成）)(?:\s.*)?$/;
 const H2_HEADING_RE = /^##\s+\S/;

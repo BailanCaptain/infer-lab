@@ -81,7 +81,10 @@ export interface Index {
   avgLen: FieldTf;
 }
 
-const norm = (s: string) => s.trim().toLowerCase();
+/** 统一源码/终端/文档里混用的不换行连字符（U+2011 等）与短横线为标准 ASCII `-`。 */
+const normDashes = (s: string) => s.replace(/[\u2010-\u2015]/g, "-");
+
+const norm = (s: string) => normDashes(s).trim().toLowerCase();
 
 /**
  * 把标识符压成无分隔符的小写形式：`layer_sharding` / `Layer Sharding` /
@@ -92,7 +95,10 @@ const norm = (s: string) => s.trim().toLowerCase();
  * 我最初用全词精确匹配去数「哪些参数没文档」，就因此漏掉了
  * `release_notes.md`（2267 行、1137 个 PR 链接）整份文件。
  */
-const squash = (s: string) => s.toLowerCase().replace(/[\s_\-.]/g, "");
+const squash = (s: string) =>
+  normDashes(s)
+    .toLowerCase()
+    .replace(/[\s_\-.]/g, "");
 
 /** 宽松匹配的最短长度，太短会把一堆页都命中 */
 const MIN_FUZZY = 4;
@@ -308,7 +314,7 @@ function splitAsciiSegment(seg: string): string[] {
  */
 export function terms(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(/[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)*|[\u3400-\u9fff]+/g)) {
+  for (const m of normDashes(text).matchAll(/[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)*|[\u3400-\u9fff]+/g)) {
     const tok = m[0];
     if (/^[\u3400-\u9fff]+$/.test(tok)) {
       for (let i = 0; i + 2 <= tok.length; i++) out.push(tok.slice(i, i + 2));
@@ -393,6 +399,55 @@ const SYMPTOM_RULES: readonly { pattern: RegExp; targets: readonly [string, stri
   },
 ];
 
+/**
+ * 初学者白话 / 一线报错特征短语 → 标准检索词同义扩展（仅在查询侧以折扣权重注入 BM25）：
+ * - 只匹配明确的多字白话短语或固定底层特征串，绝不在单个标识符、裸错误码或无关闲聊上触发；
+ * - 走同一套 `index.postings` 倒排打分，天然保持服务端 `buildIndex` 与浏览器 `deserializeSearchIndex`
+ *   分数与排序 100% 一致，且不硬编码特定页面 ID。
+ */
+const COLLOQUIAL_EXPANSION_WEIGHT = 0.65;
+const COLLOQUIAL_TERM_EXPANSIONS: readonly { pattern: RegExp; phrases: readonly string[] }[] = [
+  {
+    pattern: /(?:第一个|首个|头一个)\s*(?:字|词|token)|首\s*词/i,
+    phrases: ["prefill", "预填充", "首 token 延迟", "首字延迟"],
+  },
+  {
+    pattern: /(?:吐字|蹦字)(?:快|慢|速度|阶段)?/,
+    phrases: ["decode", "解码"],
+  },
+  {
+    pattern:
+      /(?:温度[^\n]{0,8}0|temperature\s*=\s*0)[^\n]{0,20}(?:差别|不同|不一致|对不上|变了)|(?:凑批|同批|并批)[^\n]{0,14}(?:结果|输出|答案)[^\n]{0,10}(?:差别|不同|不一致)/i,
+    phrases: ["批不变性", "batch invariance"],
+  },
+  {
+    pattern: /(?<!同)(?:凑批|攒批|拼批|合批)(?![^\n]{0,12}(?:差别|不同|不一致))/,
+    phrases: ["连续批处理", "continuous batching"],
+  },
+  {
+    pattern:
+      /预填充[^\n]{0,16}(?:解码|生成|吐字)[^\n]{0,14}(?:拆|分开|分离|两拨|两组|两套|不同卡)|(?:拆成|分成)\s*两(?:拨|组|套)\s*卡[^\n]{0,16}(?:预填充|解码)/,
+    phrases: ["pd 分离", "disaggregation"],
+  },
+  {
+    pattern: /(?:哪张卡|哪个卡|哪台|谁先)[^\n]{0,14}(?:罪魁祸首|先挂|先崩|先错|先报错|根因)|罪魁祸首/,
+    phrases: ["首错", "ei0006"],
+  },
+  {
+    pattern: /(?:一条请求|一个请求|一次请求)[^\n]{0,22}(?:哪几站|哪几步|几站|几步|全流程|全过程|经历了)/,
+    phrases: ["请求鸟瞰", "一条请求的七站", "请求生命周期"],
+  },
+  {
+    pattern:
+      /(?<![\d.])60\.96(?![\d])(?=\s*(?:(?:gib|gb)(?!\s*(?:\/|p)\s*s)\b|显存|容量|可见|卡))|(?:显存|容量|hbm|910b3?)[^\n]{0,20}(?<![\d.])60\.96(?![\d])(?!\s*(?:ghz|mhz|khz|hz|(?:gib|gb|mib|mb|tb)\s*(?:\/|p)\s*s)\b)|(?:64\s*(?:gib|gb)(?!\s*(?:\/|p)\s*s)\b|32\s*(?:gib|gb)(?!\s*(?:\/|p)\s*s)\b)[^\n]{0,20}(?:只看到|只有|少了|可见显存|可用显存)/i,
+    phrases: ["显存预算", "determine_available_memory", "910b3 实测"],
+  },
+  {
+    pattern: /dest buffer device_id[^\n]{0,40}endpoint count/i,
+    phrases: ["adxl", "mooncakeconnectorv1"],
+  },
+];
+
 export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}): Hit[] {
   const limit = opts.limit ?? 5;
   const q = norm(query);
@@ -426,7 +481,8 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
         continue;
       }
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(?<![a-z0-9_-])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
+      const leftGuard = /^[a-z]{2,3}$/.test(name) ? "(?<![a-z0-9_.-])" : "(?<![a-z0-9_-])";
+      if (new RegExp(`${leftGuard}${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
     }
     for (const page of named.values())
       add(page, FIELD_WEIGHT[0] * idf(index.pages.length, named.size), "keyword");
@@ -475,9 +531,10 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   // exact, fuzzy, nor whole-token posting match, and at least one alphabetic sub-word (>=3 chars)
   // does not exist anywhere in the index, do not return unrelated pages matched solely by generic suffixes
   // like `_param`, `_config`, `_flag`, or bare line numbers.
+  const trimmedAsciiDashes = query.trim().replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, "-");
   const isSingleCompoundIdentifier =
-    /^(?:--?)?[a-z0-9]+(?:[_.-][a-z0-9]+)*$/i.test(query.trim()) &&
-    (ts.length > 1 || /[_.-]/.test(query.trim()));
+    /^(?:--?)?[a-z0-9]+(?:[_.-][a-z0-9]+)*$/i.test(trimmedAsciiDashes) &&
+    (ts.length > 1 || /[_.-]/.test(trimmedAsciiDashes));
   const squashedWholeQuery = squash(q.replace(/^--?/, ""));
   const rejectHallucinatedCompound =
     !hit &&
@@ -486,8 +543,8 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
     !index.postings.has(squashedWholeQuery) &&
     ts.some((t) => t.length >= 3 && /[a-z]/.test(t) && t !== squashedWholeQuery && !index.postings.has(t));
 
-  if (!rejectHallucinatedCompound) {
-    for (const t of ts) {
+  const scorePostingTerms = (queryTerms: Iterable<string>, weight: number) => {
+    for (const t of queryTerms) {
       const byPage = index.postings.get(t);
       if (!byPage) continue;
       // 纯双字母拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声；带数字的 o2 / a2 仍查全文
@@ -503,7 +560,26 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
         : idf(index.pages.length, df);
       for (const [pageId, tf] of byPage) {
         const wtf = weightedTf(index, pageId, tf, fields);
-        if (wtf > 0) add(index.byId.get(pageId)!, termIdf * saturate(wtf), "keyword");
+        if (wtf > 0) add(index.byId.get(pageId)!, weight * termIdf * saturate(wtf), "keyword");
+      }
+    }
+  };
+
+  if (!rejectHallucinatedCompound) {
+    scorePostingTerms(ts, 1);
+    if (!hit) {
+      const explicitSet = new Set(ts);
+      const expandedTerms = new Set<string>();
+      for (const rule of COLLOQUIAL_TERM_EXPANSIONS) {
+        if (!rule.pattern.test(q)) continue;
+        for (const phrase of rule.phrases) {
+          for (const et of terms(phrase)) {
+            if (!explicitSet.has(et)) expandedTerms.add(et);
+          }
+        }
+      }
+      if (expandedTerms.size > 0) {
+        scorePostingTerms(expandedTerms, COLLOQUIAL_EXPANSION_WEIGHT);
       }
     }
   }

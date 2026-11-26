@@ -2,7 +2,6 @@
 id: combine-quant-mode-2a3f7cd47997
 legacyAnchors:
   一句话: 它覆盖哪一步通信量化，为什么 0 不等于关闭量化？
-  事实表: 对照源码
   为什么存在: 为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？
   开了的代价: 白名单校验、硬件支持范围与 GLM 双机载荷算例
 title: combine_quant_mode
@@ -161,9 +160,18 @@ rawSources:
 ---
 ## 它覆盖哪一步通信量化，为什么 0 不等于关闭量化？
 
-`combine_quant_mode` 是 `additional_config` 顶层的整数配置字段，只控制一件事：[MoE](../concepts/moe.md) 的 **MC2 combine 阶段**——专家算完后，把结果沿 [EP（专家并行）](../concepts/expert-parallel.md) 组收回各自 rank 的那次 all-to-all（全对全跨卡通信）——在通信时采用哪种量化模式。设为**非零值**时，它会直接把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强行设成该值，短路压过模型量化类型与量化方法自己的判断。
+`combine_quant_mode` 是 `--additional-config` 顶层的整数调优字段（`v0.30.0` 与 `main` 可用，默认 `0`）。当你在多卡 [EP（专家并行）](../concepts/expert-parallel.md) 下运行 [MoE](../concepts/moe.md) 模型（走非融合 MC2 路径），希望把专家算完后跨卡收回结果的 **MC2 combine** 全对全（all-to-all）通信压成 `int8`（`2`）或 `MXFP`（`3` / `4`）以削减互联带宽开销时，才会手动设置它；常规部署保持默认 `0` 跟随模型量化配置即可，切勿在未核对硬件支持范围（如 A2 仅支持 `0`/`2`、950DT 才支持 `3`/`4`）时盲目填 `4`。
 
-**设为默认 `0` 表示「不人工干预」，不等于强制关闭通信量化。** combine 侧按四级优先级由高到低决定最终 `quant_mode`：
+设为**非零值**时，它会把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强制覆盖为该值，短路压过模型量化类型与量化方法自身的判断。下面是以 `Qwen/Qwen3-30B-A3B` 在非融合 MC2 路径下开启 `int8` combine 通信量化的**配置形式示例**（实际生效还需满足对应芯片驱动/HCCL 条件，本工作区无 NPU 实机执行验证）：
+
+```bash
+vllm serve Qwen/Qwen3-30B-A3B \
+  --tensor-parallel-size 4 \
+  --enable-expert-parallel \
+  --additional-config '{"enable_fused_mc2": 0, "combine_quant_mode": 2}'
+```
+
+**注意：设为默认 `0` 表示「不人工干预」，不等于强制关闭通信量化。** combine 侧按四级优先级由高到低决定最终 `quant_mode`：
 
 1. 用户显式配置的非零 `combine_quant_mode`（第一顺位，优先级高于后续所有默认项，有上游单测锁死）；
 2. 模型量化方法传来的 `combine_metadata.quant.comm_quant_mode`（只要不是 `None` 就采用，包括显式的 `0`）；
@@ -186,6 +194,19 @@ else:
 
 **版本存在范围**：该键由 PR #15441（2026-09-07）引入，`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）完整保留（`Literal[0, 2, 3, 4] = 0`）。`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 的代码和文档均无此键，旧配置类按名逐键 `.get()`，写入既不报错也不生效。升级到 `v0.30.0` / `main` 后该键才会真正改变算子实参，且拼写错误会被严格校验拒收（仅当环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键，不等于旧键开始生效）。
 
+## 事实表
+
+调整 `combine_quant_mode` 前，先逐项核对下表中的白名单、生效路径与硬件边界：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 配置路径与合法值 | `additional_config["combine_quant_mode"]`，`Literal[0, 2, 3, 4] = 0` | 仅认不带引号的整数 `0 / 2 / 3 / 4`；传 `1` 或字符串 `"4"` 会在启动期抛 `ValueError` |
+| 默认 `0` 的真实语义 | 不做人工覆盖，顺延至模型 `comm_quant_mode` 或 `W8A8MXFP` 自动 `4` | `W8A8MXFP` 模型即使填 `0` 仍会自动走模式 `4`，并非把所有 combine 强制退回不量化 |
+| 生效路径范围 | 仅非融合 `MC2CommImpl` 的 `token_combine` 读取 | 选中融合 MC2（`FusedMC2CommImpl` / MegaMoe）或 AllGather 时本键完全不参与执行；dispatch 方向也从不读它 |
+| 硬件与拓扑约束 | `2`（`int8`）支持 A2（需 `hierarchy` 等条件）/ A3（`tp_world_size != 2`）/ 950DT；`3`/`4`（MXFP）仅列 950DT | 配置校验通过不代表当前芯片支持；在 A2 上填 `4` 会过 pydantic 校验但受底层算子硬件限制 |
+| 精度与速度取舍 | 缩窄专家输出跨卡回传位宽，引入量化舍入误差 | 开启非零档位做吞吐优化时，必须同步跑业务集验证数值精度是否退化 |
+| 版本可用性 | `v0.30.0`、`v0.30.0rc2`、`main` 支持；`v0.23.0`、`v0.26.0rc` 无 | 旧分支逐键 `.get()` 静默忽略，升级到 `v0.30.0` 后遗留配置才会突然开始改变算子行为 |
+
 ## 为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？
 
 MC2 是昇腾上 EP 专家并行的成对收发算子：`npu_moe_distribute_dispatch_v2` 按路由把 token 派发到持有专家的 rank，专家计算完成后再由 `npu_moe_distribute_combine_v2` 按权重收回结果。两次跨卡通信都自带 `comm_quant_mode` 参数，用于在发送前把张量压到低精度。
@@ -203,7 +224,7 @@ file: param-combine-quant-mode
 
 **取值白名单卡得比文档紧，且不等于硬件兼容性清单。** 字段类型为 `Literal[0, 2, 3, 4]`：
 
-- 算子文档里可能提及的其他整数（如 `1`）会在启动期被 pydantic 直接以 `ValueError` 拒收；
+- 即便底层算子文档列出其他整数（如 `1`），只要不在 `Literal[0, 2, 3, 4]` 白名单内，都会在启动期被 pydantic 直接以 `ValueError` 拒收；
 - 字符串 `"4"` 或 `"true"` 同样直接抛出 `ValueError`（与 `weight_nz_mode` 等宽松强转的整型键不同，JSON 里带引号即启动失败；引入 PR 说明中关于「字符串宽松转换」与「显式 `comm_quant_mode` 优先于本键」的两处描述均与合入代码和单测相反，应以代码为准）；
 - `AscendConfig` 文档字符串中的「全量键示例 dict」漏收录了该字段，不能拿示例 dict 当合法键全集。
 
@@ -216,7 +237,7 @@ file: param-combine-quant-mode
 | `3` | MXFP `E5M2` 通信量化 | 仅 950DT 在该快照文档中列出 |
 | `4` | MXFP `E4M3FN` 通信量化 | 仅 950DT 在该快照文档中列出 |
 
-**比较速度时必须同步验证数值精度。** 通信量化降低表示精度可能引入误差；端到端是否变快取决于量化开销、通信算法与瓶颈位置，不能仅按元素位宽比例推定链路字节或总时延等比下降，也不能未经实测断言模型指标必然变差。
+**比较速度时必须同步验证数值精度。** 通信量化缩窄了专家输出回传的表示位宽，会引入量化舍入误差；端到端是否变快取决于量化转换开销、通信算法与瓶颈位置，不能仅按元素位宽比例推定链路字节或总时延等比下降，也不能未经实测断言模型指标必然变差。
 
 **放到 GLM 双机部署（历史例外 B 算例）**：该参数作用在 MoE 层专家算完把结果送回源卡的步骤（路线见[expert parallel 的 combine 一节](../concepts/expert-parallel.md#4-combine拼回-token加共享输出)）。[GLM 固定部署](../sources/glm-5-3-flash-baseline.md)使用的 `db701c1f` 与 `v0.23.0` 维护快照都没有这个键；在走 MC2 路径且模型未显式提供通信量化模式时，GLM 的 W8A8 专家使 dispatch 选 `int8`、combine 选 `0`（切到 AllGather 则完全不经这对算子）。
 

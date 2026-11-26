@@ -239,7 +239,7 @@ batch invariance（批不变）则减少同一请求因批大小、批内伙伴�
 
 ## 新版怎样只更新部分权重，或重放指定 token？
 
-**下面两项来自 2026-11-02 的 921ccc52 官方指南，与前面的旧 main 配置分开。** Sparse HCCL 用于跨 NPU 更新选定的权重元素。补丁按 checkpoint 的参数名、完整形状和扁平索引描述，值是替换值；接收端再由模型加载器映射到本地 TP/EP 分片。训练端和推理端必须从同一 checkpoint 起步，否则未被替换的部分就不同。少传元素节省的是通信载荷，装载与临时空间不保证按同一比例减少。
+**下面两项属于 `v0.30.0`（`c09d3e20`）发布之后，在社区 `main`（`8d6180e2` / 官方指南 `921ccc52`）合入的新能力——`v0.30.0` 仅注册整权重的 `hccl` 与 `npu_ipc`，不含 `sparse_hccl`。** Sparse HCCL 用于跨 NPU 只广播选定的权重元素：补丁按 checkpoint 的参数名、完整形状和扁平索引描述，值是替换值，接收端再由模型加载器映射到本地 TP/EP 分片。训练端和推理端必须从同一 checkpoint 起步，否则未被替换的部分就不同。少传元素节省的是通信载荷，装载与临时空间不保证按同一比例减少。
 
 该指南要求未量化的 **ND 权重**（普通稠密行主序内存排布，区别于昇腾分形排布 `FRACTAL_NZ`）、固定专家放置且关闭 EPLB；不支持 PP、FRACTAL_NZ、融合 MC2 专家权重列表、草稿模型和 packed sparse 更新。原地更新失败后保持生成暂停，恢复共同基线或重启引擎，不能拿只更新一部分的模型继续生成。因此这不是固定 GLM W8A8 部署的直接替换方案。
 
@@ -268,12 +268,12 @@ batch invariance（批不变）则减少同一请求因批大小、批内伙伴�
 
 ### 怎么开
 
-以下启动片段以 **Ascend main `baa023ad` 的官方指南**为基准，是部署参考；本页没有启动 NPU 服务。跨卡方案先启用总开关，再单独选择权重传输后端：
+以下启动片段对齐 **`v0.30.0` 主基线（`c09d3e20`）与当前 `main`（`8d6180e2`）** 配置契约（以 `Qwen/Qwen3-8B` 演示配置形式，未在设备上执行；早期官方指南 `baa023ad` 以 `Qwen/Qwen3-0.6B` 演示同一组参数）。跨物理卡方案先开启 `rl_config.enabled`，再单独指定 `hccl` 权重传输后端：
 
 ```bash
-vllm serve Qwen/Qwen3-0.6B \
-  --additional-config '{"rl_config":{"enabled":true}}' \
-  --weight-transfer-config '{"backend":"hccl"}'
+vllm serve Qwen/Qwen3-8B \
+  --additional-config '{"rl_config": {"enabled": true}}' \
+  --weight-transfer-config '{"backend": "hccl"}'
 ```
 
 `RlConfig.apply()` 只在 enabled 为真时应用三项默认行为：强制 `weight_nz_mode=0`，关闭 FRACTAL_NZ（为矩阵计算重排的权重布局）；启用开发端点；调用 `_disable_expandable_segments()` 从 NPU 分配器配置 `PYTORCH_NPU_ALLOC_CONF` 中移除 `expandable_segments:*`。**但需注意初始化先后**：如果启动命令**没有**开启 `--enable-sleep-mode`，平台随后在 `check_and_update_config` 尾段的 `_set_pytorch_npu_alloc_env()`（`c09d3e20:platform.py#L542,1445-1464`）会检测到该键缺失并重新追加 `expandable_segments:True`；只有同时开启 `--enable-sleep-mode` 时，`expandable_segments` 才会最终保持移除。三个可选字段都默认 false：sleep_mode_extra_cleanup、enable_training_consistency、enable_batch_invariant。总开关不会自行配置传输引擎，也不会隐式启用 sleep。
@@ -284,11 +284,11 @@ vllm serve Qwen/Qwen3-0.6B \
 file: vllm-ascend-for-rl-update
 ```
 
-图中初始化握手发生在第一次传输前；每轮先等待暂停成功，再调用 start、一次或多次 update、finish，全部成功才 resume。HCCL 后端的 start / finish 分别准备和完成逐层重载；本页 main 的 NPU IPC 后端这两个方法为空操作，但 worker 仍检查更新状态，rc2 则增加了逐层重载的准备与收尾。传输失败后须调查并恢复完整权重，不能拿可能只装了一部分的模型继续生成。
+图中初始化握手发生在第一次传输前；每轮先等待暂停成功，再调用 `start`、一次或多次 `update`、`finish`，全部成功才 `resume`。在 `v0.30.0` 主基线与当前 `main` 中，`hccl` 与 `npu_ipc` 两套后端均具备 `start` / `finish` 的逐层重载准备与收尾，且 `packed=true` 批量打包路径均已完成模型权重装载（早期快照 `baa023ad` 中 NPU IPC 的 `start`/`finish` 曾为空操作且 `packed=true` 缺装载调用，详见[版本差异](#版本差异)）。传输失败后须调查并恢复完整权重，不能拿只装了一部分的模型继续生成。
 
-控制请求示例：`POST /pause?mode=wait&clear_cache=true`，更新完成后 `POST /resume`。main 的 clear_cache 已弃用且对 keep 无效；收发双方结构可对照钉住的 [HCCL 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_hccl.py)与 [NPU IPC 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_npu_ipc.py)。HCCL 发送和接收要协调进行，不能等一个需要对端参加的阻塞通信完成后才启动对端；示例用线程执行 HTTP 接收请求，实际客户端还需把线程中的失败传回主控制流程，线程结束本身不证明请求成功。
+控制请求示例：`POST /pause?mode=wait&clear_cache=true`，更新完成后 `POST /resume`。`clear_cache` 已弃用且对 `keep` 无效；收发双方结构可对照钉住的 [HCCL 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_hccl.py)与 [NPU IPC 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_npu_ipc.py)。HCCL 发送和接收要协调进行，不能等一个需要对端参加的阻塞通信完成后才启动对端；示例用线程执行 HTTP 接收请求，实际客户端还需把线程中的失败传回主控制流程，线程结束本身不证明请求成功。
 
-**使用 NPU IPC trainer 工厂时，由发送方法包办一轮 start / update / finish。** trainer_init 已负责向 worker 发送初始化信息；每轮暂停成功后调用 send_weights，成功后再恢复生成，外层不要重复调用 start / finish。上述同卡示例在 send_weights 外又手动包了一次 start / finish，按本页 main 状态机会在第二次 start 报错，应按这一顺序修正。该快照先使用 packed=false；packed=true 的装载缺口与 rc2 修正见版本差异。
+**使用 NPU IPC trainer 工厂时，由发送方法包办一轮 start / update / finish。** `trainer_init` 已负责向 worker 发送初始化信息；每轮暂停成功后调用 `send_weights`，成功后再恢复生成，外层不要重复调用 `start` / `finish`。早期 `baa023ad` 同卡示例在 `send_weights` 外又手动包了一次 `start` / `finish`，会在第二次 `start` 触发状态机报错，应按这一顺序修正。
 
 后续上游暂停接口将 wait_for_inflight_requests 标为弃用；需要等待在途请求完成时，使用 wait 模式。迁移这一接口时应核对实际配套版本，不能直接把后续上游签名当成旧镜像接口。
 

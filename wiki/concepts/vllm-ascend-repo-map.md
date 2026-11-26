@@ -2,7 +2,7 @@
 id: vllm-ascend-repo-map
 title: 源码目录地图：把文件放回推理架构
 type: concept
-summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 GLM 的执行路径选择阅读入口，区分上游框架和 Ascend 适配。
+summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与 GLM 异构路径选择阅读入口，区分上游框架和 Ascend 适配。
 aliases:
   - 目录结构
   - 代码结构
@@ -77,7 +77,7 @@ relations:
       目录地图将 patch/ 定位为适配已加载行为或登记表的目录，并以平台与 Worker
       导入路径作为阅读入口；补丁机制页解释这两条入口如何在运行时完成替换。
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -134,6 +134,15 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 | 根目录 csrc/ | C++/AscendC 原生自定义设备算子源码（`main` 移除旧 `sparse_attention_score/` / `msa_index_score/` 并新增 `engram_hixl/`） | `torch.ops` 等扩展调用 |
 
 同一目录常含互斥实现，须按当前配置分支继续追。`main` 分支已物理删除 `worker/model_runner_v1.py`（MRV1，第一代模型运行器），并由 `mrv2_utils.py` 收敛至 `worker/v2/model_runner.py`（MRV2，第二代模型运行器），详见[版本差异](#版本差异)。
+
+## 沿标准模型（Qwen3-8B / Qwen3-30B-A3B）追读主线目录
+
+初次顺读 `v0.30.0`（或 `main`）源码时，先拿结构规整的 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（路由 MoE）走通四步，最不容易迷路：
+
+- **① 启动注册与硬件档案**：从 `vllm_ascend/__init__.py` 看插件入口，进 `platform.py` 与 `device/hardware_profile.py` 看平台怎样识别设备能力、初始化 `ascend_config.py` 并选定 `NPUWorker`。
+- **② Worker 与输入准备**：打开 `worker/worker.py`，再进入模型运行器（`v0.30.0` 默认 `worker/model_runner_v1.py`；`main` 统一收敛至 `worker/v2/model_runner.py`），看调度器下发的 `SchedulerOutput` 怎样拼成 `input_ids`、`positions` 与块表。
+- **③ 模型层、注意力与 MoE 算子**：两款 `Qwen3` 的网络定义直接复用上游 `vllm/model_executor/models/`（`qwen3.py` 与 `qwen3_moe.py`），不在 `vllm_ascend/models/` 另写副本；昇腾适配通过 `platform.py` 把全层 GQA 统一指向 `attention/attention_v1.py`（`AscendAttentionBackend`），通过 `CustomOp` 把归一化与旋转编码分派到 `ops/layernorm.py`、`ops/rotary_embedding.py`；`Qwen3-30B-A3B` 的 128 路由专家则落进 `ops/fused_moe/`（`moe_comm_method.py`、`token_dispatcher.py`、`moe_mlp.py`）。
+- **④ 编译融合与图捕获**：最后进 `compilation/compiler_interface.py`、`compilation/passes/`（如命中 `head_dim=128` 的 `qknorm_rope_fusion_pass.py`）与 `compilation/acl_graph.py`，核对编译改写与静态图回放。
 
 ## 沿 GLM 执行路径读一组文件
 

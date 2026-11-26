@@ -31,7 +31,7 @@ pnpm wiki:mcp     # stdio 上的 JSON-RPC，共 7 个工具（3 个知识库 + 4
 ```
 
 - 知识库工具：`wiki_search` / `wiki_get_page` / `wiki_neighbors`（覆盖全站 193 篇正式页面与 41 篇正式参数页）
-- 确定性仿真工具（零幻觉纯函数）：`ascend_plan_deploy`（显存与卡数算账，内置 `qwen3-0.6b`、`qwen3-8b`、`qwen3-30b-a3b`、`qwen3-32b`、`qwen3-235b-a22b` 及异构架构预设，或直接传 HuggingFace `config.json`）/ `ascend_lint_serve_cmd`（单机或 P/D 启动命令体检、静默改写与点分 `--additional-config.<key>` 检测，P/D 模式并附带逐端 `prefill` / `decode` 环境分类与生效改写明细）/ `ascend_diagnose_log`（多卡交错报错首错 Rank 定位）/ `ascend_reconcile_startup_log`（理论预算 vs 实机启动日志逐项对账，同样支持 `qwen3-32b` / `qwen3-235b-a22b` 等全部预设）
+- 确定性仿真工具（零幻觉纯函数，与前端顶部导航「部署与排障」`/#/tools` 同源）：`ascend_plan_deploy`（显存与卡数算账，内置 `qwen3-0.6b`、`qwen3-8b`、`qwen3-30b-a3b`、`qwen3-32b`、`qwen3-235b-a22b` 及异构架构预设，或直接传 HuggingFace `config.json`）/ `ascend_lint_serve_cmd`（单机或 P/D 启动命令体检、静默改写与点分 `--additional-config.<key>` 检测，P/D 模式并附带逐端 `prefill` / `decode` 环境分类与生效改写明细）/ `ascend_diagnose_log`（多卡交错报错首错 Rank 定位、910B3 真机故障与热路径告警诊断）/ `ascend_reconcile_startup_log`（理论预算 vs 实机启动日志逐项对账，同样支持 `qwen3-32b` / `qwen3-235b-a22b` 等全部预设）
 
 各客户端即拷即用接入方式（将 `<本仓库绝对路径>` 替换为实际克隆目录）：
 
@@ -64,8 +64,8 @@ pnpm wiki:mcp     # stdio 上的 JSON-RPC，共 7 个工具（3 个知识库 + 4
 
 ## 怎么读一页
 
-- `sources` 是钉住 commit 的来源，形如 `vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472`。
-- Stage 2 Edition-A 页面保持教学正文清爽，将 `[C3]` / `[S1]`（指 `sources` 第 3 / 第 1 条：`C` 源码，`S` 官方文档或论文）及源码锚点统一收敛在文末 `## 对照源码` 中；历史未改版页仍可能保留行内角标。
+- `sources` 是钉住 commit 的来源，形如 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635` 或 `vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2225`（例外 B 历史绑定页沿用 `db701c1f` / `0fc695fc`）。
+- Stage 2 Edition-A 页面保持教学正文清爽，将 `[C3]` / `[S1]` / `[M1]`（指 `sources` 条目：`C` 源码，`S` 官方文档或论文，`M` 真机实测快照）及源码锚点统一收敛在文末 `## 对照源码` 中；历史未改版页仍可能保留行内角标。
 - 不带编号的 `[D]` 推导、`[I]` 推断、`[A]` 教学假设、`[!]` 矛盾或会踩的坑——**这四种最该警惕，转述时把等级与适用边界带上**。
 - `verified` 是有人逐条对过的版本；社区页当前以 `releases/v0.30.0`（`c09d3e20`）为默认主基线，并对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main`（`8d6180e2`）；RFork 页面（详见下方）当前随主线 `main` 对齐（历史上曾用 `rfork:main` 标注独立工作版）。完整规则见 `docs/wiki-writing-standard.md` 与 HANDBOOK 的「版本」。
   **没列出的版本 = 没人对过，不等于在那个版本上不成立。**

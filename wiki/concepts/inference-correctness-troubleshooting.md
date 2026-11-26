@@ -37,7 +37,7 @@ sources:
   - 'vllm@0fc695fc:docs/usage/reproducibility.md#L1-L24'
   - 'https://huggingface.co/docs/transformers/chat_templating'
   - >-
-    https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html
+    https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html
   - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420'
   - >-
     raw:sha256-a28c4479cb8576de061fe485dc0b2822395ead2da38946ef10cd3b152953b055.md#L1-L282
@@ -347,11 +347,11 @@ Runtime Guard 报告的 `dump_attempted` 表示动作被请求，不表示异步
 
 - Runtime Guard 的检测阶段、V2 接线、报告与 KV 转储范围见 [S16]；启动 overlay、热更新、水位、配额、日志及有限性同步语义见 [S17]。它是收集证据的入口，不作为已定位根因的证明。
 
-- 跨实例 KV 交接完成信号与块数据一致性边界见来源 7（`vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420`）：`wait_for_save` 是阻塞等待屏障（防止保存完成前 KV 缓冲区被提前覆写），`get_transfer_results` 与 `get_block_ids_with_load_errors` 则分别回报异步收发完成集合与传输层加载失败的块号（接收失败的请求也会进入 `finished_recving` 以解除调度等待）；三项接口均不对逐层块内张量数值做内容摘要校验。遇到“传输完成但内容不对”时，须按正文的源端保存完未复用、目的端接收完未覆盖两个时点分层分块取样比对，通用取证顺序为本站分析。
+- 跨实例 KV 交接完成信号与块数据一致性边界见来源 7（`vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420`）[C7]：`wait_for_save` 是阻塞等待屏障（防止保存完成前 KV 缓冲区被提前覆写），`get_transfer_results` 与 `get_block_ids_with_load_errors` 则分别回报异步收发完成集合与传输层加载失败的块号（接收失败的请求也会进入 `finished_recving` 以解除调度等待）；三项接口均不对逐层块内张量数值做内容摘要校验。遇到“传输完成但内容不对”时，须按正文的源端保存完未复用、目的端接收完未覆盖两个时点分层分块取样比对，通用取证顺序为本站分析。
 
 - greedy 与随机采样的选择路径 [C1]；约束、惩罚及停止行为由采样与结构化输出页展开。
 - 增量解码、字符片段和停止字符串处理入口 [C2]；聊天模板到输入的路径 [C3]。
-- 可复现性的支持范围与执行条件见固定版说明 [S4]；聊天模板说明见 [Transformers 官方文档](https://huggingface.co/docs/transformers/chat_templating) [S5]；批不变配置限制参见 [Ascend 官方指南](https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html) [S6]。
+- 可复现性的支持范围与执行条件见固定版说明 [S4]；聊天模板说明见 [Transformers 官方文档](https://huggingface.co/docs/transformers/chat_templating) [S5]；批不变配置限制参见 [Ascend 官方指南](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html) [S6]。
 - A/B 编号、候选分数和首次分歧为教学假设 [A]，排序分析为推导 [D]。诊断顺序是本站方法 [I]，不等于已经发现现场的根因。
 
 - 来源 9：vllm@0fc695fc，vllm/renderers/hf.py，L731–L745。

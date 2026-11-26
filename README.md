@@ -6,7 +6,7 @@
 
 ## 无设备阅读知识库
 
-知识库（Stage 2）以 **`vllm-ascend v0.30.0 (c09d3e20)`** 为默认主基线（同步对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main (8d6180e2)`），主线讲解采用 **Qwen3-8B（Dense）** 与 **Qwen3-30B-A3B（MoE）**，并在第 `09` 篇「旗舰异构模型全案」给出 **GLM-5.3-Flash** 与 **DeepSeek-V4.1-Flash** 的端到端剖析。12 个主题目录与学习路径见 [阅读指南](wiki/concepts/learning-guide.md)，旗舰模型固定材料见 [GLM-5.3-Flash 来源基线](wiki/sources/glm-5-3-flash-baseline.md)（全库当前共 185 篇正式页，现查命令见 `HANDOFF-LLM-WIKI.md`）。
+知识库（Stage 2）以 **`vllm-ascend v0.30.0 (c09d3e20)`** 为默认主基线（同步对照 `releases/v0.23.0`、`releases/v0.26.0rc` 与 `main (8d6180e2)`），主线讲解采用 **Qwen3-8B（Dense）** 与 **Qwen3-30B-A3B（MoE）**，并在第 `09` 篇「旗舰异构模型全案」给出 **GLM-5.3-Flash** 与 **DeepSeek-V4.1-Flash** 的端到端剖析。12 个主题目录与学习路径见 [阅读指南](wiki/concepts/learning-guide.md)，旗舰模型固定材料见 [GLM-5.3-Flash 来源基线](wiki/sources/glm-5-3-flash-baseline.md)（全库当前共 193 篇正式页，现查命令见 `HANDOFF-LLM-WIKI.md`）。
 
 阅读静态正文、结构图、交互工作台（`#/tools`）和通信演示不需要 NPU、驱动、模型权重、外部源码仓库或本机后端服务。问答后端与真实部署是另行配置的能力；未启动后端时，正文与工作台仍可离线使用。双机页是经过来源核读的工程参考，没有设备与性能实测。
 

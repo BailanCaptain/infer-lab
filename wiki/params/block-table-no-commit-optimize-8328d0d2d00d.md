@@ -2,7 +2,6 @@
 id: block-table-no-commit-optimize-8328d0d2d00d
 legacyAnchors:
   一句话: 它曾经控制什么，为什么只存在了一天？
-  事实表: 对照源码
   为什么存在: 脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状
   开了的代价: 在不同版本中残留这个键会发生什么？
 title: block_table_no_commit_optimize
@@ -80,14 +79,19 @@ rawSources:
 
 先明确三个前置词：块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；「提交」指把主机侧块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现（新一代架构见 [Model Runner V2](../concepts/model-runner-v2.md)）。
 
-在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭该优化、退回旧实现**——**命名极易读反**：
+在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭该优化、退回旧实现**——**命名极易读反**。
 
-| 配置项（仅 2026-09-23 当日存在） | 取值与规则 |
-| --- | --- |
-| 配置路径与类型 | 顶层 `additional_config["block_table_no_commit_optimize"]`，`Literal[0, 1]`（不支持环境变量 `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE`） |
-| 设 `0`（当时默认） | 启用脏区增量提交的 `OptimizedBlockTable` |
-| 设 `1` | 退回整行 H2D 拷贝的旧 `BlockTable`（字段注释明确 `MRv1 only`，MRv2 自带分段增量更新、无视此键） |
-| 生效时机 | `_get_block_table_cls()` 仅在构造各 KV cache group 块表时调用一次，已创建块表不随配置变更重选，且回退时不打提示日志 |
+## 事实表
+
+下表汇总该单日历史回退键的核心规格与四个正式核验版本中的现状：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 历史路径与类型 | `additional_config["block_table_no_commit_optimize"]`，`Literal[0, 1] = 0` | 仅限 JSON 顶层整数 `0` 或 `1`，不支持 `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE` 环境变量 |
+| 存活窗口 | 2026-09-23（PR #17066 引入）至 2026-09-24（PR #17470 整体回退） | 仅在 `main` 历史提交存活一天；`v0.23.0`、`v0.26.0rc`、`v0.30.0rc2`、`v0.30.0` 与当前 `main` 均无此键 |
+| 历史取值语义 | `0`（当时默认）走脏区增量提交 `OptimizedBlockTable`；`1` 退回整行 H2D 拷贝 | 名字带 `no_commit_optimize`，写 `1` 才是关闭优化退回旧版 |
+| 执行器边界 | 仅作用于 MRv1（`_get_block_table_cls()` 构造块表时读一次） | MRv2 自带常驻设备块表与分段更新，当时也完全无视此键 |
+| 残留旧键后果 | `v0.30.0` 与 `main` 通常触发 `extra="forbid"` 启动报错（`vllm_omni` 告警过滤） | `v0.23.0` / `v0.26.0rc` 静默忽略；任何部署模板均应彻底删除该键 |
 
 ## 脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状
 

@@ -58,5 +58,5 @@ texts:
   - { at: [10, 208], text: EP4：每张卡放 2 个完整专家, strong: true }
   - { at: [10, 368], text: 实色 E3、E4 被选中 → 只有卡 1、卡 2 算, size: 13 }
 pins:
-  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L227-L335
     symbols: [token_dispatch, token_combine]

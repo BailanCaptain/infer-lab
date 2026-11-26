@@ -23,6 +23,8 @@ aliases:
   - 性能瓶颈排查
   - 延迟优化
   - 吞吐调优
+  - VLLM_LOGGING_LEVEL=DEBUG
+  - log_memory_stats
 chapters:
   - '19'
 order: 5
@@ -31,7 +33,7 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
   - 'vllm@0fc695fc:docs/configuration/optimization.md#L41-L62'
   - >-
-    https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html
+    https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html
   - >-
     raw:sha256-9a505e371ad9cac4f50bfdeb032e492d47015235f0b895f1dbee4633f0f4c326.md#L1-L206
   - >-
@@ -245,5 +247,5 @@ file: inference-performance-troubleshooting-fig-tradeoffs
 - 四版 `vllm-ascend` Worker 的 runner 选择、KV 显存预算探测与惰性剖析入口实核：`2c59ff10:worker/worker.py#L527-L565`、`#L940-L962`；`2ed6cbba:worker/worker.py#L511-L555`、`#L1034-L1056`；`c09d3e20:worker/worker.py#L498-L518`、`#L567-L666`、`#L1230-L1252`；`8d6180e2:worker/worker.py#L589-L618`、`#L664-L785`、`#L1317-L1348` [C16][C20]。
 - 调度预算与已算/待算位置的关系 [C1]；固定 GLM 执行图和尺寸分派入口见来源 2、6 [C2]。图复用已审查的贯穿样例，函数链只在[请求调用链](request-call-chain.md)维护；若同时伴随异常退出或版本配置回归，返回[推理排障入口](inference-troubleshooting.md)分流。
 - 缩小分块预算对 TTFT、ITL 与吞吐的取舍见固定版[优化文档](https://github.com/vllm-project/vllm/blob/0fc695fc/docs/configuration/optimization.md#L41-L62)（来源 3，前提是启用 chunked prefill；其中大于 8192 的建议指向大 GPU 上的较小模型，不是 GLM 双机 NPU 的最优预算或收益实测）[S3]。
-- 采集入口见[官方 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
+- 采集入口见[官方 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
 - 排队时间与局部加速数值为教学假设 [A]，耗时相加为推导 [D]；六类分支与无故障优化表是本站依据机制组织的实验方法 [I]，是否适用需现场基准与正确性结果。

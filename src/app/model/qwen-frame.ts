@@ -28,16 +28,16 @@ export function parseLegacyGlmSegment(params: URLSearchParams): number | null {
 }
 
 /**
- * 解析当前 `/model` 路由的模型版本：
- * 1. 显式 `model=glm-5-3-flash` → `"glm-5-3-flash"`
- * 2. 未显式传 `model`，但带合法旧深链 `segment`（1..40 整数）→ `"glm-5-3-flash"`（100% 兼容历史 Wiki 深链）
+ * 解析当前 `/model` 或历史课程 `/chapters/:id?experience=1` 路由的模型版本：
+ * 1. 显式 `model=glm-5-3-flash` / `model=qwen3-8b` → 按显式参数
+ * 2. 未显式传 `model`，但带合法旧深链 `segment`（1..40 整数）或历史课程 `experience=1`（「打开 GLM 计算演示」）→ `"glm-5-3-flash"`
  * 3. 其余默认 → `"qwen3-8b"`
  */
 export function resolveModelEdition(params: URLSearchParams): ModelEdition {
   const explicit = params.get("model");
   if (explicit === "glm-5-3-flash") return "glm-5-3-flash";
   if (explicit === "qwen3-8b") return "qwen3-8b";
-  if (!params.has("model") && parseLegacyGlmSegment(params) !== null) {
+  if (!params.has("model") && (parseLegacyGlmSegment(params) !== null || params.get("experience") === "1")) {
     return "glm-5-3-flash";
   }
   return "qwen3-8b";
@@ -394,6 +394,7 @@ export function buildModelSwitchTo({
     const seg = parseLegacyGlmSegment(params);
     if (seg !== null) next.set("segment", String(seg));
   } else {
+    if (routeId || params.get("experience") === "1") next.set("model", "qwen3-8b");
     const variant = resolveQwenVariant(params);
     if (variant !== "8b") next.set("variant", variant);
   }

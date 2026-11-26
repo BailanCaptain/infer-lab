@@ -734,4 +734,120 @@ describe("retrieve · 口语化症状查询召回与参数/报错无回退", () 
     expect(cacheErrHits[0]?.id).toBe("github-issue-42");
     expect(cacheErrHits.slice(0, 2).map((h) => h.id)).toContain("kv-cache-memory-profiling");
   });
+
+  it("Unicode 不换行连字符（U+2011）、C++ 源文件后缀缩写防误触与零黑话初学者提问保持序列化索引一致", () => {
+    const alignIdx = buildIndex([
+      {
+        id: "kv-cache-quantization",
+        title: "KV cache 量化",
+        aliases: ["--kv-cache-dtype", "C8"],
+        summary: "GQA 静态 C8 量化需离线量化权重。",
+        chapters: ["08"],
+        evidence: "C",
+        text: "## 一句话\n配置 --kv-cache-dtype int8。",
+      },
+      {
+        id: "profiling-chunk-config",
+        title: "profiling_chunk_config",
+        aliases: ["CPP"],
+        summary: "长序列激活探测分块。",
+        chapters: ["11"],
+        evidence: "C",
+        text: "## 一句话\n自动探测分块预算。",
+      },
+      {
+        id: "mooncake-connector",
+        title: "Mooncake Connector：跨节点 KV 搬运",
+        aliases: ["MooncakeConnectorV1", "ADXL"],
+        summary: "P/D 分离下经 ADXL 搬运 KV cache。",
+        chapters: ["17"],
+        evidence: "C",
+        text: "## 一句话\nMooncakeTransferEngine 负责端点注册。",
+      },
+      {
+        id: "prefill",
+        title: "Prefill 与 Decode",
+        aliases: ["预填充", "解码", "首 token 延迟"],
+        summary: "Prefill 并行算提示词，Decode 逐词续写。",
+        chapters: ["03"],
+        evidence: "C",
+        text: "## 一句话\n首字由 prefill 产出，后续 decode 逐词生成。",
+      },
+      {
+        id: "continuous-batching",
+        title: "Continuous Batching",
+        aliases: ["连续批处理"],
+        summary: "按单步迭代动态挑选请求合并执行。",
+        chapters: ["12"],
+        evidence: "C",
+        text: "## 一句话\n迭代级动态批处理。",
+      },
+      {
+        id: "batch-invariance",
+        title: "批不变性",
+        aliases: ["Batch Invariance", "批不变性"],
+        summary: "相同输入随同批请求改变浮点归约分组。",
+        chapters: ["14"],
+        evidence: "C",
+        text: "## 一句话\n温度为 0 时仍可能出现末位差异。",
+      },
+    ]);
+    const restored = deserializeSearchIndex(serializeSearchIndex(alignIdx, "f".repeat(64)));
+
+    // 1. vllm-ascend attention_v1.py 报错原文中的 U+2011（`‑`）能与标准 `--kv-cache-dtype` 对齐
+    const unicodeQuery =
+      "ValueError: The current GQA\u2011related models adopt static quantization via `--kv\u2011cache\u2011dtype`";
+    expect(terms("--kv\u2011cache\u2011dtype")).toEqual(terms("--kv-cache-dtype"));
+    expect(retrieve(unicodeQuery, alignIdx)[0]?.id).toBe("kv-cache-quantization");
+    expect(retrieve(unicodeQuery, restored)).toEqual(retrieve(unicodeQuery, alignIdx));
+
+    // 2. C++ 日志文件名 `transfer_executor_base.cpp:64` 不会误触发短缩写别名 `CPP` 抢占榜首，但独立查 `CPP` 仍正常命中
+    const adxlLog =
+      "W1123 07:23:51.968192 7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1";
+    const adxlHits = retrieve(adxlLog, alignIdx);
+    expect(adxlHits[0]?.id).toBe("mooncake-connector");
+    expect(retrieve("CPP 分块配置是什么", alignIdx)[0]?.id).toBe("profiling-chunk-config");
+    expect(retrieve(adxlLog, restored)).toEqual(adxlHits);
+
+    // 3. 初学者大白话查询（第一个字慢后面吐字快、凑批 vs 温度 0 凑批差异）精准分流且前后端一致
+    for (const [q, expectedTop1] of [
+      ["为什么第一个字出来慢后面吐字快", "prefill"],
+      ["为什么凑批跑好多条请求吞吐更高", "continuous-batching"],
+      ["为什么温度设成 0 凑批不同结果还是有微小差别", "batch-invariance"],
+    ] as const) {
+      expect(retrieve(q, alignIdx)[0]?.id, q).toBe(expectedTop1);
+      expect(retrieve(q, restored), q).toEqual(retrieve(q, alignIdx));
+    }
+
+    // 4. U+2011 复合未知参数不误走模糊匹配；纯耗时数字 60.960 秒不误触 60.96 GiB 实测显存加权
+    expect(retrieve("\u2011\u2011unseenhallucinated\u2011weight\u2011config", alignIdx)).toEqual([]);
+    const memIdx = buildIndex([
+      {
+        id: "ascend-910b3-measured-baseline",
+        title: "Ascend 910B3 真机实测基线",
+        aliases: ["60.96 GiB"],
+        summary: "OS 可见显存 60.96 GiB。",
+        chapters: ["06"],
+        evidence: "M",
+        text: "## 显存\nFree memory on device (60.57/60.96 GiB) on startup。",
+      },
+      {
+        id: "request-timeout-guide",
+        title: "请求耗时与超时排查",
+        aliases: ["请求耗时"],
+        summary: "排查长尾请求耗时问题。",
+        chapters: ["12"],
+        evidence: "C",
+        text: "## 现象\n客户端观测到单条长请求耗时较长。",
+      },
+    ]);
+    expect(retrieve("60.960 秒的请求耗时怎么排查", memIdx)[0]?.id).toBe("request-timeout-guide");
+    expect(retrieve("主频 60.96 GHz 时请求耗时", memIdx)[0]?.id).toBe("request-timeout-guide");
+    expect(retrieve("传输速率 60.96 GB/s 时请求耗时", memIdx)[0]?.id).toBe("request-timeout-guide");
+    expect(retrieve("HBM 60.96 GB/s 请求耗时", memIdx)[0]?.id).toBe("request-timeout-guide");
+    expect(retrieve("910B3 60.96 GHz 请求耗时", memIdx)[0]?.id).toBe("request-timeout-guide");
+    expect(retrieve("Free memory on device 60.96 GiB 为什么不是 64G", memIdx)[0]?.id).toBe(
+      "ascend-910b3-measured-baseline",
+    );
+  });
 });

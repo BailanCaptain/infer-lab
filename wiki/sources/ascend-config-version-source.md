@@ -2,7 +2,7 @@
 id: ascend-config-version-source
 title: AscendConfig 四版本来源摘要
 type: source
-summary: 四个固定快照展示共享专家开关、动态分块设置和配置缓存的取值变化；main 与 rc2 仍读取 FlashComm1 输入，环境值的解析和优先级需分版本核对。
+summary: 归档四个历史固定快照（2c59ff10、2ed6cbba、baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；当前主基线 v0.30.0（c09d3e20）与最新 main（8d6180e2）演进另见正式版基线与配置体系页。
 aliases:
   - AscendConfig 三版本来源摘要
   - AscendConfig 四版本来源摘要
@@ -83,7 +83,7 @@ rawSources:
 
 AscendConfig 是将 vLLM 的 `additional_config` 转成昇腾插件配置的对象。本页只记录共享专家 DP、FlashComm1（昇腾序列并行通信优化的旧版开关入口）、动态分块子配置与模块级配置缓存的来源差异，配置体系的教学见[Ascend 配置](../concepts/ascend-config-system.md)。没有完整执行调用链或 NPU 实机验证。
 
-原摘录日期为 2026-10-07，不是提交日期。v0.23、v0.26、`main` 分别固定在 `2c59ff10`、`2ed6cbba`、`baa023ad`，新增 `rc2` 对照固定在 `7d825229`。下列旧三版表格保留各自范围，`rc2` 的相同点与差异集中说明，均不外推到浮动分支。旧逐字摘录见[原始材料](../raw/sha256-3efa25973cae50780b72a10187d3892b2e32ef48bfcdd427fb2788045147b9af.md)。
+原摘录日期为 2026-10-07，不是提交日期。下文表格中的 `v0.23`、`v0.26`、`main 开发主线` 分别固定在早期核查快照 `2c59ff10`、`2ed6cbba`、`baa023ad`，新增 `rc2` 对照固定在 `7d825229`。注意本页的 `main` 列专指历史快照 `baa023ad`，不同于全站当前默认主基线 [`v0.30.0` 正式版（`c09d3e20`）](../concepts/v030-release-baseline.md) 与最新上游 `main`（`8d6180e2`）——例如 `profiling_chunk_config` 已在 `main`（`8d6180e2`，PR #21310）整组移除，详见 [`profiling_chunk_config`](../params/profiling-chunk-config.md) 与 [Ascend 配置版本差异](../concepts/ascend-config-system.md#版本差异)。下列历史快照表格保留各自提交范围，均不外推到浮动分支；旧逐字摘录见[原始材料](../raw/sha256-3efa25973cae50780b72a10187d3892b2e32ef48bfcdd427fb2788045147b9af.md)。
 
 ## 共享专家 DP 的有效值如何形成？
 

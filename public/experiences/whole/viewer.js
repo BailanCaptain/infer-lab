@@ -374,7 +374,7 @@ const DEPLOY_CARDS={
  'a2-32g':{model:'atlas-800t-a2',slots:8,dies:1,ranks:8,gib:32,prefix:'npu',dieWord:'Rank',displaced:[]},
  'a3-die64g':{model:'atlas-800i-a3',slots:8,dies:2,ranks:16,gib:64,prefix:'npu',dieWord:'Die',displaced:[]},
  '310p-24g':{model:'atlas-800-3000',slots:4,dies:2,ranks:8,gib:24,prefix:'card',dieWord:'Chip',displaced:[0,2]},
- '950dt-128g':{model:'ascend-950dt',slots:8,dies:1,ranks:8,gib:128,prefix:'npu',dieWord:'Rank',displaced:[]}
+ '950dt-128g':{model:'ascend-950dt',slots:8,dies:1,ranks:8,gib:144,prefix:'npu',dieWord:'Rank',displaced:[]}
 };
 const DEPLOY_MODEL_NAMES={
  'qwen3-0.6b':'Qwen3-0.6B','qwen3-8b':'Qwen3-8B','qwen3-30b-a3b':'Qwen3-30B-A3B',
@@ -574,7 +574,8 @@ function parseDeployParam(raw){
   if(!okP(o.tp)||!okP(o.pp)||!okP(o.dp)||!okP(pcp)||!okP(dcp))return null;
   if(o.ep!==0&&o.ep!==1&&typeof o.ep!=='boolean')return null;
   if(!Number.isInteger(o.r)||o.r<1||o.r>4096||o.r!==o.tp*o.pp*o.dp*pcp)return null;
-  if(o.cg!==card.gib||typeof o.u!=='number'||!Number.isFinite(o.u)||o.u<0.1||o.u>0.99)return null;
+  const okCg=o.cg===card.gib||(o.c==='950dt-128g'&&o.cg===128);
+  if(!okCg||typeof o.u!=='number'||!Number.isFinite(o.u)||o.u<0.1||o.u>0.99)return null;
   const okG=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=4096;
   if(!okG(o.w)||!okG(o.kv)||!okG(o.rt))return null;
   let effRanksPerNode=card.ranks;
@@ -590,7 +591,7 @@ function parseDeployParam(raw){
    tp:o.tp,pp:o.pp,dp:o.dp,pcp,dcp,ep:Boolean(o.ep),
    totalRanks:o.r,localRanks,nodeCount:Math.max(1,Math.ceil(o.r/effRanksPerNode)),
    activePhysicalSlots:Math.ceil(localRanks/card.dies),
-   cardGiB:card.gib,u:o.u,weightGiB:o.w,kvGiB:o.kv,runtimeGiB:o.rt,oomStatus:o.oom,
+   cardGiB:o.cg,u:o.u,weightGiB:o.w,kvGiB:o.kv,runtimeGiB:o.rt,oomStatus:o.oom,
    headroomOverflow:Boolean(o.ho),
    headroomRisk:Boolean(o.hr)||o.oom==='headroom_risk'
   };

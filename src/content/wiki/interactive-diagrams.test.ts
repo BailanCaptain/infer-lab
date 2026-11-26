@@ -22,13 +22,18 @@ import {
   ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
   CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256,
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
   EPLB_CYCLE_APPROVED_SHA256,
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
   MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
   MLA_INTUITION_APPROVED_SHA256,
   MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
+  ONBOARDING_FOUR_GATES_APPROVED_SHA256,
   PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
+  PD_DISAGGREGATION_INTUITION_APPROVED_SHA256,
+  PREFILL_FIG_COMPUTE_VS_BW_APPROVED_SHA256,
   PREFIX_CACHING_APPROVED_SHA256,
   QUANTIZATION_INTUITION_APPROVED_SHA256,
   REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
@@ -39,6 +44,7 @@ import {
   resolveInteractiveDiagram,
   SPECULATIVE_DECODING_APPROVED_SHA256,
   sha256Hex,
+  TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
   TOKEN_BPE_APPROVED_SHA256,
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
   WORKER_LIFECYCLE_APPROVED_SHA256,
@@ -229,6 +235,12 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       "mem-prof-fig-qwen3-waterfall",
       "v030-mig-fig-checklist",
       "rfork-troubleshooting",
+      "prefill-fig-compute-vs-bw",
+      "low-prec-fig-bit-anatomy",
+      "onboarding-four-gates",
+      "tensor-layout-fig-nd-nz-cube",
+      "engram-fig-lookup-flow",
+      "pd-disaggregation-intuition",
     ]);
   });
 
@@ -352,6 +364,12 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       { id: "mem-prof-fig-qwen3-waterfall", sha: MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256 },
       { id: "v030-mig-fig-checklist", sha: V030_MIG_FIG_CHECKLIST_APPROVED_SHA256 },
       { id: "rfork-troubleshooting", sha: RFORK_TROUBLESHOOTING_APPROVED_SHA256 },
+      { id: "prefill-fig-compute-vs-bw", sha: PREFILL_FIG_COMPUTE_VS_BW_APPROVED_SHA256 },
+      { id: "low-prec-fig-bit-anatomy", sha: LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256 },
+      { id: "onboarding-four-gates", sha: ONBOARDING_FOUR_GATES_APPROVED_SHA256 },
+      { id: "tensor-layout-fig-nd-nz-cube", sha: TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256 },
+      { id: "engram-fig-lookup-flow", sha: ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256 },
+      { id: "pd-disaggregation-intuition", sha: PD_DISAGGREGATION_INTUITION_APPROVED_SHA256 },
     ] as const;
 
     for (const item of cases) {

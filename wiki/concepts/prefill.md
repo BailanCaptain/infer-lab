@@ -21,6 +21,10 @@ aliases:
   - prompt logprobs
   - 提示词概率
   - 提示词对数概率
+  - 为什么第一个字慢
+  - 首字慢后面快
+  - 第一个字慢
+  - 首字延迟
 chapters:
   - '03'
 sources:

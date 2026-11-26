@@ -1,28 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410" width="880" height="410" role="img" aria-label="两个实例各用一张卡。旧实例先从存储装好权重；新实例先建立相同模型的空位，再从旧卡接收权重。复制完成后两边各自持有权重，新实例继续完成启动。紫色箭头搬的是权重，不是请求或计算结果。">
-  <title>两个实例各用一张卡。旧实例先从存储装好权重；新实例先建立相同模型的空位，再从旧卡接收权重。复制完成后两边各自持有权重，新实例继续完成启动。紫色箭头搬的是权重，不是请求或计算结果。</title>
-  <defs><marker id="netloader-guide-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="netloader-guide-intuition-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="netloader-guide-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <rect x="12" y="30" width="856" height="100" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="28" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">先有一份可用权重</text>
-  <rect x="12" y="165" width="856" height="105" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="28" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">新实例启动：向旧实例取同一份权重</text>
-  <rect x="12" y="305" width="856" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="28" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">接收完成：两边各有自己的权重</text>
-  <path d="M258 82 L565 82" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#netloader-guide-intuition-ah-weight)"/>
-  <path d="M298 220 L565 220" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#netloader-guide-intuition-ah-comm)"/>
-  <path d="M298 238 L490 285 L490 355 L298 355" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-intuition-ah-control)"/>
-  <path d="M690 243 L690 332" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#netloader-guide-intuition-ah-comm)"/>
-  <rect x="48" y="59" width="210" height="46" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="153" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">存储里的模型文件</text>
-  <rect x="565" y="59" width="250" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="690" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旧实例 · 卡上的权重</text>
-  <rect x="48" y="197" width="250" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="173" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旧实例 · 卡上的权重</text>
-  <rect x="565" y="197" width="250" height="46" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="690" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">新实例 · 等待填入的空位</text>
-  <rect x="48" y="332" width="250" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="173" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旧实例 · 保留权重</text>
-  <rect x="565" y="332" width="250" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="690" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">新实例 · 收到权重</text>
-  <text x="411" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先加载</text>
-  <text x="431" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#7a3a6a" text-anchor="middle">卡间直接发送 → 接收</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="NetLoader 启动期卡间点对点权重交接三阶段示意图" font-family="var(--font-sans)">
+  <title>NetLoader 启动期卡间点对点权重交接三阶段：供方先读盘、新卡经临时 HCCL 接过同分片权重、接收后各自独立持权推理</title>
+  <desc>Three-stage horizontal swimlane diagram showing Storage to Provider NPU initial load, Provider NPU to Client NPU 2-rank HCCL tensor transfer during startup, and independent post-load inference HBM states with disk fallback note.</desc>
+  <defs>
+    <marker id="nli-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="nli-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="nli-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1 Band -->
+  <rect x="16" y="16" width="868" height="116" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="30" y="40" font-size="14.5" font-weight="700" fill="#17211f">① 先有一份可用权重：首个供方实例从存储读盘，装入 NPU 并开启监听端口</text>
+
+  <!-- Storage Cylinder/Stack -->
+  <rect x="34" y="54" width="216" height="64" rx="6" fill="#fbfaf6" stroke="#8c8577" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <rect x="48" y="66" width="38" height="10" rx="2" fill="#efe9dc" stroke="#8c8577" stroke-width="1"/>
+  <rect x="48" y="80" width="38" height="10" rx="2" fill="#efe9dc" stroke="#8c8577" stroke-width="1"/>
+  <rect x="48" y="94" width="38" height="10" rx="2" fill="#efe9dc" stroke="#8c8577" stroke-width="1"/>
+  <text x="98" y="82" font-size="13.5" font-weight="700" fill="#17211f">共享存储 / 本地盘</text>
+  <text x="98" y="104" font-size="12.5" fill="#4d5652">safetensors 权重文件</text>
+
+  <path d="M 254 86 L 526 86" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#nli-arr-a)"/>
+  <rect x="316" y="62" width="148" height="22" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1"/>
+  <text x="390" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">首次常规读盘加载</text>
+
+  <!-- Provider NPU Card (Stage 1) -->
+  <rect x="534" y="50" width="332" height="70" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="550" y="74" font-size="13.5" font-weight="700" fill="#936300">供方实例（NPU 0 · rank 0）</text>
+  <rect x="550" y="84" width="44" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="572" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₀</text>
+  <rect x="600" y="84" width="44" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="622" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₁</text>
+  <rect x="650" y="84" width="44" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="672" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₂</text>
+  <text x="706" y="101" font-size="12.5" fill="#4d5652">监听 LISTEN_PORT</text>
+
+  <!-- Stage 2 Band -->
+  <rect x="16" y="146" width="868" height="134" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="30" y="170" font-size="14.5" font-weight="700" fill="#17211f">② 新实例启动：TCP 核对同分片配置，建 2 进程临时 HCCL 组逐张量直传</text>
+
+  <!-- Provider NPU Card (Stage 2) -->
+  <rect x="34" y="186" width="286" height="80" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="50" y="210" font-size="13.5" font-weight="700" fill="#936300">供方 NPU · 已装好权重分片</text>
+  <rect x="50" y="222" width="42" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="71" y="239" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₀</text>
+  <rect x="98" y="222" width="42" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="119" y="239" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₁</text>
+  <rect x="146" y="222" width="42" height="24" rx="3" fill="#f6dca0" stroke="#c78300" stroke-width="1.2"/>
+  <text x="167" y="239" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a5100">W₂</text>
+  <text x="198" y="239" font-size="12.5" fill="#4d5652">后台可继续推理</text>
+
+  <!-- P2P Transfer Channel -->
+  <path d="M 324 212 L 530 212" fill="none" stroke="#9a4b86" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#nli-arr-p)"/>
+  <text x="427" y="203" text-anchor="middle" font-size="12.5" fill="#7a3a6a">TCP 核 rank/路径/TP/PP + manifest</text>
+
+  <path d="M 324 242 L 530 242" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#nli-arr-p)"/>
+  <rect x="348" y="248" width="158" height="22" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
+  <text x="427" y="264" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">临时 HCCL 卡间发送张量</text>
+
+  <!-- Client NPU Card (Stage 2) -->
+  <rect x="534" y="186" width="332" height="80" rx="7" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.6" stroke-dasharray="6 3"/>
+  <text x="550" y="210" font-size="13.5" font-weight="700" fill="#7a3a6a">新实例 NPU · 同形状参数空位（绕开读盘）</text>
+  <rect x="550" y="222" width="44" height="24" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="572" y="239" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">W₀</text>
+  <rect x="600" y="222" width="44" height="24" rx="3" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="622" y="239" text-anchor="middle" font-size="12.5" fill="#7a3a6a">W₁</text>
+  <rect x="650" y="222" width="44" height="24" rx="3" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="672" y="239" text-anchor="middle" font-size="12.5" fill="#7a3a6a">W₂</text>
+  <text x="706" y="239" font-size="12.5" fill="#4d5652">v0.30.0 传后处理布局</text>
+
+  <!-- Stage 3 Band -->
+  <rect x="16" y="294" width="868" height="130" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="30" y="318" font-size="14.5" font-weight="700" fill="#17211f">③ 接收完成：两张卡各自持有独立显存副本，后续生成不再跨卡借权重</text>
+
+  <!-- Provider NPU Card (Stage 3) -->
+  <rect x="34" y="332" width="286" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="177" y="355" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">供方实例 · 保留本卡权重继续服务</text>
+  <text x="177" y="376" text-anchor="middle" font-size="12.5" fill="#4d5652">监听端口可继续供下一批扩容实例拉取</text>
+
+  <!-- Client NPU Card (Stage 3) -->
+  <rect x="534" y="332" width="332" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="700" y="355" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">新实例 · 权重齐备 → 分 KV Cache 与预热</text>
+  <text x="700" y="376" text-anchor="middle" font-size="12.5" fill="#4d5652">自身也可开监听成为新供方</text>
+
+  <path d="M 700 268 L 700 328" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#nli-arr-t)"/>
+
+  <!-- Bottom Fallback Note -->
+  <text x="34" y="410" font-size="13" font-weight="700" fill="#8f3229">兜底边界：握手或 HCCL 接收失败不会卡死启动，自动退回 DefaultModelLoader 读盘（v0.30.0 保留多线程加载配置）</text>
 </svg>

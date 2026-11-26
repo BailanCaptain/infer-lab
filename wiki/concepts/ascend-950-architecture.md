@@ -32,7 +32,7 @@ verified:
   - main
 evidence: S
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 ---
 
 **昇腾 950 是执行模型计算的 NPU 芯片。理解它的一个入口，是看一块数据怎样搬到计算单元、怎样交给下一段计算，以及什么时候能够复用原来的缓冲。** 新的通路与指令可以减少绕行和控制工作；是否让请求更快，要看软件是否使用它，以及省下的工作是不是正在拖慢请求。
@@ -144,7 +144,7 @@ file: ascend-950-fig-simd-simt-memory
 
 ## 图片还没交给模型时，哪些单元已经在工作
 
-[生产案例](deepseek-serving-case.md#上传一份带图长文服务要接力做什么)中的图片，进入 Vision Encoder 以前还要准备成像素与合适的尺寸。950 的 **DVPP（Digital Vision Pre-Processing，数字视觉预处理子系统）**承担图像编解码和预处理：JPEGD 把压缩的 JPEG 文件解成图像数据，VPC（视觉预处理核心）做缩放、裁剪、填充等处理，JPEGE 则把图像编码回 JPEG。它们处理的是图像格式和像素；Vision Encoder 运行模型网络，把图像变成后续模型使用的数值特征。
+[生产案例](deepseek-serving-case.md#上传一份带图长文服务要接力做什么)中的图片，进入视觉编码器（Vision Encoder）以前还要准备成像素与合适的尺寸。950 的 **DVPP（Digital Vision Pre-Processing，数字视觉预处理子系统）**专门承担硬件级图像编解码和预处理：其中 `JPEGD` 把压缩的 JPEG 文件解成原始图像数据，`VPC`（视觉预处理核心）完成缩放、裁剪与填充，`JPEGE` 则负责编码回 JPEG。它们处理的只是图像像素与尺寸；随后的视觉编码器才运行神经网络，把像素变成语言模型可读的特征向量。
 
 例如上传一张 JPEG 后，首字迟迟不来，而模型计算核心大部分时间空闲。应先沿“读到图片 → 解码完成 → 尺寸与格式准备好 → 图像模型开始”记录时间。如果慢在前两段，就不能只靠增加文本生成资源解决。需要同时保留图片尺寸、格式、处理路径和队列等待；用相同图片比较实现时，还要检查准备好的像素是否一致。设备具备 DVPP，只说明存在硬件路径，实际服务也可能在主机上完成预处理。
 
@@ -158,7 +158,7 @@ file: ascend-950-fig-simd-simt-memory
 
 把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。
 
-在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径，并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力。注意版本边界：`v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（`enable_custom_op()` 在该版直接返回关闭），直到 `main` 才将该能力补回 A5 档案。
+在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`，框架按芯片代际登记硬件能力的配置类）。以全站标尺 **`Qwen3-8B`** 与 **`Qwen3-30B-A3B`** 为例：社区常见的分块 8 位浮点权重（`block-wise FP8`）在 `v0.30.0` 下若跑在 `910B`（A2/A3）上，会被反量化回 `BF16` 计算；而在 950（`A5`）上，`AscendFp8BlockLinearMethod` 会将其重组为原生 `MXFP8` 直接送入 Cube，使 `Qwen3-30B-A3B` 的权重驻留维持在约 `30 GiB` 量级，单颗 `950DT`（`96 / 144 GB` 内存、`4 TB/s` 带宽）即可整模装下并启用 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力。注意一处版本差异：`v0.30.0` 的 A5 档案尚未开启运行时自定义算子库（`RUNTIME_CUSTOM_OPS`，`enable_custom_op()` 直接返回关闭），直到 `main` 才将该能力补回 A5 档案。
 
 下面用结构剖面图对照 910B 分离核绕行 GM 与 950 CV 融合子系统 L0C→UB 直通，并按同比例条展示 950PR/DT 内存带宽差距与软件档案演进：
 

@@ -116,7 +116,10 @@ origin: direct
 
 需要排查的一类差别在**同伴**：线上请求和别人的请求拼在一个批里，单独重跑时批里只有它自己（见[并发请求](concurrent-requests.md)）。若实现按批形状选择不同计算策略，且由此产生的数值差异翻转了两个候选 token 的排序，后面的回答就会分叉。排错时仍须先排除输入、模板、权重和采样设置变化，不能仅凭输出不同就认定是批形状造成的。
 
-**batch invariance（批不变性）**针对的是同一输入因批大小、批内顺序而发生的数值变化，在 vLLM 与 vLLM Ascend 中通过环境变量 `VLLM_BATCH_INVARIANT=1` 开启。目标是在其余条件相同、受支持的执行路径上，单独跑和混批跑得到相同的结果。固定算子的分块与归约方式是其中一种手段；启用 `VLLM_BATCH_INVARIANT=1` 不等于所有模型和所有路径都已获得逐位一致保证。后文分别说明实现覆盖、调度限制与怎样验证。
+**batch invariance（批不变性）**针对的是同一输入因批大小、批内顺序而发生的数值变化，在 vLLM 与 vLLM Ascend 中通过环境变量 `VLLM_BATCH_INVARIANT=1`（或 `rl_config` 联动开关）开启。目标是在其余条件相同、受支持的执行路径上，单独跑和混批跑得到相同的结果。一线决策先看清适用边界：
+
+- **什么时候该开**：排查线上首次数值分歧、强化学习（RL）rollout 要求固定对数概率与轨迹复现、或做严格同输入 A/B 回归对照。
+- **什么时候别常开**：高吞吐在线服务不要盲目常开——开启后会经 `enable_custom_op()` 一刀切禁用 `vllm_ascend_C` 自定义融合核、把残差融合归一化拆成两步、强制 `weight_nz_mode=0` 与 `HCCL_DETERMINISTIC=strict`，且还需手动加上 `--no-enable-chunked-prefill` 与 `--no-enable-prefix-caching`。启用 `VLLM_BATCH_INVARIANT=1` 也不等于所有模型（尤其混合注意力模型）都已获得逐位一致保证；后文分别说明实现覆盖、调度限制与怎样验证。
 
 ```wiki-diagram
 file: batch-invariance
@@ -124,7 +127,7 @@ file: batch-invariance
 
 ## 为什么末位会跟着批变：同一个和，分几份来加
 
-矩阵乘的每个输出数是一串乘积之和（见[矩阵乘与权重](matmul-and-weights.md)）。实数加法满足结合律，浮点计算却要舍入到可表示的数，因此**改变分组可能改变结果**。
+矩阵乘的每个输出数是一串乘积之和（见[矩阵乘与权重](matmul-and-weights.md)）。实数加法满足结合律，浮点计算却要舍入到可表示的数，因此**一旦改变加法分组，在舍入边界上就会改变结果**。
 
 拿 float32 举一个能手算的例子，舍入规则是通常的「就近舍入，恰好居中时取偶数」。float32 在 $[2^{24}, 2^{25})$ 这段正数范围内，相邻可表示数相差 2。$16{,}777{,}216 + 1$ 恰好居中，被舍回 $16{,}777{,}216$，那个 1 就这么丢了（取 $a = 16{,}777{,}216,\; b = 1,\; c = -16{,}777{,}216$；不是谁算错了，是浮点舍入的必然结果）：
 
@@ -145,9 +148,9 @@ file: batch-invariance-fig-fp-splitk
 
 ## 怎么做：把每条加法链钉死
 
-思路很直接——不让批的大小决定加法怎么分组，而是**写死**它。
+思路很直接——不让批的大小决定加法怎么分组，而是**写死**它。在 `v0.30.0` 主基线与 `main` 中，昇腾侧通过「**AscendC 批不变算子库优先 + Triton 确定性核回退补位**」双供应链替换矩阵乘、注意力与归约入口，并在 `attention_v1` 中将无 sink、因果且非滑窗的混合批按 prefill 与 decode 拆开计算，避免混批改变注意力归约路径。
 
-先看 GLM 双机固定基线快照（`db701c1f`，与 `v0.23.0` 同源）中的 **Triton 回退矩阵乘**，不要把它的分块套到 AscendC 库。设矩阵乘是 `[M, K] × [K, N]`：M 是行数，K 是每个输出数对应的归约长度。该回退让每个输出块保有 fp32 累加器，沿 K 分块循环，不把同一个输出块的 K 段分给多个 Triton program 再合并（即杜绝 `split-K` 分段合并变化）。`mm`、`matmul`、`bmm`、`addmm` 复用的实现固定为 `128 × 128 × 64`。`linear` 另走一个核：非空矩阵的 K 块通常为 256，float32 为 128；M、N 仍按形状与核数选择。固定 K 循环是其设计手段，源码本身不是所有设备、编译器和输入下逐位一致的实验报告。
+用源码完全透明的 **Triton 回退矩阵乘**（自 `v0.23.0` / `db701c1f` 延续至今的确定性回退核；注意不要把它的具体分块数字直接套到闭源编译的 AscendC 库）最能看清底层怎样锁死归约顺序。设矩阵乘是 `[M, K] × [K, N]`：M 是行数，K 是每个输出数对应的归约长度。该回退让每个输出块保有 fp32 累加器，沿 K 分块循环，不把同一个输出块的 K 段分给多个 Triton program 再合并（即杜绝 `split-K` 分段合并变化）。`mm`、`matmul`、`bmm`、`addmm` 复用的实现固定为 `128 × 128 × 64`。`linear` 另走一个核：非空矩阵的 K 块通常为 256，float32 为 128；M、N 仍按形状与核数选择。固定 K 循环是其设计手段，源码本身不是所有设备、编译器和输入下逐位一致的实验报告。
 
 上游 GPU 实现也按硬件与算子分别处理。上游固定基线（`vllm@0fc695fc`）的注释在 Hopper／Blackwell 矩阵乘分支把 `split-K` 作为要抑制的差异来源，该分支设置了两个 cuBLAS 环境项；Ampere 则注册 Triton 矩阵乘。后面还统一替换 softmax、mean、bmm 等算子。因此，不能把这段注释扩写成「GPU 的全部批间差异只有 split-K、改一个配置就够了」。
 
@@ -260,14 +263,14 @@ main／rc2 固定指南把 chunked prefill、prefix caching 和抢占列为不�
 
 ### 怎么开
 
-先安装与版本、硬件匹配的算子。下面合并旧指南的 PIECEWISE 示例与 main 指南明确列出的调度限制，只作启动配置示意；不是 GLM 双机已验收命令：
+先安装与版本、硬件匹配的批不变算子包。下面对齐 `v0.30.0` 主基线与 `main` 指南明确列出的调度限制（以官方已验证列表所属的 `Qwen/Qwen3-8B` 为配置形式示意，未在设备上执行；不是 GLM 双机已验收命令）：
 
 ```bash
-VLLM_BATCH_INVARIANT=1 vllm serve <model> \
- --compilation-config '{"cudagraph_mode": "PIECEWISE"}' \
- --no-enable-chunked-prefill \
- --no-enable-prefix-caching \
- --block-size 128
+VLLM_BATCH_INVARIANT=1 vllm serve Qwen/Qwen3-8B \
+  --compilation-config '{"cudagraph_mode": "PIECEWISE"}' \
+  --no-enable-chunked-prefill \
+  --no-enable-prefix-caching \
+  --block-size 128
 ```
 
 - 默认值是 `0`，由上游 `envs.py` 读取。[C25]

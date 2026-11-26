@@ -1,47 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 856" width="880" height="856" role="img" aria-label="main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。">
-  <title>main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。</title>
-  <defs><marker id="vllm-ascend-for-rl-update-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="vllm-ascend-for-rl-update-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <rect x="20" y="28" width="840" height="250" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="16" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">控制面：训练框架协调请求与权重版本</text>
-  <rect x="20" y="316" width="840" height="346" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">数据面：Worker 与权重传输后端</text>
-  <rect x="20" y="704" width="840" height="100" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="692" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">回到推理主线</text>
-  <path d="M319 112 L319 144" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M319 188 L319 220" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M576 242 L630 242" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M319 264 L319 298 L440 298 L440 360" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M350 412 L350 447 L229 447 L229 476" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M530 412 L530 447 L648 447 L648 476" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <path d="M229 540 L229 564 L350 564 L350 588" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#vllm-ascend-for-rl-update-ah-comm)"/>
-  <path d="M648 540 L648 564 L530 564 L530 588" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#vllm-ascend-for-rl-update-ah-comm)"/>
-  <path d="M440 640 L440 740" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-ascend-for-rl-update-ah-control)"/>
-  <rect x="64" y="70" width="510" height="40" fill="var(--color-control-soft, #f1efe8)"/>
-  <text x="319" y="94.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">init_weight_transfer_engine：先完成传输握手</text>
-  <rect x="64" y="70" width="510" height="40" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <rect x="64" y="146" width="510" height="40" fill="var(--color-control-soft, #f1efe8)"/>
-  <text x="319" y="170.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">/pause?mode=wait：等第 2 站排空在途请求</text>
-  <rect x="64" y="146" width="510" height="40" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <rect x="64" y="222" width="510" height="40" fill="var(--color-control-soft, #f1efe8)"/>
-  <text x="319" y="246.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">start_weight_update：检查已配置、未更新、NZ 关闭</text>
-  <rect x="64" y="222" width="510" height="40" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <rect x="632" y="217" width="184" height="48" fill="var(--color-control-soft, #f1efe8)" fill-opacity="0.45"/>
-  <text x="724" y="245.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">检查失败 → 报错</text>
-  <rect x="632" y="217" width="184" height="48" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <rect x="210" y="362" width="460" height="48" fill="var(--color-weight-soft, #fff4cf)"/>
-  <text x="440" y="390.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">update_weights：调用后端，按需分多组更新</text>
-  <rect x="210" y="362" width="460" height="48" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <rect x="64" y="478" width="330" height="60" fill="var(--color-comm-soft, #f5e6f0)"/>
-  <text x="229" y="512.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">HCCL：广播权重、逐层装载</text>
-  <rect x="64" y="478" width="330" height="60" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <rect x="480" y="478" width="336" height="60" fill="var(--color-comm-soft, #f5e6f0)"/>
-  <text x="648" y="512.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">未打包 IPC：重建句柄、装载权重</text>
-  <rect x="480" y="478" width="336" height="60" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <rect x="210" y="590" width="460" height="48" fill="var(--color-control-soft, #f1efe8)"/>
-  <text x="440" y="618.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">finish_weight_update：后处理完成，退出更新态</text>
-  <rect x="210" y="590" width="460" height="48" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <rect x="64" y="742" width="752" height="40" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="440" y="766.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">/resume → 第 2 站调度 → 第 4 站新权重前向 → 第 5、7 站生成并返回</text>
-  <rect x="64" y="742" width="752" height="40" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="40" y="834" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">同卡 level 2 sleep：更新前唤醒 weights，更新后唤醒 kv_cache，再恢复生成</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="vLLM-Ascend RL 权重更新状态机与双后端控制数据面流程图" font-family="var(--font-sans)">
+  <title>v0.30.0 / main 权重更新控制流：暂停排空 → start 守卫 → 双后端装载 → finish 同步 → resume 放行</title>
+  <desc>Three-tier state machine diagram: Tier 1 Control Plane (init_weight_transfer_engine -> /pause?mode=wait -> start_weight_update guard with error exit), Tier 2 Data Plane (HCCL / sparse_hccl broadcast vs NPU IPC handle load converging into finish_weight_update), Tier 3 Resume back into vLLM inference pipeline.</desc>
+  <defs>
+    <marker id="rlu-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="rlu-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="rlu-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="rlu-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- TIER 1: Control Plane -->
+  <rect x="16" y="16" width="868" height="168" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="28" y="40" font-size="14.5" font-weight="700" fill="#17211f">控制面：训练框架协调请求排空与更新状态机守卫</text>
+
+  <!-- Step 1 -->
+  <rect x="28" y="54" width="252" height="78" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="154" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 首次传输握手</text>
+  <text x="154" y="101" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#17211f">init_weight_transfer_engine</text>
+  <text x="154" y="122" text-anchor="middle" font-size="12.5" fill="#4d5652">建 HCCL 域或 trainer_init</text>
+
+  <path d="M 280 93 L 304 93" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#rlu-arr-b)"/>
+
+  <!-- Step 2 -->
+  <rect x="308" y="54" width="236" height="78" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="426" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">② 排空在途请求</text>
+  <text x="426" y="101" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#17211f">POST /pause?mode=wait</text>
+  <text x="426" y="122" text-anchor="middle" font-size="12.5" fill="#4d5652">第 2 站停调度（或同卡 sleep）</text>
+
+  <path d="M 544 93 L 568 93" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#rlu-arr-b)"/>
+
+  <!-- Step 3 -->
+  <rect x="572" y="54" width="296" height="78" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="720" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">③ 开启更新守卫</text>
+  <text x="720" y="101" text-anchor="middle" font-size="12.5" font-family="var(--font-mono)" fill="#17211f">start_weight_update()</text>
+  <text x="720" y="122" text-anchor="middle" font-size="12.5" fill="#4d5652">校验引擎已配、未重入且 NZ=0</text>
+
+  <!-- Tier 1 Bottom Row: Sleep L2 Note + Error Guard -->
+  <text x="28" y="162" font-size="12.5" fill="#4d5652">同卡 L2 顺序：sleep(2) → wake(weights) → 换权重 → wake(kv_cache)</text>
+  <rect x="572" y="142" width="296" height="30" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="720" y="162" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">守卫不通过 → 抛错中止（禁半程放行）</text>
+
+  <!-- Arrow from Tier 1 to Tier 2 -->
+  <path d="M 720 132 L 720 138 L 450 138 L 450 202" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="4 3" opacity="0"/>
+  <path d="M 426 132 L 426 198" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#rlu-arr-p)"/>
+
+  <!-- TIER 2: Data Plane -->
+  <rect x="16" y="202" width="868" height="202" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="28" y="226" font-size="14.5" font-weight="700" fill="#17211f">数据面：Worker 执行 update_weights（按物理卡拓扑二选一后端装载）</text>
+
+  <!-- Left Backend: Cross-NPU HCCL -->
+  <rect x="28" y="242" width="402" height="96" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="229" y="267" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">跨物理卡后端：hccl / sparse_hccl</text>
+  <text x="229" y="291" text-anchor="middle" font-size="12.5" fill="#17211f">HCCL 逐张量或 packed 连续缓冲广播 + 逐层装载</text>
+  <text x="229" y="315" text-anchor="middle" font-size="12.5" fill="#4d5652">main 增 sparse_hccl（限未量化 ND 局部替换）</text>
+
+  <!-- Right Backend: Same-NPU IPC -->
+  <rect x="466" y="242" width="402" height="96" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="667" y="267" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">同物理卡后端：npu_ipc（句柄共享）</text>
+  <text x="667" y="291" text-anchor="middle" font-size="12.5" fill="#17211f">send_weights 自动包办 start → update → finish</text>
+  <text x="667" y="315" text-anchor="middle" font-size="12.5" fill="#4d5652">v0.30.0/main 已补齐 packed 装载与重载收尾</text>
+
+  <!-- Merge Arrows into finish_weight_update -->
+  <path d="M 229 338 L 229 352 L 320 352" fill="none" stroke="#087f73" stroke-width="1.8"/>
+  <path d="M 667 338 L 667 352 L 580 352" fill="none" stroke="#9a4b86" stroke-width="1.8"/>
+
+  <rect x="160" y="352" width="580" height="40" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="450" y="377" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">④ finish_weight_update()：完成逐层后处理与设备同步，退出更新态</text>
+
+  <!-- Arrow from Tier 2 to Tier 3 -->
+  <path d="M 450 392 L 450 422" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rlu-arr-t)"/>
+
+  <!-- TIER 3: Back to Inference Mainline -->
+  <rect x="16" y="424" width="868" height="80" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="28" y="448" font-size="14" font-weight="700" fill="#065f56">⑤ 回到推理主线：全员装齐新版权重 W_{t+1} 后放行下一轮 Rollout</text>
+  <rect x="28" y="458" width="840" height="34" rx="5" fill="#fbfaf6" stroke="#087f73" stroke-width="1.2"/>
+  <text x="448" y="480" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">POST /resume → 第 2 站恢复调度 → 第 4 站用新权重前向 → 第 5、7 站采样并返回样本</text>
 </svg>

@@ -114,7 +114,7 @@ test("2. Wiki 代码块双动作按钮（送去体检 / 看 3D 切分）与 Conf
   await fenceWithServe.getByTestId("wiki-code-doctor-btn").click();
   await expect(page).toHaveURL(/#\/tools\?tab=doctor&fromPage=vllm-ascend-for-rl/);
   const doctor = page.getByTestId("config-doctor-view");
-  await expect(doctor.getByTestId("doctor-cmd-input")).toHaveValue(/vllm serve Qwen\/Qwen3-0\.6B/);
+  await expect(doctor.getByTestId("doctor-cmd-input")).toHaveValue(/vllm serve Qwen\/Qwen3-(?:0\.6B|8B)/);
 
   // Enter custom multi-rank serve command -> open 3D sharding -> click Rank pill -> return to Doctor & verify command restored
   const customCmd = "vllm serve Qwen/Qwen3-8B -tp 2 --max-model-len 16384";

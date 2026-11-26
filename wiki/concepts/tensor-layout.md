@@ -33,6 +33,8 @@ aliases:
   - TransdataOperation
   - 分形排布
   - 内存补齐
+  - 分形布局
+  - NZ布局是什么
 chapters:
   - '07'
   - '11'
@@ -193,9 +195,9 @@ $$M_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad N_{\text{pad}
 | 1（默认） | 调用 NZ 转换 | 原样返回 | 原样返回 |
 | 2 | 调用 NZ 转换 | 调用 NZ 转换 | 原样返回 |
 
-这张表回答“是否发起转换”，具体张量能否通过转换仍取决于算子支持；`meta` 张量只携带形状和类型，没有实体数据。在 `v0.30.0` 与 `main` 主基线中，普通策略统一由 `additional_config.weight_nz_mode`（`0` / `1` / `2`，默认 `1`）控制，旧环境变量 `VLLM_ASCEND_ENABLE_NZ` 已退役不再读取。判定入口 `_should_trans_nz` 先排除 FP32、`meta` 以及至少二维且末两维含 `1` 的张量，再检查硬件档案的强制策略——**310P 通过 `WeightLayoutPolicy.FORCE_NZ` 强制转换 `FRACTAL_NZ`**，且优先级高于 `weight_nz_mode`，因此不能拿 A2 上模式 `0` 的结果直接套给 310P。
+这张表回答“是否发起转换”，具体张量能否通过转换仍取决于算子支持；`meta` 张量只携带形状和类型，没有实体数据。在 `v0.30.0` 与 `main` 主基线中，普通策略统一由 `additional_config.weight_nz_mode`（`0` / `1` / `2`，默认 `1`）控制，旧环境变量 `VLLM_ASCEND_ENABLE_NZ` 已退役不再读取。判定入口 `_should_trans_nz` 先排除 FP32、`meta` 以及至少二维且末两维含 `1` 的张量，再检查硬件档案的强制策略。例如 **310P 通过 `WeightLayoutPolicy.FORCE_NZ` 强制转换 `FRACTAL_NZ`**，优先级高于 `weight_nz_mode`，不能拿 A2 上模式 `0` 的结果套给 310P。
 
-模式 1 和 2 的差别在于是否将半精度权重也送去转换，不会把 INT8 权重变成 BF16，也不会把所有激活与缓存一并改格式。开关的覆盖范围必须沿具体层的后处理入口确认，下面的专家层就是例外。
+落到全站标准标尺 **`Qwen3-8B`** 与 **`Qwen3-30B-A3B`** 上看：在 A2/A3 默认 `weight_nz_mode = 1` 时，加载原版 `BF16` 权重的线性层保持 `ND` 原样返回；加载 `W8A8` 量化权重包时，`INT8` 线性层与专家权重会在加载后一次性转成 `FRACTAL_NZ`（若部署还需开启[睡眠模式](sleep-mode.md)热唤醒，则须提前设 `weight_nz_mode = 0` 避开分形布局恢复限制）。模式 1 和 2 的差别仅在于是否把半精度权重也送去转换，既不会把 `INT8` 变成 `BF16`，也不会把激活与缓存一并改格式。开关的覆盖范围必须沿具体层的后处理入口确认，下面的专家层就是例外。
 
 把前面的大 N / 小 z 分形遍历、$17 \times 17 \to 32 \times 32$ 真实补齐面积、`_should_trans_nz` 决策闸门以及四个正交概念边界放在同一张图里对照：
 

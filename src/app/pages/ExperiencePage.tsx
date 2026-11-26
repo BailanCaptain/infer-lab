@@ -145,11 +145,7 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
         });
 
   const title =
-    kind === "model"
-      ? edition === "glm-5-3-flash"
-        ? "GLM-5.3-Flash 模型计算"
-        : "Qwen3 模型计算"
-      : "硬件 3D";
+    kind === "model" ? (edition === "glm-5-3-flash" ? "GLM 模型计算" : "Qwen3 模型计算") : "硬件 3D";
   const viewTitle = kind === "model" ? view.title : "机柜与整机";
   const frameTitle = `${title} · ${viewTitle}`;
   const base = id ? `/chapters/${id}` : `/${kind}`;

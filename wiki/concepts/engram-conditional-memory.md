@@ -106,8 +106,8 @@ file: engram-fig-lookup-flow
 沿图上四步拆开看单步前向怎样运行：
 
 1. **拼短语前文并算 N-gram 哈希。** `AscendNgramHashState` 按顺序从三个来源补齐当前 token 前面的紧邻编号：当前批次块内的前文、runner 维护的 `lookback` 窗口、以及可选的 SWA（滑动窗口注意力，只保留最近固定窗口历史）槽位历史。遇到图片占位符或死标记（`engram_dead_mask` 匹配 `image_token_id` 与 `image_pad_token_id`）时立刻截断有效前文，避免图文边界拼出无意义的跨模态短语；空请求与填充位填 `-1`，不会偷读其他请求的 token。输出形状为 `[tokens, num_layers, (max_ngram - 1) * num_heads]` 的 `int32` 哈希编号。
-2. **按需跨副本汇集哈希。** 若大表留在设备侧，或按 `EDP`（Engram 数据并行组）拆开存放且未开启机内共享，各副本需先经 `gather_engram_hashes` 在 `edp` 组内做 `All-Gather`，把每张卡要查的哈希行号拼成统一槽位。若已开启 `dp_shared_memory`，同机副本直接映射同一份主机表，**跳过这一步集合通信**。
-3. **按头分片查表与分组反量化。** 全部哈希头均匀切给参与分片的卡（每卡负责 `local_heads` 个连续头段对应的词表区间 `[vocab_start_idx, vocab_end_idx)`）。Triton 查表核 `engram_lookup` 每程序写入一个 `(token, head)` 行，越界或无效 ID 直接输出全 0；支持 `BF16`、`INT8`（组宽 32 的 `FP32` 缩放）与 A5 原生 `MXFP8`（组宽 32 的 `E8M0` 指数缩放）。**无论整表放在 HBM（NPU 板载高带宽显存）还是 Host DRAM，只有命中的那几行会被反量化成 `BF16` 写入 HBM。**
+2. **按需跨副本汇集哈希。** 若大表留在设备侧，或按 **`EDP`（Engram Data Parallel，同节点内跨数据并行与上下文并行副本切分 Engram 表的通信组）** 拆开存放且未开启机内共享，各副本需先经 `gather_engram_hashes` 在 `edp` 组内做 `All-Gather`，把每张卡要查的哈希行号拼成统一槽位。若已开启 `dp_shared_memory`，同机副本直接映射同一份主机表，**跳过这一步集合通信**。
+3. **按头分片查表与分组反量化。** 全部哈希头均匀切给参与分片的卡（每卡负责 `local_heads` 个连续头段对应的词表区间 `[vocab_start_idx, vocab_end_idx)`）。Triton 查表核 `engram_lookup` 每程序写入一个 `(token, head)` 行，越界或无效 ID 直接输出全 0；支持 `BF16`、`INT8`（组宽 32 的 `FP32` 缩放）与 A5 原生 `MXFP8`（每 32 个元素共用 1 字节 `E8M0` 纯 2 的幂指数缩放尺）。**无论整表放在 HBM（NPU 板载高带宽显存）还是 Host DRAM，只有命中的那几行会被反量化成 `BF16` 写入 HBM。**
 4. **归集全部头并做门控融合。** 若表按 `EDP` 分片，先用 `exchange_engram_rows` 做 `AllToAll` 把命中行精准送回对应请求所在的副本（避免 `All-Gather` 把别人的行也物化到本卡）。随后经 `tensor_model_parallel_all_gather` 在 TP 组内拼齐全部头的向量。最后 `AscendEngram` 用复制线性层 `wkv` 投出 `key` 与 `value`，按当前隐藏状态算门控权重并加回残差流（A5 硬件在无旋转矩阵时走融合核 `fused_engram_gate`）。
 
 用一个极简教学示意看清规模对比。设某层有 $H = 4$ 个哈希头、每头查表宽度 $d = 256$、采用组 32 的 INT8 存储（每行 256 字节量化码加 $8 \times 4 = 32$ 字节缩放，合计 $288\text{ B}$）。整表共 $10^8$ 行（约 $26.8\text{ GiB}$），本步批次仅处理 $T = 8$ 个 token：
@@ -147,13 +147,13 @@ file: engram-fig-offload-sharing
 这段分工解释了两个常被问到的现象：
 
 - **为什么同机多 DP 副本必须开 `dp_shared_memory`？** 假设单台主机上跑了 $D$ 个本地 DP 副本，每份完整表的大小是 $E$。若每个副本各自调用 `HostUvaBuffer` 独立加载，主机 DRAM 会被复制成 $D \times E$。启用 `dp_shared_memory` 后，`SharedUvaBuffer` 由组内 leader 创建一份 **POSIX `SharedMemory`**（操作系统提供的跨进程共享内存段，映射在 `/dev/shm`，并尝试 `madvise(MADV_HUGEPAGE)` 申请透明大页）。其余同机副本只需 attach 同一段物理内存，并各自做 `aclrtHostRegisterV2`。于是主机底存立刻从 $4E$ 降到 $E$（以 4 副本计省下 $3E$）。同时，因为 `edp` 组只用于启动阶段交换共享内存名称，它直接走 CPU 侧 **Gloo**（PyTorch 的 CPU 分布式通信后端），既不消耗 HCCL 设备通信域缓冲，也不产生每步查表的跨 DP 集合通信。
-- **为什么有时“不开共享连启动都会失败”？** `AscendParallelEngramEmbedding` 强校验头数均匀切分（`self.n_hash_cols % num_shards == 0`）。例如某配置有 24 个 Engram 头，而单台 A3 暴露 16 个逻辑设备（如 `DP4 × TP4` 或 `DP8 × TP2`）。若不开 `dp_shared_memory`，`TP × EDP = 16` 导致 $24 \div 16 = 1.5$ 无法整除，建层直接抛 `ValueError`。打开 `dp_shared_memory` 后，每个副本只按本副本的 `TP`（4 或 2）切分 24 个头，$24 \div 4 = 6$ 或 $24 \div 2 = 12$ 恰好整除，问题迎刃而解。此外，`v0.30.0` 与 `main` 在 [Model Runner V2](model-runner-v2.md) 下，只要启用 `cpu_offload` 且 `DP > 1` 或 `PCP > 1`，就会自动将 `dp_shared_memory` 置为 `True`（由 `AscendConfig.derive_and_validate` 推导）。这避免 MRV2 下空闲 DP 副本无哈希可做而卡死集合通信。
+- **为什么有时“不开共享连启动都会失败”？** `AscendParallelEngramEmbedding` 强校验头数均匀切分（`self.n_hash_cols % num_shards == 0`）。例如某配置有 24 个 Engram 头，而单台 A3 暴露 16 个逻辑设备（如 `DP4 × TP4` 或 `DP8 × TP2`）。若不开 `dp_shared_memory`，`TP × EDP = 16` 导致 $24 \div 16 = 1.5$ 无法整除，建层直接抛 `ValueError`。打开 `dp_shared_memory` 后，每个副本只按本副本的 `TP`（4 或 2）切分 24 个头，$24 \div 4 = 6$ 或 $24 \div 2 = 12$ 恰好整除，问题迎刃而解。此外，在 [Model Runner V2](model-runner-v2.md) 且 `DP > 1` 或 `PCP > 1` 时，`AscendConfig.derive_and_validate` 会自动将 `dp_shared_memory` 置为 `True`，避免空闲 DP 副本无哈希可做而卡死集合通信——需注意 `v0.30.0` 此处漏检了 `cpu_offload` 前提（若显式设 `cpu_offload=false` 会触发校验冲突抛 `ValueError`），`main` 已补齐仅在 `cpu_offload=True` 时才自动开启。
 
 ### 3. 跨实例共享（`main`：`shared_engram`）与两种传输路线
 
 机内 `dp_shared_memory` 把“每副本一份”压成了“每台机器一份”。但在多机 P/D 分离集群里（拓扑分工见 [DeepSeek 生产实践](deepseek-serving-case.md)，例如 3 台 P 节点加 1 台 D 节点，共 4 台主机），如果每台机器还各自持有一份 ~200 GiB 的 Engram 表，全集群仍要吃掉 ~800 GiB Host DRAM，挤占 KVPool 缓存池。
 
-`vllm-ascend@main`（`8d6180e2`）为此新增跨实例共享机制 `shared_engram`：由一个独立的常驻 **Owner 进程**加载唯一一份只读 Engram 表，所有 P/D 消费实例（Consumers）按校验通过的 checkpoint 指纹接入。由此，**消费实例本地贡献 0 字节整表 DRAM/HBM 容量**。按硬件互联能力，它分成两条完全不同的数据路径：A3 通过 MemFabric BM 提供 **GVA（Global Virtual Address，跨节点统一编址的全局虚拟地址空间）** 直接映射，A2/A5 则经 HIXL **RDMA（远程直接内存访问，绕开远端 CPU 直接从网卡/总线读写内存）** 显式按行拉取：
+`vllm-ascend@main`（`8d6180e2`）为此新增跨实例共享机制 `shared_engram`：由一个独立的常驻 **Owner 进程**加载唯一一份只读 Engram 表，所有 P/D 消费实例（Consumers）按校验通过的 checkpoint 指纹接入。由此，**消费实例本地贡献 0 字节整表 DRAM/HBM 容量**。按硬件互联能力，它分成两条完全不同的数据路径：A3 通过 **MemFabric BM**（超节点跨机共享大内存池服务）提供 **GVA（Global Virtual Address，跨节点统一编址的全局虚拟地址空间）** 直接映射；A2/A5 则经 **HIXL**（昇腾高速单边内存传输库）走 **RDMA（远程直接内存访问，绕开远端 CPU 直接从网卡或灵衢 UB/URMA 总线读写内存）** 显式按行拉取（A3 启动前还需预热 **AICPU** 即芯片内通用控制核上的元数据算子，避免录图时阻塞）：
 
 | 特性 | A3 路径（`backend: "a3"`，MemFabric BM GVA） | A2 / A5 路径（`backend: "a2" \| "a5"`，HIXL RDMA） |
 |---|---|---|

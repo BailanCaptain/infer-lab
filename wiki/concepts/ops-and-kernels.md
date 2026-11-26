@@ -229,7 +229,7 @@ file: ops-ir-selection-qwen3
 
 ## 换了 Python 类，就一定经过同一种前向分派吗？
 
-**整层替换（换类）、算子方法分派（绑前向）与二进制扩展加载（`enable_custom_op`）是三道彼此独立的关卡；有的层只过第一关。** 例如固定上游的 `RMSNorm` 属于 `CustomOp`：创建对象时在 `__new__` 查 OOT 替换表换成平台提供的类，构造期 `__init__` 再决定绑定原生方法还是平台方法。`v0.30.0` 与 `main` 中的 `MoERunner`、`RoutedExperts`、`GateLinear` 与 `Linear`（早期 GLM 快照里对应 `FusedMoE`）等较大模块则使用 `PluggableLayer`（可替换层）。它允许插件把整个类连同权重、子模块和初始化一起替换，但本身不提供 `CustomOp` 的按平台前向分派；层内部仍可再调用自己的 `CustomOp`、量化方法或自编译扩展。
+**整层替换（换类）、算子方法分派（绑前向）与二进制扩展加载（`enable_custom_op`）是三道彼此独立的关卡；有的层只过第一关。** 例如固定上游的 `RMSNorm` 属于 `CustomOp`：创建对象时在 `__new__` 查 **OOT**（Out-of-Tree，即 `vllm` 主仓之外挂载的平台插件如 `vllm-ascend`）替换表换成平台提供的类，构造期 `__init__` 再决定绑定原生方法还是平台方法。`v0.30.0` 与 `main` 中的 `MoERunner`、`RoutedExperts`、`GateLinear` 与 `Linear`（早期 GLM 快照里对应 `FusedMoE`）等较大模块则使用 `PluggableLayer`（可替换层）。它允许插件把整个类连同权重、子模块和初始化一起替换，但本身不提供 `CustomOp` 的按平台前向分派；层内部仍可再调用自己的 `CustomOp`、量化方法或自编译扩展。
 
 下面这张门控图把三道关卡和 A5（Ascend 950）/ 310P 的硬件能力分支放在同一视图里：
 
@@ -283,7 +283,7 @@ file: ops-and-kernels-fig-glm-layer-ops
 | 专家计算 | 量化方法与融合条件 | 分组矩阵乘与 SwiGLU 可融合，也可分开执行，随后做第二个分组矩阵乘 |
 | MoE 合并 | 通信方式选择 | 同分发：MC2 路线下是 torch_npu 的 MC2 合并算子 |
 
-表里的残差混合（mHC，multi-head hyper-connection）是 GLM 自己的结构：这个模型的残差不是一条而是四条并行的流，进子层之前，入口算子按一组当场算出来的系数把四路合成一路，作为子层的输入；子层算完，出口算子再把结果摊回这四路。注意力和 MLP 两个子层前后各做一次。这两次调用在模型文件里写死，不经过替换表。
+表里的残差混合（**mHC**，Manifold-Constrained Hyper-Connections，流形约束超连接）是 GLM 自己的结构：这个模型的残差不是一条而是四条并行的流，进子层之前，入口算子按一组当场算出来的系数把四路合成一路，作为子层的输入；子层算完，出口算子再把结果摊回这四路。注意力和 MLP 两个子层前后各做一次。这两次调用在模型文件里写死，不经过替换表。
 
 注意力那一站为什么 34 层和 11 层不一样、后端表按什么选，见[后端家族](attention-backend-family.md)；这里只接着讲这几类算子各自长什么样。本页只追踪源码入口：Python 里出现一个扩展的名字，不等于已经核实它在专用镜像里装好并真的跑起来，这条边界见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 

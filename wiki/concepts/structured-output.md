@@ -342,7 +342,7 @@ file: structured-output
 
 - **编译文法**：每个带约束的请求先把 schema 编成文法。编译在引擎进程（负责调度的那个进程）CPU 上的线程池里异步进行，编好之前请求留在等待队列，不参与调度；同一个 schema 再来时可以命中编译缓存。
 - **每步填 bitmask**：引擎进程把本步前向派发给各卡后不等结果，趁 NPU 算前向，在 CPU 上为每个受约束的请求填一行。填得比前向慢，采样就得等它。
-- **把 bitmask 作用到 logits**：bitmask 随采样调用发到每张卡。上游 GPU 实现在显卡上原地改写 logits；vllm-ascend 默认的 [model runner](npu-model-runner.md)（每张卡上组织前向和采样的那部分代码）把 logits 拷到 CPU 改完再拷回，下文细讲。
+- **把 bitmask 作用到 logits**：bitmask 随采样调用发到每张卡。上游 GPU 实现在显卡上原地改写 logits；昇腾侧在 `v0.30.0` 主基线默认的 V1 [model runner](npu-model-runner.md)（每张卡上组织前向和采样的那部分代码）会把整张 logits 拷回 CPU 改完再拷回 NPU（显式设 `VLLM_USE_V2_MODEL_RUNNER=1` 可切到 V2 NPU 原地 Triton 核），而 `main` 已全量默认走 V2 NPU 原地快路径，下文细讲。
 - **与投机解码配合**：[投机解码](speculative-decoding.md)先快速猜出后面几个 token（叫**草稿**），再让主模型一次验证、接受猜对的那一段（如 **MTP** 多 token 预测层）。每个草稿位置要各占一行 bitmask；草稿本身不受文法约束，不合法的草稿在验证前就被截掉，失去被接受的机会。
 - **异步调度下整批采样要等上一步**：**异步调度**是上一步的结果还没处理完，就先把下一步排好发出去。开启异步调度后，批里只要有受约束的请求在 decode，整批采样都要等上一步结果处理完、bitmask 填好才发出，不能再和上一步结果的处理同时进行，见下文[异步调度](#异步调度本部署开着整批采样要等上一步)。
 
@@ -516,9 +516,15 @@ rc2 与固定 main 会把请求的全部停止编号交给编译入口，并由 
 
 ### 怎么开
 
-**请求选择要约束什么，启动配置选择怎样编译它。** 两个容器的名字只差结尾，但位置不同：structured_outputs 随请求传，structured_outputs_config 随服务启动传。以下按固定 vLLM 0fc695fc / Ascend db701c1f 解释；通用格式机制沿用上文。
+**请求选择要约束什么，启动配置选择怎样编译它。** 两个容器的名字只差结尾，但位置不同：`structured_outputs` 随请求传，`structured_outputs_config` 随服务启动传。通用请求协议在 `v0.23.0` 至 `v0.30.0` / `main` 一脉相承：在 `v0.30.0` 主基线部署 `Qwen/Qwen3-8B` 时，若希望模型先自由输出 `<think>...</think>` 思考段、仅对最终回答施加 JSON Schema 约束，启动时显式固定单一后端并配上对应解析器即可（配置形式示意，未在设备上执行）：
 
-**先写一份完整请求。** 假设已有按[双机部署前提](glm-5-3-flash-two-node.md#部署前提)启动的服务，固定教程的对外名称是 glm；若自行改过，实际请求的 model 以 `/v1/models` 返回的名称为准。希望只约束最终答案、让 GLM 先自由思考时，可给原有两端引擎配置一致地增加下面两项；它们是追加片段，不替代双机完整启动命令：
+```bash
+vllm serve Qwen/Qwen3-8B \
+  --reasoning-parser qwen3 \
+  --structured-outputs-config '{"backend": "xgrammar"}'
+```
+
+**对照例外 B 的 GLM 双机部署写一份完整请求**（以下按固定 `vllm@0fc695fc` / `vllm-ascend@db701c1f` 核对；`Qwen3-8B` 请求体除 `"model"` 字段外写法完全相同）。假设已有按[双机部署前提](glm-5-3-flash-two-node.md#部署前提)启动的服务，固定教程的对外名称是 `glm`；若自行改过，实际请求的 `model` 以 `/v1/models` 返回的名称为准。希望只约束最终答案、让 GLM 先自由思考时，可给原有两端引擎配置一致地增加下面两项；它们是追加片段，不替代双机完整启动命令：
 
 ```bash
 --reasoning-parser glm45 --structured-outputs-config '{"backend":"xgrammar"}'

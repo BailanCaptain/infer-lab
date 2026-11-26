@@ -1,39 +1,25 @@
-layout: figure
+mode: native-svg
 id: vllm-ascend-for-rl-update
-caption: main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。
-size: [880, 856]
-frames:
-  - { label: 控制面：训练框架协调请求与权重版本, at: [20, 28], size: [840, 250] }
-  - { label: 数据面：Worker 与权重传输后端, at: [20, 316], size: [840, 346] }
-  - { label: 回到推理主线, at: [20, 704], size: [840, 100] }
-grids:
-  - { at: [64, 70], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: init_weight_transfer_engine：先完成传输握手 }] }
-  - { at: [64, 146], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: "/pause?mode=wait：等第 2 站排空在途请求" }] }
-  - { at: [64, 222], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: start_weight_update：检查已配置、未更新、NZ 关闭 }] }
-  - { at: [632, 217], rows: 1, cols: 1, cell: [184, 48], tone: control, style: faded, cells: [{ at: [0, 0], text: 检查失败 → 报错 }] }
-  - { at: [210, 362], rows: 1, cols: 1, cell: [460, 48], tone: weight, style: solid, cells: [{ at: [0, 0], text: update_weights：调用后端，按需分多组更新 }] }
-  - { at: [64, 478], rows: 1, cols: 1, cell: [330, 60], tone: comm, style: solid, cells: [{ at: [0, 0], text: HCCL：广播权重、逐层装载 }] }
-  - { at: [480, 478], rows: 1, cols: 1, cell: [336, 60], tone: comm, style: solid, cells: [{ at: [0, 0], text: 未打包 IPC：重建句柄、装载权重 }] }
-  - { at: [210, 590], rows: 1, cols: 1, cell: [460, 48], tone: control, style: solid, cells: [{ at: [0, 0], text: finish_weight_update：后处理完成，退出更新态 }] }
-  - { at: [64, 742], rows: 1, cols: 1, cell: [752, 40], tone: token, style: solid, cells: [{ at: [0, 0], text: /resume → 第 2 站调度 → 第 4 站新权重前向 → 第 5、7 站生成并返回 }] }
-links:
-  - { from: [319, 112], to: [319, 144], tone: control }
-  - { from: [319, 188], to: [319, 220], tone: control }
-  - { from: [576, 242], to: [630, 242], tone: control, dashed: true }
-  - { from: [319, 264], to: [440, 360], via: [[319, 298], [440, 298]], tone: control }
-  - { from: [350, 412], to: [229, 476], via: [[350, 447], [229, 447]], tone: control }
-  - { from: [530, 412], to: [648, 476], via: [[530, 447], [648, 447]], tone: control }
-  - { from: [229, 540], to: [350, 588], via: [[229, 564], [350, 564]], tone: comm }
-  - { from: [648, 540], to: [530, 588], via: [[648, 564], [530, 564]], tone: comm }
-  - { from: [440, 640], to: [440, 740], tone: control }
-texts:
-  - { at: [40, 834], text: 同卡 level 2 sleep：更新前唤醒 weights，更新后唤醒 kv_cache，再恢复生成, size: 13 }
+caption: >-
+  v0.30.0 / main 权重更新控制流与双后端数据面：首次传输前完成引擎握手；每轮先经 /pause?mode=wait（或同卡 sleep L2 + wake weights）排空在途生成，再执行 start_weight_update 守卫核验（未在更新且 weight_nz_mode=0）、按拓扑分派 HCCL/sparse_hccl 或 NPU IPC 装载、调用 finish_weight_update 收尾同步，最后 /resume 恢复推理主线；任何环节出错均禁止直接放行生成。
+size: [900, 520]
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358
-    symbols: [init_weight_transfer_engine, start_weight_update, update_weights, finish_weight_update]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209
-    symbols: [receive_weights, start_weight_update, finish_weight_update]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L153-L222
-    symbols: [receive_weights]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L261-L290
-    symbols: [trainer_init, send_weights]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L395'
+    symbols:
+      - RlConfig
+      - weight_nz_mode
+  - source: 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358'
+    symbols:
+      - init_weight_transfer_engine
+      - start_weight_update
+      - update_weights
+      - finish_weight_update
+  - source: 'vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209'
+    symbols:
+      - receive_weights
+      - start_weight_update
+      - finish_weight_update
+  - source: 'vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L261-L290'
+    symbols:
+      - trainer_init
+      - send_weights

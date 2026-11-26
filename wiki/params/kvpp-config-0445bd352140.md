@@ -12,7 +12,6 @@ aliases:
   - KVPP 派生子配置
 legacyAnchors:
   一句话: 为什么它是派生对象而非用户输入键？
-  事实表: 为什么它是派生对象而非用户输入键？
   为什么存在: 统一推导规则与 size > 1 触发的三条链路
   开了的代价: 误写静默过滤、校验条件演变与 GLM 双机分析
 chapters:
@@ -153,12 +152,17 @@ rawSources:
 - 不开 `enable_kvpp` 时，派生出 `kvpp_config.size = 1`，8 张卡各自常驻全部 60 层历史 KV；
 - 写 `"enable_kvpp": true` 后，工厂自动派生 $\text{size} = \text{TP} \times \text{PCP} = 8 \times 1 = 8$，按 `divmod(60, 8) = (7, 4)` 把层分给 8 张卡——前 4 张卡各常驻 8 层、后 4 张卡各常驻 7 层，每卡另留 2 层复用的暂存缓冲（scratch buffer），单卡单块物理占用从 60 层降到最多 $8 + 2 = 10$ 层（完整放大比与天花板见 [`kvpp_config.size`](size-40a1c2ca47b8.md)）。
 
-| 维度 | 规则与取值 | 意味着什么 |
+## 事实表
+
+理解 `kvpp_config` 与真正用户入口 `enable_kvpp` 的关系时，先核对下表：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 字段构成 | 冻结 `@config` 类，唯一字段 `size: int = 1` | 无广播粒度、无 owner 分配策略等第二旋钮，官方文档亦明确写明无需单独配置 |
-| 推导公式 | `enable_kvpp` 为假时 `size = 1`；为真时 `size = tensor_parallel_size × prefill_context_parallel_size` | TP=1、PCP=1 的单卡即使把 `enable_kvpp` 写为 `true`，算出的 `size` 仍为 `1`，不会触发 KVPP 机制 |
-| 生效与校验阈值 | 建组、分层、换缓存分配路径与 `validate()` 均以 `size > 1`（或 `size <= 1` 提前返回）为门槛 | `size == 1` 时跳过 KVPP 专属 `ValueError`（开关布尔校验及服务其他检查照常执行） |
-| 版本存在范围 | `v0.23.0`、`v0.26.0rc` 与 GLM `db701c1f` 无 KVPP；`v0.30.0` 与 `main` 均有此对象 | 旧版配置类逐键 `.get()` 会静默忽略 `enable_kvpp` / `kvpp_config`；完整机制与每层广播字节见[KVPP 概念页](../concepts/kvpp.md) |
+| 对象性质与真入口 | 内部冻结派生对象（唯一字段 `size: int = 1`）；用户入口为 `additional_config["enable_kvpp"]` | 不要在命令行手写 `kvpp_config`，它在 `_NON_USER_INPUT_KEYS` 中会被**静默剔除且无告警** |
+| `size` 推导公式 | `enable_kvpp` 为假时 `1`；为真时 `tensor_parallel_size × prefill_context_parallel_size` | `TP=1, PCP=1` 单卡即使写 `enable_kvpp: true`，`size` 仍为 `1`，不会触发 KVPP |
+| 生效与校验阈值 | 建组、分层、换缓存分配路径与 `validate()` 均以 `size > 1` 为门槛 | `size == 1` 跳过 KVPP 专属 `ValueError`（开关布尔校验及服务其他检查照常执行） |
+| 模型与图模式硬前提 | 非混合 MLA 模型、`DCP == 1`、`--enforce-eager` 或 `PIECEWISE`（`v0.30.0`/`main`） | 混合注意力（如含 KDA/GDN）或整图模式（`FULL_DECODE_ONLY`）在 `size > 1` 时直接报错 |
+| 版本存在范围 | `v0.30.0`、`v0.30.0rc2`、`main` 支持；`v0.23.0`、`v0.26.0rc` 与 GLM `db701c1f` 无 | 旧版配置类逐键 `.get()` 静默忽略 `enable_kvpp`；每层广播细节见 [KVPP 概念页](../concepts/kvpp.md) |
 
 ## 统一推导规则与 size > 1 触发的三条链路
 
@@ -182,7 +186,7 @@ file: param-kvpp-config
 
 ```bash
 # 满足模型、硬件及其他启动条件时，KVPP 仍采用 size=8（TP×PCP）；传入的 size=4 被静默忽略
-vllm serve <非混合的 MLA 模型> --tensor-parallel-size 8 --enforce-eager \
+vllm serve /models/DeepSeek-V3 --tensor-parallel-size 8 --enforce-eager \
     --additional-config '{"enable_kvpp": true, "kvpp_config": {"size": 4}}'
 ```
 

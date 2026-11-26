@@ -214,7 +214,7 @@ $$n_{\text{kv,local}} = \max\!\bigl(1,\; n_{\text{kv}} / \text{TP}\bigr), \qquad
 - **够分就切（$n_{\text{kv}} \ge \text{TP}$）**：要求 $n_{\text{kv}}$ 被 `TP` 整除（`replicas = 1`）。每张卡分走 $n_{\text{kv}} / \text{TP}$ 个不重叠的 KV 头，本卡 KV cache 也只存这几个头。
 - **不够分就复制（$n_{\text{kv}} < \text{TP}$）**：要求 `TP` 被 $n_{\text{kv}}$ 整除。每张卡保底放 `1` 个 KV 头，同一个 KV 头跨 `num_kv_head_replicas = TP // n_kv` 张卡各留一份副本。加载权重时，第 $r$ 号 TP 卡按 `r // num_kv_head_replicas` 挑出自己负责的那一个 KV 头。
 
-下图把 `Qwen3-8B`（`8` 个 KV 头）与 `Qwen3-30B-A3B`（`4` 个 KV 头）同时放进 `TP = 8` 环境对比，并在底部标出昇腾融合算子 `FIA` 如何直接消费本卡分组头：
+下图把 `Qwen3-8B`（`8` 个 KV 头）与 `Qwen3-30B-A3B`（`4` 个 KV 头）同时放进 `TP = 8` 环境对比，并在底部标出昇腾融合推理注意力算子 `FIA`（`npu_fused_infer_attention_score`）如何直接消费本卡分组头：
 
 ```wiki-diagram
 file: gqa-fig-qwen3-shapes
@@ -248,9 +248,9 @@ summary: 切换 Qwen3-8B（4:1）或 Qwen3-30B-A3B（8:1）并调节 TP 并行�
 
 在早期朴素 PyTorch 实现里，为了做分组点积，常要在调用注意力前先调 `repeat_kv` 把 K、V 张量沿头维度复制展开成 $n_q$ 份，白白吃掉成倍的 HBM 显存与带宽。在 `vllm` 与昇腾 `vllm-ascend`（`v0.30.0` 主基线）中，**调用算子前绝不在 HBM 里复制展开 K、V**：
 
-- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录 `num_queries_per_kv = num_heads // num_kv_heads`。前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接传入本卡 `num_heads`、`num_key_value_heads`、紧凑变长布局 `input_layout="TND"`（把同批变长序列首尾相接压平）与分页 `block_table`，同组映射在算子内部完成。通用 PyTorch 缩放点积注意力（`scaled_dot_product_attention`）路径则靠 `enable_gqa = (num_heads > num_kv_heads)` 开启内部广播；至于 `FIA` 核内片上缓存是否对同组查询头合并为单次物理读取，取决于底层 CANN 算子实现。
-- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`。因此启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，必须换用发送前逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
-- **GQA 叠加 [上下文并行（预填充 PCP / 解码 DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `prefill_context_parallel_size == decode_context_parallel_size`（`PCP == DCP`）。若在投机解码下为 GQA/MQA 草稿模型单独开 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
+- **昇腾主力算子 `FIA` 原生直读双头数**：`AscendAttentionBackendImpl` 初始化时校验整除并记录 `num_queries_per_kv = num_heads // num_kv_heads`。前向调用统一算子 `FIA`（`npu_fused_infer_attention_score`，选路见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）时，直接传入本卡查询头数、KV 头数、紧凑变长布局 `input_layout="TND"`（把同批变长序列首尾拼接压平）与分页 `block_table`，同组映射在算子内部完成。通用 PyTorch 缩放点积注意力路径则靠 `enable_gqa = (num_heads > num_kv_heads)` 开启内部广播；`FIA` 核内片上缓存是否合并同组物理读取，取决于底层 CANN 实现。
+- **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`；启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，须换用逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
+- **GQA 叠加 [上下文并行（预填充 PCP / 解码 DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `PCP == DCP`。若在投机解码下为草稿模型单独开 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
 
 ### 变体边界：GLM 双机的稀疏 MLA 与 KDA 为什么不是 GQA
 

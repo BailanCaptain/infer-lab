@@ -5,8 +5,8 @@ type: feature
 legacyAnchors:
   放到-glm-双机这套部署开了细粒度-tp-吗: 复杂异构实战对照：GLM 双机为何未启用细粒度 TP
 summary: >-
-  细粒度 TP 让词表嵌入、lm_head、attention 输出投影、稠密 MLP 各自单独设分片组：沿 DP
-  方向把服务不同请求的几张卡编成一组，合存一份权重；代价是进出这一层要收集输入、送回结果。GLM 双机没有开启。
+  细粒度 TP 让词表嵌入、lm_head、attention 输出投影与稠密 MLP 沿 DP
+  方向把服务不同请求的卡编成一组、合存一份权重，代价是进出该层需收集输入与送回结果；以 Qwen3-30B-A3B D 节点与 GLM 双机反例对照收益与边界。
 aliases:
   - Fine-Grained Tensor Parallelism
   - Fine-grained TP
@@ -104,7 +104,7 @@ relations:
     kind: alternative-to
     note: SP 在同一 TP 组内拆开 All-Reduce 以省归一化与残差重复激活；细粒度 TP 则沿 DP 方向跨不同请求借卡合存特定模块权重
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: gap
 rawSources:
   - >-
@@ -285,7 +285,17 @@ $$\text{Traffic}_{\text{AG+RS}} = 2 \times (k - 1) \times b \times H \times 2\te
 - **每轮的固定开销**：每次集合通信都有启动开销，组里所有卡还要互相等齐才能继续。批量小的时候，这部分往往比传那几百 KiB 更花时间。
 - **跨不跨机**：组里的卡不在同一台机器上时，这些通信就包含机间链路；等待取决于实际拓扑、有效带宽、传输大小和拥塞，不能只凭“跨机”给出固定快慢结论。
 
-vllm-ascend 特性文档给出过一组参考实测：模型为 DeepSeek-R1 W8A8（权重与激活均量化为 8 位整数），硬件是 32 张 Atlas A2（每卡 64 GB）。测试运行在 [PD 分离](pd-disaggregation.md)（prefill 与 decode 分组部署）的 decode 实例上，采用 DP32 + EP32，四个模块的细粒度组大小均为 8，batch 为 24：
+再拿 `v0.30.0` 标准 MoE 模型 **`Qwen3-30B-A3B`**（`vocab_size = 151,936`、`hidden_size = 2,048`、`tie_word_embeddings = false`，BF16 每个数 `2 B`）落在单机 8 卡 [PD 分离](pd-disaggregation.md) D 节点（`DP=8, TP=1, EP=8`）上算一笔真实权重账：
+
+| 核算项（`Qwen3-30B-A3B` 单机 8 卡 `DP=8, TP=1, EP=8`） | 算式（BF16） | 每卡常驻大小 |
+| --- | --- | --- |
+| 不开细粒度 TP：单张词表或 `lm_head` | $151{,}936 \times 2{,}048 \times 2\text{ B} = 622{,}329{,}856\text{ B}$ | **$\approx 593.5\text{ MiB}$**（两表共 **$\approx 1.16\text{ GiB}$**） |
+| 开启 `embedding = 8, lmhead = 8` 后单表分片 | $593.5\text{ MiB} \div 8$ | **$\approx 74.2\text{ MiB}$**（两表共 **$\approx 148.4\text{ MiB}$**） |
+| 每卡为 KV cache 腾出的词表常驻空间 | $1{,}187.0 - 148.4\text{ MiB}$ | **$\approx 1.01\text{ GiB}$**（代价为首尾各多 1 轮机内集合通信） |
+
+这个例子还顺手展示了另一条规则：`Qwen3-30B-A3B` 全部 48 层都是路由 MoE 层、没有前几层稠密 MLP，即便在配置里写了 `mlp_tensor_parallel_size = 8`，按层名只替换非 MoE 层的规则也不会替换任何专家层。
+
+vllm-ascend 特性文档另给出过一组更大规模的参考实测：模型为 DeepSeek-R1 W8A8（权重与激活均量化为 8 位整数），硬件是 32 张 Atlas A2（每卡 64 GB）。测试运行在 PD 分离的 decode 实例上，采用 DP32 + EP32，四个模块的细粒度组大小均为 8，batch 为 24：
 
 | 模块 | 每卡省下的显存 | 每个输出 token 的时延（TPOT） |
 |---|---|---|
@@ -382,7 +392,7 @@ vllm-ascend 特性文档给出过一组参考实测：模型为 DeepSeek-R1 W8A8
 
 **`v0.30.0` 主基线保留四个默认 `0` 的字段，并在 `oproj` / `mlp` 真正分片前增设六道硬前提与步宽守卫。** 字段仍须非负、用于 MoE 且能整除 DP；当 `oproj` 或 `mlp` 组大小 `> 1` 时，还要求 `TP=1`、非 `NONE` 图模式、D 侧 `kv_consumer`、`PCP=1`。图捕获最大档覆盖不了最大可能步宽时会告警并静默关闭这两项（`v0.30.0` 置 `0`，`main` 重置为 `1`），所以“参数能解析”不表示实际生效。另一道派生校验在 `oproj` / `mlp` 任一启用时要求 `recompute_scheduler_enable=true`，不能仅靠开启图或传入字典满足全部条件。
 
-按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；GLM 固定镜像 `db701c1f` 的配置类与 `v0.23.0` 逐行一致，上文 `v0.30.0rc2` / `baa023ad` 过渡行为见对应说明。vLLM 上游没有这个特性，只在 `vllm-ascend` 里。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；GLM 固定镜像 `db701c1f` 的配置类与 `v0.23.0` 逐行一致（过渡快照来源索引见下文源码位置）。vLLM 上游没有这个特性，只在 `vllm-ascend` 里。
 
 | 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|

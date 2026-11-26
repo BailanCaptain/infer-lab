@@ -2,7 +2,6 @@
 id: fused-op-type-fc0f5fcd7be0
 legacyAnchors:
   一句话: 它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？
-  事实表: 对照源码
   为什么存在: 融合算子合并了哪四步，运行时回退与容量门槛怎么算？
   开了的代价: 升级后保留旧键会怎样，放到 GLM 双机能跑通吗？
 title: fused_op_type
@@ -130,21 +129,36 @@ relations:
 ---
 ## 它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？
 
-`fused_op_type` 曾是 `additional_config["sparse_kv_offload_config"]`（见 [AscendConfig](../concepts/ascend-config-system.md)）下的子键，用于切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 在 decode 阶段是否走融合算子。
+**这是一个仅短暂存在于 `v0.30.0rc2` 等过渡快照、在 `v0.30.0` 正式版与 `main` 中已删除的子键：升级到 `v0.30.0` 后无须也不能再传 `"fused_op_type"`（保留该子键会直接触发严格配置校验报错，且嵌套子键不受 `vllm_omni` 顶层过滤保护）。**
 
-- 设为默认 `"none"` 时，走原始四步：索引器打分 → LRU（最近最少使用淘汰策略）管理热缓冲（常驻 NPU 显存存放高频 KV 行的缓存区）→ 从主机搬运缺失行 → 跑 [SFA（稀疏注意力）](../concepts/sparse-attention.md)。
-- 设为 `"fused_copy_sfa"` 时，将这四步替换为两个融合算子：`fused_lightning_indexer_manage`（LIM，合并打分与热缓冲进出管理）和 `fused_scatter_copy_sparse_flash_attention`（Copy-SFA，边把缺失行从主机拷入边算 attention）。
+在 `v0.30.0` 与 `main` 中，只要开启 `sparse_kv_offload_config.enabled: true` 且未开启 `use_fused_overlap`，只读属性 `use_fused_copy_sfa` 会**自动默认走 LIM + Copy-SFA 融合解码路径**。在历史过渡快照中，`fused_op_type` 曾嵌在 `additional_config["sparse_kv_offload_config"]`（见 [AscendConfig](../concepts/ascend-config-system.md)）下切换 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 的 decode 路径：
 
-该字段仅此两个枚举值，且与同嵌套块里的 [use_fused_overlap](use-fused-overlap-75a180fff6ab.md) 互斥——decode 路径只能三选一（默认、overlap、copy-SFA）。
+- 设为旧默认 `"none"` 时，走原始四步：索引器打分 → LRU（最近最少使用淘汰策略）管理热缓冲（常驻 NPU 显存存放高频 KV 行的缓存区）→ 从主机搬运缺失行 → 跑 [SFA（稀疏注意力）](../concepts/sparse-attention.md)。
+- 设为 `"fused_copy_sfa"` 时，将四步替换为两个融合算子：`fused_lightning_indexer_manage`（LIM，合并打分与热缓冲进出管理）和 `fused_scatter_copy_sparse_flash_attention`（Copy-SFA，边把缺失行从主机拷入边算 attention），且与同嵌套块里的 [use_fused_overlap](use-fused-overlap-75a180fff6ab.md) 互斥。
 
-**该用户键只短暂存在于 `v0.30.0rc2` 等过渡快照；在 `v0.30.0` 正式版与 `main` 中已随 PR #18301 / #18271 清理移除，改为默认启用融合路径**：
+## 事实表
+
+核对 `sparse_kv_offload_config` 配置迁移与融合路径准入时，先看下表：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 历史配置路径 | `additional_config["sparse_kv_offload_config"]["fused_op_type"]` | 仅限 `"none"` / `"fused_copy_sfa"` 两个枚举值；与 `use_fused_overlap=true` 互斥 |
+| `v0.30.0` / `main` 现状 | 已随 PR #18301 / #18271 移除用户键，保留旧键直接启动报错 | 融合路径已改为默认（`use_fused_copy_sfa = enabled and not use_fused_overlap`），无需手写 |
+| `topk_buffer_size` 联动 | `v0.30.0` / `main` 默认 `-1`（自动算 `(1 + num_speculative_tokens) × 2048`） | 256 对齐，上限 `32512`（LIM 总上界 `32640`）；旧版 `rc2` 默认固定 `4096`，MTP 草拟 $\ge 2$ 时须手动调大 |
+| 模型与查询行门槛 | `topk == 2048`，每请求每步 `1 <= Q_max <= 14`（早期 `4ebb3090` 限 1–7） | 启动期不满足直接报错退出，不会自动退回四步非融合路径 |
+| 单步运行时回退 | 某步查询行数超上限或混入真实 prefill 时，仅该步退回四阶段路径 | 回退步重置热缓冲分槽（bank）驻留历史与本层 TopK 复用计数，不影响服务继续运行 |
+| 早期版本行为 | `v0.23.0`（无卸载特性）与 `v0.26.0rc`（只按名读 4 个旧键）均无此键 | 在旧分支写入该键会被静默忽略，不会启用融合算子 |
+
+## 历史过渡快照到正式版的演进边界
+
+细看各历史快照到正式版的完整演进边界：
 
 | 版本 / 快照 | `fused_op_type` 状态 | 关键能力与校验边界 |
 | --- | --- | --- |
 | `v0.23.0` 与 GLM 镜像 `db701c1f` | 无 Sparse KV Offload、无此键 | 写入不读也不报错 |
 | `v0.26.0rc` | 不识别此键 | 仅按名称读取四个旧键，写入时静默忽略 |
 | PR #17392（`4ebb3090`） | 存在，默认 `"none"` | 即使主开关 `enabled=false`，构造期仍先校验取值合法性与 `use_fused_overlap` 互斥；`Q_max` 限 1–7、禁用 DSpark 投机解码、热缓冲上限 `16128` |
-| `v0.30.0rc2`（`7d825229`） | 存在，默认 `"none"` | `Q_max` 扩至 1–14、热缓冲上界扩至 `32512`（256 对齐，另含两块循环尾区、LIM 总上界 `32640`）；接入 V1/V2 runner 与 DSpark MRV2 remote prompt 初始化；`_lim_select` 新增 LightningIndexer 的 C8 `int8` 分支（不含 `fp8`，主 KV 仍为 BF16），须配含 LIM、LI C8 LIM、Copy-SFA 及注册 MemFabric 主机内存视图的原生扩展（普通 CPU tensor 不能替代注册 DRAM）。注：文末自动生成定义里的旧注释「C8 不由此服务路径选择」已落后于同快照代码，且 C8 从未作为第三个枚举值出现 |
+| `v0.30.0rc2`（`7d825229`） | 存在，默认 `"none"` | `Q_max` 扩至 1–14、热缓冲上界扩至 `32512`（256 对齐，另含两块循环尾区、LIM 总上界 `32640`）；接入 V1/V2 执行器与 DSpark（多词投机草稿）在 MRV2 下的远端提示词初始化；`_lim_select` 新增索引器的 C8（`int8` 量化）分支（主 KV 仍为 BF16），须配齐融合索引管理核（LIM / LI C8 LIM）、边拷边算核（Copy-SFA）及已向 MemFabric（共享内存服务）注册的主机内存视图（普通未注册 CPU 张量不可替代）。注：文末自动生成定义里的旧注释「C8 不由此服务路径选择」已落后于同快照代码，且 C8 从未作为第三个枚举值出现 |
 | `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`） | **已删除**，传旧键直接报错 | `SparseKVOffloadConfig` 改为只读属性 `use_fused_copy_sfa`（返回 `self.enabled and not self.use_fused_overlap`）——开 offload 且未开 overlap 时默认走 LIM + Copy-SFA；`topk_buffer_size` 默认改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`） |
 
 ## 融合算子合并了哪四步，运行时回退与容量门槛怎么算？

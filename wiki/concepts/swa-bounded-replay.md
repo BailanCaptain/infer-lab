@@ -4,7 +4,7 @@ title: "SWA bounded replay：历史窗口丢了，为什么只重算一小段"
 type: feature
 origin: direct
 summary: 用窗口为三个位置的小例子推演回放为何近似，分清 encoder 缺失恢复与 decoder 窗口准备、128/134/140 的不同口径，以及 mask/compact 一致不能证明与完整重算一致。
-aliases: [SWA, Sliding Window Attention, SWA Bounded Replay, 有界回放, 滑窗重算, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
+aliases: [SWA, Sliding Window Attention, SWA Bounded Replay, 有界回放, 滑窗重算, 滑动窗口回放, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
 chapters: ["19"]
 order: 2
 sources:
@@ -40,16 +40,16 @@ verified:
   - main
 evidence: I
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-26'
 ---
 
 **SWA bounded replay（滑动窗口注意力有界回放，其中 SWA 即 Sliding Window Attention）是指：在缺少近期滑窗状态时，只重新计算末尾一段有限长度的历史，用较少工作恢复一个可继续生成的近似状态。** “有界”指重新处理的历史长度被限制了；“近似”意味着它不保证与完整历史重算得到相同的中间数值。
 
 ## 长历史还在，为什么仍不能直接继续回答
 
-先设想一个常见的长文档问答场景：用户上传一份几万字的技术说明书并连续追问，推理服务把这份说明书的前缀历史存进了缓存（本页以 DeepSeek-V4.1-Flash 的双状态架构为例，下文简称 **V4.1**，完整结构见 [DeepSeek-V4.1-Flash 全案](deepseek-v4-1-flash.md)）。
+先和标准全注意力模型做个对比：在全站主基线标尺 **`Qwen3-8B`** 或 **`Qwen3-30B-A3B`** 这类全因果模型里，每一层都保留从第 `0` 个词到当前词的完整 `KV cache`；只要前缀缓存命中，就能直接接着算新词（普通滑窗配置在 `v0.30.0` 下则由上游 `SlidingWindowSpec` 配合昇腾 `sparse_mode=4` 管理可见窗口）。
 
-这类模型保存的历史分两种用途：**block KV**（按固定块保存的全局历史，供后续位置查远文）与 **SWA 窗口状态**（sliding window attention，各层只读最近固定窗口的滑窗状态）。两者生成和保存方式不同，找回 `block KV` 不代表末尾滑窗状态也还在。
+而面向百万级长文档问答的跨层共享架构（本页以 **DeepSeek-V4.1-Flash** 为例，下文简称 **V4.1**，完整结构见 [DeepSeek-V4.1-Flash 全案](deepseek-v4-1-flash.md)）为了大幅压缩显存，把历史拆成了两种寿命不同的状态：**block KV**（按固定块长期保存的全局历史，供后续位置查远文）与 **SWA 窗口状态**（各层只读最近固定窗口的近期滑窗状态）。两者生成和保存方式不同，找回全局 `block KV` 不代表末尾滑窗状态也还在。
 
 例如，这份说明书的长历史（`block KV`）仍在缓存中，但某层末尾的滑窗状态已经过期或被回收了。接着生成前，必须重新准备这层窗口。**回放（replay）**就是取回原先的 token 编号，再跑一段模型计算把滑窗填满。V4.1 限制回放长度，只重算末尾一小段，以较少工作换取可继续生成的近似状态。下面先看要恢复的东西；为什么只能称为近似，下一节用具体数值解释。
 

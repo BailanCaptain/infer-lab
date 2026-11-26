@@ -1,6 +1,6 @@
 {
-  "id": "ws6-engineering-retrieval-v1",
-  "description": "62 real Ascend / vLLM engineering retrieval & negative-control cases evaluated against the live 193-page registry.json",
+  "id": "ws6-engineering-retrieval-v2",
+  "description": "87 real Ascend / vLLM engineering, 910B3 measured error-trace, zero-jargon beginner colloquial & negative-control cases evaluated against the live 193-page registry.json",
   "cases": [
     {
       "id": "err-507015-bare",
@@ -365,6 +365,170 @@
       "category": "arch-deploy",
       "query": "310P float16 FRACTAL_NZ",
       "expectedAnyTop3": ["tensor-layout", "hardware-devices", "quantization"]
+    },
+
+    {
+      "id": "colloq-first-token-slow-then-fast",
+      "category": "colloquial",
+      "query": "为什么第一个字出来慢后面吐字快",
+      "expectedAnyTop3": ["prefill", "inference-performance-walkthrough"]
+    },
+    {
+      "id": "colloq-first-token-wait-long",
+      "category": "colloquial",
+      "query": "刚发出去等半天不出第一个字是什么原因",
+      "expectedAnyTop3": [
+        "prefill",
+        "inference-performance-walkthrough",
+        "inference-performance-troubleshooting"
+      ]
+    },
+    {
+      "id": "colloq-oom-during-graph-capture",
+      "category": "colloquial",
+      "query": "显存明明够为什么启动捕获图报 OOM",
+      "expectedAnyTop3": ["inference-troubleshooting", "kv-cache-memory-profiling", "acl-graph"]
+    },
+    {
+      "id": "colloq-tp-slower-than-single-card",
+      "category": "colloquial",
+      "query": "多卡张量并行为什么有时候比单卡还慢",
+      "expectedAnyTop3": [
+        "tensor-parallel",
+        "inference-performance-troubleshooting",
+        "ascend-910b3-measured-baseline"
+      ]
+    },
+    {
+      "id": "colloq-check-new-model-support",
+      "category": "colloquial",
+      "query": "怎么判断昇腾支不支持一个新模型",
+      "expectedAnyTop3": ["ascend-model-onboarding", "dev-new-model-and-custom-op", "hf-model-anatomy"]
+    },
+    {
+      "id": "colloq-sleep-wakeup-weight-nz",
+      "category": "error-trace",
+      "query": "睡眠模式唤醒失败 weight_nz_mode",
+      "expectedAnyTop3": ["sleep-mode", "tensor-layout"]
+    },
+    {
+      "id": "err-sleep-fractal-nz-trace",
+      "category": "error-trace",
+      "query": "ValueError: FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios. Please set weight_nz_mode=0",
+      "expectedAnyTop3": ["sleep-mode", "tensor-layout", "vllm-ascend-for-rl"]
+    },
+    {
+      "id": "colloq-nd-vs-nz-layout",
+      "category": "colloquial",
+      "query": "ND 和分形 NZ 布局有什么区别",
+      "expectedAnyTop3": ["tensor-layout"]
+    },
+    {
+      "id": "colloq-engram-host-dram-lookup",
+      "category": "colloquial",
+      "query": "条件记忆表 Engram 放主机内存怎么读",
+      "expectedAnyTop3": ["engram-conditional-memory", "shared-engram-31bf0d820403"]
+    },
+    {
+      "id": "colloq-long-prompt-blocks-old-reqs",
+      "category": "colloquial",
+      "query": "长提示词卡住正在生成的老请求怎么办",
+      "expectedAnyTop3": ["chunked-prefill", "inference-performance-walkthrough", "pd-disaggregation"]
+    },
+    {
+      "id": "colloq-why-not-recompute-history",
+      "category": "colloquial",
+      "query": "为什么每生成一个新字不用把前面的话重新算一遍",
+      "expectedAnyTop3": ["kv-cache", "prefill"]
+    },
+    {
+      "id": "colloq-npu-smi-64g-vs-6096g",
+      "category": "colloquial",
+      "query": "64G 显存为什么日志里只看到 60.96 GiB",
+      "expectedAnyTop3": ["kv-cache-memory-profiling", "device-memory", "ascend-910b3-measured-baseline"]
+    },
+    {
+      "id": "colloq-exit-137-killed-host-oom",
+      "category": "colloquial",
+      "query": "服务突然退出码 137 被强杀是不是显存爆了",
+      "expectedAnyTop3": ["inference-troubleshooting", "device-memory"]
+    },
+    {
+      "id": "colloq-tp-vs-pp-choice",
+      "category": "colloquial",
+      "query": "多卡切模型用张量并行还是流水线并行怎么选",
+      "expectedAnyTop3": ["tensor-parallel", "pipeline-parallel"]
+    },
+    {
+      "id": "colloq-moe-ep-vs-tp",
+      "category": "colloquial",
+      "query": "混合专家模型为什么要开专家并行而不是只开张量并行",
+      "expectedAnyTop3": ["expert-parallel", "moe"]
+    },
+    {
+      "id": "colloq-w8a8-vs-kv-c8",
+      "category": "colloquial",
+      "query": "开了 W8A8 权重量化以后 KV 缓存也会自动变成 8 位吗",
+      "expectedAnyTop3": ["kv-cache-quantization", "quantization"]
+    },
+    {
+      "id": "err-gqa-c8-unicode-hyphen",
+      "category": "error-trace",
+      "query": "ValueError: The current GQA‑related models adopt static quantization. KV quantization is configured via `--kv‑cache‑dtype` upon service startup, and the corresponding quantized weights are required.",
+      "expectedAnyTop3": ["kv-cache-quantization", "quantization"]
+    },
+    {
+      "id": "colloq-pd-disagg-when-slower",
+      "category": "colloquial",
+      "query": "把预填充和解码拆成两拨卡什么时候反而变慢",
+      "expectedAnyTop3": ["pd-disaggregation", "mooncake-connector"]
+    },
+    {
+      "id": "colloq-eager-vs-aclgraph-slow",
+      "category": "colloquial",
+      "query": "为什么加了 enforce-eager 单算子模式吐字变慢很多",
+      "expectedAnyTop3": ["graph-mode-layer", "acl-graph", "inference-performance-walkthrough"]
+    },
+    {
+      "id": "colloq-batching-throughput-latency",
+      "category": "colloquial",
+      "query": "为什么凑批跑好多条请求吞吐高了但单条也没慢多少",
+      "expectedAnyTop3": ["continuous-batching", "vllm-scheduler"]
+    },
+    {
+      "id": "colloq-temp0-batch-invariance",
+      "category": "colloquial",
+      "query": "为什么温度设成 0 凑批不同结果还是有微小差别",
+      "expectedAnyTop3": ["batch-invariance", "sampling"]
+    },
+    {
+      "id": "colloq-multicard-root-cause-rank",
+      "category": "colloquial",
+      "query": "多卡报错超时怎么判断哪张卡是罪魁祸首",
+      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl"]
+    },
+    {
+      "id": "colloq-one-request-journey",
+      "category": "colloquial",
+      "query": "一条请求从发出去到吐出字中间经历了哪几站",
+      "expectedAnyTop3": ["one-request", "request-overview"]
+    },
+    {
+      "id": "err-mooncake-adxl-cpp-fallback",
+      "category": "error-trace",
+      "query": "W1123 07:23:51.968192 7379 transfer_executor_base.cpp:64] Dest buffer device_id=1 >= endpoint count 1, falling back to 192.168.88.208:20165",
+      "expectedAnyTop3": ["mooncake-connector", "ascend-910b3-measured-baseline", "pd-disaggregation"]
+    },
+    {
+      "id": "err-debug-logging-ttft-slowdown",
+      "category": "error-trace",
+      "query": "开了 VLLM_LOGGING_LEVEL=DEBUG 为什么首字延迟变慢",
+      "expectedAnyTop3": [
+        "inference-troubleshooting",
+        "device-memory",
+        "acl-graph",
+        "inference-performance-troubleshooting"
+      ]
     },
 
     {

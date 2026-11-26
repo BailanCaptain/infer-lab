@@ -43,8 +43,8 @@ export interface HardwareModelMappingSpec {
   readonly physicalSlotsPerNode: 4 | 8;
   readonly diesPerPhysicalSlot: 1 | 2;
   readonly ranksPerNode: 8 | 16;
-  readonly rankHbmGiB: 24 | 32 | 64 | 128;
-  readonly physicalSlotHbmGiB: 32 | 48 | 64 | 128;
+  readonly rankHbmGiB: 24 | 32 | 64 | 128 | 144;
+  readonly physicalSlotHbmGiB: 32 | 48 | 64 | 128 | 144;
   readonly partPrefix: "npu" | "card";
   readonly dieLabelPrefix: "Rank" | "Die" | "Chip";
   readonly displacedLowerSlots: readonly number[];
@@ -120,13 +120,13 @@ export const CARD_TO_3D_HARDWARE_MAP: Readonly<Record<AscendCalcCardId, Hardware
     cardId: "950dt-128g",
     hardwareModel: "ascend-950dt",
     hardwareDisplayName: "昇腾 950DT 架构节点",
-    cardShortName: "Ascend 950DT 128G",
+    cardShortName: "Ascend 950DT 144G",
     vendor: "ascend",
     physicalSlotsPerNode: 8,
     diesPerPhysicalSlot: 1,
     ranksPerNode: 8,
-    rankHbmGiB: 128,
-    physicalSlotHbmGiB: 128,
+    rankHbmGiB: 144,
+    physicalSlotHbmGiB: 144,
     partPrefix: "npu",
     dieLabelPrefix: "Rank",
     displacedLowerSlots: [],
@@ -374,7 +374,8 @@ export function parseHardwareDeployOverlay(
   const totalRanks = parseBoundedInt(obj.r, 1, 4096);
   if (totalRanks === null || totalRanks !== tp * pp * dp * pcp) return null;
 
-  if (obj.cg !== cardSpec.rankHbmGiB) return null;
+  const isLegacy950CardGiB = cardSpec.cardId === "950dt-128g" && obj.cg === 128;
+  if (obj.cg !== cardSpec.rankHbmGiB && !isLegacy950CardGiB) return null;
 
   if (typeof obj.u !== "number" || !Number.isFinite(obj.u) || obj.u < 0.1 || obj.u > 0.99) return null;
   const u = Number(obj.u.toFixed(4));
@@ -474,7 +475,7 @@ export function parseHardwareDeployOverlay(
     dp,
     ep,
     totalRanks,
-    cardGiB: cardSpec.rankHbmGiB,
+    cardGiB: isLegacy950CardGiB ? 128 : cardSpec.rankHbmGiB,
     u,
     weightGiB,
     kvGiB,
@@ -1224,7 +1225,7 @@ export function computeRankShardSummary(
       ? mapping.partPrefix === "card"
         ? `${isMultiNode ? `节点 #${nodeIndex} · ` : ""}PCIe 标卡 ${slotCode} · Chip ${dieIndexInSlot}（单卡双芯 48 GiB，本芯 24 GiB）`
         : `${isMultiNode ? `节点 #${nodeIndex} · ` : ""}双芯模组 ${slotCode} · Die ${dieIndexInSlot}（共封装 128 GiB，本 Die 64 GiB）`
-      : `${isMultiNode ? `节点 #${nodeIndex} · ` : ""}物理模组 ${slotCode}（单卡 ${mapping.rankHbmGiB} GiB）`;
+      : `${isMultiNode ? `节点 #${nodeIndex} · ` : ""}物理模组 ${slotCode}（单卡 ${payload.cardGiB} GiB）`;
 
   const multiNodeNote = isMultiNode
     ? isLocalNodeRank

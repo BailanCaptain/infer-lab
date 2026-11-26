@@ -33,10 +33,12 @@ describe("qwen-frame 路由与状态解析", () => {
     expect(resolveModelEdition(new URLSearchParams("model=qwen3-8b"))).toBe("qwen3-8b");
     expect(resolveModelEdition(new URLSearchParams("model=glm-5-3-flash"))).toBe("glm-5-3-flash");
 
-    // 兼容历史 Wiki 深链（未传 model，但携带合法 1..40 整数 segment）
+    // 兼容历史 Wiki 深链（未传 model，但携带合法 1..40 整数 segment）与历史课程「打开 GLM 计算演示」（experience=1）
     expect(resolveModelEdition(new URLSearchParams("view=play&segment=28"))).toBe("glm-5-3-flash");
     expect(resolveModelEdition(new URLSearchParams("segment=1"))).toBe("glm-5-3-flash");
     expect(resolveModelEdition(new URLSearchParams("segment=40"))).toBe("glm-5-3-flash");
+    expect(resolveModelEdition(new URLSearchParams("experience=1"))).toBe("glm-5-3-flash");
+    expect(resolveModelEdition(new URLSearchParams("experience=1&model=qwen3-8b"))).toBe("qwen3-8b");
 
     // 非法 segment 不误判为 GLM；显式 model=qwen3-8b 优先于 segment
     expect(resolveModelEdition(new URLSearchParams("segment=0"))).toBe("qwen3-8b");

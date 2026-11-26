@@ -18,7 +18,6 @@ aliases:
   - max_fit_chunk
 legacyAnchors:
   一句话: 它解决什么问题，适用范围与版本状态是什么？
-  事实表: 它解决什么问题，适用范围与版本状态是什么？
   为什么存在: 先量再算：启动拟合、公式平滑与在线校准
   在线校准默认随功能打开满足条件后自动停止: 在线校准怎么启动、切换与停止？
   收益有多少: 官方基准数字、代价与排障边界
@@ -149,18 +148,29 @@ rawSources:
 
 - **硬性前提**：必须同时满足 `pipeline_parallel_size > 1`、开启 chunked prefill，且不能与 `enable_balance_scheduling`（及 `v0.30.0` 新增的 `dyntra_lb_config`）同开。
 - **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下；旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
-- **`main`（`8d6180e2`）已整体移除**：整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除。升级 `main` 须删此键，否则普通 Ascend 进程按未知顶层键拒收（发现 `vllm_omni` 时告警过滤）。
+- **`main`（`8d6180e2`）已整体移除（新项目慎度依赖）**：整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除。升级 `main` 须删此键，否则普通 Ascend 进程按未知键拒收（顶层未知键仅发现 `vllm_omni` 时告警过滤，嵌在 `scheduler_config` 内直接报错）。下面以 `Qwen/Qwen3-30B-A3B` 展示 `v0.30.0` 下的标准配置形式（本工作区无 NPU 实机执行验证）：
 
-| 配置项 / 约束 | `v0.30.0` 正式版（`c09d3e20`）行为 | 关键注意点 |
+```bash
+vllm serve Qwen/Qwen3-30B-A3B \
+  --tensor-parallel-size 4 \
+  --pipeline-parallel-size 2 \
+  --max-num-batched-tokens 16384 \
+  --additional-config '{"scheduler_config": {"profiling_chunk_config": {"enabled": true}}}'
+```
+
+## 事实表
+
+在 `v0.30.0` 启用 CPP 动态切块或面向 `main` 升级清理前，逐项核对下表：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 推荐入口与 `enabled` | `additional_config.scheduler_config.profiling_chunk_config`，默认 `enabled: False` | `v0.23` 仅有顶层入口；`v0.26` 起推荐放进 `scheduler_config`；`main` 已整体移除 |
-| `need_timing` | 省略时跟随 `enabled`；`enabled=False` 却显式写 `need_timing=True` 时告警并强制改回 `False` | `v0.23` 与 `v0.26` 没有该修正，会保留无谓的计时与同步开销 |
-| `smooth_factor` | `(0, 1]`，默认 `1.0` | 官方指南同时写“必须大于 0”和“0.0 关闭动态调整”，但源码校验一律拒绝 `0`；开在线校准时建议别动，关闭校准后再调至 `0.5–0.8` |
-| `min_chunk` | `> 0`，默认 `4096` | 大于 `max_num_batched_tokens` 时仅打一条 warning 就悄悄钳到后者 |
-| `max_fit_chunk` | 硬阈值 `> 5`（`<= 5` 报错），默认 `30` | 报错文案写「建议至少 30 个点」，但 `6–29` 能过校验（设计文档拟合窗口为 `5–30` 点），不报错不等于达到建议值 |
-| PP、均衡调度与 DyntraLB | `pp <= 1`、`enable_balance_scheduling` 或 `dyntra_lb_config.enabled` 同开均抛 `ValueError` | `v0.23`/`v0.26` 还会读取环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING`，残留 `=1` 也会冲突；`v0.30.0` 已取消该环境变量兜底 |
-| 与 `ShortRequestFirst` 及异步调度 | `v0.30.0` 允许与 `ShortRequestFirst` 同开（由 `ProfilingChunkScheduler` 安装短请求优先等待队列）；开启 `async_scheduling` 须启用 V2 model runner（`VLLM_USE_V2_MODEL_RUNNER=1`） | `v0.23` 无 SRF；`v0.26` 与 SRF 硬互斥；早期同步路径下同开 SRF 须关闭异步调度 |
-| 实现方式 | pydantic `@config` dataclass（`v0.23`/`v0.26` 为普通类 `float()`/`int()` + `_validate()`） | pydantic 会对可转换输入做宽松类型转换，无法转换或越界时报错 |
+| 推荐入口与 `enabled` | `additional_config["scheduler_config"]["profiling_chunk_config"]`（默认 `enabled: False`） | `v0.23` 仅顶层；`v0.26`–`v0.30.0` 推荐嵌套（顶层打弃用告警）；**`main` 已整体移除** |
+| `need_timing` 联动 | 省略时跟随 `enabled`；`enabled=False` 却写 `need_timing=True` 时告警并改回 `False` | `v0.23` 与 `v0.26` 无此纠正，会白留计时与设备同步开销 |
+| `smooth_factor` | `(0, 1]`，默认 `1.0` | 官方旧文档虽提过 `0.0`，但源码校验一律拒绝 `0`；开在线校准时别动，关校准后再调 `0.5–0.8` |
+| `min_chunk` | `> 0`，默认 `4096` | 大于 `max_num_batched_tokens` 时仅打 warning 并静默钳小到后者 |
+| `max_fit_chunk` | 硬阈值 `> 5`（`<= 5` 报错），默认 `30` | 报错文案建议至少 `30` 个点，但填 `6–29` 也能过校验，需注意样本过少导致曲线偏斜 |
+| PP 与负载均衡硬互斥 | `pp <= 1`、`enable_balance_scheduling` 或 `dyntra_lb_config.enabled` 同开均抛 `ValueError` | `v0.23`/`v0.26` 还会受残留环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING=1` 触发互斥 |
+| `ShortRequestFirst` 与异步调度 | `v0.30.0` 允许同开 `ShortRequestFirst`；配 `async_scheduling` 硬性要求 `VLLM_USE_V2_MODEL_RUNNER=1` | `v0.26` 与 SRF 硬互斥；`v0.30.0` 在默认 MRV1 下开异步调度会报错 |
 
 **放到 GLM 双机（`db701c1f` 固定基线）**：该部署为 TP8 / DP2 / EP16、**PP = 1**（45 层全在单张卡的执行序列里，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），官方启动命令未开启此配置；只要把 `enabled` 设为真，`v0.23`、`v0.26`、`v0.30.0` 与 `db701c1f` 都会在启动校验直接抛出一字不差的 `ValueError`（实际日志拼成一行）：
 
@@ -210,7 +220,7 @@ chunk_size = ceil(chunk_size / align) * align
 1. 已记录 **3 次**总历史长度为 0 的有效批次（用于更新目标时延）；
 2. 历史拟合样本数**严格超过** `max_fit_chunk`（默认 30 时要到第 31 个样本才设完成标记，下一次检查双条件满足时发停止信号，既不是拟合成功一次就停，也不保证拟合误差达到特定精度）。
 
-显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方提示未完成在线校准可能导致严重性能劣化、关闭校准性能可能次优，并建议投产前用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
+显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方指南指出未完成在线校准就投产会引发显著性能劣化、关闭在线校准会使长序列切块落入次优外推，并建议投产前用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
 
 ## 官方基准数字、代价与排障边界
 

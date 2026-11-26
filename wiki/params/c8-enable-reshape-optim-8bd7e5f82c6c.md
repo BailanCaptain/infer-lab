@@ -2,7 +2,6 @@
 id: c8-enable-reshape-optim-8bd7e5f82c6c
 legacyAnchors:
   一句话: 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
-  事实表: 对照源码
   为什么存在: StoreKVBlock 按组写入的原理、历史默认值反转与角色闸门
   开了的代价: 跨版本迁移、辅助缓冲容量报错与 GLM 双机 kpool 限制
 title: c8_enable_reshape_optim
@@ -138,13 +137,28 @@ rawSources:
 ---
 ## 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
 
-在长上下文[稀疏注意力](../concepts/sparse-attention.md)（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份反量化缩放因子（scale），这就是 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
+**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除，索引器缓存统一走 `DeviceOperator.scatter_cache` 写入；升级后必须从 `--additional-config` 中删掉该键，否则会被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 直接拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。**
 
-**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同其背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除**，`LightningIndexer.write_cache` 统一经设备适配层 `DeviceOperator.scatter_cache` 写入 K 缓存与量化 scale 缓存。若升级后仍在 `additional_config` 中保留该键，会被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。
+在长上下文[稀疏注意力](../concepts/sparse-attention.md)（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为节省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份反量化缩放因子（scale），即 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
 
 在仍保留该键的历史版本里，`c8_enable_reshape_optim` 只控制一件事：**往显存写这份 C8 量化缓存时，用按整批 slot 索引分散写入的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经 `DeviceOperator.scatter_cache` 回退），还是改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。**
 
-不同版本的开关状态与演化如下：
+## 事实表
+
+排查跨版本迁移报错或复核历史部署脚本时，可速查下表：
+
+| 项 | 值 | 意味着什么 |
+| --- | --- | --- |
+| 历史配置路径 | `additional_config["c8_enable_reshape_optim"]`（`bool`） | 仅作用于 LightningIndexer 的 C8 量化缓存写入，indexer 不走 C8 时恒为关闭 |
+| `v0.30.0` / `main` 现状 | 已随 PR #18128 删除，统一经 `DeviceOperator.scatter_cache` 写入 | 旧教程（如早期 GLM5.2 教程中的 `false`）迁至 `v0.30.0` 必须删除该键，否则启动报错 |
+| `v0.23.0` / `v0.26.0rc` 行为 | 顶层键，默认 `False` | 须同时开启 `enable_sparse_li_c8` 才生效；官方建议仅 P 节点开启，但代码未拦截混部 |
+| `v0.30.0rc2` 过渡行为 | PR #16952 恢复并反转默认 `True`（`v0.28.0.rc1` 曾短暂删键） | 代码硬性要求 `is_prefill_node`（PD 分离 P 节点），混部部署恒为关闭且无提示 |
+| 过渡版缓冲越界条件 | 报 `Indexer C8 group metadata buffer is too small` | 需核对本步 slot 数是否超过 $\max(\text{max\_num\_batched\_tokens} \times \text{PCP}, \text{TP 对齐值})$ |
+| GLM kpool 索引器边界 | 旧 `db701c1f` 显式报错拒绝；`v0.30.0` / `main` 在模型判定阶段排除 `index_kpool` | GLM-5.3-Flash 使用独立 kpool 缓存，从不走本开关控制的 `StoreKVBlock` 路径 |
+
+## 四个版本周期的开关演进与消费点
+
+细看四个版本周期的开关演进与消费点变化：
 
 | 版本 / 快照 | 字段与默认 | 生效条件与消费点 |
 | --- | --- | --- |

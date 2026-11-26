@@ -5,7 +5,6 @@
       "id": "absolute-balance-threshold-71578a0c428d",
       "legacyAnchors": {
         "一句话": "它管什么绝对门槛与相对门槛怎么配合",
-        "事实表": "它管什么绝对门槛与相对门槛怎么配合",
         "为什么存在": "为什么仅有相对门槛还不够",
         "开了的代价": "调高调低的边界与放到-glm-双机"
       },
@@ -388,7 +387,7 @@
       "title": "AI Core：计算单元与数据搬运",
       "type": "concept",
       "origin": "direct",
-      "summary": "从矩阵乘与逐项/归约运算出发，拆解昇腾 AI Core 内 Cube、Vector、Scalar 三类执行单元与各级片上缓冲（L1、L0A/L0B/L0C、UB）及搬运引擎（MTE、FixPipe）的分工；对照三级流水重叠与双缓冲条件，辨析 910B（A2/A3）AIC/AIV 经核外 GM 交接与昇腾 950（A5）L0C→UB 片上直通的架构差异。",
+      "summary": "拆解昇腾 AI Core 内 Cube、Vector、Scalar 单元与各级片上缓冲（L1、L0A/B/C、UB）及搬运引擎（MTE、FixPipe）的分工；结合 Qwen3-8B 真机算子实测剖析流水重叠与量化开销，对比 910B 经核外 GM 交接与昇腾 950 片上直通差异。",
       "aliases": [
         "AI Core",
         "AICore",
@@ -412,7 +411,13 @@
         "Unified Buffer",
         "FixPipe",
         "double buffer",
-        "双缓冲"
+        "双缓冲",
+        "矩阵核",
+        "向量核",
+        "片上缓冲",
+        "片上缓存",
+        "搬运引擎",
+        "流水线重叠"
       ],
       "chapters": [
         "04"
@@ -440,7 +445,8 @@
         "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L172-L502",
         "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L615",
         "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144",
-        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L146-L210"
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L146-L210",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -478,7 +484,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/ai-core.md",
       "backlinks": [
         {
@@ -558,7 +564,8 @@
         "SDMA",
         "PCIEDMA",
         "DSMI",
-        "strict priority"
+        "strict priority",
+        "共享链路拥塞"
       ],
       "chapters": [
         "07",
@@ -621,7 +628,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/ai-qos.md",
       "backlinks": [
         {
@@ -1176,7 +1183,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/ascend-950-architecture.md",
       "backlinks": [
         {
@@ -1650,7 +1657,7 @@
       "title": "AscendConfig 四版本来源摘要",
       "type": "source",
       "origin": "seed",
-      "summary": "四个固定快照展示共享专家开关、动态分块设置和配置缓存的取值变化；main 与 rc2 仍读取 FlashComm1 输入，环境值的解析和优先级需分版本核对。",
+      "summary": "归档四个历史固定快照（2c59ff10、2ed6cbba、baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；当前主基线 v0.30.0（c09d3e20）与最新 main（8d6180e2）演进另见正式版基线与配置体系页。",
       "aliases": [
         "AscendConfig 三版本来源摘要",
         "AscendConfig 四版本来源摘要",
@@ -1956,7 +1963,9 @@
         "停服模型",
         "Discontinued Models",
         "权重选型",
-        "ModelRegistry"
+        "ModelRegistry",
+        "昇腾支持哪些模型",
+        "新模型怎么上线"
       ],
       "chapters": [
         "01"
@@ -3126,7 +3135,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/balance-scheduling.md",
       "backlinks": [
         {
@@ -3625,7 +3634,6 @@
       "id": "block-table-no-commit-optimize-8328d0d2d00d",
       "legacyAnchors": {
         "一句话": "它曾经控制什么，为什么只存在了一天？",
-        "事实表": "对照源码",
         "为什么存在": "脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状",
         "开了的代价": "在不同版本中残留这个键会发生什么？"
       },
@@ -3707,7 +3715,6 @@
       "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
       "legacyAnchors": {
         "一句话": "它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？",
-        "事实表": "对照源码",
         "为什么存在": "StoreKVBlock 按组写入的原理、历史默认值反转与角色闸门",
         "开了的代价": "跨版本迁移、辅助缓冲容量报错与 GLM 双机 kpool 限制"
       },
@@ -3855,6 +3862,7 @@
         "TorchNPU",
         "Triton Ascend",
         "Gloo",
+        "torch_gloo",
         "通信域",
         "ACL",
         "AscendCL",
@@ -4616,7 +4624,6 @@
       "id": "combine-quant-mode-2a3f7cd47997",
       "legacyAnchors": {
         "一句话": "它覆盖哪一步通信量化，为什么 0 不等于关闭量化？",
-        "事实表": "对照源码",
         "为什么存在": "为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？",
         "开了的代价": "白名单校验、硬件支持范围与 GLM 双机载荷算例"
       },
@@ -4929,7 +4936,7 @@
       "title": "上下文并行（CP）：怎样分位置，又怎样算完整 attention",
       "type": "feature",
       "origin": "direct",
-      "summary": "长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整 attention，再对照 Ascend PCP/DCP 与 GLM 的支持边界。",
+      "summary": "长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整 attention，再对照 v0.30.0 的 Ascend PCP/DCP 路径、Qwen3 头数约束与 GLM 支持边界。",
       "aliases": [
         "Context Parallel",
         "上下文并行",
@@ -5061,7 +5068,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/context-parallel.md",
       "backlinks": [
         {
@@ -5129,7 +5136,9 @@
         "两队列调度",
         "ragged batching",
         "FCFS",
-        "First-Come First-Served"
+        "First-Come First-Served",
+        "凑批",
+        "动态攒批"
       ],
       "chapters": [
         "03"
@@ -5534,7 +5543,6 @@
       "id": "cross-node-transfer-limit-06ee92260b7a",
       "legacyAnchors": {
         "一句话": "它管什么声明默认与-gloo-回退收紧的区别",
-        "事实表": "它管什么声明默认与-gloo-回退收紧的区别",
         "为什么存在": "为什么按节点双向封顶与打平排序规则",
         "开了的代价": "调紧放宽的代价与放到-glm-双机"
       },
@@ -6170,7 +6178,9 @@
         "Global Memory",
         "H2D",
         "UVA",
-        "Unified Virtual Addressing"
+        "Unified Virtual Addressing",
+        "为什么显存会满",
+        "显存为什么不够"
       ],
       "chapters": [
         "07",
@@ -6277,7 +6287,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/device-memory.md",
       "backlinks": [
         {
@@ -6598,7 +6608,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/dspark.md",
       "backlinks": []
     },
@@ -6610,7 +6620,7 @@
       "title": "动态分块流水线：按预计耗时切 prefill 块",
       "type": "feature",
       "origin": "gap",
-      "summary": "开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；讲清等长块为什么越来越慢、23 格变 17 格的账、二次曲线反解、开机试跑与时间账，以及 GLM 双机 PP=1 开不了的边界。",
+      "summary": "开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；以 Qwen3-8B 等标准稠密因果模型与 GLM 混合注意力对比讲清等长块变慢原因、二次曲线反解、开机试跑及 main 移除边界。",
       "aliases": [
         "动态分块流水线并行",
         "Dynamic Chunked PP",
@@ -6725,7 +6735,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/dynamic-chunked-pp.md",
       "backlinks": []
     },
@@ -7030,7 +7040,6 @@
       "id": "enable-async-exponential",
       "legacyAnchors": {
         "一句话": "它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？",
-        "事实表": "对照源码",
         "为什么存在": "为什么叫 exponential 而不是 softmax，以及副流重叠的取舍",
         "开了的代价": "历史版本的六项代价、GLM 双机 MTP 形状冲突与升级清理"
       },
@@ -7121,7 +7130,6 @@
       "id": "enable-force-eplb-b7ec3661121f",
       "legacyAnchors": {
         "一句话": "它改变什么为什么只是压测夹具",
-        "事实表": "它改变什么为什么只是压测夹具",
         "为什么存在": "轮转表怎么算何时建表与缓存",
         "开了的代价": "代价互斥边界与放到-glm-双机"
       },
@@ -7260,7 +7268,6 @@
       "id": "enable-matmul-allreduce",
       "legacyAnchors": {
         "一句话": "它曾经融合什么，为什么自 v0.25.1rc1 起被移除？",
-        "事实表": "对照源码",
         "为什么存在": "为什么能藏住通信延迟，以及旧版的派发次序陷阱",
         "开了的代价": "量化不兼容、GLM 双机推演与升级后的配置清理"
       },
@@ -7370,7 +7377,6 @@
       "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
       "legacyAnchors": {
         "一句话": "它怎么按 TP×PCP 切分词表，生效门是什么？",
-        "事实表": "它怎么按 TP×PCP 切分词表，生效门是什么？",
         "为什么存在": "网格切分示例与两侧新增通信",
         "开了的代价": "互斥规则、静态缓冲容量与版本与 GLM 边界"
       },
@@ -7494,7 +7500,6 @@
       "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
       "legacyAnchors": {
         "一句话": "它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？",
-        "事实表": "它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？",
         "为什么存在": "加载期缩片、prefill gather 与 decode all-reduce 的分工",
         "开了的代价": "通信代价、硬约束回退机制与版本与 GLM 边界"
       },
@@ -7630,7 +7635,6 @@
       "id": "enable-sleep-mode-extra-cleanup",
       "legacyAnchors": {
         "一句话": "它额外清理什么，两代配置入口怎么迁？",
-        "事实表": "它额外清理什么，两代配置入口怎么迁？",
         "为什么存在": "休眠与唤醒的清理次序及 HCCL 生命周期锚点",
         "开了的代价": "唤醒代价、常见踩坑、日志定位与启动命令"
       },
@@ -7756,7 +7760,6 @@
       "id": "enable-super-kernel-ce990e186bfa",
       "legacyAnchors": {
         "一句话": "它优化什么，和前两级开关是什么关系？",
-        "事实表": "对照源码",
         "为什么存在": "在哪两步生效，为什么写了 true 却没开？",
         "开了的代价": "启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？"
       },
@@ -8150,7 +8153,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/engine-processes.md",
       "backlinks": [
         {
@@ -8894,7 +8897,7 @@
       "title": "细粒度 TP：为特定模块选择分片组",
       "type": "feature",
       "origin": "gap",
-      "summary": "细粒度 TP 让词表嵌入、lm_head、attention 输出投影、稠密 MLP 各自单独设分片组：沿 DP 方向把服务不同请求的几张卡编成一组，合存一份权重；代价是进出这一层要收集输入、送回结果。GLM 双机没有开启。",
+      "summary": "细粒度 TP 让词表嵌入、lm_head、attention 输出投影与稠密 MLP 沿 DP 方向把服务不同请求的卡编成一组、合存一份权重，代价是进出该层需收集输入与送回结果；以 Qwen3-30B-A3B D 节点与 GLM 双机反例对照收益与边界。",
       "aliases": [
         "Fine-Grained Tensor Parallelism",
         "Fine-grained TP",
@@ -9013,7 +9016,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/fine-grained-tp.md",
       "backlinks": [
         {
@@ -9027,7 +9030,6 @@
       "id": "fuse-allreduce-rms",
       "legacyAnchors": {
         "一句话": "它曾经融合什么，为什么被删除？",
-        "事实表": "对照源码",
         "为什么存在": "为什么和序列并行冲突，v0.23.0 的默认值为什么是分裂的？",
         "开了的代价": "升级报错、编译分区代价，以及 GLM 双机为什么配不上？"
       },
@@ -9133,7 +9135,6 @@
       "id": "fused-op-type-fc0f5fcd7be0",
       "legacyAnchors": {
         "一句话": "它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？",
-        "事实表": "对照源码",
         "为什么存在": "融合算子合并了哪四步，运行时回退与容量门槛怎么算？",
         "开了的代价": "升级后保留旧键会怎样，放到 GLM 双机能跑通吗？"
       },
@@ -9716,7 +9717,7 @@
       "title": "GLM 稠密 MLP 固定版本源码摘录",
       "type": "source",
       "origin": "seed",
-      "summary": "固定 main 与 rc2 的 GLM 稠密前馈实现相同，记录激活限制和序列并行设置；v0.23、v0.26 的指定路径缺失，不能据此判定整个功能不存在。",
+      "summary": "归档早期 main（baa023ad）与 v0.30.0rc2（7d825229）中 Glm5NextMLP 的固定源码摘录，记录激活限制和序列并行设置，并与 GLM 双机基线（db701c1f）区分。",
       "aliases": [
         "Glm5NextMLP",
         "GLM MLP",
@@ -9930,7 +9931,7 @@
       "title": "graph mode：录一次执行次序，之后整串回放",
       "type": "feature",
       "origin": "gap",
-      "summary": "从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；区分编译改写、捕获与回放，列出官方双机上 FULL_DECODE_ONLY 配方指定的 7 个捕获尺寸、一轮选择哪张图的五条判据，以及回放前必须更新什么。",
+      "summary": "从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与 GLM 双机 FULL_DECODE_ONLY 7 档尺寸对照，讲清编译改写、捕获、五条回放判据与缓冲原地更新。",
       "aliases": [
         "ACL Graph",
         "ACLGraphWrapper",
@@ -10106,7 +10107,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-26",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
         {
@@ -10335,7 +10336,7 @@
       "title": "HCCL buffer：通信缓冲怎样配置与占用显存",
       "type": "concept",
       "origin": "gap",
-      "summary": "HCCL buffer 为集合通信提供设备中转空间；讲清逐组配置、环境变量和底层通信组复用的区别，以及 GLM 双机的配置预算怎样影响 KV cache 可用显存。",
+      "summary": "HCCL buffer 为集合通信提供设备中转空间；以 Qwen3-8B / Qwen3-30B-A3B 与 GLM 双机对照讲清逐组配置、环境变量、通信域复用及显存预算影响。",
       "aliases": [
         "HCCL buffer",
         "HCCL_BUFFSIZE",
@@ -10438,7 +10439,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/hccl-buffer.md",
       "backlinks": [
         {
@@ -10841,7 +10842,7 @@
         "vllm@0fc695fc:vllm/renderers/hf.py#L695-L746",
         "vllm@0fc695fc:docs/usage/reproducibility.md#L1-L24",
         "https://huggingface.co/docs/transformers/chat_templating",
-        "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html",
         "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L366-L420",
         "raw:sha256-a28c4479cb8576de061fe485dc0b2822395ead2da38946ef10cd3b152953b055.md#L1-L282",
         "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/renderers/hf.py#L731-L745",
@@ -10971,7 +10972,7 @@
         "https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996",
-        "https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html",
         "raw:sha256-8fbd62f4df5b3f95ec4c4edef230f7e4721c11aa3d0e2efbf6765fb1d1883647.md#L1-L219",
         "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L538-L546",
         "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L574-L577",
@@ -11164,7 +11165,9 @@
         "单位卡产出",
         "性能瓶颈排查",
         "延迟优化",
-        "吞吐调优"
+        "吞吐调优",
+        "VLLM_LOGGING_LEVEL=DEBUG",
+        "log_memory_stats"
       ],
       "chapters": [
         "19"
@@ -11175,7 +11178,7 @@
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L416",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996",
         "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62",
-        "https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html",
         "raw:sha256-9a505e371ad9cac4f50bfdeb032e492d47015235f0b895f1dbee4633f0f4c326.md#L1-L206",
         "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/model_runner_v1.py#L2914-L2996",
         "raw:sha256-3e27f506a54dd667865dd7464a2a928d626d75896ef7442f2fc6695208165fd5.md#L1-L292",
@@ -11286,7 +11289,7 @@
         "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L200-L282",
         "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426",
         "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62",
-        "https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html",
         "vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L200",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2050-L2110",
         "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L663",
@@ -11410,8 +11413,8 @@
         "vllm@ced6857a:vllm/v1/engine/async_llm.py#L848-L860",
         "vllm@ced6857a:vllm/v1/metrics/loggers.py#L508-L572",
         "vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L828",
-        "https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html",
-        "https://docs.vllm.ai/projects/ascend/en/main/faqs.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/faqs.html",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L545",
         "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L489-L530",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L680",
@@ -12077,7 +12080,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/kv-cache-layerwise-offload.md",
       "backlinks": [
         {
@@ -12123,7 +12126,9 @@
         "non_torch_increase",
         "non_torch",
         "非 torch 增量",
-        "CacheConfig"
+        "CacheConfig",
+        "total_npu_memory",
+        "60.96 GiB"
       ],
       "chapters": [
         "05"
@@ -12410,7 +12415,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/kv-cache-quantization.md",
       "backlinks": [
         {
@@ -12562,7 +12567,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/kv-cache-sparse-offload.md",
       "backlinks": [
         {
@@ -13060,7 +13065,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/kv-pool.md",
       "backlinks": [
         {
@@ -13174,7 +13179,7 @@
       "title": "KVPP：KV cache 按层分给各卡常驻，算到时整层广播",
       "type": "feature",
       "origin": "gap",
-      "summary": "TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2 个暂存区，算到某层时由常驻卡提前一层整层广播。讲清分法、容量账、广播与等待、能和谁一起开；已钉 main 与 rc2 都有此实现，只接受非混合 MLA 模型，GLM 双机没有开也开不了，GLM 段只做变体推导。",
+      "summary": "TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2 个暂存区，算到某层时由常驻卡提前一层整层广播。对照 GQA（如 Qwen3-8B）为何无需 KVPP，讲清分法、容量账、广播与等待，以及 v0.30.0 与 main 的非混合 MLA 支持边界。",
       "aliases": [
         "KVPP",
         "KV Pipeline Parallelism",
@@ -13309,7 +13314,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/kvpp.md",
       "backlinks": [
         {
@@ -13328,7 +13333,6 @@
       "id": "kvpp-config-0445bd352140",
       "legacyAnchors": {
         "一句话": "为什么它是派生对象而非用户输入键？",
-        "事实表": "为什么它是派生对象而非用户输入键？",
         "为什么存在": "统一推导规则与 size > 1 触发的三条链路",
         "开了的代价": "误写静默过滤、校验条件演变与 GLM 双机分析"
       },
@@ -13576,7 +13580,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/large-scale-ep.md",
       "backlinks": [
         {
@@ -13610,7 +13614,6 @@
       "id": "layer-sharding",
       "legacyAnchors": {
         "一句话": "它曾如何按层轮放权重，为什么 v0.24 起已删除？",
-        "事实表": "它曾如何按层轮放权重，为什么 v0.24 起已删除？",
         "为什么存在": "层间广播机制、通信组构造与与 PP/TP 的区别",
         "开了的代价": "显存与通信账、冲突边界及向新权重切换机制的迁移"
       },
@@ -13870,12 +13873,17 @@
       "title": "阅读指南：这个知识库讲什么，按什么顺序读",
       "type": "concept",
       "origin": "direct",
-      "summary": "知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与四大交互工程实验室。",
+      "summary": "知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」五套交互工作台。",
       "aliases": [
         "学习路线",
         "阅读顺序",
         "入门指南",
-        "无设备学习"
+        "无设备学习",
+        "怎么读",
+        "零基础入门",
+        "部署与排障",
+        "生产故障演练场",
+        "生产故障通关场"
       ],
       "chapters": [
         "00"
@@ -13897,7 +13905,7 @@
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/learning-guide.md",
       "backlinks": [
         {
@@ -14334,7 +14342,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/lmcache.md",
       "backlinks": [
         {
@@ -14353,7 +14361,6 @@
       "id": "load-risk-quantile-d89a080ba048",
       "legacyAnchors": {
         "一句话": "它管什么分位数如何换算为风险分数",
-        "事实表": "它管什么分位数如何换算为风险分数",
         "为什么存在": "为什么算波动和协方差以及它用在哪里不用在哪里",
         "开了的代价": "调高调低的边界与放到-glm-双机"
       },
@@ -14459,7 +14466,6 @@
       "id": "load-window-bins-cc21068b082d",
       "legacyAnchors": {
         "一句话": "它管什么分段压缩怎么切",
-        "事实表": "它管什么分段压缩怎么切",
         "为什么存在": "为什么先压缩压缩后什么不变什么会变",
         "开了的代价": "调大调小的反直觉边界与放到-glm-双机"
       },
@@ -15567,7 +15573,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/model-runner-v2.md",
       "backlinks": [
         {
@@ -15969,7 +15975,9 @@
         "kv_transfer_config",
         "kv_connector_extra_config",
         "Mooncake TransferEngine",
-        "逐层推 KV"
+        "逐层推 KV",
+        "Dest buffer device_id",
+        "transfer_executor_base.cpp"
       ],
       "chapters": [
         "18"
@@ -16496,7 +16504,6 @@
       "id": "multistream-overlap-gate",
       "legacyAnchors": {
         "一句话": "它曾做什么，为什么 v0.24 起已移除？",
-        "事实表": "它曾做什么，为什么 v0.24 起已移除？",
         "为什么存在": "在 v0.23.0 里怎么跨流重叠，消费条件是什么？",
         "开了的代价": "旧部署的风险、迁移清理与 GLM 双机推演"
       },
@@ -17302,7 +17309,7 @@
       "title": "编译图融合：把相邻两步合成一个算子，再分档复用执行",
       "type": "feature",
       "origin": "gap",
-      "summary": "从中间张量的一写一读讲清编译期融合，列出固定源码里的四条融合规则、它们各自的条件，并区分 npugraph_ex 后端、static kernel 与分档捕获在 GLM 双机 MTP 验证那一步各自管什么。 同时说明编译缓存怎样复用产物，以及视觉编码器编译与视觉图捕获的区别。",
+      "summary": "从中间张量的一写一读讲清编译期融合，列出四条本地融合规则与各自命中条件（以 Qwen3-8B / Qwen3-30B-A3B 的 QKNorm+RoPE、残差归一化量化与 GLM 双机 MTP 验证边界对照），并区分 npugraph_ex 后端、static kernel、编译缓存与分档捕获的职责。",
       "aliases": [
         "编译期图融合",
         "图融合 pass",
@@ -17477,7 +17484,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-26",
       "file": "concepts/npugraph-ex.md",
       "backlinks": [
         {
@@ -17684,7 +17691,7 @@
       "title": "从算子到 AI Core：分工、融合与分块",
       "type": "concept",
       "origin": "gap",
-      "summary": "在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm 路径和可选残差融合分支对照说明。",
+      "summary": "逐层前向中，算子怎样拆成矩阵（Cube）与向量（Vector）执行段、Host 怎样做分块规划（tiling）、设备怎样搬入计算并写回；以 Qwen3-8B 标准残差融合 RMSNorm 与 GLM 双机 mHC 单参路径对照说明。",
       "aliases": [
         "算子链路",
         "AscendRMSNorm",
@@ -17777,7 +17784,7 @@
         {
           "to": "prepare-inputs-flow",
           "kind": "builds-on",
-          "note": "往前追踪 A3 的块表、槽位和注意力元数据"
+          "note": "往前追踪准备输入阶段的块表、槽位和注意力元数据"
         },
         {
           "to": "ai-core",
@@ -17787,7 +17794,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-26",
       "file": "concepts/op-to-ai-core.md",
       "backlinks": [
         {
@@ -18201,7 +18208,9 @@
         "AscendDirectTransport",
         "ECCPUConnector",
         "KV 租约",
-        "双向 KV 传输"
+        "双向 KV 传输",
+        "预填充与解码分离",
+        "两拨卡分离"
       ],
       "chapters": [
         "18"
@@ -18630,7 +18639,6 @@
       "id": "placement-search-backtrack-limit-82b03cef98b0",
       "legacyAnchors": {
         "一句话": "它管什么什么才扣回溯预算",
-        "事实表": "它管什么什么才扣回溯预算",
         "为什么存在": "为什么带约束-lpt-需要有界回溯",
         "开了的代价": "调大调小的边界与放到-glm-双机"
       },
@@ -19138,7 +19146,6 @@
       "id": "prefetch-ratio",
       "legacyAnchors": {
         "一句话": "这组比例控制什么，为什么 v0.24 起已删除？",
-        "事实表": "这组比例控制什么，为什么 v0.24 起已删除？",
         "为什么存在": "比例怎样换算成预取字节数，哪些路径不归它管？",
         "开了的代价": "调参陷阱、版本清理与 GLM 双机推演"
       },
@@ -19259,7 +19266,11 @@
         "prompt_logprobs",
         "prompt logprobs",
         "提示词概率",
-        "提示词对数概率"
+        "提示词对数概率",
+        "为什么第一个字慢",
+        "首字慢后面快",
+        "第一个字慢",
+        "首字延迟"
       ],
       "chapters": [
         "03"
@@ -19775,7 +19786,7 @@
         {
           "from": "op-to-ai-core",
           "kind": "enables",
-          "note": "往前追踪 A3 的块表、槽位和注意力元数据"
+          "note": "往前追踪准备输入阶段的块表、槽位和注意力元数据"
         }
       ]
     },
@@ -19783,7 +19794,6 @@
       "id": "profiling-chunk-config",
       "legacyAnchors": {
         "一句话": "它解决什么问题，适用范围与版本状态是什么？",
-        "事实表": "它解决什么问题，适用范围与版本状态是什么？",
         "为什么存在": "先量再算：启动拟合、公式平滑与在线校准",
         "在线校准默认随功能打开满足条件后自动停止": "在线校准怎么启动、切换与停止？",
         "收益有多少": "官方基准数字、代价与排障边界",
@@ -20140,7 +20150,9 @@
         "INT8累加",
         "量化溢出",
         "Rel-L2",
-        "阿姆达尔定律"
+        "阿姆达尔定律",
+        "量化怎么选",
+        "掉点排查"
       ],
       "chapters": [
         "11",
@@ -20215,7 +20227,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/quantization-evaluation.md",
       "backlinks": []
     },
@@ -20474,7 +20486,6 @@
       "id": "rank-transfer-limit-99529b37d91d",
       "legacyAnchors": {
         "一句话": "它管什么声明默认与-gloo-回退收紧的区别",
-        "事实表": "它管什么声明默认与-gloo-回退收紧的区别",
         "为什么存在": "为什么按卡双向限额并截断副本调整步数",
         "开了的代价": "调大调紧的代价与放到-glm-双机"
       },
@@ -20823,7 +20834,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/recompute-cpu-offload.md",
       "backlinks": [
         {
@@ -20989,7 +21000,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/recompute-scheduler.md",
       "backlinks": [
         {
@@ -21013,7 +21024,6 @@
       "id": "relative-balance-threshold-bcbc40e7dc87",
       "legacyAnchors": {
         "一句话": "它管什么相对门槛怎么触发",
-        "事实表": "它管什么相对门槛怎么触发",
         "为什么存在": "为什么需要相对锚点与绝对门槛如何配合",
         "开了的代价": "调高调低的代价与放到-glm-双机"
       },
@@ -21106,7 +21116,6 @@
       "id": "replica-search-beam-size-6556d1650a62",
       "legacyAnchors": {
         "一句话": "它管什么束宽在三处起作用",
-        "事实表": "它管什么束宽在三处起作用",
         "为什么存在": "为什么用粗分数截断并强制保留份数不变",
         "开了的代价": "调大调小的代价写-1-陷阱与放到-glm-双机"
       },
@@ -21197,7 +21206,6 @@
       "id": "replica-search-num-stages-e4b10925ff97",
       "legacyAnchors": {
         "一句话": "它管什么专家怎么分组搜索",
-        "事实表": "它管什么专家怎么分组搜索",
         "为什么存在": "副本数搜索完整走法与手算例子",
         "开了的代价": "段数增减的代价与放到-glm-双机"
       },
@@ -21300,7 +21308,6 @@
       "id": "replica-search-radius-cd3118b5aae5",
       "legacyAnchors": {
         "一句话": "它管什么每段试哪些预算值",
-        "事实表": "它管什么每段试哪些预算值",
         "为什么存在": "为什么要在贪心附近试探与示意走读",
         "开了的代价": "半径增减的代价边界与放到-glm-双机"
       },
@@ -21747,7 +21754,7 @@
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-26",
       "file": "concepts/request-overview.md",
       "backlinks": [
         {
@@ -23983,7 +23990,6 @@
       "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
       "legacyAnchors": {
         "一句话": "它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化",
-        "事实表": "对照源码",
         "为什么存在": "为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？",
         "开了的代价": "额外复制量怎么算、PCP+DCP 与 GLM 双机边界",
         "源码位置": "对照源码"
@@ -24314,7 +24320,6 @@
       "id": "size-40a1c2ca47b8",
       "legacyAnchors": {
         "一句话": "size 是什么，由谁算出、为什么不能手写？",
-        "事实表": "对照源码",
         "为什么存在": "建组、分层归属和显存放大上限怎么算？",
         "开了的代价": "调 TP/PCP 时的通信与余数代价，以及 GLM 双机边界"
       },
@@ -25101,7 +25106,6 @@
       "id": "stair-config-cca9e594a052",
       "legacyAnchors": {
         "一句话": "它管什么十个旋钮如何配合",
-        "事实表": "它管什么十个旋钮如何配合",
         "为什么存在": "一轮规划怎么走与-mrv1--mrv2-边界",
         "开了的代价": "代价通信器回退陷阱与放到-glm-双机"
       },
@@ -25815,6 +25819,7 @@
         "SWA Bounded Replay",
         "有界回放",
         "滑窗重算",
+        "滑动窗口回放",
         "YoCo",
         "YOCO",
         "Zero SWA Caching",
@@ -25884,7 +25889,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/swa-bounded-replay.md",
       "backlinks": [
         {
@@ -25931,7 +25936,9 @@
         "additional_config.weight_nz_mode",
         "TransdataOperation",
         "分形排布",
-        "内存补齐"
+        "内存补齐",
+        "分形布局",
+        "NZ布局是什么"
       ],
       "chapters": [
         "07",
@@ -26270,7 +26277,7 @@
         "r1-在入口拿到了什么": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转",
         "再交给某一个引擎等待调度": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转"
       },
-      "title": "Token、分词与 chat_template：从文本消息到模型编号序列",
+      "title": "Token 与分词：从文本消息、chat_template 到模型编号序列",
       "type": "concept",
       "origin": "gap",
       "summary": "Token 是模型用整数编号表示的文本基本单元。本页从子词权衡与字节级 BPE 合并讲起，串联 chat_template 渲染、增量反分词与 Qwen3-8B 的 151936 词表校验，并对照特殊标记区间与 GLM 入口边界。",
@@ -26631,7 +26638,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-24",
+      "updated": "2026-11-26",
       "file": "concepts/ucm.md",
       "backlinks": [
         {
@@ -26655,7 +26662,6 @@
       "id": "use-fused-overlap-75a180fff6ab",
       "legacyAnchors": {
         "一句话": "它控制哪条 decode 路径，和 Copy-SFA 是什么关系？",
-        "事实表": "它控制哪条 decode 路径，和 Copy-SFA 是什么关系？",
         "为什么存在": "分段流水、TP 分工与对象常驻开销",
         "开了的代价": "报错陷阱、容量边界与版本演进"
       },
@@ -26811,7 +26817,6 @@
       "id": "use-layerwise-b475778cd352",
       "legacyAnchors": {
         "一句话": "它配在哪里，四处同名键怎么区分？",
-        "事实表": "它配在哪里，四处同名键怎么区分？",
         "为什么存在": "开启后牵动的三类分叉与后端协议",
         "开了的代价": "图模式改写、拓扑与混合缓存约束及 GLM 双机说明"
       },
@@ -27031,7 +27036,7 @@
       "title": "v0.30.0rc2 的版本基线与阅读边界",
       "type": "source",
       "origin": "seed",
-      "summary": "固定用户指定的 Ascend rc2 分支及配套 vLLM，区分 PCP、DCP、DSA-CP、执行器和 GLM 教学基线，避免把正式版或浮动 main 的行为混入对照。",
+      "summary": "归档历史 v0.30.0rc2（7d825229）快照及配套 vLLM（ced6857a）的阅读边界，区分 PCP、DCP、DSA-CP、执行器与 GLM 例外基线；当前全站默认主基线已升级为 v0.30.0 正式版（c09d3e20）。",
       "aliases": [
         "v0.30.0rc2",
         "0.30",
@@ -27436,7 +27441,7 @@
       "title": "源码目录地图：把文件放回推理架构",
       "type": "concept",
       "origin": "gap",
-      "summary": "用启动、调度、执行、模型、状态与通信职责定位目录，沿 GLM 的执行路径选择阅读入口，区分上游框架和 Ascend 适配。",
+      "summary": "用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与 GLM 异构路径选择阅读入口，区分上游框架和 Ascend 适配。",
       "aliases": [
         "目录结构",
         "代码结构",
@@ -27524,7 +27529,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-26",
       "file": "concepts/vllm-ascend-repo-map.md",
       "backlinks": [
         {
@@ -27539,7 +27544,7 @@
       "title": "EngineCore：vLLM 里一圈一圈推着请求往前走的循环",
       "type": "concept",
       "origin": "gap",
-      "summary": "EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 → 按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；它默认单独占一个进程，让前端收发和后端计算互不阻塞。本页讲一圈的顺序、一圈交回几个 token、空闲与取消、批次队列，以及 GLM 双机上两个 EngineCore 怎样逐圈推进 R1。",
+      "summary": "EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 → 按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与 GLM 双机双 EngineCore 对照讲清一圈顺序、产出 token 数、空闲与取消及异步批次队列。",
       "aliases": [
         "busy loop",
         "忙循环",
@@ -27649,7 +27654,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-26",
       "file": "concepts/vllm-engine-core.md",
       "backlinks": [
         {
@@ -27824,7 +27829,7 @@
       "title": "Platform：硬件适配的接口契约",
       "type": "concept",
       "origin": "gap",
-      "summary": "Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿 A0 启动分清平台、Worker 与模型的职责，以及主机内存、设备显存和 token 预算的边界。",
+      "summary": "Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿服务启动全流程分清平台、Worker 与模型的职责，并以 Qwen3-8B 标准单机与 GLM 双机对照说明主机内存、设备显存和 token 预算的边界。",
       "aliases": [
         "Platform",
         "current_platform",
@@ -27937,7 +27942,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-26",
       "file": "concepts/vllm-platform-interface.md",
       "backlinks": [
         {
@@ -28360,7 +28365,6 @@
       "id": "weight-prefetch-config",
       "legacyAnchors": {
         "一句话": "它曾做什么，为什么 v0.24 起已删除？",
-        "事实表": "它曾做什么，为什么 v0.24 起已删除？",
         "为什么存在": "四类比例钩子、MLA 独立预取与切流同步",
         "开了的代价": "触发门槛、代价与 GLM 双机逐项推演"
       },

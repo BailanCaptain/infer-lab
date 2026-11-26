@@ -208,9 +208,9 @@ LoRA（Low-Rank Adaptation，低秩适配）换了个办法：**基座权重 W �
 - 原来那一路：输入 x 乘基座 W，和没挂之前完全一样；
 - 新挂的那一路：x 先乘 A 压窄、再乘 B 抬回来，乘一个固定比例 s 之后加上去。
 
-三个名字先说清楚：中间那个窄维度叫**秩**（rank）r，常见取 8、16、32；一次微调在所有被挑中的层上留下的那一包 A、B，合起来叫一个**适配器**（adapter）；加回去时乘的那个固定系数叫**缩放**（scaling）s。在材料所示的权重处理实现中，没有显式提供缩放时采用 `s = α / r`，这里的 r 是适配器的实际秩，α 是训练时定的超参，跟着适配器一起存下来；显式提供缩放时则采用给定值。一个适配器通常覆盖好几类层的多对 A、B，不是整个模型只有两个小矩阵。
+三个名字先说清楚：中间那个窄维度叫**秩**（rank）r，常见取 8、16、32；一次微调在所有被挑中的层上留下的那一包 A、B，合起来叫一个**适配器**（adapter）；加回去时乘的那个固定系数叫**缩放**（scaling）s。在 vLLM 的权重加载实现中，没有显式提供缩放时采用 `s = α / r`，这里的 r 是适配器的实际秩，α 是训练时定的超参，跟着适配器一起存下来；显式提供缩放时则采用给定值。一个适配器通常覆盖好几类层的多对 A、B，不是整个模型只有两个小矩阵。
 
-服务保留这条计算旁路，以便按请求选择适配器；使用适配器时，要多算“压窄、抬回”两次乘法，并为适配器权重和中间结果留出存储空间。
+服务保留这条计算旁路，以便按请求选择适配器；使用适配器时，要多算“压窄、抬回”两次乘法，并为适配器权重和中间结果留出存储空间。一线在 `v0.30.0` 主基线上开 `--enable-lora` 前先记住三条硬规矩：**① 设备显存按 `--max-loras × --max-lora-rank` 预付**（不挂适配器就别开总开关）；**② `max_loras=1` 在 A2/A3 上有 Triton 融合快路，但 `max_lora_rank >= 128` 会静默退回纯 PyTorch 慢路径**；**③ MoE 模型同时开 `LoRA + EP>1` 会强制切至 `ALLTOALL` 通信**（已支持非量化与 W8A8 动态量化，不支持 Fused MC2 与动态 EPLB）。
 
 ```wiki-diagram
 file: lora
@@ -353,11 +353,12 @@ file: lora-fig-punica-paths
 - 三个参数：`--max-loras`（一步里的名额，默认 1）、`--max-lora-rank`（最大秩，默认 16，取值限定在 1/8/16/32/64/128/256/320/512）、`--max-cpu-loras`（CPU 侧缓存份数，不写就等于名额）；字段声明见来源 13，最大秩的允许集合见来源 33，CPU 缓存份数的默认归一化见来源 34。[C13]
 - 本部署没开这个开关：双机教程的启动命令与[部署前提](glm-5-3-flash-two-node.md#部署前提)里都没有 LoRA 相关项。
 
-**注册名决定请求选谁。** 2026-11-02 官方指南用 name 注册适配器，path 指向包含 adapter_config.json 和权重的 PEFT 目录，base_model_name 填写要展示的基座关系。下面是合入兼容部署的启动片段，假设适配器秩为 8：
+**注册名决定请求选谁。** 官方指南用 `name` 注册适配器，`path` 指向包含 `adapter_config.json` 和权重的 PEFT 目录，`base_model_name` 填写要展示的基座关系。下面是面向 `v0.30.0` 主基线 `Qwen/Qwen3-8B` 的配置形式示例（假设适配器秩为 8，未在设备上执行；上游 `2026-11-02` 指南原例以 `Qwen/Qwen3.5-27B` 演示同一 JSON 结构）：
 
 ```bash
---enable-lora --max-loras 1 --max-lora-rank 8 \
---lora-modules '{"name":"task-lora","path":"/models/task-lora","base_model_name":"Qwen/Qwen3.5-27B"}'
+vllm serve Qwen/Qwen3-8B \
+  --enable-lora --max-loras 1 --max-lora-rank 8 \
+  --lora-modules '{"name":"task-lora","path":"/models/task-lora","base_model_name":"Qwen/Qwen3-8B"}'
 ```
 
 请求同一个 /v1/chat/completions 接口时，model 填 task-lora 选择这份适配器；填服务的基座名称且没有命中默认多模态适配器时，才只用基座。base_model_name 不是客户端选名，基座名称以 served-model-name 或服务实际公布的名称为准。例如请求体可写：

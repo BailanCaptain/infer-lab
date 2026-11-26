@@ -44,7 +44,7 @@ sources:
   - 'vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
   - >-
-    https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html
+    https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html
   - >-
     raw:sha256-8fbd62f4df5b3f95ec4c4edef230f7e4721c11aa3d0e2efbf6765fb1d1883647.md#L1-L219
   - >-
@@ -525,5 +525,5 @@ Roofline 与关键路径分析方法在四版保持不变（基础原理回链[R
 - 离线快照与四版对照：来源 84–99 核对 `v0.23.0`、`v0.26.0rc`、`v0.30.0`（`ced6857a`）与早期快照的构造默认、`get_metrics`、统计更新与读取器；`main`（`ba15685a`）最新入口见 `vllm@ba15685a:vllm/entrypoints/llm.py#L897-L915` 与 `vllm@ba15685a:vllm/v1/engine/llm_engine.py#L319-L360`。前后 100→140 是累计量差分示意，不是设备采集结果。
 - 基础指标、KV 保留采样与 OTLP：来源 38–83 覆盖四版指标定义、发布消费者、块池采样与 Prometheus/Grafana/OTLP 规则；`main`（`ba15685a`）对应见 `vllm@ba15685a:vllm/v1/metrics/loggers.py#L473-L520` 与 `vllm@ba15685a:vllm/config/observability.py#L20-L72`。9/4/3 秒是本页示意事件的推导。
 - 在线六项日志参数与 Ascend Profiler：来源 9–37 覆盖 `v0.23.0` / `v0.26.0rc` / `v0.30.0`（`ced6857a`）；`v0.30.0` 主基线与 `main` 的 Ascend Profiler 入口见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1260`、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1350` 与两版 `vllm_ascend/profiler/torch_npu_profiler.py#L29-L74`，`main` 日志/统计见 `vllm@ba15685a:vllm/envs.py#L900-L924`、`vllm@ba15685a:vllm/logger.py#L207-L240` 与 `vllm@ba15685a:vllm/v1/engine/async_llm.py#L258-L300`。
-- Roofline 理论、引擎批次队列与采集指南：参见 [Berkeley Lab 原作者团队说明](https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/) [S1]、`EngineCore`（`vllm@0fc695fc:vllm/v1/engine/core.py#L538-L546`、`#L574-L577`）[C2]、GLM runner（`vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2914-L2940`）[C3] 与[官方服务 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
+- Roofline 理论、引擎批次队列与采集指南：参见 [Berkeley Lab 原作者团队说明](https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/) [S1]、`EngineCore`（`vllm@0fc695fc:vllm/v1/engine/core.py#L538-L546`、`#L574-L577`）[C2]、GLM runner（`vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2914-L2940`）[C3] 与[官方服务 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
 - 矩阵尺寸、设备能力和重叠时间均为教学假设 [A]，相应流量与时间为推导 [D]；现场假设的组织方法为本站编排 [I]。当前没有目标设备计数器与 A/B 实测。

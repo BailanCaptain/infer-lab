@@ -274,5 +274,22 @@
       "sub": "末位 …0111",
       "tone": "danger"
     }
+  ],
+  "pins": [
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189",
+      "symbols": [
+        "enable_batch_invariant_mode",
+        "override_envs_for_invariance",
+        "init_batch_invariance"
+      ]
+    },
+    {
+      "source": "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L590",
+      "symbols": [
+        "enable_custom_op",
+        "VLLM_BATCH_INVARIANT"
+      ]
+    }
   ]
 }

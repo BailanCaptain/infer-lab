@@ -382,10 +382,16 @@ function isHcclTimeoutFaultLine(rawLine: string): boolean {
 }
 
 const SLEEP_FRACTAL_NZ_ERROR_RE =
-  /FRACTAL_NZ mode is enabled|Invocation of wake_up method failed[^\r\n]*FRACTAL_NZ|Please set weight_nz_mode=0/i;
+  /FRACTAL_NZ mode is enabled|(?:Invocation of|Call to) wake_up method failed[^\r\n]*FRACTAL_NZ|Please set weight_nz_mode=0/i;
 
 const GQA_STATIC_C8_KV_RE =
-  /The current GQA[-\u2010-\u2015\s]related models adopt static quantization|KV quantization is configured via `--kv[-\u2010-\u2015]cache[-\u2010-\u2015]dtype`[^\r\n]*quantized weights are required/i;
+  /The current GQA[-\u2010-\u2015\s]related models adopt static quantization|KV quantization is configured via [`'"]?--kv[-\u2010-\u2015]cache[-\u2010-\u2015]dtype[`'"]?[^\r\n]*quantized weights are required/i;
+
+const MOONCAKE_ADXL_FALLBACK_RE =
+  /Dest buffer device_id(?:\s*=\s*\d+)?\s*>=\s*endpoint count\b[^\r\n]*\bfalling back\b|transfer_executor_base\.cpp:\d+\]\s*Dest buffer device_id\b/i;
+
+const DEBUG_LOGGING_HOTPATH_RE =
+  /(?<!without\s)\bVLLM_LOGGING_LEVEL\s*[:=]\s*['"]?DEBUG['"]?\b|\bDEBUG\b[^\r\n]*\btorch reserved memory:\s*[\d.]+\s*GiB,\s*torch allocated memory:\s*[\d.]+\s*GiB|\bDEBUG\b[^\r\n]*\bRunning batch with cudagraph_mode:\s*(?:FULL|PIECEWISE)\b/i;
 
 const MOONCAKE_PD_ERROR_RE =
   /Mooncake worker requires|Prefill TP size must be divisible by Decode TP size|MooncakeConnector\w*\b[^'\r\n]{0,40}\b(?:does not support|not supported|unsupported|failed|error|timeout|refused)|(?:ValueError|RuntimeError|AssertionError|ERROR)\b[^\r\n]*\bMooncakeConnector|\bmooncake\b(?![^\r\n]*kv_load_failure_policy)[^\r\n]{0,48}\b(?:failed|error|handshake\s+(?:failed|error|timeout)|refused|timeout)\b|\bRDMA\b[^\r\n]{0,30}\b(?:init\s+failed|register\s+failed|failed|error|timeout)\b/i;
@@ -902,7 +908,9 @@ function evaluateRules(
         : is310p
           ? "在 310P 上显式添加 --dtype float16（避免 BF16）；若需量化，使用 ModelSlim INT8 权重配 --quantization ascend。"
           : "核对 npu-smi 芯片型号与 wheel 的 SOC_VERSION，重新安装对应芯片族的 vllm-ascend 包后最小启动复测。",
-      wikiPageIds: ["hardware-devices", "quantization", "kv-cache-quantization"],
+      wikiPageIds: isGqaC8
+        ? ["kv-cache-quantization", "quantization", "kv-cache-spec"]
+        : ["hardware-devices", "quantization", "kv-cache-quantization"],
     });
   }
 
@@ -1081,12 +1089,71 @@ function evaluateRules(
       sources: [
         `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L279-L286`,
         `${VLLM_ASCEND_V030}:vllm_ascend/utils.py#L373-L386`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/model_loader/rfork/safety.py#L9-L18`,
       ],
       nextEvidenceCmd:
         "grep -nE 'enable_sleep_mode|weight_nz_mode|FRACTAL_NZ|CaMem sleep|wake_up' vllm_serve.log",
       experimentStep:
         "启动参数追加 --additional-config '{\"weight_nz_mode\": 0}'（或开启 rl_config.enabled=true）后重新验证 sleep(1) -> wake_up() 闭环（BF16 模型由 mode=1 改 0 不影响常规算子布局；注意启用 Sleep 会使 RFork 回退默认加载）。",
-      wikiPageIds: ["npu-worker-lifecycle", "device-memory", "quantization", "core-cli-params"],
+      wikiPageIds: ["sleep-mode", "tensor-layout", "npu-worker-lifecycle", "device-memory"],
+    });
+  }
+
+  // Rule 11: Mooncake ADXL endpoint fallback warning storm (Dest buffer device_id >= endpoint count)
+  const r11Matches = collectMatches(lines, MOONCAKE_ADXL_FALLBACK_RE);
+  if (r11Matches.length > 0) {
+    const totalFallbackCount = lines.filter((l) => MOONCAKE_ADXL_FALLBACK_RE.test(l.rawLine)).length;
+    findings.push({
+      ruleId: "mooncake-adxl-endpoint-fallback",
+      title: "Mooncake ADXL 多卡端点回退刷屏告警（Dest buffer device_id >= endpoint count）",
+      severity: "warn",
+      category: "kv-transfer",
+      evidenceLevel: "C",
+      summary: `Decode 端拉取远端 KV Cache 时，Mooncake ADXL（transfer_executor_base.cpp:64）因目的缓冲区 device_id 超出单会话暴露的直连 endpoint 数而触发回退刷屏（当前日志片段命中 ${totalFallbackCount} 行；Ascend 910B3 真机 2P2D / 4P4D 压测分别刷出 4,991 行与 19,941 行），放大主机 I/O 开销与首字延迟（TTFT）。`,
+      mechanism:
+        "vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py 初始化单进程 GlobalTE（ascend 协议），并在 mooncake_connector.py 中调用 batch_transfer_sync_read 批量拉取离散 KV 段（如 Qwen3-8B 单请求 3 块 × 36 层 × K/V = 216 段）。当多卡 TP/EP 下目的缓冲区的 device_id 大于或等于当前 ADXL endpoint count 时，底层逐段打印回退日志并改走回退端点，虽不中断推理但显著拖慢 P→D 交接。",
+      matchedLines: r11Matches,
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L11-L40`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L789-L835`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1040-L1058`,
+      ],
+      nextEvidenceCmd:
+        "grep -c 'Dest buffer device_id' decode.log && grep -E 'KV cache transfer for request|Dest buffer device_id' decode.log | head -n 20",
+      experimentStep:
+        "1) 统计 decode.log 中该告警总行数与单请求 KV cache transfer 耗时，区分是万行日志刷屏开销还是跨卡传输慢；2) 核对双端 ASCEND_RT_VISIBLE_DEVICES、HCCN RoCE/HCCS 网卡端点映射与 Mooncake ADXL 配置；3) 若线上为均匀短输入且无长 Prefill 阻塞，对比单池混部 ACLGraph 吞吐与 TTFT 评估是否无需拆池。",
+      wikiPageIds: ["mooncake-connector", "pd-disaggregation", "ascend-910b3-measured-baseline"],
+    });
+  }
+
+  // Rule 12: VLLM_LOGGING_LEVEL=DEBUG per-step hot-path overhead inflating TTFT
+  const r12Matches = collectMatches(lines, DEBUG_LOGGING_HOTPATH_RE);
+  if (r12Matches.length > 0) {
+    findings.push({
+      ruleId: "debug-logging-hotpath-overhead",
+      title: "开启 VLLM_LOGGING_LEVEL=DEBUG 触发每步热路径检查与日志刷屏，显著推高 TTFT",
+      severity: "warn",
+      category: "graph",
+      evidenceLevel: "C",
+      summary:
+        "检测到服务处于 VLLM_LOGGING_LEVEL=DEBUG 调试日志模式（如 worker.py 每步打印 torch reserved/allocated memory 或热路径逐批刷屏）。在 Ascend 910B3 真机实测中，仅误留 DEBUG 日志即令 Qwen3-8B TP=8 (c=1) 首字延迟 TTFT 从 139.07 ms 劣化至 193.98 ms（+39.48%）。",
+      mechanism:
+        "开启 VLLM_LOGGING_LEVEL=DEBUG 会同时激活两处每步热路径 Host 开销：1) vllm_ascend/worker/worker.py#L762-L778 在每次 execute_model() 首行调用 log_memory_stats() 读取 PyTorch 缓存分配器计数（memory_reserved / memory_allocated，注意并非设备同步 mem_get_info）并格式化写日志（910B3 TP=8 压测刷出 3,312 行）；2) vllm_ascend/compilation/acl_graph.py#L275-L282 在每次 ACLGraph 回放前逐张量读取 x.data_ptr() 断言输入地址一致。",
+      matchedLines: r12Matches,
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L762-L778`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/compilation/acl_graph.py#L275-L282`,
+      ],
+      nextEvidenceCmd:
+        "grep -cE 'torch reserved memory:|Running batch with cudagraph_mode:' vllm_serve.log && tr '\\0' '\\n' < /proc/$(pgrep -f 'vllm' | head -n1)/environ 2>/dev/null | grep VLLM_LOGGING_LEVEL",
+      experimentStep:
+        "压测与生产上线前切回默认级别（export VLLM_LOGGING_LEVEL=INFO 或 unset VLLM_LOGGING_LEVEL），在相同输入长度与并发下复测 TTFT / TPOT，剔除调试日志引入的 Host 热路径税。",
+      wikiPageIds: [
+        "inference-performance-troubleshooting",
+        "device-memory",
+        "acl-graph",
+        "ascend-910b3-measured-baseline",
+      ],
     });
   }
 

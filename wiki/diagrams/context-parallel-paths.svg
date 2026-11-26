@@ -1,36 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 510" width="880" height="510" role="img" aria-label="固定 Ascend 实现中的 attention 路径。前向准备好本轮输入与缓存元数据后，按 prefill/decode 和后端选择交换对象。普通 PCP prefill 收本层 K/V；MLA 分块 prefill 收上下文 K/V；GQA 分块 prefill 与 decode 的局部历史路径合并 O/LSE。">
-  <title>固定 Ascend 实现中的 attention 路径。前向准备好本轮输入与缓存元数据后，按 prefill/decode 和后端选择交换对象。普通 PCP prefill 收本层 K/V；MLA 分块 prefill 收上下文 K/V；GQA 分块 prefill 与 decode 的局部历史路径合并 O/LSE。</title>
-  <defs><marker id="context-parallel-paths-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="context-parallel-paths-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="context-parallel-paths-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="context-parallel-paths-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <path d="M240 91 L240 120 L150 120 L150 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
-  <path d="M440 91 L440 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
-  <path d="M640 91 L640 120 L730 120 L730 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
-  <path d="M150 230 L150 290" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-kv)"/>
-  <path d="M440 230 L440 290" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-kv)"/>
-  <path d="M730 230 L730 290" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-paths-ah-comm)"/>
-  <path d="M150 360 L150 395 L240 395 L240 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
-  <path d="M440 360 L440 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
-  <path d="M730 360 L730 395 L640 395 L640 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
-  <rect x="160" y="35" width="560" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="59" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">请求逐层前向 → CP attention 后端</text>
-  <text x="440" y="78" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">输入 Q/K/V 与缓存位置元数据</text>
-  <rect x="30" y="160" width="240" height="70" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="150" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">PCP 普通 prefill</text>
-  <text x="150" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">非分块路径</text>
-  <rect x="320" y="160" width="240" height="70" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">MLA 分块 prefill</text>
-  <text x="440" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">稀疏时只收选中块</text>
-  <rect x="610" y="160" width="240" height="70" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="730" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GQA 分块 / decode</text>
-  <text x="730" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">decode 指局部历史路径</text>
-  <rect x="30" y="290" width="240" height="70" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="150" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收本层 K/V</text>
-  <text x="150" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">本卡 Q 计算；缓冲用后释放</text>
-  <rect x="320" y="290" width="240" height="70" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="440" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收上下文 K/V</text>
-  <text x="440" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">收到后直接计算</text>
-  <rect x="610" y="290" width="240" height="70" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-  <text x="730" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收 Q → 本地历史计算</text>
-  <text x="730" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">交换 O/LSE，更新完整输出</text>
-  <rect x="160" y="425" width="560" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="440" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">attention 输出 → 后续投影与残差</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="Ascend PCP 与 DCP 的三条注意力张量交换路径" font-family="var(--font-sans)">
+  <title>Ascend 上下文并行（PCP / DCP）三条计算路径：收本层 K/V、收上下文块、合并 O 与 LSE</title>
+  <desc>Three-swimlane tensor exchange diagram for Ascend Context Parallelism: non-chunked PCP prefill All-Gathering K/V, chunked MLA/SFA prefill gathering context or top-k blocks, and GQA chunked prefill / decode routing Q and merging local (O, LSE)</desc>
+  <defs>
+    <marker id="cp-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="cp-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="cp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="cp-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="28" font-size="15.5" font-weight="700" fill="#17211f">Ascend 上下文并行（PCP / DCP）三条注意力交换与计算路径</text>
+
+  <!-- TOP ENTRY BAR -->
+  <rect x="110" y="44" width="680" height="58" rx="7" fill="#ebeef9" stroke="#3a4f93" stroke-width="1.4"/>
+  <text x="450" y="68" text-anchor="middle" font-size="13.5" font-weight="700" fill="#2d3e75">请求逐层前向进入 CP Attention 后端（局部 Q/K/V + 交错块表元数据）</text>
+  <text x="450" y="90" text-anchor="middle" font-size="12" fill="#4d5652">按推理阶段（普通 Prefill / 分块 Prefill / Decode）与注意力后端分流交换对象</text>
+
+  <!-- Top fan connectors -->
+  <path d="M 270 102 L 270 120 L 156 120 L 156 136" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#cp-arr-plum)"/>
+  <line x1="450" y1="102" x2="450" y2="136" stroke="#087f73" stroke-width="1.7" marker-end="url(#cp-arr-teal)"/>
+  <path d="M 630 102 L 630 120 L 744 120 L 744 136" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#cp-arr-amber)"/>
+
+  <!-- SWIMLANE 1: PCP Non-chunked Prefill -->
+  <rect x="16" y="140" width="280" height="264" rx="8" fill="#f7e7f2" fill-opacity="0.38" stroke="#9a4b86" stroke-width="1.4"/>
+  <rect x="28" y="150" width="256" height="32" rx="5" fill="#9a4b86"/>
+  <text x="156" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">路径 1 · PCP 普通非分块 Prefill</text>
+
+  <rect x="28" y="196" width="256" height="84" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="156" y="220" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">跨 PCP 组 All-Gather 本层 K/V</text>
+  <text x="156" y="242" text-anchor="middle" font-size="12" fill="#4d5652">临时缓冲拼齐完整序列 K, V</text>
+  <text x="156" y="264" text-anchor="middle" font-size="12" fill="#4d5652">（仅写回本卡负责的缓存槽）</text>
+
+  <line x1="156" y1="280" x2="156" y2="302" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#cp-arr-plum)"/>
+
+  <rect x="28" y="306" width="256" height="84" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="156" y="330" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">本卡局部 Q_i 算完整因果注意力</text>
+  <text x="156" y="352" text-anchor="middle" font-size="12" fill="#4d5652">直接读取拼齐的完整 K, V 计算</text>
+  <text x="156" y="374" text-anchor="middle" font-size="12" fill="#7a3a6a">本层算完立即释放临时缓冲</text>
+
+  <!-- SWIMLANE 2: MLA / SFA Chunked Prefill -->
+  <rect x="310" y="140" width="280" height="264" rx="8" fill="#e5f4f1" fill-opacity="0.38" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="322" y="150" width="256" height="32" rx="5" fill="#087f73"/>
+  <text x="450" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">路径 2 · MLA / 稀疏分块 Prefill</text>
+
+  <rect x="322" y="196" width="256" height="84" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="450" y="220" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">从交错缓存收齐上下文 K/V</text>
+  <text x="450" y="242" text-anchor="middle" font-size="12" fill="#4d5652">标准 MLA 按块表收齐历史潜向量</text>
+  <text x="450" y="264" text-anchor="middle" font-size="12" fill="#065f56">稀疏 SFA 只收 top-k 选中块</text>
+
+  <line x1="450" y1="280" x2="450" y2="302" stroke="#087f73" stroke-width="1.7" marker-end="url(#cp-arr-teal)"/>
+
+  <rect x="322" y="306" width="256" height="84" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="450" y="330" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">拼齐上下文后本卡直接计算</text>
+  <text x="450" y="352" text-anchor="middle" font-size="12" fill="#4d5652">避开单潜头无法拆 Ulysses 限制</text>
+  <text x="450" y="374" text-anchor="middle" font-size="12" fill="#4d5652">无需事后跨卡合并 O / LSE</text>
+
+  <!-- SWIMLANE 3: GQA Chunked Prefill & Decode Local History -->
+  <rect x="604" y="140" width="280" height="264" rx="8" fill="#fff4cf" fill-opacity="0.38" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="616" y="150" width="256" height="32" rx="5" fill="#c78300"/>
+  <text x="744" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">路径 3 · GQA 分块与 Decode</text>
+
+  <rect x="616" y="196" width="256" height="84" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="744" y="220" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">送 Q 找本地历史 → 算局部结果</text>
+  <text x="744" y="242" text-anchor="middle" font-size="12" fill="#4d5652">DCP 按头交换 Q（All-to-All）</text>
+  <text x="744" y="264" text-anchor="middle" font-size="12" fill="#4d5652">各卡只读本卡 KV 得 (O_i, LSE_i)</text>
+
+  <line x1="744" y1="280" x2="744" y2="302" stroke="#c78300" stroke-width="1.7" marker-end="url(#cp-arr-amber)"/>
+
+  <rect x="616" y="306" width="256" height="84" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="744" y="330" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">跨 DCP / PCP 合并 (O, LSE)</text>
+  <text x="744" y="352" text-anchor="middle" font-size="12" fill="#4d5652">按 exp(LSE_i - LSE) 重标定权重</text>
+  <text x="744" y="374" text-anchor="middle" font-size="12" fill="#936300">精确还原全局等价 Attention 输出</text>
+
+  <!-- Converging connectors -->
+  <path d="M 156 404 L 156 418 L 270 418 L 270 430" fill="none" stroke="#4d5652" stroke-width="1.7" marker-end="url(#cp-arr-ink)"/>
+  <line x1="450" y1="404" x2="450" y2="430" stroke="#4d5652" stroke-width="1.7" marker-end="url(#cp-arr-ink)"/>
+  <path d="M 744 404 L 744 418 L 630 418 L 630 430" fill="none" stroke="#4d5652" stroke-width="1.7" marker-end="url(#cp-arr-ink)"/>
+
+  <!-- BOTTOM OUTPUT BAR -->
+  <rect x="110" y="434" width="680" height="50" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="450" y="456" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">还原局部序列顺序 → 进入 o_proj 输出投影、残差与后续层</text>
+  <text x="450" y="476" text-anchor="middle" font-size="12" fill="#4d5652">Prefill 末段必要时由 AscendPCPManager 按 hidden_restore_idx 切回全局批序</text>
 </svg>

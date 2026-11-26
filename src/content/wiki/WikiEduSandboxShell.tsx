@@ -49,6 +49,21 @@ export function eduBtnStyle(active: boolean, kind: "dark" | "teal" | "accent" = 
   return { background: bg, borderColor: bg, color: "#ffffff" } as const;
 }
 
+const NON_TEXT_INPUT_TYPES = new Set(["range", "button", "checkbox", "radio", "reset", "submit"]);
+
+export function isTextEntryTarget(target: unknown): boolean {
+  if (typeof target !== "object" || target === null) return false;
+  const el = target as { tagName?: string; type?: string; isContentEditable?: boolean };
+  if (el.isContentEditable === true) return true;
+  const tag = typeof el.tagName === "string" ? el.tagName.toUpperCase() : "";
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag === "INPUT") {
+    const inputType = typeof el.type === "string" ? el.type.toLowerCase() : "text";
+    return !NON_TEXT_INPUT_TYPES.has(inputType);
+  }
+  return false;
+}
+
 export function WikiEduSandboxShell({
   id,
   caption,
@@ -76,12 +91,23 @@ export function WikiEduSandboxShell({
   const html = useMemo(() => ({ __html: safeSvg }), [safeSvg]);
   const isSvg = mode === "svg";
 
+  const handleRootKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (isTextEntryTarget(event.target)) return;
+    if (event.key === "0" || event.key === "Escape") {
+      event.preventDefault();
+      onToggleMode("svg");
+    }
+  };
+
   return (
-    <div
+    <section
+      aria-label={kickerTitle}
       className="wiki-diagram-interactive wiki-edu-card"
       data-testid="interactive-diagram-root"
       data-diagram-id={id}
       data-mode={mode}
+      onKeyDown={handleRootKeyDown}
       {...extraRootAttrs}
     >
       <div className="wiki-edu-head">
@@ -158,6 +184,6 @@ export function WikiEduSandboxShell({
           <div className="wiki-edu-details-body">{detailsContent}</div>
         </details>
       </output>
-    </div>
+    </section>
   );
 }

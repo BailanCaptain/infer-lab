@@ -135,13 +135,13 @@ relations:
     kind: builds-on
     note: C8 与 MXFP8 分页缓存读取直接受昇腾 FIA 与量化注意力算子的分块及页大小约束
 contradicts: []
-updated: '2026-11-24'
+updated: '2026-11-26'
 origin: direct
 ---
 
 ## KV cache 量化是什么？
 
-**KV cache 量化（KV cache quantization）把缓存里的历史换成位数更少的数值表示；本页主讲 INT8 C8：写入时压成 8 位整数，读取时结合缩放系数参与 attention。** 它也可以使用 FP8 或更低位数，支持范围随算法与后端变化。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史表示，之后每生成一个 token 都要回头读它；[量化](quantization.md)让缓存中的数以更窄的格式保存。本页的具体算例从 BF16 的 2 字节变成 INT8 的 1 字节，不代表所有 KV 量化都这样实现。
+**KV cache 量化（KV cache quantization）把缓存里的历史换成位数更少的数值表示；本页主讲昇腾常用的 INT8 C8（即 Cache 8-bit，8 位缓存量化）：写入时压成 8 位整数，读取时结合缩放系数参与 attention。** 它也可以使用 FP8 或更低位数，支持范围随算法与后端变化。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史表示，之后每生成一个 token 都要回头读它；[量化](quantization.md)让缓存中的数以更窄的格式保存。本页的具体算例从 BF16 的 2 字节变成 INT8 的 1 字节，不代表所有 KV 量化都这样实现。
 
 压的对象跟着 attention 的种类走。普通 attention 的这条 C8 路径存 k、v 两张缓存，两张都压；[MLA](mla.md) 缓存各头共用的潜向量以及模型所需的位置编码部分。后面的 FA 量化只压潜向量、保留 RoPE 段，稀疏 C8 则另有打包规则，不能把 MLA 缓存统一理解成一张都被压窄的向量。
 
@@ -156,6 +156,15 @@ file: kv-cache-quantization-intuition
 **先看普通全注意力、各层分别保留历史的示例：缓存载荷随历史长度和请求数增长，decode 要读取可见历史。保持元素数量、分页与访问方式不变，BF16 改成 INT8 后，载荷字节减半。** 滑动窗口、稀疏选择、跨层共享和线性 attention 会改变留下或读取哪些状态，不能直接套用这个容量模型。
 
 先看占多少。沿用 KV cache 页的示意模型（每层 8 个 KV 头、每头 128 维，共 32 层），BF16 下一条 4,096 token 的请求占 512 MiB，16 条同时跑就是 8 GiB，推导见[存一份要多少](kv-cache.md#存一份要多少从一个位置一层往上乘)。留给缓存的显存在启动时一次切定，装满以后新请求只能等，有时还要抢占已经在跑的请求（见[省了重算，要付什么代价](kv-cache.md#省了重算要付什么代价)）。同样 8 GiB 改按 INT8 存，能装下 32 条这样的请求，或者让 16 条请求各自的上下文长一倍。
+
+若换算到全站 `v0.30.0` 主基线的两款标准模型（单卡未切分口径，静态缩放系数随权重常驻另计）：
+
+| 标准标尺模型（`v0.30.0`） | 层数与每层 KV 形状 | `BF16` 每词缓存载荷 | `INT8 C8` 每词元素载荷 | `4,096` 词单请求元素载荷对比 |
+| --- | --- | --- | --- | --- |
+| **`Qwen3-8B`**（稠密 GQA） | `36` 层，`8` 头 × `128` 维 | `144 KiB`（`147,456 B`） | **`72 KiB`**（`73,728 B`） | `576 MiB` → **`288 MiB`** |
+| **`Qwen3-30B-A3B`**（稀疏 MoE GQA） | `48` 层，`4` 头 × `128` 维 | `96 KiB`（`98,304 B`） | **`48 KiB`**（`49,152 B`） | `384 MiB` → **`192 MiB`** |
+
+（注：若在 `v0.30.0` 上改开动态块缩放的 `MXFP8 C8`，每 `32` 个 `1 B` 元素还需额外存 `1 B` 共享指数尺度，`Qwen3-8B` 每词载荷约为 `74.25 KiB`，且内核页大小须按 `512` 词对齐。）
 
 再看读多少。普通全注意力的 decode 通常给一个新位置算 q、k、v，再与可见历史打分、按分数取 v。INT8 缩小了同一组历史元素的载荷；若这部分读取是瓶颈，就有减少等待的机会。实际 HBM 流量和耗时还受分组查询的复用、算子分块、缓存命中、尺度读取与格式转换影响，应通过运行记录确认。
 
@@ -255,7 +264,7 @@ file: kv-cache-quantization
 在旧版固定实现中，三条路的开关都不在上游 `--kv-cache-dtype` 上：C8 和 FA 量化写在权重包描述文件里（FA 量化键名为 `fa_quant_type`），稀疏 C8 写在启动附加配置里，键名见[怎么开](#怎么开)。到 `v0.30.0` 与 `main` 主基线，KV 量化体系进一步扩展出三条重要规则：
 
 - **GQA `INT8 C8`**：仍依赖 ModelSlim 量化权重包（`quant_model_description.json` 含 `kv_cache_type: C8` 与每层 scale）和 `block_size % 32 == 0` 约束。
-- **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）**：面向标准 full Attention（K 动态量化、V 静态 E8M0 scale）。其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗。
+- **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）**：面向标准全注意力（K 动态量化、V 静态 `E8M0` 指数尺度），前向统一走昇腾量化融合注意力算子（QFA）。其 `AscendC8MXFPAttentionBackend` 强制内核页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝上下文并行（PCP/DCP）、非因果掩码与滑动窗口。
 - **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）**：仅支持 A2/A3，按模型家族分为 SFA（稀疏闪电注意力）打包主缓存与 DeepSeek V4 压缩缓存两路。其中后者还要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`。
 - **按层跳过选项 `--kv-cache-dtype-skip-layers`**：上游支持按层号或注意力类型跳过 KV 量化；例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层加入跳过列表以保持 BF16。
 
@@ -265,7 +274,7 @@ file: kv-cache-quantization
 file: kv-cache-quantization-fig-c8-mxfp8-turboquant
 ```
 
-FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的一端（KV consumer），普通部署写了它也不会压缓存。在 `v0.30.0` 与 `main` 上，FA 量化还另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
+FA 量化（面向融合注意力算子的缓存量化）在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的一端（KV consumer），普通单实例写了它也不会压缓存。在 `v0.30.0` 与 `main` 上，FA 量化还另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧以保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
 
 ### PD 分离时，两端的缓存格式不一样
 
@@ -273,10 +282,10 @@ C8 只让「不是 KV producer」的实例把缓存类型改为 INT8。producer 
 
 启动检查专门拦截一种禁配组合：普通 GQA 模型开了 C8，又用 [MooncakeConnector](mooncake-connector.md) 整块传输时会直接报错。报错会提示关掉 C8，或改用发送前先量化成 8 位的逐层 `MooncakeLayerwiseConnector`。这条检查说明的是接口约束，不是具体部署的实测结论。
 
-在 `Ascend 910B3` 真机排障（详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）中，必须严格区分两道互不替代的 GQA 报错守卫，不能看到命令行同时带了 Mooncake 与 `--kv-cache-dtype int8` 就混为一谈：
+在 `Ascend 910B3` 真机排障（详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）中，必须严格区分两道互不替代的 GQA 报错守卫。不能一看到命令行同时带了 Mooncake 与 `--kv-cache-dtype int8` 就混为一谈：
 
-- **守卫一（未量化 BF16 GQA 模型直传 `--kv-cache-dtype int8` → `attention_v1.py` 静态权重缺失报错）**：对没有经过离线 C8 校准的普通 BF16 GQA 模型传 `--kv-cache-dtype int8` 时，`enable_c8_quant` 为 `False` 且不属于 `mxfp8` 动态分支，实例在构建注意力层时直接于 `attention_v1.py`（`v0.30.0` 第 `583` 行）抛出首错 `ValueError: The current GQA‑related models adopt static quantization...`（源码原文中的连字符为不换行连字符 `U+2011` `‑`）。即使启动命令同时配了 PD 分离，真机故障标本（`err3`）抛出的也是这道权重缺失错误。
-- **守卫二（已带 C8 静态权重的 GQA 模型配普通 `MooncakeConnector` → `ascend_config.py` 整块传输保护）**：只有权重包真正开启了 `enable_c8_quant = True`，同时属于 GQA 后端并选用普通 `MooncakeConnector` 时，才会命中 `ascend_config.py`（`v0.30.0` 第 `1030–1042` 行）的独立传输检查，拦截“P 端 BF16 字节被 D 端原样当作 INT8 读取”的错位风险。
+- **守卫一（未量化 `BF16` GQA 模型直传 `--kv-cache-dtype int8` → `attention_v1.py` 报静态权重缺失）**：对未经离线 C8 校准的普通 `BF16` 模型（如原始 `Qwen3-8B`）直接传 `--kv-cache-dtype int8` 时，`enable_c8_quant` 为 `False`，且不属于 `mxfp8` 动态分支。构建注意力层时会直接在 `attention_v1.py`（`v0.30.0` 第 `583` 行）抛出首错 `ValueError: The current GQA‑related models adopt static quantization...`（原文连字符为不换行连字符 `U+2011` `‑`）。即使命令同时配了 PD 分离，真机故障标本（`err3`）命中的也是这道权重缺失检查。
+- **守卫二（已带 C8 静态权重的 GQA 模型配普通 `MooncakeConnector` → `ascend_config.py` 整块传输拦截）**：只有权重包真正开启了 `enable_c8_quant = True`、属于 GQA 后端，又选用了普通 `MooncakeConnector` 时，才会触发 `ascend_config.py`（`v0.30.0` 第 `1030–1042` 行）的独立传输检查。它的作用是拦住“P 端 `BF16` 字节被 D 端原样当成 `INT8` 读取”的错位风险。
 
 对照其他模型时，还要核对不同状态是否使用不同精度。[DeepSeek 的主 KV、索引 K 与窗口格式](low-precision-formats.md#deepseek-为什么几种缓存不用同一种-fp4)放在格式页统一说明；本页继续维护 Ascend 路径及后文复杂异构实战对照。
 
@@ -409,6 +418,6 @@ KIVI 的二位缓存、K/V 不同量化方向和未满分组保留高精度状�
 - 写入量化公式、逐维系数、decode 直接读 8 位（`block_size % 32 == 0`）与 prefill 接历史展开见来源 1–10 及 `c09d3e20#L1560-L1615`、`8d6180e2#L1647-L1700` [C1][C3][C4][C6][C8]；「分页读回须零偏移」由两条读路均不减偏移推出 [I]。
 - FA 量化与稀疏 C8、GLM 固定镜像主缓存 BF16 及 640-token 定块规则见来源 11–21、29–34、46–47 [C11][C14][C17][C21]；两份公开 GLM 快照逐键筛查未见 C8/FA/indexer 量化条目。
 - `v0.30.0` / `main` 的 `MXFP8 C8`（512 页大小）、`TurboQuant`、`--kv-cache-dtype-skip-layers` 以及 GQA 静态量化权重校验与 Mooncake 独立传输保护见来源 49–66（`ced6857a`/`ba15685a` `cache.py`、`c09d3e20`/`8d6180e2` `attention_c8_mxfp.py`、`mxfp_c8.py`、`turboquant/config.py`、`platform.py`、`attention_v1.py`、`ascend_config.py` 及 `Ascend 910B3` 真机 `err3` 报错标本）[C49][C53][C55][C56][M62]。
-- 示意模型（8 KV 头 × 128 维 × 32 层）、$s = 0.0125$ 算例与 2 KV 头 × 64 维 × 100 位置为教学设定 [A]；有效/按页字节减半及 GLM 代入 1 字节重算得 1,152 token 均为推导 [D]，GLM 13,056 B/token 与 561,152 B KDA 状态回链[双机部署](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)单一出处 [D]。
+- 示意模型（8 KV 头 × 128 维 × 32 层）、$s = 0.0125$ 算例与 2 KV 头 × 64 维 × 100 位置为教学设定 [A]；`Qwen3-8B`（`36×8×128`）与 `Qwen3-30B-A3B`（`48×4×128`）单位置字节数、有效/按页字节减半及 GLM 代入 1 字节重算得 1,152 token 均为推导 [D]，GLM 13,056 B/token 与 561,152 B KDA 状态回链[双机部署](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)单一出处 [D]。
 
 **待核：** `Ascend 910B3` 已复现未量化 GQA 传 `--kv-cache-dtype int8` 在 `attention_v1.py:583` 的静态权重缺失报错；现场量化产物与公开快照是否一致、实际采用的 C8 产物偏移是否为 0，以及带静态 C8 校准权重后在 A2/A5 上的精度和性能数据仍待实测。`v0.30.0` / `main` 下主缓存精度、FA 量化、MXFP8 C8 与 TurboQuant 的具体模型组合仍须按实机配置验收；“GLM 没有可开的缓存量化路”仅限定旧镜像 `db701c1f`。

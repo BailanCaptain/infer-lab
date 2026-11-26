@@ -1,35 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 690" width="860" height="690" role="img" aria-label="前端先检查请求名；只有未知名且允许运行时更新时才查找。resolver 交出的是候选目录，引擎加载成功后才登记并继续请求。图中省略配置损坏、下载异常等退出分支，见正文错误说明。">
-  <title>前端先检查请求名；只有未知名且允许运行时更新时才查找。resolver 交出的是候选目录，引擎加载成功后才登记并继续请求。图中省略配置损坏、下载异常等退出分支，见正文错误说明。</title>
-  <defs><marker id="lora-resolver-loading-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M340 85 L340 110 L190 110 L190 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M520 85 L520 110 L670 110 L670 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M670 210 L670 285" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M510 322 L350 322" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M670 360 L670 435" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M510 472 L350 472" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <path d="M670 510 L670 585" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <rect x="250" y="25" width="360" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="430" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">请求选择一个模型或适配器名</text>
-  <text x="430" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">先检查基座和已登记名字</text>
-  <rect x="30" y="135" width="320" height="75" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="190" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">基座或已登记的适配器</text>
-  <text x="190" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">直接按已有记录继续请求</text>
-  <rect x="510" y="135" width="320" height="75" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="670" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">尚未登记的名字</text>
-  <text x="670" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">允许运行时更新才继续查找</text>
-  <rect x="510" y="285" width="320" height="75" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="670" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">resolver 定位并检查配置</text>
-  <text x="670" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">本地目录，或允许的 Hub 仓库</text>
-  <rect x="30" y="285" width="320" height="75" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="190" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">没有匹配候选</text>
-  <text x="190" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">尝试下一项；全部没有则 404</text>
-  <rect x="510" y="435" width="320" height="75" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="670" y="468.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">引擎真正加载适配器</text>
-  <text x="670" y="487.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">此时才读权重并检查兼容性</text>
-  <rect x="30" y="435" width="320" height="75" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
-  <text x="190" y="468.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">候选加载失败</text>
-  <text x="190" y="487.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">可尝试下一项；全部失败则 400</text>
-  <rect x="510" y="585" width="320" height="75" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="670" y="618.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">登记成功，再继续这条请求</text>
-  <text x="670" y="637.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">后续同名前端请求复用已有记录</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="LoRA Resolver 按请求名自动查找、校验与加载控制流图" font-family="var(--font-sans)">
+  <title>LoRA Resolver 按名自动加载流：已登记快路直达调度，未知名经门禁锁 → 配置匹配 → 引擎读盘验权后登记复用</title>
+  <desc>Two-lane flowchart starting from client request model="task-lora" at API _check_model: Left fast lane for base model or already-registered adapter; Right dynamic resolution lane through runtime update gate + per-name lock, resolver adapter_config.json lookup (404 exit), engine weight load &amp; rank check (400 exit), and final registration.</desc>
+  <defs>
+    <marker id="lrl-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="lrl-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="lrl-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <!-- Top Entry Box -->
+  <rect x="190" y="16" width="520" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="450" y="42" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">客户端请求指定 model = "task-lora"</text>
+  <text x="450" y="66" text-anchor="middle" font-size="12.5" fill="#17211f">API 前端 _check_model 先查基座名与当前进程已登记适配器表</text>
+
+  <!-- Branch Arrows -->
+  <path d="M 330 80 L 330 98 L 170 98 L 170 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lrl-arr-t)"/>
+  <path d="M 570 80 L 570 98 L 508 98 L 508 114" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#lrl-arr-b)"/>
+
+  <!-- LEFT COLUMN: Fast Path + Plugin Threshold Card -->
+  <rect x="24" y="118" width="292" height="162" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="170" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">快路：命中基座或已登记名</text>
+  <line x1="40" y1="156" x2="300" y2="156" stroke="#087f73" stroke-width="1" opacity="0.4"/>
+  <text x="40" y="180" font-size="13" fill="#17211f">• 跳过 Resolver 目录扫描与下载</text>
+  <text x="40" y="206" font-size="13" fill="#17211f">• 直接进入调度器分配设备槽位</text>
+  <text x="40" y="232" font-size="13" fill="#17211f">• 改磁盘文件不会自动热刷旧权重</text>
+  <text x="40" y="258" font-size="12.5" font-weight="700" fill="#065f56">更新旧名须显式 unload 再 load</text>
+
+  <rect x="24" y="298" width="292" height="186" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="170" y="324" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">两类内置 Resolver 启用门槛</text>
+  <line x1="40" y1="336" x2="300" y2="336" stroke="#c78300" stroke-width="1" opacity="0.5"/>
+  <text x="40" y="360" font-size="12.5" font-weight="700" fill="#936300">1. 本地目录插件（生产推荐）</text>
+  <text x="40" y="382" font-size="12.5" fill="#17211f">设 VLLM_LORA_RESOLVER_CACHE_DIR</text>
+  <text x="40" y="410" font-size="12.5" font-weight="700" fill="#936300">2. 远端 Hub 插件（仅限测试）</text>
+  <text x="40" y="432" font-size="12.5" fill="#17211f">设 HF_REPO_LIST 且 VLLM_PLUGINS</text>
+  <text x="40" y="454" font-size="12.5" fill="#4d5652">显式保留昇腾平台与 hub 入口名</text>
+
+  <!-- RIGHT COLUMN: Unregistered Name Dynamic Resolution -->
+  <rect x="336" y="118" width="540" height="366" rx="8" fill="#f5f1e8" stroke="#d5cfc0" stroke-width="1.3"/>
+  <text x="352" y="142" font-size="14" font-weight="700" fill="#3a4f93">慢路：尚未登记的适配器名（首次请求承担查找与加载耗时）</text>
+
+  <!-- Step 1 -->
+  <rect x="352" y="156" width="312" height="66" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="508" y="180" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 运行时门禁 + 同名前端锁</text>
+  <text x="508" y="204" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#17211f">VLLM_ALLOW_RUNTIME_LORA_UPDATING</text>
+  <path d="M 664 189 L 682 189" fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#lrl-arr-r)"/>
+  <rect x="686" y="162" width="174" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="773" y="184" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">未开启 → 404</text>
+  <text x="773" y="205" text-anchor="middle" font-size="12" fill="#4d5652">同名并发等首条完成</text>
+
+  <path d="M 508 222 L 508 242" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#lrl-arr-b)"/>
+
+  <!-- Step 2 -->
+  <rect x="352" y="246" width="312" height="68" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="508" y="270" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">② Resolver 查目录并核配置</text>
+  <text x="508" y="294" text-anchor="middle" font-size="12.5" fill="#17211f">核 peft_type=LORA 且基座路径相等</text>
+  <path d="M 664 280 L 682 280" fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#lrl-arr-r)"/>
+  <rect x="686" y="253" width="174" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="773" y="275" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">无匹配候选</text>
+  <text x="773" y="296" text-anchor="middle" font-size="12" fill="#4d5652">全插件未中 → 404</text>
+
+  <path d="M 508 314 L 508 334" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#lrl-arr-b)"/>
+
+  <!-- Step 3 -->
+  <rect x="352" y="338" width="312" height="68" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="508" y="362" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">③ 引擎真正读权重并验兼容</text>
+  <text x="508" y="386" text-anchor="middle" font-size="12.5" fill="#17211f">读 safetensors · 校验秩与目标层</text>
+  <path d="M 664 372 L 682 372" fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#lrl-arr-r)"/>
+  <rect x="686" y="345" width="174" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="773" y="367" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">候选加载失败</text>
+  <text x="773" y="388" text-anchor="middle" font-size="12" fill="#4d5652">试下一项 → 全败 400</text>
+
+  <path d="M 508 406 L 508 426" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lrl-arr-t)"/>
+
+  <!-- Step 4 -->
+  <rect x="352" y="430" width="508" height="40" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="606" y="455" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">④ 登记进前端列表并继续本条请求（后续同名请求直接转入左侧快路）</text>
 </svg>

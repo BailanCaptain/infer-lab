@@ -9,16 +9,28 @@ import {
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
   ContinuousBatchingTraceInteractive,
 } from "./ContinuousBatchingTraceInteractive";
+import {
+  ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
+  EngramLookupFlowInteractive,
+} from "./EngramLookupFlowInteractive";
 import { EPLB_CYCLE_APPROVED_SHA256, EplbCycleInteractive } from "./EplbCycleInteractive";
 import {
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
   GqaSharedKvInteractive,
 } from "./GqaSharedKvInteractive";
 import {
+  LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
+  LowPrecisionBitInteractive,
+} from "./LowPrecisionBitInteractive";
+import {
   MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
   MemProfWaterfallInteractive,
 } from "./MemProfWaterfallInteractive";
 import { MLA_INTUITION_APPROVED_SHA256, MlaIntuitionInteractive } from "./MlaIntuitionInteractive";
+import {
+  ModelOnboardingGatesInteractive,
+  ONBOARDING_FOUR_GATES_APPROVED_SHA256,
+} from "./ModelOnboardingGatesInteractive";
 import { MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256, MoeRouterCalcInteractive } from "./MoeRouterCalcInteractive";
 import {
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
@@ -28,6 +40,14 @@ import {
   PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
   PagedAttentionWasteInteractive,
 } from "./PagedAttentionWasteInteractive";
+import {
+  PD_DISAGGREGATION_INTUITION_APPROVED_SHA256,
+  PdDisaggIntuitionInteractive,
+} from "./PdDisaggIntuitionInteractive";
+import {
+  PREFILL_FIG_COMPUTE_VS_BW_APPROVED_SHA256,
+  PrefillComputeBwInteractive,
+} from "./PrefillComputeBwInteractive";
 import { PrefixCachingInteractive } from "./PrefixCachingInteractive";
 import {
   type InteractiveDiagramProps,
@@ -50,6 +70,10 @@ import {
   SPECULATIVE_DECODING_APPROVED_SHA256,
   SpeculativeDecodingInteractive,
 } from "./SpeculativeDecodingInteractive";
+import {
+  TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
+  TensorLayoutNdNzInteractive,
+} from "./TensorLayoutNdNzInteractive";
 import { TOKEN_BPE_APPROVED_SHA256, TokenBpeInteractive } from "./TokenBpeInteractive";
 import {
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
@@ -161,17 +185,23 @@ export const RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 =
 export {
   ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
   EPLB_CYCLE_APPROVED_SHA256,
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
   MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
   MLA_INTUITION_APPROVED_SHA256,
   MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
+  ONBOARDING_FOUR_GATES_APPROVED_SHA256,
   PAGED_ATTENTION_FIG_WASTE_VS_PAGING_APPROVED_SHA256,
+  PD_DISAGGREGATION_INTUITION_APPROVED_SHA256,
+  PREFILL_FIG_COMPUTE_VS_BW_APPROVED_SHA256,
   REQUEST_FIG_CAUSAL_KV_MLP_APPROVED_SHA256,
   RFORK_TROUBLESHOOTING_APPROVED_SHA256,
   ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
   SPECULATIVE_DECODING_APPROVED_SHA256,
+  TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
   TOKEN_BPE_APPROVED_SHA256,
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
   WORKER_LIFECYCLE_APPROVED_SHA256,
@@ -348,6 +378,54 @@ const INTERACTIVE_2D_REGISTRY: ReadonlyMap<string, InteractiveDiagramRegistratio
       id: "rfork-troubleshooting",
       approvedSvgSha256: RFORK_TROUBLESHOOTING_APPROVED_SHA256,
       Component: RforkTroubleshootingInteractive,
+    },
+  ],
+  [
+    "prefill-fig-compute-vs-bw",
+    {
+      id: "prefill-fig-compute-vs-bw",
+      approvedSvgSha256: PREFILL_FIG_COMPUTE_VS_BW_APPROVED_SHA256,
+      Component: PrefillComputeBwInteractive,
+    },
+  ],
+  [
+    "low-prec-fig-bit-anatomy",
+    {
+      id: "low-prec-fig-bit-anatomy",
+      approvedSvgSha256: LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
+      Component: LowPrecisionBitInteractive,
+    },
+  ],
+  [
+    "onboarding-four-gates",
+    {
+      id: "onboarding-four-gates",
+      approvedSvgSha256: ONBOARDING_FOUR_GATES_APPROVED_SHA256,
+      Component: ModelOnboardingGatesInteractive,
+    },
+  ],
+  [
+    "tensor-layout-fig-nd-nz-cube",
+    {
+      id: "tensor-layout-fig-nd-nz-cube",
+      approvedSvgSha256: TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
+      Component: TensorLayoutNdNzInteractive,
+    },
+  ],
+  [
+    "engram-fig-lookup-flow",
+    {
+      id: "engram-fig-lookup-flow",
+      approvedSvgSha256: ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
+      Component: EngramLookupFlowInteractive,
+    },
+  ],
+  [
+    "pd-disaggregation-intuition",
+    {
+      id: "pd-disaggregation-intuition",
+      approvedSvgSha256: PD_DISAGGREGATION_INTUITION_APPROVED_SHA256,
+      Component: PdDisaggIntuitionInteractive,
     },
   ],
 ]);

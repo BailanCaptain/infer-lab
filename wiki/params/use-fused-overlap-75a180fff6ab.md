@@ -14,7 +14,6 @@ aliases:
   - fused_overlap decode
 legacyAnchors:
   一句话: 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
-  事实表: 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
   为什么存在: 分段流水、TP 分工与对象常驻开销
   开了的代价: 报错陷阱、容量边界与版本演进
 chapters:
@@ -211,15 +210,28 @@ rawSources:
 以三行选择作概念示意：本步选中位置 `4, 8, 9`，设备选择缓存已有 `4, 8` 可直接复用，位置 `9` 仍须从主机拷入并写入选择缓存，供本步计算及下一步命中复用（三行仅为概念示意，实际按模型 TopK 与容量约束运行）。
 
 **配置位置与生效边界**：
+- **默认不开启时已走 Copy-SFA 融合路径**：在 `v0.30.0` 与 `main` 上，只要开启 `sparse_kv_offload_config.enabled: true` 且保持 `use_fused_overlap: false`，系统默认就走 LIM + Copy-SFA 融合路径；仅当你在支持该算子的非 950 硬件与 BF16 主 KV 的 SFA 稀疏模型（如 DeepSeek-V3.2）上需要切入 `arch22` 多流双缓冲重叠流水并对比时延时，才将其显式设为 `true`（以下展示配置形式，本工作区无 NPU 实机执行验证）：
+
+```bash
+vllm serve /models/DeepSeek-V3.2 \
+  --tensor-parallel-size 8 \
+  --additional-config '{"sparse_kv_offload_config": {"enabled": true, "dram_size_per_dp_GB": 64, "use_fused_overlap": true}}'
+```
+
 - **必须在嵌套块内，不能写顶层**：完整路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`。在普通 vLLM-Ascend 环境中误写到顶层会被 [AscendConfig](../concepts/ascend-config-system.md) 的未知键校验拒收；若进程装有 `vllm_omni`，工厂会先打告警再过滤未知顶层键，同样不会启用它。
 - **校验先于后端切换**：工厂总是先校验嵌套块（嵌套内拼错键照样报错）；而 `AscendSFABackend` 只有在主开关 `sparse_kv_offload_config.enabled` 为真时，才会把 metadata builder 与 impl 换成卸载实现。
 
-| 关键项 | 运行时行为 | 说明 |
+## 事实表
+
+启用或排障 `use_fused_overlap` 前，先核对以下路径切换、常驻开销与报错文案陷阱：
+
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 真实路径与默认 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`，`bool = False` | 与主开关 `enabled` 独立；嵌套块里拼错键会被 `SparseKVOffloadConfig` 拒绝 |
-| 与 Copy-SFA 的关系 | `v0.30.0` 与 `main` 上 `use_fused_copy_sfa` 是只读派生属性 `enabled and not use_fused_overlap` | 开 `use_fused_overlap` 即切离默认 Copy-SFA 路径；过渡期 `v0.30.0rc2` / `b64b4d71` 曾设独立 `fused_op_type` 字段并与之硬互斥（见 [Copy-SFA 路径](fused-op-type-fc0f5fcd7be0.md)） |
-| decode / prefill 分叉 | 在 `AscendSFAKVOffloadImpl._execute_sparse_flash_attention_process` 中仅把 decode 分叉到 `_execute_fused_overlap_offload_decode` | 不改调度或 connector 层；纯 decode 补齐到输入 token 数后返回，含 prefill 的混批在算完 decode 后仍须先执行 `_check_device_kv_cache_exist()` 再把 prefill 交回父类 SFA |
-| 版本支持 | `v0.23.0` 无整套特性；`v0.26.0rc` 静默忽略此键；`v0.30.0` 与 `main` 均支持 | `v0.26.0rc` 的 `SparseKVOffloadConfig` 只 `.get()` 四个旧键（`enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache`），不识别本键 |
+| 配置路径与默认 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`（`bool = False`） | 须配合 `enabled: true` 才会替换注意力后端；嵌套内拼错键名直接报错 |
+| 与 Copy-SFA 的关系 | `v0.30.0` / `main` 只读属性 `use_fused_copy_sfa = enabled and not use_fused_overlap` | 开启本开关会自动关闭默认的 Copy-SFA 路径（`v0.30.0rc2` 曾通过已删除的 [fused_op_type](fused-op-type-fc0f5fcd7be0.md) 互斥） |
+| decode / prefill 分工 | 仅接管 decode（`_execute_fused_overlap_offload_decode`），prefill 交回父类 SFA | 混批场景（如 chunked prefill）会校验 `_check_device_kv_cache_exist()`，切勿盲目配 `keep_device_kv_cache: false` |
+| 报错文案陷阱 | 内部两处报错仍写 `kv_offload_decode_config.use_fused_overlap=true` | 源码中并不存在 `kv_offload_decode_config`，排查该报错时实际应改 `sparse_kv_offload_config` |
+| 模型与硬件门槛 | BF16 主 KV、单 TopK head、`TopK <= 2048`、选择状态须在图捕获前分配且不支持 950 | 图捕获期间触发选择状态重分配会直接报错；`v0.23.0` 无此特性，`v0.26.0rc` 静默忽略本键 |
 
 ## 分段流水、TP 分工与对象常驻开销
 

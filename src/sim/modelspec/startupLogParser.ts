@@ -48,6 +48,7 @@ export interface ParsedStartupLog {
   totalConsumedGiB: number | null;
   availableKvGiB: number | null;
   kvHalvedFor310pWorkspace: boolean;
+  expandableSegmentsDisabled?: boolean;
   kvCacheTokens: number | null;
   kvCacheDeviceLabel: string | null;
   maxConcurrency: number | null;
@@ -395,6 +396,7 @@ interface ScopeBucket {
   availableKvPrimaryGiB: number | null;
   availableKvFallbackGiB: number | null;
   kvHalvedFor310pWorkspace: boolean;
+  expandableSegmentsState: boolean | null;
   kvCacheTokens: number | null;
   kvCacheDeviceLabel: string | null;
   maxConcurrency: number | null;
@@ -422,6 +424,7 @@ interface ResolvedBucketMetrics {
   totalConsumedGiB: number | null;
   availableKvGiB: number | null;
   kvHalvedFor310pWorkspace: boolean;
+  expandableSegmentsState: boolean | null;
   kvCacheTokens: number | null;
   kvCacheDeviceLabel: string | null;
   maxConcurrency: number | null;
@@ -525,6 +528,7 @@ function createScopeBucket(meta: ScopeMeta): ScopeBucket {
     availableKvPrimaryGiB: null,
     availableKvFallbackGiB: null,
     kvHalvedFor310pWorkspace: false,
+    expandableSegmentsState: null,
     kvCacheTokens: null,
     kvCacheDeviceLabel: null,
     maxConcurrency: null,
@@ -578,6 +582,7 @@ function resolveScopeBucket(b: ScopeBucket): ResolvedBucketMetrics {
     totalConsumedGiB: b.totalConsumedGiB,
     availableKvGiB: b.availableKvPrimaryGiB ?? b.availableKvFallbackGiB,
     kvHalvedFor310pWorkspace: b.kvHalvedFor310pWorkspace,
+    expandableSegmentsState: b.expandableSegmentsState,
     kvCacheTokens: b.kvCacheTokens,
     kvCacheDeviceLabel: b.kvCacheDeviceLabel,
     maxConcurrency: b.maxConcurrency,
@@ -896,6 +901,11 @@ export function parseAscendStartupLog(logText: string, options?: ParseStartupLog
     if (/No available memory for the cache blocks|NPU out of memory|OutOfMemoryError/i.test(line)) {
       detectedErrors.push("检测到显存不足 / OOM 报错（KV 块或前向显存溢出）。");
     }
+    if (/expandable_segments\s*:\s*false\b/i.test(line)) {
+      b.expandableSegmentsState = false;
+    } else if (/expandable_segments\s*:\s*true\b/i.test(line)) {
+      b.expandableSegmentsState = true;
+    }
   }
 
   const allResolved = [...buckets.values()].map(resolveScopeBucket);
@@ -930,13 +940,41 @@ export function parseAscendStartupLog(logText: string, options?: ParseStartupLog
     return null;
   };
 
+  const allEngineBuckets = allResolved
+    .filter((r) => r.meta.role === "engine")
+    .sort((a, b) => compareScopeCanonical(a.meta, b.meta));
+  const findEngineExpandableState = (dp: number | null): boolean | null => {
+    const withState = allEngineBuckets.filter((e) => e.expandableSegmentsState !== null);
+    if (dp !== null) {
+      const exactDp = withState.find((e) => e.meta.dp === dp);
+      if (exactDp) return exactDp.expandableSegmentsState;
+      const sharedEngine = withState.find((e) => e.meta.dp === null);
+      if (sharedEngine) return sharedEngine.expandableSegmentsState;
+      return null;
+    }
+    const sharedEngine = withState.find((e) => e.meta.dp === null);
+    if (sharedEngine) return sharedEngine.expandableSegmentsState;
+    const singleDp0 = withState.length === 1 && withState[0]!.meta.dp === 0 ? withState[0]! : null;
+    return singleDp0?.expandableSegmentsState ?? null;
+  };
+
   let candidates: ResolvedBucketMetrics[];
   if (workerCandidates.length > 0) {
     candidates = workerCandidates.map((w) => {
       const eng = findMatchingEngine(w.meta.dp);
-      if (!eng) return w;
+      const inheritedExpandable =
+        w.expandableSegmentsState ??
+        findEngineExpandableState(w.meta.dp) ??
+        defaultBucket?.expandableSegmentsState ??
+        null;
+      if (!eng) {
+        return inheritedExpandable === w.expandableSegmentsState
+          ? w
+          : { ...w, expandableSegmentsState: inheritedExpandable };
+      }
       return {
         ...w,
+        expandableSegmentsState: inheritedExpandable,
         kvCacheTokens: w.kvCacheTokens ?? eng.kvCacheTokens,
         kvCacheDeviceLabel: w.kvCacheDeviceLabel ?? eng.kvCacheDeviceLabel,
         maxConcurrency: w.maxConcurrency ?? eng.maxConcurrency,
@@ -944,7 +982,10 @@ export function parseAscendStartupLog(logText: string, options?: ParseStartupLog
       };
     });
   } else if (engineCandidates.length > 0) {
-    candidates = engineCandidates;
+    candidates = engineCandidates.map((e) => ({
+      ...e,
+      expandableSegmentsState: e.expandableSegmentsState ?? defaultBucket?.expandableSegmentsState ?? null,
+    }));
   } else if (defaultBucket && hasAnyBucketMetric(defaultBucket)) {
     candidates = [defaultBucket];
   } else {
@@ -1040,6 +1081,7 @@ export function parseAscendStartupLog(logText: string, options?: ParseStartupLog
     totalConsumedGiB: selected.totalConsumedGiB,
     availableKvGiB: selected.availableKvGiB,
     kvHalvedFor310pWorkspace: selected.kvHalvedFor310pWorkspace,
+    expandableSegmentsDisabled: selected.expandableSegmentsState === false,
     kvCacheTokens: selected.kvCacheTokens,
     kvCacheDeviceLabel: selected.kvCacheDeviceLabel,
     maxConcurrency: selected.maxConcurrency,
@@ -1142,7 +1184,24 @@ function reconcileWeightsAndNonKv(
   }
 
   // 2. Non-KV overhead (Stage 3 + 4 + 5 = profile_result.non_kv_cache_memory; HCCL already inside!)
-  const nkvLow = (s3.lowBytes + s4.lowBytes + s5.lowBytes) / GIB;
+  // With expandable_segments:True (v0.30.0 default), allocator block-splitting slack (~0.65 GiB on A2/A3/A5, 0.30 GiB on 310P)
+  // and sequential-op buffer reuse allow profile_run peak above weights+HCCL to reach max(0.10..0.20 GiB, 0.45 * liveOpActivation),
+  // while preserving genuine large-T live activation growth and respecting explicit expandable_segments:False logs.
+  const isSingleRank =
+    plan.inputSummary.tpSize *
+      plan.inputSummary.ppSize *
+      plan.inputSummary.dpSize *
+      plan.inputSummary.pcpSize <=
+    1;
+  const hcclMaterializedGiB = isSingleRank ? 0 : plan.hcclEstimate.totalMaterializedMiB / 1024;
+  const baseAllocSlackGiB = plan.card.family === "310P" ? 0.3 : 0.65;
+  const liveOpActivationGiB = Math.max(0, s4.lowBytes / GIB - baseAllocSlackGiB);
+  const tightActFloorGiB = Math.max(hcclMaterializedGiB > 0 ? 0.1 : 0.2, 0.45 * liveOpActivationGiB);
+  const expandableTightFloorGiB = wLow + hcclMaterializedGiB + tightActFloorGiB;
+  const baseNkvLowGiB = (s3.lowBytes + s4.lowBytes + s5.lowBytes) / GIB;
+  const nkvLow = parsed.expandableSegmentsDisabled
+    ? baseNkvLowGiB
+    : Math.min(baseNkvLowGiB, expandableTightFloorGiB);
   const nkvPoint = (s3.pointEstimateBytes + s4.pointEstimateBytes + s5.pointEstimateBytes) / GIB;
   const nkvHigh = (s3.highBytes + s4.highBytes + s5.highBytes) / GIB;
   const measuredNonKv = parsed.nonKvCacheMemoryGiB;
@@ -1216,18 +1275,65 @@ export function reconcileStartupLog(
       : 0;
   const usableHeadroomGiB = Math.max(0, unbudgetedGiB - preOccupiedGiB);
 
-  // 3. Available KV cache memory
-  const kvLow = q2.kvPoolLowBytes / GIB;
-  const kvPoint = q2.kvPoolPointBytes / GIB;
-  const kvHigh = q2.kvPoolHighBytes / GIB;
+  // 3. Available KV cache memory (align budget against OS-visible requestedMemoryGiB & expandable_segments tight floor)
+  const scaleKvBytes = (rawBytes: number): number =>
+    rawBytes <= 0 ? 0 : plan.card.halvesKvForWorkspace ? Math.floor(rawBytes / 2) : Math.floor(rawBytes);
+  const targetRequestedBytes =
+    parsed.requestedMemoryGiB !== null ? parsed.requestedMemoryGiB * GIB : plan.requestedBytes;
+  const isSingleRank =
+    plan.inputSummary.tpSize *
+      plan.inputSummary.ppSize *
+      plan.inputSummary.dpSize *
+      plan.inputSummary.pcpSize <=
+    1;
+  const hcclFloorBytes = isSingleRank ? 0 : plan.hcclEstimate.totalMaterializedMiB * MIB;
+  const baseAllocSlackBytes = (plan.card.family === "310P" ? 0.3 : 0.65) * GIB;
+  const liveOpActBytes = Math.max(0, plan.stages[3].lowBytes - baseAllocSlackBytes);
+  const tightActFloorBytes = Math.max(
+    (hcclFloorBytes > 0 ? 0.1 : 0.2) * GIB,
+    Math.round(0.45 * liveOpActBytes),
+  );
+  const stageExpandableTightCeilBytes = (stageWeightLowBytes: number): number => {
+    if (parsed.requestedMemoryGiB === null || parsed.expandableSegmentsDisabled) return 0;
+    return scaleKvBytes(targetRequestedBytes - (stageWeightLowBytes + hcclFloorBytes + tightActFloorBytes));
+  };
+  const expandableTightKvCeilBytes = stageExpandableTightCeilBytes(plan.stages[2].lowBytes);
+  const s3 = plan.stages[2];
+  const s4 = plan.stages[3];
+  const s5 = plan.stages[4];
+  const adjKvLowBytes =
+    parsed.requestedMemoryGiB !== null
+      ? scaleKvBytes(targetRequestedBytes - (s3.highBytes + s4.highBytes + s5.highBytes))
+      : q2.kvPoolLowBytes;
+  const adjKvPointBytes =
+    parsed.requestedMemoryGiB !== null
+      ? scaleKvBytes(
+          targetRequestedBytes - (s3.pointEstimateBytes + s4.pointEstimateBytes + s5.pointEstimateBytes),
+        )
+      : q2.kvPoolPointBytes;
+  const adjKvHighBytes =
+    parsed.requestedMemoryGiB !== null
+      ? Math.max(
+          scaleKvBytes(targetRequestedBytes - (s3.lowBytes + s4.lowBytes + s5.lowBytes)),
+          expandableTightKvCeilBytes,
+        )
+      : q2.kvPoolHighBytes;
+  const kvLow = adjKvLowBytes / GIB;
+  const kvPoint = adjKvPointBytes / GIB;
+  const kvHigh = adjKvHighBytes / GIB;
   const fixedLinearStateBytes = Math.max(q2.totalFixedLinearStateBytes, q2.perSeqFixedLinearStateBytes);
   const pagedMinSingleSeqBytes = q2.blocksPerMaxSeq > 0 ? (q2.blocksPerMaxSeq + 1) * q2.kvBytesPerBlock : 0;
-  const minOneSeqGiB = (pagedMinSingleSeqBytes + fixedLinearStateBytes) / GIB;
-  const planReportsInsufficient =
+  const minOneSeqBytes = pagedMinSingleSeqBytes + fixedLinearStateBytes;
+  const minOneSeqGiB = minOneSeqBytes / GIB;
+  const staticPlanInsufficient =
     q2.oomStatus === "insufficient_for_single_max_len_seq" ||
     q2.oomStatus === "non_kv_exceeds_budget" ||
     q2.oomStatus === "weights_exceed_budget" ||
     q2.oomStatus === "weights_plus_activation_exceed_budget";
+  const planReportsInsufficient =
+    parsed.requestedMemoryGiB !== null
+      ? adjKvPointBytes <= 0 || adjKvPointBytes < minOneSeqBytes
+      : staticPlanInsufficient;
   let availableKv: ReconciliationItem;
   if (parsed.availableKvGiB === null) {
     availableKv = {
@@ -1272,7 +1378,9 @@ export function reconcileStartupLog(
       );
     } else if (planReportsInsufficient && status === "oom-risk") {
       causes.push(
-        `静态部署计算器已判定当前配置容量不足（${q2.oomStatus}），实测可用 KV（${m.toFixed(2)} GiB）落在该不足区间内，不能按可行状态放行。`,
+        staticPlanInsufficient
+          ? `静态部署计算器已判定当前配置容量不足（${q2.oomStatus}），实测可用 KV（${m.toFixed(2)} GiB）落在该不足区间内，不能按可行状态放行。`
+          : `按实机日志 requested_memory（${requestedGiB.toFixed(2)} GiB）重算后当前可用 KV 点估计不足以承接满长序列，不能按可行状态放行。`,
       );
     }
     if (status === "below-interval" || status === "oom-risk") {
@@ -1308,9 +1416,64 @@ export function reconcileStartupLog(
     const usablePagedBlocks = rawSlots / virtualBlockTokens;
     return Math.floor((usablePagedBlocks / pagedBlocksPerMaxSeq) * plan.inputSummary.maxModelLen);
   };
-  const tokLow = toEffectiveKvTokens(q2.totalKvTokenSlotsRange[0]);
-  const tokPoint = toEffectiveKvTokens(q2.totalKvTokenSlotsPoint);
-  const tokHigh = toEffectiveKvTokens(q2.totalKvTokenSlotsRange[1]);
+  const pagedStageSlices = (q2.ppStageSlices ?? []).filter((s) => s.kvBytesPerBlock > 0);
+  const computeShiftedPagedStageRawSlots = (mode: "low" | "point" | "high"): number | null => {
+    if (pagedStageSlices.length === 0) return null;
+    const s4 = plan.stages[3];
+    const s5 = plan.stages[4];
+    const perStageUsable = pagedStageSlices.map((s) => {
+      let sKvPool: number;
+      if (mode === "low") {
+        sKvPool = scaleKvBytes(targetRequestedBytes - (s.wHighBytes + s4.highBytes + s5.highBytes));
+      } else if (mode === "point") {
+        sKvPool = scaleKvBytes(
+          targetRequestedBytes - (s.wPointBytes + s4.pointEstimateBytes + s5.pointEstimateBytes),
+        );
+      } else {
+        const baseHigh = scaleKvBytes(targetRequestedBytes - (s.wLowBytes + s4.lowBytes + s5.lowBytes));
+        sKvPool = Math.max(baseHigh, stageExpandableTightCeilBytes(s.wLowBytes));
+      }
+      const sPaged = Math.max(0, sKvPool - s.fixedLinearStateBytes);
+      const sRawBlocks = Math.floor(sPaged / s.kvBytesPerBlock);
+      return Math.max(0, sRawBlocks - 1);
+    });
+    return Math.min(...perStageUsable) * virtualBlockTokens;
+  };
+  const toRawSlotsFromKvBytes = (
+    mode: "low" | "point" | "high",
+    kvBytes: number,
+    origKvBytes: number,
+    origRawSlots: number,
+  ): number => {
+    const exactStageSlots = computeShiftedPagedStageRawSlots(mode);
+    if (exactStageSlots !== null) return exactStageSlots;
+    const pagedPoolBytes = Math.max(0, kvBytes - q2.totalFixedLinearStateBytes);
+    if (q2.kvBytesPerBlock > 0) {
+      const rawBlocks = Math.floor(pagedPoolBytes / q2.kvBytesPerBlock);
+      const usableBlocks = Math.max(0, rawBlocks - 1);
+      return usableBlocks * virtualBlockTokens;
+    }
+    const origPagedBytes = Math.max(0, origKvBytes - q2.totalFixedLinearStateBytes);
+    if (origPagedBytes <= 0 || origRawSlots <= 0) return 0;
+    if (Math.abs(pagedPoolBytes - origPagedBytes) <= 1024 * 1024) return origRawSlots;
+    return Math.floor((origRawSlots * pagedPoolBytes) / origPagedBytes);
+  };
+  const hasMeasuredBudget = parsed.requestedMemoryGiB !== null;
+  const tokLow = toEffectiveKvTokens(
+    hasMeasuredBudget
+      ? toRawSlotsFromKvBytes("low", adjKvLowBytes, q2.kvPoolLowBytes, q2.totalKvTokenSlotsRange[0])
+      : q2.totalKvTokenSlotsRange[0],
+  );
+  const tokPoint = toEffectiveKvTokens(
+    hasMeasuredBudget
+      ? toRawSlotsFromKvBytes("point", adjKvPointBytes, q2.kvPoolPointBytes, q2.totalKvTokenSlotsPoint)
+      : q2.totalKvTokenSlotsPoint,
+  );
+  const tokHigh = toEffectiveKvTokens(
+    hasMeasuredBudget
+      ? toRawSlotsFromKvBytes("high", adjKvHighBytes, q2.kvPoolHighBytes, q2.totalKvTokenSlotsRange[1])
+      : q2.totalKvTokenSlotsRange[1],
+  );
   const packingRatio =
     pagedBlocksPerMaxSeq > 0 && virtualBlockTokens > 0
       ? plan.inputSummary.maxModelLen / (pagedBlocksPerMaxSeq * virtualBlockTokens)

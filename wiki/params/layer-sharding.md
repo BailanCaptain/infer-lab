@@ -13,7 +13,6 @@ aliases:
   - ShardedCPRowParallelOp
 legacyAnchors:
   一句话: 它曾如何按层轮放权重，为什么 v0.24 起已删除？
-  事实表: 它曾如何按层轮放权重，为什么 v0.24 起已删除？
   为什么存在: 层间广播机制、通信组构造与与 PP/TP 的区别
   开了的代价: 显存与通信账、冲突边界及向新权重切换机制的迁移
 chapters:
@@ -119,21 +118,21 @@ rawSources:
 
 ## 它曾如何按层轮放权重，为什么 v0.24 起已删除？
 
-在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。`layer_sharding` 的做法是**把几十层轮流分给一个独立通信组里的 `K` 张卡保管**：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时将完整权重替换为单元素占位张量，前向时再提前一层通过异步 Broadcast 把下一层权重广播取回。
+**这是一个自 `v0.24.0rc`（PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953)）起已彻底移除的历史层间权重轮放列表：在 `v0.30.0` 与 `main` 中切勿配置，旧脚本残留 `"layer_sharding"` 通常会直接触发 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）；若在 `v0.30.0` / `main` 开启 PCP 需要切分输出投影权重，应看默认开启的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)（切同一层 PCP 域，而非按层号轮放）。**
 
-**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`layer_sharding` 及整套按层轮放广播实现在 `v0.30.0` 与 `main` 中均已彻底移除**。它早在 `v0.13` 系列出现，在 `v0.23.0` 发布说明中被与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 删除，`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径。
+在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。在历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，`layer_sharding` 是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，无子键，`prefetch_step` 写死为 `1`），把几十层轮流分给独立通信组里的 `K` 张卡保管：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时换成单元素占位张量，前向时提前一层通过异步 Broadcast 取回，且强限定于旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
 
-- **升级须删掉该键**：`v0.30.0` 与 `main` 按 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片）；`v0.26.0rc` 普通配置类静默忽略它。
-- **不要与新版 PCP 分片混为一谈**：新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
+## 事实表
 
-在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，它是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`——注意旧官方表曾误写成 `dict / {}`），且面向旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
+核对 `v0.23.0` 历史层间分片规格及跨版本清理要点时，可速查下表：
 
-| 核心项 | `v0.23.0` 行为 | 说明 |
+| 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 类型、取值与默认 | 扁平层名列表（取 prefix 最后一段，如 `o_proj`、`q_b_proj`），默认 `None` | 旧构造器不做列表类型校验，传 dict 会按 key 迭代；MLA / SFA 登记点找不到名字会告警跳过，不代表其他错配都不报错 |
-| 角色前提与空列表陷阱 | 非空列表硬性要求 `kv_role == "kv_producer"`（混部、`kv_both`、D 节点报错） | 空列表跳过 P 侧校验且不登记任何层，但建组判据是 `layer_sharding is not None`，空列表仍可能创建 `shard_weight` 通信组 |
-| 归属与常驻缓冲 | 第 `i` 层落在组内 `rank i % K`；每个 series 常驻 `prefetch_step + 1 = 2` 份整层窗口 | 等大层的最高卡预算是 `ceil(层数 / K) × 单层 + 2 × 单层`，不是简单降到 `1/K`；层数少时两份缓冲吃掉大半收益 |
-| 配 FlashComm2 与 RFork | 配 FlashComm2 时列表只能严格等于 `["o_proj"]` 否则 `ValueError`；配 RFork 时告警并绕过 RFork 退回默认 loader | 想同时切 `q_b_proj` 只能走 DSA-CP 路径；`v0.26` 起 FlashComm2 也已一并删除 |
+| 历史配置路径与类型 | `additional_config["layer_sharding"]`（扁平层名列表，默认 `None`） | 旧官方表曾误标为 `dict / {}`；实际应传 `["o_proj"]` 等列表，传 dict 会按 key 迭代 |
+| `v0.30.0` / `main` 现状 | 自 `v0.24.0rc`（PR #11953）起已删除 | 升级必须删键（`v0.30.0`/`main` 常规进程直接报错）；新版 `enable_pcp_o_proj_weight_sharding` 切同层 PCP，不是按层轮放 |
+| 角色前提与空列表陷阱 | 非空列表硬性要求 `kv_role == "kv_producer"`（混部、`kv_both`、D 节点报错） | 传空列表 `[]` 虽跳过 P 侧报错且不登记层，但因 `is not None` 成立仍会创建 `shard_weight` 通信组 |
+| 归属与常驻缓冲 | 第 `i` 层落在组内 `rank i % K`；每个连续层 series 额外常驻 `2` 份整层窗口 | 等大层的最重卡预算为 `ceil(层数 / K) × 单层 + 2 × 单层`，且登记层号必须连续、至少 `3` 层 |
+| 旧版耦合约束 | 配 FlashComm2 时列表只能严格等于 `["o_proj"]`；配 RFork 时告警并退回默认 loader | 想同时切 `q_b_proj` 在 `v0.23` 只能走 DSA-CP 路径（`v0.26` 起 FlashComm2 也已删除） |
 
 ## 层间广播机制、通信组构造与与 PP/TP 的区别
 
@@ -141,7 +140,7 @@ rawSources:
 - **与 TP 的区别**：TP 切层内（把单个矩阵切给多张卡），`layer_sharding` 切层间（把多层的完整矩阵轮流存到不同卡）。
 - **与 [PP（流水线并行）](../concepts/pipeline-parallel.md#pp-是什么)的区别**：PP 连计算一起分、阶段间传递激活中间态；`layer_sharding` 只分权重存放在哪张卡，组内各卡仍执行全部这组层，传递的是权重本身。
 
-登记与加载过程有两处易误解细节：登记时非 owner 卡的完整权重会被换成单元素占位张量并把参数加载函数置为空操作，但一方面文件迭代器仍可能先读完整个文件（不能保证省磁盘读），另一方面加载后处理会临时给非 owner 分配完整张量以广播真实权重并完成量化后处理，之后再建立两份窗口并释放不再需要的完整存储及 dummy，因此登记后的占位大小不代表整个加载期峰值。
+登记与加载过程有两处易误解细节：登记时非 owner 卡的完整权重会被换成单元素占位张量并把参数加载函数置为空操作，但一方面底层 safetensors 文件迭代器仍会遍历权重条目（不能保证省磁盘读），另一方面加载后处理会临时给非 owner 分配完整张量以广播真实权重并完成量化后处理，之后再建立两份窗口并释放不再需要的完整存储及 dummy，因此登记后的占位大小不代表整个加载期峰值。
 
 前向时，注意力后端调用预取入口触发异步 [Broadcast](../concepts/collective-communication.md#broadcast)，由常驻卡提前一层（`prefetch_step = 1`）把下一层权重发给组内其余卡，真正执行该 Linear 前包装函数等待权重到位。一个 series 是一组同构 Linear，实现要求登记层号**连续**，且在 `prefetch_step = 1` 时至少需要 **3 层**（不连续的特殊层不能直接组成合法 series）。「仅允许 P 节点开启」的源码设计理由是希望用较重的 prefill 计算尽量遮盖广播耗时（小批 decode 重叠窗口更少；可重叠区间取决于调用位置，不保证总能完全隐藏）。
 
@@ -164,7 +163,7 @@ file: layer-sharding
 
 **冲突与模型边界**：
 - **与 row-parallel 分支的抢占**：进入 row-parallel 分派后，DSA-CP 的 P 侧 `o_proj` 会先被 `ShardedCPRowParallelOp` 认领，不再落到后面的细粒度 `o_proj` TP、[matmul-allreduce](enable-matmul-allreduce.md) 或 FlashComm2 分支——这一判据只检查 DSA-CP 与实例角色，不检查 `layer_sharding` 列表是否实际包含 `o_proj`（选择执行实现与登记权重分片是两回事）。
-- **示例边界与文档残留**：旧 feature guide 与 DeepSeek-V3.2 教程给出 FlashComm1 搭配 `["q_b_proj", "o_proj"]` 的 DSA-CP 示例，旧 GLM5 教程则限制 FlashComm1 下不得包含 `o_proj`；新版仓库的个别模型教程（如 `GLM5.2.md`）或旧目录页仍可能残留旧字样，不能据此误判旧功能仍存在。
+- **示例边界与文档残留**：旧 feature guide 与 DeepSeek-V3.2 教程给出 FlashComm1 搭配 `["q_b_proj", "o_proj"]` 的 DSA-CP 示例，旧 GLM5 教程则限制 FlashComm1 下不得包含 `o_proj`；新版仓库的个别模型教程（如 `GLM5.2.md`）或旧目录页仍留有历史示例字样，不能据此误判旧功能仍存在。
 
 **新版本的演化去向（权重切换与 PCP 切分）**：
 - `v0.23` 曾并存两套角色判定：`layer_shard` 要求精确 `kv_producer`，`o_proj_tp` 要求无 KV 传输或精确 `kv_both`；到了 `v0.26` 与后续 `full_o_proj` 判定，范围改为「无 KV 配置或具备 producer 角色（含 `kv_both`）」，兼具实现与角色范围变化。

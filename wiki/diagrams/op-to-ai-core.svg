@@ -1,63 +1,100 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 900" width="880" height="900" role="img" aria-label="A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。">
-  <title>A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。</title>
-  <defs><marker id="op-to-ai-core-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="op-to-ai-core-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <rect x="20" y="35" width="840" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">A3 准备输入 → A4 逐层前向</text>
-  <rect x="20" y="195" width="840" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">A4：AscendRMSNorm 的 forward_oot 分支</text>
-  <rect x="20" y="530" width="840" height="340" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">可选融合扩展：Host 规划 → Vector 执行</text>
-  <path d="M345 110 L450 110" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <path d="M640 140 L640 180 L440 180 L440 240" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M310 267 L172 267 L172 350" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M570 267 L612 267 L612 335" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M545 390 L545 410 L475 410 L475 430" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M680 390 L680 410 L725 410 L725 425" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M475 475 L475 560 L157 560 L157 585" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M270 618 L330 618" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M560 618 L620 618" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M727 650 L727 688 L157 688 L157 730" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M270 763 L330 763" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <path d="M560 763 L620 763" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <rect x="45" y="80" width="300" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="195" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3：token 与位置张量</text>
-  <text x="195" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">注意力元数据含块表与槽位</text>
-  <rect x="450" y="80" width="380" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="640" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A4：模型逐层计算</text>
-  <text x="640" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">注意力用元数据；归一化读当前张量</text>
-  <rect x="310" y="240" width="260" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="440" y="272.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">是否传入 residual？</text>
-  <rect x="45" y="350" width="255" height="65" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="172.5" y="378.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">torch_npu.npu_rms_norm</text>
-  <text x="172.5" y="397.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">GLM mHC：只传入 layer_input</text>
-  <rect x="475" y="335" width="275" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="612.5" y="367.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">enable_custom_op()？</text>
-  <rect x="380" y="430" width="190" height="45" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="475" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">npu_add_rms_norm_bias</text>
-  <rect x="615" y="425" width="220" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="725" y="451" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">npu_add_rms_norm</text>
-  <text x="725" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">有 bias 再加上</text>
-  <rect x="45" y="585" width="225" height="65" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="157.5" y="613.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C++ 分配输出并下发</text>
-  <text x="157.5" y="632.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">y / rstd / 更新后残差</text>
-  <rect x="330" y="585" width="230" height="65" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="445" y="613.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Host tiling</text>
-  <text x="445" y="632.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">形状、精度、UB → 参数与 key</text>
-  <rect x="620" y="585" width="215" height="65" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="727.5" y="613.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">kernel 选择模板</text>
-  <text x="727.5" y="632.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">每核处理分到的行或块</text>
-  <rect x="45" y="730" width="225" height="65" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="157.5" y="758.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CopyIn：搬入并相加</text>
-  <text x="157.5" y="777.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">全局内存 → 片上缓冲</text>
-  <rect x="330" y="730" width="230" height="65" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="445" y="758.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Compute：归约与缩放</text>
-  <text x="445" y="777.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">平方和 → 倒数平方根 → 缩放</text>
-  <rect x="620" y="730" width="215" height="65" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="727.5" y="758.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CopyOut：写出</text>
-  <text x="727.5" y="777.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">保存归一化结果与统计量</text>
-  <text x="190" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">否：实际路径</text>
-  <text x="632" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是：对照分支</text>
-  <text x="495" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">可用</text>
-  <text x="746" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">不可用</text>
-  <text x="45" y="836" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">残差先写回 · 计算分块与 KV 分配分工不同</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="AscendRMSNorm 实参分派与 AI Core 片上执行流水" font-family="var(--font-sans)">
+  <title>AscendRMSNorm 实参分派与片上流水：无残差单参路径 vs 带残差融合扩展</title>
+  <desc>Dispatch and on-chip execution pipeline of AscendRMSNorm comparing GLM mHC single-argument npu_rms_norm against Qwen3-8B residual-fused npu_add_rms_norm_bias through C++ adapter, Host tiling, and AI Core Vector UB CopyIn/Compute/CopyOut</desc>
+  <defs>
+    <marker id="oa-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="oa-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="oa-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="28" font-size="15.5" font-weight="700" fill="#17211f">AscendRMSNorm 分派与片上流水：按是否传入 residual 实参分流</text>
+
+  <!-- TOP STAGE: Input Prep -> Layer Forward -->
+  <rect x="16" y="44" width="388" height="68" rx="7" fill="#ebeef9" stroke="#3a4f93" stroke-width="1.4"/>
+  <text x="210" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#2d3e75">准备输入阶段：拼好 token、位置与缓存元数据</text>
+  <text x="210" y="93" text-anchor="middle" font-size="12" fill="#4d5652">块表与槽位交给注意力；归一化直读当前层张量</text>
+
+  <line x1="404" y1="78" x2="436" y2="78" stroke="#4d5652" stroke-width="1.7" marker-end="url(#oa-arr-ink)"/>
+
+  <rect x="440" y="44" width="444" height="68" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="662" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">逐层前向进入 AscendRMSNorm.forward_oot</text>
+  <text x="662" y="93" text-anchor="middle" font-size="12" fill="#4d5652">分流条件：调用方是否同时传入 residual 实参？</text>
+
+  <!-- Branch connectors -->
+  <path d="M 520 112 L 520 128 L 164 128 L 164 144" fill="none" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#oa-arr-plum)"/>
+  <path d="M 662 112 L 662 144" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#oa-arr-teal)"/>
+
+  <!-- LEFT BRANCH: No residual (GLM mHC) -->
+  <rect x="16" y="148" width="296" height="150" rx="8" fill="#f7e7f2" fill-opacity="0.45" stroke="#9a4b86" stroke-width="1.4"/>
+  <rect x="28" y="158" width="272" height="28" rx="5" fill="#9a4b86"/>
+  <text x="164" y="177" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">否：无 residual 单参路径（GLM mHC）</text>
+
+  <rect x="28" y="198" width="272" height="88" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="164" y="223" text-anchor="middle" font-size="13" font-weight="700" font-family="var(--font-mono)" fill="#7a3a6a">torch_npu.npu_rms_norm</text>
+  <text x="164" y="246" text-anchor="middle" font-size="12" fill="#4d5652">mHC 进层前已混出单输入 layer_input</text>
+  <text x="164" y="268" text-anchor="middle" font-size="12" fill="#4d5652">只返回 y（有 bias 再补加），不返残差</text>
+
+  <!-- RIGHT BRANCH: With residual (Qwen3-8B standard) -->
+  <rect x="332" y="148" width="552" height="150" rx="8" fill="#e5f4f1" fill-opacity="0.35" stroke="#087f73" stroke-width="1.5"/>
+  <rect x="344" y="158" width="528" height="28" rx="5" fill="#087f73"/>
+  <text x="608" y="177" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">是：带 residual 融合路径（标准 Qwen3-8B 主干层 [N, 4096]）</text>
+
+  <rect x="344" y="198" width="270" height="88" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="479" y="223" text-anchor="middle" font-size="13" font-weight="700" font-family="var(--font-mono)" fill="#065f56">npu_add_rms_norm_bias</text>
+  <text x="479" y="246" text-anchor="middle" font-size="12" fill="#4d5652">v0.30.0 直调扩展；main 经</text>
+  <text x="479" y="268" text-anchor="middle" font-size="12" fill="#4d5652">enable_custom_op() 为真进入</text>
+
+  <rect x="628" y="198" width="244" height="88" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="750" y="223" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">回退分支（扩展禁用时）</text>
+  <text x="750" y="246" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#4d5652">npu_add_rms_norm</text>
+  <text x="750" y="268" text-anchor="middle" font-size="12" fill="#4d5652">有 bias 时再补逐元素加法</text>
+
+  <!-- Connector into Bottom Host + Kernel Pipeline -->
+  <line x1="479" y1="286" x2="479" y2="312" stroke="#087f73" stroke-width="1.8" marker-end="url(#oa-arr-teal)"/>
+
+  <!-- BOTTOM PANEL: Host Planning -> AI Core Vector UB -->
+  <rect x="16" y="316" width="868" height="208" rx="8" fill="#faf8f4" stroke="#087f73" stroke-width="1.5"/>
+
+  <!-- Row 1: Host & Dispatch -->
+  <rect x="28" y="330" width="264" height="66" rx="6" fill="#ebeef9" stroke="#3a4f93" stroke-width="1.3"/>
+  <text x="160" y="355" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d3e75">① C++ 适配层预分配与下发</text>
+  <text x="160" y="378" text-anchor="middle" font-size="12" fill="#4d5652">分配 y / rstd / 更新后残差 s</text>
+
+  <line x1="292" y1="363" x2="314" y2="363" stroke="#4d5652" stroke-width="1.7" marker-end="url(#oa-arr-ink)"/>
+
+  <rect x="318" y="330" width="264" height="66" rx="6" fill="#ebeef9" stroke="#3a4f93" stroke-width="1.3"/>
+  <text x="450" y="355" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d3e75">② Host Tiling 分核与分块</text>
+  <text x="450" y="378" text-anchor="middle" font-size="12" fill="#4d5652">按行数、精度与可用 UB 算配额</text>
+
+  <line x1="582" y1="363" x2="604" y2="363" stroke="#4d5652" stroke-width="1.7" marker-end="url(#oa-arr-ink)"/>
+
+  <rect x="608" y="330" width="264" height="66" rx="6" fill="#e5f4f1" stroke="#087f73" stroke-width="1.3"/>
+  <text x="740" y="355" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">③ Kernel 按 tilingKey 挑模板</text>
+  <text x="740" y="378" text-anchor="middle" font-size="12" fill="#4d5652">各 Vector 核领走自己的行区间</text>
+
+  <!-- Orthogonal wrap to Row 2 -->
+  <path d="M 740 396 L 740 413 L 160 413 L 160 426" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#oa-arr-teal)"/>
+
+  <!-- Row 2: Vector UB CopyIn -> Compute -> CopyOut -->
+  <rect x="28" y="430" width="264" height="68" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="160" y="455" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">CopyIn：搬入片上并加残差</text>
+  <text x="160" y="478" text-anchor="middle" font-size="12" fill="#4d5652">s = x + residual 写回全局内存</text>
+
+  <line x1="292" y1="464" x2="314" y2="464" stroke="#087f73" stroke-width="1.7" marker-end="url(#oa-arr-teal)"/>
+
+  <rect x="318" y="430" width="264" height="68" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="450" y="455" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">Compute：片上 UB 归约缩放</text>
+  <text x="450" y="478" text-anchor="middle" font-size="12" fill="#4d5652">均方归约 → 倒数平方根 → ×γ</text>
+
+  <line x1="582" y1="464" x2="604" y2="464" stroke="#087f73" stroke-width="1.7" marker-end="url(#oa-arr-teal)"/>
+
+  <rect x="608" y="430" width="264" height="68" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="740" y="455" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">CopyOut：写出归一化结果</text>
+  <text x="740" y="478" text-anchor="middle" font-size="12" fill="#4d5652">保存 y 与 rstd（省 16 KiB/行往返）</text>
 </svg>

@@ -841,7 +841,8 @@ function evaluateParsedCommandItems(
       if (diag.severity !== "error" || !diag.flag?.startsWith("additional_config.")) continue;
       const flag = diag.flag;
       const alreadyCovered = out.some(
-        (it) => it.subject === flag || it.subject.startsWith(`${flag}.`) || flag.startsWith(`${it.subject}.`),
+        (it) =>
+          it.severity === "breaking-error" && (it.subject === flag || flag.startsWith(`${it.subject}.`)),
       );
       if (alreadyCovered) continue;
       out.push({
@@ -1025,6 +1026,7 @@ function tokenizeFirstServeCommand(
   rawText: string,
   preferredStmtIdx?: number | undefined,
 ): {
+  hasServeStmt: boolean;
   prefix: readonly string[];
   serveArgs: readonly RawShellToken[];
   preambleStmts: readonly PreambleStatement[];
@@ -1110,7 +1112,7 @@ function tokenizeFirstServeCommand(
   const tokenizedStmts = astStmts.map((seg) => ({ ...seg, tokens: tokenizeOne(seg.raw) }));
   let lastMatch: CandidateServeMatch | null = null;
 
-  for (let sIdx = 0; sIdx < tokenizedStmts.length; sIdx += 1) {
+  for (let sIdx = 0; preferredStmtIdx !== -1 && sIdx < tokenizedStmts.length; sIdx += 1) {
     const seg = tokenizedStmts[sIdx]!;
     const tokens = seg.tokens;
     if (tokens.length === 0 || tokens[0]?.value === "export") continue;
@@ -1194,11 +1196,33 @@ function tokenizeFirstServeCommand(
       }
       break;
     }
+    const isExactPreferred =
+      preferredStmtIdx !== undefined && preferredStmtIdx >= 0 && sIdx === preferredStmtIdx;
+    if (isExactPreferred) {
+      let scan = idx;
+      while (scan < tokens.length) {
+        const curV = tokens[scan]?.value ?? "";
+        const nextV = tokens[scan + 1]?.value ?? "";
+        const thirdV = tokens[scan + 2]?.value ?? "";
+        if (
+          (curV === "vllm" && nextV === "serve") ||
+          nextV === "serve" ||
+          ((curV === "python" || curV === "python3") &&
+            nextV === "-m" &&
+            (thirdV === "vllm.entrypoints.openai.api_server" || thirdV === "vllm.entrypoints.cli.main"))
+        ) {
+          while (idx < scan) {
+            stmtLaunchWrappers.push(tokens[idx]!);
+            idx += 1;
+          }
+          break;
+        }
+        scan += 1;
+      }
+    }
     const rest = tokens.slice(idx);
     const h = rest[0]?.value ?? "";
     const s = rest[1]?.value ?? "";
-    const isExactPreferred =
-      preferredStmtIdx !== undefined && preferredStmtIdx >= 0 && sIdx === preferredStmtIdx;
     if ((h === "vllm" && s === "serve") || (isExactPreferred && s === "serve")) {
       lastMatch = {
         stmtIdx: sIdx,
@@ -1296,6 +1320,7 @@ function tokenizeFirstServeCommand(
   }
 
   return {
+    hasServeStmt: lastMatch !== null,
     prefix: lastMatch?.prefix ?? ["vllm", "serve"],
     serveArgs: lastMatch?.serveArgs ?? [],
     preambleStmts,
@@ -1335,11 +1360,12 @@ function buildRecommendedCommand(
   parsed: ParsedVllmServeCommand,
   items: readonly UpgradeRadarItem[],
   toVersion: UpgradeTargetVersion,
-): string {
+): string | undefined {
   const itemIds = new Set(items.map((i) => i.id));
   const preamblePieces: ShellAstStatement[] = [];
   const removeEnvFc1 = itemIds.has("radar-flashcomm1-precedence-inversion");
   const {
+    hasServeStmt,
     prefix,
     serveArgs,
     preambleStmts,
@@ -1350,6 +1376,7 @@ function buildRecommendedCommand(
     serveEnvWrapperTokens,
     trailingStmts,
   } = tokenizeFirstServeCommand(parsed.rawText, parsed.matchedStatementIndex);
+  if (!hasServeStmt) return undefined;
 
   const shouldDropEnvKey = (name: string): boolean =>
     (name === "VLLM_ASCEND_ENABLE_FLASHCOMM1" && removeEnvFc1) ||
@@ -1368,6 +1395,21 @@ function buildRecommendedCommand(
     const created: Record<string, unknown> = {};
     parent[key] = created;
     return created;
+  };
+
+  let allexportActive = false;
+  const pushDemotedLocal = (
+    assignsRaw: string,
+    conj: "" | "&&" | "||",
+    term: "" | "\n" | ";" | "&",
+  ): void => {
+    if (allexportActive) {
+      preamblePieces.push({ leadingConj: conj, terminator: "", raw: "set +a" });
+      preamblePieces.push({ leadingConj: "&&", terminator: "", raw: assignsRaw });
+      preamblePieces.push({ leadingConj: "&&", terminator: term, raw: "set -a" });
+    } else {
+      preamblePieces.push({ leadingConj: conj, terminator: term, raw: assignsRaw });
+    }
   };
 
   for (let pIdx = 0; pIdx < preambleStmts.length; pIdx += 1) {
@@ -1392,13 +1434,9 @@ function buildRecommendedCommand(
         keptArgs.push(tok.raw);
       }
       if (keptArgs.length > 0 && demotedLocalAssigns.length > 0) {
+        pushDemotedLocal(demotedLocalAssigns.join(" "), effConj, "");
         preamblePieces.push({
-          leadingConj: effConj,
-          terminator: ";",
-          raw: demotedLocalAssigns.join(" "),
-        });
-        preamblePieces.push({
-          leadingConj: "",
+          leadingConj: "&&",
           terminator: stmt.terminator,
           raw: `export ${keptArgs.join(" ")}`,
         });
@@ -1409,11 +1447,7 @@ function buildRecommendedCommand(
           raw: `export ${keptArgs.join(" ")}`,
         });
       } else if (demotedLocalAssigns.length > 0) {
-        preamblePieces.push({
-          leadingConj: effConj,
-          terminator: stmt.terminator,
-          raw: demotedLocalAssigns.join(" "),
-        });
+        pushDemotedLocal(demotedLocalAssigns.join(" "), effConj, stmt.terminator);
       } else if (inAndOrList) {
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
@@ -1432,6 +1466,24 @@ function buildRecommendedCommand(
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
     } else {
+      if (stmt.tokens[0]?.value === "set") {
+        for (let si = 1; si < stmt.tokens.length; si += 1) {
+          const arg = stmt.tokens[si]!.value;
+          if (arg === "--" || arg === "-" || arg === "+") break;
+          if (/^[-+][A-Za-z]+$/.test(arg)) {
+            const enable = arg[0] === "-";
+            for (let ci = 1; ci < arg.length; ci += 1) {
+              if (arg[ci] === "a") allexportActive = enable;
+              else if (arg[ci] === "o" && si + 1 < stmt.tokens.length) {
+                if (stmt.tokens[si + 1]!.value === "allexport") allexportActive = enable;
+                si += 1;
+              }
+            }
+            continue;
+          }
+          break;
+        }
+      }
       preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: stmt.rawStmt });
     }
   }
@@ -1540,11 +1592,19 @@ function buildRecommendedCommand(
 
   // Reconstruct CLI tokens preserving existing flags, left-to-right shell expansion order, and original quoting
   const targetParsed = parseVllmServeCommand(parsed.rawText, { version: toVersion });
-  const invalidTargetAdditionalFlags = new Set<string>(
-    targetParsed.parseDiagnostics
-      .map((d) => d.flag)
-      .filter((f): f is string => Boolean(f?.startsWith("additional_config"))),
-  );
+  const invalidTargetAdditionalFlags = new Set<string>();
+  for (const d of targetParsed.parseDiagnostics) {
+    if (d.severity !== "error" || !d.flag?.startsWith("additional_config")) continue;
+    invalidTargetAdditionalFlags.add(d.flag);
+    for (const sKey of legacySchedKeys) {
+      const topPrefix = `additional_config.${sKey}`;
+      if (d.flag === topPrefix || d.flag.startsWith(`${topPrefix}.`)) {
+        invalidTargetAdditionalFlags.add(
+          `additional_config.scheduler_config.${d.flag.slice("additional_config.".length)}`,
+        );
+      }
+    }
+  }
 
   // Clean unknown or type-invalid nested sub-config keys
   const nestedSchemaMap: Record<
@@ -1580,8 +1640,11 @@ function buildRecommendedCommand(
   };
   for (const [subKey, schema] of Object.entries(nestedSchemaMap)) {
     const rawSub = nextAdditional[subKey];
+    if (invalidTargetAdditionalFlags.has(`additional_config.${subKey}`)) {
+      delete nextAdditional[subKey];
+      continue;
+    }
     if (!isPlainObject(rawSub)) {
-      if (invalidTargetAdditionalFlags.has(`additional_config.${subKey}`)) delete nextAdditional[subKey];
       continue;
     }
     const cleaned = cleanNestedObjectKeys(
@@ -1975,8 +2038,10 @@ export function analyzePdUpgradeRadar(
   const recommendedPdCommands =
     allItems.length > 0
       ? {
-          prefillCommand: buildRecommendedCommand(prefillParsed, prefillItems, opts.toVersion),
-          decodeCommand: buildRecommendedCommand(decodeParsed, decodeItems, opts.toVersion),
+          prefillCommand:
+            buildRecommendedCommand(prefillParsed, prefillItems, opts.toVersion) ?? prefillParsed.rawText,
+          decodeCommand:
+            buildRecommendedCommand(decodeParsed, decodeItems, opts.toVersion) ?? decodeParsed.rawText,
         }
       : undefined;
   return finalizeRadarReport(

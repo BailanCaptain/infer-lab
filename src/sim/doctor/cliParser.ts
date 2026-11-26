@@ -175,7 +175,10 @@ export function normalizeShellContinuations(input: string): string {
       continue;
     }
     const prev = out[out.length - 1] ?? "";
-    if (ch === "#" && (out.length === 0 || (/[\s;&|()]/.test(prev) && !isLastCharEscaped(out)))) {
+    if (
+      ch === "#" &&
+      (out.length === 0 || prev === "\n" || (/[\s;&|()]/.test(prev) && !isLastCharEscaped(out)))
+    ) {
       inComment = true;
       out += ch;
       i += 1;
@@ -1470,14 +1473,22 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?(?:flash|pro)/.test(s)) {
-    hints.matchedPresetName = /[-_.]pro(?:$|[-_./])/.test(s) ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
+    const modelBase =
+      s
+        .replace(/[\\/]+$/, "")
+        .split(/[\\/]/)
+        .pop() ?? s;
+    const isV4Pro =
+      /deepseek[-_.]?v4(?:\.\d+)?[-_.]?pro(?:$|[-_.])/.test(modelBase) &&
+      !/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash(?:$|[-_.])/.test(modelBase);
+    hints.matchedPresetName = isV4Pro ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
     hints.isMoe = true;
     hints.useMla = true;
     hints.usesSfaSparse = false;
     hints.hasCompressRatios = true;
     hints.indexTopk = 1024;
     hints.modelType = "deepseek_v4";
-    hints.numExperts = /[-_.]pro(?:$|[-_./])/.test(s) ? 384 : 256;
+    hints.numExperts = isV4Pro ? 384 : 256;
     hints.numExpertsPerTok = 8;
     hints.numAttentionHeads = 64;
     hints.headDim = 512;
@@ -1741,7 +1752,7 @@ function parseDottedScalarOrJson(raw: string): { value: unknown; unsafeInt?: big
   const trimmed = raw.trim();
   try {
     const parsed = JSON.parse(trimmed) as unknown;
-    if (isRecord(parsed)) {
+    if (isRecord(parsed) || Array.isArray(parsed)) {
       recordUnsafeJsonInts(trimmed, parsed);
     } else if (/^-?\d+$/.test(trimmed)) {
       try {
@@ -1847,31 +1858,83 @@ function findServeTokens(statements: readonly ShellStatement[]): {
   const exportedNames = new Set<string>();
   const unsetNames = new Set<string>();
   let allExport = false;
-  let lastExitStatus = 0;
+  let lastExitStatus: 0 | 1 | null = 0;
   let matchedEnvVars: Record<string, string> | null = null;
   let matchedStatementIndex = -1;
   const shellPreamble: string[] = [];
   let serveTokens: string[] = [];
 
+  let activeBg: {
+    endIdx: number;
+    vars: Record<string, string>;
+    exported: Set<string>;
+    unset: Set<string>;
+    allExport: boolean;
+    exitStatus: 0 | 1 | null;
+  } | null = null;
+
   for (let stmtIdx = 0; stmtIdx < statements.length; stmtIdx += 1) {
     const stmt = statements[stmtIdx]!;
-    if (stmt.leadingConj === "&&" && lastExitStatus !== 0) continue;
-    if (stmt.leadingConj === "||" && lastExitStatus === 0) continue;
 
-    const isSubshell = stmt.terminator === "&";
-    const curVars: Record<string, string> = isSubshell ? { ...shellVars } : shellVars;
-    const curExported: Set<string> = isSubshell ? new Set(exportedNames) : exportedNames;
-    const curUnset: Set<string> = isSubshell ? new Set(unsetNames) : unsetNames;
-    let curAllExport = allExport;
+    // Start of a new AND-OR list: check whether the whole list runs in background (`&`)
+    if (stmt.leadingConj === "" && activeBg === null) {
+      let endIdx = stmtIdx;
+      while (endIdx + 1 < statements.length && statements[endIdx + 1]!.leadingConj !== "") {
+        endIdx += 1;
+      }
+      if (statements[endIdx]!.terminator === "&") {
+        activeBg = {
+          endIdx,
+          vars: { ...shellVars },
+          exported: new Set(exportedNames),
+          unset: new Set(unsetNames),
+          allExport,
+          exitStatus: 0,
+        };
+      }
+    }
+
+    const finishStmt = (status: 0 | 1 | null): void => {
+      if (activeBg !== null) {
+        activeBg.exitStatus = status;
+        if (stmtIdx === activeBg.endIdx) {
+          activeBg = null;
+          lastExitStatus = 0;
+        }
+      } else {
+        lastExitStatus = status;
+      }
+    };
+
+    const curExitStatus = activeBg !== null ? activeBg.exitStatus : lastExitStatus;
+    if (stmt.leadingConj === "&&" && curExitStatus === 1) {
+      finishStmt(curExitStatus);
+      continue;
+    }
+    if (stmt.leadingConj === "||" && curExitStatus === 0) {
+      finishStmt(curExitStatus);
+      continue;
+    }
+
+    const curVars: Record<string, string> = activeBg !== null ? activeBg.vars : shellVars;
+    const curExported: Set<string> = activeBg !== null ? activeBg.exported : exportedNames;
+    const curUnset: Set<string> = activeBg !== null ? activeBg.unset : unsetNames;
+    const getCurAllExport = (): boolean => (activeBg !== null ? activeBg.allExport : allExport);
+    const setCurAllExport = (val: boolean): void => {
+      if (activeBg !== null) activeBg.allExport = val;
+      else allExport = val;
+    };
     const setCurVar = (name: string, val: string): void => {
       curVars[name] = val;
       curUnset.delete(name);
-      if (curAllExport) curExported.add(name);
+      if (getCurAllExport()) curExported.add(name);
     };
-    if (isSubshell) lastExitStatus = 0;
 
     const rawWords = stmt.rawWords;
-    if (rawWords.length === 0) continue;
+    if (rawWords.length === 0) {
+      finishStmt(curExitStatus);
+      continue;
+    }
 
     // POSIX §2.9.1: identify leading unquoted ASSIGNMENT_WORDs purely lexically BEFORE any word expansion
     let idx = 0;
@@ -1887,7 +1950,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
         setCurVar(m[1], val);
       }
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
       continue;
     }
 
@@ -1938,7 +2001,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           else curExported.add(expanded);
         }
       }
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
       continue;
     }
 
@@ -1955,7 +2018,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
         setCurVar(m[1], val);
       }
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
       continue;
     }
 
@@ -1976,13 +2039,11 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           for (let cIdx = 1; cIdx < arg.length; cIdx += 1) {
             const ch = arg[cIdx];
             if (ch === "a") {
-              curAllExport = enable;
-              if (!isSubshell) allExport = enable;
+              setCurAllExport(enable);
             } else if (ch === "o") {
               if (i + 1 < setArgs.length) {
                 if (setArgs[i + 1] === "allexport") {
-                  curAllExport = enable;
-                  if (!isSubshell) allExport = enable;
+                  setCurAllExport(enable);
                 }
                 i += 1;
               }
@@ -1993,7 +2054,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         break;
       }
       shellPreamble.push(stmt.raw);
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
       continue;
     }
 
@@ -2022,7 +2083,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           curUnset.add(expanded);
         }
       }
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
       continue;
     }
 
@@ -2129,10 +2190,10 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       } else {
         serveTokens = rest;
       }
-      if (!isSubshell) lastExitStatus = 0;
+      finishStmt(0);
     } else {
       shellPreamble.push(stmt.raw);
-      if (!isSubshell) lastExitStatus = firstCmd === "false" ? 1 : 0;
+      finishStmt(firstCmd === "false" ? 1 : firstCmd === "true" || firstCmd === ":" ? 0 : null);
     }
   }
 
@@ -3828,21 +3889,36 @@ export function parseVllmServeCommand(
     }
     const qarc = effectiveAdditional.quantized_all_reduce_config;
     if (Object.hasOwn(effectiveAdditional, "quantized_all_reduce_config") && qarc !== undefined) {
+      const qarcFieldDiags: Array<{ flag: string; message: string }> = [];
       if (!isRecord(qarc)) {
-        couplingInput.quantizedAllReduceInvalidReason = `TypeError / ValidationError: additional_config.quantized_all_reduce_config 必须为字典对象（仅含 enable 与 min_numel），不能传 ${Array.isArray(qarc) ? "list" : qarc === null ? "null" : typeof qarc}`;
+        const msg = `TypeError / ValidationError: additional_config.quantized_all_reduce_config 必须为字典对象（仅含 enable 与 min_numel），不能传 ${Array.isArray(qarc) ? "list" : qarc === null ? "null" : typeof qarc}`;
+        couplingInput.quantizedAllReduceInvalidReason = msg;
+        qarcFieldDiags.push({ flag: "additional_config.quantized_all_reduce_config", message: msg });
       } else {
         const unknownQarKeys = Object.keys(qarc)
           .filter((k) => k !== "enable" && k !== "min_numel")
           .sort();
         if (unknownQarKeys.length > 0) {
-          couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
+          const msg = `ValidationError: additional_config.quantized_all_reduce_config 在 main@8d6180e2 仅支持 enable 与 min_numel 两个子键，未知子键将被 extra="forbid" 拒收：${unknownQarKeys.join("、")}`;
+          couplingInput.quantizedAllReduceInvalidReason = msg;
+          for (const uk of unknownQarKeys) {
+            qarcFieldDiags.push({
+              flag: `additional_config.quantized_all_reduce_config.${uk}`,
+              message: msg,
+            });
+          }
         }
         if (qarc.enable !== undefined) {
           const qEn = parsePydanticLaxBool(qarc.enable);
           if (qEn !== undefined) {
             couplingInput.quantizedAllReduceEnabled = qEn;
           } else {
-            couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.enable 必须为布尔值（收到 ${JSON.stringify(qarc.enable)}）`;
+            const msg = `ValidationError: additional_config.quantized_all_reduce_config.enable 必须为布尔值（收到 ${JSON.stringify(qarc.enable)}）`;
+            couplingInput.quantizedAllReduceInvalidReason = msg;
+            qarcFieldDiags.push({
+              flag: "additional_config.quantized_all_reduce_config.enable",
+              message: msg,
+            });
           }
         }
         if (qarc.min_numel !== undefined) {
@@ -3850,17 +3926,24 @@ export function parseVllmServeCommand(
           if (minNumel !== undefined) {
             couplingInput.quantizedAllReduceMinNumel = minNumel;
           } else {
-            couplingInput.quantizedAllReduceInvalidReason = `ValidationError: additional_config.quantized_all_reduce_config.min_numel 必须为整数（收到 ${JSON.stringify(qarc.min_numel)}）`;
+            const msg = `ValidationError: additional_config.quantized_all_reduce_config.min_numel 必须为整数（收到 ${JSON.stringify(qarc.min_numel)}）`;
+            couplingInput.quantizedAllReduceInvalidReason = msg;
+            qarcFieldDiags.push({
+              flag: "additional_config.quantized_all_reduce_config.min_numel",
+              message: msg,
+            });
           }
         }
       }
-      if (couplingInput.quantizedAllReduceInvalidReason && !isRfork && version === "main") {
-        diagnostics.push({
-          code: "parse-invalid-json-type",
-          severity: "error",
-          flag: "additional_config.quantized_all_reduce_config",
-          message: couplingInput.quantizedAllReduceInvalidReason,
-        });
+      if (qarcFieldDiags.length > 0 && !isRfork && version === "main") {
+        for (const d of qarcFieldDiags) {
+          diagnostics.push({
+            code: "parse-invalid-json-type",
+            severity: "error",
+            flag: d.flag,
+            message: d.message,
+          });
+        }
       }
     }
 

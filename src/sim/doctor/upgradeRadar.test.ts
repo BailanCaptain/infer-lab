@@ -637,5 +637,82 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
       { fromVersion: "v0.26.0rc", toVersion: "main" },
     );
     expect(parseVllmServeCommand(commentBackslashRep.recommendedSingleCommand!).couplingInput.tpSize).toBe(2);
+
+    // Mixed export under false && must keep TP=8 guarded by false &&
+    const mixedGuardedExportRep = analyzeSingleUpgradeRadar(
+      `false && export VLLM_ASCEND_ENABLE_NZ=2 TP=8; vllm serve /m -tp "\${TP:-\${VLLM_ASCEND_ENABLE_NZ:-1}}" --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(parseVllmServeCommand(mixedGuardedExportRep.recommendedSingleCommand!).couplingInput.tpSize).toBe(
+      1,
+    );
+
+    // Dynamic setsid option variable must rewrite the matched serve statement in-place without phantom vllm serve
+    const dynSetsidRep = analyzeSingleUpgradeRadar(`OPT=-f; setsid "$OPT" vllm serve /m --enforce-eager`, {
+      fromVersion: "v0.26.0rc",
+      toVersion: "main",
+    });
+    expect(dynSetsidRep.recommendedSingleCommand).toContain('setsid "$OPT" vllm serve /m');
+    expect(parseVllmServeCommand(dynSetsidRep.recommendedSingleCommand!).model).toBe("/m");
+
+    // Dead vllm serve branch behind false && must not get a migration command even with retired export
+    const deadWithExportRep = analyzeSingleUpgradeRadar(
+      `export VLLM_ASCEND_ENABLE_NZ=2; false && vllm serve /m`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(deadWithExportRep.recommendedSingleCommand).toBeUndefined();
+
+    // set -a must not re-export demoted retired variable into vllm serve env
+    const setADemoteRep = analyzeSingleUpgradeRadar(
+      `set -a; export VLLM_ASCEND_ENABLE_NZ=2; vllm serve /m -tp "$VLLM_ASCEND_ENABLE_NZ"`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const parsedSetADemote = parseVllmServeCommand(setADemoteRep.recommendedSingleCommand!, {
+      version: "main",
+    });
+    expect(parsedSetADemote.couplingInput.tpSize).toBe(2);
+    expect(parsedSetADemote.envVars.VLLM_ASCEND_ENABLE_NZ).toBeUndefined();
+    expect(
+      analyzeSingleUpgradeRadar(setADemoteRep.recommendedSingleCommand!, {
+        fromVersion: "v0.26.0rc",
+        toVersion: "main",
+      }).items,
+    ).toEqual([]);
+
+    // Dotted JSON array must preserve >2^53 integers losslessly
+    const dottedArrBigIntRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.pa_shape_list '[9007199254740993]' --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(dottedArrBigIntRep.recommendedSingleCommand).toContain("9007199254740993");
+
+    // Scheduler migration warning must not mask strict type errors, and invalid fields must be stripped cleanly
+    const schedTypeErrRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.short_request_first_config.enabled bad --additional-config.scheduler_config '{}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(schedTypeErrRep.counts.breakingError).toBeGreaterThanOrEqual(1);
+    expect(
+      parseVllmServeCommand(schedTypeErrRep.recommendedSingleCommand!, { version: "main" }).parseDiagnostics,
+    ).toEqual([]);
+
+    const qarBadFieldRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.quantized_all_reduce_config.min_numel bad`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(qarBadFieldRep.counts.breakingError).toBe(1);
+    expect(
+      parseVllmServeCommand(qarBadFieldRep.recommendedSingleCommand!, { version: "main" }).parseDiagnostics,
+    ).toEqual([]);
+
+    const qarBadPlusUnknownRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config '{"quantized_all_reduce_config":{"min_numel":"bad","wrong":1}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(qarBadPlusUnknownRep.counts.breakingError).toBeGreaterThanOrEqual(2);
+    expect(
+      parseVllmServeCommand(qarBadPlusUnknownRep.recommendedSingleCommand!, { version: "main" })
+        .parseDiagnostics,
+    ).toEqual([]);
   });
 });

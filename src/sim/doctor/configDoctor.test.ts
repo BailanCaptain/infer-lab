@@ -1670,5 +1670,38 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     });
     expect(escapedHash.parsed.model).toBe("/models/A #B");
     expect(escapedHash.parsed.enforceEager).toBe(true);
+
+    // Consecutive comment lines ending in backslash must not swallow following command
+    const multiComments = runSingleConfigDoctor(`# a \\\n# b \\\nvllm serve /m --enforce-eager`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(multiComments.parsed.model).toBe("/m");
+
+    // Unknown command before || must not short-circuit vllm serve
+    const unknownOrServe = runSingleConfigDoctor(`test -z x || vllm serve /m --enforce-eager`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(unknownOrServe.parsed.model).toBe("/m");
+    expect(unknownOrServe.parsed.matchedStatementIndex).toBe(1);
+
+    // Whole background AND-OR list (`TP=4 && true &`) must stay isolated in subshell
+    const bgAndOr = runSingleConfigDoctor(`TP=2; TP=4 && true & vllm serve /m -tp "$TP"`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(bgAndOr.effectiveInput.tpSize).toBe(2);
+
+    // Parent directory name containing `-pro` must not misclassify DeepSeek-V4-Flash as 384-expert Pro
+    const flashUnderProDir = runSingleConfigDoctor(
+      `DYNAMIC_EPLB=1 vllm serve /models/npu-pro/DeepSeek-V4-Flash -tp 4 --enable-expert-parallel --additional-config '{"mc2_comm_alg":"hierarchy","eplb_config":{"dynamic_eplb":true,"num_redundant_experts":256}}'`,
+      { mode: "full", hardwareFamily: "A3", version: "main" },
+    );
+    expect(flashUnderProDir.effectiveInput.numExperts).toBe(256);
+    expect(flashUnderProDir.hasBlockers).toBe(false);
   });
 });

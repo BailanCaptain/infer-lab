@@ -1,11 +1,13 @@
 ---
 id: linear-attention
-title: KDA：用一个固定大小的状态代替逐位置历史
+title: 线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史
 type: concept
+legacyAnchors:
+  kda-是什么历史怎样装进一个固定大小的状态: 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
+  为什么去掉-softmax-就能从平方降到线性: 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
+  只做累加会写坏状态delta-规则遗忘门按通道衰减: 四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA
 summary: >-
-  linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta
-  规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与
-  decode 两条执行路径差在哪。
+  线性注意力去掉逐位置 Softmax，靠核映射与矩阵乘法结合律把历史压进定长状态矩阵，并在 Prefill 走分块并行、Decode 走逐词递推。本页用同一套二维算例推演纯累加、DeltaNet 误差擦写、Qwen3-Next 的 Gated DeltaNet 到 KDA，并核对双状态规格与 GLM 块号账。
 aliases:
   - 线性注意力
   - Linear Attention
@@ -13,11 +15,14 @@ aliases:
   - Kimi Delta Attention
   - GDN
   - Gated DeltaNet
+  - 门控增量法则
+  - AscendGatedDeltaNet
   - DeltaNet
   - 递推状态
   - recurrent state
   - 矩阵状态
   - chunked 计算
+  - Chunkwise 并行
 chapters:
   - '04'
 order: 35
@@ -63,6 +68,21 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L211-L310'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L62'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/recoverssm_config.py#L13-L44'
+  - 'vllm@ced6857a:vllm/model_executor/layers/lightning_attn.py#L653-L675'
+  - 'vllm@ced6857a:vllm/third_party/flash_linear_attention/ops/fused_recurrent.py#L122-L149'
+  - 'vllm@ced6857a:vllm/third_party/flash_linear_attention/ops/chunk.py#L23-L84'
+  - 'vllm@ced6857a:vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py#L127-L150'
+  - 'vllm@ced6857a:vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py#L2007-L2045'
+  - 'vllm@ced6857a:vllm/transformers_utils/configs/qwen3_next.py#L198-L218'
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen3_next.py#L485-L502'
+  - 'vllm@ced6857a:vllm/model_executor/layers/mamba/mamba_utils.py#L98-L149'
+  - 'vllm@ced6857a:vllm/v1/kv_cache_interface.py#L993-L1063'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/gdn.py#L331-L446'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/gdn.py#L333-L450'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/gdn.py#L706-L875'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/gdn.py#L729-L782'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/kda.py#L9-L99'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L145-L176'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -89,7 +109,7 @@ relations:
     kind: alternative-to
     note: 滑动窗口保留最近 W 格精确历史；线性注意力把任意长度的历史持续压缩进定长矩阵状态
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: gap
 rawSources:
   - >-
@@ -98,111 +118,101 @@ rawSources:
     raw/sha256-f1eb696b50d5560664ed320075d8c1a7bbd054b35e5f158fbd2b78fc2047b335.md
 ---
 
-## KDA 是什么，历史怎样装进一个固定大小的状态？
+## 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
 
-**linear attention（线性注意力）去掉 attention 里逐位置的 softmax，把全部历史汇总成一个固定形状的状态矩阵（state）**：每来一个 token，先用它的 k、v 更新状态，再用 q 从状态里读出本层输出。**KDA（Kimi Delta Attention）** 是其中的一种通道级衰减加误差修正规则。
+**Linear Attention（线性注意力）去掉逐位置的 Softmax 指数耦合，改用可分离特征映射并利用矩阵乘法结合律，把任意长度的历史压缩进一个固定形状的状态矩阵 $S_t \in \mathbb{R}^{d_k \times d_v}$**：每来一个新 token，先用它的键值改写状态 $S_t$，再用当前查询从 $S_t$ 一次读出本层输出，从此单步生成不再随上下文变长而重扫整段 [KV cache](kv-cache.md)。
 
-q、k、v 是每个位置从隐藏向量（模型为这个位置保存的中间表示）投影出来的三个向量：q 是这个位置发出的查询，k 是它给别人当索引的键，v 是它提供的内容。标准 attention 用当前 q 和每个历史位置的 k 打分，再按分数汇合各位置的 v，细节见 [attention 与 Q/K/V](attention-qkv.md)。linear attention 保留 q、k、v，换掉的是「逐位置打分再汇合」这一步。
+在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以昂贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 把当前查询 $Q_t$ 和每一个历史键 $K_i$ 锁在了同一个括号里：必须先把 $Q_t$ 与全部 $t$ 个历史键逐一算出分数并凑齐归一化分母，才能去乘 $V_{1:t}$。这迫使计算顺序锁死为 $(Q K^\top) V$——整段长度为 $n$ 的提示词需要 $O(n^2)$ 次打分，生成阶段每走一步也要从显存重读全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
+
+Katharopoulos 等人提出的核特征映射拆开了这把锁：把不可拆分的 $\exp(Q_t K_i^\top)$ 替换为对 $Q_t$、$K_i$ 各自独立作用的特征映射内积 $\phi(Q_t)\phi(K_i)^\top$。一旦去掉跨位置套在外层的 Softmax，矩阵乘法结合律允许直接交换括号顺序：
+
+$$\sum_{i=1}^{t} \big(\phi(Q_t)\phi(K_i)^\top\big) V_i = \phi(Q_t) \left(\sum_{i=1}^{t} \phi(K_i)^\top V_i\right) = \phi(Q_t) S_t, \quad S_t = S_{t-1} + \phi(K_t)^\top V_t$$
+
+早期核线性注意力还会同步累加键特征向量 $z_t = z_{t-1} + \phi(K_t)^\top$ 作分母 $\phi(Q_t) z_t$；现代工业模型（如 `Qwen3-Next` 的 Gated DeltaNet 与 `Kimi Linear` / `GLM-5.3-Flash` 的 KDA）省去显式分母，改在 $Q_t, K_t$ 过短卷积后直接做 L2 归一化，并在读出端接 RMSNorm 稳定尺度。
+
+用一个 $d_k = 2, d_v = 2$ 的极简算例（示意数）就能看清括号重排如何消掉逐词历史：设位置 1 的 $\phi(K_1) = (1, 0),\; V_1 = (2, 1)$，位置 2 的 $\phi(K_2) = (0, 1),\; V_2 = (0, 3)$，当前查询 $\phi(Q_2) = (1, 0.5)$：
+
+- **按位置扫描 $(\phi(Q_2)\phi(K_{1:2})^\top) V_{1:2}$**：先逐个打分得 $(1,\; 0.5)$，再加权求和 $1 \cdot (2, 1) + 0.5 \cdot (0, 3) = (2,\; 2.5)$，必须把两份历史都留在显存里；
+- **合成矩阵状态 $\phi(Q_2) S_2$**：先把外积叠进 $2 \times 2$ 状态 $S_2 = \begin{bmatrix}1\\0\end{bmatrix}\begin{bmatrix}2 & 1\end{bmatrix} + \begin{bmatrix}0\\1\end{bmatrix}\begin{bmatrix}0 & 3\end{bmatrix} = \begin{bmatrix}2 & 1\\0 & 3\end{bmatrix}$，再用查询一次乘出 $\begin{bmatrix}1 & 0.5\end{bmatrix}\begin{bmatrix}2 & 1\\0 & 3\end{bmatrix} = (2,\; 2.5)$。结果完全一致，但哪怕后续写到 13 万个 token，保留下来的依然只是这一个 $d_k \times d_v$ 矩阵。
 
 ```wiki-diagram
 file: linear-attention-intuition
 ```
 
-图上半是标准做法：历史每个位置的 k、v 都要留着，当前位置和它们一个个打分，位置越多，要存的和要读的越多。下半是 linear attention：同一段历史先压进一个大小固定的状态，当前 token 分两步走，先用自己的 k、v 改写状态，再用自己的 q 从改写后的状态里读出结果，状态随后留给下一个位置接着用。图里的格子只表示状态有固定的行和列，不代表具体数值。
+名字里的「线性」指序列长度 $n$ 的时间复杂度从 $O(n^2)$ 降为 $O(n)$（单步生成访存从 $O(t)$ 降为 $O(1)$），既不代表层内没有非线性激活与门控，也不代表输出数值与 Softmax 注意力等价。省下带宽的同时也付出了信息论代价：
 
-名字里的「线性」说的是成本：模型宽度固定时，处理一段序列的开销随位置数线性增长，而不是随位置数的平方增长。它不表示这一层里只有线性变换（门控和归一化都是非线性的），也不表示它和 softmax attention 算出来的结果相同。
-
-## 为什么去掉 softmax 就能从平方降到线性？
-
-标准 attention 的第 t 个位置要和它前面每个位置各算一个分数，一段 n 个位置的提示词因此有 n 的平方量级的分数要算；生成阶段每走一步，也要把已有的历史读一遍。这是 softmax 逼出来的：一排分数要先凑齐，才能归一化成加起来等于 1 的权重。
-
-去掉 softmax 之后，输出就是历史各位置的 v 按「当前 q 与该位置 k 的内积」加权相加。内积和求和可以换顺序，于是同一个式子有两种算法：要么先算 q 和每个 k 的内积，代价随历史长度增长；要么先把每个位置的 k 与 v 的外积加起来（外积是把 k 的每一维乘 v 的每一维，排成一个矩阵），再让 q 去乘这个矩阵。后者把历史压成一个与长度无关的矩阵，这就是省下来的地方。Katharopoulos 等人 2020 年的线性 transformer 论文正是这样做的：用核特征映射把 self-attention 写成线性的点积形式，再借矩阵乘法的结合律，把复杂度从位置数的平方降到线性。
-
-设 φ 是把 q、k 转成特征向量的映射，一种带归一化的因果 linear attention 可以写成：
-
-```text
-Sₜ = Sₜ₋₁ + φ(kₜ) vₜᵀ
-zₜ = zₜ₋₁ + φ(kₜ)
-oₜ = Sₜᵀ φ(qₜ) / (zₜᵀ φ(qₜ))
-```
-
-S 汇总键和值的外积，z 汇总归一化要用的键特征。当前查询直接读这两份状态，不再遍历历史位置。注意这里换掉的是相似度的形式：softmax 自带一层非线性归一化，所以不能把「softmax 打完分再乘 V」直接改写成「先算 K 与 V 的乘积再乘 Q」，能换顺序的是去掉 softmax 之后的式子。
-
-代价也在同一处：
-
-| | 逐位置 attention | 固定大小的状态 |
+| 对比维度 | 标准 Softmax 注意力 $(Q K^\top) V$ | 线性注意力定长状态 $\phi(Q_t) S_t$ |
 |---|---|---|
-| 生成一步要读多少历史 | 全部可见位置的 K、V | 一份状态 |
-| 一段 n 个位置的成本 | 随 n 的平方增长 | 随 n 线性增长 |
-| 能不能取回某个旧位置 | 能，K、V 原样存着 | 不能，已经融进同一个矩阵 |
-| 能记住多少细节 | 受显存限制 | 受状态容量限制 |
+| 生成一步读多少历史 | 全部 $t$ 个可见位置的 K、V（随长度线性膨胀） | 仅读本请求固定形状的状态矩阵 $S_{t-1}$ |
+| 处理 $n$ 个 token 的总计算量 | $O(n^2 d)$ | $O(n d_k d_v)$（宽度固定时随 $n$ 线性增长） |
+| 能否精确抄回任意旧 token | 能，每个位置的 K、V 独立原样保存 | 受限，多位置外积混入同一固定秩矩阵 |
+| 容量天花板受什么制约 | 物理显存池能装下多少 KV 块 | 单头矩阵 $d_k \times d_v$ 的通道容量与遗忘策略 |
 
-一个真实的量能说明动机：这套部署允许的最长请求是 133,120 个 token，标准全注意力下最后一个位置在每层每个头都要给 133,120 个 k 打分，而 KDA 只读一份状态，两个数的对照见 [attention 页的三种形式对照](attention-qkv.md#三种形式对照)。反过来，状态融合了很多位置的信息，通常无法从中逐个还原此前的 K、V，容量有限也限制了能表达的历史细节。
+## 四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA
 
-下面比较各种更新规则时，都省略显式的归一化分母，直接用已处理的 q、k 写递推。不同 linear attention 的特征映射、归一化和门控各不相同，这段推导不是所有模型共有的完整实现。
+把历史压成定长矩阵 $S_t \in \mathbb{R}^{d_k \times d_v}$ 后（下文统一采用与配图一致的 `[d_k, d_v]` 数学布局，$q_t, k_t \in \mathbb{R}^{d_k}$、$v_t \in \mathbb{R}^{d_v}$ 记为列向量），真正的难点在于**有限格子怎么写才不会串味饱和**。沿着同一套二维算例（初始 $S_0 = 0$，先后对同一个键 $k = (1, 0)^\top$ 写入旧值 $v_1 = (2, 0)^\top$ 与新值 $v_2 = (5, 0)^\top$），四代递推规则的因果演进一目了然：
 
-## 只做累加会写坏状态：delta 规则、遗忘门、按通道衰减
-
-最朴素的写法是每个位置都把自己的键值关联加进去，也就是把 `k vᵀ` 累加到状态上。它不检查状态里已经为相似的键存了什么，键之间相近时，先后写入会互相干扰，旧关联也擦不掉。
-
-**DeltaNet 把直接累加换成按误差修正。** 它先用当前的 k 从旧状态里读出「状态现在以为的 v」，记作 v̂；再把真正的 v 与 v̂ 之差乘上写入强度 β，作为外积加进状态。这样加进去的是这个键对应的偏差，而不是再来一份完整的 v。这条规则来自把注意力看成快速权重编程器的那一支工作，Schlag 等人用它替换纯累加的写入，Yang 等人给出了能并行执行的形式。
-
-举个只为看清区别的例子：状态从零开始，k=(1,0)、v=(2,0)，同一个键值连写两次。累加写法让第一行从 (0,0) 变成 (2,0)，再变成 (4,0)；delta 写法在 β=1 时，第二次已经能正确预测出 v，误差为零，第一行仍是 (2,0)。这是单位键、无衰减的教学算例。
-
-**Gated DeltaNet 再加一个遗忘门。** 纠错解决的是「这个键对应的值写得准不准」，还有一个问题是怎么主动减弱不再需要的旧信息。它在修正之前先给整个旧状态乘一个 0 到 1 之间的衰减系数，每个头每一步一个系数。两种控制分工明确：衰减管旧信息保留多少，delta 管当前键怎么修。
-
-**KDA 把衰减从「每头一个数」细化到「每个 key 通道一个数」。** 论文里这一项写成 Diag(αₜ)，对角线上每个元素对应 k 的一维；Gated DeltaNet 那一项是一个标量门。于是同一个头里，状态的不同通道可以各自决定保留多少，不必一起缩放。KDA 也是 Kimi Linear 用的 linear attention 层，那篇论文同时给出 3 层 KDA 配 1 层全注意力的混合比例。
+1. **纯累加式与固定斜率衰减（易饱和串味）**：最朴素的核线性注意力直接累加外积 $S_t = \lambda S_{t-1} + k_t v_t^\top$（普通加法取 $\lambda = 1$；Lightning Attention 按头固定斜率取 $\lambda = e^{-\text{slope}_h}$）。在算例中取 $\lambda = 1$，位置 1 写完首行为 $(2, 0)$，位置 2 想把同一个键改写成 $(5, 0)$，结果却叠成 $(2, 0) + (5, 0) = (7, 0)$——旧关联擦不掉，相近键反复写入会互相串味并撑爆数值范围。
+2. **DeltaNet（按预测误差擦写修正）**：Schlag 等人与 Yang 等人把注意力视作快速权重（fast weights）存储器，写入前先用当前键探出旧状态「以为的值」$\hat{v}_t = S_{t-1}^\top k_t$，再只把预测误差 $e_t = v_t - \hat{v}_t$ 按强度 $\beta_t \in (0, 1]$ 写进去：$S_t = S_{t-1} + \beta_t k_t e_t^\top$。回到算例取 $\beta_t = 1$：位置 2 先读出 $\hat{v}_2 = (2, 0)^\top$，算出差值 $e_2 = (5, 0)^\top - (2, 0)^\top = (3, 0)^\top$，更新后首行恰好变成 $(2, 0) + (3, 0) = (5, 0)$，精准覆写旧值且不污染正交的第 2 行通道。
+3. **Gated DeltaNet（`Qwen3-Next` 主力：每头标量遗忘门 + 误差擦写）**：DeltaNet 只能覆写当前命中的键 $k_t$；一旦上下文切换话题，不再访问的旧键仍占满状态容量。Gated DeltaNet 在误差修正前先给整头旧状态乘一个随输入变化的标量衰减门 $\alpha_{t,h} = e^{g_{t,h}} \in (0, 1)$：
+   $$\bar{S}_t = \alpha_{t,h} S_{t-1}, \quad e_t = v_t - \bar{S}_t^\top k_t, \quad S_t = \bar{S}_t + \beta_t k_t e_t^\top, \quad o_t = S_t^\top (q_t \cdot \text{scale})$$
+   在 `Qwen3-Next` 中，默认每 4 层排 3 层 `QwenGatedDeltaNetAttention`（昇腾对应 `AscendGatedDeltaNetAttention`）配 1 层全注意力（默认 `key_heads=16, value_heads=32, head_dim=128`、短卷积宽 `4`，$g = -e^{A_{\log}}\operatorname{softplus}(a + dt_{\text{bias}})$，$\beta = \sigma(b)$）。若算例第 2 行存着旧话题 $(0, 4)$、本步取 $\alpha_{t,h} = 0.5, \beta_t = 1$，衰减门先把背景旧话题减半腾出容量，误差项再把当前键首行精准写到 $(5, 0)$。
+4. **KDA（Kimi Linear / GLM 进阶：按 key 通道独立的对角衰减）**：标量门迫使同一头的 128 个键通道同速遗忘。**KDA（Kimi Delta Attention）** 将标量 $\alpha_{t,h}$ 细化为对角矩阵 $D_t = \operatorname{diag}(\alpha_{t,h,:})$，令 $\bar{S}_t = D_t S_{t-1}$，允许同一头内部分通道取 $\alpha_{t,0} \approx 1$ 留住长程锚点、另一批通道取较小 $\alpha_{t,1}$ 快速清掉局部语法（`Kimi Linear` 同样采用 3 层 KDA 配 1 层全注意力的混合比例）。
 
 ```wiki-diagram
 file: kda-evolution
 ```
 
-| 更新形式 | 从前一个基础保留什么 | 新增的变化 |
-|---|---|---|
-| 累加式 linear attention | 用固定形状的状态汇总历史 | 每个位置加入一份键值外积 |
-| DeltaNet | 矩阵状态与查询读出 | 按当前键的预测误差修正状态 |
-| Gated DeltaNet | delta 定向更新 | 加入每头一个的遗忘门 |
-| KDA | 遗忘门与 delta 更新 | 把遗忘控制细化到 key 通道 |
+| 递推代际 | 单步状态更新（`[d_k, d_v]` 数学布局） | 解决的核心痛点 | 典型模型与算子入口 |
+|---|---|---|---|
+| 纯累加 / Lightning | $S_t = \lambda S_{t-1} + k_t v_t^\top$ | 消除 $O(t)$ KV 增长，但同键覆写易串味 | TransNormerLLM / `lightning_attn` |
+| DeltaNet | $S_t = S_{t-1} + \beta_t k_t (v_t - S_{t-1}^\top k_t)^\top$ | 按预测误差精准擦写当前键关联 | DeltaNet（快速权重） |
+| Gated DeltaNet（GDN） | $\bar{S}_t = \alpha_{t,h} S_{t-1},\; S_t = \bar{S}_t + \beta_t k_t (v_t - \bar{S}_t^\top k_t)^\top$ | 每头标量门主动清空过期背景，配合误差覆写 | `Qwen3-Next`（`chunk` / `fused_recurrent_gated_delta_rule`） |
+| KDA | $\bar{S}_t = \operatorname{diag}(\alpha_{t,h,:}) S_{t-1},\; S_t = \bar{S}_t + \beta_t k_t (v_t - \bar{S}_t^\top k_t)^\top$ | 同一头内不同 key 通道按各自半衰期独立遗忘 | `Kimi Linear`、`GLM-5.3-Flash`（`chunk_kda` / `recurrent_kda`） |
 
-这条线索只交代本页需要的机制关系，不是高效注意力的完整历史。同一个问题还有别的走法：[MLA](mla.md) 压缩每个位置的历史表示，[稀疏注意力](sparse-attention.md)限制每个查询能读的范围。GLM-5.3-Flash 把这些机制放在不同层里组合，而不是用 KDA 全面替代它们。
+压缩长上下文还有另外两条正交路线：[MLA](mla.md) 压缩每个位置的 KV 潜向量，[稀疏注意力](sparse-attention.md)只挑 top-k 历史块精算。现代长文本模型常以「3 层线性注意力（GDN 或 KDA）+ 1 层全注意力/稀疏 MLA」混排，兼顾常数级状态开销与精确大海捞针召回。
 
 ## KDA 一步完整的更新和读出
 
-下面用 `S∈R^(dₖ×dᵥ)` 的数学布局，q、k、v 都是列向量，省略批次、头编号、缩放和外层投影。令 D 是按 key 通道取值的对角衰减矩阵，β 是写入强度，一次更新就是五步：
+Gated DeltaNet 与 KDA 共享完全相同的五步递推骨架，唯一区别在于第一步衰减因子 $D$ 取标量门 $\alpha_{t,h} I$（GDN）还是对角矩阵 $\operatorname{diag}(\alpha_{t,h,:})$（KDA）。沿用 `S ∈ ℝ^{d_k × d_v}` 数学布局与列向量 $q, k, v$（省略批次、头下标与缩放），单步计算依次为：
 
-```text
-衰减：   S̄ = D Sₜ₋₁
-预测：   v̂ = S̄ᵀ k
-误差：   e = v − v̂
-更新：   Sₜ = S̄ + β k eᵀ
-读出：   o = Sₜᵀ q
-```
+$$\bar{S} = D S_{t-1}, \quad \hat{v} = \bar{S}^\top k, \quad e = v - \hat{v}, \quad S_t = \bar{S} + \beta k e^\top, \quad o = S_t^\top q$$
 
-论文把同一件事写成一行：Sₜ = (I − β k kᵀ) Diag(α) Sₜ₋₁ + β k vᵀ，读出仍是 Sₜᵀ q。两种写法完全等价，把 e = v − S̄ᵀk 代进第四步展开即可：β k eᵀ = β k vᵀ − β k kᵀ S̄，与 S̄ 合并就得到 (I − β k kᵀ) S̄ + β k vᵀ。看源码时会遇到这两种形式，它们不是两套算法。
+把 $e = v - \bar{S}^\top k$ 代入第四步即可合并成论文常见的快速权重形式 $S_t = (I - \beta k k^\top) D S_{t-1} + \beta k v^\top$，两者在数学上完全等价。上游 FLA 与昇腾内核实现多按 value-first 存储布局 `[H_v/TP, d_v, d_k]` 排布状态矩阵（即上式的转置 $S_{\text{mem}} = S^\top$），对应递推写为 $\bar{S}_{\text{mem}} = S_{\text{mem},t-1} D$、$r_t = \beta(v - \bar{S}_{\text{mem}} k)$、$S_{\text{mem},t} = \bar{S}_{\text{mem}} + r_t k^\top$、$o = S_{\text{mem},t} q$。
 
 ```wiki-diagram
 file: linear-attention-state
 ```
 
-图画的是单个头、单个位置的递推。真实一层还会先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度和两个门；`q`、`k`、`v` 各过短卷积后，`q`、`k` 再做 L2 归一化（将向量除以自身欧氏长度缩放到单位长度）使 $(I - \beta k k^\top)$ 不会放大状态。各头独立维护状态，读出结果经输出门、归一化与输出投影回到隐藏宽度。
-
-把这五步在两维上走一遍就能看清各项的作用（示意数）：取旧状态 $S_{t-1} = I$、通道衰减 $D = \text{diag}(0.5, 1)$（通道 0 留一半、通道 1 全保留）、$k = q = (1, 0)^\top$、$v = (3, 2)^\top$、$\beta = 0.5$（图示见后文矩阵演进图上半区）：
+真实一层先从隐藏向量投影出 `q`、`k`、`v` 以及写入强度 $\beta$ 和衰减门，对 `q`、`k`、`v` 过核宽为 `4` 的因果短卷积（`conv1d`）捕获局部相邻词特征，再对 `q`、`k` 做 L2 归一化，保证收缩算子 $(I - \beta k k^\top)$ 不会放大状态范数；读出结果经输出门、RMSNorm 与行并行投影回到隐藏维度。在二维上走一遍五步（示意数：取 $S_{t-1} = I$、$D = \operatorname{diag}(0.5, 1)$、$k = q = (1, 0)^\top$、$v = (3, 2)^\top$、$\beta = 0.5$）：
 
 | 步骤 | 算式 | 结果 |
 |---|---|---|
-| 1. 衰减 $\bar{S}$ | $D S_{t-1} = \text{diag}(0.5, 1) \cdot I$ | $\begin{bmatrix}0.5 & 0 \\ 0 & 1\end{bmatrix}$ |
+| 1. 衰减 $\bar{S}$ | $D S_{t-1} = \operatorname{diag}(0.5, 1) \cdot I$ | $\begin{bmatrix}0.5 & 0 \\ 0 & 1\end{bmatrix}$ |
 | 2. 预测 $\hat{v}$ | $\bar{S}^\top k$ | $(0.5,\; 0)^\top$ |
 | 3. 误差 $e$ | $v - \hat{v} = (3, 2)^\top - (0.5, 0)^\top$ | $(2.5,\; 2)^\top$ |
 | 4. 更新 $S_t$ | $\bar{S} + 0.5\, k e^\top$ | $\begin{bmatrix}1.75 & 1 \\ 0 & 1\end{bmatrix}$ |
 | 5. 读出 $o$ | $S_t^\top q$ | $(1.75,\; 1)^\top$ |
 
-每步改写的是这条请求的状态，投影权重始终不变。所以同一份权重服务很多请求，各请求的状态互不相干；而状态一旦被覆盖，就没有别处能把它算回来，这也是抢占（把请求的缓存收回、以后重算）在这类层上代价更高的原因。
+每步改写的只是当前请求独享的状态槽，模型投影权重保持不变；状态一旦被原地覆写或随抢占回收，就无法像逐词 KV 那样局部回退，只能从头或最近检查点重算。想在三维空间里观察张量流向，可打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。
 
-想把这一步放回完整模型，可以打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。该段保留状态矩阵与 Q/K/V 的位置关系；前一段展示衰减门和写入强度如何产生。
+## Prefill 用 chunked 计算，decode 逐位置推进
+
+**同一套门控增量递推在引擎里拆成两条硬件路径：Prefill 走分块并行（Chunkwise）吃满 [AI Core](ai-core.md) 的 Cube 矩阵核，Decode 走逐词递推（Recurrent）压低 HBM 访存带宽。**
+
+```wiki-diagram
+file: linear-attention-flow
+```
+
+如果把 4,096 个提示词按 $t = 1 \dots 4096$ 串行递推，4,096 次微小的矩阵乘向量会让 Cube 单元长期饥饿。**Chunkwise 并行**（如 `ChunkGatedDeltaRule`、昇腾 `fla_npu` / `npu_chunk_gated_delta_rule` 与段长 $C=64$ 的 `chunk_kda_fwd`）把输入序列切成固定长度的小段：段内先做门值累加、段内键交互矩阵与下三角求解，一次性用高密度矩阵乘算出整段 64 个位置的输出与段末状态增量；段与段之间再把前一段算出的状态传给下一段作初值。它只利用结合律重排计算顺序，与逐词递推在数学上等价（仅差浮点累加顺序），[分块预填充](chunked-prefill.md#历史状态必须跨段延续)跨轮续算时同样直接读取上一轮留下的状态。
+
+**Decode 逐词递推**（每步仅推进 1 个位置，或[投机解码](speculative-decoding.md)验证 $1 + K$ 个位置，对应 `fused_recurrent_gated_delta_rule` / `recurrent_gated_delta_rule` 与 `recurrent_kda`）则完全不必拼段内大矩阵：算子把本请求的状态从 HBM 读入片上缓存，融合完成归一化、门控衰减、误差写入与查询读出后再写回，单步访存恒为 $O(d_k d_v)$。同一批次混有 Prefill 与 Decode 请求时，实现先按请求阶段拆行分流，算完再按原行序拼回输出。
+
+在 vLLM V1 缓存管理中，线性注意力统一抽象为 `MambaSpec` 双状态页：**短卷积缓存**保存最近 $w - 1 + K$ 个输入向量（GDN 每卡宽 $(2 H_k d_k + H_v d_v)/\text{TP}$，KDA 每卡宽 $(H d + 2 H_k d_k)/\text{TP}$），**递推状态**保存矩阵历史（GDN 为 `[H_v/TP, d_v, d_k]`，KDA 为 `[H/TP, d, d]`）。每条请求预留的状态页上界随 `mamba_cache_mode` 变化：默认 `none` 占 $1 + N_s$ 页（$N_s$ 为投机草稿块数），开启前缀对齐 `align` 占 $2 + N_s + N_{\text{ckpt}}$ 页，`all` 占 $\lceil L_{\max}/B \rceil + N_s$ 页（详见 [KV cache spec](kv-cache-spec.md)）。
 
 ## 放到 GLM 双机：34 层 KDA 的状态有多大
 
-**GLM-5.3-Flash 的 45 层主干里有 34 层 KDA、11 层稀疏 MLA，排法是 3 层 KDA 接 1 层 MLA；KDA 层不按位置存 K、V，一条请求在一层里只占一份大小固定的状态。** 层号名单和各层维度以[模型总览](glm-5-3-flash.md#45-层怎样排)为准，请求走到这里就是[主线第 4 站的 34 层 KDA](one-request.md#34-层-kda)。本页之后的数字都用[官方双机部署](glm-5-3-flash-two-node.md#部署前提)：两台 Atlas 800 A2、每台 8 卡，机内 TP8。
+前半程讲完了通用线性注意力、`Qwen3-Next` 的 Gated DeltaNet 与 KDA 的统一机制。要看清「定长状态怎样与按位置增长的稀疏 KV 共用同一个物理块池」，下面切入例外 B 历史绑定算例——[官方双机部署](glm-5-3-flash-two-node.md#部署前提)（两台 Atlas 800 A2、每台 8 卡、机内 TP8，最长上下文 `133,120` token，默认关闭 prefix caching）下的 `GLM-5.3-Flash`。**其 45 层主干由 34 层 KDA 与 11 层稀疏 MLA 按「3 层 KDA + 1 层 MLA」混排；KDA 层不按位置存 K、V，每条请求在一层里只维护固定形状的双状态**（层号见[模型总览](glm-5-3-flash.md#45-层怎样排)，对应[主线第 4 站](one-request.md#34-层-kda)与 [attention 页三种形式对照](attention-qkv.md#三种形式对照)）。
 
 **64 个头按 TP 切给 8 张卡，每卡 8 个头。** `q`、`k`、`v` 三个投影各把 4096 维变成 $64 \times 128 = 8192$ 维（切完每卡 1024 列）；输出投影按行切，每卡输出 4096 维部分和后做一次 [All-Reduce](collective-communication.md#all-reduce)。状态跟着头走，每卡只维护本地 8 个头，状态不跨卡交换，全层只有这一次集合通信（切法见 [tensor parallel 的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)）。
 
@@ -248,29 +258,7 @@ file: linear-attention-fig-kda-delta-budget
 
 上图把 KDA 的五步固定状态更新与这三笔显存账放在一起对照：查单份有效净载荷看 561,152 B/层（34 层合计 18.2 MiB）；算含投机份数和页内填充的页面容量看 85.0 MiB；估算块池还能容纳多少条并发请求，则必须按 12 个块号、约 95.6 MiB 记账。部署页短请求的「15 块约 119.5 MiB」同样采用块号口径；三者衡量的都是静态容量，都不直接给出每步访存流量。
 
-**这里的「块大小」和逻辑块不是一个数。** KDA 组的块大小被设成最大请求长度 133,120，意思是「一条请求的状态一页装得下，和它多长无关」；KV 池和 MLA 用的逻辑块是 640 个 token，稀疏注意力算子按 128 个 token 一块读取；调度器的对齐单位是各组块大小的最小公倍数，也等于 133,120。block_size 这个词在这套部署里一共有五种含义，对照表和换算见 [KV cache 规格](kv-cache-spec.md#block_size-到底指哪一个五种含义)。
-
-## Prefill 用 chunked 计算，decode 逐位置推进
-
-**同一条递推规则有两种算法：已知一整段输入时按段并行算，只推进一个位置时直接递推。**
-
-```wiki-diagram
-file: linear-attention-flow
-```
-
-图是一层 KDA 的先后与分支。投影和短卷积对所有位置一样；接下来按这一步要算的位置种类分三条路，算完拼回原来的行序，再过输出门控与输出投影，最后在 TP 组内归约一次。
-
-**chunked 计算（分段计算）把一段位置切成每段 64 个。** 段内可以把逐位置递推改写成矩阵运算，一次算完整段的输出；段与段之间仍按顺序传状态，后一段的初始状态就是前一段算完的状态。这和 KDA 论文里 64 的段长一致。所以分段只是重排计算的顺序，不改算法语义，与逐位置递推在数学上等价，差别只在浮点累加顺序。
-
-**prefill 读初始状态、写回最终状态。** 没有可复用的初始状态时从清零的状态开始；分块预填充（把一段长提示词分几轮算完）时，后一轮在前一轮留下的状态上接着算，这条延续要求见[分块预填充](chunked-prefill.md#历史状态必须跨段延续)。本部署关着 prefix caching，所以开头相同的两条请求不会共用状态。
-
-**decode 每步只推进一个位置**，走递推算子，q、k 的归一化和门控都在算子内部完成。开了投机解码时一轮要验证 1 + 3 个位置：这些位置走投机分支，按接受数量推进状态，卷积状态多留的 3 格就是为它们准备的，接受与回退见[投机解码](speculative-decoding.md)。
-
-**一步里同时有 prefill 和 decode 的请求时，两条路都要走。** 实现先按位置种类把这一步的行分开，decode 的行走递推、prefill 的行走分段，各自算完再按原来的行序拼回一份输出。
-
-**存储布局和数学布局可能是反的。** 缓存里的递推状态按「头、dᵥ、dₖ」排，分段算子要的是「头、dₖ、dᵥ」，所以只在算子边界转置一次，返回时再转回去。本模型 dₖ 和 dᵥ 都是 128，只看张量形状看不出转没转，检查时要同时核对每一维的含义。
-
-最后要分清两层账：KDA 数学上的固定状态是一回事，系统为页对齐、投机和前缀复用预留的物理空间是另一回事。缓存规格怎么声明、五个组怎么分，见 [KV cache spec](kv-cache-spec.md)。
+**这里的「块大小」和逻辑块不是一个数。** KDA 组的块大小被设成最大请求长度 133,120，意思是「一条请求的状态一页装得下，和它多长无关」；KV 池和 MLA 用的逻辑块是 640 个 token，稀疏注意力算子按 128 个 token 一块读取；调度器的对齐单位是各组块大小的最小公倍数，也等于 133,120。`block_size` 在这套部署里一共有五种含义，对照表和换算见 [KV cache 规格](kv-cache-spec.md#block_size-到底指哪一个五种含义)。此外，该算例缓存里递推状态按 `[头, d_v, d_k]` 存储而分段算子要求 `[头, d_k, d_v]`，算子边界会转置一次再转回——因 $d_k = d_v = 128$，排查时不能只看形状数字，须核对各轴语义。
 
 ## 多条请求和空闲组：状态按槽位号各归各的
 
@@ -284,96 +272,61 @@ file: linear-attention-flow
 
 ## 常见误解
 
-- **「KDA 只是把 softmax attention 改写了一下，结果一样。」** 换掉 softmax 就换了相似度的形式，输出不等价。能靠结合律换顺序的是去掉 softmax 之后的式子；固定容量的状态也装不下任意多的历史细节。
-- **「状态大小固定，所以 KDA 层几乎不占显存。」** 每条请求在每张卡上的 KDA 页面容量为 85 MiB、占住 12 个块号（约 95.6 MiB），短请求里它是大头；固定容量不等于每步写入量。
-- **「KDA 层没有 KV cache，所以不进 KV cache 管理。」** 引擎把它当作一类缓存规格统一声明、统一分块，和 MLA 的历史共用同一个池子，见 [KV cache spec](kv-cache-spec.md)。
-- **「prefill 分段并行，算出来和逐个递推不同。」** 段间仍按顺序传状态，两者数学上等价，差别只在浮点累加顺序。
-- **「递推状态和卷积状态是一回事。」** 两份不同的东西：一份是汇总全部历史的矩阵，一份是短卷积要回看的最近几个位置，精度、形状、用途都不同。
-
-- **「后端类名里带 GDN，所以这个模型跑的是 Gated DeltaNet。」** 昇腾的 KDA 实现沿用了 GDN 后端的接口名，实际调用的是 KDA 算子；类名不能证明算法，见[后端家族](attention-backend-family.md#放到-glm-双机一个-token-走过-45-层要问-45-次)。
+- **「线性注意力只是把 Softmax 换了个等价快算写法，输出一样。」** 能用结合律交换括号顺序的前提是去掉逐位置非线性 Softmax，相似度度量已经改变，输出并不等价；有限秩矩阵状态也装不下无限多的逐词细节。
+- **「Prefill 走 Chunkwise 分块并行，算出来和 Decode 逐词递推不是一个模型。」** 段内矩阵乘与段间串行传状态只是结合律重排，数学上与逐步递推完全等价，仅差浮点累加顺序。
+- **「类名里带 `GatedDeltaNet` 就一定跑标量门 GDN，没有 KV cache 就不进块池。」** 昇腾 KDA 层继承并复用了 GDN/Mamba 后端接口名（如 `Glm5NextLinearAttention` 继承 `GatedDeltaNetAttention`），实际算子仍按模型分派（`Qwen3-Next` 跑标量门 GDN，Kimi/GLM 跑对角门 KDA）；两者的双状态均通过 `MambaSpec` 纳入统一块池管理，详见[后端家族](attention-backend-family.md#放到-glm-双机一个-token-走过-45-层要问-45-次)与 [KV cache spec](kv-cache-spec.md)。
+- **「状态大小固定，所以线性注意力层几乎不占显存；递推状态和短卷积状态是一回事。」** 它们是形状、精度、用途各异的两份缓存；在 GLM 双机算例中，叠加投机 4 份副本与大页对齐后，每条请求每卡占 `85.0 MiB` 页容量（`12` 个块号约 `95.6 MiB`），短请求里反而是显存大头。
 
 ## 对照源码
 
 ### 怎么开
 
-**KDA 不是一个开关，是层的类型。** 解码器按配置里的 KDA 层名单选型：命中就构造 KDA 层，否则构造稀疏 MLA 层。[C9] 固定配置给出 64 个头、每头 128 维、短卷积核长 4、门的下界 −5.0；专用镜像同时认旧的 `linear_attn_config` 字典和新的平铺字段。[S1]
-
-**这套部署里真正执行的是昇腾替换类。** 模型构造的是上游 vLLM 的 KDA 层，vLLM 版本为 0.23.0 时，昇腾把这个类名替换成自己的实现。[C8] prefill 走 AscendC 算子 `kda_gate_cumsum` 与 `chunk_kda_fwd`，decode 走 `recurrent_kda`。[C14]
-
-**状态的精度和形状由两处决定。** 递推状态是 FP32，卷积状态用模型精度；[C20] 形状函数把投机 token 数加进卷积状态长度，上游那份通用函数不加。[C18]
-
-**页大小和块大小被补丁改写。** 这类状态的页被补到「注意力页与状态原始大小的较大值」，[C21] 填充比例写进启动日志；KDA 组的块大小等于最大请求长度。[C22] 每请求的页数是 1 加投机块数。[C23]
+**线性注意力由模型配置里的层类型名单直接决定，不是外挂 CLI 开关。**
+- **`Qwen3-Next`（Gated DeltaNet 主线）**：`Qwen3NextDecoderLayer` 按层类型 `linear_attention` / `full_attention` 分支构造 `QwenGatedDeltaNetAttention`（未显式指定层表时默认每 4 层排 1 层全注意力，其余为线性层；默认 `conv_kernel=4, head_dim=128, key_heads=16, value_heads=32`）。[C42][C43] 昇腾侧由 `AscendGatedDeltaNetAttention` 接管：`v0.30.0` Prefill 优先走 `fla_npu` 融合路径，其次探测 `torch_npu.npu_chunk_gated_delta_rule`，回退走 Triton chunk；Decode 调 `recurrent_gated_delta_rule`。[C48]
+- **`GLM-5.3-Flash` / `Kimi Linear`（KDA 分支）**：按层名单构造 KDA 层（64 头、每头 128 维、短卷积核长 4、门下界 `-5.0`）。[S1][C9] 例外 B 镜像在 vLLM 0.23.0 下通过替换表切到昇腾实现（Prefill 走 `kda_gate_cumsum` + `chunk_kda_fwd`，Decode 走 `recurrent_kda`）；`v0.30.0` 直接由 `Glm5NextLinearAttention` 调 `fla_npu.ops.ascendc`。[C8][C14][C50]
+- **双状态规格与缓存模式**：GDN 递推状态 dtype 默认随短卷积 dtype，KDA 递推状态默认 `FP32`；[C44][C20] `mamba_cache_mode` 默认 `none`（每请求 $1 + N_s$ 页），昇腾补丁在 `enable_prefix_caching && mamba_cache_mode == "align"` 时取注意力 `block_size`，否则取 `max_model_len`；GLM 专用布局还将 KDA 与 MLA 主页补齐到较大单页容量。[C45][C51][C21]
 
 ### 会报什么错
 
 | 情况 | 检查或报错 |
 |---|---|
-| 头数不能被 TP 整除 | 构造时断言 `num_heads % tp_size == 0`；64 个头要求 TP 是 64 的约数 |
-| 卷积缓存布局不对 | `Ascend Kimi KDA requires the convolution cache layout [num_cache_lines, state_len, qkv_dim].` |
-| 缺 prefill 算子 | 逐个检查 `kda_gate_cumsum`、`chunk_kda_fwd` 是否注册，缺一个就抛错 |
-| prefill 遇到 PCP 并行 | `Kimi KDA prefill does not yet support PCP.` |
-| prefill 元数据行数对不上 | `Kimi KDA prefill metadata is inconsistent: …` |
-| 已钉 main 与 rc2 的构造期检查 | 要求每头 128 维、BF16 激活、投机 token 数不超过 7、卷积核宽在 2 到 4 之间、开 MTP 时核宽必须是 4、门下界落在 −5 到 0 之间 |
+| 头数不能被 TP 整除 | 构造时断言 `num_heads % tp_size == 0`（如 KDA 64 头要求 TP 为 64 的约数） |
+| Kimi KDA 卷积缓存布局或 PCP 冲突 | 布局不符报 `Ascend Kimi KDA requires the convolution cache layout [num_cache_lines, state_len, qkv_dim].`；`v0.26.0rc` Prefill 遇 PCP 报 `Kimi KDA prefill does not yet support PCP.` |
+| 缺少 KDA Prefill 算子或元数据不一致 | 逐个检查 `kda_gate_cumsum`、`chunk_kda_fwd` 注册状态；行数不符报 `Kimi KDA prefill metadata is inconsistent: …` |
+| `v0.30.0` / `main` GLM KDA 构造与 RecoverSSM 校验 | 强校验 `BF16` 激活、`head_dim=128`、草稿数 $\le 7$、卷积宽 2–4（开投机须为 4）、`linear_lower_bound ∈ [-5, 0)`；`main` 开启 RecoverSSM 还要求开启投机解码、禁 stochastic rounding、`PP=DCP=1` |
 
-以上都是源码里的检查点，没有在设备上故意触发。头数断言在上游层的构造函数里，[C7] 布局检查与三处 prefill 报错在昇腾实现里，[C12][C14] 构造期限制的 main 实现见来源 28；rc2 同样保留这些检查，详见下方版本差异。[C28]
+以上均为源码静态检查点，未在设备上故意触发（分别见来源 7、12、14、33、36）。[C7][C12]
 
 ### 开销和什么时候别开
 
-KDA 不能关：去掉它，模型就不是这个模型。它省掉的是随长度增长的那部分开销，代价有四笔：
-
-- 每条请求每张卡固定 85 MiB 的 KDA 页容量、12 个块号，短请求也照付；
-- 分段计算段内并行、段间串行，段长 64 决定这条串行链有多长；
-- 投机解码把状态份数从 1 份增加到 4 份，再叠加页内填充，得到上面的 85 MiB 页容量；
-- 固定容量限制了能记住的历史细节，这也是模型每 4 层留 1 层稀疏 MLA 的原因。
-
-两个 KDA 算子的实测耗时与算术强度本页没有，只读了接口。
+线性注意力属于模型骨干结构，不能关闭。它省去随上下文线性膨胀的逐词 KV 读写，换来四项固有边界：① 每条请求预留定长状态页（GLM 双机算例每卡 `85.0 MiB` 页容量、`12` 个块号），短请求也照付；② Chunkwise 段内并行但段间（如段长 `64`）仍串行传状态；③ 投机解码须为 $K$ 个草稿步额外预留状态页（除非启用 `main` 的 RecoverSSM 置零投机块）；④ 有限秩状态无法无损记忆任意细节，因此 `Qwen3-Next`、`Kimi Linear` 与 `GLM-5.3-Flash` 均保留每 4 层 1 层精确注意力层。算子级实测耗时与算术强度本页未做设备采集。
 
 ### 版本差异
 
-**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）沿用 GLM 自带的 `Glm5NextLinearAttention`，并在 `main` 上进一步新增细粒度输入投影 TP（`KDAInputProjectionTP`）、PCP 列切与 RecoverSSM 开关。** `Glm5NextLinearAttention` 继承 `GatedDeltaNetAttention`，状态形状交给上游 `MambaStateShapeCalculator.kda_state_shape` 并传入 `num_spec` 为投机保留卷积状态空间；构造期强校验 `BF16` 激活、`head_dim=128`、卷积宽度在 2–4、投机数不超过 7（开启投机时核宽须为 4）及门下界在 `[-5, 0)`。
-
-与旧镜像 `db701c1f` 分别构造投影的路径相比，`v0.30.0` 与 `main` 将 `q, k, v, b, f_a, g_a` 合并为一次 `in_proj_qkvbfg_a`（`f_a, g_a` 在 TP rank 间复制，其余按输出分片加载）。`main` 还额外引入两条新能力：① `KDAInputProjectionTP`（配 `finegrained_tp_config.qkv_iproj_tensor_parallel_size`），通过异步 `all_to_all_single` 与本地 `f_b_proj` / `g_b_proj` 上投影重叠；② `use_glm_recoverssm`（借上游 `cache_config.use_replayssm` 开关，要求开启投机解码、`PP=1`、`DCP=1`，`PCP>1` 时须 `TP=1` 且为 `kv_producer`）。递推公式、历史状态的数学含义没有因合并投影而改变，但旧镜像的 GEMM 次数与逐参数显存账不能直接套用到 `v0.30.0` / `main`。
-
-**四版本核验矩阵（本页 GLM 双机数字固定于专用镜像 `db701c1f` + vLLM `0fc695fc`）：**
+**GDN（`Qwen3-Next` 主线）与 KDA（`Kimi Linear` / `GLM-5.3-Flash`）在四代昇腾快照上各自演进：**
+- **GDN 算子演进**：`v0.23.0` 与 `v0.26.0rc` Prefill 调昇腾 Triton `chunk_gated_delta_rule`、Decode 调 `_C_ascend.npu_recurrent_gated_delta_rule`（`v0.26.0rc` 配套上游 FLA 迁至 `vllm/third_party/flash_linear_attention/ops/`）；`v0.30.0` Prefill 按硬件能力与 PCP 条件优先选 `fla_npu` 融合路径，其次探测 `torch_npu.npu_chunk_gated_delta_rule`，回退 Triton chunk，Decode 调 `recurrent_gated_delta_rule`；`main` 进一步在自适应投机验证（adaptive GDN）中接入二维 state-index 表与独立行步长（310P 不支持该自适应路径）。
+- **KDA 层演进**：与例外 B 旧镜像 `db701c1f` 分立投影相比，`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）由 `Glm5NextLinearAttention` 将 `q, k, v, b, f_a, g_a` 合并为单次 `in_proj_qkvbfg_a`，状态形状交上游 `MambaStateShapeCalculator.kda_state_shape(..., num_spec)`；`main` 新增 `PCPGlm5NextMergedColumnParallelLinear`、细粒度 `KDAInputProjectionTP` 与 `use_glm_recoverssm`（开启后上游将投机额外状态块置零）。[C33]
 
 | 项目 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| KDA 层实现 | 维护快照仅有 triton 版算子，无 `kimi_kda.py` 与 GLM 模型（本页算例取镜像 `db701c1f`） | 有 `kimi_kda.py` 与状态形状函数，仍无 GLM-5.3-Flash 模型文件 | `models/glm5next/kda.py` 自带 `Glm5NextLinearAttention`，合并 `in_proj_qkvbfg_a` | 同 `v0.30.0`，新增 `PCPGlm5NextMergedColumnParallelLinear`、细粒度 `KDAInputProjectionTP` 与 `use_glm_recoverssm` |
-| 替换时机 | 镜像仅在 vLLM 0.23.0 时走替换表 | 无条件登记替换表 | 模型直接构造，不走替换表 | 同 `v0.30.0` |
-| 卷积状态留投机位 | 维护快照无此文件（镜像手动加 `num_spec`） | 核长减 1 加投机数 | 交上游 `kda_state_shape(..., num_spec=self.num_spec)` | 同 `v0.30.0` |
-| 分段段长 | triton 分段算法 | AscendC 分段算子，段长 64 | 段长 64 | 同 `v0.30.0` |
-| 投机上限与构造检查 | 无构造期检查 | 仅运行期查元数据 | 构造期强校验 `BF16`、`head_dim=128`、投机数 $\le 7$、核宽 2–4（投机须为 4） | 同 `v0.30.0`，另增 `validate_glm_recoverssm` 拓扑校验 |
-| 状态布局转置 | 维护快照无此文件 | 缓存按「头、$d_v$、$d_k$」，算子边界转置 | 转置改在卷积状态侧，按 AscendC 算子维度约定 | 同 `v0.30.0` |
+| **GDN（`Qwen3-Next`）** | `AscendGatedDeltaNetAttention`：Triton `chunk_gated_delta_rule` + `_C_ascend.npu_recurrent_gated_delta_rule` | 保持 chunk/原生 recurrent 分派；上游 FLA 迁入 `third_party/flash_linear_attention` | Prefill 优先 `fla_npu`，次选 `torch_npu.npu_chunk_gated_delta_rule`，回退 Triton；Decode 调 `recurrent_gated_delta_rule` | 新增 adaptive GDN 验证二维 state-index 表与变长上界 $1+K$（310P 不支持） |
+| **KDA（Kimi / GLM）** | 仅有 Triton `chunk_kda` / `fused_recurrent_kda`（GLM 双机算例固定于专用镜像 `db701c1f`） | 新增 `AscendKimiGatedDeltaNetAttention` 与 `kimi_kda_state_shape`，AscendC `chunk_kda_fwd` / `recurrent_kda` | `Glm5NextLinearAttention` 合并 `in_proj_qkvbfg_a`，经 `ops/kda.py` 调 `fla_npu.ops.ascendc`（段长 64） | 新增 PCP 头切分、细粒度 `KDAInputProjectionTP` 与 `RecoverSSM` 验证分支 |
+| **卷积投机位与构造校验** | 维护快照无 KDA 包装类（镜像手动加 `num_spec`） | `kimi_kda_state_shape` 计入 $w-1+K$，运行期校验元数据 | 交上游 `kda_state_shape(..., num_spec)`；GLM 构造期强校验 `BF16`、`head_dim=128`、草稿数 $\le 7$ | 同 `v0.30.0`，另增 `validate_glm_recoverssm` 拓扑校验并显式传 `mamba_ssm_cache_dtype` |
 
-四版能否在双机上整套跑通本页部署未做实机验证；各分支与镜像的对应见[来源基线](../sources/glm-5-3-flash-baseline.md)。表中各版本证据位置：`v0.23.0` 见来源 25、`v0.26.0rc` 见来源 26–27、`rc2`/旧 `main` 见来源 28–30 与 32、`v0.30.0`（`c09d3e20`）`Glm5NextLinearAttention` 见来源 33、`main`（`8d6180e2`）`KDAInputProjectionTP` 与 `recoverssm_config` 见来源 34–36。
+四版能否在双机上整套跑通例外 B 部署未做实机验证；各分支与镜像对应见[来源基线](../sources/glm-5-3-flash-baseline.md)。表中证据位置：GDN 四版见来源 46–49，KDA 四版见来源 25–27、33–36 与 50。
 
 ### 源码位置
 
-**检索名称。** linear attention 在源码里不叫这个名字：KDA 的层类名带 `GatedDeltaNet`，状态由 `mamba` 那一套接口管理（vLLM 把递推状态类模型都归到这一套里），所以搜 `kimi_kda`、`kda_state`、`mamba_page_size_padded` 比搜 linear attention 有效。递推状态叫 `recurrent_state`，短卷积状态叫 `conv_state`，投机接受数叫 `num_accepted_tokens`，分段段长常数叫 `_KDA_CHUNK_SIZE`。
-
-按「怎么选到这一层 → 投影和门 → 短卷积 → 两条计算路径 → 状态规格和页」读，能把本页的机制对回实现：
+**检索名称。** 源码里线性注意力统一挂在 `gdn` 与 `mamba` 目录下：搜 `qwen_gdn_linear_attn`、`ops/gdn.py`、`kimi_kda`、`mamba_utils` 比搜 `linear_attention` 精准；递推状态叫 `recurrent_state`，短卷积缓存叫 `conv_state`，投机接受数叫 `num_accepted_tokens`。
 
 | 要核对什么 | 固定源码位置 |
 |---|---|
-| 按层号选 KDA 还是稀疏 MLA | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105` |
-| 运行时把上游 KDA 层替换成昇腾实现 | `vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768` |
-| 上游层的权重定义与头数断言 | `vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L231` |
-| 投影、写入强度、两个门与输出投影 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291` |
-| 短卷积与缓存布局检查 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331` |
-| decode 的逐位置递推 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L343-L388` |
-| prefill 的分段计算与状态写回 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L474` |
-| 投机分支按接受数量推进 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L528-L560` |
-| 混合批次的拆分与拼回 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L586-L659` |
-| 状态形状与投机位 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32` |
-| 模型侧的状态精度与形状入口 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2489-L2509` |
-| 页补齐、填充比例与 KDA 组块大小 | `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56`、`#L191-L228` |
-| 每请求页数等于 1 加投机块数 | `vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L627-L636` |
-| 空批次要不要建 attention 元数据 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3344` |
+| 加法/固定斜率衰减、GDN 与 KDA 统一递推核 | `vllm@ced6857a:vllm/model_executor/layers/lightning_attn.py#L653-L675`、`vllm/third_party/flash_linear_attention/ops/fused_recurrent.py#L122-L149`、`chunk.py#L23-L84` |
+| `Qwen3-Next` 层选型与 `QwenGatedDeltaNetAttention` 门控 | `vllm@ced6857a:vllm/transformers_utils/configs/qwen3_next.py#L198-L218`、`models/qwen3_next.py#L485-L502`、`layers/mamba/gdn/qwen_gdn_linear_attn.py#L127-L150`、`#L2007-L2045` |
+| 昇腾 `AscendGatedDeltaNetAttention` 与 `MambaSpec` 页数 | `vllm-ascend@c09d3e20:vllm_ascend/ops/gdn.py#L706-L875`、`vllm@ced6857a:vllm/model_executor/layers/mamba/mamba_utils.py#L98-L149`、`vllm/v1/kv_cache_interface.py#L993-L1063` |
+| 例外 B GLM 双机 KDA 层选型、替换表、投影、短卷积与双路径 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105`、`utils.py#L763-L768`、`ops/kimi_kda.py#L244-L474`、`#L528-L659` |
+| 例外 B 状态形状、大页补齐、投机页数与空批元数据门控 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32`、`patch_mamba_config.py#L44-L56`、`#L191-L228`、`vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L627-L636`、`model_runner_v1.py#L3332-L3344` |
 
-没有 attention 元数据时在短卷积前返回，见来源 15；外层投影、输出归一化与门控、输出投影仍继续执行，见来源 11。4 份状态与补齐后的页面容量，分别由来源 23、21–22 确定。
+无 attention 元数据时在短卷积前早退见来源 15，外层投影继续执行见来源 11。[C38] 机制论文出处：核线性注意力结合律来自 Katharopoulos 等人，[S3] delta 误差写入与块并行来自 Schlag 等人[S4]与 Yang 等人，[S5] 标量遗忘门来自 Gated DeltaNet，[S6] 按 key 通道对角衰减 $\operatorname{diag}(\alpha)$、段长 64 与 3:1 混排比例来自 Kimi Linear。[S2] 二维算例按公式手算仅用于核对递推；[A] GLM 双机 `18.2 MiB / 85.0 MiB / 2.66 GiB / 95.6 MiB` 由 `tensor-parallel` 与部署页单块 `7.969 MiB × 12` 算得；[D] 单页对齐不代表两类层共享历史或等价于密集注意力，属源码结构推论而非实机压测。[I]
 
-机制来源分开记：linear attention 把复杂度从平方降到线性的原始论述来自 Katharopoulos 等人；[S3] delta 规则的写入形式来自 Schlag 等人的快速权重工作[S4]和 Yang 等人的并行化形式；[S5] 每头一个遗忘门的组合来自 Gated DeltaNet；[S6] 按 key 通道衰减的 Diag(α)、64 的段长和 3 层 KDA 配 1 层全注意力的比例来自 Kimi Linear 论文。[S2] 教学算例的数字是按上面五步手算的，只用来检查递推。[A] 85 MiB 与 18.2 MiB 的逐项字节都在 tensor parallel 页，2.66 GiB 是 32 条并发的乘积；按块号记账的 95.6 MiB 由部署页每个块号 7.969 MiB 乘 12 得到，差额按块号的主槽、小槽构成拆开。[D]
-
-状态口径按固定源码核对：来源 18 第 27–32 行分别给出短卷积形状与按本地头组织的递推矩阵，来源 21 第 44–56 行对 GLM 取两类单页容量的较大值，来源 22 负责页补齐，来源 23 还按缓存模式和投机块数计算总占用。因此，单页补齐不等于两类层共享历史，固定状态接口也不证明与密集注意力等价或整个混合模型不保存逐位置历史；这些边界保持为分析结论，没有设备实测。[I]
-
-**待核。** 以下几项本页没有一手证据：两个 KDA 算子的实测耗时与算术强度；投机接受数在卷积状态里回退的确切语义（回退逻辑在 AscendC 算子内部，只读到了参数）；前 3 层 KDA 与其余 31 层是否有任何差别（从配置和代码看没有）；最终运行镜像里实际安装的 vLLM 与 vllm-ascend 组合。
+**待核。** 算子级实测耗时与算术强度、AscendC 内部按 `num_accepted_tokens` 回退短卷积的确切实现、GLM 前 3 层与后 31 层 KDA 是否存在隐藏差异，以及旧镜像最终运行时精确包组合，尚缺设备实测证据。

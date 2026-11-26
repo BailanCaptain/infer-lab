@@ -2,8 +2,10 @@
 id: prefix-caching
 title: Prefix caching：相同的开头只算一次，靠什么认
 type: feature
+legacyAnchors:
+  glm-双机上它开着吗: 异构混合模型边界：KDA 与稀疏 MLA 多组对齐（GLM 双机对照）
 summary: >-
-  通过输入指纹找到可复用的前缀块，后来的请求共享命中块，省去相应的prefill计算。固定旧GLM镜像默认关，显式打开走align，公共恢复边界按640对齐；新版的默认值与部分尾块能力须分别确认。
+  通过链式块指纹复用相同开头已算好的 KV 块，省去重复的 prefill 计算；对比 vLLM 整块哈希与 RadixAttention 基数树差异，并拆解混合注意力模型的多缓存组对齐边界。
 aliases:
   - Prefix Caching
   - 前缀缓存
@@ -208,7 +210,7 @@ file: prefix-caching-fig-hash-hybrid
 
 **与 [Chunked Prefill（分块预填充）](chunked-prefill.md) 的协同分工也非常清晰：先由 APC 跳过已命中前缀，再由 Chunked Prefill 切分剩余未命中后缀。** 请求进入调度时，`get_computed_blocks` 先查出已命中的连续前缀并推进 `num_computed_tokens`；随后分块预填充只对剩下的未命中后缀（`num_prompt_tokens - num_computed_tokens`）按当步实际可用预算（扣除同批在跑请求占用及单条上限后）切块计算。例如在无其他在跑请求占预算、也未设更紧单请求截断阈值的空载示意下，一段 `10,000` token 的输入若前缀缓存命中前 `4,096` token、单步预算 `2,048` token，引擎直接跳过前 `4,096` token，仅对后 `5,904` token 分 `3` 步完成 Prefill。对于带线性注意力的混合模型，在 `align` 模式下若单步预算够跨过可留档块边界，调度器会把切分终点向下对齐到块边界以便状态落档；当块长大于单步可用长度时，新版主基线也允许先推进不落档的子块步、持有私有状态直至跨过整块边界。
 
-## GLM 双机上它开着吗？
+## 异构混合模型边界：KDA 与稀疏 MLA 多组对齐（GLM 双机对照）
 
 上面讲完了标准单组模型（如 `Qwen3-8B`）的链式指纹复用与共享块池规则。下面转入本站 `09 旗舰异构模型全案` 的历史混合模型绑定案例（`vllm@0fc695fc + vllm-ascend@db701c1f`，部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)）。
 

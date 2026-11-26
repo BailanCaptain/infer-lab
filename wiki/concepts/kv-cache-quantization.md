@@ -2,10 +2,10 @@
 id: kv-cache-quantization
 title: KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署没有开-kv-cache-量化: 异构混合缓存定块边界：为什么潜向量压窄后块数不直接翻倍
 summary: >-
-  KV cache 量化降低历史 k、v（MLA 模型是潜向量）的存储精度；本页以 INT8 C8 为例，演示写入压缩和读取时的缩放。相对 16
-  位缓存，元素载荷约减半，代价是量化误差留在缓存里。再区分元素与整卡容量、decode 与 prefill、FP8 与 KIVI，以及 Ascend
-  上的三条实现；固定 GLM 双机部署没有开它。
+  KV cache 量化降低历史 k、v（或 MLA 潜向量）的存储位宽；本页以 INT8 C8 为例演示写入压缩与读取缩放，区分元素载荷与整卡容量、decode 与 prefill 分路，并对照昇腾 C8 / MXFP8 / FA 量化 / TurboQuant 路径及混合缓存定块对齐边界。
 aliases:
   - KV Cache Quantization
   - KV cache quantization
@@ -141,7 +141,9 @@ origin: direct
 
 ## KV cache 量化是什么？
 
-**KV cache 量化（KV cache quantization）把缓存里的历史换成位数更少的数值表示；本页主讲昇腾常用的 INT8 C8（即 Cache 8-bit，8 位缓存量化）：写入时压成 8 位整数，读取时结合缩放系数参与 attention。** 它也可以使用 FP8 或更低位数，支持范围随算法与后端变化。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史表示，之后每生成一个 token 都要回头读它；[量化](quantization.md)让缓存中的数以更窄的格式保存。本页的具体算例从 BF16 的 2 字节变成 INT8 的 1 字节，不代表所有 KV 量化都这样实现。
+**KV cache 量化（KV cache quantization）把每层存下的历史表示压成位数更窄的数值格式；本页主讲昇腾常用的 INT8 C8（即 Cache 8-bit）：写入时压成 8 位整数，读取时乘回缩放系数参与 attention。**
+
+[KV cache](kv-cache.md) 保存已处理位置的键值历史，生成阶段每走一步都要回头读取；通过[量化](quantization.md)将元素从 `BF16`（2 字节）压成 `INT8`、`FP8`（1 字节）或更低位宽，可同时省下缓存显存与解码访存带宽（下文的逐块算例以 `BF16 → INT8` 为例，其他位宽按各自后端规则核对）。
 
 压的对象跟着 attention 的种类走。普通 attention 的这条 C8 路径存 k、v 两张缓存，两张都压；[MLA](mla.md) 缓存各头共用的潜向量以及模型所需的位置编码部分。后面的 FA 量化只压潜向量、保留 RoPE 段，稀疏 C8 则另有打包规则，不能把 MLA 缓存统一理解成一张都被压窄的向量。
 
@@ -227,7 +229,7 @@ file: kv-cache-quant-fig-clip-and-pages
 file: kv-cache-quantization
 ```
 
-在普通 attention 模型上开 C8 时，这一段对应主线[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)里 attention 的位置；写入要用的块表和槽位，由[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)准备。混合架构（如 KDA 与稀疏 MLA）不走这条普通 C8 路径，见[后文复杂异构对照](#放到-glm-双机这套部署没有开-kv-cache-量化)。按图里的编号走一遍：
+在普通 attention 模型上开 C8 时，这一段对应主线[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)里 attention 的位置；写入要用的块表和槽位，由[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)准备。混合架构（如 KDA 与稀疏 MLA）不走这条普通 C8 路径，见[后文复杂异构对照](#异构混合缓存定块边界为什么潜向量压窄后块数不直接翻倍)。按图里的编号走一遍：
 
 1. 这一层给新位置算出 k、v，此时还是 BF16。
 2. 乘系数的倒数、加偏移、舍入、截断，得到 INT8。
@@ -305,7 +307,7 @@ C8 只让「不是 KV producer」的实例把缓存类型改为 INT8。producer 
 
 ## 复杂异构实战对照：GLM 双机为何未启用与定块边界
 
-### 放到 GLM 双机：这套部署没有开 KV cache 量化
+### 异构混合缓存定块边界：为什么潜向量压窄后块数不直接翻倍
 
 **按[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的固定源码与配置，稀疏 MLA 主缓存和索引器的压缩缓存为 BF16，索引器尾状态为 FP32，没有启用上面三条 KV 量化路径。** 本节据此解释旧部署的缓存格式和容量。公开权重包的两个固定快照也未登记 C8 / FA 缓存量化条目；现场下载的是哪一版，仍要由部署记录确定。
 

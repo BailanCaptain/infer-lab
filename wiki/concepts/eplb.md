@@ -2,9 +2,10 @@
 id: eplb
 title: EPLB：按实测热度调整专家放在哪张卡
 type: feature
+legacyAnchors:
+  放到-glm-双机本部署没开-eplb: 异构双机 EP16 对照：静态摆法与开启冗余专家的显存估算
 summary: >-
-  EPLB 在推理中统计每个专家接到的 token–expert
-  配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；本部署未启用，只给开启条件与估算。
+  EPLB 在推理中统计每个专家接到的 token–expert 配对数，按峰均比重排专家位置、必要时加副本，再逐层搬权重并换表；结合双机 EP16 核算冗余专家整除约束与接收区显存开销。
 aliases:
   - EPLB
   - Expert Parallelism Load Balancer
@@ -333,7 +334,7 @@ $$M_{\text{extra}} = (4 \times 1 \times 10)_{\text{副本}} + (3 \times 10)_{\te
 
 ## 复杂异构实战对照：GLM 双机部署下的表现与估算
 
-### 放到 GLM 双机：本部署没开 EPLB
+### 异构双机 EP16 对照：静态摆法与开启冗余专家的显存估算
 
 **本部署只开了 EP，没有开 EPLB，也没有冗余专家：16 张卡上的专家摆法从启动起就固定不变。下面分三步看：现在怎么摆、负载能说到哪一步、如果要开得满足什么条件。**
 

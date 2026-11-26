@@ -2,6 +2,8 @@
 id: recompute-scheduler
 title: RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算
 type: feature
+legacyAnchors:
+  放到-glm-双机主线不启用它: 混部与 1P1D 边界：多状态组释放与 D 端重算分流
 summary: >-
   PD 分离的 D 节点续块失败时，优先把被抢占请求的状态保存到主机内存，稍后恢复；无法保存时发 recomputed 结束帧，由代理重投 P 节点重做 prefill。客户端结束、引擎收尾与状态保存是不同步骤；v0.30.0 与 main 启用细粒度 TP 时保存失败直接中止。
 aliases:
@@ -254,7 +256,7 @@ file: recompute-scheduler-flow
 
 ## 复杂异构实战对照：GLM 双机与 1P1D 改造分析
 
-### 放到 GLM 双机：主线不启用它
+### 混部与 1P1D 边界：多状态组释放与 D 端重算分流
 
 前面走通了 PD 分离 D 节点在续块失败后的三路分流与代理重投机制。下面切入**例外 B 历史绑定算例**[GLM 双机主线](glm-5-3-flash-two-node.md#部署前提)：两台机器合起来是一套 P、D 不分的服务，没配 KV 传输，本调度器开关保持默认关；真打开会在启动时报错，因此主线上的抢占仍走上游路线（在本机从头重算）。
 

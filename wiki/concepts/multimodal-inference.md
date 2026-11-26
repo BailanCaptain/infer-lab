@@ -163,7 +163,7 @@ file: multimodal-fig-four-tier-cache
 |---|---|---|---|
 | **HTTP 原始字节下载缓存**（`VLLM_MEDIA_CACHE`） | 远程 URL 下载的原始媒体字节（本地磁盘目录） | 省去再次 HTTP 下载；命中后仍须解码、预处理、编码与语言前向 | 按完整 URL 建键（非 UUID；`data:`/`file:` 不走此缓存）；默认 `5120 MiB` 淘汰目标（非硬磁盘上限，刚写文件受保护）、`24h` 滑动 TTL（读/写懒检查过期）；同 URL 内容变更须换地址 |
 | **CPU 多模态预处理缓存**（`mm_processor_cache`） | CPU 预处理张量及其占位更新信息 | 省去相同媒体的重复 CPU 预处理；仍须经编码器或 EC 取得特征 | 默认 `4 GiB`（`0` 关闭）、类型 `lru`/`shm`（`shm` 单对象上限 `128 MiB`）；**仅当 `api_server_count == 1` 且（`DP=1` 或 external LB）时建立进程间缓存**（`lru` 接收端在 EngineCore，`shm` 在 Worker），否则退回 `processor_only` |
-| **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
+| **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护（跨轮变前缀、抢占复用与昇腾 `EncoderAclGraphManager` 视觉图分桶回放详见 [多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
 | **[KV Cache](kv-cache.md) / [Prefix Caching（APC）](prefix-caching.md)** | 语言模型各层历史 K/V 状态 | 前缀完全一致时省去语言层 Prefill | 需前面各层产出相同的占位与哈希 |
 
 以包含图片 A、B 的消息为例看部分命中合并：若 CPU `mm_processor_cache` 仅命中 A，预处理器只新算 B，随后必须把缓存 A 与新 B **按原消息顺序合回 `[A, B]`** 并重建占位区间（绝不能把新结果排在前面导致图文错配）。直通的预计算特征走独立分支，不受 CPU 媒体缓存推断。

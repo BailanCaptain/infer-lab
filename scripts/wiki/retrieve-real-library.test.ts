@@ -41,6 +41,14 @@ describe("真实知识库检索回归：名称词首与单复合标识符", () =
     ["chunk", "lmcache"],
     ["allreduce", "collective-communication"],
     ["AllReduce", "collective-communication"],
+    ["静态大页", "host-memory-and-hugepages"],
+    ["静态大页是什么", "host-memory-and-hugepages"],
+    ["hugepage", "host-memory-and-hugepages"],
+    ["jemalloc", "host-memory-and-hugepages"],
+    ["TASK_QUEUE_ENABLE", "ascend-runtime-and-tuning"],
+    ["npu-smi", "ascend-runtime-and-tuning"],
+    ["DFlash", "dspark"],
+    ["EncoderAclGraphManager", "multimodal-encoder-cache"],
   ])("%s 的首位是 %s，且构建索引与浏览器还原索引完全一致", (query, expected) => {
     expect(has(expected), `目标页 ${expected} 必须存在`).toBe(true);
     const hits = retrieve(query, fullIndex, { limit: 20 });

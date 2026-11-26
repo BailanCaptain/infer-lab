@@ -485,7 +485,7 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 - `AscendStoreConnector` 挂在 vLLM V1 的 KV connector 接口上，同时实现 `SupportsHMA`。调度侧角色构造 `KVPoolScheduler`，执行侧构造 `KVPoolWorker`；只有 `parallel_config.rank == 0` 且没开逐层的 worker 起 `LookupKeyServer`（ZMQ REP 后台线程）。`KVPoolScheduler` 构造时也会用 `create_scheduler_client` 建一个后端客户端，逐层模式的查询（`_get_store_lookup_hit_tokens`）走它，不经过上面的 IPC。
 - `backend`：`mooncake`（默认）、`memcache`、`yuanrong`，按名字从注册表加载。
 - `lookup_rpc_port`：拼进 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>`；旧名 `mooncake_rpc_port` 仍认，但会告警。
-- `global_segment_size`：每张卡注册给池的内存，要按 1GB 对齐；环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先于它。
+- `global_segment_size`：每张卡注册给池的内存，要按 1GB 对齐；环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先于它（宿主机 `vm.nr_hugepages` 静态大页池、`1 GiB` 段对齐与 `register_buffer` 锁页注册三要素详见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md#mooncake--ascend-store-的锁页内存注册三要素)）。
 - 角色开关：`kv_role == "kv_consumer"` 且没开 `consumer_is_to_load` 时，`get_num_new_matched_tokens` 第一行就返回 0；`consumer_is_to_put` 管 D 写不写池；`load_async` 管异步加载。三者默认都是 false。
 - `discard_partial_chunks` 默认 true：查询与写入的长度向下取整到 `cache_transfer_granularity`。粒度 = lcm(各组块大小 × PCP × DCP，本 rank 各组的块大小 × cache family 压缩比)。
 - `VLLM_PREFIX_CACHE_RETENTION_INTERVAL`（vLLM 环境变量，默认不设）：设了以后，非逐层模式下 prompt 短于两倍间隔的请求不查。

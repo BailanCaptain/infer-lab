@@ -269,7 +269,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     }
     expect(pageTrack("learning-guide")).toBe("mainline");
     expect(pageTrack("moe")).toBe("advanced");
-    expect(CURATED_PAGE_IDS.size).toBe(184); // 193 - 9 dynamic rfork topic pages
+    expect(CURATED_PAGE_IDS.size).toBe(187); // 196 - 9 dynamic rfork topic pages
 
     const toc = buildToc(registry.pages);
     expect(toc).toHaveLength(12);

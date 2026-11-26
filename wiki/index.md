@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 193 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 196 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 拆解昇腾 AI Core 内 Cube、Vector、Scalar 单元与各级片上缓冲（L1、L0A/B/C、UB）及搬运引擎（MTE、FixPipe）的分工；结合 Qwen3-8B 真机算子实测剖析流水重叠与量化开销，对比 910B 经核外 GM 交接与昇腾 950 片上直通差异。 `04`
@@ -11,6 +11,7 @@
 - [容器镜像、核心环境变量与 vllm serve 最小起服务清单](concepts/ascend-env-and-serve.md) — 锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。 `01`
 - [FlashAttention 与昇腾注意力算子族：片上 Tiling、Online Softmax 与 FA / FIA / PA / FA3 选路](concepts/ascend-flash-attention.md) — 标准注意力若把整张 N×N 分数表写回 HBM，单层中间张量在 32K 长度下就会暴涨到数十 GiB。本页从 Qwen3-8B 访存账出发，拆解片上分块（Tiling）与 Online Softmax 动态重标定怎样做到零近似、零 N×N 落盘，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 FA3 绑定 PIECEWISE 图模式的根因。 `04`
 - [新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型](concepts/ascend-model-onboarding.md) — 在昇腾上跑通一个新模型，先锁死 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维配套，再从 v0.30.0 的 25 篇活跃模型食谱（剔除 27 篇停服桩，注意 GLM5.md 中 GLM-5 停服而 GLM-5.1 活跃）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。 `01`
+- [昇腾算子下发流水与运行时调优：TASK_QUEUE_ENABLE、跨流显存复用与容器设备栈](concepts/ascend-runtime-and-tuning.md) — 剖析小批解码为何受限于 Host 下发空泡，讲清 TASK_QUEUE_ENABLE=0/1/2 二级流水与显存峰值/图捕获互斥边界、expandable_segments:True 跨流复用、容器 /dev/davinci* 栈与 HCCL AIV 调优。 `07 16 19`
 - [注意力后端：模型机制、状态布局与设备实现的连接](concepts/attention-backend-family.md) — 注意力后端是模型层和设备算子之间的那层代码：层声明注意力类型，后端决定用哪份状态、怎样组织元数据、最终调用哪个设备算子。标准 Qwen3-8B 全 36 层 GQA 统一绑定 AscendAttentionBackend 并共用一份 AscendMetadata；历史 GLM 双机一次前向则同时走 KDA 与稀疏 MLA 两条分支。 `09 16`
 - [注意力代价：容量、计算与访存](concepts/attention-cost.md) — 历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。 `04`
 - [Attention 与 Q/K/V：当前位置怎样从历史里取信息](concepts/attention-qkv.md) — attention 让每个位置按相关程度从自己和前面的位置取信息。本页先用 3 位置小例手算 Q/K/V 打分、1/√d 缩放、softmax、因果掩码与多头， 再落到标准 Qwen3-8B 的 32Q:8KV GQA 与逐头 QK-Norm，最后在复杂异构对照节展开历史 GLM 稀疏 MLA 与 KDA。 `02`
@@ -34,6 +35,7 @@
 - [昇腾四族硬件体系：NPU、板卡、服务器与超节点](concepts/hardware-devices.md) — 分清昇腾 NPU 裸片、加速板卡、服务器与超节点机柜四级物理结构及运行时逻辑 Device 边界，掌握 v0.30.0 四族硬件能力档案（A2/A3/310P/A5）、主机内存与设备显存分账以及机内 HCCS/UB 与跨机 RoCE 带宽差距。 `04`
 - [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/hccl-buffer.md) — HCCL buffer 为集合通信提供设备中转空间；以 Qwen3-8B / Qwen3-30B-A3B 与 GLM 双机对照讲清逐组配置、环境变量、通信域复用及显存预算影响。 `13`
 - [读懂 HuggingFace 模型目录与 config.json：从字段认清架构、显存与坑点](concepts/hf-model-anatomy.md) — 启动 vllm serve 前，拆解 HF 模型目录里的 config.json、tokenizer_config.json、safetensors 索引与 generation_config.json，对照 Qwen3-8B 与 Qwen3-30B-A3B 算清架构、权重与每 token KV 占用，并提前排查 head_dim、长度截断与量化陷阱。 `01`
+- [宿主机内存底座与静态大页：从 HugeTLB 锁页、THP 抖动到分配器调优](concepts/host-memory-and-hugepages.md) — 讲透百 GiB 级 KV 池与 RDMA 为何受困于 4 KiB 页表，对比 HugeTLB 静态大页（2M/1G）与 THP，厘清 TCMalloc/jemalloc（含 A3/950DT 禁配边界）、/dev/shm、memlock 与宿主机内核四件套。 `07 11`
 - [推理测量：怎样知道服务真的变快了](concepts/inference-benchmarking.md) — 沿用停顿样例的 A/B 配置，把一次请求的改善放进整组压测：总吞吐相同但达标请求更多意味着什么，怎样把失败、未完成、分位数和真实到达负载一起算进结论。 `19`
 - [容量与恢复：平时够用，为什么出故障就排长队](concepts/inference-capacity-and-reliability.md) — 从一张逐级加压的结果表选出单实例可用运行点，再算正常与容错需要几套实例、故障积压多久能消退；沿就绪时间线和流式重试记录判断恢复是否真的完成。 `19`
 - [输出异常排查：同样的问题，回答为什么变了](concepts/inference-correctness-troubleshooting.md) — 完成一次从回答异常、输入编号差异到修正模板和回归验证的排查；再换成输入相同的情况，沿首次分歧区分采样、数值和状态，覆盖乱码、重复、空输出、NaN 与质量回归。用固定评测集和业务指标检验变更后的任务质量。 `19`
@@ -119,6 +121,7 @@
 - [LMCache：接在引擎外面的一层 KV 缓存](concepts/lmcache.md) — 当显存里的前缀缓存被挤出或请求落到其他实例时，LMCache 通过 vLLM 的 KV connector 接口从主机内存、本地磁盘或远端存储找回已算好的 KV 块；讲清引擎与外部包的交接边界、按整 chunk 取整的命中账、与 AscendStore KV Pool 的差异及混合模型 SupportsHMA 约束。 `11`
 - [LoRA：低秩更新与多适配器推理](concepts/lora.md) — LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，以及 MoE 专家并行与量化模型挂接适配器时的通信和容量边界。 `17`
 - [Mooncake 连接器：先对好块号，再按层搬历史状态](concepts/mooncake-connector.md) — 从 P/D 两套独立块池无法共享块号出发，讲清昇腾 Mooncake 连接器如何由调度侧管账押块、由 worker 侧换算显存地址并驱动 TransferEngine 直传 KV 状态；对照 V1 整批拉、Layerwise 逐层推、V2/D2RH 演进与 910B3 真机实测边界。 `18`
+- [多模态视觉编码与特征缓存：ViT 分块图捕获与 EncoderCacheManager](concepts/multimodal-encoder-cache.md) — 深入多模态请求的视觉词元膨胀账单、EncoderCacheManager 在多轮变前缀对话与抢占驱逐重算中如何独立于文本 Prefix Caching 复用视觉编码特征（含 main 分支 Score 两级缓存接线边界）、ViT 预算打包与昇腾 EncoderAclGraphManager 图捕获回放，以及 msmodelslim / msprobe 在多模态新模型上线中的分工。 `01 11 16`
 - [Netloader Guide：新实例怎样从已有 NPU 接过权重](concepts/netloader-guide.md) — Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退、v0.30.0 / main 的推理布局直传，以及跨机 EP 与 MTP 草稿模型的加载边界。 `19`
 - [NPUPlatform：配置校验与设备实现选择](concepts/npu-platform.md) — 昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认 token 预算怎么定」的唯一推导处。 `10`
 - [NPUWorker 启动：一张卡按什么顺序准备好接请求](concepts/npu-worker-lifecycle.md) — 每张可见 NPU 对应一个 NPUWorker（310P 为 NPUWorker310）。冷启动按严格依赖依次完成打补丁与算子注册、绑卡拍快照与建 HCCL 通信组、解析架构并加载分形权重、试跑量测 KV 预算、按 EngineCore 全局最小块数建缓存池，最后跑完 7 类预热机制并捕获 ACLGraph 图池。 `05`
@@ -227,6 +230,7 @@
 ### 11 KV cache 内存系统
 - [问答记录：Block Table 里的块什么时候分配、什么时候回收](sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md)
 - [Block Table：请求里的第几个位置，落在缓存池的哪一格](concepts/block-table.md)
+- [宿主机内存底座与静态大页：从 HugeTLB 锁页、THP 抖动到分配器调优](concepts/host-memory-and-hugepages.md)
 - [KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存](concepts/kv-cache-cpu-offload.md)
 - [Layerwise KV offload：KV cache 一层一层搬，边算边搬](concepts/kv-cache-layerwise-offload.md)
 - [KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回](concepts/kv-cache-quantization.md)
@@ -235,6 +239,7 @@
 - [KV Pool：把算过的开头存进外部池，别的实例也能取回](concepts/kv-pool.md)
 - [kvpp_config](params/kvpp-config-0445bd352140.md)
 - [LMCache：接在引擎外面的一层 KV 缓存](concepts/lmcache.md)
+- [多模态视觉编码与特征缓存：ViT 分块图捕获与 EncoderCacheManager](concepts/multimodal-encoder-cache.md)
 - [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md)
 - [W8A8 与 Ascend 量化：怎样压到 8 位、按层与硬件怎么选路](concepts/quantization.md)
 - [量化验收：怎样判断省了内存、保住质量、真正提速](concepts/quantization-evaluation.md)
@@ -290,12 +295,14 @@
 ### 16 Graph mode 与 kernel
 - [ACL Graph：捕获、批形状与重复执行](concepts/acl-graph.md)
 - [昇腾 950：两张卡怎样接着把工作做完](concepts/ascend-950-execution-interconnect.md)
+- [昇腾算子下发流水与运行时调优：TASK_QUEUE_ENABLE、跨流显存复用与容器设备栈](concepts/ascend-runtime-and-tuning.md)
 - [注意力后端：模型机制、状态布局与设备实现的连接](concepts/attention-backend-family.md)
 - [批不变性：相同输入为何会随同批请求改变结果](concepts/batch-invariance.md)
 - [CPU 绑核：线程亲和性与 NUMA 局部性](concepts/cpu-binding.md)
 - [新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径](concepts/dev-new-model-and-custom-op.md)
 - [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md)
 - [graph mode：录一次执行次序，之后整串回放](concepts/graph-mode-layer.md)
+- [多模态视觉编码与特征缓存：ViT 分块图捕获与 EncoderCacheManager](concepts/multimodal-encoder-cache.md)
 - [编译图融合：把相邻两步合成一个算子，再分档复用执行](concepts/npugraph-ex.md)
 - [从算子到 AI Core：分工、融合与分块](concepts/op-to-ai-core.md)
 - [算子与 kernel：从数学语义到设备实现](concepts/ops-and-kernels.md)
@@ -316,6 +323,7 @@
 ### 19 性能工程
 - [AISBench 与 EvalScope 实战：压测模式、指标口径对齐与精度基线评测](concepts/aisbench-and-evalscope.md)
 - [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md)
+- [昇腾算子下发流水与运行时调优：TASK_QUEUE_ENABLE、跨流显存复用与容器设备栈](concepts/ascend-runtime-and-tuning.md)
 - [昇腾多实例集群部署与路由：DP 外部拉起、前缀感知分发与优雅摘流](concepts/cluster-serving.md)
 - [DeepSeek 生产实践：一条请求怎样走过整套服务](concepts/deepseek-serving-case.md)
 - [DeepSeek-V4.1-Flash：长历史怎样少存、少重算](concepts/deepseek-v4-1-flash.md)
@@ -359,6 +367,7 @@
 - [新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型](concepts/ascend-model-onboarding.md)
 - [Embedding：按编号查表取出 token 的向量](concepts/embedding.md)
 - [读懂 HuggingFace 模型目录与 config.json：从字段认清架构、显存与坑点](concepts/hf-model-anatomy.md)
+- [多模态视觉编码与特征缓存：ViT 分块图捕获与 EncoderCacheManager](concepts/multimodal-encoder-cache.md)
 - [多模态推理与视觉编码基础：Patch 展开、M-RoPE、ViT 数据并行与两级编码缓存](concepts/multimodal-inference.md)
 - [一次请求全景鸟瞰：从输入文字到逐词生成](concepts/request-overview.md)
 
@@ -409,9 +418,11 @@
 ### 07 昇腾 NPU 剖面
 - [AI QoS：共享链路拥塞时，哪类流量先走](concepts/ai-qos.md)
 - [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md)
+- [昇腾算子下发流水与运行时调优：TASK_QUEUE_ENABLE、跨流显存复用与容器设备栈](concepts/ascend-runtime-and-tuning.md)
 - [CANN 与 HCCL：计算、通信和物理链路](concepts/cann-hccl.md)
 - [主机内存与显存：数据现在放在哪](concepts/device-memory.md)
 - [Engram 条件记忆：N-gram 哈希查表与 Host DRAM / RDMA 共享](concepts/engram-conditional-memory.md)
+- [宿主机内存底座与静态大页：从 HugeTLB 锁页、THP 抖动到分配器调优](concepts/host-memory-and-hugepages.md)
 - [ND 与 NZ：张量的数值没变，内存里怎样重新排列](concepts/tensor-layout.md)
 
 ### 08 服务器与机柜

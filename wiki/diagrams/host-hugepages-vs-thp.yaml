@@ -1,0 +1,22 @@
+mode: native-svg
+id: host-hugepages-vs-thp
+caption: >-
+  宿主机三种页映射机制与容器内存四道闸门：1 GiB 缓冲在 4 KiB 标准页下需 262,144 个页表项并触发高频 TLB 未命中与缺页中断；HugeTLB 静态大页（2 MiB / 1 GiB）预留连续物理页且不落 Swap，支撑 MemCache、Yuanrong Remote H2D 与 Mooncake register_memory 锁页直传；THP（MADV_HUGEPAGE）按需合并 2 MiB 页配合 aclrtHostRegisterV2 支撑 Engram 共享表，但碎片期有整理抖动。下半部区分 vm.nr_hugepages、--shm-size、memlock 与 TCMalloc / jemalloc（含 A3 / 950DT 禁配边界）。
+size: [900, 560]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330'
+    symbols:
+      - register_buffer
+      - global_te
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L16-L41'
+    symbols:
+      - TransferEngine
+      - register_memory
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L32-L38'
+    symbols:
+      - _madvise_hugepage
+      - MADV_HUGEPAGE
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L305-L319'
+    symbols:
+      - aclrtHostRegisterV2
+      - aclrtHostGetDevicePointer

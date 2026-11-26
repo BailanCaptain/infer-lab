@@ -168,7 +168,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
     {
       title: "同章进阶",
       track: "advanced",
-      pages: ["moe", "multimodal-inference"],
+      pages: ["moe", "multimodal-inference", "multimodal-encoder-cache"],
     },
   ],
   inference: [
@@ -232,6 +232,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
       title: "内存分形、950 硬件与注意力总账",
       track: "advanced",
       pages: [
+        "host-memory-and-hugepages",
         "tensor-layout",
         "ascend-950-architecture",
         "ascend-950-execution-interconnect",
@@ -369,6 +370,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
         "sleep-mode",
         "vllm-ascend-for-rl",
         "cpu-binding",
+        "ascend-runtime-and-tuning",
         "cluster-serving",
         "netloader-guide",
       ],

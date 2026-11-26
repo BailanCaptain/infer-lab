@@ -321,6 +321,11 @@
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
+          "from": "ascend-runtime-and-tuning",
+          "kind": "alternative-to",
+          "note": "图捕获把整串算子录成单次重放，二级流水在单算子路径重叠 Host 下发；注意 TASK_QUEUE_ENABLE=2 在 main 与图捕获互斥"
+        },
+        {
           "from": "cpu-binding",
           "kind": "alternative-to",
           "note": "另一条减少主机侧下发开销的路；两者管同一段主机时间，可以同时开"
@@ -364,6 +369,11 @@
           "from": "msprobe-accuracy-debug",
           "kind": "enables",
           "note": "若 Eager 模式正常、开启 ACL Graph 后异常，需按本页切换到 AclGraphDumper 捕图侧张量"
+        },
+        {
+          "from": "multimodal-encoder-cache",
+          "kind": "enables",
+          "note": "复用昇腾 NPUGraph 与侧流 FIA 事件更新机制，承接视觉编码器按 token 预算桶分批捕获与回放"
         },
         {
           "from": "multistream-engram-overlap-29113aa3f8fc",
@@ -1820,7 +1830,13 @@
       "contradicts": [],
       "updated": "2026-11-18",
       "file": "concepts/ascend-env-and-serve.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "host-memory-and-hugepages",
+          "kind": "enables",
+          "note": "承接单机容器 --shm-size 基础挂载，进一步区分 /dev/shm、memlock 与宿主机 vm.nr_hugepages 三道阈值"
+        }
+      ]
     },
     {
       "id": "ascend-flash-attention",
@@ -2265,6 +2281,113 @@
           "note": "目录地图将 patch/ 定位为适配已加载行为或登记表的目录，并以平台与 Worker 导入路径作为阅读入口；补丁机制页解释这两条入口如何在运行时完成替换。"
         }
       ]
+    },
+    {
+      "id": "ascend-runtime-and-tuning",
+      "title": "昇腾算子下发流水与运行时调优：TASK_QUEUE_ENABLE、跨流显存复用与容器设备栈",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "剖析小批解码为何受限于 Host 下发空泡，讲清 TASK_QUEUE_ENABLE=0/1/2 二级流水与显存峰值/图捕获互斥边界、expandable_segments:True 跨流复用、容器 /dev/davinci* 栈与 HCCL AIV 调优。",
+      "aliases": [
+        "TASK_QUEUE_ENABLE",
+        "TASK_QUEUE_ENABLE=2",
+        "二级流水",
+        "二级下发流水",
+        "二级异步下发流水线",
+        "算子下发流水",
+        "Host-bound",
+        "下发空泡",
+        "CPU_AFFINITY_CONF",
+        "expandable_segments:True",
+        "max_split_size_mb",
+        "garbage_collection_threshold",
+        "跨流显存复用",
+        "ACL_OP_INIT_MODE",
+        "npu-smi",
+        "npu-smi info",
+        "davinci_manager",
+        "devmm_svm",
+        "hisi_hdc",
+        "/dev/davinci",
+        "HCCL_OP_EXPANSION_MODE=AIV",
+        "HCCL_INTRA_ROCE_ENABLE",
+        "HCCL_RDMA_TC",
+        "HCCL_RDMA_SL"
+      ],
+      "chapters": [
+        "07",
+        "16",
+        "19"
+      ],
+      "order": 125,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:Dockerfile#L53-L68",
+        "vllm-ascend@2c59ff10:Dockerfile#L56-L64",
+        "vllm-ascend@2ed6cbba:Dockerfile#L69-L76",
+        "vllm-ascend@8d6180e2:Dockerfile#L64-L70",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1481",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1732-L1768",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L772-L790",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L773-L791",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L1255-L1261",
+        "vllm-ascend@c09d3e20:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L28-L66",
+        "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L31-L103",
+        "vllm-ascend@8d6180e2:vllm_ascend/envs.py#L26-L108",
+        "https://github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/core/npu/NPUCachingAllocator.cpp",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L10-L27",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L90-L135",
+        "vllm-ascend@8d6180e2:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L108-L139",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.2.md#L869-L880",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/Dots3-Note.md#L130-L205",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Kimi-K3.md#L275-L281",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Kimi-K3.md#L800-L812",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4-Flash.md#L572-L584",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4-Flash.md#L975-L988",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L49-L71",
+        "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/API/hcclug/hcclcpp_07_0047.html",
+        "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000073.html",
+        "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta2/commlib/hcclug/hcclenvref_07_0003.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "op-to-ai-core",
+          "kind": "builds-on",
+          "note": "先理解单个算子如何经 Host tiling 分块落到 AI Core，再看连续几百个算子如何流水下发"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "alternative-to",
+          "note": "图捕获把整串算子录成单次重放，二级流水在单算子路径重叠 Host 下发；注意 TASK_QUEUE_ENABLE=2 在 main 与图捕获互斥"
+        },
+        {
+          "to": "cpu-binding",
+          "kind": "builds-on",
+          "note": "vLLM-Ascend 自身的 enable_cpu_binding 与底层 TorchNPU 的 CPU_AFFINITY_CONF 同管主机侧线程亲和与跨 NUMA 抖动"
+        },
+        {
+          "to": "cann-hccl",
+          "kind": "builds-on",
+          "note": "承接 CANN 与 HCCL 四层通信模型，深入 HCCL_OP_EXPANSION_MODE、网卡 TC/SL 与建链/执行超时调优"
+        },
+        {
+          "to": "device-memory",
+          "kind": "builds-on",
+          "note": "承接 NPU 显存缓存分配器基础，展开通信流与计算流跨流提前复用的底层逻辑与睡眠模式边界"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-27",
+      "file": "concepts/ascend-runtime-and-tuning.md",
+      "backlinks": []
     },
     {
       "id": "async-scheduling",
@@ -4006,6 +4129,11 @@
       "file": "concepts/cann-hccl.md",
       "backlinks": [
         {
+          "from": "ascend-runtime-and-tuning",
+          "kind": "enables",
+          "note": "承接 CANN 与 HCCL 四层通信模型，深入 HCCL_OP_EXPANSION_MODE、网卡 TC/SL 与建链/执行超时调优"
+        },
+        {
           "from": "engram-conditional-memory",
           "kind": "enables",
           "note": "HCCL 设备通信与 Gloo 主机协调组在 ETP / EDP 分组中的职责差异"
@@ -5542,9 +5670,19 @@
           "note": "提供 192 vCPUs 八 NUMA 宿主机指纹，以及 DP=2+TP=4+EP=8 下绑核回退 global-slice 的实机观测"
         },
         {
+          "from": "ascend-runtime-and-tuning",
+          "kind": "enables",
+          "note": "vLLM-Ascend 自身的 enable_cpu_binding 与底层 TorchNPU 的 CPU_AFFINITY_CONF 同管主机侧线程亲和与跨 NUMA 抖动"
+        },
+        {
           "from": "engram-conditional-memory",
           "kind": "enables",
           "note": "Engram 启用 Host DRAM 卸载时绑核须跳过页迁移（migrate_memory=False），避免破坏 HOST_UVA 钉页映射"
+        },
+        {
+          "from": "host-memory-and-hugepages",
+          "kind": "enables",
+          "note": "理解 NUMA 节点局部性与线程绑核后，才能配置按 NUMA 节点预留大页与关闭自动 NUMA 均衡"
         }
       ]
     },
@@ -6329,6 +6467,11 @@
           "note": "950 的远端访存与内存池分析建立在本地设备内存、远端可访问数据和实际复制的区别上；硬件可访问远端池，不代表数据已经驻留本卡或增加了本轮本地 KV 容量。"
         },
         {
+          "from": "ascend-runtime-and-tuning",
+          "kind": "enables",
+          "note": "承接 NPU 显存缓存分配器基础，展开通信流与计算流跨流提前复用的底层逻辑与睡眠模式边界"
+        },
+        {
           "from": "cann-hccl",
           "kind": "enables",
           "note": "通信输入张量与 HCCL 缓冲同驻设备显存，须分清张量载荷与通信库预留"
@@ -6347,6 +6490,11 @@
           "from": "hccl-buffer",
           "kind": "enables",
           "note": "理解权重以外的设备内存开销"
+        },
+        {
+          "from": "host-memory-and-hugepages",
+          "kind": "enables",
+          "note": "先分清主机 DRAM 与设备 HBM 两本独立内存账，再深入主机侧的页表粒度、锁页注册与分配器"
         },
         {
           "from": "inference-performance-analysis",
@@ -8333,6 +8481,11 @@
           "to": "cpu-binding",
           "kind": "builds-on",
           "note": "Engram 启用 Host DRAM 卸载时绑核须跳过页迁移（migrate_memory=False），避免破坏 HOST_UVA 钉页映射"
+        },
+        {
+          "to": "host-memory-and-hugepages",
+          "kind": "builds-on",
+          "note": "SharedUvaBuffer 借助 POSIX /dev/shm、MADV_HUGEPAGE 透明大页提示与 aclrtHostRegisterV2 锁页建立主机底座"
         },
         {
           "to": "sleep-mode",
@@ -10594,6 +10747,120 @@
           "from": "roofline-and-metrics",
           "kind": "enables",
           "note": "复用 Qwen3-8B 与 Qwen3-30B-A3B 的总参数、激活参数与每 token KV 静态账单"
+        }
+      ]
+    },
+    {
+      "id": "host-memory-and-hugepages",
+      "title": "宿主机内存底座与静态大页：从 HugeTLB 锁页、THP 抖动到分配器调优",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "讲透百 GiB 级 KV 池与 RDMA 为何受困于 4 KiB 页表，对比 HugeTLB 静态大页（2M/1G）与 THP，厘清 TCMalloc/jemalloc（含 A3/950DT 禁配边界）、/dev/shm、memlock 与宿主机内核四件套。",
+      "aliases": [
+        "静态大页",
+        "大页内存",
+        "透明大页",
+        "HugePages",
+        "HugePage",
+        "HugeTLB",
+        "Static HugePages",
+        "THP",
+        "MADV_HUGEPAGE",
+        "vm.nr_hugepages",
+        "nr_hugepages",
+        "Hugepages-Usage",
+        "HugePages_Total",
+        "Hugepagesize",
+        "jemalloc",
+        "TCMalloc",
+        "ptmalloc",
+        "libjemalloc",
+        "libtcmalloc",
+        "LD_PRELOAD",
+        "主机内存分配器",
+        "内存分配器",
+        "shm-size",
+        "--shm-size",
+        "/dev/shm",
+        "memlock",
+        "ulimit memlock",
+        "vm.swappiness",
+        "swappiness",
+        "scaling_governor",
+        "kernel.numa_balancing",
+        "numa_balancing",
+        "sched_migration_cost_ns"
+      ],
+      "chapters": [
+        "07",
+        "11"
+      ],
+      "order": 115,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.2.md#L3487-L3503",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L540-L572",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L1439-L1496",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/Qwen3.8-Flash-Next.md#L1987-L2008",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L49-L71",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L10-L27",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L68-L88",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L145-L224",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1344-L1353",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Kimi-K3.md#L800-L855",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/Kimi-K3.md#L810-L818",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.2.md#L149-L173",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/Qwen3.5-397B-A17B.md#L187-L198",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L71-L106",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_pool.md#L1-L35",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L68-L102",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L541-L572",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L16-L41",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L32-L38",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L284-L335",
+        "vllm-ascend@8d6180e2:recipes/overlays/deepseek-ai/DeepSeek-V4-Flash.yaml#L35-L49",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram_rdma.md#L5-L27",
+        "https://docs.docker.com/engine/containers/resource_constraints/"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "S",
+      "relations": [
+        {
+          "to": "device-memory",
+          "kind": "builds-on",
+          "note": "先分清主机 DRAM 与设备 HBM 两本独立内存账，再深入主机侧的页表粒度、锁页注册与分配器"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "builds-on",
+          "note": "外置 KV 缓存池（Ascend Store / MemCache / Mooncake）是宿主机百 GiB 静态大页与锁页注册的直接消费者"
+        },
+        {
+          "to": "cpu-binding",
+          "kind": "builds-on",
+          "note": "理解 NUMA 节点局部性与线程绑核后，才能配置按 NUMA 节点预留大页与关闭自动 NUMA 均衡"
+        },
+        {
+          "to": "ascend-env-and-serve",
+          "kind": "builds-on",
+          "note": "承接单机容器 --shm-size 基础挂载，进一步区分 /dev/shm、memlock 与宿主机 vm.nr_hugepages 三道阈值"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-27",
+      "file": "concepts/host-memory-and-hugepages.md",
+      "backlinks": [
+        {
+          "from": "engram-conditional-memory",
+          "kind": "enables",
+          "note": "SharedUvaBuffer 借助 POSIX /dev/shm、MADV_HUGEPAGE 透明大页提示与 aclrtHostRegisterV2 锁页建立主机底座"
         }
       ]
     },
@@ -13140,6 +13407,11 @@
           "from": "ucm",
           "kind": "alternative-to",
           "note": "同经 KV connector 复用外部前缀：AscendStore KV Pool 在 vllm-ascend 仓内直接管理显存区间与键名；UCM 通过薄转发外壳对接独立三层持久存储与多后端，并支持集中式 PD 交接"
+        },
+        {
+          "from": "host-memory-and-hugepages",
+          "kind": "enables",
+          "note": "外置 KV 缓存池（Ascend Store / MemCache / Mooncake）是宿主机百 GiB 静态大页与锁页注册的直接消费者"
         },
         {
           "from": "lmcache",
@@ -16393,11 +16665,111 @@
       "file": "concepts/msprobe-accuracy-debug.md",
       "backlinks": [
         {
+          "from": "multimodal-encoder-cache",
+          "kind": "enables",
+          "note": "多模态量化或开启视觉图后若出现看图答非所问，借助 PrecisionDebugger 与 AclGraphDumper 隔离视觉塔与融合点误差"
+        },
+        {
           "from": "runtime-config-abb228bbf148",
           "kind": "enables",
           "note": "在线异常检测与手动水位线 KV/张量 dump 用于线上定位偶发精度或数值异常，离线算子比对见那一页"
         }
       ]
+    },
+    {
+      "id": "multimodal-encoder-cache",
+      "title": "多模态视觉编码与特征缓存：ViT 分块图捕获与 EncoderCacheManager",
+      "type": "feature",
+      "origin": "direct",
+      "summary": "深入多模态请求的视觉词元膨胀账单、EncoderCacheManager 在多轮变前缀对话与抢占驱逐重算中如何独立于文本 Prefix Caching 复用视觉编码特征（含 main 分支 Score 两级缓存接线边界）、ViT 预算打包与昇腾 EncoderAclGraphManager 图捕获回放，以及 msmodelslim / msprobe 在多模态新模型上线中的分工。",
+      "aliases": [
+        "EncoderAclGraphManager",
+        "EncoderCudaGraphManager",
+        "ViT Packing",
+        "ViT 分块图捕获",
+        "ViT 图捕获",
+        "视觉特征缓存",
+        "视觉编码缓存",
+        "多模态特征缓存",
+        "视觉词元缓存",
+        "mm_hash",
+        "msmodelslim",
+        "Service Profiling",
+        "MS Service Profiler"
+      ],
+      "chapters": [
+        "01",
+        "11",
+        "16"
+      ],
+      "order": 75,
+      "prerequisites": [],
+      "sources": [
+        "vllm@ced6857a:vllm/config/ec_manager_config.py#L12-L30",
+        "vllm@ced6857a:vllm/v1/core/encoder_cache_manager.py#L58-L193",
+        "vllm@0fc695fc:vllm/v1/core/encoder_cache_manager.py#L67-L130",
+        "vllm@568afb3a:vllm/v1/core/encoder_cache_manager.py#L67-L130",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L255-L260",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1490-L1500",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1672-L1785",
+        "vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L32-L80",
+        "vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L172-L299",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1107-L1279",
+        "vllm@ba15685a:vllm/v1/worker/gpu/mm/encoder_runner.py#L249-L282",
+        "vllm@ced6857a:vllm/config/compilation.py#L550-L576",
+        "vllm@ced6857a:vllm/v1/worker/encoder_cudagraph.py#L454-L548",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/encoder_acl_graph.py#L257-L368",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/encoder_acl_graph.py#L256-L360",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/encoder_acl_graph.py#L317-L441",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_model_state.py#L18-L31",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L357-L428",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L129",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1164-L1189",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L279-L312",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/configuration/encoder_cache_manager.md#L1-L56",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/quantization.md#L13-L61",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/msprobe_guide.md#L234-L293",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/service_profiling_guide.md#L143-L240"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "multimodal-inference",
+          "kind": "builds-on",
+          "note": "承接多模态前端 Patch 展开、M-RoPE 与四级缓存全景，深入调度器级 EncoderCacheManager 与视觉图执行机制"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "alternative-to",
+          "note": "文本前缀缓存按从头连续块哈希复用语言层 KV，而 EncoderCacheManager 按单张媒体哈希独立复用视觉编码向量"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "复用昇腾 NPUGraph 与侧流 FIA 事件更新机制，承接视觉编码器按 token 预算桶分批捕获与回放"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "多模态压缩使用 msmodelslim 产出按层前缀描述文件，在运行时对视觉塔与语言主干分别选配精度"
+        },
+        {
+          "to": "msprobe-accuracy-debug",
+          "kind": "builds-on",
+          "note": "多模态量化或开启视觉图后若出现看图答非所问，借助 PrecisionDebugger 与 AclGraphDumper 隔离视觉塔与融合点误差"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-27",
+      "file": "concepts/multimodal-encoder-cache.md",
+      "backlinks": []
     },
     {
       "id": "multimodal-inference",
@@ -16507,6 +16879,11 @@
           "from": "epd-disaggregation",
           "kind": "enables",
           "note": "掌握单实例内 ViT 视觉编码、占位覆写与编码缓存概念，才能看懂跨进程 EC 缓存交接在传什么"
+        },
+        {
+          "from": "multimodal-encoder-cache",
+          "kind": "enables",
+          "note": "承接多模态前端 Patch 展开、M-RoPE 与四级缓存全景，深入调度器级 EncoderCacheManager 与视觉图执行机制"
         }
       ]
     },
@@ -17880,6 +18257,11 @@
       "updated": "2026-11-26",
       "file": "concepts/op-to-ai-core.md",
       "backlinks": [
+        {
+          "from": "ascend-runtime-and-tuning",
+          "kind": "enables",
+          "note": "先理解单个算子如何经 Host tiling 分块落到 AI Core，再看连续几百个算子如何流水下发"
+        },
         {
           "from": "batch-invariance",
           "kind": "enables",
@@ -19638,6 +20020,11 @@
       "file": "concepts/prefix-caching.md",
       "backlinks": [
         {
+          "from": "multimodal-encoder-cache",
+          "kind": "alternative-to",
+          "note": "文本前缀缓存按从头连续块哈希复用语言层 KV，而 EncoderCacheManager 按单张媒体哈希独立复用视觉编码向量"
+        },
+        {
           "from": "aisbench-and-evalscope",
           "kind": "enables",
           "note": "压测重复 prompt 时自动前缀缓存会虚高吞吐，理解块级前缀复用机制有助于避免测试污染"
@@ -20186,6 +20573,11 @@
           "from": "kv-cache-quantization",
           "kind": "enables",
           "note": "一个数怎样压成 8 位、偏移（零点）是什么在量化页，本页讲这些数放进缓存以后怎样写、怎样读"
+        },
+        {
+          "from": "multimodal-encoder-cache",
+          "kind": "enables",
+          "note": "多模态压缩使用 msmodelslim 产出按层前缀描述文件，在运行时对视觉塔与语言主干分别选配精度"
         },
         {
           "from": "netloader-guide",

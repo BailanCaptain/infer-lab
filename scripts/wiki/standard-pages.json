@@ -177,7 +177,10 @@
     "stair-config-cca9e594a052",
     "use-fused-overlap-75a180fff6ab",
     "use-layerwise-b475778cd352",
-    "weight-prefetch-config"
+    "weight-prefetch-config",
+    "host-memory-and-hugepages",
+    "ascend-runtime-and-tuning",
+    "multimodal-encoder-cache"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

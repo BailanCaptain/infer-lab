@@ -80,6 +80,8 @@
 | ZMQ | ZeroMQ、进程间消息队列 | 轻量级异步消息通信库，vLLM V1 用它在前端 API server 与后端 EngineCore 进程之间收发请求与生成结果。 | engine-processes | 支持本机 IPC 套接字与跨网络 TCP 传输，承担控制面与请求流通信，不直接搬运大块 NPU 显存张量。 |
 | ZMQ IPC / SHM | ZMQ IPC、SHM、进程间通信、共享内存、POSIX 共享内存 | 同机不同进程交换数据的机制；其中共享内存（SHM）让多个进程直接映射同一块主机内存，免去序列化与反复拷贝。 | engine-processes | 同机 Worker 广播调度元数据、Engram 主机表多进程只读共享等常走 `/dev/shm`（容器须确认 `--shm-size`）；RL 同机权重直传另有设备显存 IPC 路径（见 `vllm-ascend-for-rl`）。 |
 | RPC | 远程过程调用、Remote Procedure Call | 让另一进程执行指定函数并取回结果的跨进程调用机制；多进程执行器（`mp`）下，EngineCore 每步借此驱动各 Worker 执行前向与采样。 | request-call-chain | 单进程 `uni` 执行器在进程内直接调用；RPC 属于控制面指令调度，不同于设备侧 HCCL 张量集合通信。 |
+| EncoderCacheManager | 视觉特征缓存、多模态编码缓存、ScoreEncoderCacheManager | 按单张图像、视频或音频片段哈希独立管理编码器输出特征的缓存机制，在变前缀多轮对话、分块预填充与抢占重算时跳过重复编码。 | multimodal-encoder-cache | 不同于从序列起点连续按块哈希的文本 `prefix caching`；昇腾 `v0.30.0` 另提供两级评分晋升变体。 |
+| EncoderAclGraphManager | ViT 图捕获、ViT Packing、EncoderCudaGraphManager | 按视觉输出 token 预算桶升序打包多模态输入，并用昇腾 NPUGraph 与侧流事件同步执行编码器捕获回放的管理器。 | multimodal-encoder-cache | 单项超最大预算桶时自动回退 Eager 模式。 |
 | Worker | worker、工作进程 | 负责设备初始化、模型执行与相关资源管理的执行角色。 | npu-worker-lifecycle | 角色不总是独立进程，须结合执行器部署说明。 |
 | rank | 全局 rank、组内 rank、DP rank、TP rank | 参与分布式执行的成员编号；编号的范围由全局或具体通信组决定。 | collective-communication | DP 编号和全局 worker 编号分开。 |
 
@@ -115,6 +117,10 @@
 | 昇腾 310P 系列 | 310P、DUO、310P Duo、Atlas 300I DUO | 面向推理部署的昇腾 310P 设备族（框架设备族 `_310P`，常见并列产品型号包括 `Atlas 300I DUO` 与 `Atlas 200I Pro`，二者并非同义词），走专用 `NPUWorker310` 与兼容算子栈。 | hardware-devices | 不支持 `BF16` 与 `npugraph_ex`，须显式指定 `--dtype float16` 并配合专用镜像或量化权重；`Atlas 200I Pro` 的容器设备挂载见 `ascend-env-and-serve`。 |
 | 显存 | 设备内存、HBM | NPU 侧供计算使用的内存，常存权重、KV Cache 和临时结果。 | device-memory | HBM 是内存技术名，不是所有设备内存的同义词；实际预算见 kv-cache-memory-profiling。 |
 | 主机内存 | host memory、CPU 内存 | CPU 一侧的内存，和设备显存分别计算容量。 | device-memory | 不假定容量或速度关系；卸载过程见 kv-cache-cpu-offload。 |
+| 静态大页（HugeTLB） | 静态大页、大页内存、HugePages、Static HugePages、vm.nr_hugepages | 启动前在宿主机操作系统预留连续 `2 MiB` 或 `1 GiB` 物理内存页且常驻不换出的专用页池机制。 | host-memory-and-hugepages | 支撑大规模外置 KV 缓存池与 RDMA 锁页传输，大幅减少页表项与 TLB 未命中；容量核对查 `/proc/meminfo` 与 NUMA `sysfs`。 |
+| THP | 透明大页、Transparent HugePages、MADV_HUGEPAGE | 内核在运行期自动或按 `madvise` 提示把普通 `4 KiB` 页合并为 `2 MiB` 大页的动态机制。 | host-memory-and-hugepages | 无需改用专用分配接口（如 Engram 共享表局部启用），但全局开启在内存碎片化时易引发后台拼页停顿抖动。 |
+| TCMalloc / jemalloc | 内存分配器、主机内存分配器、ptmalloc、LD_PRELOAD | 带线程本地缓存的用户态高性能内存分配库，通过 `LD_PRELOAD` 替换默认 `ptmalloc` 以降低多线程锁争用与内存碎片。 | host-memory-and-hugepages | 通用调优推荐 `TCMalloc`；`Atlas A3` 与 `950DT` 的 `Kimi-K3` 等食谱明确禁配 `jemalloc`。 |
+| 算子下发流水 | TASK_QUEUE_ENABLE、二级流水、二级下发流水、下发空泡 | 由 `torch_npu` 与 ACL 在主机侧构建的异步任务队列，使 Python 分发、Host 分块与 AI Core 计算重叠执行。 | ascend-runtime-and-tuning | 镜像默认 `TASK_QUEUE_ENABLE=1`；设为 `2` 可进一步掩盖 Host 耗时但抬高显存峰值，且在 `main` 分支与图捕获互斥。 |
 | UVA | Unified Virtual Addressing、统一虚拟编址、统一虚拟寻址、Host UVA | 把锁页注册后的主机内存与 NPU 显存编入同一套虚拟地址空间，让 NPU 核函数直接按统一指针读写主机侧缓冲。 | device-memory | 可省去部分显式拷贝（如 MRV2 请求状态表、Engram 主机卸载），但数据物理上仍在主机 DRAM，带宽与容量不计入 HBM。 |
 | NUMA | Non-Uniform Memory Access、非一致内存访问、NUMA 节点 | 多路服务器把 CPU 核心与本地内存条分成若干就近分组；访问本组内存和直连 PCIe/NPU 更快，跨组访问延迟更高。 | cpu-binding | Worker 绑核把主机下发线程钉在对应 NPU 就近的 NUMA 节点核心上，减少跨节点争抢与算子下发抖动。 |
 | AI Core | AICore | NPU 内承担计算的一类核心，另含存储、搬运与控制部件。 | ai-core | 已按 CANN 8.0.RC2 指南核实耦合/分离模式；不是 Cube、Vector 的同义词。 |

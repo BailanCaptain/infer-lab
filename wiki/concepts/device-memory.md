@@ -270,7 +270,7 @@ file: device-memory-fig-glm-twin-accounts
 
 **可访问地址与物理存放位置是两件事。** 在硬件和运行时支持时，可以把主机内存注册、映射成设备可访问地址；设备沿该地址读取的是主机数据，注册动作本身没有把全部内容复制成本卡显存。普通复制则要先申请设备空间，复制完成后才得到本地副本。
 
-例如在 `v0.30.0` 与 `main` 的 V2 runner 路径中，启用 **UVA（Unified Virtual Addressing，统一虚拟编址）** 须同时满足两个条件。一是 `PYTORCH_NPU_ALLOC_CONF` 包含 `pinned_mem_register:True`，二是 `triton-ascend` 版本不在受指针校验缺陷影响的 `3.2.1` / `3.2.2` 列表中。即便 UVA 可用，锁页主机内存仍物理驻留在主机侧，不计入 HBM 容量。
+例如在 `v0.30.0` 与 `main` 的 V2 runner 路径中，启用 **UVA（Unified Virtual Addressing，统一虚拟编址）** 须同时满足两个条件。一是 `PYTORCH_NPU_ALLOC_CONF` 包含 `pinned_mem_register:True`，二是 `triton-ascend` 版本不在受指针校验缺陷影响的 `3.2.1` / `3.2.2` 列表中。即便 UVA 可用，锁页主机内存仍物理驻留在主机侧，不计入 HBM 容量（宿主机侧 HugeTLB 静态大页、THP 透明大页、`memlock` 配额与跨流显存分配器调优分别见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md) 与 [昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）。
 
 在支持 MemFabric 的超节点部署中，这类软件可把分散在多机的内存组织成可访问的池；它改变了寻址和访问方式，各处存储介质与传输路径仍然存在。预算要分清本地分配、远端访问和实际复制；支持范围受产品及软件版本限制。
 

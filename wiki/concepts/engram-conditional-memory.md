@@ -80,6 +80,9 @@ relations:
   - to: cpu-binding
     kind: builds-on
     note: Engram 启用 Host DRAM 卸载时绑核须跳过页迁移（migrate_memory=False），避免破坏 HOST_UVA 钉页映射
+  - to: host-memory-and-hugepages
+    kind: builds-on
+    note: SharedUvaBuffer 借助 POSIX /dev/shm、MADV_HUGEPAGE 透明大页提示与 aclrtHostRegisterV2 锁页建立主机底座
   - to: sleep-mode
     kind: conflicts-with
     note: A3 跨实例 shared_engram 与 Sleep Mode 互斥，不能在同一消费实例上同时启用

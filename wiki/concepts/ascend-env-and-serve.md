@@ -82,7 +82,7 @@ file: env-serve-container-mounts
 | --- | --- | --- |
 | **1. 计算与管理设备（`--device`）** | `/dev/davinci0..N`、`/dev/davinci_manager`、`/dev/devmm_svm`、`/dev/hisi_hdc` | 暴露计算核、设备管理与共享虚拟内存。**Atlas A3 双裸片**单卡对应一对节点（如 `davinci0`+`1`，8 卡为 `0-15`，见 [硬件设备](hardware-devices.md)），须成对挂载；`950DT` 省去 `devmm_svm` 并加挂 `hccn_tool` |
 | **2. 宿主机驱动直通（`-v`）** | `/usr/local/Ascend/driver/lib64/`、`driver/version.info`、`/etc/ascend_install.info`、`/usr/local/dcmi`、`/usr/local/bin/npu-smi` | 让容器内用户态 CANN 加载与宿主机内核一致的 `libascend_hal.so` 驱动库并完成版本校验；漏挂会导致 `torch.npu.is_available()` 返回 `False` 或 `npu-smi` 无法执行 |
-| **3. 共享内存与端口（`--shm-size` / `-p`）** | 单卡最小 `--shm-size=1g`，多卡 TP 推荐 `--shm-size=16g`；单机桥接用 `-p 8000:8000`（或 `--net=host`） | Docker 默认 `/dev/shm` 仅有 `64 MiB`，多进程 **Worker**（负责设备初始化与模型执行的工作进程）交换队列或缓存张量时会直接报 `Bus error` 或共享内存耗尽 |
+| **3. 共享内存与端口（`--shm-size` / `-p`）** | 单卡最小 `--shm-size=1g`，多卡 TP 推荐 `--shm-size=16g`；单机桥接用 `-p 8000:8000`（或 `--net=host`） | Docker 默认 `/dev/shm` 仅有 `64 MiB`，多进程 **Worker**（负责设备初始化与模型执行的工作进程）交换队列或缓存张量超限时直接报 `Bus error` 或共享内存耗尽（`/dev/shm`、`memlock` 锁页配额与宿主机静态大页三者的区别见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md)） |
 | **4. 权重缓存与空闲卡隔离** | `-v "$MODEL_CACHE:/root/.cache"`（或挂载本地权重盘）；容器内设 `ASCEND_RT_VISIBLE_DEVICES` | 避免 `--rm` 退出容器后重复下载几十 GiB 权重；若容器挂入了整机全部 `/dev/davinci*`，启动前用 `export ASCEND_RT_VISIBLE_DEVICES=2,3` 切出空闲设备并将其重映射为进程内从 `0` 开始的逻辑卡号 |
 
 以 **Atlas A3** 挂载单张物理卡（成对挂载 `davinci0` 与 `davinci1`）并映射本地缓存为例，标准起容器与两步入站验活命令如下：
@@ -131,7 +131,7 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 source /usr/local/Ascend/nnal/atb/set_env.sh
 ```
 
-第一行设置 `ASCEND_HOME_PATH`、`ASCEND_OPP_PATH` 与动态库搜索路径，供 C++ 算子加载器寻址；第二行注册加速库 ATB——只要漏跑第二行，运行期就会报 `libatb.so: cannot open shared object file`。此外，官方 `Dockerfile` 默认写入了 `TASK_QUEUE_ENABLE=1`（开启 `torch_npu` 异步算子下发队列）和 `OMP_NUM_THREADS=1`（避免多 Worker 并发时 OpenMP 线程争抢 CPU 核）。
+第一行设置 `ASCEND_HOME_PATH`、`ASCEND_OPP_PATH` 与动态库搜索路径，供 C++ 算子加载器寻址；第二行注册加速库 ATB——只要漏跑第二行，运行期就会报 `libatb.so: cannot open shared object file`。此外，官方 `Dockerfile` 默认写入了 `TASK_QUEUE_ENABLE=1`（开启 `torch_npu` 一级异步算子下发队列；`0/1/2` 三档差异及 `=2` 的显存峰值与图捕获冲突边界见 [昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）和 `OMP_NUM_THREADS=1`（避免多 Worker 并发时 OpenMP 线程争抢 CPU 核）。
 
 ### 2. 框架入口与显存分配器实读变量（`vllm/envs.py` + `platform.py`）
 

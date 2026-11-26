@@ -1473,14 +1473,9 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?(?:flash|pro)/.test(s)) {
-    const modelBase =
-      s
-        .replace(/[\\/]+$/, "")
-        .split(/[\\/]/)
-        .pop() ?? s;
     const isV4Pro =
-      /deepseek[-_.]?v4(?:\.\d+)?[-_.]?pro(?:$|[-_.])/.test(modelBase) &&
-      !/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash(?:$|[-_.])/.test(modelBase);
+      /deepseek[-_.]?v4(?:\.\d+)?[-_.]?pro(?:$|[-_./])/.test(s) &&
+      !/deepseek[-_.]?v4(?:\.\d+)?[-_.]?flash(?:$|[-_./])/.test(s);
     hints.matchedPresetName = isV4Pro ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
     hints.isMoe = true;
     hints.useMla = true;
@@ -1822,7 +1817,14 @@ export function setDottedRecordValue(
   const leaf = pathSegments[pathSegments.length - 1]!;
   const prevLeaf = Object.hasOwn(cursor, leaf) ? cursor[leaf] : undefined;
   if (Array.isArray(prevLeaf) && Array.isArray(value)) {
-    defineOwnRecordField(cursor, leaf, [...prevLeaf, ...value]);
+    const merged = [...prevLeaf, ...value];
+    for (let idx = 0; idx < prevLeaf.length; idx += 1) {
+      copyUnsafeJsonInt(prevLeaf, merged, idx);
+    }
+    for (let idx = 0; idx < value.length; idx += 1) {
+      setUnsafeJsonInt(merged, prevLeaf.length + idx, getUnsafeJsonInt(value, idx));
+    }
+    defineOwnRecordField(cursor, leaf, merged);
     setUnsafeJsonInt(cursor, leaf, undefined);
   } else if (isRecord(prevLeaf) && isRecord(value)) {
     for (const [k, v] of Object.entries(value)) {
@@ -1846,6 +1848,24 @@ function buildExportedSnapshot(
     }
   }
   return out;
+}
+
+function evalStaticTestCommand(words: readonly string[]): 0 | 1 | null {
+  const cmd = words[0];
+  if (cmd !== "test" && cmd !== "[") return null;
+  const args = cmd === "[" && words[words.length - 1] === "]" ? words.slice(1, -1) : words.slice(1);
+  if (args.length === 0) return 1;
+  if (args.length === 1) return args[0]!.length > 0 ? 0 : 1;
+  if (args.length === 2) {
+    if (args[0] === "-n") return args[1]!.length > 0 ? 0 : 1;
+    if (args[0] === "-z") return args[1]!.length === 0 ? 0 : 1;
+    if (args[0] === "!") return args[1]!.length > 0 ? 1 : 0;
+  }
+  if (args.length === 3) {
+    if (args[1] === "=" || args[1] === "==") return args[0] === args[2] ? 0 : 1;
+    if (args[1] === "!=") return args[0] !== args[2] ? 0 : 1;
+  }
+  return null;
 }
 
 function findServeTokens(statements: readonly ShellStatement[]): {
@@ -2193,7 +2213,13 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       finishStmt(0);
     } else {
       shellPreamble.push(stmt.raw);
-      finishStmt(firstCmd === "false" ? 1 : firstCmd === "true" || firstCmd === ":" ? 0 : null);
+      finishStmt(
+        firstCmd === "false"
+          ? 1
+          : firstCmd === "true" || firstCmd === ":"
+            ? 0
+            : evalStaticTestCommand(expandedWords),
+      );
     }
   }
 

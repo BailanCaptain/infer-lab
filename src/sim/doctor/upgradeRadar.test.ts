@@ -529,11 +529,17 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
       }).counts.total,
     ).toBe(0);
     const droppedAndSemiRep = analyzeSingleUpgradeRadar(
+      `check_ready && export VLLM_ASCEND_ENABLE_NZ=2; vllm serve Qwen/Qwen3-8B --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(droppedAndSemiRep.recommendedSingleCommand).toMatch(
+      /^check_ready && :;\s*vllm serve Qwen\/Qwen3-8B/,
+    );
+    const deadAndExportRep = analyzeSingleUpgradeRadar(
       `false && export VLLM_ASCEND_ENABLE_NZ=2; vllm serve Qwen/Qwen3-8B --enforce-eager`,
       { fromVersion: "v0.26.0rc", toVersion: "main" },
     );
-    expect(droppedAndSemiRep.recommendedSingleCommand).toMatch(/^false && :;\s*vllm serve Qwen\/Qwen3-8B/);
-    expect(droppedAndSemiRep.recommendedSingleCommand).not.toContain("weight_nz_mode");
+    expect(deadAndExportRep.recommendedSingleCommand).not.toContain("weight_nz_mode");
 
     const twoServeRep = analyzeSingleUpgradeRadar(
       `vllm serve Qwen/Qwen3-8B --enforce-eager; vllm serve Qwen/Qwen3-32B --additional-config.enable_balance_scheduling true`,
@@ -714,5 +720,43 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
       parseVllmServeCommand(qarBadPlusUnknownRep.recommendedSingleCommand!, { version: "main" })
         .parseDiagnostics,
     ).toEqual([]);
+
+    // Statically skipped `false && set -a` must not trigger allexport wrapping; `true || export ...` stays guarded
+    const skippedSetARep = analyzeSingleUpgradeRadar(
+      `false && set -a; export VLLM_ASCEND_ENABLE_NZ=2; HCCL_BUFFSIZE=64; vllm serve /m -tp "$VLLM_ASCEND_ENABLE_NZ"`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const parsedSkippedSetA = parseVllmServeCommand(skippedSetARep.recommendedSingleCommand!, {
+      version: "main",
+    });
+    expect(parsedSkippedSetA.couplingInput.tpSize).toBe(2);
+    expect(parsedSkippedSetA.envVars.HCCL_BUFFSIZE).toBeUndefined();
+
+    const skippedOrExportRep = analyzeSingleUpgradeRadar(
+      `true || export VLLM_ASCEND_ENABLE_NZ=2 TP=8; vllm serve /m -tp "\${TP:-\${VLLM_ASCEND_ENABLE_NZ:-1}}" --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(
+      parseVllmServeCommand(skippedOrExportRep.recommendedSingleCommand!, { version: "main" }).couplingInput
+        .tpSize,
+    ).toBe(1);
+
+    // Migrating valid top-level scheduler key must survive even when old scheduler_config was invalid scalar
+    const migratedOverBadSchedRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.enable_balance_scheduling true --additional-config.scheduler_config bad`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    const parsedMigratedOverBad = parseVllmServeCommand(migratedOverBadSchedRep.recommendedSingleCommand!, {
+      version: "main",
+    });
+    expect(parsedMigratedOverBad.parseDiagnostics).toEqual([]);
+    expect(parsedMigratedOverBad.couplingInput.enableBalanceScheduling).toBe(true);
+
+    // Duplicate dotted JSON array preserves >2^53 integers across merged elements
+    const mergedArrBigIntRep = analyzeSingleUpgradeRadar(
+      `vllm serve /m --additional-config.pa_shape_list '[9007199254740993]' --additional-config.pa_shape_list '[1]' --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(mergedArrBigIntRep.recommendedSingleCommand).toContain("9007199254740993");
   });
 });

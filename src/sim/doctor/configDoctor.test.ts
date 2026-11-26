@@ -1703,5 +1703,19 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     );
     expect(flashUnderProDir.effectiveInput.numExperts).toBe(256);
     expect(flashUnderProDir.hasBlockers).toBe(false);
+
+    // HF snapshot hash path still detects DeepSeek-V4-Pro (384 experts) from ancestor repo segment
+    const proSnapshotPath = runSingleConfigDoctor(
+      `vllm serve /cache/models--deepseek-ai--DeepSeek-V4-Pro/snapshots/0123456789abcdef`,
+      { mode: "full", hardwareFamily: "A3", version: "main" },
+    );
+    expect(proSnapshotPath.effectiveInput.numExperts).toBe(384);
+
+    // Static test -n / -z evaluation skips unreachable || export branch
+    const testNonEmptyOrExport = runSingleConfigDoctor(
+      `MODEL=/m; test -n "$MODEL" || export VLLM_ASCEND_ENABLE_NZ=2; vllm serve "$MODEL"`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(testNonEmptyOrExport.parsed.envVars.VLLM_ASCEND_ENABLE_NZ).toBeUndefined();
   });
 });

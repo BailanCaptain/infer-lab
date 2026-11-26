@@ -1398,6 +1398,7 @@ function buildRecommendedCommand(
   };
 
   let allexportActive = false;
+  let preambleExitStatus: 0 | 1 | null = 0;
   const pushDemotedLocal = (
     assignsRaw: string,
     conj: "" | "&&" | "||",
@@ -1418,6 +1419,14 @@ function buildRecommendedCommand(
       pIdx + 1 < preambleStmts.length ? preambleStmts[pIdx + 1]!.leadingConj : serveLeadingConj;
     const effConj: "" | "&&" | "||" = preamblePieces.length === 0 ? "" : stmt.leadingConj;
     const inAndOrList = stmt.leadingConj !== "" || nextConj !== "";
+    if (
+      (stmt.leadingConj === "&&" && preambleExitStatus === 1) ||
+      (stmt.leadingConj === "||" && preambleExitStatus === 0)
+    ) {
+      preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: stmt.rawStmt });
+      if (stmt.terminator === "&") preambleExitStatus = 0;
+      continue;
+    }
     if (stmt.kind === "export") {
       const keptArgs: string[] = [];
       const demotedLocalAssigns: string[] = [];
@@ -1451,6 +1460,7 @@ function buildRecommendedCommand(
       } else if (inAndOrList) {
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
+      preambleExitStatus = 0;
     } else if (stmt.kind === "assign") {
       const keptAssigns = stmt.tokens.filter((tok) => {
         const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
@@ -1465,8 +1475,10 @@ function buildRecommendedCommand(
       } else if (inAndOrList) {
         preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
+      preambleExitStatus = 0;
     } else {
-      if (stmt.tokens[0]?.value === "set") {
+      const headCmd = stmt.tokens[0]?.value ?? "";
+      if (headCmd === "set") {
         for (let si = 1; si < stmt.tokens.length; si += 1) {
           const arg = stmt.tokens[si]!.value;
           if (arg === "--" || arg === "-" || arg === "+") break;
@@ -1483,6 +1495,13 @@ function buildRecommendedCommand(
           }
           break;
         }
+        preambleExitStatus = 0;
+      } else if (headCmd === "false") {
+        preambleExitStatus = stmt.terminator === "&" ? 0 : 1;
+      } else if (headCmd === "true" || headCmd === ":" || headCmd === "unset") {
+        preambleExitStatus = 0;
+      } else {
+        preambleExitStatus = stmt.terminator === "&" ? 0 : null;
       }
       preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: stmt.rawStmt });
     }
@@ -1640,11 +1659,8 @@ function buildRecommendedCommand(
   };
   for (const [subKey, schema] of Object.entries(nestedSchemaMap)) {
     const rawSub = nextAdditional[subKey];
-    if (invalidTargetAdditionalFlags.has(`additional_config.${subKey}`)) {
-      delete nextAdditional[subKey];
-      continue;
-    }
     if (!isPlainObject(rawSub)) {
+      if (invalidTargetAdditionalFlags.has(`additional_config.${subKey}`)) delete nextAdditional[subKey];
       continue;
     }
     const cleaned = cleanNestedObjectKeys(

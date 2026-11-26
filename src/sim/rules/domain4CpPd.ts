@@ -648,6 +648,147 @@ export const domain4Rules: readonly CouplingRule[] = [
       };
     },
   },
+  {
+    id: "d4-ascend-config-pd-mla-preconditions",
+    domain: "cp-pd",
+    title: "AscendConfig 与细粒度 TP 的 MLA / PD Decode 节点及互斥前置约束",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L721-L768`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L707-L802`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L956-L1003`,
+      `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L276-L285`,
+    ],
+    description:
+      "校验 enable_kv_nz（仅限非稀疏 MLA + PD D 节点）、mlapo_keep_prefill_weights（要求 enable_mlapo=True 且仅限 MLA 模型）、finegrained_tp_config（MoE 限制、DP 整除与 qkv_iproj_tensor_parallel_size 的 TP=PCP=PP=1 + D 节点 + GLM-5.3-Flash 限制）以及 mix_placement / enable_force_eplb / mc2_comm_alg 互斥。",
+    rationale: "提前拦截 derive_and_validate 与 FinegrainedTPConfig._validate_preconditions 中的启动期异常。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      const errors: string[] = [];
+
+      if (input.enableKvNz === true) {
+        if (input.useMla === false || input.usesSfaSparse === true) {
+          errors.push("RuntimeError: enable_kv_nz 仅支持非稀疏 MLA 模型");
+        }
+        if (input.kvRole !== "kv_consumer") {
+          errors.push(
+            "NotImplementedError: enable_kv_nz 仅支持 PD 分离架构的 Decode 节点（kv_role='kv_consumer'）",
+          );
+        }
+      }
+
+      if (version !== "rfork" && input.mlapoKeepPrefillWeights === true) {
+        if (input.enableMlapo === false) {
+          errors.push("ValueError: mlapo_keep_prefill_weights=True 要求 enable_mlapo=True");
+        }
+        if (input.useMla === false) {
+          errors.push("ValueError: mlapo_keep_prefill_weights=True 仅支持 MLA 模型（如 DeepSeek）");
+        }
+      }
+
+      const fgThreshold = version === "main" ? 1 : 0;
+      const qkvTp = version === "main" ? (input.qkvIprojTensorParallelSize ?? 0) : 0;
+      if (qkvTp > 1) {
+        if ((input.tpSize ?? 1) !== 1 || (input.pcpSize ?? 1) !== 1 || (input.ppSize ?? 1) !== 1) {
+          errors.push("ValueError: qkv_iproj_tensor_parallel_size > 1 要求 TP=1、PCP=1 且 PP=1");
+        }
+        if (input.kvRole !== "kv_consumer") {
+          errors.push(
+            "ValueError: qkv_iproj_tensor_parallel_size 仅支持 PD 分离 Decode 节点（kv_role='kv_consumer'）",
+          );
+        }
+        if (
+          input.modelType !== undefined &&
+          input.modelType !== "glm5_next" &&
+          input.modelType !== "glm5_next_text"
+        ) {
+          errors.push("ValueError: qkv_iproj_tensor_parallel_size 当前仅支持 GLM-5.3-Flash（glm5_next）");
+        }
+      }
+
+      const activeModuleTpSizes = [
+        input.oprojTensorParallelSize ?? 0,
+        input.lmheadTensorParallelSize ?? 0,
+        input.embeddingTensorParallelSize ?? 0,
+        input.mlpTensorParallelSize ?? 0,
+        qkvTp,
+      ].filter((sz) => sz > fgThreshold);
+
+      if (activeModuleTpSizes.length > 0) {
+        if (input.isMoe === false) {
+          errors.push("AssertionError: finegrained_tp_config 各分模块 TP 仅支持在 MoE 模型上开启");
+        }
+        if (input.dpSize !== undefined || input.usageContext === "vllm_serve") {
+          const dp = input.dpSize ?? 1;
+          for (const sz of activeModuleTpSizes) {
+            if (dp % sz !== 0) {
+              errors.push(
+                `AssertionError: finegrained_tp_config 并行度 (${sz}) 必须整除 data_parallel_size (${dp})`,
+              );
+              break;
+            }
+          }
+        }
+      }
+
+      if (
+        version !== "rfork" &&
+        input.enableForceEplb === true &&
+        input.dynamicEplb === true &&
+        input.isMoe !== false
+      ) {
+        errors.push("ValueError: enable_force_eplb 不能与 eplb_config.dynamic_eplb 同时开启");
+      }
+
+      if (
+        input.mixPlacement === true &&
+        (input.enableSharedExpertDp === true || input.multistreamOverlapSharedExpert === true)
+      ) {
+        errors.push(
+          "ValueError: mix_placement 不支持与 enable_shared_expert_dp 或 multistream_overlap_shared_expert 同时开启",
+        );
+      }
+
+      if (input.mc2CommAlg === "fullmesh_v2") {
+        if (
+          version === "rfork"
+            ? input.hardwareFamily !== undefined && input.hardwareFamily !== "A3"
+            : input.hardwareFamily === "A2" || input.hardwareFamily === "310P"
+        ) {
+          errors.push(
+            `NotImplementedError: mc2_comm_alg='fullmesh_v2' 不受当前硬件 ${input.hardwareFamily} 支持`,
+          );
+        }
+      } else if (input.mc2CommAlg === "hierarchy") {
+        if (input.hardwareFamily === "310P" || input.hardwareFamily === "A5") {
+          errors.push(
+            `NotImplementedError: mc2_comm_alg='hierarchy' 不受当前硬件 ${input.hardwareFamily} 支持`,
+          );
+        }
+        if (version !== "rfork" && (input.enableFusedMc2 ?? 0) > 0) {
+          errors.push(
+            "ValueError: enable_fused_mc2 不能与 mc2_comm_alg='hierarchy'（或 enable_mc2_hierarchy_comm=True）同时启用",
+          );
+        }
+      }
+
+      if (errors.length === 0) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `${errors.join("；")}。`,
+        remediation:
+          "请按模型架构（MLA / MoE）与 PD 节点角色（kv_consumer）修正 --additional-config 中的互斥或前置项。",
+      };
+    },
+  },
 ];
 
 export function evaluateDomain4Rules(

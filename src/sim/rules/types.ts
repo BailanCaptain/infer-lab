@@ -101,6 +101,16 @@ export interface CouplingCheckInput {
   oprojTensorParallelSize?: number;
   mlpTensorParallelSize?: number;
   embeddingTensorParallelSize?: number;
+  lmheadTensorParallelSize?: number;
+  qkvIprojTensorParallelSize?: number;
+  enableKvNz?: boolean;
+  enableMlapo?: boolean;
+  mlapoKeepPrefillWeights?: boolean;
+  enableForceEplb?: boolean;
+  dynamicEplb?: boolean;
+  mixPlacement?: boolean;
+  multistreamOverlapSharedExpert?: boolean;
+  mc2CommAlg?: string;
 
   // Model traits
   isMoe?: boolean;

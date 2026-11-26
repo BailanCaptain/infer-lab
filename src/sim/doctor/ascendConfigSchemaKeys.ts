@@ -135,6 +135,17 @@ export const VALID_EPLB_KEYS: ReadonlySet<string> = new Set([
   "stair_config",
 ]);
 
+export const VALID_RFORK_EPLB_KEYS: ReadonlySet<string> = new Set([
+  "dynamic_eplb",
+  "expert_map_path",
+  "expert_heat_collection_interval",
+  "algorithm_execution_interval",
+  "expert_map_record_path",
+  "num_redundant_experts",
+  "eplb_policy_type",
+  "eplb_heat_collection_stage",
+]);
+
 export const VALID_REJECTION_SAMPLER_KEYS: ReadonlySet<string> = new Set([
   "enable_block_verify",
   "enable_entropy_verify",
@@ -259,8 +270,10 @@ export type AscendFieldPrimitiveSpec =
   | "strictBool"
   | "optBool"
   | "int"
+  | "noBoolInt"
   | "optInt"
   | "float"
+  | "noBoolFloat"
   | "str"
   | "optStr"
   | "list"
@@ -350,16 +363,16 @@ export const ASCEND_SUBCONFIG_FIELD_TYPES: Readonly<
     load_collection_phase: ["all", "prefill", "decode"],
   },
   stair_config: {
-    load_window_bins: "int",
-    load_risk_quantile: "float",
-    relative_balance_threshold: "float",
-    absolute_balance_threshold: "float",
-    rank_transfer_limit: "int",
-    cross_node_transfer_limit: "int",
-    replica_search_num_stages: "int",
-    replica_search_radius: "int",
-    replica_search_beam_size: "int",
-    placement_search_backtrack_limit: "int",
+    load_window_bins: "noBoolInt",
+    load_risk_quantile: "noBoolFloat",
+    relative_balance_threshold: "noBoolFloat",
+    absolute_balance_threshold: "noBoolFloat",
+    rank_transfer_limit: "noBoolInt",
+    cross_node_transfer_limit: "noBoolInt",
+    replica_search_num_stages: "noBoolInt",
+    replica_search_radius: "noBoolInt",
+    replica_search_beam_size: "noBoolInt",
+    placement_search_backtrack_limit: "noBoolInt",
   },
   rejection_sampler_config: {
     enable_block_verify: "bool",

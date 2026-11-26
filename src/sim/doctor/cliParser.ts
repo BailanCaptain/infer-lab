@@ -23,6 +23,7 @@ import {
   VALID_KV_TRACE_KEYS,
   VALID_PROFILING_CHUNK_KEYS,
   VALID_REJECTION_SAMPLER_KEYS,
+  VALID_RFORK_EPLB_KEYS,
   VALID_RL_KEYS,
   VALID_SCHEDULER_KEYS_BY_TARGET,
   VALID_SHORT_REQUEST_FIRST_KEYS,
@@ -340,6 +341,7 @@ function expandDollarExpression(
   onAssignSideEffect: ((key: string, val: string) => void) | undefined,
   singleQuotesAreLiteral: boolean,
   depth: number,
+  unsetNames?: ReadonlySet<string>,
 ): string {
   const inner = rawExpr.slice(2, -1);
   const paramMatch = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
@@ -351,11 +353,19 @@ function expandDollarExpression(
   const currentVal = isSet ? (env[key] ?? "") : "";
   const isNonEmpty = isSet && currentVal.length > 0;
   if (!op) {
-    return isSet ? currentVal : rawExpr;
+    if (isSet) return currentVal;
+    return unsetNames?.has(key) ? "" : rawExpr;
   }
   if (op === ":-" || op === ":=") {
     if (isNonEmpty) return currentVal;
-    const expanded = expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1);
+    const expanded = expandShellWord(
+      fallbackRaw,
+      env,
+      onAssignSideEffect,
+      singleQuotesAreLiteral,
+      depth + 1,
+      unsetNames,
+    );
     if (op === ":=") {
       env[key] = expanded;
       onAssignSideEffect?.(key, expanded);
@@ -364,7 +374,14 @@ function expandDollarExpression(
   }
   if (op === "-" || op === "=") {
     if (isSet) return currentVal;
-    const expanded = expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1);
+    const expanded = expandShellWord(
+      fallbackRaw,
+      env,
+      onAssignSideEffect,
+      singleQuotesAreLiteral,
+      depth + 1,
+      unsetNames,
+    );
     if (op === "=") {
       env[key] = expanded;
       onAssignSideEffect?.(key, expanded);
@@ -373,12 +390,12 @@ function expandDollarExpression(
   }
   if (op === ":+") {
     return isNonEmpty
-      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1)
+      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1, unsetNames)
       : "";
   }
   if (op === "+") {
     return isSet
-      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1)
+      ? expandShellWord(fallbackRaw, env, onAssignSideEffect, singleQuotesAreLiteral, depth + 1, unsetNames)
       : "";
   }
   return rawExpr;
@@ -390,6 +407,7 @@ function expandShellWord(
   onAssignSideEffect?: (key: string, val: string) => void,
   singleQuotesAreLiteral = false,
   depth = 0,
+  unsetNames?: ReadonlySet<string>,
 ): string {
   if (depth > 8) return rawWord;
   let out = "";
@@ -422,7 +440,14 @@ function expandShellWord(
         if (dc === "$" && dnext === "{") {
           const endIdx = findClosingDollarBrace(rawWord, i + 2);
           if (endIdx !== -1) {
-            out += expandDollarExpression(rawWord.slice(i, endIdx), env, onAssignSideEffect, true, depth);
+            out += expandDollarExpression(
+              rawWord.slice(i, endIdx),
+              env,
+              onAssignSideEffect,
+              true,
+              depth,
+              unsetNames,
+            );
             i = endIdx;
             continue;
           }
@@ -431,7 +456,7 @@ function expandShellWord(
           const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
           if (simpleMatch?.[1]) {
             const key = simpleMatch[1];
-            out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
+            out += Object.hasOwn(env, key) ? (env[key] ?? "") : unsetNames?.has(key) ? "" : `$${key}`;
             i += 1 + key.length;
             continue;
           }
@@ -460,6 +485,7 @@ function expandShellWord(
           onAssignSideEffect,
           singleQuotesAreLiteral,
           depth,
+          unsetNames,
         );
         i = endIdx;
         continue;
@@ -470,7 +496,7 @@ function expandShellWord(
       const simpleMatch = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(rawWord.slice(i + 1));
       if (simpleMatch?.[1]) {
         const key = simpleMatch[1];
-        out += Object.hasOwn(env, key) ? (env[key] ?? "") : `$${key}`;
+        out += Object.hasOwn(env, key) ? (env[key] ?? "") : unsetNames?.has(key) ? "" : `$${key}`;
         i += 1 + key.length;
         continue;
       }
@@ -483,69 +509,40 @@ function expandShellWord(
   return out;
 }
 
-/**
- * Expands a single raw shell word and performs POSIX §2.6.5 IFS whitespace field splitting
- * on unquoted parameter expansions (`$VAR` / `${...}`), while keeping quoted expansions intact.
- */
-function expandShellWordToFields(
+interface ShellWordSegment {
+  readonly text: string;
+  readonly splittable: boolean;
+}
+
+function expandWordSegments(
   rawWord: string,
   env: Record<string, string>,
-  onAssignSideEffect?: (key: string, val: string) => void,
-): string[] {
-  const fields: string[] = [];
-  let cur = "";
-  let hasContent = false;
+  onAssignSideEffect: ((key: string, val: string) => void) | undefined,
+  unsetNames: ReadonlySet<string> | undefined,
+  inUnquotedFallback: boolean,
+  depth: number,
+): ShellWordSegment[] {
+  if (depth > 8) return [{ text: rawWord, splittable: false }];
+  const segs: ShellWordSegment[] = [];
   let i = 0;
-
-  const appendIfsExpanded = (expanded: string): void => {
-    const leadingWs = /^[ \t\n]/.test(expanded);
-    const trailingWs = /[ \t\n]$/.test(expanded);
-    const trimmed = expanded.trim();
-    const parts = trimmed.length > 0 ? trimmed.split(/[ \t\n]+/) : [];
-    if (parts.length === 0) {
-      if ((leadingWs || trailingWs) && hasContent) {
-        fields.push(cur);
-        cur = "";
-        hasContent = false;
-      }
-      return;
-    }
-    if (leadingWs && hasContent) {
-      fields.push(cur);
-      cur = "";
-      hasContent = false;
-    }
-    cur += parts[0]!;
-    hasContent = true;
-    for (let pIdx = 1; pIdx < parts.length; pIdx += 1) {
-      fields.push(cur);
-      cur = parts[pIdx]!;
-      hasContent = true;
-    }
-    if (trailingWs) {
-      fields.push(cur);
-      cur = "";
-      hasContent = false;
-    }
-  };
 
   while (i < rawWord.length) {
     const ch = rawWord[i] ?? "";
     const next = rawWord[i + 1] ?? "";
 
     if (ch === "'") {
-      hasContent = true;
+      let inner = "";
       i += 1;
       while (i < rawWord.length && rawWord[i] !== "'") {
-        cur += rawWord[i] ?? "";
+        inner += rawWord[i] ?? "";
         i += 1;
       }
       if (i < rawWord.length) i += 1;
+      segs.push({ text: inner, splittable: false });
       continue;
     }
 
     if (ch === '"') {
-      hasContent = true;
       let qEnd = i + 1;
       while (qEnd < rawWord.length && rawWord[qEnd] !== '"') {
         const dc = rawWord[qEnd] ?? "";
@@ -563,14 +560,21 @@ function expandShellWordToFields(
         qEnd += 1;
       }
       const sliceEnd = qEnd < rawWord.length ? qEnd + 1 : rawWord.length;
-      cur += expandShellWord(rawWord.slice(i, sliceEnd), env, onAssignSideEffect);
+      const expanded = expandShellWord(
+        rawWord.slice(i, sliceEnd),
+        env,
+        onAssignSideEffect,
+        false,
+        depth,
+        unsetNames,
+      );
+      segs.push({ text: expanded, splittable: false });
       i = sliceEnd;
       continue;
     }
 
     if (ch === "\\" && i + 1 < rawWord.length) {
-      cur += next;
-      hasContent = true;
+      segs.push({ text: next, splittable: false });
       i += 2;
       continue;
     }
@@ -581,11 +585,52 @@ function expandShellWordToFields(
         const rawExpr = rawWord.slice(i, endIdx);
         const inner = rawExpr.slice(2, -1);
         const pm = /^([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-=+])([\s\S]*))?$/.exec(inner);
-        if (pm?.[1] && !pm[2] && !Object.hasOwn(env, pm[1])) {
-          cur += rawExpr;
-          hasContent = true;
+        if (!pm?.[1]) {
+          segs.push({ text: rawExpr, splittable: false });
         } else {
-          appendIfsExpanded(expandDollarExpression(rawExpr, env, onAssignSideEffect, false, 0));
+          const key = pm[1];
+          const op = pm[2];
+          const fallbackRaw = pm[3] ?? "";
+          const isSet = Object.hasOwn(env, key);
+          const curVal = isSet ? (env[key] ?? "") : "";
+          const isNonEmpty = isSet && curVal.length > 0;
+          if (!op) {
+            if (isSet) segs.push({ text: curVal, splittable: true });
+            else if (!unsetNames?.has(key)) segs.push({ text: rawExpr, splittable: false });
+          } else if (op === ":-" || op === "-") {
+            const useCurrent = op === ":-" ? isNonEmpty : isSet;
+            if (useCurrent) {
+              segs.push({ text: curVal, splittable: true });
+            } else {
+              segs.push(
+                ...expandWordSegments(fallbackRaw, env, onAssignSideEffect, unsetNames, true, depth + 1),
+              );
+            }
+          } else if (op === ":=" || op === "=") {
+            const useCurrent = op === ":=" ? isNonEmpty : isSet;
+            if (useCurrent) {
+              segs.push({ text: curVal, splittable: true });
+            } else {
+              const assigned = expandShellWord(
+                fallbackRaw,
+                env,
+                onAssignSideEffect,
+                false,
+                depth + 1,
+                unsetNames,
+              );
+              env[key] = assigned;
+              onAssignSideEffect?.(key, assigned);
+              segs.push({ text: assigned, splittable: true });
+            }
+          } else if (op === ":+" || op === "+") {
+            const active = op === ":+" ? isNonEmpty : isSet;
+            if (active) {
+              segs.push(
+                ...expandWordSegments(fallbackRaw, env, onAssignSideEffect, unsetNames, true, depth + 1),
+              );
+            }
+          }
         }
         i = endIdx;
         continue;
@@ -597,23 +642,79 @@ function expandShellWordToFields(
       if (simpleMatch?.[1]) {
         const key = simpleMatch[1];
         if (Object.hasOwn(env, key)) {
-          appendIfsExpanded(env[key] ?? "");
-        } else {
-          cur += `$${key}`;
-          hasContent = true;
+          segs.push({ text: env[key] ?? "", splittable: true });
+        } else if (!unsetNames?.has(key)) {
+          segs.push({ text: `$${key}`, splittable: false });
         }
         i += 1 + key.length;
         continue;
       }
     }
 
-    cur += ch;
-    hasContent = true;
+    segs.push({ text: ch, splittable: inUnquotedFallback });
     i += 1;
   }
 
-  if (hasContent) fields.push(cur);
+  return segs;
+}
+
+function splitSegmentsByIfs(segments: readonly ShellWordSegment[], ifs: string | undefined): string[] {
+  const effIfs = ifs === undefined ? " \t\n" : ifs;
+  if (effIfs.length === 0) {
+    const hasAny = segments.some((s) => !s.splittable || s.text.length > 0);
+    return hasAny ? [segments.map((s) => s.text).join("")] : [];
+  }
+  const ifsWs = new Set<string>([...effIfs].filter((c) => c === " " || c === "\t" || c === "\n"));
+  const ifsNonWs = new Set<string>([...effIfs].filter((c) => !ifsWs.has(c)));
+
+  const fields: string[] = [];
+  let cur = "";
+  let hasToken = false;
+  let afterNonWsDelim = false;
+
+  for (const seg of segments) {
+    if (!seg.splittable) {
+      cur += seg.text;
+      hasToken = true;
+      afterNonWsDelim = false;
+      continue;
+    }
+    for (const ch of seg.text) {
+      if (ifsWs.has(ch)) {
+        if (hasToken) {
+          fields.push(cur);
+          cur = "";
+          hasToken = false;
+        }
+      } else if (ifsNonWs.has(ch)) {
+        if (hasToken || afterNonWsDelim) {
+          fields.push(cur);
+          cur = "";
+          hasToken = false;
+        } else {
+          fields.push("");
+        }
+        afterNonWsDelim = true;
+      } else {
+        cur += ch;
+        hasToken = true;
+        afterNonWsDelim = false;
+      }
+    }
+  }
+  if (hasToken) fields.push(cur);
   return fields;
+}
+
+function expandShellWordToFields(
+  rawWord: string,
+  env: Record<string, string>,
+  onAssignSideEffect?: (key: string, val: string) => void,
+  unsetNames?: ReadonlySet<string>,
+): string[] {
+  const segs = expandWordSegments(rawWord, env, onAssignSideEffect, unsetNames, false, 0);
+  const ifs = Object.hasOwn(env, "IFS") ? env.IFS : undefined;
+  return splitSegmentsByIfs(segs, ifs);
 }
 
 const RAW_SHELL_ASSIGN_RE = /^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/;
@@ -660,25 +761,37 @@ function parseIntegerFlag(
   flag: string,
   rawValue: string,
   diagnostics: CliParseDiagnostic[],
-  opts: { min?: number; max?: number; allowMinusOne?: boolean; allowSuffix?: boolean } = {},
+  opts: {
+    min?: number;
+    max?: number;
+    allowMinusOne?: boolean;
+    allowAuto?: boolean;
+    allowSuffix?: boolean;
+  } = {},
 ): number | undefined {
   const trimmed = rawValue.trim();
-  let num: number;
-  const suffixMatch = opts.allowSuffix ? /^(\d+)([kKmM])$/.exec(trimmed) : null;
-  if (suffixMatch?.[1] && suffixMatch[2]) {
-    const base = Number.parseInt(suffixMatch[1], 10);
-    const mult = suffixMatch[2].toLowerCase() === "m" ? 1024 * 1024 : 1024;
-    num = base * mult;
-  } else if (/^-?\d+$/.test(trimmed)) {
-    num = Number.parseInt(trimmed, 10);
-  } else {
-    diagnostics.push({
-      code: "parse-invalid-number",
-      severity: "error",
-      flag,
-      message: `${flag} 需要整数，收到 '${rawValue}'。`,
-    });
-    return undefined;
+  if (opts.allowAuto && trimmed.toLowerCase() === "auto") {
+    return -1;
+  }
+  if (opts.allowMinusOne && trimmed === "-1") {
+    return -1;
+  }
+  let num: number | undefined;
+  if (opts.allowSuffix) {
+    num = parseHumanReadableInt(trimmed);
+  }
+  if (num === undefined) {
+    if (/^[+-]?\d+$/.test(trimmed)) {
+      num = Number.parseInt(trimmed, 10);
+    } else {
+      diagnostics.push({
+        code: "parse-invalid-number",
+        severity: "error",
+        flag,
+        message: `${flag} 需要整数，收到 '${rawValue}'。`,
+      });
+      return undefined;
+    }
   }
   if (opts.allowMinusOne && num === -1) return num;
   if ((opts.min !== undefined && num < opts.min) || (opts.max !== undefined && num > opts.max)) {
@@ -802,33 +915,132 @@ function parseAscendBoolField(
   return parsePydanticBoolField(holder, key, flagPath, diagnostics);
 }
 
-function parsePydanticLaxInt(val: unknown): number | undefined {
-  if (typeof val === "boolean") return val ? 1 : 0;
-  if (typeof val === "number" && Number.isSafeInteger(val)) return val;
+function parsePydanticLaxBigInt(val: unknown): bigint | undefined {
+  if (typeof val === "boolean") return val ? 1n : 0n;
+  if (typeof val === "number" && Number.isInteger(val)) return BigInt(val);
   if (typeof val === "string") {
     const trimmed = val.trim();
     if (/^[+-]?\d(?:_?\d)*(?:\.0+)?$/.test(trimmed)) {
       const normalized = trimmed.replace(/_/g, "").replace(/\.0+$/, "");
-      const n = Number(normalized);
-      if (Number.isSafeInteger(n)) return n;
+      try {
+        return BigInt(normalized);
+      } catch {
+        return undefined;
+      }
     }
   }
   return undefined;
 }
 
+function parsePydanticLaxInt(val: unknown): number | undefined {
+  const bi = parsePydanticLaxBigInt(val);
+  if (bi === undefined) return undefined;
+  const n = Number(bi);
+  if (Number.isFinite(n)) return n;
+  return bi > 0n ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+}
+
+function parsePydanticNoBoolInt(val: unknown): number | undefined {
+  if (typeof val === "boolean") return undefined;
+  return parsePydanticLaxInt(val);
+}
+
 function parsePydanticLaxFloat(val: unknown): number | undefined {
   if (typeof val === "boolean") return val ? 1 : 0;
-  if (typeof val === "number" && Number.isFinite(val)) return val;
+  if (typeof val === "number" && !Number.isNaN(val)) return val;
   if (typeof val === "string") {
     const trimmed = val.trim();
+    if (/^[+-]?(?:inf|infinity)$/i.test(trimmed)) {
+      return trimmed.startsWith("-") ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+    }
     if (
       /^[+-]?(?:\d(?:_?\d)*(?:\.(?:\d(?:_?\d)*)?)?|\.\d(?:_?\d)*)(?:[eE][+-]?\d(?:_?\d)*)?$/.test(trimmed)
     ) {
       const n = Number(trimmed.replace(/_/g, ""));
-      if (Number.isFinite(n)) return n;
+      if (!Number.isNaN(n)) return n;
     }
   }
   return undefined;
+}
+
+function parsePydanticNoBoolFloat(val: unknown): number | undefined {
+  if (typeof val === "boolean") return undefined;
+  return parsePydanticLaxFloat(val);
+}
+
+function extractTopLevelJsonFloatLiteral(rawJson: string, targetKey: string): string | undefined {
+  let depth = 0;
+  let i = 0;
+  let result: string | undefined;
+
+  const skipJsonString = (start: number): [string, number] => {
+    let decoded = "";
+    let p = start + 1;
+    while (p < rawJson.length) {
+      const c = rawJson[p]!;
+      if (c === "\\") {
+        decoded += rawJson[p + 1] ?? "";
+        p += 2;
+        continue;
+      }
+      if (c === '"') return [decoded, p + 1];
+      decoded += c;
+      p += 1;
+    }
+    return [decoded, p];
+  };
+
+  while (i < rawJson.length) {
+    const ch = rawJson[i]!;
+    if (/\s/.test(ch)) {
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      const [strVal, afterStr] = skipJsonString(i);
+      i = afterStr;
+      if (depth === 1) {
+        while (i < rawJson.length && /\s/.test(rawJson[i]!)) i += 1;
+        if (rawJson[i] === ":") {
+          i += 1;
+          while (i < rawJson.length && /\s/.test(rawJson[i]!)) i += 1;
+          const vStart = i;
+          const vc = rawJson[i];
+          if (vc === '"') {
+            const [, afterVal] = skipJsonString(i);
+            i = afterVal;
+            if (strVal === targetKey) result = undefined;
+          } else if (vc === "{" || vc === "[") {
+            let subDepth = 1;
+            i += 1;
+            while (i < rawJson.length && subDepth > 0) {
+              const sc = rawJson[i]!;
+              if (sc === '"') {
+                const [, afterSubStr] = skipJsonString(i);
+                i = afterSubStr;
+                continue;
+              }
+              if (sc === "{" || sc === "[") subDepth += 1;
+              else if (sc === "}" || sc === "]") subDepth -= 1;
+              i += 1;
+            }
+            if (strVal === targetKey) result = undefined;
+          } else {
+            while (i < rawJson.length && !/[\s,}\]]/.test(rawJson[i]!)) i += 1;
+            if (strVal === targetKey) {
+              const tok = rawJson.slice(vStart, i).trim();
+              result = /^-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+)$/.test(tok) ? tok : undefined;
+            }
+          }
+        }
+      }
+      continue;
+    }
+    if (ch === "{" || ch === "[") depth += 1;
+    else if (ch === "}" || ch === "]") depth = Math.max(0, depth - 1);
+    i += 1;
+  }
+  return result;
 }
 
 function parseNumberLike(val: unknown): number | undefined {
@@ -1220,6 +1432,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 } {
   const shellVars: Record<string, string> = {};
   const exportedNames = new Set<string>();
+  const unsetNames = new Set<string>();
   let allExport = false;
   let matchedEnvVars: Record<string, string> | null = null;
   const shellPreamble: string[] = [];
@@ -1227,6 +1440,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 
   const setShellVar = (name: string, val: string): void => {
     shellVars[name] = val;
+    unsetNames.delete(name);
     if (allExport) exportedNames.add(name);
   };
 
@@ -1245,7 +1459,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       for (let i = 0; i < rawWords.length; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
         setShellVar(m[1], val);
       }
       continue;
@@ -1253,15 +1467,18 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 
     // Check if rawWords[idx] is the literal `export` declaration utility (whose assignment args do not IFS-split)
     const cmdRawWord = rawWords[idx] ?? "";
-    const cmdFields = expandShellWordToFields(cmdRawWord, shellVars, setShellVar);
+    const cmdFields = expandShellWordToFields(cmdRawWord, shellVars, setShellVar, unsetNames);
     if (cmdFields.length === 1 && cmdFields[0] === "export" && idx < rawWords.length) {
       const expandedExportArgs: Array<{ rw: string; expanded: string }> = [];
       for (let i = idx + 1; i < rawWords.length; i += 1) {
         const rw = rawWords[i] ?? "";
         if (RAW_SHELL_ASSIGN_RE.test(rw)) {
-          expandedExportArgs.push({ rw, expanded: expandShellWord(rw, shellVars, setShellVar) });
+          expandedExportArgs.push({
+            rw,
+            expanded: expandShellWord(rw, shellVars, setShellVar, false, 0, unsetNames),
+          });
         } else {
-          for (const f of expandShellWordToFields(rw, shellVars, setShellVar)) {
+          for (const f of expandShellWordToFields(rw, shellVars, setShellVar, unsetNames)) {
             expandedExportArgs.push({ rw, expanded: f });
           }
         }
@@ -1270,7 +1487,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
         setShellVar(m[1], val);
       }
       let removeExport = false;
@@ -1285,6 +1502,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         if (assignMatch?.[1] && (RAW_SHELL_ASSIGN_RE.test(rw) || assignMatch[1].length > 0)) {
           const name = assignMatch[1];
           shellVars[name] = assignMatch[2] ?? "";
+          unsetNames.delete(name);
           if (removeExport) exportedNames.delete(name);
           else exportedNames.add(name);
           continue;
@@ -1300,7 +1518,9 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     // POSIX §2.9.1 Step 1: Expand command word & arguments FIRST against shellVars (with IFS field splitting!)
     const expandedWords: string[] = [
       ...cmdFields,
-      ...rawWords.slice(idx + 1).flatMap((w) => expandShellWordToFields(w, shellVars, setShellVar)),
+      ...rawWords
+        .slice(idx + 1)
+        .flatMap((w) => expandShellWordToFields(w, shellVars, setShellVar, unsetNames)),
     ];
 
     if (expandedWords.length === 0) {
@@ -1308,7 +1528,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
         setShellVar(m[1], val);
       }
       continue;
@@ -1320,7 +1540,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
         setShellVar(m[1], val);
       }
       const setArgs = expandedWords.slice(1);
@@ -1354,14 +1574,25 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar);
+        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
         setShellVar(m[1], val);
       }
+      let unsetVarMode = true;
+      let parsingUnsetOpts = true;
       for (const expanded of expandedWords.slice(1)) {
-        if (expanded === "-v" || expanded === "-f" || expanded === "--") continue;
-        if (VALID_IDENT_RE.test(expanded)) {
+        if (parsingUnsetOpts && expanded === "--") {
+          parsingUnsetOpts = false;
+          continue;
+        }
+        if (parsingUnsetOpts && /^-[vf]+$/.test(expanded)) {
+          unsetVarMode = !expanded.endsWith("f");
+          continue;
+        }
+        parsingUnsetOpts = false;
+        if (unsetVarMode && VALID_IDENT_RE.test(expanded)) {
           delete shellVars[expanded];
           exportedNames.delete(expanded);
+          unsetNames.add(expanded);
         }
       }
       continue;
@@ -1378,8 +1609,9 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     for (let i = 0; i < idx; i += 1) {
       const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
       if (!m?.[1]) continue;
-      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect);
+      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect, false, 0, unsetNames);
       assignEnv[m[1]] = val;
+      unsetNames.delete(m[1]);
       childEnv[m[1]] = val;
     }
 
@@ -1487,11 +1719,15 @@ function matchesAscendFieldPrimitive(val: unknown, spec: AscendFieldPrimitiveSpe
     case "optBool":
       return val === null || parsePydanticLaxBool(val) !== undefined;
     case "int":
-      return parsePydanticLaxInt(val) !== undefined;
+      return parsePydanticLaxBigInt(val) !== undefined;
+    case "noBoolInt":
+      return typeof val !== "boolean" && parsePydanticLaxBigInt(val) !== undefined;
     case "optInt":
-      return val === null || parsePydanticLaxInt(val) !== undefined;
+      return val === null || parsePydanticLaxBigInt(val) !== undefined;
     case "float":
       return parsePydanticLaxFloat(val) !== undefined;
+    case "noBoolFloat":
+      return parsePydanticNoBoolFloat(val) !== undefined;
     case "str":
       return typeof val === "string";
     case "optStr":
@@ -1550,14 +1786,29 @@ function validateAscendModelValidatorRanges(
   sched: Record<string, unknown> | null,
   resolveSchedHolder: (key: string) => { holder: Record<string, unknown>; flagPath: string } | null,
   version: RuleVersion,
+  envVars: Readonly<Record<string, string>>,
   diagnostics: CliParseDiagnostic[],
 ): void {
-  if (
-    effectiveAdditional.dump_config !== undefined &&
-    effectiveAdditional.dump_config !== null &&
-    effectiveAdditional.dump_config_path !== undefined &&
-    effectiveAdditional.dump_config_path !== null
-  ) {
+  const isRfork = version === "rfork";
+  const rawDump = effectiveAdditional.dump_config;
+  const rawDumpPath = effectiveAdditional.dump_config_path;
+  if (rawDump !== undefined && rawDump !== null && !isRecord(rawDump)) {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: "additional_config.dump_config",
+      message: `ValueError: additional_config.dump_config 必须为字典对象，收到 ${JSON.stringify(rawDump)}。`,
+    });
+  }
+  if (rawDumpPath !== undefined && rawDumpPath !== null && typeof rawDumpPath !== "string") {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: "additional_config.dump_config_path",
+      message: `ValueError: additional_config.dump_config_path 必须为字符串，收到 ${JSON.stringify(rawDumpPath)}。`,
+    });
+  }
+  if (rawDump !== undefined && rawDump !== null && rawDumpPath !== undefined && rawDumpPath !== null) {
     diagnostics.push({
       code: "parse-invalid-json-type",
       severity: "error",
@@ -1568,13 +1819,80 @@ function validateAscendModelValidatorRanges(
     });
   }
 
-  const megaMax = parsePydanticLaxInt(effectiveAdditional.mega_moe_max_tokens);
-  if (megaMax !== undefined && megaMax <= 0) {
-    pushRangeError(diagnostics, "additional_config.mega_moe_max_tokens", "> 0", megaMax);
+  if (
+    Object.hasOwn(effectiveAdditional, "mega_moe_max_tokens") &&
+    effectiveAdditional.mega_moe_max_tokens !== undefined
+  ) {
+    const rawMega = effectiveAdditional.mega_moe_max_tokens;
+    if (
+      isRfork &&
+      typeof rawMega !== "boolean" &&
+      !(typeof rawMega === "number" && Number.isInteger(rawMega))
+    ) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.mega_moe_max_tokens",
+        message: `ValueError: additional_config.mega_moe_max_tokens 必须为整数，收到 ${JSON.stringify(rawMega)}。`,
+      });
+    } else {
+      const megaMax = parsePydanticLaxInt(rawMega);
+      if (megaMax !== undefined && (version === "main" ? megaMax < 0 : megaMax <= 0)) {
+        pushRangeError(
+          diagnostics,
+          "additional_config.mega_moe_max_tokens",
+          version === "main" ? ">= 0" : "> 0",
+          megaMax,
+        );
+      }
+    }
+  }
+
+  if (
+    isRfork &&
+    Object.hasOwn(effectiveAdditional, "mc2_comm_alg") &&
+    effectiveAdditional.mc2_comm_alg !== undefined
+  ) {
+    const alg = effectiveAdditional.mc2_comm_alg;
+    if (alg !== "" && alg !== "fullmesh" && alg !== "hierarchy" && alg !== "fullmesh_v2") {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: "additional_config.mc2_comm_alg",
+        message: `ValueError: additional_config.mc2_comm_alg 仅允许 "" / "fullmesh" / "hierarchy" / "fullmesh_v2"，收到 ${JSON.stringify(alg)}。`,
+      });
+    }
   }
 
   const eplb = effectiveAdditional.eplb_config;
   if (isRecord(eplb)) {
+    if (isRfork) {
+      validateSubConfigKeys(eplb, "additional_config.eplb_config", VALID_RFORK_EPLB_KEYS, diagnostics);
+      if (
+        Object.hasOwn(eplb, "eplb_policy_type") &&
+        eplb.eplb_policy_type !== undefined &&
+        ![0, 1, 2, 3].includes(eplb.eplb_policy_type as number)
+      ) {
+        pushRangeError(
+          diagnostics,
+          "additional_config.eplb_config.eplb_policy_type",
+          "[0, 1, 2, 3]",
+          eplb.eplb_policy_type,
+        );
+      }
+      if (
+        Object.hasOwn(eplb, "eplb_heat_collection_stage") &&
+        eplb.eplb_heat_collection_stage !== undefined &&
+        !["all", "prefill", "decode"].includes(eplb.eplb_heat_collection_stage as string)
+      ) {
+        pushRangeError(
+          diagnostics,
+          "additional_config.eplb_config.eplb_heat_collection_stage",
+          '["all", "prefill", "decode"]',
+          eplb.eplb_heat_collection_stage,
+        );
+      }
+    }
     for (const pathKey of ["expert_map_path", "expert_map_record_path"] as const) {
       const pVal = eplb[pathKey];
       if (typeof pVal === "string" && !pVal.endsWith(".json")) {
@@ -1594,49 +1912,80 @@ function validateAscendModelValidatorRanges(
       "algorithm_execution_interval",
       "num_redundant_experts",
     ] as const) {
+      if (
+        isRfork &&
+        Object.hasOwn(eplb, k) &&
+        eplb[k] !== undefined &&
+        typeof eplb[k] !== "boolean" &&
+        !(typeof eplb[k] === "number" && Number.isInteger(eplb[k]))
+      ) {
+        diagnostics.push({
+          code: "parse-invalid-json-type",
+          severity: "error",
+          flag: `additional_config.eplb_config.${k}`,
+          message: `TypeError: additional_config.eplb_config.${k} 必须为整数，收到 ${JSON.stringify(eplb[k])}。`,
+        });
+        continue;
+      }
       const n = parsePydanticLaxInt(eplb[k]);
       if (n !== undefined && n < 0) {
         pushRangeError(diagnostics, `additional_config.eplb_config.${k}`, ">= 0", n);
       }
     }
-    const stair = eplb.stair_config;
+    const effectiveDynEplb =
+      (isRfork ? pythonTruthiness(eplb.dynamic_eplb) : parsePydanticLaxBool(eplb.dynamic_eplb) === true) ||
+      (eplb.expert_map_record_path !== undefined && eplb.expert_map_record_path !== null);
+    if (effectiveDynEplb) {
+      const dynEnvOk =
+        /^(?:true|1)$/i.test(envVars.DYNAMIC_EPLB ?? "false") ||
+        (envVars.EXPERT_MAP_RECORD ?? "false") === "true";
+      if (!dynEnvOk) {
+        pushRangeError(
+          diagnostics,
+          "additional_config.eplb_config.dynamic_eplb",
+          "必须同时导出 DYNAMIC_EPLB=true/1 或 EXPERT_MAP_RECORD=true",
+          eplb.dynamic_eplb ?? true,
+        );
+      }
+    }
+    const stair = !isRfork ? eplb.stair_config : undefined;
     if (isRecord(stair)) {
       const sBase = "additional_config.eplb_config.stair_config";
-      const bins = parsePydanticLaxInt(stair.load_window_bins);
+      const bins = parsePydanticNoBoolInt(stair.load_window_bins);
       if (bins !== undefined && (bins < 2 || bins > 256)) {
         pushRangeError(diagnostics, `${sBase}.load_window_bins`, "2 <= x <= 256", bins);
       }
-      const q = parsePydanticLaxFloat(stair.load_risk_quantile);
-      if (q !== undefined && !(q > 0.5 && q < 1)) {
+      const q = parsePydanticNoBoolFloat(stair.load_risk_quantile);
+      if (q !== undefined && (!Number.isFinite(q) || !(q > 0.5 && q < 1))) {
         pushRangeError(diagnostics, `${sBase}.load_risk_quantile`, "0.5 < x < 1", q);
       }
       for (const tk of ["relative_balance_threshold", "absolute_balance_threshold"] as const) {
-        const tv = parsePydanticLaxFloat(stair[tk]);
-        if (tv !== undefined && !(tv > 0 && tv <= 1)) {
+        const tv = parsePydanticNoBoolFloat(stair[tk]);
+        if (tv !== undefined && (!Number.isFinite(tv) || !(tv > 0 && tv <= 1))) {
           pushRangeError(diagnostics, `${sBase}.${tk}`, "0 < x <= 1", tv);
         }
       }
-      const rtl = parsePydanticLaxInt(stair.rank_transfer_limit);
+      const rtl = parsePydanticNoBoolInt(stair.rank_transfer_limit);
       if (rtl !== undefined && rtl !== -1 && rtl < 1) {
         pushRangeError(diagnostics, `${sBase}.rank_transfer_limit`, "-1 或 >= 1", rtl);
       }
-      const cntl = parsePydanticLaxInt(stair.cross_node_transfer_limit);
+      const cntl = parsePydanticNoBoolInt(stair.cross_node_transfer_limit);
       if (cntl !== undefined && cntl < -1) {
         pushRangeError(diagnostics, `${sBase}.cross_node_transfer_limit`, ">= -1", cntl);
       }
-      const stages = parsePydanticLaxInt(stair.replica_search_num_stages);
+      const stages = parsePydanticNoBoolInt(stair.replica_search_num_stages);
       if (stages !== undefined && (stages < 1 || stages > 8)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_num_stages`, "1 <= x <= 8", stages);
       }
-      const radius = parsePydanticLaxInt(stair.replica_search_radius);
+      const radius = parsePydanticNoBoolInt(stair.replica_search_radius);
       if (radius !== undefined && (radius < 0 || radius > 32)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_radius`, "0 <= x <= 32", radius);
       }
-      const beam = parsePydanticLaxInt(stair.replica_search_beam_size);
+      const beam = parsePydanticNoBoolInt(stair.replica_search_beam_size);
       if (beam !== undefined && (beam < 1 || beam > 128)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_beam_size`, "1 <= x <= 128", beam);
       }
-      const bt = parsePydanticLaxInt(stair.placement_search_backtrack_limit);
+      const bt = parsePydanticNoBoolInt(stair.placement_search_backtrack_limit);
       if (bt !== undefined && (bt < 0 || bt > 64)) {
         pushRangeError(diagnostics, `${sBase}.placement_search_backtrack_limit`, "0 <= x <= 64", bt);
       }
@@ -1644,7 +1993,41 @@ function validateAscendModelValidatorRanges(
   }
 
   const rs = effectiveAdditional.rejection_sampler_config;
-  if (isRecord(rs)) {
+  if (isRfork && rs !== undefined && rs !== null && !isRecord(rs)) {
+    diagnostics.push({
+      code: "parse-invalid-json-type",
+      severity: "error",
+      flag: "additional_config.rejection_sampler_config",
+      message: `ValidationError: additional_config.rejection_sampler_config 需要 JSON 对象，收到 ${JSON.stringify(rs)}。`,
+    });
+  } else if (isRecord(rs)) {
+    if (isRfork) {
+      for (const bk of ["enable_block_verify", "enable_entropy_verify"] as const) {
+        if (Object.hasOwn(rs, bk) && rs[bk] !== undefined && typeof rs[bk] !== "boolean") {
+          diagnostics.push({
+            code: "parse-invalid-json-type",
+            severity: "error",
+            flag: `additional_config.rejection_sampler_config.${bk}`,
+            message: `ValueError: rejection_sampler_config.${bk} 在 rfork 中必须为严格 bool，收到 ${JSON.stringify(rs[bk])}。`,
+          });
+        }
+      }
+      for (const fk of ["posterior_threshold", "posterior_alpha"] as const) {
+        if (
+          Object.hasOwn(rs, fk) &&
+          rs[fk] !== undefined &&
+          typeof rs[fk] !== "number" &&
+          typeof rs[fk] !== "boolean"
+        ) {
+          diagnostics.push({
+            code: "parse-invalid-json-type",
+            severity: "error",
+            flag: `additional_config.rejection_sampler_config.${fk}`,
+            message: `ValueError: rejection_sampler_config.${fk} 在 rfork 中必须为数值，收到 ${JSON.stringify(rs[fk])}。`,
+          });
+        }
+      }
+    }
     if (version === "main" && parsePydanticLaxBool(rs.enable_block_verify) === true) {
       pushRangeError(
         diagnostics,
@@ -1669,7 +2052,7 @@ function validateAscendModelValidatorRanges(
   }
 
   const fgtp = effectiveAdditional.finegrained_tp_config;
-  if (isRecord(fgtp)) {
+  if (isRecord(fgtp) && !isRfork) {
     for (const k of [
       "oproj_tensor_parallel_size",
       "lmhead_tensor_parallel_size",
@@ -1684,7 +2067,7 @@ function validateAscendModelValidatorRanges(
     }
   }
 
-  if (version === "v0.30.0") {
+  if (version === "v0.30.0" || isRfork) {
     const profEntry = resolveSchedHolder("profiling_chunk_config");
     const prof =
       profEntry && isRecord(profEntry.holder.profiling_chunk_config)
@@ -1761,20 +2144,22 @@ function validateAscendModelValidatorRanges(
   }
 
   const skv = effectiveAdditional.sparse_kv_offload_config;
-  if (isRecord(skv)) {
+  if (isRecord(skv) && (!isRfork || pythonTruthiness(skv.enabled))) {
     const sBase = "additional_config.sparse_kv_offload_config";
     const tbs = parsePydanticLaxInt(skv.topk_buffer_size);
-    if (tbs !== undefined && tbs !== -1 && tbs <= 0) {
-      pushRangeError(diagnostics, `${sBase}.topk_buffer_size`, "-1 或 > 0", tbs);
+    if (tbs !== undefined && (isRfork ? tbs <= 0 : tbs !== -1 && tbs <= 0)) {
+      pushRangeError(diagnostics, `${sBase}.topk_buffer_size`, isRfork ? "> 0" : "-1 或 > 0", tbs);
     }
-    const dram = parsePydanticLaxInt(skv.dram_size_per_dp_GB);
-    if (dram !== undefined && dram <= 0) {
-      pushRangeError(diagnostics, `${sBase}.dram_size_per_dp_GB`, "> 0", dram);
-    }
-    if (version === "main") {
-      const spb = parsePydanticLaxInt(skv.store_port_base);
-      if (spb !== undefined && (spb < 1 || spb > 65535)) {
-        pushRangeError(diagnostics, `${sBase}.store_port_base`, "1 <= x <= 65535", spb);
+    if (!isRfork) {
+      const dram = parsePydanticLaxInt(skv.dram_size_per_dp_GB);
+      if (dram !== undefined && dram <= 0) {
+        pushRangeError(diagnostics, `${sBase}.dram_size_per_dp_GB`, "> 0", dram);
+      }
+      if (version === "main") {
+        const spb = parsePydanticLaxInt(skv.store_port_base);
+        if (spb !== undefined && (spb < 1 || spb > 65535)) {
+          pushRangeError(diagnostics, `${sBase}.store_port_base`, "1 <= x <= 65535", spb);
+        }
       }
     }
   }
@@ -1809,6 +2194,7 @@ function parseEnabledSubConfig(
   isRfork: boolean,
   opts: {
     allowNullOnRfork?: boolean;
+    allowFalsyOnRfork?: boolean;
     allowedSubKeys?: ReadonlySet<string>;
     enforceSubKeysOnRfork?: boolean;
   } = {},
@@ -1816,6 +2202,9 @@ function parseEnabledSubConfig(
   if (!Object.hasOwn(holder, key) || holder[key] === undefined) return false;
   const val = holder[key];
   if (isRfork && val === null && opts.allowNullOnRfork) {
+    return false;
+  }
+  if (isRfork && !pythonTruthiness(val) && opts.allowFalsyOnRfork) {
     return false;
   }
   if (!isRecord(val)) {
@@ -2008,6 +2397,7 @@ export function parseVllmServeCommand(
           maxModelLen = parseIntegerFlag(flag, v, diagnostics, {
             min: 1,
             allowMinusOne: true,
+            allowAuto: true,
             allowSuffix: true,
           });
         }
@@ -2180,9 +2570,7 @@ export function parseVllmServeCommand(
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
         if (v !== undefined) {
-          const floatMatch =
-            /["']runtime_config_hot_reload["']\s*:\s*(-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+))/.exec(v);
-          regularHotReloadFloatLiteral = floatMatch?.[1];
+          regularHotReloadFloatLiteral = extractTopLevelJsonFloatLiteral(v, "runtime_config_hot_reload");
           const parsedObj = parseJsonObjectFlag(flag, v, diagnostics);
           if (parsedObj) {
             regularAdditionalConfig = parsedObj;
@@ -2377,7 +2765,10 @@ export function parseVllmServeCommand(
     const npuAlloc = envVars.PYTORCH_NPU_ALLOC_CONF;
     if (npuAlloc !== undefined) couplingInput.pytorchNpuAllocConf = npuAlloc;
   }
-  if (parseBoolLike(envVars.VLLM_ASCEND_ENABLE_FLASHCOMM1) === true) {
+  const envFc1Enabled = isRfork
+    ? parseBoolLike(envVars.VLLM_ASCEND_ENABLE_FLASHCOMM1) === true
+    : /^(?:1|true)$/i.test((envVars.VLLM_ASCEND_ENABLE_FLASHCOMM1 ?? "").trim());
+  if (envFc1Enabled) {
     couplingInput.enableFlashcomm1 = true;
   }
 
@@ -2650,7 +3041,9 @@ export function parseVllmServeCommand(
       ) {
         couplingInput.profilingChunkEnabled = true;
         if (isRecord(rawProfChunk)) {
-          const minChunk = parseNumberLike(rawProfChunk.min_chunk);
+          const minChunk = isRfork
+            ? parseNumberLike(rawProfChunk.min_chunk)
+            : parsePydanticLaxInt(rawProfChunk.min_chunk);
           if (minChunk !== undefined) couplingInput.profilingMinChunk = minChunk;
         }
       }
@@ -2682,6 +3075,7 @@ export function parseVllmServeCommand(
         isRfork,
         {
           allowNullOnRfork: true,
+          allowFalsyOnRfork: true,
           allowedSubKeys: VALID_SHORT_REQUEST_FIRST_KEYS,
           enforceSubKeysOnRfork: true,
         },
@@ -2711,7 +3105,9 @@ export function parseVllmServeCommand(
       diagnostics,
       isRfork,
     );
-    if (fc1 !== undefined) couplingInput.enableFlashcomm1 = fc1;
+    if (fc1 !== undefined) {
+      couplingInput.enableFlashcomm1 = isRfork ? fc1 : Boolean(fc1 || envFc1Enabled);
+    }
     const dsaCp = parseAscendBoolField(
       effectiveAdditional,
       "enable_dsa_cp",
@@ -2783,6 +3179,7 @@ export function parseVllmServeCommand(
       );
       if (rlCons !== undefined) couplingInput.rlTrainingConsistency = rlCons;
     } else if (
+      !isRfork &&
       Object.hasOwn(effectiveAdditional, "rl_config") &&
       effectiveAdditional.rl_config !== undefined
     ) {
@@ -2833,6 +3230,90 @@ export function parseVllmServeCommand(
           }
         }
       }
+      if (couplingInput.quantizedAllReduceInvalidReason && !isRfork && version === "main") {
+        diagnostics.push({
+          code: "parse-invalid-json-type",
+          severity: "error",
+          flag: "additional_config.quantized_all_reduce_config",
+          message: couplingInput.quantizedAllReduceInvalidReason,
+        });
+      }
+    }
+
+    const kvNz = parseAscendBoolField(
+      effectiveAdditional,
+      "enable_kv_nz",
+      "additional_config.enable_kv_nz",
+      diagnostics,
+      isRfork,
+    );
+    if (kvNz !== undefined) couplingInput.enableKvNz = kvNz;
+    const mlapo = parseAscendBoolField(
+      effectiveAdditional,
+      "enable_mlapo",
+      "additional_config.enable_mlapo",
+      diagnostics,
+      isRfork,
+    );
+    if (mlapo !== undefined) couplingInput.enableMlapo = mlapo;
+    if (!isRfork) {
+      const mlapoKeep = parseAscendBoolField(
+        effectiveAdditional,
+        "mlapo_keep_prefill_weights",
+        "additional_config.mlapo_keep_prefill_weights",
+        diagnostics,
+        false,
+      );
+      if (mlapoKeep !== undefined) couplingInput.mlapoKeepPrefillWeights = mlapoKeep;
+      const forceEplb = parseAscendBoolField(
+        effectiveAdditional,
+        "enable_force_eplb",
+        "additional_config.enable_force_eplb",
+        diagnostics,
+        false,
+      );
+      if (forceEplb !== undefined) couplingInput.enableForceEplb = forceEplb;
+    }
+    if (isRecord(effectiveAdditional.eplb_config)) {
+      const dynEplb = parseAscendBoolField(
+        effectiveAdditional.eplb_config,
+        "dynamic_eplb",
+        "additional_config.eplb_config.dynamic_eplb",
+        diagnostics,
+        isRfork,
+      );
+      const hasRecPath =
+        effectiveAdditional.eplb_config.expert_map_record_path !== undefined &&
+        effectiveAdditional.eplb_config.expert_map_record_path !== null;
+      if (dynEplb === true || hasRecPath) couplingInput.dynamicEplb = true;
+    }
+    const mixPl = parseAscendBoolField(
+      effectiveAdditional,
+      "mix_placement",
+      "additional_config.mix_placement",
+      diagnostics,
+      isRfork,
+    );
+    if (mixPl !== undefined) couplingInput.mixPlacement = mixPl;
+    const msOse = parseAscendBoolField(
+      effectiveAdditional,
+      "multistream_overlap_shared_expert",
+      "additional_config.multistream_overlap_shared_expert",
+      diagnostics,
+      isRfork,
+    );
+    if (msOse !== undefined) couplingInput.multistreamOverlapSharedExpert = msOse;
+    const hierComm = parseAscendBoolField(
+      effectiveAdditional,
+      "enable_mc2_hierarchy_comm",
+      "additional_config.enable_mc2_hierarchy_comm",
+      diagnostics,
+      isRfork,
+    );
+    if (hierComm === true) {
+      couplingInput.mc2CommAlg = "hierarchy";
+    } else if (typeof effectiveAdditional.mc2_comm_alg === "string") {
+      couplingInput.mc2CommAlg = effectiveAdditional.mc2_comm_alg;
     }
 
     const sedp = parseAscendBoolField(
@@ -2898,7 +3379,7 @@ export function parseVllmServeCommand(
         }
         if (rawSe.backend !== undefined) {
           if (typeof rawSe.backend === "string") {
-            couplingInput.sharedEngramBackend = rawSe.backend.trim();
+            couplingInput.sharedEngramBackend = rawSe.backend;
           } else {
             couplingInput.sharedEngramBackend = String(rawSe.backend);
             couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.backend 必须为字符串（不能为 null，收到 ${JSON.stringify(rawSe.backend)}）`;
@@ -2906,7 +3387,7 @@ export function parseVllmServeCommand(
         }
         if (rawSe.endpoint !== undefined) {
           if (typeof rawSe.endpoint === "string") {
-            couplingInput.sharedEngramEndpoint = rawSe.endpoint.trim();
+            couplingInput.sharedEngramEndpoint = rawSe.endpoint;
           } else {
             couplingInput.sharedEngramInvalidReason ??= `ValidationError: shared_engram.endpoint 必须为字符串（收到 ${JSON.stringify(rawSe.endpoint)}）`;
           }
@@ -2998,12 +3479,19 @@ export function parseVllmServeCommand(
           diagnostics,
         );
       }
-      const oproj = parseNumberLike(effectiveAdditional.finegrained_tp_config.oproj_tensor_parallel_size);
+      const parseFgInt = isRfork ? parseNumberLike : parsePydanticLaxInt;
+      const oproj = parseFgInt(effectiveAdditional.finegrained_tp_config.oproj_tensor_parallel_size);
       if (oproj !== undefined) couplingInput.oprojTensorParallelSize = oproj;
-      const mlp = parseNumberLike(effectiveAdditional.finegrained_tp_config.mlp_tensor_parallel_size);
+      const mlp = parseFgInt(effectiveAdditional.finegrained_tp_config.mlp_tensor_parallel_size);
       if (mlp !== undefined) couplingInput.mlpTensorParallelSize = mlp;
-      const emb = parseNumberLike(effectiveAdditional.finegrained_tp_config.embedding_tensor_parallel_size);
+      const emb = parseFgInt(effectiveAdditional.finegrained_tp_config.embedding_tensor_parallel_size);
       if (emb !== undefined) couplingInput.embeddingTensorParallelSize = emb;
+      const lmhead = parseFgInt(effectiveAdditional.finegrained_tp_config.lmhead_tensor_parallel_size);
+      if (lmhead !== undefined) couplingInput.lmheadTensorParallelSize = lmhead;
+      if (version === "main") {
+        const qkvIp = parseFgInt(effectiveAdditional.finegrained_tp_config.qkv_iproj_tensor_parallel_size);
+        if (qkvIp !== undefined) couplingInput.qkvIprojTensorParallelSize = qkvIp;
+      }
     } else if (
       Object.hasOwn(effectiveAdditional, "finegrained_tp_config") &&
       effectiveAdditional.finegrained_tp_config !== undefined
@@ -3024,7 +3512,9 @@ export function parseVllmServeCommand(
         isRfork,
       );
       if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
-      const topkBuf = parseNumberLike(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size);
+      const topkBuf = isRfork
+        ? parseNumberLike(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size)
+        : parsePydanticLaxInt(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size);
       if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;
     }
     if (
@@ -3093,14 +3583,15 @@ export function parseVllmServeCommand(
           validateRecordFieldTypes(subRec, `additional_config.${subName}`, fieldSpecs, diagnostics);
         }
       }
-      validateAscendModelValidatorRanges(
-        effectiveAdditional,
-        sched,
-        resolveSchedHolder,
-        version,
-        diagnostics,
-      );
     }
+    validateAscendModelValidatorRanges(
+      effectiveAdditional,
+      sched,
+      resolveSchedHolder,
+      version,
+      envVars,
+      diagnostics,
+    );
   }
 
   // Extract --kv-transfer-config fields

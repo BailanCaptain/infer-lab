@@ -502,7 +502,9 @@ function evaluateAdditionalConfigItems(
     : null;
 
   for (const key of Object.keys(additionalConfig)) {
-    const knownRemoved = ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS[key];
+    const knownRemoved = Object.hasOwn(ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS, key)
+      ? ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS[key]
+      : undefined;
     if (knownRemoved?.targets.includes(toVersion)) {
       out.push({
         id: knownRemoved.id,
@@ -650,26 +652,38 @@ function evaluateAdditionalConfigItems(
             : []),
         ]
       : []),
-    {
-      field: "short_request_first_config",
-      rawSub: additionalConfig.short_request_first_config,
-      validKeys: VALID_SHORT_REQUEST_FIRST_KEYS,
-      legacyNote: `${fromVersion} (${fromCommit}) 顶层 short_request_first_config 未知子键在非严格路径可能被忽略。`,
-    },
-    {
-      field: "batch_job_sched_config",
-      rawSub: additionalConfig.batch_job_sched_config,
-      validKeys: VALID_BATCH_JOB_SCHED_KEYS,
-      legacyNote: `${fromVersion} (${fromCommit}) 顶层 batch_job_sched_config 逐键 .get() 忽略未知子键。`,
-    },
-    ...(toVersion === "v0.30.0"
+    ...(nestedSched === null || !Object.hasOwn(nestedSched, "short_request_first_config")
       ? [
           {
-            field: "profiling_chunk_config",
-            rawSub: additionalConfig.profiling_chunk_config,
-            validKeys: VALID_PROFILING_CHUNK_KEYS,
-            legacyNote: `${fromVersion} (${fromCommit}) ProfilingChunkConfig 逐键 .get() 忽略未知子键。`,
+            field: "short_request_first_config",
+            rawSub: additionalConfig.short_request_first_config,
+            validKeys: VALID_SHORT_REQUEST_FIRST_KEYS,
+            legacyNote: `${fromVersion} (${fromCommit}) 顶层 short_request_first_config 未知子键在非严格路径可能被忽略。`,
           },
+        ]
+      : []),
+    ...(nestedSched === null || !Object.hasOwn(nestedSched, "batch_job_sched_config")
+      ? [
+          {
+            field: "batch_job_sched_config",
+            rawSub: additionalConfig.batch_job_sched_config,
+            validKeys: VALID_BATCH_JOB_SCHED_KEYS,
+            legacyNote: `${fromVersion} (${fromCommit}) 顶层 batch_job_sched_config 逐键 .get() 忽略未知子键。`,
+          },
+        ]
+      : []),
+    ...(toVersion === "v0.30.0"
+      ? [
+          ...(nestedSched === null || !Object.hasOwn(nestedSched, "profiling_chunk_config")
+            ? [
+                {
+                  field: "profiling_chunk_config",
+                  rawSub: additionalConfig.profiling_chunk_config,
+                  validKeys: VALID_PROFILING_CHUNK_KEYS,
+                  legacyNote: `${fromVersion} (${fromCommit}) ProfilingChunkConfig 逐键 .get() 忽略未知子键。`,
+                },
+              ]
+            : []),
           {
             field: "dynamic_spec_config",
             rawSub: additionalConfig.dynamic_spec_config,
@@ -678,12 +692,6 @@ function evaluateAdditionalConfigItems(
           },
         ]
       : []),
-    {
-      field: "kvpp_config",
-      rawSub: additionalConfig.kvpp_config,
-      validKeys: VALID_KVPP_KEYS,
-      legacyNote: `${fromVersion} (${fromCommit}) 未对 kvpp_config 启用 Pydantic extra="forbid"。`,
-    },
     ...(toVersion === "main"
       ? [
           {
@@ -783,7 +791,9 @@ function evaluateAdditionalConfigItems(
       remediation: `将 "${sKey}" 迁入 --additional-config '{"scheduler_config":{"${sKey}":...}}' 并删掉顶层同名键。`,
       evidenceLevel: "C",
       sources: [schedLegacySrc, schedTargetSrc],
-      wikiPageIds: LEGACY_SCHEDULER_WIKI_MAP[sKey] ?? ["ascend-config-system"],
+      wikiPageIds: Object.hasOwn(LEGACY_SCHEDULER_WIKI_MAP, sKey)
+        ? (LEGACY_SCHEDULER_WIKI_MAP[sKey] ?? ["ascend-config-system"])
+        : ["ascend-config-system"],
     });
   }
 }
@@ -821,7 +831,9 @@ function evaluateParsedCommandItems(
   // 2. Retired 0-read environment variables (silent-noop)
   const targetEnvSrc = getTargetEnvsSource(toVersion);
   for (const [envName, rawVal] of Object.entries(parsed.envVars)) {
-    const spec = ALL_RETIRED_ENV_RADAR_SPECS[envName];
+    const spec = Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, envName)
+      ? ALL_RETIRED_ENV_RADAR_SPECS[envName]
+      : undefined;
     if (!spec) continue;
     out.push({
       id: spec.id,
@@ -973,6 +985,8 @@ function tokenizeFirstServeCommand(rawText: string): {
   prefix: readonly string[];
   serveArgs: readonly RawShellToken[];
   rawEnvRhs: Readonly<Record<string, string>>;
+  unexportedVars: ReadonlyArray<{ readonly name: string; readonly rawRhs: string }>;
+  sawEnvIgnore: boolean;
 } {
   const normalized = rawText.replace(/\r\n/g, "\n").replace(/\\[ \t]*\n/g, " ");
   const stmts: string[] = [];
@@ -1087,25 +1101,55 @@ function tokenizeFirstServeCommand(rawText: string): {
 
   let prefix: string[] = ["vllm", "serve"];
   let serveArgs: RawShellToken[] = [];
+  let sawEnvIgnore = false;
   const rawEnvRhs: Record<string, string> = {};
-  const recordRawEnv = (tok: RawShellToken) => {
+  const unexportedMap = new Map<string, string>();
+  const recordRawEnv = (tok: RawShellToken): string | null => {
     const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
-    if (!m) return;
+    if (!m?.[1]) return null;
     const eqPos = tok.raw.indexOf("=");
     if (eqPos > 0) {
-      rawEnvRhs[m[1]!] = tok.raw.slice(eqPos + 1);
+      rawEnvRhs[m[1]] = tok.raw.slice(eqPos + 1);
     }
+    return m[1];
   };
   for (const stmt of stmts) {
     const tokens = tokenizeOne(stmt);
     if (tokens.length === 0) continue;
     if (tokens[0]?.value === "export") {
       for (let k = 1; k < tokens.length; k += 1) {
-        recordRawEnv(tokens[k]!);
+        const name = recordRawEnv(tokens[k]!);
+        if (name) unexportedMap.delete(name);
+        else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(tokens[k]!.value)) {
+          unexportedMap.delete(tokens[k]!.value);
+        }
+      }
+      continue;
+    }
+    if (tokens[0]?.value === "unset") {
+      let unsetVarMode = true;
+      for (let k = 1; k < tokens.length; k += 1) {
+        const v = tokens[k]!.value;
+        if (v === "-f") unsetVarMode = false;
+        else if (v === "-v") unsetVarMode = true;
+        else if (unsetVarMode && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) {
+          unexportedMap.delete(v);
+        }
+      }
+      continue;
+    }
+    if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) {
+      for (const tok of tokens) {
+        const name = recordRawEnv(tok);
+        if (name) {
+          const eqPos = tok.raw.indexOf("=");
+          unexportedMap.set(name, eqPos > 0 ? tok.raw.slice(eqPos + 1) : "''");
+        }
       }
       continue;
     }
     let idx = 0;
+    let stmtEnvIgnore = false;
     while (idx < tokens.length) {
       const entry = tokens[idx]!;
       const t = entry.value;
@@ -1114,8 +1158,40 @@ function tokenizeFirstServeCommand(rawText: string): {
         idx += 1;
         continue;
       }
-      if (t === "nohup" || t === "env" || t === "setsid") {
+      if (t === "nohup" || t === "setsid") {
         idx += 1;
+        continue;
+      }
+      if (t === "env") {
+        idx += 1;
+        let parsingOpts = true;
+        while (idx < tokens.length) {
+          const et = tokens[idx]!.value;
+          if (parsingOpts && (et === "-i" || et === "--ignore-environment" || et === "-")) {
+            stmtEnvIgnore = true;
+            idx += 1;
+            continue;
+          }
+          if (parsingOpts && et === "-u" && idx + 1 < tokens.length) {
+            idx += 2;
+            continue;
+          }
+          if (parsingOpts && et.startsWith("--unset=")) {
+            idx += 1;
+            continue;
+          }
+          if (parsingOpts && et === "--") {
+            parsingOpts = false;
+            idx += 1;
+            continue;
+          }
+          if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(et)) {
+            recordRawEnv(tokens[idx]!);
+            idx += 1;
+            continue;
+          }
+          break;
+        }
         continue;
       }
       break;
@@ -1126,6 +1202,7 @@ function tokenizeFirstServeCommand(rawText: string): {
     if (h === "vllm" && s === "serve") {
       prefix = ["vllm", "serve"];
       serveArgs = rest.slice(2);
+      sawEnvIgnore = stmtEnvIgnore;
     } else if (
       (h === "python" || h === "python3") &&
       s === "-m" &&
@@ -1139,12 +1216,15 @@ function tokenizeFirstServeCommand(rawText: string): {
         prefix = [h, "-m", rest[2]!.value];
         serveArgs = rest.slice(3);
       }
+      sawEnvIgnore = stmtEnvIgnore;
     } else if (h.startsWith("-")) {
       prefix = ["vllm", "serve"];
       serveArgs = rest;
+      sawEnvIgnore = stmtEnvIgnore;
     }
   }
-  return { prefix, serveArgs, rawEnvRhs };
+  const unexportedVars = [...unexportedMap.entries()].map(([name, rawRhs]) => ({ name, rawRhs }));
+  return { prefix, serveArgs, rawEnvRhs, unexportedVars, sawEnvIgnore };
 }
 
 function cleanNestedObjectKeys(
@@ -1173,7 +1253,10 @@ function buildRecommendedCommand(
   const itemIds = new Set(items.map((i) => i.id));
   const nextEnvLines: string[] = [];
   const removeEnvFc1 = itemIds.has("radar-flashcomm1-precedence-inversion");
-  const { rawEnvRhs } = tokenizeFirstServeCommand(parsed.rawText);
+  const { prefix, serveArgs, rawEnvRhs, unexportedVars, sawEnvIgnore } = tokenizeFirstServeCommand(
+    parsed.rawText,
+  );
+  const inlineEnvPairs: string[] = [];
 
   const nextAdditional: Record<string, unknown> = parsed.additionalConfig
     ? (JSON.parse(JSON.stringify(parsed.additionalConfig)) as Record<string, unknown>)
@@ -1187,9 +1270,14 @@ function buildRecommendedCommand(
     return created;
   };
 
+  for (const { name, rawRhs } of unexportedVars) {
+    if (Object.hasOwn(parsed.envVars, name) || Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, name)) continue;
+    nextEnvLines.push(`${name}=${rawRhs}`);
+  }
+
   for (const [envName, rawVal] of Object.entries(parsed.envVars)) {
     if (envName === "VLLM_ASCEND_ENABLE_FLASHCOMM1" && removeEnvFc1) continue;
-    if (ALL_RETIRED_ENV_RADAR_SPECS[envName]) {
+    if (Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, envName)) {
       if (envName === "VLLM_ASCEND_ENABLE_NZ" && !Object.hasOwn(nextAdditional, "weight_nz_mode")) {
         const n = Number.parseInt(rawVal.trim(), 10);
         nextAdditional.weight_nz_mode = n === 0 || n === 1 || n === 2 ? n : 0;
@@ -1220,7 +1308,12 @@ function buildRecommendedCommand(
       }
       continue;
     }
-    nextEnvLines.push(`export ${envName}=${rawEnvRhs[envName] ?? quoteShellArg(rawVal)}`);
+    const envAssignment = `${envName}=${Object.hasOwn(rawEnvRhs, envName) ? rawEnvRhs[envName] : quoteShellArg(rawVal)}`;
+    if (sawEnvIgnore) {
+      inlineEnvPairs.push(envAssignment);
+    } else {
+      nextEnvLines.push(`export ${envAssignment}`);
+    }
   }
 
   // Migrate enable_sleep_mode_extra_cleanup -> rl_config.sleep_mode_extra_cleanup
@@ -1261,7 +1354,9 @@ function buildRecommendedCommand(
   // Strip removed & unknown top-level keys
   const validTopLevel = VALID_TOP_LEVEL_KEYS_BY_TARGET[toVersion];
   for (const k of Object.keys(nextAdditional)) {
-    const knownRemoved = ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS[k];
+    const knownRemoved = Object.hasOwn(ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS, k)
+      ? ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS[k]
+      : undefined;
     if (knownRemoved?.targets.includes(toVersion) || !validTopLevel.has(k)) {
       delete nextAdditional[k];
     }
@@ -1290,7 +1385,6 @@ function buildRecommendedCommand(
         ...(toVersion === "v0.30.0" ? { profiling_chunk_config: VALID_PROFILING_CHUNK_KEYS } : {}),
       },
     },
-    kvpp_config: { validKeys: VALID_KVPP_KEYS },
     ...(toVersion === "v0.30.0" ? { dynamic_spec_config: { validKeys: VALID_DYNAMIC_SPEC_KEYS } } : {}),
     ...(toVersion === "main"
       ? {
@@ -1328,7 +1422,6 @@ function buildRecommendedCommand(
   }
 
   // Reconstruct CLI tokens preserving existing flags and original quoting on untouched arguments
-  const { prefix, serveArgs } = tokenizeFirstServeCommand(parsed.rawText);
   const mkSynthToken = (v: string): RawShellToken => ({ value: v, raw: quoteShellArg(v) });
   const rewrittenArgs: RawShellToken[] = [];
   let sawAdditionalFlag = false;
@@ -1341,16 +1434,29 @@ function buildRecommendedCommand(
     const tok = entry.value;
     const eqIdx = tok.indexOf("=");
     const rawFlag = tok.startsWith("-") && eqIdx > 0 ? tok.slice(0, eqIdx) : tok;
-    const normFlag = rawFlag.startsWith("--") ? `--${rawFlag.slice(2).replace(/_/g, "-")}` : rawFlag;
+    const normFlag = rawFlag.startsWith("--")
+      ? (() => {
+          const body = rawFlag.slice(2);
+          const dotIdx = body.indexOf(".");
+          return dotIdx >= 0
+            ? `--${body.slice(0, dotIdx).replace(/_/g, "-")}${body.slice(dotIdx)}`
+            : `--${body.replace(/_/g, "-")}`;
+        })()
+      : rawFlag;
 
     if (hasEagerBypass && normFlag === "--enforce-eager") {
       continue;
     }
-    if (normFlag === "--additional-config") {
+    if (normFlag === "--additional-config" || normFlag.startsWith("--additional-config.")) {
       if (eqIdx < 0 && i + 1 < serveArgs.length) i += 1;
-      sawAdditionalFlag = true;
-      if (hasNextAdditional) {
-        rewrittenArgs.push(mkSynthToken("--additional-config"), mkSynthToken(JSON.stringify(nextAdditional)));
+      if (!sawAdditionalFlag) {
+        sawAdditionalFlag = true;
+        if (hasNextAdditional) {
+          rewrittenArgs.push(
+            mkSynthToken("--additional-config"),
+            mkSynthToken(JSON.stringify(nextAdditional)),
+          );
+        }
       }
       continue;
     }
@@ -1377,7 +1483,7 @@ function buildRecommendedCommand(
 
   // Group --flag value pairs onto readable continuation lines when there are multiple flags
   const segments: string[] = [];
-  const headParts = [...prefix];
+  const headParts = [...(sawEnvIgnore ? ["env", "-i", ...inlineEnvPairs] : []), ...prefix];
   let idx = 0;
   if (rewrittenArgs[0] && !rewrittenArgs[0].value.startsWith("-")) {
     headParts.push(rewrittenArgs[0].raw);

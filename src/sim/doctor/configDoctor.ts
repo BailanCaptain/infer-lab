@@ -281,6 +281,11 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
     { pageId: "kv-cache-sparse-offload" },
     { pageId: "pd-disaggregation" },
   ],
+  "d4-ascend-config-pd-mla-preconditions": [
+    { pageId: "ascend-config-system" },
+    { pageId: "pd-disaggregation" },
+    { pageId: "fine-grained-tp" },
+  ],
 
   // Domain 5: Graph, Schedulers, RL & Env
   "d5-fa3-full-decode-only-error": [
@@ -448,14 +453,26 @@ function detectDeferredAdvancedFeatures(parsed: ParsedVllmServeCommand, input: C
   if (
     (input.oprojTensorParallelSize ?? 0) > 0 ||
     (input.mlpTensorParallelSize ?? 0) > 0 ||
-    (input.embeddingTensorParallelSize ?? 0) > 0
+    (input.embeddingTensorParallelSize ?? 0) > 0 ||
+    (input.lmheadTensorParallelSize ?? 0) > 0 ||
+    (input.qkvIprojTensorParallelSize ?? 0) > 0
   ) {
     deferred.push("finegrained_tp_config (细粒度 TP)");
+  }
+  if (input.enableKvNz) {
+    deferred.push("enable_kv_nz (PD Decode MLA KV NZ)");
+  }
+  if (input.mlapoKeepPrefillWeights) {
+    deferred.push("mlapo_keep_prefill_weights (MLA Prefill 权重驻留)");
   }
   if (input.sharedEngramConfigured) {
     deferred.push("shared_engram (跨实例共享 Engram 词表池)");
   }
-  if (input.quantizedAllReduceEnabled || input.quantizedAllReduceMinNumel !== undefined) {
+  if (
+    input.quantizedAllReduceEnabled ||
+    input.quantizedAllReduceMinNumel !== undefined ||
+    input.quantizedAllReduceInvalidReason !== undefined
+  ) {
     deferred.push("quantized_all_reduce_config (低精度 TP All-Reduce)");
   }
   if (input.gdnInternalPrefillCheckpoints) {
@@ -793,7 +810,14 @@ export function runSingleConfigDoctor(
 
     const fullEval = evaluateCouplingRules(batchInput, version);
     for (const m of fullEval.matches) {
-      if (!MINIMAL_ALLOWED_RULE_IDS.has(m.ruleId)) continue;
+      const isSchemaOrTypeBlocker =
+        (m.ruleId === "d1-quantized-ar-constraints" && Boolean(batchInput.quantizedAllReduceInvalidReason)) ||
+        (m.ruleId === "d5-shared-engram-constraints" && Boolean(batchInput.sharedEngramInvalidReason)) ||
+        (m.ruleId === "d5-runtime-config-constraints" &&
+          (Boolean(batchInput.runtimeConfigInvalidType) ||
+            Boolean(batchInput.runtimeConfigPathInvalidType) ||
+            batchInput.runtimeConfigHotReloadInvalidValue !== undefined));
+      if (!MINIMAL_ALLOWED_RULE_IDS.has(m.ruleId) && !isSchemaOrTypeBlocker) continue;
       findings.push(ruleMatchToFinding(m, "single", opts.resolveDeepLink));
     }
   } else {

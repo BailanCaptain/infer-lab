@@ -473,7 +473,8 @@ describe("Wave 3 Review Remediations (P2-2, P2-3, P2-4, P3-2, P3-3)", () => {
     expect(parsed.visibleDevices).toEqual([0, 1]);
     expect(parsed.model).toBe("/models/Qwen3-8B");
     expect(parsed.couplingInput.tpSize).toBe(2);
-    expect(parsed.couplingInput.maxModelLen).toBe(32768);
+    // Per upstream vllm/utils/argparse_utils.py#L29-L72: lowercase 'k' = 1000 (decimal), uppercase 'K' = 1024 (binary)
+    expect(parsed.couplingInput.maxModelLen).toBe(32000);
     expect(parsed.couplingInput.maxNumBatchedTokens).toBe(16384);
     expect(parsed.gpuMemoryUtilization).toBe(0.9);
   });
@@ -1132,5 +1133,185 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
       { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
     );
     expect(setWithPrefixAssignment.errors.some((f) => f.id === "parse-invalid-number")).toBe(true);
+  });
+
+  it("closes upstream version-specific validators, IFS/unset/quoted-fallback POSIX semantics, FlashComm1 OR precedence, and MLA/PD preconditions", () => {
+    // 1. mega_moe_max_tokens=0 allowed on main (auto-compute), rejected on v0.30.0 & rfork
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"mega_moe_max_tokens":0}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"mega_moe_max_tokens":0}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"mega_moe_max_tokens":0}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "rfork",
+      }).hasBlockers,
+    ).toBe(true);
+
+    // 2. STAIR rejects booleans via @field_validator("*", mode="before")
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"eplb_config":{"stair_config":{"rank_transfer_limit":true}}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 3. dynamic_eplb requires DYNAMIC_EPLB=true/1 or EXPERT_MAP_RECORD=true
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=0 EXPERT_MAP_RECORD=false vllm serve Qwen/Qwen3-8B --additional-config '{"eplb_config":{"dynamic_eplb":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=1 vllm serve Qwen/Qwen3-8B --additional-config '{"eplb_config":{"dynamic_eplb":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+
+    // 4. Lax integers propagate to effectiveInput & rules; arbitrary-precision int & +Infinity accepted
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -dp 2 --additional-config '{"finegrained_tp_config":{"oproj_tensor_parallel_size":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).errors.some((f) => f.id === "d4-finegrained-tp-requires-recompute"),
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -dp 10 --additional-config '{"finegrained_tp_config":{"oproj_tensor_parallel_size":"1_0"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).errors.some((f) => f.id === "d4-finegrained-tp-requires-recompute"),
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"short_request_first_config":{"threshold":"9007199254740992"},"rejection_sampler_config":{"posterior_alpha":"Infinity"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+
+    // 5. quantized_all_reduce_config: null blocks in minimal mode too
+    const minNullQar = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"quantized_all_reduce_config":null}'`,
+      { mode: "minimal", hardwareFamily: "A2", version: "main" },
+    );
+    expect(minNullQar.hasBlockers).toBe(true);
+    expect(minNullQar.parsed.parseDiagnostics.length).toBeGreaterThan(0);
+
+    // 6. Custom IFS, quoted fallback inside ${CFG:-'...'}, unset -f vs unset TP
+    expect(
+      runSingleConfigDoctor(`IFS=,; TP_ARGS=-tp,4; A=0 vllm serve Qwen/Qwen3-8B $TP_ARGS`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).effectiveInput.tpSize,
+    ).toBe(4);
+    const quotedFallback = runSingleConfigDoctor(
+      `unset CFG; vllm serve Qwen/Qwen3-8B --additional-config \${CFG:-'{"weight_nz_mode": 2}'}`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(quotedFallback.hasBlockers).toBe(false);
+    expect(quotedFallback.effectiveInput.weightNzMode).toBe(2);
+    expect(
+      runSingleConfigDoctor(
+        `export VLLM_BATCH_INVARIANT=on; unset -f VLLM_BATCH_INVARIANT; vllm serve Qwen/Qwen3-8B`,
+        { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      ).errors.some((f) => f.id === "parse-invalid-number"),
+    ).toBe(true);
+    const unsetTpConcat = runSingleConfigDoctor(`unset TP; vllm serve Qwen/Qwen3-8B -tp \${TP}4`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(unsetTpConcat.hasBlockers).toBe(false);
+    expect(unsetTpConcat.effectiveInput.tpSize).toBe(4);
+
+    // 7. rfork specific behaviors, FlashComm1 OR precedence, nested hot-reload, untrimmed shared_engram, and --max-model-len 1k/1.5k
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"profiling_chunk_config":{"smooth_factor":0}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"rl_config":null,"short_request_first_config":false}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"rejection_sampler_config":{"enable_entropy_verify":1}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `VLLM_ASCEND_ENABLE_FLASHCOMM1=1 vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"enable_flashcomm1":false}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).effectiveInput.enableFlashcomm1,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"finegrained_tp_config":{"qkv_iproj_tensor_parallel_size":2}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_mlapo":false,"mlapo_keep_prefill_weights":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"enable_kv_nz":true}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"dump_config":{"runtime_config_hot_reload":1.5},"runtime_config_hot_reload":false}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":" a2 ","endpoint":"host:1234"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"host:1234 "}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    const len1k = runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --max-model-len 1k`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(len1k.hasBlockers).toBe(false);
+    expect(len1k.effectiveInput.maxModelLen).toBe(1000);
+    const len15k = runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --max-model-len 1.5k`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "v0.30.0",
+    });
+    expect(len15k.hasBlockers).toBe(false);
+    expect(len15k.effectiveInput.maxModelLen).toBe(1500);
   });
 });

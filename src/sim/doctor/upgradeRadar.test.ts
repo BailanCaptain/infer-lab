@@ -342,4 +342,62 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
     expect(dynItem?.sources.some((s) => s.startsWith("vllm-ascend@c09d3e20:"))).toBe(false);
     expect(dynItem?.legacyBehavior).toContain(".get()");
   });
+
+  it("handles prototype keys safely, ignores factory-discarded/shadowed subconfigs, strips dotted breaking flags, and preserves shell vars & env -i", () => {
+    // 1. Prototype key {"toString":1} does not crash and reports unknown top-level key
+    const protoRep = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"toString":1}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(protoRep.counts.breakingError).toBe(1);
+    expect(protoRep.items[0]?.id).toBe("radar-unknown-top-key-toString");
+
+    // 2. Factory-discarded kvpp_config and shadowed top-level short_request_first_config do not trigger breaking-error
+    const kvppRep = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"kvpp_config":{"bad":1}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(kvppRep.counts.breakingError).toBe(0);
+
+    const shadowedSrfRep = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"short_request_first_config":{"bad":1},"scheduler_config":{"short_request_first_config":{}}}'`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(shadowedSrfRep.counts.breakingError).toBe(0);
+
+    // 3. Dotted --additional-config.layer_sharding true is removed from recommendedSingleCommand
+    const dottedRep = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config.layer_sharding true`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(dottedRep.counts.breakingError).toBe(1);
+    expect(dottedRep.recommendedSingleCommand).toBeDefined();
+    expect(dottedRep.recommendedSingleCommand).not.toContain("layer_sharding");
+    expect(
+      analyzeSingleUpgradeRadar(dottedRep.recommendedSingleCommand!, {
+        fromVersion: "v0.26.0rc",
+        toVersion: "main",
+      }).counts.total,
+    ).toBe(0);
+
+    // 4. Standalone shell variable TP=4 and env -i wrapper survive reconstruction without corruption
+    const shellVarRep = analyzeSingleUpgradeRadar(`TP=4; vllm serve Qwen/Qwen3-8B -tp $TP --enforce-eager`, {
+      fromVersion: "v0.26.0rc",
+      toVersion: "main",
+    });
+    expect(shellVarRep.recommendedSingleCommand).toContain("TP=4");
+    expect(
+      analyzeSingleUpgradeRadar(shellVarRep.recommendedSingleCommand!, {
+        fromVersion: "v0.26.0rc",
+        toVersion: "main",
+      }).counts.total,
+    ).toBe(0);
+
+    const envIgnoreRep = analyzeSingleUpgradeRadar(`env -i vllm serve Qwen/Qwen3-8B --enforce-eager`, {
+      fromVersion: "v0.26.0rc",
+      toVersion: "main",
+    });
+    expect(envIgnoreRep.recommendedSingleCommand).not.toContain("vllm serve -i vllm serve");
+    expect(envIgnoreRep.recommendedSingleCommand).toMatch(/^env -i vllm serve Qwen\/Qwen3-8B/);
+  });
 });

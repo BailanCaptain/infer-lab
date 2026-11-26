@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -136,6 +136,9 @@ export function RforkTroubleshootingInteractive({
   const [step, setStep] = useState<RforkDiagStep>(initialStep);
   const [playing, setPlaying] = useState(false);
   const spec = RFORK_DIAG_STEPS[step - 1]!;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mTeal = `${id}-${uid}-rf-teal`;
+  const mRed = `${id}-${uid}-rf-red`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -291,6 +294,139 @@ export function RforkTroubleshootingInteractive({
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">Seed 源实例 ↔ Pool 控制面 ↔ Target 实例首错定位图谱</span>
+            <span className={`wiki-edu-badge ${step === 5 ? "is-warn" : "is-bad"}`}>
+              {`首错阶段 ${step} / 5`}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 840 172"
+            width="840"
+            height="172"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`RFork 第 ${step} 类首错拓扑定位图`}
+          >
+            <defs>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
+            </defs>
+            <rect
+              x="16"
+              y="18"
+              width="236"
+              height="104"
+              rx="9"
+              fill={step === 1 ? "#fff0e9" : "#ddf4ef"}
+              stroke={step === 1 ? "#b54237" : "#087f73"}
+              strokeWidth="1.7"
+            />
+            <text x="134" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              Seed 源实例
+            </text>
+            <text x="134" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
+              {step === 1 ? "✗ 注册权重指纹失败" : "✓ 已注册 RDMA 源内存"}
+            </text>
+            <text x="134" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
+              12 批权重分块待拉取
+            </text>
+
+            <line
+              x1="254"
+              y1="52"
+              x2="296"
+              y2="52"
+              stroke={step <= 2 ? "#b54237" : "#087f73"}
+              strokeWidth="2"
+              markerEnd={`url(#${step <= 2 ? mRed : mTeal})`}
+            />
+
+            <rect
+              x="302"
+              y="18"
+              width="236"
+              height="104"
+              rx="9"
+              fill={step === 2 ? "#fff0e9" : step === 5 ? "#fff4cf" : "#fbfaf6"}
+              stroke={step === 2 ? "#b54237" : step === 5 ? "#c78300" : "#087f73"}
+              strokeWidth="1.7"
+            />
+            <text x="420" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              Pool 租约协调池
+            </text>
+            <text x="420" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
+              {step === 2
+                ? "✗ 无可用源或签名不合"
+                : step === 5
+                  ? "⚠ 归还租约 404 / 400"
+                  : "✓ 签发 60s 读取租约"}
+            </text>
+            <text x="420" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
+              管理源寻址与并发租期
+            </text>
+
+            <line
+              x1="540"
+              y1="52"
+              x2="582"
+              y2="52"
+              stroke={step === 3 || step === 4 ? "#b54237" : "#087f73"}
+              strokeWidth="2"
+              markerEnd={`url(#${step === 3 || step === 4 ? mRed : mTeal})`}
+            />
+
+            <rect
+              x="588"
+              y="18"
+              width="236"
+              height="104"
+              rx="9"
+              fill={step === 3 || step === 4 ? "#fff0e9" : "#ddf4ef"}
+              stroke={step === 3 || step === 4 ? "#b54237" : "#087f73"}
+              strokeWidth="1.7"
+            />
+            <text x="706" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              Target 目标新实例
+            </text>
+            <text x="706" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
+              {step === 3
+                ? "✗ 首包前握手即断"
+                : step === 4
+                  ? "✗ 第 7/12 批中断·停服注销"
+                  : "✓ 全批写齐·回退/起服安全"}
+            </text>
+            <text x="706" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
+              {step === 4 ? "脏缓冲须重新磁盘覆盖" : "尾行统一报回退属表象"}
+            </text>
+
+            <text x="420" y="154" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+              {`当前真凶锚点：${spec.stationTitle}（勿只看末行通用回退日志）`}
+            </text>
+          </svg>
+        </div>
+
         <div className="wiki-edu-chunks-wrap">
           {RFORK_DIAG_STEPS.map((item) => {
             const cls =

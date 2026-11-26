@@ -300,39 +300,22 @@ export function AscendFaTilingInteractive({
         </>
       }
     >
-      <div className="wiki-edu-pc-grid">
-        <div className={`wiki-edu-panel${spec.isNaiveOom ? " is-oom" : ""}`}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">设备显存 HBM（慢而大）</span>
+            <span className="wiki-edu-panel-title">
+              ① 显存 N×N 巨表 vs 片上分块流式扫描矩阵图（{spec.wireLabel}）
+            </span>
             <span className={`wiki-edu-badge ${spec.isNaiveOom ? "is-bad" : "is-good"}`}>
               {spec.hbmScorePeakText}
             </span>
           </div>
 
-          <div className="wiki-edu-tok-list">
-            <div className="wiki-edu-tok-pill is-sys">
-              <span>Q / K / V 本体</span>
-              <span className="wiki-edu-ptr-tag">384 MiB</span>
-            </div>
-            <div className={`wiki-edu-tok-pill ${spec.isNaiveOom ? "is-cow" : "is-empty"}`}>
-              <span>{spec.isNaiveOom ? "巨型分数表 S/P" : "N×N 分数表免落盘"}</span>
-              <span className="wiki-edu-ptr-tag">{spec.isNaiveOom ? "64 GiB!" : "0 B"}</span>
-            </div>
-            <div className={`wiki-edu-tok-pill ${step === 4 ? "is-priv" : "is-sys"}`}>
-              <span>注意力输出 O</span>
-              <span className="wiki-edu-ptr-tag">{step === 4 ? "写出 256M" : "256 MiB"}</span>
-            </div>
-          </div>
-
-          <div className="wiki-edu-note-card">{spec.hbmStatusNote}</div>
-        </div>
-
-        <div className="wiki-edu-wires-col">
           <svg
-            className="wiki-edu-wires-svg"
-            viewBox="0 0 136 220"
-            width="136"
-            height="220"
+            viewBox="0 0 820 224"
+            width="820"
+            height="224"
+            style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
             aria-label={`HBM 与片上缓冲数据流：${spec.wireLabel}`}
           >
@@ -371,92 +354,205 @@ export function AscendFaTilingInteractive({
                 <path d="M0,1 L9,5 L0,9 z" fill="#e85b32" />
               </marker>
             </defs>
-            {spec.wireDirection === "hbm-explode" && (
-              <>
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 126 78 L 10 78"
-                  stroke="#b54237"
-                  markerEnd={`url(#${mRed})`}
-                />
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 10 132 L 126 132"
-                  stroke="#b54237"
-                  markerEnd={`url(#${mRed})`}
-                />
-              </>
-            )}
-            {spec.wireDirection === "stream-in" && (
-              <path
-                className="wiki-edu-wire is-flow"
-                d="M 10 88 C 56 88, 76 88, 126 88"
-                stroke="#087f73"
-                markerEnd={`url(#${mTeal})`}
-              />
-            )}
-            {spec.wireDirection === "rescale-loop" && (
-              <>
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 10 78 L 126 78"
-                  stroke="#087f73"
-                  markerEnd={`url(#${mTeal})`}
-                />
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 118 142 C 72 132, 72 178, 118 168"
-                  stroke="#e85b32"
-                  markerEnd={`url(#${mAccent})`}
-                />
-              </>
-            )}
-            {spec.wireDirection === "write-out" && (
-              <path
-                className="wiki-edu-wire is-flow"
-                d="M 126 146 L 10 146"
-                stroke="#087f73"
-                markerEnd={`url(#${mTeal})`}
-              />
-            )}
+
             <rect
-              x="16"
-              y="98"
-              width="104"
-              height="24"
-              rx="12"
-              fill={spec.isNaiveOom ? "#fff0e9" : step === 3 ? "#fff4cf" : "#ddf4ef"}
-              stroke={spec.isNaiveOom ? "#b54237" : step === 3 ? "#c78300" : "#087f73"}
+              x="12"
+              y="8"
+              width="368"
+              height="208"
+              rx="10"
+              fill={spec.isNaiveOom ? "#fff0e9" : "#fbfaf6"}
+              stroke={spec.isNaiveOom ? "#b54237" : "#d8d8cf"}
+              strokeWidth="1.5"
             />
-            <text x="68" y="114" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {spec.wireLabel}
+            <text x="196" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              设备显存 HBM (32K 序列)
+            </text>
+            {spec.isNaiveOom ? (
+              <>
+                <rect
+                  x="28"
+                  y="42"
+                  width="336"
+                  height="124"
+                  rx="8"
+                  fill="#ffffff"
+                  stroke="#b54237"
+                  strokeWidth="2"
+                />
+                <text x="196" y="88" textAnchor="middle" fontSize="14" fontWeight="700" fill="#b54237">
+                  ✗ 实体化 32K×32K 分数矩阵 S / P
+                </text>
+                <text x="196" y="118" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+                  单层瞬时落盘 64 GiB · 直接撑爆显存!
+                </text>
+                <text x="196" y="148" textAnchor="middle" fontSize="12" fill="#66716d">
+                  Q/K/V 本体仅 384 MiB，却被中间矩阵淹没
+                </text>
+              </>
+            ) : (
+              <>
+                <rect
+                  x="28"
+                  y="44"
+                  width="102"
+                  height="44"
+                  rx="6"
+                  fill="#ddf4ef"
+                  stroke="#087f73"
+                  strokeWidth="1.6"
+                />
+                <text x="79" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  Qᵢ 当前行块
+                </text>
+                <rect
+                  x="144"
+                  y="44"
+                  width="102"
+                  height="44"
+                  rx="6"
+                  fill={step === 2 ? "#fff4cf" : "#ece9df"}
+                  stroke={step === 2 ? "#c78300" : "#d8d8cf"}
+                  strokeWidth="1.6"
+                />
+                <text x="195" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  K₁,V₁ 块1
+                </text>
+                <rect
+                  x="260"
+                  y="44"
+                  width="102"
+                  height="44"
+                  rx="6"
+                  fill={step === 3 ? "#fff4cf" : "#ece9df"}
+                  stroke={step === 3 ? "#c78300" : "#d8d8cf"}
+                  strokeWidth="1.6"
+                />
+                <text x="311" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  K₂,V₂ 块2
+                </text>
+                <rect
+                  x="28"
+                  y="104"
+                  width="334"
+                  height="58"
+                  rx="7"
+                  fill="#ffffff"
+                  stroke="#087f73"
+                  strokeDasharray="5 3"
+                />
+                <text x="195" y="138" textAnchor="middle" fontSize="13" fontWeight="700" fill="#087f73">
+                  ✓ N×N 分数表免落盘 (0 B) · 仅终态写回 Oᵢ
+                </text>
+              </>
+            )}
+            <text x="196" y="198" textAnchor="middle" fontSize="12" fill="#66716d">
+              {spec.hbmRoundTripText}
+            </text>
+            <path
+              d={spec.wireDirection === "write-out" ? "M 432 120 L 386 120" : "M 386 92 L 432 92"}
+              stroke={spec.isNaiveOom ? "#b54237" : "#087f73"}
+              strokeWidth="2.2"
+              markerEnd={`url(#${spec.isNaiveOom ? mRed : mTeal})`}
+            />
+
+            <rect
+              x="438"
+              y="8"
+              width="370"
+              height="208"
+              rx="10"
+              fill="#ddf4ef"
+              stroke="#087f73"
+              strokeWidth="1.6"
+            />
+            <text x="623" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              昇腾 AI Core 片上 L1 / UB 缓冲
+            </text>
+            <rect x="456" y="44" width="334" height="36" rx="6" fill="#ffffff" stroke="#087f73" />
+            <text x="623" y="67" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`m 标尺：${spec.ubScaleM} · l 分母：${spec.ubDenomL}`}
+            </text>
+
+            <rect
+              x="456"
+              y="92"
+              width="334"
+              height="44"
+              rx="6"
+              fill={step === 3 ? "#fff4cf" : "#ffffff"}
+              stroke={step === 3 ? "#c78300" : "#087f73"}
+              strokeWidth="1.6"
+            />
+            <text x="623" y="119" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`${spec.ubTileTitle}：${spec.ubNumerO}`}
+            </text>
+            {step === 3 && (
+              <path
+                d="M 762 142 C 762 174, 484 174, 484 142"
+                fill="none"
+                stroke="#e85b32"
+                strokeWidth="2"
+                markerEnd={`url(#${mAccent})`}
+              />
+            )}
+            <text x="623" y="198" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {step === 3 ? "新最大值 m=5 到来：旧分子分母同乘 e^(2−5) 重标定" : spec.wireLabel}
             </text>
           </svg>
         </div>
 
-        <div className="wiki-edu-hbm">
-          <div className="wiki-edu-col-title">
-            <span>AI Core 片上缓冲（UB / L1）</span>
-            <span className="mono">{spec.hbmRoundTripText}</span>
+        <div className="wiki-edu-dual-grid">
+          <div className={`wiki-edu-panel${spec.isNaiveOom ? " is-oom" : ""}`}>
+            <div className="wiki-edu-panel-head">
+              <span className="wiki-edu-panel-title">设备显存 HBM（慢而大）</span>
+              <span className={`wiki-edu-badge ${spec.isNaiveOom ? "is-bad" : "is-good"}`}>
+                {spec.hbmScorePeakText}
+              </span>
+            </div>
+
+            <div className="wiki-edu-tok-list">
+              <div className="wiki-edu-tok-pill is-sys">
+                <span>Q / K / V 本体</span>
+                <span className="wiki-edu-ptr-tag">384 MiB</span>
+              </div>
+              <div className={`wiki-edu-tok-pill ${spec.isNaiveOom ? "is-cow" : "is-empty"}`}>
+                <span>{spec.isNaiveOom ? "巨型分数表 S/P" : "N×N 分数表免落盘"}</span>
+                <span className="wiki-edu-ptr-tag">{spec.isNaiveOom ? "64 GiB!" : "0 B"}</span>
+              </div>
+              <div className={`wiki-edu-tok-pill ${step === 4 ? "is-priv" : "is-sys"}`}>
+                <span>注意力输出 O</span>
+                <span className="wiki-edu-ptr-tag">{step === 4 ? "写出 256M" : "256 MiB"}</span>
+              </div>
+            </div>
+
+            <div className="wiki-edu-note-card">{spec.hbmStatusNote}</div>
           </div>
-          <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-private"} is-highlight`}>
-            <div className="wiki-edu-block-id">m</div>
-            <div className="wiki-edu-block-title">当前最大标尺</div>
-            <span className="wiki-edu-ref-badge ref-priv">{spec.ubScaleM}</span>
+
+          <div className="wiki-edu-hbm">
+            <div className="wiki-edu-col-title">
+              <span>AI Core 片上缓冲（UB / L1）</span>
+              <span className="mono">{spec.hbmRoundTripText}</span>
+            </div>
+            <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-private"} is-highlight`}>
+              <div className="wiki-edu-block-id">m</div>
+              <div className="wiki-edu-block-title">当前最大标尺</div>
+              <span className="wiki-edu-ref-badge ref-priv">{spec.ubScaleM}</span>
+            </div>
+            <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-shared"}`}>
+              <div className="wiki-edu-block-id">l</div>
+              <div className="wiki-edu-block-title">指数分母累加</div>
+              <span className="wiki-edu-ref-badge ref-1">{spec.ubDenomL}</span>
+            </div>
+            <div
+              className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : step === 3 ? "is-cow" : "is-shared"}`}
+            >
+              <div className="wiki-edu-block-id">Õ</div>
+              <div className="wiki-edu-block-title">{spec.ubTileTitle}</div>
+              <span className={`wiki-edu-ref-badge ${step === 3 ? "ref-2" : "ref-1"}`}>{spec.ubNumerO}</span>
+            </div>
+            <div className="wiki-edu-note-card">{spec.ubActionNote}</div>
           </div>
-          <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-shared"}`}>
-            <div className="wiki-edu-block-id">l</div>
-            <div className="wiki-edu-block-title">指数分母累加</div>
-            <span className="wiki-edu-ref-badge ref-1">{spec.ubDenomL}</span>
-          </div>
-          <div
-            className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : step === 3 ? "is-cow" : "is-shared"}`}
-          >
-            <div className="wiki-edu-block-id">Õ</div>
-            <div className="wiki-edu-block-title">{spec.ubTileTitle}</div>
-            <span className={`wiki-edu-ref-badge ${step === 3 ? "ref-2" : "ref-1"}`}>{spec.ubNumerO}</span>
-          </div>
-          <div className="wiki-edu-note-card">{spec.ubActionNote}</div>
         </div>
       </div>
     </WikiEduSandboxShell>

@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -114,6 +114,9 @@ export function ModelOnboardingGatesInteractive({
   const [step, setStep] = useState<OnboardingGateStep>(initialStep);
   const [playing, setPlaying] = useState(false);
   const spec = ONBOARDING_GATES[step - 1]!;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mTeal = `${id}-${uid}-ob-teal`;
+  const mRed = `${id}-${uid}-ob-red`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -268,6 +271,119 @@ export function ModelOnboardingGatesInteractive({
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">新模型四道准入流水线与阻断分流拓扑</span>
+            <span className={`wiki-edu-badge ${spec.takeawayTone === "danger" ? "is-bad" : "is-good"}`}>
+              {spec.riskBadge}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 840 176"
+            width="840"
+            height="176"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`新模型上线第 ${step} 关流水线拓扑`}
+          >
+            <defs>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
+            </defs>
+            {ONBOARDING_GATES.map((g, idx) => {
+              const gx = 16 + idx * 208;
+              const active = g.step === step;
+              const passed = g.step < step;
+              return (
+                <g key={`ob-svg-${g.step}`}>
+                  <rect
+                    x={gx}
+                    y="14"
+                    width="184"
+                    height="96"
+                    rx="9"
+                    fill={active ? "#ddf4ef" : passed ? "#fbfaf6" : "#ece9df"}
+                    stroke={active ? "#087f73" : "#d8d8cf"}
+                    strokeWidth={active ? "2.1" : "1.3"}
+                  />
+                  <text x={gx + 92} y="42" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+                    {`第 ${g.step} 关`}
+                  </text>
+                  <text x={gx + 92} y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+                    {["环境对齐", "活跃食谱", "类名覆写", "量化冒烟"][idx]}
+                  </text>
+                  <text x={gx + 92} y="94" textAnchor="middle" fontSize="12" fill="#66716d">
+                    {passed ? "✓ 已核验" : active ? "● 当前核验" : "待进入"}
+                  </text>
+                  {idx < 3 && (
+                    <line
+                      x1={gx + 186}
+                      y1="62"
+                      x2={gx + 204}
+                      y2="62"
+                      stroke="#087f73"
+                      strokeWidth="1.8"
+                      markerEnd={`url(#${mTeal})`}
+                    />
+                  )}
+                  {active && (
+                    <>
+                      <line
+                        x1={gx + 92}
+                        y1="112"
+                        x2={gx + 92}
+                        y2="132"
+                        stroke="#b54237"
+                        strokeWidth="1.6"
+                        markerEnd={`url(#${mRed})`}
+                      />
+                      <rect
+                        x={gx + 12}
+                        y="136"
+                        width="160"
+                        height="28"
+                        rx="6"
+                        fill="#fff0e9"
+                        stroke="#b54237"
+                      />
+                      <text
+                        x={gx + 92}
+                        y="155"
+                        textAnchor="middle"
+                        fontSize="12"
+                        fontWeight="700"
+                        fill="#b54237"
+                      >
+                        {["拒非匹配芯片", "拒停服旧桩", "覆写上游同名", "分清A2与950"][idx]}
+                      </text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
         <div className="wiki-edu-gates-rail">
           {ONBOARDING_GATES.map((item) => {
             const cls =

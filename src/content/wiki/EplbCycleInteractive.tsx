@@ -438,15 +438,19 @@ export function EplbCycleInteractive({
         </>
       }
     >
-      <div className="wiki-edu-pc-grid">
-        {renderCardColumn(spec.card0Header, spec.card0LoadPct, spec.card0Slots, spec.card0LoadPct >= 70)}
-
-        <div className="wiki-edu-wires-col">
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">① 双卡令牌分发漏斗与在线重排拓扑（{spec.wireLabel}）</span>
+            <span className={`wiki-edu-badge ${step === 1 ? "is-bad" : step >= 4 ? "is-good" : "is-warn"}`}>
+              {`峰均比 ${spec.imbalanceRatio}`}
+            </span>
+          </div>
           <svg
-            className="wiki-edu-wires-svg"
-            viewBox="0 0 136 220"
-            width="136"
-            height="220"
+            viewBox="0 0 820 212"
+            width="820"
+            height="212"
+            style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
             aria-label={`EPLB 卡间动作：${spec.wireLabel}`}
           >
@@ -485,55 +489,92 @@ export function EplbCycleInteractive({
                 <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
               </marker>
             </defs>
-            {spec.wireKind === "swap-xfer" ? (
-              <>
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 10 74 C 52 54, 84 54, 126 74"
-                  stroke="#9a4b86"
-                  markerEnd={`url(#${mComm})`}
-                />
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 126 146 C 84 166, 52 166, 10 146"
-                  stroke="#9a4b86"
-                  markerEnd={`url(#${mComm})`}
-                />
-              </>
-            ) : spec.wireKind === "replica-hit" ? (
-              <>
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 38 66 C 14 66, 14 96, 38 96"
-                  stroke="#087f73"
-                  markerEnd={`url(#${mTeal})`}
-                />
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 98 66 C 122 66, 122 96, 98 96"
-                  stroke="#087f73"
-                  markerEnd={`url(#${mTeal})`}
-                />
-              </>
-            ) : (
-              <path
-                className="wiki-edu-wire is-flow"
-                d="M 12 82 L 124 82"
-                stroke={spec.wireKind === "skew-warn" ? "#c78300" : "#087f73"}
-                markerEnd={`url(#${spec.wireKind === "skew-warn" ? mWarn : mTeal})`}
-              />
-            )}
-            <rect x="14" y="98" width="108" height="42" rx="8" fill="#fbfaf6" stroke="#d8d8cf" />
-            <text x="68" y="115" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {spec.wireLabel}
+
+            <rect
+              x="270"
+              y="8"
+              width="280"
+              height="34"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#17211f"
+              strokeWidth="1.4"
+            />
+            <text x="410" y="30" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              {step >= 4 ? "log2phy 路由表：热门 E₀ 双物理槽分流" : "MoE 令牌路由流（10 对词元-专家）"}
             </text>
-            <text x="68" y="133" textAnchor="middle" fontSize="12" fontWeight="700" fill="#9a4b86">
-              {`峰均比 ${spec.imbalanceRatio}`}
+
+            <path
+              d="M 340 42 L 190 82"
+              stroke={step === 1 ? "#c78300" : "#087f73"}
+              strokeWidth={step === 1 ? "3.2" : "2.2"}
+              markerEnd={`url(#${step === 1 ? mWarn : mTeal})`}
+            />
+            <path
+              d="M 480 42 L 630 82"
+              stroke="#087f73"
+              strokeWidth={step >= 4 ? "2.4" : "1.4"}
+              markerEnd={`url(#${mTeal})`}
+            />
+
+            <rect
+              x="20"
+              y="86"
+              width="320"
+              height="114"
+              rx="10"
+              fill={step === 1 ? "#fff0e9" : "#ddf4ef"}
+              stroke={step === 1 ? "#b54237" : "#087f73"}
+              strokeWidth="1.6"
+            />
+            <text x="180" y="112" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              {`卡 0 · 负载 ${spec.card0LoadPct}%`}
+            </text>
+            <text x="180" y="144" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {step === 1 ? "网红 E₀ 堵满 7 对 + E₁ 1 对" : "E₀ 主本(3.5对) + 冷门专家 = 50%"}
+            </text>
+            <text x="180" y="178" textAnchor="middle" fontSize="12" fill="#66716d">
+              {step === 2
+                ? "后台守护线程快照计数"
+                : step === 3
+                  ? "准备发往卡1建立冗余副本"
+                  : "无停机持续前向"}
+            </text>
+
+            {step === 3 && (
+              <path d="M 344 142 L 472 142" stroke="#9a4b86" strokeWidth="2.4" markerEnd={`url(#${mComm})`} />
+            )}
+
+            <rect
+              x="480"
+              y="86"
+              width="320"
+              height="114"
+              rx="10"
+              fill={step >= 3 ? "#ddf4ef" : "#fbfaf6"}
+              stroke={step === 3 ? "#9a4b86" : "#087f73"}
+              strokeWidth="1.6"
+            />
+            <text x="640" y="112" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              {`卡 1 · 负载 ${spec.card1LoadPct}%`}
+            </text>
+            <text x="640" y="144" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {step <= 2 ? "仅冷门 E₂+E₃ (2 对 · 空等 AllToAll)" : "新增冗余 E₀' 副本承接分流 → 50%"}
+            </text>
+            <text x="640" y="178" textAnchor="middle" fontSize="12" fill="#66716d">
+              {step === 3
+                ? "影子缓冲异步拷入 E₀ 权重"
+                : step >= 4
+                  ? "原子切换映射表 · 抹平木桶短板"
+                  : "80% 时间空转等卡0"}
             </text>
           </svg>
         </div>
 
-        {renderCardColumn(spec.card1Header, spec.card1LoadPct, spec.card1Slots, false)}
+        <div className="wiki-edu-dual-grid">
+          {renderCardColumn(spec.card0Header, spec.card0LoadPct, spec.card0Slots, spec.card0LoadPct >= 70)}
+          {renderCardColumn(spec.card1Header, spec.card1LoadPct, spec.card1Slots, false)}
+        </div>
       </div>
     </WikiEduSandboxShell>
   );

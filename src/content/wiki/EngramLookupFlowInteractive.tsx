@@ -175,11 +175,15 @@ export function computeEngramStepMetrics(
   };
 }
 
+export const ENGRAM_WINDOW_MODES = ["normal", "mm-boundary"] as const;
+export type EngramWindowMode = (typeof ENGRAM_WINDOW_MODES)[number];
+
 export interface EngramLookupFlowInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: EngramDiagramMode | undefined;
   readonly initialStep?: EngramStep | undefined;
   readonly initialPlacement?: EngramPlacementMode | undefined;
   readonly initialSharedMem?: boolean | undefined;
+  readonly initialWindowKind?: EngramWindowMode | undefined;
 }
 
 export function EngramLookupFlowInteractive({
@@ -193,15 +197,19 @@ export function EngramLookupFlowInteractive({
   initialStep = 3,
   initialPlacement,
   initialSharedMem,
+  initialWindowKind = "normal",
 }: EngramLookupFlowInteractiveProps) {
   const defaultPlacement: EngramPlacementMode =
     initialPlacement ?? (initialSharedMem === false ? "edp-sharded" : "shared-mem");
   const [mode, setMode] = useState<EngramDiagramMode>(initialMode);
   const [step, setStep] = useState<EngramStep>(initialStep);
   const [placement, setPlacement] = useState<EngramPlacementMode>(defaultPlacement);
+  const [windowKind, setWindowKind] = useState<EngramWindowMode>(initialWindowKind);
   const [playing, setPlaying] = useState(false);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const mArr = `${id}-${uid}-eg-arr`;
+  const mTeal = `${id}-${uid}-eg-teal`;
+  const mRed = `${id}-${uid}-eg-red`;
+  const mAccent = `${id}-${uid}-eg-acc`;
 
   const state = useMemo(() => computeEngramStepMetrics(step, placement), [step, placement]);
 
@@ -279,18 +287,15 @@ export function EngramLookupFlowInteractive({
     }
   };
 
-  const boxFill = (s: EngramStep) => {
-    if (step !== s) return "#fbfaf6";
-    if (s === 2 && placement === "edp-sharded") return "#fff0e9";
-    if (s === 2 && placement === "independent") return "#fff4cf";
-    return "#ddf4ef";
-  };
-  const boxStroke = (s: EngramStep) => {
-    if (step !== s) return "#d8d8cf";
-    if (s === 2 && placement === "edp-sharded") return "#b54237";
-    if (s === 2 && placement === "independent") return "#c78300";
+  const stepActive = (target: EngramStep) => step === target;
+  const colStroke = (target: EngramStep) => {
+    if (step !== target) return "#d8d8cf";
+    if (target === 2 && placement === "edp-sharded") return "#b54237";
+    if (target === 2 && placement === "independent") return "#c78300";
     return "#087f73";
   };
+  const tokenLabels =
+    windowKind === "mm-boundary" ? (["图", "腾", "推", "理"] as const) : (["昇", "腾", "推", "理"] as const);
 
   return (
     <WikiEduSandboxShell
@@ -313,6 +318,7 @@ export function EngramLookupFlowInteractive({
       extraRootAttrs={{
         "data-step": step,
         "data-placement": placement,
+        "data-window": windowKind,
       }}
       toolbar={
         <>
@@ -364,7 +370,7 @@ export function EngramLookupFlowInteractive({
             })}
           </div>
 
-          <fieldset className="wiki-edu-btn-row" aria-label="4 副本放置模式切换">
+          <fieldset className="wiki-edu-btn-row" aria-label="4 副本放置模式与短语窗切换">
             {ENGRAM_PLACEMENT_MODES.map((pm) => {
               const active = mode === "sandbox" && placement === pm;
               return (
@@ -381,6 +387,35 @@ export function EngramLookupFlowInteractive({
                 </button>
               );
             })}
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="engram-window-normal"
+              aria-pressed={mode === "sandbox" && windowKind === "normal"}
+              style={eduBtnStyle(mode === "sandbox" && windowKind === "normal", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setWindowKind("normal");
+              }}
+            >
+              纯文本短语窗
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="engram-window-mm"
+              aria-pressed={mode === "sandbox" && windowKind === "mm-boundary"}
+              style={eduBtnStyle(mode === "sandbox" && windowKind === "mm-boundary", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setWindowKind("mm-boundary");
+                setStep(1);
+              }}
+            >
+              含图截断 (-1)
+            </button>
           </fieldset>
         </>
       }
@@ -407,10 +442,12 @@ export function EngramLookupFlowInteractive({
         </>
       }
     >
-      <div className="wiki-edu-dual-grid">
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">① 单步四站流水线（点选步骤与模式对照）</span>
+            <span className="wiki-edu-panel-title">
+              ① 主机上亿行大表与 NPU 按行稀疏直读拓扑（点选步骤 / 放置模式联动）
+            </span>
             <span
               className={`wiki-edu-badge ${
                 placement === "shared-mem" ? "is-good" : placement === "independent" ? "is-warn" : "is-bad"
@@ -425,16 +462,16 @@ export function EngramLookupFlowInteractive({
           </div>
 
           <svg
-            viewBox="0 0 340 172"
-            width="340"
-            height="172"
+            viewBox="0 0 840 248"
+            width="840"
+            height="248"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
             aria-label={`Engram 四步查表：第 ${step} 步，模式 ${ENGRAM_PLACEMENT_LABELS[placement]}`}
           >
             <defs>
               <marker
-                id={mArr}
+                id={mTeal}
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
@@ -442,178 +479,320 @@ export function EngramLookupFlowInteractive({
                 markerHeight="5"
                 orient="auto"
               >
-                <path d="M0,1 L9,5 L0,9 z" fill="#66716d" />
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
+              <marker
+                id={mAccent}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#e85b32" />
               </marker>
             </defs>
 
             <rect
-              x="12"
-              y="14"
-              width="144"
-              height="58"
-              rx="8"
-              fill={boxFill(1)}
-              stroke={boxStroke(1)}
-              strokeWidth={step === 1 ? "2.2" : "1.3"}
+              x="10"
+              y="8"
+              width="236"
+              height="232"
+              rx="10"
+              fill={stepActive(1) ? "#ddf4ef" : "#fbfaf6"}
+              stroke={colStroke(1)}
+              strokeWidth={stepActive(1) ? "2" : "1.3"}
             />
-            <text x="84" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              ① 拼窗算哈希
+            <text x="128" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ① 词元滑窗与多头哈希
             </text>
-            <text x="84" y="57" textAnchor="middle" fontSize="13" fill="#66716d">
-              8词×4头=32行
+            {tokenLabels.map((tk, idx) => {
+              const tx = 22 + idx * 54;
+              const isImg = windowKind === "mm-boundary" && idx === 0;
+              return (
+                <g key={tk}>
+                  <rect
+                    x={tx}
+                    y="40"
+                    width="46"
+                    height="30"
+                    rx="6"
+                    fill={isImg ? "#fff0e9" : "#ffffff"}
+                    stroke={isImg ? "#b54237" : "#087f73"}
+                    strokeWidth="1.4"
+                    strokeDasharray={isImg ? "4 2" : undefined}
+                  />
+                  <text x={tx + 23} y="60" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+                    {tk}
+                  </text>
+                </g>
+              );
+            })}
+            <text x="128" y="92" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {windowKind === "mm-boundary" ? "遇图占位填 -1 阻断串味" : "2/3-gram 滑窗拼短语"}
             </text>
-
+            <rect x="22" y="106" width="212" height="28" rx="6" fill="#ffffff" stroke="#d8d8cf" />
+            <text
+              x="128"
+              y="125"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={windowKind === "mm-boundary" ? "#b54237" : "#17211f"}
+            >
+              {windowKind === "mm-boundary" ? "H₀ → -1 (跳过查表)" : "H₀ → 行号 482"}
+            </text>
+            <rect x="22" y="140" width="212" height="28" rx="6" fill="#ffffff" stroke="#d8d8cf" />
+            <text x="128" y="159" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              H₁ → 行号 91,037
+            </text>
+            <rect x="22" y="174" width="212" height="28" rx="6" fill="#ffffff" stroke="#d8d8cf" />
+            <text x="128" y="193" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              H₂,H₃ → 274,110 / 661,504
+            </text>
+            <text x="128" y="226" textAnchor="middle" fontSize="12" fill="#66716d">
+              8词×4头 = 32 个行号
+            </text>
             <line
-              x1="156"
-              y1="43"
-              x2="180"
-              y2="43"
-              stroke="#66716d"
-              strokeWidth="1.6"
-              markerEnd={`url(#${mArr})`}
+              x1="248"
+              y1="124"
+              x2="272"
+              y2="124"
+              stroke={placement === "edp-sharded" ? "#b54237" : "#087f73"}
+              strokeWidth="1.8"
+              markerEnd={`url(#${placement === "edp-sharded" ? mRed : mTeal})`}
             />
 
             <rect
-              x="184"
-              y="14"
-              width="144"
-              height="58"
-              rx="8"
-              fill={boxFill(2)}
-              stroke={boxStroke(2)}
-              strokeWidth={step === 2 ? "2.2" : "1.3"}
+              x="276"
+              y="8"
+              width="288"
+              height="232"
+              rx="10"
+              fill={
+                step === 2 || step === 3
+                  ? placement === "edp-sharded"
+                    ? "#fff0e9"
+                    : placement === "independent"
+                      ? "#fff4cf"
+                      : "#ddf4ef"
+                  : "#fbfaf6"
+              }
+              stroke={step === 3 ? "#087f73" : colStroke(2)}
+              strokeWidth={step === 2 || step === 3 ? "2" : "1.3"}
             />
-            <text x="256" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              ② 跨副本路由
+            <text x="420" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ② 主机内存池 (10⁸行·288B)
             </text>
             <text
-              x="256"
-              y="57"
+              x="420"
+              y="56"
               textAnchor="middle"
-              fontSize="13"
+              fontSize="12"
               fontWeight="700"
               fill={
                 placement === "edp-sharded" ? "#b54237" : placement === "independent" ? "#c78300" : "#087f73"
               }
             >
-              {placement === "edp-sharded"
-                ? "EDP 汇总哈希"
+              {placement === "shared-mem"
+                ? "共享 /dev/shm 单份 26.8 GiB"
                 : placement === "independent"
-                  ? "各查独立表"
-                  : "共享段免通信"}
+                  ? "独立复制 4 份 = 107.3 GiB!"
+                  : "EDP=4 切头分片 · 各 6.7 GiB"}
             </text>
 
+            <rect
+              x="292"
+              y="72"
+              width="256"
+              height="28"
+              rx="5"
+              fill={step >= 3 && windowKind !== "mm-boundary" ? "#ddf4ef" : "#ffffff"}
+              stroke={step >= 3 && windowKind !== "mm-boundary" ? "#087f73" : "#d8d8cf"}
+              strokeWidth="1.4"
+            />
+            <text x="420" y="91" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              命中行 482 [INT8+尺 288B]
+            </text>
+
+            <rect x="292" y="106" width="256" height="28" rx="5" fill="#ece9df" stroke="#d8d8cf" />
+            <text x="420" y="125" textAnchor="middle" fontSize="12" fill="#66716d">
+              其余 99,999,968 行静默 (0 B)
+            </text>
+
+            <rect
+              x="292"
+              y="140"
+              width="256"
+              height="28"
+              rx="5"
+              fill={step >= 3 ? "#ddf4ef" : "#ffffff"}
+              stroke={step >= 3 ? "#087f73" : "#d8d8cf"}
+              strokeWidth="1.4"
+            />
+            <text x="420" y="159" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              命中行 91,037 [INT8+尺 288B]
+            </text>
+
+            <rect
+              x="292"
+              y="174"
+              width="256"
+              height="28"
+              rx="5"
+              fill={placement === "edp-sharded" ? "#fff0e9" : "#ffffff"}
+              stroke={placement === "edp-sharded" ? "#b54237" : "#087f73"}
+            />
+            <text
+              x="420"
+              y="193"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={placement === "edp-sharded" ? "#b54237" : "#087f73"}
+            >
+              {placement === "edp-sharded" ? "⚠ 须跑 All-Gather + AllToAll" : "✓ 4 副本直读 · 0 次跨卡通信"}
+            </text>
+            <text x="420" y="226" textAnchor="middle" fontSize="12" fill="#66716d">
+              按行稀疏仅抓 32×288B = 9 KiB
+            </text>
             <line
-              x1="256"
-              y1="72"
-              x2="256"
-              y2="94"
-              stroke="#66716d"
-              strokeWidth="1.6"
-              markerEnd={`url(#${mArr})`}
+              x1="566"
+              y1="124"
+              x2="590"
+              y2="124"
+              stroke={step >= 3 ? "#e85b32" : "#087f73"}
+              strokeWidth="1.8"
+              markerEnd={`url(#${step >= 3 ? mAccent : mTeal})`}
             />
 
             <rect
-              x="184"
-              y="98"
-              width="144"
-              height="58"
-              rx="8"
-              fill={boxFill(3)}
-              stroke={boxStroke(3)}
-              strokeWidth={step === 3 ? "2.2" : "1.3"}
+              x="594"
+              y="8"
+              width="236"
+              height="232"
+              rx="10"
+              fill={stepActive(4) ? "#ddf4ef" : "#fbfaf6"}
+              stroke={colStroke(4)}
+              strokeWidth={stepActive(4) ? "2" : "1.3"}
             />
-            <text x="256" y="121" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              ③ 按行稀疏直读
+            <text x="712" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ③ NPU 瞬时反量化融合
             </text>
-            <text x="256" y="141" textAnchor="middle" fontSize="13" fill="#66716d">
-              仅读 9 KiB
+            <text x="712" y="56" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              HBM 常驻大表：0 B
             </text>
 
-            <line
-              x1="184"
-              y1="127"
-              x2="160"
-              y2="127"
-              stroke="#66716d"
-              strokeWidth="1.6"
-              markerEnd={`url(#${mArr})`}
-            />
+            <rect x="608" y="72" width="208" height="36" rx="6" fill="#ffffff" stroke="#087f73" />
+            <text x="712" y="95" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {step >= 3 ? "现场反量化 → 16 KiB BF16" : "等待稀疏抓回 9 KiB"}
+            </text>
+
+            <rect x="608" y="118" width="208" height="36" rx="6" fill="#fff4cf" stroke="#c78300" />
+            <text x="712" y="141" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {step >= 4 ? "门控注入 h' = h + α·v" : "门控投影拼齐 4 个头"}
+            </text>
 
             <rect
-              x="12"
-              y="98"
-              width="144"
-              height="58"
-              rx="8"
-              fill={boxFill(4)}
-              stroke={boxStroke(4)}
-              strokeWidth={step === 4 ? "2.2" : "1.3"}
+              x="608"
+              y="164"
+              width="208"
+              height="36"
+              rx="6"
+              fill="#fbfaf6"
+              stroke="#66716d"
+              strokeDasharray="4 2"
             />
-            <text x="84" y="121" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              ④ 门控融回残差
+            <text x="712" y="187" textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
+              16 KiB 瞬时缓冲当步即释
             </text>
-            <text x="84" y="141" textAnchor="middle" fontSize="13" fill="#66716d">
-              {placement === "edp-sharded" ? "换行+TP拼头" : "TP拼头·即释"}
+            <text x="712" y="226" textAnchor="middle" fontSize="12" fill="#66716d">
+              单步仅触达整表 0.00003%
             </text>
           </svg>
         </div>
 
-        <div className={`wiki-edu-panel${placement !== "shared-mem" ? " is-oom" : ""}`}>
-          <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">② 三档放置模式的容量与通信真账</span>
-            <span className="wiki-edu-badge is-good">NPU 显存 0 常驻大表</span>
+        <div className="wiki-edu-dual-grid">
+          <div className="wiki-edu-panel">
+            <div className="wiki-edu-panel-head">
+              <span className="wiki-edu-panel-title">② 四步关键动作焦点与多模态边界</span>
+              <span className="wiki-edu-badge is-good">{ENGRAM_STEPS[step - 1]!.stationTitle}</span>
+            </div>
+            <div className="wiki-edu-note-card">
+              <strong>短语窗截断机制</strong>：纯文本窗口把当前词与前邻词拼成 2/3-gram 算 4
+              头行号；一旦窗口滑过图片占位符，硬件/算子立即把该头哈希置为 <strong>-1 跳过查表</strong>
+              ，杜绝图像特征被误当作文本词元查表串味。
+            </div>
           </div>
 
-          <div className="wiki-edu-lane-box">
-            <div className="wiki-edu-lane-label">
-              <span>上亿行静态底存 vs 本步按行触达量</span>
-              <span className="mono">
-                {`${state.singleCopyGiB} GiB vs ${state.stepReadBytes.toLocaleString()} B`}
-              </span>
+          <div className={`wiki-edu-panel${placement !== "shared-mem" ? " is-oom" : ""}`}>
+            <div className="wiki-edu-panel-head">
+              <span className="wiki-edu-panel-title">② 三档放置模式的容量与通信真账</span>
+              <span className="wiki-edu-badge is-good">NPU 显存 0 常驻大表</span>
             </div>
-            <div className="wiki-edu-track">
-              <div className="wiki-edu-op is-piece" style={{ flex: 0.78 }}>
-                {`单份整表 ${state.singleCopyGiB} GiB`}
+
+            <div className="wiki-edu-lane-box">
+              <div className="wiki-edu-lane-label">
+                <span>上亿行静态底存 vs 本步按行触达量</span>
+                <span className="mono">
+                  {`${state.singleCopyGiB} GiB vs ${state.stepReadBytes.toLocaleString()} B`}
+                </span>
               </div>
-              <div className="wiki-edu-op is-full" style={{ flex: 0.22 }}>
-                读 9 KiB
+              <div className="wiki-edu-track">
+                <div className="wiki-edu-op is-piece" style={{ flex: 0.78 }}>
+                  {`单份整表 ${state.singleCopyGiB} GiB`}
+                </div>
+                <div className="wiki-edu-op is-full" style={{ flex: 0.22 }}>
+                  读 9 KiB
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="wiki-edu-tok-list">
-            <div className={`wiki-edu-tok-pill ${placement === "independent" ? "is-cow" : "is-priv"}`}>
-              <span>单机 4 副本总表驻留体积</span>
-              <span className="wiki-edu-ptr-tag">
-                {placement === "independent"
-                  ? `${state.totalFootprintGiB} GiB（4 份重复驻留!）`
-                  : placement === "edp-sharded"
-                    ? `${state.totalFootprintGiB} GiB（4 副本分片 · 每份 ${state.perReplicaGiB} GiB）`
-                    : `${state.totalFootprintGiB} GiB（共享单份 · 较独立省 ${state.savedVsIndependentGiB} GiB）`}
-              </span>
+            <div className="wiki-edu-tok-list">
+              <div className={`wiki-edu-tok-pill ${placement === "independent" ? "is-cow" : "is-priv"}`}>
+                <span>单机 4 副本总表驻留体积</span>
+                <span className="wiki-edu-ptr-tag">
+                  {placement === "independent"
+                    ? `${state.totalFootprintGiB} GiB（4 份重复驻留!）`
+                    : placement === "edp-sharded"
+                      ? `${state.totalFootprintGiB} GiB（4 副本分片 · 每份 ${state.perReplicaGiB} GiB）`
+                      : `${state.totalFootprintGiB} GiB（共享单份 · 较独立省 ${state.savedVsIndependentGiB} GiB）`}
+                </span>
+              </div>
+              <div className={`wiki-edu-tok-pill ${placement === "edp-sharded" ? "is-cow" : "is-sys"}`}>
+                <span>每步跨副本 EDP 通信 & 24 头/16 卡反例</span>
+                <span className="wiki-edu-ptr-tag">
+                  {placement === "edp-sharded"
+                    ? "每步 2 次通信 · 24÷16 除不尽建层即拒"
+                    : "0 次跨副本通信 · 24÷4=6 可启动"}
+                </span>
+              </div>
             </div>
-            <div className={`wiki-edu-tok-pill ${placement === "edp-sharded" ? "is-cow" : "is-sys"}`}>
-              <span>每步跨副本 EDP 通信 & 24 头/16 卡反例</span>
-              <span className="wiki-edu-ptr-tag">
-                {placement === "edp-sharded"
-                  ? "每步 2 次通信 · 24÷16 除不尽建层即拒"
-                  : "0 次跨副本通信 · 24÷4=6 可启动"}
-              </span>
-            </div>
-          </div>
 
-          {placement !== "shared-mem" && (
-            <button
-              type="button"
-              className="wiki-edu-btn"
-              data-testid="engram-enable-shared-fix"
-              style={eduBtnStyle(false)}
-              onClick={() => selectPlacement("shared-mem")}
-            >
-              🔧 切至机内共享（兼得 26.8 GiB 单份底存 + 0 次跨副本通信）
-            </button>
-          )}
+            {placement !== "shared-mem" && (
+              <button
+                type="button"
+                className="wiki-edu-btn"
+                data-testid="engram-enable-shared-fix"
+                style={eduBtnStyle(false)}
+                onClick={() => selectPlacement("shared-mem")}
+              >
+                🔧 切至机内共享（兼得 26.8 GiB 单份底存 + 0 次跨副本通信）
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </WikiEduSandboxShell>

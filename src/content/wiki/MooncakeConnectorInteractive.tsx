@@ -215,9 +215,13 @@ export const MOONCAKE_CONNECTOR_STEPS: readonly MooncakeStepSpec[] = [
       "3 层示意（每层算 1 单位、传 0.5 单位）：整批拉需 3×1 + 3×0.5 = 4.5 单位；Layerwise（MooncakeLayerwiseConnector，main 新增 MooncakePushConnector）把前 L−1 层传输与后续计算重叠，仅需 3×1 + 0.5 = 3.5 单位（省 (3−1)×0.5 = 1 单位），但 D 仍须等末层到齐才开始生成。",
   },
 ];
+export const MOONCAKE_TP_MODES = ["sym-tp2", "asym-tp4-tp2"] as const;
+export type MooncakeTpMode = (typeof MOONCAKE_TP_MODES)[number];
+
 export interface MooncakeConnectorInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: MooncakeDiagramMode | undefined;
   readonly initialStep?: MooncakeStep | undefined;
+  readonly initialTpMode?: MooncakeTpMode | undefined;
 }
 
 export function MooncakeConnectorInteractive({
@@ -229,9 +233,11 @@ export function MooncakeConnectorInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 1,
+  initialTpMode = "sym-tp2",
 }: MooncakeConnectorInteractiveProps) {
   const [mode, setMode] = useState<MooncakeDiagramMode>(initialMode);
   const [step, setStep] = useState<MooncakeStep>(initialStep);
+  const [tpMode, setTpMode] = useState<MooncakeTpMode>(initialTpMode);
   const [playing, setPlaying] = useState(false);
   const spec = MOONCAKE_CONNECTOR_STEPS[step - 1]!;
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -357,6 +363,34 @@ export function MooncakeConnectorInteractive({
             >
               下一步 ›
             </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="mooncake-tp-sym"
+              aria-pressed={mode === "sandbox" && tpMode === "sym-tp2"}
+              style={eduBtnStyle(mode === "sandbox" && tpMode === "sym-tp2", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTpMode("sym-tp2");
+              }}
+            >
+              对称 TP2 直传
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="mooncake-tp-asym"
+              aria-pressed={mode === "sandbox" && tpMode === "asym-tp4-tp2"}
+              style={eduBtnStyle(mode === "sandbox" && tpMode === "asym-tp4-tp2", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTpMode("asym-tp4-tp2");
+              }}
+            >
+              异构 P:TP4→D:TP2
+            </button>
           </div>
 
           <fieldset className="wiki-edu-btn-row" aria-label="Mooncake 连接器四步交接演化">
@@ -391,121 +425,284 @@ export function MooncakeConnectorInteractive({
         </>
       }
     >
-      <div>
-        <div className="wiki-edu-pc-grid">
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">
+              ① 跨实例离散物理块对表与同层零拷贝搬运沙盘（
+              {tpMode === "sym-tp2" ? "对称 TP2" : "异构 P:TP4→D:TP2 半块拼头"}）
+            </span>
+            <span className={`wiki-edu-badge ${spec.dBadgeTone}`}>{spec.dBadge}</span>
+          </div>
+
+          <svg
+            viewBox="0 0 840 248"
+            width="840"
+            height="248"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`Mooncake P/D 数据流：${spec.wireLabel}`}
+          >
+            <defs>
+              <marker
+                id={mPlum}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#9a4b86" />
+              </marker>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mMuted}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#66716d" />
+              </marker>
+            </defs>
+
+            <rect
+              x="10"
+              y="8"
+              width="256"
+              height="232"
+              rx="10"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            <text x="138" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              P 实例显存池 (基址 5000K)
+            </text>
+            <text x="138" y="50" textAnchor="middle" fontSize="12" fill="#66716d">
+              {step === 3 ? "收齐回执 · 释放 #7, #12" : "源块 #7(5448K) · #12(5768K)"}
+            </text>
+
+            {[0, 1, 2].map((ly) => {
+              const ry = 66 + ly * 48;
+              return (
+                <g key={`p-ly-${ly}`}>
+                  <text x="34" y={ry + 22} textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
+                    {`L${ly}`}
+                  </text>
+                  {[6, 7, 8, 12].map((blk, bi) => {
+                    const bx = 54 + bi * 50;
+                    const hit = blk === 7 || blk === 12;
+                    return (
+                      <g key={`p-${ly}-${blk}`}>
+                        <rect
+                          x={bx}
+                          y={ry}
+                          width="44"
+                          height="34"
+                          rx="6"
+                          fill={!hit ? "#ece9df" : step === 3 ? "#ddf4ef" : "#fff4cf"}
+                          stroke={!hit ? "#d8d8cf" : step === 3 ? "#087f73" : "#c78300"}
+                          strokeWidth={hit ? "1.8" : "1"}
+                          strokeDasharray={hit && step === 3 ? "4 2" : undefined}
+                        />
+                        <text
+                          x={bx + 22}
+                          y={ry + 22}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fontWeight="700"
+                          fill="#17211f"
+                        >
+                          {`#${blk}`}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+            <text x="138" y="226" textAnchor="middle" fontSize="12" fontWeight="700" fill="#c78300">
+              {step === 4 ? "边算边推：算完1层即刻发出" : spec.pBadge}
+            </text>
+            <rect
+              x="280"
+              y="8"
+              width="280"
+              height="232"
+              rx="10"
+              fill="#f7e7f2"
+              stroke="#9a4b86"
+              strokeWidth="1.4"
+            />
+            <text x="420" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              {step === 4 ? "整批拉 vs 逐层重叠时序" : "Mooncake 地址换算与零拷贝"}
+            </text>
+
+            {step !== 4 ? (
+              <>
+                <rect x="296" y="44" width="248" height="32" rx="6" fill="#ffffff" stroke="#9a4b86" />
+                <text x="420" y="65" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  P#7[5448K]↦D#3[1192K] · #12↦#5
+                </text>
+                {spec.wireKind === "handshake" && (
+                  <>
+                    <path
+                      d="M 556 96 L 284 96"
+                      stroke="#66716d"
+                      strokeWidth="1.8"
+                      markerEnd={`url(#${mMuted})`}
+                    />
+                    <path
+                      d="M 284 132 L 556 132"
+                      stroke="#66716d"
+                      strokeWidth="1.8"
+                      markerEnd={`url(#${mMuted})`}
+                    />
+                  </>
+                )}
+                {spec.wireKind === "rdma-copy" && (
+                  <>
+                    <path
+                      d="M 272 90 L 568 90"
+                      stroke="#9a4b86"
+                      strokeWidth="2.2"
+                      markerEnd={`url(#${mPlum})`}
+                    />
+                    <path
+                      d="M 272 132 L 568 132"
+                      stroke="#9a4b86"
+                      strokeWidth="2.2"
+                      markerEnd={`url(#${mPlum})`}
+                    />
+                    <path
+                      d="M 272 174 L 568 174"
+                      stroke="#9a4b86"
+                      strokeWidth="2.2"
+                      markerEnd={`url(#${mPlum})`}
+                    />
+                  </>
+                )}
+                {spec.wireKind === "v1-ack" && (
+                  <path
+                    d="M 568 132 L 272 132"
+                    stroke="#087f73"
+                    strokeWidth="2.4"
+                    markerEnd={`url(#${mTeal})`}
+                  />
+                )}
+                <rect x="296" y="186" width="248" height="38" rx="6" fill="#ffffff" stroke="#d8d8cf" />
+                <text x="420" y="210" textAnchor="middle" fontSize="12" fontWeight="700" fill="#9a4b86">
+                  {tpMode === "asym-tp4-tp2"
+                    ? "D 每卡从 2 张 P 卡拼 32K 半头"
+                    : `${spec.wireLabel} · 6段显存直传`}
+                </text>
+              </>
+            ) : (
+              <>
+                <text x="420" y="56" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+                  V1 整批拉：算3层(3.0) + 传3层(1.5) = 4.5
+                </text>
+                <rect x="296" y="66" width="160" height="24" rx="5" fill="#fff4cf" stroke="#c78300" />
+                <rect x="460" y="66" width="84" height="24" rx="5" fill="#fff0e9" stroke="#b54237" />
+                <text x="420" y="118" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+                  Layerwise 逐层推：边算边推 = 3.5 (省1.0!)
+                </text>
+                <rect x="296" y="128" width="160" height="24" rx="5" fill="#ddf4ef" stroke="#087f73" />
+                <rect x="350" y="158" width="144" height="24" rx="5" fill="#e8edff" stroke="#4c65b6" />
+                <text x="420" y="214" textAnchor="middle" fontSize="12" fill="#17211f">
+                  前 L−1 层传输藏在后续计算底下!
+                </text>
+              </>
+            )}
+
+            <rect
+              x="574"
+              y="8"
+              width="256"
+              height="232"
+              rx="10"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            <text x="702" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              D 实例显存池 (基址 1000K)
+            </text>
+            <text x="702" y="50" textAnchor="middle" fontSize="12" fill="#087f73">
+              目的块 #3(1192K) · #5(1320K)
+            </text>
+            {[0, 1, 2].map((ly) => {
+              const ry = 66 + ly * 48;
+              const rowSpec = spec.layers[ly]!;
+              return (
+                <g key={`d-ly-${ly}`}>
+                  {[2, 3, 4, 5].map((blk, bi) => {
+                    const bx = 594 + bi * 52;
+                    const hit = blk === 3 || blk === 5;
+                    return (
+                      <g key={`d-${ly}-${blk}`}>
+                        <rect
+                          x={bx}
+                          y={ry}
+                          width="46"
+                          height="34"
+                          rx="6"
+                          fill={
+                            !hit
+                              ? "#ece9df"
+                              : rowSpec.dReady
+                                ? "#ddf4ef"
+                                : rowSpec.transferring
+                                  ? "#f7e7f2"
+                                  : "#ffffff"
+                          }
+                          stroke={!hit ? "#d8d8cf" : rowSpec.dReady ? "#087f73" : "#9a4b86"}
+                          strokeWidth={hit ? "1.8" : "1"}
+                          strokeDasharray={hit && !rowSpec.dReady ? "4 2" : undefined}
+                        />
+                        <text
+                          x={bx + 23}
+                          y={ry + 22}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fontWeight="700"
+                          fill="#17211f"
+                        >
+                          {`#${blk}`}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+            <text x="702" y="226" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {spec.dBadge}
+            </text>
+          </svg>
+        </div>
+
+        <div className="wiki-edu-dual-grid">
           <div className="wiki-edu-panel">
             <div className="wiki-edu-panel-head">
               <span className="wiki-edu-panel-title">{spec.pHeader}</span>
               <span className={`wiki-edu-badge ${spec.pBadgeTone}`}>{spec.pBadge}</span>
             </div>
-            <div className="wiki-edu-tok-list">
-              {spec.layers.map((row) => (
-                <div
-                  key={`p-${row.layerLabel}`}
-                  className={`wiki-edu-tok-pill ${step === 3 ? "is-empty" : "is-sys"}`}
-                >
-                  <span>{row.layerLabel}</span>
-                  <span className="wiki-edu-ptr-tag">{row.pSlotText}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="wiki-edu-wires-col">
-            <svg
-              className="wiki-edu-wires-svg"
-              viewBox="0 0 136 220"
-              width="136"
-              height="220"
-              role="img"
-              aria-label={`Mooncake P/D 数据流：${spec.wireLabel}`}
-            >
-              <defs>
-                <marker
-                  id={mPlum}
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto"
-                >
-                  <path d="M0,1 L9,5 L0,9 z" fill="#9a4b86" />
-                </marker>
-                <marker
-                  id={mTeal}
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto"
-                >
-                  <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
-                </marker>
-                <marker
-                  id={mMuted}
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto"
-                >
-                  <path d="M0,1 L9,5 L0,9 z" fill="#66716d" />
-                </marker>
-              </defs>
-              {spec.wireKind === "handshake" && (
-                <>
-                  <path
-                    className="wiki-edu-wire is-flow"
-                    d="M 124 68 L 12 68"
-                    stroke="#66716d"
-                    markerEnd={`url(#${mMuted})`}
-                  />
-                  <path
-                    className="wiki-edu-wire is-flow"
-                    d="M 12 152 L 124 152"
-                    stroke="#66716d"
-                    markerEnd={`url(#${mMuted})`}
-                  />
-                </>
-              )}
-              {(spec.wireKind === "rdma-copy" || spec.wireKind === "layerwise-push") && (
-                <>
-                  <path
-                    className="wiki-edu-wire is-flow"
-                    d="M 10 58 L 126 58"
-                    stroke="#9a4b86"
-                    markerEnd={`url(#${mPlum})`}
-                  />
-                  <path
-                    className="wiki-edu-wire is-flow"
-                    d="M 10 110 L 126 110"
-                    stroke="#9a4b86"
-                    markerEnd={`url(#${mPlum})`}
-                  />
-                  <path
-                    className="wiki-edu-wire is-flow"
-                    d="M 10 162 L 126 162"
-                    stroke="#9a4b86"
-                    markerEnd={`url(#${mPlum})`}
-                  />
-                </>
-              )}
-              {spec.wireKind === "v1-ack" && (
-                <path
-                  className="wiki-edu-wire is-flow"
-                  d="M 126 110 L 10 110"
-                  stroke="#087f73"
-                  markerEnd={`url(#${mTeal})`}
-                />
-              )}
-              <rect x="14" y="96" width="108" height="26" rx="12" fill="#f7e7f2" stroke="#9a4b86" />
-              <text x="68" y="113" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                {spec.wireLabel}
-              </text>
-            </svg>
+            <div className="wiki-edu-note-card">{spec.protocolBanner}</div>
           </div>
 
           <div className="wiki-edu-panel">
@@ -520,14 +717,11 @@ export function MooncakeConnectorInteractive({
                   className={`wiki-edu-tok-pill ${row.dReady ? "is-priv" : row.transferring ? "is-cow" : "is-empty"}`}
                 >
                   <span>{row.layerLabel}</span>
-                  <span className="wiki-edu-ptr-tag">{row.dSlotText}</span>
+                  <span className="wiki-edu-ptr-tag">{`${row.pSlotText} → ${row.dSlotText}`}</span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-        <div className="wiki-edu-note-card" style={{ marginTop: "10px" }}>
-          {spec.protocolBanner}
         </div>
       </div>
     </WikiEduSandboxShell>

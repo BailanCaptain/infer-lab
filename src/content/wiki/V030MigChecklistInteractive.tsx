@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -137,6 +137,9 @@ export function V030MigChecklistInteractive({
   const [step, setStep] = useState<V030MigStep>(initialStep);
   const [playing, setPlaying] = useState(false);
   const spec = V030_MIG_GATES[step - 1]!;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mTeal = `${id}-${uid}-v3-teal`;
+  const mRed = `${id}-${uid}-v3-red`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -292,6 +295,158 @@ export function V030MigChecklistInteractive({
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">
+              v0.26 / rc2 旧启动脚本 vs v0.30.0 正式版五道兼容门拓扑
+            </span>
+            <span className="wiki-edu-badge is-bad">{spec.riskBadge}</span>
+          </div>
+          <svg
+            viewBox="0 0 840 168"
+            width="840"
+            height="168"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`v0.30.0 升级第 ${step} 关配置迁移对照图`}
+          >
+            <defs>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
+            </defs>
+            <rect
+              x="16"
+              y="20"
+              width="236"
+              height="54"
+              rx="8"
+              fill="#fff0e9"
+              stroke="#b54237"
+              strokeWidth="1.6"
+            />
+            <text x="134" y="43" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+              旧版习惯写法
+            </text>
+            <text x="134" y="63" textAnchor="middle" fontSize="12" fill="#17211f">
+              {["混配旧环境变量", "默认旧版加载", "沿用旧连接器名", "漏对权重精度", "手调默认开关"][step - 1]}
+            </text>
+
+            <line
+              x1="254"
+              y1="47"
+              x2="296"
+              y2="47"
+              stroke="#b54237"
+              strokeWidth="2"
+              markerEnd={`url(#${mRed})`}
+            />
+
+            <rect
+              x="302"
+              y="14"
+              width="236"
+              height="140"
+              rx="10"
+              fill="#fff4cf"
+              stroke="#c78300"
+              strokeWidth="1.8"
+            />
+            <text x="420" y="38" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              {`第 ${step} 关 · v0.30.0 校验器`}
+            </text>
+            <text x="420" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+              ✗ 拦截旧项或行为已变
+            </text>
+            <text x="420" y="106" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              ✓ 对齐结构化配置放行
+            </text>
+            <text x="420" y="138" textAnchor="middle" fontSize="12" fill="#66716d">
+              {`通关进度 ${step} / 5`}
+            </text>
+
+            <rect
+              x="16"
+              y="96"
+              width="236"
+              height="54"
+              rx="8"
+              fill="#ddf4ef"
+              stroke="#087f73"
+              strokeWidth="1.6"
+            />
+            <text x="134" y="119" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              v0.30.0 标准处方
+            </text>
+            <text x="134" y="139" textAnchor="middle" fontSize="12" fill="#17211f">
+              {
+                [
+                  "迁入附加配置字典",
+                  "核对MRV2与启动项",
+                  "改用V2或拉推新名",
+                  "对齐真实模型精度",
+                  "按新基线精简参数",
+                ][step - 1]
+              }
+            </text>
+
+            <line
+              x1="254"
+              y1="123"
+              x2="296"
+              y2="123"
+              stroke="#087f73"
+              strokeWidth="2"
+              markerEnd={`url(#${mTeal})`}
+            />
+            <line
+              x1="540"
+              y1="106"
+              x2="584"
+              y2="106"
+              stroke="#087f73"
+              strokeWidth="2"
+              markerEnd={`url(#${mTeal})`}
+            />
+
+            <rect
+              x="590"
+              y="64"
+              width="234"
+              height="84"
+              rx="9"
+              fill="#ddf4ef"
+              stroke="#087f73"
+              strokeWidth="1.8"
+            />
+            <text x="707" y="96" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              稳态起服就绪
+            </text>
+            <text x="707" y="124" textAnchor="middle" fontSize="12" fill="#087f73">
+              零废弃告警 · 精度对齐
+            </text>
+          </svg>
+        </div>
+
         <div className="wiki-edu-chunks-wrap">
           {V030_MIG_GATES.map((item) => {
             const cls = item.step < step ? "is-pass" : item.step === step ? "is-fault" : "is-skip";

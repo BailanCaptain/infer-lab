@@ -395,7 +395,7 @@ export function SpeculativeDecodingInteractive({
 
           <div className="wiki-edu-note-card">
             永远由<strong>主模型拍板答案</strong>
-            ：对上的本来就是主模型的预测；错的当场换成主模型的「垫子」，零精度损失！
+            ：对上的本来就是主模型的预测；错的当场采用主模型在分歧位的直接修正词（本例「垫子」），零精度损失！
           </div>
         </div>
 

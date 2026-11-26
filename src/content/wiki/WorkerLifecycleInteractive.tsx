@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -164,6 +164,9 @@ export function WorkerLifecycleInteractive({
   const [step, setStep] = useState<WorkerLifecycleStage>(initialStep);
   const [playing, setPlaying] = useState(false);
   const spec = WORKER_LIFECYCLE_STAGES[step - 1]!;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mTeal = `${id}-${uid}-wk-teal`;
+  const mWarn = `${id}-${uid}-wk-warn`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -357,6 +360,94 @@ export function WorkerLifecycleInteractive({
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">双卡启动时序、跨卡同步栅栏与单卡显存水位生长图</span>
+            <span className={`wiki-edu-badge ${spec.hasCrossCardBarrier ? "is-warn" : "is-good"}`}>
+              {spec.hasCrossCardBarrier ? "跨卡同步栅栏" : "单向依赖链"}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 820 186"
+            width="820"
+            height="186"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`NPUWorker 冷启动第 ${step} 阶段时序与显存水位`}
+          >
+            <defs>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mWarn}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
+              </marker>
+            </defs>
+            {[1, 2, 3, 4, 5].map((st, idx) => {
+              const sx = 18 + idx * 160;
+              const active = st === step;
+              const done = st < step;
+              const hbmH = [18, 28, 72, 92, 128][idx]!;
+              return (
+                <g key={`wk-svg-${st}`}>
+                  <rect
+                    x={sx}
+                    y="12"
+                    width="140"
+                    height="162"
+                    rx="8"
+                    fill={active ? "#ddf4ef" : done ? "#fbfaf6" : "#ece9df"}
+                    stroke={active ? "#087f73" : "#d8d8cf"}
+                    strokeWidth={active ? "2" : "1.2"}
+                  />
+                  <rect
+                    x={sx + 16}
+                    y={152 - hbmH}
+                    width="108"
+                    height={hbmH}
+                    rx="5"
+                    fill={st === 4 && active ? "#fff4cf" : "#e8edff"}
+                    stroke={st === 4 && active ? "#c78300" : "#4c65b6"}
+                  />
+                  <text x={sx + 70} y="32" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {`阶段 ${st}`}
+                  </text>
+                  <text x={sx + 70} y="168" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {["绑卡建流", "HCCL栅栏", "载入权重", "假跑探峰", "划池录图"][idx]}
+                  </text>
+                  {idx < 4 && (
+                    <line
+                      x1={sx + 142}
+                      y1="92"
+                      x2={sx + 156}
+                      y2="92"
+                      stroke={st === 2 ? "#c78300" : "#087f73"}
+                      strokeWidth="1.8"
+                      markerEnd={`url(#${st === 2 ? mWarn : mTeal})`}
+                    />
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
         <div className="wiki-edu-dual-grid">
           {renderSwimlane("subproc", "上半场 · 子进程自驱 (①–③)", "每卡本地准备")}
           {renderSwimlane("engine", "下半场 · 引擎广播 (④–⑥)", "跨卡统一配置")}

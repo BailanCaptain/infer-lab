@@ -832,9 +832,10 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 }
 
 function isEnabledSubConfig(val: unknown): boolean {
-  if (typeof val === "boolean") return val;
+  const scalar = parsePydanticLaxBool(val);
+  if (scalar !== undefined) return scalar;
   if (isRecord(val)) {
-    const explicit = parseBoolLike(val.enabled ?? val.enable);
+    const explicit = parsePydanticLaxBool(val.enabled ?? val.enable);
     return explicit !== undefined ? explicit : Object.keys(val).length > 0;
   }
   return false;
@@ -1343,13 +1344,25 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
   if (mambaCacheMode !== undefined) couplingInput.mambaCacheMode = mambaCacheMode;
 
   // Env-driven coupling fields (vllm/envs.py uses bool(int(val)) for VLLM_USE_V2_MODEL_RUNNER & VLLM_BATCH_INVARIANT)
-  if (Object.hasOwn(envVars, "VLLM_USE_V2_MODEL_RUNNER")) {
-    const b = parseEnvIntBool(envVars.VLLM_USE_V2_MODEL_RUNNER);
-    if (b !== undefined) couplingInput.useV2ModelRunner = b;
-  }
-  if (Object.hasOwn(envVars, "VLLM_BATCH_INVARIANT")) {
-    const b = parseEnvIntBool(envVars.VLLM_BATCH_INVARIANT);
-    if (b !== undefined) couplingInput.vllmBatchInvariant = b;
+  for (const [envKey, targetField] of [
+    ["VLLM_USE_V2_MODEL_RUNNER", "useV2ModelRunner"],
+    ["VLLM_BATCH_INVARIANT", "vllmBatchInvariant"],
+  ] as const) {
+    if (Object.hasOwn(envVars, envKey)) {
+      const rawEnv = envVars[envKey];
+      const b = parseEnvIntBool(rawEnv);
+      if (b !== undefined) {
+        couplingInput[targetField] = b;
+      } else {
+        diagnostics.push({
+          code: "parse-invalid-number",
+          severity: "error",
+          flag: envKey,
+          message: `ValueError: 环境变量 ${envKey}='${rawEnv ?? ""}' 非十进制整数（上游 vllm/envs.py 通过 bool(int(...)) 解析该变量，传入非整数将在启动时抛出 ValueError）。`,
+          remediation: `请将 ${envKey} 设为 1 或 0，或取消设置该环境变量。`,
+        });
+      }
+    }
   }
   if (Object.hasOwn(envVars, "PYTORCH_NPU_ALLOC_CONF")) {
     const npuAlloc = envVars.PYTORCH_NPU_ALLOC_CONF;
@@ -1380,7 +1393,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       );
     }
     if (isRecord(compilationConfig.pass_config)) {
-      const sp = parseBoolLike(compilationConfig.pass_config.enable_sp);
+      const sp = parsePydanticLaxBool(compilationConfig.pass_config.enable_sp);
       if (sp !== undefined) couplingInput.enableSp = sp;
     }
   }
@@ -1391,23 +1404,23 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       ? additionalConfig.ascend_compilation_config
       : null;
     if (acc) {
-      const npugraph = parseBoolLike(acc.enable_npugraph_ex);
+      const npugraph = parsePydanticLaxBool(acc.enable_npugraph_ex);
       if (npugraph !== undefined) couplingInput.enableNpugraphEx = npugraph;
-      const staticK = parseBoolLike(acc.enable_static_kernel);
+      const staticK = parsePydanticLaxBool(acc.enable_static_kernel);
       if (staticK !== undefined) couplingInput.enableStaticKernel = staticK;
-      const superK = parseBoolLike(acc.enable_super_kernel);
+      const superK = parsePydanticLaxBool(acc.enable_super_kernel);
       if (superK !== undefined) couplingInput.enableSuperKernel = superK;
     }
     const sched =
       (isRecord(additionalConfig.scheduler_config) ? additionalConfig.scheduler_config : null) ??
       (isRecord(additionalConfig.ascend_scheduler_config) ? additionalConfig.ascend_scheduler_config : null);
 
-    const recompute = parseBoolLike(
+    const recompute = parsePydanticLaxBool(
       additionalConfig.recompute_scheduler_enable ?? sched?.recompute_scheduler_enable,
     );
     if (recompute !== undefined) couplingInput.recomputeSchedulerEnable = recompute;
 
-    const balSched = parseBoolLike(
+    const balSched = parsePydanticLaxBool(
       additionalConfig.enable_balance_scheduling ?? sched?.enable_balance_scheduling,
     );
     if (balSched !== undefined) couplingInput.enableBalanceScheduling = balSched;
@@ -1432,9 +1445,9 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       couplingInput.dyntraLbEnabled = true;
     }
 
-    const fc1 = parseBoolLike(additionalConfig.enable_flashcomm1);
+    const fc1 = parsePydanticLaxBool(additionalConfig.enable_flashcomm1);
     if (fc1 !== undefined) couplingInput.enableFlashcomm1 = fc1;
-    const dsaCp = parseBoolLike(additionalConfig.enable_dsa_cp);
+    const dsaCp = parsePydanticLaxBool(additionalConfig.enable_dsa_cp);
     if (dsaCp !== undefined) couplingInput.enableDsaCp = dsaCp;
     const fusedMc2 = parseNumberLike(additionalConfig.enable_fused_mc2);
     if (fusedMc2 === 0 || fusedMc2 === 1 || fusedMc2 === 2 || fusedMc2 === 3) {
@@ -1447,17 +1460,17 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
       });
     }
-    const prefillMc2 = parseBoolLike(additionalConfig.enable_prefill_mc2);
+    const prefillMc2 = parsePydanticLaxBool(additionalConfig.enable_prefill_mc2);
     if (prefillMc2 !== undefined) couplingInput.enablePrefillMc2 = prefillMc2;
     const nzMode = parseNumberLike(additionalConfig.weight_nz_mode);
     if (nzMode !== undefined) couplingInput.weightNzMode = nzMode;
-    const sparseSfaC8 = parseBoolLike(additionalConfig.enable_sparse_sfa_c8);
+    const sparseSfaC8 = parsePydanticLaxBool(additionalConfig.enable_sparse_sfa_c8);
     if (sparseSfaC8 !== undefined) couplingInput.enableSparseSfaC8 = sparseSfaC8;
 
     if (isRecord(additionalConfig.rl_config)) {
-      const rlEn = parseBoolLike(additionalConfig.rl_config.enabled);
+      const rlEn = parsePydanticLaxBool(additionalConfig.rl_config.enabled);
       if (rlEn !== undefined) couplingInput.rlEnabled = rlEn;
-      const rlCons = parseBoolLike(additionalConfig.rl_config.training_consistency);
+      const rlCons = parsePydanticLaxBool(additionalConfig.rl_config.training_consistency);
       if (rlCons !== undefined) couplingInput.rlTrainingConsistency = rlCons;
     }
     if (isEnabledSubConfig(additionalConfig.xlite_graph_config)) {
@@ -1508,15 +1521,15 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
       couplingInput.mainOnlyAdditionalConfigKeys = presentMainOnly;
     }
 
-    const sedp = parseBoolLike(additionalConfig.enable_shared_expert_dp);
+    const sedp = parsePydanticLaxBool(additionalConfig.enable_shared_expert_dp);
     if (sedp !== undefined) couplingInput.enableSharedExpertDp = sedp;
-    const mmSef = parseBoolLike(additionalConfig.megamoe_shared_expert_fusion);
+    const mmSef = parsePydanticLaxBool(additionalConfig.megamoe_shared_expert_fusion);
     if (mmSef !== undefined) couplingInput.megamoeSharedExpertFusion = mmSef;
-    const meo = parseBoolLike(additionalConfig.multistream_engram_overlap);
+    const meo = parsePydanticLaxBool(additionalConfig.multistream_engram_overlap);
     if (meo !== undefined) couplingInput.multistreamEngramOverlap = meo;
-    const gdnCp = parseBoolLike(additionalConfig.gdn_internal_prefill_checkpoints);
+    const gdnCp = parsePydanticLaxBool(additionalConfig.gdn_internal_prefill_checkpoints);
     if (gdnCp !== undefined) couplingInput.gdnInternalPrefillCheckpoints = gdnCp;
-    const kvDbg = parseBoolLike(additionalConfig.kv_pool_range_debug);
+    const kvDbg = parsePydanticLaxBool(additionalConfig.kv_pool_range_debug);
     if (kvDbg !== undefined) couplingInput.kvPoolRangeDebug = kvDbg;
 
     const rawSe = additionalConfig.shared_engram;
@@ -1640,7 +1653,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
     if (isEnabledSubConfig(additionalConfig.sparse_kv_offload_config)) {
       couplingInput.sparseKvOffloadEnabled = true;
       if (isRecord(additionalConfig.sparse_kv_offload_config)) {
-        const keep = parseBoolLike(additionalConfig.sparse_kv_offload_config.keep_device_kv_cache);
+        const keep = parsePydanticLaxBool(additionalConfig.sparse_kv_offload_config.keep_device_kv_cache);
         if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
         const topkBuf = parseNumberLike(additionalConfig.sparse_kv_offload_config.topk_buffer_size);
         if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;

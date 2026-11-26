@@ -65,7 +65,9 @@ export interface AgentEdge {
 
 export function makeAgentWiki(pages: AgentPage[]): AgentWiki {
   const byId = new Map(pages.map((p) => [p.id, p]));
-  const index = buildIndex(pages.map((p) => ({ ...p, text: p.indexText ?? p.text })));
+  const index = buildIndex(
+    pages.map((p) => ({ ...p, text: p.indexText !== undefined ? p.indexText : p.text })),
+  );
   const hitOf = (p: AgentPage): AgentHit => ({
     id: p.id,
     title: p.title,
@@ -125,7 +127,7 @@ function readAgentPagesFromDisk(
       ...page,
       ...(derived !== page.title ? { displayTitle: derived } : {}),
       text: rawText,
-      indexText: body || rawText,
+      indexText: bodyByFile.has(page.file) ? body : rawText,
     };
   });
 }

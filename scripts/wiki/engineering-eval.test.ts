@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -176,5 +177,67 @@ describe("engineering-eval-suite（193 页真实知识库工程检索与负例�
         .slice(0, 3)
         .map((h) => h.id),
     ).toEqual(sizeTop3);
+
+    // Empty body never falls back to indexing YAML frontmatter comments in loadAgentWiki or createCachedAgentWikiLoader
+    const tmpRoot = mkdtempSync(join(tmpdir(), "wiki-empty-body-"));
+    try {
+      mkdirSync(join(tmpRoot, "wiki/concepts"), { recursive: true });
+      mkdirSync(join(tmpRoot, "src/content/wiki"), { recursive: true });
+      writeFileSync(
+        join(tmpRoot, "wiki/concepts/empty-body.md"),
+        [
+          "---",
+          "# frontmatteronlytokenxyz",
+          "id: empty-body",
+          "title: 空正文测试页",
+          "type: concept",
+          "origin: direct",
+          "summary: 验证空正文不会把 YAML 注释送入检索索引。",
+          "aliases: []",
+          "chapters: ['01']",
+          "sources:",
+          "  - https://github.com/vllm-project/vllm-ascend/pull/1",
+          "relations: []",
+          "verified: []",
+          "evidence: C",
+          "contradicts: []",
+          "updated: '2026-11-26'",
+          "---",
+          "",
+        ].join("\n"),
+      );
+      writeFileSync(
+        join(tmpRoot, "src/content/wiki/registry.json"),
+        JSON.stringify({
+          version: 1,
+          pages: [
+            {
+              id: "empty-body",
+              title: "空正文测试页",
+              type: "concept",
+              origin: "direct",
+              summary: "验证空正文不会把 YAML 注释送入检索索引。",
+              aliases: [],
+              chapters: ["01"],
+              order: 500,
+              prerequisites: [],
+              sources: ["https://github.com/vllm-project/vllm-ascend/pull/1"],
+              verified: [],
+              evidence: "C",
+              relations: [],
+              related: [],
+              contradicts: [],
+              updated: "2026-11-26",
+              file: "concepts/empty-body.md",
+              backlinks: [],
+            },
+          ],
+        }),
+      );
+      expect(loadAgentWiki(tmpRoot).search("frontmatteronlytokenxyz", 5)).toEqual([]);
+      expect(createCachedAgentWikiLoader(tmpRoot)().search("frontmatteronlytokenxyz", 5)).toEqual([]);
+    } finally {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
   });
 });

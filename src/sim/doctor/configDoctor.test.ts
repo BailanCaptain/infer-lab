@@ -691,11 +691,29 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     expect(qarDotZeroInt.effectiveInput.quantizedAllReduceMinNumel).toBe(32768);
 
     const envV2OnInvalid = runSingleConfigDoctor(
-      `VLLM_USE_V2_MODEL_RUNNER=on vllm serve Qwen/Qwen3-8B -tp 2 --prefill-context-parallel-size 2`,
-      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+      `VLLM_USE_V2_MODEL_RUNNER=on vllm serve Qwen/Qwen3-8B -tp 2`,
+      {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      },
     );
     expect(envV2OnInvalid.effectiveInput.useV2ModelRunner).toBeUndefined();
-    expect(envV2OnInvalid.errors.some((f) => f.id === "d4-pcp-requires-mrv2")).toBe(true);
+    expect(envV2OnInvalid.errors.some((f) => f.message.includes("VLLM_USE_V2_MODEL_RUNNER='on'"))).toBe(true);
+
+    const envBatchInvOnInvalid = runSingleConfigDoctor(
+      `VLLM_BATCH_INVARIANT=on vllm serve Qwen/Qwen3-8B -tp 2`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(envBatchInvOnInvalid.errors.some((f) => f.message.includes("VLLM_BATCH_INVARIANT='on'"))).toBe(
+      true,
+    );
+
+    const superKernelOn = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"ascend_compilation_config":{"enable_super_kernel":"on","enable_static_kernel":false}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "v0.30.0" },
+    );
+    expect(superKernelOn.errors.some((f) => f.id === "d5-solo-super-or-static-kernel-error")).toBe(true);
 
     const seNullCap = runSingleConfigDoctor(
       `vllm serve /models/DeepSeek-V4 -tp 4 -dp 2 --shutdown-timeout 15 --enable-expert-parallel --additional-config '{"shared_engram":{"backend":"a2","endpoint":"10.0.0.1:29661","capacity":null}}'`,

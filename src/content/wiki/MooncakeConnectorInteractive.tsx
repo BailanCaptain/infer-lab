@@ -417,7 +417,13 @@ export function MooncakeConnectorInteractive({
       takeawayBadge={spec.badgeText}
       takeawayTone={spec.takeawayTone}
       takeaway={spec.takeaway}
-      kpi={spec.kpi}
+      kpi={
+        step === 1 && tpMode === "asym-tp4-tp2"
+          ? "2卡×32K：P#7(5224K)→D#3(1192K)"
+          : step === 2 && tpMode === "asym-tp4-tp2"
+            ? "2 块 × 3 层 × 2 半头 = 12 段直传"
+            : spec.kpi
+      }
       detailsSummary="查看工程与源码细节（地址换算式 / 非对称 TP 拼头 / V1 vs Layerwise 完成通知与 GQA+C8 禁配）"
       detailsContent={
         <>

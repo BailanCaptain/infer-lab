@@ -177,7 +177,7 @@ file: dspark-flow
 
 ## 放回固定 GLM 双机与常规 MTP 能借用什么
 
-前文的「期望有效产出 ÷ 整轮耗时」盈亏平衡算式同样适用于常规自回归 MTP（如例外 B [GLM-5.3-Flash 双机](glm-5-3-flash-two-node.md)的固定 3 步 MTP 投机）：当高并发批次把主模型推入更宽的图尺寸分档或跨机通信瓶颈时，同样可以用三表分段耗时核对每轮多验的候选是否抵得过额外步长。但必须分清实现边界：**固定 GLM MTP 采用逐层串行起草，不具备 `DSpark` 的块扩散马尔可夫偏置头、`ConfidenceHead` 置信头，也不包含昇腾 `dynamic_spec_config`、`enable_adaptive_verification` 或 DeepInfer 的 `MTPVarlen` 开关**，排查时切勿把 `DSpark` 专属配置套到固定 GLM MTP 上。
+前文的「期望有效产出 ÷ 整轮耗时」盈亏平衡算式同样适用于常规自回归 MTP（如例外 B [GLM-5.3-Flash 双机](glm-5-3-flash-two-node.md)的固定 3 步 MTP 投机）：当高并发批次把主模型推入更宽的图尺寸分档或跨机通信瓶颈时，同样可以用三表分段耗时核对每轮多验的候选是否抵得过额外步长。但必须分清实现边界：**固定 GLM MTP 仅挂 1 个 MTP 层（层号 `45`）并连续串行调用 3 次（`[45, 45, 45]`）起草，不具备 `DSpark` 的块扩散马尔可夫偏置头、`ConfidenceHead` 置信头，也不包含昇腾 `dynamic_spec_config`、`enable_adaptive_verification` 或 DeepInfer 的 `MTPVarlen` 开关**，排查时切勿把 `DSpark` 专属配置套到固定 GLM MTP 上。
 
 ## 常见误解
 

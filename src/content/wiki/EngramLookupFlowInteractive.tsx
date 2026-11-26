@@ -739,7 +739,7 @@ export function EngramLookupFlowInteractive({
 
           <div className={`wiki-edu-panel${placement !== "shared-mem" ? " is-oom" : ""}`}>
             <div className="wiki-edu-panel-head">
-              <span className="wiki-edu-panel-title">② 三档放置模式的容量与通信真账</span>
+              <span className="wiki-edu-panel-title">③ 三档放置模式的容量与通信真账</span>
               <span className="wiki-edu-badge is-good">NPU 显存 0 常驻大表</span>
             </div>
 

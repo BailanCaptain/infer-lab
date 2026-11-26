@@ -1,6 +1,6 @@
 mode: native-svg
 id: dspark-intuition
 caption: >-
-  从 DFlash 到 DSpark 的投机解码演进对照：左侧 DFlash 将目标模型辅助隐藏态与 [Anchor, Mask₁..K] 一次并行前向并独立采样，后段词间缺乏自回归衔接易失真，且固定送满 K 词白耗主模型验证算力；右侧 DSpark 在一次并行草稿主干之上串联轻量马尔可夫偏置头恢复局部连贯性，并依据累计存活置信度与验证预算（如 initial_verify_budget_per_req / 自适应验证控制器）截断低置信尾部。
+  从 DFlash 到 DSpark 的投机解码演进对照：左侧 DFlash 将目标模型辅助隐藏态与 [Anchor, Mask₁..K] 一次并行前向并独立采样，后段词间缺乏自回归衔接易失真，采用固定预算基线时送满 K 词白耗主模型验证算力（MRV1 亦可另挂 DynamicSpecScheduler 动态截断）；右侧 DSpark 在一次并行草稿主干之上串联轻量马尔可夫偏置头恢复局部连贯性，并依据累计存活置信度与验证预算（如 initial_verify_budget_per_req / 自适应验证控制器）截断低置信尾部。
 size: [900, 540]
 pins: []

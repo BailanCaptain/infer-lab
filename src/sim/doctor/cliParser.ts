@@ -56,6 +56,8 @@ export interface InferredModelHints {
   hasRoutedExpertHiddenSize?: boolean | undefined;
   useMla?: boolean | undefined;
   usesSfaSparse?: boolean | undefined;
+  indexTopk?: number | undefined;
+  linearNumHeads?: number | undefined;
   isQwen35Dense?: boolean | undefined;
   modelType?: string | undefined;
   numExperts?: number | undefined;
@@ -670,13 +672,13 @@ function splitSegmentsByIfs(segments: readonly ShellWordSegment[], ifs: string |
   const fields: string[] = [];
   let cur = "";
   let hasToken = false;
-  let afterNonWsDelim = false;
+  let pendingDelim: "none" | "ws" | "nonws" = "none";
 
   for (const seg of segments) {
     if (!seg.splittable) {
       cur += seg.text;
       hasToken = true;
-      afterNonWsDelim = false;
+      pendingDelim = "none";
       continue;
     }
     for (const ch of seg.text) {
@@ -685,20 +687,21 @@ function splitSegmentsByIfs(segments: readonly ShellWordSegment[], ifs: string |
           fields.push(cur);
           cur = "";
           hasToken = false;
+          pendingDelim = "ws";
         }
       } else if (ifsNonWs.has(ch)) {
-        if (hasToken || afterNonWsDelim) {
+        if (hasToken) {
           fields.push(cur);
           cur = "";
           hasToken = false;
-        } else {
+        } else if (pendingDelim !== "ws") {
           fields.push("");
         }
-        afterNonWsDelim = true;
+        pendingDelim = "nonws";
       } else {
         cur += ch;
         hasToken = true;
-        afterNonWsDelim = false;
+        pendingDelim = "none";
       }
     }
   }
@@ -940,9 +943,42 @@ function parsePydanticLaxInt(val: unknown): number | undefined {
   return bi > 0n ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
 }
 
-function parsePydanticNoBoolInt(val: unknown): number | undefined {
+function parsePydanticNoBoolBigInt(val: unknown): bigint | undefined {
   if (typeof val === "boolean") return undefined;
-  return parsePydanticLaxInt(val);
+  return parsePydanticLaxBigInt(val);
+}
+
+function parsePythonBuiltinBigInt(val: unknown): bigint | "invalid" | undefined {
+  if (val === undefined) return undefined;
+  if (typeof val === "boolean") return val ? 1n : 0n;
+  if (typeof val === "number") {
+    if (!Number.isFinite(val)) return "invalid";
+    return BigInt(Math.trunc(val));
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (/^[+-]?\d(?:_?\d)*$/.test(trimmed)) {
+      try {
+        return BigInt(trimmed.replace(/_/g, ""));
+      } catch {
+        return "invalid";
+      }
+    }
+  }
+  return "invalid";
+}
+
+function parsePythonBuiltinFloat(val: unknown): number | "invalid" | undefined {
+  if (val === undefined) return undefined;
+  if (typeof val === "boolean") return val ? 1 : 0;
+  if (typeof val === "number") return val;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (/^[+-]?nan$/i.test(trimmed)) return Number.NaN;
+    const f = parsePydanticLaxFloat(trimmed);
+    if (f !== undefined) return f;
+  }
+  return "invalid";
 }
 
 function parsePydanticLaxFloat(val: unknown): number | undefined {
@@ -1094,6 +1130,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-30B-A3B";
     hints.isMoe = true;
     hints.useMla = false;
+    hints.modelType = "qwen3_moe";
     hints.numExperts = 128;
     hints.numExpertsPerTok = 8;
     hints.numAttentionHeads = 32;
@@ -1105,6 +1142,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-235B-A22B";
     hints.isMoe = true;
     hints.useMla = false;
+    hints.modelType = "qwen3_moe";
     hints.numExperts = 128;
     hints.numExpertsPerTok = 8;
     hints.numAttentionHeads = 64;
@@ -1116,6 +1154,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-8B";
     hints.isMoe = false;
     hints.useMla = false;
+    hints.modelType = "qwen3";
     hints.numAttentionHeads = 32;
     hints.numKvHeads = 8;
     hints.headDim = 128;
@@ -1125,6 +1164,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-14B";
     hints.isMoe = false;
     hints.useMla = false;
+    hints.modelType = "qwen3";
     hints.numAttentionHeads = 40;
     hints.numKvHeads = 8;
     hints.headDim = 128;
@@ -1134,6 +1174,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-32B";
     hints.isMoe = false;
     hints.useMla = false;
+    hints.modelType = "qwen3";
     hints.numAttentionHeads = 64;
     hints.numKvHeads = 8;
     hints.headDim = 128;
@@ -1143,6 +1184,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3-0.6B";
     hints.isMoe = false;
     hints.useMla = false;
+    hints.modelType = "qwen3";
     hints.numAttentionHeads = 16;
     hints.numKvHeads = 8;
     hints.headDim = 128;
@@ -1152,6 +1194,7 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.matchedPresetName = "Qwen3.5-27B";
     hints.isMoe = false;
     hints.useMla = false;
+    hints.modelType = "qwen3_5";
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4/.test(s)) {
@@ -1167,36 +1210,68 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.kvLoraRank = 512;
     hints.qkRopeHeadDim = 64;
     hints.defaultModelDtype = "bfloat16";
-  } else if (/deepseek[-_.]?(v3|r1)/.test(s)) {
-    hints.matchedPresetName = "DeepSeek-V3/R1";
+  } else if (/deepseek[-_.]?v3\.2/.test(s)) {
+    hints.matchedPresetName = "DeepSeek-V3.2";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.usesSfaSparse = false;
+    hints.indexTopk = 2048;
+    hints.modelType = "deepseek_v32";
     hints.numExperts = 256;
     hints.numExpertsPerTok = 8;
     hints.numAttentionHeads = 128;
     hints.kvLoraRank = 512;
     hints.qkRopeHeadDim = 64;
     hints.defaultModelDtype = "bfloat16";
+  } else if (/deepseek[-_.]?(v3|r1)/.test(s)) {
+    hints.matchedPresetName = "DeepSeek-V3/R1";
+    hints.isMoe = true;
+    hints.useMla = true;
+    hints.modelType = "deepseek_v3";
+    hints.numExperts = 256;
+    hints.numExpertsPerTok = 8;
+    hints.numAttentionHeads = 128;
+    hints.kvLoraRank = 512;
+    hints.qkRopeHeadDim = 64;
+    hints.defaultModelDtype = "bfloat16";
+  } else if (/glm[-_.]?5\.3[-_.]?flash/.test(s)) {
+    hints.matchedPresetName = "GLM-5.3-Flash";
+    hints.isMoe = true;
+    hints.useMla = true;
+    hints.modelType = "glm5_next";
+    hints.linearNumHeads = 64;
+    hints.defaultModelDtype = "bfloat16";
   } else if (/glm[-_.]?5/.test(s)) {
     hints.matchedPresetName = "GLM-5-MoE";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.modelType = "glm5";
     hints.defaultModelDtype = "bfloat16";
   } else if (/glm[-_.]?4\.7[-_.]?flash/.test(s)) {
     hints.matchedPresetName = "GLM-4.7-Flash";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.modelType = "glm4_moe_lite";
     hints.defaultModelDtype = "bfloat16";
   } else if (/glm[-_.]?(4\.5|4\.6|4\.7)/.test(s)) {
     hints.matchedPresetName = "GLM-4.5/4.7-MoE";
     hints.isMoe = true;
     hints.useMla = false;
+    hints.modelType = "glm4_moe";
     hints.defaultModelDtype = "bfloat16";
   } else if (/kimi[-_.]?k3/.test(s)) {
     hints.matchedPresetName = "Kimi-K3-LatentMoE";
     hints.isMoe = true;
+    hints.modelType = "kimi_k3";
     hints.hasRoutedExpertHiddenSize = true;
     hints.defaultModelDtype = "bfloat16";
+  } else if (/mixtral/.test(s)) {
+    hints.isMoe = true;
+    hints.useMla = false;
+    hints.modelType = "mixtral";
+  } else if (/(?:llama|mistral|gemma|internlm|yi)/.test(s)) {
+    hints.isMoe = false;
+    hints.useMla = false;
   }
 
   // Weight quantization & C8 naming hints
@@ -1599,19 +1674,22 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
 
     // POSIX §2.9.1 Step 2: Expand prefix assignments left-to-right into childEnv
+    // Prefix assignments on a regular command do NOT clear unsetNames in the parent shell.
     const assignEnv: Record<string, string> = { ...shellVars };
+    const cmdUnsetNames = new Set<string>(unsetNames);
     const childEnv = buildExportedSnapshot(shellVars, exportedNames);
     const onPrefixSideEffect = (k: string, v: string): void => {
       assignEnv[k] = v;
+      cmdUnsetNames.delete(k);
       setShellVar(k, v);
       if (exportedNames.has(k) || Object.hasOwn(childEnv, k)) childEnv[k] = v;
     };
     for (let i = 0; i < idx; i += 1) {
       const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
       if (!m?.[1]) continue;
-      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect, false, 0, unsetNames);
+      const val = expandShellWord(m[2] ?? "", assignEnv, onPrefixSideEffect, false, 0, cmdUnsetNames);
       assignEnv[m[1]] = val;
-      unsetNames.delete(m[1]);
+      cmdUnsetNames.delete(m[1]);
       childEnv[m[1]] = val;
     }
 
@@ -1772,13 +1850,60 @@ function pushRangeError(
   val: unknown,
 ): void {
   if (diagnostics.some((d) => d.flag === flag)) return;
+  const formattedVal = typeof val === "bigint" ? val.toString() : JSON.stringify(val);
   diagnostics.push({
     code: "parse-invalid-range",
     severity: "error",
     flag,
-    message: `ValidationError: ${flag} 超出上游取值约束（要求 ${constraintDesc}，收到 ${JSON.stringify(val)}）。`,
+    message: `ValidationError: ${flag} 超出上游取值约束（要求 ${constraintDesc}，收到 ${formattedVal}）。`,
     remediation: `请按上游校验规则调整 ${flag}（${constraintDesc}）。`,
   });
+}
+
+function readRforkIntField(
+  holder: Record<string, unknown>,
+  key: string,
+  flagPath: string,
+  diagnostics: CliParseDiagnostic[],
+): bigint | undefined {
+  if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
+  const parsed = parsePythonBuiltinBigInt(holder[key]);
+  if (parsed === "invalid") {
+    const fullFlag = `${flagPath}.${key}`;
+    if (!diagnostics.some((d) => d.flag === fullFlag)) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: fullFlag,
+        message: `ValueError / TypeError: ${fullFlag} 无法通过 Python int() 解析（收到 ${JSON.stringify(holder[key])}）。`,
+      });
+    }
+    return undefined;
+  }
+  return parsed;
+}
+
+function readRforkFloatField(
+  holder: Record<string, unknown>,
+  key: string,
+  flagPath: string,
+  diagnostics: CliParseDiagnostic[],
+): number | undefined {
+  if (!Object.hasOwn(holder, key) || holder[key] === undefined) return undefined;
+  const parsed = parsePythonBuiltinFloat(holder[key]);
+  if (parsed === "invalid") {
+    const fullFlag = `${flagPath}.${key}`;
+    if (!diagnostics.some((d) => d.flag === fullFlag)) {
+      diagnostics.push({
+        code: "parse-invalid-json-type",
+        severity: "error",
+        flag: fullFlag,
+        message: `ValueError / TypeError: ${fullFlag} 无法通过 Python float() 解析（收到 ${JSON.stringify(holder[key])}）。`,
+      });
+    }
+    return undefined;
+  }
+  return parsed;
 }
 
 function validateAscendModelValidatorRanges(
@@ -1787,6 +1912,7 @@ function validateAscendModelValidatorRanges(
   resolveSchedHolder: (key: string) => { holder: Record<string, unknown>; flagPath: string } | null,
   version: RuleVersion,
   envVars: Readonly<Record<string, string>>,
+  rawMegaFloatLiteral: string | undefined,
   diagnostics: CliParseDiagnostic[],
 ): void {
   const isRfork = version === "rfork";
@@ -1826,18 +1952,18 @@ function validateAscendModelValidatorRanges(
     const rawMega = effectiveAdditional.mega_moe_max_tokens;
     if (
       isRfork &&
-      typeof rawMega !== "boolean" &&
-      !(typeof rawMega === "number" && Number.isInteger(rawMega))
+      (rawMegaFloatLiteral !== undefined ||
+        (typeof rawMega !== "boolean" && !(typeof rawMega === "number" && Number.isInteger(rawMega))))
     ) {
       diagnostics.push({
         code: "parse-invalid-json-type",
         severity: "error",
         flag: "additional_config.mega_moe_max_tokens",
-        message: `ValueError: additional_config.mega_moe_max_tokens 必须为整数，收到 ${JSON.stringify(rawMega)}。`,
+        message: `ValueError: additional_config.mega_moe_max_tokens 必须为整数，收到 ${rawMegaFloatLiteral ?? JSON.stringify(rawMega)}。`,
       });
     } else {
-      const megaMax = parsePydanticLaxInt(rawMega);
-      if (megaMax !== undefined && (version === "main" ? megaMax < 0 : megaMax <= 0)) {
+      const megaMax = parsePydanticLaxBigInt(rawMega);
+      if (megaMax !== undefined && (version === "main" ? megaMax < 0n : megaMax <= 0n)) {
         pushRangeError(
           diagnostics,
           "additional_config.mega_moe_max_tokens",
@@ -1850,6 +1976,7 @@ function validateAscendModelValidatorRanges(
 
   if (
     isRfork &&
+    !pythonTruthiness(effectiveAdditional.enable_mc2_hierarchy_comm) &&
     Object.hasOwn(effectiveAdditional, "mc2_comm_alg") &&
     effectiveAdditional.mc2_comm_alg !== undefined
   ) {
@@ -1868,17 +1995,24 @@ function validateAscendModelValidatorRanges(
   if (isRecord(eplb)) {
     if (isRfork) {
       validateSubConfigKeys(eplb, "additional_config.eplb_config", VALID_RFORK_EPLB_KEYS, diagnostics);
-      if (
-        Object.hasOwn(eplb, "eplb_policy_type") &&
-        eplb.eplb_policy_type !== undefined &&
-        ![0, 1, 2, 3].includes(eplb.eplb_policy_type as number)
-      ) {
-        pushRangeError(
-          diagnostics,
-          "additional_config.eplb_config.eplb_policy_type",
-          "[0, 1, 2, 3]",
-          eplb.eplb_policy_type,
-        );
+      if (Object.hasOwn(eplb, "eplb_policy_type") && eplb.eplb_policy_type !== undefined) {
+        const rawPolicy = eplb.eplb_policy_type;
+        const policyNum =
+          typeof rawPolicy === "boolean"
+            ? rawPolicy
+              ? 1
+              : 0
+            : typeof rawPolicy === "number"
+              ? rawPolicy
+              : Number.NaN;
+        if (![0, 1, 2, 3].includes(policyNum)) {
+          pushRangeError(
+            diagnostics,
+            "additional_config.eplb_config.eplb_policy_type",
+            "[0, 1, 2, 3]",
+            rawPolicy,
+          );
+        }
       }
       if (
         Object.hasOwn(eplb, "eplb_heat_collection_stage") &&
@@ -1927,8 +2061,8 @@ function validateAscendModelValidatorRanges(
         });
         continue;
       }
-      const n = parsePydanticLaxInt(eplb[k]);
-      if (n !== undefined && n < 0) {
+      const n = parsePydanticLaxBigInt(eplb[k]);
+      if (n !== undefined && n < 0n) {
         pushRangeError(diagnostics, `additional_config.eplb_config.${k}`, ">= 0", n);
       }
     }
@@ -1951,8 +2085,8 @@ function validateAscendModelValidatorRanges(
     const stair = !isRfork ? eplb.stair_config : undefined;
     if (isRecord(stair)) {
       const sBase = "additional_config.eplb_config.stair_config";
-      const bins = parsePydanticNoBoolInt(stair.load_window_bins);
-      if (bins !== undefined && (bins < 2 || bins > 256)) {
+      const bins = parsePydanticNoBoolBigInt(stair.load_window_bins);
+      if (bins !== undefined && (bins < 2n || bins > 256n)) {
         pushRangeError(diagnostics, `${sBase}.load_window_bins`, "2 <= x <= 256", bins);
       }
       const q = parsePydanticNoBoolFloat(stair.load_risk_quantile);
@@ -1965,28 +2099,28 @@ function validateAscendModelValidatorRanges(
           pushRangeError(diagnostics, `${sBase}.${tk}`, "0 < x <= 1", tv);
         }
       }
-      const rtl = parsePydanticNoBoolInt(stair.rank_transfer_limit);
-      if (rtl !== undefined && rtl !== -1 && rtl < 1) {
+      const rtl = parsePydanticNoBoolBigInt(stair.rank_transfer_limit);
+      if (rtl !== undefined && rtl !== -1n && rtl < 1n) {
         pushRangeError(diagnostics, `${sBase}.rank_transfer_limit`, "-1 或 >= 1", rtl);
       }
-      const cntl = parsePydanticNoBoolInt(stair.cross_node_transfer_limit);
-      if (cntl !== undefined && cntl < -1) {
+      const cntl = parsePydanticNoBoolBigInt(stair.cross_node_transfer_limit);
+      if (cntl !== undefined && cntl < -1n) {
         pushRangeError(diagnostics, `${sBase}.cross_node_transfer_limit`, ">= -1", cntl);
       }
-      const stages = parsePydanticNoBoolInt(stair.replica_search_num_stages);
-      if (stages !== undefined && (stages < 1 || stages > 8)) {
+      const stages = parsePydanticNoBoolBigInt(stair.replica_search_num_stages);
+      if (stages !== undefined && (stages < 1n || stages > 8n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_num_stages`, "1 <= x <= 8", stages);
       }
-      const radius = parsePydanticNoBoolInt(stair.replica_search_radius);
-      if (radius !== undefined && (radius < 0 || radius > 32)) {
+      const radius = parsePydanticNoBoolBigInt(stair.replica_search_radius);
+      if (radius !== undefined && (radius < 0n || radius > 32n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_radius`, "0 <= x <= 32", radius);
       }
-      const beam = parsePydanticNoBoolInt(stair.replica_search_beam_size);
-      if (beam !== undefined && (beam < 1 || beam > 128)) {
+      const beam = parsePydanticNoBoolBigInt(stair.replica_search_beam_size);
+      if (beam !== undefined && (beam < 1n || beam > 128n)) {
         pushRangeError(diagnostics, `${sBase}.replica_search_beam_size`, "1 <= x <= 128", beam);
       }
-      const bt = parsePydanticNoBoolInt(stair.placement_search_backtrack_limit);
-      if (bt !== undefined && (bt < 0 || bt > 64)) {
+      const bt = parsePydanticNoBoolBigInt(stair.placement_search_backtrack_limit);
+      if (bt !== undefined && (bt < 0n || bt > 64n)) {
         pushRangeError(diagnostics, `${sBase}.placement_search_backtrack_limit`, "0 <= x <= 64", bt);
       }
     }
@@ -2060,8 +2194,8 @@ function validateAscendModelValidatorRanges(
       "mlp_tensor_parallel_size",
       "qkv_iproj_tensor_parallel_size",
     ] as const) {
-      const n = parsePydanticLaxInt(fgtp[k]);
-      if (n !== undefined && n < 0) {
+      const n = parsePydanticLaxBigInt(fgtp[k]);
+      if (n !== undefined && n < 0n) {
         pushRangeError(diagnostics, `additional_config.finegrained_tp_config.${k}`, ">= 0", n);
       }
     }
@@ -2074,16 +2208,22 @@ function validateAscendModelValidatorRanges(
         ? profEntry.holder.profiling_chunk_config
         : null;
     if (profEntry && prof) {
-      const sf = parsePydanticLaxFloat(prof.smooth_factor);
+      const sf = isRfork
+        ? readRforkFloatField(prof, "smooth_factor", profEntry.flagPath, diagnostics)
+        : parsePydanticLaxFloat(prof.smooth_factor);
       if (sf !== undefined && !(sf > 0 && sf <= 1)) {
         pushRangeError(diagnostics, `${profEntry.flagPath}.smooth_factor`, "0 < x <= 1", sf);
       }
-      const mc = parsePydanticLaxInt(prof.min_chunk);
-      if (mc !== undefined && mc <= 0) {
+      const mc = isRfork
+        ? readRforkIntField(prof, "min_chunk", profEntry.flagPath, diagnostics)
+        : parsePydanticLaxBigInt(prof.min_chunk);
+      if (mc !== undefined && mc <= 0n) {
         pushRangeError(diagnostics, `${profEntry.flagPath}.min_chunk`, "> 0", mc);
       }
-      const mfc = parsePydanticLaxInt(prof.max_fit_chunk);
-      if (mfc !== undefined && mfc <= 5) {
+      const mfc = isRfork
+        ? readRforkIntField(prof, "max_fit_chunk", profEntry.flagPath, diagnostics)
+        : parsePydanticLaxBigInt(prof.max_fit_chunk);
+      if (mfc !== undefined && mfc <= 5n) {
         pushRangeError(diagnostics, `${profEntry.flagPath}.max_fit_chunk`, "> 5", mfc);
       }
     }
@@ -2096,16 +2236,20 @@ function validateAscendModelValidatorRanges(
       : null;
   if (bjsEntry && bjs) {
     for (const k of ["max_jobs", "reserve_margin_blocks"] as const) {
-      const n = parsePydanticLaxInt(bjs[k]);
-      if (n !== undefined && n < 0) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, ">= 0", n);
+      const n = isRfork
+        ? readRforkIntField(bjs, k, bjsEntry.flagPath, diagnostics)
+        : parsePydanticLaxBigInt(bjs[k]);
+      if (n !== undefined && n < 0n) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, ">= 0", n);
     }
     for (const k of [
       "reserve_max_blocks",
       "low_available_tokens_threshold",
       "short_decode_token_threshold",
     ] as const) {
-      const n = parsePydanticLaxInt(bjs[k]);
-      if (n !== undefined && n <= 0) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, "> 0", n);
+      const n = isRfork
+        ? readRforkIntField(bjs, k, bjsEntry.flagPath, diagnostics)
+        : parsePydanticLaxBigInt(bjs[k]);
+      if (n !== undefined && n <= 0n) pushRangeError(diagnostics, `${bjsEntry.flagPath}.${k}`, "> 0", n);
     }
   }
 
@@ -2114,50 +2258,57 @@ function validateAscendModelValidatorRanges(
     srfEntry && isRecord(srfEntry.holder.short_request_first_config)
       ? srfEntry.holder.short_request_first_config
       : null;
-  if (srfEntry && srf) {
-    const th = parsePydanticLaxInt(srf.threshold);
-    if (th !== undefined && th < 0) pushRangeError(diagnostics, `${srfEntry.flagPath}.threshold`, ">= 0", th);
-    const mw = parsePydanticLaxFloat(srf.long_max_wait_ms);
+  if (srfEntry && srf && (!isRfork || pythonTruthiness(srf))) {
+    const th = isRfork
+      ? readRforkIntField(srf, "threshold", srfEntry.flagPath, diagnostics)
+      : parsePydanticLaxBigInt(srf.threshold);
+    if (th !== undefined && th < 0n)
+      pushRangeError(diagnostics, `${srfEntry.flagPath}.threshold`, ">= 0", th);
+    const mw = isRfork
+      ? readRforkFloatField(srf, "long_max_wait_ms", srfEntry.flagPath, diagnostics)
+      : parsePydanticLaxFloat(srf.long_max_wait_ms);
     if (mw !== undefined && mw < 0)
       pushRangeError(diagnostics, `${srfEntry.flagPath}.long_max_wait_ms`, ">= 0", mw);
   }
 
-  const dlb = sched && isRecord(sched.dyntra_lb_config) ? sched.dyntra_lb_config : null;
+  const dlb = !isRfork && sched && isRecord(sched.dyntra_lb_config) ? sched.dyntra_lb_config : null;
   if (dlb) {
     const dBase = "additional_config.scheduler_config.dyntra_lb_config";
-    const ss = parsePydanticLaxInt(dlb.start_step);
-    if (ss !== undefined && ss < 0) pushRangeError(diagnostics, `${dBase}.start_step`, ">= 0", ss);
-    const es = parsePydanticLaxInt(dlb.end_step);
-    const effStart = ss ?? 250;
-    if (es !== undefined && es < -1) {
+    const ss = parsePydanticLaxBigInt(dlb.start_step);
+    if (ss !== undefined && ss < 0n) pushRangeError(diagnostics, `${dBase}.start_step`, ">= 0", ss);
+    const es = parsePydanticLaxBigInt(dlb.end_step);
+    const effStart = ss ?? 250n;
+    if (es !== undefined && es < -1n) {
       pushRangeError(diagnostics, `${dBase}.end_step`, "-1 或 >= 0", es);
-    } else if (es !== undefined && es !== -1 && es <= effStart) {
+    } else if (es !== undefined && es !== -1n && es <= effStart) {
       pushRangeError(diagnostics, `${dBase}.end_step`, `> start_step (${effStart})`, es);
     }
     const bt = parsePydanticLaxFloat(dlb.bubble_threshold);
     if (bt !== undefined && bt <= 0) pushRangeError(diagnostics, `${dBase}.bubble_threshold`, "> 0", bt);
-    const lr = parsePydanticLaxInt(dlb.long_req_block_threshold);
-    if (lr !== undefined && lr <= 0)
+    const lr = parsePydanticLaxBigInt(dlb.long_req_block_threshold);
+    if (lr !== undefined && lr <= 0n)
       pushRangeError(diagnostics, `${dBase}.long_req_block_threshold`, "> 0", lr);
-    const dm = parsePydanticLaxInt(dlb.dynamic_max_step);
-    if (dm !== undefined && dm <= 0) pushRangeError(diagnostics, `${dBase}.dynamic_max_step`, "> 0", dm);
+    const dm = parsePydanticLaxBigInt(dlb.dynamic_max_step);
+    if (dm !== undefined && dm <= 0n) pushRangeError(diagnostics, `${dBase}.dynamic_max_step`, "> 0", dm);
   }
 
   const skv = effectiveAdditional.sparse_kv_offload_config;
   if (isRecord(skv) && (!isRfork || pythonTruthiness(skv.enabled))) {
     const sBase = "additional_config.sparse_kv_offload_config";
-    const tbs = parsePydanticLaxInt(skv.topk_buffer_size);
-    if (tbs !== undefined && (isRfork ? tbs <= 0 : tbs !== -1 && tbs <= 0)) {
+    const tbs = isRfork
+      ? readRforkIntField(skv, "topk_buffer_size", sBase, diagnostics)
+      : parsePydanticLaxBigInt(skv.topk_buffer_size);
+    if (tbs !== undefined && (isRfork ? tbs <= 0n : tbs !== -1n && tbs <= 0n)) {
       pushRangeError(diagnostics, `${sBase}.topk_buffer_size`, isRfork ? "> 0" : "-1 或 > 0", tbs);
     }
     if (!isRfork) {
-      const dram = parsePydanticLaxInt(skv.dram_size_per_dp_GB);
-      if (dram !== undefined && dram <= 0) {
+      const dram = parsePydanticLaxBigInt(skv.dram_size_per_dp_GB);
+      if (dram !== undefined && dram <= 0n) {
         pushRangeError(diagnostics, `${sBase}.dram_size_per_dp_GB`, "> 0", dram);
       }
       if (version === "main") {
-        const spb = parsePydanticLaxInt(skv.store_port_base);
-        if (spb !== undefined && (spb < 1 || spb > 65535)) {
+        const spb = parsePydanticLaxBigInt(skv.store_port_base);
+        if (spb !== undefined && (spb < 1n || spb > 65535n)) {
           pushRangeError(diagnostics, `${sBase}.store_port_base`, "1 <= x <= 65535", spb);
         }
       }
@@ -2291,6 +2442,8 @@ export function parseVllmServeCommand(
   let ubatchSize: number | undefined;
   let regularHotReloadFloatLiteral: string | undefined;
   let dottedHotReloadFloatLiteral: string | undefined;
+  let regularMegaFloatLiteral: string | undefined;
+  let dottedMegaFloatLiteral: string | undefined;
   let regularAdditionalConfig: Record<string, unknown> | null = null;
   let dottedAdditionalConfig: Record<string, unknown> | null = null;
   let compilationConfig: Record<string, unknown> | null = null;
@@ -2415,7 +2568,7 @@ export function parseVllmServeCommand(
         const [v, ni] = readValue(flag, inlineVal, i);
         i = ni;
         if (v !== undefined) {
-          maxNumSeqs = parseIntegerFlag(flag, v, diagnostics, { min: 1, allowSuffix: true });
+          maxNumSeqs = parseIntegerFlag(flag, v, diagnostics, { min: 1 });
         }
         break;
       }
@@ -2571,6 +2724,7 @@ export function parseVllmServeCommand(
         i = ni;
         if (v !== undefined) {
           regularHotReloadFloatLiteral = extractTopLevelJsonFloatLiteral(v, "runtime_config_hot_reload");
+          regularMegaFloatLiteral = extractTopLevelJsonFloatLiteral(v, "mega_moe_max_tokens");
           const parsedObj = parseJsonObjectFlag(flag, v, diagnostics);
           if (parsedObj) {
             regularAdditionalConfig = parsedObj;
@@ -2616,10 +2770,14 @@ export function parseVllmServeCommand(
               break;
             }
             if (!dottedAdditionalConfig) dottedAdditionalConfig = {};
+            const floatLit = /^-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+)$/.test(v.trim())
+              ? v.trim()
+              : undefined;
             if (segments.length === 1 && segments[0] === "runtime_config_hot_reload") {
-              dottedHotReloadFloatLiteral = /^-?\d+(?:\.\d+(?:[eE][+-]?\d+)?|[eE][+-]?\d+)$/.test(v.trim())
-                ? v.trim()
-                : undefined;
+              dottedHotReloadFloatLiteral = floatLit;
+            }
+            if (segments.length === 1 && segments[0] === "mega_moe_max_tokens") {
+              dottedMegaFloatLiteral = floatLit;
             }
             const parsedVal = isListAppend ? v.split(",") : parseDottedScalarOrJson(v);
             setDottedRecordValue(dottedAdditionalConfig, segments, parsedVal);
@@ -2679,6 +2837,8 @@ export function parseVllmServeCommand(
   }
   if (inferredHints.useMla !== undefined) couplingInput.useMla = inferredHints.useMla;
   if (inferredHints.usesSfaSparse !== undefined) couplingInput.usesSfaSparse = inferredHints.usesSfaSparse;
+  if (inferredHints.indexTopk !== undefined) couplingInput.indexTopk = inferredHints.indexTopk;
+  if (inferredHints.linearNumHeads !== undefined) couplingInput.linearNumHeads = inferredHints.linearNumHeads;
   if (inferredHints.isQwen35Dense !== undefined) couplingInput.isQwen35Dense = inferredHints.isQwen35Dense;
   if (inferredHints.modelType !== undefined) couplingInput.modelType = inferredHints.modelType;
   if (inferredHints.numExperts !== undefined) couplingInput.numExperts = inferredHints.numExperts;
@@ -2719,10 +2879,29 @@ export function parseVllmServeCommand(
   if (enableChunkedPrefill !== undefined) couplingInput.enableChunkedPrefill = enableChunkedPrefill;
   if (performanceMode !== undefined) couplingInput.performanceMode = performanceMode;
   if (isLoraEnabled !== undefined) couplingInput.isLoraEnabled = isLoraEnabled;
-  const additionalConfig: Record<string, unknown> | null = dottedAdditionalConfig ?? regularAdditionalConfig;
-  const rawHotReloadFloatLiteral: string | undefined = dottedAdditionalConfig
-    ? dottedHotReloadFloatLiteral
-    : regularHotReloadFloatLiteral;
+  const additionalConfig: Record<string, unknown> | null = (() => {
+    if (!regularAdditionalConfig && !dottedAdditionalConfig) return null;
+    const merged: Record<string, unknown> = {};
+    if (regularAdditionalConfig) {
+      for (const [k, v] of Object.entries(regularAdditionalConfig)) {
+        setDottedRecordValue(merged, [k], v);
+      }
+    }
+    if (dottedAdditionalConfig) {
+      for (const [k, v] of Object.entries(dottedAdditionalConfig)) {
+        setDottedRecordValue(merged, [k], v);
+      }
+    }
+    return merged;
+  })();
+  const rawHotReloadFloatLiteral: string | undefined =
+    dottedAdditionalConfig && Object.hasOwn(dottedAdditionalConfig, "runtime_config_hot_reload")
+      ? dottedHotReloadFloatLiteral
+      : regularHotReloadFloatLiteral;
+  const rawMegaFloatLiteral: string | undefined =
+    dottedAdditionalConfig && Object.hasOwn(dottedAdditionalConfig, "mega_moe_max_tokens")
+      ? dottedMegaFloatLiteral
+      : regularMegaFloatLiteral;
   const useUbatching: boolean | undefined =
     enableDbo === true || (ubatchSize !== undefined && ubatchSize > 1)
       ? true
@@ -3041,10 +3220,13 @@ export function parseVllmServeCommand(
       ) {
         couplingInput.profilingChunkEnabled = true;
         if (isRecord(rawProfChunk)) {
+          const rfMin = isRfork ? parsePythonBuiltinBigInt(rawProfChunk.min_chunk) : undefined;
           const minChunk = isRfork
-            ? parseNumberLike(rawProfChunk.min_chunk)
+            ? typeof rfMin === "bigint"
+              ? Number(rfMin)
+              : undefined
             : parsePydanticLaxInt(rawProfChunk.min_chunk);
-          if (minChunk !== undefined) couplingInput.profilingMinChunk = minChunk;
+          if (minChunk !== undefined && Number.isFinite(minChunk)) couplingInput.profilingMinChunk = minChunk;
         }
       }
     }
@@ -3085,6 +3267,7 @@ export function parseVllmServeCommand(
     }
 
     if (
+      !isRfork &&
       sched &&
       parseEnabledSubConfig(
         sched,
@@ -3286,6 +3469,17 @@ export function parseVllmServeCommand(
         effectiveAdditional.eplb_config.expert_map_record_path !== undefined &&
         effectiveAdditional.eplb_config.expert_map_record_path !== null;
       if (dynEplb === true || hasRecPath) couplingInput.dynamicEplb = true;
+      const rawRedExp = effectiveAdditional.eplb_config.num_redundant_experts;
+      const redExp = isRfork
+        ? typeof rawRedExp === "boolean"
+          ? rawRedExp
+            ? 1
+            : 0
+          : typeof rawRedExp === "number" && Number.isInteger(rawRedExp)
+            ? rawRedExp
+            : undefined
+        : parsePydanticLaxInt(rawRedExp);
+      if (redExp !== undefined) couplingInput.numRedundantExperts = redExp;
     }
     const mixPl = parseAscendBoolField(
       effectiveAdditional,
@@ -3512,10 +3706,15 @@ export function parseVllmServeCommand(
         isRfork,
       );
       if (keep !== undefined) couplingInput.keepDeviceKvCache = keep;
+      const rfTopkBuf = isRfork
+        ? parsePythonBuiltinBigInt(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size)
+        : undefined;
       const topkBuf = isRfork
-        ? parseNumberLike(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size)
+        ? typeof rfTopkBuf === "bigint"
+          ? Number(rfTopkBuf)
+          : undefined
         : parsePydanticLaxInt(effectiveAdditional.sparse_kv_offload_config.topk_buffer_size);
-      if (topkBuf !== undefined) couplingInput.topkBufferSize = topkBuf;
+      if (topkBuf !== undefined && Number.isFinite(topkBuf)) couplingInput.topkBufferSize = topkBuf;
     }
     if (
       parseEnabledSubConfig(
@@ -3590,6 +3789,7 @@ export function parseVllmServeCommand(
       resolveSchedHolder,
       version,
       envVars,
+      rawMegaFloatLiteral,
       diagnostics,
     );
   }

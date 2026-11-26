@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseSourceRef, type RuleVersion } from "../rules/types";
+import { parseVllmServeCommand } from "./cliParser";
 import {
   analyzePdUpgradeRadar,
   analyzeSingleUpgradeRadar,
@@ -399,5 +400,42 @@ describe("upgradeRadar deterministic version migration shockwave engine", () => 
     });
     expect(envIgnoreRep.recommendedSingleCommand).not.toContain("vllm serve -i vllm serve");
     expect(envIgnoreRep.recommendedSingleCommand).toMatch(/^env -i vllm serve Qwen\/Qwen3-8B/);
+
+    // 5. Statement order, env -i / env -u isolation, and valid dotted --additional-config.<path> shell fallback preservation
+    const orderRep = analyzeSingleUpgradeRadar(
+      `TP=2; N=$TP; TP=4; vllm serve Qwen/Qwen3-8B -tp $N --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(orderRep.recommendedSingleCommand).toBeDefined();
+    expect(parseVllmServeCommand(orderRep.recommendedSingleCommand!).couplingInput.tpSize).toBe(2);
+
+    const exportEnvIgnoreRep = analyzeSingleUpgradeRadar(
+      `export VLLM_BATCH_INVARIANT=1; env -i vllm serve Qwen/Qwen3-8B --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(exportEnvIgnoreRep.recommendedSingleCommand).toBeDefined();
+    expect(parseVllmServeCommand(exportEnvIgnoreRep.recommendedSingleCommand!).envVars).toEqual({});
+
+    const envUnsetRep = analyzeSingleUpgradeRadar(
+      `export VLLM_BATCH_INVARIANT=1; env -u VLLM_BATCH_INVARIANT vllm serve Qwen/Qwen3-8B --enforce-eager`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(envUnsetRep.recommendedSingleCommand).toContain("env -u VLLM_BATCH_INVARIANT");
+    expect(
+      parseVllmServeCommand(envUnsetRep.recommendedSingleCommand!).envVars.VLLM_BATCH_INVARIANT,
+    ).toBeUndefined();
+
+    const dottedFallbackRep = analyzeSingleUpgradeRadar(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_balance_scheduling":true}' --additional-config.weight_nz_mode \${NZ:-1}`,
+      { fromVersion: "v0.26.0rc", toVersion: "main" },
+    );
+    expect(dottedFallbackRep.recommendedSingleCommand).toContain(
+      `--additional-config.weight_nz_mode \${NZ:-1}`,
+    );
+    const parsedRecon = parseVllmServeCommand(`NZ=2; ${dottedFallbackRep.recommendedSingleCommand!}`, {
+      version: "main",
+    });
+    expect(parsedRecon.couplingInput.enableBalanceScheduling).toBe(true);
+    expect(parsedRecon.couplingInput.weightNzMode).toBe(2);
   });
 });

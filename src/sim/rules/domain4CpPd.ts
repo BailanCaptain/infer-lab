@@ -667,14 +667,16 @@ export const domain4Rules: readonly CouplingRule[] = [
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const errors: string[] = [];
+      const hasKvConnector = input.usageContext === "vllm_serve" ? Boolean(input.kvConnector) : true;
+      const isKvConsumer = hasKvConnector && (input.kvRole === "kv_consumer" || input.kvRole === "kv_both");
 
       if (input.enableKvNz === true) {
-        if (input.useMla === false || input.usesSfaSparse === true) {
+        if (input.useMla === false || input.usesSfaSparse === true || input.indexTopk !== undefined) {
           errors.push("RuntimeError: enable_kv_nz 仅支持非稀疏 MLA 模型");
         }
-        if (input.kvRole !== "kv_consumer") {
+        if (!isKvConsumer) {
           errors.push(
-            "NotImplementedError: enable_kv_nz 仅支持 PD 分离架构的 Decode 节点（kv_role='kv_consumer'）",
+            "NotImplementedError: enable_kv_nz 仅支持已配置连接器的 PD 分离消费节点（kv_role='kv_consumer' 或 'kv_both'）",
           );
         }
       }
@@ -694,9 +696,9 @@ export const domain4Rules: readonly CouplingRule[] = [
         if ((input.tpSize ?? 1) !== 1 || (input.pcpSize ?? 1) !== 1 || (input.ppSize ?? 1) !== 1) {
           errors.push("ValueError: qkv_iproj_tensor_parallel_size > 1 要求 TP=1、PCP=1 且 PP=1");
         }
-        if (input.kvRole !== "kv_consumer") {
+        if (!isKvConsumer) {
           errors.push(
-            "ValueError: qkv_iproj_tensor_parallel_size 仅支持 PD 分离 Decode 节点（kv_role='kv_consumer'）",
+            "ValueError: qkv_iproj_tensor_parallel_size 仅支持 PD 分离消费节点（kv_role='kv_consumer' 或 'kv_both'）",
           );
         }
         if (
@@ -705,6 +707,11 @@ export const domain4Rules: readonly CouplingRule[] = [
           input.modelType !== "glm5_next_text"
         ) {
           errors.push("ValueError: qkv_iproj_tensor_parallel_size 当前仅支持 GLM-5.3-Flash（glm5_next）");
+        }
+        if (input.linearNumHeads !== undefined && input.linearNumHeads % qkvTp !== 0) {
+          errors.push(
+            `ValueError: qkv_iproj_tensor_parallel_size (${qkvTp}) 必须整除 KDA 线性注意力头数 (${input.linearNumHeads})`,
+          );
         }
       }
 
@@ -737,28 +744,29 @@ export const domain4Rules: readonly CouplingRule[] = [
         version !== "rfork" &&
         input.enableForceEplb === true &&
         input.dynamicEplb === true &&
-        input.isMoe !== false
+        input.isMoe === true
       ) {
         errors.push("ValueError: enable_force_eplb 不能与 eplb_config.dynamic_eplb 同时开启");
       }
 
-      if (
-        input.mixPlacement === true &&
-        (input.enableSharedExpertDp === true || input.multistreamOverlapSharedExpert === true)
-      ) {
+      const rawSedp =
+        input.enableSharedExpertDp ?? (version === "rfork" ? Boolean(input.enableFlashcomm1) : false);
+      const effectiveSharedExpertDp = Boolean(
+        rawSedp && input.enableExpertParallel === true && (input.tpSize ?? 1) > 1,
+      );
+      const effectiveOverlapSharedExpert = Boolean(
+        input.multistreamOverlapSharedExpert === true && (input.enableFusedMc2 ?? 0) === 0,
+      );
+      if (input.mixPlacement === true && (effectiveSharedExpertDp || effectiveOverlapSharedExpert)) {
         errors.push(
-          "ValueError: mix_placement 不支持与 enable_shared_expert_dp 或 multistream_overlap_shared_expert 同时开启",
+          "ValueError: mix_placement 不支持与生效的 enable_shared_expert_dp 或 multistream_overlap_shared_expert 同时开启",
         );
       }
 
       if (input.mc2CommAlg === "fullmesh_v2") {
-        if (
-          version === "rfork"
-            ? input.hardwareFamily !== undefined && input.hardwareFamily !== "A3"
-            : input.hardwareFamily === "A2" || input.hardwareFamily === "310P"
-        ) {
+        if (input.hardwareFamily !== undefined && input.hardwareFamily !== "A3") {
           errors.push(
-            `NotImplementedError: mc2_comm_alg='fullmesh_v2' 不受当前硬件 ${input.hardwareFamily} 支持`,
+            `NotImplementedError: mc2_comm_alg='fullmesh_v2' 仅支持 A3，不受当前硬件 ${input.hardwareFamily} 支持`,
           );
         }
       } else if (input.mc2CommAlg === "hierarchy") {
@@ -766,6 +774,15 @@ export const domain4Rules: readonly CouplingRule[] = [
           errors.push(
             `NotImplementedError: mc2_comm_alg='hierarchy' 不受当前硬件 ${input.hardwareFamily} 支持`,
           );
+        }
+        if (version !== "rfork" && input.numExperts !== undefined) {
+          const red = input.dynamicEplb ? (input.numRedundantExperts ?? 0) : 0;
+          const totalExperts = input.numExperts + red;
+          if (totalExperts > 512) {
+            errors.push(
+              `ValueError: mc2_comm_alg='hierarchy' 最多支持 512 个专家（当前逻辑专家 ${input.numExperts} + EPLB 冗余专家 ${red} = ${totalExperts}）`,
+            );
+          }
         }
         if (version !== "rfork" && (input.enableFusedMc2 ?? 0) > 0) {
           errors.push(

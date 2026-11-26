@@ -1314,4 +1314,176 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
     expect(len15k.hasBlockers).toBe(false);
     expect(len15k.effectiveInput.maxModelLen).toBe(1500);
   });
+
+  it("enforces POSIX IFS mixed delimiters, unset prefix scope, plain-int max-num-seqs, rfork int()/float() & BigInt ranges, and model-specific MLA/MoE preconditions", () => {
+    // 1. POSIX §2.6.5 adjacent IFS whitespace + non-whitespace delimiter ('-tp ,4' -> ['-tp', '4'])
+    const ifsMixed = runSingleConfigDoctor(`IFS=' ,'; X='-tp ,4'; vllm serve Qwen/Qwen3-8B $X`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(ifsMixed.hasBlockers).toBe(false);
+    expect(ifsMixed.effectiveInput.tpSize).toBe(4);
+    expect(
+      runSingleConfigDoctor(`IFS=' ,'; X=',4'; vllm serve Qwen/Qwen3-8B -tp $X`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(true);
+
+    // 2. Prefix assignment on non-special command does NOT clear unsetNames in parent shell
+    const unsetPrefix = runSingleConfigDoctor(
+      `TP=2; unset TP; TP=8 true; vllm serve Qwen/Qwen3-8B -tp \${TP-4}`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(unsetPrefix.hasBlockers).toBe(false);
+    expect(unsetPrefix.effectiveInput.tpSize).toBe(4);
+
+    // 3. --max-num-seqs is plain int (1.5k rejected)
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --max-num-seqs 1.5k`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "v0.30.0",
+      }).hasBlockers,
+    ).toBe(true);
+
+    // 4. enable_kv_nz: kv_both + connector passes; kv_consumer without connector fails
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_both"}' --additional-config '{"enable_kv_nz":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3 --kv-transfer-config '{"kv_role":"kv_consumer"}' --additional-config '{"enable_kv_nz":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 5. qkv_iproj_tensor_parallel_size: rejects Qwen3-30B-A3B and GLM-5.3-Flash non-divisor 3, accepts divisor 2
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -dp 2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true},"finegrained_tp_config":{"qkv_iproj_tensor_parallel_size":2}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve zai-org/GLM-5.3-Flash -dp 3 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true},"finegrained_tp_config":{"qkv_iproj_tensor_parallel_size":3}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve zai-org/GLM-5.3-Flash -dp 2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true},"finegrained_tp_config":{"qkv_iproj_tensor_parallel_size":2}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+
+    // 6. enable_force_eplb + dynamic_eplb: ignored on dense Llama-3.1-8B, rejected on MoE
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=1 vllm serve meta-llama/Llama-3.1-8B --additional-config '{"enable_force_eplb":true,"eplb_config":{"dynamic_eplb":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=1 vllm serve Qwen/Qwen3-30B-A3B --additional-config '{"enable_force_eplb":true,"eplb_config":{"dynamic_eplb":true}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 7. mix_placement evaluates effective resolved shared_expert_dp and multistream_overlap_shared_expert
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -tp 1 --additional-config '{"mix_placement":true,"enable_shared_expert_dp":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"mix_placement":true,"enable_shared_expert_dp":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 8. mc2_comm_alg fullmesh_v2 rejected on A5; hierarchy rejected when numExperts + num_redundant_experts > 512
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-30B-A3B -tp 4 --enable-expert-parallel --additional-config '{"mc2_comm_alg":"fullmesh_v2"}'`,
+        { mode: "full", hardwareFamily: "A5", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=1 vllm serve deepseek-ai/DeepSeek-V3 -tp 4 --enable-expert-parallel --additional-config '{"mc2_comm_alg":"hierarchy","eplb_config":{"dynamic_eplb":true,"num_redundant_experts":300}}'`,
+        { mode: "full", hardwareFamily: "A3", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 9. DeepSeek-V3.2 inferred as DSA sparse MLA (indexTopk=2048): rejects enable_kv_nz and topk_buffer_size < 2048
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3.2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"enable_kv_nz":true}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve deepseek-ai/DeepSeek-V3.2 --kv-transfer-config '{"kv_connector":"MooncakeConnector","kv_role":"kv_consumer"}' --additional-config '{"sparse_kv_offload_config":{"enabled":true,"topk_buffer_size":1024}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+
+    // 10 & 11. rfork fidelity: hierarchy override, bool policy_type, ignored dyntra_lb_config, 1.0 mega_moe, int()/float() coercion
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"enable_mc2_hierarchy_comm":true,"mc2_comm_alg":"unused","eplb_config":{"eplb_policy_type":true},"scheduler_config":{"dyntra_lb_config":{"start_step":-1}}}'`,
+        { mode: "full", hardwareFamily: "A3", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config '{"mega_moe_max_tokens":1.0}'`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "rfork",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"profiling_chunk_config":{"min_chunk":0.5}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"profiling_chunk_config":{"min_chunk":"1.0"}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "rfork" },
+      ).hasBlockers,
+    ).toBe(true);
+    const rforkUnderscoreChunk = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B -pp 2 --max-num-batched-tokens 8192 --additional-config '{"profiling_chunk_config":{"enabled":true,"min_chunk":"4_096"}}'`,
+      { mode: "full", hardwareFamily: "A2", version: "rfork" },
+    );
+    expect(rforkUnderscoreChunk.hasBlockers).toBe(false);
+    expect(rforkUnderscoreChunk.effectiveInput.profilingMinChunk).toBe(4096);
+
+    // 12. BigInt > 2^53 precision in dyntra_lb_config and JSON + dotted --additional-config merge
+    expect(
+      runSingleConfigDoctor(
+        `vllm serve Qwen/Qwen3-8B --additional-config '{"scheduler_config":{"dyntra_lb_config":{"start_step":"9007199254740992","end_step":"9007199254740993"}}}'`,
+        { mode: "full", hardwareFamily: "A2", version: "main" },
+      ).hasBlockers,
+    ).toBe(false);
+    const mergedBoth = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-8B --additional-config '{"ascend_compilation_config":{"enable_npugraph_ex":true}}' --additional-config.weight_nz_mode 1`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(mergedBoth.effectiveInput.enableNpugraphEx).toBe(true);
+    expect(mergedBoth.effectiveInput.weightNzMode).toBe(1);
+  });
 });

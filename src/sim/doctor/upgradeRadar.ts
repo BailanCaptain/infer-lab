@@ -981,12 +981,18 @@ function quoteShellArg(arg: string): string {
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }
 
+interface PreambleStatement {
+  readonly kind: "export" | "assign" | "other";
+  readonly rawStmt: string;
+  readonly tokens: readonly RawShellToken[];
+}
+
 function tokenizeFirstServeCommand(rawText: string): {
   prefix: readonly string[];
   serveArgs: readonly RawShellToken[];
-  rawEnvRhs: Readonly<Record<string, string>>;
-  unexportedVars: ReadonlyArray<{ readonly name: string; readonly rawRhs: string }>;
-  sawEnvIgnore: boolean;
+  preambleStmts: readonly PreambleStatement[];
+  servePrefixAssigns: readonly RawShellToken[];
+  serveEnvWrapperTokens: readonly RawShellToken[];
 } {
   const normalized = rawText.replace(/\r\n/g, "\n").replace(/\\[ \t]*\n/g, " ");
   const stmts: string[] = [];
@@ -1101,60 +1107,29 @@ function tokenizeFirstServeCommand(rawText: string): {
 
   let prefix: string[] = ["vllm", "serve"];
   let serveArgs: RawShellToken[] = [];
-  let sawEnvIgnore = false;
-  const rawEnvRhs: Record<string, string> = {};
-  const unexportedMap = new Map<string, string>();
-  const recordRawEnv = (tok: RawShellToken): string | null => {
-    const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
-    if (!m?.[1]) return null;
-    const eqPos = tok.raw.indexOf("=");
-    if (eqPos > 0) {
-      rawEnvRhs[m[1]] = tok.raw.slice(eqPos + 1);
-    }
-    return m[1];
-  };
+  let servePrefixAssigns: RawShellToken[] = [];
+  let serveEnvWrapperTokens: RawShellToken[] = [];
+  const preambleStmts: PreambleStatement[] = [];
+
   for (const stmt of stmts) {
     const tokens = tokenizeOne(stmt);
     if (tokens.length === 0) continue;
     if (tokens[0]?.value === "export") {
-      for (let k = 1; k < tokens.length; k += 1) {
-        const name = recordRawEnv(tokens[k]!);
-        if (name) unexportedMap.delete(name);
-        else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(tokens[k]!.value)) {
-          unexportedMap.delete(tokens[k]!.value);
-        }
-      }
-      continue;
-    }
-    if (tokens[0]?.value === "unset") {
-      let unsetVarMode = true;
-      for (let k = 1; k < tokens.length; k += 1) {
-        const v = tokens[k]!.value;
-        if (v === "-f") unsetVarMode = false;
-        else if (v === "-v") unsetVarMode = true;
-        else if (unsetVarMode && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) {
-          unexportedMap.delete(v);
-        }
-      }
+      preambleStmts.push({ kind: "export", rawStmt: stmt, tokens });
       continue;
     }
     if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) {
-      for (const tok of tokens) {
-        const name = recordRawEnv(tok);
-        if (name) {
-          const eqPos = tok.raw.indexOf("=");
-          unexportedMap.set(name, eqPos > 0 ? tok.raw.slice(eqPos + 1) : "''");
-        }
-      }
+      preambleStmts.push({ kind: "assign", rawStmt: stmt, tokens });
       continue;
     }
     let idx = 0;
-    let stmtEnvIgnore = false;
+    const stmtPrefixAssigns: RawShellToken[] = [];
+    const stmtEnvWrapper: RawShellToken[] = [];
     while (idx < tokens.length) {
       const entry = tokens[idx]!;
       const t = entry.value;
       if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) {
-        recordRawEnv(entry);
+        stmtPrefixAssigns.push(entry);
         idx += 1;
         continue;
       }
@@ -1163,30 +1138,34 @@ function tokenizeFirstServeCommand(rawText: string): {
         continue;
       }
       if (t === "env") {
+        stmtEnvWrapper.push(entry);
         idx += 1;
         let parsingOpts = true;
         while (idx < tokens.length) {
           const et = tokens[idx]!.value;
           if (parsingOpts && (et === "-i" || et === "--ignore-environment" || et === "-")) {
-            stmtEnvIgnore = true;
+            stmtEnvWrapper.push(tokens[idx]!);
             idx += 1;
             continue;
           }
           if (parsingOpts && et === "-u" && idx + 1 < tokens.length) {
+            stmtEnvWrapper.push(tokens[idx]!, tokens[idx + 1]!);
             idx += 2;
             continue;
           }
           if (parsingOpts && et.startsWith("--unset=")) {
+            stmtEnvWrapper.push(tokens[idx]!);
             idx += 1;
             continue;
           }
           if (parsingOpts && et === "--") {
+            stmtEnvWrapper.push(tokens[idx]!);
             parsingOpts = false;
             idx += 1;
             continue;
           }
           if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(et)) {
-            recordRawEnv(tokens[idx]!);
+            stmtEnvWrapper.push(tokens[idx]!);
             idx += 1;
             continue;
           }
@@ -1202,7 +1181,8 @@ function tokenizeFirstServeCommand(rawText: string): {
     if (h === "vllm" && s === "serve") {
       prefix = ["vllm", "serve"];
       serveArgs = rest.slice(2);
-      sawEnvIgnore = stmtEnvIgnore;
+      servePrefixAssigns = stmtPrefixAssigns;
+      serveEnvWrapperTokens = stmtEnvWrapper;
     } else if (
       (h === "python" || h === "python3") &&
       s === "-m" &&
@@ -1216,15 +1196,18 @@ function tokenizeFirstServeCommand(rawText: string): {
         prefix = [h, "-m", rest[2]!.value];
         serveArgs = rest.slice(3);
       }
-      sawEnvIgnore = stmtEnvIgnore;
+      servePrefixAssigns = stmtPrefixAssigns;
+      serveEnvWrapperTokens = stmtEnvWrapper;
     } else if (h.startsWith("-")) {
       prefix = ["vllm", "serve"];
       serveArgs = rest;
-      sawEnvIgnore = stmtEnvIgnore;
+      servePrefixAssigns = stmtPrefixAssigns;
+      serveEnvWrapperTokens = stmtEnvWrapper;
+    } else {
+      preambleStmts.push({ kind: "other", rawStmt: stmt, tokens });
     }
   }
-  const unexportedVars = [...unexportedMap.entries()].map(([name, rawRhs]) => ({ name, rawRhs }));
-  return { prefix, serveArgs, rawEnvRhs, unexportedVars, sawEnvIgnore };
+  return { prefix, serveArgs, preambleStmts, servePrefixAssigns, serveEnvWrapperTokens };
 }
 
 function cleanNestedObjectKeys(
@@ -1253,10 +1236,12 @@ function buildRecommendedCommand(
   const itemIds = new Set(items.map((i) => i.id));
   const nextEnvLines: string[] = [];
   const removeEnvFc1 = itemIds.has("radar-flashcomm1-precedence-inversion");
-  const { prefix, serveArgs, rawEnvRhs, unexportedVars, sawEnvIgnore } = tokenizeFirstServeCommand(
-    parsed.rawText,
-  );
-  const inlineEnvPairs: string[] = [];
+  const { prefix, serveArgs, preambleStmts, servePrefixAssigns, serveEnvWrapperTokens } =
+    tokenizeFirstServeCommand(parsed.rawText);
+
+  const shouldDropEnvKey = (name: string): boolean =>
+    (name === "VLLM_ASCEND_ENABLE_FLASHCOMM1" && removeEnvFc1) ||
+    Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, name);
 
   const nextAdditional: Record<string, unknown> = parsed.additionalConfig
     ? (JSON.parse(JSON.stringify(parsed.additionalConfig)) as Record<string, unknown>)
@@ -1270,9 +1255,30 @@ function buildRecommendedCommand(
     return created;
   };
 
-  for (const { name, rawRhs } of unexportedVars) {
-    if (Object.hasOwn(parsed.envVars, name) || Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, name)) continue;
-    nextEnvLines.push(`${name}=${rawRhs}`);
+  for (const stmt of preambleStmts) {
+    if (stmt.kind === "export") {
+      const keptArgs: string[] = [];
+      for (let k = 1; k < stmt.tokens.length; k += 1) {
+        const tok = stmt.tokens[k]!;
+        const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
+        const ident = m?.[1] ?? (/^[A-Za-z_][A-Za-z0-9_]*$/.test(tok.value) ? tok.value : null);
+        if (ident && shouldDropEnvKey(ident)) continue;
+        keptArgs.push(tok.raw);
+      }
+      if (keptArgs.length > 0) {
+        nextEnvLines.push(`export ${keptArgs.join(" ")}`);
+      }
+    } else if (stmt.kind === "assign") {
+      const keptAssigns = stmt.tokens.filter((tok) => {
+        const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
+        return !(m?.[1] && shouldDropEnvKey(m[1]));
+      });
+      if (keptAssigns.length > 0) {
+        nextEnvLines.push(keptAssigns.map((t) => t.raw).join(" "));
+      }
+    } else {
+      nextEnvLines.push(stmt.rawStmt);
+    }
   }
 
   for (const [envName, rawVal] of Object.entries(parsed.envVars)) {
@@ -1306,14 +1312,28 @@ function buildRecommendedCommand(
       ) {
         nextAdditional.enable_transpose_kv_cache_by_block = parseBoolEnvFlag(rawVal, true);
       }
-      continue;
     }
-    const envAssignment = `${envName}=${Object.hasOwn(rawEnvRhs, envName) ? rawEnvRhs[envName] : quoteShellArg(rawVal)}`;
-    if (sawEnvIgnore) {
-      inlineEnvPairs.push(envAssignment);
+  }
+
+  const keptServePrefixAssigns: string[] = [];
+  for (const tok of servePrefixAssigns) {
+    const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
+    if (m?.[1] && shouldDropEnvKey(m[1])) continue;
+    if (serveEnvWrapperTokens.length === 0) {
+      nextEnvLines.push(`export ${tok.raw}`);
     } else {
-      nextEnvLines.push(`export ${envAssignment}`);
+      keptServePrefixAssigns.push(tok.raw);
     }
+  }
+
+  const keptEnvWrapper: string[] = [];
+  for (const tok of serveEnvWrapperTokens) {
+    const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
+    if (m?.[1] && shouldDropEnvKey(m[1])) continue;
+    keptEnvWrapper.push(tok.raw);
+  }
+  if (keptEnvWrapper.length === 1 && keptEnvWrapper[0] === "env") {
+    keptEnvWrapper.length = 0;
   }
 
   // Migrate enable_sleep_mode_extra_cleanup -> rl_config.sleep_mode_extra_cleanup
@@ -1424,8 +1444,73 @@ function buildRecommendedCommand(
   // Reconstruct CLI tokens preserving existing flags and original quoting on untouched arguments
   const mkSynthToken = (v: string): RawShellToken => ({ value: v, raw: quoteShellArg(v) });
   const rewrittenArgs: RawShellToken[] = [];
+  const preservedDottedTokens: RawShellToken[] = [];
   let sawAdditionalFlag = false;
   let sawCompilationFlag = false;
+  const migratedTopKeys = new Set<string>(["enable_sleep_mode_extra_cleanup", ...legacySchedKeys]);
+
+  const isValidTargetDottedPath = (segments: readonly string[]): boolean => {
+    const top = segments[0];
+    if (!top) return false;
+    if (migratedTopKeys.has(top)) return false;
+    const knownRemoved = Object.hasOwn(ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS, top)
+      ? ALL_KNOWN_REMOVED_TOP_LEVEL_KEYS[top]
+      : undefined;
+    if (knownRemoved?.targets.includes(toVersion) || !validTopLevel.has(top)) return false;
+    const subSchema = Object.hasOwn(nestedSchemaMap, top) ? nestedSchemaMap[top] : undefined;
+    if (subSchema && segments.length >= 2) {
+      const subKey = segments[1]!;
+      if (!subSchema.validKeys.has(subKey)) return false;
+      const grandValidator =
+        subSchema.childValidators && Object.hasOwn(subSchema.childValidators, subKey)
+          ? subSchema.childValidators[subKey]
+          : undefined;
+      if (grandValidator && segments.length >= 3 && !grandValidator.has(segments[2]!)) return false;
+    }
+    return true;
+  };
+
+  const deletePathFromAdditional = (obj: Record<string, unknown>, segments: readonly string[]): void => {
+    if (segments.length === 0) return;
+    if (segments.length === 1) {
+      delete obj[segments[0]!];
+      return;
+    }
+    const child = obj[segments[0]!];
+    if (isPlainObject(child)) {
+      deletePathFromAdditional(child, segments.slice(1));
+      if (Object.keys(child).length === 0) delete obj[segments[0]!];
+    }
+  };
+
+  // Pre-scan dotted --additional-config.<path> flags so valid dynamic shell fallbacks stay untouched
+  for (let i = 0; i < serveArgs.length; i += 1) {
+    const entry = serveArgs[i]!;
+    const tok = entry.value;
+    const eqIdx = tok.indexOf("=");
+    const rawFlag = tok.startsWith("-") && eqIdx > 0 ? tok.slice(0, eqIdx) : tok;
+    const normFlag = rawFlag.startsWith("--")
+      ? (() => {
+          const body = rawFlag.slice(2);
+          const dotIdx = body.indexOf(".");
+          return dotIdx >= 0
+            ? `--${body.slice(0, dotIdx).replace(/_/g, "-")}${body.slice(dotIdx)}`
+            : `--${body.replace(/_/g, "-")}`;
+        })()
+      : rawFlag;
+    if (!normFlag.startsWith("--additional-config.")) continue;
+    let dottedPath = normFlag.slice("--additional-config.".length);
+    if (dottedPath.endsWith("+")) dottedPath = dottedPath.slice(0, -1);
+    const segs = dottedPath.split(".").filter((s) => s.length > 0);
+    const valTok = eqIdx < 0 && i + 1 < serveArgs.length ? serveArgs[i + 1] : undefined;
+    if (eqIdx < 0 && valTok) i += 1;
+    if (isValidTargetDottedPath(segs)) {
+      preservedDottedTokens.push(entry);
+      if (eqIdx < 0 && valTok) preservedDottedTokens.push(valTok);
+      deletePathFromAdditional(nextAdditional, segs);
+    }
+  }
+
   const hasNextAdditional = Object.keys(nextAdditional).length > 0;
   const hasNextCompilation = nextCompilation !== null && Object.keys(nextCompilation).length > 0;
 
@@ -1480,10 +1565,11 @@ function buildRecommendedCommand(
   if (!sawAdditionalFlag && hasNextAdditional) {
     rewrittenArgs.push(mkSynthToken("--additional-config"), mkSynthToken(JSON.stringify(nextAdditional)));
   }
+  rewrittenArgs.push(...preservedDottedTokens);
 
   // Group --flag value pairs onto readable continuation lines when there are multiple flags
   const segments: string[] = [];
-  const headParts = [...(sawEnvIgnore ? ["env", "-i", ...inlineEnvPairs] : []), ...prefix];
+  const headParts = [...keptServePrefixAssigns, ...keptEnvWrapper, ...prefix];
   let idx = 0;
   if (rewrittenArgs[0] && !rewrittenArgs[0].value.startsWith("-")) {
     headParts.push(rewrittenArgs[0].raw);

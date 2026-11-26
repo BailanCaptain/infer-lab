@@ -108,6 +108,8 @@ export interface CouplingCheckInput {
   mlapoKeepPrefillWeights?: boolean;
   enableForceEplb?: boolean;
   dynamicEplb?: boolean;
+  numRedundantExperts?: number;
+  linearNumHeads?: number;
   mixPlacement?: boolean;
   multistreamOverlapSharedExpert?: boolean;
   mc2CommAlg?: string;

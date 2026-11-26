@@ -767,8 +767,14 @@ export const domain4Rules: readonly CouplingRule[] = [
       const effectiveSharedExpertDp = Boolean(
         rawSedp && input.enableExpertParallel === true && (input.tpSize ?? 1) > 1,
       );
+      const fusedMc2ClearsOverlap =
+        version === "rfork"
+          ? input.enableFusedMc2 === 1
+          : version === "v0.30.0"
+            ? input.enableFusedMc2 === 1 || input.enableFusedMc2 === 2
+            : (input.enableFusedMc2 ?? 0) > 0;
       const effectiveOverlapSharedExpert = Boolean(
-        input.multistreamOverlapSharedExpert === true && input.enableFusedMc2 !== 1,
+        input.multistreamOverlapSharedExpert === true && !fusedMc2ClearsOverlap,
       );
       if (input.mixPlacement === true && (effectiveSharedExpertDp || effectiveOverlapSharedExpert)) {
         errors.push(
@@ -776,9 +782,11 @@ export const domain4Rules: readonly CouplingRule[] = [
         );
       }
 
-      if (version === "rfork" && input.enableFusedMc2 === 1 && input.modelType === "minimax_m3") {
+      if (input.enableFusedMc2 === 1 && input.modelType === "minimax_m3") {
         errors.push(
-          "AssertionError: MiniMax M3 在 rfork 下不支持 enable_fused_mc2=1（请设为 0 或取消 VLLM_ASCEND_ENABLE_FUSED_MC2）",
+          version === "rfork"
+            ? "AssertionError: MiniMax M3 在 rfork 下不支持 enable_fused_mc2=1（请设为 0 或取消 VLLM_ASCEND_ENABLE_FUSED_MC2）"
+            : "AssertionError: MiniMax M3 不支持 enable_fused_mc2=1 (dispatch_ffn_combine)，请改为 2 (MegaMoe) 或 0",
         );
       }
 

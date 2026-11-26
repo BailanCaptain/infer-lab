@@ -29,6 +29,8 @@ import {
   normalizeShellContinuations,
   type ParsedVllmServeCommand,
   parseVllmServeCommand,
+  type ShellAstStatement,
+  splitShellAstStatements,
   stringifyJsonWithUnsafeInts,
 } from "./cliParser";
 
@@ -833,6 +835,29 @@ function evaluateParsedCommandItems(
   // 1. Additional-config breaking-error & top-level scheduler behavior-changed
   if (parsed.additionalConfig) {
     evaluateAdditionalConfigItems(parsed.additionalConfig, scope, fromVersion, toVersion, out);
+    const targetDiagParsed = parseVllmServeCommand(parsed.rawText, { version: toVersion });
+    const strictSources = getStrictSchemaSources(toVersion);
+    for (const diag of targetDiagParsed.parseDiagnostics) {
+      if (diag.severity !== "error" || !diag.flag?.startsWith("additional_config.")) continue;
+      const flag = diag.flag;
+      const alreadyCovered = out.some(
+        (it) => it.subject === flag || it.subject.startsWith(`${flag}.`) || flag.startsWith(`${it.subject}.`),
+      );
+      if (alreadyCovered) continue;
+      out.push({
+        id: `radar-schema-type-${flag}`,
+        scope,
+        severity: "breaking-error",
+        subject: flag,
+        title: `${flag} 字段类型或子路径与 ${toVersion} 严格 Schema 冲突`,
+        legacyBehavior: `${fromVersion} (${fromCommit}) 旧版配置按宽松字典读取，未对 ${flag} 执行 Pydantic 类型校验。`,
+        targetBehavior: `${toVersion} (${toCommit}) 启用严格字段校验：${diag.message}`,
+        remediation: diag.remediation ?? `请修正或移除非法的 ${flag} 配置项。`,
+        evidenceLevel: "C",
+        sources: strictSources,
+        wikiPageIds: ["ascend-config-system"],
+      });
+    }
   }
 
   // 2. Retired 0-read environment variables (silent-noop)
@@ -988,105 +1013,29 @@ function quoteShellArg(arg: string): string {
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }
 
-type ShellListOp = "" | "\n" | ";" | "&&" | "||" | "&";
-
 interface PreambleStatement {
-  readonly leadingOp: ShellListOp;
+  readonly leadingConj: "" | "&&" | "||";
+  readonly terminator: "" | "\n" | ";" | "&";
   readonly kind: "export" | "assign" | "other";
   readonly rawStmt: string;
   readonly tokens: readonly RawShellToken[];
 }
 
-interface TrailingStatement {
-  readonly leadingOp: Exclude<ShellListOp, "">;
-  readonly rawStmt: string;
-}
-
-function tokenizeFirstServeCommand(rawText: string): {
+function tokenizeFirstServeCommand(
+  rawText: string,
+  preferredStmtIdx?: number | undefined,
+): {
   prefix: readonly string[];
   serveArgs: readonly RawShellToken[];
   preambleStmts: readonly PreambleStatement[];
-  serveLeadingOp: ShellListOp;
+  serveLeadingConj: "" | "&&" | "||";
+  serveTerminator: "" | "\n" | ";" | "&";
   servePrefixAssigns: readonly RawShellToken[];
   serveLaunchWrapperTokens: readonly RawShellToken[];
   serveEnvWrapperTokens: readonly RawShellToken[];
-  serveBackgroundAmpersand: boolean;
-  trailingStmts: readonly TrailingStatement[];
+  trailingStmts: readonly ShellAstStatement[];
 } {
-  const normalized = normalizeShellContinuations(rawText);
-  const stmts: { leadingOp: ShellListOp; rawStmt: string }[] = [];
-  let cur = "";
-  let pendingOp: ShellListOp = "";
-  let trailingFinalAmpersand = false;
-  let quote: "'" | '"' | null = null;
-  const flushStmt = (nextOp: Exclude<ShellListOp, "">): void => {
-    if (cur.trim().length > 0) {
-      stmts.push({ leadingOp: stmts.length === 0 ? "" : pendingOp, rawStmt: cur.trim() });
-      cur = "";
-      pendingOp = nextOp;
-      trailingFinalAmpersand = nextOp === "&";
-    } else if (nextOp !== "\n" || pendingOp === "") {
-      if (pendingOp !== "&") pendingOp = nextOp;
-    }
-  };
-  for (let i = 0; i < normalized.length; i += 1) {
-    const ch = normalized[i] ?? "";
-    const next = normalized[i + 1] ?? "";
-    if (quote === "'") {
-      cur += ch;
-      if (ch === "'") quote = null;
-      continue;
-    }
-    if (quote === '"') {
-      if (ch === "\\" && i + 1 < normalized.length) {
-        cur += ch + next;
-        i += 1;
-        continue;
-      }
-      cur += ch;
-      if (ch === '"') quote = null;
-      continue;
-    }
-    if (ch === "\\" && i + 1 < normalized.length) {
-      cur += ch + next;
-      i += 1;
-      continue;
-    }
-    if (ch === "'" || ch === '"') {
-      quote = ch;
-      cur += ch;
-      continue;
-    }
-    if (ch === "#" && (cur.length === 0 || /\s/.test(cur[cur.length - 1] ?? ""))) {
-      while (i + 1 < normalized.length && normalized[i + 1] !== "\n") i += 1;
-      continue;
-    }
-    if (ch === "\n" || ch === ";") {
-      flushStmt(ch);
-      continue;
-    }
-    if (ch === "&" && next === "&") {
-      flushStmt("&&");
-      i += 1;
-      continue;
-    }
-    if (ch === "|" && next === "|") {
-      flushStmt("||");
-      i += 1;
-      continue;
-    }
-    const prev = cur[cur.length - 1] ?? "";
-    if (ch === "&" && next !== "&" && next !== ">" && prev !== ">" && prev !== "<") {
-      flushStmt("&");
-      continue;
-    }
-    if (!/\s/.test(ch)) trailingFinalAmpersand = false;
-    cur += ch;
-  }
-  if (cur.trim().length > 0) {
-    stmts.push({ leadingOp: stmts.length === 0 ? "" : pendingOp, rawStmt: cur.trim() });
-    trailingFinalAmpersand = false;
-  }
+  const astStmts = splitShellAstStatements(normalizeShellContinuations(rawText));
 
   const tokenizeOne = (stmt: string): RawShellToken[] => {
     const tokens: RawShellToken[] = [];
@@ -1152,12 +1101,13 @@ function tokenizeFirstServeCommand(rawText: string): {
     stmtIdx: number;
     prefix: string[];
     serveArgs: RawShellToken[];
-    leadingOp: ShellListOp;
+    leadingConj: "" | "&&" | "||";
+    terminator: "" | "\n" | ";" | "&";
     prefixAssigns: RawShellToken[];
     launchWrappers: RawShellToken[];
     envWrapper: RawShellToken[];
   }
-  const tokenizedStmts = stmts.map((seg) => ({ ...seg, tokens: tokenizeOne(seg.rawStmt) }));
+  const tokenizedStmts = astStmts.map((seg) => ({ ...seg, tokens: tokenizeOne(seg.raw) }));
   let lastMatch: CandidateServeMatch | null = null;
 
   for (let sIdx = 0; sIdx < tokenizedStmts.length; sIdx += 1) {
@@ -1178,9 +1128,32 @@ function tokenizeFirstServeCommand(rawText: string): {
         idx += 1;
         continue;
       }
-      if (t === "nohup" || t === "setsid") {
+      if (t === "nohup") {
         stmtLaunchWrappers.push(entry);
         idx += 1;
+        if (tokens[idx]?.value === "--") {
+          stmtLaunchWrappers.push(tokens[idx]!);
+          idx += 1;
+        }
+        continue;
+      }
+      if (t === "setsid") {
+        stmtLaunchWrappers.push(entry);
+        idx += 1;
+        while (idx < tokens.length) {
+          const sw = tokens[idx]!.value;
+          if (sw === "--") {
+            stmtLaunchWrappers.push(tokens[idx]!);
+            idx += 1;
+            break;
+          }
+          if (/^-[cfw]+$/.test(sw) || sw === "--ctty" || sw === "--fork" || sw === "--wait") {
+            stmtLaunchWrappers.push(tokens[idx]!);
+            idx += 1;
+            continue;
+          }
+          break;
+        }
         continue;
       }
       if (t === "env") {
@@ -1224,26 +1197,30 @@ function tokenizeFirstServeCommand(rawText: string): {
     const rest = tokens.slice(idx);
     const h = rest[0]?.value ?? "";
     const s = rest[1]?.value ?? "";
-    if (h === "vllm" && s === "serve") {
+    const isExactPreferred =
+      preferredStmtIdx !== undefined && preferredStmtIdx >= 0 && sIdx === preferredStmtIdx;
+    if ((h === "vllm" && s === "serve") || (isExactPreferred && s === "serve")) {
       lastMatch = {
         stmtIdx: sIdx,
-        prefix: ["vllm", "serve"],
+        prefix: [rest[0]?.raw ?? "vllm", rest[1]?.raw ?? "serve"],
         serveArgs: rest.slice(2),
-        leadingOp: seg.leadingOp,
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
         prefixAssigns: stmtPrefixAssigns,
         launchWrappers: stmtLaunchWrappers,
         envWrapper: stmtEnvWrapper,
       };
+      if (isExactPreferred) break;
     } else if (
-      (h === "python" || h === "python3") &&
+      (h === "python" || h === "python3" || isExactPreferred) &&
       s === "-m" &&
       (rest[2]?.value === "vllm.entrypoints.openai.api_server" ||
         rest[2]?.value === "vllm.entrypoints.cli.main")
     ) {
       const pfx =
         rest[2]?.value === "vllm.entrypoints.cli.main" && rest[3]?.value === "serve"
-          ? [h, "-m", rest[2].value, "serve"]
-          : [h, "-m", rest[2]!.value];
+          ? [rest[0]!.raw, "-m", rest[2].raw, "serve"]
+          : [rest[0]!.raw, "-m", rest[2]!.raw];
       const args =
         rest[2]?.value === "vllm.entrypoints.cli.main" && rest[3]?.value === "serve"
           ? rest.slice(4)
@@ -1252,26 +1229,30 @@ function tokenizeFirstServeCommand(rawText: string): {
         stmtIdx: sIdx,
         prefix: pfx,
         serveArgs: args,
-        leadingOp: seg.leadingOp,
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
         prefixAssigns: stmtPrefixAssigns,
         launchWrappers: stmtLaunchWrappers,
         envWrapper: stmtEnvWrapper,
       };
+      if (isExactPreferred) break;
     } else if (h.startsWith("-")) {
       lastMatch = {
         stmtIdx: sIdx,
         prefix: ["vllm", "serve"],
         serveArgs: rest,
-        leadingOp: seg.leadingOp,
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
         prefixAssigns: stmtPrefixAssigns,
         launchWrappers: stmtLaunchWrappers,
         envWrapper: stmtEnvWrapper,
       };
+      if (isExactPreferred) break;
     }
   }
 
   const preambleStmts: PreambleStatement[] = [];
-  const trailingStmts: TrailingStatement[] = [];
+  const trailingStmts: ShellAstStatement[] = [];
   const targetIdx = lastMatch?.stmtIdx ?? tokenizedStmts.length;
 
   for (let sIdx = 0; sIdx < tokenizedStmts.length; sIdx += 1) {
@@ -1279,34 +1260,50 @@ function tokenizeFirstServeCommand(rawText: string): {
     const seg = tokenizedStmts[sIdx]!;
     if (sIdx > targetIdx) {
       trailingStmts.push({
-        leadingOp: seg.leadingOp === "" ? ";" : seg.leadingOp,
-        rawStmt: seg.rawStmt,
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
+        raw: seg.raw,
       });
       continue;
     }
     const tokens = seg.tokens;
     if (tokens.length === 0) continue;
     if (tokens[0]?.value === "export") {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "export", rawStmt: seg.rawStmt, tokens });
+      preambleStmts.push({
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
+        kind: "export",
+        rawStmt: seg.raw,
+        tokens,
+      });
     } else if (tokens.every((tok) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok.value))) {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "assign", rawStmt: seg.rawStmt, tokens });
+      preambleStmts.push({
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
+        kind: "assign",
+        rawStmt: seg.raw,
+        tokens,
+      });
     } else {
-      preambleStmts.push({ leadingOp: seg.leadingOp, kind: "other", rawStmt: seg.rawStmt, tokens });
+      preambleStmts.push({
+        leadingConj: seg.leadingConj,
+        terminator: seg.terminator,
+        kind: "other",
+        rawStmt: seg.raw,
+        tokens,
+      });
     }
   }
-
-  const nextAfterServe = lastMatch ? tokenizedStmts[lastMatch.stmtIdx + 1] : undefined;
-  const serveBackgroundAmpersand = Boolean(lastMatch && !nextAfterServe && trailingFinalAmpersand);
 
   return {
     prefix: lastMatch?.prefix ?? ["vllm", "serve"],
     serveArgs: lastMatch?.serveArgs ?? [],
     preambleStmts,
-    serveLeadingOp: lastMatch?.leadingOp ?? "",
+    serveLeadingConj: lastMatch?.leadingConj ?? "",
+    serveTerminator: lastMatch?.terminator ?? "",
     servePrefixAssigns: lastMatch?.prefixAssigns ?? [],
     serveLaunchWrapperTokens: lastMatch?.launchWrappers ?? [],
     serveEnvWrapperTokens: lastMatch?.envWrapper ?? [],
-    serveBackgroundAmpersand,
     trailingStmts,
   };
 }
@@ -1340,23 +1337,26 @@ function buildRecommendedCommand(
   toVersion: UpgradeTargetVersion,
 ): string {
   const itemIds = new Set(items.map((i) => i.id));
-  const preamblePieces: { leadingOp: ShellListOp; text: string }[] = [];
+  const preamblePieces: ShellAstStatement[] = [];
   const removeEnvFc1 = itemIds.has("radar-flashcomm1-precedence-inversion");
   const {
     prefix,
     serveArgs,
     preambleStmts,
-    serveLeadingOp,
+    serveLeadingConj,
+    serveTerminator,
     servePrefixAssigns,
     serveLaunchWrapperTokens,
     serveEnvWrapperTokens,
-    serveBackgroundAmpersand,
     trailingStmts,
-  } = tokenizeFirstServeCommand(parsed.rawText);
+  } = tokenizeFirstServeCommand(parsed.rawText, parsed.matchedStatementIndex);
 
   const shouldDropEnvKey = (name: string): boolean =>
     (name === "VLLM_ASCEND_ENABLE_FLASHCOMM1" && removeEnvFc1) ||
     Object.hasOwn(ALL_RETIRED_ENV_RADAR_SPECS, name);
+
+  const isShellVarReferenced = (name: string): boolean =>
+    new RegExp(`\\$(?:\\{[#!]?|\\b)${name}\\b`).test(parsed.rawText);
 
   const nextAdditional: Record<string, unknown> = parsed.additionalConfig
     ? cloneRecordWithUnsafeInts(parsed.additionalConfig)
@@ -1372,37 +1372,106 @@ function buildRecommendedCommand(
 
   for (let pIdx = 0; pIdx < preambleStmts.length; pIdx += 1) {
     const stmt = preambleStmts[pIdx]!;
-    const nextOp = pIdx + 1 < preambleStmts.length ? preambleStmts[pIdx + 1]!.leadingOp : serveLeadingOp;
-    const effOp: ShellListOp = preamblePieces.length === 0 ? "" : stmt.leadingOp;
-    const inAndOrList =
-      stmt.leadingOp === "&&" || stmt.leadingOp === "||" || nextOp === "&&" || nextOp === "||";
+    const nextConj =
+      pIdx + 1 < preambleStmts.length ? preambleStmts[pIdx + 1]!.leadingConj : serveLeadingConj;
+    const effConj: "" | "&&" | "||" = preamblePieces.length === 0 ? "" : stmt.leadingConj;
+    const inAndOrList = stmt.leadingConj !== "" || nextConj !== "";
     if (stmt.kind === "export") {
       const keptArgs: string[] = [];
+      const demotedLocalAssigns: string[] = [];
       for (let k = 1; k < stmt.tokens.length; k += 1) {
         const tok = stmt.tokens[k]!;
         const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
         const ident = m?.[1] ?? (/^[A-Za-z_][A-Za-z0-9_]*$/.test(tok.value) ? tok.value : null);
-        if (ident && shouldDropEnvKey(ident)) continue;
+        if (ident && shouldDropEnvKey(ident)) {
+          if (m?.[1] && isShellVarReferenced(ident)) {
+            demotedLocalAssigns.push(tok.raw);
+          }
+          continue;
+        }
         keptArgs.push(tok.raw);
       }
-      if (keptArgs.length > 0) {
-        preamblePieces.push({ leadingOp: effOp, text: `export ${keptArgs.join(" ")}` });
+      if (keptArgs.length > 0 && demotedLocalAssigns.length > 0) {
+        preamblePieces.push({
+          leadingConj: effConj,
+          terminator: ";",
+          raw: demotedLocalAssigns.join(" "),
+        });
+        preamblePieces.push({
+          leadingConj: "",
+          terminator: stmt.terminator,
+          raw: `export ${keptArgs.join(" ")}`,
+        });
+      } else if (keptArgs.length > 0) {
+        preamblePieces.push({
+          leadingConj: effConj,
+          terminator: stmt.terminator,
+          raw: `export ${keptArgs.join(" ")}`,
+        });
+      } else if (demotedLocalAssigns.length > 0) {
+        preamblePieces.push({
+          leadingConj: effConj,
+          terminator: stmt.terminator,
+          raw: demotedLocalAssigns.join(" "),
+        });
       } else if (inAndOrList) {
-        preamblePieces.push({ leadingOp: effOp, text: ":" });
+        preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
     } else if (stmt.kind === "assign") {
       const keptAssigns = stmt.tokens.filter((tok) => {
         const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(tok.value);
-        return !(m?.[1] && shouldDropEnvKey(m[1]));
+        return !(m?.[1] && shouldDropEnvKey(m[1]) && !isShellVarReferenced(m[1]));
       });
       if (keptAssigns.length > 0) {
-        preamblePieces.push({ leadingOp: effOp, text: keptAssigns.map((t) => t.raw).join(" ") });
+        preamblePieces.push({
+          leadingConj: effConj,
+          terminator: stmt.terminator,
+          raw: keptAssigns.map((t) => t.raw).join(" "),
+        });
       } else if (inAndOrList) {
-        preamblePieces.push({ leadingOp: effOp, text: ":" });
+        preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: ":" });
       }
     } else {
-      preamblePieces.push({ leadingOp: effOp, text: stmt.rawStmt });
+      preamblePieces.push({ leadingConj: effConj, terminator: stmt.terminator, raw: stmt.rawStmt });
     }
+  }
+
+  const migratedNestedKeys: { parent: string; child: string }[] = [];
+
+  // Migrate explicit additional_config keys FIRST so explicit config beats legacy env vars
+  if (Object.hasOwn(nextAdditional, "enable_sleep_mode_extra_cleanup")) {
+    const val = nextAdditional.enable_sleep_mode_extra_cleanup;
+    const rl = ensureSubDict(nextAdditional, "rl_config");
+    if (!Object.hasOwn(rl, "sleep_mode_extra_cleanup")) {
+      rl.sleep_mode_extra_cleanup = typeof val === "boolean" ? val : Boolean(val);
+      migratedNestedKeys.push({ parent: "rl_config", child: "sleep_mode_extra_cleanup" });
+    }
+    delete nextAdditional.enable_sleep_mode_extra_cleanup;
+  }
+
+  const legacySchedKeys =
+    toVersion === "v0.30.0"
+      ? [
+          "enable_balance_scheduling",
+          "recompute_scheduler_enable",
+          "short_request_first_config",
+          "profiling_chunk_config",
+          "batch_job_sched_config",
+        ]
+      : [
+          "enable_balance_scheduling",
+          "recompute_scheduler_enable",
+          "short_request_first_config",
+          "batch_job_sched_config",
+        ];
+  for (const sKey of legacySchedKeys) {
+    if (!Object.hasOwn(nextAdditional, sKey)) continue;
+    const sched = ensureSubDict(nextAdditional, "scheduler_config");
+    if (!Object.hasOwn(sched, sKey)) {
+      sched[sKey] = nextAdditional[sKey];
+      migratedNestedKeys.push({ parent: "scheduler_config", child: sKey });
+    }
+    delete nextAdditional[sKey];
   }
 
   for (const [envName, rawVal] of Object.entries(parsed.envVars)) {
@@ -1429,6 +1498,7 @@ function buildRecommendedCommand(
         const sched = ensureSubDict(nextAdditional, "scheduler_config");
         if (!Object.hasOwn(sched, "enable_balance_scheduling")) {
           sched.enable_balance_scheduling = parseBoolEnvFlag(rawVal, true);
+          migratedNestedKeys.push({ parent: "scheduler_config", child: "enable_balance_scheduling" });
         }
       } else if (
         envName === "VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK" &&
@@ -1455,46 +1525,6 @@ function buildRecommendedCommand(
   }
   if (keptEnvWrapper.length === 1 && keptEnvWrapper[0] === "env") {
     keptEnvWrapper.length = 0;
-  }
-
-  const migratedNestedPairs: { parent: string; child: string; value: unknown }[] = [];
-
-  // Migrate enable_sleep_mode_extra_cleanup -> rl_config.sleep_mode_extra_cleanup
-  if (Object.hasOwn(nextAdditional, "enable_sleep_mode_extra_cleanup")) {
-    const val = nextAdditional.enable_sleep_mode_extra_cleanup;
-    const rl = ensureSubDict(nextAdditional, "rl_config");
-    if (!Object.hasOwn(rl, "sleep_mode_extra_cleanup")) {
-      const coerced = typeof val === "boolean" ? val : Boolean(val);
-      rl.sleep_mode_extra_cleanup = coerced;
-      migratedNestedPairs.push({ parent: "rl_config", child: "sleep_mode_extra_cleanup", value: coerced });
-    }
-    delete nextAdditional.enable_sleep_mode_extra_cleanup;
-  }
-
-  // Migrate legacy top-level scheduler keys into scheduler_config
-  const legacySchedKeys =
-    toVersion === "v0.30.0"
-      ? [
-          "enable_balance_scheduling",
-          "recompute_scheduler_enable",
-          "short_request_first_config",
-          "profiling_chunk_config",
-          "batch_job_sched_config",
-        ]
-      : [
-          "enable_balance_scheduling",
-          "recompute_scheduler_enable",
-          "short_request_first_config",
-          "batch_job_sched_config",
-        ];
-  for (const sKey of legacySchedKeys) {
-    if (!Object.hasOwn(nextAdditional, sKey)) continue;
-    const sched = ensureSubDict(nextAdditional, "scheduler_config");
-    if (!Object.hasOwn(sched, sKey)) {
-      sched[sKey] = nextAdditional[sKey];
-      migratedNestedPairs.push({ parent: "scheduler_config", child: sKey, value: nextAdditional[sKey] });
-    }
-    delete nextAdditional[sKey];
   }
 
   // Strip removed & unknown top-level keys
@@ -1675,18 +1705,36 @@ function buildRecommendedCommand(
     const flagIdx = i;
     let dottedPath = normFlag.slice("--additional-config.".length);
     if (dottedPath.endsWith("+")) dottedPath = dottedPath.slice(0, -1);
-    const segs = dottedPath.length > 0 ? dottedPath.split(".") : [];
+    const segs = dottedPath.split(".");
     const valTok = eqIdx < 0 && i + 1 < serveArgs.length ? serveArgs[i + 1] : undefined;
+    const rawValText = eqIdx >= 0 ? tok.slice(eqIdx + 1) : valTok?.value;
     if (eqIdx < 0 && valTok) i += 1;
     if (isPreservableDottedFlag(segs)) {
       preservedDottedStartIndices.add(flagIdx);
       if (segs.length === 1) {
-        for (const mp of migratedNestedPairs) {
-          if (mp.parent === segs[0]) {
-            postPreservedMigratedTokens.push(
-              mkSynthToken(`--additional-config.${mp.parent}.${mp.child}`),
-              mkSynthToken(stringifyJsonWithUnsafeInts(mp.value)),
-            );
+        const parentKey = segs[0]!;
+        let userExplicitObj: Record<string, unknown> | null = null;
+        if (rawValText !== undefined) {
+          try {
+            const p = JSON.parse(rawValText.trim()) as unknown;
+            if (isPlainObject(p)) userExplicitObj = p;
+          } catch {
+            // Non-JSON or dynamic shell expression
+          }
+        }
+        const cleanedParent = nextAdditional[parentKey];
+        if (isPlainObject(cleanedParent)) {
+          for (const mp of migratedNestedKeys) {
+            if (
+              mp.parent === parentKey &&
+              Object.hasOwn(cleanedParent, mp.child) &&
+              !(userExplicitObj && Object.hasOwn(userExplicitObj, mp.child))
+            ) {
+              postPreservedMigratedTokens.push(
+                mkSynthToken(`--additional-config.${mp.parent}.${mp.child}`),
+                mkSynthToken(stringifyJsonWithUnsafeInts(cleanedParent[mp.child])),
+              );
+            }
           }
         }
       }
@@ -1804,26 +1852,32 @@ function buildRecommendedCommand(
     }
   }
 
-  let serveCmd = segments.length > 2 ? segments.join(" \\\n") : segments.map((s) => s.trim()).join(" ");
-  if (serveBackgroundAmpersand) {
-    serveCmd += " &";
-  }
-  const formatJoiner = (op: ShellListOp): string => {
-    if (op === "&&") return " && ";
-    if (op === "||") return " || ";
-    if (op === "&") return " & ";
-    if (op === ";") return "; ";
-    if (op === "\n") return "\n";
-    return "";
-  };
+  const serveCmd = segments.length > 2 ? segments.join(" \\\n") : segments.map((s) => s.trim()).join(" ");
+  const allOutStmts: ShellAstStatement[] = [
+    ...preamblePieces,
+    {
+      leadingConj: preamblePieces.length === 0 ? "" : serveLeadingConj,
+      terminator: serveTerminator,
+      raw: serveCmd,
+    },
+    ...trailingStmts,
+  ];
   let out = "";
-  for (const piece of preamblePieces) {
-    out += `${formatJoiner(piece.leadingOp)}${piece.text}`;
+  for (let sIdx = 0; sIdx < allOutStmts.length; sIdx += 1) {
+    const curStmt = allOutStmts[sIdx]!;
+    if (sIdx > 0) {
+      const prevStmt = allOutStmts[sIdx - 1]!;
+      if (curStmt.leadingConj === "&&") out += " && ";
+      else if (curStmt.leadingConj === "||") out += " || ";
+      else if (prevStmt.terminator === "&") out += " & ";
+      else if (prevStmt.terminator === ";") out += "; ";
+      else out += "\n";
+    }
+    out += curStmt.raw;
   }
-  const effServeOp: ShellListOp = preamblePieces.length === 0 ? "" : serveLeadingOp || "\n";
-  out += `${formatJoiner(effServeOp)}${serveCmd}`;
-  for (const ts of trailingStmts) {
-    out += `${formatJoiner(ts.leadingOp)}${ts.rawStmt}`;
+  const finalStmt = allOutStmts[allOutStmts.length - 1];
+  if (finalStmt?.terminator === "&") {
+    out += " &";
   }
   return out;
 }

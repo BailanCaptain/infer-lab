@@ -512,7 +512,13 @@ export const domain5Rules: readonly CouplingRule[] = [
     rationale: "Fused MC2 融合通信与多流共享专家掩盖不能同时开启。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
-      if (input.enableFusedMc2 !== 1 || input.multistreamOverlapSharedExpert !== true) return null;
+      const fusedMc2ClearsOverlap =
+        version === "rfork"
+          ? input.enableFusedMc2 === 1
+          : version === "v0.30.0"
+            ? input.enableFusedMc2 === 1 || input.enableFusedMc2 === 2
+            : (input.enableFusedMc2 ?? 0) > 0;
+      if (!fusedMc2ClearsOverlap || input.multistreamOverlapSharedExpert !== true) return null;
       return {
         ruleId: this.id,
         domain: this.domain,

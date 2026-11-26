@@ -107,11 +107,28 @@ export interface ParsedVllmServeCommand {
   inferredHints: InferredModelHints;
   couplingInput: CouplingCheckInput;
   requiredLocalRanks: number;
+  matchedStatementIndex?: number | undefined;
+}
+
+export interface ShellAstStatement {
+  readonly leadingConj: "" | "&&" | "||";
+  readonly terminator: "" | "\n" | ";" | "&";
+  readonly raw: string;
 }
 
 interface ShellStatement {
+  leadingConj: "" | "&&" | "||";
+  terminator: "" | "\n" | ";" | "&";
   rawWords: string[];
   raw: string;
+}
+
+function isLastCharEscaped(buf: string): boolean {
+  let backslashes = 0;
+  for (let k = buf.length - 2; k >= 0 && buf[k] === "\\"; k -= 1) {
+    backslashes += 1;
+  }
+  return backslashes % 2 === 1;
 }
 
 export function normalizeShellContinuations(input: string): string {
@@ -135,11 +152,8 @@ export function normalizeShellContinuations(input: string): string {
       continue;
     }
     if (ch === "\\") {
-      let j = i + 1;
-      while (j < lf.length && (lf[j] === " " || lf[j] === "\t")) j += 1;
-      if (j < lf.length && lf[j] === "\n") {
-        out += quote === '"' ? "" : " ";
-        i = j + 1;
+      if (lf[i + 1] === "\n") {
+        i += 2;
         continue;
       }
       if (i + 1 < lf.length) {
@@ -161,7 +175,7 @@ export function normalizeShellContinuations(input: string): string {
       continue;
     }
     const prev = out[out.length - 1] ?? "";
-    if (ch === "#" && (out.length === 0 || /[\s;&|()]/.test(prev))) {
+    if (ch === "#" && (out.length === 0 || (/[\s;&|()]/.test(prev) && !isLastCharEscaped(out)))) {
       inComment = true;
       out += ch;
       i += 1;
@@ -224,11 +238,22 @@ function findClosingDollarBrace(str: string, startIdx: number): number {
   return -1;
 }
 
-function splitStatements(text: string): string[] {
-  const out: string[] = [];
+export function splitShellAstStatements(text: string): ShellAstStatement[] {
+  const out: ShellAstStatement[] = [];
   let cur = "";
+  let pendingConj: "" | "&&" | "||" = "";
   let quote: "'" | '"' | null = null;
   let i = 0;
+
+  const flush = (term: "" | "\n" | ";" | "&", nextConj: "" | "&&" | "||"): void => {
+    if (cur.trim().length > 0) {
+      out.push({ leadingConj: pendingConj, terminator: term, raw: cur.trim() });
+      cur = "";
+      pendingConj = nextConj;
+    } else if (nextConj !== "") {
+      pendingConj = nextConj;
+    }
+  };
 
   while (i < text.length) {
     const ch = text[i] ?? "";
@@ -280,26 +305,31 @@ function splitStatements(text: string): string[] {
       i += 1;
       continue;
     }
-    if (ch === "#" && (cur.length === 0 || /\s/.test(cur[cur.length - 1] ?? ""))) {
+    if (
+      ch === "#" &&
+      (cur.length === 0 || (/\s/.test(cur[cur.length - 1] ?? "") && !isLastCharEscaped(cur)))
+    ) {
       while (i < text.length && text[i] !== "\n") i += 1;
       continue;
     }
     if (ch === "\n" || ch === ";") {
-      if (cur.trim().length > 0) out.push(cur.trim());
-      cur = "";
+      flush(ch, "");
       i += 1;
       continue;
     }
-    if ((ch === "&" && next === "&") || (ch === "|" && next === "|")) {
-      if (cur.trim().length > 0) out.push(cur.trim());
-      cur = "";
+    if (ch === "&" && next === "&") {
+      flush("", "&&");
+      i += 2;
+      continue;
+    }
+    if (ch === "|" && next === "|") {
+      flush("", "||");
       i += 2;
       continue;
     }
     const prev = cur[cur.length - 1] ?? "";
     if (ch === "&" && next !== "&" && next !== ">" && prev !== ">" && prev !== "<") {
-      if (cur.trim().length > 0) out.push(cur.trim());
-      cur = "";
+      flush("&", "");
       i += 1;
       continue;
     }
@@ -307,11 +337,14 @@ function splitStatements(text: string): string[] {
     i += 1;
   }
 
-  if (cur.trim().length > 0) out.push(cur.trim());
+  if (cur.trim().length > 0) {
+    out.push({ leadingConj: pendingConj, terminator: "", raw: cur.trim() });
+  }
   return out;
 }
 
-function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): ShellStatement {
+function tokenizeStatement(astStmt: ShellAstStatement, diagnostics: CliParseDiagnostic[]): ShellStatement {
+  const stmt = astStmt.raw;
   const rawWords: string[] = [];
   let cur = "";
   let quote: "'" | '"' | null = null;
@@ -397,7 +430,12 @@ function tokenizeStatement(stmt: string, diagnostics: CliParseDiagnostic[]): She
   while (rawWords.length > 0 && rawWords[rawWords.length - 1] === "&") {
     rawWords.pop();
   }
-  return { rawWords, raw: stmt };
+  return {
+    leadingConj: astStmt.leadingConj,
+    terminator: astStmt.terminator,
+    rawWords,
+    raw: stmt,
+  };
 }
 
 function expandDollarExpression(
@@ -792,32 +830,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const UNSAFE_JSON_INTS = new WeakMap<object, Map<string, bigint>>();
+const UNSAFE_JSON_INTS = new WeakMap<object, Map<string | number, bigint>>();
 
-function setUnsafeJsonInt(holder: object, key: string, value: bigint | undefined): void {
+function setUnsafeJsonInt(holder: object, key: string | number, value: bigint | undefined): void {
   let map = UNSAFE_JSON_INTS.get(holder);
   if (value === undefined) {
     map?.delete(key);
     return;
   }
   if (!map) {
-    map = new Map<string, bigint>();
+    map = new Map<string | number, bigint>();
     UNSAFE_JSON_INTS.set(holder, map);
   }
   map.set(key, value);
 }
 
-function getUnsafeJsonInt(holder: object, key: string): bigint | undefined {
+function getUnsafeJsonInt(holder: object, key: string | number): bigint | undefined {
   return UNSAFE_JSON_INTS.get(holder)?.get(key);
 }
 
-export function copyUnsafeJsonInt(src: object, dst: object, key: string): void {
+export function copyUnsafeJsonInt(src: object, dst: object, key: string | number): void {
   setUnsafeJsonInt(dst, key, getUnsafeJsonInt(src, key));
 }
 
 export function cloneRecordWithUnsafeInts(src: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const cloneVal = (v: unknown): unknown => {
-    if (Array.isArray(v)) return v.map(cloneVal);
+    if (Array.isArray(v)) {
+      const clonedArr = v.map(cloneVal);
+      for (let idx = 0; idx < v.length; idx += 1) {
+        copyUnsafeJsonInt(v, clonedArr, idx);
+      }
+      return clonedArr;
+    }
     if (isRecord(v)) return cloneRecordWithUnsafeInts(v);
     return v;
   };
@@ -836,7 +880,7 @@ export function stringifyJsonWithUnsafeInts(value: unknown, exactOverride?: bigi
   if (typeof value === "number") return Number.isFinite(value) ? JSON.stringify(value) : "null";
   if (typeof value === "bigint") return value.toString();
   if (Array.isArray(value)) {
-    return `[${value.map((item) => stringifyJsonWithUnsafeInts(item)).join(",")}]`;
+    return `[${value.map((item, idx) => stringifyJsonWithUnsafeInts(item, getUnsafeJsonInt(value, idx))).join(",")}]`;
   }
   if (isRecord(value)) {
     const parts: string[] = [];
@@ -871,7 +915,7 @@ function recordUnsafeJsonInts(rawJson: string, root: unknown): void {
     }
     return JSON.parse(rawJson.slice(start, i)) as string;
   };
-  const walk = (holder: Record<string, unknown> | null, propKey: string | null, val: unknown): void => {
+  const walk = (holder: object | null, propKey: string | number | null, val: unknown): void => {
     skipWs();
     if (i >= rawJson.length) return;
     const ch = rawJson[i]!;
@@ -910,7 +954,7 @@ function recordUnsafeJsonInts(rawJson: string, root: unknown): void {
       }
       let arrIdx = 0;
       while (i < rawJson.length) {
-        walk(null, null, Array.isArray(val) ? val[arrIdx] : undefined);
+        walk(Array.isArray(val) ? val : null, arrIdx, Array.isArray(val) ? val[arrIdx] : undefined);
         arrIdx += 1;
         skipWs();
         if (rawJson[i] === ",") {
@@ -1426,14 +1470,14 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.isQwen35Dense = true;
     hints.defaultModelDtype = "bfloat16";
   } else if (/deepseek[-_.]?v4(?:\.\d+)?[-_.]?(?:flash|pro)/.test(s)) {
-    hints.matchedPresetName = "DeepSeek-V4-Flash";
+    hints.matchedPresetName = /[-_.]pro(?:$|[-_./])/.test(s) ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
     hints.isMoe = true;
     hints.useMla = true;
     hints.usesSfaSparse = false;
     hints.hasCompressRatios = true;
     hints.indexTopk = 1024;
     hints.modelType = "deepseek_v4";
-    hints.numExperts = 256;
+    hints.numExperts = /[-_.]pro(?:$|[-_./])/.test(s) ? 384 : 256;
     hints.numExpertsPerTok = 8;
     hints.numAttentionHeads = 64;
     hints.headDim = 512;
@@ -1712,7 +1756,21 @@ function parseDottedScalarOrJson(raw: string): { value: unknown; unsafeInt?: big
     return { value: parsed };
   } catch {
     const hr = parseHumanReadableInt(trimmed);
-    return { value: hr !== undefined ? hr : raw };
+    if (hr !== undefined) return { value: hr };
+    if (/^[+-]?\d(?:_?\d)*$/.test(trimmed)) {
+      const normalized = trimmed.replace(/_/g, "");
+      try {
+        const bi = BigInt(normalized);
+        const num = Number(bi);
+        if (bi > 9007199254740991n || bi < -9007199254740991n) {
+          return { value: num, unsafeInt: bi };
+        }
+        return { value: num };
+      } catch {
+        // Fall through to raw string
+      }
+    }
+    return { value: raw };
   }
 }
 
@@ -1783,22 +1841,35 @@ function findServeTokens(statements: readonly ShellStatement[]): {
   serveTokens: string[];
   envVars: Record<string, string>;
   shellPreamble: string[];
+  matchedStatementIndex: number;
 } {
   const shellVars: Record<string, string> = {};
   const exportedNames = new Set<string>();
   const unsetNames = new Set<string>();
   let allExport = false;
+  let lastExitStatus = 0;
   let matchedEnvVars: Record<string, string> | null = null;
+  let matchedStatementIndex = -1;
   const shellPreamble: string[] = [];
   let serveTokens: string[] = [];
 
-  const setShellVar = (name: string, val: string): void => {
-    shellVars[name] = val;
-    unsetNames.delete(name);
-    if (allExport) exportedNames.add(name);
-  };
+  for (let stmtIdx = 0; stmtIdx < statements.length; stmtIdx += 1) {
+    const stmt = statements[stmtIdx]!;
+    if (stmt.leadingConj === "&&" && lastExitStatus !== 0) continue;
+    if (stmt.leadingConj === "||" && lastExitStatus === 0) continue;
 
-  for (const stmt of statements) {
+    const isSubshell = stmt.terminator === "&";
+    const curVars: Record<string, string> = isSubshell ? { ...shellVars } : shellVars;
+    const curExported: Set<string> = isSubshell ? new Set(exportedNames) : exportedNames;
+    const curUnset: Set<string> = isSubshell ? new Set(unsetNames) : unsetNames;
+    let curAllExport = allExport;
+    const setCurVar = (name: string, val: string): void => {
+      curVars[name] = val;
+      curUnset.delete(name);
+      if (curAllExport) curExported.add(name);
+    };
+    if (isSubshell) lastExitStatus = 0;
+
     const rawWords = stmt.rawWords;
     if (rawWords.length === 0) continue;
 
@@ -1809,19 +1880,20 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     }
 
     if (idx === rawWords.length) {
-      // Standalone variable assignment(s): evaluate & commit left-to-right directly on shellVars
+      // Standalone variable assignment(s): evaluate & commit left-to-right directly on curVars
       for (let i = 0; i < rawWords.length; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
-        setShellVar(m[1], val);
+        const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
+        setCurVar(m[1], val);
       }
+      if (!isSubshell) lastExitStatus = 0;
       continue;
     }
 
     // Check if rawWords[idx] is the literal `export` declaration utility (whose assignment args do not IFS-split)
     const cmdRawWord = rawWords[idx] ?? "";
-    const cmdFields = expandShellWordToFields(cmdRawWord, shellVars, setShellVar, unsetNames);
+    const cmdFields = expandShellWordToFields(cmdRawWord, curVars, setCurVar, curUnset);
     if (cmdFields.length === 1 && cmdFields[0] === "export" && idx < rawWords.length) {
       const expandedExportArgs: Array<{ rw: string; expanded: string }> = [];
       for (let i = idx + 1; i < rawWords.length; i += 1) {
@@ -1829,20 +1901,20 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         if (RAW_SHELL_ASSIGN_RE.test(rw)) {
           expandedExportArgs.push({
             rw,
-            expanded: expandShellWord(rw, shellVars, setShellVar, false, 0, unsetNames),
+            expanded: expandShellWord(rw, curVars, setCurVar, false, 0, curUnset),
           });
         } else {
-          for (const f of expandShellWordToFields(rw, shellVars, setShellVar, unsetNames)) {
+          for (const f of expandShellWordToFields(rw, curVars, setCurVar, curUnset)) {
             expandedExportArgs.push({ rw, expanded: f });
           }
         }
       }
-      // POSIX §2.14: variable assignments preceding special built-in `export` persist in shellVars
+      // POSIX §2.14: variable assignments preceding special built-in `export` persist in curVars
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
-        setShellVar(m[1], val);
+        const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
+        setCurVar(m[1], val);
       }
       let removeExport = false;
       for (let i = 0; i < expandedExportArgs.length; i += 1) {
@@ -1855,47 +1927,45 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         const assignMatch = ENV_ASSIGN_RE.exec(expanded);
         if (assignMatch?.[1] && (RAW_SHELL_ASSIGN_RE.test(rw) || assignMatch[1].length > 0)) {
           const name = assignMatch[1];
-          shellVars[name] = assignMatch[2] ?? "";
-          unsetNames.delete(name);
-          if (removeExport) exportedNames.delete(name);
-          else exportedNames.add(name);
+          curVars[name] = assignMatch[2] ?? "";
+          curUnset.delete(name);
+          if (removeExport) curExported.delete(name);
+          else curExported.add(name);
           continue;
         }
         if (VALID_IDENT_RE.test(expanded)) {
-          if (removeExport) exportedNames.delete(expanded);
-          else exportedNames.add(expanded);
+          if (removeExport) curExported.delete(expanded);
+          else curExported.add(expanded);
         }
       }
+      if (!isSubshell) lastExitStatus = 0;
       continue;
     }
 
-    // POSIX §2.9.1 Step 1: Expand command word & arguments FIRST against shellVars (with IFS field splitting!)
+    // POSIX §2.9.1 Step 1: Expand command word & arguments FIRST against curVars (with IFS field splitting!)
     const expandedWords: string[] = [
       ...cmdFields,
-      ...rawWords
-        .slice(idx + 1)
-        .flatMap((w) => expandShellWordToFields(w, shellVars, setShellVar, unsetNames)),
+      ...rawWords.slice(idx + 1).flatMap((w) => expandShellWordToFields(w, curVars, setCurVar, curUnset)),
     ];
 
     if (expandedWords.length === 0) {
-      // Command word expanded to empty (e.g. `A=1 $EMPTY`): treat prefix assignments as standalone shell assignments
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
-        setShellVar(m[1], val);
+        const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
+        setCurVar(m[1], val);
       }
+      if (!isSubshell) lastExitStatus = 0;
       continue;
     }
 
     const firstCmd = expandedWords[0] ?? "";
     if (firstCmd === "set") {
-      // POSIX §2.14: variable assignments preceding special built-in `set` persist in shellVars
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
-        setShellVar(m[1], val);
+        const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
+        setCurVar(m[1], val);
       }
       const setArgs = expandedWords.slice(1);
       for (let i = 0; i < setArgs.length; i += 1) {
@@ -1906,30 +1976,33 @@ function findServeTokens(statements: readonly ShellStatement[]): {
           for (let cIdx = 1; cIdx < arg.length; cIdx += 1) {
             const ch = arg[cIdx];
             if (ch === "a") {
-              allExport = enable;
+              curAllExport = enable;
+              if (!isSubshell) allExport = enable;
             } else if (ch === "o") {
               if (i + 1 < setArgs.length) {
-                if (setArgs[i + 1] === "allexport") allExport = enable;
+                if (setArgs[i + 1] === "allexport") {
+                  curAllExport = enable;
+                  if (!isSubshell) allExport = enable;
+                }
                 i += 1;
               }
             }
           }
           continue;
         }
-        // First positional operand stops option parsing (`set hello -eo allexport`)
         break;
       }
       shellPreamble.push(stmt.raw);
+      if (!isSubshell) lastExitStatus = 0;
       continue;
     }
 
     if (firstCmd === "unset") {
-      // POSIX §2.14: variable assignments preceding special built-in `unset` persist in shellVars
       for (let i = 0; i < idx; i += 1) {
         const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
         if (!m?.[1]) continue;
-        const val = expandShellWord(m[2] ?? "", shellVars, setShellVar, false, 0, unsetNames);
-        setShellVar(m[1], val);
+        const val = expandShellWord(m[2] ?? "", curVars, setCurVar, false, 0, curUnset);
+        setCurVar(m[1], val);
       }
       let unsetVarMode = true;
       let parsingUnsetOpts = true;
@@ -1944,24 +2017,24 @@ function findServeTokens(statements: readonly ShellStatement[]): {
         }
         parsingUnsetOpts = false;
         if (unsetVarMode && VALID_IDENT_RE.test(expanded)) {
-          delete shellVars[expanded];
-          exportedNames.delete(expanded);
-          unsetNames.add(expanded);
+          delete curVars[expanded];
+          curExported.delete(expanded);
+          curUnset.add(expanded);
         }
       }
+      if (!isSubshell) lastExitStatus = 0;
       continue;
     }
 
     // POSIX §2.9.1 Step 2: Expand prefix assignments left-to-right into childEnv
-    // Prefix assignments on a regular command do NOT clear unsetNames in the parent shell.
-    const assignEnv: Record<string, string> = { ...shellVars };
-    const cmdUnsetNames = new Set<string>(unsetNames);
-    const childEnv = buildExportedSnapshot(shellVars, exportedNames);
+    const assignEnv: Record<string, string> = { ...curVars };
+    const cmdUnsetNames = new Set<string>(curUnset);
+    const childEnv = buildExportedSnapshot(curVars, curExported);
     const onPrefixSideEffect = (k: string, v: string): void => {
       assignEnv[k] = v;
       cmdUnsetNames.delete(k);
-      setShellVar(k, v);
-      if (exportedNames.has(k) || Object.hasOwn(childEnv, k)) childEnv[k] = v;
+      setCurVar(k, v);
+      if (curExported.has(k) || Object.hasOwn(childEnv, k)) childEnv[k] = v;
     };
     for (let i = 0; i < idx; i += 1) {
       const m = RAW_SHELL_ASSIGN_RE.exec(rawWords[i] ?? "");
@@ -1972,12 +2045,29 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       childEnv[m[1]] = val;
     }
 
-    // Unwrap nohup / setsid / env [OPTION]... [NAME=VALUE]...
+    // Unwrap nohup [--] / setsid [OPTION]... [--] / env [OPTION]... [NAME=VALUE]...
     let wIdx = 0;
     while (wIdx < expandedWords.length) {
       const w = expandedWords[wIdx] ?? "";
-      if (w === "nohup" || w === "setsid") {
+      if (w === "nohup") {
         wIdx += 1;
+        if (expandedWords[wIdx] === "--") wIdx += 1;
+        continue;
+      }
+      if (w === "setsid") {
+        wIdx += 1;
+        while (wIdx < expandedWords.length) {
+          const sw = expandedWords[wIdx] ?? "";
+          if (sw === "--") {
+            wIdx += 1;
+            break;
+          }
+          if (/^-[cfw]+$/.test(sw) || sw === "--ctty" || sw === "--fork" || sw === "--wait") {
+            wIdx += 1;
+            continue;
+          }
+          break;
+        }
         continue;
       }
       if (w === "env") {
@@ -2030,6 +2120,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
 
     if (isVllmServe || isPythonApiServer || isBareFlags) {
       matchedEnvVars = childEnv;
+      matchedStatementIndex = stmtIdx;
       if (isVllmServe) {
         serveTokens = rest.slice(2);
       } else if (isPythonApiServer) {
@@ -2038,8 +2129,10 @@ function findServeTokens(statements: readonly ShellStatement[]): {
       } else {
         serveTokens = rest;
       }
+      if (!isSubshell) lastExitStatus = 0;
     } else {
       shellPreamble.push(stmt.raw);
+      if (!isSubshell) lastExitStatus = firstCmd === "false" ? 1 : 0;
     }
   }
 
@@ -2047,6 +2140,7 @@ function findServeTokens(statements: readonly ShellStatement[]): {
     serveTokens,
     envVars: matchedEnvVars ?? buildExportedSnapshot(shellVars, exportedNames),
     shellPreamble,
+    matchedStatementIndex,
   };
 }
 
@@ -2692,9 +2786,9 @@ export function parseVllmServeCommand(
   const vllmOmniAvailable = options?.vllmOmniAvailable === true;
   const diagnostics: CliParseDiagnostic[] = [];
   const normalized = normalizeShellContinuations(rawText);
-  const rawStmts = splitStatements(normalized);
+  const rawStmts = splitShellAstStatements(normalized);
   const statements = rawStmts.map((s) => tokenizeStatement(s, diagnostics));
-  const { serveTokens, envVars, shellPreamble } = findServeTokens(statements);
+  const { serveTokens, envVars, shellPreamble, matchedStatementIndex } = findServeTokens(statements);
 
   if (rawText.trim().length === 0) {
     diagnostics.push({
@@ -3055,7 +3149,7 @@ export function parseVllmServeCommand(
           let dottedPath = flag.slice("--additional-config.".length);
           const isListAppend = dottedPath.endsWith("+");
           if (isListAppend) dottedPath = dottedPath.slice(0, -1);
-          const segments = dottedPath.length > 0 ? dottedPath.split(".") : [];
+          const segments = dottedPath.split(".");
           const [v, ni] = readValue(flag, inlineVal, i);
           i = ni;
           if (v !== undefined && segments.length > 0) {
@@ -4213,5 +4307,6 @@ export function parseVllmServeCommand(
     inferredHints,
     couplingInput,
     requiredLocalRanks,
+    matchedStatementIndex,
   };
 }

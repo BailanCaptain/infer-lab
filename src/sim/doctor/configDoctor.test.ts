@@ -1621,5 +1621,54 @@ vllm serve /models/Qwen3-8B --additional-config '{"runtime_config_hot_reload":1.
         { mode: "full", hardwareFamily: "A2", version: "rfork", modelTraitOverride: { indexTopk: 8192 } },
       ).hasBlockers,
     ).toBe(true);
+
+    // enable_fused_mc2=2/3 clears overlap before mix_placement; MiniMax-M3 rejects mode 1 on v0.30.0/main; V4-Pro 384 experts; --additional-config. 1 & 0_1; & subshell & /models/A\ #B
+    const mainFused2Mix = runSingleConfigDoctor(
+      `vllm serve Qwen/Qwen3-30B-A3B -tp 2 --enable-expert-parallel --additional-config '{"enable_fused_mc2":2,"mix_placement":true,"multistream_overlap_shared_expert":true}'`,
+      { mode: "full", hardwareFamily: "A2", version: "main" },
+    );
+    expect(mainFused2Mix.hasBlockers).toBe(false);
+    expect(mainFused2Mix.effectiveInput.multistreamOverlapSharedExpert).toBe(false);
+    expect(
+      runSingleConfigDoctor(`vllm serve MiniMax/MiniMax-M3 --additional-config.enable_fused_mc2 1`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(
+        `DYNAMIC_EPLB=1 vllm serve deepseek-ai/DeepSeek-V4-Pro -tp 4 --enable-expert-parallel --additional-config '{"mc2_comm_alg":"hierarchy","eplb_config":{"dynamic_eplb":true,"num_redundant_experts":256}}'`,
+        { mode: "full", hardwareFamily: "A3", version: "main" },
+      ).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config. 1`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).hasBlockers,
+    ).toBe(true);
+    expect(
+      runSingleConfigDoctor(`vllm serve Qwen/Qwen3-8B --additional-config.enable_fused_mc2 0_1`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "rfork",
+      }).hasBlockers,
+    ).toBe(false);
+    expect(
+      runSingleConfigDoctor(`export TP=2; export TP=4 & vllm serve Qwen/Qwen3-8B -tp $TP`, {
+        mode: "full",
+        hardwareFamily: "A2",
+        version: "main",
+      }).effectiveInput.tpSize,
+    ).toBe(2);
+    const escapedHash = runSingleConfigDoctor(`vllm serve /models/A\\ #B --enforce-eager`, {
+      mode: "full",
+      hardwareFamily: "A2",
+      version: "main",
+    });
+    expect(escapedHash.parsed.model).toBe("/models/A #B");
+    expect(escapedHash.parsed.enforceEager).toBe(true);
   });
 });

@@ -12,7 +12,15 @@ export default defineConfig({
     // Serialize filesystem/CLI fixtures on Windows; in-test concurrency checks stay intact.
     maxWorkers: process.platform === "win32" ? 1 : 4,
     projects: [
-      { extends: true, test: { name: "unit", include: ["src/**/*.test.ts", "src/**/*.test.tsx"] } },
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+          // First import of virtual:wiki-reader-* under 4 parallel Linux forks compiles all 196 pages.
+          testTimeout: 20_000,
+        },
+      },
       {
         extends: true,
         test: {

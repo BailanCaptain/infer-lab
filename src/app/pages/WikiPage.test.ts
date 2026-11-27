@@ -168,7 +168,7 @@ describe("a route whose page is not in the reader snapshot", () => {
     expect(controller.getState().items.length).toBeGreaterThan(0);
     expect(controller.getState().items[0]?.typeLabel).toBeTruthy();
     expect(getPage("block-table")).toBeUndefined();
-  });
+  }, 20_000);
 
   it("PrerequisiteBar 按需加载单页后从 hydrated page.relations 派生 builds-on 前置导航并保留关系 note，无前置关系时不占位", async () => {
     await ensurePage("quantization");

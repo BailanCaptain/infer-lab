@@ -137,7 +137,7 @@
   <rect x="460" y="388" width="424" height="134" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
   <text x="474" y="414" font-size="14.5" font-weight="700" fill="#3a4f93">BatchDescriptor 匹配键（不止看 num_tokens = 64）</text>
   <rect x="474" y="428" width="396" height="36" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="486" y="451" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">A: (tok=64, req=16, uniform=True, lora=F) → HIT #64</text>
+  <text x="482" y="450" font-size="12" font-family="var(--font-mono)" fill="#065f56">A: (tok=64, req=16, uniform=True, lora=F) → HIT #64</text>
   <rect x="474" y="472" width="396" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
-  <text x="486" y="495" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">B: (tok=64, req=15, uniform=False) → MISS → NONE</text>
+  <text x="482" y="494" font-size="12" font-family="var(--font-mono)" fill="#8f3229">B: (tok=64, req=15, uniform=False) → MISS → NONE</text>
 </svg>

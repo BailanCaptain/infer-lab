@@ -3,7 +3,7 @@ import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
 export const TENSOR_LAYOUT_ND_NZ_CUBE_APPROVED_SHA256 =
-  "4cf580b5c13e0f97685a230470e19928dbe14273ea1f379e145f6cb0db12718d";
+  "7eb7193b88df4024e0c5b3e11f51d7ac2528dc1937cb86b890ab8683d35240a4";
 export const TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256 = TENSOR_LAYOUT_ND_NZ_CUBE_APPROVED_SHA256;
 
 export const TENSOR_FOCUS_MODES = ["block-0", "block-1", "block-2", "block-3", "row-0"] as const;

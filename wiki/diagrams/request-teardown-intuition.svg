@@ -90,7 +90,7 @@
   <text x="196" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">A 停下之前</text>
   <text x="576" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">A 停下之后</text>
   <text x="186" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">A 手里的块</text>
-  <text x="736" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">块 9 是 A、B 共用的开头</text>
+  <text x="736" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">块 9 是 A、B 共用前缀</text>
   <text x="576" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">块 5、块 2 计数降到 0，排回队尾</text>
   <text x="576" y="596" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">下一步清单写明 A 已结束，才删</text>
   <circle cx="528" cy="226" r="11" fill="var(--color-ink, #17211f)"/><text x="528" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>

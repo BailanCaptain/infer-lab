@@ -71,7 +71,7 @@
   <!-- Layer reuse strip showing Layer 0 -> Layer 1 -> Layer L -->
   <rect x="346" y="190" width="248" height="84" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2" stroke-dasharray="5 3"/>
   <text x="470" y="212" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">按 (prefix, attr, dtype, shape) 复用：</text>
-  <text x="470" y="236" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">Layer 0 → Layer 1 → … → Layer L</text>
+  <text x="470" y="236" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">Layer 0 → Layer 1 → … → Layer L</text>
   <text x="470" y="260" text-anchor="middle" font-size="13.5" fill="#4d5652">上一层未 wait 完前禁止重入拉齐</text>
 
   <!-- Arrow: tensor.set_() zero-copy switch -->

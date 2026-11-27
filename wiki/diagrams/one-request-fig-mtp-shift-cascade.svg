@@ -65,7 +65,7 @@
   <rect x="520" y="60" width="124" height="150" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
   <text x="582" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">MTP 第 45 层</text>
   <text x="582" y="112" text-anchor="middle" font-size="13.5" fill="#4d5652">各归一化拼接</text>
-  <text x="582" y="132" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">[4,8192]→[4,4096]</text>
+  <text x="582" y="132" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#936300">[4,8192]→[4,4096]</text>
   <text x="582" y="156" text-anchor="middle" font-size="13.5" fill="#4d5652">稀疏 MLA + MoE</text>
   <text x="582" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">单残差 · 共享</text>
   <text x="582" y="198" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">lm_head</text>

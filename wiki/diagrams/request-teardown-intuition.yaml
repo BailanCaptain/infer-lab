@@ -42,7 +42,7 @@ texts:
   - { at: [196, 22], text: A 停下之前, size: 14, strong: true }
   - { at: [576, 22], text: A 停下之后, size: 14, strong: true }
   - { at: [186, 405], text: A 手里的块, size: 13, anchor: end }
-  - { at: [736, 405], text: 块 9 是 A、B 共用的开头, size: 12, note: true }
+  - { at: [736, 405], text: 块 9 是 A、B 共用前缀, size: 12, note: true }
   - { at: [576, 450], text: 块 5、块 2 计数降到 0，排回队尾, size: 12 }
   - { at: [576, 596], text: 下一步清单写明 A 已结束，才删, size: 12 }
 pins:

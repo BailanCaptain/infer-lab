@@ -2,8 +2,10 @@
  * Chromium 真实渲染几何门禁：检查 wiki/diagrams/*.svg 的画布越界、内框文字溢出、文字重叠与最小字号（≥12px）。
  * 用法：pnpm wiki:svg-geometry [diagram-id ...]
  */
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { extname, join, normalize } from "node:path";
 import { chromium } from "@playwright/test";
 
 interface SvgDefect {
@@ -134,17 +136,64 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const root = process.cwd();
+  const mime: Record<string, string> = {
+    ".css": "text/css; charset=utf-8",
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".svg": "image/svg+xml; charset=utf-8",
+    ".webp": "image/webp",
+    ".png": "image/png",
+  };
+  const stageHtml = `<!doctype html><html><head><meta charset="utf-8">
+    <link rel="stylesheet" href="/node_modules/@fontsource-variable/inter/index.css">
+    <link rel="stylesheet" href="/node_modules/@fontsource/noto-sans-sc/400.css">
+    <link rel="stylesheet" href="/node_modules/@fontsource/noto-sans-sc/500.css">
+    <link rel="stylesheet" href="/node_modules/@fontsource/noto-sans-sc/700.css">
+    <link rel="stylesheet" href="/node_modules/@fontsource/jetbrains-mono/400.css">
+    <link rel="stylesheet" href="/node_modules/@fontsource/jetbrains-mono/700.css">
+    <style>
+      :root {
+        --font-sans: "Inter Variable", "Noto Sans SC", sans-serif;
+        --font-mono: "JetBrains Mono", "Noto Sans SC", monospace;
+      }
+      body { margin: 0; padding: 0; background: #fbfaf6; font-family: var(--font-sans); }
+    </style></head><body id="stage"></body></html>`;
+
+  const server = createServer((req, res) => {
+    const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
+    if (urlPath === "/__stage.html") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(stageHtml);
+      return;
+    }
+    const resolvedPath = urlPath.startsWith("/wiki-illustrations/")
+      ? normalize(join(root, "public", urlPath))
+      : normalize(join(root, urlPath));
+    if (!resolvedPath.startsWith(root) || !existsSync(resolvedPath)) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    res.writeHead(200, { "content-type": mime[extname(resolvedPath)] ?? "application/octet-stream" });
+    res.end(readFileSync(resolvedPath));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1200, height: 1600 } });
   const defects: SvgDefect[] = [];
 
   try {
+    await page.goto(`http://127.0.0.1:${port}/__stage.html`, { waitUntil: "networkidle" });
     for (const file of allSvgs) {
       const svgMarkup = readFileSync(join(diagramsDir, file), "utf8");
-      await page.setContent(
-        `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;padding:0;background:#fbfaf6;}</style></head><body>${svgMarkup}</body></html>`,
-        { waitUntil: "domcontentloaded" },
-      );
+      await page.evaluate(async (markup) => {
+        const stage = document.getElementById("stage");
+        if (stage) stage.innerHTML = markup;
+        await document.fonts.ready;
+      }, svgMarkup);
 
       const issues = (await page.evaluate(BROWSER_SCAN_EXPR)) as string[];
       if (issues.length > 0) {
@@ -153,6 +202,7 @@ async function main(): Promise<void> {
     }
   } finally {
     await browser.close();
+    server.close();
   }
 
   if (defects.length > 0) {

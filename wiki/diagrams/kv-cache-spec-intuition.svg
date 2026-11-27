@@ -20,7 +20,7 @@
   <text x="28" y="132" font-size="13" fill="#4d5652">例：Qwen3-8B 单层 512 KiB/块</text>
 
   <rect x="310" y="40" width="278" height="106" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="324" y="64" font-size="14.5" font-weight="700" fill="#065f56">1B. MLAAttentionSpec（压缩潜向量）</text>
+  <text x="316" y="64" font-size="12" font-weight="700" fill="#065f56">1B. MLAAttentionSpec（压缩潜向量）</text>
   <text x="324" y="88" font-size="13.5" fill="#17211f">不分 K/V（无系数 2），支持压缩比 r</text>
   <text x="324" y="110" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">(B ÷ r) × 1 × d_c × bytes</text>
   <text x="324" y="132" font-size="13" fill="#4d5652">例：GLM MLA 640×512×2 = 640 KiB</text>

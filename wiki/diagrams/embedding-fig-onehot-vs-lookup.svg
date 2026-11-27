@@ -90,7 +90,7 @@
   <text x="615" y="94" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="700" fill="#065f56">直查</text>
 
   <rect x="646" y="70" width="234" height="66" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.8" />
-  <text x="763" y="94" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="700" fill="#065f56">E[2] = [-0.3, 0.8, 0.1, 0.0]</text>
+  <text x="763" y="94" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#065f56">E[2] = [-0.3, 0.8, 0.1, 0.0]</text>
   <text x="763" y="119" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">只读 1 行 · 0 次乘法 · 与矩阵乘等值</text>
 
   <!-- Divider between top & bottom right -->

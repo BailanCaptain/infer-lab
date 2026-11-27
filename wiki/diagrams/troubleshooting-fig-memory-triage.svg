@@ -25,7 +25,7 @@
   <rect x="428" y="44" width="456" height="110" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
   <text x="444" y="70" font-size="15" font-weight="700" fill="#3a4f93">主干：确认落在设备 NPU HBM 侧（按生命周期四时点拆解）</text>
   <text x="444" y="96" font-size="13.5" fill="#17211f">启动日志出现 <tspan font-family="var(--font-mono)">init_snapshot</tspan> / <tspan font-family="var(--font-mono)">NPU out of memory</tspan>，或运行期</text>
-  <text x="444" y="120" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">kv_cache_usage_perc</tspan> 长期逼近 1.0 → 沿下方四阶段定位最后正常点</text>
+  <text x="434" y="120" font-size="12" fill="#17211f"><tspan font-family="var(--font-mono)">kv_cache_usage_perc</tspan> 长期逼近 1.0 → 沿下方四阶段定位最后正常点</text>
   <text x="444" y="143" font-size="13.5" fill="#3a4f93">同一条显存轴上，四个时点消耗的预算来源与修法完全不同</text>
 
   <!-- Vertical drop to timeline -->

@@ -76,7 +76,7 @@
   <text x="94" y="457" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">Cache|Compress</text>
   <line x1="172" y1="452" x2="196" y2="452" stroke="#17211f" stroke-width="1.5" marker-end="url(#ucm1-arr-ink)"/>
   <rect x="202" y="430" width="234" height="44" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
-  <text x="319" y="457" text-anchor="middle" font-size="13.5" fill="#17211f">HBM ↔ 有损压缩（仅 BF16）↔ Posix</text>
+  <text x="319" y="457" text-anchor="middle" font-size="12" fill="#17211f">HBM ↔ 有损压缩（仅 BF16）↔ Posix</text>
   <rect x="448" y="430" width="436" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
   <text x="462" y="457" font-size="13.5" fill="#4d5652">不缩小设备显存；须独立目录并经真实解码验输出质量</text>
 </svg>

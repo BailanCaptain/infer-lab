@@ -72,7 +72,7 @@
 
   <rect x="468" y="268" width="416" height="84" rx="8" fill="#f7e7f2" fill-opacity="0.5" stroke="#9a4b86" stroke-width="1.4"/>
   <text x="482" y="292" font-size="14" font-weight="700" fill="#7a3a6a">一层稀疏 MLA 挂三份独立缓存（全卡复制，不除以 8）：</text>
-  <text x="482" y="316" font-size="13.5" fill="#17211f">• 主潜向量：<tspan font-family="var(--font-mono)" font-weight="700">1 KiB/tok</tspan> (O(n)) · 索引 key：<tspan font-family="var(--font-mono)" font-weight="700">64 B/tok</tspan> (4 tok/池)</text>
+  <text x="474" y="316" font-size="12" fill="#17211f">• 主潜向量：<tspan font-family="var(--font-mono)" font-weight="700">1 KiB/tok</tspan> (O(n)) · 索引 key：<tspan font-family="var(--font-mono)" font-weight="700">64 B/tok</tspan> (4 tok/池)</text>
   <text x="482" y="339" font-size="13.5" fill="#4d5652">• 尾状态：<tspan font-family="var(--font-mono)" font-weight="700">4 KiB/层</tspan> (FP32 4×256，不随长度增长)</text>
 
   <rect x="468" y="366" width="416" height="86" rx="8" fill="#ddf4ef" fill-opacity="0.55" stroke="#087f73" stroke-width="1.4"/>

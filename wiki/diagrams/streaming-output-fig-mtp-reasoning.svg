@@ -82,5 +82,5 @@
 
   <!-- Bottom note -->
   <rect x="482" y="314" width="390" height="30" rx="5" fill="#ece9df"/>
-  <text x="677" y="334" text-anchor="middle" font-size="13" fill="#4d5652">异步调度下，上一圈帧在下一圈开跑后离引擎 · EOS 154820/27/29</text>
+  <text x="677" y="334" text-anchor="middle" font-size="12" fill="#4d5652">异步调度下，上一圈帧在下一圈开跑后离引擎 · EOS 154820/27/29</text>
 </svg>

@@ -65,7 +65,7 @@
 
   <rect x="278" y="238" width="306" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
   <text x="292" y="262" font-size="14" font-weight="700" fill="#936300">初始 VL 0/1 汇入 → 目标 VL 2</text>
-  <text x="292" y="284" font-size="13.5" fill="#4d5652">默认优先级 3 (high) · cacheable/non 均汇同队</text>
+  <text x="284" y="284" font-size="12" fill="#4d5652">默认优先级 3 (high) · cacheable/non 均汇同队</text>
 
   <!-- Channel 2: PCIEDMA -> Tag 5 -> VL 3 (prio 3) -->
   <rect x="16" y="308" width="212" height="58" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>

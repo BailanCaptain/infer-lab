@@ -42,7 +42,7 @@
     <text x="42" y="195">R2 local</text>
     <text x="42" y="239">R3 local_tensor</text>
   </g>
-  <text x="133" y="274" text-anchor="middle" font-size="13.5" fill="#3a4f93">含逐通道量化 scale（gather_specs）</text>
+  <text x="133" y="274" text-anchor="middle" font-size="12" fill="#3a4f93">含逐通道量化 scale（gather_specs）</text>
 
   <!-- Arrow: all_gather_async overlapped with compute -->
   <path d="M 250 178 L 328 178" fill="none" stroke="#9a4b86" stroke-width="2.4" marker-end="url(#ws-plum)"/>

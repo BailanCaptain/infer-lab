@@ -82,7 +82,7 @@
   <text x="673" y="358" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">PCP 组内 All-Reduce：50 + 250 = 300（量随 token 增长）</text>
 
   <rect x="462" y="382" width="422" height="32" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="673" y="403" text-anchor="middle" font-size="13.5" fill="#17211f">若 TP&gt;1 且 reduce_results：再做一次 TP All-Reduce（不替代 TP）</text>
+  <text x="673" y="403" text-anchor="middle" font-size="12" fill="#17211f">若 TP&gt;1 且 reduce_results：再做一次 TP All-Reduce（不替代 TP）</text>
 
   <line x1="16" y1="430" x2="884" y2="430" stroke="#d8d8cf" stroke-width="1.3" stroke-dasharray="6 4"/>
 

@@ -30,7 +30,7 @@
   <rect x="442" y="102" width="222" height="104" rx="18" fill="#fff4cf" stroke="#c78300" stroke-width="2"/>
   <text x="553" y="134" text-anchor="middle" font-size="16" font-weight="700" fill="#936300">状态：OCCUPIED</text>
   <text x="553" y="158" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">单槽存 12 项张量引用</text>
-  <text x="553" y="180" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">logits · hidden · attn_meta</text>
+  <text x="553" y="180" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#4d5652">logits · hidden · attn_meta</text>
   <text x="553" y="198" text-anchor="middle" font-size="13.5" fill="#936300">零拷贝，延长张量寿命</text>
 
   <!-- Top Arc: RPC 1 execute_model (EMPTY -> OCCUPIED) -->

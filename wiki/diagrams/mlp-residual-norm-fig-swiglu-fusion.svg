@@ -33,7 +33,7 @@
 
   <rect x="204" y="148" width="248" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
   <text x="218" y="174" font-size="14.5" font-weight="700" fill="#3a4f93">up 路：双边夹持 [-10, +10]</text>
-  <text x="218" y="198" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">clamp(up, -10, 10)</tspan>（内容分支）</text>
+  <text x="210" y="198" font-size="12" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">clamp(up, -10, 10)</tspan>（内容分支）</text>
   <text x="218" y="220" font-size="13.5" fill="#4d5652">防止正负大值相乘溢出（如 −156）</text>
 
   <path d="M 452 92 L 486 124" fill="none" stroke="#c78300" stroke-width="2"/>

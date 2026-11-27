@@ -114,6 +114,6 @@
   <rect x="466" y="378" width="418" height="96" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
   <text x="480" y="403" font-size="14.5" font-weight="700" fill="#8f3229">✗ 写 1 陷阱：selected[-1] = current 强制兜底</text>
   <text x="480" y="427" font-size="13.5" fill="#4d5652">最终截断若不含「当前副本份数」，会覆写最后一个位置；</text>
-  <text x="480" y="448" font-size="13.5" font-weight="700" fill="#8f3229">当 beam_size = 1 → 唯一席位被「份数不变」占满（关闭改份数）</text>
+  <text x="472" y="448" font-size="12" font-weight="700" fill="#8f3229">当 beam_size = 1 → 唯一席位被「份数不变」占满（关闭改份数）</text>
   <text x="480" y="466" font-size="13.5" fill="#065f56">✓ 保留副本数调整的最小合法束宽为 2（至多 N-1 个新份数）</text>
 </svg>

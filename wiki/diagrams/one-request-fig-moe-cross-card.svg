@@ -165,8 +165,8 @@
 
   <!-- Box 3A: Routed Expert Combine + TP8 All-Gather -->
   <rect x="666" y="180" width="202" height="94" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
-  <text x="674" y="203" font-size="13" font-weight="700" fill="#3a4f93">MC2 combine（≤65,536 B）</text>
-  <text x="676" y="225" font-size="13.5" fill="#4d5652">TP8 All-Gather（8,192 B/卡）</text>
+  <text x="674" y="203" font-size="12" font-weight="700" fill="#3a4f93">MC2 combine（≤65,536 B）</text>
+  <text x="672" y="225" font-size="12" fill="#4d5652">TP8 All-Gather（8,192 B/卡）</text>
   <line x1="676" y1="238" x2="858" y2="238" stroke="#b8bcb5" stroke-width="1"/>
   <text x="676" y="261" font-size="13.5" font-weight="700" fill="#3a4f93">输出 routed_out [4, 4096]</text>
 

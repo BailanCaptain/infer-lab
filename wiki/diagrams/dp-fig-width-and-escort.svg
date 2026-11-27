@@ -75,7 +75,7 @@
   <text x="505" y="167" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">min = Eager</text>
 
   <text x="316" y="204" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#065f56">宽度取 max</tspan>：供补齐与 MoE 选路</text>
-  <text x="316" y="226" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">图模式取 min</tspan>：任一组退 Eager 全组退</text>
+  <text x="308" y="226" font-size="12" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">图模式取 min</tspan>：任一组退 Eager 全组退</text>
 
   <!-- Arrow to Column 3 -->
   <path d="M 568 158 L 594 158" fill="none" stroke="#4d5652" stroke-width="1.8" marker-end="url(#dpwe-ink)"/>

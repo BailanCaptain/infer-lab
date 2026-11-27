@@ -79,5 +79,5 @@
   <text x="749" y="410" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">链式影响（关 npugraph_ex）</text>
   <text x="749" y="434" text-anchor="middle" font-size="13.5" fill="#4d5652">若 enforce_eager=True → NONE</text>
 
-  <text x="16" y="484" font-size="13.5" fill="#66716d">注：PCP + KV 池化官方要求 use_layerwise=false；GLM 双机未配 --kv-transfer-config，若接入则 FULL_DECODE_ONLY 会退成 PIECEWISE。</text>
+  <text x="10" y="484" font-size="12" fill="#66716d">注：PCP + KV 池化官方要求 use_layerwise=false；GLM 双机未配 --kv-transfer-config，若接入则 FULL_DECODE_ONLY 会退成 PIECEWISE。</text>
 </svg>

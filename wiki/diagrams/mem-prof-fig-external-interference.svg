@@ -79,7 +79,7 @@
   <rect x="8" y="248" width="884" height="214" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>
   <rect x="20" y="258" width="280" height="24" rx="12" fill="#ddf4ef" stroke="#087f73" stroke-width="1"/>
   <text x="160" y="274" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">2. 多模态试跑尺寸提示 ≠ 运行期限制</text>
-  <text x="312" y="274" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">--limit-mm-per-prompt '{"image":{"count":5,"width":512,"height":512}}'</text>
+  <text x="302" y="274" font-family="var(--font-mono)" font-size="12" fill="#4d5652">--limit-mm-per-prompt '{"image":{"count":5,"width":512,"height":512}}'</text>
 
   <!-- Left container: NPU HBM side (x=20..582, y=294..448) -->
   <rect x="20" y="294" width="562" height="154" rx="8" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>

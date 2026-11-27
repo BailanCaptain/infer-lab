@@ -66,7 +66,7 @@
   <text x="28" y="350" font-size="15" font-weight="700" fill="#065f56">入口与出口是否共享一张表？（训练前定死）</text>
   <rect x="28" y="364" width="396" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
   <text x="42" y="386" font-size="13.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)">tie_word_embeddings=true</tspan>（权重共享）</text>
-  <text x="42" y="407" font-size="13.5" fill="#17211f">经 <tspan font-family="var(--font-mono)">tie_weights</tspan> 复用嵌入表，加载跳过 lm_head 省一份显存</text>
+  <text x="34" y="407" font-size="12" fill="#17211f">经 <tspan font-family="var(--font-mono)">tie_weights</tspan> 复用嵌入表，加载跳过 lm_head 省一份显存</text>
   <rect x="28" y="428" width="396" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
   <text x="42" y="450" font-size="13.5" font-weight="700" fill="#936300"><tspan font-family="var(--font-mono)">tie_word_embeddings=false</tspan>（GLM-5.3-Flash）</text>
   <text x="42" y="471" font-size="13.5" fill="#17211f">入口/出口各占 151.25 MiB/卡 BF16；<tspan font-weight="700" fill="#065f56">MTP 复用主 lm_head</tspan></text>

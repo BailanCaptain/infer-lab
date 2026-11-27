@@ -39,13 +39,13 @@
   <text x="167" y="141" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
   <rect x="198" y="124" width="54" height="24" rx="4" fill="#ffffff" stroke="#b8bcb5" stroke-width="1"/>
   <text x="225" y="141" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#66716d">0</text>
-  <text x="262" y="141" font-size="13" fill="#4d5652">结束 clear_row 填 0</text>
+  <text x="252" y="141" font-size="12" fill="#4d5652">结束 clear_row 填 0</text>
 
   <!-- 5 row ops card -->
   <rect x="28" y="158" width="340" height="108" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.1"/>
   <text x="40" y="180" font-size="13.5" font-weight="700" fill="#17211f">仅 5 类事件触发写表（Qwen3-8B 单表 320 KiB）：</text>
   <text x="40" y="202" font-size="13" fill="#4d5652">• 新入座 <tspan font-family="var(--font-mono)" fill="#17211f">add_row</tspan> · 跨 128/256 边界 <tspan font-family="var(--font-mono)" fill="#17211f">append_row</tspan></text>
-  <text x="40" y="224" font-size="13" fill="#4d5652">• 完结退场 <tspan font-family="var(--font-mono)" fill="#17211f">clear_row</tspan>（空位填 <tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">0 = null_block</tspan>）</text>
+  <text x="34" y="224" font-size="12" fill="#4d5652">• 完结退场 <tspan font-family="var(--font-mono)" fill="#17211f">clear_row</tspan>（空位填 <tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">0 = null_block</tspan>）</text>
   <text x="40" y="246" font-size="13" fill="#4d5652">• 压紧重排 <tspan font-family="var(--font-mono)" fill="#17211f">move_row / swap_row</tspan>（整行搬移）</text>
 
   <!-- Center async H2D bridge -->

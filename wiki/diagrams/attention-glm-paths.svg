@@ -15,7 +15,7 @@
 
   <!-- 顶部入口 -->
   <rect x="210" y="10" width="480" height="44" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="450" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">mHC 入口混合 + RMSNorm → 本卡输入 [T, 4096]（按层号二选一）</text>
+  <text x="450" y="37" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">mHC 入口混合 + RMSNorm → 本卡输入 [T, 4096]（按层号二选一）</text>
 
   <path d="M 320 54 L 222 80" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#agp-arr-t)"/>
   <path d="M 580 54 L 678 80" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#agp-arr-i)"/>
@@ -37,7 +37,7 @@
   <text x="156" y="180" text-anchor="middle" font-size="13" font-family="var(--font-mono)" fill="#936300">t-1</text>
   <rect x="184" y="166" width="48" height="20" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
   <text x="208" y="180" text-anchor="middle" font-size="13" font-family="var(--font-mono)" font-weight="700" fill="#065f56">t</text>
-  <text x="244" y="181" font-size="13.5" fill="#4d5652">混合近 4 位携顺序（无 RoPE）</text>
+  <text x="234" y="181" font-size="12" fill="#4d5652">混合近 4 位携顺序（无 RoPE）</text>
 
   <!-- Step 2: 2D 状态矩阵递推 S_{t-1} -> S_t -->
   <rect x="14" y="206" width="416" height="122" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>

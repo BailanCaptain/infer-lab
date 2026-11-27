@@ -77,7 +77,7 @@
   <rect x="16" y="310" width="414" height="114" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
   <text x="30" y="335" font-size="14.5" font-weight="700" fill="#4d5652">v0.23.0 / v0.26.0rc（旧仓内薄包装）</text>
   <rect x="30" y="348" width="180" height="34" rx="5" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="120" y="370" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">LMCacheAscendConnector</text>
+  <text x="120" y="370" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#17211f">LMCacheAscendConnector</text>
   <line x1="210" y1="365" x2="236" y2="365" stroke="#17211f" stroke-width="1.5" marker-end="url(#lmc1-arr-ink)"/>
   <rect x="242" y="348" width="174" height="34" rx="5" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
   <text x="329" y="370" text-anchor="middle" font-size="13.5" fill="#4d5652">import 插件再导上游类</text>

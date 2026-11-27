@@ -113,7 +113,7 @@
 
   <!-- COLUMN 4: wake_up(["kv_cache"]) x=758..884 (w=126) -->
   <text x="821" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">重建 KV 池</text>
-  <text x="821" y="98" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">wake(["kv_cache"])</text>
+  <text x="814" y="98" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="#065f56">wake(["kv_cache"])</text>
   <rect x="758" y="132" width="126" height="72" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
   <text x="821" y="164" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">空 KV 池 3 GiB</text>
   <text x="821" y="184" text-anchor="middle" font-size="12" fill="#4d5652">旧历史已丢弃</text>

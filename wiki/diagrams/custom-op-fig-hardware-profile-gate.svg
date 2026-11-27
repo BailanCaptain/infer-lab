@@ -84,7 +84,7 @@
   <rect x="20" y="340" width="420" height="82" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
   <text x="34" y="364" font-family="sans-serif" font-size="14" font-weight="700" fill="#8f3229">第二道运行时闸门：VLLM_BATCH_INVARIANT=1</text>
   <text x="34" y="386" font-family="sans-serif" font-size="13.5" fill="#17211f">即便硬件档案含 RUNTIME_CUSTOM_OPS，开启批不变模式后</text>
-  <text x="34" y="408" font-family="sans-serif" font-size="13.5" fill="#4d5652">enable_custom_op() 也强制返回 False（且惰性加载防早启 RTS）</text>
+  <text x="26" y="408" font-family="sans-serif" font-size="12" fill="#4d5652">enable_custom_op() 也强制返回 False（且惰性加载防早启 RTS）</text>
 
   <rect x="454" y="340" width="426" height="82" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
   <text x="468" y="364" font-family="sans-serif" font-size="14" font-weight="700" fill="#065f56">OOT 算子强制双分支范式（如 AscendGemmaRMSNorm）</text>

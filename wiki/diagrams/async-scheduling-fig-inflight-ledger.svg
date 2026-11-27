@@ -63,7 +63,7 @@
   <text x="536" y="147" font-size="13.5" font-weight="700" fill="#8f3229">已算：12 − 2 = 10</text>
   <text x="536" y="171" font-size="13.5" font-weight="700" fill="#8f3229">占位：8 − 2 − 2 = 4</text>
   <text x="536" y="195" font-size="13" fill="#4d5652">先减被拒 2，再减实收 2</text>
-  <text x="536" y="215" font-size="13" font-weight="700" fill="#065f56">已算−占位 = 6（对齐同步）</text>
+  <text x="530" y="215" font-size="12" font-weight="700" fill="#065f56">已算−占位 = 6（对齐同步）</text>
 
   <!-- T4 EngineCore box -->
   <rect x="726" y="76" width="158" height="148" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>

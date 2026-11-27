@@ -59,7 +59,7 @@
   <rect x="304" y="198" width="374" height="96" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6"/>
   <text x="318" y="224" font-size="14.5" font-weight="700" fill="#3a4f93">5. 昇腾稀疏 FlashAttention 内核（A2 基础适配器）</text>
   <text x="318" y="248" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">npu_sparse_flash_attention (PA_BSND)</text>
-  <text x="318" y="272" font-size="13.5" fill="#4d5652">按清单 + block_table 逐位置读潜向量（右下因果掩码 3）</text>
+  <text x="310" y="272" font-size="12" fill="#4d5652">按清单 + block_table 逐位置读潜向量（右下因果掩码 3）</text>
 
   <!-- Side note: PyTorch ref unit-test only -->
   <line x1="678" y1="246" x2="700" y2="246" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="4 3"/>

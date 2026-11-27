@@ -55,7 +55,7 @@
 
   <!-- ViT Embeddings pill above -->
   <rect x="248" y="66" width="270" height="36" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
-  <text x="383" y="89" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">ViT 视觉嵌入：A₀, A₁  |  B₀, B₁, B₂</text>
+  <text x="383" y="89" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#936300">ViT 视觉嵌入：A₀, A₁  |  B₀, B₁, B₂</text>
 
   <!-- Downward overwrite arrows onto slots A0,A1 and B0,B1,B2 -->
   <line x1="278" y1="102" x2="278" y2="128" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />

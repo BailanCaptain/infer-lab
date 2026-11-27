@@ -37,7 +37,7 @@
   <!-- Slab 11 highlighted: MTP MLA + KDA G0 only; KDA G1 & G2 leave it EMPTY! -->
   <rect x="690" y="76" width="182" height="60" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
   <text x="781" y="98" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">大页 11（边界空槽）</text>
-  <text x="781" y="122" text-anchor="middle" font-size="13" fill="#8f3229">MTP + KDA组0（组1/2 空！）</text>
+  <text x="781" y="122" text-anchor="middle" font-size="12" fill="#8f3229">MTP + KDA组0（组1/2 空！）</text>
 
   <text x="28" y="162" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#065f56">full 组持有 b</tspan>：12 片大页存 12 层 MLA（640 tok = 5×128 kernel 块，零空白）</text>
   <text x="28" y="184" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">KDA 组1/2 持有 b</tspan>：仅用前 11 片（每页 14.4% 补齐 + 大页 11 空）</text>
@@ -59,7 +59,7 @@
 
   <rect x="656" y="254" width="216" height="44" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
   <text x="764" y="273" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3229">KDA 组持块时：12 片全空！</text>
-  <text x="764" y="291" text-anchor="middle" font-size="13" fill="#4d5652">（尾状态仅有效 4 KiB，90% 补齐）</text>
+  <text x="764" y="291" text-anchor="middle" font-size="12" fill="#4d5652">（尾状态仅有效 4 KiB，90% 补齐）</text>
 
   <text x="28" y="324" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#065f56">full 组持有 b</tspan>：同步用满 12 大页（MLA）+ 12 小页（indexer K）</text>
   <text x="28" y="346" font-size="13" fill="#17211f">• <tspan font-weight="700" fill="#936300">尾状态组持有 b</tspan>：仅用 12 小页，12 大页闲置</text>

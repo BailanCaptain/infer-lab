@@ -72,7 +72,7 @@
     <text x="26" y="156">全层 BF16 缓存：<tspan font-weight="700" fill="#3a4f93">144.0 KiB/tok</tspan>（省 4×）</text>
     <text x="478" y="156">全层 BF16 缓存：<tspan font-weight="700" fill="#936300">96.0 KiB/tok</tspan>（省 8×）</text>
     <text x="26" y="282" font-family="var(--font-mono)">num_kv_head_replicas = 1，shard_rank = tp_rank</text>
-    <text x="478" y="282" font-family="var(--font-mono)" fill="#7a3a6a">num_kv_head_replicas = 2，shard_rank = tp_rank // 2</text>
+    <text x="472" y="282" font-family="var(--font-mono)" fill="#7a3a6a" font-size="12">num_kv_head_replicas = 2，shard_rank = tp_rank // 2</text>
     <text x="26" y="304" fill="#66716d">8 卡各存 1 个独立 KV 头，合计 8 份</text>
     <text x="478" y="304" fill="#66716d">每头跨 2 卡各驻留 1 份，8 卡合计存 8 份</text>
   </g>

@@ -101,8 +101,8 @@
   <text x="231" y="435" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">可扩展虚拟地址段 + 通信流显存提前释放</text>
   <text x="231" y="456" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">不必等通信流整链依赖全结清，计算流即可提前复用空闲段</text>
 
-  <rect x="34" y="482" width="394" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1" />
-  <text x="231" y="502" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#8f3229">互斥项：max_split_size_mb / garbage_collection_threshold</text>
+  <rect x="28" y="482" width="406" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1" />
+  <text x="231" y="502" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#8f3229">互斥：max_split_size_mb / garbage_collection_threshold</text>
   <text x="231" y="520" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">开启 RL sleep_mode 时 _disable_expandable_segments 自动剥离</text>
 
   <!-- Right Panel: HCCL_OP_EXPANSION_MODE & Device Stack (x=458..880, w=422) -->
@@ -124,7 +124,7 @@
   <text x="804" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#936300">950DT 分离 P/D</text>
   <text x="804" y="471" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#66716d">comm_mode=ccu</text>
 
-  <rect x="472" y="486" width="394" height="46" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.1" />
+  <rect x="466" y="486" width="406" height="46" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.1" />
   <text x="669" y="505" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#7a3a6a">/dev/davinci* · davinci_manager · devmm_svm · hisi_hdc</text>
   <text x="669" y="523" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">计算核 · 设备管理 · 共享虚拟内存 · Host-Device 通道四件套</text>
 </svg>

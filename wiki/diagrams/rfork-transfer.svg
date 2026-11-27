@@ -116,7 +116,7 @@
   <rect x="712" y="496" width="164" height="50" rx="5" fill="#087f73" stroke="#065f56" stroke-width="1.4"/>
   <text x="794" y="526" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">第 2 批：88 段</text>
 
-  <text x="188" y="568" font-size="13.5" fill="#4d5652">600 × 1 MiB 合计仅 600 MiB（远小于 1 GiB），因触及 MAX_TRANSFER_CHUNK_SEGMENTS = 512 仍分 2 批。</text>
+  <text x="178" y="568" font-size="12" fill="#4d5652">600 × 1 MiB 合计仅 600 MiB（远小于 1 GiB），因触及 MAX_TRANSFER_CHUNK_SEGMENTS = 512 仍分 2 批。</text>
 
   <!-- 底部收束条 -->
   <rect x="16" y="592" width="868" height="72" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>

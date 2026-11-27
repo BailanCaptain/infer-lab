@@ -35,7 +35,7 @@
 
   <!-- Center 36x Repeat Container -->
   <rect x="186" y="48" width="516" height="258" rx="10" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4" />
-  <text x="200" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">Qwen3DecoderLayer × 36 层同构串联（Layer 0 → 35，每层独立权重）</text>
+  <text x="192" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#17211f">Qwen3DecoderLayer × 36 层同构串联（Layer 0 → 35，每层独立权重）</text>
 
   <!-- UNOBSTRUCTED MAIN RESIDUAL HIGHWAY (y=102) -->
   <line x1="186" y1="102" x2="412" y2="102" stroke="#087f73" stroke-width="3.2" marker-end="url(#arr-t)" />

@@ -29,7 +29,7 @@
 
   <!-- 同块另一张量（演示同块多段） -->
   <rect x="296" y="76" width="128" height="26" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <text x="360" y="94" text-anchor="middle" font-size="13.5" fill="#936300">同块另一段（有空洞）</text>
+  <text x="360" y="94" text-anchor="middle" font-size="12" fill="#936300">同块另一段（有空洞）</text>
 
   <!-- 端点刻度 -->
   <text x="24" y="124" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">1000</text>
@@ -66,7 +66,7 @@
   <text x="168" y="284" text-anchor="middle" font-size="13.5" fill="#8f3229">原引用已断开</text>
 
   <rect x="248" y="264" width="212" height="58" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-  <text x="354" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">旧存储 S_old（MR 已登记地址）</text>
+  <text x="354" y="288" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">旧存储 S_old（MR 已登记地址）</text>
   <text x="354" y="309" text-anchor="middle" font-size="13.5" fill="#4d5652">无人引用会被分配器回收复用！</text>
 
   <!-- 右侧：RFork 双保活列表锁住 S_old -->

@@ -122,5 +122,5 @@
   <text x="548" y="461" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">猫 0.731÷0.50 = 1.462  ★ 胜出「猫」</text>
   <text x="548" y="480" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">你 0.269÷0.90 = 0.299</text>
 
-  <text x="674" y="514" text-anchor="middle" font-size="13.5" fill="#17211f">数学上与区间法严格等价，避开 <tspan font-family="var(--font-mono)" font-weight="700">multinomial</tspan> 触发 NPU→CPU 同步</text>
+  <text x="674" y="514" text-anchor="middle" font-size="12" fill="#17211f">数学上与区间法严格等价，避开 <tspan font-family="var(--font-mono)" font-weight="700">multinomial</tspan> 触发 NPU→CPU 同步</text>
 </svg>

@@ -19,7 +19,7 @@
     <text x="26" y="98" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">/dev/davinci0..N  ·  /dev/davinci_manager</text>
     <text x="26" y="122" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">/dev/devmm_svm    ·  /dev/hisi_hdc</text>
     <rect x="24" y="136" width="380" height="60" rx="7" fill="#fff4cf" stroke="#d8b882" stroke-width="1.2"/>
-    <text x="34" y="159" font-size="13.5" font-weight="700" fill="#936300">⚠ A3 双裸片：单张物理卡 = 成对挂载 davinci0 + davinci1</text>
+    <text x="30" y="159" font-size="12" font-weight="700" fill="#936300">⚠ A3 双裸片：单张物理卡 = 成对挂载 davinci0 + davinci1</text>
     <text x="34" y="183" font-size="13.5" fill="#936300">• 950DT 官方命令省去 devmm_svm，补挂 hccn_tool</text>
 
     <rect x="12" y="220" width="404" height="122" rx="10" fill="#ffffff" stroke="#8a928f" stroke-width="1.4"/>

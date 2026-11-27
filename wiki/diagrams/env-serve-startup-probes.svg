@@ -17,7 +17,7 @@
     <rect x="12" y="48" width="516" height="132" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
     <text x="26" y="75" font-size="15" font-weight="700" fill="#3a4f93">清单 A · A2 / A3 单卡 Qwen3-8B（BF16 标准基线）</text>
     <text x="26" y="102" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">ASCEND_RT_VISIBLE_DEVICES=0  ·  --served-model-name qwen3-8b</text>
-    <text x="26" y="128" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">--max-model-len 8192  ·  --gpu-memory-utilization 0.90 <tspan font-family="var(--font-sans)" fill="#66716d">(默认 0.92)</tspan></text>
+    <text x="18" y="128" font-family="var(--font-mono)" font-size="12" fill="#4d5652">--max-model-len 8192  ·  --gpu-memory-utilization 0.90 <tspan font-family="var(--font-sans)" fill="#66716d">(默认 0.92)</tspan></text>
     <text x="26" y="154" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">--compilation-config &apos;{&quot;cudagraph_mode&quot;:&quot;FULL_DECODE_ONLY&quot;}&apos;</text>
 
     <rect x="12" y="194" width="516" height="132" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
@@ -29,7 +29,7 @@
     <rect x="12" y="340" width="516" height="136" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
     <text x="26" y="367" font-size="15" font-weight="700" fill="#8f3229">清单 C · Atlas 300I DUO (310P) 最小适配必改三项</text>
     <text x="26" y="394" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">1) --dtype float16 (禁 BF16)   2) --max-num-seqs 8</text>
-    <text x="26" y="421" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">3) FULL_DECODE_ONLY + capture_sizes:[1,2,4,8] (或 PIECEWISE)</text>
+    <text x="18" y="421" font-family="var(--font-mono)" font-size="12" fill="#8f3229">3) FULL_DECODE_ONLY + capture_sizes:[1,2,4,8] (或 PIECEWISE)</text>
     <text x="26" y="448" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">   并传 enable_npugraph_ex: false</text>
   </g>
 
@@ -42,7 +42,7 @@
 
     <rect x="564" y="48" width="324" height="122" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
     <text x="578" y="74" font-size="15" font-weight="700" fill="#3a4f93">探针 ① · <tspan font-family="var(--font-mono)">GET /health</tspan></text>
-    <text x="578" y="101" font-size="13.5" fill="#4d5652">先等日志：<tspan font-family="var(--font-mono)" font-weight="600" fill="#17211f">Application startup complete.</tspan></text>
+    <text x="570" y="101" font-size="12" fill="#4d5652">先等日志：<tspan font-family="var(--font-mono)" font-weight="600" fill="#17211f">Application startup complete.</tspan></text>
     <text x="578" y="127" font-size="13.5" font-weight="700" fill="#087f73">✓ 返回 HTTP 200 OK（空响应体）</text>
     <text x="578" y="152" font-size="13.5" fill="#66716d">引擎崩溃或未就绪会返回 HTTP 503</text>
 

@@ -61,7 +61,7 @@
 
   <rect x="300" y="244" width="286" height="60" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
   <text x="312" y="268" font-size="14" font-weight="700" fill="#8f3229">2. 前置组合校验与量化识别</text>
-  <text x="312" y="292" font-size="13.5" fill="#4d5652">v0.30 跑 7 项校验（如禁 DP&gt;1 ∧ PCP&gt;1）</text>
+  <text x="306" y="292" font-size="12" fill="#4d5652">v0.30 跑 7 项校验（如禁 DP&gt;1 ∧ PCP&gt;1）</text>
 
   <line x1="586" y1="274" x2="616" y2="274" stroke="#66716d" stroke-width="1.7" marker-end="url(#np-arr-g)"/>
 

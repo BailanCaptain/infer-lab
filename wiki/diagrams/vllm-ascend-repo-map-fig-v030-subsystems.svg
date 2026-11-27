@@ -73,7 +73,7 @@
   <text x="772" y="163" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="600" fill="#8f3229">main 删 MRV1 → mrv2_utils</text>
 
   <rect x="416" y="180" width="148" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
-  <text x="490" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">core/ (kv_builder)</text>
+  <text x="490" y="198" text-anchor="middle" font-family="monospace" font-size="12" fill="#17211f">core/ (kv_builder)</text>
   <rect x="572" y="180" width="124" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>
   <text x="634" y="198" text-anchor="middle" font-family="monospace" font-size="13.5" fill="#17211f">spec_decode/</text>
   <rect x="704" y="180" width="84" height="26" rx="13" fill="#ffffff" stroke="#087f73" stroke-width="1"/>

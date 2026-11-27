@@ -78,7 +78,7 @@
   <text x="502" y="226" font-size="12.5" font-weight="700" fill="#8f3229">推「2」+ABORT</text>
 
   <rect x="294" y="246" width="308" height="36" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
-  <text x="448" y="269" text-anchor="middle" font-size="13" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">include_stop_str_in_output=true</tspan> 时免扣尾字</text>
+  <text x="448" y="269" text-anchor="middle" font-size="12" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">include_stop_str_in_output=true</tspan> 时免扣尾字</text>
 
   <line x1="614" y1="168" x2="632" y2="168" stroke="#c78300" stroke-width="2" marker-end="url(#st-arr-a)"/>
 

@@ -154,5 +154,5 @@
 
   <!-- Footer Architecture & Version Strip -->
   <rect x="16" y="544" width="868" height="40" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
-  <text x="30" y="569" font-size="13.5" fill="#4d5652">v0.26+ 改为 10 s 循环等待并抛后台错（废旧版 10 s 静默超时）；共享槽须 eager 且拒递推态；main 拆包 <tspan font-family="var(--font-mono)" font-weight="700">ascend_store/layerwise/</tspan></text>
+  <text x="22" y="569" font-size="12" fill="#4d5652">v0.26+ 改为 10 s 循环等待并抛后台错（废旧版 10 s 静默超时）；共享槽须 eager 且拒递推态；main 拆包 <tspan font-family="var(--font-mono)" font-weight="700">ascend_store/layerwise/</tspan></text>
 </svg>

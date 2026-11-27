@@ -18,7 +18,7 @@
   <line x1="14" y1="36" x2="886" y2="36" stroke="#b8bcb5" stroke-width="1.4"/>
 
   <rect x="200" y="46" width="500" height="38" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
-  <text x="450" y="70" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">层入口 hidden [T, 4096]（两卡一致）→ 本地 input_layernorm（无通信）</text>
+  <text x="450" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">层入口 hidden [T, 4096]（两卡一致）→ 本地 input_layernorm（无通信）</text>
 
   <path d="M 320 84 L 320 98 L 224 98 L 224 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
   <path d="M 580 84 L 580 98 L 676 98 L 676 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#tpq-teal)"/>
@@ -117,7 +117,7 @@
   <text x="323" y="479" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">up_0 [4096, 6144]</text>
   <text x="323" y="499" text-anchor="middle" font-size="13.5" fill="#4d5652">列切输出 [T, 6144]</text>
 
-  <text x="223" y="529" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">本地 SiluAndMul：SiLU(gate_0) ⊙ up_0 → [T, 6144]（零通信）</text>
+  <text x="223" y="529" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">本地 SiluAndMul：SiLU(gate_0) ⊙ up_0 → [T, 6144]（零通信）</text>
 
   <!-- Row-parallel down_proj Rank 0 -->
   <rect x="30" y="538" width="386" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>

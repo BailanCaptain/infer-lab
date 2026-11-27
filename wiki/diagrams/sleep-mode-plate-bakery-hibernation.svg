@@ -36,7 +36,7 @@
   <g id="callout-3">
     <circle cx="612" cy="28" r="12" fill="#087f73"/>
     <text x="612" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
-    <text x="632" y="33" font-size="14.5" font-weight="700" fill="#17211f">保留热壳：进程、通信域与虚拟地址锚点</text>
+    <text x="622" y="33" font-size="12" font-weight="700" fill="#17211f">保留热壳：进程、通信域与虚拟地址锚点</text>
     <text x="632" y="57" font-size="13" fill="#4d5652">物理显存归还驱动，虚拟地址壳原地不动</text>
     <text x="632" y="79" font-size="13" fill="#4d5652">已捕获的图指针无需推倒重录即可衔接</text>
     <text x="632" y="101" font-size="13" fill="#66716d">省去最耗时的分布式握手与编译预热</text>

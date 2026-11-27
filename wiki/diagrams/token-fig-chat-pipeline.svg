@@ -7,7 +7,7 @@
 <rect x="14" y="46" width="244" height="84" rx="7" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.4"/>
 <text x="26" y="70" font-size="14.5" font-weight="700" fill="#17211f">messages + 顶层参数</text>
 <text x="26" y="94" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">add_generation_prompt=True</text>
-<text x="26" y="116" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">continue_final_message=False</text>
+<text x="20" y="116" font-size="12" font-family="var(--font-mono)" fill="#66716d">continue_final_message=False</text>
 <text x="272" y="93" text-anchor="middle" font-size="15" font-weight="700" fill="#66716d">→</text>
 <rect x="286" y="46" width="290" height="84" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
 <text x="298" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">resolve_chat_template 四级解析</text>

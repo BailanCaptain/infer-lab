@@ -63,7 +63,7 @@
   </g>
   <path d="M 499 120 L 532 134 L 565 120 M 643 120 L 676 134 L 709 120 M 532 134 L 604 144 L 676 134" fill="none" stroke="#c78300" stroke-width="1.5"/>
   <text x="752" y="114" font-size="13.5" font-weight="700" fill="#936300">树形归约</text>
-  <text x="752" y="136" font-size="13.5" fill="#4d5652">(S₁+S₂)+(S₃+S₄)</text>
+  <text x="742" y="136" font-size="12" fill="#4d5652">(S₁+S₂)+(S₃+S₄)</text>
 
   <!-- Large batch M=6048: Sequential K Loop -->
   <rect x="456" y="164" width="428" height="94" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>

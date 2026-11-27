@@ -45,7 +45,7 @@
   <!-- Step 3 -->
   <rect x="458" y="66" width="204" height="142" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
   <text x="470" y="90" font-size="14.5" font-weight="700" fill="#936300">③ 风险 + 副本束搜索</text>
-  <text x="470" y="113" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">quantile (0.75→z≈0.67)</text>
+  <text x="464" y="113" font-size="12" font-family="var(--font-mono)" fill="#17211f">quantile (0.75→z≈0.67)</text>
   <text x="470" y="133" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">stages=4 radius=8</text>
   <text x="470" y="153" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">beam_size=64</text>
   <line x1="470" y1="164" x2="650" y2="164" stroke="#b8bcb5" stroke-width="1"/>

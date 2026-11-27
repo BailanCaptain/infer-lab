@@ -57,7 +57,7 @@
 
   <rect x="480" y="64" width="404" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
   <text x="494" y="89" font-size="14.5" font-weight="700" fill="#065f56">✓ 严格不变：步数加权全窗均值</text>
-  <text x="494" y="112" font-size="13.5" fill="#4d5652">(2×4 + 3×4)/5 = 4，(2×6 + 3×6)/5 = 6（与原 5 步精确相等）</text>
+  <text x="486" y="112" font-size="12" fill="#4d5652">(2×4 + 3×4)/5 = 4，(2×6 + 3×6)/5 = 6（与原 5 步精确相等）</text>
 
   <rect x="480" y="140" width="404" height="64" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
   <text x="494" y="165" font-size="14.5" font-weight="700" fill="#8f3229">✗ 丢失项：段内剧烈起伏被抹平</text>

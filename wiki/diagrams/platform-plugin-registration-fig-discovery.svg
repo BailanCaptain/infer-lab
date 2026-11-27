@@ -85,7 +85,7 @@
   <rect x="324" y="344" width="292" height="84" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
   <text x="336" y="368" font-size="13.5" font-weight="700" fill="#936300">前 3 个入口首行先补 global patch：</text>
   <text x="336" y="392" font-size="13.5" fill="#4d5652">connector · model_loader · profiling</text>
-  <text x="336" y="415" font-size="13.5" fill="#66716d">main 先锁 MRV2；connector 增 ec_transfer</text>
+  <text x="330" y="415" font-size="12" fill="#66716d">main 先锁 MRV2；connector 增 ec_transfer</text>
 
   <rect x="324" y="438" width="292" height="54" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
   <text x="336" y="461" font-size="13.5" font-weight="700" fill="#3a4f93">第 4 个：ascend_model（不补 patch）</text>

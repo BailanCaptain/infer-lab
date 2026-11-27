@@ -50,7 +50,7 @@
   <text x="796" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">直接送入第 1 层</text>
 
   <rect x="14" y="214" width="872" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
-  <text x="28" y="241" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 分支边界：</tspan>标准 TP 固定走 <tspan font-family="var(--font-mono)" font-weight="700">_forward_standard</tspan>（All-Reduce）；<tspan font-family="var(--font-mono)" font-weight="700">PCP&gt;1</tspan> 词表分片改走 PCP Reduce-Scatter + TP All-Reduce</text>
+  <text x="20" y="241" font-size="12" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 分支边界：</tspan>标准 TP 固定走 <tspan font-family="var(--font-mono)" font-weight="700">_forward_standard</tspan>（All-Reduce）；<tspan font-family="var(--font-mono)" font-weight="700">PCP&gt;1</tspan> 词表分片改走 PCP Reduce-Scatter + TP All-Reduce</text>
 
   <line x1="14" y1="274" x2="886" y2="274" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 

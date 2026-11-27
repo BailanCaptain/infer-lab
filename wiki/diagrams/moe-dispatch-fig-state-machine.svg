@@ -25,7 +25,7 @@
 </g>
 <g fill="#4d5652" font-size="13.5">
 <text x="30" y="102">直接返回 MoECommType.ALLGATHER（免跨卡专家派发）</text>
-<text x="478" y="102">强走 MoECommType.ALLTOALL（融合 C++ MC2 无法插 LoRA）</text>
+<text x="470" y="102" font-size="12">强走 MoECommType.ALLTOALL（融合 C++ MC2 无法插 LoRA）</text>
 <text x="28" y="200" font-weight="600" fill="#936300">CAPACITY_AND_</text>
 <text x="28" y="218" font-weight="600" fill="#936300">EXPERT_DENSITY</text>
 <text x="28" y="246">同时满足 3 条件：</text>

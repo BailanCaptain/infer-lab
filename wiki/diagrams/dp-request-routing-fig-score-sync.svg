@@ -100,7 +100,7 @@
   <!-- Old flaw box -->
   <rect x="454" y="242" width="430" height="62" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="5 3" />
   <text x="468" y="264" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">旧版漏洞（v0.23 / v0.26）：旧推送抹零本地账 + 漏计请求头</text>
-  <text x="468" y="290" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13.5" fill="#4d5652">推送整表覆盖清零本地 waiting 补记；X-data-parallel-rank 不记账</text>
+  <text x="460" y="290" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#4d5652">推送整表覆盖清零本地 waiting 补记；X-data-parallel-rank 不记账</text>
 
   <!-- New inflight floor box -->
   <rect x="454" y="314" width="430" height="70" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3" />

@@ -84,5 +84,5 @@
   <!-- Band 3: Version & Main Quantized Packed Gather Note -->
   <rect x="16" y="398" width="868" height="74" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
   <text x="32" y="423" font-size="14.5" font-weight="700" fill="#065f56">版本与读取细节：v0.30.0 (c09d3e20) / main (8d6180e2) 保留（v0.23 / v0.26 静默忽略）</text>
-  <text x="32" y="450" font-size="13.5" fill="#17211f">main 在量化 KV（int8 / fp8）时改走 _finish_dcp_packed_gather，仍传 keep_view=not 本开关；读函数无 lru_cache 但无在线重捕获接口</text>
+  <text x="22" y="450" font-size="12" fill="#17211f">main 在量化 KV（int8 / fp8）时改走 _finish_dcp_packed_gather，仍传 keep_view=not 本开关；读函数无 lru_cache 但无在线重捕获接口</text>
 </svg>

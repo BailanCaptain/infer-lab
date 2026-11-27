@@ -75,13 +75,13 @@
   <rect x="572" y="76" width="302" height="222" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
   <text x="586" y="100" font-size="13.5" font-weight="700" fill="#936300">单编号反查演练：davinci5（npu 5）</text>
   <text x="586" y="126" font-size="12.5" fill="#17211f">① 软件边界：<tspan font-family="var(--font-mono)" font-weight="600" fill="#065f56">set_device(5)</tspan> 独立显存与流</text>
-  <text x="586" y="151" font-size="12.5" fill="#17211f">② 反查物理卡：<tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">5 // 2 = Card 2</tspan>（第 3 张卡）</text>
+  <text x="578" y="151" font-size="12" fill="#17211f">② 反查物理卡：<tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">5 // 2 = Card 2</tspan>（第 3 张卡）</text>
   <text x="586" y="176" font-size="12.5" fill="#8f3229">③ 成对挂载：须同挂同卡伙伴 <tspan font-family="var(--font-mono)" font-weight="700">davinci4,5</tspan></text>
   <text x="586" y="201" font-size="12.5" fill="#3a4f93">④ 机内链路：同卡裸片高速直连 + 机内 HCCS</text>
   <text x="586" y="226" font-size="12.5" fill="#7a3a6a">⑤ 跨机端口：本裸片直出专属 RoCE 口 #5</text>
   <line x1="586" y1="241" x2="860" y2="241" stroke="#d8d8cf" stroke-width="1.1"/>
   <text x="586" y="262" font-size="12" font-weight="700" fill="#8f3229">✗ 误区：1 个 Device = 1 张物理板卡</text>
-  <text x="586" y="284" font-size="12" fill="#065f56">✓ 真相：Device 是最小算子/HBM 边界，A3 一卡两芯</text>
+  <text x="578" y="284" font-size="12" fill="#065f56">✓ 真相：Device 是最小算子/HBM 边界，A3 一卡两芯</text>
 
   <!-- Lower 2x2 Verified Criteria Cards -->
   <rect x="14" y="324" width="430" height="120" rx="9" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>

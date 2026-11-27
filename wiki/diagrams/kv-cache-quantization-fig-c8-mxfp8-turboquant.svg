@@ -92,7 +92,7 @@
 
   <line x1="144" y1="464" x2="416" y2="464" stroke="#087f73" stroke-width="2.2" marker-end="url(#kvq-arr-t)"/>
   <rect x="168" y="442" width="224" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="280" y="462" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">✓ MooncakeLayerwiseConnector</text>
+  <text x="280" y="462" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">✓ MooncakeLayerwiseConnector</text>
   <text x="280" y="480" text-anchor="middle" font-size="13.5" fill="#065f56">发送前先逐层量化为 8 位</text>
 
   <!-- Zone 2 Right: Per-layer skip stack -->

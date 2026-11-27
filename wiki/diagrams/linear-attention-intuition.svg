@@ -47,7 +47,7 @@
   <rect x="286" y="157.6" width="76.8" height="19.2"/>
   <rect x="286" y="176.8" width="96" height="19.2" fill="#e89a8d"/>
 </g>
-<text x="394" y="124" font-size="12.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">(softmax(qₜK₁:ₜᵀ)) V₁:ₜ</text>
+<text x="384" y="124" font-size="12" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">(softmax(qₜK₁:ₜᵀ)) V₁:ₜ</text>
 <text x="394" y="149" font-size="12" fill="#4d5652">在线分块可免存整表，但 qₜ</text>
 <text x="394" y="170" font-size="12" fill="#4d5652">仍须扫遍 1..t 全部历史 K、V</text>
 <text x="394" y="193" font-size="12" font-weight="700" fill="#b54237">✗ 无法预缩并成定长状态</text>

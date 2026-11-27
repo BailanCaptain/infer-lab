@@ -91,7 +91,7 @@
   <!-- Correct formula box: include |x| -->
   <rect x="468" y="232" width="416" height="86" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
   <text x="482" y="256" font-size="14" font-weight="700" fill="#065f56">✓ 源码真实口径：分母 = max(|x| + |y|, 1)^γ</text>
-  <text x="482" y="280" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">A: -2 / (4+2) = -0.3333  &gt;  B: -3 / (4+4) = -0.3750</text>
+  <text x="474" y="280" font-size="12" font-family="var(--font-mono)" fill="#065f56">A: -2 / (4+2) = -0.3333  &gt;  B: -3 / (4+4) = -0.3750</text>
   <text x="482" y="304" font-size="13.5" font-weight="700" fill="#065f56">→ 候选 A 排第一（更接近 0 得分更高）</text>
 
   <!-- Wrong formula box: omit |x| -->

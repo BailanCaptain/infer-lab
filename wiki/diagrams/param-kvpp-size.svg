@@ -113,5 +113,5 @@
   <text x="764" y="400" font-size="13.5" fill="#8f3229">（卡数再多</text>
   <text x="764" y="420" font-size="13.5" fill="#8f3229">也跨不过）</text>
 
-  <text x="16" y="508" font-size="13.5" fill="#66716d">注：写入 additional_config.kvpp_config.size 会被工厂函数剔除；有效入口仅 enable_kvpp，且要求非 hybrid MLA（GLM-5.3-Flash 不适用）。</text>
+  <text x="10" y="508" font-size="12" fill="#66716d">注：写入 additional_config.kvpp_config.size 会被工厂函数剔除；有效入口仅 enable_kvpp，且要求非 hybrid MLA（GLM-5.3-Flash 不适用）。</text>
 </svg>

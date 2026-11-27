@@ -1,7 +1,8 @@
 mode: native-svg
 id: tp-fig-myths
-caption: 张量并行五组常见认知误区与源码真相排障对照板（覆盖跨机 RoCE 同步与激活载荷、非线性激活前先列后行、KV 头副本与 MLA 潜向量复制、FRACTAL_NZ 格式转换与运行时副本峰值、以及 W8A8 下 BF16 归约与图模式边界）。
-size: [900, 498]
+caption: >-
+  张量并行（TP）双卡部分和算例与五项源码排雷：对比两卡行切部分和 [2, -1] 与 [-1, 3] 先经 tensor_model_parallel_all_reduce 相加得 [1, 2] 再过 ReLU 得 [1, 2]（正确）与各卡先 ReLU 再加误得 [2, 3]（错误），并展示机内 HCCS 归约与 BF16 激活载荷、num_kv_head_replicas 与 MLA kv_lora_rank 复制、以及 ACL_FORMAT_FRACTAL_NZ 格式重排与运行时副本峰值。
+size: [900, 580]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1045-L1060'
     symbols: ['num_kv_head_replicas', 'total_num_kv_heads']

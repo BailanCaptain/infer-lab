@@ -1,7 +1,8 @@
 mode: native-svg
 id: token-fig-myths
-caption: 分词与模板四大高频误区排雷对照：词表行数与上下文上限、整段模板计数与二次补 BOS、特殊标记区间与普通用户文本、流式文本增量与内部输出编号。
-size: [900, 460]
+caption: >-
+  分词正交双轴与模板、区间、流式解码排雷：横轴展示裸输入 2 个词元经 Chat 模板插入 6 个控制标记后按 8 格检查 max_model_len 与 truncate_prompt_tokens（及 add_special_tokens=False 防重复补 BOS），旁轴独立标出词表查表行数 vocab_size / max_token_id，下方对照显式 special 区间与流式解码 UTF-8 缓冲、check_stop_strings、skipped_stop_token_id。
+size: [900, 552]
 pins:
   - source: 'vllm@ced6857a:vllm/tokenizers/hf.py#L120-L146'
     symbols: ['max_token_id', 'vocab_size']

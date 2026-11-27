@@ -1,68 +1,114 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="Prefill 与 Decode 五组高频误解对照板" font-family="var(--font-sans)">
-  <title>Prefill 与 Decode 五组常见误解 vs v0.30.0 源码真相对照板</title>
-  <desc>五排对照：discard_requests_mask、logits_indices、_get_prompt_logprobs_dict、num_new_tokens、FULL_DECODE_ONLY、uniform_decode、TTFT/ITL/TPOT。</desc>
-  <defs>
-    <marker id="pfm-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,1.5 L8.5,5 L0,8.5z" fill="#087f73"/></marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 576" width="900" height="576" role="img" aria-label="Prefill 四行张量去向与五项源码运行判据图" font-family="var(--font-sans)">
+<title>Prefill 四行张量去向与调度、图模式、时延口径全解（v0.30.0 源码核验）</title>
+<desc>展示 4 行提示词隐藏态全部写入 KV Cache 槽、普通生成仅末行经 logits_indices 送入 lm_head 当步采出首词 y₀、虚线标出 prompt_logprobs 全行评分支路，并对照 discard_requests_mask、token_budget、uniform_decode 与 TTFT/ITL/TPOT。</desc>
+<defs>
+  <marker id="pf-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+  <marker id="pf-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="pf-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+</defs>
 
-  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（机制与调优高频误判）</text>
-  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与运行真相（vLLM + vllm-ascend）</text>
-  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="378" y1="12" x2="378" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="16" y="29" font-size="16" font-weight="700" fill="#17211f">Prefill 四行张量去向与调度、图模式、时延口径全解（4 行示意 + v0.30.0 源码边界）</text>
 
-  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
-    <rect x="12" y="54" width="352" height="78" rx="9"/>
-    <rect x="12" y="144" width="352" height="78" rx="9"/>
-    <rect x="12" y="234" width="352" height="78" rx="9"/>
-    <rect x="12" y="324" width="352" height="78" rx="9"/>
-    <rect x="12" y="414" width="352" height="78" rx="9"/>
-  </g>
+<!-- ① 4-Row Prompt Matrix -> All 4 Write KV vs Last Row -> LM Head -->
+<rect x="14" y="42" width="872" height="232" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="28" y="65" font-size="14" font-weight="700" fill="#065f56">① 4 行提示词矩阵 [4×H] 去向：全行写 KV 槽，普通生成仅末行过 lm_head 当步采出首词 y₀</text>
 
-  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
-    <rect x="392" y="54" width="496" height="78" rx="9"/>
-    <rect x="392" y="144" width="496" height="78" rx="9"/>
-    <rect x="392" y="234" width="496" height="78" rx="9"/>
-    <rect x="392" y="324" width="496" height="78" rx="9"/>
-    <rect x="392" y="414" width="496" height="78" rx="9"/>
-  </g>
+<text x="108" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#4d5652">提示词隐藏态 [4×H]</text>
+<g fill="#ffffff" stroke="#087f73" stroke-width="1.1">
+  <rect x="28" y="96" width="160" height="27" rx="4"/>
+  <rect x="28" y="127" width="160" height="27" rx="4"/>
+  <rect x="28" y="158" width="160" height="27" rx="4"/>
+</g>
+<rect x="28" y="189" width="160" height="31" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+<g font-size="12" text-anchor="middle" fill="#17211f">
+  <text x="108" y="114">行 0 (t₀) [1×H]</text>
+  <text x="108" y="145">行 1 (t₁) [1×H]</text>
+  <text x="108" y="176">行 2 (t₂) [1×H]</text>
+</g>
+<text x="108" y="209" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">行 3 (t₃ 末行) [1×H]</text>
 
-  <g fill="none" stroke="#087f73" stroke-width="2">
-    <path d="M364,93 L386,93" marker-end="url(#pfm-a)"/>
-    <path d="M364,183 L386,183" marker-end="url(#pfm-a)"/>
-    <path d="M364,273 L386,273" marker-end="url(#pfm-a)"/>
-    <path d="M364,363 L386,363" marker-end="url(#pfm-a)"/>
-    <path d="M364,453 L386,453" marker-end="url(#pfm-a)"/>
-  </g>
+<rect x="226" y="90" width="284" height="80" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="368" y="111" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">KV Cache 块表：全部 4 行必写</text>
+<g fill="#ffffff" stroke="#4c65b6" stroke-width="1.1">
+  <rect x="240" y="120" width="58" height="25" rx="4"/>
+  <rect x="306" y="120" width="58" height="25" rx="4"/>
+  <rect x="372" y="120" width="58" height="25" rx="4"/>
+  <rect x="438" y="120" width="58" height="25" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#32478c">
+  <text x="269" y="137">槽 0</text>
+  <text x="335" y="137">槽 1</text>
+  <text x="401" y="137">槽 2</text>
+  <text x="467" y="137">槽 3</text>
+</g>
+<text x="368" y="163" text-anchor="middle" font-size="12" fill="#4d5652">t₀..t₃ 的 K/V 全落槽供后续步注意力读取</text>
 
-  <g fill="#8f3229" font-size="15" font-weight="700">
-    <text x="26" y="83">1. Prefill 只建缓存，不产出输出词</text>
-    <text x="26" y="173">2. N 词提示词要对 N 行做词表选词</text>
-    <text x="26" y="263">3. 调度器分设 Prefill 与 Decode 队列</text>
-    <text x="26" y="353">4. 开了图模式，全程都在回放整图</text>
-    <text x="26" y="443">5. TTFT 等于单次 Prefill 前向耗时</text>
-  </g>
+<rect x="540" y="90" width="332" height="80" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="706" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">虚线支路：仅请求 prompt_logprobs 时触发</text>
+<text x="706" y="134" text-anchor="middle" font-size="12" fill="#17211f">_get_prompt_logprobs_dict 对前 N−1 行补算</text>
+<text x="706" y="155" text-anchor="middle" font-size="12" fill="#4d5652">compute_logits 词表评分，且跳过前缀缓存读取</text>
 
-  <g fill="#8f3229" font-size="14">
-    <text x="26" y="114">误以为首词要等第 1 步 Decode 才选出</text>
-    <text x="26" y="204">误以为每个提示词位置都过一遍 lm_head</text>
-    <text x="26" y="294">误以为引擎先把两阶段请求拆进不同队列</text>
-    <text x="26" y="384">误以为 Prefill 和混合批也能回放整图</text>
-    <text x="26" y="474">忽略排队、多轮分块与同批混合等待</text>
-  </g>
+<rect x="226" y="180" width="212" height="52" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="332" y="202" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">logits_indices 仅切末行 [3]</text>
+<text x="332" y="223" text-anchor="middle" font-size="12" fill="#4d5652">免去前 3 行冗余词表投影</text>
 
-  <g fill="#065f56" font-size="15" font-weight="700">
-    <text x="408" y="83">Prefill 完结当步由末行乘 lm_head 直接产出首词 y₀</text>
-    <text x="408" y="173">普通生成靠 <tspan font-family="var(--font-mono)" font-size="14">logits_indices</tspan> 仅切末行算 [1, 151936]</text>
-    <text x="408" y="263">V1 调度无阶段队列，统一按未算位置进度差分配预算</text>
-    <text x="408" y="353"><tspan font-family="var(--font-mono)" font-size="14">FULL_DECODE_ONLY</tspan> 仅对 <tspan font-family="var(--font-mono)" font-size="14">uniform_decode</tspan> 回放整图</text>
-    <text x="408" y="443">TTFT 含排队、多轮分块调度、同批混合与采样返回</text>
-  </g>
+<rect x="458" y="180" width="186" height="52" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="551" y="202" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">lm_head 算 [1, V]</text>
+<text x="551" y="223" text-anchor="middle" font-size="12" fill="#4d5652">compute_logits 单行打分</text>
 
-  <g fill="#66716d" font-size="14">
-    <text x="408" y="114">分块仅中间段由 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">discard_requests_mask</tspan> 丢弃采样并回拨随机数</text>
-    <text x="408" y="204">仅开 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">prompt_logprobs</tspan> 才补算前 N−1 行并跳前缀缓存读取</text>
-    <text x="408" y="294"><tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">AscendAttentionState</tspan> 是执行侧为注意力和通信贴的标签</text>
-    <text x="408" y="384">含 Prefill 步在此模式下退回 Eager（分段图也受捕获上限约束）</text>
-    <text x="408" y="474">Decode 推进还要区分流式包间隔 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">ITL</tspan> 与每词均摊耗时 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">TPOT</tspan></text>
-  </g>
+<rect x="664" y="180" width="208" height="52" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="768" y="202" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">完结当步直接产出首词 y₀</text>
+<text x="768" y="223" text-anchor="middle" font-size="12" fill="#17211f">绝非等第 1 步 Decode 才选词</text>
+
+<path d="M188 140 L224 132" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#pf-indigo)"/>
+<path d="M188 109 L206 109 L206 79 L562 79 L562 88" fill="none" stroke="#9a4b86" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#pf-plum)"/>
+<g fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#pf-amber)">
+  <line x1="188" y1="205" x2="224" y2="205"/>
+  <line x1="438" y1="205" x2="456" y2="205"/>
+  <line x1="644" y1="205" x2="662" y2="205"/>
+</g>
+<text x="28" y="257" font-size="12" fill="#4d5652">分块例外：仅未完结中间段由 discard_requests_mask 丢弃采样并回拨随机数；最末分块当步交付 y₀。</text>
+
+<!-- ② Unified V1 Token Budget Scheduling -->
+<rect x="14" y="286" width="428" height="142" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="28" y="309" font-size="14" font-weight="700" fill="#32478c">② V1 统一预算池调度：无独立 Prefill / Decode 队列</text>
+<rect x="28" y="322" width="140" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="98" y="344" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Decode 续生 (1格)</text>
+<rect x="172" y="322" width="256" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="300" y="344" text-anchor="middle" font-size="12" font-weight="700" fill="#32478c">Prefill 未算进度差 num_new_tokens</text>
+<text x="28" y="382" font-size="12" fill="#17211f">· 同一 token_budget 池内按 long_prefill_token_threshold 切块</text>
+<text x="28" y="406" font-size="12" fill="#4d5652">· AscendAttentionState 仅是执行侧注意力与通信分派标签</text>
+
+<!-- ③ Graph Mode Dispatch Boundary -->
+<rect x="458" y="286" width="428" height="142" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="472" y="309" font-size="14" font-weight="700" fill="#936300">③ 图模式分派边界：开图模式 ≠ 全程回放整图</text>
+<rect x="472" y="320" width="400" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="484" y="339" font-size="12" font-weight="700" fill="#065f56">✓ uniform_decode == True：FULL_DECODE_ONLY 回放整图</text>
+<text x="484" y="359" font-size="12" fill="#17211f">整齐单步 Decode 批次命中已捕获图档位</text>
+<rect x="472" y="372" width="400" height="46" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="484" y="391" font-size="12" font-weight="700" fill="#936300">↳ 含 Prefill 或混批步：FULL_DECODE_ONLY 退回 Eager</text>
+<text x="484" y="411" font-size="12" fill="#4d5652">分段图同样受捕获上限与 has_initial_state 边界约束</text>
+
+<!-- ④ TTFT / ITL / TPOT End-to-End Timeline -->
+<rect x="14" y="440" width="872" height="122" rx="10" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
+<text x="28" y="463" font-size="14" font-weight="700" fill="#8f3229">④ 端到端时延标尺：TTFT 远大于单次 Prefill 前向，Decode 须区分 ITL 与 TPOT</text>
+<rect x="28" y="480" width="132" height="32" rx="5" fill="#ece9df" stroke="#9aa39f" stroke-width="1.1"/>
+<text x="94" y="501" text-anchor="middle" font-size="12" fill="#4d5652">请求排队等待</text>
+<rect x="164" y="480" width="186" height="32" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+<text x="257" y="501" text-anchor="middle" font-size="12" fill="#936300">多轮分块 + 同批混跑</text>
+<rect x="354" y="480" width="172" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="440" y="501" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">末块前向 + 采出 y₀</text>
+<rect x="548" y="480" width="152" height="32" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="624" y="501" text-anchor="middle" font-size="12" fill="#32478c">Decode 步 → y₁</text>
+<rect x="704" y="480" width="168" height="32" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="788" y="501" text-anchor="middle" font-size="12" fill="#32478c">Decode 步 → y₂</text>
+
+<text x="277" y="544" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">◄──── TTFT（排队 + 多轮分块 + 混批 + 首词 y₀ 返回） ────►</text>
+<text x="710" y="544" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">◄── ITL（包间隔）｜ TPOT（每词均摊） ──►</text>
 </svg>

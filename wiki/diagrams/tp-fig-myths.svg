@@ -1,66 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 498" width="900" height="498" role="img" aria-label="张量并行五组常见误解与源码真相排障对照板" font-family="var(--font-sans)">
-  <title>张量并行五组常见认知误区与源码真相排障对照板。</title>
-  <desc>五排开放式对照：1. 逐层阻塞归约须留机内 HCCS 且载荷只看激活形状；2. 非线性激活决定先列切后行切；3. GQA 副本保底与 MLA 潜向量逐卡复制；4. FRACTAL_NZ 转换与运行时 FP32 副本峰值；5. W8A8 下 BF16 归约与图模式仍执行集合通信。</desc>
-  <defs>
-    <marker id="tpm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="张量并行双卡部分和算例与五项工程排雷图" font-family="var(--font-sans)">
+<title>张量并行（TP）双卡部分和数值算例与通信、KV 副本、显存排雷（v0.30.0 源码核验）</title>
+<desc>对比双卡行切部分和 [2,-1] 与 [-1,3] 先经 tensor_model_parallel_all_reduce 相加得 [1,2] 再过 ReLU 得 [1,2]（正确）与各卡先 ReLU 再加误得 [2,3]（错误），并涵盖机内 HCCS 归约、num_kv_head_replicas、kv_lora_rank 与 ACL_FORMAT_FRACTAL_NZ。</desc>
+<defs>
+  <marker id="tp-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="tp-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
+  </marker>
+</defs>
 
-  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（高频踩坑点）</text>
-  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ 源码与数学真相（算账与排障判据）</text>
-  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="378" y1="12" x2="378" y2="486" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="16" y="29" font-size="16" font-weight="700" fill="#17211f">张量并行（TP）部分和数值算例与通信、KV 副本、显存排雷（示意算例 + v0.30.0 源码边界）</text>
 
-  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
-    <rect x="12" y="54" width="352" height="76" rx="9"/>
-    <rect x="12" y="142" width="352" height="76" rx="9"/>
-    <rect x="12" y="230" width="352" height="76" rx="9"/>
-    <rect x="12" y="318" width="352" height="76" rx="9"/>
-    <rect x="12" y="406" width="352" height="76" rx="9"/>
-  </g>
-  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
-    <rect x="392" y="54" width="496" height="76" rx="9"/>
-    <rect x="392" y="142" width="496" height="76" rx="9"/>
-    <rect x="392" y="230" width="496" height="76" rx="9"/>
-    <rect x="392" y="318" width="496" height="76" rx="9"/>
-    <rect x="392" y="406" width="496" height="76" rx="9"/>
-  </g>
-  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#tpm-arr)">
-    <path d="M 364 92 L 386 92"/>
-    <path d="M 364 180 L 386 180"/>
-    <path d="M 364 268 L 386 268"/>
-    <path d="M 364 356 L 386 356"/>
-    <path d="M 364 444 L 386 444"/>
-  </g>
+<!-- ① Partial Sum vs ReLU Order Numerical Comparison -->
+<rect x="14" y="42" width="872" height="238" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="28" y="65" font-size="14" font-weight="700" fill="#065f56">① 双卡行切部分和算例：先 All-Reduce 相加再过 ReLU 得 [1, 2]；各卡先 ReLU 再加误得 [2, 3]</text>
 
-  <g font-size="15" font-weight="700" fill="#8f3229">
-    <text x="26" y="81">1. 跨 RoCE 扩 TP 线性加速 / 通信跟权重走</text>
-    <text x="26" y="169">2. 先行切再激活，或拿部分和乘 TP 凑数</text>
-    <text x="26" y="257">3. 所有权重与 KV 缓存都按 1/TP 缩小</text>
-    <text x="26" y="345">4. 静态权重除以 TP 就是最终显存峰值</text>
-    <text x="26" y="433">5. W8A8 归约只传 1B；开图就没有通信</text>
-  </g>
-  <g font-size="13.5" fill="#8f3229">
-    <text x="26" y="110">以为卡越多越快，且参数越多单次归约越重</text>
-    <text x="26" y="198">看到行切输出宽度完整，就直接往下层传</text>
-    <text x="26" y="286">忽略 EP 专家、GQA 头数地板与 MLA 潜向量</text>
-    <text x="26" y="374">漏算格式转换与首次前向新分配的常驻缓冲</text>
-    <text x="26" y="462">混淆存储精度与归约精度，把录图当省掉同步</text>
-  </g>
+<rect x="28" y="86" width="170" height="62" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="113" y="108" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">卡 0 部分和 P₀</text>
+<text x="113" y="135" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">[ 2, -1 ]</text>
 
-  <g font-size="15" font-weight="700" fill="#065f56">
-    <text x="408" y="81">每层 2 次阻塞归约留机内 HCCS；载荷只看 T×H</text>
-    <text x="408" y="169">非线性不可拆加，须先列切→本地激活→再行切</text>
-    <text x="408" y="257">TP &gt; kv_heads 按副本复制；MLA 潜向量逐卡存整份</text>
-    <text x="408" y="345">加载后转 <tspan font-family="var(--font-mono)" font-size="14" fill="#936300">FRACTAL_NZ</tspan> 与运行时副本推高峰值</text>
-    <text x="408" y="433">hidden 归约与 logits 仍传 BF16 (2B)；录图照常归约</text>
-  </g>
-  <g font-size="13.5" fill="#66716d">
-    <text x="408" y="110">跨机 RoCE 拉长逐层等待；R1 归约 32 KiB，场景 M 达 47.25 MiB</text>
-    <text x="408" y="198">φ(P₀+P₁) ≠ φ(P₀)+φ(P₁)；末尾须经 <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">All-Reduce</tspan> 对应相加</text>
-    <text x="408" y="286">由 <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">num_kv_head_replicas</tspan> 保底 1 头；MLA 未开 DCP 不切缓存</text>
-    <text x="408" y="374"><tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">process_weights_after_loading</tspan> 转 NZ；GLM 索引器另增 54 MiB</text>
-    <text x="408" y="462"><tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">graph mode</tspan> 省算子逐次下发开销，集合通信仍在图内执行</text>
-  </g>
+<rect x="28" y="162" width="170" height="62" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="113" y="184" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">卡 1 部分和 P₁</text>
+<text x="113" y="211" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">[ -1, 3 ]</text>
+
+<!-- Correct Path -->
+<rect x="226" y="80" width="646" height="72" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="240" y="101" font-size="12.5" font-weight="700" fill="#065f56">✓ 正确顺序：先跨卡归约补齐完整值，再做逐元素非线性激活</text>
+<rect x="240" y="110" width="210" height="34" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
+<text x="345" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">All-Reduce 相加 → [1, 2]</text>
+<rect x="468" y="110" width="164" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="550" y="132" text-anchor="middle" font-size="12" fill="#17211f">过 ReLU([1, 2])</text>
+<rect x="650" y="110" width="208" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+<text x="754" y="132" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">正确结果 = [1, 2]</text>
+
+<!-- Wrong Path -->
+<rect x="226" y="160" width="646" height="72" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="240" y="181" font-size="12.5" font-weight="700" fill="#b54237">✗ 错误顺序：误对未加齐的部分和各卡先做 ReLU，正负抵消被截断破坏</text>
+<rect x="240" y="190" width="210" height="34" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.1"/>
+<text x="345" y="212" text-anchor="middle" font-size="12" fill="#8f3229">各卡先 ReLU：[2,0] 与 [0,3]</text>
+<rect x="468" y="190" width="164" height="34" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.1"/>
+<text x="550" y="212" text-anchor="middle" font-size="12" fill="#8f3229">再相加 [2,0] + [0,3]</text>
+<rect x="650" y="190" width="208" height="34" rx="5" fill="#ffffff" stroke="#b54237" stroke-width="1.3"/>
+<text x="754" y="212" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">误算 [2, 3] ≠ [1, 2]</text>
+
+<g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#tp-teal)">
+  <path d="M198 117 L224 117"/>
+  <line x1="450" y1="127" x2="466" y2="127"/>
+  <line x1="632" y1="127" x2="648" y2="127"/>
+</g>
+<g fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#tp-coral)">
+  <path d="M198 193 L224 193"/>
+  <line x1="450" y1="207" x2="466" y2="207"/>
+  <line x1="632" y1="207" x2="648" y2="207"/>
+</g>
+<text x="28" y="261" font-size="12" font-weight="700" fill="#065f56">先列后行法则：先列切得完整输出列本地激活 → 再行切得部分和 → 末尾经 tensor_model_parallel_all_reduce 一次归约。</text>
+
+<!-- ② Sync Collective Topology, Payload & Graph Mode -->
+<rect x="14" y="292" width="428" height="144" rx="10" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="28" y="315" font-size="14" font-weight="700" fill="#7a3a6a">② 逐层阻塞归约：留机内 HCCS，载荷只看 [T×H]</text>
+<rect x="28" y="328" width="400" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="228" y="351" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">每层 2 次归约 ｜ W8A8 下 hidden/logits 仍传 BF16 (2B)</text>
+<text x="28" y="389" font-size="12" fill="#17211f">· 跨机 RoCE 拉长逐层等待（R1 归约 32 KiB，场景 M 47.25 MiB）</text>
+<text x="28" y="413" font-size="12" fill="#4d5652">· 开启 graph mode 仅省算子下发，集合通信仍在图内执行</text>
+
+<!-- ③ KV Head Replicas & MLA Latent Replication -->
+<rect x="458" y="292" width="428" height="144" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="472" y="315" font-size="14" font-weight="700" fill="#32478c">③ 非均缩项：GQA 头数地板与 MLA 潜向量整份复制</text>
+<rect x="472" y="326" width="400" height="48" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="484" y="345" font-size="12" font-weight="700" fill="#32478c">TP &gt; total_num_kv_heads：num_kv_head_replicas 保底 1 头</text>
+<text x="484" y="366" font-size="12" fill="#4d5652">跨卡复制相同 KV 头，单卡 KV 显存不再按 1/TP 缩小</text>
+<rect x="472" y="380" width="400" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="484" y="399" font-size="12" font-weight="700" fill="#065f56">MLA 潜向量（kv_lora_rank）：未开 DCP 时逐卡存整份</text>
+<text x="484" y="419" font-size="12" fill="#4d5652">decode_context_parallel_size == 1 下不按 TP 切分缓存</text>
+
+<!-- ④ Weight Format Conversion & Runtime Buffer Peak -->
+<rect x="14" y="448" width="872" height="120" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="28" y="471" font-size="14" font-weight="700" fill="#936300">④ 单卡显存峰值构成：静态权重 ÷ TP ≠ 最终水位，须计入 NZ 重排与运行时副本</text>
+<rect x="28" y="486" width="248" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="152" y="509" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">静态权重分片 W / TP</text>
+<rect x="282" y="486" width="312" height="36" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="438" y="509" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">maybe_trans_nz → ACL_FORMAT_FRACTAL_NZ</text>
+<rect x="600" y="486" width="272" height="36" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="736" y="509" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">运行时常驻副本 / 缓冲 (如+54 MiB)</text>
+<text x="28" y="548" font-size="12" fill="#4d5652">process_weights_after_loading 完成格式重排及首次前向分配常驻缓冲后，实测峰值高于磁盘分片商。</text>
 </svg>

@@ -1,7 +1,8 @@
 mode: native-svg
 id: worker-life-fig-myths
-caption: NPUWorker 冷启动五组常见误判与 v0.30.0 源码真相对照：KV 池滞后于加载试跑、录图吃预算外余量、多卡取最小块数、dummy 仅限压测占位、NZ 后处理推高加载峰值
-size: [900, 560]
+caption: >-
+  NPUWorker 冷启动五步生命周期轴与双卡木桶收口排雷：横向展示启动快照→加载权重（npu_format_cast 转 ACL_FORMAT_FRACTAL_NZ）→profile_run 试跑→分配 KV 池→capture_model 录图的先后依赖与 1−u 预算外边界，并画出双卡空闲显存折算 100 块 vs 80 块按 min_num_blocks 全局收口为 80 块及 DummyModelLoader 压测占位禁区。
+size: [900, 580]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L638"
     symbols:

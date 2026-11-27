@@ -1,7 +1,8 @@
 mode: native-svg
 id: prefill-fig-myths
-caption: Prefill 与 Decode 五组高频误解与 v0.30.0 源码真相对照：涵盖 Prefill 末位当场产出首词、logits_indices 避免 N 次选词与 prompt_logprobs 例外、V1 统一进度差调度、FULL_DECODE_ONLY 图模式派发边界，以及 TTFT / ITL / TPOT 指标口径。
-size: [900, 508]
+caption: >-
+  Prefill 四行张量去向与 v0.30.0 五项运行判据：① 4 行提示词隐藏态全部写入 KV Cache 槽，普通生成仅经 logits_indices 取末行过 lm_head 当步采出首词 y₀（分块中间段由 discard_requests_mask 丢弃采样，虚线标出 prompt_logprobs 补算前 N−1 行支路）；② V1 统一 token_budget 进度差调度；③ FULL_DECODE_ONLY 仅对 uniform_decode 回放整图；④ TTFT 端到端全链路标尺及 ITL / TPOT 口径区分。
+size: [900, 576]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L656-L674'
     symbols: ['num_new_tokens', 'long_prefill_token_threshold', 'token_budget']

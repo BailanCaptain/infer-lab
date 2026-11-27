@@ -1,70 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="推理排障五组常见误解与 v0.30.0 源码真相对照图" font-family="var(--font-sans)">
-  <title>推理排障五组高频误判 vs v0.30.0 源码真相</title>
-  <desc>init_snapshot, requested_memory, VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS, model_config, exitcode, finished_procs, abort, abort_requests_async</desc>
-  <defs>
-    <marker id="ts-myth-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 584" width="900" height="584" role="img" aria-label="四卡推理排障时间轴与五项证据门禁图" font-family="var(--font-sans)">
+<title>推理排障四卡时间轴（12 ms 首错 vs 40 ms EI0006）与 v0.30.0 五项证据分诊</title>
+<desc>展示 Rank 3 在 12 ms 首发设备算子错误、Rank 0/1/2 在 40 ms 报 EI0006 通信超时的四卡时间轴，并对照 VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS、abort_requests_async、exitcode=137 vs init_snapshot/requested_memory 及 model_config 生效核验。</desc>
+<defs>
+  <marker id="ts-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
+  </marker>
+</defs>
 
-  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 现场排障常见直觉误区（最易走弯路）</text>
-  <text x="388" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 证据链与源码真相（正确动作）</text>
-  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="374" y1="12" x2="374" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="16" y="29" font-size="16" font-weight="700" fill="#17211f">推理排障四卡时间轴与五项证据分诊（12 ms 首错 vs 40 ms 超时示意 + v0.30.0 源码边界）</text>
 
-  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
-    <rect x="12" y="54" width="348" height="78" rx="10"/>
-    <rect x="12" y="144" width="348" height="78" rx="10"/>
-    <rect x="12" y="234" width="348" height="78" rx="10"/>
-    <rect x="12" y="324" width="348" height="78" rx="10"/>
-    <rect x="12" y="414" width="348" height="78" rx="10"/>
-  </g>
+<!-- ① 4-Rank Fault Propagation Timeline -->
+<rect x="14" y="42" width="872" height="256" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="28" y="65" font-size="14" font-weight="700" fill="#065f56">① 四卡日志时间轴（示意）：Rank 3 在 12 ms 首发算子错，牵连 Rank 0/1/2 在 40 ms 刷屏 EI0006</text>
 
-  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
-    <rect x="388" y="54" width="500" height="78" rx="10"/>
-    <rect x="388" y="144" width="500" height="78" rx="10"/>
-    <rect x="388" y="234" width="500" height="78" rx="10"/>
-    <rect x="388" y="324" width="500" height="78" rx="10"/>
-    <rect x="388" y="414" width="500" height="78" rx="10"/>
-  </g>
+<g font-size="12" font-weight="700" text-anchor="middle">
+  <text x="98" y="88" fill="#66716d">0 ms</text>
+  <text x="240" y="88" fill="#b54237">12 ms (首错)</text>
+  <text x="468" y="88" fill="#7a3a6a">40 ms (超时)</text>
+</g>
+<g stroke-width="1.2" stroke-dasharray="4 3">
+  <line x1="98" y1="93" x2="98" y2="252" stroke="#d8d8cf"/>
+  <line x1="240" y1="93" x2="240" y2="252" stroke="#b54237"/>
+  <line x1="468" y1="93" x2="468" y2="252" stroke="#9a4b86"/>
+</g>
 
-  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ts-myth-fix)">
-    <path d="M 360 93 L 382 93"/>
-    <path d="M 360 183 L 382 183"/>
-    <path d="M 360 273 L 382 273"/>
-    <path d="M 360 363 L 382 363"/>
-    <path d="M 360 453 L 382 453"/>
-  </g>
+<g font-size="12.5" font-weight="700" fill="#17211f">
+  <text x="28" y="120">Rank 0</text>
+  <text x="28" y="158">Rank 1</text>
+  <text x="28" y="196">Rank 2</text>
+  <text x="28" y="237" fill="#b54237">Rank 3</text>
+</g>
 
-  <g font-size="15" font-weight="700" fill="#8f3229">
-    <text x="26" y="83">1. 日志最后一条 EI0006 就是根因</text>
-    <text x="26" y="173">2. 退出码 137 就说明 NPU 显存爆了</text>
-    <text x="26" y="263">3. 关掉几个特性后跑通，问题就修好了</text>
-    <text x="26" y="353">4. 配置项没报错，就证明它一定生效了</text>
-    <text x="26" y="443">5. 没看到设备日志，就是设备没有执行</text>
-  </g>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.1">
+  <rect x="98" y="100" width="138" height="30" rx="4"/>
+  <rect x="98" y="138" width="138" height="30" rx="4"/>
+  <rect x="98" y="176" width="138" height="30" rx="4"/>
+  <rect x="98" y="216" width="138" height="32" rx="4"/>
+</g>
+<g font-size="12" text-anchor="middle" fill="#065f56">
+  <text x="167" y="120">正常算子</text>
+  <text x="167" y="158">正常算子</text>
+  <text x="167" y="196">正常算子</text>
+  <text x="167" y="237">正常算子</text>
+</g>
 
-  <g font-size="13.5" fill="#8f3229">
-    <text x="26" y="113">直接去调大 HCCL 超时或盯着 Rank 0 排查</text>
-    <text x="26" y="203">立刻把 gpu_memory_utilization 砍半缩减 KV</text>
-    <text x="26" y="293">跳过逐项加回对照、输出核对与原配置验收</text>
-    <text x="26" y="383">忽略硬件降级、工厂剔除键与安装产物漂移</text>
-    <text x="26" y="473">或只凭乱码表象就断定是量化精度损坏</text>
-  </g>
+<g fill="#ece9df" stroke="#9aa39f" stroke-width="1.1" stroke-dasharray="4 3">
+  <rect x="240" y="100" width="224" height="30" rx="4"/>
+  <rect x="240" y="138" width="224" height="30" rx="4"/>
+  <rect x="240" y="176" width="224" height="30" rx="4"/>
+</g>
+<g font-size="12" text-anchor="middle" fill="#4d5652">
+  <text x="352" y="120">卡在 All-Reduce 等待</text>
+  <text x="352" y="158">卡在 All-Reduce 等待</text>
+  <text x="352" y="196">卡在 All-Reduce 等待</text>
+</g>
 
-  <g font-size="15" font-weight="700" fill="#065f56">
-    <text x="404" y="83">先按时间戳反查全组最早出错的「首错 Rank」</text>
-    <text x="404" y="173">137 = SIGKILL，优先查主机 DRAM / cgroup OOM</text>
-    <text x="404" y="263">关闭特性只是缩小范围，须单项对照再验收</text>
-    <text x="404" y="353">核对最终生效配置与实际加载的安装文件路径</text>
-    <text x="404" y="443">先确认采集点覆盖路径，再按最后成功站缩小</text>
-  </g>
+<g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2">
+  <rect x="468" y="100" width="132" height="30" rx="4"/>
+  <rect x="468" y="138" width="132" height="30" rx="4"/>
+  <rect x="468" y="176" width="132" height="30" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#7a3a6a">
+  <text x="534" y="120">40ms 报 EI0006</text>
+  <text x="534" y="158">40ms 报 EI0006</text>
+  <text x="534" y="196">40ms 报 EI0006</text>
+</g>
 
-  <g font-size="12.5" fill="#66716d">
-    <text x="402" y="113">单卡先挂会让其余卡卡死在 AllReduce；合并各卡 plog 定位首错</text>
-    <text x="402" y="203">先查 dmesg / OOMKilled；NPU HBM 不足会抛 RuntimeError 或 init_snapshot</text>
-    <text x="402" y="293">用 --enforce-eager 隔离后，仍需逐项加回并核对正常配置的吞吐与输出</text>
-    <text x="402" y="383"><tspan font-family="var(--font-mono)">AscendConfig</tspan> 虽严禁未知键，但部分硬件档位会自动降级关特性</text>
-    <text x="402" y="473">缺记录只代表缺证据；乱码也须先对比 token ID、采样参数与解码链路</text>
-  </g>
+<rect x="240" y="216" width="360" height="32" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+<text x="420" y="237" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">★ 12 ms 首发设备算子错（未进通信）</text>
+<line x1="252" y1="216" x2="252" y2="207" stroke="#b54237" stroke-width="1.6" marker-end="url(#ts-coral)"/>
+<text x="28" y="276" font-size="12" font-weight="700" fill="#065f56">首取证据：跨卡合并 plog 按时间戳反查 12 ms 首错 Rank 3，勿盯末尾 EI0006！</text>
+
+<rect x="614" y="80" width="258" height="204" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="626" y="103" font-size="13" font-weight="700" fill="#065f56">首错 Rank 分流判据</text>
+<text x="626" y="126" font-size="12" fill="#b54237">✗ 误盯 Rank 0 或盲加通信超时</text>
+<text x="626" y="149" font-size="12" fill="#17211f">✓ 查首错卡 12 ms 算子/越界栈</text>
+<text x="626" y="172" font-size="12" fill="#4d5652">· 全卡同刻超时才查链路/交换机</text>
+<text x="626" y="195" font-size="12" fill="#4d5652">· 执行侧超时门槛见：</text>
+<text x="626" y="216" font-size="12" font-weight="700" fill="#32478c">VLLM_EXECUTE_MODEL_</text>
+<text x="626" y="236" font-size="12" font-weight="700" fill="#32478c">TIMEOUT_SECONDS</text>
+<text x="626" y="259" font-size="12" fill="#4d5652">及 abort_requests_async 清理</text>
+
+<!-- ② Exitcode 137 vs NPU HBM OOM -->
+<rect x="14" y="310" width="428" height="260" rx="10" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
+<text x="28" y="334" font-size="14" font-weight="700" fill="#8f3229">② 进程崩溃分诊：exitcode=137 ≠ NPU 显存 OOM</text>
+<rect x="28" y="348" width="400" height="96" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="40" y="371" font-size="12.5" font-weight="700" fill="#b54237">分支 A：finished_procs 报 exitcode = 137 (SIGKILL)</text>
+<text x="40" y="395" font-size="12" fill="#17211f">宿主机 DRAM 或容器 cgroup 内存超限触发内核强杀</text>
+<text x="40" y="419" font-size="12" font-weight="700" fill="#8f3229">首查 dmesg / OOMKilled（盲砍 KV 显存比例无效）</text>
+
+<rect x="28" y="456" width="400" height="100" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="40" y="479" font-size="12.5" font-weight="700" fill="#32478c">分支 B：NPU HBM 设备显存不足</text>
+<text x="40" y="503" font-size="12" fill="#17211f">显式抛 Python RuntimeError 或启动预算拦截：</text>
+<text x="40" y="527" font-size="12" font-weight="700" fill="#065f56">对比 init_snapshot 空闲值与 requested_memory 账单</text>
+
+<!-- ③ Three Evidence Guardrails -->
+<rect x="458" y="310" width="428" height="260" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="472" y="334" font-size="14" font-weight="700" fill="#936300">③ 排障闭环三道证据门禁（拒绝凭表象结案）</text>
+<rect x="472" y="348" width="400" height="64" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="484" y="370" font-size="12.5" font-weight="700" fill="#936300">门禁 1：关特性跑通 ≠ 修好（如 --enforce-eager）</text>
+<text x="484" y="393" font-size="12" fill="#17211f">仅为二分隔离；须单项加回对照并验收原配置吞吐与输出</text>
+
+<rect x="472" y="420" width="400" height="66" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="484" y="442" font-size="12.5" font-weight="700" fill="#7a3a6a">门禁 2：配置未报错 ≠ 已生效（model_config 校验后）</text>
+<text x="484" y="465" font-size="12" fill="#17211f">部分硬件档位自动降级关特性；须核最终生效值与包路径</text>
+
+<rect x="472" y="494" width="400" height="64" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="484" y="516" font-size="12.5" font-weight="700" fill="#065f56">门禁 3：无日志 ≠ 未执行 ｜ 乱码 ≠ 必为量化坏</text>
+<text x="484" y="539" font-size="12" fill="#17211f">先核日志采集覆盖面；乱码先查 token ID、采样与解码链</text>
 </svg>

@@ -795,7 +795,7 @@ export function SpeculativeDecodingInteractive({
           {step === 4
             ? state.discardedKvCount > 0
               ? `被拒位置 ${state.nextOverwritePos} 原先写下的草稿 KV 无需擦除：调度器将已算计数从 ${state.totalComputedBeforeRollback} 退回 ${state.nextOverwritePos}，下一轮送入「${state.committedWords[state.committedWords.length - 1]} + 新草稿」时直接在位置 ${state.nextOverwritePos} 原地覆写（KDA 等递推层则靠 K+1 份状态槽选回位置 ${state.nextOverwritePos - 1} 状态）。`
-              : `全部 ${k} 个草稿候选均通过核对并额外收下位置 ${state.nextOverwritePos - 1} 的奖励词「${state.committedWords[state.committedWords.length - 1]}」，无废 KV 回退，下一轮从位置 ${state.nextOverwritePos} 继续推进。`
+              : `全部 ${k} 个草稿候选均通过核对并额外收下位置 ${state.slots[k]!.predTargetPos} 的奖励词「${state.committedWords[state.committedWords.length - 1]}」，无废 KV 回退，下一轮从位置 ${state.nextOverwritePos} 继续推进。`
             : spec.detail}
           （当前设定：<code>K={k}</code>，模式{" "}
           <code>{verifyMode === "rejection" ? "rejection(p,q)" : "greedy"}</code>，本轮净提交{" "}

@@ -130,5 +130,31 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
 
     expect(missAbortHtml).toContain("安全门异常拦停");
     expect(missAbortHtml).not.toContain("自动改读本地硬盘上线");
+
+    // Round-3: Step 4 free queue continuous tail-append ["B4", "B5", "B2"], and evictStage overrides prior hitPreset in SVG
+    expect(computePrefixPoolState(4, "full-8", "none").freeLruQueue).toEqual(["B4", "B5", "B2"]);
+    const evictFromHalf7Html = renderToStaticMarkup(
+      createElement(PrefixCachingInteractive, {
+        ...baseProps("prefix-caching"),
+        initialHitPreset: "half-7",
+        initialEvictStage: "alloc-evict",
+      }),
+    );
+    expect(evictFromHalf7Html).toContain("连借5块汰叶B1");
+    expect(evictFromHalf7Html).not.toContain("首块B0+自算B3,B4");
+
+    // Round-3: Scenario 3 (seed-transfer-drop) with failed gate updates takeaway & expanded detail to safety-abort
+    const dropGateFailHtml = renderToStaticMarkup(
+      createElement(RforkFallbackInteractive, {
+        ...baseProps("rfork-fig-route-and-fallback"),
+        initialScenario: "seed-transfer-drop",
+        initialMemoryReset: false,
+      }),
+    );
+    expect(dropGateFailHtml).toContain("安全门直接拉闸报错");
+    expect(dropGateFailHtml).not.toContain("服务照样稳稳上线");
+    expect(dropGateFailHtml).not.toContain("零崩溃退回本地 Safetensors 重载");
+    expect(spec400.detail).toContain("8d6180e2");
+    expect(spec400.detail).toContain("后台慢试");
   });
 });

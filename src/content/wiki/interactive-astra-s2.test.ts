@@ -252,5 +252,18 @@ describe("Astra S2 回归：P1-5 SpeculativeDecoding 真实拒绝采样与 P1-6 
     );
     expect(specStep4Rej).toContain("下一轮送入「地毯 + 新草稿」");
     expect(specStep4Rej).not.toContain("下一轮送入「垫子");
+
+    // Round-3: Step 4 all-hit bonus word position equals predTargetPos (9 for K=3), not 8
+    const specStep4AllHit = renderToStaticMarkup(
+      createElement(SpeculativeDecodingInteractive, {
+        ...baseProps("speculative-decoding"),
+        initialStep: 4,
+        initialK: 3,
+        initialBranch: "all-hit",
+        initialVerifyMode: "rejection",
+      }),
+    );
+    expect(specStep4AllHit).toContain("位置 9 的奖励词「里」");
+    expect(specStep4AllHit).not.toContain("位置 8 的奖励词");
   });
 });

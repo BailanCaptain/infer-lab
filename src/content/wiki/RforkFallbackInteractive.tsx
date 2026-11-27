@@ -101,7 +101,7 @@ export const RFORK_SCENARIO_SPECS: Record<RforkScenarioId, RforkScenarioSpec> = 
     takeaway:
       "权重已 100% 传完，后台归还遇 HTTP 400 REJECTED 时立即停试并取消发布新 Seed，推理照常可用！（注：TTL 过期返回 404 会被客户端与 200 一并视作 RELEASED。）",
     detail:
-      "权重已全部同步读完（TRANSFERRED）。需严格区分归还返回码：若租约因 TTL 过期被清理返回 HTTP 404，planner_client 将 200/404 统一映射为 RELEASED；当归还遭遇 HTTP 400（及 403 等不可重试响应映射为 REJECTED，或重试耗尽未获确认）时，会话停止重试并取消发布新 Seed，不重读 Safetensors 磁盘，推理服务仍正常可用。",
+      "权重已全部同步读完（TRANSFERRED）。需严格区分归还返回码：若租约因 TTL 过期被清理返回 HTTP 404，planner_client 将 200/404 统一映射为 RELEASED；当归还遭遇 HTTP 400（及 403 等其他不可重试响应映射为 REJECTED）时，8d6180e2 会话立即设 stop=True 停止重试并取消发布新 Seed（注：RETRYABLE 快试未果在 8d6180e2 则转入后台慢试，不直接清空待发布 Seed），不重读 Safetensors 磁盘，推理服务仍正常可用。",
     reachedStage: 4,
     faultBadge: "归还 400 REJECTED",
     outcomeKind: "p2p-lease-warn",
@@ -380,17 +380,31 @@ export function RforkFallbackInteractive({
   };
 
   const effectiveTakeawayBadge =
-    scenario === "planner-miss" && !flow.bothGatesPass
-      ? "现场 2 / 5 · 安全门异常拦停"
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? "现场 2 / 5 · 安全门异常拦停"
+        : scenario === "seed-transfer-drop"
+          ? "现场 3 / 5 · 安全门紧急红灯拦停"
+          : spec.badgeText
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "现场 5 / 5 · 清空脏数据后改读硬盘"
         : spec.badgeText;
   const effectiveTakeaway =
-    scenario === "planner-miss" && !flow.bothGatesPass
-      ? "本轮未命中 Seed（已写 0 批），但回退前 prepare_for_fallback 安全门失败：主动抛 RuntimeError 中止启动！"
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? "本轮未命中 Seed（已写 0 批），但回退前 prepare_for_fallback 安全门失败：主动抛 RuntimeError 中止启动！"
+        : "传一半断了，而且残留的脏显存清不掉：安全门直接拉闸报错！宁可拒绝启动，也绝不带脏权重吐乱码或双份占爆显存！"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "两道安全门恢复通过：已写残缺显存彻底回收归零，零崩溃改读本地 Safetensors 硬盘上线！"
         : spec.takeaway;
+  const effectiveDetail =
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? "Planner 返回 404（本轮已写 0 批），但 prepare_for_fallback 安全门失败，安全门阻断回退：抛明确 RuntimeError 中止启动。"
+        : "分批读失败后 prepare_for_fallback 未能完成双门清理（门1停种子服或门2注销显存失败），安全门阻断回退：抛明确 RuntimeError 中止启动，严防精度静默损坏与双份 Safetensors OOM。"
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "两道 prepare_for_fallback 安全门均已恢复通过，前序已写残缺数据与 HBM 登记彻底清零，零崩溃退回本地 Safetensors 重载。"
+        : spec.detail;
   const effectiveOutcomeKind =
     flow.activeExit === "safety-abort"
       ? ("safety-abort" as const)
@@ -398,14 +412,18 @@ export function RforkFallbackInteractive({
         ? ("fallback-ok" as const)
         : spec.outcomeKind;
   const effectiveSafetyTitle =
-    scenario === "planner-miss" && !flow.bothGatesPass
-      ? "✗ 安全门异常拦停（已写 0 批，未发远端传输）"
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? "✗ 安全门异常拦停（已写 0 批，未发远端传输）"
+        : "✗ 安全门紧急拦停：prepare_for_fallback 未能清空脏显存！"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "✓ 安全门恢复通过：半截脏权重已擦除"
         : spec.safetyGateTitle;
   const effectiveSafetyDesc =
-    scenario === "planner-miss" && !flow.bothGatesPass
-      ? "Planner 404 本轮已写 0 批，但回退前 prepare_for_fallback 安全门失败，拒绝继续加载。"
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? "Planner 404 本轮已写 0 批，但回退前 prepare_for_fallback 安全门失败，拒绝继续加载。"
+        : "已写残缺显存或种子服务未能干净注销，严禁再硬塞第二份本地模型或带着半截坏权重上线。"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "两道安全门均已通过，已写残缺缓冲归零，安全退回本地 Safetensors 重载。"
         : spec.safetyGateDesc;
@@ -536,7 +554,7 @@ export function RforkFallbackInteractive({
       detailsSummary="查看工程与源码细节（五门清单 / prepare_for_fallback 双门 / 租约状态码）"
       detailsContent={
         <>
-          <strong>{spec.shortLabel}</strong>（{spec.title}）：{spec.detail}
+          <strong>{spec.shortLabel}</strong>（{spec.title}）：{effectiveDetail}
         </>
       }
     >

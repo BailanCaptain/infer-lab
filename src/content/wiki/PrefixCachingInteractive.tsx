@@ -320,7 +320,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       "引用计数归零是唯一回收门禁：A 释放后私有块 B2 的 ref_cnt 归 0 立即挂入空闲 LRU 队列；待 B 也结束后，整条链按 B3 → B1 → B0 倒序入空闲 LRU，优先淘汰尾部、尽量保留公共根块。",
     savedCellsText: "累计省 8 格 + 省 2 块重复显存",
     savedNote: "待 B 结束归零后按 B3→B1→B0 倒序入 LRU",
-    freeLruQueue: ["B2", "B4", "B5"],
+    freeLruQueue: ["B4", "B5", "B2"],
     reqA: {
       name: "请求 A",
       stateText: "已结束释放",
@@ -1313,29 +1313,35 @@ export function PrefixCachingInteractive({
               width="184"
               height="94"
               rx="8"
-              fill={hitPreset === "diff-salt" ? "#fff0e9" : "#ddf4ef"}
-              stroke={hitPreset === "diff-salt" ? "#b54237" : "#087f73"}
+              fill={evictStage === "none" && hitPreset === "diff-salt" ? "#fff0e9" : "#ddf4ef"}
+              stroke={evictStage === "none" && hitPreset === "diff-salt" ? "#b54237" : "#087f73"}
               strokeWidth="1.5"
             />
             <text x="104" y="158" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {hitPreset === "half-7"
-                ? "请求 B (共7格)"
-                : hitPreset === "diff-salt"
-                  ? "请求 B (异盐)"
-                  : state.reqB.name.slice(0, 10)}
+              {evictStage === "alloc-evict"
+                ? "新批次施压 (20格)"
+                : evictStage === "ab-released"
+                  ? "请求 B (已释放)"
+                  : hitPreset === "half-7"
+                    ? "请求 B (共7格)"
+                    : hitPreset === "diff-salt"
+                      ? "请求 B (异盐)"
+                      : state.reqB.name.slice(0, 10)}
             </text>
             <text x="104" y="186" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              {hitPreset === "diff-salt"
-                ? "异盐 → B3,B4,B5重算"
-                : hitPreset === "half-7"
-                  ? "首块B0+自算B3,B4"
-                  : evictStage === "alloc-evict"
-                    ? "连借5块汰叶B1"
-                    : state.step === 5
-                      ? "CoW改写 → B2"
-                      : state.step === 1
-                        ? "等待进入…"
-                        : "零拷贝 → B0,B1"}
+              {evictStage === "alloc-evict"
+                ? "连借5块汰叶B1"
+                : evictStage === "ab-released"
+                  ? "倒序尾插返池"
+                  : hitPreset === "diff-salt"
+                    ? "异盐 → B3,B4,B5重算"
+                    : hitPreset === "half-7"
+                      ? "首块B0+自算B3,B4"
+                      : state.step === 5
+                        ? "CoW改写 → B2"
+                        : state.step === 1
+                          ? "等待进入…"
+                          : "零拷贝 → B0,B1"}
             </text>
             <rect x="24" y="198" width="160" height="24" rx="5" fill="#fff4cf" stroke="#c78300" />
             <text x="104" y="215" textAnchor="middle" fontSize="12" fontWeight="700" fill="#c78300">
@@ -1363,12 +1369,14 @@ export function PrefixCachingInteractive({
               height="38"
               rx="6"
               fill={
-                !state.h1Registered || hitPreset === "diff-salt" || hitPreset === "half-7"
+                !state.h1Registered ||
+                (evictStage === "none" && (hitPreset === "diff-salt" || hitPreset === "half-7"))
                   ? "#fff0e9"
                   : "#e8edff"
               }
               stroke={
-                !state.h1Registered || hitPreset === "diff-salt" || hitPreset === "half-7"
+                !state.h1Registered ||
+                (evictStage === "none" && (hitPreset === "diff-salt" || hitPreset === "half-7"))
                   ? "#b54237"
                   : "#4c65b6"
               }
@@ -1377,11 +1385,13 @@ export function PrefixCachingInteractive({
             <text x="312" y="122" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
               {!state.h1Registered
                 ? "h1: 随叶B1驱逐抹除"
-                : hitPreset === "half-7"
-                  ? "第7格异: 块2失配"
-                  : hitPreset === "diff-salt"
-                    ? "异盐B: h0'失配"
-                    : "h1: H(h0,[4..7])→B1"}
+                : evictStage === "ab-released"
+                  ? "h1: 留存待捡回"
+                  : hitPreset === "half-7"
+                    ? "第7格异: 块2失配"
+                    : hitPreset === "diff-salt"
+                      ? "异盐B: h0'失配"
+                      : "h1: H(h0,[4..7])→B1"}
             </text>
             <rect x="232" y="152" width="160" height="68" rx="6" fill="#fff4cf" stroke="#c78300" />
             <text x="312" y="178" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">

@@ -13,7 +13,8 @@ aliases:
 legacyAnchors:
   一句话: 它怎么按 TP×PCP 切分词表，生效门是什么？
   为什么存在: 网格切分示例与两侧新增通信
-  开了的代价: 互斥规则、静态缓冲容量与版本与 GLM 边界
+  开了的代价: 互斥规则、静态缓冲容量与部署边界
+  互斥规则静态缓冲容量与版本与-glm-边界: 互斥规则、静态缓冲容量与部署边界
 origin: seed
 evidence: C
 updated: 2026-11-19T00:00:00.000Z
@@ -113,6 +114,8 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1037-L1053'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133'
   - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1322-L1436'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1432-L1467'
 rawSources:
   - >-
     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
@@ -151,17 +154,19 @@ rawSources:
 ---
 ## 它怎么按 TP×PCP 切分词表，生效门是什么？
 
-开启 PCP（`prefill_context_parallel_size > 1`，预填充上下文并行，见 [Context Parallel](../concepts/context-parallel.md)）后，[embedding](../concepts/embedding.md)（首层词表查表）与 [LM Head](../concepts/lm-head.md)（末层词表投影）通常是「词表 × hidden」的大矩阵；传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片。
+开启 PCP（`prefill_context_parallel_size > 1`，预填充上下文并行，见 [Context Parallel](../concepts/context-parallel.md)）后，若只按 TP 切词表维，PCP 组内每张卡仍会重复保存同一份词表切片。`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 **`True`**）把这份重复切片沿 PCP 维度再均分一刀，让每张卡少存 $(1 - 1/\text{PCP})$ 的词表行（多模态模型的图像特征走独立的[多模态编码器缓存](../concepts/multimodal-encoder-cache.md)，不经过这里的文本词表矩阵）。
 
-`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 **`True`**）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。
+只要模块未设 `disable_tp=True` 且名称含 `embed_tokens`（首层词表查表，见 [embedding](../concepts/embedding.md)）或 `head`（末层词表投影，见 [LM Head](../concepts/lm-head.md)），补齐后的词表行数就会按 **TP × PCP 网格**（PCP 为内维）切成 $1 / (\text{TP} \times \text{PCP})$。之所以两侧新增通信次数不同，是因为输入查表要先凑齐各卡的 token 编号、查完再把向量归约发回对应卡（多 2 次通信），而输出投影只需在算完本地词表分片分数后拼回完整词表维（常规路径多 1 次通信）。
 
-常规 PCP 部署保持默认 `true` 即可。**何时必须手动设为 `false`**：当需要同时配置同模块的[细粒度 TP](../concepts/fine-grained-tp.md)（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`），或在 `main` 上同时开启 `enable_batch_sharded_sampling` 时，必须显式传 `false` 避开构建期 `ValueError`（以下以 `Qwen/Qwen3-8B` 展示关掉本键以让路 `lmhead_tensor_parallel_size` 的配置形式，本工作区无 NPU 实机执行验证）：
+常规 PCP 部署保持默认 `true` 即可。若要改用 `finegrained_tp_config` 下的[细粒度 TP](../concepts/fine-grained-tp.md)（仅限 MoE 模型，且模块 TP 大小必须整除 `data_parallel_size`），或在 `main` 上同时开启 `enable_batch_sharded_sampling`，则必须把本键显式设为 `false` 以避开 `ValueError`。下面以 MoE 模型 `Qwen/Qwen3-30B-A3B` 演示关闭本键、让路 `finegrained_tp_config.lmhead_tensor_parallel_size` 的写法（若在 `Qwen/Qwen3-8B` 等稠密模型上仅需回退旧词表布局，只传 `'{"enable_pcp_embedding_lmhead_weight_sharding": false}'` 即可；本工作区无 NPU 实机执行验证）：
 
 ```bash
-VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-8B \
-  --tensor-parallel-size 2 \
+VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-30B-A3B \
+  --data-parallel-size 4 \
+  --tensor-parallel-size 1 \
   --prefill-context-parallel-size 2 \
-  --additional-config '{"lmhead_tensor_parallel_size": 4, "enable_pcp_embedding_lmhead_weight_sharding": false}'
+  --enable-expert-parallel \
+  --additional-config '{"finegrained_tp_config": {"lmhead_tensor_parallel_size": 2}, "enable_pcp_embedding_lmhead_weight_sharding": false}'
 ```
 
 ## 事实表
@@ -172,8 +177,8 @@ VLLM_USE_V2_MODEL_RUNNER=1 vllm serve Qwen/Qwen3-8B \
 | --- | --- | --- |
 | 配置路径与默认 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]`（`bool = True`） | `v0.30.0` 与 `main` 默认开启；带缓存读取，不支持运行期热切换 |
 | 生效门与优先级 | `disable_tp` 为真时优先保持复制；否则要求 `prefix` 含 `embed_tokens` 或 `head`、本键为真且 `PCP > 1` | `PCP = 1` 不触发；显式传 `disable_tp=True` 的特殊头（如 `markov_head`）不会被切开 |
-| 硬互斥组合 | 与同模块细粒度 TP（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）同开抛 `ValueError` | `main` 另新增与 `enable_batch_sharded_sampling`（在 `PCP > 1` 时）的互斥，二选一须把本键设为 `false` |
-| 新增通信与缓冲约束 | `embed_tokens` 多 2 次 PCP 通信（AG + RS），`lm_head` 常规路径多 1 次 PCP AG | 词表侧受静态 token 交换缓冲上限约束，单步 token 超限会直接报错 |
+| 细粒度 TP 与采样互斥 | 与 `finegrained_tp_config` 同模块切分同开抛 `ValueError`；`main` 另互斥 `enable_batch_sharded_sampling`（`PCP > 1` 时） | 细粒度 TP 的关闭默认值在 `v0.30.0` 为 `0`、`main` 为 `1`（兼容 `0`），启用时还须满足 MoE 模型与整除 `DP` |
+| 新增通信与缓冲约束 | `embed_tokens` 多 2 次 PCP 通信（All-Gather 凑齐输入 + Reduce-Scatter 归约发回），`lm_head` 常规路径多 1 次 PCP All-Gather | 词表侧受静态 token 交换缓冲上限约束，单步 token 超限会直接报错 |
 | 版本与 runner 门槛 | PR #17159 引入；`v0.30.0` 与 `main` 支持且要求 [Model Runner V2](../concepts/model-runner-v2.md) 才允许 `PCP > 1` | `v0.23.0` 与 `v0.26.0rc` 无此键（旧构造器静默忽略） |
 
 ## 网格切分示例与两侧新增通信
@@ -188,14 +193,14 @@ file: param-pcp-embed-lmhead-sharding
 
 | 模块侧 | 开启 PCP 词表分片后的通信顺序 | 相对仅 TP 切分的增量 |
 | --- | --- | --- |
-| **`embed_tokens` 侧** | ① PCP 组内 All-Gather 收齐各卡 token ID → ② 本地查表 → ③ PCP 组内 Reduce-Scatter 送回各自 token 行 → ④ TP 组内 All-Reduce 补齐词表维（仅携本 PCP rank token 行） | **多 2 次 PCP 通信**（All-Gather + Reduce-Scatter） |
-| **`lm_head` 侧** | ① 本地词表分片投影 → ② 常规路径先在 PCP 组 All-Gather → ③ 再在 TP 组 All-Gather 拼回完整 logits | 常规路径 **多 1 次 PCP All-Gather**；spec-decode 等传 `skip_gather` 的调用方两条路径均不 gather，不受影响 |
+| **`embed_tokens` 侧** | ① PCP 组内 All-Gather（把各卡负责的子序列 token 编号收集拼齐到每张卡） → ② 本地查表（未命中本分片行置 0） → ③ PCP 组内 Reduce-Scatter（把各分片查出的向量相加归约，再按卡切分发回各自持有段） → ④ TP 组内 All-Reduce 补齐词表维 | **多 2 次 PCP 通信**（All-Gather + Reduce-Scatter） |
+| **`lm_head` 侧** | ① 本地词表分片投影 → ② 常规路径先在 PCP 组 All-Gather（收集各 PCP 分片的词表分数） → ③ 再在 TP 组 All-Gather 拼回完整 logits | 常规路径 **多 1 次 PCP All-Gather**；spec-decode 等传 `skip_gather` 的调用方两条路径均不 gather，不受影响 |
 
-## 互斥规则、静态缓冲容量与版本与 GLM 边界
+## 互斥规则、静态缓冲容量与部署边界
 
-- **何时应显式关闭（写 `false`）**：需要为同一模块开启细粒度 TP（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）、在 `main` 上同时开启 `enable_batch_sharded_sampling` 与 `PCP > 1`、在仍保留 `enable_reduce_sample` 的历史快照上使用该旧功能，或在升级对照中需要保持旧权重布局时。关闭本键只停用 PCP 词表分片，不跳过其他配置检查。
-- **静态 token 交换缓冲容量限制**：embedding 侧的 token 交换路径受静态缓冲容量上限约束，输入 token 数超过缓冲容量会直接报错并提示检查图捕获上限与批次 token 预算——权重显存放得下并不代表交换缓冲足够。
-- **放到 GLM 双机（`db701c1f` 固定基线）**：该部署 `PCP = 1`、`DCP = 1`，不满足生效门；且固定 GLM 源码的 34 层 KDA 在 `PCP > 1` 的 prefill 路径直接抛 `NotImplementedError`（详见 [CP 页 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)）。因此主线上它既不生效也无法开启，每卡 embedding 与 `lm_head` 仍各存一份完整 TP 切片（份额见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+- **细粒度 TP 与采样互斥规则**：为同一模块配置 `finegrained_tp_config.embedding_tensor_parallel_size` 或 `finegrained_tp_config.lmhead_tensor_parallel_size` 时，必须把本键设为 `false`。注意两版的关闭默认值不同：`v0.30.0` 中细粒度 TP 字段默认 `0` 表示关闭（`> 0` 即启用），而 `main` 默认 `1` 表示关闭（`> 1` 才启用，同时兼容旧配置写 `0`）；启用细粒度 TP 还要求模型为 MoE 且 `data_parallel_size` 能被该模块 TP 大小整除。此外，`main` 在 `PCP > 1` 时将本键与批次切分采样 `enable_batch_sharded_sampling` 设为互斥，升级对照或启用上述任一特性时均需显式传 `false`（关闭本键不跳过其他配置校验）。
+- **静态 token 交换缓冲容量限制**：`embed_tokens` 侧的 PCP token 交换使用预分配的静态缓冲区。即使权重显存充足，只要单步输入 token 数超出该缓冲上限，运行期仍会直接报错并提示核对图捕获上限与单步批 token 预算。
+- **拓扑与混合架构边界**：当 `PCP = 1` 时本键不进入 `TP × PCP` 分片路径，词表仍保持纯 TP 切分。历史双机案例中的 `PCP = 1` 限制、KDA 预填充拦截与每卡 `151.25 MiB` 词表切片口径，统一汇总在[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)与[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 ## 对照源码
 
@@ -205,9 +210,9 @@ file: param-pcp-embed-lmhead-sharding
 | --- | --- | --- | --- | --- | --- |
 | 字段与默认 | 无（旧构造器忽略） | 无（旧构造器忽略） | `bool = True` [C36] | `bool = True` [C39] | 要回退旧布局须显式设 `false` [S8] |
 | 复制分支与模块匹配 | — | — | `disable_tp` 优先；匹配 `embed_tokens` / `head` 且 `PCP > 1` [C37] | 同 `v0.30.0` [C41] | 显式 `disable_tp=True` 的 `ParallelLMHead` 保持复制不被切开 |
-| 互斥与 runner 门槛 | — | — | 互斥同模块细粒度 TP；`PCP > 1` 需 V2 runner [C37][C38] | 同左并新增与 `enable_batch_sharded_sampling` 互斥 [C40][C42] | 早期 `enable_reduce_sample` 旧键已在 `v0.30.0` / `main` 移除 [!] |
+| 细粒度 TP 默认与互斥 | — | — | 细粒度 TP 默认 `0` 为关（需 MoE 且整除 `DP`）[C43]；与本键同开抛 `ValueError`；`PCP > 1` 需 V2 runner [C37][C38] | 细粒度 TP 默认改为 `1`（兼容 `0`）[C44]；新增与 `enable_batch_sharded_sampling` 互斥 [C40][C42] | 早期 `enable_reduce_sample` 旧键已在 `v0.30.0` / `main` 移除 [!] |
 
-- **配置定义、互斥与缓存清理**：`v0.30.0` 见 `c09d3e20:ascend_config.py#L582`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L1652-L1658`（来源 36–38）；`main` 见 `8d6180e2:ascend_config.py#L675, #L1037-L1053`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L2107-L2113`（来源 39–42）。历史引入快照（`39fef3f8`、`4d1412d1`、`7d825229`）、缓存清理与官方文档见来源 1–8、23–27、30–32 [S7][D]。
+- **配置定义、互斥与缓存清理**：`v0.30.0` 见 `c09d3e20:ascend_config.py#L582, #L1322-L1436`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L1652-L1658`（来源 36–38、43）；`main` 见 `8d6180e2:ascend_config.py#L675, #L1037-L1053, #L1432-L1467`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L2107-L2113`（来源 39–42、44）。历史引入快照（`39fef3f8`、`4d1412d1`、`7d825229`）、缓存清理与官方文档见来源 1–8、23–27、30–32 [S7][D]。
 - **切分、通信顺序与缓冲容量**：`4d1412d1:vocab_parallel_embedding.py#L185-L263, #L299-L400, #L536-L568`（来源 11–12、24、29）对应词表补齐、分片行数、缓冲容量拒绝条件、LM Head 两级 gather（及 `skip_gather` 例外）与 embedding token gather → PCP reduce-scatter → 条件 TP all-reduce [C11][C12]；GLM KDA 拒绝 `PCP > 1` 与旧 Omni 过滤见来源 33–34。
 - **待核**：`1/PCP` 为同格式同补齐条件下的权重分片比例，实际整卡显存（含交换缓冲）、时延与精度对照在本工作区尚无 NPU 实机验证 [D]。
 

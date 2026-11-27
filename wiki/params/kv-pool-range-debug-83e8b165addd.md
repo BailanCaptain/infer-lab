@@ -78,17 +78,17 @@ vllm serve /models/Qwen3-30B-A3B \
 
 ## 三类审计日志事件与版本迁移
 
-开启开关后，Ascend Store 的后端与分层传输线程会记录三类 JSON 载荷：
-1. **Mooncake 后端整键操作**（`mooncake_backend.py`）：记录非分层整块键的批量注册、写入或读取动作与键信息；
-2. **Layerwise 逐层区间传输**（`layerwise/kv_transfer.py`）：每次逐层切片收发时输出层号、起止字节偏移与数据长度，用于核对 Prefill 与 Decode 两端切片几何是否严丝合缝；
-3. **Layerwise 提交确认**：整组层传输收尾提交时输出对应请求/键的完成事件，用于排查悬挂未提交的接收等待。
+开启开关后，Ascend Store 的后端与分层传输路径按实际触发的传输事件输出三类 JSON 载荷：
+1. **Mooncake 后端整键操作**（`mooncake_backend.py`）：在非分层整块键的批量注册、写入或读取完成时，按当批键记录动作与返回码；
+2. **Layerwise 逐层区间传输**（`layerwise/kv_transfer.py`）：某次请求批次（`req_meta`）实际发生逐层切片收发时，每层汇总当批活跃键输出一条 `"event":"range"`，包含层号、各键起止字节偏移、请求字节数与返回码，用于核对 Prefill 与 Decode 两端切片几何是否一致；
+3. **Layerwise 提交确认**：分层传输收尾提交时输出 `"event":"commit"` 及键数量与结果码，用于排查悬挂未提交的接收等待。若区间或整键日志中的 `results` 出现负值报错，可顺着键大小与地址区间继续核查宿主机锁页缓冲和内存注册状态（见[主机内存与大页](../concepts/host-memory-and-hugepages.md)）。
 
-值得特别留意的是 **`v0.30.0` 到 `main` 的入口切换**：在 `v0.30.0`（`c09d3e20`）中，同一套 `[KVPOOL_RANGE_DEBUG]` 日志由 `vllm_ascend/envs.py` 里的严格二值环境变量 `VLLM_ASCEND_KVPOOL_RANGE_DEBUG`（只接受 `"0"` 或 `"1"`）控制；到了 `main`（`8d6180e2`），环境变量被正式退役，全部消费点统一改为现读 `get_ascend_config().kv_pool_range_debug`。
+**`v0.30.0` 与 `main` 的配置入口不同**。`v0.30.0`（`c09d3e20`）通过 `vllm_ascend/envs.py` 中的二值环境变量 `VLLM_ASCEND_KVPOOL_RANGE_DEBUG=1`（仅接受 `"0"` 或 `"1"`）开启。`main`（`8d6180e2`）移除了该环境变量，改为在各消费点直接读取 `get_ascend_config().kv_pool_range_debug`。两版均可在触发实际 KV Pool 读写后用 `grep '\[KVPOOL_RANGE_DEBUG\]'` 检索日志，以是否出现 `{"event":...}` 行确认入口已生效。
 
 ## 代价与互斥边界
 
-- **高频逐层 JSON 序列化与 I/O 放大**：在 Layerwise 模式下，每个请求每经过一层 Transformer 都会触发一次 `json.dumps` 和同步日志写入（例如 48 层模型单请求就要打几十行日志）。高并发压测或线上生产环境若忘记关回 `false`，Python 日志锁与磁盘/标准输出刷新会严重拖慢传输线程吞吐。
-- **跨版本脚本切勿混写**：升级到 `main` 后如果仍沿用旧启动脚本里的 `export VLLM_ASCEND_KVPOOL_RANGE_DEBUG=1`，不会报错但一行 `[KVPOOL_RANGE_DEBUG]` 都打不出来；反过来在 `v0.30.0` 写 `"kv_pool_range_debug": true` 则会因未知 `AscendConfig` 字段直接启动失败。
+- **传输线程上的 JSON 序列化与日志 handler 开销**：埋点仅在实际走入 Ascend Store 整键读写或 Layerwise 逐层收发/提交时触发，未发生池传输的请求步不会打点。一旦进入 Layerwise 传输，每层完成当批拷贝后都会在传输线程内构造嵌套列表、调用 `json.dumps` 并交给 `logger.info`；真实 I/O 阻塞程度取决于活跃传输批次频次、模型层数以及当前 Python 日志 handler（如标准输出管道缓冲或同步写盘配置）。高并发压测与线上服务应保持默认的关闭状态，避免日志格式化与 handler 锁拖慢传输线程。
+- **跨版本脚本混写互不生效**：升至 `main` 后若只保留旧脚本里的 `export VLLM_ASCEND_KVPOOL_RANGE_DEBUG=1`，进程不会报错，但传输时不会输出任何 `[KVPOOL_RANGE_DEBUG]` 日志。反过来在标准 `v0.30.0` 中传入 `"kv_pool_range_debug": true`，则会因 `AscendConfig` 不含该字段而在启动校验阶段直接失败。
 
 ## 对照源码
 
@@ -100,7 +100,7 @@ vllm serve /models/Qwen3-30B-A3B \
 | Mooncake 整键埋点 | — | — | `mooncake_backend.py` 读 `envs` 输出 JSON [C5] | 同文件改读 `get_ascend_config().kv_pool_range_debug` [C2] |
 | 分层区间与提交埋点 | — | — | `ascend_store/kv_transfer.py` 两处读 `envs` [C6] | 迁入 `layerwise/kv_transfer.py` 两处读 `AscendConfig` [C3][!] |
 
-- **官方文档建议**：`additional_config.md` 明确说明该键用于替代旧 `VLLM_ASCEND_KVPOOL_RANGE_DEBUG` 环境变量，并叮嘱正常运行时保持禁用以规避逐层日志开销 [S9]；逐层日志行数随层数与并发数放大由分层传输循环结构直接推导 [C3][D]。
+- **官方文档与开销边界**：`additional_config.md` 说明该键用于替代旧 `VLLM_ASCEND_KVPOOL_RANGE_DEBUG` 环境变量，并建议正常运行时保持禁用以避开逐层日志开销 [S9]；实际打点按当次传输批次与层事件触发，并经 `logger.info` 交由当前日志 handler 输出 [C2][C3][D]。
 - **待核**：尚无实机测量 Layerwise 高并发传输下打开本开关对 P99 TTFT 的具体退化幅度。
 
 ## 参数定义（自动生成）

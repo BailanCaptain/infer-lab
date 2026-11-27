@@ -58,9 +58,9 @@ rawSources:
 ---
 ## 用途与配置入口
 
-线上服务偶发乱码、NaN、长尾毛刺或需要临时打开 `DEBUG` 日志时，传统做法必须改参数重启整组 `vllm serve` 实例，既中断流量又破坏故障现场。`main` 分支引入 **Runtime Guard** 在线控制面，用一份落盘的 `runtime_config.json` 统一管控异常检测器、按波次水位线触发的原生 dump、动态日志级别与服务指标粒度。
+启动服务时，`runtime_config` 会把传入的子字典盖过内置默认值，并由每个 `EngineCore` 的 Leader Worker 写出运行期可读的 `runtime_config.json` 文件。线上偶发乱码、NaN、长尾毛刺或需要临时打开 `DEBUG` 日志时，传统做法必须改参数重启整组 `vllm serve` 实例；`main` 分支引入 **Runtime Guard** 在线控制面，用这份落盘文件统一管理异常检测器、按波次水位线触发的转储、动态日志级别与服务指标粒度。
 
-`runtime_config` 是 `--additional-config` 顶层的启动覆盖字典（Startup Overlay，默认 `None`），用于在服务拉起时把指定的检测器、日志或报告开关合并进内置默认值，并由每个 `EngineCore` 的 Leader Worker 写入磁盘上的 `runtime_config.json`：
+它位于 `--additional-config` 顶层（默认 `None`），仅在服务拉起阶段做一次初始覆盖：
 
 ```bash
 vllm serve /models/Qwen3-30B-A3B \
@@ -82,7 +82,7 @@ vllm serve /models/Qwen3-30B-A3B \
 | 配置入口 | `--additional-config '{"runtime_config": {...}}'` | 传入非 `dict`（如列表、字符串或布尔值）在启动期直接抛 `ValueError` |
 | 关联路径键 | `runtime_config_path: str \| None = None`（已折入本页） | 省略时默认落盘到 `<cwd>/runtime/config/runtime_config.json` |
 | 启动覆写语义 | `内置默认 <- runtime_config 覆盖层`，并**覆写**已有 JSON 文件 | 启动前手工改过磁盘 JSON 但未写进 `runtime_config` 的内容会在拉起时被刷掉 |
-| 运行时对象类型 | `AscendConfig.runtime_config` 存放解析后的 `RuntimeConfig` 实例 | 原始字典在 `init_ascend_config` 阶段剥离解析，全部功能默认关闭、零热路径开销 |
+| 运行时对象类型 | `AscendConfig.runtime_config` 存放解析后的 `RuntimeConfig` 实例 | 可选检测器、转储与热轮询默认关闭（无热路径检测开销），但启动时仍会执行日志与指标级别初始化 |
 | 在线修改前提 | 须同时设 `runtime_config_hot_reload: true` | 默认 `false` 下仅启动时合并一次，运行期改磁盘 JSON 不会生效 |
 | 版本可用性 | 仅 `main`（`8d6180e2`）支持 | `v0.30.0` 标准 `vllm-ascend`（未装 `vllm_omni`）拒收未知键报错；`v0.23.0` / `v0.26.0rc` 用 `.get()` 静默忽略 |
 
@@ -101,9 +101,9 @@ vllm serve /models/Qwen3-30B-A3B \
 
 ## 代价与互斥边界
 
-- **启动覆写（Startup Overwrite）是最容易踩的坑**：Worker 启动持久化时会用「代码默认值 + `additional_config.runtime_config`」整份覆写磁盘上的 `runtime_config.json`。如果想做手动一次性水位线抓取（`dump.manual_dump`），正确顺序是先带 `runtime_config_hot_reload: true` 启动服务，等服务就绪后再编辑运行中的 `runtime_config.json` 把 `manual_dump` 逐次加 1，切勿在启动前直接把大整数写死在旧文件里。
-- **不要混用内存 HTTP 端点与 JSON 文件调指标级别**：通过在线管理端点修改 `metrics.level` 仅改进程内存、不回写 `runtime_config.json`；一旦后续编辑了 `runtime_config.json` 的任意其他字段触发整文件重载，`metrics.level` 会被文件里的旧值静默覆盖。同一个部署实例应只选一种通道。
-- **热重载开关不能写进 `runtime_config` 字典内部**：`runtime_config_hot_reload` 是仅启动期顶层键，不是 `runtime_config.json` 的合法 schema 字段；写进 `runtime_config` 覆盖字典内会被 `validate_runtime_config` 拒绝并回退默认配置。
+- **启动覆写（Startup Overwrite）先后顺序**：Worker 启动持久化时，会用「内置默认值 + `additional_config.runtime_config`」整份覆写磁盘上的 `runtime_config.json`。要做手动一次性水位线抓取（`dump.manual_dump`），应先配 `runtime_config_hot_reload: true` 拉起服务；等服务就绪后再编辑运行中的 `runtime_config.json` 将 `manual_dump` 逐次加 1，不要在启动前把整数预先写进旧文件。
+- **内存 HTTP 端点会被后续文件重载覆盖**：通过在线管理端点修改 `metrics.level` 仅更新进程内存，不会回写 `runtime_config.json`。一旦后续编辑了 `runtime_config.json` 的任意字段触发整文件重载，`metrics.level` 就会被文件里的旧值覆盖，因此同一实例只应固定选用一种调整通道。
+- **热重载开关与静态环境变量不在该字典内**：`runtime_config_hot_reload` 属于仅启动期顶层键，写进 `runtime_config` 子字典会被 `validate_runtime_config` 拒绝并回退默认配置。对于 `TASK_QUEUE_ENABLE`、HCCL 缓冲和绑核等进程级静态环境变量，仍须在启动前配置（静态调优变量与运行时观测的分工见[昇腾运行时与调优](../concepts/ascend-runtime-and-tuning.md)）。
 
 ## 对照源码
 
@@ -112,10 +112,10 @@ vllm serve /models/Qwen3-30B-A3B \
 | 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) |
 | --- | --- | --- | --- | --- |
 | 顶层字段定义 | 无 [C7] | 无 [C8] | 无（严格模式拒收）[C9][!] | `AscendConfig` 定义 `runtime_config_path`（`#L697`）与 `runtime_config`（`#L700`）[C1][C2] |
-| 启动剥离与解析 | — | — | — | `init_ascend_config` 调 `build_runtime_config_from_additional` 剥离路径与覆盖层并校验类型 [C3][C4][C5] |
+| 启动剥离与解析 | — | — | — | `init_ascend_config` 调 `build_runtime_config_from_additional` 剥离路径与覆盖层，并应用日志与指标级别初始化 [C3][C4][C5] |
 | 默认路径与持久化覆写 | — | — | — | 默认 `<cwd>/runtime/config/runtime_config.json`；Leader Worker 启动落盘覆写已有文件 [C6][!] |
 
-- **官方文档对照**：`runtime_config.md`（JSON schema、启动覆写契约与水位线 dump 规程，[S10]）及 `runtime_guard.md`（默认零开销与运维用法，[S11]）与 `RuntimeConfig._bootstrap` 实现完全一致。
+- **官方文档对照**：`runtime_config.md`（JSON schema、启动覆写契约与水位线 dump 规程，[S10]）及 `runtime_guard.md`（可选检测器与转储默认关闭、热路径门控及运维用法，[S11]）与 `build_runtime_config_from_additional` / `RuntimeConfig._bootstrap` 实现一致 [C5][C6]。
 - **待核**：本工作区未挂载 NPU 实机，尚无开启各在线检测器与连续 dump 时的单步延迟增量实测。
 
 ## 参数定义（自动生成）

@@ -119,9 +119,9 @@ rawSources:
 
 ## 它曾如何按层轮放权重，为什么 v0.24 起已删除？
 
-`layer_sharding` 是自 `v0.24.0rc`（PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953)）起已彻底移除的历史层间权重轮放列表。**在 `v0.30.0` 与 `main` 中切勿配置该键**：旧脚本残留 `"layer_sharding"` 通常会直接触发 [AscendConfig](../concepts/ascend-config-system.md) 的 `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）；若在 `v0.30.0` / `main` 开启 PCP 需要切分输出投影权重，应改看默认开启的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)（切同一层的 PCP 域，而非按层号轮放）。
+在 60 多层的深层模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要整份权重。`layer_sharding` 曾把这几十层轮流分给独立通信组里的 `K` 张卡保管：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时只放单元素占位张量，等前向计算前再提前一层通过异步 Broadcast 取回。
 
-在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。在历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，`layer_sharding` 是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，无子键，`prefetch_step` 写死为 `1`）。它把几十层轮流分给独立通信组里的 `K` 张卡保管：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时换成单元素占位张量，前向时提前一层通过异步 Broadcast 取回；该特性强限定于旧版 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
+在历史 **`v0.23.0`（`2c59ff10`）** 与 `db701c1f` 快照中，它是一个默认 `None` 的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，无子键，`prefetch_step` 写死为 `1`），且非空列表强限定于 [PD 分离](../concepts/pd-disaggregation.md)的 **P 节点**（`kv_role == "kv_producer"`；旧版文档见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。该特性自 `v0.24.0rc`（PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953)）起已彻底移除：**在 `v0.30.0` 与 `main` 中必须删掉旧脚本里的 `"layer_sharding"`**，否则常规进程会触发 [AscendConfig](../concepts/ascend-config-system.md) `extra="forbid"` 启动报错（仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略）；新版在 PCP 下切分同一层的输出投影请改看默认开启的 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。
 
 ## 事实表
 
@@ -137,11 +137,11 @@ rawSources:
 
 ## 层间广播机制、通信组构造与 PP/TP 的区别
 
-在深层模型（如 61 层的 DeepSeek-V3/R1）中，旧 FlashComm2 或 DSA-CP 路径在执行投影时需要完整权重；如果每张卡把所有 61 层完整常驻，就会积累 61 份冗余显存。`layer_sharding` 的思路是在维度上与 TP、PP 正交：
+在深层模型（如 61 层的 DeepSeek-V3/R1）中，旧 FlashComm2 或 DSA-CP 路径在执行投影时需要完整权重；如果每张卡都保存全层，一张卡就要常驻 61 层投影权重，同组其他卡各自还有一份。`layer_sharding` 的切分维度与 TP、PP 正交：
 - **与 TP 的区别**：TP 切层内（把单个矩阵切给多张卡），`layer_sharding` 切层间（把多层的完整矩阵轮流存到不同卡）。
 - **与 [PP（流水线并行）](../concepts/pipeline-parallel.md#pp-是什么)的区别**：PP 连计算一起分、阶段间传递激活中间态；`layer_sharding` 只分权重存放在哪张卡，组内各卡仍执行全部这组层，传递的是权重本身。
 
-登记与加载过程有两处易误解细节：登记时非 owner 卡的完整权重会被换成单元素占位张量并把参数加载函数置为空操作，但一方面底层 safetensors 文件迭代器仍会遍历权重条目（不能保证省磁盘读），另一方面加载后处理会临时给非 owner 分配完整张量以广播真实权重并完成量化后处理，之后再建立两份窗口并释放不再需要的完整存储及 dummy，因此登记后的占位大小不代表整个加载期峰值。
+登记与加载期有两处容易误判的细节。登记时，非常驻卡的完整权重会被换成单元素占位张量，参数加载函数也被置为空操作；但底层 safetensors 文件迭代器仍会遍历权重条目，不能保证省掉磁盘读取。加载后处理阶段还会临时给非常驻卡分配完整张量以广播真实权重并完成量化后处理，随后才建起两份窗口并释放临时完整张量与占位符，因此登记后的占位大小不代表加载期显存峰值。
 
 前向时，注意力后端调用预取入口触发异步 [Broadcast](../concepts/collective-communication.md#broadcast)，由常驻卡提前一层（`prefetch_step = 1`）把下一层权重发给组内其余卡，真正执行该 Linear 前包装函数等待权重到位。一个 series 是一组同构 Linear，实现要求登记层号**连续**，且在 `prefetch_step = 1` 时至少需要 **3 层**（不连续的特殊层不能直接组成合法 series）。「仅允许 P 节点开启」的源码设计理由是希望用较重的 prefill 计算尽量遮盖广播耗时（小批 decode 重叠窗口更少；可重叠区间取决于调用位置，不保证总能完全隐藏）。
 
@@ -149,11 +149,11 @@ rawSources:
 file: layer-sharding
 ```
 
-权重分配依赖单独构造的 `shard_weight` 通信组（不是直接复用原 TP 组）：FlashComm2 分支传入其投影 TP 分组信息，普通分支传入全局 TP 分组信息，构造函数按 PP 与模块分片位置重排 rank（有模块 TP 分组时组大小 `K = world_size / (PP × 模块 TP 大小)`）；DSA-CP 的 P 侧传入 `None`，按完整复制模块在同一 PP 阶段内建组。
+权重分片使用单独构造的 `shard_weight` 通信组，不直接复用原 TP 组。FlashComm2 分支传入其投影 TP 分组信息，普通分支传入全局 TP 分组信息，构造函数按 PP 与模块分片位置重排 rank（有模块 TP 分组时组大小 `K = world_size / (PP × 模块 TP 大小)`）；DSA-CP 的 P 侧传入 `None`，按完整复制模块在同一 PP 阶段内建组。
 
 ## 显存与通信账、冲突边界及向新权重切换机制的迁移
 
-**显存与通信示意账（DeepSeek-V3/R1 61 层 `o_proj`、W8A8、16 卡、TP16、PP1，非实测）**：按 `o_proj` 形状 `[7168, 128 × 128]` 计共 `117,440,512` 个 int8 元素，单层 `112 MiB`，61 层全量 `6,832 MiB`（约 `6.67 GiB`）。若 61 层连续进入同一 `K = 16` 组按层号取模，各卡预算分化如下（全组平均 `651 MiB` 与 `15/16` 均值均不能替代单卡预算）：
+**显存与通信示意账（DeepSeek-V3/R1 61 层 `o_proj`、W8A8、16 卡、TP16、PP1，非实测）**。按 `o_proj` 形状 `[7168, 128 × 128]` 计算，共有 `117,440,512` 个 int8 元素，单层占 `112 MiB`，61 层全量共 `6,832 MiB`（约 `6.67 GiB`）。若 61 层连续进入同一 `K = 16` 组按层号取模，各卡预算分化如下（全组平均 `651 MiB` 与 `15/16` 均值均不能替代最重卡预算）：
 
 | 组内 rank 分组 | 常驻层数与显存 | + 两份整层窗口 | 单卡总预算（相对全量） | 单卡每次前向接收广播量 |
 | --- | --- | --- | --- | --- |
@@ -163,17 +163,14 @@ file: layer-sharding
 每次非本地层仍广播整份 `112 MiB` 权重，小批短序列很难摊平；源码在未配 FlashComm2 / DSA-CP 时启用也会告警性能显著退化。
 
 **冲突与模型边界**：
-- **与 row-parallel 分支的抢占**：进入 row-parallel 分派后，DSA-CP 的 P 侧 `o_proj` 会先被 `ShardedCPRowParallelOp` 认领，不再落到后面的细粒度 `o_proj` TP、[matmul-allreduce](enable-matmul-allreduce.md) 或 FlashComm2 分支——这一判据只检查 DSA-CP 与实例角色，不检查 `layer_sharding` 列表是否实际包含 `o_proj`（选择执行实现与登记权重分片是两回事）。
-- **示例边界与文档残留**：旧 feature guide 与 DeepSeek-V3.2 教程给出 FlashComm1 搭配 `["q_b_proj", "o_proj"]` 的 DSA-CP 示例，旧 GLM5 教程则限制 FlashComm1 下不得包含 `o_proj`；新版仓库的个别模型教程（如 `GLM5.2.md`）或旧目录页仍留有历史示例字样，不能据此误判旧功能仍存在。
+- **与 row-parallel 分支的抢占**：进入 row-parallel 分派后，DSA-CP 的 P 侧 `o_proj` 会先被 `ShardedCPRowParallelOp` 认领，不再落到后面的细粒度 `o_proj` TP、[`enable_matmul_allreduce`](enable-matmul-allreduce.md) 或 FlashComm2 分支。这一判据只检查 DSA-CP 与实例角色，不检查 `layer_sharding` 列表是否包含 `o_proj`（选择执行实现与登记权重分片是两回事）。
+- **示例边界与文档残留**：旧特性指南与 DeepSeek-V3.2 教程给出 FlashComm1 搭配 `["q_b_proj", "o_proj"]` 的 DSA-CP 示例，旧 GLM5 教程则限制 FlashComm1 下不得包含 `o_proj`。新版仓库的个别模型教程（如 `GLM5.2.md`）或旧目录偶有残留示例字样，不能据此误判该键仍可使用。
 
 **新版本的演化去向（权重切换与 PCP 切分）**：
-- `v0.23` 曾并存两套角色判定：`layer_shard` 要求精确 `kv_producer`，`o_proj_tp` 要求无 KV 传输或精确 `kv_both`；到了 `v0.26` 与后续 `full_o_proj` 判定，范围改为「无 KV 配置或具备 producer 角色（含 `kv_both`）」，兼具实现与角色范围变化。
-- 新版受支持的权重切换机制由 `vllm_ascend/weight_switch/linear.py` 与 `o_proj.py` 承接（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 将旧 `tp_weight_switch.py` 拆分并将 `TPWeightSwitchMixin` / `supports_tp_weight_switch` 改名为 `WeightSwitchMixin` / `supports_weight_switch`，适用域从 TP 扩展至多并行域）：前向异步 All-Gather 到完整权重缓冲、计算前等待、用完把参数视图切回本地分片（完整缓冲保留在池中复用，不等于立即释放显存）。需要按 PCP 组切同层输出投影见 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。
+- `v0.23` 曾并存两套角色判定：`layer_shard` 要求精确 `kv_producer`，`o_proj_tp` 要求无 KV 传输或精确 `kv_both`。自 `v0.26` 起，`full_o_proj` 的角色判定放宽为「无 KV 配置或具备 producer 角色（含 `kv_both`）」。
+- 新版受支持的权重切换统一由 `vllm_ascend/weight_switch/linear.py` 与 `o_proj.py` 承接（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 将 `TPWeightSwitchMixin` 扩展为多并行域通用的 `WeightSwitchMixin`）。其运行逻辑为前向异步 All-Gather 到完整权重池缓冲、计算前等待、算完切回本地分片（池缓冲常驻复用，不立即释放显存）；按 PCP 组切同层输出投影见 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。
 
-**放到 GLM 双机（`db701c1f` 固定基线）**：该部署为混部、无 KV 传输配置（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），在 `db701c1f` 上给 `layer_sharding` 传非空列表会直接触发启动报错：
-> additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.
-
-即使改成 P 实例并打开 DSA-CP 也行不通：GLM 主干中 34 层 KDA 与 11 层稀疏 MLA 交错，其专用 SFA 子类在 `db701c1f` 构造时明确拒绝 DSA-CP（抛 `does not yet support DSA context parallelism`；MTP 共用该后端时同样受限），且交错的 11 层也不满足连续层号 series 约束（GLM 权重预算统一见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+**角色、后端与连续层号边界**：旧版非空 `layer_sharding` 同时要求实例为 PD 分离 P 节点、注意力后端支持对应 CP 路径，且登记层号至少连续 3 层。历史双机部署在混部报错、旧专用后端拒绝 DSA-CP 以及 11 层稀疏 MLA 与 KDA 交错不满足连续登记这三项上的具体表现，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)（权重子账见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
 
 ## 对照源码
 

@@ -79,7 +79,7 @@ updated: '2026-11-24'
 
 ## 客户端指标 vs 服务端 `/metrics`：如何把 TTFT、TPOT 与 ITL 对齐？
 
-无论是 AISBench、EvalScope 还是 `vllm bench serve`，客户端打出的时延都覆盖了从“发包”到“收到 **SSE**（Server-Sent Events，服务端逐段推送的流式事件）流”的整条外部路径；而服务端 Prometheus `/metrics` 监控拉取接口（详见 [容量与可靠性指标](inference-capacity-and-reliability.md)）只统计引擎内部事件时间戳。在核对双端报告前，先明确三个核心时延指标的含义：**TTFT** 是首字等待、**TPOT**（Time Per Output Token）是首字之后每个输出词的平均耗时、**ITL**（Inter-Token Latency）是相邻两个输出词之间的实际间隔。两套口径的覆盖区间如下图所示：
+无论是 AISBench、EvalScope 还是 `vllm bench serve`，客户端打出的时延都覆盖了从“发包”到“收到 **SSE**（Server-Sent Events，服务端逐段推送的流式事件）流”的整条外部路径；而服务端 Prometheus `/metrics` 监控拉取接口（详见 [容量与可靠性指标](inference-capacity-and-reliability.md)）按各具体指标注册的起止事件分别记账（例如 TTFT 从 API 前端收到请求起算，而单输出词均值仅跨引擎首末次出词事件），不能笼统当成“只量引擎内部”。在核对双端报告前，先明确三个核心时延指标的含义：**TTFT** 是首字等待、**TPOT**（Time Per Output Token）是首字之后每个输出词的平均耗时、**ITL**（Inter-Token Latency）是相邻两个输出词之间的实际间隔。两套口径的覆盖区间如下图所示：
 
 ```wiki-diagram
 file: aisbench-fig-metrics-alignment
@@ -93,11 +93,14 @@ file: aisbench-fig-metrics-alignment
 | **TPOT**（单输出词均值） | 对输出词数 $N_{\text{out}} > 1$ 的请求：$\text{TPOT} = \frac{\text{E2E} - \text{TTFT}}{N_{\text{out}} - 1}$ | `vllm:request_time_per_output_token_seconds`：按完成请求记录 $\frac{\text{decode\_time}}{N_{\text{gen}} - 1} = \frac{\text{last\_token\_ts} - \text{first\_token\_ts}}{N_{\text{gen}} - 1}$（止于末次引擎出词事件，不含 SSE 回传） | 若客户端流式接口把多个 token 打包进同一个 SSE chunk，或按本地分词器对文本重算 $N_{\text{out}}$，会与引擎内部 `num_generation_tokens` 产生 1~数个 token 的分母偏移 |
 | **ITL**（相邻词间隔） | 流式返回相邻两个非空 SSE chunk 到达时刻的差值列表 | `vllm:inter_token_latency_seconds`：引擎每次迭代产生新 token 之间的实际间隔 | 网络抖动或代理缓冲（如 Nginx 未关闭 `proxy_buffering`）会把连续多个 token 攒在一起吐给客户端，造成客户端出现“先长停顿后 0 ms 连发”的假毛刺 |
 
-**预热与污染剔除铁律**：无论用哪套工具测性能，正式采样前都须先打一轮小批量预热请求并丢弃其数据。即便启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求往往还会触发 **ATB**（Ascend Transformer Boost，昇腾 Transformer 加速库）矩阵乘缓存写入、首轮动态形状分支或网络长连接建连。同时，若服务端开启了自动前缀缓存（[Prefix Caching](prefix-caching.md)），压测须使用多样化输入或显式加随机前缀，避免重复 prompt 命中 99% KV 复用虚高 TTFT 与吞吐。跨拓扑做横向对比时，还须保持接口类型、输入长度分布与汇总统计量一致——例如 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 就明确区分了单卡 `/v1/chat/completions`（`24 ~ 40` prompt tokens，中位数）与八卡 `/v1/completions`（`262` prompt tokens，均值）的口径边界：两者可对照稳态 `TPOT`，但 `TTFT` 受输入长度影响不可混作单变量 A/B。
+**预热、缓存与冷热态隔离三条件**：
+- **热态稳态预热**：正式采样前先打一轮小批量预热请求并丢弃数据。即便启动阶段完成了图捕获与常规预热（见 [NPUWorker 启动](npu-worker-lifecycle.md)），首次真实请求仍可能触发 **ATB**（Ascend Transformer Boost，昇腾 Transformer 加速库）矩阵乘缓存写入、首轮动态形状分支或长连接建连（底层运行时下发与编译缓存机制见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）。
+- **区分已有图编译缓存**：若磁盘或容器挂载目录已保留上一次运行的编译与图缓存产物，测到的是复用磁盘缓存后的启动与首轮表现，须与清空缓存的纯冷态独立测量分开记录。
+- **冷态独立测量与复用污染剔除**：若服务端开启了文本自动前缀缓存（[Prefix Caching](prefix-caching.md)）或多模态视觉编码缓存（[多模态特征缓存](multimodal-encoder-cache.md)），评测须明确区分首次编码与缓存命中；测稳态算力吞吐时使用多样化输入或显式加随机前缀，防止重复文本或重复图片 99% 命中缓存而虚高 TTFT 与吞吐。跨拓扑横向对比时，还须保持接口类型、输入长度分布与汇总统计量一致——例如 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 明确区分了单卡 `/v1/chat/completions`（`24 ~ 40` prompt tokens，中位数）与八卡 `/v1/completions`（`262` prompt tokens，均值）的口径边界：两者可对照稳态 `TPOT`，但 `TTFT` 受输入长度影响不可混作单变量 A/B。
 
 ## 数据集精度基线与四类高频掉点陷阱
 
-用 AISBench 或 EvalScope 跑精度基线（对比 BF16 原版 vs 量化版，或 `v0.26` vs `v0.30.0`）时，绝大多数“掉点 10~30 分”并不是算子出错，而是下面四个评测配置陷阱：
+用 AISBench 或 EvalScope 跑精度基线（对比 BF16 原版 vs 量化版，或 `v0.26` vs `v0.30.0`）看到明显掉分时，由于缺少跨模型与数据集的统一失分比例样本边界，不宜先断定“八成不是算子问题”，而应把下面四类可独立成立（也可同时叠加）的评测配置假设逐项排除，再决定是否下沉到算子排查：
 
 ```wiki-diagram
 file: aisbench-fig-accuracy-pitfalls

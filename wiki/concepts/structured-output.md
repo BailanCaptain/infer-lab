@@ -3,7 +3,8 @@ id: structured-output
 title: 结构化输出：文法怎样在采样前屏蔽不合法的 token
 type: feature
 legacyAnchors:
-  放到-glm-双机一个带-json-schema-的请求走一步: 复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界
+  放到-glm-双机一个带-json-schema-的请求走一步: 投机验证怎样推进、回滚并应用文法
+  复杂异构实战对照glm-双机下-json-schema-的五步走法与边界: 投机验证怎样推进、回滚并应用文法
 summary: >-
   结构化输出在打分和采样之间加一道关卡：文法状态算出下一步允许的 token，其余候选的 logits 改成 −∞ 再采样。先看这个过程，再沿 GLM 双机看
   bitmask 在哪个进程、哪一步算出，怎样作用到 logits，以及它和 MTP 草稿、思考阶段的配合。
@@ -308,7 +309,7 @@ origin: direct
 
 模型每生成一个 token，先给词表里每个候选打一个分，这组分数叫 **logits**；**采样**再按分数挑出一个 token，可以直接取最高分，也可以按概率抽，过程见[主线第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。
 
-**结构化输出（structured output）在打分和采样之间加一道关卡：按请求要求的格式，算出下一步哪些 token 还能让输出保持合法，把其余候选的 logits 改成 −∞，再交给采样。** −∞ 的候选按概率算是 0，取最高分也轮不到它，所以一定不会被选中。
+**结构化输出（structured output）在打分和采样之间加一道关卡：按请求要求的格式，算出下一步哪些 token 还能让输出保持合法，把其余候选的 logits 改成 −∞，再交给采样。** 在**本行确实施加了文法约束（非未约束的思考段或终态全 1 行）且当前状态至少存在一个合法候选**的前提下，被改成 −∞ 的候选按概率算是 0，取最高分也轮不到它，因此不会被选中。
 
 先用抽奖机建立直觉——**无遮挡盲抽甩出碎渣卡死齿轮箱 vs 在转盘前立起精密齿孔掩码挡板，只放行严丝合缝的合法拼图块**：
 
@@ -371,9 +372,9 @@ file: structured-output
 
 模板负责准备模型输入，解析器负责拆出模型输出，自定义插件负责载入额外解析器；三者怎样配套，见[工具模板、解析器和插件](api-server-entry.md#工具模板解析器和插件分别接在哪一侧)。插件加载成功也不能代替上述文法条件。
 
-## 复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界
+## 投机验证怎样推进、回滚并应用文法
 
-**官方双机命令没有为结构化输出加任何参数，它按请求开启：请求里带了 JSON schema 这类约束，这个请求才走下面的路径。同一批里不带约束的请求不受屏蔽，照常从全部候选里采样；但本部署开着异步调度，它们的采样要跟着受约束的请求一起推迟，见[下文](#异步调度本部署开着整批采样要等上一步)。** 部署设定见[部署前提](glm-5-3-flash-two-node.md#部署前提)。下面设想主线的示例请求 R1（prompt 为 4 个 token 的那条请求，见[一次请求](one-request.md)）带上一个 JSON schema。请求沿三类进程的分工走完五步：node0 的 API server 定后端、每机 **EngineCore** 编译并填位图、每张卡的 worker 将 bitmask 作用到 logits。这些步骤挂在主线[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)：前向算出 logits 之后、采样之前。
+下面借例外 B 的 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)与示例请求 R1（4 个 prompt token，单请求入口与模型词表背景见[一条请求「第 1 站」](one-request.md#第-1-站-入口从-http-到-node0-的引擎)与 [GLM-5.3-Flash 模型页](glm-5-3-flash.md)），看带 **MTP** 多候选草拟的请求加上 JSON schema 后怎样走完一步。整条协作拆成四段责任：**① 请求选择**——无需服务端额外启动参数，只有携带 JSON schema 等约束的请求才进入文法路径，同批无约束请求照常从全词表采样；**② EngineCore 编译与填表**——前端定下后端后，目标 `EngineCore` 在后台编译自动机，并在每步前向派发后按候选草稿推进、回滚填写 bitmask；**③ Worker 屏蔽**——每张卡的 Worker 在主线[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)拿到 logits 后、采样前改写受约束行；**④ 异步等待**——开启异步调度时，只要批内含上一步 token 尚未确认的受约束请求，整批采样都会一并推迟等待（见[下文](#异步调度本部署开着整批采样要等上一步)）。
 
 ### 1. 入口：API server 校验请求、定下后端
 
@@ -391,7 +392,7 @@ EngineCore 收到请求就开始建文法。编译交给一个线程池异步完
 
 有一种启动方式叫 external_launcher，每个 TP rank（[张量并行](tensor-parallel.md)组里一张卡对应的那个进程）各带一个调度器。异步编译会让各 rank 在不同时刻把请求放行，调度就对不齐了，所以这种方式下改为同步编译。官方双机命令用的是一个 EngineCore 带 8 个 worker 的多进程方式，不受影响。
 
-bitmask 的宽度按模型配置里的词表大小建，也就是 logits 的列数 154880，而不是分词器实际会产出的 154856 个编号（含 154820 个普通条目）。154880 恰好是 32 的整数倍，所以每一行正好装满，与 logits 逐列对应，不需要截断或补位（在 EngineCore 进程的 CPU 内存里，第一次有带约束的请求时分配）：
+bitmask 的宽度按模型配置里的词表大小建，也就是 logits 的列数 154880，而不是分词器实际会产出的 154856 个编号（含 154820 个普通条目）。154880 恰好是 32 的整数倍，所以每一行正好装满，与 logits 逐列对应，不需要截断或补位（在 EngineCore 进程的宿主机 CPU 内存里首次遇到带约束请求时分配，主机侧缓冲与内存管理见[主机内存与大页](host-memory-and-hugepages.md)）：
 
 $$\text{Buffer}_{\text{bitmask}} = \underbrace{32 \times (1 + 3)}_{128\text{ 行}} \times \underbrace{\frac{154880}{32} \times 4\text{ B}}_{19{,}360\text{ B/行}} = 2{,}478{,}080\text{ B} \approx 2.36\text{ MiB}$$
 
@@ -422,7 +423,7 @@ file: structured-output-fig-mtp-bitmask-grid
 
 采样调用发给这台机器的全部 8 个 worker，只有 0 号卡回报结果。前向结束时，每张卡都已经通过 TP 组内的 [All-Gather](collective-communication.md#all-gather)（每张卡交出自己算的那一段，拼成完整的一份发给所有卡）拿到完整的 logits；R1 的一个 decode 步是 4 行 × 154880 列。worker 先按请求 ID 把 bitmask 重新排成本卡 logits 的行序（见上图第 ③ 部分），不受约束的请求那几行填全 1。请求进入、退出、重排，都不会让约束对错行。
 
-**vllm-ascend 默认的 V1 model runner 在这里和 GPU 版不同：它把整张 logits 拷到 CPU、转成 fp32，调用 xgrammar 的 CPU 函数把禁止的位置改成 −∞，再拷回 NPU、转回原来的精度。** 源码注释给的原因是：GPU 版用 torch.compile 优化这一步，昇腾当前不支持。但固定上游里的这个函数已经不用 torch.compile，GPU 路径直接调用 xgrammar 的原地改写函数，所以注释的理由和上游对不上；昇腾改走 CPU 的实际原因，源码里没有写，列入页末待核。搬的是这次调用的整张 logits，不是只有受约束请求那几行；满载时 32 个请求里哪怕只有 R1 带 schema，也要搬全部 128 行，而且 8 张卡各搬一遍。
+**在昇腾默认的 MRV1（`model_runner_v1.py`）路径下，这一步在历史固定镜像 `db701c1f` 与正式版 `v0.30.0`（`c09d3e20`）中均走 CPU 往返：把整张 logits 拷到宿主机 CPU、转成 fp32，调 xgrammar 的 CPU 函数把禁止位改成 −∞，再拷回 NPU 转回原精度**（跨总线 D2H/H2D 同步与主机缓冲边界见[主机内存与大页](host-memory-and-hugepages.md)与[昇腾运行时与调优](ascend-runtime-and-tuning.md)）。源码注释写的是“GPU 版用 `torch.compile` 优化这一步、昇腾暂不支持”，但同期上游 GPU 路径直接调 xgrammar 原地改写核而未用 `torch.compile`，因此该注释理由仍待证，实际历史成因归入页末待核。搬运对象是当次调用的整张 logits，而非仅受约束请求的那几行：满载 32 条请求里哪怕只有 R1 带 schema，也要搬全部 128 行，且本机 8 张卡各搬一遍。
 
 R1 一个 decode 步的 logits 是 4 行、约 1.18 MiB（推导见[主线第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)）。满载时按同样口径核算：NPU → CPU 为 BF16，CPU → NPU 时仍为 FP32、传回后再转回原精度。两方向合计约 113.4 MiB/卡/步（不含其他搬运，实际链路流量、耗时和 CPU 改写耗时未实测）：
 

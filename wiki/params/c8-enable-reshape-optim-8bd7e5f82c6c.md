@@ -3,7 +3,8 @@ id: c8-enable-reshape-optim-8bd7e5f82c6c
 legacyAnchors:
   一句话: 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
   为什么存在: StoreKVBlock 按组写入的原理、历史默认值反转与角色闸门
-  开了的代价: 跨版本迁移、辅助缓冲容量报错与 GLM 双机 kpool 限制
+  开了的代价: 跨版本迁移、辅助缓冲容量报错与 kpool 边界
+  跨版本迁移辅助缓冲容量报错与-glm-双机-kpool-限制: 跨版本迁移、辅助缓冲容量报错与 kpool 边界
 title: c8_enable_reshape_optim
 type: param
 summary: >-
@@ -137,11 +138,11 @@ rawSources:
 ---
 ## 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
 
-**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除，索引器缓存统一走 `DeviceOperator.scatter_cache` 写入；升级后必须从 `--additional-config` 中删掉该键，否则会被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 直接拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。**
+**`c8_enable_reshape_optim` 曾用于在「按槽位分散写入（scatter）」与「按连续块分组写入（`StoreKVBlock`）」之间切换稀疏注意力索引器的 C8 缓存写入路径；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）已随 PR #18128 移除该开关与 `StoreKVBlock` 算子，升级后必须从 `--additional-config` 中删掉此键，否则会被 [AscendConfig](../concepts/ascend-config-system.md) 的 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。**
 
-在长上下文[稀疏注意力](../concepts/sparse-attention.md)（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为节省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份反量化缩放因子（scale），即 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
+在长上下文[稀疏注意力](../concepts/sparse-attention.md)（如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还配有一个轻量索引器（**LightningIndexer**），负责快速扫描历史 token、打分挑出少数关键缓存块。为节省显存，索引器缓存的历史 Key 向量会被压成 8 位整数并配一份反量化缩放因子（scale），即**索引器 C8 量化缓存**；它与**主 KV C8 量化**分属两条独立判断路径（见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
 
-在仍保留该键的历史版本里，`c8_enable_reshape_optim` 只控制一件事：**往显存写这份 C8 量化缓存时，用按整批 slot 索引分散写入的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经 `DeviceOperator.scatter_cache` 回退），还是改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。**
+在仍保留该键的历史版本里，关闭优化走整批 `slot_mapping` 分散写入的 scatter 路径（旧分支直调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起统一经 `DeviceOperator.scatter_cache`），开启优化则改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 成段写入；`v0.30.0` 与 `main` 现已统一收敛为 `DeviceOperator.scatter_cache`。
 
 ## 事实表
 
@@ -169,15 +170,15 @@ rawSources:
 
 ## StoreKVBlock 按组写入的原理、历史默认值反转与角色闸门
 
-在未走优化的 scatter 路径下，indexer 的 K 缓存通过 slot 定位每个 token：`npu_scatter_nd_update_`（或 `DeviceOperator.scatter_cache`）接收形状为 `(-1, head_dim)` 的整批 `k_li` 与 `(-1, 1)` 的整批 `slot_mapping`，一次调用完成更新（并非每个 token 发起一次 Python 算子调用）；C8 量化另需写独立的 scale 缓存，因此 K 与 scale 各更新一次。
+在默认的 scatter 路径下，索引器 K 缓存通过槽位号（slot）定位每个 token。`npu_scatter_nd_update_`（或 `DeviceOperator.scatter_cache`）一次接收形状为 `(-1, head_dim)` 的整批 `k_li` 与 `(-1, 1)` 的 `slot_mapping` 完成更新，并非逐个 token 发起 Python 调用；C8 量化另有一份独立 scale 缓存，因此 K 与 scale 各更新一次。
 
-在仍含 `StoreKVBlock` 优化的版本里，`store_kv_block_metadata` 沿 `slot_mapping` 顺序扫描、跳过负 slot，只把**目标 slot 连续且属于同一缓存块**的相邻输入归为一组，产出三个描述符：`group_len`（每组长度）、`group_key_idx`（源数据起始位置）、`group_key_cache_idx`（目标缓存起始位置）。它既不预先排序，也不跨块合并。
+在曾包含 `StoreKVBlock` 的版本里，`store_kv_block_metadata` 沿 `slot_mapping` 顺序扫描并跳过负数槽位，只把**目标槽位连续且落在同一缓存块内**的相邻输入归为一组。它产出三个一维数组：`group_len`（每组长度）、`group_key_idx`（源数据起点）与 `group_key_cache_idx`（目标缓存起点），既不预先重排顺序，也不跨块合并。
 
 ```wiki-diagram
 file: param-c8-enable-reshape-optim
 ```
 
-拿一组具体数字核对切分规则（**示意**：设缓存块长 `block_size = 4`，本步输入 7 个 token 的 `slot_mapping = [2, 3, 4, 7, -1, 8, 9]`，块号为 $\lfloor \text{slot} / 4 \rfloor$）：
+拿一组示意数字核对分组规则（设缓存块长 `block_size = 4`，本步输入 7 个 token 的 `slot_mapping = [2, 3, 4, 7, -1, 8, 9]`，块号为 $\lfloor \text{slot} / 4 \rfloor$）：
 
 | 分组编号 | 源输入下标 `group_key_idx` | 对应 `slot_mapping` | 所属块号（$\lfloor \text{slot}/4 \rfloor$） | 目标起始 `group_key_cache_idx` | 组长 `group_len` | 切分原因 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -186,25 +187,25 @@ file: param-c8-enable-reshape-optim
 | 第 2 组 | `3` | `[7]` | 块 `1` | `7` | `1` | 同在块 `1` 但 `4 → 7` 不连续；紧随的 `-1` 直接跳过 |
 | 第 3 组 | `5` | `[8, 9]` | 块 `2` | `8` | `2` | 跳过下标 `4`（`-1`）后，块 `2` 内连续成段 |
 
-随后 `store_kv_block` 读取这三组描述符（调用前断言索引器注意力元数据非空）并结合块大小，对 K 缓存和量化 scale 共用同一套分组结果成段复制。分组越长成段复制机会越多，不能由打开开关直接保证加速。
+随后 `store_kv_block` 读取这三份描述符（调用前断言索引器注意力元数据非空），对 K 缓存和量化 scale 共用同一套分组结果成段复制。连续分组越长，成段拷贝收益越大；仅打开开关本身并不保证加速。
 
-分组辅助缓冲在两代实现里也有差异：`v0.23.0` / `v0.26.0rc` 在 builder 初始化时按 `max_num_batched_tokens` 分配三个 int32 数组；过渡期 `main` / `v0.30.0rc2` 改为在首次使用对应 buffer key 时按以下容量公式分配：
+分组辅助缓冲的分配口径经历过两代变化。`v0.23.0` / `v0.26.0rc` 在构造期直接按 `max_num_batched_tokens` 分配三个 `int32` 数组；`v0.30.0rc2` 等过渡版改为首次访问对应 buffer key 时按以下公式分配：
 
 $$\text{capacity} = \max\bigl(\text{max\_num\_batched\_tokens} \times \text{PCP},\ \text{按 TP 对齐后的 max\_num\_batched\_tokens}\bigr)$$
 
-例如（**示意**）`max_num_batched_tokens = 2048`、`PCP = 2`、`TP = 8` 时，辅助缓冲容量为 $\max(2048 \times 2,\ 2048) = 4096$ 个 int32 槽位。每步取前「本步 slot 数」切片，并在每次获取（含复用已有缓冲）时校验容量，超出即抛 `Indexer C8 group metadata buffer is too small: capacity=..., required=...`（排查须对比 `required` 与上述容量公式）。虽然派生开关在配置构造时计算，但消费者每次查询当前配置、配置工厂也支持 `refresh` 重建，因此既不是逐请求切换接口，也不能说整个进程只决定一次。
+以示意配置 `max_num_batched_tokens = 2048`、`PCP = 2`、`TP = 8` 代入，辅助缓冲容量为 $\max(2048 \times 2,\ 2048) = 4096$ 个 `int32` 槽位。每次前向（含复用已有数组）都会取本步 slot 数切片并校验上界，一旦超出即抛 `Indexer C8 group metadata buffer is too small: capacity=..., required=...`。此外，消费者在调用时读取当前配置单例（工厂支持 `refresh` 重建），因此它虽非逐请求动态开关，也不是进程内永不可变的死常量。
 
-**为什么过渡期默认开启后还一度保留关闭开关**：PR #16952 恢复该开关的直接动机是让用户能禁用 `StoreKVBlock` 优化。关联的 [issue #15896](https://github.com/vllm-project/vllm-ascend/issues/15896) 报告了 HDK 25.1 上 pooling 与自定义 AICPU Tiling 在同一进程组合时挂起（作者随后将影响范围限定在 HDK 26.0 之前、不含 26.0，属于特定环境问题而非普遍现象）；关闭优化既可作为排查对照，也可用于速度与数值比较。最终 `v0.30.0` 直接移除了整套 `StoreKVBlock` 路径与该开关。
+过渡期默认开启后仍短暂保留关闭入口，源于 PR #16952 与 [issue #15896](https://github.com/vllm-project/vllm-ascend/issues/15896) 的排障需求：后者在 HDK 25.1 环境（作者限定在 HDK 26.0 之前）观察到 pooling 与自定义 AICPU Tiling 同进程组合时挂起，需要保留开关做隔离与速度对照。到 `v0.30.0` 正式版，整套 `StoreKVBlock` 路径与该开关一并退役。
 
-## 跨版本迁移、辅助缓冲容量报错与 GLM 双机 kpool 限制
+## 跨版本迁移、辅助缓冲容量报错与 kpool 边界
 
-- **升级到 `v0.30.0` / `main` 须移除该键**：自 PR #18128 起 `StoreKVBlock` 优化与 `c8_enable_reshape_optim` 一并删除，继续在 `additional_config` 中保留该键（包括早期 GLM5.2 教程里写过的 `"c8_enable_reshape_optim": false`）会触发 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。索引器缓存量化前提已统一由 `--kv-quant-dtype` / `attention_config.indexer_kv_dtype` 控制。
-- **旧版本与过渡版本间的配置迁移陷阱**：在仍保留该键的历史版本间迁移时，两个方向的坑相反：
-  - 从 `v0.23.0` / `v0.26.0rc` 升到 `v0.30.0rc2` 等过渡版时，默认值由 `False` 翻为 `True`，且混部部署因缺少 `kv_transfer_config` 恒为假（`is_prefill_node` 要求 `kv_transfer_config` 非空且 `kv_role == "kv_producer"` 或 `is_kv_producer and not is_kv_consumer`，PD 角色要求从「文档提醒」变为「代码硬闸」且无日志提示）；
-  - 反方向回到 `v0.23.0` / `v0.26.0rc` 时，不仅默认 `False`，还必须同时配好 `enable_sparse_li_c8` 才会生效；
-  - 在 `v0.28.0.rc1` 空窗期 tag 上因 PR #15752 删键尚未恢复，写入该键同样会被拒绝。
-- **过渡版的分组辅助缓冲越界报错**：若仍在过渡版（如 `v0.30.0rc2`）上触发 `Indexer C8 group metadata buffer is too small: capacity=..., required=...`，应对比报错中的 `required` 与容量公式 `max(max_num_batched_tokens × PCP, 按 TP 对齐后的 max_num_batched_tokens)`，不能只看数组是否已分配。
-- **放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 与 `v0.23.0` / `v0.26.0rc` 写法相同（实际取值 = `enable_sparse_li_c8 and c8_enable_reshape_optim`，默认均为 `False`），官方多机教程命令未传 `--additional-config`（见[部署页 · 怎么开](../concepts/glm-5-3-flash-two-node.md#怎么开)），因此未启用。即使强制把两个键都写成 `true`，旧 GLM 后端也会在构造时抛出 `GLM-5 Indexer KPool MLA does not support c8_enable_reshape_optim`（其状态缓存使用独立 slot mapping，几何关系见[块表页](../concepts/block-table.md#放到-glm-双机r1-的-15-个块号进了哪几张表)）。在 `v0.30.0` 及 `main` 中，`model_uses_kpool_indexer` 检测 `index_kpool` 并让 `model_uses_sfa_sparse` 返回 `False`，在模型判定阶段排除了 kpool 模型走 LightningIndexer 稀疏路径；但 SFA 主 KV 的 C8 使用另一条包含 kpool 的判定，不能因 LI 优化不可用或已移除就推断新版 GLM 的全部 KV 量化路径不可用。
+- **升级到 `v0.30.0` / `main` 必须删键**：`StoreKVBlock` 与 `c8_enable_reshape_optim` 已随 PR #18128 移除。继续在 `additional_config` 中保留该键（包括早期 GLM5.2 教程写过的 `"c8_enable_reshape_optim": false`）会触发 `@config(extra="forbid")` 报错（仅 `vllm_omni` 环境告警过滤）。当前索引器缓存量化统一由 `--kv-quant-dtype` / `attention_config.indexer_kv_dtype` 控制。
+- **历史版本间的默认值与角色门差异**：若仍在旧分支之间迁移，需分清三段行为：
+  - `v0.23.0` / `v0.26.0rc` 默认 `False`，须显式配齐 `enable_sparse_li_c8` 才生效，混部节点未做代码拦截；
+  - `v0.28.0.rc1` 曾因 PR #15752 暂删该键，写入会被拒绝；
+  - `v0.30.0rc2` 等过渡版默认反转为 `True`，但代码硬性叠加 PD 分离 P 节点检查（`is_prefill_node` 要求 `kv_transfer_config` 非空且承担 producer 角色），混部部署恒为关闭且不打日志。
+- **过渡版辅助缓冲越界排查**：在 `v0.30.0rc2` 等快照遇到 `Indexer C8 group metadata buffer is too small: capacity=..., required=...` 时，直接对照报错中的 `required` 与上文 `max(max_num_batched_tokens × PCP, TP 对齐值)` 容量公式核查本步 slot 数。
+- **区分「索引器 C8」与「主 KV C8」两条路径**：在 `v0.30.0` 与 `main` 中，`model_uses_kpool_indexer` 识别带 `index_kpool` 压缩池的模型并令 `model_uses_sfa_sparse` 返回 `False`，在模型判定阶段就把 `kpool` 模型排除在 `LightningIndexer` 稀疏路径之外；而 SFA 主 KV 的 C8 量化使用另一条包含 `kpool` 的独立判定，切勿因索引器 C8 优化下线或不适用就误判主 KV 量化不可用。历史双机镜像的 `kpool` 构造报错与块表关系已归入[固定双机部署的参数后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)与[块表页](../concepts/block-table.md#放到-glm-双机r1-的-15-个块号进了哪几张表)。
 
 ## 对照源码
 

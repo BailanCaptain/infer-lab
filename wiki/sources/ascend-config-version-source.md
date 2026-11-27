@@ -2,7 +2,7 @@
 id: ascend-config-version-source
 title: AscendConfig 四版本来源摘要
 type: source
-summary: 归档四个历史固定快照（2c59ff10、2ed6cbba、baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；当前主基线 v0.30.0（c09d3e20）与最新 main（8d6180e2）演进另见正式版基线与配置体系页。
+summary: 归档四个历史固定快照（2c59ff10、2ed6cbba、早期开发快照 baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；页内“main 开发主线”专指历史 baa023ad 快照，现行 v0.30.0（c09d3e20）与 main（8d6180e2）规则见配置体系与运行时调优页。
 aliases:
   - AscendConfig 三版本来源摘要
   - AscendConfig 四版本来源摘要
@@ -56,7 +56,6 @@ sources:
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - main
 evidence: C
 relations:
   - to: ascend-config-system
@@ -106,11 +105,11 @@ AscendConfig 是将 vLLM 的 `additional_config` 转成昇腾插件配置的对�
 
 `main` 改变了入口和优先级。[!] 工厂发现旧配置键或环境变量时会发弃用警告，旧键在严格配置构造前被过滤；但推导阶段仍会消费它们：配置键经布尔校验（缺键按 `False`），再与环境变量判断做逻辑或。环境字符串去空白、转小写后，仅 `"1"` 或 `"true"` 视为开启。[C11]
 
-所以 main 中显式 JSON `false` 不会覆盖环境的开启值。旧属性读取方式不能沿用，但“弃用”也不等于“停止读取”；工厂和过滤位置见来源 14、18。[!]
+所以在该 `baa023ad` 快照中，显式 JSON `false` 不会覆盖环境的开启值。旧属性读取方式不能沿用，但“弃用”也不等于“停止读取”；工厂和过滤位置见来源 14、18。[!]
 
-推导阶段还把上述显式开启结果与 `enable_dsa_cp` 做逻辑或，形成 `effective_flashcomm`。结果为假时写入 `all2all_backend="flashinfer_all2allv"`；为真但 `use_sequence_parallel_moe` 为假时打印禁用警告，否则打印开启日志。[C11] 这些只说明初始化分支，不证明所有执行路径均使用 FlashComm。
+推导阶段还把上述显式开启结果与 `enable_dsa_cp` 做逻辑或，形成 `effective_flashcomm`。结果为假时写入 `all2all_backend="flashinfer_all2allv"`；为真但 `use_sequence_parallel_moe` 为假时打印禁用警告，否则打印开启日志。[C11] 这些只说明该历史快照的初始化分支，不证明所有执行路径均使用 FlashComm。
 
-旧辅助函数消失不能推广成所有环境输入失效。以环境值 1、JSON false 为例：v0.23、v0.26 选显式 false，main 则因逻辑或仍得到 true。配置入口与后续消费者的完整讲解见[Ascend 配置页](../concepts/ascend-config-system.md#版本差异)。
+旧辅助函数消失不能推广成所有环境输入失效。以环境值 `1`、JSON `false` 为例：v0.23、v0.26 选显式 `false`，本页归档的 `baa023ad` 快照则因逻辑或仍得到 `true`。现行正式版 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的配置入口、消费者及表外运行时环境变量分别见[Ascend 配置页](../concepts/ascend-config-system.md#版本差异)与[CANN Runtime 与任务下发调优](../concepts/ascend-runtime-and-tuning.md)。
 
 ## 动态分块默认、约束和迁移有哪些证据？
 

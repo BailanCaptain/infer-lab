@@ -55,6 +55,8 @@ verified:
   - main
 evidence: C
 contradicts: []
+legacyAnchors:
+  新官方指南补充了什么rc2-要怎样部署: 新官方指南补充了什么与-v0300-有何边界差异
 updated: '2026-11-19'
 rawSources:
   - >-
@@ -87,14 +89,14 @@ rawSources:
 
 `latest` 是会移动的网站地址。下面引用社区源码中的固定指南提交，不据此断言线上网站正由哪个提交构建；设备效果仍需真实部署验证。
 
-## 新官方指南补充了什么，rc2 要怎样部署？
+## 新官方指南补充了什么，与 v0.30.0 有何边界差异？
 
 社区上游 `vllm-ascend@8d6180e2` 的官方指南（`docs/source/user_guide/feature_guide/rfork.md`，经 PR `#20876`、`#21333`、`#21707` 补齐）已与当前实现基本对齐，涵盖：
 
 - **13 项客户端配置与环境回退**：按有效 JSON → 环境变量 → 默认值优先级读取，支持 8 个环境变量（`MODEL_URL`、`MODEL_DEPLOY_STRATEGY_NAME`、`RFORK_SCHEDULER_URL`、`RFORK_SEED_TIMEOUT_SEC`、`RFORK_REQUEST_TIMEOUT_SEC`、`RFORK_MODEL_IDENTITY_HEADERS`、`RFORK_SEED_BIND_HOST`、`RFORK_SEED_ADVERTISE_HOST`）；未知键打 warning，缺必填项或严格项非法抛 `RForkConfigurationError` 中止。
 - **加载时序与统一绕过**：先建模型、恢复 MTP/DSpark checkpoint 归属并加载 Engram 宿主表，再准备布局、预登记显存并绑定结构摘要，最后才向 Planner 申请租约。统一绕过条件为 sleep mode、在线权重传输与 `--enable-eplb`（已移除 Model Runner V1 旧 EPLB 字段）。
 - **控制面与元数据端点**：Planner 提供 `/add_seed`、`/get_seed`（`LEASE_TTL_SEC` 改为可选兼容旧 Planner）、`/put_seed`、`/renew_seed_lease`、`/remove_seed`（默认关，由 `rfork_seed_removal_supported` 控制，支持 409 draining）。seed HTTP 提供 `/health_check_with_key`（错 key 回 400）与 `/get_rfork_transfer_engine_info`（含 `rfork_protocol_version=1` 与 NPU format 清单，错 key 回 404）。
-- **三类网络端口与诊断边界**：seed HTTP 按 `base + 2 × global_rank + slot` 分配（`EADDRINUSE` 退动态）；TransferEngine RPC 传 `port=0` 后调 `get_rpc_port()`（可选 `YR_TE_RPC_PORT_MIN/MAX`）；HIXL 数据面默认 `YR_TE_HIXL_BASE_PORT=22000`。传输只读 `numel × element_size` 连续稠密字节、不搬 padding；`seed_key` 会出现在日志/URL/调试快照中，须留在信任边界内。
+- **三类网络端口与诊断边界**：seed HTTP 按 `base + 2 × global_rank + slot` 分配（`EADDRINUSE` 退动态）；TransferEngine RPC 传 `port=0` 后调 `get_rpc_port()`（可选 `YR_TE_RPC_PORT_MIN/MAX`）；HIXL 数据面默认 `YR_TE_HIXL_BASE_PORT=22000`（底层通信与运行期环境变量诊断另见 [CANN Runtime 与任务下发调优](../concepts/ascend-runtime-and-tuning.md)）。传输只读 `numel × element_size` 连续稠密字节、不搬 padding；`seed_key` 会出现在日志/URL/调试快照中，须留在信任边界内。
 
 在社区 `v0.30.0`（`c09d3e20`）中，Planner 仍强制要求 `LEASE_TTL_SEC`，且尚未包含 `rfork_model_identity_headers`、`rfork_seed_removal_supported`、Engram 宿主表与 DSpark 归属恢复。完整四版本矩阵统一在[RFork 总览](../concepts/rfork.md#版本差异)。
 
@@ -107,7 +109,7 @@ rawSources:
 | Application Scenarios | 总览的扩容实例、[身份](../concepts/rfork-identity.md) | 拓扑敏感不等于沿用官网列出的全部 key 字段 |
 | Usage / Prerequisites | [配置](../concepts/rfork-config.md) | Planner、数据系统、NPU 环境都要具备 |
 | Configuration Fields | [配置](../concepts/rfork-config.md)的十三项设置表 | 官网五项表不是上游主线参数全集 |
-| How RFork Matches Seeds | [身份](../concepts/rfork-identity.md)的两次哈希、部署指纹、分片编号 | 分隔符式 key 与哈希式 key 不可混用 |
+| How RFork Matches Seeds | [身份](../concepts/rfork-identity.md)的配置指纹、结构摘要与分片键 | 分隔符式 key 与哈希式 key 不可混用 |
 | Quantized Models | [布局](../concepts/rfork-layout.md)、[传输](../concepts/rfork-transfer.md) | 搬的是后处理后的可传状态，不能只看 checkpoint |
 | Tested Models | 本页[模型表](#官方已测模型不等于本工作版已验收) | 官方记录与当前主线验收是两份证据 |
 | Example Commands & Placeholders | [配置](../concepts/rfork-config.md)的启动命令和四类端口 | 先替换占位符；逻辑模型标识不等于文件路径或 API 模型名 |
@@ -172,7 +174,7 @@ seed 心跳（`/add_seed`）与租约续期（`/renew_seed_lease`）是两套独
 
 放到我们的部署上：社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与早期 `0576b647` 教程命令均未启用 RFork。
 
-上游 RFork 官方指南按传输契约泛称覆盖 DeepSeek / Qwen / GLM 家族，尚未列出专用的 GLM-5.3-Flash RFork 配方或实测结果（并明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须在目标硬件上单独验收 `source=transfer`、输出精度与接受率）。早期旧表也只有 `GLM5-W4A8`，没有 GLM-5.3-Flash W8A8；每张卡借多少、能否受益见总览的[GLM 双机推演](../concepts/rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。
+上游 RFork 官方指南按传输契约泛称覆盖 DeepSeek / Qwen / GLM 家族，尚未列出专用的 GLM-5.3-Flash RFork 配方或实测结果（并明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须在目标硬件上单独验收 `source=transfer`、输出精度与接受率）。早期旧表也只有 `GLM5-W4A8`，没有 GLM-5.3-Flash W8A8；每张卡借多少、能否受益见总览的[同构多机扩容推演](../concepts/rfork.md#同构多机扩容时主模型与草稿各读多少)。
 
 迁到上游 `main` 部署时，还要记录模型 revision、并行配置、两端代码、YuanRong / CANN / torch_npu 版本，再验证实际 seed 命中、输出与默认加载一致、故障回退和资源清理。不能把模型名称出现在表里当作任意卡型、任意量化实现或任意 batching 参数都兼容。
 

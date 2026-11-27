@@ -51,9 +51,9 @@ rawSources:
 ---
 ## 用途与正确配置入口
 
-在带共享专家（Shared Expert）的 MoE 模型中，`enable_fused_mc2=2` 会用 CANN **MegaMoE** 大融合算子处理路由专家的「分发 + 专家 FFN + 合并」，但共享专家依然在算子外单独跑一遍前向再相加。`main` 分支新增档位 `enable_fused_mc2=3`，允许把共享专家的 `gate_up_proj` 与 `down_proj` 权重直接塞进 MegaMoE 算子的 `shared_l1_weights` / `shared_l2_weights` 槽位，由单次大算子一气呵成算完路由专家与共享专家。
+在 MoE 模型中，**共享专家（Shared Expert）** 是不经门控路由挑选、每个 token 都会固定经过的专家。排查共享专家是否并入 CANN **MegaMoE** 大算子时，必须把三层判断分开：**用户选档（`enable_fused_mc2 = 2` 或 `3`）**、**装有 `cann_ops_transformer` 且满足算子条件时实际走 MegaMoE**、以及**每层共享专家是否满足并入条件**。其中 `enable_fused_mc2=2` 只让满足条件的路由专家尝试走 MegaMoE，共享专家仍在算子外独立前向（缺包或不满足 MegaMoE 准入时路由专家也会回退）；`main` 分支新增的 `enable_fused_mc2=3` 则进一步请求把共享专家的 `gate_up_proj` 与 `down_proj` 塞进 MegaMoE 的 `shared_l1_weights` / `shared_l2_weights` 槽位合并执行。
 
-`megamoe_shared_expert_fusion` 就是 `AscendConfig` 上记录这一内部状态的**派生布尔标志**（默认 `False`）。源码注释明确指出它是内部派生字段，**用户不应在 `--additional-config` 中直接手写 `megamoe_shared_expert_fusion`，而应配置 `enable_fused_mc2: 3`**：
+`megamoe_shared_expert_fusion` 就是 `AscendConfig` 上记录「是否请求并入共享专家」的**内部派生布尔标志**（默认 `False`）。源码注释明确标明它是内部字段，**用户不应在 `--additional-config` 中直接手写 `megamoe_shared_expert_fusion`，而应配置 `enable_fused_mc2: 3`**：
 
 ```bash
 vllm serve /models/DeepSeek-V3-MXFP8 \
@@ -75,19 +75,20 @@ vllm serve /models/DeepSeek-V3-MXFP8 \
 
 ## 派生链路与五道融合准入门槛
 
-配置校验器分两阶段把关：
-1. **启动期快速失败（`_validate_user_input_ranges` 与 `_validate_megamoe_shared_expert_fusion`）**：当 `enable_fused_mc2` 为 `2` 或 `3` 时，`_validate_user_input_ranges` 先按 `self.enable_fused_mc2 == 3` 给 `self.megamoe_shared_expert_fusion` 赋值（因此 `enable_fused_mc2=2` 会把任何手写的 `megamoe_shared_expert_fusion: true` 覆盖回 `False`），再检查是否安装了 `cann_ops_transformer`——若未安装则告警并将 `self.enable_fused_mc2` 降级为 `1`，但保留 `self.megamoe_shared_expert_fusion` 不清零；随后 `derive_and_validate` 调用 `_validate_megamoe_shared_expert_fusion`，只要本标志为真且设备不支持 `CANN_MEGAMOE_SHARED_EXPERT_FUSION` 或模型含 `routed_expert_hidden_size`，立刻抛 `NotImplementedError` 终止启动。
-2. **层构建期精细回退（`shared_experts.py`）**：即便进入 Atlas A5 上的非 Latent-MoE 模型，每个共享专家层还会依次核对五道算子能力门槛，只要有一条不满足就打印日志并退回独立共享专家前向，不影响服务运行：
-   - 路由专家量化类型必须属于 MXFP 家族（`W8A8MXFP` / `W4A4MXFP` / `W4A8MXFP`，共享专家自身可与路由专家混合精度并重排为所需布局）；
-   - 层上不存在算子外门控 `expert_gate`（如 Qwen3-Next 的输出门控）；
-   - `gate_up_proj` 与 `down_proj` 均不带 `bias`；
-   - 共享专家与路由专家的激活函数类型及全部超参签名完全一致（MegaMoE 算子全局只执行同一套激活函数）；
-   - 当 `moe_config.tp_group.world_size > 1` 时，`self.weights_replicated` 为真（即已开启 `enable_shared_expert_dp`）。
+从配置输入到单层真正并入共享专家，代码按三步依次把关：
+1. **选档与算子包探测（`_validate_user_input_ranges`）**：当 `enable_fused_mc2` 为 `2` 或 `3` 时，先按 `self.enable_fused_mc2 == 3` 写入 `self.megamoe_shared_expert_fusion`（因此传 `=2` 会把任何手写的 `true` 覆写回 `False`），随后探测 `cann_ops_transformer` 包写入模块标志 `_MEGA_MOE_SUPPORTED`，并将 `self.enable_fused_mc2` 回写为 `1`。若缺该包，档位 `2` 静默回退普通融合路径，档位 `3` 打印单次告警关闭 MegaMoE，但此时 `self.megamoe_shared_expert_fusion` 仍保持 `True` 不清零。
+2. **设备与模型结构硬报错（`_validate_megamoe_shared_expert_fusion`）**：`derive_and_validate` 检查只要 `self.megamoe_shared_expert_fusion` 为真，一旦当前设备不支持 `CANN_MEGAMOE_SHARED_EXPERT_FUSION`（非 Atlas A5），或模型带有 `routed_expert_hidden_size`（Latent-MoE），立即抛 `NotImplementedError` 终止启动。
+3. **逐层回退判定（`shared_experts.py`）**：即便通过启动校验且路由专家实际选中了 `use_cann_megamoe`，每个共享专家层在构建期仍会逐项核对以下五道门槛，任一不满足仅让该层共享专家退回独立前向，不中断服务：
+   - 路由专家量化类型属于 MXFP 家族（`W8A8MXFP` / `W4A4MXFP` / `W4A8MXFP`，共享专家可混合精度并重排布局）；
+   - 层上无算子外门控 `expert_gate`（如 Qwen3-Next 的输出门控）；
+   - `gate_up_proj` 与 `down_proj` 均无 `bias`；
+   - 共享专家与路由专家的激活函数及全部超参签名一致；
+   - 当 `moe_config.tp_group.world_size > 1` 时，`self.weights_replicated` 为真（已开 `enable_shared_expert_dp`）。
 
 ## 代价与互斥边界
 
-- **切勿脱离 `enable_fused_mc2: 3` 单独手写本键**：如果在 `enable_fused_mc2: 0`（或 `1`）时强行手写 `"megamoe_shared_expert_fusion": true`，在非 A5 机器上会白白触发 `_validate_megamoe_shared_expert_fusion` 的 `NotImplementedError`，而在 A5 上又因为 `use_cann_megamoe` 为假根本不会启用融合；若与 `enable_fused_mc2: 2` 同传，则会在 `_validate_user_input_ranges` 被直接覆写回 `False`。
-- **共享专家权重复制显存代价**：在 `TP > 1` 拓扑下，为了满足算子内无跨卡规约的数学等价性，必须开启 `enable_shared_expert_dp: true` 让每张卡都保存一份完整共享专家权重（且在 MXFP4 下需重建 `FRACTAL_NZ` / `FRACTAL_NZ_C0_32` 缓冲），用少量每卡静态权重显存换取少跑一整趟独立共享专家前向与跨卡规约。
+- **误手写内部标志的两类后果**：若在 `enable_fused_mc2` 为 `0` 或 `1` 时强行手写 `"megamoe_shared_expert_fusion": true`，非 A5 设备会在启动期白白触发 `NotImplementedError`，A5 设备则因 `use_cann_megamoe` 为假而空转不生效。若与 `enable_fused_mc2: 2` 同传，手写值会在输入校验阶段被直接覆写为 `False`。
+- **复制共享专家权重的显存开销**：在 `TP > 1` 下，MegaMoE 算子内部不对共享专家做跨卡归约，因此必须搭配 `enable_shared_expert_dp: true` 在每张卡保留完整共享专家权重（MXFP4 下还需构建 `FRACTAL_NZ` / `FRACTAL_NZ_C0_32` 排布缓冲）。这会多占一份每卡静态权重显存，用来换取省掉独立共享专家前向与跨卡归约。
 
 ## 对照源码
 

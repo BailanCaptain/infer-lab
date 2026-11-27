@@ -42,6 +42,8 @@ sources:
   - 'vllm-ascend@2c59ff10:examples/external_online_dp/README.md#L1-L41'
   - 'vllm-ascend@2ed6cbba:examples/dynamic_bucket_load_balancer/README.md#L1-L40'
   - 'vllm-ascend@8d6180e2:examples/external_online_dp/README.md#L1-L41'
+  - 'vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L164-L201'
+  - 'vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L212-L277'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -96,7 +98,7 @@ file: cluster-fig-routing-and-probes
 
 ## KV 缓存与前缀感知路由：别让轮询毁掉前缀命中率
 
-如果只是一段全流量共用的热系统提示词、且已在全部 `N` 个副本上常驻，普通轮询照样能命中。但面对**会话级多轮对话前缀、冷启动尚未铺满的前缀，或显存紧张频繁驱逐下的差异化前缀**时，纯轮询（Round-Robin）或按连接数路由的七层代理会把同一会话的后续轮次随机散射到 `N` 个副本上。这会让单副本上的 [自动前缀缓存（Prefix Caching）](prefix-caching.md) 有效命中率近似除以 `N`，引发大量重复 Prefill 计算并推高 **TTFT**（首字时延）。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
+对比两个直观例子就能看清普通轮询（Round-Robin）的命中边界：**例一（全局热共享系统前缀）**——若全站请求共用同一段固定系统提示词且已在全部 `N` 个副本上预热驻留，普通轮询打到任一副本都能命中这段公共前缀；**例二（各自独立的多轮会话前缀）**——用户 A 第 1 轮落在副本 1、第 2 轮被轮询散射到副本 2 时，副本 2 没有第 1 轮的历史块（多模态对话中重复图片的[多模态特征缓存](multimodal-encoder-cache.md)同样会在新副本冷未命中，且媒体缓存命中率须与文本前缀缓存独立观测），单副本上的[自动前缀缓存（Prefix Caching）](prefix-caching.md)会话有效命中率近似退化为 $1/N$，引发大量重复 Prefill 并推高 **TTFT**（首字时延）。生产级 LLM 路由器通常联合利用三种来自引擎的信号：
 
 1. **实时负载探测（`GET /load`）**：vLLM API Server 内置 `/load` 端点，返回 `{"server_load": ...}`。**注意配套开关 `--enable-server-load-tracking`（`enable_server_load_tracking`）默认是 `False`，不显式开启时 `server_load` 恒为 `0`**；开启后它会统计接入负载计数的推理接口（`/v1/chat/completions`、`/v1/completions`、`/v1/responses` 等）上当前所有在途请求数，直到流式输出完整结束才归还（涵盖排队与吐字全阶段）。网关在前缀命中打平或冷请求到来时，优先挑选 `server_load` 最低的副本。
 2. **基于 `KVEventsConfig` 的精确块事件广播**：前缀哈希路由最怕“路由器以为某副本还留着 KV 块，其实早被 **LRU**（最近最少使用淘汰策略）驱逐了”。vLLM 在 `enable_kv_cache_events=True` 时，默认通过 **ZMQ**（轻量跨进程消息总线 ZeroMQ）发布块事件（端点 `tcp://*:5557`，支持 `replay_endpoint` 与 `buffer_steps=10_000` 断线重放）。引擎将内部 KV 块的写入与驱逐事件实时推送给集群路由器或全局 KV 索引器，实现**真正感知实时 KV 驻留位置的路由**。
@@ -104,9 +106,9 @@ file: cluster-fig-routing-and-probes
 
 ## 长冷启动录图期的 `/health` 探针护栏
 
-昇腾大模型的冷启动往往比传统 Web 服务长得多。启动需依次完成权重加载、权重转 **`FRACTAL_NZ`**（昇腾芯片偏好的分形权重内存排布）、`profile_run()` 测显存与多档 **ACL Graph** / `npugraph_ex` 静态图捕获（拆解见 [NPUWorker 启动](npu-worker-lifecycle.md)），整段过程可能耗时 **2~10 分钟**（参考 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)：单卡 `Qwen3-8B` 完整冷启动约 `95.83 s`，八卡 `Qwen3-30B-A3B` 仅 `ACLGraph` 录图即占 `83 s`）。
+昇腾大模型的冷启动往往比传统 Web 服务长得多。启动需依次完成权重加载、权重转 **`FRACTAL_NZ`**（昇腾芯片偏好的分形权重内存排布）、算子初始化与 HCCL 建链（底层编译缓存与建链超时配置见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）、`profile_run()` 测显存与多档 **ACL Graph** / `npugraph_ex` 静态图捕获（拆解见 [NPUWorker 启动](npu-worker-lifecycle.md)），整段过程可能耗时 **2~10 分钟**（参考 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)：单卡 `Qwen3-8B` 完整冷启动约 `95.83 s`，八卡 `Qwen3-30B-A3B` 仅 `ACLGraph` 录图即占 `83 s`）。
 
-对照 `vLLM` 启动源码 `api_server/entry.py`，必须看清一个关键时序：**`build_async_engine_client()` 完成权重加载与图捕获后，进程才调用 `build_and_serve() → serve_http()` 监听端口并暴露 `/health`**。单实例冷启动期间端口持续拒绝连接。多端口外部 DP 模式下，`DPSupervisor` 会先开聚合探针端口，但在全部下属 DP Server 就绪前，`/health`、`/ready` 与 `/readyz` 均返回 **`503 Service Unavailable`**。引擎就绪后，单实例 `GET /health` 调用 `await client.check_health()`：健康返回 `200`，一旦引擎核心崩溃抛出 `EngineDeadError` 则返回 `503`。
+对照 `vLLM` 启动源码 `api_server/entry.py` 与 `launcher.py`，必须把**端口绑定、开始监听处理 HTTP、健康就绪**三个时点分开：第一，进程启动之初先调 **`setup_server()` 提前绑定（`sock.bind`）服务套接字**以防端口竞争，但此时 Uvicorn 尚未启动；第二，随后进入 `run_server_worker()` 跑完漫长的 `build_async_engine_client()`（权重加载与图捕获），完成后才调用 **`build_and_serve()` 启动 HTTP 服务**开始接收并响应探针请求；第三，进入 HTTP 服务后，单实例 `GET /health` 调 `await client.check_health()`，**引擎健康就绪返回 `200`**，一旦引擎核心崩溃抛 `EngineDeadError` 则返回 `503`（多端口外部 DP 模式下，`DPSupervisor` 先启动聚合探针 HTTP 端口，在下属 DP Server 全部就绪前对 `/health`、`/ready` 与 `/readyz` 均返回 **`503 Service Unavailable`**）。
 
 因此，在 Kubernetes 或容器编排中必须遵守三条探针铁律：
 
@@ -160,7 +162,7 @@ vllm serve /path/to/Qwen3-8B \
 ```
 
 - **核验外部 DP 与动态分桶示例**：`examples/external_online_dp` 通过 `launch_online_dp.py` 并发调用 `run_dp_template.sh`，为每个 DP 秩分配独立端口与 `ASCEND_RT_VISIBLE_DEVICES`，并设置 `--data-parallel-size` / `--data-parallel-rank` / `--data-parallel-address` / `--data-parallel-rpc-port`[S1][C2][C3]；上游 `cli/serve.py` 同时支持 `--headless` 无 API 从节点与 `--data-parallel-external-lb` / `--data-parallel-hybrid-lb`[C5][C6]；多实例代理可参考 `examples/dynamic_bucket_load_balancer` 按长度将后端池分为短/长序列组并动态重定向[S4]。
-- **核验路由信号、探针与优雅摘流**：`KVEventsConfig` 在 `enable_kv_cache_events=True` 时默认通过 ZMQ（`tcp://*:5557`、`buffer_steps=10_000`）发布块事件[C14]；`GET /load` 返回实时 `server_load`[C12]。启动期 `api_server/entry.py` 先完成 `build_async_engine_client()` 再执行 `build_and_serve()` 打开监听[C8]，`DPSupervisor` 在全部子 DP 就绪前对 `/health` 与 `/ready` 返回 `503`[C7]，就绪后 `/health` 经 `client.check_health()` 返回 `200`（`EngineDeadError` 返回 `503`）[C11]。退出期 `VllmConfig.shutdown_timeout` 默认为 `0`[C10]，`launcher.py::handle_shutdown()` 在 `SIGINT`/`SIGTERM` 时按 `timeout == 0` 选 `abort`、否则选 `drain`[C9]；原地热维护可通过 `POST /pause?mode=wait` 等待在途请求完成[C13]。具体集群冷启动秒数与 `preStop` 传播延迟受网络拓扑、存储吞吐及网关实现影响，须结合目标环境实测校准[I]。
+- **核验路由信号、探针与优雅摘流**：`KVEventsConfig` 在 `enable_kv_cache_events=True` 时默认通过 ZMQ（`tcp://*:5557`、`buffer_steps=10_000`）发布块事件[C14]；`GET /load` 返回实时 `server_load`[C12]。启动期 `api_server/entry.py` 先调用 `launcher.py::setup_server()` 绑定套接字（`sock.bind`），随后完成 `build_async_engine_client()` 引擎初始化，最后才进入 `build_and_serve()` 启动 HTTP 服务响应请求[C8][C18][C19]；`DPSupervisor` 在全部子 DP 就绪前对 `/health` 与 `/ready` 返回 `503`[C7]，就绪后 `/health` 经 `client.check_health()` 返回 `200`（`EngineDeadError` 返回 `503`）[C11]。退出期 `VllmConfig.shutdown_timeout` 默认为 `0`[C10]，`launcher.py::handle_shutdown()` 在 `SIGINT`/`SIGTERM` 时按 `timeout == 0` 选 `abort`、否则选 `drain`[C9]；原地热维护可通过 `POST /pause?mode=wait` 等待在途请求完成[C13]。具体集群冷启动秒数与 `preStop` 传播延迟受网络拓扑、存储吞吐及网关实现影响，须结合目标环境实测校准[I]。
 
 ### 版本差异
 
@@ -171,7 +173,7 @@ vllm serve /path/to/Qwen3-8B \
 
 ### 源码位置
 
-以下编号一一对应页首 `sources` 列表的第 1–17 项（示例文档项为 `S1`、`S4`、`S15`–`S17`，源码项为 `C2`–`C3`、`C5`–`C14`）：
+以下编号一一对应页首 `sources` 列表的第 1–19 项（示例文档项为 `S1`、`S4`、`S15`–`S17`，源码项为 `C2`–`C3`、`C5`–`C14`、`C18`–`C19`）：
 
 - 来源 1（S1）：`vllm-ascend@c09d3e20:examples/external_online_dp/README.md#L1-L41` — 单机与双机外部 DP 拉起参数与运行示例。
 - 来源 2（C2）：`vllm-ascend@c09d3e20:examples/external_online_dp/launch_online_dp.py#L8-L55` — 按本地 DP 秩并发拉起 `run_dp_template.sh` 的启动器脚本。
@@ -180,7 +182,7 @@ vllm serve /path/to/Qwen3-8B \
 - 来源 5（C5）：`vllm@ced6857a:vllm/entrypoints/cli/serve.py#L67-L100` — `--headless`、`--data-parallel-external-lb` 与 `--data-parallel-hybrid-lb` 模式判别。
 - 来源 6（C6）：`vllm@ced6857a:vllm/entrypoints/cli/serve.py#L179-L240` — `run_headless()` 无 API 从节点引擎启动逻辑。
 - 来源 7（C7）：`vllm@ced6857a:vllm/entrypoints/launchers/dp_supervisor.py#L220-L240` — `DPSupervisor` 聚合 `/health`、`/ready`、`/readyz`（未全就绪返 `503`）。
-- 来源 8（C8）：`vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L180-L202` — 先完成 `build_async_engine_client()` 再进入 `build_and_serve()` 监听 HTTP 的启动顺序。
+- 来源 8（C8）：`vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L180-L202` — `run_server_worker()` 先完成 `build_async_engine_client()` 再进入 `build_and_serve()` 启动 HTTP 服务的顺序。
 - 来源 9（C9）：`vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L124-L185` — `SIGINT`/`SIGTERM` 信号处理及 `timeout == 0`（`abort`）与 `> 0`（`drain`）分支。
 - 来源 10（C10）：`vllm@ced6857a:vllm/config/vllm.py#L455-L460` — `VllmConfig.shutdown_timeout` 默认值 `0`。
 - 来源 11（C11）：`vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L22-L33` — `GET /health` 调用 `client.check_health()`，捕获 `EngineDeadError` 返回 `503`。
@@ -188,3 +190,4 @@ vllm serve /path/to/Qwen3-8B \
 - 来源 13（C13）：`vllm@ced6857a:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L65` — `POST /pause` 支持 `abort` / `wait` / `keep` 三种暂停模式。
 - 来源 14（C14）：`vllm@ced6857a:vllm/config/kv_events.py#L10-L52` — `KVEventsConfig` ZMQ 块事件发布端点、水位与重放配置。
 - 来源 15–17（S15–S17）：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）与 `main`（`8d6180e2`）中外部 DP 与动态分桶代理示例的版本延续性对照。
+- 来源 18–19（C18–C19）：`vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L164-L201` 与 `launcher.py#L212-L277` — `setup_server()` 在引擎初始化前先行创建并 `bind` 套接字的完整实现。

@@ -3,7 +3,8 @@ id: sfa-dcp-force-tmajor-restore-6d9c266d3ece
 legacyAnchors:
   一句话: 它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化
   为什么存在: 为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？
-  开了的代价: 额外复制量怎么算、PCP+DCP 与 GLM 双机边界
+  开了的代价: 额外复制量怎么算、PCP+DCP 与 kpool 边界
+  额外复制量怎么算pcpdcp-与-glm-双机边界: 额外复制量怎么算、PCP+DCP 与 kpool 边界
   源码位置: 对照源码
 title: sfa_dcp_force_tmajor_restore
 type: param
@@ -182,7 +183,9 @@ rawSources:
 ---
 ## 它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化
 
-`sfa_dcp_force_tmajor_restore` 是 `--additional-config` 顶层的**张量布局对照 / 回退开关**（`bool`，默认 `False`，`v0.30.0` 与 `main` 可用），**不是**开启 DCP（decode context parallel，解码期上下文并行；历史位置如何分卡存储见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）的主开关。常规线上服务**保持默认 `false` 不要改动**；只有当你在支持 LightningIndexer 的 [SFA（稀疏注意力）](../concepts/sparse-attention.md) 模型（如 DeepSeek-V3.2，不含普通稠密 `Qwen3-8B` 或带 `index_kpool` 的 GLM）上启用 `--decode-context-parallel-size > 1`，需要排查纯 Decode 阶段跨步张量视图（strided view）是否引发精度偏差或 kernel 退化时，才临时设为 `true` 做对照实验（以下仅展示配置形式，本工作区无 NPU 实机执行验证）：
+**跨多张卡切分历史 KV 并拼回查询头之后，默认只改张量的维度步长（读法重排）而不搬动底层内存；`sfa_dcp_force_tmajor_restore` 设为 `true` 时，才会在恢复视图尚不连续时强制排出一份连续内存。**
+
+它是 `--additional-config` 顶层的布局对照与回退开关（`bool`，默认 `False`，`v0.30.0` 与 `main` 可用），**不是**开启 DCP（decode context parallel，解码期上下文并行；分卡原理见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）的主开关。常规线上服务保持默认 `false` 即可；只有当你在支持 `LightningIndexer` 的 [SFA（稀疏注意力）](../concepts/sparse-attention.md) 模型（如 DeepSeek-V3.2）上启用 `--decode-context-parallel-size > 1`，需要排查纯 Decode 步跨步视图（strided view）是否引起精度偏差或算子退化时，才临时设为 `true` 做对照实验（以下仅展示配置形式，本工作区无 NPU 实机执行验证）：
 
 ```bash
 vllm serve /models/DeepSeek-V3.2 \
@@ -191,16 +194,14 @@ vllm serve /models/DeepSeek-V3.2 \
   --additional-config '{"sfa_dcp_force_tmajor_restore": true}'
 ```
 
-先抓一句话物理直觉：**跨多张卡切分历史 KV 时，拼回查询头之后默认只改维度步长（视图重排）而不真正搬动内存；只有怀疑这种非连续视图在特定算子上引起精度或性能异常时，才打开本开关强制重排出一份连续内存做对照。**
+在 SFA-DCP 的纯 Decode 查询汇聚路径中，通信接收缓冲以头为第一维（head-major），而下游注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。收回后的恢复逻辑分两条分支：
 
-在 SFA-DCP 的普通解码 query 汇聚路径中，通信缓冲以 head 为第一维（head-major），而注意力计算要求以 token 为第一维（t-major，`[T, H, D]`）。汇聚收回后转回 t-major 有两条分支：
+- **默认 `false`（视图路径）**：消费处令 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 生成共享底层存储的跨步视图（单 token 等退化形状下天然连续），随后直接交给 `torch.split` 拆出 `ql_nope` 与带旋转位置分量的 `q_pe`，全程不复制元素。
+- **设为 `true`（连续化对照路径）**：`keep_view=False`，在 `restore_perm` 非空时紧跟 `.contiguous()`。按 PyTorch 契约，**只有 `permute` 后视图尚不连续时才会分配并重排复制数据**；若视图已连续，`.contiguous()` 直接返回原张量。
 
-- **默认 `false`（优化路径）**：消费处将开关取反传入 `keep_view = not enable_sfa_dcp_force_tmajor_restore()`，只做 `permute` 得到共享原存储的 strided view（通常为带跨步的非连续张量视图；单 token 等退化形状下步长天然连续），直接交给 `torch.split` 拆成不带旋转位置分量的 `ql_nope` 与带旋转分量的 `q_pe`，两步均不复制数据。
-- **设为 `true`（对照 / 回退路径）**：`keep_view=False`，在 `restore_perm` 非空时紧跟一次 `.contiguous()`，要求恢复后的整体张量以 `[T, H, D]` 连续存储。按 PyTorch 契约，**只有恢复视图尚不连续时才会真正分配并复制数据**；若视图本来已连续，`.contiguous()` 直接返回原张量。
+引入本键的 PR #15970 指出：`torch.split` 沿最后一维拆出的两个查询子张量原本就是跨步视图，旧实现的 `permute + contiguous` 只是顺带物化了外层 `[T, H, D]` 缓冲；将该次物化改为可选开关，便于隔离排查布局影响。
 
-引入它的 PR #15970（2026-09-16，“Optimize the DCP decode query-gather layout path”）指出：交给 `npu_sparse_flash_attention` 的 query 片段经 `torch.split` 沿最后一维切分后本身即为带跨步视图（即使整块缓冲连续，沿最后一维拆分后的子张量也不连续），旧写法的 `permute + contiguous` 只是顺带物化了底层 t-major 存储；本开关把那次物化保留为可选项，专供精度或性能对照实验。
-
-**版本存在范围**：`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 均无此键、`enable_sfa_dcp_force_tmajor_restore()` 及 `ops/triton/query_gather_prep.py`，旧 [AscendConfig](../concepts/ascend-config-system.md) 逐键 `.get()` 静默忽略。`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）均保留此键（默认 `False`），且 `AscendConfig` 示例 docstring 收录了它（`main` 在 `kv_cache[0]` 为 `int8`/`fp8` 量化类型时改走 `_finish_dcp_packed_gather`，其余走 `_finish_dcp_gather`，两条分支都继续传入 `keep_view=not enable_sfa_dcp_force_tmajor_restore()`）；拼写错误在两版会被严格校验拒收（仅可发现 `vllm_omni` 时告警过滤未知顶层键）。
+**版本范围**：`v0.23.0` 与 `v0.26.0rc` 均无此键，旧 [AscendConfig](../concepts/ascend-config-system.md) 逐键 `.get()` 静默忽略。`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）保留此键（默认 `False`，拼错键名在未装 `vllm_omni` 时直接报错）；`main` 在 `kv_cache[0]` 为 `int8`/`fp8` 量化类型时新增 `_finish_dcp_packed_gather` 分支，与非量化 `_finish_dcp_gather` 同样读取本开关控制恢复布局。
 
 ## 事实表
 
@@ -209,7 +210,7 @@ vllm serve /models/DeepSeek-V3.2 \
 | 项 | 值 | 意味着什么 |
 | --- | --- | --- |
 | 配置路径与默认 | `additional_config["sfa_dcp_force_tmajor_restore"]`（`bool = False`） | 默认省去 query gather 后的 `.contiguous()` 拷贝；设 `true` 强制恢复连续 t-major 存储 |
-| 生效模型与并行条件 | 须命中 `AscendSFADCPImpl`（非 kpool 的 SFA 稀疏模型 + `DCP > 1`） | 普通稠密/GQA 模型（如 `Qwen3-8B`）、`DCP=1` 或带 `index_kpool` 的 GLM 均不会读取本键 |
+| 生效模型与并行条件 | 须命中 `AscendSFADCPImpl`（非 kpool 的 SFA 稀疏模型 + `DCP > 1`） | 普通稠密/GQA 模型（如 `Qwen3-8B`）、`DCP=1` 或带 `index_kpool` 的稀疏模型均不会读取本键 |
 | 批次阶段限制 | 仅纯 Decode 步（`_has_prefill` 为假）进入该分支 | 混入 prefill 的批次走「汇聚完整 KV、query 留本地」路径并写死 `.contiguous()`，本键不参与 |
 | 与 `enable_dsa_cp` 关系 | 开启 DSA-CP 时沿第 0 维汇聚（`restore_perm = None`），自动跳过本键 | 同时开 DSA-CP 时设 `true` 也不会执行 `permute` 或 `.contiguous()`，且无冲突告警 |
 | 实际复制触发条件 | 仅当 `permute` 后视图非连续（如多 token `T > 1`）时分配并复制 $T \times G \times H \times D$ 元素 | 单 token（`T = 1`）等已连续形状下，`.contiguous()` 直接返回原张量、零额外拷贝 |
@@ -217,15 +218,15 @@ vllm serve /models/DeepSeek-V3.2 \
 
 ## 为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？
 
-普通 DCP 将 KV cache 沿序列维交错切分给组内各卡，各卡算完本地那部分 KV 的注意力后按 LSE 合并，同时需要在组内汇聚 query 的 head 维（dim 1）分片。因为此处异步 All-Gather helper 按第 0 维扩展接收缓冲（这是该 helper 的接口约定，并非所有 All-Gather API 都限于第 0 维），代码先将 query 转成 head-major 再发，收回后再 `permute` 转回 t-major。
+普通 DCP 把 KV cache 沿序列维交错切给组内各卡。各卡先算本地 KV 分片的注意力，再按对数求和指数（LSE）合并结果，期间需要在组内汇聚查询的头维（第 1 维）分片。因为这里的异步 `All-Gather` 辅助函数约定沿第 0 维扩展接收缓冲，发送前要先将查询重排成 head-major，收回后再 `permute` 转回 t-major。
 
-热路径上，普通 DCP 在头维汇聚且输入为 NPU 张量时，优先调用 Triton 融合准备算子 `prep_query_head_major` 把 `ql_nope` 与 `q_pe` 一次拼成 head-major（合并两次 gather 以规避流依赖，并将 `cat`、`permute` 与连续化合成一次写入；空输入或无法证明 fast path 地址合法时返回空值、调用异常时退回 PyTorch 拼装，但两片段形状或 dtype 不匹配会在进入尝试前直接报错，不能靠回退修复）。
+发送准备阶段，当输入位于 NPU 且按头维汇聚时，代码优先调用 Triton 融合算子 `prep_query_head_major` 把 `ql_nope` 与 `q_pe` 一次拼成连续的 head-major 缓冲。遇到空输入、地址不满足快路径条件或运行异常时，会退回 PyTorch 拼装（但若两段输入本身的形状或 dtype 失配，会在进入快路径前直接报错）。
 
 ```wiki-diagram
 file: param-sfa-dcp-force-tmajor
 ```
 
-收回后的核心代码即为本键唯一生效处（`_finish_dcp_gather` 仅在通信句柄非空时先 `wait`，开关不改变等待的通信对象，因此不能据此推导通信量减少）：
+收回后的 `_finish_dcp_gather`（及 `main` 的 `_finish_dcp_packed_gather`）是本键的消费位置（开关只管等待结束后的本地布局，不改变通信量）：
 
 ```python
 gathered = context.gathered
@@ -236,30 +237,30 @@ if context.restore_perm is not None:
 return torch.split(gathered, context.split_sizes, dim=-1)
 ```
 
-`permute` 只改视图维度与步长、不搬动底层数据（不等于 Python 调用与元数据操作零耗时）。上游利用注意力算子接受跨步 query 的条件省去默认连续化，但下游 kernel 对两种布局的实际性能表现仍须在设备上测量，不能仅因少一次调用就断言端到端更快。
+`permute` 只改视图元数据而不搬动底层内存；下游算子在不同步长下的实际快慢仍须在设备上实测。
 
-**有四类情况会直接绕过本键，写了 `true` 也不会生效（且无告警）**：
+**以下三类运行时路径会直接绕过本键，写了 `true` 也不会进入这段分支（且无告警）**：
 
-| 绕过 / 边界情形 | 底层原因 | 实际表现 |
+| 运行时绕过情形 | 底层原因 | 实际表现 |
 | --- | --- | --- |
-| **1. 未选到 `AscendSFADCPImpl`** | `resolve_sfa_impl` 要求模型走 SFA 稀疏注意力（且不被 `model_uses_kpool_indexer` 排除）且 `decode_context_parallel_size > 1` | 不会进入读此键的 DCP 实现类 |
-| **2. 批次包含 prefill** | `_execute_sparse_flash_attention_process` 先检 `_has_prefill`（含 `num_prefills > 0` 或 PCP 全局 prefill），为真时走「汇聚完整 KV、query 留本地」分支并提前 `return` | 该分支自身写死 `.contiguous()`；在常开 chunked prefill 服务里本键仅纯 decode 步生效 |
-| **3. 同时开启 `enable_dsa_cp`（DSA-CP）** | 名字里的 `dcp` 指 decode context parallel，与 DSA-CP 不是一套；`AscendSFADSADCPImpl` 按 MRO 继承自 `AscendSFADSACPImpl` 的 `_parallel_query_gather_dim` 返回 `0`（token 维汇聚） | `_all_gather_dim_async` 在 `dim == 0` 返回 `restore_perm = None`，整段跳过 `permute` 与 `.contiguous()` |
-| **4. 读取方式无 `lru_cache` ≠ 支持在线改配** | 与同批带 `lru_cache(maxsize=1)` 的 `enable_dsa_cp`、`enable_pcp_o_proj_weight_sharding` 不同，`enable_sfa_dcp_force_tmajor_restore()` 每次走到都现读配置单例 | 配置工厂虽支持 `refresh` 发布新单例并清缓存，但没有提供在线重配置与图重捕获接口 |
+| **1. 前端未选中 `AscendSFADCPImpl`** | `resolve_sfa_impl` 要求模型走非 `kpool` 的 SFA 稀疏注意力且 `decode_context_parallel_size > 1` | 根本不会实例化读取本键的 DCP 类 |
+| **2. 批次混入 prefill** | `_execute_sparse_flash_attention_process` 检测到 `_has_prefill` 为真时，改走「汇聚完整 KV、查询留本地」分支并提前返回 | 该分支写死 `.contiguous()`；开启分块预填充时仅纯 Decode 步受本键控制 |
+| **3. 同时开启 `enable_dsa_cp`（DSA-CP）** | `AscendSFADSADCPImpl` 按继承链采用 `AscendSFADSACPImpl` 的 `_parallel_query_gather_dim == 0`（沿 token 维汇聚） | `dim == 0` 令 `restore_perm = None`，跳过整段 `permute` 与 `.contiguous()` |
 
-## 额外复制量怎么算、PCP+DCP 与 GLM 双机边界
+此外，在配置读取方式上，与同批带 `lru_cache(maxsize=1)` 的 `enable_dsa_cp`、`enable_pcp_o_proj_weight_sharding` 不同，`enable_sfa_dcp_force_tmajor_restore()` 每次调用都现读配置单例；但这只用于测试或配置工厂 `refresh` 重建，并不提供运行期热更新或重录图的在线接口。
 
-- **是否发生复制看视图连续性，复制元素数看实际 query 缓冲**：普通 DCP 头维汇聚中，设汇聚前本地形状为 `[T, H, D]`（`D` 为两段 query 宽度之和）、汇聚组大小为 `G`，恢复后整体形状为 `[T, G×H, D]`。仅当恢复视图不连续时，`.contiguous()` 才复制全部 $T \times G \times H \times D$ 个元素：
+## 额外复制量怎么算、PCP+DCP 与 kpool 边界
+
+- **真实复制只发生在恢复视图非连续时**：普通 DCP 头维汇聚中，设汇聚前本地查询形状为 `[T, H, D]`（`D` 为两段查询宽度之和）、汇聚组大小为 `G`，恢复后形状为 `[T, G×H, D]`。只有 `T > 1` 等使 `permute` 后步长不再连续的情形，`.contiguous()` 才会分配并复制 $T \times G \times H \times D$ 个元素：
 
 | 示意情形（`H = 2, D = 3, G = 2`） | head-major 形状 / 步长 | `permute` 后形状 / 步长 | 设 `true` 时 `.contiguous()` 行为 |
 | --- | --- | --- | --- |
 | 一般多 token（`T = 2`） | `[4, 2, 3]` / `[6, 3, 1]` | `[2, 4, 3]` / `[3, 6, 1]`（非连续） | 分配并重排复制 `24` 个元素 |
 | 退化单 token（`T = 1`） | `[4, 1, 3]` / `[3, 3, 1]` | `[1, 4, 3]`（已连续） | 直接返回原张量，**不发生复制** |
 
-  以上是形状与步长演算，不能直接换算为固定微秒或吞吐收益；分配开销能否与其他操作重叠也须实测。
-- **PCP+DCP 组合不能直接套用 `G = DCP`**：在 PCP+DCP 组合子类中，当 `DCP == PCP` 时直接使用本地 head-major 张量、不发起此次 query gather，否则沿其 TP 组汇聚；恢复步骤仍经过本键，但复制量应按该分支实际得到的张量形状计算。
-- **默认保持 `false`，做布局对照实验时再开 `true`**：引入提交说明曾跑过 AISBench / GSM8K，但未公开开与不开的对照数表。做布局对照应固定模型、批次、DCP 组大小与其他配置，确认进入受本键控制的恢复分支后，再对比输出、时延、吞吐与峰值显存，不能把对照开关当成已验证的通用故障修复。
-- **放到 GLM 双机部署（历史例外 B 算例）**：本站[固定部署](../concepts/glm-5-3-flash-two-node.md#部署前提)的 `DCP = 1, PCP = 1` 且 `db701c1f` 没有此键。在 `v0.30.0` 与 `main` 中，`model_uses_sfa_sparse` 开头即排除带 `index_kpool` 的模型（GLM-5.3-Flash 属于此类，kpool 后端入口见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)）；即便升级新版并开 `DCP > 1`，GLM 也不会进入本键控制的 LightningIndexer SFA-DCP 实现（旧 `db701c1f` 同名函数虽无该排除，但它本来就没有本开关）。
+  以上为形状与步长演算，实际端到端耗时与显存变化仍须在相同模型、DCP 规模和批次下对比测量。
+- **PCP + DCP 组合需按实际汇聚分支核形状**：在 PCP + DCP 组合子类中，若 `DCP == PCP` 则直接使用本地 head-major 张量而不发起此次查询汇聚，否则沿对应 TP 组汇聚；恢复步骤虽仍经过本键，但元素数须按该分支实际得到的张量维度计算，不能盲套 `G = DCP`。
+- **`index_kpool` 稀疏模型的通用排除边界**：在 `v0.30.0` 与 `main` 中，`model_uses_sfa_sparse` 开头即排除带 `index_kpool` 压缩池的稀疏模型（其独立后端注册见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)），因此即便在这类模型上开启 `DCP > 1`，也不会进入本键所在的 `LightningIndexer` SFA-DCP 分支；历史双机部署的 `PCP = DCP = 1` 前提见[固定双机部署的参数后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
 
 ## 对照源码
 

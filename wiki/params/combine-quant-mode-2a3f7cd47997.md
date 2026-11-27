@@ -3,12 +3,13 @@ id: combine-quant-mode-2a3f7cd47997
 legacyAnchors:
   一句话: 它覆盖哪一步通信量化，为什么 0 不等于关闭量化？
   为什么存在: 为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？
-  开了的代价: 白名单校验、硬件支持范围与 GLM 双机载荷算例
+  开了的代价: 白名单校验与硬件支持范围
+  白名单校验硬件支持范围与-glm-双机载荷算例: 专家结果回传的模式与载荷怎样核对
 title: combine_quant_mode
 type: param
 summary: >-
-  MoE MC2 combine 阶段通信量化强制覆盖开关：仅认整数 0/2/3/4，默认 0 不干预（沿用模型 comm_quant_mode 或
-  W8A8MXFP 默认模式 4）。v0.30.0 与 main 可用，v0.23/v0.26 忽略，受硬件与非融合 MC2 路径约束。
+  MoE MC2 combine 阶段通信量化覆盖开关：仅认整数 0/2/3/4，默认 0 让位给模型显式 comm_quant_mode，模型未提供时仅
+  W8A8MXFP 默认选 4。v0.30.0 与 main 可用，受硬件与非融合 MC2 路径约束。
 origin: seed
 aliases:
   - MC2 combine 通信量化
@@ -160,9 +161,9 @@ rawSources:
 ---
 ## 它覆盖哪一步通信量化，为什么 0 不等于关闭量化？
 
-`combine_quant_mode` 是 `--additional-config` 顶层的整数调优字段（`v0.30.0` 与 `main` 可用，默认 `0`）。当你在多卡 [EP（专家并行）](../concepts/expert-parallel.md) 下运行 [MoE](../concepts/moe.md) 模型（走非融合 MC2 路径），希望把专家算完后跨卡收回结果的 **MC2 combine** 全对全（all-to-all）通信压成 `int8`（`2`）或 `MXFP`（`3` / `4`）以削减互联带宽开销时，才会手动设置它；常规部署保持默认 `0` 跟随模型量化配置即可，切勿在未核对硬件支持范围（如 A2 仅支持 `0`/`2`、950DT 才支持 `3`/`4`）时盲目填 `4`。
+`combine_quant_mode` 只改 [MoE](../concepts/moe.md) 专家算完后跨卡回传结果那一步（**MC2 combine**）的通信精度，既不改专家权重本身的量化方式，也不改前一步把 token 发往专家的 dispatch 精度。
 
-设为**非零值**时，它会把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强制覆盖为该值，短路压过模型量化类型与量化方法自身的判断。下面是以 `Qwen/Qwen3-30B-A3B` 在非融合 MC2 路径下开启 `int8` combine 通信量化的**配置形式示例**（实际生效还需满足对应芯片驱动/HCCL 条件，本工作区无 NPU 实机执行验证）：
+它是 `--additional-config` 顶层的整数调优字段（`v0.30.0` 与 `main` 可用，默认 `0`）。在多卡 [EP（专家并行）](../concepts/expert-parallel.md) 的非融合 MC2 路径下，设为**非零值**会把 `torch_npu.npu_moe_distribute_combine_v2` 的 `comm_quant_mode` 实参强制覆盖为 `int8`（`2`）或 `MXFP`（`3` / `4`），用来压缩全对全（all-to-all）回传带宽；常规部署保持默认 `0` 即可，切勿在未核对后文硬件白名单前盲目填非零值。下面是以 `Qwen/Qwen3-30B-A3B` 在非融合 MC2 路径下开启 `int8` 回传量化的**配置形式示例**（实际运行仍须满足对应芯片驱动与 HCCL 条件，本工作区无 NPU 实机执行验证）：
 
 ```bash
 vllm serve Qwen/Qwen3-30B-A3B \
@@ -201,7 +202,7 @@ else:
 | 项 | 值 | 意味着什么 |
 | --- | --- | --- |
 | 配置路径与合法值 | `additional_config["combine_quant_mode"]`，`Literal[0, 2, 3, 4] = 0` | 仅认不带引号的整数 `0 / 2 / 3 / 4`；传 `1` 或字符串 `"4"` 会在启动期抛 `ValueError` |
-| 默认 `0` 的真实语义 | 不做人工覆盖，顺延至模型 `comm_quant_mode` 或 `W8A8MXFP` 自动 `4` | `W8A8MXFP` 模型即使填 `0` 仍会自动走模式 `4`，并非把所有 combine 强制退回不量化 |
+| 默认 `0` 的真实语义 | 让位给显式 `comm_quant_mode`；仅当其为 `None` 时，`W8A8MXFP` 默认选 `4`、其余选 `0` | 非 MXFP 模型仍可显式传非零模式，MXFP 模型也可显式传 `0` 关闭回传量化 |
 | 生效路径范围 | 仅非融合 `MC2CommImpl` 的 `token_combine` 读取 | 选中融合 MC2（`FusedMC2CommImpl` / MegaMoe）或 AllGather 时本键完全不参与执行；dispatch 方向也从不读它 |
 | 硬件与拓扑约束 | `2`（`int8`）支持 A2（需 `hierarchy` 等条件）/ A3（`tp_world_size != 2`）/ 950DT；`3`/`4`（MXFP）仅列 950DT | 配置校验通过不代表当前芯片支持；在 A2 上填 `4` 会过 pydantic 校验但受底层算子硬件限制 |
 | 精度与速度取舍 | 缩窄专家输出跨卡回传位宽，引入量化舍入误差 | 开启非零档位做吞吐优化时，必须同步跑业务集验证数值精度是否退化 |
@@ -209,39 +210,41 @@ else:
 
 ## 为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？
 
-MC2 是昇腾上 EP 专家并行的成对收发算子：`npu_moe_distribute_dispatch_v2` 按路由把 token 派发到持有专家的 rank，专家计算完成后再由 `npu_moe_distribute_combine_v2` 按权重收回结果。两次跨卡通信都自带 `comm_quant_mode` 参数，用于在发送前把张量压到低精度。
+MC2 是昇腾上 EP 专家并行的成对收发算子。`npu_moe_distribute_dispatch_v2` 先按路由结果把 token 发给持有对应专家的卡；专家算完后，再由 `npu_moe_distribute_combine_v2` 按路由权重收回并合并结果。两次跨卡通信各自带有独立的 `comm_quant_mode` 参数。
 
 ```wiki-diagram
 file: param-combine-quant-mode
 ```
 
-判断它是否真正起作用，必须同时看清以下两条边界：
+排查本键是否真正生效时，需要分开核对两条边界：
 
-- **只动 combine，不碰 dispatch**：在同一个 `TokenDispatcherWithMC2` 里，dispatch 方向的 `quant_mode` 由另一段独立的 `if / elif` 根据 `dispatch_with_quant`、硬件和 MXFP 条件决定（如选 `2` 或 `4`），从头到尾不读取 `combine_quant_mode`。两侧默认推断本来就不对称；PR #15441 引入本键的目的，是让非 MXFP 模型在不改权重量化的前提下也能单独为 combine 指定通信量化（例如填 `4`），构造「发出去一种精度、收回来另一种精度」的不对称配置以便调优或做精度对照（代码与 PR 未说明上游为何不让 combine 默认跟随 dispatch 一起量化）。
-- **选中融合 MC2（`FusedMC2CommImpl`）时，本键完全不参与执行**：只有走非融合 `MC2CommImpl`（经公共 `fused_experts` 调用 `token_combine`）时才会读取 `combine_quant_mode`。`FusedMC2CommImpl` 重写了 `fused_experts`，改走 `torch.ops._C_ascend.dispatch_ffn_combine` 或 CANN MegaMoe，不经过读取该字段的 `token_combine`（融合路径自身另有前提，如非 MegaMoe 分支要求两份 scale bias 非空）。虽然官方文档参数表将这一行写为「Fused MC2 configuration」，但该措辞与实际消费者范围不一致——判断是否生效必须确认实际选中的是非融合 `MC2CommImpl`（例如多个 DeepSeek V4 官方教程在配 `"combine_quant_mode": 4` 时同时配了 `"enable_fused_mc2": 0`）。
+- **只覆盖 combine，不改动 dispatch**：在 `TokenDispatcherWithMC2` 里，dispatch 方向的 `quant_mode` 由另一段独立的分支根据 `dispatch_with_quant`、芯片型号与 MXFP 条件决定（如选 `2` 或 `4`），完全不读取 `combine_quant_mode`。PR #15441 单独开放 combine 覆盖，是为了让非 MXFP 模型在不改动权重量化的前提下也能指定回传量化模式，构造「发出与收回采用不同位宽」的不对称配置做性能或精度对比。
+- **走融合 MC2 路径时自动绕过本键**：只有非融合 `MC2CommImpl`（经公共 `fused_experts` 调用 `token_combine`）才会读取 `combine_quant_mode`。一旦进入 `FusedMC2CommImpl`，代码直接调用 `torch.ops._C_ascend.dispatch_ffn_combine` 或 CANN MegaMoe，完全绕过 `token_combine`（如多篇 DeepSeek V4 官方食谱在配置 `"combine_quant_mode": 4` 时均显式搭配 `"enable_fused_mc2": 0`；官方参数表将本项笼统标为「Fused MC2 configuration」与实际代码消费范围不符）。
 
-## 白名单校验、硬件支持范围与 GLM 双机载荷算例
+## 白名单校验与硬件支持范围
 
-**取值白名单卡得比文档紧，且不等于硬件兼容性清单。** 字段类型为 `Literal[0, 2, 3, 4]`：
+**配置白名单比算子文档更严，且不代表硬件一定支持。** 字段类型固定为 `Literal[0, 2, 3, 4]`：
 
-- 即便底层算子文档列出其他整数（如 `1`），只要不在 `Literal[0, 2, 3, 4]` 白名单内，都会在启动期被 pydantic 直接以 `ValueError` 拒收；
-- 字符串 `"4"` 或 `"true"` 同样直接抛出 `ValueError`（与 `weight_nz_mode` 等宽松强转的整型键不同，JSON 里带引号即启动失败；引入 PR 说明中关于「字符串宽松转换」与「显式 `comm_quant_mode` 优先于本键」的两处描述均与合入代码和单测相反，应以代码为准）；
-- `AscendConfig` 文档字符串中的「全量键示例 dict」漏收录了该字段，不能拿示例 dict 当合法键全集。
+- 传入白名单外的整数（如 `1`）会在启动期直接被 pydantic 以 `ValueError` 拒收；
+- 传入带引号的字符串（如 `"4"` 或 `"true"`）同样直接报 `ValueError`，不会做宽松类型转换（引入 PR 描述中的「字符串自动转换」与「显式 `comm_quant_mode` 优先于本键」均与合入代码及单测相反，以实际代码为准）；
+- `AscendConfig` 类注释里的示例字典漏收了该字段，排查合法键时以字段定义为准。
 
-**模式含义与硬件约束**（依据 Ascend `op-plugin` 固定快照 `aed3889c` 的 `npu_moe_distribute_combine_v2` 文档；部署时须按实际安装的 `torch_npu` / `CANN` 配套文档复核）：
+**各模式的算子语义与硬件闸门**（依据 Ascend `op-plugin` 快照 `aed3889c` 的 `npu_moe_distribute_combine_v2` 文档；上线前须结合现场 `torch_npu` / `CANN` 版本及 [HCCL 链路运行期配置](../concepts/ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)复核）：
 
 | `combine_quant_mode` 值 | 算子定义含义 | `aed3889c` 快照标注的硬件与附加条件 |
 | --- | --- | --- |
-| `0`（默认） | 不人工覆盖（无覆盖且非 W8A8MXFP 时通信不量化） | A2 / A3 / 950DT 均支持 |
-| `2` | `int8` 通信量化 | A2 需 `comm_alg="hierarchy"`，或 `HCCL_INTRA_PCIE_ENABLE=1`、`HCCL_INTRA_ROCE_ENABLE=0` 且驱动 $\ge$ `25.0.RC1.1`（推荐 `hierarchy` 配该驱动及以上）；A3 要求算子实参 `tp_world_size != 2`（不可直接拿模型 `--tensor-parallel-size` 替代）；950DT 支持 |
+| `0`（默认） | 不做人工覆盖：优先采用模型显式提供的 `comm_quant_mode`；仅当其为 `None` 时，`W8A8MXFP` 选 `4`、其余选 `0`（通信不额外量化） | A2 / A3 / 950DT 均支持 |
+| `2` | `int8` 通信量化 | A2 需 `comm_alg="hierarchy"`，或设 `HCCL_INTRA_PCIE_ENABLE=1`、`HCCL_INTRA_ROCE_ENABLE=0` 且驱动 $\ge$ `25.0.RC1.1`；A3 要求算子实参 `tp_world_size != 2`（不可直接等同于 `--tensor-parallel-size`）；950DT 支持 |
 | `3` | MXFP `E5M2` 通信量化 | 仅 950DT 在该快照文档中列出 |
 | `4` | MXFP `E4M3FN` 通信量化 | 仅 950DT 在该快照文档中列出 |
 
-**比较速度时必须同步验证数值精度。** 通信量化缩窄了专家输出回传的表示位宽，会引入量化舍入误差；端到端是否变快取决于量化转换开销、通信算法与瓶颈位置，不能仅按元素位宽比例推定链路字节或总时延等比下降，也不能未经实测断言模型指标必然变差。
+缩窄专家输出回传位宽会引入量化舍入误差，而端到端能否提速还受量化转换开销、通信算法与链路瓶颈制约；调优时必须同时实测吞吐时延与业务集精度。
 
-**放到 GLM 双机部署（历史例外 B 算例）**：该参数作用在 MoE 层专家算完把结果送回源卡的步骤（路线见[expert parallel 的 combine 一节](../concepts/expert-parallel.md#4-combine拼回-token加共享输出)）。[GLM 固定部署](../sources/glm-5-3-flash-baseline.md)使用的 `db701c1f` 与 `v0.23.0` 维护快照都没有这个键；在走 MC2 路径且模型未显式提供通信量化模式时，GLM 的 W8A8 专家使 dispatch 选 `int8`、combine 选 `0`（切到 AllGather 则完全不经这对算子）。
+## 专家结果回传的模式与载荷怎样核对
 
-按隐藏维度 `4096` 计算单个 `(token, 专家)` 副本张量载荷：BF16 为 `8,192 B`，`int8` 数据加一个 FP32 缩放系数为 `4,100 B`（张量载荷算例，不含路由、归并、对齐与通信元数据，完整推导见[量化 · 为什么 EP dispatch 搬的是 int8](../concepts/quantization.md#为什么-ep-dispatch-搬的是-int8)）。即便迁移到 `v0.30.0` 或 `main`，在 A2 上也不能仅因配置接受 `4` 就认为硬件支持模式 `4`；该部署切换 combine 模式后的速度与精度尚无实测。
+核对一套具体 MoE 部署的回传模式时，先看它是否走在非融合 MC2 路径上（路径见 [expert parallel 的 combine 一节](../concepts/expert-parallel.md#4-combine拼回-token加共享输出)），再按上文四级优先级代入。以隐藏维度 `4096`、专家采用 W8A8 量化的双机部署为例（历史 [GLM 固定部署](../sources/glm-5-3-flash-baseline.md)镜像 `db701c1f` 尚无此覆盖键）：当模型未显式传入 `comm_quant_mode` 且走 MC2 路径时，dispatch 侧选 `int8`，而 combine 侧落到模式 `0`（切到 AllGather 路径则完全不经过这对 MC2 算子）。
+
+对比单个 `(token, 专家)` 副本的逻辑张量载荷：未压缩 `BF16` 为 $4096 \times 2\text{ B} = 8{,}192\text{ B}$；若改为沿用 [EP dispatch 量化算例](../concepts/quantization.md#为什么-ep-dispatch-搬的是-int8)中「`int8` 向量加 1 个每行 `FP32` 缩放系数」的表示假设，单个副本逻辑载荷为 $4096 \times 1\text{ B} + 4\text{ B} = 4{,}100\text{ B}$（仅计张量元素与该缩放假设，不含路由索引、对齐填充与通信元数据）。即便升级到 `v0.30.0` 或 `main`，在 Atlas A2 上也只能按上表条件评估模式 `2`，不能因配置层放行 `4` 就误以为硬件支持 MXFP 回传；切换模式后的真实时延与精度仍须在目标硬件上实测确认。
 
 ## 对照源码
 

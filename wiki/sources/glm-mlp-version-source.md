@@ -2,7 +2,7 @@
 id: glm-mlp-version-source
 title: GLM 稠密 MLP 固定版本源码摘录
 type: source
-summary: 归档早期 main（baa023ad）与 v0.30.0rc2（7d825229）中 Glm5NextMLP 的固定源码摘录，记录激活限制和序列并行设置，并与 GLM 双机基线（db701c1f）区分。
+summary: 归档早期开发主线快照（baa023ad）与 v0.30.0rc2（7d825229）中 Glm5NextMLP 的固定源码摘录，记录激活限制和序列并行设置，并与历史 GLM 双机基线（db701c1f）区分；现行提交待补核后再登记 verified。
 aliases:
   - Glm5NextMLP
   - GLM MLP
@@ -32,8 +32,7 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L90-L138'
   - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L324-L350'
   - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L448-L478'
-verified:
-  - main
+verified: []
 evidence: C
 relations:
   - to: mlp-residual-norm
@@ -63,7 +62,7 @@ rawSources:
 
 本页保存 `Glm5NextMLP` 的固定版本证据，供[前馈计算教学页](../concepts/mlp-residual-norm.md)后续修订使用。MLP 是对每个输入位置独立施加的前馈变换；这里核对的是稠密模块，不是通过路由选择专家的 MoE 路径。
 
-原摘录日期为 2026-10-07，不是提交日期。本文比较 main、rc2 的指定模型实现，并与旧 GLM 部署对应的代码区分；线性层底层存储、其他模型入口和实际运行日志不在这些摘录的证明范围内。`verified` 只登记本页范围内的源码核对，不认证完整模型部署。
+原摘录日期为 2026-10-07，不是提交日期。本文分别用 `baa023ad`（早期开发主线快照）与 `7d825229`（`v0.30.0rc2` 快照）核对 `vllm_ascend/models/glm5next/model.py` 的稠密模块实现，并用 `db701c1f` 对照历史 GLM 双机镜像中的 `glm5_next.py`；线性层底层存储、其他模型入口和实际运行日志不在这些摘录的证明范围内。由于尚未对现行 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）重新补核本档区间，页头 `verified` 暂留空。
 
 ## 四个版本的材料覆盖范围是什么？
 

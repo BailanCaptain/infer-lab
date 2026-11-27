@@ -3,7 +3,8 @@ id: enable-super-kernel-ce990e186bfa
 legacyAnchors:
   一句话: 它优化什么，和前两级开关是什么关系？
   为什么存在: 在哪两步生效，为什么写了 true 却没开？
-  开了的代价: 启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？
+  开了的代价: 启动耗时是谁的账，编译缓存与版本迁移怎么查？
+  启动耗时是谁的账编译缓存怎么变放到-glm-双机能开吗: 启动耗时是谁的账，编译缓存与版本迁移怎么查？
 title: enable_super_kernel
 type: param
 summary: >-
@@ -137,11 +138,11 @@ rawSources:
 ---
 ## 它优化什么，和前两级开关是什么关系？
 
-`enable_super_kernel` 是 `--additional-config` 下 `ascend_compilation_config` 子字典中的**第三级图编译优化开关**（[kernel](../concepts/ops-and-kernels.md) 指算子在 NPU 上执行的底层程序）。当你在 Atlas A2 / A3 等支持 `NPUGRAPH_EX` 的设备上跑 `FULL` 或 `FULL_DECODE_ONLY` 整图模式、并且愿意承受静态算子预编译带来的启动等待以进一步压低 Decode 逐算子下发开销时，才会用到这一级；若追求快速拉起服务，或使用默认 `FULL_AND_PIECEWISE` 分段图模式，则不要开启 `enable_static_kernel` 与本开关。
+`enable_super_kernel` 的作用是把静态编译后能连续执行的相邻子算子合成一个更大的 Super Kernel（[kernel](../concepts/ops-and-kernels.md) 指算子在 NPU 上执行的底层程序）。开启它需要先承受静态算子预编译带来的分钟级启动等待，换取在线 Decode 阶段更低的逐算子下发开销；若追求快速拉起服务，或使用默认的 `FULL_AND_PIECEWISE` 分段图模式，则不要开启 `enable_static_kernel` 与本开关。
 
-在前两级先把计算图交给昇腾图编译器（`enable_npugraph_ex`）、再按固定批次形状预编译静态算子二进制（`enable_static_kernel`）之后，开启 `enable_super_kernel` 会在静态算子二进制之上识别可融合子图，把符合条件的相邻子 kernel 合并为更大的 Super Kernel 并按依赖自动插入内部同步。不兼容的算子会把融合范围截成多段，它不保证整张网只剩单个 kernel，实际融合覆盖率与性能收益仍须在设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
+它是 `--additional-config` 下 `ascend_compilation_config` 子字典中的第三级图编译优化开关，仅在支持 `NPUGRAPH_EX` 的设备（如 Atlas A2 / A3）配合 `FULL` 或 `FULL_DECODE_ONLY` 整图模式时生效。前两级先把计算图交给昇腾图编译器（`enable_npugraph_ex`），再按固定批次形状预编译静态算子二进制（`enable_static_kernel`）；本级在此基础上识别可融合子图，合并相邻子 kernel 并按数据依赖自动插入内部同步。遇到不兼容的算子时，融合范围会被截成多段，不保证整张网只剩单个 kernel，实际融合覆盖率与性能收益仍须在目标设备上实测（与 static kernel 的分工见 [npugraph_ex](../concepts/npugraph-ex.md)）。
 
-最容易踩坑的是它的**省略跟随规则**：配置里只写 `"enable_static_kernel": true` 而省略 `enable_super_kernel` 时，它会自动跟随变为 `true`；同时开启它硬性要求 `enable_static_kernel` 为真（后者又要求 `enable_npugraph_ex` 为真）。三级开关的层次关系如下：
+最容易踩坑的是它的**省略跟随与逐级依赖规则**。配置里只写 `"enable_static_kernel": true` 而省略 `enable_super_kernel` 时，本项会自动跟随变为 `true`。反过来，显式开启本项硬性要求 `enable_static_kernel` 为真，而 `enable_static_kernel` 又硬性要求 `enable_npugraph_ex` 为真：
 
 | 级别与配置键 | 做什么 | 默认行为与依赖 |
 | --- | --- | --- |
@@ -172,17 +173,17 @@ vllm serve Qwen/Qwen3-8B \
 
 ## 在哪两步生效，为什么写了 true 却没开？
 
-这三级整体开关与编译期匹配局部子图并替换融合算子的 `fuse_*` 规则分属两层。固定 Ascend manager 的 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 只替换对应的几步局部子图（不代表整套编译器只有三种优化；旧 `fuse_allreduce_rms` 入口自 `v0.25.1rc1` 起已移除，详见 [fuse_allreduce_rms](fuse-allreduce-rms.md) 与 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)）。
+这三级整体编译开关与局部子图替换规则（`fuse_*`）分属两层。Ascend 图融合管理器里的 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_muls_add` 只在编译期匹配并替换对应的局部子图，不代表整套编译器只有这三种优化；历史上的 `fuse_allreduce_rms` 入口自 `v0.25.1rc1` 起已移除，详见 [fuse_allreduce_rms](fuse-allreduce-rms.md) 与 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)。
 
 ```wiki-diagram
 file: param-enable-super-kernel
 ```
 
-有效开启 `enable_super_kernel` 后，它会先后参与**图编译期**和 **ACL Graph 捕获期**两个环节：
+有效开启 `enable_super_kernel` 后，它会先后介入**图编译期**和 **ACL Graph 捕获期**两个步骤：
 
-1. **图编译期追加优化选项**：`compiler_interface.py` 在 `enable_static_kernel` 为真的分支内部再检查 `enable_super_kernel`。为真时向 `npugraph_ex` 的 `options` 字典写入 `super_kernel_optimize=True` 与 `super_kernel_optimize_options={"dcci_after_kernel_end": [".*"]}`。因为这段逻辑嵌在静态内核分支里面，关闭 `enable_static_kernel` 就根本走不到这里——这正是校验要求 `Super kernel generation requires static kernel to be enabled.` 的原因。
-2. **ACL Graph 捕获期框定 `scope` 并触发优化**：捕获图时，代码用上下文管理器 `super_kernel_scope("full_model", self.enable_super_kernel)` 包住 `self.runnable(*args, **kwargs)`。关闭时直接执行内部代码；开启时调用 `torch.npu.super_kernel_scope_begin("full_model")` 与 `scope_end("full_model")`，整张图录制完成后再调用 `aclgraph.super_kernel_optimize(optimize_options={"dcci_after_kernel_end": [".*"]})`。
-3. **范围名与日志的核验边界**：范围名虽叫 `full_model`，实际只覆盖该 wrapper 执行的 `runnable`，不代表覆盖全部服务步骤。启动日志 `Super kernel optimization is enabled for ACL graph capture.` 只能证明上述优化步骤被调用；要确认实际合并了多少子 kernel 与端到端时延收益，仍须采集性能剖析数据（如对比 `kernel_details.csv` 中的算子数量、耗时及 `Block Dim`）。
+1. **图编译期追加优化选项**：`compiler_interface.py` 先进入 `enable_static_kernel` 为真的分支，再检查 `enable_super_kernel`。为真时，代码向 `npugraph_ex` 的 `options` 字典写入 `super_kernel_optimize=True` 与 `super_kernel_optimize_options={"dcci_after_kernel_end": [".*"]}`。一旦关掉 `enable_static_kernel`，执行流根本进不了外层分支，因此配置校验直接要求 `Super kernel generation requires static kernel to be enabled.`。
+2. **ACL Graph 捕获期框定 `scope` 并触发合并**：录制语言模型整图时，封装器用上下文管理器 `super_kernel_scope("full_model", self.enable_super_kernel)` 包住 `self.runnable(*args, **kwargs)`。开启状态下，捕获前后依次调用 `torch.npu.super_kernel_scope_begin("full_model")` 与 `scope_end("full_model")`；整张图录完后，再调用 `aclgraph.super_kernel_optimize(optimize_options={"dcci_after_kernel_end": [".*"]})` 提交合并。
+3. **捕获范围与核验边界**：范围名虽叫 `full_model`，实际只覆盖该语言模型封装器的 `runnable`，多模态模型的视觉编码图由独立的 [ViT 预算打包与 `EncoderAclGraphManager`](../concepts/multimodal-encoder-cache.md#vit-预算打包与昇腾-encoderaclgraphmanager-图捕获回放) 按视觉词元预算分桶捕获。启动日志 `Super kernel optimization is enabled for ACL graph capture.` 仅证明上述接口已被调用；实际合并了多少子 kernel 与端到端时延变化，仍须对比性能剖析产出的 `kernel_details.csv`（算子数量、耗时及 `Block Dim`）。
 
 排查「明明配了却没生效或直接报错」时，按顺序核对以下四道门槛：
 
@@ -193,11 +194,11 @@ file: param-enable-super-kernel
 | **3. 省略、`null` 与 `"false"`** | 参数默认 `bool \| None = None` 作哨兵，进入 `__init__` 首步若为 `None` 就取 `enable_static_kernel`（省略或显式传 `None`/JSON `null` 均跟随）；字符串 `"false"` 不做类型转换、非空判真（未开 static 即触发依赖断言报错） | 迁至 pydantic 非可空 `bool`（静态默认 `False`），由 `mode="before"` 校验器仅在**省略本键**且传入 `enable_static_kernel` 时复制其值（官方文档 Default 写 `Inherits enable_static_kernel` 即指此行为）；显式传 `None`（JSON `null`）不算省略、被布尔校验拒绝；字符串 `"false"` 宽松转为 `False` |
 | **4. 版本、早期标签与未知键** | 维护快照有此键，但早期发布标签 `v0.26.0rc1` 与 `v0.27.1rc1` 均无此键（主线自 `v0.28.0.rc1` 可见，不可按版本号或线上文档反推）；未知键落入 `**kwargs` 静默忽略 | `@config` 默认开启 `extra="forbid"`，拼错键名或误传已移除的 `fuse_allreduce_rms` 直接启动报错；`v0.23` 与固定 GLM 双机镜像无此键，连同拼错均被 `AscendCompilationConfig.__init__` 的 `**kwargs` 静默忽略 |
 
-## 启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？
+## 启动耗时是谁的账，编译缓存与版本迁移怎么查？
 
-- **启动编译耗时要分清 `static_kernel` 与 `super_kernel` 的归属**：有效开启 `enable_super_kernel` 必须同时开启 `enable_static_kernel`。官方文档提示启动图捕获阶段的静态编译耗时随算子数量与模型复杂度增长，常见为**几分钟到几十分钟**，这段时间描述的是 `enable_static_kernel` 按批次形状编译静态算子二进制的开销，不能算成 `enable_super_kernel` 单独增加的耗时，也不是任何模型的固定保证值。要测量 Super Kernel 自己的真实增量，必须固定 `enable_static_kernel=true`、只切换 `enable_super_kernel`，对比启动耗时、实际融合数量与吞吐时延；本仓库尚无这组设备实测对照。
-- **切换开关会改变编译缓存键**：`AscendCompiler.compute_hash` 把 `torch_npu_version` 与 `enable_npugraph_ex`、`enable_static_kernel`、`enable_super_kernel` 一起算进缓存键（取 SHA-256 前 10 位）。开启与关闭对应不同的缓存键，不能直接共用同一份缓存条目；但如果目标缓存键下已有可用缓存，是否命中由后续缓存读取逻辑决定——切换开关不等于清空已有缓存，也不代表每次切换都必须重跑完整编译时间。
-- **放到固定 GLM 双机部署：当前镜像没有这个键**：固定双机镜像 `db701c1f` 的 `AscendCompilationConfig.__init__` 没有 `enable_super_kernel` 参数，写进 JSON 只会被未使用的 `**kwargs` 静默收下，不会启用该功能。即使升级到包含该键的新版本，也还须逐项核对 GLM 专用模型实现、量化、runner、配套 `CANN`/`torch_npu`、图模式与算子支持，不能认为“只要换版本再打开 `enable_static_kernel` 就一定能跑”；固定教程里的 `FULL_DECODE_ONLY` 只说明其配置写法避开了上面的 piecewise 关闭分支，不构成升级后的兼容性证明，也不能把主线局部算子融合的数字当成这项优化的收益。
+- **拆分 `static_kernel` 与 `super_kernel` 的耗时归属**：启用 `enable_super_kernel` 必须先开 `enable_static_kernel`。官方文档提到的几分钟到几十分钟启动图捕获耗时，主要是 `enable_static_kernel` 按批次形状编译静态算子二进制的成本，并非 `enable_super_kernel` 单独增加的固定开销。测量 Super Kernel 自身增量时，必须固定 `enable_static_kernel=true`、仅切换 `enable_super_kernel`，对比启动耗时、融合算子数与在线时延；本仓库尚无这组实机对照数据。
+- **编译缓存键隔离，但不清空旧缓存**：`AscendCompiler.compute_hash` 会把 `torch_npu_version` 与三级编译开关一并算入缓存键（取 SHA-256 前 10 位）。切换 `enable_super_kernel` 会落到新的缓存键，无法直接复用另一状态下的缓存条目。不过切换开关不会删除磁盘上已有的旧缓存，若目标缓存键此前已生成过可用产物，后续读取仍可正常命中。
+- **跨版本迁移边界**：未定义此键的旧配置类会通过 `**kwargs` 静默吞掉未知子键而不会启用优化；升级到带此键的版本后，仍须按目标设备 `NPUGRAPH_EX` 能力、整图模式（`FULL` / `FULL_DECODE_ONLY`）与模型算子兼容性逐项核验。
 
 ## 对照源码
 

@@ -62,12 +62,13 @@ sources:
   - 'https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/API/hcclug/hcclcpp_07_0047.html'
   - 'https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000073.html'
   - 'https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta2/commlib/hcclug/hcclenvref_07_0003.html'
+  - 'https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0009.html'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
   - releases/v0.30.0
   - main
-evidence: C
+evidence: S
 relations:
   - to: op-to-ai-core
     kind: builds-on
@@ -88,7 +89,7 @@ contradicts: []
 updated: '2026-11-27'
 ---
 
-**昇腾算子下发流水（Operator Dispatch Pipeline）是指由 `torch_npu` 与 CANN 的底层运行时接口 ACL（AscendCL）在主机 CPU 与设备 NPU 之间构建的多级异步任务队列，用来把 Python 调度、Host 分块计算（tiling）和 ACL 接口下发与芯片 AI Core 的实际运算在时间轴上重叠起来。** 很多工程师第一次看大模型 Decode（逐词解码）性能剖析图时会大吃一惊：昂贵的昇腾 NPU 利用率不高，单步时延却降不下来——真正的瓶颈往往不在 AI Core 算得慢，而在于 **Host CPU 发得慢（Host-bound 下发空泡）**。
+**主机 CPU 先完成 Python 分发、形状校验与分块计算（`tiling`）来组织算子任务。`torch_npu` 与底层运行时（AscendCL）通过多级异步队列把任务提交给设备。NPU 再按硬件流（Stream）及跨流事件依赖执行计算与通信。** 这套把主机准备与 AI Core 运算在时间轴上重叠起来的队列机制，就是**昇腾算子下发流水（Operator Dispatch Pipeline）**。很多工程师第一次看大模型 Decode（逐词解码）性能剖析图时会大吃一惊：昇腾 NPU 利用率不高，单步时延却降不下来——真正的瓶颈往往不在 AI Core 算得慢，而在于 **Host CPU 发得慢（Host-bound 下发空泡）**。
 
 ```wiki-diagram
 file: ascend-task-queue-pipeline
@@ -96,7 +97,7 @@ file: ascend-task-queue-pipeline
 
 ## 为什么推理时延常卡在 Host CPU 下发空泡，而非 AI Core 计算？
 
-沿[从算子到 AI Core](op-to-ai-core.md)走完一次算子调用就会看到：AI Core 并不会自己读 Python 代码。每执行一个算子，主机侧 CPU 都得依次走完 **Python 框架分发 → 张量形状校验与 Host `tiling`（计算分块参数） → 组装 ACLNN / ACL 任务描述符 → 写入硬件任务流（Stream）** 四道工序。
+沿[从算子到 AI Core](op-to-ai-core.md)走完一次算子调用就会看到：AI Core 并不会自己读 Python 代码。每执行一个算子，主机侧 CPU 都得依次走完 **Python 框架分发 → 张量形状校验与 Host `tiling`（计算分块参数） → 组装 ACLNN / ACL 任务描述符 → 写入硬件任务流（Stream）** 四道工序（多模态小图并发跑视觉编码塔 ViT 时同样会遭遇这类主机逐算子发射开销，见[多模态特征缓存与视觉图](multimodal-encoder-cache.md)）。
 
 在 Prefill（长提示词预填充）阶段，几千个 token 拼成大矩阵，AI Core 算一个算子要花几百微秒甚至几毫秒，足够掩盖主机侧十几微秒的下发准备；可一旦进入小批量 **Decode** 阶段，每步每条请求只算 `1` 个新 token（哪怕 `36` 层 `Qwen3-8B` 或 `48` 层 `Qwen3-30B-A3B` 要连续跑几百个线性层、归一化、RoPE 与通信算子），AI Core 算完单个小算子往往只要 **`5`–`15 µs`**。只要主机侧单个算子的 Python + ACL 组装耗时达到 **`20`–`30 µs`**，即便相邻算子之间存在最理想的下发与执行重叠，整步总耗时仍受限于主机总下发时长下界，发生典型的 **Host-bound 断流**：
 
@@ -111,12 +112,12 @@ $$T_{\text{step}} \ge \max\!\left(\sum_{i=1}^{M} T_{\text{host},i},\; \sum_{i=1}
 | 取值 | 运行机制 | 适用场景 | 核心代价与硬限制 |
 |---|---|---|---|
 | **`0`** | **关闭主机异步任务队列**：Python 主线程直接完成 `tiling` 与 ACL 下发（设备核执行仍异步） | 配合 `ASCEND_LAUNCH_BLOCKING=1` 同步等待，精确定位是哪一行 Python 算子触发了设备异常 | Host 下发失去后台线程重叠，吞吐显著回落，**严禁用于生产压测** |
-| **`1`** | **一级异步队列（官方 `Dockerfile` 默认内置）**：主线程将算子推入队列即返回准备下一个算子，由后台二级线程异步调用主要 ACLNN 下发接口 | 绝大多数线上部署默认基线，**完全兼容 [ACL Graph](acl-graph.md) 图捕获** | 若模型极碎、Python/ACL 组装仍跑不过二级线程消费速度，仍可能残留少量下发气泡 |
-| **`2`** | **二级异步下发流水线**：在一级队列基础上增加**两级线程负载均衡与线程唤醒优化**，进一步压榨多核主机吞吐、掩盖 ACL 下发耗时 | 纯 Eager 单算子模式或重度 Host-bound 场景（受限于二进制算子支持范围） | **① 抬高显存峰值（显存吃紧时反致退化或 OOM）**；**② 在 `main` 分支与 NPU 图捕获直接冲突报错** |
+| **`1`** | **一级异步队列（官方 `Dockerfile` 默认内置）**：主线程将算子推入队列即返回准备下一个算子，由后台二级线程异步调用主要 ACLNN 下发接口 | 绝大多数线上部署默认基线，**兼容 [ACL Graph](acl-graph.md) 图捕获** | 若模型极碎、Python/ACL 组装仍跑不过二级线程消费速度，仍可能残留少量下发气泡 |
+| **`2`** | **二级异步下发流水线**：在一级队列基础上增加**两级线程负载均衡与线程唤醒优化**，在受支持的二进制算子范围内进一步压榨多核主机下发吞吐 | 纯 Eager 单算子模式且显存充裕的重度 Host-bound 场景（净收益须按实际负载实测） | **① 在 `main` 分支与 NPU 图捕获硬冲突报错**；**② 拉长在途激活寿命抬高显存峰值（显存吃紧时反致回收退化或 OOM）** |
 
-为什么开 `TASK_QUEUE_ENABLE=2` 会抬高显存峰值？在异步下发模型里，Python 主线程执行完 `y = op(x)` 紧接着 `del x` 时，设备上的 `op` 其实还排在队列里没算完，缓存分配器必须保住输入张量 `x` 和输出张量 `y` 的显存块直到设备流消费完毕。二级流水让 Host 主线程跑得比设备快得多，队列中同时积压了几十乃至上百个“已入队但设备尚未执行”的在途算子，**所有在途中间激活张量的生命周期被同时拉长**，峰值显存自然水涨船高；一旦触及显存上限触发分配器同步回收等待，吞吐反而会断崖下跌。
-
-更要注意版本与图模式的硬互斥：在 `main` 分支中，开启 NPU 图捕获（ACL Graph）时若设置 `TASK_QUEUE_ENABLE=2`，运行时会当场抛出 `RuntimeError: Do not support TASK_QUEUE_ENABLE = 2 during NPU graph capture, please export TASK_QUEUE_ENABLE=1/0.`——只要启用图模式，就必须保持默认的 `TASK_QUEUE_ENABLE=1`（或 `0`）。
+评估 `TASK_QUEUE_ENABLE=2` 时，要把**图捕获硬冲突**与**单算子运行期实测收益**两件事分开：
+- **图捕获硬互斥边界**：在 `main` 分支中，开启 NPU 图捕获（ACL Graph）时若设置 `TASK_QUEUE_ENABLE=2`，运行时会当场抛出 `RuntimeError: Do not support TASK_QUEUE_ENABLE = 2 during NPU graph capture, please export TASK_QUEUE_ENABLE=1/0.`——只要启用图模式，就必须保持默认的 `TASK_QUEUE_ENABLE=1`（或 `0`）。
+- **单算子运行期收益与显存峰值权衡**：即便在纯 Eager 模式下，`TASK_QUEUE_ENABLE=2` 也不保证无损提速。异步下发中 Python 主线程执行完 `y = op(x)` 紧接着 `del x` 时，设备上的 `op` 仍排在队列里未算完，缓存分配器必须保住 `x` 与 `y` 的显存块直到设备流消费完毕；二级流水让主线程超前积压几十至上百个在途算子，**所有在途中间激活张量的生命周期被同时拉长**，一旦触及显存上限触发分配器同步回收等待，吞吐反而下跌，因此必须结合目标负载实测验证。
 
 此外，在模型启动食谱中常与任务队列结伴出现的还有两项底层开关（两项均由底层 `torch_npu` / CANN C++ 运行时直接消费，`vllm-ascend` Python 仓内无独立解析器）：
 
@@ -127,7 +128,7 @@ $$T_{\text{step}} \ge \max\!\left(\sum_{i=1}^{M} T_{\text{host},i},\; \sum_{i=1}
 
 除了算子下发，多卡推理中另一条隐蔽的运行期瓶颈在 **计算流（Compute Stream）与通信流（Communication Stream）的显存交接**。在集合通信或通算重叠场景下，通信流上的算子往往带有一串跨流事件依赖；传统缓存分配器为了安全，必须等通信流上的依赖链全部执行结束，才敢把这块显存归还给计算流复用，导致双流并发时显存占用虚高或频繁向驱动申请新块。
 
-`torch_npu` 的缓存分配器（`NPUCachingAllocator`）通过 **`PYTORCH_NPU_ALLOC_CONF`** 提供两条互斥的调优策略：
+`torch_npu` 的设备显存缓存分配器（`NPUCachingAllocator`，注意与宿主机 DRAM 用户态分配器 `TCMalloc` / `jemalloc` 及锁页内存分属两套体系，后者见[主机内存与大页](host-memory-and-hugepages.md)）通过 **`PYTORCH_NPU_ALLOC_CONF`** 提供两条互斥的调优策略：
 
 1. **`expandable_segments:True`（非睡眠模式下的框架自动默认项）**：利用底层虚拟内存映射将非连续物理块拼接成可扩展虚拟地址段，并支持**多流显存提前复用**——提前释放通信流上已完成实际读取的显存段供计算流重用，大幅缓解变长 Prefill 与跨流通信带来的显存碎片。在 `vllm-ascend` 的 `_set_pytorch_npu_alloc_env()` 中，只要未开启[睡眠模式（Sleep Mode）](sleep-mode.md)，框架启动时就会**自动注入或追加 `expandable_segments:True`**。
 2. **`max_split_size_mb:<N>`（如官方示例 `max_split_size_mb:250`，与上项互斥）**：传统静态块池下的防碎手段，规定大于 `250 MiB` 的大空闲显存块禁止被切碎拿去满足小张量申请。
@@ -157,14 +158,14 @@ $$T_{\text{step}} \ge \max\!\left(\sum_{i=1}^{M} T_{\text{host},i},\; \sum_{i=1}
 
 当多卡 TP / EP 通信进入运行期，CANN 的集合通信库 [HCCL](cann-hccl.md) 默认怎样调度网卡、用哪条链路、等多久报错，由以下三组核心环境变量精细控制：
 
-1. **通信算子展开与调度位置（`HCCL_OP_EXPANSION_MODE`）**：决定谁在设备侧驱动集合通信任务。不设时多走默认 **AI CPU** 调度；设为 **`"AIV"`** 时，改为由芯片上的 **AI Vector Core（向量核）直接调度 RoCE 通信**，省去 AI CPU 中转延迟且天然契合 [ACL Graph](acl-graph.md) 图捕获。**但严禁跨机型硬套**：以官方 `Kimi-K3` 食谱为例，Atlas A3 分离式部署在 Prefill 侧留空走默认 AICPU、在 Decode 侧显式设 `HCCL_OP_EXPANSION_MODE=AIV`（两侧 `HCCL_BUFFSIZE=1024`）；而 `950DT` 混部 P/D 保持留空，分离式 P/D 两侧则改设 **`CCU_SCHED`**（在 `device_op.py` 的 `npu_mm_reduce_scatter_base` 中会将 `comm_mode` 切为 `"ccu"`）配 `HCCL_BUFFSIZE=800`。
+1. **通信算子展开与编排位置（`HCCL_OP_EXPANSION_MODE`）**：控制集合通信任务在何处展开并编排下发，**默认展开位置随芯片系列与 CANN 版本而异**——例如 CANN 9.0 官方文档规定 Atlas A2 系列默认为 **`HOST`** 侧展开（部分其他卡型或版本走 `AI_CPU`），不能一概假定未设置时都走 AI CPU。设为 **`"AIV"`** 时改由芯片上的 **AI Vector Core（向量核）** 展开驱动通信，减少中转延迟，但其对**多机跨节点拓扑、图模式捕获以及具体集合通信算子**均有明确支持范围与版本前提，**严禁跨机型或跨阶段盲套**：例如官方 `Kimi-K3` 食谱在 Atlas A3 分离式 Prefill 侧留空使用默认展开、在 Decode 侧显式设 `HCCL_OP_EXPANSION_MODE=AIV`（两侧 `HCCL_BUFFSIZE=1024`）；而 `950DT` 混部 P/D 保持留空，分离式 P/D 两侧则改设 **`CCU_SCHED`**（在 `device_op.py` 的 `npu_mm_reduce_scatter_base` 中将 `comm_mode` 切为 `"ccu"`）配 `HCCL_BUFFSIZE=800`。
 2. **机内/跨机链路选路、网卡优先级与通信缓冲**：
    - **`HCCL_BUFFSIZE`**：控制两颗 NPU 间共享通信数据缓冲区的 MB 大小（MC2 通算融合算子在 C++ `tiling` 中亦直接读取它，MoE 常设 `256`、`800` 或 `1024`，见 [HCCL 缓冲](hccl-buffer.md)）；
    - **`HCCL_INTRA_ROCE_ENABLE`**：在特定双 `8P` Mesh 互联拓扑下，将默认系统 DMA（SDMA）链路切换为 RDMA（RoCE）链路；
    - **`HCCL_RDMA_TC` 与 `HCCL_RDMA_SL`**：分别配置 RDMA 网卡的流量类别（Traffic Class，如 CANN 通信域接口文档示例 `132`）与服务等级（Service Level，如示例 `4`），必须与机房交换机的无损网络 PFC / ECN 队列配置严格对齐，否则跨机大包极易丢包重传。
-3. **建链与执行双超时防误杀（`HCCL_CONNECT_TIMEOUT` / `HCCL_EXEC_TIMEOUT`，单位：秒）**：
+3. **建链与执行双超时防误杀（`HCCL_CONNECT_TIMEOUT` / `HCCL_EXEC_TIMEOUT`，单位：秒）**：排查超时报错时，须把**主机进程间 RPC 超时**（如 `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS`）、**HCCL 建链握手超时**与**设备流 HCCL 执行超时**三个独立计时作用域分开（三层超时的配置与报错对照见[请求调用链「怎么开」](request-call-chain.md#怎么开)与[「会报什么错」](request-call-chain.md#会报什么错)）：
    - `HCCL_CONNECT_TIMEOUT` 控制分布式启动阶段各节点 Socket 握手建链的最长等待秒数（CANN 文档常见默认 `120` 秒；超大模型多机冷启动权重加载慢、各节点进通信组存在时间差时，`DeepSeek-V4-Flash` 等食谱会放宽至 `1200` 秒）；
-   - `HCCL_EXEC_TIMEOUT` 控制运行期设备流等待对端通信算子同步的最长秒数（具体默认值随 CANN 版本、卡型和展开模式变化，例如 A3 在特定 CANN 版本下 AICPU 默认 `1836` 秒、AIV 默认 `1091` 秒；`DeepSeek-V4-Flash` 快速失败配方曾显式收紧为 `204` 秒以便故障快速暴露）。
+   - `HCCL_EXEC_TIMEOUT` 控制运行期设备流等待对端通信算子同步的最长秒数（默认值随 CANN 版本、卡型和展开模式变化，例如 A3 在特定 CANN 版本下 AICPU 默认 `1836` 秒、AIV 默认 `1091` 秒；`DeepSeek-V4-Flash` 快速失败配方曾显式收紧为 `204` 秒以便故障快速暴露）。
 
 ## 常见误解
 
@@ -179,7 +180,7 @@ $$T_{\text{step}} \ge \max\!\left(\sum_{i=1}^{M} T_{\text{host},i},\; \sum_{i=1}
 
 - **下发队列、线程亲和与算子初始化**：官方各硬件族 `Dockerfile` 均默认注入 `TASK_QUEUE_ENABLE=1` 与 `OMP_NUM_THREADS=1`[C1]。纯单算子重度 Host-bound 场景可在留足显存余量前提下测 `export TASK_QUEUE_ENABLE=2`[S15]，但启用 ACL Graph 图捕获时须保持 `1`（或 `0`）[S16][!]。底层亲和与编译加速按模型食谱配 `export CPU_AFFINITY_CONF=1` 与 `export ACL_OP_INIT_MODE=1`[S17][S18]（这两项与 `TASK_QUEUE_ENABLE` 均不在 `vllm_ascend/envs.py` 惰性环境变量表中注册，由底层 `torch_npu` / CANN 运行时直接读取[C11]）。
 - **跨流显存分配器（`PYTORCH_NPU_ALLOC_CONF`）**：非睡眠模式下，`_set_pytorch_npu_alloc_env()` 自动注入或追加 `expandable_segments:True`[C5]（底层缓存分配器实现见 `NPUCachingAllocator.cpp`[C13]）；若用户显式传入了与之互斥的 `max_split_size_mb`（如示例 `250`）或 `garbage_collection_threshold`，代码保留用户原值不追加[S15]；单独开启 `--enable-sleep-mode` 仅跳过自动注入（切勿手工传入 `expandable_segments:True`），启用强化学习配置时才调用 `_disable_expandable_segments()` 自动剥离已设置项。
-- **容器设备栈与 HCCL 运行期参数**：容器标准挂载 `/dev/davinciN`（A3 双裸片展开至 `davinci0..15`）、`/dev/davinci_manager`、`devmm_svm`、`hisi_hdc` 及驱动 `lib64`/`dcmi`/`npu-smi`[S14][S23]。HCCL 侧按拓扑与阶段选用 `HCCL_OP_EXPANSION_MODE="AIV"`（如 A3 Decode）或 `"CCU_SCHED"`（如 `950DT` 分离 P/D，`device_op.py` 将 `comm_mode` 置为 `"ccu"`）[C9][S19][S20]，配合 `HCCL_BUFFSIZE`（MC2 `tiling` 亦读取）[C10]、`HCCL_INTRA_ROCE_ENABLE`、`HCCL_RDMA_TC/SL`（通信域配置见 CANN 文档[S24]）及 `HCCL_CONNECT_TIMEOUT` / `HCCL_EXEC_TIMEOUT`[S21][S22][S25][S26]。
+- **容器设备栈与 HCCL 运行期参数**：容器标准挂载 `/dev/davinciN`（A3 双裸片展开至 `davinci0..15`）、`/dev/davinci_manager`、`devmm_svm`、`hisi_hdc` 及驱动 `lib64`/`dcmi`/`npu-smi`[S14][S23]。HCCL 展开模式默认随芯片与 CANN 版本变化（如 CANN 9.0 下 A2 默认 `HOST`，`AIV` 受多机、图模式与算子范围约束[S27]），生产食谱按拓扑与阶段选用 `HCCL_OP_EXPANSION_MODE="AIV"`（如 A3 Decode）或 `"CCU_SCHED"`（如 `950DT` 分离 P/D，`device_op.py` 将 `comm_mode` 置为 `"ccu"`）[C9][S19]（来源 20），配合 `HCCL_BUFFSIZE`（MC2 `tiling` 亦读取）[C10]、`HCCL_INTRA_ROCE_ENABLE`、`HCCL_RDMA_TC/SL`（通信域配置见 CANN 文档[S24]）及 `HCCL_CONNECT_TIMEOUT` / `HCCL_EXEC_TIMEOUT`（来源 21–22）[S25][S26]。
 
 ### 会报什么错
 
@@ -201,4 +202,4 @@ $$T_{\text{step}} \ge \max\!\left(\sum_{i=1}^{M} T_{\text{host},i},\; \sum_{i=1}
 ### 源码位置
 
 - **镜像默认值、分配器注入与算子/环境变量源码（来源 1–13）**：四版本 `Dockerfile` 默认 `TASK_QUEUE_ENABLE=1` 见来源 1–4；四版本 `_set_pytorch_npu_alloc_env` 与 `_disable_expandable_segments` 见来源 5–8；`HCCL_OP_EXPANSION_MODE` 的 `CCU_SCHED` 分支见来源 9，MC2 `HCCL_BUFFSIZE` 读取见来源 10；`vllm_ascend/envs.py` 惰性环境变量注册表见来源 11–12；`torch_npu` 缓存分配器实现见来源 13。
-- **调优指南、模型食谱与 CANN 官方文档（来源 14–26）**：容器挂载、任务队列、分配器与 HCCL 调优总览见来源 14–16；`CPU_AFFINITY_CONF=1`、`ACL_OP_INIT_MODE=1` 与 A3 `davinci0..15` 挂载见来源 17–18；`Kimi-K3` 与 `DeepSeek-V4-Flash` 的 HCCL 模式及超时配方（`120/204` 与 `1200`）见来源 19–22；`npu-smi` 视图说明见来源 23；CANN 官方通信域 TC/SL 与双超时定义见来源 24–26。文中 $M=300$ 步时延下界公式为教学示意推导[A][D]；闭源 `libhccl.so` 在特定固件下的未公开默认值仍需结合现场日志核验[I]。
+- **调优指南、模型食谱与 CANN 官方文档（来源 14–27）**：容器挂载、任务队列、分配器与 HCCL 调优总览见来源 14–16；`CPU_AFFINITY_CONF=1`、`ACL_OP_INIT_MODE=1` 与 A3 `davinci0..15` 挂载见来源 17–18；`Kimi-K3` 与 `DeepSeek-V4-Flash` 的 HCCL 模式及超时配方（`120/204` 与 `1200`）见来源 19–22；`npu-smi` 视图说明见来源 23；CANN 官方通信域 TC/SL、双超时与 `HCCL_OP_EXPANSION_MODE` 分卡型默认及支持范围见来源 24–27。文中 $M=300$ 步时延下界公式为教学示意推导[A][D]；闭源 `libhccl.so` 在特定固件下的未公开默认值仍需结合现场日志核验[I]。

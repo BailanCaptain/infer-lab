@@ -60,9 +60,9 @@ contradicts: []
 updated: '2026-11-24'
 ---
 
-按 [输出异常排查](inference-correctness-troubleshooting.md) 对齐后，两套服务收到的 **token ID（词元编号）** 已完全一致，采样也锁死 `temperature=0`。如果此时昇腾仍输出乱码、`NaN/Inf`（无效数值或无穷大），或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比标杆（如 BF16 脑浮点原版或参考 GPU）大幅掉点，单看输出文字已无法猜出哪一层出错。此时需要抓取模型内部逐层、逐算子的输入输出特征图分段比对——这正是昇腾 **MindStudio `msprobe`**（面向昇腾训练与推理的逐层精度比对与张量转储工具）的核心用途。
+按 [输出异常排查](inference-correctness-troubleshooting.md) 对齐后，两套服务收到的 **token ID（词元编号）** 完全一致，采样也固定为同一确定性条件（如 `temperature=0`）。此时若仍出现乱码、`NaN/Inf`（无效数值或无穷大），或在 [AISBench / EvalScope](aisbench-and-evalscope.md) 基准里相比参考标杆显著掉点，接下来的核心动作只有一个：**沿着同输入、同采样的前向计算链，找出第一份不一致的中间张量**——这正是昇腾 **MindStudio `msprobe`**（逐层精度比对与张量转储工具）解决的问题。
 
-不过，把全模型几十层、几百个算子的全量张量直接落盘动辄占满几十 GiB 磁盘且拖慢百倍。工程上的正确姿势是：**先分清 `Runtime Guard`、`batch_invariant` 与 `msprobe` 三类工具的分工，再按「统计初筛 → 缩小范围 → 真实张量」由粗到细四步锁定首个分歧算子**。
+直接对几十层大模型做无过滤全量原始张量（`task: "tensor"`）落盘，产生的磁盘体积与推理减速幅度随模型层数、隐藏维、采集步数及存储带宽显著放大（具体落盘大小与耗时倍数取决于所配 `task`、`level` 与过滤范围，本页不含固定倍数的硬件实测）。因此工程上先分清 **`Runtime Guard`、`batch_invariant` 与 `msprobe`** 三套工具的分工，再按「统计初筛 → 缩小范围 → 真实张量」由粗到细四步锁定首个分歧算子：
 
 ```wiki-diagram
 file: msprobe-fig-layer-isolation
@@ -82,12 +82,14 @@ file: msprobe-fig-layer-isolation
 
 ## Eager 与图模式（ACL Graph）的接入边界，以及由粗到细四步法
 
-在 `vLLM Ascend` 中，**MRV1**（第一代模型执行器 `Model Runner V1`）与 [Model Runner V2](model-runner-v2.md) 均已内建 `msprobe` 启停钩子，无需改模型代码。只需通过 `--additional-config` 传入内联 `dump_config`（引擎自动落盘至 `.vllm_ascend/msprobe/msprobe_dump_config.json`）或旧版 `dump_config_path`；二者互斥，不可同时设置。
+在 `vLLM Ascend` 中，通过 `--additional-config` 传入内联 `dump_config`（自动物化至 `.vllm_ascend/msprobe/msprobe_dump_config.json`）或旧版 `dump_config_path` 即可接入（二者互斥）。**MRV1**（第一代模型执行器）、[Model Runner V2](model-runner-v2.md)、**Eager 模式**与**图模式（[ACL Graph](acl-graph.md)）**四类组合所需的安装包、Dumper 实例与入口条件各不相同（图捕获与运行时流下发边界见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）：
 
-但 **Eager 模式** 与 **图模式（[ACL Graph](acl-graph.md)）** 背后的转储后端并不相同：
-
-- **Eager 模式（`cudagraph_mode == NONE`，即 `--enforce-eager`）**：实例化 `PrecisionDebugger`（Eager 逐算子挂钩调试器），通过 `pip install mindstudio-probe` 即可直接启用，并支持全部字段（`step`、`scope`、`list`、`dump_enable`）。
-- **图模式（`FULL` 全路径整图 / `FULL_DECODE_ONLY` 仅解码整图 / `PIECEWISE` 在注意力边界分段编译）**：实例化 `AclGraphDumper`（面向静态图捕获与回放插桩的专用转储器），并在 `load_model()` 末尾、**图捕获开始之前**自动触发启动钩子以便对图捕获与回放插桩。该模式必须从 `msprobe` 源码带上 `include-mod=aclgraph_dump` 编译安装；且**暂不支持按 `step`、`scope`、`dump_enable` 过滤**，只能依赖 `list` 收缩算子范围。
+| 执行器与执行模式组合 | 所需安装包 | 实例化的 Dumper | 版本可用性与启停入口条件 |
+|---|---|---|---|
+| **MRV1 + Eager**（`VLLM_USE_V2_MODEL_RUNNER=0` + `--enforce-eager`） | 标准 `pip install mindstudio-probe` | `PrecisionDebugger` | `v0.23.0` / `v0.26.0rc` / `v0.30.0` 默认执行器（`main` 已移除 MRV1）；按请求驱动 `start → forward → stop → step`，支持 `step`、`scope`、`list`、`dump_enable` |
+| **MRV2 + Eager**（`VLLM_USE_V2_MODEL_RUNNER=1` + `--enforce-eager`） | 标准 `pip install mindstudio-probe` | `PrecisionDebugger` | `v0.30.0` 显式切 V2、`main` 唯一默认执行器；在 `sample_tokens()` / `pool()` 收尾，完整支持 `step`、`scope`、`list`、`dump_enable` |
+| **MRV1 + ACL Graph**（`VLLM_USE_V2_MODEL_RUNNER=0` + `FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`） | 须从 `msprobe` 源码加 `-e include-mod=aclgraph_dump` 编译安装 whl | `AclGraphDumper` | `v0.23.0` / `v0.26.0rc` / `v0.30.0` 支持；在 `load_model()` 末尾、**图捕获开始前**提前启动插桩，不支持 `step`、`scope`、`dump_enable`，仅靠 `list` 收窄算子 |
+| **MRV2 + ACL Graph**（`VLLM_USE_V2_MODEL_RUNNER=1` + `FULL` / `FULL_DECODE_ONLY` / `PIECEWISE`） | 须从 `msprobe` 源码加 `-e include-mod=aclgraph_dump` 编译安装 whl | `AclGraphDumper` | `v0.30.0` 与 `main` 支持；同样在 `load_model()` 末尾提前调 `_start_dump_data()` 对捕获与回放插桩，不支持 `step`、`scope`、`dump_enable` |
 
 执行抓取时严禁第一步就跑全模型 `task: "tensor"`，标准四步法如下：
 
@@ -98,7 +100,7 @@ file: msprobe-fig-layer-isolation
 
 ## 四类高频首分歧算子的排查指纹
 
-在昇腾推理精度排障实战中，绝大多数底层分歧都会收敛到以下四类核心模块。先对照指纹图定位症状形态，再按下方清单逐项核查：
+在昇腾推理精度排障实战中，若排查对象是多模态模型，进入语言主干第 `0` 层前应先核对视觉编码塔输出特征是否对齐、以及是否受[多模态特征缓存](multimodal-encoder-cache.md)冷热命中影响；语言主干内部的首次分歧则多收敛到以下四类核心模块。先对照指纹图定位症状形态，再按下方清单逐项核查：
 
 ```wiki-diagram
 file: msprobe-fig-four-fingerprints

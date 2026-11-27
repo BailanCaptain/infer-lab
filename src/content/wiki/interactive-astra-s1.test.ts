@@ -205,9 +205,19 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
               expect(dynamicHtml).not.toContain("脏显存清不掉");
               expect(dynamicHtml).not.toContain("脏缓冲清理失败");
             }
+            if (sc === "planner-miss" && !mem) {
+              expect(dynamicHtml).toContain("预登记显存注销失败");
+              expect(dynamicHtml).not.toContain("残留脏块");
+            }
           }
         }
       }
     }
+
+    // Round-5: half-7 has 7 shared cells [0..6], so first divergence is 8th cell (0-based index 7)
+    expect(half7Html).toContain("第8格异");
+    expect(half7Html).toContain("第 8 格（索引 7）");
+    expect(half7Html).not.toContain("第7格");
+    expect(half7Html).not.toContain("第 7 格");
   });
 });

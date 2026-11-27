@@ -866,7 +866,11 @@ export function RforkFallbackInteractive({
               fontWeight="700"
               fill={flow.memoryReset ? "#087f73" : "#b54237"}
             >
-              {flow.memoryReset ? "✓ 门2：注销显存成功" : "✗ 门2：注销显存残留脏块"}
+              {flow.memoryReset
+                ? "✓ 门2：注销显存成功"
+                : flow.writtenBatches === 0
+                  ? "✗ 门2：预登记显存注销失败"
+                  : "✗ 门2：注销显存残留脏块"}
             </text>
 
             <path

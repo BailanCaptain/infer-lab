@@ -717,7 +717,7 @@ export function computePrefixPoolState(
       copiedBlocks: 0,
       h0Registered: true,
       h1Registered: true,
-      h1Note: "第7格差异 → 第2块失配",
+      h1Note: "第8格差异 → 第2块失配",
       evictedBlocks: [],
       freeLruQueue: ["B5"],
       lastTokenLogitsRecomputed: true,
@@ -1220,7 +1220,7 @@ export function PrefixCachingInteractive({
             : evictStage === "alloc-evict"
               ? "新批次申请 20 格（5 块）时从空闲队头依次弹出 B4、B5、B2、B3、B1：弹出叶块 B1 时同步抹除 h1 哈希项，而排在队尾的根块 B0 与 h0 完好留存。"
               : hitPreset === "half-7"
-                ? "标准 APC 仅对写满整块（4/4）注册块哈希：7 格公共前缀仅首块 B0（4 格）命中复用，第 2 块因第 7 格起文本分叉失配，剩余 6 格由 B 自算写入 B3（4/4）与尾块 B4（2/4）。"
+                ? "标准 APC 仅对写满整块（4/4）注册块哈希：前 7 格 [0..6] 公共前缀仅首块 B0（4 格）命中复用，第 2 块 [4..7] 因第 8 格（索引 7）文本分叉而整块失配，剩余 6 格由 B 自算写入 B3（4/4）与尾块 B4（2/4）。"
                 : hitPreset === "diff-salt"
                   ? "额外身份键 cache_salt 参与首块哈希混入：h0' = H(salt_B, [0..3]) ≠ h0，首块即失配导致整条哈希链分流，B 独立分配 B3、B4、B5 全量重算 10 格。"
                   : spec.detail}
@@ -1422,7 +1422,7 @@ export function PrefixCachingInteractive({
                 : evictStage === "ab-released"
                   ? "h1: 留存待捡回"
                   : hitPreset === "half-7"
-                    ? "第7格异: 块2失配"
+                    ? "第8格异: 块2失配"
                     : hitPreset === "diff-salt"
                       ? "异盐B: h0'失配"
                       : "h1: H(h0,[4..7])→B1"}

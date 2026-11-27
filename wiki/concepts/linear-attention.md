@@ -6,6 +6,7 @@ legacyAnchors:
   kda-是什么历史怎样装进一个固定大小的状态: 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
   为什么去掉-softmax-就能从平方降到线性: 为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？
   只做累加会写坏状态delta-规则遗忘门按通道衰减: 四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA
+  放到-glm-双机34-层-kda-的状态有多大: 混合模型里的定长状态账34-层-kda-占多少显存与块号
 summary: >-
   线性注意力去掉逐位置 Softmax，靠核映射与矩阵乘法结合律把历史压进定长状态矩阵，并在 Prefill 走分块并行、Decode 走逐词递推。本页用同一套二维算例推演纯累加、DeltaNet 误差擦写、Qwen3-Next 的 Gated DeltaNet 到 KDA，并核对双状态规格与 GLM 块号账。
 aliases:
@@ -122,7 +123,7 @@ rawSources:
 
 **Linear Attention（线性注意力）去掉逐位置的 Softmax 指数耦合，改用可分离特征映射并利用矩阵乘法结合律，把任意长度的历史压缩进一个固定形状的状态矩阵**：每来一个新 token，先用它的键值改写状态，再用当前查询一次读出本层输出，从此单步生成不再随上下文变长而重扫整段 [KV cache](kv-cache.md)。
 
-在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以随上下文拉长而变贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 与全局归一化分母把当前查询 $Q_t$ 和每一个历史键 $K_i$ 耦合在一起：即便 [FlashAttention](ascend-flash-attention.md) 利用在线 Softmax 分块递推重标定、无须在显存中物化整张 $n \times n$ 分数表，数学上仍无法把 $K_{1:t}$ 与 $V_{1:t}$ 预先缩并成与 $Q_t$ 无关的定长矩阵——整段长度为 $n$ 的提示词总计算量仍为 $O(n^2 d)$，生成阶段每走一步仍须从显存扫描全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
+在[标准 attention](attention-qkv.md) 中，第 $t$ 个位置的隐藏向量投影出行向量 $Q_t, K_t \in \mathbb{R}^{1 \times d_k}$ 与 $V_t \in \mathbb{R}^{1 \times d_v}$。输出之所以随上下文拉长而变贵，根源在于逐元素非线性函数 $\exp(Q_t K_i^\top / \sqrt{d_k})$ 与全局归一化分母把当前查询 $Q_t$ 和每一个历史键 $K_i$ 绑在一起。即便 [FlashAttention](ascend-flash-attention.md) 用在线 Softmax 省去了显存里的 $n \times n$ 分数表，数学上仍无法把 $K_{1:t}$ 与 $V_{1:t}$ 预先合并成与 $Q_t$ 无关的定长矩阵——长 $n$ 的提示词总计算量仍为 $O(n^2 d)$，解码每走一步仍须扫描全部 $t$ 个历史位置的 K、V（单步访存 $O(t)$）。
 
 Katharopoulos 等人提出的核特征映射拆开了这把锁：把不可拆分的 $\exp(Q_t K_i^\top)$ 替换为对 $Q_t$、$K_i$ 各自独立作用的特征映射内积 $\phi(Q_t)\phi(K_i)^\top$。一旦去掉跨位置套在外层的 Softmax，矩阵乘法结合律允许直接交换括号顺序：
 
@@ -206,11 +207,11 @@ file: linear-attention-flow
 
 **Decode 逐词递推**（每步仅推进 1 个位置，或[投机解码](speculative-decoding.md)验证 $1 + K$ 个位置，对应 `fused_recurrent_gated_delta_rule` / `recurrent_gated_delta_rule` 与 `recurrent_kda`）则完全不必拼段内大矩阵：算子把本请求的状态从 HBM 读入片上缓存，融合完成归一化、门控衰减、误差写入与查询读出后再写回，单步访存恒为 $O(d_k d_v)$。同一批次混有 Prefill 与 Decode 请求时，实现先按请求阶段拆行分流，算完再按原行序拼回输出。
 
-在 vLLM V1 缓存管理中，线性注意力统一抽象为 `MambaSpec` 双状态页：**短卷积缓存**保存最近 $w - 1 + K$ 个输入向量（GDN 每卡宽 $(2 H_k d_k + H_v d_v)/\text{TP}$，KDA 每卡宽 $(H d + 2 H_k d_k)/\text{TP}$），**递推状态**保存矩阵历史（GDN 为 `[H_v/TP, d_v, d_k]`，KDA 为 `[H/TP, d, d]`）。每条请求预留的状态页上界随 `mamba_cache_mode` 变化：默认 `none` 占 $1 + N_s$ 页（$N_s$ 为投机草稿块数），开启前缀对齐 `align` 占 $2 + N_s + N_{\text{ckpt}}$ 页，`all` 占 $\lceil L_{\max}/B \rceil + N_s$ 页（详见 [KV cache spec](kv-cache-spec.md)）。
+在 vLLM V1 缓存管理中，线性注意力统一抽象为 `MambaSpec` 双状态页：**短卷积缓存**保存最近 $w - 1 + K$ 个输入向量（GDN 每卡宽 $(2 H_k d_k + H_v d_v)/\text{TP}$，KDA 每卡宽 $(H d + 2 H_k d_k)/\text{TP}$），**递推状态**保存矩阵历史（GDN 为 `[H_v/TP, d_v, d_k]`，KDA 为 `[H/TP, d, d]`）。每条请求预留的状态页上界随 `mamba_cache_mode` 变化：默认 `none` 占 $1 + N_s$ 页（$N_s$ 为投机草稿块数），开启前缀对齐 `align` 占 $2 + N_s + N_{\text{ckpt}}$ 页（其中 $N_{\text{ckpt}}$ 为 `main` 分支开启 [`gdn_internal_prefill_checkpoints`](../params/gdn-internal-prefill-checkpoints-50f5ac80d583.md) 后按 `64` token 边界导出的 GDN Prefill 中间递推检查点块数，默认关闭时为 `0`），`all` 占 $\lceil L_{\max}/B \rceil + N_s$ 页（详见 [KV cache spec](kv-cache-spec.md)）。
 
-## 放到 GLM 双机：34 层 KDA 的状态有多大
+## 混合模型里的定长状态账：34 层 KDA 占多少显存与块号？
 
-前半程讲完了通用线性注意力、`Qwen3-Next` 的 Gated DeltaNet 与 KDA 的统一机制。要看清「定长状态怎样与按位置增长的稀疏 KV 共用同一个物理块池」，下面切入例外 B 历史绑定算例——[官方双机部署](glm-5-3-flash-two-node.md#部署前提)（两台 Atlas 800 A2、每台 8 卡、机内 TP8，最长上下文 `133,120` token，默认关闭 prefix caching）下的 `GLM-5.3-Flash`。**其 45 层主干由 34 层 KDA 与 11 层稀疏 MLA 按「3 层 KDA + 1 层 MLA」混排；KDA 层不按位置存 K、V，每条请求在一层里只维护固定形状的双状态**（层号见[模型总览](glm-5-3-flash.md#45-层怎样排)，对应[主线第 4 站](one-request.md#34-层-kda)与 [attention 页三种形式对照](attention-qkv.md#三种形式对照)）。
+当定长线性状态与按位置增长的稀疏 KV 共用同一个物理块池时，页对齐与块号记账会出现差异。下面对照 `GLM-5.3-Flash` [官方双机历史部署](glm-5-3-flash-two-node.md#部署前提)（两台 Atlas 800 A2、每台 8 卡、机内 TP8，最长上下文 `133,120` token，默认关闭 prefix caching）：**其 45 层主干由 34 层 KDA 与 11 层稀疏 MLA 按「3 层 KDA + 1 层 MLA」混排；KDA 层不按位置存 K、V，每条请求在一层里只维护固定形状的双状态**（层号见[模型总览](glm-5-3-flash.md#45-层怎样排)，对应[主线第 4 站](one-request.md#34-层-kda)与 [attention 页三种形式对照](attention-qkv.md#三种形式对照)）。
 
 **64 个头按 TP 切给 8 张卡，每卡 8 个头。** `q`、`k`、`v` 三个投影各把 4096 维变成 $64 \times 128 = 8192$ 维（切完每卡 1024 列）；输出投影按行切，每卡输出 4096 维部分和后做一次 [All-Reduce](collective-communication.md#all-reduce)。状态跟着头走，每卡只维护本地 8 个头，状态不跨卡交换，全层只有这一次集合通信（切法见 [tensor parallel 的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)）。
 
@@ -302,7 +303,7 @@ file: linear-attention-fig-kda-delta-budget
 ### 版本差异
 
 **GDN（`Qwen3-Next` 主线）与 KDA（`Kimi Linear` / `GLM-5.3-Flash`）在四代昇腾快照上各自演进：**
-- **GDN 算子演进**：`v0.23.0` 与 `v0.26.0rc` Prefill 调昇腾 Triton `chunk_gated_delta_rule`、Decode 调 `_C_ascend.npu_recurrent_gated_delta_rule`（`v0.26.0rc` 配套上游 FLA 迁至 `vllm/third_party/flash_linear_attention/ops/`）；`v0.30.0` Prefill 按硬件能力与 PCP 条件优先选 `fla_npu` 融合路径，其次探测 `torch_npu.npu_chunk_gated_delta_rule`，回退 Triton chunk，Decode 调 `recurrent_gated_delta_rule`；`main` 进一步在自适应投机验证（adaptive GDN）中接入二维 state-index 表与独立行步长（310P 不支持该自适应路径）。
+- **GDN 算子演进**：`v0.23.0` 与 `v0.26.0rc` Prefill 调昇腾 Triton `chunk_gated_delta_rule`、Decode 调 `_C_ascend.npu_recurrent_gated_delta_rule`（`v0.26.0rc` 配套上游 FLA 迁至 `vllm/third_party/flash_linear_attention/ops/`）；`v0.30.0` Prefill 按硬件能力与 PCP 条件优先选 `fla_npu` 融合路径，其次探测 `torch_npu.npu_chunk_gated_delta_rule`，回退 Triton chunk，Decode 调 `recurrent_gated_delta_rule`；`main` 进一步在自适应投机验证（adaptive GDN）中接入二维 state-index 表与独立行步长（310P 不支持该自适应路径），并新增 [`gdn_internal_prefill_checkpoints`](../params/gdn-internal-prefill-checkpoints-50f5ac80d583.md) 可选开关按 `64` token 边界切 Triton 分块算子导出中间递推检查点。
 - **KDA 层演进**：与例外 B 旧镜像 `db701c1f` 分立投影相比，`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）由 `Glm5NextLinearAttention` 将 `q, k, v, b, f_a, g_a` 合并为单次 `in_proj_qkvbfg_a`，状态形状交上游 `MambaStateShapeCalculator.kda_state_shape(..., num_spec)`；`main` 新增 `PCPGlm5NextMergedColumnParallelLinear`、细粒度 `KDAInputProjectionTP` 与 `use_glm_recoverssm`（开启后上游将投机额外状态块置零）。[C33]
 
 | 项目 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |

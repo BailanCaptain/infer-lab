@@ -11,6 +11,7 @@ legacyAnchors:
   分数在进-softmax-之前还会被哪些设置改动: 高阶采样、Beam、Logprobs 与生成式评分延伸导览
   内置规则不够时怎样接入自己的改分规则: 高阶采样、Beam、Logprobs 与生成式评分延伸导览
   返回的概率记录怎样对应这次选词: 高阶采样、Beam、Logprobs 与生成式评分延伸导览
+  放到-glm-双机采样在哪一步谁来做: 双机-tp8-与-mtp-候选下采样在哪一步谁来做
 summary: >-
   模型给词表里每个词打完分，sampling（采样）按请求设置从中定下一个 token。本页先用 6 词小例手算
   temperature、softmax、top-k、top-p 与指数噪声抽取，走通标准 Qwen3-8B（[B, 151936]）单 token
@@ -112,7 +113,7 @@ relations:
     kind: builds-on
     note: softmax 和「除以一个数调节尖锐程度」在 attention 页先讲过，本页把它用到词表上
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: gap
 ---
 
@@ -251,7 +252,10 @@ vLLM 的中性默认值是：`temperature = 1`、`top_p = 1`、`top_k = 0`、`mi
 
 ## 什么时候停下来？
 
-**每出一个 token，引擎都检查一遍要不要停，但“不让提前停”主要由采样屏蔽与引擎判停两步配合完成。** 采样阶段未达 `min_tokens` 时会先把停止编号屏蔽掉（见下节）；到了引擎侧 `check_stop`：在 `v0.30.0` 主基线与 `main` 中，先检查这个 token 是不是结束 token（EOS）或请求指定的 `stop_token_ids`（命中记 `finish_reason = "stop"`），再检查是否达到 `max_tokens` 或模型总长上限（命中记 `finish_reason = "length"`），最后用 `min_tokens` 门槛控制后续重复检测；而在历史 `v0.23.0 / v0.26.0rc` 与本页固定 GLM 基线中，引擎在输出尚未达到 `min_tokens` 时会先在判停入口直接跳过。
+**请求何时停笔，由「采样端屏蔽停止 token」与「调度端 `check_stop` 判停」两步先后配合完成：**
+
+1. **采样端先屏蔽过早停止 token**：若已生成 token 数尚未达到 `min_tokens`，采样前先把结束 token（EOS）与 `stop_token_ids` 的分数置为 $-\infty$（详见下节），从选词源头挡住提前停笔。
+2. **调度端每出一枚 token 逐个判停**：在 `v0.30.0` 配套上游（`vllm@ced6857a`）与 `main` 中，`EngineCore` 的 `check_stop` **先检查 EOS、`stop_token_ids`（命中记 `finish_reason = "stop"`）与长度上限（`max_tokens` 或模型总长上限，命中记 `finish_reason = "length"`），再用 `min_tokens` 门槛控制后续的循环重复检测**；而在历史 GLM 配套上游（`vllm@0fc695fc`，含 `v0.23.0 / v0.26.0rc`）中，`check_stop` 则是在入口先检查 `min_tokens`，未满门槛直接跳过本轮判停。
 
 结束 token（EOS）和普通词一样参与打分与采样；模型生成配置里列出的其他结束编号也并进停止 token 集合。请求设 `ignore_eos = true` 只关闭自动 EOS 判停，手工指定的 `stop_token_ids`、`stop` 字符串与长度上限仍有效（详见[请求收尾](request-teardown.md#停止文字停止编号和忽略-eos-怎样配合)）。举例：提示词「我 喜欢」，`max_tokens = 3`，输出「猫」「。」「我」，第 3 枚一追加即以 `length` 截断，接口返回输出「猫。我」。
 
@@ -288,9 +292,9 @@ file: sampling-flow-qwen3
 
 开启投机解码（如 MTP）后，解码步不再是「每条请求 1 行分数」，而是扩展为「多行验证 + 额外采样」——下面以历史 GLM 双机配方展示这条多卡验证路径。
 
-## 放到 GLM 双机：采样在哪一步、谁来做？
+## 双机 TP8 与 MTP 候选下，采样在哪一步、谁来做？
 
-本节为例外 B 历史绑定算例：2 台 Atlas 800 A2、每台 8 卡，机内 TP8、跨机 DP2 / EP16（部署前提见 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)）。前向结束后，每台机器的 8 张卡都拿到完整的 `154880` 个分数，各自执行同一套采样，仅 0 号卡交回引擎；首步只采 1 行，后续 decode 步还需验证 3 个 MTP 候选。
+在 `GLM-5.3-Flash` 双机历史配方中（2 台 Atlas 800 A2、每台 8 卡，机内 TP8、跨机 DP2 / EP16，前提见 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)），前向结束后每台机器的 8 张卡都拿到完整的 `154880` 个分数，各自执行同一套采样，仅 0 号卡交回引擎；首步只采 1 行，后续 decode 步还需验证 3 个 MTP 候选。
 
 下面沿用主线示例请求 R1（提示词 4 个 token，教学设定，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）。
 

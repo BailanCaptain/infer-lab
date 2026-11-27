@@ -8,7 +8,8 @@ legacyAnchors:
   草稿为什么既能并行又要做一点串行修正: 从 DFlash 到 DSpark：块扩散并行起草怎样补上局部连贯性
   两条请求怎样分三个验证名额: 置信度累乘与动态验证预算：怎样把名额留给高存活前缀
   选得更多为什么实际吞吐可能更低: 算清整轮耗时盈亏账：为什么全验反而拉低每秒有效产出
-  放回-glm-双机能借用什么: 放回固定 GLM 双机与常规 MTP 能借用什么
+  放回-glm-双机能借用什么: 常规自回归-mtp-能直接借用哪部分思路
+  放回固定-glm-双机与常规-mtp-能借用什么: 常规自回归-mtp-能直接借用哪部分思路
 summary: DFlash 靠块扩散一次前向并行吐出整块 K 个候选词，但词间缺乏自回归依赖导致尾部接受率陡降；DSpark 在块并行主干上叠轻量马尔可夫头恢复局部连贯性，并用置信度驱动动态验证预算砍掉低收益尾部批改。
 aliases: [DSpark, DFlash, dflash, 块扩散草稿, DFlash2, Confidence Scheduled Verification, 置信度调度, 变长验证, 可变验证长度, MTP varlen, confidence head]
 chapters: ["19"]
@@ -137,7 +138,7 @@ $$m^* = \arg\max_{m} \frac{R + \sum_{i=1}^{m} u_{(i)}}{T_{\text{draft}}(B) + T_{
 
 ## CPU 已经排下一步，新的置信度还没回来怎么办
 
-[异步调度](async-scheduling.md)让 CPU 提前编排下一轮输入时，NPU/GPU 还在跑上一轮前向，最新置信度尚未落盘。
+[异步调度](async-scheduling.md)让 CPU 提前编排下一轮输入时，NPU/GPU 还在跑上一轮前向，最新置信度尚未写回设备显存。
 
 ```wiki-diagram
 file: dspark-flow
@@ -175,9 +176,9 @@ file: dspark-flow
 
 动态验证预算决定「向前验几个」，**草稿 KV 滑动窗口（`draft_window_size`）**决定「起草时往回看多远」，二者是正交的两根轴。例如上下文已达 10,000 个 token、本轮仍起草 5 个候选，将草稿窗口设为 2,048 后，草稿层只回看最近一段历史（起点向下对齐缓存块边界，最多多读一个块减 1 格），主模型批改时依然读取完整 10,000 个位置。短上下文训练的草稿借此回到熟悉区间，而写入槽位仍按完整序列对齐以免后续错位（`v0.30.0` 仅限 MRV1 的 `eagle3 / dflash / dspark`，MTP 因复用主干层强制忽略，`main` 已移除旧入口）。
 
-## 放回固定 GLM 双机与常规 MTP 能借用什么
+## 常规自回归 MTP 能直接借用哪部分思路？
 
-前文的「期望有效产出 ÷ 整轮耗时」盈亏平衡算式同样适用于常规自回归 MTP（如例外 B [GLM-5.3-Flash 双机](glm-5-3-flash-two-node.md)的固定 3 步 MTP 投机）：当高并发批次把主模型推入更宽的图尺寸分档或跨机通信瓶颈时，同样可以用三表分段耗时核对每轮多验的候选是否抵得过额外步长。但必须分清实现边界：**固定 GLM MTP 仅挂 1 个 MTP 层（层号 `45`）并连续串行调用 3 次（`[45, 45, 45]`）起草，不具备 `DSpark` 的块扩散马尔可夫偏置头、`ConfidenceHead` 置信头，也不包含昇腾 `dynamic_spec_config`、`enable_adaptive_verification` 或 DeepInfer 的 `MTPVarlen` 开关**，排查时切勿把 `DSpark` 专属配置套到固定 GLM MTP 上。
+前文的「期望有效产出 ÷ 整轮耗时」盈亏平衡算式同样适用于常规自回归 MTP（如 [GLM-5.3-Flash 双机](glm-5-3-flash-two-node.md)历史配方的固定 3 步 MTP 投机）：当高并发批次把主模型推入更宽的图尺寸分档或跨机通信瓶颈时，同样可以用三表分段耗时核对每轮多验的候选是否抵得过额外步长。但必须分清实现边界：**固定 GLM MTP 仅挂 1 个 MTP 层（层号 `45`）并连续串行调用 3 次（`[45, 45, 45]`）起草，不具备 `DSpark` 的块扩散马尔可夫偏置头、`ConfidenceHead` 置信头，也不包含昇腾 `dynamic_spec_config`、`enable_adaptive_verification` 或 DeepInfer 的 `MTPVarlen` 开关**，排查时切勿把 `DSpark` 专属配置套到固定 GLM MTP 上。
 
 ## 常见误解
 

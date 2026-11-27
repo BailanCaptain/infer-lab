@@ -1,7 +1,8 @@
 ---
 id: short-request-first
 legacyAnchors:
-  放到-glm-双机钉住的代码里没有它: 复杂异构实战对照：GLM 双机场景推演与版本边界
+  放到-glm-双机钉住的代码里没有它: 长短提示词同到时的三步排队推演glm-双机对照
+  复杂异构实战对照glm-双机场景推演与版本边界: 长短提示词同到时的三步排队推演glm-双机对照
 title: 短请求优先：等待顺序与长请求公平性
 type: feature
 summary: >-
@@ -96,7 +97,7 @@ relations:
     kind: conflicts-with
     note: 两者在平台初始化校验中显式互斥，同开会直接抛出 ValueError 拒绝启动
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: gap
 rawSources:
   - >-
@@ -162,16 +163,16 @@ file: short-request-first-fig-hol-unblock
 
 所以默认的取法是：**恢复 → 短 → 长**。
 
-**长车道可以设一个提升候选优先级的等待门槛。** 配置项 `long_max_wait_ms`，单位毫秒。长车道的队头从进长车道起等够了这么久，而且短车道里正有人，它就排到短车道前面，次序变成：恢复 → 等够了的长 → 短 → 长。只看长车道的队头，后面的长请求照旧排队；短车道空着时本来就轮到长车道，不算插队。等够了只是让队头有资格插队，被选中后照样要过预算和 KV 块这两关，所以它不保证长请求在多少毫秒内拿到第一个 token。默认值 0 表示不启用，也就是严格短优先。
+**长车道可以设一个提升候选优先级的等待门槛。** 配置项 `long_max_wait_ms`，单位毫秒。长车道的队头从进长车道起等够了这么久，而且短车道里正有人，它的候选优先级就会提升到短车道前面，次序变成：恢复 → 等够了的长 → 短 → 长。只看长车道的队头，后面的长请求照旧排队；短车道空着时本来就轮到长车道。等待达到门槛只是提高队头的候选优先级，被选中后照样要过预算和 KV 块这两关，所以它不保证长请求在多少毫秒内拿到第一个 token。默认值 0 表示不启用，也就是严格短优先。
 
-$$t_{\text{wait}} = t_{\text{sched}} - t_{\text{enqueue}}, \qquad \text{触发老化插队} \iff t_{\text{wait}} \ge \text{long\_max\_wait\_ms}$$
+$$t_{\text{wait}} = t_{\text{sched}} - t_{\text{enqueue}}, \qquad \text{等待达标提高候选优先级} \iff t_{\text{wait}} \ge \text{long\_max\_wait\_ms}$$
 
 | 调度检查时刻（示意：`long_max_wait_ms = 2,000 ms`，A 于 `1,000 ms` 进长车道） | 已等待时长 $t_{\text{sched}} - t_{\text{enqueue}}$ | 与门槛比较及判定 |
 | --- | --- | --- |
 | 第一次看（`2,400 ms`） | $2{,}400 - 1{,}000 = \mathbf{1{,}400\text{ ms}}$ | $< 2{,}000\text{ ms}$，不够，照常先取短车道 |
 | 700 ms 后再看（`3,100 ms`） | $3{,}100 - 1{,}000 = \mathbf{2{,}100\text{ ms}}$ | $\ge 2{,}000\text{ ms}$，够了，短车道有人也先取 A |
 
-插队太频繁，就说明按 token 数划短请求的长度门槛，或按毫秒计的等待门槛没配好：连续 3 次让等够了的长请求插到正在等的短请求前面，日志里打一次警告，提示这个特性正在退化成「长请求优先」，建议调大长度门槛或者关掉。**它只是提醒，不会自己改配置。** 取走一条短请求，或者长请求出队时短车道本来就空，连续计数清零。另外，队列有进出时最多每 5 秒打一行统计日志：三条车道各有多少条、各取走了多少、老化插队了几次。
+等待达到门槛后的提权太频繁，就说明按 token 数划短请求的长度门槛，或按毫秒计的等待门槛没配好：连续 3 次让等待达标的长请求排到正在等的短请求前面，日志里打一次警告，提示这个特性正在退化成「长请求优先」，建议调大长度门槛或者关掉。**它只是提醒，不会自己改配置。** 取走一条短请求，或者长请求出队时短车道本来就空，连续计数清零。另外，队列有进出时最多每 5 秒打一行统计日志：三条车道各有多少条、各取走了多少、等待达标提高候选优先级触发了几次。
 
 最后一个细节保证「看的和拿的是同一条」。调度器接纳一条等待请求要分两下：先看一眼队头，决定能不能排；排得下，再真正取走。这两下之间，「等够了没有」可能正好翻过去，选出来的车道就变了。所以短请求优先在看的时候记住是哪条车道，取的时候从同一条车道拿。
 
@@ -195,11 +196,11 @@ file: short-request-first-flow
 
 **门槛怎么定。** 门槛太低，大多数请求落进长车道；太高，大多数落进短车道，两种情况分车道都失去意义。官方文档的建议是把门槛放在「短请求主簇」和「长请求长尾」之间的空档上，不取全体长度的中点，也不贴着最长的那些请求；还没有细致的流量模型时，先取提示词长度的 70～85 百分位起步，再照真实的长度直方图调。
 
-**等待门槛怎么定。** 官方文档把它定位成公平性闸门，不是提吞吐的旋钮，并建议先调门槛。做法是：先用 0（严格短优先）跑一段，量长请求等待时间的尾部，记作「正常尾部」（取 90 或 95 百分位）；再定服务能容忍长请求额外排多久，记作「容忍上限」；等待门槛取在两者之间。更看重短请求 TTFT 就靠近容忍上限，更看重长请求公平就靠近正常尾部。不要拿短请求的平均 TTFT 去定它。如果老化插队反复发生，先调大门槛。
+**等待门槛怎么定。** 官方文档把它定位成公平性闸门，不是提吞吐的旋钮，并建议先调门槛。做法是：先用 0（严格短优先）跑一段，量长请求等待时间的尾部，记作「正常尾部」（取 90 或 95 百分位）；再定服务能容忍长请求额外排多久，记作「容忍上限」；等待门槛取在两者之间。更看重短请求 TTFT 就靠近容忍上限，更看重长请求公平就靠近正常尾部。不要拿短请求的平均 TTFT 去定它。如果等待达到门槛后提高候选优先级反复发生，先调大门槛。
 
-## 复杂异构实战对照：GLM 双机场景推演与版本边界
+## 长短提示词同到时的三步排队推演（GLM 双机对照）
 
-前半段规则适用于 `v0.26` 及 `v0.30.0` 标准主基线模型（如 `Qwen3-8B` / `Qwen3-30B-A3B`，按 `threshold` 直接拆分短/长车道）。下面单独对照历史 **[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)**（例外 B，钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`）：**这份镜像代码里没有短请求优先，不是关着，而是根本没有这个特性（该双机也未开启按块对齐切分）。** 本部署的等待队列就是上游 FCFS 队列：平台补丁换进来的调度器在均衡开关关着时直接走上游逻辑（见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。短请求优先从 `v0.26` 分支才出现，而那个分支没有 GLM 模型代码；`v0.30.0` 与 `main` 两样都有，但尚无两者同开的实跑记录。因此本节只按调度规则推演「换上它后排队步数怎么变」，不含毫秒实测。
+历史 **[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`）所在的早期镜像尚未引入短请求优先（仍走默认 FCFS，且未开启按块对齐切分，见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。`v0.30.0` 与 `main` 虽同时包含 GLM 与短请求优先，尚无同开实测；下面按调度规则静态推演换上三车道队列后的排队步数变化。
 
 **它能动的，只有每个 DP 组每一步的余量。** 本部署分两个 [DP（数据并行）](data-parallel.md)组，各有一个调度器、每步 8,192 个位置预算、最多 32 条 running。每条正在生成的请求一步占 4 个位置（1 个已定 token + 3 个 [MTP 投机解码](speculative-decoding.md)草稿）。已有 running 全在 decode 时，先按每条 4 个扣，余量才给等待队列；仍在 prefill 的 running 按实际未算量扣（见[已有请求都在 decode 时的余量](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。短请求优先只决定这份余量先给谁，不跨 DP 组搬移请求。
 
@@ -227,7 +228,7 @@ $$T_{\text{SRF},1} = 48 + 4 + \min(20{,}000,\; 8{,}192 - 52) = 8{,}192, \qquad T
 
 - **抢占在这里很贵。** 本部署没开 prefix caching，被抢占的请求要从头重算（见[调度器](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。恢复车道让它排在新来的短请求前面，不会被反复压下去；但抢占本身的代价不变。
 - **GLM 能不能和它一起跑没有核过。** GLM 的线性注意力层要跨段延续状态、每步带 MTP 草稿；开发主线上两者同开有没有额外限制，要看同一版本的实现和测试。
-- **它会走异步调度那条安装路径。** 本部署没写异步调度的开关，按启动时的自动判定是开着的，见[异步调度 · 落到 GLM 双机](async-scheduling.md#落到-glm-双机r1-每一步的占位账)。换上短请求优先时，平台层会把调度器换成它专门的异步子类，构造完再装三车道队列。与 [动态分块流水线（CPP）](dynamic-chunked-pp.md#版本差异)组合时需按版本区分：`v0.26.0rc` 直接互斥，`v0.30.0` 在 MRV2 下提供 `ProfilingChunkAsyncScheduler` 并放开搭配，而固定 `main (8d6180e2)` 已整体移除 `profiling_chunk_config`。
+- **它会走异步调度那条安装路径。** 本部署没写异步调度的开关，按启动时的自动判定是开着的，见[异步调度](async-scheduling.md#落到-glm-双机r1-每一步的占位账)。换上短请求优先时，平台层会把调度器换成它专门的异步子类，构造完再装三车道队列。与 [动态分块流水线（CPP）](dynamic-chunked-pp.md#版本差异)组合时需按版本区分：`v0.26.0rc` 直接互斥抛 `ValueError`；早期开发快照（如 `baa023ad`）曾仅允许同步组合（其用户指南亦沿用该旧说明）；`v0.30.0` 支持同步路径及 MRV2（`VLLM_USE_V2_MODEL_RUNNER=1`）下的 `ProfilingChunkAsyncScheduler` 组合；而固定 `main (8d6180e2)` 已整体移除 `profiling_chunk_config`（`839f53831`）。
 
 ## 常见误解
 
@@ -249,11 +250,11 @@ $$T_{\text{SRF},1} = 48 + 4 + \min(20{,}000,\; 8{,}192 - 52) = 8{,}192, \qquad T
 - **三个键与默认值**：`enabled` 默认 `False`，不写就不启用；`threshold` 默认 `256`，按 `num_prompt_tokens <= threshold` 分进短车道；`long_max_wait_ms` 默认 `0.0`，`_long_head_wait_ms` 第一句遇到 `<= 0` 就返回空，永不老化 [C4][C1]。
 - **只换 `scheduler.waiting` 这一个对象。** 上游在 `Scheduler.__init__` 里用 `create_request_queue(self.policy)` 造等待队列，扫等待队列的循环通过队列接口取请求 [C11]。`ShortRequestFirstRequestQueue` 直接实现上游 `RequestQueue` 的契约，里面是三条用同一个工厂造出来的普通队列；`install_short_request_first_waiting_queue` 把它装到 `scheduler.waiting` 上，恢复车道的判据 `is_recovery_request` 是 `status == PREEMPTED`、`num_computed_tokens > 0`、`num_output_tokens > 0` 三者之一 [C2]。
 - **两条安装路径，看开没开异步调度（本部署按自动判定开着，见[异步调度](async-scheduling.md)）。** 异步：平台层把 `scheduler_cls` 指到 `ShortRequestFirstAsyncScheduler`，它是上游 `AsyncScheduler` 的子类，`__init__` 末尾换队列 [C6]。同步：`scheduler_cls` 不用写；`patch_balance_schedule.py` 在导入时把上游 `Scheduler` 整个换成 `BalanceScheduler`，它的 `__init__` 读到 `enabled` 就装队列，与 `enable_balance_scheduling` 开没开无关（见[均衡调度](balance-scheduling.md)）。
-- **启动日志**：装好时打 `ShortRequestFirst waiting queue installed: threshold=..., long_max_wait_ms=...`；运行中队列有进出时最多每 5 秒一行 `ShortRequestFirst stats: ...`，含三条车道的长度、插回与取走计数、老化插队次数 [C8]。
+- **启动日志**：装好时打 `ShortRequestFirst waiting queue installed: threshold=..., long_max_wait_ms=...`；运行中队列有进出时最多每 5 秒一行 `ShortRequestFirst stats: ...`，含三条车道的长度、插回与取走计数、等待达标提高候选优先级次数 [C8]。
 
 ### 会报什么错
 
-- `enabled` 为真时平台层逐条校验，不满足直接 `ValueError`、服务起不来：`scheduler_config.policy` 必须是 `fcfs`；不能和 `batch_job_sched_config` 同开（见 [Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)）；`v0.26.0rc` 不能和 `profiling_chunk_config` 同开；不能跑在 PD 分离的 D 节点上（`kv_role='kv_consumer'`）[C5]。
+- `enabled` 为真时平台层逐条校验，不满足直接 `ValueError`、服务起不来：`scheduler_config.policy` 必须是 `fcfs`；不能和 `batch_job_sched_config` 同开（见 [Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)）；`v0.26.0rc` 不能和 `profiling_chunk_config`（CPP）同开（`v0.30.0` 放开同步与 MRV2 异步组合，固定 `main` 已移除 CPP）；不能跑在 PD 分离的 D 节点上（`kv_role='kv_consumer'`）[C5]。
 - **子配置多写一个键直接报错，不是静默走默认**；`threshold < 0` 或 `long_max_wait_ms < 0` 也是 `ValueError`（`v0.30.0` 起由 Pydantic `extra="forbid"` 与 `model_validator` 校验）[C37]。
 - 安装时 `scheduler.waiting` 里已经有请求就 `RuntimeError`（必须在接纳第一条请求之前装）；策略不是 FCFS 就 `ValueError`。
 - 退化提醒 `ShortRequestFirst scheduling is repeatedly promoting long requests ahead of waiting short requests ...` 用 `warning_once` 打，`AGED_LONG_WARNING_STREAK = 3`，只提醒不改参数 [C7]。
@@ -275,7 +276,7 @@ $$T_{\text{SRF},1} = 48 + 4 + \min(20{,}000,\; 8{,}192 - 52) = 8{,}192, \qquad T
 | 特性与三车道队列 | 无此特性（固定 GLM `db701c1f` 同样无入口） | 新增 `short_request_first_scheduler.py`（三车道队列 + 老化 + 钉住候选 + `ShortRequestFirstAsyncScheduler`） | 同核心队列实现（`short_request_first_scheduler.py#L148-L183`），延续先判恢复车道再按 `threshold` 分短/长车道 | 延续同三车道队列与 `ShortRequestFirstAsyncScheduler`（`short_request_first_scheduler.py#L329-L380`） |
 | 配置类与互斥校验 | — | 手写 `ShortRequestFirstConfig` 校验，默认 `False` / `256` / `0.0`；平台拒非 FCFS、`batch_job_sched_config`、`profiling_chunk_config` 与 `kv_consumer` | 改为 Pydantic dataclass（`ascend_config.py#L1557-L1575`），`extra="forbid"` 与范围校验，默认值不变；平台互斥规则见 `platform.py#L1049-L1085` | 延续 Pydantic 配置与顶层弃用回退（`ascend_config.py#L1758-L1771`）；平台校验见 `platform.py#L1234-L1259` |
 | 与 `profiling_chunk` 同开 | — | 直接 `ValueError` | 允许同开：同步路径由 `ProfilingChunkScheduler.__init__` 安装队列（`scheduler_profiling_chunk.py#L94-L106`）；异步路径仅允许 MRV2（`VLLM_USE_V2_MODEL_RUNNER=1`），MRV1 报 `ValueError`（`platform.py#L1079-L1085`） | `scheduler_profiling_chunk.py` 与 `profiling_chunk_config` 已从 `SchedulerExtensionConfig` 移除，无该组合分支 |
-| 上游等待队列与文档 | 仅 `fcfs` / `priority`；无 GLM 模型代码（GLM 在 `db701c1f`） | 官方文档与代码兼容说明一致 [S22] | 上游 `scheduler.py#L202-L205` 延续 `waiting` + `skipped_waiting`；文档对 `profiling-chunk` 兼容说明滞后于代码，以代码为准 [S23][!] | 上游 `scheduler.py#L232-L240` 拆分出 `kv_holding_waiting` / `async_kv_waiting`；Ascend 队列安装仅替换 `self.waiting` |
+| 上游等待队列与文档 | 仅 `fcfs` / `priority`；无 GLM 模型代码（GLM 在 `db701c1f`） | 官方文档与代码兼容说明一致 [S22] | 上游 `scheduler.py#L202-L205` 延续 `waiting` + `skipped_waiting`；历史开发快照（`baa023ad`）文档曾保留与 `profiling-chunk` 互斥的旧说明，`v0.30.0` 以代码实现为准 [S23][!] | 上游 `scheduler.py#L232-L240` 拆分出 `kv_holding_waiting` / `async_kv_waiting`；Ascend 队列安装仅替换 `self.waiting` |
 
 均衡调度开关在各版本怎么读（环境变量回退何时删除），见[均衡调度](balance-scheduling.md)。
 

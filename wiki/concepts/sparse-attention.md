@@ -125,6 +125,8 @@ relations:
 contradicts: []
 updated: '2026-11-27'
 origin: gap
+legacyAnchors:
+  放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读: 按池挑选实战一个查询在一层稀疏-mla-里怎样挑怎样读
 rawSources:
   - >-
     raw/sha256-37ad68491a3103b2c6e2bf3de7a6c145276bf4de3c992b874484d267d22728b3.md
@@ -138,7 +140,7 @@ rawSources:
 
 **Sparse attention（稀疏注意力）把「找相关位置」和「精算注意力」拆成两步：每个查询先从因果历史里挑出一小批候选位置，再只在这些入围位置上打分、做 Softmax 并汇合 V；落选位置本步直接跳过主注意力计算。**
 
-主流按内容挑选路线以 DeepSeek-V3.2 的 **DSA（DeepSeek Sparse Attention）** 为代表：先用一个头数少、维度窄的轻量打分器 **lightning indexer**（下文简称 indexer）快速扫过历史并挑出前 $k$ 个高分位置（**top-$k$**，如 $k = 2048$），再交由昇腾稀疏融合注意力算子 **SFA（Sparse FlashAttention）** 只取这 $k$ 个位置完成主注意力（后文例外 B 算例中的 `GLM-5.3-Flash` 则在此基础上改为 4 个位置压成一池再选池）。
+主流按内容挑选分两种粒度：一种是**逐位置打分**（如 DeepSeek-V3.2 的 **DSA，DeepSeek Sparse Attention** 及下方直觉图示例），由头少维窄的轻量打分器 **lightning indexer**（简称 indexer）给每个位置打分并选出前 $k$ 个（**top-$k$**，如 $k = 2048$），交昇腾 **SFA（Sparse FlashAttention）** 计算主注意力。另一种是**压池后选组**（如后文 `GLM-5.3-Flash` 的 KPool），先把每 `4` 个相邻位置压成一池选出池号，展开位置并补上 `0–3` 个未凑满一池的尾位置后再读潜向量。
 
 ```wiki-diagram
 file: sparse-attention-intuition
@@ -241,9 +243,9 @@ vLLM 官方入口以 DeepSeek-V3.2 的 DSA 实现为例。IndexCache 论文还�
 
 新版 GLM 的这条草稿路径还要把第 0 步保留的查询行移到后续步骤所需的位置。即便后几步不重选位置，仍会更新 indexer 的压缩 key 和尚未凑满池的尾部状态，保证下一轮选择能够读到新增历史。各版是否接通这个入口，见[版本差异](#版本差异)；不能把新版行为套回固定 GLM 镜像。
 
-## 放到 GLM 双机：一个查询在一层稀疏 MLA 里怎样挑、怎样读
+## 按池挑选实战：一个查询在一层稀疏 MLA 里怎样挑、怎样读？
 
-GLM-5.3-Flash 有 11 个稀疏 MLA 层（第 3、7、11……43 层），另外 34 层是 [KDA](linear-attention.md)。部署是 2 台 A2 × 8 卡，机内 TP8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)；TP8 下每张卡负责 64 个主 attention 头里的 8 个。一个查询位于位置 p 时，每一层稀疏 MLA 按下面四步走：
+在 `GLM-5.3-Flash` 双机历史部署中（2 台 A2 × 8 卡，机内 TP8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），主干有 11 个稀疏 MLA 层（第 3、7、11……43 层），另外 34 层是 [KDA](linear-attention.md)；TP8 下每张卡负责 64 个主 attention 头里的 8 个。一个查询位于位置 p 时，每一层稀疏 MLA 按下面四步走：
 
 1. **indexer 只给完整池打分。** 因果范围 0…p 里有 ⌊(p+1)/4⌋ 个完整池，只有这些池参与打分；还没凑满的池和未来的池一律记成负无穷，不会被选中。
 2. **最多选 512 个池。** 位置预算 2048 ÷ 每池 4 个位置 = 512 个池。完整池不到 512 个时全部选中，多出的名额填 −1。

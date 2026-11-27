@@ -100,7 +100,9 @@ relations:
     kind: builds-on
     note: Qwen3-8B 等标准模型的分组查询头共享 K、V 头，直接决定两阶段每位置读写缓存的字节数与注意力算术强度
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-27'
+legacyAnchors:
+  异构混合层与双机-mtp-对照kda--稀疏-mla--glm-全案: 同样-4-行输入为什么只取-1-行或取-4-行-logits
 rawSources:
   - >-
     raw/sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md
@@ -110,7 +112,7 @@ rawSources:
 
 ## 回答的第一个字出来之前，模型在算什么？
 
-**Prefill（预填充）是处理请求提示词中尚未计算的位置、为后续生成建立历史状态的阶段：可以一轮并行算完，也可以按预算跨多轮分块处理；提示词全部算完的那一步，直接取最后一个位置的输出选出第 1 个生成 token。随后请求进入 Decode（解码）阶段：在普通自回归路径下，每轮只把上一步刚选出的 1 个新 token 送进模型，读取已有历史状态并选出下一个输出 token。**
+**Prefill（预填充）是处理请求提示词中尚未计算的位置、为后续生成建立历史状态的阶段，可在一轮内并行算完，也可按预算跨多轮分块推进。提示词最后一段算完时，模型只取最后一个位置的输出选出第 1 个生成 token。** 随后请求转入 **Decode（解码）** 阶段：普通自回归路径下，每轮只把上一步刚选出的 1 个新 token 送进模型，读取已有历史状态并选出下一个输出 token。
 
 先立住贯穿本页的两个基础词。提示词经分词器切分后变成一串离散编号（[token](token.md)），每个 token 占序列里的一个**位置**；**历史**则是模型为已算位置留在设备显存里的中间状态，供后续位置查阅。在 `Qwen3-8B` 这类标准 Transformer 中，每层通过 [attention](attention-qkv.md) 融合上下文：当前位置拿查询 `Q` 与自己及前文的键 `K` 打分，再按权重汇总值 `V`。因此每个算过的位置都会在各层存下一对 `K`、`V` 向量，合称 [KV cache](kv-cache.md)。混合线性注意力模型还会多出一类原地更新的定长状态，后文变体节再对照。
 
@@ -219,11 +221,9 @@ file: prefill-fig-prompt-logprobs
 
 > **边界与例外（末 1 词尾块与 `uniform_decode` 判定）**：未开 MTP 时，恰剩最后 1 个提示词尾块的请求也会落入 `DecodeOnly` 单步执行分支，但请求语义上仍属提示词收尾。整图放行条件 `uniform_decode == True` 要求所有请求已有初始历史、混合模型已完成全部提示词，且每请求长度整齐等于 `uniform_decode_query_len`。
 
-### 异构混合层与双机 MTP 对照（KDA / 稀疏 MLA / GLM 全案）
+### 同样 4 行输入，为什么只取 1 行或取 4 行 logits？
 
-前面主干用的是标准稠密模型 `Qwen3-8B`。如果换成含线性注意力与投机解码的异构模型，同一套「统一调度 + 执行分路」逻辑不变，但每步表面宽度与内部算子分路会出现一个极有启发性的对照。下面切入例外 B 历史绑定算例——双机 16 卡（TP8/DP2/EP16 W8A8 + MTP 3 候选）的 `GLM-5.3-Flash`。它的主干共 `45` 层：含 `34` 层原地更新定长状态的 KDA [线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进) 与 `11` 层带打分器 indexer 的 [稀疏 MLA](sparse-attention.md)，词表 `154880`，每步 `218` 次集合通信（唯一推导见 [双机部署](glm-5-3-flash-two-node.md#部署前提) 与 [一条请求](one-request.md)）。
-
-在短示例请求 `R1`（4 枚提示词）上，开启 MTP 后第 1 步 Prefill（`p₀..p₃`）与第 2 步 Decode（`y₀` 加 3 个候选 `d₁..d₃`）每卡张量宽度恰好都是 `4`。下图并排对比这两步以及混合批分路：
+开启 MTP（每步草拟 3 个候选）后，一条 4 token 短提示词请求在第 1 步 Prefill（`p₀..p₃`）与第 2 步 Decode（`y₀` 加 3 个候选 `d₁..d₃`）中，每卡送入主干的张量宽度恰好都是 `4`；但一步末尾究竟只切 `1` 行还是切 `4` 行送进 `lm_head` 算 `logits`，内部执行路径完全不同。下面在双机 16 卡（TP8/DP2/EP16 W8A8 + MTP 3 候选）的 `GLM-5.3-Flash` 历史算例 `R1` 上并排对比这两步及混合批分路——其主干共 `45` 层，含 `34` 层原地更新定长状态的 KDA [线性注意力](linear-attention.md#prefill-用-chunked-计算decode-逐位置推进)与 `11` 层带打分器 indexer 的[稀疏 MLA](sparse-attention.md)，词表 `154880`，每步 `218` 次集合通信（唯一推导见[双机部署](glm-5-3-flash-two-node.md#部署前提)与[一条请求](one-request.md)）：
 
 ```wiki-diagram
 file: prefill-flow

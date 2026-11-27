@@ -1,5 +1,9 @@
 ---
 id: async-scheduling
+legacyAnchors:
+  复杂异构实战对照glm-双机-r1-占位账与-dbo-边界: 跨机-ep-的-dbo-边界与-mtp-异步占位账
+  固定-glm-双机能直接照官方-dbo-命令开吗: 昇腾跨机部署能直接照上游-dbo-命令开吗
+  落到-glm-双机r1-每一步的占位账: 带-3-个-mtp-候选时r1-每一步怎样记占位与销账
 title: Async scheduling：趁卡在算，先把下一步排好
 type: feature
 summary: >-
@@ -160,7 +164,7 @@ relations:
     kind: builds-on
     note: 候选被拒后已算数怎样回退；异步下先按全接受排、回来再改正
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: direct
 ---
 
@@ -313,7 +317,7 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 - [Recompute Scheduler](recompute-scheduler.md)：各版本都有同步、异步两版。
 - [ShortRequestFirst](short-request-first.md)、[BatchJobAwareScheduler](batch-job-aware-scheduler.md)：本页 v0.26 rc 快照带异步版；main 上的 [DyntraLB](dyntra-lb.md) 也带异步版。
-- `SchedulerDynamicBatch`（按服务时延目标动态调预算）在旧版快照中仅提供同步类；`ProfilingChunkScheduler`（先测 prefill 耗时再动态定块长）在早期快照中也由平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`，要求同时开启 MRV2（第二代 Model Runner 执行器，`VLLM_USE_V2_MODEL_RUNNER=1`）。当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制（见[版本差异](#版本差异)）。早期 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
+- `SchedulerDynamicBatch`（按服务时延目标动态调预算）在旧版快照中仅提供同步类；[动态分块流水线](dynamic-chunked-pp.md)（CPP，`profiling_chunk_config`）在 `v0.23.0`、`v0.26.0rc`（该版还与[短请求优先](short-request-first.md)互斥）及历史开发快照（如 `vllm-ascend@baa023ad`）中仅由平台分派同步类 `ProfilingChunkScheduler`，`baa023ad` 快照的动态分块 PP 用户指南也据此显式关闭 async scheduling 并说明 P 节点的 prefill 性能考虑。`v0.30.0` 新增异步版 `ProfilingChunkAsyncScheduler`，支持在开启 MRV2（第二代 Model Runner 执行器，`VLLM_USE_V2_MODEL_RUNNER=1`）时与异步调度组合；而固定 `main` 已在 PR `#21310`（提交 `839f53831`）中整体移除 CPP（见[版本差异](#版本差异)）。
 
 若调度还依赖草稿的置信预测，异步也会影响“这次决定用了哪一轮信息”。[DSpark 的 CPU/设备分工](dspark.md#cpu-已经排下一步新的置信度还没回来怎么办)把总预算与逐请求长度分开讲，示范怎样记录步号和请求映射；它不是 GLM 占位机制的另一个名称。
 
@@ -345,15 +349,15 @@ file: async-scheduling-fig-dbo-split
 
 代价包括主机线程协调、额外的切片与元数据、为保持组间一致而补齐输入；较小矩阵的计算效率也要按尺寸重新衡量。要比较藏住的通信时间与这些新增开销：前者不足以抵消后者时，总耗时反而增加。通信本来很短、输入过少或两组负载差得很大时，应重点比较这两笔耗时。它与提前排下一步的 async scheduling、把模型按层分段的 PP 分工不同；是否能组合，要看各自的版本和后端条件。
 
-## 复杂异构实战对照：GLM 双机 R1 占位账与 DBO 边界
+## 跨机 EP 的 DBO 边界与 MTP 异步占位账
 
-以上是通用引擎的异步调度与 DBO 机制：在 `Qwen3-8B` / `Qwen3-30B-A3B` 等 `v0.30.0` 标准单卡或多卡昇腾部署中，**异步调度直接生效**（无投机时每步输出占位恒为 `1`）；而上游 **DBO 在昇腾 `v0.30.0` 平台初始化时仍会被强制重置关闭**（`enable_dbo=False`、`ubatch_size=0`）。下面对照历史 **GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)），核对 DBO 边界与带 MTP 3 草稿的 R1 占位账。
+以上是通用引擎的异步调度与 DBO 机制：在 `Qwen3-8B` / `Qwen3-30B-A3B` 等 `v0.30.0` 标准单卡或多卡昇腾部署中，**异步调度直接生效**（无投机时每步输出占位恒为 `1`）；而上游 **DBO 在昇腾平台初始化时仍会被强制重置关闭**（`enable_dbo=False`、`ubatch_size=0`）。下面分两小节看跨机 EP 部署的 DBO 平台校验边界，以及历史 **GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，部署前提见[部署页](glm-5-3-flash-two-node.md#部署前提)）带 3 个 MTP 候选时的 R1 占位账。
 
-### 固定 GLM 双机能直接照官方 DBO 命令开吗？
+### 昇腾跨机部署能直接照上游 DBO 命令开吗？
 
 这里的官方 DBO 设计描述的是上游 GPU 的 DP+EP 路径。所核 Ascend 平台会把这个上游开关重置为关闭，并记录警告，所以不能把加上 DBO 参数当成固定 GLM 获得通信重叠的办法。固定 GLM 的异步调度仍按本页原来的占位协议工作；昇腾的专家通信优化另见 [MC2](expert-parallel.md#mc2-还是-allgather)，它有自己的算子、设备与规模条件。
 
-### 落到 GLM 双机：R1 每一步的占位账
+### 带 3 个 MTP 候选时，R1 每一步怎样记占位与销账？
 
 **开着，靠自动判定。** 官方双机命令没写 async scheduling 的开关，因此走自动判定：模型不是 pooling 类，投机方法 MTP（每步草拟 `3` 个候选）在允许名单里，未关掉候选批次补齐，且多进程执行器支持异步。四条全部通过，所以处于开启状态（启动日志里有一行写明开关结果，本部署还缺这份日志）。
 
@@ -388,7 +392,7 @@ $$\text{已算}_{\text{new}} = 12 - 2 = 10, \qquad \text{输出占位}_{\text{ne
 | 算完且回来了的位置 | $10 - 4$ | **6 个**（与同步记法下第 2 步之后一致） |
 | 排第 4 步的新增位置 | $7 + 3 + 4 - 10$ | **4 个位置** |
 
-Worker 那边也会在卡上先改一次。第 3 步排出时，第 2 步结果尚未回到 EngineCore，调度器按全接受把位置推到 8–11。Worker 准备输入时，直接用卡上保存的有效数 2（接受 1 个）修正设备已算数，把位置回退 2 格到 6–9（与[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)一致，CPU 长度按前述后端条件另行修正）。第 2 步在位置 6、7 写下的注意力 KV 会被后续有效计算原地覆盖。本部署 prefix caching 默认关着（见 [prefix caching](prefix-caching.md#glm-双机上它开着吗)），「算完且回来了的位置」这条线只在显式打开时用于登记缓存。
+Worker 那边也会在卡上先改一次。第 3 步排出时，第 2 步结果尚未回到 EngineCore，调度器按全接受把位置推到 8–11。Worker 准备输入时，直接用卡上保存的有效数 2（接受 1 个）修正设备已算数，把位置回退 2 格到 6–9（与[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)一致，CPU 长度按前述后端条件另行修正）。第 2 步在位置 6、7 写下的注意力 KV 会被后续有效计算原地覆盖。本部署 prefix caching 默认关着（见 [prefix caching](prefix-caching.md#五组混合缓存怎样找到共同恢复边界)），「算完且回来了的位置」这条线只在显式打开时用于登记缓存。
 
 **多条请求时照样按条记。** 场景 M（DP0 上 12 条 decode 加 1 条 6000 token 的新请求，设定见[示例场景 M](concurrent-requests.md#示例场景-m-与变体-m)）里，12 条 decode 请求每条都照上表记，每步各加 4；新请求一步就算完整段提示词，不算分段，排完记 1 个输出占位。整批一步排多少、怎样补齐到图尺寸、空闲的 DP1 怎样陪跑，只在[多条请求](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)里推导；async scheduling 不改这些数，只改这些计划什么时候发出去。
 
@@ -432,8 +436,8 @@ Ascend 上看到 `Parameter is currently ignored on Ascend. parameter=enable_dbo
 - 默认 `None` 走自动分支，不兼容时关闭异步；pooling 分支记 debug，其余列出的禁用分支记 warning。旧版自动分支不放行 `draft_model`，与显式开启的名单不同。
 - 投机解码与异步同开：不报错，打 warning `Disabling cascade attention (not yet compatible with async speculative decoding).` 并强制 `disable_cascade_attn = True`。
 - 占位账记乱：`AsyncScheduler._update_request_with_output` 里 `assert request.num_output_placeholders >= 0` 会失败。
-- vllm-ascend：`v0.26.0rc` 上 ShortRequestFirst 与 `profiling_chunk_config`（CPP）直接互斥（`ValueError`）；早期开发快照曾只允许同步同开；`v0.30.0` 在 MRV2 下提供 `ProfilingChunkAsyncScheduler` 并允许组合（MRV1 + async 仍报 `ValueError`）；而当前固定 `main (8d6180e2)` 已在 PR #21310 中整体移除 `profiling_chunk_config`（见 [动态分块流水线](dynamic-chunked-pp.md#版本差异)）。
-- 自定义调度器可能失去占位带来的重叠：`SchedulerDynamicBatch`（`v0.23.0` 与 `db701c1f`）以及 `v0.23.0 / v0.26.0rc / db701c1f` 的 `ProfilingChunkScheduler` 都选择普通 `Scheduler` 派生类，平台不会仅凭异步开关补上 `AsyncScheduler` 协议（`v0.30.0` 新增 MRV2 专属 `ProfilingChunkAsyncScheduler`，`main` 已移除 CPP；早期动态分块 PP 教程因此建议显式加 `--no-async-scheduling`）。开关仍为 True 时，执行侧仍可能采用异步输入路径，不能只看开关认定已获得同样重叠；`v0.26.0rc` 起日志会提醒继承普通 `Scheduler` 可能导致性能下降。
+- vllm-ascend：`v0.26.0rc` 上 ShortRequestFirst 与 `profiling_chunk_config`（CPP）直接互斥（`ValueError`）；历史开发快照（如 `vllm-ascend@baa023ad`）曾只允许同步同开；`v0.30.0` 在 MRV2 下提供 `ProfilingChunkAsyncScheduler` 并允许组合（MRV1 + async 仍报 `ValueError`）；而当前固定 `main (8d6180e2)` 已在 PR #21310（提交 `839f53831`）中整体移除 `profiling_chunk_config`（见 [动态分块流水线](dynamic-chunked-pp.md#版本差异)）。
+- 自定义调度器可能失去占位带来的重叠：`SchedulerDynamicBatch`（`v0.23.0` 与 `db701c1f`）以及 `v0.23.0 / v0.26.0rc / db701c1f` 与历史开发快照 `baa023ad` 的 `ProfilingChunkScheduler` 都选择普通 `Scheduler` 派生类，平台不会仅凭异步开关补上 `AsyncScheduler` 协议（`v0.30.0` 新增 MRV2 专属 `ProfilingChunkAsyncScheduler`，固定 `main` 已在 `839f53831` 移除 CPP；历史开发快照 `baa023ad` 的动态分块 PP 用户指南因此建议显式加 `--no-async-scheduling`）。开关仍为 True 时，执行侧仍可能采用异步输入路径，不能只看开关认定已获得同样重叠；`v0.26.0rc` 起日志会提醒继承普通 `Scheduler` 可能导致性能下降。
 - 文档与代码：vllm-ascend 的 `feature_matrix.md` 里 Async Scheduling 一行没有标不兼容，但上面几条硬 `raise` 都在，以代码为准。
 
 ### 开销和什么时候别开
@@ -451,12 +455,12 @@ Ascend 上看到 `Parameter is currently ignored on Ascend. parameter=enable_dbo
 
 ### 版本差异
 
-按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机绑定算例采用例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`**。主线机制（默认自动判定、输出占位与批次队列循环）在四版保持一致。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机绑定算例采用历史专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`**。主线机制（默认自动判定、输出占位与批次队列循环）在四版保持一致。
 
 | 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
 | 上游 `async_scheduling` 判定与占位 | `None` 自动分支不放行 `draft_model`；占位加 `1 + K`；无 `max_in_flight_tokens`；V1 PP=1 并发 2 批、V2 为 `pp_size + 1` | 新增 `max_in_flight_tokens` 与 `dspark`；占位改为 `num_sampled_tokens_per_step + K`；自定义 `Scheduler` 告警提醒失去异步 | `None` 自动分支放行 `draft_model`（`scheduler.py#L190-L220`、`vllm.py#L589-L605`）；并发批数公式延续 | 延续 `pp_size + 1` 并发批数与 `max_in_flight_tokens`（`vllm.py#L616-L635`）；V1 不兼容列表单列集中校验（`#L1799-L1851`），Ascend 端不再受 V1 限制 |
-| `profiling_chunk`（CPP）与 MRV2 约束 | 平台无条件选同步 `ProfilingChunkScheduler`（`db701c1f` 同样） | 仍无条件选同步 `ProfilingChunkScheduler`；`ShortRequestFirst` 与 `profiling_chunk_config` 直接互斥 | **`async_scheduling` + `profiling_chunk_config`（CPP）强制要求 MRV2**（`platform.py#L1075-L1085` 校验 `VLLM_USE_V2_MODEL_RUNNER=1`，否则 `ValueError`）；满足时分派 `ProfilingChunkAsyncScheduler`（`#L1386-L1407`）；`patch_use_v2_model_runner.py#L18-L42` 按 env 开关决定 V1/V2 | **删除 MRV1，全仓唯一保留 MRV2**（`mrv2_utils.py#L29-L36`，设 `VLLM_USE_V2_MODEL_RUNNER=0` 直接报错）；**`profiling_chunk_config`（CPP）已在 PR #21310 整体移除** |
+| `profiling_chunk`（CPP）与 MRV2 约束 | 平台无条件选同步 `ProfilingChunkScheduler`（`db701c1f` 同样） | 仍无条件选同步 `ProfilingChunkScheduler`（历史开发快照 `baa023ad` 同样）；`ShortRequestFirst` 与 `profiling_chunk_config` 直接互斥 | **`async_scheduling` + `profiling_chunk_config`（CPP）强制要求 MRV2**（`platform.py#L1075-L1085` 校验 `VLLM_USE_V2_MODEL_RUNNER=1`，否则 `ValueError`）；满足时分派 `ProfilingChunkAsyncScheduler`（`#L1386-L1407`）；`patch_use_v2_model_runner.py#L18-L42` 按 env 开关决定 V1/V2 | **删除 MRV1，全仓唯一保留 MRV2**（`mrv2_utils.py#L29-L36`，设 `VLLM_USE_V2_MODEL_RUNNER=0` 直接报错）；**`profiling_chunk_config`（CPP）已在 PR #21310（提交 `839f53831`）整体移除** |
 | 昇腾异步调度器族与 V1 PP 采样传递 | 仅 `RecomputeScheduler` 备异步版；V1 非 PD-P 异步 PP 走继承广播 `_pp_broadcast_prev_sampled_token_ids` | `ShortRequestFirst`、`BatchJobAware` 新增异步版；V1 PP 改为经调度输出 IPC 传递 token | 新增 `DyntraLB` 异步版及 `ProfilingChunkAsyncScheduler`；V1 PP 延续调度输出 IPC；MRV2 独立走 V2 PP 传输 | 移除 V1 路径，所有异步调度器与 PP 传输收敛至 MRV2 体系 |
 | Worker 异步拷贝与 DBO 开关 | MRV1 主机写 `-1`、采样值留卡上、异步拷贝流回传；Ascend 将上游 `enable_dbo` 重置 `False`、`ubatch_size` 置 `0` | 延续 MRV1 异步拷贝与 DBO 重置 | MRV1 延续旧异步拷贝；MRV2 接入 `async_tensor_h2d` 异步 H2D 拷贝；`platform.py#L919-L923` 仍将 `enable_dbo` 重置 `False` | **MRV2 全面采用 `vllm.utils.torch_utils.async_tensor_h2d` 异步 H2D 拷贝**（`worker/v2/model_runner.py#L37`、`#L890-L976`，覆盖 `idx_mapping`、`cu_num_logits`、`query_start_loc` 等输入缓冲）；`platform.py#L1083-L1087` 仍重置 `enable_dbo=False` |
 
@@ -484,7 +488,7 @@ DBO 的官方设计全文见来源 80；四版默认、实际 ≥ 门槛和全�
 
 Worker 在卡上把采样值与候选抄进输入见 [C12]；主机占位及设备采样缓存见 [C14]，异步结果对象调用见 [C15]、完成事件与回收实现见来源 43；设备已算数修正见 40、59，CPU 长度消费者与条件见 41–42，CPU 读取前的事件等待见 [C17]。候选回传条件见 [C18]，FULL 当前流同步的谓词见 [C20]。
 
-昇腾平台选择调度类见 [C21]，v0.26 rc/main 的异步类与互斥规则见 [C23][C24]；v0.26 rc 的占位采样数与新警告见 [C26][C28]。普通 Scheduler 若没有占位协议，同一连续 decode 请求需先收结果才有下一步预算，由减法推出 [I]；这不是所有请求都无重叠的结论。官方动态分块 PP 教程示例关异步见 [S31]，兼容矩阵及图例见 [S32]。
+昇腾平台选择调度类见 [C21]，`v0.26.0rc` 与历史开发快照 `baa023ad` 的异步类及互斥规则见 [C23][C24]，`v0.30.0` 的 MRV2 异步 CPP 分支与固定 `main` 迁移见来源 112–118；`v0.26.0rc` 的占位采样数与新警告见 [C26][C28]。普通 Scheduler 若没有占位协议，同一连续 decode 请求需先收结果才有下一步预算，由减法推出 [I]；这不是所有请求都无重叠的结论。历史开发快照 `baa023ad` 的官方动态分块 PP 教程示例关异步见 [S31]，兼容矩阵及图例见 [S32]。
 
 旧版 PP 的发送条件与继承实现见来源 19、44–47；v0.26 rc/main 的 V1 PP 输入重建与 IPC 补丁见 48–53，模块安装调用见 74–75；main 调度类选择 helper 见 54，队列创建见 55，上游 main 的批数、占位与自定义调度规则见 56–58。版本表中的 CPU 长度修正、采样结果对象与占位写入逐版见 60–68，图同步条件见 69–71，维护 v0.23 与 v0.26 rc 的重算调度选择见 72–73。
 

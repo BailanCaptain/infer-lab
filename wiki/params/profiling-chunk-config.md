@@ -109,6 +109,7 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1115'
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1397'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030'
+  - 'vllm@ced6857a:vllm/config/vllm.py#L1438-L1487'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -142,18 +143,20 @@ rawSources:
 
 ## 它解决什么问题，适用范围与版本状态是什么？
 
-`profiling_chunk_config` 开启的是上游称为 **CPP（Dynamic Chunked Pipeline Parallel）** 的动态切块机制：服务启动时实测几十次真实 forward，拟合「这台机器上一段长 `l` 的 prefill 要花多久」的延迟曲线；运行时再按每条请求已有前缀长度反解出本步该切多少 token，使流水线各阶段处理每块的时间尽量接近，从而压低 [PP（流水线并行）](../concepts/pipeline-parallel.md)因各块耗时不均产生的等待气泡（完整概念见[动态切块](../concepts/dynamic-chunked-pp.md)）。
+长序列分块预填充时，**越往后累计的历史越长，单块注意力就越慢——`profiling_chunk_config` 的直觉就是给后面的步少切一点 token，让每块耗时尽量齐平。** 这套机制在上游称为 **CPP（Dynamic Chunked Pipeline Parallel）**，启动期会实测几十次真实 forward 来拟合 prefill 延迟曲线。运行期再按当前请求已有前缀长度反解本步切块大小，从而压低 [PP（流水线并行）](../concepts/pipeline-parallel.md)因各块快慢不均产生的等待气泡（完整原理见[动态切块](../concepts/dynamic-chunked-pp.md)）。
 
-**定位、硬前提与版本现状**：默认关闭（`enabled: false`），官方定位为 [PD 分离](../concepts/pd-disaggregation.md)部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置，旧版指南也含普通 serve 与离线 LLM 示例，其他形态仍须单独验证）。
+**定位、硬前提与版本现状**：默认关闭（`enabled: false`），官方定位为 [PD 分离](../concepts/pd-disaggregation.md)部署中 **P（Prefiller）节点**的长序列优化（D 节点无需配置；旧版指南另有普通 serve 与离线 LLM 示例，其他形态须单独验证）。
 
-- **硬性前提**：必须同时满足 `pipeline_parallel_size > 1`、开启 chunked prefill，且不能与 `enable_balance_scheduling`（及 `v0.30.0` 新增的 `dyntra_lb_config`）同开。
-- **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）下；旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
-- **`main`（`8d6180e2`）已整体移除（新项目慎度依赖）**：整套 CPP 功能、配置与文档已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除。升级 `main` 须删此键，否则普通 Ascend 进程按未知键拒收（顶层未知键仅发现 `vllm_omni` 时告警过滤，嵌在 `scheduler_config` 内直接报错）。下面以 `Qwen/Qwen3-30B-A3B` 展示 `v0.30.0` 下的标准配置形式（本工作区无 NPU 实机执行验证）：
+- **硬性前提**：必须满足 `pipeline_parallel_size > 1` 且开启 chunked prefill；不能与 `enable_balance_scheduling`（及 `v0.30.0` 的 `dyntra_lb_config`）同开。
+- **推荐入口（`v0.26.0rc`–`v0.30.0`）**：写在 `additional_config.scheduler_config.profiling_chunk_config`（见 [AscendConfig](../concepts/ascend-config-system.md)）。旧顶层 `additional_config.profiling_chunk_config` 仍兼容但打弃用告警，两处同写时嵌套优先。
+- **`main`（`8d6180e2`）已整体移除**：整套 CPP 功能与配置已随 PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) 删除，升级 `main` 须删此键（普通进程按未知键拒收，仅顶层未知键在装有 `vllm_omni` 时告警过滤）。
+- **`v0.30.0` 调度器与 Runner 配套注意**：配套 `vllm` 在未显式指定时会自动启用异步调度（`async_scheduling=True`），而 `v0.30.0` 的异步 CPP 强制要求 Model Runner V2。因此配置示例须显式加 `--no-async-scheduling` 走同步调度，或显式开启并验证 `VLLM_USE_V2_MODEL_RUNNER=1`（以下展示配置形式，本工作区无 NPU 实机执行验证）：
 
 ```bash
 vllm serve Qwen/Qwen3-30B-A3B \
   --tensor-parallel-size 4 \
   --pipeline-parallel-size 2 \
+  --no-async-scheduling \
   --max-num-batched-tokens 16384 \
   --additional-config '{"scheduler_config": {"profiling_chunk_config": {"enabled": true}}}'
 ```
@@ -170,15 +173,9 @@ vllm serve Qwen/Qwen3-30B-A3B \
 | `min_chunk` | `> 0`，默认 `4096` | 大于 `max_num_batched_tokens` 时仅打 warning 并静默钳小到后者 |
 | `max_fit_chunk` | 硬阈值 `> 5`（`<= 5` 报错），默认 `30` | 报错文案建议至少 `30` 个点，但填 `6–29` 也能过校验，需注意样本过少导致曲线偏斜 |
 | PP 与负载均衡硬互斥 | `pp <= 1`、`enable_balance_scheduling` 或 `dyntra_lb_config.enabled` 同开均抛 `ValueError` | `v0.23`/`v0.26` 还会受残留环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING=1` 触发互斥 |
-| `ShortRequestFirst` 与异步调度 | `v0.30.0` 允许同开 `ShortRequestFirst`；配 `async_scheduling` 硬性要求 `VLLM_USE_V2_MODEL_RUNNER=1` | `v0.26` 与 SRF 硬互斥；`v0.30.0` 在默认 MRV1 下开异步调度会报错 |
+| `ShortRequestFirst` 与异步调度 | `v0.30.0` 允许同开 `ShortRequestFirst`；配异步调度硬性要求 `VLLM_USE_V2_MODEL_RUNNER=1` | 上游默认常自动选中异步调度，MRv1 下须传 `--no-async-scheduling`，否则启动抛 `ValueError` |
 
-**放到 GLM 双机（`db701c1f` 固定基线）**：该部署为 TP8 / DP2 / EP16、**PP = 1**（45 层全在单张卡的执行序列里，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），官方启动命令未开启此配置；只要把 `enabled` 设为真，`v0.23`、`v0.26`、`v0.30.0` 与 `db701c1f` 都会在启动校验直接抛出一字不差的 `ValueError`（实际日志拼成一行）：
-
-```text
-profiling_chunk_config requires pipeline parallelism (pp > 1).
-Please set --pipeline-parallel-size to a value greater than 1,
-or disable profiling_chunk_config.
-```
+**`PP > 1` 准入边界**：任何 `pipeline_parallel_size == 1` 的单级流水部署开启 `enabled: true` 时，`v0.23`、`v0.26` 与 `v0.30.0` 都会在启动校验直接抛 `ValueError`。历史双机 `PP = 1` 部署的参数边界统一见 [GLM 双机部署后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
 
 ```wiki-diagram
 file: profiling-chunk-config
@@ -192,8 +189,8 @@ file: profiling-chunk-config
 
 工作流程分**启动测量**与**运行求根**两步：
 
-- **启动期**：1 次不入拟合的预热后，从 `base_chunk_size` 逐步递减尝试采 64 个样本，每次跑真实 forward（复用 `dummy_run`）量延迟、跳过无效或失败点，至少收集 8 个有效点后用最小二乘拟合启动模型 $f(l) = a \cdot l^2 + b \cdot l + c$。PP 模式下各 Worker 都会执行并返回本地计时；选用哪个 rank 取决于执行器接口——支持 `unique_reply_rank` 时取 `world_size - TP × PCP`，否则取列表首项，不能简化为「只取第一级」。
-- **运行期**：初始目标耗时取 `f(base_chunk_size) - f(0)`（在线零历史样本也可在历史模型拟合成功前更新该目标耗时）。`base_chunk_size` 来自调度器 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size`，因此 `--max-num-batched-tokens` 决定了曲线原点与目标耗时（上游经验是先用固定块调出最优值，再放大到 2–4 倍开动态块）。逐条请求求根时，记本批剩余时间预算为 `T`、已算前缀长度为 `L`，启动模型解 $a \cdot x^2 + (2aL + b) \cdot x - T = 0$ 的正根 `x`。
+- **启动期**：1 次不入拟合的预热后，从 `base_chunk_size` 逐步递减尝试采 64 个样本，每次跑真实 forward（复用 `dummy_run`）量延迟并跳过无效或失败点。至少收集 8 个有效点后，用最小二乘拟合启动模型 $f(l) = a \cdot l^2 + b \cdot l + c$。PP 模式下各 Worker 都会执行并返回本地计时；选用哪个 rank 取决于执行器接口——支持 `unique_reply_rank` 时取 `world_size - TP × PCP`，否则取列表首项，不能简化为「只取第一级」。
+- **运行期**：初始目标耗时取 `f(base_chunk_size) - f(0)`（在线零历史样本也可在历史模型拟合成功前更新该目标耗时）。`base_chunk_size` 来自调度器 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size`，因此 `--max-num-batched-tokens` 决定了曲线原点与目标耗时。上游经验是先用固定块调出最优值，再放大到 2–4 倍开动态块。逐条请求求根时，记本批剩余时间预算为 `T`、已算前缀长度为 `L`，启动模型解 $a \cdot x^2 + (2aL + b) \cdot x - T = 0$ 的正根 `x`。
 
 拿到正根 `x` 后，还要经过三步后处理（平滑是在**基准块与本次预测**之间线性插值，而不是拿上一次 chunk 做平滑；`smooth_factor=1.0` 直接使用原始预测）：
 
@@ -204,7 +201,7 @@ align      = max(page_size, 64)
 chunk_size = ceil(chunk_size / align) * align
 ```
 
-公式复核示例（非性能实测）：取 `base_chunk_size = 8192`、原始预测 `x = 3000`、`smooth_factor = 0.5`、`min_chunk = 4096`、`page_size = 128`，得平滑值 $8192 + 0.5 \times (3000 - 8192) = 5596$，过下限仍为 `5596`，向上对齐到 `128` 的倍数得 **5632**。注意一处文档与源码分歧：设计文档写向下取整（"Round down to multiple of `page_size`"），源码实际却是向上取整 `((chunk_size + align - 1) // align) * align`，应以代码为准。
+公式复核示例（非性能实测）：取 `base_chunk_size = 8192`、原始预测 `x = 3000`、`smooth_factor = 0.5`、`min_chunk = 4096`、`page_size = 128`。先得平滑值 $8192 + 0.5 \times (3000 - 8192) = 5596$，过下限仍为 `5596`，向上对齐到 `128` 的倍数得 **5632**。注意一处文档与源码分歧：设计文档写向下取整（"Round down to multiple of `page_size`"），源码实际却是向上取整 `((chunk_size + align - 1) // align) * align`，应以代码为准。
 
 调度器拿到有效预测后以 `num_new_tokens = min(predicted_chunk, num_new_tokens)` 截断已算出的 token 预算（只收窄、不放大）。预测器未就绪时跳过动态分支；进入分支后若二次项系数为 0、判别式为负或根非正会返回 `None`——此时若仍在校准或本批剩余时间预算仍等于初始目标，保留原预算；若已退出校准且预算已被前面请求消耗，则停止本轮该请求队列的继续装入。
 
@@ -212,33 +209,33 @@ chunk_size = ceil(chunk_size / align) * align
 
 启动期只能测到 `max_num_batched_tokens` 长度，长序列外推会偏差，因此默认开启在线校准（省略 `need_timing` 时跟随 `enabled`）。计时结果回传预测器后，用真实批次重拟合带历史长度的模型，拟合成功后再从启动模型切换过来：
 
-- **早期公式（`v0.23` / `v0.26` / 早期 `baa023ad`）**：单请求为 $f(C, H) = a \cdot C(C+H) + b \cdot (C+H) + c$（`C` 为本块 token 数，`H` 为已有前缀长度），默认在 5–30 个样本间每增一点重做最小二乘拟合。
-- **`v0.30.0` 公式（`c09d3e20`，始于 `rc2`）**：改为 $f(C, H) = a \cdot C(C+H) + b \cdot C + c$，线性项不再加历史长度，改用非负最小二乘（批次特征为各请求 `C(C+H)` 之和、`C` 之和与请求数），旧版拟合系数不可直接搬入新版；MRV2 也已接入执行计时。
+- **早期公式（`v0.23` / `v0.26` / 早期 `baa023ad`）**：单请求形式为 $f(C, H) = a \cdot C(C+H) + b \cdot (C+H) + c$（`C` 为本块 token 数，`H` 为已有前缀长度）。默认在 5–30 个样本间每增一点就重做一次最小二乘拟合。
+- **`v0.30.0` 公式（`c09d3e20`，始于 `rc2`）**：改为 $f(C, H) = a \cdot C(C+H) + b \cdot C + c$，线性项不再加历史长度，改用非负最小二乘（批次特征为各请求 `C(C+H)` 之和、`C` 之和与请求数）。旧版拟合系数不可直接搬入新版，且 MRV2 已接入执行计时。
 
 在线计时在**两项条件同时满足**后由调度器通知 Worker 自动关闭：
 
 1. 已记录 **3 次**总历史长度为 0 的有效批次（用于更新目标时延）；
 2. 历史拟合样本数**严格超过** `max_fit_chunk`（默认 30 时要到第 31 个样本才设完成标记，下一次检查双条件满足时发停止信号，既不是拟合成功一次就停，也不保证拟合误差达到特定精度）。
 
-显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方指南指出未完成在线校准就投产会引发显著性能劣化、关闭在线校准会使长序列切块落入次优外推，并建议投产前用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
+显式设 `need_timing: false` 只跳过在线校准、不取消启动测量。官方指南指出，未完成在线校准就投产会引发显著性能劣化，关闭在线校准也会使长序列切块落入次优外推。投产前建议用 `ais_bench` 生成定长随机不重复数据集（`batch_size=1`、覆盖目标 `max-model-len` 且避免命中前缀缓存）完成校准。
 
 ## 官方基准数字、代价与排障边界
 
-官方指南给出了 PD 分离 P 节点（Atlas A3 64 GB，定长请求、并发 1）的实测对照（**这是上游在 Atlas A3、PP > 1、DeepSeek-V3.1 / Qwen3-235B 上的官方数，不是本站 GLM 双机 A2 / PP = 1 上的数**；且三个旧分支文档重复刊载这组数值，不代表分别在每个分支重测过）：
+官方指南给出了 PD 分离 P 节点（Atlas A3 64 GB，定长请求、并发 1）的实测对照。注意这是上游在 Atlas A3、`PP > 1`、DeepSeek-V3.1 / Qwen3-235B 上的官方数，不是本站 GLM 双机 A2 / `PP = 1` 上的数（三个旧分支文档重复刊载这组数值，也不代表分别在每个分支重测过）：
 
 | 模型 | 输入长度 | CPP 动态块 | PP 固定块 |
 | --- | --- | --- | --- |
 | DeepSeek-V3.1-W8A8 | 128k | TTFT 22.5s | TTFT 27.0s |
 | Qwen3-235B | 256k | TTFT 53.5s | TTFT 61.4s |
 
-在变长请求（4k–64k、均值与标准差均为 32k）、并发 4、前缀命中率 99% 的一组测试中，官方报告 CPP2TP8 输入吞吐为 22,424 tps/卡，对照 DP2TP8 为 16,150 tps/卡、TP16 为 18,875 tps/卡。
+在变长请求（4k–64k、均值与标准差均为 32k）、并发 4、前缀命中率 99% 的一组测试中，官方报告 CPP2TP8 输入吞吐为 22,424 tps/卡。同组对照下，DP2TP8 为 16,150 tps/卡，TP16 为 18,875 tps/卡。
 
 调整每步送入模型的 token 数不改权重与采样参数，但批次形状与计算分组变化后不保证浮点结果或生成文本逐项一致，仍须在目标模型和后端上验证。主要代价与排查点如下：
 
-- **启动延迟测量开销（不要与显存 profile run 混淆）**：启动阶段额外跑 1 次预热加约 64 次真实 forward，官方概括为几十秒（随模型与设备变化）；它复用 `dummy_run` 测量延迟以拟合切块模型，而启动期的显存 profile run 是按峰值计算 KV cache 预算（GLM 双机[每卡 3,855 块](../concepts/kv-cache-memory-profiling.md#放到-glm-双机一张卡的预算怎样扣)与[每块 640 token](../concepts/glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)见各自唯一出处）。设计文档称无额外运行期显存开销，但不能据此证明测量峰值或改切块后的执行峰值绝对不变。
+- **启动延迟测量开销（不要与显存 profile run 混淆）**：启动阶段额外跑 1 次预热加约 64 次真实 forward，官方概括为几十秒（随模型与设备变化）。它复用 `dummy_run` 测量延迟以拟合切块模型；启动期的显存 profile run 则是按峰值计算 KV cache 预算（GLM 双机[每卡 3,855 块](../concepts/kv-cache-memory-profiling.md#放到-glm-双机一张卡的预算怎样扣)与[每块 640 token](../concepts/glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)见各自唯一出处）。设计文档称无额外运行期显存开销，但不能据此证明测量峰值或改切块后的执行峰值绝对不变。
 - **校准期设备同步**：在线计时开启期间，完整执行路径在计时起止两端各做一次设备同步；未完成校准就投产会持续承担同步与不准确外推的代价；显式设 `need_timing: false` 可省同步但只依赖启动模型，需对比真实负载 TTFT 与吞吐。
-- **容易踩空的调参与校验细节**：① `max_num_batched_tokens < min_chunk` 时仅打一条 warning 就把 `min_chunk` 钳小；② `max_fit_chunk` 硬阈值是 `> 5`（写 6 不报错），但拟合点少曲线更易偏；③ 调参顺序须先调 `--max-num-batched-tokens` 再调 `smooth_factor`，开在线校准时别动 `smooth_factor`；④ 仍缺不同 `smooth_factor` 的 TTFT 对照及短序列负载完整比较，校准完成标记不等于目标负载已达最优。
-- **跨调度器与版本演进**：`v0.26` 上与 `ShortRequestFirst` 硬互斥（直接 `ValueError`）；`v0.30.0` 放宽为允许同开并新增 `ProfilingChunkAsyncScheduler`（但 `async_scheduling` 强制要求 V2 model runner，且新增与 `dyntra_lb_config` 的硬互斥）；`main` 已于 PR #21310 整体删除本配置与调度器，升级须移除该键。
+- **容易踩空的调参与校验细节**：一是 `max_num_batched_tokens < min_chunk` 时仅打一条 warning 就把 `min_chunk` 钳小；二是 `max_fit_chunk` 硬阈值是 `> 5`（写 6 不报错），但拟合点少曲线更易偏。三是调参顺序须先调 `--max-num-batched-tokens` 再调 `smooth_factor`，开在线校准时别动 `smooth_factor`。目前仍缺不同 `smooth_factor` 的 TTFT 对照及短序列负载完整比较，校准完成标记不等于目标负载已达最优。
+- **跨调度器与版本演进**：`v0.26` 上与 `ShortRequestFirst` 硬互斥（直接 `ValueError`）。`v0.30.0` 放宽为允许同开并新增 `ProfilingChunkAsyncScheduler`，但 `async_scheduling` 强制要求 V2 model runner，且新增与 `dyntra_lb_config` 的硬互斥。`main` 已于 PR #21310 整体删除本配置与调度器，升级须移除该键。
 
 ## 对照源码
 

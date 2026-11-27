@@ -13,7 +13,8 @@ aliases:
 legacyAnchors:
   一句话: 这组比例控制什么，为什么 v0.24 起已删除？
   为什么存在: 比例怎样换算成预取字节数，哪些路径不归它管？
-  开了的代价: 调参陷阱、版本清理与 GLM 双机推演
+  开了的代价: 调参陷阱与零值规则
+  调参陷阱版本清理与-glm-双机推演: 哪些权重预取比例到不了实际调用点
 chapters:
   - '19'
 sources:
@@ -70,6 +71,7 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L125'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907'
   - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L88-L104'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -101,9 +103,11 @@ rawSources:
 
 ## 这组比例控制什么，为什么 v0.24 起已删除？
 
-**这是已随父配置 [weight_prefetch_config](weight-prefetch-config.md) 在 `v0.24.0rc`（PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949)）一并删除、在 `v0.30.0` 与 `main` 中没有等价替代键的历史权重预取比例字典：升级时须连同外层 `weight_prefetch_config` 一起从 `--additional-config` 删除（残留会触发 `extra="forbid"` 拒收，仅装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 静默忽略；挪到顶层同样无效）。**
+在历史 **`v0.23.0`（`2c59ff10`）** 维护分支中，`prefetch_ratio` 用来设置**一次权重预取请求搬运本地权重的前百分之几**。当父开关 [weight_prefetch_config](weight-prefetch-config.md) 开启、所在模块组未被全零关闭且运行路径实际走到预取调用点时，注意一条反直觉陷阱：**非空组里漏写某一项或把该项写成 `0`，在命中调用点时会被公共封装翻成请求整块权重**，并不是单项关闭开关。
 
-提前把权重从 HBM（高带宽显存）搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与 MTE（AI Core 数据搬运引擎），拖慢正在运行的向量算子。在历史 **`v0.23.0`（`2c59ff10`）** 维护分支中，`prefetch_ratio` 按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」，默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`（官方定性报告该默认值在 `Qwen3-235B-A22B-W8A8` `--max-num-seqs 144` 与 `Qwen3-32B-W8A8` `--max-num-seqs 72` 下表现良好，调参前应先抓 profiling，不能因模型或并发上限相近就直接套用）。
+自 `v0.24.0rc`（PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949)）起，该字典已随整个 `weight_prefetch_config` 删除，在 `v0.30.0` 与 `main` 中没有等价替代键。升级时须连同外层 `weight_prefetch_config` 一起从 `--additional-config` 移除。普通进程残留会触发 `extra="forbid"` 拒收，装有 `vllm_omni` 时告警过滤，`v0.26.0rc` 则静默忽略（挪到顶层同样无效）。
+
+提前把权重从 HBM（高带宽显存）搬进 L2 cache 并非越多越好：搬太少挡不住后续矩阵乘等待，搬太多又会挤占 L2 与 MTE（数据搬运引擎）带宽、拖慢正在运行的向量算子。历史默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`。官方定性报告该默认值在 `Qwen3-235B-A22B-W8A8`（`--max-num-seqs 144`）与 `Qwen3-32B-W8A8`（`--max-num-seqs 72`）下表现良好。实际调参前应先抓 profiling，不能仅凭模型或并发上限相近直接套用。
 
 ## 事实表
 
@@ -122,7 +126,7 @@ rawSources:
 
 权重预取的整体触发机制见 [weight_prefetch_config](weight-prefetch-config.md)，本页的比例专门控制**提交的预取请求字节数**。请求比例偏小会留下更多未预取字节到矩阵乘阶段现搬，请求比例偏大则会加剧与并行 vector 计算对 MTE 和 L2 带宽的争用，快慢必须结合负载实测判断（硬件执行分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）。
 
-换算流程先按 `int(ratio × 本地权重字节数)` 取整：若进入 `mlp` 两项且结果为正，Python 侧再截断到 18 MiB（`attn` / `moe` 无此 Python 截断）；若结果为 0 且所在组仍处于启用状态，公共包装 `maybe_npu_prefetch` 会把 `max_size <= 0` 改写成整块权重大小。因此比例与请求字节数并非在所有取值上都呈线性关系。
+换算分三步走：先按 `int(ratio × 本地权重字节数)` 取整。若进入 `mlp` 两项且结果为正，Python 侧再截断到 `18 MiB`（`attn` / `moe` 无此 Python 截断）。若取整结果为 `0` 且所在组仍处于启用状态，公共包装 `maybe_npu_prefetch` 会把 `max_size <= 0` 改写成整块权重大小，因此比例与请求字节数并非全程线性对应。
 
 ```wiki-diagram
 file: prefetch-ratio
@@ -132,26 +136,28 @@ file: prefetch-ratio
 
 至于默认值里 `moe.gate_up` 为何取 `0.8`，源码与官方文档均未给出推导（仅报告在指定 Qwen3 场景下表现良好）。仅凭调用位置无法比较选专家入口与 SwiGLU 的并行时间窗，也不能断言所有专家权重栈都比稠密矩阵大几个量级。另外，若后端底层同样按 18 MiB 截断，则本地 `w13_weight` 达到至少 22.5 MiB 时 `0.8` 与 `1.0` 会被截成同一尺寸；但在确认后端上限与标定部署的本地权重尺寸前，不能把两者直接当成等价。
 
-## 调参陷阱、版本清理与 GLM 双机推演
+## 调参陷阱与零值规则
 
-本页数据均为配置值与按权重字节推导出的请求尺寸，不含同负载实测对照（GLM 双机主线的吞吐时延来自预取关闭态）。调参方向上：调大比例会增加预取流与 vector 计算对 MTE、L2 的带宽争用（官方建议抓 profiling 确认独立流上的 CMO 操作落在对应 vector 算子窗口内且不晚于其结束，并对比完整执行时间，低延迟优先场景建议关闭）；调小比例可减轻片上资源竞争（低并发下建议调小或关闭，但不证明所有低并发场景都无收益）。
+本页数据均为配置值与按权重字节推导出的请求尺寸，不含同负载实测对照（历史 GLM 双机主线的吞吐时延来自预取关闭态）。调大比例会增加预取流与 vector 计算对 MTE、L2 的争用，官方建议抓 profiling 确认独立流上的 CMO 操作落在并行 vector 算子窗口内且不晚于其结束。低延迟优先或低并发场景建议调小比例或直接关闭（不代表所有低并发场景都一定无收益）。
 
-以 [weight_prefetch_config 页的 Qwen3-0.6B 单卡 bf16 记录](weight-prefetch-config.md#开了的代价)为例：只开父开关、其余默认关闭时，五项中只有 `mlp.down`（6 MiB）发起比例预取，正比例乘积大于 0 时按乘积取整提交、不触及 18 MiB 上限；若比例过小致取整为 0 且组仍启用，反而请求整块 6 MiB。
+以 [weight_prefetch_config 页的 Qwen3-0.6B 单卡 bf16 记录](weight-prefetch-config.md#触发门槛与预取代价)为例：只开父开关、其余默认关闭时，五项中只有 `mlp.down`（`6 MiB`）发起比例预取。正比例乘积大于 `0` 时按乘积取整提交、不触及 `18 MiB` 上限；若比例过小致取整为 `0` 且组仍启用，反而请求整块 `6 MiB`。
 
 **三个容易踩空的配置写法**：
-1. **非空组里漏写一项或写成 `0` 不能关闭该项**：例如传 `{"attn": {"qkv": 0.5}}` 时 `attn` 非空不会补默认，`o` 取 0 字节；传 `{"mlp": {"gate_up": 1.0, "down": 0}}` 时 `down` 也是 0 字节。只要全局开关开、同组过滤后仍有非零项、且路径实际进入预取调用，`maybe_npu_prefetch` 会把 `max_size <= 0` 改写成整块权重——写 `0` 不是单项关闭开关。
-2. **整组全写 `0` 才能关闭该组**：过滤越界值后若剩余值全为 0 或集合为空，该组 `enable` 置 `False`（全局关闭优先）；注意输入本身是空 dict 或整组省略时会先回填默认，不要与「过滤后为空」混为一谈。
-3. **越界值静默丢弃不报错**：`1.2`、`-0.5` 会被直接丢出字典（上游单测锁死此行为），随后按缺项规则处理（组仍启用且命中调用点时转为整块，整组过滤后无非零项时关闭该组）。
+1. **非空组里漏写一项或写成 `0` 不能关闭该项**：传入 `prefetch_ratio` 会整体替换默认字典，不做逐键合并。例如传 `{"attn": {"qkv": 0.5}}` 时 `o` 缺省为 `0` 字节；传 `{"mlp": {"gate_up": 1.0, "down": 0}}` 时 `down` 也是 `0` 字节。只要父开关开启、同组过滤后仍有非零项且实际走到调用点，`maybe_npu_prefetch` 就会把 `max_size <= 0` 翻成整块权重请求。
+2. **过滤后整组全零才关闭该组**：过滤越界值后若剩余值全为 `0` 或集合为空，该组 `enable` 才置 `False`（全局关闭优先）；注意输入本身是空 dict 或整组省略时会先回填默认，不要与「过滤后为空」混淆。
+3. **越界值静默丢弃不报错**：`1.2`、`-0.5` 会被直接丢出字典（上游单测锁死此行为），随后按缺项规则处理。
 
-**放到 GLM 双机（`db701c1f` 固定基线：2×A2×8、TP8/DP2/EP16、W8A8）**：[官方双机部署](../concepts/glm-5-3-flash-two-node.md#部署前提)未传 `additional_config`（`enabled` 默认 `False`），构造对象虽会过滤比例但不会发起预取；命令中的 `--safetensors-load-strategy prefetch` 管磁盘预读 safetensors，与本页无关。若在 `db701c1f` 手动开启父开关，按源码推演这五个比例全部不会发起比例预取：
+## 哪些权重预取比例到不了实际调用点
+
+以历史 GLM 双机固定基线（`db701c1f`，2×A2×8、TP8/DP2/EP16、W8A8，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）为例，官方启动命令未传 `additional_config`（`enabled` 默认 `False`），构造对象虽过滤比例但不发起预取。命令里的 `--safetensors-load-strategy prefetch` 只管启动期磁盘预读 safetensors。即便在 `db701c1f` 手动开启父开关，这五个比例也都到不了实际比例预取点：
 
 | 预取组 | GLM 双机权重背景 | 在 `db701c1f` 上无法触发的原因 |
 | --- | --- | --- |
 | `mlp.gate_up` / `mlp.down` | [前 3 层稠密 MLP](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)在 TP8 下[每卡每层合计 18 MiB](../concepts/tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)（[拆成 gate_up 与 down 两块](../concepts/tensor-parallel.md#开销和什么时候别开)单块均小于 18 MiB） | GLM 整体判定为 MoE 模型，MLP 组直接关闭 |
-| `moe.gate_up` | 本卡 18 个局部专家的 `w13_weight` 属于[每卡每层 432 MiB 路由专家权重](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)中的 gate+up 部分 | GLM 上下文默认层索引为 `None`（直接语言模型 PP=1 起点为 0），且 MLP 关闭不推进索引，MoE 取权重返回空并清 `active` 后退出（多模态外层与 MTP 退出路径见[机制页](weight-prefetch-config.md#开了的代价)）；token `>= 96` 时写什么比例都不发 |
-| `attn.qkv` / `attn.o` | 两份固定量化目录（`9e55cbc8` / `3121f187`）只有 `FLOAT` 与 `W8A8_DYNAMIC`（见[量化版本与权重账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)） | 不派发静态 W8A8 方法，均不进入静态预取钩子（只有 GLM 的 SFA native 路径仍有不读比例的融合 QKV 与 `o_proj` 独立预取，见[机制页](weight-prefetch-config.md#开了的代价)） |
+| `moe.gate_up` | 本卡 18 个局部专家的 `w13_weight` 属于[每卡每层 432 MiB 路由专家权重](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)中的 gate+up 部分 | **少于 `96` 行**直接跳过；达到 `96` 行后才尝试查权重。本历史 GLM 双机因层索引条件（上下文默认 `None`，语言模型 PP=1 起点为 `0`，且 MLP 关闭不推进索引）取不到权重，清 `active` 后仍不发请求（多模态外层与 MTP 退出路径见[机制页](weight-prefetch-config.md#混合模型的五条预取路径分别能否触发)） |
+| `attn.qkv` / `attn.o` | 两份固定量化目录（`9e55cbc8` / `3121f187`）只有 `FLOAT` 与 `W8A8_DYNAMIC`（见[量化版本与权重账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)） | 不派发静态 W8A8 方法，均不进入静态预取钩子（只有 GLM 的 SFA native 路径仍有不读比例的融合 QKV 与 `o_proj` 独立预取，见[机制页](weight-prefetch-config.md#混合模型的五条预取路径分别能否触发)） |
 
-**过期命令提醒**：上游 `two_card` Qwen3 性能 e2e 用例与 Qwen3 稠密模型教程里仍残留 `"weight_prefetch_config":{"enabled":true}`，它们不代表功能仍在，升级到 `v0.30.0` / `main` 时应删除。
+**过期命令提醒**：上游 `two_card` Qwen3 性能 e2e 用例与 Qwen3 稠密模型教程里仍残留 `"weight_prefetch_config":{"enabled":true}`。这些残留不代表功能仍在，升级到 `v0.30.0` 或 `main` 时应一并删除。
 
 ## 对照源码
 
@@ -164,7 +170,7 @@ file: prefetch-ratio
 | 废弃记录与残留示例 | 发版列入 Ready to Deprecate [S18] | PR #11949 已删 [S21]；e2e 用例仍有残留 | 需避免照抄过期示例 | 同左 | 教程/用例残留不证明功能恢复 |
 
 - **比例解析、过滤与公共包装（`2c59ff10`）**：配置读取与默认替换见 `ascend_config.py#L52-L53, #L704-L720`（来源 1–2、20）；`ModuleWeightPrefetchConfig` 越界过滤与组启用判断见 `weight_prefetch.py#L13-L34`（来源 3、36），空组回填与模型互斥见 `#L46-L69`（来源 4），各路径字节计算与 `mlp` 18 MiB 截断见 `#L71-L104, #L158-L186`（来源 5–6），`maybe_npu_prefetch` 将非正字节转整块见 `#L230-L238` 与 `register_custom_ops.py#L126-L131`（来源 7–8）；越界丢弃单测见 `test_weight_prefetch.py#L45-L52`（来源 13）；官方文档见 `weight_prefetch.md#L11-L32` 与 `additional_config.md#L117-L122`（来源 14–15）[S14]。
-- **各调用点与 GLM 双机推演**：`attn` 静态 W8A8 钩子见 `w8a8_static.py`（来源 9、32），`moe` 选专家与取权重退出见 `experts_selector.py`、`weight_prefetch.py#L98-L131`、`ascend_forward_context.py`、`glm5_next.py` 与 `vllm@0fc695fc`（来源 10、30–31、33–34）[C33]；`mlp` 激活与自定义行并行钩子见 `activation.py`、`linear_op.py`（来源 11–12、28–29）；GLM 启动命令（含 `--safetensors-load-strategy prefetch`）与两份量化目录及派发见来源 26–27、39–43[S27][D]。
+- **各调用点与 GLM 双机推演**：`attn` 静态 W8A8 钩子见 `w8a8_static.py`（来源 9、32），`moe` 少于 96 行跳过、达 96 行后查权重退出见 `experts_selector.py`、`weight_prefetch.py#L88-L131`、`ascend_forward_context.py`、`glm5_next.py` 与 `vllm@0fc695fc`（来源 10、30–31、33–34、46）[C33][C46]；`mlp` 激活与自定义行并行钩子见 `activation.py`、`linear_op.py`（来源 11–12、28–29）；GLM 启动命令（含 `--safetensors-load-strategy prefetch`）与两份量化目录及派发见来源 26–27、39–43 [S27][D]。
 - **移除与未知键处理**：`v0.26` 见 `2ed6cbba:ascend_config.py#L56-L73`（来源 24–25）；`v0.30.0` 与 `main` 见 `c09d3e20:ascend_config.py#L1849-L1907` 与 `8d6180e2:ascend_config.py#L1972-L2030`（来源 44–45，历史 `baa023ad`/`7d825229` 见来源 16–19、21–23、37–38）。
 - **待核**：`attn` / `moe` 在后端底层是否同样按 18 MiB 截断，以及标定部署本地权重尺寸与同负载开关性能实测对照，均待实机核验。
 

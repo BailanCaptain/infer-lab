@@ -54,9 +54,9 @@ rawSources:
 ---
 ## 用途与配置入口
 
-在带 [Engram 条件记忆](../concepts/engram-conditional-memory.md)的模型（如 DeepSeek-V4.1-Flash）里，推理每步除了跑常规注意力和 MoE 专家，还要先做 n-gram 哈希计算、词表嵌入查表（含主机内存卸载搬运）以及 DP / TP 组内的特征交换。如果这些准备工作全部排队在主流上串行执行，第 0 层与早期 Transformer 层算完后就得停下来干等查表返回。
+[Engram 条件记忆](../concepts/engram-conditional-memory.md)按局部连续词元（n-gram）模式做哈希查表取出特征，再注入后续 Transformer 层。在 DeepSeek-V4.1-Flash 等含 Engram 的模型里，每步前向都要先完成 n-gram 哈希、词表查表（含主机内存卸载搬运）以及 DP / TP 组内的特征交换。如果这些工作全排在主流串行执行，第 0 层与前几层算完后就得停下等待查表返回。
 
-`multistream_engram_overlap` 是 `--additional-config` 顶层的布尔开关，用来控制是否把 `prepare_engram` 整套准备工作放进独立的辅助 NPU 流，与前几个非 Engram Transformer 层并行推进：
+`multistream_engram_overlap` 是 `--additional-config` 顶层的布尔开关。开启后，`prepare_engram` 整套准备工作会放到独立的辅助 NPU 流，与前几个不依赖 Engram 的 Transformer 层并发推进：
 
 ```bash
 vllm serve /models/DeepSeek-V4.1-Flash \
@@ -64,7 +64,7 @@ vllm serve /models/DeepSeek-V4.1-Flash \
   --additional-config '{"multistream_engram_overlap": true}'
 ```
 
-与其他固定布尔键不同，它的声明默认值由硬件画像动态决定：当 `get_current_hardware_profile().device_adaptor_family == DeviceAdaptorFamily.FP8_OPTIMIZED`（即 Atlas A5 / Ascend 950 系列）时默认为 `true`，而在 Atlas A2、Atlas A3 与 310P 上默认为 `false`；用户显式传入 `true` 或 `false` 时始终覆盖硬件默认策略。
+它的声明默认值按硬件画像自动决定。当设备属于 `DeviceAdaptorFamily.FP8_OPTIMIZED`（Atlas A5 / Ascend 950 系列）时默认为 `true`；在 Atlas A2、Atlas A3 与 310P 上默认为 `false`。用户显式传入 `true` 或 `false` 时始终覆盖硬件默认策略。
 
 ## 事实表
 
@@ -73,25 +73,26 @@ vllm serve /models/DeepSeek-V4.1-Flash \
 | 配置入口 | `--additional-config '{"multistream_engram_overlap": <bool>}'` | 顶层 `AscendConfig` 字段，拼错键名会被 `extra="forbid"` 拦截 |
 | 类型与动态默认 | `bool`；A5（`FP8_OPTIMIZED`）为 `true`，A2/A3/310P 为 `false` | 不写此键时随硬件家族自动切换，跨代迁移脚本建议显式写出 |
 | 生效模型范围 | 含 `has_engram` 的模型（`DeepSeek-V4.1` / `VL` 语言主干） | 普通 Dense / 常规 MoE 模型不读取此字段，设为 `true` 无副作用 |
-| 允许重叠的步进图模式 | 单步 `cg_mode` 为 `NONE` 或 `FULL`（含 `FULL_DECODE_ONLY`） | `PIECEWISE` 模式及 `FULL_AND_PIECEWISE` 中的分段步会自动退回主流串行 |
+| 允许重叠的步进图模式 | 单步 `cg_mode` 为 `NONE` 或 `FULL`（含 `FULL_DECODE_ONLY`） | 单步解析为 `PIECEWISE`（如 `PIECEWISE` 模式或 `FULL_AND_PIECEWISE` 的分段步）时自动退回主流串行 |
 | 跨流同步机制 | 按查找描述符绑定的外部 NPU 事件（External Event） | 仅在真正消费 Engram 输出的层入口等待事件完成，不阻塞无关前序层 |
-| P/D 分离常见搭配 | Prefill 常设 `false`，Decode 配合 `FULL` 或 `FULL_DECODE_ONLY` 设 `true` | Prefill 计算饱满且常关图捕获，省去辅助流调度；Decode 小批量更能掩盖查表延迟 |
+| P/D 分离常见搭配 | Prefill 常设 `false`，Decode 配合 `FULL` 或 `FULL_DECODE_ONLY` 设 `true` | Prefill 计算较满且常关整图捕获，可省去辅助流调度；Decode 小批量更易掩盖查表延迟 |
 | 版本可用性 | `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）均支持 | `v0.23.0` 与 `v0.26.0rc` 尚无 Engram 子系统与该字段（`.get()` 静默忽略） |
 
 ## 辅助流重叠机制与图模式边界
 
-模型初始化时读取 `get_ascend_config().multistream_engram_overlap` 存入 `self._engram_overlap_enabled`。前向准备入口 `prepare_engram_inputs` 会同时核对本轮步进实际解析出的单步图模式 `cg_mode`：
+模型初始化时读取 `get_ascend_config().multistream_engram_overlap` 存入 `self._engram_overlap_enabled`。前向准备入口 `prepare_engram_inputs` 还会核对本步实际解析出的单步图模式 `cg_mode`（V1 在前向内经上下文判断，V2 显式传入单步模式）：
 
 `overlap = cg_mode in (CUDAGraphMode.NONE, CUDAGraphMode.FULL) and self._engram_overlap_enabled`
 
-只有当模型含 Engram 层、`self._engram_overlap_enabled` 为真，且当前步处于 Eager（`NONE`）或整图捕获（`FULL`）时，才会切到辅助 NPU 流发起 `prepare_engram`（哈希、嵌入查表、DP/TP 通信），并记录与图描述符绑定的外部事件；主计算流先跑不依赖 Engram 的前序层，直到进入消费层时才按事件做精确等待。
-
-注意混合图模式在单步上的展开行为：`FULL_DECODE_ONLY` 在运行期会把纯 Decode 步解析为 `FULL`、把 Prefill/混合步解析为 `NONE`，两类步都满足 `cg_mode in (NONE, FULL)`，因此全程均可启用辅助流重叠；而在默认的 `PIECEWISE`（所有步均为分段图）或 `FULL_AND_PIECEWISE` 的分段 Prefill/混合步上，分段边界拆开了整图跨流事件拓扑，`overlap` 会自动置为 `false` 并在主流同步完成 Engram 准备，不会抛错中断服务。
+执行分三步配合：
+- **谁先跑**：当模型含 Engram 层、开关为真且单步为 `NONE` 或 `FULL` 时，辅助流立即启动 `prepare_engram`（哈希、查表与 DP/TP 通信），主计算流同时往前跑前序非 Engram 层。
+- **在哪一层等**：辅助流为每个目标层记录就绪事件（`FULL` 图复用按桶绑定的 `ExternalEvent`，`NONE` 步使用普通每步事件），主计算流只在进入消费 Engram 输出的那一层时等待对应事件。
+- **哪种图模式回退**：不同启动配置按本步实际落入的 `cg_mode` 决定是否重叠。`--enforce-eager`（`NONE`）与 `FULL` 的捕获步满足重叠条件；`FULL_DECODE_ONLY` 把纯 Decode 步解析为 `FULL`、把 Prefill/混合步解析为 `NONE`，两类步都可重叠。至于 `PIECEWISE` 模式或 `FULL_AND_PIECEWISE` 中的分段步（及 `cg_mode=None` 未知态），因分段编译区不能追踪跨流控制算子，`overlap` 会自动置为 `false` 并在主流同步完成，不报错中断服务。
 
 ## 代价与互斥边界
 
-- **多流并发与带宽争用**：开启后辅助流会额外持有常驻缓冲与跨流事件句柄，并在前序层执行期间并发发起 H2D 卸载拷贝或组内通信。在大批量 Prefill 场景下，主流 Cube / HBM 与互联带宽本身已接近饱和，辅助流并发争用会挤占主计算带宽并拉长关键路径——官方 DeepSeek-V4.1-Flash P/D 分离教程因此在 Prefill 实例显式传 `"multistream_engram_overlap": false`。
-- **硬件默认差异带来的排查盲区**：同一条不带 `--additional-config` 的启动命令，在 Atlas A5 上默认跑多流重叠，在 Atlas A2 / A3 上默认跑主流串行。做跨机型精度比对或耗剖析（Profiling）时，务必在启动参数中显式固定该布尔值，避免把默认策略差异误判成算子退化。
+- **多流资源与潜在带宽竞争**：开启后辅助流会额外持有常驻缓冲与跨流事件句柄，并在前序层执行期间并发发起主机到设备（H2D）卸载拷贝或组内通信。大批量 Prefill 时主流计算与内存、互联访问负担本就较重，辅助流并发可能带来带宽竞争并拉长耗时。官方 DeepSeek-V4.1-Flash P/D 分离教程在 Prefill 实例显式传 `"multistream_engram_overlap": false`，线上开关收益建议结合跨流现场取证对比确认（见[昇腾运行期与调优](../concepts/ascend-runtime-and-tuning.md)）。
+- **硬件默认差异带来的排查盲区**：同一条省略该键的启动命令，在 Atlas A5 上默认走辅助流重叠，在 Atlas A2 / A3 上默认走主流串行。跨机型比对精度或做性能剖析时，建议显式固定该布尔值，避免把默认策略差异误判成算子退化。
 - **旧版兼容性**：`v0.23.0` 与 `v0.26.0rc` 的 `AscendConfig` 采用手工逐键 `.get()`，尚无此属性，写入会被静默忽略；`v0.30.0` 与 `main` 均已纳入严格 schema 校验。
 
 ## 对照源码

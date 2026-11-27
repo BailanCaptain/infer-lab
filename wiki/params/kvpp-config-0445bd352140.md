@@ -13,7 +13,8 @@ aliases:
 legacyAnchors:
   一句话: 为什么它是派生对象而非用户输入键？
   为什么存在: 统一推导规则与 size > 1 触发的三条链路
-  开了的代价: 误写静默过滤、校验条件演变与 GLM 双机分析
+  开了的代价: 误写静默过滤与校验条件演变
+  误写静默过滤校验条件演变与-glm-双机分析: 误写静默过滤与校验条件演变
 chapters:
   - '11'
 origin: seed
@@ -144,13 +145,13 @@ rawSources:
 ---
 ## 为什么它是派生对象而非用户输入键？
 
-多卡部署 MLA（多头潜在注意力）模型时，同组各张卡原本都要保存一份**完全相同的全部层历史 KV cache**，显存重复占用了好几倍。[KVPP（KV Cache 流水线并行）](../concepts/kvpp.md#kvpp-是什么)把这些重复保存的层按卡分工——每一层历史 KV 只由组内一张卡常驻保存，算到哪一层再通过广播临时发给同组其他卡。`kvpp_config` 就是 `v0.30.0` 与 `main` 中 [AscendConfig](../concepts/ascend-config-system.md) 用来保存这份分工结果的内部只读对象（冻结子配置 `frozen=True`，**里面只有 `size: int = 1` 一个字段**，表示一共由多少张卡来平分各层历史 KV）。
+想启用按层分摊历史 KV，应该在 `--additional-config` 中配置 `"enable_kvpp": true`，而不是手写 `kvpp_config`。多卡部署 MLA（多头潜在注意力）模型时，同组各张卡原本都要保存一份**完全相同的全部层历史 KV cache**。[KVPP（KV Cache 流水线并行）](../concepts/kvpp.md#kvpp-是什么)把这些重复保存的层按卡分工，每一层历史 KV 只由组内一张卡常驻保存，算到哪一层再通过广播临时发给同组其他卡。`kvpp_config` 则是 `v0.30.0` 与 `main` 中 [AscendConfig](../concepts/ascend-config-system.md) 保存这份分工结果的内部只读对象（`frozen=True`），仅含 `size: int = 1` 一个字段，表示平分各层历史 KV 的卡数。
 
-最重要的边界是：**`kvpp_config` 不是用户填写的配置键，真正的开关是 `enable_kvpp`**。配置工厂调用 `KVPPConfig.from_vllm_config(vllm_config)`，读取 `additional_config["enable_kvpp"]`（默认为 `False`）并结合并行度自动计算 `size`，再作为关键字参数注入 `AscendConfig`；而 `"kvpp_config"` 这个名字直接列在 `_NON_USER_INPUT_KEYS` 中，用户在 `additional_config` 里硬写 `"kvpp_config": {"size": 4}` 会在进入 pydantic 校验之前就被静默剔除（没有任何针对该键的告警），既不会覆盖派生结果，也不会像其他未知顶层键那样触发 `extra="forbid"` 报错。
+配置工厂调用 `KVPPConfig.from_vllm_config(vllm_config)` 读取 `additional_config["enable_kvpp"]`（默认 `False`）。随后结合并行度算出 `size`，作为关键字参数注入 `AscendConfig`。`"kvpp_config"` 列在 `_NON_USER_INPUT_KEYS` 中，硬写 `"kvpp_config": {"size": 4}` 会在 pydantic 校验前被静默剔除且无专门告警。它既不会覆盖派生结果，也不会像普通未知顶层键那样触发 `extra="forbid"` 报错。
 
 拿一个具体数字看它怎样工作（**示意**：设 60 层非混合 MLA 模型、无 MTP，跑在 `TP = 8, PCP = 1` 上）：
-- 不开 `enable_kvpp` 时，派生出 `kvpp_config.size = 1`，8 张卡各自常驻全部 60 层历史 KV；
-- 写 `"enable_kvpp": true` 后，工厂自动派生 $\text{size} = \text{TP} \times \text{PCP} = 8 \times 1 = 8$，按 `divmod(60, 8) = (7, 4)` 把层分给 8 张卡——前 4 张卡各常驻 8 层、后 4 张卡各常驻 7 层，每卡另留 2 层复用的暂存缓冲（scratch buffer），单卡单块物理占用从 60 层降到最多 $8 + 2 = 10$ 层（完整放大比与天花板见 [`kvpp_config.size`](size-40a1c2ca47b8.md)）。
+- 不开 `enable_kvpp` 时，派生出 `kvpp_config.size = 1`，8 张卡各自常驻全部 60 层历史 KV。
+- 写 `"enable_kvpp": true` 后，工厂派生 $\text{size} = \text{TP} \times \text{PCP} = 8 \times 1 = 8$，按 `divmod(60, 8) = (7, 4)` 分给 8 张卡。前 4 张卡各常驻 8 层、后 4 张卡各常驻 7 层，每卡另留 2 层复用的暂存缓冲（scratch buffer）。单卡单块物理占用从 60 层降到最多 $8 + 2 = 10$ 层（完整放大比与天花板见 [`kvpp_config.size`](size-40a1c2ca47b8.md)）。
 
 ## 事实表
 
@@ -170,17 +171,17 @@ rawSources:
 file: param-kvpp-config
 ```
 
-`KVPPConfig.from_vllm_config(vllm_config)` 只依赖传入的 `vllm_config`，不要求调用方先拿到 `AscendConfig` 单例。早期 `baa023ad` 上有 7 处（配置工厂、platform 校验、worker 预算、层归属函数、KV 池 worker、新版 runner 缓存分配与运行时构造）各自调用一次该类方法，另有 3 处读单例（不能把这 7 处都概括成「拿不到单例」，因为 worker 在同一函数后文就会调 `get_ascend_config()`；源码确定的是各入口复用同一纯推导规则）。
+`KVPPConfig.from_vllm_config(vllm_config)` 只依赖传入的 `vllm_config`，不要求调用方先拿到 `AscendConfig` 单例。早期 `baa023ad` 上有 7 处（配置工厂、platform 校验、worker 预算、层归属函数、KV 池 worker、新版 runner 缓存分配与运行时构造）各自调用一次该类方法，另有 3 处读单例。由于 worker 在同一函数后文就会调 `get_ascend_config()`，不能把这 7 处都概括成「拿不到单例」；源码确定的是各入口复用同一纯推导规则。
 
-因为 `size` 固定等于 `PCP × TP`，KVPP 的复制域天然不跨 DP 副本、也不跨 PP stage（DP 把不同请求或批次分配给不同执行组，PP 把模型分成前后阶段接力执行）：当 DCP 关闭时，MLA 缓存在 PCP 收集 KV 之后于 `PCP × TP` 域内各卡一致，层归属只在这个复制域内划分，这是设计边界而非可调项。
+因为 `size` 固定等于 `PCP × TP`，KVPP 的复制域天然不跨 DP 副本、也不跨 PP stage（DP 把不同请求或批次分配给不同执行组，PP 把模型分成前后阶段接力执行）。当 DCP 关闭时，MLA 缓存在 PCP 收集 KV 之后于 `PCP × TP` 域内各卡一致，层归属只在这个复制域内划分，属于设计边界而非可调项。
 
 一旦 `size > 1`，这一条件同时打开三条链路（具体做法见概念页）：
 
 - **建通信组**：创建名为 `kvpp` 的通信组，并断言 `kvpp_size == global_pcp_size * global_tp_size`（组内排布见[怎么开](../concepts/kvpp.md#怎么开)）。
 - **按层划分归属**：把目标层按 `size` 分给组内各卡，除不尽时前几张卡各多持有一层（详见[层怎么分](../concepts/kvpp.md#层怎么分每张卡要留多少显存)）。
-- **切换缓存分配与元数据发布**：model runner 改走 `allocate_kvpp_cache` 并把 `hybrid_with_attn_and_mamba` 置回 `False`；Mooncake worker 按层-owner 映射过滤对外发布的缓存元数据，仅保留本 rank 常驻目标层与未参与分层的 MTP 缓存，避免发布其他层共用的暂存地址（历史到位流程见[算到某一层时历史怎样到位](../concepts/kvpp.md#算到某一层时历史怎样到位)）。
+- **切换缓存分配与元数据发布**：model runner 改走 `allocate_kvpp_cache` 并把 `hybrid_with_attn_and_mamba` 置回 `False`。Mooncake worker 则按层-owner 映射过滤对外发布的缓存元数据，仅保留本 rank 常驻目标层与未参与分层的 MTP 缓存，避免发布其他层共用的暂存地址（历史到位流程见[算到某一层时历史怎样到位](../concepts/kvpp.md#算到某一层时历史怎样到位)）。
 
-## 误写静默过滤、校验条件演变与 GLM 双机分析
+## 误写静默过滤与校验条件演变
 
 **真正的启用写法**：在 `--additional-config` 中传 `"enable_kvpp": true`（配合 `--enforce-eager` 或新版支持的 `PIECEWISE`，线上持续更新文档见 [KVPP 文档](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html)）。把 `kvpp_config` 本身写进 JSON 不会报错，而是被 `_NON_USER_INPUT_KEYS` 静默丢弃（没有专门告警），比报错更隐蔽：
 
@@ -190,16 +191,16 @@ vllm serve /models/DeepSeek-V3 --tensor-parallel-size 8 --enforce-eager \
     --additional-config '{"enable_kvpp": true, "kvpp_config": {"size": 4}}'
 ```
 
-**`size == 1` 跳过专属检查，但 `size > 1` 仍有完整前提**：当 `TP=1`、`PCP=1` 时即使写了 `enable_kvpp: true`，派生 `size` 仍为 `1`，`validate()` 不会被调用，也不会建组或切换缓存路径（但布尔类型校验与服务其他检查照常执行；确认是否真正生效须核对派生大小与通信组）。当 `size > 1` 时，`KVPPConfig.validate()` 的校验条件随版本逐步放宽：
+**`size == 1` 跳过专属检查，但 `size > 1` 仍有完整前提**：当 `TP=1`、`PCP=1` 时即使写了 `enable_kvpp: true`，派生 `size` 仍为 `1`，`validate()` 不会被调用，也不会建组或切换缓存路径。布尔类型校验与服务其他检查仍照常执行，确认是否真正生效须核对派生大小与通信组。当 `size > 1` 时，`KVPPConfig.validate()` 的校验条件随版本逐步放宽：
 
 | 版本 / 快照 | 图模式与并行要求 | KV 连接器与投机解码约束 |
 | --- | --- | --- |
 | 早期 `baa023ad` | `DCP == 1`、必须 `--enforce-eager`、必须非混合 MLA | 存在 KV 传输配置且非 `AscendStoreConnector` 时仅允许非 `kv_consumer` 的 `MooncakeConnectorV2`；投机配置仅允许固定候选数的 `mtp`（共 7 条检查） |
-| 过渡 `rc2`（`7d825229`） | 图模式放宽至 eager 或 `PIECEWISE` | 投机解码扩展至固定候选数的 `mtp` / `dspark`（拒绝按批大小变化候选数，DSpark 还拒绝自适应验证和设置了 `method` 的 `dynamic_spec_config`） |
+| 过渡 `rc2`（`7d825229`） | 图模式放宽至 eager 或 `PIECEWISE` | 投机解码扩展至固定候选数的 `mtp` / [`dspark`](../concepts/dspark.md)（拒绝按批大小变化候选数，DSpark 还拒绝自适应验证和设置了 `method` 的 `dynamic_spec_config`） |
 | `v0.30.0`（`c09d3e20`） | `DCP == 1`、eager 或 `PIECEWISE`、非混合 MLA | 扩展支持 `MultiConnector`（逐个展开非空 `connectors` 列表）；白名单 `("MooncakeConnectorV2", "AscendStoreConnector")`，`MooncakeConnectorV2` 拒 `kv_consumer`；`validate()` 内不再硬编码投机解码拦截 |
 | `main`（`8d6180e2`） | 同 `v0.30.0` | 连接器名单进一步纳入 `"MooncakePushConnector"`（同样拒绝 `kv_consumer`） |
 
-**放到 GLM 双机（`db701c1f` 固定基线）**：该部署（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）的 `db701c1f` 快照没有 KVPP，写 `enable_kvpp` 与 `kvpp_config` 都会被旧配置类静默忽略。换到 `v0.30.0` 或 `main` 写 `enable_kvpp: true`，TP8 × PCP1 算出 `size = 8 > 1`，进入 `validate()` 后会先撞图模式检查（`FULL_DECODE_ONLY` 不在 eager/`PIECEWISE` 之列）；即使改用 `--enforce-eager` 或 `PIECEWISE`，也会在「只支持非混合 MLA」处被拒（GLM 含 KDA + MLA 混合结构），建组、分层、换分配路径均走不到（报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，详细原因见[GLM 双机一节](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)，本部署无 KVPP 实测数）。
+**混合注意力与历史双机边界**：KVPP 按层拆分的是随序列增长的 MLA 逐 token 历史缓存。混入 KDA 或 GDN 等定长递推状态层的混合模型（逐 token 历史与定长状态的区分见[线性注意力](../concepts/linear-attention.md)）在 `size > 1` 时会被「只支持非混合 MLA」校验直接拒绝，报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，共池限制见 [KVPP 混合注意力边界](../concepts/kvpp.md#混合注意力边界kda-与稀疏-mla-共池为何无法套用-kvpp整层广播有多大)。历史双机部署在旧镜像忽略两键及升级后依次触发整图、混合模型校验的记录，统一归入 [GLM 双机部署后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
 
 ## 对照源码
 

@@ -316,15 +316,19 @@ export function AscendFaTilingInteractive({
   const seqTag = seqLen === 32768 ? "32K" : "4K";
   const isNaiveStep = step === 1;
   const isOomDanger = isNaiveStep && state.isCard64Oom;
+  const scaleTransition = `m₁=${state.m1} → m_new=${state.m2}`;
+  const scaleFactorText = state.peakRefreshed
+    ? `e^(${state.m1}−${state.m2}) ≈ ${state.rescaleAlpha.toFixed(4)}`
+    : `e^(${state.m1}−${state.m2}) = 1`;
   const ubScaleM = isNaiveStep
     ? "需看完整行"
     : step === 2
       ? `m₁ = ${state.m1}`
       : step === 3
         ? state.peakRefreshed
-          ? `m₂ = ${state.m2} (刷新!)`
-          : `m₂ = ${state.m2} (沿用旧峰)`
-        : `全局 m = ${state.m2}`;
+          ? `m₁=${state.m1}→m_new=${state.m2}(刷峰)`
+          : `m₁=${state.m1}→m_new=${state.m2}(保峰)`
+        : `全局 m_new = ${state.m2}`;
   const ubDenomL = isNaiveStep
     ? `等 ${seqTag} 全齐`
     : step === 2
@@ -346,6 +350,27 @@ export function AscendFaTilingInteractive({
       : step === 3
         ? `片上第2块 s=[${state.s2[0]}, ${state.s2[1]}]`
         : "片上收尾归一 · O = Õ₂ / l₂";
+  const dynamicWireLabel = isNaiveStep
+    ? `反复落盘 ${state.naiveRoundTripGiB}G`
+    : step === 2
+      ? `滑入块 1 (m₁=${state.m1})`
+      : step === 3
+        ? `原地 × ${scaleFactorText}`
+        : `单次写出 O (${state.outMiB}M)`;
+  const dynamicHbmStatusNote = isNaiveStep
+    ? `写 S(${state.naiveScoreGiB}G) → 读 S 写 P(${state.naiveScoreGiB * 2}G) → 读 P(${state.naiveScoreGiB}G)`
+    : step === 2
+      ? `HBM 只存 Q/K/V(${state.qkvTotalMiB} MiB) 与输出 O(${state.outMiB} MiB)`
+      : spec.hbmStatusNote;
+  const dynamicUbActionNote = isNaiveStep
+    ? "计算核做完一步就停下干等 HBM 吞吐巨表"
+    : step === 2
+      ? `按首块局部最大 m₁=${state.m1} 暂存 l₁≈${state.l1.toFixed(4)}、Õ₁≈${state.oTilde1.toFixed(4)}，不写回 HBM`
+      : step === 3
+        ? state.peakRefreshed
+          ? `${scaleTransition}：旧账同乘 ${scaleFactorText} 后叠入新块，零近似误差`
+          : `${scaleTransition}：旧账缩放因子 ${scaleFactorText}（无需缩小旧账），直接叠入新块`
+        : `经 ${scaleTransition}（× ${scaleFactorText}）递推后单次除 l₂≈${state.l2.toFixed(4)} 得 O≈${state.finalOut.toFixed(4)}，与全量 Softmax 实数代数等价`;
 
   return (
     <WikiEduSandboxShell
@@ -473,13 +498,17 @@ export function AscendFaTilingInteractive({
       takeawayBadge={spec.badgeText}
       takeawayTone={step === 1 ? (state.isCard64Oom ? "danger" : "warn") : spec.takeawayTone}
       takeaway={
-        step === 1 && seqLen === 4096
-          ? "N=4096 时单份分数表占 1 GiB（已达 Q/K/V 本体 48 MiB 的 21 倍）；一旦序列扩 8 倍到 32K，O(N²) 巨表直接暴涨 64 倍至 64 GiB 当场爆卡！"
-          : step === 3 && scorePreset === "keep-peak"
-            ? "第 2 块分数 s=[1, 0] 未超过旧峰值 m₁=2：标尺保持 m₂=2，旧账缩放因子 e^(2−2)=1 免缩放直接累加新块！"
-            : step === 4 && scorePreset === "keep-peak"
-              ? `全部分块流过片上后单次除 l₂：O = ${state.oTilde2} / ${state.l2} ≈ ${state.finalOut.toFixed(2)}（${state.finalOut}），0 B 分数表落盘且与全量 Softmax 严格等价！`
-              : spec.takeaway
+        step === 1
+          ? seqLen === 4096
+            ? "N=4096 时单份分数表占 1 GiB（已达 Q/K/V 本体 48 MiB 的 21 倍）；一旦序列扩 8 倍到 32K，O(N²) 巨表直接暴涨 64 倍至 64 GiB 当场爆卡！"
+            : spec.takeaway
+          : step === 2
+            ? `把 Q 切小块常驻片上高速缓冲（UB/L1），第 1 块 K/V 滑入当场算出局部打分 s=[${state.s1[0]}, ${state.s1[1]}]、峰值 m₁=${state.m1}，HBM 中间表直接归零！`
+            : step === 3
+              ? state.peakRefreshed
+                ? `第 2 块分数 s=[${state.s2[0]}, ${state.s2[1]}] 刷新峰值（${scaleTransition}）：不用回头重读第 1 块，直接给旧账乘 ${scaleFactorText} 精准对齐新标尺！`
+                : `第 2 块分数 s=[${state.s2[0]}, ${state.s2[1]}] 未超旧峰（${scaleTransition}）：旧账缩放因子 ${scaleFactorText}（无需缩小旧账），直接累加新块！`
+              : `全部分块流过片上后单次除 l₂：O = ${state.oTilde2.toFixed(4)} / ${state.l2.toFixed(4)} ≈ ${state.finalOut.toFixed(4)}（省掉 ${state.naiveRoundTripGiB} GiB 中间表流量且与全量 Softmax 实数代数严格等价）！`
       }
       kpi={
         step === 1
@@ -487,17 +516,32 @@ export function AscendFaTilingInteractive({
           : step === 2
             ? `HBM 中间落盘 0 B · 暂记 m₁ = ${state.m1}`
             : step === 3
-              ? state.peakRefreshed
-                ? `旧账 × e⁻² (${state.rescaleAlpha.toFixed(4)}) · 零重读`
-                : `旧账 × 1 (e⁰=1 免重标定) · 零重读`
+              ? `${scaleTransition} · 旧账 × ${scaleFactorText}`
               : `输出 ${state.finalOut.toFixed(2)} (${state.finalOut.toFixed(4)}) · 仅写 ${state.outMiB} MiB`
       }
       detailsSummary="查看工程与源码细节（Qwen3-8B 64 GiB 推导 / 四数重标定手算 / FIA 与 FA3 选路）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}（当前在线递推：
+          <strong>
+            {step === 1
+              ? `阶段 ① · 朴素注意力：整张 ${seqTag}×${seqTag} 分数表写回 HBM，单份占 ${state.naiveScoreGiB} GiB`
+              : step === 2
+                ? `阶段 ② · 片上 Tiling：Q 小块驻留片上，第 1 块 s=[${state.s1[0]}, ${state.s1[1]}] 滑入（m₁=${state.m1}）`
+                : step === 3
+                  ? `阶段 ③ · Online Softmax：${scaleTransition}，旧账 × ${scaleFactorText}`
+                  : `阶段 ④ · 扫完全块单次除 l₂ 写回 O（与全量 Softmax ${state.finalOut.toFixed(4)} 严格等价）`}
+          </strong>
+          ：
+          {step === 1
+            ? `Qwen3-8B 单层（32 查询头、8 KV 头、d=128、BF16）在 N=${seqLen} 下：Q/K/V 本体共 ${state.qkvTotalMiB} MiB、输出 O 占 ${state.outMiB} MiB，实体化 [32, ${seqLen}, ${seqLen}] 分数表 S 单份占 ${state.naiveScoreGiB} GiB，往返流量约 ${state.naiveRoundTripGiB} GiB。`
+            : step === 2
+              ? `四数两分块手算对账（s=[${state.s1[0]},${state.s1[1]},${state.s2[0]},${state.s2[1]}]，V=[10,20,30,40]）：首块 s=[${state.s1[0]},${state.s1[1]}] 局部最大 m₁=${state.m1}，分母 l₁≈${state.l1.toFixed(4)}，分子 Õ₁≈${state.oTilde1.toFixed(4)}。`
+              : step === 3
+                ? `利用恒等式 e^(s−m_prev)·e^(m_prev−m_new) = e^(s−m_new)：第 2 块 s=[${state.s2[0]},${state.s2[1]}] 使标尺 ${scaleTransition}，旧账缩放因子 ${scaleFactorText}，得 l₂≈${state.l2.toFixed(4)}，Õ₂≈${state.oTilde2.toFixed(4)}。`
+                : `未截断递推值 O = ${state.oTilde2} / ${state.l2} ≈ ${state.finalOut.toFixed(4)}（${scaleTransition}，缩放因子 ${scaleFactorText}），在实数代数上与全量 Softmax 严格相等，有限浮点下仅因加法结合顺序存在末位微小舍入差（跨卡 PCP/DCP 的 npu_attention_update 也复用同一 LSE=m+ln(l) 重标定）。v0.30.0 默认主力为 FIA（npu_fused_infer_attention_score，注意 910B3 普通 GQA 页交错 (H,2H) 视图在 Eager Decode 下会触发整池 Slice 连续化）；RL 训推一致 FA3 须开启 rl_config 双开关，图模式仅支持 PIECEWISE，或开启 enforce_eager 走逐算子 eager 路径。`}
+          （当前在线递推：
           <code>{`s=[${state.s1[0]},${state.s1[1]},${state.s2[0]},${state.s2[1]}]`}</code>，
-          <code>{`m₁=${state.m1}→m₂=${state.m2}`}</code>，缩放因子 <code>{state.rescaleAlpha}</code>，
+          <code>{scaleTransition}</code>，缩放因子 <code>{scaleFactorText}</code>，
           <code>{`l₂=${state.l2}`}</code>，<code>{`Õ₂=${state.oTilde2}`}</code>，归一输出{" "}
           <code>{state.finalOut}</code>）
         </>
@@ -524,7 +568,7 @@ export function AscendFaTilingInteractive({
             height="224"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`HBM 与片上缓冲数据流：${spec.wireLabel}`}
+            aria-label={`HBM 与片上缓冲数据流：${dynamicWireLabel}`}
           >
             <defs>
               <marker
@@ -663,7 +707,11 @@ export function AscendFaTilingInteractive({
               </>
             )}
             <text x="196" y="198" textAnchor="middle" fontSize="12" fill="#66716d">
-              {isNaiveStep ? `${state.naiveRoundTripGiB} GiB 往返` : spec.hbmRoundTripText}
+              {isNaiveStep
+                ? `${state.naiveRoundTripGiB} GiB 往返`
+                : step === 4
+                  ? `写出 ${state.outMiB} MiB O`
+                  : spec.hbmRoundTripText}
             </text>
             <path
               d={spec.wireDirection === "write-out" ? "M 432 120 L 386 120" : "M 386 92 L 432 92"}
@@ -687,7 +735,7 @@ export function AscendFaTilingInteractive({
             </text>
             <rect x="456" y="44" width="334" height="36" rx="6" fill="#ffffff" stroke="#087f73" />
             <text x="623" y="67" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`m 标尺：${ubScaleM} · l 分母：${ubDenomL}`}
+              {`标尺 ${ubScaleM} · 分母 ${ubDenomL}`}
             </text>
 
             <rect
@@ -715,11 +763,11 @@ export function AscendFaTilingInteractive({
             <text x="623" y="198" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
               {step === 3
                 ? state.peakRefreshed
-                  ? `新峰值 m=${state.m2}：旧分子分母同乘 e⁻² (${state.rescaleAlpha.toFixed(4)})`
-                  : `未超旧峰 m=${state.m2}：旧账缩放因子 e⁰=1 直接累加新块`
+                  ? `${scaleTransition}：旧账 × ${scaleFactorText}`
+                  : `${scaleTransition}：${scaleFactorText} 无需缩小旧账`
                 : step === 4
-                  ? `精确归一输出 ${state.finalOut.toFixed(2)} (${state.finalOut})`
-                  : spec.wireLabel}
+                  ? `全局 m_new=${state.m2} · 精确归一输出 ${state.finalOut.toFixed(4)}`
+                  : dynamicWireLabel}
             </text>
           </svg>
         </div>
@@ -754,7 +802,7 @@ export function AscendFaTilingInteractive({
               </div>
             </div>
 
-            <div className="wiki-edu-note-card">{spec.hbmStatusNote}</div>
+            <div className="wiki-edu-note-card">{dynamicHbmStatusNote}</div>
           </div>
 
           <div className="wiki-edu-hbm">
@@ -779,7 +827,7 @@ export function AscendFaTilingInteractive({
               <div className="wiki-edu-block-title">{ubTileTitle}</div>
               <span className={`wiki-edu-ref-badge ${step === 3 ? "ref-2" : "ref-1"}`}>{ubNumerO}</span>
             </div>
-            <div className="wiki-edu-note-card">{spec.ubActionNote}</div>
+            <div className="wiki-edu-note-card">{dynamicUbActionNote}</div>
           </div>
         </div>
       </div>

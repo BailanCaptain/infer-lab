@@ -91,10 +91,11 @@ describe("Phase 2 Core 6 富交互 2D 沙盘深度演算与全景 SVG 验收", (
     ]);
     expect([sFirst.nextOverwritePos, sMid.nextOverwritePos, sAll.nextOverwritePos]).toEqual([6, 8, 9]);
     expect(sMid.committedWords).toEqual(["坐", "在", "垫子"]);
+    expect(sLowAlpha.committedWords).toEqual(["坐", "在", "地毯"]);
     expect(sMid.expectedTokens).toBe(2.734375);
     expect(sLowAlpha.expectedTokens).toBe(1.328125);
-    expect(sMid.acceptThreshold).toBe(0.75);
-    expect(sMid.residualProbs).toEqual([0, 1, 0]);
+    expect(sMid.acceptThreshold).toBe(0.125);
+    expect(sMid.residualProbs).toEqual([0.5, 0.5, 0]);
 
     for (const k of [3, 5] as const) {
       for (const br of ["first-wrong", "mismatch-3", "all-hit"] as const) {

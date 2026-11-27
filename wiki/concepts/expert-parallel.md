@@ -21,6 +21,8 @@ aliases:
   - combine
   - AllGather 路径
   - ep_world_size
+  - ep_rank
+  - mix_placement
   - routed experts
 chapters:
   - '04'

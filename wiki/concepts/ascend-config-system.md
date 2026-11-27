@@ -16,6 +16,7 @@ aliases:
   - init_ascend_config
   - get_ascend_config
   - envs.py
+  - multistream_overlap_shared_expert
   - AscendConfig 配置系统
 chapters:
   - '10'

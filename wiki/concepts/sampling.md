@@ -33,6 +33,7 @@ aliases:
   - 采样参数
   - 停止条件
   - EOS
+  - argmax
   - top_p
   - top_k
   - top-k 采样

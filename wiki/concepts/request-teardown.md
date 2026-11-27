@@ -33,6 +33,7 @@ aliases:
   - 清空前缀缓存
   - LLM.reset_prefix_cache
   - LLM.reset_mm_cache
+  - check_stop
   - stop
   - 停止字符串
   - stop_token_ids

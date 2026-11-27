@@ -10,6 +10,7 @@ summary: >-
 aliases:
   - 集合通信
   - Collective Communication
+  - AG
   - All-Gather
   - All-Reduce
   - Reduce-Scatter

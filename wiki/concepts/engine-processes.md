@@ -16,6 +16,7 @@ aliases:
   - V1 引擎进程
   - 引擎的三类角色
   - patch 注入点
+  - uni
   - uni 执行器
   - 多进程执行器
   - API server 进程

@@ -1334,6 +1334,7 @@
         "init_ascend_config",
         "get_ascend_config",
         "envs.py",
+        "multistream_overlap_shared_expert",
         "AscendConfig 配置系统"
       ],
       "chapters": [
@@ -4581,6 +4582,7 @@
       "aliases": [
         "集合通信",
         "Collective Communication",
+        "AG",
         "All-Gather",
         "All-Reduce",
         "Reduce-Scatter",
@@ -8190,6 +8192,7 @@
         "V1 引擎进程",
         "引擎的三类角色",
         "patch 注入点",
+        "uni",
         "uni 执行器",
         "多进程执行器",
         "API server 进程",
@@ -8986,6 +8989,8 @@
         "combine",
         "AllGather 路径",
         "ep_world_size",
+        "ep_rank",
+        "mix_placement",
         "routed experts"
       ],
       "chapters": [
@@ -22593,6 +22598,7 @@
         "清空前缀缓存",
         "LLM.reset_prefix_cache",
         "LLM.reset_mm_cache",
+        "check_stop",
         "stop",
         "停止字符串",
         "stop_token_ids",
@@ -24383,6 +24389,7 @@
         "采样参数",
         "停止条件",
         "EOS",
+        "argmax",
         "top_p",
         "top_k",
         "top-k 采样",
@@ -24651,6 +24658,7 @@
         "enable_flashcomm1",
         "enable_sp",
         "enable_dense_sp",
+        "enable_dsa_cp",
         "sp_min_token_num",
         "maybe_pad_and_reduce",
         "SequenceRowParallelOp",
@@ -25417,6 +25425,7 @@
         "top-k 注意力",
         "稀疏 MLA 的位置选择",
         "IndexCache",
+        "indexer",
         "索引缓存",
         "跨层位置复用"
       ],
@@ -26892,6 +26901,7 @@
         "QKVParallelLinear",
         "MergedColumnParallelLinear",
         "VocabParallelEmbedding",
+        "tp_rank",
         "负扩展"
       ],
       "chapters": [

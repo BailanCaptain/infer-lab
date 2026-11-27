@@ -20,6 +20,7 @@ aliases:
   - QKVParallelLinear
   - MergedColumnParallelLinear
   - VocabParallelEmbedding
+  - tp_rank
   - 负扩展
 chapters:
   - '04'

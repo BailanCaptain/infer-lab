@@ -14,6 +14,7 @@ aliases:
   - top-k 注意力
   - 稀疏 MLA 的位置选择
   - IndexCache
+  - indexer
   - 索引缓存
   - 跨层位置复用
 chapters:

@@ -20,6 +20,7 @@ aliases:
   - enable_flashcomm1
   - enable_sp
   - enable_dense_sp
+  - enable_dsa_cp
   - sp_min_token_num
   - maybe_pad_and_reduce
   - SequenceRowParallelOp

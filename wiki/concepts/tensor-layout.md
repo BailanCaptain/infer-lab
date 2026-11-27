@@ -3,6 +3,8 @@ id: tensor-layout
 title: ND 与 NZ：张量的数值没变，内存里怎样重新排列
 type: concept
 origin: direct
+legacyAnchors:
+  放到-glm-双机权重和-kv-cache-分别怎样处理: 异构混合模型对照量化权重专家层与-mla-缓存各自的布局边界
 summary: >-
   ND 是 N-Dimension，NZ 按块间大 N、块内小 z 的遍历形状命名；用同一张矩阵演示分块重排、补齐和地址变化，再区分
   shape、stride、dtype、量化打包与设备格式，核对昇腾权重和 KV cache 的布局边界。
@@ -107,7 +109,7 @@ updated: '2026-11-19'
 
 **ND、NZ 规定张量中的数在内存里怎样排列。** 张量是一组带维度的数；同一张矩阵可以逐行存，也可以切成小块后逐块存。只做正确的格式转换时，逻辑位置上的有效数值保持不变。
 
-先用仓储抓货建立直觉——**方形抓斗在长条货架间跨行散抓（`ND`）vs 预装成方形便当盒一次整盒端走（`FRACTAL_NZ`）**：
+直观来看，硬件矩阵单元成块取数时，按整行平铺的 `ND` 需要跨行跳着拼出小块，而预先按硬件块重排的 `FRACTAL_NZ` 可以整块顺序搬入片上缓冲：
 
 ```wiki-diagram
 file: tensor-layout-plate-nd-vs-nz-bento
@@ -199,9 +201,9 @@ $$M_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad N_{\text{pad}
 file: tensor-layout-fig-nd-nz-cube
 ```
 
-## 放到 GLM 双机，权重和 KV cache 分别怎样处理？
+## 异构混合模型对照：量化权重、专家层与 MLA 缓存各自的布局边界
 
-下面转入例外 B 历史绑定算例——[GLM-5.3-Flash 官方双机部署](glm-5-3-flash-two-node.md#部署前提)（`2 × Atlas 800 A2`，采用 W8A8 权重包，W、A 分别指权重与激活）。**对于实际选中动态 W8A8 方法的线性层**，固定源码在加载后先将权重转到算子方向，再按策略转成 NZ；前向对输入激活量化、执行矩阵乘，并按输入类型（本部署为 BF16）输出。两份固定量化描述中，MLP 都采用 `W8A8_DYNAMIC`；12 个 MLA 层的 `q_a`、`kv_a`、`q_b`、`o` 四组权重从旧 `9e55cbc8` 的 `FLOAT` 改为新 `3121f187` 的 `W8A8_DYNAMIC`，而 KDA 等保留浮点的层不走整条量化路径。逐层配方与执行类选择应一起核对（版本明细见[双机量化账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，计算方法见 [W8A8 页](quantization.md)）。
+在历史 [GLM-5.3-Flash 双机部署算例](glm-5-3-flash-two-node.md#部署前提)（钉住 `vllm-ascend@db701c1f`，`2 × Atlas 800 A2`，采用 `W8A8` 权重包，`W`、`A` 分别指权重与激活）中，普通线性层、路由专家与 KV cache 走各自的布局分支。**对于实际选中动态 W8A8 方法的线性层**，固定源码在加载后先将权重转到算子方向，再按策略转成 NZ；前向对输入激活量化、执行矩阵乘，并按输入类型（本部署为 BF16）输出。两份固定量化描述中，MLP 都采用 `W8A8_DYNAMIC`；12 个 MLA 层的 `q_a`、`kv_a`、`q_b`、`o` 四组权重从旧 `9e55cbc8` 的 `FLOAT` 改为新 `3121f187` 的 `W8A8_DYNAMIC`，而 KDA 等保留浮点的层不走整条量化路径。逐层配方与执行类选择应一起核对（版本明细见[双机量化账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，计算方法见 [W8A8 页](quantization.md)）。
 
 专家层还存在更直接的分支：固定实现的 W8A8 专家权重转置后直接调用 NZ 格式转换，注释指向分组矩阵乘与 SwiGLU 量化融合接口的要求。这里的 SwiGLU 是专家中间的门控激活。因此，普通线性层的权重 NZ 策略不能代表所有专家分支。
 

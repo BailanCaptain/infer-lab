@@ -3,9 +3,11 @@ id: device-memory
 title: 主机内存与显存：数据现在放在哪
 type: concept
 legacyAnchors:
-  启动时主机读文件每卡留下自己的权重: 放到 GLM 双机：先装权重，再接住一个 token
-  请求到来权重复用激活和历史各有去处: 放到 GLM 双机：先装权重，再接住一个 token
-  启动预算显存里还要容纳权重之外的东西: 放到 GLM 双机：先装权重，再接住一个 token
+  启动时主机读文件每卡留下自己的权重: 分片加载混合状态分流与两笔预算账
+  请求到来权重复用激活和历史各有去处: 分片加载混合状态分流与两笔预算账
+  启动预算显存里还要容纳权重之外的东西: 分片加载混合状态分流与两笔预算账
+  放到-glm-双机先装权重再接住一个-token: 分片加载混合状态分流与两笔预算账
+  ascend-910b3-真机显存对账6096-gib-可见基数non_torch-跳变与-debug-热路径税: ascend-910b3-真机显存对账6096-gib-可见基数non_torch-跳变与-debug-日志开销
 summary: CPU 一侧的主机内存和 NPU 一侧的设备内存要分别计算。模型能放进主机，不代表设备有足够空间直接执行。
 aliases:
   - 显存
@@ -195,7 +197,7 @@ file: device-memory-fig-host-vs-hbm
 
 完整的七级冷启动显存台阶、HCCL 通信域去重规则与四卡 MoE 预算推导，统一见 [KV cache 显存预算](kv-cache-memory-profiling.md)与 [NPU Worker 生命周期](npu-worker-lifecycle.md)。
 
-### Ascend 910B3 真机显存对账：60.96 GiB 可见基数、`non_torch` 跳变与 DEBUG 热路径税
+### Ascend 910B3 真机显存对账：60.96 GiB 可见基数、`non_torch` 跳变与 DEBUG 日志开销
 
 把上面的标称 `64 GiB` 示意算例落到 `Ascend 910B3` 真机（`v0.30.0`，完整档案见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）时，有三项实测口径直接决定预算对账与线上延迟测量是否准确：
 
@@ -210,7 +212,7 @@ file: device-memory-fig-host-vs-hbm
 
 1. **`60.96 GiB` OS 可见基数 vs 标称 `64.00 GiB`**：`npu-smi` 标称单卡 `65,536 MB`（`64.00 GiB`）、空载板级占用 `3,426 ~ 3,453 MB`，而 `acl.rt.get_mem_info` 暴露给操作系统的总显存固定为 **`60.96 GiB`**。自动预算 `requested_memory = total_memory × u` 乘的是 **`60.96 GiB`**（`u = 0.85` 即 `51.81 GiB`），相差的 **`3.04 GiB`** 已在底层预留中扣在 `total_memory` 之外，手工核算时绝不能再从 `60.96 GiB` 里二次扣减（驱动、固件与页表在 `3.04 GiB` 内的细分占比无运行时单独读数）。
 2. **`non_torch` 从 `TP=1` 的 `0.03 GiB` 跳变到 `TP≥2` 的 `0.43 ~ 0.55 GiB`，且不可二次扣减**：启动快照 `init_snapshot` 拍在分布式通信建组之前。单卡 `TP=1` 无跨卡集合通信，实测 `non_torch` 仅 **`0.03 GiB`**；扩至 `TP≥2` 或叠加 `EP/DP` 后，已在 `profile_run()` 试跑窗口内具象化的通信域资源与运行时缓冲全部落入 `non_torch_increase`（稠密 `TP=2/4/8` 为 **`0.43 ~ 0.44 GiB`**，`TP=4+EP=4` 为 **`0.45 GiB`**，`DP=2+TP=4+EP=8` 为 **`0.55 GiB`**）。这部分已在自动 KV 预算中扣过，容量规划时不应重复扣减；同时 `non_torch` 代表试跑窗口内全部非 PyTorch 显存净增量，不能全部贴上单一 HCCL 标签。
-3. **`VLLM_LOGGING_LEVEL=DEBUG` 热路径分配器读数税**：`NPUWorker.execute_model()` 每步都会调用 `log_memory_stats()`。在默认 `INFO` 下该函数立即返回；一旦开启 `VLLM_LOGGING_LEVEL=DEBUG`，每步都会读取缓存分配器计数器 `torch.npu.memory_reserved()` 与 `torch.npu.memory_allocated()` 并格式化输出（并非每步调用设备级 `mem_get_info` 同步；`Qwen3-8B` `TP=1/2/4/8` 压测中分别打印 `979 / 830 / 1,660 / 3,312` 行），配合 `ACLGraph` 的输入地址检查，在 `Qwen3-8B` `TP=8` `c=1` 单样本对照下将首 token 延迟 `TTFT` 从 `139.07 ms` 推高至 **`193.98 ms`（`+54.91 ms` / `+39.48%`）**。
+3. **`VLLM_LOGGING_LEVEL=DEBUG` 每步读取分配器计数并打印日志**：`NPUWorker.execute_model()` 每步都会调用 `log_memory_stats()`，默认 `INFO` 级别下直接返回。一旦开启 `VLLM_LOGGING_LEVEL=DEBUG`，每步都会读取缓存分配器计数 `torch.npu.memory_reserved()` 与 `torch.npu.memory_allocated()` 并打印日志（并非每步调用设备级 `mem_get_info` 同步；`Qwen3-8B` `TP=1/2/4/8` 压测中分别打印 `979 / 830 / 1,660 / 3,312` 行），叠加 `ACLGraph` 的输入地址检查，在 `Qwen3-8B` `TP=8` `c=1` 单样本对照下将首 token 延迟 `TTFT` 从 `139.07 ms` 推高至 **`193.98 ms`（`+54.91 ms` / `+39.48%`）**。
 
 ## 主机还有空闲，为什么容器里的进程先被终止？
 
@@ -246,19 +248,17 @@ file: device-memory-fig-oom-triage
 
 ## 异构旗舰对照：GLM 双机语言权重子账与预算余量
 
-下面转入例外 B 历史绑定算例——**GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，完整前提见[官方双机前提](glm-5-3-flash-two-node.md#部署前提)）。与单卡稠密 `Qwen3-8B` 相比，这里增加了跨机专家切分、W8A8 量化后处理布局、MLA 复制缓存，以及晚于预算测量才创建的索引器运行时副本。
+以历史 [GLM-5.3-Flash 双机部署算例](glm-5-3-flash-two-node.md#部署前提)（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`；两机各持一半路由专家，合起来才构成完整模型）为例，与单卡稠密 `Qwen3-8B` 相比，这里多出量化后处理布局、异构缓存分流以及晚于预算测量才创建的索引器副本。
 
-### 放到 GLM 双机：先装权重，再接住一个 token
+### 分片加载、混合状态分流与两笔预算账
 
-**主机上的文件缓存与每卡的常驻参数是两本账。** 两台 Atlas 800 A2 各有 8 张 NPU：TP8 把同一矩阵切给机内 8 卡，EP16 把不同专家网络分给两机 16 卡，DP2 则把请求分给两个执行组。每台都只持有部分专家，两台合起来才有完整模型。
+**主机文件缓存、加载后权重子账与实际设备占用分属不同口径。** 默认加载器先按本卡分片形状在 NPU 上分配参数，再逐个读取权重文件中的 CPU 张量，复制进设备参数后按算子要求转置或转换为分块布局；主机页缓存、CPU 张量与设备处理后布局不能按文件体积一比一等同。
 
-默认加载器先按本卡形状在 NPU 上分配参数，再逐个读取权重文件里的 CPU 张量。负责该参数的加载函数选出本卡分片，复制到已经分配的设备参数里，随后按算子要求转置或转换存储布局。主机里的文件页缓存、CPU 张量与设备里的处理后布局，不能按文件大小一比一替代。
+每卡约 **`20.58 GiB`** 的语言权重子账包含主干和 **MTP**（模型自带、用于猜后续 token 的草稿层）的主要语言层权重（MTP 输出头复用主模型，不重复计），对应固定量化配方 `3121f187`；旧配方 `9e55cbc8` 将四组 MLA 投影保留浮点，同一子账约 **`20.81 GiB`**。这两项子账均以二进制 `GiB` 计，且不含 MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量（`scale` / `offset` 等），因此 `20.81 GiB` 并非完整加载占用的上界；版本明细见[权重账及其精度条件](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，实机加载占用须以运行日志与设备读数为准。
 
-每卡约 **20.58 GiB** 的语言权重子账包含主干和 **MTP**（模型自带、用于猜后续 token 的草稿层）的主要语言层权重；MTP 输出头复用主模型，不重复计。这个数对应固定量化配方 `3121f187`；旧配方 `9e55cbc8` 将四组 MLA 投影保留浮点，同一子账约 **20.81 GiB**。两者均不含 MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量（scale/offset 等），20.81 不是完整占用的上界；版本明细见[权重账及其精度条件](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，实机占用以日志为准。
+**请求到来时，常驻权重复用，中间激活和历史状态分头落位。** 以 [R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 含 `4` 个 token）为例：CPU 记下 token 编号与调度状态后把编号和位置送往设备，NPU 查表并与常驻权重计算，中间激活随本轮复用。历史状态按层结构分流：主干加 MTP 共 **`12` 层**稀疏 MLA cache 在 TP8 各卡保留完整副本，而 KDA 的固定状态按各卡负责的头切分，不能把“权重切成八份”套成“所有缓存也除以八”。每块字节数见[缓存预算的唯一推导](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，R1 块号账沿用[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。
 
-**请求到来时，权重复用，激活和历史各有去处。** 以 [R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 含 4 个 token）为例：CPU 先记下 token 编号与调度状态，准备输入时把编号和位置送往设备；NPU 查表转成向量并与常驻权重计算，中间激活随本轮复用。缓存则按结构分流：主干加 MTP 有 **12 层**稀疏 MLA cache，TP 各卡保留完整副本；KDA 的固定状态按各卡负责的头划分，不能把「权重分成八份」套成「所有缓存也除以八」。具体每块字节见[缓存预算的唯一推导](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，R1 块号账沿用[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。
-
-**双机预算余量与晚于测量的索引器副本。** 双机页的[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)均假设每卡 **64 GiB**、激活峰值加非 PyTorch 占用 **3.4 GiB**，并采用教程的 **`0.85`** 预算比例（预留 **9.6 GiB** 预算外余量）。按 `21 GiB` 假设权重计，余下 **30.00 GiB、3,855 块**；仅代入所列语言权重子账计，余下约 **30.42 GiB、3,908 块**（尚未扣 MTP 旋转矩阵缓冲、视觉塔权重与量化辅助张量等表外项）。固定实现先切 KV 再录图，且索引器在首次实际执行时才建 **54 MiB/卡** FP32 副本，两者均从预算外余量支付。注意 `64 GB`（十进制）与 `64 GiB`（二进制）口径不同，实机总字节以运行时上报为准。
+**双机预算余量与晚于测量的索引器副本。** 双机页的[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)均以每卡 **`64 GiB`** 教学假设、激活峰值加非 PyTorch 占用 **`3.4 GiB`**、教程 **`0.85`** 预算比例（预留 **`9.6 GiB`** 预算外余量）为前提：按 `21 GiB` 假设权重计余下 **`30.00 GiB`、`3,855` 块**；仅代入所列语言权重子账计余下约 **`30.42 GiB`、`3,908` 块**（未扣旋转矩阵缓冲、视觉塔与量化辅助张量等表外项）。固定实现先切 KV 再录图，且索引器在首次实际执行时才建 **`54 MiB/卡`** FP32 副本，两者均从预算外余量支付。注意硬件手册的 `64 GB`（十进制）与算例假设的 `64 GiB`（二进制）不同，实机总字节以运行时上报为准。
 
 ```wiki-diagram
 file: device-memory-fig-glm-twin-accounts
@@ -268,9 +268,9 @@ file: device-memory-fig-glm-twin-accounts
 
 ## 常见误解：能访问，就等于已经在本卡了吗？
 
-**可访问地址与物理存放位置是两件事。** 在硬件和运行时支持时，可以把主机内存注册、映射成设备可访问地址；设备沿该地址读取的是主机数据，注册动作本身没有把全部内容复制成本卡显存。普通复制则要先申请设备空间，复制完成后才得到本地副本。
+**可访问地址、框架逻辑页与底层物理存放位置是三件不同的事。** 在硬件和运行时支持时，主机上的锁页张量或共享 `mmap` 区域可以注册、映射成设备可访问的虚拟地址；设备沿该地址读取的仍是主机 DRAM 数据，注册动作本身没有把内容复制成本卡显存，而框架侧的 KV 逻辑页粒度也独立于 Linux 内核实际分配的 `4 KiB` 普通页或 `2 MiB / 1 GiB` 大页（主机页粒度、锁页注册三要素与 `/dev/shm` 配额详见[宿主机内存底座与静态大页](host-memory-and-hugepages.md)）。普通复制则要先申请设备空间，复制完成后才得到本地副本。
 
-例如在 `v0.30.0` 与 `main` 的 V2 runner 路径中，启用 **UVA（Unified Virtual Addressing，统一虚拟编址）** 须同时满足两个条件。一是 `PYTORCH_NPU_ALLOC_CONF` 包含 `pinned_mem_register:True`，二是 `triton-ascend` 版本不在受指针校验缺陷影响的 `3.2.1` / `3.2.2` 列表中。即便 UVA 可用，锁页主机内存仍物理驻留在主机侧，不计入 HBM 容量（宿主机侧 HugeTLB 静态大页、THP 透明大页、`memlock` 配额与跨流显存分配器调优分别见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md) 与 [昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）。
+例如在 `v0.30.0` 与 `main` 的 V2 runner 路径中，启用 **UVA（Unified Virtual Addressing，统一虚拟编址）** 须同时满足两个条件：一是 `PYTORCH_NPU_ALLOC_CONF` 包含 `pinned_mem_register:True`，二是 `triton-ascend` 版本不在受指针校验缺陷影响的 `3.2.1` / `3.2.2` 列表中。即便 UVA 可用，锁页主机内存仍物理驻留在主机侧，不计入 HBM 容量。
 
 在支持 MemFabric 的超节点部署中，这类软件可把分散在多机的内存组织成可访问的池；它改变了寻址和访问方式，各处存储介质与传输路径仍然存在。预算要分清本地分配、远端访问和实际复制；支持范围受产品及软件版本限制。
 
@@ -284,7 +284,7 @@ file: device-memory-fig-glm-twin-accounts
 
 ### 怎么开
 
-**设备分配器的配置。** `PYTORCH_NPU_ALLOC_CONF` 是启动进程前设置的环境字符串，由 torch_npu 的缓存分配器读取；各项写成 key:value，用逗号分隔。固定 GLM 教程在两端都写 `export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`。expandable_segments 让一段虚拟地址按需要增加物理页，减少批次尺寸略微变化时留下的零碎空间；它不增加 HBM 容量，也不代替上面的权重、激活与 KV 预算。
+**设备分配器的配置。** `PYTORCH_NPU_ALLOC_CONF` 是启动进程前设置的环境字符串，由 `torch_npu` 的缓存分配器读取；各项写成 `key:value`，用逗号分隔（计算流与通信流跨流提前复用及与 `max_split_size_mb`、睡眠模式的互斥机制详见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）。固定 GLM 教程在两端都写 `export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`。`expandable_segments` 让一段虚拟地址按需要增加物理页，减少批次尺寸略微变化时留下的零碎空间；它不增加 HBM 容量，也不代替上面的权重、激活与 KV 预算。
 
 要分清三层默认：配套 torch_npu 2.10.0.post2 的构造默认是 false；Ascend 平台在有 model_config 且未启用 sleep mode 时，变量未设置便注入 expandable_segments:True；教程再显式固定为这个值。已有字符串含 expandable_segments 时保留原值，所以显式 False 不会被平台改回 True。已有其他项且不含 max_split_size_mb、garbage_collection_threshold 时，平台追加 expandable_segments:True；含这两个冲突键则不追加。不要把“变量已设置”误当成“平台绝不追加”。这些操作必须发生在分配器读取配置之前；修改正在运行服务的外部 shell 环境不会重配其内存池。
 
@@ -321,7 +321,7 @@ file: device-memory-startup
 
 可扩展段需要管理虚拟地址与物理页映射，首次分配可能更慢；收益取决于实际分配形状和碎片情况。先保留 GLM 教程取值，再比较同一负载下的峰值与时延。若切到 sleep 场景，按 [sleep mode 的分配器约束](sleep-mode.md#怎么开)处理，不能直接沿用这条 export；当前双机部署没有启用 sleep。
 
-将数据常驻设备减少后续传输，但占用设备容量；卸载释放常驻空间，用到数据时要支付传输与同步成本。评估时分别测主机峰值、每卡峰值和传输时间。加载日志 `Loading model weights took ... GB` 在固定实现里用字节数除以 2³⁰，数值实际按 GiB 表示；不能拿日志标签的 GB 与十进制硬件规格直接相减。线上压测与稳态服务应保持默认 `INFO` 日志级别：开启 `VLLM_LOGGING_LEVEL=DEBUG` 会让 `worker.py` 在每步 `execute_model()` 中读取 `memory_reserved()` / `memory_allocated()` 并写日志（`c09d3e20#L762-L778`、`8d6180e2#L882-L902`）[C64]，造成额外的热路径 Host 开销。
+将数据常驻设备减少后续传输，但占用设备容量；卸载释放常驻空间，用到数据时要支付传输与同步成本。评估时分别测主机峰值、每卡峰值和传输时间。加载日志 `Loading model weights took ... GB` 在固定实现里用字节数除以 2³⁰，数值实际按 GiB 表示；不能拿日志标签的 GB 与十进制硬件规格直接相减。线上压测与稳态服务应保持默认 `INFO` 日志级别：开启 `VLLM_LOGGING_LEVEL=DEBUG` 会让 `worker.py` 在每步 `execute_model()` 中读取分配器计数 `memory_reserved()` / `memory_allocated()` 并打印日志（`c09d3e20#L762-L778`、`8d6180e2#L882-L902`）[C64]，造成额外的每步 Host 日志开销。
 
 ### 版本差异
 

@@ -3,7 +3,8 @@ id: ai-qos
 title: AI QoS：共享链路拥塞时，哪类流量先走
 type: feature
 legacyAnchors:
-  放到-glm-双机一个-token-会遇到什么: 复杂异构实战对照：GLM 双机部署下的表现与边界
+  放到-glm-双机一个-token-会遇到什么: 硬件与拓扑适用范围atlas-a3-超节点网络-vs-atlas-a2-与昇腾-950
+  复杂异构实战对照glm-双机部署下的表现与边界: 硬件与拓扑适用范围atlas-a3-超节点网络-vs-atlas-a2-与昇腾-950
 summary: >-
   AI QoS 在受支持的 A3 网络上给流量分类、映射虚拟通道并设置服务先后。理解关键通信与 KV
   搬运的争用，再核对端点和交换机两步配置、恢复边界及各版本差异。
@@ -86,6 +87,9 @@ relations:
   - to: ascend-950-execution-interconnect
     kind: builds-on
     note: 从共享出口排队与关键路径视角对照底层互联争用与多类流量优先级隔离
+  - to: ascend-runtime-and-tuning
+    kind: alternative-to
+    note: 本页工具配置 A3 UB 交换机与端点 VL，而跨机 RoCE 的 HCCL_RDMA_TC/SL 与建链/执行双超时归运行时环境变量管
 contradicts: []
 updated: '2026-11-26'
 origin: direct
@@ -154,19 +158,15 @@ file: ai-qos-fig-vl-priority-lanes
 **边界与例外：旧版五键映射与两步配套要求。**
 
 - **早期版本按方向细分成 5 类流量**：在 `v0.23.0` / `v0.26.0rc` 与历史 GLM 快照上，SDMA 承载的设备间通信与主机状态搬运共用端点源标签 `2`，靠初始 VL 拆向。「标签 `2` + 初始 VL `0`」映到目标 VL `2`（优先级 `3`，`high`），「标签 `2` + 初始 VL `1`」映到目标 VL `3`（优先级 `1`，`low`）。全部参数与推导见[怎么开](#怎么开)和[版本差异](#版本差异)。
-- **端点与交换机必须配套**：只改端点标签缺少队列映射，只有队列映射缺少服务次序；实际执行分工见 [CANN/HCCL 的配置说明](cann-hccl.md#怎么开)。
+- **端点与交换机必须配套，且与 HCCL 运行期参数分工明确**：只改端点标签缺少队列映射，只有队列映射缺少服务次序（执行分工见 [CANN/HCCL 的配置说明](cann-hccl.md#怎么开)）；而跨机 RoCE 网卡的流量类别与服务等级（`HCCL_RDMA_TC / HCCL_RDMA_SL`）、`AIV` 通信展开及建链/执行双超时（`HCCL_CONNECT_TIMEOUT / HCCL_EXEC_TIMEOUT`），则由 [HCCL 运行期调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)独立配置。
 
-## 复杂异构实战对照：GLM 双机部署下的表现与边界
+## 硬件与拓扑适用范围：Atlas A3 超节点网络 vs Atlas A2 与昇腾 950
 
-**固定 GLM 双机主线没有启用这套 AI QoS 配置，也不在指南声明的 A3 支持范围内。** 本页挂靠[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)：AI QoS 是启动推理任务前单独运行的设备与网络配置工具。它可能影响的位置在[一次前向的通信账](one-request.md#一次前向的通信账)，即各层计算等待远端数据的阶段。部署型号、并行分组与版本前提统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
+**本页 `tools/ai_qos` 与 UB 交换机映射配方专用于受支持的 Atlas A3 网络（`Atlas 800T A3` 与 `Atlas 900 A3 SuperPoD`），不能跨代套用到 Atlas A2 或昇腾 950。** AI QoS 是启动推理服务前单独执行的设备与交换机配置工具（挂靠[启动准备阶段](glm-5-3-flash-two-node.md#启动时发生了什么)），运行时作用于[一次前向的通信等待区间](one-request.md#一次前向的通信账)：
 
-沿一个 token（模型处理文本的基本单位）看，启动阶段先建立通信组。请求进入模型后，多卡合算矩阵需要合齐各卡结果，专家层要把输入送到专家所在的卡再收回结果，计算分工分别见 [TP](tensor-parallel.md) 与 [EP](expert-parallel.md)。这些通信仍按原有执行路径发生，AI QoS 不改变每层通信次数、张量形状或专家分布。
-
-未启用的依据很明确：官方双机脚本没有调用该工具，固定执行源码的推理路径也没有自动调用它。双机教程虽然使用特权容器，也设置了 AIV 相关通信选项，但这些条件各有用途，不能代替设备与交换机 QoS 配置。
-
-若把相同推理工作迁到受支持的 A3 拓扑，并同时运行会争用出口的状态搬运，正确配置端点和交换机后，变化发生在通信等待时间上：高优先级流量先得到服务，低优先级搬运承担等待。具体哪次通信走哪条搬运通道，要看实际算子和驱动。指南明确写明 AIV 通道设置尚不生效，因此不能把“专家派发很关键”直接推成“调高 AIV 就会更快”。
-
-若要比较昇腾 950，先看[执行与互联页](ascend-950-execution-interconnect.md)对任务、搬运和远端访问的区分。本页核实的 A3 工具与交换机条件不能直接当成 950 的已验证配置；迁移时仍需核对相应产品的软件文档与实际生效状态。
+- **在受支持的 Atlas A3 网络上**：当多卡 [TP](tensor-parallel.md) 归约、[EP](expert-parallel.md) 专家派发与后台 KV 状态搬运争用同一共享出口时，正确配套端点标签与交换机 VL 后，高优先级通道先获转发、低优先级搬运顺延承担等待；它不改变每层通信次数、张量形状或专家分布。注意官方指南明确说明受驱动限制，**`AIV` 通道设置当前尚不生效**，不能把“专家派发关键”直接推成“调高 `AIV` 就会提速”。
+- **在 Atlas A2 双机部署上**：历史 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)运行在 **Atlas A2**（机内 HCCS + 跨机 RoCE）上，不在上述 A3 交换机 QoS 配方的支持范围内，官方启动脚本与固定执行源码均未调用该工具（教程中的特权容器与 AIV 通信环境变量另有用途，不替代设备与交换机 QoS）。
+- **向昇腾 950 迁移时**：昇腾 950 的任务调度、CCU 卸载与 `UB 2.0` 互联机制见[执行与互联页](ascend-950-execution-interconnect.md)；本页核实的 A3 DSMI 接口与交换机命令不能直接当成 950 的已验证配置，迁移时须按目标产品的文档与实测状态重新核对。
 
 ## 哪些理解最容易带偏？
 
@@ -194,7 +194,7 @@ cmake --build tools/ai_qos/build -j
 cmake --install tools/ai_qos/build
 ```
 
-其中头文件名为 dsmi_common_interface.h，库名为 libdrvdsmi_host.so；CMake 还要求 Python 开发模块与 pybind11。容器必须能看到这些文件。扩展导入成功后，再运行下列两种配置之一（注意 `v0.30.0 / main` 的 `--SDMA` 统一控制整条 SDMA 键，而历史五键的 `--SDMA_H2D` 仅改主机搬运键）：
+其中头文件名为 `dsmi_common_interface.h`，库名为 `libdrvdsmi_host.so`；CMake 还要求 Python 开发模块与 `pybind11`，容器必须能看到这些文件。扩展导入成功后，按当前版本选择对应入口运行——**务必区分新版 `--SDMA` 与旧版 `--SDMA_H2D` 的作用范围**：`v0.30.0 / main` 的 `--SDMA` 不再按方向拆分，会同时改变整条 SDMA 通道（含设备间通信与主机搬运，统一落入目标 VL `4`）的优先级；而历史五键的 `--SDMA_H2D` 只调整主机状态换出/预取这一路（目标 VL `3`），不影响保持 `high` 的 `--SDMA_D2D`（目标 VL `2`）：
 
 ```bash
 # v0.30.0 主基线（c09d3e20）与 main（8d6180e2）：模块入口 + 三键（旧五键会触发 argparse 报错）

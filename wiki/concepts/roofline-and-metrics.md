@@ -72,7 +72,7 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-**判断一套推理部署究竟“卡在算得慢”还是“卡在搬得慢”，不能只看 NPU 忙碌百分比，而要先分清首字时延、吐字间隔与系统吞吐三项指标，再用每搬运一字节能做多少次乘加运算（算术强度）放到硬件的 Roofline 屋顶下定位瓶颈。**
+**衡量推理服务快慢，先看首字时延、吐字间隔与系统吞吐三项请求级指标，而不能只看 NPU 忙碌百分比。要进一步判断一步计算究竟卡在“算得慢”还是“搬得慢”，还要算出每搬运一字节数据能做多少次乘加运算（算术强度），放到硬件的 Roofline 屋顶折线下定位瓶颈。**
 
 在第三章走完 [Prefill 与 Decode](prefill.md)、[KV Cache](kv-cache.md) 与 [Chunked Prefill](chunked-prefill.md) 后，我们已经看到：处理提示词和逐词生成执行的是同一套权重，脾气却截然相反。迈入昇腾硬件与量化章节之前，本页先立起衡量推理快慢的标尺与物理上限模型，回答三个核心工程问题：
 
@@ -167,14 +167,14 @@ file: roofline-ceiling-and-shift
 
 ## 从单算子放到整座模型：长上下文 KV Cache、稀疏 MoE 与立项初筛
 
-真实模型的一步前向不仅有线性层矩阵乘，还包含逐位置读取历史上下文的注意力计算、跨卡通信以及稀疏专家分发（详细硬件映射见 [硬件体系](hardware-devices.md) 与 [性能分析](inference-performance-analysis.md)）。把单算子结论外推到整座 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（稀疏 MoE）时，必须额外算清下图中的两道边界：
+真实模型的一步前向不仅有线性层矩阵乘，还受主机 CPU 算子下发间隔、逐位置读取历史上下文的注意力计算、跨卡通信与稀疏专家分发共同制约（详细硬件映射与下发取证见[硬件体系](hardware-devices.md)、[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#为什么推理时延常卡在-host-cpu-下发空泡而非-ai-core-计算)及[性能分析](inference-performance-analysis.md)）。把单算子结论外推到整座 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（稀疏 MoE）时，必须额外算清下图中的两道边界：
 
 ```wiki-diagram
 file: roofline-fig-kv-and-moe-dilution
 ```
 
-- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，16 条请求共享一份 `15.26 GiB` 权重；若各自带着互不重合的 `32,768` 词历史，单步 Decode 光读 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**。更关键的是，独立 KV 只服务所属那 1 条请求：在 `4:1` GQA 下，每读一对 BF16 K/V 元素（`4 B`）仅供 4 个查询头各做一次乘加，注意力强度锁死在 $I_{\text{attn}} \approx \frac{4 \times (2 + 2)\text{ FLOP}}{(2 + 2)\text{ B}} = \mathbf{4\text{ FLOP/B}}$ 左右，不随 $B$ 增长。长文 Decode 想破带宽墙，只能靠 [KV cache C8 量化](kv-cache-quantization.md)（把历史缓存压至 8 位整数）、[前缀缓存复用](prefix-caching.md)或 [MLA 潜向量压缩](mla.md)。
-- **边界二：稀疏 MoE 的单步有效行数被专家路由稀释**。`Qwen3-30B-A3B` 总参数 `30.53B`（BF16 常驻 `56.87 GiB`），单 token 仅激活 `128` 个路由专家中的 `8` 个（激活参数 `3.35B`）。单请求 $B = 1$ 时只读 8 个选中专家；但在**路由近似均匀打散的典型解码批**下（排除全部请求集中命中同一组 8 个专家的极端退化情形），并发升到 $B = 32$ 会产生 `32 × 8 = 256` 次指派，按独立均匀近似会点亮约 $128 \times (1 - (120/128)^{32}) \approx \mathbf{112}$ 个专家（近九成专家权重，迫使搬运 `56.87 GiB` 中的绝大部分）。摊到每个被激活专家的有效行数平均仅约 $256 / 112 \approx \mathbf{2.3}$ 行（按全部 128 个专家均摊为 `2` 行，局部算术强度仅约 **`2 FLOP/B`**）。因此大型 MoE 线上常采用 [PD 分离](pd-disaggregation.md)，在 Decode 侧用大 `DP + EP` 汇聚数百路并发，把单专家有效行数推回高强度区间。
+- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，16 条请求共享一份 `15.26 GiB` 权重。若它们各自带着互不重合的 `32,768` 词历史，单步 Decode 光读 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**。更关键的是，独立 KV 只服务所属那 1 条请求：在 `4:1` GQA 下，每读一对 BF16 K/V 元素（`4 B`）仅供 4 个查询头各做一次乘加，注意力强度锁死在 $I_{\text{attn}} \approx \frac{4 \times (2 + 2)\text{ FLOP}}{(2 + 2)\text{ B}} = \mathbf{4\text{ FLOP/B}}$ 左右，不随 $B$ 增长。长文 Decode 想破带宽墙，只能靠 [KV cache C8 量化](kv-cache-quantization.md)（把历史缓存压至 8 位整数）、[前缀缓存复用](prefix-caching.md)或 [MLA 潜向量压缩](mla.md)。
+- **边界二：稀疏 MoE 的单步有效行数被专家路由稀释**。`Qwen3-30B-A3B` 总参数 `30.53B`（BF16 常驻 `56.87 GiB`），单 token 仅激活 `128` 个路由专家中的 `8` 个（激活参数 `3.35B`）。单请求 $B = 1$ 时只读 8 个选中专家。但在**路由近似均匀打散的典型解码批**下（排除全部请求集中命中同一组 8 个专家的极端退化情形），并发升到 $B = 32$ 会产生 `32 × 8 = 256` 次指派；按独立均匀近似会点亮约 $128 \times (1 - (120/128)^{32}) \approx \mathbf{112}$ 个专家，迫使搬运 `56.87 GiB` 中的绝大部分权重。摊到每个被激活专家的有效行数平均仅约 $256 / 112 \approx \mathbf{2.3}$ 行（按全部 128 个专家均摊为 `2` 行，局部算术强度仅约 **`2 FLOP/B`**）。因此大型 MoE 线上常采用 [PD 分离](pd-disaggregation.md)，在 Decode 侧用大 `DP + EP` 汇聚数百路并发，把单专家有效行数推回高强度区间。
 
 结合权重静态显存、运行时预留（完整 7 级扣减见 [KV 显存划定](kv-cache-memory-profiling.md)）与上述算术强度规律，可在下方初筛台切换预设模型与昇腾拓扑对照容量与瓶颈落点：
 
@@ -193,7 +193,7 @@ summary: 选择 Qwen3 预设与昇腾卡型，直观查看 Prefill / Decode 在 
 file: roofline-five-myths
 ```
 
-- **“监控显示 NPU 忙碌度 90%，说明算力已经跑满。”** 算子执行期间计算核心停在片上等待 HBM 送数，同样会被计入设备任务忙碌时长。要分辨是真正在做乘加还是卡在搬运，应开启 `--enable-mfu-metrics`（MFU 即 Model FLOPs Utilization，模型算力利用率）对照每秒有效算力（`TF/s/device`）与估算带宽（`GB/s/device`）。
+- **“监控显示 NPU 忙碌度 90% 就是算力跑满，忙碌度偏低就是卡本身太慢。”** 算子执行期间计算核心停在片上等待 HBM 送数，同样会被计入设备忙碌时长；要分辨真正在做乘加还是卡在搬运，应开启 `--enable-mfu-metrics`（MFU 即 Model FLOPs Utilization，模型算力利用率）对照每秒有效算力（`TF/s/device`）与估算带宽（`GB/s/device`）。反过来，若小批 Decode 时延偏高而 `AICore(%)` 长期偏低或呈锯齿抖动，算力与带宽往往都没吃满，应优先排查 **Host CPU 算子下发空泡等待**（设备在相邻小算子之间空等主机 Python/ACL 提交，取证与调优见[算子下发流水与运行时调优](ascend-runtime-and-tuning.md#为什么推理时延常卡在-host-cpu-下发空泡而非-ai-core-计算)）或跨卡通信阻塞。
 - **“只要显存够，无脑调大并发 Batch 总能继续提吞吐。”** 线性层越过脊点 $I_{\text{ridge}}$ 后已撞上算力屋顶，且非共享长上下文 KV cache 的注意力读取强度恒定在低位（`4:1` GQA 约 `4 FLOP/B`），盲目堆批只会让 `TTFT` 和 `TPOT` 急剧恶化。
 - **“MoE 模型单词只激活 3.35B 参数，跑 32 并发就像稠密 3B 模型一样轻。”** 在路由近似均匀打散的典型批次下，32 路并发会覆盖绝大部分专家（独立均匀近似约 `112/128` 个），被激活专家平均仅分到约 `2.3` 行，整批却被迫搬运 `56.87 GiB` 中的绝大部分权重。
 - **“面板里的 ITL 和 TPOT 是一回事，随便挑一个设告警就行。”** 投机解码单步返回多个词时，`ITL` 量的是两次流式包间隔，而 `TPOT` 按总生成词数摊薄；且只生成 1 个词的请求在服务端 `vllm:request_time_per_output_token_seconds` 会记 `0.0`，与客户端排除口径不同。

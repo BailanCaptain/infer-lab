@@ -89,6 +89,9 @@ relations:
   - to: ascend-env-and-serve
     kind: builds-on
     note: 承接单机容器 --shm-size 基础挂载，进一步区分 /dev/shm、memlock 与宿主机 vm.nr_hugepages 三道阈值
+  - to: engine-processes
+    kind: builds-on
+    note: 多进程 Worker 的共享内存广播队列依赖 /dev/shm，并与 fork 写时复制共享匿名页分属不同机制
 contradicts: []
 updated: '2026-11-27'
 ---
@@ -125,7 +128,18 @@ $$N_{4\text{KiB}} = \frac{1\text{ GiB}}{4\text{ KiB}} = 262,144\text{ 页}, \qqu
 
 ### Mooncake / Ascend Store 的锁页内存注册三要素
 
-在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支：默认复用全局引擎 `global_te.register_buffer()` 时，底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`；启用独立引擎走 `store.register_buffer()` 时，返回非零仅打印错误日志而不抛异常；而开启 `ASCEND_ENABLE_USE_FABRIC_MEM`（仅限 Atlas 800I/T A3 统一内存寻址直传）且未开独立引擎时，此处跳过显式注册。代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置表要求显式配置 `global_segment_size` 并按 **`1 GiB` 对齐**）。同时须区分两条 Worker 侧缓存注册路径对 **`2 MiB` 边界**的处理差异：**Ascend Store 缓存池**（`pool_worker.py`）先合并共用底层 storage 的区间，混合缓存下会经 `_align_kv_ptrs` 将区间起点向下按 `2 MiB` 对齐并重算覆盖长度后再送入后端；而**普通 Mooncake P/D 连接器**（`mooncake_connector.py`）在 `use_hybrid` 且无 Mamba 分组时，通过 `_get_registered_kv_tensor_buffers_hybrid` 严格校验张量起点，一旦未按 `2 MiB` 对齐会直接抛出 `RuntimeError("Tensor start addr ... is not aligned to 2 MiB.")` 而不会自动下取整。排查此类池化与 P/D 传输故障时，必须同时紧盯异常与错误日志，并把三件事分开核验：**池容量参数 `global_segment_size` 是否按 `1 GiB` 对齐、对应连接器或池路径的 `2 MiB` 地址边界与锁页注册（`register_memory` + `memlock`）是否通过、以及外部池守护进程底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**。
+在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支（与下文 [Engram 主机条件记忆表](engram-conditional-memory.md) 直接调用 CANN `aclrtHostRegisterV2` / `aclrtMallocHost` 的主机 UVA 注册机制各司其职）：
+
+- **全局传输引擎（默认 `global_te.register_buffer()`）**：底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`。
+- **独立存储引擎（`store.register_buffer()`）**：返回非零仅打印错误日志而不抛异常。
+- **A3 统一内存直传（开启 `ASCEND_ENABLE_USE_FABRIC_MEM` 且未开独立引擎）**：仅限 Atlas 800I/T A3 统一内存寻址直传，此处跳过显式注册。
+
+代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置表要求显式配置 `global_segment_size` 并按 **`1 GiB` 对齐**）。同时须区分两条 Worker 侧缓存注册路径对 **`2 MiB` 边界**的处理差异：
+
+- **Ascend Store 缓存池（`pool_worker.py`）**：先合并共用底层 storage 的区间；混合缓存下经 `_align_kv_ptrs` 将区间起点向下按 `2 MiB` 对齐并重算覆盖长度后再送入后端。
+- **普通 Mooncake P/D 连接器（`mooncake_connector.py`）**：在 `use_hybrid` 且无 Mamba 分组时，通过 `_get_registered_kv_tensor_buffers_hybrid` 严格校验张量起点，一旦未按 `2 MiB` 对齐会直接抛出 `RuntimeError("Tensor start addr ... is not aligned to 2 MiB.")`，不会自动向下取整。
+
+排查此类池化与 P/D 传输故障时，必须同时检查异常与错误日志，并把三件事分开核验：**池容量参数 `global_segment_size` 是否按 `1 GiB` 对齐、对应路径的 `2 MiB` 地址边界与锁页注册（`register_memory` + `memlock`）是否通过、以及外部池守护进程底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**。
 
 ### 为什么不能只看 `npu-smi info` 的 `Hugepages-Usage`？
 
@@ -146,7 +160,7 @@ cat /sys/devices/system/node/node*/hugepages/hugepages-1048576kB/free_hugepages
 
 **透明大页（Transparent HugePages，简称 THP）**走的是另一条路：应用代码无需改用特殊分配接口，内核在后台自动尝试把普通虚拟内存区间合并成 `2 MiB` 大页；物理连续空间不足时又可平滑退回 `4 KiB` 小页。但全局开启 `THP=always` 也有代价：当主机内存运行日久产生碎片时，内核做同步拼页整理（Direct Compaction）或后台 `khugepaged` 扫描搬迁页块，会在毫无征兆的时刻卡住业务线程，造成推理请求尾时延（TPOT / TTFT P99）尖刺。
 
-`vllm-ascend` 在 [DeepSeek-V4.1-Flash 的 Engram 主机共享表](engram-conditional-memory.md) 中给出了精准折中范式：同机多 Worker 通过 POSIX 共享内存建立 `SharedUvaBuffer` 后，代码专门对该段大表映射调用 `_madvise_hugepage()` 执行 **`madvise(MADV_HUGEPAGE)`**（向内核提示仅对该共享内存段优先启用 shmem THP 2 MiB 大页；若宿主策略不支持也仅打一条 warning 而不中断启动），紧接着调用 **`aclrtHostRegisterV2`** 将其锁页固定并通过 `aclrtHostGetDevicePointer` 映射进 NPU 的 **UVA（统一虚拟编址）** 地址空间（私有表 `HostUvaBuffer` 则直接走 `aclrtMallocHost`；`main` 分支跨机共享 Engram 进一步结合 HIXL 走已注册且 pinned 的主机暂存缓冲）。
+`vllm-ascend` 在 [DeepSeek-V4.1-Flash 的 Engram 主机共享表](engram-conditional-memory.md) 中给出了精准折中范式：同机多 Worker 通过 POSIX 共享内存建立 `SharedUvaBuffer` 后，先调用 `_madvise_hugepage()` 执行 **`madvise(MADV_HUGEPAGE)`**，提示内核仅对该共享段优先启用 shmem THP `2 MiB` 大页（宿主策略不支持时仅打印 warning，不中断启动）。随后代码调用 **`aclrtHostRegisterV2`** 将其锁页固定，并通过 `aclrtHostGetDevicePointer` 映射进 NPU 的 **UVA（统一虚拟编址）** 地址空间（私有表 `HostUvaBuffer` 走 `aclrtMallocHost`；`main` 分支跨机共享 Engram 结合 HIXL 走已注册且 pinned 的主机暂存缓冲）。
 
 | 对比维度 | 静态大页（Static HugePages / HugeTLB） | 透明大页（THP / `MADV_HUGEPAGE`） |
 |---|---|---|
@@ -165,7 +179,7 @@ cat /sys/devices/system/node/node*/hugepages/hugepages-1048576kB/free_hugepages
 
 ## 容器 `--shm-size`（`/dev/shm`）、`memlock` 与宿主机内核稳态四件套
 
-线上排障最常见的另一类“主机内存报错”，是把容器共享内存、锁页配额与内核调度参数混成一团。先用一张表把容器内外的两道配额彻底分清：
+线上排障最常见的另一类“主机内存报错”，是把容器共享内存、进程写时复制、锁页配额与内核调度参数混成一团。在 vLLM 多进程架构中（详见[拆成几个进程的代价](engine-processes.md#拆成几个进程换来什么付出什么)与 [`fork` 写时复制 vs `spawn` 隔离](engine-processes.md#补丁和配置为什么要每个进程各做一遍)），`fork` 模式下子进程起初只通过写时复制（COW）共享父进程的只读匿名页，而多卡 `mp` 执行器的跨进程广播队列与同机共享缓冲则显式落入 `/dev/shm`。先用一张表把容器内外的两道配额彻底分清：
 
 | 容器参数 | 控制哪块资源 | 设小了会出什么现象 | 典型生产推荐值 |
 |---|---|---|---|

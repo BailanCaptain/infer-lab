@@ -41,7 +41,7 @@ const ORACLE_ROWS = [
   {
     id: "size-40a1c2ca47b8",
     file: "params/size-40a1c2ca47b8.md",
-    sha256: "44a47550db3001257e50faaaeb6e6059b74976ae9d47cf7ab38fea55aca626c7",
+    sha256: "7834f67d22a24175a9afa1f3ed07e1dfcc3ce6854ac32923c0197815a2cce473",
     expectedDisplay: "KVPPConfig.size",
   },
   {
@@ -59,7 +59,7 @@ const ORACLE_ROWS = [
   {
     id: "profiling-chunk-config",
     file: "params/profiling-chunk-config.md",
-    sha256: "3fefd805335677c04e7bf3d8b170aaa75f71929c892307830258562afe5f9f86",
+    sha256: "948dbb12c6a6d18a9ce0c523e55e769ebec86fbb008d8f595c8ff29fb577067f",
     expectedDisplay: "动态切块配置（profiling_chunk_config）",
   },
 ] as const;

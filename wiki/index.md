@@ -21,7 +21,7 @@
 - [通信基础：rank 之间怎样交换和归约张量](concepts/collective-communication.md) — 集合通信规定一组参与者怎样交换数据以及结束后每张卡持有什么：用 2 卡与 4 卡分格图演示八种通信操作与 ring All-Reduce，区分逻辑载荷与链路传输量、机内 HCCS/UB 与跨机 RoCE 带宽悬崖，再沿 GLM 双机解释 HCCL 与 MC2。 `04`
 - [多条请求：在官方双机部署上一步怎样装下它们](concepts/concurrent-requests.md) — 沿场景 M（DP0 上 12 条请求在 decode 时来了一条 6000 token 的新请求，DP1 上 7 条在 decode）和 DP1 空闲的变体 M′，在官方双机部署上看多条请求时每一站多出来的事：选组、分预算、拼输入、抢占、图尺寸补齐与两组对齐、MoE 从 MC2 翻到 AllGather、空闲组陪跑。 `00`
 - [Continuous Batching（连续批处理）](concepts/continuous-batching.md) — 摒弃整批对齐补零与慢请求锁死，按单步迭代动态挑选请求、一维无填充拼接 token，并在每步末尾对完结请求即退即释块；配合 waiting 与 running 两队列、三道预算闸门及 LIFO 抢占重算，撑起高吞吐低延迟在线服务。 `03`
-- [vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动](concepts/core-cli-params.md) — 打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上常规在线分支从 2048 起算、批式 DP MoE 从 256 起算的 6 分支决策树、未设并发上限的独立求值与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。 `06`
+- [vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动](concepts/core-cli-params.md) — 打通 vllm serve 四大核心旋钮与单卡显存水位联动，拆解 v0.30.0 常规在线按硬件三档（<70 GiB 或未初始化置 0 从 2048、已初始化 >=70 GiB 非 A100 从 8192、>=160 GiB 从 16384 起算）与批式 DP MoE 从 256 起算的 6 分支决策树、SP+PCP 取整及图编译与 P/D 互斥红线。 `06`
 - [DeepSeek 生产实践：一条请求怎样走过整套服务](concepts/deepseek-serving-case.md) — 从长输入干扰已有回答出发，推演为什么把 E/P/D 分开、要交接哪些状态以及何时得不偿失；再沿带图长文的追问拆开缓存就绪与计算等待，对照 DeepInfer 的实际发布边界。 `19`
 - [DeepSeek-V4.1-Flash：长历史怎样少存、少重算](concepts/deepseek-v4-1-flash.md) — 为什么 40 层模型读长文不必把长历史算 40 遍、存 40 份？顺着 CED / YOCO 跨层 KV 共享与后半层边界压缩走一遍，分清少算、少存与少读，再核对 V4.1-Flash 的真实配置与三笔内存账。 `19`
 - [新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径](concepts/dev-new-model-and-custom-op.md) — 串通新 HuggingFace 模型接入 vLLM Ascend 的架构注册、WeightsMapper、@register_scheme 量化注册与 OOT 分发，对比 torch_npu、AscendC 与 Triton-Ascend 三条算子路径及 950/310P 能力门控。 `16 20`

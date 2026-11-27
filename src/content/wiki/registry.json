@@ -5479,12 +5479,14 @@
     {
       "id": "core-cli-params",
       "legacyAnchors": {
-        "为什么昇腾在线服务默认批预算是-2048拆解-6-分支求值与-sppcp-静默取整": "默认批预算怎样从 2048 或 256 起步？拆解 6 分支求值与 SP+PCP 静默取整"
+        "为什么昇腾在线服务默认批预算是-2048拆解-6-分支求值与-sppcp-静默取整": "默认批预算怎样从 2048 或 256 起步？拆解 6 分支求值与 SP+PCP 静默取整",
+        "1-参数解析早退notimplementederror-如何把-device_memory-置零": "1-参数解析早退三档硬件表与-device_memory-归零",
+        "2-未手传参数时的-6-条顺序分支": "2-6-条顺序分支与-max_num_seqs-的独立缺省求值"
       },
       "title": "vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动",
       "type": "concept",
       "origin": "direct",
-      "summary": "打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上常规在线分支从 2048 起算、批式 DP MoE 从 256 起算的 6 分支决策树、未设并发上限的独立求值与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。",
+      "summary": "打通 vllm serve 四大核心旋钮与单卡显存水位联动，拆解 v0.30.0 常规在线按硬件三档（<70 GiB 或未初始化置 0 从 2048、已初始化 >=70 GiB 非 A100 从 8192、>=160 GiB 从 16384 起算）与批式 DP MoE 从 256 起算的 6 分支决策树、SP+PCP 取整及图编译与 P/D 互斥红线。",
       "aliases": [
         "vllm serve 核心参数",
         "核心参数调优",
@@ -6047,7 +6049,7 @@
         {
           "from": "dp-request-routing",
           "kind": "enables",
-          "note": "DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移"
+          "note": "DP 组是什么、各组各有 scheduler 与 KV 池、排队请求为什么要加重计分、请求派定不迁移"
         },
         {
           "from": "dyntra-lb",
@@ -6733,7 +6735,7 @@
         {
           "to": "data-parallel",
           "kind": "builds-on",
-          "note": "DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移"
+          "note": "DP 组是什么、各组各有 scheduler 与 KV 池、排队请求为什么要加重计分、请求派定不迁移"
         },
         {
           "to": "prefix-caching",
@@ -9958,7 +9960,8 @@
         "vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L110",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1629-L1680",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L380"
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L380",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1265-L1271"
       ],
       "verified": [
         "releases/v0.23.0",

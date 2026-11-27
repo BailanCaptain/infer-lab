@@ -1,65 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="PagedAttention 五大常见误解与源码真相正误对比图" font-family="var(--font-sans)">
-  <title>PagedAttention 五大常见误解与源码真相速查：区分消灭外部碎片与有界末块内部碎片、昇腾 refresh_block_size 在非 MXFP8 下打 info 日志改回 128（MXFP8 需 512 对齐显式传 16 直接报错）、算子原地跨块寻址无拼拷、分页存储布局与算子名解耦，以及 free_blocks 只减 ref_cnt 不清零显存。</title>
-  <desc>关联源码符号：free_blocks, ref_cnt, free_block_queue, enable_prefix_caching, enable_chunked_prefill, block_size, block_table, npu_fused_infer_attention_score</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 568" width="900" height="568" role="img" aria-label="PagedAttention 块表映射落槽算例与五大常见误解对照图" font-family="var(--font-sans)">
+  <title>PagedAttention 五大常见误解与源码真相速查：块表 [7,3] 落槽寻址算例与排障判据。</title>
+  <desc>上半部画出 block_size=4、已用 5 个位置（首块满 4 格、末块用 1 格空 3 格），经页表 [7, 3] 将位置 4 映射到物理块 #3 偏移 0；下半部汇总内部余量、昇腾 128/512 块长、FIA 原地跨块读取与 free_blocks 不清零判据。</desc>
+  <defs>
+    <marker id="pam-amb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="pam-ind" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <!-- 开放式顶部分栏标题与中轴虚线 -->
-  <text x="218" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#b54237">✗ 常见直觉误区</text>
-  <text x="668" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#087f73">✓ 源码与硬件真相</text>
-  <line x1="16" y1="46" x2="884" y2="46" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-  <line x1="440" y1="14" x2="440" y2="468" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">PagedAttention 块表落槽寻址（block_size=4 · 页表 [7, 3] 示意）及 v0.30.0 排障判据</text>
 
-  <!-- 误解 1 -->
-  <circle cx="30" cy="92" r="12" fill="#b54237"/>
-  <text x="30" y="96.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
-  <rect x="50" y="60" width="374" height="64" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="64" y="86" font-size="14.5" font-weight="700" fill="#b54237">「用了分页后，KV 显存浪费彻底归零」</text>
-  <text x="64" y="110" font-size="13.5" fill="#4d5652">把外部碎片消失误当成完全没有空闲槽位</text>
+  <!-- Hero Panel: Logical 5 Positions -> Page Table [7, 3] -> Physical Block #3 Offset 0 -->
+  <rect x="14" y="40" width="872" height="256" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="63" font-size="13.5" font-weight="700" fill="#17211f">寻址追踪：已用 5 个位置（0..4），位置 4 经 4//4=1 查页表得物理块 #3、经 4%4=0 落入首格，末块留 3 格内部余量</text>
 
-  <rect x="448" y="60" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="460" y="86" font-size="14.5" font-weight="700" fill="#065f56">消灭的是外部碎片；末块仍有有界内部空余</text>
-  <text x="460" y="110" font-size="13.5" fill="#4d5652">单组按位置增长至多空 <tspan font-family="var(--font-mono)" font-weight="700">block_size - 1</tspan> 格（另有投机预留）</text>
+  <!-- Stage 1: Logical Sequence (x=26..282) -->
+  <rect x="26" y="76" width="256" height="186" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="154" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">① 逻辑位置（共 5 词 · 块长 4）</text>
+  <text x="38" y="120" font-size="12" fill="#4d5652">逻辑块 0（满 4 格：位置 0..3）</text>
+  <g fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2">
+    <rect x="38" y="128" width="52" height="28" rx="4"/><rect x="96" y="128" width="52" height="28" rx="4"/>
+    <rect x="154" y="128" width="52" height="28" rx="4"/><rect x="212" y="128" width="52" height="28" rx="4"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle" fill="#3a4f93">
+    <text x="64" y="146.5">pos 0</text><text x="122" y="146.5">pos 1</text>
+    <text x="180" y="146.5">pos 2</text><text x="238" y="146.5">pos 3</text>
+  </g>
+  <text x="38" y="180" font-size="12" font-weight="700" fill="#936300">逻辑块 1（用 1 格 + 空 3 格余量）</text>
+  <rect x="38" y="188" width="52" height="28" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="64" y="206.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#936300">pos 4</text>
+  <g fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2">
+    <rect x="96" y="188" width="52" height="28" rx="4"/><rect x="154" y="188" width="52" height="28" rx="4"/><rect x="212" y="188" width="52" height="28" rx="4"/>
+  </g>
+  <g font-size="12" text-anchor="middle" fill="#66716d">
+    <text x="122" y="206.5">空</text><text x="180" y="206.5">空</text><text x="238" y="206.5">空</text>
+  </g>
+  <text x="154" y="244" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#936300">4 // 4 = 块[1], 4 % 4 = 偏移 0</text>
 
-  <!-- 误解 2 -->
-  <circle cx="30" cy="174" r="12" fill="#b54237"/>
-  <text x="30" y="178.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
-  <rect x="50" y="142" width="374" height="64" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="64" y="168" font-size="14.5" font-weight="700" fill="#b54237">「传 --block-size 16 在昇腾一定按 16 切」</text>
-  <text x="64" y="192" font-size="13.5" fill="#4d5652">照搬 GPU 参数，以为命令行写了就会保留</text>
+  <!-- Stage 2: Block Table [7, 3] (x=312..486) -->
+  <rect x="312" y="76" width="174" height="186" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="399" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">② 页表 block_table</text>
+  <rect x="328" y="122" width="142" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="399" y="144.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#3a4f93">索引 [0] → 块 #7</text>
+  <rect x="328" y="182" width="142" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+  <text x="399" y="204.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">索引 [1] → 块 #3 ★</text>
+  <text x="399" y="244" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">slot = 3×4 + 0 = 12</text>
 
-  <rect x="448" y="142" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="460" y="168" font-size="14.5" font-weight="700" fill="#065f56">非 MXFP8 开 APC/分块即打 info 改回 128</text>
-  <text x="460" y="192" font-size="13.5" fill="#4d5652">若启用 <tspan font-family="var(--font-mono)" font-weight="700">mxfp8</tspan> KV 须 512 对齐，显式传 16 直接报错</text>
+  <!-- Stage 3: Non-contiguous Physical HBM Pool (x=518..874) -->
+  <rect x="518" y="76" width="356" height="186" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="696" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">③ HBM 离散物理块池（免连续分配 · 零外部碎片）</text>
 
-  <!-- 误解 3 -->
-  <circle cx="30" cy="256" r="12" fill="#b54237"/>
-  <text x="30" y="260.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
-  <rect x="50" y="224" width="374" height="64" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="64" y="250" font-size="14.5" font-weight="700" fill="#b54237">「算注意力前先把离散块拷回连续张量」</text>
-  <text x="64" y="274" font-size="13.5" fill="#4d5652">以为算子只认连续内存，每步先做一次拼接</text>
+  <!-- Physical Block #3 (Top Highlighted Row!) -->
+  <text x="532" y="122" font-size="12" font-weight="700" fill="#936300">物理块 #3（末块：偏移 0 写入 pos 4，余 3 格有界留白）</text>
+  <rect x="532" y="130" width="76" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.8"/>
+  <text x="570" y="149.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#936300">off0: p₄</text>
+  <g fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="3 2">
+    <rect x="614" y="130" width="76" height="30" rx="4"/><rect x="696" y="130" width="76" height="30" rx="4"/><rect x="778" y="130" width="76" height="30" rx="4"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="12" text-anchor="middle" fill="#66716d">
+    <text x="652" y="149.5">off1 空</text><text x="734" y="149.5">off2 空</text><text x="816" y="149.5">off3 空</text>
+  </g>
 
-  <rect x="448" y="224" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="460" y="250" font-size="14.5" font-weight="700" fill="#065f56">零拼拷！注意力内核拿块表原地跨块读取</text>
-  <text x="460" y="274" font-size="13.5" fill="#4d5652">每步拼回连续缓冲区等于重拷整段历史，分页即失效</text>
+  <!-- Physical Block #7 (Bottom Row, Disjoint Address!) -->
+  <text x="532" y="184" font-size="12" font-weight="700" fill="#3a4f93">物理块 #7（首块：与 #3 物理不相邻，满载 pos 0..3）</text>
+  <g fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2">
+    <rect x="532" y="192" width="76" height="30" rx="4"/><rect x="614" y="192" width="76" height="30" rx="4"/>
+    <rect x="696" y="192" width="76" height="30" rx="4"/><rect x="778" y="192" width="76" height="30" rx="4"/>
+  </g>
+  <g font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle" fill="#3a4f93">
+    <text x="570" y="211.5">off0: p₀</text><text x="652" y="211.5">off1: p₁</text>
+    <text x="734" y="211.5">off2: p₂</text><text x="816" y="211.5">off3: p₃</text>
+  </g>
+  <text x="696" y="244" text-anchor="middle" font-size="12" fill="#4d5652">（块 #4..#6 可由其他请求占用或留驻 <tspan font-family="var(--font-mono)">free_block_queue</tspan>）</text>
 
-  <!-- 误解 4 -->
-  <circle cx="30" cy="338" r="12" fill="#b54237"/>
-  <text x="30" y="342.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
-  <rect x="50" y="306" width="374" height="64" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="64" y="332" font-size="14.5" font-weight="700" fill="#b54237">「没调同名 PagedAttention 算子就没分页」</text>
-  <text x="64" y="356" font-size="13.5" fill="#4d5652">将存储寻址机制与特定算子名字混为一谈</text>
+  <!-- Mapping Connectors -->
+  <path d="M 266 142 L 324 140" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#pam-ind)"/>
+  <path d="M 470 140 C 498 140, 498 207, 528 207" fill="none" stroke="#4c65b6" stroke-width="1.6" stroke-dasharray="4 2" marker-end="url(#pam-ind)"/>
+  <path d="M 90 216 C 170 232, 260 200, 324 200" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#pam-amb)"/>
+  <path d="M 470 200 C 498 200, 498 145, 528 145" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#pam-amb)"/>
 
-  <rect x="448" y="306" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="460" y="332" font-size="14.5" font-weight="700" fill="#065f56">分页是缓存布局；FIA / SFA 原生消费块表</text>
-  <text x="460" y="356" font-size="13.5" fill="#4d5652">常规向 <tspan font-family="var(--font-mono)" font-weight="700">npu_fused_infer_attention_score</tspan> 传块表</text>
+  <text x="450" y="283" text-anchor="middle" font-size="12" fill="#065f56">主力算子 <tspan font-family="var(--font-mono)" font-weight="700">npu_fused_infer_attention_score</tspan> 直传 <tspan font-family="var(--font-mono)" font-weight="700">block_table</tspan> 原地跨 #7 → #3 寻址，零拼拷！</text>
 
-  <!-- 误解 5 -->
-  <circle cx="30" cy="420" r="12" fill="#b54237"/>
-  <text x="30" y="424.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
-  <rect x="50" y="388" width="374" height="64" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="64" y="414" font-size="14.5" font-weight="700" fill="#b54237">「请求结束时物理块的 KV 数据立刻清零」</text>
-  <text x="64" y="438" font-size="13.5" fill="#4d5652">以为归还块号就会把对应 HBM 显存刷成 0</text>
+  <!-- Lower 2x2 Verified Criteria Matrix -->
+  <rect x="14" y="308" width="430" height="118" rx="9" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="28" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 1：用了分页后，KV 显存浪费彻底变成 0</text>
+  <text x="28" y="358" font-size="13.5" font-weight="700" fill="#936300">✓ 真相：消灭的是外部碎片；末块仍有有界内部余量</text>
+  <text x="28" y="384" font-size="12.5" fill="#4d5652">如上图末块空 3 格，单组按位置增长至多空 <tspan font-family="var(--font-mono)" font-size="12" font-weight="600">block_size - 1</tspan> 格</text>
+  <text x="28" y="408" font-size="12" fill="#66716d">投机解码草稿槽位预留与混合架构状态页对齐另计</text>
 
-  <rect x="448" y="388" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="460" y="414" font-size="14.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)">free_blocks</tspan> 只减 <tspan font-family="var(--font-mono)">ref_cnt</tspan>，HBM 数据原地保留</text>
-  <text x="460" y="438" font-size="13.5" fill="#4d5652">挂回 <tspan font-family="var(--font-mono)" font-weight="700">free_block_queue</tspan> 队尾作 LRU 候选，直等前缀命中</text>
+  <rect x="456" y="308" width="430" height="118" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.3"/>
+  <text x="470" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 2：传 --block-size 16 在昇腾一定按 16 切块</text>
+  <text x="470" y="358" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：非 MXFP8 开 APC/分块即打 info 改回 128</text>
+  <text x="470" y="384" font-size="12.5" fill="#4d5652">V1 默认开 <tspan font-family="var(--font-mono)" font-size="12">enable_prefix_caching / enable_chunked_prefill</tspan></text>
+  <text x="470" y="408" font-size="12" fill="#8f3229">若开 <tspan font-family="var(--font-mono)" font-size="12" font-weight="700">mxfp8</tspan> KV 须 512 对齐，显式传 16 直接抛 ValueError</text>
+
+  <rect x="14" y="438" width="430" height="118" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="28" y="463" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 3 &amp; 4：算前拼回连续张量；没调同名算子即未分页</text>
+  <text x="28" y="488" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：零拼拷原地跨块读取；FIA / SFA 原生消费块表</text>
+  <text x="28" y="514" font-size="12.5" fill="#4d5652">若每步重拷整段历史，分页省下的带宽与显存优势当场归零</text>
+  <text x="28" y="538" font-size="12" fill="#66716d">分页是存储布局，不依赖轨迹里出现同名 PagedAttention 算子</text>
+
+  <rect x="456" y="438" width="430" height="118" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="470" y="463" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 5：请求结束时物理块的 KV 数据立刻清零</text>
+  <text x="470" y="488" font-size="13.5" font-weight="700" fill="#7a3a6a">✓ 真相：<tspan font-family="var(--font-mono)" font-size="12.5">free_blocks</tspan> 只减 <tspan font-family="var(--font-mono)" font-size="12.5">ref_cnt</tspan>，HBM 原地保留</text>
+  <text x="470" y="514" font-size="12.5" fill="#4d5652">CPU 侧挂回 <tspan font-family="var(--font-mono)" font-size="12" font-weight="600">free_block_queue</tspan> 队尾作 LRU 候选，免刷零开销</text>
+  <text x="470" y="538" font-size="12" fill="#66716d">带哈希物理块原地留待后续同前缀请求直接命中复用</text>
 </svg>

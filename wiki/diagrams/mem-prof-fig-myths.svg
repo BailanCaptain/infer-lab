@@ -1,54 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="示意：昇腾 HBM 显存预算与启动量测五大常见误解与 v0.30.0 源码机制横向对照板。" font-family="var(--font-sans)">
-  <title>示意：昇腾 HBM 显存预算与启动量测五大常见误解对照（v0.30.0）。涵盖 HCCL 已含在试跑差值内、ACLGraph 录图占用预算外 1−u 余量、物理块数不等于并发数、同卡进程释放显存触发断言失败，以及显式字节预算仍执行试跑编译。</title>
-  <desc>关联源码符号：kv_cache_memory_bytes, profile_run, non_torch_increase, free_memory, capture_model, redundancy_buffer, check_memory, min_num_blocks</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 568" width="900" height="568" role="img" aria-label="昇腾 HBM 五步量测时间线与 64 GiB 显存预算尺及排障判据" font-family="var(--font-sans)">
+  <title>昇腾 HBM 显存预算与启动量测五大常见误解对照（v0.30.0 主基线）。</title>
+  <desc>上半部画出启动快照、建通信组与装权重、profile_run 试跑、切分 KV 池、capture_model 录图五阶段时间线及 64 GiB（58.88 GiB 预算内联合扣账 + 5.12 GiB 预算外余量）等比例预算尺；下半部汇总五大排障判据。</desc>
+  <defs>
+    <marker id="mpm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4d5652"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#b54237">✗ 常见错误直觉</text>
-  <text x="404" y="28" font-size="16" font-weight="700" fill="#087f73">✓ 真实源码机制（vLLM Ascend v0.30.0 主基线）</text>
-  <line x1="16" y1="42" x2="884" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="388" y1="12" x2="388" y2="484" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">启动量测五步时间线 + 64 GiB 显存预算尺（默认 u = 0.92）及 v0.30.0 排障判据</text>
 
-  <!-- Row 1 -->
-  <rect x="16" y="54" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="82" font-size="14.5" font-weight="700" fill="#8f3229">① 在试跑扣减外再手扣 HCCL</text>
-  <text x="28" y="110" font-size="13.5" fill="#4d5652">把通信组配置额从可用 KV 里二次扣除</text>
+  <!-- Hero Panel: 5-Stage Timeline + 64 GiB Proportional Ruler -->
+  <rect x="14" y="40" width="872" height="256" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="63" font-size="13.5" font-weight="700" fill="#17211f">为什么不二次单扣 HCCL、录图又为何吃预算外？看清快照起点与切池终点的先后次序</text>
 
-  <rect x="404" y="54" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="418" y="82" font-size="14.5" font-weight="700" fill="#065f56">建组晚于启动快照，HCCL 已含在 non_torch_increase</text>
-  <text x="418" y="110" font-size="13.5" fill="#4d5652">共享域去重且已入账；仅录图建议值另扣 150 MiB 裕度</text>
+  <!-- 5 Stage Boxes: x = 28, 200, 372, 544, 716; width = 154, height = 56 -->
+  <rect x="28" y="76" width="154" height="56" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="105" y="99" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">① 启动快照</text>
+  <text x="105" y="120" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">free_memory 起点</text>
 
-  <!-- Row 2 -->
-  <rect x="16" y="142" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#8f3229">② 比例拉到 0.98 榨干空闲显存</text>
-  <text x="28" y="198" font-size="13.5" fill="#4d5652">误以为预算外 1−u 空着不用就是浪费</text>
+  <rect x="200" y="76" width="154" height="56" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="277" y="99" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">② 建组 + 装权重</text>
+  <text x="277" y="120" text-anchor="middle" font-size="12" fill="#7a3a6a">HCCL 缓冲入驻</text>
 
-  <rect x="404" y="142" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="418" y="170" font-size="14.5" font-weight="700" fill="#065f56">ACLGraph 录图在切完 KV 之后，全靠 1−u 余量买单</text>
-  <text x="418" y="198" font-size="13.5" fill="#4d5652">NPUWorker 不预扣图显存；留太少会在 capture_model OOM</text>
+  <rect x="372" y="76" width="154" height="56" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="449" y="99" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">③ 试跑量测峰值</text>
+  <text x="449" y="120" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#936300">profile_run()</text>
 
-  <!-- Row 3 -->
-  <rect x="16" y="230" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="258" font-size="14.5" font-weight="700" fill="#8f3229">③ 切出的块数 = 最大并发请求数</text>
-  <text x="28" y="286" font-size="13.5" fill="#4d5652">把 min_num_blocks 直接等同于 max_num_seqs</text>
+  <rect x="544" y="76" width="154" height="56" rx="7" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="621" y="99" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">④ 切分 KV 池</text>
+  <text x="621" y="120" text-anchor="middle" font-size="12" fill="#3a4f93">扣完尾款全归 KV</text>
 
-  <rect x="404" y="230" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="418" y="258" font-size="14.5" font-weight="700" fill="#065f56">块数只定 token 槽位池（check_memory 另扣 1 个空块）</text>
-  <text x="418" y="286" font-size="13.5" fill="#4d5652">请求按真实长度动态借块，混合线性注意力还占固定状态块</text>
+  <rect x="716" y="76" width="154" height="56" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="793" y="99" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">⑤ 捕获静态图</text>
+  <text x="793" y="120" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#8f3229">capture_model()</text>
 
-  <!-- Row 4 -->
-  <rect x="16" y="318" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="346" font-size="14.5" font-weight="700" fill="#8f3229">④ 启动期别人释放显存只会更好</text>
-  <text x="28" y="374" font-size="13.5" fill="#4d5652">以为整卡空闲变多总归有利于通过量测</text>
+  <g stroke="#4d5652" stroke-width="1.5" marker-end="url(#mpm-arr)">
+    <line x1="182" y1="104" x2="197" y2="104"/><line x1="354" y1="104" x2="369" y2="104"/>
+    <line x1="526" y1="104" x2="541" y2="104"/><line x1="698" y1="104" x2="713" y2="104"/>
+  </g>
+  <path d="M 105 135 L 105 145 L 449 145 L 449 135" fill="none" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="277" y="163" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">↑ 快照差 non_torch_increase 已把第②步 HCCL 算在内（免二次手扣）</text>
+  <text x="736" y="163" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">↑ 晚于第④步切池，全靠预算外买单！</text>
 
-  <rect x="404" y="318" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="418" y="346" font-size="14.5" font-weight="700" fill="#065f56">空闲回升会触发 free_memory 严格递减断言失败</text>
-  <text x="418" y="374" font-size="13.5" fill="#4d5652">试跑后空闲 ≥ 初始快照即抛 Error in memory profiling</text>
+  <!-- 64 GiB Exact Proportional Ruler (800px = 64 GiB: 736px = 58.88 GiB, 64px = 5.12 GiB; height = 20 < 22) -->
+  <text x="36" y="194" font-size="12.5" font-weight="700" fill="#065f56">预算内 92% = 58.88 GiB（权重 + 试跑 Torch 峰值 + non_torch_increase 联合扣账）</text>
+  <text x="864" y="194" text-anchor="end" font-size="12.5" font-weight="700" fill="#8f3229">预算外 8% = 5.12 GiB</text>
 
-  <!-- Row 5 -->
-  <rect x="16" y="406" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="434" font-size="14.5" font-weight="700" fill="#8f3229">⑤ 传显式字节预算可跳过试跑提速</text>
-  <text x="28" y="462" font-size="13.5" fill="#4d5652">以为设 kv_cache_memory_bytes 能省前向耗时</text>
+  <rect x="36" y="204" width="210" height="20" rx="3" fill="#c78300"/>
+  <rect x="246" y="204" width="166" height="20" rx="0" fill="#9a4b86"/>
+  <rect x="412" y="204" width="360" height="20" rx="0" fill="#4c65b6"/>
+  <rect x="772" y="204" width="64" height="20" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 2"/>
 
-  <rect x="404" y="406" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="418" y="434" font-size="14.5" font-weight="700" fill="#065f56">照常跑 profile_run() 完成首次编译，只跳过扣减算式</text>
-  <text x="418" y="462" font-size="13.5" fill="#4d5652">启动快照空闲检查仍按比例执行，稀疏卸载与 KVPP 照算</text>
+  <text x="141" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">静态权重</text>
+  <text x="329" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">试跑峰值 + HCCL 缓冲</text>
+  <text x="592" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">可用 KV cache 块池尾款</text>
+  <text x="804" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">ACLGraph 等</text>
+
+  <text x="450" y="276" text-anchor="middle" font-size="12" fill="#4d5652">总尺 64.00 GiB（示意标尺）：录图后日志另按 <tspan font-family="var(--font-mono)" font-weight="600">redundancy_buffer = 150 MiB</tspan> 给出显式 <tspan font-family="var(--font-mono)" font-weight="600">--kv-cache-memory</tspan> 建议值</text>
+
+  <!-- Lower 2x2 Verified Criteria Matrix -->
+  <rect x="14" y="308" width="430" height="118" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="28" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 1：在试跑扣减后再手动减一遍 HCCL 缓冲</text>
+  <text x="28" y="358" font-size="13.5" font-weight="700" fill="#7a3a6a">✓ 真相：建组晚于快照，HCCL 已含在 non_torch_increase</text>
+  <text x="28" y="384" font-size="12.5" fill="#4d5652">共享通信域已按注册表去重入账，二次手扣只会白白砍少 KV 容量</text>
+  <text x="28" y="408" font-size="12" fill="#66716d">0.92 圈出的是整份实例总预算，而非专供 KV 独占的比例</text>
+
+  <rect x="456" y="308" width="430" height="118" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.3"/>
+  <text x="470" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 2：把比例拉到 0.98 榨干预算外空闲显存</text>
+  <text x="470" y="358" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：NPUWorker 不预扣图显存，录图全靠 1−u 买单</text>
+  <text x="470" y="384" font-size="12.5" fill="#4d5652">小模型省下的权重会被回填进 KV 池，留太薄照样在录图期 OOM</text>
+  <text x="470" y="408" font-size="12" fill="#66716d">快照前残留占用与运行期延迟缓冲同样从 1−u 余量支取</text>
+
+  <rect x="14" y="438" width="430" height="118" rx="9" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="463" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 3：切出的物理块数 = 最大并发请求数</text>
+  <text x="28" y="488" font-size="13.5" font-weight="700" fill="#3a4f93">✓ 真相：min_num_blocks 仅定总槽位池，非并发路数</text>
+  <text x="28" y="514" font-size="12.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-size="12">check_memory</tspan> 另扣 1 个空块；请求按实际上下文长度动态借块</text>
+  <text x="28" y="538" font-size="12" fill="#66716d">混合线性注意力模型还要额外划拨固定大小的状态页</text>
+
+  <rect x="456" y="438" width="430" height="118" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="470" y="463" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 4 &amp; 5：邻进程释放显存更好；传字节能跳试跑</text>
+  <text x="470" y="488" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：空闲回升触发断言失败；显式字节照跑编译</text>
+  <text x="470" y="514" font-size="12.5" fill="#4d5652">试跑后空闲 ≥ 初始快照即触发 <tspan font-family="var(--font-mono)" font-size="12">free_memory</tspan> 递减断言抛错</text>
+  <text x="470" y="538" font-size="12" fill="#66716d">传 <tspan font-family="var(--font-mono)" font-size="12">kv_cache_memory_bytes</tspan> 仍跑 <tspan font-family="var(--font-mono)" font-size="12">profile_run()</tspan> 完成首次编译</text>
 </svg>

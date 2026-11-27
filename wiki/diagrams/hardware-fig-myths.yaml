@@ -2,7 +2,7 @@ mode: native-svg
 id: hardware-fig-myths
 caption: >-
   昇腾硬件五组常见误解 vs v0.30.0 运行时真相：澄清逻辑 Device 与 A3 双裸片物理卡的成对映射、Host DRAM 与 NPU HBM 的独立账本边界、HCCS 多链聚合与 RoCE 端口位速率换算口径、check_ascend_device_type() 锁卡校验与 310P 的 FP16/禁 npugraph_ex 硬约束，以及 HCCL 软件库与底层物理链路的解耦。
-size: [900, 508]
+size: [900, 588]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77
     symbols: [check_ascend_device_type, get_soc_version, device_type_from_runtime_soc]

@@ -2,7 +2,7 @@ mode: native-svg
 id: kv-cache-fig-myths
 caption: >-
   KV cache 五大常见直觉误区与源码真相对照：厘清「以显存换计算」的本质、已生成末尾词尚未入缓存的步差、Decode 阶段全历史读取带宽开销、层数与 KV 头及 TP 复制规则，以及同请求常驻缓存与跨请求前缀复用的边界。
-size: [900, 508]
+size: [900, 576]
 pins:
   - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L265-L385
     symbols: [get_computed_blocks, max_cache_hit_length, allocate_slots]

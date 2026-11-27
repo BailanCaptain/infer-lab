@@ -7663,7 +7663,8 @@
       "legacyAnchors": {
         "一句话": "它怎么按 TP×PCP 切分词表，生效门是什么？",
         "为什么存在": "网格切分示例与两侧新增通信",
-        "开了的代价": "互斥规则、静态缓冲容量与版本与 GLM 边界"
+        "开了的代价": "互斥规则、静态缓冲容量与部署边界",
+        "互斥规则静态缓冲容量与版本与-glm-边界": "互斥规则、静态缓冲容量与部署边界"
       },
       "title": "enable_pcp_embedding_lmhead_weight_sharding",
       "type": "param",
@@ -7720,7 +7721,9 @@
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L675-L675",
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1037-L1053",
         "vllm-ascend@8d6180e2:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133",
-        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113"
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1322-L1436",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1432-L1467"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -7786,7 +7789,8 @@
       "legacyAnchors": {
         "一句话": "它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？",
         "为什么存在": "加载期缩片、prefill gather 与 decode all-reduce 的分工",
-        "开了的代价": "通信代价、硬约束回退机制与版本与 GLM 边界"
+        "开了的代价": "通信代价、回退机制与部署边界",
+        "通信代价硬约束回退机制与版本与-glm-边界": "通信代价、回退机制与部署边界"
       },
       "title": "enable_pcp_o_proj_weight_sharding",
       "type": "param",
@@ -7856,7 +7860,8 @@
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L674-L674",
         "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L912-L936",
         "vllm-ascend@8d6180e2:vllm_ascend/attention/context_parallel/dsa_cp.py#L529-L551",
-        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113"
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/dsa_v41.py#L782-L803"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -13852,7 +13857,8 @@
       "legacyAnchors": {
         "一句话": "为什么它是派生对象而非用户输入键？",
         "为什么存在": "统一推导规则与 size > 1 触发的三条链路",
-        "开了的代价": "误写静默过滤、校验条件演变与 GLM 双机分析"
+        "开了的代价": "误写静默过滤与校验条件演变",
+        "误写静默过滤校验条件演变与-glm-双机分析": "误写静默过滤与校验条件演变"
       },
       "title": "kvpp_config",
       "type": "param",
@@ -17179,7 +17185,8 @@
       "legacyAnchors": {
         "一句话": "它曾做什么，为什么 v0.24 起已移除？",
         "为什么存在": "在 v0.23.0 里怎么跨流重叠，消费条件是什么？",
-        "开了的代价": "旧部署的风险、迁移清理与 GLM 双机推演"
+        "开了的代价": "旧部署的风险与迁移清理",
+        "旧部署的风险迁移清理与-glm-双机推演": "双机小批量走 MC2 时两条流怎样对不上行"
       },
       "title": "multistream_overlap_gate",
       "type": "param",
@@ -19860,7 +19867,8 @@
       "legacyAnchors": {
         "一句话": "这组比例控制什么，为什么 v0.24 起已删除？",
         "为什么存在": "比例怎样换算成预取字节数，哪些路径不归它管？",
-        "开了的代价": "调参陷阱、版本清理与 GLM 双机推演"
+        "开了的代价": "调参陷阱与零值规则",
+        "调参陷阱版本清理与-glm-双机推演": "哪些权重预取比例到不了实际调用点"
       },
       "title": "prefetch_ratio",
       "type": "param",
@@ -19921,7 +19929,8 @@
         "vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736",
         "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L125",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907",
-        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030"
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L88-L104"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -20612,7 +20621,8 @@
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1629-L1680",
         "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1115",
         "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1397",
-        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030"
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030",
+        "vllm@ced6857a:vllm/config/vllm.py#L1438-L1487"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -21154,7 +21164,7 @@
       "title": "quantized_all_reduce_config",
       "type": "param",
       "origin": "seed",
-      "summary": "main 分支新增的张量并行低精度规约配置（QuantizedAllReduceConfig），在 Atlas A2、TP <= 8 场景下按最后一维通道做全局 amax 对齐并将大张量 BF16 All-Reduce 压缩为对称 int8 载荷传输以削减 HCCS 跨芯片流量，折入 enable 与 min_numel 两个子键。",
+      "summary": "main 分支新增的低精度规约配置（QuantizedAllReduceConfig），在 Atlas A2、TP <= 8 下对满足组大小 2–8 与形状元素门槛的 BF16 All-Reduce 同步逐末维通道缩放并压缩为对称 int8 求和，折入 enable 与 min_numel 两个子键。",
       "aliases": [
         "QuantizedAllReduceConfig",
         "QuantizedAllReduce",
@@ -21175,7 +21185,9 @@
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/quantized_all_reduce.py#L30-L132",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
-        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625"
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/npu_communicator.py#L69-L90",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/quantized_all_reduce.py#L85-L134"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -21196,12 +21208,12 @@
         {
           "to": "tensor-parallel",
           "kind": "builds-on",
-          "note": "仅挂载在 TP 通信组（world_size <= 8）的 all_reduce 上，大批量 Prefill 跨卡规约时触发"
+          "note": "配置要求 TP <= 8；NPUCommunicator 为所有通信组构造包装器，仅 2–8 卡组进入张量判定，默认 32 MiB 下主要由大批量 Prefill 触发"
         },
         {
           "to": "sequence-parallel",
           "kind": "builds-on",
-          "note": "同时开启 FlashComm1 与序列并行时会把 All-Reduce 拆成 ReduceScatter + AllGather，本开关会自动告警关闭"
+          "note": "同时开启 FlashComm1 与 MoE 序列并行时会把 TP All-Reduce 换成 All-Gather / Reduce-Scatter，本开关会告警并自动关闭"
         },
         {
           "to": "ascend-config-system",
@@ -24298,7 +24310,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L565-L610",
-        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/runtime_guard.md#L30-L125"
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/runtime_guard.md#L30-L125",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_config/config.py#L1273-L1306"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -24769,7 +24782,7 @@
         {
           "from": "quantized-all-reduce-config-3cc69e492011",
           "kind": "enables",
-          "note": "同时开启 FlashComm1 与序列并行时会把 All-Reduce 拆成 ReduceScatter + AllGather，本开关会自动告警关闭"
+          "note": "同时开启 FlashComm1 与 MoE 序列并行时会把 TP All-Reduce 换成 All-Gather / Reduce-Scatter，本开关会告警并自动关闭"
         }
       ]
     },
@@ -25110,7 +25123,8 @@
       "legacyAnchors": {
         "一句话": "size 是什么，由谁算出、为什么不能手写？",
         "为什么存在": "建组、分层归属和显存放大上限怎么算？",
-        "开了的代价": "调 TP/PCP 时的通信与余数代价，以及 GLM 双机边界"
+        "开了的代价": "调 TP/PCP 时的通信、余数代价与架构边界",
+        "调-tppcp-时的通信与余数代价以及-glm-双机边界": "调 TP/PCP 时的通信、余数代价与架构边界"
       },
       "title": "size",
       "type": "param",
@@ -27058,7 +27072,7 @@
         {
           "from": "quantized-all-reduce-config-3cc69e492011",
           "kind": "enables",
-          "note": "仅挂载在 TP 通信组（world_size <= 8）的 all_reduce 上，大批量 Prefill 跨卡规约时触发"
+          "note": "配置要求 TP <= 8；NPUCommunicator 为所有通信组构造包装器，仅 2–8 卡组进入张量判定，默认 32 MiB 下主要由大批量 Prefill 触发"
         },
         {
           "from": "rfork-identity",
@@ -27560,7 +27574,11 @@
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L658-L665",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L718-L725",
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1775-L1805",
-        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L686-L693"
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L686-L693",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1724-L1771",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1477-L1491",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1821-L1869",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1513-L1527"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -27633,7 +27651,8 @@
       "legacyAnchors": {
         "一句话": "它配在哪里，四处同名键怎么区分？",
         "为什么存在": "开启后牵动的三类分叉与后端协议",
-        "开了的代价": "图模式改写、拓扑与混合缓存约束及 GLM 双机说明"
+        "开了的代价": "图模式改写与拓扑约束",
+        "图模式改写拓扑与混合缓存约束及-glm-双机说明": "混合注意力模型逐层搬运哪几类缓存"
       },
       "title": "use_layerwise",
       "type": "param",
@@ -29204,7 +29223,8 @@
       "legacyAnchors": {
         "一句话": "它曾做什么，为什么 v0.24 起已删除？",
         "为什么存在": "四类比例钩子、MLA 独立预取与切流同步",
-        "开了的代价": "触发门槛、代价与 GLM 双机逐项推演"
+        "开了的代价": "触发门槛与预取代价",
+        "触发门槛代价与-glm-双机逐项推演": "混合模型的五条预取路径分别能否触发"
       },
       "title": "weight_prefetch_config",
       "type": "param",

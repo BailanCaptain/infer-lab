@@ -217,7 +217,8 @@ export function evaluateRejectionStep(table: SpecSlotProbTable, draftWord: strin
   const draftIdx = Math.max(0, vocab.indexOf(draftWord));
   const pDraft = p[draftIdx]!;
   const qDraft = q[draftIdx]!;
-  const acceptProb = Number(Math.min(1, pDraft / qDraft).toFixed(4));
+  const rawAcceptProb = qDraft <= 0 ? 1 : Math.min(1, pDraft / qDraft);
+  const acceptProb = Number(rawAcceptProb.toFixed(4));
   const rawRes = [Math.max(0, p[0] - q[0]), Math.max(0, p[1] - q[1]), Math.max(0, p[2] - q[2])];
   const resSum = rawRes[0]! + rawRes[1]! + rawRes[2]!;
   const residualProbs: readonly [number, number, number] =
@@ -240,7 +241,7 @@ export function evaluateRejectionStep(table: SpecSlotProbTable, draftWord: strin
     acceptProb,
     uAccept,
     acceptedInGreedy: draftWord === greedyWord,
-    acceptedInRejection: uAccept <= acceptProb,
+    acceptedInRejection: uAccept <= rawAcceptProb,
     residualProbs,
     uResidual,
     residualWord,
@@ -790,7 +791,13 @@ export function SpeculativeDecodingInteractive({
               ? spec.title
               : `动作 ${step} · ${verifyMode === "rejection" ? "拒绝采样 min(1, p/q) 核对与残差补抽" : "Greedy 逐位核对"}（K=${k}，净收 [${state.committedWords.join("、")}]）`}
           </strong>
-          ：{spec.detail}（当前设定：<code>K={k}</code>，模式{" "}
+          ：
+          {step === 4
+            ? state.discardedKvCount > 0
+              ? `被拒位置 ${state.nextOverwritePos} 原先写下的草稿 KV 无需擦除：调度器将已算计数从 ${state.totalComputedBeforeRollback} 退回 ${state.nextOverwritePos}，下一轮送入「${state.committedWords[state.committedWords.length - 1]} + 新草稿」时直接在位置 ${state.nextOverwritePos} 原地覆写（KDA 等递推层则靠 K+1 份状态槽选回位置 ${state.nextOverwritePos - 1} 状态）。`
+              : `全部 ${k} 个草稿候选均通过核对并额外收下位置 ${state.nextOverwritePos - 1} 的奖励词「${state.committedWords[state.committedWords.length - 1]}」，无废 KV 回退，下一轮从位置 ${state.nextOverwritePos} 继续推进。`
+            : spec.detail}
+          （当前设定：<code>K={k}</code>，模式{" "}
           <code>{verifyMode === "rejection" ? "rejection(p,q)" : "greedy"}</code>，本轮净提交{" "}
           <code>{state.committedCount}</code> 词 <code>[{state.committedWords.join("、")}]</code>，焦点位置{" "}
           <code>{state.focusSlotPos}</code> 阈值 <code>{`min(1,p/q)=${state.acceptThreshold}`}</code>、残差{" "}

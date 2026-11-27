@@ -65,7 +65,8 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
     const spec400 = RFORK_SCENARIO_SPECS["lease-reject-400"];
     expect(spec400.faultBadge).toBe("归还 400 REJECTED");
     expect(spec400.detail).toContain("200/404 统一映射为 RELEASED");
-    expect(spec400.detail).toContain("HTTP 400 REJECTED");
+    expect(spec400.detail).toContain("HTTP 400");
+    expect(spec400.detail).toContain("REJECTED");
 
     // P2-1: Toggling safety gates while on planner-miss preserves scenario="planner-miss" and writtenBatches=0
     const missInit = computeRforkFlowState("planner-miss", 7, true, true);
@@ -107,5 +108,27 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
     expect(half7Html).toContain("B3 · 4/4");
     expect(half7Html).toContain("B4 · 2/4");
     expect(half7Html).not.toContain("B3 · 自算 6 格");
+
+    // Round-2: ab-released tail-append order & alloc-evict consistent ledger (0 reused, 20 recomputed, B0 ref=0 retained)
+    const abRel = computePrefixPoolState(4, "full-8", "ab-released");
+    expect(abRel.freeLruQueue).toEqual(["B4", "B5", "B2", "B3", "B1", "B0"]);
+    expect(abRel.freeLruQueue.indexOf("B1")).toBeLessThan(abRel.freeLruQueue.indexOf("B0"));
+
+    const evictSt = computePrefixPoolState(4, "full-8", "alloc-evict");
+    expect(evictSt.reusedCells).toBe(0);
+    expect(evictSt.recomputeCells).toBe(20);
+    expect(evictSt.blocks.find((b) => b.id === "B0")?.refCnt).toBe(0);
+    expect(evictSt.freeLruQueue).toEqual(["B0"]);
+
+    // Round-2: hit-seed & lease-reject-400 never jump to seed-transfer-drop on gate toggle
+    const hitAfterToggle = applyRforkGateToggle(
+      { scenario: "hit-seed", dropBatch: 7, serviceStopped: true, memoryReset: true },
+      "memory",
+    );
+    expect(hitAfterToggle.scenario).toBe("hit-seed");
+    expect(hitAfterToggle.writtenBatches).toBe(12);
+
+    expect(missAbortHtml).toContain("安全门异常拦停");
+    expect(missAbortHtml).not.toContain("自动改读本地硬盘上线");
   });
 });

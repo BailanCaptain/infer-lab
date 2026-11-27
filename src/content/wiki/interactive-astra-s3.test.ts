@@ -143,7 +143,8 @@ describe("Astra S3 regressions: EplbCycleInteractive (P1-7) & WorkerLifecycleInt
       }),
     );
     expect(htmlLag4).toContain("候选 10 块");
-    expect(htmlLag4).toContain("all_reduce(MIN)");
+    expect(htmlLag4).toContain("collective_rpc");
+    expect(htmlLag4).not.toContain("all_reduce(MIN)");
     expect(htmlLag4).toContain("未决");
     expect(htmlLag4).not.toContain("两卡已汇合");
     expect(htmlLag4).not.toContain("两卡已汇报");

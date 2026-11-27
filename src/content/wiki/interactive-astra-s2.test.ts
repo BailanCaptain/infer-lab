@@ -231,5 +231,26 @@ describe("Astra S2 回归：P1-5 SpeculativeDecoding 真实拒绝采样与 P1-6 
         }
       }
     }
+
+    // Round-2: unrounded p/q threshold comparison (0.3/0.7 = 0.428571... < 0.42859 -> rejected!)
+    const tightEval = evaluateRejectionStep(
+      { vocab: ["甲", "乙", "丙"], p: [0.3, 0.5, 0.2], q: [0.7, 0.2, 0.1], uAccept: 0.42859, uResidual: 0.5 },
+      "甲",
+    );
+    expect(tightEval.acceptProb).toBe(0.4286);
+    expect(tightEval.acceptedInRejection).toBe(false);
+
+    // Round-2: Step 4 expanded details in rejection mode uses actual committed word ("地毯"), not hardcoded "垫子"
+    const specStep4Rej = renderToStaticMarkup(
+      createElement(SpeculativeDecodingInteractive, {
+        ...baseProps("speculative-decoding"),
+        initialStep: 4,
+        initialK: 3,
+        initialBranch: "mismatch-3",
+        initialVerifyMode: "rejection",
+      }),
+    );
+    expect(specStep4Rej).toContain("下一轮送入「地毯 + 新草稿」");
+    expect(specStep4Rej).not.toContain("下一轮送入「垫子");
   });
 });

@@ -504,20 +504,20 @@ export function WorkerLifecycleInteractive({
       takeawayTone={wk.rank1LaggingAtBarrier ? "danger" : spec.takeawayTone}
       takeaway={
         step === 4 && wk.rank1LaggingAtBarrier
-          ? `Rank0 已测出本卡原始候选 ${wk.rank0RawBlocks} 块（${wk.rank0KvMiB} MiB），正停在 all_reduce(MIN) 通信屏障（栅栏 2）等待慢卡 Rank1 汇报；全组对齐块数与可用 KV 词槽处于未决/待汇合状态！`
+          ? `Rank0 已测出本卡原始候选 ${wk.rank0RawBlocks} 块（${wk.rank0KvMiB} MiB），EngineCore 正在 collective_rpc 汇合点（栅栏 2）等待慢卡 Rank1 返回预算；全组对齐块数与可用 KV 词槽处于未决/待汇合状态！`
           : step === 2 && wk.rank1LaggingAtBarrier
             ? "Rank0 已拍完建组前显存快照，正停在 HCCL 跨卡栅栏 1 等待慢卡 Rank1 就位握手；缺 1 卡全组无法建通信组！"
             : step === 4 && wk.budgetStatus === "aligned"
-              ? `两卡已汇合汇报：Rank0 报 ${wk.rank0KvMiB} MiB (${wk.rank0RawBlocks} 块)、Rank1 报 ${wk.rank1KvMiB} MiB (${wk.rank1RawBlocks} 块) → EngineCore 经 all_reduce(MIN) 对齐 min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块，扣 null_block 得 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）！`
+              ? `两卡已汇合汇报：Rank0 报 ${wk.rank0KvMiB} MiB (${wk.rank0RawBlocks} 块)、Rank1 报 ${wk.rank1KvMiB} MiB (${wk.rank1RawBlocks} 块) → EngineCore 收齐 collective_rpc 返回后由 get_kv_cache_configs 取 min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块，扣 null_block 得 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）！`
               : step === 5 && wk.budgetStatus === "aligned"
                 ? enforceEager
-                  ? `阶段 5 屏障汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）并跑完算子预热；开启 --enforce-eager 后直接跳过 1−u 录图节点上线！`
-                  : `阶段 5 屏障汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），先切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽），再跑预热并用 1−u 余量完成 Decode 录图上线！`
+                  ? `阶段 5 汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）并跑完算子预热；开启 --enforce-eager 后直接跳过 1−u 录图节点上线！`
+                  : `阶段 5 汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），先切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽），再跑预热并用 1−u 余量完成 Decode 录图上线！`
                 : spec.takeaway
       }
       kpi={
         step === 4 && wk.rank1LaggingAtBarrier
-          ? `⏳ all_reduce(MIN) 等待 Rank1 汇报 · Rank0 候选 ${wk.rank0RawBlocks} 块 · 对齐块数与词槽未决`
+          ? `⏳ collective_rpc 等待 Rank1 返回 · Rank0 候选 ${wk.rank0RawBlocks} 块 · EngineCore min() 词槽未决`
           : step === 2 && wk.rank1LaggingAtBarrier
             ? "⏳ 栅栏 1 等待 Rank1 握手 · HCCL 通信组待建"
             : wk.budgetStatus === "aligned"
@@ -913,7 +913,7 @@ export function WorkerLifecycleInteractive({
             <strong>{spec.hasCrossCardBarrier ? "跨卡硬栅栏" : "定制与边界"}</strong>
             <span>
               {step === 4 && wk.rank1LaggingAtBarrier
-                ? "all_reduce(MIN) 阻塞等待中 · 词槽预算未决"
+                ? "collective_rpc 汇合等待中 · EngineCore min() 未决"
                 : step === 2 && wk.rank1LaggingAtBarrier
                   ? "HCCL 建组栅栏阻塞中 · 缺 1 卡全组停等"
                   : spec.barrierOrVariantLabel}

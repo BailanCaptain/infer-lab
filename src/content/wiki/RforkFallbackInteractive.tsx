@@ -101,7 +101,7 @@ export const RFORK_SCENARIO_SPECS: Record<RforkScenarioId, RforkScenarioSpec> = 
     takeaway:
       "权重已 100% 传完，后台归还遇 HTTP 400 REJECTED 时立即停试并取消发布新 Seed，推理照常可用！（注：TTL 过期返回 404 会被客户端与 200 一并视作 RELEASED。）",
     detail:
-      "权重已全部同步读完（TRANSFERRED）。需严格区分归还返回码：若租约因 TTL 过期被清理返回 HTTP 404，planner_client 将 200/404 统一映射为 RELEASED；仅当 Planner 显式返回 HTTP 400 REJECTED 时，会话才停止重试并取消发布新 Seed，不重读 Safetensors 磁盘，推理服务仍正常可用。",
+      "权重已全部同步读完（TRANSFERRED）。需严格区分归还返回码：若租约因 TTL 过期被清理返回 HTTP 404，planner_client 将 200/404 统一映射为 RELEASED；当归还遭遇 HTTP 400（及 403 等不可重试响应映射为 REJECTED，或重试耗尽未获确认）时，会话停止重试并取消发布新 Seed，不重读 Safetensors 磁盘，推理服务仍正常可用。",
     reachedStage: 4,
     faultBadge: "归还 400 REJECTED",
     outcomeKind: "p2p-lease-warn",
@@ -314,14 +314,9 @@ export function RforkFallbackInteractive({
   const toggleGate = (gate: "service" | "memory") => {
     setPlaying(false);
     setMode("sandbox");
-    if (scenario === "hit-seed" || scenario === "lease-reject-400") {
-      setScenario("seed-transfer-drop");
-    }
-    if (gate === "service") {
-      setServiceStopped((prev) => !prev);
-    } else {
-      setMemoryReset((prev) => !prev);
-    }
+    const next = applyRforkGateToggle({ scenario, dropBatch, serviceStopped, memoryReset }, gate);
+    setServiceStopped(next.serviceStopped);
+    setMemoryReset(next.memoryReset);
   };
 
   const togglePlay = () => {
@@ -384,7 +379,18 @@ export function RforkFallbackInteractive({
     return "is-skip";
   };
 
-  const originX = spec.reachedStage === 2 ? 310 : spec.reachedStage === 3 ? 540 : 760;
+  const effectiveTakeawayBadge =
+    scenario === "planner-miss" && !flow.bothGatesPass
+      ? "现场 2 / 5 · 安全门异常拦停"
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "现场 5 / 5 · 清空脏数据后改读硬盘"
+        : spec.badgeText;
+  const effectiveTakeaway =
+    scenario === "planner-miss" && !flow.bothGatesPass
+      ? "本轮未命中 Seed（已写 0 批），但回退前 prepare_for_fallback 安全门失败：主动抛 RuntimeError 中止启动！"
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "两道安全门恢复通过：已写残缺显存彻底回收归零，零崩溃改读本地 Safetensors 硬盘上线！"
+        : spec.takeaway;
   const effectiveOutcomeKind =
     flow.activeExit === "safety-abort"
       ? ("safety-abort" as const)
@@ -496,8 +502,9 @@ export function RforkFallbackInteractive({
               type="button"
               className="wiki-edu-btn"
               data-testid="rfork-gate-service"
-              aria-pressed={mode === "sandbox" && flow.serviceStopped}
-              style={eduBtnStyle(mode === "sandbox" && flow.serviceStopped, "teal")}
+              disabled={!flow.needsFallback}
+              aria-pressed={mode === "sandbox" && flow.needsFallback && flow.serviceStopped}
+              style={eduBtnStyle(mode === "sandbox" && flow.needsFallback && flow.serviceStopped, "teal")}
               onClick={() => toggleGate("service")}
             >
               {flow.serviceStopped ? "门1 停种子服：✓成功" : "门1 停种子服：✗失败"}
@@ -506,8 +513,9 @@ export function RforkFallbackInteractive({
               type="button"
               className="wiki-edu-btn"
               data-testid="rfork-gate-memory"
-              aria-pressed={mode === "sandbox" && flow.memoryReset}
-              style={eduBtnStyle(mode === "sandbox" && flow.memoryReset, "teal")}
+              disabled={!flow.needsFallback}
+              aria-pressed={mode === "sandbox" && flow.needsFallback && flow.memoryReset}
+              style={eduBtnStyle(mode === "sandbox" && flow.needsFallback && flow.memoryReset, "teal")}
               onClick={() => toggleGate("memory")}
             >
               {flow.memoryReset ? "门2 注销显存：✓成功" : "门2 注销显存：✗失败"}
@@ -515,7 +523,7 @@ export function RforkFallbackInteractive({
           </fieldset>
         </>
       }
-      takeawayBadge={spec.badgeText}
+      takeawayBadge={effectiveTakeawayBadge}
       takeawayTone={
         effectiveOutcomeKind === "safety-abort"
           ? "danger"
@@ -523,7 +531,7 @@ export function RforkFallbackInteractive({
             ? "warn"
             : "default"
       }
-      takeaway={spec.takeaway}
+      takeaway={effectiveTakeaway}
       kpi={effectiveFinalOutcome}
       detailsSummary="查看工程与源码细节（五门清单 / prepare_for_fallback 双门 / 租约状态码）"
       detailsContent={
@@ -701,7 +709,7 @@ export function RforkFallbackInteractive({
             ) : (
               <path
                 className="wiki-edu-wire is-flow"
-                d={`M ${originX === 310 ? 217 : 540} 72 L ${originX === 310 ? 217 : 540} 138 L 288 138`}
+                d={spec.reachedStage === 2 ? "M 217 66 L 217 102" : "M 540 78 L 540 132 L 288 132"}
                 stroke={flow.bothGatesPass ? "#c78300" : "#b54237"}
                 markerEnd={`url(#${flow.bothGatesPass ? mAmber : mRed})`}
               />

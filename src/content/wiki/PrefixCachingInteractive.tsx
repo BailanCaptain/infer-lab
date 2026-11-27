@@ -517,16 +517,16 @@ export function computePrefixPoolState(
       h1Registered: true,
       h1Note: "h1→B1 留存待捡回",
       evictedBlocks: [],
-      freeLruQueue: ["B2", "B3", "B1", "B0", "B4", "B5"],
+      freeLruQueue: ["B4", "B5", "B2", "B3", "B1", "B0"],
       lastTokenLogitsRecomputed: true,
-      badgeText: "倒序回收 · 叶块排前根块殿后",
+      badgeText: "倒序尾插回收 · 空块居前，叶 B1 先于根 B0",
       takeaway:
-        "A 与 B 先后结束归零：物理块带着哈希登记按「尾→叶 B1→根 B0」倒序排入空闲 LRU，未借走前仍可零重算捡回！",
-      kpiText: "叶 B1 排在根 B0 前待淘汰",
+        "原空闲块 B4、B5 仍在队头；A 与 B 释放块按「无哈希尾 B2,B3 → 叶 B1 → 根 B0」依次追加到空闲队列末尾，优先留存公共根块！",
+      kpiText: "队序 [B4,B5,B2,B3,B1,B0] · 叶先于根",
       blocks: [
         {
           id: "B0",
-          roleLabel: "根块缓存留存 (h0 仍在)",
+          roleLabel: "根块缓存留存 (殿后最晚汰)",
           fillText: "ref=0 留存",
           cells: ["kv", "kv", "kv", "kv"],
           refCnt: 0,
@@ -548,17 +548,7 @@ export function computePrefixPoolState(
         },
         {
           id: "B2",
-          roleLabel: "原 A 私有尾 (队头首借)",
-          fillText: "空闲",
-          cells: ["", "", "", ""],
-          refCnt: 0,
-          refBadge: "队头",
-          refTone: "",
-          state: "free",
-        },
-        {
-          id: "B3",
-          roleLabel: "原 B 私有尾 (次位待借)",
+          roleLabel: "原 A 私有尾 (无哈希空闲)",
           fillText: "空闲",
           cells: ["", "", "", ""],
           refCnt: 0,
@@ -566,7 +556,26 @@ export function computePrefixPoolState(
           refTone: "",
           state: "free",
         },
-        FREE_BLOCK("B4"),
+        {
+          id: "B3",
+          roleLabel: "原 B 私有尾 (无哈希空闲)",
+          fillText: "空闲",
+          cells: ["", "", "", ""],
+          refCnt: 0,
+          refBadge: "空闲",
+          refTone: "",
+          state: "free",
+        },
+        {
+          id: "B4",
+          roleLabel: "原空闲块 (队头首借)",
+          fillText: "0/4",
+          cells: ["", "", "", ""],
+          refCnt: 0,
+          refBadge: "队头",
+          refTone: "",
+          state: "free",
+        },
         FREE_BLOCK("B5"),
       ],
       reqA: {
@@ -575,7 +584,7 @@ export function computePrefixPoolState(
         stateTone: "",
         active: false,
         dim: true,
-        slots: [{ text: "引用已全部归零返池", target: null, tone: "is-empty" }],
+        slots: [{ text: "私有尾 B2 先追加至原空块后", target: null, tone: "is-empty" }],
       },
       reqB: {
         name: "请求 B",
@@ -583,7 +592,7 @@ export function computePrefixPoolState(
         stateTone: "",
         active: false,
         dim: true,
-        slots: [{ text: "倒序 B3→B1→B0 挂入空闲队列", target: null, tone: "is-empty" }],
+        slots: [{ text: "倒序 B3→B1→B0 尾插追加至队尾", target: null, tone: "is-empty" }],
       },
     };
   }
@@ -593,24 +602,24 @@ export function computePrefixPoolState(
       step: effectiveStep,
       hitPreset,
       evictStage,
-      reusedCells: 4,
-      recomputeCells: 6,
+      reusedCells: 0,
+      recomputeCells: 20,
       copiedBlocks: 0,
       h0Registered: true,
       h1Registered: false,
       h1Note: "h1 已随叶块 B1 驱逐抹除",
       evictedBlocks: ["B1"],
-      freeLruQueue: ["B0", "B4", "B5"],
+      freeLruQueue: ["B0"],
       lastTokenLogitsRecomputed: true,
-      badgeText: "施压分配 · 叶块 B1 早于根块 B0 被驱逐",
+      badgeText: "施压连借 5 块 · 叶块 B1 先于根块 B0 被驱逐",
       takeaway:
-        "新请求从 LRU 队头连借 3 块（B2、B3、B1）：叶子块 B1 先被借走并抹除 h1 登记，而公共根块 B0 仍安全留存在缓存中！",
-      kpiText: "叶 B1 已驱逐 · 根 B0 仍保留",
+        "无关新批次从 LRU 队头连借 5 块（B4、B5、B2、B3、B1 共 20 格全自算）：叶子块 B1 先被借走抹除 h1，殿后的根块 B0 仍安全留存在缓存池队尾！",
+      kpiText: "连借 5 块汰叶 B1 · 根 B0 仍留存",
       blocks: [
         {
           id: "B0",
           roleLabel: "根块存活 (h0 仍可命中!)",
-          fillText: "缓存存活",
+          fillText: "ref=0 存活",
           cells: ["kv", "kv", "kv", "kv"],
           refCnt: 0,
           refBadge: "根块留存",
@@ -620,9 +629,9 @@ export function computePrefixPoolState(
         },
         {
           id: "B1",
-          roleLabel: "叶块已驱逐 (新单覆写)",
-          fillText: "h1 抹除",
-          cells: ["tok", "tok", "", ""],
+          roleLabel: "叶块已驱逐 [16..19]",
+          fillText: "4/4 覆写",
+          cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
           refBadge: "已驱逐重分",
           refTone: "ref-cow",
@@ -631,7 +640,7 @@ export function computePrefixPoolState(
         },
         {
           id: "B2",
-          roleLabel: "新单借用块 1 [0..3]",
+          roleLabel: "新单借用块 3 [8..11]",
           fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
@@ -641,6 +650,26 @@ export function computePrefixPoolState(
         },
         {
           id: "B3",
+          roleLabel: "新单借用块 4 [12..15]",
+          fillText: "4/4",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "新 ref=1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+        {
+          id: "B4",
+          roleLabel: "新单借用块 1 [0..3]",
+          fillText: "4/4",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "新 ref=1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+        {
+          id: "B5",
           roleLabel: "新单借用块 2 [4..7]",
           fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
@@ -649,8 +678,6 @@ export function computePrefixPoolState(
           refTone: "ref-priv",
           state: "private",
         },
-        FREE_BLOCK("B4"),
-        FREE_BLOCK("B5"),
       ],
       reqA: {
         name: "原共享链",
@@ -659,20 +686,22 @@ export function computePrefixPoolState(
         active: false,
         dim: false,
         slots: [
-          { text: "根块 h0 仍在缓存池", target: "B0", tone: "is-sys" },
+          { text: "根块 h0 仍在空闲队尾可捡回", target: "B0", tone: "is-sys" },
           { text: "叶块 h1 已被借走抹除", target: null, tone: "is-empty" },
         ],
       },
       reqB: {
-        name: "新请求施压借块",
-        stateText: "队头借 3 块",
+        name: "新批次施压 (20格)",
+        stateText: "队头借 5 块",
         stateTone: "is-cow",
         active: true,
         dim: false,
         slots: [
-          { text: "首块 [0..3] 队头摘 B2", target: "B2", tone: "is-priv" },
-          { text: "次块 [4..7] 队头摘 B3", target: "B3", tone: "is-priv" },
-          { text: "尾 [8..9] 驱逐叶块 B1", target: "B1", tone: "is-cow", flow: true },
+          { text: "[0..3] 队头摘原空块 B4", target: "B4", tone: "is-priv" },
+          { text: "[4..7] 续摘原空块 B5", target: "B5", tone: "is-priv" },
+          { text: "[8..11] 续摘无哈希块 B2", target: "B2", tone: "is-priv" },
+          { text: "[12..15] 续摘无哈希块 B3", target: "B3", tone: "is-priv" },
+          { text: "[16..19] 驱逐叶块 B1 覆写", target: "B1", tone: "is-cow", flow: true },
         ],
       },
     };
@@ -1289,7 +1318,11 @@ export function PrefixCachingInteractive({
               strokeWidth="1.5"
             />
             <text x="104" y="158" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {state.reqB.name.slice(0, 10)}
+              {hitPreset === "half-7"
+                ? "请求 B (共7格)"
+                : hitPreset === "diff-salt"
+                  ? "请求 B (异盐)"
+                  : state.reqB.name.slice(0, 10)}
             </text>
             <text x="104" y="186" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
               {hitPreset === "diff-salt"
@@ -1297,7 +1330,7 @@ export function PrefixCachingInteractive({
                 : hitPreset === "half-7"
                   ? "首块B0+自算B3,B4"
                   : evictStage === "alloc-evict"
-                    ? "借走 B2,B3,B1"
+                    ? "连借5块汰叶B1"
                     : state.step === 5
                       ? "CoW改写 → B2"
                       : state.step === 1

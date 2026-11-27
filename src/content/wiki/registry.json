@@ -394,6 +394,9 @@
     },
     {
       "id": "ai-core",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-在卡上经历什么": "异构-moe-单卡接力一个-token-在-vector-与-cube-间怎样交替"
+      },
       "title": "AI Core：计算单元与数据搬运",
       "type": "concept",
       "origin": "direct",
@@ -542,7 +545,8 @@
     {
       "id": "ai-qos",
       "legacyAnchors": {
-        "放到-glm-双机一个-token-会遇到什么": "复杂异构实战对照：GLM 双机部署下的表现与边界"
+        "放到-glm-双机一个-token-会遇到什么": "硬件与拓扑适用范围atlas-a3-超节点网络-vs-atlas-a2-与昇腾-950",
+        "复杂异构实战对照glm-双机部署下的表现与边界": "硬件与拓扑适用范围atlas-a3-超节点网络-vs-atlas-a2-与昇腾-950"
       },
       "title": "AI QoS：共享链路拥塞时，哪类流量先走",
       "type": "feature",
@@ -634,6 +638,11 @@
           "to": "ascend-950-execution-interconnect",
           "kind": "builds-on",
           "note": "从共享出口排队与关键路径视角对照底层互联争用与多类流量优先级隔离"
+        },
+        {
+          "to": "ascend-runtime-and-tuning",
+          "kind": "alternative-to",
+          "note": "本页工具配置 A3 UB 交换机与端点 VL，而跨机 RoCE 的 HCCL_RDMA_TC/SL 与建链/执行双超时归运行时环境变量管"
         }
       ],
       "related": [],
@@ -1115,6 +1124,9 @@
     },
     {
       "id": "ascend-950-architecture",
+      "legacyAnchors": {
+        "放回-glm-双机哪些分析能用哪些事实要重查": "跨代硬件迁移对照从-atlas-a2-到昇腾-950-哪些能复用哪些要重查"
+      },
       "title": "昇腾 950：一块数据怎样少绕路、少等候",
       "type": "concept",
       "origin": "direct",
@@ -1215,6 +1227,9 @@
     },
     {
       "id": "ascend-950-execution-interconnect",
+      "legacyAnchors": {
+        "放回本站的-glm-双机该怎样使用这套分析": "跨代多卡互联对照从-atlas-a2-双层网络到昇腾-950-统一总线"
+      },
       "title": "昇腾 950：两张卡怎样接着把工作做完",
       "type": "concept",
       "origin": "direct",
@@ -1756,7 +1771,7 @@
       "title": "容器镜像、核心环境变量与 vllm serve 最小起服务清单",
       "type": "concept",
       "origin": "direct",
-      "summary": "锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。",
+      "summary": "核对好镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。",
       "aliases": [
         "vllm serve",
         "容器镜像",
@@ -1813,7 +1828,7 @@
         {
           "to": "ascend-model-onboarding",
           "kind": "builds-on",
-          "note": "承接五维版本配套、活跃食谱核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
+          "note": "承接五维兼容版本、仍维护部署指南核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
         },
         {
           "to": "hf-model-anatomy",
@@ -1843,7 +1858,7 @@
       "title": "FlashAttention 与昇腾注意力算子族：片上 Tiling、Online Softmax 与 FA / FIA / PA / FA3 选路",
       "type": "concept",
       "origin": "direct",
-      "summary": "标准注意力若把整张 N×N 分数表写回 HBM，单层中间张量在 32K 长度下就会暴涨到数十 GiB。本页从 Qwen3-8B 访存账出发，拆解片上分块（Tiling）与 Online Softmax 动态重标定怎样做到零近似、零 N×N 落盘，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 FA3 绑定 PIECEWISE 图模式的根因。",
+      "summary": "从 Qwen3-8B 32K 注意力访存账出发，拆解片上分块（Tiling）与在线 Softmax 动态重标定怎样做到零近似且免把 N×N 分数表写回设备显存，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 PIECEWISE 图模式边界。",
       "aliases": [
         "FlashAttention",
         "Flash Attention",
@@ -1961,10 +1976,16 @@
     },
     {
       "id": "ascend-model-onboarding",
-      "title": "新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型",
+      "legacyAnchors": {
+        "第一关为什么必须锁死五维配套": "第一关：为什么必须核对五维兼容版本？",
+        "第二关怎样查模型支持状态并避开-27-篇停服桩": "第二关：怎样查模型支持状态，并避开 27 篇停止维护公告？",
+        "先看支持矩阵图例再识破52-篇食谱陷阱": "先看支持矩阵图例，再分清 52 篇部署指南的维护状态",
+        "v0300-全部-25-篇活跃模型食谱分类清单": "v0.30.0 全部 25 篇仍维护的部署指南清单"
+      },
+      "title": "新模型上线标准流程：核对兼容版本、识别仍维护的部署指南与权重选型",
       "type": "concept",
       "origin": "direct",
-      "summary": "在昇腾上跑通一个新模型，先锁死 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维配套，再从 v0.30.0 的 25 篇活跃模型食谱（剔除 27 篇停服桩，注意 GLM5.md 中 GLM-5 停服而 GLM-5.1 活跃）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。",
+      "summary": "在昇腾上跑通一个新模型，先核对 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维兼容版本，再从 v0.30.0 的 25 篇仍维护的部署指南（避开 27 篇停止维护公告，注意 GLM5.md 中 GLM-5 停止维护而 GLM-5.1 仍在维护）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。",
       "aliases": [
         "新模型上线",
         "模型上线",
@@ -2044,7 +2065,7 @@
         {
           "from": "ascend-env-and-serve",
           "kind": "enables",
-          "note": "承接五维版本配套、活跃食谱核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
+          "note": "承接五维兼容版本、仍维护部署指南核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
         },
         {
           "from": "core-cli-params",
@@ -2387,10 +2408,21 @@
       "contradicts": [],
       "updated": "2026-11-27",
       "file": "concepts/ascend-runtime-and-tuning.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "ai-qos",
+          "kind": "alternative-to",
+          "note": "本页工具配置 A3 UB 交换机与端点 VL，而跨机 RoCE 的 HCCL_RDMA_TC/SL 与建链/执行双超时归运行时环境变量管"
+        }
+      ]
     },
     {
       "id": "async-scheduling",
+      "legacyAnchors": {
+        "复杂异构实战对照glm-双机-r1-占位账与-dbo-边界": "跨机-ep-的-dbo-边界与-mtp-异步占位账",
+        "固定-glm-双机能直接照官方-dbo-命令开吗": "昇腾跨机部署能直接照上游-dbo-命令开吗",
+        "落到-glm-双机r1-每一步的占位账": "带-3-个-mtp-候选时r1-每一步怎样记占位与销账"
+      },
       "title": "Async scheduling：趁卡在算，先把下一步排好",
       "type": "feature",
       "origin": "direct",
@@ -2556,7 +2588,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/async-scheduling.md",
       "backlinks": [
         {
@@ -2813,12 +2845,13 @@
     {
       "id": "attention-cost",
       "legacyAnchors": {
-        "三类注意力在-glm-里各有什么特殊之处": "密集注意力：没有单独的层，短历史时稀疏 MLA 就是它"
+        "三类注意力在-glm-里各有什么特殊之处": "密集注意力：没有单独的层，短历史时稀疏 MLA 就是它",
+        "放到-glm-双机一个-token-走过两类层各存多少读多少": "单卡逐层走读34-层-kda-与-11-层稀疏-mla-各存多少读多少"
       },
       "title": "注意力代价：容量、计算与访存",
       "type": "concept",
       "origin": "gap",
-      "summary": "历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。",
+      "summary": "历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；再以 34 层 KDA 与 11 层稀疏 MLA 的异构混合模型算例核算单卡各存多少、读多少。",
       "aliases": [
         "注意力代价",
         "attention cost",
@@ -2937,12 +2970,13 @@
     {
       "id": "attention-qkv",
       "legacyAnchors": {
-        "落到-glm-双机两类-attention-各改了哪一步": "复杂异构实战对照：GLM 稀疏 MLA 与 KDA 各改了哪一步"
+        "落到-glm-双机两类-attention-各改了哪一步": "异构注意力变体：稀疏 MLA 与线性 KDA 各改了哪一步",
+        "复杂异构实战对照glm-稀疏-mla-与-kda-各改了哪一步": "异构注意力变体：稀疏 MLA 与线性 KDA 各改了哪一步"
       },
       "title": "Attention 与 Q/K/V：当前位置怎样从历史里取信息",
       "type": "concept",
       "origin": "gap",
-      "summary": "attention 让每个位置按相关程度从自己和前面的位置取信息。本页先用 3 位置小例手算 Q/K/V 打分、1/√d 缩放、softmax、因果掩码与多头， 再落到标准 Qwen3-8B 的 32Q:8KV GQA 与逐头 QK-Norm，最后在复杂异构对照节展开历史 GLM 稀疏 MLA 与 KDA。",
+      "summary": "attention 让每个位置按相关程度从自己和前面的位置取信息。本页先用 3 位置小例手算 Q/K/V 打分、1/√d 缩放、softmax、因果掩码与多头， 再落到标准 Qwen3-8B 的 32Q:8KV GQA 与逐头 QK-Norm，最后对照稀疏 MLA 与线性 KDA 两类异构变体。",
       "aliases": [
         "注意力",
         "attention",
@@ -3145,7 +3179,9 @@
     {
       "id": "balance-scheduling",
       "legacyAnchors": {
-        "放到-glm-双机本部署没开开了会怎样": "异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界"
+        "放到-glm-双机本部署没开开了会怎样": "双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界",
+        "复杂异构实战对照glm-双机部署下的表现与边界": "双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界",
+        "异构双机-dp2-对照场景-m-闸门判定与宽度对齐边界": "双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界"
       },
       "title": "Balance Scheduling：一组顶满，各组一起停收新请求",
       "type": "feature",
@@ -3434,7 +3470,8 @@
     {
       "id": "batch-job-aware-scheduler",
       "legacyAnchors": {
-        "放到-glm-双机本部署没有它场景-m-里它会多问什么": "复杂异构实战对照：GLM 双机场景 M 准入与多缓存组偏差"
+        "放到-glm-双机本部署没有它场景-m-里它会多问什么": "多缓存组混合模型下的准入估算偏差场景-m-对照",
+        "复杂异构实战对照glm-双机场景-m-准入与多缓存组偏差": "多缓存组混合模型下的准入估算偏差场景-m-对照"
       },
       "title": "Batch-Job-Aware Scheduler：先给正在生成的请求留块，再按作业接新请求",
       "type": "feature",
@@ -3557,7 +3594,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/batch-job-aware-scheduler.md",
       "backlinks": [
         {
@@ -3574,6 +3611,10 @@
     },
     {
       "id": "block-table",
+      "legacyAnchors": {
+        "异构旗舰对照glm-53-flash-的五张块表与块长展开": "混合模型的五张块表与两层块长展开",
+        "放到-glm-双机r1-的-15-个块号进了哪几张表": "r1-的-15-个块号分别写进哪几张表"
+      },
       "title": "Block Table：请求里的第几个位置，落在缓存池的哪一格",
       "type": "concept",
       "origin": "gap",
@@ -3679,7 +3720,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-27",
       "file": "concepts/block-table.md",
       "backlinks": [
         {
@@ -3968,7 +4009,8 @@
     {
       "id": "cann-hccl",
       "legacyAnchors": {
-        "放到-glm-双机先建组再沿一个-token-看交接": "异构旗舰对照：GLM 双机跨节点通信域与调用统计"
+        "放到-glm-双机先建组再沿一个-token-看交接": "双机-16-卡跨节点通信域与调用统计",
+        "异构旗舰对照glm-双机跨节点通信域与调用统计": "双机-16-卡跨节点通信域与调用统计"
       },
       "title": "CANN 与 HCCL：计算、通信和物理链路",
       "type": "concept",
@@ -4212,6 +4254,10 @@
     },
     {
       "id": "chunked-prefill",
+      "legacyAnchors": {
+        "异构旗舰对照glm-双机与投机步下的分块账": "混合模型与投机步下的分块账尾状态尖峰从哪来",
+        "放到-glm-双机20000-个-token-的提示词分三步": "20000-个-token-的提示词怎样按-814481443712-切三步"
+      },
       "title": "Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住",
       "type": "feature",
       "origin": "gap",
@@ -4345,7 +4391,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-27",
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
@@ -4509,6 +4555,9 @@
     },
     {
       "id": "collective-communication",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-会在哪里通信": "双机-16-卡混合部署一个-token-在主干-218-个边界怎样通信"
+      },
       "title": "通信基础：rank 之间怎样交换和归约张量",
       "type": "concept",
       "origin": "gap",
@@ -5068,7 +5117,8 @@
     {
       "id": "context-parallel",
       "legacyAnchors": {
-        "放到-glm-双机这套部署开了-cp-吗": "异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛"
+        "放到-glm-双机这套部署开了-cp-吗": "稀疏-mla-与-kda-混合层dcp-容量推演与三道门槛",
+        "异构混合模型边界glm-稀疏-mla-的-dcp-收益与三道门槛": "稀疏-mla-与-kda-混合层dcp-容量推演与三道门槛"
       },
       "title": "上下文并行（CP）：怎样分位置，又怎样算完整 attention",
       "type": "feature",
@@ -5257,6 +5307,9 @@
     },
     {
       "id": "continuous-batching",
+      "legacyAnchors": {
+        "静态批处理为什么会白烧算力三笔硬浪费与单步迭代破局": "静态整批等待浪费在哪里每步怎样退旧补新"
+      },
       "title": "Continuous Batching（连续批处理）",
       "type": "concept",
       "origin": "direct",
@@ -5341,7 +5394,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-27",
       "file": "concepts/continuous-batching.md",
       "backlinks": [
         {
@@ -5800,7 +5853,9 @@
       "legacyAnchors": {
         "为什么非跑不可": "空闲的组由谁叫起来陪跑，陪跑时算什么？",
         "谁来决定跑": "1. 谁来决定跑，怎样构造假输入",
-        "陪跑时算什么": "1. 谁来决定跑，怎样构造假输入"
+        "陪跑时算什么": "1. 谁来决定跑，怎样构造假输入",
+        "异构旗舰与三维算例对照glm-双机-dp2-对齐与陪跑": "双机-16-卡混合部署dp2-宽度对齐与空闲陪跑",
+        "放到-glm-双机每台机器一个-dp-组": "每台机器一个-dp-组与一步五站推进"
       },
       "title": "Data parallel：请求怎样分进两组，空闲的组为什么陪跑",
       "type": "feature",
@@ -6300,9 +6355,11 @@
     {
       "id": "device-memory",
       "legacyAnchors": {
-        "启动时主机读文件每卡留下自己的权重": "放到 GLM 双机：先装权重，再接住一个 token",
-        "请求到来权重复用激活和历史各有去处": "放到 GLM 双机：先装权重，再接住一个 token",
-        "启动预算显存里还要容纳权重之外的东西": "放到 GLM 双机：先装权重，再接住一个 token"
+        "启动时主机读文件每卡留下自己的权重": "分片加载混合状态分流与两笔预算账",
+        "请求到来权重复用激活和历史各有去处": "分片加载混合状态分流与两笔预算账",
+        "启动预算显存里还要容纳权重之外的东西": "分片加载混合状态分流与两笔预算账",
+        "放到-glm-双机先装权重再接住一个-token": "分片加载混合状态分流与两笔预算账",
+        "ascend-910b3-真机显存对账6096-gib-可见基数non_torch-跳变与-debug-热路径税": "ascend-910b3-真机显存对账6096-gib-可见基数non_torch-跳变与-debug-日志开销"
       },
       "title": "主机内存与显存：数据现在放在哪",
       "type": "concept",
@@ -6561,12 +6618,13 @@
     {
       "id": "dp-request-routing",
       "legacyAnchors": {
-        "放到-glm-双机node0-上一个前端给两台机器派活": "复杂异构实战对照：GLM 双机上的 DP2 路由与场景 M 对照"
+        "放到-glm-双机node0-上一个前端给两台机器派活": "双机-16-卡混合部署dp2-路由与场景-m-步宽对照",
+        "复杂异构实战对照glm-双机上的-dp2-路由与场景-m-对照": "双机-16-卡混合部署dp2-路由与场景-m-步宽对照"
       },
       "title": "DP 请求路由：新请求派给哪一个 DP 组",
       "type": "concept",
       "origin": "gap",
-      "summary": "开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。",
+      "summary": "开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去（v0.30.0 与 main 仍计入本地 engine_inflight），否则按在途计数、队列条数与 KV 占用罚分（旧版为 waiting × 4 + running）取分数最小的组。讲清计数从哪来、为什么会过时、挑偏的四类代价、三种部署方式，以及双机 DP2 路由与步宽对照。",
       "aliases": [
         "DP 请求路由",
         "DP routing",
@@ -6706,7 +6764,8 @@
         "草稿为什么既能并行又要做一点串行修正": "从 DFlash 到 DSpark：块扩散并行起草怎样补上局部连贯性",
         "两条请求怎样分三个验证名额": "置信度累乘与动态验证预算：怎样把名额留给高存活前缀",
         "选得更多为什么实际吞吐可能更低": "算清整轮耗时盈亏账：为什么全验反而拉低每秒有效产出",
-        "放回-glm-双机能借用什么": "放回固定 GLM 双机与常规 MTP 能借用什么"
+        "放回-glm-双机能借用什么": "常规自回归-mtp-能直接借用哪部分思路",
+        "放回固定-glm-双机与常规-mtp-能借用什么": "常规自回归-mtp-能直接借用哪部分思路"
       },
       "title": "DFlash 到 DSpark：从块扩散并行起草到马尔可夫修正与动态验证预算",
       "type": "feature",
@@ -6801,7 +6860,8 @@
     {
       "id": "dynamic-chunked-pp",
       "legacyAnchors": {
-        "放到-glm-双机本部署没开开了会怎样": "复杂异构实战对照：GLM 双机 PP=1 限制与 PP=2 推演"
+        "放到-glm-双机本部署没开开了会怎样": "混合注意力与双机推演pp1-限制与-pp2-块长区间",
+        "复杂异构实战对照glm-双机-pp1-限制与-pp2-推演": "混合注意力与双机推演pp1-限制与-pp2-块长区间"
       },
       "title": "动态分块流水线：按预计耗时切 prefill 块",
       "type": "feature",
@@ -6928,12 +6988,13 @@
     {
       "id": "dyntra-lb",
       "legacyAnchors": {
-        "放到-glm-双机本部署没开也开不了": "复杂异构实战对照：GLM 双机为何未启用与块尺偏差"
+        "放到-glm-双机本部署没开也开不了": "混合注意力与多缓存组调度块长与触发阈值推演",
+        "复杂异构实战对照glm-双机为何未启用与块尺偏差": "混合注意力与多缓存组调度块长与触发阈值推演"
       },
       "title": "DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组",
       "type": "feature",
       "origin": "gap",
-      "summary": "vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求、暂停不还 KV，讲清与 EPLB、Balance Scheduling 的分工及多缓存组块尺边界。",
+      "summary": "vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求、暂停不还 KV，讲清与 EPLB、Balance Scheduling 的分工及多缓存组的调度块长与触发阈值边界。",
       "aliases": [
         "DyntraLB",
         "DynTra",
@@ -7091,10 +7152,14 @@
     },
     {
       "id": "embedding",
+      "legacyAnchors": {
+        "复杂异构实战对照": "双机双组词表并行怎样同查一张词表",
+        "放到-glm-双机8-张卡怎么查同一张表": "双机双组词表并行怎样同查一张词表"
+      },
       "title": "Embedding：按编号查表取出 token 的向量",
       "type": "concept",
       "origin": "gap",
-      "summary": "Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和，随后落到标准主基线 Qwen3-8B（TP2）与 GLM 双机 8 卡分表实战。",
+      "summary": "Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和，随后落到标准主基线 Qwen3-8B（TP2）与双机双组 TP8 分表算例。",
       "aliases": [
         "embedding",
         "词向量",
@@ -8363,6 +8428,11 @@
           "note": "先知道 Worker 是哪个进程、主机侧负责什么，再看它被钉在哪"
         },
         {
+          "from": "host-memory-and-hugepages",
+          "kind": "enables",
+          "note": "多进程 Worker 的共享内存广播队列依赖 /dev/shm，并与 fork 写时复制共享匿名页分属不同机制"
+        },
+        {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
           "note": "Worker 是否作为独立子进程派生、每个 EngineCore 管几个 Worker，由执行器决定"
@@ -8613,7 +8683,11 @@
     {
       "id": "eplb",
       "legacyAnchors": {
-        "放到-glm-双机本部署没开-eplb": "异构双机 EP16 对照：静态摆法与开启冗余专家的显存估算"
+        "放到-glm-双机本部署没开-eplb": "双机-ep16-放置与冗余专家显存推算",
+        "复杂异构实战对照glm-双机部署下的表现与估算": "双机-ep16-放置与冗余专家显存推算",
+        "异构双机-ep16-对照静态摆法与开启冗余专家的显存估算": "双机-ep16-放置与冗余专家显存推算",
+        "现在的摆法每卡-18-个专家固定不动": "每卡-18-个专家的固定摆法",
+        "如果打开要满足的条件和估算": "开启-eplb-的整除约束跨机搬运与显存推算"
       },
       "title": "EPLB：按实测热度调整专家放在哪张卡",
       "type": "feature",
@@ -8848,6 +8922,12 @@
     },
     {
       "id": "expert-parallel",
+      "legacyAnchors": {
+        "异构旗舰与三维算例对照glm-双机-ep16-与共享专家": "双机-16-卡混合部署ep16-专家分置与共享专家",
+        "放到-glm-双机一个-token-走过一层-moe": "一个-token-走过一层跨机-moe",
+        "放到-glm-双机搬法怎么选两组怎么配合": "双机-16-卡通信选路mc2-与-allgather-切换及跨组陪跑",
+        "这套部署有没有开-eplb": "16-张卡怎样分专家"
+      },
       "title": "Expert parallel：16 张卡怎样分专家、发 token、收结果",
       "type": "feature",
       "origin": "gap",
@@ -9086,7 +9166,8 @@
     {
       "id": "fine-grained-tp",
       "legacyAnchors": {
-        "放到-glm-双机这套部署开了细粒度-tp-吗": "复杂异构实战对照：GLM 双机为何未启用细粒度 TP"
+        "放到-glm-双机这套部署开了细粒度-tp-吗": "大-tp-小-dp-反例在-tp8-与-dp2-双机上改切细粒度-tp-会怎样",
+        "复杂异构实战对照glm-双机为何未启用细粒度-tp": "大-tp-小-dp-反例在-tp8-与-dp2-双机上改切细粒度-tp-会怎样"
       },
       "title": "细粒度 TP：为特定模块选择分片组",
       "type": "feature",
@@ -9980,6 +10061,9 @@
     },
     {
       "id": "gqa",
+      "legacyAnchors": {
+        "变体边界glm-双机的稀疏-mla-与-kda-为什么不是-gqa": "异构压缩路线对照：稀疏 MLA 与线性 KDA 为什么不是 GQA"
+      },
       "title": "GQA：几个查询头共读一组 K、V，省下什么、付出什么",
       "type": "concept",
       "origin": "gap",
@@ -10525,7 +10609,8 @@
         "gap-a5164fe10fa9184412f8"
       ],
       "legacyAnchors": {
-        "放到-glm-双机本部署建了哪些组各留多大": "复杂异构实战对照：GLM 双机建了哪些组、如何折算容量"
+        "放到-glm-双机本部署建了哪些组各留多大": "双机-16-卡混合部署建了哪些组如何折算容量",
+        "复杂异构实战对照glm-双机建了哪些组如何折算容量": "双机-16-卡混合部署建了哪些组如何折算容量"
       },
       "title": "HCCL buffer：通信缓冲怎样配置与占用显存",
       "type": "concept",
@@ -10852,6 +10937,11 @@
           "to": "ascend-env-and-serve",
           "kind": "builds-on",
           "note": "承接单机容器 --shm-size 基础挂载，进一步区分 /dev/shm、memlock 与宿主机 vm.nr_hugepages 三道阈值"
+        },
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "多进程 Worker 的共享内存广播队列依赖 /dev/shm，并与 fork 写时复制共享匿名页分属不同机制"
         }
       ],
       "related": [],
@@ -11813,10 +11903,13 @@
     },
     {
       "id": "kv-cache",
+      "legacyAnchors": {
+        "延伸实例混合模型glm-53-flash里的多态缓存闭环": "混合模型里每位置每请求草稿拒绝后各保留什么"
+      },
       "title": "KV cache：新 token 留下历史，下一步接着读",
       "type": "concept",
       "origin": "gap",
-      "summary": "KV cache 保存每一层为已处理位置算好的 K、V 等历史状态：新 token 只算自己这一份并按块追加，后续步骤直接读取，省去 O(t²) 的整段重算；代价是线性占用显存、每步读取历史带宽以及分页空间管理。除标准 GQA 逐位置存 K、V 外，MLA 存压缩潜向量、稀疏注意力只读挑中位置、线性注意力原地更新固定大小状态。",
+      "summary": "KV cache 保存每一层为已处理位置算好的 K、V 等历史状态：新 token 只算自己这一份并按块追加，后续步骤直接读取，将逐步生成期间重复处理旧位置的工作从 O(t²) 降为 O(t)；代价是线性占用显存、每步按可见历史长度匹配读取的带宽以及分页空间管理。除标准 GQA 逐位置存 K、V 外，MLA 存压缩潜向量、稀疏注意力只读挑中位置、线性注意力原地更新固定大小状态。",
       "aliases": [
         "KV Cache",
         "KV 缓存",
@@ -11921,7 +12014,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
@@ -12059,7 +12152,8 @@
     {
       "id": "kv-cache-cpu-offload",
       "legacyAnchors": {
-        "放到-glm-双机主线没开它开了要搬多少": "异构混合模型边界：多缓存组抢占容量与旧版接口门槛（GLM 双机对照）"
+        "放到-glm-双机主线没开它开了要搬多少": "异构五组缓存的主机卸载块数与多组限制",
+        "异构混合模型边界多缓存组抢占容量与旧版接口门槛glm-双机对照": "异构五组缓存的主机卸载块数与多组限制"
       },
       "title": "KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存",
       "type": "feature",
@@ -12189,7 +12283,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/kv-cache-cpu-offload.md",
       "backlinks": [
         {
@@ -12242,7 +12336,9 @@
     {
       "id": "kv-cache-layerwise-offload",
       "legacyAnchors": {
-        "放到-glm-双机主线没开开了一层要搬多少": "异构层逐层载荷核算：12 层稀疏 MLA 与 34 层 KDA 状态口径"
+        "放到-glm-双机主线没开开了一层要搬多少": "异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径",
+        "复杂异构实战对照glm-双机为何未启用与每层搬运量": "异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径",
+        "异构层逐层载荷核算12-层稀疏-mla-与-34-层-kda-状态口径": "异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径"
       },
       "title": "Layerwise KV offload：KV cache 一层一层搬，边算边搬",
       "type": "feature",
@@ -12589,7 +12685,8 @@
     {
       "id": "kv-cache-quantization",
       "legacyAnchors": {
-        "放到-glm-双机这套部署没有开-kv-cache-量化": "异构混合缓存定块边界：为什么潜向量压窄后块数不直接翻倍"
+        "放到-glm-双机这套部署没有开-kv-cache-量化": "异构混合缓存定块边界：为什么潜向量压窄后块数不直接翻倍",
+        "复杂异构实战对照glm-双机为何未启用与定块边界": "异构混合模型对照稀疏-mla-缓存精度边界与重定块推演"
       },
       "title": "KV cache 量化：以 INT8 C8 为例，历史怎样存窄再读回",
       "type": "feature",
@@ -12756,6 +12853,9 @@
     },
     {
       "id": "kv-cache-sparse-offload",
+      "legacyAnchors": {
+        "放到-glm-双机硬件这一关就过不去": "硬件角色与混合布局门槛四项代码检查与假设热缓冲推算"
+      },
       "title": "Sparse KV offload：历史放主机，每步只搬这次要读的几行",
       "type": "feature",
       "origin": "gap",
@@ -12913,6 +13013,9 @@
     },
     {
       "id": "kv-cache-spec",
+      "legacyAnchors": {
+        "放到-glm-双机四类状态怎样变成两档页五个组": "四类异构状态怎样变成两档页五个缓存组"
+      },
       "title": "KV cache 规格：每层的状态怎样换算成页、编进缓存组",
       "type": "concept",
       "origin": "gap",
@@ -13109,7 +13212,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/kv-cache-spec.md",
       "backlinks": [
         {
@@ -13182,7 +13285,9 @@
     {
       "id": "kv-pool",
       "legacyAnchors": {
-        "放到-glm-双机这套部署没有开-kv-pool": "异构多缓存组段长推演与跨卡键命名规则"
+        "放到-glm-双机这套部署没有开-kv-pool": "多缓存组段长推演与跨卡键命名规则",
+        "复杂异构实战对照glm-双机为何未启用与段长推演": "多缓存组段长推演与跨卡键命名规则",
+        "异构多缓存组段长推演与跨卡键命名规则": "多缓存组段长推演与跨卡键命名规则"
       },
       "title": "KV Pool：把算过的开头存进外部池，别的实例也能取回",
       "type": "feature",
@@ -13503,6 +13608,9 @@
     },
     {
       "id": "kvpp",
+      "legacyAnchors": {
+        "放到-glm-双机这套部署能开-kvpp-吗": "混合注意力边界kda-与稀疏-mla-共池为何无法套用-kvpp整层广播有多大"
+      },
       "title": "KVPP：KV cache 按层分给各卡常驻，算到时整层广播",
       "type": "feature",
       "origin": "gap",
@@ -13782,7 +13890,8 @@
     {
       "id": "large-scale-ep",
       "legacyAnchors": {
-        "放到-glm-双机ep16-是跨机的第一档": "复杂异构实战对照：GLM 双机 EP16 跨机第一档"
+        "放到-glm-双机ep16-是跨机的第一档": "双机-16-卡对照ep16-跨机第一档与外置-72-服务差异",
+        "复杂异构实战对照glm-双机-ep16-跨机第一档": "双机-16-卡对照ep16-跨机第一档与外置-72-服务差异"
       },
       "title": "大规模 EP：请求路由、专家域与跨机通信",
       "type": "feature",
@@ -14072,12 +14181,14 @@
     {
       "id": "layers-and-hidden",
       "legacyAnchors": {
-        "放到-glm-双机hidden-怎样穿过-45-层": "复杂异构实战对照：GLM 双机 45 层异构与 mHC 四流残差"
+        "放到-glm-双机hidden-怎样穿过-45-层": "多流异构堆叠：45 层交替层型与 mHC 四流残差",
+        "复杂异构实战对照glm-双机-45-层异构与-mhc-四流残差": "多流异构堆叠：45 层交替层型与 mHC 四流残差",
+        "glm-双机下的-45-层异构走读": "45 层异构主干的首尾四流闭环"
       },
       "title": "层与隐藏表示：hidden 如何沿残差流穿过每一层",
       "type": "concept",
       "origin": "gap",
-      "summary": "hidden 是模型为每个输入位置维护、逐层改写的向量。本文先以 Qwen3-8B 的 36 层同构 Transformer（单条 [T, 4096] 残差流、每层 2 次 Pre-RMSNorm + 2 次残差相加）讲清主干，再对照历史 GLM-5.3-Flash 的 45 层 KDA/MLA 交替与 mHC 四流残差。",
+      "summary": "hidden 是模型为每个输入位置维护、逐层改写的向量。本文先以 Qwen3-8B 的 36 层同构 Transformer（单条 [T, 4096] 残差流、每层 2 次 Pre-RMSNorm + 2 次残差相加）讲清主干，再对照 45 层 KDA/MLA 交替与 mHC 四流残差。",
       "aliases": [
         "层",
         "layer",
@@ -14268,7 +14379,8 @@
       "legacyAnchors": {
         "kda-是什么历史怎样装进一个固定大小的状态": "为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？",
         "为什么去掉-softmax-就能从平方降到线性": "为什么 Softmax 锁死了历史，核映射结合律怎样把历史压进定长状态？",
-        "只做累加会写坏状态delta-规则遗忘门按通道衰减": "四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA"
+        "只做累加会写坏状态delta-规则遗忘门按通道衰减": "四代递推规则演化：从纯累加串味到 Gated DeltaNet 与 KDA",
+        "放到-glm-双机34-层-kda-的状态有多大": "混合模型里的定长状态账34-层-kda-占多少显存与块号"
       },
       "title": "线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史",
       "type": "concept",
@@ -14456,12 +14568,14 @@
     {
       "id": "lm-head",
       "legacyAnchors": {
-        "放到-glm-双机154880-个词的分数怎样算出来": "复杂异构实战对照"
+        "放到-glm-双机154880-个词的分数怎样算出来": "输出评分扩展：双机 TP8 分段打分与 MTP 共享输出头",
+        "复杂异构实战对照": "输出评分扩展：双机 TP8 分段打分与 MTP 共享输出头",
+        "两个默认关着的开关": "输出头通信变体与历史开关边界"
       },
       "title": "lm_head：把最后的隐藏向量变成每个 token 的分数",
       "type": "concept",
       "origin": "gap",
-      "summary": "lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照 GLM 双机 TP8 与 MTP 共享输出头。",
+      "summary": "lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照双机 TP8 分段打分与 MTP 共享输出头。",
       "aliases": [
         "lm_head",
         "lm head",
@@ -14605,7 +14719,8 @@
     {
       "id": "lmcache",
       "legacyAnchors": {
-        "放到-glm-双机没开而且照钉住的源码推演开不起来": "复杂异构实战对照：GLM 双机为何未启用且源码路径受阻"
+        "放到-glm-双机没开而且照钉住的源码推演开不起来": "混合缓存组与-supportshma-约束五组状态接入边界推演",
+        "复杂异构实战对照glm-双机为何未启用且源码路径受阻": "混合缓存组与-supportshma-约束五组状态接入边界推演"
       },
       "title": "LMCache：接在引擎外面的一层 KV 缓存",
       "type": "feature",
@@ -15283,10 +15398,15 @@
     },
     {
       "id": "matmul-and-weights",
+      "legacyAnchors": {
+        "复杂异构实战对照": "异构混合层里单 token 怎样走过前馈投影",
+        "到-glm-双机一个-token-怎样走过前馈投影": "异构混合层里单 token 怎样走过前馈投影",
+        "双机前提与-w8a8哪些矩阵是-8-位": "按层混合精度：哪些矩阵是 W8A8 8 位"
+      },
       "title": "矩阵乘与权重：从输入向量到输出表示",
       "type": "concept",
       "origin": "gap",
-      "summary": "权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数与一批 token 怎么算，再分清参数量、计算量、容量与访存，最后落到标准 Qwen3-8B 单层七投影与 GLM 双机 MoE 边界。",
+      "summary": "权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数与一批 token 怎么算，再分清参数量、计算量、容量与访存，最后落到标准 Qwen3-8B 单层七投影与异构混合层前馈算例。",
       "aliases": [
         "矩阵乘与权重",
         "矩阵乘",
@@ -15513,6 +15633,9 @@
     },
     {
       "id": "mla",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-走过一层稀疏-mla": "一个-token-怎样走过一层稀疏-mla"
+      },
       "title": "MLA：历史压成一条潜向量，用时再展开",
       "type": "concept",
       "origin": "gap",
@@ -15627,7 +15750,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/mla.md",
       "backlinks": [
         {
@@ -15690,12 +15813,13 @@
     {
       "id": "mlp-residual-norm",
       "legacyAnchors": {
-        "到-glm-双机r1-的一个-token-怎样走过这三件东西": "复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU"
+        "到-glm-双机r1-的一个-token-怎样走过这三件东西": "多流残差扩展：mHC 四流混合与限幅 SwiGLU",
+        "复杂异构实战对照glm-双机-mhc-四流残差与限幅-swiglu": "多流残差扩展：mHC 四流混合与限幅 SwiGLU"
       },
       "title": "MLP、residual 与 RMSNorm：一个子层怎样更新 hidden",
       "type": "concept",
       "origin": "gap",
-      "summary": "以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准 Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与历史 GLM 四流 mHC。",
+      "summary": "以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准 Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与多流残差 mHC。",
       "aliases": [
         "MLP",
         "FFN",
@@ -15975,8 +16099,9 @@
     {
       "id": "moe",
       "legacyAnchors": {
-        "落到-glm-双机45-层里-42-层是-moe": "复杂异构实战对照：同样选 8 个专家，谁决定最后的权重？",
-        "复杂异构实战对照": "复杂异构实战对照：同样选 8 个专家，谁决定最后的权重？"
+        "落到-glm-双机45-层里-42-层是-moe": "偏置路由与双支 MoE：同样选 8 个专家，谁决定最后的权重？",
+        "复杂异构实战对照": "偏置路由与双支 MoE：同样选 8 个专家，谁决定最后的权重？",
+        "复杂异构实战对照同样选-8-个专家谁决定最后的权重": "偏置路由与双支 MoE：同样选 8 个专家，谁决定最后的权重？"
       },
       "title": "MoE：一层里放很多专家，每个 token 只用几个",
       "type": "concept",
@@ -16306,10 +16431,14 @@
     },
     {
       "id": "mooncake-connector",
+      "legacyAnchors": {
+        "复杂异构实战对照glm-双机为何未启用与静态换算": "五组混合缓存的地址换算与-1p1d-搬运量推演",
+        "放到-glm-双机这套部署没有开-mooncake-连接器": "五组混合缓存的地址换算与-1p1d-搬运量推演"
+      },
       "title": "Mooncake 连接器：先对好块号，再按层搬历史状态",
       "type": "feature",
       "origin": "gap",
-      "summary": "从 P/D 两套独立块池无法共享块号出发，讲清昇腾 Mooncake 连接器如何由调度侧管账押块、由 worker 侧换算显存地址并驱动 TransferEngine 直传 KV 状态；对照 V1 整批拉、Layerwise 逐层推、V2/D2RH 演进与 910B3 真机实测边界。",
+      "summary": "从 P/D 两套独立块池无法共享块号出发，讲清昇腾 Mooncake 连接器如何由调度侧管账并延迟归还源块、由 worker 侧换算显存地址并驱动 TransferEngine 直传 KV 状态；对照 V1 整批拉、Layerwise 逐层推、V2/D2RH 演进与 910B3 真机实测边界。",
       "aliases": [
         "Mooncake 连接器",
         "Mooncake Connector",
@@ -18508,7 +18637,7 @@
       "title": "PagedAttention（分页注意力）",
       "type": "concept",
       "origin": "direct",
-      "summary": "借鉴操作系统虚拟内存分页思想，把 KV cache 显存池切成固定长度（昇腾默认 128 token）的物理块按需借还，通过块表把连续逻辑位置映射到离散物理块，彻底消灭外部显存碎片、支持相同前缀零拷贝共享，并将单序列内部预留浪费严格收敛到最后一块以内。",
+      "summary": "把 KV cache 显存池切成固定长度（昇腾默认 128 token）的等长物理块按需借还，通过块表把连续逻辑位置映射到离散物理块（与操作系统虚拟内存分页同理），彻底消灭外部显存碎片、支持相同前缀零拷贝共享，并将单序列内部预留浪费严格收敛到最后一块以内。",
       "aliases": [
         "PagedAttention",
         "Paged Attention",
@@ -18577,7 +18706,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-27",
       "file": "concepts/paged-attention.md",
       "backlinks": [
         {
@@ -18644,10 +18773,15 @@
     },
     {
       "id": "pd-disaggregation",
+      "legacyAnchors": {
+        "放到-glm-双机拆开会怎样": "五组混合状态交接与双机-1p1d-拆分推演",
+        "钉住版本里长提示词交接时-full-组会少传块": "旧版-v1-连接器对混合-full-组的块数折算偏差",
+        "把这两台机器拆成一-p-一-d": "双机硬拆-1p1dep16-退回-ep8-与失去-mc2"
+      },
       "title": "PD 分离：prefill 与 decode 分给两组实例时怎样交接历史",
       "type": "feature",
       "origin": "direct",
-      "summary": "把一条请求的 prefill 与 decode 交给 P、D 两套独立实例，中间由连接器跨实例交接历史状态。本页先走通标准单组 KV（如 Qwen3-8B）的 P→D 拉取、完成信号、押块与 NIXL 租约，再解释混合模型（如历史 GLM 5 组状态）为何把最后一个 token 留给 D 计算。",
+      "summary": "把一条请求的 prefill 与 decode 交给 P、D 两套独立实例，中间由连接器跨实例交接历史状态。本页先走通标准单组 KV（如 Qwen3-8B）的 P→D 拉取、完成信号、延迟归还源块与 NIXL 租约，再解释混合模型（如 5 组状态）为何把最后一个 token 留给 D 计算。",
       "aliases": [
         "PD",
         "PD 分离",
@@ -18967,7 +19101,11 @@
     {
       "id": "pipeline-parallel",
       "legacyAnchors": {
-        "glm-双机为什么没用-pp": "异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接"
+        "glm-双机为什么没用-pp": "45-层异构切分与-mhc-32-kibtoken-段间交接推演",
+        "异构混合模型边界glm-双机-pp1-取舍与四路残差段间交接": "45-层异构切分与-mhc-32-kibtoken-段间交接推演",
+        "变体glm-的-45-层分成-2-段": "23-与-22-层异构分段及-16-卡组数折算",
+        "主线为什么没开": "23-与-22-层异构分段及-16-卡组数折算",
+        "glm-的分界上交什么": "mhc-四路残差在段间分界交什么"
       },
       "title": "流水线并行（PP）：层分段、状态交接与气泡",
       "type": "feature",
@@ -19441,7 +19579,7 @@
       "title": "Pooling 与非自回归推理：Embedding / Reranker / 生成式评分与 Whisper ASR",
       "type": "concept",
       "origin": "direct",
-      "summary": "本页拆解 --runner pooling（Embedding / Reranker / Reward）单轮池化路径、双向与因果掩码硬件分岔、CLS / LAST / MEAN 池化头、生成式评分（/generative_scoring）概率比较，以及 Whisper Encoder-Decoder 与语音上传/实时转写入口。",
+      "summary": "本页拆解 --runner pooling（Embedding / Reranker / Reward）一次逻辑前向池化路径（含跨步分块支持边界）、双向与因果掩码硬件分岔、CLS / LAST / MEAN 池化头、生成式评分（/generative_scoring）概率比较，以及 Whisper Encoder-Decoder 与语音上传/实时转写入口。",
       "aliases": [
         "Pooling",
         "pooling runner",
@@ -19512,7 +19650,7 @@
         {
           "to": "prefill",
           "kind": "builds-on",
-          "note": "Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环"
+          "note": "Pooling 模型只做一次等价于 Prefill 的全序列逻辑前向（支持分块的池化头可跨调度步完成），没有后续逐词 Decode 循环"
         },
         {
           "to": "attention-qkv",
@@ -19532,7 +19670,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/pooling-and-non-ar.md",
       "backlinks": [
         {
@@ -19718,6 +19856,9 @@
     },
     {
       "id": "prefill",
+      "legacyAnchors": {
+        "异构混合层与双机-mtp-对照kda--稀疏-mla--glm-全案": "同样-4-行输入为什么只取-1-行或取-4-行-logits"
+      },
       "title": "Prefill 与 Decode：提示词怎样处理，回答怎样接着往下写",
       "type": "concept",
       "origin": "gap",
@@ -19833,7 +19974,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-18",
+      "updated": "2026-11-27",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -19859,7 +20000,7 @@
         {
           "from": "pooling-and-non-ar",
           "kind": "enables",
-          "note": "Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环"
+          "note": "Pooling 模型只做一次等价于 Prefill 的全序列逻辑前向（支持分块的池化头可跨调度步完成），没有后续逐词 Decode 循环"
         },
         {
           "from": "roofline-and-metrics",
@@ -19881,7 +20022,8 @@
     {
       "id": "prefix-caching",
       "legacyAnchors": {
-        "glm-双机上它开着吗": "异构混合模型边界：KDA 与稀疏 MLA 多组对齐（GLM 双机对照）"
+        "glm-双机上它开着吗": "五组混合缓存怎样找到共同恢复边界",
+        "异构混合模型边界kda-与稀疏-mla-多组对齐glm-双机对照": "五组混合缓存怎样找到共同恢复边界"
       },
       "title": "Prefix caching：相同的开头只算一次，靠什么认",
       "type": "feature",
@@ -20018,7 +20160,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/prefix-caching.md",
       "backlinks": [
         {
@@ -21190,7 +21332,9 @@
     {
       "id": "recompute-cpu-offload",
       "legacyAnchors": {
-        "放到-glm-双机主线不启用它": "1P1D 改造预算核算：每卡 127 个主机块与混合状态边界"
+        "放到-glm-双机主线不启用它": "1p1d-预算与混合状态推演每卡-127-个可用主机块与尾部槽位",
+        "复杂异构实战对照glm-双机为何未启用与预算对照": "1p1d-预算与混合状态推演每卡-127-个可用主机块与尾部槽位",
+        "1p1d-改造预算核算每卡-127-个主机块与混合状态边界": "1p1d-预算与混合状态推演每卡-127-个可用主机块与尾部槽位"
       },
       "title": "Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回",
       "type": "feature",
@@ -21348,7 +21492,9 @@
     {
       "id": "recompute-scheduler",
       "legacyAnchors": {
-        "放到-glm-双机主线不启用它": "混部与 1P1D 边界：多状态组释放与 D 端重算分流"
+        "放到-glm-双机主线不启用它": "混部与-1p1d-对照多状态组释放ep8-约束与重算分流",
+        "复杂异构实战对照glm-双机与-1p1d-改造分析": "混部与-1p1d-对照多状态组释放ep8-约束与重算分流",
+        "混部与-1p1d-边界多状态组释放与-d-端重算分流": "混部与-1p1d-对照多状态组释放ep8-约束与重算分流"
       },
       "title": "RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算",
       "type": "feature",
@@ -22281,7 +22427,9 @@
     {
       "id": "request-teardown",
       "legacyAnchors": {
-        "落到-glm-双机r1-结束时三处各还了什么": "复杂异构实战对照：GLM 双机 DP / 多缓存组释放与 P-D 延迟还块"
+        "落到-glm-双机r1-结束时三处各还了什么": "多-dp-组与多缓存组收尾r1-长度到限时三处各还了什么",
+        "复杂异构实战对照glm-双机-dp--多缓存组释放与-p-d-延迟还块": "多-dp-组与多缓存组收尾r1-长度到限时三处各还了什么",
+        "glm-双机dp2r1-长度到限时三处各还了什么": "多-dp-组与多缓存组收尾r1-长度到限时三处各还了什么"
       },
       "title": "请求收尾：一条请求结束或被中止后，它占的东西怎样一件件还回去",
       "type": "concept",
@@ -22480,7 +22628,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/request-teardown.md",
       "backlinks": [
         {
@@ -23792,12 +23940,13 @@
     {
       "id": "rope",
       "legacyAnchors": {
-        "放到-glm-双机哪里本该转为什么没转": "复杂异构实战对照：MLA 解耦段与 GLM 双机 NoPE"
+        "放到-glm-双机哪里本该转为什么没转": "异构位置编码分叉：MLA 解耦位置段与零维 NoPE",
+        "复杂异构实战对照mla-解耦段与-glm-双机-nope": "异构位置编码分叉：MLA 解耦位置段与零维 NoPE"
       },
-      "title": "RoPE：把位置变成旋转，让注意力分数只看相隔多远",
+      "title": "RoPE：用旋转编码位置，让位置影响只取决于相隔多远",
       "type": "concept",
       "origin": "gap",
-      "summary": "RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数与 YaRN 等缩放决定可覆盖的长度范围。本文先以 Qwen3-8B（128 维拆 64 对、rope_theta = 1,000,000）讲清标准旋转与写缓存边界，再在文末对照历史 GLM-5.3-Flash 的零维 NoPE 特例。",
+      "summary": "RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对；固定内容向量时，位置对点积的影响只取决于两者的位置差，频率基数与 YaRN 等缩放决定可覆盖的长度范围。本文先以 Qwen3-8B（128 维拆 64 对、rope_theta = 1,000,000）讲清标准旋转与写缓存边界，再对照 MLA 解耦位置段与零维 NoPE。",
       "aliases": [
         "旋转位置编码",
         "旋转位置嵌入",
@@ -24050,7 +24199,8 @@
         "生成式评分用下一个-token-的概率比较候选": "高阶采样、Beam、Logprobs 与生成式评分延伸导览",
         "分数在进-softmax-之前还会被哪些设置改动": "高阶采样、Beam、Logprobs 与生成式评分延伸导览",
         "内置规则不够时怎样接入自己的改分规则": "高阶采样、Beam、Logprobs 与生成式评分延伸导览",
-        "返回的概率记录怎样对应这次选词": "高阶采样、Beam、Logprobs 与生成式评分延伸导览"
+        "返回的概率记录怎样对应这次选词": "高阶采样、Beam、Logprobs 与生成式评分延伸导览",
+        "放到-glm-双机采样在哪一步谁来做": "双机-tp8-与-mtp-候选下采样在哪一步谁来做"
       },
       "title": "Sampling：从词表分数里定下一个 token",
       "type": "concept",
@@ -24165,7 +24315,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/sampling.md",
       "backlinks": [
         {
@@ -24315,14 +24465,15 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/sampling-advanced.md",
       "backlinks": []
     },
     {
       "id": "sequence-parallel",
       "legacyAnchors": {
-        "放到-glm-双机这套部署开了-sp-吗": "异构混合模型边界：GLM 双机三路开关与四路残差行切"
+        "放到-glm-双机这套部署开了-sp-吗": "双机-16-卡混合部署三路-sp-开关4-至-8-行补齐与四路残差行切",
+        "异构混合模型边界glm-双机三路开关与四路残差行切": "双机-16-卡混合部署三路-sp-开关4-至-8-行补齐与四路残差行切"
       },
       "title": "序列并行（SP）：让局部激活按 token 分片",
       "type": "feature",
@@ -24692,7 +24843,8 @@
     {
       "id": "short-request-first",
       "legacyAnchors": {
-        "放到-glm-双机钉住的代码里没有它": "复杂异构实战对照：GLM 双机场景推演与版本边界"
+        "放到-glm-双机钉住的代码里没有它": "长短提示词同到时的三步排队推演glm-双机对照",
+        "复杂异构实战对照glm-双机场景推演与版本边界": "长短提示词同到时的三步排队推演glm-双机对照"
       },
       "title": "短请求优先：等待顺序与长请求公平性",
       "type": "feature",
@@ -24793,7 +24945,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/short-request-first.md",
       "backlinks": [
         {
@@ -25085,6 +25237,9 @@
     },
     {
       "id": "sparse-attention",
+      "legacyAnchors": {
+        "放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读": "按池挑选实战一个查询在一层稀疏-mla-里怎样挑怎样读"
+      },
       "title": "稀疏注意力：先挑位置，再只读这些位置",
       "type": "concept",
       "origin": "gap",
@@ -25281,6 +25436,10 @@
     },
     {
       "id": "speculative-decoding",
+      "legacyAnchors": {
+        "落到-glm-双机每步-1--3-个位置mtp-层连跑-3-遍": "混合注意力配自回归-mtp每步-1--3-个位置草稿层连跑-3-遍",
+        "glm-双机上多条请求时补齐和陪跑跟着放大": "多请求与双-dp-组并发图尺寸补齐和空闲组陪跑怎样放大"
+      },
       "title": "Speculative decoding：先猜几个 token，再让主模型一次验完",
       "type": "feature",
       "origin": "direct",
@@ -25562,7 +25721,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/speculative-decoding.md",
       "backlinks": [
         {
@@ -25760,7 +25919,8 @@
     {
       "id": "streaming-output",
       "legacyAnchors": {
-        "落到-glm-双机r1-的编号怎样变成片段": "复杂异构实战对照：GLM 双机思考标签与 MTP 多词流式",
+        "落到-glm-双机r1-的编号怎样变成片段": "双-dp-组回传mtp-多词与思考标签怎样流式输出",
+        "复杂异构实战对照glm-双机思考标签与-mtp-多词流式": "双-dp-组回传mtp-多词与思考标签怎样流式输出",
         "一个前端进程接两个-dp-组的结果": "单前端接双 DP 组与异步交错",
         "r1-前三圈每个片段由几个-token-还原": "R1 前三圈：MTP 1–4 词怎样变成 SSE 片段",
         "glm-的分词器和思考标记": "GLM 的思考标记、结束编号与专用补丁"
@@ -25967,7 +26127,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-19",
+      "updated": "2026-11-27",
       "file": "concepts/streaming-output.md",
       "backlinks": [
         {
@@ -26404,6 +26564,9 @@
     },
     {
       "id": "tensor-layout",
+      "legacyAnchors": {
+        "放到-glm-双机权重和-kv-cache-分别怎样处理": "异构混合模型对照量化权重专家层与-mla-缓存各自的布局边界"
+      },
       "title": "ND 与 NZ：张量的数值没变，内存里怎样重新排列",
       "type": "concept",
       "origin": "direct",
@@ -26539,7 +26702,8 @@
     {
       "id": "tensor-parallel",
       "legacyAnchors": {
-        "放到-glm-双机一个-token-走过一层": "异构旗舰对照：GLM 双机 TP8 分工"
+        "放到-glm-双机一个-token-走过一层": "双机-16-卡混合层对照tp8-在-kda稀疏-mla-与-moe-中怎样分工",
+        "异构旗舰对照glm-双机-tp8-分工": "双机-16-卡混合层对照tp8-在-kda稀疏-mla-与-moe-中怎样分工"
       },
       "title": "Tensor Parallel：一台机器的 8 张卡怎样合算一层",
       "type": "feature",
@@ -26955,7 +27119,8 @@
     {
       "id": "ucm",
       "legacyAnchors": {
-        "放到-glm-双机这套部署没有开-ucm": "复杂异构实战对照：GLM 双机为何未启用与接入边界"
+        "放到-glm-双机这套部署没有开-ucm": "混合模型接入边界五组状态kda-按块留档与新-hla-路径",
+        "复杂异构实战对照glm-双机为何未启用与接入边界": "混合模型接入边界五组状态kda-按块留档与新-hla-路径"
       },
       "title": "UCM：把算过的前缀分三层存到显存之外",
       "type": "feature",

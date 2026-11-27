@@ -145,9 +145,68 @@ export const WORKER_LIFECYCLE_STAGES: readonly WorkerStageSpec[] = [
 ];
 export const WORKER_LIFECYCLE_STEPS = WORKER_LIFECYCLE_STAGES;
 
+export const WORKER_CLUSTER_PRESETS = ["skewed", "rank1-lag", "balanced"] as const;
+export type WorkerClusterPreset = (typeof WORKER_CLUSTER_PRESETS)[number];
+
+export interface WorkerLifecycleDerivedState {
+  readonly step: WorkerLifecycleStage;
+  readonly clusterPreset: WorkerClusterPreset;
+  readonly enforceEager: boolean;
+  readonly pageMiB: 9;
+  readonly tokensPerBlock: 128;
+  readonly rank0KvMiB: 90;
+  readonly rank1KvMiB: 72 | 90;
+  readonly rank0RawBlocks: 10;
+  readonly rank1RawBlocks: 8 | 10;
+  readonly alignedBlocks: 8 | 10;
+  readonly shrunkBlocksOnRank0: 2 | 0;
+  readonly usableBlocks: 7 | 9;
+  readonly tokenSlots: 896 | 1152;
+  readonly rank1LaggingAtBarrier: boolean;
+  readonly skipGraphCapture: boolean;
+}
+
+export function computeWorkerLifecycleState(
+  step: WorkerLifecycleStage,
+  clusterPreset: WorkerClusterPreset,
+  enforceEager: boolean,
+): WorkerLifecycleDerivedState {
+  const pageMiB = 9 as const;
+  const tokensPerBlock = 128 as const;
+  const rank0KvMiB = 90 as const;
+  const rank1KvMiB: 72 | 90 = clusterPreset === "balanced" ? 90 : 72;
+  const rank0RawBlocks = 10 as const;
+  const rank1RawBlocks: 8 | 10 = rank1KvMiB === 90 ? 10 : 8;
+  const alignedBlocks: 8 | 10 = rank1RawBlocks === 10 ? 10 : 8;
+  const shrunkBlocksOnRank0: 2 | 0 = (rank0RawBlocks - alignedBlocks) as 2 | 0;
+  const usableBlocks: 7 | 9 = (alignedBlocks - 1) as 7 | 9;
+  const tokenSlots: 896 | 1152 = (usableBlocks * tokensPerBlock) as 896 | 1152;
+  const rank1LaggingAtBarrier = clusterPreset === "rank1-lag" && (step === 2 || step === 4);
+
+  return {
+    step,
+    clusterPreset,
+    enforceEager,
+    pageMiB,
+    tokensPerBlock,
+    rank0KvMiB,
+    rank1KvMiB,
+    rank0RawBlocks,
+    rank1RawBlocks,
+    alignedBlocks,
+    shrunkBlocksOnRank0,
+    usableBlocks,
+    tokenSlots,
+    rank1LaggingAtBarrier,
+    skipGraphCapture: enforceEager,
+  };
+}
+
 export interface WorkerLifecycleInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: WorkerDiagramMode | undefined;
   readonly initialStep?: WorkerLifecycleStage | undefined;
+  readonly initialClusterPreset?: WorkerClusterPreset | undefined;
+  readonly initialEnforceEager?: boolean | undefined;
 }
 
 export function WorkerLifecycleInteractive({
@@ -159,14 +218,21 @@ export function WorkerLifecycleInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 1,
+  initialClusterPreset = "skewed",
+  initialEnforceEager = false,
 }: WorkerLifecycleInteractiveProps) {
   const [mode, setMode] = useState<WorkerDiagramMode>(initialMode);
   const [step, setStep] = useState<WorkerLifecycleStage>(initialStep);
+  const [clusterPreset, setClusterPreset] = useState<WorkerClusterPreset>(initialClusterPreset);
+  const [enforceEager, setEnforceEager] = useState<boolean>(initialEnforceEager);
   const [playing, setPlaying] = useState(false);
+
   const spec = WORKER_LIFECYCLE_STAGES[step - 1]!;
+  const wk = computeWorkerLifecycleState(step, clusterPreset, enforceEager);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mTeal = `${id}-${uid}-wk-teal`;
   const mWarn = `${id}-${uid}-wk-warn`;
+  const mRed = `${id}-${uid}-wk-red`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -293,6 +359,8 @@ export function WorkerLifecycleInteractive({
       extraRootAttrs={{
         "data-step": step,
         "data-barrier": spec.hasCrossCardBarrier ? "true" : "false",
+        "data-cluster-preset": clusterPreset,
+        "data-eager": enforceEager ? "true" : "false",
       }}
       toolbar={
         <>
@@ -325,9 +393,6 @@ export function WorkerLifecycleInteractive({
             >
               下一步 ›
             </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="NPUWorker 五阶段冷启动控制">
             {WORKER_LIFECYCLE_STAGES.map((item) => {
               const active = mode === "sandbox" && step === item.stage;
               return (
@@ -345,13 +410,86 @@ export function WorkerLifecycleInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="双卡显存不齐、慢卡延迟与 Eager 录图开关">
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="worker-preset-skewed"
+              aria-pressed={mode === "sandbox" && clusterPreset === "skewed"}
+              style={eduBtnStyle(mode === "sandbox" && clusterPreset === "skewed", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setClusterPreset("skewed");
+              }}
+            >
+              显存不齐 (10 vs 8块→896槽)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="worker-preset-lag"
+              aria-pressed={mode === "sandbox" && clusterPreset === "rank1-lag"}
+              style={eduBtnStyle(mode === "sandbox" && clusterPreset === "rank1-lag", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setClusterPreset("rank1-lag");
+                if (step !== 2 && step !== 4) setStep(4);
+              }}
+            >
+              Rank1 慢卡延迟 (栅栏停等)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="worker-preset-balanced"
+              aria-pressed={mode === "sandbox" && clusterPreset === "balanced"}
+              style={eduBtnStyle(mode === "sandbox" && clusterPreset === "balanced", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setClusterPreset("balanced");
+              }}
+            >
+              双卡均衡 (10块→1152槽)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="worker-toggle-eager"
+              aria-pressed={mode === "sandbox" && enforceEager}
+              style={eduBtnStyle(mode === "sandbox" && enforceEager, "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setEnforceEager((v) => !v);
+                setStep(5);
+              }}
+            >
+              {enforceEager ? "--enforce-eager：开 (跳过录图)" : "--enforce-eager：关 (1−u 录图)"}
+            </button>
           </fieldset>
         </>
       }
       takeawayBadge={spec.badgeText}
-      takeawayTone={spec.takeawayTone}
-      takeaway={spec.takeaway}
-      kpi={spec.kpi}
+      takeawayTone={wk.rank1LaggingAtBarrier ? "danger" : spec.takeawayTone}
+      takeaway={
+        step === 4
+          ? `Rank0 汇报 ${wk.rank0KvMiB} MiB (${wk.rank0RawBlocks} 块)、Rank1 汇报 ${wk.rank1KvMiB} MiB (${wk.rank1RawBlocks} 块) → EngineCore 全组对齐取最小 ${wk.alignedBlocks} 块，扣 #0 保留空块得 ${wk.usableBlocks} 块（${wk.tokenSlots} 词槽）！`
+          : step === 5
+            ? enforceEager
+              ? `阶段 5 切出共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）并跑完算子预热；开启 --enforce-eager 后直接跳过 1−u 录图节点上线！`
+              : `阶段 5 先切出共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽），再跑预热并用 1−u 余量完成 Decode 录图上线！`
+            : spec.takeaway
+      }
+      kpi={
+        step >= 4
+          ? `对齐 ${wk.alignedBlocks} 块 → 可用 ${wk.usableBlocks} 块 (${wk.tokenSlots} 词槽) · ${enforceEager ? "跳录图" : "含录图"}`
+          : spec.kpi
+      }
       detailsSummary="查看工程与源码细节（worker.py 六方法 / BF16 ND 默认 / 7 类预热与 NPUWorker310 五处定制）"
       detailsContent={
         <>
@@ -362,18 +500,24 @@ export function WorkerLifecycleInteractive({
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">双卡启动时序、跨卡同步栅栏与单卡显存水位生长图</span>
-            <span className={`wiki-edu-badge ${spec.hasCrossCardBarrier ? "is-warn" : "is-good"}`}>
-              {spec.hasCrossCardBarrier ? "跨卡同步栅栏" : "单向依赖链"}
+            <span className="wiki-edu-panel-title">
+              EngineCore + 双 Rank 泳道 · 两道跨卡栅栏 · 最小块对齐池与录图开关全景图
+            </span>
+            <span
+              className={`wiki-edu-badge ${wk.rank1LaggingAtBarrier ? "is-bad" : spec.hasCrossCardBarrier ? "is-warn" : "is-good"}`}
+            >
+              {wk.rank1LaggingAtBarrier
+                ? "⏳ Rank1 慢卡阻塞栅栏"
+                : `共同池 ${wk.usableBlocks} 块 (${wk.tokenSlots} 词槽)`}
             </span>
           </div>
           <svg
-            viewBox="0 0 820 186"
-            width="820"
-            height="186"
+            viewBox="0 0 860 250"
+            width="860"
+            height="250"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`NPUWorker 冷启动第 ${step} 阶段时序与显存水位`}
+            aria-label={`NPUWorker 冷启动第 ${step} 阶段双卡泳道与对齐图`}
           >
             <defs>
               <marker
@@ -398,53 +542,246 @@ export function WorkerLifecycleInteractive({
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
               </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
             </defs>
-            {[1, 2, 3, 4, 5].map((st, idx) => {
-              const sx = 18 + idx * 160;
-              const active = st === step;
-              const done = st < step;
-              const hbmH = [18, 28, 72, 92, 128][idx]!;
+
+            <rect
+              x="10"
+              y="14"
+              width="840"
+              height="62"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#4c65b6"
+              strokeWidth="1.3"
+            />
+            <text x="20" y="49" fontSize="12" fontWeight="700" fill="#4c65b6">
+              EngineCore
+            </text>
+            <rect
+              x="108"
+              y="24"
+              width="388"
+              height="42"
+              rx="6"
+              fill={step < 4 ? "#ece9df" : "#fbfaf6"}
+              stroke="#d8d8cf"
+            />
+            <text x="302" y="50" textAnchor="middle" fontSize="12" fill="#66716d">
+              阶段 ①–③ 子进程自驱准备（主控等待汇报）
+            </text>
+            <rect
+              x="546"
+              y="24"
+              width="136"
+              height="42"
+              rx="6"
+              fill={step === 4 ? "#fff4cf" : step > 4 ? "#ddf4ef" : "#ffffff"}
+              stroke={step >= 4 ? "#c78300" : "#d8d8cf"}
+              strokeWidth="1.5"
+            />
+            <text x="614" y="50" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`④ 取 min=${wk.alignedBlocks}块`}
+            </text>
+            <rect
+              x="692"
+              y="24"
+              width="74"
+              height="42"
+              rx="6"
+              fill={step === 5 ? "#ddf4ef" : "#ffffff"}
+              stroke={step === 5 ? "#087f73" : "#d8d8cf"}
+            />
+            <text x="729" y="50" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {`⑤ ${wk.usableBlocks}块池`}
+            </text>
+            <rect
+              x="772"
+              y="24"
+              width="70"
+              height="42"
+              rx="6"
+              fill={enforceEager ? "#ece9df" : step === 5 ? "#ddf4ef" : "#ffffff"}
+              stroke={enforceEager ? "#d8d8cf" : step === 5 ? "#087f73" : "#d8d8cf"}
+              strokeDasharray={enforceEager ? "4 2" : undefined}
+            />
+            <text
+              x="807"
+              y="50"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={enforceEager ? "#66716d" : "#17211f"}
+            >
+              {enforceEager ? "⏭跳录图" : "⑥录图"}
+            </text>
+
+            {[0, 1].map((rIdx) => {
+              const ly = rIdx === 0 ? 88 : 164;
+              const isLagRank = rIdx === 1 && clusterPreset === "rank1-lag";
+              const kvMiB = rIdx === 0 ? wk.rank0KvMiB : wk.rank1KvMiB;
+              const rawB = rIdx === 0 ? wk.rank0RawBlocks : wk.rank1RawBlocks;
               return (
-                <g key={`wk-svg-${st}`}>
+                <g key={`rank-lane-${rIdx}`}>
                   <rect
-                    x={sx}
-                    y="12"
-                    width="140"
-                    height="162"
+                    x="10"
+                    y={ly}
+                    width="840"
+                    height="64"
                     rx="8"
-                    fill={active ? "#ddf4ef" : done ? "#fbfaf6" : "#ece9df"}
-                    stroke={active ? "#087f73" : "#d8d8cf"}
-                    strokeWidth={active ? "2" : "1.2"}
+                    fill="#fbfaf6"
+                    stroke="#d8d8cf"
+                    strokeWidth="1.3"
                   />
+                  <text x="20" y={ly + 28} fontSize="12" fontWeight="700" fill="#17211f">
+                    {`Rank ${rIdx}`}
+                  </text>
+                  <text x="20" y={ly + 48} fontSize="12" fill="#66716d">
+                    {`${kvMiB}MiB/${rawB}块`}
+                  </text>
+
                   <rect
-                    x={sx + 16}
-                    y={152 - hbmH}
-                    width="108"
-                    height={hbmH}
-                    rx="5"
-                    fill={st === 4 && active ? "#fff4cf" : "#e8edff"}
-                    stroke={st === 4 && active ? "#c78300" : "#4c65b6"}
+                    x="108"
+                    y={ly + 12}
+                    width="80"
+                    height="40"
+                    rx="6"
+                    fill={step >= 1 ? "#ddf4ef" : "#ece9df"}
+                    stroke="#087f73"
                   />
-                  <text x={sx + 70} y="32" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {`阶段 ${st}`}
+                  <text x="148" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    ① 补丁
                   </text>
-                  <text x={sx + 70} y="168" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {["算子补丁", "绑卡栅栏1", "载入权重", "试跑栅栏2", "切池录图"][idx]}
+
+                  <rect
+                    x="198"
+                    y={ly + 12}
+                    width="96"
+                    height="40"
+                    rx="6"
+                    fill={isLagRank && step === 2 ? "#fff0e9" : step >= 2 ? "#ddf4ef" : "#ece9df"}
+                    stroke={isLagRank && step === 2 ? "#b54237" : "#087f73"}
+                  />
+                  <text x="246" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {isLagRank && step === 2
+                      ? "🐢 慢卡未到"
+                      : rIdx === 0 && wk.rank1LaggingAtBarrier && step === 2
+                        ? "⏳ 等Rank1"
+                        : "② 绑卡快照"}
                   </text>
-                  {idx < 4 && (
-                    <line
-                      x1={sx + 142}
-                      y1="92"
-                      x2={sx + 156}
-                      y2="92"
-                      stroke={st === 2 ? "#c78300" : "#087f73"}
-                      strokeWidth="1.8"
-                      markerEnd={`url(#${st === 2 ? mWarn : mTeal})`}
-                    />
-                  )}
+
+                  <rect
+                    x="342"
+                    y={ly + 12}
+                    width="96"
+                    height="40"
+                    rx="6"
+                    fill={step >= 3 ? "#ddf4ef" : "#ece9df"}
+                    stroke="#087f73"
+                  />
+                  <text x="390" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    ③ 载入权重
+                  </text>
+
+                  <rect
+                    x="448"
+                    y={ly + 12}
+                    width="90"
+                    height="40"
+                    rx="6"
+                    fill={isLagRank && step === 4 ? "#fff0e9" : step >= 4 ? "#fff4cf" : "#ece9df"}
+                    stroke={isLagRank && step === 4 ? "#b54237" : "#c78300"}
+                  />
+                  <text x="493" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {isLagRank && step === 4 ? "🐢 试跑慢" : `报 ${rawB} 块`}
+                  </text>
+
+                  <rect
+                    x="586"
+                    y={ly + 12}
+                    width="178"
+                    height="40"
+                    rx="6"
+                    fill={step >= 4 ? "#ddf4ef" : "#ece9df"}
+                    stroke={step >= 4 ? "#087f73" : "#d8d8cf"}
+                  />
+                  <text x="675" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {rIdx === 0 && wk.shrunkBlocksOnRank0 > 0
+                      ? `缩回 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`
+                      : `对齐 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`}
+                  </text>
+
+                  <rect
+                    x="772"
+                    y={ly + 12}
+                    width="70"
+                    height="40"
+                    rx="6"
+                    fill={enforceEager ? "#ece9df" : step === 5 ? "#ddf4ef" : "#ffffff"}
+                    stroke={enforceEager ? "#d8d8cf" : "#087f73"}
+                    strokeDasharray={enforceEager ? "4 2" : undefined}
+                  />
+                  <text
+                    x="807"
+                    y={ly + 37}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill={enforceEager ? "#66716d" : "#087f73"}
+                  >
+                    {enforceEager ? "跳录图" : "录图就绪"}
+                  </text>
                 </g>
               );
             })}
+
+            <rect
+              x="300"
+              y="84"
+              width="34"
+              height="150"
+              rx="6"
+              fill={step === 2 ? "#fff4cf" : "#e8edff"}
+              stroke={wk.rank1LaggingAtBarrier && step === 2 ? "#b54237" : "#c78300"}
+              strokeWidth="1.7"
+            />
+            <text x="317" y="164" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              栅1
+            </text>
+
+            <rect
+              x="544"
+              y="76"
+              width="36"
+              height="158"
+              rx="6"
+              fill={step === 4 ? "#fff4cf" : "#e8edff"}
+              stroke={wk.rank1LaggingAtBarrier && step === 4 ? "#b54237" : "#c78300"}
+              strokeWidth="1.7"
+            />
+            <text x="562" y="164" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              栅2
+            </text>
+
+            <line
+              x1="684"
+              y1="45"
+              x2="690"
+              y2="45"
+              stroke="#087f73"
+              strokeWidth="1.6"
+              markerEnd={`url(#${wk.rank1LaggingAtBarrier ? mRed : step === 4 ? mWarn : mTeal})`}
+            />
           </svg>
         </div>
 

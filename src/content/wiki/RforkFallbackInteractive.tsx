@@ -140,9 +140,91 @@ const STATIONS = [
   { stage: 4 as const, title: "④ 高速直传显存", sub: "跳过硬盘直灌本卡" },
 ];
 
+export const RFORK_DROP_BATCH_OPTIONS = [3, 7, 11] as const;
+export type RforkDropBatch = (typeof RFORK_DROP_BATCH_OPTIONS)[number];
+
+export interface RforkDerivedFlowState {
+  readonly scenario: RforkScenarioId;
+  readonly dropBatch: RforkDropBatch;
+  readonly serviceStopped: boolean;
+  readonly memoryReset: boolean;
+  readonly totalBatches: 12;
+  readonly writtenBatches: number;
+  readonly unknownBatch: number | null;
+  readonly unreadBatches: number;
+  readonly needsFallback: boolean;
+  readonly bothGatesPass: boolean;
+  readonly activeExit: "direct-online" | "disk-online" | "safety-abort";
+  readonly seedPublishOpen: boolean;
+  readonly batchSummaryText: string;
+}
+
+export function computeRforkFlowState(
+  scenario: RforkScenarioId,
+  dropBatch: RforkDropBatch,
+  serviceStopped: boolean,
+  memoryReset: boolean,
+): RforkDerivedFlowState {
+  const totalBatches = 12 as const;
+  if (scenario === "hit-seed" || scenario === "lease-reject-400") {
+    return {
+      scenario,
+      dropBatch,
+      serviceStopped: true,
+      memoryReset: true,
+      totalBatches,
+      writtenBatches: 12,
+      unknownBatch: null,
+      unreadBatches: 0,
+      needsFallback: false,
+      bothGatesPass: true,
+      activeExit: "direct-online",
+      seedPublishOpen: scenario === "hit-seed",
+      batchSummaryText: "1–12 批已全量写入 (12/12)",
+    };
+  }
+  if (scenario === "planner-miss") {
+    const both = serviceStopped && memoryReset;
+    return {
+      scenario,
+      dropBatch,
+      serviceStopped,
+      memoryReset,
+      totalBatches,
+      writtenBatches: 0,
+      unknownBatch: null,
+      unreadBatches: 12,
+      needsFallback: true,
+      bothGatesPass: both,
+      activeExit: both ? "disk-online" : "safety-abort",
+      seedPublishOpen: false,
+      batchSummaryText: "0 批已写 · 1–12 批未读",
+    };
+  }
+  const writtenBatches = dropBatch - 1;
+  const unreadBatches = totalBatches - dropBatch;
+  const both = serviceStopped && memoryReset;
+  return {
+    scenario,
+    dropBatch,
+    serviceStopped,
+    memoryReset,
+    totalBatches,
+    writtenBatches,
+    unknownBatch: dropBatch,
+    unreadBatches,
+    needsFallback: true,
+    bothGatesPass: both,
+    activeExit: both ? "disk-online" : "safety-abort",
+    seedPublishOpen: false,
+    batchSummaryText: `1–${writtenBatches} 已写 · 第 ${dropBatch} 批未知 · ${dropBatch + 1}–12 未读`,
+  };
+}
+
 export interface RforkFallbackInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: RforkDiagramMode | undefined;
   readonly initialScenario?: RforkScenarioId | undefined;
+  readonly initialDropBatch?: RforkDropBatch | undefined;
 }
 
 export function RforkFallbackInteractive({
@@ -154,12 +236,18 @@ export function RforkFallbackInteractive({
   onScroll,
   initialMode = "sandbox",
   initialScenario = "hit-seed",
+  initialDropBatch = 7,
 }: RforkFallbackInteractiveProps) {
   const [mode, setMode] = useState<RforkDiagramMode>(initialMode);
   const [scenario, setScenario] = useState<RforkScenarioId>(initialScenario);
+  const [dropBatch, setDropBatch] = useState<RforkDropBatch>(initialDropBatch);
+  const [serviceStopped, setServiceStopped] = useState<boolean>(true);
+  const [memoryReset, setMemoryReset] = useState<boolean>(initialScenario !== "cleanup-abort");
   const [playing, setPlaying] = useState(false);
+
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const spec = RFORK_SCENARIO_SPECS[scenario];
+  const flow = computeRforkFlowState(scenario, dropBatch, serviceStopped, memoryReset);
   const mTeal = `${id}-${uid}-rf-teal`;
   const mRed = `${id}-${uid}-rf-red`;
   const mAmber = `${id}-${uid}-rf-amber`;
@@ -174,7 +262,10 @@ export function RforkFallbackInteractive({
           setPlaying(false);
           return prev;
         }
-        return RFORK_SCENARIOS[idx + 1]!;
+        const next = RFORK_SCENARIOS[idx + 1]!;
+        setServiceStopped(true);
+        setMemoryReset(next !== "cleanup-abort");
+        return next;
       });
     }, 2000);
     return () => clearInterval(timer);
@@ -184,6 +275,33 @@ export function RforkFallbackInteractive({
     setPlaying(false);
     setMode("sandbox");
     setScenario(next);
+    setServiceStopped(true);
+    setMemoryReset(next !== "cleanup-abort");
+  };
+
+  const selectBatchStop = (nextBatch: RforkDropBatch) => {
+    setPlaying(false);
+    setMode("sandbox");
+    setDropBatch(nextBatch);
+    if (scenario !== "seed-transfer-drop" && scenario !== "cleanup-abort") {
+      setScenario("seed-transfer-drop");
+      setServiceStopped(true);
+      setMemoryReset(true);
+    }
+  };
+
+  const toggleGate = (gate: "service" | "memory") => {
+    setPlaying(false);
+    setMode("sandbox");
+    const nextSvc = gate === "service" ? !serviceStopped : serviceStopped;
+    const nextMem = gate === "memory" ? !memoryReset : memoryReset;
+    setServiceStopped(nextSvc);
+    setMemoryReset(nextMem);
+    if (nextSvc && nextMem) {
+      if (scenario !== "planner-miss") setScenario("seed-transfer-drop");
+    } else {
+      setScenario("cleanup-abort");
+    }
   };
 
   const togglePlay = () => {
@@ -192,7 +310,11 @@ export function RforkFallbackInteractive({
       setPlaying(false);
       return;
     }
-    if (scenario === "cleanup-abort") setScenario("hit-seed");
+    if (scenario === "cleanup-abort") {
+      setScenario("hit-seed");
+      setServiceStopped(true);
+      setMemoryReset(true);
+    }
     setPlaying(true);
   };
 
@@ -262,21 +384,24 @@ export function RforkFallbackInteractive({
       question="新扩容机器直接从隔壁卡显存借权重，万一半路断了会把服务搞崩吗？"
       toolbarLabel="RFork 五种现场状态机控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-scenario": scenario }}
+      extraRootAttrs={{
+        "data-scenario": scenario,
+        "data-drop-batch": dropBatch,
+        "data-exit": flow.activeExit,
+      }}
       toolbar={
         <>
-          <button
-            type="button"
-            className="wiki-edu-btn"
-            data-testid="rfork-autoplay"
-            aria-pressed={playing}
-            style={eduBtnStyle(playing, "accent")}
-            onClick={togglePlay}
-          >
-            {playing ? "⏸ 暂停轮播" : "▶ 轮播 5 种现场"}
-          </button>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="RFork 五种现场状态切换">
+          <div className="wiki-edu-btn-row">
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-autoplay"
+              aria-pressed={playing}
+              style={eduBtnStyle(playing, "dark")}
+              onClick={togglePlay}
+            >
+              {playing ? "⏸ 暂停轮播" : "▶ 轮播 5 种现场"}
+            </button>
             {RFORK_SCENARIOS.map((scId) => {
               const item = RFORK_SCENARIO_SPECS[scId];
               const active = mode === "sandbox" && scenario === scId;
@@ -295,6 +420,48 @@ export function RforkFallbackInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="中断批次与两道回退安全门控制">
+            {RFORK_DROP_BATCH_OPTIONS.map((b) => {
+              const active =
+                mode === "sandbox" &&
+                (scenario === "seed-transfer-drop" || scenario === "cleanup-abort") &&
+                dropBatch === b;
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`rfork-batch-${b}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "dark")}
+                  onClick={() => selectBatchStop(b)}
+                >
+                  {`第 ${b}/12 批中断`}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-gate-service"
+              aria-pressed={mode === "sandbox" && flow.serviceStopped}
+              style={eduBtnStyle(mode === "sandbox" && flow.serviceStopped, "teal")}
+              onClick={() => toggleGate("service")}
+            >
+              {flow.serviceStopped ? "门1 停种子服：✓成功" : "门1 停种子服：✗失败"}
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-gate-memory"
+              aria-pressed={mode === "sandbox" && flow.memoryReset}
+              style={eduBtnStyle(mode === "sandbox" && flow.memoryReset, "teal")}
+              onClick={() => toggleGate("memory")}
+            >
+              {flow.memoryReset ? "门2 注销显存：✓成功" : "门2 注销显存：✗失败"}
+            </button>
           </fieldset>
         </>
       }
@@ -325,91 +492,294 @@ export function RforkFallbackInteractive({
           ))}
         </div>
 
-        <svg
-          viewBox="0 0 880 56"
-          width="880"
-          height="56"
-          style={{ width: "100%", height: "auto", display: "block", marginBottom: "10px" }}
-          role="img"
-          aria-label={`RFork 轨迹导引：${spec.title}`}
-        >
-          <defs>
-            <marker
-              id={mTeal}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
+        <div className="wiki-edu-panel" style={{ marginBottom: "12px" }}>
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">
+              主干四步借传 · 12 批进度 · 两道回退安全门 · 三条终态出口
+            </span>
+            <span
+              className={`wiki-edu-badge ${flow.activeExit === "safety-abort" ? "is-bad" : flow.activeExit === "disk-online" ? "is-warn" : "is-good"}`}
             >
-              <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
-            </marker>
-            <marker
-              id={mRed}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
-            </marker>
-            <marker
-              id={mAmber}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
-            </marker>
-            <marker
-              id={mMuted}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M0,1 L9,5 L0,9 z" fill="#d8d8cf" />
-            </marker>
-          </defs>
-          {spec.isFastSuccess ? (
-            <path
-              className="wiki-edu-wire is-flow"
-              d="M 760 4 L 760 48"
-              stroke={spec.outcomeKind === "p2p-lease-warn" ? "#c78300" : "#087f73"}
-              markerEnd={`url(#${spec.outcomeKind === "p2p-lease-warn" ? mAmber : mTeal})`}
+              {spec.faultBadge ?? flow.batchSummaryText}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 860 244"
+            width="860"
+            height="244"
+            style={{ width: "100%", height: "auto", display: "block" }}
+            role="img"
+            aria-label={`RFork 轨迹导引：${spec.title}`}
+          >
+            <defs>
+              <marker
+                id={mTeal}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
+              </marker>
+              <marker
+                id={mRed}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
+              </marker>
+              <marker
+                id={mAmber}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
+              </marker>
+              <marker
+                id={mMuted}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#d8d8cf" />
+              </marker>
+            </defs>
+
+            {[
+              { x: 14, w: 120, label: "① 空架登记" },
+              { x: 152, w: 130, label: "② 借租寻源" },
+              { x: 300, w: 120, label: "③ 清单核对" },
+            ].map((stNode, idx) => {
+              const stNum = (idx + 1) as 1 | 2 | 3;
+              const hitFault = flow.needsFallback && spec.reachedStage === stNum;
+              const skipped = flow.needsFallback && stNum > spec.reachedStage;
+              return (
+                <g key={stNode.label}>
+                  <rect
+                    x={stNode.x}
+                    y="14"
+                    width={stNode.w}
+                    height="50"
+                    rx="8"
+                    fill={hitFault ? "#fff0e9" : skipped ? "#ece9df" : "#ddf4ef"}
+                    stroke={hitFault ? "#b54237" : skipped ? "#d8d8cf" : "#087f73"}
+                    strokeWidth="1.6"
+                  />
+                  <text
+                    x={stNode.x + stNode.w / 2}
+                    y="44"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill="#17211f"
+                  >
+                    {stNode.label}
+                  </text>
+                  <line
+                    x1={stNode.x + stNode.w + 2}
+                    y1="39"
+                    x2={stNode.x + stNode.w + 16}
+                    y2="39"
+                    stroke={skipped || hitFault ? "#d8d8cf" : "#087f73"}
+                    strokeWidth="1.8"
+                    markerEnd={`url(#${skipped || hitFault ? mMuted : mTeal})`}
+                  />
+                </g>
+              );
+            })}
+
+            <rect
+              x="438"
+              y="10"
+              width="408"
+              height="68"
+              rx="8"
+              fill={
+                flow.unknownBatch !== null ? "#fff4cf" : flow.writtenBatches === 12 ? "#ddf4ef" : "#ece9df"
+              }
+              stroke={
+                flow.unknownBatch !== null ? "#c78300" : flow.writtenBatches === 12 ? "#087f73" : "#d8d8cf"
+              }
+              strokeWidth="1.6"
             />
-          ) : (
-            <path
-              className="wiki-edu-wire is-flow"
-              d={`M ${originX} 4 L ${originX} 26 L 220 26 L 220 48`}
-              stroke="#b54237"
-              markerEnd={`url(#${mRed})`}
-            />
-          )}
-          {spec.faultBadge && (
-            <g>
-              <rect
-                x={Math.max(12, originX - 92)}
-                y="14"
-                width="184"
-                height="24"
-                rx="12"
-                fill={spec.outcomeKind === "p2p-lease-warn" ? "#c78300" : "#b54237"}
+            <text x="642" y="30" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`④ 12 批直灌进度（${flow.batchSummaryText}）`}
+            </text>
+            {Array.from({ length: 12 }, (_, bIdx) => {
+              const bNum = bIdx + 1;
+              const bx = 452 + bIdx * 32;
+              const isWritten = bNum <= flow.writtenBatches;
+              const isUnknown = flow.unknownBatch === bNum;
+              const fill = isWritten ? "#087f73" : isUnknown ? "#b54237" : "#ffffff";
+              return (
+                <g key={`batch-cell-${bNum}`}>
+                  <rect x={bx} y="40" width="28" height="24" rx="4" fill={fill} stroke="#d8d8cf" />
+                  <text
+                    x={bx + 14}
+                    y="56"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill={isWritten || isUnknown ? "#ffffff" : "#66716d"}
+                  >
+                    {isUnknown ? "?" : bNum}
+                  </text>
+                </g>
+              );
+            })}
+
+            {!flow.needsFallback ? (
+              <path
+                className="wiki-edu-wire is-flow"
+                d="M 642 78 L 642 104 L 720 104"
+                stroke={scenario === "lease-reject-400" ? "#c78300" : "#087f73"}
+                markerEnd={`url(#${scenario === "lease-reject-400" ? mAmber : mTeal})`}
               />
-              <text x={originX} y="30" textAnchor="middle" fontSize="12" fontWeight="700" fill="#ffffff">
-                {spec.faultBadge}
-              </text>
-            </g>
-          )}
-        </svg>
+            ) : (
+              <path
+                className="wiki-edu-wire is-flow"
+                d={`M ${originX === 310 ? 217 : 540} 72 L ${originX === 310 ? 217 : 540} 138 L 288 138`}
+                stroke={flow.bothGatesPass ? "#c78300" : "#b54237"}
+                markerEnd={`url(#${flow.bothGatesPass ? mAmber : mRed})`}
+              />
+            )}
+
+            <rect
+              x="14"
+              y="104"
+              width="270"
+              height="126"
+              rx="9"
+              fill={!flow.needsFallback ? "#fbfaf6" : flow.bothGatesPass ? "#ddf4ef" : "#fff0e9"}
+              stroke={!flow.needsFallback ? "#d8d8cf" : flow.bothGatesPass ? "#087f73" : "#b54237"}
+              strokeWidth="1.7"
+            />
+            <text x="149" y="128" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              回退两道安全门
+            </text>
+            <rect
+              x="28"
+              y="140"
+              width="242"
+              height="32"
+              rx="6"
+              fill={flow.serviceStopped ? "#ffffff" : "#fff0e9"}
+              stroke={flow.serviceStopped ? "#087f73" : "#b54237"}
+            />
+            <text
+              x="149"
+              y="161"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={flow.serviceStopped ? "#087f73" : "#b54237"}
+            >
+              {flow.serviceStopped ? "✓ 门1：停种子服务成功" : "✗ 门1：停种子服务失败"}
+            </text>
+            <rect
+              x="28"
+              y="182"
+              width="242"
+              height="32"
+              rx="6"
+              fill={flow.memoryReset ? "#ffffff" : "#fff0e9"}
+              stroke={flow.memoryReset ? "#087f73" : "#b54237"}
+            />
+            <text
+              x="149"
+              y="203"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={flow.memoryReset ? "#087f73" : "#b54237"}
+            >
+              {flow.memoryReset ? "✓ 门2：注销显存成功" : "✗ 门2：注销显存残留脏块"}
+            </text>
+
+            <path
+              className={flow.activeExit === "disk-online" ? "wiki-edu-wire is-flow" : "wiki-edu-wire"}
+              d="M 286 158 L 542 158"
+              stroke={flow.activeExit === "disk-online" ? "#087f73" : "#d8d8cf"}
+              markerEnd={`url(#${flow.activeExit === "disk-online" ? mTeal : mMuted})`}
+            />
+            <path
+              className={flow.activeExit === "safety-abort" ? "wiki-edu-wire is-flow" : "wiki-edu-wire"}
+              d="M 286 206 L 542 206"
+              stroke={flow.activeExit === "safety-abort" ? "#b54237" : "#d8d8cf"}
+              markerEnd={`url(#${flow.activeExit === "safety-abort" ? mRed : mMuted})`}
+            />
+
+            <rect
+              x="548"
+              y="88"
+              width="298"
+              height="42"
+              rx="8"
+              fill={flow.activeExit === "direct-online" ? "#ddf4ef" : "#fbfaf6"}
+              stroke={flow.activeExit === "direct-online" ? "#087f73" : "#d8d8cf"}
+              strokeWidth={flow.activeExit === "direct-online" ? "2" : "1.3"}
+            />
+            <text x="697" y="114" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {flow.seedPublishOpen
+                ? "🟢 直传上线 + 新 Seed 发布开启"
+                : scenario === "lease-reject-400"
+                  ? "🟢 直传上线 · 400 关闭新 Seed"
+                  : "出口 1：直传秒级上线"}
+            </text>
+
+            <rect
+              x="548"
+              y="138"
+              width="298"
+              height="42"
+              rx="8"
+              fill={flow.activeExit === "disk-online" ? "#ddf4ef" : "#fbfaf6"}
+              stroke={flow.activeExit === "disk-online" ? "#087f73" : "#d8d8cf"}
+              strokeWidth={flow.activeExit === "disk-online" ? "2" : "1.3"}
+            />
+            <text x="697" y="164" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {flow.activeExit === "disk-online"
+                ? "🟢 出口 2：安全回退本地读盘上线"
+                : "出口 2：本地读盘上线（需双门全通）"}
+            </text>
+
+            <rect
+              x="548"
+              y="188"
+              width="298"
+              height="42"
+              rx="8"
+              fill={flow.activeExit === "safety-abort" ? "#fff0e9" : "#fbfaf6"}
+              stroke={flow.activeExit === "safety-abort" ? "#b54237" : "#d8d8cf"}
+              strokeWidth={flow.activeExit === "safety-abort" ? "2" : "1.3"}
+            />
+            <text
+              x="697"
+              y="214"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={flow.activeExit === "safety-abort" ? "#b54237" : "#66716d"}
+            >
+              {flow.activeExit === "safety-abort"
+                ? "🔴 出口 3：强制中止防脏数据上线!"
+                : "出口 3：安全中止（任一门失败触发）"}
+            </text>
+          </svg>
+        </div>
 
         <div className="wiki-edu-dual-grid">
           <div className={`wiki-edu-panel${spec.outcomeKind === "safety-abort" ? " is-oom" : ""}`}>

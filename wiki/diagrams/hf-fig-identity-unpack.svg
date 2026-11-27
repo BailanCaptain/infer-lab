@@ -19,33 +19,33 @@
   <!-- Upper Track: Architecture Resolution Chain -->
   <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. 模型架构类三级定位链（get_config · 优先读类名，漏写查映射表）</text>
 
-  <rect x="16" y="46" width="186" height="124" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/>
+  <rect x="16" y="46" width="180" height="124" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/>
   <text x="28" y="72" font-size="15" font-weight="700" fill="#17211f">顶层 config.json</text>
   <text x="28" y="98" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#4c65b6">"architectures"</text>
   <text x="28" y="124" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#c78300">"model_type"</text>
   <text x="28" y="150" font-size="13.5" fill="#4d5652">或 Mistral params</text>
 
   <!-- Step 1: Primary -->
-  <line x1="202" y1="74" x2="232" y2="74" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#arrBlue)"/>
-  <rect x="236" y="44" width="268" height="60" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
-  <text x="248" y="69" font-size="14.5" font-weight="700" fill="#4c65b6">① 首选 architectures 类名</text>
-  <text x="248" y="93" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">Qwen3 / Qwen3MoeForCausalLM</text>
+  <line x1="196" y1="74" x2="212" y2="74" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#arrBlue)"/>
+  <rect x="216" y="44" width="324" height="60" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="228" y="69" font-size="14.5" font-weight="700" fill="#4c65b6">① 首选 architectures 类名</text>
+  <text x="228" y="93" font-size="12.5" font-family="var(--font-mono)" fill="#17211f">architectures: ["Qwen3ForCausalLM"]</text>
 
   <!-- Step 2: Fallback model_type -->
-  <path d="M 202 128 L 218 128 L 218 142 L 232 142" fill="none" stroke="#c78300" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrAmber)"/>
-  <rect x="236" y="112" width="268" height="60" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
-  <text x="248" y="137" font-size="14.5" font-weight="700" fill="#c78300">② 漏写按 model_type 查表</text>
-  <text x="248" y="161" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">MODEL_MAPPING_NAMES 补齐</text>
+  <path d="M 196 128 L 206 128 L 206 142 L 212 142" fill="none" stroke="#c78300" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrAmber)"/>
+  <rect x="216" y="112" width="324" height="60" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="228" y="137" font-size="14.5" font-weight="700" fill="#936300">② 漏写按 model_type 回退查表</text>
+  <text x="228" y="161" font-size="12" font-family="var(--font-mono)" fill="#4d5652">model_type: "qwen3" → MODEL_MAPPING_NAMES</text>
 
   <!-- Step 3: CLI Override or Fail -->
-  <line x1="504" y1="142" x2="530" y2="142" stroke="#b54237" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrRed)"/>
-  <rect x="534" y="112" width="204" height="60" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-  <text x="546" y="137" font-size="14.5" font-weight="700" fill="#b54237">③ 未命中：手动指定</text>
-  <text x="546" y="161" font-size="13.5" fill="#4d5652">传 --hf-overrides 覆盖</text>
+  <line x1="540" y1="142" x2="554" y2="142" stroke="#b54237" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrRed)"/>
+  <rect x="558" y="112" width="178" height="60" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="570" y="137" font-size="14" font-weight="700" fill="#b54237">③ 未命中：手动指定</text>
+  <text x="570" y="161" font-size="12.5" fill="#4d5652">传 --hf-overrides 覆盖</text>
 
   <!-- Registered Model Registry Target -->
-  <line x1="504" y1="74" x2="740" y2="74" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
-  <path d="M 738 142 L 816 142 L 816 108" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <line x1="540" y1="74" x2="740" y2="74" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <path d="M 736 142 L 816 142 L 816 108" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
   <rect x="744" y="44" width="142" height="60" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
   <text x="815" y="69" text-anchor="middle" font-size="14.5" font-weight="700" fill="#087f73">命中模型注册表</text>
   <text x="815" y="93" text-anchor="middle" font-size="13.5" fill="#4d5652">昇腾算子就绪</text>

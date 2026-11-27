@@ -1,7 +1,8 @@
 mode: native-svg
 id: continuous-batching-four-myths
-caption: 示意：Continuous Batching 与两队列调度四大常见误解及 vLLM V1 源码真相对照板。
-size: [900, 412]
+caption: >-
+  Continuous Batching 单步 8 格预算混排算例（正常步 2 格续跑 running + 6 格准入 waiting 同轮混批 vs 发生 preempted_reqs 时整步阻断 waiting 准入分叉）与 vLLM V1 源码真相判据（仅 running 续块失败触发抢占、max_num_seqs 超载诱发 PREEMPTED 抖动、V1 默认 RECOMPUTE 清零 num_computed_tokens）。
+size: [900, 538]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L577'
     symbols: ['schedule', 'preempted_reqs', 'num_computed_tokens']

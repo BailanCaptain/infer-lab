@@ -1,8 +1,8 @@
 mode: native-svg
 id: netloader-guide-intuition
 caption: >-
-  NetLoader 启动期卡间点对点权重交接三阶段：阶段 ① 供方实例从磁盘加载模型分片并监听 LISTEN_PORT；阶段 ② 新实例启动时建同形状空位，经 TCP 握手后建 2 进程临时 HCCL 组从供方 NPU 直接复制权重（v0.30.0 默认传输后处理推理布局）；阶段 ③ 双方各自持有独立显存副本，新实例继续 KV Cache 分配与预热，传输失败则经 disk_fallback_loader_extra_config 回退读盘。
-size: [900, 440]
+  NetLoader 启动期卡间点对点权重交接三阶段与异常回退分流：阶段 ① 供方实例从磁盘加载模型分片并监听 LISTEN_PORT；阶段 ② 新实例建同形状空位，经 TCP 握手后建 2 进程临时 HCCL 组复制权重；阶段 ③ 双方各自持有独立显存副本继续推理或初始化；阶段 ④ 区分两类失败边界——TCP 连接/注册失败时可从候选源 A 顺序试候选 B 直至耗尽才读盘，而已选定供方进入 HCCL 后接收失败则直接走 disk_fallback_loader_extra_config 回退默认加载路径。
+size: [900, 504]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/netloader/netloader.py#L102-L175'
     symbols:

@@ -3,7 +3,8 @@ id: api-server-entry-fig-variants-and-tools
 caption: >-
   API server 兼容协议路由与工具调用双端闭环：上方对比 /v1/chat/completions、/v1/completions、
   /v1/responses 与 /v1/messages 在模板/分词跳过、默认 max_tokens=16 与内存会话保存上的差异，
-  并标出 v0.30.0+ --enable-prompt-embeds 的 2 GiB 解码护栏；下方展示工具调用从输入模板、
+  并标出固定 v0.30.0 与固定 main 已核的 --enable-prompt-embeds 护栏（拒绝 encoder-decoder 模型，
+  张量稠密化前默认字节上限 VLLM_MAX_EMBED_DECODE_BYTES=2 GiB）；下方展示工具调用从输入模板、
   模型生成、--tool-parser-plugin 输出解析到应用执行回填 tool_call_id 的四站闭环，
   强调插件只作用于输出端解析，不能改写模型输入格式。
 size: [900, 500]

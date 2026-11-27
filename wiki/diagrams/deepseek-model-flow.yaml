@@ -1,6 +1,6 @@
 mode: native-svg
 id: deepseek-model-flow
 caption: >-
-  DeepSeek-V4.1-Flash 从配置加载到第 3–5 站执行的三道核验关卡：① 配置加载阶段核实 40 层 CED 主干与 4 个主 KV 来源层（2/8/14/20）映射；② 缓存分配阶段拆开跨层共享分页 Block KV 与每请求独立 State Cache（SWA 环、压缩中间态与回退槽）；③ 执行阶段在 compact_yoco_boundary 核对 Prefill 后半输入是否由 0..99（100 行）收紧为 96..99（4 行），并区分 Decode 全层路径。
-size: [900, 490]
+  DeepSeek-V4.1-Flash 从配置加载到第 3–5 站执行的三道核验关卡：① 配置加载阶段核实 40 层 CED 主干与 4 个主 KV 来源层（2/8/14/20）映射；② 缓存分配阶段拆开跨层共享分页 Block KV 与每请求独立 State Cache；③ 执行阶段在同一 0..99 教学标尺下核对 Prefill 后半输入是否由 100 行收紧为 96..99（4 行，实际窗口与回退余量取决于 SWA 与草稿配置），并区分 DeepInfer 对照点 compact_yoco_boundary、昇腾固定 main 的 MRV2 回放层路径与 Decode 全层执行。
+size: [900, 524]
 pins: []

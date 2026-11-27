@@ -1,45 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="Chunked Prefill 四组常见错误直觉与 v0.30.0 源码真相对照板" font-family="var(--font-sans)">
-  <title>Chunked Prefill 四组常见误解与 vLLM V1 / vllm-ascend v0.30.0 源码真相对照板。</title>
-  <desc>关联源码符号：discard_requests_mask, discard_request_indices, optimistic_seq_lens_cpu, verify_max_model_len, max_num_batched_tokens, enable_chunked_prefill, long_prefill_token_threshold, token_budget</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 538" width="900" height="538" role="img" aria-label="Chunked Prefill 6 位置 2+2+2 三轮 KV 累积与丢弃中间采样算例及源码真相对照" font-family="var(--font-sans)">
+  <title>Chunked Prefill 2+2+2 三轮 KV 累积与末段交付 y₀ 算例及 v0.30.0 源码判据</title>
+  <desc>上半区展示 6 个提示词位置按 2+2+2 拆成三轮：KV 状态逐段累积并跨轮重读，前两轮命中 discard_requests_mask 丢弃采样结果，仅第 3 轮产出 y₀；下半区对照 verify_max_model_len、历史 KV 重读带宽与 long_prefill_token_threshold 三组真相。</desc>
+  <defs>
+    <marker id="cp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#b54237">✗ 常见错误直觉</text>
-  <text x="402" y="28" font-size="16" font-weight="700" fill="#087f73">✓ 源码真相（vLLM V1 &amp; vllm-ascend v0.30.0）</text>
-  <line x1="16" y1="42" x2="884" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="388" y1="12" x2="388" y2="400" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <!-- Section 1: 6 Positions (2+2+2) 3-Round Visual Timeline -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 提示词 6 位置按 2 + 2 + 2 分三轮执行：KV 逐段累积，前两轮丢弃输出，末轮才交 y₀</text>
 
-  <!-- Row 1 -->
-  <rect x="16" y="54" width="362" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="82" font-size="14.5" font-weight="700" fill="#8f3229">① 中间每个分块算完都会吐出一个 token</text>
-  <text x="28" y="110" font-size="13.5" fill="#4d5652">误以为提示词拆成三段就会依次吐出三个回答词</text>
+  <rect x="14" y="42" width="872" height="206" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 
-  <rect x="402" y="54" width="482" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="416" y="82" font-size="14.5" font-weight="700" fill="#065f56">仅最后一段产出首个输出 token y₀</text>
-  <text x="416" y="110" font-size="13.5" fill="#4d5652">未完段命中 discard_requests_mask 丢弃结果并回拨带种子 RNG</text>
+  <!-- Round 1 (x=26, w=264) -->
+  <rect x="26" y="56" width="264" height="156" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="158" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">第 1 轮：送入位置 0..1（2 词）</text>
+  <g font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle">
+    <rect x="40" y="90" width="36" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+    <text x="58" y="110" fill="#936300">0</text>
+    <rect x="80" y="90" width="36" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+    <text x="98" y="110" fill="#936300">1</text>
+    <rect x="120" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="138" y="110" fill="#66716d">-</text>
+    <rect x="160" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="178" y="110" fill="#66716d">-</text>
+    <rect x="200" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="218" y="110" fill="#66716d">-</text>
+    <rect x="240" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="258" y="110" fill="#66716d">-</text>
+  </g>
+  <text x="158" y="139" text-anchor="middle" font-size="12" fill="#4d5652">已算 2 / 6 &lt; 总长 → 未完分块</text>
+  <rect x="40" y="150" width="236" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="158" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">✗ 命中 discard_requests_mask</text>
+  <text x="158" y="190" text-anchor="middle" font-size="12" fill="#4d5652">丢弃采样结果 · 回拨带种子 RNG</text>
 
-  <!-- Row 2 -->
-  <rect x="16" y="142" width="362" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#8f3229">② max_num_batched_tokens 限制了最长输入</text>
-  <text x="28" y="198" font-size="13.5" fill="#4d5652">误以为默认预算 2048 就接不了超过 2048 的长提示词</text>
+  <line x1="292" y1="134" x2="314" y2="134" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#cp-arr)"/>
 
-  <rect x="402" y="142" width="482" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="416" y="170" font-size="14.5" font-weight="700" fill="#065f56">开启分块时单步预算与 max_model_len 解耦</text>
-  <text x="416" y="198" font-size="13.5" fill="#4d5652">长提示词自动跨多步算完；仅关闭分块时校验预算 &gt;= max_model_len</text>
+  <!-- Round 2 (x=318, w=264) -->
+  <rect x="318" y="56" width="264" height="156" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="450" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">第 2 轮：送入位置 2..3（2 词）</text>
+  <g font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle">
+    <rect x="332" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="350" y="110" fill="#3a4f93">0</text>
+    <rect x="372" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="390" y="110" fill="#3a4f93">1</text>
+    <rect x="412" y="90" width="36" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+    <text x="430" y="110" fill="#936300">2</text>
+    <rect x="452" y="90" width="36" height="30" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+    <text x="470" y="110" fill="#936300">3</text>
+    <rect x="492" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="510" y="110" fill="#66716d">-</text>
+    <rect x="532" y="90" width="36" height="30" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="3 2"/>
+    <text x="550" y="110" fill="#66716d">-</text>
+  </g>
+  <text x="450" y="139" text-anchor="middle" font-size="12" fill="#3a4f93">重读旧 KV 0..1 · 已算 4 / 6 未完</text>
+  <rect x="332" y="150" width="236" height="50" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="450" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">✗ 命中 discard_requests_mask</text>
+  <text x="450" y="190" text-anchor="middle" font-size="12" fill="#4d5652">再次丢弃中间输出 · 绝不吐词</text>
 
-  <!-- Row 3 -->
-  <rect x="16" y="230" width="362" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="258" font-size="14.5" font-weight="700" fill="#8f3229">③ 块切得越碎越好，反正总计算量不变</text>
-  <text x="28" y="286" font-size="13.5" fill="#4d5652">只看因果打分对数不变，忽视跨步历史重读与调度开销</text>
+  <line x1="584" y1="134" x2="606" y2="134" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#cp-arr)"/>
 
-  <rect x="402" y="230" width="482" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="416" y="258" font-size="14.5" font-weight="700" fill="#065f56">切太碎会成倍放大前缀 KV 重读带宽与 TTFT</text>
-  <text x="416" y="286" font-size="13.5" fill="#4d5652">后续分块每步都要重扫已存历史，并叠加步间调度与空采样杂活</text>
+  <!-- Round 3 (x=610, w=264) -->
+  <rect x="610" y="56" width="264" height="156" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="742" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">第 3 轮：送入位置 4..5（末 2 词）</text>
+  <g font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle">
+    <rect x="624" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="642" y="110" fill="#3a4f93">0</text>
+    <rect x="664" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="682" y="110" fill="#3a4f93">1</text>
+    <rect x="704" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="722" y="110" fill="#3a4f93">2</text>
+    <rect x="744" y="90" width="36" height="30" rx="4" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="762" y="110" fill="#3a4f93">3</text>
+    <rect x="784" y="90" width="36" height="30" rx="4" fill="#b8efe4" stroke="#087f73" stroke-width="1.3"/>
+    <text x="802" y="110" fill="#065f56">4</text>
+    <rect x="824" y="90" width="36" height="30" rx="4" fill="#b8efe4" stroke="#087f73" stroke-width="1.3"/>
+    <text x="842" y="110" fill="#065f56">5</text>
+  </g>
+  <text x="742" y="139" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">重读旧 KV 0..3 · 已算 6 / 6 齐备</text>
+  <rect x="624" y="150" width="236" height="50" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="742" y="170" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">✓ 末位采样正式交付首词 y₀</text>
+  <text x="742" y="190" text-anchor="middle" font-size="12" fill="#065f56">下一步起转入 Decode 逐词生成</text>
 
-  <!-- Row 4 -->
-  <rect x="16" y="318" width="362" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
-  <text x="28" y="346" font-size="14.5" font-weight="700" fill="#8f3229">④ 多条长提示词并发时默认会公平轮流分额</text>
-  <text x="28" y="374" font-size="13.5" fill="#4d5652">误以为默认分块会自动把剩余预算均分给多条长单</text>
+  <text x="28" y="233" font-size="12.5" fill="#17211f">图例：琥珀/青格 = 当轮新写入 KV；靛蓝格 = 后续轮次重读的前缀历史 KV（切得越碎，跨轮重读次数与带宽开销越大）。</text>
 
-  <rect x="402" y="318" width="482" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="416" y="346" font-size="14.5" font-weight="700" fill="#065f56">先入 running 者吃满余量；限额须设单条阈值</text>
-  <text x="416" y="374" font-size="13.5" fill="#4d5652">默认 long_prefill_token_threshold=0 不截断，显式设正值才留余量</text>
+  <!-- Section 2: 3 Mechanism Guard Columns -->
+  <text x="16" y="274" font-size="16" font-weight="700" fill="#17211f">2. 预算解耦、切碎带宽代价与多长单并发阈值（vLLM V1 &amp; vllm-ascend v0.30.0）</text>
+
+  <!-- Col A: Budget vs max_model_len -->
+  <rect x="14" y="288" width="282" height="236" rx="9" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="313" font-size="14" font-weight="700" fill="#3a4f93">A. 单步预算与最长输入解耦</text>
+  <text x="28" y="338" font-size="12.5" fill="#8f3229">✗ 误区：max_num_batched_tokens</text>
+  <text x="28" y="358" font-size="12" fill="#8f3229">为 2048 就接不了更长的提示词</text>
+  <text x="28" y="384" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：enable_chunked_prefill</text>
+  <text x="28" y="405" font-size="12.5" font-weight="700" fill="#065f56">开启时不限制 max_model_len</text>
+  <text x="28" y="429" font-size="12" fill="#4d5652">长提示词自动拆成多轮跑完；仅在</text>
+  <text x="28" y="450" font-size="12" fill="#4d5652">关闭分块时 verify_max_model_len</text>
+  <text x="28" y="471" font-size="12" fill="#4d5652">才校验预算 &gt;= max_model_len</text>
+  <text x="28" y="496" font-size="12" fill="#66716d">默认按模型支持自动开（非手动开）</text>
+
+  <!-- Col B: Over-chunking Bandwidth Cost -->
+  <rect x="309" y="288" width="282" height="236" rx="9" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+  <text x="323" y="313" font-size="14" font-weight="700" fill="#936300">B. 切碎代价：总算量与重读带宽</text>
+  <text x="323" y="338" font-size="12.5" fill="#8f3229">✗ 误区：块切得越碎越好，反正因果</text>
+  <text x="323" y="358" font-size="12" fill="#8f3229">打分总计算量不变（或以为变少）</text>
+  <text x="323" y="384" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：因果对数不减，切太碎会</text>
+  <text x="323" y="405" font-size="12.5" font-weight="700" fill="#065f56">成倍放大历史 KV 重读带宽与 TTFT</text>
+  <text x="323" y="429" font-size="12" fill="#4d5652">如上方第 2、3 轮须重扫已存历史，</text>
+  <text x="323" y="450" font-size="12" fill="#4d5652">并叠加步间调度与空采样过滤杂活</text>
+  <text x="323" y="472" font-family="var(--font-mono)" font-size="12" fill="#66716d">optimistic_seq_lens_cpu /</text>
+  <text x="323" y="493" font-family="var(--font-mono)" font-size="12" fill="#66716d">discard_request_indices</text>
+
+  <!-- Col C: Concurrent Long Prefills & Threshold -->
+  <rect x="604" y="288" width="282" height="236" rx="9" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+  <text x="618" y="313" font-size="14" font-weight="700" fill="#065f56">C. 多长单并发：吃满 vs 单条阈值</text>
+  <text x="618" y="338" font-size="12.5" fill="#8f3229">✗ 误区：多条长提示词并发时默认会</text>
+  <text x="618" y="358" font-size="12" fill="#8f3229">把 token_budget 自动均分给各单</text>
+  <text x="618" y="384" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：默认先入 running 者吃满</text>
+  <text x="618" y="405" font-size="12.5" font-weight="700" fill="#065f56">余量；限额须显式设单条截断阈值</text>
+  <text x="618" y="429" font-size="12" fill="#4d5652">long_prefill_token_threshold 默认</text>
+  <text x="618" y="450" font-size="12" fill="#4d5652">为 0（不截断）；设正值才限制单条</text>
+  <text x="618" y="471" font-size="12" fill="#4d5652">长单单步配额，留出预算给同批他单</text>
+  <text x="618" y="496" font-size="12" fill="#065f56">彻底隔离 P/D 争抢须走 PD 分离</text>
 </svg>

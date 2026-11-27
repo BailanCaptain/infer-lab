@@ -1,7 +1,8 @@
 mode: native-svg
 id: dp-fig-myths
-caption: DP 五组常见认知误区与 v0.30.0 源码真相对照板（覆盖 MoE 跨组专家共享、陪跑触发条件与 EP 独立性、跨机 RoCE PP×DP 互斥、多机 -dpl/--headless 启动与请求不迁移、以及 v0.30.0 停机间隔与补齐宽度）。
-size: [900, 498]
+caption: >-
+  双 DP 组运行时间线对照（DP0 有请求、DP1 空闲：稠密模型空闲组全程休眠 vs MoE 模型经 DPEngineCoreProc 入场跑 dummy batch 陪跑，标明首步与每 dp_sync_interval=16 步的全局停机核对刻度）及 v0.30.0 四组源码判据（路由专家跨组共享、陪跑与 EP 解耦、跨机 RoCE 禁同开 PP>1 与 DP>1、双机 -dpl 1/--headless 与 max_tokens_across_dp 补齐条件）。
+size: [900, 560]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/config.py#L1212-L1240'
     symbols: ['use_ep', 'flatten_tp_across_dp_and_pcp', 'enable_expert_parallel']

@@ -1,6 +1,7 @@
 mode: native-svg
 id: hf-fig-identity-unpack
-caption: 身份字段三级回退（architectures → model_type → --hf-overrides）与多模态 text_config 解包路径。
+caption: >-
+  身份字段三级回退（首选 architectures: ["Qwen3ForCausalLM"] → 漏写按 model_type: "qwen3" 查表 → --hf-overrides）与多模态 text_config 解包路径。
 size: [900, 350]
 pins:
   - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L757-L830'

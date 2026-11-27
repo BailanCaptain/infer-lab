@@ -1,7 +1,7 @@
 mode: native-svg
 id: ascend-task-queue-pipeline
 caption: >-
-  昇腾算子下发三档时序泳道与跨流显存/通信调优机制：TASK_QUEUE_ENABLE=0 同步直发导致 AI Core 出现显著 Host-bound 空泡；默认 1 将主要 ACLNN 调用移入二级线程；设为 2 开启二级负载均衡与唤醒优化进一步掩盖 Host 耗时，但超前排队会抬高在途显存峰值且在 main 分支与图捕获互斥。下半部展示 expandable_segments:True 跨流显存提前复用（与 max_split_size_mb 及 sleep_mode 互斥）和 HCCL_OP_EXPANSION_MODE（AICPU / AIV 直驱 RoCE / 950DT CCU_SCHED）选路。
+  昇腾算子下发三档时序泳道与跨流显存/通信调优机制：TASK_QUEUE_ENABLE=0 关闭 Host 异步下发队列、改由主线程直发（设备核执行仍异步，同步排障定位另配 ASCEND_LAUNCH_BLOCKING=1），易导致 AI Core 出现显著 Host-bound 空泡；默认 1 将主要 ACLNN 调用移入二级线程；设为 2 开启二级负载均衡与唤醒优化进一步掩盖 Host 耗时，但超前排队会抬高在途显存峰值，且在固定 main 分支下开启 NPU 图捕获会直接报错。下半部展示 expandable_segments:True 跨流显存提前复用（与 max_split_size_mb 及 sleep_mode 互斥）和 HCCL_OP_EXPANSION_MODE（AICPU / AIV 直驱 RoCE / 950DT CCU_SCHED）选路。
 size: [900, 560]
 pins:
   - source: 'vllm-ascend@c09d3e20:Dockerfile#L55-L58'

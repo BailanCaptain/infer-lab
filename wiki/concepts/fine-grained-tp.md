@@ -3,7 +3,8 @@ id: fine-grained-tp
 title: 细粒度 TP：为特定模块选择分片组
 type: feature
 legacyAnchors:
-  放到-glm-双机这套部署开了细粒度-tp-吗: 复杂异构实战对照：GLM 双机为何未启用细粒度 TP
+  放到-glm-双机这套部署开了细粒度-tp-吗: 大-tp-小-dp-反例在-tp8-与-dp2-双机上改切细粒度-tp-会怎样
+  复杂异构实战对照glm-双机为何未启用细粒度-tp: 大-tp-小-dp-反例在-tp8-与-dp2-双机上改切细粒度-tp-会怎样
 summary: >-
   细粒度 TP 让词表嵌入、lm_head、attention 输出投影与稠密 MLP 沿 DP
   方向把服务不同请求的卡编成一组、合存一份权重，代价是进出该层需收集输入与送回结果；以 Qwen3-30B-A3B D 节点与 GLM 双机反例对照收益与边界。
@@ -308,11 +309,9 @@ vllm-ascend 特性文档另给出过一组更大规模的参考实测：模型�
 
 文档没有报告四项配置同时启用后的总 TPOT；不能把表中的单项时延变化直接相加，作为组合配置的实测收益。组合后的整体时延仍需另行测量。
 
-## 复杂异构实战对照：GLM 双机为何未启用细粒度 TP
+## 大 TP 小 DP 反例：在 TP8 与 DP2 双机上改切细粒度 TP 会怎样
 
-前面看到，细粒度 TP 在 `DP=8, TP=1` 的解码节点上能把重复存了 8 遍的词表切回 1/8。反过来，如果一套部署**已经在机内开了很大的普通 TP（如 `TP8`）、而跨机只有很小的 `DP2`**，盲目套用细粒度 TP 会发生什么？本站的 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`2×A2×8`、`TP8/DP2/EP16`、`W8A8`）正好提供了一个直观的反面标尺。
-
-这套双机部署未传任何 `finegrained_tp_config`（见 [Ascend 配置系统](ascend-config-system.md#落到-glm-双机一个-json-键都没传)），五个分组字段保持默认 `0`，所有非专家模块直接跟随原本的机内 `TP8` 切分：词表嵌入切成 8 段后做机内 All-Reduce（见 [embedding 页](embedding.md#放到-glm-双机8-张卡怎么查同一张表)），`lm_head` 切成 8 段后做机内 All-Gather（见 [lm_head 页](lm-head.md#all-gather-把-8-段拼回-154880-个分数)）。至于稀疏 MLA 内部把首个低秩投影与索引器投影保留每卡复制、其余投影按 `TP8` 切分的做法（见 [TP 页稀疏 MLA 一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)），属于模型自身在 `TP` 组内拿少量复制换少一次通信的设计，与跨 DP 组队的细粒度 TP 方向相反。
+细粒度 TP 在 `DP=8, TP=1` 的解码节点上能把重复存了 8 遍的词表切回 1/8；反过来，若一套部署**已经在机内开了很大的普通 TP（如 `TP8`）、而跨机只有很小的 `DP2`**，再沿 DP 组队反而会得不偿失。以 [GLM-5.3-Flash 双机算例](glm-5-3-flash-two-node.md#部署前提)（固定快照 `db701c1f`，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`）为例：官方命令未传 `finegrained_tp_config`（见 [Ascend 配置系统](ascend-config-system.md#落到-glm-双机一个-json-键都没传)），五个分组字段保持默认 `0`，所有非专家模块直接跟随机内 `TP8` 切分——词表嵌入切 8 段后做机内 All-Reduce（见 [embedding 页](embedding.md#放到-glm-双机8-张卡怎么查同一张表)），`lm_head` 切 8 段后做机内 All-Gather（见 [lm_head 页](lm-head.md#all-gather-把-8-段拼回-154880-个分数)），稀疏 MLA 把首个低秩投影与索引器保留每卡复制、其余投影按 `TP8` 切分（见 [TP 页稀疏 MLA 一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)），方向与跨 DP 组队相反。
 
 **假如在 `TP8 + DP2` 上强行开启细粒度 TP**，按钉住源码规则静态推算，会立刻撞上“分片变粗 + 通信跨机”的双重倒退：
 

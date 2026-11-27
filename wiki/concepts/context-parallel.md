@@ -3,7 +3,8 @@ id: context-parallel
 title: 上下文并行（CP）：怎样分位置，又怎样算完整 attention
 type: feature
 legacyAnchors:
-  放到-glm-双机这套部署开了-cp-吗: 异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛
+  放到-glm-双机这套部署开了-cp-吗: 稀疏-mla-与-kda-混合层dcp-容量推演与三道门槛
+  异构混合模型边界glm-稀疏-mla-的-dcp-收益与三道门槛: 稀疏-mla-与-kda-混合层dcp-容量推演与三道门槛
 summary: >-
   长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整
   attention，再对照 v0.30.0 的 Ascend PCP/DCP 路径、Qwen3 头数约束与 GLM 支持边界。
@@ -365,7 +366,7 @@ file: context-parallel-fig-interleave-slots
 
 **为什么不能再额外乘一次 PCP？因为 `v0.30.0` 的 `dcp_world_size` 可能已经包含 PCP 维度。** 例如稀疏复制索引路径允许 `TP = 2`、`PCP = 2`、`DCP = 4`（总卡数 $2 \times 2 = 4$，DCP 复用全部 4 张设备）。假设每个本地物理块装 `16` 个位置（示意），虚拟块就是 $16 \times 4 = 64$ 个位置；若照抄早期 `v0.23.0` / `db701c1f`（当时 DCP 只在 TP 内切分、不含 PCP）的 `本地块大小 × PCP × DCP` 公式，再乘一次 `PCP = 2` 算出 `128` 就重复计数了。究竟哪些 rank 属于同一个缓存组，必须读对应版本的建组与块表代码。
 
-轮换粒度（`cp_kv_cache_interleave_size`）必须能整除本地块大小，也可以直接设为一整块。需要整块传输 KV 的场景（如 [PD 分离](pd-disaggregation.md)和 KV 池）须设为整块大小；早期稀疏 CP 路径也强制粒度等于块大小，而 `v0.30.0` 稀疏复制索引路径放宽为整除块大小即可。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与上表的教学布局分别说明。
+轮换粒度（`cp_kv_cache_interleave_size`）必须能整除本地块大小，也可以直接设为一整块。需要整块传输 KV 的场景（如 [PD 分离](pd-disaggregation.md)和 KV 池）须设为整块大小；早期稀疏 CP 路径也强制粒度等于块大小，而 `v0.30.0` 稀疏复制索引路径放宽为整除块大小即可。混合模型的支持边界见下文[稀疏 MLA 与 KDA 混合层](#稀疏-mla-与-kda-混合层dcp-容量推演与三道门槛)。
 
 ## 复用 TP 的卡，为什么还要建通信组？
 
@@ -373,13 +374,11 @@ file: context-parallel-fig-interleave-slots
 
 还有一点常被想当然：**不能把一张卡上的所有缓存统一除以 DCP 的卡数。** 按位置切的只是那部分随长度增长的历史；稀疏路径的索引状态、别的 attention 形式的状态（比如 [KDA](linear-attention.md) 那种固定大小的递推状态）以及临时缓冲，各有各的复制或分片方式，有的反而是每张卡各留一整份。
 
-## 异构混合模型边界：GLM 稀疏 MLA 的 DCP 收益与三道门槛
+## 稀疏 MLA 与 KDA 混合层：DCP 容量推演与三道门槛
 
-部署是两台 Atlas 800 A2、每台 8 卡，TP8、DP2、EP16，W8A8 量化，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
+在 **GLM-5.3-Flash 双机算例**（固定快照 `db701c1f`，两台 Atlas 800 A2、每台 8 卡，TP8 / DP2 / EP16、W8A8，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)）中，官方启动命令保持默认的 `PCP = 1、DCP = 1`（单次 attention 只在机内 TP8 组内执行，无双机 CP 实测数据）。
 
-**没有开：PCP = 1、DCP = 1。** 官方启动命令没有传这两个参数，上游默认值都是 1；起卡时建的并行组也是按 pcp=1、dcp=1 初始化的，参与一次 attention 的就是 TP 的那 8 张卡（MoE 另按 EP16 跨两机派发）。所以这套部署上没有 CP 的实测数据。
-
-不过 DCP 想消掉的那种重复，GLM 身上确实存在：11 层稀疏 MLA 加上 MTP 层，KV 只有一个头，TP8 的 8 张卡各存一份**完全相同**的历史（见 [MLA](mla.md)、[TP 页的这一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。每个 token 每张卡要存 13,056 B，也就是 12 层各 1024 B 的主 KV 加 64 B 的索引器；一条满长 133,120 token 的请求就是 1.619 GiB，每张卡都一样（推导见 [KV cache](kv-cache.md)）。
+不过 DCP 想消掉的那种重复，稀疏 MLA 身上确实存在：11 层稀疏 MLA 加上 MTP 层，KV 只有一个头，TP8 的 8 张卡各存一份**完全相同**的历史（见 [MLA](mla.md)、[TP 页的这一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。每个 token 每张卡要存 13,056 B，也就是 12 层各 1024 B 的主 KV 加 64 B 的索引器；一条满长 133,120 token 的请求就是 1.619 GiB，每张卡都一样（推导见 [KV cache](kv-cache.md)）。
 
 **DCP 能省到什么量级？** 平台层认得这类稀疏模型，也定好了布局：主 KV 按位置分片，负责挑历史位置的那套索引每张卡各留一整份（它要看完整的序列，才能挑出和不开 DCP 时同样的位置），并且要求 DCP 等于 TP。但这套布局是给另一族稀疏 attention 后端写的，GLM 用的 kpool 索引器在固定版本里没有这份代码（见下面第二道门）。所以下表只是「照那套布局把 DCP 开到 8 能省多少」的量级示意（只算随长度增长的主 KV 和索引，不含每条请求固定大小的状态和临时缓冲，本模型没有这份实现也没有实测）：
 
@@ -441,7 +440,7 @@ DCP 不额外增加总卡数，但合法取值随版本与注意力架构区分�
 
 ### 版本差异
 
-按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`，与发布前候选快照 `7d825229` 同构）与 `main`（`8d6180e2`）；例外 B 固定 GLM 镜像 `db701c1f` 的旧路径一并对照（`db701c1f` 中 KDA prefill 遇 PCP 抛 `NotImplementedError` [C8]，KPool 专用后端固定选普通实现、未接入 SFA 的 CP 分派且独立 `enable_dsa_cp` 被拒，稀疏 DCP 判定见 [C9]）。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`，与发布前候选快照 `7d825229` 同构）与 `main`（`8d6180e2`）；历史固定 GLM 镜像 `db701c1f` 的旧路径一并对照（`db701c1f` 中 KDA prefill 遇 PCP 抛 `NotImplementedError` [C8]，KPool 专用后端固定选普通实现、未接入 SFA 的 CP 分派且独立 `enable_dsa_cp` 被拒，稀疏 DCP 判定见 [C9]）。
 
 | 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|

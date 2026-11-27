@@ -3,7 +3,8 @@ id: tensor-parallel
 title: Tensor Parallel：一台机器的 8 张卡怎样合算一层
 type: feature
 legacyAnchors:
-  放到-glm-双机一个-token-走过一层: 异构旗舰对照：GLM 双机 TP8 分工
+  放到-glm-双机一个-token-走过一层: 双机-16-卡混合层对照tp8-在-kda稀疏-mla-与-moe-中怎样分工
+  异构旗舰对照glm-双机-tp8-分工: 双机-16-卡混合层对照tp8-在-kda稀疏-mla-与-moe-中怎样分工
 summary: 把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。先用标准 Qwen3-8B TP=2 与 Qwen3-30B-A3B KV 复制拐点讲清通用规律，再对照 GLM 双机 TP8 通信与显存账。
 aliases:
   - 张量并行
@@ -310,9 +311,9 @@ file: tp-fig-910b3-negative-scaling
 
 阅读跨机实测时还需严守两条边界：第一，**单卡与八卡的 `TTFT` 口径不同，不可当成单变量 A/B**——单卡 `TP=1` 跑 `/v1/chat/completions`（`24 ~ 40` prompt tokens，取中位数，`c=1` `73.24 ms`），八卡 `TP=2/4/8` 跑 `/v1/completions`（平均 `262` prompt tokens，取均值，`c=1` `125.84 / 124.14 / 139.07 ms`，且八卡内部也不单调）；跨机对比应锚定稳态 128 步 `TPOT` 与 `c=16` 吞吐，八卡内部 `TP=2 → 4 → 8` 则严格同脚本同输入。第二，**TP 正收益边界取决于“节省的计算与权重访问时间 > 新增未重叠通信、同步与布局税”**：本次在 `c ≤ 16` 均未测出正收益交叉点，但“单卡装得下”本身不能推出所有超高并发或大上下文（必须靠 `2.87M` token 池避免抢占重算）负载也必然劣化。
 
-## 异构旗舰对照：GLM 双机 TP8 分工
+## 双机 16 卡混合层对照：TP8 在 KDA、稀疏 MLA 与 MoE 中怎样分工
 
-以上是标准同构 GQA 模型的干净主干。下面转入例外 B 历史绑定算例——**GLM-5.3-Flash 官方双机**（钉住 `vllm@0fc695fc + vllm-ascend@db701c1f`，完整前提见[官方部署](glm-5-3-flash-two-node.md#部署前提)）：**2 台 Atlas 800 A2，每台 8 卡，TP8 / DP2 / EP16，W8A8**。每台机器的 8 张卡合算同一批输入，两台各有一个 DP 执行组，全部 16 张卡共同持有路由专家。W8A8 用 8 位整数表示可量化层的权重和激活，中间结果按需要恢复精度。
+标准同构 GQA 模型每层结构相同；到了混合架构的 **GLM-5.3-Flash 双机算例**（固定快照 `vllm@0fc695fc + vllm-ascend@db701c1f`，`2×A2×8`、`TP8 / DP2 / EP16`、`W8A8` 8 位整数权重与激活量化，完整分组与前提见[双机部署页](glm-5-3-flash-two-node.md#部署前提)），单台机器 8 张卡组成一个 TP8 组，各子层的切分规则就出现了分化。
 
 前面两张卡的小例子，在这里换成 8 张卡和真实宽度。**TP8 把每层稠密 MLP 的大矩阵分到 8 张卡，每卡保存其中的八分之一，并承担对应的矩阵乘工作量，权重主体为 18 MiB。** 这里的比例描述分片容量与逻辑工作量，实际 HBM 读取字节仍受算子实现和缓存复用影响。TP 管的是 attention 头投影、稠密 MLP、共享专家和词表；约 **290.25 GiB 的路由专家权重则交给 EP 分配**。分工与完整容量账见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)，本页后面保留算式。
 
@@ -616,7 +617,7 @@ $$M_{\text{routed}} = 288 \times (42 + 1) \times 3 \times 4096 \times 2048 \time
 
 ### 版本差异
 
-按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机绑定算例采用例外 B 专用镜像钉点 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，与四版社区分支分别核对。**
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文双机绑定算例采用历史专用镜像钉点 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，与四版社区分支分别核对。**
 
 表中的 DSV4 是 DeepSeek-V4 专用输出投影路径，SP 指 sequence parallel，DSA-CP 是稀疏 attention 的上下文分片路径，matmul-allreduce 是矩阵乘与归约融合，FlashComm1 / FlashComm2 是通信优化路径：
 
@@ -707,7 +708,7 @@ KDA 的有效状态、补页及投机状态副本采用不同统计口径；MLA 
 **待核与实测边界（从正文集中到此）。**
 
 - `Qwen3-8B`（`v0.30.0` / 910B3）线上 `FULL` 图 replay 期间的设备级 kernel 时间线（用于闭合 `56.77 → 77.09 ms` 整池连续化强推断），以及 `c > 16` 高并发下 TP 的正收益交叉点，仍待后续实测。
-- GLM 双机固定镜像（例外 B）缺本机 HCCL 算法选择、链路计数与耗时测量，用于把逻辑载荷换算为机内链路实际流量、耗时及整个集群的网络总量。
+- GLM 双机历史固定镜像（`db701c1f`）缺本机 HCCL 算法选择、链路计数与耗时测量，用于把逻辑载荷换算为机内链路实际流量、耗时及整个集群的网络总量。
 - GLM 双机缺这两台机器的 HCCS / RoCE 端口速率、单向/双向口径、拓扑聚合带宽及同口径 All-Reduce 测量，因此带宽倍数与 TP16 减速百分比待核。
 - GLM 双机缺三档 TP 同负载的每 token 延迟、吞吐、激活峰值与 KV 分配日志。TP 改变后 KDA 页对齐可能变化，缓存容量与块数应按新配置重算；每卡工作量缩小多少与实际快多少要用同批次 NPU 实测区分。
 - DP1 在场景 M 混合步里进入每个非 MoE 子层的实际宽度仍需 runner trace（逐步记录输入尺寸的运行轨迹）核定；本文精确总账只针对 DP0。

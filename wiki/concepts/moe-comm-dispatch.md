@@ -79,7 +79,7 @@ contradicts: []
 updated: '2026-11-24'
 ---
 
-**MoE 通信调度状态机是推理引擎在每次进入 MoE 层前自动“挑路”的决策组件**：它会按当前昇腾芯片型号、专家并行卡数和这一步要算多少个 token，实时在四类卡间通信与融合算子之间切换，让小批低延迟和大批高吞吐都能走最快的通路。配套的**运行期权重动态重切分（`WeightSwitchMixin`）**则让部分线性层平时只存 $1/N$ 权重省显存，算到该层时再异步拼齐并原地切换视图。
+**MoE 通信调度状态机（`select_moe_comm_method`）是推理引擎进入 MoE 层前按硬件、配置和本步 token 数选择分发路径的决策组件。** 它根据昇腾芯片族、专家并行规模、LoRA/融合开关与本步批长，在 `ALLGATHER`、`MC2`、`FUSED_MC2 / MegaMoe` 和 `ALLTOALL` 四条路径之间切换。配套的**运行期权重动态重切分（`WeightSwitchMixin`）**则让部分线性层平时只常驻 $1/N$ 分片省显存，算到该层时再异步收齐并原地切换视图。
 
 理解了[专家并行（EP）](expert-parallel.md)“选专家 → Dispatch 发往持有卡 → 本地算 FFN → Combine 传回源卡”之后，很快就会遇到一个现实困惑：**同一台昇腾机器跑同一个 MoE 模型（如 `Qwen3-30B-A3B`），为什么 Decode 小批走 `MC2` 或融合算子极快，到了 Prefill 大批却自动切走？不同卡型（A2、A3、310P、950DT）为什么走的路完全不一样？** 答案全部收拢在 `v0.30.0` 新抽象出的硬件档案（`HardwareProfile`）与选路函数（`select_moe_comm_method`）里。
 
@@ -115,21 +115,24 @@ file: moe-dispatch-fig-state-machine
 
 ## 一笔直觉账：为什么小批选 `MC2`，大批切 `AllToAll`？
 
-用一组**示意数**算清小批 Decode 和大批 Prefill 的根本差别：假设一台 16 逻辑设备的 Atlas A3 集群运行 `EP = 16`（`Qwen3-30B-A3B` 口径：每 token 激活 `top_k = 8` 个专家，隐藏维 `H = 2048`、BF16 占 `4 KiB/token`；常规 `MC2` 每卡缓冲上限 `L_rank = 512` token）。
+用一组**示意数**算清小批 Decode 和大批 Prefill 的差别：假设一台 16 逻辑设备的 Atlas A3 集群运行 `EP = 16`（`Qwen3-30B-A3B` 口径：每 token 激活 `top_k = 8` 个专家，隐藏维 `H = 2048`、BF16 占 `4 KiB/token`；常规 `MC2` 每卡缓冲上限 `L_rank = 512` token）。比较链路流量前，先把**全批拼齐缓冲**、**单阶段跨卡收发量**与**一进一出整层交换**三个口径对齐（暂略 router 分数与同目的卡副本合并）：
 
-$$\text{单卡 AllGather 接收总量} = \text{EP} \times B_{\text{rank}} \times H \times 2\text{ B}, \qquad \text{单卡 AllToAll 发出总量} \le \text{top\_k} \times B_{\text{rank}} \times H \times 2\text{ B}$$
+- **`AllGather` 路径**：拼齐后的全批缓冲为 $\text{EP} \times B_{\text{rank}} \times 4\text{ KiB}$（含本卡自有的 $1$ 份），均衡 Ring 下入口 `All-Gather` 的**单卡跨卡远端接收量与发送量**均为 $(\text{EP} - 1) \times B_{\text{rank}} \times 4\text{ KiB}$；算上出口同规模 `Reduce-Scatter`，主隐藏态**一进一出单卡发送总量**为 $2(\text{EP} - 1) \times B_{\text{rank}} \times 4\text{ KiB}$。
+- **`AllToAll` 路径**：入口 `Dispatch` 的**单卡跨卡发送上界**（假设 `top_k` 全落远端且未合并同卡重复目的地）为 $\text{top\_k} \times B_{\text{rank}} \times 4\text{ KiB}$（均匀命中扣掉本卡 $1/\text{EP}$ 份时约 $\text{top\_k}\frac{\text{EP}-1}{\text{EP}} B_{\text{rank}} \times 4\text{ KiB}$）；算上出口 `Combine` 送回同等 BF16 结果，**一进一出单卡发送上界**为 $2 \times \text{top\_k} \times B_{\text{rank}} \times 4\text{ KiB}$。
 
-| 场景（`EP = 16`，`top_k = 8`，`4 KiB/token`，示意） | 每卡输入 $B_{\text{rank}}$ | `AllGather` 每卡汇聚整批 | `AllToAll` 每卡只发命中专家 | 状态机选路与直觉原因 |
+$$\text{Send}_{\text{AG+RS, card}} = 2(\text{EP} - 1) B_{\text{rank}} H \cdot 2\text{ B}, \qquad \text{Send}_{\text{A2A round-trip, card}} \le 2\,\text{top\_k}\cdot B_{\text{rank}} H \cdot 2\text{ B}$$
+
+| 场景（`EP = 16`，`top_k = 8`，`4 KiB/token`，示意） | 每卡输入 $B_{\text{rank}}$ | `AllGather` 路线单卡流量（同口径发送量） | `AllToAll` 路线单卡发送上界（同口径发送量） | 状态机选路与原因 |
 | --- | --- | --- | --- | --- |
-| **小批 Decode** | **`8` token/卡**<br>（全组 128 token） | `128 × 4 KiB = 512 KiB` | 至多 `8 × 8 × 4 KiB = 256 KiB` | 数据量极小、瓶颈在多次核间同步与小包启动时延；`8 ≤ 512` 装得进片上/通信缓冲，走 **`MC2`**（或 **`FUSED_MC2`**）把通信与算子紧耦合最快 |
-| **大批 Prefill（未开 MegaMoe）** | **`2,048` token/卡**<br>（全组 32,768 token） | `32,768 × 4 KiB = 128 MiB`<br>（广播全组，大量无用 token） | 至多 `2,048 × 8 × 4 KiB = 64 MiB`<br>（只发去命中的专家卡） | `2,048 > 512` 超出常规 `MC2` 每卡 `HCCL_BUFFSIZE` 上限；大批下带宽占主导，自动切 **`ALLTOALL`** 免去无用广播、流量立省一半以上 |
-| **大批 Prefill（开启 `CANN MegaMoe`）** | **`2,048` token/卡** | — | — | `MegaMoe` 改用独立对称内存 `symm buffer`，每卡上限拉高到 `16,384` token（`2,048 ≤ 16,384`），连大 Prefill 也能留在 **`FUSED_MC2`** 融合流水线内 |
+| **小批 Decode** | **`8` token/卡**<br>（全组 128 token） | 单阶段发 `480 KiB`（拼齐缓冲 `512 KiB`）；AG+RS 往返发 **`960 KiB`** | 单阶段至多发 `256 KiB`（均匀扣本卡 `240 KiB`）；往返至多发 **`512 KiB`** | 载荷很小、瓶颈在核间同步与小包启动时延；`8 ≤ 512` 装得进通信缓冲，走 **`MC2`**（或 **`FUSED_MC2`**）重叠通算 |
+| **大批 Prefill（未开 MegaMoe）** | **`2,048` token/卡**<br>（全组 32,768 token） | 单阶段发 `120 MiB`（拼齐缓冲 `128 MiB`）；AG+RS 往返发 **`240 MiB`** | 单阶段至多发 `64 MiB`（均匀扣本卡 `60 MiB`）；往返至多发 **`128 MiB`** | `2,048 > 512` 超出常规 `MC2` 每卡上限；大批下带宽占主导，同口径下切 **`ALLTOALL`** 比全组收齐归约省去近一半跨卡流量，且无需暂存 `128 MiB` 全批缓冲 |
+| **大批 Prefill（开启 `CANN MegaMoe`）** | **`2,048` token/卡** | — | — | `MegaMoe` 改用独立对称内存 `symm buffer`，每卡上限拉高到 `16,384` token（`2,048 ≤ 16,384`），大 Prefill 仍可留在 **`FUSED_MC2`** 融合流水线内 |
 
 反过来，如果集群极小（例如昇腾 950 上 `world_size <= top_k`，比如 4 张卡却要选 8 个专家），几乎每个 token 的路由目标都覆盖全部卡，`AllToAll` 反而失去了“少发”的优势，因此 950 策略在超限后会回退到 **`ALLGATHER`**。
 
 ## 动态 `mc2_tokens_capacity` 怎样算，为什么会多跑一次 profile dummy run？
 
-早期历史文档（如例外 B 的 [GLM-5.3-Flash 双机算例](one-request.md)）中常见“MC2 固定门槛 128”的印象；而在 `v0.30.0` 中，门槛已升级为在引擎初始化阶段由 `set_mc2_tokens_capacity` 按并行配置与算子上限动态计算：
+早期历史文档（如历史镜像中的 [GLM-5.3-Flash 双机算例](one-request.md)）中常见“MC2 固定门槛 128”的印象；而在 `v0.30.0` 中，门槛已升级为在引擎初始化阶段由 `set_mc2_tokens_capacity` 按并行配置与算子上限动态计算：
 
 $$T_{\text{cap}} = \min\!\left(\left\lceil \frac{T_{\text{max}}}{\text{TP}} \right\rceil,\; L_{\text{rank}}\right) \times \text{TP}$$
 

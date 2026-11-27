@@ -3,7 +3,8 @@ id: sequence-parallel
 title: 序列并行（SP）：让局部激活按 token 分片
 type: feature
 legacyAnchors:
-  放到-glm-双机这套部署开了-sp-吗: 异构混合模型边界：GLM 双机三路开关与四路残差行切
+  放到-glm-双机这套部署开了-sp-吗: 双机-16-卡混合部署三路-sp-开关4-至-8-行补齐与四路残差行切
+  异构混合模型边界glm-双机三路开关与四路残差行切: 双机-16-卡混合部署三路-sp-开关4-至-8-行补齐与四路残差行切
 summary: >-
   Megatron SP 配合 TP，让归一化、残差等区域按 token 分工；沿同一组数看清部分和怎样归约、每卡怎样计算、何时收集并交给下一次投影，并区分
   Ulysses、CP 与 Ascend FlashComm1。
@@ -126,7 +127,7 @@ file: sequence-parallel
 
 同名的 **DeepSpeed Ulysses** 也叫 sequence parallelism，它解决长序列 attention 的分布式计算，机制不同，见[与 CP、Ulysses 的关系](#spcpulysses-是什么关系)。本站讲 SP 时采用 Megatron 含义；在 `vllm-ascend` 中，相关实现路径是 FlashComm1。
 
-沿着[请求全景](request-overview.md)进入逐层前向，以主基线标准模型 `Qwen3-8B`（`H = 4096`，BF16 每行 `8 KiB`）为例：在 `TP = 2` 或 `TP = 4` 下，SP 发生在每层 attention、MLP 与 RMSNorm/残差之间，把 `[T, 4096]` 按行切成每卡 `[T/TP, 4096]`，不发生在客户端拆词或调度阶段。
+沿着[请求全景](request-overview.md)进入逐层前向，借 `Qwen3-8B` 的隐藏宽度 `H = 4096`（BF16 每行 `8 KiB`）做**形状示意**（当前 `v0.30.0` 昇腾稠密 SP 执行路径仅按已核门槛对 `Qwen3.5` 稠密族开启，见后文接线规则）：在 `TP = 2` 或 `TP = 4` 下，SP 发生在每层 attention、MLP 与 RMSNorm/残差之间，把 `[T, 4096]` 按行切成每卡 `[T/TP, 4096]`，不发生在客户端拆词或调度阶段。
 
 ## 为什么需要它：TP 之后每张卡都在重复同一份活？
 
@@ -246,7 +247,7 @@ $$\text{Send}_{\text{RS}} + \text{Send}_{\text{AG}} = \frac{N - 1}{N} M + \frac{
 
 All-Gather 传的是归一化后的结果而不是原始的和，但形状一样、数据类型一样，所以字节数也一样。
 
-**省下的是分片区域的激活和重复计算。** 以主基线标准模型 `Qwen3-8B`（`H = 4096`，BF16 每元素 2 字节）做形状算例（注：当前 `v0.30.0` 昇腾稠密 SP 执行路径仅对 `Qwen3.5` 族打开，见下节接线规则）：单行隐藏向量为 `4096 × 2 B = 8 KiB`。面对一段 $T = 2048$ 个 token 的批输入，完整激活 `[2048, 4096]` 占 **`16 MiB`**；按 `TP = 4` + SP 切成每卡 `[512, 4096]` 后，每卡这段归一化与残差激活降为 **`4 MiB`**（同比例省去 3/4 重复计算；小批 4 行同理从 32 KiB 降到两卡各 16 KiB）。这是单个激活张量的账，实际峰值还取决于同时活跃的张量和缓冲。
+**省下的是分片区域的激活和重复计算。** 继续借 `Qwen3-8B`（`H = 4096`，BF16 每元素 2 字节）做**张量形状示意**（当前 `v0.30.0` 昇腾稠密 SP 执行路径以已核的 `Qwen3.5` 稠密族与 `TP > 1, PP == 1` 为门槛，见下节接线规则）：单行隐藏向量为 `4096 × 2 B = 8 KiB`。面对一段 $T = 2048$ 个 token 的批输入，完整激活 `[2048, 4096]` 占 **`16 MiB`**；按 `TP = 4` + SP 切成每卡 `[512, 4096]` 后，每卡这段归一化与残差激活降为 **`4 MiB`**（同比例省去 3/4 重复计算；小批 4 行同理从 32 KiB 降到两卡各 16 KiB）。这是单个激活张量的账，实际峰值还取决于同时活跃的张量和缓冲。
 
 标准 Megatron SP 保留 TP 的权重分片和内部通道分工；[KV cache](kv-cache.md) 保存历史 K/V 或状态，不会因归一化行分片而自动缩小，整个模型显存也不会统一除以卡数。训练要为反向传播保存激活，论文主要研究这部分收益；推理只做前向，收益需按实际请求与实现测量（Ascend 共享专家等变体还会改变权重复制方式）。
 
@@ -277,8 +278,8 @@ file: sequence-parallel-fig-rs-ag-pcp
 
 在 `v0.30.0` 主基线与 `main` 中，SP 接线收口为四条清晰规则（完整四版对照见文末[版本差异](#版本差异)）：
 
-1. **统一入口 `enable_sp()`**：`v0.30.0` 已移除旧版 `SequenceRowParallelOp` 和前向上下文中的稠密 1000 token 门槛，将 `enable_sp()` 统一收敛为「MoE 序列并行（`use_sequence_parallel_moe`）或 Qwen3.5 稠密族 SP（`enable_dense_sp`）」，并强校验 `tp_size > 1` 且 MoE 须开 EP。
-2. **`SP + PCP > 1` 批长自动对齐**：若 `max_num_batched_tokens` 不能整除 `tp_size × pcp_size`，配置阶段会自动向上取整并打印告警（属于容量对齐，不是额外真实 token）。
+1. **统一入口 `enable_sp()` 与 `Qwen3.5` 稠密门槛**：`v0.30.0` 已移除旧版 `SequenceRowParallelOp` 和前向上下文中的稠密 1000 token 门槛，将 `enable_sp()` 统一收敛为 `use_sequence_parallel_moe or enable_dense_sp`。其中 MoE 序列并行要求 `TP > 1`、`DP > 1` 且开启 EP；当前昇腾稠密 SP 执行路径（`enable_dense_sp`）要求显式开启 `FlashComm1`、模型属于已核对的 `Qwen3.5` 稠密分支且满足 `tp_size > 1`、`pp_size == 1`（`PP > 1` 时告警并自动关闭）。
+2. **`SP + PCP > 1` 批长倍数约束**：每步 token 上限（`max_num_batched_tokens`）**须为 `tp_size × pcp_size` 的倍数**；若不满足，配置阶段会打印告警并自动向上补齐到该倍数（属于容量对齐，不是额外真实 token）。
 3. **`SP + PP > 1` 的 `+rms_norm` 注入**：`v0.30.0` 若通过上游 `PassConfig.enable_sp` 同开 `SP + PP > 1` 且未禁用 `-rms_norm`，上游会自动向 `custom_ops` 追加 `+rms_norm` 以避开追踪报错（上游 `main` 已移除 `PassConfig.enable_sp`）。
 4. **`main` 取消 `DSA-CP` 联动与量化归约冲突保护**：`main` 不再由 `enable_dsa_cp` 自动打开 FlashComm1；同时启用 `FlashComm1` 与 `use_sequence_parallel_moe` 时自动关闭量化归约以免冲突。
 
@@ -299,11 +300,9 @@ file: sequence-parallel-fig-rs-ag-pcp
 - **走 AllGather 时**（如 token 数超 MC2 容量）：在 DP2、FlashComm1 生效且门控多流关闭的分支，MoE 入口在 EP 组收集 token 行与路由分数；走 W8A8 时先动态量化为 INT8 连同逐 token 尺度一起收集（无 DP metadata 时走 TP 组；开多流另有收集顺序）。INT8 仅减小此次激活载荷，推不出整层通信量减半。
 - **走 MC2 时**：普通路径由入口按 TP 切分完整 token 行再派发；FlashComm1 生效后调用者将 `replace_allreduce` 置真，各卡已持有各自的行，跳过补齐切分与 EP All-Gather。
 
-## 异构混合模型边界：GLM 双机三路开关与四路残差行切
+## 双机 16 卡混合部署：三路 SP 开关、4 至 8 行补齐与四路残差行切
 
-部署是两台 Atlas 800 A2、每台 8 卡，TP8、DP2、EP16，W8A8 量化，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
-
-**在固定双机基线、没有额外配置覆盖时，三条路都关闭。** 这个结论包含共享专家 DP、图改写 SP、FlashComm2 和细粒度 TP 均关闭的前提；它不表示只要启动命令没写 FlashComm1，所有部署就必然关闭 SP。
+在 **GLM-5.3-Flash 双机算例**（固定快照 `db701c1f`，两台 Atlas 800 A2、每台 8 卡，TP8 / DP2 / EP16、W8A8，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)）的默认启动配方下，共享专家 DP、FlashComm2 与细粒度 TP 均未覆盖，因此下面三条 SP 触发路径在主线中全部关闭（这不代表其他部署只要命令未写 `enable_flashcomm1` 就必然关闭 SP）：
 
 - **FlashComm1**：官方启动命令没有传 `--additional-config`，环境变量保持默认 0，并且没有共享专家 DP 在初始化或刷新时将 SP 打开，因而这条基线的 `enable_sp()` 返回假（配置优先级和缓存见 [Ascend 配置页](ascend-config-system.md)）。
 - **图编译改写**：上游这个版本把编译配置里 `enable_sp` 的默认值定为关，默认档位中「是稠密模型才开」的条件目前恒为假；启动命令也没有另外打开。
@@ -343,7 +342,7 @@ $$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
 - **「开了 SP，每张卡的显存就除以 N。」** 标准区域的激活按行减少，KV cache、权重和其他缓冲要另算；固定 Ascend 的共享专家还会从 TP 切片变成每卡一整份权重。
 - **「W8A8 下 SP 的通信量减半。」** 只有 MoE 走 AllGather 时，入口那次收集的激活载荷从 BF16 变成 INT8（走 MC2 时入口根本不做这次收集）；路由分数和逐 token 尺度照样要传，行投影出口的 Reduce-Scatter 输出仍是 BF16。
 - **「只有残差和归一化能逐 token 计算。」** 线性投影、MLP 也逐 token 独立；本页在投影入口收集行，是为了配合各卡已有的 TP 权重分片。跨位置依赖出现在 attention 的评分和加权汇合。
-- **「GLM 双机开了 FlashComm1。」** 本页固定基线的三条路关闭；额外配置可能改变它，见[上一节](#异构混合模型边界glm-双机三路开关与四路残差行切)。
+- **「GLM 双机开了 FlashComm1。」** 本页固定基线的三条路关闭；额外配置可能改变它，见[上一节](#双机-16-卡混合部署三路-sp-开关4-至-8-行补齐与四路残差行切)。
 
 ## 对照源码
 
@@ -381,7 +380,7 @@ FlashComm1 在历史过渡快照 `baa023ad` 的消费逻辑已经有效；`v0.30
 
 **`v0.30.0` 主基线与 `main` 均实际读取 FlashComm1 开关，不能沿用早期快照 `baa023ad` 的弃用说法。** `enable_sp()` 判定 `use_sequence_parallel_moe or enable_dense_sp`，`AscendConfig` 会将 JSON 的 `enable_flashcomm1` 与环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 的 `1/true` 取或（`v0.30.0` 中 `enable_dsa_cp` 也会自动联动开启 FlashComm，`main` 取消该联动）。未开时会改写 `all2all_backend` 以禁用 SP MoE，若配置本身不支持 SP MoE 还会告警关闭 DSA-CP。`PCP > 1` 且 SP 生效时，最大批 token 数经 `warning_once` 告警后向上补齐到 `TP × PCP` 的倍数；这是一项容量对齐，不是额外的真实 token。
 
-按四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；本文 GLM 双机绑定算例另钉住例外 B 镜像 `db701c1f`（历史快照 `baa023ad` / `7d825229` 见来源清单与上方说明）。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；本文双机绑定算例另对应历史专用镜像 `db701c1f`（历史快照 `baa023ad` / `7d825229` 见来源清单与上方说明）。
 
 | 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|

@@ -3,7 +3,8 @@ id: dynamic-chunked-pp
 title: 动态分块流水线：按预计耗时切 prefill 块
 type: feature
 legacyAnchors:
-  放到-glm-双机本部署没开开了会怎样: 复杂异构实战对照：GLM 双机 PP=1 限制与 PP=2 推演
+  放到-glm-双机本部署没开开了会怎样: 混合注意力与双机推演pp1-限制与-pp2-块长区间
+  复杂异构实战对照glm-双机-pp1-限制与-pp2-推演: 混合注意力与双机推演pp1-限制与-pp2-块长区间
 summary: >-
   开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；以 Qwen3-8B 等标准稠密因果模型与
   GLM 混合注意力对比讲清等长块变慢原因、二次曲线反解、开机试跑及 main 移除边界。
@@ -223,7 +224,7 @@ file: dynamic-chunked-pp-fig-quadratic-bubble
 
 base 该设多大，官方文档的说法是：首 token 延迟对它很敏感，太大会白算，太小算子效率会掉；序列越长 base 应越大，给后面的动态调整留余地，并给出 64k 输入配 20480、128k 输入配 32768。从上面的反推能看出原因：base 太小时，后面的正根很快跌到下限以下，被 `min_chunk` 顶住，就又退回等长切了。
 
-**版本生命周期提醒：** `v0.30.0` 主基线保留了完整的动态分块流水线能力，并将带历史拟合升级为非负最小二乘（`nnls`：$T = a\sum C(C+H) + b\sum C + c$，不含旧式 $bH$ 项）。同时 `v0.30.0` 为 Model Runner V2 补齐了异步调度变体 `ProfilingChunkAsyncScheduler`。而在社区上游 **`main` 分支上，CPP 已随 PR #21310 整体移除**（包括配置项、预测器、调度器与引擎补丁钩子），升级至 `main` 的部署不能再依赖 `profiling_chunk_config`（四版核验见文末[版本差异](#版本差异)）。
+**版本生命周期提醒：** `v0.30.0` 主基线（`c09d3e20`）保留了完整的动态分块流水线能力，将带历史拟合升级为非负最小二乘（`nnls`：$T = a\sum C(C+H) + b\sum C + c$，不含旧式 $bH$ 项），并支持在 Model Runner V2 下启用异步调度变体 `ProfilingChunkAsyncScheduler`（`v0.26.0rc` 仅支持同步且与短请求优先互斥）。而在社区固定 **`main`（`8d6180e2`）上，CPP 已随 PR #21310（提交 `839f53831`）整体移除**（配置项、预测器、调度器与引擎补丁钩子一并删除），升级至 `main` 的部署不能再依赖 `profiling_chunk_config`（四版核验见文末[版本差异](#版本差异)）。
 
 ## 细节：曲线从哪来，一步里几条请求怎样分时间
 
@@ -252,7 +253,7 @@ file: dynamic-chunked-pp-fig-calibration-and-budget
 2. **再拟一条带历史的曲线。** 每一步都记成一个样本，按 T = a·x·(x + H) + b·(x + H) + c 的形状拟合：x 是这一步给某条请求的新位置数，H 是它已经算过的位置数；一步里每条请求（decode 也算）各出一项，加起来对应这一步的实测耗时。攒到 5 个点开始拟合，之后预测就改用这条曲线。
 3. **超过样本上限后标记结束。** 默认前 30 个样本可参与拟合，第 31 个样本到来时才把历史模型标为拟合结束，不再重拟。τ 和历史模型都定下来后，后续输出处理会通知 worker 关闭同步计时，省掉这笔开销；不能按“第 30 步必然关闭”安排校准。
 
-官方建议上线前先用真实数据完成校准；main 的用户指南警告，在线校准默认开着却未按流程完成，可能出现严重性能劣化。这是使用风险提示，不是所有负载都会变慢相同比例的保证。也可以一开始就关掉 need_timing，只用开机曲线、省掉校准期的同步，但结果不一定最优，仍须比较目标负载。怎样跑校准见[动态切块配置](../params/profiling-chunk-config.md#在线校准默认随功能打开满足条件后自动停止)。
+官方建议上线前先用真实数据完成校准；移除前的历史开发快照（`baa023ad`）与 `v0.30.0` 用户指南警告，在线校准默认开着却未按流程完成，可能出现严重性能劣化。这是使用风险提示，不是所有负载都会变慢相同比例的保证。也可以一开始就关掉 need_timing，只用开机曲线、省掉校准期的同步，但结果不一定最优，仍须比较目标负载。怎样跑校准见[动态切块配置](../params/profiling-chunk-config.md#在线校准默认随功能打开满足条件后自动停止)。
 
 ### 一步里有好几条请求：时间账
 
@@ -278,9 +279,9 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 
 开它有几个前提：必须开 PP 且段数大于 1，否则启动报错；必须开 chunked prefill（官方文档列为硬要求）；不能和负载均衡调度（balance scheduling）同开。和其他调度器变体一起开时会怎样，见「对照源码」的报错表。
 
-## 复杂异构实战对照：GLM 双机 PP=1 限制与 PP=2 推演
+## 混合注意力与双机推演：PP=1 限制与 PP=2 块长区间
 
-**先说结论：官方 GLM 双机方案（2 台 × 8 张 A2，TP8 / DP2 / EP16，W8A8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）的 PP 是 1，这个功能在这套部署上开不了——配置里打开它，启动时就会因为「需要 PP 大于 1」直接报错。** 下面分两部分：主线实际怎样切块，以及一个没有经过部署验证的变体推导。本页没有 GLM 的试跑曲线，也不把主线的任何性能数字当成这个功能的效果。
+**GLM-5.3-Flash 双机算例（固定快照 `db701c1f`，2 台 × 8 张 A2，TP8 / DP2 / EP16，W8A8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）固定采用 `PP = 1`，因此在主线配置下直接打开 CPP 会在启动阶段因「需要 PP 大于 1」报 `ValueError`。** 下面先对照 `PP = 1` 主线如何切块，再按机制推演改切 `PP = 2` 时的块长区间与异构层边界（无双机试跑曲线或实测收益）。
 
 ### 主线：按 token 预算等长切
 
@@ -292,7 +293,7 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 
 下面会用到的 PD 分离，是把处理提示词的 prefill 执行组和持续生成的 decode 执行组分开，并在两者之间传递已经算好的历史状态。负责前者的称 P（Prefiller）节点，负责后者的称 D（Decoder）节点。
 
-假设把 GLM 的 45 层按源码的分法分成两段（第 0–22 层和第 23–44 层，见 [PP 的 GLM 变体](pipeline-parallel.md#变体glm-的-45-层分成-2-段)），段内仍是 TP8。这套组合没有部署验证过，下面只是按机制和源码推导：
+假设把 GLM 的 45 层按源码的分法分成两段（第 0–22 层和第 23–44 层，见 [PP 的 23+22 分段推演](pipeline-parallel.md#23-与-22-层异构分段及-16-卡组数折算)），段内仍是 TP8。这套组合没有部署验证过，下面只是按机制和源码推导：
 
 1. **历史计算结构不同，不能沿用 `1 : 3 : 5 : 7`。**
    - GLM 的 `45` 层里，`34` 层是 KDA 线性注意力，历史压在固定大小的状态里，不逐位置重读全部历史（见[线性注意力的 GLM 一节](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)）。
@@ -301,12 +302,12 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 2. **沿用主线 `base = 8,192` 时，可调区间很窄。**
    - *下限凑整*：`min_chunk` 默认 `4,096`，须向上凑成逻辑块大小的整数倍。主线逻辑块是 `640` 个位置（由单卡每层 KDA 状态与 MLA 页决定，PP 只拆层不改单层形状，按推理 `PP=2, TP=8` 仍为 `640`），故 `4,096 ÷ 640 = 6.4` 向上凑成 `7` 块即 **`4,480`**。
    - *上限压窄*：`12` 条 decode 先占 `48` 个位置，原本最多给提示词 `8,144`，因此动态块只能落在 **`[4,480, 8,144]`**（最后一块剩多少算多少，可小于 `4,480`）。
-   - *放宽代价*：`main` 的用户指南建议先把 `base` 设成固定块最优预算的 `2` 到 `4` 倍（128k 输入推荐 `32,768`）；调大 `base` 能放宽区间，但同一步里混跑的 decode 也要等得更久。
+   - *放宽代价*：`v0.30.0`（及历史开发快照 `baa023ad`）的用户指南建议先把 `base` 设成固定块最优预算的 `2` 到 `4` 倍（128k 输入推荐 `32,768`）；调大 `base` 能放宽区间，但同一步里混跑的 decode 也要等得更久。
 3. **decode 不挤时间账。** 投机解码下每条 decode 每步 4 个位置，占 token 预算，但不扣时间预算。
 4. **不用再额外对齐。** 主线的混合模型缓存模式是 none，切点不必对齐到 KDA 状态的边界；这一条和 PP 无关，变体里照旧。
-5. **前提要一起满足。** chunked prefill 在主线本来就开着；负载均衡调度不能同开；v0.26 起官方只把这个功能定位在 [PD 分离](pd-disaggregation.md)的 prefill 节点上，而主线是 prefill、decode 混跑。
+5. **前提要一起满足。** chunked prefill 在主线本来就开着；负载均衡调度不能同开；`v0.26.0rc` 与 `v0.30.0` 官方指南只把这个功能定位在 [PD 分离](pd-disaggregation.md)的 prefill 节点上，而主线是 prefill、decode 混跑。
 
-变体还要付 PP 本身的账：同一 DP 请求执行组所用设备从 8 张变成 16 张，固定 16 卡预算下，DP 组数从 2 变成 1（卡数算术见 [PP 页「主线为什么没开」](pipeline-parallel.md#主线为什么没开)）。原主线的路由专家跨 DP 组按 EP16 分布，两组并不是两份完整模型；改变 PP/DP 后还须重核专家分布、内存和通信支持，不能只做卡数乘法。
+变体还要付 PP 本身的账：同一 DP 请求执行组所用设备从 8 张变成 16 张，固定 16 卡预算下，DP 组数从 2 变成 1（卡数算术见 [PP 页 16 卡组数折算](pipeline-parallel.md#23-与-22-层异构分段及-16-卡组数折算)）。原主线的路由专家跨 DP 组按 EP16 分布，两组并不是两份完整模型；改变 PP/DP 后还须重核专家分布、内存和通信支持，不能只做卡数乘法。
 
 ## 常见误解
 
@@ -342,7 +343,7 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 | 开机试跑有效点少于 8 | 告警「Profiling failed: only N/8 samples collected」，功能一直不生效，按原 token 预算分块 | `run_profiling_chunk_init` [C12] |
 | 运行中预测为空 | 校准期打 info「Online calibration stage」；本步预算未动时 `warning_once`「Profiling Failed. Degenerated to a fixed chunk size」；否则本步 `break` | RUNNING、WAITING 两侧各一处 [C2] |
 
-v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感知调度、ShortRequestFirst、DyntraLB），见版本差异。
+`v0.26.0rc`、`v0.30.0` 及移除前的历史开发快照（`baa023ad`）上还有几条与其他调度器变体的关系（批作业感知调度、ShortRequestFirst、DyntraLB），见下方版本差异。
 
 ### 开销和什么时候别开
 
@@ -352,20 +353,20 @@ v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感�
 - **凑整粒度粗时拉不平**：粒度是 `max(page_size, 64)`，向上凑 [C1]；设计文档把这一步写成向下取整，以代码为准 [!]。
 - **维护**：`schedule()` 是整段副本，文件头写着对应 vLLM v0.15.x、上游重构后要跟着改。
 - **试跑计时口径**：执行器接口支持时，`_build_rpc_kwargs` 把 `unique_reply_rank` 设为 `world_size − tp × pcp` [C7]；结合 `world_size = pp × tp × pcp` [C16]，得到最后一段第一张卡。不支持该参数时则按返回形式提取计时，列表取首项。非首段用预先分配的空中间张量试跑 [C15]，计时不是 PP 端到端耗时。worker 注释笼统写「只用首段」，不能覆盖上述接口分支。
-- **别开的场景**：PP = 1（开不了）；输入短、一步就算完；不是跑长提示词 prefill 的节点；要用负载均衡调度的部署。早期教程建议 PP 的 P 节点不开异步调度 [S26]（当时无异步调度器类）；`v0.30.0` 新增的 MRV2 异步变体与 `main` 移除说明见下节。
+- **别开的场景**：PP = 1（开不了）；输入短、一步就算完；不是跑长提示词 prefill 的节点；要用负载均衡调度的部署。历史开发快照 `baa023ad` 的教程建议 PP 的 P 节点关闭异步调度 [S26]（该快照与 `v0.23.0` / `v0.26.0rc` 仅支持同步 CPP）；`v0.30.0` 新增 MRV2 异步变体与固定 `main`（`8d6180e2`）移除说明见下节。
 
 ### 版本差异
 
-**`main`（`8d6180e2`）重大演进：动态分块流水线（CPP）已整体移除。** `vllm-ascend` 在 `v0.30.0` 之后先通过 PR #21317（`63070e779`）添加日落弃用告警，随后在 PR #21310（`839f53831`）中完整删除了 `ProfilingChunkConfig`、`scheduler_profiling_chunk.py`、`profiling_chunk_predictor.py`、`patch_profiling_chunk.py` 及配套文档；`patch_engine_core.py#L18-L51` 已不再包含 `_apply_profiling_patches` 钩子。升至 `main` 的部署不能再依赖 `profiling_chunk_config`。
+**固定 `main`（`8d6180e2`）重大演进：动态分块流水线（CPP）已整体移除。** `vllm-ascend` 在 `v0.30.0` 之后先通过 PR #21317（`63070e779`）添加日落弃用告警，随后在 PR #21310（提交 `839f53831`）中完整删除了 `ProfilingChunkConfig`、`scheduler_profiling_chunk.py`、`profiling_chunk_predictor.py`、`patch_profiling_chunk.py` 及配套文档；`patch_engine_core.py#L18-L51` 已不再包含 `_apply_profiling_patches` 钩子。升至 `main` 的部署不能再依赖 `profiling_chunk_config`。
 
-**`v0.30.0`（`c09d3e20`，主基线）保留完整的 CPP 能力并支持 MRV2 异步调度。** 平台按 `async_scheduling` 选择 `ProfilingChunkAsyncScheduler` 或 `ProfilingChunkScheduler`（`platform.py#L1386-L1397`），仅拒绝 MRV1 + async（`platform.py#L1075-L1085`）；`BatchJobAware` 选类仍在 CPP 之后，同开时会覆盖 `scheduler_cls`（`platform.py#L1398-L1405`）。耗时拟合改用非负最小二乘（`nnls`）：$T = a\sum C(C+H) + b\sum C + c$（其中 $C$ 为当前块长、$H$ 为已处理历史长度，`profiling_chunk_predictor.py#L166-L205`），常数项为 $c - \tau$，不再含旧式随历史增长的 $bH$ 项。启动仍为 1 次热身 + 64 次试跑，3 次 $H=0$ 测量发生在服务运行中的在线校准，MRV2 异步输出同样保留计时回传字段。
+**`v0.30.0`（`c09d3e20`，主基线）保留完整的 CPP 能力并支持与 MRV2 异步调度组合。** 平台按 `async_scheduling` 选择 `ProfilingChunkAsyncScheduler` 或 `ProfilingChunkScheduler`（`platform.py#L1386-L1397`），仅拒绝 MRV1 + async（`platform.py#L1075-L1085`）；`BatchJobAware` 选类仍在 CPP 之后，同开时会覆盖 `scheduler_cls`（`platform.py#L1398-L1405`）。耗时拟合改用非负最小二乘（`nnls`）：$T = a\sum C(C+H) + b\sum C + c$（其中 $C$ 为当前块长、$H$ 为已处理历史长度，`profiling_chunk_predictor.py#L166-L205`），常数项为 $c - \tau$，不再含旧式随历史增长的 $bH$ 项。启动仍为 1 次热身 + 64 次试跑，3 次 $H=0$ 测量发生在服务运行中的在线校准，MRV2 异步输出同样保留计时回传字段。注意历史开发快照 `baa023ad` 仍属于“仅同步”配置与教程阶段（来源 26、84），但已先于 `v0.30.0` 放开同步模式搭配 `ShortRequestFirst` [C22] 并在该快照用户指南中补充 `base` `2–4` 倍建议 [S31] 与校准提醒 [S32]，核对时勿把 `baa023ad` 的“仅同步”限制套到 `v0.30.0`，也勿把该快照文档误称为当前 `main`。
 
 | 核对项 | `v0.23.0`（`2c59ff10` / `db701c1f`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| 功能存在状态与配置位置 | 存在；只认顶层 `additional_config.profiling_chunk_config` | 存在；推荐写进 `scheduler_config`，顶层弃用告警兼容 [C24] | 存在；同 `v0.26.0rc`（`ascend_config.py#L1478-L1515`） | **已整体移除**（PR #21310，`patch_engine_core.py#L18-L51` 无该钩子） |
-| 异步调度与拟合公式 | 仅同步调度；$aC(C+H)+b(C+H)+c$ | 仅同步调度 | 支持 `ProfilingChunkAsyncScheduler`（限 MRV2，`platform.py#L1075-L1085`）；改为 `nnls` 拟合 $a\sum C(C+H)+b\sum C+c$（`profiling_chunk_predictor.py#L166-L205`） | 已移除 |
-| 官方定位与校准提醒 | 推荐用于 PD 分离 [S30]；仅提示用真实数据校准 | 限定 Prefiller (P) 节点 [S25] | 同 `v0.26.0rc`；强提醒默认在线校准须走完否则可能劣化 [S32]，`base` 取固定最佳块 2–4 倍 [S31] | 对应文档随功能移除 |
-| 与其他调度器关系 | 要求 `PP > 1` 且与 `enable_balance_scheduling` 互斥 | 同 `v0.23.0`；`BatchJobAware` 在后静默覆盖 [C21]，`ShortRequestFirst` 同开报 `ValueError` | 要求 `PP > 1`、与 `enable_balance_scheduling` 互斥（`ascend_config.py#L711-L735`）；`BatchJobAware` 仍在后覆盖 [C23]；与 `DyntraLB` 同开报 `ValueError`；允许搭 `ShortRequestFirst` [C22] | 已移除 |
+| 功能存在状态与配置位置 | 存在；只认顶层 `additional_config.profiling_chunk_config` | 存在；推荐写进 `scheduler_config`，顶层弃用告警兼容 [C24] | 存在；同 `v0.26.0rc`（`ascend_config.py#L1478-L1515`） | **已整体移除**（提交 `839f53831`，`patch_engine_core.py#L18-L51` 无该钩子） |
+| 异步调度与拟合公式 | 仅同步调度；$aC(C+H)+b(C+H)+c$ | 仅同步调度（历史快照 `baa023ad` 亦仅同步） | **支持 CPP 与 MRV2 异步调度组合**（`ProfilingChunkAsyncScheduler`，`platform.py#L1075-L1085`）；改为 `nnls` 拟合 $a\sum C(C+H)+b\sum C+c$ | 已移除 |
+| 官方定位与校准提醒 | 推荐用于 PD 分离 [S30]；仅提示用真实数据校准 | 限定 Prefiller (P) 节点 [S25] | 限定 P 节点；沿用历史快照 `baa023ad` 用户指南的默认在线校准须走完提醒 [S32] 与 `base` 取固定最佳块 2–4 倍建议 [S31] | 对应文档随功能移除 |
+| 与其他调度器关系 | 要求 `PP > 1` 且与 `enable_balance_scheduling` 互斥 | 同 `v0.23.0`；`BatchJobAware` 在后静默覆盖 [C21]，**`ShortRequestFirst` 与 CPP 互斥（报 `ValueError`）** | 要求 `PP > 1`、与 `enable_balance_scheduling` 互斥（`ascend_config.py#L711-L735`）；`BatchJobAware` 仍在后覆盖（同快照 `baa023ad` [C23]）；与 `DyntraLB` 互斥报 `ValueError`；允许搭 `ShortRequestFirst`（自快照 `baa023ad` [C22] 起放开） | 已移除 |
 
 ### 源码位置
 
@@ -380,7 +381,7 @@ v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感�
 | 试跑入口、每步同步计时 | `vllm_ascend/worker/worker.py` 的 `profile_prefill_latency`；`vllm_ascend/worker/model_runner_v1.py` |
 | 设计文档 / 用户指南 / 教程 | `docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md`、`docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md`、`docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md` |
 
-**适用范围。** 旧 main 教程的“只在 P 开启”针对该教程的 PD 部署，不能由此判定其他部署的支持状态。ShortRequestFirst、DyntraLB 组合检查分别位于平台中各自的启用分支；依据为来源 22、26，版本区别见上表。
+**适用范围。** 历史开发快照 `baa023ad` 教程的“只在 P 开启”针对该教程的 PD 部署，不能由此判定其他部署的支持状态。ShortRequestFirst、DyntraLB 组合检查分别位于平台中各自的启用分支；依据为来源 22、26，四版区别见上表。
 
 **计时口径。** 数十秒是固定指南的启动参考（来源 18）；一次热身和试跑循环见调度器（来源 12），与运行时在线校准的同步开销分开。目标机器的启动时间、块耗时均衡程度及收益仍需实测。
 

@@ -70,13 +70,13 @@ contradicts: []
 updated: '2026-11-24'
 ---
 
-**EPD 分离（Encoder–Prefill–Decode Disaggregation）在 [PD 分离](pd-disaggregation.md) 的基础上，再把多模态模型中提取图像/视频/音频特征的编码器拆成独立 E 节点池。** E 节点经 `ECConnector` 把编码器输出张量（encoder cache）交接给 Prefill（P 节点）或混合 PD 实例，实现视觉编码、语言预填充与语言解码三段各自独立配卡和扩缩容。
+**EPD 分离（Encoder–Prefill–Decode Disaggregation）在 [PD 分离](pd-disaggregation.md) 的基础上，再把多模态模型中提取图像、视频或音频特征的编码器拆成独立 E 节点池。E 节点算出的编码器输出先交给后续的 Prefill（P 节点）或混合 PD 实例继续语言推理，使编码、语言预填充与语言解码三段各自独立配卡和扩缩容。** 跨实例交接这份编码器输出张量（encoder cache）的组件就是 `ECConnector`（EC 连接器）。
 
 单实例[多模态推理](multimodal-inference.md)在高并发图文混跑集群里会暴露三重资源错配：
 
 - **权重与并行错配**：视觉编码器（ViT）只有几百 MB 到 `1 GiB` 权重，却被迫跟着 32B/72B 语言主干开高倍 TP/EP，占满整组高端 NPU。
 - **跨模态阻塞**：多张高分辨率图片突发涌入时，会堵住同实例里的纯文本请求，拉高 TTFT。
-- **编码缓存无法跨进程复用**：单实例内置的 `EncoderCacheManager` 不能跨进程共享，同一张热门底图发到不同实例只能反复重算。
+- **编码缓存无法跨进程复用**：单实例内置的 `EncoderCacheManager`（单实例保留与淘汰规则见[多模态编码器缓存](multimodal-encoder-cache.md#encodercachemanager-如何独立于文本-prefix-caching-复用特征)）只管本进程内存，同一张热门底图发到不同实例只能反复重算。
 
 EPD 分离正是为了把这三股不同形态的负载彻底拆开。
 
@@ -95,7 +95,7 @@ file: epd-fig-three-pool
 以 `examples/disaggregated_encoder/disagg_epd_proxy.py` 中的负载均衡代理为例，一条请求的完整流转路径清晰分叉：
 
 1. **代理多路径识别与选池**：代理收到 `/v1/chat/completions` 请求后先调用 `has_mm_input(req_data)` 检查内容项（官方示例代理识别 `image_url`、`audio_url` 与 `input_audio`；未匹配项如纯文本或仅含 `video_url` 的请求不进 E 池），并按**最小活跃 token 负载优先队列**挑选目标实例。纯文本等未命中编码分流的请求直接绕过 E 池送入 P → D，免受视觉编码排队阻塞（P 池内仍共享语言算力）。
-2. **E 池（`ec_role = "ec_producer"`）极简执行与提前退出**：对多模态请求，代理先发一轮预编码请求（`fanout_encoder_primer`）给 E 实例。进入 `model_runner_v1` 后，只要检测到 `has_ec_transfer() and not get_ec_transfer().is_consumer`，Worker 仅执行 `self._execute_mm_encoder(scheduler_output)` 算出视觉嵌入并经 `ECConnector` 写出远端共享缓存，随即调用 `make_empty_encoder_model_runner_output` **直接提前返回**，不跑语言主干也不分配海量 LLM KV Cache。正因如此，官方脚本把 E 节点显存水位压到 **`--gpu-memory-utilization 0.01`**，却能把 `--max-num-batched-tokens` 拉高到 `114688` 专心吞吐图片。
+2. **E 池（`ec_role = "ec_producer"`）极简执行与提前退出**：对多模态请求，代理先发一轮预编码请求（`fanout_encoder_primer`）给 E 实例。进入 `model_runner_v1` 后，只要检测到 `has_ec_transfer() and not get_ec_transfer().is_consumer`，Worker 仅执行 `self._execute_mm_encoder(scheduler_output)` 算出视觉嵌入并经 `ECConnector` 写出远端共享缓存，随即调用 `make_empty_encoder_model_runner_output` **在执行阶段提前返回**，不跑语言主干前向、也不分配大块 LLM KV Cache。正因如此，官方脚本把 E 节点 KV 预算水位压到 **`--gpu-memory-utilization 0.01`**，同时将 `--max-num-batched-tokens` 拉高到 `114688` 吞吐图片；至于启动阶段是否跳过加载语言主干权重，不能仅由早退和低 KV 预算推断，而要另看是否启用只加载编码器的启动模式与模型组件标记（见 [PD 分离页的 EPD 边界](pd-disaggregation.md#带图像的请求再把编码器分出去epd)）。
 3. **P 池（`ec_role = "ec_consumer"`）拉取编码缓存并完成语言 Prefill**：E 端确认写完后，代理携带同一个 `x-request-id` 将请求转发给 P（或 PD）实例。P 端调度器发现 `ECConnector` 已命中对应 `mm_hash`，直接跳过本地 ViT 计算，由 Worker 拉回视觉嵌入填入 `encoder_cache`，完成语言主干 Prefill。
 4. **D 池（`kv_role = "kv_consumer"`）承接 KV 持续解码**：在三池形态下，P 与 D 之间配合 `MooncakeLayerwiseConnector`（见 [Mooncake 连接器](mooncake-connector.md)）逐层把计算出的 KV Cache 推给 D 端（由 D 端借 Metaserver 反向触发远端 P 任务，计算与通信重叠），随后由 D 池稳态逐字吐出流式结果。
 
@@ -119,7 +119,9 @@ file: epd-fig-ec-connector
 ```
 
 1. **Scheduler 角色（不占 NPU 显存）**：负责调用 `check_caches_exist()` / `ensure_cache_available()` 按内容哈希 `mm_hash` 确认远端是否已存好目标嵌入，在 `update_state_after_alloc()` 里记录本步需要加载或保存的清单，打包成 `ECConnectorMetadata` 随 `SchedulerOutput` 下发给 Worker。
-2. **Worker 角色（NPU 数据面读写）**：P/PD 端按元数据执行 `start_load_ec()` 将嵌入拉入本地 `encoder_cache`；E 端算完 ViT 后执行保存并由 `wait_for_save()` 确保落盘或写入远端共享内存。
+2. **Worker 角色（NPU 数据面读写）**：P/PD 端按元数据执行 `start_load_ec()` 将嵌入拉入本地 `encoder_cache`；E 端算完 ViT 后执行保存并由 `wait_for_save()` 确保写入共享存储或远端内存池。
+
+这与单实例特征管理、语言层 KV 传输各司其职：进程内 `EncoderCacheManager` 管单实例内特征保留与淘汰（上游单级引用计数、昇腾 `ScoreEncoderCacheManager` 与 `main` 接线边界见[多模态编码器缓存](multimodal-encoder-cache.md#上游单级引用计数-vs-昇腾-scoreencodercachemanager-与-main-接线边界)），`ECConnector` 管跨实例交接编码输出，语言层 `KVConnector` 则管 P→D 交接各层注意力与递推历史。
 
 在 `vllm-ascend` 的演进中，`ECConnector` 依次经历了三代实现：
 
@@ -137,7 +139,7 @@ file: epd-fig-ec-connector
 
 ## 常见误解
 
-- **「E 节点只是把 ViT 拆出去，启动时还是要像正常 LLM 一样预留 `0.9` 的显存给 KV Cache？」**：错。`ec_producer` 角色在 `model_runner_v1` 中算完 `_execute_mm_encoder` 后立即提前退出，不会进入语言模型前向；官方 E 节点示例显存利用率低至 `--gpu-memory-utilization 0.01`，把几乎全部多余空间留给大批量图像编码激活。
+- **「E 节点只是把 ViT 拆出去，启动时还是要像正常 LLM 一样预留 `0.9` 的显存给 KV Cache？」**：不必为 LLM KV Cache 留大比例显存。`ec_producer` 在 `model_runner_v1` 算完 `_execute_mm_encoder` 后提前退出，不进入语言模型前向，因此官方示例把 KV 水位压到 `--gpu-memory-utilization 0.01`。不过早退与低 KV 水位只决定执行阶段与 KV 预算；语言模型权重在启动时是否跳过加载，还取决于模型组件标记与只跑编码器的启动模式（官方示例脚本未显式开启跳过语言权重的模式）。
 - **「开了 EPD 分离后，纯文本请求也要先去 E 节点绕一圈，反而变慢？」**：错。`disagg_epd_proxy.py` 在入口通过 `has_mm_input` 判别请求类型，纯文本请求完全不经过 E 池，直接走 P → D（或 PD），反而因为不再被多模态编码阻塞而获得更低 TTFT。
 - **「`ECMemcacheConnector` 的 `recv_buffer_tokens` 设得越小越省显存，比如设成 `512` 就行？」**：错。源码 `_get_recv_buffer_tokens` 硬性要求 `2048 <= recv_buffer_tokens <= max_num_batched_tokens`（默认 `8192`），低于 `2048` 或超过批上限启动时就会直接抛 `ValueError`。
 - **「用了 EPD 就必须同时部署 P 和 D 两套语言节点，不能渐进落地？」**：错。EPD 原生支持 `E + PD` 两池渐进部署（把代理的 `--prefill-servers-urls` 设为 `"disable"` 即可），先单独把视觉编码拆出去弹性扩缩，待长文与并发上量后再演进为完整 `E + P + D` 三池。

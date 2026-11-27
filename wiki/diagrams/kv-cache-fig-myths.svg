@@ -1,78 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="KV cache 五大常见误解对比图" font-family="var(--font-sans)">
-  <title>KV cache 五大常见直觉误区与源码真相对照：区分以显存换计算、普通逐词结束少 1 格与分块未完多格差、省重算不省每步读取、层数与 KV 头及 TP 复制规则，以及同请求常驻缓存与跨请求前缀复用边界。</title>
-  <desc>关联源码符号：get_computed_blocks, max_cache_hit_length, allocate_slots, num_computed_tokens, all_token_ids, reshape_and_cache, key_cache, value_cache, slot_mapping</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 576" width="900" height="576" role="img" aria-label="KV cache 单 token 36 层累积比例图与五大常见误解对照" font-family="var(--font-sans)">
+  <title>KV cache 五大常见直觉误区与源码真相对照：单 token 词向量与 36 层 K/V 缓存叠栈及排障判据。</title>
+  <desc>上半部对比同一 token 的 1 份输入词向量与穿越 Qwen3-8B 36 层产生的 2×8×128×2 B = 4 KiB/层 → 144 KiB/token K/V 缓存栈；下半部汇总拿显存换计算、末词步差、每步通读历史与同请求常驻判据。</desc>
+  <defs>
+    <marker id="kvm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
 
-  <text x="230" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#b54237">✗ 常见直觉误区</text>
-  <text x="668" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#087f73">✓ 源码与机制真相</text>
-  <line x1="16" y1="46" x2="884" y2="46" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-  <line x1="434" y1="14" x2="434" y2="496" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">单 Token 落点与容量比例尺（Qwen3-8B：4 KiB/层 × 36 层 = 144 KiB）及排障判据</text>
 
-  <!-- Row 1 -->
-  <circle cx="28" cy="94" r="13" fill="#b54237"/>
-  <text x="28" y="98.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
-  <rect x="48" y="60" width="374" height="68" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="62" y="87" font-size="14.5" font-weight="700" fill="#b54237">「KV cache 省显存，存的是词向量」</text>
-  <text x="62" y="113" font-size="13.5" fill="#4d5652">把以空间换时间当省显存，混淆输入与层状态</text>
+  <!-- Hero Panel: Input Embedding vs 36-Layer K/V Stack -->
+  <rect x="14" y="40" width="872" height="256" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="63" font-size="13.5" font-weight="700" fill="#17211f">同一 token 轨迹：入口仅 1 份临时词向量，穿越 36 层时每层经 reshape_and_cache 写入独立 K/V 历史槽</text>
 
-  <rect x="448" y="60" width="438" height="68" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="462" y="87" font-size="14.5" font-weight="700" fill="#065f56">拿显存换计算：逐层存注意力历史状态</text>
-  <text x="462" y="113" font-size="13.5" fill="#4d5652">省 O(t²) 重算；标准存 K/V，MLA 潜向量，KDA 定长矩阵</text>
+  <!-- Left: Transient Input Vector -->
+  <rect x="26" y="76" width="224" height="204" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.3"/>
+  <text x="138" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">① 入口词向量（仅 1 份）</text>
+  <rect x="44" y="112" width="188" height="36" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="138" y="135" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">x₀ [1 × 4096] = 8 KiB</text>
+  <text x="138" y="172" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">✗ 绝非 KV cache 存储内容</text>
+  <text x="138" y="196" text-anchor="middle" font-size="12" fill="#4d5652">仅作第 0 层输入激活，层间残差</text>
+  <text x="138" y="217" text-anchor="middle" font-size="12" fill="#4d5652">前向算完当步释放，不驻留缓存池</text>
+  <text x="138" y="254" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#66716d">all_token_ids[t] → embed</text>
 
-  <!-- Row 2 (P1 FIX + mini slot grid visual!) -->
-  <circle cx="28" cy="184" r="13" fill="#b54237"/>
-  <text x="28" y="188.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
-  <rect x="48" y="144" width="374" height="80" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="62" y="172" font-size="14.5" font-weight="700" fill="#b54237">「文本有 N 个词，缓存就有 N 格」</text>
-  <text x="62" y="198" font-size="13.5" fill="#4d5652">以为刚采样出的最新词当场已写进各层缓存</text>
-  <text x="62" y="216" font-size="13" fill="#8f3229">或误以为已算进度永远只比总词数少 1</text>
+  <path d="M 252 150 L 284 150" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#kvm-arr)"/>
 
-  <rect x="448" y="144" width="438" height="80" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="462" y="170" font-size="14.5" font-weight="700" fill="#065f56">普通逐词生成、末词刚采样时少 1 格</text>
-  <!-- Mini visual grid cue: 5 indigo + 1 dashed red -->
-  <rect x="462" y="180" width="22" height="14" rx="2" fill="#4c65b6"/>
-  <rect x="487" y="180" width="22" height="14" rx="2" fill="#4c65b6"/>
-  <rect x="512" y="180" width="22" height="14" rx="2" fill="#4c65b6"/>
-  <rect x="537" y="180" width="22" height="14" rx="2" fill="#4c65b6"/>
-  <rect x="562" y="180" width="22" height="14" rx="2" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="3 2"/>
-  <text x="594" y="192" font-size="13" fill="#4d5652">末词待下步输入才写 KV</text>
-  <text x="462" y="215" font-size="13.5" fill="#8f3229">分块 prefill 未完时 <tspan font-family="var(--font-mono)" font-weight="700">num_computed_tokens</tspan> 可差数千格</text>
+  <!-- Right: 36-Layer K/V Cache Stack + Proportional Scale -->
+  <rect x="290" y="76" width="584" height="204" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="306" y="99" font-size="13.5" font-weight="700" fill="#3a4f93">② 逐层常驻 K/V 缓存叠栈（slot_mapping 落槽 · 共 36 层累加）</text>
 
-  <!-- Row 3 -->
-  <circle cx="28" cy="274" r="13" fill="#b54237"/>
-  <text x="28" y="278.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
-  <rect x="48" y="240" width="374" height="68" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="62" y="267" font-size="14.5" font-weight="700" fill="#b54237">「有了缓存，下一步就不用读旧内容」</text>
-  <text x="62" y="293" font-size="13.5" fill="#4d5652">误把省掉重算等同于省掉每步显存读取</text>
+  <!-- Layer Stack Visual (Left half of right card: x=306..556) -->
+  <rect x="306" y="112" width="246" height="34" rx="5" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="429" y="133.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">Layer 0: K(2KiB) + V(2KiB) = 4 KiB</text>
+  <rect x="306" y="152" width="246" height="30" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="429" y="171.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#3a4f93">Layer 1: 2 × 8头 × 128维 × 2B = 4 KiB</text>
+  <rect x="306" y="188" width="246" height="26" rx="5" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="4 3"/>
+  <text x="429" y="205.5" text-anchor="middle" font-size="12" fill="#66716d">⋮ 中间逐层写入 key_cache / value_cache ⋮</text>
+  <rect x="306" y="220" width="246" height="34" rx="5" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="429" y="241.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">Layer 35: K(2KiB) + V(2KiB) = 4 KiB</text>
+  <text x="429" y="270" text-anchor="middle" font-size="12" fill="#4d5652">单层公式：<tspan font-family="var(--font-mono)" font-weight="600">2 × n_kv × d_head × 2B</tspan></text>
 
-  <rect x="448" y="240" width="438" height="68" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="462" y="267" font-size="14.5" font-weight="700" fill="#065f56">省重算不省读取：标准层每步通读历史</text>
-  <text x="462" y="293" font-size="13.5" fill="#4d5652">Decode 受 HBM 带宽主导；稀疏靠 top-k、线性靠定长减读</text>
+  <!-- Proportional Capacity Bars (Right half: x=572..860; bar height=16 < 22!) -->
+  <text x="572" y="124" font-size="12.5" font-weight="700" fill="#17211f">单 token 显存比例尺（严格按字节等比）：</text>
+  <rect x="572" y="136" width="16" height="16" rx="3" fill="#c78300"/>
+  <text x="596" y="148.5" font-size="12" fill="#936300">词向量临时激活：8 KiB（不入池）</text>
+  <rect x="572" y="168" width="192" height="16" rx="3" fill="#087f73"/>
+  <text x="572" y="201" font-size="12" fill="#065f56">Qwen3-30B-A3B（48层×4KV）：<tspan font-family="var(--font-mono)" font-weight="700">96 KiB/tok</tspan></text>
+  <rect x="572" y="214" width="288" height="16" rx="3" fill="#4c65b6"/>
+  <text x="572" y="248" font-size="12.5" font-weight="700" fill="#3a4f93">Qwen3-8B（36层×8KV）：36 × 4 = 144 KiB/tok</text>
+  <text x="572" y="270" font-size="12" fill="#66716d">总参数更大（30B vs 8B），单词 KV 反而小 1/3！</text>
 
-  <!-- Row 4 (with mini bar comparison!) -->
-  <circle cx="28" cy="364" r="13" fill="#b54237"/>
-  <text x="28" y="368.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
-  <rect x="48" y="324" width="374" height="80" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="62" y="352" font-size="14.5" font-weight="700" fill="#b54237">「模型越大或 TP 翻倍，每卡必增减」</text>
-  <text x="62" y="378" font-size="13.5" fill="#4d5652">按总参数量估缓存，忽略 KV 头数与跨卡复制</text>
-  <text x="62" y="396" font-size="13" fill="#66716d">误以为 30B 缓存一定比 8B 大</text>
+  <!-- Lower 2x2 Verified Criteria Matrix -->
+  <rect x="14" y="308" width="430" height="122" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="28" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 1：KV cache 是为了省显存，存的是词向量</text>
+  <text x="28" y="358" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：拿显存换计算，省掉 O(t²) 历史重算</text>
+  <text x="28" y="384" font-size="12.5" fill="#4d5652">多占 HBM 换每步只算新词；标准层存 K/V，MLA 存潜向量</text>
+  <text x="28" y="409" font-size="12" fill="#66716d">KDA 线性层存定长状态矩阵（体积不随上下文长度增长）</text>
 
-  <rect x="448" y="324" width="438" height="80" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="462" y="350" font-size="14.5" font-weight="700" fill="#065f56">容量看层数与 KV 头；TP 超头数则复制</text>
-  <!-- Mini proportional bars: 8B 144 vs 30B 96 -->
-  <rect x="462" y="360" width="90" height="12" rx="2" fill="#4c65b6"/>
-  <text x="558" y="371" font-family="var(--font-mono)" font-size="13" fill="#3a4f93">8B: 144 KiB</text>
-  <rect x="668" y="360" width="60" height="12" rx="2" fill="#087f73"/>
-  <text x="734" y="371" font-family="var(--font-mono)" font-size="13" fill="#065f56">30B: 96 KiB</text>
-  <text x="462" y="395" font-size="13.5" fill="#4d5652">TP &gt; n_kv 时每卡保底存 1 头；GLM 潜向量整份复制</text>
+  <rect x="456" y="308" width="430" height="122" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.3"/>
+  <text x="470" y="333" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 2：文本有 N 个词，缓存里就一定有 N 格</text>
+  <text x="470" y="358" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：刚采出的末词差 1 格；分块未完可差数千格</text>
+  <rect x="470" y="369" width="22" height="14" rx="2" fill="#4c65b6"/><rect x="496" y="369" width="22" height="14" rx="2" fill="#4c65b6"/>
+  <rect x="522" y="369" width="22" height="14" rx="2" fill="#4c65b6"/><rect x="548" y="369" width="22" height="14" rx="2" fill="#4c65b6"/>
+  <rect x="574" y="369" width="22" height="14" rx="2" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="604" y="381" font-size="12" fill="#4d5652">末词待下步进前向才写 KV</text>
+  <text x="470" y="409" font-size="12" fill="#8f3229">分块 prefill 中途 <tspan font-family="var(--font-mono)" font-weight="700">num_computed_tokens</tspan> 远小于总词数</text>
 
-  <!-- Row 5 -->
-  <circle cx="28" cy="456" r="13" fill="#b54237"/>
-  <text x="28" y="460.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
-  <rect x="48" y="420" width="374" height="72" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
-  <text x="62" y="447" font-size="14.5" font-weight="700" fill="#b54237">「关掉前缀复用就没缓存，结束清零」</text>
-  <text x="62" y="474" font-size="13.5" fill="#4d5652">混淆同请求跨步缓存与跨请求共享，误认清零</text>
+  <rect x="14" y="442" width="430" height="122" rx="9" fill="#ffffff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="467" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 3：有缓存就不用再读旧历史；TP 翻倍必减半</text>
+  <text x="28" y="492" font-size="13.5" font-weight="700" fill="#3a4f93">✓ 真相：省重算不省读取；TP &gt; n_kv 时跨卡复制</text>
+  <text x="28" y="518" font-size="12.5" fill="#4d5652">标准 Decode 每步通读历史 K/V 受带宽主导（稀疏靠 top-k 减读）</text>
+  <text x="28" y="543" font-size="12" fill="#66716d">TP 超 KV 头数保底存 1 头；GLM 的 MLA 潜向量逐卡整份复制</text>
 
-  <rect x="448" y="420" width="438" height="72" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="462" y="447" font-size="14.5" font-weight="700" fill="#065f56">同请求缓存常驻；结束只还引用不清零</text>
-  <text x="462" y="474" font-size="13.5" fill="#4d5652">全命中仍限 <tspan font-family="var(--font-mono)" font-weight="700">num_tokens - 1</tspan>，至少重算末词取概率</text>
+  <rect x="456" y="442" width="430" height="122" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="470" y="467" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误区 4：关掉前缀复用就没缓存，请求结束清零 HBM</text>
+  <text x="470" y="492" font-size="13.5" font-weight="700" fill="#7a3a6a">✓ 真相：同请求缓存常驻；结束只还引用不清零</text>
+  <text x="470" y="518" font-size="12.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-size="12">allocate_slots</tspan> 常驻工作；跨请求共享才看 <tspan font-family="var(--font-mono)" font-size="12">get_computed_blocks</tspan></text>
+  <text x="470" y="543" font-size="12" fill="#66716d">即使前缀全命中，上限仍锁在 <tspan font-family="var(--font-mono)" font-weight="600">max_cache_hit_length = N - 1</tspan></text>
 </svg>

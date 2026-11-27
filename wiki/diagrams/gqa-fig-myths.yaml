@@ -1,7 +1,7 @@
 mode: native-svg
 id: gqa-fig-myths
 caption: GQA 五组常见认知误区与 v0.30.0 源码真相排障对照板（覆盖打分计算量、预训练结构绑定、TP 复制保底、昇腾 FIA 与 Mooncake+C8、以及 MLA/KDA 记账边界）。
-size: [900, 498]
+size: [900, 580]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L315-L338'
     symbols: ['num_heads', 'num_kv_heads']

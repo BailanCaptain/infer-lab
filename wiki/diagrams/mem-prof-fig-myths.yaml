@@ -2,7 +2,7 @@ mode: native-svg
 id: mem-prof-fig-myths
 caption: >-
   昇腾 HBM 显存预算与启动量测五大常见误解对照（v0.30.0 主基线）：涵盖 HCCL 缓冲与 profile_run 的包含关系、比例拉满挤爆 ACLGraph 录图余量、物理块数不等于并发请求数、同卡进程释放显存触发严格递减断言失败，以及显式字节预算仍会执行试跑编译。
-size: [900, 496]
+size: [900, 568]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L582-L637
     symbols: [kv_cache_memory_bytes, profile_run, non_torch_increase, free_memory]

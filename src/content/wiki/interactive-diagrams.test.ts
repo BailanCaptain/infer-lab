@@ -539,7 +539,7 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       if (spec.step === 5) {
         expect(html).toContain("CoW 拷贝 B3→B2，B3 ref 2→1");
         expect(html).toContain("动作 5 / 5");
-        expect(html).toContain("队头 [ B4 ] 队尾");
+        expect(html).toContain("队头 [ B4, B5 ] 队尾");
       }
     }
 
@@ -647,7 +647,7 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
         expect(html).toContain("零崩溃退回本地 Safetensors 重载");
       }
       if (sc === "lease-reject-400") {
-        expect(html).toContain("归还 400 / TTL 告警");
+        expect(html).toContain("归还 400 REJECTED");
         expect(html).toContain("推理服务仍正常可用");
       }
       if (sc === "cleanup-abort") {

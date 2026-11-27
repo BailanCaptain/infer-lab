@@ -10,7 +10,7 @@ export const PREFIX_EVICT_STAGES = ["none", "ab-released", "alloc-evict"] as con
 export type PrefixEvictStage = (typeof PREFIX_EVICT_STAGES)[number];
 
 export interface PrefixBlockView {
-  readonly id: "B0" | "B1" | "B2" | "B3";
+  readonly id: "B0" | "B1" | "B2" | "B3" | "B4" | "B5";
   readonly roleLabel: string;
   readonly fillText: string;
   readonly cells: readonly ("kv" | "tok" | "cow" | "")[];
@@ -20,6 +20,17 @@ export interface PrefixBlockView {
   readonly state: "shared" | "private" | "cow" | "free";
   readonly highlight?: boolean;
 }
+
+const FREE_BLOCK = (id: PrefixBlockView["id"], roleLabel = "空闲物理块"): PrefixBlockView => ({
+  id,
+  roleLabel,
+  fillText: "0/4",
+  cells: ["", "", "", ""],
+  refCnt: 0,
+  refBadge: "空闲",
+  refTone: "",
+  state: "free",
+});
 
 export interface PrefixSlotPill {
   readonly text: string;
@@ -66,7 +77,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       "链式块指纹：h0 = H(∅, sys[0..3]) → B0，h1 = H(h0, sys[4..7]) → B1。昇腾 Qwen3-8B 默认 128 token/块（图中以 4 格浓缩示意），仅整块写满才登记进共享哈希表。",
     savedCellsText: "0 格（首条算满 10 格）",
     savedNote: "前 2 块写满后登记链式 block hash",
-    freeLruQueue: ["B3", "B4"],
+    freeLruQueue: ["B3", "B4", "B5"],
     reqA: {
       name: "请求 A",
       stateText: "首次计算",
@@ -130,6 +141,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         refTone: "",
         state: "free",
       },
+      FREE_BLOCK("B4"),
+      FREE_BLOCK("B5"),
     ],
   },
   {
@@ -143,7 +156,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       "调度器逐块比对链式哈希与额外身份键，连续命中 B0、B1 后直接 touch 将物理块号填入 B 的块表，ref_cnt 从 1 升为 2，零显存拷贝跳过 Prefill 重算。",
     savedCellsText: "省 8/10 格（跳过 80% 计算）",
     savedNote: "仅改逻辑块表指针，不复制物理 KV",
-    freeLruQueue: ["B3", "B4"],
+    freeLruQueue: ["B3", "B4", "B5"],
     reqA: {
       name: "请求 A",
       stateText: "运行中",
@@ -210,6 +223,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         refTone: "",
         state: "free",
       },
+      FREE_BLOCK("B4"),
+      FREE_BLOCK("B5"),
     ],
   },
   {
@@ -223,7 +238,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       "因 B0、B1 均已写满 4/4，请求 B 续写位置 [8..9] 直接从空闲队列摘出空块 B3（注意区分：只有对未写满且 ref_cnt > 1 的共享块做原地追加修改时，才会触发真正的块拷贝 CoW）。",
     savedCellsText: "省 8 格（仅算 B 私有尾 2 格）",
     savedNote: "B 新尾块回看 B0, B1 历史但零重算前缀",
-    freeLruQueue: ["B4"],
+    freeLruQueue: ["B4", "B5"],
     reqA: {
       name: "请求 A",
       stateText: "运行中",
@@ -290,6 +305,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         state: "private",
         highlight: true,
       },
+      FREE_BLOCK("B4"),
+      FREE_BLOCK("B5"),
     ],
   },
   {
@@ -303,7 +320,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       "引用计数归零是唯一回收门禁：A 释放后私有块 B2 的 ref_cnt 归 0 立即挂入空闲 LRU 队列；待 B 也结束后，整条链按 B3 → B1 → B0 倒序入空闲 LRU，优先淘汰尾部、尽量保留公共根块。",
     savedCellsText: "累计省 8 格 + 省 2 块重复显存",
     savedNote: "待 B 结束归零后按 B3→B1→B0 倒序入 LRU",
-    freeLruQueue: ["B2", "B4"],
+    freeLruQueue: ["B2", "B4", "B5"],
     reqA: {
       name: "请求 A",
       stateText: "已结束释放",
@@ -368,6 +385,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         refTone: "ref-priv",
         state: "private",
       },
+      FREE_BLOCK("B4"),
+      FREE_BLOCK("B5"),
     ],
   },
   {
@@ -378,10 +397,10 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
     title: "动作 ⑤ · 写时复制 CoW 分叉（改写 ref_cnt > 1 共享块 B3 时拷出新块 B2，B3 ref 2→1）",
     takeaway: "想修改多人共用的未满块 B3？不能硬改：先拷一份到新块 B2 给 C 改，原块 B3 留给 B 安全读！",
     detail:
-      "分支 C 原本与请求 B 共享 [B0, B1, B3]（B3 的 ref_cnt = 2）。当 C 需要原地改写 B3 槽位时，调度器从空闲队头 [ B4 ] 前摘出 B2 拷贝 B3 原内容并改写，B3 引用减为 1（2→1）供 B 无损继续读取。",
+      "分支 C 原本与请求 B 共享 [B0, B1, B3]（B3 的 ref_cnt = 2）。当 C 需要原地改写 B3 槽位时，调度器从空闲队头摘出 B2（队列余 [ B4, B5 ]）拷贝 B3 原内容并改写，B3 引用减为 1（2→1）供 B 无损继续读取。",
     savedCellsText: "仅拷 1 块 B3→B2（B0, B1 仍共享）",
     savedNote: "写时隔离：B 续读 B3，C 改写新块 B2",
-    freeLruQueue: ["B4"],
+    freeLruQueue: ["B4", "B5"],
     cowCopyFromTo: ["B3", "B2"],
     reqA: {
       name: "请求 B（原读分支）",
@@ -390,7 +409,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       active: false,
       dim: false,
       slots: [
-        { text: "系统提示 + 格式约束", target: "B0", tone: "is-sys" },
+        { text: "系统提示 [0..3]（共享）", target: "B0", tone: "is-sys" },
+        { text: "格式约束 [4..7]（共享）", target: "B1", tone: "is-sys" },
         { text: "原分支尾部（继续读 B3）", target: "B3", tone: "is-sys" },
       ],
     },
@@ -401,7 +421,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       active: true,
       dim: false,
       slots: [
-        { text: "系统提示 + 格式约束", target: "B0", tone: "is-sys" },
+        { text: "系统提示 [0..3]（共享）", target: "B0", tone: "is-sys" },
+        { text: "格式约束 [4..7]（共享）", target: "B1", tone: "is-sys" },
         { text: "改写分支尾部 → 绑新块 B2", target: "B2", tone: "is-cow", flow: true },
       ],
     },
@@ -448,6 +469,8 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         state: "shared",
         highlight: true,
       },
+      FREE_BLOCK("B4"),
+      FREE_BLOCK("B5"),
     ],
   },
 ];
@@ -494,7 +517,7 @@ export function computePrefixPoolState(
       h1Registered: true,
       h1Note: "h1→B1 留存待捡回",
       evictedBlocks: [],
-      freeLruQueue: ["B2", "B3", "B1", "B0", "B4"],
+      freeLruQueue: ["B2", "B3", "B1", "B0", "B4", "B5"],
       lastTokenLogitsRecomputed: true,
       badgeText: "倒序回收 · 叶块排前根块殿后",
       takeaway:
@@ -543,6 +566,8 @@ export function computePrefixPoolState(
           refTone: "",
           state: "free",
         },
+        FREE_BLOCK("B4"),
+        FREE_BLOCK("B5"),
       ],
       reqA: {
         name: "请求 A",
@@ -575,7 +600,7 @@ export function computePrefixPoolState(
       h1Registered: false,
       h1Note: "h1 已随叶块 B1 驱逐抹除",
       evictedBlocks: ["B1"],
-      freeLruQueue: ["B0", "B4"],
+      freeLruQueue: ["B0", "B4", "B5"],
       lastTokenLogitsRecomputed: true,
       badgeText: "施压分配 · 叶块 B1 早于根块 B0 被驱逐",
       takeaway:
@@ -597,7 +622,7 @@ export function computePrefixPoolState(
           id: "B1",
           roleLabel: "叶块已驱逐 (新单覆写)",
           fillText: "h1 抹除",
-          cells: ["tok", "tok", "tok", "tok"],
+          cells: ["tok", "tok", "", ""],
           refCnt: 1,
           refBadge: "已驱逐重分",
           refTone: "ref-cow",
@@ -606,7 +631,7 @@ export function computePrefixPoolState(
         },
         {
           id: "B2",
-          roleLabel: "新单借用块 1",
+          roleLabel: "新单借用块 1 [0..3]",
           fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
@@ -616,7 +641,7 @@ export function computePrefixPoolState(
         },
         {
           id: "B3",
-          roleLabel: "新单借用块 2",
+          roleLabel: "新单借用块 2 [4..7]",
           fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
@@ -624,6 +649,8 @@ export function computePrefixPoolState(
           refTone: "ref-priv",
           state: "private",
         },
+        FREE_BLOCK("B4"),
+        FREE_BLOCK("B5"),
       ],
       reqA: {
         name: "原共享链",
@@ -643,8 +670,9 @@ export function computePrefixPoolState(
         active: true,
         dim: false,
         slots: [
-          { text: "从队头摘走 B2, B3", target: "B2", tone: "is-priv" },
-          { text: "驱逐叶块 B1 覆写新词", target: "B1", tone: "is-cow", flow: true },
+          { text: "首块 [0..3] 队头摘 B2", target: "B2", tone: "is-priv" },
+          { text: "次块 [4..7] 队头摘 B3", target: "B3", tone: "is-priv" },
+          { text: "尾 [8..9] 驱逐叶块 B1", target: "B1", tone: "is-cow", flow: true },
         ],
       },
     };
@@ -662,12 +690,12 @@ export function computePrefixPoolState(
       h1Registered: true,
       h1Note: "第7格差异 → 第2块失配",
       evictedBlocks: [],
-      freeLruQueue: ["B4"],
+      freeLruQueue: ["B5"],
       lastTokenLogitsRecomputed: true,
-      badgeText: "半块 7 格同前缀 · 仅整块 B0 复用 4 格",
+      badgeText: "半块 7 格同前缀 · 仅整块 B0 复用 4 格，后 6 格占 B3+B4",
       takeaway:
-        "公共前缀减至 7 格（不足两整块）：标准 APC 只按满块对齐，仅复用 B0 的 4 格，第 2 块与尾块共 6 格须由 B 自算！",
-      kpiText: "省 4/10 格 · 须自算 6 格",
+        "公共前缀减至 7 格（不足两整块）：标准 APC 只按 4 格满块对齐，仅复用 B0 的 4 格；剩余 6 格由 B 自算写入 B3（4/4）与尾块 B4（2/4）！",
+      kpiText: "省 4/10 格 · 自算 6 格 (B3+B4)",
       blocks: [
         {
           id: "B0",
@@ -702,8 +730,8 @@ export function computePrefixPoolState(
         },
         {
           id: "B3",
-          roleLabel: "B 重算 [4..9] 私有块",
-          fillText: "自算 6 格",
+          roleLabel: "B 重算满块 [4..7]",
+          fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
           refBadge: "ref = 1",
@@ -711,6 +739,18 @@ export function computePrefixPoolState(
           state: "private",
           highlight: true,
         },
+        {
+          id: "B4",
+          roleLabel: "B 重算私有尾 [8..9]",
+          fillText: "2/4",
+          cells: ["tok", "tok", "", ""],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-priv",
+          state: "private",
+          highlight: true,
+        },
+        FREE_BLOCK("B5"),
       ],
       reqA: base.reqA,
       reqB: {
@@ -721,7 +761,8 @@ export function computePrefixPoolState(
         dim: false,
         slots: [
           { text: "前 4 格整块命中 → 复用 B0", target: "B0", tone: "is-sys is-hit", flow: true },
-          { text: "后 3+3=6 格未凑满同块 → 自算", target: "B3", tone: "is-priv", flow: true },
+          { text: "第 5..8 格失配自算 → 写满 B3", target: "B3", tone: "is-priv", flow: true },
+          { text: "末 2 格 [8..9] 自算 → 写尾块 B4", target: "B4", tone: "is-priv", flow: true },
         ],
       },
     };
@@ -739,12 +780,12 @@ export function computePrefixPoolState(
       h1Registered: true,
       h1Note: "异盐 salt_B → 首块 h0' 即失配",
       evictedBlocks: [],
-      freeLruQueue: ["B4"],
+      freeLruQueue: [],
       lastTokenLogitsRecomputed: true,
-      badgeText: "不同租户 cache_salt · 文本相同仍零命中",
+      badgeText: "不同租户 cache_salt · 10 格独立占满 B3, B4, B5",
       takeaway:
-        "请求 B 虽带一模一样的提示词文本，但传入不同 cache_salt 身份键：首块指纹 h0'≠h0 连环失配，命中 0 格，严格隔离防串租！",
-      kpiText: "异盐命中 0 格 · 自算 10 格",
+        "请求 B 虽带相同文本，但传入不同 cache_salt 身份键：首块指纹 h0'≠h0 连环失配，B 的 10 格独立分配 B3（4/4）、B4（4/4）、B5（2/4）全量重算！",
+      kpiText: "异盐 0 命中 · 独占 B3,B4,B5 (10格)",
       blocks: [
         {
           id: "B0",
@@ -778,13 +819,35 @@ export function computePrefixPoolState(
         },
         {
           id: "B3",
-          roleLabel: "B 异盐独立新块 (0 复用)",
-          fillText: "全重算 10 格",
+          roleLabel: "B 异盐块 [0..3] (独立)",
+          fillText: "4/4",
           cells: ["tok", "tok", "tok", "tok"],
           refCnt: 1,
           refBadge: "ref = 1",
           refTone: "ref-cow",
           state: "cow",
+          highlight: true,
+        },
+        {
+          id: "B4",
+          roleLabel: "B 异盐块 [4..7] (独立)",
+          fillText: "4/4",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-cow",
+          state: "cow",
+          highlight: true,
+        },
+        {
+          id: "B5",
+          roleLabel: "B 异盐尾 [8..9] (独立)",
+          fillText: "2/4",
+          cells: ["tok", "tok", "", ""],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-priv",
+          state: "private",
           highlight: true,
         },
       ],
@@ -796,8 +859,9 @@ export function computePrefixPoolState(
         active: true,
         dim: false,
         slots: [
-          { text: "同文本但异盐 → h0'≠h0 拒绝复用", target: "B3", tone: "is-cow", flow: true },
-          { text: "全段 10 格独立分配重算", target: "B3", tone: "is-priv" },
+          { text: "异盐首块 [0..3] h0'≠h0 → B3", target: "B3", tone: "is-cow", flow: true },
+          { text: "异盐次块 [4..7] 链式独立 → B4", target: "B4", tone: "is-cow", flow: true },
+          { text: "异盐尾块 [8..9] 独立分配 → B5", target: "B5", tone: "is-priv" },
         ],
       },
     };
@@ -834,10 +898,12 @@ export interface PrefixCachingInteractiveProps extends InteractiveDiagramProps {
 }
 
 const BLOCK_ROW_Y: Record<PrefixBlockView["id"], number> = {
-  B0: 66,
-  B1: 116,
-  B2: 166,
-  B3: 216,
+  B0: 60,
+  B1: 95,
+  B2: 130,
+  B3: 165,
+  B4: 200,
+  B5: 235,
 };
 
 function renderRequestCard(card: PrefixRequestCardSpec) {
@@ -1125,9 +1191,9 @@ export function PrefixCachingInteractive({
           </div>
 
           <svg
-            viewBox="0 0 860 258"
+            viewBox="0 0 860 286"
             width="860"
-            height="258"
+            height="286"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
             aria-label={`Prefix Caching 全景状态：${state.badgeText}`}
@@ -1227,9 +1293,9 @@ export function PrefixCachingInteractive({
             </text>
             <text x="104" y="186" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
               {hitPreset === "diff-salt"
-                ? "异盐 → B3全重算"
+                ? "异盐 → B3,B4,B5重算"
                 : hitPreset === "half-7"
-                  ? "仅首块命中 → B0"
+                  ? "首块B0+自算B3,B4"
                   : evictStage === "alloc-evict"
                     ? "借走 B2,B3,B1"
                     : state.step === 5
@@ -1293,23 +1359,23 @@ export function PrefixCachingInteractive({
             </text>
             <path d="M 196 76 L 218 68" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
             <path d="M 196 176 L 218 118" stroke="#087f73" strokeWidth="1.8" markerEnd={`url(#${mTok})`} />
-            <path d="M 404 66 L 430 66" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
+            <path d="M 404 66 L 430 60" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
             {state.h1Registered && (
-              <path d="M 404 116 L 430 116" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
+              <path d="M 404 116 L 430 95" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
             )}
 
             <rect
               x="432"
               y="38"
               width="228"
-              height="198"
+              height="224"
               rx="8"
               fill="#fbfaf6"
               stroke="#d8d8cf"
               strokeWidth="1.4"
             />
             {state.blocks.map((blk) => {
-              const ry = BLOCK_ROW_Y[blk.id] - 20;
+              const ry = BLOCK_ROW_Y[blk.id] - 15;
               const fill =
                 blk.state === "shared"
                   ? "#e8edff"
@@ -1332,14 +1398,14 @@ export function PrefixCachingInteractive({
                     x="444"
                     y={ry}
                     width="204"
-                    height="38"
+                    height="30"
                     rx="6"
                     fill={fill}
                     stroke={blk.highlight ? "#e85b32" : stroke}
                     strokeWidth={blk.highlight ? "1.8" : "1.3"}
                     strokeDasharray={blk.state === "free" ? "4 2" : undefined}
                   />
-                  <text x="546" y={ry + 24} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  <text x="546" y={ry + 20} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
                     {`${blk.id} · ${blk.fillText} · ${blk.refBadge}`}
                   </text>
                 </g>
@@ -1348,52 +1414,65 @@ export function PrefixCachingInteractive({
             {state.cowCopyFromTo && (
               <path
                 className="wiki-edu-wire is-flow"
-                d="M 650 214 C 668 206, 668 176, 650 166"
+                d="M 650 165 C 668 158, 668 137, 650 130"
                 stroke="#9a4b86"
                 markerEnd={`url(#${mCow})`}
               />
             )}
 
-            <path d="M 660 136 L 682 136" stroke="#e85b32" strokeWidth="1.8" markerEnd={`url(#${mAccent})`} />
+            <path d="M 660 148 L 682 148" stroke="#e85b32" strokeWidth="1.8" markerEnd={`url(#${mAccent})`} />
             <rect
               x="684"
               y="38"
               width="164"
-              height="198"
+              height="224"
               rx="8"
               fill="#fbfaf6"
               stroke="#d8d8cf"
               strokeWidth="1.4"
             />
-            <text x="766" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
+            <text x="766" y="54" textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
               队头 (先借走)
             </text>
-            {state.freeLruQueue.slice(0, 4).map((qId, qi) => {
-              const qy = 70 + qi * 30;
-              const isLeaf = qId === "B1";
-              const isRoot = qId === "B0";
-              return (
-                <g key={`lru-${qId}`}>
-                  <rect
-                    x="700"
-                    y={qy}
-                    width="132"
-                    height="24"
-                    rx="5"
-                    fill={isLeaf ? "#fff4cf" : isRoot ? "#ddf4ef" : "#ffffff"}
-                    stroke={isLeaf ? "#c78300" : isRoot ? "#087f73" : "#d8d8cf"}
-                  />
-                  <text x="766" y={qy + 17} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {isLeaf ? "B1 (叶·先汰)" : isRoot ? "B0 (根·后汰)" : qId}
-                  </text>
-                </g>
-              );
-            })}
-            <text x="766" y="218" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+            {state.freeLruQueue.length === 0 ? (
+              <text x="766" y="140" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+                池已满 (0 空闲块)
+              </text>
+            ) : (
+              state.freeLruQueue.slice(0, 6).map((qId, qi) => {
+                const qy = 62 + qi * 25;
+                const isLeaf = qId === "B1";
+                const isRoot = qId === "B0";
+                return (
+                  <g key={`lru-${qId}`}>
+                    <rect
+                      x="700"
+                      y={qy}
+                      width="132"
+                      height="21"
+                      rx="5"
+                      fill={isLeaf ? "#fff4cf" : isRoot ? "#ddf4ef" : "#ffffff"}
+                      stroke={isLeaf ? "#c78300" : isRoot ? "#087f73" : "#d8d8cf"}
+                    />
+                    <text
+                      x="766"
+                      y={qy + 15}
+                      textAnchor="middle"
+                      fontSize="12"
+                      fontWeight="700"
+                      fill="#17211f"
+                    >
+                      {isLeaf ? "B1 (叶·先汰)" : isRoot ? "B0 (根·后汰)" : qId}
+                    </text>
+                  </g>
+                );
+              })
+            )}
+            <text x="766" y="248" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
               叶B1早于根B0淘汰
             </text>
 
-            <text x="430" y="250" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            <text x="430" y="278" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
               {`账本：跳过 ${state.reusedCells} 格 · 自算 ${state.recomputeCells} 格 · 物理拷贝 ${state.copiedBlocks} 块`}
             </text>
           </svg>

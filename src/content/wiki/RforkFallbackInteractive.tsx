@@ -94,21 +94,22 @@ export const RFORK_SCENARIO_SPECS: Record<RforkScenarioId, RforkScenarioSpec> = 
   "lease-reject-400": {
     id: "lease-reject-400",
     index: 4,
-    shortLabel: "④ 归还 400 / TTL 过期",
-    humanBtn: "④ 归还超时告警",
-    badgeText: "现场 4 / 5 · 权重已到手，照常服务",
-    title: "现场 ④ · 租约 TTL 过期或归还期 Planner 返回 400（仅记归还告警，推理服务仍正常可用）",
+    shortLabel: "④ 归还 400 REJECTED",
+    humanBtn: "④ 归还 400 拒收",
+    badgeText: "现场 4 / 5 · 归还 400 禁发新 Seed，推理照常",
+    title: "现场 ④ · 归还租约遇 HTTP 400 REJECTED（取消发布新 Seed，推理服务仍正常可用）",
     takeaway:
-      "权重已经 100% 传完了，只是后台“还借条”时超时告警：不用重读硬盘，推理服务照常接客，仅放弃当新邻居！",
+      "权重已 100% 传完，后台归还遇 HTTP 400 REJECTED 时立即停试并取消发布新 Seed，推理照常可用！（注：TTL 过期返回 404 会被客户端与 200 一并视作 RELEASED。）",
     detail:
-      "权重已全部同步读完（TRANSFERRED），后台归还租约遇 TTL 过期或 400 REJECTED（归还 400 / TTL 告警）时立即停试并取消发布新 Seed，不重读 Safetensors 磁盘，推理服务仍正常可用。",
+      "权重已全部同步读完（TRANSFERRED）。需严格区分归还返回码：若租约因 TTL 过期被清理返回 HTTP 404，planner_client 将 200/404 统一映射为 RELEASED；仅当 Planner 显式返回 HTTP 400 REJECTED 时，会话才停止重试并取消发布新 Seed，不重读 Safetensors 磁盘，推理服务仍正常可用。",
     reachedStage: 4,
-    faultBadge: "归还 400 / TTL 告警",
+    faultBadge: "归还 400 REJECTED",
     outcomeKind: "p2p-lease-warn",
     isFastSuccess: true,
     safetyGateTitle: "无需回退（权重已 100% 传完就绪）",
-    safetyGateDesc: "只记一条归还告警日志并取消当新邻居资格，绝不推翻已就绪的模型。",
-    finalOutcome: "仅记归还告警并放弃当 Seed，模型不回退",
+    safetyGateDesc:
+      "HTTP 400 REJECTED 仅取消本卡发布为新 Seed（TTL 过期 404 则视同 RELEASED），绝不推翻已就绪模型。",
+    finalOutcome: "400 REJECTED 禁发新 Seed，模型不回退",
     serviceAvailability: "🟢 推理服务仍正常可用（对外接请求完全不受影响）",
   },
   "cleanup-abort": {
@@ -225,6 +226,22 @@ export interface RforkFallbackInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: RforkDiagramMode | undefined;
   readonly initialScenario?: RforkScenarioId | undefined;
   readonly initialDropBatch?: RforkDropBatch | undefined;
+  readonly initialServiceStopped?: boolean | undefined;
+  readonly initialMemoryReset?: boolean | undefined;
+}
+
+export function applyRforkGateToggle(
+  state: {
+    readonly scenario: RforkScenarioId;
+    readonly dropBatch: RforkDropBatch;
+    readonly serviceStopped: boolean;
+    readonly memoryReset: boolean;
+  },
+  gate: "service" | "memory",
+): RforkDerivedFlowState {
+  const nextSvc = gate === "service" ? !state.serviceStopped : state.serviceStopped;
+  const nextMem = gate === "memory" ? !state.memoryReset : state.memoryReset;
+  return computeRforkFlowState(state.scenario, state.dropBatch, nextSvc, nextMem);
 }
 
 export function RforkFallbackInteractive({
@@ -237,12 +254,16 @@ export function RforkFallbackInteractive({
   initialMode = "sandbox",
   initialScenario = "hit-seed",
   initialDropBatch = 7,
+  initialServiceStopped,
+  initialMemoryReset,
 }: RforkFallbackInteractiveProps) {
   const [mode, setMode] = useState<RforkDiagramMode>(initialMode);
   const [scenario, setScenario] = useState<RforkScenarioId>(initialScenario);
   const [dropBatch, setDropBatch] = useState<RforkDropBatch>(initialDropBatch);
-  const [serviceStopped, setServiceStopped] = useState<boolean>(true);
-  const [memoryReset, setMemoryReset] = useState<boolean>(initialScenario !== "cleanup-abort");
+  const [serviceStopped, setServiceStopped] = useState<boolean>(initialServiceStopped ?? true);
+  const [memoryReset, setMemoryReset] = useState<boolean>(
+    initialMemoryReset ?? initialScenario !== "cleanup-abort",
+  );
   const [playing, setPlaying] = useState(false);
 
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -293,14 +314,13 @@ export function RforkFallbackInteractive({
   const toggleGate = (gate: "service" | "memory") => {
     setPlaying(false);
     setMode("sandbox");
-    const nextSvc = gate === "service" ? !serviceStopped : serviceStopped;
-    const nextMem = gate === "memory" ? !memoryReset : memoryReset;
-    setServiceStopped(nextSvc);
-    setMemoryReset(nextMem);
-    if (nextSvc && nextMem) {
-      if (scenario !== "planner-miss") setScenario("seed-transfer-drop");
+    if (scenario === "hit-seed" || scenario === "lease-reject-400") {
+      setScenario("seed-transfer-drop");
+    }
+    if (gate === "service") {
+      setServiceStopped((prev) => !prev);
     } else {
-      setScenario("cleanup-abort");
+      setMemoryReset((prev) => !prev);
     }
   };
 
@@ -365,6 +385,36 @@ export function RforkFallbackInteractive({
   };
 
   const originX = spec.reachedStage === 2 ? 310 : spec.reachedStage === 3 ? 540 : 760;
+  const effectiveOutcomeKind =
+    flow.activeExit === "safety-abort"
+      ? ("safety-abort" as const)
+      : flow.activeExit === "disk-online"
+        ? ("fallback-ok" as const)
+        : spec.outcomeKind;
+  const effectiveSafetyTitle =
+    scenario === "planner-miss" && !flow.bothGatesPass
+      ? "✗ 安全门异常拦停（已写 0 批，未发远端传输）"
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "✓ 安全门恢复通过：半截脏权重已擦除"
+        : spec.safetyGateTitle;
+  const effectiveSafetyDesc =
+    scenario === "planner-miss" && !flow.bothGatesPass
+      ? "Planner 404 本轮已写 0 批，但回退前 prepare_for_fallback 安全门失败，拒绝继续加载。"
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "两道安全门均已通过，已写残缺缓冲归零，安全退回本地 Safetensors 重载。"
+        : spec.safetyGateDesc;
+  const effectiveFinalOutcome =
+    flow.activeExit === "safety-abort" && spec.outcomeKind !== "safety-abort"
+      ? "安全门阻断回退：抛明确 RuntimeError"
+      : flow.activeExit === "disk-online" && spec.outcomeKind === "safety-abort"
+        ? "零崩溃退回本地 Safetensors 重载"
+        : spec.finalOutcome;
+  const effectiveServiceAvail =
+    flow.activeExit === "safety-abort" && spec.outcomeKind !== "safety-abort"
+      ? "🔴 主动拉闸中止启动 · 回退安全门未通过"
+      : flow.activeExit === "disk-online" && spec.outcomeKind === "safety-abort"
+        ? "🟢 服务正常上线 · 残缺数据已清净，重读硬盘无损启动"
+        : spec.serviceAvailability;
 
   return (
     <WikiEduSandboxShell
@@ -467,14 +517,14 @@ export function RforkFallbackInteractive({
       }
       takeawayBadge={spec.badgeText}
       takeawayTone={
-        spec.outcomeKind === "safety-abort"
+        effectiveOutcomeKind === "safety-abort"
           ? "danger"
-          : spec.outcomeKind === "p2p-lease-warn"
+          : effectiveOutcomeKind === "p2p-lease-warn"
             ? "warn"
             : "default"
       }
       takeaway={spec.takeaway}
-      kpi={spec.finalOutcome}
+      kpi={effectiveFinalOutcome}
       detailsSummary="查看工程与源码细节（五门清单 / prepare_for_fallback 双门 / 租约状态码）"
       detailsContent={
         <>
@@ -782,15 +832,19 @@ export function RforkFallbackInteractive({
         </div>
 
         <div className="wiki-edu-dual-grid">
-          <div className={`wiki-edu-panel${spec.outcomeKind === "safety-abort" ? " is-oom" : ""}`}>
+          <div className={`wiki-edu-panel${effectiveOutcomeKind === "safety-abort" ? " is-oom" : ""}`}>
             <div className="wiki-edu-panel-head">
               <span className="wiki-edu-panel-title">容灾回退安全门</span>
               <span
                 className={`wiki-edu-badge ${
-                  spec.outcomeKind === "safety-abort" ? "is-bad" : spec.isFastSuccess ? "is-mid" : "is-good"
+                  effectiveOutcomeKind === "safety-abort"
+                    ? "is-bad"
+                    : spec.isFastSuccess
+                      ? "is-mid"
+                      : "is-good"
                 }`}
               >
-                {spec.outcomeKind === "safety-abort"
+                {effectiveOutcomeKind === "safety-abort"
                   ? "清理失败 · 阻断"
                   : spec.isFastSuccess
                     ? "未触发回退"
@@ -798,31 +852,31 @@ export function RforkFallbackInteractive({
               </span>
             </div>
             <div className="wiki-edu-note-card">
-              <strong>{spec.safetyGateTitle}</strong>
+              <strong>{effectiveSafetyTitle}</strong>
               <br />
-              {spec.safetyGateDesc}
+              {effectiveSafetyDesc}
             </div>
           </div>
 
-          <div className={`wiki-edu-panel${spec.outcomeKind === "safety-abort" ? " is-oom" : ""}`}>
+          <div className={`wiki-edu-panel${effectiveOutcomeKind === "safety-abort" ? " is-oom" : ""}`}>
             <div className="wiki-edu-panel-head">
               <span className="wiki-edu-panel-title">最终对外服务状态（红绿灯）</span>
               <span
                 className={`wiki-edu-badge ${
-                  spec.outcomeKind === "safety-abort"
+                  effectiveOutcomeKind === "safety-abort"
                     ? "is-bad"
-                    : spec.outcomeKind === "p2p-lease-warn"
+                    : effectiveOutcomeKind === "p2p-lease-warn"
                       ? "is-warn"
                       : "is-good"
                 }`}
               >
-                {spec.outcomeKind === "safety-abort" ? "安全中止" : "对外正常服务"}
+                {effectiveOutcomeKind === "safety-abort" ? "安全中止" : "对外正常服务"}
               </span>
             </div>
             <div className="wiki-edu-note-card">
-              <strong>{spec.serviceAvailability}</strong>
+              <strong>{effectiveServiceAvail}</strong>
               <br />
-              {spec.finalOutcome}
+              {effectiveFinalOutcome}
             </div>
           </div>
         </div>

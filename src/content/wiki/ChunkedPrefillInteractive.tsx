@@ -146,11 +146,27 @@ export function ChunkedPrefillInteractive({
     }
   };
 
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mFirstTok = `${id}-${uid}-chunk-first`;
   const firstChunk = plan.slices[0]!.prefillTokens;
-  const decodeFlex = Math.max(0.18, plan.decodeSlotsPerStep / plan.budget);
-  const prefillFlex = Math.max(0.35, firstChunk / plan.budget);
-  const isStall = plan.budget >= 4096;
+  const hasDecodeUsers = plan.decodeSlotsPerStep > 0;
+  const isDecodeStalled = hasDecodeUsers && plan.peakStepUnits >= 3000;
   const isManySteps = plan.chunkCount >= 5;
+  const sliceSeqText = `[${plan.slices.map((s) => s.prefillTokens).join(", ")}]`;
+  const costSeqText = `[${plan.slices.map((s) => s.stepCostUnits).join(", ")}]`;
+
+  const colGap = 8;
+  const slotTotalW = 800;
+  const colW = (slotTotalW - (plan.chunkCount - 1) * colGap) / plan.chunkCount;
+  const axisX0 = 84;
+  const axisW = 668;
+  let accUnits = 0;
+  const timeSegments = plan.slices.map((s) => {
+    const x0 = axisX0 + (accUnits / plan.totalTtftUnits) * axisW;
+    accUnits += s.stepCostUnits;
+    const x1 = axisX0 + (accUnits / plan.totalTtftUnits) * axisW;
+    return { slice: s, x0, x1, w: Math.max(4, x1 - x0) };
+  });
 
   return (
     <WikiEduSandboxShell
@@ -233,28 +249,51 @@ export function ChunkedPrefillInteractive({
         </>
       }
       takeawayBadge={`${plan.chunkCount} 步算完长文`}
-      takeawayTone={isStall ? "danger" : isManySteps ? "warn" : "default"}
+      takeawayTone={isDecodeStalled ? "danger" : isManySteps ? "warn" : "default"}
       takeaway={
-        isStall ? (
+        isDecodeStalled ? (
           <>
-            <strong>预算开太大（4096）</strong>：新长文 1 步全吞完，首字最快，但同车的{" "}
-            <strong>{`${plan.decodeSlotsPerStep} 位老用户`}</strong>被迫陪等一整篇长文，流式打字明显卡顿！
+            <strong>预算开太大（{plan.budget}）</strong>：每步先扣{" "}
+            <strong>{`${plan.decodeSlotsPerStep} 个老用户槽位`}</strong>后，长文切为{" "}
+            <span className="mono">{sliceSeqText}</span>（第 {plan.chunkCount} 步才发首 token）；第 1 步塞入{" "}
+            <strong>{`${firstChunk} 字`}</strong>（模拟成本 <strong>{plan.peakStepUnits}</strong>
+            ），同车老用户明显卡顿！
+          </>
+        ) : !hasDecodeUsers && plan.chunkCount === 1 ? (
+          <>
+            <strong>零并发独占预填充（D=0）</strong>：当前无在跑老用户（老请求 ITL 无样本），4096 字新长文{" "}
+            <strong>1 步全量算完</strong>（模拟成本 <strong>{plan.totalTtftUnits}</strong>）直出首 token。
           </>
         ) : isManySteps ? (
           <>
-            <strong>预算切很薄（{plan.budget}）</strong>：老用户每步吐字极丝滑，但 4096 字长文被切成{" "}
-            <strong>{`${plan.chunkCount} 步`}</strong>才吐出第 1 个字（首字变慢）。
+            <strong>预算切很薄（{plan.budget}）</strong>：
+            {hasDecodeUsers
+              ? `单步峰值成本压低至 ${plan.peakStepUnits}，老用户吐字极丝滑，但 `
+              : "当前无在跑老用户（老请求 ITL 无样本），"}
+            4096 字长文被切成 <strong>{`${plan.chunkCount} 步`}</strong>（累计等待{" "}
+            <strong>{plan.totalTtftUnits}</strong>）才发出首 token。
           </>
         ) : (
           <>
-            <strong>甜点折中档（{plan.budget}）</strong>：每步先保{" "}
-            <strong>{`${plan.decodeSlotsPerStep} 位老用户`}</strong>各吐 1 字，剩余{" "}
-            <strong>{`${plan.prefillCapacityPerStep} 格`}</strong>切给长文，分 {plan.chunkCount}{" "}
-            步稳稳吐出首字。
+            <strong>折中甜点档（{plan.budget}）</strong>：
+            {hasDecodeUsers ? (
+              <>
+                每步先保 <strong>{`${plan.decodeSlotsPerStep} 位老用户`}</strong>各吐 1 字（峰值步成本{" "}
+                <strong>{plan.peakStepUnits}</strong>），余下{" "}
+                <strong>{`${plan.prefillCapacityPerStep} 格`}</strong>切给长文，分 {plan.chunkCount} 步发出首
+                token。
+              </>
+            ) : (
+              <>
+                当前无在跑老用户（老请求 ITL 无样本），每步切{" "}
+                <strong>{`${plan.prefillCapacityPerStep} 格`}</strong>
+                ，分 {plan.chunkCount} 步（累计成本 <strong>{plan.totalTtftUnits}</strong>）发出首 token。
+              </>
+            )}
           </>
         )
       }
-      kpi={`每步留给长文 ${plan.prefillCapacityPerStep} 字 · 共 ${plan.chunkCount} 步`}
+      kpi={`切片 ${sliceSeqText} · 共 ${plan.chunkCount} 步 · TTFT ${plan.totalTtftUnits}`}
       detailsSummary="查看工程与源码细节（max_num_batched_tokens 扣减与跨步 KV 重读）"
       detailsContent={
         <>
@@ -267,105 +306,214 @@ export function ChunkedPrefillInteractive({
         </>
       }
     >
-      <div className="wiki-edu-dual-grid">
-        <div className={`wiki-edu-panel${isStall && plan.decodeSlotsPerStep > 0 ? " is-oom" : ""}`}>
-          <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">① 老用户打字体验（单步等待时长 ITL）</span>
-            <span
-              className={`wiki-edu-badge ${isStall ? "is-bad" : plan.budget <= 1024 ? "is-good" : "is-mid"}`}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <svg
+          viewBox="0 0 840 246"
+          width="840"
+          height="246"
+          style={{ width: "100%", height: "auto", display: "block" }}
+          role="img"
+          aria-label={`Chunked Prefill 双轨图：预算 ${plan.budget}，老用户 ${plan.decodeSlotsPerStep} 人，切 ${plan.chunkCount} 步`}
+        >
+          <defs>
+            <marker
+              id={mFirstTok}
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
             >
-              {isStall ? "被长文堵住 · 明显卡顿" : plan.budget <= 1024 ? "极速小步 · 打字丝滑" : "折中平稳"}
-            </span>
-          </div>
+              <path d="M0,1 L9,5 L0,9 z" fill="#e85b32" />
+            </marker>
+          </defs>
 
-          <div className="wiki-edu-lane-box">
-            <div className="wiki-edu-lane-label">
-              <span>同一个 NPU 步里的名额分配</span>
-              <span className="mono">{`总预算 ${plan.budget}`}</span>
-            </div>
-            <div className="wiki-edu-track">
-              {plan.decodeSlotsPerStep > 0 && (
-                <div className="wiki-edu-op is-full" style={{ flex: decodeFlex }}>
-                  {`老用户 ${plan.decodeSlotsPerStep} 字`}
-                </div>
+          <rect
+            x="10"
+            y="8"
+            width="820"
+            height="114"
+            rx="9"
+            fill="#fbfaf6"
+            stroke="#d8d8cf"
+            strokeWidth="1.3"
+          />
+          <text x="20" y="28" fontSize="12.5" fontWeight="700" fill="#17211f">
+            ① 上轨：每步批预算槽位（Decode 优先 + Prefill + 剩余空槽）
+          </text>
+          <text x="820" y="28" textAnchor="end" fontSize="12" fontWeight="700" fill="#4c65b6">
+            {`B=${plan.budget} · 共 ${plan.chunkCount} 步`}
+          </text>
+
+          {plan.slices.map((s, idx) => {
+            const x = 20 + idx * (colW + colGap);
+            const cx = Number((x + colW / 2).toFixed(1));
+            const boxH = 54;
+            const boxY = 40;
+            const slack = Math.max(0, plan.budget - s.decodeTokens - s.prefillTokens);
+            const decH = s.decodeTokens > 0 ? Math.max(8, (s.decodeTokens / plan.budget) * boxH) : 0;
+            const prefH = Math.max(8, Math.min(boxH - decH, (s.prefillTokens / plan.budget) * boxH));
+            const slackH = Math.max(0, boxH - decH - prefH);
+            return (
+              <g key={s.stepIndex}>
+                {slackH > 0 && <rect x={x} y={boxY} width={colW} height={slackH} fill="#ece9df" />}
+                <rect
+                  x={x}
+                  y={boxY + slackH}
+                  width={colW}
+                  height={prefH}
+                  fill={isDecodeStalled && idx === 0 ? "#fff0e9" : "#e8edff"}
+                />
+                {decH > 0 && (
+                  <rect x={x} y={boxY + slackH + prefH} width={colW} height={decH} fill="#ddf4ef" />
+                )}
+                <rect
+                  x={x}
+                  y={boxY}
+                  width={colW}
+                  height={boxH}
+                  rx="5"
+                  fill="none"
+                  stroke={s.emitsFirstToken ? "#e85b32" : "#4c65b6"}
+                  strokeWidth={s.emitsFirstToken ? "1.8" : "1.3"}
+                />
+                <text x={cx} y="62" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  {`S${s.stepIndex}`}
+                </text>
+                <text x={cx} y="83" textAnchor="middle" fontSize="12" fontWeight="700" fill="#4c65b6">
+                  {`${s.prefillTokens}`}
+                </text>
+                <text x={cx} y="112" textAnchor="middle" fontSize="12" fill="#66716d">
+                  {plan.chunkCount <= 4 ? `D${s.decodeTokens}·余${slack}` : `D${s.decodeTokens}`}
+                </text>
+              </g>
+            );
+          })}
+
+          <rect
+            x="10"
+            y="130"
+            width="820"
+            height="108"
+            rx="9"
+            fill="#fbfaf6"
+            stroke="#d8d8cf"
+            strokeWidth="1.3"
+          />
+          <text x="20" y="150" fontSize="12.5" fontWeight="700" fill="#17211f">
+            ② 下轨：模拟耗时轴（老请求吐字点 ITL vs 新请求首字 TTFT）
+          </text>
+          <text
+            x="820"
+            y="150"
+            textAnchor="end"
+            fontSize="12"
+            fontWeight="700"
+            fill={isDecodeStalled ? "#b54237" : "#087f73"}
+          >
+            {hasDecodeUsers ? `峰值步成本 ${plan.peakStepUnits}` : "老请求 ITL 无样本"}
+          </text>
+
+          <text x="20" y="181" fontSize="12" fontWeight="700" fill="#17211f">
+            老请求
+          </text>
+          {!hasDecodeUsers ? (
+            <g>
+              <rect
+                x={axisX0}
+                y="163"
+                width={axisW}
+                height="26"
+                rx="5"
+                fill="#ece9df"
+                stroke="#d8d8cf"
+                strokeDasharray="5 3"
+              />
+              <text x={axisX0 + axisW / 2} y="181" textAnchor="middle" fontSize="12" fill="#66716d">
+                D = 0：无在跑老请求（ITL 无样本）
+              </text>
+            </g>
+          ) : (
+            <g>
+              {timeSegments.map(({ slice, x0, x1, w }) => {
+                const highCost = slice.stepCostUnits >= 3000;
+                return (
+                  <g key={slice.stepIndex}>
+                    <rect
+                      x={x0}
+                      y="163"
+                      width={w}
+                      height="26"
+                      rx="4"
+                      fill={highCost ? "#fff0e9" : "#ddf4ef"}
+                      stroke={highCost ? "#b54237" : "#087f73"}
+                      strokeWidth="1.3"
+                    />
+                    <circle cx={x1} cy="176" r="4.5" fill={highCost ? "#b54237" : "#087f73"} />
+                  </g>
+                );
+              })}
+              <text x="760" y="181" fontSize="12" fontWeight="700" fill="#087f73">
+                吐字点
+              </text>
+            </g>
+          )}
+
+          <text x="20" y="220" fontSize="12" fontWeight="700" fill="#17211f">
+            新长文
+          </text>
+          {timeSegments.map(({ slice, x0, w }) => (
+            <g key={slice.stepIndex}>
+              <rect
+                x={x0}
+                y="202"
+                width={w}
+                height="26"
+                rx="4"
+                fill={slice.emitsFirstToken ? "#fff0e9" : "#e8edff"}
+                stroke={slice.emitsFirstToken ? "#e85b32" : "#4c65b6"}
+                strokeWidth="1.4"
+              />
+              {w >= 58 && (
+                <text
+                  x={x0 + w / 2}
+                  y="220"
+                  textAnchor="middle"
+                  fontSize="12"
+                  fontWeight="700"
+                  fill="#17211f"
+                >
+                  {`${slice.stepCostUnits}`}
+                </text>
               )}
-              <div
-                className={`wiki-edu-op ${isStall ? "is-bubble" : "is-piece"}`}
-                style={{ flex: prefillFlex }}
-              >
-                {`新长文塞入 ${firstChunk} 字`}
-              </div>
-            </div>
-          </div>
+            </g>
+          ))}
+          <line
+            x1={axisX0 + axisW - 14}
+            y1="215"
+            x2={axisX0 + axisW + 4}
+            y2="215"
+            stroke="#e85b32"
+            strokeWidth="1.8"
+            markerEnd={`url(#${mFirstTok})`}
+          />
+          <text x="762" y="220" fontSize="12" fontWeight="700" fill="#e85b32">
+            {`首字S${plan.chunkCount}`}
+          </text>
+        </svg>
 
-          <div className="wiki-edu-lane-box">
-            <div className="wiki-edu-lane-label">
-              <span>老用户屏幕上的流式蹦字感受</span>
-              <span>每步陪跑越少越丝滑</span>
-            </div>
-            <div className="wiki-edu-track">
-              {isStall ? (
-                <>
-                  <div className="wiki-edu-op is-full" style={{ flex: 0.5 }}>
-                    字
-                  </div>
-                  <div className="wiki-edu-op is-bubble" style={{ flex: 2.2 }}>
-                    ⏸ 干等 4096 字算完…
-                  </div>
-                  <div className="wiki-edu-op is-full" style={{ flex: 0.5 }}>
-                    字
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
-                    字 →
-                  </div>
-                  <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
-                    字 →
-                  </div>
-                  <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
-                    字 →
-                  </div>
-                  <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
-                    丝滑连贯
-                  </div>
-                </>
-              )}
-            </div>
+        <div className="wiki-edu-dual-grid">
+          <div className={`wiki-edu-note-card${isDecodeStalled ? " is-oom" : ""}`}>
+            <strong>老请求 ITL 口径</strong>：
+            {hasDecodeUsers
+              ? `每步 ${plan.decodeSlotsPerStep} 位老用户优先占槽，各步模拟成本序列 ${costSeqText}（峰值 ${plan.peakStepUnits}）。`
+              : "D = 0 无在跑 Decode 请求，老请求 ITL 无样本，预算全部供新长文使用。"}
           </div>
-
           <div className="wiki-edu-note-card">
-            老用户每步只需算 1 个字，但必须等<strong>同一批里塞进来的长文分块一起算完</strong>才能拿到结果。
-          </div>
-        </div>
-
-        <div className="wiki-edu-panel">
-          <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">② 4096 字新长文要切几步才吐首字（TTFT）</span>
-            <span className={`wiki-edu-badge ${isManySteps ? "is-warn" : "is-good"}`}>
-              {plan.chunkCount === 1 ? "1 步直出首字" : `切成 ${plan.chunkCount} 步完成`}
-            </span>
-          </div>
-
-          <div className="wiki-edu-chunks-wrap">
-            {plan.slices.map((slice) => (
-              <div
-                key={slice.stepIndex}
-                className={`wiki-edu-chunk-pill${slice.emitsFirstToken ? " is-last" : ""}`}
-              >
-                <strong>{`第 ${slice.stepIndex} 步 · ${slice.prefillTokens} 字`}</strong>
-                <span>{slice.emitsFirstToken ? "⚡ 吐出第 1 个字!" : "只攒历史 KV"}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="wiki-edu-note-card">
-            {isManySteps
-              ? `切成了 ${plan.chunkCount} 小块：虽然完全不卡老用户，但后面几块要反复回头读前面攒下的历史，新请求等首字变慢。`
-              : plan.chunkCount === 1
-                ? "1 步吃下整篇 4096 字：新请求首字最快，但会把单步耗时撑到最大。"
-                : `切成 ${plan.chunkCount} 步：前 ${plan.chunkCount - 1} 步分段消化长文，第 ${plan.chunkCount} 步吐出首字，兼顾两边体验。`}
+            <strong>新长文 TTFT 口径</strong>：4096 字切分为 <span className="mono">{sliceSeqText}</span>，第{" "}
+            <strong>{plan.chunkCount}</strong> 步末尾发出首 token（累计等待成本{" "}
+            <strong>{plan.totalTtftUnits}</strong>）。
           </div>
         </div>
       </div>

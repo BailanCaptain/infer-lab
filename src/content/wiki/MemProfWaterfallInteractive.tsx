@@ -214,8 +214,30 @@ export function MemProfWaterfallInteractive({
     }
   };
 
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const mFlow = `${id}-${uid}-mem-flow`;
   const isSafePreset = mode === "sandbox" && Math.abs(state.utilization - 0.9) < 0.005;
   const isTightPreset = mode === "sandbox" && Math.abs(state.utilization - 0.96) < 0.005;
+
+  const wfTop = 48;
+  const wfBottom = 224;
+  const wfPxPerGiB = (wfBottom - wfTop) / A2_SCHEMATIC_TOTAL_GIB;
+  const yOfGiB = (g: number) => Number((wfBottom - g * wfPxPerGiB).toFixed(1));
+  const afterW = Math.max(0, state.budgetGiB - state.weightsGiB);
+  const afterT = Math.max(0, afterW - state.torchPeakGiB);
+  const yBudget = yOfGiB(state.budgetGiB);
+  const yAfterW = yOfGiB(afterW);
+  const yAfterT = yOfGiB(afterT);
+  const yKvTop = yOfGiB(state.kvPoolGiB);
+
+  const hrBase = 212;
+  const hrMaxGiB = 14;
+  const hrMaxH = 140;
+  const hrBarH = Number(Math.min(hrMaxH, (state.headroomGiB / hrMaxGiB) * hrMaxH).toFixed(1));
+  const grBarH = Number(((state.graphGiB / hrMaxGiB) * hrMaxH).toFixed(1));
+  const recTotalH = Number(((state.recommendedHeadroomGiB / hrMaxGiB) * hrMaxH).toFixed(1));
+  const yGraphLine = Number((hrBase - grBarH).toFixed(1));
+  const yRecLine = Number((hrBase - recTotalH).toFixed(1));
 
   const takeawayBadge = state.isCaptureOomRisk
     ? "低于估算图显存（OOM 风险）"
@@ -352,32 +374,313 @@ export function MemProfWaterfallInteractive({
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div className="wiki-edu-lane-box">
-          <div className="wiki-edu-lane-label">
-            <span>{`64 GiB 瀑布切分（预算 ${state.budgetGiB.toFixed(2)}G + 留白 ${state.headroomGiB.toFixed(2)}G）`}</span>
-            <span className="mono">{`每块 ${state.blockMiB} MiB`}</span>
-          </div>
-          <div className="wiki-edu-track">
-            <div className="wiki-edu-op is-attn" style={{ flex: Math.max(0.14, state.weightsGiB / 64) }}>
-              {`权重 ${state.weightsGiB}G`}
-            </div>
-            <div
-              className="wiki-edu-op is-eager"
-              style={{ flex: Math.max(0.12, (state.torchPeakGiB + state.nonTorchGiB) / 64) }}
+        <svg
+          viewBox="0 0 860 278"
+          width="860"
+          height="278"
+          style={{ width: "100%", height: "auto", display: "block" }}
+          role="img"
+          aria-label={`64 GiB 显存扣减瀑布（TP=${state.tpSize}, u=${state.utilization.toFixed(2)}）`}
+        >
+          <defs>
+            <marker
+              id={mFlow}
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
             >
-              {`峰+非T ${(state.torchPeakGiB + state.nonTorchGiB).toFixed(2)}G`}
-            </div>
-            <div className="wiki-edu-op is-piece" style={{ flex: Math.max(0.32, state.kvPoolGiB / 64) }}>
-              {`KV 池 ${state.kvPoolGiB.toFixed(2)}G`}
-            </div>
-            <div
-              className={`wiki-edu-op ${state.isCaptureOomRisk ? "is-bubble" : "is-full"}`}
-              style={{ flex: Math.max(0.14, state.headroomGiB / 64) }}
-            >
-              {`1−u ${state.headroomGiB.toFixed(2)}G`}
-            </div>
-          </div>
-        </div>
+              <path d="M0,1 L9,5 L0,9 z" fill="#4c65b6" />
+            </marker>
+          </defs>
+
+          <rect
+            x="10"
+            y="8"
+            width="466"
+            height="264"
+            rx="9"
+            fill="#fbfaf6"
+            stroke="#d8d8cf"
+            strokeWidth="1.3"
+          />
+          <text x="22" y="28" fontSize="12.5" fontWeight="700" fill="#17211f">
+            ① 64 GiB 预算内三级扣减瀑布
+          </text>
+          <text x="462" y="28" textAnchor="end" fontSize="12" fontWeight="700" fill="#e85b32">
+            {`u=${state.utilization.toFixed(2)} (${state.budgetGiB.toFixed(2)} GiB)`}
+          </text>
+
+          <rect x="24" y={wfTop} width="60" height={yBudget - wfTop} fill="#ffffff" stroke="#d8d8cf" />
+          <rect x="24" y={yBudget} width="60" height={wfBottom - yBudget} fill="#ece9df" stroke="#66716d" />
+          <line
+            x1="18"
+            y1={yBudget}
+            x2="458"
+            y2={yBudget}
+            stroke="#e85b32"
+            strokeWidth="1.6"
+            strokeDasharray="5 3"
+          />
+
+          <rect x="110" y={yAfterW} width="60" height={wfBottom - yAfterW} fill="#ece9df" opacity="0.45" />
+          <rect
+            x="110"
+            y={yBudget}
+            width="60"
+            height={Math.max(3, yAfterW - yBudget)}
+            fill="#fff4cf"
+            stroke="#c78300"
+            strokeWidth="1.4"
+          />
+          <line x1="170" y1={yAfterW} x2="196" y2={yAfterW} stroke="#66716d" strokeDasharray="3 2" />
+
+          <rect x="196" y={yAfterT} width="60" height={wfBottom - yAfterT} fill="#ece9df" opacity="0.45" />
+          <rect
+            x="196"
+            y={yAfterW}
+            width="60"
+            height={Math.max(3, yAfterT - yAfterW)}
+            fill="#fff0e9"
+            stroke="#e85b32"
+            strokeWidth="1.4"
+          />
+          <line x1="256" y1={yAfterT} x2="282" y2={yAfterT} stroke="#66716d" strokeDasharray="3 2" />
+
+          <rect x="282" y={yKvTop} width="60" height={wfBottom - yKvTop} fill="#ece9df" opacity="0.45" />
+          <rect
+            x="282"
+            y={yAfterT}
+            width="60"
+            height={Math.max(3, yKvTop - yAfterT)}
+            fill="#f7e7f2"
+            stroke="#9a4b86"
+            strokeWidth="1.4"
+          />
+          <line
+            x1="342"
+            y1={yKvTop}
+            x2="368"
+            y2={yKvTop}
+            stroke="#4c65b6"
+            strokeWidth="1.5"
+            strokeDasharray="3 2"
+          />
+
+          <rect
+            x="368"
+            y={yKvTop}
+            width="76"
+            height={Math.max(4, wfBottom - yKvTop)}
+            rx="4"
+            fill="#e8edff"
+            stroke="#4c65b6"
+            strokeWidth="1.6"
+          />
+
+          <text x="54" y="244" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            总显存
+          </text>
+          <text x="54" y="262" textAnchor="middle" fontSize="12" fill="#66716d">
+            64.00G
+          </text>
+          <text x="140" y="244" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            扣权重
+          </text>
+          <text
+            x="140"
+            y="262"
+            textAnchor="middle"
+            fontSize="12"
+            fill="#c78300"
+          >{`−${state.weightsGiB.toFixed(2)}G`}</text>
+          <text x="226" y="244" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            扣激活峰
+          </text>
+          <text
+            x="226"
+            y="262"
+            textAnchor="middle"
+            fontSize="12"
+            fill="#e85b32"
+          >{`−${state.torchPeakGiB.toFixed(2)}G`}</text>
+          <text x="312" y="244" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            扣非Torch
+          </text>
+          <text
+            x="312"
+            y="262"
+            textAnchor="middle"
+            fontSize="12"
+            fill="#9a4b86"
+          >{`−${state.nonTorchGiB.toFixed(2)}G`}</text>
+          <text x="406" y="244" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            KV 预算
+          </text>
+          <text
+            x="406"
+            y="262"
+            textAnchor="middle"
+            fontSize="12"
+            fontWeight="700"
+            fill="#4c65b6"
+          >{`${state.kvPoolGiB.toFixed(2)}G`}</text>
+
+          <line
+            x1="446"
+            y1="136"
+            x2="490"
+            y2="76"
+            stroke="#4c65b6"
+            strokeWidth="1.8"
+            markerEnd={`url(#${mFlow})`}
+          />
+
+          <rect
+            x="492"
+            y="48"
+            width="162"
+            height="52"
+            rx="7"
+            fill="#e8edff"
+            stroke="#4c65b6"
+            strokeWidth="1.4"
+          />
+          <text x="573" y="69" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            折算物理总块
+          </text>
+          <text x="573" y="89" textAnchor="middle" fontSize="12" fontWeight="700" fill="#4c65b6">
+            {`${state.totalBlocks.toLocaleString()} 块 (${state.blockMiB}MiB)`}
+          </text>
+
+          <line
+            x1="573"
+            y1="102"
+            x2="573"
+            y2="114"
+            stroke="#4c65b6"
+            strokeWidth="1.6"
+            markerEnd={`url(#${mFlow})`}
+          />
+          <rect
+            x="492"
+            y="116"
+            width="162"
+            height="50"
+            rx="7"
+            fill="#fbfaf6"
+            stroke="#66716d"
+            strokeWidth="1.4"
+          />
+          <text x="573" y="136" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            扣 1 保留空块
+          </text>
+          <text x="573" y="156" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            {`可用 ${state.usableBlocks.toLocaleString()} 块`}
+          </text>
+
+          <line
+            x1="573"
+            y1="168"
+            x2="573"
+            y2="180"
+            stroke="#4c65b6"
+            strokeWidth="1.6"
+            markerEnd={`url(#${mFlow})`}
+          />
+          <rect
+            x="492"
+            y="182"
+            width="162"
+            height="52"
+            rx="7"
+            fill="#ddf4ef"
+            stroke="#087f73"
+            strokeWidth="1.5"
+          />
+          <text x="573" y="203" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            可用词槽 (×128)
+          </text>
+          <text x="573" y="223" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+            {`${state.tokenSlots.toLocaleString()} 词槽`}
+          </text>
+
+          <rect
+            x="666"
+            y="8"
+            width="184"
+            height="264"
+            rx="9"
+            fill={state.isCaptureOomRisk ? "#fff0e9" : "#fbfaf6"}
+            stroke={state.isCaptureOomRisk ? "#b54237" : "#d8d8cf"}
+            strokeWidth="1.4"
+          />
+          <text x="758" y="28" textAnchor="middle" fontSize="12.5" fontWeight="700" fill="#17211f">
+            ② 留白 vs 录图与裕度
+          </text>
+
+          <rect
+            x="688"
+            y={hrBase - hrBarH}
+            width="54"
+            height={hrBarH}
+            rx="4"
+            fill={state.isCaptureOomRisk ? "#fff0e9" : "#ddf4ef"}
+            stroke={state.isCaptureOomRisk ? "#b54237" : "#087f73"}
+            strokeWidth="1.5"
+          />
+          <rect
+            x="772"
+            y={yRecLine}
+            width="54"
+            height={Math.max(2, yGraphLine - yRecLine)}
+            fill="#fff4cf"
+            stroke="#c78300"
+          />
+          <rect
+            x="772"
+            y={yGraphLine}
+            width="54"
+            height={grBarH}
+            rx="3"
+            fill="#f7e7f2"
+            stroke="#9a4b86"
+            strokeWidth="1.4"
+          />
+          <line x1="680" y1={yGraphLine} x2="834" y2={yGraphLine} stroke="#9a4b86" strokeWidth="1.5" />
+          <line
+            x1="680"
+            y1={yRecLine}
+            x2="834"
+            y2={yRecLine}
+            stroke="#c78300"
+            strokeWidth="1.4"
+            strokeDasharray="4 3"
+          />
+
+          <text x="715" y="232" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            {`留 ${state.headroomGiB.toFixed(2)}G`}
+          </text>
+          <text x="799" y="232" textAnchor="middle" fontSize="12" fontWeight="700" fill="#9a4b86">
+            {`图 ${state.graphGiB.toFixed(2)}G`}
+          </text>
+          <text
+            x="758"
+            y="256"
+            textAnchor="middle"
+            fontSize="12"
+            fontWeight="700"
+            fill={state.isCaptureOomRisk ? "#b54237" : state.isBelowRecommendMargin ? "#c78300" : "#087f73"}
+          >
+            {state.isCaptureOomRisk
+              ? `缺口 −${Math.abs(state.graphMarginGiB).toFixed(2)} GiB (OOM)`
+              : state.isBelowRecommendMargin
+                ? `差裕度 −${Math.abs(state.recommendMarginGiB).toFixed(2)} GiB`
+                : `富余 +${state.recommendMarginGiB.toFixed(2)} GiB (+150MiB)`}
+          </text>
+        </svg>
 
         <div className="wiki-edu-dual-grid">
           <div className="wiki-edu-panel">

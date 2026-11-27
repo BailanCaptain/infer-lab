@@ -2,9 +2,10 @@
 id: vllm-ascend-overview
 title: vllm-ascend 如何接入 vLLM
 type: concept
+legacyAnchors:
+  一条请求走到这里a0a4-每站换了什么: 异构模型怎样接管缓存输入和前向
 summary: >-
-  vllm-ascend 是让 vLLM 跑在昇腾 NPU 上的单独插件包：沿用 vLLM 的请求与引擎框架，提供 NPU 执行实现，也会调整部分调度行为。本页是地图：五个扩展点（平台、patch、模型、算子、配置）各一句，再沿 GLM 双机主线 A0–A4
-  看每站接管了什么，最后给各版本差异与源码入口。
+  vllm-ascend 是让 vLLM 跑在昇腾 NPU 上的独立插件包：沿用 vLLM 的请求与引擎框架，通过平台、patch、模型注册、算子与配置五个扩展点接进主线，按需接管缓存规格、输入拼接、模型前向与集合通信。
 aliases:
   - vLLM-Ascend
   - vLLM Ascend
@@ -129,7 +130,7 @@ rawSources:
 
 vllm-ascend 是让 vLLM 跑在昇腾 NPU（华为的 AI 加速芯片）上的一个单独安装的包：请求接入和引擎循环沿用 vLLM 的框架，Worker、模型、算子和通信则通过平台与扩展机制选择适用的实现。它还会调整部分调度配置与资源管理行为，因此两边的分工需要沿实际调用链看。本知识库也叫它「昇腾适配层」。
 
-**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 是守着一张卡、真正执行模型的进程。请求到来前，插件先通过平台钩子、补丁与算子注册把昇腾实现接进主干。请求到来后，每一步顺次走过 Scheduler（定本步请求与 KV 块）、Executor（把计划发给每卡 `NPUWorker`）、`NPUModelRunner`（把计划变成 NPU 张量），最终由模型和昇腾算子算完交回引擎（完整边界见下节架构图）。
+**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 驱动一张设备，执行器决定它是否另起进程（单卡 `uni` 下可与 EngineCore 同进程，多卡 `mp` 下每卡一进程）。请求到来前，插件先通过平台钩子、补丁与算子注册把昇腾实现接进主干。请求到来后，每一步顺次走过 Scheduler（定本步请求与 KV 块）、Executor（把计划发给每卡 `NPUWorker`）、`NPUModelRunner`（把计划变成 NPU 张量），最终由模型和昇腾算子算完交回引擎（完整边界见下节架构图）。
 
 ## 为什么做成插件，不直接改一份 vLLM？代价在哪
 
@@ -139,9 +140,9 @@ fork 是从上游代码派生一份独立维护的版本，后续需要处理与
 
 代价有三笔：
 
-- **没留接口的地方只能打 patch**，即在进程内把上游的函数或类改指向昇腾的实现。旧 GLM 基线有 59 个 `patch_*.py` 文件，`v0.30.0` 主基线为 65 个（`platform` 32 + `worker` 19 + `worker/patch_v2` 14），`main` 退役 MRV1 后收敛至 59 个（`platform` 29 + `worker` 30）。因此读上游代码看到的未必是实际运行的那一份。
-- **多进程重复初始化**：补丁的防重标志保存在当前 Python 进程内存中，一个进程打过补丁无法替另一个进程记录状态。按命令行默认 `spawn`（Python 启动全新独立子进程解释器，不继承父进程内存状态）假设，前端、EngineCore 和每个 Worker 都要在各自解释器里读清单、打 patch。特别是 EngineCore 子进程不会跑测试框架的初始化钩子，必须借通用插件入口再补一次全局 patch。
-- **和上游版本绑得紧**：上游改动函数名或签名时，patch 必须同步调整。旧 GLM 基线的平台补丁里有两项、Worker 补丁里有一项直接挂在「不是 vLLM 0.23.0」的版本判断下，V2 相关补丁还有独立门控。
+- **没留接口的地方只能打 patch**，即在进程内把上游的函数或类改指向昇腾的实现，因此读上游代码看到的未必是实际运行的那一份（四代版本 `patch_*.py` 数量与目录演进见文末[版本差异](#版本差异)）。
+- **多进程重复初始化**：补丁的防重标志保存在当前 Python 进程内存中，一个进程打过补丁无法替另一个进程记录状态。按命令行默认 `spawn`（Python 启动全新独立子进程解释器，不继承父进程内存状态）假设，前端、EngineCore 和每个独立 Worker 都要在各自解释器里读清单、打 patch。特别是 EngineCore 子进程不会跑测试框架的初始化钩子，必须借通用插件入口再补一次全局 patch。
+- **和上游版本绑得紧**：上游改动函数名或签名时，patch 必须同步调整，部分平台与 Worker 补丁还挂着显式的 vLLM 版本判断或 V2 Runner 独立门控。
 
 ## 两边各管什么：五个扩展点
 
@@ -155,15 +156,15 @@ file: vllm-ascend-overview-fig-two-repo-map
 
 - **平台（`NPUPlatform`）**：启动时读取 `HardwareProfile` 校验卡型、把默认 `block_size` 对齐为 `128`，并回答 Worker（`NPUWorker` / `NPUWorker310`）、注意力后端与通信类（`NPUCommunicator`）各用哪个。见[插件发现与模型注册](platform-plugin-registration.md)与 [NPUPlatform](npu-platform.md)。
 - **patch**：在上游未留接口处替换函数或类，分平台侧和 Worker 侧两类（如默认模型运行器开关、特定调度/缓存对齐）。见 [Patch 机制](ascend-patch-system.md)。
-- **模型**：像 `Qwen3-8B`（`Qwen3ForCausalLM`）直接复用上游内置模型类；而上游未内置或需昇腾定制的架构（`v0.30.0` 共 29 项，含 GLM、DeepSeek、Kimi 与 `Qwen3_5*` 覆写），则由插件在 `ModelRegistry` 指向昇腾实现。见[模型入口](platform-plugin-registration.md#模型入口从架构名找到昇腾的-glm-实现)。
+- **模型**：像 `Qwen3-8B`（`Qwen3ForCausalLM`）直接复用上游内置模型类；而上游未内置或需昇腾定制的架构（`v0.30.0` 共 29 项，含 GLM、DeepSeek、Kimi 与 `Qwen3_5*` 覆写），则由插件在 `ModelRegistry` 指向昇腾实现（见[模型入口](platform-plugin-registration.md#模型入口从架构名找到昇腾的-glm-实现)；多模态模型的视觉编码特征复用与 ViT 图捕获见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）。
 - **算子**：提供注意力（标准 GQA［分组查询注意力］走 `AscendAttentionBackend` / FIA［FusedInferAttentionScore，昇腾融合注意力算子］）、MoE（混合专家）、量化矩阵乘和卡间通信的 NPU 实现。总入口见[算子与 kernel](ops-and-kernels.md)，注意力后端见[注意力后端](attention-backend-family.md)，卡间通信见 [CANN 与 HCCL](cann-hccl.md)，量化见 [W8A8 量化](quantization.md)。
-- **配置**：把命令行、`--additional-config` JSON 与环境变量三路开关汇成各进程的 `AscendConfig`。见 [Ascend 配置](ascend-config-system.md)。
+- **配置**：把命令行、`--additional-config` JSON 与环境变量三路开关汇成各进程的 `AscendConfig`（见 [Ascend 配置](ascend-config-system.md)；表外 CANN / TorchNPU 运行时环境与下发流水调优见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）。
 
 状态也按这条线分：请求进度和 KV cache 块分配归上游，本步的请求映射、注意力元数据和各卡的缓存张量归执行侧。请求没被调度，查队列、token 预算和块分配；读错了历史，查位置、[block table](block-table.md) 和状态索引。
 
-## 一条请求走到这里：A0–A4 每站换了什么
+## 异构模型怎样接管缓存、输入和前向
 
-看清标准 `Qwen3-8B` 路径后，下面把五个扩展点映射到「09 旗舰异构模型全案」的历史双机部署（`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，模型 `GLM-5.3-Flash`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），沿[一条请求](one-request.md)逐站核对：
+当模型从同构 GQA 换成混合注意力加跨机专家并行架构时，五个扩展点会从缓存规格、块表展开一路深入接管到自注册层实现。以历史双机算例（例外 B，`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，模型 `GLM-5.3-Flash`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，部署数字出处见[部署前提](glm-5-3-flash-two-node.md#部署前提)与[一条请求](one-request.md)）逐站对照：
 
 | 主线站点 | 上游 vLLM 负责什么 | `vllm-ascend` 在这一站接管什么 |
 |---|---|---|
@@ -186,13 +187,13 @@ file: vllm-ascend-overview-fig-two-repo-map
 
 ### 怎么开
 
-安装包后，vLLM 还需通过插件入口发现它，并按允许加载的名单筛选。排查插件没有生效时，要同时检查安装元数据与加载筛选；包能够导入，并不足以说明插件已经加载。GLM 基线声明两组 entry point、共 5 个入口名 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/setup.py#L543-L550)：平台组 `vllm.platform_plugins` 只有 `ascend = vllm_ascend:register`，只返回字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自己导入；通用组 `vllm.general_plugins` 有四个，登记 KV 连接器与权重传输引擎、[netloader](netloader-guide.md) 与 rfork 加载器、服务级 profiling 配置、模型实现 [来源 3](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/__init__.py#L38-L75)。平台组在每个进程第一次访问当前平台时加载 [来源 4](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/plugins/__init__.py#L14-L19)、[来源 5](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/plugins/__init__.py#L28-L82)。
+安装包后，vLLM 还需通过插件入口发现它，并按允许加载的名单筛选。排查插件没有生效时，要同时检查安装元数据与加载筛选；包能够导入，并不足以说明插件已经加载。`v0.30.0` 正式版在 `setup.py` 中声明三组共 6 个 entry point（`#L506-L517`）：平台组 `vllm.platform_plugins` 为 `ascend = vllm_ascend:register`（仅返回类路径字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自行导入）；通用组 `vllm.general_plugins` 有 4 个入口（分别登记 KV 连接器与权重传输引擎、[netloader](netloader-guide.md) 与 rfork 加载器、服务级 profiling 配置、模型实现，`main` 在 `register_connector` 中另增 `ec_transfer` 注册）；第三组 `ms_service_metric.providers` 提供服务指标采集器。历史 GLM 双机镜像声明的是前两组共 5 个入口名 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/setup.py#L543-L550)、[来源 3](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/__init__.py#L38-L75)，该历史部署的插件激活与量化启动流程见[双机启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。平台组在每个进程第一次访问当前平台时加载 [来源 4](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/plugins/__init__.py#L14-L19)、[来源 5](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/plugins/__init__.py#L28-L82)。
 
 四个通用入口里三个先调 `_ensure_global_patch()`，模型入口不调：vLLM 在 EngineCore 子进程里加载通用插件，端到端测试的 conftest 钩子到不了那里，global patch 只能借这些入口打上 [来源 2](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/__init__.py#L18-L35)。
 
-NPUPlatform 继承上游 Platform [来源 6](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/platforms/interface.py#L105-L113)。v0.23 维护分支上它标成 OOT（out-of-tree），设备名 npu，可见设备环境变量 `ASCEND_RT_VISIBLE_DEVICES`，dispatch key 是 PrivateUse1，简单编译后端写成 eager、注释写明关闭 torch.compile [来源 7](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/platform.py#L96-L146)，图模式另走一套，见[图模式层](graph-mode-layer.md)。GLM 命令里的 `--quantization ascend` 由平台在解析参数前补进去，patch 统一入口也在这里调 [来源 8](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L184-L203)。官方双机不在附带 JSON 里传任何键，见 [Ascend 配置](ascend-config-system.md)。
+`NPUPlatform` 继承上游 `Platform` [来源 6](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/platforms/interface.py#L105-L113)，标记为 `OOT`（out-of-tree），设备名 `npu`，可见设备环境变量 `ASCEND_RT_VISIBLE_DEVICES`，dispatch key 为 `PrivateUse1`，简单编译后端设为 `eager`（注释说明关闭 `torch.compile`，[来源 7](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/platform.py#L96-L146)；昇腾图模式另走独立管线，见[图模式层](graph-mode-layer.md)）。参数解析前，`pre_register_and_update` 向解析器补充 `--quantization ascend` 候选并触发全局 patch 入口 [来源 8](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L184-L203)（历史双机命令传参细节见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)与 [Ascend 配置](ascend-config-system.md)）。
 
-其余接口：继承 WorkerBase 的 NPUWorker 在 Worker 类为 auto 时选中，310P、xlite 另有分支 [来源 9](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L650-L662)；继承 GPUModelRunner 的 NPUModelRunner 由 NPUWorker 创建，另有 v2 runner 分支 [来源 13](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/worker.py#L505-L520)；平台选择注意力后端时先看符合条件的 FA3 特例，普通路径按三个标志查表，310P 另有映射 [来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L805-L832)。GLM 的 KDA 构造与 custom op 登记见来源 28、49，稀疏 MLA 的显式后端绑定见来源 50。NPUCommunicator 由平台返回 [来源 11](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L869-L871)。模型入口把 GLM 的文本、多模态、MTP 架构名登记到昇腾实现 [来源 16](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/models/__init__.py#L1-L25)。
+其余接口：`worker_cls` 为 `auto` 时按 `HardwareProfile` 选定继承 `WorkerBase` 的 `NPUWorker`（310P、xlite 另有分支，旧镜像见 [来源 9](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L650-L662)）；`v0.30.0` 默认由 `NPUWorker` 创建继承 `GPUModelRunner` 的 `NPUModelRunner`（显式开关切 V2，`main` 全量走 `worker/v2/`；旧入口见 [来源 13](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/worker.py#L505-L520)）；平台选择注意力后端时先看符合条件的 FA3 特例，普通路径按三个标志查表，310P 另有映射 [来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L805-L832)，通信器返回 `NPUCommunicator` [来源 11](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L869-L871)。历史 GLM 算例的 KDA CustomOp 登记、稀疏 MLA 私有后端绑定与架构名注册分别见来源 28、49、50 与 [来源 16](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/models/__init__.py#L1-L25)。
 
 ### 会报什么错
 

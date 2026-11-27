@@ -2,7 +2,9 @@
 id: vllm-ascend-repo-map
 title: 源码目录地图：把文件放回推理架构
 type: concept
-summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与 GLM 异构路径选择阅读入口，区分上游框架和 Ascend 适配。
+summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与异构自研模型入口选择阅读起点，区分上游框架和 Ascend 适配。
+legacyAnchors:
+  沿-glm-执行路径读一组文件: 遇到异构自研模型时怎样跨目录定位
 aliases:
   - 目录结构
   - 代码结构
@@ -120,8 +122,8 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 | 路径 | 主要阅读问题 | 从哪里接入 |
 |---|---|---|
 | \_\_init\_\_.py、platform.py、ascend_config.py | 实现怎样注册，配置怎样检查和解析 | 插件发现与启动配置 |
-| worker/ | 设备如何初始化，调度结果怎样变成输入张量 | NPUWorker、NPUModelRunner |
-| models/、transformers_utils/ | 特定模型的结构与配置类型如何表达 | GLM 架构登记及 glm5_next.py |
+| worker/ | 设备如何初始化，调度结果怎样变成输入张量 | `NPUWorker`，以及 `v0.30.0` 默认 `model_runner_v1.py`（同见历史 `db701c1f`）与 `main` 唯一默认 `worker/v2/model_runner.py` |
+| models/、transformers_utils/ | 特定模型的结构与配置类型如何表达 | `models/__init__.py` 架构登记，如 `v0.30.0` / `main` 的 `models/glm5next/`（历史 `db701c1f` 为单文件 `models/glm5_next.py`） |
 | attention/、ops/ | 各层怎样解释状态并执行设备计算 | 层的后端绑定、算子分派或直接调用 |
 | distributed/ | 参与者编号（rank）与通信组怎样组织，数据怎样传递 | Worker 通信初始化、并行层与连接器 |
 | compilation/、xlite/ | 如何进行图变换与执行结构复用 | 配置选择、Runner 与图包装 |
@@ -144,14 +146,12 @@ file: vllm-ascend-repo-map-fig-v030-subsystems
 - **③ 模型层、注意力与 MoE 算子**：两款 `Qwen3` 的网络定义直接复用上游 `vllm/model_executor/models/`（`qwen3.py` 与 `qwen3_moe.py`），不在 `vllm_ascend/models/` 另写副本；昇腾适配通过 `platform.py` 把全层 GQA 统一指向 `attention/attention_v1.py`（`AscendAttentionBackend`），通过 `CustomOp` 把归一化与旋转编码分派到 `ops/layernorm.py`、`ops/rotary_embedding.py`；`Qwen3-30B-A3B` 的 128 路由专家则落进 `ops/fused_moe/`（`moe_comm_method.py`、`token_dispatcher.py`、`moe_mlp.py`）。
 - **④ 编译融合与图捕获**：最后进 `compilation/compiler_interface.py`、`compilation/passes/`（如命中 `head_dim=128` 的 `qknorm_rope_fusion_pass.py`）与 `compilation/acl_graph.py`，核对编译改写与静态图回放。
 
-## 沿 GLM 执行路径读一组文件
+## 遇到异构自研模型时怎样跨目录定位
 
-按「执行入口 → 模型与层 → 算子与并行 → 启动注册」四段串读一次实际请求最省力：
+当模型不在上游 `vllm/model_executor/models/` 内，而是由昇腾插件自带异构层与私有算子时，仍按**“先找 Worker/Runner 调用方确认输入与返回契约，再进模型目录追层绑定与后端实现”**两步定位，但要先核准所读快照的文件布局：
 
-- **执行入口与输入准备**：先看 `worker/worker.py` 接什么，再进 `worker/model_runner_v1.py` 看输入准备、前向与采样交接。对照[准备输入页](prepare-inputs-flow.md)，记清 token 输入行、位置与块表（历史缓存块编号表）的对应关系。
-- **区分 Runner→Worker 与 Worker→引擎的返回值**：普通输出、异步输出或空值可直接交回；异步输出须等待就绪才能取真实结果。Runner 也可产出中间张量——流水并行下，由内部执行器接力且非末段时，Worker 把中间张量发给下一段，再按缓存传输信息返回空值或结果对象，绝不当成最终 token 交回。只有执行返回空值时，普通 `step` 才另调 `sample_tokens` 采样。
-- **模型前向与注意力后端**：前向进入已注册 GLM 类。`models/glm5_next.py` 选择混合层，并串起 mHC、注意力与前馈（mHC 混合多路跨层残差，结构见[模型总览](glm-5-3-flash.md)）。进层后再追 `attention/` 或 `ops/`：GLM 稀疏注意力沿用 **DSA**（DeepSeek Sparse Attention），先用轻量 **lightning indexer** 挑历史再算注意力（见[稀疏注意力](sparse-attention.md#候选位置从哪里来)）。它在 `ops/` 中包装层并绑定后端，后端定义在 `attention/` 内，沿构造关系追即可。
-- **分布式、CustomOp 与启动配置**：张量跨卡分片时追并行层与 `distributed/`（Worker 初始化建通信组）。要解释某算子为何走 Ascend 实现，回查 `utils.py` 的 `CustomOp` 登记与启用条件。启动期注册沿 `__init__.py` → `platform.py` 另追。读平台配置更新时留意早退条件——已有设备配置且类型不匹配，或缺少模型配置时，Ascend 配置更新函数会提前返回，并非必然终止启动。
+- **调用方入口与跨代 Runner 位置**：先看 `worker/worker.py` 怎样接调度计划，再进对应版本的模型运行器（历史镜像 `db701c1f` 与 `v0.30.0` 默认读 `worker/model_runner_v1.py`，`v0.30.0` 按开关及 `main` 默认读 `worker/v2/model_runner.py`）核对[准备输入](prepare-inputs-flow.md)中的行序、位置与块表。这里要分清三段返回交接：Runner 执行前向后可返回普通输出、需等待就绪的异步输出对象、`None` 或中间张量。开启流水线并行（PP）且当前非末段、由内部执行器接力时，Worker 会把中间张量发往下一段，并按连接器状态向引擎返回 `None` 或空结果对象，绝不当成最终 token。只有 `execute_model` 返回 `None` 时，`EngineCore` 的步函数才会继续发起第二次 `sample_tokens` 调用执行采样。
+- **层绑定、注意力后端与运行环境**：确认调用方后再进 `vllm_ascend/models/` 查架构注册——例如 GLM-5.3-Flash 在 `v0.30.0` 与 `main` 中已拆分为 `models/glm5next/` 目录（历史镜像 `db701c1f` 为单文件 `models/glm5_next.py`），其 mHC 残差、KDA 与 DSA 稀疏注意力的层绑定与 `ops/`、`attention/`、`spec_decode/` 具体实现入口统一整理在[接下来把模型放进推理引擎](glm-5-3-flash.md#接下来把模型放进推理引擎)。涉及跨卡通信组、CANN 下发流水与运行期环境变量时，再结合 `distributed/`、`utils.py` 与[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)核对（平台配置更新遇到非 NPU 设备或缺少 `model_config` 时会提前返回，阅读 `platform.py` 时须先看早退守卫）。
 
 ## 常见误解
 

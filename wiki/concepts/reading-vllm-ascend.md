@@ -2,6 +2,8 @@
 id: reading-vllm-ascend
 title: 怎样读 vllm-ascend 源码：先抓请求主线，再带着问题追到实现
 type: concept
+legacyAnchors:
+  放到-glm-双机沿-r1-读一遍先碰到什么: 怎样沿跨机请求定位两个仓库的实际执行代码
 summary: >-
   vllm-ascend 是装在 vLLM 上的昇腾平台插件，靠入口点、patch、custom op
   等扩展点接进请求路径，所以一条请求跑的是两个仓库拼起来的代码。先沿七站读通主线，再按数据、配置、实现三条路线带着问题追；遇到异常或版本变化时先划清证据边界，区分源码推断和运行证据。
@@ -165,19 +167,17 @@ file: reading-vllm-ascend-fig-5step-trail
 
 ## 路线二：沿配置找到真正消费它的代码
 
-以 FlashComm1 的开关为例。FlashComm1 是 vllm-ascend 对[序列并行](sequence-parallel.md)的实现，开关键名是 `enable_flashcomm1`。第一步在钉住版本里搜这个键名，找到昇腾配置对象读取它的位置，以及旧环境变量的兼容映射。第二步读合并规则：启动参数的 JSON 里显式写了这个键就用它；没写就用环境变量读到的值，环境变量也没设时是读取器给的默认值。到这里，只弄清了字段的值怎样产生。
+以 FlashComm1（昇腾对[序列并行](sequence-parallel.md)的通信实现，键名 `enable_flashcomm1`）为例，读配置最忌只看输入字典，不区分**原始输入、派生值与最终消费者**。第一步在钉住提交里搜 `enable_flashcomm1`，找到 `AscendConfig` 读取它的入口与环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`。第二步核对合并与派生逻辑：在 `v0.30.0` 正式版与 `main` 中，`derive_and_validate` 会将 JSON 里的布尔值与合法环境变量值做**逻辑或**（`v0.30.0` 开启 `enable_dsa_cp` 时还会自动打开它）。也就是说，哪怕 `--additional-config` 显式写了 `"enable_flashcomm1": false`，只要环境变量设为 `1` 或 `true`，这一步算出的派生开启意图仍为真。（只有在 `v0.23.0` 与历史 GLM 旧镜像的 `_get_config_value` 里，才按“JSON 有键就用 JSON、缺键才退回环境变量”覆盖。）
 
-这里区分的是“有没有写这个键”，而不是“这个值是否为真”。例如，启动参数的 JSON 显式把这个开关设为 false，即使环境变量读取值为 true，按这段合并规则得到的字段值仍为 false；只有 JSON 中没有这个键时，才回退到环境变量读取值。
-
-第三步搜这个字段的消费者，看它是否还受模型、设备、并行规模或运行模式限制。平台启动时还会继续检查、改写别的配置，例如重算调度器的开关：在 PD 分离的 prefill 节点上会被改回关闭并打警告；只有 decode 节点允许打开，没开 PD 分离或其他角色打开它会直接报错。所以完整路线是「输入 → 合并 → 校验或改写 → 消费条件 → 执行分支」，三路来源怎样合并、解析后又怎样被改写，见[配置系统](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
+拿到派生开启意图后，还不算真正生效。紧接着同一段代码会检查并行与模型条件：既不满足 MoE 序列并行、也不属于支持稠密序列并行的模型族（如 `TP > 1` 且 `PP == 1` 的稠密 `Qwen3.5`）时，会打印告警并关回；关闭时还会顺手改写 `all2all_backend`。第三步继续往下搜运行时消费者（如 `enable_sp` 及各层前向），核对别的平台校验是否会继续改写配置——例如重算调度开关在 PD 分离的 prefill 节点会被改回关闭并告警，非 decode 节点直接报错。所以完整追查链永远是「原始输入 → 合并派生 → 校验或改写 → 消费条件 → 执行分支」，三路来源与改写链见[配置系统](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
 
 读一个函数时，还要看它的调用者。字段被读取，不等于它最终改变了张量或执行路径：有的消费者遇到某个条件就直接退出。
 
 ## 路线三：从模型里的调用追到最终实现
 
-以 GLM 的归一化为例：模型的解码层里，对这一层的输入调用 input_layernorm。下一步看这个对象在哪里构造、构造的是哪个类，再查 custom op 的登记和方法分派：昇腾把上游的 RMSNorm 映射到自己的实现类。从这一行一直追到设备上的算子，完整过程见[从算子到设备](op-to-ai-core.md#glm-实际从哪里调用-rmsnorm)。
+先看标准模型的类替换：像 `Qwen3` 的解码层在构造 `input_layernorm` 时，代码里写的是上游 `RMSNorm` 类。追进 `CustomOp` 注册表（`REGISTERED_ASCEND_OPS`）与构造分派就能看到，插件在启动期已将 `RMSNorm` 映射到昇腾的 `AscendRMSNorm`，前向最终落到 NPU 归一化算子（逐级下钻见[从算子到设备](op-to-ai-core.md)）。
 
-决定最终实现的，除了上面的 custom op 登记，还有模型注册、派生类、后端的直接绑定和运行时 patch。下一站由调用的写法决定，不要固定成「先查 patch 目录，没找到就读上游」。patch 目录本身按条件导入，例如按设备型号、按 vLLM 版本挑文件；找到 patch 文件以后，还要确认导入条件在你的环境里成立，确认方法见[Patch 机制](ascend-patch-system.md#排查时怎样确认跑的是哪一份代码)。
+再看异构或自注册模型的直接绑定：除了 `CustomOp` 映射，模型注册、派生类、层内私有绑定和运行时 patch 都能换掉最终实现。例如后文历史 GLM 解码层虽同样走 `CustomOp` 替换 `RMSNorm`，但它的稀疏 MLA 层直接在算子内部写死配套注意力后端，不查平台通用映射表。下一站由调用写法决定，不要机械套用「先查 patch 目录，没找到就读上游」；况且 patch 文件本身也按芯片型号或 vLLM 版本条件导入，找到文件后仍须核对导入条件是否成立（见 [Patch 机制](ascend-patch-system.md#排查时怎样确认跑的是哪一份代码)）。
 
 ## 遇到异常：先划清证据的边界
 
@@ -201,21 +201,21 @@ file: ref-diff
 
 读完写结论时，写成「在某个提交、某种设备和配置条件下，某个输入走进这个分支，产生这些结果」，并附上支持它的源码范围。来源里的限制、没装机验证、没实际跑过，也写在结论旁边，不把一条静态读出来的路径写成部署上的结果。
 
-## 放到 GLM 双机：沿 R1 读一遍，先碰到什么
+## 怎样沿跨机请求定位两个仓库的实际执行代码
 
-与上面标准 `Qwen3-8B` 直接复用上游模型定义不同，历史 GLM-5.3-Flash 双机案例（例外 B）的模型类也直接由 `vllm-ascend` 注册实现。跨仓库分工对应下面这张 GLM 七站图：
+与前面标准 `Qwen3-8B` 直接复用上游模型骨架不同，跨机专家并行下的异构模型往往连模型类也由 `vllm-ascend` 自注册实现。下面以历史 GLM-5.3-Flash 双机算例（例外 B）对照跨仓库七站分工：
 
 ```wiki-diagram
 file: ascend-vs-upstream
 ```
 
-[R1](one-request.md#示例请求-r1-与官方双机部署) 是为了手算设的示例请求，提示词 4 个 token；它从入口走到返回，每一站的入口文件和函数已在[一条请求的代码路径](request-call-chain.md#源码位置)按阅读顺序列好。在官方双机部署上照上面三条路线读，会先碰到下面五件事：
+[R1](one-request.md#示例请求-r1-与官方双机部署) 是为了手算设的示例请求，提示词 4 个 token；它从入口走到返回，每一站的入口文件和函数已在[一条请求的代码路径](request-call-chain.md#源码位置)按阅读顺序列好。沿上面三条路线定位跨机请求的代码时，会依次遇到五个核查点：
 
-- **先定版本。** 控制流按 `vllm` `v0.23.0` 读，执行侧按 GLM 专用镜像对应的固定提交读（它与社区版本表快照不同）。固定 `v0.23` 维护版和 `v0.26 rc` 不含 GLM-5.3-Flash 模型文件，`v0.30.0` 与 `main` 则挪进了 `glm5next` 目录，拿错版本就找不到同名文件。另外，`v0.30.0` 起硬件能力统一查 `HardwareProfile`，到 `main` 已删除 `model_runner_v1.py` 并全量迁入 `worker/v2/`（部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)）。
-- **路线一。** R1 被分到 DP0，第 3 站由 node0 的 8 个 worker 各拼一份一模一样的输入。因为 TP8 下它们算的是同一批 token，只是各持一部分权重；逐卡走读见[输入准备在双机上](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。
-- **路线二。** 官方命令没传 `FlashComm1` 的 JSON 键，环境中也未设对应变量时，该字段默认关闭。但 `enable_sp`（SP 即序列并行，Sequence Parallel）在首次初始化或刷新时，仍可能因共享专家 DP 条件被改成开启。本页沿用[教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的 SP 关闭假设，不能仅凭命令缺少开关就断言实际部署关闭（覆盖链见[字段合并后的覆盖条件](ascend-config-system.md#解析完还会被改写生效值不是你写的值)）。
-- **路线三。** GLM 解码层在 `vllm-ascend` 模型文件里，`RMSNorm` 经 custom op 登记换成昇腾实现。但 GLM 稀疏 MLA 不查平台那张「按注意力类型选后端」的表，而是由层自己给出后端；按「先查平台表」的习惯去读，会找错实际后端（见[六个口子](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)第 3 条）。
-- **异常。** node1 没接到 R1，也要陪着跑 MoE 通信。集合通信要组内成员到齐才结束，一张卡卡住会让别的卡一起超时，因此报错的那张卡未必是根因（日志前缀与超时判断见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)）。
+- **先定版本与目录。** 历史双机算例的控制流钉在 `vllm` `v0.23.0`（`0fc695fc`），执行侧钉在专用镜像 `db701c1f`（单文件 `models/glm5_next.py`；社区 `v0.23.0` 维护版与 `v0.26.0rc` 不含该文件，见[部署前提](glm-5-3-flash-two-node.md#部署前提)与[来源基线](../sources/glm-5-3-flash-baseline.md)）。`v0.30.0` 正式版将模型拆入 `models/glm5next/` 目录，并统一通过 `HardwareProfile` 查询芯片能力。到 `main` 分支，仓库进一步删除了 `model_runner_v1.py`，执行入口全量收口至 `worker/v2/`。
+- **路线一（跨卡数据流）。** R1 被分到 DP0 后，第 3 站由 node0 的 8 个 Worker 各拼一份一模一样的输入。因为 TP8 下它们处理同一批 4 个 token、只是各持一部分权重；逐卡拼接细节见[有多种缓存组时，一步输入怎样配齐](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。
+- **路线二（输入→派生→消费者）。** 核查序列并行等特性是否生效，不能只看启动命令有没有传 `enable_flashcomm1`，而要顺着「原始输入 → 派生与联动改写（如共享专家 DP 条件刷新 `enable_sp`）→ 下游消费者分支」逐级核实（历史双机配方的具体参数取值与 SP 假设见[双机关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)，覆盖链见[昇腾配置体系](ascend-config-system.md#解析完还会被改写生效值不是你写的值)）。
+- **路线三（层内绑定分流）。** 解码层落在 `vllm-ascend` 模型文件内，`RMSNorm` 经 `CustomOp` 注册表换成昇腾实现；但稀疏 MLA 层由层内直接绑定配套后端，不查平台通用映射表（见[六个口子](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)第 3 条）。
+- **异常与跨机陪跑。** node1（DP1）即便没接到 R1，每步也要跑空批次陪着进出跨机 MoE 集合通信。集合通信要求组内全员到齐，任一卡阻塞都会拖到其他卡触发建链或执行双超时，因此先报错的卡未必是根因（日志认站见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)，HCCL 建链与执行双超时机制见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)）。
 
 ## 常见误解
 
@@ -240,8 +240,9 @@ file: ascend-vs-upstream
 
 | 看到的 | 说明什么 | 对应 |
 |---|---|---|
-| `AscendConfig.enable_flashcomm1 is set from additional_config with value ...` | 值来自 JSON 键 | 路线二的合并规则 |
-| `AscendConfig.enable_flashcomm1 falls back to environment variable VLLM_ASCEND_ENABLE_FLASHCOMM1 ...` | 没写 JSON 键、设了环境变量，值取环境变量 | 同上 |
+| `FlashComm1 is enabled, but the current config does not support sequence parallelism ... Disabling.` | `v0.30.0` / `main` 中 JSON 或环境变量给出了开启意图，但当前并行或模型族不满足序列并行条件，被自动关回 | 路线二的派生与消费条件 |
+| `AscendConfig.enable_flashcomm1 is set from additional_config with value ...` | 历史 `v0.23.0` / `db701c1f` 的 `_get_config_value` 路径：值来自 JSON 键 | [版本差异](#版本差异) |
+| `AscendConfig.enable_flashcomm1 falls back to environment variable VLLM_ASCEND_ENABLE_FLASHCOMM1 ...` | 历史 `v0.23.0` / `db701c1f` 路径：没写 JSON 键时回退取环境变量 | 同上 |
 | `recompute_scheduler_enable is ignored on PD-disaggregated P nodes ...` | 平台把 prefill 节点上的重算调度开关改回关闭 | 路线二的平台改写 |
 | `recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes ...` | 不是 decode 节点却打开了重算调度，启动即失败 | 同上 |
 | main 上的 `FlashComm is deprecated; remove enable_flashcomm1 ...` | 这个键在 main 已弃用 | [版本差异](#版本差异) |

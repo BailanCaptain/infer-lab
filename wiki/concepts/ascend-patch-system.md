@@ -3,7 +3,8 @@ id: ascend-patch-system
 title: Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类
 type: feature
 legacyAnchors:
-  落到-glm-双机哪些-patch-真的起作用: 复杂异构实战对照：GLM 双机上哪些 patch 真的起作用
+  落到-glm-双机哪些-patch-真的起作用: 补丁已导入为什么请求仍可能走原路径
+  复杂异构实战对照glm-双机上哪些-patch-真的起作用: 补丁已导入为什么请求仍可能走原路径
 summary: >-
   patch 是 vllm-ascend 在进程内把上游模块中的名字改指向昇腾实现的机制。本页先按 v0.30.0 主基线讲清
   platform/worker 两类补丁的注入时机、去重与边界条件，再以 GLM 双机案例对照导入与实际调用，并汇总四版本入口与清单演进。
@@ -204,7 +205,7 @@ file: patch-binding
 - **① global patch（`patch/platform`）**：在前端和 EngineCore 较早阶段生效，替换配置校验、KV 分组、调度器与引擎入口。平台插件 `register()` 本身只返回类路径，真正改名发生在后续准备钩子或通用插件调用里。例如 `Scheduler` 被改指向 `BalanceScheduler`；均衡开关关闭时，它的 `schedule` 直接转调父类，调度主体仍沿用上游。
 - **② worker patch（`patch/worker`）**：每个 Worker 实例化时在构造开头导入，替换通信组类、权重后处理、图尺寸判断与采样函数。例如 `GroupCoordinator` 被换成补上 `all_to_all`（每张卡向其余各卡发送各自独立分片的集合通信，见 [All-to-All](collective-communication.md#all-to-all)）的 `GroupCoordinatorPatch`。
 
-模块符号表按进程隔离，前端后续改名不会自动同步到 EngineCore 或 Worker。`spawn` 启动的新解释器会重新加载补丁，`fork` 仅继承分叉瞬间的绑定与导入缓存；排查时须逐进程核对，入口传播见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
+模块符号表按进程隔离，前端后续改名不会自动同步到 EngineCore 或 Worker。`spawn` 启动的新解释器会重新加载补丁，`fork` 仅继承分叉瞬间的绑定与导入缓存（父子起初共享原物理页，写入时才按页复制，见[宿主机内存底座与静态大页](host-memory-and-hugepages.md)）；排查时须逐进程核对，入口传播见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
 
 ## 为什么非打 patch 不可，代价在哪
 
@@ -226,7 +227,7 @@ patch 的动作主要有两种：多数是**改指向**（替换函数、类或�
 1. **进程隔离**：前端、EngineCore 与 Worker 各自的绑定须分别确认；`fork` 仅继承分叉前状态，`spawn` 从头加载，前端生效不等于 Worker 生效。
 2. **`from-import` 副本滞留**：只改原模块表里的名字，不会更新早先通过 `from ... import ...` 复制走的引用，也不会改变已定义子类的父类。例如上游 EngineCore 提前导入了块大小计算函数，因此 `patch_kv_cache_utils` 必须在末尾同步覆写 EngineCore 模块里的那份副本；权重后处理补丁也同样双处改名。
 3. **强绑定上游版本**：patch 依赖上游的函数名、签名与对象结构；一旦上游重构，旧 patch 要么改了没人调的名字，要么导入即报错。为此入口文件会按硬件能力表与版本条件筛选导入项。
-4. **调用栈隐藏赋值现场**：`traceback` 只展示当前执行的函数位置（可能在 `patch/` 下，也可能在被引用的昇腾模块里），不会记录此前何时改过名。搜不到某函数的 patch 也不代表跑的是上游原版，必须连同派生类、模型注册、后端选择与 `CustomOp` 一起查，定位路线见[怎么读这个仓库](reading-vllm-ascend.md)。
+4. **调用栈隐藏赋值现场**：`traceback` 只展示报错时的函数位置，不记录此前何时改过名。排查时先定位进程内执行帧。追调用方保存的引用（区分 `模块.名字` 现查还是 `from-import` 早先复制的副本）。搜不到补丁时，再查模型注册表、派生类、`CustomOp` 或 origin 原模块绑定，完整路线见[怎么读这个仓库](reading-vllm-ascend.md)。
 
 `vllm-ascend` 官方设计文档对 patch 的态度很明确：它只是临时方案，长期目标是把改动合入上游。文档定下三条原则——能不打就不打（Less is more）、新增必写移除计划、随时欢迎清理；并要求每条补丁登记 **Why / How / Related PR / Future Plan** 四项。因此评估补丁健康度，不能只数文件个数，要连着上游关联与移除计划一起看。
 
@@ -263,53 +264,26 @@ file: ascend-patch-system-fig-lifecycle
 
 三层标记都是进程内变量：`spawn` 从初始状态重跑；`fork` 继承分叉瞬间的标记、符号绑定与 `sys.modules`（若分叉前插件标记已置真，子进程再调加载器直接返回）。
 
-## 复杂异构实战对照：GLM 双机上哪些 patch 真的起作用
+## 补丁已导入，为什么请求仍可能走原路径
 
-下面切到例外 B 历史绑定算例（GLM-5.3-Flash 双机，Atlas 800 A2、vLLM `0.23.0` + `vllm-ascend@db701c1f`，前提见[双机部署页](glm-5-3-flash-two-node.md#部署前提)），用四层漏斗逐层核对。
+目录里有 `patch_*.py` 文件，绝不等于线上请求真的执行了昇腾替换逻辑——从文件到真正生效，必须连续闯过**「① 入口导入 → ② 符号替换 → ③ 路径调用且未回退」**三道判据。下面以历史双机快照（例外 B，`vLLM 0.23.0 + vllm-ascend@db701c1f`，固定历史前提：`mamba_cache_mode="none"`、`PP=1`、未开动态 EPLB 与 V2 runner、`spawn` 且 Triton 可用，前提见[双机部署前提](glm-5-3-flash-two-node.md#部署前提)）核对这四层漏斗。
 
-官方命令未设动态 EPLB 与 V2 model runner 环境变量。在「镜像未另行注入、Triton 可用、通用插件全开、`spawn` 模式」前提下，共 **19 个核心角色入口**加载 global patch（1 前端 + 2 EngineCore + 16 Worker，另含 node1 `headless` 启动入口；不含辅助进程），16 个 Worker 构造时各触发一次 `patch/worker`：
+按核心角色计，共 **`1 + 2 + 16 = 19` 个进程入口**加载 global patch（1 前端 + 2 EngineCore + 16 Worker；账外的 node1 `--headless` 启动器进程在解析 CLI 时另行加载一次，辅助进程不计入），16 个 Worker 构造时各触发一次 `patch/worker`。三个目录的文件数、直接导入数与门控/延迟项逐一对账如下：
 
-| 目录（`db701c1f`） | 目录文件数 | 静态条件直接导入 | 被门控跳过或可选的条目 |
+| 目录（`db701c1f`） | 目录文件数 | 入口直接导入 | 未在入口直接导入的条目（逐项对账） |
 |---|---|---|---|
-| `patch/platform` | 28 | **23** | 跳过 310P 块长、2 个 EPLB 门控执行器、非 `0.23.0` FusedMoE / DP 设备号、延迟导入 `profiling_chunk`（共 5 项） |
-| `patch/worker` | 24 | **19**（可选 +1） | 可选 `patch_npugraph_ex_triton` 捕获 `ImportError`；跳过 310P、非 `0.23.0` FusedMoE、V2 专家捕获与按需 EAGLE-3 流水线辅助 |
-| `patch/worker/patch_v2` | 7 | **1** | `0.23.0` 将 V2 兼容标记置假，仅留复用 global patch 同名模块的 1 项 |
+| `patch/platform` | 28 | **23** | 共 **5** 项：1 个 310P 块长（`mamba_config_310`）、1 个 EPLB 环境门控执行器（`multiproc_executor`）、2 个非 `0.23.0` 分支（`fused_moe`、`dp_device_ids`）、1 个由 `platform.py` 按开关延迟导入的 `profiling_chunk` |
+| `patch/worker` | 24 | **19**（可选 **+1**） | 可选 `patch_npugraph_ex_triton` 捕获 `ImportError`；其余 **4** 项：1 个 310P（`idex_310`）、1 个非 `0.23.0` `fused_moe`、1 个 V2 专家捕获（`routed_experts_capture`）、1 个由 `model_runner_v1` 加载草稿时按需调用的 `eagle3_pp_aux` |
+| `patch/worker/patch_v2` | 7 | **1** | 仅导入复用 global 同名判定的 `patch_use_v2_model_runner`；其余 **6** 项因 `0.23.0` 将 V2 兼容标记置假而跳过 |
 
-本部署里模型架构（`Glm5NextForCausalLM` 等）走模型注册表，KDA 线性注意力（`AscendKimiGatedDeltaNetAttention`，见[线性注意力](linear-attention.md)）走 `CustomOp` 登记，其余深入上游内部的位置才走 patch（GLM 层型见[模型介绍](glm-5-3-flash.md)）。与启动及[第 2 站调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)直接相关的 9 项 `global patch` 如下：
+即使跨过了第①道「入口导入」，第②道「替换方式」和第③道「调用与早退条件」仍会把已导入的补丁分流成截然不同的终态（该历史部署中 GLM 配置注册、MTP 类型转换、640/133120 块长推导与 MLA 权重后处理等专属启动替换已归入[双机启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[第 2 站调度](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)，KDA 算子走 `CustomOp` 见[线性注意力](linear-attention.md)）：
 
-| patch 文件 | 替换或登记对象 | 用在哪一步 | GLM 双机上的实际效果 |
-|---|---|---|---|
-| `glm5_next_config` | `transformers` 配置表与架构转换器表 | 启动解析配置 | 识别 `glm5_next`，并凭 `kv_lora_rank` 按 [MLA](mla.md) 解析 |
-| `speculative_config` | 草稿配置改写函数；MTP 类型表追加 `glm5_next_mtp` | 建 MTP 配置 | 将草稿类型转为 `glm5_next_mtp`，定位昇腾 MTP 类 |
-| `mamba_config` | 混合模型配置校验函数 | 建配置 | 推导出主逻辑块 640 token、KDA 状态组块 133120 token |
-| `use_v2_model_runner` | V2 runner 选用判定 | 选 runner | 仅查环境变量，未设则用 V1 的 `NPUModelRunner` |
-| `kv_cache_utils` | KV 分组与块长函数（含 EngineCore 副本） | 建 KV 块 | 按 GLM 布局分组，调度器块长取最小公倍数 133120 |
-| `kv_cache_coordinator` | KV 协调器工厂（含缓存副本） | 建 KV 管理器 | 非 DSV4 且关闭前缀缓存时回落上游无前缀缓存协调器 |
-| `mamba_manager` | KDA 状态组管理器类 | 第 2 站分块 | 换为 `AscendMambaManager`，改前缀命中与外部 KV 分支 |
-| `glm5_next_mamba_scheduler` | 状态存档点对齐切分方法 | 第 2 站 | 已替换但仅 `align` 模式调用；本部署为 `none`，不执行 |
-| `balance_schedule` | 调度器类与 EngineCore 入口 | 启动与第 2 站 | 均衡开关关闭，二者均直接转回原实现 |
-
-上表后五行即[调用链页](request-call-chain.md#源码位置)的「第 2 站五处替换」（640 与 133120 推导见[双机部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)，均衡开启见 [Balance Scheduling](balance-scheduling.md)，维护分支 `kv_producer` 例外见[版本差异](#版本差异)）。`AsyncScheduler` 的父类取决于首次导入时机：晚于 `Scheduler` 替换则继承 `BalanceScheduler`，早于替换则保持原父类，实机须核 MRO。
-
-落在 GLM 请求路径上的 5 项 `worker patch`（各 Worker 进程生效）：
-
-| patch 文件 | 替换对象 | 用在哪一步 | GLM 双机上的实际效果 |
-|---|---|---|---|
-| `process_weights_after_loading` | 权重后处理函数（双模块引用） | 权重加载末步 | 额外识别 GLM 的 MLA 层，转为昇腾排布 |
-| `distributed` | `GroupCoordinator` 与销毁函数 | 建通信域 | 仅对新建组生效，管理 HCCL 并提供 `all_to_all`（单卡直通） |
-| `qwen3_next_mtp` | `bind_kv_cache` | 建 KV 张量 | 解除同层号多注意力层名报错；虽带 Qwen 名，GLM 同样经过 |
-| `cudagraph` | 图尺寸描述计算方法 | 每步选图 | 修正 `FULL` 图模式下均匀 decode 批的判定 |
-| `rejection_sampler` | 上游拒绝采样三个函数 | 第 5 站验证 | 已替换，但 `AscendRejectionSampler.forward` 直调自有函数不经过它 |
-
-最后一行提醒：**patch 与派生类并存时，须核对子类是否重写调用路径**。其余已导入的 patch（含 API server 侧 3 项输出补丁）按与 GLM 路径的关系归为五类：
-
-| 归类 | 代表补丁 | 在 GLM 双机上的实际状态 |
+| 三道判据下的典型分流 | 代表补丁 | 为什么导入后表现不同 |
 |---|---|---|
-| **API 侧按内容触发（3 项）** | 响应 `model_dump`/`model_dump_json` / 流式工具拆块 / 结构化输出校验 | 同时包装 `model_dump` 与 `model_dump_json` 剔除空列表 `tool_calls`；仅单 choice + `finish_reason=tool_calls` 且非空参数拆块；先调上游再查同引擎混用后端 |
-| **跨模型共享 vs 独立路径** | `patch_qwen3_next_mtp` / `patch_triton` / 上游 GDN 补丁 | 不可凭文件名排除共享函数；GLM 的 KDA 直走 `kda_attention`，不经上游 GDN 补丁；`next_power_of_2` 仅作兼容兜底 |
-| **随功能开关激活** | 工具调用解析（FAQ 给 `glm47`/`glm45`）、睡眠、[RL 同步](vllm-ascend-for-rl.md#训练端和推理端怎样交接显存与权重)、`preprocess_mamba` | 官方主命令未开对应开关或非 `align` 模式，须追到实际消费者 |
-| **消费者待日志确认** | `npugraph_ex`/`torchair` `ValuePack`、`torch.accelerator` 显存 API、MLA prefill 占位后端 | 已替换符号：将 4 个 `torch.accelerator` 显存 API 重定向到 `torch.npu`；MLA prefill 占位后端若被调用直接抛 `NotImplementedError`（GLM 路径是否触发仍须运行日志核对） |
-| **内部条件早退** | `patch/platform/patch_distributed`、PP+MTP 校验补丁 | 前者仅 310P 替换（A2 无操作）；后者仅 `PP > 1` 生效（本部署 `PP=1` 直回原方法） |
+| **导入 + 双处替换 + 实际调用** | `kv_cache_utils`、`process_weights_after_loading`、`distributed`、`qwen3_next_mtp`、`cudagraph` | 同步覆写原模块与 `EngineCore` 等 `from-import` 副本；新建 HCCL 组提供 `all_to_all`；`bind_kv_cache` 虽带 Qwen 文件名，其他多注意力层模型同样经过；修正 `FULL` 图均匀 decode 判定 |
+| **已替换符号，但开关关闭即回退原实现** | `balance_schedule`、`kv_cache_coordinator` | `Scheduler` 与引擎入口虽换成 `BalanceScheduler`（`AsyncScheduler` 的父类取决于首次导入早晚，实机须核 MRO），但均衡开关关闭时首行直调原实现（开启机制见 [Balance Scheduling](balance-scheduling.md)，维护分支 `kv_producer` 差异见[版本差异](#版本差异)）；非 DSV4 且关前缀缓存时协调器回落上游 |
+| **已替换符号，但上游调用点不触发或被子类绕过** | `glm5_next_mamba_scheduler`、`rejection_sampler`、`patch_triton` / 上游 GDN 补丁 | 对齐切分仅在 `align` 模式被调度器调用；上游拒绝采样三函数虽被换掉，`AscendRejectionSampler.forward` 却直调自有实现不经过它们；自定义 KDA 直走自有算子，不经上游 GDN 补丁 |
+| **按运行内容、功能开关或硬件条件分流** | API 输出 3 项补丁、工具解析/睡眠/[RL 同步](vllm-ascend-for-rl.md#训练端和推理端怎样交接显存与权重)、`torch.accelerator` / MLA 占位 / 310P / `PP > 1` | API 侧剔除空 `tool_calls` 或仅在单 choice + 非空工具参数时流式拆块；`torch.accelerator` 4 个显存 API 重定向至 `torch.npu`；`patch/platform/patch_distributed` 仅 310P 替换（A2 无操作），`patch_pp_mtp` 在单流水线段下直回原方法 |
 
 ## 排查时，怎样确认跑的是哪一份代码
 
@@ -402,7 +376,7 @@ patch 目录说明用于解释维护目的；判断是否安装和被调用，�
 
 **正文证据索引。** 分流函数、三个通用入口与进程标记、平台准备钩子、NPUWorker 构造顺序见 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/utils.py#L563-L567)、[来源 2](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/__init__.py#L18-L69)、[来源 3](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L184-L189)、[来源 4](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/worker.py#L107-L130)；vLLM 在解析参数时先加载通用插件再调平台钩子、插件加载的进程级标记见 [来源 13](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/engine/arg_utils.py#L2580-L2598)、[来源 14](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/plugins/__init__.py#L69-L82)；两个入口文件的条件分支见 [来源 5](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/__init__.py#L16-L57)、[来源 6](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/worker/__init__.py#L16-L89)，目录之外的零散入口见 [来源 37](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L710-L715)。from-import 复制引用、patch 要连那一份一起改的例子见 [来源 17](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/v1/engine/core.py#L45-L52)、[来源 18](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/patch_kv_cache_utils.py#L811-L831)。对齐切分只在 align 模式被调用见 [来源 27](https://github.com/vllm-project/vllm/blob/0fc695fc/vllm/v1/core/sched/scheduler.py#L259-L263)，BalanceScheduler 开关关着时交回上游见 [来源 28](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L88)；先存原函数再替换的写法见 [来源 23](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L37-L37)。官方原则与限制见 [S11][S12]，工具调用解析器只在教程 FAQ 出现见 [S42]。三版导入条件的差异见 [来源 43](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/patch/platform/__init__.py#L16-L57)、[来源 45](https://github.com/vllm-project/vllm-ascend/blob/2ed6cbba/vllm_ascend/patch/platform/__init__.py#L16-L60)、[来源 48](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/vllm_ascend/patch/platform/__init__.py#L16-L55)。
 
-GLM 双机两张表的出处按行序列在 sources 里：global patch 那张依次是第 7、21、20、22、18、24、25、26、29 条，worker patch 那张依次是第 19、31、56（调用点第 57 条、上游抛错处第 58 条）、32、35 条；API server 侧三项依次是第 59、60、61 条。
+历史 `db701c1f` 各代表补丁在 `sources` 中的索引：global 侧配置、MTP、块长、V2 开关、KV 分组、协调器、Mamba 管理器、对齐切分与均衡调度分别见第 7、21、20、22、18、24、25、26、29 条；worker 侧权重后处理、通信组、多注意力层 KV 绑定、图尺寸与拒绝采样分别见第 19、31、56（调用点第 57 条、上游抛错处第 58 条）、32、35 条；API 侧三项输出补丁依次见第 59、60、61 条。
 
 正文的调用数按条件推导：全新解释器、三个通用入口都启用且成功执行时，API 解析路径三次调用确保补丁的函数，再一次调用平台钩子里的分流函数；16 个新 Worker 各构造一次，则有 16 次 worker 目录加载调用 [D]。文件与直接导入数分别来自固定 git 目录和入口分支，不等于运行时新执行的模块数。
 

@@ -3,6 +3,8 @@ id: dev-new-model-and-custom-op
 title: 新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径
 type: concept
 origin: direct
+legacyAnchors:
+  新模型接入昇腾的四道关口: 新模型接入昇腾的四个适配核查点
 summary: >-
   串通新 HuggingFace 模型接入 vLLM Ascend 的架构注册、WeightsMapper、@register_scheme 量化注册与 OOT 分发，对比 torch_npu、AscendC 与 Triton-Ascend 三条算子路径及 950/310P 能力门控。
 aliases:
@@ -68,11 +70,11 @@ updated: '2026-11-19'
 
 拿到刚开源的 **HuggingFace**（主流模型权重与架构配置托管规范）新模型，或发现某层算子成为瓶颈时，新手最容易踩的坑是**直接把整份模型抄进 `vllm_ascend/models/` 并从头手写 C++ 核函数**。其实，只要上游 vLLM 已有标准 Transformer 实现（如 `Qwen3-8B`、`Qwen3-30B-A3B`），插件的 **OOT（Out-of-Tree，树外扩展）**算子表就能自动在 NPU 上接管算子，根本不必重复维护一套模型文件。
 
-本页以 `vLLM Ascend v0.30.0` 为基线，按工程顺序拆解两件事。第一是新模型接入的四道注册关口（模型类、权重映射、量化方案与 OOT 算子）。第二是三条自定义算子路径——`torch_npu`（经 **PTA** 适配器调 **ACLNN** 单算子 C 接口与 **ATB** 大模型算子库）、**AscendC**（昇腾面向 AI Core 的 C++ 核函数语言，编入 `vllm_ascend_C`）与 **`triton-ascend`**（昇腾 Python Triton 核函数编译器）——的选型权衡，以及昇腾 950 / 310P 的硬件能力门控。
+本页以 `vLLM Ascend v0.30.0` 为基线，按三步拆解适配与开发决策。第一步优先复用上游模型结构，只在确有缺失或定制前后处理时补充模型类注册。第二步用标准映射器与方案注册表对齐权重键名和量化格式。第三步只针对真实缺口或热点，在 `torch_npu`（经 **PTA** 适配器调 **ACLNN** 单算子 C 接口与 **ATB** 大模型算子库）、**AscendC**（昇腾面向 AI Core 的 C++ 核函数语言，编入 `vllm_ascend_C`）与 **`triton-ascend`**（昇腾 Python Triton 核函数编译器）三条算子路径间选型，并接好昇腾 950 / 310P 的硬件能力门控。
 
-## 新模型接入昇腾的四道关口
+## 新模型接入昇腾的四个适配核查点
 
-一条权重从磁盘 `safetensors` 加载到 NPU 显存并完成前向，会依次经过模型注册表、权重加载器、量化方案表和 OOT 算子分发四道关口（插件入口机制见 [平台插件注册](platform-plugin-registration.md)）：
+把新模型加载进 NPU 显存并跑通前向，涉及模型注册表、权重加载器、量化方案表和 OOT 算子分发四个适配核查点——注意这四项是工程适配清单，运行期插件导入、`CustomOp` 注册、建空模型与读取 `safetensors` 权重并非每次按 1→4 固定串行执行（插件入口时机见[平台插件注册](platform-plugin-registration.md)；若适配多模态视觉模型，还须一并核查 ViT 编码预算、图协议与特征缓存命中日志，见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）：
 
 ```wiki-diagram
 file: custom-op-fig-model-onboarding
@@ -85,7 +87,7 @@ file: custom-op-fig-model-onboarding
 
 ## 三条自定义算子路径如何选型？
 
-当内置 PyTorch 算子组合出现明显瓶颈（例如多次小算子往返片外显存，参见 [算子如何落到 AI Core](op-to-ai-core.md)）或遇到新架构特有数学形式时，`vllm-ascend` 提供三条不同维护代价的算子落地路径：
+当内置 PyTorch 算子组合出现明显瓶颈（例如多次小算子往返片外显存或 Host 下发流水拉出空泡，参见[算子如何落到 AI Core](op-to-ai-core.md)与[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）或遇到新架构特有数学形式时，`vllm-ascend` 提供三条不同维护代价的算子落地路径：
 
 ```wiki-diagram
 file: custom-op-fig-three-paths

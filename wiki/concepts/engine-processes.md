@@ -3,7 +3,8 @@ id: engine-processes
 title: 引擎有哪几个进程：API server、EngineCore 与 Worker
 type: concept
 legacyAnchors:
-  双机部署里一共有哪些进程: 复杂异构实战对照：GLM 双机 20 个进程账
+  双机部署里一共有哪些进程: 跨节点专家并行需要多少进程
+  复杂异构实战对照glm-双机-20-个进程账: 跨节点专家并行需要多少进程
 summary: >-
   vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker
   执行设备上的模型；客户端模式与 executor（执行器）决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存均按进程隔离管理。
@@ -287,7 +288,7 @@ rawSources:
 
 因此不能把「三类角色」直接等同于「三类独立进程」。例如单进程执行器会让 Worker 住在 EngineCore 进程内，但单凭这一点也推不出 API server 与 EngineCore 在同一个进程里。以常见的单机 `Qwen3-8B` 部署为例：单卡 `vllm serve` 是 2 个进程（1 个 API server + 1 个内置 Worker 的 EngineCore）；单机 TP4 则是 6 个进程（1 个 API server + 1 个 EngineCore + 4 个独立 Worker）。
 
-**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到。跨进程交换数据必须走显式通道，例如 **ZMQ**（ZeroMQ，轻量跨进程消息库）的 **IPC**（Inter-Process Communication，本机进程间通信）/TCP 套接字，或一块多进程共同读写的 **SHM**（Shared Memory，共享内存）队列。
+**进程**是操作系统里一份独立运行的程序，拥有彼此隔离的内存空间。一个进程里的变量、对象和被替换过的函数绑定，另一个进程都看不到。跨进程交换数据必须走显式通道，例如 **ZMQ**（ZeroMQ，轻量跨进程消息库）的 **IPC**（Inter-Process Communication，本机进程间通信）/TCP 套接字，或一块多进程共同读写的 **SHM**（Shared Memory，共享内存；容器 `/dev/shm` 容量与大页机制见[宿主机内存底座与静态大页](host-memory-and-hugepages.md#容器---shm-sizedevshmmemlock-与宿主机内核稳态四件套)）队列。
 
 ```wiki-diagram
 file: engine-processes
@@ -304,7 +305,7 @@ file: engine-processes
 **边界与例外**：
 
 - **结果回传的两种例外**：配置了 KV connector（如 [PD 分离](pd-disaggregation.md)用来跨实例搬运 KV cache）时，每个 Worker 都回传并由 executor 汇总；开启 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 与 PCP 编号均为 0 的 Worker。
-- **数据并行（DP）与 MoE 的协调消息**：开启 [DP](data-parallel.md)（把卡分成多个各自调度的执行组）时，在线服务通常多出一个 DP coordinator 进程，与 API server 和各 EngineCore 互通忙闲计数。模型为 MoE 时，各 DP 组还需步调一致：coordinator 通知各组一起开工，EngineCore 间每 32 步核对一次「还有没有请求」以决定共同停步，不同 DP 组的 Worker 每步开算前也要对齐宽度。详见[下文](#双机部署里一共有哪些进程)与[四条通道](request-call-chain.md#进程之间的四条通道)。
+- **数据并行（DP）与 MoE 的协调消息**：开启 [DP](data-parallel.md)（把卡分成多个各自调度的执行组）时，在线服务通常多出一个 DP coordinator 进程，与 API server 和各 EngineCore 互通忙闲计数。模型为 MoE 时，各 DP 组还需步调一致：coordinator 通知各组一起开工，EngineCore 间每 32 步核对一次「还有没有请求」以决定共同停步，不同 DP 组的 Worker 每步开算前也要对齐宽度。详见[下文](#跨节点专家并行需要多少进程)与[四条通道](request-call-chain.md#进程之间的四条通道)。
 - **单进程执行器（图左下角）**：使用 `uni` 执行器时，Worker 不另起进程，而是由执行器在 EngineCore 进程内直接创建并调用方法。是否独立成进程由 [executor 的种类](#executor-决定-worker-是不是独立进程)决定，不能只按卡数猜测。
 
 ## 拆成几个进程，换来什么、付出什么
@@ -316,7 +317,7 @@ file: engine-processes
 
 代价有三样：
 
-- **交接必须打包成消息，因此清单只发差量。** 跨进程无法直接传递 Python 对象，只能编码发送整数清单。请求第一次被调度时，整份 prompt 和采样参数随清单发给 Worker，由 Worker 缓存在本进程内；之后每一步只发增量——本步算几个 token、新借到哪些块号、以及候选位置（同步时传实际编号，异步时可传占位、实际候选留在 Worker）。
+- **交接必须打包成消息，因此清单只发差量。** 跨进程无法直接传递 Python 请求对象引用，必须把交接内容序列化成消息（纯文本路径主要传 token 与块号整数清单，`EngineCoreRequest` 与首步 `NewRequestData` 也可携带预计算嵌入与多模态媒体字段）。请求第一次被调度时，整份初始资料和采样参数随清单发给 Worker，由 Worker 缓存在本进程内；之后每一步只发增量——本步算几个 token、新借到哪些块号、以及候选位置（同步时传实际编号，异步时可传占位、实际候选留在 Worker）。
 - **同一条请求的状态分三处存放。** EngineCore 记账本，Worker 存资料缓存，API server 存输出队列。请求结束时，EngineCore 必须在下一份清单里带上结束名单，Worker 才会删掉本进程缓存。
 - **补丁和配置要逐进程到位。** Ascend 补丁只替换当前进程里的符号指向，配置缓存也是每个进程各存一份，详见[补丁一节](#补丁和配置为什么要每个进程各做一遍)。
 
@@ -394,10 +395,10 @@ file: engine-processes-plate-fork-spawn-workshop
 
 vLLM 拉起 EngineCore 和 Worker 共用环境变量 `VLLM_WORKER_MULTIPROC_METHOD`：底层库读取该变量时默认 `fork`，而 `vllm serve` 命令行入口在环境未预设时会先填入 `spawn`，两层默认不能混为一谈：
 
-- **`fork`**：操作系统为子进程复制一份页表，让父子虚拟页在出生瞬间共同指向同一批只读物理内存页（**COW**，Copy-on-Write，写时复制，直到任一方改写某页时才真正拷贝分离该物理页），因此父进程里已换好的函数绑定和已建好的 `AscendConfig` 会原样带过去；但出生后父子后续修改立刻各走各的，互不可见。
+- **`fork`**：操作系统为子进程复制页表，子进程起初共享原物理页。写入时才复制对应页（**COW**，Copy-on-Write，写时复制；宿主机页表与内存机制见[宿主机内存底座与静态大页](host-memory-and-hugepages.md)）。因此父进程里已换好的函数绑定和已建好的 `AscendConfig` 会原样带过去，但出生后父子后续修改彼此隔离、互不可见。
 - **`spawn`**：子进程启动一个全新的 Python 解释器并从头导入模块，父进程里打过的补丁一个都不在。遇到当前进程已初始化 `CUDA / XPU` 设备运行时、运行在 Ray Actor 里、开启 `--numa-bind`（**NUMA**，Non-Uniform Memory Access，按 CPU 节点就近绑定内存的亲和策略）或处在 `WSL` 环境时，上游检查也会自动覆写为 `spawn`（昇腾 NPU 则主要靠 `vllm serve` 命令行入口默认置 `spawn` 避开设备句柄继承风险）。
 
-官方 GLM 教程没有显式设置该变量：若镜像或启动环境也没有预设，`vllm serve` 的命令行初始化会走 `spawn`；若环境已有值则先保留，随后仍须通过强制 `spawn` 条件检查。因此实际运行方式要核对镜像环境，不能仅因教程未写变量就推定是 `fork`。
+命令行未在运行环境中显式设置 `VLLM_WORKER_MULTIPROC_METHOD` 时，`vllm serve` 入口初始化会先填入 `spawn`；若环境已有预设值则先保留，随后仍须通过强制 `spawn` 条件检查。确认现场采用哪种方式应核对容器环境与启动日志，不能仅凭命令未写该变量就推定是 `fork`。
 
 **所以 vllm-ascend 在每类进程里都留了一个入口，不管用哪种启动方法，每个进程最后都打齐了补丁：**
 
@@ -432,9 +433,9 @@ file: engine-processes-startup
 
 `v0.30.0` 与 `main` 将 EngineCore 入口包装收束到 `patch_engine_core.py`，进入引擎前就先调 `init_ascend_config` 建立本进程配置缓存；动态 EPLB 对 Worker 创建路径的补丁条件保持不变。官方 GLM 双机部署未开 EPLB，Worker 沿用上游默认启动方式。
 
-## 复杂异构实战对照：GLM 双机 20 个进程账
+## 跨节点专家并行需要多少进程
 
-**按核心角色计，官方 GLM-5.3-Flash 双机部署（例外 B 绑定算例，2×A2×8、TP8/DP2/EP16）跑起来共 20 个进程：node0 上 11 个，node1 上 9 个，占卡的只有 16 个 Worker。** 部署参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，拉起顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
+当一个 MoE 服务把多个 DP 执行组分在不同节点、同时跨全部节点做专家并行时，前端、协调器、各组 EngineCore 与每卡 Worker 会按节点分工排布。以历史 GLM-5.3-Flash 双机部署（例外 B 绑定算例，`2×A2×8`、`TP8/DP2/EP16`，参数见[部署前提](glm-5-3-flash-two-node.md#部署前提)，拉起顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）核账：**按核心角色计共 `11 + 9 = 20` 个进程，占卡的只有 16 个 Worker（若把 node1 留驻监控的启动器算入，系统列表里共有 21 个 vLLM 进程）。**
 
 | 机器 | 进程 | 个数 | 做什么 | 进程名 |
 |---|---|---|---|---|
@@ -485,47 +486,30 @@ file: engine-processes-startup
 
 | 要连接的布局 | 远端启动什么 | 配置与学习入口 |
 |---|---|---|
-| 一个 DP 执行组跨多节点做 PP/TP | 组内非首节点直接创建多进程 Executor 和本地 Worker；不为该节点另建一个 DP EngineCore | nnodes、node-rank 与 master 地址端口组织这一组；各节点启动匹配命令，见[两机 PP 示例](pipeline-parallel.md#怎么开) |
-| 多个 DP 组分在不同节点 | 远端创建自己的 EngineCore，由它管理本组 Worker，并向提供前端的节点握手 | 全局/本地 DP 数、start-rank 与 DP 地址/RPC 端口，见下面的固定 GLM 组合及[DP 解释](data-parallel.md) |
+| 一个 DP 执行组跨多节点做 PP/TP | 组内非首节点直接创建多进程 Executor 和本地 Worker；不为该节点另建一个 DP EngineCore | `nnodes`、`node-rank` 与 master 地址端口组织这一组；各节点启动匹配命令，见[两机 PP 示例](pipeline-parallel.md#怎么开) |
+| 多个 DP 组分在不同节点 | 远端创建自己的 EngineCore，由它管理本组 Worker，并向提供前端的节点握手 | 全局/本地 DP 数、`start-rank` 与 DP 地址/RPC 端口，见 [DP 解释](data-parallel.md) 与[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开) |
 
-本站 GLM 是后一种：PP1、每组 TP8、DP2，EP16 让两组在专家层协作。它不是把单个 TP8/PP2 执行组分到两台；不能只因命令有 headless 或两台机器，就把两种布局的节点编号与 DP 编号互换。固定入口按组内节点编号选择上述路径，前面的 20 个角色进程账只对应本站 GLM 配方。
+不能只因命令带 `--headless` 或跨两台机器，就把单组跨机 `node-rank` 与多组跨机 `data-parallel-start-rank` 混用：前者按组内节点编号汇入同一个 EngineCore，后者为每个节点拉起各自的 DP EngineCore（前文 `11 + 9 = 20` 进程账对应后一种多 DP 组布局，双端完整启动命令统一见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）。
 
 | DP 启动参数 | CLI 短名 / Python 同名入口 | 输入缺省与实际处理 |
 |---|---|---|
 | data_parallel_address | --data-parallel-address / -dpa；EngineArgs、LLM | str 或 None，默认 None。显式地址优先；普通 mp 未给时取 master_addr，否则回退 127.0.0.1；Ray 分支取 get_ip。远端必须能访问主节点地址，回环地址不能代表另一台机器 |
-| data_parallel_rpc_port | --data-parallel-rpc-port / -dpp；EngineArgs、LLM | int 或 None，输入默认 None，配置缺省 29550；有远端引擎时用于握手，纯本地可用 IPC。本站两端显式 12321；不是由 VLLM_PORT 替代 |
-| data_parallel_rank | --data-parallel-rank / -dpn；EngineArgs、LLM | int 或 None，输入默认 None，派生后配置 rank 默认 0 且 ≥0、应小于 DP 总数。显式给值会选择外部负载均衡模式；不应拿来替换本站的 start_rank |
-| data_parallel_start_rank | --data-parallel-start-rank / -dpr；EngineArgs、LLM | int 或 None，输入默认 None。本机连续多个 DP 组从哪个全局编号起步；本站两端为 0/1。基线在 local 已给且非零 start_rank、非 headless 时推断 hybrid；local=1 又切为外部模式 |
+| data_parallel_rpc_port | --data-parallel-rpc-port / -dpp；EngineArgs、LLM | int 或 None，输入默认 None，配置缺省 29550；有远端引擎时用于握手，纯本地可用 IPC。不是由 VLLM_PORT 替代 |
+| data_parallel_rank | --data-parallel-rank / -dpn；EngineArgs、LLM | int 或 None，输入默认 None，派生后配置 rank 默认 0 且 ≥0、应小于 DP 总数。显式给值会选择外部负载均衡模式；不应拿来替换连续本地组的 start_rank |
+| data_parallel_start_rank | --data-parallel-start-rank / -dpr；EngineArgs、LLM | int 或 None，输入默认 None。本机连续多个 DP 组从哪个全局编号起步。基线在 local 已给且非零 start_rank、非 headless 时推断 hybrid；local=1 又切为外部模式 |
 
-这些字段的输入默认与派生见来源 55–57。显式 rank 分支要求 local 为 1 或 None；hybrid 表示“本机前端在本机多个组内分配请求”，需要本地组数。本站 node1 的 headless 分支避免把 start_rank=1 推成这种前端模式。注意 CLI 在决定前端数时，检查的是 start_rank 是否为 None，0 也算已给；基线 EngineArgs 的上述推断却检查是否非零。这两步不同，升级差异见下表。
+这些字段的输入默认与派生见来源 55–57。显式 rank 分支要求 local 为 1 或 None；hybrid 表示“本机前端在本机多个组内分配请求”，需要本地组数。从节点配合 `--headless` 可避免把非零 `start_rank` 误推成前端 hybrid 模式。注意 CLI 在决定前端数时，检查的是 `start_rank` 是否为 None，0 也算已给；基线 EngineArgs 的上述推断却检查是否非零。这两步不同，升级差异见下表。
 
 **HTTP 前端是否存在，由 serve 入口决定。** headless 与 api_server_count 是 CLI 前端项，不是 EngineArgs / 离线 LLM 的同名配置字段（来源 58–60）。
 
 | 参数 | 类型与输入默认 | 行为及联合条件 |
 |---|---|---|
-| --headless | store_true，默认 False；省略表示不主动选 headless | True 时把 API 数设成 0；若同时显式给正 api_server_count，立即拒绝。本站 node1 使用，node0 不用 |
+| --headless | store_true，默认 False；省略表示不主动选 headless | True 时把 API 数设成 0；若同时显式给正 api_server_count，立即拒绝 |
 | --api-server-count / -asc | int，默认 None | 不是固定默认 1。普通内部 LB 取全局 DP 数；外部 LB、多端口模式、旧版 Rust 前端取 1；hybrid 取 local 或 1。显式 1 使用当前启动进程；大于 1 建多个前端进程；小于 1 走 headless 路径 |
 
-负的 API 数在本固定入口也落入“小于 1”，并没有单独的非负字段校验；使用清楚的 headless 或 0 表达无前端。Rust 前端将大于 1 的显式值改为 1，弹性 EP 也会把多前端上限压到 1；这些是条件覆盖，不能将 api_server_count 当成无条件兑现的进程数。headless 还要求 local>0，拒绝 hybrid。前端数量改变时，前面“20 个”的官方配置账不能直接沿用。
+负的 API 数在本固定入口也落入“小于 1”，并没有单独的非负字段校验；使用清楚的 headless 或 0 表达无前端。Rust 前端将大于 1 的显式值改为 1，弹性 EP 也会把多前端上限压到 1；这些是条件覆盖，不能将 api_server_count 当成无条件兑现的进程数。headless 还要求 local>0，拒绝 hybrid。前端数量改变时，前文“20 个”的角色进程账需按实际前端数增减。
 
-**把本站两端组合起来看。** 以下只摘启动拓扑；模型、量化、MTP、图、显存和网络环境仍完整采用[部署页命令](glm-5-3-flash-two-node.md#怎么开)。两端可见设备都列本机 0–7，共同使用 TP8、DP2、local1、EP；node0_ip 为两机都能访问的 node0 地址。
-
-```bash
-# 两端共同的拓扑部分
-export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-# vllm serve <模型路径> ... 两端都带：
-# --tensor-parallel-size 8 --data-parallel-size 2
-# --data-parallel-size-local 1 --enable-expert-parallel
-
-# node0 的差异项
-# --data-parallel-start-rank 0 --data-parallel-address "$node0_ip"
-# --data-parallel-rpc-port 12321 --api-server-count 1
-# node1 的差异项
-# --data-parallel-start-rank 1 --data-parallel-address "$node0_ip"
-# --data-parallel-rpc-port 12321 --headless
-```
-
-node1 的本机可见设备仍写 0–7；8–15 是全局 Worker 编号，不能填成 node1 的本机卡号。两端的 DP 主地址与 RPC 端口相同，起始 DP 编号不同；VLLM_HOST_IP 若显式设置，则各填本机通信地址。上述参数组合只解释源码与教程，不替代真实双机连通性和镜像检查。
+**跨机节点配对通用准则。** 两端 `ASCEND_RT_VISIBLE_DEVICES` 始终填写本机可见设备编号（如两台八卡机各自写 `0,1,2,3,4,5,6,7`），全局 Worker 编号（如 `8–15`）由 `DP 组号 × 本组卡数 + 本机卡号` 派生，不能填成从节点的本机卡号；两端的 `--data-parallel-address` 与 `--data-parallel-rpc-port` 指向同一主节点握手端点，仅 `--data-parallel-start-rank` 与 `--headless` / `--api-server-count` 区分主从（双端完整命令见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）。
 
 | 环境变量 | 缺省、格式与实际作用 | 特殊值与相互作用 |
 |---|---|---|
@@ -539,7 +523,7 @@ node1 的本机可见设备仍写 0–7；8–15 是全局 Worker 编号，不�
 
 **Kubernetes 的服务发现变量可能与内部端口重名。** 若先创建名为 vllm 的 Service，再在同一命名空间创建启用服务环境变量注入的 Pod，容器可能得到形如 `VLLM_PORT=tcp://10.0.0.20:8000` 的值。vLLM 读取这个变量时要求整数，因而在端口解析阶段就报错；修改 HTTP 的 --port 不会消除环境中的 URI。排查时查看容器实际继承的 VLLM_PORT 及其来源，避免使用会生成同名变量的 Service 名称，并按需要显式设置内部端口的整数起点。修改部署后重新创建相应进程，再核对环境；服务发现地址、HTTP 监听端口与内部通信端口仍是三件事。
 
-**双机通信先选对本机接口，再选算子执行方式。** Gloo 是 CPU 侧集合通信后端，vLLM 建设备组时还会建一个 Gloo CPU 组；HCCL 是设备集合通信库。它们各自选网卡，设置了其中一个不会自动替另一个选好。下表 HCCL 规则按 CANN 9.1.X 的 A2 条目解释；固定 A2 Dockerfile 使用 9.1.0，实际安装版本需与镜像核对。
+**双机通信先选对本机接口，再选算子执行方式。** Gloo 是 CPU 侧集合通信后端，vLLM 建设备组时还会建一个 Gloo CPU 组；HCCL 是设备集合通信库。它们各自选网卡，设置了其中一个不会自动替另一个选好。下表 HCCL 规则按 CANN 9.1.X 的 A2 条目解释（AIV 直驱 RoCE、链路 QoS 与建链/执行双超时的运行时边界见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)）；固定 A2 Dockerfile 使用 9.1.0，实际安装版本需与镜像核对。
 
 | 环境变量 | 格式、缺省和作用 | 本部署与覆盖关系 |
 |---|---|---|

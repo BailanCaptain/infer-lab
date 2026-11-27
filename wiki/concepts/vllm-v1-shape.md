@@ -2,6 +2,8 @@
 id: vllm-v1-shape
 title: vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环
 type: concept
+legacyAnchors:
+  放到-glm-双机r1-的一个-token-绕一圈: 跨节点专家并行时请求怎样绕完一步
 summary: >-
   vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字与分词，EngineCore 每步排定调度计划并更新进度，Executor
   驱动各卡 Worker 执行前向与采样。本页先走通标准 Qwen3-8B 的三角色主循环，再对照历史 GLM 双机 20 进程跨机协同。
@@ -143,9 +145,9 @@ file: vllm-v1-plate-cutaway
 
 图里右侧只画出了一张卡上的 Worker 剖面；多卡部署时，其余 Worker 收到的是同一份调度计划，Worker 的个数由并行配置决定。
 
-不要把「V1 引擎」和「V1 Model Runner」混为一谈，二者属于两个正交层次：V1 引擎规定请求如何经由前端、EngineCore 与 Worker 循环推进；Model Runner 则是 Worker 内部准备输入张量、驱动前向与组织输出的具体实现。在 `v0.30.0` 主基线中，默认仍运行第一代 `NPUModelRunner`（MRV1），显式设置 `VLLM_USE_V2_MODEL_RUNNER` 才会切换到第二代（MRV2），并发批次配置也会据此区分；到了 `main` 分支，MRV1 已退役并全量切换至 `worker/v2/`（MRV2），但外层的 V1 引擎循环本身保持不变。因此，单凭「V1 引擎」这个名字无法断定执行侧跑的是哪一代 Runner，必须结合版本与执行侧开关核对。
+不要把「V1 引擎」和「Model Runner 代际」混为一谈。V1 引擎规定请求如何经由前端、EngineCore 与 Worker 循环推进；Model Runner 则是 Worker 内部准备输入张量、驱动前向与组织输出的具体实现。两套版本号各自演进：`v0.30.0` 主基线默认运行第一代 `NPUModelRunner`（MRV1）、显式设置 `VLLM_USE_V2_MODEL_RUNNER` 才切第二代（MRV2），而 `main` 分支已移除 MRV1 并全量切至 `worker/v2/`（MRV2），外层 V1 引擎循环本身保持不变。
 
-由此可见，同一条请求在三类角色手里的形态各有侧重：**前端处理文本与流式收发，EngineCore 维护调度账本，Worker 专管卡上张量计算。** 本页纯文本例子中，EngineCore 主要记录 token 编号、已算位置数和块号，Worker 再把计划展开为张量行；但这一分工不意味着跨边界消息只能传整数——请求同样可以携带预计算的嵌入向量或多模态特征资料，返回消息也能携带池化张量。阅读源码时，最可靠的判据是看这段代码在「安排请求进度」还是在「执行模型计算」。
+由此可见，同一条请求在三类角色手里的形态各有侧重：**前端处理文本与流式收发，EngineCore 维护调度账本，Worker 专管卡上张量计算。** 本页纯文本例子中，EngineCore 主要记录 token 编号、已算位置数和块号，Worker 再把计划展开为张量行；但这一分工不意味着跨边界消息只能传整数——请求同样可以携带预计算的嵌入向量或多模态媒体特征（调度器侧按媒体哈希复用编码向量的机制见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)），返回消息也能携带池化张量。阅读源码时，最可靠的判据是看这段代码在「安排请求进度」还是在「执行模型计算」。
 
 ## 为什么拆成三种角色？代价在哪？
 
@@ -186,11 +188,11 @@ file: vllm-v1-shape-loop
 ①⑦ 在前端进程，②⑥ 在 EngineCore 进程，③④⑤ 在每个 Worker 进程。
 
 1. **② 排计划。** Scheduler 排出这一步的调度计划，怎样排见 [Scheduler](vllm-scheduler.md)。
-2. **两次调用。** Executor 先让每个 Worker 做 ③ 准备输入和 ④ 逐层前向，再让它们做 ⑤ 采样；本部署正常生成一步的结果只由 0 号 Worker 交回；PP 或 KV connector 等配置的回传规则见[引擎进程](engine-processes.md)。
+2. **两次调用。** Executor 先让每个 Worker 做 ③ 准备输入和 ④ 逐层前向；前向交回需要采样的状态时，再调用 ⑤ 采样（池化或空步等直接返回分支除外）。回传结果的成员由执行器和并行配置决定（常规单组由 TP0 回传，PP 或 KV connector 等规则见[引擎进程](engine-processes.md)）。
 3. **⑥ 按结果更新。** Scheduler 把新 token 追加到各条请求上，判断停止条件；结束的请求把块号还回池子，编号记进结束名单。
 4. **⑦ 送回前端。** 新 token 编号经 EngineCore 进程里的后台线程发回前端。
 
-为什么拆成两次调用、两次之间 EngineCore 顺手做什么、回话为什么只读一份，见[一步之内：EngineCore 给 worker 发两次调用](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。本部署按自动判定打开了异步调度：EngineCore 不等这一步的结果就先排下一步，相邻两圈叠在一起；循环走哪条分支见同一节，占位怎样记账见[异步调度](async-scheduling.md)。这个循环本身怎样迭代，见 [EngineCore](vllm-engine-core.md)。
+为什么拆成两次调用、两次之间 EngineCore 顺手做什么、回话为什么通常只读一份，见[一步之内：EngineCore 给 worker 发两次调用](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。开启异步调度时，EngineCore 不等这一步的结果就先排下一步，把相邻两圈叠在一起；循环分支与占位记账分别见[异步调度](async-scheduling.md)与 [EngineCore](vllm-engine-core.md)。
 
 ## 两道边界上，每一圈交接什么？
 
@@ -232,9 +234,9 @@ vllm-ascend 沿用上游循环，通过替换 Worker 一侧实现并局部改写
 
 扩大到跨机 DP + EP 的 MoE 旗舰部署后，才叠出多 EngineCore、DP 协调器、空批次陪跑与 MTP 验证——下面用历史 GLM 双机 20 进程全案对照。
 
-## 放到 GLM 双机：R1 的一个 token 绕一圈
+## 跨节点专家并行时，请求怎样绕完一步
 
-从这里转入例外 B 历史绑定算例（[部署前提](glm-5-3-flash-two-node.md#部署前提)）：两台机器各 8 卡，每台是一个 DP 组（组内 TP8、跨机 EP16）；所列主要语言权重每卡约 `20.58 GiB` 常驻 HBM（视觉塔、MTP 旋转矩阵与量化辅助张量另计，见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）。全集群共 **20 个角色进程**（node0：1 API server + 1 DP 协调器 + 1 EngineCore + 8 Worker；node1：1 EngineCore + 8 Worker，完整清单见[20 个进程账](engine-processes.md#双机部署里一共有哪些进程)）。
+当部署扩展到跨两台机器的数据并行加专家并行时，三角色循环之上会叠加多组 EngineCore、DP 协调器、空闲组陪跑与投机验证。以历史 GLM-5.3-Flash 双机算例（例外 B，两台 A2 各 8 卡，组内 TP8、跨机 DP2 / EP16，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）对照：所列主要语言权重每卡约 `20.58 GiB` 常驻 HBM（视觉塔、MTP 旋转矩阵与量化辅助张量另计，见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)），全集群共 **20 个角色进程**（node0：1 API server + 1 DP 协调器 + 1 EngineCore + 8 Worker；node1：1 EngineCore + 8 Worker，完整清单见[跨节点专家并行需要多少进程](engine-processes.md#双机部署里一共有哪些进程)）。
 
 示例请求 R1 取教学设定的 4 个提示词 token（真实请求套模板更长，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），沿主循环绕一圈的七步如下：
 
@@ -275,13 +277,12 @@ R1 结束时，手里块号一次还回 DP0 块池（见 [R1 借还块](vllm-kv-
 
 ### 怎么开
 
-这个形状本身不是开关：vLLM 0.23.0 只有 V1 引擎。影响它长什么样的是下面几项，官方双机命令见部署页的[怎么开](glm-5-3-flash-two-node.md#怎么开)：
+这个形状本身不是开关：vLLM V1 固定采用前端、EngineCore、Worker 循环，能调节的是组件部署方式（历史 GLM 双机的无前端从节点、并发批次与超时启动配方见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）：
 
-- **用哪种 Executor**：`--distributed-executor-backend`。本部署 `world_size_across_dp=16`，未指定时选 `mp`；完整默认规则还包括 Ray placement group、TPU SPMD 和 CUDA 多节点等条件，统一见[引擎进程的执行器规则](engine-processes.md#怎么开)。
-- **每台机器起几个 EngineCore**：由 DP 参数决定；node1 用 `--headless` 只起引擎、不起前端，见[引擎进程](engine-processes.md)。
-- **批次队列**：本部署使用 V1 runner、PP=1 且启用异步调度，`max_concurrent_batches=2`。V2 runner 配合异步调度时则是 PP+1；完整公式见 [EngineCore](vllm-engine-core.md#怎么开)。大于 1 时用 `step_with_batch_queue`，否则用 `step`。
-- **Worker 与 Runner**：`worker_cls` 为 `auto` 时，平台选 `vllm_ascend.worker.worker.NPUWorker`；`VLLM_USE_V2_MODEL_RUNNER` 不设时用 v1 的 `NPUModelRunner`。
-
+- **用哪种 Executor**：`--distributed-executor-backend`。未指定时按全局卡数、Ray 环境与平台条件自动选 `uni`、`mp` 或 `ray`，完整规则见[引擎进程的执行器规则](engine-processes.md#怎么开)。
+- **起几个 EngineCore 与是否带前端**：由 DP 参数与 `--headless` 决定，见[引擎进程](engine-processes.md#怎么开)。
+- **批次队列长度**：`max_concurrent_batches` 由流水线并行度、异步调度开关与 Runner 代际共同决定（大于 1 时跑 `step_with_batch_queue`，否则跑 `step`），完整公式见 [EngineCore](vllm-engine-core.md#怎么开)。
+- **Worker 与 Runner**：`worker_cls` 为 `auto` 时由 `NPUPlatform` 按 `HardwareProfile` 选定 `NPUWorker`；`v0.30.0` 未设 `VLLM_USE_V2_MODEL_RUNNER` 时默认 MRV1，`main` 固定启用 MRV2。
 - **怎样确认**：EngineCore 启动时打印一行 `Initializing a V1 LLM engine (v…) with config: …`，版本号和完整配置都在里面。
 
 ### 会报什么错
@@ -289,7 +290,7 @@ R1 结束时，手里块号一次还回 DP0 块池（见 [R1 借还块](vllm-kv-
 | 报错 | 在哪一侧 | 说明什么 |
 |---|---|---|
 | `EngineCore encountered an issue. See stack trace (above) for the root cause.` | 前端（`EngineDeadError`） | EngineCore 已经退出，前端无法恢复；真正的原因在上方 EngineCore 或 Worker 的 traceback 里 |
-| `RPC call to execute_model timed out.` | EngineCore 的 Executor | Worker 在执行等待预算内没有回话；本 GLM 配方为 3000 秒，`sample_tokens` 使用同一配置但单独计时；上游默认与 Ascend 改写见[超时参考](request-call-chain.md#怎么开) |
+| `RPC call to execute_model timed out.` | EngineCore 的 Executor | Worker 在执行等待预算内没有回话；`execute_model` 与 `sample_tokens` 共用同一超时配置，但**每次 RPC 调用独立计时**（上游默认、Ascend 改写与双机配方分别见[超时参考](request-call-chain.md#怎么开)与[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)） |
 | `Worker failed with error '…', please check the stack trace above for the root cause` | EngineCore 的 Executor | 回话的那个 Worker 执行时抛了异常，引号里是它的错误信息 |
 | `Worker proc … died unexpectedly, shutting down executor.`，随后 `Executor failed.` | EngineCore 的 Executor | 某个 Worker 进程直接退出，Executor 标记失败，之后的调用全部拒绝 |
 
@@ -299,11 +300,10 @@ R1 结束时，手里块号一次还回 DP0 块池（见 [R1 借还块](vllm-kv-
 
 这个形状关不掉，能选的是 Executor 和异步调度：
 
-- **跨边界的开销**：本部署正常生成一步会广播前向与采样两次调用，指定 Worker 分别响应每次调用；前向返回空值也有响应，最终 token 结果只收一份。同步投机路径还可能增加取回草稿的调用。前端和 EngineCore 之间的消息用 msgpack 打包。Worker 缓存请求资料、计划只发变化量，就是为了压小这笔开销。
-
-- **单卡**：默认就是单进程执行器，没有单独的 Worker 进程和广播队列，不需要改。
-- **Ray**：只在已经用 Ray 管理机器时才选；官方双机部署是每台机器各起引擎、各用多进程执行器。
-- **异步调度**：把等待藏到前向后面，代价是计划要先用占位数记账；什么时候该关，见[异步调度](async-scheduling.md)。
+- **跨边界的开销**：正常生成一步会广播前向与采样两次调用，指定 Worker 分别响应每次调用（前向返回空值也有响应，最终 token 结果常规只收一份；同步投机路径可另增取回草稿调用）。前端和 EngineCore 之间的消息用 msgpack 打包，Worker 缓存请求资料、计划只发差量正是为了压小这笔开销。
+- **单卡**：默认使用单进程执行器，省去独立 Worker 子进程与共享内存广播队列。
+- **Ray**：适合已由 Ray 统一编排集群资源的场景；常规多机 DP 部署也可在各节点直接拉起本地多进程执行器（配方见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）。
+- **异步调度**：把跨进程等待藏到前向后面，代价是计划要先用占位数记账；什么时候该关，见[异步调度](async-scheduling.md)。
 
 ### 版本差异
 
@@ -346,7 +346,7 @@ prefill 节流并非只挡住新请求：满足混合批次等条件时，已经
 | v1 / V2 Runner 的选择 | `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20` |
 | GLM 稀疏 MLA 的实际执行路径与缓存规格 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2043-L2051` → `vllm_ascend/ops/indexer_kpool_mla.py#L67-L134` |
 | 三版 Worker 的两次调用 | `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L679`；`vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L653-L721`；`vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L746-L816` |
-| main 的 Worker 选择与 GLM 模型类 | `vllm-ascend@baa023ad:vllm_ascend/platform.py#L1238-L1246`；`vllm_ascend/models/glm5next/model.py#L839-L841` |
+| 历史过渡快照（`baa023ad`）的 Worker 选择与 GLM 模型类 | `vllm-ascend@baa023ad:vllm_ascend/platform.py#L1238-L1246`；`vllm_ascend/models/glm5next/model.py#L839-L841` |
 | 上游 v0.26 与历史 v0.29 的一步 | `vllm@568afb3a:vllm/v1/engine/core.py#L576-L606`；`vllm@98dff2a8:vllm/v1/engine/core.py#L597-L627`；当前 `v0.30.0` / `main` 对照见追加来源 |
 
 **证据索引。** 三类角色的划分、EngineCore 先建 Executor 再建缓存和 Scheduler、忙循环与一步的顺序见 [C4][C6][C8][S36]；批次队列与异步调度下的回环见 [C7]；两道边界上的消息、完整资料只发一次、结束名单、执行结果用列表以便序列化见 [C3][C16][C17][C18]；前端登记输出队列、EngineCore 为结构化输出加载分词器见 [C1][C19]；Executor 的种类、默认选择、按方法名广播、只收一份回话、DP 组空闲时改跑空批次、超时和失败报错见 [C10][C12][C37]；启动时查询缓存规格、稀疏 MLA 的实际执行路径见 [C5][C27][C28]；昇腾选 Worker、建 Runner 共同对应来源 21、22 [C22]，两次调用见 [C23]；三版差异见 [C30][C31][C34][C35]。

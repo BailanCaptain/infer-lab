@@ -3,7 +3,8 @@ id: ascend-config-system
 title: Ascend 配置：三个地方能写，哪个值真的生效
 type: feature
 legacyAnchors:
-  落到-glm-双机一个-json-键都没传: 复杂异构实战对照：GLM 双机为何一个 JSON 键都没传
+  落到-glm-双机一个-json-键都没传: 省略-json-时怎样核对最终生效值
+  复杂异构实战对照glm-双机为何一个-json-键都没传: 省略-json-时怎样核对最终生效值
   v0300-与-main-的严格校验与环境变量收口: 解析完还会被改写：生效值不是你写的值
 summary: >-
   昇腾开关分散在三个入口——命令行通用参数、--additional-config JSON 与环境变量。本页先以 v0.30.0
@@ -126,7 +127,7 @@ rawSources:
   ```bash
   --additional-config '{"ascend_compilation_config":{"fuse_norm_quant":true},"enable_flashcomm1":true}'
   ```
-- **环境变量**：`vllm_ascend/envs.py` 在 `v0.30.0` 维护着 14 条环境变量表（另有代码直接调 `os.getenv` 读表外变量，如动态 EPLB 开关）。绝大多数构建期或极早期开关由消费者直接读取，只有极少数参与 `AscendConfig` 兜底。读取表的属性访问每次都会重读当前进程的 `os.environ`。
+- **环境变量**：`vllm_ascend/envs.py` 在 `v0.30.0` 维护着 14 条环境变量表（另有代码直接调 `os.getenv` 读表外变量如动态 EPLB 开关，以及由 TorchNPU / CANN 运行时直接消费的 `TASK_QUEUE_ENABLE`、`PYTORCH_NPU_ALLOC_CONF`、`HCCL_OP_EXPANSION_MODE` 等底层表外变量，详见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）。绝大多数构建期或极早期开关由消费者直接读取，只有极少数参与 `AscendConfig` 兜底。读取表的属性访问每次都会重读当前进程的 `os.environ`。
 
 ```wiki-diagram
 file: config-inputs
@@ -155,7 +156,7 @@ file: config-inputs
 
 ## JSON 进来以后被拆成什么
 
-在 `v0.30.0` 主基线中，`init_ascend_config` 工厂会先把旧顶层调度兼容键（5 个，含 `profiling_chunk_config`）剥离并转交 `scheduler_config` 构造；装有 `vllm_omni` 时对未知顶层键先告警后过滤。其余字典直接交给 **Pydantic dataclass**（带运行期强类型与未知键拦截的 Python 数据类，`ConfigDict(extra="forbid")`），一次拆成 **12 组强类型子配置**与若干顶层开关（`main` 移除 `dynamic_spec_config`，新增 `shared_engram`、`kv_trace` 与 `quantized_all_reduce_config` 扩至 14 组，另含 `runtime_config`）：
+在 `v0.30.0` 主基线中，`init_ascend_config` 工厂先取出兼容的旧顶层调度键（5 个，含 `profiling_chunk_config`；`main` 为 4 个），转交 `scheduler_config` 构造。Omni 场景在检测到 `vllm_omni` 入口时，对未知顶层键先打告警再过滤。余项进入 **Pydantic dataclass**（`ConfigDict(extra="forbid")`）严格构造，一次拆成 **12 组强类型子配置**与若干顶层开关（`main` 移除 `dynamic_spec_config`，新增 `shared_engram`、`kv_trace` 与 `quantized_all_reduce_config` 扩至 14 组，另含 `runtime_config`）：
 
 | 子配置键名 | 负责什么 |
 |---|---|
@@ -202,7 +203,7 @@ file: ascend-config-fig-two-gen-precedence
 
 ## 解析完还会被改写：生效值不是你写的值
 
-拿到解析后的字段值，还不等于运行时真正生效的值。配置从环境变量持续收口到强类型子配置，落地前还须穿过两道关卡：
+拿到解析后的字段值，还不等于运行时真正生效的值。配置从环境变量持续收口到强类型子配置，落地前还须穿过两道关卡（校验收尾阶段平台还会补写 `PYTORCH_NPU_ALLOC_CONF` 等表外运行时环境变量，见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）：
 
 ```wiki-diagram
 file: ascend-config-system-fig-pydantic-flow
@@ -222,27 +223,9 @@ file: ascend-config-system-fig-pydantic-flow
 - **PD 分离角色改写**：在 PD 分离的 `producer`（prefill）侧，重算调度开关会被忽略并重置为关闭（仅打警告）；若既不是 `producer` 也不是 `consumer` 却开启该开关，则直接报错。
 - **进程内缓存守卫**：旧版逐键路径中，平台与 Worker 共用同一建配置函数，仅在「已有缓存 + 绑定同一 `VllmConfig` + `refresh` 为假 + 具备 `ascend_compilation_config` 与 `eplb_config` 两项属性」四条全满足时复用；不满足守卫的新实例只打警告不覆盖旧缓存。直接改动字典不触发重解析；取配置时缓存为空或缺必要属性会直接抛「配置未初始化」。
 
-## 复杂异构实战对照：GLM 双机为何一个 JSON 键都没传
+## 省略 JSON 时，怎样核对最终生效值
 
-下面切到例外 B 历史绑定算例（GLM-5.3-Flash 双机，[部署前提](glm-5-3-flash-two-node.md#部署前提)与[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）。官方双机教程的两条命令里**完全没有 `--additional-config`**，因此没有从 CLI JSON 入口覆盖任何昇腾键。
-
-但「没传 JSON」不等于所有字段都停留在静态默认值——它们仍会受环境回退、模型条件与 PD 角色改写。在「固定命令 + 默认环境」假设下，主线后续会用到四项关键默认分支（共同前提见[来源基线](../sources/glm-5-3-flash-baseline.md)）：
-
-- 采样归约（`enable_reduce_sample`）关闭，logits 归约走通用路径；
-- 细粒度 TP 中 LM head 规模为 0，跟随整体 TP8 切分；
-- `FlashComm1` 显式配置关闭（它是[序列并行](sequence-parallel.md)入口之一；因共享专家条件也可将 `enable_sp` 改写为真，教学基线另要求该覆盖未触发）；
-- `rejection_sampler` 的分块验证与熵验证开关均关闭。
-
-教程真正通过通用 CLI 参数锁定的六项核心配置如下（详细推导见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）：
-
-- **显存预算比例 `0.85`**：决定可切出的 KV 块总数；
-- **每步 token 预算 `8192`**：限制单步计算量，长提示词按此分段；
-- **每步请求数上限 `32`**：结合单请求行数与图配置，共同决定捕获尺寸；
-- **单请求长度上限 `133120` token**：同时定下块表上限与 KDA 状态组块长；
-- **MTP 每轮草拟 `3` token**：决定 decode 单步每请求送入行数（见[投机解码](speculative-decoding.md)）；
-- **主模型图模式**：仅录制纯 decode 步，共七档捕获尺寸。
-
-由此可得出一条通用排查铁律：**判断某个昇腾特性有没有开启，必须把 CLI 命令、默认值、环境兜底、派生改写与消费者条件五步连起来看。**
+启动命令省略 `--additional-config` 只表示没有从 CLI JSON 入口传入昇腾键；省略 JSON 后仍要逐级核对环境兜底、部署角色改写和最终消费者条件（例如共享专家 DP 仍可刷新派生的序列并行状态，PD 角色仍可重置重算调度）。历史 GLM 双机教程未传 `--additional-config` 时的四项默认派生分支与六项通用 CLI 显式配置（`0.85`、`8192`、`32`、`133120`、MTP `3` 与七档 decode 图）统一收束在[双机关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)。
 
 ## 排查时怎样从症状回到某一路
 
@@ -251,12 +234,12 @@ file: ascend-config-system-fig-pydantic-flow
   v0.26 rc 的调度配置要把调用链一起看：选择函数的回退日志打印的是调用者传入的备用值，这一层不再读取或转换环境变量的值。以均衡调度为例，环境值已在创建调度子配置前读取并转换；因此要核对调用者怎样准备这个值，不能把打印日志的位置当成读取环境的位置。具体键名、层级优先顺序与转换见页末来源。
 - **报「配置还没初始化」。** 取配置时，缓存为空或缓存对象缺少守卫检查的任一必要属性，完整性检查就会报这个错误。先认清自己在哪个进程，再查该进程是否经过初始化、初始化是否成功，以及留下的对象是否满足守卫。
 - **启动时直接拒绝某个组合。** 按报错定位到是哪一道检查，再去看它要求的前提；不要靠删掉检查来判断这个组合可用。
-- **改了环境变量却没变。** 如果这个名字属于那九对之一，仅改环境不会自动更新已经缓存的字段；需经过受支持的配置重建或服务重启路径，并核对消费者有没有另外缓存旧值。重新导出启动终端的环境，也不会修改已经运行的服务进程环境。
+- **改了环境变量却没变。** 如果这个名字属于配置构造期读取的兼容项（如 `v0.30.0` / `main` 的 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 或旧镜像 `v0.23.0` / `db701c1f` 的九对映射），仅改环境不会自动更新已经缓存进 `_ASCEND_CONFIG` 的结果；需经过受支持的配置重建或服务重启路径，并核对消费者有没有另外缓存旧值。重新导出启动终端的环境，也不会修改已经运行的服务进程环境。
 
 ## 常见误解
 
 - **「这段 JSON 是上游 vLLM 的功能，文档该在上游」**——上游提供容器并将内容纳入配置 hash，平台定义自己的键；上游也会写入少数键。查某个键要找到实际读取它的代码。
-- **「环境变量和 JSON 是两条互不相通的路」**——钉住版本上有九个名字两边都认。把「全大写去环境变量表找、小写下划线去配置找」当成判断规则，就会漏掉这九个，也会误以为显式写 false 没有意义。
+- **「环境变量和 JSON 是两条互不相通的路」**——`v0.30.0` 与 `main` 仍对 `enable_flashcomm1` / `VLLM_ASCEND_ENABLE_FLASHCOMM1` 做逻辑或合并，历史 `v0.23.0` 与旧镜像 `db701c1f` 更曾保留九对同名兼容映射。把「全大写只找环境变量表、小写下划线只找 JSON」当绝对规则，就会漏掉跨入口合并逻辑。
 - **「取不到配置是因为 JSON 写错了」**——缓存为空或缺少守卫检查的属性，会触发未初始化错误；JSON 错误则可能在解析、类型转换或具体子配置校验时另行报错，也可能因旧版忽略未知键而没有提示。
 - **「同一个进程里配置只解析一次」**——可复用时不会重建；旧版 `refresh` 为真、绑定对象变了或缓存不完整时会重建，不能把“写了这个键”与“值为真”等同。
 - **「拼错键名总会报错」和「拼错键名从不报错」都不对**——钉住的两个发布分支上，顶层和多数子配置安静走默认，EPLB 那一组会报错；main 通常由 pydantic 严格校验报错；若能发现 vLLM-Omni，未知顶层键会先警告并过滤，不能概括为一律报错。结论要连版本和所在层级一起说。
@@ -269,7 +252,7 @@ file: ascend-config-system-fig-pydantic-flow
 
 **JSON 这条路。** 启动命令加 `--additional-config '{...}'`（上游注册的参数），解析后的容器进入 `VllmConfig.additional_config`，期间上游也可以补键。固定旧 GLM 由 `AscendConfig.__init__` 从字典里 `.get()` 子字典，再交给对应的子配置类。这样构造出来的类有八个：`XliteGraphConfig`、`AscendCompilationConfig`、`AscendFusionConfig`、`FinegrainedTPConfig`、`EplbConfig`、`WeightPrefetchConfig`、`ProfilingChunkConfig`、`RejectionSamplerConfig`。顶层字段也逐键取，例如 `recompute_scheduler_enable`、`enable_shared_expert_dp`、`enable_reduce_sample`。本页这些字段的层级在 `ascend_config.py` 中定义；其他键仍要追实际消费者，不能仅凭没有在这个文件里找到就判它无效。
 
-**九对兼容映射的完整清单**（键在字典里就用键，否则用环境值）：
+**历史旧镜像（`v0.23.0` / `db701c1f`）九对兼容映射的完整清单**（该快照按键是否在字典里择一：`v0.30.0` 与 `main` 已退役除 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 外的八项环境变量）：
 
 | JSON 里的键 | 对应的环境变量 |
 | --- | --- |

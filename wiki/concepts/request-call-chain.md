@@ -2,10 +2,10 @@
 id: request-call-chain
 title: 一条请求的代码路径：七站各在哪个进程、经过哪些函数
 type: concept
+legacyAnchors:
+  同一条请求第-1-步和第-2-步走的分支不同: 同一请求在预填充和投机验证中怎样分流
 summary: >-
-  沿用单请求那一页的七站，在官方双机部署上标出每一站在哪个进程里执行（API server、每个 DP 组的 EngineCore、每张卡的
-  worker）、经过哪些类和函数、进程之间走 ZMQ、共享内存队列还是 HCCL，哪些代码属于 vLLM、哪些属于
-  vllm-ascend；再讲怎样凭日志前缀和 traceback 判断请求停在哪一站，以及读源码从哪几个入口开始。
+  把单条生成请求的七站落回真实代码：前端本地注册请求后经 ZMQ 提交给 EngineCore，EngineCore 排步并驱动各卡 Worker 准备输入、执行前向与按需采样，最后回传结果；结合日志前缀、traceback 与三层超时定位故障停在哪一站。
 aliases:
   - 调用链
   - call chain
@@ -249,9 +249,9 @@ updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
-[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。[一条请求](one-request.md)回答了 4 个提示词 token 在每一站算了多少数、传了多少字节、借了几块 [KV block](kv-cache.md)（保存历史状态的显存块）。本页则跟着同一条请求落到代码：每一站跑在哪个进程里、跨进程走哪条通道交接，以及服务报错或卡住时该打开哪份日志与源码。
+[调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。在普通生成请求里，前端先在本地 `OutputProcessor` 注册输出队列与反分词器，再把请求交给 `EngineCore`；`EngineCore` 每步排出调度计划，驱动 `Worker` 准备输入、执行前向，并在前向交回待采样状态时再执行采样，最后把新 token 送回前端（4 个提示词 token 在跨机七站里的形状与字节算例见[一条请求](one-request.md)）。本页沿着这七站标出进程归属、跨进程通道、入口函数，以及报错或卡住时怎样对日志认站。
 
-Python 报错时打印的 traceback（调用栈回溯）只列出出错进程那一刻的函数链；跨进程交接的请求则需要把几份进程日志连起来读。提交侧会先在本地的 `OutputProcessor` 注册请求，再异步发给独立的 `EngineCore`，因此排查「请求到底停在哪一站」时，务必把本地注册与跨进程提交拆成两步核对。
+Python 报错时打印的 traceback（调用栈回溯）只列出出错进程那一刻的函数链；跨进程交接则需要把多份进程日志串起来看，尤其要区分「前端本地完成注册」与「`EngineCore` / `Worker` 实际接手执行」。
 
 ## 七站分在三种进程里
 
@@ -291,7 +291,7 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 **ZMQ：API server 和每个 EngineCore 之间。** ZMQ（ZeroMQ，轻量级进程间消息传输库）支持本机 IPC（同机进程间通信）与跨机 TCP。API server 开一发一收两个口子，两个 EngineCore 通过 node0 的 TCP 端口连入，消息用 msgpack（紧凑二进制序列化格式）打包。EngineCore 另有两个后台**线程**专管收发：收线程把解码后的请求放进进程内队列，发线程从另一队列取出结果回传；主线程只跑不停转圈的**忙循环**——取新请求、跑一步、放结果。
 
-**共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同机进程都能读写的内存，传数据不经过网络。EngineCore 里的 `MultiprocExecutor` 管理本机 8 个 worker：把「要执行的函数名和参数」写进广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条响应队列；本页生成内部调用指定第 0 号 worker（TP 组内编号 0）回复，执行器只读它的那一条（公开 Python RPC 默认收各 Worker 结果）。
+**共享内存队列：EngineCore 和本机多个 worker 之间。** 共享内存是同机进程都能读写的内存，传数据不经过网络（容器 `/dev/shm` 容量与宿主机内存页机制见[宿主机内存底座与静态大页](host-memory-and-hugepages.md#容器---shm-sizedevshmmemlock-与宿主机内核稳态四件套)）。多进程执行器 `MultiprocExecutor` 管理本机 worker（如双机算例每机 8 个）：把「要执行的函数名和参数」写进广播队列一次，各 worker 读到同一条消息。回程每个 worker 各有一条响应队列；常规生成内部调用指定 `output_rank`（单段流水线即 TP 组内 0 号 worker）回复，执行器只读那一条（公开 Python RPC 默认收齐各 Worker 结果）。
 
 **HCCL：worker 和 worker 之间，搬张量。** HCCL（昇腾集合通信库）负责卡与卡之间的数据交换。机内 8 张卡在每层的张量并行里合并结果，16 张卡在 MoE 层里互相派发 token。这些通信各发生几次、每次多少字节，见[一条请求](one-request.md)第 4 站的「一次前向的通信账」。
 
@@ -301,14 +301,17 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 ## 一步之内：EngineCore 给 worker 发两次调用
 
-让另一个进程执行某个函数、再把返回值送回来，叫**远程过程调用**（RPC）。生成循环每转一圈（一步），EngineCore 都要对本机 8 个 worker 发两次 RPC：
+让另一个进程执行某个函数、再把返回值送回来，叫**远程过程调用**（RPC）。在多进程执行器（`mp`）的常规生成步里，EngineCore 先发一次前向调用，当前向交回待采样的暂存状态（返回 `None`）时再发第二次采样调用：
 
-1. `execute_model`：把调度结果 `SchedulerOutput`（哪些请求、各算几个 token、新分哪些块）送过去，worker 做第 3 站和第 4 站，算到需要出 token 那几行的词表分数（logits）。logits 暂存在 worker 的 `ExecuteModelState` 中，这次调用返回空值。
-2. `sample_tokens`：worker 取出 logits 做第 5 站，采样选出新 token，再让 MTP（多 token 预测，投机解码草稿头）猜候选。这次调用返回 `ModelRunnerOutput`，装入每个请求本步新得的 token 编号。
+1. `execute_model`：把调度结果 `SchedulerOutput`（哪些请求、各算几个 token、新分哪些块）广播给本组 worker，做第 3 站拼输入与第 4 站逐层前向，算出待预测行的词表分数（logits）存入 `ExecuteModelState`，本次调用返回 `None`。
+2. `sample_tokens`：worker 取出暂存的 logits 做第 5 站采样（开启投机解码如 MTP 时接着草拟下一轮候选），返回装有本步新 token 编号的 `ModelRunnerOutput`。
 
-拆成两次以后，EngineCore 可以趁 worker 做前向的时候算一张结构化输出要用的表（结构化输出限定模型只能生成合法 JSON 这类格式，这张表写明下一个 token 允许是哪些），随第二次调用一起送过去，见[结构化输出](structured-output.md)。
+拆成两次调用后，EngineCore 可趁卡上跑前向的同时在 CPU 上编译语法掩码表（限定模型只输出合法 JSON 等格式），随第二次调用一并下发（见[结构化输出](structured-output.md)）。
 
-需要注意，进入 `execute_model` 只证明 worker 收到了调用，不代表本请求一定跑了前向或设备完全空闲。若本请求未被排入 token，先看同批是否还有其他请求在算；若整批无 token，则要区分「直接返回空输出」与「走 KV connector 协作路径」，部分外部启动器配 DP 时甚至会先跑一次 dummy run（具体触发条件见页末源码）。因此，「本请求没有前向」和「设备没有任何工作」是两个独立结论。
+**相邻边界与例外（并非每步都是跨进程双 RPC）：**
+- **单进程直调（`uni`）**：单卡默认 `UniProcExecutor` 在 EngineCore 同进程内顺序直调 `execute_model` 与 `sample_tokens`，不经过共享内存广播队列。
+- **池化模型直接返回**：pooling 任务在 `execute_model` 内算完池化张量后直接返回输出，不写 `ExecuteModelState`，也不发起第二次 `sample_tokens` 调用。
+- **零 token 空步分流**：整批无调度 token 时提前返回空结果或走 KV connector 协作路径（外置启动器配 DP 时可能先跑一次 dummy run）；即使本请求未被排上 token，同批其他请求或跨 DP 陪跑仍可能让设备忙碌，不能把「收到 `execute_model`」或「本请求无前向」简单等同于「设备完全空闲」。
 
 ```wiki-diagram
 file: request-call-chain-step
@@ -359,9 +362,9 @@ file: request-call-chain-functions
 
 **⑦沿请求 ID 找回①留下的队列。** 后台输出任务反分词并检查停止字符串；HTTP 侧从收集器取出文字，以 SSE（HTTP 上分段推送的格式）返回。两处停止判断怎样衔接，见[一条请求的返回与收尾](one-request.md#第-7-站-返回与收尾)；增量反分词和 SSE 片段怎样拼出来，见[流式输出](streaming-output.md)。
 
-## 同一条请求，第 1 步和第 2 步走的分支不同
+## 同一请求在预填充和投机验证中怎样分流
 
-上面是每一步都要走的主干。R1 的第 1 步（prefill，把提示词一次算完）和第 2 步（decode，在已有历史上继续往后生成，这是第一个 decode 步）走的是同一串函数，但在几个岔口上拐向不同的分支。要看的数字都在[一条请求](one-request.md)的第 2 到第 6 站和「第二圈」一节，这里只标岔口：
+上面是每一步共用的调用主干。同一条请求在第 1 步（prefill，把提示词一次算完）和第 2 步（首个 decode 步，带投机候选一起验证）走过同一串入口函数，却在三个岔口拐向不同分支（跨机双节点的算例数字见[一条请求](one-request.md)的第 2–6 站与「第二圈」）：
 
 ```wiki-diagram
 file: request-call-chain-branches
@@ -409,7 +412,7 @@ $$\text{提交请求总数} = 3 + 2 = 5\text{ 条}, \qquad \text{完整返回结
 
 ## 出问题时，判断它停在哪一站
 
-服务出问题时，最有效的排障节奏是**先定进程、再定站点、最后追根因**：先凭日志前缀确认停在 API server、`EngineCore` 还是某张卡的 `Worker`，再结合最内层 traceback 帧缩到七站里的具体函数。下面这张地标图把「异常如何跨进程回传」「四个进程泳道的日志前缀」「三层超时作用域」以及 `v0.30.0`（默认 MRV1）与 `main`（唯一 MRV2）在第 3–5 站的文件入口收在同一画布上：
+服务出问题时，按三步定位。**先认进程**：凭日志前缀区分 API server、`EngineCore` 还是某张卡的 `Worker`。**再认执行站**：凭最内层 traceback 帧落到第 1 至第 7 站的具体函数。**最后取首错上下文**：顺着异常回传方向找回最早出错或未到齐的那个进程日志，避开前端转报的 `EngineDeadError` 或其余卡的连带超时（运行期 HCCL 双超时与算子下发队列调优见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)）。下面这张地标图把「异常跨进程回传」「四个进程泳道的日志前缀」「三层超时作用域」以及 `v0.30.0`（默认 MRV1）与 `main`（唯一 MRV2）在第 3–5 站的文件入口收在同一画布上：
 
 ```wiki-diagram
 file: request-call-chain-fig-log-landmarks
@@ -433,7 +436,7 @@ file: request-call-chain-fig-log-landmarks
 
 **用原始日志补齐图上的线索。** worker 异常要看它自己的日志；EngineCore 异常前会 dump 本步输入与调度清单；进程直接退出则查看监视线程日志及退出原因。可搜索的完整报错串见页末[会报什么错](#会报什么错)。
 
-**卡住不动怎么判断。** 本页 GLM 配方给两次 RPC 各设 3000 秒等待预算；超时只说明 worker 没在限时内回话。先查同一步各卡最后完成了什么：若仍在计算，继续查前向耗时；若部分卡已进入集合通信，另一些还未到达，就沿未到达的卡往前查。通信要组内成员到齐才结束：机内是 8 张，MoE 是全部 16 张。一张卡故障会让其余卡一起等，因此要将 16 个 worker 的日志按时间对齐，并核对两机时钟；缺少某张卡的记录时先补齐，不能把最后报超时的卡当根因。上游定义默认、Ascend 改写与通信库等待的区别见页末。
+**卡住不动怎么判断。** `execute_model` 与 `sample_tokens` 两次 RPC 各自按执行等待预算独立计时；超时只说明 worker 没在限时内回话。先查同一步各卡最后完成了什么：若仍在计算，继续查前向耗时；若部分卡已进入集合通信，另一些还未到达，就沿未到达的卡往前查。通信要组内成员到齐才结束（如双机算例中机内 TP 是 8 张，跨机 MoE 是全部 16 张）。一张卡故障会让其余卡一起等，因此要将所有 worker 的日志按时间对齐，跨节点部署还须核对机器时钟；缺少某张卡的记录时先补齐，不能把最后报超时的卡当根因。三层超时的计时作用域见页末（历史双机 `3000` 秒等环境变量配方见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）。
 
 **图模式下怎样定位算子。** 先看 plog（CANN 的运行日志）；若要用同步调试，让每个算子提交后立刻等待完成，就须先关闭 ACL Graph（昇腾静态计算图录制与回放模式），此时第 4 站改走 eager。开关和日志目录见页末。
 
@@ -476,27 +479,19 @@ print(model_types)
 
 collective_rpc 的默认 timeout=None；显式 timeout 以秒计，args 默认空元组，kwargs 默认 None。它们传给当前执行器处理，不能用这里的参数替代生成内部两次 RPC 的环境变量。apply_model 没有公开 timeout 参数。固定 GLM 的 get_model 会去掉 ACLGraphWrapper 外壳再返回局部模型，但不会跨卡汇总参数；上面的类名只能识别入口对象，不能单独证明权重完整、数值正确或设备空闲。
 
-**三个超时分别等什么。** 建链是在通信成员之间建立连接，执行同步是已连上的成员等彼此完成通信，Worker RPC 则是 EngineCore 等 Worker 回应一次方法调用。三者覆盖的阶段不同；HTTP 空闲连接保活另见[API 入口](api-server-entry.md#怎么开)，都不能直接当成一条生成请求的总时限。
+**三个超时分别等什么。** 建链是在通信成员之间建立连接，执行同步是已连上的成员等彼此完成通信，Worker RPC 则是 EngineCore 等 Worker 回应一次方法调用。三者各自独立计时、覆盖的阶段不同（HTTP 空闲连接保活另见 [API 入口](api-server-entry.md#怎么开)，HCCL 模式与网络调优见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)，历史 GLM 双机的 `3000 / 1200 / 3600` 环境变量配方统一见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）：
 
-| 环境变量 | 输入、定义默认与生效边界 | 固定 GLM 配方 |
+| 环境变量 | 输入、定义默认与生效边界 | 计时机制与跨层边界 |
 |---|---|---|
-| VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS | 整数字符串，秒；上游默认 300。固定 Ascend 的配置检查把小于 1836 的模块属性值改为 3000，等于或大于 1836 保留；不是读取 HCCL 配置动态联动 | 显式 3000；execute_model 和 sample_tokens 各调用一次 collective_rpc，各有自己的截止时间 |
-| HCCL_CONNECT_TIMEOUT | CANN 9.1.X：整数秒，范围 120–7200，默认 120；通知各节点初始化失败原因另加 20 秒，文档建链等待为设置值加 20 | 显式 1200，对应文档口径 1220 秒；不是每次 decode 都预留这段时间 |
-| HCCL_EXEC_TIMEOUT | A2 HOST/HOST_TS：整数秒，0–2147483647，默认 1836，0 表示不设限。AIV：0–1091 秒，默认 1091，可按 10 ms 精度输入；0 或超上限按 1091，最终还按硬件时间间隔量化 | 教程同时给 3600 与 AIV；按对应 AIV 规则不能视作实际 3600 秒。通信域 hcclExecTimeOut 可优先于环境值，核现场时还要看实际模式与通信域配置 |
+| `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` | 整数字符串，秒；上游默认 300。Ascend 平台配置检查把小于 1836 的模块属性值改为 3000（`v0.26.0rc` 例外），等于或大于 1836 保留；不是读取 HCCL 配置动态联动 | `execute_model` 和 `sample_tokens` 各调用一次 `collective_rpc`，**每次调用独立按单调时钟计算截止时间** |
+| `HCCL_CONNECT_TIMEOUT` | CANN 9.1.X：整数秒，范围 120–7200，默认 120；通知各节点初始化失败原因另加 20 秒，文档建链等待为设置值加 20 | 仅约束通信域首次建链握手阶段，不是每次 decode 都预留这段时间 |
+| `HCCL_EXEC_TIMEOUT` | A2 HOST/HOST_TS：整数秒，0–2147483647，默认 1836，0 表示不设限。AIV：0–1091 秒，默认 1091，可按 10 ms 精度输入；0 或超上限按 1091，最终还按硬件时间间隔量化 | AIV 模式下即使环境导出更大值（如 `3600`），按对应 AIV 规则仍受 1091 秒上限约束；通信域 `hcclExecTimeOut` 可优先于环境值 |
 
-三个变量都在两端启动服务前设置并由子进程继承。教程原样片段如下；它展示配方输入，表中的覆盖与范围仍决定解释方式。
+Worker 的截止时间在发起 `collective_rpc` 时由单调时钟计算，读响应队列时用剩余预算；`non_block` 返回 future 也沿用这个截止时间，不是在调用 `future.result` 时重新开始计时。例如单次预算若已用掉 80 秒，之后等待只剩剩余秒数；它只约束当次 Worker 调用，不会把多步 decode 合并成同一份预算，而 `execute_dummy_batch` 等未传此参数的调用也不能一概套用。
 
-```bash
-export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000
-export HCCL_CONNECT_TIMEOUT=1200
-export HCCL_EXEC_TIMEOUT=3600
-```
+上游 getter 只做 `int` 转换，没有把 `0`、负数或 `None` 字符串定义为“无限”；Ascend 平台又会改写小于阈值的值，因此不能靠填 `0` 关闭这项等待。HCCL 两种展开模式对 `0` 的含义也不同，不能把 HOST 的关闭方式复制到 AIV。延长等待只会推迟发现停滞，不会让选错的网卡恢复连通。
 
-Worker 的截止时间在发起 collective_rpc 时由单调时钟计算，读响应队列时用剩余预算；non_block 返回 future 也沿用这个截止时间，不是在调用 future.result 时重新开始计时。例如示意的 3000 秒预算已用掉 80 秒，之后等待只剩约 2920 秒。它限制这次 Worker 调用，不会把 100 次 decode 合并成一份 3000 秒预算；execute_dummy_batch 等没有传此参数的调用也不能一概套用。
-
-上游 getter 只做 int 转换，没有把 0、负数或 None 字符串定义为“无限”；固定 Ascend 又会改写小于阈值的值，因此不能靠填 0 关闭这项等待。HCCL 两种模式对 0 的含义不同，不能复制 HOST 的关闭方式到 AIV。延长等待只推迟发现停滞，不会让选错的网卡恢复连通。
-
-**VLLM_RPC_TIMEOUT 在这个版本不再是有效调节入口。** 固定教程仍 export 3600000，但所查固定 vLLM 的环境注册表与整个运行包没有该变量的定义或消费者，Ascend 运行包也不消费它；它不是上表 Worker 超时的别名。不能把这串数字换算成本部署实际等待时间。默认环境校验会对未知 VLLM_ 变量告警；启用 fail_on_environ_validation 才会直接拒绝。教程残留与当前有效参数应分开识别，排查 Worker 等待使用上表第一项。
+**`VLLM_RPC_TIMEOUT` 在 V1 引擎不是有效 Worker 超时入口。** 所查固定 vLLM 环境注册表与 Ascend 运行包均无该变量的定义或消费者，它不是上表 `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` 的别名；默认环境校验会对未知 `VLLM_` 变量打告警（启用 `fail_on_environ_validation` 时直接拒绝），历史教程若残留该变量应与当前有效参数分开识别。
 
 ### 会报什么错
 

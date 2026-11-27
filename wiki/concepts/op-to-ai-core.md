@@ -4,7 +4,10 @@ title: 从算子到 AI Core：分工、融合与分块
 type: concept
 summary: >-
   逐层前向中，算子怎样拆成矩阵（Cube）与向量（Vector）执行段、Host 怎样做分块规划（tiling）、设备怎样搬入计算并写回；以
-  Qwen3-8B 标准残差融合 RMSNorm 与 GLM 双机 mHC 单参路径对照说明。
+  Qwen3-8B 标准残差融合 RMSNorm 与多路残差预先混合的单参路径对照说明。
+legacyAnchors:
+  复杂异构实战对照glm-双机的-rmsnorm-与算子执行链路: 残差在哪里相加，决定能否用融合归一化
+  glm-实际从哪里调用-rmsnorm: 残差在哪里相加，决定能否用融合归一化
 aliases:
   - 算子链路
   - AscendRMSNorm
@@ -118,7 +121,7 @@ file: op-to-aicore-plate-cutaway
 
 例如，矩阵乘后接激活：先把输入与权重对应相乘、累加，再对结果里的每个数做非线性变换。**Cube** 是擅长矩阵乘加的计算单元；**Vector** 是处理逐元素运算、归约等工作的向量单元。归约就是把一组数汇成一个数，例如求和。一个融合算子可以把这两类执行段组织在一起。
 
-另一种运算 **RMSNorm** 会先求一行数的均方，用它的倒数平方根调整尺度，再乘逐通道权重，输出仍与输入同宽。它需要归约和逐元素处理，计算结构与矩阵乘不同：放在同一张卡上，不代表都交给 Cube。
+另一种运算 **RMSNorm** 会先求一行数的均方，加上防止除零的小常数 $\varepsilon$ 后取倒数平方根调整尺度，再乘逐通道权重，输出仍与输入同宽。它需要归约和逐元素处理，计算结构与矩阵乘不同：放在同一张卡上，不代表都交给 Cube。
 
 ```wiki-diagram
 file: op-to-ai-core-intuition
@@ -149,9 +152,9 @@ y[j] = s[j] × r × γ[j] + bias[j]   # 没有 bias 时省去末项
 
 **不传 residual 时，令 $s = x$，仍按上面的 $r$、$y$ 两式归一化。** 此时接口只返回 $y$，不返回更新后的残差。
 
-用两元素向量走一次数据交接（数为示意）：$x=[1,3]$、$\text{residual}=[1,-1]$、$\gamma=[1,1]$，无 bias。为便于手算，这个非零输入取 $\varepsilon=0$，真实模型使用自己的 $\varepsilon$。先得到 $s$，再由整行算出同一个 $r$，最后逐元素缩放：
+用两元素向量走一次数据交接（数为示意）：$x=[1,3]$、$\text{residual}=[1,-1]$、$\gamma=[1,1]$，无 bias。为便于手算，这里在相加后输入非零（$s=[2,2] \neq 0$）的前提下取 $\varepsilon=0$，真实模型始终使用正数 $\varepsilon$。先得到 $s$，再由整行算出同一个 $r$，最后逐元素缩放：
 
-$$s = x + \text{residual} = [2, 2], \qquad r = \frac{1}{\sqrt{(2^2 + 2^2)/2}} = 0.5, \qquad y = s \cdot r \cdot \gamma = [1, 1]$$
+$$s = x + \text{residual} = [2, 2] \neq 0,\quad \varepsilon = 0 \implies r = \frac{1}{\sqrt{(2^2 + 2^2)/2 + 0}} = 0.5,\quad y = s \cdot r \cdot \gamma = [1, 1]$$
 
 | 步骤（示意，无 bias，$\varepsilon=0$） | 算式 | 结果 | 数据去向 |
 | --- | --- | --- | --- |
@@ -162,11 +165,11 @@ $$s = x + \text{residual} = [2, 2], \qquad r = \frac{1}{\sqrt{(2^2 + 2^2)/2}} = 
 
 后续计算收到的 $y$ 是 $[1,1]$，保留的残差 $s$ 是 $[2,2]$。它们用途不同，不能拿其中一份替代另一份。上面的式子表达数学语义，真实低精度执行还要核对中间转换和舍入误差。
 
-**边界与例外**：自定义扩展可用时，带 `residual` 的路径调用残差加归一化加偏置的融合接口；不可用则退回已有残差归一化接口，有 bias 时再补加法。扩展是否启用还受批不变性模式（约束不同批次下数值一致性）、设备类型与加载结果影响，具体判断见页末源码区。若模型子层不传 `residual`，则只传一个张量、不进该融合分支。
+**边界与例外**：带 `residual` 的路径优先调用残差加归一化加偏置的自编译融合接口；自编译扩展未启用时能否退回 `torch_npu.npu_add_rms_norm` 因版本而异（`v0.23.0` 与 `main` 保留回退，`v0.30.0` 直接调用扩展而不回退，详见页末源码区）。扩展是否启用还受批不变性模式（约束不同批次下数值一致性）、设备类型与加载结果影响。若模型子层不传 `residual`，则只传一个张量、不进该融合分支。
 
 ## Host tiling：把张量任务划给设备
 
-**Host 是主机侧；tiling 是按输入形状与硬件资源制定的分块规划。** 张量隐藏宽不变时，本批包含的 token（文本分词后的单元）数决定输入行数；主机侧必须算出把哪些行或列块交给哪些核、每轮搬入多少数据，再把这份分块计划打包送入设备任务队列，由设备侧 AI Core 真正生成运算结果。
+**Host 是主机侧；tiling 是按输入形状与硬件资源制定的分块规划。** 张量隐藏宽不变时，本批包含的 token（文本分词后的单元）数决定输入行数；主机侧必须算出把哪些行或列块交给哪些核、每轮搬入多少数据，再把这份分块计划打包送入设备任务队列，由设备侧 AI Core 真正生成运算结果（Host 任务队列异步下发与空泡排查见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#为什么推理时延常卡在-host-cpu-下发空泡而非-ai-core-计算)）。
 
 下面这张四段流水图把带残差融合扩展 `npu_add_rms_norm_bias` 从 Python 入口到 AI Core 片上执行串成完整链路（无 residual 分支则直调 `torch_npu.npu_rms_norm`）：
 
@@ -176,7 +179,7 @@ file: op-to-ai-core-fig-execution-pipe
 
 Python 调用先进入 C++ 适配层，预分配三份输出（`y`、`rstd` 与更新后残差 `s`）。随后经 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)`（**aclnn** 即 AscendCL Neural Network，CANN 单算子 C 接口）交由 **CANN**（昇腾算子与运行时软件栈），把主机侧 **AscendC** `op_host` 规划与设备侧 `op_kernel` 执行衔接起来。
 
-主机 tiling 读取可用向量核数与片上 **UB**（Unified Buffer，向量核片上统一缓存）容量，按行数、行宽、FP16/FP32/BF16 精度和是否有 bias 挑模板（普通、沿宽拆分、合并多行等），生成每核范围与临时空间参数。分块阈值随精度和偏置改变，元素总数相同也须重挑模板。无编译对象时查平台、有编译对象时读其记录；UB 容量须先扣预留空间，剩余部分才分给数据块。
+主机 tiling 先读取可用向量核数与片上 **UB**（Unified Buffer，向量核片上统一缓存）容量（有编译对象时读其记录，无编译对象时查平台），按 FP16/FP32/BF16 精度、行宽和是否有 bias 选定模板（普通、沿宽拆分或合并多行）。随后先从 UB 容量中扣去预留空间，只把剩余部分分给数据块。最后按本批行数与行宽算出每核处理范围与临时空间参数——分块阈值随精度和偏置改变，元素总数相同也须重选模板。
 
 行分配先按「总行数 $\div$ 可用向量核数」向上取整得普通核配额，再求实际启用核数，末核接余行。以 10 行、4 个可用向量核为例（宽度与精度满足模板条件）：
 
@@ -211,11 +214,9 @@ $$\text{former} = \lceil 10 \div 4 \rceil = 3\text{ 行}, \qquad \text{used\_cor
 
 先核对语义与数值误差，再看分派、精度、布局和 tiling，最后测设备耗时、访存与端到端收益。重点确认：省掉哪些读写与下发、片上临时空间涨多少、哪些形状能命中。源码定路径与公式，真实加速比须同输入同环境实测。
 
-## 复杂异构实战对照：GLM 双机的 RMSNorm 与算子执行链路
+## 残差在哪里相加，决定能否用融合归一化
 
-### GLM 实际从哪里调用 RMSNorm
-
-**与单路残差不同，GLM 用 mHC 管理多路残差：进子层前先把多路残差混成单输入，再走不带 residual 的 RMSNorm**（结构见[层与隐藏表示](layers-and-hidden.md)）。沿用[双机部署前提](glm-5-3-flash-two-node.md#部署前提)：2 台 A2 各 8 卡、TP8/DP2/EP16、W8A8（适用层用 8 位整数，归一化保持自身精度）。
+**残差若在进入归一化时才相加，就能走上面的双参融合分支；若模型在子层前已经把多路残差合成单一路张量，归一化就只会收到单个参数。** 例如多路残差结构 mHC 进子层前先由专用混合算子把四条残差流压成一路输入，随后调用不带 `residual` 实参的 `RMSNorm`（mHC 四路合成与摊回机制见[一层有两段计算，四条 residual 流贯穿两段](glm-5-3-flash.md#一层有两段计算四条-residual-流贯穿两段)；一般残差概念见[层与隐藏表示](layers-and-hidden.md)）。沿用[双机部署前提](glm-5-3-flash-two-node.md#部署前提)：2 台 A2 各 8 卡、TP8/DP2/EP16、W8A8（适用层用 8 位整数，归一化保持自身精度）。
 
 跟随[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 4 token，教学设定）：[准备输入阶段](prepare-inputs-flow.md)备好 token、位置、块表、槽位与注意力元数据；进入[逐层前向](ops-and-kernels.md)后，注意力用寻址信息读写缓存，归一化直读当前层张量。
 
@@ -225,7 +226,7 @@ $$\text{former} = \lceil 10 \div 4 \rceil = 3\text{ 行}, \qquad \text{used\_cor
 file: op-to-ai-core
 ```
 
-#### 归一化之后，矩阵和向量执行段怎样接上
+### 归一化之后，矩阵和向量执行段怎样接上
 
 **稠密层的量化线性层先量化当前输入，再做整数矩阵乘并恢复输出精度。** 激活动态量化会为输入行产生整数值和缩放系数；矩阵乘使用这些系数及权重系数，产出调用者需要的浮点结果。当前 W8A8 线性实现既有普通权重路径，也有按加载时设置拆成两次矩阵乘再拼接的路径，不能只数一次 Python 的线性层调用就断言只有一个 kernel。
 
@@ -235,7 +236,7 @@ file: op-to-ai-core
 
 若派发已经产生量化值和动态缩放系数，专家计算直接使用，不重复量化；否则先量化。每个专家接多少行来自派发结果，不能把 R1 的 4 个 prompt token 当成每个专家都收到 4 行。之后的收回、合并与跨卡等待见[主线的 MoE 通信](one-request.md#moe-通信走-mc2-还是-allgather)。
 
-#### 一行中间结果，写出再读回是多少
+### 一行中间结果，写出再读回是多少
 
 **宽度和精度决定逻辑数据量，是否能省掉访问要看结果是否还被使用。** 取本部署隐藏宽度 4096，BF16 每个数 2 B。仅考虑一个 token 的一行中间结果，假设它原先要单独写出再读回：
 
@@ -270,17 +271,17 @@ $$M_{\text{row}} = 4096 \times 2\text{ B} = 8{,}192\text{ B} = 8\text{ KiB}, \qq
 
 ### 会报什么错
 
-固定提交扩展加载失败时会记录 `Failed to register custom ops, all custom ops will be disabled.`，随后这一带 residual 分支退回 `torch_npu.npu_add_rms_norm`，有 bias 再相加。这里的回退只说明 RMSNorm 此分支的行为，其他算子要逐个检查。扩展 Host 还检查输入输出形状，不合要求记录 `Input shape invalid.` 并返回失败；负 ε 也返回失败。
+在历史 GLM 专用镜像（`db701c1f`，同 `v0.23.0`）中，扩展加载失败时会记录 `Failed to register custom ops, all custom ops will be disabled.`，随后带 `residual` 分支退回 `torch_npu.npu_add_rms_norm`，有 bias 再相加；而在 `v0.30.0` 正式版中该分支直接导入 `vllm_ascend_C` 而不做回退（缺失扩展会直接报导入或属性异常），到 `main` 又恢复了 `if enable_custom_op()` 的回退判断。这里的回退只说明 RMSNorm 此分支的行为，其他算子要逐个检查。扩展 Host 还检查输入输出形状，不合要求记录 `Input shape invalid.` 并返回失败；负 ε 也返回失败。
 
 ### 开销和什么时候别开
 
-性能核对顺序是：先检查 y 与残差 s 的数值及误差，再确认精度、权重布局、实际分派和 tiling，最后记录 kernel 时间、内存访问与端到端时延。局部空间压力或受限形状可能抵消融合收益；小批次下，下发和同步也可能占明显比例。保留已有回退适合先排查兼容性，但 main 的分支已经变化，见下一节。
+性能核对顺序是：先检查 y 与残差 s 的数值及误差，再确认精度、权重布局、实际分派和 tiling，最后记录 kernel 时间、内存访问与端到端时延。局部空间压力或受限形状可能抵消融合收益；小批次下，下发和同步也可能占明显比例。排查兼容性时若需关闭扩展走回退路径，须注意 `v0.30.0` 与 `main` 的分支差异，见下一节。
 
 C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。由此只能定位执行入口；没有设备轨迹时，不给出具体 kernel 数量、占用率或加速比例。
 
 ### 版本差异
 
-按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）。**`v0.30.0` 的 `AscendRMSNorm` 残差分支曾去掉 `torch_npu.npu_add_rms_norm` 回退并直接调用 `npu_add_rms_norm_bias`，到了 `main` 又重新恢复了 `if enable_custom_op()` 的回退分支**（以便 `VLLM_BATCH_INVARIANT` 下走 `batch_invariant.py` 补丁版 `npu_add_rms_norm`）。四版 `csrc/moe/add_rms_norm_bias/` 的 AscendC Host tiling 与 `aclnnAddRmsNormBias` 下发链路保持连续；新增预量化输入复用见 [共享专家调用时点](moe.md#版本差异)。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）。**`v0.30.0`（`c09d3e20`）的 `AscendRMSNorm` 带残差分支移除了 `enable_custom_op()` 判断与 `torch_npu.npu_add_rms_norm` 回退，直接在分支内导入 `vllm_ascend_C` 调用 `npu_add_rms_norm_bias`（因此禁用或缺失自编译扩展时不再自动降级）；到了 `main`（`8d6180e2`）则重新包上 `if enable_custom_op()`，关闭扩展（如开启 `VLLM_BATCH_INVARIANT`）时回退 `torch_npu.npu_add_rms_norm`（由 `batch_invariant.py` 接管）再做逐元素 `bias` 相加。** 四版 `csrc/moe/add_rms_norm_bias/` 的 AscendC Host tiling 与 `aclnnAddRmsNormBias` 下发链路保持连续；新增预量化输入复用见 [共享专家调用时点](moe.md#版本差异)。
 
 | 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 | --- | --- | --- | --- | --- |

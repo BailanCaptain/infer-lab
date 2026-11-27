@@ -3,8 +3,11 @@ id: graph-mode-layer
 title: graph mode：录一次执行次序，之后整串回放
 type: feature
 summary: >-
-  从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与 GLM 双机
+  从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与等宽投机解码
   FULL_DECODE_ONLY 7 档尺寸对照，讲清编译改写、捕获、五条回放判据与缓冲原地更新。
+legacyAnchors:
+  复杂异构实战对照glm-双机的-7-张图五条判据与边界: 投机解码怎样选图、对齐并刷新缓冲
+  官方双机上录了哪-7-张图: 固定查询长度下的 7 档捕获宽度
 aliases:
   - ACL Graph
   - ACLGraphWrapper
@@ -312,13 +315,13 @@ file: graph-mode-layer-fig-xlite-stack
 - Full 模式工作区更大；无投机 full 示例建议关 ACL 图捕获以省显存。
 - 支持按 `architectures` 注册（Llama/Qwen dense、Qwen MoE/VL、Glm4Moe、DeepseekV3/V32、GlmMoeDsa、MiniMaxM2 等），未保证 GLM-5.3-Flash 混合 KDA。
 
-## 复杂异构实战对照：GLM 双机的 7 张图、五条判据与边界
+## 投机解码怎样选图、对齐并刷新缓冲
 
-以下落到 [GLM-5.3-Flash 官方双机部署](glm-5-3-flash-two-node.md#部署前提)（两台 A2、每台 8 卡、TP8/DP2/EP16、MTP-3）：默认编译优化开启、档位 `FULL_DECODE_ONLY` 清空分段、模型带编译装饰器，三层叠加工作；`xlite` 未启用。本库无实机日志，不把 decode 轮数等同于实测回放次数，也不给收益数字。
+进入含投机解码与跨机专家并行的混合架构时，**编译、算子融合、图捕获与运行期回放**四件事彼此独立：模型装饰器决定哪些子模块进入编译，`npugraph_ex` 或本地 pass 在编译期做算子融合，`ACLGraphWrapper` 在启动期按固定宽度捕获设备任务序列，而每轮前向是否真正回放仍由运行期判据裁定（`xlite` 默认未启用）。下面结合历史双机 16 卡算例（[双机部署前提](glm-5-3-flash-two-node.md#部署前提)：两台 A2、每台 8 卡、TP8/DP2/EP16、MTP-3）拆解选图与缓冲刷新机制；本库无实机日志，不把 decode 轮数等同于实测回放次数，也不给收益数字。
 
-### 官方双机上录了哪 7 张图
+### 固定查询长度下的 7 档捕获宽度
 
-该配方把档位配成 `FULL_DECODE_ONLY` 并显式写死 7 档尺寸（不配时按并发上限自动推导，实际捕获以启动日志为准）。结果是只为整齐 decode 建索引，混进 prefill 即整轮 eager。图显存由 KV cache 预算外留出的 9.6 GiB 余量支付（见[部署显存账](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
+在 `FULL_DECODE_ONLY` 下，图索引只覆盖每条请求查询长度相等的纯 decode 步，混入 prefill 即整轮退回 eager（双机官方命令怎样手写 7 档尺寸与启动顺序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[双机怎么开](glm-5-3-flash-two-node.md#怎么开)；不显式传表时按并发上限自动推导，实际捕获以启动日志为准）。图显存由 KV cache 预算外留出的 9.6 GiB 余量支付（见[部署显存账](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
 
 以示例请求 R1（4 token 提示词）为例，连续 decode 每轮验证 4 位置，每卡仍经 45 层、218 次集合通信（张量载荷口径合计数 MiB，见[一次前向的通信账](one-request.md#一次前向的通信账)），这说明了回放动机，真实瓶颈须实测。
 
@@ -338,11 +341,11 @@ $$T_{\max} = N_{\text{seq}} \times (1 + k_{\text{draft}}) = 32 \times (1 + 3) = 
 |---|---|---|---|---|---|---|---|
 | 对应的 decode 请求数 | 1 | 2 | 4 | 8 | 16 | 24 | 32 |
 
-不开 MTP 时 32 条请求只需录到 32；草稿层**不进图**——vLLM Ascend 对「GLM + 投机解码」固定将草稿模型切回 eager，三遍草拟按实宽逐个提交（见[第二圈和第三圈](one-request.md)）。
+不开 MTP 时 32 条请求只需录到 32；草稿层**不进图**——vLLM Ascend 对「GLM + 投机解码」固定将草稿模型切回 eager，三遍草拟按实宽逐个提交（见[第二圈和第三圈](one-request.md)；多模态模型另行管理的 ViT 编码器图捕获与特征复用边界见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md#vit-预算打包与昇腾-encoderaclgraphmanager-图捕获回放)）。
 
 ### 这一轮回放哪一张图：五条判据
 
-每轮前，Runner 判断能否用图及用哪一档，把运行模式与描述符放进本轮执行上下文。五条判据按序全过才回放：
+启动期完成编译、融合与捕获只代表候选图已就绪；运行期每轮前，Runner 还要独立判断本步能否回放及命中哪一档，把运行模式与描述符写入本轮执行上下文。在历史镜像的 `FULL_DECODE_ONLY` 等宽投机解码路径下，五条回放判据按序全过才触发整图回放：
 
 ```wiki-diagram
 file: graph-mode-layer-fig-five-gates
@@ -355,13 +358,13 @@ file: graph-mode-layer-fig-five-gates
 4. **总 token 数没超过最大捕获尺寸 128 吗？**
 5. **另一个 [DP 组](data-parallel.md)（各自调度、各有 KV 池的一台机器）这一轮也过了前四条吗？**
 
-第五条来自跨 DP 的协调；本部署恰有两组。两组每轮先交换「我这边多宽、能不能用图」，再按枚举序 `NONE < PIECEWISE < FULL` 取较小值——只要有一组混进 prefill，两组这一轮都一起退回 eager，本来能用图的那组也用不上。补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
+第五条来自跨 DP 协调（该双机算例共有两组）：**各组交换宽度和执行模式。模式按枚举序 `NONE < PIECEWISE < FULL` 取较低值——只要有一组混进 prefill 落到 `NONE`，两组这一轮都一起退回 eager。实际补齐由当前路径再决定**（补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算）。
 
 描述符里不止有 token 数，还有补齐后的请求数、「是不是整齐的 decode」，以及有没有用 LoRA（本部署不用）。因此**两轮 token 总数相同，不足以说明它们回放的是同一张图**：如图中同宽 64 的两批，16 条整齐 decode 命中 64 那张图，而混进 prefill 的一轮在 `FULL_DECODE_ONLY` 下根本没有图，直接走 eager 且不按图尺寸补齐。分派时还会核对 LoRA 状态和是否强制 eager。
 
 ### 稀疏 MLA 与 KDA 的持久缓冲刷新
 
-GLM-5.3-Flash 用的是[稀疏 MLA](sparse-attention.md) 与 KDA，走不到上文的通用侧流整图刷新入口，而是各自原地刷新持久缓冲：
+使用[稀疏 MLA](sparse-attention.md) 与 KDA 的混合架构不经过上文的通用侧流整图刷新入口，而是由各后端在持久设备缓冲上原地刷新（跨流读写顺序与运行期分配器约束见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）：
 
 - **主稀疏 MLA 构建器**：直接引用本轮公共块表、slot mapping、查询起点和长度的切片；Runner 先把活跃请求的块表复制到持久设备缓冲。
 - **压缩索引器**：预分配自己的 slot mapping、长度和块表，再通过 `copy_` 或 `out=` 原地刷新。

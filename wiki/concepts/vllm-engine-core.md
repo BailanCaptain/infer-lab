@@ -4,8 +4,11 @@ title: EngineCore：vLLM 里一圈一圈推着请求往前走的循环
 type: concept
 summary: >-
   EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 →
-  按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与 GLM 双机双
-  EngineCore 对照讲清一圈顺序、产出 token 数、空闲与取消及异步批次队列。
+  按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与跨机双调度组对照讲清一圈顺序、产出
+  token 数、空闲组陪跑通信与异步批次队列。
+legacyAnchors:
+  复杂异构实战对照glm-双机中的双-enginecore-与异步批次队列: 两个调度组怎样推进，空闲组为何也参加通信
+  落到-glm-双机两个-enginecore-各转各的圈: 两个调度组怎样推进，空闲组为何也参加通信
 aliases:
   - busy loop
   - 忙循环
@@ -240,17 +243,15 @@ file: vllm-engine-core-fig-queue-loop
 
 以 `v0.30.0` 单机标准部署 **`Qwen3-8B`**（`TP=4, DP=1, PP=1`，不开投机解码）为例：整个服务只有 **1 个 `EngineCore` 进程**统管 4 个 Worker，不存在跨 DP 空闲组陪跑；异步调度默认自动开启（V1 runner 下 `batch_queue = 2`），稳态纯 decode 期间 `EngineCore` 趁 4 张卡算第 `k` 步时提前排好第 `k+1` 步（每条在跑请求记 `1` 个输出占位），每转一圈向每条 decode 请求稳定交回 `1` 个新 token。下面再看跨机双 DP + 投机解码叠加后的复杂形态。
 
-## 复杂异构实战对照：GLM 双机中的双 EngineCore 与异步批次队列
+## 两个调度组怎样推进，空闲组为何也参加通信
 
-### 落到 GLM 双机：两个 EngineCore 各转各的圈
+跨机专家并行下的双 DP 拓扑（[部署前提](glm-5-3-flash-two-node.md#部署前提)：两台机器各 8 张卡，每台一个 DP 组、组内 TP8、全集群 EP16）会把单实例循环扩成两组协同推进（主机进程间 ZMQ 与本地 Worker 共享内存队列的资源约束见[宿主机内存、大页与共享内存治理](host-memory-and-hugepages.md#容器---shm-sizedevshmmemlock-与宿主机内核稳态四件套)）：
 
-部署沿用[部署前提](glm-5-3-flash-two-node.md#部署前提)：两台机器各 8 张卡，每台机器是一个 DP 组，组内 8 张卡做 TP8，16 张卡一起做 EP16。落到 EngineCore 上是三件事：
+- **两个 EngineCore，各转各的圈。** node0 上的 `EngineCore_DP0` 管本机 8 个 Worker，node1 上的 `EngineCore_DP1` 管另外 8 个。每个 EngineCore 拥有独立调度器、独立 KV 块池与等待队列；前端只有 node0 上一个（全部进程分布与通道见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)）。
+- **每一步的上限。** 每个 EngineCore 一步最多算 8192 个位置、最多排 32 条请求。开启 3 步 MTP（多 token 预测层：每步草拟 3 个候选 token、下一步一并验证）后，调度时每条请求还要为下一步的 3 个候选预留位置（见[混合缓存与投机占位怎样消耗一步预算](vllm-scheduler.md#混合缓存与投机占位怎样消耗一步预算)）。
+- **走带批次队列的分支。** 未显式指定异步调度开关时，MTP 与多进程执行器均满足自动开启条件，进入上一节的带批次队列分支，队列容量上限为 `2` 批。
 
-- **两个 EngineCore，各转各的圈。** node0 上的 EngineCore_DP0 管本机 8 个 Worker，node1 上的 EngineCore_DP1 管另外 8 个。每个 EngineCore 有自己的调度器、自己的 KV 块池、自己的等待队列；前端只有 node0 上一个。全部进程怎样分布、彼此走什么通道，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)。
-- **每一步的上限。** 每个 EngineCore 一步最多算 8192 个位置、最多排 32 条请求。GLM 带 MTP（多 token 预测层：每一步先草拟 3 个候选 token，下一步由主模型一起验证），所以调度时每条请求还要为下一步的 3 个候选预留位置。这几个数怎样进调度，见 [Scheduler 放到 GLM 双机](vllm-scheduler.md#放到-glm-双机一个-dp-组里的-r1)。
-- **走带批次队列的分支。** 本部署没写异步调度开关，按自动判定推断是打开的（MTP 与多进程执行器都满足条件），所以走上一节的带批次队列分支，队列最多 2 批。
-
-下面跟着示例请求 R1（提示词 4 token，教学设定，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）看 DP0 怎样在异步调度下推进。异步模式中，本圈发出的计划要到下一圈才收回结果，按圈摊开如下：
+下面跟着示例请求 R1（提示词 4 token，教学设定，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）看 DP0 怎样在异步调度下推进。异步模式中，只要入队后批次队列仍有余量、且当前批次无须推迟采样或当圈排空消费，本圈发出的计划就会留到下一圈才收回结果，按圈摊开如下：
 
 | 圈次 | 本圈发出的计划（DP0 → 8 Worker） | 本圈收回并更新的结果 | 批次队列在途 |
 |---|---|---|---|
@@ -264,18 +265,18 @@ file: vllm-engine-core-fig-queue-loop
 
 同一时间里，DP1 一条请求都没有。但 MoE 专家分在 16 张卡上，node0 的 token 要发往 node1 计算，因此 DP1 每一步都陪跑一次空批次参与通信（见[空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)）。
 
-一个 DP 组跑满 32 条 decode 请求时，每条算 4 个位置，一步共 128 个位置（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。这一步交回多少 token，取决于候选被接受了几个：
+一个 DP 组跑满 32 条 decode 请求时，在 32 条都带齐 3 个候选正常跑完该步、未被预算或最大长度截断也未中途取消的前提下，每条算 4 个位置，一步共 128 个位置（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。此时这一步交回多少 token，取决于候选被接受了几个：
 
 $$N_{\text{out,min}} = 32 \times 1 = 32, \qquad N_{\text{out,max}} = 32 \times (1 + 3) = 128$$
 
-| 满载 32 条 decode 步（每条 1 确定 + 3 候选） | 算式 | 单步交回 token 数 |
+| 满载 32 条 decode 步（每条 1 确定 + 3 候选，均正常完成未截断） | 算式 | 单步交回 token 数 |
 | --- | --- | --- |
 | 3 个候选全被拒（下界） | $32 \times 1$ | **32 个 token** |
 | 3 个候选全被接受（上界） | $32 \times (1 + 3)$ | **128 个 token** |
 
-所以在 GLM 双机上，「引擎转了几圈」和「交回了多少 token」差得更远：同样转一圈，交回的 token 数能差 4 倍。
+所以在开启 3 步投机验证时，「引擎转了几圈」和「交回了多少 token」差得更远：同样转一圈，交回的 token 数能差 4 倍。
 
-**边界与例外（昇腾补丁范围）**：昇腾上跑的就是上游这条循环。`vllm-ascend` 在 EngineCore 进程入口挂了补丁，但只在打开均衡调度（`balance scheduling`）或按剖析结果动态分块（要求 `PP > 1`）时，才替换 DP 引擎类或包一层初始化。本部署两样都没开，每一圈走的都是上游代码。调度器类被换成了什么、为什么对本部署没有影响，见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)。
+**边界与例外（昇腾补丁入口）**：`vllm-ascend` 在 EngineCore 进程入口挂接条件式补丁——历史镜像（`db701c1f` / `v0.23.0`）位于 `patch_balance_schedule.py`（另在 `PP > 1` 且开启 `profiling_chunk_config` 时挂 `patch_profiling_chunk.py`），`v0.30.0` 正式版与 `main` 则集中到 `patch_engine_core.py`（按配置选择 `DyntraLBDPEngineCoreProc` / `BalanceDPEngineCoreProc` 及 `pp_mtp` 后处理补丁，`main` 已移除 `patch_profiling_chunk`）。历史双机配方未开均衡调度且 `PP=1`，每圈原样运行上游主循环（调度器类替换见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。
 
 ## 常见误解
 
@@ -284,7 +285,7 @@ $$N_{\text{out,min}} = 32 \times 1 = 32, \qquad N_{\text{out,max}} = 32 \times (
 - **「没有请求时，引擎在不停地查有没有新请求。」** 不是。它阻塞在输入队列上，把 CPU 让出来，来消息才醒；只有弹性 EP 扩缩容进行时，才改成不阻塞地看一眼。
 - **「引擎是事件驱动的，新请求一到就插进正在算的这一圈。」** 不是。EngineCore 的主线程是按部就班的循环：每圈开头把已到的消息一起收下，再调度；卡上正在算的那一批已经定了，新请求最早排进下一圈的计划。同时挂着很多连接、来一个处理一个的，是前端。
 - **「交出执行、拿到回执，就是调度和计算重叠了。」** 不是，重叠要靠批次队列，见[批次队列](#批次队列下一圈的调度和这一圈的计算叠起来)一节。
-- **「开了异步调度，引擎就不是一圈一圈转的了。」** 还是一圈一圈转，只是发出的计划和收回的结果错开一圈，见[落到 GLM 双机](#落到-glm-双机两个-enginecore-各转各的圈)一节 R1 的逐圈走法。
+- **「开了异步调度，引擎就不是一圈一圈转的了。」** 还是一圈一圈转，只是在批次队列有余量时发出的计划和收回的结果错开一圈，见[两个调度组怎样推进](#两个调度组怎样推进空闲组为何也参加通信)一节 R1 的逐圈走法。
 - **「取消会马上打断卡上的计算。」** 不会，这一圈照样算完、结果被丢掉，见[源码里的一圈](#源码里的一圈等活选分支交回结果)。
 - **「EngineCore 交回的是文字。」** 不是。它交回的是 token 编号；还原成文字、匹配停止字符串，都在前端做，token 和编号的关系见 [token](token.md)。
 
@@ -297,7 +298,7 @@ $$N_{\text{out,min}} = 32 \times 1 = 32, \qquad N_{\text{out,max}} = 32 \times (
 - **最多并发批数。** `max_concurrent_batches`：开了异步调度时，V1 model runner 在 PP=1 时返回 2，V2 model runner 返回 `pp_size + 1`；其余情况返回 `pp_size`。所以批次队列既服务于异步调度，也服务于 PP。
 - **异步调度开关。** 命令行 `--async-scheduling` / `--no-async-scheduling`，对应 `SchedulerConfig.async_scheduling`，默认 `None`，交给配置阶段自动判定：pooling 模型、投机方法既不属于 EAGLE 类（含 MTP）也不属于 NGram GPU 类、`disable_padded_drafter_batch=True`、执行器不支持，四者撞上一个就置为 `False`，否则置为 `True`。GLM 双机用 `method="deepseek_mtp"`（配置阶段归一成 `mtp`）和 `MultiprocExecutor`，按这条规则推断为 `True`。
 - **同步与异步的一处分工差别。** 同步模式下，启用投机解码且本轮执行了模型时，圈末的 `post_step` 才调 `take_draft_token_ids()` 把草拟的候选取回交给调度器；异步时候选留在 Worker 进程里，由 `AsyncScheduler` 在调度时记占位（`num_output_placeholders += 1 + 候选数`）。
-- **vllm-ascend 的入口补丁。** `vllm_ascend/patch/platform/patch_balance_schedule.py` 替换了 `EngineCoreProc.run_engine_core`，只有 `additional_config` 里 `enable_balance_scheduling` 为真时才换用 `BalanceDPEngineCoreProc`，否则直接调上游原函数；`patch_profiling_chunk.py` 只在 `profiling_chunk_config` 打开时生效，而它要求 PP 大于 1。本部署两者都没开。
+- **vllm-ascend 的入口补丁。** 历史镜像与 `v0.23.0` 在 `vllm_ascend/patch/platform/patch_balance_schedule.py` 替换 `EngineCoreProc.run_engine_core`（另由 `patch_profiling_chunk.py` 在 `PP > 1` 且 `profiling_chunk_config` 开启时接入）；`v0.30.0` 与 `main` 统一收口到 `vllm_ascend/patch/platform/patch_engine_core.py`，仅在启用 `DyntraLB`、`enable_balance_scheduling`、动态分块（`v0.30.0`）或 `PP + MTP` 特例时改写对应入口，其余情况直接调用上游原函数。
 
 ### 会报什么错
 

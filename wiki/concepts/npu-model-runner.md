@@ -2,6 +2,8 @@
 id: npu-model-runner
 title: NPUModelRunner：每张卡上把一步计划跑成 token 的执行者
 type: concept
+legacyAnchors:
+  放到-glm-双机16-个-runnerr1-的两步各做了什么: 投机验证怎样在两次调用间交接
 summary: >-
   model runner 是每张卡的 Worker
   里执行一步的对象：按调度计划对账跨步保留的请求记录，拼输入、定执行方式、跑前向，只把每条请求要预测的那几行变成词表分数，暂存进执行状态；引擎第二次调用时再取出来采样、草拟候选，按请求交回
@@ -246,7 +248,7 @@ file: npu-model-runner-code-flow
 
 ## 两次调用之间，执行状态里存了什么？
 
-**执行状态（`ExecuteModelState`）是一个只装一份的单槽位暂存格：第一次调用 `execute_model` 在前向与选行输出头之后，把第二次调用 `sample_tokens` 要用的张量引用全部放进去；第二次调用一开头就取出并清空。** 它既不是 KV cache，也不是跨步保留的持久批次，寿命仅限于两次 **RPC**（Remote Procedure Call，跨进程远程调用）之间这一小段。下面这张状态机图把「严格交替锁槽」「不写状态的早退/DP 陪跑分岔」和「Runner 三层对象寿命」合在一起对照：
+**执行状态（`ExecuteModelState`）是一个只装一份的单槽位暂存格。** 前向保存采样所需引用。采样取走引用并清空槽。它既不是 KV cache，也不是跨步保留的持久批次，寿命仅限于两次 **RPC**（Remote Procedure Call，跨进程远程调用）之间这一小段。下面这张状态机图把「严格交替锁槽」「不写状态的早退/DP 陪跑分岔」和「Runner 三层对象寿命」合在一起对照：
 
 ```wiki-diagram
 file: npu-model-runner-fig-step-lifecycle
@@ -281,7 +283,7 @@ file: npu-model-runner-fig-step-lifecycle
 | 跨步 | 持久批次（请求记录、块表、已算位置数）、接受数表、异步调度下留在 NPU 上的上一步 token | 每步只增、删、改有变化的请求 |
 | 一步之内 | 拼出来的输入、各层的中间结果、执行状态 | 下一步重新填写；执行状态在第二次调用开头就清空 |
 
-输入缓冲和中间结果是同一批缓冲区每步重新填，上一步留下的内容不代表这一步。
+输入缓冲和中间结果是同一批缓冲区每步重新填，上一步留下的内容不代表这一步（底层 NPU 分配器的跨流张量寿命与块提前复用边界见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）。
 
 这一层划分也是读 runner 源码的钥匙。那个五千多行的文件里混着四类代码：启动时只跑一次的（建对象、装权重、量显存、建缓存池、录图）；每步都走的（两次调用和它们往下调的方法）；拿假批次试跑的路径（启动时量显存、录图用它，空闲的 DP 组陪跑也用它）；以及本部署不走的分支（流水线并行、上下文并行、KV 传输、多模态、pooling）。读的时候先想清楚要看的是哪一类、哪一步，再从两次调用的入口顺着调用往下跟。
 
@@ -299,18 +301,18 @@ file: npu-model-runner-fig-v2-gather
 
 上游同时拆开采样、图管理与试跑职责：独立采样器管随机数与概率，试跑走正常执行入口，录图走单独路径。多次草拟合入一图时，注意力后端须更新随位置变化的派生元数据——Python 部分只在捕获期运行，回放靠录下的设备操作。
 
-以上对应上游 MRV2。昇腾侧 **`v0.30.0` 默认仍走 `model_runner_v1.py`（MRV1）**，设 `VLLM_USE_V2_MODEL_RUNNER=1` 才切入 `worker/v2/model_runner.py`。到了 **`main` 分支，仓库已物理删除 `model_runner_v1.py`，全面收敛至 `worker/v2/model_runner.py`**。纯多模态编码器模型则改走 `MMEncoderModelRunner`（见 [Model Runner V2](model-runner-v2.md) 与 [演进对照](model-runner-v2.md#v0300-按需开启-vs-main-彻底统一)）。GPU、UVA 或 Triton 路径不能仅凭开关视作 NPU 已支持；下文 GLM 旧配方仍用 V1，迁移前先核[版本差异](#版本差异)。
+以上对应上游 MRV2。昇腾侧 **`v0.30.0` 默认仍走 `model_runner_v1.py`（MRV1）**，设 `VLLM_USE_V2_MODEL_RUNNER=1` 才切入 `worker/v2/model_runner.py`。到了 **`main` 分支，仓库已物理删除 `model_runner_v1.py`，全面收敛至 `worker/v2/model_runner.py`**。纯多模态编码器模型则改走 `MMEncoderModelRunner`（见 [Model Runner V2](model-runner-v2.md)、[演进对照](model-runner-v2.md#v0300-按需开启-vs-main-彻底统一)与[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）。GPU、UVA 或 Triton 路径不能仅凭开关视作 NPU 已支持；下文历史双机配方仍用 V1，迁移前先核[版本差异](#版本差异)。
 
 ## 标准主干走读：Qwen3-8B 单组推理的两次调用
 
 在 `v0.30.0` 标准主基线下，**Qwen3-8B**（36 层同构 GQA，默认不开启投机解码）在 `NPUModelRunner` 中走的是最干净的一条主线：
 
-1. **第一次调用（`execute_model`）**：确认 `execute_model_state` 为空并对账 `input_batch`，拍平一维 `input_ids [T]`、`positions [T]` 与单一 `slot_mapping [T]`。定好图模式与补齐宽度（纯 decode 命中 `ACLGraph`，prefill/混合批走 eager 或分段图），构建全 36 层共用的 **1 份 `AscendMetadata`** 并跑完前向。仅取每条请求末行经 `lm_head` 算出 `[B, 151936]` 词表分数，写入 `ExecuteModelState` 并返回 `None`。
+1. **第一次调用（`execute_model`）**：确认 `execute_model_state` 为空并对账 `input_batch`，拍平一维 `input_ids [T]`、`positions [T]` 与单一 `slot_mapping [T]`。定好图模式与补齐宽度（纯 decode 且批次宽度与形状描述符命中已捕获档位时回放 `ACLGraph`，超出档位或含 prefill/混合批时走 eager 或分段图），构建全 36 层共用的 **1 份 `AscendMetadata`** 并跑完前向。仅取每条请求末行经 `lm_head` 算出 `[B, 151936]` 词表分数，写入 `ExecuteModelState` 并返回 `None`。
 2. **第二次调用（`sample_tokens`）**：取出并清空 `ExecuteModelState`，按需套结构化语法掩码。走普通 `AscendSampler` 为每条请求选出 **1 个** `next_token_id`，过滤未完 chunked prefill 请求后交回引擎（TP>1 时仅 `output_rank` 回传）。因未开投机解码，**不触发 MTP 候选草拟，也不统计线性注意力接受数**。
 
-## 放到 GLM 双机：16 个 runner，R1 的两步各做了什么？
+## 投机验证怎样在两次调用间交接
 
-从同构无投机的 `Qwen3-8B` 切到带 MTP-3 与 34 层 KDA 的混合架构后，第二次调用末尾会展开「拒绝采样 + 3 遍 MTP 草拟 + 侧流统计接受数」。下面对照例外 B 历史绑定算例（2 台 Atlas 800 A2、每台 8 卡、TP8 / DP2 / EP16、W8A8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)），跟踪[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（提示词 4 token，落 DP0）第 1、2 步的变化：
+当模型叠加 MTP 投机草拟与线性注意力状态后，前向与采样两次调用之间还要交接多行验证分数、候选输入特征与线性状态接受数。以历史双机算例（例外 B，2 台 Atlas 800 A2、每台 8 卡、TP8 / DP2 / EP16、W8A8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）跟踪[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（提示词 4 token，落 DP0）第 1、2 步的交接过程：
 
 **16 张卡，16 个 runner，各算各的那一份。** 每卡由一个 Worker 守护并建一个 runner。DP0 引擎经共享内存广播把同一份计划发给本机 8 个 Worker，8 个 runner 拼出同样的 4 行输入，仅权重分片不同（每卡 KDA 8 头、MLA 8 头、路由专家 18 个，见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）。DP1 无请求时，其 8 个 runner 跑 `_dummy_run` 对齐宽度，凑齐 EP16 MoE 通信（见[请求调用链](request-call-chain.md#同一条请求第-1-步和第-2-步走的分支不同)）。
 
@@ -324,22 +326,22 @@ file: npu-model-runner-fig-glm-two-step
 
 **第一步第二次调用（采样 + 3 遍 MTP 草拟）。** R1 无结构化输出、无草稿，走普通采样器；8 个 runner 在分数、实现与随机流一致的前提下各自算出相同首词 $y_0$（复现条件见[采样](sampling.md)）。接着 MTP 草稿层读执行状态里的隐藏向量连跑 3 遍 eager，猜出 $d_1, d_2, d_3$（输入错位见[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)）。最终仅 0 号卡交回引擎；异步调度下 $y_0$ 与 3 个候选留在 NPU 供下步拼输入。
 
-**第二步（第一个 decode 步，验证 1 + 3 个 token）。** 计划为「R1 算 4 个」（$y_0$ 加 3 个候选，位置 4–7）。本步仅 R1 一条请求且满足纯 decode 条件，runner 命中并回放 4-token 计算图。4 行全部进输出头，拼齐后每卡词表分数 `[4, 154880]`（从第三步起，对账才会按乐观接受先记账、前向后再修正）。
+**第二步（第一个 decode 步，验证 1 + 3 个 token）。** 计划为「R1 算 4 个」（$y_0$ 加 3 个候选，位置 4–7）。本步仅 R1 一条请求，满足纯 decode 且批次宽度与描述符命中已捕获的 4-token 档位，runner 回放 4-token 计算图。4 行全部进输出头，拼齐后每卡词表分数 `[4, 154880]`（从第三步起，对账才会按乐观接受先记账、前向后再修正）。
 
 **第二步第二次调用（拒绝采样 + KDA 接受数记账）。** 拒绝采样器用前 3 行逐位验证 3 个候选，全过时第 4 行多给 1 个 token，交回 1 到 4 个 token。随后 runner 整理结果、草拟下一轮 3 个候选，并因主干含 34 层 KDA 而在侧流统计 R1 本步接受数写入接受数表，供第三步 KDA 从对应候选状态续算。
 
-这一步执行状态里最大的几样，每张卡（4 行全被选中，词表分数 `[4, 154880]` BF16 推导见一条请求第二圈）：
+这一步执行状态里最大的三个张量逻辑体积如下（4 行全被选中，词表分数 `[4, 154880]` BF16 推导见[一条请求的第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)）：
 
 $$M_{\text{state,top3}} = 1{,}239{,}040 + 32{,}768 + 32{,}768 = 1{,}304{,}576\text{ B} \approx 1.24\text{ MiB}$$
 
-| 暂存张量（R1 第二步，单卡） | 形状与精度 | 字节算式与大小 |
+| 暂存张量（R1 第二步，单卡） | 形状与精度 | 逻辑字节算式与大小 |
 | --- | --- | --- |
 | 词表分数（logits） | `[4, 154880]`，BF16 | $4 \times 154{,}880 \times 2\text{ B} =$ **1,239,040 B** |
 | 全部行的隐藏向量 | `[4, 4096]`，BF16 | $4 \times 4{,}096 \times 2\text{ B} =$ **32,768 B** |
 | 选中行的隐藏向量 | `[4, 4096]`，BF16（4 行全选中） | $4 \times 4{,}096 \times 2\text{ B} =$ **32,768 B** |
-| **三项合计** | 存引用不拷贝，活到第二次调用开头清空 | **1,304,576 B ≈ 1.24 MiB** |
+| **三项逻辑合计** | 状态对象本身只存引用；选行/输出头运算是否新分配缓冲待分配轨迹核实 | **1,304,576 B ≈ 1.24 MiB** |
 
-这个单请求算例的暂存较小，仍必须留到第二次调用用完，下一次前向才能开始；批次扩大时暂存量也随之改变。这里首先要理解的是这道顺序约束。词表分数那一项的推导在[一条请求的第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+注意区分两件事：`ExecuteModelState` 本身只保存张量的 Python 引用、不做额外复制；但前向末尾求 `logits` 与按索引选行运算本身是否分配独立缓冲（抑或全选时共享视图）决定真实物理显存峰值，需由设备分配器轨迹核实。引用则把这批缓冲的寿命延长到第二次调用用完，因此下一次前向绝不能提前覆盖。
 
 多条请求一起跑时，一步要交接的行数随请求变：[场景 M](concurrent-requests.md#示例场景-m-与变体-m) 里 DP0 一步有 13 条请求，runner 要把 49 行词表分数拆回 13 条，账在[多条请求的第 5–7 站](concurrent-requests.md#第-57-站-采样验证与收尾结果按请求拆回去)。
 

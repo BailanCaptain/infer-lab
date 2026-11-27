@@ -9,6 +9,7 @@ legacyAnchors:
   ④-determine_available_memory-与-enginecore-全局最小块对齐: 拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热
   ⑤-initialize_from_config一次切出物理缓存池清零元数据置池外: 拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热
   ⑥-compile_or_warm_up_model7-类预热机制与-aclgraph-录图收尾: ⑥ 7 类预热机制与 ACLGraph 录图收尾
+  硬件变体与跨架构边界npuworker310-与双机全案对照: 冷启动步骤在不同硬件与混合状态模型中怎样变化
 origin: gap
 summary: >-
   每张可见 NPU 对应一个 NPUWorker（310P 为 NPUWorker310）。冷启动按严格依赖依次完成打补丁与算子注册、绑卡拍快照与建
@@ -214,7 +215,7 @@ file: model-resolution-flow
 
 ## 拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热
 
-在 `v0.30.0` 实际调用链中，①–③ 由 `WorkerProc` 在子进程拉起时顺次执行，④–⑥ 由 `EngineCore._initialize_kv_caches` 跨进程广播驱动。先用一张启动日志里程碑表对准六个阶段，再展开第③步权重分形与第⑥步 7 类预热：
+在 `v0.30.0` 多进程执行器（`mp`）调用链中，①–③ 由 `WorkerProc` 在子进程拉起时顺次执行，④–⑥ 由 `EngineCore._initialize_kv_caches` 跨进程广播驱动（单卡 `uni` 执行器则在 `EngineCore` 同进程内按同一六步先后直接调用）。先用一张启动日志里程碑表对准六个阶段，再展开第③步权重分形与第⑥步 7 类预热：
 
 | 冷启动阶段 | 驱动方与核心方法 | 核心动作与硬门禁 | 关键启动日志（排查定位） |
 | --- | --- | --- | --- |
@@ -233,9 +234,11 @@ file: model-resolution-flow
 
 后处理核心是通过 `maybe_trans_nz`（底层调 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)`）把多维 `ND` 权重转为贴合矩阵核块访存的 **`FRACTAL_NZ`** 布局（见[张量存储布局](tensor-layout.md)）。`v0.30.0` 通过 `--additional-config` 的 `weight_nz_mode` 控制范围：默认 `1` 仅转 `INT8` 等量化权重；设 `0` 关闭（配 `rl_config` 时强制置 `0`）；设 `2` 连 `BF16/FP16` 浮点权重一并转 `NZ`（如 `Qwen3-30B-A3B` 食谱显式传 `{"weight_nz_mode": 2}`）。
 
-默认关闭专家文件过滤（`enable_ep_weight_filter=False`）时，每张卡都会顺序扫完分片文件并丢弃非本卡专家；挂载草稿模型（`drafter`）时会把关联权重再扫一遍。设主模型整包文件量为 $S_{\text{ckpt}}$、遍历遍数 $k \in \{1, 2\}$，单 Worker 前台逻辑扫过的文件字节量为：
+默认关闭专家文件过滤（`enable_ep_weight_filter=False`）时，每张卡都会顺序遍历分片文件并丢弃非本卡专家；挂载草稿模型（`drafter`）时会把关联权重再遍历一遍。设主模型整包文件量为 $S_{\text{ckpt}}$、遍历遍数 $k \in \{1, 2\}$，单 Worker 前台逻辑遍历的文件字节量为：
 
 $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
+
+注意要区分**逻辑文件遍历量、操作系统页缓存命中与底层物理磁盘读量**：同机多卡加载同一份 `safetensors` 或开启 `prefetch` 预读时，首个读过的块留在宿主机页缓存（Page Cache）中，后续遍历直接从主机内存命中，不必对存储介质发起等倍数的物理 I/O（宿主机页缓存、大页与内存水位关系见[宿主机内存底座与静态大页](host-memory-and-hugepages.md)）。
 
 以单卡 `Atlas A2/A3` 的 **`Qwen3-8B`（`BF16`）** 与四卡 **`Qwen3-30B-A3B`（`TP4 + EP`、`ModelSlim W8A8`）** 作 `v0.30.0` 标准标尺（静态估算示意，真机以 `Loading model weights took` 日志为准；改用热启动 [RFork](rfork.md) / [RFork 启动](rfork-startup.md) 可借用驻留显存跳过常规整包权重读盘，但 processed 布局模型如 W8A8 在请求租约前仍需在本地对空参数完成 `NZ` 等布局后处理）：
 
@@ -246,7 +249,7 @@ $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
 
 ### ⑥ 7 类预热机制与 `ACLGraph` 录图收尾
 
-物理 KV 池落盘后，引擎进入最后的预热与图捕获阶段。算上第③步加载期可选开启的后台重叠线程，`v0.30.0` 在冷启动链路上共部署了 **7 类预热机制**，专门消灭首次算子编译、格式转换惰性初始化与首请求指令毛刺：
+物理 KV 池在设备显存分配完成后，引擎进入最后的预热与图捕获阶段（底层算子异步下发队列与 NPU 分配器设置见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）。算上第③步加载期可选开启的后台重叠线程，`v0.30.0` 在冷启动链路上共部署了 **7 类预热机制**，专门消灭首次算子编译、格式转换惰性初始化与首请求指令毛刺：
 
 | 预热类别 | 触发位置与控制开关 | 预热内容与硬件门禁 |
 | --- | --- | --- |
@@ -272,11 +275,11 @@ $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
 | **编译阶段 `torch.compile`（`Qwen3-8B` `TP=4`）** | 约 **`43 s`**（`42.48 ~ 43.13 s`） | `DEBUG` 与 `INFO` 虽共用缓存根目录但生成不同 AOT key，两轮均未跳过约 `43 s` 编译 |
 | **第⑥步 `ACLGraph` 捕获（`Qwen3-8B` `TP=4`）** | **`35 ~ 40 s`**（`INFO` `35 s` / `DEBUG` `40 s`） | `TP=1..8` `INFO` 跨度 `22 ~ 36 s`；`EngineCore` 汇总 `init engine` 耗时 `102.43 ~ 115.24 s` |
 
-阅读这份账单时还要避开一个预热开关误区：`enable_early_nz_warmup`（默认 `False`）在后台守护线程中构造的是 `256 × 256` **`int8`** 临时张量并调用 `maybe_trans_nz` + `torch.npu.synchronize()`。当运行 `Qwen3-8B` 这类普通 `BF16` 模型且保持默认 `weight_nz_mode = 1` 时，主模型权重本来就不转 `NZ`，开启该开关反而会让后台线程白跑一次 `int8` 的 `NZ` 惰性初始化（虽与权重读盘重叠、关键路径只承担未重叠尾部及资源竞争，却无后续收益；该开关仅在 W8A8 量化或 `weight_nz_mode = 2` 等真正触发 `NZ` 转换的场景才有意义）。从代码接入代际看，`v0.30.0` 将该线程挂在 **V1 runner**（`model_runner_v1.py` 启动与返回前 `join`），而 `main` 将其迁入 **V2 runner**（`worker/v2/model_runner.py` 并在 `finally` 中兜底 `join`）。
+阅读这份账单时还要避开一个预热开关误区。先看预热本身做什么：`enable_early_nz_warmup`（默认 `False`）会在后台守护线程里构造一块 `256 × 256` 的 **`int8`** 临时张量，调用 `maybe_trans_nz` 并同步（`torch.npu.synchronize()`），用来提前完成首次 `npu_format_cast` 的惰性初始化。再对照 `BF16` 模型的默认布局条件：普通 `BF16` 模型（如 `Qwen3-8B`）在默认 `weight_nz_mode = 1` 下权重保持 `ND`、根本不转 `NZ`；此时打开 `enable_early_nz_warmup` 只会让后台线程白跑一次无后续收益的 `int8` 初始化（虽与读盘重叠，关键路径仍可能承担未重叠尾部及资源争用），它只适合 W8A8 量化或显式设 `weight_nz_mode = 2` 等真正触发 `NZ` 重排的场景。从代码接入代际看，`v0.30.0` 将该线程挂在 **V1 runner**（`model_runner_v1.py` 启动与返回前 `join`），而 `main` 将其迁入 **V2 runner**（`worker/v2/model_runner.py` 并在 `finally` 中兜底 `join`）。
 
-## 硬件变体与跨架构边界：`NPUWorker310` 与双机全案对照
+## 冷启动步骤在不同硬件与混合状态模型中怎样变化
 
-不同硬件族与多机异构部署不改六步顺序，只在特定步骤覆写内部实现。`Atlas 300I DUO / 200I Pro` 对应的子类 **`NPUWorker310`** 共有五处定制：
+不同硬件族与跨机混合状态模型不改变六步依赖链，只在特定阶段替换内部行为。先看 `Atlas 300I DUO / 200I Pro` 对应的子类 **`NPUWorker310`** 五处硬件定制：
 
 | 受影响步骤 | `NPUWorker310` 专属定制 | 对使用者的直接约束 |
 | --- | --- | --- |
@@ -286,14 +289,14 @@ $$V_{\text{scan}} = k \times S_{\text{ckpt}}$$
 | **⑥ 预热与图限制** | 无 Triton 且不支持 `npugraph_ex`；`kernel_warmup` 直接返回 | 须关闭 `enable_npugraph_ex` |
 | **⑥ ATB 预热** | `_warm_up_atb` 覆写为空操作并打跳过提示 | 跳过收尾矩阵乘预热 |
 
-从 `v0.30.0` 标准单机标尺切到历史双机异构全案（回链「09 旗舰异构模型全案」[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`、共 `20` 进程与 `16` 个 Worker，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)），六步呈现四处异构特征：
+再看跨两台机器、同时包含混合注意力与 MTP 草稿头的专家并行模型。以历史双机全案（例外 B，[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`、共 `20` 核心角色进程与 `16` 个 Worker，完整启动命令与时序见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)与[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）对照，六步出现四处异构变化：
 
-| 冷启动步骤 | 历史 GLM 双机异构特征（例外 B 绑定算例） | 与标准 `v0.30.0` 路径对照 |
+| 冷启动步骤 | 混合状态与跨机专家并行特征（例外 B 绑定算例） | 与标准 `v0.30.0` 同构路径对照 |
 | --- | --- | --- |
-| **①③ 补丁与后处理** | 构造期用 worker 补丁把自定义稀疏 [MLA](mla.md) 类加进后处理名单（另见[稀疏注意力](sparse-attention.md)、[线性注意力](linear-attention.md)） | `v0.30.0` 已改为上游通用遍历子模块 |
-| **③ 预读与两遍扫盘** | 开 `--safetensors-load-strategy prefetch` 后台预读，主模型与 MTP 草稿层各扫一遍；按语言子账 `20.58 GiB`/卡重建整份约 `304.8 GiB`，两次逻辑过手约 `609.6 GiB`（非磁盘实测，口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)） | 标尺表 `V_scan = k × S_ckpt` 的多机放大版 |
-| **④ 双次试跑** | 先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 上限；预算算例切出 `3,855` 块、每块 `7.969 MiB`（唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)） | 常规单稠密模型只跑一次主试跑 |
-| **⑥ 录图与 eager 范围** | `--speculative-config` 的 `"enforce_eager": true` 仅管草稿；主模型仍按 `FULL_DECODE_ONLY` 录 `4/8/16/32/64/96/128` 七档（MTP 每请求一步 `4` token，对应 `1～32` 并发；借还见 [R1 借还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)） | 不可把草稿 `enforce_eager` 误当主模型关闭录图 |
+| **①③ 补丁与后处理** | 构造期由 worker 补丁将自定义稀疏 [MLA](mla.md) 类加入后处理名单（另见[稀疏注意力](sparse-attention.md)、[线性注意力](linear-attention.md)） | `v0.30.0` 已改为上游通用遍历子模块 |
+| **③ 主草两遍逻辑遍历** | 启用后台预读时，主模型与 MTP 草稿层各遍历一遍文件；按语言子账 `20.58 GiB`/卡重建整份约 `304.8 GiB`，两次逻辑遍历约 `609.6 GiB`（不等于物理磁盘读量，口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)） | 标尺表 $V_{\text{scan}} = k \times S_{\text{ckpt}}$ 的双遍实例 |
+| **④ 双档试跑** | 先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 单步上限；预算算例切出 `3,855` 块、每块 `7.969 MiB`（唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)） | 常规稠密模型只跑一次单步上限试跑 |
+| **⑥ 主草分治录图** | 草稿子配置的 eager 开关仅约束草稿层；主模型仍按 `FULL_DECODE_ONLY` 录制 `4/8/16/32/64/96/128` 七档（MTP 每请求一步验证 `4` token，对应 `1～32` 并发；块借还见 [R1 借还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)） | 不可把草稿侧 `enforce_eager` 误当主模型关闭录图 |
 
 ## 常见误解
 

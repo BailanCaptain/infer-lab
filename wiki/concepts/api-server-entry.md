@@ -10,10 +10,12 @@ legacyAnchors:
   已有媒体向量还需要哪些布局信息: 多模态输入、Pooling 与语音入口延伸导览
   视频和音频在前端还要处理什么: 多模态输入、Pooling 与语音入口延伸导览
   上传录音聊天音频和实时转写分别走哪条路: 多模态输入、Pooling 与语音入口延伸导览
+  复杂异构实战对照glm-双机单前端入口与限制: 多 DP 部署下的单前端入口与工具选择边界
+  放到-glm-双机node0-上一个前端接下全部请求: 多 DP 部署下的单前端入口与工具选择边界
 summary: >-
   vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成
   EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、独立 CPU
-  renderer、工具解析插件，以及 GLM 双机上 node0 一个前端接全部请求。
+  renderer、工具解析插件，以及多 DP 部署下的单前端入口与工具选择边界。
 aliases:
   - API server 入口
   - prompt_embeds
@@ -145,7 +147,7 @@ origin: direct
 
 ## 一个 HTTP 请求进了 API server，出来的是什么？
 
-**API server 入口指 vLLM 前端进程从收到一个 HTTP 请求、到把它交给某个引擎排队之间的这一段：把 JSON 整理成引擎请求，并在自己的进程里留好回程的接收点。** 下面先沿纯文本生成路径看一串 token 编号、采样参数和请求 ID 怎样准备好；预计算向量与图像输入还带有张量等数据，后文与多模态专页单独说明。
+**API server 入口指 vLLM 前端进程从收到一个 HTTP 请求、到把它交给某个引擎排队之间的这一段：把 JSON 整理成引擎请求，并在自己的进程里留好回程的接收点。** 下面先沿纯文本生成路径看一串 token 编号、采样参数和请求 ID 怎样准备好；预计算向量与图像输入还会把媒体张量及占位范围一并封入引擎请求，进引擎后的下一站由调度器与 Worker 编码器缓存接管（见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)及页末导览）。
 
 这里有两个进程。API server 是接 HTTP 请求的进程，对外提供和 OpenAI 一样格式的接口，执行 `vllm serve` 时起的就是它；EngineCore 是负责排队、调度并驱动模型计算的引擎进程（见 [EngineCore](vllm-engine-core.md)）。两者不在同一个进程里，请求要从前者交到后者手里。
 
@@ -211,7 +213,7 @@ $$L_{\text{in,allow}} = L_{\max} - L_{\text{out}} = 100 - 30 = 70, \qquad L_{\te
 | 请求输出 `30`，实际提示词 `75` 个编号 | 允许输入 $100 - 30 = 70$，超出 `5` | 分词保留到第 `71` 个即判超长，回 400（「输入至少 71 个」） |
 | 不写输出数，实际提示词 `12` 个编号 | 输出上限 $100 - 12 =$ **`88`** | 合法放行，按 `88` 补齐输出预算 |
 
-这里的提示词是套完模板后的整串编号。默认分词路径只切到允许输入数 `+1` 以尽早判超长；但若显式配置 `truncate_prompt_tokens` 与 `truncation_side`，则会关闭这层早停截短、先保留完整编号再按指定方向截断（详见 [token 参数参考](token.md#怎么开)）。
+这里的提示词是套完模板后的整串编号。默认分词路径只切到允许输入数 `+1` 以尽早判超长；但若显式配置 `truncate_prompt_tokens` 与 `truncation_side`，则会关闭这层早停截短、先保留完整编号再按指定方向截断（详见 [token 参数参考](token.md#怎么开)）。还要区分两步上限处理：这里的第 ④ 步属于 **renderer 阶段的输入空间预留**（扣去请求声明的输出数来检查输入是否超长）；到了第 ⑤ 步打包引擎请求时，`get_max_tokens()` 还会将最终生效的 `max_tokens` 与实际剩余上下文（`max_model_len - prompt_len`）、覆盖生成配置硬上限及平台上限再次取小收窄。
 
 采样参数也在这一步打包成 `SamplingParams`（请求值 → `generation_config.json` → 中性默认，详见[采样参数从哪来](sampling.md#采样参数从哪来)），取值不合法直接拒绝。同一步还定下交付方式：流式请求要增量，非流式只要最终结果。
 
@@ -239,11 +241,12 @@ $$L_{\text{in,allow}} = L_{\max} - L_{\text{out}} = 100 - 30 = 70, \qquad L_{\te
 
 ## 流式和非流式：200 什么时候发出，错误从哪里回来？
 
-**两种请求走同一条路，差别在 HTTP 状态码何时定下来：非流式等生成完才回响应，中途任何错误都能改成错误状态码；流式在请求交给 `AsyncLLM` 之前就已发出 200，此后的错误只能写进流里。**
+**两种请求走同一条路，差别在“创建生成器”“发送响应头”“消费时提交”三步的先后次序：非流式先消费完再发响应头，中途任何错误都能改成错误状态码；流式先发出 `200` 响应头、消费生成器时才提交引擎，此后的错误只能写进流里。**
 
-关键在第 ④ 步后前端只构造了一个异步「生成器」，真正执行要等消费它：
-- **非流式**：前端当场取完所有段再拼成完整 JSON；⑤ 里的校验错误会被统一错误处理捕获并回 400 等状态码。
-- **流式**：前端把生成器交给 FastAPI，框架先发 `200` 与 SSE（Server-Sent Events）响应头，随后才执行 ⑤；此时出错改不了 200，只能推一条含错误信息的 `data:` 消息再结束。
+把第 ④ 步之后的执行次序拆成三步看就一清二楚：
+1. **创建生成器**：第 ④ 步结束时，服务层只构造并返回了一个异步生成器对象，此时尚未调用 `AsyncLLM.generate()` 提交给引擎。
+2. **发送响应头（仅流式先行）**：流式请求把生成器包进 `StreamingResponse` 交给 FastAPI，框架先向客户端发出 HTTP `200` 与 SSE（Server-Sent Events）响应头；非流式请求先不发响应头，留在路由函数内等待取完结果。
+3. **消费时提交**：框架或路由函数开始迭代消费该生成器时，才真正执行第 ⑤–⑦ 步（打包校验、登记输出槽、经 ZMQ 发往 `EngineCore`）。因此第 ⑤ 步触发校验错误时，非流式会被统一异常处理接住并回 `400` 等状态码，而流式已经改不了 `200`，只能推一条含错误信息的 `data:` 消息再结束。
 
 ```wiki-diagram
 file: api-server-entry-flow
@@ -327,35 +330,21 @@ file: api-server-entry-fig-variants-and-tools
 - **Mistral**：要求调用 ID 至少 9 字符，并取末 9 字符。
 - **DeepSeek V3 / V3.1**：V3 使用 JSON 围栏，与 V3.1 格式不同，不能仅凭名字相近互换。
 
-## 复杂异构实战对照：GLM 双机单前端入口与限制
+## 多 DP 部署下的单前端入口与工具选择边界
 
-### 放到 GLM 双机：node0 上一个前端接下全部请求
+跨节点多 DP 部署常只在主节点起 `1` 个 API server（`--api-server-count 1`），其余节点以 `--headless` 仅运行本地 `EngineCore`（进程分工见[引擎进程](engine-processes.md)）。此时全部外部请求的 ①–⑦ 步都由主节点前端完成，`vllm-ascend` 不改写请求入口主链（历史镜像仅在输出侧带一条流式工具调用分段补丁）：
 
-**主线把 GLM-5.3-Flash 部署在两台昇腾服务器上，每台 8 张 NPU 卡，两台各是一个 DP 组（部署前提见[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)）。入口只在 node0 上：一个 API server 接下两台机器的全部请求，上面七步都在 node0 的 CPU 上做；`vllm-ascend` 没有改这一段。** 本页对应主线[第 1 站 入口](one-request.md#第-1-站-入口从-http-到-node0-的引擎)。
-
-**谁在接请求。** node0 把 `--api-server-count` 设成 `1`，由 `vllm serve` 进程监听 `8000` 端口；node1 以 `--headless` 启动，只起本机 EngineCore（见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。教程未改 `--renderer-num-workers`，因此两组请求的模板与分词都排在 node0 的 `1` 个工作线程上。
-
-**请求怎么写。** 服务对外名设成 `glm`，请求里模型名要么写 `glm`、要么省略，写目录名会在第 ① 步回 `404`。聊天接口走模型自带模板（单条消息会多出 `6` 个特殊标记和一行系统说明，见 [token 页的 GLM 一节](token.md#r1-在入口拿到了什么)）。教程验证示例走老式 `/v1/completions` 且误写了 `max_completion_tokens: 50`：该字段被忽略，实际仅按默认最多生成 `16` 个 token。采样默认来自模型生成配置（见[请求不写采样参数时用的是什么](sampling.md#请求不写采样参数时用的是什么)）。
-
-**长度上限。** 总长度上限设成 `133120`。沿用 R1（4 个提示词 token，教学设定，走普通文本编号而非 `prompt_embeds`）与 `max_tokens = 200`：
-
-$$L_{\text{in,allow}} = 133{,}120 - 200 = 132{,}920, \qquad L_{\text{out}} = \min(133{,}120 - 4,\; 200) = 200$$
-
-| R1 入口长度核验（$L_{\max} = 133{,}120$） | 算式 | 结果与说明 |
-| --- | --- | --- |
-| 允许的最大输入（取 `max_tokens=200`） | $133{,}120 - 200$ | **`132,920` 个**（R1 的 4 个在允许范围内） |
-| R1 有效输出上限 | $\min(133{,}120 - 4,\; 200)$ | **`200` 个** |
-| 若聊天请求两项输出上限都不写 | $133{,}120 - 4$ | **`133,116` 个**（按剩余上下文补齐） |
-
-**工具调用与解析器。** 主线启动命令未配工具与推理解析器，故 `tool_choice="auto"` 会在第 ① 步被拒；普通 HF tokenizer 路径下，`required` 或指定函数名同样要求 `--tool-call-parser`（仅 `auto` 另需 `--enable-auto-tool-choice`）。教程 FAQ 推荐搭配 `glm47` 工具解析器与 `glm45` 推理解析器，并说明该模型不支持 `enable_thinking=false`。此外，`tool_choice="none"` 默认仍把 `tools` 定义交给模板，除非显式开启 `exclude_tools_when_tool_choice_none`。
-
-**R1 怎样离开入口与昇腾边界。** 登记输出槽后两组皆空，R1 落到 node0 上的 DP0（经 node0 TCP ZMQ 发送，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)）。钉住版本中 `vllm-ascend` 仅在输出侧修正流式工具调用分段，不改动请求入口。
+- **入口拦截、登记与跨组提交**：模型名不在已注册对外名或可用适配器列表内时，第 ① 步直接返回 `404`；模板渲染失败、输入与输出预算越界或采样参数非法在第 ①–④ 步返回 `400`（老式 `/v1/completions` 还会忽略 Chat 专用的 `max_completion_tokens` 并回退默认 `16`）。校验通过后，前端先在本地 `OutputProcessor` 登记反分词器与单槽输出队列，再按各 DP 组负载经 TCP/IPC ZMQ 提交给选定的 `EngineCore`（双机 node0 `:8000`、`glm` 服务名、聊天特殊标记、R1 长度核算与 `/completions` 字段实例见[第 1 站 入口：从 HTTP 到 node0 的引擎](one-request.md#第-1-站-入口从-http-到-node0-的引擎)）。
+- **`tool_choice` 三种取值的入口守卫**（双机启动命令怎样挂接工具与推理解析器见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）：
+  - **`"auto"`**：必须同时开启 `--enable-auto-tool-choice` 与 `--tool-call-parser`，缺任一项即在第 ① 步返回 `400`；
+  - **`"required"` 或指定具体函数名**：普通 HuggingFace tokenizer 路径下必须配置 `--tool-call-parser`（无需 `--enable-auto-tool-choice`），未配同样返回 `400`；
+  - **`"none"`**：无需工具解析器即可放行，但默认仍把请求中的 `tools` 定义送入聊天模板，仅在显式开启 `--exclude-tools-when-tool-choice-none` 时才会从模板输入中剔除。
 
 ## 多模态输入、Pooling 与语音入口延伸导览
 
-除纯文本自回归生成外，前端还承接图像/视频/音频多模态输入、非自回归池化接口与语音转写/实时流；这些专题的完整机制、图解、参数与四版边界已整合至两篇专页：
+除纯文本自回归生成外，前端还承接图像/视频/音频多模态输入、非自回归池化接口与语音转写/实时流；这些专题的完整机制、图解、参数与四版边界已整合至专页：
 
-- **图像/视频/音频前端预处理与四级缓存**：涵盖媒体占位 token 展开与四级缓存分工。四级缓存依次为 `VLLM_MEDIA_CACHE` 下载缓存、`mm_processor_cache`（支持部分命中合并，受单 API/DP=1 约束）、编码缓存管理器与 APC。详见[一张图怎样变成 token 序列](multimodal-inference.md#一张图怎样变成语言模型吃得下的-token-序列)与[四级缓存分工](multimodal-inference.md#下载缓存mm_processor_cache编码缓存与-kv-cache-分工)。
+- **图像/视频/音频前端预处理与四级缓存**：媒体字段在前端完成下载、预处理并装入 `EngineCoreRequest` 后，进入引擎的下一站是由调度器与 Worker 协同管理的编码特征缓存（`EncoderCacheManager`，复用 ViT 输出向量且独立于文本 KV 前缀缓存，详见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md#encodercachemanager-如何独立于文本-prefix-caching-复用特征)）。前端占位 token 展开与四级缓存（`VLLM_MEDIA_CACHE`、`mm_processor_cache`、`EncoderCacheManager`、APC）全景见[一张图怎样变成 token 序列](multimodal-inference.md#一张图怎样变成语言模型吃得下的-token-序列)与[四级缓存分工](multimodal-inference.md#下载缓存mm_processor_cache编码缓存与-kv-cache-分工)。
 - **媒体 UUID、预计算媒体向量与音视频预处理**：涵盖 `multi_modal_uuids` 省传原图边界与 `--enable-mm-embeds`（Qwen2-VL/MiniCPM/Qwen3-VL 布局）。同时涵盖视频时间元数据、OpenCV 坏帧恢复，以及音频重采样与静音切分。详见[媒体 UUID](multimodal-inference.md#媒体-uuidmulti_modal_uuids与省传原图的边界)与[预计算媒体向量与音视频边界](multimodal-inference.md#预计算媒体向量视频帧元数据与音频预处理边界)。
 - **Pooling、评分与语音 ASR 入口**：非自回归侧涵盖 `/v1/embeddings`、`/classify`、`/score`、`/rerank` 与 `/pooling`（含自定义 I/O 插件扇出）。此外还提供生成式评分 `POST /generative_scoring`，语音侧涵盖 `/v1/audio/transcriptions`、`/v1/audio/translations` 与 `/v1/realtime` WebSocket 事件时序。详见[Pooling 与非自回归推理](pooling-and-non-ar.md#--runner-pooling-核心机制掩码硬件分岔与池化头)、[生成式评分](pooling-and-non-ar.md#生成式评分generative_scoring与-pooling-score-的边界及概率比较)与[语音上传与实时转写入口](pooling-and-non-ar.md#语音文件上传v1audio与实时转写v1realtime入口)。
 

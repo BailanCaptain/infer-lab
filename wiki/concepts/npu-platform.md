@@ -2,6 +2,8 @@
 id: npu-platform
 title: NPUPlatform：配置校验与设备实现选择
 type: feature
+legacyAnchors:
+  落到-glm-双机这一层交出的名字和数: 混合状态怎样改变块长与注意力选择
 summary: >-
   昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认
   token 预算怎么定」的唯一推导处。
@@ -138,7 +140,7 @@ file: platform-surface-qwen3
 图分三步，对应两个时刻：
 
 1. **硬件画像与组合校验（启动期）**：结合 `HardwareProfile`（识别 A2 / A3 / 310P 等芯片能力）检查并行、图模式与特性组合，不兼容的参数组合在建通信组与加载权重前直接拦截。
-2. **平台默认值就地写回（启动期，同一次 `check_and_update_config` 调用）**：把 `worker_cls` 选定为常规 `NPUWorker`（或可选 **MRV2**，即第二代 [Model Runner V2](model-runner-v2.md)），把默认 `block_size` 写回 `128`，同时定好图档位与默认捕获上限（如封顶 `512`）。校验与改写穿插执行：若后段检查失败，前面的就地改写已发生，启动仍立即中止。
+2. **平台默认值就地写回（启动期，同一次 `check_and_update_config` 调用）**：`worker_cls` 为 `"auto"` 时，按 `HardwareProfile.default_worker_cls` 选定常规 `NPUWorker`（310P 选专用 Worker，开启且硬件支持 Xlite 时选 `XliteWorker`）。Model Runner 在 `v0.30.0` 未显式设 `VLLM_USE_V2_MODEL_RUNNER` 时保持第一代，显式打开才切第二代 [Model Runner V2](model-runner-v2.md)（`main` 则在入口直接锁定 V2）。非混合模型未传块长，或开启前缀缓存 / chunked prefill 且块长不为 `128` 时，默认 `block_size` 写回 `128`。未显式指定图捕获尺寸或上限时，平台还会选定图档位并收敛默认最大捕获尺寸（如封顶 `512` 且不超过单步预算）。校验与改写穿插执行：后段检查失败时前面的就地改写已发生，启动仍立即中止。
 3. **建层时统一答复后端（Worker 起卡后）**：模型建层时调用 `get_attn_backend_cls`，标准 **GQA**（[分组查询注意力](gqa.md)，如 `Qwen3-8B` 全 36 层或 `Qwen3-30B-A3B` 全 48 层）统一绑定 `AscendAttentionBackend`，不需要异构层自带私有后端绕行。
 
 ## 为什么这层非要能改配置，代价在哪
@@ -155,46 +157,27 @@ file: platform-surface-qwen3
 
 ## 校验与改写怎样影响执行
 
-上游在汇总配置构造到最后一段时调用平台的这个方法，所以它看到的是「用户输入 + 上游默认值」合起来的完整一份。方法内部的先后是固定的：
+上游在汇总配置构造末尾调用 `check_and_update_config`，此时传入的是「用户输入 + 上游默认值」合起来的完整配置。在 `v0.30.0` 正式版（`c09d3e20`）中，内部按十步固定顺序推进：
 
-```wiki-diagram
-file: platform-check-order
-```
-
-**两道早退。** 设备类型不是 npu 就直接返回；没有模型配置就打一条警告后返回。这两条保证同一份代码在别的设备上不乱改东西。
-
-**先认量化，再跑校验。** 认量化这一步决定后面按哪套量化实现去读权重；它排在校验之前，所以校验能看到量化识别的结果。
-
-**四个校验，按固定顺序。** 任一不通过就抛错，启动到此结束：
-
-| 校验 | 拦的是什么组合 | 对本部署意味着什么 |
-|---|---|---|
-| 层切分 | 按层切分只许开在 [PD 分离](pd-disaggregation.md)的 producer 一侧 | 本部署没开 PD 分离，也没配这个键 |
-| 投机 + decode 侧上下文并行 | 两者本身可以同开。只有开了[投机解码](speculative-decoding.md)、decode 侧[上下文并行](context-parallel.md)（DCP）大于 1、且草稿模型不是 MLA 时，才查三条头数约束：草稿的张量并行数要大于 KV 头数；DCP 不超过「草稿张量并行数 ÷ KV 头数」；每个 KV 头对应的 Q 头数能被 DCP 整除。MLA 草稿直接放行 | 本部署开着 MTP，但 DCP 是 1，这一条不触发 |
-| 并行组合 | 数据并行大于 1 且 prefill 侧上下文并行大于 1 | **直接管着本部署**：这里 DP 是 2，prefill 侧上下文并行只能留在 1 |
-| 流水线并行 + MTP | 开了 MTP 且流水线并行大于 1 时，只要不在 PD 分离的 producer 一侧就抛错——没配 PD 分离也照样抛 | 本部署流水线并行是 1，不触发 |
-
-**修不兼容组合，然后建昇腾配置。** 平台先把几组已知不兼容的取值改回可运行状态，再构造昇腾专属配置对象；建与取的规则、缓存条件见[昇腾配置体系](ascend-config-system.md)。
-
-**定编译与图模式。** 这一段按 xlite 模式、纯 eager 要求与请求的图档位定最终编译与录图方案（图模式原理见[图模式层](graph-mode-layer.md)）。若上游已要求纯 eager，图在这之前便已关闭；其余四种情况会在本段把图整段关掉：
-- 开了 xlite 全图模式却未开投机解码（同时改成纯 eager）；
-- 编译档位不在昇腾支持的两种范围内；
-- 请求的图模式档位既非分段图也不含整图；
-- 编码器-解码器模型请求整图、却未走 vLLM 编译。
-
-此外，这条配置路径固定关闭 PyTorch Inductor，但图模式由单独配置控制：图模式关闭时同步关闭编译与 NPU 图执行扩展；要求分段编译时则必须走 vLLM 编译模式。因此，**不能凭 Inductor 关闭就断定图模式也被关闭**。本部署还会触发一条模型专属改写：只要模型配置带 `indexer` 的 `top-k` 字段（GLM 文本配置恰好包含），缓存精度就被改写成模型自身的 dtype。
-
-**选 Worker 类。** 只有当并行配置里的 `worker_cls` 为 `"auto"` 时才自动三选一，且三条分支互斥：310P 设备选 310P 专用 Worker；开启 xlite 模式选 xlite Worker；其余走常规 `NPUWorker`。
-
-**定块大小。** 通用规则有两条：若块大小为空则先填 `128`（上游构造 `CacheConfig` 时 after 校验器已将空值填成 `DEFAULT_BLOCK_SIZE = 16`，此处作兜底）；若已设值不是 `128` 且开启了前缀缓存或 chunked prefill，则强制改回 `128`。混合模型会跳过后一条以及 xlite 模式下「不超过 128」的限制，补丁更早写入的 `640` 才得以保留。同一个「块大小」在这套部署里有五种含义（逻辑块、kernel 块、各缓存组块、调度块），完整消歧见[缓存规格](kv-cache-spec.md)。
-
-**最后三条按 PD 角色的检查。** 同一个开关的合法性高度依赖角色组合，不能逐个独立打开：
+1. **配置日志与两道早退。** 先初始化昇腾日志；随后若设备类型不是 `npu` 则直接返回，缺少 `model_config` 则打警告后返回，避免在非昇腾设备上误改配置。
+2. **先跑七项前置校验，任一失败当场中止。** 依次检查 Model Runner 配置、Indexer PP、路由回放、PCP/DCP、草稿模型 DCP（同时开启[投机解码](speculative-decoding.md)、decode 侧[上下文并行](context-parallel.md) `DCP > 1` 且草稿模型非 MLA 时，核查三条头数约束：草稿张量并行数大于 KV 头数、$\text{DCP} \le \text{草稿 TP} \div \text{KV 头数}$、每 KV 头对应的 Q 头数能被 DCP 整除；MLA 草稿直接放行）、并行组合（拦截 `DP > 1` 且 `PCP > 1`，以及不在 [PD 分离](pd-disaggregation.md) producer 侧却同开 `PP > 1 + MTP`）与 Engram 配置。
+3. **识别量化并校验缓存精度。** 前置校验通过后才调用 `maybe_auto_detect_quantization` 自动识别量化方法，接着校验 TurboQuant；若缓存或 indexer KV 精度设为 `fp8`，还会断言当前 `HardwareProfile` 支持 `FP8_ATTENTION`。
+4. **修不兼容组合、初始化昇腾配置并核对 PD 角色。** 平台先调 `_fix_incompatible_config` 把已知冲突项改回可运行状态（如模型配置带 `indexer` 的 `top-k` 字段时，将缓存精度改写为模型自身 dtype），再构造[昇腾配置对象](ascend-config-system.md)并检查 DeepSeek V4 TP 与以下 PD 角色约束：
 
 | 开关 / 策略 | 角色与组合约束 | 违反时的行为 |
 |---|---|---|
 | 均衡调度 | 仅允许 PD 混合角色（`kv_both`）或未配 KV 传输 | 显式设为 producer / consumer 时直接报错 |
 | KV 载入失败策略（`recompute`） | 不支持混合模型 | 混合模型直接触发断言失败 |
 | 重算调度（`recompute_scheduler_enable`） | 仅允许在 consumer 侧开启 | producer 侧打警告并重置为关；非 PD 角色直接报错 |
+
+5. **定编译与图模式、重算捕获尺寸。** 按 Xlite 配置、纯 eager 要求与请求的图档位定编译和录图方案（见[图模式层](graph-mode-layer.md)）。若上游已要求纯 eager，图此前已关闭；其余四种情况会在本段把图整段关掉：开了 Xlite 全图却未开投机解码（同时改纯 eager）、编译档位不在昇腾支持的两种范围内、请求的图档位既非分段图也不含整图、或编码器-解码器模型请求整图却未走 vLLM 编译。此路径固定关闭 PyTorch Inductor，但图模式由独立字段控制——图模式关闭时才同步关编译与 `npugraph_ex`，分段图则必须走 vLLM 编译，因此**不能凭 Inductor 关闭就断定图模式也被关闭**。
+6. **选 Worker、定块长、核一致性并配分配器环境。** `worker_cls` 为 `"auto"` 时，常规分支读取 `HardwareProfile.default_worker_cls`（标准 A2/A3/A5 取 `NPUWorker`，310P 取 `NPUWorker310`；开启且硬件支持 Xlite 时走 `XliteWorker`）。接着由 `refresh_block_size` 定块长：空值填 `128`（上游 `CacheConfig` 已先填 `16`，此处兜底）；已设值非 `128` 且开启前缀缓存或 chunked prefill 时强制改回 `128`；混合模型跳过后一条及 Xlite 下「不超过 128」限制，保留补丁更早写入的 `640`（五种块大小消歧见[缓存规格](kv-cache-spec.md)）。最后执行 SFA/DCP/KV/SP 一致性校验与 NPU 分配器环境设置。
+
+**历史旧镜像对照（`db701c1f` / `v0.23.0`）。** 下图记录历史双机镜像的旧执行顺序：两道早退后**先识别量化，再跑四个校验**（含 `v0.23.0` 专有的「层切分仅许 PD producer 节点」，以及投机+DCP、并行组合、PP+MTP），末尾对 `worker_cls == "auto"` 硬编码 `310P / Xlite / NPUWorker` 三选一并执行角色检查。查 `v0.30.0` 启动栈时应按上方正式版顺序定位拒绝点，勿套旧顺序：
+
+```wiki-diagram
+file: platform-check-order
+```
 
 ## 默认预算为何不能只看一个数字
 
@@ -208,14 +191,14 @@ file: npu-platform-fig-override-cascade
 
 **第一段：平台被问显存，选择不答。** 上游在汇总配置对象之前，先调用平台的「单卡总显存」接口来定默认预算。固定旧镜像的昇腾实现一律抛不支持，注释写明原因：查询显存会顺带提前拉起设备运行库，而该库在单进程内只许初始化一次，提前拉起会让后续正式初始化报错。上游捕获该异常并吞掉，按 `0` 字节继续往下算。
 
-**第二段：按容量选档，另有一条批式 DP 入口。** 容量不小于 `70 GiB` 且设备名不含 `a100` 时选大档（库调用 `16384`、API 服务 `8192`），上游源码注释点名 H100 与 MI300x 走这一档；否则选小档（库调用 `8192`、API 服务 `2048`）。固定镜像因查询被拒绝，API 服务方式在这一步直接落到小档起点 `2048`，而同一命令在 H100 上默认得 `8192`。
+**第二段：按容量选三档，另有一条批式 DP 入口。** 在 `v0.30.0` 配套上游（`ced6857a`）中，硬件分三档：容量 `≥ 160 GiB`（如 B200/B300）时离线库调用与在线 API 服务均取 `16384`，请求数上限 `1024`；容量 `≥ 70 GiB` 且设备名不含 `a100`（如 H100/H200/MI300x）时离线 `16384`、在线 `8192`，请求数上限 `1024`；其余情况落入小档——离线 `8192`、在线 API 服务 `2048`，在线与离线的请求数上限起点均为 `256`（仅在无 `UsageContext` 调用时，才回退取 `SchedulerConfig` 的无上下文兜底常量 `2048` 与请求数 `128`；历史 `v0.23.0` 尚无 `≥ 160 GiB` 档）。昇腾因参数解析早于 `torch_npu` 初始化，查询被拒后记 `0` 字节，常规在线服务遂从 `2048`（请求数 `256`）起算；完整六分支求值表见[核心 CLI 参数与跨层联动](core-cli-params.md#为什么昇腾在线服务默认批预算是-2048拆解-6-分支求值与-sppcp-静默取整)。
 
-另一条互斥分支不看容量档位：当专家分发后端是低时延 DeepEP 或 NIXL EP、开了专家并行且 `DP > 1` 时，上游判定为「批式 DP MoE」，预算起点取常量 `256`。`256` 同时是 MoE 层最大 token 数的缺省值，旧版「MoE DP 分块」也默认 `256`（每个 DP rank 批式派发的工作单位）。但这些缺省值不能证明现行通信内核每次最多只装 `256`——后面的吞吐模式仍可把未显式设置的预算翻倍，模型长度等条件也会继续调整它。
+另一条互斥分支不看容量档位：当专家分发后端是低时延 DeepEP 或 NIXL EP、开了专家并行且 `DP > 1` 时，上游判定为「批式 DP MoE」，token 预算起点改取常量 `256`（请求数上限仍按上述上下文档位独立选定）。`256` 同时是 MoE 层最大 token 数的缺省值，旧版「MoE DP 分块」也默认 `256`（每个 DP rank 批式派发的工作单位），但不能据此推断通信内核容量封顶 `256`——后面的吞吐模式与模型长度条件仍会继续调整未显式设置的值。
 
-**第三段：默认值还要过四道条件调整。** 缺省常量本身有三个：预算 `2048`、批式 DP 的 `256`、请求数上限 `128`。定好起点后，上游只对**未显式设置**的项做四步加减：
+**第三段：默认值还要过四道条件调整。** 定好起点（常规在线小档 token `2048` / 请求数 `256`、批式 DP token `256`、无上下文兜底请求数 `128`）后，上游只对**未显式设置**的项做四步加减：
 1. 吞吐模式下，未显式设置的 token 预算和请求数上限各自翻倍；
 2. 未开 chunked prefill（把长提示词拆步送入）时，token 预算抬升到至少等于单请求长度上限；
-3. 多模态 prefix-LM 模式下，确保容纳单个媒体项的最小 token 数；
+3. 多模态 prefix-LM 模式下，抬升单步准入 token 下限以容纳单个媒体项（注意这只是单步调度准入预算，运行期跨轮视觉编码特征的复用容量由独立的 `EncoderCacheManager` 管理，见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）；
 4. token 预算按 `请求数上限 × 单请求长度上限` 收窄，未显式设置的请求数上限再反过来按 token 预算收窄。
 
 **token 预算与请求数上限各有一道独立闸门。** 无论用户有没有传参，进函数后问显存与选档照常执行；区别在于，只有未显式传参的那一项才会被默认值填回并参与上述调整。显式传入 token 预算会保留原值，但不会阻止未显式传入的请求数上限被翻倍或收窄；最终生效值还要再过配置验证与下游消费者。
@@ -226,23 +209,21 @@ file: npu-platform-fig-override-cascade
 - **回退档不等于「昇腾默认每步 2048 token」。** 2048 只是 API 服务方式在小档上的起点，后面还要过第三段那四次加减，而且只在没显式设置时才成立。
 - **调度预算不等于缓存块大小。** 前者说一步收多少 token，后者说历史状态按多大一页存，见[缓存规格](kv-cache-spec.md)。
 
-## 落到 GLM 双机：这一层交出的名字和数
+## 混合状态怎样改变块长与注意力选择
 
-与上面标准 `Qwen3` 走平台通用表不同，历史 GLM-5.3-Flash 双机部署（例外 B）同时触发了混合模型块长豁免、indexer 缓存精度改写与层内私有后端绕行。下面这张图给出 GLM 路径下平台改写与绕行的全貌：
+与标准 `Qwen3` 全层统一走平台通用表不同，混合注意力与跨机专家并行模型会同时触发块长豁免、缓存精度改写与层内私有后端绑定。以历史 GLM-5.3-Flash 双机算例（例外 B，两台 A2 各 8 卡、TP8 / DP2 / EP16、W8A8，完整启动配方见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)，启动时序见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)）对照，平台改写与层内绕行的全貌如下：
 
 ```wiki-diagram
 file: platform-surface
 ```
 
-本节挂靠 [A0：启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。固定部署是两台 A2、每台 8 卡，TP8 / DP2 / EP16、W8A8（参数取值与推导见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。平台在这套部署上交出的答案如下：
-
-| 上游问什么 | 本部署得到什么 |
+| 上游问什么 | 该混合模型部署得到什么 |
 |---|---|
-| 自动选哪个 Worker 类 | 常规 NPUWorker：不是 310P 设备，xlite 执行模式也没开 |
-| 注意力后端用哪个 | 通用接口按三个标志查表回答；GLM 的两类层不走这张表 |
+| 自动选哪个 Worker 类 | 常规 `NPUWorker`：不是 310P 设备，xlite 执行模式也没开 |
+| 注意力后端用哪个 | 通用接口按三个标志查表回答；混合模型的两类层不走这张表 |
 | 图包装与编译后端用哪个 | 昇腾自己的图包装类与编译器类，不是上游那条默认编译路 |
 | 设备通信器类 | 昇腾的通信器类，通信后端名由 Worker 给出 |
-| 缓存精度 | 因为模型配置带 indexer 的 top-k 字段，被改写成模型自身的 dtype |
+| 缓存精度 | 因为模型配置带 `indexer` 的 `top-k` 字段，被改写成模型自身的 dtype |
 | 逻辑块多大 | 补丁更早定成 640 个 token；平台遇到混合模型，跳过「改回 128」那一条，640 留下 |
 
 **注意力后端那一行要展开讲，否则容易记错。** 通用接口的查表键是三个标志（是否 MLA、是否稀疏、是否压缩），四个组合各对一个昇腾后端类；显式指定 FlashAttention 且额外条件成立时另走 FA3；310P 设备有自己的一张表。但 GLM 的稀疏 MLA 层在算子实现里写死了配套后端，KDA 层由算子返回专用 GDN 后端，因此「在通用表里挑一个名字」不能代表 GLM 两类层的实际实现（完整对应见[注意力后端](attention-backend-family.md)）。
@@ -281,7 +262,7 @@ file: platform-surface
 - **不需要开。** 装上 vllm-ascend 之后，vLLM 通过插件机制加载这个类，`_enum = PlatformEnum.OOT`（仓库外平台）；发现与激活过程见[插件注册](platform-plugin-registration.md)。身份字段都在类体顶部：`device_name` / `device_type` 为 `"npu"`，`ray_device_key = "NPU"`，`device_control_env_var = "ASCEND_RT_VISIBLE_DEVICES"`，`dispatch_key = "PrivateUse1"`，`simple_compile_backend = "eager"`（注释写的是 `# Disable torch.compile()`）。
 - **配置前的准备：** `pre_register_and_update` 调 `adapt_patch(is_global_patch=True)` 装全局补丁，把 `ASCEND_QUANTIZATION_METHOD` 追加进 `--quantization` 的候选（所以 `--quantization ascend` 不是上游自带取值），再按 `is_310p()` 导入对应的量化配置类。GLM 的配置类型与模型实现不在这里登记：前者由[补丁](ascend-patch-system.md)模块补进上游的配置表，后者走通用的[模型插件登记](platform-plugin-registration.md)。注册一个量化名只表示后面解析配置时认得它，不表示模型能按这套量化跑起来——那还要求权重格式、模型实现、算子与硬件互相对得上。
 - **调用时机：** `VllmConfig.__post_init__` 在构造末尾调 `current_platform.check_and_update_config(self)`；而默认调度预算在这之前、`EngineArgs` 里由 `_set_default_max_num_seqs_and_batched_tokens_args` 定好。两件事不在同一刻，是本页「拒答改变默认档」那条链的前提。
-- **`check_and_update_config` 内部顺序**（`db701c1f` 第 450 行起）：两道早退 → `maybe_auto_detect_quantization` → 四个 `_validate_*` → `_fix_incompatible_config` → `init_ascend_config` → 日志与 KV 传输 id → 编译与 `cudagraph_mode` → `worker_cls` 三选一 → `refresh_block_size` → `custom_ops = ["all"]`（非 310P）→ 均衡调度、KV 载入失败策略、重算调度三条角色检查。
+- **`check_and_update_config` 内部顺序**：`v0.30.0` 正式版（`c09d3e20` 第 478 行起）按「配置日志 → 两道早退 → 7 项前置 `_validate_*` → `maybe_auto_detect_quantization` / `validate_turboquant` / FP8 断言 → `_fix_incompatible_config` → `init_ascend_config` 与 DeepSeek V4 TP / `_check_ascend_config` → `_update_compilation_modes` → `_setup_compile_backend` → `_setup_worker_and_scheduler`（`HardwareProfile.default_worker_cls`、`refresh_block_size`、调度器扩展）→ `_validate_sfa_dcp_kv_sp` → `_set_pytorch_npu_alloc_env`」执行；历史旧镜像（`db701c1f` 第 450 行起）则是「两道早退 → `maybe_auto_detect_quantization` → 四个 `_validate_*` → `_fix_incompatible_config` → `init_ascend_config` → 日志与 KV 传输 id → 编译与 `cudagraph_mode` → `worker_cls` 三选一 → `refresh_block_size` → `custom_ops = ["all"]`（非 310P）→ 均衡调度、KV 载入失败策略、重算调度三条角色检查」。
 
   两道早退见来源 7 第 453–463 行：存在 `device_config` 且其有效设备类型不是 `npu`，或缺少 `model_config`，都会直接返回，不执行后续昇腾配置更新；缺少模型配置时还会记录警告。设备配置若没有 `device_type` 属性，这里用平台自身的设备类型作为默认值。
 - **块大小的通用规则：** `refresh_block_size` 在 `block_size is None` 时填 128，`deepseek_v4` 另有 32 / 64 / 128 的限制，`model_config.is_hybrid` 为真就直接返回，交给模型专属算法。另有 `update_block_size_for_backend`：仅当前缀缓存关闭、混合 KV 管理器启用、配置了 KV 传输且 `mamba_cache_mode == "align"` 时处理 Mamba 块；原值为空或等于最大模型长度就改成逻辑块大小，其他值则断言它是逻辑块大小的整数倍。

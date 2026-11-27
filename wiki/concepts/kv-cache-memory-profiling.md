@@ -2,10 +2,10 @@
 id: kv-cache-memory-profiling
 title: KV cache 显存预算：启动时怎样一项项扣出来
 type: concept
+legacyAnchors:
+  放到-glm-双机一张卡的预算怎样扣: 混合注意力和两种-moe-路径怎样影响显存试跑
 summary: >-
-  每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，加载权重后通过一次最大批量的 profile run
-  量出激活峰值与包含 HCCL 缓冲在内的非 Torch 增量，三项扣完后将剩余预算按每块字节数切成物理 KV 块；ACLGraph
-  录图与运行期新增缓冲由预算外 1−u 余量支付，切出的块数也不等于固定并发请求数。
+  每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，装完权重后先执行 profile run 试跑（普通路径取单步上限，满足条件的 MoE 先加跑小档）量出激活峰值与含 HCCL 缓冲的非 Torch 增量，三项扣完后将剩余预算切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付。
 aliases:
   - KV Cache Memory Profiling
   - memory profiling
@@ -131,7 +131,7 @@ rawSources:
 
 ## 启动时怎样知道还能给 KV cache 多少显存？
 
-**memory profiling（显存量测，对应 `NPUWorker.determine_available_memory`）是 vLLM 在接请求前做的一次显存记账。它先按「整卡总显存 × 显存比例」划定本实例预算，再用假输入试跑一次单步最大批量，扣掉常驻权重、激活峰值与非 Torch 增量后，把预算余量一次性切成物理 KV 块。** [KV cache](kv-cache.md) 保存每条请求已算过的历史键值向量，经 [PagedAttention](paged-attention.md) 切成定长块按需借还；它分到多少显存，直接决定实例能同时留住多少条请求、多长的上下文。
+**memory profiling（显存量测，对应 `NPUWorker.determine_available_memory`）是 vLLM 在接请求前做的一次显存记账。它先按「整卡总显存 × 显存比例」划定本实例预算；装完权重后先试跑前向——普通路径取单步最大批量上限，满足条件的 MoE 模型会先加跑小档——扣掉常驻权重、激活峰值与非 Torch 增量后，把预算余量一次性切成物理 KV 块。** [KV cache](kv-cache.md) 保存每条请求已算过的历史键值向量，经 [PagedAttention](paged-attention.md) 切成定长块按需借还；它分到多少显存，直接决定实例能同时留住多少条请求、多长的上下文。
 
 这一步固定发生在 [NPUWorker 启动](npu-worker-lifecycle.md)的第 4 步：此时选卡建组与加载权重已经完成，但缓存池尚未分配，decode 图（[ACLGraph](acl-graph.md)，预先捕获单步前向算子序列以便同尺寸直接回放）也尚未录制。以 `vllm-ascend` `v0.30.0`（配套 `vllm` `v0.30.0`）为主基线，整张 NPU 的高带宽显存（HBM，设备侧三类数据分工见[设备内存](device-memory.md)）在冷启动到稳态运行之间按**七级顺序**切分落位：
 
@@ -154,7 +154,7 @@ file: kv-cache-memory-profiling
 
 ## 为什么要先试跑？代价落在哪里？
 
-**权重、临时激活与 KV cache 的生命周期截然不同，决定了不能跳过试跑直接把“当前空闲显存”全分给缓存池。** 权重大小加载完就固定；激活张量与算子 workspace 随单步 token 数、量化方案和通信路径剧烈波动，算完一步后缓冲池可留待下一步复用；而 KV cache 一旦借给在途请求就要跨许多轮保留。只有先按配置的批次上限真跑一次前向，把这条路径的峰值工作区与非 Torch 增量圈出来，剩下的显存才能安全交给 KV 池长期持有。
+**权重、临时激活与 KV cache 的生命周期截然不同，决定了不能跳过试跑直接把“当前空闲显存”全分给缓存池。** 权重大小加载完就固定；激活张量与算子 workspace 随单步 token 数、量化方案和通信路径剧烈波动，算完一步后缓冲池可留待下一步复用；而 KV cache 一旦借给在途请求就要跨许多轮保留。装完权重后必须先真跑前向——普通路径按单步 token 上限跑一次，满足 MC2 条件的 MoE 先加跑一次小档再跑主上限——把这条路径的峰值工作区与非 Torch 增量圈出来，剩下的显存才能安全交给 KV 池长期持有。
 
 这套机制的工程代价落在三处：
 
@@ -270,22 +270,22 @@ $$M_{\text{free,after}} = 80 - 2 + 10 = 88\text{ GiB}, \qquad \Delta M_{\text{co
 | `NPUWorker` 整卡差分断言 | `init = 80 GiB` | 表观消耗 `80 − 88 = −8 GiB` | 违反 `init_snapshot.free_memory > free_gpu_memory`，抛 `AssertionError` 中止 |
 
 这类 **`Error in memory profiling` 断言失败**说明“记账基准被外部污染”，与显存耗尽的 **OOM** 完全不是一回事。排障按两步确认：
-1. 先按[启动排障](inference-troubleshooting.md#启动依赖与加载还没到接请求这一步)确认报错落在量测断言而非加载/录图，再核查同一时间窗内是否有同卡任务启停（排查时注意 PyTorch `memory_reserved` 包含缓存待复用块，不能只看 `memory_allocated`）；
+1. 先按[启动排障](inference-troubleshooting.md#启动依赖与加载还没到接请求这一步)确认报错落在量测断言而非加载/录图，再核查同一时间窗内是否有同卡任务启停（排查时注意 PyTorch `memory_reserved` 包含缓存分配器待复用块，不能只看 `memory_allocated`；分配器跨流复用与大块切分策略见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）；
 2. 用对照实验验证：旁路进程全程占稳不释放则正常通过，窗口内释放才复现断言失败。正确修法是隔离设备或错峰拉起，绝不能注释断言。
 
 ## 多模态输入的量测尺寸，等于运行时限制吗？
 
-**传给试跑的多模态尺寸提示（profiling size hints），只决定启动时假输入张量按多大规格构造，不会在运行期缩放真实媒体或封顶编码缓存。** 多模态模型除了文本 token，还需视觉或音频编码器处理图片、视频与语音；图像分辨率、视频帧数与音频时长直接决定编码激活体积，单靠文本批上限无法覆盖。
+**传给试跑的多模态尺寸提示（profiling size hints），只决定启动时假输入张量按多大规格构造，不会在运行期缩放真实媒体或封顶编码特征缓存。** 多模态模型除了文本 token，还需视觉或音频编码器处理图片、视频与语音；图像分辨率、视频帧数与音频时长直接决定编码激活体积，单靠文本批上限无法覆盖。
 
 对照上图下半部分，上游官方指南通过 `limit_mm_per_prompt` 同时传入数量上限与试跑尺寸提示（例如单请求最多 `5` 张图、试跑按 `512×512` 构造；最多 `1` 段视频、试跑按 `32` 帧 `640×640` 构造）。这两类字段的作用域截然不同：
 - **`count` 是运行期准入硬限制**：超过上限的请求会直接拒收；
-- **`width` / `height` / `num_frames` 只是 `profile_run()` 的假输入尺寸提示**（超模型上限时钳回有效最大值），既不会把线上真实大图缩成 `512×512`，也不会把运行期 `encoder cache` 封顶在该尺寸。
+- **`width` / `height` / `num_frames` 只是 `profile_run()` 的假输入尺寸提示**（超模型上限时钳回有效最大值），既不会把线上真实大图缩成 `512×512`，也不会决定运行期按单张媒体哈希复用 ViT 输出向量的 `EncoderCacheManager` 特征缓存预算（运行期特征缓存与 ViT 分块图捕获机制见[多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）。
 
 因此，线上允许更高清图片或更长视频时，必须在目标尺寸下实测峰值；若要压低线上媒体开销，应配置模型预处理器的像素上限，而非只调小试跑提示。同时须把设备 HBM 与主机内存分开看：多模态预处理缓存位于主机 DRAM（由 `mm_processor_cache_gb` 控制），缩减 NPU 侧 KV 预算不会缩小主机侧缓存。
 
-## 放到 GLM 双机：一张卡的预算怎样扣
+## 混合注意力和两种 MoE 路径怎样影响显存试跑
 
-看完标准 `Qwen3` 单卡与四卡量测，再切到「09 旗舰异构模型全案」的 **GLM-5.3-Flash 双机部署**（历史钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`，2 台 Atlas 800 A2 共 16 卡、`TP8 / DP2 / EP16`、`W8A8` 量化，教程把 `--gpu-memory-utilization` 设为 `0.85`，部署前提见[双机部署前提](glm-5-3-flash-two-node.md#部署前提)）。量测对应[双机启动的第五步](glm-5-3-flash-two-node.md#启动时发生了什么)：16 个 Worker 各自拍快照、建通信组、加载权重并试跑，两台机器的 `EngineCore` 再分别收齐本机 8 张卡的结果定块数、建池与录图：
+当模型同时包含稀疏/线性混合注意力与按 token 数切换通信路径的 MoE 层时，单次试跑与假输入早退都会改变扣减账本。以历史 **GLM-5.3-Flash 双机算例**（例外 B，钉点 `vllm@0fc695fc + vllm-ascend@db701c1f`，2 台 Atlas 800 A2 共 16 卡、`TP8 / DP2 / EP16`、`W8A8` 量化，`--gpu-memory-utilization` 设为 `0.85`，前提见[双机部署前提](glm-5-3-flash-two-node.md#部署前提)）对照[双机启动的第五步](glm-5-3-flash-two-node.md#启动时发生了什么)：16 个 Worker 各自拍快照、建通信组、加载权重并试跑，两台机器的 `EngineCore` 再分别收齐本机 8 张卡的结果定块数、建池与录图：
 
 ```wiki-diagram
 file: kv-cache-memory-profiling-flow
@@ -322,7 +322,7 @@ file: kv-cache-memory-profiling-flow
 - 每卡约 `54 MiB` 的索引器 FP32 运行时副本；
 - 试跑早退未覆盖到的稀疏 MLA 注意力与 KDA 短卷积/递归临时缓冲。
 
-录完图后，未设显式字节预算的 Worker 会打印 `Actual usage` 四项汇总与再扣 `150 MiB` 后的 `--kv-cache-memory` 建议值——这是核对真机激活峰值、非 Torch 增量与图显存的唯一权威入口。
+录完图后，未设显式字节预算的 Worker 会打印 `Actual usage` 四项汇总与再扣 `150 MiB` 后的 `--kv-cache-memory` 建议值——这是核对冷启动激活峰值、非 Torch 增量与图显存的关键日志入口，运行期进一步排障还须与 PyTorch NPU 分配器状态和设备显存轨迹共同对账。
 
 ## 常见误解
 

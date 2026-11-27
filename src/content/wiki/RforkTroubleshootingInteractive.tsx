@@ -117,9 +117,122 @@ export const RFORK_DIAG_STEPS: readonly RforkDiagSpec[] = [
       "planner_client.py:228-249 与 session.py:329-392：HTTP 200/404 均记 RELEASED 清除借入租约，延后的本机新 Seed 发布仍可继续完成；HTTP 400 记 REJECTED 立即停试并取消本机新 Seed 发布（示例 Planner 中 400 仅来自请求头缺项/非整数/越界，与到期无关）。在默认 TTL=60s、未触发续租展期且期间无时钟跳变前提下，客户端 held_elapsed=48.2s < 60s 可确定排除到期清扫；75.6s ≥ 60s（或存在续租展期时按展期窗口核对）则将到期收回列为候选之一。",
   },
 ];
+
+export const RFORK_POST_LEASE_FAULTS = ["engine-info", "manifest", "batch7"] as const;
+export type RforkPostLeaseFault = (typeof RFORK_POST_LEASE_FAULTS)[number];
+
+export const RFORK_RANK_VIEWS = ["tp0", "non-tp0-info", "non-tp0-debug"] as const;
+export type RforkRankView = (typeof RFORK_RANK_VIEWS)[number];
+
+export type RforkReturnCode = 404 | 400;
+export type RforkHeldElapsed = 48.2 | 75.6;
+export type RforkEffectiveTtl = 60 | 120;
+
+export interface RforkDiagDerivedState {
+  readonly step: RforkDiagStep;
+  readonly postLeaseFault: RforkPostLeaseFault;
+  readonly rankView: RforkRankView;
+  readonly returnCode: RforkReturnCode;
+  readonly heldSec: RforkHeldElapsed;
+  readonly ttlSec: RforkEffectiveTtl;
+  readonly anchorNodeIdx: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  readonly anchorLabel: string;
+  readonly rankSummaryLine: string;
+  readonly isExpiredCandidate: boolean;
+  readonly ttlVerdictText: string;
+  readonly serviceLineOk: true;
+  readonly seedPublishAllowed: boolean;
+  readonly seedBranchText: string;
+}
+
+export function computeRforkDiagState(
+  step: RforkDiagStep,
+  postLeaseFault: RforkPostLeaseFault,
+  rankView: RforkRankView,
+  returnCode: RforkReturnCode,
+  heldSec: RforkHeldElapsed,
+  ttlSec: RforkEffectiveTtl,
+): RforkDiagDerivedState {
+  const anchorNodeIdx: 0 | 1 | 2 | 3 | 4 | 5 | 6 =
+    step === 1
+      ? 0
+      : step === 2
+        ? 1
+        : step === 3
+          ? 2
+          : step === 4
+            ? postLeaseFault === "engine-info"
+              ? 3
+              : postLeaseFault === "manifest"
+                ? 4
+                : 5
+            : 6;
+
+  const anchorNames = [
+    "0.缺必填配置",
+    "1.目的显存登记",
+    "2.借租未命中",
+    "3.取引擎信息",
+    "4.五门清单失配",
+    "5.第7/12批断连",
+    "6–8.归还回执",
+  ] as const;
+
+  const rankSummaryLine =
+    step === 1
+      ? "全 Rank 抛配置异常退场（0 行回退汇总）"
+      : step === 3
+        ? rankView === "tp0"
+          ? "Rank 0 (TP0) 打 1 行 INFO 读盘提示"
+          : rankView === "non-tp0-info"
+            ? "非 TP0 从卡 INFO 级 0 行静默转读盘!"
+            : "非 TP0 开 DEBUG 才显式打印 404/键未配!"
+        : step === 4
+          ? "末行同句传输失败汇总 ← 往前追同 Rank 首条 error!"
+          : step === 2
+            ? "汇总明确标目的登记失败（借租前已停）"
+            : returnCode === 404
+              ? `归还收 404（持租 ${heldSec}s vs TTL ${ttlSec}s）`
+              : "归还收 400（立即停试·取消本机发 Seed）";
+
+  const isExpiredCandidate = returnCode === 404 && heldSec >= ttlSec;
+  const ttlVerdictText =
+    returnCode === 400
+      ? "400 仅因请求头解析错 · 与 TTL 到期无关"
+      : isExpiredCandidate
+        ? `${heldSec}s ≥ TTL ${ttlSec}s · 列入超时回收候选`
+        : `${heldSec}s < TTL ${ttlSec}s · 排除自然过期清扫`;
+
+  const seedPublishAllowed = returnCode === 404;
+  const seedBranchText = seedPublishAllowed
+    ? "✓ 404 清租约 · 本机继续发布新 Seed"
+    : "✗ 400 主动停试 · 取消发布新 Seed";
+
+  return {
+    step,
+    postLeaseFault,
+    rankView,
+    returnCode,
+    heldSec,
+    ttlSec,
+    anchorNodeIdx,
+    anchorLabel: anchorNames[anchorNodeIdx]!,
+    rankSummaryLine,
+    isExpiredCandidate,
+    ttlVerdictText,
+    serviceLineOk: true,
+    seedPublishAllowed,
+    seedBranchText,
+  };
+}
+
 export interface RforkTroubleshootingInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: RforkDiagMode | undefined;
   readonly initialStep?: RforkDiagStep | undefined;
+  readonly initialReturnCode?: RforkReturnCode | undefined;
+  readonly initialHeldSec?: RforkHeldElapsed | undefined;
+  readonly initialTtlSec?: RforkEffectiveTtl | undefined;
+  readonly initialPostLeaseFault?: RforkPostLeaseFault | undefined;
 }
 
 export function RforkTroubleshootingInteractive({
@@ -131,14 +244,26 @@ export function RforkTroubleshootingInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 1,
+  initialReturnCode = 404,
+  initialHeldSec = 48.2,
+  initialTtlSec = 60,
+  initialPostLeaseFault = "batch7",
 }: RforkTroubleshootingInteractiveProps) {
   const [mode, setMode] = useState<RforkDiagMode>(initialMode);
   const [step, setStep] = useState<RforkDiagStep>(initialStep);
+  const [postLeaseFault, setPostLeaseFault] = useState<RforkPostLeaseFault>(initialPostLeaseFault);
+  const [rankView, setRankView] = useState<RforkRankView>("tp0");
+  const [returnCode, setReturnCode] = useState<RforkReturnCode>(initialReturnCode);
+  const [heldSec, setHeldSec] = useState<RforkHeldElapsed>(initialHeldSec);
+  const [ttlSec, setTtlSec] = useState<RforkEffectiveTtl>(initialTtlSec);
   const [playing, setPlaying] = useState(false);
+
   const spec = RFORK_DIAG_STEPS[step - 1]!;
+  const diag = computeRforkDiagState(step, postLeaseFault, rankView, returnCode, heldSec, ttlSec);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mTeal = `${id}-${uid}-rf-teal`;
   const mRed = `${id}-${uid}-rf-red`;
+  const mAmber = `${id}-${uid}-rf-amber`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -160,6 +285,14 @@ export function RforkTroubleshootingInteractive({
     setPlaying(false);
     setMode("sandbox");
     setStep(next);
+  };
+
+  const applyReturnPreset = (code: RforkReturnCode, held: RforkHeldElapsed) => {
+    setPlaying(false);
+    setMode("sandbox");
+    setStep(5);
+    setReturnCode(code);
+    setHeldSec(held);
   };
 
   const toggleAutoPlay = () => {
@@ -227,7 +360,12 @@ export function RforkTroubleshootingInteractive({
       question="日志最后只写一句“传输失败回退默认加载”，怎么 30 秒揪出真凶？"
       toolbarLabel="RFork 五阶段首错分诊控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-step": step }}
+      extraRootAttrs={{
+        "data-step": step,
+        "data-return-code": returnCode,
+        "data-held-sec": heldSec,
+        "data-ttl-sec": ttlSec,
+      }}
       toolbar={
         <>
           <div className="wiki-edu-btn-row">
@@ -259,9 +397,6 @@ export function RforkTroubleshootingInteractive({
             >
               下一类 ›
             </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="RFork 五类异常现场分诊">
             {RFORK_DIAG_STEPS.map((item) => {
               const active = mode === "sandbox" && step === item.step;
               return (
@@ -279,6 +414,96 @@ export function RforkTroubleshootingInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="归还状态码、持租耗时与首错锚点切换">
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-preset-404-48"
+              aria-pressed={mode === "sandbox" && step === 5 && returnCode === 404 && heldSec === 48.2}
+              style={eduBtnStyle(
+                mode === "sandbox" && step === 5 && returnCode === 404 && heldSec === 48.2,
+                "dark",
+              )}
+              onClick={() => applyReturnPreset(404, 48.2)}
+            >
+              404 + 48.2s (&lt;TTL排除过期)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-preset-404-75"
+              aria-pressed={mode === "sandbox" && step === 5 && returnCode === 404 && heldSec === 75.6}
+              style={eduBtnStyle(
+                mode === "sandbox" && step === 5 && returnCode === 404 && heldSec === 75.6,
+                "dark",
+              )}
+              onClick={() => applyReturnPreset(404, 75.6)}
+            >
+              404 + 75.6s (&gt;TTL超时回收)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-preset-400"
+              aria-pressed={mode === "sandbox" && step === 5 && returnCode === 400}
+              style={eduBtnStyle(mode === "sandbox" && step === 5 && returnCode === 400, "dark")}
+              onClick={() => applyReturnPreset(400, 48.2)}
+            >
+              400 停试禁发Seed
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-toggle-ttl"
+              aria-pressed={mode === "sandbox" && ttlSec === 120}
+              style={eduBtnStyle(mode === "sandbox" && ttlSec === 120, "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setStep(5);
+                setTtlSec((prev) => (prev === 60 ? 120 : 60));
+              }}
+            >
+              {`有效TTL：${ttlSec}s`}
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-toggle-fault"
+              aria-pressed={mode === "sandbox" && step === 4 && postLeaseFault === "manifest"}
+              style={eduBtnStyle(mode === "sandbox" && step === 4 && postLeaseFault === "manifest", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setStep(4);
+                setPostLeaseFault((prev) => (prev === "batch7" ? "manifest" : "batch7"));
+              }}
+            >
+              {postLeaseFault === "manifest" ? "借后首错：清单失配" : "借后首错：第7批断"}
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="rfork-diag-toggle-rank"
+              aria-pressed={mode === "sandbox" && rankView !== "tp0"}
+              style={eduBtnStyle(mode === "sandbox" && rankView !== "tp0", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setStep(3);
+                setRankView((prev) =>
+                  prev === "tp0" ? "non-tp0-info" : prev === "non-tp0-info" ? "non-tp0-debug" : "tp0",
+                );
+              }}
+            >
+              {rankView === "tp0"
+                ? "日志：TP0主卡"
+                : rankView === "non-tp0-info"
+                  ? "日志：从卡INFO"
+                  : "日志：从卡DEBUG"}
+            </button>
           </fieldset>
         </>
       }
@@ -296,18 +521,22 @@ export function RforkTroubleshootingInteractive({
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">Seed 源实例 ↔ Pool 控制面 ↔ Target 实例首错定位图谱</span>
-            <span className={`wiki-edu-badge ${step === 5 ? "is-warn" : "is-bad"}`}>
-              {`首错阶段 ${step} / 5`}
+            <span className="wiki-edu-panel-title">
+              事件时间轴首错锚点 · Rank 日志汇总 · 归还双结果分流图
+            </span>
+            <span
+              className={`wiki-edu-badge ${step === 5 && returnCode === 404 && !diag.isExpiredCandidate ? "is-good" : "is-warn"}`}
+            >
+              {`首错锚点：${diag.anchorLabel}`}
             </span>
           </div>
           <svg
-            viewBox="0 0 840 172"
-            width="840"
-            height="172"
+            viewBox="0 0 860 236"
+            width="860"
+            height="236"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`RFork 第 ${step} 类首错拓扑定位图`}
+            aria-label={`RFork 第 ${step} 类首错时间轴与分流图`}
           >
             <defs>
               <marker
@@ -332,103 +561,127 @@ export function RforkTroubleshootingInteractive({
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
               </marker>
+              <marker
+                id={mAmber}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
+              </marker>
             </defs>
-            <rect
-              x="16"
-              y="18"
-              width="236"
-              height="104"
-              rx="9"
-              fill={step <= 3 ? "#fbfaf6" : "#ddf4ef"}
-              stroke={step <= 3 ? "#d8d8cf" : "#087f73"}
-              strokeWidth="1.7"
-            />
-            <text x="134" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              Seed 源实例
-            </text>
-            <text x="134" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step <= 2 ? "尚未进入跨实例拉取" : step === 3 ? "无可用源或键未匹配" : "✓ 已借出 12 批源权重"}
-            </text>
-            <text x="134" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 5 ? "推理不受归还状态影响" : "提供 RDMA 只读源张量"}
-            </text>
 
-            <line
-              x1="254"
-              y1="52"
-              x2="296"
-              y2="52"
-              stroke={step === 3 ? "#b54237" : "#087f73"}
-              strokeWidth="2"
-              markerEnd={`url(#${step === 3 ? mRed : mTeal})`}
-            />
-
-            <rect
-              x="302"
-              y="18"
-              width="236"
-              height="104"
-              rx="9"
-              fill={step === 3 ? "#fff0e9" : step === 5 ? "#fff4cf" : "#fbfaf6"}
-              stroke={step === 3 ? "#b54237" : step === 5 ? "#c78300" : "#d8d8cf"}
-              strokeWidth="1.7"
-            />
-            <text x="420" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              Pool 租约协调池
-            </text>
-            <text x="420" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step <= 2
-                ? "0 租约借入（借前已停）"
-                : step === 3
-                  ? "✗ 申请未命中 · 不打汇总"
-                  : step === 4
-                    ? "✓ 已签发 60s 读取租约"
-                    : "⚠ 归还租约 404 / 400"}
-            </text>
-            <text x="420" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 5 ? "404清租发源 · 400禁发源" : "管理源寻址与并发租期"}
-            </text>
-
-            <line
-              x1="540"
-              y1="52"
-              x2="582"
-              y2="52"
-              stroke={step === 4 ? "#b54237" : "#087f73"}
-              strokeWidth="2"
-              markerEnd={`url(#${step === 4 ? mRed : mTeal})`}
-            />
+            {["0.配置", "1.登记", "2.借租", "3.取信", "4.清单", "5.分批读", "6.归还"].map((tName, idx) => {
+              const nx = 14 + idx * 120;
+              const isAnchor = idx === diag.anchorNodeIdx;
+              const passed = idx < diag.anchorNodeIdx;
+              const fill = isAnchor ? (step === 5 ? "#fff4cf" : "#fff0e9") : passed ? "#ddf4ef" : "#ece9df";
+              const stroke = isAnchor ? (step === 5 ? "#c78300" : "#b54237") : passed ? "#087f73" : "#d8d8cf";
+              return (
+                <g key={tName}>
+                  <rect
+                    x={nx}
+                    y="14"
+                    width="106"
+                    height="58"
+                    rx="8"
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={isAnchor ? "2.2" : "1.3"}
+                  />
+                  <text x={nx + 53} y="38" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {tName}
+                  </text>
+                  <text
+                    x={nx + 53}
+                    y="58"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill={isAnchor ? "#b54237" : "#66716d"}
+                  >
+                    {isAnchor ? "★ 首错锚点" : passed ? "✓ 已过" : "未达"}
+                  </text>
+                  {idx < 6 && (
+                    <line
+                      x1={nx + 108}
+                      y1="43"
+                      x2={nx + 118}
+                      y2="43"
+                      stroke={passed ? "#087f73" : "#d8d8cf"}
+                      strokeWidth="1.6"
+                      markerEnd={`url(#${passed ? mTeal : mAmber})`}
+                    />
+                  )}
+                </g>
+              );
+            })}
 
             <rect
-              x="588"
-              y="18"
-              width="236"
-              height="104"
+              x="14"
+              y="106"
+              width="432"
+              height="114"
               rx="9"
-              fill={step === 1 || step === 2 || step === 4 ? "#fff0e9" : "#ddf4ef"}
-              stroke={step === 1 || step === 2 || step === 4 ? "#b54237" : "#087f73"}
-              strokeWidth="1.7"
+              fill="#fbfaf6"
+              stroke="#4c65b6"
+              strokeWidth="1.5"
             />
-            <text x="706" y="46" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              Target 目标新实例
+            <text x="230" y="130" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              Rank 汇总日志与同卡首错反查链
             </text>
-            <text x="706" y="76" textAnchor="middle" fontSize="12" fill="#17211f">
-              {step === 1
-                ? "✗ 缺必填配置 · 直接中止"
-                : step === 2
-                  ? "✗ 借租前目的显存登记败"
-                  : step === 3
-                    ? "静默转本地磁盘加载"
-                    : step === 4
-                      ? "✗ 第 7/12 批断·停服注销"
-                      : "✓ 权重全齐 · 正常起服"}
+            <rect x="28" y="142" width="404" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" />
+            <text x="230" y="163" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {diag.rankSummaryLine}
             </text>
-            <text x="706" y="104" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 1 ? "无回退汇总日志" : step === 4 ? "过双门后重读硬盘覆盖" : "按阶段定位真实首错"}
+            <text x="230" y="202" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+              {`▲ 沿同 Rank 往上锁死真凶：${diag.anchorLabel}`}
             </text>
+            <path
+              className="wiki-edu-wire is-flow"
+              d={`M 230 106 L 230 88 L ${67 + diag.anchorNodeIdx * 120} 88 L ${67 + diag.anchorNodeIdx * 120} 74`}
+              stroke="#b54237"
+              markerEnd={`url(#${mRed})`}
+            />
 
-            <text x="420" y="154" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-              {`当前真凶锚点：${spec.stationTitle}（勿只看末行通用回退日志）`}
+            <rect
+              x="466"
+              y="106"
+              width="380"
+              height="114"
+              rx="9"
+              fill="#fbfaf6"
+              stroke="#087f73"
+              strokeWidth="1.5"
+            />
+            <text x="656" y="128" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`归还双结果分流（HTTP ${returnCode} · 持租 ${heldSec}s / TTL ${ttlSec}s）`}
+            </text>
+            <rect x="482" y="138" width="348" height="30" rx="6" fill="#ddf4ef" stroke="#087f73" />
+            <text x="656" y="158" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              ✓ 线 A（对外推理服务）：权重已齐 · 100% 正常就绪
+            </text>
+            <rect
+              x="482"
+              y="176"
+              width="348"
+              height="34"
+              rx="6"
+              fill={returnCode === 400 ? "#fff0e9" : diag.isExpiredCandidate ? "#fff4cf" : "#ddf4ef"}
+              stroke={returnCode === 400 ? "#b54237" : diag.isExpiredCandidate ? "#c78300" : "#087f73"}
+            />
+            <text
+              x="656"
+              y="198"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={returnCode === 400 ? "#b54237" : "#17211f"}
+            >
+              {returnCode === 400 ? diag.seedBranchText : `✓ 404 可发新源 · ${diag.ttlVerdictText}`}
             </text>
           </svg>
         </div>

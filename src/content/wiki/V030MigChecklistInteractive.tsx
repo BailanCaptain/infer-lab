@@ -118,9 +118,98 @@ export const V030_MIG_GATES: readonly V030MigGateSpec[] = [
       "v0.30.0 的 patch_use_v2_model_runner.py 未设环境变量时默认返回 False（MRV1），开启 PCP、DeepSeek V4.1（A5）、--enable-return-routed-experts、CPP+async_scheduling 或 V2 EPLB 时须显式导出 VLLM_USE_V2_MODEL_RUNNER=1；main（mrv2_utils.py#L29-L89）已删除 MRV1，残留 =0 直接抛 ValueError。",
   },
 ];
+
+export const V030_SCRIPT_PROFILES = ["legacy", "migrated"] as const;
+export type V030ScriptProfile = (typeof V030_SCRIPT_PROFILES)[number];
+
+export const V030_TARGET_BRANCHES = ["v0.30.0", "main"] as const;
+export type V030TargetBranch = (typeof V030_TARGET_BRANCHES)[number];
+
+export const V030_CARD_FAMILIES = ["A2_A3", "A5_950"] as const;
+export type V030CardFamily = (typeof V030_CARD_FAMILIES)[number];
+
+export type V030GateEvalKind = "pass" | "warn" | "blocked";
+
+export interface V030MigrationEval {
+  readonly scriptProfile: V030ScriptProfile;
+  readonly targetBranch: V030TargetBranch;
+  readonly cardFamily: V030CardFamily;
+  readonly gateStatuses: readonly [
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+  ];
+  readonly firstBlockerGate: V030MigStep | null;
+  readonly activeUtilization: 0.9 | 0.92;
+  readonly activeHeadroomGiB: 6.4 | 5.12;
+  readonly headroomDiffGiB: 1.28;
+  readonly fp8OutcomeKind: "dequant-2b" | "reject-error" | "mxfp8-1b" | "w8a8-safe";
+  readonly fp8OutcomeText: string;
+}
+
+export function evaluateV030Migration(
+  scriptProfile: V030ScriptProfile,
+  targetBranch: V030TargetBranch,
+  cardFamily: V030CardFamily,
+): V030MigrationEval {
+  if (scriptProfile === "migrated") {
+    const fp8Kind = cardFamily === "A5_950" ? "mxfp8-1b" : "w8a8-safe";
+    return {
+      scriptProfile,
+      targetBranch,
+      cardFamily,
+      gateStatuses: ["pass", "pass", "pass", "pass", "pass"],
+      firstBlockerGate: null,
+      activeUtilization: 0.9,
+      activeHeadroomGiB: 6.4,
+      headroomDiffGiB: 1.28,
+      fp8OutcomeKind: fp8Kind,
+      fp8OutcomeText: cardFamily === "A5_950" ? "✓ 950 重定量 1B 微缩放" : "✓ 已改用 W8A8 / 原生浮点",
+    };
+  }
+
+  const g4Status: V030GateEvalKind =
+    cardFamily === "A5_950" ? "pass" : targetBranch === "main" ? "blocked" : "warn";
+  const g5Status: V030GateEvalKind = targetBranch === "main" ? "blocked" : "warn";
+  const gateStatuses: readonly [
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+    V030GateEvalKind,
+  ] = ["warn", "blocked", "warn", g4Status, g5Status];
+
+  const fp8OutcomeKind =
+    cardFamily === "A5_950" ? "mxfp8-1b" : targetBranch === "main" ? "reject-error" : "dequant-2b";
+  const fp8OutcomeText =
+    fp8OutcomeKind === "mxfp8-1b"
+      ? "✓ 950 重定量 1B 微缩放"
+      : fp8OutcomeKind === "reject-error"
+        ? "✗ main 校验直接抛错拒绝!"
+        : "⚠ v0.30.0 反量化回 2B 翻倍!";
+
+  return {
+    scriptProfile,
+    targetBranch,
+    cardFamily,
+    gateStatuses,
+    firstBlockerGate: 2,
+    activeUtilization: 0.92,
+    activeHeadroomGiB: 5.12,
+    headroomDiffGiB: 1.28,
+    fp8OutcomeKind,
+    fp8OutcomeText,
+  };
+}
+
 export interface V030MigChecklistInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: V030MigDiagramMode | undefined;
   readonly initialStep?: V030MigStep | undefined;
+  readonly initialScriptProfile?: V030ScriptProfile | undefined;
+  readonly initialTargetBranch?: V030TargetBranch | undefined;
+  readonly initialCardFamily?: V030CardFamily | undefined;
 }
 
 export function V030MigChecklistInteractive({
@@ -132,14 +221,23 @@ export function V030MigChecklistInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 1,
+  initialScriptProfile = "legacy",
+  initialTargetBranch = "v0.30.0",
+  initialCardFamily = "A2_A3",
 }: V030MigChecklistInteractiveProps) {
   const [mode, setMode] = useState<V030MigDiagramMode>(initialMode);
   const [step, setStep] = useState<V030MigStep>(initialStep);
+  const [scriptProfile, setScriptProfile] = useState<V030ScriptProfile>(initialScriptProfile);
+  const [targetBranch, setTargetBranch] = useState<V030TargetBranch>(initialTargetBranch);
+  const [cardFamily, setCardFamily] = useState<V030CardFamily>(initialCardFamily);
   const [playing, setPlaying] = useState(false);
+
   const spec = V030_MIG_GATES[step - 1]!;
+  const migEval = evaluateV030Migration(scriptProfile, targetBranch, cardFamily);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mTeal = `${id}-${uid}-v3-teal`;
   const mRed = `${id}-${uid}-v3-red`;
+  const mAmber = `${id}-${uid}-v3-amber`;
 
   useEffect(() => {
     if (!playing || mode !== "sandbox") return;
@@ -228,7 +326,12 @@ export function V030MigChecklistInteractive({
       question="把 v0.26 / rc2 的老启动脚本直接搬到 v0.30.0，哪几处会踩中隐蔽变更？"
       toolbarLabel="v0.30.0 升级五关筛查控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-step": step }}
+      extraRootAttrs={{
+        "data-step": step,
+        "data-script-profile": scriptProfile,
+        "data-target-branch": targetBranch,
+        "data-card-family": cardFamily,
+      }}
       toolbar={
         <>
           <div className="wiki-edu-btn-row">
@@ -260,9 +363,6 @@ export function V030MigChecklistInteractive({
             >
               下一关 ›
             </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="v0.30.0 五项核心升级关卡">
             {V030_MIG_GATES.map((item) => {
               const active = mode === "sandbox" && step === item.step;
               return (
@@ -280,13 +380,96 @@ export function V030MigChecklistInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="脚本形态、目标分支与卡型切换">
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="v030-script-legacy"
+              aria-pressed={mode === "sandbox" && scriptProfile === "legacy"}
+              style={eduBtnStyle(mode === "sandbox" && scriptProfile === "legacy", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setScriptProfile("legacy");
+              }}
+            >
+              旧启动脚本 (v0.26/rc2)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="v030-script-migrated"
+              aria-pressed={mode === "sandbox" && scriptProfile === "migrated"}
+              style={eduBtnStyle(mode === "sandbox" && scriptProfile === "migrated", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setScriptProfile("migrated");
+              }}
+            >
+              已迁移标准脚本
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="v030-branch-v030"
+              aria-pressed={mode === "sandbox" && targetBranch === "v0.30.0"}
+              style={eduBtnStyle(mode === "sandbox" && targetBranch === "v0.30.0", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTargetBranch("v0.30.0");
+              }}
+            >
+              目标分支：v0.30.0
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="v030-branch-main"
+              aria-pressed={mode === "sandbox" && targetBranch === "main"}
+              style={eduBtnStyle(mode === "sandbox" && targetBranch === "main", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTargetBranch("main");
+              }}
+            >
+              目标分支：main
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="v030-toggle-card"
+              aria-pressed={mode === "sandbox" && cardFamily === "A5_950"}
+              style={eduBtnStyle(mode === "sandbox" && cardFamily === "A5_950", "teal")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setCardFamily((prev) => (prev === "A2_A3" ? "A5_950" : "A2_A3"));
+              }}
+            >
+              {cardFamily === "A2_A3" ? "卡型：A2/A3 (64G)" : "卡型：950 (A5)"}
+            </button>
           </fieldset>
         </>
       }
       takeawayBadge={spec.badgeText}
-      takeawayTone={spec.takeawayTone}
-      takeaway={spec.takeaway}
-      kpi={spec.kpi}
+      takeawayTone={scriptProfile === "migrated" ? "default" : spec.takeawayTone}
+      takeaway={
+        scriptProfile === "migrated"
+          ? `已迁移标准脚本在 ${targetBranch} 分支五关全绿放行：64 GiB 卡显式 u=0.90 留足 6.40 GiB（多留 1.28 GiB），${migEval.fp8OutcomeText}。`
+          : targetBranch === "main" && (step === 4 || step === 5)
+            ? `切至 main 分支：${step === 4 ? "A2/A3 原生分块 FP8 不再静默回退，直接校验抛错拒绝！" : "一代执行器已被彻底移除，残留 =0 直接抛错阻断！"}`
+            : spec.takeaway
+      }
+      kpi={
+        scriptProfile === "legacy" && targetBranch === "v0.30.0" && cardFamily === "A2_A3"
+          ? spec.kpi
+          : `${spec.kpi} · 留白 ${migEval.activeHeadroomGiB.toFixed(2)} GiB`
+      }
       detailsSummary="查看工程与源码细节（vllm/envs.py 未知告警区别 / FP8 回退 model_dtype / main 演进门控）"
       detailsContent={
         <>
@@ -298,17 +481,19 @@ export function V030MigChecklistInteractive({
         <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
             <span className="wiki-edu-panel-title">
-              v0.26 / rc2 旧启动脚本 vs v0.30.0 正式版五道兼容门拓扑
+              {`${scriptProfile === "migrated" ? "已迁移标准脚本" : "旧启动脚本"} × ${targetBranch} 分支五关筛查 · 64G 留白与 FP8 分叉`}
             </span>
-            <span className="wiki-edu-badge is-bad">{spec.riskBadge}</span>
+            <span className={`wiki-edu-badge ${scriptProfile === "migrated" ? "is-good" : "is-bad"}`}>
+              {scriptProfile === "migrated" ? "五关全绿放行" : `首阻断点：第 ${migEval.firstBlockerGate} 关`}
+            </span>
           </div>
           <svg
-            viewBox="0 0 840 168"
-            width="840"
-            height="168"
+            viewBox="0 0 860 246"
+            width="860"
+            height="246"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`v0.30.0 升级第 ${step} 关配置迁移对照图`}
+            aria-label={`v0.30.0 升级第 ${step} 关配置迁移对照图（${targetBranch}）`}
           >
             <defs>
               <marker
@@ -333,124 +518,180 @@ export function V030MigChecklistInteractive({
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#b54237" />
               </marker>
+              <marker
+                id={mAmber}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0,1 L9,5 L0,9 z" fill="#c78300" />
+              </marker>
             </defs>
-            <rect
-              x="16"
-              y="20"
-              width="236"
-              height="54"
-              rx="8"
-              fill="#fff0e9"
-              stroke="#b54237"
-              strokeWidth="1.6"
-            />
-            <text x="134" y="43" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-              旧版习惯写法
-            </text>
-            <text x="134" y="63" textAnchor="middle" fontSize="12" fill="#17211f">
-              {
-                [
-                  "继续设5个旧变量",
-                  "给MoE标W8A8_MIX",
-                  "误认默认留白0.90",
-                  "A2/A3直载分块FP8",
-                  "硬写MRV2=0锁死",
-                ][step - 1]
-              }
-            </text>
 
-            <line
-              x1="254"
-              y1="47"
-              x2="296"
-              y2="47"
-              stroke="#b54237"
-              strokeWidth="2"
-              markerEnd={`url(#${mRed})`}
-            />
-
-            <rect
-              x="302"
-              y="14"
-              width="236"
-              height="140"
-              rx="10"
-              fill="#fff4cf"
-              stroke="#c78300"
-              strokeWidth="1.8"
-            />
-            <text x="420" y="38" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              {`第 ${step} 关 · v0.30.0 校验器`}
-            </text>
-            <text x="420" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-              ✗ 拦截旧项或行为已变
-            </text>
-            <text x="420" y="106" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              ✓ 对齐结构化配置放行
-            </text>
-            <text x="420" y="138" textAnchor="middle" fontSize="12" fill="#66716d">
-              {`通关进度 ${step} / 5`}
-            </text>
+            {V030_MIG_GATES.map((g, idx) => {
+              const gx = 14 + idx * 168;
+              const st = migEval.gateStatuses[idx]!;
+              const isFocus = g.step === step;
+              const isFirstBlocker = migEval.firstBlockerGate === g.step;
+              const fill = st === "blocked" ? "#fff0e9" : st === "warn" ? "#fff4cf" : "#ddf4ef";
+              const stroke = st === "blocked" ? "#b54237" : st === "warn" ? "#c78300" : "#087f73";
+              return (
+                <g key={`v3-gate-${g.step}`}>
+                  <rect
+                    x={gx}
+                    y="12"
+                    width="152"
+                    height="74"
+                    rx="8"
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={isFocus ? "2.2" : "1.4"}
+                  />
+                  <text x={gx + 76} y="34" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {g.stationTitle}
+                  </text>
+                  <text x={gx + 76} y="56" textAnchor="middle" fontSize="12" fontWeight="700" fill={stroke}>
+                    {isFirstBlocker
+                      ? "★ 首阻断·已删"
+                      : st === "blocked"
+                        ? "✗ 抛错拒绝"
+                        : st === "warn"
+                          ? "⚠ 隐蔽变更"
+                          : "✓ 合规放行"}
+                  </text>
+                  <text x={gx + 76} y="76" textAnchor="middle" fontSize="12" fill="#66716d">
+                    {isFocus ? "● 当前核查" : targetBranch}
+                  </text>
+                  {idx < 4 && (
+                    <line
+                      x1={gx + 154}
+                      y1="49"
+                      x2={gx + 166}
+                      y2="49"
+                      stroke={st === "blocked" ? "#b54237" : "#087f73"}
+                      strokeWidth="1.7"
+                      markerEnd={`url(#${st === "blocked" ? mRed : st === "warn" ? mAmber : mTeal})`}
+                    />
+                  )}
+                </g>
+              );
+            })}
 
             <rect
-              x="16"
-              y="96"
-              width="236"
-              height="54"
-              rx="8"
-              fill="#ddf4ef"
-              stroke="#087f73"
-              strokeWidth="1.6"
-            />
-            <text x="134" y="119" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              v0.30.0 标准处方
-            </text>
-            <text x="134" y="139" textAnchor="middle" fontSize="12" fill="#17211f">
-              {
-                [
-                  "全迁附加配置字典",
-                  "MoE改W8A8_DYNAMIC",
-                  "显式传比例≤0.90",
-                  "换W8A8或原浮点",
-                  "按需设=1清光=0",
-                ][step - 1]
-              }
-            </text>
-
-            <line
-              x1="254"
-              y1="123"
-              x2="296"
-              y2="123"
-              stroke="#087f73"
-              strokeWidth="2"
-              markerEnd={`url(#${mTeal})`}
-            />
-            <line
-              x1="540"
-              y1="106"
-              x2="584"
-              y2="106"
-              stroke="#087f73"
-              strokeWidth="2"
-              markerEnd={`url(#${mTeal})`}
-            />
-
-            <rect
-              x="590"
-              y="64"
-              width="234"
-              height="84"
+              x="14"
+              y="102"
+              width="406"
+              height="132"
               rx="9"
-              fill="#ddf4ef"
-              stroke="#087f73"
-              strokeWidth="1.8"
+              fill="#fbfaf6"
+              stroke="#4c65b6"
+              strokeWidth="1.5"
             />
-            <text x="707" y="96" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              稳态起服就绪
+            <text x="217" y="124" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              第③关 · 64 GiB 卡预算外留白对照（差 1.28 GiB）
             </text>
-            <text x="707" y="124" textAnchor="middle" fontSize="12" fill="#087f73">
-              零废弃告警 · 精度对齐
+            <rect
+              x="28"
+              y="138"
+              width="378"
+              height="38"
+              rx="6"
+              fill={scriptProfile === "migrated" ? "#ddf4ef" : "#ffffff"}
+              stroke={scriptProfile === "migrated" ? "#087f73" : "#d8d8cf"}
+              strokeWidth={scriptProfile === "migrated" ? "1.9" : "1.2"}
+            />
+            <rect x="34" y="146" width="144" height="22" rx="4" fill="#087f73" />
+            <text x="106" y="162" textAnchor="middle" fontSize="12" fontWeight="700" fill="#ffffff">
+              留白 6.40 GiB
+            </text>
+            <text x="190" y="162" textAnchor="start" fontSize="12" fontWeight="700" fill="#17211f">
+              显式 u=0.90（安全处方）
+            </text>
+
+            <rect
+              x="28"
+              y="184"
+              width="378"
+              height="38"
+              rx="6"
+              fill={scriptProfile === "legacy" ? "#fff4cf" : "#ffffff"}
+              stroke={scriptProfile === "legacy" ? "#c78300" : "#d8d8cf"}
+              strokeWidth={scriptProfile === "legacy" ? "1.9" : "1.2"}
+            />
+            <rect x="34" y="192" width="115" height="22" rx="4" fill="#c78300" />
+            <text x="91" y="208" textAnchor="middle" fontSize="12" fontWeight="700" fill="#ffffff">
+              5.12 GiB
+            </text>
+            <text x="160" y="208" textAnchor="start" fontSize="12" fontWeight="700" fill="#b54237">
+              省略默认 u=0.92（少留 1.28 GiB!）
+            </text>
+
+            <rect
+              x="438"
+              y="102"
+              width="408"
+              height="132"
+              rx="9"
+              fill="#fbfaf6"
+              stroke="#087f73"
+              strokeWidth="1.5"
+            />
+            <text x="642" y="124" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`第④关 · 原生分块 FP8 分叉（${cardFamily === "A2_A3" ? "A2/A3" : "950"} × ${targetBranch}）`}
+            </text>
+            <rect
+              x="452"
+              y="136"
+              width="380"
+              height="28"
+              rx="5"
+              fill={migEval.fp8OutcomeKind === "dequant-2b" ? "#fff4cf" : "#ffffff"}
+              stroke={migEval.fp8OutcomeKind === "dequant-2b" ? "#c78300" : "#d8d8cf"}
+            />
+            <text x="642" y="155" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              v0.30.0 (A2/A3)：静默反量化回 BF16（2B 显存翻倍）
+            </text>
+            <rect
+              x="452"
+              y="168"
+              width="380"
+              height="28"
+              rx="5"
+              fill={migEval.fp8OutcomeKind === "reject-error" ? "#fff0e9" : "#ffffff"}
+              stroke={migEval.fp8OutcomeKind === "reject-error" ? "#b54237" : "#d8d8cf"}
+            />
+            <text
+              x="642"
+              y="187"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={migEval.fp8OutcomeKind === "reject-error" ? "#b54237" : "#66716d"}
+            >
+              main (A2/A3)：启动校验直接拒绝（抛错阻断）
+            </text>
+            <rect
+              x="452"
+              y="200"
+              width="380"
+              height="26"
+              rx="5"
+              fill={
+                migEval.fp8OutcomeKind === "mxfp8-1b" || migEval.fp8OutcomeKind === "w8a8-safe"
+                  ? "#ddf4ef"
+                  : "#ffffff"
+              }
+              stroke={
+                migEval.fp8OutcomeKind === "mxfp8-1b" || migEval.fp8OutcomeKind === "w8a8-safe"
+                  ? "#087f73"
+                  : "#d8d8cf"
+              }
+            />
+            <text x="642" y="218" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              950 微缩放 (1B) 或已迁脚本换 W8A8：正常放行
             </text>
           </svg>
         </div>

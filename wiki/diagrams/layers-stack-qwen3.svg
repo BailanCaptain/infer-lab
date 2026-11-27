@@ -49,8 +49,8 @@
   <text x="319" y="160" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#3a4f93">input_layernorm</text>
   <text x="319" y="180" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">↓ RMSNorm (eps=1e-6)</text>
   <text x="319" y="204" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">GQA（32Q : 8KV）</text>
-  <text x="319" y="226" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#3a4f93">逐头 q/k_norm + RoPE</text>
-  <text x="319" y="248" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">d_h=128 · o_proj 回4096</text>
+  <text x="319" y="226" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#3a4f93">逐头 q/k_norm + RoPE</text>
+  <text x="319" y="248" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#4d5652">d_h=128 · o_proj 回4096</text>
   <path d="M 406 198 L 430 198 L 430 118" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
 
   <!-- Sum Node 1 -->
@@ -67,8 +67,8 @@
   <text x="560" y="166" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="700" fill="#936300">post_attn_layernorm</text>
   <text x="560" y="186" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#4d5652">↓ RMSNorm (eps=1e-6)</text>
   <text x="560" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#17211f">SwiGLU MLP</text>
-  <text x="560" y="232" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#936300">4096 → 12288 → 4096</text>
-  <text x="560" y="251" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13.5" fill="#4d5652">bias=false · 无截断</text>
+  <text x="560" y="232" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#936300">4096 → 12288 → 4096</text>
+  <text x="560" y="251" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#4d5652">bias=false · 无截断</text>
   <path d="M 646 198 L 670 198 L 670 118" fill="none" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-a)" />
 
   <!-- Sum Node 2 -->

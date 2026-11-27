@@ -154,10 +154,14 @@ async function main(): Promise<void> {
     <link rel="stylesheet" href="/node_modules/@fontsource/jetbrains-mono/700.css">
     <style>
       :root {
-        --font-sans: "Inter Variable", "Noto Sans SC", sans-serif;
-        --font-mono: "JetBrains Mono", "Noto Sans SC", monospace;
+        --font-sans: "Inter Variable", "Noto Sans SC", "Noto Sans CJK SC", sans-serif;
+        --font-mono: "JetBrains Mono", "Noto Sans SC", "Noto Sans CJK SC", monospace;
       }
       body { margin: 0; padding: 0; background: #fbfaf6; font-family: var(--font-sans); }
+      svg, svg text, svg tspan { font-family: var(--font-sans) !important; }
+      svg [font-family*="mono" i], svg [font-family*="Consolas" i], svg [font-family*="Menlo" i] {
+        font-family: var(--font-mono) !important;
+      }
     </style></head><body id="stage"></body></html>`;
 
   const server = createServer((req, res) => {
@@ -191,8 +195,16 @@ async function main(): Promise<void> {
       const svgMarkup = readFileSync(join(diagramsDir, file), "utf8");
       await page.evaluate(async (markup) => {
         const stage = document.getElementById("stage");
-        if (stage) stage.innerHTML = markup;
+        if (stage) {
+          stage.innerHTML = markup;
+          stage.getBoundingClientRect();
+        }
+        const svgEl = document.querySelector("svg");
+        if (svgEl) {
+          for (const t of Array.from(svgEl.querySelectorAll("text"))) t.getBBox();
+        }
         await document.fonts.ready;
+        await new Promise((r) => requestAnimationFrame(() => r(undefined)));
       }, svgMarkup);
 
       const issues = (await page.evaluate(BROWSER_SCAN_EXPR)) as string[];
@@ -210,6 +222,9 @@ async function main(): Promise<void> {
       console.error(`x wiki/diagrams/${d.file}:`);
       for (const issue of d.issues) {
         console.error(`  - ${issue}`);
+        if (process.env.GITHUB_ACTIONS === "true") {
+          console.error(`::error file=wiki/diagrams/${d.file}::${issue}`);
+        }
       }
     }
     console.error(`\nSVG 几何检查失败：${defects.length} / ${allSvgs.length} 张图存在越界、重叠或字号违例`);

@@ -1,65 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="var(--font-sans)" role="img" aria-label="NPUWorker 冷启动五组误判与源码真相对照">
-<title>NPUWorker 冷启动五组常见误判与 v0.30.0 源码真相对照</title>
-<desc>左右对照展示五组冷启动误区与 v0.30.0 源码真相。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="NPUWorker 五步冷启动生命周期轴与双卡木桶收口排雷图" font-family="var(--font-sans)">
+<title>NPUWorker 冷启动五步生命周期轴与双卡 KV 块木桶收口（v0.30.0 源码核验）</title>
+<desc>展示启动快照、加载权重（npu_format_cast 转 ACL_FORMAT_FRACTAL_NZ）、profile_run 试跑、分配 KV 池、capture_model 录图五步顺序与预算边界，并画出双卡 100 块 vs 80 块按 min_num_blocks 收口为 80 块及 DummyModelLoader 边界。</desc>
 <defs>
-<marker id="my-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+  <marker id="wl-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
 </defs>
-<line x1="430" y1="14" x2="430" y2="546" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
-<g font-size="16" font-weight="700">
-<text x="16" y="30" fill="#b54237">✗ 冷启动常见误判</text>
-<text x="450" y="30" fill="#065f56">✓ v0.30.0 源码真相</text>
+
+<text x="16" y="29" font-size="16" font-weight="700" fill="#17211f">NPUWorker 冷启动五步生命周期与双卡木桶收口排雷（100/80→80 块示意 + v0.30.0 边界）</text>
+
+<!-- ① 5-Step Lifecycle Spine + Memory Budget Split -->
+<rect x="14" y="42" width="872" height="192" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="28" y="65" font-size="14" font-weight="700" fill="#065f56">① 五步生命周期顺序与预算分界：先加载试跑再切 KV 池，录图在第 5 步吃 1−u 预算外余量</text>
+
+<rect x="28" y="80" width="148" height="62" rx="6" fill="#ece9df" stroke="#9aa39f" stroke-width="1.2"/>
+<text x="102" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">1. 启动快照</text>
+<text x="102" y="127" text-anchor="middle" font-size="12" fill="#4d5652">记录初始空闲 HBM</text>
+
+<rect x="194" y="80" width="158" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="273" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">2. 加载权重</text>
+<text x="273" y="127" text-anchor="middle" font-size="12" fill="#4d5652">load_model + 转 NZ</text>
+
+<rect x="370" y="80" width="164" height="62" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="452" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">3. 热身试跑</text>
+<text x="452" y="127" text-anchor="middle" font-size="12" fill="#4d5652">profile_run 测峰值</text>
+
+<rect x="552" y="80" width="152" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="628" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">4. 分配 KV 池</text>
+<text x="628" y="127" text-anchor="middle" font-size="12" fill="#4d5652">kv_cache_memory</text>
+
+<rect x="722" y="80" width="150" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+<text x="797" y="104" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">5. 图捕获录图</text>
+<text x="797" y="127" text-anchor="middle" font-size="12" fill="#8f3229">capture_model</text>
+
+<g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#wl-teal)">
+  <line x1="176" y1="111" x2="192" y2="111"/>
+  <line x1="352" y1="111" x2="368" y2="111"/>
+  <line x1="534" y1="111" x2="550" y2="111"/>
+  <line x1="704" y1="111" x2="720" y2="111"/>
 </g>
-<g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
-<rect x="14" y="52" width="398" height="84" rx="9"/>
-<rect x="14" y="150" width="398" height="84" rx="9"/>
-<rect x="14" y="248" width="398" height="84" rx="9"/>
-<rect x="14" y="346" width="398" height="84" rx="9"/>
-<rect x="14" y="444" width="398" height="84" rx="9"/>
-</g>
-<g stroke="#087f73" stroke-width="1.5">
-<rect x="448" y="52" width="438" height="84" rx="9" fill="#ddf4ef"/>
-<rect x="448" y="150" width="438" height="84" rx="9" fill="#ffffff"/>
-<rect x="448" y="248" width="438" height="84" rx="9" fill="#ddf4ef"/>
-<rect x="448" y="346" width="438" height="84" rx="9" fill="#ffffff"/>
-<rect x="448" y="444" width="438" height="84" rx="9" fill="#ddf4ef"/>
-</g>
-<g fill="#b54237">
-<circle cx="34" cy="76" r="12"/><circle cx="34" cy="174" r="12"/>
-<circle cx="34" cy="272" r="12"/><circle cx="34" cy="370" r="12"/><circle cx="34" cy="468" r="12"/>
-</g>
-<g text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">
-<text x="34" y="81">1</text><text x="34" y="179">2</text>
-<text x="34" y="277">3</text><text x="34" y="375">4</text><text x="34" y="473">5</text>
-</g>
-<g stroke="#087f73" stroke-width="1.8" marker-end="url(#my-a)">
-<line x1="412" y1="94" x2="444" y2="94"/><line x1="412" y1="192" x2="444" y2="192"/>
-<line x1="412" y1="290" x2="444" y2="290"/><line x1="412" y1="388" x2="444" y2="388"/>
-<line x1="412" y1="486" x2="444" y2="486"/>
-</g>
-<g font-size="15" font-weight="700" fill="#8f3229">
-<text x="52" y="81">以为启动先切好 KV 块，再往卡里装权重</text>
-<text x="52" y="179">以为 capture_model 包在第④步预算里</text>
-<text x="52" y="277">以为每张卡按自己的空闲显存独立定块数</text>
-<text x="52" y="375">以为 --load-format dummy 能验模型好坏</text>
-<text x="52" y="473">以为文件多大显存就占多大，后处理零开销</text>
-</g>
-<g font-size="15" font-weight="700" fill="#065f56">
-<text x="464" y="79">第③步先 load_model，第⑤步才切 KV 池</text>
-<text x="464" y="177">录图在第⑥步执行，吃 1−u 预算外余量</text>
-<text x="464" y="275">EngineCore 按全组 min_num_blocks 对齐</text>
-<text x="464" y="373">DummyModelLoader 仅填随机权重供压测</text>
-<text x="464" y="471">npu_format_cast 转 NZ 会抬高加载期峰值</text>
-</g>
-<g font-size="13.5" fill="#17211f">
-<text x="52" y="109">觉得参数写了显存比例，一开始就能算出块数</text>
-<text x="52" y="207">把显存比例拉到 0.98，奇怪切完 KV 后录图 OOM</text>
-<text x="52" y="305">忽略单张卡被杂进程占掉几 GiB 对整组容量的拖累</text>
-<text x="52" y="403">权重报错后改 dummy 跑通，就误判模型包已修复</text>
-<text x="52" y="501">忽略 weight_nz_mode 分形重排与临时分配峰值</text>
-<text x="464" y="106">须先实测权重与第④步 profile_run 峰值；请求来了才借块</text>
-<text x="464" y="204" fill="#4d5652">第④步截取图捕获前的 Torch 峰值，图池在第⑤步后才分配</text>
-<text x="464" y="302">最紧一卡决定可调度总块数，富余卡同步收缩缓存尺寸</text>
-<text x="464" y="400" fill="#4d5652">跳过真实文件与张量名校验，严禁用于生产或精度验收</text>
-<text x="464" y="498">模式 2 连浮点权重一并转 NZ（310P 强制转），含对齐补齐</text>
-</g>
+
+<rect x="28" y="154" width="676" height="66" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="366" y="177" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">◄── 显存比例 u 预算内：determine_available_memory 实测 1–3 步后才切第 4 步 KV 池 ──►</text>
+<text x="366" y="202" text-anchor="middle" font-size="12" fill="#17211f">请求到达时才从池借块（绝非启动先切好 KV 再往卡里装权重）</text>
+
+<rect x="716" y="154" width="156" height="66" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="794" y="177" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">吃 1−u 预算外余量</text>
+<text x="794" y="202" text-anchor="middle" font-size="12" fill="#8f3229">u=0.98 易录图 OOM</text>
+
+<!-- ② Multi-Rank Wooden Barrel Block Alignment (100 vs 80 -> 80) -->
+<rect x="14" y="246" width="516" height="320" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="28" y="270" font-size="14" font-weight="700" fill="#32478c">② 双卡 KV 块木桶收口（示意）：100 块 vs 80 块 → 全局对齐 80 块</text>
+
+<text x="28" y="307" font-size="12.5" font-weight="700" fill="#17211f">Rank 0</text>
+<rect x="96" y="286" width="264" height="32" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="228" y="307" text-anchor="middle" font-size="12" font-weight="700" fill="#32478c">有效保留 80 块</text>
+<rect x="364" y="286" width="76" height="32" rx="4" fill="#ece9df" stroke="#9aa39f" stroke-width="1.1" stroke-dasharray="4 3"/>
+<text x="402" y="307" text-anchor="middle" font-size="12" fill="#66716d">裁 20 块</text>
+<text x="448" y="307" font-size="12" font-weight="700" fill="#32478c">原 100 块</text>
+
+<text x="28" y="351" font-size="12.5" font-weight="700" fill="#b54237">Rank 1</text>
+<rect x="96" y="330" width="264" height="32" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+<text x="228" y="351" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">最紧木桶：仅够 80 块</text>
+<rect x="364" y="330" width="152" height="32" rx="4" fill="#fff0e9" stroke="#d88c82" stroke-width="1.1" stroke-dasharray="4 3"/>
+<text x="440" y="351" text-anchor="middle" font-size="12" fill="#8f3229">杂进程挤占显存</text>
+
+<line x1="360" y1="280" x2="360" y2="422" stroke="#b54237" stroke-width="1.6" stroke-dasharray="5 3"/>
+
+<text x="28" y="404" font-size="12.5" font-weight="700" fill="#065f56">全局池</text>
+<rect x="96" y="382" width="264" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+<text x="228" y="404" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">min_num_blocks = 80 块</text>
+<text x="372" y="404" font-size="12" font-weight="700" fill="#065f56">双卡同步收口对齐</text>
+
+<rect x="28" y="432" width="488" height="120" rx="6" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="40" y="456" font-size="12.5" font-weight="700" fill="#065f56">源码机制：get_kv_cache_config_from_groups 取全组最小值</text>
+<text x="40" y="480" font-size="12" fill="#17211f">· 任一单卡被杂进程吃掉几 GiB，整组可调度 KV 容量一起缩水</text>
+<text x="40" y="504" font-size="12" fill="#4d5652">· 富余卡（Rank 0）同步按 80 块建池，多出的 20 块不能单独接客</text>
+<text x="40" y="528" font-size="12" font-weight="700" fill="#32478c">· 图池 npugraph_memory_bytes 在切完 KV 后再占预算外显存</text>
+
+<!-- ③ NZ Format Cast Peak & ④ DummyModelLoader Guardrail -->
+<rect x="544" y="246" width="342" height="154" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<text x="558" y="270" font-size="14" font-weight="700" fill="#936300">③ 权重加载 ≠ 零开销原样搬运</text>
+<rect x="558" y="282" width="314" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="715" y="308" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">npu_format_cast → ACL_FORMAT_FRACTAL_NZ</text>
+<text x="558" y="348" font-size="12" fill="#17211f">· weight_nz_mode 分形重排与对齐抬高加载峰值</text>
+<text x="558" y="372" font-size="12" fill="#4d5652">· 模式 2 连浮点权重同转 NZ（310P 强制转）</text>
+
+<rect x="544" y="412" width="342" height="154" rx="10" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
+<text x="558" y="436" font-size="14" font-weight="700" fill="#8f3229">④ dummy 模式 ≠ 模型包已修复</text>
+<rect x="558" y="448" width="314" height="42" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="715" y="474" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">DummyModelLoader：仅填随机权重占位</text>
+<text x="558" y="514" font-size="12" fill="#8f3229">✗ 跳过真实权重文件与张量名称完整性校验</text>
+<text x="558" y="538" font-size="12" font-weight="700" fill="#065f56">✓ 仅限吞吐/显存探底，严禁用于生产或精度验收</text>
 </svg>

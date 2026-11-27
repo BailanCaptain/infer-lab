@@ -1,42 +1,106 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="分词与聊天模板四大高频误区排雷开放对比图" font-family="var(--font-sans)">
-<title>分词与模板四大高频误区排雷对照：词表行数与上下文上限、整段模板计数与二次补 BOS、特殊标记区间与普通用户文本、流式文本增量与内部输出编号。</title>
-<desc>四大误区对比：vocab_size 与 max_model_len 区别；整段模板计数与关 add_special_tokens；特殊标记区间与普通文本；流式文本与内部 token_ids。</desc>
-<line x1="14" y1="228" x2="886" y2="228" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-<line x1="450" y1="14" x2="450" y2="446" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
-<circle cx="26" cy="28" r="12" fill="#4c65b6"/>
-<text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
-<text x="44" y="34" font-size="16" font-weight="700" fill="#17211f">词表行数 ≠ 认识词数 ≠ 输入上限</text>
-<rect x="14" y="50" width="420" height="74" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="26" y="76" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误区：vocab_size=151936 就是可输 15 万词</text>
-<text x="26" y="103" font-size="13.5" fill="#4d5652">把可选座位号空间当成序列长度，或当成完整日常词语</text>
-<rect x="14" y="136" width="420" height="78" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="26" y="162" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：决定首尾矩阵行数，长度由 max_model_len 管</text>
-<text x="26" y="188" font-size="13.5" fill="#4d5652">含 256 单字节、子词、控制符与预留行（如 GLM 末 24 行）</text>
-<circle cx="478" cy="28" r="12" fill="#c78300"/>
-<text x="478" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-<text x="496" y="34" font-size="16" font-weight="700" fill="#17211f">裸问题字数 ≠ 模板后真实 prompt_len</text>
-<rect x="466" y="50" width="420" height="74" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="478" y="76" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误区：只数最新聊天气泡，或渲染后再默认重编码</text>
-<text x="478" y="103" font-size="13.5" fill="#4d5652">漏算历史轮次与边界标记，二次编码还会多塞重复 BOS</text>
-<rect x="466" y="136" width="420" height="78" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="478" y="162" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：整段对话套完模板计数，一步直出编号</text>
-<text x="478" y="188" font-size="13.5" fill="#4d5652">先渲染再分词须显式设 <tspan font-family="var(--font-mono)" font-weight="700">add_special_tokens=False</tspan></text>
-<circle cx="26" cy="258" r="12" fill="#9a4b86"/>
-<text x="26" y="262.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
-<text x="44" y="264" font-size="16" font-weight="700" fill="#17211f">控制标记区间 ≠ 用户字面文本</text>
-<rect x="14" y="282" width="420" height="74" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="26" y="308" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误区：两段看起来一样的 prompt 编号必定相同</text>
-<text x="26" y="335" font-size="13.5" fill="#4d5652">丢掉标记区间对整串裸文本重分词，正文会被误切为边界</text>
-<rect x="14" y="368" width="420" height="78" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="26" y="394" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：区分显式 special 区间与普通内容切分</text>
-<text x="26" y="420" font-size="13.5" fill="#4d5652">且新增词元未必都是 <tspan font-family="var(--font-mono)" font-weight="700">special=true</tspan>（影响自动跳过）</text>
-<circle cx="478" cy="258" r="12" fill="#087f73"/>
-<text x="478" y="262.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
-<text x="496" y="264" font-size="16" font-weight="700" fill="#17211f">流式收到 K 段文字 ≠ 生成 K 个 token</text>
-<rect x="466" y="282" width="420" height="74" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="478" y="308" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误区：数 SSE 片段数或可见字符反推输出编号数</text>
-<text x="478" y="335" font-size="13.5" fill="#4d5652">忽略半字 UTF-8 缓冲、停止串扣留与末尾停止符跳过</text>
-<rect x="466" y="368" width="420" height="78" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="478" y="394" font-size="14.5" font-weight="700" fill="#065f56">✓ 真相：精确计量一律读取内部生成的 token_ids</text>
-<text x="478" y="420" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">skipped_stop_token_id</tspan> 不转文字但仍追加进序列</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 552" width="900" height="552" role="img" aria-label="分词双轴模型与聊天模板排雷图" font-family="var(--font-sans)">
+<title>分词双轴模型与模板、区间、流式解码排雷（2+6=8 格示意 + v0.30.0 源码边界）</title>
+<desc>展示裸输入 2 个词元经 Chat 模板插入 6 个控制标记共占 8 格上下文长度预算，旁侧独立标出词表查表行数轴 vocab_size / max_token_id，并对照 add_special_tokens、truncate_prompt_tokens、stop_terminated 与 skipped_stop_token_id。</desc>
+<defs>
+  <marker id="tk-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+  <marker id="tk-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+</defs>
+
+<text x="16" y="29" font-size="16" font-weight="700" fill="#17211f">分词双轴模型与模板、区间、流式解码排雷（2+6=8 格示意 + v0.30.0 源码边界）</text>
+
+<!-- ① Orthogonal Dual Axes: 2 Raw + 6 Template = 8 Context Slots vs Vocab Lookup Axis -->
+<rect x="14" y="42" width="872" height="264" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<text x="28" y="65" font-size="14" font-weight="700" fill="#065f56">① 正交双轴：裸输入 2 词经模板插 6 个控制标记占 8 格长度预算；词表行数单独标在旁侧查表轴</text>
+
+<text x="28" y="104" font-size="12.5" font-weight="700" fill="#065f56">裸用户输入（2 格）：</text>
+<rect x="168" y="84" width="76" height="30" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="206" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">裸词 u₀</text>
+<rect x="250" y="84" width="76" height="30" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="288" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">裸词 u₁</text>
+<text x="338" y="104" font-size="12" fill="#8f3229">✗ 仅数裸字数会漏掉 6 个模板控制位</text>
+
+<line x1="247" y1="116" x2="247" y2="148" stroke="#9a4b86" stroke-width="1.7" marker-end="url(#tk-plum)"/>
+<text x="260" y="137" font-size="12" font-weight="700" fill="#7a3a6a">套用 Chat 模板：前后插入 6 个角色与起止控制编号</text>
+
+<g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2">
+  <rect x="28" y="152" width="68" height="40" rx="5"/>
+  <rect x="101" y="152" width="68" height="40" rx="5"/>
+  <rect x="174" y="152" width="68" height="40" rx="5"/>
+  <rect x="393" y="152" width="68" height="40" rx="5"/>
+  <rect x="466" y="152" width="68" height="40" rx="5"/>
+  <rect x="539" y="152" width="68" height="40" rx="5"/>
+</g>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.3">
+  <rect x="247" y="152" width="68" height="40" rx="5"/>
+  <rect x="320" y="152" width="68" height="40" rx="5"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#7a3a6a">
+  <text x="62" y="177">起标 c₀</text>
+  <text x="135" y="177">角色 c₁</text>
+  <text x="208" y="177">换行 c₂</text>
+  <text x="427" y="177">止标 c₃</text>
+  <text x="500" y="177">起标 c₄</text>
+  <text x="573" y="177">助手 c₅</text>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#065f56">
+  <text x="281" y="177">裸词 u₀</text>
+  <text x="354" y="177">裸词 u₁</text>
+</g>
+
+<text x="317" y="216" text-anchor="middle" font-size="12.5" font-weight="700" fill="#32478c">◄────── 长度预算按完整 8 格检查 max_model_len ──────►</text>
+<text x="28" y="246" font-size="12" fill="#17211f">· 一步直出编号；若先渲染文本再分词，须设 add_special_tokens=False（防重复补 BOS）</text>
+<text x="28" y="270" font-size="12" fill="#4d5652">· 超长截断由 truncate_prompt_tokens 与 truncation_side 在 8 格模板序列上裁切</text>
+
+<!-- Side Axis: Vocab Table Rows -->
+<rect x="632" y="78" width="240" height="214" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="752" y="100" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">旁轴：词表查表行数 vocab_size</text>
+<line x1="643" y1="110" x2="643" y2="226" stroke="#c78300" stroke-width="1.6"/>
+<g fill="#ffffff" stroke="#c78300" stroke-width="1.1">
+  <rect x="652" y="110" width="206" height="26" rx="4"/>
+  <rect x="652" y="140" width="206" height="26" rx="4"/>
+  <rect x="652" y="170" width="206" height="26" rx="4"/>
+</g>
+<rect x="652" y="200" width="206" height="26" rx="4" fill="#ece9df" stroke="#9aa39f" stroke-width="1" stroke-dasharray="4 3"/>
+<g font-size="12" text-anchor="middle" fill="#17211f">
+  <text x="755" y="128">0..255 单字节基底</text>
+  <text x="755" y="158">常见子词 + 控制标记</text>
+  <text x="755" y="188">... 直至 max_token_id</text>
+  <text x="755" y="218" fill="#66716d">矩阵对齐预留行 (如末24行)</text>
+</g>
+<text x="752" y="250" text-anchor="middle" font-size="12" fill="#936300">决定首尾矩阵行数 (如 151,936)</text>
+<text x="752" y="272" text-anchor="middle" font-size="12" font-weight="700" fill="#b54237">≠ 认识词数，更 ≠ 输入长度上限</text>
+<path d="M607 172 L650 153" fill="none" stroke="#c78300" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tk-amber)"/>
+
+<!-- ③ Special Token Span vs Plain User Text -->
+<rect x="14" y="318" width="428" height="220" rx="10" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="28" y="342" font-size="14" font-weight="700" fill="#7a3a6a">③ 控制标记区间 ≠ 用户字面文本：同字面不同编号</text>
+<rect x="28" y="356" width="400" height="66" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="40" y="378" font-size="12.5" font-weight="700" fill="#7a3a6a">模板显式 special 区间：直映单个控制编号</text>
+<text x="40" y="402" font-size="12" fill="#17211f">保护对话角色边界，不受普通子词合并干扰</text>
+<rect x="28" y="432" width="400" height="92" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="40" y="454" font-size="12.5" font-weight="700" fill="#065f56">普通用户内容区：按常规文本切分子词</text>
+<text x="40" y="477" font-size="12" fill="#8f3229">✗ 丢掉标记区间重分整串裸文本，正文会被误切为边界</text>
+<text x="40" y="500" font-size="12" fill="#4d5652">注：新增词元未必都是 special=true（影响自动跳过）</text>
+
+<!-- ④ Streaming Text Chunks vs Internal token_ids -->
+<rect x="458" y="318" width="428" height="220" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="472" y="342" font-size="14" font-weight="700" fill="#32478c">④ 流式 K 段文字 ≠ K 个 token：精确计量读 token_ids</text>
+<rect x="472" y="358" width="126" height="58" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="535" y="380" text-anchor="middle" font-size="12" font-weight="700" fill="#32478c">UTF-8 半字缓冲</text>
+<text x="535" y="402" text-anchor="middle" font-size="12" fill="#4d5652">多 ID 拼 1 个字</text>
+<rect x="606" y="358" width="132" height="58" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+<text x="672" y="380" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">停止串候选扣留</text>
+<text x="672" y="402" text-anchor="middle" font-size="12" fill="#4d5652">check_stop_strings</text>
+<rect x="746" y="358" width="126" height="58" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.1"/>
+<text x="809" y="380" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">末尾停止符跳过</text>
+<text x="809" y="402" text-anchor="middle" font-size="12" fill="#4d5652">不输出可见文字</text>
+
+<rect x="472" y="428" width="400" height="96" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="484" y="451" font-size="12.5" font-weight="700" fill="#065f56">✓ stop_terminated 下 skipped_stop_token_id：</text>
+<text x="484" y="475" font-size="12" fill="#17211f">流式文本跳过不发，但内部仍追加进输出 token_ids</text>
+<text x="484" y="499" font-size="12" font-weight="700" fill="#065f56">判据：计费与长度核对一律读 token_ids，勿数 SSE 包数</text>
 </svg>

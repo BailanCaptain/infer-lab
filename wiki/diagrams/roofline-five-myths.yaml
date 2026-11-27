@@ -1,7 +1,8 @@
 mode: native-svg
 id: roofline-five-myths
-caption: Roofline 模型与推理指标五组常见误解 vs v0.30.0 源码真相对照板
-size: [900, 508]
+caption: >-
+  示意 Roofline 屋顶线与推理压测五项指标排雷：双对数示意曲线画出 100 TFLOP/s 算力平顶、2 TB/s 带宽斜坡与 50 FLOP/B 脊点，将 4 FLOP/B 落在 8 TFLOP/s 带宽斜线上直观区分核心等 HBM 忙碌与真算力饱和，并结合盲堆批上限、MoE 小批稀疏左滑、投机多词步 ITL vs TPOT 及前缀缓存下日志实算 computed vs Prometheus 总长计数给出 v0.30.0 判据。
+size: [900, 572]
 pins:
   - source: "vllm@ced6857a:vllm/v1/metrics/stats.py#L497-L563"
     symbols:

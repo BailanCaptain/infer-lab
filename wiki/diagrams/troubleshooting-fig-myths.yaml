@@ -1,8 +1,8 @@
 mode: native-svg
 id: troubleshooting-fig-myths
 caption: >-
-  推理排障五组高频误判 vs v0.30.0 源码真相：拆穿「最后一条 EI0006 就是根因」「退出码 137 等于 NPU HBM OOM」「关掉特性跑通就算修好」「开关没报错就证明已生效」「没有日志等于设备没执行」五类典型排障陷阱。
-size: [900, 508]
+  推理排障四卡时间轴与 v0.30.0 五项证据分诊：四卡时间轴展示 Rank 3 在 12 ms 首发算子设备错误、牵连 Rank 0/1/2 在 40 ms 报 EI0006 通信超时的首错反查分流，并对照 exitcode=137 主机/cgroup 强杀 vs init_snapshot/requested_memory 显存报错、二分隔离加回验收、model_config 硬件自动降级核验与日志采集/乱码取证闭环。
+size: [900, 584]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473
     symbols: [init_snapshot, requested_memory]

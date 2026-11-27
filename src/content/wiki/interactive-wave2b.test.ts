@@ -464,6 +464,27 @@ describe("Wave 2B（#9–#16）教学 2D 交互沙盘：SVG 指纹锁定、四�
         expect(html).toContain("收齐全部预期 D 卡");
       }
     }
+    const mooncakeAsymStep1 = renderToStaticMarkup(
+      createElement(MooncakeConnectorInteractive, {
+        ...baseProps("mooncake-connector"),
+        initialStep: 1,
+        initialTpMode: "asym-tp4-tp2",
+      }),
+    );
+    expect(mooncakeAsymStep1).toContain("5,224 KiB");
+    expect(mooncakeAsymStep1).toContain("1,192 KiB");
+    expect(mooncakeAsymStep1).not.toContain("5,448 KiB");
+
+    const mooncakeAsymStep2 = renderToStaticMarkup(
+      createElement(MooncakeConnectorInteractive, {
+        ...baseProps("mooncake-connector"),
+        initialStep: 2,
+        initialTpMode: "asym-tp4-tp2",
+      }),
+    );
+    expect(mooncakeAsymStep2).toContain("batch_transfer_sync_read");
+    expect(mooncakeAsymStep2).toContain("2 卡 × 6 段 = 12 段");
+    expect(mooncakeAsymStep2).not.toContain("一次批量提交");
 
     expect(COLD_START_SIX_CARDS).toHaveLength(6);
     expect(WORKER_LIFECYCLE_STAGES).toHaveLength(5);

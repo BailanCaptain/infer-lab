@@ -62,14 +62,14 @@ sources:
   - 'vllm-ascend@2ed6cbba:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L68-L102'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L541-L572'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1154-L1173'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2583-L2603'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L16-L41'
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L32-L38'
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L284-L335'
   - 'vllm-ascend@8d6180e2:recipes/overlays/deepseek-ai/DeepSeek-V4-Flash.yaml#L35-L49'
   - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram_rdma.md#L5-L27'
   - 'https://docs.docker.com/engine/containers/resource_constraints/'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1154-L1173'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2583-L2603'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -203,14 +203,14 @@ sysctl kernel.sched_migration_cost_ns 2>/dev/null || cat /sys/kernel/debug/sched
 
 - **按需预留或清理宿主机 HugeTLB 静态大页**：`GLM5.2` MemCache 食谱在 P/D 宿主机执行 `sysctl -w vm.nr_hugepages=200000` 并读回校验[S1]；远戎（Yuanrong）Remote H2D 通过 `dscli ... --enable_huge_tlb true` 启用并核对 `/proc/meminfo` 与各 NUMA 节点 `2048kB` 大页余量[S3]；`950PR/950DT` 标准 Ascend Store 调优默认先清空 `node0..3` 残留的 `1048576kB` 与 `2048kB` 大页[S2]，仅在 MemCache DRAM 初始化停滞且内核日志报 `alloc_contig_range ... PFNs busy` 时按节点预留 `1 GiB` 大页（如 8 节点各 32 页共 256 GiB）[S4]。设备侧视图见 `npu-smi info` 的 `Hugepages-Usage(page)` 列说明[S5]。
 - **容器 `/dev/shm`、锁页额度与用户态分配器**：基础调优容器示例传 `--shm-size=1g`[S6]，长上下文 `Qwen3.5-397B` 传 `64g` 并要求放开 `memlock` 防 `207001`[S13]，`GLM5.2` 大池容器传 `500g`[S12]（Docker 资源约束语义见官方文档[S24]）。通用调优文档推荐安装 `libgoogle-perftools4` 配置 `TCMalloc` 并用 `ldd "$(which python)"` 校验[S7]；`DeepSeek-V4.1-Flash`（及 `main` 分支 `DeepSeek-V4-Flash` overlay）按条件前置 `libjemalloc.so.2`[S9][C22]，而 `Kimi-K3` 在 `Atlas 800I A3` 与 `950DT` 上明确禁配 `jemalloc` 并执行 `unset LD_PRELOAD`[S10][S11][!]。
-- **宿主机内核稳态四件套与锁页注册入口**：宿主机 `root` 执行 `scaling_governor=performance`、`vm.swappiness=0`、`kernel.numa_balancing=0`，并按内核版本核查调整 `sched_migration_cost_ns`（旧内核 `sysctl` 指南示例 `50000`，Linux 6.6+ 默认 `500000` 且位于 `debug/sched/migration_cost_ns`）[S8]。代码侧由 `MooncakeBackend.register_buffer()`（`global_te` 分支抛异常、独立 `store` 分支记错误日志、纯 `use_fabric_mem` 分支跳过此处显式注册）与 `MooncakeStoreConfig`（默认 `1 GiB` 段对齐）调用 `TransferEngine.register_memory()`[C17][C18][C19]，Engram 共享表在 `SharedUvaBuffer` 中依次调用 `_madvise_hugepage(MADV_HUGEPAGE)`、`aclrtHostRegisterV2` 与 `aclrtHostGetDevicePointer`[C20][C21]。
+- **宿主机内核稳态四件套与锁页注册入口**：宿主机 `root` 执行 `scaling_governor=performance`、`vm.swappiness=0`、`kernel.numa_balancing=0`，并按内核版本核查调整 `sched_migration_cost_ns`（旧内核 `sysctl` 指南示例 `50000`，Linux 6.6+ 默认 `500000` 且位于 `debug/sched/migration_cost_ns`）[S8]。代码侧由 `MooncakeBackend.register_buffer()`（`global_te` 分支抛异常、独立 `store` 分支记错误日志、纯 `use_fabric_mem` 分支跳过此处显式注册）与 `MooncakeStoreConfig`（默认 `1 GiB` 段对齐）调用 `TransferEngine.register_memory()`[C17][C18][C19]；混合缓存 `2 MiB` 地址边界在 Ascend Store 由 `pool_worker._align_kv_ptrs` 向下取整[C25]，在普通 Mooncake P/D 连接器由 `_get_registered_kv_tensor_buffers_hybrid` 严格校验并抛错[C26]；Engram 共享表在 `SharedUvaBuffer` 中依次调用 `_madvise_hugepage(MADV_HUGEPAGE)`、`aclrtHostRegisterV2` 与 `aclrtHostGetDevicePointer`[C20][C21]。
 
 ### 会报什么错
 
 | 故障位置 | 触发条件 | 典型报错或退化现象 | 核验入口 |
 |---|---|---|---|
 | 容器主机锁页分配 | 容器 `--ulimit memlock` 过小或宿主机可锁物理页耗尽 | `aclrtMallocHostWithCfg error 207001` | 来源 13 |
-| Mooncake 内存注册 | 段未按要求对齐、锁页额度不足或网卡/驱动注册失败 | `global_te` 路径抛 `RuntimeError: Mooncake memory registration failed.`；独立 `store` 路径打印非零返回码错误日志 | 来源 17、19 |
+| Mooncake 内存注册 | 段未按要求对齐（普通 P/D `use_hybrid` 无 Mamba 组要求起点按 `2 MiB` 对齐）、锁页额度不足或网卡/驱动注册失败 | 普通 P/D 起点未对齐抛 `RuntimeError: Tensor start addr ... is not aligned to 2 MiB.`；`global_te` 注册失败抛 `RuntimeError: Mooncake memory registration failed.`；独立 `store` 路径打印非零返回码错误日志 | 来源 17、19、25、26 |
 | MemCache 大块初始化 | 系统运行后内存高度碎片化，无法拼出连续物理大块 | 初始化长时间停滞，内核 `dmesg` 刷 `alloc_contig_range ... PFNs busy` | 来源 4 |
 | Engram THP 提示与锁页 | 宿主机 shmem THP 策略不支持 `MADV_HUGEPAGE`；或 `aclrtHostRegisterV2` 返回非零 | 前者仅记 warning `madvise(MADV_HUGEPAGE) failed` 继续运行；后者直接抛 `RuntimeError: aclrtHostRegisterV2 failed` | 来源 20、21 |
 | `A3 / 950DT` 误挂分配器 | 在 `Kimi-K3` 等食谱禁配环境强行 `LD_PRELOAD=libjemalloc.so.2` | 违背官方食谱硬约束，引发启动异常或运行期内存退化 | 来源 10、11 |
@@ -227,4 +227,4 @@ sysctl kernel.sched_migration_cost_ns 2>/dev/null || cat /sys/kernel/debug/sched
 ### 源码位置
 
 - **池化大页、容器配额与内核调优文档（来源 1–16、23–24）**：`GLM5.2` 的 `vm.nr_hugepages=200000` 与 `--shm-size=500g` 见来源 1、12；`Ascend Store` 大页清零与远戎 `--enable_huge_tlb` 见来源 2、3；`1 GiB` 大页排障见来源 4；`npu-smi` 表列见来源 5；容器挂载、`TCMalloc` 与内核四件套见来源 6–8（早期含 `jemalloc` 的双分配器版本见来源 14、16，早期 `kv_pool.md` 见来源 15）；`DeepSeek` 与 `Kimi-K3` 的 `jemalloc` 启用/禁配边界见来源 9–11；`memlock` `207001` 见来源 13；跨机 Engram RDMA 见来源 23；Docker 容器内存与 `shm` 限制见来源 24。
-- **锁页注册、THP 提示与食谱代码锚点（来源 17–22）**：`MooncakeBackend.register_buffer`、`MooncakeStoreConfig`（`1 GiB` 默认段大小）及 `GlobalTE.register_buffer -> TransferEngine.register_memory` 见来源 17–19；Engram `_madvise_hugepage` 与 `SharedUvaBuffer` 的 `aclrtHostRegisterV2` 见来源 20–21；`DeepSeek-V4-Flash` 配方见来源 22。文中 `1 GiB` 页表项倍数与 `390.625 GiB / 256 GiB` 容量由页大小直接推算[D]；Mooncake 二进制内部选页细节因外部库不在本仓源码树内，须结合现场进程 `/proc/<pid>/smaps` 核验[I]。
+- **锁页注册、2 MiB 对齐、THP 提示与食谱代码锚点（来源 17–22、25–26）**：`MooncakeBackend.register_buffer`、`MooncakeStoreConfig`（`1 GiB` 默认段大小）及 `GlobalTE.register_buffer -> TransferEngine.register_memory` 见来源 17–19；Ascend Store `pool_worker._align_kv_ptrs` 与普通 Mooncake P/D `_get_registered_kv_tensor_buffers_hybrid` 的 `2 MiB` 边界处理见来源 25–26；Engram `_madvise_hugepage` 与 `SharedUvaBuffer` 的 `aclrtHostRegisterV2` 见来源 20–21；`DeepSeek-V4-Flash` 配方见来源 22。文中 `1 GiB` 页表项倍数与 `390.625 GiB / 256 GiB` 容量由页大小直接推算[D]；Mooncake 二进制内部选页细节因外部库不在本仓源码树内，须结合现场进程 `/proc/<pid>/smaps` 核验[I]。

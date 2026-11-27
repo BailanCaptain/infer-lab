@@ -4,7 +4,7 @@ title: FlashAttention 与昇腾注意力算子族：片上 Tiling、Online Softm
 type: concept
 origin: direct
 summary: >-
-  标准注意力若把整张 N×N 分数表写回 HBM，单层中间张量在 32K 长度下就会暴涨到数十 GiB。本页从 Qwen3-8B 访存账出发，拆解片上分块（Tiling）与 Online Softmax 动态重标定怎样做到零近似、零 N×N 落盘，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 FA3 绑定 PIECEWISE 图模式的根因。
+  从 Qwen3-8B 32K 注意力访存账出发，拆解片上分块（Tiling）与在线 Softmax 动态重标定怎样做到零近似且免把 N×N 分数表写回设备显存，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 PIECEWISE 图模式边界。
 aliases:
   - FlashAttention
   - Flash Attention
@@ -92,9 +92,9 @@ contradicts: []
 updated: '2026-11-23'
 ---
 
-**FlashAttention 是一类不改变标准注意力数学结果的融合算法：它把 $Q, K, V$ 切成小块装进芯片片上高速缓冲（SRAM，昇腾向量侧称 UB），边流式打分边用 Online Softmax 原地汇合输出。昇腾 `vllm-ascend` 在此思想上演化出以 `FusedInferAttentionScore`（`FIA`）为主力、配合 `_npu_paged_attention`（`PA`）与训推一致后端 `FA3` 的注意力算子族。**
+**FlashAttention 是一类不改变标准注意力数学结果的片上分块融合算法：它把 $Q, K, V$ 切成小块装进芯片片上高速缓冲（SRAM，昇腾向量侧称 UB），分块计算注意力而不再把整张 $N \times N$ 分数表写回设备显存。每读入一块新的 $K/V$，算法就用在线 Softmax（Online Softmax）顺手更新当前见过的最大分数与分母累加和，并按新最大值重标定旧块累加值，读完最后一块即可得到精确输出。**
 
-沿[请求全景](request-overview.md)进入逐层前向时，每一层算完 $Q, K, V$ 投影和位置编码，紧接着就要做[注意力计算](attention-qkv.md)：$\text{Softmax}(QK^\top / \sqrt{d})\,V$。公式只有短短一行，但如果照着字面顺序拆成三个独立算子逐步落盘执行，长上下文请求连第一层都跑不过去。
+沿[请求全景](request-overview.md)进入逐层前向时，每一层算完 $Q, K, V$ 投影和位置编码，紧接着就要做[注意力计算](attention-qkv.md)：$\text{Softmax}(QK^\top / \sqrt{d})\,V$。公式只有短短一行，但如果照着字面顺序拆成三个独立算子、逐步把中间结果写回设备显存执行，长上下文请求连第一层都跑不过去。
 
 ## 朴素注意力为什么会把显存与 HBM 带宽同时撑爆？
 
@@ -112,10 +112,10 @@ file: ascend-fa-hbm-vs-tiling
 
 对照上图，两者在单层 `32K` Prefill 下的显存占用与 HBM 往返流量差距一目了然（下表仅统计注意力核自身的输入输出与中间矩阵，不含线性投影权重）：
 
-| 对比维度（`Qwen3-8B` 单层，$N=32768$，`BF16`） | 朴素三步实现（落盘 $S$ 与 $P$） | FlashAttention 片上分块实现 |
+| 对比维度（`Qwen3-8B` 单层，$N=32768$，`BF16`） | 朴素三步实现（将 $S$ 与 $P$ 写回设备显存） | FlashAttention 片上分块实现 |
 |---|---|---|
 | 输入 / 输出本体（$Q, O$ 各 `256 MiB`；$K, V$ 各 `64 MiB`） | 合计约 `640 MiB`（随 $N$ 线性增长，$O(N)$） | 合计约 `640 MiB`（随 $N$ 线性增长，$O(N)$） |
-| 单层 HBM 中间矩阵峰值（`[32, 32768, 32768]`） | **`64 GiB`**（若 `FP32` 达 `128 GiB`，是 $Q$ 的 `256` 倍！） | **`0 B` 落盘**（仅片上缓冲暂存 KB～MB 级小分块） |
+| 单层 HBM 中间矩阵峰值（`[32, 32768, 32768]`） | **`64 GiB`**（若 `FP32` 达 `128 GiB`，是 $Q$ 的 `256` 倍！） | **`0 B` 写回设备显存**（仅片上缓冲暂存 KB～MB 级小分块） |
 | 单层中间表 HBM 往返流量（写 $S$ + 读 $S$ + 写 $P$ + 读 $P$） | 额外吞吐约 **`256 GiB`** HBM 流量 | **`0 B`**（$S_{ij}, P_{ij}$ 全程生灭于片上缓冲） |
 | 瓶颈性质 | 算力大量空转等待 HBM 读写，且单张 `64 GiB` 卡首层即爆显存 | 摘除 $O(N^2)$ 显存墙与往返带宽墙，回归计算主导 |
 
@@ -123,9 +123,9 @@ file: ascend-fa-hbm-vs-tiling
 
 ## 片上分块（Tiling）与 Online Softmax：不看全行怎样精确算对归一化？
 
-想在片上把“打分 → Softmax → 乘 $V$”一气呵成，立刻会撞上一道硬墙：[AI Core](ai-core.md) 的片上高速缓冲（矩阵侧 `L1 / L0` 与向量侧 **UB**，即 Unified Buffer）容量只有几百 KB 到 MB 级，装不下整行 $32768$ 个键；而数值稳定的标准 Softmax 偏偏要求**先看完整行所有分数**，找出整行最大值 $m = \max_j s_j$ 并算出整行指数总和 $\sum_j e^{s_j - m}$，才能确定每个位置的权重。
+想在片上把“打分 → Softmax → 乘 $V$”一气呵成，立刻会撞上一道硬墙：[AI Core](ai-core.md) 的片上高速缓冲（矩阵侧 `L1 / L0` 与向量侧 **UB**，即 Unified Buffer）容量只有几百 KB 到 MB 级，装不下整行 $32768$ 个键。而数值稳定的标准 Softmax 偏偏要求**先看完整行所有分数**，找出整行最大值 $m = \max_j s_j$ 并算出整行指数总和 $\sum_j e^{s_j - m}$，才能确定每个位置的权重。
 
-FlashAttention 破局的核心，就是把**空间上的片上分块（Tiling）**与**代数上的在线重标定（Online Softmax）**咬合在一起。下图以立体拆解剖面展示一块查询分片 $Q_{\text{tile}}$ 如何在片上缓冲区内迎接流式滑过的 $K/V$ 分块，全程不向 HBM 落盘任何 $N \times N$ 分数表：
+FlashAttention 破局的核心，就是把**空间上的片上分块（Tiling）**与**代数上的在线重标定（Online Softmax）**咬合在一起。下图以立体拆解剖面展示一块查询分片 $Q_{\text{tile}}$ 如何在片上缓冲区内迎接流式滑过的 $K/V$ 分块，全程不把任何 $N \times N$ 分数表写回设备显存：
 
 ```wiki-diagram
 file: ascend-fa-plate-cutaway
@@ -158,7 +158,7 @@ file: ascend-fa-online-softmax-flow
 | **流式收尾归一**：单次除 $l_2$ | $m_2 = 4$ | — | $l_2 \approx 1.2349$ | $\tilde{O}_2 \approx 35.1961$ | $O = \tilde{O}_2 / l_2 \approx \mathbf{28.5009}$ |
 | **全量 Softmax 对照**：一次读齐 `[1, 2, 4, 1]` | 全局最大 $m = 4$ | 全行减 $4$ 得 `[-3, -2, 0, -3]` | $e^{-3} + e^{-2} + 1 + e^{-3} \approx 1.2349$ | $10e^{-3} + 20e^{-2} + 30 + 40e^{-3} \approx 35.1961$ | 权重 `[0.0403, 0.1096, 0.8098, 0.0403]`，加权和 $\mathbf{28.5009}$（**代数严格相等**） |
 
-这里顺便埋下一条贯穿分布式章节的伏笔：**在单张 NPU 上让 $K/V$ 分块沿时间流过片上缓冲，叫 FlashAttention；把同一条超长序列的 $K/V$ 分块拆到多张 NPU 卡上各算局部输出与对数指数和（`LSE`，Log-Sum-Exp，即 $\text{LSE} = m + \ln l$），再跨卡按同一公式重标定合并，就是[上下文并行（PCP / DCP）](context-parallel.md)。** 在 `vllm-ascend` 中，`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 合并多段 `(out_list, lse_list)`，底层执行的正是同一套代数重标定。
+这里顺便埋下一条贯穿分布式章节的伏笔：**在单张 NPU 上让 $K/V$ 分块沿时间流过片上缓冲，叫 FlashAttention。把同一条超长序列的 $K/V$ 分块拆到多张 NPU 卡上各算局部输出与对数指数和（`LSE`，Log-Sum-Exp，即 $\text{LSE} = m + \ln l$），再跨卡按同一公式重标定合并，就是[上下文并行（PCP / DCP）](context-parallel.md)。** 在 `vllm-ascend` 中，`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 合并多段 `(out_list, lse_list)`，底层执行的正是同一套代数重标定。
 
 ## 昇腾注意力算子族与 v0.30.0 选路：FIA / PA / 早期拆算子与 FA3 各管哪一段？
 
@@ -198,7 +198,7 @@ file: ascend-fa-fig-piecewise-vs-fullgraph
 
 ## 实测劣化剖析：页交错 KV 布局为何在 FIA 内部触发整池连续化？
 
-前面讲清了片上分块怎样免去 $N \times N$ 分数表落盘。但在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，详见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）真机采集里，普通 GQA 模型在 Eager Decode 下却暴露出一笔远超注意力计算本身的隐性 HBM 搬运税。根源正是 **KV 池按页交错排布的非连续视图** 与 **`FIA` 算子内部前置连续化** 撞在了一起：
+前面讲清了片上分块怎样免把 $N \times N$ 分数表写回设备显存。但在 `Ascend 910B3`（`CANN 9.1.0` + `vllm-ascend v0.30.0`，详见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)）真机采集里，普通 GQA 模型在 Eager Decode 下却暴露出一笔远超注意力计算本身的隐性 HBM 搬运税。根源正是 **KV 池按页交错排布的非连续视图** 与 **`FIA` 算子内部前置连续化** 撞在了一起：
 
 ```wiki-diagram
 file: afa-fig-kv-interleaved-contiguous-tax

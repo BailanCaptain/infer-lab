@@ -3,6 +3,8 @@ id: ai-core
 title: AI Core：计算单元与数据搬运
 type: concept
 origin: direct
+legacyAnchors:
+  放到-glm-双机一个-token-在卡上经历什么: 异构-moe-单卡接力一个-token-在-vector-与-cube-间怎样交替
 summary: >-
   拆解昇腾 AI Core 内 Cube、Vector、Scalar 单元与各级片上缓冲（L1、L0A/B/C、UB）及搬运引擎（MTE、FixPipe）的分工；结合 Qwen3-8B 真机算子实测剖析流水重叠与量化开销，对比 910B 经核外 GM 交接与昇腾 950 片上直通差异。
 aliases:
@@ -99,7 +101,7 @@ contradicts: []
 updated: '2026-11-26'
 ---
 
-**AI Core 是昇腾 NPU（执行模型张量运算的芯片）内部承担计算的核心模块，在同一套硬件原语中把矩阵乘加（Cube）、向量运算（Vector）、控制流（Scalar）与多级片上缓冲及搬运引擎组织在一起。** 当一条请求通过[算子与 kernel 分层](ops-and-kernels.md)落到单张昇腾卡上时，[线性投影矩阵乘](matmul-and-weights.md)与 [RMSNorm、残差相加、SwiGLU 门控](mlp-residual-norm.md)并不会直接在[设备显存 HBM](device-memory.md) 里原地相乘。输入与权重必须先经搬运引擎分块装入紧挨计算单元的片上缓冲，算完后再按芯片架构约定交接结果。
+**AI Core 是昇腾 NPU 内部真正执行算子计算的硬件核心。它由负责矩阵乘加的 Cube、负责逐元素与归约运算的 Vector、负责地址计算与分支控制的 Scalar 三类执行单元，配合多级片上缓冲与数据搬运引擎协同工作。** 当一条请求通过[算子与 kernel 分层](ops-and-kernels.md)落到单张昇腾卡上时，[线性投影矩阵乘](matmul-and-weights.md)与 [RMSNorm、残差相加、SwiGLU 门控](mlp-residual-norm.md)并不会直接在[设备显存 HBM](device-memory.md) 里原地相乘。输入与权重必须先经搬运引擎分块装入紧挨计算单元的片上缓冲，算完后再按芯片架构约定交接结果。
 
 ## AI Core 怎样把矩阵乘变成设备上的计算？
 
@@ -144,7 +146,7 @@ $$\mathbf{z} = xW = [1 \times 1 + 2 \times 2,\; 1 \times (-1) + 2 \times (-2)] =
 | **③ 跨侧交接** | `L0C` $\xrightarrow{\text{FixPipe}}$ `GM 中间区` $\xrightarrow{\text{MTE2}}$ `AIV UB` | 中间结果 `[5, -5]` | 走写回 `GM` 的交接路径时，**FixPipe** 把 `[5, -5]` 写回 `GM` 中间缓冲（是否命中核外 `L2` 或触发 HBM 事务由缓存层决定）；向量侧再经 `MTE2` 将它搬入片上缓冲 **UB** |
 | **④ 逐项激活与写回** | `UB` $\leftrightarrow$ **Vector** $\xrightarrow{\text{MTE3}}$ `GM 输出` | $[\max(5, 0), \max(-5, 0)] = [5, 0]$ | **Vector** 在 `UB` 内逐项执行 $\text{ReLU}$ 得到 `[5, 0]`，最后经 `MTE3` 写回 `GM` |
 
-上面的二元微型数组只用于看清“数据在哪准备、在哪算完、何时交接”，并不代表真实硬件矩阵指令的最小分块尺寸（实际 Cube 指令按固定分块粒度吞吐数据）。下图按 CANN 8.0.RC2 架构规范把同一组数映射到 910B 分离架构的核外 `GM` 与片上 `AIC / AIV` 缓冲：先准备 `L1` 与 `L0A/L0B`，由 Cube 算出 `[5, -5]` 存入 `L0C`；经 `FixPipe` 写回核外 `GM` 中间缓冲后，向量侧再经 `MTE2` 搬入 `UB` 执行 $\text{ReLU}$，最后把 `[5, 0]` 经 `MTE3` 写回 `GM` 输出：
+上面的二元微型数组只用于看清“数据在哪准备、在哪算完、何时交接”，并不代表真实硬件矩阵指令的最小分块尺寸（实际 Cube 指令按固定分块粒度吞吐数据）。下图按 CANN 8.0.RC2 架构规范把同一组数映射到 910B 分离架构的核外 `GM` 与片上 `AIC / AIV` 缓冲：先准备 `L1` 与 `L0A/L0B`，由 Cube 算出 `[5, -5]` 存入 `L0C`。随后 `FixPipe` 将结果写回核外 `GM` 中间缓冲，向量侧再经 `MTE2` 搬入 `UB` 执行 $\text{ReLU}$，最后把 `[5, 0]` 经 `MTE3` 写回 `GM` 输出：
 
 ```wiki-diagram
 file: aicore-handoff-walkthrough
@@ -218,9 +220,9 @@ file: aicore-fig-910b-vs-950
 
 在带共享专家的混合专家（MoE）模型中，`v0.30.0` 的 `shared_experts.py` 还可通过 `prepare_input_for_overlap`（构造 `PreparedLinearInput`）在辅助流提前完成这段 `AIV` 动态量化，减少主计算流上的串行等待。
 
-## 放到 GLM 双机：一个 token 在卡上经历什么？
+## 异构 MoE 单卡接力：一个 token 在 Vector 与 Cube 间怎样交替？
 
-**切换到历史异构全案 A4「[逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)」这一站时，单层同样在反复交替执行 Vector 归一化/量化、Cube 矩阵乘加与片上/核外搬运。** 以下保留历史冻结场景绑定的[官方 GLM-5.3-Flash 双机部署前提](glm-5-3-flash-two-node.md#部署前提)（`db701c1f`，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`），跟踪单个 token（分词后的一个文本片段，在层间表示为一行隐藏向量）在本卡上的执行分工：
+**落到 `W8A8` 量化的混合专家（MoE）前向层时，单个 token 在本卡上同样反复经历“Vector 归一化与动态量化 → Cube 矩阵乘加 → Vector 门控与再量化 → Cube 二次投影”的四步接力。** 以历史 [GLM-5.3-Flash 双机部署算例](glm-5-3-flash-two-node.md#部署前提)（钉住 `vllm-ascend@db701c1f`，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`）的[逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为例，单个 token（在层间表示为一行隐藏向量）在本卡上的执行分工如下：
 
 1. **进入线性层或专家前（Vector 主导）：** 先由向量侧完成 `RMSNorm` 归约与逐元素缩放，再经 `npu_dynamic_quant` 算出 `INT8` 整数激活与每行动态缩放系数（`pertoken_scale`）。
 2. **稠密投影与专家第一跳（Cube 主导）：** 稠密前馈层（MLP，以前馈投影与门控激活更新向量的子层）或按需选中的 MoE 专家把 `INT8` 激活与常驻 `GM`、已在加载期整理好分块格式的 `INT8` 权重搬入 `AIC`，由 Cube 完成乘加并结合尺度折算输出。

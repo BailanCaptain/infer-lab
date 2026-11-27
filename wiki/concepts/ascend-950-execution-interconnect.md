@@ -3,6 +3,8 @@ id: ascend-950-execution-interconnect
 title: 昇腾 950：两张卡怎样接着把工作做完
 type: concept
 origin: direct
+legacyAnchors:
+  放回本站的-glm-双机该怎样使用这套分析: 跨代多卡互联对照从-atlas-a2-双层网络到昇腾-950-统一总线
 summary: >-
   从 Atlas A2/A3 多卡解码下发气泡、集合通信抢占向量核及机内机间协议割裂的痛点出发，顺着两卡求和实例讲清昇腾 950 的 STARS 2.0
   硬件调度、CCU 专用通信卸载与 Unified Bus 2.0（URMA / UB Memory / UBoE）。
@@ -65,7 +67,7 @@ contradicts: []
 updated: '2026-11-24'
 ---
 
-**在 Atlas A2 / A3 上跑多卡大模型解码时，常被三件事扯后腿：细碎算子靠主机或慢速控制路逐个唤醒露出气泡、HCCL 集合通信借用 AI Vector 向量算力核做搬运和求和挤占了计算资源，以及机内 HCCS 与跨机 RoCE 协议割裂；昇腾 950 用芯片内硬件调度器 STARS 2.0、独立通信处理单元 CCU 与统一总线 Unified Bus 2.0（`UB 2.0`）正面改造了这条跨卡接力链。** 要分清这三件新硬件究竟省掉了哪一段开销、又有哪些等待连硬件卸载也省不掉，最好顺着两张卡合并一次部分结果的全过程走一遍。
+**在 Atlas A2 / A3 上跑多卡大模型解码时，细碎算子唤醒易生下发气泡，集合通信借用 AI Vector 核会挤占向量算力，机内 HCCS 与跨机 RoCE 的协议视角也彼此分立。昇腾 950 通过芯片内硬件调度器 STARS 2.0、独立通信处理单元 CCU 与统一总线 Unified Bus 2.0（`UB 2.0`），系统改造了这条跨卡接力链。** 要分清这三件新硬件究竟省掉了哪一段开销、又有哪些等待连硬件卸载也省不掉，最好顺着两张卡合并一次部分结果的全过程走一遍。
 
 ## 两张卡各算了一半，为什么还不能继续
 
@@ -177,13 +179,13 @@ file: ascend-950-fig-offload-timeline
 
 例如，卡 1 从 5 ms 提前到 3 ms，下一段随之提前，而后面的 0.6 ms 基本不变，证据更支持参与者迟到。两卡都准时、移走竞争流量后传输区间缩短，才更支持共享通路争用。调整流量优先级还会把等待移给其他工作，其代价见 [AI QoS](ai-qos.md)；该页的软件启用条件需按自己的硬件另核。
 
-## 放回本站的 GLM 双机，该怎样使用这套分析
+## 跨代多卡互联对照：从 Atlas A2 双层网络到昇腾 950 统一总线
 
-本站完整拆解的双机案例 [GLM-5.3-Flash（2×A2×8，TP8/DP2/EP16，W8A8）](glm-5-3-flash-two-node.md#部署前提) 代表了典型 **Atlas A2 两层互联分工**：每台机器内部 8 卡走机内 `HCCS` 做注意力侧高频 `TP8 All-Reduce`，两台机器共 16 卡跨越 `RoCE` 网卡共同持有完整路由专家并完成 `EP16` 跨机交换（4 token 示例请求 `R1` 的精确通信次数与字节推导见[一条请求的逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)）。
+历史 [GLM-5.3-Flash 双机部署算例](glm-5-3-flash-two-node.md#部署前提)（`2×A2×8`，`TP8/DP2/EP16`，`W8A8`）代表了典型的 **Atlas A2 两层互联分工**：每台机器内部 8 卡走机内 `HCCS` 做注意力侧高频 `TP8 All-Reduce`，两台机器共 16 卡跨越 `RoCE` 网卡共同持有完整路由专家并完成 `EP16` 跨机交换（4 token 示例请求 `R1` 的精确通信次数与字节推导见[一条请求的逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)）。
 
-把本页的记账框架带回 A2 双机，再展望向 950（`A5`）超节点迁移时的差异：
+对照 A2 双层网络向 950（`A5`）统一总线超节点迁移时的异同：
 - **分析公式完全同构**：不管底层是 A2 的 `HCCL`（见 [CANN 与 HCCL](cann-hccl.md)）还是 950 的 `STARS 2.0 + CCU + UB 2.0`，集合通信慢都遵循 $\max(t_0, t_1) + t_{\text{coord}} + t_{\text{comm}}$——必须先把“热门专家或长序列导致的慢卡迟到”与“协调下发 / 物理链路拥塞”剥离开，绝不盲目怪罪网卡带宽。
-- **硬件卸载边界严禁混套**：A2 没有独立 `CCU` 与 `UB Memory`，集合通信仍走 A2 既有 HCCL / AIV / RoCE 路径；迁往 950 时，则需重新核查目标 CANN 与框架版本是否真正为 `All-Reduce`、`MoE Dispatch/Combine` 启用了 CCU 卸载或图级矩阵乘-通信融合（如 `GRAPH_MM_REDUCE_SCATTER_FUSION`），以及物理端口在 `UB Link` 与 `UBoE` 之间的实际切分。
+- **硬件卸载边界严禁混套**：A2 没有独立 `CCU` 与 `UB Memory`，集合通信仍走 A2 既有 HCCL / AIV / RoCE 路径；迁往 950 时，则需重新核查目标 CANN 与框架版本是否真正为 `All-Reduce`、`MoE Dispatch/Combine` 启用了 CCU 卸载（如分离式 P/D 运行期开关 `HCCL_OP_EXPANSION_MODE=CCU_SCHED`，见[运行时调优](ascend-runtime-and-tuning.md#hccl-关键运行期调优aiv-直驱-roce链路-qos-与双超时机制)）或图级矩阵乘-通信融合（如 `GRAPH_MM_REDUCE_SCATTER_FUSION`），以及物理端口在 `UB Link` 与 `UBoE` 之间的实际切分。
 
 此外，DeepInfer 公开快照虽将 Ascend 950（需 CANN 9.2）列为支持硬件，但文档中的引擎级“异步调度”指的是 Host CPU 组批与设备执行流水重叠，而本页的 STARS 2.0 指的是芯片内部的硬件任务流调度——两层一内一外可以协同，不能因同带“调度”二字混为一谈（其开源发布范围见 [DeepSeek 生产实践](deepseek-serving-case.md)）。
 

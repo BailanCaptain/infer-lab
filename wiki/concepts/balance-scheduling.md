@@ -3,7 +3,9 @@ id: balance-scheduling
 title: Balance Scheduling：一组顶满，各组一起停收新请求
 type: feature
 legacyAnchors:
-  放到-glm-双机本部署没开开了会怎样: 异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界
+  放到-glm-双机本部署没开开了会怎样: 双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界
+  复杂异构实战对照glm-双机部署下的表现与边界: 双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界
+  异构双机-dp2-对照场景-m-闸门判定与宽度对齐边界: 双机-dp2-场景推演gloo-互报闸门上限与步宽对齐边界
 summary: >-
   MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及双机 DP2 场景下的闸门与宽度对齐边界。
 aliases:
@@ -210,22 +212,13 @@ file: balance-scheduling-fig-gate-vs-width
 - **dense 模型。** 稠密（dense，没有专家层）模型的各组之间本来不通信，vLLM 把每组当成独立的单组部署来建引擎进程，交换那一步挂不上去。在 v0.23 维护分支与历史 `db701c1f` 快照上，dense 模型多组部署再打开开关会在启动时报错；v0.26 起改为不报错也不生效（见页末「会报什么错」）。
 - **只数条数。** 两组都跑 2 条请求，单步工作量仍可能相差很远：提示词长度、[prefix caching](prefix-caching.md) 命中比例、已积累上下文对应的 KV cache 读取量、MTP 草稿接受个数以及专家路由分布，都会改变单步耗时，而计数表里没有这些信息。若某组变慢来自长上下文请求，停收新请求不一定让它变快；[DynTra](dyntra-lb.md) 改用请求占用的 KV 块数估计负载，是另一套机制，不能与 Balance Scheduling 同开。
 
-## 复杂异构实战对照：GLM 双机部署下的表现与边界
+## 双机 DP2 场景推演：Gloo 互报、闸门上限与步宽对齐边界
 
-### 异构双机 DP2 对照：场景 M 闸门判定与宽度对齐边界
+**历史 GLM 双机配方默认未开启 `enable_balance_scheduling`（[部署前提](glm-5-3-flash-two-node.md#部署前提)，前缀缓存亦关闭，见[五组缓存页面](prefix-caching.md#glm-双机上它开着吗)），插件加载替换后的 `BalanceScheduler` 每步直接委托回上游原版调度（替换机制见 [patch 系统](ascend-patch-system.md)与[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。** 假如在这套双机 DP2 混部上打开开关，两台机器各一个 DP 组、每组上限 `32` 条，闸门只在某一组 `running` 跑满 `32` 条时落下：
 
-**官方 GLM 双机教程没有打开 Balance Scheduling，本部署每一步的调度沿用上游原版规则。** 假如打开，两台机器各一个 DP 组、每组上限 32 条，闸门只在某一组 running 跑满 32 条时落下；主线场景 M 里它不会落。
-
-先说「没开」怎么确认。开关默认关闭，要在启动参数的 additional-config 里写，或者设一个已标注将要淘汰的环境变量；[双机部署](glm-5-3-flash-two-node.md#部署前提)的两条启动命令都没有写 additional-config，也没有设这个环境变量。另外本部署默认关闭前缀缓存（见 [GLM 双机上它开着吗](prefix-caching.md#glm-双机上它开着吗)）。
-
-没开也不等于没装。vllm-ascend 一加载，就把上游的调度器类换成 BalanceScheduler，把引擎进程的入口函数换成自己的版本（这种加载即替换的做法见 [patch 系统](ascend-patch-system.md)）。开关关着时，BalanceScheduler 每一步第一件事就是交回上游原版的调度，入口函数也直接转给上游原函数，所以行为和上游一致（见[昇腾上跑的是哪个调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)）。
-
-假如打开，放到这套部署上：
-
-- **谁在互报。** 两个 DP 组各有一个 EngineCore，一个在 node0、一个在 node1。计数表只有 2 格，每一步一次 All-Gather，只传两个整数，走 CPU 上的 gloo 通道（PyTorch 里在 CPU 上做集合通信的后端），跨两台机器。
-- **上限是多少。** 闸门比的上限就是每组的请求数上限 32（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。
-- **前提都满足。** GLM-5.3-Flash 是 MoE，两组走的正是能挂上互报的那种引擎进程；这套部署没有配 KV 传输，prefill 和 decode 在同一个实例里做（PD 混部），满足它只支持混部的要求。
-- **什么时候落闸。** 只有某一组 running 满 32 条时。那一刻另一组若有 n 条在跑，就有 32 − n 个名额这一步不接新请求。
+- **谁在互报。** 两个 DP 组各有一个 EngineCore，分别在 node0 与 node1。计数表只有 `2` 格，每一步做一次跨机 `All-Gather`，每组只交一个整数，走 CPU 上的 Gloo 集合通信通道。
+- **上限与混部前提。** 闸门比较的上限就是每组的请求数上限 `32`（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）；GLM-5.3-Flash 是 MoE 且该配方采用 PD 混部，满足挂载与启用条件。
+- **什么时候落闸。** 只有某一组 `running` 满 `32` 条时落下；那一刻另一组若有 $n$ 条在跑，就有 $32 - n$ 个名额这一步不接新请求。
 
 拿主线的[场景 M](concurrent-requests.md#示例场景-m-与变体-m)对照：DP0 有 12 条 decode 请求，一条 6000 token 提示词的新请求 N 进了 DP0 的 waiting；DP1 有 7 条 decode 请求。判定如下：
 

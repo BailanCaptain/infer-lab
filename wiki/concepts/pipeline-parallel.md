@@ -3,7 +3,11 @@ id: pipeline-parallel
 title: 流水线并行（PP）：层分段、状态交接与气泡
 type: feature
 legacyAnchors:
-  glm-双机为什么没用-pp: 异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接
+  glm-双机为什么没用-pp: 45-层异构切分与-mhc-32-kibtoken-段间交接推演
+  异构混合模型边界glm-双机-pp1-取舍与四路残差段间交接: 45-层异构切分与-mhc-32-kibtoken-段间交接推演
+  变体glm-的-45-层分成-2-段: 23-与-22-层异构分段及-16-卡组数折算
+  主线为什么没开: 23-与-22-层异构分段及-16-卡组数折算
+  glm-的分界上交什么: mhc-四路残差在段间分界交什么
 summary: >-
   把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及异构混合模型的多路残差交接边界。
 aliases:
@@ -277,11 +281,11 @@ file: pp-fig-handover-tp-slice
 
 多机拉起有 `mp`（`multiprocessing`，Python 多进程分布式后端）与 `ray`（分布式集群调度框架）两条后端路径：`mp` 要求在每台机器分别执行参数严格匹配的命令，靠同一组 `--master-addr` / `--master-port` 会合。`ray` 则先组建集群并确认 NPU 入池，再在 head 节点只提交一次 `vllm serve`（切忌把 `mp` 两份命令原样提交两次给 Ray）。在 [PD 分离](pd-disaggregation.md)场景中，P 实例可由多机 PP 组成，而 `MooncakeConnectorV1` 下的 D 实例必须保持 `PP = 1`（完整设备账见 [DeepSeek 部署对照](deepseek-v4-1-flash.md#ascend-上的-1p1d-究竟用了多少设备)）。
 
-## 异构混合模型边界：GLM 双机 PP=1 取舍与四路残差段间交接
+## 45 层异构切分与 mHC 32 KiB/token 段间交接推演
 
-上面讲完通用 `v0.30.0` 多段 PP 机制后，这里单独隔离本站 `09 旗舰异构模型全案` 的历史绑定案例（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。结论很直接：**该双机方案没有开 PP（`PP = 1`）**，而是机内 TP8 + 双机 DP2，MoE 路由专家走跨机 EP16（[DP](data-parallel.md) 分请求，[EP](expert-parallel.md) 把 288 个专家分到 16 卡，单个 DP 组不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP 会怎样分层、分界交什么」，未经真实双机 PP 实测，主线吞吐/时延也不能直接套用。
+在 **GLM-5.3-Flash 双机算例**（固定快照 `vllm@0fc695fc + vllm-ascend@db701c1f`，2 台 × 8 张 A2，`TP8 / DP2 / EP16`、`W8A8`，历史配方保持 `PP = 1`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)与[官方双机来源](../sources/glm-5-3-flash-baseline.md)）中，单机 TP8 与跨机 EP16 已经装下全部权重。下面基于固定快照 `glm5_next.py` 的 PP 接口，推演在同样 16 张卡上改切 `PP = 2` 时的层段切分、卡数重排与多路残差交接（未经真实双机 PP 实测，主线吞吐与时延不可直接套用）。
 
-### 变体：GLM 的 45 层分成 2 段
+### 23 与 22 层异构分段及 16 卡组数折算
 
 ```wiki-diagram
 file: pipeline-parallel
@@ -289,9 +293,9 @@ file: pipeline-parallel
 
 按前文的默认分段公式，45 层分 2 段得到 `[0, 23)` 与 `[23, 45)`，即第 0–22 层（23 层）和第 23–44 层（22 层）。固定的 `glm5_next.py` 代码已实现完整 PP 接口：首段建 `embed_tokens`，末段建最终 `norm` 与 `lm_head`，非本段层位放 `PPMissingLayer` 占位，且模型类声明了 `SupportsPP`，可通过启动时的 PP 支持性检查。
 
-但 `23 + 22` 层并不代表两段负载匀称：GLM 前 3 层为稠密 MLP + KDA、后 42 层混排 KDA 与稀疏 MLA 加 MoE，各层算力、状态与缓存开销本就异构，首尾段还分别多出词嵌入与词表采样，不能拿「总显存 ÷ 2」估算单段容量。
+这里有两笔账不能只看层数：一是 `23 + 22` 层并不代表两段负载匀称——前 3 层为稠密 MLP + KDA、后 42 层混排 KDA 与稀疏 MLA 加 MoE，各层算力、状态与缓存开销本就异构，首尾段还分别多出词嵌入与词表采样，不能拿「总显存 ÷ 2」估算单段容量；二是固定 16 卡预算且 `PCP = 1` 时，一个 DP 执行组占 `PP × TP` 张卡——原方案 `PP1 × TP8` 每组 8 卡（[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)已够装下分片矩阵与 EP16 路由专家），可排成 `DP2` 两组并行接请求而无跨段气泡，若改成 `PP2 × TP8` 则单组吃满 16 卡、DP 从 `2` 降为 `1`，还须重新核对跨段交接气泡与专家布局支持。
 
-### GLM 的分界上交什么？
+### mHC 四路残差在段间分界交什么
 
 GLM 采用 mHC 多路残差连接（见[层与隐藏表示](layers-and-hidden.md)）：普通隐藏层输出保留 4 路表示、每路宽 `4096`，直到全局最后一层才把 4 路汇成 1 路。因此段间分界上每个 token 的隐藏状态包含 $4 \times 4096$ 个元素。
 
@@ -300,13 +304,6 @@ GLM 采用 mHC 多路残差连接（见[层与隐藏表示](layers-and-hidden.md
 $$\text{Bytes}_{\text{GLM-PP}} = T \times 4 \times 4096 \times 2\text{ B} = T \times 32{,}768\text{ B} = T \times 32\text{ KiB}$$
 
 代入 $T = 1$ 为 `32 KiB`，$T = 4$（如主线示例请求 R1 的 4 行）为 `128 KiB`；实际物理链路流量还受 TP 切片与序列并行开关影响，不能直接当作硬件实测带宽。
-
-### 主线为什么没开？
-
-官方教程没有写明不选 PP 的原因（缺官方对 PP 与 TP/DP 取舍的说明及同硬件开 PP 的对比实测），但顺着本页机制可以清楚看到两点工程背景：
-
-- **不开 PP 已经装得下。** 主线里按 TP 切分的矩阵在每台 8 卡内分片，288 个路由专家靠 EP16 摊到两机 16 卡上（见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)），单卡容量已经够用，无需靠 PP 救命。
-- **卡数账上 `PP1 × DP2` 避免了跨段气泡。** 在 `PCP = 1` 时，一个 DP 执行组占 `PP × TP` 张卡。主线 `PP1 × TP8` 每组 8 卡，16 卡可排成 `DP2` 两组并行吃请求（专家跨组按 EP16 共享）；若改成 `PP2 × TP8`，单个执行组就吃满 16 卡，只能跑 `DP1` 且还要承担跨机阶段交接与流水线气泡。GLM 双机真实配置以[官方双机来源](../sources/glm-5-3-flash-baseline.md)为准。
 
 ## 常见误解
 
@@ -394,7 +391,7 @@ vllm serve /path/to/model \
 | **上游 `SP + PP > 1` 注入 `+rms_norm` 与昇腾 SP** | 旧版编译 pass 形态；MoE+EP 支持 `PP>1`+SP | 过渡演进 | `PassConfig.enable_sp` 且 `PP > 1` 静默追加 `"+rms_norm"`（传 `"-rms_norm"` 则告警）；稠密 SP（`enable_dense_sp`）限 `PP=1`；MoE+EP 支持 `PP>1`+SP | **上游移除 `PassConfig.enable_sp`**（`compilation.py#L204-L237`）；稠密 SP（`enable_dense_sp`）限 `PP=1`；MoE+EP 支持 `PP>1`+SP |
 | **动态切块 CPP（`profiling_chunk_config`）** | 挂在 `ascend_config` 下，要求 `PP > 1` | 迁入 `ascend_config.scheduler_config`，要求 `PP > 1` | 要求 `PP > 1`；新增 `async_scheduling` 须配 V2 runner 校验 | **已移除 `profiling_chunk_config` 与 CPP**（`platform.py#L1585-L1603`） |
 | **Xlite / 稀疏卸载 / RoCE MoE / Mooncake** | Xlite 与 PP 互斥；尚无稀疏 KV offload | Xlite 互斥；新增 `sparse_kv_offload_config` 拒 `PP > 1` | Xlite 互斥（文案统一）；`sparse_kv_offload_config` 拒 `PP > 1`（layerwise 另计）；`MooncakeConnectorV1` 限 `PP_D == 1`；跨机 RoCE MoE 禁 `PP>1 × DP>1` | 同 `v0.30.0` 互斥与跨机 RoCE MoE / `PP_D == 1` 边界 |
-| **历史绑定 GLM 分段算例（例外 B）** | 维护分支无 `glm5_next.py`；本页 45 层 `[23, 22]` 与 mHC 4 路交接固定取自 `db701c1f + 0fc695fc` | 同左 | 社区仓迁入 `models/glm5next/`；绑定算例继续锁定 `db701c1f` 单标尺 | 延续 `models/glm5next/`；绑定算例锁定 `db701c1f` |
+| **历史绑定 GLM 分段算例（`db701c1f`）** | 维护分支无 `glm5_next.py`；本页 45 层 `[23, 22]` 与 mHC 4 路交接固定取自 `db701c1f + 0fc695fc` | 同左 | 社区仓迁入 `models/glm5next/`；绑定算例继续锁定 `db701c1f` 单标尺 | 延续 `models/glm5next/`；绑定算例锁定 `db701c1f` |
 
 ### 源码位置
 

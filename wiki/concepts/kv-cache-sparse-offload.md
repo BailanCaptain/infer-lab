@@ -2,6 +2,8 @@
 id: kv-cache-sparse-offload
 title: Sparse KV offload：历史放主机，每步只搬这次要读的几行
 type: feature
+legacyAnchors:
+  放到-glm-双机硬件这一关就过不去: 硬件角色与混合布局门槛四项代码检查与假设热缓冲推算
 summary: >-
   主 attention 的完整历史放在主机内存，设备上只留 indexer cache 和一小块热缓冲；每步 sparse attention
   选完位置，只把热缓冲里缺的行搬回来。讲清它与 CPU offload、抢占换出在存的对象、粒度、取回条件上的区别，一步里的顺序与代价，以及它只支持
@@ -147,17 +149,17 @@ rawSources:
 
 ## 历史全放在主机内存里，每一步只搬回这次要用的几行？
 
-**Sparse KV offload（稀疏 KV 卸载）把主 attention 的完整历史挪到主机内存，设备上只留一小块热缓冲；每一步选出这次要读的位置之后，只把热缓冲里还没有的那几行搬回设备。**
+**Sparse KV offload（稀疏 KV 卸载）把主 attention 的完整历史挪到主机内存，设备上只保留全量索引缓存（indexer cache）和一小块热缓冲。每一步选出这次要读的位置后，只把热缓冲里缺失的那几行从主机搬回设备。**
 
-两个前置词先说清楚。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史，后面每一步都要回头读它；[sparse attention](sparse-attention.md) 让每个查询先从全部历史里挑出一小部分位置，只在这些位置上打分、汇合，没挑中的位置这一次不参与计算——但仍要留着，下一步还要跟着一起挑。挑位置的是 sparse attention 里一个很轻的打分模块 **indexer**：它给全部历史各打一个分，取分最高的若干个；因为要看全部历史，它自己也存一份 indexer cache，和主 attention 的那份历史是两码事。
+两个前置词先说清楚。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史，后面每一步都要回头读它；[sparse attention](sparse-attention.md) 让每个查询先从全部历史里挑出一小部分位置，只在这些位置上打分、汇合，没挑中的位置这一次不参与计算——但仍要留着，下一步还要跟着一起挑。挑位置的是 sparse attention 里一个很轻的打分模块 **indexer**：它给全部历史各打一个分，取分最高的若干个；因为要看全部历史，它自己也存一份全量 indexer cache，和主 attention 的那份历史是两码事。
 
-稀疏读取留下一个空子：**每一步真正读到的只是历史的一小部分，而全部历史都占着显存。** 稀疏卸载就把这份「读得少、占得多」的历史整个放到主机内存，设备上只按「这一步读到什么」保留。挑哪些位置仍由模型决定，它改的只是这些数据从哪里取。
+由于稀疏注意力**每步只读取少量选中位置**，完整的主 attention 历史在大部分步骤里并不参与计算却一直占着显存。稀疏卸载就把这份「读得少、占得多」的主历史整份放到主机内存，设备上除全量索引缓存外只按热槽保留最近读过的行。挑哪些位置仍由模型决定，它改的只是主历史数据从哪里取。
 
 ```wiki-diagram
 file: kv-cache-sparse-offload
 ```
 
-先说结论：钉住版本的这套实现只在 Atlas A3 上初始化，本部署是两台 Atlas 800 A2，**用不上它**；本页把它当变体讲清楚，全部门槛见后面的 GLM 一节。
+先说硬件边界：`v0.30.0` 与 `main` 的管理器只在 Atlas A3 上放行初始化，Atlas 800 A2 双机无法启用；各项检查与假设显存推算见后文[门槛与推算一节](#硬件角色与混合布局门槛四项代码检查与假设热缓冲推算)。
 
 图里历史有 8 个位置，热缓冲有 4 个槽。这一步选中 2、5、6：2 和 6 上一步搬过、还在槽里，5 不在，于是只有 5 这一行从主机搬回来，装进本步没被选中、又最久没用的那个槽。位置 0 被顶掉，但它在主机那份历史里还在，下一步再被选中就再搬一次。
 
@@ -189,7 +191,7 @@ file: kv-cache-sparse-offload
 
 ## 一步里搬几行：命中、缺失、换出（示意数）
 
-设一层里的历史有 8 个位置，每个位置一行；一行 1 KiB（示意数，本节以基础 LRU 热槽表机制演示命中与换出；`v0.30.0 / main` 默认融合 LIM + Copy-SFA 路径的自动槽宽见下节）。热缓冲给这个查询在这一层留了 4 个槽——槽是按「查询行」分的，一排槽跟着一个查询走，不同请求不共用同一排。上一步之后，槽里装着位置 0、2、4、6，最久没用的排在前面：0、4、2、6。这一步 indexer 选中 3 个位置：2、5、6。
+设一层里的历史有 8 个位置，每个位置一行；一行 1 KiB（示意数，本节按**旧版 `v0.26.0rc` 默认的常规 LRU 热槽表路径**演示命中与换出；`v0.30.0` 与 `main` 默认走融合 LIM + Copy-SFA 路径及 Model Runner V2 条件见下节与文末[版本差异](#版本差异)）。热缓冲给这个查询在这一层留了 4 个槽——槽是按「查询行」分的，一排槽跟着一个查询走，不同请求不共用同一排。上一步之后，槽里装着位置 0、2、4、6，最久没用的排在前面：0、4、2、6。这一步 indexer 选中 3 个位置：2、5、6。
 
 1. **查表。** 2 在槽里、6 在槽里，都算命中，直接用；5 不在，记成缺失 1 行。
 2. **挑槽。** 能腾的只有这一步没被选中的槽：装 0 的和装 4 的。按最久没用先换的顺序，5 装进原来放 0 的那个槽。
@@ -262,21 +264,22 @@ file: kv-cache-sparse-offload-fig-a3-three-bucket
 
 主机上限比设备上限还小时，实现会专门打一条 warning 提示调大它：主机内存给少了，设备显存再多也用不上。在 `v0.30.0` 与 `main` 中，decode 默认走融合 LIM + Copy-SFA 路径（`topk_buffer_size` 默认 `-1`，自动解析为 `(1 + 投机草稿数) × 2048`，并由运行时另加 2 个尾块，满足 256 对齐且不超过 32,512；`main` 另增 `store_port_base = 8500` 区分多服务端口基址），且与 `PreemptOffloadConnector` 互斥。这也说明卸载没有把容量问题变没，只是把它从显存搬到了主机内存：上下文长度和并发仍受最紧的那条约束，只不过约束的对象换了。
 
-## 放到 GLM 双机：硬件这一关就过不去
+## 硬件、角色与混合布局门槛：四项代码检查与假设热缓冲推算
 
-前面讲的是 Atlas A3 上单缓存组稀疏模型的运行机制与容量规划。下面切入**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)（2×A2×8、TP8/DP2/EP16、W8A8）：主线跑的是 GLM 快照 `db701c1f`，仓内根本没有这套实现（见[版本差异](#版本差异)）；即便升级到 `v0.30.0` / `main`，仍然要连撞五道硬门槛。先看下面这张五道门槛漏斗与假设显存收支对比图：
+前面讲的是 Atlas A3 上单缓存组稀疏模型的运行机制与容量规划。放到 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)（`2×A2×8`、`TP8/DP2/EP16`、`W8A8`）对照时，历史镜像 `db701c1f` 尚无这套实现（见[版本差异](#版本差异)）；即便升级到 `v0.30.0` 或 `main`，也会遇到**四项代码检查与一项官方验证范围**（下图漏斗中第 1、2、4、5 项为当场抛错的代码检查，第 3 项为官方验证范围）：
 
 ```wiki-diagram
 file: kv-cache-sparse-offload-fig-glm-gates
 ```
 
-1. **硬件不对：只支持 Atlas A3，本部署是 Atlas 800 A2。** main 在初始化卸载管理器时先判设备型号，不是 A3 就直接 `RuntimeError`；官方指南写的是支持 A3 与 950PR&950DT 两类节点，但代码只放行 A3（950 系列在型号映射里属于另一档）。这一条与模型、配置都无关，是本部署用不上它的根本原因。
-2. **必须是 PD 分离的 D 端。** 不保留设备主 KV 时，实现要求启动参数里配了 KV 传输、且本实例是 kv consumer。主线的启动命令里没有这一项（见[部署页的启动参数](glm-5-3-flash-two-node.md#怎么开)），启动时直接断言失败。PD 分离本身是另一条变体路线，见 [PD 分离](pd-disaggregation.md)。
-3. **模型不在支持清单里（这一道不报错，是「官方未验证」）。** 配置侧只检查模型带不带 `index_topk`，GLM 有，过得去；但官方指南列的是 GLM-5.1、GLM-5.2、DeepSeek-V3.2，并写明其他稀疏 attention 模型未验证，GLM-5.3-Flash 不在其中。其余四道都会当场抛异常。
-4. **混合缓存布局不支持。** 内存规划先要求全部缓存规格共用一个块大小，管理器还要求只有一个缓存组；仅把块大小改相同仍不够。GLM 的状态分成 5 个组（full 组、尾状态组、3 个 KDA 组，见 [KV 缓存规格](kv-cache-spec.md#对齐成两档页编成五个组)），尾状态组的块大小也不是 640。
-5. **热缓冲默认值对不上块大小。** 实现要求热槽数是块大小的整数倍；GLM 的逻辑块是 640 个 token，而 `v0.30.0` / `main` 默认 `-1` 按 GLM 的 3 个 MTP 草稿解析为 `8,192`（旧版默认 `4,096`），两者都除不尽 640。既要不小于 `index_topk` = 2,048、又要是 640 的整数倍，最小可用值是 2,560。
+1. **代码检查 · 硬件只放行 Atlas A3（本部署为 Atlas 800 A2）。** `v0.30.0` 与 `main` 在初始化卸载管理器时检查设备型号，非 A3 直接抛 `RuntimeError`（配置入口还提前拦截 `950PR&950DT`）；这是双机 A2 无法启用的首要硬件条件。
+2. **代码检查 · 必须是 PD 分离的 D 端。** 不保留设备主 KV 时，配置要求提供 KV 传输且本实例角色为 `kv_consumer`。原双机命令是混部、无 `--kv-transfer-config`（见[部署页](glm-5-3-flash-two-node.md#怎么开)），启动直接触发 `AssertionError`（PD 拆分见 [PD 分离](pd-disaggregation.md)）。
+3. **官方验证范围 · 模型未列入已验证清单（代码不报错）。** 配置侧只检查模型是否带 `index_topk`，GLM-5.3-Flash 具备该字段，能通过代码检查；但官方指南仅列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2，注明其余稀疏模型未经验证。
+4. **代码检查 · 不支持多组混合缓存布局。** 内存规划要求全部缓存规格共用同一块大小，管理器还要求只有一个缓存组；GLM 分成 5 个缓存组（full 组、尾状态组、3 个 KDA 组，见 [KV 缓存规格](kv-cache-spec.md#对齐成两档页编成五个组)），尾状态组块长也不是 `640`，会触发 `ValueError`。
+5. **代码检查 · 常规路径热缓冲须为逻辑块长 `640` 的整数倍。** 基础注意力路径检查 `topk_buffer_size % block_size == 0` 且 `>= index_topk`（`2,048`）：旧版默认 `4,096` 与新版自动解析值 `8,192` 都不能被 `640` 整除，满足两项约束的最小整数倍是 `2,560`。
+   - **新版默认融合路径（`use_fused_copy_sfa`）的对齐与额外尾块另计：** `v0.30.0` 与 `main` 默认启用融合 LIM + Copy-SFA，`topk_buffer_size` 默认 `-1` 会按 `(1 + num_speculative_tokens) × 2048` 自动解析（3 个 MTP 草稿即 `4 × 2048 = 8,192`），要求 `256` 对齐且落在 `[Q_max × 2048, 32512]` 区间内，并由运行时自动追加 `COPY_SFA_TAIL_BLOCKS = 2` 个额外尾块，无需手工加进配置值。
 
-假如前四道都放开（换 A3 机器、按 PD 分离部署、模型进清单、缓存布局对齐），按源码公式代入这套部署的其余参数，热缓冲要占的显存是固定的一笔（不受支持的 GLM 布局假设）：
+假如前四项限制与块对齐都放开，按常规路径最小 `640` 倍数 `2,560` 槽代入其余部署参数，可算清固定热缓冲显存的量级（不受支持的 GLM 布局**假设**）：
 
 $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 512 \times 2\text{ B}) = 3{,}840\text{ MiB} = 3.75\text{ GiB}$$
 
@@ -299,7 +302,7 @@ $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 51
 - **「读得少，那存也能少。」** 不行。每一步都重新挑一次，这一步落选的位置下一步照样参与挑选，所以全部历史都要留着，只是留在主机。它省的是显存，不是存储总量。
 - **「每个查询读 2,048 个位置，所以每步搬 2,048 行。」** 只搬缺的那些；上一步搬过、还在槽里的不搬。反过来说，最坏情况（全不命中）确实是这一批位置都要搬——GLM 每行清单最多 2,048 个位置加 0–3 个尾部。
 - **「热缓冲越大越好。」** 它是定额显存，开大了别处就少了；而且必须不小于 `index_topk`，还要是块大小的整数倍，不是随便填一个数。
-- **「GLM 有稀疏 MLA，所以能开。」** 模型带 `index_topk` 只过了模型这一道检查，前面还有硬件只限 A3、必须是 PD 分离的 D 端、缓存不能是混合布局几道，见上一节。（Model Runner V1 这一道主线本来就用 V1，能过。）
+- **「GLM 有稀疏 MLA，所以能开。」** 模型带 `index_topk` 只过了模型字段检查，前面还有硬件只限 A3、必须是 PD 分离 D 端、缓存不能是多组混合布局等代码检查，见上一节（Model Runner V2 的拒绝仅存在于旧版 `v0.26.0rc`，`v0.30.0` 与 `main` 已支持 MRV2）。
 - **「开了它，indexer 的缓存也跟着省了。」** 没有。indexer cache 全量留在设备，它要给全部历史打分；卸载搬走的只有主 attention 那一份。
 
 ## 对照源码
@@ -349,14 +352,14 @@ $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 51
 | 开了 context parallel | `ValueError: Sparse KV offload don't support context parallel now.` |
 | 开了 pipeline parallel | `ValueError: Sparse KV offload don't support pipeline parallel now.` |
 | 没配 KV 传输、或本实例不是 kv consumer（且 `keep_device_kv_cache` 为假） | `AssertionError: Sparse KV offload is only supported in PD disaggregate scenario and can only be used in D node.` |
-| 旧版（`v0.26.0rc`）启用了 Model Runner V2（`v0.30.0 / main` 已放开支持，DSpark 强制要求 MRV2） | `ValueError: Sparse KV offload doesn't support model_runner_v2 now.` |
+| **旧版（`v0.26.0rc` / `2ed6cbba`）**启用了 Model Runner V2 | `ValueError: Sparse KV offload doesn't support model_runner_v2 now.`（仅旧版拒绝；`v0.30.0` 与 `main` 已支持 MRV2，DSpark 强制要求 MRV2，见[版本差异](#版本差异)） |
 | 热槽数小于 `index_topk` | `ValueError: sparse_kv_offload_config.topk_buffer_size must be >= topk` |
 
 再往后是建对象和分配内存时的检查：热槽数不能被块大小整除 → `ValueError: … must be divisible by block_size` [C5]；主 cache 同时开着 sparse SFA C8 量化 → `NotImplementedError`，报文里写明 indexer 那份 C8 不受影响 [C2]；缓存规格里没有「放在主机」的层、或全部都在主机 → `ValueError`，因为设备侧至少要留 indexer；各缓存组的块大小不一致 → `ValueError: Sparse KV offload memory planning requires one shared block size`，GLM 这类多组混合缓存卡在这里（按代码推断，未实跑）[I][C10]。运行中还有两条：一步的行数超过预留的工作区、metadata 里缺请求编号映射，都直接抛错 [C8]。
 
 还有两条和硬件有关：设备型号不是 A3 → `RuntimeError: Sparse KV offload is only support on A3`，发生在建管理器时，比上面那些配置检查更晚 [C18]；自定义算子没编进来 → `RuntimeError`，报文里直接提示「Rebuild vllm_ascend_C with Atlas A3 support」[C19]。
 
-配置通过后若报 `Sparse KV offload offload.initialize failed.`，还要检查主机注册内存是否实际分配成功。后续官方指南把连续主机内存不足列为主要原因，并回链 MemFabric 前置检查；`free -h` 的总可用量不能替代 A3 的连续内存扫描。按[官方前置检查](https://github.com/vllm-project/vllm-ascend/blob/921ccc52/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L662-L686)查看 `mem_scan.py` 的 1 GiB 与 2 MiB 扫描结果，再调整每 DP 预算或 DP 数。内存整理是有条件的运维操作，不是每次启动必执行的步骤。
+配置通过后若报 `Sparse KV offload offload.initialize failed.`，还要检查主机连续物理内存与锁页注册是否实际分配成功。后续官方指南把连续主机内存不足列为主要原因，并回链 MemFabric 前置检查；`free -h` 的总可用量不能替代 A3 的连续内存扫描。按[官方前置检查](https://github.com/vllm-project/vllm-ascend/blob/921ccc52/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L662-L686)查看 `mem_scan.py` 的 1 GiB 与 2 MiB 扫描结果，再调整每 DP 预算或 DP 数；锁页注册配额（`memlock`）、容器 `/dev/shm` 与宿主机 `HugeTLB` 大页池的排查步骤见[锁页内存注册三要素](host-memory-and-hugepages.md#mooncake--ascend-store-的锁页内存注册三要素)与[容器及宿主机稳态四件套](host-memory-and-hugepages.md#容器---shm-sizedevshmmemlock-与宿主机内核稳态四件套)。内存整理是有条件的运维操作，不是每次启动必执行的步骤。
 
 在 GLM 的块大小（640）上，示例里的默认热缓冲 4,096 除不尽，照抄就起不来 [!]；既要不小于 `index_topk` = 2,048、又要是 640 的整数倍，最小可用值是 2,560 [D]。
 
@@ -366,7 +369,7 @@ $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 51
 
 - **全不命中的载荷有多大**：GLM 变体估算只计 2,048 个主体位置为每步每卡 3 GiB，另计最多 3 个尾部为 4.5 MiB；TP8 各搬各的。是否划算还取决于带宽、同步及容量收益 [D]。
 - **热缓冲是定额显存**，按「一步最多几个查询行 × 每行热槽数 × 每个槽的字节」一次开满，两块缓冲一起分配 [C11]。
-- **主机池要锁页**，并按 2 MiB 对齐，每个主机层预留三份对齐余量；三条上限里哪一条卡住会写进日志。
+- **主机池要锁页并按 `2 MiB` 地址对齐**，每个主机层预留三份对齐余量（`3 × 2 MiB`）；注意框架侧 `2 MiB` 地址对齐预留不自动证明底层分配自 Linux `HugeTLB` 静态大页，实际大页来源须通过 `/proc/meminfo` 等接口单独核验（见[静态大页观测口径](host-memory-and-hugepages.md#静态大页hugetlb怎样工作2-mib1-gib-与观测口径)），三条上限里哪一条卡住会写进日志。
 - **TP 大于 1 时，每个启用卸载的稀疏层有一次广播式等待**，确保 rank 0 的新行写完再各自搬。
 - **适合开**：上下文很长、显存装不下全部历史，且相邻步选中的位置重合度高（热缓冲命中率高），部署本来就是 PD 分离。
 - **别开**：硬件不是 Atlas A3（本部署的 Atlas 800 A2 就在此列，连管理器都建不起来）[D]；上下文不长（热缓冲这笔定额显存比省下的还多）；模型不是 SFA/MLA 这类稀疏 attention 模型；缓存是混合布局；只有 PD 合置。

@@ -3,7 +3,8 @@ id: large-scale-ep
 title: 大规模 EP：请求路由、专家域与跨机通信
 type: feature
 legacyAnchors:
-  放到-glm-双机ep16-是跨机的第一档: 复杂异构实战对照：GLM 双机 EP16 跨机第一档
+  放到-glm-双机ep16-是跨机的第一档: 双机-16-卡对照ep16-跨机第一档与外置-72-服务差异
+  复杂异构实战对照glm-双机-ep16-跨机第一档: 双机-16-卡对照ep16-跨机第一档与外置-72-服务差异
 summary: 从单个专家组扩展到多服务器，区分外部请求路由、组内专家通信和 P/D 状态传输，并解释服务端点与进程的区别。
 aliases:
   - Large-Scale EP
@@ -133,7 +134,7 @@ rawSources:
 
 ## 大规模 EP 是什么？
 
-**大规模 EP（large-scale EP，也叫 wide-EP）是把 MoE 模型的专家并行铺到很多台机器上：几十到上百张卡合起来只放一套专家，每张卡只分到很少几个；token 每层都要在这整组卡之间来回交换，其中很大一部分要跨机器。**
+**大规模 EP（large-scale EP，也叫 wide-EP）把 MoE 模型的路由专家摊到多台服务器上：几十到上百张卡合起来只保存一套完整专家，每张卡只常驻很少几个。** 算到每个 MoE 层时，token 都要在这整组卡之间派发和收回，大部分交换需要跨机器完成。
 
 ```wiki-diagram
 file: large-scale-ep-plate-cutaway
@@ -318,15 +319,15 @@ file: large-scale-ep-fig-hierarchy-comm
 - **decode 跳过 DP 同步的额外排除项**：先满足 `kv_consumer`、关闭分层通信且 decode 走 `MC2/FUSED_MC2`。在此之上，`v0.30.0` 明确排除了 `MegaMoe` 路径并要求 prefill 侧图模式不区分 P/D；`main` 进一步排除细粒度 `qkv_iproj_tensor_parallel_size > 1`。
 - **严格配置校验**：`v0.30.0` 起 `additional_config` 默认启用严格字段校验，照抄早期文档中的废弃键会直接触发启动报错（四版对照见文末[版本差异](#版本差异)）。
 
-## 复杂异构实战对照：GLM 双机 EP16 跨机第一档
+## 双机 16 卡对照：EP16 跨机第一档与外置 72 服务差异
 
-**GLM 双机的 EP16 已经是跨机 EP：16 张卡分在两台 A2 上，每卡 18 个路由专家，每层的 dispatch 和 combine 有一部分要跨机器。但它的部署形态不是大规模 EP：只有一个 API server，第二台机器以 headless 方式加入，没有外部 proxy，也没有 PD 分离。本站没有超出 EP16 的部署和实测，下面把 EP16 当作基线。**
+**GLM-5.3-Flash 双机算例（固定快照 `db701c1f`，`2×A2×8`、`TP8/DP2/EP16`、`W8A8`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）的 EP16 已经是跨机 EP：16 张卡分在两台 A2 上，每卡 18 个路由专家，每层的 dispatch 和 combine 有一部分要跨机器。但它的服务组织仍停在内置模式——单 API server 配第二台 headless 节点，既无前文 4P4D 示例那样的 72 个独立外置服务与外部 proxy，也没有做 PD 分离（本站无超过 EP16 的实测，下面以 EP16 为跨机第一档对照）。**
 
-部署前提（两台 Atlas 800T A2、每台 8 张卡、TP8/DP2/EP16、W8A8 权重）见[部署前提](glm-5-3-flash-two-node.md#部署前提)。16 张卡按「DP 组号 × 8 + 本机卡号」编号，EP 组就是全部 16 张卡（见 [16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。288 个路由专家按编号连续分：卡 r 放 18r 到 18r + 17 号，机器 0 的 8 张卡合起来放 0–143 号，机器 1 放 144–287 号（见 [EP 页的分法](expert-parallel.md#16-张卡怎样分专家)）。
+16 张卡按「DP 组号 × 8 + 本机卡号」编号，EP 组就是全部 16 张卡（见 [16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。288 个路由专家按编号连续分：卡 r 放 18r 到 18r + 17 号，机器 0 的 8 张卡合起来放 0–143 号，机器 1 放 144–287 号（见 [EP 页的分法](expert-parallel.md#16-张卡怎样分专家)）。
 
-**为什么是两台：正好踩中 A2 的 MC2 最小档。** 若放进单机 8 卡，EP 只有 8、每卡 36 个专家，A2 选 MC2 的两条规模条件全不满足；铺到两台 16 卡后，每卡降到 18 个专家、EP 正好 16，满足门槛。在部署页的语言模型权重子账算例中，KV cache 可分配块数约为单机的 2.5 倍（该子账未扣视觉塔、MTP 旋转矩阵与量化辅助张量，不能当实机容量，唯一出处见[为什么是两台机器](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)）。
+**为什么是两台：每卡专家从 36 降到 18，正好踩中 A2 的 MC2 最小档。** 若放进单机 8 卡，EP 只有 8、每卡 36 个专家，A2 选 MC2 的两条规模条件全不满足；铺到两台 16 卡后，每卡从 **36 个降到 18 个专家**、EP 正好 16，满足门槛。在部署页的语言模型权重子账算例中，KV cache 可分配块数约为单机的 2.5 倍（该子账未扣视觉塔、MTP 旋转矩阵与量化辅助张量，不能当实机容量，唯一出处见[为什么是两台机器](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)）。
 
-**入口仍是内置分派。** 机器 0 起 API server、DP 协调进程和 DP 组 0 的 EngineCore；机器 1 用 headless 方式启动，不起前端，只有 DP 组 1 的 EngineCore（进程清单见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。请求由机器 0 的前端按排队打分派到两组之一，没有前面那种一个 rank 一个服务的外置分派。
+**入口仍是内置分派。** 机器 0 起 API server、DP 协调进程和 DP 组 0 的 EngineCore；机器 1 用 headless 方式启动，不起前端，只有 DP 组 1 的 EngineCore（进程清单见[双机部署里一共有哪些进程](engine-processes.md#双机部署里一共有哪些进程)）。请求由机器 0 的前端按排队打分派到两组之一，不同于前文 4P4D 示例中每个 DP rank 自成一个服务（共 72 个 HTTP 服务端点）的外置分派。
 
 **通信和负载的基线。** 下表的数都已在别页推导，这里只汇总。场景 M 是[并发请求](concurrent-requests.md#示例场景-m-与变体-m)页的示例：机器 0 上 12 条请求在 decode、同时来了一条 6000 个 token 的新请求，机器 1 上 7 条请求在 decode。
 
@@ -337,7 +338,7 @@ file: large-scale-ep-fig-hierarchy-comm
 | 场景 M | 两台一起换成 All-Gather，所列张量载荷约 4.15 GiB/卡/步，实际链路流量另测 | [并发请求的第 4 站](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛) |
 | 每卡专家计算行数（理想均分） | 纯 decode 38 行，场景 M 6048 行 | [EP 页的每卡账](expert-parallel.md#场景-m-的每卡账权重均分工作量看路由) |
 
-场景 M 就是前面「一个 rank 拖走全组」的双机版：只有机器 0 来了长 prefill，机器 1 的 7 条 decode 也被补齐到同样的行数、一起换路。EP16 的这些数是上界或理想均分：MC2 的交换量按每个 token 的 8 份都发出去算，其中哪几份落到另一台机器，取决于这一步的路由；每卡实际收到多少行，要看专家的冷热。热门专家集中在一张卡上时，这一层要等它算完；本部署没有开 EPLB，也没有冗余专家（见[这套部署有没有开 EPLB](expert-parallel.md#这套部署有没有开-eplb)）。
+场景 M 就是前面「一个 rank 拖走全组」的双机版：只有机器 0 来了长 prefill，机器 1 的 7 条 decode 也被补齐到同样的行数、一起换路。EP16 的这些数是上界或理想均分：MC2 的交换量按每个 token 的 8 份都发出去算，其中哪几份落到另一台机器，取决于这一步的路由；每卡实际收到多少行，要看专家的冷热。热门专家集中在一张卡上时，这一层要等它算完；本部署没有开 EPLB，也没有冗余专家（见 [EP 页的专家放置与 EPLB 说明](expert-parallel.md#16-张卡怎样分专家)）。
 
 **再往上扩要重核什么。** 把 GLM 铺到更多机器，每卡专家数、MC2 的两条规模条件、容量门槛、跨机的比例、是否外置分派与 PD 分离，都要按新的配置重新核对；本站没有这类部署的数字，不能把上表当作更大组的效果。
 
@@ -406,7 +407,7 @@ file: large-scale-ep-fig-hierarchy-comm
 
 ### 版本差异
 
-按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机 EP16 算例沿用例外 B 专用镜像 `db701c1f`**（其文档与示例与 `v0.23.0` 一致）。四族硬件动态选路细节见 [MoE 通信派发](moe-comm-dispatch.md#四族硬件调度状态机hardware_profilepy--ascend_forward_contextpy)。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文双机 EP16 算例对应历史专用镜像 `db701c1f`**（其文档与示例与 `v0.23.0` 一致）。四族硬件动态选路细节见 [MoE 通信派发](moe-comm-dispatch.md#四族硬件调度状态机hardware_profilepy--ascend_forward_contextpy)。
 
 | 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 | --- | --- | --- | --- | --- |

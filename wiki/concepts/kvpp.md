@@ -2,6 +2,8 @@
 id: kvpp
 title: KVPP：KV cache 按层分给各卡常驻，算到时整层广播
 type: feature
+legacyAnchors:
+  放到-glm-双机这套部署能开-kvpp-吗: 混合注意力边界kda-与稀疏-mla-共池为何无法套用-kvpp整层广播有多大
 summary: >-
   TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2
   个暂存区，算到某层时由常驻卡提前一层整层广播。对照 GQA（如 Qwen3-8B）为何无需 KVPP，讲清分法、容量账、广播与等待，以及
@@ -268,13 +270,11 @@ file: kvpp-flow
 
 下排是每步前向：本批没有任何带历史的请求就整步不广播；否则一开头发第 0 层，之后每层在首次访问缓存前等本层到位、随即发下一层，再做 attention 和其余计算。图按 MLA 的投影位置示意；SFA 融合路径在融合预处理前等待。
 
-## 放到 GLM 双机：这套部署能开 KVPP 吗？
+## 混合注意力边界：KDA 与稀疏 MLA 共池为何无法套用 KVPP，整层广播有多大
 
-前面讲到，KVPP 要求全模型所有缓存组都是统一块长的纯全注意力层（`FullAttentionSpec`），目前仅面向非混合 MLA/SFA 模型开放。那么遇到像 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`）这样的**异构混合架构**，卡点究竟出在哪儿？
+KVPP 要求全模型所有缓存组都是统一块长的纯全注意力层（`FullAttentionSpec`），目前仅面向非混合 MLA/SFA 模型开放。放到 **GLM-5.3-Flash 双机算例**（固定快照 `db701c1f`，`2×A2×8`，`TP8 / DP2 / EP16`，`W8A8`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）这样的混合注意力架构上，除了旧快照早于 KVPP 合入外，即便切到内置 KVPP 的 `v0.30.0` 或 `main`，启动校验也会报错拦截（`KVPP currently supports only non-hybrid MLA models.`）：主干 45 层里有 34 层是按头切分定长递推状态的 [KDA](linear-attention.md) 线性注意力，只有 11 层是稀疏 MLA，两类状态共用同一个物理块池，无法套用单一 `FullAttentionSpec` 预算与整层广播计划（同时 KVPP 仅放行 `eager` 或 `PIECEWISE` 图模式，不支持双机默认开启的全图 Decode 回放）。
 
-除了该双机案例所钉住的旧镜像本身早于 KVPP 合入外，即便切到内置 KVPP 的 `v0.30.0` 或 `main`，启动校验也会明确拦截（报 `KVPP currently supports only non-hybrid MLA models.`）：GLM 主干 45 层里有 34 层是按头切分定长递推状态的 [KDA](linear-attention.md) 线性注意力，只有 11 层是稀疏 MLA，两类截然不同的状态共用同一个物理块池，无法套用 KVPP 单一 `FullAttentionSpec` 预算与整层广播计划（同时 KVPP 仅放行 `eager` 或 `PIECEWISE` 图模式，不支持双机默认开启的全图 Decode 回放）。
-
-尽管启动校验拦住了混合模型，借用 GLM 双机那 11 层稀疏 MLA 的真实字节尺寸做一次**静态变体推演**（无实现、无实测，仅作机制标尺），恰好能把“MLA 去重能省多少字节”与“整层广播每步到底要搬多大体量”两本账算得清清楚楚：
+尽管混合模型无法启用 KVPP，借那 11 层稀疏 MLA 的真实字节尺寸做一次**静态变体推演**（无实现、无实测，仅作容量与带宽推算），能清楚对比“MLA 去重省下的字节”与“整层广播每步搬运的体量”：
 
 ### GLM 的哪一部分缓存，正是 KVPP 想省的？
 
@@ -404,7 +404,7 @@ KVPP 的 Mooncake 对象使用独立拓扑命名空间，不能复用普通复�
 
 **`v0.30.0` 与 `main` 均保留 KVPP 的 `TP × PCP` 复制域与连接器白名单边界。** 关闭时 `size = 1`，开启后由 `TP × PCP` 推导，`DCP > 1` 仍被拒绝；共享存储允许 `AscendStoreConnector`，PD 在 `v0.30.0` 允许 `MooncakeConnectorV2`、`main` 新增 `MooncakePushConnector`（两者均支持 `MultiConnector` 且在 `kv_consumer` 上必须关闭 KVPP）。它仍限定非 hybrid MLA，不能把 GLM 混合缓存的每一组都按该尺寸均分，也不能把 `TP × PCP` 当成 DP 或 PP 数。
 
-按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；例外 B GLM 固定基线 `db701c1f` 同样不含 KVPP 且将 GLM 声明为混合模型，上游 `vllm@0fc695fc` / `vllm@ced6857a` / `vllm@ba15685a` 均不含 KVPP（属 `vllm-ascend` 独有特性）。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；历史 GLM 固定基线 `db701c1f` 同样不含 KVPP 且将 GLM 声明为混合模型，上游 `vllm@0fc695fc` / `vllm@ced6857a` / `vllm@ba15685a` 均不含 KVPP（属 `vllm-ascend` 独有特性）。
 
 | 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|

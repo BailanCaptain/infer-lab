@@ -3,6 +3,8 @@ id: collective-communication
 title: 通信基础：rank 之间怎样交换和归约张量
 type: concept
 origin: gap
+legacyAnchors:
+  放到-glm-双机一个-token-会在哪里通信: 双机-16-卡混合部署一个-token-在主干-218-个边界怎样通信
 summary: >-
   集合通信规定一组参与者怎样交换数据以及结束后每张卡持有什么：用 2 卡与 4 卡分格图演示八种通信操作与 ring All-Reduce，区分逻辑载荷与链路传输量、机内 HCCS/UB 与跨机 RoCE 带宽悬崖，再沿 GLM 双机解释 HCCL 与 MC2。
 aliases:
@@ -148,7 +150,7 @@ file: collective-communication
 
 当一张卡只拿到结果的一部分时：缺了别人的分片，要收集；形状齐了但数值只是部分和，要归约；下一个计算在另一张卡上，要把输入送过去。下一步要用的数据尚未就绪时，计算就得等待通信。
 
-真实部署里，一次前向要经过很多交接点：普通稠密层在 attention（读取历史信息）的输出投影后、MLP（逐位置前馈变换）的降维后各合齐一次；MoE 层还要为专家分发、返回和合并安排通信。高频逐层同步的通信组必须锁在机内高速互联（`HCCS`，即华为芯片间高速互联总线，或 `Unified Bus` 统一互联总线）内，低频交接才适合跨机走 `RoCE`（基于以太网的 RDMA 远程直接内存访问网络，物理链路规格见[硬件带宽对照](hardware-devices.md#官方带宽规格能说明什么)与后文标尺；历史 GLM 双机的逐层交接账单见[后半段 GLM 双机一节](#放到-glm-双机一个-token-会在哪里通信)）。
+真实部署里，一次前向要经过很多交接点：普通稠密层在 attention（读取历史信息）的输出投影后、MLP（逐位置前馈变换）的降维后各合齐一次；MoE 层还要为专家分发、返回和合并安排通信。高频逐层同步的通信组必须锁在机内高速互联（`HCCS`，即华为芯片间高速互联总线，或 `Unified Bus` 统一互联总线）内，低频交接才适合跨机走 `RoCE`（基于以太网的 RDMA 远程直接内存访问网络，物理链路规格见[硬件带宽对照](hardware-devices.md#官方带宽规格能说明什么)与后文标尺；双机 16 卡的逐层交接账单见[双机 16 卡混合部署](#双机-16-卡混合部署一个-token-在主干-218-个边界怎样通信)）。
 
 [TP](tensor-parallel.md) 分同一层的矩阵，[EP](expert-parallel.md) 分完整专家，[DP](data-parallel.md) 分请求或批次；它们决定谁负责计算。集合通信决定计算中间怎样交接数据。推理 DP 没有训练时的梯度同步，但在跨组共享专家或协同调度时仍需跨组交换专家输入和运行状态。
 
@@ -261,7 +263,7 @@ file: collective-communication-all-reduce
 
 第 1 步和 Reduce-Scatter 一样，卡 $k$ 得到第 $k$ 块的和；第 2 步和 All-Gather 一样，卡 $k$ 把这块和发给其余每张卡。结束后四张卡都是 `[1111, 2222, 3333, 4444]`。每卡输入和输出都是 $M$ 字节，元素个数没有增加。
 
-它适合矩阵分片产生的部分和：各卡先算自己的贡献，再合成同一份结果。[TP](tensor-parallel.md) 把一层的一对矩阵先按列、再按行切给各卡后，每张卡得到形状完整、数值只算了一部分的结果，一次 All-Reduce 就把它们加齐，正是开头两张卡的例子；GLM 里的次数和字节见[从嵌入到逐层投影](#从嵌入到逐层投影)。CPU 上的 DP 状态同步也会用 All-Reduce，见[GLM 双机一节](#放到-glm-双机一个-token-会在哪里通信)。它在环上怎样一步步完成，见[下一节](#ring-all-reduce-每一步在传什么)。
+它适合矩阵分片产生的部分和：各卡先算自己的贡献，再合成同一份结果。[TP](tensor-parallel.md) 把一层的一对矩阵先按列、再按行切给各卡后，每张卡得到形状完整、数值只算了一部分的结果，一次 All-Reduce 就把它们加齐，正是开头两张卡的例子；GLM 里的次数和字节见[从嵌入到逐层投影](#从嵌入到逐层投影)。CPU 上的 DP 状态同步也会用 All-Reduce，见[双机 16 卡混合部署](#双机-16-卡混合部署一个-token-在主干-218-个边界怎样通信)。它在环上怎样一步步完成，见[下一节](#ring-all-reduce-每一步在传什么)。
 
 ### All-to-All
 
@@ -348,9 +350,9 @@ file: coll-comm-fig-hccs-vs-roce
 2. **微基准未重叠归约已盖过计算节省，但线上服务态重叠度与分项份额仍待实测。** 在 `M=2048` 独立微基准中，单次分片计算省下 `~186 µs`，一次未重叠 `HCCS` `All-Reduce` 却付出 `~524 µs`（`0.0 µs` 重叠为该独立 `16 MiB` 微基准的观测值）。放回 36 层 `Qwen3-8B` 服务态，启用多卡 TP 时源码每批存在 `36 × 2 = 72` 个行并行归约位置；实测 `TP=1 → 8` 在 `c ≤ 16` 呈现单调负扩展（`c=16` 吞吐 `195.28 → 160.38 tok/s`，详见 [Tensor Parallel 负扩展剖析](tensor-parallel.md#ascend-910b3-实测qwen3-8b-从-tp1-扩到-tp8-为何出现负扩展)），线上服务态的通信重叠度与固定 `u` 下 KV 池布局嫌疑的各自时延份额均待线上设备时间线拆分。务必守住载荷口径：单 token Decode（`c=1`）每次归约仅 `[1, 4096] × 2 B = 8 KiB`（`c=16` 为 `128 KiB`），绝不能拿 `16 MiB` 微基准的 `525.1 µs × 72` 去算单 token 耗时。
 3. **A2 上 `EP=4/8` 选 `ALLGATHER` 路线，但跨 DP 的 `All-Gather / Reduce-Scatter` 受 `dp_size > 1` 门槛控制。** 在 `v0.30.0` 的 A2 硬件画像（`CAPACITY_AND_EXPERT_DENSITY`）下，无 LoRA 时需要 `ep_world_size >= 16` 才进入 `MC2`；因此 910B3 上 `Qwen3-30B-A3B` 的 4 卡 `TP4+EP4`（`DP=1`）与 8 卡 `DP2+TP4+EP8`（`DP=2`）均按源码选 **`ALLGATHER` 策略**（而非 `All-to-All` 或 `MC2`）。但 `prepare_finalize.py` 中的跨 DP `all_gather`（收集 hidden states 与 router logits）与 `_finalize_with_dp_group` 里的跨 DP `reduce_scatter` 均显式受 `if self.moe_config.dp_size > 1:` 门槛控制：**四卡 `TP4+EP4`（`dp_size = 1`）不执行这段跨 DP 通信，也无空闲 DP dummy batch；只有八卡 `DP2+TP4+EP8`（`dp_size = 2`）才进入跨 DP 的 `All-Gather / Reduce-Scatter` 与空闲 DP 同步推进。** 切勿把这两组的通信误写成已测得的逐层 `All-to-All`，也不可把 `dp_size > 1` 的跨 DP 通信套到四卡 `EP4/DP1` 头上。
 
-## 放到 GLM 双机：一个 token 会在哪里通信？
+## 双机 16 卡混合部署：一个 token 在主干 218 个边界怎样通信？
 
-上面走完了通用 2 卡 / 4 卡原语、Ring 算法与机内/跨机带宽规律。下面转入本站 `09 旗舰异构模型全案` 的历史双机绑定算例（`vllm@0fc695fc + vllm-ascend@db701c1f`，双机 `2×A2×8`，`TP8 / DP2 / EP16`）：**A0 启动时建立通信组，A4 前向时反复使用这些组。** [双机部署的 16 卡分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)给出具体成员：两套机内 TP8 合算本机矩阵；八个跨机 DP2 组连接对应卡；EP16 覆盖全部卡共享专家。HCCL 是集合通信库，HCCS 是机内互联，分属两层；CPU 状态同步走 Gloo（PyTorch 面向 CPU 进程间通信的集合通信后端），不能全算作 HCCL 流量。
+把上面的通信原语落回 **GLM-5.3-Flash 双机算例**（固定快照 `vllm@0fc695fc + vllm-ascend@db701c1f`，双机 `2×A2×8`，`TP8 / DP2 / EP16`）：**A0 启动时建立通信组，A4 前向时反复使用这些组。** [双机部署的 16 卡分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)给出具体成员：两套机内 TP8 合算本机矩阵；八个跨机 DP2 组连接对应卡；EP16 覆盖全部卡共享专家。HCCL 是集合通信库，HCCS 是机内互联，分属两层；CPU 状态同步走 Gloo（PyTorch 面向 CPU 进程间通信的集合通信后端），不能全算作 HCCL 流量。
 
 以下沿用[条件性基线](../sources/glm-5-3-flash-baseline.md)：SP（把 token 行分给组内成员的序列并行）关闭，共享专家 DP 与归约替换也未启用。因此嵌入与投影保留完整 token 行，MoE 使用下文的补齐、切分和收尾路径。环境变量默认关闭不足以证明这些运行条件，配置与共享专家初始化还可能改变最终状态。
 
@@ -468,7 +470,7 @@ ring 公式只是有效传输模型；真实耗时还受启动次数、拓扑跳
 
 ### 版本差异
 
-八种通信原语的输入输出数学语义不随框架版本改变，跨版本演进集中在**设备通信器封装、HCCL 组缓冲去重与四族硬件 MoE 通信选路策略**（前文 GLM-5.3-Flash 双机算例固定在例外 B 钉点 `vllm-ascend@db701c1f + vllm@0fc695fc`，其 A2 选路主规则与下表 `v0.23.0` 一致，不混套新版本档位与默认值）：
+八种通信原语的输入输出数学语义不随框架版本改变，跨版本演进集中在**设备通信器封装、HCCL 组缓冲去重与四族硬件 MoE 通信选路策略**（前文 GLM-5.3-Flash 双机算例固定在历史专用镜像钉点 `vllm-ascend@db701c1f + vllm@0fc695fc`，其 A2 选路主规则与下表 `v0.23.0` 一致，不混套新版本档位与默认值）：
 
 | 核对维度 | `v0.23.0` (`2c59ff10` / `0fc695fc`) | `v0.26.0rc` (`2ed6cbba` / `568afb3a`) | `v0.30.0` (`c09d3e20` / `ced6857a`) | `main` (`8d6180e2` / `ba15685a`) |
 | --- | --- | --- | --- | --- |
@@ -486,9 +488,9 @@ ring 公式只是有效传输模型；真实耗时还受启动次数、拓扑跳
 - `v0.30.0` 上游通信底座：`GroupCoordinator` 的 `all_reduce / all_gather / reduce_scatter` 与缺失通信器异常 [C5]；`DeviceCommunicatorBase` 原地 `dist.all_reduce`（单成员组直接返回输入）与 `all_gather_into_tensor / reduce_scatter_tensor` [C6]；PP 张量字典 `send_tensor_dict / isend_tensor_dict / irecv_tensor_dict`（注意其切片发送与组内重组优化要求待传张量在组内完全复制，SP 分片 residual 不可仅因长度可整除就启用该优化）[C7]。
 - `v0.30.0` 昇腾通信实现：`PyHcclCommunicator` 独立输出分配、绑定设备校验与握手 `broadcast`（存在该类不代表主干默认经过它）[C10]；其余 `v0.23.0 / v0.26.0rc / main` 源码锚点对应 `sources` 第 18–19、21–23、26–27 项。
 - `Ascend 910B3` 真机微基准与端到端实测：`TP=4` HCCS `All-Reduce` 耗时（`525.10 / 522.66 µs`、独立微基准重叠 `0.0 µs`、单次 transit `25.17 MB`、聚合 `17.71 ~ 17.74 GB/s`、矩阵边样本 `17.63 ~ 17.93 GB/s`）原始摘录见 `sources` 第 42 项 [M42]，单卡 `MatMulV3` 对照均值 `256.61 µs` 见第 43 项 [M43]，`Qwen3-8B` `TP=1→8` 端到端负扩展数据见第 44 项 [M44]；A2 `ALLGATHER` 路径下受 `dp_size > 1` 门槛控制的跨 DP `all_gather` 与 `reduce_scatter`（四卡 `EP4/DP1` 不执行）见 `prepare_finalize.py:453-465, 552-569`（第 45–46 项），完整实测基线与边界见 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
-- 例外 B（`db701c1f + 0fc695fc`）双机算例支撑：上游组封装、PP 发送与 DP/EP 建组对应 `sources` 第 29–31 项；A2 容量分流、MC2 补齐切分与 finalize 去补位、AllGather 路径两次收集加 DP `Reduce-Scatter`、dispatch/combine v2 检测与回退、共享专家多流事件重叠与外层归约及 SP 优先级条件对应 `sources` 第 33–40 项（原始摘录留存 `sources` 第 41 项及 `rawSources`）。正文的 218 次调用边界、91 次 All-Reduce 与每层 MoE 四个边界均限定于 SP 及共享专家 DP 未启用的基线条件。
+- 历史专用镜像（`db701c1f + 0fc695fc`）双机算例支撑：上游组封装、PP 发送与 DP/EP 建组对应 `sources` 第 29–31 项；A2 容量分流、MC2 补齐切分与 finalize 去补位、AllGather 路径两次收集加 DP `Reduce-Scatter`、dispatch/combine v2 检测与回退、共享专家多流事件重叠与外层归约及 SP 优先级条件对应 `sources` 第 33–40 项（原始摘录留存 `sources` 第 41 项及 `rawSources`）。正文的 218 次调用边界、91 次 All-Reduce 与每层 MoE 四个边界均限定于 SP 及共享专家 DP 未启用的基线条件。
 
 **待核**
 
-- GLM 双机固定镜像（例外 B）仍缺少对应双机 HCCL / CANN 运行时的实际算法选择与跨机 RoCE / MC2 通信 trace，尚不能给出双机网卡收发实测字节、MC2 同目的卡副本合并策略或 GLM 真实通信耗时；已补充的 910B3 单机 `TP=4` 微基准数据仅代表该 `16 MiB` 消息与四卡 HCCS 观测，不代表小消息或跨机 RoCE 实测；HCCL 官方文档用于核对原语语义，不代表已核实镜像内安装的库小版本。
+- GLM 双机历史固定镜像（`db701c1f`）仍缺少对应双机 HCCL / CANN 运行时的实际算法选择与跨机 RoCE / MC2 通信 trace，尚不能给出双机网卡收发实测字节、MC2 同目的卡副本合并策略或 GLM 真实通信耗时；已补充的 910B3 单机 `TP=4` 微基准数据仅代表该 `16 MiB` 消息与四卡 HCCS 观测，不代表小消息或跨机 RoCE 实测；HCCL 官方文档用于核对原语语义，不代表已核实镜像内安装的库小版本。
 - 底稿未列出启动期 Broadcast 的完整调用清单、张量长度与后端归属，本页不填假定的启动广播字节数。

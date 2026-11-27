@@ -3,7 +3,9 @@ id: kv-pool
 title: KV Pool：把算过的开头存进外部池，别的实例也能取回
 type: feature
 legacyAnchors:
-  放到-glm-双机这套部署没有开-kv-pool: 异构多缓存组段长推演与跨卡键命名规则
+  放到-glm-双机这套部署没有开-kv-pool: 多缓存组段长推演与跨卡键命名规则
+  复杂异构实战对照glm-双机为何未启用与段长推演: 多缓存组段长推演与跨卡键命名规则
+  异构多缓存组段长推演与跨卡键命名规则: 多缓存组段长推演与跨卡键命名规则
 summary: >-
   KV Pool（外部 KV 池）经 KV connector 把已算完的整段 KV 存入主机内存、SSD 或跨节点共享池；开头相同的请求先看本地 prefix caching 命中几段，池只补多出的整段。讲清查询取整、搬运与键命名规则，以及混合模型的多组段长边界。
 aliases:
@@ -236,7 +238,7 @@ origin: direct
 
 ## KV Pool 是什么？
 
-**KV Pool（外部 KV 池）是放在显存之外、多台推理实例都能访问的一块存储：实例把算完的整段 KV 存进去，之后开头相同的请求——哪怕落在另一台实例上——把这些段搬回自己的显存，就不用再算一遍。**
+**KV Pool（外部 KV 池）是放在显存之外、多个推理实例都能访问的一块存储：实例把算完的整段 KV 存进去，之后开头相同的请求——哪怕落在另一个实例上——把这些段搬回自己的显存，就不用再算一遍。**
 
 先认两个前置词。[KV cache](kv-cache.md) 是每一层为已经处理过的位置留下的历史（普通 attention 是 k、v，混合模型还有线性 attention 的状态），后面每一步都要回头读它。[prefix caching](prefix-caching.md) 在同一个实例的显存里复用相同开头的 KV cache：开头一样的请求直接指向已经算好的块。KV Pool 把这种复用搬到显存之外：池可以由主机内存、SSD 或别的节点的内存拼成。具体放在哪、能不能跨机器、重启后还在不在，取决于选用的存储后端和部署方式，不由「KV Pool」这个名字决定。
 
@@ -248,18 +250,18 @@ origin: direct
 file: kv-pool-intuition
 ```
 
-图里有两台实例。请求 A 先到实例 1，开头三段都自己算，算完经 connector 写进池，池按每段的内容指纹登记。请求 B 落在实例 2，开头与 A 相同，可本地显存里一段也没有；connector 去池里问，得知前三段都在，于是把它们搬回实例 2 的显存，B 只算自己不同的尾巴。池里存的是模型算出来的状态，不是文字；搬回来以后，它和本地算出来的 KV 没有区别，同样要占本地显存的块、由 [block table](block-table.md)（每条请求「第几块在显存哪一格」的对照表）指过去。
+图里有两个实例。请求 A 先到实例 1，开头三段都自己算，算完经 connector 写进池，池按每段的内容指纹登记。请求 B 落在实例 2，开头与 A 相同，可本地显存里一段也没有；connector 去池里问，得知前三段都在，于是把它们搬回实例 2 的显存，B 只算自己不同的尾巴。池里存的是模型算出来的状态，不是文字；搬回来以后，它和本地算出来的 KV 没有区别，同样要占本地显存的块、由 [block table](block-table.md)（每条请求「第几块在显存哪一格」的对照表）指过去。
 
 池按**整段**存取。一段是固定个数的连续位置，段有多长由各缓存组（共用一张块号清单的一批层）的块大小决定；池里的记录则按块登记，一块一条。只有一种缓存的模型里，一段就是一块，本页前半部分的例子都是这种情况；两者不一样时怎么办，下文「一次查询怎样算」细讲。
 
 ## 为什么需要：prefix caching 只认本机显存
 
-**prefix caching 只能复用本实例显存里还留着的块；KV Pool 让算过的开头在一个更大、多台实例共用的地方多留一阵，命中率才上得去。**
+**prefix caching 只能复用本实例显存里还留着的块；KV Pool 让算过的开头在一个更大、多个实例共用的地方多留一阵，命中率才上得去。**
 
 两种情况会让 prefix caching 落空。
 
 - **被挤掉。** 显存里的块有限，没人用的块排在空闲队列里，新请求一来就会被拿去重写（会计规则见 [prefix caching 的预算](prefix-caching.md#池子的预算怎么分满了怎么办)）。KV cache 页的示意模型里，一条 4,096 token 的请求就要占 512 MiB（推导见[存一份要多少](kv-cache.md#存一份要多少从一个位置一层往上乘)），同一时刻能留在显存里的开头并不多。
-- **落在别处。** 部署里有多台实例时，同一份文档的上一次提问多半落在另一台上；它的块在那台实例的显存里，这台看不见。
+- **落在别处。** 部署里有多个实例时，同一份文档的上一次提问多半落在另一个实例上；它的块在那个实例的显存里，当前实例看不见。
 
 池把这两种情况都接住：容量按主机内存或 SSD 算，比显存大得多；各实例按同一套规则给每段起名字，谁存进去的，别的实例都能按名字找到。Ascend 的设计文档给的理由也是这一条：只用片上内存时命中率有上限，把多级存储拼成一个池、让前缀对所有节点可见，命中率才能提高。
 
@@ -422,13 +424,11 @@ Mooncake 自己的新 SDK 文档还使用“嵌入 Real Client”和“独立 Re
 
 昇腾也有自己的 SSD 调用方式。在 `v0.30.0` 与 `main` 上，`AscendStore` 后端会检查已安装 SDK 是否接受 `enable_ssd_offload`，再把 SSD 参数交给贡献池内存的 worker 并按全局 rank 建子目录。调度器客户端不贡献池内存，也不注册 SSD。根目录必须是绝对路径，协议按该后端要求使用 `ascend`。这条 NPU 路径不能从上游 `enable_offload` 的预算分支反推，后续部署条件另见下方配置表。
 
-## 复杂异构实战对照：GLM 双机为何未启用与段长推演
+## 多缓存组段长推演与跨卡键命名规则
 
-### 异构多缓存组段长推演与跨卡键命名规则
+[历史 GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)未配置 KV 传输且默认关闭 prefix caching（见[五组缓存页面](prefix-caching.md#glm-双机上它开着吗)），未接入外部池；下面按该模型 5 组混合缓存规格与源码规则推演接入后的段长与键命名（无实跑，出现的字节数引自部署页块字节）。
 
-前面用单一缓存组模型（段长 = 块长）走通了 KV Pool 的查询取整、搬运与键命名规则。下面切换标尺，对照**例外 B 历史绑定算例**[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)。它的启动参数没有配置 KV 传输，且作为混合模型默认关闭 prefix caching（见 [prefix caching 在 GLM 双机上开着吗](prefix-caching.md#glm-双机上它开着吗)），因此 KV Pool 未启用。本节照镜像源码推演「假如打开」会怎样：无实跑，无吞吐、时延或命中率实测，出现的字节数均为部署页块字节。
-
-#### 只加 KV Pool、不开 prefix caching：短于最长长度的 prompt 不会查询
+### 只加 KV Pool、不开 prefix caching：短于最长长度的 prompt 不会查询
 
 GLM 在每张卡上有 5 个缓存组：full 组（稀疏 MLA 潜向量和 [sparse attention](sparse-attention.md) 索引器缓存，块长 640）、尾状态组（块长 4）以及 3 个 KDA 组（分组见 [KV cache 规格](kv-cache-spec.md#对齐成两档页编成五个组)）。KDA 是 GLM 使用的线性 attention，每层只存一份定长递推状态（见 [linear attention](linear-attention.md)）。
 
@@ -446,7 +446,7 @@ $$G_{\text{no-pc}} = \text{lcm}(640,\; 4,\; 133{,}120) = 133{,}120, \qquad G_{\t
 
 另外还有两处配合。接上 KV connector 后，GLM 补丁把识别前缀用的指纹粒度改成各组块长的最大公约数（4 个位置），这只决定指纹切多细、不改段长。同时 AscendStore 声明支持混合缓存管理器，vLLM 不会因为接了它就关掉混合缓存管理，而 GLM 离不开后者。
 
-#### 8 张卡存什么：潜向量存一份，KDA 状态各存各的
+### 8 张卡存什么：潜向量存一份，KDA 状态各存各的
 
 ```wiki-diagram
 file: kv-pool-glm-cards
@@ -485,7 +485,7 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 - `AscendStoreConnector` 挂在 vLLM V1 的 KV connector 接口上，同时实现 `SupportsHMA`。调度侧角色构造 `KVPoolScheduler`，执行侧构造 `KVPoolWorker`；只有 `parallel_config.rank == 0` 且没开逐层的 worker 起 `LookupKeyServer`（ZMQ REP 后台线程）。`KVPoolScheduler` 构造时也会用 `create_scheduler_client` 建一个后端客户端，逐层模式的查询（`_get_store_lookup_hit_tokens`）走它，不经过上面的 IPC。
 - `backend`：`mooncake`（默认）、`memcache`、`yuanrong`，按名字从注册表加载。
 - `lookup_rpc_port`：拼进 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>`；旧名 `mooncake_rpc_port` 仍认，但会告警。
-- `global_segment_size`：每张卡注册给池的内存，要按 1GB 对齐；环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先于它（宿主机 `vm.nr_hugepages` 静态大页池、`1 GiB` 段对齐与 `register_buffer` 锁页注册三要素详见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md#mooncake--ascend-store-的锁页内存注册三要素)）。
+- `global_segment_size`：每张卡注册给池的内存段配置，要按 `1 GiB` 对齐；环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先于它。排查启动失败时须把三件事分开核对：框架侧 `1 GiB` 段配置、容器 `memlock` 与 `register_buffer` 锁页注册配额，以及底层 Linux `HugeTLB` 静态大页池（分别见[锁页内存注册三要素](host-memory-and-hugepages.md#mooncake--ascend-store-的锁页内存注册三要素)与[静态大页工作原理及观测口径](host-memory-and-hugepages.md#静态大页hugetlb怎样工作2-mib1-gib-与观测口径)）。
 - 角色开关：`kv_role == "kv_consumer"` 且没开 `consumer_is_to_load` 时，`get_num_new_matched_tokens` 第一行就返回 0；`consumer_is_to_put` 管 D 写不写池；`load_async` 管异步加载。三者默认都是 false。
 - `discard_partial_chunks` 默认 true：查询与写入的长度向下取整到 `cache_transfer_granularity`。粒度 = lcm(各组块大小 × PCP × DCP，本 rank 各组的块大小 × cache family 压缩比)。
 - `VLLM_PREFIX_CACHE_RETENTION_INTERVAL`（vLLM 环境变量，默认不设）：设了以后，非逐层模式下 prompt 短于两倍间隔的请求不查。
@@ -544,7 +544,7 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 
 ### 版本差异
 
-按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机推演沿用例外 B 专用镜像 `db701c1f`（配套 `vllm@0fc695fc`）**。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文双机混合组推演对应历史专用镜像 `db701c1f`（配套 `vllm@0fc695fc`）**。
 
 | 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|

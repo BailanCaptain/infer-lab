@@ -3,7 +3,9 @@ id: kv-cache-layerwise-offload
 title: Layerwise KV offload：KV cache 一层一层搬，边算边搬
 type: feature
 legacyAnchors:
-  放到-glm-双机主线没开开了一层要搬多少: 异构层逐层载荷核算：12 层稀疏 MLA 与 34 层 KDA 状态口径
+  放到-glm-双机主线没开开了一层要搬多少: 异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径
+  复杂异构实战对照glm-双机为何未启用与每层搬运量: 异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径
+  异构层逐层载荷核算12-层稀疏-mla-与-34-层-kda-状态口径: 异构混合层逐层载荷12-层稀疏-mla-与-34-层-kda-状态口径
 summary: >-
   把 KV cache 在显存和外部存储之间的搬运从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。讲清重叠条件、省等上界（示意数）、共享槽保护，以及异构混合层的单层载荷核算。
 aliases:
@@ -328,11 +330,9 @@ $$\text{ratio} = \frac{1P + 2P}{8P} = \frac{3}{8} = 37.5\%$$
 
 这组保护从 v0.26 起存在于指定组合，旧版 `v0.23.0` 与历史快照没有。v0.26 由池连接器的 GVA 逐层条件接入，`v0.30.0` 与 `main` 改由实际 worker 的逐层传输条件接入，且 `main` 已把逐层布局与数据面拆入独立子包 `ascend_store/layerwise/` 解耦。保存入口会先处理负责关闭槽事件的连接器，再处理可能允许复用的池连接器；「本层已写好」的早期通知只是记录计算事件，不能代替这次关闭。这里解释的是物理槽的轮换，单独 Layerwise 的请求结束是否延迟还块仍看[连接器生命周期](mooncake-connector.md#完成通知块什么时候放请求什么时候算)。
 
-## 复杂异构实战对照：GLM 双机为何未启用与每层搬运量
+## 异构混合层逐层载荷：12 层稀疏 MLA 与 34 层 KDA 状态口径
 
-### 异构层逐层载荷核算：12 层稀疏 MLA 与 34 层 KDA 状态口径
-
-前面用均匀层的通用模型（4 层 / 8 层 / 32 层）算清了逐层流水与共享槽的代价。下面切入**例外 B 历史绑定算例**[官方双机部署](glm-5-3-flash-two-node.md#部署前提)：它的启动参数里没有 KV 传输配置，连外部池都没接，逐层搬无从谈起。下面只按底稿形状算「要是开了，每层要搬多少」，不给时间数字。
+[历史双机部署](glm-5-3-flash-two-node.md#部署前提)未配置 KV 传输、未接外部池；下面按其异构层与缓存页规格推算接入外部池后每层需搬运的字节规模（不含耗时数字）。
 
 GLM 的层很不均匀（见[模型结构](glm-5-3-flash.md)）：
 
@@ -357,7 +357,7 @@ $$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text
 file: kv-cache-layerwise-offload-fig-glm-cadence
 ```
 
-先说一件不是卡点的事：AscendStore 要求 KDA 这类线性 attention 状态用 align 缓存模式（按块边界留档，而非只留最新一份）。检测到接入 AscendStore 且为混合模型时，vllm-ascend 会把默认的 none 自动改成 align，所以这里不会报错。它带来的连带要求（GLM 上还要同时开 prefix caching，段长才落到 640）和成本见 [KV Pool 的 GLM 一节](kv-pool.md#放到-glm-双机这套部署没有开-kv-pool)，本页不重讲。
+先说一件不是卡点的事：AscendStore 要求 KDA 这类线性 attention 状态用 align 缓存模式（按块边界留档，而非只留最新一份）。检测到接入 AscendStore 且为混合模型时，vllm-ascend 会把默认的 none 自动改成 align，所以这里不会报错。它带来的连带要求（GLM 上还要同时开 prefix caching，段长才落到 640）和成本见 [KV Pool 的多缓存组段长推演](kv-pool.md#多缓存组段长推演与跨卡键命名规则)，本页不重讲。
 
 就算要开，钉住的 GLM 快照上还卡在两处（均按代码，未实跑）：
 
@@ -378,7 +378,7 @@ file: kv-cache-layerwise-offload-fig-glm-cadence
 
 ### 怎么开
 
-先让外部池可用，再开逐层。固定旧指南要求安装并配置 Memcache、启动 MetaService、加载 Memcache/MemFabric 环境，节点间统一 PYTHONHASHSEED；设备传输还要求足够的大页。大页数量须按本机页大小和预算计算，不能把指南里的 200000 页当作所有机器的通用值。后端与内存准备从 [KV Pool 的配置入口](kv-pool.md#怎么开)进入，设备连通性见[网络预检](cann-hccl.md#启动多机前先检查哪一层网络)。
+先让外部池可用，再开逐层。固定旧指南要求安装并配置 Memcache、启动 MetaService、加载 Memcache/MemFabric 环境，节点间统一 PYTHONHASHSEED；设备传输还要求足够的大页。大页数量须按本机页大小（`Hugepagesize`，常见 `2 MiB` 或 `1 GiB`）和池预算换算，不能把指南示例的 `200,000` 页（在 `2 MiB` 大页下约折合 `390.6 GiB`）当作所有机器的通用值——`HugeTLB` 页池换算与观测口径见[静态大页工作原理](host-memory-and-hugepages.md#静态大页hugetlb怎样工作2-mib1-gib-与观测口径)，池段配置、注册锁页配额与底层大页三者的区分见[锁页内存注册三要素](host-memory-and-hugepages.md#mooncake--ascend-store-的锁页内存注册三要素)。后端准备从 [KV Pool 的配置入口](kv-pool.md#怎么开)进入，设备连通性见[网络预检](cann-hccl.md#启动多机前先检查哪一层网络)。
 
 ```bash
 # GLM 快照 / v0.23 维护分支：逐层只支持 memcache 后端
@@ -456,7 +456,7 @@ Layerwise 推送的槽完成事件、发送前关闭和发送后释放见来源 
 
 `v0.30.0`（及 `7d825229` 快照）共享槽默认与分配见来源 46；`v0.30.0` 与 `main` 的 eager、角色和后端要求见 47–48，后续指南见 34。
 
-来源 49 是早期开发主线的完整算子注册函数，未登记旧 `KimiGatedDeltaNetAttention`；新版 Kimi K3 由 decoder 直接构造，不依赖这个旧替换项。固定 GLM 的真实旧注册和缺少逐层调用，统一见[Mooncake 的 GLM 条件](mooncake-connector.md#放到-glm-双机这套部署没有开-mooncake-连接器)。
+来源 49 是早期开发主线的完整算子注册函数，未登记旧 `KimiGatedDeltaNetAttention`；新版 Kimi K3 由 decoder 直接构造，不依赖这个旧替换项。固定 GLM 的真实旧注册和缺少逐层调用，统一见[Mooncake 的五组混合缓存推演](mooncake-connector.md#五组混合缓存的地址换算与-1p1d-搬运量推演)。
 
 `v0.30.0`（及 `7d825229` 快照）的默认预取、加载等待、末层队列排空与 KDA 空参数保存分别见来源 50–53；其 KDA 等待入口在同一文件的 549 行，位于状态读取前，不能只从文件末尾的保存调用判断完整时序。
 

@@ -5,9 +5,9 @@ type: param
 origin: seed
 evidence: C
 summary: >-
-  main 分支新增的门控增量网络（GDN）线性注意力 Prefill 内部检查点开关（默认 false）：设为 true 且满足
-  mamba_cache_mode="align"、BF16、PCP=1、head_dim=128 等条件时，以 64 token 对齐切走 Triton
-  分块算子导出 FP32 中间递推状态以提升前缀缓存复用率。
+  main 分支新增的门控增量网络（GDN）Prefill 内部检查点开关（默认 false）：通过层能力校验的 GDN
+  层在该非投机 Prefill 分支统一改走检查点版 Triton 递推算子；当本步 metadata.checkpoint 非空时，再按 64
+  token 对齐额外导出中间递推状态与短卷积窗口供前缀缓存复用。
 aliases:
   - additional_config.gdn_internal_prefill_checkpoints
   - GDN 内部检查点
@@ -41,15 +41,17 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625'
   - >-
     vllm-ascend@8d6180e2:docs/source/user_guide/configuration/additional_config.md#L332-L360
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/gdn.py#L829-L865'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/gdn_checkpoint.py#L84-L112'
 rawSources:
   - >-
     raw/sha256-a32318f528e820e35d2696b603125b541a63a9489e72352ceb5367f8b56b2f06.md
 ---
 ## 用途与配置入口
 
-在 Qwen3-Next 等含门控增量网络（Gated DeltaNet，简称 GDN，属[线性注意力](../concepts/linear-attention.md)家族）的混合架构模型里，层状态沿着序列一步步递推更新。默认 AscendC `FwdH` Prefill 算子一趟只算出整段序列末尾的终态——如果下一条请求只命中了前半段提示词（Prefix Caching），调度器因为拿不到中间块的递推状态快照，不得不退回切分重算。
+**它的作用是在长提示词算到中途时按固定间隔存下层状态快照，下次新请求命中前面那段提示词时就能直接从快照处接着算，不用从头重推。** 在 Qwen3-Next 等含门控增量网络（Gated DeltaNet，简称 GDN，递推机制见[线性注意力中的 GDN 与 KDA 递推](../concepts/linear-attention.md#四代递推规则演化从纯累加串味到-gated-deltanet-与-kda)）的混合架构模型里，层状态沿着序列逐步更新；默认的融合 Prefill 算子一趟只保留序列末尾的终态，一旦后续请求只命中前半段公共前缀，就会因为缺少中间块起点状态而被迫重算。
 
-`gdn_internal_prefill_checkpoints` 是 `main` 分支在 `--additional-config` 顶层提供的可选布尔开关（默认 `false`）。显式开启后，符合条件的 GDN 层会在 Prefill 阶段注册 `64` token 对齐粒度（`GDN_CHECKPOINT_ALIGNMENT = 64`），并在本步注意力元数据携带检查点计划（`metadata.checkpoint` 非空）时改走 Triton `chunk_gated_delta_rule_checkpoint` 算子，写出并导出规划块边界上的中间递推状态与卷积窗口快照供前缀缓存直接恢复：
+`gdn_internal_prefill_checkpoints` 是 `main` 分支在 `--additional-config` 顶层提供的可选布尔开关（默认 `false`，需搭配 `--mamba-cache-mode align` 开启前缀块对齐）。开启后须分清两件不同的运行时动作：第一，通过层能力校验且具备导出能力的 GDN 层（`_ascend_internal_checkpoint_enabled and _exports_checkpoints`），在这条非投机 Prefill 分支上会**始终改走检查点版 Triton 递推算子** `chunk_gated_delta_rule_checkpoint`（包括缓存命中后不产生新检查点的尾段，以保持冷请求与命中尾段的数值递推一致）。第二，**只有当本步 `metadata.checkpoint` 非空时**，才会向预留的 `FP32` 工作区写出并额外导出 `64` token 边界（`GDN_CHECKPOINT_ALIGNMENT = 64`）上的中间递推状态与短卷积窗口：
 
 ```bash
 vllm serve /models/Qwen3-Next-80B-A3B \
@@ -62,8 +64,8 @@ vllm serve /models/Qwen3-Next-80B-A3B \
 
 | 项 | 值 | 意味着什么 |
 | --- | --- | --- |
-| 配置入口 | `--additional-config '{"gdn_internal_prefill_checkpoints": true}'` | 默认 `false`（保持默认 AscendC `FwdH` Prefill 递推路径） |
-| 检查点对齐粒度 | `GDN_CHECKPOINT_ALIGNMENT = 64` tokens | 规划器按 64 token 边界对齐；前向仅在 `metadata.checkpoint` 非空时写出并导出对应中间状态 |
+| 配置入口与算子选路 | `--additional-config '{"gdn_internal_prefill_checkpoints": true}'`（默认 `false`） | 通过校验的层在该 Prefill 分支统一改走检查点版 Triton 递推（含无新检查点的命中尾段） |
+| 检查点对齐与导出条件 | `GDN_CHECKPOINT_ALIGNMENT = 64` tokens；判据 `metadata.checkpoint is not None` | 规划器按 `64` token 边界对齐；仅本步 `metadata.checkpoint` 非空时才写出工作区并导出中间递推状态与卷积窗口 |
 | 必需运行条件 | `mamba_cache_mode == "align"`、`dtype == bfloat16`、`PCP == 1`、未开 `--enable-dbo`（`use_ubatching`） | 任一条件不满足时 `initialize_gdn_checkpoints` 直接提前返回，保持原切分回退策略 |
 | 必需模型头维 | `head_k_dim == 128` 且 `head_v_dim == 128` | 非 `128 × 128` 头维的线性注意力层自动跳过，不虚报导出能力 |
 | 上游 vLLM 依赖 | `MambaSpec` 须包含 `num_prefill_checkpoint_blocks`（vLLM PR #60050） | 若配套 vLLM 版本过旧缺少该字段，开启后会直接抛 `ValueError` |
@@ -72,9 +74,11 @@ vllm serve /models/Qwen3-Next-80B-A3B \
 
 ## 64-token 检查点导出与生效门槛
 
-层初始化函数 `initialize_gdn_checkpoints(layer)` 采取「全满足才挂牌」的保守策略：只有当 `gdn_internal_prefill_checkpoints` 为 `true`，且同时满足 `mamba_cache_mode == "align"`、`prefill_context_parallel_size == 1`、模型精度为 `torch.bfloat16`、未开启微批流水 `use_ubatching`、层头维 `head_k_dim == head_v_dim == 128` 以及无 `kv_transfer_config` / 旧式 EAGLE 块丢弃冲突时，才会把 `layer._ascend_internal_checkpoint_enabled` 置为 `True` 并挂载 `MambaPrefillCheckpointExporter`。
+这套机制在三个不同时点分别把关：
 
-一旦激活，Worker 在显存压测（Profiling）前向阶段就会通过 `ensure_gdn_checkpoint_workspace` 预分配一块形状为 `(max_num_seqs, num_v_heads // tp_size, 128, 128)` 的 `float32` 临时工作区（同 `VllmConfig` 下形状匹配的 GDN 层沿单流顺序复用同一块 scratch 缓冲，不按层数重复叠加），把这部分常驻开销如实计入 KV Cache 可用容量扣减，避免运行期突发 OOM。
+- **层初始化能力校验**：`initialize_gdn_checkpoints(layer)` 要求本开关为 `true`，且同时满足 `mamba_cache_mode == "align"`、`prefill_context_parallel_size == 1`、模型精度 `torch.bfloat16`、未开启微批流水 `use_ubatching`、头维 `head_k_dim == head_v_dim == 128`，以及不存在 `kv_transfer_config` 或旧式 EAGLE 丢块冲突。全部通过后，代码才将 `layer._ascend_internal_checkpoint_enabled` 置真并挂载 `MambaPrefillCheckpointExporter`。
+- **单步前向有无导出计划的分工**：层能力开启后，该非投机 Prefill 分支固定调用 `run_gdn_checkpoint_prefill` 运行 Triton 检查点核；若本步请求（例如已命中前缀后的短尾段）没有新检查点计划（`metadata.checkpoint is None`），算子传入空缓冲区只算输出与末态，只有 `metadata.checkpoint` 非空时才写入中间块状态并触发 `_checkpoint_exporter.export` 导出递推矩阵与卷积尾窗。
+- **跨层顺序复用 `FP32` 工作区**：在启动期显存压测（Profiling）阶段，`ensure_gdn_checkpoint_workspace` 预分配形状为 `(max_num_seqs, num_v_heads // tp_size, 128, 128)` 的 `float32` 临时缓冲；同一 `VllmConfig` 下形状相同的各 GDN 层在单流上顺序复用同一块工作区，不随层数累加，并直接计入可用 KV 预算扣减以防运行期 OOM。
 
 ## 代价与互斥边界
 
@@ -92,7 +96,7 @@ vllm serve /models/Qwen3-Next-80B-A3B \
 | 层能力门槛与 PR 校验 | — | — | — | 校验 `align` / `PCP==1` / `BF16` / `128` 头维及 vLLM PR #60050；P/D 分离告警回退 [C2][!] |
 | 跨层 FP32 工作区共享 | — | — | — | Profiling 期分配 `(max_num_seqs, local_v_heads, 128, 128)` FP32 缓冲并在各层间复用 [C2] |
 
-- **官方文档与显存算式**：`additional_config.md` 说明了启用方式、Triton 路径切换及前缀缓存适用负载 [S6]；单槽位 `(num_v_heads / TP) × 128 × 128 × 4` 字节随 `max_num_seqs` 线性增长由 `ensure_gdn_checkpoint_workspace` 张量形状直接推导 [C2][D]。
+- **官方文档、算子选路与显存算式**：`additional_config.md` 说明了启用方式、Triton 路径切换及前缀缓存适用负载 [S6]；`use_checkpoint_prefill` 统一把冷请求与无新检查点的命中尾段留在同一条 Triton 检查点递推分支见 `ops/gdn.py#L829-L865` [C7]，而仅当 `metadata.checkpoint is not None` 时才写出工作区并调用 `_checkpoint_exporter.export` 见 `ops/gdn_checkpoint.py#L84-L112` [C8]；单槽位 `(num_v_heads / TP) × 128 × 128 × 4` 字节随 `max_num_seqs` 线性增长由 `ensure_gdn_checkpoint_workspace` 张量形状直接推导 [C2][D]。
 - **待核**：尚缺 Qwen3-Next 混合模型在高/低前缀命中率两档流量下开闭本开关的 TTFT 收益拐点实测。
 
 ## 参数定义（自动生成）

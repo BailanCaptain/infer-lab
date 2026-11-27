@@ -1,38 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="v0.30.0 标准 Qwen3-8B / Qwen3-30B-A3B 的算子替换与图执行路径选择：模块调用先经 CustomOp 绑定到昇腾 forward_oot 实现，再按 enforce_eager、PIECEWISE / FULL_AND_PIECEWISE（注意力处切段）与 FULL_DECODE_ONLY（整图保留并可叠加 npugraph_ex FX 融合）三路落到 NPU 流上执行。">
-  <title>v0.30.0 标准 Qwen3-8B / Qwen3-30B-A3B 的算子替换与图执行路径选择：模块调用先经 CustomOp 绑定到昇腾 forward_oot 实现，再按 enforce_eager、PIECEWISE / FULL_AND_PIECEWISE（注意力处切段）与 FULL_DECODE_ONLY（整图保留并可叠加 npugraph_ex FX 融合）三路落到 NPU 流上执行。</title>
-  <defs><marker id="ops-ir-selection-qwen3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="ops-ir-selection-qwen3-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="ops-ir-selection-qwen3-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="ops-ir-selection-qwen3-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <path d="M330 82 L330 110 L156 110 L156 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-ink)"/>
-  <path d="M450 82 L450 140" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-token)"/>
-  <path d="M570 82 L570 110 L744 110 L744 140" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-weight)"/>
-  <path d="M156 212 L156 258" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-ink)"/>
-  <path d="M450 212 L450 258" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-kv)"/>
-  <path d="M744 212 L744 258" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-weight)"/>
-  <path d="M156 326 L156 354 L330 354 L330 382" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-ink)"/>
-  <path d="M450 326 L450 382" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-kv)"/>
-  <path d="M744 326 L744 354 L570 354 L570 382" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ops-ir-selection-qwen3-ah-weight)"/>
-  <rect x="230" y="24" width="440" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="450" y="49" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Qwen3 层内运算（RMSNorm / QKV / Attention / SwiGLU / MoE）</text>
-  <text x="450" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">CustomOp 注册表先将上游模块绑定至昇腾 forward_oot</text>
-  <rect x="24" y="140" width="264" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="156" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">enforce_eager = True</text>
-  <text x="156" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">Python 逐算子即时下发 torch_npu</text>
-  <rect x="318" y="140" width="264" height="72" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="450" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">PIECEWISE / FULL+PIECEWISE</text>
-  <text x="450" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">AscendCompiler 按注意力切分子图</text>
-  <rect x="612" y="140" width="264" height="72" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="744" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">FULL_DECODE_ONLY（纯解码整图）</text>
-  <text x="744" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">清空 splitting_ops 保持整图完整</text>
-  <rect x="24" y="258" width="264" height="68" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="156" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0 图捕获开销</text>
-  <text x="156" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">适合排障与启动期 profile_run</text>
-  <rect x="318" y="258" width="264" height="68" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="450" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">捕获分段 ACLGraph</text>
-  <text x="450" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">兼容混合批，默认关闭 npugraph_ex</text>
-  <rect x="612" y="258" width="264" height="68" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="744" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">叠加 npugraph_ex 图融合</text>
-  <text x="744" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">纯 decode 整图；prefill 走 eager</text>
-  <rect x="210" y="382" width="480" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-  <text x="450" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">昇腾 NPU 流执行核函数（Cube + Vector + HCCL）</text>
-  <text x="450" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">命中已录档位直接回放任务流，大幅削减主机侧下发延迟</text>
-  <text x="450" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">编译与捕获档位在启动期 check_and_update_config 锁定，运行期按批尺寸自动路由</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620" role="img" aria-label="Qwen3 启动期选实现、编译期切 FX 图与运行期按 BatchDescriptor 分派三层机制" font-family="var(--font-sans)">
+<title>Qwen3 算子与图执行三层链路：启动选实现 → 编译切 FX 图 → 运行按描述符分派</title>
+<desc>第 1 层区分 RMSNorm 的 CustomOp forward_oot 与 LinearBase、RoutedExperts 的 PluggableLayer 整类替换；第 2 层展示 AscendCompiler 按 splitting_ops 切分或清空切点融合；第 3 层用同为 4 行的两批对比整齐 decode 走 FULL 与混入 prefill 走 PIECEWISE。</desc>
+<defs>
+  <marker id="op-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#66716d"/>
+  </marker>
+  <marker id="op-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="op-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="op-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+</defs>
+
+<!-- Tier 1: Startup Implementation Selection -->
+<rect x="14" y="12" width="872" height="168" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="35" r="11" fill="#087f73"/>
+<text x="36" y="39.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="40" font-size="15.5" font-weight="700" fill="#17211f">启动期 · 模块与实现选择（不同模块走不同替换机制，并非全走 CustomOp）</text>
+<line x1="28" y1="54" x2="872" y2="54" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<rect x="26" y="66" width="272" height="100" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="162" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">CustomOp 方法分派</text>
+<text x="162" y="111" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">RMSNorm → AscendRMSNorm</text>
+<text x="162" y="133" text-anchor="middle" font-size="12" fill="#065f56">启用绑 forward_oot · 禁用走 native/IR</text>
+<text x="162" y="153" text-anchor="middle" font-size="12" fill="#4d5652">SwiGLU (SiluAndMul) 同属此类</text>
+
+<rect x="314" y="66" width="292" height="100" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="460" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">PluggableLayer 整类替换</text>
+<text x="460" y="111" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">LinearBase · RoutedExperts</text>
+<text x="460" y="133" text-anchor="middle" font-size="12" fill="#936300">QKV/MLP 线性层与 30B-A3B 路由专家</text>
+<text x="460" y="153" text-anchor="middle" font-size="12" fill="#4d5652">连权重与量化方法整层替换（无 forward_oot）</text>
+
+<rect x="622" y="66" width="250" height="100" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="747" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">Attention 后端选择</text>
+<text x="747" y="111" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">AscendAttentionBackend</text>
+<text x="747" y="133" text-anchor="middle" font-size="12" fill="#3a4f93">注册 unified_attention 自定义算子</text>
+<text x="747" y="153" text-anchor="middle" font-size="12" fill="#4d5652">同时声明后端支持的图捕获等级</text>
+
+<!-- Tier 2: Compile-Time FX Graph Splitting & Fusion -->
+<rect x="14" y="196" width="872" height="174" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="219" r="11" fill="#4c65b6"/>
+<text x="36" y="223.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="224" font-size="15.5" font-weight="700" fill="#17211f">编译期 · FX 图切分与融合（oot_compiler → AscendCompiler 按图档位定结构）</text>
+<line x1="28" y1="238" x2="872" y2="238" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<rect x="26" y="250" width="234" height="106" rx="8" fill="#ffffff" stroke="#b8bcb5" stroke-width="1.2"/>
+<text x="143" y="272" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">enforce_eager = True</text>
+<text x="143" y="295" text-anchor="middle" font-size="12" fill="#4d5652">模式锁定 NONE（0 录图开销）</text>
+<text x="143" y="317" text-anchor="middle" font-size="12" fill="#66716d">逐算子即时下发 torch_npu</text>
+<text x="143" y="339" text-anchor="middle" font-size="12" fill="#66716d">用于排障与启动期 profile_run</text>
+
+<rect x="276" y="250" width="302" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="427" y="272" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#3a4f93">PIECEWISE / FULL_AND_PIECEWISE</text>
+<text x="427" y="295" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">保留注意力 splitting_ops 切开 FX 子图</text>
+<text x="427" y="317" text-anchor="middle" font-size="12" fill="#4d5652">关 npugraph_ex · 子图走本地融合编译</text>
+<text x="427" y="339" text-anchor="middle" font-size="12" fill="#065f56">FULL+PIECEWISE 另在外层包整图包装器</text>
+
+<rect x="594" y="250" width="278" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="733" y="272" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">FULL_DECODE_ONLY / FULL</text>
+<text x="733" y="295" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">清空 splitting_ops=[] 保整张 FX 图</text>
+<text x="733" y="317" text-anchor="middle" font-size="12" fill="#17211f">默认开 enable_npugraph_ex 图融合</text>
+<text x="733" y="339" text-anchor="middle" font-size="12" fill="#4d5652">FULL_DECODE_ONLY 混批退回 NONE</text>
+<!-- Arrows Tier 1 -> Tier 2 -->
+<g fill="none" stroke="#66716d" stroke-width="1.6" marker-end="url(#op-ctrl)">
+  <line x1="162" y1="166" x2="162" y2="194"/>
+  <line x1="460" y1="166" x2="460" y2="194"/>
+  <line x1="747" y1="166" x2="747" y2="194"/>
+</g>
+
+<!-- Tier 3: Runtime BatchDescriptor Dispatch (Two 4-Row Batches Side-by-Side) -->
+<rect x="14" y="386" width="872" height="222" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="409" r="11" fill="#c78300"/>
+<text x="36" y="413.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+<text x="54" y="414" font-size="15.5" font-weight="700" fill="#17211f">运行期 · 按 BatchDescriptor 分派（FULL_AND_PIECEWISE 下同为 4 行输入的两批对照）</text>
+<line x1="28" y1="428" x2="872" y2="428" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<!-- Left 4-Row Card: Uniform Pure Decode -> FULL -->
+<rect x="26" y="440" width="414" height="154" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+<text x="233" y="463" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">批次 A：4 行整齐纯 Decode [1, 1, 1, 1] → 走 FULL</text>
+<g stroke="#087f73" stroke-width="1.1" fill="#ffffff">
+  <rect x="42" y="476" width="84" height="32" rx="4"/>
+  <rect x="134" y="476" width="84" height="32" rx="4"/>
+  <rect x="226" y="476" width="84" height="32" rx="4"/>
+  <rect x="318" y="476" width="84" height="32" rx="4"/>
+</g>
+<g font-size="12" font-weight="700" text-anchor="middle" fill="#065f56">
+  <text x="84" y="496.5">Req0 · 1词</text>
+  <text x="176" y="496.5">Req1 · 1词</text>
+  <text x="268" y="496.5">Req2 · 1词</text>
+  <text x="360" y="496.5">Req3 · 1词</text>
+</g>
+<text x="233" y="532" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">uniform=True（后端与已捕获档位允许）→ FULL 整图回放</text>
+<text x="233" y="555" text-anchor="middle" font-size="12" fill="#17211f">ACLGraphWrapper 整趟 1 次提交 NPU 任务流（Cube+Vector+HCCL）</text>
+<text x="233" y="577" text-anchor="middle" font-size="12" fill="#4d5652">最大幅度压低小批 Decode 的主机侧算子下发延迟</text>
+
+<!-- Right 4-Row Card: Mixed Prefill + Decode -> PIECEWISE -->
+<rect x="460" y="440" width="412" height="154" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="666" y="463" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">批次 B：4 行混入 Prefill [2, 1, 1] → 走 PIECEWISE</text>
+<rect x="478" y="476" width="174" height="32" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<rect x="660" y="476" width="94" height="32" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+<rect x="762" y="476" width="94" height="32" rx="4" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+<g font-size="12" font-weight="700" text-anchor="middle">
+  <text x="565" y="496.5" fill="#936300">Req0 · Prefill 2词</text>
+  <text x="707" y="496.5" fill="#3a4f93">Req1 · 1词</text>
+  <text x="809" y="496.5" fill="#3a4f93">Req2 · 1词</text>
+</g>
+<text x="666" y="532" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">非等长纯 Decode（命中分段档位）→ PIECEWISE 分段回放</text>
+<text x="666" y="555" text-anchor="middle" font-size="12" fill="#17211f">切口前后线性/MoE 子图回放，中间 Attention 按步即时下发</text>
+<text x="666" y="577" text-anchor="middle" font-size="12" fill="#4d5652">（注：若配置为 FULL_DECODE_ONLY，此类混合批退回 NONE）</text>
+
+<!-- Arrows Tier 2 -> Tier 3 -->
+<g fill="none" stroke-width="1.6">
+  <path d="M427 356v16H233v12" stroke="#087f73" marker-end="url(#op-teal)"/>
+  <path d="M427 356v16H666v12" stroke="#4c65b6" marker-end="url(#op-indigo)"/>
+  <path d="M733 356v10H310v18" stroke="#c78300" stroke-dasharray="4 3" marker-end="url(#op-amber)"/>
+</g>
 </svg>

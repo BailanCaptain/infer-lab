@@ -1,8 +1,8 @@
 mode: native-svg
 id: multimodal-encoder-cache-flow
 caption: >-
-  多模态请求中 EncoderCacheManager 跨轮/抢占独立复用与 ViT 预算打包图回放全链路：上半部对比文本 Prefix Caching（按从头连续块哈希复用语言层 KV，前文改动断链，抢占释放后若未开 APC 或完整哈希块被驱逐须重跑语言层）与 EncoderCacheManager（按单张媒体 mm_hash 独立索引视觉嵌入，前缀变化不改变媒体键，特征未被挤出仍驻留池内时直接跳过 ViT 重算）；下半部展示 EncoderCudaGraphManager 升序装箱与昇腾 EncoderAclGraphManager 侧流 Event 更新 FIA 参数回放及 ModelSlim / msprobe 排障闭环。
-size: [900, 560]
+  多模态 EncoderCacheManager 媒体键引用生命周期与 ViT 预算装箱图回放链路：上半部展示同一图片 X 在两条不同前缀请求中按独立 mm_hash 命中免重算，活跃引用经历 2 → 1 → 0 后进入 freeable 可回收队列（未被挤出前原地复活），并区分默认单级管理器与显式配置 ScoreEncoderCacheManager 分支内的 100,000 Pinned CPU 槽；下半部展示未命中时升序装箱（96+160=256 满桶、192 在 256 档余 64 槽）、EncoderAclGraphManager 主流与侧流 Event 等待/放行同步、散回原序及 msmodelslim / msprobe 护栏。
+size: [900, 640]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1672-L1761'
     symbols:

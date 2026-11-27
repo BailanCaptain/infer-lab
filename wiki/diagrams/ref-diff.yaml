@@ -1,18 +1,6 @@
-layout: figure
+mode: native-svg
 id: ref-diff
-caption: 版本对照示意：先固定提交和符号，再比较输入、条件与状态；行号仅定位该快照，不代表行为
-size: [900, 350]
-frames:
-  - { at: [30, 55], size: [350, 250], label: 固定提交 A（示意） }
-  - { at: [520, 55], size: [350, 250], label: 固定提交 B（示意） }
-items:
-  - { at: [60, 110], size: [290, 55], text: 职责与符号, tone: control }
-  - { at: [550, 110], size: [290, 55], text: 对应职责与符号, tone: control }
-  - { at: [60, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
-  - { at: [550, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
-links:
-  - { from: [350, 137], to: [550, 137], ends: both, tone: control }
-  - { from: [350, 242], to: [550, 242], ends: both, tone: token }
-texts:
-  - { at: [450, 112], text: 定位, anchor: middle, note: true }
-  - { at: [450, 215], text: 比较行为, anchor: middle, note: true }
+caption: >-
+  跨版本行为对照法（以 vllm-ascend@c09d3e20 与 main@8d6180e2 的 AscendRMSNorm 残差分支为例）：先固定两个 commit 与同一符号 forward_oot，喂入相同的 x=[1,2] 与 residual=[1,-1]（残差和 s=[2,1]），再对比分支条件——v0.30.0 (c09d3e20) 无门控判断直调自定义扩展 npu_add_rms_norm_bias，而 main (8d6180e2) 恢复 if enable_custom_op() 门控及关闭时回退 torch_npu.npu_add_rms_norm 的入口；行号仅定位快照，不代表行为一致。
+size: [900, 490]
+pins: []

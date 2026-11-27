@@ -1,28 +1,8 @@
-layout: figure
+mode: native-svg
 id: ops-ir-selection-qwen3
-caption: v0.30.0 标准 Qwen3-8B / Qwen3-30B-A3B 的算子替换与图执行路径选择：模块调用先经 CustomOp 绑定到昇腾 forward_oot 实现，再按 enforce_eager、PIECEWISE / FULL_AND_PIECEWISE（注意力处切段）与 FULL_DECODE_ONLY（整图保留并可叠加 npugraph_ex FX 融合）三路落到 NPU 流上执行。
-size: [900, 500]
-items:
-  - { at: [230, 24], size: [440, 58], text: 'Qwen3 层内运算（RMSNorm / QKV / Attention / SwiGLU / MoE）', sub: 'CustomOp 注册表先将上游模块绑定至昇腾 forward_oot', tone: control }
-  - { at: [24, 140], size: [264, 72], text: 'enforce_eager = True', sub: 'Python 逐算子即时下发 torch_npu', tone: control, style: plain }
-  - { at: [318, 140], size: [264, 72], text: 'PIECEWISE / FULL+PIECEWISE', sub: 'AscendCompiler 按注意力切分子图', tone: token }
-  - { at: [612, 140], size: [264, 72], text: 'FULL_DECODE_ONLY（纯解码整图）', sub: '清空 splitting_ops 保持整图完整', tone: weight }
-  - { at: [24, 258], size: [264, 68], text: '0 图捕获开销', sub: '适合排障与启动期 profile_run', style: plain }
-  - { at: [318, 258], size: [264, 68], text: '捕获分段 ACLGraph', sub: '兼容混合批，默认关闭 npugraph_ex', tone: kv }
-  - { at: [612, 258], size: [264, 68], text: '叠加 npugraph_ex 图融合', sub: '纯 decode 整图；prefill 走 eager', tone: weight }
-  - { at: [210, 382], size: [480, 62], text: '昇腾 NPU 流执行核函数（Cube + Vector + HCCL）', sub: '命中已录档位直接回放任务流，大幅削减主机侧下发延迟', tone: ink }
-links:
-  - { from: [330, 82], to: [156, 140], via: [[330, 110], [156, 110]] }
-  - { from: [450, 82], to: [450, 140], tone: token }
-  - { from: [570, 82], to: [744, 140], via: [[570, 110], [744, 110]], tone: weight }
-  - { from: [156, 212], to: [156, 258] }
-  - { from: [450, 212], to: [450, 258], tone: kv }
-  - { from: [744, 212], to: [744, 258], tone: weight }
-  - { from: [156, 326], to: [330, 382], via: [[156, 354], [330, 354]] }
-  - { from: [450, 326], to: [450, 382], tone: kv }
-  - { from: [744, 326], to: [570, 382], via: [[744, 354], [570, 354]], tone: weight }
-texts:
-  - { at: [450, 474], text: '编译与捕获档位在启动期 check_and_update_config 锁定，运行期按批尺寸自动路由', anchor: middle, note: true }
+caption: >-
+  v0.30.0 标准 Qwen3-8B / Qwen3-30B-A3B 的三层算子与图分派链路：① 启动期区分 RMSNorm（CustomOp 绑 forward_oot）、LinearBase / RoutedExperts（PluggableLayer 整类替换）与 Attention 后端注册；② 编译期经 oot_compiler / AscendCompiler 按档位决定保留注意力 splitting_ops 分段或清空切点做 npugraph_ex 整图融合；③ 运行期由 ACLGraphWrapper 按 BatchDescriptor 分派——以同为 4 行的两批对照，后端与已捕获档位允许时，整齐纯 decode [1,1,1,1] 走 FULL 整图回放，混入 prefill 的 [2,1,1] 批走 PIECEWISE 分段回放。
+size: [900, 620]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L47-L95
     symbols: [AscendRMSNorm, forward_oot]

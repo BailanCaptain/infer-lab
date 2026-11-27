@@ -1,8 +1,8 @@
 mode: native-svg
 id: concurrent-request-batching
 caption: >-
-  continuous batching（连续批处理）在步间边界的重组与块复用：第 k 步将处于 Prefill 与 Decode 的多条请求首尾拼成单一输入张量共享权重前向；步末经 _free_request 立即释放已完成请求的物理 KV 块，并由 schedule 准入等待队列新请求直接复用空出槽位与剩余 token 预算，各请求块表与停止边界全程独立。
-size: [900, 470]
+  continuous batching（连续批处理）在步间边界的重组与物理块释放双分支：第 k 步多条请求首尾拼成单一输入张量共享权重前向（原空闲 1 块，Waiting 中 Req D 需 2 块）；步末 Req A 结束进入 _free_request，若无延迟释放且最后引用归零则两块立即回池使空闲达 3 块、schedule 在预算允许时准入 Req D，若命中 delay_free_blocks（如连接器延迟释放）或仍有引用则空闲仍为 1 块、Req D 继续排队。
+size: [900, 560]
 pins:
   - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
     symbols: [schedule]

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="DFlash 单步块扩散全并行猜词对比 DSpark 马尔可夫串行偏置与置信度自适应验证截断" font-family="var(--font-sans)">
-<title>DFlash 全并行块草稿 vs DSpark 马尔可夫串行偏置与置信度预算截断</title>
-<desc>左栏展示 DFlash 一次块扩散并行猜 K 个词、后段缺乏自回归依赖且全长送验浪费算力；右栏展示 DSpark 复用目标隐藏态、轻量马尔可夫头串行修正相邻词，并按置信度预算截断低置信尾部。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 576" width="900" height="576" role="img" aria-label="DFlash 单步块扩散全并行猜词对比 DSpark 马尔可夫串行偏置、逐位条件概率与累计存活率预算截断" font-family="var(--font-sans)">
+<title>DFlash 全并行块草稿 vs DSpark 马尔可夫串行偏置与累计存活率预算截断</title>
+<desc>左栏展示 DFlash 一次块扩散并行猜 K 个词、块内独立采样且固定预算送满 K 词浪费算力；右栏展示 DSpark 轻量马尔可夫头串行修正，标明逐位条件概率示意 .92/.78/.21/.07 与累计存活率约 .920/.718/.151/.011，将送验 2 个草稿位置标为本轮预算结果，并分别列出 MRV1 初始预算入口与 MRV2 自适应入口。</desc>
 <defs>
   <marker id="ds-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
@@ -11,126 +11,125 @@
   <marker id="ds-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
   </marker>
-  <marker id="ds-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
-  </marker>
 </defs>
 
 <!-- Left Column: DFlash -->
-<rect x="14" y="12" width="424" height="516" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<rect x="14" y="12" width="424" height="552" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 <circle cx="36" cy="36" r="11" fill="#b54237"/>
 <text x="36" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
 <text x="54" y="41" font-size="16" font-weight="700" fill="#17211f">DFlash：块扩散全并行猜 K 词，后段易失真</text>
 <line x1="28" y1="56" x2="424" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<!-- DFlash Step A: Block Parallel Backbone -->
-<rect x="28" y="68" width="396" height="66" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-<text x="226" y="91" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 目标模型多层隐藏态 + [x₀, Mask₁..₄] 块前向</text>
-<text x="226" y="116" text-anchor="middle" font-size="12.5" fill="#4d5652">非因果注意力一次并行算出 K=4 个位置的隐藏态</text>
+<rect x="28" y="68" width="396" height="64" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="226" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 目标模型多层隐藏态 + [x₀, Mask₁..₄] 块前向</text>
+<text x="226" y="114" text-anchor="middle" font-size="12.5" fill="#4d5652">非因果注意力一次并行算出 K=4 个位置的隐藏态</text>
 
-<!-- DFlash Step B: Independent Parallel Sampling -->
-<rect x="28" y="150" width="396" height="100" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-<text x="226" y="172" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">② 各位置各自独立采样（✗ 无相邻词串行修正）</text>
+<rect x="28" y="148" width="396" height="118" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="226" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">② 各位置各自独立采样（✗ 无相邻词串行修正）</text>
 <g stroke-width="1.2">
-  <rect x="44" y="184" width="76" height="36" rx="5" fill="#ffffff" stroke="#c78300"/>
-  <rect x="136" y="184" width="76" height="36" rx="5" fill="#ffffff" stroke="#c78300"/>
-  <rect x="228" y="184" width="76" height="36" rx="5" fill="#fff0e9" stroke="#b54237"/>
-  <rect x="320" y="184" width="76" height="36" rx="5" fill="#fff0e9" stroke="#b54237"/>
+  <rect x="44" y="182" width="76" height="36" rx="5" fill="#ffffff" stroke="#c78300"/>
+  <rect x="136" y="182" width="76" height="36" rx="5" fill="#ffffff" stroke="#c78300"/>
+  <rect x="228" y="182" width="76" height="36" rx="5" fill="#fff0e9" stroke="#b54237"/>
+  <rect x="320" y="182" width="76" height="36" rx="5" fill="#fff0e9" stroke="#b54237"/>
 </g>
 <g font-size="12.5" font-weight="700" text-anchor="middle">
-  <text x="82" y="206.5" fill="#17211f">草稿 x₁</text>
-  <text x="174" y="206.5" fill="#17211f">草稿 x₂</text>
-  <text x="266" y="206.5" fill="#8f3229">x₃ 脱节</text>
-  <text x="358" y="206.5" fill="#8f3229">x₄ 失真</text>
+  <text x="82" y="204.5" fill="#17211f">草稿 x₁</text>
+  <text x="174" y="204.5" fill="#17211f">草稿 x₂</text>
+  <text x="266" y="204.5" fill="#8f3229">x₃ 脱节</text>
+  <text x="358" y="204.5" fill="#8f3229">x₄ 失真</text>
 </g>
-<text x="226" y="239" text-anchor="middle" font-size="12" fill="#8f3229">存活率陡降：0.88 → 0.45 → 0.14 → 0.03（看不见前驱采样词）</text>
+<text x="226" y="236" text-anchor="middle" font-size="12" fill="#8f3229">看不见前驱采样词，后段局部搭配易脱节</text>
+<text x="226" y="256" text-anchor="middle" font-size="12" fill="#66716d">存活率陡降示意：0.88 → 0.45 → 0.14 → 0.03</text>
 
-<!-- DFlash Step C: Fixed Full-Length Verification -->
-<rect x="28" y="266" width="396" height="118" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
-<text x="226" y="289" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">③ 固定预算基线：送满 1+K=5 个位置验证</text>
+<rect x="28" y="282" width="396" height="138" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+<text x="226" y="305" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">③ 固定预算基线：送满 1+K=5 个位置验证</text>
 <g stroke-width="1.2">
-  <rect x="38" y="302" width="66" height="38" rx="5" fill="#dce4fc" stroke="#4c65b6"/>
-  <rect x="112" y="302" width="66" height="38" rx="5" fill="#ddf4ef" stroke="#087f73"/>
-  <rect x="186" y="302" width="74" height="38" rx="5" fill="#fff4cf" stroke="#c78300"/>
-  <rect x="268" y="302" width="70" height="38" rx="5" fill="#fae1d8" stroke="#b54237"/>
-  <rect x="346" y="302" width="70" height="38" rx="5" fill="#fae1d8" stroke="#b54237"/>
+  <rect x="38" y="318" width="66" height="38" rx="5" fill="#dce4fc" stroke="#4c65b6"/>
+  <rect x="112" y="318" width="66" height="38" rx="5" fill="#ddf4ef" stroke="#087f73"/>
+  <rect x="186" y="318" width="74" height="38" rx="5" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="268" y="318" width="70" height="38" rx="5" fill="#fae1d8" stroke="#b54237"/>
+  <rect x="346" y="318" width="70" height="38" rx="5" fill="#fae1d8" stroke="#b54237"/>
 </g>
 <g font-size="12" font-weight="700" text-anchor="middle">
-  <text x="71" y="325" fill="#3a4f93">锚 x₀</text>
-  <text x="145" y="325" fill="#065f56">x₁ 接受</text>
-  <text x="223" y="325" fill="#936300">x₂→修正</text>
-  <text x="303" y="325" fill="#8f3229">x₃ 白算</text>
-  <text x="381" y="325" fill="#8f3229">x₄ 白算</text>
+  <text x="71" y="341" fill="#3a4f93">锚 x₀</text>
+  <text x="145" y="341" fill="#065f56">x₁ 接受</text>
+  <text x="223" y="341" fill="#936300">x₂→修正</text>
+  <text x="303" y="341" fill="#8f3229">x₃ 白算</text>
+  <text x="381" y="341" fill="#8f3229">x₄ 白算</text>
 </g>
-<text x="226" y="366" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">✗ 第 2 位拒绝即作废后续，尾部陪跑浪费验证算力</text>
-<rect x="28" y="398" width="396" height="116" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
-<text x="226" y="422" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">DFlash 机制得失</text>
-<text x="42" y="448" font-size="12.5" fill="#4d5652">• 优点：草稿主干 1 次前向并行吐出整块 K 个候选</text>
-<text x="42" y="473" font-size="12.5" fill="#8f3229">• 痛点 1：块内独立采样，相邻词缺乏局部连贯修正</text>
-<text x="42" y="498" font-size="12" fill="#8f3229">• 痛点 2：固定预算下送满 K 词（MRV1 可另挂动态截断）</text>
+<text x="226" y="380" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b54237">✗ 第 2 位拒绝即作废后续，尾部陪跑浪费验证算力</text>
+<text x="226" y="403" text-anchor="middle" font-size="12" fill="#4d5652">（注：MRV1 亦可另挂 DynamicSpecScheduler 截断）</text>
+
+<rect x="28" y="436" width="396" height="114" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="226" y="459" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">DFlash 机制得失</text>
+<text x="42" y="485" font-size="12.5" fill="#4d5652">• 优点：草稿主干 1 次前向并行吐出整块 K 个候选</text>
+<text x="42" y="510" font-size="12.5" fill="#8f3229">• 痛点 1：块内独立采样，相邻词缺乏局部连贯修正</text>
+<text x="42" y="535" font-size="12.5" fill="#8f3229">• 痛点 2：无置信头时只能按固定预算或最大概率代理</text>
 <g fill="none" stroke="#b54237" stroke-width="1.6" marker-end="url(#ds-red)">
-  <line x1="226" y1="134" x2="226" y2="148"/>
-  <line x1="226" y1="250" x2="226" y2="264"/>
+  <line x1="226" y1="132" x2="226" y2="146"/>
+  <line x1="226" y1="266" x2="226" y2="280"/>
 </g>
 
 <!-- Right Column: DSpark -->
-<rect x="462" y="12" width="424" height="516" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<rect x="462" y="12" width="424" height="552" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 <circle cx="484" cy="36" r="11" fill="#087f73"/>
 <text x="484" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
 <text x="502" y="41" font-size="16" font-weight="700" fill="#17211f">DSpark：马尔可夫偏置 + 置信度预算截断</text>
 <line x1="476" y1="56" x2="872" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<rect x="476" y="68" width="396" height="66" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-<text x="674" y="91" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 复用目标模型隐藏态 + 1 次并行草稿主干</text>
-<text x="674" y="116" text-anchor="middle" font-size="12.5" fill="#4d5652">重计算仍一次并行跑完，产出基础特征 hᵢ 与分数 zᵢ</text>
+<rect x="476" y="68" width="396" height="64" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="674" y="90" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">① 复用目标模型隐藏态 + 1 次并行草稿主干</text>
+<text x="674" y="114" text-anchor="middle" font-size="12.5" fill="#4d5652">重计算仍一次并行跑完，产出基础特征 hᵢ 与分数 zᵢ</text>
 
-<rect x="476" y="150" width="396" height="100" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
-<text x="674" y="172" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">② 轻量串行偏置头 ℓᵢ = zᵢ + W·E[xᵢ₋₁] 与置信头</text>
+<rect x="476" y="148" width="396" height="118" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="674" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">② 轻量串行偏置头 ℓᵢ = zᵢ + W·E[xᵢ₋₁] 与置信头</text>
 <g stroke-width="1.2">
-  <rect x="492" y="184" width="74" height="36" rx="5" fill="#ffffff" stroke="#087f73"/>
-  <rect x="584" y="184" width="74" height="36" rx="5" fill="#ffffff" stroke="#087f73"/>
-  <rect x="676" y="184" width="74" height="36" rx="5" fill="#ffffff" stroke="#9a4b86"/>
-  <rect x="768" y="184" width="74" height="36" rx="5" fill="#ffffff" stroke="#9a4b86"/>
+  <rect x="492" y="182" width="74" height="36" rx="5" fill="#ffffff" stroke="#087f73"/>
+  <rect x="584" y="182" width="74" height="36" rx="5" fill="#ffffff" stroke="#087f73"/>
+  <rect x="676" y="182" width="74" height="36" rx="5" fill="#ffffff" stroke="#9a4b86"/>
+  <rect x="768" y="182" width="74" height="36" rx="5" fill="#ffffff" stroke="#9a4b86"/>
 </g>
 <g font-size="12" font-weight="700" text-anchor="middle">
-  <text x="529" y="206.5" fill="#065f56">x₁ · .92</text>
-  <text x="621" y="206.5" fill="#065f56">x₂ · .78</text>
-  <text x="713" y="206.5" fill="#7a3a6a">x₃ · .21</text>
-  <text x="805" y="206.5" fill="#7a3a6a">x₄ · .07</text>
+  <text x="529" y="204.5" fill="#065f56">x₁ p=.92</text>
+  <text x="621" y="204.5" fill="#065f56">x₂ p=.78</text>
+  <text x="713" y="204.5" fill="#7a3a6a">x₃ p=.21</text>
+  <text x="805" y="204.5" fill="#7a3a6a">x₄ p=.07</text>
 </g>
 <g fill="none" stroke="#9a4b86" stroke-width="1.5" marker-end="url(#ds-plum)">
-  <line x1="566" y1="202" x2="582" y2="202"/>
-  <line x1="658" y1="202" x2="674" y2="202"/>
-  <line x1="750" y1="202" x2="766" y2="202"/>
+  <line x1="566" y1="200" x2="582" y2="200"/>
+  <line x1="658" y1="200" x2="674" y2="200"/>
+  <line x1="750" y1="200" x2="766" y2="200"/>
 </g>
-<text x="674" y="239" text-anchor="middle" font-size="12" fill="#7a3a6a">逐位条件偏置恢复局部连贯性，累乘得前缀存活率 sᵢ</text>
+<text x="674" y="236" text-anchor="middle" font-size="12" fill="#7a3a6a">逐位条件概率示意：.92 / .78 / .21 / .07</text>
+<text x="674" y="256" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">累计存活率 sᵢ = ∏pⱼ ≈ .920 / .718 / .151 / .011</text>
 
-<rect x="476" y="266" width="396" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="674" y="289" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">③ 按置信度预算截断（仅送高价值前缀 1+2=3 位）</text>
+<rect x="476" y="282" width="396" height="138" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="674" y="305" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">③ 本轮预算结果：送验 2 个草稿位置（共 1+2=3 位）</text>
 <g stroke-width="1.2">
-  <rect x="486" y="302" width="64" height="38" rx="5" fill="#dce4fc" stroke="#4c65b6"/>
-  <rect x="556" y="302" width="68" height="38" rx="5" fill="#ffffff" stroke="#087f73"/>
-  <rect x="630" y="302" width="74" height="38" rx="5" fill="#fff4cf" stroke="#c78300"/>
-  <rect x="722" y="302" width="68" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="4 3"/>
-  <rect x="796" y="302" width="68" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="4 3"/>
+  <rect x="486" y="318" width="64" height="38" rx="5" fill="#dce4fc" stroke="#4c65b6"/>
+  <rect x="556" y="318" width="68" height="38" rx="5" fill="#ffffff" stroke="#087f73"/>
+  <rect x="630" y="318" width="74" height="38" rx="5" fill="#fff4cf" stroke="#c78300"/>
+  <rect x="722" y="318" width="68" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="4 3"/>
+  <rect x="796" y="318" width="68" height="38" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-dasharray="4 3"/>
 </g>
-<line x1="713" y1="297" x2="713" y2="345" stroke="#b54237" stroke-width="2" stroke-dasharray="4 3"/>
+<line x1="713" y1="314" x2="713" y2="360" stroke="#b54237" stroke-width="2" stroke-dasharray="4 3"/>
 <g font-size="12" font-weight="700" text-anchor="middle">
-  <text x="518" y="325" fill="#3a4f93">锚 x₀</text>
-  <text x="590" y="325" fill="#065f56">x₁ 接受</text>
-  <text x="667" y="325" fill="#936300">x₂→修正</text>
-  <text x="756" y="325" fill="#66716d">x₃ 截断</text>
-  <text x="830" y="325" fill="#66716d">x₄ 截断</text>
+  <text x="518" y="341" fill="#3a4f93">锚 x₀</text>
+  <text x="590" y="341" fill="#065f56">x₁ 接受</text>
+  <text x="667" y="341" fill="#936300">x₂→修正</text>
+  <text x="756" y="341" fill="#66716d">x₃ 截断</text>
+  <text x="830" y="341" fill="#66716d">x₄ 截断</text>
 </g>
-<text x="674" y="366" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">initial_verify_budget_per_req / 自适应预算寻优</text>
+<text x="488" y="381" font-size="12" font-weight="700" fill="#065f56">• MRV1 初始预算入口：initial_verify_budget_per_req</text>
+<text x="488" y="404" font-size="12" font-weight="700" fill="#3a4f93">• MRV2 自适应入口：AdaptiveVerificationManager</text>
 
-<rect x="476" y="398" width="396" height="116" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
-<text x="674" y="422" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">DSpark 演进收益</text>
-<text x="490" y="448" font-size="12.5" fill="#065f56">• 提准：极小串行偏置头恢复相邻词马尔可夫依赖</text>
-<text x="490" y="473" font-size="12.5" fill="#065f56">• 省力：送验前砍掉低存活率尾词，省主模型算力</text>
-<text x="490" y="498" font-size="12.5" fill="#4d5652">• 保底：首个分歧位直接收下主模型产出的修正词</text>
+<rect x="476" y="436" width="396" height="114" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="674" y="459" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">DSpark 演进收益</text>
+<text x="490" y="485" font-size="12.5" fill="#065f56">• 提准：极小串行偏置头恢复相邻词马尔可夫依赖</text>
+<text x="490" y="510" font-size="12.5" fill="#065f56">• 省力：按累计存活率与预算砍掉低价值尾部草稿</text>
+<text x="490" y="535" font-size="12.5" fill="#4d5652">• 保底：首个分歧位直接收下主模型产出的修正词</text>
 <g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#ds-teal)">
-  <line x1="674" y1="134" x2="674" y2="148"/>
-  <line x1="674" y1="250" x2="674" y2="264"/>
+  <line x1="674" y1="132" x2="674" y2="146"/>
+  <line x1="674" y1="266" x2="674" y2="280"/>
 </g>
 </svg>

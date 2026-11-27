@@ -1,8 +1,8 @@
 mode: native-svg
 id: host-hugepages-vs-thp
 caption: >-
-  宿主机三种页映射机制与容器内存四道闸门：1 GiB 缓冲在 4 KiB 标准页下需 262,144 个页表项并触发高频 TLB 未命中与缺页中断；HugeTLB 静态大页（2 MiB / 1 GiB）预留连续物理页且不落 Swap，支撑 MemCache、Yuanrong Remote H2D 与 Mooncake register_memory 锁页直传；THP（MADV_HUGEPAGE）按需合并 2 MiB 页配合 aclrtHostRegisterV2 支撑 Engram 共享表，但碎片期有整理抖动。下半部区分 vm.nr_hugepages、--shm-size、memlock 与 TCMalloc / jemalloc（含 A3 / 950DT 禁配边界）。
-size: [900, 560]
+  同一对齐 1 GiB 虚拟地址区间在三种宿主机页机制下的物理映射与四道内存门槛：上半部将同一 1 GiB 虚拟区分别映射为 262,144×4 KiB 标准小页（262,144 为页数，另标未预分配匿名映射且无 THP 时逐页首写最多触发同数缺页的假设）、HugeTLB 静态大页（512×2 MiB 或 1×1 GiB 连续预留池，免 Swap 承接 MemCache 与 Mooncake register_memory）以及 THP（madvise(MADV_HUGEPAGE) 按内核策略分配/合并 2 MiB 页，碎片或策略不允许时回退保留 4 KiB 小页，配合 aclrtHostRegisterV2 映射 UVA）；下半部汇总 vm.nr_hugepages、--shm-size、memlock 与分配器禁配边界。
+size: [900, 620]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330'
     symbols:

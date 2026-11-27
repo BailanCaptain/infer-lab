@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="线性注意力 Chunkwise 分块并行状态传递对比 Decode 单步原地递推更新" font-family="var(--font-sans)">
-<title>线性注意力双执行态：Prefill Chunkwise 块内并行+块间传状态 vs Decode 原地递推</title>
-<desc>上半展示 Prefill 阶段按 C=64 分块做块内并行矩阵乘、块间串行传递 S_k 状态；下半展示 Decode 阶段单步读取短卷积缓存与 S_{t-1}，经衰减与预测误差外积原地更新 S_t。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="线性注意力 Chunkwise 块内与跨块两路汇合及状态传递对比 Decode 单步原地递推更新" font-family="var(--font-sans)">
+<title>线性注意力双执行态：Prefill Chunkwise 双路汇合+块间传状态 vs Decode 原地递推</title>
+<desc>上半以 C=2, d_k=2, d_v=1 展示 Chunk 0 与 Chunk 1 各自的跨块项与块内项相加汇合（S_0=0 时首位置跨块项为 0、块内项为 2，完整输出为 2），分别标明 Q/K [C×d_k] 与 V [C×d_v] 形状，并将终态写回请求的设备状态槽；下半展示 Decode 单步原地更新。</desc>
 <defs>
   <marker id="ls-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
@@ -11,118 +11,130 @@
   <marker id="ls-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
   </marker>
-  <marker id="ls-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
-  </marker>
 </defs>
 
-<!-- Top Panel: Prefill Chunkwise Parallel + Inter-Chunk State Passing -->
-<rect x="14" y="12" width="872" height="248" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<!-- Top Panel: Prefill Chunkwise Two-Branch Merge + Inter-Chunk State Passing -->
+<rect x="14" y="12" width="872" height="288" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 <circle cx="36" cy="36" r="11" fill="#c78300"/>
 <text x="36" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
-<text x="54" y="41" font-size="16" font-weight="700" fill="#17211f">Prefill 阶段 · Chunkwise 块内并行 + 块间状态传递（段长 C=64，吃满 Cube 矩阵核）</text>
+<text x="54" y="41" font-size="15.5" font-weight="700" fill="#17211f">Prefill · Chunkwise 跨块+块内两路汇合与状态传递（示意 C=2, dₖ=2, dᵥ=1；生产常取 C=64）</text>
 <line x1="28" y1="56" x2="872" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<!-- Initial S_0 pill -->
-<rect x="26" y="116" width="70" height="68" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-<text x="61" y="144" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₀</text>
-<text x="61" y="166" text-anchor="middle" font-size="12" fill="#4d5652">零或续算</text>
+<!-- Initial S_0 -->
+<rect x="24" y="110" width="70" height="78" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="59" y="135" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₀=[0,0]</text>
+<text x="59" y="156" text-anchor="middle" font-size="12" fill="#3a4f93">[1×2]</text>
+<text x="59" y="176" text-anchor="middle" font-size="12" fill="#4d5652">初态或续算</text>
 
-<!-- Chunk 0 Box -->
-<rect x="118" y="70" width="256" height="174" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-<text x="246" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Chunk 0（词 1..64 块内并行）</text>
-<rect x="132" y="104" width="108" height="68" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
-<text x="186" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">块内 Cube 乘加</text>
-<text x="186" y="148" text-anchor="middle" font-size="12" fill="#4d5652">门累加 + K₀K₀ᵀ</text>
-<text x="186" y="165" text-anchor="middle" font-size="12" fill="#4d5652">下三角并行求解</text>
-<rect x="252" y="104" width="108" height="68" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
-<text x="306" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">块间合成输出</text>
-<text x="306" y="148" text-anchor="middle" font-size="12" fill="#4d5652">跨块 (Q₀⊙Γ₀)S₀ᵀ</text>
-<text x="306" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₀ [64×dᵥ]</text>
-<rect x="132" y="184" width="228" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-<text x="246" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₀, K₀, V₀ [64×d]（经短卷积）</text>
-<text x="246" y="222" text-anchor="middle" font-size="12" fill="#4d5652">导出块末状态 S₁ ∈ ℝ^(dᵥ×dₖ)</text>
+<!-- Chunk 0 -->
+<rect x="112" y="66" width="260" height="222" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="242" y="87" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">Chunk 0（位置 1..2 · 初态 S₀=0）</text>
+<rect x="122" y="98" width="115" height="52" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="179.5" y="119" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">跨块 (Q₀⊙Γ₀)S₀ᵀ</text>
+<text x="179.5" y="140" text-anchor="middle" font-size="12" fill="#4d5652">首位置 = 0</text>
+<rect x="247" y="98" width="115" height="52" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+<text x="304.5" y="119" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">块内下三角乘加</text>
+<text x="304.5" y="140" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">首位置 = 2</text>
+<g fill="none" stroke="#087f73" stroke-width="1.4" marker-end="url(#ls-teal)">
+  <path d="M179.5 150v12"/>
+  <path d="M304.5 150v12"/>
+</g>
+<rect x="122" y="164" width="240" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="242" y="184" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">⊕ 汇合 O₀ [2×1]：首位置 0 + 2 = 2</text>
+<text x="242" y="202" text-anchor="middle" font-size="12" fill="#4d5652">S₀=0 时跨块为 0，块内项仍产出非零值</text>
+<rect x="122" y="218" width="240" height="60" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="242" y="235" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">Q₀, K₀ [2×2] · V₀ [2×1]</text>
+<text x="242" y="253.5" text-anchor="middle" font-size="12" fill="#4d5652">设首词 q₁=k₁=[1,0], v₁=[2]</text>
+<text x="242" y="272" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">导出块末 S₁ = [2, 3] [1×2]</text>
 
-<!-- Inter-chunk S_1 State Badge -->
-<rect x="396" y="116" width="74" height="68" rx="7" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.4"/>
-<text x="433" y="142" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₁</text>
-<text x="433" y="162" text-anchor="middle" font-size="12" fill="#3a4f93">[dᵥ, dₖ]</text>
-<text x="433" y="178" text-anchor="middle" font-size="12" fill="#66716d">块间传递</text>
-<!-- Chunk 1 Box -->
-<rect x="492" y="70" width="208" height="174" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
-<text x="596" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Chunk 1（词 65..128）</text>
-<rect x="504" y="104" width="184" height="68" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
-<text x="596" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">跨块 (Q₁⊙Γ₁)S₁ᵀ + 块内</text>
-<text x="596" y="148" text-anchor="middle" font-size="12" fill="#4d5652">Γ: GDN标量 / KDA逐列</text>
-<text x="596" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₁ [64×dᵥ]</text>
-<rect x="504" y="184" width="184" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
-<text x="596" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₁, K₁, V₁ [64×d]</text>
-<text x="596" y="222" text-anchor="middle" font-size="12" fill="#4d5652">导出块末状态 S₂</text>
+<!-- Inter-chunk S_1 -->
+<rect x="390" y="110" width="66" height="78" rx="7" fill="#dce4fc" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="423" y="135" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">S₁</text>
+<text x="423" y="156" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#3a4f93">[2, 3]</text>
+<text x="423" y="176" text-anchor="middle" font-size="12" fill="#4d5652">[dᵥ×dₖ]</text>
 
-<!-- Commit State Slot Box -->
-<rect x="722" y="70" width="150" height="174" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-<text x="797" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">落盘请求状态槽</text>
-<text x="797" y="118" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">① 终态 S_final</text>
-<text x="797" y="138" text-anchor="middle" font-size="12" fill="#4d5652">定长矩阵 [dᵥ, dₖ]</text>
-<text x="797" y="164" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">② 短卷积尾窗</text>
-<text x="797" y="184" text-anchor="middle" font-size="12" fill="#4d5652">留最近 w−1 词</text>
-<text x="797" y="212" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">数学等价逐词递推</text>
-<text x="797" y="231" text-anchor="middle" font-size="12" fill="#66716d">供 Decode 续算</text>
+<!-- Chunk 1 -->
+<rect x="474" y="66" width="232" height="222" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="590" y="87" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">Chunk 1（位置 3..4，接续 S₁）</text>
+<rect x="484" y="98" width="102" height="52" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="535" y="119" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">跨块项</text>
+<text x="535" y="140" text-anchor="middle" font-size="12" fill="#4d5652">(Q₁⊙Γ₁)S₁ᵀ</text>
+<rect x="594" y="98" width="102" height="52" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+<text x="645" y="119" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">块内项</text>
+<text x="645" y="140" text-anchor="middle" font-size="12" fill="#4d5652">Cube 乘加</text>
+<g fill="none" stroke="#087f73" stroke-width="1.4" marker-end="url(#ls-teal)">
+  <path d="M535 150v12"/>
+  <path d="M645 150v12"/>
+</g>
+<rect x="484" y="164" width="212" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="590" y="184" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">⊕ 两路汇合 → 完整 O₁ [2×1]</text>
+<text x="590" y="202" text-anchor="middle" font-size="12" fill="#4d5652">Γ: GDN 标量 / KDA 逐列衰减</text>
+<rect x="484" y="220" width="212" height="56" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="590" y="241" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">Q₁, K₁ [C×dₖ] · V₁ [C×dᵥ]</text>
+<text x="590" y="263" text-anchor="middle" font-size="12" fill="#3a4f93">导出块末状态 S₂ [dᵥ×dₖ]</text>
+
+<!-- Writeback to Request Device State Slot -->
+<rect x="724" y="66" width="150" height="222" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="799" y="89" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">写回设备状态槽</text>
+<text x="799" y="110" text-anchor="middle" font-size="12" fill="#4d5652">（请求专属 HBM 槽）</text>
+<text x="799" y="140" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">① 终态 S_final</text>
+<text x="799" y="161" text-anchor="middle" font-size="12" fill="#4d5652">定长矩阵 [dᵥ, dₖ]</text>
+<text x="799" y="191" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">② 短卷积尾窗</text>
+<text x="799" y="212" text-anchor="middle" font-size="12" fill="#4d5652">留最近 w−1 词</text>
+<text x="799" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">数学等价逐词递推</text>
+<text x="799" y="266" text-anchor="middle" font-size="12" fill="#66716d">供 Decode 续算</text>
 <g fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#ls-indigo)">
-  <line x1="96" y1="150" x2="116" y2="150"/>
-  <line x1="374" y1="150" x2="394" y2="150"/>
-  <line x1="470" y1="150" x2="490" y2="150"/>
-  <line x1="700" y1="150" x2="720" y2="150"/>
+  <line x1="94" y1="149" x2="110" y2="149"/>
+  <line x1="372" y1="149" x2="388" y2="149"/>
+  <line x1="456" y1="149" x2="472" y2="149"/>
+  <line x1="706" y1="149" x2="722" y2="149"/>
 </g>
 
 <!-- Bottom Panel: Decode Single-Step In-Place Recurrent Update -->
-<rect x="14" y="276" width="872" height="252" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
-<circle cx="36" cy="300" r="11" fill="#087f73"/>
-<text x="36" y="304.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-<text x="54" y="305" font-size="16" font-weight="700" fill="#17211f">Decode 阶段 · Recurrent 单步原地递推更新 Sₜ（每步 1 词，零历史重扫省带宽）</text>
-<line x1="28" y1="320" x2="872" y2="320" stroke="#d8d8cf" stroke-width="1.2"/>
+<rect x="14" y="314" width="872" height="252" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="338" r="11" fill="#087f73"/>
+<text x="36" y="342.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="343" font-size="16" font-weight="700" fill="#17211f">Decode 阶段 · Recurrent 单步原地递推更新 Sₜ（每步 1 词，零历史重扫省带宽）</text>
+<line x1="28" y1="358" x2="872" y2="358" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<!-- Stage 1: Short Conv + Projection -->
-<rect x="28" y="332" width="186" height="146" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
-<text x="121" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">① 投影 + 短卷积缓存</text>
-<text x="121" y="381" text-anchor="middle" font-size="12" fill="#17211f">hₜ → q, k, v, αₜ, βₜ</text>
-<text x="121" y="405" text-anchor="middle" font-size="12" fill="#7a3a6a">滑动更新 Conv [w−1+K]</text>
-<text x="121" y="429" text-anchor="middle" font-size="12" fill="#4d5652">qₜ, kₜ 经 L2 归一化</text>
-<text x="121" y="455" text-anchor="middle" font-size="12" fill="#66716d">稳定递推算子谱范数</text>
+<rect x="28" y="370" width="186" height="146" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="121" y="393" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">① 投影 + 短卷积缓存</text>
+<text x="121" y="419" text-anchor="middle" font-size="12" fill="#17211f">hₜ → q, k, v, αₜ, βₜ</text>
+<text x="121" y="443" text-anchor="middle" font-size="12" fill="#7a3a6a">滑动更新 Conv [w−1+K]</text>
+<text x="121" y="467" text-anchor="middle" font-size="12" fill="#4d5652">qₜ, kₜ 经 L2 归一化</text>
+<text x="121" y="493" text-anchor="middle" font-size="12" fill="#66716d">稳定递推算子谱范数</text>
 
-<!-- Stage 2: Load S_{t-1} & Decay -->
-<rect x="236" y="332" width="190" height="146" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
-<text x="331" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">② 读槽位 Sₜ₋₁ 并衰减</text>
+<rect x="236" y="370" width="190" height="146" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="331" y="393" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">② 读状态槽 Sₜ₋₁ 并衰减</text>
 <g stroke-width="1.1">
-  <rect x="282" y="368" width="22" height="50" rx="2" fill="#f2f4fc" stroke="#9fb0e8"/>
-  <rect x="308" y="368" width="22" height="50" rx="2" fill="#b8efe4" stroke="#087f73"/>
-  <rect x="334" y="368" width="22" height="50" rx="2" fill="#dfe6fb" stroke="#9fb0e8"/>
-  <rect x="360" y="368" width="22" height="50" rx="2" fill="#6c82cc" stroke="#3a4f93"/>
+  <rect x="282" y="406" width="22" height="50" rx="2" fill="#f2f4fc" stroke="#9fb0e8"/>
+  <rect x="308" y="406" width="22" height="50" rx="2" fill="#b8efe4" stroke="#087f73"/>
+  <rect x="334" y="406" width="22" height="50" rx="2" fill="#dfe6fb" stroke="#9fb0e8"/>
+  <rect x="360" y="406" width="22" height="50" rx="2" fill="#6c82cc" stroke="#3a4f93"/>
 </g>
-<path d="M282 384.5h100M282 401h100" stroke="#ffffff" stroke-width="1.2"/>
-<text x="331" y="439" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#936300">GDN: S̄ₜ = αₜSₜ₋₁</text>
-<text x="331" y="460" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">KDA: S̄ₜ = Sₜ₋₁diag(αₜ)</text>
-<!-- Stage 3: Prediction Error In-Place Writeback -->
-<rect x="448" y="332" width="216" height="146" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
-<text x="556" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">③ 预测误差外积原地更新</text>
-<text x="556" y="381" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#17211f">预测：v̂ₜ = S̄ₜkₜ</text>
-<text x="556" y="405" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#065f56">残差：eₜ = vₜ − v̂ₜ</text>
-<text x="556" y="429" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">写回：Sₜ = S̄ₜ + βₜeₜkₜᵀ</text>
-<text x="556" y="456" text-anchor="middle" font-size="12" fill="#065f56">原地覆写槽位（投机留 1+K 页）</text>
+<path d="M282 422.5h100M282 439h100" stroke="#ffffff" stroke-width="1.2"/>
+<text x="331" y="477" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#936300">GDN: S̄ₜ = αₜSₜ₋₁</text>
+<text x="331" y="498" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">KDA: S̄ₜ = Sₜ₋₁diag(αₜ)</text>
 
-<!-- Stage 4: Readout & Output -->
-<rect x="686" y="332" width="186" height="146" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
-<text x="779" y="355" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">④ 当前词查询读出</text>
-<text x="779" y="383" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">oₜ = Sₜqₜ</text>
-<text x="779" y="410" text-anchor="middle" font-size="12" fill="#4d5652">输出门控 RMSNorm + o_proj</text>
-<text x="779" y="434" text-anchor="middle" font-size="12" fill="#7a3a6a">TP 组内一次 All-Reduce</text>
-<text x="779" y="458" text-anchor="middle" font-size="12" font-weight="700" fill="#087f73">访存恒定 O(dᵥdₖ) 不随 t 涨</text>
+<rect x="448" y="370" width="216" height="146" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="556" y="393" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">③ 预测误差外积原地更新</text>
+<text x="556" y="419" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#17211f">预测：v̂ₜ = S̄ₜkₜ</text>
+<text x="556" y="443" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#065f56">残差：eₜ = vₜ − v̂ₜ</text>
+<text x="556" y="467" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">写回：Sₜ = S̄ₜ + βₜeₜkₜᵀ</text>
+<text x="556" y="494" text-anchor="middle" font-size="12" fill="#065f56">原地写设备状态槽（投机 1+K 页）</text>
+
+<rect x="686" y="370" width="186" height="146" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+<text x="779" y="393" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">④ 当前词查询读出</text>
+<text x="779" y="421" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">oₜ = Sₜqₜ</text>
+<text x="779" y="448" text-anchor="middle" font-size="12" fill="#4d5652">输出门控 RMSNorm + o_proj</text>
+<text x="779" y="472" text-anchor="middle" font-size="12" fill="#7a3a6a">TP 组内一次 All-Reduce</text>
+<text x="779" y="496" text-anchor="middle" font-size="12" font-weight="700" fill="#087f73">访存恒定 O(dᵥdₖ) 不随 t 涨</text>
 
 <g fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#ls-teal)">
-  <line x1="214" y1="405" x2="234" y2="405"/>
-  <line x1="426" y1="405" x2="446" y2="405"/>
-  <line x1="664" y1="405" x2="684" y2="405"/>
+  <line x1="214" y1="443" x2="234" y2="443"/>
+  <line x1="426" y1="443" x2="446" y2="443"/>
+  <line x1="664" y1="443" x2="684" y2="443"/>
 </g>
-<path d="M556 478v16H331v-14" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ls-indigo)"/>
-<text x="444" y="514" text-anchor="middle" font-size="12" font-weight="600" fill="#3a4f93">↻ Sₜ 原地写回该请求状态槽，供 t+1 步继续递推</text>
+<path d="M556 516v16H331v-14" fill="none" stroke="#4c65b6" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ls-indigo)"/>
+<text x="444" y="552" text-anchor="middle" font-size="12" font-weight="600" fill="#3a4f93">↻ Sₜ 原地写回该请求设备状态槽，供 t+1 步继续递推</text>
 </svg>

@@ -1,37 +1,123 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="权重、激活和 KV cache 分别选择量化方案。W、A、C 标记压的对象；缩放系数与编码一起解释数值，任何一个对象降精度都不会自动改变另外两个。">
-  <title>权重、激活和 KV cache 分别选择量化方案。W、A、C 标记压的对象；缩放系数与编码一起解释数值，任何一个对象降精度都不会自动改变另外两个。</title>
-  <defs><marker id="quantization-methods-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="quantization-methods-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="quantization-methods-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <path d="M210 77 L300 77" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-weight)"/>
-  <path d="M510 77 L600 77" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-weight)"/>
-  <path d="M210 182 L300 182" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-token)"/>
-  <path d="M510 182 L600 182" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-token)"/>
-  <path d="M210 287 L300 287" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-kv)"/>
-  <path d="M510 287 L600 287" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-kv)"/>
-  <rect x="30" y="45" width="180" height="64" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="120" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">W：模型权重</text>
-  <text x="120" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">长期复用的参数</text>
-  <rect x="300" y="45" width="210" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="405" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">离线量化或加载时转换</text>
-  <text x="405" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">方法决定误差怎样分配</text>
-  <rect x="600" y="45" width="260" height="64" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-  <text x="730" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">权重编码 ＋ scale</text>
-  <text x="730" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">还需约定分组与打包</text>
-  <rect x="30" y="150" width="180" height="64" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="120" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A：本次激活</text>
-  <text x="120" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">这一批输入的中间值</text>
-  <rect x="300" y="150" width="210" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="405" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">前向中产生低位编码</text>
-  <text x="405" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">系数可静态保存或动态计算</text>
-  <rect x="600" y="150" width="260" height="64" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="730" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">参与矩阵乘的操作数</text>
-  <text x="730" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">累加与输出类型另定</text>
-  <rect x="30" y="255" width="180" height="64" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="120" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C：KV cache</text>
-  <text x="120" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">后续生成要读的历史</text>
-  <rect x="300" y="255" width="210" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
-  <text x="405" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">写入时量化</text>
-  <text x="405" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">读取时解释近似值</text>
-  <rect x="600" y="255" width="260" height="64" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <text x="730" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">历史编码 ＋ scale</text>
-  <text x="730" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">与权重量化分别验证</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="W 权重跨轮复用、A 激活本轮生成与 C KV 写后跨步读三轨量化生命周期及 scale 读取位置" font-family="var(--font-sans)">
+<title>W / A / C 三轨量化生命周期：[-2,3]÷0.5→[-4,6] 编码变换与各轨读取 scale 的位置</title>
+<desc>顶部展示 [-2,3] ÷ 0.5 → 编码 [-4,6] 配 scale=0.5 的数值变换；下方分三轨展示 W 权重跨轮复用、A 激活本轮生成即用、C KV cache 写后跨步读取，并标明各自读取 scale 的执行位置。</desc>
+<defs>
+  <marker id="qm-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="qm-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="qm-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+</defs>
+
+<!-- Top Numeric Transformation Strip: [-2, 3] / 0.5 -> [-4, 6] -->
+<rect x="14" y="10" width="872" height="104" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<text x="28" y="34" font-size="15" font-weight="700" fill="#17211f">单次缩放变换示意（设 scale s = 0.5）：[-2, 3] ÷ 0.5 → 低位编码 [-4, 6] ＋ 保存系数 s = 0.5</text>
+
+<rect x="28" y="46" width="196" height="56" rx="7" fill="#ffffff" stroke="#66716d" stroke-width="1.2"/>
+<text x="80" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">原值 x</text>
+<g stroke="#66716d" stroke-width="1.2" fill="#ece9df" font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle">
+  <rect x="122" y="57" width="42" height="34" rx="4"/><text x="143" y="79" fill="#17211f" stroke="none">-2</text>
+  <rect x="170" y="57" width="42" height="34" rx="4"/><text x="191" y="79" fill="#17211f" stroke="none">3</text>
+</g>
+
+<line x1="224" y1="74" x2="314" y2="74" stroke="#087f73" stroke-width="1.7" marker-end="url(#qm-teal)"/>
+<text x="269" y="65" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">÷ 0.5 舍入</text>
+
+<rect x="316" y="46" width="272" height="56" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="364" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">编码 q</text>
+<g stroke="#087f73" stroke-width="1.2" fill="#ffffff" font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle">
+  <rect x="400" y="57" width="42" height="34" rx="4"/><text x="421" y="79" fill="#065f56" stroke="none">-4</text>
+  <rect x="448" y="57" width="42" height="34" rx="4"/><text x="469" y="79" fill="#065f56" stroke="none">6</text>
+</g>
+<rect x="502" y="57" width="74" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="539" y="79" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">s = 0.5</text>
+
+<line x1="588" y1="74" x2="678" y2="74" stroke="#c78300" stroke-width="1.7" marker-end="url(#qm-amber)"/>
+<text x="633" y="65" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#936300">读 s 乘回</text>
+
+<rect x="680" y="46" width="192" height="56" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="730" y="79" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">解释值</text>
+<g stroke="#087f73" stroke-width="1.2" fill="#ddf4ef" font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle">
+  <rect x="772" y="57" width="42" height="34" rx="4"/><text x="793" y="79" fill="#065f56" stroke="none">-2</text>
+  <rect x="820" y="57" width="42" height="34" rx="4"/><text x="841" y="79" fill="#065f56" stroke="none">3</text>
+</g>
+
+<!-- Track 1: W (Weights - Reused Across Steps & Requests) -->
+<rect x="14" y="126" width="872" height="126" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<circle cx="36" cy="148" r="11" fill="#c78300"/>
+<text x="36" y="152.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">W</text>
+<text x="54" y="153" font-size="14.5" font-weight="700" fill="#17211f">权重轨（Weight）：离线或加载期量化一次 → 常驻显存跨所有请求、所有轮次反复复用</text>
+
+<rect x="28" y="164" width="244" height="76" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="150" y="185" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">① 离线导出或加载时转换</text>
+<text x="150" y="207" text-anchor="middle" font-size="12" fill="#17211f">训练权重 ÷ s_W → 低位编码 q_W</text>
+<text x="150" y="227" text-anchor="middle" font-size="12" fill="#4d5652">按通道或分组（如 g=128）定尺</text>
+
+<rect x="294" y="164" width="262" height="76" rx="7" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+<text x="425" y="185" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">② HBM 常驻保存（跨轮次复用）</text>
+<text x="425" y="207" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">保存 [q_W 打包整数/FP8] + [s_W]</text>
+<text x="425" y="227" text-anchor="middle" font-size="12" fill="#4d5652">服务期只读共享，可能转 NZ 分块</text>
+
+<rect x="578" y="164" width="294" height="76" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="725" y="185" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">③ 读取 s_W 位置：每轮 Linear / MoE</text>
+<text x="725" y="207" text-anchor="middle" font-size="12" fill="#17211f">W4A16 反量化读 s_W；W8A8 在乘加</text>
+<text x="725" y="227" text-anchor="middle" font-size="12" fill="#936300">出口联合乘 s_W·s_A 还原输出幅度</text>
+<g fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#qm-amber)">
+  <line x1="272" y1="202" x2="292" y2="202"/>
+  <line x1="556" y1="202" x2="576" y2="202"/>
+</g>
+
+<!-- Track 2: A (Activations - Generated & Consumed Within Current Forward) -->
+<rect x="14" y="264" width="872" height="126" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<circle cx="36" cy="286" r="11" fill="#087f73"/>
+<text x="36" y="290.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">A</text>
+<text x="54" y="291" font-size="14.5" font-weight="700" fill="#17211f">激活轨（Activation）：仅在本轮前向层间瞬时生成编码 → 当步矩阵乘消费后立即释放</text>
+
+<rect x="28" y="302" width="244" height="76" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="150" y="323" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">① 本轮前向层内实时产生</text>
+<text x="150" y="345" text-anchor="middle" font-size="12" fill="#17211f">本批激活 x ÷ s_A → 瞬时编码 q_A</text>
+<text x="150" y="365" text-anchor="middle" font-size="12" fill="#4d5652">静态读校准 s_A 或动态 per-token 现算</text>
+
+<rect x="294" y="302" width="262" height="76" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="425" y="323" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">② 临时缓冲（仅活当前算子步）</text>
+<text x="425" y="345" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">暂存本批 [q_A] + [s_A]</text>
+<text x="425" y="365" text-anchor="middle" font-size="12" fill="#4d5652">算完本层即丢弃，不占跨步缓存</text>
+
+<rect x="578" y="302" width="294" height="76" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="725" y="323" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">③ 读取 s_A 位置：紧接的矩阵乘出口</text>
+<text x="725" y="345" text-anchor="middle" font-size="12" fill="#17211f">Cube 完成 q_A×q_W 低位累加后当场</text>
+<text x="725" y="365" text-anchor="middle" font-size="12" fill="#065f56">读取本批 s_A 缩放回 BF16/FP16 输出</text>
+<g fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#qm-teal)">
+  <line x1="272" y1="340" x2="292" y2="340"/>
+  <line x1="556" y1="340" x2="576" y2="340"/>
+</g>
+
+<!-- Track 3: C (KV Cache - Quantized on Write, Read Across Future Steps) -->
+<rect x="14" y="402" width="872" height="126" rx="10" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+<circle cx="36" cy="424" r="11" fill="#4c65b6"/>
+<text x="36" y="428.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">C</text>
+<text x="54" y="429" font-size="14.5" font-weight="700" fill="#17211f">缓存轨（KV Cache）：本步写块池时量化编码 → 跨生成步长期保留并由后续步读取（与 W/A 独立）</text>
+
+<rect x="28" y="440" width="244" height="76" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="150" y="461" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">① 本步写 KV 池时量化</text>
+<text x="150" y="483" text-anchor="middle" font-size="12" fill="#17211f">新位置 K, V ÷ s_C → 历史编码 q_C</text>
+<text x="150" y="503" text-anchor="middle" font-size="12" fill="#4d5652">如 C8 (INT8/FP8) 独立配置开启</text>
+
+<rect x="294" y="440" width="262" height="76" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="425" y="461" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">② 分页块池驻留（写后跨步保留）</text>
+<text x="425" y="483" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">块内保存历史 [q_C] + [s_C]</text>
+<text x="425" y="503" text-anchor="middle" font-size="12" fill="#4d5652">随请求存活至结束退场才回收</text>
+
+<rect x="578" y="440" width="294" height="76" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="725" y="461" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">③ 读取 s_C 位置：后续步 Attention</text>
+<text x="725" y="483" text-anchor="middle" font-size="12" fill="#17211f">第 t+1, t+2… 步回读历史分页块时</text>
+<text x="725" y="503" text-anchor="middle" font-size="12" fill="#3a4f93">读取 s_C 解释近似 K/V（W8A8 不含 C8）</text>
+<g fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#qm-indigo)">
+  <line x1="272" y1="478" x2="292" y2="478"/>
+  <line x1="556" y1="478" x2="576" y2="478"/>
+</g>
 </svg>

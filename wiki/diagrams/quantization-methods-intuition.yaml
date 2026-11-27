@@ -1,21 +1,6 @@
-layout: figure
+mode: native-svg
 id: quantization-methods-intuition
-caption: 权重、激活和 KV cache 分别选择量化方案。W、A、C 标记压的对象；缩放系数与编码一起解释数值，任何一个对象降精度都不会自动改变另外两个。
-size: [900, 370]
-items:
-  - {at: [30, 45], size: [180, 64], text: W：模型权重, sub: 长期复用的参数, tone: weight}
-  - {at: [300, 45], size: [210, 64], text: 离线量化或加载时转换, sub: 方法决定误差怎样分配, tone: control, style: plain}
-  - {at: [600, 45], size: [260, 64], text: 权重编码 ＋ scale, sub: 还需约定分组与打包, tone: weight}
-  - {at: [30, 150], size: [180, 64], text: A：本次激活, sub: 这一批输入的中间值, tone: token}
-  - {at: [300, 150], size: [210, 64], text: 前向中产生低位编码, sub: 系数可静态保存或动态计算, tone: control, style: plain}
-  - {at: [600, 150], size: [260, 64], text: 参与矩阵乘的操作数, sub: 累加与输出类型另定, tone: token}
-  - {at: [30, 255], size: [180, 64], text: C：KV cache, sub: 后续生成要读的历史, tone: kv}
-  - {at: [300, 255], size: [210, 64], text: 写入时量化, sub: 读取时解释近似值, tone: control, style: plain}
-  - {at: [600, 255], size: [260, 64], text: 历史编码 ＋ scale, sub: 与权重量化分别验证, tone: kv}
-links:
-  - {from: [210, 77], to: [300, 77], tone: weight}
-  - {from: [510, 77], to: [600, 77], tone: weight}
-  - {from: [210, 182], to: [300, 182], tone: token}
-  - {from: [510, 182], to: [600, 182], tone: token}
-  - {from: [210, 287], to: [300, 287], tone: kv}
-  - {from: [510, 287], to: [600, 287], tone: kv}
+caption: >-
+  W（权重）、A（激活）、C（KV cache）三轨独立量化生命周期与缩放系数读取位置：顶部以 [-2,3] ÷ 0.5 → [-4,6] 示范低位编码与 scale s=0.5 的配对关系；下方三轨对比权重离线/加载期编码后跨轮次常驻并在 Linear/MoE 算子处读 s_W、激活在本轮前向实时生成编码并在当步矩阵乘出口读 s_A、KV cache 在本步写入分页块时编码并在后续生成步 Attention 跨步读取时读 s_C，任一轨降精度均不会自动改变其余两轨。
+size: [900, 540]
+pins: []

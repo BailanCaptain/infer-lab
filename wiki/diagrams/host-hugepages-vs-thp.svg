@@ -1,115 +1,148 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="宿主机 4 KiB 小页、HugeTLB 静态大页与 THP 透明大页机制对比及容器四道内存闸门">
-  <title>宿主机三种页映射机制与容器内存四道闸门</title>
-  <desc>上半部以 1 GiB 缓冲段对比 4 KiB 小页（262,144 页表项、TLB Miss 与缺页风暴）、HugeTLB 静态大页（512 个 2 MiB 或 1 个 1 GiB 预留连续物理页，承接 MemCache 与 Mooncake 锁页直传）与 THP 透明大页（MADV_HUGEPAGE 动态合并配合 aclrtHostRegisterV2）；下半部对比 vm.nr_hugepages、--shm-size、memlock 与用户态分配器边界。</desc>
-  <defs>
-    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
-    </marker>
-    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
-    </marker>
-    <marker id="arr-r" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#b54237" />
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620" role="img" aria-label="同一对齐 1 GiB 虚拟区映射到 262,144×4 KiB、512×2 MiB/1×1 GiB 静态大页与 THP 合并或回退分支" font-family="var(--font-sans)">
+<title>宿主机三种页映射：同一对齐 1 GiB 虚拟地址区间的物理页映射与 THP 合并/回退分支</title>
+<desc>上半展示同一对齐 1 GiB 虚拟区映射到 262,144×4 KiB（标明 262,144 为页数并另标首次触页假设）、512×2 MiB 或 1×1 GiB 静态大页，以及 THP 按策略合并 2 MiB 或条件不满足保留 4 KiB 小页的双分支；下半展示四道容器与主机内存门槛。</desc>
+<defs>
+  <marker id="hp-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
+  </marker>
+  <marker id="hp-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="hp-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+  <marker id="hp-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+</defs>
 
-  <!-- ================= BAND 1: 1 GiB Buffer Under Three Page Mechanisms ================= -->
-  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. 同样 1 GiB 主机缓冲段：4 KiB 标准页 vs 静态大页（HugeTLB）vs 透明大页（THP）</text>
+<!-- Top Shared 1 GiB Aligned Virtual Address Bar -->
+<text x="18" y="29" font-size="15.5" font-weight="700" fill="#17211f">1. 同一对齐 1 GiB 虚拟区（1,073,741,824 B）在三种页机制下的物理映射对照</text>
+<rect x="140" y="40" width="620" height="36" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="450" y="63" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">进程连续对齐虚拟地址区间 [VA_base, VA_base + 1 GiB)</text>
+<g fill="none" stroke-width="1.6">
+  <path d="M260 76v14H154v12" stroke="#b54237" marker-end="url(#hp-red)"/>
+  <line x1="450" y1="76" x2="450" y2="102" stroke="#087f73" marker-end="url(#hp-teal)"/>
+  <path d="M640 76v14h102v12" stroke="#4c65b6" marker-end="url(#hp-indigo)"/>
+</g>
 
-  <!-- Column 1: 4 KiB Standard Pages (x=20..294, w=274) -->
-  <rect x="20" y="46" width="274" height="270" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.6" />
-  <text x="157" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#8f3229">4 KiB 标准小页（默认按需分配）</text>
-  <rect x="36" y="86" width="242" height="48" rx="6" fill="#ffffff" stroke="#b54237" stroke-width="1.2" />
-  <text x="157" y="106" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#8f3229">1 GiB = 262,144 个 PTE</text>
-  <text x="157" y="126" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">物理页零散分布 · 四级页表逐级寻址</text>
+<!-- Column 1: 262,144 x 4 KiB Standard Pages -->
+<rect x="14" y="104" width="276" height="342" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+<text x="152" y="128" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">标准小页：262,144 × 4 KiB</text>
+<rect x="26" y="140" width="252" height="94" rx="7" fill="#ffffff" stroke="#b54237" stroke-width="1.2"/>
+<text x="152" y="161" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#8f3229">页数 = 262,144 页（PTE）</text>
+<!-- Visual scattered 4 KiB frames -->
+<g fill="#fae1d8" stroke="#b54237" stroke-width="1">
+  <rect x="38" y="172" width="18" height="18" rx="2"/><rect x="62" y="176" width="18" height="18" rx="2"/>
+  <rect x="88" y="170" width="18" height="18" rx="2"/><rect x="114" y="177" width="18" height="18" rx="2"/>
+  <rect x="140" y="171" width="18" height="18" rx="2"/><rect x="192" y="175" width="18" height="18" rx="2"/>
+  <rect x="220" y="170" width="18" height="18" rx="2"/><rect x="246" y="176" width="18" height="18" rx="2"/>
+</g>
+<text x="174" y="185" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">…</text>
+<text x="152" y="218" text-anchor="middle" font-size="12" fill="#4d5652">物理页框零散分布 · 四级页表逐级查</text>
 
-  <path d="M 157 134 L 157 156" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#arr-r)" />
+<rect x="26" y="246" width="252" height="102" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="152" y="268" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">首次触页与 TLB / MTT 开销</text>
+<text x="152" y="290" text-anchor="middle" font-size="12" fill="#8f3229">假设按需分配匿名页且未合并大页：</text>
+<text x="152" y="311" text-anchor="middle" font-size="12" fill="#4d5652">逐 4 KiB 页首写最多触发 262,144 次</text>
+<text x="152" y="332" text-anchor="middle" font-size="12" fill="#4d5652">小页缺页；随机访存易击穿 TLB/MTT</text>
 
-  <rect x="36" y="160" width="242" height="68" rx="6" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2" />
-  <text x="157" y="182" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#17211f">CPU TLB 与网卡 MTT 双重击穿</text>
-  <text x="157" y="202" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">大池随机访存触发高频 Page Walk</text>
-  <text x="157" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#8f3229">首写 26 万次缺页中断 · 可被换入 Swap</text>
+<rect x="26" y="360" width="252" height="74" rx="7" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="152" y="382" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">百 GiB 池化痛点</text>
+<text x="152" y="403" text-anchor="middle" font-size="12" fill="#4d5652">RDMA 逐页 pin 慢 · 可被换入 Swap</text>
+<text x="152" y="423" text-anchor="middle" font-size="12" fill="#66716d">一旦触发磁盘换页即造成秒级卡顿</text>
+<!-- Column 2: Static HugePages / HugeTLB (512 x 2 MiB or 1 x 1 GiB) -->
+<rect x="308" y="104" width="284" height="342" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+<text x="450" y="128" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">静态大页 HugeTLB（预留专用池）</text>
+<rect x="320" y="140" width="260" height="106" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="450" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">512 × 2 MiB 页（PTE 降 512 倍）</text>
+<g fill="#b8efe4" stroke="#087f73" stroke-width="1.1">
+  <rect x="334" y="168" width="48" height="20" rx="3"/>
+  <rect x="386" y="168" width="48" height="20" rx="3"/>
+  <rect x="438" y="168" width="48" height="20" rx="3"/>
+  <rect x="518" y="168" width="48" height="20" rx="3"/>
+</g>
+<text x="502" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">…</text>
+<text x="450" y="207" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">或 1 × 1 GiB 整页（仅 1 个页格）</text>
+<rect x="334" y="214" width="232" height="22" rx="4" fill="#087f73"/>
+<text x="450" y="229.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">连续 1 GiB 物理大页（0 碎片）</text>
 
-  <rect x="36" y="240" width="242" height="62" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2" />
-  <text x="157" y="262" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">百 GiB 级 KV 池 / RDMA 痛点</text>
-  <text x="157" y="282" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">锁页 pin 慢、网卡地址表缓存抖动</text>
-  <text x="157" y="298" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">Swap 一旦触发即引发秒级推理卡顿</text>
+<rect x="320" y="256" width="260" height="92" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="450" y="278" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">启动前硬预留 · 永不入 Swap</text>
+<text x="450" y="300" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">vm.nr_hugepages / NUMA sysfs</text>
+<text x="450" y="322" text-anchor="middle" font-size="12" fill="#4d5652">未用部分普通 malloc 不可借用</text>
+<text x="450" y="340" text-anchor="middle" font-size="12" fill="#66716d">核验查 /proc/meminfo 非 npu-smi</text>
 
-  <!-- Column 2: Static HugePages / HugeTLB (x=312..588, w=276) -->
-  <rect x="312" y="46" width="276" height="270" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
-  <text x="450" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">静态大页 HugeTLB（预留专用池）</text>
-  <rect x="328" y="86" width="244" height="48" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2" />
-  <text x="450" y="106" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#065f56">2 MiB×512 页 / 1 GiB×1 页</text>
-  <text x="450" y="126" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">页表项锐减 512~262,144 倍 · 常驻不换出</text>
+<rect x="320" y="360" width="260" height="74" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="450" y="381" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">昇腾外置池与 RDMA 承接路径</text>
+<text x="450" y="402" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">MemCache · dscli --enable_huge_tlb</text>
+<text x="450" y="422" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">global_te → register_memory</text>
 
-  <path d="M 450 134 L 450 156" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-t)" />
+<!-- Column 3: THP Branching (Merge 2 MiB vs Fallback 4 KiB) -->
+<rect x="610" y="104" width="276" height="342" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="748" y="128" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">透明大页 THP（策略合并与回退）</text>
 
-  <rect x="328" y="160" width="244" height="68" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2" />
-  <text x="450" y="182" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#17211f">vm.nr_hugepages / NUMA sysfs</text>
-  <text x="450" y="202" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">启动前预留连续物理页 · 独立专用池</text>
-  <text x="450" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#065f56">天生的连续大块 + 免 Swap 后台回收</text>
+<rect x="622" y="140" width="252" height="46" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="748" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">_madvise_hugepage(MADV_HUGEPAGE)</text>
+<text x="748" y="179" text-anchor="middle" font-size="12" fill="#4d5652">按内核策略与连续空闲框分两路：</text>
 
-  <rect x="328" y="240" width="244" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2" />
-  <text x="450" y="261" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#065f56">昇腾外置 KV 池核心承接路径</text>
-  <text x="450" y="280" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#17211f">MemCache · dscli --enable_huge_tlb</text>
-  <text x="450" y="297" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#66716d">配合 TransferEngine.register_memory</text>
+<g fill="none" stroke-width="1.5">
+  <line x1="686" y1="186" x2="686" y2="204" stroke="#087f73" marker-end="url(#hp-teal)"/>
+  <line x1="810" y1="186" x2="810" y2="204" stroke="#c78300" marker-end="url(#hp-amber)"/>
+</g>
 
-  <!-- Column 3: Transparent HugePages / THP (x=606..880, w=274) -->
-  <rect x="606" y="46" width="274" height="270" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6" />
-  <text x="743" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#3a4f93">透明大页 THP（内核动态合并）</text>
-  <rect x="622" y="86" width="242" height="48" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2" />
-  <text x="743" y="106" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#3a4f93">madvise(MADV_HUGEPAGE)</text>
-  <text x="743" y="126" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">对指定映射提示内核优先给 2 MiB 页</text>
+<!-- THP Branch A: Allocated / Merged 2 MiB -->
+<rect x="622" y="206" width="122" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="683" y="227" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">① 策略与连续页</text>
+<text x="683" y="247" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">条件满足</text>
+<rect x="634" y="258" width="98" height="22" rx="3" fill="#087f73"/>
+<text x="683" y="273.5" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">2 MiB 大页</text>
+<text x="683" y="298" text-anchor="middle" font-size="12" fill="#065f56">直接分或后台</text>
+<text x="683" y="317" text-anchor="middle" font-size="12" fill="#065f56">khugepaged 合并</text>
 
-  <path d="M 743 134 L 743 156" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#arr-i)" />
+<!-- THP Branch B: Fallback to 4 KiB Pages -->
+<rect x="752" y="206" width="122" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="813" y="227" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">② 策略关或碎片</text>
+<text x="813" y="247" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">条件不满足</text>
+<g fill="#ffffff" stroke="#c78300" stroke-width="1">
+  <rect x="764" y="258" width="20" height="20" rx="2"/>
+  <rect x="788" y="258" width="20" height="20" rx="2"/>
+  <rect x="812" y="258" width="20" height="20" rx="2"/>
+  <rect x="836" y="258" width="20" height="20" rx="2"/>
+</g>
+<text x="813" y="298" text-anchor="middle" font-size="12" fill="#936300">保留 4 KiB 小页</text>
+<text x="813" y="317" text-anchor="middle" font-size="12" fill="#4d5652">平滑回退不报错</text>
 
-  <rect x="622" y="160" width="242" height="68" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2" />
-  <text x="743" y="182" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#17211f">Engram SharedUvaBuffer 路径</text>
-  <text x="743" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#3a4f93">SharedMemory + aclrtHostRegisterV2</text>
-  <text x="743" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">再经 aclrtHostGetDevicePointer 映射 UVA</text>
+<rect x="622" y="340" width="252" height="94" rx="7" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="748" y="361" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">Engram 主机共享表 UVA 路径</text>
+<text x="748" y="382" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">aclrtHostRegisterV2 锁页</text>
+<text x="748" y="402" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#3a4f93">aclrtHostGetDevicePointer</text>
+<text x="748" y="423" text-anchor="middle" font-size="12" fill="#8f3229">注：全局 always 拼页整理易引抖动</text>
 
-  <rect x="622" y="240" width="242" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" />
-  <text x="743" y="261" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#936300">工程取舍边界</text>
-  <text x="743" y="280" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#17211f">免预先锁死静态池；碎片时回退 4 KiB</text>
-  <text x="743" y="297" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">全局 always 易引发后台拼页停顿抖动</text>
+<!-- Band 2: Four Orthogonal Host / Container Memory Gates -->
+<text x="18" y="474" font-size="15.5" font-weight="700" fill="#17211f">2. 四道独立的主机与容器内存门槛（排查时逐项分清，互不替代）</text>
 
-  <!-- Section Divider -->
-  <line x1="20" y1="334" x2="880" y2="334" stroke="#d8d8cf" stroke-width="1.5" />
+<rect x="14" y="488" width="208" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="118" y="511" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#065f56">vm.nr_hugepages</text>
+<text x="118" y="533" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">宿主机 HugeTLB 预留池</text>
+<text x="118" y="555" text-anchor="middle" font-size="12" fill="#4d5652">查 /proc/meminfo 读回</text>
+<text x="118" y="577" text-anchor="middle" font-size="12" fill="#8f3229">不用时误留会挤干普通 RAM</text>
 
-  <!-- ================= BAND 2: Four Orthogonal Memory Gates & Allocator Boundary ================= -->
-  <text x="20" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. 绝不混为一谈的四道主机内存闸门 + 内核稳态四件套</text>
+<rect x="234" y="488" width="208" height="118" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="338" y="511" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#3a4f93">--shm-size (/dev/shm)</text>
+<text x="338" y="533" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">容器 POSIX 共享内存</text>
+<text x="338" y="555" text-anchor="middle" font-size="12" fill="#4d5652">默认 64 MiB 超限报 SIGBUS</text>
+<text x="338" y="577" text-anchor="middle" font-size="12" fill="#3a4f93">多卡 ≥16g；大池 64g~500g</text>
 
-  <!-- Gate 1 -->
-  <rect x="20" y="378" width="206" height="108" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4" />
-  <text x="123" y="401" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#065f56">vm.nr_hugepages</text>
-  <text x="123" y="423" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">宿主机 HugeTLB 静态池</text>
-  <text x="123" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">查 /proc/meminfo 与 NUMA</text>
-  <text x="123" y="466" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#8f3229">过量预留会挤干普通 RAM</text>
+<rect x="454" y="488" width="208" height="118" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="558" y="511" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#7a3a6a">--ulimit memlock</text>
+<text x="558" y="533" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">进程锁页内存上限</text>
+<text x="558" y="555" text-anchor="middle" font-size="12" fill="#4d5652">约束 pinned host / RDMA</text>
+<text x="558" y="577" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#8f3229">过小报 aclrtMallocHost 错</text>
 
-  <!-- Gate 2 -->
-  <rect x="238" y="378" width="206" height="108" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4" />
-  <text x="341" y="401" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#3a4f93">--shm-size (/dev/shm)</text>
-  <text x="341" y="423" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">容器内 POSIX 共享内存</text>
-  <text x="341" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">64 MiB 超限报 SIGBUS / ENOSPC</text>
-  <text x="341" y="466" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#3a4f93">多卡设 16g；大池 64g~500g</text>
-
-  <!-- Gate 3 -->
-  <rect x="456" y="378" width="206" height="108" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4" />
-  <text x="559" y="401" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#7a3a6a">--ulimit memlock</text>
-  <text x="559" y="423" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">进程锁页内存额度</text>
-  <text x="559" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">约束 pinned host / RDMA 注册</text>
-  <text x="559" y="466" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#8f3229">过小报 aclrtMallocHost 207001</text>
-
-  <!-- Gate 4 -->
-  <rect x="674" y="378" width="206" height="108" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4" />
-  <text x="777" y="401" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="700" fill="#936300">LD_PRELOAD 分配器</text>
-  <text x="777" y="423" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">TCMalloc vs jemalloc</text>
-  <text x="777" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">线程本地缓存降 ptmalloc 锁争用</text>
-  <text x="777" y="466" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#8f3229">A3 / 950DT Kimi-K3 禁 jemalloc</text>
-
-  <!-- Bottom Kernel Strip -->
-  <rect x="20" y="494" width="860" height="54" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.3" />
-  <text x="36" y="516" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#17211f">宿主机 root 稳态四件套：</text>
-  <text x="204" y="516" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" fill="#065f56">scaling_governor=performance · vm.swappiness=0</text>
-  <text x="204" y="537" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" fill="#065f56">kernel.numa_balancing=0 · sched_migration_cost_ns（先查内核当前值再调）</text>
+<rect x="674" y="488" width="212" height="118" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="780" y="511" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#936300">LD_PRELOAD 分配器</text>
+<text x="780" y="533" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">TCMalloc vs jemalloc</text>
+<text x="780" y="555" text-anchor="middle" font-size="12" fill="#4d5652">线程缓存降 ptmalloc 锁争用</text>
+<text x="780" y="577" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">A3 / 950DT Kimi-K3 禁 jemalloc</text>
 </svg>

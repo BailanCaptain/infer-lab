@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="标准 Softmax 注意力 O(t²) 增长历史表对比线性注意力结合律固定矩阵状态 Sₜ" font-family="var(--font-sans)">
-<title>标准 Softmax 注意力 vs 线性注意力结合律定长矩阵状态 Sₜ</title>
-<desc>上半展示标准 Softmax 注意力下三角 O(t²) 分数表与不断增长的 KV 历史表；下半展示线性注意力利用结合律改变乘法顺序，维护固定大小矩阵状态 S_t ∈ R^(d_v × d_k)。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 530" width="900" height="530" role="img" aria-label="标准 Softmax 注意力 O(t²) 增长历史表对比线性注意力结合律固定矩阵状态 Sₜ 与两种读出形式" font-family="var(--font-sans)">
+<title>标准 Softmax 注意力 vs 线性注意力结合律定长矩阵状态 Sₜ（含无分母与归一化核读出对照）</title>
+<desc>上半展示标准 Softmax 注意力下三角 O(t²) 分数交互与随步数增长的 KV 历史表；下半展示线性注意力利用结合律维护固定矩阵状态 S_t，并用分子 6、分母 3 对照无显式分母示意 o=Sφ(q) 与早期归一化核读出 Sφ(q)/(z^T φ(q))。</desc>
 <defs>
   <marker id="la-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
@@ -8,10 +8,8 @@
   <marker id="la-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
   </marker>
-  <marker id="la-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
-  </marker>
 </defs>
+
 <!-- Top Panel: Standard Softmax Attention -->
 <rect x="14" y="12" width="872" height="214" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 <circle cx="36" cy="36" r="11" fill="#b54237"/>
@@ -19,7 +17,6 @@
 <text x="54" y="41" font-size="16" font-weight="700" fill="#17211f">标准 Softmax 注意力：exp 归一化锁死括号，KV 历史随步数 t 持续膨胀</text>
 <line x1="28" y1="56" x2="872" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<!-- Growing KV History Table (Left) -->
 <rect x="28" y="68" width="218" height="144" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
 <text x="137" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">逐位置追加 KV 历史表 [t × d]</text>
 <g stroke="#4c65b6" stroke-width="1">
@@ -40,12 +37,9 @@
 <text x="181" y="186.5" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">+ Vₜ 追加</text>
 <text x="137" y="205" text-anchor="middle" font-size="12" fill="#b54237">↓ 显存与单步访存随 t 线性增长</text>
 
-<!-- O(t^2) Lower-Triangular Score Matrix (Center) -->
 <rect x="268" y="68" width="298" height="144" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
 <text x="417" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">耦合 softmax(QKᵀ) 下三角交互 O(t²)</text>
-<g stroke="#d8d8cf" stroke-width="1">
-  <rect x="286" y="100" width="96" height="96" fill="#ece9df"/>
-</g>
+<rect x="286" y="100" width="96" height="96" fill="#ece9df" stroke="#d8d8cf" stroke-width="1"/>
 <g fill="#f3b8ae" stroke="#b54237" stroke-width="0.9">
   <rect x="286" y="100" width="19.2" height="19.2"/>
   <rect x="286" y="119.2" width="38.4" height="19.2"/>
@@ -57,7 +51,7 @@
 <text x="394" y="149" font-size="12" fill="#4d5652">在线分块可免存整表，但 qₜ</text>
 <text x="394" y="170" font-size="12" fill="#4d5652">仍须扫遍 1..t 全部历史 K、V</text>
 <text x="394" y="193" font-size="12" font-weight="700" fill="#b54237">✗ 无法预缩并成定长状态</text>
-<!-- Top Right Bottleneck Card -->
+
 <rect x="588" y="68" width="284" height="144" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
 <text x="730" y="89" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">长序列计算与访存瓶颈</text>
 <text x="602" y="116" font-size="12.5" fill="#8f3229">• Prefill 总算力：O(t²·d) 平方暴涨</text>
@@ -69,49 +63,52 @@
   <line x1="566" y1="140" x2="586" y2="140"/>
 </g>
 
-<!-- Bottom Panel: Linear Attention Fixed Matrix State -->
-<rect x="14" y="240" width="872" height="248" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
-<circle cx="36" cy="264" r="11" fill="#087f73"/>
-<text x="36" y="268.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-<text x="54" y="269" font-size="16" font-weight="700" fill="#17211f">线性注意力：核映射去 Softmax，结合律重打括号维护定长矩阵 Sₜ ∈ ℝ^(dᵥ×dₖ)</text>
-<line x1="28" y1="284" x2="872" y2="284" stroke="#d8d8cf" stroke-width="1.2"/>
+<!-- Bottom Panel: Linear Attention Fixed Matrix State & Two Readout Forms -->
+<rect x="14" y="238" width="872" height="280" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="262" r="11" fill="#087f73"/>
+<text x="36" y="266.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="267" font-size="16" font-weight="700" fill="#17211f">线性注意力：核映射去 Softmax，结合律重打括号维护定长矩阵 Sₜ ∈ ℝ^(dᵥ×dₖ)</text>
+<line x1="28" y1="282" x2="872" y2="282" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<!-- Bottom Left: Associativity Card -->
-<rect x="28" y="296" width="280" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-<text x="168" y="319" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">矩阵乘法结合律交换顺序</text>
-<text x="168" y="346" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#66716d">∑ᵢ vᵢ (φ(kᵢ)ᵀ φ(qₜ))  [先内积]</text>
-<text x="168" y="373" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">= ( ∑ᵢ₌₁ᵗ vᵢ φ(kᵢ)ᵀ ) φ(qₜ)</text>
-<text x="168" y="400" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">Sₜ = ∑ᵢ₌₁ᵗ vᵢ φ(kᵢ)ᵀ ∈ ℝ^(dᵥ×dₖ)</text>
-<text x="168" y="429" text-anchor="middle" font-size="12.5" fill="#936300">不论提示词 4 词还是 128K 词</text>
-<text x="168" y="452" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">全部折叠进固定 dᵥ×dₖ 状态矩阵</text>
+<rect x="28" y="294" width="270" height="210" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="163" y="317" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">结合律重排（无显式分母示意）</text>
+<text x="163" y="344" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" fill="#66716d">∑ᵢ vᵢ (φ(kᵢ)ᵀ φ(qₜ))  [先内积]</text>
+<text x="163" y="371" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">= ( ∑ᵢ₌₁ᵗ vᵢ φ(kᵢ)ᵀ ) φ(qₜ)</text>
+<text x="163" y="398" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">Sₜ = ∑ᵢ₌₁ᵗ vᵢ φ(kᵢ)ᵀ ∈ ℝ^(dᵥ×dₖ)</text>
+<text x="163" y="427" text-anchor="middle" font-size="12" fill="#936300">oₜ = Sₜφ(qₜ) 为省去显式分母示意</text>
+<text x="163" y="451" text-anchor="middle" font-size="12" fill="#4d5652">（现代 GDN / KDA 改用 L2 归一 + RMSNorm）</text>
+<text x="163" y="478" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">不论 4 词或 128K 词均折叠进 dᵥ×dₖ</text>
 
-<!-- Bottom Center: Fixed State Matrix S_t -->
-<rect x="330" y="296" width="258" height="176" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
-<text x="459" y="319" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">定长矩阵状态 Sₜ₋₁ → Sₜ</text>
+<rect x="320" y="294" width="250" height="210" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+<text x="445" y="317" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">定长矩阵状态 Sₜ₋₁ → Sₜ</text>
 <g stroke-width="1.2">
-  <rect x="406" y="334" width="24" height="72" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
-  <rect x="433" y="334" width="24" height="72" rx="3" fill="#b8efe4" stroke="#087f73"/>
-  <rect x="460" y="334" width="24" height="72" rx="3" fill="#dce4fc" stroke="#4c65b6"/>
-  <rect x="487" y="334" width="24" height="72" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
+  <rect x="394" y="332" width="23" height="68" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
+  <rect x="420" y="332" width="23" height="68" rx="3" fill="#b8efe4" stroke="#087f73"/>
+  <rect x="446" y="332" width="23" height="68" rx="3" fill="#dce4fc" stroke="#4c65b6"/>
+  <rect x="472" y="332" width="23" height="68" rx="3" fill="#9fb0e8" stroke="#4c65b6"/>
 </g>
-<path d="M406 352h105M406 370h105M406 388h105" stroke="#ffffff" stroke-width="1.4"/>
-<text x="368" y="362" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">① 写入</text>
-<text x="368" y="382" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">kₜ, vₜ</text>
-<text x="550" y="362" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">② 读出</text>
-<text x="550" y="382" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">Sₜφ(qₜ)</text>
-<text x="459" y="432" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">↻ Sₜ 原地留给 t+1 步继续递推</text>
-<text x="459" y="454" text-anchor="middle" font-size="12" fill="#66716d">形状恒为 [dᵥ, dₖ]，与位置数 t 无关</text>
+<path d="M394 349h101M394 366h101M394 383h101" stroke="#ffffff" stroke-width="1.4"/>
+<text x="357" y="358" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">① 写入</text>
+<text x="357" y="378" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">kₜ, vₜ</text>
+<text x="533" y="358" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">② 读出</text>
+<text x="533" y="378" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">Sₜφ(qₜ)</text>
+<rect x="334" y="412" width="222" height="36" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="445" y="434.5" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">早期核另护累加向量 zₜ = ∑ᵢ φ(kᵢ)</text>
+<text x="445" y="472" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">↻ Sₜ 原地留给 t+1 步继续递推</text>
+<text x="445" y="493" text-anchor="middle" font-size="12" fill="#66716d">形状恒为 [dᵥ, dₖ]，与位置数 t 无关</text>
 
-<!-- Bottom Right: Linear Attention Summary -->
-<rect x="610" y="296" width="262" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-<text x="741" y="319" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">输出 oₜ = Sₜφ(qₜ) 与双态收益</text>
-<text x="624" y="346" font-size="12.5" fill="#065f56">• 序列总计算：O(t·dᵥdₖ) 线性增长</text>
-<text x="624" y="372" font-size="12.5" fill="#065f56">• Decode 单步：只读写 1 份定长 Sₜ</text>
-<text x="624" y="398" font-size="12.5" fill="#065f56">• Prefill：Chunkwise 分块矩阵乘</text>
-<text x="624" y="424" font-size="12.5" fill="#065f56">• Decode：Recurrent 逐词原地更新</text>
-<text x="624" y="452" font-size="12" fill="#4d5652">折中：历史融合进 Sₜ，容量受维度限制</text>
+<rect x="592" y="294" width="280" height="210" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="732" y="317" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">两种读出对照（分子 6 · 分母 3 示意）</text>
+<rect x="604" y="328" width="256" height="78" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="614" y="350" font-size="12" font-weight="700" fill="#065f56">① 无显式分母：oₜ = Sₜφ(qₜ) = 6</text>
+<text x="614" y="373" font-size="12" font-weight="700" fill="#3a4f93">② 早期归一化核（除 zₜᵀφ(qₜ)=3）：</text>
+<text x="614" y="395" font-family="var(--font-mono)" font-size="12" fill="#17211f">oₜ = Sₜφ(qₜ)/(zₜᵀφ(qₜ)) = 6÷3 = 2</text>
+<text x="606" y="429" font-size="12.5" fill="#065f56">• 序列总算力 O(t·dᵥdₖ)，单步只读 Sₜ</text>
+<text x="606" y="454" font-size="12.5" fill="#065f56">• Prefill 分块矩阵乘 · Decode 原地递推</text>
+<text x="606" y="481" font-size="12" fill="#4d5652">折中：历史混入 Sₜ，精确回查受秩限制</text>
+
 <g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#la-teal)">
-  <line x1="308" y1="370" x2="328" y2="370"/>
-  <line x1="588" y1="370" x2="608" y2="370"/>
+  <line x1="298" y1="368" x2="318" y2="368"/>
+  <line x1="570" y1="368" x2="590" y2="368"/>
 </g>
 </svg>

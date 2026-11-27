@@ -1,20 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350" role="img" aria-label="版本对照示意：先固定提交和符号，再比较输入、条件与状态；行号仅定位该快照，不代表行为">
-  <title>版本对照示意：先固定提交和符号，再比较输入、条件与状态；行号仅定位该快照，不代表行为</title>
-  <defs><marker id="ref-diff-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ref-diff-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <rect x="30" y="55" width="350" height="250" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="46" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">固定提交 A（示意）</text>
-  <rect x="520" y="55" width="350" height="250" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="536" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">固定提交 B（示意）</text>
-  <path d="M350 137 L550 137" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-start="url(#ref-diff-ah-control)" marker-end="url(#ref-diff-ah-control)"/>
-  <path d="M350 242 L550 242" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-start="url(#ref-diff-ah-token)" marker-end="url(#ref-diff-ah-token)"/>
-  <rect x="60" y="110" width="290" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="205" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">职责与符号</text>
-  <rect x="550" y="110" width="290" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-  <text x="695" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">对应职责与符号</text>
-  <rect x="60" y="215" width="290" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="205" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输入 / 条件 / 状态更新</text>
-  <rect x="550" y="215" width="290" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-  <text x="695" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输入 / 条件 / 状态更新</text>
-  <text x="450" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">定位</text>
-  <text x="450" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">比较行为</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="vllm-ascend c09d3e20 与 8d6180e2 同一残差 RMSNorm 调用的分支与回退对照" font-family="var(--font-sans)">
+<title>跨提交行为对照：c09d3e20 vs 8d6180e2 的同一残差 RMSNorm 分支与回退入口</title>
+<desc>给 c09d3e20 与 8d6180e2 的 AscendRMSNorm.forward_oot 喂入相同的 x=[1,2] 与 residual=[1,-1]，将残差和 [2,1] 接到各自的分支条件，标出 main 在扩展门控关闭时恢复的 torch_npu.npu_add_rms_norm 回退入口。</desc>
+<defs>
+  <marker id="rd-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="rd-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="rd-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
+  </marker>
+  <marker id="rd-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+</defs>
+
+<!-- Top Shared Input & Symbol Anchor -->
+<rect x="14" y="12" width="872" height="92" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="450" y="36" text-anchor="middle" font-size="15.5" font-weight="700" fill="#17211f">对齐同一符号与同一组输入：AscendRMSNorm.forward_oot(x, residual)</text>
+<rect x="44" y="48" width="240" height="42" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="164" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">输入 x = [1, 2]</text>
+<rect x="312" y="48" width="256" height="42" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="440" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">残差 residual = [1, -1]</text>
+<rect x="596" y="48" width="260" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="726" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">残差和 s = x + res = [2, 1]</text>
+<line x1="284" y1="69" x2="310" y2="69" stroke="#4c65b6" stroke-width="1.5"/>
+<line x1="568" y1="69" x2="594" y2="69" stroke="#087f73" stroke-width="1.6" marker-end="url(#rd-teal)"/>
+
+<!-- Left Commit Panel: v0.30.0 (c09d3e20) -->
+<rect x="14" y="122" width="424" height="292" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.4"/>
+<circle cx="36" cy="146" r="11" fill="#c78300"/>
+<text x="36" y="150.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">A</text>
+<text x="54" y="151" font-size="15" font-weight="700" fill="#17211f">vllm-ascend@c09d3e20（v0.30.0 主基线）</text>
+<text x="54" y="171" font-family="var(--font-mono)" font-size="12" fill="#66716d">ops/layernorm.py#L88-L95 · residual 非空分支</text>
+<line x1="28" y1="182" x2="424" y2="182" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<rect x="30" y="196" width="392" height="50" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="226" y="218" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">接 s = [2, 1] 语义 → 无 enable_custom_op() 门控</text>
+<text x="226" y="238" text-anchor="middle" font-size="12" fill="#4d5652">单路直入自编译扩展，已删去旧版 false 回退分支</text>
+
+<line x1="226" y1="246" x2="226" y2="266" stroke="#c78300" stroke-width="1.6" marker-end="url(#rd-amber)"/>
+
+<rect x="30" y="268" width="392" height="66" rx="7" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+<text x="226" y="291" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#17211f">npu_add_rms_norm_bias(x, res, γ, bias, ε)</text>
+<text x="226" y="316" text-anchor="middle" font-size="12" fill="#065f56">融合算出归一化 y 并写回更新残差 s = [2, 1]</text>
+
+<rect x="30" y="346" width="392" height="54" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="226" y="368" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8f3229">✗ 扩展门控关闭或未编入时：无 torch_npu 回退入口</text>
+<text x="226" y="389" text-anchor="middle" font-size="12" fill="#4d5652">导入 vllm_ascend_C 失败或算子缺失将直接抛异常</text>
+
+<!-- Right Commit Panel: main (8d6180e2) -->
+<rect x="462" y="122" width="424" height="292" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.4"/>
+<circle cx="484" cy="146" r="11" fill="#087f73"/>
+<text x="484" y="150.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">B</text>
+<text x="502" y="151" font-size="15" font-weight="700" fill="#17211f">vllm-ascend@8d6180e2（社区 main）</text>
+<text x="502" y="171" font-family="var(--font-mono)" font-size="12" fill="#66716d">ops/layernorm.py#L88-L99 · 恢复双路门控分支</text>
+<line x1="476" y1="182" x2="872" y2="182" stroke="#d8d8cf" stroke-width="1.2"/>
+
+<rect x="478" y="196" width="392" height="50" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="674" y="218" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#065f56">接 s = [2, 1] → 判 if enable_custom_op():</text>
+<text x="674" y="238" text-anchor="middle" font-size="12" fill="#4d5652">查 RUNTIME_CUSTOM_OPS 与 VLLM_BATCH_INVARIANT</text>
+
+<line x1="574" y1="246" x2="574" y2="266" stroke="#087f73" stroke-width="1.6" marker-end="url(#rd-teal)"/>
+<line x1="774" y1="246" x2="774" y2="266" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#rd-indigo)"/>
+
+<rect x="478" y="268" width="188" height="132" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="572" y="291" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">True · 门控开启</text>
+<text x="572" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">npu_add_rms_norm_bias</text>
+<text x="572" y="342" text-anchor="middle" font-size="12" fill="#4d5652">走自编译融合算子</text>
+<text x="572" y="366" text-anchor="middle" font-size="12" fill="#065f56">返回 (y, s=[2, 1])</text>
+<text x="572" y="389" text-anchor="middle" font-size="12" fill="#66716d">main 对 A5 已重开此路</text>
+
+<rect x="678" y="268" width="192" height="132" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="774" y="291" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4f93">False · 恢复回退入口</text>
+<text x="774" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">npu_add_rms_norm</text>
+<text x="774" y="342" text-anchor="middle" font-size="12" fill="#17211f">退回 torch_npu 基础算子</text>
+<text x="774" y="366" text-anchor="middle" font-size="12" fill="#3a4f93">有 bias 再补加法，保 s=[2,1]</text>
+<text x="774" y="389" text-anchor="middle" font-size="12" fill="#4d5652">兼容批不变补丁模式</text>
+
+<g fill="none" stroke="#4c65b6" stroke-width="1.5">
+  <path d="M726 104v14H226v6" marker-end="url(#rd-amber)"/>
+  <path d="M726 104v14H674v6" marker-end="url(#rd-teal)"/>
+</g>
+
+<!-- Bottom Rule Strip -->
+<rect x="14" y="428" width="872" height="50" rx="8" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="450" y="449" text-anchor="middle" font-size="13" font-weight="700" fill="#17211f">源码版本对照铁律：两边行号相近（L88-L95 vs L88-L99）绝不代表行为相同；必须追同一符号的分支条件与回退入口</text>
+<text x="450" y="469" text-anchor="middle" font-size="12" fill="#66716d">用 git show commit:path 与 git diff 固定两侧快照，代入相同输入核对输出张量、更新状态与异常边界</text>
 </svg>

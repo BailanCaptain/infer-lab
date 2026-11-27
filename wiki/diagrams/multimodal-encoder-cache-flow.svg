@@ -1,96 +1,151 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="多模态 EncoderCacheManager 独立于文本 Prefix Caching 的跨轮与抢占复用机制及 EncoderAclGraphManager 图回放流程">
-  <title>多模态视觉特征独立缓存复用与 ViT 分块图回放链路</title>
-  <desc>上半部对比文本 KV Prefix Caching（从位置 0 连续块链式哈希，前文改动断链，抢占释放后若未开 APC 或块被驱逐须重跑语言层）与 EncoderCacheManager（按单张媒体 mm_hash 独立索引，前缀变化不改变媒体键，特征未被挤出仍驻留时直接命中并跳过 ViT 编码）；下半部展示 ViT 升序预算装箱、EncoderAclGraphManager 侧流更新回放与 ModelSlim/msprobe 工具链。</desc>
-  <defs>
-    <marker id="arr-t" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73" />
-    </marker>
-    <marker id="arr-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#c78300" />
-    </marker>
-    <marker id="arr-i" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6" />
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="多模态 EncoderCacheManager 媒体键命中引用 2→1→0 入可回收队列、显式评分分支与 ViT 256 档装箱双流事件同步" font-family="var(--font-sans)">
+<title>多模态缓存与视觉图回放：媒体键引用 2→1→0 演进、显式 10 万 CPU 槽分支与 256 档装箱 Event 同步</title>
+<desc>上半展示同图 X 在两条请求中按 mm_hash 命中、引用 2→1→0 后转入可回收队列，以及显式配置的评分管理器分支内 10 万 CPU 槽；下半展示未命中时 96+160=256 与 192 余 64 槽装箱、侧流 Event 等待与放行点及散回原序。</desc>
+<defs>
+  <marker id="mm-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#087f73"/>
+  </marker>
+  <marker id="mm-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#c78300"/>
+  </marker>
+  <marker id="mm-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#4c65b6"/>
+  </marker>
+  <marker id="mm-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
+  </marker>
+</defs>
 
-  <!-- ================= BAND 1: APC vs EncoderCacheManager ================= -->
-  <text x="20" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">1. 为什么文本 Prefix Caching 替代不了 EncoderCacheManager？（前文变动与抢占重算）</text>
+<!-- Band 1: Media Key Hit, Ref Count 2->1->0 -> Freeable Queue, and Explicit Score Manager Branch -->
+<rect x="14" y="10" width="872" height="278" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="34" r="11" fill="#087f73"/>
+<text x="36" y="38.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="54" y="39" font-size="15.5" font-weight="700" fill="#17211f">缓存命中轨：两条不同前缀请求共命同图 X，引用 2 → 1 → 0 进入可回收队列</text>
+<line x1="28" y1="54" x2="872" y2="54" stroke="#d8d8cf" stroke-width="1.2"/>
 
-  <!-- Left Card: Text KV Prefix Caching (x=20..440, w=420) -->
-  <rect x="20" y="46" width="420" height="244" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.6" />
-  <text x="230" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#3a4f93">文本 KV Prefix Caching（语言层 K/V 块）</text>
+<!-- Left: Two Requests Sharing Image X -->
+<rect x="26" y="66" width="230" height="208" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="141" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">前缀不同仍命中同一媒体键</text>
+<rect x="38" y="100" width="206" height="44" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+<text x="141" y="119" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#17211f">Req 1: [Sys_A] + [Img_X]</text>
+<text x="141" y="137" text-anchor="middle" font-size="12" fill="#065f56">首次算完驻池 · 持引用</text>
+<rect x="38" y="152" width="206" height="44" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="141" y="171" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">Req 2: [Sys_B] + [Img_X]</text>
+<text x="141" y="189" text-anchor="middle" font-size="12" fill="#3a4f93">文本前缀断链 · 媒体键仍中</text>
+<text x="141" y="220" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">check_and_update_cache</text>
+<text x="141" y="242" text-anchor="middle" font-size="12" fill="#4d5652">按 mm_hash(X) 免跑 ViT</text>
+<text x="141" y="262" text-anchor="middle" font-size="12" fill="#66716d">仅重算变动后的语言层</text>
 
-  <rect x="36" y="86" width="388" height="58" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2" />
-  <text x="230" y="108" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#17211f">[Sys_B 变动] → [Img_X 256 占位] → [User_Q2]</text>
-  <text x="230" y="130" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#8f3229">前序改 1 个词即打断从头连续前缀哈希 → 后续 KV 全失配</text>
+<!-- Center: Ref Count 2 -> 1 -> 0 -> freeable State Machine -->
+<rect x="274" y="66" width="322" height="208" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="435" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">mm_hash(X) 引用计数与抢占保护</text>
+<g stroke-width="1.2" text-anchor="middle">
+  <rect x="286" y="102" width="84" height="58" rx="6" fill="#ffffff" stroke="#087f73"/>
+  <text x="328" y="125" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">ref = 2</text>
+  <text x="328" y="147" font-size="12" fill="#4d5652">R1, R2 在用</text>
 
-  <rect x="36" y="156" width="388" height="58" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" />
-  <text x="230" y="178" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#8f3229">显存抢占 _preempt_request() 释放 KV 块</text>
-  <text x="230" y="200" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#66716d">num_computed_tokens 归零；未开 APC 或块被驱逐时重跑语言层</text>
+  <rect x="392" y="102" width="84" height="58" rx="6" fill="#ffffff" stroke="#087f73"/>
+  <text x="434" y="125" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#065f56">ref = 1</text>
+  <text x="434" y="147" font-size="12" fill="#4d5652">R1 释放/抢占</text>
 
-  <rect x="36" y="226" width="388" height="50" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.1" />
-  <text x="230" y="247" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">命中收益与局限</text>
-  <text x="230" y="266" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">前缀全同可一并跳过 ViT + LLM；一旦前缀断链则整段重算</text>
+  <rect x="498" y="102" width="86" height="58" rx="6" fill="#fff4cf" stroke="#c78300"/>
+  <text x="541" y="125" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#936300">ref = 0</text>
+  <text x="541" y="147" font-size="12" fill="#936300">R2 亦调 free</text>
+</g>
+<g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#mm-teal)">
+  <line x1="370" y1="131" x2="390" y2="131"/>
+  <line x1="476" y1="131" x2="496" y2="131"/>
+  <path d="M541 160v16" stroke="#c78300" marker-end="url(#mm-amber)"/>
+</g>
+<rect x="286" y="178" width="298" height="84" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.2"/>
+<text x="435" y="200" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">进入 freeable 可回收队列（特征仍留池内）</text>
+<text x="435" y="223" text-anchor="middle" font-size="12" fill="#17211f">_preempt_request 仅减引用不销毁视觉向量</text>
+<text x="435" y="246" text-anchor="middle" font-size="12" fill="#065f56">未被新媒体挤出前，恢复或新请求原地复活命中</text>
 
-  <!-- Right Card: EncoderCacheManager (x=460..880, w=420) -->
-  <rect x="460" y="46" width="420" height="244" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8" />
-  <text x="670" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#065f56">EncoderCacheManager（按媒体 mm_hash 独立缓存）</text>
+<!-- Right: Default Manager vs Explicitly Configured Score Manager Branch -->
+<rect x="614" y="66" width="258" height="208" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="743" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">缓存管理器策略分支</text>
+<rect x="626" y="100" width="234" height="62" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="743" y="121" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">① 默认单级 EncoderCacheManager</text>
+<text x="743" y="144" text-anchor="middle" font-size="12" fill="#4d5652">仅设备槽池 · 满池按 FIFO 弹出可回收项</text>
+<rect x="626" y="172" width="234" height="90" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="743" y="193" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">② 显式配置的评分管理器分支</text>
+<text x="743" y="214" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">ScoreEncoderCacheManager</text>
+<text x="743" y="235" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">Pinned CPU 100,000 槽二级托底</text>
+<text x="743" y="254" text-anchor="middle" font-size="12" fill="#4d5652">按频次×O(s²) 代价晋升（v0.30 MRV1）</text>
 
-  <rect x="476" y="86" width="388" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2" />
-  <text x="670" y="108" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#065f56">check_and_update_cache(req, input_id)</text>
-  <text x="670" y="130" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#17211f">与图片在提示词中的前后位置完全解耦，命中即免跑 ViT</text>
+<g fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#mm-teal)">
+  <line x1="256" y1="148" x2="272" y2="148"/>
+  <line x1="596" y1="148" x2="612" y2="148"/>
+</g>
+<!-- Band 2: Cache Miss Path - ViT Ascending Budget Packing, Dual-Stream Event Sync & Scatter -->
+<rect x="14" y="302" width="872" height="326" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
+<circle cx="36" cy="326" r="11" fill="#c78300"/>
+<text x="36" y="330.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="54" y="331" font-size="15.5" font-weight="700" fill="#17211f">未命中轨：升序预算装箱（256 档双桶算例）→ 侧流 Event 等待/放行 → 恢复原序</text>
+<line x1="28" y1="346" x2="872" y2="346" stroke="#d8d8cf" stroke-width="1.2"/>
 
-  <rect x="476" y="156" width="388" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2" />
-  <text x="670" y="178" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12.5" font-weight="700" fill="#17211f">抢占 free(req) 仅归零引用转入 freeable</text>
-  <text x="670" y="200" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#065f56">未被新图挤出前常驻，请求重排或分块 Prefill 跨步零重算</text>
+<!-- Step 1: ViT Ascending Packing (96+160=256, 192+64 pad) -->
+<rect x="26" y="358" width="278" height="256" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="165" y="380" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">① 升序预算装箱（256 档示意）</text>
+<text x="165" y="401" text-anchor="middle" font-size="12" fill="#4d5652">原序 [M₀:160, M₁:192, M₂:96] → 升序</text>
 
-  <rect x="476" y="226" width="388" height="50" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" />
-  <text x="670" y="247" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#936300">v0.30.0 昇腾 ScoreEncoderCacheManager 增强</text>
-  <text x="670" y="266" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">Pinned CPU 10 万槽托底 + 按 O(s²) 重算代价评分晋升 NPU</text>
+<rect x="38" y="411" width="254" height="60" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+<text x="165" y="429" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">桶 0：96 + 160 = 256 槽（满载）</text>
+<rect x="52" y="437" width="84" height="24" rx="3" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+<rect x="136" y="437" width="140" height="24" rx="3" fill="#b8efe4" stroke="#087f73" stroke-width="1.1"/>
+<text x="94" y="453.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">M₂:96</text>
+<text x="206" y="453.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#065f56">M₀:160</text>
 
-  <!-- Section Divider -->
-  <line x1="20" y1="308" x2="880" y2="308" stroke="#d8d8cf" stroke-width="1.5" />
+<rect x="38" y="481" width="254" height="60" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+<text x="165" y="499" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">桶 1：192 槽进 256 档，余 64 槽</text>
+<rect x="52" y="507" width="168" height="24" rx="3" fill="#fde598" stroke="#c78300" stroke-width="1.1"/>
+<rect x="220" y="507" width="56" height="24" rx="3" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1" stroke-dasharray="4 3"/>
+<text x="136" y="523.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#936300">M₁:192 槽</text>
+<text x="248" y="523.5" text-anchor="middle" font-size="12" fill="#66716d">余64</text>
 
-  <!-- ================= BAND 2: ViT Packing + EncoderAclGraphManager + Toolchain ================= -->
-  <text x="20" y="334" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#17211f">2. 缓存未命中路径：ViT 预算打包录播（EncoderAclGraphManager）与量化/精度工具闭环</text>
+<text x="165" y="564" text-anchor="middle" font-size="12" fill="#17211f">挑最小可容预算图；超最大档退 Eager</text>
+<text x="165" y="586" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">cudagraph_mm_encoder = True</text>
+<text x="165" y="605" text-anchor="middle" font-size="12" fill="#66716d">受 token_budget 与最大项数约束</text>
 
-  <!-- Step 1: ViT Packing (x=20..294, w=274) -->
-  <rect x="20" y="352" width="274" height="190" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5" />
-  <text x="157" y="376" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#936300">① ViT 升序预算装箱</text>
-  <text x="157" y="397" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#17211f">EncoderCudaGraphManager</text>
-  <rect x="34" y="410" width="246" height="62" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1" />
-  <text x="157" y="431" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#17211f">按视觉输出 token 数升序重排</text>
-  <text x="157" y="451" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">受 token_budget 与最大项数约束</text>
-  <text x="157" y="467" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#8f3229">超最大档走 Eager；回放后散回原序</text>
-  <rect x="34" y="482" width="246" height="46" rx="6" fill="#ece9df" stroke="#d8d8cf" stroke-width="1.1" />
-  <text x="157" y="502" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#17211f">cudagraph_mm_encoder=True</text>
-  <text x="157" y="520" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">预算档位默认从最小预算倍增推导</text>
+<!-- Step 2: Ascend EncoderAclGraphManager Dual-Stream Event Sync -->
+<rect x="322" y="358" width="302" height="256" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+<text x="473" y="380" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">② 双流图回放与 Event 等待/放行</text>
+<text x="473" y="401" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">EncoderAclGraphManager</text>
 
-  <path d="M 294 447 L 314 447" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#arr-a)" />
+<rect x="334" y="412" width="278" height="88" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="473" y="433" text-anchor="middle" font-size="12" font-weight="700" fill="#17211f">主流：拷入 input_buffers → replay()</text>
+<text x="473" y="456" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">前段算子 → [Event 等待点] 挂起等参</text>
+<text x="473" y="479" text-anchor="middle" font-size="12" fill="#065f56">收到信号放行 → 按真实边界跑 FIA</text>
 
-  <!-- Step 2: Ascend EncoderAclGraphManager (x=316..594, w=278) -->
-  <rect x="316" y="352" width="278" height="190" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6" />
-  <text x="455" y="376" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#065f56">② 昇腾视觉图捕获回放</text>
-  <text x="455" y="397" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#065f56">EncoderAclGraphManager</text>
-  <rect x="330" y="410" width="250" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1" />
-  <text x="455" y="431" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#17211f">input_buffers + graph.replay()</text>
-  <text x="455" y="451" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#065f56">update_encoder_graph_params</text>
-  <text x="455" y="467" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">侧流更新 FIA cu_seqlens 并由事件同步</text>
-  <rect x="330" y="482" width="250" height="46" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1" />
-  <text x="455" y="502" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#17211f">v0.30.0 拒非空 axis_keys</text>
-  <text x="455" y="520" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">main 经 patch_model_state 支持多轴</text>
+<rect x="334" y="516" width="278" height="86" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="473" y="537" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#7a3a6a">侧流：update_encoder_graph_params</text>
+<text x="473" y="560" text-anchor="middle" font-size="12" fill="#17211f">刷新本桶真实序列边界 cu_seqlens</text>
+<text x="473" y="583" text-anchor="middle" font-size="12" font-weight="700" fill="#7a3a6a">[Event 放行点] Record 唤醒主流继续</text>
+<path d="M566 516v-14" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="3 2" marker-end="url(#mm-plum)"/>
 
-  <path d="M 594 447 L 614 447" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#arr-i)" />
+<!-- Step 3: Scatter Back to Original Order & Toolchain -->
+<rect x="642" y="358" width="230" height="256" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+<text x="757" y="380" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">③ 恢复原序与工具闭环</text>
 
-  <!-- Step 3: ModelSlim & msprobe Guardrails (x=616..880, w=264) -->
-  <rect x="616" y="352" width="264" height="190" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5" />
-  <text x="748" y="376" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#3a4f93">③ 新模型量化与精度取证</text>
-  <rect x="630" y="392" width="236" height="64" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1" />
-  <text x="748" y="412" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#3a4f93">msmodelslim 离线压缩</text>
-  <text x="748" y="431" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#17211f">读 quant_model_description</text>
-  <text x="748" y="448" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#66716d">按层前缀区分 ViT 与语言主干量化</text>
-  <rect x="630" y="466" width="236" height="62" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1" />
-  <text x="748" y="486" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#17211f">msprobe 逐层对齐</text>
-  <text x="748" y="505" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#66716d">PrecisionDebugger (Eager)</text>
-  <text x="748" y="521" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" fill="#66716d">AclGraphDumper (图模式)</text>
+<rect x="654" y="394" width="206" height="104" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="757" y="415" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">Scatter 散回原始请求顺序</text>
+<g stroke="#087f73" stroke-width="1.1" fill="#ddf4ef" font-family="var(--font-mono)" font-size="12" font-weight="700" text-anchor="middle">
+  <rect x="662" y="425" width="58" height="28" rx="4"/><text x="691" y="443.5" fill="#065f56" stroke="none">M₀</text>
+  <rect x="728" y="425" width="58" height="28" rx="4"/><text x="757" y="443.5" fill="#065f56" stroke="none">M₁</text>
+  <rect x="794" y="425" width="58" height="28" rx="4"/><text x="823" y="443.5" fill="#065f56" stroke="none">M₂</text>
+</g>
+<text x="757" y="473" text-anchor="middle" font-size="12" fill="#17211f">对齐 [160, 192, 96] 占位</text>
+<text x="757" y="491" text-anchor="middle" font-size="12" fill="#4d5652">并写入编码器缓存池</text>
+
+<rect x="654" y="508" width="206" height="94" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+<text x="757" y="529" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4f93">msmodelslim + msprobe</text>
+<text x="757" y="551" text-anchor="middle" font-size="12" fill="#4d5652">按前缀区分 ViT 与语言层量化</text>
+<text x="757" y="572" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#3a4f93">PrecisionDebugger</text>
+<text x="757" y="591" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#3a4f93">AclGraphDumper</text>
+
+<g fill="none" stroke-width="1.7">
+  <line x1="304" y1="486" x2="320" y2="486" stroke="#c78300" marker-end="url(#mm-amber)"/>
+  <line x1="624" y1="486" x2="640" y2="486" stroke="#4c65b6" marker-end="url(#mm-indigo)"/>
+</g>
 </svg>

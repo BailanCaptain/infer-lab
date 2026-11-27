@@ -180,47 +180,175 @@ export function computeAclGraphSandboxState(
   };
 }
 
-function renderTrack(kind: BatchExecPath) {
+function execPathShortLabel(kind: BatchExecPath): string {
+  if (kind === "FULL_REPLAY") return "整图重放 · 0 空泡";
+  if (kind === "PIECEWISE_REPLAY") return "分段重放 · 1 切口";
+  return "Host 逐算子 · 露空泡";
+}
+
+function modeCanvasCaption(mode: AclCaptureMode): string {
+  if (mode === "FULL_AND_PIECEWISE") return "双池齐备：纯解码整图 + 混批分段（共需 6.15 GiB）";
+  if (mode === "FULL_DECODE_ONLY") return "仅录纯解码整图（需 4.20 GiB），混批退回逐算子";
+  if (mode === "PIECEWISE") return "双轨共用分段子图（需 3.40 GiB），注意力回 Host";
+  return "完全不录图（0.00 GiB），双轨均暴露下发空泡";
+}
+
+function renderSvgExecLane(kind: BatchExecPath, laneY: number, arrowId: string) {
+  const textY = laneY + 25;
+  const midY = laneY + 20;
   if (kind === "FULL_REPLAY") {
     return (
-      <div className="wiki-edu-op is-full" style={{ flex: 1 }}>
-        ⚡ 1 次整图连续回放（Op1 → Op2 → Attn → FFN · 0 空泡）
-      </div>
+      <g>
+        <rect
+          x="26"
+          y={laneY}
+          width="404"
+          height="40"
+          rx="7"
+          fill="#ddf4ef"
+          stroke="#087f73"
+          strokeWidth="1.5"
+        />
+        <text x="228" y={textY} textAnchor="middle" fontSize="12.5" fontWeight="700" fill="#17211f">
+          ⚡ 1 次整图连续重放：线性 → 注意力 → FFN（0 空泡）
+        </text>
+      </g>
     );
   }
   if (kind === "PIECEWISE_REPLAY") {
     return (
-      <>
-        <div className="wiki-edu-op is-piece" style={{ flex: 1.2 }}>
-          子图 1 (线性)
-        </div>
-        <div className="wiki-edu-op is-attn" style={{ flex: 0.9 }}>
+      <g>
+        <rect
+          x="26"
+          y={laneY}
+          width="132"
+          height="40"
+          rx="6"
+          fill="#e8edff"
+          stroke="#4c65b6"
+          strokeWidth="1.4"
+        />
+        <text x="92" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+          子图1·线性
+        </text>
+        <line
+          x1="160"
+          y1={midY}
+          x2="174"
+          y2={midY}
+          stroke="#4c65b6"
+          strokeWidth="1.6"
+          markerEnd={`url(#${arrowId})`}
+        />
+        <rect
+          x="176"
+          y={laneY}
+          width="104"
+          height="40"
+          rx="6"
+          fill="#fff4cf"
+          stroke="#c78300"
+          strokeWidth="1.4"
+          strokeDasharray="4 3"
+        />
+        <text x="228" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
           注意力切口
-        </div>
-        <div className="wiki-edu-op is-piece" style={{ flex: 1.2 }}>
-          子图 2 (FFN)
-        </div>
-      </>
+        </text>
+        <line
+          x1="282"
+          y1={midY}
+          x2="296"
+          y2={midY}
+          stroke="#4c65b6"
+          strokeWidth="1.6"
+          markerEnd={`url(#${arrowId})`}
+        />
+        <rect
+          x="298"
+          y={laneY}
+          width="132"
+          height="40"
+          rx="6"
+          fill="#e8edff"
+          stroke="#4c65b6"
+          strokeWidth="1.4"
+        />
+        <text x="364" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+          子图2·FFN
+        </text>
+      </g>
     );
   }
   return (
-    <>
-      <div className="wiki-edu-op is-eager" style={{ flex: 1 }}>
-        Op1
-      </div>
-      <div className="wiki-edu-op is-bubble" style={{ flex: 0.75 }}>
+    <g>
+      <rect
+        x="26"
+        y={laneY}
+        width="76"
+        height="40"
+        rx="6"
+        fill="#fff4cf"
+        stroke="#c78300"
+        strokeWidth="1.4"
+      />
+      <text x="64" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+        算子1
+      </text>
+      <rect
+        x="108"
+        y={laneY}
+        width="74"
+        height="40"
+        rx="6"
+        fill="#fff0e9"
+        stroke="#b54237"
+        strokeWidth="1.3"
+        strokeDasharray="4 3"
+      />
+      <text x="145" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
         空泡
-      </div>
-      <div className="wiki-edu-op is-eager" style={{ flex: 1 }}>
-        Op2
-      </div>
-      <div className="wiki-edu-op is-bubble" style={{ flex: 0.75 }}>
+      </text>
+      <rect
+        x="188"
+        y={laneY}
+        width="80"
+        height="40"
+        rx="6"
+        fill="#fff4cf"
+        stroke="#c78300"
+        strokeWidth="1.4"
+      />
+      <text x="228" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+        算子2
+      </text>
+      <rect
+        x="274"
+        y={laneY}
+        width="74"
+        height="40"
+        rx="6"
+        fill="#fff0e9"
+        stroke="#b54237"
+        strokeWidth="1.3"
+        strokeDasharray="4 3"
+      />
+      <text x="311" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
         空泡
-      </div>
-      <div className="wiki-edu-op is-eager" style={{ flex: 1 }}>
-        Op3
-      </div>
-    </>
+      </text>
+      <rect
+        x="354"
+        y={laneY}
+        width="76"
+        height="40"
+        rx="6"
+        fill="#fff4cf"
+        stroke="#c78300"
+        strokeWidth="1.4"
+      />
+      <text x="392" y={textY} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+        算子3
+      </text>
+    </g>
   );
 }
 
@@ -302,12 +430,18 @@ export function AclGraphModeInteractive({
     }
   };
 
-  const fixedPct = Math.round((NON_KV_FIXED_GIB / ASCEND_910B3_VISIBLE_GIB) * 100);
-  const kvPct = Math.round((state.kvPoolGiB / ASCEND_910B3_VISIBLE_GIB) * 100);
-  const captureRatioPct =
-    state.headroomGiB > 0
-      ? Math.min(100, Math.round((state.captureDemandGiB / state.headroomGiB) * 100))
-      : 100;
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const arrowId = `${id}-${uid}-acl-arrow`;
+  const tankTop = 50;
+  const tankH = 188;
+  const pxPerGiB = tankH / ASCEND_910B3_VISIBLE_GIB;
+  const headroomH = Number((state.headroomGiB * pxPerGiB).toFixed(1));
+  const fixedH = Number((NON_KV_FIXED_GIB * pxPerGiB).toFixed(1));
+  const kvH = Number(Math.max(0, tankH - headroomH - fixedH).toFixed(1));
+  const budgetY = Number((tankTop + headroomH).toFixed(1));
+  const fixedTopY = Number((tankTop + headroomH + kvH).toFixed(1));
+  const demandH = Number((state.captureDemandGiB * pxPerGiB).toFixed(1));
+  const demandEndY = Number((tankTop + demandH).toFixed(1));
   const isSafePreset = mode === "sandbox" && Math.abs(state.utilization - 0.82) < 0.005;
   const isOomPreset = mode === "sandbox" && Math.abs(state.utilization - 0.92) < 0.005;
 
@@ -427,98 +561,211 @@ export function AclGraphModeInteractive({
         </>
       }
     >
-      <div className="wiki-edu-dual-grid">
-        <div className="wiki-edu-panel">
-          <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">① 为什么录图？把零碎算子打包成“一键宏”</span>
-            <span className={`wiki-edu-badge ${state.speedTone}`}>{state.speedBadge}</span>
-          </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <svg
+          viewBox="0 0 840 260"
+          width="840"
+          height="260"
+          style={{ width: "100%", height: "auto", display: "block" }}
+          role="img"
+          aria-label={`ACLGraph ${state.modeLabel} 双轨执行与显存水箱对照（u=${state.utilization.toFixed(2)}）`}
+        >
+          <defs>
+            <marker
+              id={arrowId}
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path d="M0,1 L9,5 L0,9 z" fill="#4c65b6" />
+            </marker>
+          </defs>
 
-          <div className="wiki-edu-lane-box">
-            <div className="wiki-edu-lane-label">
-              <span>纯 Decode 步 · NPU 执行节奏</span>
-              <span className="mono">{state.decodePath}</span>
-            </div>
-            <div className="wiki-edu-track">{renderTrack(state.decodePath)}</div>
-          </div>
+          <rect
+            x="10"
+            y="8"
+            width="434"
+            height="244"
+            rx="10"
+            fill="#fbfaf6"
+            stroke="#d8d8cf"
+            strokeWidth="1.4"
+          />
+          <text x="26" y="32" fontSize="13" fontWeight="700" fill="#17211f">
+            ① 执行轨道：算子下发 vs 图重放
+          </text>
+          <text x="430" y="32" textAnchor="end" fontSize="12" fontWeight="700" fill="#087f73">
+            {state.speedBadge}
+          </text>
 
-          <div className="wiki-edu-lane-box">
-            <div className="wiki-edu-lane-label">
-              <span>混合 / Prefill 步 · NPU 执行节奏</span>
-              <span className="mono">{state.mixedPath}</span>
-            </div>
-            <div className="wiki-edu-track">{renderTrack(state.mixedPath)}</div>
-          </div>
+          <text x="26" y="62" fontSize="12" fontWeight="700" fill="#17211f">
+            纯 Decode 步
+          </text>
+          <text x="430" y="62" textAnchor="end" fontSize="12" fill="#66716d">
+            {execPathShortLabel(state.decodePath)}
+          </text>
+          {renderSvgExecLane(state.decodePath, 70, arrowId)}
 
+          <text x="26" y="142" fontSize="12" fontWeight="700" fill="#17211f">
+            混合 / Prefill 步
+          </text>
+          <text x="430" y="142" textAnchor="end" fontSize="12" fill="#66716d">
+            {execPathShortLabel(state.mixedPath)}
+          </text>
+          {renderSvgExecLane(state.mixedPath, 150, arrowId)}
+
+          <text x="26" y="232" fontSize="12" fill="#66716d">
+            {modeCanvasCaption(state.captureMode)}
+          </text>
+
+          <rect
+            x="456"
+            y="8"
+            width="374"
+            height="244"
+            rx="10"
+            fill={state.isCaptureOom ? "#fff0e9" : "#fbfaf6"}
+            stroke={state.isCaptureOom ? "#b54237" : "#d8d8cf"}
+            strokeWidth="1.5"
+          />
+          <text x="472" y="32" fontSize="13" fontWeight="700" fill="#17211f">
+            ② 64G 卡水箱与录图侧尺 (可见 60.96G)
+          </text>
+
+          <rect
+            x="472"
+            y={tankTop}
+            width="120"
+            height={headroomH}
+            fill="#ffffff"
+            stroke="#d8d8cf"
+            strokeWidth="1.2"
+          />
+          <rect
+            x="472"
+            y={budgetY}
+            width="120"
+            height={kvH}
+            fill="#e8edff"
+            stroke="#4c65b6"
+            strokeWidth="1.3"
+          />
+          <rect
+            x="472"
+            y={fixedTopY}
+            width="120"
+            height={fixedH}
+            fill="#ece9df"
+            stroke="#d8d8cf"
+            strokeWidth="1.2"
+          />
+          <rect
+            x="472"
+            y={tankTop}
+            width="120"
+            height={tankH}
+            rx="6"
+            fill="none"
+            stroke={state.isCaptureOom ? "#b54237" : "#66716d"}
+            strokeWidth="1.6"
+          />
+
+          <text x="532" y="138" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+            KV 缓存池
+          </text>
+          <text x="532" y="158" textAnchor="middle" fontSize="12" fontWeight="700" fill="#4c65b6">
+            {`${state.kvPoolGiB.toFixed(2)} GiB`}
+          </text>
+          <text x="532" y="227" textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
+            {`基础 ${NON_KV_FIXED_GIB}G`}
+          </text>
+
+          <rect
+            x="608"
+            y={tankTop}
+            width="38"
+            height={tankH}
+            rx="5"
+            fill="#ffffff"
+            stroke="#d8d8cf"
+            strokeWidth="1.2"
+          />
+          {demandH > 0 && (
+            <rect
+              x="608"
+              y={tankTop}
+              width="38"
+              height={demandH}
+              rx="4"
+              fill={state.isCaptureOom ? "#b54237" : "#9a4b86"}
+              stroke={state.isCaptureOom ? "#b54237" : "#9a4b86"}
+            />
+          )}
+          <line
+            x1="466"
+            y1={budgetY}
+            x2="654"
+            y2={budgetY}
+            stroke="#e85b32"
+            strokeWidth="2"
+            strokeDasharray="5 3"
+          />
+          {demandH > 0 && (
+            <line x1="604" y1={demandEndY} x2="652" y2={demandEndY} stroke="#17211f" strokeWidth="1.5" />
+          )}
+
+          <text x="662" y="68" fontSize="12" fontWeight="700" fill="#17211f">
+            {`留白 1−u：${state.headroomGiB.toFixed(2)} GiB`}
+          </text>
+          <text x="662" y="108" fontSize="12" fontWeight="700" fill="#9a4b86">
+            {`录图侧尺：${state.captureDemandGiB.toFixed(2)} GiB`}
+          </text>
+          <text
+            x="662"
+            y="148"
+            fontSize="12"
+            fontWeight="700"
+            fill={state.isCaptureOom ? "#b54237" : "#087f73"}
+          >
+            {state.isCaptureOom
+              ? `缺口 −${Math.abs(state.marginGiB).toFixed(2)} GiB`
+              : `富余 +${state.marginGiB.toFixed(2)} GiB`}
+          </text>
+          <text x="662" y="188" fontSize="12" fill="#e85b32" fontWeight="700">
+            {`预算 u=${state.utilization.toFixed(2)} (${state.budgetGiB.toFixed(2)}G)`}
+          </text>
+          <text x="662" y="228" fontSize="12" fill={state.isCaptureOom ? "#b54237" : "#66716d"}>
+            {state.isCaptureOom ? "状态：侧尺刺破预算线!" : "状态：侧尺稳居留白内"}
+          </text>
+        </svg>
+
+        <div className="wiki-edu-dual-grid">
           <div className="wiki-edu-note-card">{state.speedSummary}</div>
-        </div>
-
-        <div className={`wiki-edu-panel${state.isCaptureOom ? " is-oom" : ""}`}>
-          <div className="wiki-edu-panel-head">
-            <span className="wiki-edu-panel-title">
-              ② 代价在哪？录图只能挤在 <span className="mono">1−u</span> 留白区
-            </span>
-            <span className={`wiki-edu-badge ${state.isCaptureOom ? "is-bad" : "is-good"}`}>
-              {state.isCaptureOom
-                ? `超支 ${Math.abs(state.marginGiB).toFixed(2)}G · OOM!`
-                : `安全富余 +${state.marginGiB.toFixed(2)}G`}
-            </span>
-          </div>
-
-          <div className="wiki-edu-tank-layout">
-            <div className={`wiki-edu-tank${state.isCaptureOom ? " is-oom" : ""}`}>
-              <div className="wiki-edu-tank-seg wiki-edu-tank-fixed" style={{ height: `${fixedPct}%` }}>
-                {`权重+基础 ${NON_KV_FIXED_GIB}G`}
-              </div>
-              <div className="wiki-edu-tank-seg wiki-edu-tank-kv" style={{ height: `${kvPct}%` }}>
-                {`KV 池 (u 内) ${state.kvPoolGiB.toFixed(1)}G`}
-              </div>
-              <div className="wiki-edu-tank-headroom">
-                {state.isCaptureOom && <div className="wiki-edu-tank-cap">💥 挤爆留白区!</div>}
-                <div
-                  className={`wiki-edu-tank-capture${state.isCaptureOom ? " is-oom" : ""}`}
-                  style={{
-                    height: state.captureDemandGiB === 0 ? "0%" : `${Math.max(24, captureRatioPct)}%`,
-                  }}
-                >
-                  {state.captureDemandGiB === 0 || state.isCaptureOom
-                    ? ""
-                    : `录图需 ${state.captureDemandGiB.toFixed(2)}G`}
-                </div>
-              </div>
-            </div>
-
-            <div className="wiki-edu-metrics">
-              <div className="wiki-edu-metric-row">
-                <span className="wiki-edu-metric-label">单卡可用总显存 (910B3)</span>
-                <span className="wiki-edu-metric-val">{`${ASCEND_910B3_VISIBLE_GIB} GiB`}</span>
-              </div>
-              <div className="wiki-edu-metric-row">
-                <span className="wiki-edu-metric-label">留给录图的 1−u 留白区</span>
-                <span className="wiki-edu-metric-val">{`${state.headroomGiB.toFixed(2)} GiB`}</span>
-              </div>
-              <div className={`wiki-edu-metric-row${state.isCaptureOom ? " is-oom" : ""}`}>
-                <span className="wiki-edu-metric-label">录图需求 vs 留白余量</span>
-                <span className="wiki-edu-metric-val">
-                  {state.isCaptureOom
-                    ? `缺口 −${Math.abs(state.marginGiB).toFixed(2)} GiB`
-                    : `富余 +${state.marginGiB.toFixed(2)} GiB`}
-                </span>
-              </div>
-              {state.isCaptureOom && (
-                <button
-                  type="button"
-                  className="wiki-edu-fix-btn"
-                  data-testid="acl-apply-remediation"
-                  style={{ background: "#b54237", borderColor: "#b54237", color: "#ffffff" }}
-                  onClick={applySafeRemediation}
-                >
-                  {state.remediation.maxSafeUtilization !== null
-                    ? `🔧 一键降到安全上限 u = ${state.remediation.maxSafeUtilization.toFixed(2)}`
-                    : `🔧 ${state.remediation.summaryText}`}
-                </button>
-              )}
-            </div>
+          <div className="wiki-edu-note-card">
+            {state.isCaptureOom ? (
+              <button
+                type="button"
+                className="wiki-edu-fix-btn"
+                data-testid="acl-apply-remediation"
+                style={{ background: "#b54237", borderColor: "#b54237", color: "#ffffff" }}
+                onClick={applySafeRemediation}
+              >
+                {state.remediation.maxSafeUtilization !== null
+                  ? `🔧 一键降到安全上限 u = ${state.remediation.maxSafeUtilization.toFixed(2)}`
+                  : `🔧 ${state.remediation.summaryText}`}
+              </button>
+            ) : (
+              <>
+                <strong>同尺度结论</strong>：先切完{" "}
+                <span className="mono">{`u=${state.utilization.toFixed(2)}`}</span> 内的 KV 池（
+                <strong>{`${state.kvPoolGiB.toFixed(2)} GiB`}</strong>），顶部留白{" "}
+                <strong>{`${state.headroomGiB.toFixed(2)} GiB`}</strong> 充足容纳{" "}
+                <strong>{`${state.captureDemandGiB.toFixed(2)} GiB`}</strong> 录图开销。
+              </>
+            )}
           </div>
         </div>
       </div>

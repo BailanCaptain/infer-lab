@@ -104,7 +104,8 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
         initialHitPreset: "half-7",
       }),
     );
+    expect(half7Html).toContain("B3 · 4/4");
     expect(half7Html).toContain("B4 · 2/4");
-    expect(half7Html).not.toContain("自算 6 格");
+    expect(half7Html).not.toContain("B3 · 自算 6 格");
   });
 });

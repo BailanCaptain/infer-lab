@@ -102,8 +102,10 @@ relations:
     kind: alternative-to
     note: 线性注意力把历史压进固定大小的递推矩阵状态，与按位置保存潜向量的 MLA 形成互补路线
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 origin: gap
+legacyAnchors:
+  放到-glm-双机一个-token-走过一层稀疏-mla: 一个-token-怎样走过一层稀疏-mla
 rawSources:
   - >-
     raw/sha256-0ca90b365638f0e0df7f1c1d299c782b807c2247da0745f345d3ffea11e0cd7d.md
@@ -117,9 +119,9 @@ rawSources:
 
 [attention](attention-qkv.md) 让当前位置回头读前文：用查询向量 `query` 与每个历史位置的键向量 `key` 打分，再按权重汇总值向量 `value`。多头注意力把这件事拆成几十套独立的注意力头并行计算；为了避免每步重算，推理引擎把所有历史位置的 K、V 存入 [KV cache](kv-cache.md)——头数越多、上下文越长，每个位置占用的显存就成倍膨胀。
 
-**MLA（Multi-head Latent Attention，多头潜在注意力）把一个位置给所有头共用的 K 和 V 先压成一条短得多的共享潜向量（latent）写入 KV cache；计算注意力时，再通过每个头各自的上投影矩阵（或矩阵吸收变形）还原出各头独立的 K 和 V。**
+**MLA（Multi-head Latent Attention，多头潜在注意力）先从隐藏向量（hidden）投影出较短的共享潜向量（latent）写入 KV cache；计算注意力时，再通过各头的上投影矩阵展开，或经矩阵吸收变形直接参与打分与汇合。**
 
-进入矩阵推导前，先把它想成储物间收纳——**塞满货架的蓬松双人床垫 vs 真空压缩潜向量卷筒与独立位置小挂环**：
+进入矩阵推导前，先看清核心存储差异——**逐头保存完整 K/V 张量 vs 从 hidden 投影出较短的潜向量（外加可选的独立位置编码段）**：
 
 ```wiki-diagram
 file: mla-plate-vacuum-latent-roll
@@ -156,7 +158,7 @@ file: mla-intuition
 | 普通多头（MHA） | $64 \times (256 + 256)$ | $32{,}768$ | $1\times$ |
 | GLM 稀疏 MLA | $\text{潜向量 } 512 + \text{RoPE 段 } 0$ | $512$ | $32{,}768 \div 512 = 64\times$ |
 
-换成字节、再乘上层数，每个 token 要占多少显存，放到后面 [GLM 双机一节](#哪些层是-mla每层存什么)交代。
+换成字节、再乘上层数，每个 token 要占多少显存，放到[后文稀疏 MLA 走读](#哪些层是-mla每层存什么)交代。
 
 这里比较的是主缓存表示的宽度，不能直接把 64 倍当作全部历史状态的显存节省比例；其他状态怎样计入，见[每个位置缓存多少字节](#每个位置缓存多少字节)。
 
@@ -290,9 +292,9 @@ title: 随文活体算例标尺 · 标准 KV 与 MLA 潜向量压缩对照
 summary: 对照当前目标机器模型的单 token 缓存与 DeepSeek MLA 潜向量规则，或一键切至 MLA 样例实算压缩比与跨 TP 复制特征。
 ```
 
-## 放到 GLM 双机：一个 token 走过一层稀疏 MLA
+## 一个 token 怎样走过一层稀疏 MLA？
 
-这一站在主线的[第 4 站 · 11 层稀疏 MLA](one-request.md#11-层稀疏-mla)。部署是 2 台 A2 × 8 卡、机内 TP8，前提统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
+对照 `GLM-5.3-Flash` 双机历史算例（[第 4 站 · 11 层稀疏 MLA](one-request.md#11-层稀疏-mla)，2 台 A2 × 8 卡、机内 TP8，前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)）：
 
 ### 哪些层是 MLA，每层存什么
 

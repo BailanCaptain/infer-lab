@@ -4,7 +4,7 @@ title: Pooling 与非自回归推理：Embedding / Reranker / 生成式评分与
 type: concept
 origin: direct
 summary: >-
-  本页拆解 --runner pooling（Embedding / Reranker / Reward）单轮池化路径、双向与因果掩码硬件分岔、CLS / LAST / MEAN 池化头、生成式评分（/generative_scoring）概率比较，以及 Whisper Encoder-Decoder 与语音上传/实时转写入口。
+  本页拆解 --runner pooling（Embedding / Reranker / Reward）一次逻辑前向池化路径（含跨步分块支持边界）、双向与因果掩码硬件分岔、CLS / LAST / MEAN 池化头、生成式评分（/generative_scoring）概率比较，以及 Whisper Encoder-Decoder 与语音上传/实时转写入口。
 aliases:
   - Pooling
   - pooling runner
@@ -69,7 +69,7 @@ evidence: C
 relations:
   - to: prefill
     kind: builds-on
-    note: Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环
+    note: Pooling 模型只做一次等价于 Prefill 的全序列逻辑前向（支持分块的池化头可跨调度步完成），没有后续逐词 Decode 循环
   - to: attention-qkv
     kind: builds-on
     note: 双向编码器（非因果）与因果池化、交叉注意力的掩码差异建立在 Q/K/V 注意力基础上
@@ -80,10 +80,10 @@ relations:
     kind: conflicts-with
     note: Encoder-Decoder 模型受限于交叉注意力与动态编码长度，与全图捕获冲突并自动降级为 PIECEWISE 或 Eager
 contradicts: []
-updated: '2026-11-19'
+updated: '2026-11-27'
 ---
 
-**Pooling 推理（`--runner pooling`）面向 Embedding（文本向量化）、Reranker（检索精排）与 Reward（奖励打分）等非生成任务：引擎算完输入序列的末层隐藏状态后，直接跳过词表投影与采样，由池化头归约成向量或标量。** **Encoder-Decoder**（如 Whisper ASR 语音识别）则是混合路径：先跑双向编码器产出源特征，再在解码器里借交叉注意力自回归生成。
+**Pooling 推理（`--runner pooling`）不逐词续写文本，而是在算完输入序列的末层隐藏状态后跳过词表投影与采样，直接由池化头输出向量或分数标量。** 它主要服务于 Embedding（文本向量化）、Reranker（检索精排）与 Reward（奖励打分）任务；而 **Encoder-Decoder**（如 Whisper ASR 语音识别）则是先经双向编码器产出源特征、再在解码器里借交叉注意力自回归生成的混合路径。
 
 沿[请求全景](request-overview.md)与 [Prefill / Decode](prefill.md) 走常规对话生成时，每条请求都要经历“先读完整段提示词写 KV Cache，再循环逐字生成几十上百步”。但工业界大量业务（RAG 检索增强生成的向量入库、检索重排、内容审核分类、RLHF 基于人类反馈的强化学习奖励打分、语音转写）根本不需要套用纯 Decoder 自回归模式。理解 `vllm` 与 `vllm-ascend` 如何为这两类模型改道，能避开大批掩码错配、分块报错和图模式崩溃陷阱。
 
@@ -98,11 +98,11 @@ file: pooling-fig-ar-vs-pooling
 | 对比维度 | 自回归生成（`--runner generate`） | 池化模型（`--runner pooling`） | 编解码器（`is_encoder_decoder`，如 Whisper） |
 |---|---|---|---|
 | **典型任务与模型** | 对话、代码、推理（`Qwen3-8B` / `Qwen3-30B-A3B`） | Embedding（BGE / Qwen3-Embedding）、Reranker、Reward | 语音识别 ASR（Whisper）、神经机器翻译 |
-| **前向轮数** | `1` 轮 Prefill + $T_{\text{out}}$ 轮 Decode | **仅 `1` 轮前向**，算完即收尾返回 | `1` 轮 Encoder + $T_{\text{out}}$ 轮 Decoder |
+| **前向阶段形态** | `1` 次逻辑 Prefill（可分块）+ $T_{\text{out}}$ 步 Decode | **仅 `1` 次逻辑前向**（支持分块的如 `LastPool` 可跨调度步完成），无 Decode 循环 | `1` 次 Encoder 前向 + $T_{\text{out}}$ 步 Decoder |
 | **注意力因果性** | 严格因果（上三角屏蔽未来位置） | 双向编码器（BERT/BGE）**非因果**；Decoder 底座（Qwen3-Emb）保持**因果** | Encoder 双向非因果；Decoder 自注意力因果 + 交叉注意力全看 Encoder |
 | **KV Cache 行为** | 持续写入并跨步复用历史 K/V | 双向纯编码器不写跨步 KV；因果池化不进入 Decode 复用 | Decoder 额外在 `AttentionType.ENCODER_DECODER` 槽位常驻整段 Encoder K/V |
 | **出口模块** | `lm_head` → `Sampler` | 在 `model_runner_v1` 中跳过 `compute_logits`，直入 `self._pool()` | Decoder 末层 → `lm_head` → `Sampler` |
-| **昇腾图模式支持** | 支持 `FULL_DECODE_ONLY` / `PIECEWISE` | 以大吞吐变长单轮前向为主，不依赖 Decode 全图 | `platform.py` 强制将非 `PIECEWISE`/`NONE` 模式降级回 `PIECEWISE`（或 `NONE`） |
+| **昇腾图模式支持** | 支持 `FULL_DECODE_ONLY` / `PIECEWISE` | 以大吞吐变长整段（或分块）前向为主，不依赖 Decode 全图 | `platform.py` 强制将非 `PIECEWISE`/`NONE` 模式降级回 `PIECEWISE`（或 `NONE`） |
 
 ## `--runner pooling` 核心机制：掩码硬件分岔与池化头
 
@@ -181,7 +181,7 @@ file: pooling-fig-scoring-and-asr
 
 ## 常见误解
 
-- **「Embedding 模型也算 Transformer，所以推理开销和对话模型一样受限于 Decode 带宽墙？」**：错。Embedding / Reranker 走 `--runner pooling` 只跑 1 轮全序列前向就结束，没有逐字 Decode 循环，算术强度高、属于典型的**计算受限（Compute-bound）**负载，调优重点是拉大并发批 token 数而非压低单步 Decode 时延。
+- **「Embedding 模型也算 Transformer，所以推理开销和对话模型一样受限于 Decode 带宽墙？」**：错。Embedding / Reranker 走 `--runner pooling` 只需完成一次全序列逻辑前向（支持分块的因果 `LastPool` 可跨调度步完成，不支持分块的 `CLSPool` / `MeanPool` 单步跑完），没有逐字 Decode 循环，算术强度高、属于典型的**计算受限（Compute-bound）**负载，调优重点是拉大并发批 token 数而非压低单步 Decode 时延。
 - **「给 BERT / BGE 双向模型传全 1 或因果掩码没关系，反正 Pooler 只取第一个词？」**：错。若误传因果掩码，第 0 个 `[CLS]` 位置只能看见它自己、完全看不见后面的句子正文，导致所有输入算出的向量几乎一模一样；A2/A3/950DT 上双向池化必须让 `get_attention_mask` 返回 `None` 并走 `npu_fusion_attention`。
 - **「所有池化模型都可以随意配合 Chunked Prefill 把超长文本切成小块算？」**：错。`CLSPool` 与 `MeanPool` 遇到 `is_partial_prefill()` 会直接抛 `RuntimeError`，必须整句一次完成前向；部署长文池化时需确保 `max_num_batched_tokens` 不小于单条最大长度。
 - **「Whisper 这类 Encoder-Decoder 模型在昇腾上开 `FULL_DECODE_ONLY` 全图模式能提速？」**：错。`vllm-ascend` 平台检查会主动将 `is_encoder_decoder` 模型的全图模式降级回 `PIECEWISE` 或 `NONE`，强配全图不会生效。

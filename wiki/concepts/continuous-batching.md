@@ -72,7 +72,9 @@ relations:
     kind: builds-on
     note: 沿用单次引擎迭代的「调度 → 前向 → 采样 → 停止检查」四步闭环，将其扩展到多请求动态进出
 contradicts: []
-updated: '2026-11-18'
+updated: '2026-11-27'
+legacyAnchors:
+  静态批处理为什么会白烧算力三笔硬浪费与单步迭代破局: 静态整批等待浪费在哪里每步怎样退旧补新
 ---
 
 **Continuous Batching（连续批处理，论文中也称 iteration-level scheduling，迭代级调度）把批处理的重组粒度从「整批请求同进同出」细化到「每一次前向迭代（step）」。每一步开头重新挑选请求并一维无填充拼接本步待算 token；每一步末尾立即让生成完毕的请求退场释放 `KV cache`，并在下一步补入等待中的新请求。**
@@ -85,9 +87,9 @@ updated: '2026-11-18'
 file: continuous-batching-plate-revolving-bar
 ```
 
-## 静态批处理为什么会白烧算力：三笔硬浪费与单步迭代破局
+## 静态整批等待浪费在哪里，每步怎样退旧补新？
 
-最朴素的做法是沿用传统深度学习分类模型的**静态批处理（Static Batching）**：凑齐一批请求后锁进一张形状为 `[batch_size, seq_len]` 的二维矩形张量，所有请求一起跑完 Prefill、再一步步同步跑 Decode。直到批内**最慢**的那条请求输出结束符（`eos_token_id`）或撞上长度上限，整批才算跑完并放下一批进场。在自回归生成场景下，这种“整批锁死”会同时制造三笔严重的资源空泡：
+最朴素的做法是沿用传统深度学习分类模型的**静态批处理（Static Batching）**：凑齐一批请求后锁进一张形状为 `[batch_size, seq_len]` 的二维矩形张量，所有请求一起跑完 Prefill、再一步步同步跑 Decode。直到批内**最慢**的那条请求输出结束符（`eos_token_id`）或撞上长度上限，整批才算跑完并放下一批进场。在自回归生成场景下，这种静态整批等待会同时造成三处浪费：
 
 ```wiki-diagram
 file: continuous-batching-static-vs-iter
@@ -99,7 +101,7 @@ file: continuous-batching-static-vs-iter
 2. **短请求撞上 `EOS` 后陪跑空转**：`R1` 生成第 2 个词命中 `eos_token_id` 后早已完成使命，却因为二维批次形状锁死而退不出去，只能在后续迭代中继续空转陪跑，它占住的 `KV cache` 也无法归还。
 3. **新请求队头阻塞（Head-of-Line Blocking）**：`R3` 在 `t=2` 就已到达引擎门口，明明 `R1` 已经停笔，却必须干等到 `R2` 把最后一步跑完才能进场，首字延迟（TTFT）被慢请求无端拖长。
 
-由 Orca（OSDI'22）提出并被 vLLM 作为核心底座落地的 **Continuous Batching**，正是如上图右栏那样把锁死整批的铁门拆掉，改成围绕 `EngineCore.step()` 的**单步三连闭环**与**一维无填充拼接（1D Ragged Batching）**：
+由 Orca（OSDI'22）提出并被 vLLM 作为核心底座落地的 **Continuous Batching**，正是如上图右栏那样把整批等待拆成围绕 `EngineCore.step()` 的单步迭代——**每步末尾退旧补新**，配合**一维无填充拼接（1D Ragged Batching）**：
 
 - **步首动态选人（`Scheduler.schedule`）**：每一步只决定「本步让哪些请求各算几个 token」（记入字典 `num_scheduled_tokens`）。在 `t=2` 步末，`update_from_output` 调用 `check_stop` 发现 `R1` 命中 `eos_token_id`，当场释放 `R1` 的缓存块并将它移出在跑列表；到了 `t=3` 步首，新请求 `R3` 立刻补位，与正在逐词生成的 `R2` 混在同一批执行。
 - **一维紧致拼接（`_prepare_inputs` 零 `<pad>` 拼批）**：Worker 不再构造 `[batch_size, max_seq_len]` 二维矩阵，而是把本步入选请求的待算 token 头尾相接，拍平成长度为 `total_num_scheduled_tokens` 的一维紧致序列。例如 `t=1` 将 `R1` 的 2 个提示词和 `R2` 的 5 个提示词拼成长 `[7]`；`t=3` 将 `R2` 的 1 个生成词与 `R3` 的 3 个提示词拼成长 `[4]`。
@@ -228,6 +230,6 @@ file: continuous-batching-four-myths
 ### 源码位置
 
 - 论文与官方设计依据：vLLM SOSP'23 论文承接 Orca 迭代级调度并结合分页块消除 `<pad>` 与外部碎片 [S1]；Sarathi-Serve 阐述 Decode 优先与分块 Prefill 同批混跑的吞吐-时延折中 [S2]；上游优化与架构文档定义 V1 默认 `RECOMPUTE` 抢占、分块调度策略及 `EngineCore` 循环职责 [S3][S4]；昇腾文档说明 `ACLGraph` 捕获回放模式与 P/D D 节点 `PreemptOffloadConnector` 保 KV 机制 [S5][S6]。
-- V1 核心调度、抢占与步末停机回收：`EngineCore.step` 串起单步三连闭环 [C7]；`Scheduler.schedule` 先扫 `running` 再扫 `waiting` [C8][C10]；`waiting` 缺块直接 `break` 不抢占 [C11]，而 `running` 缺块执行 LIFO 弹出、清零 `num_computed_tokens` 并插回 `waiting` 队首 [C9][C12]；步末 `update_from_output` 调 `check_stop` 判定 `RequestStatus` 终态并当场 `remove_all` 释块 [C13][C14][C15]。
+- V1 核心调度、抢占与步末停机回收：`EngineCore.step` 串起“调度选人 → 前向采样 → 步末判停退旧补新”的单步循环 [C7]；`Scheduler.schedule` 先扫 `running` 再扫 `waiting` [C8][C10]；`waiting` 缺块直接 `break` 不抢占 [C11]，而 `running` 缺块执行 LIFO 弹出、清零 `num_computed_tokens` 并插回 `waiting` 队首 [C9][C12]；步末 `update_from_output` 调 `check_stop` 判定 `RequestStatus` 终态并当场 `remove_all` 释块 [C13][C14][C15]。
 - 昇腾默认参数、块大小、图补齐与跨版本演进：`SchedulerConfig`、`get_batch_defaults` 与 `get_device_total_memory` 初始化前守卫共同决定在线默认 `2048` 批预算与 `256` 并发槽 [C16][C17][C18]；`NPUPlatform` 校验扩展调度策略并通过 `refresh_block_size` 将标准块长设为 `128` [C19][C20][C21]；`NPUModelRunner`（及 `main` MRV2）完成一维无填充拼接与 `ACLGraph` 边界补齐 [C22][C23][C30]。
 - 算例推导与示意边界：`Qwen3-8B` 每 token `144 KiB` 与每 `128`-token 物理块 `18 MiB`（`20` 块共 `360 MiB`）及跨块槽位余量均由静态模型配置与块长精确推导 [D]；`token_budget = 8` 三步流转与 `20` 块微缩池均为隔离外部干扰的教学人为设定 [A]；`FCFS` 下队尾重算代价最小及过高 `max_num_seqs` 诱发抢占抖动属结合访存与到达序得出的工程归纳 [I]。

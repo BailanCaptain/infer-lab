@@ -15,7 +15,8 @@ aliases:
 legacyAnchors:
   一句话: 它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？
   为什么存在: 加载期缩片、prefill gather 与 decode all-reduce 的分工
-  开了的代价: 通信代价、硬约束回退机制与版本与 GLM 边界
+  开了的代价: 通信代价、回退机制与部署边界
+  通信代价硬约束回退机制与版本与-glm-边界: 通信代价、回退机制与部署边界
 chapters:
   - '15'
 verified:
@@ -123,6 +124,7 @@ sources:
   - >-
     vllm-ascend@8d6180e2:vllm_ascend/attention/context_parallel/dsa_cp.py#L529-L551
   - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/dsa_v41.py#L782-L803'
 rawSources:
   - >-
     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
@@ -169,13 +171,11 @@ rawSources:
 ---
 ## 它怎么在 PCP 组内切 o_proj，和旧 layer_sharding 有何不同？
 
-开启 PCP（[Context Parallel](../concepts/context-parallel.md) 的 prefill 并行）后，prefill 的 token 沿序列维分给多张卡，但 `o_proj`（注意力输出投影线性层）权重默认仍按 TP 复制给 PCP 组里每张卡（PCP 开到 2 或 4，组内就会多出 1 或 3 份一模一样的 `o_proj`；对 DeepSeek-V3.2 等模型，这是 attention 里最大的一块矩阵）。
-
-`enable_pcp_o_proj_weight_sharding` 把这份冗余换成通信：加载期沿输入维按 PCP 组再切一刀，使每卡常驻权重量降到 `TP-local` 宽度的 `1/pcp_size`。prefill 需要完整权重时临时 All-Gather 拼齐、用完切回本地分片；decode 不拼权重，各 PCP rank 只算本地输入切片再在 PCP 组内 All-Reduce 合并部分和。
+这个开关把每张卡重复存的输出投影权重再切一刀：平时每卡只留 `1 / pcp_size` 分片，Prefill 需要完整矩阵时临时拼齐，Decode 则各算本地切片再合并部分和。开启 PCP（[Context Parallel](../concepts/context-parallel.md) 的预填充并行）后，序列虽已沿 token 维分给多张卡，但注意力输出投影（`o_proj` / `wo_a` / `wo_b`）默认仍按 TP 复制给 PCP 组里每张卡；对 DeepSeek-V3.2 等模型，这是注意力层里最大的一块重复权重。
 
 **与旧 `layer_sharding` 及旧 DSA-CP 的区别**：
-- [layer_sharding](layer-sharding.md)（已于 `v0.24` 移除）是按层号轮流把不同层的整份权重存到不同卡上，并接收自定义层名列表；本键则是**把同一层的输出投影沿 PCP 域切分**，不接受任意层名列表（此外细粒度 TP 也会影响投影分工，本键并非投影权重配置的唯一选项）。
-- `v0.30.0` 与 `main` 均把本键默认设为 **`True`**（早期 `baa023ad` 静态默认 `False`），并将适用范围从 **SFA-PCP**（稀疏注意力路径的 PCP 后端）的 `o_proj` 扩展到了 **DSA-PCP**（DeepSeek 稀疏注意力路径的 PCP 后端）的两级输出投影（`wo_a` / `wo_b`）。常规长序列 PCP 部署保持默认 `true` 即可省下可观的输出投影显存；仅在小批量短序列 prefill 极其频繁、每次固定整层权重 All-Gather 开销难以摊薄或做排障对照时，才显式传 `false` 关闭。注意这里的 **DSA-PCP** 是 PCP 后端，**不是**由 `enable_dsa_cp` 控制的旧 DSA-CP（旧 DSA-CP 由 `enable_dsa_cp_full_o_proj()` 决定，不消费本键）。
+- [layer_sharding](layer-sharding.md)（已于 `v0.24` 移除）按层号把不同层的整份权重轮流存到不同卡上，并接收自定义层名列表。本键则是**把同一层的输出投影沿 PCP 域再切一刀**，不接受任意层名列表（跨 DP 的投影切分另由细粒度 TP 控制）。
+- `v0.30.0` 与 `main` 均把本键默认设为 **`True`**（早期 `baa023ad` 默认 `False`），覆盖 **SFA-PCP** 的 `o_proj` 与 **DSA-PCP** 的两级输出投影（`wo_a` / `wo_b`）；`main` 还在 DeepSeek V4.1 的 DSA 注意力（`dsa_v41.py`）试跑预热与输出投影路径中接入了底层 `projector` 的这一开关。常规长序列 PCP 部署保持默认 `true` 即可省下输出投影显存；仅当小批短序列 prefill 极其密集、每次整层权重 All-Gather 难以摊薄或做对照排障时，才显式传 `false`。注意这里的 **DSA-PCP** 是 PCP 后端，**不是** `enable_dsa_cp` 控制的旧 DSA-CP（后者走 `enable_dsa_cp_full_o_proj()`，不读取本键）。
 
 ## 事实表
 
@@ -184,7 +184,7 @@ rawSources:
 | 项 | 值 | 意味着什么 |
 | --- | --- | --- |
 | 配置路径与默认 | `additional_config["enable_pcp_o_proj_weight_sharding"]`（`bool = True`） | `v0.30.0` 与 `main` 默认开启；读取函数缓存结果，已加载权重不支持运行期热切换 |
-| 生效模型与运行前提 | SFA-PCP 或 DSA-PCP 模型、`PCP > 1` 且启用 [Model Runner V2](../concepts/model-runner-v2.md) | 普通稠密/GQA 模型、`PCP = 1` 或旧 `enable_dsa_cp` 路径均不进入本逻辑 |
+| 生效模型与运行前提 | SFA-PCP、DSA-PCP（`main` 含 V4.1 DSA 挂载点）、`PCP > 1` 且启用 [Model Runner V2](../concepts/model-runner-v2.md) | 普通稠密/GQA 模型、`PCP = 1` 或旧 `enable_dsa_cp` 路径均不进入本逻辑 |
 | 常驻显存与复用池 | 每卡仅常驻 `1 / pcp_size` 分片，完整 gather 缓冲挂在 `o_proj_full_pools` 按规格复用 | 同构层示意净省约为 `(1 - 1/PCP) × 单层 × 层数 - 1 份全量缓冲`（不同规格池键另计） |
 | prefill / decode 分叉 | prefill 临时在 PCP 组内 All-Gather 完整权重；decode 算本地片再做 PCP All-Reduce | 小批频繁 prefill 需反复搬运固定大小权重；decode 则只归约与 token 数成正比的输出向量 |
 | 整除与量化回退 | 要求本地分区输入维（或组数）可被 `pcp_size` 整除且量化方法支持 `WeightSwitchMixin` | `v0.30.0` 与 `main` 在前置条件不满足时打印告警并自动回退为未切分权重（早期 `baa023ad` 直接抛错） |
@@ -198,26 +198,25 @@ file: param-pcp-o-proj-sharding
 
 核心切法沿 row-parallel 的输入维构造 `WeightSwitchConfig.from_group(get_pcp_group(), shard_axis="input")`，由两套机制保证它不是低效的「先全量加载再裁剪」：
 
-1. **加载期直接缩片**：`prepare_layer_for_parallel_weight_load` 在 `model.load_weights` 之前把参数张量 resize 为 `原宽度 / pcp_size` 并替换 `weight_loader`。加载时按 `WeightLoadPartition.from_nested_groups(TP 组, PCP 组)` 直接从 checkpoint 读取局部连续切片（V2 参数临时使用组合后的 `tp_rank` / `tp_size` 并在 `finally` 中恢复；预分片 checkpoint 按形状选本地片）。这避免了先把完整 TP-local checkpoint 权重装入该参数再裁切（构造参数与其他临时缓冲仍会分配内存，整机加载峰值需另测），且前向 TP 分工不变。
+1. **加载期直接缩片**：`prepare_layer_for_parallel_weight_load` 在 `model.load_weights` 之前把参数张量缩为 `原宽度 / pcp_size`，并替换 `weight_loader`。加载时按 `WeightLoadPartition.from_nested_groups(TP 组, PCP 组)` 直接从 checkpoint 读取本卡连续切片（V2 参数临时借用组合后的 `tp_rank` / `tp_size` 并在 `finally` 中恢复，预分片权重按形状取本地片）。这样无需先把整份 TP-local 权重装进该参数再裁切；但构造参数与其他临时缓冲仍占内存，整机加载峰值需另测。
 2. **前向按阶段切换视图**：
-   - **prefill 阶段**：各 PCP rank 处理不同的 token 行，不能直接把不同 token 的部分和相加，因此先 All-Gather 拼回完整投影权重并在完整视图下计算，用完再切回本地分片（完整缓冲挂在 `o_proj_full_pools` 中复用）。
-   - **decode 阶段**：decode 的 token 在 PCP 各 rank 上是复制的，因此沿输入 `K` 维在本地分片算出部分和，再在 PCP 组内 All-Reduce 恢复原来的 TP-local 结果。若启用 TP 且该层满足 `reduce_results` 且 `tp_size > 1`，随后还会再做一次 TP 组内 All-Reduce（PCP 归约并不替代 TP 归约）。
+   - **prefill 阶段**：各 PCP rank 处理不同的 token 行，不能直接把不同 token 的部分和相加。前向会先在 PCP 组内 All-Gather 拼回完整投影权重（挂在 `o_proj_full_pools` 按规格复用），算完立即把参数视图切回本地分片。
+   - **decode 阶段**：decode 的输入 token 在 PCP 各 rank 上相同，各卡直接用本地分片沿输入 `K` 维算出部分和，再经 PCP 组内 All-Reduce 恢复 TP-local 结果。若启用了 TP 且满足 `reduce_results` 与 `tp_size > 1`，随后仍继续执行原有的 TP 组内 All-Reduce。
 
-未量化整数示意（`PCP = 2`）：输入向量为 `[1, 2, 3, 4]`，单个输出的完整权重为 `[10, 20, 30, 40]`。decode 时 rank 0 用前两项算 $1 \times 10 + 2 \times 20 = 50$，rank 1 用后两项算 $3 \times 30 + 4 \times 40 = 250$，PCP 组内 All-Reduce 相加得 `300`，与完整点积数学等价（因浮点归约次序和量化计算路径变化，不保证逐位一致）。
+未量化整数示意（`PCP = 2`）：输入向量为 `[1, 2, 3, 4]`，单个输出的完整权重为 `[10, 20, 30, 40]`。decode 时 rank 0 用前两项算 $1 \times 10 + 2 \times 20 = 50$，rank 1 用后两项算 $3 \times 30 + 4 \times 40 = 250$，PCP 组内 All-Reduce 相加得 `300`，与完整点积数学等价。实际运行中因浮点归约次序与量化路径差异，不保证逐位一致。
 
-## 通信代价、硬约束回退机制与版本与 GLM 边界
+## 通信代价、回退机制与部署边界
 
-- **通信代价的权衡**：decode 侧多一次 PCP 组内 All-Reduce（数据量是 hidden 维输出张量，随 token 数增长）；prefill 侧多一次 PCP 组内权重 All-Gather（数据量固定为权重本身，与 token 数无关）。因此 batch 小且 prefill 频繁的场景最吃亏，固定权重 gather 成本难以摊薄。
-- **整除约束、量化接口约束与两代回退行为**：核心前提是 SFA-PCP 满足 `input_size_per_partition % pcp_size == 0`（DSA-PCP 要求本地组数 `n_local_groups` 能被 PCP 整除），且对应线性方法实现 `WeightSwitchMixin` 且 `supports_weight_switch` 为真（重复安装同一层 loader 会报 `Loader-time weight sharding has already been installed`）。不满足时的处理随版本演化：
+- **Prefill 与 Decode 的通信权衡**：Decode 侧多一次 PCP 组内 All-Reduce，通信量随本步 token 数线性增长。Prefill 侧多一次 PCP 组内权重 All-Gather，通信量固定等于整层投影权重，因此小批量短序列 prefill 频繁时最难摊平这笔固定开销。
+- **整除约束、量化接口与版本回退差异**：SFA-PCP 要求 `input_size_per_partition % pcp_size == 0`（DSA-PCP 要求本地组数 `n_local_groups` 可被 `pcp_size` 整除），且线性层量化方法须实现 `WeightSwitchMixin` 并声明 `supports_weight_switch` 为真（同一层重复安装 loader 会抛 `Loader-time weight sharding has already been installed`）。不满足前置条件时的处理随版本演进：
 
 | 版本 / 快照 | 约束失败时的行为 | 说明 |
 | --- | --- | --- |
 | 早期 `baa023ad`（默认 `False`） | 直接抛 `RuntimeError`，**不降级** | 仅覆及 SFA-PCP |
 | `v0.30.0`（`c09d3e20`，默认 `True`） | SFA-PCP 与 DSA-PCP 在前置检查失败时打告警并**回退为未切分权重** | 后续安装 loader 仍在异常捕获之外，物理形状或 loader 不满足要求时仍可报错 |
-| `main`（`8d6180e2`，默认 `True`） | SFA-PCP（迁入 `sfa_v1.py`）与 DSA-PCP（`dsa_cp.py`）统一收拢至 `ParallelOProjection.prepare_weight_load()`，直接捕获 `(RuntimeError, ValueError)` 并告警回退未切分权重 | 「默认 `True`」不保证每种量化方法最终都启用分片 |
+| `main`（`8d6180e2`，默认 `True`） | SFA-PCP（`sfa_v1.py`）与 DSA-PCP（`dsa_cp.py`）统一收拢至 `ParallelOProjection.prepare_weight_load()`，捕获 `(RuntimeError, ValueError)` 告警回退；DeepSeek V4.1 DSA（`dsa_v41.py`）在无元数据预热及输出投影中同样复用底层 `projector` 的该开关状态 | 「默认 `True`」不保证每种量化方法最终都启用分片 |
 
-- **runner、旧 DSA-CP 与 PCP+DCP 边界**：`v0.30.0` 与 `main` 均要求 V2 model runner 才允许 `PCP > 1`。未启用 PCP 或早期走旧 DSA-CP 时不触发本开关的加载期分片（旧 DSA-CP 的 `full_o_proj` 演化见 [layer_sharding](layer-sharding.md)）。此外，`PCP+DCP` 变体虽继承同一权重切换机制，但叠加后的完整 prefill/decode 路径仍待独立核验，不能仅凭继承关系推定组合完全兼容。
-- **放到 GLM 双机（`db701c1f` 固定基线）**：该部署 `PCP = 1`、`DCP = 1`，且固定快照 `db701c1f` 尚无本键；同时 GLM 的 34 层 KDA 在 `PCP > 1` 的 prefill 路径直接抛出 `NotImplementedError`，开启 PCP 并非这份代码的可用方案（详见 [CP 页 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)）。11 层稀疏 MLA 的投影仍按 TP8 行切（形状见 [TP 页](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)），不能拿 GLM 主线数字代替本开关的效果。
+- **Runner、旧 DSA-CP 与混合架构边界**：`v0.30.0` 与 `main` 均要求 V2 model runner 才允许 `PCP > 1`；`PCP = 1` 或走旧 `enable_dsa_cp` 路径时不触发本分片（旧 `full_o_proj` 演化见 [`layer_sharding`](layer-sharding.md)），`PCP+DCP` 叠加组合仍待独立实测。历史双机部署因 `PCP = 1` 及旧 KDA 预填充限制而不进入本路径的完整说明，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)（TP8 行切形状见 [TP 页](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。
 
 ## 对照源码
 
@@ -226,11 +225,11 @@ file: param-pcp-o-proj-sharding
 | 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
 | --- | --- | --- | --- | --- | --- |
 | 字段与默认值 | 无（`.get()` 忽略）[C17] | 无（`.get()` 忽略）[C16] | `bool = True` [C45] | `bool = True` [C49] | 早期 `baa023ad` 曾默认 `False`，`v0.30.0` 起改为默认开启 |
-| 覆盖后端与实现位置 | 无 `weight_switch/` | 无 `weight_switch/` | SFA-PCP（`sfa_cp.py`）+ DSA-PCP `wo_a`/`wo_b`（`dsa_cp.py`）[C46][C47] | 统一经 `ParallelOProjection`（`sfa_v1.py` / `dsa_cp.py`）[C50][C51] | 旧 `enable_dsa_cp` 路径不消费本键；`main` 捕获 `prepare_weight_load` 异常并回退 [D] |
+| 覆盖后端与实现位置 | 无 `weight_switch/` | 无 `weight_switch/` | SFA-PCP（`sfa_cp.py`）+ DSA-PCP `wo_a`/`wo_b`（`dsa_cp.py`）[C46][C47] | 统一经 `ParallelOProjection`（`sfa_v1.py` / `dsa_cp.py`），V4.1 DSA 经 `dsa_v41.py` 复用 [C50][C51][C53] | 旧 `enable_dsa_cp` 路径不消费本键；`main` 捕获 `prepare_weight_load` 异常并回退 [D] |
 | PCP 运行前提 | — | — | 要求 V2 model runner [C48] | 同 `v0.30.0` [C52] | 不支持的方法或维度不整除会告警退回未切分 [!] |
 
 - **配置声明、缓存与历史快照**：`v0.30.0` 与 `main` 定义及未知键校验见 `c09d3e20:ascend_config.py#L581`（来源 45）、`8d6180e2:ascend_config.py#L674`（来源 49）；缓存清理、布尔转换单测与官方文档见 `utils.py#L1509-L1537`、`test_ascend_config.py#L1281-L1295`、`ascend_config.py#L1689-L1709` 与 `additional_config.md#L77`（来源 1–3、11–15、23、39）[S12]。
-- **加载期缩片、缓冲池与通信路径**：SFA-PCP 与 `weight_switch` 详见 `sfa_cp.py`（来源 4–7、35、46）、`weight_switch/linear.py` 与 `o_proj.py`（来源 8–10、31、40–41）、`dsa_cp.py`（来源 36–37、47、51）与 `main` `sfa_v1.py#L912-L936`（来源 50）；`sfa_cp.py#L147-L153`（来源 6）先执行 PCP 组求和，仅当 `reduce_results` 且 TP > 1 时继续 TP 组求和；`platform.py` V2 runner 限制见来源 42、48、52；GLM KDA 拒绝 `PCP > 1` 见 `db701c1f:ops/kimi_kda.py#L390-L403`（来源 43）[D]。
+- **加载期缩片、缓冲池与通信路径**：SFA-PCP 与 `weight_switch` 详见 `sfa_cp.py`（来源 4–7、35、46）、`weight_switch/linear.py` 与 `o_proj.py`（来源 8–10、31、40–41）、`dsa_cp.py`（来源 36–37、47、51）及 `main` 的 `sfa_v1.py#L912-L936`、`dsa_v41.py#L782-L803`（来源 50、53）；`sfa_cp.py#L147-L153`（来源 6）先执行 PCP 组求和，仅当 `reduce_results` 且 TP > 1 时继续 TP 组求和；`platform.py` V2 runner 限制见来源 42、48、52；GLM KDA 拒绝 `PCP > 1` 见 `db701c1f:ops/kimi_kda.py#L390-L403`（来源 43）[D]。
 - **待核**：常驻 `1/pcp_size`、净省估式与小批 prefill 权重 gather 摊薄代价均为按切法推导，本仓库缺目标 NPU 的实际显存、时延对照与 `PCP+DCP` 组合端到端实测。
 
 ## 版本谱系

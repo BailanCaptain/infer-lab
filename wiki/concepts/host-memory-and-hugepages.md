@@ -128,7 +128,7 @@ $$N_{4\text{KiB}} = \frac{1\text{ GiB}}{4\text{ KiB}} = 262,144\text{ 页}, \qqu
 
 ### Mooncake / Ascend Store 的锁页内存注册三要素
 
-在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支（与下文 [Engram 主机条件记忆表](engram-conditional-memory.md) 直接调用 CANN `aclrtHostRegisterV2` / `aclrtMallocHost` 的主机 UVA 注册机制各司其职）：
+在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支（注意将其与 [Engram 主机卸载的内存注册机制](engram-conditional-memory.md#host-dram-卸载机内共享与-npu-并行组etp--edp) 区分开：Engram 同机共享表 `SharedUvaBuffer` 实际调用 CANN `aclrtHostRegisterV2` 锁定 POSIX 共享内存并映射 UVA，私有表 `HostUvaBuffer` 调用 `aclrtMallocHost`，`main` 跨实例共享结合 HIXL 走已注册锁页缓冲，不经过 Mooncake `TransferEngine`）：
 
 - **全局传输引擎（默认 `global_te.register_buffer()`）**：底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`。
 - **独立存储引擎（`store.register_buffer()`）**：返回非零仅打印错误日志而不抛异常。

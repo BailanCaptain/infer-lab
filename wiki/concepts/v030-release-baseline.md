@@ -69,7 +69,7 @@ contradicts: []
 updated: '2026-11-24'
 ---
 
-把一套在线上稳定运行了几个月的 `v0.26` 或 [`v0.30.0rc2`](../sources/v030rc2-baseline.md) 启动脚本直接搬到 **`vLLM Ascend v0.30.0` 正式版（配套上游 `vLLM v0.30.0`）**，最隐蔽的风险并非“当场报错起不来”。真正的雷区是三类容易忽略的静默差异：**旧环境变量无声失效、源码默认显存水位 `0.92` 比常见食谱 `0.90` 多占 `2%`（旧文档常沿写 `0.9`）、以及原生 FP8 权重在 A2/A3 上静默反量化回 `BF16` 导致显存翻倍**（更多真机显存、录图与六类性能退化对照见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。与此同时，社区 `main` 分支已经在 `v0.30.0` 之上进一步删掉了 Model Runner V1 与部分回退路径；如果升级时不顺手清掉过期开关，下一次升级还会二次踩坑。
+把一套在线上稳定运行了几个月的 `v0.26` 或 [`v0.30.0rc2`](../sources/v030rc2-baseline.md) 启动脚本直接搬到 **`vLLM Ascend v0.30.0` 正式版（配套上游 `vLLM v0.30.0`）**，最隐蔽的风险并非“当场报错起不来”。真正的雷区是三类容易忽略的静默差异：**旧环境变量无声失效、源码默认显存水位 `0.92` 比旧配方常见显式值 `0.90` 高出 2 个百分点（在标称 64 GiB 卡上增加 `1.28 GiB` 预算、等量压缩录图余量；部分旧文档仍沿写 `0.9`）、以及原生 FP8 权重在 A2/A3 上静默反量化回 `BF16` 导致显存翻倍**（更多真机显存、录图与六类性能退化对照见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）。与此同时，社区 `main` 分支已经在 `v0.30.0` 之上进一步删掉了 Model Runner V1 与部分回退路径；如果升级时不顺手清掉过期开关，下一次升级还会二次踩坑。
 
 本页按生产升级自检顺序，把六类最容易引发线上回滚的变化一次拉齐：
 
@@ -79,17 +79,19 @@ file: v030-mig-fig-checklist
 
 ## 清单 1：退役环境变量与 `additional_config` 替代对照
 
-在 `v0.26.0rc` 时期，权重分形排布（**NZ**，`FRACTAL_NZ`）、**MLAPO**（多头潜在注意力 MLA 的融合前向优化）、融合 **MC2**（昇腾矩阵乘与集合通信融合算子）与守护监控开关仍通过环境变量暴露在 `vllm_ascend/envs.py`；从 [`v0.30.0rc2`](../sources/v030rc2-baseline.md) 到 `v0.30.0` 正式版，这些开关全部收口至 `--additional-config` 的 `AscendConfig` **Pydantic**（Python 运行时强类型校验，未知键默认直接拒收）字段中（配置解析链见 [Ascend 配置体系](ascend-config-system.md)）。继续在 `docker run -e` 或启动脚本里 `export` 下列退役环境变量，**程序不会提示拼写错误，而是直接忽略它们**：
+在 `v0.23.0` 与 `v0.26.0rc` 时期，权重分形排布（**NZ**，`FRACTAL_NZ`）、**MLAPO**（多头潜在注意力 MLA 的融合前向优化）、融合 **MC2**（昇腾矩阵乘与集合通信融合算子）与守护监控开关通过环境变量注册在 `vllm_ascend/envs.py`；自 [`v0.30.0rc2`](../sources/v030rc2-baseline.md) 与 `v0.30.0` 正式版起，这些 Python 层开关收口至 `--additional-config` 的 `AscendConfig` **Pydantic**（Python 运行时强类型校验，未知键默认直接拒收）字段中（配置解析链见 [Ascend 配置体系](ascend-config-system.md)，而底层 CANN / HCCL / 分配器仍在直接消费的运行时环境变量见 [昇腾运行时与调优](ascend-runtime-and-tuning.md)）。各旧入口的实际退役版本与替代写法如下表所示：
 
-| 旧环境变量（`v0.26`） | `v0.30.0` 生效状态 | `v0.30.0` 正式替代字段（`--additional-config`） | 默认值与迁移注意点 |
+| 旧入口（环境变量或历史 JSON 键） | 实际退役版本与 `v0.30.0` 状态 | 正式替代字段或处理方式 | 默认值与迁移注意点 |
 |---|---|---|---|
-| `VLLM_ASCEND_ENABLE_NZ` | **已从 `envs.py` 移除（失效）** | `weight_nz_mode`（`0` / `1` / `2`） | 默认 **`1`**；强校验仅接受 `0/1/2`；强化学习开启 `rl_config.enabled: true` 会自动强刷为 `0`（见 [RL 权重更新](vllm-ascend-for-rl.md)），开启 [Sleep Mode](sleep-mode.md) 唤醒也要求显式设 `0` |
-| `VLLM_ASCEND_ENABLE_MLAPO` | **已从 `envs.py` 移除（失效）** | `enable_mlapo`（`bool`） | 默认 **`true`**；若同时配置 `mlapo_keep_prefill_weights: true` 必须保持 `enable_mlapo: true` |
-| `VLLM_ASCEND_ENABLE_FUSED_MC2` | **已从 `envs.py` 移除（失效）** | `enable_fused_mc2`（`0` / `1` / `2`） | 默认 **`0`**；`1` 表示回滚到 `dispatch_ffn_combine`，`2` 尝试启用 MegaMoe（内部映射后受芯片与模型校验）；与 `multistream_overlap_shared_expert` 互斥 |
-| `MSMONITOR_USE_DAEMON` | **已从 `envs.py` 移除（失效）** | `msmonitor_use_daemon`（`bool`） | 默认 **`false`**；迁移进 JSON 后便于与服务侧 profiling 配置统一校验 |
-| `VLLM_ASCEND_ENABLE_FLASHCOMM1` | `envs.py` 已移除，但 `ascend_config.py` **保留 `os.getenv` 兼容兜底** | `enable_flashcomm1`（`bool`，序列并行通信优化） | 虽在 `v0.30.0` 仍能被环境变量唤醒，但不应继续依赖；且在 `main` 中上游已移除 `PassConfig.enable_sp`，激活 `FlashComm1` 会打印告警并关闭量化 All-Reduce |
+| `VLLM_ASCEND_ENABLE_NZ` | **`v0.30.0rc2` / `v0.30.0` 从 `envs.py` 移除**（静默失效） | `weight_nz_mode`（`0` / `1` / `2`） | 默认 **`1`**；强校验仅接受 `0/1/2`；开启 `rl_config.enabled: true` 自动强刷为 `0`（见 [RL 权重更新](vllm-ascend-for-rl.md)），开启 [Sleep Mode](sleep-mode.md) 唤醒也要求显式设 `0` |
+| `VLLM_ASCEND_ENABLE_MLAPO` | **`v0.30.0rc2` / `v0.30.0` 从 `envs.py` 移除**（静默失效） | `enable_mlapo`（`bool`） | 默认 **`true`**；若同时配置 `mlapo_keep_prefill_weights: true` 必须保持 `enable_mlapo: true` |
+| `VLLM_ASCEND_ENABLE_FUSED_MC2` | **`v0.30.0rc2` / `v0.30.0` 从 `envs.py` 移除**（静默失效） | `enable_fused_mc2`（`0` / `1` / `2`） | 默认 **`0`**；`1` 表示回滚到 `dispatch_ffn_combine`，`2` 尝试启用 MegaMoe（内部映射后受芯片与模型校验）；与 `multistream_overlap_shared_expert` 互斥 |
+| `MSMONITOR_USE_DAEMON` | **`v0.30.0rc2` / `v0.30.0` 从 `envs.py` 移除**（静默失效） | `msmonitor_use_daemon`（`bool`） | 默认 **`false`**；迁移进 JSON 后便于与服务侧 profiling 配置统一校验 |
+| `VLLM_ASCEND_ENABLE_FLASHCOMM1` | **`v0.30.0rc2` / `v0.30.0` 从 `envs.py` 移除**，`ascend_config.py` **保留 `os.getenv` 兼容兜底** | `enable_flashcomm1`（`bool`，序列并行通信优化） | 虽在 `v0.30.0` 仍能与环境变量逻辑或合并，但不应继续依赖；`main` 中上游已移除 `PassConfig.enable_sp`，激活 `FlashComm1` 会打印告警并关闭量化 All-Reduce |
+| [`enable_async_exponential`](../params/enable-async-exponential.md) / [`weight_prefetch_config`](../params/weight-prefetch-config.md) / [`multistream_overlap_gate`](../params/multistream-overlap-gate.md) | **`v0.26.0rc` 已从 `AscendConfig` 移除**（`v0.30.0` 传入直接触发 Pydantic 未知键报错） | 直接从 `--additional-config` 删除 | 属于 `v0.23.0` 早期历史键，升级时一并清零，避免触发 `extra="forbid"` 启动失败 |
+| [`profiling_chunk_config`](../params/profiling-chunk-config.md) | `v0.30.0` 仍在用，**`main`（`8d6180e2`）彻底移除** | `v0.30.0` 放在 `scheduler_config` 下；升 `main` 前移除 | 面向 `main` 迁移时提前清理，避免跨版本未知键拦截 |
 
-> 升级动作：全局搜索部署脚本、Helm Chart 和容器镜像里的 `VLLM_ASCEND_ENABLE_` 与 `MSMONITOR_USE_DAEMON`，把上述五项全部迁入 `--additional-config '{...}'` JSON 块中；同时清理旧版本已移除的 `additional_config` 历史键（例如 [`enable_async_exponential`](../params/enable-async-exponential.md)、[`weight_prefetch_config`](../params/weight-prefetch-config.md)、[`multistream_overlap_gate`](../params/multistream-overlap-gate.md)，以及 `main` 中移除的 [`profiling_chunk_config`](../params/profiling-chunk-config.md)），避免被 `v0.30.0` 严格校验直接拒收。
+> 升级动作：全局搜索部署脚本、Helm Chart 和容器镜像里的 `VLLM_ASCEND_ENABLE_`、`MSMONITOR_USE_DAEMON` 与上述分版本退役的 JSON 历史键，按上表逐项迁入或清理。
 
 ## 清单 2：量化方案命名与原生 `FP8_BLOCK` 跨卡行为差异
 
@@ -111,7 +113,7 @@ file: v030-mig-fig-fp8-memory-hardware
 
 除了配置项和量化，还有三项底层架构变化直接影响上线稳定性与自研插件兼容性：
 
-- **`gpu_memory_utilization` 源码默认是 `0.92` 而非 `0.90`**：上游 `CacheConfig` 在 `v0.26`、`v0.30.0rc2` 与 `v0.30.0` 中均默认 **`0.92`**（部分旧版 `faqs.md` 仍沿写 `0.9`）。在单卡 64 GiB 设备上，相比显式传入 `0.90`，默认 `0.92` 把预算外留给图捕获（ACL Graph / `npugraph_ex`）与运行期波动的余量从 `6.40 GiB` 缩窄到 `5.12 GiB`（在 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 中，OS 可见总显存仅 `60.96 GiB`，`Qwen3-0.6B` 在 `u=0.90` 下仍于 `FULL` Decode 录图阶段触发 OOM，下调至 `u=0.82` 后成功录图）。若叠开 `FULL_DECODE_ONLY` 大档位录图或较大 HCCL 缓冲，建议显式传 `--gpu-memory-utilization 0.90` 或更低保守值（详账见 [核心参数全分支调优指南](core-cli-params.md) 与 [KV Cache 显存预算](kv-cache-memory-profiling.md)）。在 `main` 中该字段默认改为 `None`，常规模式由 `resolved_gpu_memory_utilization` 解析为 `0.92`（可扩展 KV 池模式为 `1.0`）。
+- **`gpu_memory_utilization` 源码默认 `0.92` 与旧配方显式 `0.90` 的 2 个百分点差值**：先看静态默认值与脚本显式值——上游 `CacheConfig` 在 `v0.26`、`v0.30.0rc2` 与 `v0.30.0` 中源码默认均为 **`0.92`**，而历史食谱常显式传 **`0.90`**（部分旧版 `faqs.md` 也沿写 `0.9`）。省略该参数时，`0.92` 比 `0.90` 高出 **2 个百分点**：在标称 64 GiB 卡上会把实例预算池提高 **`1.28 GiB`**，等量把预算外留给图捕获（ACL Graph / `npugraph_ex`）与运行期波动的余量从 `6.40 GiB` 压窄到 `5.12 GiB`。再看真机现场实占——设备 OS 可见显存与宿主机 DRAM 各自独立记账（主机与设备容量分账见 [主机内存与大页](host-memory-and-hugepages.md)）；在 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md) 中，OS 可见 HBM 为 `60.96 GiB`，`Qwen3-0.6B` 在 `u=0.90` 下仍于 `FULL` Decode 录图阶段触发 OOM，下调至 `u=0.82` 后通过。叠开大档位录图或较大 HCCL 缓冲时，建议显式传 `0.90` 或更低值（详账见 [核心参数全分支调优指南](core-cli-params.md) 与 [KV Cache 显存预算](kv-cache-memory-profiling.md)）。在 `main` 中该字段默认改为 `None`，常规模式由 `resolved_gpu_memory_utilization` 解析为 `0.92`（可扩展 KV 池模式为 `1.0`）。
 - **`HardwareProfile` 四家族语义重构**：`v0.26.0rc` 及之前散落着 `is_310p()` 等芯片分支判断；`v0.30.0` 新增 `vllm_ascend/device/hardware_profile.py`，把硬件识别统一收拢为不可变的四家族档案——**`A2`、`A3`、`_310P`、`A5`（昇腾 950）**。业务层改读 `HardwareCapability` 布尔能力契约、策略（`*Policy`）与实现家族（`*Family`）。注意 `v0.30.0` 的 `A5` 档案**暂不含 `RUNTIME_CUSTOM_OPS`**，950 会自动关闭 `vllm_ascend_C` 走标准算子回退（`main` 已补回，见 [新模型适配与自定义算子开发](dev-new-model-and-custom-op.md)）。
 - **`MRV2` 切换红线与 `rc2 → v0.30.0` 稳定性收口**：在 `v0.30.0` 正式版中，`patch_use_v2_model_runner.py` 保持未设环境变量时默认走 **MRV1**。开启 **PCP**、**DeepSeek V4.1（A5）**、**`--enable-return-routed-experts`**、**`CPP + async_scheduling`** 或 **V2 EPLB** 时，必须显式导出 `VLLM_USE_V2_MODEL_RUNNER=1`（见 [Model Runner V2](model-runner-v2.md)）。相比历史过渡快照 [v0.30.0rc2](../sources/v030rc2-baseline.md)，正式版 `v0.30.0`（`c09d3e20`）对齐了 CANN `9.2.1` 基线，修复了 MRV2 结构化输出 Triton 无序锁工作区问题，并收口了 EPLB 校验与失效 `enable_flashcomm1` 示例。面向 `main` 升级前务必提前验证 MRV2 精度与时延：`main` 已删除 MRV1，残留 `VLLM_USE_V2_MODEL_RUNNER=0` 会直接报错退出。
 

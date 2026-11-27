@@ -3,7 +3,8 @@ id: sleep-mode
 title: Sleep Mode：暂停推理时怎样把显存让给训练
 type: feature
 legacyAnchors:
-  glm-双机中的一个-token-会遇到睡眠吗: 复杂异构与多机边界对照：GLM 双机若改同卡轮训会撞上什么
+  glm-双机中的一个-token-会遇到睡眠吗: 跨机专家并行怎样协调休眠与唤醒
+  复杂异构与多机边界对照glm-双机若改同卡轮训会撞上什么: 跨机专家并行怎样协调休眠与唤醒
 summary: >-
   Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV
   cache。说明唤醒顺序、请求处理、Ascend 910B3 实测账本、多机 EP 协同休眠边界与版本差异。
@@ -138,7 +139,7 @@ file: sleep-mode-intuition
 
 上线前先盯住 `v0.30.0` 主基线的两条必配门槛（漏掉任意一条都会报错）：
 
-- **清空可扩展分配段**：运行环境不能带 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`（启动前 `unset PYTORCH_NPU_ALLOC_CONF`），否则初始化睡眠专用内存池时直接触发断言失败。
+- **检查并移除冲突的 `expandable_segments:True` 项**：睡眠专用内存池（`camem`）与可扩展分配段互斥；启动前须检查 `PYTORCH_NPU_ALLOC_CONF` 并剔除其中的 `expandable_segments:True`（若无其他自定义项可直接 `unset`，若环境同时配置了其他合法分配器键则保留其余键；分配器与运行时变量边界见[昇腾运行时与调优](ascend-runtime-and-tuning.md)），否则初始化内存池时直接触发断言失败。
 - **关闭 `FRACTAL_NZ` 配置守卫**：须显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 清零的 `rl_config.enabled`），否则 `wake_up()` 唤醒时直接抛 `ValueError: FRACTAL_NZ mode is enabled`。
 
 想象同一张 NPU（昇腾计算卡）轮流做两件事：先生成一批回答，再用这些回答训练模型。生成结束后，推理进程暂时没有工作，但权重和缓存仍占显存。Sleep Mode 把可释放的那部分让给训练；训练结束、让回空间后，推理侧再唤醒。
@@ -176,7 +177,7 @@ DP 协调的暂停路径要先完成各 rank 的暂停共识，再恢复调度�
 
 **level 1 留住权重的内容，level 2 要求调用方补回权重；两者都不能靠唤醒找回旧缓存内容。** 专用分配器把启动时申请的内存按用途标记，分别管理权重池与缓存池。释放的是底层物理内存；引擎里的模型对象与分配记录继续存在，唤醒时重新建立内存映射。
 
-level 1 先给权重池建立 CPU 备份，再释放权重与缓存的可睡眠分配。唤醒时，权重有备份可拷回，缓存只有重新分配的空间。这里的“空”指没有保留下旧内容，不保证每个字节为零。之后请求从所需的历史计算重新开始。
+level 1 先在宿主机内存中给权重池建立 CPU 锁页备份（主机侧 pinned memory 容量与大页边界见[主机内存与大页](host-memory-and-hugepages.md)），再释放权重与缓存的可睡眠设备分配。唤醒时，权重有备份可拷回，缓存只有重新分配的空间。这里的“空”指没有保留下旧内容，不保证每个字节为零。之后请求从所需的历史计算重新开始。
 
 level 2 不备份权重池，适合马上要接收更新后权重的训练循环。Worker 仍单独保存模型注册的 buffers（不作为训练参数管理、但运行时要用的辅助张量），唤醒后恢复它们；因此“丢弃权重”不等于 CPU 内存占用归零。分配器中标为持久的内存也会跨睡眠保留，池外的其他常驻资源同样不因基本睡眠自动消失。
 
@@ -214,7 +215,7 @@ file: sleep-mode-fig-levels-and-wakeup
 
 在单卡 `Ascend 910B3`（`v0.30.0`，完整实测档案见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)）上对 `Qwen3-8B`（`BF16`）执行 Sleep Mode 对照实测，验证了配置守卫、唤醒速度、板级显存口径与 `RFork` 交互四项关键事实：
 
-1. **为什么默认 `weight_nz_mode=1` 下 BF16 权重并未转 `NZ`，`wake_up()` 却仍报错？** 在非 310P 设备上，`utils.py` 规定普通 `BF16 / FP16` 权重仅当 `weight_nz_mode == 2` 时才转换为 `FRACTAL_NZ`（默认 `1` 只转量化权重，因此 `Qwen3-8B` 的 BF16 权重本来就保持 `ND` 布局）。然而 `worker.py` 的 `wake_up()` 守卫直接检查配置项 `if nz_mode:`，只要非零即抛出 `ValueError: FRACTAL_NZ mode is enabled...`——未改配置组实测 `level 1` 耗时 `16.593 s`、释放 `48.37 GiB`、Worker 侧报剩余 `3.02 GiB`，但在唤醒时被该守卫拦截。因此这次报错不能反证 BF16 权重原本已转 `NZ`；对 BF16 模型显式传入 `--additional-config '{"weight_nz_mode": 0}'`（或开启自动将 NZ 置 0 的 `rl_config`）不会带来在线算子布局损失，仅对真正依赖 `NZ` 的权重类型才会改变转换行为。
+1. **拆清“BF16 权重实际是否转 `NZ`”与“唤醒守卫检查什么”**：第一，看张量真实布局——在非 310P 设备上，`utils.py` 规定普通 `BF16 / FP16` 权重仅当 `weight_nz_mode == 2` 时才转为 `FRACTAL_NZ`（默认 `1` 只转量化权重），因此 `Qwen3-8B` 的 BF16 权重实际保持 `ND` 布局。第二，看唤醒守卫条件——`worker.py` 的 `wake_up()` 并不检查权重张量的真实格式，而是直接读配置值 `if nz_mode:`，只要非零即抛 `ValueError: FRACTAL_NZ mode is enabled...`（未改配置组实测 `level 1` 睡下耗时 `16.593 s`、释放 `48.37 GiB`、Worker 报剩余 `3.02 GiB`，唤醒时被该守卫拦截）。因此报错不代表 BF16 权重原本已转 `NZ`，对 BF16 模型显式传 `'{"weight_nz_mode": 0}'`（或开启 `rl_config`）不会损失在线布局优化。
 2. **显式设 `weight_nz_mode=0` 后的五阶段实测账本**：
 
 | 实测检查点（单卡 `Qwen3-8B` BF16，`weight_nz_mode=0`） | `npu-smi` 板级 HBM 占用 | 扣除初始空载后进程净占 | 主机进程树 RSS | 耗时与输出校验 |
@@ -228,14 +229,12 @@ file: sleep-mode-fig-levels-and-wakeup
 两处数字边界必须看清。其一，**`2.482 s` 唤醒较 `95.830 s` 初始化快 `38.61×`**，比较的是“存活引擎从 CPU 拷回权重并重映射缓存池”与“从零冷启动完整初始化（含加载、试跑、编译与录图）”两个不同阶段。其二，`npu-smi` 从 `55,740 MB` 降到 `6,211 MB`（`6.065 GiB`）是板级总读数，其中包含建引擎前已占的 `3,453 MB` 空载基线，因此该推理进程睡后净留显存为 **`2.693 GiB`（`2,758 MB`）**——不能把全部 `6.065 GiB` 认作该进程的 CANN/HCCL 上下文，也不能直接推广为多卡每卡残留。
 3. **启用 Sleep Mode 时 [RFork](rfork.md) 自动回退默认加载**：`rfork/safety.py` 中的可变权重安全检查 `mutable_weights_bypass_reason()` 只要检测到 `enable_sleep_mode` 为真便返回 `"sleep mode"`，`rfork_loader.py` 随即打印告警并回退至默认模型加载器；即便把 `weight_nz_mode` 设为 `0`，也不会恢复 `RFork` 的权重共享传输。
 
-## 复杂异构与多机边界对照：GLM 双机若改同卡轮训会撞上什么
+## 跨机专家并行怎样协调休眠与唤醒
 
-单卡 `Qwen3-8B` 只需本进程完成池释放与唤醒；换到跨机专家并行的多机服务时，休眠与唤醒还要受分配器环境变量和全局通信拓扑双重约束。以例外 B 的 [GLM 双机部署](../concepts/glm-5-3-flash-two-node.md#部署前提)作边界对照——官方两机命令面向常驻在线推理，默认关闭 `--enable-sleep-mode`（启动时权重与缓存走普通分配路径，详见 [Worker 生命周期](../concepts/npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)；Sleep Mode 只能由外部管理接口显式触发，不会因某轮无请求而自动休眠）：
+单卡 `Qwen3-8B` 只需本进程完成池释放与唤醒；换到跨机专家并行的多机服务时，休眠与唤醒还要受分配器环境变量和全局通信拓扑双重约束（例外 B 的 [GLM 双机部署](../concepts/glm-5-3-flash-two-node.md#部署前提)官方在线配方默认未开 `--enable-sleep-mode`，启动走[常规分配路径](../concepts/npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)，且睡眠仅由管理接口显式触发）：
 
-若想把这类多机部署改造成同卡训推轮占，按顺序会撞上两道硬约束：
-
-1. **可扩展分配段冲突**：官方双机脚本显式设置了 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`，而睡眠专用内存池（`camem`）与该选项互斥；若只追加 `--enable-sleep-mode` 而不清除该变量，创建分配器时会直接触发断言失败。解决该冲突后，还须按前文配齐兼容的 `weight_nz_mode=0` 布局，并在休眠与权重更新期间挡住外部流量。
-2. **跨机 `EP16` 不能单机局部休眠**：双机 `288` 个路由专家跨 16 张卡切分（详见[部署页分工](../concepts/glm-5-3-flash-two-node.md#部署前提)），单台机器并不是可独立运行的完整副本；进入睡眠循环时必须整体协调全部参与的执行组。控制层虽具备跨 DP 组的暂停共识与恢复同步，但这只代表控制协议要求多组协同，并不构成该混合注意力 + `W8A8` 配置已完成睡眠恢复验证的证据（常规显存账仍见[部署页 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)，目前尚无该部署下的释放量、唤醒延迟与输出一致性实测）。
+1. **移除冲突的分配器选项并对齐 `NZ` 守卫**：官方双机脚本显式带有 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`，与睡眠内存池（`camem`）互斥；启用睡眠前必须移除该冲突项、配齐 `weight_nz_mode=0`，并在休眠与重载窗口挡住外部流量。
+2. **跨机 `EP16` 必须全组协同休眠与唤醒**：双机 `288` 个路由专家跨 `16` 张卡切分（详见[部署页分工](../concepts/glm-5-3-flash-two-node.md#部署前提)），单台机器不是完整模型副本，进入睡眠与唤醒时必须协调全部参与的执行组同步推进。控制层具备跨 DP 组的暂停共识与恢复同步，但这只确立了控制协议边界——该混合注意力 + `W8A8` 配置尚无睡眠释放量、唤醒延迟与输出一致性的真机实测（常规显存账仍见[部署页 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。
 
 ## 哪些理解容易出错？
 

@@ -5,6 +5,7 @@ type: concept
 origin: direct
 legacyAnchors:
   现场实操双模交互式排障工作台: 现场实操：交互式排障工作台
+  放到-glm-双机哪些前提先不要改: 多机与缩卡复现：哪些前提先不要改
 summary: >-
   面对启动失败、慢、内存不足、输出异常、图与通信错误等十类问题，先找最后成功阶段与首错 Rank，再沿最小证据、候选原因和区分实验进入已有机制页；内嵌交互式排障工作台，支持粘贴真实日志或 /metrics 定位首错，以及查看六类典型阻塞的时序对照。
 aliases:
@@ -72,6 +73,7 @@ sources:
   - 'vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453'
   - 'vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606'
   - 'vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552'
+  - 'https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnn_return_code_nn.md'
 relations:
   - to: request-call-chain
     kind: builds-on
@@ -103,7 +105,7 @@ updated: '2026-11-24'
 
 **推理排障先回答一个问题：这条请求或这次启动，最后在哪一步还正常？** 找到这个边界，才能决定下一份证据该从哪里取。
 
-遇到现场问题时，先读下面的一次超时排查并用工作台解析手头日志或 `/metrics`，再跳到与自己证据相符的分支即可。希望连续学习分析方法，可以先走[停顿样例](inference-performance-walkthrough.md)、[测量](inference-benchmarking.md)和[性能模型](inference-performance-analysis.md)；十类入口供需要时查阅。
+先沿下面的一次 30 秒超时三分诊走完第一份阶段证据，确认问题落在入口、计算还是返回，再用下方的交互式工作台或十类现场分支继续收敛。希望连续学习分析方法，可依次读[停顿样例](inference-performance-walkthrough.md)、[测量](inference-benchmarking.md)和[性能模型](inference-performance-analysis.md)。
 
 ## 同样是“没有回答”，为什么要走不同的路
 
@@ -143,7 +145,7 @@ file: inference-troubleshooting-experiment
 
 ## 现场实操：交互式排障工作台
 
-手头已经有报错日志、多卡交错刷屏的 **`EI0006`**（昇腾 HCCL 集合通信等待超时错误码）、**退出码 `137`**（进程收到 `SIGKILL` 强制终止信号）或一份 `curl /metrics` 文本时，可以直接放进下面的交互式排障工作台。它提供两项独立视图：一是**粘贴报错日志或 `/metrics` 快照**，自动区分主故障与次生集合通信超时、定位最早异常卡并给出下一条取证命令；二是**查看 6 类典型阻塞的时序对照**，用无量纲示意相对时序快速建立读图直觉（仅用于理解阻塞机理，不替代真机 Trace）。
+拿到第一份现场证据——例如报错日志、多卡交错刷屏的 **`EI0006`**（昇腾 HCCL 集合通信等待超时错误码）、**退出码 `137`**（常见 shell 按 `128 + SIGKILL` 折算的退出约定；是否确属主机或容器 OOM 仍需 cgroup `memory.events` 或内核 `dmesg` 记录佐证）或一份 `curl /metrics` 文本后，可以直接放进下面的交互式排障工作台。它提供两项独立视图：一是**粘贴报错日志或 `/metrics` 快照**，自动区分主故障与次生集合通信超时、定位最早异常卡并给出下一条取证命令；二是**查看 6 类典型阻塞的时序对照**，用无量纲示意相对时序快速建立读图直觉（仅用于理解阻塞机理，不替代真机 Trace）。
 
 ```wiki-tool
 tool: troubleshoot-workbench
@@ -198,7 +200,7 @@ summary: 粘贴报错日志或 /metrics 定位最早异常卡与下一条取证�
 
 ### 内存与容量：先分清在哪个时点装不下
 
-适用于内存不足（OOM）、运行中缓存紧张或已用内存持续增加。**先分清主机／容器限制，还是某张设备的空间不足。** 进程被终止，或没有 OOM 却伴随主机回收等待时，先用[主机与容器内存的判断方法](device-memory.md#主机还有空闲为什么容器里的进程先被终止)找限制所在层；不要仅凭退出码 `137` 就直接缩减设备 KV 缓存。
+适用于内存不足（OOM）、运行中缓存紧张或已用内存持续增加。**先分清主机／容器限制，还是某张设备的空间不足。** 进程被终止，或没有 OOM 却伴随主机回收等待时，先用[主机与容器内存的判断方法](device-memory.md#主机还有空闲为什么容器里的进程先被终止)与[主机内存与大页](host-memory-and-hugepages.md)找限制所在层；不要仅凭退出码 `137` 就直接缩减设备 KV 缓存。
 
 确认落在设备 NPU HBM 一侧后，沿启动到运行的四个连续时点逐段定位，并为每个出口先取对应的最小证据：
 
@@ -224,7 +226,7 @@ file: troubleshooting-fig-memory-triage
 
 ### 编译、图与算子：配置启用后，实际走了什么
 
-适用于捕获失败、频繁重新编译、图回退或形状/类型不支持。**graph mode** 把支持的执行过程先捕获后重放；**eager** 按当前步骤组织执行。收集报错前的输入形状、数据类型、编译/捕获日志、实际图模式及首次触发条件，沿[图模式分层](graph-mode-layer.md)找失败边界。
+适用于捕获失败、频繁重新编译、图回退或形状/类型不支持。**graph mode** 把支持的执行过程先捕获后重放；**eager** 按当前步骤由主机逐算子组织下发（Host 任务队列与运行时环境边界见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）。收集报错前的输入形状、数据类型、编译/捕获日志、实际图模式及首次触发条件，沿[图模式分层](graph-mode-layer.md)找失败边界。
 
 在 `v0.30.0` 下有两个高频硬边界值得首查：
 
@@ -259,7 +261,7 @@ file: troubleshooting-fig-first-fault
 
 ### 接口与服务能力：结果在哪一层变得不可用
 
-适用于流式中断、JSON 不符合约定、工具调用解析失败或多模态输入被拒。先留 HTTP 状态、请求体、原始流式片段、结束原因、解析器名称与最终客户端内容。**结构化输出**约束生成时可选的 token；**工具解析器**把生成内容整理成调用字段，两者不是同一道处理。
+适用于流式中断、JSON 不符合约定、工具调用解析失败或多模态输入被拒。先留 HTTP 状态、请求体、原始流式片段、结束原因、解析器名称与最终客户端内容。**结构化输出**约束生成时可选的 token；**工具解析器**把生成内容整理成调用字段，两者不是同一道处理；多模态请求若在入口通过后出现视觉编码慢或重复计算，另接[多模态特征缓存](multimodal-encoder-cache.md)核对缓存命中与准入边界。
 
 固定同一份输入，先直连服务记录原始响应，再与代理和客户端收到的内容逐层比较。原始数据完整而客户端缺失，就查传输、缓冲与解析；入口已拒绝则查[API 入口](api-server-entry.md)，生成内容不符合限制则查[结构化输出](structured-output.md)，字段处理查[流式输出](streaming-output.md)。流式与非流式对照会改变交付方式，不能只凭两次随机生成文本不同定位解析器。
 
@@ -294,13 +296,13 @@ file: troubleshooting-fig-first-fault
 
 外层 Python 日志常只停在 `AclrtSynchronizeStreamWithTimeout` 或 `synchronize stream failed`，真正区分硬件执行异常、算子入参越界与图捕获限制的线索藏在数字 `aclError` 与 `plog` 中：
 
-| 数字错误码与常见外层报错 | 官方 `aclError` 定义与常见现场诱因 | 首取证据与下一步分流 |
-| --- | --- | --- |
-| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | 官方定义为 **AI Core 执行异常**；现场常见诱因包括核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
-| **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | 官方定义为 **Vector Core（AIV）执行超时**；现场常见诱因包括超长序列单步计算超阈值或核内同步未释放 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
-| **`507035`**（`vector core exception` / `aicore VEC 507035`） | 官方定义为 **Vector Core（AIV）执行异常**；现场常见诱因包括向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
-| **`161002`**（`ACLNN_ERR_PARAM_INVALID`） | `aclnn` 二段式算子接口**参数校验失败**，即输入输出 `dtype`、数据格式、维度或步长违反算子约束 | 查紧邻报错的 `aclGetRecentErrMsg` 明细核对张量形状与量化 Scale 类型，转 [算子与 kernel](ops-and-kernels.md) |
-| **`107030`**（`ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT`） | 官方定义为**当前捕获模式不支持该操作**；现场多因图捕获流内夹杂受限同步或 `rtMemcpy`（部分算子仅打 `plog` 不影响推理） | 先核对服务是否实际中断；若捕获失败则用 `--enforce-eager` 对照并转 [ACL Graph](acl-graph.md) 与 [设备内存](device-memory.md) |
+| 数字错误码与常见外层报错 | 官方返回码定义 | 现场候选诱因（待日志核实） | 首取证据与下一步分流 |
+| --- | --- | --- | --- |
+| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | **AI Core 执行异常**（`ACL_ERROR_RT_AICORE_OVER_FLOW` 等运行时 AI Core 故障码） | 核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
+| **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | **Vector Core（AIV）执行超时** | 超长序列单步计算超阈值，或核内同步未释放 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
+| **`507035`**（`vector core exception` / `aicore VEC 507035`） | **Vector Core（AIV）执行异常** | 向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
+| **`161002`**（`ACLNN_ERR_PARAM_INVALID`） | **`aclnn` 接口参数无效** | 输入输出 `dtype`、数据格式、维度或步长违反算子入参约束 | 查紧邻报错的 `aclGetRecentErrMsg` 明细核对张量形状与量化 Scale 类型，转 [算子与 kernel](ops-and-kernels.md) |
+| **`107030`**（`ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT`） | **当前捕获模式不支持该操作** | 图捕获流内夹杂受限同步或 `rtMemcpy`（部分算子仅打 `plog` 不中断推理） | 先核对服务是否实际中断；若捕获失败则用 `--enforce-eager` 对照并转 [ACL Graph](acl-graph.md) 与 [设备内存](device-memory.md) |
 
 ## 证据不足时，下一步应该有多具体
 
@@ -308,11 +310,11 @@ file: troubleshooting-fig-first-fault
 
 采不到请求与步骤映射时，先缩小到单条可控请求和短窗口，确认日志是否覆盖入口、调度和输出；复现消失则保留原并发作为触发条件，再逐步加回。最小复现和线上问题有了差异，也要把差异写进结论，而不是宣布“无法复现所以没有问题”。
 
-## 放到 GLM 双机，哪些前提先不要改
+## 多机与缩卡复现：哪些前提先不要改
 
-标准 `v0.30.0` 主基线采用单机 `Qwen3-8B`（Dense GQA）与 `Qwen3-30B-A3B`（MoE）核对显存与配置；而在「09 旗舰异构模型全案」的历史绑定算例[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)中，部署形态为两机 16 卡（`TP8` 分矩阵、`DP2` 分请求、`EP16` 分专家）。两机共同持有专家，另一组没有用户请求也会执行 dummy 步参与计算，因此某组等待不能自动解释成它的前端堵塞。
+排查跨卡或跨机等待时，先按实际生效的通信域（`TP`、`DP`、`EP`、`PP`）锁定等待方与最早异常 rank；开启跨组专家并行时，没有用户请求的空闲 DP 组仍会执行陪跑（dummy）步参与通信，不能把某组等待直接归因于该组前端堵塞。
 
-从这套双机配置缩减卡数、切换模型或精度，都会改变权重布局和执行路径。先在原配置取得阶段证据，再决定怎样简化。分离部署、外部缓存、RFork 等分支只在现场实际启用时进入；基线的普通请求不自动具有这些状态迁移过程。
+缩小卡数、切换模型或改动量化精度，都会改变权重分片布局、图捕获档位和算子分派路径；应先在原配置下取得阶段边界证据，再决定怎样简化复现。PD 分离、外部 KV 缓存、RFork 等分支按现场实际启用的开关导流，不默认套进未开启的普通请求。双机 16 卡（`TP8/DP2/EP16`）历史算例的具体排障后果见 [GLM-5.3-Flash 双机部署「这套部署给后面各章留下的后果」](glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
 
 ## 常见误解
 
@@ -390,5 +392,5 @@ curl -s http://127.0.0.1:8000/metrics | grep -E "vllm:(kv_cache_usage_perc|num_r
 - **启动预检、显存探测、Sleep 守卫与图捕获 OOM**：`vllm_ascend/worker/worker.py`（来源 1–3、28–29）涵盖 `init_snapshot` 校验、`determine_available_memory()` 试跑量测、`compile_or_warm_up_model()` 录图后显存账建议、`wake_up()` 对非零 `weight_nz_mode` 的拦截与 `execute_model()` 中 `DEBUG` 分配器读数日志；`device/device_op.py`（来源 33）与 `compilation/acl_graph.py`（来源 30）分别对应 `FULL` 图捕获 FIA 调用栈与回放 `data_ptr()` 校验；`device/hardware_profile.py`（来源 10）划分 `310P` 兼容硬件档位。
 - **配置、PD 分离、图捕获与量化兼容硬报错**：`vllm_ascend/ascend_config.py`（来源 5–7、31）包含 `NPUGRAPH_EX` 硬件降级、`extra="forbid"` 未知键校验、普通 PD `TP_P % TP_D == 0` 整除断言与 `MooncakeConnector` 禁配 GQA C8；`mooncake/base_worker.py`（来源 32）校验单一 KV 传输角色；`attention_v1.py`（来源 8）与 `fa3_v1.py`（来源 9）分别负责 GQA+C8 校准校验与 FA3 `FULL_DECODE_ONLY` 拦截。
 - **分布式超时、进程退出、收尾与 `/metrics`**：`vllm_ascend/platform.py`（来源 4）与 `utils.py`（来源 11）维护 HCCL 超时与通信组缓冲配置；`vllm/v1/engine/utils.py`（来源 12）、`scheduler.py`（来源 13）、`async_llm.py`（来源 14）与 `metrics/loggers.py`（来源 15–16）覆盖子进程退出码、取消释放与 Prometheus 指标定义。
-- **官方文档、历史快照与 `Ascend 910B3` 真机标本**：官方 Profiling 指南 [S17]、FAQ [S18] 与 AscendCL 错误码参考（来源 34）提供采集与数字错误码索引，算子参数校验码 `161002`、图模式 `rtMemcpy` `107030` 发布说明与 AI Core `507015` 实证约束分别见来源 35–37；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25；`Ascend 910B3` 八卡扩展、`DEBUG` 延迟对照与五份真机故障标本归档于来源 26–27 [M26][M27]。
+- **官方文档、历史快照与 `Ascend 910B3` 真机标本**：官方 Profiling 指南 [S17]、FAQ [S18]、AscendCL Runtime 返回码参考（来源 34）与 `aclnn` 返回码参考（来源 38）提供采集与数字错误码定义索引，算子参数校验码 `161002`、图模式 `rtMemcpy` `107030` 发布说明与 AI Core `507015` 实证约束分别见来源 35–37；`v0.23.0` / `v0.26.0rc` / `main` 对照来源为来源 19–23，GLM 双机历史参考为来源 24–25；`Ascend 910B3` 八卡扩展、`DEBUG` 延迟对照与五份真机故障标本归档于来源 26–27 [M26][M27]。
 - **方法论与示意边界**：十域分流和判别实验是基于既有机制组织的诊断方法 [I]；请求 R 的时间与步骤号、多卡交错时间轴图及工作台 6 类阻塞时序对照视图均为教学示意 [A]，不代表目标硬件实测耗时。

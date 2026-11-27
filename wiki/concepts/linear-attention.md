@@ -189,7 +189,7 @@ $$\bar{S} = S_{t-1} D, \quad \hat{v} = \bar{S} k, \quad e = v - \hat{v}, \quad S
 | 4. 更新 $S_t$ | $\bar{S} + 0.5\, e k^\top$ | $\begin{bmatrix}1.75 & 0 \\ 1 & 1\end{bmatrix}$ |
 | 5. 读出 $o$ | $S_t q$ | $(1.75,\; 1)^\top$ |
 
-每步改写的只是当前请求独享的状态槽，模型投影权重保持不变；状态一旦被原地覆写或随抢占回收，就无法像逐词 KV 那样局部回退，只能从头或最近检查点重算。想在三维空间里观察张量流向，可打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。
+每步改写的只是当前请求独享的状态槽，模型投影权重保持不变；状态一旦被原地覆写或随抢占回收，就无法像逐词 KV 那样局部回退，只能从头或最近检查点重算（例如 `main` 分支针对 GDN 提供的 [`gdn_internal_prefill_checkpoints`](../params/gdn-internal-prefill-checkpoints-50f5ac80d583.md) 专属入口，在满足条件时按 `64` token 边界导出 Prefill 中间递推检查点）。想在三维空间里观察张量流向，可打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。
 
 ## Prefill 用 chunked 计算，decode 逐位置推进
 

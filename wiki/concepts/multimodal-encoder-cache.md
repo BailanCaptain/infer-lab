@@ -92,7 +92,7 @@ $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4
 
 ## `EncoderCacheManager` 如何独立于文本 Prefix Caching 复用特征？
 
-很多读者会问：既然已经开了语言模型的 [Prefix Caching（APC）](prefix-caching.md)，多轮看图对话不就能直接复用历史 KV 块了吗？对照调度器 `_try_schedule_encoder_inputs()` 与 `_preempt_request()` 的真实调用链，会发现两者在三个高频生产场景下职责完全不同：
+很多读者会问：既然请求经 [API 入口的多模态预处理](api-server-entry.md#多模态输入pooling-与语音入口延伸导览) 组装进引擎后，已经开了语言模型的 [Prefix Caching（APC）](prefix-caching.md)，多轮看图对话不就能直接复用历史 KV 块了吗？对照调度器 `_try_schedule_encoder_inputs()` 与 `_preempt_request()` 的真实调用链，会发现两者在三个高频生产场景下职责完全不同：
 
 | 对比维度 / 场景 | 文本 KV Prefix Caching（`APC`） | 视觉特征缓存（`EncoderCacheManager`） |
 |---|---|---|
@@ -113,7 +113,7 @@ $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4
 
 ## ViT 预算打包与昇腾 `EncoderAclGraphManager` 图捕获回放
 
-当新图片或新视频片段首次到达、编码缓存未命中时，请求必须真正跑一遍视觉编码器。小分辨率多图并发时，ViT 同样会遭遇[主机侧算子下发瓶颈](ascend-runtime-and-tuning.md)；但由于不同图片分辨率各异、视频帧数不一，不能像纯文本 Decode 那样只按固定请求数录图。
+当新图片或新视频片段首次到达、编码缓存未命中时，请求必须真正跑一遍视觉编码器（注意把运行期特征缓存容量、下文视觉图分桶预算，与启动阶段 `profile_run` 按多模态最大单步假输入测算峰值激活分开，启动量测边界见 [KV 显存量测的多模态尺寸提示](kv-cache-memory-profiling.md#多模态输入的量测尺寸等于运行时限制吗)）。小分辨率多图并发时，ViT 同样会遭遇[主机侧算子下发瓶颈](ascend-runtime-and-tuning.md)；但由于不同图片分辨率各异、视频帧数不一，不能像纯文本 Decode 那样只按固定请求数录图。
 
 上游 `EncoderCudaGraphManager` 与昇腾子类 **`EncoderAclGraphManager`** 采用**按输出视觉 token 预算分桶打包（ViT Packing）**的两层机制（通过 `--compilation-config '{"cudagraph_mm_encoder": true}'` 开启，默认关闭；`encoder_cudagraph_token_budgets`、`encoder_cudagraph_max_vision_items_per_batch` 与 `encoder_cudagraph_max_frames_per_batch` 留空时均可由模型协议预算自动推导）：
 

@@ -175,7 +175,7 @@ vllm serve Qwen/Qwen3-30B-A3B \
 | PP 与负载均衡硬互斥 | `pp <= 1`、`enable_balance_scheduling` 或 `dyntra_lb_config.enabled` 同开均抛 `ValueError` | `v0.23`/`v0.26` 还会受残留环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING=1` 触发互斥 |
 | `ShortRequestFirst` 与异步调度 | `v0.30.0` 允许同开 `ShortRequestFirst`；配异步调度硬性要求 `VLLM_USE_V2_MODEL_RUNNER=1` | 上游默认常自动选中异步调度，MRv1 下须传 `--no-async-scheduling`，否则启动抛 `ValueError` |
 
-**`PP > 1` 准入边界**：任何 `pipeline_parallel_size == 1` 的单级流水部署开启 `enabled: true` 时，`v0.23`、`v0.26` 与 `v0.30.0` 都会在启动校验直接抛 `ValueError`。历史双机 `PP = 1` 部署的参数边界统一见 [GLM 双机部署后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
+**`PP > 1` 准入边界**：任何 `pipeline_parallel_size == 1` 的单级流水部署开启 `enabled: true` 时，`v0.23`、`v0.26` 与 `v0.30.0` 都会在启动校验直接抛 `ValueError`。历史双机 `PP = 1` 部署的参数边界统一见 [固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)。
 
 ```wiki-diagram
 file: profiling-chunk-config

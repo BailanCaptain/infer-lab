@@ -1,7 +1,7 @@
 mode: native-svg
 id: troubleshooting-fig-myths
 caption: >-
-  推理排障四卡时间轴与 v0.30.0 五项证据分诊：四卡时间轴展示 Rank 3 在 12 ms 首发算子设备错误、牵连 Rank 0/1/2 在 40 ms 报 EI0006 通信超时的首错反查分流，并对照 exitcode=137 主机/cgroup 强杀 vs init_snapshot/requested_memory 显存报错、二分隔离加回验收、model_config 硬件自动降级核验与日志采集/乱码取证闭环。
+  推理排障四卡时间轴与 v0.30.0 五项证据分诊：四卡时间轴展示 Rank 3 在 12 ms 首发算子设备错误、牵连 Rank 0/1/2 在 40 ms 报 EI0006 通信超时的首错反查分流，并对照 finished_procs exitcode=-9（常见 shell 折算 137）SIGKILL 强退分诊（结合 cgroup memory.events / dmesg 区分外部 kill 与主机 OOM）vs init_snapshot/requested_memory 显存报错、二分隔离加回验收、model_config 硬件自动降级核验与日志采集/乱码取证闭环。
 size: [900, 584]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473

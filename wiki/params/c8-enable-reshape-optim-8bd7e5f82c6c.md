@@ -205,7 +205,7 @@ $$\text{capacity} = \max\bigl(\text{max\_num\_batched\_tokens} \times \text{PCP}
   - `v0.28.0.rc1` 曾因 PR #15752 暂删该键，写入会被拒绝；
   - `v0.30.0rc2` 等过渡版默认反转为 `True`，但代码硬性叠加 PD 分离 P 节点检查（`is_prefill_node` 要求 `kv_transfer_config` 非空且承担 producer 角色），混部部署恒为关闭且不打日志。
 - **过渡版辅助缓冲越界排查**：在 `v0.30.0rc2` 等快照遇到 `Indexer C8 group metadata buffer is too small: capacity=..., required=...` 时，直接对照报错中的 `required` 与上文 `max(max_num_batched_tokens × PCP, TP 对齐值)` 容量公式核查本步 slot 数。
-- **区分「索引器 C8」与「主 KV C8」两条路径**：在 `v0.30.0` 与 `main` 中，`model_uses_kpool_indexer` 识别带 `index_kpool` 压缩池的模型并令 `model_uses_sfa_sparse` 返回 `False`，在模型判定阶段就把 `kpool` 模型排除在 `LightningIndexer` 稀疏路径之外；而 SFA 主 KV 的 C8 量化使用另一条包含 `kpool` 的独立判定，切勿因索引器 C8 优化下线或不适用就误判主 KV 量化不可用。历史双机镜像的 `kpool` 构造报错与块表关系已归入[固定双机部署的参数后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)与[块表页](../concepts/block-table.md#放到-glm-双机r1-的-15-个块号进了哪几张表)。
+- **区分「索引器 C8」与「主 KV C8」两条路径**：在 `v0.30.0` 与 `main` 中，`model_uses_kpool_indexer` 识别带 `index_kpool` 压缩池的模型并令 `model_uses_sfa_sparse` 返回 `False`，在模型判定阶段就把 `kpool` 模型排除在 `LightningIndexer` 稀疏路径之外；而 SFA 主 KV 的 C8 量化使用另一条包含 `kpool` 的独立判定，切勿因索引器 C8 优化下线或不适用就误判主 KV 量化不可用。历史双机镜像的 `kpool` 构造报错与块表关系已归入[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)与[块表页](../concepts/block-table.md#放到-glm-双机r1-的-15-个块号进了哪几张表)。
 
 ## 对照源码
 

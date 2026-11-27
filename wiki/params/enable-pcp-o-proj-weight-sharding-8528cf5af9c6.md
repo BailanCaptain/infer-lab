@@ -216,7 +216,7 @@ file: param-pcp-o-proj-sharding
 | `v0.30.0`（`c09d3e20`，默认 `True`） | SFA-PCP 与 DSA-PCP 在前置检查失败时打告警并**回退为未切分权重** | 后续安装 loader 仍在异常捕获之外，物理形状或 loader 不满足要求时仍可报错 |
 | `main`（`8d6180e2`，默认 `True`） | SFA-PCP（`sfa_v1.py`）与 DSA-PCP（`dsa_cp.py`）统一收拢至 `ParallelOProjection.prepare_weight_load()`，捕获 `(RuntimeError, ValueError)` 告警回退；DeepSeek V4.1 DSA（`dsa_v41.py`）在无元数据预热及输出投影中同样复用底层 `projector` 的该开关状态 | 「默认 `True`」不保证每种量化方法最终都启用分片 |
 
-- **Runner、旧 DSA-CP 与混合架构边界**：`v0.30.0` 与 `main` 均要求 V2 model runner 才允许 `PCP > 1`；`PCP = 1` 或走旧 `enable_dsa_cp` 路径时不触发本分片（旧 `full_o_proj` 演化见 [`layer_sharding`](layer-sharding.md)），`PCP+DCP` 叠加组合仍待独立实测。历史双机部署因 `PCP = 1` 及旧 KDA 预填充限制而不进入本路径的完整说明，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)（TP8 行切形状见 [TP 页](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。
+- **Runner、旧 DSA-CP 与混合架构边界**：`v0.30.0` 与 `main` 均要求 V2 model runner 才允许 `PCP > 1`；`PCP = 1` 或走旧 `enable_dsa_cp` 路径时不触发本分片（旧 `full_o_proj` 演化见 [`layer_sharding`](layer-sharding.md)），`PCP+DCP` 叠加组合仍待独立实测。历史双机部署因 `PCP = 1` 及旧 KDA 预填充限制而不进入本路径的完整说明，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)（TP8 行切形状见 [TP 页](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。
 
 ## 对照源码
 

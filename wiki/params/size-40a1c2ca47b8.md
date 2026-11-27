@@ -176,7 +176,7 @@ file: param-kvpp-size
 - **调大或调小 TP 会联动常驻层数与整层广播载荷**：在 `PCP = 1`、层数可整除且各层等大的例子里，从 TP8 降到 TP4 会让每卡常驻层数从 $L/8$ 增至 $L/4$，相同预算下的逻辑块数随之减少。增大 TP 虽能减少每卡常驻层数，但 KVPP 广播发送的是按已分配 `num_blocks` 构造的整层逻辑块缓冲；只有逻辑块数、层布局和执行路径不变时，单次广播字节才不会因 owner 增多而变化。一旦把省出的显存用于扩充 `num_blocks`，整层广播字节也会随之增大，且广播次数还取决于实际执行层是否需要历史。
 - **层数除不尽时，全局容量由拿得最多的卡决定**：`divmod` 让前 `remainder` 个 rank 多拿一层，各卡分别调用 `get_num_blocks` 按本卡物理字节计算块数，最终全局块数取各卡最小值——多拿一层的卡会拉低全组容量。层数恰好是 `size` 整数倍时没有这笔余数损失（每层规格如何映射成缓存页见[KV cache 规格](../concepts/kv-cache-spec.md#一层要存的状态怎样变成缓存池里的一页)）。
 - **`size == 1` 只跳过 KVPP 专属校验**：当 `TP = 1, PCP = 1` 时派生 `size = 1`，平台会跳过 `KVPPConfig.validate()` 的专属校验，但仍会检查 `enable_kvpp` 的布尔合法性及其他启动参数。逐条报错与运行组合见[会报什么错](../concepts/kvpp.md#会报什么错)，确认是否真实启用应核对派生 `size` 与 `kvpp` 通信组。
-- **混合注意力与历史双机边界**：`KVPPConfig.validate()` 要求模型为纯 MLA（`not model_config.use_mla or model_config.is_hybrid` 直接报错），因为逐 token 增长的注意力 KV 与定长递推状态无法共用同一套按层平分与整层广播协议（两类状态的差异见[线性注意力](../concepts/linear-attention.md)）。历史双机案例中旧镜像忽略键以及迁到新版后先撞整图模式、再撞混合 MLA 校验的次序，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
+- **混合注意力与历史双机边界**：`KVPPConfig.validate()` 要求模型为纯 MLA（`not model_config.use_mla or model_config.is_hybrid` 直接报错），因为逐 token 增长的注意力 KV 与定长递推状态无法共用同一套按层平分与整层广播协议（两类状态的差异见[线性注意力](../concepts/linear-attention.md)）。历史双机案例中旧镜像忽略键以及迁到新版后先撞整图模式、再撞混合 MLA 校验的次序，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)。
 
 ## 对照源码
 

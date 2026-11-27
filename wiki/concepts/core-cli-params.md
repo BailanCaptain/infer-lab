@@ -5,8 +5,10 @@ type: concept
 origin: direct
 legacyAnchors:
   为什么昇腾在线服务默认批预算是-2048拆解-6-分支求值与-sppcp-静默取整: 默认批预算怎样从 2048 或 256 起步？拆解 6 分支求值与 SP+PCP 静默取整
+  1-参数解析早退notimplementederror-如何把-device_memory-置零: 1-参数解析早退三档硬件表与-device_memory-归零
+  2-未手传参数时的-6-条顺序分支: 2-6-条顺序分支与-max_num_seqs-的独立缺省求值
 summary: >-
-  打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上常规在线分支从 2048 起算、批式 DP MoE 从 256 起算的 6 分支决策树、未设并发上限的独立求值与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。
+  打通 vllm serve 四大核心旋钮与单卡显存水位联动，拆解 v0.30.0 常规在线按硬件三档（<70 GiB 或未初始化置 0 从 2048、已初始化 >=70 GiB 非 A100 从 8192、>=160 GiB 从 16384 起算）与批式 DP MoE 从 256 起算的 6 分支决策树、SP+PCP 取整及图编译与 P/D 互斥红线。
 aliases:
   - vllm serve 核心参数
   - 核心参数调优
@@ -118,8 +120,8 @@ $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\tex
 |---|---|---|---|
 | `--gpu-memory-utilization` | 源码 `CacheConfig` 默认 **`0.92`**（部分旧 FAQ 仍沿写历史值 `0.9`，生产食谱也常手传 `0.9` 多留余量） | 按整卡 OS 可见总显存 $M_{\text{total}}$ 划定实例预算上限 $M_{\text{total}} \times u$（不自动感知同卡其他进程；例如 `Ascend 910B3` 标称 64 GiB、OS 可见 `60.96 GiB`，详见 [Ascend 910B3 真机实测基线](../sources/ascend-910b3-measured-baseline.md)） | 调大可多切 KV 块；但 **ACL Graph / `npugraph_ex` 录图发生在切完 KV 之后**，录图显存与运行期波动只能吃剩余 $1 - u$ 的预算外余量，拉太满会在录图阶段直接 OOM（真机实测 `Qwen3-0.6B` 在 `u=0.90` 录 `FULL` 图即触 OOM，降至 `u=0.82` 成功） |
 | `--max-model-len` | 默认取模型 `config.json` 推导上下文上限（如 `Qwen3-8B` / `Qwen3-30B-A3B` 为 `40960`；传 `-1` 按可用显存自动收敛） | 单条请求允许的「提示词 + 生成词」最大总长度；启动期在预留 1 个永久空块后，强制校验 $M_{\text{KV}}$ 至少装得下 1 条满长序列 | 不截短直接跑超长默认值时，若剩余 $M_{\text{KV}}$ 装不下 1 条 `max_model_len` 序列，引擎在接请求前即报错退出；超模型训练上限且未设 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 则抛 `ValueError` |
-| `--max-num-seqs` | 容量查询置 `0` 时，在线 `vllm serve` 与离线 `LLM` 小档从 **`256`** 起算，无 `usage_context` 兜底从 **`128`** 起算（容量查询命中 `>=70 GiB` 非 A100 或 `>=160 GiB` 档时为 `1024`；按每个 **DP** 数据并行副本独立计数；API 进程总排队阀门另用 `--max-num-queued-reqs`） | 单步最多并发拼入多少条序列，同时决定采样张量上界与默认图捕获档位；即使手传了 `--max-num-batched-tokens`，未手传的 `--max-num-seqs` 仍独立求值 | 在 **chunked prefill**（分块预填充，把长提示词拆成多轮与解码混跑，见 [Chunked Prefill](chunked-prefill.md)）中，每条在跑 **decode**（逐词生成）请求每步先扣 `1` 个 token（开启投机解码草拟 $K$ 词则扣 $1 + K$ 个），高并发会压缩留给新请求 **prefill**（预填充）的剩余额度 |
-| `--max-num-batched-tokens` | 容量查询置 `0` 且走常规在线分支时从 **`2048`** 起算（离线 `LLM` 从 `8192` 起算，批式 DP MoE 从 **`256`** 起算），后续仍受吞吐模式、分块开关、媒体下限、容量上限与 `SP+PCP` 取整改写 | 单步所有请求合计调度的 token 总上限 $B_{\text{tokens}}$，并直接决定 `profile_run()` 假输入总 token 数 | 调大能让长提示词少切几刀、显著降低 TTFT 并提高矩阵乘算术强度；但会直接推高试跑激活与算子工作区峰值 $M_{\text{act}}(B_{\text{tokens}})$，等量扣减可用 KV 池 $M_{\text{KV}}$ |
+| `--max-num-seqs` | 容量查询置 `0` 或 `< 70 GiB`（如 64 GiB）及设备名含 `"a100"` 时，在线 `vllm serve` 与离线 `LLM` 小档从 **`256`** 起算，无 `usage_context` 兜底从 **`128`** 起算（已初始化且命中 `>= 70 GiB` 非 A100 或 `>= 160 GiB` 档时为 `1024`；按每个 **DP** 数据并行副本独立计数；API 进程总排队阀门另用 `--max-num-queued-reqs`） | 单步最多并发拼入多少条序列，同时决定采样张量上界与默认图捕获档位；即使手传了 `--max-num-batched-tokens`，未手传的 `--max-num-seqs` 仍独立求值 | 在 **chunked prefill**（分块预填充，把长提示词拆成多轮与解码混跑，见 [Chunked Prefill](chunked-prefill.md)）中，每条在跑 **decode**（逐词生成）请求每步先扣 `1` 个 token（开启投机解码草拟 $K$ 词则扣 $1 + K$ 个），高并发会压缩留给新请求 **prefill**（预填充）的剩余额度 |
+| `--max-num-batched-tokens` | 常规在线分支在容量查询置 `0` 或 `< 70 GiB`（含成功读到 64 GiB）及设备名含 `"a100"` 时从 **`2048`** 起算（已初始化 `>= 70 GiB` 非 A100 从 `8192`、`>= 160 GiB` 从 `16384` 起算；离线 `LLM` 小档从 `8192` 起算；批式 DP MoE 固定从 **`256`** 起算），后续仍受吞吐模式、分块开关、媒体下限、容量上限与 `SP+PCP` 取整改写 | 单步所有请求合计调度的 token 总上限 $B_{\text{tokens}}$，并直接决定 `profile_run()` 假输入总 token 数 | 调大能让长提示词少切几刀、显著降低 TTFT 并提高矩阵乘算术强度；但会直接推高试跑激活与算子工作区峰值 $M_{\text{act}}(B_{\text{tokens}})$，等量扣减可用 KV 池 $M_{\text{KV}}$ |
 
 看一组单卡标称 **64 GiB** 运行 `Qwen3-8B`（`BF16`）的容量联动示意（仅作算账关系示意；`910B3` 真机 OS 可见为 `60.96 GiB`、实测权重 `15.29 GiB`，上线请以日志 `Actual usage` 为准）：
 
@@ -129,7 +131,7 @@ $$M_{\text{KV}} = M_{\text{total}} \times u - \bigl(M_{\text{weights}} + M_{\tex
 
 ## 默认批预算怎样从 2048 或 256 起步？拆解 6 分支求值与 SP+PCP 静默取整
 
-熟悉大显存 GPU 的开发者看到 Atlas A2/A3 单卡 64 GiB、950DT 达 128 GiB 以上，常以为 `vllm serve` 会自动命中上游 `8192` 或 `16384` 大档；反过来，也不能把 `2048` 当成所有昇腾在线部署的最终默认值。在 `v0.30.0` 中，**只有设备容量查询失败且走常规在线分支（`use_batched_dp_moe == False`）时，批预算才从 `2048` 起算**；批式 DP MoE 从 **`256`** 起算，而吞吐模式、关闭分块预填充、多模态输入下限、模型容量封顶以及 `SP+PCP` 整除对齐都会继续改变最终生效值：
+熟悉大显存 GPU 的开发者看到 Atlas A2/A3 单卡 64 GiB、950DT 达 128 GiB 以上，常以为 `vllm serve` 会自动命中上游 `8192` 或 `16384` 大档；反过来，也不能把 `2048` 当成所有昇腾在线部署的最终默认值。在 `v0.30.0` 中，常规在线分支（`use_batched_dp_moe == False`）按上游三档表起步：**单卡 `< 70 GiB`（即使成功读到 64 GiB 仍落在此档）、设备名含 `"a100"` 或未初始化查询失败置 `0` 时从 `2048` 起算**；若 `torch.npu` 已提前初始化且读到 `128 GiB`（`>= 70 GiB` 且 `< 160 GiB`、设备名不含 `"a100"`）则从 **`8192`** 起算，`>= 160 GiB` 从 **`16384`** 起算；而批式 DP MoE 分支（`use_batched_dp_moe == True`）一律从 **`256`** 起算，后续吞吐模式、关闭分块预填充、多模态输入下限、模型容量封顶以及 `SP+PCP` 整除对齐还会继续改写最终生效值：
 
 ```wiki-diagram
 file: core-cli-batch-tokens-tree
@@ -139,20 +141,20 @@ file: core-cli-batch-tokens-tree
 
 上游 `EngineArgs.get_batch_defaults()` 先调用 `current_platform.get_device_total_memory()` 查询单卡总显存，按三档给定基线查表：
 - **`>= 160 GiB` 档**：在线（`OPENAI_API_SERVER`）与离线（`LLM_CLASS`）批预算均为 `16384`，请求数上限均为 `1024`。
-- **`>= 70 GiB` 且设备名不含 `"a100"` 档**：在线批预算 `8192`、离线 `16384`，请求数上限均为 `1024`。
-- **小档或查询失败兜底（`device_memory = 0`）**：在线批预算 `2048`、离线 `8192`，在线与离线请求数上限均为 **`256`**；若调用入口未传入 `usage_context`，则回退 `SchedulerConfig` 兜底常量（批预算 `2048`、请求数 **`128`**）。
+- **`>= 70 GiB` 且 `< 160 GiB`、设备名不含 `"a100"` 档**：在线批预算 `8192`、离线 `16384`，请求数上限均为 `1024`。
+- **`< 70 GiB` 小档（含成功读到 `64 GiB`）、设备名含 `"a100"` 或查询失败兜底（`device_memory = 0`）**：在线批预算 `2048`、离线 `8192`，在线与离线请求数上限均为 **`256`**；若调用入口未传入 `usage_context`，则回退 `SchedulerConfig` 兜底常量（批预算 `2048`、请求数 **`128`**）。
 
 在昇腾标准 CLI 启动中，**命令行参数解析早于 Worker 派生与 `torch_npu` 运行时初始化**（底层运行时初始化与环境变量消费顺序见 [昇腾运行时与调优](ascend-runtime-and-tuning.md)）。过早读取显存会提前触发 `torch_npu` 单次初始化并干扰子进程派生，因此 `v0.30.0` 的 `NPUPlatform.get_device_total_memory()` 在 `not hasattr(torch, "npu") or not torch.npu.is_initialized()` 时直接抛出 `NotImplementedError`，使 `arg_utils.py` 捕获异常后把 `device_memory` 置为 `0`。
 
-> **边界提示（自定义 Python 启动脚本）**：若外层脚本在构造 `EngineArgs` 前已初始化 `torch.npu`，`get_device_total_memory()` 会返回真实字节数并按上表三档查表；实际命中值请开启 `VLLM_LOGGING_LEVEL=DEBUG` 核对 `Defaulting max_num_batched_tokens to ...` 日志。
+> **边界提示（自定义 Python 启动脚本）**：若外层脚本在构造 `EngineArgs` 前已初始化 `torch.npu`，`get_device_total_memory()` 会返回真实字节数并按上表三档查表——此时 `64 GiB` 卡因 `< 70 GiB` 仍从 `2048` 起算，而 `128 GiB` 卡（设备名不含 `"a100"`）会命中 `8192` 档；实际命中值请开启 `VLLM_LOGGING_LEVEL=DEBUG` 核对 `Defaulting max_num_batched_tokens to ...` 日志。
 
 ### 2. 6 条顺序分支与 `max_num_seqs` 的独立缺省求值
 
-进入 `_set_default_max_num_seqs_and_batched_tokens_args()` 后，代码用 `orig_max_num_batched_tokens` 与 `orig_max_num_seqs` **分别记录两个参数是否未显式设置，二者独立求值**。即使你手传了 `--max-num-batched-tokens`（跳过下方批预算 6 分支），只要没传 `--max-num-seqs`，`max_num_seqs` 仍会独立按查表基线（在线/离线小档 `256`、无上下文兜底 `128`）、`throughput` 翻倍，以及末尾 `min(max_num_seqs, max_num_batched_tokens)` 封顶求值：
+进入 `_set_default_max_num_seqs_and_batched_tokens_args()` 后，代码用 `orig_max_num_batched_tokens` 与 `orig_max_num_seqs` **分别记录两个参数是否未显式设置，二者独立求值**。即使你手传了 `--max-num-batched-tokens`（跳过下方批预算 6 分支），只要没传 `--max-num-seqs`，`max_num_seqs` 仍会独立按查表基线（小档/置 `0` 为 `256`、`>= 70 GiB` 非 A100 及 `>= 160 GiB` 为 `1024`、无上下文兜底 `128`）、`throughput` 翻倍，以及末尾 `min(max_num_seqs, max_num_batched_tokens)` 封顶求值：
 
 | 执行顺序 | 触发条件 | 对未设 `max_num_batched_tokens`（及未设 `max_num_seqs`）的改写 | 典型结果示例 |
 |---|---|---|---|
-| **分支 1：常规入口查表** | `use_batched_dp_moe == False` | 在线 `vllm serve` 起算 **`2048`**，离线 `LLM(...)` 起算 **`8192`**，无上下文兜底 `2048`；未设 `max_num_seqs` 独立取在线/离线 **`256`** 或无上下文兜底 **`128`** | 常规在线服务从 `2048` 起步（并发 `256`） |
+| **分支 1：常规入口按三档表取值** | `use_batched_dp_moe == False` | 按 `get_batch_defaults()` 查表：`< 70 GiB`（含 64 GiB）/ `"a100"` / 未初始化置 `0` 时在线 `vllm serve` 起算 **`2048`**、离线 `LLM(...)` 起算 **`8192`**（并发 **`256`**）；已初始化 `>= 70 GiB` 且 `< 160 GiB` 非 A100（如 128 GiB）时在线 **`8192`**、离线 **`16384`**（并发 **`1024`**）；已初始化 `>= 160 GiB` 时在线/离线均 **`16384`**（并发 **`1024`**）；无 `usage_context` 兜底为 `2048`（并发 **`128`**） | 标准 CLI 未初始化或已初始化 64 GiB 在线起算 `2048`（并发 `256`）；已初始化 128 GiB 在线起算 `8192` |
 | **分支 2：Batched DP MoE 起点** | `parallel_config.use_batched_dp_moe == True`（多 DP 批量同步 MoE 路径） | 跳过分支 1 批预算查表，改从 `DEFAULT_MAX_NUM_BATCHED_TOKENS_FOR_BATCHED_DP = 256` 起算（未设 `max_num_seqs` 仍先取查表值） | 批预算起点压低为 `256` |
 | **分支 3：吞吐模式翻倍** | `--performance-mode throughput` | 对各自未手传的项分别乘 `2`：未设 `max_num_batched_tokens` 时 `*= 2`，未设 `max_num_seqs` 时独立 `*= 2` | 常规在线变为 `4096`（并发 `512`）；批式 DP MoE 变为 `512` |
 | **分支 4：关闭分块预填充抬下限** | `--no-enable-chunked-prefill`（`enable_chunked_prefill == False`） | 整条提示词须单步算完，未设批预算时取 $\max(\text{max\_model\_len},\ \text{当前值})$ | 若 `max_model_len = 8192`，由 `2048` 抬升至 `8192` |
@@ -226,7 +228,7 @@ summary: 对照 v0.30.0 源码规则核验单实例或 P/D 双实例启动参数
 file: core-cli-myths-vs-truth
 ```
 
-- **「64 GiB / 128 GiB 的昇腾卡跟 H100 一样，或者反过来所有昇腾在线服务最终默认都固定是 `2048`」**：两头都错。标准 CLI 解析早于 `torch_npu` 初始化，`get_device_total_memory()` 抛 `NotImplementedError` 使 `device_memory` 置 `0`，不会自动命中 `8192` / `16384` 大容量档；但也只有常规在线分支从 `2048` 起算（批式 DP MoE 从 `256` 起算），后续吞吐模式翻倍、关闭分块预填充、多模态下限、容量上限与 `SP+PCP` 取整仍会改写结果，且显式传入批预算后未设的 `--max-num-seqs` 仍独立求值。
+- **「64 GiB / 128 GiB 的昇腾卡跟 H100 一样默认 8192，或者反过来所有昇腾在线服务最终默认都固定是 `2048`」**：两头都错。首先，`64 GiB` 卡即使成功读出容量也因 `< 70 GiB` 落在 `2048` 小档；`128 GiB` 卡（非 `a100`）在标准 CLI 下则因参数解析早于 `torch_npu` 初始化、`get_device_total_memory()` 抛 `NotImplementedError` 使 `device_memory` 置 `0` 而同样落回 `2048`（若外层 Python 已提前初始化 `torch.npu` 则会从 `8192` 起算，`>= 160 GiB` 从 `16384` 起算）。其次，批式 DP MoE 固定从 `256` 起算，后续吞吐模式翻倍、关闭分块预填充、多模态下限、容量上限与 `SP+PCP` 取整仍会改写结果，且显式传入批预算后未设的 `--max-num-seqs` 仍独立求值。
 - **「`--gpu-memory-utilization` 默认是 `0.9`，而且只要不超过它录图就不会 OOM」**：两半都错。首先，`v0.30.0` 源码 `CacheConfig` 默认值是 **`0.92`**（`0.9` 是旧 FAQ 历史写法或食谱保守手传值）。其次，ACL Graph 录图发生在切完 KV 块之后，吃的是剩余 $1 - u$ 的预算外显存，盲目拉到 `0.96+` 极易在录图阶段爆显存。
 - **「开了 `PIECEWISE` 再把 `enable_static_kernel` 和 `enable_super_kernel` 都设成 `true` 能叠加提速」**：错。`_setup_compile_backend` 在 `NONE`、`PIECEWISE` 和 `FULL_AND_PIECEWISE` 下会把三项融合开关全部静默置为 `False`。只有 `FULL_DECODE_ONLY` 和 `FULL` 才保留三级图融合，在 A2/A3/950 上漏开 `static_kernel` 单开 `super_kernel` 会直接抛 `AssertionError`。
 - **「脚本里的 `HCCL_BUFFSIZE_EP` 等环境变量在 `vllm_ascend/envs.py` 搜不到，说明是写错的废参数」**：错。仓内 Python/C++ 代码只显式读取 `HCCL_SO_PATH`、`HCCL_BUFFSIZE`、`ASCEND_HOME_PATH`、`ASCEND_RT_VISIBLE_DEVICES` 等十余个变量。其余四十余个文档出现的 `HCCL_*` / `ASCEND_*` 变量可能由底层 `libhccl.so` 或 CANN 运行时直接读取，在没有对应版本 CANN 手册证伪前应归为待核 `unknown`，不能武断当成拼写错误删除。

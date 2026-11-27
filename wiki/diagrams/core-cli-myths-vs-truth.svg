@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 558" width="900" height="558" role="img" aria-label="vllm serve 参数求值三阶段与 64 GiB 显存预算出口及四大调参源码真相" font-family="var(--font-sans)">
   <title>vllm serve 参数三阶段求值与 64 GiB 预算出口（0.92 vs 0.90）及 v0.30.0 源码真相</title>
-  <desc>上半区展示参数默认值、用户显式值与昇腾平台覆写三阶段，并用 64 GiB 比例尺对比默认 0.92（58.88 GiB）与显式 0.90（57.60 GiB）的预算出口与录图余量；下半区汇总批预算回落 2048、PIECEWISE 清空图融合与 HCCL 变量 unknown 判据。</desc>
+  <desc>上半区展示参数默认值、用户显式值与昇腾平台覆写三阶段，并用 64 GiB 比例尺对比默认 0.92（58.88 GiB）与显式 0.90（57.60 GiB）的预算出口与录图余量；下半区汇总默认批预算分档（常规在线 &lt;70 GiB 或未初始化 2048、已初始化 128 GiB 非 A100 8192、批式 DP MoE 256）、PIECEWISE 清空图融合与 HCCL 变量 unknown 判据。</desc>
   <defs>
     <marker id="cc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#4c65b6"/>
@@ -16,7 +16,7 @@
   <rect x="26" y="54" width="264" height="82" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
   <text x="158" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">① 参数默认值（代码定义）</text>
   <text x="158" y="97" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">gpu_memory_utilization = 0.92</text>
-  <text x="158" y="118" text-anchor="middle" font-size="12" fill="#4d5652">未初始化显存归 0 → 在线批预算 2048</text>
+  <text x="158" y="118" text-anchor="middle" font-size="12" fill="#4d5652">常规在线 2048 ｜ 批式 DP MoE 256</text>
 
   <line x1="292" y1="95" x2="314" y2="95" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#cc-arr)"/>
 
@@ -52,15 +52,16 @@
 
   <!-- Col A -->
   <rect x="14" y="308" width="282" height="236" rx="9" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
-  <text x="28" y="333" font-size="14" font-weight="700" fill="#936300">A. 昇腾 serve 默认批预算 2048</text>
-  <text x="28" y="358" font-size="12.5" fill="#8f3229">✗ 误区：以为 64/128 GiB 昇腾卡</text>
-  <text x="28" y="378" font-size="12" fill="#8f3229">跑 serve 默认批预算也是 8192</text>
-  <text x="28" y="404" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：vllm serve 全系回落 2048</text>
-  <text x="28" y="425" font-size="12.5" font-weight="700" fill="#065f56">（离线 LLM 类默认才是 8192）</text>
-  <text x="28" y="450" font-size="12" fill="#4d5652">解析期 torch_npu 尚未初始化，</text>
-  <text x="28" y="471" font-family="var(--font-mono)" font-size="12" fill="#4d5652">get_device_total_memory 抛</text>
-  <text x="28" y="492" font-family="var(--font-mono)" font-size="12" fill="#4d5652">NotImplementedError 置 0；</text>
-  <text x="28" y="515" font-size="12" fill="#936300">高吞吐压测务必显式调大批预算</text>
+  <text x="28" y="332" font-size="14" font-weight="700" fill="#936300">A. 默认批预算起点分档（非全系 2048）</text>
+  <text x="28" y="355" font-size="12.5" fill="#8f3229">✗ 误区：以为 64 GiB 也能中 8192，</text>
+  <text x="28" y="375" font-size="12" fill="#8f3229">或以为 serve 全场景一律固定 2048</text>
+  <text x="28" y="399" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：常规 &lt;70G 或置 0 起算 2048</text>
+  <text x="28" y="420" font-size="12" font-weight="700" fill="#065f56">批式 DP MoE 起算 256（离线小档 8192）</text>
+  <text x="28" y="442" font-size="12" fill="#4d5652">CLI 解析早于初始化，128 GiB 卡因</text>
+  <text x="28" y="462" font-family="var(--font-mono)" font-size="12" fill="#4d5652">get_device_total_memory 抛</text>
+  <text x="28" y="482" font-family="var(--font-mono)" font-size="12" fill="#4d5652">NotImplementedError 置 0；</text>
+  <text x="28" y="504" font-size="12" fill="#4d5652">已初始化：64G 仍 2048，128G 升 8192</text>
+  <text x="28" y="525" font-size="12" fill="#936300">（&gt;=160G 为 16384，吞吐模式等再改写）</text>
 
   <!-- Col B -->
   <rect x="309" y="308" width="282" height="236" rx="9" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.3"/>

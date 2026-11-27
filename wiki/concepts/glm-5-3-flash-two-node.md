@@ -88,6 +88,7 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L110'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1629-L1680'
   - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L380'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L1265-L1271'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -497,7 +498,7 @@ export HCCL_OP_EXPANSION_MODE=AIV
 **网卡、端口、超时与解析器四组运行边界**：
 
 - **网卡与端口变量各管各的**：`GLOO_SOCKET_IFNAME` 精确匹配 CPU Gloo 网卡（多接口轮转），`HCCL_SOCKET_IFNAME` 供 HCCL 初始化匹配 Host 网卡（支持 `=eth0` 精确名与 `^` 排除），`HCCL_IF_IP` 直接指定本机初始化 Host IP 并优先于 `HCCL_SOCKET_IFNAME`；教程残留的 `TP_SOCKET_IFNAME` 属于 PyTorch TensorPipe RPC，当前 `mp`/Gloo/HCCL 路径不消费。`VLLM_HOST_IP`（本机内部通信 IP）与 `VLLM_PORT`（十进制动态端口起点）既不是 HTTP `--host`/`--port` 也不是 `--data-parallel-rpc-port`（在 Kubernetes 中若先建名为 `vllm` 的 Service，容器被注入 `VLLM_PORT=tcp://...` 会在整数解析阶段直接报错）。`HCCL_OP_EXPANSION_MODE=AIV` 将 A2 通信算子展开放到 Vector Core（受对称组网、单 AIV 域与图模式边界约束，且确定性模式或通信域配置可覆盖它）。
-- **三层超时与失效残留变量**：`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` 管单次 `execute_model` / `sample_tokens` Worker RPC 截止时间（上游默认 `300` 秒，Ascend 平台将 `< 1836` 改写为 `3000` 秒，不把多步 decode 合并计时 [C62]）；`HCCL_CONNECT_TIMEOUT=1200` 在 CANN 9.1.X 下另加 `20` 秒失败通知（文档建链等待 `1220` 秒）；`HCCL_EXEC_TIMEOUT=3600` 在 A2 `HOST`/`HOST_TS` 下默认 `1836` 秒（`0` 不限时），但在 `AIV` 模式下上限与超限回退值均为 **`1091` 秒**（硬件再量化），因此 `3600` + `AIV` 不能视作实际 `3600` 秒等待。教程里同时导出的 `VLLM_RPC_TIMEOUT=3600000` 在固定 vLLM / Ascend 包中无定义与消费者，仅触发未知 `VLLM_` 环境变量告警。
+- **三层超时与失效残留变量**：`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` 管单次 `execute_model` / `sample_tokens` Worker RPC 截止时间（上游默认 `300` 秒、不把多步 decode 合并计时 [C62]，Ascend 平台在启动配置校验时将 `< 1836` 改写为 `3000` 秒 [C63]）；`HCCL_CONNECT_TIMEOUT=1200` 在 CANN 9.1.X 下另加 `20` 秒失败通知（文档建链等待 `1220` 秒）；`HCCL_EXEC_TIMEOUT=3600` 在 A2 `HOST`/`HOST_TS` 下默认 `1836` 秒（`0` 不限时），但在 `AIV` 模式下上限与超限回退值均为 **`1091` 秒**（硬件再量化），因此 `3600` + `AIV` 不能视作实际 `3600` 秒等待。教程里同时导出的 `VLLM_RPC_TIMEOUT=3600000` 在固定 vLLM / Ascend 包中无定义与消费者，仅触发未知 `VLLM_` 环境变量告警。
 - **工具调用与推理解析器**：主线命令未配解析器，因此在普通 HF 分词路径下传 `tool_choice="auto"`、`required` 或指定函数名都会在入口被拒（详见[API 入口](api-server-entry.md)）；教程 FAQ 推荐搭配 `--tool-call-parser glm47`（用 `auto` 还须加 `--enable-auto-tool-choice`）与 `--reasoning-parser glm45`，并注明该模型不支持 `enable_thinking=false`（`tool_choice="none"` 默认仍把 `tools` 交给模板，除非开启 `exclude_tools_when_tool_choice_none`）。
 
 `--quantization ascend` 由 vllm-ascend 在参数解析阶段补入。它读模型目录下的 `quant_model_description.json`，逐层判断精度；前缀标成 `FLOAT` 的层换成不量化的实现。各层加载后的精度与文件精度对照见[模型页](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。索引器的 K 投影 `wk_weights_proj` 和压池打分投影 `index_kpool_compress_gate` 在首次前向各转一份 FP32 常驻副本；其余索引器投影为 `wq_b`，池内位置偏置为 `index_kpool_compress_ape`（每层 4 × 128 个数）。

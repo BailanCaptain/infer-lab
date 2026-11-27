@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 584" width="900" height="584" role="img" aria-label="四卡推理排障时间轴与五项证据门禁图" font-family="var(--font-sans)">
 <title>推理排障四卡时间轴（12 ms 首错 vs 40 ms EI0006）与 v0.30.0 五项证据分诊</title>
-<desc>展示 Rank 3 在 12 ms 首发设备算子错误、Rank 0/1/2 在 40 ms 报 EI0006 通信超时的四卡时间轴，并对照 VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS、abort_requests_async、exitcode=137 vs init_snapshot/requested_memory 及 model_config 生效核验。</desc>
+<desc>展示 Rank 3 在 12 ms 首发设备算子错误、Rank 0/1/2 在 40 ms 报 EI0006 通信超时的四卡时间轴，并对照 VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS、abort_requests_async、finished_procs exitcode=-9（shell 137）SIGKILL 分诊（核对 cgroup memory.events / dmesg）vs init_snapshot/requested_memory 及 model_config 生效核验。</desc>
 <defs>
   <marker id="ts-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#b54237"/>
@@ -81,18 +81,19 @@
 <text x="626" y="236" font-size="12" font-weight="700" fill="#32478c">TIMEOUT_SECONDS</text>
 <text x="626" y="259" font-size="12" fill="#4d5652">及 abort_requests_async 清理</text>
 
-<!-- ② Exitcode 137 vs NPU HBM OOM -->
+<!-- ② Exitcode -9 (shell 137) vs NPU HBM OOM -->
 <rect x="14" y="310" width="428" height="260" rx="10" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
-<text x="28" y="334" font-size="14" font-weight="700" fill="#8f3229">② 进程崩溃分诊：exitcode=137 ≠ NPU 显存 OOM</text>
-<rect x="28" y="348" width="400" height="96" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
-<text x="40" y="371" font-size="12.5" font-weight="700" fill="#b54237">分支 A：finished_procs 报 exitcode = 137 (SIGKILL)</text>
-<text x="40" y="395" font-size="12" fill="#17211f">宿主机 DRAM 或容器 cgroup 内存超限触发内核强杀</text>
-<text x="40" y="419" font-size="12" font-weight="700" fill="#8f3229">首查 dmesg / OOMKilled（盲砍 KV 显存比例无效）</text>
+<text x="28" y="334" font-size="14" font-weight="700" fill="#8f3229">② 进程强退分诊：SIGKILL (-9 / 137) ≠ NPU OOM</text>
+<rect x="28" y="346" width="400" height="108" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+<text x="40" y="367" font-size="12.5" font-weight="700" fill="#b54237">分支 A：finished_procs 记 exitcode = -9（shell 折 137）</text>
+<text x="40" y="389" font-size="12" fill="#17211f">POSIX 子进程收 SIGKILL：外部 kill / 探针驱逐或主机 OOM</text>
+<text x="40" y="411" font-size="12" fill="#17211f">须查 cgroup memory.events (oom_kill) / OOMKilled 与 dmesg</text>
+<text x="40" y="433" font-size="12" font-weight="700" fill="#8f3229">切勿把 -9 直接等同于 OOM，更勿盲砍 NPU KV 显存比例</text>
 
-<rect x="28" y="456" width="400" height="100" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
-<text x="40" y="479" font-size="12.5" font-weight="700" fill="#32478c">分支 B：NPU HBM 设备显存不足</text>
-<text x="40" y="503" font-size="12" fill="#17211f">显式抛 Python RuntimeError 或启动预算拦截：</text>
-<text x="40" y="527" font-size="12" font-weight="700" fill="#065f56">对比 init_snapshot 空闲值与 requested_memory 账单</text>
+<rect x="28" y="464" width="400" height="94" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="40" y="486" font-size="12.5" font-weight="700" fill="#32478c">分支 B：NPU HBM 设备显存不足</text>
+<text x="40" y="509" font-size="12" fill="#17211f">显式抛 Python RuntimeError / ValueError 或启动预算拦截：</text>
+<text x="40" y="532" font-size="12" font-weight="700" fill="#065f56">对比 init_snapshot 空闲值与 requested_memory 账单</text>
 
 <!-- ③ Three Evidence Guardrails -->
 <rect x="458" y="310" width="428" height="260" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>

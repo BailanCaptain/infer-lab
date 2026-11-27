@@ -200,7 +200,7 @@ file: param-pcp-embed-lmhead-sharding
 
 - **细粒度 TP 与采样互斥规则**：为同一模块配置 `finegrained_tp_config.embedding_tensor_parallel_size` 或 `finegrained_tp_config.lmhead_tensor_parallel_size` 时，必须把本键设为 `false`。注意两版的关闭默认值不同：`v0.30.0` 中细粒度 TP 字段默认 `0` 表示关闭（`> 0` 即启用），而 `main` 默认 `1` 表示关闭（`> 1` 才启用，同时兼容旧配置写 `0`）；启用细粒度 TP 还要求模型为 MoE 且 `data_parallel_size` 能被该模块 TP 大小整除。此外，`main` 在 `PCP > 1` 时将本键与批次切分采样 `enable_batch_sharded_sampling` 设为互斥，升级对照或启用上述任一特性时均需显式传 `false`（关闭本键不跳过其他配置校验）。
 - **静态 token 交换缓冲容量限制**：`embed_tokens` 侧的 PCP token 交换使用预分配的静态缓冲区。即使权重显存充足，只要单步输入 token 数超出该缓冲上限，运行期仍会直接报错并提示核对图捕获上限与单步批 token 预算。
-- **拓扑与混合架构边界**：当 `PCP = 1` 时本键不进入 `TP × PCP` 分片路径，词表仍保持纯 TP 切分。历史双机案例中的 `PCP = 1` 限制、KDA 预填充拦截与每卡 `151.25 MiB` 词表切片口径，统一汇总在[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)与[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
+- **拓扑与混合架构边界**：当 `PCP = 1` 时本键不进入 `TP × PCP` 分片路径，词表仍保持纯 TP 切分。历史双机案例中的 `PCP = 1` 限制、KDA 预填充拦截与每卡 `151.25 MiB` 词表切片口径，统一汇总在[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)与[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 ## 对照源码
 

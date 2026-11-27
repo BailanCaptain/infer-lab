@@ -160,7 +160,7 @@ file: platform-surface-qwen3
 上游在汇总配置构造末尾调用 `check_and_update_config`，此时传入的是「用户输入 + 上游默认值」合起来的完整配置。在 `v0.30.0` 正式版（`c09d3e20`）中，内部按十步固定顺序推进：
 
 1. **配置日志与两道早退。** 先初始化昇腾日志；随后若设备类型不是 `npu` 则直接返回，缺少 `model_config` 则打警告后返回，避免在非昇腾设备上误改配置。
-2. **先跑七项前置校验，任一失败当场中止。** 依次检查 Model Runner 配置、Indexer PP、路由回放、PCP/DCP、草稿模型 DCP（同时开启[投机解码](speculative-decoding.md)、decode 侧[上下文并行](context-parallel.md) `DCP > 1` 且草稿模型非 MLA 时，核查三条头数约束：草稿张量并行数大于 KV 头数、$\text{DCP} \le \text{草稿 TP} \div \text{KV 头数}$、每 KV 头对应的 Q 头数能被 DCP 整除；MLA 草稿直接放行）、并行组合（拦截 `DP > 1` 且 `PCP > 1`，以及不在 [PD 分离](pd-disaggregation.md) producer 侧却同开 `PP > 1 + MTP`）与 Engram 配置。
+2. **先跑七项前置校验，任一失败当场中止。** 依次检查 Model Runner 配置、Indexer PP、路由回放、PCP/DCP、草稿模型 DCP（同时开启[投机解码](speculative-decoding.md)、decode 侧[上下文并行](context-parallel.md) `DCP > 1` 且草稿模型非 MLA 时，核查三条头数约束：草稿张量并行数大于 KV 头数、$\text{DCP} \le \text{草稿 TP} \div \text{KV 头数}$、每 KV 头对应的 Q 头数能被 DCP 整除；MLA 草稿直接放行）、并行组合（拦截未开启 [Model Runner V2](model-runner-v2.md) 时的 `PCP > 1`——即使 `DP = 1, PCP = 2` 在 MRv1 下也会直接报错，而开启 MRv2 后 `DP = 4, PCP = 2` 等 `DP > 1` 与 `PCP > 1` 组合可合法通过；并继续校验 `KVPP > 1` 与 SFA 副本索引器下的 `DCP` 倍数约束）与 Engram 配置。
 3. **识别量化并校验缓存精度。** 前置校验通过后才调用 `maybe_auto_detect_quantization` 自动识别量化方法，接着校验 TurboQuant；若缓存或 indexer KV 精度设为 `fp8`，还会断言当前 `HardwareProfile` 支持 `FP8_ATTENTION`。
 4. **修不兼容组合、初始化昇腾配置并核对 PD 角色。** 平台先调 `_fix_incompatible_config` 把已知冲突项改回可运行状态（如模型配置带 `indexer` 的 `top-k` 字段时，将缓存精度改写为模型自身 dtype），再构造[昇腾配置对象](ascend-config-system.md)并检查 DeepSeek V4 TP 与以下 PD 角色约束：
 
@@ -173,7 +173,7 @@ file: platform-surface-qwen3
 5. **定编译与图模式、重算捕获尺寸。** 按 Xlite 配置、纯 eager 要求与请求的图档位定编译和录图方案（见[图模式层](graph-mode-layer.md)）。若上游已要求纯 eager，图此前已关闭；其余四种情况会在本段把图整段关掉：开了 Xlite 全图却未开投机解码（同时改纯 eager）、编译档位不在昇腾支持的两种范围内、请求的图档位既非分段图也不含整图、或编码器-解码器模型请求整图却未走 vLLM 编译。此路径固定关闭 PyTorch Inductor，但图模式由独立字段控制——图模式关闭时才同步关编译与 `npugraph_ex`，分段图则必须走 vLLM 编译，因此**不能凭 Inductor 关闭就断定图模式也被关闭**。
 6. **选 Worker、定块长、核一致性并配分配器环境。** `worker_cls` 为 `"auto"` 时，常规分支读取 `HardwareProfile.default_worker_cls`（标准 A2/A3/A5 取 `NPUWorker`，310P 取 `NPUWorker310`；开启且硬件支持 Xlite 时走 `XliteWorker`）。接着由 `refresh_block_size` 定块长：空值填 `128`（上游 `CacheConfig` 已先填 `16`，此处兜底）；已设值非 `128` 且开启前缀缓存或 chunked prefill 时强制改回 `128`；混合模型跳过后一条及 Xlite 下「不超过 128」限制，保留补丁更早写入的 `640`（五种块大小消歧见[缓存规格](kv-cache-spec.md)）。最后执行 SFA/DCP/KV/SP 一致性校验与 NPU 分配器环境设置。
 
-**历史旧镜像对照（`db701c1f` / `v0.23.0`）。** 下图记录历史双机镜像的旧执行顺序：两道早退后**先识别量化，再跑四个校验**（含 `v0.23.0` 专有的「层切分仅许 PD producer 节点」，以及投机+DCP、并行组合、PP+MTP），末尾对 `worker_cls == "auto"` 硬编码 `310P / Xlite / NPUWorker` 三选一并执行角色检查。查 `v0.30.0` 启动栈时应按上方正式版顺序定位拒绝点，勿套旧顺序：
+**历史旧镜像对照（`db701c1f` / `v0.23.0`）。** 下图记录历史双机镜像的旧执行顺序：两道早退后**先识别量化，再跑四个校验**（含 `v0.23.0` 专有的「层切分仅许 [PD 分离](pd-disaggregation.md) producer 节点」，以及投机+DCP、旧版并行组合拦截 `DP > 1` 且 `PCP > 1`、不在 PD producer 侧拦截同开 `PP > 1 + MTP`），末尾对 `worker_cls == "auto"` 硬编码 `310P / Xlite / NPUWorker` 三选一并执行角色检查。查 `v0.30.0` 启动栈时应按上方正式版顺序定位拒绝点，勿套旧顺序：
 
 ```wiki-diagram
 file: platform-check-order
@@ -240,7 +240,7 @@ file: platform-surface
 
 这份推导还要求模型不启用多模态 prefix-LM。固定公开 W8A8 配置的架构是 `Glm5NextForConditionalGeneration`，其中没有 `is_mm_prefix_lm`，GLM 也不在上游默认名单中，因此不触发该下限。若现场配置或覆盖项将其设为真，须重新计算媒体项下限；公开配置不能代替容器内最终配置与启动日志（完整链条只在本页推导，[平台契约页](vllm-platform-interface.md#主机内存设备显存和-token-预算怎样分账)引用同一结论）。
 
-**并行那条校验对本部署是硬约束。** 这里 DP 是 2，所以 prefill 侧上下文并行只能是 1；想开它就得先放弃 DP，而 DP2 是这套双机部署分派请求的方式。
+**并行那条校验在固定旧镜像上对本部署是硬约束。** 历史镜像（`db701c1f` / `v0.23.0`）拦截 `DP > 1` 且 `PCP > 1`；这里 DP 是 2，所以 prefill 侧上下文并行只能是 1，想开它就得先放弃 DP（`v0.30.0` 已改为仅在 MRv1 下拦截 `PCP > 1`，开启 MRv2 后允许 `DP > 1` 与 `PCP > 1` 同开）。
 
 读完可以沿三个结果继续往下走：Worker 类名进 [Worker 启动](npu-worker-lifecycle.md)，块大小与缓存精度进[状态池分配](vllm-kv-block-allocation.md)，后端类名进各层的注意力执行。组合通过校验只说明能进下一阶段，不等于模型已经跑起来。
 
@@ -275,8 +275,9 @@ file: platform-surface
 | 报错 | 触发条件 |
 |---|---|
 | `additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.` | 配了层切分而 `kv_role` 不是 `kv_producer`（只在 v0.23） |
-| `PCP (Prefill Context Parallelism) and DP (Data Parallelism) cannot be enabled simultaneously...` | `data_parallel_size > 1` 且 `prefill_context_parallel_size > 1` |
-| `PP+MTP is only supported on PD-disaggregated P nodes (kv_role='kv_producer').` | MTP + `pipeline_parallel_size > 1`，且不在 producer 一侧 |
+| `PCP (Prefill Context Parallelism) is not supported by vLLM Ascend. Please set --prefill-context-parallel-size to 1...` | `v0.26.0rc` / `v0.30.0` 未开启 V2 model runner（`use_v2_model_runner=False`）而 `prefill_context_parallel_size > 1`（即使 `DP = 1` 也会报错；MRv2 下允许 `DP > 1` 与 `PCP > 1` 同开） |
+| `PCP (Prefill Context Parallelism) and DP (Data Parallelism) cannot be enabled simultaneously...` | `data_parallel_size > 1` 且 `prefill_context_parallel_size > 1`（只在 `v0.23.0` / 旧镜像 `db701c1f`） |
+| `PP+MTP is only supported on PD-disaggregated P nodes (kv_role='kv_producer').` | MTP + `pipeline_parallel_size > 1`，且不在 producer 一侧（`v0.23.0` / 旧镜像 `db701c1f`） |
 | `enable_balance_scheduling only supports PD-mixed mode...` | 开了均衡调度、存在 KV 传输配置，且 `kv_role` 不是 `kv_both` |
 | `Hybrid models do not support recompute mode kv load failure policy now.` | `kv_load_failure_policy=recompute` 且模型是混合模型（断言） |
 | `recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes...` | 开了重算调度而角色不是 consumer；在 producer 上只警告并重置为关 |

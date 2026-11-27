@@ -170,7 +170,7 @@ file: layer-sharding
 - `v0.23` 曾并存两套角色判定：`layer_shard` 要求精确 `kv_producer`，`o_proj_tp` 要求无 KV 传输或精确 `kv_both`。自 `v0.26` 起，`full_o_proj` 的角色判定放宽为「无 KV 配置或具备 producer 角色（含 `kv_both`）」。
 - 新版受支持的权重切换统一由 `vllm_ascend/weight_switch/linear.py` 与 `o_proj.py` 承接（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 将 `TPWeightSwitchMixin` 扩展为多并行域通用的 `WeightSwitchMixin`）。其运行逻辑为前向异步 All-Gather 到完整权重池缓冲、计算前等待、算完切回本地分片（池缓冲常驻复用，不立即释放显存）；按 PCP 组切同层输出投影见 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。
 
-**角色、后端与连续层号边界**：旧版非空 `layer_sharding` 同时要求实例为 PD 分离 P 节点、注意力后端支持对应 CP 路径，且登记层号至少连续 3 层。历史双机部署在混部报错、旧专用后端拒绝 DSA-CP 以及 11 层稀疏 MLA 与 KDA 交错不满足连续登记这三项上的具体表现，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)（权重子账见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+**角色、后端与连续层号边界**：旧版非空 `layer_sharding` 同时要求实例为 PD 分离 P 节点、注意力后端支持对应 CP 路径，且登记层号至少连续 3 层。历史双机部署在混部报错、旧专用后端拒绝 DSA-CP 以及 11 层稀疏 MLA 与 KDA 交错不满足连续登记这三项上的具体表现，见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)（权重子账见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
 
 ## 对照源码
 

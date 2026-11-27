@@ -260,7 +260,7 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 
   以上为形状与步长演算，实际端到端耗时与显存变化仍须在相同模型、DCP 规模和批次下对比测量。
 - **PCP + DCP 组合需按实际汇聚分支核形状**：在 PCP + DCP 组合子类中，若 `DCP == PCP` 则直接使用本地 head-major 张量而不发起此次查询汇聚，否则沿对应 TP 组汇聚；恢复步骤虽仍经过本键，但元素数须按该分支实际得到的张量维度计算，不能盲套 `G = DCP`。
-- **`index_kpool` 稀疏模型的通用排除边界**：在 `v0.30.0` 与 `main` 中，`model_uses_sfa_sparse` 开头即排除带 `index_kpool` 压缩池的稀疏模型（其独立后端注册见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)），因此即便在这类模型上开启 `DCP > 1`，也不会进入本键所在的 `LightningIndexer` SFA-DCP 分支；历史双机部署的 `PCP = DCP = 1` 前提见[固定双机部署的参数后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
+- **`index_kpool` 稀疏模型的通用排除边界**：在 `v0.30.0` 与 `main` 中，`model_uses_sfa_sparse` 开头即排除带 `index_kpool` 压缩池的稀疏模型（其独立后端注册见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)），因此即便在这类模型上开启 `DCP > 1`，也不会进入本键所在的 `LightningIndexer` SFA-DCP 分支；历史双机部署的 `PCP = DCP = 1` 前提见[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)。
 
 ## 对照源码
 

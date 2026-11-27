@@ -204,7 +204,7 @@ file: param-stair-config-pipeline
 
 - **副本数搜索的预算展开上界与贪心次数**：副本数搜索只对前 `num_stages - 1` 组展开，每阶段保留至多 `beam_size` 个状态。在默认值（阶段 `4`、半径 `8`、束宽 `64`）下，三个展开阶段的输入状态数上界依次为 `1`、`17`、`64`（共至多 `82` 个输入状态）：每个输入状态先做 **1 次贪心分配**求出该组中心预算，再对合法区间内的至多 `2 × 8 + 1 = 17` 个预算逐一展开（每次展开做 **2 次贪心分配**）。因此 `17 + 289 + 1,088 = 1,394` 是**预算展开次数的配置上界**（越界预算会被合法区间裁掉）；搜完再从现状朝目标逐份挪动，送入至多 `64` 次带约束 LPT 摆放（详见 [replica_search_num_stages](replica-search-num-stages-e4b10925ff97.md)、[replica_search_radius](replica-search-radius-cd3118b5aae5.md)、[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md)）。
 - **Gloo 自动回退仅收紧未显式填写的搬运限额**：`v0.30.0` 与 `main` 中，`rank_transfer_limit` 与 `cross_node_transfer_limit` 的声明默认均为 `-1`（不封顶）。当用户**未显式填写 `eplb_config.communicator`** 时，Worker 启动期会检查全组 HIXL 可用性与绑定一致性；一旦回退到慢速 CPU `torch_gloo`，系统只会把**用户未显式配置**的限额从 `-1` 收紧为 `1`，用户手写的值（如 `0` 或 `-1`）原样保留。若显式指定了 `communicator`，则跳过整条自动回退收紧逻辑（见上图 B 区，细则见 [每卡限制](rank-transfer-limit-99529b37d91d.md) 与 [跨机限制](cross-node-transfer-limit-06ee92260b7a.md)）。
-- **零冗余槽位与跨版本迁移边界**：当 `num_redundant_experts = 0`（总物理槽位等于逻辑专家数）时，副本份数没有搜索余地，STAIR 只能在现有专家之间调换物理卡位；给定限额下的每卡与跨节点搬运次数上界分别见 [`rank_transfer_limit`](rank-transfer-limit-99529b37d91d.md) 与 [`cross_node_transfer_limit`](cross-node-transfer-limit-06ee92260b7a.md)，历史双机部署的版本演进与零冗余后果已集中归入[固定双机部署的参数后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
+- **零冗余槽位与跨版本迁移边界**：当 `num_redundant_experts = 0`（总物理槽位等于逻辑专家数）时，副本份数没有搜索余地，STAIR 只能在现有专家之间调换物理卡位；给定限额下的每卡与跨节点搬运次数上界分别见 [`rank_transfer_limit`](rank-transfer-limit-99529b37d91d.md) 与 [`cross_node_transfer_limit`](cross-node-transfer-limit-06ee92260b7a.md)，历史双机部署的版本演进与零冗余后果已集中归入[固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)。
 
 ## 对照源码
 

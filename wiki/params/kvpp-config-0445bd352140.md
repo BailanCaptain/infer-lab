@@ -200,7 +200,7 @@ vllm serve /models/DeepSeek-V3 --tensor-parallel-size 8 --enforce-eager \
 | `v0.30.0`（`c09d3e20`） | `DCP == 1`、eager 或 `PIECEWISE`、非混合 MLA | 扩展支持 `MultiConnector`（逐个展开非空 `connectors` 列表）；白名单 `("MooncakeConnectorV2", "AscendStoreConnector")`，`MooncakeConnectorV2` 拒 `kv_consumer`；`validate()` 内不再硬编码投机解码拦截 |
 | `main`（`8d6180e2`） | 同 `v0.30.0` | 连接器名单进一步纳入 `"MooncakePushConnector"`（同样拒绝 `kv_consumer`） |
 
-**混合注意力与历史双机边界**：KVPP 按层拆分的是随序列增长的 MLA 逐 token 历史缓存。混入 KDA 或 GDN 等定长递推状态层的混合模型（逐 token 历史与定长状态的区分见[线性注意力](../concepts/linear-attention.md)）在 `size > 1` 时会被「只支持非混合 MLA」校验直接拒绝，报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，共池限制见 [KVPP 混合注意力边界](../concepts/kvpp.md#混合注意力边界kda-与稀疏-mla-共池为何无法套用-kvpp整层广播有多大)。历史双机部署在旧镜像忽略两键及升级后依次触发整图、混合模型校验的记录，统一归入 [GLM 双机部署后果](../concepts/glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。
+**混合注意力与历史双机边界**：KVPP 按层拆分的是随序列增长的 MLA 逐 token 历史缓存。混入 KDA 或 GDN 等定长递推状态层的混合模型（逐 token 历史与定长状态的区分见[线性注意力](../concepts/linear-attention.md)）在 `size > 1` 时会被「只支持非混合 MLA」校验直接拒绝，报错原文见[会报什么错](../concepts/kvpp.md#会报什么错)，共池限制见 [KVPP 混合注意力边界](../concepts/kvpp.md#混合注意力边界kda-与稀疏-mla-共池为何无法套用-kvpp整层广播有多大)。历史双机部署在旧镜像忽略两键及升级后依次触发整图、混合模型校验的记录，统一归入 [固定双机的参数边界](../concepts/glm-5-3-flash-two-node.md#固定双机的参数边界)。
 
 ## 对照源码
 

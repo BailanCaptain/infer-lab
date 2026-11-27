@@ -10816,6 +10816,8 @@
         "vllm-ascend@2ed6cbba:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L68-L102",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L541-L572",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1154-L1173",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2583-L2603",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L16-L41",
         "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L32-L38",
         "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L284-L335",

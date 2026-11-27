@@ -62,6 +62,8 @@ sources:
   - 'vllm-ascend@2ed6cbba:docs/source/developer_guide/performance_and_debug/optimization_and_tuning.md#L68-L102'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L314-L330'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L541-L572'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1154-L1173'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2583-L2603'
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L16-L41'
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L32-L38'
   - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/npu.py#L284-L335'
@@ -123,7 +125,7 @@ $$N_{4\text{KiB}} = \frac{1\text{ GiB}}{4\text{ KiB}} = 262,144\text{ 页}, \qqu
 
 ### Mooncake / Ascend Store 的锁页内存注册三要素
 
-在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支：默认复用全局引擎 `global_te.register_buffer()` 时，底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`；启用独立引擎走 `store.register_buffer()` 时，返回非零仅打印错误日志而不抛异常；而开启 `ASCEND_ENABLE_USE_FABRIC_MEM`（仅限 Atlas 800I/T A3 统一内存寻址直传）且未开独立引擎时，此处跳过显式注册。代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置表要求显式配置 `global_segment_size` 并按 **`1 GiB` 对齐**；而 Worker 注册阶段会先合并共用底层 storage 的区间，混合缓存路径还会经 `_align_kv_ptrs` 将区间起点向下按 **`2 MiB` 对齐**并重算覆盖长度后再传入后端）。排查此类池化故障时，必须同时紧盯异常与错误日志，并把三件事分开核验：**池容量参数 `global_segment_size` 是否按 `1 GiB` 对齐、合并/对齐后的缓存区间锁页注册（`register_memory` + `memlock`）是否返回成功、以及外部池守护进程底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**。
+在 [Mooncake 连接器](mooncake-connector.md) 与 [Ascend Store 缓存池](kv-pool.md) 中，`MooncakeBackend.register_buffer()` 会按传输引擎配置走三条不同分支：默认复用全局引擎 `global_te.register_buffer()` 时，底层调用 `TransferEngine.register_memory(ptr, size)` 完成硬件可直读的锁页注册，返回非零会直接抛出 `RuntimeError: Mooncake memory registration failed.`；启用独立引擎走 `store.register_buffer()` 时，返回非零仅打印错误日志而不抛异常；而开启 `ASCEND_ENABLE_USE_FABRIC_MEM`（仅限 Atlas 800I/T A3 统一内存寻址直传）且未开独立引擎时，此处跳过显式注册。代码默认 `protocol="ascend"`、`global_segment_size = 1 GiB`、`local_buffer_size = 1 GiB`（环境变量 `MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先，部署配置表要求显式配置 `global_segment_size` 并按 **`1 GiB` 对齐**）。同时须区分两条 Worker 侧缓存注册路径对 **`2 MiB` 边界**的处理差异：**Ascend Store 缓存池**（`pool_worker.py`）先合并共用底层 storage 的区间，混合缓存下会经 `_align_kv_ptrs` 将区间起点向下按 `2 MiB` 对齐并重算覆盖长度后再送入后端；而**普通 Mooncake P/D 连接器**（`mooncake_connector.py`）在 `use_hybrid` 且无 Mamba 分组时，通过 `_get_registered_kv_tensor_buffers_hybrid` 严格校验张量起点，一旦未按 `2 MiB` 对齐会直接抛出 `RuntimeError("Tensor start addr ... is not aligned to 2 MiB.")` 而不会自动下取整。排查此类池化与 P/D 传输故障时，必须同时紧盯异常与错误日志，并把三件事分开核验：**池容量参数 `global_segment_size` 是否按 `1 GiB` 对齐、对应连接器或池路径的 `2 MiB` 地址边界与锁页注册（`register_memory` + `memlock`）是否通过、以及外部池守护进程底层支撑页究竟来自宿主机 HugeTLB 静态池还是普通页**。
 
 ### 为什么不能只看 `npu-smi info` 的 `Hugepages-Usage`？
 

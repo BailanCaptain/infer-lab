@@ -414,9 +414,13 @@ export function MooncakeConnectorInteractive({
           </fieldset>
         </>
       }
-      takeawayBadge={spec.badgeText}
+      takeawayBadge={step === 2 && tpMode === "asym-tp4-tp2" ? "动作 2 / 4 · 12 段半块直传" : spec.badgeText}
       takeawayTone={spec.takeawayTone}
-      takeaway={spec.takeaway}
+      takeaway={
+        step === 2 && tpMode === "asym-tp4-tp2"
+          ? "不经 CPU 倒手重算：异构 P:TP4→D:TP2 下，D 每卡从 2 张 P 卡各拉 32 KiB 半块（2 块 × 3 层 × 2 半头 = 12 段）同层直传并本地重排！"
+          : spec.takeaway
+      }
       kpi={
         step === 1 && tpMode === "asym-tp4-tp2"
           ? "2卡×32K：P#7(5224K)→D#3(1192K)"
@@ -427,7 +431,15 @@ export function MooncakeConnectorInteractive({
       detailsSummary="查看工程与源码细节（地址换算式 / 非对称 TP 拼头 / V1 vs Layerwise 完成通知与 GQA+C8 禁配）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}
+          <strong>
+            {step === 2 && tpMode === "asym-tp4-tp2"
+              ? "动作 ② · 异构 TP 半块拼装搬运：2 块 × 3 层 × 2 半头 = 12 段显存直传"
+              : spec.title}
+          </strong>
+          ：
+          {step === 2 && tpMode === "asym-tp4-tp2"
+            ? "12 段 32 KiB 半块 (src, dst, len) 一次批量提交给 TransferEngine（进程登记上限 256 段）：非 MLA 模型须满足 prefill_tp_size % decode_tp_size == 0（如 8 KV 头下 P=TP4、D=TP2），V1 由 D 每卡从 2 张 P 卡各读 32 KiB 半块再本地重排；注意 v0.30.0 下 GQA + C8 禁配普通 MooncakeConnector（防 bf16 误读为 int8，须改用 Layerwise）。"
+            : spec.detail}
         </>
       }
     >

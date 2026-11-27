@@ -178,7 +178,7 @@ test("continuing after publication shows the new version and starts fresh model 
 }, info) => {
   liveChat = true;
   await saveFromChat(page);
-  const before = await page.getByTestId("chat-version").first().innerText();
+  const before = (await page.getByTestId("chat-version").first().textContent())!.trim();
   await page.getByRole("button", { name: "批准此版本并发布" }).click();
   await expect(page.getByTestId("review-state")).toContainText("已发布");
   await page.getByRole("tab", { name: "问答" }).click();
@@ -189,7 +189,7 @@ test("continuing after publication shows the new version and starts fresh model 
   await expect(page.getByTestId("chat-version").last()).not.toHaveText(before);
   // 问答版本行后面还跟着「 · 本轮可联网」，只比版本号
   await expect(page.getByTestId("reader-version")).toHaveText(
-    (await page.getByTestId("chat-version").last().innerText()).split(" · ")[0]!,
+    (await page.getByTestId("chat-version").last().textContent())!.trim().split(" · ")[0]!,
   );
   await expect(page.getByTestId("chat-log")).toContainText("已读到发布后的组合诊断");
   await expect(page.getByTestId("chat-send")).toBeDisabled();
@@ -205,12 +205,13 @@ test("continuing after publication shows the new version and starts fresh model 
 test("returning to an offline reader keeps the cached content and its version", async ({ page }, info) => {
   await page.goto("/#/wiki/a");
   await expect(page.getByTestId("wiki-body")).toContainText("原有解释");
-  const version = await page.getByTestId("reader-version").innerText();
+  const version = (await page.getByTestId("reader-version").textContent())!.trim();
   const revision = await page.getByTestId("reader-version").getAttribute("title");
   await page.route("**/api/wiki/pages", (route) => route.abort());
-  await page.getByRole("link", { name: "返回首页" }).click();
+  await page.getByRole("link", { name: "大模型推理首页" }).click();
   await expect(page.getByTestId("wiki-body")).toHaveCount(0);
   await page.goBack();
+  await page.getByText("内容与版本", { exact: true }).click();
   await expect(page.getByRole("status")).toContainText("仍显示以上版本");
   await expect(page.getByTestId("wiki-body")).toContainText("原有解释");
   await expect(page.getByTestId("reader-version")).toHaveText(version);

@@ -37,7 +37,7 @@
 <text x="186" y="165" text-anchor="middle" font-size="12" fill="#4d5652">下三角并行求解</text>
 <rect x="252" y="104" width="108" height="68" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
 <text x="306" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">块间合成输出</text>
-<text x="306" y="148" text-anchor="middle" font-size="12" fill="#4d5652">衰减跨块 γ₀⊙(Q₀S₀ᵀ)</text>
+<text x="306" y="148" text-anchor="middle" font-size="12" fill="#4d5652">跨块 (Q₀⊙Γ₀)S₀ᵀ</text>
 <text x="306" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₀ [64×dᵥ]</text>
 <rect x="132" y="184" width="228" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
 <text x="246" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₀, K₀, V₀ [64×d]（经短卷积）</text>
@@ -52,8 +52,8 @@
 <rect x="492" y="70" width="208" height="174" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
 <text x="596" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">Chunk 1（词 65..128）</text>
 <rect x="504" y="104" width="184" height="68" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
-<text x="596" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">衰减跨块 γ₁⊙(Q₁S₁ᵀ)+块内</text>
-<text x="596" y="148" text-anchor="middle" font-size="12" fill="#4d5652">同样走 Cube 矩阵乘</text>
+<text x="596" y="127" text-anchor="middle" font-size="12.5" font-weight="700" fill="#936300">跨块 (Q₁⊙Γ₁)S₁ᵀ + 块内</text>
+<text x="596" y="148" text-anchor="middle" font-size="12" fill="#4d5652">Γ: GDN标量 / KDA逐列</text>
 <text x="596" y="165" text-anchor="middle" font-size="12" fill="#065f56">→ 整块 O₁ [64×dᵥ]</text>
 <rect x="504" y="184" width="184" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
 <text x="596" y="204" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">输入 Q₁, K₁, V₁ [64×d]</text>

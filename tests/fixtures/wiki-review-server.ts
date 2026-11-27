@@ -58,9 +58,9 @@ const server = createServer(async (req, res) => {
         const text = readFileSync(join(request.cwd, "index.md"), "utf8");
         chatCalls.push({ resumed: request.args.includes("--resume"), text });
         on.text(
-          request.stdin.startsWith("学习者的问题：未收录概念")
+          request.stdin.startsWith("用户的问题：未收录概念")
             ? "知识库里还没有这一条。请补充可核对的来源。"
-            : request.stdin.startsWith("学习者的问题：检查未绑定引用")
+            : request.stdin.startsWith("用户的问题：检查未绑定引用")
               ? "默认开启 [S1]，见 [原有解释](sources/a.md)。"
               : text.includes("组合诊断")
                 ? `已读到发布后的组合诊断，参见 [组合诊断](sources/answer-${answerId}.md)。`
@@ -82,7 +82,7 @@ const server = createServer(async (req, res) => {
           exitCode: 0,
           stderrTail: "",
           costUsd: 0.1,
-          output: `---\nid: ${request.id}\ntitle: 组合诊断\ntype: source\nsummary: 比较两个条件\nsources: [${material.source}]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n比较两个条件，参见 [原有解释](../sources/a.md)。\n`,
+          output: `---\nid: ${request.id}\ntitle: 组合诊断\ntype: source\nsummary: 比较两个条件\nsources: [${material.source}]\nevidence: I\nupdated: '2026-09-15'\n---\n## 原始问答记录\n::answer-record-core::\n\n## 一句话\n比较两个条件，参见 [原有解释](../sources/a.md) [I]。\n`,
         };
       },
     })

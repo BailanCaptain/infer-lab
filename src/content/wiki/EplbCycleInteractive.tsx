@@ -83,22 +83,49 @@ export const EPLB_CYCLE_STEPS: readonly EplbStepSpec[] = [
     shortBtn: "② 后台排新摆法",
     badgeText: "阶段 2 / 5 · CPU 异地算对调",
     takeawayTone: "default",
-    title: "阶段 ② · 算摆法：后台 CPU 进程规划对调 E1 ↔ E2，计划两卡各 10 对",
+    title: "阶段 ② · 算摆法：后台 CPU 算出对调 E1 ↔ E2（规划各 10 对），NPU 仍按旧表实跑 16/4",
     takeaway:
-      "后台独立 CPU 子进程看表重新排座：计划把卡 0 的 E1 和卡 1 的 E2 对调，两边各凑 8+2=10 对，不抢 NPU 算力！",
-    kpi: "计划各 10 对 · 预计峰均比 1.0",
+      "后台独立 CPU 子进程算出新表（规划对调 E1 ↔ E2 至各 10 对，待第 3 步搬运切换）；当前 HBM 尚未换表，NPU 前向仍按旧表实跑 16 vs 4 对（峰均比 1.6）！",
+    kpi: "NPU 实跑 16/4 (1.6) · 规划 10/10 (待第 3 步搬运切换)",
     imbalanceRatio: "1.0 (计划)",
-    card0Header: "卡 0 · 计划 10 对",
-    card1Header: "卡 1 · 计划 10 对",
-    card0LoadPct: 50,
-    card1LoadPct: 50,
+    card0Header: "卡 0 · 实跑 16 对 (规划 10 对·待第3步切换)",
+    card1Header: "卡 1 · 实跑 4 对 (规划 10 对·待第3步切换)",
+    card0LoadPct: 80,
+    card1LoadPct: 20,
     card0Slots: [
-      { id: "E0", label: "保留专家 E0", pairsText: "8 对", state: "shared", badgeTone: "ref-1" },
-      { id: "E2*", label: "计划迁入 E2", pairsText: "2 对", state: "free", badgeTone: "", highlight: true },
+      {
+        id: "E0",
+        label: "在役专家 E0（保留）",
+        pairsText: "实跑 8 对",
+        state: "cow",
+        badgeTone: "ref-2",
+        highlight: true,
+      },
+      {
+        id: "E1→E2*",
+        label: "在役 E1（待第 3 步迁入 E2）",
+        pairsText: "实8→规2",
+        state: "free",
+        badgeTone: "ref-cow",
+        highlight: true,
+      },
     ],
     card1Slots: [
-      { id: "E1*", label: "计划迁入 E1", pairsText: "8 对", state: "free", badgeTone: "", highlight: true },
-      { id: "E3", label: "保留专家 E3", pairsText: "2 对", state: "shared", badgeTone: "ref-1" },
+      {
+        id: "E2→E1*",
+        label: "在役 E2（待第 3 步迁入 E1）",
+        pairsText: "实2→规8",
+        state: "free",
+        badgeTone: "ref-cow",
+        highlight: true,
+      },
+      {
+        id: "E3",
+        label: "在役专家 E3（保留）",
+        pairsText: "实跑 2 对",
+        state: "private",
+        badgeTone: "ref-priv",
+      },
     ],
     wireKind: "plan",
     wireLabel: "规划 E1↔E2",
@@ -258,7 +285,11 @@ export function computeEplbState(
   const base = EPLB_CYCLE_STEPS[step - 1]!;
 
   if (step <= 3) {
-    const actualPairs: readonly [number, number] = step === 1 ? [16, 4] : [10, 10];
+    const tableSwapped = step === 3;
+    const actualPairs: readonly [number, number] = tableSwapped ? [10, 10] : [16, 4];
+    const actualImbalance = tableSwapped ? "1.0" : "1.6";
+    const card0LoadPct = tableSwapped ? 50 : 80;
+    const card1LoadPct = tableSwapped ? 50 : 20;
     return {
       step,
       redundantSlots,
@@ -268,10 +299,10 @@ export function computeEplbState(
       plannedPairs: [10, 10],
       plannedImbalance: "1.0",
       actualPairs,
-      actualImbalance: step === 1 ? "1.6" : "1.0",
+      actualImbalance,
       displayImbalance: base.imbalanceRatio,
-      card0LoadPct: base.card0LoadPct,
-      card1LoadPct: base.card1LoadPct,
+      card0LoadPct,
+      card1LoadPct,
       card0Header: base.card0Header,
       card1Header: base.card1Header,
       card0Slots: base.card0Slots,
@@ -487,7 +518,7 @@ export function EplbCycleInteractive({
         </div>
         {loadPct < 60 && (
           <div className="wiki-edu-op is-eager" style={{ flex: Math.max(0.15, (100 - loadPct) / 100) }}>
-            {step === 1 ? "空等同步" : "配对均衡"}
+            {step <= 2 || loadPct <= 30 ? "空等同步" : "配对均衡"}
           </div>
         )}
       </div>
@@ -737,34 +768,42 @@ export function EplbCycleInteractive({
             </text>
             <rect x="314" y="44" width="232" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" />
             <text x="430" y="66" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`预测卡 0：${state.plannedPairs[0]} 对`}
+              {step === 2
+                ? `规划卡 0：${state.plannedPairs[0]} 对 (待第3步切换)`
+                : `预测卡 0：${state.plannedPairs[0]} 对`}
             </text>
             <rect x="314" y="90" width="232" height="34" rx="6" fill="#ddf4ef" stroke="#087f73" />
             <text x="430" y="112" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`预测卡 1：${state.plannedPairs[1]} 对`}
+              {step === 2
+                ? `规划卡 1：${state.plannedPairs[1]} 对 (待第3步切换)`
+                : `预测卡 1：${state.plannedPairs[1]} 对`}
             </text>
             <text x="430" y="158" textAnchor="middle" fontSize="13" fontWeight="700" fill="#087f73">
               {`预测峰均比 ${state.plannedImbalance}`}
             </text>
             <text x="430" y="198" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 3
-                ? "接收区暂存权重 · 步末原子换表"
-                : step >= 5 && redundantSlots === 2
-                  ? "规划按双副本 6:6 均分估计"
-                  : "后台子进程异地计算新摆法"}
+              {step === 2
+                ? "CPU 已算新表 · 待第 3 步搬运切换"
+                : step === 3
+                  ? "接收区暂存权重 · 步末原子换表"
+                  : step >= 5 && redundantSlots === 2
+                    ? "规划按双副本 6:6 均分估计"
+                    : "后台子进程异地计算新摆法"}
             </text>
 
             <path
               d="M 568 62 L 592 62"
-              stroke={step === 3 ? "#9a4b86" : "#087f73"}
+              stroke={step <= 2 ? "#c78300" : step === 3 ? "#9a4b86" : "#087f73"}
               strokeWidth={Math.max(1.5, state.actualPairs[0] / 4)}
-              markerEnd={`url(#${step === 3 ? mComm : mTeal})`}
+              strokeDasharray={step <= 2 ? "4 3" : undefined}
+              markerEnd={`url(#${step <= 2 ? mWarn : step === 3 ? mComm : mTeal})`}
             />
             <path
               d="M 568 108 L 592 108"
-              stroke="#087f73"
+              stroke={step <= 2 ? "#c78300" : "#087f73"}
               strokeWidth={Math.max(1.4, state.actualPairs[1] / 4)}
-              markerEnd={`url(#${mTeal})`}
+              strokeDasharray={step <= 2 ? "4 3" : undefined}
+              markerEnd={`url(#${step <= 2 ? mWarn : mTeal})`}
             />
 
             <rect
@@ -780,11 +819,27 @@ export function EplbCycleInteractive({
             <text x="722" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
               ③ 源卡就近路由实际落点
             </text>
-            <rect x="612" y="44" width="220" height="34" rx="6" fill="#ffffff" stroke="#087f73" />
+            <rect
+              x="612"
+              y="44"
+              width="220"
+              height="34"
+              rx="6"
+              fill="#ffffff"
+              stroke={state.actualPairs[0] >= 14 ? "#c78300" : "#087f73"}
+            />
             <text x="722" y="66" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
               {`实际卡 0：${state.actualPairs[0]} 对 (${state.card0LoadPct}%)`}
             </text>
-            <rect x="612" y="90" width="220" height="34" rx="6" fill="#ffffff" stroke="#087f73" />
+            <rect
+              x="612"
+              y="90"
+              width="220"
+              height="34"
+              rx="6"
+              fill="#ffffff"
+              stroke={state.actualPairs[0] >= 14 ? "#d8d8cf" : "#087f73"}
+            />
             <text x="722" y="112" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
               {`实际卡 1：${state.actualPairs[1]} 对 (${state.card1LoadPct}%)`}
             </text>
@@ -792,13 +847,17 @@ export function EplbCycleInteractive({
               {`实际峰均比 ${state.actualImbalance}`}
             </text>
             <text x="722" y="198" textAnchor="middle" fontSize="12" fill="#66716d">
-              {step === 5 && redundantSlots === 2
-                ? sourceSkew === "skew-8-4"
-                  ? "纯EP源卡偏斜8:4 → 实得12/8"
-                  : "源卡均等6:6 → 实得10/10"
-                : step === 5 && redundantSlots === 0
-                  ? "0冗余仅2槽 → 锁死在14/6"
-                  : "边宽正比于每卡实收配对数"}
+              {step <= 2
+                ? "未搬运换表 · NPU 仍跑旧表 16/4"
+                : step === 3
+                  ? "完成搬运换表 · 实跑切至 10/10"
+                  : step === 5 && redundantSlots === 2
+                    ? sourceSkew === "skew-8-4"
+                      ? "纯EP源卡偏斜8:4 → 实得12/8"
+                      : "源卡均等6:6 → 实得10/10"
+                    : step === 5 && redundantSlots === 0
+                      ? "0冗余仅2槽 → 锁死在14/6"
+                      : "边宽正比于每卡实收配对数"}
             </text>
           </svg>
         </div>

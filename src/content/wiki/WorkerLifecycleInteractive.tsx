@@ -148,6 +148,8 @@ export const WORKER_LIFECYCLE_STEPS = WORKER_LIFECYCLE_STAGES;
 export const WORKER_CLUSTER_PRESETS = ["skewed", "rank1-lag", "balanced"] as const;
 export type WorkerClusterPreset = (typeof WORKER_CLUSTER_PRESETS)[number];
 
+export type WorkerBudgetStatus = "pre-profile" | "pending-barrier" | "aligned";
+
 export interface WorkerLifecycleDerivedState {
   readonly step: WorkerLifecycleStage;
   readonly clusterPreset: WorkerClusterPreset;
@@ -158,10 +160,13 @@ export interface WorkerLifecycleDerivedState {
   readonly rank1KvMiB: 72 | 90;
   readonly rank0RawBlocks: 10;
   readonly rank1RawBlocks: 8 | 10;
-  readonly alignedBlocks: 8 | 10;
-  readonly shrunkBlocksOnRank0: 2 | 0;
-  readonly usableBlocks: 7 | 9;
-  readonly tokenSlots: 896 | 1152;
+  readonly rank0Reported: boolean;
+  readonly rank1Reported: boolean;
+  readonly budgetStatus: WorkerBudgetStatus;
+  readonly alignedBlocks: 8 | 10 | null;
+  readonly shrunkBlocksOnRank0: 2 | 0 | null;
+  readonly usableBlocks: 7 | 9 | null;
+  readonly tokenSlots: 896 | 1152 | null;
   readonly rank1LaggingAtBarrier: boolean;
   readonly skipGraphCapture: boolean;
 }
@@ -177,11 +182,20 @@ export function computeWorkerLifecycleState(
   const rank1KvMiB: 72 | 90 = clusterPreset === "balanced" ? 90 : 72;
   const rank0RawBlocks = 10 as const;
   const rank1RawBlocks: 8 | 10 = rank1KvMiB === 90 ? 10 : 8;
-  const alignedBlocks: 8 | 10 = rank1RawBlocks === 10 ? 10 : 8;
-  const shrunkBlocksOnRank0: 2 | 0 = (rank0RawBlocks - alignedBlocks) as 2 | 0;
-  const usableBlocks: 7 | 9 = (alignedBlocks - 1) as 7 | 9;
-  const tokenSlots: 896 | 1152 = (usableBlocks * tokensPerBlock) as 896 | 1152;
   const rank1LaggingAtBarrier = clusterPreset === "rank1-lag" && (step === 2 || step === 4);
+
+  const budgetStatus: WorkerBudgetStatus =
+    step < 4 ? "pre-profile" : rank1LaggingAtBarrier ? "pending-barrier" : "aligned";
+  const rank0Reported = step >= 4;
+  const rank1Reported = step >= 4 && !rank1LaggingAtBarrier;
+
+  const convergedAligned: 8 | 10 = rank1RawBlocks === 10 ? 10 : 8;
+  const alignedBlocks: 8 | 10 | null = budgetStatus === "aligned" ? convergedAligned : null;
+  const shrunkBlocksOnRank0: 2 | 0 | null =
+    alignedBlocks !== null ? ((rank0RawBlocks - alignedBlocks) as 2 | 0) : null;
+  const usableBlocks: 7 | 9 | null = alignedBlocks !== null ? ((alignedBlocks - 1) as 7 | 9) : null;
+  const tokenSlots: 896 | 1152 | null =
+    usableBlocks !== null ? ((usableBlocks * tokensPerBlock) as 896 | 1152) : null;
 
   return {
     step,
@@ -193,6 +207,9 @@ export function computeWorkerLifecycleState(
     rank1KvMiB,
     rank0RawBlocks,
     rank1RawBlocks,
+    rank0Reported,
+    rank1Reported,
+    budgetStatus,
     alignedBlocks,
     shrunkBlocksOnRank0,
     usableBlocks,
@@ -313,13 +330,16 @@ export function WorkerLifecycleInteractive({
         {COLD_START_SIX_CARDS.filter((c) => c.driver === driver).map((card) => {
           const isCurrent = card.stage === step;
           const isDone = card.stage < step;
+          const isBlockedHere = isCurrent && wk.rank1LaggingAtBarrier;
           const cls = isDone
             ? "is-pass"
-            : isCurrent
-              ? card.barrierBadge
-                ? "is-warn"
-                : "is-pass"
-              : "is-skip";
+            : isBlockedHere
+              ? "is-fail"
+              : isCurrent
+                ? card.barrierBadge
+                  ? "is-warn"
+                  : "is-pass"
+                : "is-skip";
           return (
             <div
               key={card.coldStep}
@@ -330,7 +350,13 @@ export function WorkerLifecycleInteractive({
               }}
             >
               <strong>{card.title}</strong>
-              <span>{card.barrierBadge ?? card.sub}</span>
+              <span>
+                {isBlockedHere
+                  ? card.stage === 4
+                    ? "⏳ 等Rank1汇合"
+                    : "⏳ 等Rank1握手"
+                  : (card.barrierBadge ?? card.sub)}
+              </span>
             </div>
           );
         })}
@@ -425,7 +451,7 @@ export function WorkerLifecycleInteractive({
                 setClusterPreset("skewed");
               }}
             >
-              显存不齐 (10 vs 8块→896槽)
+              显存不齐 (90 vs 72 MiB)
             </button>
             <button
               type="button"
@@ -454,7 +480,7 @@ export function WorkerLifecycleInteractive({
                 setClusterPreset("balanced");
               }}
             >
-              双卡均衡 (10块→1152槽)
+              双卡均衡 (90 vs 90 MiB)
             </button>
             <button
               type="button"
@@ -477,18 +503,26 @@ export function WorkerLifecycleInteractive({
       takeawayBadge={spec.badgeText}
       takeawayTone={wk.rank1LaggingAtBarrier ? "danger" : spec.takeawayTone}
       takeaway={
-        step === 4
-          ? `Rank0 汇报 ${wk.rank0KvMiB} MiB (${wk.rank0RawBlocks} 块)、Rank1 汇报 ${wk.rank1KvMiB} MiB (${wk.rank1RawBlocks} 块) → EngineCore 全组对齐取最小 ${wk.alignedBlocks} 块，扣 #0 保留空块得 ${wk.usableBlocks} 块（${wk.tokenSlots} 词槽）！`
-          : step === 5
-            ? enforceEager
-              ? `阶段 5 切出共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）并跑完算子预热；开启 --enforce-eager 后直接跳过 1−u 录图节点上线！`
-              : `阶段 5 先切出共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽），再跑预热并用 1−u 余量完成 Decode 录图上线！`
-            : spec.takeaway
+        step === 4 && wk.rank1LaggingAtBarrier
+          ? `Rank0 已测出本卡原始候选 ${wk.rank0RawBlocks} 块（${wk.rank0KvMiB} MiB），正停在 all_reduce(MIN) 通信屏障（栅栏 2）等待慢卡 Rank1 汇报；全组对齐块数与可用 KV 词槽处于未决/待汇合状态！`
+          : step === 2 && wk.rank1LaggingAtBarrier
+            ? "Rank0 已拍完建组前显存快照，正停在 HCCL 跨卡栅栏 1 等待慢卡 Rank1 就位握手；缺 1 卡全组无法建通信组！"
+            : step === 4 && wk.budgetStatus === "aligned"
+              ? `两卡已汇合汇报：Rank0 报 ${wk.rank0KvMiB} MiB (${wk.rank0RawBlocks} 块)、Rank1 报 ${wk.rank1KvMiB} MiB (${wk.rank1RawBlocks} 块) → EngineCore 经 all_reduce(MIN) 对齐 min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块，扣 null_block 得 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）！`
+              : step === 5 && wk.budgetStatus === "aligned"
+                ? enforceEager
+                  ? `阶段 5 屏障汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽）并跑完算子预热；开启 --enforce-eager 后直接跳过 1−u 录图节点上线！`
+                  : `阶段 5 屏障汇合完成（min(${wk.rank0RawBlocks}, ${wk.rank1RawBlocks}) = ${wk.alignedBlocks} 块），先切出扣 null_block 后的共同池 ${wk.usableBlocks} 可用块（${wk.tokenSlots} 词槽），再跑预热并用 1−u 余量完成 Decode 录图上线！`
+                : spec.takeaway
       }
       kpi={
-        step >= 4
-          ? `对齐 ${wk.alignedBlocks} 块 → 可用 ${wk.usableBlocks} 块 (${wk.tokenSlots} 词槽) · ${enforceEager ? "跳录图" : "含录图"}`
-          : spec.kpi
+        step === 4 && wk.rank1LaggingAtBarrier
+          ? `⏳ all_reduce(MIN) 等待 Rank1 汇报 · Rank0 候选 ${wk.rank0RawBlocks} 块 · 对齐块数与词槽未决`
+          : step === 2 && wk.rank1LaggingAtBarrier
+            ? "⏳ 栅栏 1 等待 Rank1 握手 · HCCL 通信组待建"
+            : wk.budgetStatus === "aligned"
+              ? `对齐 min(${wk.rank0RawBlocks},${wk.rank1RawBlocks})=${wk.alignedBlocks} 块 → 扣 null_block 得 ${wk.usableBlocks} 可用块 (${wk.tokenSlots} 词槽) · ${enforceEager ? "跳录图" : "含录图"}`
+              : spec.kpi
       }
       detailsSummary="查看工程与源码细节（worker.py 六方法 / BF16 ND 默认 / 7 类预热与 NPUWorker310 五处定制）"
       detailsContent={
@@ -506,9 +540,13 @@ export function WorkerLifecycleInteractive({
             <span
               className={`wiki-edu-badge ${wk.rank1LaggingAtBarrier ? "is-bad" : spec.hasCrossCardBarrier ? "is-warn" : "is-good"}`}
             >
-              {wk.rank1LaggingAtBarrier
-                ? "⏳ Rank1 慢卡阻塞栅栏"
-                : `共同池 ${wk.usableBlocks} 块 (${wk.tokenSlots} 词槽)`}
+              {step === 4 && wk.rank1LaggingAtBarrier
+                ? "⏳ Rank1 阻塞栅栏 2 · 词槽预算未决"
+                : wk.rank1LaggingAtBarrier
+                  ? "⏳ Rank1 慢卡阻塞栅栏 1"
+                  : wk.budgetStatus === "aligned"
+                    ? `共同池 ${wk.usableBlocks} 块 (${wk.tokenSlots} 词槽)`
+                    : "KV 词槽待阶段 ④ 试跑对齐"}
             </span>
           </div>
           <svg
@@ -586,12 +624,24 @@ export function WorkerLifecycleInteractive({
               width="136"
               height="42"
               rx="6"
-              fill={step === 4 ? "#fff4cf" : step > 4 ? "#ddf4ef" : "#ffffff"}
-              stroke={step >= 4 ? "#c78300" : "#d8d8cf"}
+              fill={
+                wk.budgetStatus === "pending-barrier"
+                  ? "#fff0e9"
+                  : step === 4
+                    ? "#fff4cf"
+                    : step > 4
+                      ? "#ddf4ef"
+                      : "#ffffff"
+              }
+              stroke={wk.budgetStatus === "pending-barrier" ? "#b54237" : step >= 4 ? "#c78300" : "#d8d8cf"}
               strokeWidth="1.5"
             />
             <text x="614" y="50" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`④ 取 min=${wk.alignedBlocks}块`}
+              {wk.budgetStatus === "aligned"
+                ? `④ 取 min=${wk.alignedBlocks}块`
+                : wk.budgetStatus === "pending-barrier"
+                  ? "④ 等Rank1汇合"
+                  : "④ 待试跑取min"}
             </text>
             <rect
               x="692"
@@ -602,8 +652,15 @@ export function WorkerLifecycleInteractive({
               fill={step === 5 ? "#ddf4ef" : "#ffffff"}
               stroke={step === 5 ? "#087f73" : "#d8d8cf"}
             />
-            <text x="729" y="50" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              {`⑤ ${wk.usableBlocks}块池`}
+            <text
+              x="729"
+              y="50"
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={wk.budgetStatus === "aligned" ? "#087f73" : "#66716d"}
+            >
+              {wk.budgetStatus === "aligned" ? `⑤ ${wk.usableBlocks}块池` : "⑤ 待切池"}
             </text>
             <rect
               x="772"
@@ -647,7 +704,11 @@ export function WorkerLifecycleInteractive({
                     {`Rank ${rIdx}`}
                   </text>
                   <text x="20" y={ly + 48} fontSize="12" fill="#66716d">
-                    {`${kvMiB}MiB/${rawB}块`}
+                    {step < 4
+                      ? "预算待试跑"
+                      : rIdx === 1 && !wk.rank1Reported
+                        ? "试跑未汇报"
+                        : `${kvMiB}MiB/${rawB}块`}
                   </text>
 
                   <rect
@@ -700,10 +761,23 @@ export function WorkerLifecycleInteractive({
                     height="40"
                     rx="6"
                     fill={isLagRank && step === 4 ? "#fff0e9" : step >= 4 ? "#fff4cf" : "#ece9df"}
-                    stroke={isLagRank && step === 4 ? "#b54237" : "#c78300"}
+                    stroke={isLagRank && step === 4 ? "#b54237" : step >= 4 ? "#c78300" : "#d8d8cf"}
                   />
-                  <text x="493" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {isLagRank && step === 4 ? "🐢 试跑慢" : `报 ${rawB} 块`}
+                  <text
+                    x="493"
+                    y={ly + 37}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill={step < 4 ? "#66716d" : "#17211f"}
+                  >
+                    {step < 4
+                      ? "④ 待试跑"
+                      : isLagRank && step === 4
+                        ? "🐢 试跑慢"
+                        : wk.budgetStatus === "pending-barrier"
+                          ? `候选 ${rawB} 块`
+                          : `报 ${rawB} 块`}
                   </text>
 
                   <rect
@@ -712,13 +786,43 @@ export function WorkerLifecycleInteractive({
                     width="178"
                     height="40"
                     rx="6"
-                    fill={step >= 4 ? "#ddf4ef" : "#ece9df"}
-                    stroke={step >= 4 ? "#087f73" : "#d8d8cf"}
+                    fill={
+                      wk.budgetStatus === "aligned"
+                        ? "#ddf4ef"
+                        : wk.budgetStatus === "pending-barrier"
+                          ? rIdx === 0
+                            ? "#fff4cf"
+                            : "#fff0e9"
+                          : "#ece9df"
+                    }
+                    stroke={
+                      wk.budgetStatus === "aligned"
+                        ? "#087f73"
+                        : wk.budgetStatus === "pending-barrier"
+                          ? rIdx === 0
+                            ? "#c78300"
+                            : "#b54237"
+                          : "#d8d8cf"
+                    }
+                    strokeDasharray={wk.budgetStatus === "pending-barrier" ? "4 2" : undefined}
                   />
-                  <text x="675" y={ly + 37} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                    {rIdx === 0 && wk.shrunkBlocksOnRank0 > 0
-                      ? `缩回 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`
-                      : `对齐 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`}
+                  <text
+                    x="675"
+                    y={ly + 37}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill={wk.budgetStatus === "pre-profile" ? "#66716d" : "#17211f"}
+                  >
+                    {wk.budgetStatus === "aligned"
+                      ? rIdx === 0 && (wk.shrunkBlocksOnRank0 ?? 0) > 0
+                        ? `缩回 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`
+                        : `对齐 ${wk.alignedBlocks}→扣#0得${wk.usableBlocks}块(${wk.tokenSlots}槽)`
+                      : wk.budgetStatus === "pending-barrier"
+                        ? rIdx === 0
+                          ? "⏳ 等Rank1 · 词槽未决"
+                          : "⏳ 未达栅栏2 · 预算待定"
+                        : "待栅栏 2 汇合对齐"}
                   </text>
 
                   <rect
@@ -728,7 +832,7 @@ export function WorkerLifecycleInteractive({
                     height="40"
                     rx="6"
                     fill={enforceEager ? "#ece9df" : step === 5 ? "#ddf4ef" : "#ffffff"}
-                    stroke={enforceEager ? "#d8d8cf" : "#087f73"}
+                    stroke={enforceEager || step < 5 ? "#d8d8cf" : "#087f73"}
                     strokeDasharray={enforceEager ? "4 2" : undefined}
                   />
                   <text
@@ -737,9 +841,9 @@ export function WorkerLifecycleInteractive({
                     textAnchor="middle"
                     fontSize="12"
                     fontWeight="700"
-                    fill={enforceEager ? "#66716d" : "#087f73"}
+                    fill={enforceEager || step < 5 ? "#66716d" : "#087f73"}
                   >
-                    {enforceEager ? "跳录图" : "录图就绪"}
+                    {enforceEager ? "跳录图" : step === 5 ? "录图就绪" : "待录图"}
                   </text>
                 </g>
               );
@@ -793,7 +897,13 @@ export function WorkerLifecycleInteractive({
         <div className="wiki-edu-chunks-wrap">
           <div className="wiki-edu-chunk-pill">
             <strong>本步交付产物</strong>
-            <span>{spec.deliverableLabel}</span>
+            <span>
+              {step === 4 && wk.rank1LaggingAtBarrier
+                ? `未决：Rank0 候选 ${wk.rank0RawBlocks} 块停等屏障，待 Rank1 汇报`
+                : step === 2 && wk.rank1LaggingAtBarrier
+                  ? "未决：Rank0 已拍快照，停在栅栏 1 等 Rank1 握手"
+                  : spec.deliverableLabel}
+            </span>
           </div>
           <div className="wiki-edu-chunk-pill">
             <strong>禁换序原因</strong>
@@ -801,7 +911,13 @@ export function WorkerLifecycleInteractive({
           </div>
           <div className={`wiki-edu-chunk-pill${spec.hasCrossCardBarrier ? " is-last" : ""}`}>
             <strong>{spec.hasCrossCardBarrier ? "跨卡硬栅栏" : "定制与边界"}</strong>
-            <span>{spec.barrierOrVariantLabel}</span>
+            <span>
+              {step === 4 && wk.rank1LaggingAtBarrier
+                ? "all_reduce(MIN) 阻塞等待中 · 词槽预算未决"
+                : step === 2 && wk.rank1LaggingAtBarrier
+                  ? "HCCL 建组栅栏阻塞中 · 缺 1 卡全组停等"
+                  : spec.barrierOrVariantLabel}
+            </span>
           </div>
         </div>
       </div>

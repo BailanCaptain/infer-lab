@@ -4,7 +4,7 @@ title: Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）
 type: source
 origin: drop
 summary: >-
-  归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0）不可变实测快照、算子与 HCCL 剖析、显存对账，以及整池 KV 非连续拷贝、负 TP 扩展、Eager/PD/EP8 负收益等六类实测劣化根因与计量边界。
+  归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0 正式版 c09d3e20）不可变实测快照、算子与 HCCL 剖析、显存对账及六类实测劣化根因；页内引用的 main（8d6180e2）仅作局部源码对照，未做同机复测。
 aliases:
   - Ascend 910B3 实测基线
   - 910B3 真机实测
@@ -65,7 +65,6 @@ sources:
   - 'vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2225'
 verified:
   - releases/v0.30.0
-  - main
 evidence: M
 rawSources:
   - >-
@@ -107,11 +106,11 @@ updated: '2026-11-23'
 
 ## 硬件与软件基线指纹
 
-本档案汇总 GitCode CANNLab 上单卡与八卡 `Ascend 910B3`（A2 代际）在 `vLLM 0.30.0` + `vllm-ascend 0.30.0`（升级变更见 [v0.30.0 正式版升级与避坑清单](../concepts/v030-release-baseline.md)）下的全量实机采集证据。所有原始 Profiler CSV、压测 JSON、启动显存对账日志与真实故障标本均已通过 SHA-256 完整性校验，并摘录固化于本页绑定的不可变 `raw` 快照中。
+本档案汇总 GitCode CANNLab 上单卡与八卡 `Ascend 910B3`（A2 代际）在 `vLLM 0.30.0`（`ced6857a`）+ `vllm-ascend 0.30.0`（`c09d3e20`，升级变更见 [v0.30.0 正式版升级与避坑清单](../concepts/v030-release-baseline.md)）下的全量实机采集证据；下文提及的 `main@8d6180e2` 仅用于核对 V2 源码路径演进，不包含 `main` 真机重测结果。所有原始 Profiler CSV、压测 JSON、启动显存对账日志与真实故障标本均已通过 SHA-256 完整性校验，并摘录固化于本页绑定的不可变 `raw` 快照中。
 
 | 维度 | 实测指纹 | 阅读各页时的计量边界 |
 |---|---|---|
-| NPU 与可见显存 | `8 × Ascend 910B3`，`npu-smi 25.5.0` 标称 `65,536 MB` / 卡，空载板级占用 `3,426 ~ 3,453 MB`；`acl.rt.get_mem_info` OS 可见总容量 **`60.96 GiB`**，启动空闲 `60.57 ~ 60.59 GiB` | [KV cache 显存预算](../concepts/kv-cache-memory-profiling.md)公式 `total × u` 的基数是 **`60.96 GiB`** 而非 `64.00 GiB`；相差的 `3.04 GiB` 为底层预留，不可二次扣减 |
+| NPU 与可见显存 | `8 × Ascend 910B3`，`npu-smi 25.5.0` 标称 `65,536 MB` / 卡，空载板级占用 `3,426 ~ 3,453 MB`；`acl.rt.get_mem_info` OS 可见总容量 **`60.96 GiB`**，启动空闲 `60.57 ~ 60.59 GiB` | [KV cache 显存预算](../concepts/kv-cache-memory-profiling.md)公式 `total × u` 的基数是 **`60.96 GiB`** 而非 `64.00 GiB`；相差的 `3.04 GiB` 为底层预留，不可二次扣减（主机侧与设备侧容量分账另见 [主机内存、大页与 IPC 稳态](../concepts/host-memory-and-hugepages.md)） |
 | 宿主机拓扑 | 八卡实例为 `192 vCPUs` `HiSilicon TaishanV110` `aarch64`（`8 Sockets / 8 NUMA`，NUMA 即非统一内存访问节点，每 Socket 24 核，`2,400 MHz` 且 `Frequency boost: disabled`，`1.4 TiB` RAM）；单卡实例暴露 `16 vCPUs`（`2 Sockets / 2 NUMA`） | 禁睿频 `2.4 GHz` ARM 核心对 Eager（单算子逐条下发）发射敏感，绑核策略见 [CPU 绑核](../concepts/cpu-binding.md)；跨单卡与八卡比较首 token 时还须区分下文输入长度差异 |
 | 软件与通信栈 | `HDK 25.5.0` · `CANN 9.1.0` · `Python 3.11.4` · `torch 2.10.0` · `torch_npu 2.10.0.post7` · `vllm 0.30.0`（对照 `ced6857a`）· `vllm_ascend 0.30.0`（对照 `c09d3e20`）· `Mooncake` ADXL `AscendDirectTransport` | 四卡 `TP=4` 微基准实测走机内高速互联 `HCCS`（单次 `16 MiB` 输出张量，环网 transit `25.17 MB` @ `17.63 ~ 17.93 GB/s`），未走跨机以太网 RDMA 协议 `RoCE` |
 | 基准口径差异 | 单卡 `TP=1` 使用 `/v1/chat/completions`（`24 ~ 40` prompt tokens，取 `5/8/16` 请求中位数）；八卡实验使用 `/v1/completions`（平均 `262` prompt tokens，取均值，各档完成 `128/512/2,048` 输出 tokens） | 压测指标定义见 [推理测量](../concepts/inference-benchmarking.md)：八卡内部 `TP=2 → 4 → 8` 严格同脚本同输入；单卡与八卡直接对比时，稳态 128 步 `TPOT`（每输出 token 平均时延）可对照，首 token `TTFT`（首词延迟）受输入长度影响不可混作单变量 A/B |
@@ -164,7 +163,7 @@ updated: '2026-11-23'
 
 ### 5. DEBUG 日志热路径开销与三类启动配置陷阱
 
-- **`VLLM_LOGGING_LEVEL=DEBUG` 热路径税**：`worker.py` 每步在 DEBUG 分支读取 `torch.npu.memory_reserved()` / `memory_allocated()` 并格式化输出（`TP=8` 达 `3,312` 行），配合 `acl_graph.py` 的输入 `data_ptr()` 遍历校验，使 `TP=8 c=1` 单样本 `TTFT` 从 `139.07 ms` 升至 `193.98 ms (+39.48%)`。
+- **日志 `VLLM_LOGGING_LEVEL=DEBUG` 采样开销**：`worker.py` 每步在 DEBUG 分支读取 `torch.npu.memory_reserved()` / `memory_allocated()` 并格式化输出（`TP=8` 达 `3,312` 行，运行期环境变量与下发开销边界见 [CANN Runtime 与任务下发调优](../concepts/ascend-runtime-and-tuning.md)），配合 `acl_graph.py` 的输入 `data_ptr()` 遍历校验，使 `TP=8 c=1` 单样本 `TTFT` 从 `139.07 ms` 升至 `193.98 ms (+39.48%)`。
 - **图显存随 TP 逆向增长与 `u=0.90` 捕获期 OOM**：`Qwen3-0.6B` 在 `u=0.90` 下通过 `profile_run()`（分配 `53.47 GiB` KV、`500,480 tokens`）及 35 档 `PIECEWISE` 后，在 `FULL` Decode `1/35` 的 `FIA` 内因申请 `1.98 GiB`（仅剩 `1.71 GiB`）触发 OOM（`u=0.82` 成功录图占 `3.90 GiB`）。`Qwen3-8B` 随 `TP=1→8` 每层本地 KV 视图从 `1.008 GiB` 扩至 `1.368 GiB`，捕获前后设备空闲显存差值反从 **`2.59 GiB` 递增至 `3.21 GiB`**。
 - **Sleep Mode 守卫、冷启动微基准与静态量化校验**：默认 `weight_nz_mode=1` 下 BF16 普通权重本不转 NZ（昇腾分形分块格式），但 `worker.py:279-286` 在 [Sleep Mode](../concepts/sleep-mode.md) 的 `wake_up()` 中只要配置非零即抛 `ValueError: FRACTAL_NZ mode is enabled`；显式设 `weight_nz_mode=0` 后 `2.482s` 唤醒成功（较 `95.83s` 完整初始化快 `38.61×`，`npu-smi` 从 `55,740 MB` 降至 `6,211 MB`，较初始空载 `3,453 MB` 净增 `2.693 GiB`），且启用 Sleep 会使 [RFork](../concepts/rfork.md) 安全检查返回 `sleep mode` 回退默认加载。八进程并发导入预编译 `.pyc` 耗时从 `24.311s` 降至 `12.598s`（省 `11.713s`）；首次 `npu_format_cast(NZ)` 懒加载耗时 `7.1618s`（二次 `0.0007s`）。未量化 GQA 模型传 `--kv-cache-dtype int8`（参见 [KV cache 量化](../concepts/kv-cache-quantization.md)）在 `attention_v1.py:583` 直接抛静态量化权重缺失异常，而 `MooncakeConnectorV2`（`MooncakePullConnector`）在 `base_worker.py:116` 拒绝 `kv_both` 双角色。
 

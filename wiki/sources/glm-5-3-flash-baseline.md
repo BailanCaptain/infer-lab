@@ -100,7 +100,7 @@ rawSources:
 
 ## 模型结构的固定依据
 
-模型仓库：`zai-org/GLM-5.3-Flash`。本页配置与主线统一固定到 revision `690b705278a3a58e538fcb37c2ca8b5f9511213c`。以下值来自其 `config.json` 的 `text_config`，不套用到视觉编码器。[S2]
+模型仓库：`zai-org/GLM-5.3-Flash`。本页配置与主线统一固定到 revision `690b705278a3a58e538fcb37c2ca8b5f9511213c`。以下值来自其 `config.json` 的 `text_config`，不套用到视觉编码器（视觉塔特征复用与独立缓存机制见[多模态视觉编码缓存](../concepts/multimodal-encoder-cache.md)，视觉塔与语言权重的显存分账仍回[双机部署页](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)）。[S2]
 
 | 配置 | 值 | 对教学图的意义 |
 |---|---|---|

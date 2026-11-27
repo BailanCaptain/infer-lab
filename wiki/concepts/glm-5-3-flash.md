@@ -91,6 +91,12 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45'
   - 'vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104'
+  - 'vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793'
+  - 'vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2848-L2860'
+  - 'vllm-ascend@db701c1f:csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h#L93-L149'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -126,7 +132,7 @@ rawSources:
 
 GLM-5.3-Flash 把文本变成张量（多维数组），逐层汇入前文信息，最后给下一个 token（分词后的单位）打分。推理引擎围绕这次计算准备输入、保存历史、返回结果。
 
-本页讲文字模型：每层先做 attention，把前文信息汇到当前位置；再做 MLP，对这个位置单独加工。attention 有 KDA（把历史压进固定大小的矩阵）和稀疏 MLA（逐位置压短历史，再挑一部分读）；MLP 有稠密 MLP（全部 token 共用）和 MoE（从多个小 MLP 专家中挑选）。下文先讲机制，再列形状、参数量与精度。模型也有图像和视频入口，本文不展开。
+本页按「文本编号 → 45 层逐层加工 → 词表分数」走通文字主干：每一层都分成两步——先汇集前文历史信息，再单独加工当前位置的表示；进入对应层时，再展开它的两类历史压缩机制与两类前馈网络，最后汇总全模型形状、参数量与权重精度。模型同时具备图像和视频输入分支（视觉特征在多轮或多请求间的复用见[多模态编码器缓存](multimodal-encoder-cache.md)），本页聚焦文字主干。
 
 部署条件统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)；本页的计算发生在[一条请求的第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。
 
@@ -135,7 +141,7 @@ GLM-5.3-Flash 把文本变成张量（多维数组），逐层汇入前文信息
 文本先经分词器变成一串 token 编号，记为 `x₁ … xₚ`。token 是分词器切出来的离散符号，用整数编号表示，一个 token 不一定对应一个字或一个词，切分方式见 [token](token.md)。普通的**自回归生成**（每次把刚产出的 token 拼回末尾作为下一轮输入，逐个往后生成）每一轮只产出一个新 token，每一轮都走下面四步：
 
 1. **查 embedding。** embedding（词向量）是一张 154880 行、4096 列的权重表。每个 token 编号取出其中一行，得到一条 4096 维的**隐藏向量**（hidden）——模型给每个位置维护的中间表示，后面所有层改的都是它。154880 是词表大小，4096 是隐藏宽度。查表过程见 [embedding](embedding.md)。
-2. **沿 45 层更新隐藏向量。** 隐藏向量沿 residual 流一层层往下走，每层把算出的改动加到它上面（GLM 用四条并行的 residual 流，下一节讲）。每一层先做 **attention**：当前位置生成一个查询向量 **Q**，每个历史位置有一个键向量 **K** 和一个值向量 **V**；Q 和每个 K 算出匹配分数，再按分数把各位置的 V 加权汇合，前文的信息就这样汇到当前位置。attention 通常分成多个**头**（attention head），每个头在自己的一小段维度里独立做一遍，结果再拼起来。然后做 **MLP**：对每个位置单独做一次「升维、非线性、降维」的前馈变换，加工这个位置自己的表示。开头说的两种 attention（KDA、稀疏 MLA）和两种 MLP（稠密 MLP、MoE），后文各有一节。
+2. **沿 45 层更新隐藏向量。** 隐藏向量沿 residual 流一层层往下走，每层把算出的改动加到它上面（GLM 用四条并行的 residual 流，下一节讲）。每一层先做 **attention**：当前位置生成一个查询向量 **Q**，每个历史位置有一个键向量 **K** 和一个值向量 **V**；Q 和每个 K 算出匹配分数，再按分数把各位置的 V 加权汇合，前文的信息就这样汇到当前位置。attention 通常分成多个**头**（attention head），每个头在自己的一小段维度里独立做一遍，结果再拼起来。然后做 **MLP**：对每个位置单独做一次「升维、非线性、降维」的前馈变换，加工这个位置自己的表示。这一步里汇集历史的两种做法（KDA 与稀疏 MLA）和加工前馈的两种做法（稠密 MLP 与 MoE），后文各有一节。
 3. **把最后位置变成词表分数。** 45 层走完，最后一个位置的隐藏向量先做一次 RMSNorm（按向量的均方根把它缩放到稳定的数值范围），再乘输出投影 `lm_head`（一张 154880 × 4096 的权重），得到 154880 个分数，叫 **logits**。每个分数对应词表里的一个候选 token。
 4. **选出 token，进入下一轮。** 生成策略根据 logits 选一个 token：贪心就取分数最高的那个，采样就先把分数换成概率再抽。选出的编号交给解码器变成文字；还没满足停止条件时，它也是下一轮的输入。
 
@@ -193,6 +199,11 @@ model-compute:3
 
 GLM 让 3 层 KDA 配 1 层稀疏 MLA：大部分层的开销不随上下文增长，每隔 4 层仍有一层能直接回看历史上的具体位置。
 
+**装配时怎样判定层型与绑定后端。** 固定 GLM 实现按三条优先级判断当前层是否走 KDA：配置对象提供专用判定方法时优先调用；否则当 `kda_layers` 编号列表非空时检查层号是否在表内；再否则才查逐层 `layer_types`（因此空的 `kda_layers` 列表会继续走后续判断，不代表模型没有 KDA 层）。编号 45 的 MTP 草稿层落在 45 项 `layer_types` 之外，在这份配置下判为非 KDA、走稀疏 MLA 分支，因此**按位置存压缩历史的一共是 12 层**（11 层主干加 1 层 MTP）。这两类层都不查平台 `get_attn_backend_cls` 的通用后端映射表，而是由层内对象直接绑定专用后端（通用分派对比见[注意力后端家族](attention-backend-family.md)）：
+
+- **34 层 KDA**：模型层写上游 `KimiGatedDeltaNetAttention`，运行时经自定义算子注册表换为昇腾 `AscendKimiGatedDeltaNetAttention`，直接报出 `AscendGDNAttentionBackend`；
+- **11 层主干稀疏 MLA + 第 45 层 MTP**：每层构造 `AscendIndexerKPoolMLAAttention`，向模型运行器（Runner）同时登记**三个缓存条目**——主缓存层 `IndexerKPoolMLACacheLayer` 报出 `AscendIndexerKPoolMLABackend`，另外两个前向为空的辅助模块分别登记索引器 K 池与 kpool 尾状态的专用缓存后端，使 Runner 按「后端完整类名 + 缓存规格」分组管理三份状态。
+
 ## KDA：把全部历史压进一个固定大小的矩阵
 
 **起点：标准 attention 要留住每一个历史位置。** 标准 attention 算分数后会经过 softmax（把一排分数换算成加起来等于 1 的比例），再按比例汇合 V。第 t 个位置要用自己的 Q 和前面全部 t 个 K 算分数、汇合全部 t 个 V，所以每个历史位置的 K、V 都得存着。这份存储叫 **KV cache**。生成第 t 个 token 要读 t 份，上下文越长，读得越多、占的显存也越多。基础公式见 [attention 与 Q/K/V](attention-qkv.md)。
@@ -229,7 +240,7 @@ o = Sᵀ q
 
 ## 稀疏 MLA：先把历史压短，再挑着读
 
-**起点：多头 attention 每个头都要存 K 和 V。** 标准多头 attention 里，每个历史 token 在每一层要为每个头各存一份 K 和一份 V。按 GLM 这 11 层的头数算（64 个头，每头 K、V 各 256 维），每个 token 每层要存 64 × (256 + 256) = 32768 个数。
+**起点：多头 attention 每个头都要存 K 和 V。** 标准多头 attention（MHA）里，每个历史 token 在每一层要为每个头各存一份 K 和一份 V。拿同头数、同头宽的 MHA 作对照基线（64 个头，每头 K、V 各 256 维），每个 token 每层要存 64 × (256 + 256) = 32,768 个数。
 
 **第一步：MLA 把 K 和 V 压成一条潜向量。** MLA 只缓存一条短向量，需要各头的 K、V 时再用投影矩阵解压。还可以改变乘法顺序：原来是「先解压历史，再与 Q 匹配」，现在把 K 的解压矩阵先乘到 Q 上，再去匹配压缩的历史；V 的解压同样并进输出投影。这叫**矩阵吸收**，省掉了每次读历史时的展开，推导见 [MLA](mla.md)。
 
@@ -276,6 +287,8 @@ $$\text{单次查询最大读取位置数} = 512\text{ 池} \times 4\text{ 位�
 历史不到 2051 个 token 时稀疏 MLA 层等于读全部历史，更长才真正挑选：到部署上限 133120 个 token 时只读其中 1/65，推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)。
 
 **位置信息从哪来。** 稀疏 MLA 层和索引器都不加 RoPE。模型里对 token 先后顺序敏感的计算只剩三处：KDA 层（按顺序逐个递推，短卷积只看前 3 个 token）；索引器压池时的池内位置偏置（只区分一个 token 在池里排第几）；attention 的因果范围（每个位置只能看它自己和它之前的位置）。
+
+**设备执行与历史布局绑定。** 按 2,051 个位置上界静态估算（不含 softmax、投影与分块补齐），TP8 下单层单卡的 QK 与 PV 乘加约 **33.6 MFLOP / token**，主干 11 层约 **370 MFLOP / token**。在固定 A2 执行路径上，注意力子类先校验潜向量与 RoPE 缓存视图宽度，直接取已登记的打包 MLA 缓存张量交给设备适配层，不会把三份缓存临时拼成完整 KV；适配层拼接两部分 query 后调用仓库 `csrc` 自编译扩展（query 布局 `TND`、KV 布局 `PA_BSND`、稀疏块大小 `1`），底层落到 CANN 的 `aclnnSparseFlashAttention`（同一后端文件中的纯 PyTorch 稀疏注意力参考实现仅由单元测试调用，不在在线推理路径上，算子分层见[算子与 kernel](ops-and-kernels.md)）。
 
 ## 两类 attention 各自留下什么历史
 
@@ -402,7 +415,12 @@ file: glm-5-3-flash-fig-param-budget
 
 ## 接下来把模型放进推理引擎
 
-模型执行一次前向，需要本轮的输入 token、位置和各层的历史状态。推理引擎负责把这些准备好：scheduler 决定本轮算哪些请求、每条算几个 token；KV cache 管理器分配并维护历史状态的存储；模型执行器组织计算；昇腾后端在 NPU（昇腾的计算设备）上执行具体算子。接着读：
+模型执行一次前向，需要本轮的输入 token、位置和各层的历史状态。启动期，`ascend_model` 插件入口先把官方权重架构名 `Glm5NextForConditionalGeneration` 映射至 `AscendGlm5NextForConditionalGeneration`（同时登记纯文本 `Glm5NextForCausalLM` 与草稿层 `Glm5NextMTPModel`）——**配置识别模型，注册表定位实现，加载器提供权重**，真正建层与装入权重都在 Worker 建好通信组之后（机制见[插件发现与模型注册](platform-plugin-registration.md)）。顺着源码目录追一次实际请求时，可按四段串读（全局目录分工见 [vllm-ascend 仓库地图](vllm-ascend-repo-map.md)）：
+
+- **执行入口与返回值交接**：从 `worker/worker.py` 进入模型运行器（历史基线与 `v0.30.0` 默认 `worker/model_runner_v1.py`，`main` 收敛至 `worker/v2/model_runner.py`）看输入组装；注意区分 Runner→Worker 与 Worker→引擎的返回值——异步输出须等待就绪再取结果，流水线并行非末段产出的中间张量由 Worker 发往下一段而非当成 token 返回，仅当 `execute_model` 返回空值时普通 `step` 才另调 `sample_tokens`。
+- **模型层、算子替换与配置早退**：已注册 GLM 类（历史单文件 `models/glm5_next.py`，`v0.30.0` / `main` 为 `models/glm5next/`）串起 mHC、注意力与前馈，稀疏 MLA 在 `ops/` 包装层并绑定 `attention/` 后端，跨卡分片与 `CustomOp` 登记分别查 `distributed/` 与 `utils.py`；读 `platform.py` 配置更新时留意已有非 `npu` 设备配置或缺少 `model_config` 的早退条件。
+
+推理引擎围绕这套模型分工协作：scheduler 决定本轮算哪些请求、每条算几个 token；KV cache 管理器分配并维护历史状态的存储；模型执行器与昇腾后端在 NPU 上执行具体算子。接着读：
 
 - 16 张卡怎样分组、每张卡放了什么、为什么要两台机器、KV cache 能装多少：[我们的部署](glm-5-3-flash-two-node.md)。
 - 一条请求怎样从提示词走到回答结束，每一站的形状、通信和字节：[一条请求](one-request.md)。
@@ -413,11 +431,11 @@ file: glm-5-3-flash-fig-param-budget
 
 ### 怎么开
 
-模型形状由权重仓库的 `config.json.text_config` 决定，字段对应见「全模型形状总表」；加载方式与参数统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
+模型形状由权重仓库的 `config.json.text_config` 决定，字段对应见「全模型形状总表」；架构注册由 `vllm_ascend/models/__init__.py` 完成 [C46]，加载方式与参数统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
 
 ### 会报什么错
 
-排查模型执行异常时，先按 traceback 区分 KDA、稀疏 MLA、MoE 与 MTP，再查下方「源码位置」的对应入口。跨进程报错与超时的识别方法见[调用链的定位步骤](request-call-chain.md#出问题时判断它停在哪一站)。
+排查模型执行异常时，先按 traceback 区分 KDA、稀疏 MLA、MoE 与 MTP，再查下方「源码位置」的对应入口。历史绑定镜像（`db701c1f`）有两道硬边界：一是 KDA（`KimiGatedDeltaNetAttention` → `AscendKimiGatedDeltaNetAttention`）与 `FusedMoE` 的自定义算子替换均挂在 `vllm_version_is("0.23.0")` 条件分支下 [C10]，不能脱离配套上游版本单独移植；二是 KDA 的 prefill 入口检查上下文并行度，`prefill_context_parallel_size > 1` 时当场抛出 `NotImplementedError` [C47]。跨进程报错与超时的识别方法见[调用链的定位步骤](request-call-chain.md#出问题时判断它停在哪一站)。
 
 ### 开销和什么时候别开
 
@@ -499,6 +517,7 @@ MTP 的量化描述启用旋转时，隐藏输入在 `hnorm` 前经过 `rot`。�
 | 稠密 MLP、共享专家与 MoE 的构造，router 建成 FP32，sigmoid 打分与 2.5 缩放 | `AscendGlm5NextMLP`、`AscendGlm5NextMoE`、上游 `grouped_topk`、`ops/fused_moe/experts_selector.py`（来源 15–17）[C15] |
 | MTP 层的两路输入与单层结构、embedding 共享条件与 `lm_head` 复用 | `vllm_ascend/models/glm5_next_mtp.py`、`spec_decode/llm_base_proposer.py`（来源 18–19）[C18] |
 | 部署时逐层量化判断与 W8A8 动态量化 | `quantization/modelslim_config.py`、`quantization/methods/w8a8_dynamic.py`（来源 20–21）[C20] |
+| 稀疏 MLA 打包缓存直传、`TND`/`PA_BSND` 布局与 `aclnnSparseFlashAttention` 绑定 | `attention/indexer_kpool_mla_v1.py#L1065-L1104`、`device/device_op.py#L719-L793`、`csrc/torch_binding.cpp#L2848-L2860`、`sparse_flash_attention_torch_adpt.h#L93-L149`（来源 48–51）[C48][C51] |
 | `v0.30.0` / `main` 的 `models/glm5next/` 投影融合与细粒度 TP | `c09d3e20`：`glm5next/kda.py#L171-L185`、`attention.py#L183-L220`；`8d6180e2`：`glm5next/kda.py#L299-L325`、`kda_input_projection_tp.py#L18-L45`（来源 40–41、43–44） |
 
 补充核对：上表来源 27 中，可见完整池数的计算在固定执行侧 `ops/glm5_next_lightning_indexer.py` 244–250 行；此处描述该文件所示路径，不把它推广到全部后端。上表来源 26 中，草拟步骤中实际查询行数与固定缓冲形状的区分在 `models/glm5_next.py` 1191–1199 行：非 FULL 路径取 `min(attn_metadata.num_actual_tokens, positions.shape[0])`，FULL 路径保留捕获形状。

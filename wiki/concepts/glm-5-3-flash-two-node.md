@@ -76,6 +76,18 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L815-L820'
+  - 'vllm-ascend@db701c1f:setup.py#L543-L551'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L16-L57'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/worker/__init__.py#L16-L89'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L256'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L838'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L557-L571'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L110'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1629-L1680'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L380'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -156,6 +168,11 @@ TP 的通信留在机内，EP 横跨两台机器。因此，MoE 的通信会过�
 | 单请求总长度上限（`--max-model-len`） | 133120 token | 按官方配方限制提示词与生成内容的总长度，并据此确定块表最大长度和 KDA 状态组的逻辑块长度 |
 | MTP 草拟数（`--speculative-config`） | deepseek_mtp，每轮 3 个 | 用模型自带的 MTP 层先猜 3 个 token，再由主模型一起验证；加上当前 token，每请求的 decode 步按 4 个 token 安排 |
 | 主模型图模式与捕获尺寸（`cudagraph_mode` / `cudagraph_capture_sizes`） | FULL_DECODE_ONLY；4、8、16、32、64、96、128 token | 只录纯 decode 步，把算子序列预先记录后回放以减少下发开销；七档对应 1、2、4、8、16、24、32 个请求，批量补齐到可用档位，混合批逐个下发算子执行 |
+
+这六项显式 CLI 参数之外，平台接口与 [AscendConfig](ascend-config-system.md) 还共同定下了四类隐含前提：
+
+- **可见卡、量化名与预算回退门控**：每机 8 卡由 `ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7` 划定，`--quantization ascend` 由 `NPUPlatform` 在解析前补入选项表（平台契约见 [vLLM 平台接口](vllm-platform-interface.md)与 [NPUPlatform](npu-platform.md)）。历史平台主动拒答未初始化前的总显存查询：若删去 `--max-num-batched-tokens`，默认推导会落入 API 服务小档 `2048`（未进批式 DP、均衡模式不翻倍、默认开分块预填充、公开 `Glm5NextForConditionalGeneration` 无 `is_mm_prefix_lm`、$\min(32 \times 133{,}120,\; 2048) = 2048$），而官方命令显式写死 `8192` 与 `32` 直接保留原值；同时 `DP = 2` 在平台校验期硬性锁定 `prefill_context_parallel_size = 1`（`PCP` 与 `DP` 不能同开）。
+- **未传 `--additional-config` 时的四项旧派生与 SP 边界**：官方双机命令未传任何附加 JSON 键，在「固定命令 + 默认环境」下主线依赖四条默认分支——① 采样归约 `enable_reduce_sample=False`（走完整词表路径）；② 细粒度 `lmhead_tensor_parallel_size=0`（跟随 TP8）；③ `enable_flashcomm1=0`（注意 `enable_sp` 在启用共享专家 DP 且满足 EP / `TP>1` 时仍会被派生改写为真，不能仅凭未传 `FlashComm1` 断言 [序列并行](sequence-parallel.md)关闭，教学基线显式保持该覆盖未触发，见[怎样读 vllm-ascend](reading-vllm-ascend.md)）；④ `rejection_sampler` 的分块验证与熵验证均关闭。排查任一昇腾特性是否生效，都须将 CLI、默认值、环境兜底、平台改写与消费者条件五步连起来核对。
 
 ### 本页新出现的名字
 
@@ -270,7 +287,7 @@ file: glm-5-3-flash-two-node-fig-weight-sharding
 | 3121f187 | W8A8 动态量化 | 20.58 GiB | MTP 旋转矩阵、视觉塔、量化辅助张量及其余小型参数 |
 | 9e55cbc8 | FLOAT，按 BF16 加载计算 | 每层增加 19 MiB，12 层共加 228 MiB，约 **20.81 GiB** | 同上；20.81 不是整卡占用的上界 |
 
-**官方双机配方会加载视觉塔。** 它允许每请求 1 张图、0 段视频；视觉模块只有在两种模态的额度都为 0 时才被跳过。仅发送纯文本请求，或省略模态额度参数，都不会自动省掉这份权重。默认的视觉编码器采用 weights 模式：大线性矩阵按 TP8 切，卷积、归一化和部分偏置仍复制在每卡；改成 data 模式时矩阵也复制，必须另算。
+**官方双机配方会加载视觉塔。** 它允许每请求 1 张图、0 段视频；视觉模块只有在两种模态的额度都为 0 时才被跳过（在线复用图像编码结果的机制见[多模态编码器缓存](multimodal-encoder-cache.md)）。仅发送纯文本请求，或省略模态额度参数，都不会自动省掉这份权重。默认的视觉编码器采用 weights 模式：大线性矩阵按 TP8 切，卷积、归一化和部分偏置仍复制在每卡；改成 data 模式时矩阵也复制，必须另算。
 
 用同一配置的视觉宽度 1024、MLP 宽度 4096、输出宽度 4096、合并层中间宽度 10240，按 BF16、TP8、保留视觉塔计算：
 
@@ -291,7 +308,7 @@ file: glm-5-3-flash-two-node-fig-weight-sharding
 
 ### 为什么一个逻辑块是 640 个 token
 
-**这里的「块」比常见的大得多：一个逻辑块是 640 个 token。** 原因是 GLM 是 hybrid 模型——34 层 KDA 线性 attention 存的是固定大小的递推状态，11 层稀疏 MLA 存的是按 token 增长的压缩表示，两种状态要共用同一个池子。vllm-ascend 的做法是让块大到「一个 MLA 页刚好装得下一整份 KDA 状态」：
+**这里的「块」比常见的大得多：一个逻辑块是 640 个 token。** 原因是 GLM 是 hybrid 模型——34 层 KDA 线性 attention 存的是固定大小的递推状态，11 层稀疏 MLA 存的是按 token 增长的压缩表示，两种状态要共用同一个池子。vllm-ascend 的做法是按 128 位置的算子块向上取整，使连续 5 个算子块合起来的逻辑块足够容纳一整份 KDA 状态：
 
 $$\text{kernel 块数} = \left\lceil \frac{561{,}152}{128 \times 1{,}024} \right\rceil = 5, \qquad \text{逻辑块大小} = 128 \times 5 = 640\text{ 个 token}$$
 
@@ -364,17 +381,19 @@ file: glm-two-node-startup
 | 机器 1 | EngineCore（DP 组 1，headless） | 1 |
 | 机器 1 | worker（卡 8–15） | 8 |
 
-表内合计 **20 个核心功能进程，其中 16 个 worker 占卡**。这是上述角色的组成账，不是操作系统的完整进程清单：机器 1 仍有 headless 启动父进程，所用多进程启动方式还会带来相应的运行时辅助进程；这些未计入表内。
+表内合计 **20 个核心功能进程，其中 16 个 worker 占卡**（广播队列 `/dev/shm` 与多进程内存开销见[主机内存与大页](host-memory-and-hugepages.md)）。这是上述角色的组成账，不是操作系统的完整进程清单：机器 1 仍有 headless 启动父进程，所用多进程启动方式还会带来相应的运行时辅助进程；这些未计入表内。
 
-**第三步，建 process group。** 每个 worker 用 HCCL 建全局通信域，再按 TP=8 建机内 TP 组、按 DP=2 建跨机配对，最后建那个 16 卡的 EP / MC2 组。上一节那张表就是这一步的产物。
+在这套 `spawn` 多进程拓扑下，`vllm-ascend` 通过 **2 组共 5 个入口点**接入（平台组 `ascend` 在进程首次访问 `current_platform` 时懒返回 `"vllm_ascend.platform.NPUPlatform"`；通用组 `ascend_kv_connector`、`ascend_model_loader`、`ascend_service_profiling`、`ascend_model` 在 `1` 前端 + `2` EngineCore + `16` Worker 共执行 **19 次**登记，DP 协调器不建模型不参与，前三个通用入口首行调 `_ensure_global_patch()` 为 EngineCore 子进程补齐全局补丁，见[插件注册](platform-plugin-registration.md)与[架构总览](vllm-ascend-overview.md)）。绑定镜像 `db701c1f` 的运行时补丁按漏斗生效（详见 [Patch 机制](ascend-patch-system.md)）：`patch/platform` 28 个文件静态导入 **23 项**（`glm5_next_config` 识别架构、`speculative_config` 转为 `glm5_next_mtp`、`mamba_config` 定出 `640`/`133120`、`use_v2_model_runner` 选 V1 runner、`kv_cache_utils` / `kv_cache_coordinator` / `mamba_manager` 管分组分块，而 `glm5_next_mamba_scheduler` 在 `none` 模式下不执行、`balance_schedule` 关闭时直回原实现）；`patch/worker` 24 个文件导入 **19 项**（可选 +1；`process_weights_after_loading` 转换 GLM MLA 排布、`distributed` 管 HCCL、`qwen3_next_mtp` 解除同层号多注意力绑定报错、`cudagraph` 修正均匀 decode 判定，而 `AscendRejectionSampler` 直调自有函数绕过 `rejection_sampler` 补丁）；`patch/worker/patch_v2` 7 项仅留 **1 项**。
 
-**第四步，加载 W8A8 权重。** 引擎读取模型目录里的精度描述，逐层选择量化或不量化的实现。显存按**加载后**的类型算；哪些层用 INT8、BF16、FP32，见[模型页的权重精度表](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。索引器首次前向才创建的 FP32 副本及其预算归属，见上面的[两种块数与预算](#两种块数各在什么时候用)。
+**第三步，建 process group。** 每个 worker 用 HCCL 建全局通信域，再按 TP=8 建机内 TP 组、按 DP=2 建跨机配对，最后建那个 16 卡的 EP / MC2 组（流同步、通信域与绑核调优见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）。上一节那张表就是这一步的产物。
 
-**第五步，量出剩余显存。** 每个 worker 用假数据按一步的上限试跑：GLM 先按 128 个 token 跑一次，再按 8192 个跑一次。试跑不建注意力元数据，稀疏 MLA 层直接返回全零，KDA 层跳过递归计算，所以这不是一次完整前向。测出激活峰值后，用预算减去权重、激活峰值和非 torch 占用，得到还能给 KV cache 多少，见 [KV cache 显存预算](kv-cache-memory-profiling.md#试跑两次先按-128-个-token再按-8192-个)。
+**第四步，加载 W8A8 权重。** 引擎读取模型目录里的精度描述，逐层选择量化或不量化的实现（启用 `--safetensors-load-strategy prefetch` 后台预读时，主模型与 MTP 草稿层各扫盘一遍，按语言子账重建整份约 `304.8 GiB`、两遍逻辑过手约 `609.6 GiB`，详见 [Worker 生命周期](npu-worker-lifecycle.md)）。显存按**加载后**的类型算；哪些层用 INT8、BF16、FP32，见[模型页的权重精度表](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。索引器首次前向才创建的 FP32 副本及其预算归属，见上面的[两种块数与预算](#两种块数各在什么时候用)。
+
+**第五步，量出剩余显存。** 每个 worker 用假数据按一步的上限试跑：GLM 先按 128 个 token 跑一次（覆盖 MC2 融合通信），再按 8192 个跑一次。试跑不建注意力元数据，稀疏 MLA 层直接返回全零，KDA 层跳过递归计算，所以这不是一次完整前向。测出激活峰值后，用预算减去权重、激活峰值和非 torch 占用，得到还能给 KV cache 多少，见 [KV cache 显存预算](kv-cache-memory-profiling.md#试跑两次先按-128-个-token再按-8192-个)。
 
 **第六步，切 KV cache 块。** 按上一节的公式把可用显存一次性切成块。GLM 走的是 vllm-ascend 专门写的分组器，把 45 层分成 5 个缓存组：1 个 full 组（12 层 MLA 主 cache 和 12 份索引器压缩 cache 交错排列）、1 个索引器状态组、3 个 KDA 组（34 层按步长 3 分成 12/11/11 层）。同一个块 id 的物理空间被不同组的层共享，所以**占住一个块 id 就等于占住 7.969 MiB**，不管是哪一组在用它。
 
-**第七步，捕获 decode 图。** 只录纯 decode 步，回放时省去逐个下发算子的开销。捕获 7 个尺寸：4、8、16、32、64、96、128 个 token。MTP 让每个请求在一步里算 1 个真 token 加 3 个草稿 token，所以这 7 个尺寸对应 **1、2、4、8、16、24、32 个请求**；最大的 128 正好等于请求数上限 32 乘 4。
+**第七步，捕获 decode 图。** 主模型按 `FULL_DECODE_ONLY` 只录纯 decode 步（`--speculative-config` 内的 `"enforce_eager": true` 仅将草稿层切回 eager，不影响主模型录图，五条回放判据与持久缓冲原地刷新见[图模式层](graph-mode-layer.md)）。显式捕获 7 个尺寸：4、8、16、32、64、96、128 个 token。MTP 让每个请求在一步里算 1 个真 token 加 3 个草稿 token，所以这 7 个尺寸对应 **1、2、4、8、16、24、32 个请求**；最大的 128 正好等于请求数上限 32 乘 4。
 
 ## 这套部署给后面各章留下的后果
 
@@ -387,13 +406,39 @@ file: glm-two-node-startup
 5. **prefix caching（复用相同前缀的 KV）关着。** 相同前缀不会被复用，每条请求的提示词都要重算。见 [prefix caching](prefix-caching.md)。
 6. **MTP 同时影响权重、KV 和每步 token 数。** 前两项见本页的权重表与每块字节算式；每请求每步从 1 个变成 4 个 token，还会影响图尺寸、token 预算和 MC2 的 128 门槛。见 [speculative decoding](speculative-decoding.md)。
 
-此外，这套固定在线配方未开启若干高阶运维与训练协同特性；若在工程改造中叠加它们，需提前避开四类耦合约束：启用 [Sleep Mode](sleep-mode.md#复杂异构与多机边界对照glm-双机若改同卡轮训会撞上什么) 须先清除启动脚本里的 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True` 并跨两机统一协调 16 卡休眠；接入 [RL 权重更新](vllm-ascend-for-rl.md#复杂异构与多机边界对照glm-双机接入-rl-rollout-的四道关卡) 或 [批不变性](batch-invariance.md#复杂异构实战对照glm-双机混批跨度与三处算子覆盖边界) 会受限于 `FA3` 不支持稀疏 MLA 以及 34 层 KDA / `mHC` 的算子覆盖范围；挂接 [LoRA](lora.md#复杂异构实战对照glm-双机-ep16-与量化下的-lora-边界) 在 `EP > 1` 下会把 MoE 通信强制改道至 `ALLTOALL`；改用 [Netloader](netloader-guide.md#复杂异构与多机边界对照ep16-异构分片与-mtp-草稿通道限制) 扩容时，两机因 `EP16` 专家分片不同不能互指供方，且须单独留意 MTP 草稿通道的端口偏移与缓存策略。
+现场排障也要守住两条拓扑前提（详见[推理排障入口](inference-troubleshooting.md)）：一是两机共持 EP16 专家，空闲 DP 组没有用户请求仍会执行 dummy 步参与计算，某组在通信处等待不能自动解释成它的前端堵塞；二是缩减卡数、切换模型或改动精度都会改变权重布局与执行路径，应先在原双机配置取得阶段证据再决定如何简化（PD 分离、外部缓存与 RFork 仅在显式启用时进入，基线普通请求不自动包含这些状态迁移）。若在工程改造中叠加高阶运维或训练协同特性，先核对下表条件：
+
+| 拟叠加特性 | 在这套双机异构拓扑上的前置条件与冲突边界 | 专题入口 |
+| --- | --- | --- |
+| **Sleep Mode** | 须先清除启动脚本里的 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`（主机卸载容量另受[主机内存与大页](host-memory-and-hugepages.md)约束），并跨两机统一协调 16 卡休眠与唤醒 | [Sleep Mode](sleep-mode.md) |
+| **RL 权重同步** | 受限于 `FA3` 不支持稀疏 MLA、34 层 KDA / `mHC` 的算子覆盖范围，以及跨机 EP16 与 MTP 权重的同步刷新要求 | [RL 训练推理协同](vllm-ascend-for-rl.md) |
+| **批不变性** | 启用批不变并进入 FlashAttention 验证时，MLA 或稀疏组合会直接报错；34 层 KDA 与四路 `mHC` 也不在批不变算子保证范围内 | [批不变性](batch-invariance.md) |
+| **RFork 同构扩容** | 双机内部 DP0/DP1 因 EP16 专家分片不同不能互借；跨同构 16 卡新实例借用时，`--quantization ascend` 已转换布局的张量须满足可变权重守卫与流同步条件（见[昇腾运行时与调优](ascend-runtime-and-tuning.md)） | [RFork 远端内存加载](rfork.md) |
+| **LoRA / Netloader** | 挂接 LoRA 在 `EP > 1` 下会将 MoE 通信强制改道至 `ALLTOALL`；改用 Netloader 扩容时两机不能互指供方，且须单独核对 MTP 草稿通道的端口偏移与缓存策略 | [LoRA](lora.md)、[Netloader](netloader-guide.md) |
+
+### 固定双机的参数边界
+
+官方双机命令未传 `--additional-config`；若在固定镜像（`db701c1f`）上试配或向 `v0.30.0` / `main` 迁移以下 10 项参数，会分别撞上四组拓扑与架构边界：
+
+- **块表与索引**：
+  - [`c8_enable_reshape_optim`](../params/c8-enable-reshape-optim-8bd7e5f82c6c.md)：`db701c1f` 中该键与 `enable_sparse_li_c8` 默认均为 `False`，即使强行同设为 `true`，旧 kpool 后端构造时也会直接抛 `GLM-5 Indexer KPool MLA does not support c8_enable_reshape_optim`；`v0.30.0` 与 `main` 已随 PR #18128 删除该键（保留旧键触发 `extra="forbid"`，仅发现 `vllm_omni` 时告警过滤），且 `model_uses_sfa_sparse` 排除带 `index_kpool` 的模型（不影响新版教程中 SFA 主 KV 的 W8A8C8 量化路径）。
+  - [`block_table_no_commit_optimize`](../params/block-table-no-commit-optimize-8328d0d2d00d.md)：仅在 `main` 历史提交存活一日（PR #17066 引入、次日 PR #17470 整体回退）的 MRv1 脏区提交回退键；`db701c1f` 无此键并静默忽略，MRv1 每步准备输入时直接整行提交块表（见[准备输入页](prepare-inputs-flow.md)与[块表显存和拷贝账](block-table.md#表本身占多少每步花多少)），`v0.30.0` 与 `main` 保留该键通常启动报错。
+  - [`sfa_dcp_force_tmajor_restore`](../params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md)：本部署 `PCP = DCP = 1` 且 `db701c1f` 无此键（逐键忽略）；即便升至 `v0.30.0` / `main` 并开启 `DCP > 1`，`model_uses_sfa_sparse` 也会排除带 `index_kpool` 的 GLM，不进入该键控制的 LightningIndexer SFA-DCP 分支。
+- **并行与分片**：
+  - [`profiling_chunk_config`](../params/profiling-chunk-config.md)：本部署 `PP = 1`，在 `db701c1f`、`v0.23.0`、`v0.26.0rc` 或 `v0.30.0` 上将 `enabled` 设为真均会在启动校验抛 `ValueError: profiling_chunk_config requires pipeline parallelism (pp > 1). Please set --pipeline-parallel-size to a value greater than 1, or disable profiling_chunk_config.`（`main` 已于 PR #21310 移除整套 CPP）。
+  - [`enable_pcp_o_proj_weight_sharding`](../params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)：本部署 `PCP = DCP = 1` 且 `db701c1f` 无此键；历史 GLM 的 34 层 KDA 在 `PCP > 1` 的 prefill 路径直接抛 `NotImplementedError`（见[上下文并行](context-parallel.md)），11 层稀疏 MLA 的 `o_proj` 仍按 TP8 行切。
+  - [`enable_pcp_embedding_lmhead_weight_sharding`](../params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md)：同样受 `PCP = 1` 不满足生效门与历史 KDA 拒绝 `PCP > 1` 约束，每张卡的 `embed_tokens` 与 `lm_head` 仍各存一份完整 TP8 词表切片（各 `151.25 MiB`，见[每张卡上放了什么](#每张卡上放了什么)）。
+  - [`layer_sharding`](../params/layer-sharding.md)：本部署为混部、无 `kv_transfer_config`，在 `db701c1f` 上传非空列表直接报 `additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.`；即使改成 P 节点并打开 DSA-CP，旧专用后端构造时仍会抛 `does not yet support DSA context parallelism`，且与 KDA 交错的 11 层稀疏 MLA 也不满足连续层号登记（至少连续 3 层）约束（`v0.24.0rc` 起已移除该键）。
+- **分层 KV**：
+  - [`kvpp_config`](../params/kvpp-config-0445bd352140.md) 与 [`size`](../params/size-40a1c2ca47b8.md)：`db701c1f` 无 KVPP，写入 `enable_kvpp` 与 `kvpp_config` 均被旧配置类忽略（新版手写 `kvpp_config` 也会被 `_NON_USER_INPUT_KEYS` 静默剔除）；若在 `v0.30.0` / `main` 传 `"enable_kvpp": true`，TP8 × PCP1 派生 `size = 8 > 1` 进入 `validate()` 后，**先撞上 `FULL_DECODE_ONLY` 整图模式检查**（仅允许 eager 或 `PIECEWISE`），改图模式后**再撞上「只支持非混合 MLA」检查**而报错（详见 [KVPP 概念页](kvpp.md)）。
+- **EPLB**：
+  - [`stair_config`](../params/stair-config-cca9e594a052.md)：`db701c1f` 未开 [EPLB](eplb.md) 且不认此键，写入直接抛 `ValueError: Config has no attribute 'stair_config'`（配套 vLLM `0.23.0` 也无法启用 MRv2）；若迁至 `v0.30.0` / `main` 的 MRv2 并沿用零冗余摆法（`288 = 16 × 18`、无额外副本位），总槽位等于逻辑专家数，副本数无搜索空间、只能换位置，单轮每卡与跨节点的精确搬运上界见 [`rank_transfer_limit`](../params/rank-transfer-limit-99529b37d91d.md) 与 [`cross_node_transfer_limit`](../params/cross-node-transfer-limit-06ee92260b7a.md)（含未显式指定 `communicator` 自动回退 `torch_gloo` 时将未显式填写项收紧为 `1` 的规则）。
 
 沿着请求本身往下走，看 [一条请求的全过程](one-request.md)；多条请求同时进来时的样子，看 [并发请求](concurrent-requests.md)。
 
 ## 活跃食谱增量对照：v0.30.0 与 main 变了什么
 
-上文全篇算例、16 卡容量子账与 3,855 / 3,908 块预算属于**例外 B 历史绑定算例**，严格钉在 `vllm@0fc695fc + vllm-ascend@db701c1f`（教程提交 `0576b647`）以确保与全站 19 篇冻结 3D 算例页数字自洽。若直接部署社区正式版 `v0.30.0`（`vllm-ascend@c09d3e20`）或开发主线 `main`（`vllm-ascend@8d6180e2`）中的活跃 `GLM5.3-Flash.md` 食谱，核心架构与参数有以下四类增量演进，不可直接把旧镜像字节账套回新版本：
+上文全篇算例、16 卡容量子账与 3,855 / 3,908 块预算属于**例外 B 历史绑定算例**，严格钉在 `vllm@0fc695fc + vllm-ascend@db701c1f`（教程提交 `0576b647`）以确保与全站 14 篇含 `wiki-scene` 的 3D 教学页及 4 篇 GLM 主线页（其中 2 篇重合，共 16 篇）数字自洽。若直接部署社区正式版 `v0.30.0`（`vllm-ascend@c09d3e20`）或开发主线 `main`（`vllm-ascend@8d6180e2`）中的活跃 `GLM5.3-Flash.md` 食谱，核心架构与参数有以下四类增量演进，不可直接把旧镜像字节账套回新版本：
 
 ```wiki-diagram
 file: glm-5-3-flash-two-node-fig-v030-evolution
@@ -431,7 +476,29 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 | `cudagraph_capture_sizes` | 4…128 共 7 个 | 录哪几个批量尺寸 | decode 步要补齐到最近的一个尺寸 | [graph mode](graph-mode-layer.md) |
 | `--speculative-config` | `deepseek_mtp`，每轮 3 个 | 用模型自带的 MTP 层草拟 3 个 token | 采样之后的草拟与验证；也把每请求每步的 token 数变成 4 | [speculative decoding](speculative-decoding.md) |
 
-两端启动入口 [S1]：机器 0 正常 `vllm serve`，由 `launch_core_engines` 建 DP 协调器并按 `data_parallel_size_local=1` 只拉起本机的 1 个引擎进程；机器 1 走 `run_headless`，不建前端、不建协调器，按 `data_parallel_start_rank=1` 起 1 个引擎进程并连回机器 0 的握手地址。
+两端启动入口 [S1]：机器 0 正常 `vllm serve`（`--api-server-count 1` 在当前进程起唯一 HTTP 前端），由 `launch_core_engines` 建 DP 协调器并按 `data_parallel_size_local=1` 只拉起本机的 1 个引擎进程；机器 1 走 `run_headless`（`--headless` 把 API 数置 0，不得同时给正 `api-server-count`），不建前端、不建协调器，按 `data_parallel_start_rank=1` 起 1 个引擎进程并向机器 0 的握手地址报到。注意区分**两类 `headless` 多机路径**（进程树细节见[引擎进程](engine-processes.md)）：单个 DP 组跨多机做 PP/TP 时用 `nnodes` / `node-rank`、远端不另建 EngineCore；本部署则是**多个 DP 组分驻不同节点**（`PP=1`、`world_size=8`、`world_size_across_dp=16 > 1` 未指定 `--distributed-executor-backend` 时两端均自动选 `mp` 多进程执行器，配合 V1 runner 与异步调度得 `max_concurrent_batches=2`，见[V1 引擎形状](vllm-v1-shape.md)）：
+
+```bash
+# 两端共用：本机可见设备均写 0..7（8..15 是全局 Worker rank，不能填作 node1 本机卡号）
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000
+export HCCL_CONNECT_TIMEOUT=1200
+export HCCL_EXEC_TIMEOUT=3600
+export HCCL_OP_EXPANSION_MODE=AIV
+# 两端各填自己的本机网卡与 Host IP（切勿两端都填 node0_ip）：
+# export GLOO_SOCKET_IFNAME=<nic_name>  HCCL_SOCKET_IFNAME=<nic_name>  HCCL_IF_IP=<local_ip>
+
+# node0 拓扑差异项（勿把 start-rank 换成切外部 LB 模式的 --data-parallel-rank）：
+# --data-parallel-start-rank 0 --data-parallel-address "$node0_ip" --data-parallel-rpc-port 12321 --api-server-count 1
+# node1 拓扑差异项：
+# --data-parallel-start-rank 1 --data-parallel-address "$node0_ip" --data-parallel-rpc-port 12321 --headless
+```
+
+**网卡、端口、超时与解析器四组运行边界**：
+
+- **网卡与端口变量各管各的**：`GLOO_SOCKET_IFNAME` 精确匹配 CPU Gloo 网卡（多接口轮转），`HCCL_SOCKET_IFNAME` 供 HCCL 初始化匹配 Host 网卡（支持 `=eth0` 精确名与 `^` 排除），`HCCL_IF_IP` 直接指定本机初始化 Host IP 并优先于 `HCCL_SOCKET_IFNAME`；教程残留的 `TP_SOCKET_IFNAME` 属于 PyTorch TensorPipe RPC，当前 `mp`/Gloo/HCCL 路径不消费。`VLLM_HOST_IP`（本机内部通信 IP）与 `VLLM_PORT`（十进制动态端口起点）既不是 HTTP `--host`/`--port` 也不是 `--data-parallel-rpc-port`（在 Kubernetes 中若先建名为 `vllm` 的 Service，容器被注入 `VLLM_PORT=tcp://...` 会在整数解析阶段直接报错）。`HCCL_OP_EXPANSION_MODE=AIV` 将 A2 通信算子展开放到 Vector Core（受对称组网、单 AIV 域与图模式边界约束，且确定性模式或通信域配置可覆盖它）。
+- **三层超时与失效残留变量**：`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` 管单次 `execute_model` / `sample_tokens` Worker RPC 截止时间（上游默认 `300` 秒，Ascend 平台将 `< 1836` 改写为 `3000` 秒，不把多步 decode 合并计时 [C62]）；`HCCL_CONNECT_TIMEOUT=1200` 在 CANN 9.1.X 下另加 `20` 秒失败通知（文档建链等待 `1220` 秒）；`HCCL_EXEC_TIMEOUT=3600` 在 A2 `HOST`/`HOST_TS` 下默认 `1836` 秒（`0` 不限时），但在 `AIV` 模式下上限与超限回退值均为 **`1091` 秒**（硬件再量化），因此 `3600` + `AIV` 不能视作实际 `3600` 秒等待。教程里同时导出的 `VLLM_RPC_TIMEOUT=3600000` 在固定 vLLM / Ascend 包中无定义与消费者，仅触发未知 `VLLM_` 环境变量告警。
+- **工具调用与推理解析器**：主线命令未配解析器，因此在普通 HF 分词路径下传 `tool_choice="auto"`、`required` 或指定函数名都会在入口被拒（详见[API 入口](api-server-entry.md)）；教程 FAQ 推荐搭配 `--tool-call-parser glm47`（用 `auto` 还须加 `--enable-auto-tool-choice`）与 `--reasoning-parser glm45`，并注明该模型不支持 `enable_thinking=false`（`tool_choice="none"` 默认仍把 `tools` 交给模板，除非开启 `exclude_tools_when_tool_choice_none`）。
 
 `--quantization ascend` 由 vllm-ascend 在参数解析阶段补入。它读模型目录下的 `quant_model_description.json`，逐层判断精度；前缀标成 `FLOAT` 的层换成不量化的实现。各层加载后的精度与文件精度对照见[模型页](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。索引器的 K 投影 `wk_weights_proj` 和压池打分投影 `index_kpool_compress_gate` 在首次前向各转一份 FP32 常驻副本；其余索引器投影为 `wq_b`，池内位置偏置为 `index_kpool_compress_ape`（每层 4 × 128 个数）。
 
@@ -450,8 +517,9 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 ### 会报什么错
 
 - 草稿模型的层必须出现在 KV cache 配置里，否则 `initialize_attn_backend` 会在 `assert not missing_layers` 上直接断言失败 [C22]。MTP 第 45 层是 MLA 层、带自己的索引器，它的三份 cache 必须和主干一起进分组器。
-- 两端的 `data-parallel-start-rank`、`data-parallel-size` 和握手地址任一对不上，全局 rank 就凑不成 0–15（rank 的算法见下表第一行）。**待核：**缺一份实机日志，按教程设的 `HCCL_CONNECT_TIMEOUT=1200`，表现更可能是等到超时而不是立刻报错，现在没有报错原文可引。建链、执行与 Worker 三种等待的单位、默认和覆盖见[超时参考](request-call-chain.md#怎么开)。
-- 本机网卡名（`HCCL_SOCKET_IFNAME`）要填 `local_ip` 对应的那一张，这是教程给的配置约束，不是运行期报错 [S1]。Gloo 与 HCCL 的接口语法、地址优先级及 TensorPipe 变量区别统一见[通信环境参考](engine-processes.md#怎么开)。
+- 两端的 `data-parallel-start-rank`、`data-parallel-size` 和握手地址任一对不上，全局 rank 就凑不成 0–15（rank 的算法见下表第一行）。**待核：**缺一份实机日志，按教程设的 `HCCL_CONNECT_TIMEOUT=1200`，表现更可能是等到超时而不是立刻报错，现在没有报错原文可引。建链、执行与 Worker 三种等待的单位、默认和覆盖见上方[怎么开](#怎么开)及[请求调用链](request-call-chain.md)。
+- 本机网卡名（`HCCL_SOCKET_IFNAME`）要填 `local_ip` 对应的那一张，这是教程给的配置约束，不是运行期报错 [S1]。Gloo 与 HCCL 的接口语法、地址优先级及 TensorPipe 变量区别见上方[怎么开](#怎么开)及[引擎进程](engine-processes.md)。
+- 在固定双机上误配 `c8_enable_reshape_optim`、`layer_sharding`、`profiling_chunk_config`、`stair_config` 或 `kvpp_config` 等附加参数时的具体报错原文与拦截次序，汇总在正文[固定双机的参数边界](#固定双机的参数边界) [C56][C57][C58][C60][C61]。
 
 ### 开销和什么时候别开
 
@@ -497,6 +565,7 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 | warmup 与图捕获、MLA `fused_qkv_a_proj` 关 TP、MTP 第 45 层构造 | `vllm_ascend/worker/worker.py` L693–L784、`models/glm5_next.py` L1880–L1930、`models/glm5_next_mtp.py` L39–L92（来源 15–17）[C16] |
 | A2 选 MC2 三条件（EP ≥16、每卡专家 ≤24、token ≤ 128）、hybrid 关 prefix caching | `vllm_ascend/ascend_forward_context.py`、`vllm/config/model.py`（来源 18–19）[C18] |
 | 空闲 DP 组陪跑、两组步内对齐、草稿层 KV 校验与前端 DP 选组 | `vllm/v1/engine/core.py` L1869–L1945、`worker/model_runner_v1.py` L692–L740、`spec_decode/llm_base_proposer.py`、`vllm/v1/engine/core_client.py`（来源 20–23）[C20] |
+| 五个插件入口、平台/Worker 补丁清单、默认 `AscendConfig` 派生与固定双机 10 项参数边界 | `db701c1f`：`setup.py#L543-L551`、`__init__.py#L18-L69`、`patch/platform/__init__.py#L16-L57`、`patch/worker/__init__.py#L16-L89`、`ascend_config.py#L162-L256, #L828-L838`、`indexer_kpool_mla_v1.py#L557-L571`、`ops/kimi_kda.py#L390-L403`、`worker/block_table.py#L284-L288`（来源 51–59）[C51][C53][C55][C59]；`c09d3e20`：`ascend_config.py#L64-L110, #L1629-L1680`（来源 60–61） |
 | `v0.30.0` / `main` 活跃食谱与 `models/glm5next/` 投影融合 | `c09d3e20`：`GLM5.3-Flash.md#L15-L45`、`#L305-L420`、`glm5next/kda.py#L171-L185`、`attention.py#L183-L220`、`model.py#L724-L729`；`8d6180e2`：`GLM5.3-Flash.md#L1-L45`、`glm5next/kda.py#L299-L325`、`kda_input_projection_tp.py#L18-L45`、`model.py#L815-L820`（来源 42–50） |
 
 量化子账的版本证据是来源 32、33 的两份固定 `quant_model_description.json`；来源 34 的模型配置与 9e55cbc8 的配置逐字相同。来源 35、38–40 给出视觉线性层、卷积、归一化及偏置的构造，来源 41 固定默认 weights 模式；来源 36、37 共同说明视觉塔的创建与跳过条件。MTP 旋转矩阵的开关和形状在来源 17 的第 46–63 行。FLOAT 表示不量化，具体驻留精度还要按配置和模块实现判断。

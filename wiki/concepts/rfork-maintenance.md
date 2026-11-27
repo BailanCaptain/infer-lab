@@ -73,9 +73,9 @@ rawSources:
 
 升级或合入 RFork 新改动前，第一个问题就是：「现在运行的是哪一份完整代码？」是社区 `v0.30.0`、社区上游 `main`，还是历史上在外部独立维护的补丁链？
 
-**版本维护要做的，就是任何时候都说得清「现在运行的是哪一份完整代码」，并让历史补丁、上游提交和知识页三样东西彼此对得上。** RFork 本身是什么见[总览](rfork.md)。历史上本章曾以独立工作分支的七份补丁作为过渡基线；随着 PR `#12995`、`#15439`、`#15935` 合入 `v0.30.0`，以及 `#17366`、`#20111`、`#20876`、`#21333`、`#21707` 落地社区主干，**当前全章已原子重锚至社区上游 `vllm-project/vllm-ascend` `main`（`8d6180e2`）**。判断当前行为只认社区上游对应固定提交的完整源码；早期七份补丁原件作为历史演进归档保留，用于追溯「某个保护机制当初为何引入」，不再代表现行代码。
+**版本维护的第一步，是先核对目标环境实际安装的提交号、运行依赖版本（`vllm`、`torch_npu`、`CANN`、`yr.datasystem`）与代码分支，再让历史补丁、上游提交和知识页三样东西彼此对得上。** RFork 本身是什么见[总览](rfork.md)。当前全章已原子重锚至社区上游 `vllm-project/vllm-ascend` `main`（`8d6180e2`，各阶段合入的社区 PR 清单统一归入文末[版本差异](#版本差异)核验表）。判断现行行为只认社区上游对应固定提交的完整源码；早期独立工作分支的七份补丁原件仅作为历史演进归档保留，用于追溯某项保护当初为何引入，不再代表现行代码。
 
-下图记录了早期七份历史补丁真实的分叉关系（现均已被上游演进吸收）：
+下图记录了早期独立工作分支上七份历史补丁的分叉关系（它们针对的问题已在上游后续重构中按社区方案落地，但原补丁文件的具体改动、两路分叉细节与当前上游 `8d6180e2` 源码是两套独立证据，不能直接画等号）：
 
 ```wiki-diagram
 file: rfork-patch-history
@@ -138,7 +138,7 @@ file: rfork-patch-history
 | 会话、租约、Planner 协议 | [启动](rfork-startup.md)、[生命周期](rfork-lifecycle.md)、[配置](rfork-config.md)、[排错](rfork-troubleshooting.md)里 400/404 的那部分 |
 | 回退、全局模型引用 | [启动](rfork-startup.md)、[传输](rfork-transfer.md)、[排错](rfork-troubleshooting.md)里 OOM 的那部分 |
 
-升级或引入新上游提交时，按顺序确认新钉点、核对行为差异、跑 `pnpm wiki:diagrams --check`、`pnpm wiki:lint` 与 `pnpm wiki:audit`，并同步更新 10 篇 RFork 文档与全部 RFork 2D 图的 `pins`。
+升级或引入新上游提交时，按顺序确认新钉点、核对行为差异、跑 `pnpm wiki:diagrams --check`、`pnpm wiki:lint` 与 `pnpm wiki:audit`，并同步更新 RFork 相关的 **9 篇教学页加 1 篇来源档案页**（[官网核读页](../sources/rfork-official-guide.md)）及全部 RFork 2D 图的 `pins`。
 
 ```wiki-diagram
 file: rfork-fig-upgrade-isolation
@@ -152,7 +152,7 @@ file: rfork-fig-upgrade-isolation
 
 本地能核的有：上游 `main@8d6180e2` 源码与 `v0.30.0@c09d3e20` 差异；知识页引用的文件、行号与图 `pins` 符号是否存在；页面格式和链接是否正确。**这些都证明不了真实 NPU 上已经把权重传完。**
 
-这一轮没有 NPU、CANN、YuanRong 以及 RFork 的 Python 运行依赖，所以不声称跑过设备集成测试。以下几项要在实际部署里核：传输内存的登记与清理约定、MTP/DSpark 共享与归属恢复、Engram 宿主表加载、输出一致性、并发扩容，以及来源实例的推理是否受影响。
+这一轮没有 NPU、CANN、YuanRong 以及 RFork 的 Python 运行依赖，所以不声称跑过设备集成测试。上线与复测时须先记录运行期软件栈与环境变量依赖指纹（见 [CANN Runtime 与任务下发调优](ascend-runtime-and-tuning.md)），再在实际部署里核实：传输内存的登记与清理约定、MTP/DSpark 共享与归属恢复、Engram 宿主表加载、输出一致性、并发扩容，以及来源实例的推理是否受影响。
 
 清理失败的现场验收还要检查旧权重是否继续受到保护。在 RFork 加载失败后准备回退的路径上，若 seed 服务或登记内存的清理结果仍不允许继续，加载器会抛错，保留使张量存储继续有效的引用，并拒绝在旧权重仍被固定时分配第二个模型。现场需要核对的不只是是否报错，还包括保活引用是否保留、第二个模型的分配是否被阻止。
 
@@ -203,4 +203,4 @@ file: rfork-fig-upgrade-isolation
 - Engram 宿主表本地加载与释放：`local_weights.py#L61-L97`。[C7]
 - `v0.30.0` 对照：`vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L600-L710`。[C8]
 
-维护回归时须分别覆盖：后台归还 `RELEASED`（清租约并推进延期发布）、`RETRYABLE`（3 次快试转 ≥60s 慢试）与 `REJECTED`（取消延期发布）；回退前清理 `can_schedule_seed` 为假时保留 owner 并拒绝分配第二个模型；以及升级上游版本时同步复核 `RFork` 全部 10 篇文档与全部 RFork 2D 图的 `pins`。
+维护回归时须分别覆盖：后台归还 `RELEASED`（清租约并推进延期发布）、`RETRYABLE`（3 次快试转 ≥60s 慢试）与 `REJECTED`（取消延期发布）；回退前清理 `can_schedule_seed` 为假时保留 owner 并拒绝分配第二个模型；以及升级上游版本时同步复核 `RFork` 的 9 篇教学页、1 篇来源档案页与全部 RFork 2D 图的 `pins`。

@@ -25,6 +25,7 @@ legacyAnchors:
   十一项设置管什么默认多少什么时候改: 十三项设置管什么默认多少什么时候改
   键名写错不报错只是悄悄当没填: 键名写错会打警告并按未填处理
   固定端口基数会撞: 固定端口基数怎样按主草分槽
+  放到-glm-双机每台机器开多少端口固定端口会不会撞: 主模型和草稿会话怎样规划端口与租约
 chapters: []
 order: 90
 sources:
@@ -207,7 +208,7 @@ file: rfork-config-ports
 - **seed 元数据端口**：默认由系统随机分配；设了非零端口基数，采用双槽公式 `基数 + 2 × 全局 rank + 角色槽`（主模型槽 0、草稿模型槽 1）。
 - **传输引擎端点**：初始化时向引擎传 `port=0`，由引擎自行绑定并经 `get_rpc_port()` 读回（可通过 YuanRong 环境变量 `YR_TE_RPC_PORT_MIN` / `YR_TE_RPC_PORT_MAX` 限定范围；HIXL［昇腾高速点对点传输链路］数据面默认基址 `YR_TE_HIXL_BASE_PORT=22000`）。
 
-所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走；多网卡环境须与 [CANN 与 HCCL](cann-hccl.md) 的业务/集合通信网卡拓扑一并规划）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
+所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走；多网卡环境须与 [CANN 与 HCCL](cann-hccl.md) 及 [CANN Runtime 与任务下发调优](ascend-runtime-and-tuning.md) 的网络接口、环境变量与超时边界一并规划）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
 
 双槽固定端口按 $\text{port} = \text{base} + 2 \times \text{global\_rank} + \text{slot}$ 计算（主模型槽 `0`、草稿槽 `1`），超出 `65535` 或端口被占用（Linux `EADDRINUSE`）时都会自动退回系统随机端口：
 
@@ -261,17 +262,17 @@ $$\text{快速阶段合计} = 3 \times 10\text{ 秒（三次请求）} + 2 \time
 
 比对输出或 logits 时，方法要符合这个模型的确定性和容差要求。同时看两件事：被借的那台机器上，正在跑的推理延迟有没有变差；并发扩容多个实例时，启动耗时的长尾有多长。只测一条小请求正常，不能说明所有模型、量化方式和共享路径都支持。
 
-## 放到 GLM 双机：每台机器开多少端口，固定端口会不会撞
+## 主模型和草稿会话怎样规划端口与租约
 
-先说清前提，这一节是推演，不是实测：我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。官方教程没有开 RFork；GLM-5.3-Flash 的教学模型账目钉在固定镜像 `db701c1f`，下面是把上游 `main` RFork 配置机制套到该双机拓扑上的推演，见总览页的 [GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。这里只看配置层面的三件事。
+以下按历史 GLM 16 卡拓扑与 `8d6180e2` 的 RFork 规则联合推演，实际清单和可用性以合并部署记录为准（拓扑见[部署前提](glm-5-3-flash-two-node.md#部署前提)，读取子账见总览页的[同构多机扩容推演](rfork.md#同构多机扩容时主模型与草稿各读多少)）。各端口与租约结果均以相应会话走到登记与发布阶段为前提。
 
 ### 每台机器上 RFork 新开多少个端口
 
-每台机器 8 张卡、8 个 Worker 进程。投机解码的 MTP 草稿模型和主模型在同一个 Worker 里，各有一套 RFork 会话，各自借、各自当 seed。每套会话在首次登记时初始化传输引擎端点，当上 seed 以后再开一个 seed 元数据端口：
+每台机器 8 张卡、8 个 Worker 进程。投机解码的 MTP 草稿模型和主模型在同一个 Worker 里，各有一套 RFork 会话，各自借、各自当 seed。当 16 套会话均各自初始化独立的 TransferEngine RPC 端点、且全部完成发布起好 seed 元数据 HTTP 服务时，每台机器在这两类端点（16 个 seed HTTP + 16 个 TransferEngine RPC）上的计数为：
 
-$$\text{每台 RFork 会话} = 8\text{ 个 Worker} \times 2\text{（主模型、草稿模型）} = 16\text{ 套}, \qquad \text{每台新开端口} = 16 \times 2\text{（seed 元数据、传输引擎端点）} = 32\text{ 个}$$
+$$\text{每台 RFork 会话} = 8\text{ 个 Worker} \times 2\text{（主模型、草稿模型）} = 16\text{ 套}, \qquad \text{seed HTTP + TE RPC} = 16 + 16 = 32\text{ 个}$$
 
-另外 `node0` 还有 1 个 API 端口，`node1` 以 headless 方式只跑引擎、不开 API；Planner 是实例之外的独立服务，16 个 Worker 的 32 套会话都去连它。
+底层 HIXL 数据面端口（默认基址 `YR_TE_HIXL_BASE_PORT=22000`）另计；另外 `node0` 还有 1 个 API 端口，`node1` 以 headless 方式只跑引擎、不开 API；Planner 是实例之外的独立服务，16 个 Worker 的 32 套会话都去连它。
 
 这 32 个端口在默认设置下全是随机的。如果现场防火墙只放行固定端口段，需要分别规划 seed HTTP 端口段与 YuanRong 数据面环境变量范围。
 
@@ -279,13 +280,13 @@ $$\text{每台 RFork 会话} = 8\text{ 个 Worker} \times 2\text{（主模型、
 
 两台机器上的全局 rank 连着数：`node0` 是 0–7，`node1` 是 8–15。当前主线采用双槽公式 `base + 2 × global_rank + slot`（主模型槽 0、草稿模型槽 1）：设基数 `35000` 时，`node0` 占用 `35000–35015`（每卡偶数为 main、奇数为 draft），`node1` 占用 `35016–35031`，**同进程内主模型与草稿模型不再撞号**。
 
-若指定端口被其他进程占用（Linux `EADDRINUSE`），seed 服务会自动退回 OS 随机端口。传输引擎 RPC 端口与 HIXL 数据端口则须分别通过 `YR_TE_RPC_PORT_MIN/MAX` 和 `YR_TE_HIXL_BASE_PORT`（默认 `22000`）规划防火墙放行。
+若指定端口被其他进程占用（Linux `EADDRINUSE`），seed 服务会自动退回 OS 随机端口。传输引擎 RPC 端口与 HIXL 数据端口则须分别通过 `YR_TE_RPC_PORT_MIN/MAX` 和 `YR_TE_HIXL_BASE_PORT`（默认 `22000`）配合运行期网卡与依赖环境规划放行（见 [CANN Runtime 与任务下发调优](ascend-runtime-and-tuning.md)）。
 
 ### 默认 60 秒的租约够不够
 
-主模型会话每张卡所列主要语言张量的读取子账约为 `20.09 GiB`（逐项及未计项目见总览页的[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)）。在不支持续期的旧 Planner（默认 60 秒租约）下，仅这一子账就要求平均读速至少约 `20.09 GiB ÷ 60 秒 ≈ 0.33 GiB/s`；实际清单还要算入视觉塔等表外张量与元数据、归还开销。
+主模型会话每张卡所列主要语言张量的读取子账约为 `20.09 GiB`（逐项及未计项目见总览页的[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)）。若使用仓库**示例 Planner** 的默认 `60` 秒租约（`--lease-ttl-sec 60`）且未启用续租（如对接不返回可选 `LEASE_TTL_SEC` 的旧 Planner），仅这一子账就要求平均读速至少约 `20.09 GiB ÷ 60 秒 ≈ 0.33 GiB/s`；实际清单还要算入视觉塔等表外张量与元数据、归还开销。
 
-若 Planner 返回 `LEASE_TTL_SEC` 并支持 `/renew_seed_lease`，客户端会在传输期间自动周期续租（默认每 20 秒续一次），降低大权重传输过期的风险。主模型与草稿各有独立租约，不能把两者合计的 `20.91 GiB` 子账算作同一份租约的字节。
+当 Planner 在 `GET /get_seed` 返回可选 `LEASE_TTL_SEC`（如示例 Planner 默认返回 `60`）并支持 `/renew_seed_lease` 时，客户端会在传输期间按 `clamp(TTL / 3, 0.1, 30.0)` 秒自动周期续租（TTL 为 `60` 秒时每 `20` 秒续一次），降低大权重传输过期的风险。主模型与草稿各有独立租约，不能把两者合计的 `20.91 GiB` 子账算作同一份租约的字节。
 
 ## 常见误解
 

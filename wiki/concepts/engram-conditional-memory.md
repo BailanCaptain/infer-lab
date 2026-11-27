@@ -90,9 +90,9 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**Engram（条件记忆表）是模型训练时内置的一张超大只读参数查表：推理到每个 token（分词编号）时，先用它和前面紧邻的若干 token 拼成短语组合（N-gram），做哈希映射成行号，再从表里随机取出对应向量、经门控融入当前层的隐藏状态。** 它让模型不必把海量事实性短语记忆全都硬塞进注意力权重或 MoE 专家矩阵里，而是改用按内容稀疏查表来扩充容量。
+**Engram（条件记忆表）在模型主干的指定层中按层、按哈希头存放只读参数大表：推理到每个 token（分词编号）时，先用它和前面紧邻的若干 token 拼成短语组合（N-gram），按头哈希映射成行号，再取出对应向量经门控融入当前层的隐藏状态。** 它让模型不必把海量事实性短语记忆全都塞进每步必乘的注意力权重或 MoE 专家矩阵里，而是改用按内容稀疏查表来扩充容量。
 
-这项机制只插在模型主干的少数指定层里（例如 DeepSeek-V4.1-Flash 仅在部分层配置了条件记忆，背景见 [DeepSeek-V4.1-Flash](deepseek-v4-1-flash.md#固定配置里哪些数字属于哪一部分)）。读完这一页要弄清三件事：Engram 的短语哈希查表到底怎么运行、为什么必须把动辄数百 GiB 的整表卸载到主机内存（Host DRAM）甚至跨实例共享、以及在多卡部署下「设备侧分片存放」与「主机侧跨副本共享」各自如何配合、付出什么代价。
+这项机制只插在模型主干的少数指定层里（例如 DeepSeek-V4.1-Flash 仅在部分层配置了条件记忆，背景见 [DeepSeek-V4.1-Flash](deepseek-v4-1-flash.md#固定配置里哪些数字属于哪一部分)）。读本页要把三件工程账彻底分开：第一，**单步前向只读取哈希命中的极少数行**；第二，**主机卸载（`cpu_offload`）只是把整表静态底存容量从 NPU HBM 移到主机内存（Host DRAM）**；第三，**机内或跨实例共享只减少重复的静态底存副本，各副本每步查表读取、反量化与通信仍有各自成本**。
 
 ```wiki-diagram
 file: engram-plate-dram-cutaway
@@ -113,12 +113,12 @@ file: engram-fig-lookup-flow
 3. **按头分片查表与分组反量化。** 全部哈希头均匀切给参与分片的卡（每卡负责 `local_heads` 个连续头段对应的词表区间 `[vocab_start_idx, vocab_end_idx)`）。Triton 查表核 `engram_lookup` 每程序写入一个 `(token, head)` 行，越界或无效 ID 直接输出全 0；支持 `BF16`、`INT8`（组宽 32 的 `FP32` 缩放）与 A5 原生 `MXFP8`（每 32 个元素共用 1 字节 `E8M0` 纯 2 的幂指数缩放尺）。**无论整表放在 HBM（NPU 板载高带宽显存）还是 Host DRAM，只有命中的那几行会被反量化成 `BF16` 写入 HBM。**
 4. **归集全部头并做门控融合。** 若表按 `EDP` 分片，先用 `exchange_engram_rows` 做 `AllToAll` 把命中行精准送回对应请求所在的副本（避免 `All-Gather` 把别人的行也物化到本卡）。随后经 `tensor_model_parallel_all_gather` 在 TP 组内拼齐全部头的向量。最后 `AscendEngram` 用复制线性层 `wkv` 投出 `key` 与 `value`，按当前隐藏状态算门控权重并加回残差流（A5 硬件在无旋转矩阵时走融合核 `fused_engram_gate`）。
 
-用一个极简教学示意看清规模对比。设某层有 $H = 4$ 个哈希头、每头查表宽度 $d = 256$、采用组 32 的 INT8 存储（每行 256 字节量化码加 $8 \times 4 = 32$ 字节缩放，合计 $288\text{ B}$）。整表共 $10^8$ 行（约 $26.8\text{ GiB}$），本步批次仅处理 $T = 8$ 个 token：
+用一个极简教学示意看清规模对比。设某层配置 $H = 4$ 个哈希头（每头 $2.5 \times 10^7$ 行，整层合计 $10^8$ 行）、每头查表宽度 $d = 256$、采用组 32 的 INT8 存储（每行 256 字节量化码加 $8 \times 4 = 32$ 字节 FP32 缩放，合计 $288\text{ B}$）。整层表共 $10^8 \times 288\text{ B} = 28.8\text{ GB} \approx 26.82\text{ GiB}$（按 $1024^3\text{ B}$ 折算），本步批次仅处理 $T = 8$ 个 token（每 token 在每头命中 1 行）：
 
 | 维度 | 整表静态底存 | 本步实际查表命中量（示意） | 关键差异 |
 |---|---|---|---|
-| 行数 | $100{,}000{,}000$ 行 | $8 \times 4 = 32$ 行 | 每步只触达千万分之几的条目 |
-| 数据量 | $\approx 26.8\text{ GiB}$（INT8 + FP32 缩放） | $32 \times 288\text{ B} = 9{,}216\text{ B}$（反量化为 `BF16` 占 $16\text{ KiB}$） | 访存极度稀疏，按命中行线性计费 |
+| 行数 | $100{,}000{,}000$ 行（$4$ 头合计） | $8 \times 4 = 32$ 行 | 每步只触达千万分之几的条目 |
+| 数据量 | $10^8 \times 288\text{ B} \div 1024^3 \approx \mathbf{26.82\text{ GiB}}$ | $32 \times 288\text{ B} = \mathbf{9{,}216\text{ B}}$（反量化为 `BF16` 为 $32 \times 256 \times 2\text{ B} = \mathbf{16\text{ KiB}}$） | 访存极度稀疏，按命中行线性计费 |
 | 归属与生命周期 | 模型只读权重，所有请求共用 | 单步瞬时中间结果，算完门控即释放 | 不像 KV cache 随上下文持续累积 |
 
 正因为**底存极大、单步触达极少、内容全程只读**，把整张表硬留在昂贵的 NPU HBM 里极不划算：每张卡既要被几百 GiB 的大表挤爆显存，又要为极低密度的随机读付出高昂容量代价。反过来，Host DRAM 容量大、成本低，只要能避免“每步先把整表搬回 NPU”，就能把宝贵的 HBM 腾出来给 KV cache 和主干权重。
@@ -133,7 +133,7 @@ file: engram-fig-offload-sharing
 
 ### 1. 为什么 `cpu_offload` 不用把整表拷回 NPU？
 
-打开 `--engram-config '{"cpu_offload":true}'` 后，`AscendParallelEngramEmbedding` 不在 HBM 申请权重，而是通过 `HostUvaBuffer` 在主机内存分配表空间——这里依赖 **UVA（Unified Virtual Addressing，统一虚拟寻址，让 NPU 直接按统一指针访问钉页后的主机内存）**。随后它调用 CANN 运行时的 `aclrtHostRegisterV2` 将这段 Host DRAM 钉页注册，并用 `aclrtHostGetDevicePointer` 获取 NPU 可直接访问的设备地址（搭配 [CPU 绑核](cpu-binding.md) 时，`v0.30.0+` 会跳过页迁移 `migrate_memory=False`，避免移动钉页内存破坏 UVA 映射）。
+打开 `--engram-config '{"cpu_offload":true}'` 后，`AscendParallelEngramEmbedding` 不在 HBM 申请权重，而是通过 `HostUvaBuffer` 在主机内存分配表空间——这里依赖 **UVA（Unified Virtual Addressing，统一虚拟寻址，让 NPU 直接按统一指针访问钉页后的主机内存）**。随后它调用 CANN 运行时的 `aclrtHostRegisterV2` 将这段 Host DRAM 钉页注册，并用 `aclrtHostGetDevicePointer` 获取 NPU 可直接访问的设备地址（宿主机 `memlock` 限额、`/dev/shm` 与大页底座见[主机内存、大页与 IPC 稳态](host-memory-and-hugepages.md)；搭配 [CPU 绑核](cpu-binding.md) 时，`v0.30.0+` 会跳过页迁移 `migrate_memory=False`，避免移动钉页内存破坏 UVA 映射）。
 
 由于 3.84 亿行级别的超大表会超出单个 Triton tile 的 32 位偏移表达范围，`npu.py` 按 `CHUNK_ROWS = 1 << 22`（每块 $4{,}194{,}304$ 行）把整表切成若干分块并发布一张**分块设备指针表**。前向时，NPU 上的 Triton 核 `gather_dequantize_host_uva` 直接拿这张指针表越过总线按行读取 Host DRAM、现场反量化成 `BF16` 写进 HBM——全程既不做整表 H2D 拷贝，也不需要 CPU 代劳查表。
 
@@ -154,7 +154,7 @@ file: engram-fig-offload-sharing
 
 ### 3. 跨实例共享（`main`：`shared_engram`）与两种传输路线
 
-机内 `dp_shared_memory` 把“每副本一份”压成了“每台机器一份”。但在多机 P/D 分离集群里（拓扑分工见 [DeepSeek 生产实践](deepseek-serving-case.md)，例如 3 台 P 节点加 1 台 D 节点，共 4 台主机），如果每台机器还各自持有一份 ~200 GiB 的 Engram 表，全集群仍要吃掉 ~800 GiB Host DRAM，挤占 KVPool 缓存池。
+机内 `dp_shared_memory` 把“每副本一份”压成了“每台机器一份”。但在多机 P/D 分离集群里（拓扑分工见 [DeepSeek 生产实践](deepseek-serving-case.md)），做一个简化的多机容量推演：假设 3 台 P 节点加 1 台 D 节点共 4 台主机，若每台机器仍各持有一份约 `200 GiB` 量级的 Engram 表，全集群单是表底存就会占用约 `800 GiB` Host DRAM，与 KVPool 缓存池争抢主机内存预算（分账方法见[主机内存、大页与 IPC 稳态](host-memory-and-hugepages.md)）。
 
 `vllm-ascend@main`（`8d6180e2`）为此新增跨实例共享机制 `shared_engram`：由一个独立的常驻 **Owner 进程**加载唯一一份只读 Engram 表，所有 P/D 消费实例（Consumers）按校验通过的 checkpoint 指纹接入。由此，**消费实例本地贡献 0 字节整表 DRAM/HBM 容量**。按硬件互联能力，它分成两条完全不同的数据路径：A3 通过 **MemFabric BM**（超节点跨机共享大内存池服务）提供 **GVA（Global Virtual Address，跨节点统一编址的全局虚拟地址空间）** 直接映射；A2/A5 则经 **HIXL**（昇腾高速单边内存传输库）走 **RDMA（远程直接内存访问，绕开远端 CPU 直接从网卡或灵衢 UB/URMA 总线读写内存）** 显式按行拉取（A3 启动前还需预热 **AICPU** 即芯片内通用控制核上的元数据算子，避免录图时阻塞）：
 
@@ -165,11 +165,11 @@ file: engram-fig-offload-sharing
 | 多层打包优化 | 两层 Engram 共享同一进程级 BM 会话、各自使用独立 BM 对象 | 两层哈希拷贝在 TP 交换入队前完成；若两层总命中行数 $\le \text{capacity}$，单次 HIXL READ 打包拉回 |
 | 前置硬约束 | **强制 Model Runner V2**；需含重复库修复的 MemFabric wheel（`cafd1251`）；先预热 AICPU 元数据算子防解码图捕获卡死；不支持 `dummy` 加载与 `sleep_mode` | 需编译 `libengram_hixl.so`；**强制 `--shutdown-timeout > 0`**（默认 `VLLM_WORKER_SHUTDOWN_TIMEOUT_SECONDS=120`）确保优雅退租；A5 需传 `--local-comm-res` 指定 UB 资源 |
 
-官方 `shared_engram.md` 记录了一组 4 台 A3 超节点实测（3 组 `DP4/TP4` Prefill + 1 组 `DP8/TP2` Decode，共 64 NPU，CANN 9.2 + torch-npu 2.10）。该集群由 1 个 Owner 持有 2 层表（4 个 BM HOST 对象），64 个 Worker 挂载 128 个层视图，**表底存从约 824 GiB 降至约 208 GiB**（4 份降为 1 份，见上图比例条）。测试中 1440/1440 请求零错误完成，各长度桶 QPS 与原生机内卸载基本持平；但 20–40K 桶两者 TTFT P50 均未达 7s 目标，且该数字仅计表底存，不等同总系统内存或总 HBM。
+区别于上文 `4 × 200 ≈ 800 GiB` 的简化推演，官方 `shared_engram.md` 另记录了一组真实 4 台 A3 超节点实测（3 组 `DP4/TP4` Prefill + 1 组 `DP8/TP2` Decode，共 64 个逻辑 NPU，运行期软件栈为 CANN 9.2 + torch-npu 2.10；CANN 运行时流捕获、AICPU 任务与环境变量配套见 [CANN Runtime 与任务下发调优](ascend-runtime-and-tuning.md)）。该实测由 1 个 Owner 持有 2 层表（4 个 BM HOST 对象），64 个 Worker 挂载 128 个层视图，**全集群表底存实测从约 824 GiB 降至约 208 GiB**（4 份合为 1 份，见上图比例条）。测试中 1440/1440 请求零错误完成，各长度桶 QPS 与原生机内卸载基本持平；但 20–40K 桶两者 TTFT P50 均未达 7s 目标，且该数字仅统计 Engram 表底存，不等同总系统内存或总 HBM。
 
 ### 4. 与 RFork 权重快载的协同边界（`main`）
 
-当模型启用 [RFork 权重快载](rfork.md) 时，跨节点 NPU HBM 传输只搬运设备侧主干权重，不把几百 GiB 的主机 Engram 表也塞进设备传输域。`vllm_ascend/model_loader/rfork/local_weights.py` 在 `main` 上专门为 `cpu_offload=True` 的 `AscendParallelEngramEmbedding` 做了三段协同：
+当模型启用 [RFork 权重快载](rfork.md) 时，跨节点 NPU HBM 传输只搬运设备侧主干权重，不把几百 GiB 的主机 Engram 表塞进设备传输域（主机注册内存与设备显存生命周期的运行期边界见 [CANN Runtime 与任务下发调优](ascend-runtime-and-tuning.md)）。`vllm_ascend/model_loader/rfork/local_weights.py` 在 `main` 上专门为 `cpu_offload=True` 的 `AscendParallelEngramEmbedding` 做了三段协同：
 
 1. **本地独立填表**：加载前由 `load_local_weights` 从本地存储独立填满 Host 表，并记录弱引用与地址指针；
 2. **豁免网络登记**：随后由 `get_local_tensor_ids` 将已就绪的 Host 表张量豁免于 RFork 传输登记；
@@ -223,7 +223,7 @@ file: engram-fig-offload-sharing
 
 ### 开销和什么时候别开
 
-- **Host DRAM 与 `/dev/shm` 账目须单算**：卸载只是把数百 GiB 的表从 HBM 搬到 Host DRAM，部署前须把 Engram 唯一底存、Owner 读者中转缓冲（HIXL 按已连接读者数叠加）、KVPool 与系统进程内存分开核算；`dp_shared_memory` 共享段不可按 worker 数重复乘算。
+- **Host DRAM 与 `/dev/shm` 账目须单算**：卸载只是把数百 GiB 的表从 HBM 搬到 Host DRAM，部署前须按[主机内存、大页与 IPC 稳态](host-memory-and-hugepages.md)把 Engram 唯一底存、Owner 读者中转缓冲（HIXL 按已连接读者数叠加）、KVPool 与系统进程内存分开核算；`dp_shared_memory` 共享段不可按 worker 数重复乘算。
 - **不适用场景**：需要 [Sleep Mode](sleep-mode.md)（`sleep_mode`）或 `dummy` 加载验证的场景不能开启 A3 `shared_engram`；缺少可信内网隔离的集群需注意控制面 TCP 协议不做鉴权与加密；未完成 `cafd1251` 打包修复的旧版 MemFabric wheel 在进程退出时可能重复加载原生库导致中止；A2/A5 无法保证消费者优雅退出（或无法预留独立 HIXL 监听端口）时，不要启用 HIXL 跨实例共享。
 - **辅助流重叠开关**：`additional_config.multistream_engram_overlap` 可将哈希、查表与 DP/TP 交换放到辅助流提前准备，但实际收益与解码图配合仍须在目标负载上实测。
 

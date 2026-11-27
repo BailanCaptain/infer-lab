@@ -76,7 +76,7 @@ contradicts: []
 updated: '2026-11-27'
 ---
 
-**多模态视觉特征缓存（`EncoderCacheManager`）是 vLLM V1 调度器与 Worker 之间专门按单张图像、视频或音频片段的内容哈希（`mm_hash`）独立管理编码器输出向量的缓存体系，用于在跨轮对话、分块预填充以及显存抢占重算时直接跳过昂贵的视觉编码器（ViT）前向计算。** 在[多模态推理基础](multimodal-inference.md)中我们看到，前端先把像素切成网格并在输入序列里展开占位 token；而一旦请求进入调度核心（`Scheduler`）与模型执行器（`ModelRunner`），引擎还要回答两道硬核工程题：**为什么开启了文本前缀缓存（Prefix Caching）仍然挡不住重复跑 ViT？当缓存未命中必须真跑 ViT 时，变长图像/视频又怎样装进静态昇腾图（`EncoderAclGraphManager`）加速？**
+**多模态视觉特征缓存（`EncoderCacheManager`）按单张图像、视频或音频片段的内容哈希（`mm_hash`），在 vLLM V1 调度器与 Worker 之间独立管理编码器输出向量。** 命中缓存时，跨轮对话、分块预填充与显存抢占重算都能直接跳过视觉编码器（ViT）前向计算。承接[多模态推理基础](multimodal-inference.md)的前端切块与占位展开，请求进入 `Scheduler` 与 `ModelRunner` 后还要回答两道工程题：**为什么开启了文本前缀缓存（Prefix Caching）仍挡不住重复跑 ViT？当缓存未命中必须真跑 ViT 时，变长图像与视频又怎样装进静态昇腾图（`EncoderAclGraphManager`）加速？**
 
 ```wiki-diagram
 file: multimodal-encoder-cache-flow
@@ -88,7 +88,7 @@ file: multimodal-encoder-cache-flow
 
 $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4 \times 64 \times 64 = 16,384, \qquad N_{\text{vis}} = \frac{16,384}{2 \times 2} = 4,096\text{ 槽}$$
 
-别小看这 `4,096` 个输出嵌入槽（Embedding Slots）：进入空间合并层之前，视觉编码器要在总计 **`16,384`** 个原始 Patch 上跑二三十层 Transformer——以 `Qwen2.5-VL` 类架构为例，即便窗口层只在局部小窗内交互，全注意力层仍要在 `4` 个各长 `4,096` 的时空网格序列上做双向全注意力（复杂度为 $4 \times 4{,}096^2$，随单帧网格长度 $s_f$ 呈二次方 $O(s_f^2)$ 暴涨；不分帧的全局 ViT 更达 $O(s^2)$），而最终缓存在显存里的合并后特征向量大小仅呈线性 $O(N_{\text{vis}})$（若语言隐藏维为 `4096`、`BF16`，`4,096` 槽仅占 `32 MiB`）。注意 `EncoderCacheManager` 记账的单位正是这 `4,096` 个**纯多模态嵌入槽（`encoder embeddings`）**——夹在多张图片之间的换行符或文本分隔 token 不计入编码器缓存容量。
+别小看这 `4,096` 个输出嵌入槽（Embedding Slots）：进入空间合并层之前，视觉编码器要先在总计 **`16,384`** 个原始 Patch 上跑二三十层 Transformer。以 `Qwen2.5-VL` 类架构为例，即便窗口层只在局部小窗内交互，全注意力层仍要在 `4` 个各长 `4,096` 的时空网格序列上做双向全注意力（复杂度为 $4 \times 4{,}096^2$，随单帧网格长度 $s_f$ 呈二次方 $O(s_f^2)$ 增长；不分帧的全局 ViT 更达 $O(s^2)$）。相比之下，缓存在显存里的合并后特征向量仅随槽位数呈线性 $O(N_{\text{vis}})$ 增长（语言隐藏维为 `4096`、`BF16` 时，`4,096` 槽仅占 `32 MiB`）。注意 `EncoderCacheManager` 记账的单位正是这 `4,096` 个**纯多模态嵌入槽（`encoder embeddings`）**——夹在多张图片之间的换行符或文本分隔 token 不计入编码器缓存容量。
 
 ## `EncoderCacheManager` 如何独立于文本 Prefix Caching 复用特征？
 
@@ -107,9 +107,9 @@ $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4
 
 在缓存淘汰策略上，上游默认 `EncoderCacheManager` 维护单级设备池：活跃请求持有 `cached[mm_hash]` 引用集合，请求完成或被抢占释放后零引用条目进入 `freeable` 有序字典；当新图所需槽位超过剩余空槽（但小于可回收总槽位）时，按先进先出（FIFO）弹出最老条目追加进 `freed` 列表通知 Worker 释放物理显存。
 
-在 `vllm-ascend v0.30.0` 中，通过 `ec_manager_config` 将 `encoder_cache_manager_cls` 设为 `vllm_ascend.ec_manager.score_ec_manager.ScoreEncoderCacheManager`（注意若只传非空 `manager_config` 却漏设类名会直接报错 `manager_config requires encoder_cache_manager_cls to be set.`），即可启用我们在[多模态推理基础](multimodal-inference.md#单级-encodercachemanager-与昇腾-scoreencodercachemanager)拆解过的 **Pinned CPU（默认 `100,000` 槽）+ NPU 常驻池 + 设备临时槽** 三态评分架构，按 $(\text{freq} + \text{clock}) \times \text{cal\_cost}(s)$ 优先把高频且重算代价高的大图晋升留驻 HBM（默认 `max_clock=15`、`clock_decay_every=64`、`watermark=0.2`、`promote_percentile=0.2`）。
+在 `vllm-ascend v0.30.0` 中，可将 `ec_manager_config` 的 `encoder_cache_manager_cls` 设为 `vllm_ascend.ec_manager.score_ec_manager.ScoreEncoderCacheManager`（若只传非空 `manager_config` 却漏设类名，会直接报 `manager_config requires encoder_cache_manager_cls to be set.`）。这会启用[多模态推理基础](multimodal-inference.md#单级-encodercachemanager-与昇腾-scoreencodercachemanager)拆解过的 **Pinned CPU（默认 `100,000` 槽）+ NPU 常驻池 + 设备临时槽** 三态评分架构，按 $(\text{freq} + \text{clock}) \times \text{cal\_cost}(s)$ 优先把高频且重算代价高的大图晋升留驻 HBM（默认 `max_clock=15`、`clock_decay_every=64`、`watermark=0.2`、`promote_percentile=0.2`）。
 
-> **版本工程边界提示（`main` 分支 MRV2 接线现状）**：在 `v0.30.0` 中，上述 pinned CPU 与 NPU 之间的异步搬运由第一代执行器 `Model Runner V1` 完整消费；而在社区 `main`（`8d6180e2`）移除 `MRV1` 全面切入 [Model Runner V2](model-runner-v2.md) 后，虽然调度侧仍保留 `ScoreEncoderCacheManager` 类并下发 `ec_manager_metadata`，但当前快照的 `MRV2` Worker 与上游 `EncoderRunner` 尚未接入消费 Score 的 CPU 晋升/搬运列表（缺失条目在 `EncoderRunner` 会直接报 `Encoder cache miss for {mm_hash}.`）。因此在 `main` 快照上切勿盲目假定 Score 两级 CPU-NPU 自动搬运已端到端闭环。
+> **版本工程边界提示（`main` 分支 MRV2 接线现状）**：在 `v0.30.0` 中，上述 pinned CPU 与 NPU 之间的异步搬运由第一代执行器 `Model Runner V1` 完整消费。而在社区 `main`（`8d6180e2`）移除 `MRV1` 全面切入 [Model Runner V2](model-runner-v2.md) 后，调度侧虽仍保留 `ScoreEncoderCacheManager` 类并下发 `ec_manager_metadata`，但当前快照的 `MRV2` Worker 与上游 `EncoderRunner` 尚未接入消费 Score 的 CPU 晋升与搬运列表（缺失条目在 `EncoderRunner` 会报 `Encoder cache miss for {mm_hash}.`）。因此在 `main` 快照上，切勿假定 Score 两级 CPU-NPU 自动搬运已端到端闭环。
 
 ## ViT 预算打包与昇腾 `EncoderAclGraphManager` 图捕获回放
 
@@ -120,11 +120,11 @@ $$N_{\text{patch}} = \frac{8}{2} \times \frac{896}{14} \times \frac{896}{14} = 4
 1. **执行期升序贪心装箱（`_execute_local`）**：收到一批待编码媒体项后，先按每项产出的视觉 token 数**升序排列**，在不超过每个编码路径（`path`）最大 `token_budget` 与每批最大视觉项数的前提下贪心拼成若干子批（新上游快照还会比对拆开后的子桶预算之和以减少填充浪费，必要时提前封包）。每个子批挑选**能装下它的最小已捕获预算图**执行；单项超过最大预算档位时安全回退走单算子 Eager 模式；所有子批跑完后，再按原始媒体顺序散回（Scatter），保证与语言序列的占位符严丝合缝对齐。
 2. **昇腾 `EncoderAclGraphManager` 捕获与侧流 FIA 参数刷新**：
    - **捕获期（`_capture_budget_graph`）**：使用 `torch.npu.NPUGraph()` 与全局图内存池对各 `token_budget` 录制前向图，保存固定地址 `input_buffers` 与弱引用 `output_buffer`（结束时调用 `weak_ref_workspaces()` 释放多余引用）；
-   - **回放期（`_run_budget_graph`）**：先把本子批像素与序列累积长度 `cu_seqlens` 填充拷入固定缓冲，随后触发 `graph_meta.graph.replay()`，并在独立侧流 `update_stream` 上调用 `update_encoder_graph_params()` 更新昇腾融合注意力算子（FIA）的真实序列边界——借助图内预埋的事件等待（Event Wait / Record，原理见 [ACL Graph 视觉图事件同步](acl-graph.md#在-ascend-上怎样保持本轮数据正确)），确保设备按最新序列长度计算而不踩旧缓冲（`main` 分支进一步补齐了 `update_stream.wait_stream(current_stream)` 防止侧流改参与输入拷贝竞态，并支持非空多维 `axis_keys` 与 `patch_model_state.py` MRV2 挂载）。
+   - **回放期（`_run_budget_graph`）**：先把本子批像素与序列累积长度 `cu_seqlens` 填充拷入固定缓冲，随后触发 `graph_meta.graph.replay()`，并在独立侧流 `update_stream` 上调用 `update_encoder_graph_params()` 更新昇腾融合注意力算子（FIA）的真实序列边界。借助图内预埋的事件等待（Event Wait / Record，原理见 [ACL Graph 视觉图事件同步](acl-graph.md#在-ascend-上怎样保持本轮数据正确)），设备可按最新序列长度计算而不踩旧缓冲；`main` 分支进一步补齐了 `update_stream.wait_stream(current_stream)` 防止侧流改参与输入拷贝竞态，并支持非空多维 `axis_keys` 与 `patch_model_state.py` MRV2 挂载。
 
 ## 新多模态模型量化、精度对齐与服务级性能取证
 
-把一套新多模态模型搬上昇腾生产环境时，视觉塔与语言主干具有截然不同的数值分布与耗时特征，需串联三件昇腾原生工具闭环验证：
+把一套新多模态模型搬上昇腾生产环境时（支持矩阵与部署指南筛选见 [新模型上线标准流程](ascend-model-onboarding.md#2-多模态视觉vlm语音asr与嵌入embedding模型9-篇)），视觉塔与语言主干具有截然不同的数值分布与耗时特征，需串联三件昇腾原生工具闭环验证：
 
 | 工具环节 | 配置与代码入口 | 在多模态上线与排障中的核心职责 |
 |---|---|---|

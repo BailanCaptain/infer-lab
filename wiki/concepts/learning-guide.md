@@ -39,7 +39,7 @@ updated: "2026-11-26"
 
 | 你的目标 | 建议起步顺序 | 为什么这样走更顺 |
 | --- | --- | --- |
-| **路线 A · 概念初学者**<br>（从零建立推理直觉） | 本页 → [请求全景](request-overview.md) → **直接进入 02 组** [token](token.md) → [embedding](embedding.md) → [attention](attention-qkv.md) → **03 组** [Prefill 与 Decode](prefill.md) → [KV cache](kv-cache.md) → [PagedAttention](paged-attention.md) | 先用 6 个词的迷你例子看懂整条链路，再一层层拆开单个积木、显存分页、昇腾硬件和多卡并行，全程零前置概念倒挂 |
+| **路线 A · 概念初学者**<br>（从零建立推理直觉） | 本页 → [请求全景](request-overview.md) → **直接进入 02 组** [token](token.md) → [embedding](embedding.md) → [attention](attention-qkv.md) → **03 组** [Prefill 与 Decode](prefill.md) → [KV cache](kv-cache.md) → [PagedAttention](paged-attention.md) | 先跟 6 词小例子跑通一条请求，试着对照图说出每一步输入输出的变化，再逐层拆开单个积木、显存分页、昇腾硬件和多卡并行 |
 | **路线 B · 新模型上线速查**<br>（要把模型尽快跑在昇腾上） | 在 **01 组** 内按 [读懂 HF 模型目录](hf-model-anatomy.md) → [昇腾新模型上线总览](ascend-model-onboarding.md) → [环境准备与服务启动](ascend-env-and-serve.md) 走完，随后转到 **08 组** [核心 CLI 参数](core-cli-params.md)与[通用排障](inference-troubleshooting.md) | 先学会看 `config.json` 算权重和显存，再确认模型是否受支持、怎么选容器镜像并拉起服务，遇到报错再按需回查原理页 |
 
 ```wiki-diagram
@@ -48,7 +48,7 @@ file: learning-guide-route
 
 全站采用**双层标尺设计**，把主流通用原理与异构旗舰全案明确分开，避免初学者一上来就被前沿特例绊住：
 
-- **主流入门标尺（覆盖约 `80%` 生产模型）**：日常概念页与 `v0.30.0` 标准算例统一采用 **`Qwen3-8B`**（稠密分组查询架构）与 **`Qwen3-30B-A3B`**（稀疏混合专家架构）。沿路线 A 走通 01–03 组，就能建立绝大多数线上大模型的通用推理直觉。
+- **主流入门标尺（分别覆盖稠密 GQA 与稀疏 MoE 两条主干路径）**：日常概念页与 `v0.30.0` 标准算例统一采用 **`Qwen3-8B`**（覆盖稠密分组查询注意力主干路径）与 **`Qwen3-30B-A3B`**（覆盖稀疏混合专家与路由主干路径）。沿路线 A 走通 01–03 组，就能掌握这两条主干路径的推理直觉与算账方法。
 - **异构旗舰双机全案（进阶实战，非入门前置）**：**09 组**的 GLM-5.3-Flash 双机 16 卡专题包含四路残差（`mHC`，多流超连接残差）与 5 个混合缓存组（`KDA` 门控线性注意力 + 稀疏 `MLA` 压缩潜向量注意力）等前沿特性。它适合作为学完主流基础后的综合演练，**不是阅读基础页的前置条件**。
 
 > **入门轨道 2 题通关自测**（沿路线 A 读完 01–03 组后，先自检这两问再进 09 组进阶全案）
@@ -152,7 +152,7 @@ file: learning-guide-route
 | **② 启动前体检 · 检查启动命令** | 静态联检单实例或 P/D 分离的 `vllm serve` 与 `additional_config`，提前拦截互斥报错与静默改写 | [核心 CLI 参数](core-cli-params.md)、[AscendConfig 配置系统](ascend-config-system.md) |
 | **③ 报错后定位 · 分析报错日志** | 粘贴报错堆栈、HCCL 错误码或 `/metrics` 指标，自动分流故障现象、定位多卡最早出错的首错 Rank | [通用排障](inference-troubleshooting.md)、[性能排障](inference-performance-troubleshooting.md) |
 | **④ 微观原理演示 · 芯片算子沙盘** | 切换分块、双缓冲与算子融合，直观对比 910B 与 950 的 Cube/Vector 计算泳道及数据搬运重叠 | [AI Core](ai-core.md)、[昇腾 950：计算与数据搬运](ascend-950-architecture.md) |
-| **⑤ 实战闯关演练 · 生产故障通关场** | 6 道源自真实源码守卫与 910B3 实测的生产故障演练场：看日志判首错、改对启动命令并通过防逃课判卷 | [通用排障](inference-troubleshooting.md)、[回答为什么停顿](inference-performance-walkthrough.md) |
+| **⑤ 实战闯关演练 · 生产故障通关场** | 6 道源自真实源码守卫与 910B3 实测的生产故障演练场：看日志定位首错、动手改对启动命令并逐项核验排障结论 | [通用排障](inference-troubleshooting.md)、[回答为什么停顿](inference-performance-walkthrough.md) |
 
 - **接着看、全站检索与右侧「问知识库」面板**：每页底部「接着看」推荐下一步页面；随时按 `Cmd/Ctrl+K` 可全站检索术语、报错原文或参数名。点击右侧「问知识库」打开助手面板后，用法随运行模式区分：
   - **本地在线模式（执行 `pnpm dev:all` 同时拉起前后端）**：可在右侧**「问答」**页签直接在线提问或粘贴报错，回答附带站内来源与原文链接。

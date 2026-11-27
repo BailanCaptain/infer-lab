@@ -3,11 +3,11 @@ id: mlp-residual-norm
 title: MLP、residual 与 RMSNorm：一个子层怎样更新 hidden
 type: concept
 legacyAnchors:
-  到-glm-双机r1-的一个-token-怎样走过这三件东西: 复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU
+  到-glm-双机r1-的一个-token-怎样走过这三件东西: 多流残差扩展：mHC 四流混合与限幅 SwiGLU
+  复杂异构实战对照glm-双机-mhc-四流残差与限幅-swiglu: 多流残差扩展：mHC 四流混合与限幅 SwiGLU
 summary: >-
   以单条 residual、Pre-RMSNorm 与 SwiGLU 为主线，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。本页先走通标准
-  Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与历史
-  GLM 四流 mHC。
+  Qwen3-8B（eps=1e-6、4096 → 12288 → 4096 无偏置 SwiGLU），再对照 LayerNorm/Post-Norm 与多流残差 mHC。
 aliases:
   - MLP
   - FFN
@@ -118,7 +118,7 @@ rawSources:
 
 ## 一个子层怎样更新 hidden，又不丢掉原来的输入？
 
-**主流大模型（如 `v0.30.0` 标准主基线下的 `Qwen3-8B`）采用「单条 residual（残差连接）+ Pre-RMSNorm + SwiGLU」的子层结构：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm 再做计算，最后把支路算出的改变量加回输入。** 归一化也可以改用 LayerNorm 或放到相加之后（post-norm）；下文先讲清标准单残差流机制与 `Qwen3-8B` 形状，再在后半「复杂异构实战对照」展开多流残差混合。
+**一个子层把输入分成两条路：旁路原样保留输入，支路算出改变量，最后在出口把改变量加回原输入（即 residual，残差连接）。** 在 `Qwen3-8B` 等主流大模型中，支路入口先做 **Pre-RMSNorm** 稳定数值尺度，前馈支路内部采用 **SwiGLU** 门控结构；归一化也可改用 LayerNorm 或放到相加之后（post-norm）。下文先走通标准单残差流机制与 `Qwen3-8B` 形状，后半再展开多流残差混合。
 
 这里的 hidden 是模型给每个输入位置维护的一条中间向量，宽度记作 H（见[层与 hidden](layers-and-hidden.md)）。RMSNorm（均方根归一化）把这条向量除以它自身的均方根、再逐维乘一组学到的系数，让送进支路的数值大小保持稳定。MLP（前馈网络，也叫 FFN）是对每个位置单独做「升宽 → 非线性 → 降回原宽」的一个小网络。下图以 MLP 子层为例：
 
@@ -299,11 +299,11 @@ file: gated-ffn
 | 降维投影 `down_proj` | `[T, 12288]` | `[12288, 4096]`（无偏置） | `[T, 4096]` |
 | 单流残差加回 | `[T, 4096] + [T, 4096]` | 逐元素相加（合并进下一子层 `npu_add_rms_norm`） | `[T, 4096]` |
 
-全部 36 层都重复这张表，最后一层结束后再补一次最终 RMSNorm，才送入 `lm_head`。只有遇到多流残差混合或带限幅激活的异构架构时，才会跳出这条简洁主线——下面转入历史 GLM 双机对照。
+全部 36 层都重复这张表，最后一层结束后再补一次最终 RMSNorm，才送入 `lm_head`。只有遇到多流残差混合或带限幅激活的异构架构时，才会跳出这条简洁主线——下面转入四流残差与限幅 SwiGLU 对照。
 
-## 复杂异构实战对照：GLM 双机 mHC 四流残差与限幅 SwiGLU
+## 多流残差扩展：mHC 四流混合与限幅 SwiGLU
 
-本节为例外 B 历史绑定算例：两台 Atlas 800 A2、每台 8 卡，TP8 / DP2 / EP16、权重 W8A8（详见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。沿用主线示例请求 R1（prompt 4 个 token，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），prefill 一次处理 $T = 4$ 个位置。三件东西位于主线第 4 站「逐层前向」，下图对照主干四流与 MTP 单流：
+**如果层与层之间传递的不是 1 条残差流而是 4 条，一个子层接过几条流、交进归一化和 MLP 的又是几条流？** 在 `GLM-5.3-Flash` 双机算例（`TP8 / DP2 / EP16`、`W8A8`，分组前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)）中，主干 45 层采用 `mHC` 四流残差：每个子层接过 `4` 条流、入口压成 `1` 条进入 RMSNorm 与子层、出口再写回 `4` 条（`4 → 1 → 4`）。沿用[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)（Prefill 一次处理 $T = 4$ 个位置，位于第 4 站逐层前向），下图对照主干四流与 MTP 单流：
 
 ```wiki-diagram
 file: mlp-residual-norm-flow
@@ -313,7 +313,7 @@ file: mlp-residual-norm-flow
 
 ### 子层入口：四条流先混成一条，再做 RMSNorm
 
-**GLM 主干不是直接算 x + F(Norm(x))。它在层与层之间传四条并行的 residual 流，每个子层入口先把四条按由当前输入算出的系数混成一条 [4, 4096]，再做本页的 RMSNorm；子层输出也按系数写回四条，代替单条的相加。** 这套多路残差连接叫 mHC，混合、写回怎样计算，每层因此多花多少，都在[层与 hidden](layers-and-hidden.md#一层接过什么交出什么glm-为什么在层间传四条)讲。
+**GLM 主干不是直接算 x + F(Norm(x))。它在层与层之间传四条并行的 residual 流：子层入口先把四条按当前输入算出的系数混成一条 [4, 4096] 再做 RMSNorm；与此同时，旁路四条流做一次 `4 × 4` 混合，子层输出也按系数展开写回四条，共同代替单条相加。** 这套多路残差连接叫 mHC，混合、写回怎样计算，每层因此多花多少，都在[层与 hidden](layers-and-hidden.md#一层接过什么交出什么glm-为什么在层间传四条)讲。
 
 子层前的 RMSNorm 和前文公式完全一致：作用在混出来的 4096 维向量上，γ 有 4096 个数，每个子层各有一组，ε 取配置里的 0.00001。主干每层两个子层，45 层共有 90 个子层前 RMSNorm，最后一层之后还有 1 个。mHC 入口混合时也做了一次 RMSNorm，但那一次作用在四条拼起来的 16384 维长向量上，不带 γ，只用来算混合系数；两种别混，区别见[层与 hidden 的逐层走读](layers-and-hidden.md#r1-的-hidden-一路走下来)。
 

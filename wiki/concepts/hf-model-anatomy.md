@@ -68,7 +68,7 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-一个 HuggingFace 模型仓库本质上由「几 MB 的 JSON 说明书」和「几十 GiB 的 `.safetensors` 权重文件」两部分组成。在下载几十 GiB 权重或敲下 `vllm serve` 之前，先拆开目录里的几份轻量配置文件，就能直接算出模型架构、所需 NPU 显存、每 token 的 KV cache 占用，并提前避开启动报错与静音降级。
+一个 HuggingFace 模型仓库本质上由「几 MB 的 JSON 说明书」和「几十 GiB 的 `.safetensors` 权重文件」两部分组成。在下载几十 GiB 权重或敲下 `vllm serve` 之前，先拆开目录里的几份轻量配置文件，就能直接算出模型架构、所需 NPU 显存、每 token 的 KV cache 占用，并提前避开启动报错或无告警地采用默认值。
 
 ## 为什么启动服务前要先看模型目录
 
@@ -100,7 +100,7 @@ file: hf-directory-file-map
 | `config.json`（Mistral 格式用 `params.json`；多模态模型语言侧常放在 `text_config` 下） | 模型类名、层数、隐藏维度、注意力与 MoE 参数、词表大小、精度 `torch_dtype`、可选的 `quantization_config` | `vllm` 配置加载器 `get_config` 与架构转换器 `ModelArchitectureConfig` | 缺失直接报错退出；缺少 `architectures` 时尝试按 `model_type` 映射或要求传入 `--hf-overrides` |
 | `tokenizer.json` / `tokenizer.model`、`tokenizer_config.json`、可选 `chat_template.jinja` | 子词切分规则、特殊控制符编号（如 `bos_token_id`、`eos_token_id`）、对话 Jinja 模板与 `model_max_length` | `vllm` 分词器包装、`resolve_chat_template` 与 `_get_and_verify_max_len` | 无 `chat_template` 时调用 `/v1/chat/completions` 报错；`model_max_length` 过小会悄悄截断 `max_model_len` |
 | `model.safetensors` 或 `model-00001-of-NNNNN.safetensors` 与 `model.safetensors.index.json` | 真实模型权重张量；索引文件通过 `weight_map` 记录每个张量名落在哪个分片文件 | `DefaultModelLoader` 与 `filter_duplicate_safetensors_files` | 索引记录的分片缺任一个即抛出 `FileNotFoundError`；同时存在合并权重与分片时会靠索引剔除重复项 |
-| `generation_config.json` | 模型出厂默认的采样超参数（`temperature`、`top_p`、`top_k`、`eos_token_id` 等） | `try_get_generation_config`（缺失时尝试从 `config.json` 构造） | 请求未传采样参数时会静音沿用该文件默认值，而不是框架内置默认值 |
+| `generation_config.json` | 模型出厂默认的采样超参数（`temperature`、`top_p`、`top_k`、`eos_token_id` 等） | `try_get_generation_config`（缺失时尝试从 `config.json` 构造） | 请求未传采样参数时会无告警地采用该文件默认值，而不是框架内置默认值 |
 | `quantization_config`（内嵌或旧版 `hf_quant_config.json`）或 `quant_model_description.json` | 量化位宽、分组大小、激活缩放方式与逐层量化开关 | `vllm` `_verify_quantization` 与 `vllm-ascend` `maybe_auto_detect_quantization` / `detect_quantization_method` | 存在 `quant_model_description.json` 时自动触发 `--quantization ascend`；原生 `fp8` 缺少逐块参数会报 `NotImplementedError` |
 
 在[一次请求全景鸟瞰](request-overview.md)里看到的四件运行时大事——切出 token（分词器输出的离散整数编号）、逐层前向与读写 KV cache、末尾投影采样、最后还原文字——它们的张量尺寸和行为开关，几乎全部在启动阶段从这五类文件里确定下来；其中分词词表与对话模板的切分细节可进一步对照 [token](token.md)。

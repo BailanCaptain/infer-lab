@@ -4,7 +4,7 @@ title: 容器镜像、核心环境变量与 vllm serve 最小起服务清单
 type: concept
 origin: direct
 summary: >-
-  锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。
+  核对好镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。
 aliases:
   - vllm serve
   - 容器镜像
@@ -55,7 +55,7 @@ evidence: C
 relations:
   - to: ascend-model-onboarding
     kind: builds-on
-    note: 承接五维版本配套、活跃食谱核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务
+    note: 承接五维兼容版本、仍维护部署指南核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务
   - to: hf-model-anatomy
     kind: builds-on
     note: 将从 config.json 与分词模板读出的架构、上下文上限与精度字段转化为 vllm serve 启动参数
@@ -66,7 +66,7 @@ contradicts: []
 updated: '2026-11-18'
 ---
 
-锁死五维版本与权重选型（[新模型上线标准流程](ascend-model-onboarding.md)）、摸清模型结构（[读懂 HF 模型目录](hf-model-anatomy.md)）之后，临门一脚就是起容器、配环境变量并敲下 `vllm serve`。很多新手明明下对了镜像和权重，却栽在“容器找不到 NPU”“共享内存崩掉”或“抄了已失效的旧环境变量”。本页把单机起服务拆成**容器挂载、环境变量四层甄别、最小启动命令与三步冒烟闭环**四个动作，一次跑通 `Qwen3-8B` 与 `Qwen3-30B-A3B`。
+核对好五维兼容版本与权重选型（[新模型上线标准流程](ascend-model-onboarding.md)）、摸清模型结构（[读懂 HF 模型目录](hf-model-anatomy.md)）之后，临门一脚就是起容器、配环境变量并敲下 `vllm serve`。很多新手明明下对了镜像和权重，却栽在“容器找不到 NPU”“共享内存崩掉”或“抄了已失效的旧环境变量”。本页把单机起服务拆成**容器挂载、环境变量四层甄别、最小启动命令与三步冒烟闭环**四个动作，一次跑通 `Qwen3-8B` 与 `Qwen3-30B-A3B`。
 
 ## 第一步：容器怎么挂设备、驱动与缓存？
 
@@ -82,7 +82,7 @@ file: env-serve-container-mounts
 | --- | --- | --- |
 | **1. 计算与管理设备（`--device`）** | `/dev/davinci0..N`、`/dev/davinci_manager`、`/dev/devmm_svm`、`/dev/hisi_hdc` | 暴露计算核、设备管理与共享虚拟内存。**Atlas A3 双裸片**单卡对应一对节点（如 `davinci0`+`1`，8 卡为 `0-15`，见 [硬件设备](hardware-devices.md)），须成对挂载；`950DT` 省去 `devmm_svm` 并加挂 `hccn_tool` |
 | **2. 宿主机驱动直通（`-v`）** | `/usr/local/Ascend/driver/lib64/`、`driver/version.info`、`/etc/ascend_install.info`、`/usr/local/dcmi`、`/usr/local/bin/npu-smi` | 让容器内用户态 CANN 加载与宿主机内核一致的 `libascend_hal.so` 驱动库并完成版本校验；漏挂会导致 `torch.npu.is_available()` 返回 `False` 或 `npu-smi` 无法执行 |
-| **3. 共享内存与端口（`--shm-size` / `-p`）** | 单卡最小 `--shm-size=1g`，多卡 TP 推荐 `--shm-size=16g`；单机桥接用 `-p 8000:8000`（或 `--net=host`） | Docker 默认 `/dev/shm` 仅有 `64 MiB`，多进程 **Worker**（负责设备初始化与模型执行的工作进程）交换队列或缓存张量超限时直接报 `Bus error` 或共享内存耗尽（`/dev/shm`、`memlock` 锁页配额与宿主机静态大页三者的区别见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md)） |
+| **3. 共享内存与端口（`--shm-size` / `-p`）** | 单卡最小 `--shm-size=1g`，多卡 TP 推荐 `--shm-size=16g`；单机桥接用 `-p 8000:8000`（或 `--net=host`） | Docker 默认 `/dev/shm` 仅有 `64 MiB`，多进程 **Worker**（负责设备初始化与模型执行的工作进程）交换队列或缓存张量超限时直接报 `Bus error` 或共享内存耗尽（`/dev/shm`、`memlock` 锁页配额与宿主机静态大页的区别见 [宿主机内存底座与静态大页](host-memory-and-hugepages.md#容器---shm-sizedevshmmemlock-与宿主机内核稳态四件套)） |
 | **4. 权重缓存与空闲卡隔离** | `-v "$MODEL_CACHE:/root/.cache"`（或挂载本地权重盘）；容器内设 `ASCEND_RT_VISIBLE_DEVICES` | 避免 `--rm` 退出容器后重复下载几十 GiB 权重；若容器挂入了整机全部 `/dev/davinci*`，启动前用 `export ASCEND_RT_VISIBLE_DEVICES=2,3` 切出空闲设备并将其重映射为进程内从 `0` 开始的逻辑卡号 |
 
 以 **Atlas A3** 挂载单张物理卡（成对挂载 `davinci0` 与 `davinci1`）并映射本地缓存为例，标准起容器与两步入站验活命令如下：
@@ -131,14 +131,14 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 source /usr/local/Ascend/nnal/atb/set_env.sh
 ```
 
-第一行设置 `ASCEND_HOME_PATH`、`ASCEND_OPP_PATH` 与动态库搜索路径，供 C++ 算子加载器寻址；第二行注册加速库 ATB——只要漏跑第二行，运行期就会报 `libatb.so: cannot open shared object file`。此外，官方 `Dockerfile` 默认写入了 `TASK_QUEUE_ENABLE=1`（开启 `torch_npu` 一级异步算子下发队列；`0/1/2` 三档差异及 `=2` 的显存峰值与图捕获冲突边界见 [昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md)）和 `OMP_NUM_THREADS=1`（避免多 Worker 并发时 OpenMP 线程争抢 CPU 核）。
+第一行设置 `ASCEND_HOME_PATH`、`ASCEND_OPP_PATH` 与动态库搜索路径，供 C++ 算子加载器寻址；第二行注册加速库 ATB——只要漏跑第二行，运行期就会报 `libatb.so: cannot open shared object file`。此外，官方 `Dockerfile` 默认写入了 `TASK_QUEUE_ENABLE=1`（开启 `torch_npu` 一级异步算子下发队列；`0/1/2` 三档差异及 `=2` 的显存峰值与图捕获冲突边界见 [昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#task_queue_enable0--1--2-二级异步下发流水线与两大边界)）和 `OMP_NUM_THREADS=1`（避免多 Worker 并发时 OpenMP 线程争抢 CPU 核）。
 
 ### 2. 框架入口与显存分配器实读变量（`vllm/envs.py` + `platform.py`）
 
 这一层在 `vllm` 与 `vllm-ascend` 的 Python 代码中有明确的读取逻辑，直接决定单机能否找到设备和模型：
 
 - **`ASCEND_RT_VISIBLE_DEVICES`**：昇腾平台唯一的设备可见性控制变量（`NPUPlatform.device_control_env_var` 与绑核模块 `cpu_binding.py` 均读取它）。例如设 `export ASCEND_RT_VISIBLE_DEVICES=2,3`，进程内看到的 `NPU 0, 1` 就对应宿主机的设备 `2, 3`。切记**不要写成 `CUDA_VISIBLE_DEVICES`，也不要漏掉中间的 `RT_` 写成 `ASCEND_VISIBLE_DEVICES`**。
-- **`PYTORCH_NPU_ALLOC_CONF`**：`torch_npu` 显存（NPU 设备内存，常见为 HBM）分配器配置。`v0.30.0` 在未开睡眠模式（`enable_sleep_mode`）时，`_set_pytorch_npu_alloc_env()` 会**自动追加 `expandable_segments:True`**，用可扩展虚拟地址段缓解碎片。注意它不能与 `max_split_size_mb` 或 `garbage_collection_threshold` 同写；配合睡眠模式开启强化学习 `rl_config.enabled=true` 时代码又会自动剥离它。
+- **`PYTORCH_NPU_ALLOC_CONF`**：`torch_npu` 显存（NPU 设备内存，常见为 HBM）分配器配置。`v0.30.0` 在未开睡眠模式（`enable_sleep_mode`）时，`_set_pytorch_npu_alloc_env()` 会**自动追加 `expandable_segments:True`**，用可扩展虚拟地址段缓解碎片。注意它不能与 `max_split_size_mb` 或 `garbage_collection_threshold` 同写；配合睡眠模式开启强化学习 `rl_config.enabled=true` 时代码又会自动剥离它（跨流提前复用 `record_stream` 与禁切大块的取舍见 [PYTORCH_NPU_ALLOC_CONF 调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）。
 - **`VLLM_USE_MODELSCOPE=True`**：由上游 `vllm/envs.py` 解析；机器无法直连 HuggingFace 时改从 ModelScope 下载权重（官方镜像已预装 `modelscope<1.38`）。如果直接传入本地已下载好的目录路径，无需设置该项。
 - **`VLLM_WORKER_MULTIPROC_METHOD=spawn`**：控制多进程执行器（`MultiprocExecutor`，对应 `--distributed-executor-backend mp`）用 `spawn` 还是 `fork` 拉起子进程，二者正交配合而非互相替代。在线 `vllm serve` 未指定时默认注入 `"spawn"`；Python 离线 `LLM(...)` 默认 `"fork"`，若父进程提前触碰了 NPU 上下文，须显式设为 `spawn` 防卡死。
 - **`VLLM_HOST_IP` 与 `VLLM_PORT`**：多网卡环境下固定本机通信 IP 与内部起始端口；注意 `VLLM_PORT` 必须是纯整数，若在 Kubernetes 中被同名 Service 自动注入成 `tcp://...` 字符串，启动会直接抛出 `ValueError`。
@@ -157,7 +157,7 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 排查他人脚本时还会遇到大量 `HCCL_*`、`ASCEND_*` 或 `PT_HCCL_*` 变量（如 `HCCL_BUFFSIZE_EP`、`HCCL_SOCKET_IFNAME`、`HCCL_INTRA_ROCE_ENABLE` 等 `45+` 项），它们在 `vllm` 与 `vllm-ascend` 两仓的 Python 和 C++ 源码中**读取次数为 `0`**。对待这类变量要守住两条工程边界：
 
 1. **不武断判为语法错，诚实归为待核底层消费（`unknown`）**：两仓代码没读，不排除底层闭源 `libhccl.so` 或 CANN 运行时在 C 层直接通过 `getenv` 消费；在缺少固定版本 CANN 文档佐证前，本站配置体检器将其标为 `unknown` 提示核查，而非直接判错。
-2. **单机最小起服务绝不盲抄全家桶**：单机卡间通信走片间高速互联，不需要跨机网卡选路或超大规模通信调优变量；先把无额外环境变量的干净基线跑通，只有当目标模型食谱明确点名某项变量时再按需加入。
+2. **单机最小起服务绝不盲抄全家桶**：单机卡间通信走片间高速互联，不需要跨机网卡选路或超大规模通信调优变量；先把无额外环境变量的干净基线跑通，只有当目标模型部署指南明确点名某项变量时再按需加入。
 
 ## 第三步：单机 `vllm serve` 最小起服务清单与三步冒烟测试
 
@@ -252,7 +252,7 @@ curl --fail http://localhost:8000/v1/chat/completions \
 
 ### 3. 从单机扩到双机：主从节点最小增补参数（`v0.30.0`）
 
-当超大 MoE 模型单机 8 卡装不下全部专家、需扩到两台 8 卡机器组 `DP=2 × TP=8 = 16 卡（EP16）` 时，无需重写整套逻辑——先在两台机器上把可见卡与张量并行均扩满本机 8 卡（`export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7`、`--tensor-parallel-size 8 --enable-expert-parallel`），再按主从角色补齐以下四项跨机参数（完整跨机进程分工与波次对齐见 [Data Parallel](data-parallel.md) 与 [进程分工](engine-processes.md)）：
+超大 MoE 模型单机 8 卡装不下全部专家时，常扩到两台 8 卡机器组成 `DP=2 × TP=8 = 16 卡（EP16）`，每台机器运行 1 个 8 卡本地执行组。两台机器先统一配齐本机可见卡与并行公共参数：`export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7`，并传入 `--tensor-parallel-size 8 --enable-expert-parallel`。随后只需按主节点与无头（`--headless`）副节点的角色差异，增补下方跨机通信与组号参数（完整跨机进程分工与波次对齐见 [Data Parallel](data-parallel.md) 与 [进程分工](engine-processes.md)）：
 
 | 跨机增补项 | 主节点（`node0`，对外接 HTTP） | 副节点（`node1`，仅跑后台引擎） | 作用与踩坑红线 |
 | --- | --- | --- | --- |

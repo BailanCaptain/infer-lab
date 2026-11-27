@@ -193,7 +193,7 @@ $$N_{\text{tok}} = N_{\text{byte}} - M_{\text{char}} - M_{\text{word}} = 24 - 16
 
 ## 聊天消息：先套模板，再分词
 
-**调用 `/v1/chat/completions` 发送的多轮聊天消息不会原样交给分词器：服务端先通过 `chat_template`（一段与模型配套发布的 Jinja 对话模板）把系统提示、角色边界、对话历史和助手起始引导符拼成训练时约定的格式，再把整段序列编码成 token 编号。**
+**调用 `/v1/chat/completions` 发送多轮聊天消息时，消息先经对话模板拼成一整段格式化文本，再交给分词器编码成 token 编号。** 这份与模型配套发布的模板叫 `chat_template`（一段 Jinja 模板脚本），负责在系统提示、对话历史与末尾助手起始处插入训练时约定的角色控制标记。
 
 模型在后训练（SFT 监督微调 / RL 强化学习）阶段见到的对话都严格遵守各自的模板标记协议，靠控制标记区分 `system`、`user` 与 `assistant`。以 `v0.30.0` 主基线标准模型 `Qwen3-8B`（`vocab_size = 151936`，`bos_token_id = 151643`，`eos_token_id = 151645`）为例，其模板遵循 ChatML 风格：每条消息以 `<|im_start|>角色名\n` 开头、`<|im_end|>\n`（`151645`）收尾。开启 `add_generation_prompt=True` 时，末尾还会自动拼上 `<|im_start|>assistant\n`，并按 `enable_thinking` 等变量控制 `<think>...</think>` 前缀。
 
@@ -243,17 +243,23 @@ file: token-fig-detokenizer-vocab-bounds
 
 ## 落到标准部署与模型变体边界
 
-理解了通用分词与模板闭环后，下面先落到全站 `v0.30.0` 主基线（`vllm-ascend@c09d3e20` + `vllm@ced6857a`）的标准模型 `Qwen3-8B`，再对照两类工程边界：DeepSeek 协议库的特殊标记区间隔离，以及 `09 旗舰异构模型全案` 中 `GLM-5.3-Flash` 双机案例的 `154880` 词表三段式切分与示例请求 R1。
+理解了通用分词与模板闭环后，下面先落到全站 `v0.30.0` 主基线（`vllm-ascend@c09d3e20` + `vllm@ced6857a`）的标准模型 `Qwen3-8B`，再对照两类工程边界：DeepSeek 协议库的特殊标记区间隔离，以及 `GLM-5.3-Flash` 双机算例的 `154880` 词表三段式切分与示例请求 R1。
 
 ### Qwen3-8B 标准主基线：151936 词表与入口交接
 
 在本站单真源预设 `Qwen3-8B` 的 `config.json` 中，核心词表字段为 `"vocab_size": 151936`、`"bos_token_id": 151643`、`"eos_token_id": 151645`（`<|im_end|>`）与 `"tie_word_embeddings": false`。因为首尾词表不共享，输入 `embed_tokens` 与输出 `lm_head` 在 NPU 显存中各占一张 $151,936 \times 4,096$ 的 BF16 矩阵（单表约 `1.16 GiB`，合计 `2.32 GiB`；见 [HF 模型目录解剖](hf-model-anatomy.md#词表与首尾共享vocab_sizetie_word_embeddings-与权重核对)，`Qwen3-0.6B` 靠 `tie_word_embeddings: true` 省去一半）。
 
-`Qwen3` 系列也是上游 `vLLM` 源码注释中点名的“模型词表大于分词器词表”代表：权重矩阵的 `151,936` 行末尾预留了分词器日常文本切分不会产出的扩展行。因此在 `vllm@ced6857a` 的 `InputProcessor._validate_model_input` 中，引擎在 `tokenizer` 存在时同时守住上下两道边界（拦截负数 `min_input_id < 0`，上界取分词器最大编号与模型词表上界的较大值）：
+`Qwen3` 系列也是上游 `vLLM` 源码注释中点名的“模型词表大于分词器词表”代表，核对编号校验时须把三组上界分开：
 
-$$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab\_size} - 1)$$
+1. **分词器可发出的编号与 `tokenizer.max_token_id`**：分词器日常编码只会产出词表与新增特殊标记范围内的编号；`vllm@ced6857a` 的 `HfTokenizer` 缓存 `max_token_id = max(max(vocab.values()), tokenizer.vocab_size)`（`main` 修正为 `vocab_size - 1`）。
+2. **模型词表大小（`model_vocab_size`）**：即 `model_config.get_vocab_size()`。`Qwen3-8B` 权重矩阵共 `151,936` 行（有效行下标 `0..151935`），末尾预留了分词器日常切分不会产出的扩展行；反过来，部分多模态分词器会带有超出语言模型词表的媒体占位编号。
+3. **请求入口与采样参数的不同上界**：在 `vllm@ced6857a` 的 `InputProcessor._validate_model_input` 中，`tokenizer` 存在时同时拦截负数（`min_input_id < 0`）并取两者的较大上界：
 
-任何越界编号都会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量或越界（注意区分：请求入口 `prompt_token_ids` 取分词器与模型词表的较大上界，而采样参数里的候选白名单 `allowed_token_ids` 在 `v0.30.0 / main` 按 `model_config.get_vocab_size()` 校验、`v0.23.0 / v0.26.0rc` 带分词器时则按 `len(tokenizer)` 校验）。校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ（ZeroMQ，进程间高速消息通信库）发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
+$$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{model\_vocab\_size} - 1)$$
+
+越界编号会在主机 CPU 入口直接抛 `Token id … is out of vocabulary`，绝不放进 NPU 触发静默零向量。采样侧校验口径则按参数用途区分：候选白名单 `allowed_token_ids` 直接索引 logits 列，在 `v0.30.0 / main` 按 `0 <= id < model_config.get_vocab_size()` 校验（`v0.23.0 / v0.26.0rc` 带分词器时按 `len(tokenizer)` 校验）；而 `bad_words` 由分词器编码后按 `0 <= id <= tokenizer.max_token_id` 校验。
+
+校验通过后，`AsyncLLM.add_request` 先在前端 `OutputProcessor` 登记反分词状态与输出队列，再经 ZMQ（ZeroMQ，进程间高速消息通信库）发往 `EngineCore` 等待调度。直到调度器分配好预算，昇腾 Worker 的 `NPUModelRunner._prepare_inputs` 才在 [NPU 硬件](hardware-devices.md)的[设备内存](device-memory.md)（HBM）上准备 `input_ids` 与 `positions` 张量，按[平台契约](vllm-platform-interface.md)交昇腾算子执行[嵌入查表](embedding.md)。**主机内存里的字符串、编号列表与设备 HBM 里的权重、激活、KV cache 分属两本独立账，切勿把“几个 token 整数”等同于设备显存字节数。**
 
 ### DeepSeek Recipe：控制标记与用户文字怎样分开
 
@@ -263,7 +269,7 @@ $$0 \le \text{token\_id} \le \max(\text{tokenizer.max\_token\_id},\; \text{vocab
 
 ### GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转
 
-在 `09 旗舰异构模型全案` 的 [GLM-5.3-Flash 双机案例](glm-5-3-flash-two-node.md#部署前提)与[单请求主线 R1](one-request.md#第-1-站-入口从-http-到-node0-的引擎)（例外 B 历史绑定算例，固定快照 `690b7052`、`vllm@0fc695fc`、`vllm-ascend@db701c1f`）中，同一套机制呈现出三处具体的模型级特征：
+在 [GLM-5.3-Flash 双机算例](glm-5-3-flash-two-node.md#部署前提)与[单请求主线 R1](one-request.md#第-1-站-入口从-http-到-node0-的引擎)（固定配置 `690b7052`）中，同一套机制呈现出三处具体的模型级特征：
 
 1. **带 `ignore_merges` 直查优化的字节级 BPE**：`GLM-5.3-Flash` 的 `tokenizer.json` 先执行字符级正则预切分（连续汉字/字母成段、数字最多 `3` 位一段、标点与空白分段、文字前紧邻的单个非换行空格或标点并入该段、`'`s/`'`ll 缩写单列），再交 `ByteLevel` 转字节并合并。其 `BPE dropout` 为空（切分确定），覆盖全部 `256` 个基础字节故无未知标记；同时开启 `ignore_merges`，若预切分后的整段字节已在词表中则直接取出编号、跳过逐对归并。
 2. **`154880` 行词表的三段构成与 `special` 差异**：模型文本词表维度（`embed_tokens` 与 `lm_head` 行数，见[模型的形状总表](glm-5-3-flash.md#全模型形状总表)）为 `154,880`，比分词器总条目数多出 $154,880 - 154,820 - 36 = 24$ 行（配置文件未写明这 24 行用于对齐切分还是预留扩展）：

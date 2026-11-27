@@ -88,7 +88,7 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**多模态推理（Multimodal Inference）是指引擎在同一条提示词中同时接收文本与图像、视频或音频，先将非文本媒体切块并经专用编码器（如视觉编码器 ViT，即 Vision Transformer）投影到语言模型的隐藏维度，再把视觉向量原地填回序列占位槽，最后交由标准语言主干完成自回归生成。**
+**多模态推理（Multimodal Inference）在同一条请求中同时接收文本与图像、视频或音频，分三步完成衔接：先把非文本媒体编码成特征向量，再原地替换序列中的占位槽，最后送入语言模型逐词生成。** 其中负责把图像或视频帧切成小块并编码为向量的网络，通常是 **ViT**（Vision Transformer，视觉编码器）。
 
 沿[请求全景](request-overview.md)与[分词入口](token.md)走进语言模型时，纯文本请求只需查一次 [Embedding](embedding.md) 词表即可进入首层 Transformer。可一旦用户在消息里附带一张图片或一段视频，语言主干既读不懂原始 RGB 像素，也分不清二维平面里“上下相邻”的图像块在拉平成一维序列后其实相隔一整行。多模态推理体系正是为了解决**媒体如何变 token、视觉编码器如何跨卡不卡顿、以及重复图片如何免重算**这三道核心工程难题。
 
@@ -147,7 +147,7 @@ file: multimodal-fig-pipeline-mrope
 1. **权重极小但通信极碎**：ViT 的隐藏维通常只有 `1152`–`1280`，全套权重仅数百 MB 到 `1 GiB` 左右，按卡切分省不下多少显存；可它同样有 `27`–`32` 层 Transformer，每层注意力与 MLP 结束都要做一次 TP `All-Reduce`，一次前向就会多出 `54`–`64` 次小载荷跨卡同步。
 2. **头数整除陷阱**：某些视觉编码器的注意力头数不能被语言主干的 `tp_size` 整除（例如 `16` 个视觉头配 `TP=6`）。vLLM 的 `vision.py` 检测到 `num_heads % tp_size != 0` 时，会打印告警并静默回退到数据并行模式。
 
-显式开启 **`--mm-encoder-tp-mode data`** 后，每张 TP 卡各自保留一份完整 ViT 权重，由 `run_dp_sharded_vision_model` 把同批多图（或视频帧）沿 batch 维均分或按 Patch 总数贪心均衡分摊到各卡独立编码。整个 ViT 内部 **0 次跨卡通信**，仅在编码器出口做**唯一一次 `tensor_model_parallel_all_gather`** 拼齐全部视觉嵌入并裁掉填充。代价仅每卡多占几百 MB ViT 权重显存，却能大幅压低多图请求的首字时延（TTFT）。
+显式开启 **`--mm-encoder-tp-mode data`** 后，每张 TP 卡各自保留一份完整 ViT 权重，由 `run_dp_sharded_vision_model` 把同批多图（或视频帧）沿 batch 维均分或按 Patch 总数贪心均衡分摊到各卡独立编码。整个 ViT 内部 **0 次跨卡通信**，仅在编码器出口做**唯一一次 `tensor_model_parallel_all_gather`** 拼齐全部视觉嵌入并裁掉填充。代价仅每卡多占几百 MB ViT 权重显存，却能大幅压低多图请求的首字时延（TTFT）；若还需将变长多图或视频装进静态图以减少主机下发开销，可进一步配合按视觉 token 预算分桶录图的 [ViT 预算打包与 EncoderAclGraphManager](multimodal-encoder-cache.md#vit-预算打包与昇腾-encoderaclgraphmanager-图捕获回放)。
 
 ## 重复图片怎样免重算：四级缓存分工与昇腾 `ScoreEncoderCacheManager`
 
@@ -163,7 +163,7 @@ file: multimodal-fig-four-tier-cache
 |---|---|---|---|
 | **HTTP 原始字节下载缓存**（`VLLM_MEDIA_CACHE`） | 远程 URL 下载的原始媒体字节（本地磁盘目录） | 省去再次 HTTP 下载；命中后仍须解码、预处理、编码与语言前向 | 按完整 URL 建键（非 UUID；`data:`/`file:` 不走此缓存）；默认 `5120 MiB` 淘汰目标（非硬磁盘上限，刚写文件受保护）、`24h` 滑动 TTL（读/写懒检查过期）；同 URL 内容变更须换地址 |
 | **CPU 多模态预处理缓存**（`mm_processor_cache`） | CPU 预处理张量及其占位更新信息 | 省去相同媒体的重复 CPU 预处理；仍须经编码器或 EC 取得特征 | 默认 `4 GiB`（`0` 关闭）、类型 `lru`/`shm`（`shm` 单对象上限 `128 MiB`）；**仅当 `api_server_count == 1` 且（`DP=1` 或 external LB）时建立进程间缓存**（`lru` 接收端在 EngineCore，`shm` 在 Worker），否则退回 `processor_only` |
-| **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护（跨轮变前缀、抢占复用与昇腾 `EncoderAclGraphManager` 视觉图分桶回放详见 [多模态视觉编码与特征缓存](multimodal-encoder-cache.md)）；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
+| **编码器缓存（EC）**（`EncoderCacheManager` / `ScoreEncoderCacheManager`） | 视觉/媒体编码器已算出的嵌入特征 | 省去对应媒体的重复 ViT 编码；语言层仍需继续处理 | 单实例由本节两类管理器维护（变前缀对话、抢占重算与分块预填充下的独立复用详见 [EncoderCacheManager 复用机制](multimodal-encoder-cache.md#encodercachemanager-如何独立于文本-prefix-caching-复用特征)）；跨实例复用与 EPD 见[编码器分离](pd-disaggregation.md#带图像的请求再把编码器分出去epd)与 [UCM 编码复用](ucm.md#多模态还有一份编码结果可以复用) |
 | **[KV Cache](kv-cache.md) / [Prefix Caching（APC）](prefix-caching.md)** | 语言模型各层历史 K/V 状态 | 前缀完全一致时省去语言层 Prefill | 需前面各层产出相同的占位与哈希 |
 
 以包含图片 A、B 的消息为例看部分命中合并：若 CPU `mm_processor_cache` 仅命中 A，预处理器只新算 B，随后必须把缓存 A 与新 B **按原消息顺序合回 `[A, B]`** 并重建占位区间（绝不能把新结果排在前面导致图文错配）。直通的预计算特征走独立分支，不受 CPU 媒体缓存推断。
@@ -190,7 +190,7 @@ file: multimodal-fig-score-ec-cache
 $$\text{score} = (\text{freq} + \text{clock}) \times \text{cal\_cost}, \qquad \text{cal\_cost}(s) = \frac{L_{\text{vis}}(\alpha s + \beta)}{4 \times 10^{14}}$$
 
 其中 $L_{\text{vis}}$ 对 `qwen3_5` 取 `27` 层、其余默认 `32` 层。当 CPU 条目再次命中时，若 NPU 空槽足够则直接晋升；若空槽不足且可回收槽位足够，`should_promote` 把候选条目不含 `clock` 的得分与 NPU 可回收集合 `npu_freeable` 中按升序排在 **`promote_percentile`（默认 `0.2`，即低 `20%` 分位）** 的门槛比较。得分达到或超过门槛（`score >= threshold`）才批量淘汰低分项（一次性清理到够放新项且尽量留出 **`watermark`（默认 `0.2`）** 空槽），再由 Worker 在当前 NPU 流发起非阻塞的主机到设备（`non_blocking` H2D）拷贝晋升至常驻 `encoder_cache`，并由 `torch.npu.Event` 追踪拷贝完成与源缓冲生命周期。
-3. **防御性兜底**：若调度器判定某条目在 CPU 缓存命中、但 Worker 临时缓存尚未就绪，`_get_encoder_output_from_cache` 会退回同步 H2D 补拷并写入 `tmp_encoder_cache`，避免状态微差演变成致命 cache miss。
+3. **防御性兜底**：若调度器判定某条目在 CPU 缓存命中、但 Worker 临时缓存尚未就绪，`_get_encoder_output_from_cache` 会退回同步 H2D 补拷并写入 `tmp_encoder_cache`，避免状态微差演变成致命 cache miss。上述 CPU—NPU 三态搬运在 `v0.30.0` 由 `Model Runner V1` 完整消费；社区 `main` 切入 `Model Runner V2` 后的消费者接线边界详见 [Score 两级缓存与 main 接线边界](multimodal-encoder-cache.md#上游单级引用计数-vs-昇腾-scoreencodercachemanager-与-main-接线边界)。
 
 ## 常见误解
 

@@ -1,5 +1,7 @@
 ---
 id: gqa
+legacyAnchors:
+  变体边界glm-双机的稀疏-mla-与-kda-为什么不是-gqa: 异构压缩路线对照：稀疏 MLA 与线性 KDA 为什么不是 GQA
 title: GQA：几个查询头共读一组 K、V，省下什么、付出什么
 type: concept
 summary: >-
@@ -90,7 +92,7 @@ rawSources:
     raw/sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md
 ---
 
-**GQA（Grouped-Query Attention，分组查询注意力）把一层里的查询头（Q 头）等分成若干组，让同一组里的几个查询头共读同一组键和值（KV 头）：各头面对的历史 K、V 相同，但仍用各自的 Q 独立打分、独立汇合出自己的输出。少了的只是 K、V 的份数，查询头数和输出份数一点不变。**
+**GQA（Grouped-Query Attention，分组查询注意力）把一层里的查询头（Q 头）等分成若干组，让同一组的查询头共读同一组键和值（KV 头）。同组各头面对的历史 K、V 相同，但仍用各自的 Q 独立打分、独立汇合出自己的输出；少了的只是 K、V 的份数，查询头数和输出份数一点不变。**
 
 沿着[请求全景](request-overview.md)进入逐层前向时，标准 [attention](attention-qkv.md) 先把每个位置的隐藏向量乘三套权重矩阵，得到查询 Q（我要找什么）、键 K（凭什么匹配）和值 V（被找到后交出的内容）。多头注意力 MHA（Multi-Head Attention）把 Q、K、V 各切成 $n_q$ 个注意力头（attention head），见[多头](attention-qkv.md#多头同一个位置同时按几套方式去读)。为了不在生成新 token 时每步重算历史，每个历史位置的 K、V 都要存进 [KV cache](kv-cache.md)——头越多、上下文越长，缓存和每步搬运开销就越惊人，GQA 正是从这里下手。
 
@@ -252,9 +254,9 @@ summary: 切换 Qwen3-8B（4:1）或 Qwen3-30B-A3B（8:1）并调节 TP 并行�
 - **`Mooncake + GQA + C8` 的 P/D 分离传输红线**：对 GQA 模型开启 `C8`（`INT8`）KV cache 量化（`enable_c8_quant=True`，见 [KV cache 量化](kv-cache-quantization.md)）并搭配 [PD 分离](pd-disaggregation.md)时，Prefill 生产端保留 `BF16` 缓存，Decode 消费端分配 `INT8` 缓存。若使用整块裸字节直传的 [MooncakeConnector](mooncake-connector.md)（含 `V1` / `V2`），消费端会把 `BF16` 字节误读为 `INT8`；启动检查 `_check_mooncake_c8_kv_cache_quant` 会直接抛 `ValueError` 拦截，须换用逐层量化的 **`MooncakeLayerwiseConnector`** 或关闭 `C8`。
 - **GQA 叠加 [上下文并行（预填充 PCP / 解码 DCP）](context-parallel.md)的整除门禁**：在 `v0.30.0` 中，对 GQA/MQA 模型同时开启 `PCP > 1` 与 `DCP > 1` 时，平台强制要求 `PCP == DCP`。若在投机解码下为草稿模型单独开 `DCP > 1`（且 `PCP == 1`），还必须满足草稿 `TP > total_num_kv_heads`、`DCP <= TP // total_num_kv_heads`，且 `Q // KV` 能被 `DCP` 整除。
 
-### 变体边界：GLM 双机的稀疏 MLA 与 KDA 为什么不是 GQA
+### 异构压缩路线对照：稀疏 MLA 与线性 KDA 为什么不是 GQA
 
-并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`）为例：示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层（交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）。
+并非所有压缩历史缓存的模型都走 GQA。在混合架构 `GLM-5.3-Flash`（[双机 TP8 部署](glm-5-3-flash-two-node.md#部署前提)）中，示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层（交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）。
 
 它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**。因此绝不能套用本页 GQA 公式估算缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
 

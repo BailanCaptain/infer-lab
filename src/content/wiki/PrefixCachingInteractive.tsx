@@ -393,15 +393,15 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
     step: 5,
     buttonLabel: "⑤ 写时复制 CoW 分叉",
     shortBtn: "⑤ CoW 分叉拷贝",
-    badgeText: "动作 5 / 5 · CoW 拷贝 B3→B2，B3 ref 2→1",
-    title: "动作 ⑤ · 写时复制 CoW 分叉（改写 ref_cnt > 1 共享块 B3 时拷出新块 B2，B3 ref 2→1）",
-    takeaway: "想修改多人共用的未满块 B3？不能硬改：先拷一份到新块 B2 给 C 改，原块 B3 留给 B 安全读！",
+    badgeText: "动作 5 / 5 · CoW 拷贝 B3→B4，B3 ref 2→1",
+    title: "动作 ⑤ · 写时复制 CoW 分叉（改写 ref_cnt > 1 共享块 B3 时拷出新块 B4，B3 ref 2→1）",
+    takeaway: "想修改多人共用的未满块 B3？不能硬改：从队头摘空块 B4 拷一份给 C 改，原块 B3 留给 B 安全读！",
     detail:
-      "分支 C 原本与请求 B 共享 [B0, B1, B3]（B3 的 ref_cnt = 2）。当 C 需要原地改写 B3 槽位时，调度器从空闲队头摘出 B2（队列余 [ B4, B5 ]）拷贝 B3 原内容并改写，B3 引用减为 1（2→1）供 B 无损继续读取。",
-    savedCellsText: "仅拷 1 块 B3→B2（B0, B1 仍共享）",
-    savedNote: "写时隔离：B 续读 B3，C 改写新块 B2",
-    freeLruQueue: ["B4", "B5"],
-    cowCopyFromTo: ["B3", "B2"],
+      "分支 C 原本与请求 B 共享 [B0, B1, B3]（B3 的 ref_cnt = 2）。当 C 需要原地改写 B3 槽位时，调度器从空闲队头摘出 B4（队列余 [ B5, B2 ]）拷贝 B3 原内容并改写，B3 引用减为 1（2→1）供 B 无损继续读取。",
+    savedCellsText: "仅拷 1 块 B3→B4（B0, B1 仍共享）",
+    savedNote: "写时隔离：B 续读 B3，C 改写新块 B4",
+    freeLruQueue: ["B5", "B2"],
+    cowCopyFromTo: ["B3", "B4"],
     reqA: {
       name: "请求 B（原读分支）",
       stateText: "无损续读",
@@ -423,7 +423,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
       slots: [
         { text: "系统提示 [0..3]（共享）", target: "B0", tone: "is-sys" },
         { text: "格式约束 [4..7]（共享）", target: "B1", tone: "is-sys" },
-        { text: "改写分支尾部 → 绑新块 B2", target: "B2", tone: "is-cow", flow: true },
+        { text: "改写分支尾部 → 绑新块 B4", target: "B4", tone: "is-cow", flow: true },
       ],
     },
     blocks: [
@@ -447,17 +447,7 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         refTone: "ref-2",
         state: "shared",
       },
-      {
-        id: "B2",
-        roleLabel: "CoW 新块（拷自 B3 并改写）",
-        fillText: "拷贝改写",
-        cells: ["tok", "tok", "cow", ""],
-        refCnt: 1,
-        refBadge: "新 ref=1",
-        refTone: "ref-cow",
-        state: "cow",
-        highlight: true,
-      },
+      FREE_BLOCK("B2", "原 A 尾块（空闲待借）"),
       {
         id: "B3",
         roleLabel: "原块保留（供 B 无损读）",
@@ -469,7 +459,17 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
         state: "shared",
         highlight: true,
       },
-      FREE_BLOCK("B4"),
+      {
+        id: "B4",
+        roleLabel: "CoW 新块（拷自 B3 并改写）",
+        fillText: "拷贝改写",
+        cells: ["tok", "tok", "cow", ""],
+        refCnt: 1,
+        refBadge: "新 ref=1",
+        refTone: "ref-cow",
+        state: "cow",
+        highlight: true,
+      },
       FREE_BLOCK("B5"),
     ],
   },
@@ -1192,9 +1192,9 @@ export function PrefixCachingInteractive({
       }
       takeawayBadge={state.badgeText}
       takeawayTone={
-        evictStage === "alloc-evict" || hitPreset === "diff-salt"
+        evictStage === "alloc-evict" || (evictStage === "none" && hitPreset === "diff-salt")
           ? "warn"
-          : state.step === 2 || state.step === 5
+          : evictStage === "none" && (state.step === 2 || state.step === 5)
             ? "accent"
             : "default"
       }
@@ -1203,10 +1203,30 @@ export function PrefixCachingInteractive({
       detailsSummary="查看工程与源码细节（链式哈希 / ref_cnt / 倒序 LRU 回收与末位 logits 重算边界）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}（当前核算：复用 <code>{state.reusedCells}</code>{" "}
-          格、自算 <code>{state.recomputeCells}</code> 格、块复制 <code>{state.copiedBlocks}</code>{" "}
-          块；常规整段全命中时仍须回退保留末 <code>1</code> 个位置计算下一词 logits；空闲队列队头 [{" "}
-          {state.freeLruQueue.join(", ")} ] 队尾）
+          <strong>
+            {evictStage === "ab-released"
+              ? "倒序尾插回收 · A 与 B 全部释放归池"
+              : evictStage === "alloc-evict"
+                ? "LRU 队头施压借块 · 先汰叶块 B1 保根块 B0"
+                : hitPreset === "half-7"
+                  ? "半块 7 格同前缀 · 整块对齐复用边界"
+                  : hitPreset === "diff-salt"
+                    ? "多租户 cache_salt 隔离 · 首块指纹即分流"
+                    : spec.title}
+          </strong>
+          ：
+          {evictStage === "ab-released"
+            ? "请求归还块引用归零后追加到 FreeKVCacheBlockQueue 队尾：原空块 B4、B5 居前先借，A 与 B 的无哈希尾块 B2、B3 次之，满块链按 B1（叶）→ B0（根）倒序入队。"
+            : evictStage === "alloc-evict"
+              ? "新批次申请 20 格（5 块）时从空闲队头依次弹出 B4、B5、B2、B3、B1：弹出叶块 B1 时同步抹除 h1 哈希项，而排在队尾的根块 B0 与 h0 完好留存。"
+              : hitPreset === "half-7"
+                ? "标准 APC 仅对写满整块（4/4）注册块哈希：7 格公共前缀仅首块 B0（4 格）命中复用，第 2 块因第 7 格起文本分叉失配，剩余 6 格由 B 自算写入 B3（4/4）与尾块 B4（2/4）。"
+                : hitPreset === "diff-salt"
+                  ? "额外身份键 cache_salt 参与首块哈希混入：h0' = H(salt_B, [0..3]) ≠ h0，首块即失配导致整条哈希链分流，B 独立分配 B3、B4、B5 全量重算 10 格。"
+                  : spec.detail}
+          （当前核算：复用 <code>{state.reusedCells}</code> 格、自算 <code>{state.recomputeCells}</code>{" "}
+          格、块复制 <code>{state.copiedBlocks}</code> 块；常规整段全命中时仍须回退保留末 <code>1</code>{" "}
+          个位置计算下一词 logits；空闲队列队头 [ {state.freeLruQueue.join(", ")} ] 队尾）
         </>
       }
     >
@@ -1298,13 +1318,27 @@ export function PrefixCachingInteractive({
               strokeWidth="1.4"
             />
             <text x="104" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {state.reqA.name.slice(0, 9)}
+              {state.reqA.name.slice(0, 10)}
             </text>
             <text x="104" y="86" textAnchor="middle" fontSize="12" fill="#4c65b6">
-              {evictStage === "ab-released" ? "引用归零返池" : "前缀 → B0, B1"}
+              {evictStage === "alloc-evict"
+                ? "根块 h0→B0 留存"
+                : evictStage === "ab-released"
+                  ? "引用归零返池"
+                  : state.step === 4 && hitPreset === "full-8"
+                    ? "退共享引用 2→1"
+                    : "前缀 → B0, B1"}
             </text>
             <text x="104" y="112" textAnchor="middle" fontSize="12" fill="#087f73">
-              {state.step === 5 ? "原读尾 → B3" : evictStage !== "none" ? "尾块已回收" : "私有尾 → B2"}
+              {evictStage === "alloc-evict"
+                ? "叶块 B1 已被汰"
+                : evictStage === "ab-released"
+                  ? "尾块已回收"
+                  : state.step === 5
+                    ? "原读尾 → B3"
+                    : state.step === 4 && hitPreset === "full-8"
+                      ? "尾块 B2 已回收"
+                      : "私有尾 → B2"}
             </text>
 
             <rect
@@ -1338,7 +1372,7 @@ export function PrefixCachingInteractive({
                     : hitPreset === "half-7"
                       ? "首块B0+自算B3,B4"
                       : state.step === 5
-                        ? "CoW改写 → B2"
+                        ? "CoW改写 → B4"
                         : state.step === 1
                           ? "等待进入…"
                           : "零拷贝 → B0,B1"}
@@ -1457,7 +1491,7 @@ export function PrefixCachingInteractive({
             {state.cowCopyFromTo && (
               <path
                 className="wiki-edu-wire is-flow"
-                d="M 650 165 C 668 158, 668 137, 650 130"
+                d={`M 650 ${BLOCK_ROW_Y[state.cowCopyFromTo[0]]} C 668 ${BLOCK_ROW_Y[state.cowCopyFromTo[0]] + 7}, 668 ${BLOCK_ROW_Y[state.cowCopyFromTo[1]] - 7}, 650 ${BLOCK_ROW_Y[state.cowCopyFromTo[1]]}`}
                 stroke="#9a4b86"
                 markerEnd={`url(#${mCow})`}
               />
@@ -1559,7 +1593,7 @@ export function PrefixCachingInteractive({
             ))}
             {state.cowCopyFromTo && (
               <div className="wiki-edu-cow-banner">
-                ⚡ 写时复制：原块 B3 正在被 B 读取，先拷贝 1 份到 B2 再改写！
+                {`⚡ 写时复制：原块 ${state.cowCopyFromTo[0]} 正在被 B 读取，先拷贝 1 份到 ${state.cowCopyFromTo[1]} 再改写！`}
               </div>
             )}
           </div>

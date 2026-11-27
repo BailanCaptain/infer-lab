@@ -156,5 +156,58 @@ describe("Astra Sign-Off S1 Regressions · PrefixCaching (P1-4) & RforkFallback 
     expect(dropGateFailHtml).not.toContain("零崩溃退回本地 Safetensors 重载");
     expect(spec400.detail).toContain("8d6180e2");
     expect(spec400.detail).toContain("后台慢试");
+
+    // Round-4: Step 4 -> Step 5 pops head B4 from ["B4", "B5", "B2"], leaving ["B5", "B2"]
+    const step4State = computePrefixPoolState(4, "full-8", "none");
+    const step5State = computePrefixPoolState(5, "full-8", "none");
+    expect(step4State.freeLruQueue[0]).toBe("B4");
+    expect(step5State.cowCopyFromTo).toEqual(["B3", "B4"]);
+    expect(step5State.freeLruQueue).toEqual(["B5", "B2"]);
+
+    // Round-4: cow-fork -> ab-released / alloc-evict never leaves stale "原读尾 → B3" in SVG
+    for (const es of ["ab-released", "alloc-evict"] as const) {
+      const cowThenEvictHtml = renderToStaticMarkup(
+        createElement(PrefixCachingInteractive, {
+          ...baseProps("prefix-caching"),
+          initialStep: 5,
+          initialHitPreset: "cow-fork",
+          initialEvictStage: es,
+        }),
+      );
+      expect(cowThenEvictHtml).not.toContain("原读尾 → B3");
+      expect(cowThenEvictHtml).not.toContain("CoW改写");
+    }
+
+    // Round-4: Exhaustive 3 fallback scenarios × 4 gate combinations have zero contradictory labels
+    for (const sc of ["planner-miss", "seed-transfer-drop", "cleanup-abort"] as const) {
+      for (const svc of [true, false]) {
+        for (const mem of [true, false]) {
+          const html = renderToStaticMarkup(
+            createElement(RforkFallbackInteractive, {
+              ...baseProps("rfork-fig-route-and-fallback"),
+              initialScenario: sc,
+              initialServiceStopped: svc,
+              initialMemoryReset: mem,
+            }),
+          );
+          // Strip static scenario toolbar button labels before checking dynamic status/readout copy
+          const dynamicHtml = html.replace(/<button\b[^>]*>[\s\S]*?<\/button>/g, "");
+          if (svc && mem) {
+            expect(dynamicHtml).toContain('data-exit="disk-online"');
+            expect(dynamicHtml).not.toContain("抛明确 RuntimeError");
+            expect(dynamicHtml).not.toContain("脏缓冲清理失败");
+          } else {
+            expect(dynamicHtml).toContain('data-exit="safety-abort"');
+            expect(dynamicHtml).not.toContain("零中断退回本地 Safetensors");
+            expect(dynamicHtml).not.toContain("零崩溃退回本地 Safetensors 重载");
+            if (!svc && mem) {
+              expect(dynamicHtml).toContain("门1");
+              expect(dynamicHtml).not.toContain("脏显存清不掉");
+              expect(dynamicHtml).not.toContain("脏缓冲清理失败");
+            }
+          }
+        }
+      }
+    }
   });
 });

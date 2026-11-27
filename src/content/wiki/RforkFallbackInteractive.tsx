@@ -379,54 +379,136 @@ export function RforkFallbackInteractive({
     return "is-skip";
   };
 
+  const bothGatesFailed = !flow.serviceStopped && !flow.memoryReset;
+  const onlyServiceFailed = !flow.serviceStopped && flow.memoryReset;
+  const onlyMemoryFailed = flow.serviceStopped && !flow.memoryReset;
+  const plannerFailTag = bothGatesFailed ? "双门均失败" : onlyServiceFailed ? "门1停服失败" : "门2注销失败";
+  const plannerFailClause = bothGatesFailed
+    ? "门1 停种子服与门2 注销预登记显存均失败"
+    : onlyServiceFailed
+      ? "门1 停种子服失败（门2 虽通过，双门缺一不可）"
+      : "门2 注销预登记显存失败（门1 虽通过，双门缺一不可）";
+
+  const effectivePanelBadge = !flow.needsFallback
+    ? (spec.faultBadge ?? flow.batchSummaryText)
+    : scenario === "planner-miss"
+      ? flow.bothGatesPass
+        ? "404 / 暂无空闲 Seed"
+        : "404 未命中 · 安全门阻断"
+      : flow.bothGatesPass
+        ? scenario === "cleanup-abort"
+          ? "传输中断 · 双门恢复清零"
+          : "Seed 失联 / 传输中断"
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? "脏缓冲清理失败"
+          : onlyServiceFailed
+            ? "传输中断 · 门1停服失败阻断"
+            : onlyMemoryFailed
+              ? "传输中断 · 门2显存未清阻断"
+              : "传输中断 · 双门清理失败阻断";
+
   const effectiveTakeawayBadge =
     flow.needsFallback && !flow.bothGatesPass
       ? scenario === "planner-miss"
         ? "现场 2 / 5 · 安全门异常拦停"
-        : scenario === "seed-transfer-drop"
-          ? "现场 3 / 5 · 安全门紧急红灯拦停"
-          : spec.badgeText
+        : `现场 ${spec.index} / 5 · 安全门紧急红灯拦停`
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "现场 5 / 5 · 清空脏数据后改读硬盘"
         : spec.badgeText;
+
   const effectiveTakeaway =
     flow.needsFallback && !flow.bothGatesPass
       ? scenario === "planner-miss"
-        ? "本轮未命中 Seed（已写 0 批），但回退前 prepare_for_fallback 安全门失败：主动抛 RuntimeError 中止启动！"
-        : "传一半断了，而且残留的脏显存清不掉：安全门直接拉闸报错！宁可拒绝启动，也绝不带脏权重吐乱码或双份占爆显存！"
+        ? `本轮未命中 Seed（已写 0 批），但回退安全门未通过（${plannerFailClause}）：安全门直接拉闸报错中止启动！`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.takeaway
+          : onlyServiceFailed
+            ? "传一半断了：门2 显存虽已注销清零，但门1 停种子服务失败（仍可能并发写显存），安全门直接拉闸报错中止启动！"
+            : onlyMemoryFailed
+              ? "传一半断了，而且门2 注销显存失败、残留的脏显存清不掉：安全门直接拉闸报错！宁可拒绝启动，也绝不带脏权重吐乱码或双份占爆显存！"
+              : "传一半断了，而且门1 停种子服与门2 注销显存双双失败：安全门直接拉闸报错！宁可中止启动，也绝不冒险带病上线！"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "两道安全门恢复通过：已写残缺显存彻底回收归零，零崩溃改读本地 Safetensors 硬盘上线！"
         : spec.takeaway;
+
+  const effectiveShortLabel =
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? `② Planner 404 + ${plannerFailTag}阻断`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.shortLabel
+          : `${spec.index === 3 ? "③" : "⑤"} 传输中断 + ${onlyServiceFailed ? "门1停服失败" : onlyMemoryFailed ? "门2显存未清" : "双门均失败"}阻断`
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "⑤ 双门恢复清零后改读硬盘"
+        : spec.shortLabel;
+
+  const effectiveTitle =
+    flow.needsFallback && !flow.bothGatesPass
+      ? scenario === "planner-miss"
+        ? `现场 ② · Planner 404 无可用 Seed，但回退安全门未通过（${plannerFailTag} → 抛明确 RuntimeError）`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.title
+          : onlyServiceFailed
+            ? `现场 ${spec.index} · 传输异常且门1停种子服务失败（门2显存虽清零，双门未齐仍抛明确 RuntimeError）`
+            : onlyMemoryFailed
+              ? `现场 ${spec.index} · Seed 传输中断且门2注销显存失败（安全门阻断回退：抛明确 RuntimeError）`
+              : `现场 ${spec.index} · 传输异常且门1停服与门2清显存双双失败（安全门阻断回退：抛明确 RuntimeError）`
+      : scenario === "cleanup-abort" && flow.bothGatesPass
+        ? "现场 ⑤ · 传输异常后两道安全门恢复通过（清空半截脏数据，零崩溃退回本地 Safetensors 重载）"
+        : spec.title;
+
   const effectiveDetail =
     flow.needsFallback && !flow.bothGatesPass
       ? scenario === "planner-miss"
-        ? "Planner 返回 404（本轮已写 0 批），但 prepare_for_fallback 安全门失败，安全门阻断回退：抛明确 RuntimeError 中止启动。"
-        : "分批读失败后 prepare_for_fallback 未能完成双门清理（门1停种子服或门2注销显存失败），安全门阻断回退：抛明确 RuntimeError 中止启动，严防精度静默损坏与双份 Safetensors OOM。"
+        ? `Planner 返回 HTTP 404（本轮已写 0 批），回退前 prepare_for_fallback 未通过（${plannerFailClause}）；安全门阻断回退：抛明确 RuntimeError 中止启动。`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.detail
+          : onlyServiceFailed
+            ? "分批读失败后 prepare_for_fallback 门2 注销显存虽成功，但门1 停种子服务失败（远端传输通道未干净关闭）；双门缺一不可，安全门阻断回退：抛明确 RuntimeError 中止启动。"
+            : onlyMemoryFailed
+              ? "分批读失败后 prepare_for_fallback 门1 停种子服虽成功，但门2 注销显存失败（残留半截脏缓冲）；安全门阻断回退：抛明确 RuntimeError 中止启动，严防精度静默损坏与双份 Safetensors OOM。"
+              : "分批读失败后 prepare_for_fallback 中门1 停种子服与门2 注销显存双双失败，通道未关且半截脏权重未清；安全门阻断回退：抛明确 RuntimeError 中止启动，严防并发污染与双份 Safetensors OOM。"
       : scenario === "cleanup-abort" && flow.bothGatesPass
-        ? "两道 prepare_for_fallback 安全门均已恢复通过，前序已写残缺数据与 HBM 登记彻底清零，零崩溃退回本地 Safetensors 重载。"
+        ? "两道 prepare_for_fallback 安全门（门1 停种子服 + 门2 注销显存）均已恢复通过，前序已写残缺数据与 HBM 登记彻底清零，零崩溃退回本地 Safetensors 重载。"
         : spec.detail;
+
   const effectiveOutcomeKind =
     flow.activeExit === "safety-abort"
       ? ("safety-abort" as const)
       : flow.activeExit === "disk-online"
         ? ("fallback-ok" as const)
         : spec.outcomeKind;
+
   const effectiveSafetyTitle =
     flow.needsFallback && !flow.bothGatesPass
       ? scenario === "planner-miss"
-        ? "✗ 安全门异常拦停（已写 0 批，未发远端传输）"
-        : "✗ 安全门紧急拦停：prepare_for_fallback 未能清空脏显存！"
+        ? `✗ 安全门异常拦停（已写 0 批 · ${plannerFailTag}）`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.safetyGateTitle
+          : onlyServiceFailed
+            ? "✗ 安全门紧急拦停：门1 停种子服务失败（双门缺一不可）！"
+            : onlyMemoryFailed
+              ? "✗ 安全门紧急拦停：门2 注销显存失败，残留半截脏权重！"
+              : "✗ 安全门紧急拦停：门1 停种子服与门2 清显存双双失败！"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "✓ 安全门恢复通过：半截脏权重已擦除"
         : spec.safetyGateTitle;
+
   const effectiveSafetyDesc =
     flow.needsFallback && !flow.bothGatesPass
       ? scenario === "planner-miss"
-        ? "Planner 404 本轮已写 0 批，但回退前 prepare_for_fallback 安全门失败，拒绝继续加载。"
-        : "已写残缺显存或种子服务未能干净注销，严禁再硬塞第二份本地模型或带着半截坏权重上线。"
+        ? `Planner 404 本轮未发远端传输（0 批已写），但因${plannerFailClause}，拒绝转入本地 Safetensors 加载。`
+        : scenario === "cleanup-abort" && onlyMemoryFailed
+          ? spec.safetyGateDesc
+          : onlyServiceFailed
+            ? "门2 显存虽已注销复位，但门1 种子服务未停稳，严防后台残余并发写入污染本地重载，拒绝退回硬盘加载。"
+            : onlyMemoryFailed
+              ? "门1 停种子服已成功，但旧显存没释放干净，严禁再硬塞第二份本地模型或带着半截坏权重上线。"
+              : "种子服务未关闭且旧显存未释放干净，严禁再加载第二份本地模型或带残缺权重上线。"
       : scenario === "cleanup-abort" && flow.bothGatesPass
         ? "两道安全门均已通过，已写残缺缓冲归零，安全退回本地 Safetensors 重载。"
         : spec.safetyGateDesc;
+
   const effectiveFinalOutcome =
     flow.activeExit === "safety-abort" && spec.outcomeKind !== "safety-abort"
       ? "安全门阻断回退：抛明确 RuntimeError"
@@ -434,8 +516,10 @@ export function RforkFallbackInteractive({
         ? "零崩溃退回本地 Safetensors 重载"
         : spec.finalOutcome;
   const effectiveServiceAvail =
-    flow.activeExit === "safety-abort" && spec.outcomeKind !== "safety-abort"
-      ? "🔴 主动拉闸中止启动 · 回退安全门未通过"
+    flow.activeExit === "safety-abort"
+      ? scenario === "cleanup-abort" && onlyMemoryFailed
+        ? spec.serviceAvailability
+        : "🔴 主动拉闸中止启动 · 回退安全门未通过"
       : flow.activeExit === "disk-online" && spec.outcomeKind === "safety-abort"
         ? "🟢 服务正常上线 · 残缺数据已清净，重读硬盘无损启动"
         : spec.serviceAvailability;
@@ -554,7 +638,7 @@ export function RforkFallbackInteractive({
       detailsSummary="查看工程与源码细节（五门清单 / prepare_for_fallback 双门 / 租约状态码）"
       detailsContent={
         <>
-          <strong>{spec.shortLabel}</strong>（{spec.title}）：{effectiveDetail}
+          <strong>{effectiveShortLabel}</strong>（{effectiveTitle}）：{effectiveDetail}
         </>
       }
     >
@@ -576,7 +660,7 @@ export function RforkFallbackInteractive({
             <span
               className={`wiki-edu-badge ${flow.activeExit === "safety-abort" ? "is-bad" : flow.activeExit === "disk-online" ? "is-warn" : "is-good"}`}
             >
-              {spec.faultBadge ?? flow.batchSummaryText}
+              {effectivePanelBadge}
             </span>
           </div>
           <svg
@@ -585,7 +669,7 @@ export function RforkFallbackInteractive({
             height="244"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`RFork 轨迹导引：${spec.title}`}
+            aria-label={`RFork 轨迹导引：${effectiveTitle}`}
           >
             <defs>
               <marker
@@ -871,7 +955,11 @@ export function RforkFallbackInteractive({
                 }`}
               >
                 {effectiveOutcomeKind === "safety-abort"
-                  ? "清理失败 · 阻断"
+                  ? onlyServiceFailed
+                    ? "门1失败 · 阻断"
+                    : onlyMemoryFailed
+                      ? "门2失败 · 阻断"
+                      : "双门失败 · 阻断"
                   : spec.isFastSuccess
                     ? "未触发回退"
                     : "已清空 · 改读硬盘"}

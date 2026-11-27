@@ -537,9 +537,9 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
         expect(html).not.toContain("CoW：B0,B1 只读");
       }
       if (spec.step === 5) {
-        expect(html).toContain("CoW 拷贝 B3→B2，B3 ref 2→1");
+        expect(html).toContain("CoW 拷贝 B3→B4，B3 ref 2→1");
         expect(html).toContain("动作 5 / 5");
-        expect(html).toContain("队头 [ B4, B5 ] 队尾");
+        expect(html).toContain("队头 [ B5, B2 ] 队尾");
       }
     }
 

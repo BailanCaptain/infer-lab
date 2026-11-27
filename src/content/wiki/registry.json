@@ -6,7 +6,8 @@
       "legacyAnchors": {
         "一句话": "它管什么绝对门槛与相对门槛怎么配合",
         "为什么存在": "为什么仅有相对门槛还不够",
-        "开了的代价": "调高调低的边界与放到-glm-双机"
+        "开了的代价": "调高调低的边界与策略生效前提",
+        "调高调低的边界与放到-glm-双机": "调高调低的边界与策略生效前提"
       },
       "title": "absolute_balance_threshold",
       "type": "param",
@@ -106,10 +107,13 @@
     },
     {
       "id": "acl-graph",
+      "legacyAnchors": {
+        "放到-glm-双机只给整齐的-decode-步录-7-张图": "等宽验证怎样命中整图并刷新固定缓冲"
+      },
       "title": "ACL Graph：捕获、批形状与重复执行",
       "type": "feature",
       "origin": "gap",
-      "summary": "昇腾上把一步前向的设备任务连同地址录成一张图、之后整串一次提交的实现。本页讲清小批 decode 为何等在 Host、图内录了什么与什么进不了图，先以 v0.30.0 标准 Qwen3-8B 默认捕获预算（封顶 512）走通，再对照历史 GLM 双机 7 档 FULL_DECODE_ONLY 与视觉编码器图条件。",
+      "summary": "昇腾上把一步前向的设备任务连同地址录成一张图、之后整串一次提交的实现。本页讲清小批 decode 为何等在 Host、图内录了什么与什么进不了图，先以 v0.30.0 标准 Qwen3-8B 默认捕获预算（封顶 512）走通，再对照等宽投机验证的整图命中、固定缓冲刷新与视觉编码器图条件。",
       "aliases": [
         "ACLGraph",
         "ACL 图",
@@ -801,7 +805,7 @@
         {
           "to": "one-request",
           "kind": "builds-on",
-          "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自该页并入的旧算例设定"
+          "note": "旧 Qwen3-0.6B 例在本档，目标页提供 GLM 对照"
         },
         {
           "to": "kv-cache",
@@ -839,12 +843,14 @@
         "给媒体一个固定编号就能不再上传吗": "多模态输入、Pooling 与语音入口延伸导览",
         "已有媒体向量还需要哪些布局信息": "多模态输入、Pooling 与语音入口延伸导览",
         "视频和音频在前端还要处理什么": "多模态输入、Pooling 与语音入口延伸导览",
-        "上传录音聊天音频和实时转写分别走哪条路": "多模态输入、Pooling 与语音入口延伸导览"
+        "上传录音聊天音频和实时转写分别走哪条路": "多模态输入、Pooling 与语音入口延伸导览",
+        "复杂异构实战对照glm-双机单前端入口与限制": "多 DP 部署下的单前端入口与工具选择边界",
+        "放到-glm-双机node0-上一个前端接下全部请求": "多 DP 部署下的单前端入口与工具选择边界"
       },
       "title": "API server 入口：一个 HTTP 请求怎样变成引擎里的请求",
       "type": "concept",
       "origin": "direct",
-      "summary": "vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、独立 CPU renderer、工具解析插件，以及 GLM 双机上 node0 一个前端接全部请求。",
+      "summary": "vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、独立 CPU renderer、工具解析插件，以及多 DP 部署下的单前端入口与工具选择边界。",
       "aliases": [
         "API server 入口",
         "prompt_embeds",
@@ -1001,7 +1007,7 @@
       "title": "Ascend 910B3 真机实测与六大劣化来源基线（v0.30.0）",
       "type": "source",
       "origin": "drop",
-      "summary": "归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0）不可变实测快照、算子与 HCCL 剖析、显存对账，以及整池 KV 非连续拷贝、负 TP 扩展、Eager/PD/EP8 负收益等六类实测劣化根因与计量边界。",
+      "summary": "归档单卡与八卡 Ascend 910B3（CANN 9.1.0、vllm-ascend 0.30.0 正式版 c09d3e20）不可变实测快照、算子与 HCCL 剖析、显存对账及六类实测劣化根因；页内引用的 main（8d6180e2）仅作局部源码对照，未做同机复测。",
       "aliases": [
         "Ascend 910B3 实测基线",
         "910B3 真机实测",
@@ -1057,8 +1063,7 @@
         "vllm@ced6857a:vllm/v1/engine/core.py#L2210-L2225"
       ],
       "verified": [
-        "releases/v0.30.0",
-        "main"
+        "releases/v0.30.0"
       ],
       "evidence": "M",
       "rawSources": [
@@ -1314,7 +1319,8 @@
     {
       "id": "ascend-config-system",
       "legacyAnchors": {
-        "落到-glm-双机一个-json-键都没传": "复杂异构实战对照：GLM 双机为何一个 JSON 键都没传",
+        "落到-glm-双机一个-json-键都没传": "省略-json-时怎样核对最终生效值",
+        "复杂异构实战对照glm-双机为何一个-json-键都没传": "省略-json-时怎样核对最终生效值",
         "v0300-与-main-的严格校验与环境变量收口": "解析完还会被改写：生效值不是你写的值"
       },
       "title": "Ascend 配置：三个地方能写，哪个值真的生效",
@@ -1682,7 +1688,7 @@
       "title": "AscendConfig 四版本来源摘要",
       "type": "source",
       "origin": "seed",
-      "summary": "归档四个历史固定快照（2c59ff10、2ed6cbba、baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；当前主基线 v0.30.0（c09d3e20）与最新 main（8d6180e2）演进另见正式版基线与配置体系页。",
+      "summary": "归档四个历史固定快照（2c59ff10、2ed6cbba、早期开发快照 baa023ad、7d825229）中共享专家开关、动态分块设置和配置缓存的取值变化；页内“main 开发主线”专指历史 baa023ad 快照，现行 v0.30.0（c09d3e20）与 main（8d6180e2）规则见配置体系与运行时调优页。",
       "aliases": [
         "AscendConfig 三版本来源摘要",
         "AscendConfig 四版本来源摘要",
@@ -1734,8 +1740,7 @@
       ],
       "verified": [
         "releases/v0.23.0",
-        "releases/v0.26.0rc",
-        "main"
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -2102,7 +2107,8 @@
     {
       "id": "ascend-patch-system",
       "legacyAnchors": {
-        "落到-glm-双机哪些-patch-真的起作用": "复杂异构实战对照：GLM 双机上哪些 patch 真的起作用"
+        "落到-glm-双机哪些-patch-真的起作用": "补丁已导入为什么请求仍可能走原路径",
+        "复杂异构实战对照glm-双机上哪些-patch-真的起作用": "补丁已导入为什么请求仍可能走原路径"
       },
       "title": "Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类",
       "type": "feature",
@@ -2368,7 +2374,8 @@
         "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L49-L71",
         "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/API/hcclug/hcclcpp_07_0047.html",
         "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000073.html",
-        "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta2/commlib/hcclug/hcclenvref_07_0003.html"
+        "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta2/commlib/hcclug/hcclenvref_07_0003.html",
+        "https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0009.html"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -2376,7 +2383,7 @@
         "releases/v0.30.0",
         "main"
       ],
-      "evidence": "C",
+      "evidence": "S",
       "relations": [
         {
           "to": "op-to-ai-core",
@@ -2650,6 +2657,10 @@
     },
     {
       "id": "attention-backend-family",
+      "legacyAnchors": {
+        "放到-glm-双机一个-token-走过-45-层要问-45-次": "线性状态与稀疏历史怎样共用一个-runner",
+        "kda-的昇腾实现是按上游版本注册的": "算子注册表中的上游版本门控"
+      },
       "title": "注意力后端：模型机制、状态布局与设备实现的连接",
       "type": "concept",
       "origin": "gap",
@@ -3325,7 +3336,8 @@
     {
       "id": "batch-invariance",
       "legacyAnchors": {
-        "放到-glm-双机这套部署没有开它": "复杂异构实战对照：GLM 双机混批跨度与三处算子覆盖边界"
+        "放到-glm-双机这套部署没有开它": "混批形状改变时，哪些层仍可能产生分歧",
+        "复杂异构实战对照glm-双机混批跨度与三处算子覆盖边界": "混批形状改变时，哪些层仍可能产生分歧"
       },
       "title": "批不变性：相同输入为何会随同批请求改变结果",
       "type": "feature",
@@ -3804,7 +3816,8 @@
       "id": "block-table-no-commit-optimize-8328d0d2d00d",
       "legacyAnchors": {
         "一句话": "它曾经控制什么，为什么只存在了一天？",
-        "为什么存在": "脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状",
+        "为什么存在": "脏区增量提交与整行 H2D 拷贝的区别",
+        "脏区提交与整行-h2d-拷贝的区别以及-glm-双机现状": "脏区增量提交与整行 H2D 拷贝的区别",
         "开了的代价": "在不同版本中残留这个键会发生什么？"
       },
       "title": "block_table_no_commit_optimize",
@@ -3886,7 +3899,8 @@
       "legacyAnchors": {
         "一句话": "它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？",
         "为什么存在": "StoreKVBlock 按组写入的原理、历史默认值反转与角色闸门",
-        "开了的代价": "跨版本迁移、辅助缓冲容量报错与 GLM 双机 kpool 限制"
+        "开了的代价": "跨版本迁移、辅助缓冲容量报错与 kpool 边界",
+        "跨版本迁移辅助缓冲容量报错与-glm-双机-kpool-限制": "跨版本迁移、辅助缓冲容量报错与 kpool 边界"
       },
       "title": "c8_enable_reshape_optim",
       "type": "param",
@@ -4506,7 +4520,9 @@
         "vllm@ced6857a:vllm/config/kv_events.py#L10-L52",
         "vllm-ascend@2c59ff10:examples/external_online_dp/README.md#L1-L41",
         "vllm-ascend@2ed6cbba:examples/dynamic_bucket_load_balancer/README.md#L1-L40",
-        "vllm-ascend@8d6180e2:examples/external_online_dp/README.md#L1-L41"
+        "vllm-ascend@8d6180e2:examples/external_online_dp/README.md#L1-L41",
+        "vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L164-L201",
+        "vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L212-L277"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -4808,12 +4824,13 @@
       "legacyAnchors": {
         "一句话": "它覆盖哪一步通信量化，为什么 0 不等于关闭量化？",
         "为什么存在": "为什么只管 combine 不管 dispatch，和融合 MC2 是什么关系？",
-        "开了的代价": "白名单校验、硬件支持范围与 GLM 双机载荷算例"
+        "开了的代价": "白名单校验与硬件支持范围",
+        "白名单校验硬件支持范围与-glm-双机载荷算例": "专家结果回传的模式与载荷怎样核对"
       },
       "title": "combine_quant_mode",
       "type": "param",
       "origin": "seed",
-      "summary": "MoE MC2 combine 阶段通信量化强制覆盖开关：仅认整数 0/2/3/4，默认 0 不干预（沿用模型 comm_quant_mode 或 W8A8MXFP 默认模式 4）。v0.30.0 与 main 可用，v0.23/v0.26 忽略，受硬件与非融合 MC2 路径约束。",
+      "summary": "MoE MC2 combine 阶段通信量化覆盖开关：仅认整数 0/2/3/4，默认 0 让位给模型显式 comm_quant_mode，模型未提供时仅 W8A8MXFP 默认选 4。v0.30.0 与 main 可用，受硬件与非融合 MC2 路径约束。",
       "aliases": [
         "MC2 combine 通信量化",
         "combine 阶段通信量化模式",
@@ -5461,10 +5478,13 @@
     },
     {
       "id": "core-cli-params",
+      "legacyAnchors": {
+        "为什么昇腾在线服务默认批预算是-2048拆解-6-分支求值与-sppcp-静默取整": "默认批预算怎样从 2048 或 256 起步？拆解 6 分支求值与 SP+PCP 静默取整"
+      },
       "title": "vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动",
       "type": "concept",
       "origin": "direct",
-      "summary": "打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上 max-num-batched-tokens 早退回落 2048 的 6 分支决策树与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。",
+      "summary": "打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上常规在线分支从 2048 起算、批式 DP MoE 从 256 起算的 6 分支决策树、未设并发上限的独立求值与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。",
       "aliases": [
         "vllm serve 核心参数",
         "核心参数调优",
@@ -5587,12 +5607,13 @@
     {
       "id": "cpu-binding",
       "legacyAnchors": {
-        "放到-glm-双机8-个-worker-各绑在哪里": "复杂异构实战对照：GLM 双机 8 卡 Worker 的绑核映射与边界"
+        "放到-glm-双机8-个-worker-各绑在哪里": "跨两台机器时怎样用本机设备编号分配 CPU 亲和性",
+        "复杂异构实战对照glm-双机-8-卡-worker-的绑核映射与边界": "跨两台机器时怎样用本机设备编号分配 CPU 亲和性"
       },
       "title": "CPU 绑核：线程亲和性与 NUMA 局部性",
       "type": "feature",
       "origin": "gap",
-      "summary": "模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA 节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM 双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。",
+      "summary": "模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA 节点里允许的核组成一个池，共用一个池的卡按卡序平分，将线程钉在分到的核上，并在启用 migrate_memory 且具备工具与权限时将已有内存页迁往目标节点。本页讲清挑核与迁页条件、默认开关、跨机本机卡号映射以及无拓扑或少核回退。",
       "aliases": [
         "NUMA",
         "CPU 绑核",
@@ -5744,7 +5765,8 @@
       "legacyAnchors": {
         "一句话": "它管什么声明默认与-gloo-回退收紧的区别",
         "为什么存在": "为什么按节点双向封顶与打平排序规则",
-        "开了的代价": "调紧放宽的代价与放到-glm-双机"
+        "开了的代价": "调紧放宽与多键耦合边界",
+        "调紧放宽的代价与放到-glm-双机": "跨两台机器交换一对专家要搬多少权重"
       },
       "title": "cross_node_transfer_limit",
       "type": "param",
@@ -6076,6 +6098,9 @@
     },
     {
       "id": "deepseek-serving-case",
+      "legacyAnchors": {
+        "放到-glm-双机哪些经验可以带走": "共置推理与分阶段资源池怎样划故障边界"
+      },
       "title": "DeepSeek 生产实践：一条请求怎样走过整套服务",
       "type": "concept",
       "origin": "direct",
@@ -6176,6 +6201,9 @@
     },
     {
       "id": "deepseek-v4-1-flash",
+      "legacyAnchors": {
+        "放回-glm-双机哪些知识可以共用": "跨层共享与线性状态怎样分别减少历史成本"
+      },
       "title": "DeepSeek-V4.1-Flash：长历史怎样少存、少重算",
       "type": "concept",
       "origin": "direct",
@@ -6263,6 +6291,9 @@
     },
     {
       "id": "dev-new-model-and-custom-op",
+      "legacyAnchors": {
+        "新模型接入昇腾的四道关口": "新模型接入昇腾的四个适配核查点"
+      },
       "title": "新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径",
       "type": "concept",
       "origin": "direct",
@@ -7292,7 +7323,8 @@
       "legacyAnchors": {
         "一句话": "它曾经提前执行哪一步，为什么自 v0.25.1rc1 起被移除？",
         "为什么存在": "为什么叫 exponential 而不是 softmax，以及副流重叠的取舍",
-        "开了的代价": "历史版本的六项代价、GLM 双机 MTP 形状冲突与升级清理"
+        "开了的代价": "历史版本的六项代价与升级清理",
+        "历史版本的六项代价glm-双机-mtp-形状冲突与升级清理": "提前抽随机数遇上多候选采样时哪里会错位"
       },
       "title": "enable_async_exponential",
       "type": "param",
@@ -7382,7 +7414,8 @@
       "legacyAnchors": {
         "一句话": "它改变什么为什么只是压测夹具",
         "为什么存在": "轮转表怎么算何时建表与缓存",
-        "开了的代价": "代价互斥边界与放到-glm-双机"
+        "开了的代价": "代价、互斥与形状边界",
+        "代价互斥边界与放到-glm-双机": "代价、互斥与形状边界"
       },
       "title": "enable_force_eplb",
       "type": "param",
@@ -7520,7 +7553,8 @@
       "legacyAnchors": {
         "一句话": "它曾经融合什么，为什么自 v0.25.1rc1 起被移除？",
         "为什么存在": "为什么能藏住通信延迟，以及旧版的派发次序陷阱",
-        "开了的代价": "量化不兼容、GLM 双机推演与升级后的配置清理"
+        "开了的代价": "把矩阵乘与归约合成一步时量化权重会卡在哪里",
+        "量化不兼容glm-双机推演与升级后的配置清理": "把矩阵乘与归约合成一步时量化权重会卡在哪里"
       },
       "title": "enable_matmul_allreduce",
       "type": "param",
@@ -8012,7 +8046,8 @@
       "legacyAnchors": {
         "一句话": "它优化什么，和前两级开关是什么关系？",
         "为什么存在": "在哪两步生效，为什么写了 true 却没开？",
-        "开了的代价": "启动耗时是谁的账、编译缓存怎么变，放到 GLM 双机能开吗？"
+        "开了的代价": "启动耗时是谁的账，编译缓存与版本迁移怎么查？",
+        "启动耗时是谁的账编译缓存怎么变放到-glm-双机能开吗": "启动耗时是谁的账，编译缓存与版本迁移怎么查？"
       },
       "title": "enable_super_kernel",
       "type": "param",
@@ -8133,7 +8168,8 @@
     {
       "id": "engine-processes",
       "legacyAnchors": {
-        "双机部署里一共有哪些进程": "复杂异构实战对照：GLM 双机 20 个进程账"
+        "双机部署里一共有哪些进程": "跨节点专家并行需要多少进程",
+        "复杂异构实战对照glm-双机-20-个进程账": "跨节点专家并行需要多少进程"
       },
       "title": "引擎有哪几个进程：API server、EngineCore 与 Worker",
       "type": "concept",
@@ -9306,7 +9342,8 @@
       "legacyAnchors": {
         "一句话": "它曾经融合什么，为什么被删除？",
         "为什么存在": "为什么和序列并行冲突，v0.23.0 的默认值为什么是分裂的？",
-        "开了的代价": "升级报错、编译分区代价，以及 GLM 双机为什么配不上？"
+        "开了的代价": "候选区间、编译分区代价与升级清理",
+        "升级报错编译分区代价以及-glm-双机为什么配不上": "多路残差为什么匹配不上旧版归一化融合"
       },
       "title": "fuse_allreduce_rms",
       "type": "param",
@@ -9411,7 +9448,8 @@
       "legacyAnchors": {
         "一句话": "它曾经切换哪两条 decode 路径，为什么在 v0.30.0 移除？",
         "为什么存在": "融合算子合并了哪四步，运行时回退与容量门槛怎么算？",
-        "开了的代价": "升级后保留旧键会怎样，放到 GLM 双机能跑通吗？"
+        "开了的代价": "从三个草稿算出融合缓存的最小容量",
+        "升级后保留旧键会怎样放到-glm-双机能跑通吗": "从三个草稿算出融合缓存的最小容量"
       },
       "title": "fused_op_type",
       "type": "param",
@@ -9527,7 +9565,7 @@
       "title": "gdn_internal_prefill_checkpoints",
       "type": "param",
       "origin": "seed",
-      "summary": "main 分支新增的门控增量网络（GDN）线性注意力 Prefill 内部检查点开关（默认 false）：设为 true 且满足 mamba_cache_mode=\"align\"、BF16、PCP=1、head_dim=128 等条件时，以 64 token 对齐切走 Triton 分块算子导出 FP32 中间递推状态以提升前缀缓存复用率。",
+      "summary": "main 分支新增的门控增量网络（GDN）Prefill 内部检查点开关（默认 false）：通过层能力校验的 GDN 层在该非投机 Prefill 分支统一改走检查点版 Triton 递推算子；当本步 metadata.checkpoint 非空时，再按 64 token 对齐额外导出中间递推状态与短卷积窗口供前缀缓存复用。",
       "aliases": [
         "additional_config.gdn_internal_prefill_checkpoints",
         "GDN 内部检查点",
@@ -9542,7 +9580,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L60",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L90",
         "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L580-L625",
-        "vllm-ascend@8d6180e2:docs/source/user_guide/configuration/additional_config.md#L332-L360"
+        "vllm-ascend@8d6180e2:docs/source/user_guide/configuration/additional_config.md#L332-L360",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/gdn.py#L829-L865",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/gdn_checkpoint.py#L84-L112"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -9656,7 +9696,13 @@
         "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45",
-        "vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45"
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45",
+        "vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
+        "vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2848-L2860",
+        "vllm-ascend@db701c1f:csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h#L93-L149"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -9895,7 +9941,19 @@
         "vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325",
         "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45",
-        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L815-L820"
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L815-L820",
+        "vllm-ascend@db701c1f:setup.py#L543-L551",
+        "vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L16-L57",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/worker/__init__.py#L16-L89",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L256",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L838",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L557-L571",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L64-L110",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1629-L1680",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L380"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -9992,7 +10050,7 @@
       "title": "GLM 稠密 MLP 固定版本源码摘录",
       "type": "source",
       "origin": "seed",
-      "summary": "归档早期 main（baa023ad）与 v0.30.0rc2（7d825229）中 Glm5NextMLP 的固定源码摘录，记录激活限制和序列并行设置，并与 GLM 双机基线（db701c1f）区分。",
+      "summary": "归档早期开发主线快照（baa023ad）与 v0.30.0rc2（7d825229）中 Glm5NextMLP 的固定源码摘录，记录激活限制和序列并行设置，并与历史 GLM 双机基线（db701c1f）区分；现行提交待补核后再登记 verified。",
       "aliases": [
         "Glm5NextMLP",
         "GLM MLP",
@@ -10022,9 +10080,7 @@
         "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L324-L350",
         "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L448-L478"
       ],
-      "verified": [
-        "main"
-      ],
+      "verified": [],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-5a90f64fa82c9472ef5de2ac2b63ff137b4b161bcbc09c14514c090c5a9c09bc.md",
@@ -10206,10 +10262,14 @@
     },
     {
       "id": "graph-mode-layer",
+      "legacyAnchors": {
+        "复杂异构实战对照glm-双机的-7-张图五条判据与边界": "投机解码怎样选图、对齐并刷新缓冲",
+        "官方双机上录了哪-7-张图": "固定查询长度下的 7 档捕获宽度"
+      },
       "title": "graph mode：录一次执行次序，之后整串回放",
       "type": "feature",
       "origin": "gap",
-      "summary": "从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与 GLM 双机 FULL_DECODE_ONLY 7 档尺寸对照，讲清编译改写、捕获、五条回放判据与缓冲原地更新。",
+      "summary": "从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；以 Qwen3-8B 默认分段/整图捕获与等宽投机解码 FULL_DECODE_ONLY 7 档尺寸对照，讲清编译改写、捕获、五条回放判据与缓冲原地更新。",
       "aliases": [
         "ACL Graph",
         "ACLGraphWrapper",
@@ -10958,6 +11018,9 @@
     },
     {
       "id": "inference-benchmarking",
+      "legacyAnchors": {
+        "放到-glm-双机怎样安排这份记录": "多执行组与多候选解码时，还要补记哪些计数"
+      },
       "title": "推理测量：怎样知道服务真的变快了",
       "type": "concept",
       "origin": "direct",
@@ -11100,6 +11163,9 @@
     },
     {
       "id": "inference-capacity-and-reliability",
+      "legacyAnchors": {
+        "放到-glm-双机先确定可以替换的完整单位": "跨机专家通信域怎样划定可替换单元"
+      },
       "title": "容量与恢复：平时够用，为什么出故障就排长队",
       "type": "concept",
       "origin": "direct",
@@ -11205,6 +11271,9 @@
     },
     {
       "id": "inference-correctness-troubleshooting",
+      "legacyAnchors": {
+        "放到-glm-双机先保留哪些条件": "为什么只找第一次分歧"
+      },
       "title": "输出异常排查：同样的问题，回答为什么变了",
       "type": "concept",
       "origin": "gap",
@@ -11327,6 +11396,9 @@
     },
     {
       "id": "inference-performance-analysis",
+      "legacyAnchors": {
+        "放到-glm-双机模型的简化边界在哪里": "量化、专家分布和批次补齐怎样改变算账"
+      },
       "title": "性能分析：设备到底在算，还是在等",
       "type": "concept",
       "origin": "direct",
@@ -11543,6 +11615,9 @@
     },
     {
       "id": "inference-performance-troubleshooting",
+      "legacyAnchors": {
+        "放到-glm-双机单个参数会牵动哪些路径": "已经安排，但每一步都很长：先看这一批做了什么"
+      },
       "title": "性能排障：找到等待以后，怎样选优化办法",
       "type": "concept",
       "origin": "gap",
@@ -11658,6 +11733,9 @@
     },
     {
       "id": "inference-performance-walkthrough",
+      "legacyAnchors": {
+        "放到-glm-双机上还要看哪些变化": "一组长输入怎样拖长另一组的计算步"
+      },
       "title": "推理性能分析：为什么回答到一半会停顿",
       "type": "concept",
       "origin": "direct",
@@ -11763,7 +11841,8 @@
     {
       "id": "inference-troubleshooting",
       "legacyAnchors": {
-        "现场实操双模交互式排障工作台": "现场实操：交互式排障工作台"
+        "现场实操双模交互式排障工作台": "现场实操：交互式排障工作台",
+        "放到-glm-双机哪些前提先不要改": "多机与缩卡复现：哪些前提先不要改"
       },
       "title": "推理排障入口：先找到问题发生在哪一步",
       "type": "concept",
@@ -11833,7 +11912,8 @@
         "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1345.html",
         "vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453",
         "vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606",
-        "vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552"
+        "vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552",
+        "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnn_return_code_nn.md"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -12509,10 +12589,13 @@
     },
     {
       "id": "kv-cache-memory-profiling",
+      "legacyAnchors": {
+        "放到-glm-双机一张卡的预算怎样扣": "混合注意力和两种-moe-路径怎样影响显存试跑"
+      },
       "title": "KV cache 显存预算：启动时怎样一项项扣出来",
       "type": "concept",
       "origin": "gap",
-      "summary": "每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，加载权重后通过一次最大批量的 profile run 量出激活峰值与包含 HCCL 缓冲在内的非 Torch 增量，三项扣完后将剩余预算按每块字节数切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付，切出的块数也不等于固定并发请求数。",
+      "summary": "每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，装完权重后先执行 profile run 试跑（普通路径取单步上限，满足条件的 MoE 先加跑小档）量出激活峰值与含 HCCL 缓冲的非 Torch 增量，三项扣完后将剩余预算切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付。",
       "aliases": [
         "KV Cache Memory Profiling",
         "memory profiling",
@@ -14828,7 +14911,8 @@
       "legacyAnchors": {
         "一句话": "它管什么分位数如何换算为风险分数",
         "为什么存在": "为什么算波动和协方差以及它用在哪里不用在哪里",
-        "开了的代价": "调高调低的边界与放到-glm-双机"
+        "开了的代价": "调高调低与窗口分段的交互边界",
+        "调高调低的边界与放到-glm-双机": "零冗余时风险分只改变专家位置"
       },
       "title": "load_risk_quantile",
       "type": "param",
@@ -14933,7 +15017,8 @@
       "legacyAnchors": {
         "一句话": "它管什么分段压缩怎么切",
         "为什么存在": "为什么先压缩压缩后什么不变什么会变",
-        "开了的代价": "调大调小的反直觉边界与放到-glm-双机"
+        "开了的代价": "调大调小的反直觉边界与调参前提",
+        "调大调小的反直觉边界与放到-glm-双机": "调大调小的反直觉边界与调参前提"
       },
       "title": "load_window_bins",
       "type": "param",
@@ -15038,7 +15123,8 @@
     {
       "id": "lora",
       "legacyAnchors": {
-        "本部署有没有开": "复杂异构实战对照：GLM 双机 EP16 与量化下的 LoRA 边界"
+        "本部署有没有开": "低秩适配怎样改变量化专家的通信路径",
+        "复杂异构实战对照glm-双机-ep16-与量化下的-lora-边界": "低秩适配怎样改变量化专家的通信路径"
       },
       "title": "LoRA：低秩更新与多适配器推理",
       "type": "feature",
@@ -17200,7 +17286,8 @@
     {
       "id": "netloader-guide",
       "legacyAnchors": {
-        "glm-双机这套部署会走-netloader-吗": "复杂异构与多机边界对照：EP16 异构分片与 MTP 草稿通道限制"
+        "glm-双机这套部署会走-netloader-吗": "主模型和草稿通道怎样匹配分片",
+        "复杂异构与多机边界对照ep16-异构分片与-mtp-草稿通道限制": "主模型和草稿通道怎样匹配分片"
       },
       "title": "Netloader Guide：新实例怎样从已有 NPU 接过权重",
       "type": "feature",
@@ -17322,6 +17409,9 @@
     },
     {
       "id": "npu-model-runner",
+      "legacyAnchors": {
+        "放到-glm-双机16-个-runnerr1-的两步各做了什么": "投机验证怎样在两次调用间交接"
+      },
       "title": "NPUModelRunner：每张卡上把一步计划跑成 token 的执行者",
       "type": "concept",
       "origin": "gap",
@@ -17499,6 +17589,9 @@
     },
     {
       "id": "npu-platform",
+      "legacyAnchors": {
+        "落到-glm-双机这一层交出的名字和数": "混合状态怎样改变块长与注意力选择"
+      },
       "title": "NPUPlatform：配置校验与设备实现选择",
       "type": "feature",
       "origin": "gap",
@@ -17666,7 +17759,8 @@
         "③-load_model分片读盘nd--nz-分形后处理与读取量算账": "③ 权重分形后处理与读取量算账",
         "④-determine_available_memory-与-enginecore-全局最小块对齐": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
         "⑤-initialize_from_config一次切出物理缓存池清零元数据置池外": "拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热",
-        "⑥-compile_or_warm_up_model7-类预热机制与-aclgraph-录图收尾": "⑥ 7 类预热机制与 ACLGraph 录图收尾"
+        "⑥-compile_or_warm_up_model7-类预热机制与-aclgraph-录图收尾": "⑥ 7 类预热机制与 ACLGraph 录图收尾",
+        "硬件变体与跨架构边界npuworker310-与双机全案对照": "冷启动步骤在不同硬件与混合状态模型中怎样变化"
       },
       "title": "NPUWorker 启动：一张卡按什么顺序准备好接请求",
       "type": "feature",
@@ -17895,12 +17989,13 @@
     {
       "id": "npugraph-ex",
       "legacyAnchors": {
-        "放到-glm-双机mtp-验证那一步用上了哪些": "复杂异构实战对照：GLM 双机 MTP 验证中的融合与边界"
+        "放到-glm-双机mtp-验证那一步用上了哪些": "捕获档、编译区间与融合命中怎样分别核对",
+        "复杂异构实战对照glm-双机-mtp-验证中的融合与边界": "捕获档、编译区间与融合命中怎样分别核对"
       },
       "title": "编译图融合：把相邻两步合成一个算子，再分档复用执行",
       "type": "feature",
       "origin": "gap",
-      "summary": "从中间张量的一写一读讲清编译期融合，列出四条本地融合规则与各自命中条件（以 Qwen3-8B / Qwen3-30B-A3B 的 QKNorm+RoPE、残差归一化量化与 GLM 双机 MTP 验证边界对照），并区分 npugraph_ex 后端、static kernel、编译缓存与分档捕获的职责。",
+      "summary": "从中间张量的一写一读讲清编译期融合，列出四条本地融合规则与各自命中条件（以 Qwen3-8B / Qwen3-30B-A3B 的 QKNorm+RoPE、残差归一化量化与 异构模型投机验证边界对照），并区分 npugraph_ex 后端、static kernel、编译缓存与分档捕获的职责。",
       "aliases": [
         "编译期图融合",
         "图融合 pass",
@@ -18248,7 +18343,7 @@
         {
           "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
           "kind": "enables",
-          "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自该页并入的旧算例设定"
+          "note": "旧 Qwen3-0.6B 例在本档，目标页提供 GLM 对照"
         },
         {
           "from": "concurrent-requests",
@@ -18279,10 +18374,14 @@
     },
     {
       "id": "op-to-ai-core",
+      "legacyAnchors": {
+        "复杂异构实战对照glm-双机的-rmsnorm-与算子执行链路": "残差在哪里相加，决定能否用融合归一化",
+        "glm-实际从哪里调用-rmsnorm": "残差在哪里相加，决定能否用融合归一化"
+      },
       "title": "从算子到 AI Core：分工、融合与分块",
       "type": "concept",
       "origin": "gap",
-      "summary": "逐层前向中，算子怎样拆成矩阵（Cube）与向量（Vector）执行段、Host 怎样做分块规划（tiling）、设备怎样搬入计算并写回；以 Qwen3-8B 标准残差融合 RMSNorm 与 GLM 双机 mHC 单参路径对照说明。",
+      "summary": "逐层前向中，算子怎样拆成矩阵（Cube）与向量（Vector）执行段、Host 怎样做分块规划（tiling）、设备怎样搬入计算并写回；以 Qwen3-8B 标准残差融合 RMSNorm 与多路残差预先混合的单参路径对照说明。",
       "aliases": [
         "算子链路",
         "AscendRMSNorm",
@@ -18412,10 +18511,13 @@
     },
     {
       "id": "ops-and-kernels",
+      "legacyAnchors": {
+        "在-glm-双机上一个-token-沿一层走过哪些算子": "同一层为何能走不同的算子分派"
+      },
       "title": "算子与 kernel：从数学语义到设备实现",
       "type": "feature",
       "origin": "gap",
-      "summary": "模型里的一次运算怎样经框架替换表、量化方法或注意力后端落到 torch_npu 与自编译扩展，再经 CANN 下发成设备 kernel。本页先以 v0.30.0 标准 Qwen3 走通 CustomOp、ACLGraph 与 npugraph_ex 执行路径选择，再解释上游 IR 优先级与原地复用，最后沿历史 GLM 双机列出逐站算子。",
+      "summary": "模型里的一次运算怎样经框架替换表、量化方法或注意力后端落到 torch_npu 与自编译扩展，再经 CANN 下发成设备 kernel。本页先以 v0.30.0 标准 Qwen3 走通 CustomOp、ACLGraph 与 npugraph_ex 执行路径选择，再解释上游 IR 优先级与原地复用，最后说明同一异构层为何会走多套算子分派。",
       "aliases": [
         "ops",
         "register_ascend_customop",
@@ -19248,7 +19350,8 @@
       "legacyAnchors": {
         "一句话": "它管什么什么才扣回溯预算",
         "为什么存在": "为什么带约束-lpt-需要有界回溯",
-        "开了的代价": "调大调小的边界与放到-glm-双机"
+        "开了的代价": "调大调小与搬运限额的耦合边界",
+        "调大调小的边界与放到-glm-双机": "调大调小与搬运限额的耦合边界"
       },
       "title": "placement_search_backtrack_limit",
       "type": "param",
@@ -19351,12 +19454,14 @@
     {
       "id": "platform-plugin-registration",
       "legacyAnchors": {
-        "放到-glm-双机请求到来前五个入口做了什么": "复杂异构实战对照：GLM 双机启动前的五个入口与 19 次登记"
+        "放到-glm-双机请求到来前五个入口做了什么": "跨进程的插件注册为什么要各做一遍",
+        "复杂异构实战对照glm-双机启动前的五个入口与-19-次登记": "跨进程的插件注册为什么要各做一遍",
+        "模型入口从架构名找到昇腾的-glm-实现": "模型入口识别配置定位实现与加载权重"
       },
       "title": "插件发现与模型注册",
       "type": "feature",
       "origin": "gap",
-      "summary": "昇腾包通过入口点清单接入 vLLM；入口须被允许加载并成功执行，设备可用性另行检查。vLLM 在相应进程的初始化入口按组名加载——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现；次数取决于启动方式与进程内防重状态。",
+      "summary": "昇腾包通过安装元数据入口点清单接入 vLLM；入口须通过白名单、导入并成功执行，设备可用性另行检查。v0.30.0 声明三组六个入口（平台、四个通用插件与服务指标供应者），按进程隔离加载与防重。",
       "aliases": [
         "entry point",
         "entry_points",
@@ -19731,7 +19836,7 @@
         {
           "to": "rfork",
           "kind": "builds-on",
-          "note": "该 PR 同时移除了 rfork_loader.py 中因 layer_sharding 触发的 RFork 绕行分支"
+          "note": "该 PR 同时移除了 rfork_loader.py 中因 layer_sharding 触发的 RFork 绕行分支（归档于 RFork 总览的历史版本列）"
         },
         {
           "to": "npu-platform",
@@ -20252,6 +20357,9 @@
     },
     {
       "id": "prepare-inputs-flow",
+      "legacyAnchors": {
+        "放到-glm-双机r1-这一步每张卡拼出什么": "有多种缓存组时一步输入怎样配齐"
+      },
       "title": "准备输入：把一步的请求计划拼成模型能吃的几张表",
       "type": "concept",
       "origin": "gap",
@@ -21112,7 +21220,8 @@
       "legacyAnchors": {
         "一句话": "它管什么声明默认与-gloo-回退收紧的区别",
         "为什么存在": "为什么按卡双向限额并截断副本调整步数",
-        "开了的代价": "调大调紧的代价与放到-glm-双机"
+        "开了的代价": "调大调紧与协同约束边界",
+        "调大调紧的代价与放到-glm-双机": "每张卡只换一个专家时一轮能搬多少"
       },
       "title": "rank_transfer_limit",
       "type": "param",
@@ -21211,6 +21320,9 @@
     },
     {
       "id": "reading-vllm-ascend",
+      "legacyAnchors": {
+        "放到-glm-双机沿-r1-读一遍先碰到什么": "怎样沿跨机请求定位两个仓库的实际执行代码"
+      },
       "title": "怎样读 vllm-ascend 源码：先抓请求主线，再带着问题追到实现",
       "type": "concept",
       "origin": "gap",
@@ -21660,7 +21772,8 @@
       "legacyAnchors": {
         "一句话": "它管什么相对门槛怎么触发",
         "为什么存在": "为什么需要相对锚点与绝对门槛如何配合",
-        "开了的代价": "调高调低的代价与放到-glm-双机"
+        "开了的代价": "调高调低的代价与逐层触发边界",
+        "调高调低的代价与放到-glm-双机": "调高调低的代价与逐层触发边界"
       },
       "title": "relative_balance_threshold",
       "type": "param",
@@ -21752,7 +21865,8 @@
       "legacyAnchors": {
         "一句话": "它管什么束宽在三处起作用",
         "为什么存在": "为什么用粗分数截断并强制保留份数不变",
-        "开了的代价": "调大调小的代价写-1-陷阱与放到-glm-双机"
+        "开了的代价": "调大调小的代价、写 1 陷阱与零冗余边界",
+        "调大调小的代价写-1-陷阱与放到-glm-双机": "调大调小的代价、写 1 陷阱与零冗余边界"
       },
       "title": "replica_search_beam_size",
       "type": "param",
@@ -21842,7 +21956,8 @@
       "legacyAnchors": {
         "一句话": "它管什么专家怎么分组搜索",
         "为什么存在": "副本数搜索完整走法与手算例子",
-        "开了的代价": "段数增减的代价与放到-glm-双机"
+        "开了的代价": "段数增减的代价与零冗余边界",
+        "段数增减的代价与放到-glm-双机": "段数增减的代价与零冗余边界"
       },
       "title": "replica_search_num_stages",
       "type": "param",
@@ -21944,7 +22059,8 @@
       "legacyAnchors": {
         "一句话": "它管什么每段试哪些预算值",
         "为什么存在": "为什么要在贪心附近试探与示意走读",
-        "开了的代价": "半径增减的代价边界与放到-glm-双机"
+        "开了的代价": "半径增减的代价与零冗余边界",
+        "半径增减的代价边界与放到-glm-双机": "半径增减的代价与零冗余边界"
       },
       "title": "replica_search_radius",
       "type": "param",
@@ -22029,10 +22145,13 @@
     },
     {
       "id": "request-call-chain",
+      "legacyAnchors": {
+        "同一条请求第-1-步和第-2-步走的分支不同": "同一请求在预填充和投机验证中怎样分流"
+      },
       "title": "一条请求的代码路径：七站各在哪个进程、经过哪些函数",
       "type": "concept",
       "origin": "direct",
-      "summary": "沿用单请求那一页的七站，在官方双机部署上标出每一站在哪个进程里执行（API server、每个 DP 组的 EngineCore、每张卡的 worker）、经过哪些类和函数、进程之间走 ZMQ、共享内存队列还是 HCCL，哪些代码属于 vLLM、哪些属于 vllm-ascend；再讲怎样凭日志前缀和 traceback 判断请求停在哪一站，以及读源码从哪几个入口开始。",
+      "summary": "把单条生成请求的七站落回真实代码：前端本地注册请求后经 ZMQ 提交给 EngineCore，EngineCore 排步并驱动各卡 Worker 准备输入、执行前向与按需采样，最后回传结果；结合日志前缀、traceback 与三层超时定位故障停在哪一站。",
       "aliases": [
         "调用链",
         "call chain",
@@ -22640,6 +22759,9 @@
     },
     {
       "id": "rfork",
+      "legacyAnchors": {
+        "放到-glm-双机再起一个同构实例每张卡借多少": "同构多机扩容时主模型与草稿各读多少"
+      },
       "title": "RFork：权重远端复用机制与排错总览",
       "type": "feature",
       "origin": "seed",
@@ -22754,7 +22876,7 @@
         {
           "from": "pr-11953",
           "kind": "enables",
-          "note": "该 PR 同时移除了 rfork_loader.py 中因 layer_sharding 触发的 RFork 绕行分支"
+          "note": "该 PR 同时移除了 rfork_loader.py 中因 layer_sharding 触发的 RFork 绕行分支（归档于 RFork 总览的历史版本列）"
         },
         {
           "from": "rfork-config",
@@ -22803,7 +22925,8 @@
       "legacyAnchors": {
         "十一项设置管什么默认多少什么时候改": "十三项设置管什么默认多少什么时候改",
         "键名写错不报错只是悄悄当没填": "键名写错会打警告并按未填处理",
-        "固定端口基数会撞": "固定端口基数怎样按主草分槽"
+        "固定端口基数会撞": "固定端口基数怎样按主草分槽",
+        "放到-glm-双机每台机器开多少端口固定端口会不会撞": "主模型和草稿会话怎样规划端口与租约"
       },
       "title": "RFork 配置：四类端口、各项超时与可复制的启动示例",
       "type": "feature",
@@ -22930,10 +23053,14 @@
     },
     {
       "id": "rfork-identity",
+      "legacyAnchors": {
+        "钥匙怎么算两次-sha256": "钥匙怎么算配置指纹结构摘要与最终键",
+        "放到-glm-双机一次热启动要配-32-把钥匙": "tp-编号相同为何仍不能互借专家分片"
+      },
       "title": "RFork 身份匹配：同模型、同布局，还要同一份分片",
       "type": "feature",
       "origin": "seed",
-      "summary": "B 的每张卡凭一把 seed key 向 Planner 找 seed：先把版本、数值类型、量化、并行大小和昇腾排布算成部署指纹，再加上 TP / PP / EP 编号和主 / 草稿角色做一次 SHA256。本页讲钥匙里有什么、没有什么，为什么同一个模型也可能借不到，钥匙对上为什么不代表内容一样，以及 GLM 双机上 32 把钥匙各写什么编号。",
+      "summary": "B 的每张卡凭一把 seed key 向 Planner 找 seed：先将协议、模型与策略标识、版本、量化配置摘要、架构/RoPE 和布局语义算成配置指纹，再从目的显存登记清单算出张量结构摘要，最后把两者与分片编号及主/草稿角色合成 SHA-256 键（256 bit，64 个十六进制字符）。配置与结构摘要不读权重字节，同形状不同权重内容仍需部署方核实。",
       "aliases": [
         "RFork fingerprint",
         "RFork seed key",
@@ -23066,6 +23193,10 @@
     },
     {
       "id": "rfork-layout",
+      "legacyAnchors": {
+        "放到-glm-双机w8a8-走哪条路哪些张量要留意": "为什么索引器工作区不随权重一起传",
+        "moe-那两道临时处理这套部署都用不上": "走哪条路量化这一条就够了"
+      },
       "title": "RFork 张量布局：先对齐算子要的形状，再决定搬什么",
       "type": "feature",
       "origin": "seed",
@@ -23171,7 +23302,8 @@
       "id": "rfork-lifecycle",
       "legacyAnchors": {
         "会话的七个状态每个只说明本机这一侧": "会话的八个状态每个只说明本机这一侧",
-        "五个钟各管各的现在没有续租": "五个钟各管各的可选周期续租"
+        "五个钟各管各的现在没有续租": "五个钟各管各的可选周期续租",
+        "放到-glm-双机一次热启动是-32-个会话各走各的": "主模型与草稿怎样各自归还租约发布和发心跳"
       },
       "title": "RFork 生命周期：传完权重、交出模型、当上 seed、接请求各是一步",
       "type": "feature",
@@ -23387,6 +23519,9 @@
     },
     {
       "id": "rfork-official-guide",
+      "legacyAnchors": {
+        "新官方指南补充了什么rc2-要怎样部署": "新官方指南补充了什么与-v0300-有何边界差异"
+      },
       "title": "RFork 官网核读：原图、全部章节与上游演进差异",
       "type": "source",
       "origin": "seed",
@@ -23472,6 +23607,9 @@
     },
     {
       "id": "rfork-startup",
+      "legacyAnchors": {
+        "放到-glm-双机一次冷启动32-个会话各走一遍": "主模型和草稿怎样各走一次加载"
+      },
       "title": "RFork 启动：准备模型以后才借 seed，失败后先清理再重建",
       "type": "feature",
       "origin": "seed",
@@ -23584,6 +23722,9 @@
     },
     {
       "id": "rfork-transfer",
+      "legacyAnchors": {
+        "放到-glm-双机每张卡传两次字节和批数分开记": "独立会话怎样分批内存登记怎样延长张量寿命"
+      },
       "title": "RFork 传输：登记空位、核对清单、分批读字节",
       "type": "feature",
       "origin": "seed",
@@ -23701,6 +23842,9 @@
     },
     {
       "id": "rfork-troubleshooting",
+      "legacyAnchors": {
+        "放到-glm-双机32-份租约16-个-rank-各查各的": "用-rank模型角色和租约标识串起启动日志"
+      },
       "title": "RFork 排错：从第一条异常还原版本、阶段与资源状态",
       "type": "feature",
       "origin": "seed",
@@ -24634,7 +24778,8 @@
       "legacyAnchors": {
         "一句话": "它是回退开关而非 DCP 开关：默认保留 strided view，开 true 强制连续化",
         "为什么存在": "为什么汇聚后需要转回 t-major，哪些路径会直接绕过本键？",
-        "开了的代价": "额外复制量怎么算、PCP+DCP 与 GLM 双机边界",
+        "开了的代价": "额外复制量怎么算、PCP+DCP 与 kpool 边界",
+        "额外复制量怎么算pcpdcp-与-glm-双机边界": "额外复制量怎么算、PCP+DCP 与 kpool 边界",
         "源码位置": "对照源码"
       },
       "title": "sfa_dcp_force_tmajor_restore",
@@ -25074,7 +25219,8 @@
     {
       "id": "sleep-mode",
       "legacyAnchors": {
-        "glm-双机中的一个-token-会遇到睡眠吗": "复杂异构与多机边界对照：GLM 双机若改同卡轮训会撞上什么"
+        "glm-双机中的一个-token-会遇到睡眠吗": "跨机专家并行怎样协调休眠与唤醒",
+        "复杂异构与多机边界对照glm-双机若改同卡轮训会撞上什么": "跨机专家并行怎样协调休眠与唤醒"
       },
       "title": "Sleep Mode：暂停推理时怎样把显存让给训练",
       "type": "feature",
@@ -25761,7 +25907,8 @@
       "legacyAnchors": {
         "一句话": "它管什么十个旋钮如何配合",
         "为什么存在": "一轮规划怎么走与-mrv1--mrv2-边界",
-        "开了的代价": "代价通信器回退陷阱与放到-glm-双机"
+        "开了的代价": "搜索开销、通信器回退收紧与零冗余边界",
+        "代价通信器回退陷阱与放到-glm-双机": "搜索开销、通信器回退收紧与零冗余边界"
       },
       "title": "stair_config",
       "type": "param",
@@ -25821,7 +25968,11 @@
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L286-L310",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L98-L99",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1116-L1195",
-        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L233-L265"
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L233-L265",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L690-L696",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L819-L833",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L398-L433",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L485-L515"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -26160,7 +26311,8 @@
     {
       "id": "structured-output",
       "legacyAnchors": {
-        "放到-glm-双机一个带-json-schema-的请求走一步": "复杂异构实战对照：GLM 双机下 JSON schema 的五步走法与边界"
+        "放到-glm-双机一个带-json-schema-的请求走一步": "投机验证怎样推进、回滚并应用文法",
+        "复杂异构实战对照glm-双机下-json-schema-的五步走法与边界": "投机验证怎样推进、回滚并应用文法"
       },
       "title": "结构化输出：文法怎样在采样前屏蔽不合法的 token",
       "type": "feature",
@@ -27771,7 +27923,8 @@
     {
       "id": "vllm-ascend-for-rl",
       "legacyAnchors": {
-        "glm-双机的一条请求会走进-rl-更新吗": "复杂异构与多机边界对照：GLM 双机接入 RL Rollout 的四道关卡"
+        "glm-双机的一条请求会走进-rl-更新吗": "跨机量化模型换权重前要核对哪些条件",
+        "复杂异构与多机边界对照glm-双机接入-rl-rollout-的四道关卡": "跨机量化模型换权重前要核对哪些条件"
       },
       "title": "vLLM-Ascend for RL：生成样本后，怎样安全换上新权重",
       "type": "feature",
@@ -27935,10 +28088,13 @@
     },
     {
       "id": "vllm-ascend-overview",
+      "legacyAnchors": {
+        "一条请求走到这里a0a4-每站换了什么": "异构模型怎样接管缓存输入和前向"
+      },
       "title": "vllm-ascend 如何接入 vLLM",
       "type": "concept",
       "origin": "gap",
-      "summary": "vllm-ascend 是让 vLLM 跑在昇腾 NPU 上的单独插件包：沿用 vLLM 的请求与引擎框架，提供 NPU 执行实现，也会调整部分调度行为。本页是地图：五个扩展点（平台、patch、模型、算子、配置）各一句，再沿 GLM 双机主线 A0–A4 看每站接管了什么，最后给各版本差异与源码入口。",
+      "summary": "vllm-ascend 是让 vLLM 跑在昇腾 NPU 上的独立插件包：沿用 vLLM 的请求与引擎框架，通过平台、patch、模型注册、算子与配置五个扩展点接进主线，按需接管缓存规格、输入拼接、模型前向与集合通信。",
       "aliases": [
         "vLLM-Ascend",
         "vLLM Ascend",
@@ -28104,10 +28260,13 @@
     },
     {
       "id": "vllm-ascend-repo-map",
+      "legacyAnchors": {
+        "沿-glm-执行路径读一组文件": "遇到异构自研模型时怎样跨目录定位"
+      },
       "title": "源码目录地图：把文件放回推理架构",
       "type": "concept",
       "origin": "gap",
-      "summary": "用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与 GLM 异构路径选择阅读入口，区分上游框架和 Ascend 适配。",
+      "summary": "用启动、调度、执行、模型、状态与通信职责定位目录，沿 Qwen3-8B / Qwen3-30B-A3B 标准路径与异构自研模型入口选择阅读起点，区分上游框架和 Ascend 适配。",
       "aliases": [
         "目录结构",
         "代码结构",
@@ -28207,10 +28366,14 @@
     },
     {
       "id": "vllm-engine-core",
+      "legacyAnchors": {
+        "复杂异构实战对照glm-双机中的双-enginecore-与异步批次队列": "两个调度组怎样推进，空闲组为何也参加通信",
+        "落到-glm-双机两个-enginecore-各转各的圈": "两个调度组怎样推进，空闲组为何也参加通信"
+      },
       "title": "EngineCore：vLLM 里一圈一圈推着请求往前走的循环",
       "type": "concept",
       "origin": "gap",
-      "summary": "EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 → 按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与 GLM 双机双 EngineCore 对照讲清一圈顺序、产出 token 数、空闲与取消及异步批次队列。",
+      "summary": "EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 → 按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；以单实例 Qwen3-8B 与跨机双调度组对照讲清一圈顺序、产出 token 数、空闲组陪跑通信与异步批次队列。",
       "aliases": [
         "busy loop",
         "忙循环",
@@ -28332,10 +28495,13 @@
     },
     {
       "id": "vllm-kv-block-allocation",
+      "legacyAnchors": {
+        "放到-glm-双机r1-从借块到还块": "混合缓存怎样一起借块、滑窗归还和收尾"
+      },
       "title": "KV 块分配：块从池里借出、共享、归还",
       "type": "concept",
       "origin": "gap",
-      "summary": "启动时切好的 KV 块由 BlockPool 记账：请求写新历史时从空闲队头借块（ref_cnt 0 → 1），前缀相同的请求通过 touch 共用满块，结束或被抢占时倒序归还且数据留在原地。标准 Qwen3-8B 单池单组（128 tok/块、18 MiB/块）一笔账算清；历史 GLM 双机 5 个缓存组共用同池，R1 首步借 15 块，完整投机步示意结束还回 16–17 块。",
+      "summary": "启动时切好的 KV 块由 BlockPool 记账：请求写新历史时从空闲队头借块（ref_cnt 0 → 1），前缀相同的请求通过 touch 共用满块，结束或被抢占时倒序归还且数据留在原地。标准 Qwen3-8B 单池单组（128 tok/块、18 MiB/块）一笔账算清；异构混合架构下 5 个缓存组共用同池，展示一起借块、滑窗途中归还与收尾释放。",
       "aliases": [
         "BlockPool",
         "KVCacheManager",
@@ -28490,12 +28656,14 @@
     {
       "id": "vllm-platform-interface",
       "legacyAnchors": {
-        "放到-glm-双机请求到来前平台先做什么": "复杂异构实战对照：GLM 双机启动时的平台问答"
+        "放到-glm-双机请求到来前平台先做什么": "启动时平台如何把配置交给执行器",
+        "复杂异构实战对照glm-双机启动时的平台问答": "启动时平台如何把配置交给执行器",
+        "本部署里-npuplatform-具体回答了哪几件事": "npuplatform-在启动链路里具体交出什么"
       },
       "title": "Platform：硬件适配的接口契约",
       "type": "concept",
       "origin": "gap",
-      "summary": "Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿服务启动全流程分清平台、Worker 与模型的职责，并以 Qwen3-8B 标准单机与 GLM 双机对照说明主机内存、设备显存和 token 预算的边界。",
+      "summary": "Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿服务启动全流程分清平台、Worker 与模型的职责，对比主机内存、设备显存和 token 预算三笔账。",
       "aliases": [
         "Platform",
         "current_platform",
@@ -28626,13 +28794,14 @@
     {
       "id": "vllm-scheduler",
       "legacyAnchors": {
-        "放到-glm-双机一个-dp-组里的-r1": "复杂异构实战对照：GLM 双机 5 缓存组与 MTP 1+3 占位",
-        "多条请求时已有请求都在-decode余量怎样给新提示词": "复杂异构实战对照：GLM 双机 5 缓存组与 MTP 1+3 占位"
+        "放到-glm-双机一个-dp-组里的-r1": "混合缓存与投机占位怎样消耗一步预算",
+        "多条请求时已有请求都在-decode余量怎样给新提示词": "混合缓存与投机占位怎样消耗一步预算",
+        "复杂异构实战对照glm-双机-5-缓存组与-mtp-13-占位": "混合缓存与投机占位怎样消耗一步预算"
       },
       "title": "Scheduler：每一步给哪些请求算几个 token",
       "type": "concept",
       "origin": "gap",
-      "summary": "Scheduler 在 EngineCore 每步开头按位置差额统一安排请求，在 token 预算、请求数上限与空闲 KV 块之内先续 running 再用余量接 waiting，块不足时触发抢占或暂缓接纳，调度器自身不按 prefill/decode 分阶段；前半以 v0.30.0 标准单缓存组请求走读扣减与抢占主干，后半对照 GLM 双机 5 缓存组与 MTP 占位实战。",
+      "summary": "Scheduler 在 EngineCore 每步开头按位置差额统一安排请求，在 token 预算、请求数上限与空闲 KV 块之内先续 running 再用余量接 waiting，块不足时触发抢占或暂缓接纳，调度器自身不按 prefill/decode 分阶段；前半以 v0.30.0 标准单缓存组请求走读扣减与抢占主干，后半拆解混合缓存组与投机占位怎样消耗单步预算。",
       "aliases": [
         "调度器",
         "Scheduler",
@@ -28859,6 +29028,9 @@
     },
     {
       "id": "vllm-v1-shape",
+      "legacyAnchors": {
+        "放到-glm-双机r1-的一个-token-绕一圈": "跨节点专家并行时请求怎样绕完一步"
+      },
       "title": "vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环",
       "type": "concept",
       "origin": "gap",

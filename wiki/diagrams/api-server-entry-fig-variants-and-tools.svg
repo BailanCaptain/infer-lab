@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="API server 兼容协议路由矩阵、prompt_embeds 护栏与工具调用双端闭环">
+  <title>API server 兼容协议路由、prompt_embeds 稠密化前 2 GiB 护栏与工具调用四站闭环</title>
+  <desc>对比四条兼容路由在模板与分词跳过、默认 max_tokens=16 及内存会话保存上的差异，标明固定 v0.30.0 与固定 main 已核的 --enable-prompt-embeds 护栏（拒绝 encoder-decoder 与稠密化前默认 2 GiB 字节上限），并展示工具调用四站闭环。</desc>
   <defs>
     <marker id="arr-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
       <path d="M1,1.5 L8.5,5 L1,8.5 z" fill="#4d5652"/>
@@ -54,16 +56,17 @@
   <text x="545" y="235" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#7a3a6a">不凭空增加模型工具能力</text>
 
   <!-- Right Guard Card: enable-prompt-embeds -->
-  <rect x="658" y="52" width="222" height="200" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
-  <rect x="658" y="52" width="222" height="30" rx="8" fill="#e8edff"/>
-  <text x="769" y="72" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">--enable-prompt-embeds</text>
-  <text x="670" y="102" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">• 省查嵌入表，仍占长度与前向</text>
-  <text x="670" y="126" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">• Chat 块套模板；Comp 不套</text>
-  <text x="670" y="150" font-family="var(--font-sans)" font-size="13.5" fill="#17211f">• Comp 禁 echo / logprobs</text>
-  <line x1="670" y1="164" x2="868" y2="164" stroke="#d8d8cf" stroke-width="1"/>
-  <text x="670" y="185" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#8f3229">v0.30.0+ 硬护栏：</text>
-  <text x="670" y="208" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">✗ 拒绝 encoder-decoder</text>
-  <text x="670" y="232" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">✗ 解码上限 2 GiB（稠密化前）</text>
+  <rect x="652" y="52" width="232" height="202" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="652" y="52" width="232" height="28" rx="8" fill="#e8edff"/>
+  <text x="768" y="71" text-anchor="middle" font-family="var(--font-mono)" font-size="13" font-weight="700" fill="#3a4f93">--enable-prompt-embeds</text>
+  <text x="664" y="97" font-family="var(--font-sans)" font-size="12.5" fill="#17211f">• 省查嵌入表，仍占长度与前向</text>
+  <text x="664" y="118" font-family="var(--font-sans)" font-size="12.5" fill="#17211f">• Chat 块套模板；Comp 不套</text>
+  <text x="664" y="139" font-family="var(--font-sans)" font-size="12.5" fill="#17211f">• Comp 禁配 echo / logprobs</text>
+  <line x1="664" y1="152" x2="872" y2="152" stroke="#d8d8cf" stroke-width="1"/>
+  <text x="664" y="172" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#8f3229">固定 v0.30.0 与固定 main 已核：</text>
+  <text x="664" y="193" font-family="var(--font-sans)" font-size="12.5" fill="#8f3229">✗ 拒绝 encoder-decoder 模型</text>
+  <text x="664" y="214" font-family="var(--font-sans)" font-size="12.5" fill="#8f3229">✗ 稠密化前默认字节上限 2 GiB</text>
+  <text x="768" y="236" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">VLLM_MAX_EMBED_DECODE_BYTES</text>
 
   <!-- ZONE 2: Tool Calling 4-Station Roundtrip Loop (y=276..492) -->
   <rect x="8" y="276" width="884" height="216" rx="10" fill="#f8f6f0" stroke="#d8d8cf" stroke-width="1.2"/>

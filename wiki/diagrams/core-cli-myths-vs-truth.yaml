@@ -1,7 +1,8 @@
 mode: native-svg
 id: core-cli-myths-vs-truth
-caption: vllm serve 核心调参四大常见误区：错误直觉 vs 源码真相
-size: [900, 504]
+caption: >-
+  vllm serve 参数求值三阶段流水线（代码默认值 → 用户显式值 → 昇腾平台覆写）与 64 GiB 显存水位出口对照（默认 0.92 对应 58.88 GiB 预算内 + 5.12 GiB 余量 vs 显式 0.90 对应 57.60 GiB + 6.40 GiB 防录图 OOM），附默认批预算回落 2048、PIECEWISE 清空图融合与 HCCL 变量 unknown 判据。
+size: [900, 558]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L244"
     symbols:

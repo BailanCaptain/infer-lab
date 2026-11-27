@@ -1,7 +1,8 @@
 mode: native-svg
 id: env-serve-five-myths
-caption: 容器启动、环境变量与最小起服务五大高频误区对照（✗ 错误直觉 vs ✓ v0.30.0 源码真相）
-size: [900, 520]
+caption: >-
+  昇腾容器上线三层取证链（宿主机 Atlas A3 一卡双节点成对透传 → 容器 ASCEND_RT_VISIBLE_DEVICES 验活 → /health=200 + /v1/models + /v1/chat/completions 非空吐字闭环探针）及 v0.30.0 三组源码判据（下线 VLLM_ASCEND_ENABLE_NZ 改用 weight_nz_mode 与 enable_npugraph_ex、底层 HCCL 变量 unknown 判读与 vllm_version_is/VLLM_VERSION、get_served_model_name 默认路径回退防 404）。
+size: [900, 558]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L726-L746"
     symbols:

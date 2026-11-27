@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="NetLoader INT8 权重分片与 Per-channel FP16 缩放双张量 P2P 内存直填" font-family="var(--font-sans)">
-<title>NetLoader 双张量 P2P 内存直填：INT8 权重矩阵 [2,3] + FP16 通道缩放 [2]</title>
-<desc>供方 Rank r 与接收方同分片 Rank r 建立 2 进程临时 HCCL 组，按清单顺序先直填 6 B 的 INT8 权重矩阵，再直填 4 B 的 FP16 逐通道缩放参数。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="NetLoader INT8 权重分片与 Per-channel FP16 缩放双张量 P2P 内存直填与握手核验" font-family="var(--font-sans)">
+<title>NetLoader 双张量 P2P 内存直填：身份核验 + 缓存模式与清单检查 + 6B/4B 顺序搬运</title>
+<desc>供方 Rank r 与接收方同分片 Rank r 先经 TCP 分步完成路径/rank/TP/PP 身份核验与 INT8_CACHE 缓存模式、transfer manifest（名称与元素数）兼容检查，再经 2 进程临时 HCCL 组依次直填 6 B INT8 权重矩阵与 4 B FP16 缩放参数。</desc>
 <defs>
   <marker id="nl-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M1 1.5L8.5 5L1 8.5Z" fill="#9a4b86"/>
@@ -8,98 +8,104 @@
 </defs>
 
 <!-- Left Panel: Source NPU Rank r -->
-<rect x="14" y="12" width="316" height="416" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
-<circle cx="36" cy="36" r="11" fill="#c78300"/>
-<text x="36" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
-<text x="54" y="41" font-size="15.5" font-weight="700" fill="#17211f">供方 NPU（旧实例同分片 Rank r）</text>
-<line x1="28" y1="56" x2="316" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
+<rect x="14" y="12" width="306" height="432" rx="10" fill="#fbfaf6" stroke="#c78300" stroke-width="1.3"/>
+<circle cx="35" cy="36" r="11" fill="#c78300"/>
+<text x="35" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="53" y="41" font-size="15" font-weight="700" fill="#17211f">供方 NPU（旧实例同分片 Rank r）</text>
+<line x1="26" y1="56" x2="308" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
 <!-- Source Tensor 1: INT8 Weight [2, 3] -->
-<rect x="28" y="68" width="288" height="136" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
-<text x="172" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">张量 ① weight [2, 3] · INT8 (6 B)</text>
+<rect x="26" y="68" width="282" height="136" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+<text x="167" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">张量 ① weight [2, 3] · INT8 (6 B)</text>
 <g fill="#ffffff" stroke="#c78300" stroke-width="1.2">
-  <rect x="52" y="102" width="72" height="34" rx="4"/>
-  <rect x="136" y="102" width="72" height="34" rx="4"/>
-  <rect x="220" y="102" width="72" height="34" rx="4"/>
-  <rect x="52" y="144" width="72" height="34" rx="4"/>
-  <rect x="136" y="144" width="72" height="34" rx="4"/>
-  <rect x="220" y="144" width="72" height="34" rx="4"/>
+  <rect x="46" y="102" width="68" height="34" rx="4"/>
+  <rect x="133" y="102" width="68" height="34" rx="4"/>
+  <rect x="220" y="102" width="68" height="34" rx="4"/>
+  <rect x="46" y="144" width="68" height="34" rx="4"/>
+  <rect x="133" y="144" width="68" height="34" rx="4"/>
+  <rect x="220" y="144" width="68" height="34" rx="4"/>
 </g>
 <g font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle" fill="#936300">
-  <text x="88" y="124">18</text><text x="172" y="124">-42</text><text x="256" y="124">105</text>
-  <text x="88" y="166">-7</text><text x="172" y="166">64</text><text x="256" y="166">-91</text>
+  <text x="80" y="124">18</text><text x="167" y="124">-42</text><text x="254" y="124">105</text>
+  <text x="80" y="166">-7</text><text x="167" y="166">64</text><text x="254" y="166">-91</text>
 </g>
-<text x="172" y="195" text-anchor="middle" font-size="12" fill="#4d5652">2 行 × 3 列 × 1 B/元素 = 6 B 有效载荷</text>
+<text x="167" y="195" text-anchor="middle" font-size="12" fill="#4d5652">2 行 × 3 列 × 1 B/元素 = 6 B 有效载荷</text>
 
 <!-- Source Tensor 2: FP16 Per-channel Scale [2] -->
-<rect x="28" y="218" width="288" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-<text x="172" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">张量 ② weight_scale [2] · FP16 (4 B)</text>
+<rect x="26" y="218" width="282" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+<text x="167" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">张量 ② weight_scale [2] · FP16 (4 B)</text>
 <g fill="#ffffff" stroke="#087f73" stroke-width="1.2">
-  <rect x="74" y="254" width="90" height="36" rx="4"/>
-  <rect x="180" y="254" width="90" height="36" rx="4"/>
+  <rect x="68" y="254" width="88" height="36" rx="4"/>
+  <rect x="178" y="254" width="88" height="36" rx="4"/>
 </g>
 <g font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle" fill="#065f56">
-  <text x="119" y="277">0.015</text>
-  <text x="225" y="277">0.024</text>
+  <text x="112" y="277">0.015</text>
+  <text x="222" y="277">0.024</text>
 </g>
-<text x="172" y="314" text-anchor="middle" font-size="12" fill="#4d5656">逐输出通道缩放尺：2 × 2 B/元素 = 4 B</text>
+<text x="167" y="314" text-anchor="middle" font-size="12" fill="#4d5652">逐输出通道缩放尺：2 × 2 B/元素 = 4 B</text>
 
-<rect x="28" y="350" width="288" height="64" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
-<text x="172" y="375" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">v0.30.0 默认 INT8_CACHE=&quot;no&quot;</text>
-<text x="172" y="398" text-anchor="middle" font-size="12" fill="#66716d">直接发送加载后处理完成的推理布局</text>
-<!-- Center P2P HCCL Channel -->
-<rect x="348" y="68" width="204" height="52" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
-<text x="450" y="90" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">TCP 握手核对四项 + 清单</text>
-<text x="450" y="110" text-anchor="middle" font-size="12" fill="#4d5652">路径 · rank · TP/PP · 清单</text>
+<rect x="26" y="350" width="282" height="78" rx="7" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.2"/>
+<text x="167" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#17211f">v0.30.0 默认 INT8_CACHE=&quot;no&quot;</text>
+<text x="167" y="404" text-anchor="middle" font-size="12" fill="#66716d">直接发送加载后处理完成的推理布局</text>
 
-<line x1="318" y1="152" x2="580" y2="152" stroke="#9a4b86" stroke-width="2" marker-end="url(#nl-plum)"/>
-<text x="450" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">① 先发 weight (6 B)</text>
-<text x="450" y="172" text-anchor="middle" font-size="12" fill="#66716d">2 进程临时 HCCL 组直传</text>
+<!-- Center P2P Handshake & HCCL Channel -->
+<rect x="332" y="20" width="236" height="58" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="450" y="43" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">TCP ① 身份核验（四项全版共通）</text>
+<text x="450" y="65" text-anchor="middle" font-size="12" fill="#4d5652">模型路径字符串 · rank · TP · PP</text>
 
-<line x1="318" y1="276" x2="580" y2="276" stroke="#9a4b86" stroke-width="2" marker-end="url(#nl-plum)"/>
-<text x="450" y="266" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">② 后发 scale (4 B)</text>
-<text x="450" y="296" text-anchor="middle" font-size="12" fill="#66716d">按相同遍历顺序直填空位</text>
+<rect x="332" y="88" width="236" height="76" rx="7" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="450" y="110" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">TCP ② 兼容检查（v0.30.0 / main）</text>
+<text x="450" y="132" text-anchor="middle" font-size="12" fill="#17211f">缓存模式：核对 INT8_CACHE 一致</text>
+<text x="450" y="152" text-anchor="middle" font-size="12" fill="#4d5652">清单比对：张量名称 + 元素个数</text>
 
-<rect x="348" y="350" width="204" height="64" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
-<text x="450" y="375" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7a3a6a">有效载荷：6 + 4 = 10 B</text>
-<text x="450" y="398" text-anchor="middle" font-size="12" fill="#4d5652">绕开集中存储重复读盘</text>
+<line x1="312" y1="204" x2="586" y2="204" stroke="#9a4b86" stroke-width="2" marker-end="url(#nl-plum)"/>
+<text x="450" y="193" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">① 先发 weight (6 B)</text>
+<text x="450" y="224" text-anchor="middle" font-size="12" fill="#66716d">2 进程临时 HCCL 组直传</text>
+
+<line x1="312" y1="294" x2="586" y2="294" stroke="#9a4b86" stroke-width="2" marker-end="url(#nl-plum)"/>
+<text x="450" y="283" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">② 后发 scale (4 B)</text>
+<text x="450" y="314" text-anchor="middle" font-size="12" fill="#66716d">按相同遍历顺序直填空位</text>
+
+<rect x="332" y="350" width="236" height="78" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+<text x="450" y="378" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">有效载荷：6 + 4 = 10 B</text>
+<text x="450" y="404" text-anchor="middle" font-size="12" fill="#4d5652">绕开集中存储重复读盘</text>
 
 <!-- Right Panel: Target NPU Rank r -->
-<rect x="570" y="12" width="316" height="416" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
-<circle cx="592" cy="36" r="11" fill="#087f73"/>
-<text x="592" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
-<text x="610" y="41" font-size="15.5" font-weight="700" fill="#17211f">接收方 NPU（同分片预建空位）</text>
-<line x1="584" y1="56" x2="872" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
+<rect x="580" y="12" width="306" height="432" rx="10" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+<circle cx="601" cy="36" r="11" fill="#087f73"/>
+<text x="601" y="40.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="619" y="41" font-size="15" font-weight="700" fill="#17211f">接收方 NPU（同分片预建空位）</text>
+<line x1="592" y1="56" x2="874" y2="56" stroke="#d8d8cf" stroke-width="1.2"/>
 
-<rect x="584" y="68" width="288" height="136" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="5 3"/>
-<text x="728" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">同形状空位 [2, 3] 原地直填</text>
+<rect x="592" y="68" width="282" height="136" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="733" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">同形状空位 [2, 3] 原地直填</text>
 <g stroke="#c78300" stroke-width="1.2">
-  <rect x="608" y="102" width="72" height="34" rx="4" fill="#ffffff"/>
-  <rect x="692" y="102" width="72" height="34" rx="4" fill="#ffffff"/>
-  <rect x="776" y="102" width="72" height="34" rx="4" fill="#ffffff"/>
-  <rect x="608" y="144" width="72" height="34" rx="4" fill="#ffffff"/>
-  <rect x="692" y="144" width="72" height="34" rx="4" fill="#fffaf0" stroke-dasharray="4 2"/>
-  <rect x="776" y="144" width="72" height="34" rx="4" fill="#fffaf0" stroke-dasharray="4 2"/>
+  <rect x="612" y="102" width="68" height="34" rx="4" fill="#ffffff"/>
+  <rect x="699" y="102" width="68" height="34" rx="4" fill="#ffffff"/>
+  <rect x="786" y="102" width="68" height="34" rx="4" fill="#ffffff"/>
+  <rect x="612" y="144" width="68" height="34" rx="4" fill="#ffffff"/>
+  <rect x="699" y="144" width="68" height="34" rx="4" fill="#fffaf0" stroke-dasharray="4 2"/>
+  <rect x="786" y="144" width="68" height="34" rx="4" fill="#fffaf0" stroke-dasharray="4 2"/>
 </g>
 <g font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle" fill="#936300">
-  <text x="644" y="124">18</text><text x="728" y="124">-42</text><text x="812" y="124">105</text>
-  <text x="644" y="166">-7</text><text x="728" y="166">64</text><text x="812" y="166">-91</text>
+  <text x="646" y="124">18</text><text x="733" y="124">-42</text><text x="820" y="124">105</text>
+  <text x="646" y="166">-7</text><text x="733" y="166">64</text><text x="820" y="166">-91</text>
 </g>
-<text x="728" y="195" text-anchor="middle" font-size="12" fill="#4d5652">零重切片、零改值，直写本卡 HBM</text>
+<text x="733" y="195" text-anchor="middle" font-size="12" fill="#4d5652">零重切片、零改值，直写本卡 HBM</text>
 
-<rect x="584" y="218" width="288" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" stroke-dasharray="5 3"/>
-<text x="728" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">同形状空位 [2] 紧随填入</text>
+<rect x="592" y="218" width="282" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="733" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">同形状空位 [2] 紧随填入</text>
 <g fill="#ffffff" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 2">
-  <rect x="630" y="254" width="90" height="36" rx="4"/>
-  <rect x="736" y="254" width="90" height="36" rx="4"/>
+  <rect x="634" y="254" width="88" height="36" rx="4"/>
+  <rect x="744" y="254" width="88" height="36" rx="4"/>
 </g>
 <g font-family="var(--font-mono)" font-size="13" font-weight="700" text-anchor="middle" fill="#065f56">
-  <text x="675" y="277">0.015</text>
-  <text x="781" y="277">0.024</text>
+  <text x="678" y="277">0.015</text>
+  <text x="788" y="277">0.024</text>
 </g>
-<text x="728" y="314" text-anchor="middle" font-size="12" fill="#065f56">与上方两行输出通道一一配对</text>
+<text x="733" y="314" text-anchor="middle" font-size="12" fill="#065f56">与上方两行输出通道一一配对</text>
 
-<rect x="584" y="350" width="288" height="64" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
-<text x="728" y="375" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">传输异常兜底：自动回退读盘</text>
-<text x="728" y="398" text-anchor="middle" font-size="12" fill="#66716d">走 DefaultModelLoader（保留多线程）</text>
+<rect x="592" y="350" width="282" height="78" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+<text x="733" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#065f56">传输异常兜底：自动回退读盘</text>
+<text x="733" y="404" text-anchor="middle" font-size="12" fill="#66716d">走 DefaultModelLoader（保留多线程）</text>
 </svg>

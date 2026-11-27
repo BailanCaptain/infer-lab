@@ -1,66 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 498" width="900" height="498" role="img" aria-label="Attention 与 Q/K/V 五组常见误解与源码真相排障对照板" font-family="var(--font-sans)">
-  <title>Attention 与 Q/K/V 五组常见认知误区 vs 论文与 v0.30.0 源码真相排障对照板。</title>
-  <desc>五排开放式对照：1. Q/K/V 由同一隐藏向量乘三套矩阵现算，K 与 V 分工不同；2. 1/√d 由模型传入，按单头 q·k 宽度算而非缓存潜向量宽度；3. Prefill 同样加因果掩码，DCP 传 sparse_mode=0 是因索引已筛选重映射；4. Decode 只算新位置 q/k/v，历史读缓存；5. KDA 同样投影 q/k/v 但走定长状态递推而非逐位置 Softmax。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="Attention 单头打分缩放与因果掩码算例及五组常见误区源码判据" font-family="var(--font-sans)">
+  <title>Attention 单头打分缩放与因果掩码算例（d=4）及 v0.30.0 源码核查判据</title>
+  <desc>上半区用头维 d=4、查询位置 i=1 对 j=0,1,2 的算例展示同一隐藏向量投影 Q/K/V、原始点积 QKᵀ=[4,0,6]、除以 √4 缩放并因果遮蔽得 [2,0,-∞]、Softmax 得 [0.881,0.119,0]；下半区汇总缩放口径、DCP 因果掩码、Decode 缓存复用与 KDA 递推四组判据。</desc>
   <defs>
-    <marker id="aqm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    <marker id="aqm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="aqm-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#9a4b86"/>
     </marker>
   </defs>
 
-  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（高频踩坑点）</text>
-  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ 论文与 v0.30.0 源码真相（算账与排障判据）</text>
-  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
-  <line x1="378" y1="12" x2="378" y2="486" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <!-- Section 1: Visual Score Evolution & Causal Mask Pipeline -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 单头打分与因果掩码算例（示意：头维 d = 4，位置 i = 1 查询 j = 0, 1, 2）</text>
 
-  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
-    <rect x="12" y="54" width="354" height="76" rx="9"/>
-    <rect x="12" y="142" width="354" height="76" rx="9"/>
-    <rect x="12" y="230" width="354" height="76" rx="9"/>
-    <rect x="12" y="318" width="354" height="76" rx="9"/>
-    <rect x="12" y="406" width="354" height="76" rx="9"/>
-  </g>
-  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
-    <rect x="392" y="54" width="496" height="76" rx="9"/>
-    <rect x="392" y="142" width="496" height="76" rx="9"/>
-    <rect x="392" y="230" width="496" height="76" rx="9"/>
-    <rect x="392" y="318" width="496" height="76" rx="9"/>
-    <rect x="392" y="406" width="496" height="76" rx="9"/>
-  </g>
-  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#aqm-arr)">
-    <path d="M 366 92 L 386 92"/>
-    <path d="M 366 180 L 386 180"/>
-    <path d="M 366 268 L 386 268"/>
-    <path d="M 366 356 L 386 356"/>
-    <path d="M 366 444 L 386 444"/>
-  </g>
+  <rect x="14" y="42" width="872" height="190" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 
-  <text x="26" y="81" font-size="15" font-weight="700" fill="#8f3229">1. Q、K、V 是输入里现成的三份数据</text>
-  <text x="26" y="110" font-size="13.5" fill="#8f3229">以为位置最像自己、K 与 V 装同样内容</text>
+  <!-- Box 0: H -> Q, K, V -->
+  <rect x="26" y="56" width="166" height="132" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="109" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#936300">同一 h 乘三套权重</text>
+  <text x="109" y="102" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#17211f">h₁·W_Q → q₁ (d=4)</text>
+  <text x="109" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">H·W_K → K (管打分)</text>
+  <text x="109" y="146" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#4d5652">H·W_V → V (管内容)</text>
+  <text x="109" y="172" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">现算投影 · 非输入自带</text>
 
-  <text x="26" y="169" font-size="15" font-weight="700" fill="#8f3229">2. 除以 √d 可省，或按缓存总宽缩放</text>
-  <text x="26" y="198" font-size="13.5" fill="#8f3229">见潜向量 512 维就按 1/√512 算缩放</text>
+  <line x1="194" y1="122" x2="216" y2="122" stroke="#087f73" stroke-width="1.8" marker-end="url(#aqm-arr)"/>
 
-  <text x="26" y="257" font-size="15" font-weight="700" fill="#8f3229">3. Prefill 可看全文，仅生成加掩码</text>
-  <text x="26" y="286" font-size="13.5" fill="#8f3229">或见传 sparse_mode=0 就当取消因果限制</text>
+  <!-- Box 1: Raw QK^T -->
+  <rect x="220" y="56" width="196" height="132" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="318" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#3a4f93">① 原始点积 q₁Kᵀ</text>
+  <rect x="234" y="92" width="52" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="260" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">4</text>
+  <rect x="292" y="92" width="52" height="38" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="318" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">0</text>
+  <rect x="350" y="92" width="52" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="376" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#8f3229">6</text>
+  <text x="260" y="149" text-anchor="middle" font-size="12" fill="#4d5652">j=0</text>
+  <text x="318" y="149" text-anchor="middle" font-size="12" fill="#4d5652">j=1</text>
+  <text x="376" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">j=2 未来</text>
+  <text x="318" y="173" text-anchor="middle" font-size="12" fill="#4d5652">可见 [4, 0]（q₁·k₁=0 非最大）</text>
 
-  <text x="26" y="345" font-size="15" font-weight="700" fill="#8f3229">4. Decode 每步重算全部历史 Q/K/V</text>
-  <text x="26" y="374" font-size="13.5" fill="#8f3229">或见 64 个查询头就按 64 份 K/V 算缓存</text>
+  <line x1="418" y1="122" x2="444" y2="122" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#aqm-plum)"/>
+  <text x="431" y="108" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#7a3a6a">÷√4</text>
 
-  <text x="26" y="433" font-size="15" font-weight="700" fill="#8f3229">5. 有 q/k/v 投影就是 Softmax 注意力</text>
-  <text x="26" y="462" font-size="13.5" fill="#8f3229">且把位置 Softmax 等同于词表采样概率</text>
+  <!-- Box 2: Scaled [2, 0] + Mask -->
+  <rect x="448" y="56" width="196" height="132" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="546" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#7a3a6a">② ÷√4 缩放 + 因果遮蔽</text>
+  <rect x="462" y="92" width="52" height="38" rx="4" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="488" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#7a3a6a">2</text>
+  <rect x="520" y="92" width="52" height="38" rx="4" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="546" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#7a3a6a">0</text>
+  <rect x="578" y="92" width="52" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="604" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">-∞</text>
+  <text x="488" y="149" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#7a3a6a">4÷2=2</text>
+  <text x="546" y="149" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#7a3a6a">0÷2=0</text>
+  <text x="604" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">遮 j&gt;1</text>
+  <text x="546" y="173" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#7a3a6a">scale = 1/√4 = 0.5</text>
 
-  <text x="408" y="81" font-size="15" font-weight="700" fill="#065f56">同一隐藏向量乘 W_Q、W_K、W_V 三套权重现算</text>
-  <text x="408" y="110" font-size="13.5" fill="#4d5652">K 管匹配打分、V 管被读内容；qᵢ·kᵢ 未必最大（如例中为 0）</text>
+  <line x1="646" y1="122" x2="670" y2="122" stroke="#087f73" stroke-width="1.8" marker-end="url(#aqm-arr)"/>
 
-  <text x="408" y="169" font-size="15" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)" font-size="14" fill="#7a3a6a">scale</tspan> 由模型传入 <tspan font-family="var(--font-mono)" font-size="14" fill="#7a3a6a">Attention</tspan>，按单头 q·k 宽度算</text>
-  <text x="408" y="198" font-size="13.5" fill="#4d5652">GLM 稀疏 MLA 按 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">qk_head_dim=256</tspan> 取 1/√256 = 0.0625</text>
+  <!-- Box 3: Softmax Output + Masked 0 -->
+  <rect x="674" y="56" width="200" height="132" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="774" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#065f56">③ 位置 Softmax 权重</text>
+  <rect x="684" y="92" width="56" height="38" rx="4" fill="#b8efe4" stroke="#087f73" stroke-width="1.3"/>
+  <text x="712" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#065f56">0.881</text>
+  <rect x="746" y="92" width="56" height="38" rx="4" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="774" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="12.5" font-weight="700" fill="#065f56">0.119</text>
+  <rect x="808" y="92" width="56" height="38" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 2"/>
+  <text x="836" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#8f3229">0</text>
+  <text x="712" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">读 V₀</text>
+  <text x="774" y="149" text-anchor="middle" font-size="12" fill="#065f56">读 V₁</text>
+  <text x="836" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#8f3229">掩码清零</text>
+  <text x="774" y="173" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="#065f56">o₁ ≈ 0.881V₀ + 0.119V₁</text>
 
-  <text x="408" y="257" font-size="15" font-weight="700" fill="#065f56">Prefill 同样遮蔽未来位置，对齐训练与逐步生成</text>
-  <text x="408" y="286" font-size="13.5" fill="#4d5652">DCP 下索引器已筛选，<tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">_remap_sparse_indices</tspan> 后才传 0</text>
+  <text x="28" y="214" font-size="12.5" fill="#17211f">关键直觉：e²/(e²+e⁰) ≈ 0.881、e⁰/(e²+e⁰) ≈ 0.119；未来位置 j=2 被因果掩码置零，保证整段 Prefill 与逐步生成结果严格一致。</text>
 
-  <text x="408" y="345" font-size="15" font-weight="700" fill="#065f56">仅新位置算 q/k/v；旧 K/V 读缓存，旧 q 作废</text>
-  <text x="408" y="374" font-size="13.5" fill="#4d5652">GQA 多头共享 KV；稀疏 MLA 每位置存 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">kv_lora_rank=512</tspan></text>
+  <!-- Section 2: 4 Diagnostic Domain Panels -->
+  <text x="16" y="260" font-size="16" font-weight="700" fill="#17211f">2. 四组高频认知误区 vs 论文与 v0.30.0 源码真相</text>
 
-  <text x="408" y="433" font-size="15" font-weight="700" fill="#065f56">KDA 也投影 q/k/v，但走 128×128 定长状态递推</text>
-  <text x="408" y="462" font-size="13.5" fill="#4d5652">无逐位置 Softmax；注意力沿位置归一，采样沿词表归一</text>
+  <!-- Panel A: Scaling Dimension -->
+  <rect x="14" y="274" width="428" height="130" rx="9" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="28" y="298" font-size="14" font-weight="700" fill="#7a3a6a">A. 缩放口径：按单头 q·k 宽度，而非缓存潜向量宽</text>
+  <text x="28" y="323" font-size="12.5" fill="#8f3229">✗ 误区：认为 ÷√d 可省，或见 512 维潜向量就按 1/√512 算</text>
+  <text x="28" y="347" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：scale 由模型显式传入 Attention，锁定单头点积宽</text>
+  <text x="28" y="370" font-size="12" fill="#4d5652">GLM 稀疏 MLA 按 qk_head_dim=256 取 1/√256=0.0625（非 512）</text>
+  <text x="28" y="391" font-size="12" fill="#66716d">训练与推理缩放系数必须一致，框架不替模型猜测 √d</text>
+
+  <!-- Panel B: Causal Mask & DCP sparse_mode=0 -->
+  <rect x="458" y="274" width="428" height="130" rx="9" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
+  <text x="472" y="298" font-size="14" font-weight="700" fill="#8f3229">B. 因果裁剪：Prefill 必遮未来，DCP 传 0 非放开</text>
+  <text x="472" y="323" font-size="12.5" fill="#8f3229">✗ 误区：Prefill 可看全文；见 sparse_mode=0 当成取消因果</text>
+  <text x="472" y="347" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：Prefill 同样加右下对齐因果掩码遮蔽未来位置</text>
+  <text x="472" y="370" font-size="12" fill="#4d5652">DCP 传 sparse_mode=0 是因索引器已做因果筛选，经</text>
+  <text x="472" y="391" font-size="12" fill="#4d5652">_remap_sparse_indices 重映射坐标后免二次裁剪，绝非看未来</text>
+
+  <!-- Panel C: Decode KV Reuse & Head Count -->
+  <rect x="14" y="418" width="428" height="128" rx="9" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="28" y="442" font-size="14" font-weight="700" fill="#3a4f93">C. Decode 增量缓存：仅算新词，逻辑头 ≠ 缓存份数</text>
+  <text x="28" y="467" font-size="12.5" fill="#8f3229">✗ 误区：Decode 每步重算全史 Q/K/V；64 查询头存 64 份 K/V</text>
+  <text x="28" y="491" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：每步仅算新位置 q/k/v；历史 K/V 读缓存，旧 q 作废</text>
+  <text x="28" y="514" font-size="12" fill="#4d5652">GQA 多查询头共读少量 KV；稀疏 MLA 每位置仅存 kv_lora_rank=512</text>
+  <text x="28" y="534" font-size="12" fill="#66716d">短序列全在挑中范围内，长历史才触发 topk_indices 截断上限</text>
+
+  <!-- Panel D: KDA Linear State & Two Softmaxes -->
+  <rect x="458" y="418" width="428" height="128" rx="9" fill="#fbfaf6" stroke="#087f73" stroke-width="1.3"/>
+  <text x="472" y="442" font-size="14" font-weight="700" fill="#065f56">D. KDA 分支与两处 Softmax：投影 q/k/v ≠ 逐位归一</text>
+  <text x="472" y="467" font-size="12.5" fill="#8f3229">✗ 误区：见 q/k/v 投影必为 Softmax 注意力；混同词表采样概率</text>
+  <text x="472" y="491" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：is_kda_layer 经 in_proj_qkvbfg_a 走 128×128 定长递推</text>
+  <text x="472" y="514" font-size="12" fill="#4d5652">KDA 无逐位置 Softmax，状态固定大小不随上下文长度膨胀</text>
+  <text x="472" y="534" font-size="12" fill="#66716d">注意力 Softmax 沿历史位置分权重；末站采样沿词表算 token 概率</text>
 </svg>

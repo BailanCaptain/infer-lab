@@ -1,57 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" font-family="var(--font-sans)" role="img" aria-label="容器启动、环境变量与最小起服务五大高频误区对照">
-  <title>容器启动、环境变量与最小起服务五大高频误区对照（✗ 错误直觉 vs ✓ v0.30.0 源码真相）</title>
-  <desc>五组左右对照：1) 默认 64MB shm 与误用 CUDA_VISIBLE_DEVICES vs 放大 --shm-size 与使用 ASCEND_RT_VISIBLE_DEVICES 及 A3 成对挂载；2) 旧环境变量 VLLM_ASCEND_ENABLE_NZ 静默失效 vs --additional-config weight_nz_mode；3) 盲判或盲抄无仓内读取的 HCCL 变量 vs 诚实标 unknown 按需精简；4) 漏传 --served-model-name 导致 404 vs get_served_model_name 默认回退完整路径；5) 仅看进程存活 vs 三步探针实测非空吐字。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 558" width="900" height="558" font-family="var(--font-sans)" role="img" aria-label="昇腾容器三层上线取证链与五大环境变量起服误区源码真相">
+  <title>宿主设备 → 容器可见（A3 一卡双节点）→ API 就绪与非空生成三层取证链及 v0.30.0 真相</title>
+  <desc>上半区串联宿主机物理设备（Atlas A3 双 Die 一卡两设备成对透传）、容器可见设备（ASCEND_RT_VISIBLE_DEVICES）与 API 就绪三步探针（/health=200 到首条生成非空）；下半区对照 weight_nz_mode、HCCL unknown 判读与 get_served_model_name 路径回退。</desc>
+  <defs>
+    <marker id="es-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
 
-  <text x="14" y="28" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（照抄祖传脚本最易踩坑）</text>
-  <text x="462" y="28" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与运行真相</text>
+  <!-- Section 1: 3-Layer Verification Chain (Host -> Container -> API Probe) -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 上线三层取证链：宿主设备（A3 一卡两节点）→ 容器可见设备 → API 就绪与首单吐字</text>
 
-  <g role="group" aria-label="误区一 容器共享内存与切卡变量">
-    <rect x="12" y="44" width="428" height="82" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-    <text x="24" y="72" font-size="14.5" font-weight="700" fill="#8f3229">1. 多卡留默认 64MB shm，用 CUDA_VISIBLE_DEVICES 切卡</text>
-    <text x="24" y="102" font-size="13.5" fill="#b54237">以为共享内存够用，或写成 <tspan font-family="var(--font-mono)">ASCEND_VISIBLE_DEVICES</tspan></text>
+  <rect x="14" y="42" width="872" height="220" rx="10" fill="#fbfaf6" stroke="#d8d8cf" stroke-width="1.3"/>
 
-    <rect x="454" y="44" width="438" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-    <text x="466" y="72" font-size="14.5" font-weight="700" fill="#065f56">放大 <tspan font-family="var(--font-mono)" font-size="13.5">--shm-size=16g</tspan>，切卡只认 <tspan font-family="var(--font-mono)" font-size="13.5">ASCEND_RT_VISIBLE_DEVICES</tspan></text>
-    <text x="466" y="102" font-size="13.5" fill="#17211f">且 A3 双 Die 单张物理卡须成对挂载两个 <tspan font-family="var(--font-mono)">/dev/davinci</tspan> 节点</text>
-  </g>
+  <!-- Layer 1: Host Device Layer -->
+  <rect x="26" y="56" width="252" height="168" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="152" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">① 宿主设备层（Atlas A3 例）</text>
+  <rect x="40" y="88" width="224" height="60" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="152" y="106" text-anchor="middle" font-size="12" font-weight="700" fill="#936300">1 张 A3 物理板卡 = 双 Die</text>
+  <rect x="48" y="114" width="98" height="26" rx="4" fill="#f6dca0" stroke="#c78300" stroke-width="1"/>
+  <text x="97" y="131.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#7a5100">davinci0</text>
+  <rect x="158" y="114" width="98" height="26" rx="4" fill="#f6dca0" stroke="#c78300" stroke-width="1"/>
+  <text x="207" y="131.5" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#7a5100">davinci1</text>
+  <text x="40" y="170" font-size="12" fill="#17211f">• A3 必成对挂载 2 个逻辑节点</text>
+  <text x="40" y="191" font-size="12" fill="#4d5652">• 齐挂 manager / svm / hisi_hdc</text>
+  <text x="40" y="212" font-size="12" fill="#66716d">• 多卡容器放大 --shm-size=16g</text>
 
-  <g role="group" aria-label="误区二 已下线的 NZ 环境变量">
-    <rect x="12" y="138" width="428" height="82" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-    <text x="24" y="166" font-size="14.5" font-weight="700" fill="#8f3229">2. 导出 <tspan font-family="var(--font-mono)" font-size="13.5">VLLM_ASCEND_ENABLE_NZ=0</tspan> 关闭权重转 NZ</text>
-    <text x="24" y="196" font-size="13.5" fill="#b54237">照抄 v0.23/v0.26 旧帖，看到不报错就以为已经生效</text>
+  <line x1="280" y1="140" x2="302" y2="140" stroke="#087f73" stroke-width="1.8" marker-end="url(#es-arr)"/>
 
-    <rect x="460" y="138" width="428" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-    <text x="472" y="166" font-size="14.5" font-weight="700" fill="#065f56">v0.30.0 已从 <tspan font-family="var(--font-mono)" font-size="13.5">envs.py</tspan> 移除该变量（仓内零读取）</text>
-    <text x="472" y="196" font-size="13.5" fill="#17211f">必须改用 <tspan font-family="var(--font-mono)" font-weight="600">--additional-config &apos;{&quot;weight_nz_mode&quot;: 0}&apos;</tspan></text>
-  </g>
+  <!-- Layer 2: Container Visible Layer -->
+  <rect x="306" y="56" width="256" height="168" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="434" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">② 容器可见设备与环境层</text>
+  <rect x="316" y="88" width="236" height="60" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="434" y="110" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#3a4f93">ASCEND_RT_VISIBLE_DEVICES=0,1</text>
+  <text x="434" y="134" text-anchor="middle" font-size="12" fill="#8f3229">✗ 不认 CUDA / ASCEND_VISIBLE</text>
+  <text x="320" y="170" font-size="12" fill="#17211f">• npu-smi info 核 Health = OK</text>
+  <text x="320" y="191" font-size="12" fill="#4d5652">• torch.npu.is_available() 为真</text>
+  <text x="320" y="212" font-size="12" fill="#66716d">• 裸机双 source toolkit + nnal</text>
 
-  <g role="group" aria-label="误区三 底层 HCCL 环境变量判读">
-    <rect x="12" y="232" width="428" height="82" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-    <text x="24" y="260" font-size="14.5" font-weight="700" fill="#8f3229">3. 仓内搜不到的 <tspan font-family="var(--font-mono)" font-size="13.5">HCCL_*</tspan> 必无效，或越多越稳全抄上</text>
-    <text x="24" y="290" font-size="13.5" fill="#b54237">把无 Python 读点的变量判死刑，或单机硬塞跨机通信参数</text>
+  <line x1="564" y1="140" x2="586" y2="140" stroke="#087f73" stroke-width="1.8" marker-end="url(#es-arr)"/>
 
-    <rect x="460" y="232" width="428" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-    <text x="472" y="260" font-size="14.5" font-weight="700" fill="#065f56">底层 <tspan font-family="var(--font-mono)" font-size="13.5">libhccl.so</tspan> 可能直接消费，无仓内读点标 <tspan font-family="var(--font-mono)" font-size="13.5">unknown</tspan></text>
-    <text x="472" y="290" font-size="13.5" fill="#17211f">单机最小起服务保持精简，仅在食谱明确要求时按需开启</text>
-  </g>
+  <!-- Layer 3: API Readiness & First Generation Probe -->
+  <rect x="590" y="56" width="284" height="168" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="732" y="78" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">③ API 就绪与首请求生成层</text>
+  <rect x="602" y="90" width="260" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="732" y="111.5" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">1) GET /health → 200（禁仅看 ps）</text>
+  <rect x="602" y="130" width="260" height="34" rx="5" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="732" y="151.5" text-anchor="middle" font-size="12" fill="#17211f">2) GET /v1/models 核对注册模型名</text>
+  <rect x="602" y="170" width="260" height="40" rx="5" fill="#b8efe4" stroke="#087f73" stroke-width="1.4"/>
+  <text x="732" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#065f56">3) /v1/chat/completions 实吐非空文本</text>
 
-  <g role="group" aria-label="误区四 漏传 served-model-name">
-    <rect x="12" y="326" width="428" height="82" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-    <text x="24" y="354" font-size="14.5" font-weight="700" fill="#8f3229">4. 省掉 <tspan font-family="var(--font-mono)" font-size="13.5">--served-model-name</tspan>，请求里写 <tspan font-family="var(--font-mono)" font-size="13.5">&quot;qwen3&quot;</tspan></text>
-    <text x="24" y="384" font-size="13.5" fill="#b54237">以为服务端会自动从本地文件夹名字里猜出短别名</text>
+  <text x="26" y="247" font-size="12" fill="#17211f">优雅停服：优先发 SIGINT 释放设备句柄（严禁直接 kill -9 留僵尸 Worker 占死显存）；仅三步探针全通才切入流量。</text>
 
-    <rect x="460" y="326" width="428" height="82" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-    <text x="472" y="354" font-size="14.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)" font-size="13.5">get_served_model_name()</tspan> 默认回退完整权重路径</text>
-    <text x="472" y="384" font-size="13.5" fill="#17211f">名称不一致直接返回 <tspan font-family="var(--font-mono)" font-weight="600">404</tspan>；上线务必显式指定短服务名</text>
-  </g>
+  <!-- Section 2: 3 Diagnostic Domain Columns -->
+  <text x="16" y="292" font-size="16" font-weight="700" fill="#17211f">2. 祖传脚本常见踩坑 vs v0.30.0 源码核查判据</text>
 
-  <g role="group" aria-label="误区五 仅看进程存活不做吐字探针">
-    <rect x="12" y="420" width="428" height="86" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
-    <text x="24" y="448" font-size="14.5" font-weight="700" fill="#8f3229">5. 看 <tspan font-family="var(--font-mono)" font-size="13.5">ps</tspan> 进程还在跑就算起服成功，不测真实对话生成</text>
-    <text x="24" y="479" font-size="13.5" fill="#b54237">加载或图捕获期就切入业务流量，或漏检缺失 <tspan font-family="var(--font-mono)">chat_template</tspan></text>
+  <!-- Col A -->
+  <rect x="14" y="306" width="282" height="238" rx="9" fill="#fbfaf6" stroke="#b54237" stroke-width="1.3"/>
+  <text x="28" y="331" font-size="14" font-weight="700" fill="#8f3229">A. 已下线旧变量 vs 新配置键</text>
+  <text x="28" y="356" font-size="12.5" fill="#8f3229">✗ 误区：照抄旧帖在 v0.30.0 导出</text>
+  <text x="28" y="376" font-family="var(--font-mono)" font-size="12" fill="#8f3229">VLLM_ASCEND_ENABLE_NZ=0</text>
+  <text x="28" y="402" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：已从 envs.py 彻底移除</text>
+  <text x="28" y="423" font-size="12.5" font-weight="700" fill="#065f56">（仓内零读取，静默不生效）</text>
+  <text x="28" y="448" font-size="12" fill="#4d5652">关转 NZ 须改传 additional-config</text>
+  <text x="28" y="469" font-family="var(--font-mono)" font-size="12" fill="#4d5652">weight_nz_mode: 0；310P 须传</text>
+  <text x="28" y="490" font-size="12" fill="#4d5652">float16 且关 enable_npugraph_ex</text>
+  <text x="28" y="515" font-size="12" fill="#8f3229">升级务必对照当前版本 envs.py</text>
 
-    <rect x="460" y="420" width="428" height="86" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-    <text x="472" y="448" font-size="14.5" font-weight="700" fill="#065f56">必跑 <tspan font-family="var(--font-mono)" font-size="13.5">/health(200)</tspan> → <tspan font-family="var(--font-mono)" font-size="13.5">/v1/models</tspan> → <tspan font-family="var(--font-mono)" font-size="13.5">/v1/chat/completions</tspan></text>
-    <text x="472" y="479" font-size="13.5" fill="#17211f">拿到非空吐字才算全通；停服发 <tspan font-family="var(--font-mono)" font-weight="600">SIGINT</tspan> 禁一上来 <tspan font-family="var(--font-mono)">kill -9</tspan></text>
-  </g>
+  <!-- Col B -->
+  <rect x="309" y="306" width="282" height="238" rx="9" fill="#fbfaf6" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="323" y="331" font-size="14" font-weight="700" fill="#7a3a6a">B. HCCL 变量与开发版号校验</text>
+  <text x="323" y="356" font-size="12.5" fill="#8f3229">✗ 误区：无 Python 读点必为错词，</text>
+  <text x="323" y="376" font-size="12" fill="#8f3229">或单机把跨机二十个变量全抄上</text>
+  <text x="323" y="402" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：底层 libhccl.so 可消费</text>
+  <text x="323" y="423" font-size="12.5" font-weight="700" fill="#065f56">无仓内读点标 unknown 按需精简</text>
+  <text x="323" y="448" font-size="12" fill="#4d5652">单机最小起服务不堆跨机参数；</text>
+  <text x="323" y="469" font-size="12" fill="#4d5652">源码装非标准版号 vllm 时，</text>
+  <text x="323" y="490" font-family="var(--font-mono)" font-size="12" fill="#4d5652">vllm_version_is 依赖 VLLM_VERSION</text>
+  <text x="323" y="515" font-size="12" fill="#7a3a6a">覆盖，否则抛 InvalidVersion</text>
+
+  <!-- Col C -->
+  <rect x="604" y="306" width="282" height="238" rx="9" fill="#fbfaf6" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="618" y="331" font-size="14" font-weight="700" fill="#3a4f93">C. 模型注册名回退与 404 防护</text>
+  <text x="618" y="356" font-size="12.5" fill="#8f3229">✗ 误区：省略 --served-model-name</text>
+  <text x="618" y="376" font-size="12" fill="#8f3229">请求里写短名 &quot;qwen3&quot; 盼自动匹配</text>
+  <text x="618" y="402" font-size="12.5" font-weight="700" fill="#065f56">✓ 真相：get_served_model_name()</text>
+  <text x="618" y="423" font-size="12.5" font-weight="700" fill="#065f56">默认回退完整模型路径字符串</text>
+  <text x="618" y="448" font-size="12" fill="#4d5652">如注册成 /root/.cache/Qwen3-8B，</text>
+  <text x="618" y="469" font-size="12" fill="#4d5652">传不一致短名会在入口直接回 404</text>
+  <text x="618" y="490" font-size="12" fill="#4d5652">上线务必显式传 --served-model-name</text>
+  <text x="618" y="515" font-size="12" fill="#3a4f93">并用探针第 2 步 /v1/models 核验</text>
 </svg>

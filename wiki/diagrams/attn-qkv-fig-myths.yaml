@@ -1,7 +1,8 @@
 mode: native-svg
 id: attn-qkv-fig-myths
-caption: Attention 与 Q/K/V 五组常见认知误区 vs 论文与 v0.30.0 源码真相排障对照板（覆盖 Q/K/V 线性生成、1/√d 单头缩放口径、Prefill/DCP 因果裁剪、Decode 缓存复用与 MLA/KDA 分支边界）。
-size: [900, 498]
+caption: >-
+  Attention 单头打分缩放与因果掩码算例（头维 d=4 下 QKᵀ=[4,0] → ÷√4=[2,0] → Softmax≈[0.881,0.119]，未来格 j=2 因果清零）及四组 v0.30.0 源码核查判据（单头 q·k 缩放口径、Prefill/DCP 因果边界、Decode 增量缓存与 KDA 定长递推分支）。
+size: [900, 560]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L225-L258'
     symbols: ['Attention', 'num_heads', 'head_size', 'scale', 'num_kv_heads']

@@ -29,6 +29,16 @@ aliases:
   - '137'
   - HCCL_E_WAIT_TIMEOUT
   - plog
+  - '507015'
+  - '507034'
+  - '507035'
+  - '161002'
+  - EZ1001
+  - CheckSmmuFault
+  - retCode=0x26
+  - SMMU故障
+  - libopapi.so
+  - ZMQError
 chapters:
   - '19'
 order: 4
@@ -298,7 +308,7 @@ file: troubleshooting-fig-first-fault
 
 | 数字错误码与常见外层报错 | 官方返回码定义 | 现场候选诱因（待日志核实） | 首取证据与下一步分流 |
 | --- | --- | --- | --- |
-| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | **AI Core 执行异常**（`ACL_ERROR_RT_AICORE_OVER_FLOW` 等运行时 AI Core 故障码） | 核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
+| **`507015`**（`AclrtSynchronizeStreamWithTimeout` / `aicore exception`） | **AI Core 执行异常**（`ACL_ERROR_RT_AICORE_EXCEPTION`；区别于算术溢出码 `207003` `ACL_ERROR_RT_AICORE_OVER_FLOW`） | 核函数访存未对齐、UB/GM 地址越界或指令约束违例 | 进 `plog` 搜首处 `aicore exception` 与故障 kernel 名，再转 [AI Core](ai-core.md) 或 [ACL Graph](acl-graph.md) |
 | **`507034`**（`ACL stream synchronize failed` / `vector core timeout`） | **Vector Core（AIV）执行超时** | 超长序列单步计算超阈值，或核内同步未释放 | 核对超长序列/单步批大小与核内同步，多卡时一并按时间戳排查 [HCCL 通信](cann-hccl.md) 与慢卡拖尾 |
 | **`507035`**（`vector core exception` / `aicore VEC 507035`） | **Vector Core（AIV）执行异常** | 向量指令输入特殊值、Tiling 偏移或 UB 越界 | 抓取 `plog` 中 `vec error info` 与输入形状/数值分布，对照 [AI Core](ai-core.md) 与 [算子与 kernel](ops-and-kernels.md) |
 | **`161002`**（`ACLNN_ERR_PARAM_INVALID`） | **`aclnn` 接口参数无效** | 输入输出 `dtype`、数据格式、维度或步长违反算子入参约束 | 查紧邻报错的 `aclGetRecentErrMsg` 明细核对张量形状与量化 Scale 类型，转 [算子与 kernel](ops-and-kernels.md) |

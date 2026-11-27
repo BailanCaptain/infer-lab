@@ -50,6 +50,7 @@ const REGISTERED_DEEPLINK_PAGE_IDS = new Set([
   "moe",
   "sleep-mode",
   "tensor-layout",
+  "inference-troubleshooting",
   "inference-performance-troubleshooting",
   "ascend-910b3-measured-baseline",
 ]);
@@ -482,5 +483,117 @@ describe("Panel B — Perfetto-lite Schematic Relative-Timeline Sandbox", () => 
     const mixedOom = mixedDiag.findings.find((f) => f.ruleId === "oom-stage-split");
     expect(mixedOom).toBeDefined();
     expect(mixedOom!.title).not.toContain("图捕获");
+  });
+
+  it("P1 causal order: earlier or untimestamped EI0006 timeout is never attributed as a confirmed secondary cascade", () => {
+    const reversedLog = [
+      "2026-04-12 10:00:00.000 ERROR [Worker_TP1] [Rank 1] EI0006 Notify wait execute timeout during AllReduce",
+      "2026-04-12 10:10:00.000 ERROR [Worker_TP3] [Rank 3] RuntimeError: NPU out of memory. Tried to allocate 2.00 GiB",
+    ].join("\n");
+    const report = analyzeTroubleshootInput(reversedLog);
+    expect(report.firstFaultVerdict.rank).toBe(3);
+    expect(report.firstFaultVerdict.confidence).toBe("medium");
+    expect(report.firstFaultVerdict.cascadeCausalState).toBe("earlier-than-primary");
+    expect(report.firstFaultVerdict.cascadeRanks).toEqual([]);
+    const r3Earlier = report.findings.find((f) => f.ruleId === "hccl-timeout-cascade");
+    expect(r3Earlier?.evidenceLevel).toBe("I");
+    expect(r3Earlier?.title).toContain("早于 Rank 3");
+
+    const untimestampedLog = [
+      "ERROR [Rank 3] RuntimeError: NPU out of memory. Tried to allocate 2.00 GiB",
+      "ERROR [Rank 1] EI0006 Notify wait execute timeout during AllReduce",
+    ].join("\n");
+    const untsReport = analyzeTroubleshootInput(untimestampedLog);
+    expect(untsReport.firstFaultVerdict.rank).toBe(3);
+    expect(untsReport.firstFaultVerdict.confidence).toBe("medium");
+    expect(untsReport.firstFaultVerdict.cascadeCausalState).toBe("unverified-order");
+    expect(untsReport.firstFaultVerdict.cascadeRanks).toEqual([]);
+    const r3Unts = untsReport.findings.find((f) => f.ruleId === "hccl-timeout-cascade");
+    expect(r3Unts?.evidenceLevel).toBe("I");
+    expect(r3Unts?.title).toContain("待核实");
+  });
+
+  it("P1 rank provenance: multi-host bare device=N and PID collisions across hosts never fabricate slot certainty", () => {
+    const hostDeviceLog = "[host b] 2026-04-12 10:05:00 ERROR device=3 RuntimeError: NPU out of memory";
+    const report = analyzeTroubleshootInput(hostDeviceLog);
+    expect(report.firstFaultVerdict.rank).toBe(3);
+    expect(report.firstFaultVerdict.confidence).toBe("medium");
+    expect(report.firstFaultVerdict.slotMappable).toBe(false);
+    expect(report.firstFaultVerdict.rankSource).toBe("device-id");
+
+    // Multi-host duplicate PID 123: unprefixed plog RUNTIME(123,) must NOT inherit Rank 0 when Host A & Host B both used pid=123
+    const pidCollisionLog = [
+      "[host a] (Worker_TP0 pid=123) INFO 09-10 08:50:00 Worker started",
+      "[host b] (Worker_TP2 pid=123) INFO 09-10 08:50:01 Worker started",
+      "[ERROR] RUNTIME(123,):2026-09-10-08:52:41.377.821 [stream.cc:1743] GetError:retCode=0x26, [aicore exception].",
+    ].join("\n");
+    const collisionReport = analyzeTroubleshootInput(pidCollisionLog);
+    expect(collisionReport.firstFaultVerdict.rank).toBeNull();
+  });
+
+  it("diagnoses CANN C++ plog cleanly without false positives on retCode=0x0 / isSmmuFault=0 or code conflation", () => {
+    // Healthy INFO/plog lines with retCode=0x0 and isSmmuFault is 0 MUST NOT trigger any finding
+    const benignPlog = [
+      "[INFO] RUNTIME(289610,):2026-09-10-08:52:01.000 [device_error_core_proc.cc:775] CheckSmmuFault:Get isSmmuFault is 0.",
+      "[INFO] RUNTIME(289610,):2026-09-10-08:52:01.002 [stream.cc:910] StreamSynchronize: stream_id=47, retCode=0x0.",
+    ].join("\n");
+    const benignReport = analyzeTroubleshootInput(benignPlog);
+    expect(benignReport.findings).toEqual([]);
+    expect(benignReport.firstFaultVerdict.primaryEvidenceLines).toEqual([]);
+
+    const smmuPlog = [
+      "(Worker_DP1_TP1_DCP1_EP9 pid=289610) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015",
+      "[ERROR] RUNTIME(289610,):2026-09-10-08:52:37.461.278 [device_error_core_proc.cc:775]289907 CheckSmmuFault:Get isSmmuFault is 1.",
+      "[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.821 [stream.cc:1743]289907 GetError:Stream Synchronize failed, stream_id=47, retCode=0x26, [aicore exception].",
+      "[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.875 [stream.cc:1746]289907 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=9, stream_id=47, fault kernel_name=MlaPrologV3_18fe44a5",
+    ].join("\n");
+    const smmuReport = analyzeTroubleshootInput(smmuPlog);
+    expect(smmuReport.firstFaultVerdict.rank).toBe(9);
+    expect(smmuReport.findings.map((f) => f.ruleId)).toContain("cann-plog-aicore-fault");
+
+    // 207003 overflow vs 507035 Vector/launch exception vs aclnn runtime code non-conflation
+    const overflowReport = analyzeTroubleshootInput(
+      "(Worker_TP0 pid=1001) ERROR 09-10 09:00:00 RuntimeError: ACL_ERROR_RT_AICORE_OVER_FLOW, error code is 207003",
+    );
+    expect(overflowReport.findings.find((f) => f.ruleId === "cann-plog-aicore-fault")?.title).toContain(
+      "算术溢出",
+    );
+
+    const aclnnWith507035 = analyzeTroubleshootInput(
+      "(Worker_TP0 pid=1002) ERROR 09-10 09:01:00 RuntimeError: aclnnQuantMatmulV4 failed, error code is 507035",
+    );
+    expect(aclnnWith507035.findings.map((f) => f.ruleId)).toEqual(["cann-plog-aicore-fault"]);
+    expect(aclnnWith507035.findings[0]?.title).toContain("507035");
+
+    const bareAclnnFail = analyzeTroubleshootInput(
+      "(Worker_TP0 pid=1003) ERROR 09-10 09:02:00 RuntimeError: call aclnnAddRmsNorm failed.",
+    );
+    const bareAclnnFinding = bareAclnnFail.findings.find((f) => f.ruleId === "cann-opapi-or-aclnn-fault");
+    expect(bareAclnnFinding?.evidenceLevel).toBe("I");
+    expect(bareAclnnFinding?.title).not.toContain("161002");
+
+    // Pre-compression before 16-event cap preserves late-line root-cause event
+    const burstLines: string[] = [];
+    for (let i = 0; i < 18; i++) {
+      burstLines.push(
+        `2026-04-12 10:12:${String(10 + i).padStart(2, "0")}.000 ERROR [Rank 1] EI0006 Notify wait execute timeout`,
+      );
+    }
+    burstLines.push(
+      "2026-04-12 10:11:05.000 ERROR [Rank 3] RuntimeError: NPU out of memory. Tried to allocate 2.00 GiB",
+    );
+    const burstReport = analyzeTroubleshootInput(burstLines.join("\n"));
+    expect(burstReport.firstFaultVerdict.rank).toBe(3);
+    expect(burstReport.firstFaultVerdict.timelineEvents?.some((e) => e.kind === "root-cause")).toBe(true);
+
+    const opapiReport = analyzeTroubleshootInput(
+      "(Worker_TP0 pid=32786) ERROR 09-11 10:34:04 RuntimeError: aclnnHcPre or aclnnHcPreGetWorkspaceSize not in libopapi.so, or libopapi.so not found.",
+    );
+    expect(opapiReport.findings.map((f) => f.ruleId)).toContain("cann-opapi-or-aclnn-fault");
+
+    const zmqReport = analyzeTroubleshootInput(
+      "(Worker_TP0 pid=14470) ERROR [multiproc_executor.py:888] zmq.error.ZMQError: Address already in use (addr='tcp://10.246.224.8:60001')",
+    );
+    expect(zmqReport.findings.map((f) => f.ruleId)).toContain("zmq-port-conflict");
   });
 });

@@ -265,6 +265,39 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
       "(EngineCore pid=40516) DEBUG 11-22 21:38:20 [model_runner_v1.py:2392] Running batch with cudagraph_mode: FULL, batch_descriptor: BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0), should_ubatch: False, num_tokens_across_dp: None",
     ].join("\n"),
   },
+  {
+    id: "cann-plog-smmu-0x26-fault",
+    label: "CANN plog：507015 + CheckSmmuFault 越界首错",
+    kind: "logs",
+    summary:
+      "社区脱敏标本（DP+TP+EP 多维进程名）：Python 层仅见笼统 error code 507015 与邻卡 EI0006，下钻同 PID 的 CANN RUNTIME plog 可见 CheckSmmuFault:Get isSmmuFault is 1、retCode=0x26 与故障 kernel_name。",
+    expectedRuleIds: ["cann-plog-aicore-fault", "hccl-timeout-cascade"],
+    content: [
+      "(Worker_DP0_TP0_EP0 pid=289601) INFO 09-10 08:51:10 [worker.py:660] Available KV cache memory: 31.40 GiB",
+      "(Worker_DP0_TP1_EP1 pid=289602) INFO 09-10 08:51:10 [worker.py:660] Available KV cache memory: 31.40 GiB",
+      "(Worker_DP0_TP2_EP2 pid=289603) INFO 09-10 08:51:10 [worker.py:660] Available KV cache memory: 31.40 GiB",
+      "(Worker_DP0_TP3_EP3 pid=289604) INFO 09-10 08:51:10 [worker.py:660] Available KV cache memory: 31.40 GiB",
+      "[ERROR] RUNTIME(289603,):2026-09-10-08:52:37.461.278 [device_error_core_proc.cc:775]289907 CheckSmmuFault:Get isSmmuFault is 1.",
+      "[ERROR] RUNTIME(289603,):2026-09-10-08:52:41.377.821 [stream.cc:1743]289907 GetError:Stream Synchronize failed, stream_id=47, retCode=0x26, [aicore exception].",
+      "[ERROR] RUNTIME(289603,):2026-09-10-08:52:41.377.875 [stream.cc:1746]289907 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=2, stream_id=47, fault kernel_name=MlaPrologV3_18fe44a5",
+      "(Worker_DP0_TP2_EP2 pid=289603) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015",
+      "(Worker_DP0_TP0_EP0 pid=289601) ERROR 09-10 08:55:42 [hccl_comm.py:112] HCCL_E_WAIT_TIMEOUT: EI0006 Notify wait execute timeout",
+      "(Worker_DP0_TP1_EP1 pid=289602) ERROR 09-10 08:55:42 [hccl_comm.py:112] EI0006 Notify wait execute timeout during AllToAll",
+    ].join("\n"),
+  },
+  {
+    id: "zmq-port-conflict-cascade",
+    label: "ZMQ/RPC 端口残留冲突（Address already in use）",
+    kind: "logs",
+    summary:
+      "社区高频排障标本：前次异常退出的残留 vllm/python 子进程仍占用 ZMQ/Gloo 握手端口，导致 Rank 1 启动即抛 ZMQError: Address already in use 并拖垮 EngineCore。",
+    expectedRuleIds: ["zmq-port-conflict"],
+    content: [
+      "(Worker_TP0 pid=14469) INFO 09-12 14:10:02 [parallel_state.py:420] Initializing distributed environment TP=2",
+      "(Worker_TP1 pid=14470) ERROR 09-12 14:10:03 [multiproc_executor.py:888] zmq.error.ZMQError: Address already in use (addr='tcp://127.0.0.1:55671')",
+      "(EngineCore_DP0 pid=14450) ERROR 09-12 14:10:04 [core.py:1366] RuntimeError: Engine core initialization failed. See root cause above.",
+    ].join("\n"),
+  },
 ];
 
 export function getTroubleshootFixture(id: string | undefined): TroubleshootFixture {

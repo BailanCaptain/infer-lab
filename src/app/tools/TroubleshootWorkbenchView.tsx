@@ -23,6 +23,7 @@ import {
 } from "../../sim/troubleshoot/timelineSandbox";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
+import { TroubleshootHardwareStage } from "./TroubleshootHardwareStage";
 import {
   buildTroubleshootChatAnalysis,
   buildTroubleshootQueryParams,
@@ -203,11 +204,15 @@ const CMD_BLOCK_STYLE: CSSProperties = {
 function FirstFaultVerdictCard({
   report,
   isSampleDemo = false,
+  highlightedLineNumber = null,
 }: {
   report: LogAnalysisReport;
   isSampleDemo?: boolean;
+  highlightedLineNumber?: number | null;
 }) {
   const { firstFaultVerdict } = report;
+  const detailsRef = useRef<HTMLDetailsElement | null>(null);
+  const hostRef = useRef<HTMLElement | null>(null);
   const conf = CONFIDENCE_META[firstFaultVerdict.confidence];
   const cardTone =
     firstFaultVerdict.rank !== null
@@ -221,8 +226,20 @@ function FirstFaultVerdictCard({
   const collateralLines =
     explicitRoots.length > 0 ? allEv.filter((ev) => ev.kind !== "root-cause") : allEv.slice(1);
 
+  useEffect(() => {
+    if (highlightedLineNumber === null || !hostRef.current) return;
+    if (collateralLines.some((ev) => ev.lineNumber === highlightedLineNumber) && detailsRef.current) {
+      detailsRef.current.open = true;
+    }
+    const target = hostRef.current.querySelector<HTMLElement>(
+      `[data-evidence-line="${highlightedLineNumber}"]`,
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [highlightedLineNumber, collateralLines]);
+
   return (
     <section
+      ref={hostRef}
       className={`wt-finding-card ${cardTone}`}
       data-testid="first-fault-verdict"
       data-first-fault-rank={firstFaultVerdict.rank === null ? "none" : String(firstFaultVerdict.rank)}
@@ -248,34 +265,23 @@ function FirstFaultVerdictCard({
 
       {primaryVisibleLines.length > 0 && (
         <div style={EVIDENCE_LIST_STYLE}>
-          {primaryVisibleLines.map((ev) => (
-            <div key={`ff-${ev.lineNumber}-${ev.kind}`} style={EVIDENCE_ROW_STYLE}>
-              <span className={`wt-badge-judgment ${ev.kind === "root-cause" ? "is-error" : "is-warn"}`}>
-                {ev.kind === "root-cause" ? "主故障" : "关键日志"}
-              </span>
-              <span className="wt-baseline-pill">
-                L{ev.lineNumber}
-                {ev.rank !== null ? ` · Rank ${ev.rank}` : ""}
-                {ev.timestamp ? ` · ${ev.timestamp}` : ""}
-              </span>
-              <code style={{ fontFamily: "var(--font-mono)", fontSize: "13.5px", wordBreak: "break-all" }}>
-                {ev.rawLine}
-              </code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {collateralLines.length > 0 && (
-        <details className="wt-collateral-details" data-testid="troubleshoot-collateral-details">
-          <summary className="wt-collateral-summary" data-testid="troubleshoot-collateral-summary">
-            <span>展开查看 {collateralLines.length} 条次生连带超时 / 伴随报错行</span>
-            <span className="wt-advanced-summary-cta">点击展开</span>
-          </summary>
-          <div className="wt-collateral-body">
-            {collateralLines.map((ev) => (
-              <div key={`ff-col-${ev.lineNumber}-${ev.kind}`} style={EVIDENCE_ROW_STYLE}>
-                <span className="wt-badge-judgment is-warn">次生超时</span>
+          {primaryVisibleLines.map((ev) => {
+            const isHighlighted = highlightedLineNumber === ev.lineNumber;
+            return (
+              <div
+                key={`ff-${ev.lineNumber}-${ev.kind}`}
+                data-evidence-line={ev.lineNumber}
+                data-highlighted={isHighlighted ? "true" : "false"}
+                style={{
+                  ...EVIDENCE_ROW_STYLE,
+                  ...(isHighlighted
+                    ? { outline: "2px solid #b54237", background: "var(--color-accent-soft)" }
+                    : {}),
+                }}
+              >
+                <span className={`wt-badge-judgment ${ev.kind === "root-cause" ? "is-error" : "is-warn"}`}>
+                  {ev.kind === "root-cause" ? "主故障" : "关键日志"}
+                </span>
                 <span className="wt-baseline-pill">
                   L{ev.lineNumber}
                   {ev.rank !== null ? ` · Rank ${ev.rank}` : ""}
@@ -285,7 +291,50 @@ function FirstFaultVerdictCard({
                   {ev.rawLine}
                 </code>
               </div>
-            ))}
+            );
+          })}
+        </div>
+      )}
+
+      {collateralLines.length > 0 && (
+        <details
+          ref={detailsRef}
+          className="wt-collateral-details"
+          data-testid="troubleshoot-collateral-details"
+        >
+          <summary className="wt-collateral-summary" data-testid="troubleshoot-collateral-summary">
+            <span>展开查看 {collateralLines.length} 条次生连带超时 / 伴随报错行</span>
+            <span className="wt-advanced-summary-cta">点击展开</span>
+          </summary>
+          <div className="wt-collateral-body">
+            {collateralLines.map((ev) => {
+              const isHighlighted = highlightedLineNumber === ev.lineNumber;
+              return (
+                <div
+                  key={`ff-col-${ev.lineNumber}-${ev.kind}`}
+                  data-evidence-line={ev.lineNumber}
+                  data-highlighted={isHighlighted ? "true" : "false"}
+                  style={{
+                    ...EVIDENCE_ROW_STYLE,
+                    ...(isHighlighted
+                      ? { outline: "2px solid #9a4b86", background: "var(--color-comm-soft)" }
+                      : {}),
+                  }}
+                >
+                  <span className="wt-badge-judgment is-warn">次生超时</span>
+                  <span className="wt-baseline-pill">
+                    L{ev.lineNumber}
+                    {ev.rank !== null ? ` · Rank ${ev.rank}` : ""}
+                    {ev.timestamp ? ` · ${ev.timestamp}` : ""}
+                  </span>
+                  <code
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "13.5px", wordBreak: "break-all" }}
+                  >
+                    {ev.rawLine}
+                  </code>
+                </div>
+              );
+            })}
           </div>
         </details>
       )}
@@ -479,6 +528,25 @@ function RealLogAnalyzerPanel({
   const report = useMemo(() => analyzeTroubleshootInput(rawInput), [rawInput]);
   const canReconcile = useMemo(() => hasReconcilableStartupMetrics(rawInput), [rawInput]);
   const activeFixture = TROUBLESHOOT_FIXTURES.find((f) => f.id === activeFixtureId);
+  const [selected3dRank, setSelected3dRank] = useState<number | null>(null);
+  const [highlightedLineNumber, setHighlightedLineNumber] = useState<number | null>(null);
+
+  const resetSelection = () => {
+    setSelected3dRank(null);
+    setHighlightedLineNumber(null);
+  };
+  const handleFixtureClick = (fixtureId: string) => {
+    resetSelection();
+    onSelectFixture(fixtureId);
+  };
+  const handleClearClick = () => {
+    resetSelection();
+    onClear();
+  };
+  const handleInputEdit = (next: string) => {
+    resetSelection();
+    onRawInputChange(next);
+  };
 
   return (
     <div className="wt-section" data-testid="troubleshoot-panel-a">
@@ -494,7 +562,7 @@ function RealLogAnalyzerPanel({
             type="button"
             className="wt-assistant-btn"
             data-testid="troubleshoot-clear-input"
-            onClick={onClear}
+            onClick={handleClearClick}
           >
             清空并粘贴你的真实日志
           </button>
@@ -511,7 +579,7 @@ function RealLogAnalyzerPanel({
               type="button"
               className={`wt-preset-btn ${isActive ? "is-active" : ""}`}
               data-testid={`troubleshoot-fixture-${fixture.id}`}
-              onClick={() => onSelectFixture(fixture.id)}
+              onClick={() => handleFixtureClick(fixture.id)}
             >
               <span className={`wt-preset-dot ${fixture.kind === "metrics" ? "is-healthy" : "is-pitfall"}`} />
               <span>{fixture.label}</span>
@@ -523,7 +591,7 @@ function RealLogAnalyzerPanel({
             type="button"
             className="wt-filter-btn"
             data-testid="troubleshoot-clear-input"
-            onClick={onClear}
+            onClick={handleClearClick}
           >
             清空当前日志
           </button>
@@ -550,7 +618,7 @@ function RealLogAnalyzerPanel({
           spellCheck={false}
           placeholder="粘贴多卡交错启动日志、CANN/HCCL 报错（EZ9999 / EI0006 / exitcode -9）或 curl /metrics 快照…"
           value={rawInput}
-          onChange={(e) => onRawInputChange(e.target.value)}
+          onChange={(e) => handleInputEdit(e.target.value)}
         />
       </div>
 
@@ -597,7 +665,24 @@ function RealLogAnalyzerPanel({
       </div>
 
       {report.inputKind !== "metrics" && (
-        <FirstFaultVerdictCard report={report} isSampleDemo={Boolean(activeFixture)} />
+        <>
+          <FirstFaultVerdictCard
+            report={report}
+            isSampleDemo={Boolean(activeFixture)}
+            highlightedLineNumber={highlightedLineNumber}
+          />
+          {(report.detectedRanks.length > 0 ||
+            (report.firstFaultVerdict.timelineEvents?.length ?? 0) > 0) && (
+            <TroubleshootHardwareStage
+              report={report}
+              selectedRank={selected3dRank}
+              onSelectEvidence={(rank, lineNumber) => {
+                setSelected3dRank(rank);
+                setHighlightedLineNumber(lineNumber);
+              }}
+            />
+          )}
+        </>
       )}
       <MetricsSnapshotBar report={report} />
 

@@ -750,7 +750,7 @@ export const domain5Rules: readonly CouplingRule[] = [
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily === "310P") return null;
-      const npugraphEx = input.enableNpugraphEx ?? false;
+      const npugraphEx = input.enableNpugraphEx ?? true;
       const staticKernel = input.enableStaticKernel ?? false;
       const superKernel = input.enableSuperKernel !== undefined ? input.enableSuperKernel : staticKernel;
       const errors: string[] = [];

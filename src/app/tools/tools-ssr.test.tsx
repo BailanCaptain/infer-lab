@@ -665,7 +665,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(defaultHtml).toContain('data-testid="wargame-view"');
     expect(defaultHtml).toContain('data-active-case="rank3-oom-ei0006"');
     expect(defaultHtml).toContain('data-testid="wargame-progress-badge"');
-    expect(defaultHtml).toContain("已通关 0 / 6 关");
+    expect(defaultHtml).toContain("已通关 0 / 7 关");
     expect(defaultHtml).toContain('data-testid="wargame-debrief-locked"');
     expect(defaultHtml).not.toContain('data-testid="wargame-debrief-card"');
     expect(defaultHtml).not.toContain('data-testid="wargame-hints-list"');

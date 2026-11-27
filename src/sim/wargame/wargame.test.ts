@@ -23,7 +23,7 @@ describe("Track 3B wargame scenarios & deterministic anti-cheat judge", () => {
       expect(src).not.toMatch(/from\s+["'][^"']*(?:content|app)\//);
     }
 
-    expect(WARGAME_SCENARIOS).toHaveLength(6);
+    expect(WARGAME_SCENARIOS).toHaveLength(7);
     expect(WARGAME_SCENARIO_IDS).toEqual([
       "rank3-oom-ei0006",
       "910b3-u090-aclgraph-oom",
@@ -31,6 +31,7 @@ describe("Track 3B wargame scenarios & deterministic anti-cheat judge", () => {
       "legacy-v030-silent-degrade",
       "exit-137-cgroup-sigkill",
       "pd-mooncake-kv-mismatch",
+      "a3-dual-die-static-kernel-trap",
     ]);
     expect(isWarGameScenarioId(DEFAULT_WARGAME_SCENARIO_ID)).toBe(true);
     expect(isWarGameScenarioId("non-existent")).toBe(false);
@@ -405,5 +406,84 @@ describe("Track 3B wargame scenarios & deterministic anti-cheat judge", () => {
     });
     expect(lowU5.passed).toBe(false);
     expect(lowU5.checks.map((c) => c.detail).join(" ")).not.toContain("137 属容器 DRAM/shm 问题");
+
+    // Scenario 7 (CASE-07 community-adapted A3 dual-Die + static_kernel + PIECEWISE silent-reset trap)
+    const sc7 = getWarGameScenario("a3-dual-die-static-kernel-trap");
+    expect(sc7.provenanceLabel).toBe("社区案例脱敏改编");
+    expect(sc7.initialCommand).toContain("/models/Qwen3-30B-A3B-W8A8");
+    const fixed7 = sc7.initialCommand
+      .replace("ASCEND_RT_VISIBLE_DEVICES=0", "ASCEND_RT_VISIBLE_DEVICES=0,1")
+      .replace("--gpu-memory-utilization 0.96", "--gpu-memory-utilization 0.88")
+      .replace('"cudagraph_mode":"PIECEWISE"', '"cudagraph_mode":"FULL_DECODE_ONLY"')
+      .replace(
+        '{"enable_npugraph_ex":false,"enable_static_kernel":true}',
+        '{"enable_npugraph_ex":true,"enable_static_kernel":true}',
+      );
+    const pass7 = judgeWarGameSubmission({
+      scenarioId: "a3-dual-die-static-kernel-trap",
+      selectedOptionId: "C",
+      commandText: fixed7,
+    });
+    expect(pass7.passed).toBe(true);
+    expect(pass7.oomStatus).toBe("ok");
+
+    // v0.30.0 default True: omitting enable_npugraph_ex while keeping enable_static_kernel:true is ALSO accepted
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace(
+          '{"enable_npugraph_ex":true,"enable_static_kernel":true}',
+          '{"enable_static_kernel":true}',
+        ),
+      }).passed,
+    ).toBe(true);
+
+    // Near-miss 7A: cross-card odd pairing 0,2 or out-of-range 100,101 rejected on A3 dual-Die (0..15)
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace("ASCEND_RT_VISIBLE_DEVICES=0,1", "ASCEND_RT_VISIBLE_DEVICES=0,2"),
+      }).passed,
+    ).toBe(false);
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace("ASCEND_RT_VISIBLE_DEVICES=0,1", "ASCEND_RT_VISIBLE_DEVICES=100,101"),
+      }).passed,
+    ).toBe(false);
+
+    // Near-miss 7B: leaving PIECEWISE silently resets npugraph_ex / static_kernel -> rejected
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace('"FULL_DECODE_ONLY"', '"PIECEWISE"'),
+      }).passed,
+    ).toBe(false);
+
+    // Near-miss 7C: deleting enable_static_kernel or leaving enable_npugraph_ex:false -> rejected
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace(
+          '{"enable_npugraph_ex":true,"enable_static_kernel":true}',
+          '{"enable_npugraph_ex":true}',
+        ),
+      }).passed,
+    ).toBe(false);
+    expect(
+      judgeWarGameSubmission({
+        scenarioId: "a3-dual-die-static-kernel-trap",
+        selectedOptionId: "C",
+        commandText: fixed7.replace(
+          '{"enable_npugraph_ex":true,"enable_static_kernel":true}',
+          '{"enable_npugraph_ex":false,"enable_static_kernel":true}',
+        ),
+      }).passed,
+    ).toBe(false);
   });
 });

@@ -141,6 +141,12 @@ $$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qqu
 | **Atlas 300I DUO**（`_310P`） | `Atlas 300I DUO`、`Atlas 200I Pro` | **不支持 `BF16`**；单芯 `TP1` 跑专用 `Qwen3-8B-W8A8SC`（或小模型 `FP16`）并显式传 `--dtype float16` | **不支持 `BF16`**；采用 `Qwen3-30B-A3B-w8a8-QuaRot-310` 量化权重跑 `TP2` 并显式传 `--dtype float16`（上限 `16k` 上下文） | 走 `NPUWorker310` 与 `FORCE_NZ`；无 `NPUGRAPH_EX`（自动禁用 `npugraph_ex`、`static/super_kernel`），禁装 `triton` |
 | **昇腾 950PR / 950DT**（`A5`） | `950DT`、`950PR`（`96 / 112 / 128 / 144 GB` 档位） | 单设备轻松跑 `BF16` 或原生 `FP8 / MXFP8` | `96 GB / 144 GB` 大显存档可单卡容纳，或启用硬件原生 `MXFP8` 压缩至约一半字节 | `FP8_OPTIMIZED` 适配族；支持 L0C→UB **CV 融合**、原生 `FP8/MXFP8/MXFP4` 与 **Unified Bus** 高速互联（见[昇腾 950 架构](ascend-950-architecture.md)） |
 
+把上表落到真实机房常见的三款整机形态上，单看“服务器插了几张物理模组”仍不够，还要核对每块物理模组或 PCIe 板卡向驱动暴露出几个逻辑 `davinci` 设备：
+
+```wiki-diagram
+file: hardware-plate-slot-die-cutaway
+```
+
 ## 主机内存和设备显存分别记什么账？
 
 **CPU 上的进程数、主机内存（Host DRAM）容量与 NPU 的设备显存（HBM）预算是三本彼此独立的账。** 每个负责模型计算的 **Worker** 进程绑定一个逻辑 `Device`，此外主机上还运行着 API 前端、协调器、引擎核心以及容器监控父进程。主机内存保存原始文本、分词结果、请求调度队列以及从磁盘读取 `.safetensors` 时的加载中转缓冲；设备侧的 **HBM**（高带宽显存）则保存本卡分到的模型权重、**KV cache**（供后续 token 复用的历史键值状态，混合注意力模型还包含各自的线性或稀疏状态）、前向临时激活张量、集合通信缓冲与图捕获内存池。两本内存账的完整拆解见[设备内存](device-memory.md)。

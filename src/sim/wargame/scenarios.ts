@@ -12,7 +12,8 @@ export type WarGameScenarioId =
   | "metrics-preemption-avalanche"
   | "legacy-v030-silent-degrade"
   | "exit-137-cgroup-sigkill"
-  | "pd-mooncake-kv-mismatch";
+  | "pd-mooncake-kv-mismatch"
+  | "a3-dual-die-static-kernel-trap";
 
 export type WarGameOptionId = "A" | "B" | "C" | "D";
 
@@ -56,11 +57,12 @@ export interface WarGameDebrief {
 
 export interface WarGameScenario {
   id: WarGameScenarioId;
-  order: 1 | 2 | 3 | 4 | 5 | 6;
+  order: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   code: string;
   title: string;
   subtitle: string;
   evidenceBadge: "C" | "M";
+  provenanceLabel?: string | undefined;
   topology: "single" | "pd";
   hardwareFamily: AscendFamily;
   decodeHardwareFamily?: AscendFamily | undefined;
@@ -715,6 +717,114 @@ vllm serve Qwen/Qwen3-30B-A3B \\
         { pageId: "pd-disaggregation", label: "P/D 分离架构与拓扑约束" },
         { pageId: "mooncake-connector", label: "MooncakeConnector 跨实例 KV 传输" },
         { pageId: "kv-cache-quantization", label: "KV Cache 量化边界（C8 / MXFP8）" },
+      ],
+    },
+  },
+  {
+    id: "a3-dual-die-static-kernel-trap",
+    order: 7,
+    code: "CASE-07",
+    title: "Atlas A3 双裸片单挂卡与 Static Kernel 依赖/静默清零连环坑",
+    subtitle: "Atlas A3 双裸片卡 × 1 (2×64G Die) · /models/Qwen3-30B-A3B-W8A8 (TP=2, EP) · 社区案例脱敏改编",
+    evidenceBadge: "C",
+    provenanceLabel: "社区案例脱敏改编",
+    topology: "single",
+    hardwareFamily: "A3",
+    cardId: "a3-die64g",
+    cardLabel: "Atlas A3 双裸片卡 × 1（2 × 64G Die）",
+    version: "v0.30.0",
+    telemetryKind: "logs",
+    telemetryTitle: "Atlas 800I A3 容器启动异常与图编译回退现场日志（社区 Issue 脱敏改编）",
+    telemetryText: [
+      "(APIServer pid=51204) INFO 10-18 15:20:03 [hardware_profile.py:194] Detected AscendDeviceType.A3 (DUAL_CHIP_CARD: card_id = npu // 2, chip_id = npu % 2)",
+      "(APIServer pid=51204) ERROR 10-18 15:20:04 [ascend_config.py:157] Traceback (most recent call last):",
+      '  File "vllm_ascend/ascend_config.py", line 167, in _apply_unsupported_hardware_downgrade_and_static_kernel_check',
+      '    assert self.enable_npugraph_ex, "Static kernel generation requires npugraph_ex to be enabled."',
+      "AssertionError: Static kernel generation requires npugraph_ex to be enabled.",
+      "# --- 运维去掉 enable_npugraph_ex=false 但保留 PIECEWISE 与单逻辑卡可见性后的二次报错 ---",
+      "(APIServer pid=51890) WARNING 10-18 15:22:11 [platform.py:1338] cudagraph_mode=PIECEWISE is incompatible with npugraph_ex; resetting enable_npugraph_ex, enable_static_kernel, and enable_super_kernel to False.",
+      "(EngineCore_DP0 pid=51944) ERROR 10-18 15:22:14 [parallel_state.py:448] RuntimeError: world_size (2) is larger than visible NPU count (1) under ASCEND_RT_VISIBLE_DEVICES=0",
+    ].join("\n"),
+    question: {
+      prompt:
+        "团队在 Atlas 800I A3 上用 1 张物理双裸片卡（2 颗 64G Die）跑 /models/Qwen3-30B-A3B-W8A8 (TP=2 + EP) 并希望真正启用 Static Kernel，为何先后遭遇 AssertionError、静态核被静默清零与可见卡数不足？",
+      options: [
+        {
+          id: "A",
+          label: "Atlas A3 不支持 npugraph_ex 与 static_kernel，只能加 --enforce-eager 关闭全部图优化",
+        },
+        {
+          id: "B",
+          label: "Atlas A3 1 张物理卡仅含 1 个逻辑 davinci 设备，TP=2 必须跨两台服务器走 RoCE 互联",
+        },
+        {
+          id: "C",
+          label:
+            "三处耦合失配：① A3 双裸片物理卡须成对暴露本机 0..15 内同卡 2 个逻辑设备（如 ASCEND_RT_VISIBLE_DEVICES=0,1）；② 之前调试误传了 enable_npugraph_ex=false 违反 static_kernel 前置依赖（v0.30.0 默认即为 True，移除 false 或设 true 即可）；③ PIECEWISE 会把 npugraph_ex/static_kernel 静默重置为 False，须切为 FULL_DECODE_ONLY（或 FULL）并控 u 在 0.85~0.90",
+        },
+        {
+          id: "D",
+          label: "只需删掉 enable_static_kernel 并保持 u=0.96 与 ASCEND_RT_VISIBLE_DEVICES=0 即可跑通 TP=2",
+        },
+      ],
+      correctOptionId: "C",
+      explanation:
+        "Atlas A3 单机 8 物理槽共暴露 0..15 计 16 个逻辑设备（DUAL_CHIP_CARD：同卡成对如 0,1）；Static Kernel 依赖 npugraph_ex（v0.30.0 默认已为 True，但不可传 false 关闭），且在 PIECEWISE 模式下会被 _setup_compile_backend 静默刷回 False，只有配齐本机同卡成对可见号、保持 npugraph_ex 开启、切换 FULL_DECODE_ONLY（或 FULL）并将 u 控在 0.85~0.90 才能真正生效。",
+    },
+    initialCommand: `export ASCEND_RT_VISIBLE_DEVICES=0
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
+    --served-model-name qwen3-30b-a3b \\
+    --tensor-parallel-size 2 \\
+    --enable-expert-parallel \\
+    --quantization ascend \\
+    --max-model-len 16384 \\
+    --gpu-memory-utilization 0.96 \\
+    --compilation-config '{"cudagraph_mode":"PIECEWISE"}' \\
+    --additional-config '{"ascend_compilation_config":{"enable_npugraph_ex":false,"enable_static_kernel":true}}'`,
+    mustKeep: {
+      targetModelPresetId: "qwen3-30b-a3b",
+      targetModelCanonical: "/models/Qwen3-30B-A3B-W8A8",
+      tpSize: 2,
+      ppSize: 1,
+      dpSize: 1,
+      requireEp: true,
+      weightPrecision: "w8a8_dynamic",
+      requireAscendQuantFlag: true,
+      minMaxModelLen: 16384,
+    },
+    missionConstraints: [
+      "保留量化权重路径 /models/Qwen3-30B-A3B-W8A8、TP=2、--enable-expert-parallel、--quantization ascend 与 --max-model-len >= 16384",
+      "在单台 Atlas 800I A3 的 0..15 逻辑设备范围内，按 card_id = npu // 2 成对导出同卡双 Die（如 ASCEND_RT_VISIBLE_DEVICES=0,1），禁止越界或跨卡异偶（如 0,2）",
+      "真正生效 Static Kernel（严禁删掉 enable_static_kernel 逃课）：保持 enable_npugraph_ex 开启（设为 true 或利用 v0.30.0 默认 True），将 cudagraph_mode 改为 FULL_DECODE_ONLY（或 FULL）以防被 PIECEWISE 静默清零，并将 --gpu-memory-utilization 降至 0.85 ~ 0.90",
+    ],
+    hints: [
+      "提示 1：单台 Atlas 800I A3 暴露逻辑号 0..15，按 npu0 // 2 == npu1 // 2 导出同卡成对设备（如 ASCEND_RT_VISIBLE_DEVICES=0,1）。",
+      '提示 2：移除 "enable_npugraph_ex":false（或改为 true，v0.30.0 下默认即为 True），并保留 "enable_static_kernel":true。',
+      '提示 3：PIECEWISE 会静默重置 npugraph_ex，请把 cudagraph_mode 改为 "FULL_DECODE_ONLY"，并将 --gpu-memory-utilization 调到 0.88。',
+    ],
+    debrief: {
+      takeaway:
+        "Atlas A3 上线双裸片 TP=2 + 静态核优化须过三道关：① 容器挂载与 ASCEND_RT_VISIBLE_DEVICES 按 npu // 2 成对绑同卡双 Die（0,1）；② 遵守 npugraph_ex -> static_kernel -> super_kernel 依赖链；③ 避开 PIECEWISE 静默清零陷阱，改走 FULL_DECODE_ONLY / FULL 并留足 1−u 图显存余量。",
+      rootCauseChain:
+        "单挂 ASCEND_RT_VISIBLE_DEVICES=0 破坏双裸片 TP=2 可见卡数与亲和拓扑 + 漏配 enable_npugraph_ex 触发 ascend_config.py 断言 + cudagraph_mode=PIECEWISE 在 platform.py _setup_compile_backend 中把 npugraph_ex/static_kernel 静默重置为 False + u=0.96 挤压整图捕获余量。",
+      sourceAnchors: [
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L166-L169`,
+          note: "AscendCompilationConfig 强校验 enable_static_kernel 前置要求 enable_npugraph_ex=True。",
+        },
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L1313-L1352`,
+          note: "_setup_compile_backend 在 NONE / PIECEWISE / FULL_AND_PIECEWISE 下静默将 npugraph_ex 与 static/super_kernel 重置为 False。",
+        },
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L187-L197`,
+          note: "Atlas A3 采用 DeviceAddressingMode.DUAL_CHIP_CARD（1 物理板卡 = 2 颗逻辑 Die，按 npu // 2 寻址）。",
+        },
+      ],
+      wikiRefs: [
+        { pageId: "npugraph-ex", label: "npugraph_ex 与 Static / Super Kernel 依赖链" },
+        { pageId: "acl-graph", label: "ACL Graph 捕获模式与静默重置边界" },
+        { pageId: "hardware-devices", label: "Atlas A3 双裸片物理卡与成对挂载规则" },
       ],
     },
   },

@@ -530,6 +530,60 @@
         "inference-performance-troubleshooting"
       ]
     },
+    {
+      "id": "err-cann-507015-stream-sync",
+      "category": "error-trace",
+      "query": "RuntimeError: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015",
+      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl", "ai-core"]
+    },
+    {
+      "id": "err-cann-507035-vector-core",
+      "category": "error-trace",
+      "query": "rtKernelLaunchWithHandleV2 failed: 507035 vector-core crash",
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core", "cann-hccl"]
+    },
+    {
+      "id": "err-aclnn-161002-chunk-gated",
+      "category": "error-trace",
+      "query": "NPU function error: call aclnnChunkGatedDeltaRule failed, error code is 161002",
+      "expectedAnyTop3": ["inference-troubleshooting", "ops-and-kernels", "cann-hccl"]
+    },
+    {
+      "id": "err-cann-smmu-retcode-0x26",
+      "category": "error-trace",
+      "query": "CheckSmmuFault:Get isSmmuFault is 1 retCode=0x26 aicore exception",
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core", "cann-hccl"]
+    },
+    {
+      "id": "col-dcp-block-table-overflow",
+      "category": "colloquial",
+      "query": "DCP块表溢出怎么解决？",
+      "expectedAnyTop3": ["context-parallel", "block-table", "ascend-flash-attention"]
+    },
+    {
+      "id": "col-310p-w8a8-dynamic-unsupported",
+      "category": "colloquial",
+      "query": "为什么 310P 不支持 W8A8_DYNAMIC 量化？",
+      "expectedAnyTop3": ["quantization", "hardware-devices", "inference-troubleshooting"]
+    },
+    {
+      "id": "col-fa3-mixed-batch-crash",
+      "category": "colloquial",
+      "query": "FA3崩溃怎么解决？",
+      "expectedAnyTop3": ["ascend-flash-attention", "inference-troubleshooting", "acl-graph"]
+    },
+    {
+      "id": "col-megamoe-vector-core",
+      "category": "colloquial",
+      "query": "为什么MegaMoe会引发vector-core异常？",
+      "expectedAnyTop3": ["moe-comm-dispatch", "ai-core", "cann-hccl"]
+    },
+    {
+      "id": "col-sleep-wakeup-moe-transpose",
+      "category": "colloquial",
+      "query": "为什么 wake_up 后维度错位？",
+      "expectedAnyTop3": ["sleep-mode", "inference-troubleshooting", "vllm-ascend-for-rl"]
+    },
 
     {
       "id": "neg-unseen-param-999",
@@ -565,6 +619,12 @@
       "id": "neg-irrelevant-recipe",
       "category": "negative",
       "query": "红烧狮子头八角桂皮炖煮火候",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-fake-cann-retcode-999999",
+      "category": "negative",
+      "query": "NonExistentAclnnHyperdriveKernel_999777",
       "expectEmpty": true
     }
   ]

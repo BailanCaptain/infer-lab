@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
+import { WARGAME_SCENARIOS } from "../../sim/wargame/scenarios";
 import type { AiCoreLabViewProps } from "../tools/AiCoreLabView";
 import type { ConfigDoctorViewProps } from "../tools/ConfigDoctorView";
 import type { DeployCalculatorViewProps } from "../tools/DeployCalculatorView";
@@ -224,7 +225,7 @@ const SCENARIO_TABS: readonly ScenarioTabMeta[] = [
     id: "wargame",
     tag: "⑤ 实战闯关演练",
     title: "生产故障通关场",
-    desc: "6 道真实生产故障演练：看日志判首错、改对启动命令并通过防逃课判卷。",
+    desc: `${WARGAME_SCENARIOS.length} 道真实生产故障演练：看日志判首错、改对启动命令并通过防逃课判卷。`,
     teaching: true,
   },
 ];
@@ -331,8 +332,8 @@ export function ToolsPage() {
           <span className="wt-workbench-eyebrow">昇腾部署与排障 · VLLM-ASCEND V0.30.0 / MAIN</span>
           <h1 className="wt-workbench-title">部署与排障工作台</h1>
           <p className="wt-workbench-desc">
-            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；后两个提供芯片算子微观沙盘与 6
-            关真实生产故障实战闯关。
+            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；后两个提供芯片算子微观沙盘与{" "}
+            {WARGAME_SCENARIOS.length} 关真实生产故障实战闯关。
           </p>
         </div>
         <Link className="wt-workbench-back" to={backTo} data-testid="tools-back-to-wiki">
@@ -521,7 +522,7 @@ export function ToolsPage() {
                 locationKey={location.key}
                 onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("wargame", params, opts)}
                 title="生产故障通关场（实战闯关演练）"
-                summary="6 道源自本仓源码 [C] 与 910B3 真机实测 [M] 的生产故障关卡：先看现场日志或 /metrics 锁定首错根因，再亲手修复启动命令并通过确定性防逃课判卷。"
+                summary={`${WARGAME_SCENARIOS.length} 道源自本仓源码 [C]、910B3 真机实测 [M] 与社区真实工单改编的生产故障关卡：先看现场日志或 /metrics 锁定首错根因，再亲手修复启动命令并通过确定性防逃课判卷。`}
               />
             </Suspense>
           </ToolTabErrorBoundary>

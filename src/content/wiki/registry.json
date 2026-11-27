@@ -11881,7 +11881,17 @@
         "exitcode -9",
         "137",
         "HCCL_E_WAIT_TIMEOUT",
-        "plog"
+        "plog",
+        "507015",
+        "507034",
+        "507035",
+        "161002",
+        "EZ1001",
+        "CheckSmmuFault",
+        "retCode=0x26",
+        "SMMU故障",
+        "libopapi.so",
+        "ZMQError"
       ],
       "chapters": [
         "19"

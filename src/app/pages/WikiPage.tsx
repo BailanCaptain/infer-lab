@@ -736,7 +736,7 @@ function Landing({
               <ArrowRight size={14} aria-hidden="true" />
             </span>
             <span className="wt-landing-tool-card-desc">
-              6 关生产故障演练（含真机实测与源码还原案例）及启动命令判卷通关
+              多关生产故障演练（含真机实测、源码还原与社区脱敏案例）及启动命令判卷通关
             </span>
           </Link>
         </div>

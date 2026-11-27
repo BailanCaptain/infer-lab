@@ -717,6 +717,54 @@ function evaluateScenarioSpecificCheck(params: {
               .join("；"),
       };
     }
+    case "a3-dual-die-static-kernel-trap": {
+      const vis = parsedP.visibleDevices;
+      const hasTwoDevices =
+        Object.hasOwn(parsedP.envVars, "ASCEND_RT_VISIBLE_DEVICES") &&
+        vis !== null &&
+        vis.length === 2 &&
+        new Set(vis).size === 2;
+      const inA3NodeRange =
+        hasTwoDevices && vis !== null && vis.every((d) => Number.isInteger(d) && d >= 0 && d < 16);
+      const sameDualDieCard =
+        inA3NodeRange && vis !== null && Math.floor(vis[0]! / 2) === Math.floor(vis[1]! / 2);
+      // In v0.30.0 (c09d3e20), AscendCompilationConfig.enable_npugraph_ex defaults to True when omitted.
+      const npugraphExOn = parsedP.couplingInput.enableNpugraphEx !== false;
+      const staticKernelOn = parsedP.couplingInput.enableStaticKernel === true;
+      const graphPreservesNpugraphEx =
+        !parsedP.enforceEager && (cgMode === "FULL_DECODE_ONLY" || cgMode === "FULL");
+      const uSafe = effectiveU >= 0.85 && effectiveU <= 0.9;
+      const ok = sameDualDieCard && npugraphExOn && staticKernelOn && graphPreservesNpugraphEx && uSafe;
+      return {
+        id: "scenario-specific-fix",
+        label:
+          "专项修复：A3 本机 0..15 同卡成对双 Die + 启用 static_kernel(保持 npugraph_ex 开启) + FULL_DECODE_ONLY/FULL + u(0.85~0.90)",
+        passed: ok,
+        detail: ok
+          ? `已绑定同卡成对双 Die (${parsedP.envVars.ASCEND_RT_VISIBLE_DEVICES})，保持 npugraph_ex 开启并生效 static_kernel，切换 cudagraph_mode=${cgMode}（u=${effectiveU.toFixed(2)}）。`
+          : [
+              !hasTwoDevices
+                ? "须通过 ASCEND_RT_VISIBLE_DEVICES 显式导出 2 个不重复逻辑设备号（如 0,1）"
+                : !inA3NodeRange
+                  ? `当前 ASCEND_RT_VISIBLE_DEVICES=${parsedP.envVars.ASCEND_RT_VISIBLE_DEVICES} 超出单台 Atlas 800I A3 的 0..15 逻辑设备范围`
+                  : !sameDualDieCard
+                    ? `当前 ASCEND_RT_VISIBLE_DEVICES=${parsedP.envVars.ASCEND_RT_VISIBLE_DEVICES} 跨了两张不同物理卡（A3 双裸片须满足 npu0 // 2 == npu1 // 2，如 0,1 或 2,3）`
+                    : "",
+              !staticKernelOn
+                ? "严禁删掉 enable_static_kernel=true 逃课（本关要求真正生效 Static Kernel）"
+                : "",
+              !npugraphExOn
+                ? "禁止将 enable_npugraph_ex 设为 false（请移除 false 以继承 v0.30.0 默认 True，或显式设为 true）"
+                : "",
+              !graphPreservesNpugraphEx
+                ? `当前 cudagraph_mode=${cgMode} 会触发 _setup_compile_backend 将 npugraph_ex 与 static_kernel 静默重置为 False（须改为 FULL_DECODE_ONLY 或 FULL）`
+                : "",
+              !uSafe ? `当前 u=${effectiveU.toFixed(2)}（须控制在 0.85 ~ 0.90 留足整图捕获余量）` : "",
+            ]
+              .filter(Boolean)
+              .join("；"),
+      };
+    }
   }
 }
 

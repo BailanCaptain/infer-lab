@@ -10,6 +10,38 @@ export type TroubleshootSeverity = "error" | "warn" | "info";
 export type TroubleshootEvidenceLevel = "C" | "S" | "I" | "D";
 export type EvidenceLineKind = "root-cause" | "cascade";
 export type FirstFaultConfidence = "high" | "medium" | "low";
+export type RankSource =
+  | "explicit-rank"
+  | "worker-ep"
+  | "worker-tp"
+  | "worker-dp-pp"
+  | "local-rank"
+  | "device-id";
+
+export type FaultTimelineEventKind =
+  | "root-cause"
+  | "confirmed-cascade"
+  | "pre-existing-timeout"
+  | "unattributed-cascade";
+
+export type CascadeCausalState =
+  | "confirmed-after"
+  | "earlier-than-primary"
+  | "unverified-order"
+  | "no-primary";
+
+export interface FaultTimelineEvent {
+  id: string;
+  lineNumber: number;
+  timestamp: string | null;
+  timestampMs: number | null;
+  rank: number | null;
+  rankSource: RankSource | null;
+  slotMappable: boolean;
+  kind: FaultTimelineEventKind;
+  signalTag: string;
+  rawLine: string;
+}
 
 export type DiagnosisCategory =
   | "memory"
@@ -34,6 +66,11 @@ export interface FirstFaultVerdict {
   rationale: string;
   primaryEvidenceLines: PrimaryEvidenceLine[];
   cascadeRanks: number[];
+  rankSource?: RankSource | null | undefined;
+  hostTag?: string | null | undefined;
+  slotMappable?: boolean | undefined;
+  cascadeCausalState?: CascadeCausalState | undefined;
+  timelineEvents?: readonly FaultTimelineEvent[] | undefined;
 }
 
 export interface ParsedMetricsSnapshot {
@@ -74,6 +111,7 @@ export interface LogAnalysisReport {
   inputKind: "empty" | "logs" | "metrics" | "mixed";
   totalLines: number;
   detectedRanks: number[];
+  visibleDevices?: readonly number[] | null | undefined;
   firstFaultVerdict: FirstFaultVerdict;
   metrics: ParsedMetricsSnapshot;
   findings: LogDiagnosisFinding[];
@@ -85,6 +123,8 @@ interface ParsedLogLine {
   rawLine: string;
   trimmed: string;
   rank: number | null;
+  rankSource: RankSource | null;
+  hostTag: string | null;
   pid: number | null;
   timestamp: string | null;
   timestampMs: number | null;
@@ -101,15 +141,21 @@ const TIME_ONLY_TS_RE = /\b(\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,6}))?\b/;
 
 export const LOG_TIMESTAMP_PATTERNS: readonly RegExp[] = [FULL_TS_RE, SHORT_DATE_TS_RE, TIME_ONLY_TS_RE];
 
-export const RANK_PATTERNS: readonly RegExp[] = [
-  /\[\s*(?:Rank|rank|RANK)\s*[:=#]?\s*(\d+)\s*\]/,
-  /\bWorker_(?:DP\d+_)?(?:PP\d+_)?(?:TP\d+_)?EP(\d+)\b/i,
-  /\b(?:Worker_TP|VllmWorker_TP|Worker_DP|Worker_PP|EngineCore_DP)\s*[_:-]?\s*(\d+)(?=_|\b)/i,
-  /\b(?:local_rank|global_rank|rank)\s*[:=]\s*(\d+)\b/i,
-  /\brank\s+(\d+)\b/i,
-  /\b(?:NPU|device)\s*[:=#]\s*(\d+)\b/i,
-  /\b(?:NPU|device)\s+(\d+)\b/i,
+const TYPED_RANK_PATTERNS: ReadonlyArray<{ re: RegExp; source: RankSource }> = [
+  { re: /\[\s*(?:Rank|rank|RANK)\s*[:=#]?\s*(\d+)\s*\]/, source: "explicit-rank" },
+  { re: /\bWorker_(?:[A-Za-z]+\d+_)*EP(\d+)\b/i, source: "worker-ep" },
+  { re: /\b(?:Worker_TP|VllmWorker_TP)\s*[_:-]?\s*(\d+)(?=_|\b)/i, source: "worker-tp" },
+  { re: /\b(?:Worker_DP|Worker_PP|EngineCore_DP)\s*[_:-]?\s*(\d+)(?=_|\b)/i, source: "worker-dp-pp" },
+  { re: /\b(?:local_rank)\s*[:=]\s*(\d+)\b/i, source: "local-rank" },
+  { re: /\b(?:global_rank|rank)\s*[:=]\s*(\d+)\b/i, source: "explicit-rank" },
+  { re: /\brank\s+(\d+)\b/i, source: "explicit-rank" },
+  { re: /\b(?:device_id|NPU|device)\s*[:=#]\s*(\d+)\b/i, source: "device-id" },
+  { re: /\b(?:NPU|device)\s+(\d+)\b/i, source: "device-id" },
 ];
+
+export const RANK_PATTERNS: readonly RegExp[] = TYPED_RANK_PATTERNS.map((p) => p.re);
+
+const HOST_TAG_RE = /\[\s*((?:host|node)\s*[A-Za-z0-9_.-]+)\s*\]|\b(node[_-]?rank\s*=\s*\d+)/i;
 
 export interface ExtractedTimestamp {
   timestamp: string | null;
@@ -120,6 +166,7 @@ export interface ExtractedTimestamp {
 
 export interface ExtractedRankMatch {
   rank: number;
+  source: RankSource;
   index: number;
   raw: string;
 }
@@ -171,12 +218,12 @@ export function extractTimestamp(line: string): ExtractedTimestamp {
 }
 
 export function extractRankMatch(line: string): ExtractedRankMatch | null {
-  for (const re of RANK_PATTERNS) {
+  for (const { re, source } of TYPED_RANK_PATTERNS) {
     const match = re.exec(line);
     if (match?.[1] !== undefined) {
       const value = Number.parseInt(match[1], 10);
       if (Number.isFinite(value) && value >= 0 && value < 4096) {
-        return { rank: value, index: match.index, raw: match[0] };
+        return { rank: value, source, index: match.index, raw: match[0] };
       }
     }
   }
@@ -187,22 +234,74 @@ export function extractRank(line: string): number | null {
   return extractRankMatch(line)?.rank ?? null;
 }
 
-const PID_RE = /\bpid=(\d+)\b/i;
+function extractHostTag(line: string): string | null {
+  const m = HOST_TAG_RE.exec(line);
+  return (m?.[1] ?? m?.[2] ?? "").trim() || null;
+}
+
+const PID_RE = /\bpid=(\d+)\b|\b(?:RUNTIME|HCCL|ASCENDCL|GE|DRV)\((\d+),/i;
 
 const OMISSION_MARKER_RE =
   /^\s*\.\.\.\s*\[日志节选：[^\]]*(?:下行起原行号\s*L(\d+)|已省略第\s*\d+\s*[–-]\s*(\d+)\s*行)[^\]]*\]\s*\.\.\.\s*$/;
 
 function extractPid(line: string): number | null {
   const m = PID_RE.exec(line);
-  if (!m?.[1]) return null;
-  const val = Number.parseInt(m[1], 10);
+  const raw = m?.[1] ?? m?.[2];
+  if (!raw) return null;
+  const val = Number.parseInt(raw, 10);
   return Number.isFinite(val) ? val : null;
+}
+
+const VISIBLE_DEVICES_LOG_RE =
+  /ASCEND_RT_VISIBLE_DEVICES['"\s:=]+([0-9]+(?:\s*,\s*[0-9]+)*)(?=$|['"\s;)\]}])/i;
+
+export function extractVisibleDevicesFromLog(input: string): number[] | null {
+  let latest: number[] | null = null;
+  for (const rl of input.split(/\r?\n/)) {
+    const m = VISIBLE_DEVICES_LOG_RE.exec(rl);
+    if (!m?.[1]) continue;
+    const nums = m[1]
+      .split(",")
+      .map((s) => Number.parseInt(s.trim(), 10))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < 4096);
+    if (nums.length > 0 && new Set(nums).size === nums.length) {
+      latest = nums;
+    }
+  }
+  return latest;
 }
 
 function parseLogLines(input: string): ParsedLogLine[] {
   const rawLines = input.split(/\r?\n/);
   const parsed: ParsedLogLine[] = [];
+  const scopedPidMap = new Map<string, { rank: number; source: RankSource } | "ambiguous">();
+  const barePidMap = new Map<number, { rank: number; source: RankSource; hostKey: string } | "ambiguous">();
+
+  for (const rl of rawLines) {
+    const pid = extractPid(rl);
+    const rm = extractRankMatch(rl);
+    if (pid === null || rm === null) continue;
+    const hostKey = (extractHostTag(rl) ?? "").toLowerCase();
+    const scopedKey = `${hostKey}#${pid}`;
+    const prevScoped = scopedPidMap.get(scopedKey);
+    if (prevScoped === undefined) {
+      scopedPidMap.set(scopedKey, { rank: rm.rank, source: rm.source });
+    } else if (prevScoped !== "ambiguous" && prevScoped.rank !== rm.rank) {
+      scopedPidMap.set(scopedKey, "ambiguous");
+    }
+
+    const prevBare = barePidMap.get(pid);
+    if (prevBare === undefined) {
+      barePidMap.set(pid, { rank: rm.rank, source: rm.source, hostKey });
+    } else if (prevBare !== "ambiguous" && (prevBare.rank !== rm.rank || prevBare.hostKey !== hostKey)) {
+      barePidMap.set(pid, "ambiguous");
+    }
+  }
+  const hasMultipleHostScopes = rawLines.some((rl) => extractHostTag(rl) !== null);
+
   let tracebackRank: number | null = null;
+  let tracebackRankSource: RankSource | null = null;
+  let tracebackHostTag: string | null = null;
   let tracebackPid: number | null = null;
   let tracebackTs: string | null = null;
   let tracebackTsMs: number | null = null;
@@ -225,6 +324,8 @@ function parseLogLines(input: string): ParsedLogLine[] {
       }
       inTraceback = false;
       tracebackRank = null;
+      tracebackRankSource = null;
+      tracebackHostTag = null;
       tracebackPid = null;
       tracebackTs = null;
       tracebackTsMs = null;
@@ -235,14 +336,35 @@ function parseLogLines(input: string): ParsedLogLine[] {
     currentLineNumber += 1;
 
     const { timestamp, timestampMs } = extractTimestamp(rawLine);
-    let rank = extractRank(rawLine);
+    const rankMatch = extractRankMatch(rawLine);
+    let rank = rankMatch?.rank ?? null;
+    let rankSource = rankMatch?.source ?? null;
+    let hostTag = extractHostTag(rawLine);
     let pid = extractPid(rawLine);
+    if (rank === null && pid !== null) {
+      const hostKey = (hostTag ?? "").toLowerCase();
+      if (hostKey.length > 0 || !hasMultipleHostScopes) {
+        const mapped = scopedPidMap.get(`${hostKey}#${pid}`);
+        if (mapped && mapped !== "ambiguous") {
+          rank = mapped.rank;
+          rankSource = mapped.source;
+        }
+      } else {
+        const bare = barePidMap.get(pid);
+        if (bare && bare !== "ambiguous" && bare.hostKey === "") {
+          rank = bare.rank;
+          rankSource = bare.source;
+        }
+      }
+    }
     let effectiveTimestamp = timestamp;
     let effectiveTimestampMs = timestampMs;
 
     if (/Traceback \(most recent call last\):/i.test(trimmed)) {
       inTraceback = true;
       tracebackRank = rank;
+      tracebackRankSource = rankSource;
+      tracebackHostTag = hostTag;
       tracebackPid = pid;
       tracebackTs = timestamp;
       tracebackTsMs = timestampMs;
@@ -250,12 +372,16 @@ function parseLogLines(input: string): ParsedLogLine[] {
       if (trimmed.length === 0) {
         inTraceback = false;
         tracebackRank = null;
+        tracebackRankSource = null;
+        tracebackHostTag = null;
         tracebackPid = null;
         tracebackTs = null;
         tracebackTsMs = null;
       } else if (rank === null && timestamp === null) {
         if (/^(?:File "|[\s]{2,}|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception):)/.test(rawLine)) {
           rank = tracebackRank;
+          rankSource = tracebackRankSource;
+          if (hostTag === null) hostTag = tracebackHostTag;
           if (pid === null) pid = tracebackPid;
           effectiveTimestamp = tracebackTs;
           effectiveTimestampMs = tracebackTsMs;
@@ -263,6 +389,8 @@ function parseLogLines(input: string): ParsedLogLine[] {
         if (/^[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception):/.test(trimmed)) {
           inTraceback = false;
           tracebackRank = null;
+          tracebackRankSource = null;
+          tracebackHostTag = null;
           tracebackPid = null;
           tracebackTs = null;
           tracebackTsMs = null;
@@ -270,6 +398,8 @@ function parseLogLines(input: string): ParsedLogLine[] {
       } else {
         inTraceback = false;
         tracebackRank = null;
+        tracebackRankSource = null;
+        tracebackHostTag = null;
         tracebackPid = null;
         tracebackTs = null;
         tracebackTsMs = null;
@@ -281,6 +411,8 @@ function parseLogLines(input: string): ParsedLogLine[] {
       rawLine,
       trimmed,
       rank,
+      rankSource,
+      hostTag,
       pid,
       timestamp: effectiveTimestamp,
       timestampMs: effectiveTimestampMs,
@@ -413,6 +545,9 @@ const CASCADE_SIGNAL_PATTERNS: ReadonlyArray<{
   { re: /\bBrokenPipeError\b|\bChildFailedError\b/i, tag: "BrokenPipe / ChildFailed" },
 ];
 
+const PLOG_HARDWARE_FAULT_RE =
+  /CheckSmmuFault:(?!.*isSmmuFault\s+is\s+0\b).*(?:isSmmuFault\s+is\s+[1-9]|failed|error|fault)|\bSMMU fault\b|MTE (?:accesses an invalid GM address|DDR address out of range)|retCode=0x0*[1-9a-f][0-9a-f]*|\baicore exception\b|AI Core kernel (?:task )?execution failed|(?:\berror code is|\bacl error|failed:)\s*(?:507015|507034|507035|161002|107030|207003)\b/i;
+
 const PRIMARY_SIGNAL_PATTERNS: ReadonlyArray<{ re: RegExp; tag: string }> = [
   { re: /NPU out of memory|ACL_ERROR_RT_MEMORY_ALLOCATION/i, tag: "NPU HBM OOM" },
   {
@@ -420,9 +555,17 @@ const PRIMARY_SIGNAL_PATTERNS: ReadonlyArray<{ re: RegExp; tag: string }> = [
     tag: "init_snapshot 显存不足",
   },
   { re: /Error in memory profiling\.\s*Initial free memory/i, tag: "memory_profiling 显存漂移" },
-  { re: /\b(?:EZ9999|EZ3002|EZ3003|EL0004|EJ0001|EH9999)\b/i, tag: "CANN 算子/运行时错误码" },
+  { re: /\b(?:EZ9999|EZ3002|EZ3003|EL0004|EJ0001|EH9999|EZ1001)\b/i, tag: "CANN 算子/运行时错误码" },
   { re: /\bACL_ERROR_[A-Z0-9_]+\b/i, tag: "ACL 运行时错误" },
-  { re: /Aicore kernel execute failed|aclnn[A-Za-z0-9_]+.*failed/i, tag: "AI Core / aclnn 算子失败" },
+  {
+    re: PLOG_HARDWARE_FAULT_RE,
+    tag: "CANN plog / AI Core 硬件异常",
+  },
+  {
+    re: /not in libopapi\.so|libopapi\.so\s*not found|Aicore kernel execute failed|\bAclNN_Parameter_Error\b|aclnn[A-Za-z0-9_]+.*failed/i,
+    tag: "AI Core / aclnn 算子失败",
+  },
+  { re: /\bZMQError\s*:\s*Address already in use/i, tag: "ZMQ 端口占用冲突" },
   { re: /Check ascend device type failed|\bSOC_VERSION\b.*mismatch/i, tag: "SoC/Wheel 型号不匹配" },
   { re: /AscendFAImpl does not support ACL graph capture/i, tag: "FA3 + FULL_DECODE_ONLY 图捕获冲突" },
   { re: GQA_STATIC_C8_KV_RE, tag: "GQA + C8 缺少校准权重" },
@@ -483,7 +626,95 @@ function toPrimaryEvidence(sig: ClassifiedSignal): PrimaryEvidenceLine {
   };
 }
 
-function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFaultVerdict {
+function isSlotMappableSignal(sig: Pick<ParsedLogLine, "rank" | "rankSource">, anyHostTag: boolean): boolean {
+  if (sig.rank === null || anyHostTag) return false;
+  return (
+    sig.rankSource === "explicit-rank" ||
+    sig.rankSource === "worker-tp" ||
+    sig.rankSource === "worker-ep" ||
+    sig.rankSource === "local-rank"
+  );
+}
+
+function classifyCascadeAgainstWinner(
+  winner: ClassifiedSignal | null,
+  cascade: ClassifiedSignal,
+): "confirmed-after" | "earlier-than-primary" | "unverified-order" | "no-primary" {
+  if (!winner || winner.rank === null) return "no-primary";
+  if (cascade.rank === winner.rank) return "unverified-order";
+  if (winner.timestampMs !== null && cascade.timestampMs !== null) {
+    return cascade.timestampMs < winner.timestampMs ? "earlier-than-primary" : "confirmed-after";
+  }
+  return "unverified-order";
+}
+
+function buildFaultTimelineEvents(
+  signals: readonly ClassifiedSignal[],
+  winner: ClassifiedSignal | null,
+  anyHostTag: boolean,
+): FaultTimelineEvent[] {
+  const sorted = [...signals].sort(compareSignalsChronologically);
+  const compressed: FaultTimelineEvent[] = [];
+  const seenRankRole = new Set<string>();
+  let winnerEvent: FaultTimelineEvent | null = null;
+
+  for (const sig of sorted) {
+    let kind: FaultTimelineEventKind;
+    if (sig.kind === "root-cause") {
+      kind = "root-cause";
+    } else {
+      const rel = classifyCascadeAgainstWinner(winner, sig);
+      kind =
+        rel === "confirmed-after"
+          ? "confirmed-cascade"
+          : rel === "earlier-than-primary"
+            ? "pre-existing-timeout"
+            : "unattributed-cascade";
+    }
+
+    const evt: FaultTimelineEvent = {
+      id: `evt-L${sig.lineNumber}-R${sig.rank ?? "na"}`,
+      lineNumber: sig.lineNumber,
+      timestamp: sig.timestamp,
+      timestampMs: sig.timestampMs,
+      rank: sig.rank,
+      rankSource: sig.rankSource,
+      slotMappable: isSlotMappableSignal(sig, anyHostTag),
+      kind,
+      signalTag: sig.signalTag,
+      rawLine: sig.rawLine.trim(),
+    };
+
+    const isWinnerLine = Boolean(winner && sig.lineNumber === winner.lineNumber && sig.kind === "root-cause");
+    if (isWinnerLine) {
+      winnerEvent = evt;
+    }
+
+    // Compress repeated lines per (rank, kind) BEFORE applying the 16-event cap so early timeout spam never evicts a later root-cause
+    const roleKey = `${sig.rankSource === "worker-dp-pp" ? `coord-${sig.lineNumber}` : (sig.rank ?? `line-${sig.lineNumber}`)}:${kind}`;
+    if (seenRankRole.has(roleKey) && !isWinnerLine) continue;
+    seenRankRole.add(roleKey);
+    compressed.push(evt);
+  }
+
+  if (compressed.length <= 16) return compressed;
+  const sliced = compressed.slice(0, 16);
+  if (winnerEvent && !sliced.some((e) => e.lineNumber === winnerEvent!.lineNumber)) {
+    sliced[sliced.length - 1] = winnerEvent;
+    sliced.sort((a, b) => {
+      if (a.timestampMs !== null && b.timestampMs !== null && a.timestampMs !== b.timestampMs) {
+        return a.timestampMs - b.timestampMs;
+      }
+      return a.lineNumber - b.lineNumber;
+    });
+  }
+  return sliced;
+}
+
+function computeFirstFaultVerdict(
+  signals: readonly ClassifiedSignal[],
+  anyHostTag = false,
+): FirstFaultVerdict {
   const primaries = signals.filter((s) => s.kind === "root-cause").sort(compareSignalsChronologically);
   const cascades = signals.filter((s) => s.kind === "cascade").sort(compareSignalsChronologically);
 
@@ -494,6 +725,11 @@ function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFa
       rationale: "当前输入未命中显式异常错误行（可能为纯 /metrics 快照或正常启动日志）。",
       primaryEvidenceLines: [],
       cascadeRanks: [],
+      rankSource: null,
+      hostTag: null,
+      slotMappable: false,
+      cascadeCausalState: "no-primary",
+      timelineEvents: [],
     };
   }
 
@@ -506,38 +742,77 @@ function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFa
       rankedPrimaries.filter((s) => s.rank !== winnerRank).map((s) => s.rank!),
     );
     const cascadeRankSet = new Set<number>();
+    const unverifiedCascadeRankSet = new Set<number>();
+    let hasEarlierCascade = false;
+    let hasUnverifiedCascade = false;
     for (const c of cascades) {
       if (c.rank !== null && c.rank !== winnerRank) {
-        cascadeRankSet.add(c.rank);
+        const rel = classifyCascadeAgainstWinner(earliest, c);
+        if (rel === "earlier-than-primary") {
+          hasEarlierCascade = true;
+        } else if (rel === "confirmed-after") {
+          cascadeRankSet.add(c.rank);
+        } else {
+          hasUnverifiedCascade = true;
+          unverifiedCascadeRankSet.add(c.rank);
+        }
       }
     }
     const cascadeRanks = [...cascadeRankSet].sort((a, b) => a - b);
+    const unverifiedRanks = [...unverifiedCascadeRankSet].sort((a, b) => a - b);
 
-    const earliestCascade = cascades[0];
-    const hasOrderedTimestamp =
-      earliest.timestampMs !== null &&
-      (earliestCascade === undefined ||
-        earliestCascade.timestampMs === null ||
-        earliest.timestampMs <= earliestCascade.timestampMs);
+    const cascadeCausalState: CascadeCausalState = hasEarlierCascade
+      ? "earlier-than-primary"
+      : cascadeRanks.length > 0
+        ? "confirmed-after"
+        : hasUnverifiedCascade
+          ? "unverified-order"
+          : "confirmed-after";
 
+    const slotMappable = isSlotMappableSignal(earliest, anyHostTag);
     const confidence: FirstFaultConfidence =
-      otherPrimaryRanks.size === 0 || hasOrderedTimestamp ? "high" : "medium";
+      !hasEarlierCascade &&
+      !hasUnverifiedCascade &&
+      slotMappable &&
+      (otherPrimaryRanks.size === 0 || earliest.timestampMs !== null)
+        ? "high"
+        : "medium";
 
     const tsNote = earliest.timestamp ? `于 ${earliest.timestamp}` : "最早";
-    const cascadeNote =
-      cascadeRanks.length > 0
-        ? `；Rank ${cascadeRanks.join(" / ")} 的集合通信超时或连带退出属于等待首错卡同步的次生症状，不是根因。`
-        : "；其余卡未见更早的主错误。";
+    const cascadeNote = hasEarlierCascade
+      ? "；注意日志中存在时间更早的其他卡超时记录，不能将早发生的超时反推为本次晚发错误的结果，请核对完整时间线。"
+      : cascadeRanks.length > 0
+        ? `；Rank ${cascadeRanks.join(" / ")} 的集合通信超时或连带退出在时间上晚于首错卡，属于等待同步的次生症状。`
+        : unverifiedRanks.length > 0
+          ? `；另见 Rank ${unverifiedRanks.join(" / ")} 报等待超时，但缺少双端时间戳，先后因果待完整时间线确认。`
+          : "；其余卡未见更早的主错误。";
+    const scopeNote = !slotMappable
+      ? "（标识来自设备号或多节点前缀，仅作逻辑卡参考，不直接等同单机物理槽位）"
+      : "";
 
-    const rationale = `锁定首错 Rank 为 Rank ${winnerRank}（第 ${earliest.lineNumber} 行，${tsNote} 触发「${earliest.signalTag}」）${cascadeNote}`;
+    const rationale = `锁定首错 Rank 为 Rank ${winnerRank}${scopeNote}（第 ${earliest.lineNumber} 行，${tsNote} 触发「${earliest.signalTag}」）${cascadeNote}`;
+
+    const timelineEvents = buildFaultTimelineEvents(signals, earliest, anyHostTag);
+    const sigByLine = new Map<number, ClassifiedSignal>();
+    for (const s of signals) {
+      if (!sigByLine.has(s.lineNumber)) sigByLine.set(s.lineNumber, s);
+    }
 
     const seenEvidenceLines = new Set<number>();
     const evidencePool: ClassifiedSignal[] = [];
-    for (const sig of [...rankedPrimaries.slice(0, 4), ...primaries.slice(0, 4), ...cascades.slice(0, 3)]) {
+    const candidateSigs = [
+      ...rankedPrimaries.slice(0, 4),
+      ...primaries.slice(0, 4),
+      ...timelineEvents
+        .map((e) => sigByLine.get(e.lineNumber))
+        .filter((x): x is ClassifiedSignal => Boolean(x)),
+      ...cascades.slice(0, 4),
+    ];
+    for (const sig of candidateSigs) {
       if (seenEvidenceLines.has(sig.lineNumber)) continue;
       seenEvidenceLines.add(sig.lineNumber);
       evidencePool.push(sig);
-      if (evidencePool.length >= 7) break;
+      if (evidencePool.length >= 20) break;
     }
 
     return {
@@ -546,6 +821,11 @@ function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFa
       rationale,
       primaryEvidenceLines: evidencePool.map(toPrimaryEvidence),
       cascadeRanks,
+      rankSource: earliest.rankSource,
+      hostTag: earliest.hostTag,
+      slotMappable,
+      cascadeCausalState,
+      timelineEvents,
     };
   }
 
@@ -554,25 +834,72 @@ function computeFirstFaultVerdict(signals: readonly ClassifiedSignal[]): FirstFa
     const cascadeRanks = [
       ...new Set(cascades.map((c) => c.rank).filter((r): r is number => r !== null)),
     ].sort((a, b) => a - b);
+    const timelineEvents = buildFaultTimelineEvents(signals, null, anyHostTag);
+    const sigByLine = new Map<number, ClassifiedSignal>();
+    for (const s of signals) {
+      if (!sigByLine.has(s.lineNumber)) sigByLine.set(s.lineNumber, s);
+    }
+    const seenLines = new Set<number>();
+    const pool: ClassifiedSignal[] = [];
+    for (const s of [
+      ...primaries.slice(0, 4),
+      ...timelineEvents
+        .map((e) => sigByLine.get(e.lineNumber))
+        .filter((x): x is ClassifiedSignal => Boolean(x)),
+      ...cascades.slice(0, 4),
+    ]) {
+      if (seenLines.has(s.lineNumber)) continue;
+      seenLines.add(s.lineNumber);
+      pool.push(s);
+      if (pool.length >= 20) break;
+    }
     return {
       rank: null,
       confidence: "medium",
       rationale: `已检出主故障信号「${earliest.signalTag}」（第 ${earliest.lineNumber} 行），但该行缺少 Rank / Device 编号前缀；若为多卡部署，请补采带 Rank 标识的 worker 日志与 CANN plog 以确认首错卡。`,
-      primaryEvidenceLines: [...primaries.slice(0, 4), ...cascades.slice(0, 2)].map(toPrimaryEvidence),
+      primaryEvidenceLines: pool.map(toPrimaryEvidence),
       cascadeRanks,
+      rankSource: null,
+      hostTag: earliest.hostTag,
+      slotMappable: false,
+      cascadeCausalState: "no-primary",
+      timelineEvents,
     };
   }
 
   const cascadeRanks = [...new Set(cascades.map((c) => c.rank).filter((r): r is number => r !== null))].sort(
     (a, b) => a - b,
   );
+  const timelineEvents = buildFaultTimelineEvents(signals, null, anyHostTag);
+  const sigByLine = new Map<number, ClassifiedSignal>();
+  for (const s of signals) {
+    if (!sigByLine.has(s.lineNumber)) sigByLine.set(s.lineNumber, s);
+  }
+  const seenPure = new Set<number>();
+  const purePool: ClassifiedSignal[] = [];
+  for (const s of [
+    ...timelineEvents
+      .map((e) => sigByLine.get(e.lineNumber))
+      .filter((x): x is ClassifiedSignal => Boolean(x)),
+    ...cascades.slice(0, 6),
+  ]) {
+    if (seenPure.has(s.lineNumber)) continue;
+    seenPure.add(s.lineNumber);
+    purePool.push(s);
+    if (purePool.length >= 20) break;
+  }
 
   return {
     rank: null,
     confidence: "low",
     rationale: `仅观测到次生超时/连带退出信号（${cascades[0]!.signalTag}${cascadeRanks.length > 0 ? `，涉及 Rank ${cascadeRanks.join(" / ")}` : ""}），日志片段中缺少主故障卡的前序报错。切勿将 Rank 0 或最后一条 EI0006 当作根因，请补采全部参与 Rank 的同期前序日志与 CANN plog。`,
-    primaryEvidenceLines: cascades.slice(0, 5).map(toPrimaryEvidence),
+    primaryEvidenceLines: purePool.map(toPrimaryEvidence),
     cascadeRanks,
+    rankSource: null,
+    hostTag: null,
+    slotMappable: false,
+    cascadeCausalState: "no-primary",
+    timelineEvents,
   };
 }
 
@@ -787,18 +1114,33 @@ function evaluateRules(
   // Rule 3: Multi-rank EI0006 / HCCL_E_WAIT_TIMEOUT with root-cause Rank vs pure network/HCCS timeout
   const r3Matches = collectMatchesByPredicate(lines, isHcclTimeoutFaultLine, 4);
   if (r3Matches.length > 0) {
-    const hasRootRank = verdict.rank !== null;
+    const causalState: CascadeCausalState =
+      verdict.cascadeCausalState ?? (verdict.rank !== null ? "unverified-order" : "no-primary");
+    const hasConfirmedAfter = verdict.rank !== null && causalState === "confirmed-after";
+    const isEarlierTimeout = verdict.rank !== null && causalState === "earlier-than-primary";
+    const isUnverifiedWithPrimary = verdict.rank !== null && causalState === "unverified-order";
+    const cascadeLabel =
+      verdict.cascadeRanks.length > 0 ? `Rank ${verdict.cascadeRanks.join("/")}` : "其余卡";
+
     findings.push({
       ruleId: "hccl-timeout-cascade",
-      title: hasRootRank
+      title: hasConfirmedAfter
         ? `集合通信连锁超时（EI0006）：Rank ${verdict.rank} 先出错，其余卡卡在 AllReduce 等待`
-        : "HCCL 集合通信超时（EI0006 / WAIT_TIMEOUT）：尚未见单卡主报错，需区分慢卡与链路故障",
+        : isEarlierTimeout
+          ? `HCCL 集合通信超时早于 Rank ${verdict.rank} 报错：超时在前，需排查更早慢卡或链路`
+          : isUnverifiedWithPrimary
+            ? `集合通信超时伴随 Rank ${verdict.rank} 主报错（缺少完整时间戳，先后顺序待核实）`
+            : "HCCL 集合通信超时（EI0006 / WAIT_TIMEOUT）：尚未见单卡主报错，需区分慢卡与链路故障",
       severity: "error",
       category: "distributed",
-      evidenceLevel: hasRootRank ? "C" : "I",
-      summary: hasRootRank
-        ? `日志中 Rank ${verdict.cascadeRanks.length > 0 ? verdict.cascadeRanks.join("/") : "其余"} 报出 EI0006 / Notify wait execute timeout，但时间线上 Rank ${verdict.rank} 更早触发主故障；集合通信超时属于连带症状，修复目标在 Rank ${verdict.rank} 而非调大 HCCL 超时。`
-        : "当前日志仅见 HCCL 集合通信等待超时，缺少任一 Rank 的前序算子/OOM 报错；此时不能假定 Rank 0 是根因，也可能是未贴入的某张卡先卡死，或 HCCS/RoCE 链路不通。",
+      evidenceLevel: hasConfirmedAfter ? "C" : "I",
+      summary: hasConfirmedAfter
+        ? `日志中 ${cascadeLabel} 报出 EI0006 / Notify wait execute timeout，且时间线上 Rank ${verdict.rank} 更早触发主故障；集合通信超时属于连带症状，修复目标在 Rank ${verdict.rank} 而非调大 HCCL 超时。`
+        : isEarlierTimeout
+          ? `当前日志虽包含 Rank ${verdict.rank} 的报错信号，但时间戳显示 EI0006 / 集合通信等待超时发生得更早；不能倒果为因把前序超时归咎于后续报错，需补齐超时时刻前的全卡日志或排查链路。`
+          : isUnverifiedWithPrimary
+            ? `日志同时包含 EI0006 集合通信超时与 Rank ${verdict.rank} 的单卡主报错，但关键行缺少可比对时间戳，尚不能单凭当前片段断言因果先后；建议优先修复 Rank ${verdict.rank} 的单卡报错并核对原日志时间轴。`
+            : "当前日志仅见 HCCL 集合通信等待超时，缺少任一 Rank 的前序算子/OOM 报错；此时不能假定 Rank 0 是根因，也可能是未贴入的某张卡先卡死，或 HCCS/RoCE 链路不通。",
       mechanism:
         "集合通信（AllReduce / AllGather / AllToAll）要求通信组内全部 Rank 按相同顺序进入同步点；只要任意一张卡在算子执行、图捕获或显存分配时异常退出/停滞，其余正常卡就会一直等在 Notify wait 直至触发 EI0006（默认算子超时 1836s，platform.py 也会把 RPC 超时抬高至 3000s 避免误杀）。",
       matchedLines: r3Matches,
@@ -808,9 +1150,13 @@ function evaluateRules(
       ],
       nextEvidenceCmd:
         "grep -rnE 'ERROR|EZ9999|EI0006|out of memory' ~/ascend/log/debug/plog/ | sort -k2 | head -n 40 && hccn_tool -i 0 -link -g",
-      experimentStep: hasRootRank
+      experimentStep: hasConfirmedAfter
         ? `先按 Rank ${verdict.rank} 的主报错卡片执行修复并复测；不要通过调大 HCCL_EXEC_TIMEOUT 掩盖首错卡故障。`
-        : "1) 补齐所有参与 Rank 的同期前序日志与 CANN plog 寻找最早 ERROR；2) 若所有 Rank 均无前序算子报错，用 hccn_tool / hccl_test 验证跨卡链路与网卡配置。",
+        : isEarlierTimeout
+          ? "1) 补齐超时时刻之前的全部参与 Rank 日志与 CANN plog 寻找真正最早停滞的进程；2) 用 hccn_tool / hccl_test 验证跨卡链路与网卡状态。"
+          : isUnverifiedWithPrimary
+            ? `1) 优先处理 Rank ${verdict.rank} 的主报错卡片并复测；2) 若复现仍超时，带完整时间戳导出全卡日志与 plog 核实先后顺序。`
+            : "1) 补齐所有参与 Rank 的同期前序日志与 CANN plog 寻找最早 ERROR；2) 若所有 Rank 均无前序算子报错，用 hccn_tool / hccl_test 验证跨卡链路与网卡配置。",
       wikiPageIds: ["cann-hccl", "hccl-buffer", "collective-communication"],
     });
   }
@@ -1157,6 +1503,140 @@ function evaluateRules(
     });
   }
 
+  // Rule 13: CANN C++ plog / AI Core & AIV runtime fault codes (507015 / 507034 / 507035 / 107030 / 207003 / non-zero retCode / CheckSmmuFault)
+  const r13Matches = collectMatches(
+    lines,
+    /CheckSmmuFault:(?!.*isSmmuFault\s+is\s+0\b).*(?:isSmmuFault\s+is\s+[1-9]|failed|error|fault)|\bSMMU fault\b|MTE (?:accesses an invalid GM address|DDR address out of range)|retCode=0x0*[1-9a-f][0-9a-f]*|\baicore exception\b|AI Core kernel (?:task )?execution failed|(?:\berror code is|\bacl error|failed:)\s*(?:507015|507034|507035|107030|207003)\b|\b(?:ACL_ERROR_RT_AICORE_EXCEPTION|ACL_ERROR_RT_AICORE_OVER_FLOW|ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT)\b/i,
+  );
+  if (r13Matches.length > 0) {
+    const joined = r13Matches.map((m) => m.rawLine).join(" ");
+    const isVecTimeout = /\b507034\b|vector\s+core\s+timeout/i.test(joined);
+    const isOverflow = /\b207003\b|ACL_ERROR_RT_AICORE_OVER_FLOW/i.test(joined);
+    const isVecOrLaunchFault =
+      /\b507035\b/i.test(joined) && !/\b507015\b|CheckSmmuFault|\bSMMU fault\b/i.test(joined);
+    const isCaptureUnsupported = /\b107030\b|CAPTURE_MODE_NOT_SUPPORT/i.test(joined);
+    const kernelMatch = /fault\s+kernel_name\s*=\s*([A-Za-z0-9_]+)/i.exec(joined);
+    const kernelLabel = kernelMatch?.[1] ? `（故障核函数 ${kernelMatch[1]}）` : "";
+    const retCodeMatch = /retCode=(0x0*[1-9a-f][0-9a-f]*)/i.exec(joined);
+    const retCodeBadge = retCodeMatch?.[1] ? ` / retCode=${retCodeMatch[1]}` : "";
+    findings.push({
+      ruleId: "cann-plog-aicore-fault",
+      title: isVecTimeout
+        ? "CANN 运行时 Vector Core 执行超时（error code 507034）"
+        : isOverflow
+          ? "CANN AI Core 算术溢出（207003 ACL_ERROR_RT_AICORE_OVER_FLOW）"
+          : isVecOrLaunchFault
+            ? `CANN Vector Core / 算子核函数执行异常（error code 507035）${kernelLabel}`
+            : isCaptureUnsupported
+              ? "CANN 图捕获流内混入不受支持操作（error code 107030）"
+              : `CANN AI Core 硬件执行异常 / SMMU 访存越界（507015${retCodeBadge}）${kernelLabel}`,
+      severity: "error",
+      category: "graph",
+      evidenceLevel: "C",
+      summary: isVecTimeout
+        ? "外层流同步报 507034（Vector Core AIV 超时），常见于超长序列单步计算超阈值，或开启 SP（FlashComm1）与共享专家多流重叠等特性时触发核间同步挂死。"
+        : isOverflow
+          ? "207003（ACL_ERROR_RT_AICORE_OVER_FLOW）属于 AI Core 浮点/量化算术溢出，常见于 FP16 权重/激活幅值越界或量化 Scale 校准异常，不等同于 507015 访存越界。"
+          : isVecOrLaunchFault
+            ? `外层报 507035（Vector Core 异常或算子核函数下发/执行异常）${kernelLabel}，常见于自定义/融合算子 Tiling 边界不满足、Workspace 失配或图捕获重放地址异常，需结合 plog 首错核函数定位。`
+            : isCaptureUnsupported
+              ? "107030（ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT）表明 ACLGraph 录图期间触发了主机侧同步或受限内存拷贝。"
+              : `外层 AclrtSynchronizeStreamWithTimeout (507015 = ACL_ERROR_RT_AICORE_EXCEPTION)${retCodeBadge ? ` 或 plog ${retCodeBadge.slice(3)}` : ""} / CheckSmmuFault 表明设备侧核函数${kernelLabel}发生 GM/UB 地址越界或指令违例（如 W8A8 大模型图捕获越界、MLA/稀疏算子异常），需按 plog 首错核函数与图模式隔离。`,
+      mechanism:
+        "507015 只是主机侧同步设备流时收到的通用 AI Core 异步异常通知，真正故障现场记录在同一进程 PID 的 CANN plog（[DFX_INFO] fault kernel_name=... / CheckSmmuFault）中；排障时必须区分 507015（AI Core 异常/越界）、507034（AIV 超时）、507035（Vector/核函数异常）与 207003（算术溢出）。",
+      matchedLines: r13Matches,
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/compilation/acl_graph.py#L181-L220`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/worker/worker.py#L762-L778`,
+      ],
+      nextEvidenceCmd:
+        "grep -rnE 'CheckSmmuFault|aicore exception|fault kernel_name|507015|507034|507035|207003|107030' ~/ascend/log/debug/plog/ | head -n 30",
+      experimentStep: isVecTimeout
+        ? "1) 先单变量关闭多流重叠或序列并行开关（如 multistream_overlap_shared_expert / enable_sp）复测是否解除挂死；2) 若为超长上下文，收敛单步 max_num_batched_tokens。"
+        : isOverflow
+          ? "优先改用 --dtype bfloat16（910B/A3 原生支持 BF16 动态范围）或核查量化权重 Scale 是否含 NaN/Inf。"
+          : "1) 加 --enforce-eager 对照复现：若 eager 正常仅图模式崩，聚焦 ACLGraph 捕获档位与 W8A8 工作区越界；2) 若 eager 同样崩，按 plog 中的 fault kernel_name 核对 CANN 版本与模型输入边界。",
+      wikiPageIds: ["inference-troubleshooting", "ai-core", "acl-graph"],
+    });
+  }
+
+  // Rule 14: CANN libopapi.so missing symbol or aclnn 161002 / EZ1001 parameter error
+  const r14ParamOrSymbolRe =
+    /not in libopapi\.so|libopapi\.so\s*not found|\berror code is 161002\b|\bACLNN_ERR_PARAM_INVALID\b|\bAclNN_Parameter_Error\b|\bEZ1001\b/i;
+  const r14RuntimeCodeRe =
+    /\b(?:507015|507034|507035|107030|207003|ACL_ERROR_RT_AICORE_EXCEPTION|ACL_ERROR_RT_AICORE_OVER_FLOW|ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT)\b/i;
+  const r14Matches = collectMatchesByPredicate(
+    lines,
+    (rawLine) => {
+      if (r14ParamOrSymbolRe.test(rawLine)) return true;
+      if (/aclnn[A-Za-z0-9_]+.*failed/i.test(rawLine) && !r14RuntimeCodeRe.test(rawLine)) {
+        return true;
+      }
+      return false;
+    },
+    4,
+  );
+  if (r14Matches.length > 0) {
+    const joined = r14Matches.map((m) => m.rawLine).join(" ");
+    const isSymbolMissing = /libopapi\.so/i.test(joined);
+    const isParamInvalid =
+      /\b161002\b|\bACLNN_ERR_PARAM_INVALID\b|\bAclNN_Parameter_Error\b|\bEZ1001\b/i.test(joined);
+    findings.push({
+      ruleId: "cann-opapi-or-aclnn-fault",
+      title: isSymbolMissing
+        ? "CANN 算子库符号缺失（not in libopapi.so）：CANN 版本滞后或芯片族不支持该算子"
+        : isParamInvalid
+          ? "CANN aclnn 算子入参校验不合法（161002 ACLNN_ERR_PARAM_INVALID / EZ1001）"
+          : "CANN aclnn 算子调用失败（需结合 aclGetRecentErrMsg 区分入参越界与核函数异常）",
+      severity: "error",
+      category: "compatibility",
+      evidenceLevel: isSymbolMissing || isParamInvalid ? "C" : "I",
+      summary: isSymbolMissing
+        ? "运行时在 libopapi.so 中找不到目标 aclnn 算子入口（例如在 A3 上误调仅 A2 支持的算子，或容器内 CANN Toolkit 版本低于 vllm-ascend 编译基线）。"
+        : isParamInvalid
+          ? "aclnn 算子明确返回 161002（ACLNN_ERR_PARAM_INVALID）或 EZ1001 参数错误，表明传入张量的 dtype、维度对齐、步长或量化 Scale 格式违反该算子约束。"
+          : "日志仅见 aclnn 算子调用报错但未贴出具体返回码；可能是 161002 入参规格越界，也可能是底层流执行异常，需结合紧邻错误码或 plog 进一步确认。",
+      mechanism:
+        "vllm-ascend 通过 torch_npu 与 op-plugin 动态解析 CANN libopapi.so 中的 aclnn 符号并在设备流下发；符号缺失属于环境/芯片能力门控失配，161002 / EZ1001 属于张量规格或量化配置越界。",
+      matchedLines: r14Matches,
+      sources: [
+        `${VLLM_ASCEND_V030}:vllm_ascend/ops/register_custom_ops.py#L1-L20`,
+        `${VLLM_ASCEND_V030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
+      ],
+      nextEvidenceCmd:
+        "cat /usr/local/Ascend/ascend-toolkit/latest/version.cfg && nm -D /usr/local/Ascend/ascend-toolkit/latest/lib64/libopapi.so 2>/dev/null | grep -i aclnn | head -n 20",
+      experimentStep: isSymbolMissing
+        ? "核对容器内 CANN 版本是否匹配 vllm-ascend 发布基线（如 v0.30.0 对应 CANN 9.1.0），并检查当前芯片（A2 vs A3 vs 310P）是否支持所启用的融合/投机特性。"
+        : "抓取紧邻报错的 aclGetRecentErrMsg 明细与返回码，核对模型 head_dim、TP 整除关系与量化权重配置是否满足该 aclnn 算子要求。",
+      wikiPageIds: ["inference-troubleshooting", "ascend-env-and-serve", "hardware-devices"],
+    });
+  }
+
+  // Rule 15: ZMQError Address already in use (residual worker or multi-instance port collision)
+  const r15Matches = collectMatches(
+    lines,
+    /\bZMQError\s*:\s*Address already in use|Address already in use[^\r\n]*tcp:\/\//i,
+  );
+  if (r15Matches.length > 0) {
+    findings.push({
+      ruleId: "zmq-port-conflict",
+      title: "ZMQ 通信端口冲突（Address already in use）：残留进程占口或多实例端口撞车",
+      severity: "error",
+      category: "distributed",
+      evidenceLevel: "C",
+      summary:
+        "Worker 或 EngineCore 绑定 ZMQ TCP 套接字时抛出 Address already in use（并常连带引发对端节点报 Gloo Connection closed by peer），主因是上次退出的残留进程未释放端口或同机多实例共用了默认端口。",
+      mechanism:
+        "vLLM 通过 make_zmq_socket() 在主机侧建立前端、EngineCore 与跨节点 DP/握手控制通道；任一节点 bind 失败退出后，对端 Gloo/HCCL 握手随即因连接断开连锁报错。",
+      matchedLines: r15Matches,
+      sources: [`${VLLM_V030}:vllm/utils/network_utils.py#L310-L368`],
+      nextEvidenceCmd: "ss -ltnp | grep -E 'vllm|python|6000' || lsof -iTCP -sTCP:LISTEN -P -n | grep python",
+      experimentStep:
+        "先清理同机残留的 vllm / EngineCore / Worker 进程确认端口释放；若是同机拉起多实例或 P/D 双实例，显式错开 --port、--data-parallel-rpc-port 与 kv_transfer_config 通信端口。",
+      wikiPageIds: ["inference-troubleshooting", "ascend-env-and-serve"],
+    });
+  }
+
   return findings;
 }
 
@@ -1167,6 +1647,7 @@ export function analyzeTroubleshootInput(rawInput: string): LogAnalysisReport {
       inputKind: "empty",
       totalLines: 0,
       detectedRanks: [],
+      visibleDevices: null,
       firstFaultVerdict: {
         rank: null,
         confidence: "low",
@@ -1182,6 +1663,7 @@ export function analyzeTroubleshootInput(rawInput: string): LogAnalysisReport {
   }
 
   const lines = parseLogLines(rawInput);
+  const visibleDevices = extractVisibleDevicesFromLog(rawInput);
   const metrics = parsePrometheusMetrics(rawInput);
   const nonEmptyLines = lines.filter((l) => l.trimmed.length > 0);
   const nonMetricLines = nonEmptyLines.filter(
@@ -1200,7 +1682,8 @@ export function analyzeTroubleshootInput(rawInput: string): LogAnalysisReport {
     if (sig) signals.push(sig);
   }
 
-  const firstFaultVerdict = computeFirstFaultVerdict(signals);
+  const anyHostTag = lines.some((l) => l.hostTag !== null);
+  const firstFaultVerdict = computeFirstFaultVerdict(signals, anyHostTag);
   const findings = evaluateRules(lines, metrics, firstFaultVerdict);
 
   const matchedLineNumbers = new Set<number>();
@@ -1219,6 +1702,7 @@ export function analyzeTroubleshootInput(rawInput: string): LogAnalysisReport {
     inputKind,
     totalLines: nonEmptyLines.length,
     detectedRanks: [...detectedRankSet].sort((a, b) => a - b),
+    visibleDevices,
     firstFaultVerdict,
     metrics,
     findings,

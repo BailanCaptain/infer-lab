@@ -319,7 +319,9 @@ export function IncidentWarGameView({
         <div className="wt-header-main">
           <div className="wt-title-row">
             <h2 className="wt-title">{title ?? "生产故障实战通关场"}</h2>
-            <span className="wt-baseline-pill">6 关真凭实据演练 · [C] 源码 / [M] 实测</span>
+            <span className="wt-baseline-pill">
+              {WARGAME_SCENARIOS.length} 关真凭实据演练 · [C] 源码 / [M] 实测
+            </span>
             <span
               className={`wt-stat-pill ${passedIds.size === WARGAME_SCENARIOS.length ? "is-known" : ""}`}
               data-testid="wargame-progress-badge"
@@ -438,6 +440,11 @@ export function IncidentWarGameView({
             <span className="wt-baseline-pill">{scenario.code}</span>
             <h3 className="wt-section-title">{scenario.title}</h3>
             <span className="wt-baseline-pill">[{scenario.evidenceBadge}] 证据链</span>
+            {scenario.provenanceLabel && (
+              <span className="wt-baseline-pill" data-testid="wargame-provenance-pill">
+                {scenario.provenanceLabel}
+              </span>
+            )}
             <span className="wt-baseline-pill">{scenario.cardLabel}</span>
           </div>
           <span className="wt-section-meta">{scenario.subtitle}</span>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: hardware-plate-slot-die-cutaway
+caption: >-
+  三类昇腾推理服务器整机拆解与逻辑设备映射（Blender Cycles GPU 光追底图）：左侧 Atlas 800T A2（4U）搭载 8 块单芯 OAM 模组（前排掀开散热器露出单颗 910B 计算 Die 与 4 栈 HBM，后排保留风冷鳍片），走 DIRECT 直通寻址（8 物理槽 = 8 逻辑 davinci）；中央 Atlas 800I A3（10U 超节点机型）下仓搭载 8 块 LAAC 液冷板双晶粒模组，走 DUAL_CHIP_CARD 寻址（card_id = npu // 2，8 物理槽 = 16 逻辑 davinci）；右侧 Atlas 800 3000（2U）经后置 PCIe Riser 横插 4 张 Atlas 300I Duo 双芯推理卡（上层露出单卡双 310P SoC 与 LPDDR4X），合计暴露 8 个逻辑设备。
+size: [900, 645]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L187-L197
+    symbols: [DeviceAddressingMode, DIRECT, DUAL_CHIP_CARD]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L736-L744
+    symbols: [card_id, chip_id]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L89-L99
+    symbols: [NPUPlatform, ASCEND_RT_VISIBLE_DEVICES]

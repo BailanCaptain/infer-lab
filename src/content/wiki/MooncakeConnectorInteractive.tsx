@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useMemo, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -217,11 +217,86 @@ export const MOONCAKE_CONNECTOR_STEPS: readonly MooncakeStepSpec[] = [
 ];
 export const MOONCAKE_TP_MODES = ["sym-tp2", "asym-tp4-tp2"] as const;
 export type MooncakeTpMode = (typeof MOONCAKE_TP_MODES)[number];
+export const MOONCAKE_XFER_UNITS = [0.5, 1.5] as const;
+export type MooncakeXferUnit = (typeof MOONCAKE_XFER_UNITS)[number];
+
+export interface MooncakeTimelineSpan {
+  readonly layer: number;
+  readonly compStart: number;
+  readonly compEnd: number;
+  readonly xferStart: number;
+  readonly xferEnd: number;
+}
+
+export interface MooncakeComputedState {
+  readonly tpMode: MooncakeTpMode;
+  readonly xferUnit: MooncakeXferUnit;
+  readonly sourceRankCount: 1 | 2;
+  readonly segmentCount: 6 | 12;
+  readonly segmentKiB: 64 | 32;
+  readonly totalKiB: 384;
+  readonly pBlock7AddrKiB: 5448 | 5224;
+  readonly pBlock12AddrKiB: 5768 | 5384;
+  readonly dBlock3AddrKiB: 1192;
+  readonly dBlock5AddrKiB: 1320;
+  readonly dBlock3Intervals: readonly string[];
+  readonly pullTotal: number;
+  readonly pushTotal: number;
+  readonly savedUnits: number;
+  readonly pushSpans: readonly MooncakeTimelineSpan[];
+}
+
+export function computeMooncakeTransferState(
+  tpMode: MooncakeTpMode = "sym-tp2",
+  xferUnit: MooncakeXferUnit = 0.5,
+): MooncakeComputedState {
+  const isAsym = tpMode === "asym-tp4-tp2";
+  const sourceRankCount: 1 | 2 = isAsym ? 2 : 1;
+  const segmentKiB: 64 | 32 = isAsym ? 32 : 64;
+  const segmentCount: 6 | 12 = isAsym ? 12 : 6;
+  const pBlock7AddrKiB: 5448 | 5224 = isAsym ? 5224 : 5448;
+  const pBlock12AddrKiB: 5768 | 5384 = isAsym ? 5384 : 5768;
+
+  const layers = 3;
+  const compUnit = 1.0;
+  const pullTotal = Number((layers * compUnit + layers * xferUnit).toFixed(1));
+  const pushSpans: MooncakeTimelineSpan[] = [];
+  let prevXferEnd = 0;
+  for (let l = 0; l < layers; l++) {
+    const compStart = l * compUnit;
+    const compEnd = (l + 1) * compUnit;
+    const xferStart = Math.max(compEnd, prevXferEnd);
+    const xferEnd = Number((xferStart + xferUnit).toFixed(1));
+    prevXferEnd = xferEnd;
+    pushSpans.push({ layer: l, compStart, compEnd, xferStart, xferEnd });
+  }
+  const pushTotal = prevXferEnd;
+  const savedUnits = Number((pullTotal - pushTotal).toFixed(1));
+
+  return {
+    tpMode,
+    xferUnit,
+    sourceRankCount,
+    segmentCount,
+    segmentKiB,
+    totalKiB: 384,
+    pBlock7AddrKiB,
+    pBlock12AddrKiB,
+    dBlock3AddrKiB: 1192,
+    dBlock5AddrKiB: 1320,
+    dBlock3Intervals: isAsym ? ["[0..32K←P0]", "[32..64K←P1]"] : ["[0..64K←P0]"],
+    pullTotal,
+    pushTotal,
+    savedUnits,
+    pushSpans,
+  };
+}
 
 export interface MooncakeConnectorInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: MooncakeDiagramMode | undefined;
   readonly initialStep?: MooncakeStep | undefined;
   readonly initialTpMode?: MooncakeTpMode | undefined;
+  readonly initialXferUnit?: MooncakeXferUnit | undefined;
 }
 
 export function MooncakeConnectorInteractive({
@@ -234,12 +309,15 @@ export function MooncakeConnectorInteractive({
   initialMode = "sandbox",
   initialStep = 1,
   initialTpMode = "sym-tp2",
+  initialXferUnit = 0.5,
 }: MooncakeConnectorInteractiveProps) {
   const [mode, setMode] = useState<MooncakeDiagramMode>(initialMode);
   const [step, setStep] = useState<MooncakeStep>(initialStep);
   const [tpMode, setTpMode] = useState<MooncakeTpMode>(initialTpMode);
+  const [xferUnit, setXferUnit] = useState<MooncakeXferUnit>(initialXferUnit);
   const [playing, setPlaying] = useState(false);
   const spec = MOONCAKE_CONNECTOR_STEPS[step - 1]!;
+  const state = useMemo(() => computeMooncakeTransferState(tpMode, xferUnit), [tpMode, xferUnit]);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mPlum = `${id}-${uid}-mc-plum`;
   const mTeal = `${id}-${uid}-mc-teal`;
@@ -331,7 +409,11 @@ export function MooncakeConnectorInteractive({
       question="P 实例和 D 实例的物理块号各管各的，怎么不重算提示词直接把历史 KV 搬过去？"
       toolbarLabel="Mooncake 连接器四步跨实例交接控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-step": step }}
+      extraRootAttrs={{
+        "data-step": step,
+        "data-tp-mode": tpMode,
+        "data-xfer-unit": xferUnit,
+      }}
       toolbar={
         <>
           <div className="wiki-edu-btn-row">
@@ -363,37 +445,6 @@ export function MooncakeConnectorInteractive({
             >
               下一步 ›
             </button>
-            <button
-              type="button"
-              className="wiki-edu-btn"
-              data-testid="mooncake-tp-sym"
-              aria-pressed={mode === "sandbox" && tpMode === "sym-tp2"}
-              style={eduBtnStyle(mode === "sandbox" && tpMode === "sym-tp2", "dark")}
-              onClick={() => {
-                setPlaying(false);
-                setMode("sandbox");
-                setTpMode("sym-tp2");
-              }}
-            >
-              对称 TP2 直传
-            </button>
-            <button
-              type="button"
-              className="wiki-edu-btn"
-              data-testid="mooncake-tp-asym"
-              aria-pressed={mode === "sandbox" && tpMode === "asym-tp4-tp2"}
-              style={eduBtnStyle(mode === "sandbox" && tpMode === "asym-tp4-tp2", "dark")}
-              onClick={() => {
-                setPlaying(false);
-                setMode("sandbox");
-                setTpMode("asym-tp4-tp2");
-              }}
-            >
-              异构 P:TP4→D:TP2
-            </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="Mooncake 连接器四步交接演化">
             {MOONCAKE_CONNECTOR_STEPS.map((item) => {
               const active = mode === "sandbox" && step === item.step;
               return (
@@ -408,6 +459,57 @@ export function MooncakeConnectorInteractive({
                   onClick={() => selectStep(item.step)}
                 >
                   {item.shortBtn}
+                </button>
+              );
+            })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="TP 拓扑与单层传输耗时比切换">
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="mooncake-tp-sym"
+              aria-pressed={mode === "sandbox" && tpMode === "sym-tp2"}
+              style={eduBtnStyle(mode === "sandbox" && tpMode === "sym-tp2", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTpMode("sym-tp2");
+              }}
+            >
+              对称 TP2 (6×64K)
+            </button>
+            <button
+              type="button"
+              className="wiki-edu-btn"
+              data-testid="mooncake-tp-asym"
+              aria-pressed={mode === "sandbox" && tpMode === "asym-tp4-tp2"}
+              style={eduBtnStyle(mode === "sandbox" && tpMode === "asym-tp4-tp2", "dark")}
+              onClick={() => {
+                setPlaying(false);
+                setMode("sandbox");
+                setTpMode("asym-tp4-tp2");
+              }}
+            >
+              异构 P:TP4→D:TP2 (12×32K)
+            </button>
+            {MOONCAKE_XFER_UNITS.map((xu) => {
+              const active = mode === "sandbox" && xferUnit === xu;
+              return (
+                <button
+                  key={xu}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`mooncake-xfer-${xu}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "teal")}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode("sandbox");
+                    setXferUnit(xu);
+                  }}
+                >
+                  {`每层传 ${xu} 单位`}
                 </button>
               );
             })}
@@ -426,15 +528,19 @@ export function MooncakeConnectorInteractive({
         step === 1 && tpMode === "asym-tp4-tp2"
           ? "异构 P:TP4→D:TP2 下，P 每卡单块仅存半份 KV 头（步长 32 KiB）：D 先领好 64 KiB 空块 #3、#5，再同时对准 2 张 P 卡的 #7（5,224 KiB）与 #12（5,384 KiB）！"
           : step === 2 && tpMode === "asym-tp4-tp2"
-            ? "不经 CPU 倒手重算：异构 P:TP4→D:TP2 下，D 每卡向 2 张 P 卡各拉 6 段 32 KiB 半块（2 卡 × 6 段 = 12 段）同层直传并本地重排！"
-            : spec.takeaway
+            ? "不经 CPU 倒手重算：异构 P:TP4→D:TP2 下，D 每卡向 2 张 P 卡各拉 6 段 32 KiB 半块（2 卡 × 6 段 = 12 段）同层直传并拼入目标块上下半区！"
+            : step === 4 && xferUnit === 1.5
+              ? "当单层传输耗时升至 1.5 单位（慢于单层计算 1.0）且串行发送时：整批拉需 3.0+4.5=7.5 单位，逐层推在 L0 算完即启传，总长压至 5.5 单位（省 2.0）！"
+              : spec.takeaway
       }
       kpi={
         step === 1 && tpMode === "asym-tp4-tp2"
           ? "2卡×32K：P#7(5224K)→D#3(1192K)"
           : step === 2 && tpMode === "asym-tp4-tp2"
             ? "2 卡 × 6 段 = 12 段半块直传"
-            : spec.kpi
+            : step === 4
+              ? `示意 ${state.pullTotal.toFixed(1)} → ${state.pushTotal.toFixed(1)} 单位 (省 ${state.savedUnits.toFixed(1)})`
+              : spec.kpi
       }
       detailsSummary="查看工程与源码细节（地址换算式 / 非对称 TP 拼头 / V1 vs Layerwise 完成通知与 GQA+C8 禁配）"
       detailsContent={
@@ -466,9 +572,9 @@ export function MooncakeConnectorInteractive({
           </div>
 
           <svg
-            viewBox="0 0 840 248"
-            width="840"
-            height="248"
+            viewBox="0 0 860 296"
+            width="860"
+            height="296"
             style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
             aria-label={`Mooncake P/D 数据流：${spec.wireLabel}`}
@@ -512,222 +618,275 @@ export function MooncakeConnectorInteractive({
             <rect
               x="10"
               y="8"
-              width="256"
-              height="232"
+              width="252"
+              height="186"
               rx="10"
               fill="#fbfaf6"
               stroke="#d8d8cf"
               strokeWidth="1.4"
             />
-            <text x="138" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              P 实例显存池 (基址 5000K)
+            <text x="136" y="26" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              P 源显存池 (基址 5000K)
             </text>
-            <text x="138" y="50" textAnchor="middle" fontSize="12" fill="#66716d">
+            <text x="136" y="46" textAnchor="middle" fontSize="12" fill="#66716d">
               {step === 3
                 ? "收齐回执 · 释放 #7, #12"
                 : tpMode === "asym-tp4-tp2"
-                  ? "半块 #7(5224K) · #12(5384K)"
-                  : "源块 #7(5448K) · #12(5768K)"}
+                  ? "双源 P0+P1 · 12段×32K"
+                  : "单源 P0 · 6段×64K"}
             </text>
 
-            {[0, 1, 2].map((ly) => {
-              const ry = 66 + ly * 48;
-              return (
-                <g key={`p-ly-${ly}`}>
-                  <text x="34" y={ry + 22} textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
-                    {`L${ly}`}
-                  </text>
-                  {[6, 7, 8, 12].map((blk, bi) => {
-                    const bx = 54 + bi * 50;
-                    const hit = blk === 7 || blk === 12;
-                    return (
-                      <g key={`p-${ly}-${blk}`}>
-                        <rect
-                          x={bx}
-                          y={ry}
-                          width="44"
-                          height="34"
-                          rx="6"
-                          fill={!hit ? "#ece9df" : step === 3 ? "#ddf4ef" : "#fff4cf"}
-                          stroke={!hit ? "#d8d8cf" : step === 3 ? "#087f73" : "#c78300"}
-                          strokeWidth={hit ? "1.8" : "1"}
-                          strokeDasharray={hit && step === 3 ? "4 2" : undefined}
-                        />
-                        <text
-                          x={bx + 22}
-                          y={ry + 22}
-                          textAnchor="middle"
-                          fontSize="12"
-                          fontWeight="700"
-                          fill="#17211f"
-                        >
-                          {`#${blk}`}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              );
-            })}
-            <text x="138" y="226" textAnchor="middle" fontSize="12" fontWeight="700" fill="#c78300">
-              {step === 4 ? "边算边推：算完1层即刻发出" : spec.pBadge}
-            </text>
-            <rect
-              x="280"
-              y="8"
-              width="280"
-              height="232"
-              rx="10"
-              fill="#f7e7f2"
-              stroke="#9a4b86"
-              strokeWidth="1.4"
-            />
-            <text x="420" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              {step === 4 ? "整批拉 vs 逐层重叠时序" : "Mooncake 地址换算与零拷贝"}
-            </text>
-
-            {step !== 4 ? (
+            {tpMode === "sym-tp2" ? (
               <>
-                <rect x="296" y="44" width="248" height="32" rx="6" fill="#ffffff" stroke="#9a4b86" />
-                <text x="420" y="65" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                  {tpMode === "asym-tp4-tp2"
-                    ? "2卡×32K：P#7[5224K]↦D#3[1192K]"
-                    : "P#7[5448K]↦D#3[1192K] · #12↦#5"}
-                </text>
-                {spec.wireKind === "handshake" && (
-                  <>
-                    <path
-                      d="M 556 96 L 284 96"
-                      stroke="#66716d"
-                      strokeWidth="1.8"
-                      markerEnd={`url(#${mMuted})`}
-                    />
-                    <path
-                      d="M 284 132 L 556 132"
-                      stroke="#66716d"
-                      strokeWidth="1.8"
-                      markerEnd={`url(#${mMuted})`}
-                    />
-                  </>
-                )}
-                {spec.wireKind === "rdma-copy" && (
-                  <>
-                    <path
-                      d="M 272 90 L 568 90"
-                      stroke="#9a4b86"
-                      strokeWidth="2.2"
-                      markerEnd={`url(#${mPlum})`}
-                    />
-                    <path
-                      d="M 272 132 L 568 132"
-                      stroke="#9a4b86"
-                      strokeWidth="2.2"
-                      markerEnd={`url(#${mPlum})`}
-                    />
-                    <path
-                      d="M 272 174 L 568 174"
-                      stroke="#9a4b86"
-                      strokeWidth="2.2"
-                      markerEnd={`url(#${mPlum})`}
-                    />
-                  </>
-                )}
-                {spec.wireKind === "v1-ack" && (
-                  <path
-                    d="M 568 132 L 272 132"
-                    stroke="#087f73"
-                    strokeWidth="2.4"
-                    markerEnd={`url(#${mTeal})`}
-                  />
-                )}
-                <rect x="296" y="186" width="248" height="38" rx="6" fill="#ffffff" stroke="#d8d8cf" />
-                <text x="420" y="210" textAnchor="middle" fontSize="12" fontWeight="700" fill="#9a4b86">
-                  {tpMode === "asym-tp4-tp2"
-                    ? "D 每卡从 2 张 P 卡拼 32K 半头"
-                    : `${spec.wireLabel} · 6段显存直传`}
+                {[0, 1, 2].map((ly) => {
+                  const ry = 56 + ly * 38;
+                  return (
+                    <g key={`p-sym-${ly}`}>
+                      <rect
+                        x="26"
+                        y={ry}
+                        width="220"
+                        height="30"
+                        rx="6"
+                        fill={step === 3 ? "#ddf4ef" : "#fff4cf"}
+                        stroke={step === 3 ? "#087f73" : "#c78300"}
+                        strokeWidth="1.4"
+                        strokeDasharray={step === 3 ? "4 2" : undefined}
+                      />
+                      <text
+                        x="136"
+                        y={ry + 20}
+                        textAnchor="middle"
+                        fontSize="12"
+                        fontWeight="700"
+                        fill="#17211f"
+                      >
+                        {`L${ly}: #7(5448K) · #12(5768K)`}
+                      </text>
+                    </g>
+                  );
+                })}
+                <text x="136" y="184" textAnchor="middle" fontSize="12" fontWeight="700" fill="#c78300">
+                  {`共 384 KiB · ${spec.pBadge}`}
                 </text>
               </>
             ) : (
               <>
-                <text x="420" y="56" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
-                  V1 整批拉：算3层(3.0) + 传3层(1.5) = 4.5
+                <rect
+                  x="22"
+                  y="56"
+                  width="228"
+                  height="54"
+                  rx="7"
+                  fill={step === 3 ? "#ddf4ef" : "#fff4cf"}
+                  stroke={step === 3 ? "#087f73" : "#c78300"}
+                  strokeWidth="1.5"
+                />
+                <text x="136" y="76" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  P-Rank0 (头0..1 · 6×32K)
                 </text>
-                <rect x="296" y="66" width="160" height="24" rx="5" fill="#fff4cf" stroke="#c78300" />
-                <rect x="460" y="66" width="84" height="24" rx="5" fill="#fff0e9" stroke="#b54237" />
-                <text x="420" y="118" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-                  Layerwise 逐层推：边算边推 = 3.5 (省1.0!)
+                <text x="136" y="98" textAnchor="middle" fontSize="12" fill="#66716d">
+                  #7(5224K) · #12(5384K)
                 </text>
-                <rect x="296" y="128" width="160" height="24" rx="5" fill="#ddf4ef" stroke="#087f73" />
-                <rect x="350" y="158" width="144" height="24" rx="5" fill="#e8edff" stroke="#4c65b6" />
-                <text x="420" y="214" textAnchor="middle" fontSize="12" fill="#17211f">
-                  前 L−1 层传输藏在后续计算底下!
+
+                <rect
+                  x="22"
+                  y="118"
+                  width="228"
+                  height="54"
+                  rx="7"
+                  fill={step === 3 ? "#ddf4ef" : "#f7e7f2"}
+                  stroke={step === 3 ? "#087f73" : "#9a4b86"}
+                  strokeWidth="1.5"
+                />
+                <text x="136" y="138" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                  P-Rank1 (头2..3 · 6×32K)
+                </text>
+                <text x="136" y="160" textAnchor="middle" fontSize="12" fill="#66716d">
+                  #7(5224K) · #12(5384K)
                 </text>
               </>
             )}
 
             <rect
-              x="574"
+              x="276"
               y="8"
-              width="256"
-              height="232"
+              width="308"
+              height="186"
+              rx="10"
+              fill="#f7e7f2"
+              stroke="#9a4b86"
+              strokeWidth="1.4"
+            />
+            <text x="430" y="26" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              Mooncake 地址对表与半块拼头
+            </text>
+            <rect x="292" y="38" width="276" height="28" rx="6" fill="#ffffff" stroke="#9a4b86" />
+            <text x="430" y="57" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {tpMode === "asym-tp4-tp2" ? "P0+P1[5224K] ↦ D#3[1192K]" : "P#7[5448K]↦D#3[1192K] · #12↦#5"}
+            </text>
+
+            {spec.wireKind === "v1-ack" ? (
+              <path d="M 594 114 L 266 114" stroke="#087f73" strokeWidth="2.4" markerEnd={`url(#${mTeal})`} />
+            ) : tpMode === "asym-tp4-tp2" ? (
+              <>
+                <path
+                  d="M 254 84 C 370 84, 490 92, 602 96"
+                  fill="none"
+                  stroke="#c78300"
+                  strokeWidth="2.1"
+                  markerEnd={`url(#${mPlum})`}
+                />
+                <path
+                  d="M 254 146 C 370 146, 490 126, 602 120"
+                  fill="none"
+                  stroke="#9a4b86"
+                  strokeWidth="2.1"
+                  markerEnd={`url(#${mPlum})`}
+                />
+              </>
+            ) : (
+              <>
+                <path
+                  d="M 266 88 L 594 88"
+                  stroke={spec.wireKind === "handshake" ? "#66716d" : "#9a4b86"}
+                  strokeWidth="2"
+                  markerEnd={`url(#${spec.wireKind === "handshake" ? mMuted : mPlum})`}
+                />
+                <path
+                  d="M 266 122 L 594 122"
+                  stroke={spec.wireKind === "handshake" ? "#66716d" : "#9a4b86"}
+                  strokeWidth="2"
+                  markerEnd={`url(#${spec.wireKind === "handshake" ? mMuted : mPlum})`}
+                />
+              </>
+            )}
+
+            <rect x="292" y="152" width="276" height="30" rx="6" fill="#ffffff" stroke="#d8d8cf" />
+            <text x="430" y="172" textAnchor="middle" fontSize="12" fontWeight="700" fill="#9a4b86">
+              {tpMode === "asym-tp4-tp2" ? "双源各6段32K = 12段拼满384K" : `${spec.wireLabel} · 6段×64K=384K`}
+            </text>
+
+            <rect
+              x="598"
+              y="8"
+              width="252"
+              height="186"
               rx="10"
               fill="#fbfaf6"
               stroke="#d8d8cf"
               strokeWidth="1.4"
             />
-            <text x="702" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              D 实例显存池 (基址 1000K)
+            <text x="724" y="26" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              D 目的显存池 (基址 1000K)
             </text>
-            <text x="702" y="50" textAnchor="middle" fontSize="12" fill="#087f73">
-              目的块 #3(1192K) · #5(1320K)
+            <text x="724" y="46" textAnchor="middle" fontSize="12" fill="#087f73">
+              D#3(1192K) · D#5(1320K)
             </text>
             {[0, 1, 2].map((ly) => {
-              const ry = 66 + ly * 48;
+              const ry = 56 + ly * 38;
               const rowSpec = spec.layers[ly]!;
+              const fillA = rowSpec.dReady ? "#ddf4ef" : rowSpec.transferring ? "#fff4cf" : "#ffffff";
+              const fillB = rowSpec.dReady ? "#ddf4ef" : rowSpec.transferring ? "#f7e7f2" : "#ffffff";
               return (
                 <g key={`d-ly-${ly}`}>
-                  {[2, 3, 4, 5].map((blk, bi) => {
-                    const bx = 594 + bi * 52;
-                    const hit = blk === 3 || blk === 5;
-                    return (
-                      <g key={`d-${ly}-${blk}`}>
-                        <rect
-                          x={bx}
-                          y={ry}
-                          width="46"
-                          height="34"
-                          rx="6"
-                          fill={
-                            !hit
-                              ? "#ece9df"
-                              : rowSpec.dReady
-                                ? "#ddf4ef"
-                                : rowSpec.transferring
-                                  ? "#f7e7f2"
-                                  : "#ffffff"
-                          }
-                          stroke={!hit ? "#d8d8cf" : rowSpec.dReady ? "#087f73" : "#9a4b86"}
-                          strokeWidth={hit ? "1.8" : "1"}
-                          strokeDasharray={hit && !rowSpec.dReady ? "4 2" : undefined}
-                        />
-                        <text
-                          x={bx + 23}
-                          y={ry + 22}
-                          textAnchor="middle"
-                          fontSize="12"
-                          fontWeight="700"
-                          fill="#17211f"
-                        >
-                          {`#${blk}`}
-                        </text>
-                      </g>
-                    );
-                  })}
+                  {tpMode === "asym-tp4-tp2" ? (
+                    <>
+                      <rect
+                        x="612"
+                        y={ry}
+                        width="110"
+                        height="30"
+                        rx="5"
+                        fill={fillA}
+                        stroke="#087f73"
+                        strokeWidth="1.3"
+                      />
+                      <rect
+                        x="726"
+                        y={ry}
+                        width="110"
+                        height="30"
+                        rx="5"
+                        fill={fillB}
+                        stroke="#9a4b86"
+                        strokeWidth="1.3"
+                      />
+                    </>
+                  ) : (
+                    <rect
+                      x="612"
+                      y={ry}
+                      width="224"
+                      height="30"
+                      rx="6"
+                      fill={rowSpec.dReady ? "#ddf4ef" : rowSpec.transferring ? "#f7e7f2" : "#ffffff"}
+                      stroke={rowSpec.dReady ? "#087f73" : "#9a4b86"}
+                      strokeWidth="1.4"
+                      strokeDasharray={!rowSpec.dReady ? "4 2" : undefined}
+                    />
+                  )}
+                  <text x="724" y={ry + 20} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {tpMode === "asym-tp4-tp2"
+                      ? `L${ly}: 0..32K←P0 | 32..64K←P1`
+                      : `L${ly}: #3[64K] · #5[64K]`}
+                  </text>
                 </g>
               );
             })}
-            <text x="702" y="226" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+            <text x="724" y="184" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
               {spec.dBadge}
+            </text>
+
+            <rect
+              x="10"
+              y="202"
+              width="840"
+              height="88"
+              rx="10"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            <text x="430" y="220" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`可比时间轴 (每层算1·传${xferUnit})：整批拉 ${state.pullTotal.toFixed(1)} vs 逐层推 ${state.pushTotal.toFixed(1)} (省 ${state.savedUnits.toFixed(1)} 单位)`}
+            </text>
+
+            <text x="98" y="247" textAnchor="middle" fontSize="12" fontWeight="700" fill="#b54237">
+              {`整批拉 ${state.pullTotal.toFixed(1)}`}
+            </text>
+            <rect x="186" y="232" width="204" height="20" rx="4" fill="#fff4cf" stroke="#c78300" />
+            <rect
+              x="390"
+              y="232"
+              width={3 * xferUnit * 68}
+              height="20"
+              rx="4"
+              fill="#fff0e9"
+              stroke="#b54237"
+            />
+            <text x="780" y="247" textAnchor="middle" fontSize="12" fill="#66716d">
+              齐信释块放行
+            </text>
+
+            <text x="98" y="277" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {`逐层推 ${state.pushTotal.toFixed(1)}`}
+            </text>
+            <rect x="186" y="259" width="204" height="10" rx="3" fill="#ddf4ef" stroke="#087f73" />
+            {state.pushSpans.map((sp) => (
+              <rect
+                key={`push-sp-${sp.layer}`}
+                x={186 + sp.xferStart * 68}
+                y="272"
+                width={xferUnit * 68 - 2}
+                height="11"
+                rx="3"
+                fill="#e8edff"
+                stroke="#4c65b6"
+              />
+            ))}
+            <text x="780" y="277" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              末层回调放行
             </text>
           </svg>
         </div>

@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useMemo, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
@@ -124,9 +124,100 @@ export const ASCEND_FA_STEPS: readonly AscendFaStepSpec[] = [
       "未截断递推值 O = 35.196059 / 1.234909 ≈ 28.5009（上表 35.1961 与 1.2349 为四位小数展示截断），在实数代数上与全量 Softmax 严格相等，有限浮点下仅因加法结合顺序存在末位微小舍入差（跨卡 PCP/DCP 的 npu_attention_update 也复用同一 LSE=m+ln(l) 重标定）。v0.30.0 默认主力为 FIA（npu_fused_infer_attention_score，注意 910B3 普通 GQA 页交错 (H,2H) 视图在 Eager Decode 下会触发整池 Slice 连续化）；RL 训推一致 FA3 须开启 rl_config 双开关，图模式仅支持 PIECEWISE，或开启 enforce_eager 走逐算子 eager 路径。",
   },
 ];
+export const ASCEND_FA_SEQ_LENS = [4096, 32768] as const;
+export type AscendFaSeqLen = (typeof ASCEND_FA_SEQ_LENS)[number];
+export const ASCEND_FA_SCORE_PRESETS = ["peak-refresh", "keep-peak"] as const;
+export type AscendFaScorePreset = (typeof ASCEND_FA_SCORE_PRESETS)[number];
+
+export interface AscendFaComputedState {
+  readonly seqLen: AscendFaSeqLen;
+  readonly scorePreset: AscendFaScorePreset;
+  readonly s1: readonly [number, number];
+  readonly s2: readonly [number, number];
+  readonly v: readonly [number, number, number, number];
+  readonly naiveScoreGiB: number;
+  readonly naiveRoundTripGiB: number;
+  readonly qkvTotalMiB: number;
+  readonly outMiB: number;
+  readonly isCard64Oom: boolean;
+  readonly m1: number;
+  readonly l1: number;
+  readonly oTilde1: number;
+  readonly m2: number;
+  readonly rescaleAlpha: number;
+  readonly peakRefreshed: boolean;
+  readonly l2: number;
+  readonly oTilde2: number;
+  readonly finalOut: number;
+}
+
+const FA_VALUES = [10, 20, 30, 40] as const;
+
+export function computeAscendFaState(
+  seqLen: AscendFaSeqLen = 32768,
+  scorePreset: AscendFaScorePreset = "peak-refresh",
+): AscendFaComputedState {
+  const qHeads = 32;
+  const kvHeads = 8;
+  const headDim = 128;
+  const bytesPerElem = 2; // BF16
+  const gib = 1024 ** 3;
+  const mib = 1024 ** 2;
+
+  const naiveScoreBytes = qHeads * seqLen * seqLen * bytesPerElem;
+  const naiveScoreGiB = Number((naiveScoreBytes / gib).toFixed(2));
+  const naiveRoundTripGiB = Number(((naiveScoreBytes * 4) / gib).toFixed(2));
+  const qBytes = qHeads * seqLen * headDim * bytesPerElem;
+  const kvBytes = 2 * kvHeads * seqLen * headDim * bytesPerElem;
+  const qkvTotalMiB = Math.round((qBytes + kvBytes) / mib);
+  const outMiB = Math.round(qBytes / mib);
+  const isCard64Oom = naiveScoreGiB >= 64;
+
+  const s1: readonly [number, number] = scorePreset === "peak-refresh" ? [1, 2] : [2, 1];
+  const s2: readonly [number, number] = scorePreset === "peak-refresh" ? [4, 1] : [1, 0];
+
+  const m1 = Math.max(s1[0], s1[1]);
+  const e10 = Math.exp(s1[0] - m1);
+  const e11 = Math.exp(s1[1] - m1);
+  const l1Raw = e10 + e11;
+  const o1Raw = FA_VALUES[0] * e10 + FA_VALUES[1] * e11;
+
+  const m2 = Math.max(m1, Math.max(s2[0], s2[1]));
+  const alphaRaw = Math.exp(m1 - m2);
+  const e20 = Math.exp(s2[0] - m2);
+  const e21 = Math.exp(s2[1] - m2);
+  const l2Raw = l1Raw * alphaRaw + e20 + e21;
+  const o2Raw = o1Raw * alphaRaw + FA_VALUES[2] * e20 + FA_VALUES[3] * e21;
+  const finalRaw = o2Raw / l2Raw;
+
+  return {
+    seqLen,
+    scorePreset,
+    s1,
+    s2,
+    v: FA_VALUES,
+    naiveScoreGiB,
+    naiveRoundTripGiB,
+    qkvTotalMiB,
+    outMiB,
+    isCard64Oom,
+    m1,
+    l1: Number(l1Raw.toFixed(6)),
+    oTilde1: Number(o1Raw.toFixed(6)),
+    m2,
+    rescaleAlpha: Number(alphaRaw.toFixed(6)),
+    peakRefreshed: m2 > m1,
+    l2: Number(l2Raw.toFixed(6)),
+    oTilde2: Number(o2Raw.toFixed(6)),
+    finalOut: Number(finalRaw.toFixed(6)),
+  };
+}
+
 export interface AscendFaTilingInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: AscendFaDiagramMode | undefined;
   readonly initialStep?: AscendFaStep | undefined;
+  readonly initialSeqLen?: AscendFaSeqLen | undefined;
+  readonly initialScorePreset?: AscendFaScorePreset | undefined;
 }
 
 export function AscendFaTilingInteractive({
@@ -138,11 +229,17 @@ export function AscendFaTilingInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 1,
+  initialSeqLen = 32768,
+  initialScorePreset = "peak-refresh",
 }: AscendFaTilingInteractiveProps) {
   const [mode, setMode] = useState<AscendFaDiagramMode>(initialMode);
   const [step, setStep] = useState<AscendFaStep>(initialStep);
+  const [seqLen, setSeqLen] = useState<AscendFaSeqLen>(initialSeqLen);
+  const [scorePreset, setScorePreset] = useState<AscendFaScorePreset>(initialScorePreset);
   const [playing, setPlaying] = useState(false);
+
   const spec = ASCEND_FA_STEPS[step - 1]!;
+  const state = useMemo(() => computeAscendFaState(seqLen, scorePreset), [seqLen, scorePreset]);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mRed = `${id}-${uid}-fa-red`;
   const mTeal = `${id}-${uid}-fa-teal`;
@@ -216,6 +313,40 @@ export function AscendFaTilingInteractive({
     }
   };
 
+  const seqTag = seqLen === 32768 ? "32K" : "4K";
+  const isNaiveStep = step === 1;
+  const isOomDanger = isNaiveStep && state.isCard64Oom;
+  const ubScaleM = isNaiveStep
+    ? "需看完整行"
+    : step === 2
+      ? `m₁ = ${state.m1}`
+      : step === 3
+        ? state.peakRefreshed
+          ? `m₂ = ${state.m2} (刷新!)`
+          : `m₂ = ${state.m2} (沿用旧峰)`
+        : `全局 m = ${state.m2}`;
+  const ubDenomL = isNaiveStep
+    ? `等 ${seqTag} 全齐`
+    : step === 2
+      ? `l₁ ≈ ${state.l1.toFixed(4)}`
+      : step === 3
+        ? `l₂ ≈ ${state.l2.toFixed(4)}`
+        : `除以 ${state.l2.toFixed(4)}`;
+  const ubNumerO = isNaiveStep
+    ? "被迫落盘暂存"
+    : step === 2
+      ? `Õ₁ ≈ ${state.oTilde1.toFixed(4)}`
+      : step === 3
+        ? `Õ₂ ≈ ${state.oTilde2.toFixed(4)}`
+        : `O = ${state.finalOut.toFixed(2)} (${state.finalOut.toFixed(4)})`;
+  const ubTileTitle = isNaiveStep
+    ? "片上缓冲闲置等搬运"
+    : step === 2
+      ? `片上首块 s=[${state.s1[0]}, ${state.s1[1]}]`
+      : step === 3
+        ? `片上第2块 s=[${state.s2[0]}, ${state.s2[1]}]`
+        : "片上收尾归一 · O = Õ₂ / l₂";
+
   return (
     <WikiEduSandboxShell
       id={id}
@@ -234,7 +365,11 @@ export function AscendFaTilingInteractive({
       question="32K 长文算注意力，为什么朴素写法第一层就爆 64 GiB 显存，分块流式怎么做到 0 落盘？"
       toolbarLabel="FlashAttention 片上分块四步演化控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-step": step }}
+      extraRootAttrs={{
+        "data-step": step,
+        "data-seq-len": seqLen,
+        "data-score-preset": scorePreset,
+      }}
       toolbar={
         <>
           <div className="wiki-edu-btn-row">
@@ -266,9 +401,6 @@ export function AscendFaTilingInteractive({
             >
               下一步 ›
             </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="FlashAttention 四步演化">
             {ASCEND_FA_STEPS.map((item) => {
               const active = mode === "sandbox" && step === item.step;
               return (
@@ -286,17 +418,88 @@ export function AscendFaTilingInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="序列长度与后块峰值场景切换">
+            {ASCEND_FA_SEQ_LENS.map((sl) => {
+              const active = mode === "sandbox" && seqLen === sl;
+              return (
+                <button
+                  key={sl}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`ascend-fa-seq-${sl}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "dark")}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode("sandbox");
+                    setSeqLen(sl);
+                  }}
+                >
+                  {sl === 32768 ? "32K 序列 (64G爆卡)" : "4K 序列 (1G中间表)"}
+                </button>
+              );
+            })}
+            {(
+              [
+                ["peak-refresh", "后块刷峰 [4,1] (×e⁻²)"],
+                ["keep-peak", "后块未超峰 [1,0] (×1)"],
+              ] as const
+            ).map(([sp, label]) => {
+              const active = mode === "sandbox" && scorePreset === sp;
+              return (
+                <button
+                  key={sp}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`ascend-fa-score-${sp}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "teal")}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode("sandbox");
+                    setScorePreset(sp);
+                    if (step === 1) setStep(3);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </fieldset>
         </>
       }
       takeawayBadge={spec.badgeText}
-      takeawayTone={spec.takeawayTone}
-      takeaway={spec.takeaway}
-      kpi={spec.kpi}
+      takeawayTone={step === 1 ? (state.isCard64Oom ? "danger" : "warn") : spec.takeawayTone}
+      takeaway={
+        step === 1 && seqLen === 4096
+          ? "N=4096 时单份分数表占 1 GiB（已达 Q/K/V 本体 48 MiB 的 21 倍）；一旦序列扩 8 倍到 32K，O(N²) 巨表直接暴涨 64 倍至 64 GiB 当场爆卡！"
+          : step === 3 && scorePreset === "keep-peak"
+            ? "第 2 块分数 s=[1, 0] 未超过旧峰值 m₁=2：标尺保持 m₂=2，旧账缩放因子 e^(2−2)=1 免缩放直接累加新块！"
+            : step === 4 && scorePreset === "keep-peak"
+              ? `全部分块流过片上后单次除 l₂：O = ${state.oTilde2} / ${state.l2} ≈ ${state.finalOut.toFixed(2)}（${state.finalOut}），0 B 分数表落盘且与全量 Softmax 严格等价！`
+              : spec.takeaway
+      }
+      kpi={
+        step === 1
+          ? `单层中间表 ${state.naiveScoreGiB} GiB · 往返 ${state.naiveRoundTripGiB} GiB`
+          : step === 2
+            ? `HBM 中间落盘 0 B · 暂记 m₁ = ${state.m1}`
+            : step === 3
+              ? state.peakRefreshed
+                ? `旧账 × e⁻² (${state.rescaleAlpha.toFixed(4)}) · 零重读`
+                : `旧账 × 1 (e⁰=1 免重标定) · 零重读`
+              : `输出 ${state.finalOut.toFixed(2)} (${state.finalOut.toFixed(4)}) · 仅写 ${state.outMiB} MiB`
+      }
       detailsSummary="查看工程与源码细节（Qwen3-8B 64 GiB 推导 / 四数重标定手算 / FIA 与 FA3 选路）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}
+          <strong>{spec.title}</strong>：{spec.detail}（当前在线递推：
+          <code>{`s=[${state.s1[0]},${state.s1[1]},${state.s2[0]},${state.s2[1]}]`}</code>，
+          <code>{`m₁=${state.m1}→m₂=${state.m2}`}</code>，缩放因子 <code>{state.rescaleAlpha}</code>，
+          <code>{`l₂=${state.l2}`}</code>，<code>{`Õ₂=${state.oTilde2}`}</code>，归一输出{" "}
+          <code>{state.finalOut}</code>）
         </>
       }
     >
@@ -304,10 +507,14 @@ export function AscendFaTilingInteractive({
         <div className="wiki-edu-panel">
           <div className="wiki-edu-panel-head">
             <span className="wiki-edu-panel-title">
-              ① 显存 N×N 巨表 vs 片上分块流式扫描矩阵图（{spec.wireLabel}）
+              {`① 显存 ${seqTag}×${seqTag} 巨表 vs 片上分块流式扫描矩阵图`}
             </span>
-            <span className={`wiki-edu-badge ${spec.isNaiveOom ? "is-bad" : "is-good"}`}>
-              {spec.hbmScorePeakText}
+            <span
+              className={`wiki-edu-badge ${isOomDanger ? "is-bad" : isNaiveStep ? "is-warn" : "is-good"}`}
+            >
+              {isNaiveStep
+                ? `${state.naiveScoreGiB} GiB${state.isCard64Oom ? " (爆卡!)" : " 中间表"}`
+                : "0 B 落盘"}
             </span>
           </div>
 
@@ -361,14 +568,14 @@ export function AscendFaTilingInteractive({
               width="368"
               height="208"
               rx="10"
-              fill={spec.isNaiveOom ? "#fff0e9" : "#fbfaf6"}
-              stroke={spec.isNaiveOom ? "#b54237" : "#d8d8cf"}
+              fill={isOomDanger ? "#fff0e9" : isNaiveStep ? "#fff4cf" : "#fbfaf6"}
+              stroke={isOomDanger ? "#b54237" : isNaiveStep ? "#c78300" : "#d8d8cf"}
               strokeWidth="1.5"
             />
             <text x="196" y="28" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-              设备显存 HBM (32K 序列)
+              {`设备显存 HBM (${seqTag} 序列)`}
             </text>
-            {spec.isNaiveOom ? (
+            {isNaiveStep ? (
               <>
                 <rect
                   x="28"
@@ -377,17 +584,26 @@ export function AscendFaTilingInteractive({
                   height="124"
                   rx="8"
                   fill="#ffffff"
-                  stroke="#b54237"
+                  stroke={isOomDanger ? "#b54237" : "#c78300"}
                   strokeWidth="2"
                 />
-                <text x="196" y="88" textAnchor="middle" fontSize="14" fontWeight="700" fill="#b54237">
-                  ✗ 实体化 32K×32K 分数矩阵 S / P
+                <text
+                  x="196"
+                  y="88"
+                  textAnchor="middle"
+                  fontSize="14"
+                  fontWeight="700"
+                  fill={isOomDanger ? "#b54237" : "#c78300"}
+                >
+                  {`✗ 实体化 ${seqTag}×${seqTag} 分数矩阵 S / P`}
                 </text>
                 <text x="196" y="118" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
-                  单层瞬时落盘 64 GiB · 直接撑爆显存!
+                  {state.isCard64Oom
+                    ? `单层瞬时落盘 ${state.naiveScoreGiB} GiB · 64G 卡直接爆显存!`
+                    : `单份占 ${state.naiveScoreGiB} GiB · 扩至 32K 即暴涨 64× 爆卡!`}
                 </text>
                 <text x="196" y="148" textAnchor="middle" fontSize="12" fill="#66716d">
-                  Q/K/V 本体仅 384 MiB，却被中间矩阵淹没
+                  {`Q/K/V 本体仅 ${state.qkvTotalMiB} MiB · 往返搬运 ${state.naiveRoundTripGiB} GiB`}
                 </text>
               </>
             ) : (
@@ -403,7 +619,7 @@ export function AscendFaTilingInteractive({
                   strokeWidth="1.6"
                 />
                 <text x="79" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                  Qᵢ 当前行块
+                  Qᵢ 常驻行块
                 </text>
                 <rect
                   x="144"
@@ -416,7 +632,7 @@ export function AscendFaTilingInteractive({
                   strokeWidth="1.6"
                 />
                 <text x="195" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                  K₁,V₁ 块1
+                  {`块1 [${state.s1[0]},${state.s1[1]}]`}
                 </text>
                 <rect
                   x="260"
@@ -429,7 +645,7 @@ export function AscendFaTilingInteractive({
                   strokeWidth="1.6"
                 />
                 <text x="311" y="71" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-                  K₂,V₂ 块2
+                  {`块2 [${state.s2[0]},${state.s2[1]}]`}
                 </text>
                 <rect
                   x="28"
@@ -442,18 +658,18 @@ export function AscendFaTilingInteractive({
                   strokeDasharray="5 3"
                 />
                 <text x="195" y="138" textAnchor="middle" fontSize="13" fontWeight="700" fill="#087f73">
-                  ✓ N×N 分数表免落盘 (0 B) · 仅终态写回 Oᵢ
+                  {`✓ N×N 分数表免落盘 (0 B) · 终态写 O (${state.outMiB}M)`}
                 </text>
               </>
             )}
             <text x="196" y="198" textAnchor="middle" fontSize="12" fill="#66716d">
-              {spec.hbmRoundTripText}
+              {isNaiveStep ? `${state.naiveRoundTripGiB} GiB 往返` : spec.hbmRoundTripText}
             </text>
             <path
               d={spec.wireDirection === "write-out" ? "M 432 120 L 386 120" : "M 386 92 L 432 92"}
-              stroke={spec.isNaiveOom ? "#b54237" : "#087f73"}
+              stroke={isOomDanger ? "#b54237" : "#087f73"}
               strokeWidth="2.2"
-              markerEnd={`url(#${spec.isNaiveOom ? mRed : mTeal})`}
+              markerEnd={`url(#${isOomDanger ? mRed : mTeal})`}
             />
 
             <rect
@@ -471,7 +687,7 @@ export function AscendFaTilingInteractive({
             </text>
             <rect x="456" y="44" width="334" height="36" rx="6" fill="#ffffff" stroke="#087f73" />
             <text x="623" y="67" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`m 标尺：${spec.ubScaleM} · l 分母：${spec.ubDenomL}`}
+              {`m 标尺：${ubScaleM} · l 分母：${ubDenomL}`}
             </text>
 
             <rect
@@ -485,44 +701,56 @@ export function AscendFaTilingInteractive({
               strokeWidth="1.6"
             />
             <text x="623" y="119" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
-              {`${spec.ubTileTitle}：${spec.ubNumerO}`}
+              {`${ubTileTitle}：${ubNumerO}`}
             </text>
             {step === 3 && (
               <path
                 d="M 762 142 C 762 174, 484 174, 484 142"
                 fill="none"
-                stroke="#e85b32"
+                stroke={state.peakRefreshed ? "#e85b32" : "#087f73"}
                 strokeWidth="2"
-                markerEnd={`url(#${mAccent})`}
+                markerEnd={`url(#${state.peakRefreshed ? mAccent : mTeal})`}
               />
             )}
             <text x="623" y="198" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
-              {step === 3 ? "新最大值 m=4 到来：旧分子分母同乘 e^(2−4) 重标定" : spec.wireLabel}
+              {step === 3
+                ? state.peakRefreshed
+                  ? `新峰值 m=${state.m2}：旧分子分母同乘 e⁻² (${state.rescaleAlpha.toFixed(4)})`
+                  : `未超旧峰 m=${state.m2}：旧账缩放因子 e⁰=1 直接累加新块`
+                : step === 4
+                  ? `精确归一输出 ${state.finalOut.toFixed(2)} (${state.finalOut})`
+                  : spec.wireLabel}
             </text>
           </svg>
         </div>
 
         <div className="wiki-edu-dual-grid">
-          <div className={`wiki-edu-panel${spec.isNaiveOom ? " is-oom" : ""}`}>
+          <div className={`wiki-edu-panel${isOomDanger ? " is-oom" : ""}`}>
             <div className="wiki-edu-panel-head">
-              <span className="wiki-edu-panel-title">设备显存 HBM（慢而大）</span>
-              <span className={`wiki-edu-badge ${spec.isNaiveOom ? "is-bad" : "is-good"}`}>
-                {spec.hbmScorePeakText}
+              <span className="wiki-edu-panel-title">{`设备显存 HBM（${seqTag}）`}</span>
+              <span
+                className={`wiki-edu-badge ${isOomDanger ? "is-bad" : isNaiveStep ? "is-warn" : "is-good"}`}
+              >
+                {isNaiveStep ? `${state.naiveScoreGiB} GiB` : "0 B 落盘"}
               </span>
             </div>
 
             <div className="wiki-edu-tok-list">
               <div className="wiki-edu-tok-pill is-sys">
                 <span>Q / K / V 本体</span>
-                <span className="wiki-edu-ptr-tag">384 MiB</span>
+                <span className="wiki-edu-ptr-tag">{`${state.qkvTotalMiB} MiB`}</span>
               </div>
-              <div className={`wiki-edu-tok-pill ${spec.isNaiveOom ? "is-cow" : "is-empty"}`}>
-                <span>{spec.isNaiveOom ? "巨型分数表 S/P" : "N×N 分数表免落盘"}</span>
-                <span className="wiki-edu-ptr-tag">{spec.isNaiveOom ? "64 GiB!" : "0 B"}</span>
+              <div className={`wiki-edu-tok-pill ${isNaiveStep ? "is-cow" : "is-empty"}`}>
+                <span>{isNaiveStep ? `巨型分数表 S/P (${seqTag}²)` : "N×N 分数表免落盘"}</span>
+                <span className="wiki-edu-ptr-tag">
+                  {isNaiveStep ? `${state.naiveScoreGiB} GiB!` : "0 B"}
+                </span>
               </div>
               <div className={`wiki-edu-tok-pill ${step === 4 ? "is-priv" : "is-sys"}`}>
                 <span>注意力输出 O</span>
-                <span className="wiki-edu-ptr-tag">{step === 4 ? "写出 256M" : "256 MiB"}</span>
+                <span className="wiki-edu-ptr-tag">
+                  {step === 4 ? `写出 ${state.outMiB} MiB` : `${state.outMiB} MiB`}
+                </span>
               </div>
             </div>
 
@@ -532,24 +760,24 @@ export function AscendFaTilingInteractive({
           <div className="wiki-edu-hbm">
             <div className="wiki-edu-col-title">
               <span>AI Core 片上缓冲（UB / L1）</span>
-              <span className="mono">{spec.hbmRoundTripText}</span>
+              <span className="mono">{`V=[${state.v.join(",")}]`}</span>
             </div>
-            <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-private"} is-highlight`}>
+            <div className={`wiki-edu-block ${isNaiveStep ? "is-free" : "is-private"} is-highlight`}>
               <div className="wiki-edu-block-id">m</div>
               <div className="wiki-edu-block-title">当前最大标尺</div>
-              <span className="wiki-edu-ref-badge ref-priv">{spec.ubScaleM}</span>
+              <span className="wiki-edu-ref-badge ref-priv">{ubScaleM}</span>
             </div>
-            <div className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : "is-shared"}`}>
+            <div className={`wiki-edu-block ${isNaiveStep ? "is-free" : "is-shared"}`}>
               <div className="wiki-edu-block-id">l</div>
               <div className="wiki-edu-block-title">指数分母累加</div>
-              <span className="wiki-edu-ref-badge ref-1">{spec.ubDenomL}</span>
+              <span className="wiki-edu-ref-badge ref-1">{ubDenomL}</span>
             </div>
             <div
-              className={`wiki-edu-block ${spec.isNaiveOom ? "is-free" : step === 3 ? "is-cow" : "is-shared"}`}
+              className={`wiki-edu-block ${isNaiveStep ? "is-free" : step === 3 ? "is-cow" : "is-shared"}`}
             >
               <div className="wiki-edu-block-id">Õ</div>
-              <div className="wiki-edu-block-title">{spec.ubTileTitle}</div>
-              <span className={`wiki-edu-ref-badge ${step === 3 ? "ref-2" : "ref-1"}`}>{spec.ubNumerO}</span>
+              <div className="wiki-edu-block-title">{ubTileTitle}</div>
+              <span className={`wiki-edu-ref-badge ${step === 3 ? "ref-2" : "ref-1"}`}>{ubNumerO}</span>
             </div>
             <div className="wiki-edu-note-card">{spec.ubActionNote}</div>
           </div>

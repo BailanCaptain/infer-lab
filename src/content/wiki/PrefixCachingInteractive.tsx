@@ -1,9 +1,13 @@
-import { type KeyboardEvent, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useMemo, useState } from "react";
 import type { InteractiveDiagramProps } from "./QuantizationIntuitionInteractive";
 import { eduBtnStyle, WikiEduSandboxShell } from "./WikiEduSandboxShell";
 
 export type PrefixCachingStep = 1 | 2 | 3 | 4 | 5;
 export type PrefixDiagramMode = "svg" | "sandbox";
+export const PREFIX_HIT_PRESETS = ["full-8", "half-7", "diff-salt", "cow-fork"] as const;
+export type PrefixHitPreset = (typeof PREFIX_HIT_PRESETS)[number];
+export const PREFIX_EVICT_STAGES = ["none", "ab-released", "alloc-evict"] as const;
+export type PrefixEvictStage = (typeof PREFIX_EVICT_STAGES)[number];
 
 export interface PrefixBlockView {
   readonly id: "B0" | "B1" | "B2" | "B3";
@@ -448,16 +452,392 @@ export const PREFIX_CACHING_STEPS: readonly PrefixStepSpec[] = [
   },
 ];
 
+export interface PrefixComputedState {
+  readonly step: PrefixCachingStep;
+  readonly hitPreset: PrefixHitPreset;
+  readonly evictStage: PrefixEvictStage;
+  readonly reusedCells: number;
+  readonly recomputeCells: number;
+  readonly copiedBlocks: number;
+  readonly h0Registered: boolean;
+  readonly h1Registered: boolean;
+  readonly h1Note: string;
+  readonly evictedBlocks: readonly string[];
+  readonly freeLruQueue: readonly string[];
+  readonly lastTokenLogitsRecomputed: true;
+  readonly badgeText: string;
+  readonly takeaway: string;
+  readonly kpiText: string;
+  readonly blocks: readonly PrefixBlockView[];
+  readonly reqA: PrefixRequestCardSpec;
+  readonly reqB: PrefixRequestCardSpec;
+  readonly cowCopyFromTo?: readonly [PrefixBlockView["id"], PrefixBlockView["id"]];
+}
+
+export function computePrefixPoolState(
+  step: PrefixCachingStep = 2,
+  hitPreset: PrefixHitPreset = "full-8",
+  evictStage: PrefixEvictStage = "none",
+): PrefixComputedState {
+  const effectiveStep: PrefixCachingStep = hitPreset === "cow-fork" ? 5 : step;
+  const base = PREFIX_CACHING_STEPS[effectiveStep - 1]!;
+
+  if (evictStage === "ab-released") {
+    return {
+      step: effectiveStep,
+      hitPreset,
+      evictStage,
+      reusedCells: 8,
+      recomputeCells: 0,
+      copiedBlocks: 0,
+      h0Registered: true,
+      h1Registered: true,
+      h1Note: "h1→B1 留存待捡回",
+      evictedBlocks: [],
+      freeLruQueue: ["B2", "B3", "B1", "B0", "B4"],
+      lastTokenLogitsRecomputed: true,
+      badgeText: "倒序回收 · 叶块排前根块殿后",
+      takeaway:
+        "A 与 B 先后结束归零：物理块带着哈希登记按「尾→叶 B1→根 B0」倒序排入空闲 LRU，未借走前仍可零重算捡回！",
+      kpiText: "叶 B1 排在根 B0 前待淘汰",
+      blocks: [
+        {
+          id: "B0",
+          roleLabel: "根块缓存留存 (h0 仍在)",
+          fillText: "ref=0 留存",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 0,
+          refBadge: "ref=0 缓",
+          refTone: "",
+          state: "free",
+          highlight: true,
+        },
+        {
+          id: "B1",
+          roleLabel: "叶块缓存留存 (排 B0 前)",
+          fillText: "ref=0 留存",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 0,
+          refBadge: "ref=0 缓",
+          refTone: "",
+          state: "free",
+          highlight: true,
+        },
+        {
+          id: "B2",
+          roleLabel: "原 A 私有尾 (队头首借)",
+          fillText: "空闲",
+          cells: ["", "", "", ""],
+          refCnt: 0,
+          refBadge: "队头",
+          refTone: "",
+          state: "free",
+        },
+        {
+          id: "B3",
+          roleLabel: "原 B 私有尾 (次位待借)",
+          fillText: "空闲",
+          cells: ["", "", "", ""],
+          refCnt: 0,
+          refBadge: "空闲",
+          refTone: "",
+          state: "free",
+        },
+      ],
+      reqA: {
+        name: "请求 A",
+        stateText: "已释放",
+        stateTone: "",
+        active: false,
+        dim: true,
+        slots: [{ text: "引用已全部归零返池", target: null, tone: "is-empty" }],
+      },
+      reqB: {
+        name: "请求 B",
+        stateText: "已释放",
+        stateTone: "",
+        active: false,
+        dim: true,
+        slots: [{ text: "倒序 B3→B1→B0 挂入空闲队列", target: null, tone: "is-empty" }],
+      },
+    };
+  }
+
+  if (evictStage === "alloc-evict") {
+    return {
+      step: effectiveStep,
+      hitPreset,
+      evictStage,
+      reusedCells: 4,
+      recomputeCells: 6,
+      copiedBlocks: 0,
+      h0Registered: true,
+      h1Registered: false,
+      h1Note: "h1 已随叶块 B1 驱逐抹除",
+      evictedBlocks: ["B1"],
+      freeLruQueue: ["B0", "B4"],
+      lastTokenLogitsRecomputed: true,
+      badgeText: "施压分配 · 叶块 B1 早于根块 B0 被驱逐",
+      takeaway:
+        "新请求从 LRU 队头连借 3 块（B2、B3、B1）：叶子块 B1 先被借走并抹除 h1 登记，而公共根块 B0 仍安全留存在缓存中！",
+      kpiText: "叶 B1 已驱逐 · 根 B0 仍保留",
+      blocks: [
+        {
+          id: "B0",
+          roleLabel: "根块存活 (h0 仍可命中!)",
+          fillText: "缓存存活",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 0,
+          refBadge: "根块留存",
+          refTone: "ref-1",
+          state: "shared",
+          highlight: true,
+        },
+        {
+          id: "B1",
+          roleLabel: "叶块已驱逐 (新单覆写)",
+          fillText: "h1 抹除",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "已驱逐重分",
+          refTone: "ref-cow",
+          state: "cow",
+          highlight: true,
+        },
+        {
+          id: "B2",
+          roleLabel: "新单借用块 1",
+          fillText: "4/4",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "新 ref=1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+        {
+          id: "B3",
+          roleLabel: "新单借用块 2",
+          fillText: "4/4",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "新 ref=1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+      ],
+      reqA: {
+        name: "原共享链",
+        stateText: "局部存活",
+        stateTone: "is-hit",
+        active: false,
+        dim: false,
+        slots: [
+          { text: "根块 h0 仍在缓存池", target: "B0", tone: "is-sys" },
+          { text: "叶块 h1 已被借走抹除", target: null, tone: "is-empty" },
+        ],
+      },
+      reqB: {
+        name: "新请求施压借块",
+        stateText: "队头借 3 块",
+        stateTone: "is-cow",
+        active: true,
+        dim: false,
+        slots: [
+          { text: "从队头摘走 B2, B3", target: "B2", tone: "is-priv" },
+          { text: "驱逐叶块 B1 覆写新词", target: "B1", tone: "is-cow", flow: true },
+        ],
+      },
+    };
+  }
+
+  if (hitPreset === "half-7") {
+    return {
+      step: effectiveStep,
+      hitPreset,
+      evictStage,
+      reusedCells: 4,
+      recomputeCells: 6,
+      copiedBlocks: 0,
+      h0Registered: true,
+      h1Registered: true,
+      h1Note: "第7格差异 → 第2块失配",
+      evictedBlocks: [],
+      freeLruQueue: ["B4"],
+      lastTokenLogitsRecomputed: true,
+      badgeText: "半块 7 格同前缀 · 仅整块 B0 复用 4 格",
+      takeaway:
+        "公共前缀减至 7 格（不足两整块）：标准 APC 只按满块对齐，仅复用 B0 的 4 格，第 2 块与尾块共 6 格须由 B 自算！",
+      kpiText: "省 4/10 格 · 须自算 6 格",
+      blocks: [
+        {
+          id: "B0",
+          roleLabel: "整块命中 [0..3] (共享)",
+          fillText: "4/4",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 2,
+          refBadge: "ref = 2",
+          refTone: "ref-2",
+          state: "shared",
+          highlight: true,
+        },
+        {
+          id: "B1",
+          roleLabel: "A 第2块 [4..7] (仅 A 用)",
+          fillText: "4/4",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-1",
+          state: "shared",
+        },
+        {
+          id: "B2",
+          roleLabel: "A 私有尾 [8..9]",
+          fillText: "2/4",
+          cells: ["tok", "tok", "", ""],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+        {
+          id: "B3",
+          roleLabel: "B 重算 [4..9] 私有块",
+          fillText: "自算 6 格",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-priv",
+          state: "private",
+          highlight: true,
+        },
+      ],
+      reqA: base.reqA,
+      reqB: {
+        name: "请求 B (共前缀 7 格)",
+        stateText: "仅首块命中",
+        stateTone: "is-hit",
+        active: true,
+        dim: false,
+        slots: [
+          { text: "前 4 格整块命中 → 复用 B0", target: "B0", tone: "is-sys is-hit", flow: true },
+          { text: "后 3+3=6 格未凑满同块 → 自算", target: "B3", tone: "is-priv", flow: true },
+        ],
+      },
+    };
+  }
+
+  if (hitPreset === "diff-salt") {
+    return {
+      step: effectiveStep,
+      hitPreset,
+      evictStage,
+      reusedCells: 0,
+      recomputeCells: 10,
+      copiedBlocks: 0,
+      h0Registered: true,
+      h1Registered: true,
+      h1Note: "异盐 salt_B → 首块 h0' 即失配",
+      evictedBlocks: [],
+      freeLruQueue: ["B4"],
+      lastTokenLogitsRecomputed: true,
+      badgeText: "不同租户 cache_salt · 文本相同仍零命中",
+      takeaway:
+        "请求 B 虽带一模一样的提示词文本，但传入不同 cache_salt 身份键：首块指纹 h0'≠h0 连环失配，命中 0 格，严格隔离防串租！",
+      kpiText: "异盐命中 0 格 · 自算 10 格",
+      blocks: [
+        {
+          id: "B0",
+          roleLabel: "A 盐值块 [0..3] (隔离)",
+          fillText: "4/4",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-1",
+          state: "shared",
+        },
+        {
+          id: "B1",
+          roleLabel: "A 盐值块 [4..7] (隔离)",
+          fillText: "4/4",
+          cells: ["kv", "kv", "kv", "kv"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-1",
+          state: "shared",
+        },
+        {
+          id: "B2",
+          roleLabel: "A 私有尾 [8..9]",
+          fillText: "2/4",
+          cells: ["tok", "tok", "", ""],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-priv",
+          state: "private",
+        },
+        {
+          id: "B3",
+          roleLabel: "B 异盐独立新块 (0 复用)",
+          fillText: "全重算 10 格",
+          cells: ["tok", "tok", "tok", "tok"],
+          refCnt: 1,
+          refBadge: "ref = 1",
+          refTone: "ref-cow",
+          state: "cow",
+          highlight: true,
+        },
+      ],
+      reqA: base.reqA,
+      reqB: {
+        name: "请求 B (不同 cache_salt)",
+        stateText: "异盐 0 命中",
+        stateTone: "is-cow",
+        active: true,
+        dim: false,
+        slots: [
+          { text: "同文本但异盐 → h0'≠h0 拒绝复用", target: "B3", tone: "is-cow", flow: true },
+          { text: "全段 10 格独立分配重算", target: "B3", tone: "is-priv" },
+        ],
+      },
+    };
+  }
+
+  return {
+    step: effectiveStep,
+    hitPreset,
+    evictStage,
+    reusedCells: effectiveStep === 1 ? 0 : 8,
+    recomputeCells: effectiveStep === 1 ? 10 : effectiveStep === 5 ? 1 : 2,
+    copiedBlocks: effectiveStep === 5 ? 1 : 0,
+    h0Registered: true,
+    h1Registered: true,
+    h1Note: "h1=H(h0,[4..7])→B1",
+    evictedBlocks: [],
+    freeLruQueue: base.freeLruQueue,
+    lastTokenLogitsRecomputed: true,
+    badgeText: base.badgeText,
+    takeaway: base.takeaway,
+    kpiText: base.savedCellsText,
+    blocks: base.blocks,
+    reqA: base.reqA,
+    reqB: base.reqB,
+    ...(base.cowCopyFromTo ? { cowCopyFromTo: base.cowCopyFromTo } : {}),
+  };
+}
+
 export interface PrefixCachingInteractiveProps extends InteractiveDiagramProps {
   readonly initialMode?: PrefixDiagramMode | undefined;
   readonly initialStep?: PrefixCachingStep | undefined;
+  readonly initialHitPreset?: PrefixHitPreset | undefined;
+  readonly initialEvictStage?: PrefixEvictStage | undefined;
 }
 
-const BLOCK_WIRE_Y: Record<PrefixBlockView["id"], number> = {
-  B0: 54,
-  B1: 118,
-  B2: 182,
-  B3: 246,
+const BLOCK_ROW_Y: Record<PrefixBlockView["id"], number> = {
+  B0: 66,
+  B1: 116,
+  B2: 166,
+  B3: 216,
 };
 
 function renderRequestCard(card: PrefixRequestCardSpec) {
@@ -488,11 +868,20 @@ export function PrefixCachingInteractive({
   onScroll,
   initialMode = "sandbox",
   initialStep = 2,
+  initialHitPreset = "full-8",
+  initialEvictStage = "none",
 }: PrefixCachingInteractiveProps) {
   const [mode, setMode] = useState<PrefixDiagramMode>(initialMode);
   const [step, setStep] = useState<PrefixCachingStep>(initialStep);
+  const [hitPreset, setHitPreset] = useState<PrefixHitPreset>(initialHitPreset);
+  const [evictStage, setEvictStage] = useState<PrefixEvictStage>(initialEvictStage);
   const [playing, setPlaying] = useState(false);
-  const spec = PREFIX_CACHING_STEPS[step - 1]!;
+
+  const state = useMemo(
+    () => computePrefixPoolState(step, hitPreset, evictStage),
+    [step, hitPreset, evictStage],
+  );
+  const spec = PREFIX_CACHING_STEPS[state.step - 1]!;
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const mKv = `${id}-${uid}-pc-kv`;
   const mTok = `${id}-${uid}-pc-tok`;
@@ -516,6 +905,8 @@ export function PrefixCachingInteractive({
   const selectStep = (next: PrefixCachingStep) => {
     setPlaying(false);
     setMode("sandbox");
+    setHitPreset("full-8");
+    setEvictStage("none");
     setStep(next);
   };
 
@@ -525,6 +916,8 @@ export function PrefixCachingInteractive({
       setPlaying(false);
       return;
     }
+    setHitPreset("full-8");
+    setEvictStage("none");
     if (step >= 5) setStep(1);
     setPlaying(true);
   };
@@ -566,38 +959,6 @@ export function PrefixCachingInteractive({
     }
   };
 
-  const buildWires = (slots: readonly PrefixSlotPill[], baseY: number, isB: boolean) =>
-    slots.map((slot, idx) => {
-      if (!slot.target) return null;
-      const y1 = baseY + idx * 32;
-      const y2 = BLOCK_WIRE_Y[slot.target];
-      const stroke = slot.tone.includes("cow")
-        ? "#9a4b86"
-        : slot.flow && slot.tone.includes("hit")
-          ? "#e85b32"
-          : slot.tone.includes("priv")
-            ? "#087f73"
-            : "#4c65b6";
-      const marker = slot.tone.includes("cow")
-        ? mCow
-        : slot.flow && slot.tone.includes("hit")
-          ? mAccent
-          : slot.tone.includes("priv")
-            ? mTok
-            : mKv;
-      const opacity = isB || !spec.reqB.active ? 0.92 : 0.44;
-      return (
-        <path
-          key={`${baseY}-${slot.text}`}
-          className={`wiki-edu-wire${slot.flow ? " is-flow" : ""}`}
-          d={`M 4 ${y1} C 66 ${y1}, 72 ${y2}, 130 ${y2}`}
-          stroke={stroke}
-          opacity={opacity}
-          markerEnd={`url(#${marker})`}
-        />
-      );
-    });
-
   return (
     <WikiEduSandboxShell
       id={id}
@@ -616,7 +977,11 @@ export function PrefixCachingInteractive({
       question="两个请求都带相同的系统提示词，为什么第二个不用重算？"
       toolbarLabel="Prefix Caching 共享块表与写时复制控制"
       onToolbarKeyDown={handleKeyDown}
-      extraRootAttrs={{ "data-step": step }}
+      extraRootAttrs={{
+        "data-step": state.step,
+        "data-hit-preset": hitPreset,
+        "data-evict-stage": evictStage,
+      }}
       toolbar={
         <>
           <div className="wiki-edu-btn-row">
@@ -625,7 +990,7 @@ export function PrefixCachingInteractive({
               className="wiki-edu-btn"
               data-testid="prefix-autoplay"
               aria-pressed={playing}
-              style={eduBtnStyle(playing, "accent")}
+              style={eduBtnStyle(playing, "dark")}
               onClick={toggleAutoPlay}
             >
               {playing ? "⏸ 暂停演示" : "▶ 自动演示"}
@@ -633,26 +998,27 @@ export function PrefixCachingInteractive({
             <button
               type="button"
               className="wiki-edu-btn"
-              disabled={step <= 1}
+              disabled={state.step <= 1}
               style={eduBtnStyle(false)}
-              onClick={() => selectStep(Math.max(1, step - 1) as PrefixCachingStep)}
+              onClick={() => selectStep(Math.max(1, state.step - 1) as PrefixCachingStep)}
             >
               ‹ 上一步
             </button>
             <button
               type="button"
               className="wiki-edu-btn"
-              disabled={step >= 5}
+              disabled={state.step >= 5}
               style={eduBtnStyle(false)}
-              onClick={() => selectStep(Math.min(5, step + 1) as PrefixCachingStep)}
+              onClick={() => selectStep(Math.min(5, state.step + 1) as PrefixCachingStep)}
             >
               下一步 ›
             </button>
-          </div>
-
-          <fieldset className="wiki-edu-btn-row" aria-label="前缀缓存五步动作演化">
             {PREFIX_CACHING_STEPS.map((item) => {
-              const active = mode === "sandbox" && step === item.step;
+              const active =
+                mode === "sandbox" &&
+                evictStage === "none" &&
+                (hitPreset === "full-8" || (hitPreset === "cow-fork" && item.step === 5)) &&
+                state.step === item.step;
               return (
                 <button
                   key={item.step}
@@ -668,38 +1034,103 @@ export function PrefixCachingInteractive({
                 </button>
               );
             })}
+          </div>
+
+          <fieldset className="wiki-edu-btn-row" aria-label="前缀命中档位与倒序驱逐实验">
+            {(
+              [
+                ["full-8", "全命中8格"],
+                ["half-7", "半块7格(仅复4格)"],
+                ["diff-salt", "异盐0命中"],
+                ["cow-fork", "CoW共享尾分叉"],
+              ] as const
+            ).map(([hp, label]) => {
+              const active = mode === "sandbox" && evictStage === "none" && hitPreset === hp;
+              return (
+                <button
+                  key={hp}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`prefix-preset-${hp}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "dark")}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode("sandbox");
+                    setEvictStage("none");
+                    setHitPreset(hp);
+                    if (hp === "cow-fork") setStep(5);
+                    else if (step === 1 || step === 5) setStep(2);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            {(
+              [
+                ["ab-released", "A+B全释入LRU"],
+                ["alloc-evict", "施压先汰叶B1"],
+              ] as const
+            ).map(([es, label]) => {
+              const active = mode === "sandbox" && evictStage === es;
+              return (
+                <button
+                  key={es}
+                  type="button"
+                  className="wiki-edu-btn"
+                  data-testid={`prefix-evict-${es}`}
+                  aria-pressed={active}
+                  style={eduBtnStyle(active, "teal")}
+                  onClick={() => {
+                    setPlaying(false);
+                    setMode("sandbox");
+                    setEvictStage(es);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </fieldset>
         </>
       }
-      takeawayBadge={spec.badgeText}
-      takeawayTone={spec.step === 2 || spec.step === 5 ? "accent" : "default"}
-      takeaway={spec.takeaway}
-      kpi={spec.savedCellsText}
-      detailsSummary="查看工程与源码细节（链式哈希 / ref_cnt / 倒序 LRU 回收规则）"
+      takeawayBadge={state.badgeText}
+      takeawayTone={
+        evictStage === "alloc-evict" || hitPreset === "diff-salt"
+          ? "warn"
+          : state.step === 2 || state.step === 5
+            ? "accent"
+            : "default"
+      }
+      takeaway={state.takeaway}
+      kpi={state.kpiText}
+      detailsSummary="查看工程与源码细节（链式哈希 / ref_cnt / 倒序 LRU 回收与末位 logits 重算边界）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}（空闲队列队头 [ {spec.freeLruQueue.join(", ")} ] 队尾）
+          <strong>{spec.title}</strong>：{spec.detail}（当前核算：复用 <code>{state.reusedCells}</code>{" "}
+          格、自算 <code>{state.recomputeCells}</code> 格、块复制 <code>{state.copiedBlocks}</code>{" "}
+          块；常规整段全命中时仍须回退保留末 <code>1</code> 个位置计算下一词 logits；空闲队列队头 [{" "}
+          {state.freeLruQueue.join(", ")} ] 队尾）
         </>
       }
     >
-      <div className="wiki-edu-pc-grid">
-        <div className="wiki-edu-pc-requests">
-          <div className="wiki-edu-col-title">
-            <span>输入对话（逻辑块）</span>
-            <span>每块 4 格示意</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="wiki-edu-panel">
+          <div className="wiki-edu-panel-head">
+            <span className="wiki-edu-panel-title">
+              ① 逻辑块表 → 链式哈希索引 → HBM 物理块槽与倒序 LRU 全景图
+            </span>
+            <span className="wiki-edu-badge is-good">{`复用 ${state.reusedCells} 格 · 拷贝 ${state.copiedBlocks} 块`}</span>
           </div>
-          {renderRequestCard(spec.reqA)}
-          {renderRequestCard(spec.reqB)}
-        </div>
 
-        <div className="wiki-edu-wires-col">
           <svg
-            className="wiki-edu-wires-svg"
-            viewBox="0 0 136 288"
-            width="136"
-            height="288"
+            viewBox="0 0 860 258"
+            width="860"
+            height="258"
+            style={{ width: "100%", height: "auto", display: "block" }}
             role="img"
-            aria-label={`Prefix Caching 连线：${spec.title}`}
+            aria-label={`Prefix Caching 全景状态：${state.badgeText}`}
           >
             <defs>
               <marker
@@ -707,8 +1138,8 @@ export function PrefixCachingInteractive({
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="6"
-                markerHeight="6"
+                markerWidth="5"
+                markerHeight="5"
                 orient="auto"
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#4c65b6" />
@@ -718,8 +1149,8 @@ export function PrefixCachingInteractive({
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="6"
-                markerHeight="6"
+                markerWidth="5"
+                markerHeight="5"
                 orient="auto"
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#087f73" />
@@ -729,8 +1160,8 @@ export function PrefixCachingInteractive({
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="6"
-                markerHeight="6"
+                markerWidth="5"
+                markerHeight="5"
                 orient="auto"
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#e85b32" />
@@ -740,57 +1171,276 @@ export function PrefixCachingInteractive({
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="6"
-                markerHeight="6"
+                markerWidth="5"
+                markerHeight="5"
                 orient="auto"
               >
                 <path d="M0,1 L9,5 L0,9 z" fill="#9a4b86" />
               </marker>
             </defs>
-            {buildWires(spec.reqA.slots, 64, false)}
-            {buildWires(spec.reqB.slots, 198, true)}
-            {spec.cowCopyFromTo && (
+
+            <text x="104" y="24" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ① 逻辑块表
+            </text>
+            <text x="312" y="24" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ② 链式哈希表
+            </text>
+            <text x="546" y="24" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ③ 物理块池(ref)
+            </text>
+            <text x="768" y="24" textAnchor="middle" fontSize="13" fontWeight="700" fill="#17211f">
+              ④ 空闲 LRU
+            </text>
+
+            <rect
+              x="12"
+              y="38"
+              width="184"
+              height="90"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#4c65b6"
+              strokeWidth="1.4"
+            />
+            <text x="104" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {state.reqA.name.slice(0, 9)}
+            </text>
+            <text x="104" y="86" textAnchor="middle" fontSize="12" fill="#4c65b6">
+              {evictStage === "ab-released" ? "引用归零返池" : "前缀 → B0, B1"}
+            </text>
+            <text x="104" y="112" textAnchor="middle" fontSize="12" fill="#087f73">
+              {state.step === 5 ? "原读尾 → B3" : evictStage !== "none" ? "尾块已回收" : "私有尾 → B2"}
+            </text>
+
+            <rect
+              x="12"
+              y="138"
+              width="184"
+              height="94"
+              rx="8"
+              fill={hitPreset === "diff-salt" ? "#fff0e9" : "#ddf4ef"}
+              stroke={hitPreset === "diff-salt" ? "#b54237" : "#087f73"}
+              strokeWidth="1.5"
+            />
+            <text x="104" y="158" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {state.reqB.name.slice(0, 10)}
+            </text>
+            <text x="104" y="186" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              {hitPreset === "diff-salt"
+                ? "异盐 → B3全重算"
+                : hitPreset === "half-7"
+                  ? "仅首块命中 → B0"
+                  : evictStage === "alloc-evict"
+                    ? "借走 B2,B3,B1"
+                    : state.step === 5
+                      ? "CoW改写 → B2"
+                      : state.step === 1
+                        ? "等待进入…"
+                        : "零拷贝 → B0,B1"}
+            </text>
+            <rect x="24" y="198" width="160" height="24" rx="5" fill="#fff4cf" stroke="#c78300" />
+            <text x="104" y="215" textAnchor="middle" fontSize="12" fontWeight="700" fill="#c78300">
+              末位1词必算 logits
+            </text>
+
+            <rect
+              x="220"
+              y="38"
+              width="184"
+              height="194"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            <rect x="232" y="48" width="160" height="34" rx="6" fill="#e8edff" stroke="#4c65b6" />
+            <text x="312" y="70" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              h0: 根[0..3]+盐A→B0
+            </text>
+            <rect
+              x="232"
+              y="98"
+              width="160"
+              height="38"
+              rx="6"
+              fill={
+                !state.h1Registered || hitPreset === "diff-salt" || hitPreset === "half-7"
+                  ? "#fff0e9"
+                  : "#e8edff"
+              }
+              stroke={
+                !state.h1Registered || hitPreset === "diff-salt" || hitPreset === "half-7"
+                  ? "#b54237"
+                  : "#4c65b6"
+              }
+              strokeDasharray={!state.h1Registered ? "4 2" : undefined}
+            />
+            <text x="312" y="122" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {!state.h1Registered
+                ? "h1: 随叶B1驱逐抹除"
+                : hitPreset === "half-7"
+                  ? "第7格异: 块2失配"
+                  : hitPreset === "diff-salt"
+                    ? "异盐B: h0'失配"
+                    : "h1: H(h0,[4..7])→B1"}
+            </text>
+            <rect x="232" y="152" width="160" height="68" rx="6" fill="#fff4cf" stroke="#c78300" />
+            <text x="312" y="178" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              全命中恢复边界
+            </text>
+            <text x="312" y="204" textAnchor="middle" fontSize="12" fill="#66716d">
+              留末1词算 logits
+            </text>
+            <path d="M 196 76 L 218 68" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
+            <path d="M 196 176 L 218 118" stroke="#087f73" strokeWidth="1.8" markerEnd={`url(#${mTok})`} />
+            <path d="M 404 66 L 430 66" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
+            {state.h1Registered && (
+              <path d="M 404 116 L 430 116" stroke="#4c65b6" strokeWidth="1.8" markerEnd={`url(#${mKv})`} />
+            )}
+
+            <rect
+              x="432"
+              y="38"
+              width="228"
+              height="198"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            {state.blocks.map((blk) => {
+              const ry = BLOCK_ROW_Y[blk.id] - 20;
+              const fill =
+                blk.state === "shared"
+                  ? "#e8edff"
+                  : blk.state === "private"
+                    ? "#ddf4ef"
+                    : blk.state === "cow"
+                      ? "#f7e7f2"
+                      : "#ece9df";
+              const stroke =
+                blk.state === "shared"
+                  ? "#4c65b6"
+                  : blk.state === "private"
+                    ? "#087f73"
+                    : blk.state === "cow"
+                      ? "#9a4b86"
+                      : "#d8d8cf";
+              return (
+                <g key={`svg-${blk.id}`}>
+                  <rect
+                    x="444"
+                    y={ry}
+                    width="204"
+                    height="38"
+                    rx="6"
+                    fill={fill}
+                    stroke={blk.highlight ? "#e85b32" : stroke}
+                    strokeWidth={blk.highlight ? "1.8" : "1.3"}
+                    strokeDasharray={blk.state === "free" ? "4 2" : undefined}
+                  />
+                  <text x="546" y={ry + 24} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {`${blk.id} · ${blk.fillText} · ${blk.refBadge}`}
+                  </text>
+                </g>
+              );
+            })}
+            {state.cowCopyFromTo && (
               <path
                 className="wiki-edu-wire is-flow"
-                d="M 130 244 C 102 236, 102 202, 130 192"
+                d="M 650 214 C 668 206, 668 176, 650 166"
                 stroke="#9a4b86"
                 markerEnd={`url(#${mCow})`}
               />
             )}
+
+            <path d="M 660 136 L 682 136" stroke="#e85b32" strokeWidth="1.8" markerEnd={`url(#${mAccent})`} />
+            <rect
+              x="684"
+              y="38"
+              width="164"
+              height="198"
+              rx="8"
+              fill="#fbfaf6"
+              stroke="#d8d8cf"
+              strokeWidth="1.4"
+            />
+            <text x="766" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#66716d">
+              队头 (先借走)
+            </text>
+            {state.freeLruQueue.slice(0, 4).map((qId, qi) => {
+              const qy = 70 + qi * 30;
+              const isLeaf = qId === "B1";
+              const isRoot = qId === "B0";
+              return (
+                <g key={`lru-${qId}`}>
+                  <rect
+                    x="700"
+                    y={qy}
+                    width="132"
+                    height="24"
+                    rx="5"
+                    fill={isLeaf ? "#fff4cf" : isRoot ? "#ddf4ef" : "#ffffff"}
+                    stroke={isLeaf ? "#c78300" : isRoot ? "#087f73" : "#d8d8cf"}
+                  />
+                  <text x="766" y={qy + 17} textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+                    {isLeaf ? "B1 (叶·先汰)" : isRoot ? "B0 (根·后汰)" : qId}
+                  </text>
+                </g>
+              );
+            })}
+            <text x="766" y="218" textAnchor="middle" fontSize="12" fontWeight="700" fill="#087f73">
+              叶B1早于根B0淘汰
+            </text>
+
+            <text x="430" y="250" textAnchor="middle" fontSize="12" fontWeight="700" fill="#17211f">
+              {`账本：跳过 ${state.reusedCells} 格 · 自算 ${state.recomputeCells} 格 · 物理拷贝 ${state.copiedBlocks} 块`}
+            </text>
           </svg>
         </div>
 
-        <div className="wiki-edu-hbm">
-          <div className="wiki-edu-col-title">
-            <span>NPU 显存物理块池（HBM）</span>
-            <span className="mono">{`空闲队列：${spec.freeLruQueue.join(", ")}`}</span>
+        <div className="wiki-edu-dual-grid">
+          <div className="wiki-edu-pc-requests">
+            <div className="wiki-edu-col-title">
+              <span>请求逻辑块映射</span>
+              <span>每块 4 格示意</span>
+            </div>
+            {renderRequestCard(state.reqA)}
+            {renderRequestCard(state.reqB)}
           </div>
-          {spec.blocks.map((block) => (
-            <div
-              key={block.id}
-              className={`wiki-edu-block is-${block.state}${block.highlight ? " is-highlight" : ""}`}
-            >
-              <div className="wiki-edu-block-id">{block.id}</div>
-              <div>
-                <div className="wiki-edu-block-title">{block.roleLabel}</div>
-                <div className="wiki-edu-cells">
-                  {block.cells.map((cell, cellIdx) => (
-                    <span
-                      // biome-ignore lint/suspicious/noArrayIndexKey: fixed 4-cell memory tray slots
-                      key={cellIdx}
-                      className={`wiki-edu-cell${cell ? ` fill-${cell}` : ""}`}
-                    />
-                  ))}
+
+          <div className="wiki-edu-hbm">
+            <div className="wiki-edu-col-title">
+              <span>NPU 显存物理块池（HBM）</span>
+              <span className="mono">{`LRU 队头→[${state.freeLruQueue.join(", ")}]`}</span>
+            </div>
+            {state.blocks.map((block) => (
+              <div
+                key={block.id}
+                className={`wiki-edu-block is-${block.state}${block.highlight ? " is-highlight" : ""}`}
+              >
+                <div className="wiki-edu-block-id">{block.id}</div>
+                <div>
+                  <div className="wiki-edu-block-title">{block.roleLabel}</div>
+                  <div className="wiki-edu-cells">
+                    {block.cells.map((cell, cellIdx) => (
+                      <span
+                        // biome-ignore lint/suspicious/noArrayIndexKey: fixed 4-cell memory tray slots
+                        key={cellIdx}
+                        className={`wiki-edu-cell${cell ? ` fill-${cell}` : ""}`}
+                      />
+                    ))}
+                  </div>
                 </div>
+                <span className={`wiki-edu-ref-badge ${block.refTone}`.trim()}>{block.refBadge}</span>
               </div>
-              <span className={`wiki-edu-ref-badge ${block.refTone}`.trim()}>{block.refBadge}</span>
-            </div>
-          ))}
-          {spec.cowCopyFromTo && (
-            <div className="wiki-edu-cow-banner">
-              ⚡ 写时复制：原块 B3 正在被 B 读取，先拷贝 1 份到 B2 再改写！
-            </div>
-          )}
+            ))}
+            {state.cowCopyFromTo && (
+              <div className="wiki-edu-cow-banner">
+                ⚡ 写时复制：原块 B3 正在被 B 读取，先拷贝 1 份到 B2 再改写！
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </WikiEduSandboxShell>

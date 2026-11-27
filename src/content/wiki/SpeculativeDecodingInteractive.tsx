@@ -20,11 +20,16 @@ export interface SpecVerifySlot {
   readonly inputWord: string;
   readonly inputRole: string;
   readonly mainPred: string;
+  readonly greedyPred?: string | undefined;
   readonly predTargetPos: number;
   readonly verdict: "hit" | "mismatch" | "discard" | "bonus";
   readonly verdictLabel: string;
   readonly finalCommitted: string | null;
   readonly kvValidAfterVerify: boolean;
+  readonly acceptProb?: number | undefined;
+  readonly uAccept?: number | undefined;
+  readonly uResidual?: number | undefined;
+  readonly slotResidualProbs?: readonly [number, number, number] | undefined;
 }
 
 export const SPEC_VERIFY_SLOTS: readonly SpecVerifySlot[] = [
@@ -130,6 +135,37 @@ export const SPEC_DECODE_STEPS: readonly SpecDecodeStepSpec[] = [
   },
 ];
 
+export interface SpecSlotProbTable {
+  readonly vocab: readonly [string, string, string];
+  readonly p: readonly [number, number, number];
+  readonly q: readonly [number, number, number];
+  readonly uAccept: number;
+  readonly uResidual: number;
+}
+
+export interface SpecBonusProbTable {
+  readonly vocab: readonly [string, string, string];
+  readonly p: readonly [number, number, number];
+  readonly uBonus: number;
+}
+
+export interface RejectionStepEval {
+  readonly vocab: readonly [string, string, string];
+  readonly p: readonly [number, number, number];
+  readonly q: readonly [number, number, number];
+  readonly draftWord: string;
+  readonly greedyWord: string;
+  readonly pDraft: number;
+  readonly qDraft: number;
+  readonly acceptProb: number;
+  readonly uAccept: number;
+  readonly acceptedInGreedy: boolean;
+  readonly acceptedInRejection: boolean;
+  readonly residualProbs: readonly [number, number, number];
+  readonly uResidual: number;
+  readonly residualWord: string;
+}
+
 export interface SpecSandboxComputedState {
   readonly k: SpecCandidateK;
   readonly branch: SpecVerdictBranch;
@@ -146,9 +182,105 @@ export interface SpecSandboxComputedState {
   readonly expectedFormulaText: string;
   readonly acceptThreshold: number;
   readonly residualProbs: readonly [number, number, number];
+  readonly focusSlotPos: number;
+  readonly focusVocab: readonly [string, string, string];
+  readonly focusTargetProbs: readonly [number, number, number];
+  readonly focusDraftProbs: readonly [number, number, number];
+  readonly focusDraftWord: string;
+  readonly focusGreedyWord: string;
+  readonly focusResidualWord: string;
+  readonly focusUAccept: number;
+  readonly focusUResidual: number;
 }
 
-const TARGET_STREAM = ["坐", "在", "垫子", "上", "打", "盹"] as const;
+export function sampleCategorical(
+  vocab: readonly [string, string, string],
+  probs: readonly [number, number, number],
+  u: number,
+): string {
+  let cum = 0;
+  let fallback = vocab[0]!;
+  for (let i = 0; i < vocab.length; i++) {
+    const prob = probs[i]!;
+    if (prob <= 0) continue;
+    fallback = vocab[i]!;
+    cum += prob;
+    if (u <= cum + 1e-9) return vocab[i]!;
+  }
+  return fallback;
+}
+
+export function evaluateRejectionStep(table: SpecSlotProbTable, draftWord: string): RejectionStepEval {
+  const { vocab, p, q, uAccept, uResidual } = table;
+  const maxIdx = p[1] > p[0] ? (p[2] > p[1] ? 2 : 1) : p[2] > p[0] ? 2 : 0;
+  const greedyWord = vocab[maxIdx]!;
+  const draftIdx = Math.max(0, vocab.indexOf(draftWord));
+  const pDraft = p[draftIdx]!;
+  const qDraft = q[draftIdx]!;
+  const acceptProb = Number(Math.min(1, pDraft / qDraft).toFixed(4));
+  const rawRes = [Math.max(0, p[0] - q[0]), Math.max(0, p[1] - q[1]), Math.max(0, p[2] - q[2])];
+  const resSum = rawRes[0]! + rawRes[1]! + rawRes[2]!;
+  const residualProbs: readonly [number, number, number] =
+    resSum > 0
+      ? [
+          Number((rawRes[0]! / resSum).toFixed(4)),
+          Number((rawRes[1]! / resSum).toFixed(4)),
+          Number((rawRes[2]! / resSum).toFixed(4)),
+        ]
+      : [0, 0, 0];
+  const residualWord = resSum > 0 ? sampleCategorical(vocab, residualProbs, uResidual) : greedyWord;
+  return {
+    vocab,
+    p,
+    q,
+    draftWord,
+    greedyWord,
+    pDraft,
+    qDraft,
+    acceptProb,
+    uAccept,
+    acceptedInGreedy: draftWord === greedyWord,
+    acceptedInRejection: uAccept <= acceptProb,
+    residualProbs,
+    uResidual,
+    residualWord,
+  };
+}
+
+export const SPEC_SLOT_PROB_TABLES: Record<SpecVerdictBranch, readonly SpecSlotProbTable[]> = {
+  "first-wrong": [
+    { vocab: ["坐", "趴", "跳"], p: [0.52, 0.38, 0.1], q: [0.4, 0.1, 0.5], uAccept: 0.6, uResidual: 0.55 },
+    { vocab: ["下", "在", "稳"], p: [0.6, 0.25, 0.15], q: [0.2, 0.65, 0.15], uAccept: 0.5, uResidual: 0.3 },
+    { vocab: ["垫子", "地毯", "床"], p: [0.5, 0.4, 0.1], q: [0.4, 0.35, 0.25], uAccept: 0.7, uResidual: 0.6 },
+    { vocab: ["上", "里", "旁"], p: [0.68, 0.22, 0.1], q: [0.8, 0.1, 0.1], uAccept: 0.6, uResidual: 0.5 },
+    { vocab: ["打", "睡", "趴"], p: [0.6, 0.25, 0.15], q: [0.2, 0.65, 0.15], uAccept: 0.7, uResidual: 0.4 },
+  ],
+  "mismatch-3": [
+    { vocab: ["坐", "趴", "跳"], p: [0.72, 0.18, 0.1], q: [0.8, 0.1, 0.1], uAccept: 0.45, uResidual: 0.4 },
+    { vocab: ["在", "向", "往"], p: [0.8, 0.12, 0.08], q: [0.64, 0.2, 0.16], uAccept: 0.85, uResidual: 0.3 },
+    {
+      vocab: ["垫子", "地毯", "床"],
+      p: [0.5, 0.4, 0.1],
+      q: [0.15, 0.05, 0.8],
+      uAccept: 0.5,
+      uResidual: 0.75,
+    },
+    { vocab: ["上", "里", "旁"], p: [0.68, 0.22, 0.1], q: [0.8, 0.1, 0.1], uAccept: 0.6, uResidual: 0.5 },
+    { vocab: ["打", "睡", "趴"], p: [0.6, 0.25, 0.15], q: [0.2, 0.65, 0.15], uAccept: 0.7, uResidual: 0.4 },
+  ],
+  "all-hit": [
+    { vocab: ["坐", "趴", "跳"], p: [0.72, 0.18, 0.1], q: [0.8, 0.1, 0.1], uAccept: 0.45, uResidual: 0.4 },
+    { vocab: ["在", "向", "往"], p: [0.8, 0.12, 0.08], q: [0.64, 0.2, 0.16], uAccept: 0.85, uResidual: 0.3 },
+    { vocab: ["垫子", "地毯", "床"], p: [0.5, 0.4, 0.1], q: [0.4, 0.35, 0.25], uAccept: 0.7, uResidual: 0.6 },
+    { vocab: ["上", "里", "旁"], p: [0.68, 0.22, 0.1], q: [0.8, 0.1, 0.1], uAccept: 0.6, uResidual: 0.5 },
+    { vocab: ["打", "睡", "趴"], p: [0.6, 0.25, 0.15], q: [0.75, 0.15, 0.1], uAccept: 0.55, uResidual: 0.5 },
+  ],
+};
+
+export const SPEC_BONUS_PROB_TABLES: Record<SpecCandidateK, SpecBonusProbTable> = {
+  3: { vocab: ["上", "里", "旁"], p: [0.68, 0.22, 0.1], uBonus: 0.78 },
+  5: { vocab: ["盹", "呼", "欠"], p: [0.7, 0.2, 0.1], uBonus: 0.82 },
+};
 
 export function computeSpecDecodeState(
   k: SpecCandidateK = 3,
@@ -165,10 +297,14 @@ export function computeSpecDecodeState(
         : (["坐", "在", "垫子", "上", "打"] as const);
   const drafts = draftAll.slice(0, k);
   const inputWords = ["猫", ...drafts];
+  const branchTables = SPEC_SLOT_PROB_TABLES[branch];
+  const stepEvals = drafts.map((dw, idx) => evaluateRejectionStep(branchTables[idx]!, dw));
 
   let divergeDraftIdx = -1; // 0..k-1
   for (let i = 0; i < k; i++) {
-    if (drafts[i] !== TARGET_STREAM[i]) {
+    const ev = stepEvals[i]!;
+    const accepted = verifyMode === "rejection" ? ev.acceptedInRejection : ev.acceptedInGreedy;
+    if (!accepted) {
       divergeDraftIdx = i;
       break;
     }
@@ -177,57 +313,84 @@ export function computeSpecDecodeState(
   const committedWords: string[] = [];
   const slots: SpecVerifySlot[] = [];
 
+  const bonusTable = SPEC_BONUS_PROB_TABLES[k];
+  const bonusMaxIdx =
+    bonusTable.p[1] > bonusTable.p[0]
+      ? bonusTable.p[2] > bonusTable.p[1]
+        ? 2
+        : 1
+      : bonusTable.p[2] > bonusTable.p[0]
+        ? 2
+        : 0;
+  const greedyBonus = bonusTable.vocab[bonusMaxIdx]!;
+  const sampledBonus = sampleCategorical(bonusTable.vocab, bonusTable.p, bonusTable.uBonus);
+
   for (let idx = 0; idx <= k; idx++) {
     const pos = 5 + idx;
     const predTargetPos = pos + 1;
     const inputWord = inputWords[idx]!;
     const inputRole = idx === 0 ? "已确定末词" : `草稿候选 ${idx}`;
-    const mainPred = idx === 1 && branch === "first-wrong" ? "下" : TARGET_STREAM[idx]!;
     const kvValidAfterVerify = idx <= acceptedDrafts;
 
     if (idx < k) {
-      const nextCand = drafts[idx]!;
+      const ev = stepEvals[idx]!;
       if (divergeDraftIdx === -1 || idx < divergeDraftIdx) {
-        committedWords.push(mainPred);
+        const resolvedWord = verifyMode === "rejection" ? ev.draftWord : ev.greedyWord;
+        committedWords.push(resolvedWord);
         slots.push({
           pos,
           inputWord,
           inputRole,
-          mainPred,
+          mainPred: resolvedWord,
+          greedyPred: ev.greedyWord,
           predTargetPos,
           verdict: "hit",
           verdictLabel:
             verifyMode === "rejection"
-              ? `✓ u ≤ min(1,p/q) 留「${nextCand}」`
-              : `✓ ${mainPred} = 候选${idx + 1}「${nextCand}」`,
-          finalCommitted: `${mainPred}（位置 ${predTargetPos}）`,
+              ? `✓ u=${ev.uAccept} ≤ min(1,${ev.pDraft}/${ev.qDraft})=${ev.acceptProb} 留「${ev.draftWord}」`
+              : `✓ ${ev.greedyWord} = 候选${idx + 1}「${ev.draftWord}」`,
+          finalCommitted:
+            verifyMode === "rejection"
+              ? `${resolvedWord}（位置 ${predTargetPos} · p/q 留存）`
+              : `${resolvedWord}（位置 ${predTargetPos}）`,
           kvValidAfterVerify,
+          acceptProb: ev.acceptProb,
+          uAccept: ev.uAccept,
+          uResidual: ev.uResidual,
+          slotResidualProbs: ev.residualProbs,
         });
       } else if (idx === divergeDraftIdx) {
-        committedWords.push(mainPred);
+        const resolvedWord = verifyMode === "rejection" ? ev.residualWord : ev.greedyWord;
+        committedWords.push(resolvedWord);
         slots.push({
           pos,
           inputWord,
           inputRole,
-          mainPred,
+          mainPred: resolvedWord,
+          greedyPred: ev.greedyWord,
           predTargetPos,
           verdict: "mismatch",
           verdictLabel:
             verifyMode === "rejection"
-              ? `✗ 拒「${nextCand}」· 残差补抽「${mainPred}」`
-              : `✗ ${mainPred} ≠ 候选${idx + 1}「${nextCand}」`,
+              ? `✗ u=${ev.uAccept} > p/q=${ev.acceptProb} 拒「${ev.draftWord}」· 残差抽「${resolvedWord}」`
+              : `✗ ${ev.greedyWord} ≠ 候选${idx + 1}「${ev.draftWord}」`,
           finalCommitted:
             verifyMode === "rejection"
-              ? `${mainPred}（位置 ${predTargetPos} · 残差补抽）`
-              : `${mainPred}（位置 ${predTargetPos} · 主模型改写）`,
+              ? `${resolvedWord}（位置 ${predTargetPos} · 残差补抽）`
+              : `${resolvedWord}（位置 ${predTargetPos} · 主模型改写）`,
           kvValidAfterVerify,
+          acceptProb: ev.acceptProb,
+          uAccept: ev.uAccept,
+          uResidual: ev.uResidual,
+          slotResidualProbs: ev.residualProbs,
         });
       } else {
         slots.push({
           pos,
           inputWord,
           inputRole,
-          mainPred,
+          mainPred: ev.greedyWord,
+          greedyPred: ev.greedyWord,
           predTargetPos,
           verdict: "discard",
           verdictLabel: `作废（读过错词「${drafts[divergeDraftIdx]!}」）`,
@@ -236,16 +399,24 @@ export function computeSpecDecodeState(
         });
       }
     } else if (divergeDraftIdx === -1) {
-      committedWords.push(mainPred);
+      const bonusWord = verifyMode === "rejection" ? sampledBonus : greedyBonus;
+      committedWords.push(bonusWord);
       slots.push({
         pos,
         inputWord,
         inputRole,
-        mainPred,
+        mainPred: bonusWord,
+        greedyPred: greedyBonus,
         predTargetPos,
         verdict: "bonus",
-        verdictLabel: `★ 全中直收奖励词「${mainPred}」`,
-        finalCommitted: `${mainPred}（位置 ${predTargetPos} · 奖励词）`,
+        verdictLabel:
+          verifyMode === "rejection"
+            ? `★ 全中按 p 采样奖励词「${bonusWord}」(u=${bonusTable.uBonus})`
+            : `★ 全中直收奖励词「${bonusWord}」`,
+        finalCommitted:
+          verifyMode === "rejection"
+            ? `${bonusWord}（位置 ${predTargetPos} · p 采样奖励词）`
+            : `${bonusWord}（位置 ${predTargetPos} · 奖励词）`,
         kvValidAfterVerify: true,
       });
     } else {
@@ -253,7 +424,8 @@ export function computeSpecDecodeState(
         pos,
         inputWord,
         inputRole,
-        mainPred,
+        mainPred: greedyBonus,
+        greedyPred: greedyBonus,
         predTargetPos,
         verdict: "discard",
         verdictLabel: `作废（读过错词「${drafts[divergeDraftIdx]!}」）`,
@@ -270,16 +442,8 @@ export function computeSpecDecodeState(
     terms.push(m === 1 ? `${clampedAlpha}` : `${clampedAlpha}^${m}`);
   }
   const expectedTokens = Number((1 + expSum).toFixed(6));
-  const p = [0.6, 0.3, 0.1] as const;
-  const q = [0.8, 0.1, 0.1] as const;
-  const acceptThreshold = Number(Math.min(1, p[0] / q[0]).toFixed(2)); // 0.75
-  const rawRes = [Math.max(0, p[0] - q[0]), Math.max(0, p[1] - q[1]), Math.max(0, p[2] - q[2])];
-  const resSum = rawRes[0]! + rawRes[1]! + rawRes[2]!;
-  const residualProbs: readonly [number, number, number] = [
-    Number((rawRes[0]! / resSum).toFixed(2)),
-    Number((rawRes[1]! / resSum).toFixed(2)),
-    Number((rawRes[2]! / resSum).toFixed(2)),
-  ];
+  const focusIdx = divergeDraftIdx !== -1 ? divergeDraftIdx : 0;
+  const focusEv = stepEvals[focusIdx]!;
 
   return {
     k,
@@ -295,8 +459,17 @@ export function computeSpecDecodeState(
     discardedKvCount: k - acceptedDrafts,
     expectedTokens,
     expectedFormulaText: terms.join(" + "),
-    acceptThreshold,
-    residualProbs,
+    acceptThreshold: focusEv.acceptProb,
+    residualProbs: focusEv.residualProbs,
+    focusSlotPos: 6 + focusIdx,
+    focusVocab: focusEv.vocab,
+    focusTargetProbs: focusEv.p,
+    focusDraftProbs: focusEv.q,
+    focusDraftWord: focusEv.draftWord,
+    focusGreedyWord: focusEv.greedyWord,
+    focusResidualWord: focusEv.residualWord,
+    focusUAccept: focusEv.uAccept,
+    focusUResidual: focusEv.uResidual,
   };
 }
 
@@ -419,10 +592,16 @@ export function SpeculativeDecodingInteractive({
       : step === 2
         ? `主模型只读一次权重，把 ${k + 1} 格并行前向算完，每格同时吐出下一位置的预测分布。`
         : branch === "first-wrong"
-          ? `首格候选即不符！当场采用主模型第 1 格预测「${state.committedWords[0]!}」停笔，后 ${state.discardedKvCount} 格作废，保底仍净进 1 词！`
+          ? verifyMode === "rejection"
+            ? `首格候选「${state.focusDraftWord}」因 u=${state.focusUAccept} > min(1,p/q)=${state.acceptThreshold} 被拒！按残差分布补抽「${state.committedWords[0]!}」停笔，后 ${state.discardedKvCount} 格作废，保底净进 1 词！`
+            : `首格候选即不符！当场采用主模型第 1 格预测「${state.committedWords[0]!}」停笔，后 ${state.discardedKvCount} 格作废，保底仍净进 1 词！`
           : branch === "all-hit"
-            ? `全部 K=${k} 个草稿候选全中！第 ${k + 1} 格预测也顺势成立，白赚奖励词「${state.committedWords[k]!}」，一轮净进 ${state.committedCount} 词！`
-            : `前 2 词命中、第 3 格分歧停笔，后 ${state.discardedKvCount} 格因读过错词作废，一轮稳收「${state.committedWords.join("、")}」共 ${state.committedCount} 词！`;
+            ? verifyMode === "rejection"
+              ? `全部 K=${k} 个草稿候选均满足 u ≤ min(1,p/q) 留存！第 ${k + 1} 格按主模型分布 p 采样奖励词「${state.committedWords[k]!}」，一轮净进 ${state.committedCount} 词！`
+              : `全部 K=${k} 个草稿候选全中！第 ${k + 1} 格预测也顺势成立，白赚奖励词「${state.committedWords[k]!}」，一轮净进 ${state.committedCount} 词！`
+            : verifyMode === "rejection"
+              ? `前 2 词通过 u ≤ min(1,p/q) 留存，第 3 格「${state.focusDraftWord}」因 u=${state.focusUAccept} > p/q=${state.acceptThreshold} 被拒并从残差分布补抽「${state.committedWords[2]!}」，一轮净收「${state.committedWords.join("、")}」共 ${state.committedCount} 词！`
+              : `前 2 词命中、第 3 格分歧停笔，后 ${state.discardedKvCount} 格因读过错词作废，一轮稳收「${state.committedWords.join("、")}」共 ${state.committedCount} 词！`;
 
   const dynamicKpi = isDefaultScenario
     ? spec.kpi
@@ -606,8 +785,16 @@ export function SpeculativeDecodingInteractive({
       detailsSummary="查看工程与源码细节（拒绝采样保分布证明 / 被拒 KV 原地覆写 / 加速盈亏比）"
       detailsContent={
         <>
-          <strong>{spec.title}</strong>：{spec.detail}（当前设定：<code>K={k}</code>，本轮净提交{" "}
-          <code>{state.committedCount}</code> 词 <code>[{state.committedWords.join("、")}]</code>，KV 已算计数{" "}
+          <strong>
+            {isDefaultScenario
+              ? spec.title
+              : `动作 ${step} · ${verifyMode === "rejection" ? "拒绝采样 min(1, p/q) 核对与残差补抽" : "Greedy 逐位核对"}（K=${k}，净收 [${state.committedWords.join("、")}]）`}
+          </strong>
+          ：{spec.detail}（当前设定：<code>K={k}</code>，模式{" "}
+          <code>{verifyMode === "rejection" ? "rejection(p,q)" : "greedy"}</code>，本轮净提交{" "}
+          <code>{state.committedCount}</code> 词 <code>[{state.committedWords.join("、")}]</code>，焦点位置{" "}
+          <code>{state.focusSlotPos}</code> 阈值 <code>{`min(1,p/q)=${state.acceptThreshold}`}</code>、残差{" "}
+          <code>{`[${state.residualProbs.join(", ")}]`}</code>，KV 已算计数{" "}
           <code>
             {state.totalComputedBeforeRollback} → {state.nextOverwritePos}
           </code>
@@ -753,13 +940,23 @@ export function SpeculativeDecodingInteractive({
                   >
                     {step < 2
                       ? "待前向"
-                      : isDiscardPred
-                        ? `预${slot.predTargetPos}:作废`
-                        : isMismatchPred
-                          ? `改${slot.predTargetPos}:${slot.mainPred}`
-                          : isBonusPred
-                            ? `奖${slot.predTargetPos}:${slot.mainPred}`
-                            : `预${slot.predTargetPos}:${slot.mainPred}`}
+                      : step === 2
+                        ? verifyMode === "rejection"
+                          ? `p${slot.predTargetPos}:峰=${slot.greedyPred ?? slot.mainPred}`
+                          : `预${slot.predTargetPos}:${slot.greedyPred ?? slot.mainPred}`
+                        : isDiscardPred
+                          ? `预${slot.predTargetPos}:作废`
+                          : isMismatchPred
+                            ? verifyMode === "rejection"
+                              ? `拒→补${slot.predTargetPos}:${slot.mainPred}`
+                              : `改${slot.predTargetPos}:${slot.mainPred}`
+                            : isBonusPred
+                              ? verifyMode === "rejection"
+                                ? `奖${slot.predTargetPos}:${slot.mainPred}(p)`
+                                : `奖${slot.predTargetPos}:${slot.mainPred}`
+                              : verifyMode === "rejection"
+                                ? `留${slot.predTargetPos}:${slot.mainPred}(≤${slot.acceptProb ?? 1})`
+                                : `预${slot.predTargetPos}:${slot.mainPred}`}
                   </text>
 
                   <rect
@@ -826,8 +1023,8 @@ export function SpeculativeDecodingInteractive({
               fill={state.discardedKvCount > 0 ? "#b54237" : "#087f73"}
             >
               {state.discardedKvCount > 0
-                ? `已算进度 ${state.totalComputedBeforeRollback} → 退回 ${state.nextOverwritePos} · 下轮从位置 ${state.nextOverwritePos} 原地覆写（免擦 ${state.discardedKvCount} 格旧 KV）`
-                : `✓ K=${k} 候选全中零回滚 · 净收 ${state.committedCount} 词，下轮从位置 ${state.nextOverwritePos} 携奖励词续猜`}
+                ? `净收[${state.committedWords.join("、")}] · 进度 ${state.totalComputedBeforeRollback}→退回 ${state.nextOverwritePos} 原地覆写（免擦 ${state.discardedKvCount} 格旧 KV）`
+                : `✓ K=${k} 候选全中零回滚 · 净收[${state.committedWords.join("、")}]共 ${state.committedCount} 词，下轮从位置 ${state.nextOverwritePos} 续猜`}
             </text>
           </svg>
         </div>
@@ -879,19 +1076,34 @@ export function SpeculativeDecodingInteractive({
                 <span className="wiki-edu-ptr-tag">{`${state.expectedFormulaText} = ${state.expectedTokens}`}</span>
               </div>
               <div className="wiki-edu-tok-pill is-sys">
-                <span>概率例 p=[0.6,0.3,0.1] · q=[0.8,0.1,0.1]</span>
-                <span className="wiki-edu-ptr-tag">{`首项阈值 min(1,p/q)=${state.acceptThreshold}`}</span>
+                <span>
+                  {`位置${state.focusSlotPos} [${state.focusVocab.join("/")}] · p=[${state.focusTargetProbs.join(",")}] · q=[${state.focusDraftProbs.join(",")}]`}
+                </span>
+                <span className="wiki-edu-ptr-tag">
+                  {state.focusUAccept <= state.acceptThreshold
+                    ? `「${state.focusDraftWord}」u=${state.focusUAccept} ≤ min(1,p/q)=${state.acceptThreshold}`
+                    : `「${state.focusDraftWord}」u=${state.focusUAccept} > min(1,p/q)=${state.acceptThreshold}`}
+                </span>
               </div>
               <div className="wiki-edu-tok-pill is-cow">
                 <span>拒绝后残差 norm(max(0, p−q))</span>
-                <span className="wiki-edu-ptr-tag">{`[${state.residualProbs.join(", ")}] → 补抽第2项`}</span>
+                <span className="wiki-edu-ptr-tag">
+                  {verifyMode === "greedy"
+                    ? `[${state.residualProbs.join(", ")}] · Greedy 取 argmax「${state.focusGreedyWord}」`
+                    : state.focusUAccept <= state.acceptThreshold
+                      ? `[${state.residualProbs.join(", ")}] · 已留存免补抽`
+                      : `[${state.residualProbs.join(", ")}] · u_res=${state.focusUResidual} → 抽「${state.focusResidualWord}」`}
+                </span>
               </div>
             </div>
 
             <div className="wiki-edu-note-card">
-              <strong>主模型拍板保分布</strong>：Greedy 直接取主模型最高分词；温度采样按{" "}
-              <code>min(1, p/q)</code> 留存、被拒从 <code>max(0, p−q)</code> 补抽，边际概率严格等于{" "}
-              <code>0.6 / 0.3 / 0.1</code>。
+              <strong>主模型拍板保分布</strong>：位置 {state.focusSlotPos} 上 Greedy 直取最高分词「
+              {state.focusGreedyWord}」；拒绝采样按 <code>{`min(1, p/q)=${state.acceptThreshold}`}</code>{" "}
+              判定候选「{state.focusDraftWord}」，被拒从残差{" "}
+              <code>{`[${state.residualProbs.join(", ")}]`}</code> 按{" "}
+              <code>{`u_res=${state.focusUResidual}`}</code> 补抽「{state.focusResidualWord}
+              」，边际概率严格等于 <code>{state.focusTargetProbs.join(" / ")}</code>。
             </div>
           </div>
         </div>

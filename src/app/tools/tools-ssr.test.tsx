@@ -2,7 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from "react-router";
 import { describe, expect, it } from "vitest";
-import { LEGACY_BASELINE_BADGE_TEXT, resolveToolDeepLink } from "../../content/wiki/toolDeeplinks";
+import {
+  LEGACY_BASELINE_BADGE_TEXT,
+  resolveToolDeepLink,
+  V030_VERIFIED_TAG,
+} from "../../content/wiki/toolDeeplinks";
 import { ASCEND_910B3_MEASURED_BENCHMARKS, SCHEMATIC_TIMING_BADGE } from "../../sim/aicore/matmulRmsScenario";
 import { SCHEMATIC_TRACE_BADGE_TEXT } from "../../sim/troubleshoot/timelineSandbox";
 import { WARGAME_SCENARIOS } from "../../sim/wargame/scenarios";
@@ -642,7 +646,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(inactiveTsHtml).toContain('data-panel="logs"');
   });
 
-  it("Track 3B: renders tab=wargame SSR, restores ?case=<scenarioId>, guards spoilers/inactive URL, and validates all 6 scenario Wiki deep-links", async () => {
+  it("Track 3B: renders tab=wargame SSR, restores ?case=<scenarioId>, guards spoilers/inactive URL, and validates all 8 scenario Wiki deep-links", async () => {
     const handler = createStaticHandler([
       {
         path: "/",
@@ -657,7 +661,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
       return renderToStaticMarkup(createElement(StaticRouterProvider, { router, context: ctx }));
     };
 
-    // 1. Default tab=wargame SSR: 5th scenario tab active, progress 0 / 6, hints & debrief locked (no spoilers)
+    // 1. Default tab=wargame SSR: 5th scenario tab active, progress 0 / 8, hints & debrief locked (no spoilers)
     const defaultHtml = await renderUrl("http://localhost/tools?tab=wargame");
     expect(defaultHtml).toContain('data-testid="tools-tab-wargame"');
     expect(defaultHtml).toContain("⑤ 实战闯关演练");
@@ -665,7 +669,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(defaultHtml).toContain('data-testid="wargame-view"');
     expect(defaultHtml).toContain('data-active-case="rank3-oom-ei0006"');
     expect(defaultHtml).toContain('data-testid="wargame-progress-badge"');
-    expect(defaultHtml).toContain("已通关 0 / 7 关");
+    expect(defaultHtml).toContain("已通关 0 / 8 关");
     expect(defaultHtml).toContain('data-testid="wargame-debrief-locked"');
     expect(defaultHtml).not.toContain('data-testid="wargame-debrief-card"');
     expect(defaultHtml).not.toContain('data-testid="wargame-hints-list"');
@@ -710,10 +714,12 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(memStore.has(WARGAME_PROGRESS_STORAGE_KEY)).toBe(true);
     expect([...readWarGamePassedIds(mockStorage)]).toEqual(["rank3-oom-ei0006", "pd-mooncake-kv-mismatch"]);
 
-    // 5. All 6 scenarios' debrief Wiki deep-links resolve to valid v0.30.0 verified pages
+    // 5. All 8 scenarios' debrief Wiki deep-links resolve to valid v0.30.0 verified pages
     for (const sc of WARGAME_SCENARIOS) {
       for (const ref of sc.debrief.wikiRefs) {
         const resolved = resolveToolDeepLink(ref.pageId, { anchor: ref.anchor, label: ref.label });
+        expect(resolved.verified).toContain(V030_VERIFIED_TAG);
+        expect(resolved.isV030Verified).toBe(true);
         expect(resolved.isLegacyBaseline).toBe(false);
       }
     }
@@ -956,5 +962,50 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(tightHtml).not.toContain("显存不足（需加卡或降精度）");
     expect(tightHtml).not.toContain("无法直接启动");
     expect(tightHtml).not.toContain("溢出态");
+
+    // 10. 3D Hardware Stage SSR renders distinct transport-init legend, 可见待命 status, and clean initial state
+    const { TroubleshootHardwareStage } = await import("./TroubleshootHardwareStage");
+    const { analyzeTroubleshootInput } = await import("../../sim/troubleshoot/logAnalyzer");
+    const visReport = analyzeTroubleshootInput(
+      "export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3\n10:00:00 ERROR [Rank 0] RuntimeError: NPU out of memory",
+    );
+    const stageHtmlA = renderToStaticMarkup(
+      createElement(TroubleshootHardwareStage, {
+        report: visReport,
+        defaultCardId: "a2-64g",
+        selectedRank: 0,
+        onSelectEvidence: () => {},
+      }),
+    );
+    const stageHtmlB = renderToStaticMarkup(
+      createElement(TroubleshootHardwareStage, {
+        report: visReport,
+        defaultCardId: "a2-64g",
+        selectedRank: 0,
+        onSelectEvidence: () => {},
+      }),
+    );
+    expect(stageHtmlA).toBe(stageHtmlB);
+    expect(stageHtmlA).toContain("传输/Ranktable 初始化异常（EI0004 / EI0009 / EJ0001）");
+    expect(stageHtmlA).toContain("可见待命");
+    expect(stageHtmlA).toContain('data-scene-ready="loading"');
+    expect(stageHtmlA).toContain('data-reduced-motion="false"');
+
+    // 11. v5 #17: computeVisibleBounds accounts for per-instance transforms on InstancedMesh
+    const THREE = await import("three");
+    const { computeVisibleBounds } = await import("./TroubleshootHardwareStage");
+    const instGeom = new THREE.BoxGeometry(1, 1, 1);
+    const instMatl = new THREE.MeshBasicMaterial();
+    const instMesh = new THREE.InstancedMesh(instGeom, instMatl, 2);
+    instMesh.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0, 0, 0));
+    instMesh.setMatrixAt(1, new THREE.Matrix4().makeTranslation(0, 4.5, 0));
+    instMesh.instanceMatrix.needsUpdate = true;
+    const instGroup = new THREE.Group();
+    instGroup.add(instMesh);
+    const instBox = computeVisibleBounds(instGroup);
+    expect(instBox.max.y).toBeCloseTo(5, 4);
+    expect(instBox.min.y).toBeCloseTo(-0.5, 4);
+    instGeom.dispose();
+    instMatl.dispose();
   });
 });

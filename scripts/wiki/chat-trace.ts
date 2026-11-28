@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseDocLinks } from "./corpus";
 import { mapDocRef } from "./corpus-trace";
@@ -40,9 +42,21 @@ export type VersionCheck =
   | { status: "no-local-commit"; searched: string; reason: string }
   | {
       status: "found";
-      /** 本地克隆里标题以 (#N) 结尾的那个提交——squash 合并的约定 */
+      /** 本地克隆里对应 PR 的主合并/squash 提交 */
       commit: string;
-      pins: { ref: string; commit: string; contains: boolean; sameNumberCommit?: string }[];
+      /** 同一 PR 在本地克隆中匹配到的全部提交（覆盖多提交 PR，如 vllm#55223） */
+      commits?: string[];
+      pins: {
+        ref: string;
+        commit: string;
+        /** 有效修复状态：已合入（或已被明确 cherry-pick 回移）且未被后续 revert 撤销 */
+        contains: boolean;
+        /** 主提交是否为该钉点的 git 祖先（即便后续被 revert 仍保留原始祖先事实） */
+        commitAncestor?: boolean;
+        sameNumberCommit?: string;
+        cherryPickCommit?: string;
+        revertedBy?: string;
+      }[];
       tags: string[];
       moreTags: number;
     }
@@ -139,20 +153,546 @@ function isAncestor(dir: string, commit: string, of: string) {
   }
 }
 
-/** 从 revs 可达、标题以 `(#N)` 结尾的提交，新的在前 */
-function numberedCommits(dir: string, revs: string[], number: number) {
-  const suffix = `(#${number})`;
-  return gitText(dir, ["log", ...revs, "-F", `--grep=${suffix}`, "--format=%H%x09%s", "-n", "20"])
-    .split(/\r?\n/)
-    .map((line) => line.split("\t"))
-    .filter(([sha, subject]) => sha && subject?.trimEnd().endsWith(suffix))
-    .map(([sha]) => sha!);
+const REVERT_SUBJECT_RE = /^(?:\[[^\]]+\]\s*)*Revert\b/i;
+
+function isDirectPrSubject(subject: string, number: number): boolean {
+  const trimmed = subject.trim();
+  if (!trimmed) return false;
+  const prSuffix = `(#${number})`;
+  // Exclude commits reverting PR #N unless #N is itself the revert PR's own trailing suffix
+  if (REVERT_SUBJECT_RE.test(trimmed)) {
+    const quotedPr = new RegExp(`["“][^"”]*\\(#${number}\\)["”]?`);
+    if (quotedPr.test(trimmed) && !trimmed.endsWith(prSuffix)) return false;
+  }
+  if (trimmed.endsWith(prSuffix)) return true;
+  return new RegExp(`^Merge pull request #${number}(?:\\s|$)`, "i").test(trimmed);
+}
+
+interface RepoPrIndex {
+  directByPr: Map<number, string[]>;
+  cherryPickByPr: Map<number, string[]>;
+  cherryPickBySha7: Map<string, Array<{ citedSha: string; commitSha: string }>>;
+}
+
+const REPO_PR_INDEX_CACHE = new Map<string, RepoPrIndex>();
+
+function getRepoPrIndex(dir: string): RepoPrIndex {
+  const cacheKey = repoGitStamp(dir);
+  const cached = REPO_PR_INDEX_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  const directByPr = new Map<number, string[]>();
+  const addDirect = (num: number, sha: string) => {
+    let arr = directByPr.get(num);
+    if (!arr) {
+      arr = [];
+      directByPr.set(num, arr);
+    }
+    if (!arr.includes(sha)) arr.push(sha);
+  };
+
+  const subjOut = gitText(dir, ["log", "--all", "--format=%H%x09%s"]);
+  for (const line of subjOut.split(/\r?\n/)) {
+    const tab = line.indexOf("\t");
+    if (tab <= 0) continue;
+    const sha = line.slice(0, tab).trim();
+    const subject = line.slice(tab + 1).trim();
+    if (!sha || !subject) continue;
+    const endM = /\(#(\d+)\)$/.exec(subject);
+    if (endM) {
+      const n = Number.parseInt(endM[1]!, 10);
+      if (isDirectPrSubject(subject, n)) addDirect(n, sha);
+      continue;
+    }
+    const mergeM = /^Merge pull request #(\d+)(?:\s|$)/i.exec(subject);
+    if (mergeM) {
+      const n = Number.parseInt(mergeM[1]!, 10);
+      if (isDirectPrSubject(subject, n)) addDirect(n, sha);
+    }
+  }
+
+  const cherryPickByPr = new Map<number, string[]>();
+  const cherryPickBySha7 = new Map<string, Array<{ citedSha: string; commitSha: string }>>();
+  const addCpPr = (num: number, sha: string) => {
+    let arr = cherryPickByPr.get(num);
+    if (!arr) {
+      arr = [];
+      cherryPickByPr.set(num, arr);
+    }
+    if (!arr.includes(sha)) arr.push(sha);
+  };
+  const addCpSha = (citedSha: string, commitSha: string) => {
+    const sha7 = citedSha.slice(0, 7);
+    let arr = cherryPickBySha7.get(sha7);
+    if (!arr) {
+      arr = [];
+      cherryPickBySha7.set(sha7, arr);
+    }
+    if (!arr.some((e) => e.citedSha === citedSha && e.commitSha === commitSha)) {
+      arr.push({ citedSha, commitSha });
+    }
+  };
+
+  const cpOut = gitText(dir, [
+    "log",
+    "--all",
+    "-F",
+    "--regexp-ignore-case",
+    "--grep=from #",
+    "--grep=Original PR:",
+    "--grep=Cherry-pick of PR",
+    "--grep=cherry picked from commit ",
+    "--format=%H%x1f%s%x1f%b%x1e",
+  ]);
+  for (const chunk of cpOut.split("\x1e")) {
+    const trimmed = chunk.trim();
+    if (!trimmed) continue;
+    const [shaRaw = "", subjectRaw = "", body = ""] = trimmed.split("\x1f");
+    const sha = shaRaw.trim();
+    const subject = subjectRaw.trim();
+    if (!sha || REVERT_SUBJECT_RE.test(subject)) continue;
+    const full = `${subject}\n${body}`;
+    for (const m of full.matchAll(
+      /\((?:from|backport(?:ed)?\s+from|cherry[- ]?pick(?:ed)?\s+from)\s+#(\d+)\)|(?:Original PR:|Cherry-pick of PR)\s*#(\d+)(?!\d)/gi,
+    )) {
+      const n = Number.parseInt(m[1] ?? m[2] ?? "", 10);
+      if (Number.isInteger(n) && n > 0) addCpPr(n, sha);
+    }
+    for (const m of body.matchAll(/cherry picked from commit ([0-9a-f]{7,40})/gi)) {
+      const citedSha = (m[1] ?? "").toLowerCase();
+      if (citedSha.length >= 7) addCpSha(citedSha, sha);
+    }
+  }
+
+  const idx: RepoPrIndex = { directByPr, cherryPickByPr, cherryPickBySha7 };
+  REPO_PR_INDEX_CACHE.set(cacheKey, idx);
+  return idx;
+}
+
+const REV_ANCESTORS_CACHE = new Map<string, Set<string>>();
+const RESOLVED_PINS_CACHE = new Map<
+  string,
+  { head: string; headSha: string; pinCommits: Array<{ ref: string; commit: string }> }
+>();
+
+function getRevAncestors(dir: string, rev: string): Set<string> {
+  const key = `${repoGitStamp(dir)}::${rev}`;
+  const cached = REV_ANCESTORS_CACHE.get(key);
+  if (cached) return cached;
+  const out = gitText(dir, ["rev-list", rev]);
+  const set = new Set<string>();
+  for (const ln of out.split(/\r?\n/)) {
+    const s = ln.trim();
+    if (s) set.add(s);
+  }
+  REV_ANCESTORS_CACHE.set(key, set);
+  return set;
+}
+
+function isAncestorFast(dir: string, ancestor: string, descendant: string): boolean {
+  return getRevAncestors(dir, descendant).has(ancestor);
+}
+
+/** 从 revs 可达、属于 PR #N 的直接提交（含 squash `(#N)`、多提交 PR 与常规 `Merge pull request #N`），新的在前 */
+function numberedCommits(dir: string, revs: string[], number: number): string[] {
+  const candidates = getRepoPrIndex(dir).directByPr.get(number);
+  if (!candidates?.length) return [];
+  const resolvedRevs: string[] = [];
+  for (const r of revs) {
+    if (r.startsWith("--remotes=")) {
+      const prefix = r.slice("--remotes=".length).replace(/\*$/, "");
+      const out = gitText(dir, ["for-each-ref", "--format=%(objectname)", `refs/remotes/${prefix}`]);
+      for (const s of out.split(/\r?\n/)) {
+        const trimmed = s.trim();
+        if (trimmed && !resolvedRevs.includes(trimmed)) resolvedRevs.push(trimmed);
+      }
+    } else if (!resolvedRevs.includes(r)) {
+      resolvedRevs.push(r);
+    }
+  }
+  return candidates.filter((sha) => resolvedRevs.some((rev) => isAncestorFast(dir, sha, rev)));
+}
+
+/** 一次遍历候选钉点，查找带明确回移溯源（`from #N` / `Original PR: #N` / `cherry picked from commit <sha>`）的非 revert 提交 */
+function findCherryPickCandidates(
+  dir: string,
+  revs: readonly string[],
+  number: number,
+  origCommits: readonly string[],
+): string[] {
+  if (!revs.length) return [];
+  const idx = getRepoPrIndex(dir);
+  const pool = new Set<string>(idx.cherryPickByPr.get(number) ?? []);
+  for (const orig of origCommits) {
+    const origLower = orig.toLowerCase();
+    const s7 = origLower.slice(0, 7);
+    for (const entry of idx.cherryPickBySha7.get(s7) ?? []) {
+      if (origLower.startsWith(entry.citedSha) || entry.citedSha.startsWith(origLower)) {
+        pool.add(entry.commitSha);
+      }
+    }
+  }
+  const shas: string[] = [];
+  for (const sha of pool) {
+    if (origCommits.includes(sha)) continue;
+    if (revs.some((rev) => isAncestorFast(dir, sha, rev))) shas.push(sha);
+  }
+  return shas;
+}
+
+function computePatchId(dir: string, diffText: string): string | null {
+  if (!diffText.trim()) return null;
+  const res = spawnSync("git", ["-C", dir, "patch-id", "--stable"], {
+    input: diffText,
+    encoding: "utf8",
+    maxBuffer: 64 << 20,
+    env: { ...process.env, GIT_NO_LAZY_FETCH: "1" },
+  });
+  if (res.error) {
+    throw new GitError(res.status, `git -C ${dir} patch-id --stable failed: ${res.error.message}`);
+  }
+  if (res.status !== 0) {
+    throw new GitError(
+      res.status,
+      `git -C ${dir} patch-id --stable exited ${String(res.status)}: ${(res.stderr || "").trim()}`,
+    );
+  }
+  const id = res.stdout.trim().split(/\s+/)[0] ?? "";
+  return /^[0-9a-f]{40}$/i.test(id) && !/^0+$/.test(id) ? id : null;
+}
+
+function hasCommitParent(dir: string, sha: string): boolean {
+  const out = gitText(dir, ["rev-list", "--parents", "-n", "1", sha]).trim();
+  return out.split(/\s+/).length >= 2;
+}
+
+function commitDiff(dir: string, sha: string, reverse = false): string {
+  if (!hasCommitParent(dir, sha)) {
+    return reverse ? "" : gitText(dir, ["show", "--format=", sha]);
+  }
+  return reverse ? gitText(dir, ["diff", sha, `${sha}^`]) : gitText(dir, ["diff", `${sha}^`, sha]);
+}
+
+interface IndexedRevertCommit {
+  sha: string;
+  subject: string;
+  body: string;
+  fullMsg: string;
+  citedShas: string[];
+  quotedPrs: number[];
+  isRevertSubject: boolean;
+  changedFiles: Set<string>;
+}
+
+const REPO_REVERT_INDEX_CACHE = new Map<string, IndexedRevertCommit[]>();
+const COMMIT_FILES_CACHE = new Map<string, Set<string>>();
+
+function resolveGitDir(dir: string): string | null {
+  const dotGit = join(dir, ".git");
+  if (!existsSync(dotGit)) return null;
+  try {
+    const st = statSync(dotGit);
+    if (st.isDirectory()) return dotGit;
+    if (st.isFile()) {
+      const m = /^gitdir:\s*(.+)$/im.exec(readFileSync(dotGit, "utf8"));
+      if (m) return resolve(dir, m[1]!.trim());
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function probeRepoGitAccess(dir: string): string {
+  const absDir = resolve(dir);
+  if (!existsSync(absDir)) return "missing";
+  try {
+    const out = gitText(absDir, ["rev-parse", "--is-inside-work-tree"]).trim();
+    return out === "true" ? "ok" : `not-wt:${out}`;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `err:${createHash("sha256").update(msg, "utf8").digest("hex").slice(0, 12)}`;
+  }
+}
+
+/**
+ * 计算本地 git 克隆（含普通仓库与 linked worktree 共享 commondir）的完整引用与进程环境信任指纹
+ * （HEAD、packed-refs、全部松散 refs/ 文件内容与 GIT_CONFIG_* 环境），确保任意 ref 或信任配置变更都立即使内存血缘缓存失效。
+ */
+export function repoGitStamp(dir: string): string {
+  const absDir = resolve(dir);
+  if (!existsSync(absDir)) return `${absDir}:missing`;
+  const gitDir = resolveGitDir(absDir);
+  if (!gitDir) return `${absDir}:nogit`;
+  const hash = createHash("sha256").update(absDir, "utf8");
+  const gitEnvKeys = Object.keys(process.env)
+    .filter(
+      (k) =>
+        k.startsWith("GIT_CONFIG") ||
+        k === "GIT_DIR" ||
+        k === "GIT_WORK_TREE" ||
+        k === "GIT_COMMON_DIR" ||
+        k === "HOME" ||
+        k === "USERPROFILE",
+    )
+    .sort();
+  for (const k of gitEnvKeys) {
+    hash.update(`\0env:${k}=${process.env[k] ?? ""}`);
+  }
+  const gitDirs: string[] = [resolve(gitDir)];
+  const commonDirFile = join(gitDir, "commondir");
+  if (existsSync(commonDirFile)) {
+    try {
+      const commonRel = readFileSync(commonDirFile, "utf8").trim();
+      if (commonRel) {
+        const commonAbs = resolve(gitDir, commonRel);
+        if (!gitDirs.includes(commonAbs) && existsSync(commonAbs)) {
+          gitDirs.push(commonAbs);
+        }
+      }
+    } catch {
+      hash.update("\0commondir:err");
+    }
+  }
+  const walkRefs = (curDir: string, scopeTag: string, relPrefix: string) => {
+    let entries: string[];
+    try {
+      entries = readdirSync(curDir).sort();
+    } catch {
+      hash.update(`\0refs-err:${scopeTag}:${relPrefix}`);
+      return;
+    }
+    for (const name of entries) {
+      const full = join(curDir, name);
+      const rel = relPrefix ? `${relPrefix}/${name}` : name;
+      try {
+        const st = statSync(full);
+        if (st.isDirectory()) {
+          walkRefs(full, scopeTag, rel);
+        } else if (st.isFile()) {
+          hash.update(`\0ref:${scopeTag}:${rel}=`).update(readFileSync(full));
+        }
+      } catch {
+        hash.update(`\0ref:${scopeTag}:${rel}=err`);
+      }
+    }
+  };
+  for (let i = 0; i < gitDirs.length; i++) {
+    const gdir = gitDirs[i]!;
+    const tag = i === 0 ? "git" : `common${i}`;
+    for (const rel of i === 0 ? ["HEAD", "packed-refs"] : ["packed-refs"]) {
+      const p = join(gdir, rel);
+      if (existsSync(p)) {
+        try {
+          hash.update(`\0${tag}:${rel}:`).update(readFileSync(p));
+        } catch {
+          hash.update(`\0${tag}:${rel}:err`);
+        }
+      } else {
+        hash.update(`\0${tag}:${rel}:none`);
+      }
+    }
+    const refsRoot = join(gdir, "refs");
+    if (existsSync(refsRoot)) walkRefs(refsRoot, tag, "");
+  }
+  return `${absDir}:${hash.digest("hex").slice(0, 16)}`;
+}
+
+function extractCitedShas(text: string): string[] {
+  return [...text.matchAll(/(?:reverts commit\s+`?|merge commit:\s*`?)([0-9a-f]{7,40})/gi)].map((m) =>
+    (m[1] ?? "").toLowerCase(),
+  );
+}
+
+function getRepoRevertCommits(dir: string): IndexedRevertCommit[] {
+  const cacheKey = repoGitStamp(dir);
+  const cached = REPO_REVERT_INDEX_CACHE.get(cacheKey);
+  if (cached) return cached;
+  // Single git log pass fetches commit metadata AND touched files for every revert commit across all reachable commits
+  // (omit --first-parent so reverts merged via side branches remain visible even after topic branch pruning;
+  // deduplicate merge commits emitted once per parent under -m to keep their parent-1 diff).
+  const raw = gitText(dir, [
+    "log",
+    "--all",
+    "--reverse",
+    "-F",
+    "--regexp-ignore-case",
+    "--grep=Revert",
+    "-m",
+    "--no-renames",
+    "--name-only",
+    "--format=%x1e%H%x1f%s%x1f%b%x1f",
+  ]);
+  const seenShas = new Set<string>();
+  const indexed: IndexedRevertCommit[] = [];
+  for (const chunk of raw.split("\x1e")) {
+    const trimmed = chunk.trim();
+    if (!trimmed) continue;
+    const [sha = "", subject = "", body = "", filesBlock = ""] = trimmed.split("\x1f");
+    const trimmedSha = sha.trim();
+    if (trimmedSha.length < 7 || seenShas.has(trimmedSha)) continue;
+    seenShas.add(trimmedSha);
+    const trimmedSubject = subject.trim();
+    const fullMsg = `${trimmedSubject}\n${body}`;
+    const changedFiles = new Set<string>();
+    for (const ln of filesBlock.split(/\r?\n/)) {
+      const f = ln.trim();
+      if (f) changedFiles.add(f);
+    }
+    indexed.push({
+      sha: trimmedSha,
+      subject: trimmedSubject,
+      body,
+      fullMsg,
+      citedShas: extractCitedShas(fullMsg),
+      quotedPrs: [...trimmedSubject.matchAll(/\(#(\d+)\)/g)].map((m) => Number.parseInt(m[1]!, 10)),
+      isRevertSubject: REVERT_SUBJECT_RE.test(trimmedSubject),
+      changedFiles,
+    });
+  }
+  REPO_REVERT_INDEX_CACHE.set(cacheKey, indexed);
+  return indexed;
+}
+
+function commitChangedFilesSet(dir: string, sha: string): Set<string> {
+  const key = `${repoGitStamp(dir)}::${sha}`;
+  const cached = COMMIT_FILES_CACHE.get(key);
+  if (cached) return cached;
+  const set = new Set<string>();
+  // Use `git diff --no-renames --name-only <sha>^ <sha>` (matching commitDiff!) because
+  // `git diff-tree -m` ignores `--first-parent` and unions all merge parents' diffs!
+  const out = hasCommitParent(dir, sha)
+    ? gitText(dir, ["diff", "--no-renames", "--name-only", `${sha}^`, sha])
+    : gitText(dir, ["diff-tree", "--no-renames", "--no-commit-id", "--name-only", "-r", "--root", sha]);
+  for (const ln of out.split(/\r?\n/)) {
+    const s = ln.trim();
+    if (s) set.add(s);
+  }
+  COMMIT_FILES_CACHE.set(key, set);
+  return set;
+}
+
+const PATCH_ID_CACHE = new Map<string, string | null>();
+
+function getCommitPatchId(dir: string, sha: string, reverse = false): string | null {
+  const key = `${repoGitStamp(dir)}::${sha}::${reverse ? "rev" : "fwd"}`;
+  if (PATCH_ID_CACHE.has(key)) return PATCH_ID_CACHE.get(key) ?? null;
+  const pid = computePatchId(dir, commitDiff(dir, sha, reverse));
+  PATCH_ID_CACHE.set(key, pid);
+  return pid;
+}
+
+function setsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  if (a.size === 0 || a.size !== b.size) return false;
+  for (const item of a) {
+    if (!b.has(item)) return false;
+  }
+  return true;
+}
+
+/**
+ * 检查 targetCommit 在 pinCommit 上是否被后续 revert 撤销（并支持识别再次 re-revert / 恢复）。
+ * 复用按仓库 `.git` 状态缓存的全仓 Revert 索引（~300 条），毫秒级过滤无关提交，
+ * 对候选提交用祖先关系 + 显式 commit 引用 + `git patch-id --stable` 精确核验。
+ */
+function findActiveRevertOnPin(
+  dir: string,
+  targetCommit: string,
+  pinCommit: string,
+  prNumber: number,
+): string | undefined {
+  if (targetCommit === pinCommit) return undefined;
+  const allReverts = getRepoRevertCommits(dir);
+  if (!allReverts.length) return undefined;
+
+  const prPat = new RegExp(`(?:#${prNumber}\\b|\\(#${prNumber}\\))`);
+  const referencesSha = (rec: IndexedRevertCommit, sha: string): boolean => {
+    const short7 = sha.slice(0, 7).toLowerCase();
+    const shaLower = sha.toLowerCase();
+    return rec.citedShas.some((cited) => cited.startsWith(short7) && shaLower.startsWith(cited));
+  };
+  const citesOnlyForeignTarget = (rec: IndexedRevertCommit, sha: string): boolean => {
+    if (referencesSha(rec, sha)) return false;
+    if (rec.citedShas.length > 0) return true;
+    if (!prPat.test(rec.fullMsg) && rec.quotedPrs.length >= 2 && !rec.quotedPrs.includes(prNumber)) {
+      return true;
+    }
+    return false;
+  };
+
+  let origPatchId: string | null | undefined;
+  const getOrigPatchId = () => {
+    if (origPatchId === undefined) origPatchId = getCommitPatchId(dir, targetCommit, false);
+    return origPatchId;
+  };
+  let targetFiles: Set<string> | undefined;
+  const getTargetFiles = () => {
+    if (targetFiles === undefined) targetFiles = commitChangedFilesSet(dir, targetCommit);
+    return targetFiles;
+  };
+
+  let activeRevert: string | undefined;
+  let activeRevertPatchId: string | null | undefined;
+
+  for (const rec of allReverts) {
+    if (!activeRevert) {
+      const explicitSha = referencesSha(rec, targetCommit);
+      if (!explicitSha) {
+        if (citesOnlyForeignTarget(rec, targetCommit)) continue;
+        const mentionsPr = prPat.test(rec.fullMsg);
+        if (!mentionsPr && !rec.isRevertSubject) continue;
+        // Exact touched-file-set match is mathematically necessary for full-commit `git patch-id --stable` equality!
+        // Note: do NOT skip single-PR revert subjects like `Revert "..." (#59125)` because #59125 is the revert PR's own number.
+        if (!setsEqual(getTargetFiles(), rec.changedFiles)) continue;
+      }
+      if (!isAncestorFast(dir, rec.sha, pinCommit) || !isAncestor(dir, targetCommit, rec.sha)) continue;
+      if (explicitSha) {
+        activeRevert = rec.sha;
+        activeRevertPatchId = undefined;
+        continue;
+      }
+      const targetPid = getOrigPatchId();
+      if (targetPid) {
+        const revPid = getCommitPatchId(dir, rec.sha, true);
+        if (revPid && revPid === targetPid) {
+          activeRevert = rec.sha;
+          activeRevertPatchId = undefined;
+        }
+      }
+    } else {
+      const explicitReRevert = referencesSha(rec, activeRevert);
+      if (!explicitReRevert) {
+        if (citesOnlyForeignTarget(rec, activeRevert)) continue;
+        const mentionsPr = prPat.test(rec.fullMsg);
+        if (!mentionsPr && !rec.isRevertSubject) continue;
+        if (!setsEqual(getTargetFiles(), rec.changedFiles)) continue;
+      }
+      if (!isAncestorFast(dir, rec.sha, pinCommit) || !isAncestor(dir, activeRevert, rec.sha)) continue;
+      if (explicitReRevert) {
+        activeRevert = undefined;
+        activeRevertPatchId = undefined;
+        continue;
+      }
+      if (activeRevertPatchId === undefined) {
+        activeRevertPatchId = getCommitPatchId(dir, activeRevert, false);
+      }
+      const fwdPid = getCommitPatchId(dir, rec.sha, false);
+      const revPid = getCommitPatchId(dir, rec.sha, true);
+      const targetPid = getOrigPatchId();
+      if ((targetPid && fwdPid === targetPid) || (activeRevertPatchId && revPid === activeRevertPatchId)) {
+        activeRevert = undefined;
+        activeRevertPatchId = undefined;
+      }
+    }
+  }
+  return activeRevert;
 }
 
 /**
  * 用本地克隆回答「这个 PR 的修复进了哪些版本」。钉点只认 `wiki/seeds/vllm-ascend-code.yaml`——
- * 夜间任务与行号审计用的也是它。先在远端 main（没有就用 main 钉点）上按 `(#N)` 找合并提交，
- * 再逐个钉点做祖先判断；不在祖先链上的，再看该钉点历史里有没有同号提交（回移常见的样子）。
+ * 夜间任务与行号审计用的也是它。先在远端 main（没有就用 main 钉点）上按 `(#N)` / `Merge pull request #N`
+ * 找合并提交，再逐个钉点做祖先判断、cherry-pick 回移识别（如 `(from #15835) (#16103)`）、同号提交检查与
+ * 后续 revert 撤销检测（`git patch-id --stable` + 显式 revert 引用）。
  */
 export function localFixVersions(root: string, repo: string, number: number): VersionCheck {
   try {
@@ -165,19 +705,56 @@ export function localFixVersions(root: string, repo: string, number: number): Ve
     const dir = entry ? resolve(root, entry.path) : undefined;
     if (!entry || !dir || !existsSync(dir))
       return { status: "no-local-clone", reason: `本机没有 ${repo} 的克隆` };
-    let head = "refs/remotes/origin/main";
-    try {
-      gitText(dir, ["rev-parse", "--verify", "--quiet", `${head}^{commit}`]);
-    } catch {
-      head = entry.refs.main ?? Object.values(entry.refs)[0]!;
+    // Always verify live Git access (e.g. safe.directory / config-file trust) before consulting ANY in-memory cache!
+    gitText(dir, ["rev-parse", "--is-inside-work-tree"]);
+    const pinCacheKey = `${repoGitStamp(dir)}::${JSON.stringify(entry.refs)}`;
+    let resolvedPins = RESOLVED_PINS_CACHE.get(pinCacheKey);
+    if (!resolvedPins) {
+      let head = "refs/remotes/origin/main";
+      let headSha = "";
+      const refCheck = spawnSync("git", ["-C", dir, "show-ref", "--verify", "--quiet", head], {
+        encoding: "utf8",
+        env: { ...process.env, GIT_NO_LAZY_FETCH: "1" },
+      });
+      if (refCheck.error) {
+        throw new GitError(
+          refCheck.status,
+          `git show-ref --verify --quiet ${head} 失败：${refCheck.error.message}`,
+        );
+      }
+      if (refCheck.status === 0) {
+        headSha = gitText(dir, ["rev-parse", "--verify", "--quiet", `${head}^{commit}`]).trim();
+      } else if (refCheck.status === 1 && !(refCheck.stderr || "").trim()) {
+        head = entry.refs.main ?? Object.values(entry.refs)[0]!;
+        headSha = gitText(dir, ["rev-parse", "--verify", "--quiet", `${head}^{commit}`]).trim();
+      } else {
+        throw new GitError(
+          refCheck.status,
+          `git show-ref --verify --quiet ${head} 失败：${(refCheck.stderr || "").trim()}`,
+        );
+      }
+      const refEntries = Object.entries(entry.refs);
+      const resolvedShas = gitText(dir, ["rev-parse", ...refEntries.map(([, pin]) => `${pin}^{commit}`)])
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (resolvedShas.length !== refEntries.length || resolvedShas.some((s) => !/^[0-9a-f]{40}$/i.test(s))) {
+        throw new Error(`无法解析全部代码钉点：${refEntries.map(([r]) => r).join(", ")}`);
+      }
+      resolvedPins = {
+        head,
+        headSha,
+        pinCommits: refEntries.map(([ref], i) => ({
+          ref,
+          commit: resolvedShas[i]!,
+        })),
+      };
+      RESOLVED_PINS_CACHE.set(pinCacheKey, resolvedPins);
     }
-    const pinCommits = Object.entries(entry.refs).map(([ref, pin]) => ({
-      ref,
-      commit: gitText(dir, ["rev-parse", "--verify", `${pin}^{commit}`]).trim(),
-    }));
-    // 先认 main 上的那个；直接合进发布分支的 PR（如「[Backport v0.26.0rc] … (#15981)」）main 上没有，
+    const { head, headSha, pinCommits } = resolvedPins;
+    // 先认 main 上的提交；直接合进发布分支的 PR（如「[Backport v0.26.0rc] … (#15981)」）main 上没有，
     // 再到各发布分支与各钉点上找
-    let found = numberedCommits(dir, [head], number);
+    let found = numberedCommits(dir, [headSha], number);
     if (!found.length)
       found = numberedCommits(
         dir,
@@ -188,13 +765,64 @@ export function localFixVersions(root: string, repo: string, number: number): Ve
       return {
         status: "no-local-commit",
         searched: `${head} 与各发布分支`,
-        reason: `本地克隆的 main 与各发布分支上都没有标题以 (#${number}) 结尾的提交：可能尚未合并、不是 squash 合并，或克隆比这个 PR 旧`,
+        reason: `本地克隆的 main 与各发布分支上都没有对应 #${number} 的合并提交：可能尚未合并，或克隆比这个 PR 旧`,
       };
     const commit = found.at(-1)!;
-    const pins = pinCommits.map(({ ref, commit: pinCommit }) => {
-      const contains = isAncestor(dir, commit, pinCommit);
-      const same = contains ? undefined : numberedCommits(dir, [pinCommit], number)[0];
-      return { ref, commit: pinCommit, contains, ...(same ? { sameNumberCommit: same } : {}) };
+    // Pass 1: direct ancestry per pin (O(1) via cached rev-list sets)
+    const directAncestorByPin = pinCommits.map(({ commit: pinCommit }) =>
+      found.find((c) => isAncestorFast(dir, c, pinCommit)),
+    );
+    const nonAncestorPins = pinCommits.filter((_, i) => !directAncestorByPin[i]).map((p) => p.commit);
+    // Pass 2: O(1) indexed lookup across non-ancestor pins for cherry-picks and same-number backports
+    const cpCandidates = findCherryPickCandidates(dir, nonAncestorPins, number, found);
+    const sameCandidates = nonAncestorPins.length
+      ? numberedCommits(dir, nonAncestorPins, number).filter((c) => !found.includes(c))
+      : [];
+
+    // Pass 3: resolve effective commit per pin, then check reverts via cached repo revert index
+    const pinEffective = pinCommits.map(({ ref, commit: pinCommit }, i) => {
+      const anc = directAncestorByPin[i];
+      if (anc) return { ref, pinCommit, kind: "direct" as const, target: anc };
+      const cp = cpCandidates.find((c) => isAncestorFast(dir, c, pinCommit));
+      if (cp) return { ref, pinCommit, kind: "cherry-pick" as const, target: cp };
+      const same = sameCandidates.find((c) => isAncestorFast(dir, c, pinCommit));
+      if (same) return { ref, pinCommit, kind: "same-number" as const, target: same };
+      return { ref, pinCommit, kind: "none" as const, target: undefined };
+    });
+
+    const pins = pinEffective.map(({ ref, pinCommit, kind, target }) => {
+      if (kind === "direct" && target) {
+        const revertedBy = findActiveRevertOnPin(dir, target, pinCommit, number);
+        return {
+          ref,
+          commit: pinCommit,
+          contains: !revertedBy,
+          commitAncestor: true,
+          ...(revertedBy ? { revertedBy } : {}),
+        };
+      }
+      if (kind === "cherry-pick" && target) {
+        const revertedBy = findActiveRevertOnPin(dir, target, pinCommit, number);
+        return {
+          ref,
+          commit: pinCommit,
+          contains: !revertedBy,
+          commitAncestor: false,
+          cherryPickCommit: target,
+          ...(revertedBy ? { revertedBy } : {}),
+        };
+      }
+      if (kind === "same-number" && target) {
+        const revertedBy = findActiveRevertOnPin(dir, target, pinCommit, number);
+        return {
+          ref,
+          commit: pinCommit,
+          contains: false,
+          commitAncestor: false,
+          ...(revertedBy ? { revertedBy } : { sameNumberCommit: target }),
+        };
+      }
+      return { ref, commit: pinCommit, contains: false, commitAncestor: false };
     });
     const tags = gitText(dir, ["tag", "--contains", commit, "--sort=version:refname"])
       .split(/\r?\n/)
@@ -202,6 +830,7 @@ export function localFixVersions(root: string, repo: string, number: number): Ve
     return {
       status: "found",
       commit,
+      ...(found.length > 1 ? { commits: found } : {}),
       pins,
       tags: tags.slice(0, MAX_TAGS),
       moreTags: Math.max(0, tags.length - MAX_TAGS),

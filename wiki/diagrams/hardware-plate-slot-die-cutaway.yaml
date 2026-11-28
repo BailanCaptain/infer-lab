@@ -1,12 +1,20 @@
 mode: native-svg
 id: hardware-plate-slot-die-cutaway
 caption: >-
-  三类昇腾推理服务器整机拆解与逻辑设备映射（Blender Cycles GPU 光追底图）：左侧 Atlas 800T A2（4U）搭载 8 块单芯 OAM 模组（前排掀开散热器露出单颗 910B 计算 Die 与 4 栈 HBM，后排保留风冷鳍片），走 DIRECT 直通寻址（8 物理槽 = 8 逻辑 davinci）；中央 Atlas 800I A3（10U 超节点机型）下仓搭载 8 块 LAAC 液冷板双晶粒模组，走 DUAL_CHIP_CARD 寻址（card_id = npu // 2，8 物理槽 = 16 逻辑 davinci）；右侧 Atlas 800 3000（2U）经后置 PCIe Riser 横插 4 张 Atlas 300I Duo 双芯推理卡（上层露出单卡双 310P SoC 与 LPDDR4X），合计暴露 8 个逻辑设备。
+  三类昇腾服务器整机拆解与逻辑设备映射（Blender Cycles GPU 光追底图）：左侧 Atlas 800T A2（华为分类为 4U 训练服务器，亦可部署大参数推理）上层配 4 路鲲鹏 920 与 32 个 DDR4 插槽，下仓搭载 8 块单芯 OAM 模组（前排掀开散热器露出单颗 910B 计算 Die 与 4 栈 HBM，后排保留风冷鳍片），走 DIRECT 直通寻址（8 物理槽 = 8 逻辑 davinci；仅默认全卡映射且未通过 ASCEND_RT_VISIBLE_DEVICES 或容器重排时 Rank 0..7 与槽位一一对应）；中央 Atlas 800I A3（10U 超节点推理服务器）下仓搭载 8 块双晶粒模组（后排保留 LAAC 微通道液冷冷板盖，前排掀盖露出同卡双计算 Die），走 DUAL_CHIP_CARD 寻址（card_id = npu // 2，8 物理槽 = 16 逻辑 davinci，容器须成对挂同卡双号）；右侧 Atlas 800 Model 3000（2U 推理服务器，32 个 DDR4 插槽）经后置 PCIe Riser 示意横插 4 张 Atlas 300I Duo 双芯推理卡（上层露出单卡双 310P SoC 与 LPDDR4X，合计暴露 8 个逻辑设备；310P 不支持 BF16，对 Qwen3-0.6B 等支持 FP16 的模型加载 BF16 权重须显式传 --dtype float16，FP16 权重在 auto 下默认保留 FP16，而 gemma2/gemma3/glm4 等明确不支持 float16 的模型会被配置校验拒绝）。
 size: [900, 645]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L187-L197
     symbols: [DeviceAddressingMode, DIRECT, DUAL_CHIP_CARD]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L279-L320
+    symbols: [_HARDWARE_PROFILES, A2, A3, _310P]
   - source: vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L736-L744
     symbols: [card_id, chip_id]
   - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L89-L99
     symbols: [NPUPlatform, ASCEND_RT_VISIBLE_DEVICES]
+  - source: vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-a3.inc.md#L27-L36
+    symbols: [davinci0, davinci1]
+  - source: vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/offline/qwen3-0.6b-310p.inc.md#L1-L34
+    symbols: [float16, enable_npugraph_ex]
+  - source: vllm@ced6857a:vllm/config/model.py#L2252-L2272
+    symbols: [_FLOAT16_NOT_SUPPORTED_MODELS, _check_valid_dtype]

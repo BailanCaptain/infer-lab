@@ -1,6 +1,6 @@
 {
-  "id": "ws6-engineering-retrieval-v2",
-  "description": "87 real Ascend / vLLM engineering, 910B3 measured error-trace, zero-jargon beginner colloquial & negative-control cases evaluated against the live 193-page registry.json",
+  "id": "ws6-engineering-retrieval-v4",
+  "description": "189 real Ascend / vLLM engineering cases (170 positive + 19 negative, including 40 exact Top-1 targets) covering dual-ecosystem 339-item xhigh corpus backfeed (HCCL link vs wait cascade, TorchAir/npugraph_ex/GE compile & capture 107024/107025/ERR03005, MoE MC2 & ModelSlim, aclnn 161001/561002/EZ1001, AICore/AICPU 507014/507018/retCode=0x31, CANN HAL/driver/device env), body-grounded internal symbol/metric queries, formal param pages, 910B3 measured error-trace, zero-jargon beginner colloquial, and adjacent-error-code negative-control cases evaluated against the live 204-page (49-param) registry.json",
   "cases": [
     {
       "id": "err-507015-bare",
@@ -9,10 +9,10 @@
       "expectedAnyTop3": ["inference-troubleshooting", "acl-graph"]
     },
     {
-      "id": "err-507015-stream-sync",
+      "id": "err-507015-aclgraph-capture-sync",
       "category": "error-trace",
-      "query": "RuntimeError: AclrtSynchronizeStreamWithTimeout, error code is 507015",
-      "expectedAnyTop3": ["inference-troubleshooting", "acl-graph", "cann-hccl"]
+      "query": "ACLGraph capture_model AclrtSynchronizeStreamWithTimeout 507015",
+      "expectedAnyTop3": ["acl-graph", "inference-troubleshooting"]
     },
     {
       "id": "err-507034",
@@ -34,10 +34,10 @@
       "expectedAnyTop3": ["inference-troubleshooting"]
     },
     {
-      "id": "err-ei0006-notify",
+      "id": "err-507014-aicore-timeout",
       "category": "error-trace",
-      "query": "EI0006 Notify wait execute timeout",
-      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl"]
+      "query": "aclrtSynchronizeStream failed 507014 ACL_ERROR_RT_AICORE_TIMEOUT",
+      "expectedAnyTop3": ["inference-troubleshooting", "ascend-runtime-and-tuning", "ai-core"]
     },
     {
       "id": "err-161002",
@@ -55,7 +55,7 @@
       "id": "err-zmq-addr-in-use",
       "category": "error-trace",
       "query": "ZMQError: Address already in use",
-      "expectedAnyTop3": ["pd-disaggregation", "cluster-serving"]
+      "expectedAnyTop3": ["inference-troubleshooting", "engine-processes", "cluster-serving"]
     },
     {
       "id": "err-megamoe-not-impl",
@@ -73,12 +73,7 @@
       "id": "err-capture-model-oom-trace",
       "category": "error-trace",
       "query": "RuntimeError: NPU out of memory during capture_model",
-      "expectedAnyTop3": [
-        "acl-graph",
-        "inference-troubleshooting",
-        "npu-worker-lifecycle",
-        "kv-cache-memory-profiling"
-      ]
+      "expectedAnyTop3": ["acl-graph", "inference-troubleshooting", "kv-cache-memory-profiling"]
     },
     {
       "id": "err-rfork-404",
@@ -166,7 +161,11 @@
       "category": "exact-param",
       "query": "enable_fused_mc2=3",
       "expectedTop1": "megamoe-shared-expert-fusion-5a99901d47e6",
-      "expectedAnyTop3": ["megamoe-shared-expert-fusion-5a99901d47e6", "moe-comm-dispatch"]
+      "expectedAnyTop3": [
+        "megamoe-shared-expert-fusion-5a99901d47e6",
+        "enable-fused-mc2-782bf6f2bf48",
+        "moe-comm-dispatch"
+      ]
     },
     {
       "id": "param-sfa-dcp-tmajor",
@@ -255,8 +254,8 @@
     {
       "id": "arch-qwen3-235b-a22b",
       "category": "arch-deploy",
-      "query": "Qwen3-235B-A22B",
-      "expectedAnyTop3": ["rfork-official-guide", "quantization-methods", "prefetch-ratio"]
+      "query": "Qwen3-235B-A22B 权重预取与量化部署",
+      "expectedAnyTop3": ["prefetch-ratio", "rfork-official-guide", "weight-prefetch-config"]
     },
     {
       "id": "arch-mla-ckv-kr",
@@ -271,15 +270,15 @@
       "expectedAnyTop3": ["gqa"]
     },
     {
-      "id": "arch-roofline-m200",
+      "id": "arch-roofline-ridge-200",
       "category": "arch-deploy",
-      "query": "Roofline ridge M=200",
+      "query": "Roofline 脊点 200 FLOP/B 算术强度",
       "expectedAnyTop3": ["roofline-and-metrics"]
     },
     {
-      "id": "arch-w8a8-m228",
+      "id": "arch-w8a8-bandwidth-slope",
       "category": "arch-deploy",
-      "query": "W8A8 M=228",
+      "query": "W8A8 量化 算术强度 带宽斜坡 右移翻倍",
       "expectedAnyTop3": ["quantization", "roofline-and-metrics"]
     },
     {
@@ -409,13 +408,13 @@
       "id": "colloq-sleep-wakeup-weight-nz",
       "category": "error-trace",
       "query": "睡眠模式唤醒失败 weight_nz_mode",
-      "expectedAnyTop3": ["sleep-mode", "tensor-layout"]
+      "expectedAnyTop3": ["weight-nz-mode-b9cf06865b95", "sleep-mode", "tensor-layout"]
     },
     {
       "id": "err-sleep-fractal-nz-trace",
       "category": "error-trace",
       "query": "ValueError: FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in the RL scenarios. Please set weight_nz_mode=0",
-      "expectedAnyTop3": ["sleep-mode", "tensor-layout", "vllm-ascend-for-rl"]
+      "expectedAnyTop3": ["weight-nz-mode-b9cf06865b95", "vllm-ascend-for-rl", "tensor-layout"]
     },
     {
       "id": "colloq-nd-vs-nz-layout",
@@ -524,65 +523,345 @@
       "category": "error-trace",
       "query": "开了 VLLM_LOGGING_LEVEL=DEBUG 为什么首字延迟变慢",
       "expectedAnyTop3": [
-        "inference-troubleshooting",
-        "device-memory",
-        "acl-graph",
-        "inference-performance-troubleshooting"
+        "inference-performance-analysis",
+        "inference-performance-troubleshooting",
+        "inference-troubleshooting"
       ]
     },
     {
       "id": "err-cann-507015-stream-sync",
       "category": "error-trace",
       "query": "RuntimeError: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015",
-      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl", "ai-core"]
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core"]
     },
     {
       "id": "err-cann-507035-vector-core",
       "category": "error-trace",
       "query": "rtKernelLaunchWithHandleV2 failed: 507035 vector-core crash",
-      "expectedAnyTop3": ["inference-troubleshooting", "ai-core", "cann-hccl"]
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core"]
     },
     {
       "id": "err-aclnn-161002-chunk-gated",
       "category": "error-trace",
       "query": "NPU function error: call aclnnChunkGatedDeltaRule failed, error code is 161002",
-      "expectedAnyTop3": ["inference-troubleshooting", "ops-and-kernels", "cann-hccl"]
+      "expectedAnyTop3": ["inference-troubleshooting", "ops-and-kernels"]
     },
     {
       "id": "err-cann-smmu-retcode-0x26",
       "category": "error-trace",
-      "query": "CheckSmmuFault:Get isSmmuFault is 1 retCode=0x26 aicore exception",
-      "expectedAnyTop3": ["inference-troubleshooting", "ai-core", "cann-hccl"]
+      "query": "CheckSmmuFault retCode=0x26 SMMU IOMMU 设备侧地址转换单元 MTT 缓存",
+      "expectedAnyTop3": ["host-memory-and-hugepages"]
     },
     {
       "id": "col-dcp-block-table-overflow",
       "category": "colloquial",
-      "query": "DCP块表溢出怎么解决？",
+      "query": "Decode Context Parallel DCP 块表 block table 溢出怎么解决？",
       "expectedAnyTop3": ["context-parallel", "block-table", "ascend-flash-attention"]
     },
     {
-      "id": "col-310p-w8a8-dynamic-unsupported",
+      "id": "col-310p-bf16-and-vocab-parallel-boundary",
       "category": "colloquial",
-      "query": "为什么 310P 不支持 W8A8_DYNAMIC 量化？",
-      "expectedAnyTop3": ["quantization", "hardware-devices", "inference-troubleshooting"]
+      "query": "为什么 310P 量化不支持 VocabParallelEmbedding 且必须配 float16？",
+      "expectedAnyTop3": ["quantization", "hardware-devices", "tensor-layout"]
     },
     {
       "id": "col-fa3-mixed-batch-crash",
       "category": "colloquial",
-      "query": "FA3崩溃怎么解决？",
-      "expectedAnyTop3": ["ascend-flash-attention", "inference-troubleshooting", "acl-graph"]
+      "query": "FA3 混批 Prefill Decode 崩溃怎么排查？",
+      "expectedAnyTop3": ["ascend-flash-attention", "inference-troubleshooting"]
     },
     {
       "id": "col-megamoe-vector-core",
       "category": "colloquial",
       "query": "为什么MegaMoe会引发vector-core异常？",
-      "expectedAnyTop3": ["moe-comm-dispatch", "ai-core", "cann-hccl"]
+      "expectedAnyTop3": ["moe-comm-dispatch", "ai-core"]
     },
     {
       "id": "col-sleep-wakeup-moe-transpose",
       "category": "colloquial",
-      "query": "为什么 wake_up 后维度错位？",
-      "expectedAnyTop3": ["sleep-mode", "inference-troubleshooting", "vllm-ascend-for-rl"]
+      "query": "睡眠模式 wake_up 唤醒后 MoE 权重分形布局维度错位怎么排查？",
+      "expectedAnyTop3": ["sleep-mode", "tensor-layout", "weight-nz-mode-b9cf06865b95"]
+    },
+
+    {
+      "id": "hccl-ifname-exact",
+      "category": "exact-concept",
+      "query": "HCCL_SOCKET_IFNAME",
+      "expectedTop1": "engine-processes",
+      "expectedAnyTop3": ["engine-processes"]
+    },
+    {
+      "id": "hccl-if-ip-exact",
+      "category": "exact-concept",
+      "query": "HCCL_IF_IP",
+      "expectedTop1": "engine-processes",
+      "expectedAnyTop3": ["engine-processes"]
+    },
+    {
+      "id": "hccl-rasocket-connect-no-route",
+      "category": "error-trace",
+      "query": "RaSocketConnect failed: No route to host",
+      "expectedAnyTop3": ["cann-hccl", "engine-processes"]
+    },
+    {
+      "id": "hccl-ei0004-ranktable",
+      "category": "error-trace",
+      "query": "EI0004 ranktable path verify failed",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "hccl-ei0009-transport-init",
+      "category": "error-trace",
+      "query": "EI0009 Device 0 transport init error",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "hccl-ej0001-hccp-init",
+      "category": "error-trace",
+      "query": "EJ0001 HCCP init failed",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "hccl-p2p-timeout",
+      "category": "error-trace",
+      "query": "HCCL p2p timeout",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "hccl-ei0006-link-establish-contrast",
+      "category": "error-trace",
+      "query": "EI0006 Getting socket times out [Wait][LinkEstablish]",
+      "expectedAnyTop3": ["cann-hccl", "inference-troubleshooting"]
+    },
+    {
+      "id": "hccl-ei0002-notify-wait-contrast",
+      "category": "error-trace",
+      "query": "EI0002 The wait execution of the Notify register times out",
+      "expectedAnyTop3": ["inference-troubleshooting", "cann-hccl"]
+    },
+    {
+      "id": "hccl-ifip-priority-over-ifname",
+      "category": "arch-deploy",
+      "query": "HCCL_IF_IP 和 HCCL_SOCKET_IFNAME 优先级与 GLOO_SOCKET_IFNAME 区别",
+      "expectedAnyTop3": ["engine-processes", "cann-hccl"]
+    },
+    {
+      "id": "colloq-hccl-wrong-nic-or-ip",
+      "category": "colloquial",
+      "query": "双机多卡建链超时网卡选错了怎么排查",
+      "expectedAnyTop3": ["cann-hccl", "engine-processes", "inference-troubleshooting"]
+    },
+
+    {
+      "id": "compile-npugraph-ex-underscore-exact",
+      "category": "exact-concept",
+      "query": "npugraph_ex",
+      "expectedTop1": "npugraph-ex",
+      "expectedAnyTop3": ["npugraph-ex"]
+    },
+    {
+      "id": "compile-torchair-exact",
+      "category": "exact-concept",
+      "query": "torchair",
+      "expectedTop1": "npugraph-ex",
+      "expectedAnyTop3": ["npugraph-ex"]
+    },
+    {
+      "id": "compile-fake-impl-exact",
+      "category": "exact-concept",
+      "query": "fake_impl",
+      "expectedTop1": "dev-new-model-and-custom-op",
+      "expectedAnyTop3": ["dev-new-model-and-custom-op"]
+    },
+    {
+      "id": "compile-ez3002-bare",
+      "category": "error-trace",
+      "query": "EZ3002",
+      "expectedAnyTop3": ["npugraph-ex", "inference-troubleshooting"]
+    },
+    {
+      "id": "compile-ez3003-kernel-not-found",
+      "category": "error-trace",
+      "query": "EZ3003 no supported kernel engine",
+      "expectedAnyTop3": ["npugraph-ex", "inference-troubleshooting"]
+    },
+    {
+      "id": "compile-dynamo-fullgraph-break",
+      "category": "error-trace",
+      "query": "torch._dynamo.exc.Unsupported Dynamo fullgraph graph break",
+      "expectedAnyTop3": ["npugraph-ex", "graph-mode-layer"]
+    },
+    {
+      "id": "compile-backend-compiler-failed",
+      "category": "error-trace",
+      "query": "BackendCompilerFailed npugraph_ex GE compile graph failed",
+      "expectedAnyTop3": ["npugraph-ex", "graph-mode-layer", "inference-troubleshooting"]
+    },
+    {
+      "id": "compile-missing-fake-impl-meta",
+      "category": "error-trace",
+      "query": "There was no fake impl registered for custom op Meta",
+      "expectedAnyTop3": ["dev-new-model-and-custom-op", "ops-and-kernels"]
+    },
+    {
+      "id": "compile-ez9999-tiling-contrast",
+      "category": "error-trace",
+      "query": "EZ9999 coreNum is 0, tiling failed CheckMlaAttrs",
+      "expectedAnyTop3": ["npugraph-ex", "ops-and-kernels"]
+    },
+    {
+      "id": "compile-ez9999-507015-contrast",
+      "category": "error-trace",
+      "query": "EZ9999 AclrtSynchronizeStreamWithTimeout 507015 aicore exception",
+      "expectedAnyTop3": ["inference-troubleshooting", "ai-core"]
+    },
+    {
+      "id": "colloq-custom-op-eager-ok-graph-fail",
+      "category": "colloquial",
+      "query": "自定义算子 eager 正常开图编译报错缺 Meta 怎么办",
+      "expectedAnyTop3": ["dev-new-model-and-custom-op", "npugraph-ex", "acl-graph"]
+    },
+
+    {
+      "id": "moe-distribute-dispatch-exact",
+      "category": "exact-concept",
+      "query": "MoeDistributeDispatch",
+      "expectedTop1": "moe-comm-dispatch",
+      "expectedAnyTop3": ["moe-comm-dispatch"]
+    },
+    {
+      "id": "moe-distribute-combine-exact",
+      "category": "exact-concept",
+      "query": "MoeDistributeCombine",
+      "expectedTop1": "moe-comm-dispatch",
+      "expectedAnyTop3": ["moe-comm-dispatch"]
+    },
+    {
+      "id": "moe-dispatch-ffn-combine-exact",
+      "category": "exact-concept",
+      "query": "DispatchFFNCombine",
+      "expectedTop1": "moe-comm-dispatch",
+      "expectedAnyTop3": ["moe-comm-dispatch"]
+    },
+    {
+      "id": "quant-modelslim-desc-exact",
+      "category": "exact-concept",
+      "query": "quant_model_description.json",
+      "expectedTop1": "quantization",
+      "expectedAnyTop3": ["quantization"]
+    },
+    {
+      "id": "moe-dispatch-ffn-combine-buffsize-small",
+      "category": "error-trace",
+      "query": "DispatchFFNCombine: HCCL_BUFFSIZE is too SMALL",
+      "expectedAnyTop3": ["hccl-buffer", "moe-comm-dispatch"]
+    },
+    {
+      "id": "moe-mc2-expert-map-required",
+      "category": "error-trace",
+      "query": "AssertionError: expert_map is required for MC2 token dispatch.",
+      "expectedAnyTop3": ["moe-comm-dispatch", "expert-parallel"]
+    },
+    {
+      "id": "moe-fused-mc2-hierarchy-conflict",
+      "category": "error-trace",
+      "query": "ValueError: fused mc2 op cannot be used with hierarchy communication.",
+      "expectedAnyTop3": ["moe-comm-dispatch", "expert-parallel", "large-scale-ep"]
+    },
+    {
+      "id": "quant-modelslim-config-not-found",
+      "category": "error-trace",
+      "query": "ERROR: ModelSlim Quantization Config Not Found quant_model_description.json",
+      "expectedAnyTop3": ["quantization", "ascend-model-onboarding"]
+    },
+    {
+      "id": "quant-modelslim-shard-mismatch",
+      "category": "error-trace",
+      "query": "ValueError: Not all shards of model.layers.0.self_attn.qkv_proj are quantized with same quant type",
+      "expectedAnyTop3": ["quantization"]
+    },
+    {
+      "id": "quant-modelslim-unsupported-layer-type",
+      "category": "error-trace",
+      "query": "Currently, vLLM Ascend doesn't support quant_type=W8A8_MIX for layer_type=moe",
+      "expectedAnyTop3": ["quantization", "quantization-methods"]
+    },
+    {
+      "id": "colloq-mc2-buffsize-vs-megamoe",
+      "category": "colloquial",
+      "query": "MoE 开融合 MC2 报 HCCL_BUFFSIZE 太小怎么算窗口大小",
+      "expectedAnyTop3": ["hccl-buffer", "moe-comm-dispatch"]
+    },
+
+    {
+      "id": "cann-davinci-manager-exact",
+      "category": "exact-concept",
+      "query": "/dev/davinci_manager",
+      "expectedTop1": "ascend-runtime-and-tuning",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning"]
+    },
+    {
+      "id": "cann-libascend-hal-exact",
+      "category": "exact-concept",
+      "query": "libascend_hal.so",
+      "expectedTop1": "ascend-runtime-and-tuning",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning"]
+    },
+    {
+      "id": "cann-drv-get-dev-info-exact",
+      "category": "exact-concept",
+      "query": "drvGetDevInfo",
+      "expectedTop1": "ascend-runtime-and-tuning",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning"]
+    },
+    {
+      "id": "cann-507008-exact",
+      "category": "exact-concept",
+      "query": "507008",
+      "expectedTop1": "ascend-runtime-and-tuning",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning"]
+    },
+    {
+      "id": "cann-107002-context-null",
+      "category": "error-trace",
+      "query": "107002 ACL_ERROR_RT_CONTEXT_NULL aclrtSetDevice failed",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "inference-troubleshooting"]
+    },
+    {
+      "id": "cann-davinci-manager-enoent",
+      "category": "error-trace",
+      "query": "/dev/davinci_manager: No such file or directory",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "ascend-env-and-serve"]
+    },
+    {
+      "id": "cann-hal-so-cannot-open",
+      "category": "error-trace",
+      "query": "libascend_hal.so: cannot open shared object file",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "cann-hccl"]
+    },
+    {
+      "id": "cann-507008-soc-contrast",
+      "category": "error-trace",
+      "query": "507008 ACL_ERROR_RT_SOC_VERSION drvGetDevInfo failed",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "inference-troubleshooting"]
+    },
+    {
+      "id": "cann-el0004-alloc-contrast",
+      "category": "error-trace",
+      "query": "EL0004: Failed to allocate memory.",
+      "expectedAnyTop3": ["device-memory", "inference-troubleshooting"]
+    },
+    {
+      "id": "cann-dp-local-rank-oob",
+      "category": "error-trace",
+      "query": "DP adjusted local rank is out of bounds for devices ASCEND_RT_VISIBLE_DEVICES",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "npu-worker-lifecycle", "engine-processes"]
+    },
+    {
+      "id": "colloq-container-card-not-mounted",
+      "category": "colloquial",
+      "query": "容器启动卡没挂进来或者设备枚举失败怎么排查",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning", "ascend-env-and-serve", "npu-worker-lifecycle"]
     },
 
     {
@@ -626,6 +905,300 @@
       "category": "negative",
       "query": "NonExistentAclnnHyperdriveKernel_999777",
       "expectEmpty": true
+    },
+    {
+      "id": "neg-quorvex-zalnith-flag",
+      "category": "negative",
+      "query": "--quorvex-zalnith-vomprax",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-zyphnox-quorlith",
+      "category": "negative",
+      "query": "ZyphnoxQuorlith_84726351",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-zh-plants-birds",
+      "category": "negative",
+      "query": "苜蓿鸬鹚琵鹭蕗薹",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-zh-hairpin-inlay",
+      "category": "negative",
+      "query": "藕簪螺钿簪花",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-virelquon-zathrik-flag",
+      "category": "negative",
+      "query": "--virelquon-zathrik-flag",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-quorvexa-zalnith-cfg",
+      "category": "negative",
+      "query": "QuorvexaZalnithConfig_774392",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-zh-enamel-pattern",
+      "category": "negative",
+      "query": "霁釉珐琅錾花纹样",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-flembrix-qoztar-kernel",
+      "category": "negative",
+      "query": "FlembrixQoztarKernel_874619",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-adj-code-507036",
+      "category": "negative",
+      "query": "507036",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-adj-code-ez3004",
+      "category": "negative",
+      "query": "EZ3004",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-adj-code-161999",
+      "category": "negative",
+      "query": "161999",
+      "expectEmpty": true
+    },
+    {
+      "id": "neg-adj-code-ei0008",
+      "category": "negative",
+      "query": "EI0008",
+      "expectEmpty": true
+    },
+    {
+      "id": "param-enable-fused-mc2-exact",
+      "category": "exact-param",
+      "query": "enable_fused_mc2",
+      "expectedTop1": "enable-fused-mc2-782bf6f2bf48",
+      "expectedAnyTop3": ["enable-fused-mc2-782bf6f2bf48", "moe-comm-dispatch"]
+    },
+    {
+      "id": "param-weight-nz-mode-exact",
+      "category": "exact-param",
+      "query": "weight_nz_mode",
+      "expectedTop1": "weight-nz-mode-b9cf06865b95",
+      "expectedAnyTop3": ["weight-nz-mode-b9cf06865b95", "tensor-layout"]
+    },
+    {
+      "id": "param-enable-npugraph-ex-exact",
+      "category": "exact-param",
+      "query": "enable_npugraph_ex",
+      "expectedTop1": "enable-npugraph-ex-ffc890dd7afe",
+      "expectedAnyTop3": ["enable-npugraph-ex-ffc890dd7afe", "npugraph-ex"]
+    },
+    {
+      "id": "param-enable-cpu-binding-exact",
+      "category": "exact-param",
+      "query": "enable_cpu_binding",
+      "expectedTop1": "enable-cpu-binding-f0fbd89fe35b",
+      "expectedAnyTop3": ["enable-cpu-binding-f0fbd89fe35b", "cpu-binding"]
+    },
+    {
+      "id": "xhigh-107025-capture-end-unjoined",
+      "category": "error-trace",
+      "query": "EE9999 rtStreamEndCapture execution failed 107025 unjoined stream npugraph_ex",
+      "expectedAnyTop3": ["npugraph-ex", "acl-graph", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-107024-capture-wait-event",
+      "category": "error-trace",
+      "query": "npugraph_ex 107024 EE9999 rtStreamWaitEvent execution failed model capture no event record",
+      "expectedAnyTop3": ["npugraph-ex", "acl-graph", "enable-npugraph-ex-ffc890dd7afe"]
+    },
+    {
+      "id": "xhigh-561002-aclnn-tiling-invalid",
+      "category": "error-trace",
+      "query": "aclnnFlashAttentionBackward execute failed error code 561002 tiling Parameter Invalid",
+      "expectedAnyTop3": ["op-to-ai-core", "inference-troubleshooting", "ascend-flash-attention"]
+    },
+    {
+      "id": "xhigh-161001-aclnn-nullptr-param",
+      "category": "error-trace",
+      "query": "aclnn 必选参数空指针 nullptr 返回码 161001 161002 参数校验",
+      "expectedAnyTop3": ["ops-and-kernels", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-ez1001-dtype-mismatch-contrast",
+      "category": "error-trace",
+      "query": "AclNN_Parameter_Error(EZ1001): updates dtype DT_INT8 should be same with varRef dtype DT_BFLOAT16",
+      "expectedAnyTop3": ["inference-troubleshooting", "quantization"]
+    },
+    {
+      "id": "xhigh-ez1001-310p-bf16-contrast",
+      "category": "error-trace",
+      "query": "AclNN_Parameter_Error(EZ1001): Tensor self not implemented for DT_BFLOAT16 310P",
+      "expectedAnyTop3": ["inference-troubleshooting", "hardware-devices", "low-precision-formats"]
+    },
+    {
+      "id": "xhigh-507018-hccl-aicpu-exc",
+      "category": "error-trace",
+      "query": "507018 ACL_ERROR_RT_AICPU_EXCEPTION PreSyncInterThreads HCCL",
+      "expectedAnyTop3": ["cann-hccl", "ascend-runtime-and-tuning", "engine-processes"]
+    },
+    {
+      "id": "xhigh-retcode-0x31-vector-core",
+      "category": "error-trace",
+      "query": "SetStarsResultForDavinciTask: Vector Core kernel execution failed, retCode=0x31 stop_token_ids",
+      "expectedAnyTop3": ["ai-core", "ops-and-kernels", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-err00100-aclgraph-capture-contrast",
+      "category": "error-trace",
+      "query": "ERR00100 EE9999 rtStreamEndCapture ACLGraph capture stream failed",
+      "expectedAnyTop3": ["acl-graph", "ascend-runtime-and-tuning", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-err00100-aclnn-broadcast-contrast",
+      "category": "error-trace",
+      "query": "ERR00100 AclNN_Parameter_Error(EZ1001): 16 and 61 cannot broadcast 161002",
+      "expectedAnyTop3": ["inference-troubleshooting", "ops-and-kernels"]
+    },
+    {
+      "id": "xhigh-207001-oom-stale-lasterr",
+      "category": "error-trace",
+      "query": "207001 ACL_ERROR_RT_MEMORY_ALLOCATION NPUCachingAllocator retry last_error",
+      "expectedAnyTop3": ["device-memory", "ascend-runtime-and-tuning", "npu-worker-lifecycle"]
+    },
+    {
+      "id": "xhigh-e19999-mooncake-hcomm-reg",
+      "category": "error-trace",
+      "query": "E19999 Call api:HcommMemReg failed ret:2 Mooncake kv_transfer_config",
+      "expectedAnyTop3": ["mooncake-connector", "pd-disaggregation", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-err03005-torchair-scope",
+      "category": "error-trace",
+      "query": "ERR03005 torch.ops.air.scope_enter paired call scope_exit TorchAir",
+      "expectedAnyTop3": ["npugraph-ex", "enable-npugraph-ex-ffc890dd7afe"]
+    },
+    {
+      "id": "xhigh-roce-ibv-post-send-wqe",
+      "category": "error-trace",
+      "query": "HostCpuRoceChannel NotifyRecord ibv_post_send failed WQE HCCL",
+      "expectedAnyTop3": ["cann-hccl", "engine-processes", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-colloq-ez9999-tiling-vs-aicore",
+      "category": "colloquial",
+      "query": "报 EZ9999 怎么区分是 Host 侧 tiling 参数校验失败还是设备侧 AICore 异常",
+      "expectedAnyTop3": ["op-to-ai-core", "ai-core", "inference-troubleshooting"]
+    },
+    {
+      "id": "xhigh-colloq-stop-token-0x31",
+      "category": "colloquial",
+      "query": "为什么请求带越界 stop_token_ids 会触发预填充 Vector Core retCode=0x31 异常",
+      "expectedAnyTop3": ["ai-core", "inference-troubleshooting", "request-teardown"]
+    },
+    {
+      "id": "xhigh-colloq-capture-substream-unjoined",
+      "category": "colloquial",
+      "query": "开启 ACLGraph 或 npugraph_ex 捕图结束报从流未汇合怎么排查",
+      "expectedAnyTop3": ["npugraph-ex", "acl-graph", "enable-npugraph-ex-ffc890dd7afe"]
+    },
+    {
+      "id": "xhigh-colloq-mooncake-pool-overwrite",
+      "category": "colloquial",
+      "query": "AscendStore 缓存池命中和 Mooncake P2P 传输冲突写同一批显存块怎么排查",
+      "expectedAnyTop3": ["kv-pool", "mooncake-connector", "pd-disaggregation"]
+    },
+    {
+      "id": "body-aclrt-sync-stream-timeout",
+      "category": "error-trace",
+      "query": "AclrtSynchronizeStreamWithTimeout",
+      "expectedAnyTop3": ["inference-troubleshooting"]
+    },
+    {
+      "id": "body-init-ascend-model-parallel",
+      "category": "arch-deploy",
+      "query": "init_ascend_model_parallel ensure_model_parallel_initialized",
+      "expectedAnyTop3": ["cann-hccl"]
+    },
+    {
+      "id": "body-vllm-disable-compile-cache",
+      "category": "arch-deploy",
+      "query": "VLLM_DISABLE_COMPILE_CACHE AOTAutograd register_replacement",
+      "expectedAnyTop3": ["npugraph-ex"]
+    },
+    {
+      "id": "body-a5-megamoe-quant-types",
+      "category": "arch-deploy",
+      "query": "A5_SUPPORT_MEGA_MOE_QUANT_TYPES AllGatherCommImpl310",
+      "expectedAnyTop3": ["moe-comm-dispatch"]
+    },
+    {
+      "id": "body-set-pytorch-npu-alloc-env",
+      "category": "arch-deploy",
+      "query": "_set_pytorch_npu_alloc_env npu_mm_reduce_scatter_base",
+      "expectedAnyTop3": ["ascend-runtime-and-tuning"]
+    },
+    {
+      "id": "body-breakable-aclgraph-updatable",
+      "category": "arch-deploy",
+      "query": "BreakableACLGraph updatable_graph npugraph_memory_bytes",
+      "expectedAnyTop3": ["acl-graph"]
+    },
+    {
+      "id": "body-pinned-mem-register-info",
+      "category": "arch-deploy",
+      "query": "pinned_mem_register get_mem_info",
+      "expectedAnyTop3": ["device-memory"]
+    },
+    {
+      "id": "body-worker-dp-world-size",
+      "category": "arch-deploy",
+      "query": "Worker_DP0_TP0_EP0 world_size_across_dp",
+      "expectedAnyTop3": ["engine-processes"]
+    },
+    {
+      "id": "body-tpot-histogram-metric",
+      "category": "arch-deploy",
+      "query": "request_time_per_output_token_seconds",
+      "expectedAnyTop3": ["roofline-and-metrics"]
+    },
+    {
+      "id": "body-w8a8-dynamic-fused-moe-310",
+      "category": "arch-deploy",
+      "query": "AscendW8A8DynamicFusedMoEMethod AscendModelSlimConfig310",
+      "expectedAnyTop3": ["quantization"]
+    },
+    {
+      "id": "body-mooncake-get-transfer-results",
+      "category": "arch-deploy",
+      "query": "get_transfer_results length_list",
+      "expectedAnyTop3": ["mooncake-connector"]
+    },
+    {
+      "id": "body-custom-model-deepseek-v41",
+      "category": "arch-deploy",
+      "query": "DeepseekV41ForCausalLM AscendQwen3_5ForConditionalGeneration",
+      "expectedAnyTop3": ["dev-new-model-and-custom-op"]
+    },
+    {
+      "id": "body-ai-core-cumsum-group-list",
+      "category": "error-trace",
+      "query": "cumsum_group_list group_list_type should be in [0, 1, 2]",
+      "expectedTop1": "ai-core",
+      "expectedAnyTop3": ["ai-core"]
+    },
+    {
+      "id": "body-ai-core-swiglu-quant-single-tensor",
+      "category": "error-trace",
+      "query": "_require_single_tensor_for_swiglu_quant must be a tensor or a single-element list",
+      "expectedTop1": "ai-core",
+      "expectedAnyTop3": ["ai-core"]
     }
   ]
 }

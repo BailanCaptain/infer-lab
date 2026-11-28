@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 645" width="900" height="645" role="img" aria-label="三类昇腾推理服务器整机拆解与逻辑设备映射图" font-family="var(--font-sans)">
-  <title>三类昇腾推理服务器整机拆解与逻辑设备映射图</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 645" width="900" height="645" role="img" aria-label="三类昇腾服务器整机拆解与逻辑设备映射图" font-family="var(--font-sans)">
+  <title>三类昇腾服务器整机拆解与逻辑设备映射图</title>
   <desc>DeviceAddressingMode, DIRECT, DUAL_CHIP_CARD, card_id, chip_id, NPUPlatform, ASCEND_RT_VISIBLE_DEVICES</desc>
 
   <image href="./wiki-illustrations/atlas-slot-die-cutaway.webp" x="110" y="122" width="680" height="401" preserveAspectRatio="xMidYMid meet"/>
@@ -8,25 +8,25 @@
     <polyline points="212,114 212,286" stroke="#087f73"/>
     <polyline points="452,114 452,212" stroke="#9a4b86"/>
     <polyline points="648,114 648,348" stroke="#4c65b6"/>
-    <line x1="206" y1="526" x2="206" y2="434" stroke="#c78300"/>
-    <line x1="462" y1="526" x2="462" y2="334" stroke="#66716d"/>
-    <polyline points="852,550 852,250 684,250" stroke="#b54237"/>
+    <line x1="187" y1="526" x2="187" y2="421" stroke="#c78300"/>
+    <line x1="434" y1="526" x2="434" y2="344" stroke="#66716d"/>
+    <polyline points="874,526 874,260 679,260" stroke="#b54237"/>
   </g>
 
   <g fill="#ffffff" stroke-width="2">
     <circle cx="212" cy="286" r="5.5" stroke="#087f73"/>
     <circle cx="452" cy="212" r="5.5" stroke="#9a4b86"/>
     <circle cx="648" cy="348" r="5.5" stroke="#4c65b6"/>
-    <circle cx="206" cy="434" r="5.5" stroke="#c78300"/>
-    <circle cx="462" cy="334" r="5.5" stroke="#66716d"/>
-    <circle cx="684" cy="250" r="5.5" stroke="#b54237"/>
+    <circle cx="187" cy="421" r="5.5" stroke="#c78300"/>
+    <circle cx="434" cy="344" r="5.5" stroke="#66716d"/>
+    <circle cx="679" cy="260" r="5.5" stroke="#b54237"/>
   </g>
   <circle cx="212" cy="286" r="2.5" fill="#087f73"/>
   <circle cx="452" cy="212" r="2.5" fill="#9a4b86"/>
   <circle cx="648" cy="348" r="2.5" fill="#4c65b6"/>
-  <circle cx="206" cy="434" r="2.5" fill="#c78300"/>
-  <circle cx="462" cy="334" r="2.5" fill="#66716d"/>
-  <circle cx="684" cy="250" r="2.5" fill="#b54237"/>
+  <circle cx="187" cy="421" r="2.5" fill="#c78300"/>
+  <circle cx="434" cy="344" r="2.5" fill="#66716d"/>
+  <circle cx="679" cy="260" r="2.5" fill="#b54237"/>
 
   <g font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">
     <circle cx="24" cy="28" r="12" fill="#087f73"/><text x="24" y="32.5">1</text>
@@ -37,38 +37,38 @@
     <circle cx="608" cy="548" r="12" fill="#b54237"/><text x="608" y="552.5">6</text>
   </g>
 
-  <g font-size="14.5" font-weight="700" fill="#17211f">
-    <text x="44" y="33">Atlas 800T A2 (4U · 8 槽单 Die)</text>
-    <text x="338" y="33">Atlas 800I A3 (10U · 8 槽双 Die)</text>
-    <text x="628" y="33">Atlas 800 3000 (2U 双路鲲鹏主板)</text>
+  <g font-size="15" font-weight="700" fill="#17211f">
+    <text x="44" y="33">Atlas 800T A2 (4U 训推 · 8 槽)</text>
+    <text x="338" y="33">Atlas 800I A3 (10U 推理 · 8 槽)</text>
+    <text x="628" y="33">Atlas 800 3000 (2U 推理主板)</text>
     <text x="44" y="553">单芯 OAM 剖面 (DIRECT 直通)</text>
-    <text x="338" y="553">液冷双裸片模组 (DUAL_CHIP_CARD)</text>
+    <text x="338" y="553">液冷双 Die (DUAL_CHIP_CARD)</text>
     <text x="628" y="553">PCIe Riser 双 310P 卡 (_310P)</text>
   </g>
 
   <g font-size="13" fill="#4d5652">
-    <text x="44" y="57">上层 4 路鲲鹏 920 + 32 条 DDR4</text>
-    <text x="44" y="80">下仓 8 块 OAM：1 物理槽 = 1 逻辑卡</text>
+    <text x="44" y="57">上层 4 路鲲鹏 920 + 32 个 DDR4 插槽</text>
+    <text x="44" y="80">下仓 8 块单 Die OAM：1 槽 = 1 逻辑卡</text>
     <text x="44" y="103" fill="#087f73">整机暴露 <tspan font-family="var(--font-mono)" font-weight="700">davinci0..7</tspan> 共 8 卡</text>
 
     <text x="338" y="57">10U 超节点机箱 + 灵衢/RoCE 高密光口</text>
     <text x="338" y="80">8 块双晶粒模组：1 槽封装 2 颗计算 Die</text>
     <text x="338" y="103" fill="#7a3a6a">整机暴露 <tspan font-family="var(--font-mono)" font-weight="700">davinci0..15</tspan> 共 16 卡</text>
 
-    <text x="628" y="57">中前仓 2 路鲲鹏 920 + 32 条 DDR4</text>
-    <text x="628" y="80">后置横向 Riser 插 4 张全长 300I Duo</text>
-    <text x="628" y="103" fill="#3a4f93">4 张物理卡合计暴露 8 个逻辑设备</text>
+    <text x="628" y="57">中前仓 2 路鲲鹏 920 + 32 个 DDR4 插槽</text>
+    <text x="628" y="80">后置 Riser 示意横插 4 张 300I Duo 卡</text>
+    <text x="628" y="103" fill="#3a4f93">该示意配置 4 张卡暴露 8 个逻辑设备</text>
 
     <text x="44" y="577">前排掀盖露出单颗 910B Die 与 4 栈 HBM</text>
-    <text x="44" y="600">排障单机 <tspan font-family="var(--font-mono)" font-weight="700">Rank 0..7</tspan> 一一对应槽位</text>
+    <text x="44" y="600">全卡未重排时 <tspan font-family="var(--font-mono)" font-weight="700">Rank 0..7</tspan> 对应 8 槽</text>
     <text x="44" y="623" fill="#936300">支持 <tspan font-family="var(--font-mono)">BF16</tspan> 与 <tspan font-family="var(--font-mono)">NPUGRAPH_EX</tspan></text>
 
-    <text x="338" y="577">微通道液冷冷板带走同卡双 Die 热量</text>
-    <text x="338" y="600">绑核按 <tspan font-family="var(--font-mono)" font-weight="700">card=npu//2, chip=npu%2</tspan></text>
+    <text x="338" y="577">后排微通道液冷冷板带走同卡双 Die 热量</text>
+    <text x="338" y="600">IRQ 绑核查卡 <tspan font-family="var(--font-mono)" font-weight="700">card=npu//2, chip=npu%2</tspan></text>
     <text x="338" y="623" fill="#66716d">容器须成对挂同卡双号（如 <tspan font-family="var(--font-mono)">0,1</tspan>）</text>
 
     <text x="628" y="577">掀罩可见每张卡含 2 颗 310P SoC</text>
-    <text x="628" y="600">不支持 <tspan font-family="var(--font-mono)">BF16</tspan>，须显式传 <tspan font-family="var(--font-mono)">--dtype float16</tspan></text>
-    <text x="628" y="623" fill="#8f3229">自动关闭 <tspan font-family="var(--font-mono)">npugraph_ex</tspan> 与静态核</text>
+    <text x="628" y="600">无 BF16；如 Qwen3 传 <tspan font-family="var(--font-mono)">--dtype float16</tspan></text>
+    <text x="628" y="623" fill="#8f3229">自动关 <tspan font-family="var(--font-mono)">npugraph_ex</tspan>；gemma3 等禁 FP16</text>
   </g>
 </svg>

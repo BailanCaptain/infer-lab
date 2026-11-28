@@ -96,8 +96,10 @@ export interface Index {
 
 /** 统一源码/终端/文档里混用的不换行连字符（U+2011 等）与短横线为标准 ASCII `-`。 */
 const normDashes = (s: string) => s.replace(/[\u2010-\u2015]/g, "-");
+const HEX_LITERAL_LEADING_ZERO_RE = /0x0+([0-9a-f]+)/g;
+const normalizeHexLiterals = (s: string) => s.replace(HEX_LITERAL_LEADING_ZERO_RE, "0x$1");
 
-const norm = (s: string) => normDashes(s).trim().toLowerCase();
+const norm = (s: string) => normalizeHexLiterals(normDashes(s).trim().toLowerCase());
 
 /** 识别单个标识符查询时额外统一的横线（含减号 U+2212、小横线 U+FE63、全角 U+FF0D）；只用于查询侧判定，不改变分词。 */
 const normIdentifierDashes = (s: string) => s.replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, "-");
@@ -117,23 +119,40 @@ const GENERIC_SHORT_NAMES = new Set(["npu", "llm", "api", "get", "max", "num"]);
  * 我最初用全词精确匹配去数「哪些参数没文档」，就因此漏掉了
  * `release_notes.md`（2267 行、1137 个 PR 链接）整份文件。
  */
-const squash = (s: string) =>
-  normDashes(s)
-    .toLowerCase()
-    .replace(/[\s_\-.]/g, "");
+const squash = (s: string) => normalizeHexLiterals(normDashes(s).toLowerCase()).replace(/[\s_\-.]/g, "");
 
 /** 宽松匹配的最短长度，太短会把一堆页都命中 */
 const MIN_FUZZY = 4;
+const PURE_HEX_WITH_DIGIT_RE = /^(?:0x)?[0-9a-f]+$/;
+const CODE_TOKEN_RE = /0x[0-9a-f]+|\d+(?:[a-f]+(?=$|[^a-z]))?/g;
 
 /**
  * 两个压平后的标识符是否算同一个东西。
  * 用公共前缀而不是严格前缀——`layershare` 与 `layersharding` 在第 10 位就分叉，
  * 严格前缀判不出来，但它们显然指同一个东西。
+ * 含数字或十六进制码的标识符（错误码 507036 vs 507035、EZ3004 vs EZ3003、C000000A vs C000000B、
+ * 型号/版本号）必须数值/十六进制码序列完全一致（同时把 0x026 与 0x26 这类等值前导零归一化），
+ * 防止相邻错误码或不同版本号彼此误命中。
  */
 function sameish(a: string, b: string): boolean {
+  const na = normalizeHexLiterals(a);
+  const nb = normalizeHexLiterals(b);
+  const hasDigit = /\d/.test(na) || /\d/.test(nb);
+  if (hasDigit) {
+    if (
+      (PURE_HEX_WITH_DIGIT_RE.test(na) && /\d/.test(na)) ||
+      (PURE_HEX_WITH_DIGIT_RE.test(nb) && /\d/.test(nb))
+    ) {
+      return na === nb;
+    }
+    const da = na.match(CODE_TOKEN_RE)?.join("\0") ?? "";
+    const db = nb.match(CODE_TOKEN_RE)?.join("\0") ?? "";
+    if (da !== db) return false;
+  }
+  if (na === nb && na.length >= 3 && /0x[0-9a-f]+/.test(na)) return true;
   let i = 0;
-  while (i < a.length && i < b.length && a[i] === b[i]) i++;
-  return i >= MIN_FUZZY && i >= Math.min(a.length, b.length) * 0.75;
+  while (i < na.length && i < nb.length && na[i] === nb[i]) i++;
+  return i >= MIN_FUZZY && i >= Math.min(na.length, nb.length) * 0.75;
 }
 
 function buildLookupMaps(pages: PageIndex[]) {
@@ -342,7 +361,7 @@ export function deserializeSearchIndex(input: unknown): Index {
 }
 
 function splitAsciiSegment(seg: string): string[] {
-  const whole = seg.toLowerCase();
+  const whole = normalizeHexLiterals(seg.toLowerCase());
   // 定长窗口匹配多字母驼峰与「全大写缩写 + 驼峰词」边界（严格 O(N) 线性时间，避免在超长无大写串上二次回溯）：
   // 保留 RoPE / LoRA / MoE / ZeRO / ReLU 与 W8A8 / FP8 完整词，不被单小写字母或数字边界切碎；
   // 同时对 AllReduce / PagedAttention / NPUPlatform 同时产出完整复合词与组成词，打通连写与下划线写法。
@@ -354,6 +373,7 @@ function splitAsciiSegment(seg: string): string[] {
           .replace(/([A-Z][a-z])([A-Z][a-z]{2})/g, "$1 $2")
           .toLowerCase()
           .split(" ")
+          .map(normalizeHexLiterals)
           .filter(Boolean)
       : [whole];
   const emitted: string[] = [];
@@ -387,7 +407,7 @@ export function terms(text: string): string[] {
       for (const sub of splitAsciiSegment(seg)) perToken.add(sub);
     }
     if (segments.length >= 2) {
-      const joined = segments.join("").toLowerCase();
+      const joined = normalizeHexLiterals(segments.join("").toLowerCase());
       // 上限只约束多段压平词：超长环境变量 / 参数 / 函数名（33–96 字符）也要能按完整名精确召回；
       // 单段 ASCII 词不受此限（超长连续串仍产出一个词，见 splitAsciiSegment）。
       if (joined.length >= 2 && joined.length <= MAX_JOINED_TERM_LENGTH && !STOP_EN.has(joined)) {
@@ -670,9 +690,11 @@ function singleCompoundQuery(
       .split(" ")
       .filter(Boolean);
   } else return undefined;
-  const whole = segments.join("").toLowerCase();
+  const whole = normalizeHexLiterals(segments.join("").toLowerCase());
   const parts = [...new Set(terms(core))].filter((t) => t !== whole);
-  const unverifiableDigits = segments.some((s) => /\d/.test(s) && !parts.includes(s.toLowerCase()));
+  const unverifiableDigits = segments.some(
+    (s) => /\d/.test(s) && !parts.includes(normalizeHexLiterals(s.toLowerCase())),
+  );
   return { whole, parts, unverifiableDigits };
 }
 

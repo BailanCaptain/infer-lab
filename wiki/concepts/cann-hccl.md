@@ -30,6 +30,15 @@ aliases:
   - ACL
   - AscendCL
   - Ascend Computing Language
+  - EI0004
+  - EI0009
+  - EJ0001
+  - RaSocketConnect
+  - RaSocket
+  - LinkEstablish
+  - Getting socket times out
+  - HCCL 建链失败
+  - p2p timeout
 chapters:
   - '07'
   - 09
@@ -151,6 +160,22 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47'
   - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L179-L185'
+  - 'https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/API/hcclug/hcclug_000025.html'
+  - 'https://www.hiascend.com/document/detail/en/canncommercial/800/hcclug/hcclug/hcclug_000039.html'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L200-L228'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L295-L303'
+  - >-
+    raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L940-L950
+  - 'vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L112-L168'
+  - 'vllm-ascend@c09d3e20:mkdocs.yml#L167-L188'
+  - 'vllm-ascend@8d6180e2:mkdocs.yml#L167-L192'
+  - 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1784'
+  - 'vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L1-L130'
+  - 'vllm-ascend@8d6180e2:docs/source/getting_started/installation.md#L1-L130'
+  - 'vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L170-L292'
+  - 'vllm-ascend@8d6180e2:docs/source/getting_started/installation.md#L170-L334'
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/maintenref/troubleshooting/atlaserrorcode_15_0381.html
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -198,13 +223,13 @@ file: cann-hccl
 
 **把计算分到多卡，也把一次计算需要的输入和结果分散了。** 例如矩阵按输入维切分（`RowParallelLinear`）后，每张卡只算出形状完整、数值不全的部分和，后面的归一化与残差相加必须等各卡贡献合齐。
 
-用单机两卡的 **`Qwen3-8B`（`TP=2`，`BF16`）** 端到端走一遍一次 `All-Reduce` 的完整链路：
+用单机两卡的 **`Qwen3-8B`（`TP=2`，`BF16` 精度：每个浮点数占 16 位即 `2 B`）** 端到端走一遍一次 `All-Reduce` 的完整链路（记本步并行处理的 token 行数为 `T`，例如单请求 decode 时 `T = 1`）：
 
-1. **框架层给出部分和与通信组**：本层 `RowParallelLinear`（注意力的 `o_proj` 或 MLP 的 `down_proj`）在每卡算出 `[T, 4096]` BF16 部分和，交给 `vllm` 的 TP 通信组（`device_group`）与 `torch.distributed`。
+1. **框架层给出部分和与通信组**：本层 `RowParallelLinear`（注意力的 `o_proj` 或 MLP 的 `down_proj`）在每卡算出 `[T, 4096]` `BF16` 部分和，交给 `vllm` 的 TP 通信组（`device_group`）与 `torch.distributed`。
 2. **HCCL 组织集合归约**：Worker 启动时已指定 `hccl` 后端；HCCL 接管这次 `All-Reduce(SUM)`，安排两张卡分片收发并逐元素相加。
 3. **机内物理链路搬运字节**：同一台服务器内的两张卡通过机内高速互联（如 HCCS 或 Unified Bus）交换数据，归约完成后把完整 `[T, 4096]` 交回各自的后续算子。
 
-在 `Qwen3-8B` 这类标准稠密模型里，每层有 `2` 处 `RowParallelLinear`——attention 输出投影后一次、SwiGLU MLP 降维后一次。整座 `36` 层主干一次前向固定触发 **`2 × 36 = 72` 次** `All-Reduce`（层外词表入口与 `lm_head` 出口另计）。计算只在需要远端结果的依赖处等待，并非每次调用都让无关进程做全局屏障；一次通信要付出发起、传输、归约及等待时间，还需要设备缓冲（见 [HCCL 缓冲](hccl-buffer.md)）。
+在 `Qwen3-8B` 这类标准稠密模型按常规 TP（`TP >= 2`，未启用融合降维通信替代常规 `RowParallelLinear` 归约）运行时，每层有 `2` 处 `RowParallelLinear`——attention 输出投影后一次、SwiGLU MLP 降维后一次。整座 `36` 层主干一次前向固定触发 **`2 × 36 = 72` 次** `All-Reduce`（层外词表入口与 `lm_head` 出口另计）。计算只在需要远端结果的依赖处等待，并非每次调用都让无关进程做全局屏障；一次通信要付出发起、传输、归约及等待时间，还需要设备缓冲（见 [HCCL 缓冲](hccl-buffer.md)）。
 
 先分清相邻的四层职责，才能判断该检查哪里：
 
@@ -215,7 +240,7 @@ file: cann-hccl
 | 框架接口与通信库 | 怎样提交并组织这次操作 | `RowParallelLinear` → `vllm` 通信组 / `torch.distributed` → HCCL |
 | 物理链路 | 字节沿什么连接搬运 | 机内 HCCS / Unified Bus（跨机部署另走 RoCE，主机侧走 PCIe） |
 
-HCCS 是昇腾设备互联，RoCE 是基于以太网的远程内存访问通信，PCIe 连接主机与设备等部件，Unified Bus 是统一互联总线。具体可用路径取决于产品、拓扑与软件配套。All-Gather、All-to-All 等操作的输入输出与传输量统一见[通信基础](collective-communication.md)，网线或总线的名称无法决定应该拼接还是求和。在 `Ascend 910B3`（`CANN 9.1.0`）的独立 `TP=4` HCCS `All-Reduce` 微基准中，单次 `16 MiB` 归约实测聚合有效带宽为 `17.71 ~ 17.74 GB/s`、耗时约 `524 µs`（远低于 `392 GB/s` 标称端口峰值），完整链路数据见[通信基础 910B3 真机标尺](collective-communication.md#ascend-910b3-真机标尺tp4-hccs-all-reduce-微基准与理论峰值落差)与 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
+HCCS 是昇腾设备互联，RoCE 是基于以太网的远程内存访问通信，PCIe 连接主机与设备等部件，Unified Bus 是统一互联总线。具体可用路径取决于产品、拓扑与软件配套。All-Gather、All-to-All 等操作的输入输出与传输量统一见[通信基础](collective-communication.md)，网线或总线的名称无法决定应该拼接还是求和。在 `Ascend 910B3`（`CANN 9.1.0`）的独立 `TP=4` HCCS `All-Reduce` 微基准中，单次 `16 MiB` 归约实测按**累计 HCCS 传输时间**折算的吞吐为 `17.71 ~ 17.74 GB/s`（`25.165824 MB / 1.4208 ms` 累计 HCCS Transit Time），而算子单次 `Elapse Time` 为 `0.5251 ms` / `522.66 µs`（该吞吐分母是累计传输时长，不可与每处理器 7 条 HCCS 链并行理论峰值 `392 GB/s` 直接相除对比利用率），完整链路数据见[通信基础 910B3 真机标尺](collective-communication.md#ascend-910b3-真机标尺tp4-hccs-all-reduce-微基准与理论峰值落差)与 [Ascend 910B3 实测基线](../sources/ascend-910b3-measured-baseline.md)。
 
 放大到双机 16 卡部署时，机内高速总线与跨机网络构成两级物理通路——下图用双节点立体剖面直标机内 `HCCS`、跨机 `RoCE` 网口与中央交换机，并与逻辑上的 TP、DP、EP 通信域一一对应：
 
@@ -256,7 +281,7 @@ file: cann-hccl-plate-two-node
 | CANN 镜像或已有 CANN 环境 | Toolkit、硬件对应的 Ops、NNAL；已有环境须逐项确认 | 安装配套框架、引擎、插件和该硬件需要的算子包 |
 | 基础 Linux 环境 | 操作系统和自行准备的 Python 环境 | 先装 CANN 各组件，再完成上一行的软件安装 |
 
-例如，能在 CANN 容器里查询到设备，却因缺少 NNAL 的动态库而加载失败，应继续检查库是否安装、环境脚本是否加载；重填模型并行参数解决不了这一层的问题。同理，其他 Python 包重装了同名 Triton 文件后，包清单里仍有 Triton Ascend，也可能已经不能执行它的实现。具体检查和版本条件见[怎么开](#怎么开)。
+例如，能在 CANN 容器里查询到设备，却因容器未正确挂载宿主机 `driver/lib64` 下的 `libascend_hal.so`（硬件抽象层驱动库）或缺少 NNAL 动态库而加载失败，应继续检查挂载与环境脚本（容器设备栈挂载见[昇腾运行时与调优](ascend-runtime-and-tuning.md)）；重填模型并行参数解决不了这一层的问题。同理，其他 Python 包重装了同名 Triton 文件后，包清单里仍有 Triton Ascend，也可能已经不能执行它的实现。具体检查和版本条件见[怎么开](#怎么开)。
 
 设备映射也随硬件改变：官方 A3 示例映射两个设备节点以对应两个裸片（DIE）；950DT 示例还映射该产品需要的额外设备节点。这里的节点是容器可访问的设备接口，物理板卡与逻辑设备数量仍按[硬件页](hardware-devices.md)计算。完整推理镜像、CANN 镜像和普通 Linux 镜像不能仅凭名称互换。
 
@@ -281,7 +306,11 @@ P/D 方案采用 **HIXL**（Huawei Xfer Library，昇腾面向内存直连与高
 
 ## 双机 16 卡跨节点通信域与调用统计
 
-单机 `Qwen3-8B TP=2` 只需每层 2 次、全模型 `72` 次机内 `All-Reduce`；到了跨节点的 **GLM-5.3-Flash 双机算例**（固定快照 `vllm@0fc695fc + vllm-ascend@db701c1f`，两台 Atlas 800 A2、每台 8 卡，TP8 / DP2 / EP16，W8A8，分组推导见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)），通信同时跨越机内 HCCS 与机间 RoCE 两类物理网络，单次主干前向包含 **`218` 个通信调用边界**。一次调用可包含多轮底层传输，调用次数与网络包数是不同的量，次数汇总见[一条请求](one-request.md#一次前向的通信账)。
+> **历史 GLM-5.3-Flash 双机对照算例**：分组推导见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)。
+> 该固定历史双机版本跑在两台 8 卡 Atlas 800 A2 上，按 TP8 / DP2 / EP16 与 W8A8 切分。
+> 本节只作历史 GLM-5.3-Flash 双机算例对照，不混入上文 `v0.30.0` 标准单机 `Qwen3-8B TP=2` 口径。
+
+在本双机 **GLM-5.3-Flash** 对照算例中，通信同时跨越机内 HCCS 与机间 RoCE 两类物理网络；按计入 embedding、45 层及 `lm_head` 的整次主干前向口径，共包含 **`218` 个通信调用边界**。一次调用可包含多轮底层传输，调用次数与网络包数是不同的量，各层次数汇总见[一条请求](one-request.md#一次前向的通信账)与[张量并行](tensor-parallel.md#双机-16-卡混合层对照tp8-在-kda稀疏-mla-与-moe-中怎样分工)。
 
 **HCCL 在 A0 启动阶段接入，在 A4 逐层计算中反复使用。** 本节对应[部署主线的「启动时发生了什么」](glm-5-3-flash-two-node.md#启动时发生了什么)：先初始化设备通信，再建立模型并行组，之后才能加载、预热并执行模型。下图把前文的四层软件栈与 GLM 双机 16 卡的三大通信域及通信精度合在一张总览里：
 
@@ -323,16 +352,16 @@ file: cann-hccl-fig-qos-and-netcheck
 
 使用前务必分清三个易混缩写与硬件边界：
 
-- **硬件范围仅限 A3 拓扑：** 下文的硬件与软件条件限定的是 AI QoS 流量调度能力，不是所有 HCCL 通信的最低运行要求。固定文档把 AI QoS 限定在 Atlas 800T A3 / Atlas 900 A3 SuperPoD；本页 A2 双机主线没有启用它的证据，具体配套和配置方法集中列在“对照源码”，避免把 A3 的可选能力套到 A2 部署。
+- **硬件范围仅限 A3 拓扑：** 下文的硬件与软件条件限定的是 AI QoS 流量调度能力，不是所有 HCCL 通信的最低运行要求。固定文档把 AI QoS 限定在 Atlas 800T A3 / Atlas 900 A3 SuperPoD；前文的历史 GLM A2 双机对照算例没有启用它的证据，具体配套和配置方法集中列在“对照源码”，避免把 A3 的可选能力套到历史 A2 对照部署。
 - **同名缩写辨析：** 本节的 **UB** 是 Unified Bus（[AI Core](ai-core.md) 中的 UB 则是片上 Unified Buffer）；这里的 **SP** 表示 strict priority（严格优先级，与[序列并行](sequence-parallel.md)缩写相同、含义不同）。流量怎样分类并映射到虚拟通道、分开排队后一次等待怎样变化，见[AI QoS](ai-qos.md)。
-- **延伸到昇腾 950：** 继续阅读[昇腾 950 的任务执行与互联](ascend-950-execution-interconnect.md)，可以沿同一次两卡求和，区分设备任务调度、通信卸载和互联各负责哪一段。集合通信的操作定义仍在原页，950 的软件接入情况也与本页固定 A2 部署分开记录。
+- **延伸到昇腾 950：** 继续阅读[昇腾 950 的任务执行与互联](ascend-950-execution-interconnect.md)，可以沿同一次两卡求和，区分设备任务调度、通信卸载和互联各负责哪一段。集合通信的操作定义仍在原页，950 的软件接入情况也与历史 GLM A2 对照部署分开记录。
 
 ## 常见误解
 
 - **“网络连通，一次集合通信就能完成。”** 网络只解决到达问题，程序还必须使用正确的组，并使形状、类型、收发约定和调用顺序匹配。
 - **“HCCL 与 HCCS 是同一个东西。”** HCCL 是通信库，HCCS 是互联方式；库还可支持其他链路。
 - **“所有通信都经过同一个普通接口。”** 普通张量通信和 MC2 等专用实现有不同入口，应沿本次算子的实际调用核对。
-- **“W8A8 让所有通信字节都减半。”** 本部署的 TP 归约仍传 BF16；只有 MoE dispatch 这一段因量化改传 int8 加缩放系数，combine 仍是 BF16。通信量取决于每次交给通信操作的实际张量类型。
+- **“W8A8 让所有通信字节都减半。”** 该历史 GLM 双机对照算例的 TP 归约仍传 BF16；只有 MoE dispatch 这一段因量化改传 int8 加缩放系数，combine 仍是 BF16。通信量取决于每次交给通信操作的实际张量类型。
 - **“优先级调高就能增加带宽，运行脚本就配置完交换机。”** 优先级改变服务次序；脚本写入端点后打印交换机命令，交换机仍需单独执行与验收。
 
 ## 对照源码
@@ -357,7 +386,7 @@ python -m pip check
 
 较后文档为 A2 / A3 / 950DT 额外要求安装 FLA NPU，即提供卷积和 gated delta-rule 算子的设备包；选择与硬件相应的 a2、a3、a5 包，并核 glibc 2.34+ 和提供 GLIBCXX_3.4.29 的运行库。该步骤没有随插件自动完成。Atlas 300I DUO / 200I Pro 在这份指南中不需要 FLA NPU，也不支持安装 Triton 或 Triton Ascend。各教学钉点与较后文档的区别见[版本差异](#版本差异)。
 
-普通 HCCL 通信由 Ascend Worker 的分布式初始化接入，固定执行快照在 `_init_worker_distributed_environment` 中传入 `hccl` 后端，然后调用 `ensure_model_parallel_initialized` 和 `init_ascend_model_parallel`。按[部署命令](glm-5-3-flash-two-node.md#怎么开)设置并行规模即可进入这条路径；CANN 的安装、驱动、固件、PyTorch / torch_npu 与框架版本仍须分别记录并核配套。
+普通 HCCL 通信由 Ascend Worker 的分布式初始化接入，固定执行快照在 `_init_worker_distributed_environment` 中传入 `hccl` 后端，然后调用 `ensure_model_parallel_initialized` 和 `init_ascend_model_parallel`。按[部署命令](glm-5-3-flash-two-node.md#怎么开)设置并行规模即可进入这条路径；CANN 的安装、驱动、固件、PyTorch / `torch_npu` 与框架版本仍须分别记录并核配套。
 
 ```wiki-diagram
 file: cann-hccl-flow
@@ -383,7 +412,7 @@ cat /etc/hccn.conf
 hccn_tool -i 0 -ping -g address x.x.x.x
 ```
 
-链路查询应有 `link status: UP`，健康查询应有 `net health status: Success`；LLDP、探测地址、网关和配置查询则要逐项与集群规划核对。跨节点探测应收到回复，汇总中发送与接收包数相同、丢包为零，再覆盖部署使用的其余设备对和反向路径。官方 A3 示例遍历 0–15，950DT 示例遍历 0–7；这是设备号范围，不是物理板卡数量，计数关系见[硬件设备](hardware-devices.md)。
+链路查询应有 `link status: UP`，健康查询应有 `net health status: Success`；LLDP、探测地址、网关和配置查询则要逐项与集群规划核对。跨节点探测应收到回复，汇总中发送与接收包数相同、丢包为零，再覆盖部署使用的其余设备对和反向路径。官方 A3 示例遍历 0–15，950DT 示例遍历 0–7；这是设备号范围，不是物理板卡数量，计数关系见[硬件设备](hardware-devices.md)。注意在 `main`（`8d6180e2`）指南中，950DT 改用 UB 网络而非 RoCE，上述 `-lldp`、`-ip`、`-gateway`、`-net_health`、`-ping` 命令在 950DT 上参数顺序会被拒绝或不受支持，须改用 `hccn_tool -g -dev_info/-link/-version`、`urma_admin show` 与 `urma_ping`（见版本说明与来源 96）。
 
 固定 Ascend 安装指南在 950DT 预检中列出 `/lib/route.conf`、`/etc/hccl_rootinfo.json` 与 `/etc/hixlep`，并要求选择 D2D 场景。实际准备时还要按其链接的 [HiXLEP 配置指南](https://gitcode.com/cann/hixl/wiki/A5%20LocalCommRes%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.md)选择 **CANN 版本**：9.1.0 章节使用这些输入，9.2.0 自动生成流程已不依赖旧 route.conf。A2 主线使用自己的网络配套，不套用这项 950DT 前置条件。
 
@@ -417,6 +446,17 @@ D2D 指设备到设备，H2D 指主机到设备；该表中 KV 换出还包括�
 
 设备链路为 DOWN、健康查询失败，或跨设备探测丢包时，先保留对应节点、源设备号、目标 NPU IP 与输出，沿物理连接和设备网络配置检查。基础检查通过后再出现推理超时，则同时收集组内最早异常与各 rank 的调用进度；继续重复主机 ping 无法补齐这些证据。
 
+下表汇总 HCCL 建组、传输初始化与套接字建链阶段的高频错误特征（与算子执行期 Notify 等待超时 `EI0002` 区分排查，各条对应定义见来源 84–85、97）：
+
+| 错误码或套接字报错特征 | 所属阶段与直接含义 | 优先核查项 |
+|---|---|---|
+| `EI0004`（ranktable 读取、路径或字段配置失败） | 通信组初始化配置阶段（来源 84） | 核对 ranktable 文件路径权限、JSON 字段完整性与节点/设备映射 |
+| `EI0014`（集群信息校验失败，如 ranktable 中 `device_ip` 与网卡不符、TLS 不一致或 `superDeviceId` 重复） | 通信域初始化集群校验阶段 | 核对 `cat /etc/hccn.conf` 实际设备 IP、TLS 证书与全局唯一 `superDeviceId` / `rank_id` |
+| `EI0009`（`Device ... transport init error. Reason: ...`） | 传输初始化阶段（来源 97） | 先看具体 `Reason` 是否指向端口、链路或通道资源，勿无证据断言物理断链 |
+| `EJ0001`（HCCP 启动或初始化失败） | HCCP 通信服务初始化阶段（来源 85） | 核对 HCCP 进程、证书、端口及设备网络配置，单凭该码不能直接判定物理断缆 |
+| `EI0006`（`Getting socket times out` / `[Wait][LinkEstablish]`，通信参数面 Socket 建链超时） | 通信域建链握手等待阶段（来源 84；区别于算子执行期 Notify 等待超时 `EI0002`） | 既可能是真实网卡/路由/防火墙故障，也可能是对端 Rank 在通信域初始化完成前提前退出引发的次生建链等待症状；先合并全组日志排除早退首错 Rank，再核对端口放通与 Host/设备选网；若为算子执行期 `EI0002`（`Notify wait execute timeout`）则转 [推理排障](inference-troubleshooting.md) 锁定首错 Rank（注意先排查单卡前序 `507015` / `CheckSmmuFault` `retCode=0x26` / Vector Core `507035` / ACLNN 参数 `161002` 等硬件或算子首错） |
+| `RaSocketConnect` / `RaSocket` `bind` 或 `connect` 失败（`EADDRNOTAVAIL`、`Cannot assign requested address`、`ENETUNREACH`、`No route to host`）或 HCCL 传输上下文 `p2p timeout` | 本机绑定、路由不可达或对端传输建链超时 | 核对 `HCCL_IF_IP`（在通过 root info 创建通信域时优先于 `HCCL_SOCKET_IFNAME` 选择 Host 套接字）、`HCCL_SOCKET_IFNAME`、`GLOO_SOCKET_IFNAME` 网卡绑定与路由（见 [引擎进程与网卡配置](engine-processes.md#会报什么错)）及 `hccn_tool` 端口状态 |
+
 QoS 的 `unset` 找不到快照时打印 `No state file at ...; nothing to undo.` 并退出。恢复 SDMA 或端点全局配置失败会打印带设备号和返回码的警告；“打印了 undo”只说明生成了交换机恢复指令，不能据此认定交换机已恢复。
 
 `v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）上 KV 传输的 `qos_priority` 不是 `0–4` 的整数（布尔值也不行）时，PD 分离连接器或 KV 池后端在启动阶段抛 `ValueError`；环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 里原有的 QoS 值会被覆盖，并打一条 warning。日志 `Injected comm_resource_config.qos=...` 只说明本地环境已写入，不能证明某条传输通道用了这个值。
@@ -436,15 +476,15 @@ AI QoS 适用于受支持拓扑上的流量争用。提高关键流量优先级�
 
 **安装文档也有自己的版本。** `v0.23.0`、`v0.26.0rc` 的固定安装指南均列出 CANN / NNAL 9.1.0、PyTorch 2.10.0、TorchNPU 2.10.0.post4，以及 Triton Ascend 3.2.2 的安装说明。`v0.30.0` 周期与 `main` 的固定指南改用包含文件和模板变量描述三种安装路径；早期快照的模板仍将发布示例指向 0.23.0，不能仅凭分支名就把模板展开的镜像叫作该分支镜像。实际安装应再对照目标发布行及所用源码提交。
 
-| 核对项 | `v0.23.0` 固定指南 | `v0.26.0rc` 固定指南 | `v0.30.0` 周期指南 | `main` 固定指南 |
+| 核对项 | `v0.23.0` 固定指南 | `v0.26.0rc` 固定指南 | `v0.30.0` 正式版指南（`c09d3e20`） | `main` 固定指南（`8d6180e2`） |
 |---|---|---|---|---|
-| CANN 基础环境与完整推理镜像 | 两者分开，手装路径含 Toolkit / Ops / NNAL | 相同；强调完整配套 | 明列三种路径及组件责任 | 与 `v0.30.0` 相同 |
-| 无 NPU 的构建说明 | 没有同名 CPU-only 验证节 | 跳过设备验证，仍准备 CANN / 框架依赖 | 仍要求 CANN 头文件和库；关闭自定义算子构建 | 与 `v0.30.0` 相同 |
-| 构建成功能证明什么 | 不等于 NPU 推理成功 | 只证明包构建，运行前另查依赖与设备 | 相同 | 相同 |
+| CANN 基础环境与完整推理镜像 | 两者分开，手装路径含 Toolkit / Ops / NNAL | 相同；强调完整配套 | 明列三种路径及组件责任；发布栈钉 **CANN `9.2.0`**（来源 90） | 同左发布栈结构，发布栈钉 **CANN `9.2.1`**（来源 91） |
+| 无 NPU 的构建说明 | 没有同名 CPU-only 验证节 | 跳过设备验证，仍准备 CANN / 框架依赖 | 已包含 `main` 分支 **CPU-only build verification** 说明（`installation.md#L116-L168`，来源 89）：跳过原生扩展与自定义核，**免装 CANN、驱动、PyTorch、TorchNPU 与 vLLM**。该流程仅验 Python 打包，输出 `CPU-only package build: OK` 判成功；无运行库时 `pip check` 预期报缺依赖 | 与 `v0.30.0` 文档同源（仅作 Python 打包验证） |
+| 构建成功能证明什么 | 不等于 NPU 推理成功 | 只证明包构建，运行前另查依赖与设备 | 不提供 CPU 推理或单测环境，实机推理前仍须在真实 CANN/NPU 环境补齐依赖 | 相同 |
 
-较后官方快照 `921ccc52` 将配套升级为另一组版本，并增加上述 FLA NPU 安装要求；它的 main 专用 CPU-only 流程还改为跳过原生扩展，仅验证 Python 打包，允许不安装 CANN、驱动和运行时依赖。这个专用环境预期会被 `pip check` 报缺依赖，不能拿它作为实际推理环境的合格判据。它也不提供 CPU 推理或单元测试环境。这些后续变化均不回填为固定 GLM 部署已经具备的条件。
+（注：早期开发快照 `7d825229` / `baa023ad` 中的 `mkdocs.yml` 来源 68–69 曾将模板示例指向 `v0.23.0` 与旧 CANN 栈，而 `v0.30.0` 正式版 `c09d3e20` 与 `main` `8d6180e2` 的 `mkdocs.yml` 已分别钉住 `v0.30.0` 与 **CANN `9.2.0` / `9.2.1`**；另 `921ccc52` 补充了 FLA NPU 安装说明。这些后续变化均不回填为固定 GLM 部署已经具备的条件。）
 
-设备网络预检在 `v0.23.0`、`v0.26.0rc`、`v0.30.0` 与 `main` 的固定官方安装指南中均存在：A2 用 0–7、A3 用 0–15，均查询链路、健康、地址与配置，再进行跨节点 NPU ping。四版也都有 950 系列的拓扑配置前置项，`v0.30.0` / `main` 明确为 950DT。较后的文档快照 `921ccc52` 把结果判据细分为链路 UP、健康 Success、配置逐项核对，并明确探测目标是远端 NPU 地址、需双向覆盖。这是说明的补全，不据此推断驱动或通信实现发生变化。
+设备网络预检在 `v0.23.0`、`v0.26.0rc`、`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的官方安装指南中均存在：A2 用 0–7、A3 用 0–15，均用 `hccn_tool` 查询链路（期望 `UP`）、健康（期望 `Success`）、IP 地址与配置，再对远端 NPU 地址双向探测；四版也均有 950 系列网络拓扑前置项，其中 `v0.30.0` 正式版文档（早于 11 月 2 日快照 `921ccc52`，并非继承自该后发快照）与 `main` 均已写明为 `950DT` 并列出 `UP` / `Success` 判据与双向覆盖说明。而 `main` `8d6180e2#L234-L315` 进一步将 `950DT` 迁移为 UB 专节，明确说明 A2/A3 的 RoCE `hccn_tool` 子命令在 950DT 上会因参数顺序被拒或提示不支持，须**改用** `hccn_tool -g`、UB EID `urma_admin show` 与 `urma_ping` 替代原 RoCE 检查，不据此推断底层驱动或通信实现变化。
 
 HIXL 是另一条配套版本线。上述固定 Ascend 指南中的三文件清单，不能推出所有 CANN 版本永久需要相同文件。HiXLEP 指南分别说明 CANN 9.1.0 与 9.2.0，后者自动生成去掉旧路由文件依赖；本文所读 HIXL 工具文档另固定到 `dcf0027f`，工具只面向 A5。HIXL 接口文档还区分 UB 场景只含 device 端点、只含 host 端点及二者齐全时允许注册和传输的地址类型；升级框架或修改 PP/TP 参数不会自动补齐这些资源。
 
@@ -458,12 +498,12 @@ HIXL 是另一条配套版本线。上述固定 Ascend 指南中的三文件清�
 |---|---|---|---|---|
 | Worker 后端与建组入口 | 显式 `hccl` 初始化，随后调用 `ensure_model_parallel_initialized` 与 `init_ascend_model_parallel` | 相同 | 相同（`worker.py#L1283-L1305`）；Engram+PCP 临时清除上游 `engram_config` 避免重复建 DP-only 组 | 相同（`worker.py#L1405-L1427`）；MRV2 `pp_broadcast` 显式按 `hccl` + `create_hccl_pg_options("pp_broadcast")` 重建（`v2/model_runner.py#L179-L185`） |
 | Ascend 扩展通信域 | TP / DP / EP / MC2 / `dynamic_eplb` / 细粒度 TP 等 | 延续并调整部分辅助组 | 新增 `edp`（Engram `DP×PCP`，`dp_shared_memory` 走 `gloo` 否则 `hccl`）与 `kvpp`（`TP×PCP`）（`parallel_state.py#L63-L115`）；睡眠清理含 `sleep_lifecycle_anchor`（1 MiB） | 在 `v0.30.0` 基础上补建 `etp`（`TP×DP` 覆盖上游 TP 回退）并将 `edp` 扩展至 `PCP==1` 共享 PLE 表（`parallel_state.py#L63-L145`） |
-| AI QoS 入口与键 | 独立脚本 `python tools/ai_qos.py`（默认 `auto`）；五键（AIV D2D/H2D `high`、SDMA D2D `high` / H2D `low`、PCIEDMA_H2D `high`） | 相同 | `python -m tools.ai_qos`；收敛为三键 `AIV` `high`、`SDMA` `low`、`PCIEDMA` `high`，均支持 `high/middle/low`（`tools/ai_qos.py#L453-L473`） | 同 `v0.30.0`（`tools/ai_qos.py#L453-L473`） |
+| AI QoS 入口与键 | 独立脚本 `python tools/ai_qos.py`（默认 `auto`）；五键（`AIV` D2D/H2D `high`、`SDMA` D2D `high` / H2D `low`、`PCIEDMA_H2D` `high`） | 相同 | `python -m tools.ai_qos`；收敛为三键 `AIV` `high`、`SDMA` `low`、`PCIEDMA` `high`，均支持 `high/middle/low`（`tools/ai_qos.py#L453-L473`） | 同 `v0.30.0`（`tools/ai_qos.py#L453-L473`） |
 | AI QoS 映射依据与默认目标 VL / 优先级 | 按 D2D / H2D 初始 VL 区分，AIV D2D 2/3、H2D 5/3；SDMA D2D 2/3、H2D 3/1；PCIEDMA H2D 5/3 | 相同 | 按通道类型配置（cacheable / noncacheable 初始 VL 均生成映射）；默认 AIV 2/3、PCIEDMA 3/3、SDMA 4/1 | 同 `v0.30.0` |
 | 恢复边界与硬件限制 | 恢复端点首次快照并打印交换机 `undo`；A3 指定产品、AIV 不生效 | 相同 | 相同（A3 指定产品与最低版本要求不变，AIV 不生效） | 相同 |
 | 推理引擎内 KV 传输 QoS 入口 | 无 | 无 | 有：`kv_connector_extra_config.qos_priority`（整数 `0–4`，PD 默认 `1`，`kv_transfer/utils/utils.py#L18-L47`） | 同 `v0.30.0`（`kv_transfer/utils/utils.py#L18-L47`） |
 
-`v0.30.0` 与 `main` 沿用的 `qos_priority` 与 AI QoS 是两套东西。它写在 KV 传输配置的 `kv_connector_extra_config` 里，只由 PD 分离的三个 Mooncake 连接器（MooncakeConnectorV1、MooncakeHybridConnector、MooncakeLayerwiseConnector）和 KV 池后端读取。连接器在建立传输引擎前，把它写进环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 `comm_resource_config.qos`，不填时用 P/D 默认值 **1**；KV 池后端只在显式填写时写入，Mooncake 后端写 `store.comm_resource_config.qos`，Memcache 后端写 `MF_DEVICE_UB_QOS`。这里的 0–4 是 KV 传输通道的 QoS 值，与本页 AI QoS 的 high / middle / low 等级、VL 编号和交换机优先级不是同一套编号。使用 HIXL Client/Server 传输时，连接通道采用发起端的值：pull 用 decode 侧，push 用 prefill 侧；该规则不能单凭环境写入日志推广到其他传输实现。本页 GLM 双机主线没有配置 KV 传输，用不到这个入口；机制见 [PD 分离](pd-disaggregation.md)与[外部 KV 池](kv-pool.md)。
+`v0.30.0` 与 `main` 沿用的 `qos_priority` 与 AI QoS 是两套东西。它写在 KV 传输配置的 `kv_connector_extra_config` 里，只由 PD 分离的三个 Mooncake 连接器（`MooncakeConnectorV1`、`MooncakeHybridConnector`、`MooncakeLayerwiseConnector`）和 KV 池后端读取。连接器在建立传输引擎前，把它写进环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 `comm_resource_config.qos`，不填时用 P/D 默认值 **1**；KV 池后端只在显式填写时写入，Mooncake 后端写 `store.comm_resource_config.qos`，Memcache 后端写 `MF_DEVICE_UB_QOS`。这里的 `0–4` 是 KV 传输通道的 QoS 值，与本页 AI QoS 的 `high` / `middle` / `low` 等级、VL 编号和交换机优先级不是同一套编号。使用 HIXL Client/Server 传输时，连接通道采用发起端的值：`pull` 用 decode 侧，`push` 用 prefill 侧；该规则不能单凭环境写入日志推广到其他传输实现。前述历史 GLM 双机对照算例没有配置 KV 传输，用不到这个入口；机制见 [PD 分离](pd-disaggregation.md)与[外部 KV 池](kv-pool.md)。
 
 固定 GLM 快照的五键定义、默认值与恢复逻辑和表中 `v0.23.0` / `v0.26.0rc` 一致。四版核对覆盖通信初始化、Ascend 扩展通信域、AI QoS 工具与 KV 传输 `qos_priority` 入口；CANN 9.1.0 文档用于解释软件职责，具体集群的驱动与完整镜像配套仍须按部署环境另核。
 
@@ -471,26 +511,28 @@ HIXL 是另一条配套版本线。上述固定 Ascend 指南中的三文件清�
 
 - HIXL 通信资源的概念、CANN 9.1.0 / 9.2.0 配置流程与附录脚本见来源 72；工具适用硬件、版本配套与输出名见固定工具说明 73；内联/文件优先关系、拓扑与端点地址类型条件见接口说明 74。
 - 软件分层、三种安装路径与构建验证边界见来源 57–61；A3 与 950DT 的容器设备映射分别见来源 62、63。Triton 安装覆盖关系及 FLA NPU 的硬件、运行库条件见来源 60。
-- 四版安装说明见来源 64–67，rc2 / main 模板发布示例实际指向的版本见来源 68、69；后续模板版本见来源 70。发布行与 main 固定提交的配套规则见来源 71。这些是文档与源码快照证据，不是本项目的设备安装实测。
-- 设备网络检查步骤、硬件示例编号、查询结果判据和双向探测范围来自固定官方安装指南；v0.23、v0.26、rc2、main 分别见来源 52、53、54、55，较后文档的明确判据见来源 51。950DT 拓扑文件要求也在该指南中。[S51]
-- P/D 角色启动前的主机地址、网卡与端口类别要求见 GLM-5.3-Flash 官方教程；这里采用网络检查要求，不改变本页 A2 混部算例。[S56]
+- `v0.23.0`（`2c59ff10`）与 `v0.26.0rc`（`2ed6cbba`）安装说明分别见来源 64、65；早期开发快照 `7d825229` / `baa023ad` 的安装文档与 `mkdocs.yml` 模板见来源 66–69（后续 `921ccc52` 模板见来源 70）；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）正式版安装指南（含三种安装路径与免 CANN 的 CPU-only 打包校验）及 `mkdocs.yml` 版本栈（CANN `9.2.0` / `9.2.1`）分别见来源 89–91 与来源 93–94。发布行与 `main` 固定提交的配套规则见来源 71。这些是文档与源码快照证据，不是本项目的设备安装实测。
+- 设备网络检查步骤、硬件示例编号、`UP` / `Success` 查询结果判据和双向探测范围来自官方安装指南：`v0.23.0`（`2c59ff10`）见来源 52，`v0.26.0rc`（`2ed6cbba`）见来源 53，开发快照 `7d825229` / `baa023ad` 与后续 `main` 线快照 `921ccc52` 分别见来源 54–55、51（注意 `921ccc52` 晚于 `c09d3e20` 发布日，非后者上游祖先），`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`，用 UB `hccn_tool -g` / `urma_admin` / `urma_ping` 替代 `950DT` 的 RoCE 检查）分别见来源 95、96（950DT 拓扑文件要求也在对应指南中）。[S51]
+- 常规 `RowParallelLinear` 触发 `tensor_model_parallel_all_reduce` 归约见 `vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1784`（来源 92），Ascend 侧序列并行与量化 `reduce_scatter` 分支见 `linear_op.py`（来源 86–87）；`Ascend 910B3` `TP=4` HCCS 微基准中 `1.4208 ms` 累计 transit（`17.71 ~ 17.74 GB/s`）与 `0.5251 ms` `Elapse Time` 原始 trace 数据见来源 88。
+- P/D 角色启动前的主机地址、网卡与端口类别要求见 GLM-5.3-Flash 官方教程；这里采用网络检查要求，不改变前文历史 GLM A2 双机对照算例。[S56]
 - CANN 的计算软件职责、HCCL 的通信能力及链路列表来自官方 CANN 9.1.0 文档；All-Reduce 的四种归约操作也在其中。[S1][S2]
 - 固定 Worker 初始化与普通通信封装，支撑第二张图的 A0→A4 顺序和普通 All-to-All 分支。[C3][C4][C5]
 - TP / DP / EP 的成员生成与 CPU 两元素状态同步，支撑本页通信域对照。[C18][C19]
 - 固定快照 MC2 派发器的注释建议 A2 设置 HCCL 机内变量组合；这不是所有产品、CANN 版本或普通 HCCL 操作的生效证明。比如 CANN 商用版 8.5.0 的普通 `HCCL_INTRA_PCIE_ENABLE` 文档把 A2 适用产品限定为 Atlas 200T A2 Box16，不能直接套成 Atlas 800 A2 的通用调参规则。现场仍须按实际 CANN / MC2 配套与链路日志核对。[C29][S48]
 - AI QoS 的争用动机、VL 隔离与严格优先级，以及构建、五类流量和硬件约束，来自固定执行快照官方指南。[S6][S7]
 - 固定 QoS 映射、端点写入与交换机命令生成、参数默认值、恢复与失败分支，支撑上文的默认配置与恢复边界。[C8][C9][C10][C11]
-- 三版 Worker 均显式选择 hccl 后端（来源 12–14）；三版脚本对应版本表中的五键→三键变化与恢复边界（来源 15–17）。
+- 三版 Worker 均显式选择 `hccl` 后端（来源 12–14）；三版脚本对应版本表中的五键→三键变化与恢复边界（来源 15–17）。
 - 三版官方指南分别确认构建方式、硬件 / 软件条件与 AIV 驱动限制。[S20][S21][S22]
 - `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的 KV 传输 QoS 入口：P/D 默认值 1 与 `0–4` 校验、KV 池后端的校验、Mooncake 连接器在建传输引擎前的调用、官方 PD 教程写明的发起端规则与日志含义，以及 Mooncake / Memcache 两种 KV 池后端各自写入的环境变量；`v0.23.0`、`v0.26.0rc` 与固定快照 `db701c1f` 中都没有这些调用。[C23][C24][C25][S26][C27][C28]
 - `v0.30.0` 起引入的 Engram 分组：Ascend 提供 `DP × PCP` 维度与 `TP × PP` 执行组大小，上游 helper 用每节点完整执行组数和该维度的最大公约数决定分片，无法整除或节点 rank 不连续时退回 1。[C49][C50]
+- 官方 CANN 9.0 HCCL 错误码表（来源 84）定义 `EI0002` 为通信算子执行期 Notify 等待超时、`EI0004` 为 ranktable 加载失败、`EI0006` 为通信参数面 Socket 建链超时；CANN 9.0 故障参考（来源 97）定义 `EI0009` 为传输初始化错误；CANN 8.0 HCCL 文档（来源 85）定义 `EJ0001` 为 HCCP 初始化失败。[S84]
 
 上述来源 23 还显示：若 `qos_priority` 无效或 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 JSON 格式错误，会在修改环境前失败。
 
-**待核：** 缺少固定 GLM 镜像的完整 CANN / HCCL、驱动与固件配套清单，及真实通信 trace；尚不能确认本次运行的底层算法、各组的实际链路、物理链路带宽或 QoS 收益。218 次与 R1 的 32 KiB 是固定主线的调用 / 逻辑载荷口径，均不代表已实测的网络包数或收发字节。
+**待核：** 缺少固定 GLM 镜像的完整 CANN / HCCL、驱动与固件配套清单，及真实通信 trace；尚不能确认本次运行的底层算法、各组的实际链路、物理链路带宽或 QoS 收益。218 次与 R1 的 32 KiB 是历史 GLM-5.3-Flash 双机对照算例的调用 / 逻辑载荷口径，均不代表已实测的网络包数或收发字节。
 
 网络预检、HIXL 端点生成和真实传输尚未在本项目的 NPU 环境执行。具体 EID、网卡地址、设备映射与拓扑须从目标机器取得，不能直接使用官方示例中的地址。
 
-- 来源 31：vllm-ascend@db701c1f，vllm_ascend/ops/fused_moe/token_dispatcher.py，L113–L119。
+- 来源 31：`vllm-ascend@db701c1f`，`vllm_ascend/ops/fused_moe/token_dispatcher.py`，`L113–L119`。
 
-设备组由固定版本的 Worker、模型并行建组与 GroupCoordinator 传给 NPUCommunicator；All-to-All 的具体入口见来源 5，基础通信器的归约/收集接口见来源 4。AI QoS 的硬件、容器权限、软件配套与 AIV 驱动约束见固定指南的 75–82 行；满足这些配置条件后，实际采用的算法和链路仍需通信 trace 确认。
+设备组由固定版本的 Worker、模型并行建组与 `GroupCoordinator` 传给 `NPUCommunicator`；All-to-All 的具体入口见来源 5，基础通信器的归约/收集接口见来源 4。AI QoS 的硬件、容器权限、软件配套与 AIV 驱动约束见固定指南的 75–82 行；满足这些配置条件后，实际采用的算法和链路仍需通信 trace 确认。

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 564" width="900" height="564" role="img" aria-label="分布式通信超时三分支对照图：区分某 Rank 根本没到（首错崩溃）、某 Rank 迟到（负载或 GC 拖慢）与全员已到但交换本身慢（链路带宽）" font-family="var(--font-sans)">
   <title>分布式集合通信超时三分支：根本没到 vs 有人迟到 vs 交换本身慢</title>
-  <desc>Three multi-rank collective communication failure patterns: Rank crashed before barrier (first-fault EI0006), straggler rank late due to workload/GC skew, and all ranks arrived simultaneously with slow fabric/link exchange</desc>
+  <desc>Three multi-rank collective communication failure patterns: Rank crashed before barrier (secondary EI0002 Notify wait execute timeout, distinct from link-establish EI0006), straggler rank late due to workload/GC skew, and all ranks arrived simultaneously with slow fabric/link exchange</desc>
   <defs>
     <marker id="ts-ff-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
@@ -10,7 +10,7 @@
     </marker>
   </defs>
 
-  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">集合通信慢或报 EI0006：三种截然不同的多卡时间线，先分型再查网络</text>
+  <text x="16" y="26" font-size="16" font-weight="700" fill="#17211f">集合通信慢或报 EI0002：三种截然不同的多卡时间线，先分型再查网络</text>
   <text x="884" y="26" text-anchor="end" font-size="13.5" fill="#66716d">相对阶段示意（非实测时长）</text>
 
   <!-- Shared vertical barrier guide lines for timelines (x=112..620) -->
@@ -21,14 +21,14 @@
   </g>
 
   <!-- ================= CASE A: Rank Never Arrived (First Fault Crash) ================= -->
-  <text x="16" y="54" font-size="15" font-weight="700" fill="#8f3229">分支 A · 某 Rank 根本没到（首错崩溃 → 其余卡苦等刷屏 EI0006）</text>
+  <text x="16" y="54" font-size="15" font-weight="700" fill="#8f3229">分支 A · 某 Rank 根本没到（首错崩溃 → 其余卡苦等刷屏 EI0002）</text>
 
   <!-- Ranks 0..2 bars -->
   <text x="16" y="84" font-size="13.5" font-weight="700" fill="#17211f">Rank 0–2</text>
   <rect x="112" y="66" width="146" height="26" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
   <text x="185" y="84" text-anchor="middle" font-size="13.5" fill="#936300">前向计算完成</text>
   <rect x="262" y="66" width="346" height="26" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3" stroke-dasharray="5 3"/>
-  <text x="435" y="84" text-anchor="middle" font-size="13.5" fill="#7a3a6a">卡死在 Notify wait → 刷屏 EI0006（次生）</text>
+  <text x="435" y="84" text-anchor="middle" font-size="13.5" fill="#7a3a6a">卡死在 Notify wait → 刷屏 EI0002（次生）</text>
 
   <!-- Rank 3 bar -->
   <text x="16" y="120" font-size="13.5" font-weight="700" fill="#8f3229">Rank 3 ★</text>
@@ -43,7 +43,7 @@
   <rect x="624" y="64" width="260" height="68" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
   <text x="636" y="88" font-size="14" font-weight="700" fill="#8f3229">动作：捞最早主错，勿罪 Rank 0</text>
   <text x="636" y="110" font-size="13.5" fill="#17211f">按时间戳合并全组 worker + plog</text>
-  <text x="636" y="127" font-size="13.5" fill="#66716d">过滤 EI0006，先治 OOM/EZ9999</text>
+  <text x="636" y="127" font-size="13.5" fill="#66716d">只排纯次生 EI0002，留最早主错</text>
 
   <line x1="16" y1="150" x2="884" y2="150" stroke="#d8d8cf" stroke-width="1.2" stroke-dasharray="6 4"/>
 
@@ -107,7 +107,7 @@
   <text x="30" y="474" font-size="14.5" font-weight="700" fill="#065f56">① 排分支 A（先清假超时）</text>
   <text x="30" y="499" font-size="13.5" fill="#17211f">合并全组日志与 CANN plog</text>
   <text x="30" y="521" font-size="13.5" fill="#17211f">按时间戳反查最早报错 Rank</text>
-  <text x="30" y="542" font-size="13.5" fill="#66716d">RPC 保护窗已抬至 3000s</text>
+  <text x="30" y="542" font-size="12" fill="#66716d">RPC&lt;1836s→3000s(v0.26.0rc 300s)</text>
 
   <line x1="290" y1="499" x2="312" y2="499" stroke="#4d5652" stroke-width="1.6" marker-end="url(#ts-ff-arr)"/>
 

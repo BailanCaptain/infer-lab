@@ -20,66 +20,93 @@ const weightPrecisionSchema = z.enum([
 const kvCacheDtypeSchema = z.enum(["auto", "int8", "mxfp8"]);
 const cudagraphModeSchema = z.enum(["NONE", "PIECEWISE", "FULL_DECODE_ONLY", "FULL", "FULL_AND_PIECEWISE"]);
 
-const deployAnalysisSchema = z.object({
-  kind: z.literal("deploy"),
-  model: z.union([z.string().min(1), z.record(z.string().min(1), z.unknown())]),
-  cardId: cardIdSchema,
-  version: ruleVersionSchema.optional(),
-  weightPrecision: weightPrecisionSchema.optional(),
-  kvCacheDtype: kvCacheDtypeSchema.optional(),
-  blockSize: z.number().finite().optional(),
-  userSpecifiedBlockSize: z.boolean().optional(),
-  weightNzMode: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
-  tpSize: z.number().finite().optional(),
-  ppSize: z.number().finite().optional(),
-  dpSize: z.number().finite().optional(),
-  pcpSize: z.number().finite().optional(),
-  dcpSize: z.number().finite().optional(),
-  enableEp: z.boolean().optional(),
-  enableEplb: z.boolean().optional(),
-  dynamicEplb: z.boolean().optional(),
-  engramCpuOffload: z.boolean().optional(),
-  numSpecTokens: z.number().finite().optional(),
-  gpuMemoryUtilization: z.number().finite().optional(),
-  maxModelLen: z.number().finite().optional(),
-  maxNumBatchedTokens: z.number().finite().optional(),
-  maxNumSeqs: z.number().finite().optional(),
-  cudagraphMode: cudagraphModeSchema.optional(),
-  cudagraphCaptureCount: z.number().finite().optional(),
-  enforceEager: z.boolean().optional(),
-  decodeBatchSize: z.number().finite().optional(),
-  prefillTokens: z.number().finite().optional(),
-  decodeContextLen: z.number().finite().optional(),
-});
+const deployAnalysisSchema = z
+  .object({
+    kind: z.literal("deploy"),
+    model: z.union([z.string().trim().min(1).max(120), z.record(z.string().min(1).max(80), z.unknown())]),
+    cardId: cardIdSchema,
+    version: ruleVersionSchema.optional(),
+    weightPrecision: weightPrecisionSchema.optional(),
+    kvCacheDtype: kvCacheDtypeSchema.optional(),
+    blockSize: z.number().int().min(1).max(4096).optional(),
+    userSpecifiedBlockSize: z.boolean().optional(),
+    weightNzMode: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
+    tpSize: z.number().int().min(1).max(256).optional(),
+    ppSize: z.number().int().min(1).max(256).optional(),
+    dpSize: z.number().int().min(1).max(256).optional(),
+    dpLocalSize: z.number().int().min(1).max(256).optional(),
+    pcpSize: z.number().int().min(1).max(256).optional(),
+    dcpSize: z.number().int().min(1).max(256).optional(),
+    enableEp: z.boolean().optional(),
+    useV2ModelRunner: z.boolean().optional(),
+    enableEplb: z.boolean().optional(),
+    dynamicEplb: z.boolean().optional(),
+    engramCpuOffload: z.boolean().optional(),
+    numSpecTokens: z.number().int().min(0).max(16).optional(),
+    gpuMemoryUtilization: z.number().finite().min(0.1).max(0.99).optional(),
+    maxModelLen: z.number().int().min(64).max(1_048_576).optional(),
+    maxNumBatchedTokens: z.number().int().min(1).max(1_048_576).optional(),
+    maxNumSeqs: z.number().int().min(1).max(65_536).optional(),
+    cudagraphMode: cudagraphModeSchema.optional(),
+    cudagraphCaptureCount: z.number().int().min(0).max(512).optional(),
+    enforceEager: z.boolean().optional(),
+    decodeBatchSize: z.number().int().min(1).max(65_536).optional(),
+    prefillTokens: z.number().int().min(1).max(1_048_576).optional(),
+    decodeContextLen: z.number().int().min(1).max(1_048_576).optional(),
+  })
+  .strict();
 
-const doctorModelTraitOverrideSchema = z.object({
-  isMoe: z.boolean().optional(),
-  useMla: z.boolean().optional(),
-  sfaDcpReplicatedIndexer: z.boolean().optional(),
-  numExperts: z.number().finite().optional(),
-  numExpertsPerTok: z.number().finite().optional(),
-  numAttentionHeads: z.number().finite().optional(),
-  numKvHeads: z.number().finite().optional(),
-  headDim: z.number().finite().optional(),
-});
+const doctorModelTraitOverrideSchema = z
+  .object({
+    isMoe: z.boolean().optional(),
+    useMla: z.boolean().optional(),
+    sfaDcpReplicatedIndexer: z.boolean().optional(),
+    numExperts: z.number().int().min(1).max(16_384).optional(),
+    numExpertsPerTok: z.number().int().min(1).max(1_024).optional(),
+    numAttentionHeads: z.number().int().min(1).max(4_096).optional(),
+    numKvHeads: z.number().int().min(1).max(4_096).optional(),
+    headDim: z.number().int().min(1).max(4_096).optional(),
+  })
+  .strict();
 
-const doctorAnalysisSchema = z.object({
-  kind: z.literal("doctor"),
-  command: z.string().min(1),
-  decodeCommand: z.string().min(1).optional(),
-  mode: z.enum(["minimal", "full"]).optional(),
-  hardwareFamily: ascendFamilySchema.optional(),
-  decodeHardwareFamily: ascendFamilySchema.optional(),
-  version: ruleVersionSchema.optional(),
-  crossNodeRoce: z.boolean().optional(),
-  modelId: z.string().min(1).optional(),
-  modelTraitOverride: doctorModelTraitOverrideSchema.optional(),
-});
+const historyUtf8Encoder = new TextEncoder();
+const utf8ByteLength = (text: string): number => historyUtf8Encoder.encode(text).byteLength;
 
-const troubleshootAnalysisSchema = z.object({
-  kind: z.literal("troubleshoot"),
-  rawInput: z.string().min(1),
-});
+const doctorAnalysisSchema = z
+  .object({
+    kind: z.literal("doctor"),
+    command: z
+      .string()
+      .trim()
+      .min(1)
+      .max(8 * 1024)
+      .refine((s) => utf8ByteLength(s) <= 8 * 1024, "command exceeds 8192 bytes"),
+    decodeCommand: z
+      .string()
+      .trim()
+      .min(1)
+      .max(8 * 1024)
+      .refine((s) => utf8ByteLength(s) <= 8 * 1024, "decodeCommand exceeds 8192 bytes")
+      .optional(),
+    mode: z.enum(["minimal", "full"]).optional(),
+    hardwareFamily: ascendFamilySchema.optional(),
+    decodeHardwareFamily: ascendFamilySchema.optional(),
+    version: ruleVersionSchema.optional(),
+    crossNodeRoce: z.boolean().optional(),
+    modelId: z.string().trim().min(1).max(120).optional(),
+    modelTraitOverride: doctorModelTraitOverrideSchema.optional(),
+  })
+  .strict();
+
+const troubleshootAnalysisSchema = z
+  .object({
+    kind: z.literal("troubleshoot"),
+    rawInput: z
+      .string()
+      .max(64 * 1024)
+      .refine((s) => s.trim().length > 0 && utf8ByteLength(s) <= 64 * 1024),
+  })
+  .strict();
 
 export const chatAnalysisSchema = z.discriminatedUnion("kind", [
   deployAnalysisSchema,

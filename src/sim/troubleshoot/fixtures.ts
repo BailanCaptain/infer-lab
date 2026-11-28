@@ -2,8 +2,8 @@
  * Realistic Ascend / CANN / HCCL / vLLM error log & `/metrics` fixtures
  * for Wave 4A Tool ③ (`troubleshoot-workbench` Panel A).
  *
- * Covers every diagnostic rule in `logAnalyzer.ts`, including multi-rank
- * interleaved First-Fault Rank attribution and Prometheus `/metrics` snapshots.
+ * Covers primary Ascend/CANN/HCCL/vLLM failure modes & `/metrics` snapshots,
+ * including multi-rank interleaved First-Fault Rank attribution.
  */
 
 export interface TroubleshootFixture {
@@ -18,19 +18,19 @@ export interface TroubleshootFixture {
 export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
   {
     id: "multi-rank-hccl-rank3-fault",
-    label: "多卡 EI0006 假象（首错 Rank 3）",
+    label: "多卡 EI0002 假象（首错 Rank 3）",
     kind: "logs",
     summary:
-      "Rank 0/1/2 在 10:12:35 报 HCCL EI0006 Notify wait execute timeout，但交错日志里 Rank 3 早在 10:11:05 已触发 NPU OOM 与 EZ9999。",
+      "Rank 0/1/2 在 10:12:35 报 HCCL EI0002 Notify wait execute timeout，但交错日志里 Rank 3 早在 10:11:05 已触发 NPU OOM 与 EZ9999。",
     expectedRuleIds: ["oom-stage-split", "hccl-timeout-cascade"],
     content: [
       "2026-04-12 10:10:58.104 INFO [Worker_TP0] [Rank 0] Available KV cache memory: 24.80 GiB",
       "2026-04-12 10:10:58.118 INFO [Worker_TP1] [Rank 1] Available KV cache memory: 24.80 GiB",
       "2026-04-12 10:10:58.122 INFO [Worker_TP2] [Rank 2] Available KV cache memory: 24.80 GiB",
       "2026-04-12 10:10:58.131 INFO [Worker_TP3] [Rank 3] Available KV cache memory: 24.80 GiB",
-      "2026-04-12 10:12:35.402 ERROR [Worker_TP0] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0006 Notify wait execute timeout on AllReduce group tp_0",
-      "2026-04-12 10:12:35.419 ERROR [Worker_TP1] [Rank 1] EI0006 Notify wait execute timeout during collective AllReduce",
-      "2026-04-12 10:12:35.437 ERROR [Worker_TP2] [Rank 2] Watchdog caught collective operation timeout: EI0006 Notify wait execute timeout",
+      "2026-04-12 10:12:35.402 ERROR [Worker_TP0] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0002 Notify wait execute timeout on AllReduce group tp_0",
+      "2026-04-12 10:12:35.419 ERROR [Worker_TP1] [Rank 1] EI0002 Notify wait execute timeout during collective AllReduce",
+      "2026-04-12 10:12:35.437 ERROR [Worker_TP2] [Rank 2] Watchdog caught collective operation timeout: EI0002 Notify wait execute timeout",
       "2026-04-12 10:11:05.214 ERROR [Worker_TP3] [Rank 3] RuntimeError: NPU out of memory. Tried to allocate 1.24 GiB during capture_model() aclgraph pool init",
       "2026-04-12 10:11:05.229 ERROR [Worker_TP3] [Rank 3] EZ9999: Inner Error! ACL_ERROR_RT_MEMORY_ALLOCATION failed on device 3",
       "2026-04-12 10:12:36.011 ERROR [EngineCore_DP0] EngineCoreProc(DP0) died unexpectedly, shutting down client.",
@@ -117,9 +117,10 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
   },
   {
     id: "metrics-kv-preemption",
-    label: "/metrics：KV 池打满与抢占风暴",
+    label: "/metrics：KV 池打满与累计抢占快照",
     kind: "metrics",
-    summary: "vllm:kv_cache_usage_perc > 0.95 且伴随 num_preemptions_total 上升与 num_requests_waiting > 0。",
+    summary:
+      "vllm:kv_cache_usage_perc > 0.95 且累计计数器 num_preemptions_total > 0（本快照为 47）与 num_requests_waiting > 0。",
     expectedRuleIds: ["metrics-kv-preemption-storm"],
     content: [
       "# HELP vllm:kv_cache_usage_perc KV-cache usage. 1 means 100 percent usage.",
@@ -159,12 +160,12 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
   },
   {
     id: "pure-hccl-timeout-no-primary",
-    label: "纯 EI0006 缺首错卡（防误判 Rank 0）",
+    label: "纯 EI0002 缺首错卡（防误判 Rank 0）",
     kind: "logs",
-    summary: "只贴了多卡 EI0006 超时而无前序主错误——工作台明确报 low 置信度并拒绝甩锅 Rank 0。",
+    summary: "只贴了多卡 EI0002 超时而无前序主错误——工作台明确报 low 置信度并拒绝甩锅 Rank 0。",
     expectedRuleIds: ["hccl-timeout-cascade"],
     content: [
-      "2026-04-12 14:22:10.105 ERROR [Rank 0] EI0006 Notify wait execute timeout in HCCL AllReduce",
+      "2026-04-12 14:22:10.105 ERROR [Rank 0] EI0002 Notify wait execute timeout in HCCL AllReduce",
       "2026-04-12 14:22:10.121 ERROR [Rank 1] HCCL_E_WAIT_TIMEOUT: Notify wait execute timeout",
       "2026-04-12 14:22:10.144 ERROR [Rank 2] Watchdog caught collective operation timeout",
     ].join("\n"),
@@ -270,7 +271,7 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
     label: "CANN plog：507015 + CheckSmmuFault 越界首错",
     kind: "logs",
     summary:
-      "社区脱敏标本（DP+TP+EP 多维进程名）：Python 层仅见笼统 error code 507015 与邻卡 EI0006，下钻同 PID 的 CANN RUNTIME plog 可见 CheckSmmuFault:Get isSmmuFault is 1、retCode=0x26 与故障 kernel_name。",
+      "社区脱敏标本（DP+TP+EP 多维进程名）：Python 层仅见笼统 error code 507015 与邻卡 EI0002，下钻同 PID 的 CANN RUNTIME plog 可见 CheckSmmuFault:Get isSmmuFault is 1、retCode=0x26 与故障 kernel_name。",
     expectedRuleIds: ["cann-plog-aicore-fault", "hccl-timeout-cascade"],
     content: [
       "(Worker_DP0_TP0_EP0 pid=289601) INFO 09-10 08:51:10 [worker.py:660] Available KV cache memory: 31.40 GiB",
@@ -281,8 +282,8 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
       "[ERROR] RUNTIME(289603,):2026-09-10-08:52:41.377.821 [stream.cc:1743]289907 GetError:Stream Synchronize failed, stream_id=47, retCode=0x26, [aicore exception].",
       "[ERROR] RUNTIME(289603,):2026-09-10-08:52:41.377.875 [stream.cc:1746]289907 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=2, stream_id=47, fault kernel_name=MlaPrologV3_18fe44a5",
       "(Worker_DP0_TP2_EP2 pid=289603) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015",
-      "(Worker_DP0_TP0_EP0 pid=289601) ERROR 09-10 08:55:42 [hccl_comm.py:112] HCCL_E_WAIT_TIMEOUT: EI0006 Notify wait execute timeout",
-      "(Worker_DP0_TP1_EP1 pid=289602) ERROR 09-10 08:55:42 [hccl_comm.py:112] EI0006 Notify wait execute timeout during AllToAll",
+      "(Worker_DP0_TP0_EP0 pid=289601) ERROR 09-10 08:55:42 [hccl_comm.py:112] HCCL_E_WAIT_TIMEOUT: EI0002 Notify wait execute timeout",
+      "(Worker_DP0_TP1_EP1 pid=289602) ERROR 09-10 08:55:42 [hccl_comm.py:112] EI0002 Notify wait execute timeout during AllToAll",
     ].join("\n"),
   },
   {
@@ -296,6 +297,103 @@ export const TROUBLESHOOT_FIXTURES: readonly TroubleshootFixture[] = [
       "(Worker_TP0 pid=14469) INFO 09-12 14:10:02 [parallel_state.py:420] Initializing distributed environment TP=2",
       "(Worker_TP1 pid=14470) ERROR 09-12 14:10:03 [multiproc_executor.py:888] zmq.error.ZMQError: Address already in use (addr='tcp://127.0.0.1:55671')",
       "(EngineCore_DP0 pid=14450) ERROR 09-12 14:10:04 [core.py:1366] RuntimeError: Engine core initialization failed. See root cause above.",
+    ].join("\n"),
+  },
+  {
+    id: "hccl-rasocket-ifname-cascade",
+    label: "HCCL 网卡/RaSocket 建链失败 + 邻卡 EI0002 陪等",
+    kind: "logs",
+    summary:
+      "Rank 3 因 HCCL_SOCKET_IFNAME=eth9 / HCCL_IF_IP 绑定与 RaSocketConnect No route to host 在建链期先失败，Rank 0/1/2 在 100s 后触发 EI0002 Notify wait execute timeout（3D 区分红色网卡断链与紫色陪等弧）。",
+    expectedRuleIds: ["hccl-link-or-ifname-fault", "hccl-timeout-cascade"],
+    content: [
+      "2026-11-24 10:00:00.105 INFO [Worker_TP0] [Rank 0] Initializing HCCL communicator on enp65s0f0",
+      "2026-11-24 10:00:00.112 INFO [Worker_TP1] [Rank 1] Initializing HCCL communicator on enp65s0f0",
+      "2026-11-24 10:00:00.119 INFO [Worker_TP2] [Rank 2] Initializing HCCL communicator on enp65s0f0",
+      "2026-11-24 10:00:00.125 INFO [Worker_TP3] [Rank 3] HCCL_SOCKET_IFNAME=eth9 HCCL_IF_IP=192.0.2.99",
+      "[ERROR] HCCP(41003,python):2026-11-24-10:00:02.110.204 [Rank 3] [CANN HCCP internal plog] RaSocketBind failed on interface eth9: EADDRNOTAVAIL (Cannot assign requested address), HCCL_SOCKET_IFNAME bind failed.",
+      "2026-11-24 10:00:02.118 ERROR [Worker_TP3] [Rank 3] EI0009: Device 3 transport init error. Reason: RaSocketConnect failed: No route to host 192.0.2.12:16666.",
+      "2026-11-24 10:01:45.402 ERROR [Worker_TP0] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0002 Notify wait execute timeout on AllReduce group tp_0",
+      "2026-11-24 10:01:45.419 ERROR [Worker_TP1] [Rank 1] EI0002 Notify wait execute timeout during collective AllReduce",
+      "2026-11-24 10:01:45.437 ERROR [Worker_TP2] [Rank 2] Watchdog caught collective operation timeout: EI0002 Notify wait execute timeout",
+    ].join("\n"),
+  },
+  {
+    id: "torchair-ge-meta-compile-fault",
+    label: "TorchAir / npugraph_ex 编译与 GE Host Tiling 失败",
+    kind: "logs",
+    summary:
+      "torch.compile(fullgraph=True) 路由至 npugraph_ex/TorchAir 时因缺少自定义算子 Meta fake_impl 与 Host Tiling coreNum=0 / EZ3002 失败（不误报 Rule 13 AI Core SMMU 或 Rule 6 FA3）。",
+    expectedRuleIds: ["torchair-ge-graph-compile-fault"],
+    content: [
+      "(Worker_TP0 pid=52010) INFO 11-24 11:02:10 [compiler_interface.py:320] enable_npugraph_ex is enabled, which will bring graph compilation optimization.",
+      "(Worker_TP0 pid=52010) ERROR 11-24 11:02:15 [core.py:1366] Traceback (most recent call last):",
+      '(Worker_TP0 pid=52010) ERROR 11-24 11:02:15 [core.py:1366]   File "vllm_ascend/compilation/compiler_interface.py", line 238, in npugraph_ex_compile',
+      "(Worker_TP0 pid=52010) ERROR 11-24 11:02:15 [core.py:1366] torch._dynamo.exc.BackendCompilerFailed: backend='npugraph_ex' raised: RuntimeError: There was no fake impl registered for vllm_ascend::custom_sparse_op",
+      "[ERROR] OP_HOST(52010,python):2026-11-24-11:02:15.301.112 [attn_res_fwd_tiling.cpp:197] coreNum is 0, tiling failed.",
+      "[ERROR] GE(52010,python):2026-11-24-11:02:15.301.480 [graph_compiler] GE compile graph failed: EZ3002 unsupported op CheckMlaAttrs (EZ9999 retCode=0x1).",
+    ].join("\n"),
+  },
+  {
+    id: "moe-mc2-buffsize-too-small",
+    label: "MoE MC2 融合算子窗口不足（HCCL_BUFFSIZE is too SMALL）",
+    kind: "logs",
+    summary:
+      "A3 开启 enable_fused_mc2 后，DispatchFFNCombine Host Tiling 校验实际所需窗口为 16MB 而环境仅设 HCCL_BUFFSIZE=8MB，Rank 1 先失败并拖累 Rank 0 触发 EI0002。",
+    expectedRuleIds: ["moe-mc2-or-modelslim-quant-fault", "hccl-timeout-cascade"],
+    content: [
+      "2026-11-24 12:10:01.010 INFO [Worker_TP0] [Rank 0] Creating MC2 dispatch/combine group for EP=2",
+      "[ERROR] OP_HOST(61202,python):2026-11-24-12:10:02.180.005 [dispatch_ffn_combine_tiling.cpp:291] [Rank 1] DispatchFFNCombine: HCCL_BUFFSIZE is too SMALL, m = 128, k = 2048, topK = 8 expected HCCL_BUFFSIZE is ((m * k * topK * sizeof(int8_t)) * 3 + 3MB)= 16MB, HCCL_BUFFSIZE=8MB.",
+      "2026-11-24 12:11:30.402 ERROR [Worker_TP0] [Rank 0] EI0002 Notify wait execute timeout during collective AllToAll",
+    ].join("\n"),
+  },
+  {
+    id: "modelslim-quant-config-missing",
+    label: "msModelSlim 量化描述文件缺失（quant_model_description.json）",
+    kind: "logs",
+    summary:
+      "启动携带 --quantization ascend，但权重目录缺少 quant_model_description.json，AscendModelSlimConfig 在加载阶段抛出 ValueError。",
+    expectedRuleIds: ["moe-mc2-or-modelslim-quant-fault"],
+    content: [
+      "(APIServer pid=71001) ERROR 11-24 13:05:11 [modelslim_config.py:927] ModelSlim quantization config not found for model '/models/Qwen3-30B-A3B'. Searched path: /models/Qwen3-30B-A3B. Found JSON files: ['config.json', 'tokenizer.json'].",
+      "(APIServer pid=71001) ERROR 11-24 13:05:11 [modelslim_config.py:933] ValueError: ERROR: ModelSlim Quantization Config Not Found — missing quant_model_description.json",
+    ].join("\n"),
+  },
+  {
+    id: "cann-driver-davinci-hal-init-fault",
+    label: "容器设备挂载/HAL 驱动初始化失败（/dev/davinci_manager / 507008）",
+    kind: "logs",
+    summary:
+      "容器内缺少 /dev/davinci_manager 设备节点或 libascend_hal.so 版本不匹配，worker.init_device() 阶段即报 aclrtGetPhyDevIdByUserDevId failed 与 507008 ACL_ERROR_RT_SOC_VERSION。",
+    expectedRuleIds: ["cann-driver-or-device-env-fault"],
+    content: [
+      "(Worker_TP0 pid=81001) ERROR 11-24 14:20:01 [worker.py:440] OSError: /dev/davinci_manager: No such file or directory (container mount missing)",
+      "(Worker_TP0 pid=81001) ERROR 11-24 14:20:01 [torch_binding.cpp:129] RuntimeError: aclrtGetPhyDevIdByUserDevId failed for user device 0, error code: 507008 (ACL_ERROR_RT_SOC_VERSION)",
+      "(Worker_TP0 pid=81001) ERROR 11-24 14:20:01 [hal_loader] ImportError: libascend_hal.so: cannot open shared object file: No such file or directory",
+    ].join("\n"),
+  },
+  {
+    id: "worker-segfault-exit-139",
+    label: "Worker 进程触发 SIGSEGV 段错误退出（exit code 139 / -11）",
+    kind: "logs",
+    summary:
+      "底层 C++/CANN 扩展访问非法地址触发 OS SIGSEGV（signal 11 / exit code 139），导致 Rank 1 Worker 异常终止。",
+    expectedRuleIds: ["exit-139-sigsegv"],
+    content: [
+      "2026-11-24 15:01:02 INFO [launcher.py:88] Starting vLLM Worker processes on Ascend NPU",
+      "2026-11-24 15:02:19 ERROR [Rank 1] Worker process terminated by signal SIGSEGV (exitcode=-11, returncode=139)",
+    ].join("\n"),
+  },
+  {
+    id: "aclnn-opapi-param-161002",
+    label: "CANN aclnn 算子参数校验失败（161002 / EZ1001）",
+    kind: "logs",
+    summary:
+      "自定义/融合算子在 Host 参数校验阶段返回 161002 (ACLNN_ERR_PARAM_INVALID) 与 AclNN_Parameter_Error(EZ1001)。",
+    expectedRuleIds: ["cann-opapi-or-aclnn-fault"],
+    content: [
+      "(Worker_TP0 pid=92001) ERROR 11-24 15:10:03 [custom_ops.py:142] RuntimeError: call aclnnMatmul failed, error code is 161002 (ACLNN_ERR_PARAM_INVALID)",
+      "(Worker_TP0 pid=92001) ERROR 11-24 15:10:03 [op_host.cpp:88] AclNN_Parameter_Error(EZ1001): invalid tensor shape alignment",
     ].join("\n"),
   },
 ];

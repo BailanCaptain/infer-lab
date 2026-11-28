@@ -13,7 +13,8 @@ export type WarGameScenarioId =
   | "legacy-v030-silent-degrade"
   | "exit-137-cgroup-sigkill"
   | "pd-mooncake-kv-mismatch"
-  | "a3-dual-die-static-kernel-trap";
+  | "a3-dual-die-static-kernel-trap"
+  | "a3-pd-mc2-buffsize-ifname-trap";
 
 export type WarGameOptionId = "A" | "B" | "C" | "D";
 
@@ -57,7 +58,7 @@ export interface WarGameDebrief {
 
 export interface WarGameScenario {
   id: WarGameScenarioId;
-  order: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  order: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   code: string;
   title: string;
   subtitle: string;
@@ -92,7 +93,7 @@ export const WARGAME_SCENARIOS: readonly WarGameScenario[] = [
     order: 1,
     code: "CASE-01",
     title: "多卡 EI0006 刷屏假象与首错 Rank 3 录图 OOM",
-    subtitle: "Atlas A2 64G × 4 · Qwen/Qwen3-30B-A3B (W8A8_DYNAMIC, TP=4, EP)",
+    subtitle: "Atlas A2 64G × 4 · /models/Qwen3-30B-A3B-W8A8 (W8A8_DYNAMIC, TP=4, EP)",
     evidenceBadge: "C",
     topology: "single",
     hardwareFamily: "A2",
@@ -106,15 +107,16 @@ export const WARGAME_SCENARIOS: readonly WarGameScenario[] = [
       "2026-04-12 10:10:58.118 INFO [Worker_TP1] [Rank 1] Available KV cache memory: 43.10 GiB (gpu_memory_utilization=0.96)",
       "2026-04-12 10:10:58.122 INFO [Worker_TP2] [Rank 2] Available KV cache memory: 43.10 GiB (gpu_memory_utilization=0.96)",
       "2026-04-12 10:10:58.131 INFO [Worker_TP3] [Rank 3] Available KV cache memory: 43.10 GiB (gpu_memory_utilization=0.96)",
-      "2026-04-12 10:12:35.402 ERROR [Worker_TP0] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0006 Notify wait execute timeout on AllReduce group tp_0",
-      "2026-04-12 10:12:35.419 ERROR [Worker_TP1] [Rank 1] EI0006 Notify wait execute timeout during collective AllReduce",
-      "2026-04-12 10:12:35.437 ERROR [Worker_TP2] [Rank 2] Watchdog caught collective operation timeout: EI0006 Notify wait execute timeout",
+      "2026-04-12 10:12:35.402 ERROR [Worker_TP0] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0006 Getting socket times out! [Wait][LinkEstablish] on AllReduce group tp_0",
+      "2026-04-12 10:12:35.419 ERROR [Worker_TP1] [Rank 1] EI0006 Getting socket times out! [Wait][LinkEstablish] during collective setup",
+      "2026-04-12 10:12:35.437 ERROR [Worker_TP2] [Rank 2] Watchdog caught collective operation timeout: EI0006 Getting socket times out! [Wait][LinkEstablish]",
       "2026-04-12 10:11:05.214 ERROR [Worker_TP3] [Rank 3] RuntimeError: NPU out of memory. Tried to allocate 1.24 GiB during capture_model() aclgraph pool init",
       "2026-04-12 10:11:05.229 ERROR [Worker_TP3] [Rank 3] EZ9999: Inner Error! ACL_ERROR_RT_MEMORY_ALLOCATION failed on device 3",
       "2026-04-12 10:12:36.011 ERROR [EngineCore_DP0] EngineCoreProc(DP0) died unexpectedly, shutting down client.",
     ].join("\n"),
     question: {
-      prompt: "日志里 Rank 0/1/2 在 10:12:35 连续报 HCCL EI0006 超时，本次启动失败的真正首错卡与根因是什么？",
+      prompt:
+        "日志里 Rank 0/1/2 在 10:12:35 连续报 HCCL EI0006 建链超时，本次启动失败的真正首错卡与根因是什么？",
       options: [
         {
           id: "A",
@@ -123,7 +125,7 @@ export const WARGAME_SCENARIOS: readonly WarGameScenario[] = [
         {
           id: "B",
           label:
-            "Rank 3 在 10:11:05 因 u=0.96 挤压 1−u 余量，在切完 KV 后的 capture_model() 录图期 NPU OOM，引发其余卡次生 EI0006 等待超时",
+            "Rank 3 在 10:11:05 因 u=0.96 挤压 1−u 余量，在切完 KV 后的 capture_model() 录图期 NPU OOM，引发其余卡次生 EI0006 套接字建链等待超时",
         },
         {
           id: "C",
@@ -136,11 +138,11 @@ export const WARGAME_SCENARIOS: readonly WarGameScenario[] = [
       ],
       correctOptionId: "B",
       explanation:
-        "按时间戳重排交错日志可见 Rank 3 早在 10:11:05 已在 capture_model() 报 NPU OOM 与 EZ9999；Rank 0/1/2 在 90 秒后的 10:12:35 报出的 EI0006 只是等待已死队友的次生超时假象。",
+        "按时间戳重排交错日志可见 Rank 3 早在 10:11:05 已在 capture_model() 报 NPU OOM 与 EZ9999；Rank 0/1/2 在 90 秒后的 10:12:35 报出的 EI0006 只是等待已死队友的次生建链等待超时假象（区别于算子执行期 Notify 等待超时 EI0002）。",
     },
     initialCommand: `export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
 export HCCL_BUFFSIZE=1024
-vllm serve Qwen/Qwen3-30B-A3B \\
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
     --served-model-name qwen3-30b-a3b \\
     --tensor-parallel-size 4 \\
     --enable-expert-parallel \\
@@ -149,7 +151,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     --gpu-memory-utilization 0.96`,
     mustKeep: {
       targetModelPresetId: "qwen3-30b-a3b",
-      targetModelCanonical: "Qwen/Qwen3-30B-A3B",
+      targetModelCanonical: "/models/Qwen3-30B-A3B-W8A8",
       tpSize: 4,
       ppSize: 1,
       dpSize: 1,
@@ -159,20 +161,20 @@ vllm serve Qwen/Qwen3-30B-A3B \\
       minMaxModelLen: 16384,
     },
     missionConstraints: [
-      "保留目标模型 Qwen/Qwen3-30B-A3B、TP=4、--enable-expert-parallel、--quantization ascend 与 --max-model-len >= 16384",
+      "保留量化模型路径 /models/Qwen3-30B-A3B-W8A8、TP=4、--enable-expert-parallel、--quantization ascend 与 --max-model-len >= 16384",
       "保持 ACLGraph 图模式启用（严禁加 --enforce-eager 暴力关图逃课）",
       "将显存水位 --gpu-memory-utilization 回调至安全区间 0.85 ~ 0.90",
     ],
     hints: [
       "提示 1：不要只看刷屏最多的最后几行！把所有 ERROR 行的 HH:MM:SS.mmm 时间戳排个序，找最早出事的那张卡。",
-      "提示 2：四张卡在 10:10:58 已经打印完 Available KV cache memory，说明权重、激活试跑与 KV 池均已划完，崩溃发生在第 7 级 ACLGraph 录图阶段。",
-      "提示 3：ACLGraph 录图与 150 MiB 安全裕度由预算外 1−u 余量支付；保留原拓扑与图模式，将 --gpu-memory-utilization 从 0.96 调低到 0.85~0.90（如 0.88 或 0.90）。",
+      "提示 2：10:10:58 的 Available KV cache memory 打印于显存探测与初始化阶段（在 initialize_kv_cache 与 capture_model() 之前）；真正定位故障阶段的是 L8 的 capture_model() aclgraph pool init 报错，说明失败发生在第 7 级 ACLGraph 录图阶段。",
+      "提示 3：ACLGraph 录图直接消耗预算外 1−u 余量（worker.py 在测算可用显存时还会从预算外扣减 150 MiB 安全裕度建议）；保留原拓扑与图模式，将 --gpu-memory-utilization 从 0.96 调低到 0.85~0.90（如 0.88 或 0.90）。",
     ],
     debrief: {
       takeaway:
-        "多卡交错日志排障铁律：先按时间戳找 First-Fault Rank，切勿对次生 EI0006 盲调 HCCL 超时；KV 划完后的 capture_model OOM 须释放 1−u 预算外余量。",
+        "多卡交错日志排障铁律：先按时间戳找 First-Fault Rank，切勿对次生 EI0006 盲调 HCCL 超时；capture_model() 阶段的 aclgraph OOM 须释放 1−u 预算外余量。",
       rootCauseChain:
-        "u=0.96 仅留 4% 预算外余量 → Rank 3 在 worker.py compile_or_warm_up_model() -> capture_model() 申请图池显存报 EZ9999/OOM 退出 → Rank 0/1/2 卡在 AllReduce 屏障 90s 后刷出次生 EI0006。",
+        "u=0.96 仅留 4% 预算外余量 → Rank 3 在 worker.py compile_or_warm_up_model() -> capture_model() 申请图池显存报 EZ9999/OOM 退出 → Rank 0/1/2 在后续建链/同步阶段等不到已死队友，90s 后刷出次生 EI0006（Getting socket times out）。",
       sourceAnchors: [
         {
           ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/worker.py#L907-L949`,
@@ -508,7 +510,7 @@ vllm serve Qwen/Qwen3-8B \\
     order: 5,
     code: "CASE-05",
     title: "加载分片 exitcode -9 / 137 (SIGKILL) 与错写 CUDA 切卡变量",
-    subtitle: "Atlas A2 64G × 4 · Qwen/Qwen3-30B-A3B 分片加载中途猝死（无 NPU OOM 栈）",
+    subtitle: "Atlas A2 64G × 4 · /models/Qwen3-30B-A3B-W8A8 分片加载中途猝死（无 NPU OOM 栈）",
     evidenceBadge: "C",
     topology: "single",
     hardwareFamily: "A2",
@@ -523,7 +525,7 @@ vllm serve Qwen/Qwen3-8B \\
       "2026-04-16 09:33:11.004 INFO [Worker_TP1] Loading safetensors checkpoint shards:   25% Completed | 4/16 [00:09<00:28]",
       "2026-04-16 09:33:24.991 ERROR [EngineCore_DP0] EngineCoreProc died unexpectedly with exitcode: -9 (SIGKILL, container exit code 137)",
       "2026-04-16 09:33:25.004 ERROR [APIServer] RuntimeError: Engine core initialization failed. See root cause above.",
-      "# 现场容器补充信息：docker run 未传 --shm-size（/dev/shm=64M），cgroup memory.max=32Gi，全程无 ACL_ERROR_RT_MEMORY_ALLOCATION",
+      "# 现场容器补充信息：docker run 配置 --shm-size=64m 与 --memory=32g（/dev/shm 仅 64M，cgroup memory.max=32Gi），已挂载宿主机 0..3 号达芬奇 NPU 设备、驱动与 /models 本地权重目录，全程无 ACL_ERROR_RT_MEMORY_ALLOCATION",
     ].join("\n"),
     question: {
       prompt:
@@ -551,9 +553,8 @@ vllm serve Qwen/Qwen3-8B \\
       explanation:
         "NPU HBM 不足通常会抛出 Python RuntimeError / OutOfMemoryError 与 ACL 错误码；子进程在加载分片期无栈猝死并报 -9 (137) 说明收到外部 SIGKILL，首要候选根因是容器 cgroup DRAM 触顶（OOMKilled）或 64M /dev/shm 不足（定论前须对齐同进程与同时间窗的 docker inspect OOMKilled / cgroup memory.events / dmesg 记录），乱砍 gpu_memory_utilization 无济于事。同时昇腾切卡只认 ASCEND_RT_VISIBLE_DEVICES。",
     },
-    initialCommand: `docker run -d --name vllm-qwen30b --shm-size=64m --memory=32g quay.io/ascend/vllm-ascend:v0.30.0
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-vllm serve Qwen/Qwen3-30B-A3B \\
+    initialCommand: `docker run -d --name vllm-qwen30b --shm-size=64m --memory=32g --device=/dev/davinci0 --device=/dev/davinci1 --device=/dev/davinci2 --device=/dev/davinci3 --device=/dev/davinci_manager --device=/dev/devmm_svm --device=/dev/hisi_hdc -v /usr/local/dcmi:/usr/local/dcmi -v /usr/local/bin/npu-smi:/usr/local/bin/npu-smi -v /usr/local/Ascend/driver/lib64/:/usr/local/Ascend/driver/lib64/ -v /usr/local/Ascend/driver/version.info:/usr/local/Ascend/driver/version.info -v /etc/ascend_install.info:/etc/ascend_install.info -v /models:/models -e CUDA_VISIBLE_DEVICES=0,1,2,3 quay.io/ascend/vllm-ascend:v0.30.0 \\
+  vllm serve /models/Qwen3-30B-A3B-W8A8 \\
     --served-model-name qwen3-30b-a3b \\
     --tensor-parallel-size 4 \\
     --enable-expert-parallel \\
@@ -562,7 +563,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     --gpu-memory-utilization 0.90`,
     mustKeep: {
       targetModelPresetId: "qwen3-30b-a3b",
-      targetModelCanonical: "Qwen/Qwen3-30B-A3B",
+      targetModelCanonical: "/models/Qwen3-30B-A3B-W8A8",
       tpSize: 4,
       ppSize: 1,
       dpSize: 1,
@@ -572,18 +573,18 @@ vllm serve Qwen/Qwen3-30B-A3B \\
       minMaxModelLen: 16384,
     },
     missionConstraints: [
-      "同时修复第一行 docker run 容器参数：将 --shm-size 调大至 >= 16g（或改用 --ipc=host），并放宽过小的 --memory=32g 硬限（调至 >= 128g 或移除该 32g 限制）",
-      "移除无效的 CUDA_VISIBLE_DEVICES，修正为 export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3（禁止乱砍 --gpu-memory-utilization，保持 0.85 ~ 0.92）",
-      "保留 Qwen/Qwen3-30B-A3B、TP=4、--enable-expert-parallel、--quantization ascend 与图模式",
+      "同时修复 docker run 容器参数与内层服务启动：将 --shm-size 调大至 >= 16g（或改用 --ipc=host），放宽 --memory=32g 硬限（调至 >= 128g 或移除），保留 NPU 设备映射、宿主机 Ascend 驱动挂载及 /models 权重挂载并确保 vllm serve 在容器内启动",
+      "移除无效的 CUDA_VISIBLE_DEVICES，改为通过 docker run -e ASCEND_RT_VISIBLE_DEVICES=0,1,2,3（或容器内 env ASCEND_RT_VISIBLE_DEVICES=0,1,2,3）切卡（禁止乱砍 --gpu-memory-utilization，保持 0.85 ~ 0.92）",
+      "保留 quay.io/ascend/vllm-ascend:v0.30.0（或其他匹配 Ascend NPU 服务镜像）、/models/Qwen3-30B-A3B-W8A8、TP=4、--enable-expert-parallel、--quantization ascend 与图模式",
     ],
     hints: [
       "提示 1：区分主机 DRAM 与设备 NPU HBM！如果是 NPU HBM 爆了，PyTorch/CANN 会打印 OutOfMemoryError 栈；无栈 exitcode -9 / 137 代表进程收到 SIGKILL，应优先核查容器内存与共享内存配置。",
-      "提示 2：4 个 Worker 并发映射 safetensors 分片并建立多进程队列时，第一行 docker run 的 --shm-size=64m 与 --memory=32g 极易触发共享内存不足或 cgroup OOM（线上排障应同步核对 docker inspect OOMKilled / memory.events / dmesg，并将容器参数调至 --shm-size=16g --memory=128g）。",
-      "提示 3：把第一行改为 --shm-size=16g --memory=128g，把第二行 CUDA_VISIBLE_DEVICES=0,1,2,3 改为 ASCEND_RT_VISIBLE_DEVICES=0,1,2,3，保持 --gpu-memory-utilization 0.90。",
+      "提示 2：4 个 Worker 并发映射 safetensors 分片并建立多进程队列时，docker run 的 --shm-size=64m 与 --memory=32g 极易触发共享内存不足或 cgroup OOM（线上排障应同步核对 docker inspect OOMKilled / memory.events / dmesg，并将容器参数调至 --shm-size=16g --memory=128g）。",
+      "提示 3：保留容器内启动 vllm serve、--device=/dev/davinci0..3 等 NPU 设备映射、宿主机 Ascend 驱动挂载及 -v /models:/models 权重挂载，将 --shm-size=64m --memory=32g 调至 --shm-size=16g --memory=128g，把 -e CUDA_VISIBLE_DEVICES=0,1,2,3 改为 -e ASCEND_RT_VISIBLE_DEVICES=0,1,2,3，保持 --gpu-memory-utilization 0.90。",
     ],
     debrief: {
       takeaway:
-        "遇到 exitcode -9 / 137 且无 NPU OOM 栈，先对齐同进程 PID 与时间窗核实 docker inspect OOMKilled、cgroup memory.events 与 dmesg，并排查 --shm-size=16g 与容器内存限额，切忌反射式缩减 NPU KV 预算；切卡环境变量只认 ASCEND_RT_VISIBLE_DEVICES。",
+        "遇到 exitcode -9 / 137 且无 NPU OOM 栈，先对齐同进程 PID 与时间窗核实 docker inspect OOMKilled、cgroup memory.events 与 dmesg，并排查过小的 --shm-size（如本例 64m，须调至 >= 16g）与过低的容器内存限额（如本例 32g，须调至 >= 128g），切忌反射式缩减 NPU KV 预算；切卡环境变量只认 ASCEND_RT_VISIBLE_DEVICES。",
       rootCauseChain:
         "4 个 Worker 并发读取 safetensors 分片与共享内存队列时出现无栈 SIGKILL (137)，结合 --shm-size=64m 与 cgroup memory.max=32Gi 现场高度指向容器 cgroup DRAM 触顶或 /dev/shm 耗尽（须用同进程同时间窗的 OOMKilled / cgroup memory.events / dmesg 记录最终坐实）；同时脚本误用 CUDA_VISIBLE_DEVICES，NPUPlatform 完全不读取该变量。",
       sourceAnchors: [
@@ -608,7 +609,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     order: 6,
     code: "CASE-06",
     title: "Mooncake P/D 跨实例 TP 切分、角色与 C8 KV 失配",
-    subtitle: "Atlas A3 · Qwen/Qwen3-30B-A3B (目标 4P TP=4 → 2D TP=2, MooncakeConnectorV1)",
+    subtitle: "Atlas A3 · /models/Qwen3-30B-A3B-W8A8 (目标 4P TP=4 → 2D TP=2, MooncakeConnectorV1)",
     evidenceBadge: "C",
     topology: "pd",
     hardwareFamily: "A3",
@@ -628,7 +629,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     ].join("\n"),
     question: {
       prompt:
-        "P/D 分离部署 Qwen/Qwen3-30B-A3B（GQA MoE，目标 4P→2D）时启动即阻断，Prefill 与 Decode 双端配置的联合症结是？",
+        "P/D 分离部署 /models/Qwen3-30B-A3B-W8A8（GQA MoE，目标 4P→2D）时启动即阻断，Prefill 与 Decode 双端配置的联合症结是？",
       options: [
         {
           id: "A",
@@ -653,7 +654,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
         "Mooncake 异构 TP 要求 TP_P % TP_D == 0（4P→2D 合法，4P→8D 非法）；同时 P/D 的 kv_role 颠倒（须 P=kv_producer、D=kv_consumer），且 D 端单独开了 --kv-cache-dtype int8 触发 Mooncake+GQA 禁开 C8 硬拦截与跨实例精度失配。",
     },
     initialCommand: `export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
-vllm serve Qwen/Qwen3-30B-A3B \\
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
     --served-model-name qwen3-30b-a3b \\
     --tensor-parallel-size 4 \\
     --enable-expert-parallel \\
@@ -663,7 +664,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     --gpu-memory-utilization 0.90 \\
     --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_consumer","kv_connector_extra_config":{"prefill":{"tp_size":4,"dp_size":1},"decode":{"tp_size":2,"dp_size":1,"pp_size":1}}}'`,
     initialDecodeCommand: `export ASCEND_RT_VISIBLE_DEVICES=4,5
-vllm serve Qwen/Qwen3-30B-A3B \\
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
     --served-model-name qwen3-30b-a3b \\
     --tensor-parallel-size 8 \\
     --pipeline-parallel-size 1 \\
@@ -676,7 +677,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
     --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_producer","kv_connector_extra_config":{"prefill":{"tp_size":4,"dp_size":1},"decode":{"tp_size":2,"dp_size":1,"pp_size":1}}}'`,
     mustKeep: {
       targetModelPresetId: "qwen3-30b-a3b",
-      targetModelCanonical: "Qwen/Qwen3-30B-A3B",
+      targetModelCanonical: "/models/Qwen3-30B-A3B-W8A8",
       tpSize: 4,
       decodeTpSize: 2,
       ppSize: 1,
@@ -689,7 +690,7 @@ vllm serve Qwen/Qwen3-30B-A3B \\
       requiredConnector: "MooncakeConnectorV1",
     },
     missionConstraints: [
-      "同时修正 Prefill 与 Decode 两条命令，保留 Qwen/Qwen3-30B-A3B、MooncakeConnectorV1，并将 Decode 端 --tensor-parallel-size 修正为 2（满足 4P→2D 与 ASCEND_RT_VISIBLE_DEVICES=4,5 双卡一致）",
+      "同时修正 Prefill 与 Decode 两条命令，保留 /models/Qwen3-30B-A3B-W8A8、MooncakeConnectorV1，并将 Decode 端 --tensor-parallel-size 修正为 2（满足 4P→2D 与 ASCEND_RT_VISIBLE_DEVICES=4,5 双卡一致）",
       '将 Prefill 端 kv_role 修正为 "kv_producer"，Decode 端 kv_role 修正为 "kv_consumer"',
       "消除跨实例 --kv-cache-dtype 失配与 GQA+Mooncake C8 冲突（移除 D 端 --kv-cache-dtype int8 或统一为 auto），使 runPdConfigDoctor 零 error",
     ],
@@ -806,7 +807,7 @@ vllm serve /models/Qwen3-30B-A3B-W8A8 \\
       takeaway:
         "Atlas A3 上线双裸片 TP=2 + 静态核优化须过三道关：① 容器挂载与 ASCEND_RT_VISIBLE_DEVICES 按 npu // 2 成对绑同卡双 Die（0,1）；② 遵守 npugraph_ex -> static_kernel -> super_kernel 依赖链；③ 避开 PIECEWISE 静默清零陷阱，改走 FULL_DECODE_ONLY / FULL 并留足 1−u 图显存余量。",
       rootCauseChain:
-        "单挂 ASCEND_RT_VISIBLE_DEVICES=0 破坏双裸片 TP=2 可见卡数与亲和拓扑 + 漏配 enable_npugraph_ex 触发 ascend_config.py 断言 + cudagraph_mode=PIECEWISE 在 platform.py _setup_compile_backend 中把 npugraph_ex/static_kernel 静默重置为 False + u=0.96 挤压整图捕获余量。",
+        '单挂 ASCEND_RT_VISIBLE_DEVICES=0 破坏双裸片 TP=2 可见卡数与亲和拓扑 + 显式误配 "enable_npugraph_ex":false 触发 ascend_config.py 断言 + cudagraph_mode=PIECEWISE 在 platform.py _setup_compile_backend 中把 npugraph_ex/static_kernel 静默重置为 False + u=0.96 挤压整图捕获余量。',
       sourceAnchors: [
         {
           ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L166-L169`,
@@ -825,6 +826,138 @@ vllm serve /models/Qwen3-30B-A3B-W8A8 \\
         { pageId: "npugraph-ex", label: "npugraph_ex 与 Static / Super Kernel 依赖链" },
         { pageId: "acl-graph", label: "ACL Graph 捕获模式与静默重置边界" },
         { pageId: "hardware-devices", label: "Atlas A3 双裸片物理卡与成对挂载规则" },
+      ],
+    },
+  },
+  {
+    id: "a3-pd-mc2-buffsize-ifname-trap",
+    order: 8,
+    code: "CASE-08",
+    title: "双机 Atlas A3 Mooncake P/D：MC2 HCCL_BUFFSIZE 窗口过小与多通信层错址绑卡",
+    subtitle:
+      "Atlas 800I A3 × 2 机 (node-P 192.0.2.11 / node-D 192.0.2.12 · enp65s0f0 · 每端双 Die 卡 0,1) · /models/Qwen3-30B-A3B-W8A8 (TP=2, EP, enable_fused_mc2=1)",
+    evidenceBadge: "C",
+    topology: "pd",
+    hardwareFamily: "A3",
+    decodeHardwareFamily: "A3",
+    cardId: "a3-die64g",
+    cardLabel: "Atlas 800I A3 × 2 机（每端 1 张双 Die 卡 0,1）",
+    version: "v0.30.0",
+    telemetryKind: "logs",
+    telemetryTitle: "P/D 双机网卡清单与交错启动排障日志（node-P / node-D）",
+    telemetryText: [
+      "# [跨机 P/D 现场资产清单与交错日志 · 时间、主机与 Rank 为教学构造，算子判断式与数值源自 vllm-ascend@c09d3e20]",
+      "2026-04-18 10:00:10.412 ERROR [node-D] [Rank 0] HCCL_E_WAIT_TIMEOUT: EI0002 Notify wait execute timeout (The wait execution of the Notify register times out during collective op)",
+      "2026-04-18 10:00:01.084 INFO  [node-P] Host NIC inventory: enp65s0f0 UP 192.0.2.11/24 (eth9: not found)",
+      "2026-04-18 10:00:02.319 ERROR [node-D] [Rank 1] DispatchFFNCombine: HCCL_BUFFSIZE is too SMALL, m = 128, k = 2048, topK = 8 expected HCCL_BUFFSIZE is ((m * k * topK * sizeof(int8_t)) * 3 + 3MB)= 16MB, HCCL_BUFFSIZE=8MB.",
+      "2026-04-18 10:00:01.092 INFO  [node-D] Host NIC inventory: enp65s0f0 UP 192.0.2.12/24 (eth9: not found)",
+      "2026-04-18 10:00:03.105 ERROR [node-P] [Rank 0] RaSocket bind failed on local address 192.0.2.12 (Cannot assign requested address): HCCL_IF_IP=192.0.2.12 takes precedence over HCCL_SOCKET_IFNAME during Host root-info socket selection and does not match host enp65s0f0 (no automatic fallback); configured HCCL_SOCKET_IFNAME=eth9 / GLOO_SOCKET_IFNAME=eth9 also reference missing NIC eth9.",
+    ].join("\n"),
+    question: {
+      prompt:
+        "两台 Atlas 800I A3（每端分配 1 张双 Die 卡 0,1）部署 Qwen3-30B-A3B-W8A8 P/D 分离，交错日志中时间戳最晚的记录（10:00:10）报出 node-D Rank 0 的 EI0002 超时，P/D 双端真正并发的根因与修复要点是？",
+      options: [
+        {
+          id: "A",
+          label:
+            "node-D Rank 0 在 10:00:10 触发集合通信超时，只需在两端导出 HCCL_EXEC_TIMEOUT=1800 拉长等待即可恢复",
+        },
+        {
+          id: "B",
+          label:
+            "Atlas A3 不支持 --enable-expert-parallel 与 enable_fused_mc2=1，须删掉 EP 与融合算子并加 --enforce-eager 改走纯 Eager",
+        },
+        {
+          id: "C",
+          label:
+            "两端存在并发独立故障：① node-D Rank 1 更早在 10:00:02 触发 DispatchFFNCombine 窗口不足（6 MiB 数据 + C++ 实际 10 MiB 裕度 = 16 MiB > HCCL_BUFFSIZE=8 MiB），Rank 0 的 EI0002（Notify wait 执行超时）只是陪等烟雾弹；② node-P 把在 Host root-info 选网中优先级高于 HCCL_SOCKET_IFNAME 的 HCCL_IF_IP 错写成 node-D 地址 192.0.2.12（失败不会自动回退），且 HCCL_SOCKET_IFNAME / GLOO_SOCKET_IFNAME 错填不存在的 eth9；须修正 P 端 HCCL_IF_IP=192.0.2.11 与双接口为 enp65s0f0，并将两端 HCCL_BUFFSIZE 按预算设为 128",
+        },
+        {
+          id: "D",
+          label:
+            "MooncakeConnectorV1 与 W8A8 量化不兼容，须删掉 --quantization ascend 改回 BF16 并更换 KV connector",
+        },
+      ],
+      correctOptionId: "C",
+      explanation:
+        "按时间戳拆解：node-D Rank 1 在 10:00:02 已因 HCCL_BUFFSIZE=8MB 小于 DispatchFFNCombine 实算窗口（C++ 文案写 + 3MB，源码行 289 实际按 128×2048×8×1×3 + 10 MiB = 16 MiB 判失败）退出，Rank 0 在 10:00:10 的 EI0002（CANN 定义为执行期 Notify wait 超时，区别于 EI0006 套接字建链超时——两者在同组对端先挂时都可成为次生烟雾弹）只是次生陪等；与此同时 node-P 独立因 HCCL_IF_IP=192.0.2.12（Host root-info 选网阶段优先于 HCCL_SOCKET_IFNAME，失败不会自动回退）且 HCCL_SOCKET_IFNAME / GLOO_SOCKET_IFNAME 同指不存在的 eth9 而失败。须在保留 W8A8/EP/fused_mc2=1/FULL_DECODE_ONLY/Mooncake 的前提下，修对 P 端本机 IP 与双层接口，并把两端 HCCL_BUFFSIZE 设为 128。",
+    },
+    initialCommand: `export ASCEND_RT_VISIBLE_DEVICES=0,1 HCCL_SOCKET_IFNAME=eth9 GLOO_SOCKET_IFNAME=eth9 HCCL_IF_IP=192.0.2.12 HCCL_BUFFSIZE=128
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
+    --tensor-parallel-size 2 \\
+    --enable-expert-parallel \\
+    --quantization ascend \\
+    --max-model-len 16384 \\
+    --max-num-seqs 128 \\
+    --max-num-batched-tokens 2048 \\
+    --gpu-memory-utilization 0.88 \\
+    --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \\
+    --additional-config '{"enable_fused_mc2":1}' \\
+    --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_producer","kv_connector_extra_config":{"prefill":{"tp_size":2,"dp_size":1},"decode":{"tp_size":2,"dp_size":1,"pp_size":1}}}'`,
+    initialDecodeCommand: `export ASCEND_RT_VISIBLE_DEVICES=0,1 HCCL_SOCKET_IFNAME=enp65s0f0 GLOO_SOCKET_IFNAME=enp65s0f0 HCCL_IF_IP=192.0.2.12 HCCL_BUFFSIZE=8
+vllm serve /models/Qwen3-30B-A3B-W8A8 \\
+    --tensor-parallel-size 2 \\
+    --enable-expert-parallel \\
+    --quantization ascend \\
+    --max-model-len 16384 \\
+    --max-num-seqs 128 \\
+    --max-num-batched-tokens 2048 \\
+    --gpu-memory-utilization 0.88 \\
+    --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \\
+    --additional-config '{"enable_fused_mc2":1}' \\
+    --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_consumer","kv_connector_extra_config":{"prefill":{"tp_size":2,"dp_size":1},"decode":{"tp_size":2,"dp_size":1,"pp_size":1}}}'`,
+    mustKeep: {
+      targetModelPresetId: "qwen3-30b-a3b",
+      targetModelCanonical: "/models/Qwen3-30B-A3B-W8A8",
+      tpSize: 2,
+      decodeTpSize: 2,
+      ppSize: 1,
+      decodePpSize: 1,
+      dpSize: 1,
+      requireEp: true,
+      weightPrecision: "w8a8_dynamic",
+      requireAscendQuantFlag: true,
+      minMaxModelLen: 16384,
+      requiredConnector: "MooncakeConnectorV1",
+    },
+    missionConstraints: [
+      "同时保留并修正 Prefill（node-P）与 Decode（node-D）双命令：精确保留 /models/Qwen3-30B-A3B-W8A8、显式 --quantization ascend、--enable-expert-parallel、TP=2（PP=DP=PCP=DCP=1）、本机已分配双 Die 卡 ASCEND_RT_VISIBLE_DEVICES=0,1、--max-model-len >= 16384、--max-num-seqs >= 128、--max-num-batched-tokens >= 2048，且禁止 --load-format dummy 或夹带第二条诱饵命令",
+      "保持图模式 FULL_DECODE_ONLY（或 FULL）与 --gpu-memory-utilization 在 0.85 ~ 0.90（严禁 --enforce-eager、PIECEWISE 或 cudagraph_mode=NONE），保持 --additional-config '{\"enable_fused_mc2\":1}' 命中 FUSED_MC2，且保持 MooncakeConnectorV1（P=kv_producer / D=kv_consumer、完整 prefill/decode extra_config 且不篡改 kv_cache_dtype）",
+      "修正跨层网络与窗口：P 端设 HCCL_IF_IP=192.0.2.11，D 端保持 HCCL_IF_IP=192.0.2.12；两端 GLOO_SOCKET_IFNAME=enp65s0f0（或每项均为 enp65s0f0 的逗号列表）、HCCL_SOCKET_IFNAME=enp65s0f0（或有效前缀如 enp65s0 / enp，或精确匹配 =enp65s0f0）且禁止 eth9；两端 HCCL_BUFFSIZE 均须按本关已分配预算显式设为 128（严禁省略回退默认或堆加 HCCL_EXEC_TIMEOUT 掩盖）",
+    ],
+    hints: [
+      "提示 1：按时间戳与主机拆解交错日志——node-D Rank 1 在 10:00:02 报 DispatchFFNCombine HCCL_BUFFSIZE=8MB 不足（128×2048×8×1×3 + 10MB 实算 = 16MB），而 Rank 0 在 10:00:10 的 EI0002（执行期 Notify wait 超时）只是次生陪等；node-P 则独立报出了 RaSocket 绑定 node-D 地址与 eth9 不存在错误。",
+      "提示 2：HCCL_IF_IP 在 Host root-info 选网阶段优先于 HCCL_SOCKET_IFNAME 且失败不会自动回退，同时 GLOO_SOCKET_IFNAME 与 HCCL_SOCKET_IFNAME 分别控制 CPU Gloo 组与设备 HCCL 组。Prefill 端（node-P）须把 HCCL_IF_IP 改为自身 192.0.2.11，并把两套 eth9 全部改成 enp65s0f0。",
+      "提示 3：Decode 端（node-D）的 HCCL_BUFFSIZE=8 小于 16 MiB 必败，但删掉环境变量或乱填大窗口（如 65535）都不符合本关预算；将 Decode 端 HCCL_BUFFSIZE 改为 128，其余算子/图模式/Mooncake 参数保持不变即可通关。",
+    ],
+    debrief: {
+      takeaway:
+        "跨机 P/D 排障必须按 Host + 时间戳拆开交错日志：先分清本机算子硬报错（DispatchFFNCombine HCCL_BUFFSIZE=8MB 不足）与陪等 EI0002（CANN 定义为执行期 Notify wait 超时，区别于 EI0006 建链超时，对端先挂时两者均可能充当烟雾弹），再核对主机资产清单确保 HCCL_IF_IP 绑定各自本地地址，并同时修正 HCCL 与 Gloo 双层网卡名。",
+      rootCauseChain:
+        "node-D Rank 1 因 HCCL_BUFFSIZE=8 MiB 小于 DispatchFFNCombine 实际所需 16 MiB（6 MiB + 10 MiB）在 10:00:02 失败，连带 Rank 0 在 10:00:10 刷出 EI0002（Notify wait execute timeout）；node-P 同时因 Host root-info 选网优先的 HCCL_IF_IP 错填对端 192.0.2.12（失败不自动回退）且 HCCL_SOCKET_IFNAME / GLOO_SOCKET_IFNAME 错指不存在的 eth9 导致 RaSocket 绑定失败。",
+      sourceAnchors: [
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85`,
+          note: "GetMaxWindowSize() 直接读取环境变量 HCCL_BUFFSIZE（缺省 200 MiB）作为 MC2 通信窗口上限。",
+        },
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L288-L294`,
+          note: "OP_TILING_CHECK 按 M × topK × K × sizeof(int8_t) × 3 + 10 * MB_SIZE 计算 actualSize（文案打印 + 3MB，实算 + 10 MiB = 16 MiB），大于 HCCL_BUFFSIZE=8 MiB 即返回失败。",
+        },
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ops/fused_moe/moe_comm_method.py#L580-L609`,
+          note: "enable_fused_mc2 == 1 在非 MegaMoe 路径直接调用 torch.ops._C_ascend.dispatch_ffn_combine。",
+        },
+        {
+          ref: `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L115-L118`,
+          note: "Mooncake Worker 严格校验单向角色（kv_producer 或 kv_consumer），传入 kv_both 直接抛 ValueError。",
+        },
+      ],
+      wikiRefs: [
+        { pageId: "hccl-buffer", label: "HCCL 缓冲窗口与 DispatchFFNCombine 判据" },
+        { pageId: "moe-comm-dispatch", label: "MoE 通信分派与 enable_fused_mc2" },
+        { pageId: "mooncake-connector", label: "MooncakeConnectorV1 与 P/D 单角色约束" },
+        { pageId: "cann-hccl", label: "CANN / HCCL 与 Gloo 双层网卡配置" },
       ],
     },
   },

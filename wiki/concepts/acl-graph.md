@@ -12,7 +12,6 @@ aliases:
   - ACL 图
   - FULL_DECODE_ONLY
   - FULL_AND_PIECEWISE
-  - npugraph_ex
   - 图捕获与回放
   - ViT 图
   - cudagraph_mm_encoder
@@ -170,6 +169,9 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224'
   - 'vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932'
   - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L283-L325'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L1272-L1275'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L474'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1512-L1547'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -271,14 +273,14 @@ file: acl-graph-buffers
 
 限制都从「录的是次序和地址」这一条长出来：
 
-- **宽度要固定。** 一张图录的时候多宽，回放时就得正好多宽。真实批次几乎不会正好落在录过的宽度上，所以进模型前先往上补齐到最近的一档；补到哪一档、两个 [DP 组](data-parallel.md)（各自调度、各有 KV 池的一台机器）之间怎么再对齐，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
+- **宽度要固定。** 一张图录的时候多宽，回放时就得正好多宽。真实批次几乎不会正好落在录过的宽度上，所以进模型前先往上补齐到最近的一档；补到哪一档、多个 [DP 组](data-parallel.md)（各自独立调度、拥有各自 KV 池的执行组——既可跨节点部署，也可在单机内切出多组，如单机 `TP=4, DP=2`）之间怎么再对齐，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
 - **地址要固定。** 输入、输出、算子自己的工作区都绑在捕获时那几块内存上。
 - **Host 上的判断不会随图自动重跑。** 固定捕获路径记录的是当时提交的设备任务；Python 在 Host 上判断要不要用图、用哪一张、这一步补到多宽，仍须在提交之前完成。这不意味着设备 kernel 内部不能有自己的条件判断。
 - **每轮都在变的注意力参数要另外补。** 查询长度、已算长度与块表每步都在变，而录下的算子入参已固化。两条补法各管一类后端：一是写入固定地址缓冲，让算子直接读最新内容；二是用侧流事件在回放期原地改写已录任务入参（见下文三轨时序图）。
 
 - **算子自己得支持。** 每个注意力后端声明一个支持等级：支持混合批、仅支持「同批每条请求位置数相等」、仅支持「每条正好 1 个位置」、或完全不支持。模型按所有后端里的最低等级定界，要求超出该等级时自动降级并告警。只有「完全不支持」兜不住：要求混合批走整图时启动直接报错，只给 decode 要整图时则退到分段或不录图。
 - **只在启动窗口里录。** 服务期遇到没录过的形状不会临时补录，捕获合法性检查会直接拒绝；启动期怎么热身、怎么按宽度从大到小逐个录，见[图模式](graph-mode-layer.md#启动时录运行时放)。
-- **录图显存走 `1 - u` 余量。** 将 `--gpu-memory-utilization` 统一记作符号 $u$（`v0.30.0` 上游 `CacheConfig` 默认 `0.92`，生产脚本常手传 `0.90`，早期惯例多取 `0.9`；七级显存账见 [KV cache 显存预算](kv-cache-memory-profiling.md)）。显存探测先按 $u \times \text{total\_memory}$ 扣除权重、激活峰值与非 torch 占用，把余款全部分给 KV cache；随后 `capture_model()` 的录图显存（`npugraph_memory_bytes`）实际从设备剩下的 $(1 - u)$ 余量里划出。捕获档位过多或 $u$ 设得过满吃干余量时，会在录图期 OOM。`v0.30.0` 与 `main` 会在录图后合并权重、激活、非 torch 与 `npugraph_memory_bytes` 为 `non_kv_memory`，扣 `150 MiB` 安全冗余后打印推荐 `--kv-cache-memory`。
+- **录图显存走 `1 - u`（及可用空闲 `F - u × T`）余量。** 将 `--gpu-memory-utilization` 统一记作符号 $u$（`v0.30.0` 上游 `CacheConfig` 默认 `0.92`，生产脚本常手传 `0.90`，早期惯例多取 `0.9`；七级显存账见 [KV cache 显存预算](kv-cache-memory-profiling.md)）。启动时预检设备初始空闲显存 $F$ 是否满足 $F \ge u \times T$（$T$ 为 `total_memory`），随后显存探测按 $u \times T$ 扣除权重、激活峰值与非 torch 占用，把余款全部分给 KV cache；因此 `capture_model()` 的录图显存（`npugraph_memory_bytes`）实际来自设备当时剩余的可用余量 $F - u \times T$（空卡 $F \approx T$ 时即 $(1 - u)T$）。捕获档位过多或 $u$ 设得过满吃干余量时，会在录图期 OOM。只要 `profile_run()` 完成（未传 `--kv-cache-memory-bytes` 且图捕获未抛异常中途退出——哪怕开 `--enforce-eager` 跳过了 `capture_model()` 使图显存记为 `0`），`worker.py` 就会在之后汇总 `non_kv_memory` 扣 `150 MiB` 安全冗余，打印建议值供下次显式传入正式 CLI 参数 `--kv-cache-memory-bytes`（注意当前日志文本误把参数名印成 `--kv-cache-memory=`，而 `capture_model()` 抛出 OOM 时会中断在之前、不会打印该日志）。
 
 在 `v0.30.0` 及 `main` 中，昇腾的图捕获生态分化为三条互补实现：
 
@@ -341,10 +343,10 @@ file: acl-graph-fig-event-timeline
 
 在 `v0.30.0` 主基线下，**Qwen3-8B**（36 层同构 GQA、默认无投机、单卡或 TP 多卡）无需手写档位即可启用 ACL Graph：
 
-- **默认捕获上限**：昇腾去掉了上游上限的 `×2` 放大。默认最大捕获宽度为 $\min(\text{max\_num\_seqs} \times \text{query\_len},\; 512)$，并自动生成 `1, 2, 4, 8, …, 512` 等档位表。
+- **默认捕获上限**：昇腾在未显式指定 `max_cudagraph_capture_size` 与 `cudagraph_capture_sizes` 时注入精简默认上限，去掉了上游上限的 `×2` 放大。默认最大捕获宽度为 $\min(\text{max\_num\_seqs} \times \text{decode\_query\_len},\; 512)$，并按该上限自动生成 `1, 2, 4, 8, …` 等捕获档位表（若未显式设置 `max_cudagraph_capture_size` 或 `cudagraph_capture_sizes`，默认列表天花板即封顶在 `512`；显式设置任意一项均可绕过 `512` 默认上限，再由上游按 `max_num_batched_tokens` 截断）。
 - **单后端模式**：全 36 层共用 `AscendAttentionBackend`。`check_and_update_config` 默认落到 `FULL_AND_PIECEWISE`（纯 decode 整图、混合批分段图），也可显式选 `FULL_DECODE_ONLY` 叠加 `npugraph_ex` FX 图融合。
 - **变长历史更新**：decode 每步历史长度都在涨，`AscendAttentionBackend` 靠上图侧流事件同步把 `seq_lens` 与 `block_table` 写进已录任务，无需重录图。
-- **录图显存账**：捕获占用 `npugraph_memory_bytes` 从 `--gpu-memory-utilization`（`v0.30.0` 默认 `0.92`，生产常传 `0.90`，记为 $u$）之外的 $(1 - u)$ 余量划出。录完后日志汇总 `non_kv_memory` 并扣 `150 MiB` 冗余，打印推荐 `--kv-cache-memory`。
+- **录图显存账**：捕获占用 `npugraph_memory_bytes` 从 `--gpu-memory-utilization`（`v0.30.0` 默认 `0.92`，生产常传 `0.90`，记为 $u$）之外的实际空闲余量 $F - u \times T$（空卡 $F \approx T$ 时近似 $(1 - u) T$）划出。未传 `--kv-cache-memory-bytes` 且未在 `capture_model()` 抛异常退出时（含 `--enforce-eager` 图显存为 `0` 的情形），日志会汇总 `non_kv_memory` 扣 `150 MiB` 冗余打印建议值（正式 CLI 参数为 `--kv-cache-memory-bytes`，日志文案误印为 `--kv-cache-memory=`）。
 
 ### Ascend 910B3 真机实测：捕获期 OOM 与扩 TP 图显存逆向增长
 
@@ -369,13 +371,15 @@ file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 
 ## 等宽验证怎样命中整图并刷新固定缓冲
 
-当模型同时包含 KDA 线性注意力、稀疏 MLA 与多步投机验证时，后端仅声明等宽批次（uniform batch）整图能力，混合批天然不能进整图。以历史 GLM 双机部署配方（[部署前提](glm-5-3-flash-two-node.md#部署前提)）为例：该历史配方主动选定 `FULL_DECODE_ONLY`（仅整齐 decode 录整图，其余走 eager），并手写 **7 个捕获宽度**：`4, 8, 16, 32, 64, 96, 128`（这两项均属该部署的显式配置选择，未手写尺寸时会走自动倍数对齐推导）。开启 3 步 MTP 后每条请求每步占 $1 + 3 = 4$ 位（见[投机解码](speculative-decoding.md)），7 档正好对应 `1, 2, 4, 8, 16, 24, 32` 条并发请求（见[固定查询长度下的 7 档捕获宽度](graph-mode-layer.md#固定查询长度下的-7-档捕获宽度)）。
+> **历史 GLM-5.3-Flash 双机对照算例**（固定历史双机版本，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）：本节仅作历史 GLM 双机异构路径对照，不混入上文 `v0.30.0` 标准 `Qwen3-8B` 默认口径。
+
+当模型同时包含 KDA 线性注意力、稀疏 MLA 与多步投机验证时，后端仅声明等宽批次（uniform batch）整图能力，混合批天然不能进整图。以历史 GLM 双机部署配方为例：该历史配方主动选定 `FULL_DECODE_ONLY`（仅整齐 decode 录整图，其余走 eager），并手写 **7 个捕获宽度**：`4, 8, 16, 32, 64, 96, 128`（这两项均属该部署的显式配置选择，未手写尺寸时会走自动倍数对齐推导）。开启 3 步 MTP 后每条请求每步占 $1 + 3 = 4$ 位（见[投机解码](speculative-decoding.md)），7 档正好对应 `1, 2, 4, 8, 16, 24, 32` 条并发请求（见[固定查询长度下的 7 档捕获宽度](graph-mode-layer.md#固定查询长度下的-7-档捕获宽度)）。
 
 这一选择与前文「算子支持等级」自洽：34 层 KDA（[线性注意力](linear-attention.md)）与 11 层[稀疏 MLA](sparse-attention.md) 仅支持同批请求查询长度相等的批次，因此配置检查对 `FULL_DECODE_ONLY` 原样放行。**只要一步混进 prefill，本步就无图可用**，且两 DP 组按较低一侧的模式取齐。
 
-围绕固定地址缓冲的读写保序，这里还要把包装器同步与新版侧流事件分开看：
+围绕固定地址缓冲的读写保序，本算例遵循该历史双机镜像的同步与原地更新路径（`v0.30.0` 与 `main` 可更新图回放次序对照见文末[开销和什么时候别开](#开销和什么时候别开)与[版本差异](#版本差异)）：
 
-- **特定包装器路径的回放前流同步 vs 侧流事件同步。** 在 `ACLGraphWrapper` 的非 `enable_enpu`、非 eagle 合图的 `FULL` 整图路径中，回放前会先同步当前流，防止异步调度下第 $i$ 步在 Host 原地改写持久缓冲时覆盖第 $i-1$ 步尚未读完的数据；而标准 FIA 可更新图（`updatable_graph` 与 `main` 的 `ModelAclGraphManager`）则采用前文三轨图所示的侧流 `Wait Event` / `Record Event` 在设备侧锁死更新与计算次序，不做 Host 阻塞同步（跨流缓冲复用与生命周期风险见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）。
+- **历史 GLM 镜像的回放前流同步**：在历史 GLM 双机对照镜像的 `ACLGraphWrapper.__call__`（源码行号见文末「对照源码」）中，非 `enable_enpu`、非 eagle 合图的 `FULL` 路径会在 `entry.aclgraph.replay()` **之前**先同步当前流，防止异步调度下第 $i$ 步在 Host 原地改写持久缓冲时覆盖第 $i-1$ 步尚未读完的数据（跨流缓冲复用与生命周期风险见[昇腾算子下发流水与运行时调优](ascend-runtime-and-tuning.md#pytorch_npu_alloc_conf跨流显存提前复用-vs-禁切大块)）。
 - **原地刷新各异构后端的固定缓冲。** 运行器前向前构建元数据：稀疏 MLA 引用公共缓冲，压缩索引器刷新预分配缓冲，KDA 刷新状态索引、查询起点与接受数（见[图模式数据准备](graph-mode-layer.md#回放之前必须先把数据写对)）。通用「侧流刷整图参数」要求非稀疏且非压缩，因此这类异构模型不走该入口（各版本调用次序见[版本差异](#版本差异)）。
 
 启动期录 7 张图的耗时与显存须看实机启动日志，本库尚无该配方的实测记录。
@@ -396,32 +400,32 @@ file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 
 ### 怎么开
 
-**视觉编码器图另配 compilation_config。** 对已实现协议、满足当前模型与平台条件的 V1 路径，配置片段为 `--compilation-config '{"cudagraph_mm_encoder":true}'`。它是新增配置的写法，不是固定 GLM 原配方的可用性承诺；现有 compilation_config 中的语言图配置须一并保留。四个字段在本页四个固定上游快照中的默认值相同：
+**视觉编码器图另配 `compilation_config`。** 对已实现协议、满足当前模型与平台条件的 V1 路径，配置片段为 `--compilation-config '{"cudagraph_mm_encoder":true}'`。它是新增配置的写法，不是历史 GLM 双机配方的可用性承诺；现有 `compilation_config` 中的语言图配置须一并保留。四个字段在本页四个固定上游快照中的默认值相同：
 
 | 字段 | 默认 | 作用与约束 |
 |---|---|---|
-| cudagraph_mm_encoder | false | 请求捕获多模态编码器；还检查多模态输入能力、模型协议和实际入口 |
-| encoder_cudagraph_token_budgets | 空列表 | 自动从模型最小预算逐次翻倍，并补上最大预算；显式非空列表每项须为正，不能概括为所有档位都是绝对的2次幂 |
-| encoder_cudagraph_max_vision_items_per_batch | 0 | 自动推断每个编码子批的媒体项数；开关开启时拒绝负数。显式项数与显式预算同时给出时，项数不得超过最小预算 |
-| encoder_cudagraph_max_frames_per_batch | None | 自动按每批项数与模型每项最大帧数准备帧元数据容量；开启时拒绝负数。显式0不表示禁止视频或无限容量 |
+| `cudagraph_mm_encoder` | `false` | 请求捕获多模态编码器；还检查多模态输入能力、模型协议和实际入口 |
+| `encoder_cudagraph_token_budgets` | 空列表 | 自动从模型最小预算逐次翻倍，并补上最大预算；显式非空列表每项须为正，不能概括为所有档位都是绝对的 2 次幂 |
+| `encoder_cudagraph_max_vision_items_per_batch` | `0` | 自动推断每个编码子批的媒体项数；开关开启时拒绝负数。显式项数与显式预算同时给出时，项数不得超过最小预算 |
+| `encoder_cudagraph_max_frames_per_batch` | `None` | 自动按每批项数与模型每项最大帧数准备帧元数据容量；开启时拒绝负数。显式 `0` 不表示禁止视频或无限容量 |
 
-基线自动项数取“模型最大预算÷最小预算”的整数部分，并受最小图预算约束；只给项数时会抬高自动预算的起点，只给预算时也会限制推断项数，不能把四个字段视为互不相关。禁止视频输入使用多模态输入限制的 video=0，这时帧容量也取0；启用视频时，应按真实处理后的帧数核对固定缓冲。
+基线自动项数取“模型最大预算÷最小预算”的整数部分，并受最小图预算约束；只给项数时会抬高自动预算的起点，只给预算时也会限制推断项数，不能把四个字段视为互不相关。禁止视频输入使用多模态输入限制的 `video=0`，这时帧容量也取 `0`；启用视频时，应按真实处理后的帧数核对固定缓冲。
 
-四版 V1 的捕获入口都会先在总图模式为 NONE 时返回，然后才创建视觉图管理器。因此“视觉与语言图分别有预算和对象”不等于 V1 可以绕过总入口。强制 eager 及图模式的派生继续见[图模式](graph-mode-layer.md#怎么开)。mm_encoder_tp_mode=data 在 TP>1 时将视觉项分给 TP ranks；它不增加服务 DP 数。Ascend 平台会重置上游的 mm_encoder_attn_backend，官方 GPU 示例中的 FLASH_ATTN/FLASHINFER 不能直接照搬。
+四版 V1 的捕获入口都会先在总图模式为 `NONE` 时返回，然后才创建视觉图管理器。因此“视觉与语言图分别有预算和对象”不等于 V1 可以绕过总入口。强制 `eager` 及图模式的派生继续见[图模式](graph-mode-layer.md#怎么开)。`mm_encoder_tp_mode=data` 在 `TP > 1` 时将视觉项分给 TP ranks；它不增加服务 DP 数。Ascend 平台会重置上游的 `mm_encoder_attn_backend`，官方 GPU 示例中的 `FLASH_ATTN` / `FLASHINFER` 不能直接照搬。
 
-- **本部署显式配。** 档位设成 `FULL_DECODE_ONLY`、捕获宽度给了 7 个值，完整命令在[部署页](glm-5-3-flash-two-node.md#怎么开)统一维护，本页不复制。权重加载完之后，整个模型被包一层 `ACLGraphWrapper`，运行模式是 `FULL`。
-- **参数与默认尺寸。** compilation_config、cudagraph_mode、cudagraph_capture_sizes、max_cudagraph_capture_size 与主模型 enforce_eager 的入口、默认派生和报错统一见[图模式参数参考](graph-mode-layer.md#怎么开)。那里保留了 Ascend 默认上限去掉上游 ×2 的条件、512 截断、逐档生成、预算过滤，以及显式表和显式上限必须一致的规则；此处来源 4、7 仍对应平台注入和上游派生。
-- **开了投机解码要对齐倍数。** 整趟 decode 图加上草稿时，宽度表整体向上取整到「1 + 草稿数」的倍数；只有同时开了上游的 sequence parallel 且 TP > 1，倍数才改成它与 TP 的较大值。本部署是 MoE 模型，那个开关取假，倍数就是 4。
+- **历史 GLM 双机对照算例的显式配置。** 在该历史对照组里，档位设成 `FULL_DECODE_ONLY`、捕获宽度给了 7 个值，完整命令在[部署页](glm-5-3-flash-two-node.md#怎么开)统一维护，本页不复制。权重加载完之后，整个模型被包一层 `ACLGraphWrapper`，运行模式是 `FULL`。
+- **参数与默认尺寸。** `compilation_config`、`cudagraph_mode`、`cudagraph_capture_sizes`、`max_cudagraph_capture_size` 与主模型 `enforce_eager` 的入口、默认派生和报错统一见[图模式参数参考](graph-mode-layer.md#怎么开)。那里保留了 Ascend 默认上限去掉上游 ×2 的条件、`512` 截断、逐档生成、预算过滤，以及显式表和显式上限必须一致的规则；此处来源 4、7 仍对应平台注入和上游派生。
+- **开了投机解码要对齐倍数。** 整趟 decode 图加上草稿时，宽度表整体向上取整到「1 + 草稿数」的倍数；只有同时开了上游的 `sequence_parallel` 且 `TP > 1`，倍数才改成它与 `TP` 的较大值。历史 GLM 双机对照算例是 MoE 模型，那个开关取假，倍数就是 4。
 
-在这条整趟 decode 路径中，若统一查询长度大于 1，并且同时启用上游的 sequence parallel、TP 大于 1，取出的较大值还必须同时被查询长度和 TP 大小整除；不满足就抛错。这一步没有自动改用最小公倍数，因此较大值并不总能成为合法的对齐倍数。
-- **宽度表还会被筛选。** 上游 sequence parallel 开着时，不是 TP 倍数的宽度被筛掉；若同时指定了捕获列表与最大宽度，而过滤后列表的最大值与该上限不一致，会先抛错。通过一致性检查后，最终最大宽度才取有效表的最大值。早期版本（`v0.23.0` / `v0.26.0rc`）中，昇腾 A5 在分段编译路径上对超过 4 档的表按索引等距采样到 4 档（首尾必留）并发出 warning；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）已移除该 4 档裁剪逻辑。
-- **档位还会被后端等级压低。** 运行器扫过所有 KV cache 组的注意力后端取最低等级，交给上游解析：要求混合批走整趟图而最低等级不是「混合批也支持」时，降到分段档或只给 decode 的整趟档并打 warning；最低等级是「完全不支持」时，混合批整趟图直接抛 ValueError，decode 整趟图退到分段档或不录图。四个等级的定义在上游枚举里；GLM 的稀疏 MLA 后端与 KDA 走的 GDN 构建器分别见来源 12、13，两者声明的都是「一批里每条位置数一样才支持」。
+在这条整趟 decode 路径中，若统一查询长度大于 1，并且同时启用上游的 `sequence_parallel`、`TP > 1`，取出的较大值还必须同时被查询长度和 `TP` 大小整除；不满足就抛错。这一步没有自动改用最小公倍数，因此较大值并不总能成为合法的对齐倍数。
+- **宽度表还会被筛选。** 上游 `sequence_parallel` 开着时，不是 `TP` 倍数的宽度被筛掉；若同时指定了捕获列表与最大宽度，而过滤后列表的最大值与该上限不一致，会先抛错。通过一致性检查后，最终最大宽度才取有效表的最大值。早期版本（`v0.23.0` / `v0.26.0rc`）中，昇腾 A5 在分段编译路径上对超过 4 档的表按索引等距采样到 4 档（首尾必留）并发出 warning；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）已移除该 4 档裁剪逻辑。
+- **档位还会被后端等级压低。** 运行器扫过所有 KV cache 组的注意力后端取最低等级，交给上游解析：要求混合批走整趟图而最低等级不是「混合批也支持」时，降到分段档或只给 decode 的整趟档并打 warning；最低等级是「完全不支持」时，混合批整趟图直接抛 `ValueError`，decode 整趟图退到分段档或不录图。四个等级的定义在上游枚举里；GLM 的稀疏 MLA 后端与 KDA 走的 GDN 构建器分别见来源 12、13，两者声明的都是「一批里每条位置数一样才支持」。
 
 ### 会报什么错
 
 视觉图配置中，非正的显式 token 预算会被拒；开启时负项数或负帧容量会被拒。基线同时给预算和项数、且项数大于最小预算时，还会报出每项分不到一个输出位置的错误。模型没有协议时，V1 不创建视觉图管理器；Qwen3-VL 开启多模态裁剪时，模型把图支持的模态列表置空，图片和视频都会退出这条图路径。
 
-检查是否实际生效，应看视觉管理器的初始化预算、捕获完成记录及命中/退回统计，而不是只看语言模型“图捕获成功”。基线初始化日志列 budgets、max_batch_size、max_frames_per_batch 与 use_dp，调试日志记录子批 token、所选 budget 和补齐比例；这些值用于核对配置和实际形状，设备性能还需同输入对照测量。
+检查是否实际生效，应看视觉管理器的初始化预算、捕获完成记录及命中/退回统计，而不是只看语言模型“图捕获成功”。基线初始化日志列 `budgets`、`max_batch_size`、`max_frames_per_batch` 与 `use_dp`，调试日志记录子批 token、所选 `budget` 和补齐比例；这些值用于核对配置和实际形状，设备性能还需同输入对照测量。
 
 | 条件 | 报错或检查点 | 怎么处理 |
 |---|---|---|
@@ -429,7 +433,7 @@ file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 | 捕获时设备流资源不足 | 明确的流资源不足文本，或 `207008` 同时带 `stream resource` 文本，才命中这项错误包装；单有错误码不够 [C3] | 按提示减宽度，并确认 HDK / CANN 版本 |
 | 混合结构模型开整趟图，并发上限超过状态缓存块数 | 上游在配置阶段抛 `ValueError`，提示调小并发或提高显存占用比 | 每条 decode 请求要占一块状态缓存 |
 | 捕获已被上游禁用时又触发捕获 | 合法性检查抛 `RuntimeError` [C1][C28] | 检查调用时机以及描述符是否已经捕获 |
-| `u` 过高通过试跑与分段图，在 `FULL` 捕获的 FIA 内耗尽 $(1 - u)$ 余量 | `capture_model()` 栈落入 `device_op.py:216` 抛 `NPU out of memory`（如 `Qwen3-0.6B` 在 `u=0.90` 申请 `1.98 GiB`、仅剩 `1.71 GiB`）[M137] | 下调 `u`（如 `0.82`）或改用录图后建议的 `--kv-cache-memory` |
+| `u` 过高通过试跑与分段图，在 `FULL` 捕获的 FIA 内耗尽 $(F - u \times T)$ 余量 | `capture_model()` 栈落入 `device_op.py:216` 抛 `NPU out of memory`（如 `Qwen3-0.6B` 在 `u=0.90` 申请 `1.98 GiB`、仅剩 `1.71 GiB`；此时不会打印录图后建议值）[M137] | 下调 `u`（如 `0.82`）；若成功录图后需固化字节预算，传入正式参数 `--kv-cache-memory-bytes`（日志文案误印为 `--kv-cache-memory=`） |
 | 调试日志级别下回放，位置参数中 Tensor 的地址与录制时不同 | `acl_graph.py:275-281`（`main` 为 `283-290`）遍历 `args` 核对 `data_ptr()`，不符则断言失败 [C2][C138] | 检查是否换了输入 Tensor；生产压测切回 `INFO` 免除每步地址遍历与分配器日志税 |
 
 所列 v0.26 快照捕获到“Alloc sq cq fail”这类旧 HDK 错误特征时，会提示升级到 HDK 25.5.1 或更新版本，并使用匹配的 CANN。这是该错误分支的排查建议，不是所有图模式场景的统一最低版本声明。
@@ -437,44 +441,44 @@ file: acl-graph-fig-910b3-u090-oom-and-tp-growth
 
 ### 开销和什么时候别开
 
-- **启动**：每个宽度都要跑一遍空批次并录一次；增加宽度会增加捕获工作，录好的图还要占设备内存。评估本部署的 7 个宽度时，应从启动日志分别记录捕获耗时和内存增量。
-- **运行**：整趟回放前多一次当前流同步，条件是运行模式为 `FULL` 且不是 eagle 合图路径；开了 `enable_enpu` 时跳过，改由运行器自己排更新与回放的先后。
+- **启动**：每个宽度都要跑一遍空批次并录一次；增加宽度会增加捕获工作，录好的图还要占设备内存。评估上述历史算例的 7 个宽度时，应从启动日志分别记录捕获耗时和内存增量。
+- **运行**：在 `ACLGraphWrapper.__call__`（`c09d3e20` 为 `acl_graph.py#L156`，`8d6180e2` 为 `#L160`）里，只要运行模式为 `FULL` 且非 eagle 合图路径，非 `enable_enpu` 路径会在进入 `_updatable_graph_replay` 或普通 `replay` **之前**先执行一次 `torch.npu.current_stream().synchronize()`（`db701c1f` 在 `#L253-L257` 同步后直接调用 `entry.aclgraph.replay()`）；开启 `enable_enpu` 时才跳过该次主同步，由运行器自己排更新与回放的先后。
 - **补齐的浪费**不在本页记账，见[多条请求](concurrent-requests.md#先补到自己这组的图尺寸)。
 - **什么时候别开**：请求形状长期不整齐时，收益会被补齐和退回吃掉；排查精度或 hang 问题常用强制 eager，但它同时关掉编译期改写和图，问题消失只能把范围缩到这两层，怎么分开见[图模式](graph-mode-layer.md#对照源码) [D]。
 
 ### 版本差异
 
-**`v0.30.0`（`c09d3e20`）集齐 `ACLGraph` / `BreakableACLGraph` / `XliteGraph` 三类图路径，并在录图后给出扣除 `npugraph_memory_bytes` 与 150 MiB 余量的 `--kv-cache-memory` 建议；`main`（`8d6180e2`）进一步收口为 MRV2 `ModelAclGraphManager` 统一编排。**
+**`v0.30.0`（`c09d3e20`）集齐 `ACLGraph` / `BreakableACLGraph` / `XliteGraph` 三类图路径，并在成功录图后给出扣除 `npugraph_memory_bytes` 与 150 MiB 余量的推荐 KV 字节预算；`main`（`8d6180e2`）进一步收口为 MRV2 `ModelAclGraphManager` 统一编排。**
 
 | 图捕获核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
 | 三类图实现（`ACLGraph` / `Breakable` / `XliteGraph`） | 仅 `ACLGraphWrapper` 与独立 `XliteWorker`；无 `BreakableACLGraphWrapper` | 同 `v0.23.0`（行号后移） | 齐备 `ACLGraphWrapper`、`updatable_graph`、`BreakableACLGraphWrapper` 与 `XliteWorker` | 同左，且 MRV2 经 `worker/v2/aclgraph_utils.py` 的 `ModelAclGraphManager` 统一管理整图/可打断图与可更新图 |
 | 捕获失败识别与 `ASCEND_LAUNCH_BLOCKING` | 只识别设备流资源不足；A5 分段砍至 4 档；`ASCEND_LAUNCH_BLOCKING=1` 撞图模式抛 `ValueError` | 新增识别旧 HDK `Alloc sq cq fail` 并提示升级 HDK 25.5.1+；同左保留 A5 4 档裁剪与 `ValueError` 拒绝 | 保留 `Alloc sq cq fail` 提示；已移除 A5 4 档裁剪（`prune_capture_sizes_for_950`）与平台对 `ASCEND_LAUNCH_BLOCKING=1` 的显式拒绝（不代表所有组合均支持） | 同 `v0.30.0`（均无 A5 4 档裁剪与 `ASCEND_LAUNCH_BLOCKING=1` 显式拒绝） |
-| 录图预算与 `1 - u` 余量 | 录图显存落在 `gpu_memory_utilization`（$u$）之外的 $(1 - u)$ 设备余量 | 同 `v0.23.0` | 同左；录图后汇总 `non_kv_memory`（含 `npugraph_memory_bytes`）并扣 150 MiB 输出推荐 `--kv-cache-memory` | 同 `v0.30.0`（改经 `_get_gpu_memory_utilization()` 与 HiSparse 非 KV 显存分支计算） |
-| 可更新图 `update` / `replay` 次序 | 普通 paged attention 经侧流事件同步，非 ENPU 先调模型再调通用更新 | 同 `v0.23.0` | `FULL` 加特定后端进入可更新分支：`enable_enpu` 先 update 后 replay，其余先 replay 后 update；`FULL` 通常回放前同步流（ENPU/EAGLE 合图跳过） | 延续可更新图条件次序，由 `ModelAclGraphManager._updatable_graph_replay` 承接 |
+| 录图预算与 $F - u \times T$ 余量 | 录图显存落在 `gpu_memory_utilization`（$u$）之外的实际空闲余量 $F - u \times T$ | 同 `v0.23.0` | 同左；成功录图后汇总 `non_kv_memory`（含 `npugraph_memory_bytes`）并扣 150 MiB 打印推荐值（日志误印 `--kv-cache-memory=`，正式 CLI 为 `--kv-cache-memory-bytes`） | 同 `v0.30.0`（改经 `_get_gpu_memory_utilization()` 与 HiSparse 非 KV 显存分支计算） |
+| 可更新图 `update` / `replay` 与流同步次序 | 普通 paged attention 经侧流事件同步，非 ENPU 先调模型再调通用更新 | 同 `v0.23.0` | `ACLGraphWrapper` 在非 `enable_enpu`、非 eagle 合图的 `FULL` 路径上**先执行当前流同步**再进入 `_updatable_graph_replay`（`enable_enpu` 先 update 后 replay，其余先 replay 后 update） | 延续先流同步再入可更新图分支的次序，并由 `ModelAclGraphManager._updatable_graph_replay` 承接 |
 | 视觉图（`cudagraph_mm_encoder`）与多模态 | 单路径预算，Ascend V1 换用 `EncoderAclGraphManager`；`db701c1f` GLM 无视觉图协议；平台重置 `mm_encoder_attn_backend` 为 `None` | 上游增加全局/局部双路径；NPU FIA 仍按 `token_budget` 建账 | 通用多路径；NPU 拒绝非空 `capture axes` 抛 `NotImplementedError`；`GLM5Next` 补齐协议适配（去掉 `pos_embeds`） | 同 `v0.30.0`；MRV2 分开判断视觉图与语言图入口，Qwen3-VL 裁剪仍置空图模态 |
 
 官方文档把 ACL Graph 记在 v0.9.0rc1 起并列出五个档位，最终有效模式仍受平台与后端限制 [S23]。设计文档把参数更新概括为“回放之前” [S24]，实际非 ENPU Python 路径先调用模型再调用通用更新入口 [C16]，原因在于捕获时先登记事件等待再登记注意力任务，更新流改参后记录事件才放行注意力 [C18]。较新上游 MRV2 分别判断编码器和语言图的捕获，不能直接套用 V1 的 NONE 早退条件；官方 ViT 指南的性能表使用 GPU 与指定模型，不作为 A2/GLM 收益数据。
 
 ### 源码位置
 
-- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 实核：`ACLGraphWrapper` 见 `c09d3e20:compilation/acl_graph.py#L66-L250`、`#L275-L319`（含 `DEBUG` 下 `data_ptr()` 核对）与 `8d6180e2:compilation/acl_graph.py#L66-L255`、`#L283-L325`；`BreakableACLGraphWrapper` 见 `c09d3e20` / `8d6180e2:compilation/breakable_aclgraph.py#L38-L90`；`XliteWorker` 见 `c09d3e20:xlite/xlite_worker.py#L22-L36` 与 `8d6180e2:xlite/xlite_worker.py#L27-L49`；`main` MRV2 图管理器见 `8d6180e2:worker/v2/aclgraph_utils.py#L83-L235`；录图走 `1 - u` 余量与 150 MiB 推荐公式见 `c09d3e20:worker/worker.py#L905-L955` 与 `8d6180e2:worker/worker.py#L1034-L1085` [C130][C135]；捕获前后设备空闲显存差计算见 `vllm@ced6857a:v1/worker/gpu_model_runner.py#L6888-L6932` [C142]，FIA 图工作区申请与复用作用于 `c09d3e20:attention/attention_v1.py#L664-L715`、`compilation/updatable_graph.py#L101-L137` 与 `device/device_op.py#L212-L224`；`Ascend 910B3` 真机 `TP=1..8` 图显存逆向增长、`DEBUG` 热路径对比与 `u=0.90` OOM 标本见来源 136–137 [M136][M137]。
+- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 实核：`ACLGraphWrapper`（含 `DEBUG` 下 `data_ptr()` 核对与 `FULL` 下先当前流同步再入 `_updatable_graph_replay`）见 `vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250`、`#L275-L319` 与 `vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L66-L255`、`#L283-L325`；`BreakableACLGraphWrapper` 见 `vllm-ascend@c09d3e20:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90` 与 `vllm-ascend@8d6180e2:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90`；`XliteWorker` 见 `vllm-ascend@c09d3e20:vllm_ascend/xlite/xlite_worker.py#L22-L36` 与 `vllm-ascend@8d6180e2:vllm_ascend/xlite/xlite_worker.py#L27-L49`；`main` MRV2 图管理器见 `vllm-ascend@8d6180e2:vllm_ascend/worker/v2/aclgraph_utils.py#L83-L235`；启动预检 $F \ge u \times T$、录图走空闲余量与 `capture_model()` 成功后的 150 MiB 推荐公式见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L474`、`#L905-L955` 与 `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1085` [C130][C135]；正式 CLI 参数 `--kv-cache-memory-bytes` 见 `vllm@ced6857a:vllm/engine/arg_utils.py#L1272-L1275`，自动捕获上限封顶 `512` 见 `vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1512-L1547`；捕获前后设备空闲显存差计算见 `vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932` [C142]，FIA 图工作区申请与复用作用于 `vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L715`、`vllm-ascend@c09d3e20:vllm_ascend/compilation/updatable_graph.py#L101-L137` 与 `vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224`；`Ascend 910B3` 真机 `TP=1..8` 图显存逆向增长、`DEBUG` 热路径对比与 `u=0.90` OOM 标本见来源 136–137 [M136][M137]。
 - 固定 GLM（`db701c1f`）元数据构建、块表复制、稀疏 MLA 与 KDA 封装见来源 119–126；视觉图官方设计与四版字段/入口/FIA 事件更新链见来源 37–118；`v0.23.0` / `v0.26.0rc` 包装器、平台与宽度表派生见来源 1–36。新视觉图示的 128/256/512 与 A/B/C 数值、以及 6 任务格数账单均为教学示意设定 [A][D]。
 
 | 看什么 | 在哪 |
 |---|---|
-| 透传、查条目、捕获合法性检查 | 来源 1、19、28：ACLGraphWrapper 的调用与捕获检查；main 可打断变体见来源 21 |
+| 透传、查条目、捕获合法性检查 | 来源 1、19、28：`ACLGraphWrapper` 的调用与捕获检查；`main` 可打断变体见来源 21 |
 | 地址核对、回放前同步、回放 | 来源 2、138、143：包装器回放分支与 `DEBUG` 下 `data_ptr()` 遍历校验 |
-| 捕获失败的错误重抛与 FIA 捕获期 OOM | 来源 3：错误码判定；v0.26 的 HDK 提示见 20、26，main 对应分支见 35；FIA 捕获期栈与实测标本见 137、141 |
-| 整模型包装、最低后端等级、通用更新条件与顺序 | 来源 14–17：model_runner_v1；捕获前后空闲显存差计量见 142 |
-| 换已录任务入参：事件等待与参数更新 | 来源 18、31、139、140：attention_v1 与 updatable_graph 的工作区申请及参数更新；`v0.30.0` / `main` 可更新图见来源 27、130 |
-| 默认最大捕获宽度、A5 砍档、调试变量互斥 | 来源 4–6、29：旧 platform；main 的能力声明与消费见 22、30，v0.26 分支见 36 |
-| 宽度表生成、截断与 SP 过滤 | 来源 7、33：上游 config/vllm.py |
-| 投机倍数、后端降级链、状态缓存块校验 | 来源 8–10：上游 config/compilation.py |
+| 捕获失败的错误重抛与 FIA 捕获期 OOM | 来源 3：错误码判定；`v0.26.0rc` 的 HDK 提示见 20、26，`main` 对应分支见 35；FIA 捕获期栈与实测标本见 137、141 |
+| 整模型包装、最低后端等级、通用更新条件与顺序 | 来源 14–17：`model_runner_v1`；捕获前后空闲显存差计量见 142 |
+| 换已录任务入参：事件等待与参数更新 | 来源 18、31、139、140：`attention_v1` 与 `updatable_graph` 的工作区申请及参数更新；`v0.30.0` / `main` 可更新图见来源 27、130 |
+| 默认最大捕获宽度、A5 砍档、调试变量互斥 | 来源 4–6、29：旧 `platform`；`main` 的能力声明与消费见 22、30，`v0.26.0rc` 分支见 36 |
+| 宽度表生成、截断与 SP 过滤 | 来源 7、33：上游 `config/vllm.py` |
+| 投机倍数、后端降级链、状态缓存块校验 | 来源 8–10：上游 `config/compilation.py` |
 | 四个支持等级及固定 GLM 后端声明 | 来源 11–13：上游枚举、稀疏 MLA 和 GDN 构建器 |
-| 当前活跃请求行的块表复制 | 来源 32、34：block_table 的提交与模型准备输入时的调用 |
+| 当前活跃请求行的块表复制 | 来源 32、34：`block_table` 的提交与模型准备输入时的调用 |
 
 `Ascend 910B3` 上 `Qwen3-0.6B`（`u=0.90` vs `u=0.82`）与 `Qwen3-8B`（`TP=1..8`）的图捕获显存差值与服务态耗时已由实机快照验证；`+0.62 GiB` 的扩 TP 图差值增量尚缺逐算子分配快照闭合分摊。固定 GLM（`db701c1f`）元数据的构建、原地更新和算子消费链已有静态源码依据，仍待核的是该双机部署下 7 张图的捕获耗时、设备内存占用、与 eager 的数值对照和加速比，以及视觉编码器图的实机触发日志。
 
-**包装器与配置的来源。** 来源 19 的 2c59ff10 包装器注释明确把持久输入缓冲与复制交给外部；它不证明 GLM 每个后端的元数据更新路径。db701c1f 的 acl_graph.py 138–170 行先处理 NONE/模式不匹配，再查条目并校验捕获阶段，不能把“条目不存在”解释成服务期间随时允许捕获。默认上限由来源 4 的平台分支派生；投机与 SP 倍数兼容检查见来源 8 的编译配置。上述结论限定相应固定源码，设备开销及 GLM 后端待核项仍见前段。
+**包装器与配置的来源。** 来源 19 的 `2c59ff10` 包装器注释明确把持久输入缓冲与复制交给外部；它不证明 GLM 每个后端的元数据更新路径。`db701c1f` 的 `acl_graph.py` 138–170 行先处理 NONE/模式不匹配，再查条目并校验捕获阶段，不能把“条目不存在”解释成服务期间随时允许捕获。默认上限由来源 4 的平台分支派生；投机与 SP 倍数兼容检查见来源 8 的编译配置。上述结论限定相应固定源码，设备开销及 GLM 后端待核项仍见前段。
 

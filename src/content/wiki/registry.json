@@ -119,7 +119,6 @@
         "ACL 图",
         "FULL_DECODE_ONLY",
         "FULL_AND_PIECEWISE",
-        "npugraph_ex",
         "图捕获与回放",
         "ViT 图",
         "cudagraph_mm_encoder",
@@ -273,7 +272,10 @@
         "vllm-ascend@c09d3e20:vllm_ascend/compilation/updatable_graph.py#L101-L137",
         "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L212-L224",
         "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6888-L6932",
-        "vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L283-L325"
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L283-L325",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L1272-L1275",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L474",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1512-L1547"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -352,7 +354,7 @@
         {
           "from": "dev-new-model-and-custom-op",
           "kind": "enables",
-          "note": "新算子要进入完整图回放必须补齐 Meta 形状推导，图捕获与回放边界见该页"
+          "note": "新算子要进入 torch.compile 分段追踪必须补齐 Meta / fake_impl 形状推导，而在 torch.npu.graph 捕获回放期仍须满足运行期图捕获安全性，边界见该页"
         },
         {
           "from": "enable-force-eplb-b7ec3661121f",
@@ -2359,9 +2361,20 @@
         "npu-smi",
         "npu-smi info",
         "davinci_manager",
+        "/dev/davinci_manager",
         "devmm_svm",
         "hisi_hdc",
         "/dev/davinci",
+        "libascend_hal.so",
+        "ascend_hal.so",
+        "drvGetDevInfo",
+        "507008",
+        "ACL_ERROR_RT_SOC_VERSION",
+        "107002",
+        "ACL_ERROR_RT_CONTEXT_NULL",
+        "aclrtGetPhyDevIdByUserDevId",
+        "DP adjusted local rank",
+        "容器挂卡失败",
         "HCCL_OP_EXPANSION_MODE=AIV",
         "HCCL_INTRA_ROCE_ENABLE",
         "HCCL_RDMA_TC",
@@ -2401,7 +2414,13 @@
         "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910beta1/API/hcclug/hcclcpp_07_0047.html",
         "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000073.html",
         "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta2/commlib/hcclug/hcclenvref_07_0003.html",
-        "https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0009.html"
+        "https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0009.html",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L432-L435",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1345.html",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L420-L436",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L475-L488",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L465",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L615-L760"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -4077,7 +4096,16 @@
         "通信域",
         "ACL",
         "AscendCL",
-        "Ascend Computing Language"
+        "Ascend Computing Language",
+        "EI0004",
+        "EI0009",
+        "EJ0001",
+        "RaSocketConnect",
+        "RaSocket",
+        "LinkEstablish",
+        "Getting socket times out",
+        "HCCL 建链失败",
+        "p2p timeout"
       ],
       "chapters": [
         "07",
@@ -4169,7 +4197,21 @@
         "vllm-ascend@8d6180e2:tools/ai_qos.py#L453-L473",
         "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47",
         "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47",
-        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L179-L185"
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L179-L185",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/API/hcclug/hcclug_000025.html",
+        "https://www.hiascend.com/document/detail/en/canncommercial/800/hcclug/hcclug/hcclug_000039.html",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L200-L228",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L295-L303",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L940-L950",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L112-L168",
+        "vllm-ascend@c09d3e20:mkdocs.yml#L167-L188",
+        "vllm-ascend@8d6180e2:mkdocs.yml#L167-L192",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L1765-L1784",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L1-L130",
+        "vllm-ascend@8d6180e2:docs/source/getting_started/installation.md#L1-L130",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation.md#L170-L292",
+        "vllm-ascend@8d6180e2:docs/source/getting_started/installation.md#L170-L334",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/maintenref/troubleshooting/atlaserrorcode_15_0381.html"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -4233,7 +4275,7 @@
         {
           "from": "inference-troubleshooting",
           "kind": "enables",
-          "note": "区分首错卡引发的 EI0006 假象与真实设备网络/链路超时"
+          "note": "区分首错卡引发的 EI0002 / EI0006 次生超时假象与真实设备网络/链路故障"
         },
         {
           "from": "large-scale-ep",
@@ -6343,7 +6385,10 @@
         "AscendC 算子接入",
         "HardwareProfile 能力门控",
         "HAS_TRITON",
-        "RUNTIME_CUSTOM_OPS"
+        "RUNTIME_CUSTOM_OPS",
+        "fake_impl",
+        "torch_binding_meta.cpp",
+        "Meta 形状推导"
       ],
       "chapters": [
         "16",
@@ -6369,7 +6414,16 @@
         "vllm@ced6857a:vllm/model_executor/custom_op.py#L84-L105",
         "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/registry.py#L20-L50",
         "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/registry.py#L20-L50",
-        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L500"
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L500",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/register_custom_ops.py#L225",
+        "vllm@ced6857a:vllm/utils/torch_utils.py#L1096",
+        "vllm@ced6857a:vllm/model_executor/custom_op.py#L330-L348",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L241-L250",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L428-L436",
+        "vllm@ced6857a:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L227-L234",
+        "vllm@ced6857a:vllm/model_executor/layers/fused_moe/runner/moe_runner_interface.py#L19-L25",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_mtp.py#L230-L246",
+        "vllm@ced6857a:vllm/model_executor/models/registry.py#L120-L125"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -6402,7 +6456,7 @@
         {
           "to": "acl-graph",
           "kind": "builds-on",
-          "note": "新算子要进入完整图回放必须补齐 Meta 形状推导，图捕获与回放边界见该页"
+          "note": "新算子要进入 torch.compile 分段追踪必须补齐 Meta / fake_impl 形状推导，而在 torch.npu.graph 捕获回放期仍须满足运行期图捕获安全性，边界见该页"
         }
       ],
       "related": [],
@@ -6453,7 +6507,8 @@
         "UVA",
         "Unified Virtual Addressing",
         "为什么显存会满",
-        "显存为什么不够"
+        "显存为什么不够",
+        "EL0004"
       ],
       "chapters": [
         "07",
@@ -6516,7 +6571,7 @@
         "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L558-L598",
         "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4476-L4476",
         "vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55",
-        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L377-L386",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L375-L388",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L259-L265",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1743-L1752",
         "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565",
@@ -6527,7 +6582,9 @@
         "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L599-L635",
         "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L762-L778",
         "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L950",
-        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L882-L902"
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L882-L902",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/920/maintenref/troubleshooting/docs/en/troubleshooting/error-codes/Driver-Errors/EL0004-Memory_Allocation_Failure.md",
+        "vllm@ced6857a:vllm/utils/mem_utils.py#L288-L307"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -8762,7 +8819,14 @@
         "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L68",
         "vllm@ba15685a:vllm/v1/engine/admission_control.py#L13-L25",
         "vllm@ba15685a:vllm/config/parallel.py#L165-L175",
-        "vllm@ba15685a:vllm/entrypoints/cli/serve.py#L54-L190"
+        "vllm@ba15685a:vllm/entrypoints/cli/serve.py#L54-L190",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L600-L616",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2258-L2290",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L984-L991",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1154-L1163",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2107-L2156",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L1464-L1470",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2260-L2291"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -12317,6 +12381,7 @@
         "乱码排查",
         "首错 Rank",
         "EI0006",
+        "EI0002",
         "SIGKILL",
         "exitcode -9",
         "137",
@@ -12376,7 +12441,26 @@
         "vllm-ascend@c09d3e20:csrc/attention/sparse_flash_attention/docs/aclnnSparseFlashAttention.md#L446-L453",
         "vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L604-L606",
         "vllm-ascend@8d6180e2:csrc/attention/quant_lightning_indexer_v2/docs/qli_v2_two_level_topk_design.md#L546-L552",
-        "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnn_return_code_nn.md"
+        "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnn_return_code_nn.md",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/API/hcclug/hcclug_000025.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1274-L1282",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L1272-L1275",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L728-L795",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4470-L4478",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1170-L1185",
+        "vllm@568afb3a:vllm/envs.py#L1673-L1677",
+        "vllm@568afb3a:vllm/v1/executor/multiproc_executor.py#L313-L320",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1895-L1914",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L2018-L2029",
+        "vllm-ascend@c09d3e20:tests/ut/test_ascend_config.py#L2032-L2052",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L508-L522",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L860-L870",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L250-L310",
+        "vllm@ced6857a:vllm/v1/worker/gpu/model_runner.py#L425-L433",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L545-L555",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L848-L858",
+        "vllm@ced6857a:vllm/lora/punica_wrapper/punica_base.py#L135-L152",
+        "vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L20-L30"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -12414,7 +12498,7 @@
         {
           "to": "cann-hccl",
           "kind": "builds-on",
-          "note": "区分首错卡引发的 EI0006 假象与真实设备网络/链路超时"
+          "note": "区分首错卡引发的 EI0002 / EI0006 次生超时假象与真实设备网络/链路故障"
         }
       ],
       "related": [],
@@ -16914,9 +16998,7 @@
         "MoECommType",
         "MoECommPolicy",
         "select_moe_comm_method",
-        "ALLGATHER",
         "AllGather",
-        "ALLTOALL",
         "AllToAll",
         "MC2",
         "Fused MC2",
@@ -16925,8 +17007,13 @@
         "CANN_MEGAMOE",
         "symm buffer",
         "dispatch_ffn_combine",
+        "DispatchFFNCombine",
         "npu_moe_distribute_dispatch",
         "npu_moe_distribute_combine",
+        "MoeDistributeDispatch",
+        "MoeDistributeCombine",
+        "MoeDistributeDispatchV2",
+        "MoeDistributeCombineV2",
         "mc2_tokens_capacity",
         "set_mc2_tokens_capacity",
         "WeightSwitchMixin",
@@ -16952,7 +17039,19 @@
         "vllm-ascend@c09d3e20:vllm_ascend/weight_switch/o_proj.py#L13-L80",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L303-L355",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L451-L512",
-        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L378-L412"
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L378-L412",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L153-L234",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L327-L333",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L580-L606",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L660-L671",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L840-L860",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L995-L1007",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1050-L1161",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L770-L790",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L84-L87",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L440-L645",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L738-L749",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L160-L170"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -18612,7 +18711,13 @@
         "TORCH_TRACE",
         "tlparse",
         "FX 图融合",
-        "Graph Engine"
+        "Graph Engine",
+        "npugraph_ex",
+        "TorchAir",
+        "EZ3002",
+        "EZ3003",
+        "BackendCompilerFailed",
+        "Dynamo fullgraph"
       ],
       "chapters": [
         "16"
@@ -18716,7 +18821,12 @@
         "vllm-ascend@c09d3e20:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73",
         "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L119-L177",
         "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1515-L1559",
-        "vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79"
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L83-L101",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L647-L657",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L609-L619",
+        "vllm-ascend@c09d3e20:tests/ut/test_ascend_config.py#L590-L597",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/sequence_parallelism.py#L13-L234"
       ],
       "verified": [
         "releases/v0.23.0",

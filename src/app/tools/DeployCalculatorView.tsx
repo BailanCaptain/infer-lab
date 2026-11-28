@@ -49,20 +49,31 @@ import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById, ToolDeepLinkChip } from "./ToolDeepLinkChip";
 import {
   buildCalculatorQueryParams,
-  buildDeployChatAnalysis,
+  buildDeployViewChatAnalysis,
+  buildDeployViewSharedParams,
   type CalculatorQueryOverrides,
   cardIdToHardwareFamily,
   copyTextToClipboard,
+  type DeployCalculatorHandoffState,
   type DeployChatAnalysisPayload,
   evaluateCalculatorModelGate,
   parseCalculatorQueryParams,
   parseCustomModelParam,
   sanitizeDiagnosticText,
   serializeCustomModelForShare,
+  stripDiagnosticControlAndInvisibleChars,
+  stripTerminalControlSequences,
   workbenchHandoffStore,
 } from "./workbenchHandoff";
 
-export { evaluateCalculatorModelGate, parseCustomModelParam, serializeCustomModelForShare };
+export {
+  buildDeployViewChatAnalysis,
+  buildDeployViewSharedParams,
+  type DeployCalculatorHandoffState,
+  evaluateCalculatorModelGate,
+  parseCustomModelParam,
+  serializeCustomModelForShare,
+};
 
 const DEFAULT_MAX_MODEL_LEN = 32768;
 const DEFAULT_PREFILL_TOKENS = 512;
@@ -2262,6 +2273,68 @@ function formatReconcileDelta(delta: number | null, unit: "GiB" | "tokens"): str
   return `${sign}${delta.toFixed(2)} GiB`;
 }
 
+export function buildReconcileAssistantAttachment(input: {
+  plan: DeployPlanReport;
+  recon: LogReconciliationReport;
+  lines: string;
+  deployAnalysis?: DeployChatAnalysisPayload | undefined;
+}) {
+  const { plan, recon, lines, deployAnalysis } = input;
+  const sanitizeControlJoined = (raw: string) => {
+    const pass1 = sanitizeDiagnosticText(stripTerminalControlSequences(raw));
+    const noControls = stripDiagnosticControlAndInvisibleChars(pass1.sanitized);
+    if (noControls === pass1.sanitized) return pass1;
+    const pass2 = sanitizeDiagnosticText(noControls);
+    return {
+      sanitized: pass2.sanitized,
+      redactionCount: pass1.redactionCount + pass2.redactionCount,
+    };
+  };
+  const sanitizeSingleLineLabel = (raw: string, fallback: string) => {
+    const res = sanitizeControlJoined(raw);
+    const clean = res.sanitized.replace(/[\r\n\t]+/g, " ").trim();
+    return {
+      text: clean || fallback,
+      count: res.redactionCount,
+    };
+  };
+  const specLabel = sanitizeSingleLineLabel(plan.spec.name, "custom-model");
+  const cardLabel = sanitizeSingleLineLabel(plan.card.name, plan.card.id);
+  const cardShortLabel = sanitizeSingleLineLabel(plan.card.shortName, plan.card.id);
+  const summaryClean = sanitizeControlJoined(recon.summary);
+  const safeSpecName = specLabel.text;
+  const safeCardName = cardLabel.text;
+  const safeCardShort = cardShortLabel.text;
+  const safeSummary = summaryClean.sanitized.replace(/[\r\n\t]+/g, " ").trim();
+  const safeLines = sanitizeControlJoined(lines).sanitized;
+  const rawPrompt = [
+    `我在昇腾 ${safeCardName} 上用 ${safeSpecName}（${plan.inputSummary.weightPrecision}，TP=${plan.inputSummary.tpSize}，PP=${plan.inputSummary.ppSize}，EP=${plan.inputSummary.enableEp ? plan.inputSummary.epWorldSize : "关"}，u=${plan.inputSummary.gpuMemoryUtilization}）做启动日志对账：`,
+    safeSummary,
+    safeLines,
+    "请结合 vLLM-Ascend 7 级显存账目与 HCCL 不二次扣减守恒，帮我分析偏差根因和调参建议。",
+  ].join("\n\n");
+  const promptResult = sanitizeDiagnosticText(rawPrompt);
+  const redactionCount =
+    specLabel.count +
+    Math.max(cardLabel.count, cardShortLabel.count) +
+    summaryClean.redactionCount +
+    promptResult.redactionCount;
+  const safeTitle = sanitizeDiagnosticText(
+    `启动日志对账脱敏快照（${safeSpecName} · ${safeCardShort}）`,
+  ).sanitized;
+  const safeSuggestedQuestion = sanitizeDiagnosticText(
+    `请结合 ${safeSpecName} 在 ${safeCardShort} 上的 7 级显存对账结果，分析偏差根因与调参建议。`,
+  ).sanitized;
+  return {
+    title: safeTitle,
+    summary: safeSummary,
+    sanitizedBlock: promptResult.sanitized,
+    redactionCount,
+    suggestedQuestion: safeSuggestedQuestion,
+    ...(deployAnalysis ? { analysis: deployAnalysis } : {}),
+  };
+}
+
 function ReconcileLogSection({
   plan,
   deployAnalysis,
@@ -2292,22 +2365,8 @@ function ReconcileLogSection({
           `- ${it.title}: 实测 ${formatReconcileValue(it.measured, it.unit)} vs 预测 [${it.predictedLow}, ${it.predictedHigh}] ${it.unit}（${RECON_STATUS_META[it.status].label}，Δ=${formatReconcileDelta(it.delta, it.unit)}）`,
       )
       .join("\n");
-    const rawPrompt = [
-      `我在昇腾 ${plan.card.name} 上用 ${plan.spec.name}（${plan.inputSummary.weightPrecision}，TP=${plan.inputSummary.tpSize}，PP=${plan.inputSummary.ppSize}，EP=${plan.inputSummary.enableEp ? plan.inputSummary.epWorldSize : "关"}，u=${plan.inputSummary.gpuMemoryUtilization}）做启动日志对账：`,
-      recon.summary,
-      lines,
-      "请结合 vLLM-Ascend 7 级显存账目与 HCCL 不二次扣减守恒，帮我分析偏差根因和调参建议。",
-    ].join("\n\n");
-    const { sanitized, redactionCount } = sanitizeDiagnosticText(rawPrompt);
     assistant.openChat({
-      pendingAttachment: {
-        title: `启动日志对账脱敏快照（${plan.spec.name} · ${plan.card.shortName}）`,
-        summary: recon.summary,
-        sanitizedBlock: sanitized,
-        redactionCount,
-        suggestedQuestion: `请结合 ${plan.spec.name} 在 ${plan.card.shortName} 上的 7 级显存对账结果，分析偏差根因与调参建议。`,
-        ...(deployAnalysis ? { analysis: deployAnalysis } : {}),
-      },
+      pendingAttachment: buildReconcileAssistantAttachment({ plan, recon, lines, deployAnalysis }),
       submit: false,
       trigger: event.currentTarget,
     });
@@ -2588,11 +2647,15 @@ function CalcControlsBar({
             <input
               className="wt-input"
               type="number"
-              min={32}
-              max={65536}
+              min={1}
+              max={1048576}
               step={128}
               value={state.prefillTokens}
-              onChange={(e) => onPatch({ prefillTokens: Math.max(1, Number(e.target.value) || 512) })}
+              onChange={(e) =>
+                onPatch({
+                  prefillTokens: Math.min(1_048_576, Math.max(1, Number(e.target.value) || 512)),
+                })
+              }
             />
           </label>
           <label className="wt-field" style={{ minWidth: 115 }}>
@@ -2601,9 +2664,13 @@ function CalcControlsBar({
               className="wt-input"
               type="number"
               min={1}
-              max={512}
+              max={65536}
               value={state.decodeBatchSize}
-              onChange={(e) => onPatch({ decodeBatchSize: Math.max(1, Number(e.target.value) || 16) })}
+              onChange={(e) =>
+                onPatch({
+                  decodeBatchSize: Math.min(65_536, Math.max(1, Number(e.target.value) || 16)),
+                })
+              }
             />
           </label>
           <label className="wt-field" style={{ minWidth: 130 }}>
@@ -2611,11 +2678,15 @@ function CalcControlsBar({
             <input
               className="wt-input"
               type="number"
-              min={128}
-              max={131072}
+              min={1}
+              max={1048576}
               step={512}
               value={state.decodeContextLen}
-              onChange={(e) => onPatch({ decodeContextLen: Math.max(128, Number(e.target.value) || 4096) })}
+              onChange={(e) =>
+                onPatch({
+                  decodeContextLen: Math.min(1_048_576, Math.max(1, Number(e.target.value) || 4096)),
+                })
+              }
             />
           </label>
         </>
@@ -2628,11 +2699,13 @@ function CalcControlsBar({
             <input
               className="wt-input"
               type="number"
-              min={512}
-              max={131072}
+              min={64}
+              max={1048576}
               step={1024}
               value={state.maxModelLen}
-              onChange={(e) => onPatch({ maxModelLen: Math.max(512, Number(e.target.value) || 32768) })}
+              onChange={(e) =>
+                onPatch({ maxModelLen: Math.min(1_048_576, Math.max(64, Number(e.target.value) || 32768)) })
+              }
             />
           </label>
 
@@ -2644,7 +2717,11 @@ function CalcControlsBar({
               max={0.98}
               step={0.01}
               value={state.gpuMemoryUtilization}
-              onChange={(e) => onPatch({ gpuMemoryUtilization: Number(e.target.value) })}
+              onChange={(e) =>
+                onPatch({
+                  gpuMemoryUtilization: Math.min(0.99, Math.max(0.1, Number(e.target.value) || 0.9)),
+                })
+              }
               style={{ accentColor: "var(--color-accent)", height: 36 }}
             />
           </label>
@@ -2837,15 +2914,15 @@ function AdvancedCalcControls({
               <input
                 className="wt-input"
                 type="number"
-                min={256}
-                max={32768}
+                min={1}
+                max={1048576}
                 step={512}
                 value={state.maxNumBatchedTokens}
                 onChange={(e) =>
                   onPatch({
-                    maxNumBatchedTokens: Math.max(
-                      256,
-                      Number(e.target.value) || DEFAULT_MAX_NUM_BATCHED_TOKENS,
+                    maxNumBatchedTokens: Math.min(
+                      1_048_576,
+                      Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_BATCHED_TOKENS),
                     ),
                   })
                 }
@@ -2858,12 +2935,12 @@ function AdvancedCalcControls({
                 className="wt-input"
                 type="number"
                 min={1}
-                max={4096}
+                max={65536}
                 step={16}
                 value={state.maxNumSeqs}
                 onChange={(e) =>
                   onPatch({
-                    maxNumSeqs: Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_SEQS),
+                    maxNumSeqs: Math.min(65_536, Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_SEQS)),
                   })
                 }
               />
@@ -2874,11 +2951,13 @@ function AdvancedCalcControls({
               <input
                 className="wt-input"
                 type="number"
-                min={32}
-                max={65536}
+                min={1}
+                max={1048576}
                 step={128}
                 value={state.prefillTokens}
-                onChange={(e) => onPatch({ prefillTokens: Math.max(1, Number(e.target.value) || 512) })}
+                onChange={(e) =>
+                  onPatch({ prefillTokens: Math.min(1_048_576, Math.max(1, Number(e.target.value) || 512)) })
+                }
               />
             </label>
 
@@ -2888,9 +2967,11 @@ function AdvancedCalcControls({
                 className="wt-input"
                 type="number"
                 min={1}
-                max={512}
+                max={65536}
                 value={state.decodeBatchSize}
-                onChange={(e) => onPatch({ decodeBatchSize: Math.max(1, Number(e.target.value) || 16) })}
+                onChange={(e) =>
+                  onPatch({ decodeBatchSize: Math.min(65_536, Math.max(1, Number(e.target.value) || 16)) })
+                }
               />
             </label>
 
@@ -2899,11 +2980,15 @@ function AdvancedCalcControls({
               <input
                 className="wt-input"
                 type="number"
-                min={128}
-                max={131072}
+                min={1}
+                max={1048576}
                 step={512}
                 value={state.decodeContextLen}
-                onChange={(e) => onPatch({ decodeContextLen: Math.max(128, Number(e.target.value) || 4096) })}
+                onChange={(e) =>
+                  onPatch({
+                    decodeContextLen: Math.min(1_048_576, Math.max(1, Number(e.target.value) || 4096)),
+                  })
+                }
               />
             </label>
           </div>
@@ -2945,28 +3030,41 @@ function buildCalcStateFromQuery(
     pcpSize,
     dcpSize: query.dcpSize ?? 1,
     enableEp: query.enableEp ?? wave4Demo?.recommendedEnableEp ?? false,
-    gpuMemoryUtilization: query.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
-    maxModelLen: normalizeCalcInt(query.maxModelLen ?? DEFAULT_MAX_MODEL_LEN, 512, DEFAULT_MAX_MODEL_LEN),
-    maxNumBatchedTokens: normalizeCalcInt(
-      query.maxNumBatchedTokens ?? DEFAULT_MAX_NUM_BATCHED_TOKENS,
-      256,
-      DEFAULT_MAX_NUM_BATCHED_TOKENS,
+    gpuMemoryUtilization: Math.min(
+      0.99,
+      Math.max(0.1, query.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION),
     ),
-    maxNumSeqs: normalizeCalcInt(query.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS, 1, DEFAULT_MAX_NUM_SEQS),
+    maxModelLen: Math.min(
+      1_048_576,
+      normalizeCalcInt(query.maxModelLen ?? DEFAULT_MAX_MODEL_LEN, 64, DEFAULT_MAX_MODEL_LEN),
+    ),
+    maxNumBatchedTokens: Math.min(
+      1_048_576,
+      normalizeCalcInt(
+        query.maxNumBatchedTokens ?? DEFAULT_MAX_NUM_BATCHED_TOKENS,
+        1,
+        DEFAULT_MAX_NUM_BATCHED_TOKENS,
+      ),
+    ),
+    maxNumSeqs: Math.min(
+      65_536,
+      normalizeCalcInt(query.maxNumSeqs ?? DEFAULT_MAX_NUM_SEQS, 1, DEFAULT_MAX_NUM_SEQS),
+    ),
     cudagraphMode: query.enforceEager
       ? "NONE"
       : (query.cudagraphMode ?? ((query.cardId ?? "a2-64g") === "310p-24g" ? "NONE" : "PIECEWISE")),
     useV2ModelRunner,
-    prefillTokens: normalizeCalcInt(query.prefillTokens ?? DEFAULT_PREFILL_TOKENS, 1, DEFAULT_PREFILL_TOKENS),
-    decodeBatchSize: normalizeCalcInt(
-      query.decodeBatchSize ?? DEFAULT_DECODE_BATCH_SIZE,
-      1,
-      DEFAULT_DECODE_BATCH_SIZE,
+    prefillTokens: Math.min(
+      1_048_576,
+      normalizeCalcInt(query.prefillTokens ?? DEFAULT_PREFILL_TOKENS, 1, DEFAULT_PREFILL_TOKENS),
     ),
-    decodeContextLen: normalizeCalcInt(
-      query.decodeContextLen ?? DEFAULT_DECODE_CONTEXT_LEN,
-      128,
-      DEFAULT_DECODE_CONTEXT_LEN,
+    decodeBatchSize: Math.min(
+      65_536,
+      normalizeCalcInt(query.decodeBatchSize ?? DEFAULT_DECODE_BATCH_SIZE, 1, DEFAULT_DECODE_BATCH_SIZE),
+    ),
+    decodeContextLen: Math.min(
+      1_048_576,
+      normalizeCalcInt(query.decodeContextLen ?? DEFAULT_DECODE_CONTEXT_LEN, 1, DEFAULT_DECODE_CONTEXT_LEN),
     ),
   };
 }
@@ -3200,22 +3298,37 @@ export function DeployCalculatorView({
         next.dpLocalSize = undefined;
       }
       if (patch.maxModelLen !== undefined) {
-        next.maxModelLen = normalizeCalcInt(patch.maxModelLen, 512, prev.maxModelLen);
+        next.maxModelLen = Math.min(1_048_576, normalizeCalcInt(patch.maxModelLen, 64, prev.maxModelLen));
       }
       if (patch.maxNumBatchedTokens !== undefined) {
-        next.maxNumBatchedTokens = normalizeCalcInt(patch.maxNumBatchedTokens, 256, prev.maxNumBatchedTokens);
+        next.maxNumBatchedTokens = Math.min(
+          1_048_576,
+          normalizeCalcInt(patch.maxNumBatchedTokens, 1, prev.maxNumBatchedTokens),
+        );
       }
       if (patch.maxNumSeqs !== undefined) {
-        next.maxNumSeqs = normalizeCalcInt(patch.maxNumSeqs, 1, prev.maxNumSeqs);
+        next.maxNumSeqs = Math.min(65_536, normalizeCalcInt(patch.maxNumSeqs, 1, prev.maxNumSeqs));
       }
       if (patch.prefillTokens !== undefined) {
-        next.prefillTokens = normalizeCalcInt(patch.prefillTokens, 1, prev.prefillTokens);
+        next.prefillTokens = Math.min(
+          1_048_576,
+          normalizeCalcInt(patch.prefillTokens, 1, prev.prefillTokens),
+        );
       }
       if (patch.decodeBatchSize !== undefined) {
-        next.decodeBatchSize = normalizeCalcInt(patch.decodeBatchSize, 1, prev.decodeBatchSize);
+        next.decodeBatchSize = Math.min(
+          65_536,
+          normalizeCalcInt(patch.decodeBatchSize, 1, prev.decodeBatchSize),
+        );
       }
       if (patch.decodeContextLen !== undefined) {
-        next.decodeContextLen = normalizeCalcInt(patch.decodeContextLen, 128, prev.decodeContextLen);
+        next.decodeContextLen = Math.min(
+          1_048_576,
+          normalizeCalcInt(patch.decodeContextLen, 1, prev.decodeContextLen),
+        );
+      }
+      if (patch.gpuMemoryUtilization !== undefined && Number.isFinite(patch.gpuMemoryUtilization)) {
+        next.gpuMemoryUtilization = Math.min(0.99, Math.max(0.1, patch.gpuMemoryUtilization));
       }
       return next;
     });
@@ -3231,28 +3344,7 @@ export function DeployCalculatorView({
     if (!gate.ok || !gate.supportedInWave3) return null;
     const input: DeployPlanInput = {
       model: gate.spec,
-      cardId: state.cardId,
-      version: state.version,
-      weightPrecision: state.weightPrecision,
-      kvCacheDtype: state.kvCacheDtype,
-      weightNzMode: state.weightNzMode,
-      tpSize: state.tpSize,
-      ppSize: state.ppSize,
-      dpSize: state.dpSize,
-      ...(state.dpLocalSize !== undefined ? { dpLocalSize: state.dpLocalSize } : {}),
-      pcpSize: state.pcpSize,
-      dcpSize: state.dcpSize,
-      enableEp: state.enableEp,
-      ...(state.useV2ModelRunner !== undefined ? { useV2ModelRunner: state.useV2ModelRunner } : {}),
-      gpuMemoryUtilization: state.gpuMemoryUtilization,
-      maxModelLen: state.maxModelLen,
-      maxNumBatchedTokens: state.maxNumBatchedTokens,
-      maxNumSeqs: state.maxNumSeqs,
-      cudagraphMode: state.cudagraphMode,
-      enforceEager: state.cudagraphMode === "NONE",
-      prefillTokens: state.prefillTokens,
-      decodeBatchSize: state.decodeBatchSize,
-      decodeContextLen: state.decodeContextLen,
+      ...buildDeployViewSharedParams(state),
     };
     return evaluateDeployPlan(input);
   }, [gate, state]);
@@ -3275,28 +3367,7 @@ export function DeployCalculatorView({
       }
     }
     if (!modelRef) return undefined;
-    return buildDeployChatAnalysis({
-      model: modelRef,
-      cardId: state.cardId,
-      version: state.version,
-      weightPrecision: state.weightPrecision,
-      kvCacheDtype: state.kvCacheDtype,
-      weightNzMode: state.weightNzMode,
-      tpSize: state.tpSize,
-      ppSize: state.ppSize,
-      dpSize: state.dpSize,
-      dcpSize: state.dcpSize,
-      enableEp: state.enableEp,
-      gpuMemoryUtilization: state.gpuMemoryUtilization,
-      maxModelLen: state.maxModelLen,
-      maxNumBatchedTokens: state.maxNumBatchedTokens,
-      maxNumSeqs: state.maxNumSeqs,
-      cudagraphMode: state.cudagraphMode,
-      enforceEager: state.cudagraphMode === "NONE",
-      prefillTokens: state.prefillTokens,
-      decodeBatchSize: state.decodeBatchSize,
-      decodeContextLen: state.decodeContextLen,
-    });
+    return buildDeployViewChatAnalysis(modelRef, state);
   }, [plan, useCustomJson, presetId, activeWave4DemoId, customJsonText, state]);
 
   const handleApplyTemplate = (tpl: SampleStartupLogTemplate) => {
@@ -3392,13 +3463,30 @@ export function DeployCalculatorView({
       : (canonicalRecommendation?.cliHint ?? plan.fourQuestions.q4Recommendation.cliHint);
     if (!commandText) return;
     const topoSummary = formatTopologySummaryBadge(effectivePlan.inputSummary);
-    const modelId = useCustomJson ? (activeWave4DemoId ?? undefined) : presetId;
+    const rawModelId = useCustomJson ? (activeWave4DemoId ?? undefined) : presetId;
+    const stripAndSanitize = (raw: string): string => {
+      const first = sanitizeDiagnosticText(stripTerminalControlSequences(raw)).sanitized;
+      const noCtrl = stripDiagnosticControlAndInvisibleChars(first);
+      return (noCtrl === first ? first : sanitizeDiagnosticText(noCtrl).sanitized)
+        .replace(/[\r\n\t]+/g, " ")
+        .trim();
+    };
+    const safeCommandText = sanitizeDiagnosticText(
+      stripTerminalControlSequences(commandText),
+    ).sanitized.trim();
+    if (!safeCommandText) return;
+    const safeModelId = rawModelId ? stripAndSanitize(rawModelId) : undefined;
+    const safeSourceSpecName = stripAndSanitize(effectivePlan.spec.name) || "custom-model";
+    const safeSourceCardShort = stripAndSanitize(effectivePlan.card.shortName) || effectivePlan.card.id;
+    const safeSourceLabel = stripAndSanitize(
+      `${safeSourceSpecName} · ${safeSourceCardShort} · ${topoSummary}`,
+    );
     workbenchHandoffStore.sendToDoctor({
-      commandText,
+      commandText: safeCommandText,
       hardwareFamily: cardIdToHardwareFamily(effectivePlan.card.id),
       version: state.version === "main" ? "main" : "v0.30.0",
-      sourceLabel: `${effectivePlan.spec.name} · ${effectivePlan.card.shortName} · ${topoSummary}`,
-      ...(modelId ? { modelId } : {}),
+      sourceLabel: safeSourceLabel,
+      ...(safeModelId ? { modelId: safeModelId } : {}),
       modelTraitOverride: extractDoctorModelTraitsFromSpec(effectivePlan.spec),
     });
     if (onNavigateToDoctor) {

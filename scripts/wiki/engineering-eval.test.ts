@@ -164,7 +164,7 @@ describe("engineering-eval-suite（196 页真实知识库工程检索与负例�
       expect(retrieve(code, cleanIndex, { limit: 5 })).toEqual([]);
     }
 
-    // Param displayTitle parity check ("size" Top-4 matches production snapshot build including kvpp-config, paged-attention & kv-cache-spec across both loadAgentWiki and MCP createCachedAgentWikiLoader)
+    // Param displayTitle parity check ("size" Top-4 matches production snapshot build across both loadAgentWiki and MCP createCachedAgentWikiLoader)
     const cachedMcpWiki = createCachedAgentWikiLoader(root)();
     const sizeTop4 = retrieve("size", browserIndex, { limit: 6 })
       .slice(0, 4)
@@ -173,7 +173,7 @@ describe("engineering-eval-suite（196 页真实知识库工程检索与负例�
       "size-40a1c2ca47b8",
       "kvpp-config-0445bd352140",
       "paged-attention",
-      "kv-cache-spec",
+      "replica-search-beam-size-6556d1650a62",
     ]);
     expect(
       agentWiki

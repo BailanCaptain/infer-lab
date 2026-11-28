@@ -260,7 +260,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     }
   });
 
-  it("Core-26 显式冻结名单恰好 26 篇，现有 184 篇非 RFork 页均已编排，且允许未来 origin='drop' 新页落入待编排区", () => {
+  it("Core-26 显式冻结名单恰好 26 篇，非 RFork 页均已编排，且允许未来 origin='drop' 新页落入待编排区", () => {
     expect(CORE_26_IDS).toHaveLength(26);
     expect(new Set(CORE_26_IDS).size).toBe(26);
     for (const id of CORE_26_IDS) {
@@ -269,7 +269,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     }
     expect(pageTrack("learning-guide")).toBe("mainline");
     expect(pageTrack("moe")).toBe("advanced");
-    expect(CURATED_PAGE_IDS.size).toBe(187); // 196 - 9 dynamic rfork topic pages
+    expect(CURATED_PAGE_IDS.size).toBe(195); // 204 - 9 dynamic rfork topic pages
 
     const toc = buildToc(registry.pages);
     expect(toc).toHaveLength(12);

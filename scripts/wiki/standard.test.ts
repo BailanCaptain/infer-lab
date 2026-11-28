@@ -168,8 +168,22 @@ describe("c. 对照源码 sections", () => {
     const m = measureStandard(goodBody({ tail: paramTail }), cfg);
     expect(m.sourceSections).toBeNull();
     expect(m.marks).toBe(0);
-    expect(rules(goodBody({ tail: paramTail }))).toEqual([]);
-    expect(rules(goodBody({ tail: `${paramTail}\n## 延伸阅读\n` }))).toEqual(["source-sections"]);
+    expect(
+      checkStandard(
+        { file: "params/good.md", fm: { id: "good", type: "param" }, body: goodBody({ tail: paramTail }) },
+        cfg,
+      ).problems,
+    ).toEqual([]);
+    expect(
+      checkStandard(
+        {
+          file: "params/good.md",
+          fm: { id: "good", type: "param" },
+          body: goodBody({ tail: `${paramTail}\n## 延伸阅读\n` }),
+        },
+        cfg,
+      ).problems.map((p) => p.rule),
+    ).toEqual(["source-sections"]);
   });
 });
 
@@ -326,5 +340,20 @@ describe("page list", () => {
     expect(real.pages).toContain("tensor-parallel");
     expect(real.skip["learning-guide"]).toContain("source-sections");
     expect(real.advisoryRules).toEqual(["calc-density", "stacked-blocks", "diagram-first", "hedge-ratio"]);
+
+    // GPT-Signoff-15 P3-2: protected parameter trailing H2s are allowed ONLY on param pages, rejected on feature/concept pages
+    const bodyWithParamH2 = `${goodBody()}\n\n## 参数定义（自动生成）\n\n表\n\n## 版本谱系\n\n谱系\n`;
+    expect(
+      checkStandard(
+        { file: "features/tensor-parallel.md", fm: { id: "good", type: "feature" }, body: bodyWithParamH2 },
+        cfg,
+      ).problems.map((p) => p.rule),
+    ).toContain("source-sections");
+    expect(
+      checkStandard(
+        { file: "params/weight-nz-mode.md", fm: { id: "good", type: "param" }, body: bodyWithParamH2 },
+        cfg,
+      ).problems,
+    ).toEqual([]);
   });
 });

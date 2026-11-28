@@ -180,7 +180,15 @@
     "weight-prefetch-config",
     "host-memory-and-hugepages",
     "ascend-runtime-and-tuning",
-    "multimodal-encoder-cache"
+    "multimodal-encoder-cache",
+    "weight-nz-mode-b9cf06865b95",
+    "enable-cpu-binding-f0fbd89fe35b",
+    "enable-mlapo-e6204d2b22cd",
+    "enable-fused-mc2-782bf6f2bf48",
+    "enable-npugraph-ex-ffc890dd7afe",
+    "enable-static-kernel-0a7b93dc8b97",
+    "fuse-norm-quant-65db0ee6a4f3",
+    "multistream-overlap-shared-expert-8d7558953faf"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

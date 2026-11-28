@@ -27,6 +27,7 @@ export interface WikiEduSandboxShellProps {
   readonly detailsSummary: string;
   readonly detailsContent: ReactNode;
   readonly extraRootAttrs?: Readonly<Record<string, string | number | undefined>> | undefined;
+  readonly useTokenVariables?: boolean | undefined;
 }
 
 const STATIC_BTN_IDLE_STYLE = {
@@ -39,6 +40,18 @@ const STATIC_BTN_ACTIVE_STYLE = {
   background: "#17211f",
   borderColor: "#17211f",
   color: "#ffffff",
+} as const;
+
+const STATIC_BTN_IDLE_TOKEN_STYLE = {
+  background: "var(--color-surface-elevated)",
+  borderColor: "var(--color-line)",
+  color: "var(--color-ink)",
+} as const;
+
+const STATIC_BTN_ACTIVE_TOKEN_STYLE = {
+  background: "var(--color-ink)",
+  borderColor: "var(--color-ink)",
+  color: "var(--color-ink-inverse)",
 } as const;
 
 export function eduBtnStyle(active: boolean, kind: "dark" | "teal" | "accent" = "teal") {
@@ -87,9 +100,12 @@ export function WikiEduSandboxShell({
   detailsSummary,
   detailsContent,
   extraRootAttrs,
+  useTokenVariables = false,
 }: WikiEduSandboxShellProps) {
   const html = useMemo(() => ({ __html: safeSvg }), [safeSvg]);
   const isSvg = mode === "svg";
+  const idleBtnStyle = useTokenVariables ? STATIC_BTN_IDLE_TOKEN_STYLE : STATIC_BTN_IDLE_STYLE;
+  const activeBtnStyle = useTokenVariables ? STATIC_BTN_ACTIVE_TOKEN_STYLE : STATIC_BTN_ACTIVE_STYLE;
 
   const handleRootKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -125,7 +141,7 @@ export function WikiEduSandboxShell({
               className="wiki-edu-static-toggle"
               data-testid="diagram-mode-sandbox"
               aria-pressed={!isSvg}
-              style={STATIC_BTN_IDLE_STYLE}
+              style={idleBtnStyle}
               onClick={() => onToggleMode("sandbox")}
             >
               返回交互版
@@ -136,7 +152,7 @@ export function WikiEduSandboxShell({
             className="wiki-edu-static-toggle"
             data-testid="diagram-mode-svg"
             aria-pressed={isSvg}
-            style={isSvg ? STATIC_BTN_ACTIVE_STYLE : STATIC_BTN_IDLE_STYLE}
+            style={isSvg ? activeBtnStyle : idleBtnStyle}
             onClick={() => onToggleMode(isSvg ? "sandbox" : "svg")}
           >
             {isSvg ? "正在看原静态图（点此回交互版）" : "查看原静态图"}

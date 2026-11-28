@@ -136,6 +136,7 @@ export function measureStandard(
   cfg: StandardConfig,
   diagrams?: Map<string, LoadedDiagram>,
   lineOffset = 0,
+  allowParamTrailingH2 = true,
 ): StandardMeasure {
   const blocks = blocksOf(body, lineOffset);
   const isSourceH2 = (b: Block) => b.kind === "heading" && b.level === 2 && b.text === cfg.sourceSection;
@@ -173,7 +174,9 @@ export function measureStandard(
       .slice(cut + 1)
       .filter(
         (b): b is Extract<Block, { kind: "heading" }> =>
-          b.kind === "heading" && b.level === 2 && !PROTECTED_PARAM_TRAILING_H2.has(b.text),
+          b.kind === "heading" &&
+          b.level === 2 &&
+          !(allowParamTrailingH2 && PROTECTED_PARAM_TRAILING_H2.has(b.text)),
       )
       .map((b) => b.text);
     if (h2.length) sourceSections = `「## ${cfg.sourceSection}」之后不应再有 H2，实际有 ${h2.join(" / ")}`;
@@ -302,7 +305,7 @@ export function standardAdvisories(
 
 interface StandardPage {
   file: string;
-  fm: { id: string };
+  fm: { id: string; type?: string };
   body: string;
   /** frontmatter 占的行数；给了就按文件行号报 */
   lineOffset?: number;
@@ -318,7 +321,11 @@ export function checkStandard(
   cfg: StandardConfig,
   diagrams?: Map<string, LoadedDiagram>,
 ) {
-  const measure = measureStandard(page.body, cfg, diagrams, page.lineOffset);
+  const isParamPage =
+    page.fm.type === "param" ||
+    page.file === "params" ||
+    /^(?:wiki\/)?params\//.test(page.file.replace(/\\/g, "/"));
+  const measure = measureStandard(page.body, cfg, diagrams, page.lineOffset, isParamPage);
   const skip = cfg.skip[page.fm.id] ?? [];
   return {
     measure,

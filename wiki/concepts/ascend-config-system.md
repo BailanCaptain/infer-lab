@@ -237,6 +237,16 @@ file: ascend-config-system-fig-pydantic-flow
 - **启动时直接拒绝某个组合。** 按报错定位到是哪一道检查，再去看它要求的前提；不要靠删掉检查来判断这个组合可用。
 - **改了环境变量却没变。** 如果这个名字属于配置构造期读取的兼容项（如 `v0.30.0` / `main` 的 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 或旧镜像 `v0.23.0` / `db701c1f` 的九对映射），仅改环境不会自动更新已经缓存进 `_ASCEND_CONFIG` 的结果；需经过受支持的配置重建或服务重启路径，并核对消费者有没有另外缓存旧值。重新导出启动终端的环境，也不会修改已经运行的服务进程环境。
 
+不确定某个开关该写进环境变量还是 `--additional-config`、或担心组合后被派生逻辑静默重置时，可在下方调优旋钮雷达中按目标反查并实时模拟冲突：
+
+```wiki-tool
+tool: knob-radar
+mode: minimal
+preset: preset-legacy-docs-minefield
+title: 昇腾三路配置入口与静默重置排雷雷达
+summary: 按调优目标检索环境变量与 additional_config 键，实时模拟 extra="forbid" 拒收、退役环境变量与平台静默覆写
+```
+
 ## 常见误解
 
 - **「这段 JSON 是上游 vLLM 的功能，文档该在上游」**——上游提供容器并将内容纳入配置 hash，平台定义自己的键；上游也会写入少数键。查某个键要找到实际读取它的代码。

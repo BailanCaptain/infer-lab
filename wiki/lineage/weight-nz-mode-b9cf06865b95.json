@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "term": "weight_nz_mode",
+  "definitionClass": "AscendConfig",
+  "paths": [
+    "vllm_ascend/ascend_config.py"
+  ],
+  "interpretation": "field-presence-at-selected-commits",
+  "presence": [
+    {
+      "ref": "main",
+      "commit": "8d6180e28e0941fcfc85999bf2aafe194e98f8f6",
+      "files": 1
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0",
+      "commit": "c09d3e20b9c45c80b34ae3781440d90904a44023",
+      "files": 1
+    }
+  ],
+  "events": [],
+  "tagsWithTerm": []
+}

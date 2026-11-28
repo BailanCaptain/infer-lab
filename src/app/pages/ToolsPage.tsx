@@ -1,4 +1,5 @@
 import "../../design/tools.css";
+import "../tools/AscendKnobRadarView.css";
 import { ArrowLeft } from "lucide-react";
 import {
   Component,
@@ -14,8 +15,10 @@ import {
   useState,
 } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
+import { ASCEND_KNOB_CATALOG } from "../../sim/knobs";
 import { WARGAME_SCENARIOS } from "../../sim/wargame/scenarios";
 import type { AiCoreLabViewProps } from "../tools/AiCoreLabView";
+import type { AscendKnobRadarViewProps } from "../tools/AscendKnobRadarView";
 import type { ConfigDoctorViewProps } from "../tools/ConfigDoctorView";
 import type { DeployCalculatorViewProps } from "../tools/DeployCalculatorView";
 import type { IncidentWarGameViewProps } from "../tools/IncidentWarGameView";
@@ -27,7 +30,7 @@ import {
   type WorkbenchTabId,
 } from "../tools/workbenchHandoff";
 
-type ActiveToolTab = WorkbenchTabId;
+type ActiveToolTab = WorkbenchTabId | "knobs";
 
 const pendingTestPreloads: Array<Promise<void>> = [];
 
@@ -83,6 +86,11 @@ const loadIncidentWarGameView = async (): Promise<{ default: ComponentType<Incid
   return { default: IncidentWarGameView };
 };
 
+const loadKnobRadarView = async (): Promise<{ default: ComponentType<AscendKnobRadarViewProps> }> => {
+  const { AscendKnobRadarView } = await import("../tools/AscendKnobRadarView");
+  return { default: AscendKnobRadarView };
+};
+
 const LazyDeployCalculatorView = createLazyView<DeployCalculatorViewProps>(loadDeployCalculatorView);
 const LazyConfigDoctorView = createLazyView<ConfigDoctorViewProps>(loadConfigDoctorView);
 const LazyTroubleshootWorkbenchView = createLazyView<TroubleshootWorkbenchViewProps>(
@@ -90,6 +98,7 @@ const LazyTroubleshootWorkbenchView = createLazyView<TroubleshootWorkbenchViewPr
 );
 const LazyAiCoreLabView = createLazyView<AiCoreLabViewProps>(loadAiCoreLabView);
 const LazyIncidentWarGameView = createLazyView<IncidentWarGameViewProps>(loadIncidentWarGameView);
+const LazyKnobRadarView = createLazyView<AscendKnobRadarViewProps>(loadKnobRadarView);
 
 if (import.meta.env.MODE === "test") {
   await Promise.all(pendingTestPreloads);
@@ -228,10 +237,25 @@ const SCENARIO_TABS: readonly ScenarioTabMeta[] = [
     desc: `${WARGAME_SCENARIOS.length} 道真实生产故障演练：看日志判首错、改对启动命令并通过防逃课判卷。`,
     teaching: true,
   },
+  {
+    id: "knobs",
+    tag: "⑥ 调参查字典",
+    title: "调优旋钮雷达",
+    desc: `按压首字、降解码、抠显存、稳通信反查 ${ASCEND_KNOB_CATALOG.length} 个环境变量与隐藏开关，实时排雷互斥与静默失效。`,
+    teaching: true,
+  },
 ];
 
 function resolveToolTab(raw: string | null): ActiveToolTab {
-  if (raw === "doctor" || raw === "troubleshoot" || raw === "aicore" || raw === "wargame") return raw;
+  if (
+    raw === "doctor" ||
+    raw === "troubleshoot" ||
+    raw === "aicore" ||
+    raw === "wargame" ||
+    raw === "knobs"
+  ) {
+    return raw;
+  }
   return "calculator";
 }
 
@@ -250,6 +274,7 @@ export function ToolsPage() {
     troubleshoot: 0,
     aicore: 0,
     wargame: 0,
+    knobs: 0,
   });
 
   const bumpRetry = (tab: ActiveToolTab) => {
@@ -279,6 +304,10 @@ export function ToolsPage() {
     () => (retryNonce.wargame === 0 ? LazyIncidentWarGameView : createLazyView(loadIncidentWarGameView)),
     [retryNonce.wargame],
   );
+  const KnobRadarView = useMemo(
+    () => (retryNonce.knobs === 0 ? LazyKnobRadarView : createLazyView(loadKnobRadarView)),
+    [retryNonce.knobs],
+  );
 
   useEffect(() => {
     setVisitedTabs((prev) => {
@@ -306,6 +335,20 @@ export function ToolsPage() {
 
   const handleUpdateTabSearchParams = useCallback(
     (ownerTab: ActiveToolTab, tabParams: URLSearchParams, opts?: { replace?: boolean }) => {
+      if (ownerTab === "knobs") {
+        if (activeTabRef.current !== "knobs") return;
+        const merged = new URLSearchParams();
+        merged.set("tab", "knobs");
+        preserveWikiBackParams(merged, searchParamsRef.current);
+        for (const [k, v] of tabParams.entries()) {
+          if (k === "tab" || k === "fromPage" || k === "fromAnchor") continue;
+          merged.set(k, v);
+        }
+        if (merged.toString() === searchParamsRef.current.toString()) return;
+        setSearchParams(merged, { replace: opts?.replace ?? true, preventScrollReset: true });
+        return;
+      }
+      if (activeTabRef.current === "knobs") return;
       const merged = applyControlledTabQueryUpdate(
         activeTabRef.current,
         ownerTab,
@@ -332,8 +375,8 @@ export function ToolsPage() {
           <span className="wt-workbench-eyebrow">昇腾部署与排障 · VLLM-ASCEND V0.30.0 / MAIN</span>
           <h1 className="wt-workbench-title">部署与排障工作台</h1>
           <p className="wt-workbench-desc">
-            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；后两个提供芯片算子微观沙盘与{" "}
-            {WARGAME_SCENARIOS.length} 关真实生产故障实战闯关。
+            前三个工具按真实上线顺序排好：先算卡数、再查启动命令、报错后查日志；后三个提供芯片算子微观沙盘、
+            {WARGAME_SCENARIOS.length} 关真实生产故障实战闯关与昇腾调优旋钮雷达。
           </p>
         </div>
         <Link className="wt-workbench-back" to={backTo} data-testid="tools-back-to-wiki">
@@ -342,7 +385,7 @@ export function ToolsPage() {
         </Link>
       </header>
 
-      <div className="wt-scenario-tabs" role="tablist" aria-label="按当前任务选择工具">
+      <div className="wt-scenario-tabs is-six-tabs" role="tablist" aria-label="按当前任务选择工具">
         {SCENARIO_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -523,6 +566,36 @@ export function ToolsPage() {
                 onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("wargame", params, opts)}
                 title="生产故障通关场（实战闯关演练）"
                 summary={`${WARGAME_SCENARIOS.length} 道源自本仓源码 [C]、910B3 真机实测 [M] 与社区真实工单改编的生产故障关卡：先看现场日志或 /metrics 锁定首错根因，再亲手修复启动命令并通过确定性防逃课判卷。`}
+              />
+            </Suspense>
+          </ToolTabErrorBoundary>
+        </div>
+      )}
+
+      {isTabMounted("knobs") && (
+        <div className="wt-workbench-pane" hidden={activeTab !== "knobs"}>
+          <ToolTabErrorBoundary
+            tabId="knobs"
+            activeTab={activeTab}
+            tabLabel="调优旋钮雷达（昇腾调参查字典与冲突模拟）"
+            retryCount={retryNonce.knobs}
+            onRetry={() => bumpRetry("knobs")}
+          >
+            <Suspense
+              fallback={
+                <div className="wt-pane-loading" role="status">
+                  正在加载「调优旋钮雷达（昇腾调参查字典与冲突模拟）」…
+                </div>
+              }
+            >
+              <KnobRadarView
+                mode="full"
+                isActive={activeTab === "knobs"}
+                searchParams={searchParams}
+                locationKey={location.key}
+                onUpdateSearchParams={(params, opts) => handleUpdateTabSearchParams("knobs", params, opts)}
+                title="昇腾调优旋钮雷达与冲突模拟器"
+                summary={`按压首字 TTFT、降解码 TPOT、抠显存容量、稳 HCCL 通信、图编译融合与避坑排雷反查 ${ASCEND_KNOB_CATALOG.length} 项源码钉点开关，实时模拟互斥阻断、静默重置并一键生成干净启动命令。`}
               />
             </Suspense>
           </ToolTabErrorBoundary>

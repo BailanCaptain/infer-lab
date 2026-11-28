@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
@@ -6,8 +8,10 @@ import { createEvidenceViewController } from "../../content/wiki/evidence-schema
 import { ensurePage, getPage, getReaderState, retrieve } from "../../content/wiki/index";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
 import { createReaderStore } from "../../content/wiki/reader-store";
+import registry from "../../content/wiki/registry.json";
 import { buildIndex, serializeSearchIndex } from "../../content/wiki/retrieve";
 import { buildToc } from "../../content/wiki/toc";
+import { ASCEND_KNOB_CATALOG, getKnobById } from "../../sim/knobs";
 import { buildContextualStarters, ChatPane, createChatController } from "../wiki/ChatDrawer";
 import { EvidencePane } from "../wiki/EvidencePane";
 import {
@@ -25,6 +29,7 @@ import {
   MissingPage,
   PrerequisiteBar,
   resolveDirectoryDrawerState,
+  resolvePageKnobRadarTarget,
 } from "./WikiPage";
 
 /** 一页好页 a；坏页 bad 被构建侧跳过，只留下 id 与给写手看的原因 */
@@ -470,5 +475,170 @@ describe("a route whose page is not in the reader snapshot", () => {
     expect(evLoadingHtml).toContain("正在读取当前页面的离线证据摘录");
     releaseEvidence();
     await pendingOpen;
+  });
+});
+
+type KnobRadarPageInput = Parameters<typeof resolvePageKnobRadarTarget>[0];
+
+const registryPages = registry.pages as unknown as readonly (KnobRadarPageInput & { file: string })[];
+const registryPage = (id: string) => {
+  const page = registryPages.find((p) => p.id === id);
+  if (!page) throw new Error(`registry 缺少页面 ${id}`);
+  return page;
+};
+const decodedSel = (to: string) => JSON.parse(new URLSearchParams(to.split("?")[1]).get("sel") ?? "null");
+
+describe("resolvePageKnobRadarTarget：正式参数页 → 调优旋钮雷达反向深链", () => {
+  const NEW_PARAM_ROUTES: Record<string, string> = {
+    "weight-nz-mode-b9cf06865b95":
+      "/tools?tab=knobs&fromPage=weight-nz-mode-b9cf06865b95&q=weight_nz_mode&sel=%7B%22cfg_weight_nz_mode%22%3A0%7D",
+    "enable-cpu-binding-f0fbd89fe35b":
+      "/tools?tab=knobs&fromPage=enable-cpu-binding-f0fbd89fe35b&q=enable_cpu_binding&sel=%7B%22cfg_enable_cpu_binding%22%3Atrue%7D",
+    "enable-mlapo-e6204d2b22cd":
+      "/tools?tab=knobs&fromPage=enable-mlapo-e6204d2b22cd&q=enable_mlapo&sel=%7B%22cfg_enable_mlapo%22%3Atrue%7D",
+    "enable-fused-mc2-782bf6f2bf48":
+      "/tools?tab=knobs&fromPage=enable-fused-mc2-782bf6f2bf48&q=enable_fused_mc2&sel=%7B%22cfg_enable_fused_mc2%22%3A0%7D",
+    "enable-npugraph-ex-ffc890dd7afe":
+      "/tools?tab=knobs&fromPage=enable-npugraph-ex-ffc890dd7afe&q=ascend_compilation_config.enable_npugraph_ex&sel=%7B%22cfg_enable_npugraph_ex%22%3Atrue%7D",
+    "enable-static-kernel-0a7b93dc8b97":
+      "/tools?tab=knobs&fromPage=enable-static-kernel-0a7b93dc8b97&q=ascend_compilation_config.enable_static_kernel&sel=%7B%22cfg_enable_static_kernel%22%3Atrue%7D",
+    "fuse-norm-quant-65db0ee6a4f3":
+      "/tools?tab=knobs&fromPage=fuse-norm-quant-65db0ee6a4f3&q=ascend_compilation_config.fuse_norm_quant&sel=%7B%22cfg_fuse_norm_quant%22%3Atrue%7D",
+    "multistream-overlap-shared-expert-8d7558953faf":
+      "/tools?tab=knobs&fromPage=multistream-overlap-shared-expert-8d7558953faf&q=multistream_overlap_shared_expert&sel=%7B%22cfg_multistream_overlap_shared_expert%22%3Atrue%7D",
+  };
+
+  it("本轮 8 篇参数页返回精确路由，且正文「何时改用其他组合」的深链与页头同源", () => {
+    for (const [id, expected] of Object.entries(NEW_PARAM_ROUTES)) {
+      const page = registryPage(id);
+      expect(page.type).toBe("param");
+      const target = resolvePageKnobRadarTarget(page);
+      expect(target?.to, id).toBe(expected);
+      expect(getKnobById(target!.knobId)?.wikiPageId).toBe(id);
+
+      const text = readFileSync(resolve(process.cwd(), "wiki", page.file), "utf8");
+      const section = text.slice(
+        text.indexOf("## 何时改用其他组合"),
+        text.indexOf("\n## ", text.indexOf("## 何时改用其他组合") + 1),
+      );
+      expect(section, id).toContain(`[在调优旋钮雷达中试配本参数与互斥组合 →](#${expected})`);
+      // 深链只落在正文小节，不进入受保护的自动生成区与核验区
+      expect(text.indexOf(`(#${expected})`)).toBeLessThan(text.indexOf("## 对照源码"));
+      expect(text.split(`(#${expected})`)).toHaveLength(2);
+    }
+  });
+
+  it("存量参数页：同页多旋钮时优先取与标题对上且未退役的旋钮", () => {
+    expect(resolvePageKnobRadarTarget(registryPage("kv-pool-range-debug-83e8b165addd"))?.knobId).toBe(
+      "cfg_kv_pool_range_debug",
+    );
+    expect(resolvePageKnobRadarTarget(registryPage("shared-engram-31bf0d820403"))?.knobId).toBe(
+      "cfg_shared_engram",
+    );
+    expect(resolvePageKnobRadarTarget(registryPage("enable-force-eplb-b7ec3661121f"))?.to).toBe(
+      "/tools?tab=knobs&fromPage=enable-force-eplb-b7ec3661121f&q=enable_force_eplb&sel=%7B%22cfg_enable_force_eplb%22%3Atrue%7D",
+    );
+    // JSON 旋钮：对象字符串原样预装；推荐值是数组时退回 "{}"，避免雷达的 sel 解析器整条丢弃
+    expect(
+      decodedSel(resolvePageKnobRadarTarget(registryPage("quantized-all-reduce-config-3cc69e492011"))!.to),
+    ).toEqual({
+      cfg_quantized_all_reduce_config: '{"enable":true,"min_numel":16777216}',
+    });
+    expect(decodedSel(resolvePageKnobRadarTarget(registryPage("layer-sharding"))!.to)).toEqual({
+      cfg_retired_layer_sharding: "{}",
+    });
+  });
+
+  it("概念/特性页一律返回 null，即使 wikiPageId 指向它们的旋钮有多个", () => {
+    expect(ASCEND_KNOB_CATALOG.filter((spec) => spec.wikiPageId === "cann-hccl").length).toBeGreaterThan(1);
+    for (const id of ["cann-hccl", "ascend-config-system", "hccl-buffer", "acl-graph", "quantization"]) {
+      const page = registryPage(id);
+      expect(page.type).not.toBe("param");
+      expect(resolvePageKnobRadarTarget(page), id).toBeNull();
+    }
+  });
+
+  it("无 wikiPageId 命中时按参数名精确回退；通用叶子名不绑定；只核对过 main 的页附带 ver=main", () => {
+    const base = {
+      id: "synthetic-param-000000000000",
+      type: "param" as const,
+      aliases: [],
+      verified: ["main"],
+    };
+    const byLeaf = resolvePageKnobRadarTarget({ ...base, title: "enable_npugraph_ex" });
+    expect(byLeaf?.knobId).toBe("cfg_enable_npugraph_ex");
+    expect(new URLSearchParams(byLeaf!.to.split("?")[1]).get("ver")).toBe("main");
+    expect(new URLSearchParams(byLeaf!.to.split("?")[1]).get("fromPage")).toBe(base.id);
+
+    const byAlias = resolvePageKnobRadarTarget({
+      ...base,
+      title: "某参数",
+      aliases: ["HCCL_BUFFSIZE"],
+      verified: ["releases/v0.30.0", "main"],
+    });
+    expect(byAlias?.knobId).toBe("env_hccl_buffsize");
+    expect(byAlias?.to).not.toContain("ver=");
+
+    expect(resolvePageKnobRadarTarget({ ...base, title: "enabled" })).toBeNull();
+    expect(resolvePageKnobRadarTarget({ ...base, title: "size" })).toBeNull();
+    expect(resolvePageKnobRadarTarget({ ...base, type: "concept", title: "enable_npugraph_ex" })).toBeNull();
+  });
+
+  it("全库命中都是参数页，且旋钮要么 wikiPageId 指向本页、要么名字与标题/别名精确对上", () => {
+    let hits = 0;
+    for (const page of registryPages) {
+      const target = resolvePageKnobRadarTarget(page);
+      if (!target) continue;
+      hits++;
+      expect(page.type).toBe("param");
+      const spec = getKnobById(target.knobId)!;
+      const names = new Set([page.title, ...page.aliases]);
+      const leaf = (spec.jsonPath ?? spec.name).split(".").at(-1)!;
+      expect(spec.wikiPageId === page.id || names.has(spec.name) || names.has(leaf), page.id).toBe(true);
+      expect(target.to.startsWith("/tools?tab=knobs&fromPage=")).toBe(true);
+    }
+    expect(hits).toBeGreaterThanOrEqual(Object.keys(NEW_PARAM_ROUTES).length);
+  });
+
+  it("Article SSR：参数页页头渲染旋钮雷达深链芯片，概念页不渲染", async () => {
+    await ensurePage("enable-npugraph-ex-ffc890dd7afe");
+    const param = getPage("enable-npugraph-ex-ffc890dd7afe")!;
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(Article, {
+          page: param.fm,
+          body: "",
+          compiled: param.compiled,
+          diagrams: getReaderState().diagrams,
+        }),
+      ),
+    );
+    expect(html).toContain('data-testid="article-open-knob-radar"');
+    expect(html).toContain("去旋钮雷达试配互斥 →");
+    expect(html).toContain(
+      `href="${NEW_PARAM_ROUTES["enable-npugraph-ex-ffc890dd7afe"]!.replaceAll("&", "&amp;")}"`,
+    );
+    expect(html.indexOf('data-testid="article-open-graph"')).toBeLessThan(
+      html.indexOf('data-testid="article-open-knob-radar"'),
+    );
+
+    await ensurePage("cann-hccl");
+    const concept = getPage("cann-hccl")!;
+    const conceptHtml = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(Article, {
+          page: concept.fm,
+          body: "",
+          compiled: concept.compiled,
+          diagrams: getReaderState().diagrams,
+        }),
+      ),
+    );
+    expect(conceptHtml).toContain('data-testid="article-open-graph"');
+    expect(conceptHtml).not.toContain('data-testid="article-open-knob-radar"');
   });
 });

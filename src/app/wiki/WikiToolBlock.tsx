@@ -94,6 +94,11 @@ const LazyFormulaRuler = createLazyTool(async () => {
   return { default: WikiFormulaRulerBlock };
 });
 
+const LazyKnobRadar = createLazyTool(async () => {
+  const { WikiKnobRadarBlock } = await import("../tools/AscendKnobRadarView");
+  return { default: WikiKnobRadarBlock };
+});
+
 if (import.meta.env.MODE === "test") {
   await Promise.all(pendingTestPreloads);
 }
@@ -104,6 +109,7 @@ const TOOL_REGISTRY = new Map<WikiToolId, LazyExoticComponent<ComponentType<Wiki
   ["troubleshoot-workbench", LazyTroubleshootWorkbench],
   ["aicore-lab", LazyAiCoreLab],
   ["formula-ruler", LazyFormulaRuler],
+  ["knob-radar", LazyKnobRadar],
 ]);
 
 const TOOL_MODE_LABELS: Readonly<Record<string, string>> = {

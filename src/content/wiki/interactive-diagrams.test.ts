@@ -21,13 +21,18 @@ import {
   ACL_GRAPH_MODE_BUDGET_APPROVED_SHA256,
   ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
   CHUNKED_PREFILL_BUDGET_GAME_APPROVED_SHA256,
+  COLL_COMM_FIG_HCCS_VS_ROCE_APPROVED_SHA256,
+  CONTEXT_PARALLEL_FIG_INTERLEAVE_SLOTS_APPROVED_SHA256,
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  DP_FIG_DUMMY_AND_EXCLUSION_APPROVED_SHA256,
   ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
   EPLB_CYCLE_APPROVED_SHA256,
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  HCCL_BUFFER_FIG_DOMAIN_LEDGER_APPROVED_SHA256,
   LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
   MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
   MLA_INTUITION_APPROVED_SHA256,
+  MOE_DISPATCH_FIG_STATE_MACHINE_APPROVED_SHA256,
   MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
   ONBOARDING_FOUR_GATES_APPROVED_SHA256,
@@ -45,6 +50,7 @@ import {
   SPECULATIVE_DECODING_APPROVED_SHA256,
   sha256Hex,
   TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
+  TENSOR_PARALLEL_TWO_SPLITS_APPROVED_SHA256,
   TOKEN_BPE_APPROVED_SHA256,
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
   WORKER_LIFECYCLE_APPROVED_SHA256,
@@ -241,6 +247,12 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       "tensor-layout-fig-nd-nz-cube",
       "engram-fig-lookup-flow",
       "pd-disaggregation-intuition",
+      "moe-dispatch-fig-state-machine",
+      "coll-comm-fig-hccs-vs-roce",
+      "hccl-buffer-fig-domain-ledger",
+      "tensor-parallel-two-splits",
+      "context-parallel-fig-interleave-slots",
+      "dp-fig-dummy-and-exclusion",
     ]);
   });
 
@@ -370,6 +382,15 @@ describe("人工静态白名单交互式 React 2D 注册表与版本绑定", () 
       { id: "tensor-layout-fig-nd-nz-cube", sha: TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256 },
       { id: "engram-fig-lookup-flow", sha: ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256 },
       { id: "pd-disaggregation-intuition", sha: PD_DISAGGREGATION_INTUITION_APPROVED_SHA256 },
+      { id: "moe-dispatch-fig-state-machine", sha: MOE_DISPATCH_FIG_STATE_MACHINE_APPROVED_SHA256 },
+      { id: "coll-comm-fig-hccs-vs-roce", sha: COLL_COMM_FIG_HCCS_VS_ROCE_APPROVED_SHA256 },
+      { id: "hccl-buffer-fig-domain-ledger", sha: HCCL_BUFFER_FIG_DOMAIN_LEDGER_APPROVED_SHA256 },
+      { id: "tensor-parallel-two-splits", sha: TENSOR_PARALLEL_TWO_SPLITS_APPROVED_SHA256 },
+      {
+        id: "context-parallel-fig-interleave-slots",
+        sha: CONTEXT_PARALLEL_FIG_INTERLEAVE_SLOTS_APPROVED_SHA256,
+      },
+      { id: "dp-fig-dummy-and-exclusion", sha: DP_FIG_DUMMY_AND_EXCLUSION_APPROVED_SHA256 },
     ] as const;
 
     for (const item of cases) {

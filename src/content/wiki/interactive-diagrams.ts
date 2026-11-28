@@ -6,9 +6,21 @@ import {
 } from "./AscendFaTilingInteractive";
 import { ChunkedPrefillInteractive } from "./ChunkedPrefillInteractive";
 import {
+  COLL_COMM_FIG_HCCS_VS_ROCE_APPROVED_SHA256,
+  CollCommHccsRoceInteractive,
+} from "./CollCommHccsRoceInteractive";
+import {
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
   ContinuousBatchingTraceInteractive,
 } from "./ContinuousBatchingTraceInteractive";
+import {
+  CONTEXT_PARALLEL_FIG_INTERLEAVE_SLOTS_APPROVED_SHA256,
+  CpInterleaveSlotsInteractive,
+} from "./CpInterleaveSlotsInteractive";
+import {
+  DP_FIG_DUMMY_AND_EXCLUSION_APPROVED_SHA256,
+  DpDummyExclusionInteractive,
+} from "./DpDummyExclusionInteractive";
 import {
   ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
   EngramLookupFlowInteractive,
@@ -18,6 +30,10 @@ import {
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
   GqaSharedKvInteractive,
 } from "./GqaSharedKvInteractive";
+import {
+  HCCL_BUFFER_FIG_DOMAIN_LEDGER_APPROVED_SHA256,
+  HcclBufferLedgerInteractive,
+} from "./HcclBufferLedgerInteractive";
 import {
   LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
   LowPrecisionBitInteractive,
@@ -31,6 +47,10 @@ import {
   ModelOnboardingGatesInteractive,
   ONBOARDING_FOUR_GATES_APPROVED_SHA256,
 } from "./ModelOnboardingGatesInteractive";
+import {
+  MOE_DISPATCH_FIG_STATE_MACHINE_APPROVED_SHA256,
+  MoeDispatchStateInteractive,
+} from "./MoeDispatchStateInteractive";
 import { MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256, MoeRouterCalcInteractive } from "./MoeRouterCalcInteractive";
 import {
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
@@ -75,6 +95,7 @@ import {
   TensorLayoutNdNzInteractive,
 } from "./TensorLayoutNdNzInteractive";
 import { TOKEN_BPE_APPROVED_SHA256, TokenBpeInteractive } from "./TokenBpeInteractive";
+import { TENSOR_PARALLEL_TWO_SPLITS_APPROVED_SHA256, TpTwoSplitsInteractive } from "./TpTwoSplitsInteractive";
 import {
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
   V030MigChecklistInteractive,
@@ -184,13 +205,18 @@ export const RFORK_ROUTE_AND_FALLBACK_APPROVED_SHA256 =
 
 export {
   ASCEND_FA_HBM_VS_TILING_APPROVED_SHA256,
+  COLL_COMM_FIG_HCCS_VS_ROCE_APPROVED_SHA256,
+  CONTEXT_PARALLEL_FIG_INTERLEAVE_SLOTS_APPROVED_SHA256,
   CONTINUOUS_BATCHING_TWO_QUEUES_TRACE_APPROVED_SHA256,
+  DP_FIG_DUMMY_AND_EXCLUSION_APPROVED_SHA256,
   ENGRAM_FIG_LOOKUP_FLOW_APPROVED_SHA256,
   EPLB_CYCLE_APPROVED_SHA256,
   GQA_FIG_SHARED_KV_COST_SPLIT_APPROVED_SHA256,
+  HCCL_BUFFER_FIG_DOMAIN_LEDGER_APPROVED_SHA256,
   LOW_PREC_FIG_BIT_ANATOMY_APPROVED_SHA256,
   MEM_PROF_FIG_QWEN3_WATERFALL_APPROVED_SHA256,
   MLA_INTUITION_APPROVED_SHA256,
+  MOE_DISPATCH_FIG_STATE_MACHINE_APPROVED_SHA256,
   MOE_ROUTER_CALC_QWEN3_APPROVED_SHA256,
   MOONCAKE_CONNECTOR_APPROVED_SHA256,
   ONBOARDING_FOUR_GATES_APPROVED_SHA256,
@@ -202,6 +228,7 @@ export {
   ROOFLINE_MATMUL_INTENSITY_APPROVED_SHA256,
   SPECULATIVE_DECODING_APPROVED_SHA256,
   TENSOR_LAYOUT_FIG_ND_NZ_CUBE_APPROVED_SHA256,
+  TENSOR_PARALLEL_TWO_SPLITS_APPROVED_SHA256,
   TOKEN_BPE_APPROVED_SHA256,
   V030_MIG_FIG_CHECKLIST_APPROVED_SHA256,
   WORKER_LIFECYCLE_APPROVED_SHA256,
@@ -426,6 +453,54 @@ const INTERACTIVE_2D_REGISTRY: ReadonlyMap<string, InteractiveDiagramRegistratio
       id: "pd-disaggregation-intuition",
       approvedSvgSha256: PD_DISAGGREGATION_INTUITION_APPROVED_SHA256,
       Component: PdDisaggIntuitionInteractive,
+    },
+  ],
+  [
+    "moe-dispatch-fig-state-machine",
+    {
+      id: "moe-dispatch-fig-state-machine",
+      approvedSvgSha256: MOE_DISPATCH_FIG_STATE_MACHINE_APPROVED_SHA256,
+      Component: MoeDispatchStateInteractive,
+    },
+  ],
+  [
+    "coll-comm-fig-hccs-vs-roce",
+    {
+      id: "coll-comm-fig-hccs-vs-roce",
+      approvedSvgSha256: COLL_COMM_FIG_HCCS_VS_ROCE_APPROVED_SHA256,
+      Component: CollCommHccsRoceInteractive,
+    },
+  ],
+  [
+    "hccl-buffer-fig-domain-ledger",
+    {
+      id: "hccl-buffer-fig-domain-ledger",
+      approvedSvgSha256: HCCL_BUFFER_FIG_DOMAIN_LEDGER_APPROVED_SHA256,
+      Component: HcclBufferLedgerInteractive,
+    },
+  ],
+  [
+    "tensor-parallel-two-splits",
+    {
+      id: "tensor-parallel-two-splits",
+      approvedSvgSha256: TENSOR_PARALLEL_TWO_SPLITS_APPROVED_SHA256,
+      Component: TpTwoSplitsInteractive,
+    },
+  ],
+  [
+    "context-parallel-fig-interleave-slots",
+    {
+      id: "context-parallel-fig-interleave-slots",
+      approvedSvgSha256: CONTEXT_PARALLEL_FIG_INTERLEAVE_SLOTS_APPROVED_SHA256,
+      Component: CpInterleaveSlotsInteractive,
+    },
+  ],
+  [
+    "dp-fig-dummy-and-exclusion",
+    {
+      id: "dp-fig-dummy-and-exclusion",
+      approvedSvgSha256: DP_FIG_DUMMY_AND_EXCLUSION_APPROVED_SHA256,
+      Component: DpDummyExclusionInteractive,
     },
   ],
 ]);

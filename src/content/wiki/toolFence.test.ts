@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { extractWikiToolFences, parseWikiToolFence } from "./toolFence";
 
 describe("parseWikiToolFence & extractWikiToolFences", () => {
-  it("accepts all 5 known tools with allowed modes and optional fields", () => {
+  it("accepts all 6 known tools with allowed modes and optional fields", () => {
     const validCases = [
       "tool: deploy-calculator\nmode: quick-screen\ntitle: 算账台初筛\nsummary: 估算显存需求",
       "tool: config-doctor\nmode: minimal\ntab: doctor",
@@ -14,6 +14,8 @@ describe("parseWikiToolFence & extractWikiToolFences", () => {
       "tool: formula-ruler\nmode: tp-shard-comm\nmodel: qwen3-8b",
       "tool: formula-ruler\nmode: moe-ep-dispatch\nmodel: qwen3-30b-a3b",
       "tool: formula-ruler\nmode: cold-start-budget\nmodel: qwen3-8b",
+      "tool: knob-radar\nmode: minimal\npreset: preset-910b3-w8a8-low-latency",
+      "tool: knob-radar\nmode: full\ntitle: 昇腾调优旋钮雷达",
     ];
     for (const src of validCases) {
       const parsed = parseWikiToolFence(src);
@@ -26,6 +28,7 @@ describe("parseWikiToolFence & extractWikiToolFences", () => {
     expect(parseWikiToolFence("mode: minimal").ok).toBe(false);
     expect(parseWikiToolFence("tool: unknown-tool").ok).toBe(false);
     expect(parseWikiToolFence("tool: config-doctor\nmode: quick-screen").ok).toBe(false);
+    expect(parseWikiToolFence("tool: knob-radar\nmode: quick-screen").ok).toBe(false);
     expect(parseWikiToolFence("tool: formula-ruler\nmode: minimal").ok).toBe(false);
     expect(parseWikiToolFence("tool: config-doctor\ntool: deploy-calculator").ok).toBe(false);
     expect(parseWikiToolFence("tool: config-doctor\nextra: foo").ok).toBe(false);

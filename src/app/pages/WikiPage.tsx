@@ -28,6 +28,7 @@ import { groupRelations, prerequisiteRelations } from "../../content/wiki/relati
 import { type CompiledNode, type RegistryEntry, resolveCanonicalPageId } from "../../content/wiki/schema";
 import { EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { buildToc, type TocPart } from "../../content/wiki/toc";
+import { ASCEND_KNOB_CATALOG, type AscendKnobSpec, resolveKnobLifecycle } from "../../sim/knobs";
 import { useWikiAssistant } from "../wiki/assistant-context";
 import {
   CompiledHastView,
@@ -157,6 +158,96 @@ export function computeTocScrollTopAfterActivate(params: {
     return Math.max(0, scrollTop - (navTop + pad - itemTop));
   }
   return Math.max(0, scrollTop + (itemBottom - (navBottom - pad)));
+}
+
+export interface PageKnobRadarTarget {
+  readonly to: string;
+  readonly knobId: string;
+  readonly knobName: string;
+}
+
+type KnobRadarPage = Pick<RegistryEntry, "id" | "type" | "title" | "aliases" | "verified">;
+
+/** 去掉 `scheduler_config.` / `ascend_compilation_config.` 等父路径后的叶子参数名 */
+const knobLeafName = (spec: AscendKnobSpec): string =>
+  (spec.jsonPath ?? spec.name).split(".").at(-1) ?? spec.name;
+
+/** 叶子名在目录中出现的次数：`enabled` 这类多个配置块共用的叶子名不足以确认参数身份 */
+const KNOB_LEAF_COUNTS = ASCEND_KNOB_CATALOG.reduce((counts, spec) => {
+  const leaf = knobLeafName(spec);
+  counts.set(leaf, (counts.get(leaf) ?? 0) + 1);
+  return counts;
+}, new Map<string, number>());
+
+/** 参数页标题或别名是否精确指向该旋钮：完整名 / JSON 路径 / CLI 旗标，或目录内唯一的 snake_case 叶子名 */
+function knobMatchesPageNames(spec: AscendKnobSpec, names: ReadonlySet<string>): boolean {
+  if (names.has(spec.name)) return true;
+  if (spec.jsonPath && names.has(spec.jsonPath)) return true;
+  if (spec.cliFlag && names.has(spec.cliFlag)) return true;
+  const leaf = knobLeafName(spec);
+  return leaf.includes("_") && KNOB_LEAF_COUNTS.get(leaf) === 1 && names.has(leaf);
+}
+
+const isRetiredKnob = (spec: AscendKnobSpec) =>
+  resolveKnobLifecycle(spec, "v0.30.0") === "retired-trap" &&
+  resolveKnobLifecycle(spec, "main") === "retired-trap";
+
+function isJsonObjectText(text: string): boolean {
+  if (!text.trim().startsWith("{")) return false;
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return Boolean(parsed) && typeof parsed === "object" && !Array.isArray(parsed);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 预装进配方篮的取值：布尔开关预装 `true`（打开后才会参与互斥与静默失效判定）；
+ * JSON 旋钮只接受合法对象字符串（雷达的 `sel` 解析器会丢弃数组或坏 JSON），否则用 `"{}"`；
+ * 其余类型取目录里排在首位的推荐值。
+ */
+function knobRadarSeedValue(spec: AscendKnobSpec): string | number | boolean {
+  if (spec.valueType === "bool") return true;
+  if (spec.valueType === "json") {
+    const objectValue = spec.recommendedValues.find(
+      (rv) => typeof rv.value === "string" && isJsonObjectText(rv.value),
+    );
+    return typeof objectValue?.value === "string" ? objectValue.value : "{}";
+  }
+  return spec.recommendedValues[0]?.value ?? true;
+}
+
+/**
+ * 正式参数页 → 调优旋钮雷达的反向深链。
+ * - 只对 `type: "param"` 的参数页生效：`cann-hccl`、`ascend-config-system` 等概念大页挂着多个旋钮，不能绑到页头；
+ * - 优先取 `wikiPageId` 指向本页的旋钮；多个时按「名字对上页标题 > 对上别名 > 未退役」排序，
+ *   同一参数的旧环境变量常被列为别名，标题才是本页参数本身；
+ *   没有 `wikiPageId` 命中时，再按参数名精确匹配标题或别名；
+ * - 路由预装该旋钮到配方篮；页面只核对过 `main`、或旋钮只在 `main` 存在时附带 `ver=main`。
+ */
+export function resolvePageKnobRadarTarget(page: KnobRadarPage): PageKnobRadarTarget | null {
+  if (page.type !== "param") return null;
+  const titleOnly = new Set([page.title]);
+  const names = new Set([page.title, ...page.aliases]);
+  const byPage = ASCEND_KNOB_CATALOG.filter((spec) => spec.wikiPageId === page.id);
+  const rank = (spec: AscendKnobSpec) =>
+    (knobMatchesPageNames(spec, titleOnly) ? 4 : 0) +
+    (knobMatchesPageNames(spec, names) ? 2 : 0) +
+    (isRetiredKnob(spec) ? 0 : 1);
+  const spec =
+    byPage.length > 0
+      ? byPage.reduce((best, candidate) => (rank(candidate) > rank(best) ? candidate : best))
+      : ASCEND_KNOB_CATALOG.find((candidate) => knobMatchesPageNames(candidate, names));
+  if (!spec) return null;
+  const params = new URLSearchParams();
+  params.set("tab", "knobs");
+  params.set("fromPage", page.id);
+  params.set("q", spec.name);
+  params.set("sel", JSON.stringify({ [spec.id]: knobRadarSeedValue(spec) }));
+  const mainOnlyPage = page.verified.includes("main") && !page.verified.includes("releases/v0.30.0");
+  if (mainOnlyPage || resolveKnobLifecycle(spec, "v0.30.0") === "main-only") params.set("ver", "main");
+  return { to: `/tools?${params.toString()}`, knobId: spec.id, knobName: spec.name };
 }
 
 export function WikiPage() {
@@ -559,7 +650,9 @@ export function WikiPage() {
                   </>
                 )}
                 <span>/</span>
-                <span aria-current="page">{pageDisplayTitle(page.fm)}</span>
+                <span aria-current="page" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                  {pageDisplayTitle(page.fm)}
+                </span>
               </nav>
               <Article
                 key={page.fm.id}
@@ -576,13 +669,16 @@ export function WikiPage() {
                 {orderedPages[currentIndex - 1] ? (
                   <Link
                     to={`/wiki/${orderedPages[currentIndex - 1]!.id}`}
+                    style={{ minWidth: 0 }}
                     onMouseEnter={() => prefetchPage(orderedPages[currentIndex - 1]!.id)}
                     onFocus={() => prefetchPage(orderedPages[currentIndex - 1]!.id)}
                   >
                     <small>
                       <ArrowLeft size={14} /> 上一节
                     </small>
-                    <span>{pageDisplayTitle(orderedPages[currentIndex - 1]!)}</span>
+                    <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                      {pageDisplayTitle(orderedPages[currentIndex - 1]!)}
+                    </span>
                   </Link>
                 ) : (
                   <span />
@@ -590,13 +686,16 @@ export function WikiPage() {
                 {orderedPages[currentIndex + 1] && (
                   <Link
                     to={`/wiki/${orderedPages[currentIndex + 1]!.id}`}
+                    style={{ minWidth: 0 }}
                     onMouseEnter={() => prefetchPage(orderedPages[currentIndex + 1]!.id)}
                     onFocus={() => prefetchPage(orderedPages[currentIndex + 1]!.id)}
                   >
                     <small>
                       下一节 <ArrowRight size={14} />
                     </small>
-                    <span>{pageDisplayTitle(orderedPages[currentIndex + 1]!)}</span>
+                    <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                      {pageDisplayTitle(orderedPages[currentIndex + 1]!)}
+                    </span>
                   </Link>
                 )}
               </nav>
@@ -682,7 +781,7 @@ function Landing({
         <div className="wt-landing-tools-head">
           <h2 className="wt-landing-tools-title">交互工程工作台</h2>
           <p className="wt-landing-tools-note">
-            五大源码级工程实验室与实战闯关场，不改阅读路线即可随手算账、体检、排障、对拍与演练
+            六大源码级工程实验室与实战闯关场，不改阅读路线即可随手算账、体检、排障、对拍、演练与调参排雷
           </p>
         </div>
         <div className="wt-landing-tools-grid">
@@ -737,6 +836,15 @@ function Landing({
             </span>
             <span className="wt-landing-tool-card-desc">
               多关生产故障演练（含真机实测、源码还原与社区脱敏案例）及启动命令判卷通关
+            </span>
+          </Link>
+          <Link className="wt-landing-tool-card" to="/tools?tab=knobs" data-testid="landing-tool-knobs">
+            <span className="wt-landing-tool-card-top">
+              <span>⑥ 调优旋钮雷达</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              反查昇腾环境变量、additional_config 与隐藏开关，排雷互斥组合与静默失效
             </span>
           </Link>
         </div>
@@ -934,6 +1042,17 @@ export const Article = memo(function Article({
   // 只给长页（H2 ≥ 4）；短页一屏半就读完，导航只是噪音
   const withToc = hasPageToc(headings);
   const tocProps = { pageId: page.id, headings, scrollTo: scrollToWikiFragment };
+  const knobTarget = useMemo(
+    () =>
+      resolvePageKnobRadarTarget({
+        id: page.id,
+        type: page.type,
+        title: page.title,
+        aliases: page.aliases,
+        verified: page.verified,
+      }),
+    [page.id, page.type, page.title, page.aliases, page.verified],
+  );
   const article = (
     <article className="wiki-article">
       <header className="wiki-article-head">
@@ -976,8 +1095,20 @@ export const Article = memo(function Article({
             <Network size={12} aria-hidden="true" />
             在星图中查看前后因果
           </Link>
+          {knobTarget && (
+            <Link
+              className="wiki-chip wiki-article-graph-link"
+              data-testid="article-open-knob-radar"
+              to={knobTarget.to}
+              title={`在调优旋钮雷达中预装 ${knobTarget.knobName}，检查互斥组合与静默失效`}
+            >
+              去旋钮雷达试配互斥 →
+            </Link>
+          )}
         </div>
-        <h1 className="display">{pageDisplayTitle(page)}</h1>
+        <h1 className="display" style={{ overflowWrap: "anywhere" }}>
+          {pageDisplayTitle(page)}
+        </h1>
         <p className="wiki-summary">{page.summary}</p>
         {page.aliases.length > 0 && (
           <details className="wiki-aliases" key={page.id}>

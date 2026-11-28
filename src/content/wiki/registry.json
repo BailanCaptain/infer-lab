@@ -360,6 +360,16 @@
           "note": "旧 model runner 在非捕获 dummy run 预建 capture size 对应表，减少捕获时缓存未命中的分配；完整缓存键仍须匹配"
         },
         {
+          "from": "enable-npugraph-ex-ffc890dd7afe",
+          "kind": "enables",
+          "note": "在 FULL / FULL_DECODE_ONLY 图捕获前完成算子图级优化；PIECEWISE 下自动停用"
+        },
+        {
+          "from": "enable-static-kernel-0a7b93dc8b97",
+          "kind": "enables",
+          "note": "仅在 FULL / FULL_DECODE_ONLY 捕获解码档位时生效，PIECEWISE 下静默关闭"
+        },
+        {
           "from": "enable-super-kernel-ce990e186bfa",
           "kind": "enables",
           "note": "第二个生效点在 ACL Graph 捕获期：wrapper 的 runnable 框入 scope，录完再请求 super_kernel_optimize"
@@ -1483,6 +1493,11 @@
           "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 通常把它挡在启动期的正是这一环"
         },
         {
+          "from": "enable-cpu-binding-f0fbd89fe35b",
+          "kind": "enables",
+          "note": "AscendConfig 用户开关及平台屏蔽 --numa-bind 的配置入口"
+        },
+        {
           "from": "enable-force-eplb-b7ec3661121f",
           "kind": "enables",
           "note": "它是 main 上 pydantic AscendConfig 的顶层 bool 字段，互斥检查跑在 derive_and_validate 而不是 pydantic 校验里"
@@ -1491,6 +1506,11 @@
           "from": "enable-matmul-allreduce",
           "kind": "enables",
           "note": "该历史开关位于 additional_config 顶层，v0.30.0 与 main 启用 AscendConfig 严格校验后保留旧键会触发启动报错"
+        },
+        {
+          "from": "enable-mlapo-e6204d2b22cd",
+          "kind": "enables",
+          "note": "AscendConfig 字段及与 mlapo_keep_prefill_weights 的前置校验"
         },
         {
           "from": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
@@ -1676,6 +1696,11 @@
           "from": "v030-release-baseline",
           "kind": "enables",
           "note": "理解退役环境变量迁移进 additional_config 后的 Pydantic 校验链与优先级"
+        },
+        {
+          "from": "weight-nz-mode-b9cf06865b95",
+          "kind": "enables",
+          "note": "AscendConfig 字段及 rl_config 自动清零逻辑所在配置体系"
         },
         {
           "from": "weight-prefetch-config",
@@ -5753,6 +5778,11 @@
           "note": "vLLM-Ascend 自身的 enable_cpu_binding 与底层 TorchNPU 的 CPU_AFFINITY_CONF 同管主机侧线程亲和与跨 NUMA 抖动"
         },
         {
+          "from": "enable-cpu-binding-f0fbd89fe35b",
+          "kind": "enables",
+          "note": "对应底层 CPU 核池切分、NUMA 亲和与全局切片绑定实现"
+        },
+        {
           "from": "engram-conditional-memory",
           "kind": "enables",
           "note": "Engram 启用 Host DRAM 卸载时绑核须跳过页迁移（migrate_memory=False），避免破坏 HOST_UVA 钉页映射"
@@ -7414,6 +7444,63 @@
       "backlinks": []
     },
     {
+      "id": "enable-cpu-binding-f0fbd89fe35b",
+      "title": "enable_cpu_binding",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制 NPU Worker 启动时是否执行基于拓扑感知或全局切片的 NUMA 亲和 CPU 绑核（默认 True）；开启 Engram 主机内存卸载时自动跳过跨节点内存迁移。",
+      "aliases": [
+        "Ascend CPU 绑核",
+        "昇腾原生绑核开关"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L565",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/worker/worker.py#L963-L971",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/cpu_binding.py#L375-L558",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/cpu_binding.py#L784-L802",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/platform.py#L894-L918",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L281-L353",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L655",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L162",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L174"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "cpu-binding",
+          "kind": "builds-on",
+          "note": "对应底层 CPU 核池切分、NUMA 亲和与全局切片绑定实现"
+        },
+        {
+          "to": "engram-conditional-memory",
+          "kind": "builds-on",
+          "note": "开启 Engram cpu_offload (HOST_UVA) 时自动禁用 NUMA 内存迁移"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "AscendConfig 用户开关及平台屏蔽 --numa-bind 的配置入口"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/enable-cpu-binding-f0fbd89fe35b.md",
+      "backlinks": []
+    },
+    {
       "id": "enable-force-eplb-b7ec3661121f",
       "legacyAnchors": {
         "一句话": "它改变什么为什么只是压测夹具",
@@ -7553,6 +7640,78 @@
       "backlinks": []
     },
     {
+      "id": "enable-fused-mc2-782bf6f2bf48",
+      "title": "enable_fused_mc2",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制 MoE 层是否把 Dispatch、路由专家 FFN 与 Combine 融合成单个通算融合大算子 FUSED_MC2（dispatch_ffn_combine 或 CANN MegaMoe）；取代旧环境变量 VLLM_ASCEND_ENABLE_FUSED_MC2，不同值对应不同融合层级并受芯片档位与并行度门控。",
+      "aliases": [
+        "enable_fused_mc2",
+        "MoE 通算融合开关"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L605",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L661-L672",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L840-L860",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L1005-L1010",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_forward_context.py#L297-L413",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L281-L343",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/moe_comm_method.py#L580-L611",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/lora/fused_moe.py#L176-L180",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L704",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L771-L788",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L1101-L1128",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/envs.py#L102",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L179-L208"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "moe-comm-dispatch",
+          "kind": "builds-on",
+          "note": "在 MoE 通信选路中选择 FUSED_MC2（dispatch_ffn_combine / MegaMoe）路径"
+        },
+        {
+          "to": "moe",
+          "kind": "builds-on",
+          "note": "将 MoE 的路由分发、两层矩阵乘与归约融合成单一算子"
+        },
+        {
+          "to": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "builds-on",
+          "note": "main 分支 enable_fused_mc2=3 自动派生 megamoe_shared_expert_fusion=True"
+        },
+        {
+          "to": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "conflicts-with",
+          "note": "enable_fused_mc2=1（含 2 归一后）会自动强制关闭多流共享专家重叠"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/enable-fused-mc2-782bf6f2bf48.md",
+      "backlinks": [
+        {
+          "from": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "conflicts-with",
+          "note": "启用融合 MC2 时被强制关闭，通常在 PD 分离的 Decode 节点单独开启"
+        }
+      ]
+    },
+    {
       "id": "enable-matmul-allreduce",
       "legacyAnchors": {
         "一句话": "它曾经融合什么，为什么自 v0.25.1rc1 起被移除？",
@@ -7659,6 +7818,131 @@
           "from": "layer-sharding",
           "kind": "conflicts-with",
           "note": "进入 row-parallel 分派后，DSA-CP 的 P 侧 o_proj 先被 ShardedCPRowParallelOp 认领， 不再继续选择后面的 matmul-allreduce 分支；该判据并不检查列表是否实际包含 o_proj"
+        }
+      ]
+    },
+    {
+      "id": "enable-mlapo-e6204d2b22cd",
+      "title": "enable_mlapo",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制 DeepSeek MLA / SFA 注意力前序计算是否启用融合大算子 MLAPO（aclnnMlaProlog）；取代旧环境变量 VLLM_ASCEND_ENABLE_MLAPO，默认 True，并在 A2/A3 上受 PD Decode 角色与权重格式门控。",
+      "aliases": [
+        "enable_mlapo",
+        "MLAPO",
+        "aclnnMlaProlog"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L606",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/utils.py#L665-L675",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/mla_v1.py#L1040-L1044",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/mla_v1.py#L1315-L1358",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/mla_v1.py#L1496-L1523",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/mla_v1.py#L1944-L1985",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/sfa_v1.py#L902-L903",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/attention/sfa_v1.py#L1045-L1094",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L368-L378",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L709",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/envs.py#L83-L87",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L210-L214"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "mla",
+          "kind": "builds-on",
+          "note": "融合 MLA 前序投影、RMSNorm、RoPE 与 KV Cache 写入的算子总开关"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "AscendConfig 字段及与 mlapo_keep_prefill_weights 的前置校验"
+        },
+        {
+          "to": "v030-release-baseline",
+          "kind": "builds-on",
+          "note": "v0.30.0 退役 VLLM_ASCEND_ENABLE_MLAPO 后统一由该字段控制"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/enable-mlapo-e6204d2b22cd.md",
+      "backlinks": []
+    },
+    {
+      "id": "enable-npugraph-ex-ffc890dd7afe",
+      "title": "enable_npugraph_ex",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制图编译后端是否启用 NPUGraphEx（npugraph_ex）对 FX 计算图执行编译优化并与 ACLGraph 协同；默认 True，但在 PIECEWISE / FULL_AND_PIECEWISE / NONE 图模式及不支持硬件上会被静默覆盖为 False。",
+      "aliases": [
+        "AscendCompilationConfig.enable_npugraph_ex"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L122",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L149-L169",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/platform.py#L1306-L1352",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/compiler_interface.py#L128-L253",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/compiler_interface.py#L266-L337",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L246-L273",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:docs/source/user_guide/feature_guide/graph_mode.md#L124-L178",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L129",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/platform.py#L1518-L1558",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L607-L660",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L599-L659"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "npugraph-ex",
+          "kind": "builds-on",
+          "note": "开关昇腾 FX 图优化后端 npugraph_ex 的主配置项"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "在 FULL / FULL_DECODE_ONLY 图捕获前完成算子图级优化；PIECEWISE 下自动停用"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/enable-npugraph-ex-ffc890dd7afe.md",
+      "backlinks": [
+        {
+          "from": "enable-static-kernel-0a7b93dc8b97",
+          "kind": "enables",
+          "note": "强依赖 enable_npugraph_ex=True；未开启则断言失败"
+        },
+        {
+          "from": "fuse-norm-quant-65db0ee6a4f3",
+          "kind": "enables",
+          "note": "挂载于 GraphFusionPassManager，无论是否开启 npugraph_ex 均在 FX 编译期触发"
         }
       ]
     },
@@ -8047,8 +8331,77 @@
           "from": "sleep-mode",
           "kind": "enables",
           "note": "理解池外显存为何仍驻留需对照清理开关页；睡眠级别与恢复顺序在本页，额外清理代价及配置迁移在参数页"
+        },
+        {
+          "from": "weight-nz-mode-b9cf06865b95",
+          "kind": "enables",
+          "note": "开启 Sleep Mode 额外清理与安全唤醒时同样受 weight_nz_mode=0 前置约束"
         }
       ]
+    },
+    {
+      "id": "enable-static-kernel-0a7b93dc8b97",
+      "title": "enable_static_kernel",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制是否在图捕获编译期针对固定批大小预编译 Static Kernel 算子二进制（默认 False）；依赖 enable_npugraph_ex=True 且在 PIECEWISE / FULL_AND_PIECEWISE / NONE 模式下会被静默清零，同时默认级联启用 enable_super_kernel。",
+      "aliases": [
+        "静态核编译",
+        "AscendCompilationConfig.enable_static_kernel"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L123",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L133-L169",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/compiler_interface.py#L72-L176",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/compiler_interface.py#L266-L289",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/platform.py#L1306-L1352",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/worker/worker.py#L197-L236",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:docs/source/user_guide/feature_guide/graph_mode.md#L180-L243",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L130",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/compilation/compiler_interface.py#L73-L135",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L610-L660",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L602-L662"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "enable-npugraph-ex-ffc890dd7afe",
+          "kind": "builds-on",
+          "note": "强依赖 enable_npugraph_ex=True；未开启则断言失败"
+        },
+        {
+          "to": "enable-super-kernel-ce990e186bfa",
+          "kind": "builds-on",
+          "note": "是 enable_super_kernel 的前置条件，且缺省时会自动同步开启超核"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "仅在 FULL / FULL_DECODE_ONLY 捕获解码档位时生效，PIECEWISE 下静默关闭"
+        },
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "静态算子二进制预编译与模型运行图模式层级配合"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/enable-static-kernel-0a7b93dc8b97.md",
+      "backlinks": []
     },
     {
       "id": "enable-super-kernel-ce990e186bfa",
@@ -8172,7 +8525,13 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "params/enable-super-kernel-ce990e186bfa.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "enable-static-kernel-0a7b93dc8b97",
+          "kind": "enables",
+          "note": "是 enable_super_kernel 的前置条件，且缺省时会自动同步开启超核"
+        }
+      ]
     },
     {
       "id": "engine-processes",
@@ -8614,6 +8973,11 @@
       "updated": "2026-11-19",
       "file": "concepts/engram-conditional-memory.md",
       "backlinks": [
+        {
+          "from": "enable-cpu-binding-f0fbd89fe35b",
+          "kind": "enables",
+          "note": "开启 Engram cpu_offload (HOST_UVA) 时自动禁用 NUMA 内存迁移"
+        },
         {
           "from": "multistream-engram-overlap-29113aa3f8fc",
           "kind": "enables",
@@ -9453,6 +9817,77 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "params/fuse-allreduce-rms.md",
+      "backlinks": [
+        {
+          "from": "fuse-norm-quant-65db0ee6a4f3",
+          "kind": "enables",
+          "note": "分别在残差归一化前侧（AllReduce+RMSNorm）与后侧（Norm+Quant）执行图融合"
+        }
+      ]
+    },
+    {
+      "id": "fuse-norm-quant-65db0ee6a4f3",
+      "title": "fuse_norm_quant",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制 FX 图融合 Pass 是否将 AddRMSNorm 与随后的激活量化（动态 INT8 / 静态 INT8 / MXFP 量化）合并为单颗算子（默认 True）；消除了独立动态量化算子的额外 AIV 启动与全局内存往返开销，main 分支进一步精确锁定 INT8 与无 bias 分支。",
+      "aliases": [
+        "AddRMSNormQuantFusionPass",
+        "AddRmsNorm 与量化融合"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L125",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L64",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L30-L88",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L170-L336",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L339-L405",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L256-L331",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L132",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L153-L255",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L425-L466",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L611-L652",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L604-L652",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L260-L292"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "mlp-residual-norm",
+          "kind": "builds-on",
+          "note": "融合残差加 RMSNorm 与后续量化算子，消除独立 DynamicQuant 开销"
+        },
+        {
+          "to": "enable-npugraph-ex-ffc890dd7afe",
+          "kind": "builds-on",
+          "note": "挂载于 GraphFusionPassManager，无论是否开启 npugraph_ex 均在 FX 编译期触发"
+        },
+        {
+          "to": "quantization-methods",
+          "kind": "builds-on",
+          "note": "覆盖 W8A8/W4A8/MXFP8 激活量化融合并主动避开 W4A4"
+        },
+        {
+          "to": "fuse-allreduce-rms",
+          "kind": "builds-on",
+          "note": "分别在残差归一化前侧（AllReduce+RMSNorm）与后侧（Norm+Quant）执行图融合"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/fuse-norm-quant-65db0ee6a4f3.md",
       "backlinks": []
     },
     {
@@ -10461,6 +10896,11 @@
       "updated": "2026-11-26",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
+        {
+          "from": "enable-static-kernel-0a7b93dc8b97",
+          "kind": "enables",
+          "note": "静态算子二进制预编译与模型运行图模式层级配合"
+        },
         {
           "from": "npugraph-ex",
           "kind": "enables",
@@ -14419,7 +14859,7 @@
       "title": "阅读指南：这个知识库讲什么，按什么顺序读",
       "type": "concept",
       "origin": "direct",
-      "summary": "知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」五套交互工作台。",
+      "summary": "知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」六套交互工作台。",
       "aliases": [
         "学习路线",
         "阅读顺序",
@@ -15739,7 +16179,18 @@
       "contradicts": [],
       "updated": "2026-11-26",
       "file": "params/megamoe-shared-expert-fusion-5a99901d47e6.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "alternative-to",
+          "note": "分别通过独立辅助流重叠与并入 MegaMoe 算子内部两条路线加速共享专家"
+        },
+        {
+          "from": "enable-fused-mc2-782bf6f2bf48",
+          "kind": "enables",
+          "note": "main 分支 enable_fused_mc2=3 自动派生 megamoe_shared_expert_fusion=True"
+        }
+      ]
     },
     {
       "id": "mla",
@@ -15887,6 +16338,11 @@
           "from": "deepseek-v4-1-flash",
           "kind": "enables",
           "note": "V4.1 单头 512 维全局 KV 压缩表示与 MLA 低秩压缩共享同一核心降存思路"
+        },
+        {
+          "from": "enable-mlapo-e6204d2b22cd",
+          "kind": "enables",
+          "note": "融合 MLA 前序投影、RMSNorm、RoPE 与 KV Cache 写入的算子总开关"
         },
         {
           "from": "glm-5-3-flash",
@@ -16047,6 +16503,11 @@
           "from": "ai-core",
           "kind": "enables",
           "note": "对照 RMSNorm 归约、残差相加与 SwiGLU 逐项门控怎样与矩阵乘交替出现"
+        },
+        {
+          "from": "fuse-norm-quant-65db0ee6a4f3",
+          "kind": "enables",
+          "note": "融合残差加 RMSNorm 与后续量化算子，消除独立 DynamicQuant 开销"
         },
         {
           "from": "glm-mlp-version-source",
@@ -16410,6 +16871,11 @@
           "note": "路由专家跨全部 DP 组只放一份，正是 MoE 让各组无法独立运行并触发空闲陪跑的根源"
         },
         {
+          "from": "enable-fused-mc2-782bf6f2bf48",
+          "kind": "enables",
+          "note": "将 MoE 的路由分发、两层矩阵乘与归约融合成单一算子"
+        },
+        {
           "from": "eplb",
           "kind": "enables",
           "note": "理解逻辑路由、专家函数与训练期静态均衡偏置的局限"
@@ -16423,6 +16889,11 @@
           "from": "multistream-overlap-gate",
           "kind": "enables",
           "note": "该历史开关将 MoE 层的共享专家前向与 select_experts 路由移至副流，与准备阶段并行"
+        },
+        {
+          "from": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "enables",
+          "note": "把混合 MoE 的共享专家拆到独立 NPU 流上掩盖路由专家通信延迟"
         },
         {
           "from": "quantization",
@@ -16533,9 +17004,19 @@
       "file": "concepts/moe-comm-dispatch.md",
       "backlinks": [
         {
+          "from": "enable-fused-mc2-782bf6f2bf48",
+          "kind": "enables",
+          "note": "在 MoE 通信选路中选择 FUSED_MC2（dispatch_ffn_combine / MegaMoe）路径"
+        },
+        {
           "from": "megamoe-shared-expert-fusion-5a99901d47e6",
           "kind": "enables",
           "note": "enable_fused_mc2 各档位与 MoE 分发组合算子路由逻辑在那一页讲，本标志对应档位 3 的共享专家并入行为"
+        },
+        {
+          "from": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "enables",
+          "note": "与路由专家 AllToAll / MC2 Dispatch 和 Combine 事件里程碑交错调度"
         }
       ]
     },
@@ -17306,7 +17787,90 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "params/multistream-overlap-gate.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "multistream-overlap-shared-expert-8d7558953faf",
+          "kind": "enables",
+          "note": "共同属于 MoE 多流延迟隐藏开关"
+        }
+      ]
+    },
+    {
+      "id": "multistream-overlap-shared-expert-8d7558953faf",
+      "title": "multistream_overlap_shared_expert",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制混合 MoE 模型是否把共享专家（Shared Experts）拆到独立辅助 NPU 流上与路由专家的 Dispatch/计算/Combine 通信并发执行（默认 False）；与 enable_fused_mc2=1 互斥会被自动覆盖，与 mix_placement 互斥则直接报错。",
+      "aliases": [
+        "共享专家多流重叠",
+        "shared_experts_calculation_stream"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L575",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L850-L854",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L1045-L1049",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/shared_experts.py#L130-L193",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/shared_experts.py#L699-L780",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/fused_moe.py#L267-L293",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/fused_moe.py#L502-L549",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ops/fused_moe/routed_experts.py#L788-L794",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L667",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ops/fused_moe/moe_mlp.py#L28-L79",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ops/fused_moe/shared_experts.py#L174-L268",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L139",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L412-L415"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "moe",
+          "kind": "builds-on",
+          "note": "把混合 MoE 的共享专家拆到独立 NPU 流上掩盖路由专家通信延迟"
+        },
+        {
+          "to": "moe-comm-dispatch",
+          "kind": "builds-on",
+          "note": "与路由专家 AllToAll / MC2 Dispatch 和 Combine 事件里程碑交错调度"
+        },
+        {
+          "to": "enable-fused-mc2-782bf6f2bf48",
+          "kind": "conflicts-with",
+          "note": "启用融合 MC2 时被强制关闭，通常在 PD 分离的 Decode 节点单独开启"
+        },
+        {
+          "to": "multistream-overlap-gate",
+          "kind": "builds-on",
+          "note": "共同属于 MoE 多流延迟隐藏开关"
+        },
+        {
+          "to": "megamoe-shared-expert-fusion-5a99901d47e6",
+          "kind": "alternative-to",
+          "note": "分别通过独立辅助流重叠与并入 MegaMoe 算子内部两条路线加速共享专家"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/multistream-overlap-shared-expert-8d7558953faf.md",
+      "backlinks": [
+        {
+          "from": "enable-fused-mc2-782bf6f2bf48",
+          "kind": "conflicts-with",
+          "note": "enable_fused_mc2=1（含 2 归一后）会自动强制关闭多流共享专家重叠"
+        }
+      ]
     },
     {
       "id": "netloader-guide",
@@ -18202,6 +18766,11 @@
           "from": "core-cli-params",
           "kind": "enables",
           "note": "图模式与 static_kernel、super_kernel 的三级依赖状态机与录图开销细节见该页"
+        },
+        {
+          "from": "enable-npugraph-ex-ffc890dd7afe",
+          "kind": "enables",
+          "note": "开关昇腾 FX 图优化后端 npugraph_ex 的主配置项"
         },
         {
           "from": "enable-super-kernel-ce990e186bfa",
@@ -21159,6 +21728,11 @@
           "from": "dev-new-model-and-custom-op",
           "kind": "enables",
           "note": "常见昇腾量化格式（W8A8、MXFP8、FP8）的数学与权重布局见该页，本页聚焦方法注册接口"
+        },
+        {
+          "from": "fuse-norm-quant-65db0ee6a4f3",
+          "kind": "enables",
+          "note": "覆盖 W8A8/W4A8/MXFP8 激活量化融合并主动避开 W4A4"
         },
         {
           "from": "quantization-evaluation",
@@ -25405,6 +25979,11 @@
           "note": "启用 sleep mode 会命中可变权重安全守卫，加载器在建会话前整体绕过 RFork 改走默认磁盘加载"
         },
         {
+          "from": "weight-nz-mode-b9cf06865b95",
+          "kind": "conflicts-with",
+          "note": "weight_nz_mode != 0 会导致 Sleep Mode wake_up() 直接抛错，需显式设为 0"
+        },
+        {
           "from": "ascend-910b3-measured-baseline",
           "kind": "enables",
           "note": "提供 level 1/2 休眠唤醒耗时、显存净残留与 weight_nz_mode 唤醒守卫报错标本"
@@ -26884,6 +27463,11 @@
           "from": "rfork-layout",
           "kind": "enables",
           "note": "理解昇腾 ND 与 NZ 分块存储格式及补齐差异，是判断 processed layout 不可省去后处理的前提"
+        },
+        {
+          "from": "weight-nz-mode-b9cf06865b95",
+          "kind": "enables",
+          "note": "控制权重从 ND 转换为 FRACTAL_NZ 分形排布的分级模式"
         }
       ]
     },
@@ -27880,6 +28464,11 @@
           "from": "ascend-910b3-measured-baseline",
           "kind": "enables",
           "note": "提供 v0.30.0 正式版在 Ascend 910B3 上的真机显存基数、配置守卫报错标本与运行期劣化实证"
+        },
+        {
+          "from": "enable-mlapo-e6204d2b22cd",
+          "kind": "enables",
+          "note": "v0.30.0 退役 VLLM_ASCEND_ENABLE_MLAPO 后统一由该字段控制"
         },
         {
           "from": "v030rc2-baseline",
@@ -29240,6 +29829,73 @@
           "note": "先看请求调度与设备执行如何分工，再定位平台接口"
         }
       ]
+    },
+    {
+      "id": "weight-nz-mode-b9cf06865b95",
+      "title": "weight_nz_mode",
+      "type": "param",
+      "origin": "seed",
+      "summary": "控制模型线性层与 MoE 权重是否转换为昇腾专用 FRACTAL_NZ 分形排布（0 禁用、1 仅量化权重、2 含浮点权重）；默认 1 会在 Sleep Mode 唤醒或 RL 权重更新时触发报错，需显式设为 0。",
+      "aliases": [
+        "FRACTAL_NZ 权重模式",
+        "NZ 权重排布模式"
+      ],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L615",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L379-L384",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L655-L656",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/utils.py#L375-L410",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/worker/worker.py#L279-L325",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/device/hardware_profile.py#L310-L320",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/batch_invariant.py#L106-L116",
+        "vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/quantization/methods/w4a4/w4a4_mxfp4.py#L207",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/ascend_config.py#L718",
+        "vllm-ascend@8d6180e28e0941fcfc85999bf2aafe194e98f8f6:vllm_ascend/worker/worker.py#L1149-L1155",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/envs.py#L88-L92",
+        "vllm-ascend@2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f:vllm_ascend/ascend_config.py#L264-L268",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1392-L1462",
+        "raw:sha256-98d6d73e95b70ca222595dae1ec4a72589432e386f6e09b0ac90a1dc34696aef.md#L1735-L1778"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md"
+      ],
+      "relations": [
+        {
+          "to": "tensor-layout",
+          "kind": "builds-on",
+          "note": "控制权重从 ND 转换为 FRACTAL_NZ 分形排布的分级模式"
+        },
+        {
+          "to": "sleep-mode",
+          "kind": "conflicts-with",
+          "note": "weight_nz_mode != 0 会导致 Sleep Mode wake_up() 直接抛错，需显式设为 0"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "AscendConfig 字段及 rl_config 自动清零逻辑所在配置体系"
+        },
+        {
+          "to": "enable-sleep-mode-extra-cleanup",
+          "kind": "builds-on",
+          "note": "开启 Sleep Mode 额外清理与安全唤醒时同样受 weight_nz_mode=0 前置约束"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-28",
+      "file": "params/weight-nz-mode-b9cf06865b95.md",
+      "backlinks": []
     },
     {
       "id": "weight-prefetch-config",

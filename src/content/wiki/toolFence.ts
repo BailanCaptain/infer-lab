@@ -36,6 +36,11 @@ export const KNOWN_WIKI_TOOLS = {
       "cold-start-budget",
     ] as const,
   },
+  "knob-radar": {
+    title: "昇腾调优旋钮雷达",
+    defaultTab: "knobs",
+    allowedModes: ["minimal", "full"] as const,
+  },
 } as const;
 
 export type WikiToolId = keyof typeof KNOWN_WIKI_TOOLS;

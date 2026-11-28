@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 196 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 204 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 拆解昇腾 AI Core 内 Cube、Vector、Scalar 单元与各级片上缓冲（L1、L0A/B/C、UB）及搬运引擎（MTE、FixPipe）的分工；结合 Qwen3-8B 真机算子实测剖析流水重叠与量化开销，对比 910B 经核外 GM 交接与昇腾 950 片上直通差异。 `04`
@@ -47,7 +47,7 @@
 - [KV cache 显存预算：启动时怎样一项项扣出来](concepts/kv-cache-memory-profiling.md) — 每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，装完权重后先执行 profile run 试跑（普通路径取单步上限，满足条件的 MoE 先加跑小档）量出激活峰值与含 HCCL 缓冲的非 Torch 增量，三项扣完后将剩余预算切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付。 `05`
 - [KV cache 规格：每层的状态怎样换算成页、编进缓存组](concepts/kv-cache-spec.md) — KV cache 规格（KVCacheSpec）是每个要存状态的层交给缓存管理器的说明：一块覆盖多少个位置、每个位置或每份状态占多少字节。管理器据此算出一页多大，再把能共用块号清单、管理方式兼容的层编成缓存组。GLM 的四类状态被对齐成两档页、编成 5 个组；本页也是 block_size 五种含义的唯一出处。 `11`
 - [层与隐藏表示：hidden 如何沿残差流穿过每一层](concepts/layers-and-hidden.md) — hidden 是模型为每个输入位置维护、逐层改写的向量。本文先以 Qwen3-8B 的 36 层同构 Transformer（单条 [T, 4096] 残差流、每层 2 次 Pre-RMSNorm + 2 次残差相加）讲清主干，再对照 45 层 KDA/MLA 交替与 mHC 四流残差。 `03`
-- [阅读指南：这个知识库讲什么，按什么顺序读](concepts/learning-guide.md) — 知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」五套交互工作台。 `00`
+- [阅读指南：这个知识库讲什么，按什么顺序读](concepts/learning-guide.md) — 知识库总导览：用通俗主线串联一条请求在昇腾推理服务中的完整旅程，给出零基础概念起步与工程上线速查两条入口，对齐 01–12 全部目录分组、四族昇腾硬件与「部署与排障」六套交互工作台。 `00`
 - [线性注意力与门控增量法则：用定长矩阵状态替代逐词 KV 历史](concepts/linear-attention.md) — 线性注意力去掉逐位置 Softmax，靠核映射与矩阵乘法结合律把历史压进定长状态矩阵，并在 Prefill 走分块并行、Decode 走逐词递推。本页用同一套二维算例推演纯累加、DeltaNet 误差擦写、Qwen3-Next 的 Gated DeltaNet 到 KDA，并核对双状态规格与 GLM 块号账。 `04`
 - [lm_head：把最后的隐藏向量变成每个 token 的分数](concepts/lm-head.md) — lm_head 把末层隐藏向量投影到词表空间得到 logits。本页先用 4 维 6 词小例演示打分与采样，再以 Qwen3-8B 的末层 RMSNorm、独立 lm_head [4096, 151,936]、TP 词表列切与 Prefill 末位精选讲清主干，最后对照双机 TP8 分段打分与 MTP 共享输出头。 `03`
 - [BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样](concepts/low-precision-formats.md) — 从 FP32、FP16、BF16 与 INT8 出发，拆解 FP8、HiF8、NF4、MXFP8、MXFP4 与 NVFP4 的位域分配和块级缩放；区分权重文件精度、加载后 HBM 驻留格式与 Cube 实际计算类型，对照 vllm-ascend v0.30.0 下 A2/A3、310P 与 Ascend 950 的四族选路边界。 `04`
@@ -160,13 +160,19 @@
 - [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — MoE MC2 combine 阶段通信量化覆盖开关：仅认整数 0/2/3/4，默认 0 让位给模型显式 comm_quant_mode，模型未提供时仅 W8A8MXFP 默认选 4。v0.30.0 与 main 可用，受硬件与非融合 MC2 路径约束。 `14 17`
 - [cross_node_transfer_limit](params/cross-node-transfer-limit-06ee92260b7a.md) — STAIR 单层一轮规划里每个节点跨节点发出与接收专家搬运的各自上限：-1 不限，0 禁止跨节点，正整数按节点双向封顶。v0.30.0 与 main 已接入 MRv2，声明默认 -1；未显式指定通信器而自动回退 torch_gloo 时，仅将未显式配置的限额收紧为 1。
 - [enable_async_exponential](params/enable-async-exponential.md) — 旧版采样优化开关：将随机采样用的指数分布随机数 q 提前到副流与 model forward 重叠生成。v0.23.0 默认关闭并已标记待废弃，自 v0.25.1rc1 起整体移除；v0.26.0rc 静默忽略，v0.30.0 与 main 通常拒收（可发现 vllm_omni 时告警过滤）。 `19`
+- [enable_cpu_binding](params/enable-cpu-binding-f0fbd89fe35b.md) — 控制 NPU Worker 启动时是否执行基于拓扑感知或全局切片的 NUMA 亲和 CPU 绑核（默认 True）；开启 Engram 主机内存卸载时自动跳过跨节点内存迁移。
 - [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — 压测与上限分析专用开关：开启后丢弃 MoE 路由器算出的真实 topk_ids，改为按 ep_size / ep_rank 确定的轮转专家编号，保留原 topk_weights（模型精度失效，严禁用于生产或精度评估）。默认 false，v0.30.0 与 main 均支持，与 dynamic_eplb 互斥。 `14`
+- [enable_fused_mc2](params/enable-fused-mc2-782bf6f2bf48.md) — 控制 MoE 层是否把 Dispatch、路由专家 FFN 与 Combine 融合成单个通算融合大算子 FUSED_MC2（dispatch_ffn_combine 或 CANN MegaMoe）；取代旧环境变量 VLLM_ASCEND_ENABLE_FUSED_MC2，不同值对应不同融合层级并受芯片档位与并行度门控。
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md) — 旧版行并行线性通算融合开关：将 RowParallelLinear 的「矩阵乘 + AllReduce」换为 npu_mm_all_reduce_base。 v0.23.0/v0.24.0rc 可用，v0.25.1rc1 起移除；v0.26 忽略，v0.30.0 与 main 通常拒收（vllm_omni 告警过滤）。 `13`
+- [enable_mlapo](params/enable-mlapo-e6204d2b22cd.md) — 控制 DeepSeek MLA / SFA 注意力前序计算是否启用融合大算子 MLAPO（aclnnMlaProlog）；取代旧环境变量 VLLM_ASCEND_ENABLE_MLAPO，默认 True，并在 A2/A3 上受 PD Decode 角色与权重格式门控。
+- [enable_npugraph_ex](params/enable-npugraph-ex-ffc890dd7afe.md) — 控制图编译后端是否启用 NPUGraphEx（npugraph_ex）对 FX 计算图执行编译优化并与 ACLGraph 协同；默认 True，但在 PIECEWISE / FULL_AND_PIECEWISE / NONE 图模式及不支持硬件上会被静默覆盖为 False。
 - [enable_pcp_embedding_lmhead_weight_sharding](params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md) — PCP>1 且模块匹配 embed_tokens/head 且未禁用 TP 时，按 TP×PCP 网格切分词表权重；默认 true，与同模块细粒度 TP 互斥，main 还互斥 enable_batch_sharded_sampling。
 - [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) — PCP>1 时在加载期按 PCP 组切分输出投影权重，每卡常驻 1/pcp_size；prefill 临时 all-gather，decode 用本地片加 PCP all-reduce。v0.30.0 与 main 默认 true，覆盖 SFA-PCP 与 DSA-PCP。 `15`
 - [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外释放 HCCL 设备侧通信组并清空 ACL 图工作区，默认关闭；v0.23/v0.26 用顶层键，v0.30.0 与 main 迁至 rl_config.sleep_mode_extra_cleanup 并引入 HCCL anchor。 `19`
+- [enable_static_kernel](params/enable-static-kernel-0a7b93dc8b97.md) — 控制是否在图捕获编译期针对固定批大小预编译 Static Kernel 算子二进制（默认 False）；依赖 enable_npugraph_ex=True 且在 PIECEWISE / FULL_AND_PIECEWISE / NONE 模式下会被静默清零，同时默认级联启用 enable_super_kernel。
 - [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — ascend_compilation_config 中的 Super Kernel 优化开关：在编译与 ACL Graph 捕获时提交优化选项与 scope，把符合条件的静态子 kernel 合并。v0.26 维护快照、v0.30.0 及 main 可用，省略时跟随 enable_static_kernel；实际生效还受图模式与硬件能力限制。 `16`
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 旧版 ascend_compilation_config 开关：将 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成单算子；因与序列并行争抢子图而官方默认关闭（v0.23.0 实际注册逻辑存在默认值分裂），自 v0.25.1rc1 起已整体移除，v0.26 静默吞掉、v0.30.0 与 main 严格校验直接报错。 `13`
+- [fuse_norm_quant](params/fuse-norm-quant-65db0ee6a4f3.md) — 控制 FX 图融合 Pass 是否将 AddRMSNorm 与随后的激活量化（动态 INT8 / 静态 INT8 / MXFP 量化）合并为单颗算子（默认 True）；消除了独立动态量化算子的额外 AIV 启动与全局内存往返开销，main 分支进一步精确锁定 INT8 与无 bias 分支。
 - [fused_op_type](params/fused-op-type-fc0f5fcd7be0.md) — 曾用于切换 Sparse KV Offload decode 路径的子键（none 走四步、fused_copy_sfa 走 LIM + Copy-SFA）。仅见于 v0.30.0rc2 等过渡快照；v0.30.0 与 main 已移除该键并默认启用融合路径，传入旧键会报错。
 - [gdn_internal_prefill_checkpoints](params/gdn-internal-prefill-checkpoints-50f5ac80d583.md) — main 分支新增的门控增量网络（GDN）Prefill 内部检查点开关（默认 false）：通过层能力校验的 GDN 层在该非投机 Prefill 分支统一改走检查点版 Triton 递推算子；当本步 metadata.checkpoint 非空时，再按 64 token 对齐额外导出中间递推状态与短卷积窗口供前缀缓存复用。
 - [kv_pool_range_debug](params/kv-pool-range-debug-83e8b165addd.md) — main 分支用于替代旧环境变量 VLLM_ASCEND_KVPOOL_RANGE_DEBUG 的 KV Pool 审计日志开关（默认 false）：设为 true 后对 Mooncake 后端整键读写及分层 KV 传输的逐层区间与提交动作输出 [KVPOOL_RANGE_DEBUG] JSON 日志。
@@ -177,6 +183,7 @@
 - [megamoe_shared_expert_fusion](params/megamoe-shared-expert-fusion-5a99901d47e6.md) — main 分支新增的 AscendConfig 内部派生布尔标志（默认 false）：由用户设置 enable_fused_mc2=3 自动推导置真，指示 Atlas A5 的 CANN MegaMoE 融合算子将共享专家一并并入算子内部执行，而非单独跑共享专家前向。
 - [multistream_engram_overlap](params/multistream-engram-overlap-29113aa3f8fc.md) — 控制 Engram 模型是否在辅助流异步重叠哈希、查表与跨卡交换：Atlas A5 默认 true，A2 / A3 / 310P 默认 false；单步图模式为 NONE 或 FULL（含 FULL_DECODE_ONLY）时生效，PIECEWISE 分段步回退串行。
 - [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控多流重叠开关，把 MoE 共享专家前向与 select_experts 路由放到副流，与 prepare 阶段的动态量化及 EP All-Gather 并行；v0.24.0rc 起整套实现已删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（发现 vLLM-Omni 时告警并过滤）。 `14`
+- [multistream_overlap_shared_expert](params/multistream-overlap-shared-expert-8d7558953faf.md) — 控制混合 MoE 模型是否把共享专家（Shared Experts）拆到独立辅助 NPU 流上与路由专家的 Dispatch/计算/Combine 通信并发执行（默认 False）；与 enable_fused_mc2=1 互斥会被自动覆盖，与 mix_placement 互斥则直接报错。
 - [placement_search_backtrack_limit](params/placement-search-backtrack-limit-82b03cef98b0.md) — STAIR 用带约束 LPT 为单个候选摆放专家副本时允许接受替代可行分支的回溯预算上限：默认 32，合法范围 0–64，每个候选单独计数；设为 0 只禁止接受替代可行选择，仍会执行首个可行选择及跳过来源不可行的试放。v0.30.0 与 main 已接入 MRv2。
 - [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn、moe、mlp 三组共五个权重分别指定「预取权重前百分之几」；仅在 v0.23.0 维护分支可用，v0.24.0rc 起随整个 weight prefetch 特性一起删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（Omni 环境告警过滤），没有等价替代键。 `19`
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 动态切块配置（CPP）：启动期实测 prefill 延迟曲线，运行时按前缀长度反解每步 token 切块大小以缓解 PP 流水等待。默认关闭，要求 PP>1 且互斥 balance scheduling，v0.30.0 仍支持，main 已于 PR #21310 移除。 `12 13`
@@ -194,6 +201,7 @@
 - [stair_config](params/stair-config-cca9e594a052.md) — additional_config.eplb_config 下给 MRv2 STAIR（StairEplbPolicy）调参的嵌套字典，十个数值键分管负载窗口压缩、滞回重排门槛、风险分位数、副本数搜索、搬运上限与有界回溯。v0.30.0 与 main 已接入 MRv2 并默认启用 stair 策略，未指定通信器回退 Gloo 时自动收紧未显式配置的搬运限额。
 - [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — Sparse KV Offload 的融合重叠 decode 开关，位于 additional_config.sparse_kv_offload_config，默认 false；开启后把未命中 KV 的 H2D 搬运与 SFA 注意力计算放进同一流水线，并更新设备侧选择缓存。v0.23/v0.26 无此键，v0.30.0 与 main 上开启时自动切离默认的 Copy-SFA 路径。 `11`
 - [use_layerwise](params/use-layerwise-b475778cd352.md) — AscendStoreConnector 的逐层 KV 存取开关，位于 --kv-transfer-config 的 kv_connector_extra_config，默认 false；开启后按层搬运 KV，并在含整图配置下改用 PIECEWISE。 `11`
+- [weight_nz_mode](params/weight-nz-mode-b9cf06865b95.md) — 控制模型线性层与 MoE 权重是否转换为昇腾专用 FRACTAL_NZ 分形排布（0 禁用、1 仅量化权重、2 含浮点权重）；默认 1 会在 Sleep Mode 唤醒或 RL 权重更新时触发报错，需显式设为 0。
 - [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的权重预取子配置，在独立流上把 linear 权重提前从 HBM 搬进 L2 cache 与 vector 计算重叠；v0.24.0rc 起已删除，v0.26 忽略，v0.30.0 与 main 通常拒收（Omni 告警过滤）。 `19`
 
 ## 来源（source）

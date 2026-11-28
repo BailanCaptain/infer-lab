@@ -159,6 +159,16 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 1. **不武断判为语法错，诚实归为待核底层消费（`unknown`）**：两仓代码没读，不排除底层闭源 `libhccl.so` 或 CANN 运行时在 C 层直接通过 `getenv` 消费；在缺少固定版本 CANN 文档佐证前，本站配置体检器将其标为 `unknown` 提示核查，而非直接判错。
 2. **单机最小起服务绝不盲抄全家桶**：单机卡间通信走片间高速互联，不需要跨机网卡选路或超大规模通信调优变量；先把无额外环境变量的干净基线跑通，只有当目标模型部署指南明确点名某项变量时再按需加入。
 
+拿不准手头脚本里的 `HCCL_*`、`VLLM_ASCEND_*` 或 `--additional-config` 开关在 `v0.30.0` 与 `main` 中是否仍被读取时，可在下方调优旋钮雷达中按目标反查并一键排雷：
+
+```wiki-tool
+tool: knob-radar
+mode: minimal
+preset: preset-910b3-w8a8-low-latency
+title: 昇腾环境变量与调优旋钮速查雷达
+summary: 检索 95 项源码实读环境变量、additional_config、compilation_config 与核心 CLI 旋钮，甄别已下线旧开关并生成干净启动命令
+```
+
 ## 第三步：单机 `vllm serve` 最小起服务清单与三步冒烟测试
 
 容器验活通过、环境变量理顺之后，单机拉起在线服务只需要抓准六个基础命令行开关（跨实例分离与高阶图融合属于进阶调优，不混入首轮最小验证）：
